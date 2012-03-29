@@ -4251,6 +4251,25 @@ use shape_functions_NDim
        INCOMEOLD = 1.0  !Incoming
     ENDIF
 
+
+    cv_nodi=cv_nodi_ipha-(iphase-1)*cv_nonods
+    cv_nodj=cv_nodj_ipha-(iphase-1)*cv_nonods
+
+
+    print *, 'ele, ele2, gi, cv_iloc, cv_jloc, sele, cv_nodi, cv_nodj, income, ndotq', &
+    ele, ele2, gi, cv_iloc, cv_jloc , sele, cv_nodi, cv_nodj, income, ndotq
+    print *, UGI_COEF_ELE
+    print *, UGI_COEF_ELE2
+
+    print *, VGI_COEF_ELE
+    print *, VGI_COEF_ELE2
+
+    print *, WGI_COEF_ELE
+    print *, WGI_COEF_ELE2
+
+    print *, ''
+
+
     RETURN  
 
   END SUBROUTINE GET_INT_VEL_OVERLAP
@@ -5748,6 +5767,8 @@ use shape_functions_NDim
        END DO
        NDOTQ_IMP=CVNORMX( GI ) * UDGI_IMP + CVNORMY( GI ) * VDGI_IMP + CVNORMZ( GI ) * WDGI_IMP
 
+       !print *, 'UDGI_IMP, VDGI_IMP, WDGI_IMP:',UDGI_IMP, VDGI_IMP, WDGI_IMP
+
        CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) - SCVDETWEI( GI ) * ( &
             ONE_M_FTHETA_T2OLD * LIMDTOLD * NDOTQOLD &
             + FTHETA_T2  * LIMDT * (NDOTQ-NDOTQ_IMP)        )/ DENOLD( CV_NODI_IPHA ) 
@@ -5791,7 +5812,7 @@ use shape_functions_NDim
        END DO
     ENDIF
 
-    ! ewrite(3,*)'check ct:,', NCOLCT * NDIM * NPHASE, size(ct), ct(1:NCOLCT * NDIM * NPHASE)
+    !ewrite(3,*)'check ct:,', NCOLCT * NDIM * NPHASE, size(ct), ct(1:NCOLCT * NDIM * NPHASE)
 
     RETURN
   END SUBROUTINE PUT_IN_CT_RHS

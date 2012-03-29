@@ -432,20 +432,21 @@
 
 !      print *,'c=',c
 !      stop 282
-       do iphase=1,nphase
-       do idim=1,ndim
-         do u_inod=1,u_nonods
-           print *,'iphase,idim,u_inod:',iphase,idim,u_inod
-           print *,'colc:',(colc(count),count=findc(u_inod),findc(u_inod+1)-1)
-           print *,'c:',(c(count+(idim-1)*ncolc+(iphase-1)*ndim*ncolc), &
-                         count=findc(u_inod),findc(u_inod+1)-1)
-         end do
-       end do
-       end do
+!      do iphase=1,nphase
+!         do idim=1,ndim
+!            do u_inod=1,u_nonods
+!               print *,'iphase,idim,u_inod:',iphase,idim,u_inod
+!               print *,'colc:',(colc(count),count=findc(u_inod),findc(u_inod+1)-1)
+!               print *,'c:',(c(count+(idim-1)*ncolc+(iphase-1)*ndim*ncolc), &
+!                    count=findc(u_inod),findc(u_inod+1)-1)
+!            end do
+!         end do
+!      end do
 !         stop 292
 
 
       if(.false.) then
+
          print *,'NCOLCT,NDIM,NCOLC,cv_nonods,u_nonods,nphase:', &
                   NCOLCT,NDIM,NCOLC,cv_nonods,u_nonods,nphase
 !         stop 321
@@ -478,11 +479,11 @@
 
          print *,'colc:'
          do U_JNOD=1,u_nonods
-               print *,'U_JNOD=',U_JNOD
-               print *,(colc(count2),COUNT2=FINDC(U_JNOD),FINDC(U_JNOD+1)-1)
-               print *,(c(count2),COUNT2=FINDC(U_JNOD),FINDC(U_JNOD+1)-1)
+            print *,'U_JNOD=',U_JNOD
+            print *,(colc(count2),COUNT2=FINDC(U_JNOD),FINDC(U_JNOD+1)-1)
+            print *,(c(count2),COUNT2=FINDC(U_JNOD),FINDC(U_JNOD+1)-1)
          end do
-!         stop 221
+         stop 221
 
       endif
 
@@ -607,6 +608,7 @@
       END DO Loop_while
 
       do ncolor=1,-cv_nonods
+
         COLOR_VEC=0.0
         COLOR_VEC(ncolor)=1.0
 
@@ -658,7 +660,7 @@
 
          END DO
          !       cmc(FINDCMC( CV_NONODS + 1 ) - 1)=50000.
-!         stop 1244 
+         stop 1244 
       endif
 
       DEALLOCATE( NEED_COLOR )

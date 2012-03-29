@@ -655,14 +655,15 @@ contains
        ! Put pressure in rhs of force balance eqn:  CDP=C*P
        CALL C_MULT( CDP, P, CV_NONODS, U_NONODS, NDIM, NPHASE, C, NCOLC, FINDC, COLC)
 
-!       ewrite(3,*) 'U_RHS:',U_RHS
-!       ewrite(3,*) 'CDP:',CDP
-!       ewrite(3,*) 'P:',P
-!       ewrite(3,*) 'C:',C
+       ewrite(3,*) 'U_RHS:',U_RHS
+       ewrite(3,*) 'CDP:',CDP
+       ewrite(3,*) 'P:',P
+       !ewrite(3,*) 'C:',C
 
        U_RHS_CDP = U_RHS + CDP
 
        CALL UVW_2_ULONG( U, V, W, UP_VEL, U_NONODS, NDIM, NPHASE )
+
 !       ewrite(3,*) 'JUST_BL_DIAG_MAT,INV_PIVIT_MAT:',JUST_BL_DIAG_MAT,INV_PIVIT_MAT
 !       ewrite(3,*) 'U_RHS_CDP:',U_RHS_CDP
 
@@ -680,21 +681,12 @@ contains
 
        ENDIF
 
-!       ewrite(3,*) 'UP_VEL:', UP_VEL
-
        CALL ULONG_2_UVW( U, V, W, UP_VEL, U_NONODS, NDIM, NPHASE )
-
 
        ! put on rhs the cty eqn; put most recent pressure in RHS of momentum eqn
        ! NB. P_RHS = -CT*U + CT_RHS 
        CALL CT_MULT(P_RHS, U, V, W, CV_NONODS, U_NONODS, NDIM, NPHASE, &
             CT, NCOLCT, FINDCT, COLCT)
-
-!       ewrite(3,*) 'u::', u
-!       ewrite(3,*) 'v::', v
-!       ewrite(3,*) 'w::', w
-!       ewrite(3,*) 'P_RHS::', p_rhs
-!       ewrite(3,*) 'CT_RHS::', ct_rhs
 
        P_RHS = -P_RHS + CT_RHS
 
@@ -710,6 +702,12 @@ contains
              ewrite(3,*) cv_nod, cv_jnod, count, P_RHS( CV_NOD ), DIAG_SCALE_PRES( CV_NOD ),  MASS_MN_PRES( COUNT ), P( CV_JNOD )    
           END DO
        END DO
+
+       ewrite(3,*) 'u::', u
+       ewrite(3,*) 'v::', v
+       ewrite(3,*) 'w::', w
+       ewrite(3,*) 'P_RHS::', p_rhs
+       ewrite(3,*) 'CT_RHS::', ct_rhs
 
        ! solve for pressure correction DP that is solve CMC *DP=P_RHS...
        ewrite(3,*)'about to solve for pressure'
