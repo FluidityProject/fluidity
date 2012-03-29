@@ -4258,6 +4258,8 @@ use shape_functions_NDim
 
     print *, 'ele, ele2, gi, cv_iloc, cv_jloc, sele, cv_nodi, cv_nodj, income, ndotq', &
     ele, ele2, gi, cv_iloc, cv_jloc , sele, cv_nodi, cv_nodj, income, ndotq
+
+
     print *, UGI_COEF_ELE
     print *, UGI_COEF_ELE2
 

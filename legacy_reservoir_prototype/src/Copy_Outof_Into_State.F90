@@ -413,15 +413,16 @@ module copy_outof_into_state
       allocate( ug( u_nonods * nphases ))
       allocate( vg( u_nonods * nphases ))
       allocate( wg( u_nonods * nphases ))
-      nu = 1.
+
+      ! was nu=1., nv1., nw=1.
+      nu = 0.
       nv = 0.
       nw = 0.
-      if ( ndim > 1 ) nv = 1.
-      if ( ndim > 2 ) nw = 1.
+      if ( ndim > 1 ) nv = 0.
+      if ( ndim > 2 ) nw = 0.
       ug = 0.
       vg = 0.
       wg = 0.
-
 
       !! global numbering to allow proper copying of fields
       cv_nod = 0
