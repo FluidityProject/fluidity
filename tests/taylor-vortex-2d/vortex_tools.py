@@ -144,15 +144,22 @@ def plot_dissipation(times,arrays):
   ax.plot(times[0][0:-1], arrays[0], linestyle="dashdot",color='blue') # dns-12
   ax.plot(times[1][0:-1], arrays[1], linestyle="dashed",color='blue') # dns-24
   ax.plot(times[2][0:-1], arrays[2], linestyle="solid",color='blue') # dns-48
-  ax.plot(times[3][0:-1], arrays[3], linestyle="dashdot",color='green') # dynles-12
-  ax.plot(times[4][0:-1], arrays[4], linestyle="dashed",color='green') # dynles-24
-  ax.plot(times[5][0:-1], arrays[5], linestyle="solid",color='green') # dynles-48
-  ax.plot(times[6][0:-1], arrays[6], linestyle="dashdot",color='red') # dynles-aniso-12
-  ax.plot(times[7][0:-1], arrays[7], linestyle="dashed",color='red') # dynles-aniso-24
-  ax.plot(times[8][0:-1], arrays[8], linestyle="solid",color='red') # dynles-aniso-48
+  ax.plot(times[3][0:-1], arrays[3], linestyle="dashdot",color='green') # les-12
+  ax.plot(times[4][0:-1], arrays[4], linestyle="dashed",color='green') # les-24
+  ax.plot(times[5][0:-1], arrays[5], linestyle="solid",color='green') # les-48
+  ax.plot(times[6][0:-1], arrays[6], linestyle="dashdot",color='red') # les-aniso-12
+  ax.plot(times[7][0:-1], arrays[7], linestyle="dashed",color='red') # les-aniso-24
+  ax.plot(times[8][0:-1], arrays[8], linestyle="solid",color='red') # les-aniso-48
+  ax.plot(times[9][0:-1], arrays[9], linestyle="dashdot",color='green') # dynles-12
+  ax.plot(times[10][0:-1], arrays[10], linestyle="dashed",color='green') # dynles-24
+  ax.plot(times[11][0:-1], arrays[11], linestyle="solid",color='green') # dynles-48
+  ax.plot(times[12][0:-1], arrays[12], linestyle="dashdot",color='red') # dynles-aniso-12
+  ax.plot(times[13][0:-1], arrays[13], linestyle="dashed",color='red') # dynles-aniso-24
+  ax.plot(times[14][0:-1], arrays[14], linestyle="solid",color='red') # dynles-aniso-48
   ax.plot(times[2][0:-1], arrays[-1], linestyle="solid",color='black') # analytical-12
 
   pylab.legend(('dns-12','dns-24','dns-48',
+'les-12','les-24','les-48','les-aniso-12','les-aniso-24','les-aniso-48',
 'dynles-12','dynles-24','dynles-48','dynles-aniso-12','dynles-aniso-24','dynles-aniso-48',
 'exact'),loc='best')
   ltext = pylab.gca().get_legend().get_texts()

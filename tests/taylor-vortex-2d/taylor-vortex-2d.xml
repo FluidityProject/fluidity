@@ -31,6 +31,25 @@ tkep48 = stat("taylor-green-vortex-2d-periodic_48.stat")["fluid"]["TKE"]["l2norm
 dtkep48 = stat("taylor-green-vortex-2d-periodic_48.stat")["fluid"]["TKEDiff"]["l2norm"]
 
 #LES
+timelp12 = stat("taylor-green-vortex-2d-les-periodic_12.stat")["ElapsedTime"]["value"]
+tkelp12 = stat("taylor-green-vortex-2d-les-periodic_12.stat")["fluid"]["TKE"]["l2norm"]
+dtkelp12 = stat("taylor-green-vortex-2d-les-periodic_12.stat")["fluid"]["TKEDiff"]["l2norm"]
+timelp24 = stat("taylor-green-vortex-2d-les-periodic_24.stat")["ElapsedTime"]["value"]
+tkelp24 = stat("taylor-green-vortex-2d-les-periodic_24.stat")["fluid"]["TKE"]["l2norm"]
+dtkelp24 = stat("taylor-green-vortex-2d-les-periodic_24.stat")["fluid"]["TKEDiff"]["l2norm"]
+timelp48 = stat("taylor-green-vortex-2d-les-periodic_48.stat")["ElapsedTime"]["value"]
+tkelp48 = stat("taylor-green-vortex-2d-les-periodic_48.stat")["fluid"]["TKE"]["l2norm"]
+dtkelp48 = stat("taylor-green-vortex-2d-les-periodic_48.stat")["fluid"]["TKEDiff"]["l2norm"]
+
+timelap12 = stat("taylor-green-vortex-2d-les-aniso-periodic_12.stat")["ElapsedTime"]["value"]
+tkelap12 = stat("taylor-green-vortex-2d-les-aniso-periodic_12.stat")["fluid"]["TKE"]["l2norm"]
+dtkelap12 = stat("taylor-green-vortex-2d-les-aniso-periodic_12.stat")["fluid"]["TKEDiff"]["l2norm"]
+timelap24 = stat("taylor-green-vortex-2d-les-aniso-periodic_24.stat")["ElapsedTime"]["value"]
+tkelap24 = stat("taylor-green-vortex-2d-les-aniso-periodic_24.stat")["fluid"]["TKE"]["l2norm"]
+dtkelap24 = stat("taylor-green-vortex-2d-les-aniso-periodic_24.stat")["fluid"]["TKEDiff"]["l2norm"]
+timelap48 = stat("taylor-green-vortex-2d-les-aniso-periodic_48.stat")["ElapsedTime"]["value"]
+tkelap48 = stat("taylor-green-vortex-2d-les-aniso-periodic_48.stat")["fluid"]["TKE"]["l2norm"]
+dtkelap48 = stat("taylor-green-vortex-2d-les-aniso-periodic_48.stat")["fluid"]["TKEDiff"]["l2norm"]
 
 #dynamic LES
 timedlp12 = stat("taylor-green-vortex-2d-dynles-periodic_12.stat")["ElapsedTime"]["value"]
@@ -57,9 +76,9 @@ dtkedlap48 = stat("taylor-green-vortex-2d-dynles-aniso-periodic_48.stat")["fluid
 exact = stat("taylor-green-vortex-2d-periodic_48.stat")["fluid"]["ExactTKE"]["l2norm"]
 texact = timep48
 
-times=(timep12,timep24,timep48,timedlp12,timedlp24,timedlp48,timedlap12,timedlap24,timedlap48,texact)
-tke=(tkep12,tkep24,tkep48,tkedlp12,tkedlp24,tkedlp48,tkedlap12,tkedlap24,tkedlap48,exact)
-error=(dtkep12,dtkep24,dtkep48,dtkedlp12,dtkedlp24,dtkedlp48,dtkedlap12,dtkedlap24,dtkedlap48)
+times=(timep12,timep24,timep48,timelp12,timelp24,timelap12,timelap24,timedlp12,timedlp24,timedlp48,timedlap12,timedlap24,timedlap48,texact)
+tke=(tkep12,tkep24,tkep48,tkelp12,tkelp24,tkelap12,tkelap24,tkedlp12,tkedlp24,tkedlp48,tkedlap12,tkedlap24,tkedlap48,exact)
+error=(dtkep12,dtkep24,dtkep48,dtkelp12,dtkelp24,dtkelap12,dtkelap24,dtkedlp12,dtkedlp24,dtkedlp48,dtkedlap12,dtkedlap24,dtkedlap48)
 
 # Time derivative of TKE
 dissiprates = vt.differentiate(times,tke)
@@ -76,16 +95,26 @@ print 'integrals ', integrals
 conv1224 = abs(integrals[0]/integrals[1])
 conv2448 = abs(integrals[1]/integrals[2])
 
-convdlp1224 = abs(integrals[3]/integrals[4])
-convdlp2448 = abs(integrals[4]/integrals[5])
+convlp1224 = abs(integrals[3]/integrals[4])
+convlp2448 = abs(integrals[4]/integrals[5])
 
-convdlap1224 = abs(integrals[6]/integrals[7])
-convdlap2448 = abs(integrals[7]/integrals[8])
+convlap1224 = abs(integrals[6]/integrals[7])
+convlap2448 = abs(integrals[7]/integrals[8])
+
+convdlp1224 = abs(integrals[9]/integrals[10])
+convdlp2448 = abs(integrals[10]/integrals[11])
+
+convdlap1224 = abs(integrals[12]/integrals[13])
+convdlap2448 = abs(integrals[13]/integrals[14])
 
 # Write convergence stats to file
 output=open('output.log','w')
 output.write('convergence_periodic_12_24 '+str(log(conv1224,2))+'\n')
 output.write('convergence_periodic_24_48 '+str(log(conv2448,2))+'\n')
+output.write('convergence_les_periodic_12_24 '+str(log(convlp1224,2))+'\n')
+output.write('convergence_les_periodic_24_48 '+str(log(convlp2448,2))+'\n')
+output.write('convergence_les_aniso_periodic_12_24 '+str(log(convlap1224,2))+'\n')
+output.write('convergence_les_aniso_periodic_24_48 '+str(log(convlap2448,2))+'\n')
 output.write('convergence_dynles_periodic_12_24 '+str(log(convdlp1224,2))+'\n')
 output.write('convergence_dynles_periodic_24_48 '+str(log(convdlp2448,2))+'\n')
 output.write('convergence_dynles_aniso_periodic_12_24 '+str(log(convdlap1224,2))+'\n')
