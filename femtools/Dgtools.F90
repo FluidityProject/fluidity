@@ -471,7 +471,7 @@ contains
 
     if (present_and_true(only_owned_elements) .and. associated(mass%sparsity%row_halo)) then
       ! rest is zeroed
-      mass%val(colm_pos+1:)=0.0
+      inv_mass%val(colm_pos+1:)=0.0
     end if
  
   end subroutine csr_dg_inverse_mass_from_mass
