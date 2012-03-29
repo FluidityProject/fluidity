@@ -372,6 +372,8 @@
          if (les_second_order) then
             call get_option(trim(les_option_path)//"/second_order/smagorinsky_coefficient", &
                  smagorinsky_coefficient)
+           ! Do we want anisotropic eddy viscosity?
+           have_anisotropy = have_option(trim(les_option_path)//"/second_order/anisotropic_viscosity")
          end if
          if (les_fourth_order) then
             call get_option(trim(les_option_path)//"/fourth_order/smagorinsky_coefficient", &
@@ -1113,7 +1115,7 @@
       real, dimension(u%dim, ele_loc(u, ele)) :: oldu_val
       type(element_type), pointer :: u_shape, p_shape
       real, dimension(ele_ngi(u, ele)) :: detwei, detwei_old, detwei_new
-      real, dimension(u%dim, u%dim, ele_ngi(u,ele)) :: J_mat
+      real, dimension(u%dim, u%dim, ele_ngi(u,ele)) :: J_mat, invJ_mat
       real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim) :: du_t
       real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim) :: dug_t
       real, dimension(ele_loc(p, ele), ele_ngi(p, ele), u%dim) :: dp_t
@@ -1168,7 +1170,7 @@
       !  J_mat = 0.0
       else
         call transform_to_physical(x, ele, &
-                                  u_shape, dshape=du_t, detwei=detwei, J=J_mat)
+                                  u_shape, dshape=du_t, detwei=detwei, J=J_mat, invJ=invJ_mat)
       end if
 
       if(assemble_ct_matrix_here .and.integrate_continuity_by_parts) then
@@ -1934,7 +1936,7 @@
       real, dimension(u%dim, u%dim, ele_ngi(u, ele))                                 :: viscosity_gi
       real, dimension(u%dim, u%dim, ele_loc(u, ele), ele_loc(u, ele))                :: viscosity_mat
       real, dimension(x%dim, x%dim, ele_ngi(u, ele))                                 :: les_tensor_gi
-      real, dimension(ele_ngi(u, ele))                                               :: les_coef_gi, wale_coef_gi
+      real, dimension(ele_ngi(u, ele))                                               :: les_coef_gi, wale_coef_gi, les_scalar_gi
       real, dimension(x%dim, ele_loc(u,ele), ele_loc(u,ele))                         :: div_les_viscosity
       real, dimension(x%dim, x%dim, ele_loc(u,ele))                                  :: grad_u_nodes
       real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim), intent(in)           :: du_t
@@ -1983,13 +1985,31 @@
 
          ! 2nd order Smagorinsky model
          else if(les_second_order) then
-            les_tensor_gi=length_scale_tensor(du_t, ele_shape(u, ele))
             les_coef_gi=les_viscosity_strength(du_t, nu_ele)
-            do gi=1, size(les_coef_gi)
-               les_tensor_gi(:,:,gi)=4.*les_coef_gi(gi)*les_tensor_gi(:,:,gi)* &
-                    smagorinsky_coefficient**2
-            end do
-            call les_set_diagnostic_fields(state, nu, density, ele, detwei, eddy_visc_gi=les_tensor_gi)
+            if(.not. have_anisotropy) then
+              ! Isotropic filter/viscosity case
+              f1_mod = 4*length_scale(x, ele)
+              f1_gi = 0.0
+              do gi=1, size(les_coef_gi)
+                ! Scalar eddy viscosity is tensor component (all equal)
+                les_scalar_gi(gi) = les_coef_gi(gi)*f1_mod(gi)*smagorinsky_coefficient**2
+                les_tensor_gi(:,:,gi)=les_scalar_gi(gi)
+              end do
+            else
+              ! Anisotropic filter/viscosity case
+              f1_gi = 4.*length_scale_tensor(du_t, ele_shape(u, ele))
+              do gi=1, size(les_coef_gi)
+                ! Normalise tensor filter width so that volume equals that of scalar filter width definition
+                !f1_gi(:,:,gi) = f1_gi(:,:,gi)*f1_mod(gi)/norm2(f1_gi(:,:,gi))
+                les_tensor_gi(:,:,gi) = les_coef_gi(gi)*f1_gi(:,:,gi)*smagorinsky_coefficient**2
+                ! Scalar eddy viscosity is tensor magnitude
+                les_scalar_gi(gi)=norm2(les_tensor_gi(:,:,gi))
+                ! Scalar filter width is tensor magnitude
+                f1_mod(gi) = norm2(f1_gi(:,:,gi))
+              end do
+            end if
+            call les_set_diagnostic_fields(state, nu, density, ele, detwei, eddy_visc_gi=les_tensor_gi, &
+                 t1_width_gi=f1_gi, s1_width_gi=f1_mod)
 
          ! 4th order Smagorinsky model
          else if (les_fourth_order) then

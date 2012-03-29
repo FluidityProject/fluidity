@@ -506,6 +506,39 @@ prognostic_velocity_field =
                      element smagorinsky_coefficient {
                         real
                      },
+                     ## Use Bentham's anisotropic viscosity SGS model in the dynamic framework (see manual).
+                     ## The anisotropy is derived from using a tensorial filter width definition.
+                     ## If isotropic, a scalar filter width definition is used
+                     ## and the original scalar Smagorinsky model is used in the dynamic framework.
+                     ## Both definitions preserve the volume of the tetrahedral element.
+                     ##
+                     element anisotropic_viscosity {
+                        empty
+                     }?,
+                     ## Scalar filter width
+                     element scalar_field {
+                        attribute name { "ScalarFirstFilterWidth" },
+                        attribute rank { "1" },
+                        (
+                           element diagnostic {
+                              internal_algorithm,
+                              velocity_mesh_choice,
+                              diagnostic_scalar_field
+                           }
+                        )
+                     }?,
+                     ## Filter width tensor.
+                     element tensor_field {
+                        attribute rank { "2" },
+                        attribute name { "TensorFirstFilterWidth" },
+                        (
+                           element diagnostic {
+                              internal_algorithm,
+                              velocity_mesh_choice,
+                              diagnostic_tensor_field
+                           }
+                        )
+                     }?,
                      ## eddy viscosity (turbulent diffusion of velocity).
                      ## This is an anisotropic symmetric viscosity, added to normal viscosity field, that
                      ## carries the influence of turbulence onto the velocity field.
