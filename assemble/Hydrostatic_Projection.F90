@@ -197,104 +197,17 @@ contains
     type(block_csr_matrix), intent(in):: full_ct_m
     type(scalar_field):: full_ct_rhs
     logical, intent(in):: get_ct_m
-    
-    type(block_csr_matrix):: pct_m
-    type(csr_matrix):: temp_vct_m
-    type(csr_matrix), pointer:: vct_m
-    type(csr_sparsity), pointer:: vct_sparsity
-    type(scalar_field), pointer:: p
-    type(scalar_field):: vertical_u, component
-    type(vector_field), pointer:: vertical_normal, positions
-    type(vector_field):: pu
-    real, dimension(u%dim):: normal
-    logical:: constant_normal, get_vct_m
-    integer:: i, ele, stat, vdim
-    
-    vertical_normal => extract_vector_field(state, "GravityDirection")
-    ! if gravity is in a constant, axis-aligned direction - use the cheap version
-    normal = node_val(vertical_normal,1)
-    constant_normal = vertical_normal%field_type==FIELD_TYPE_CONSTANT .and. &
-                           maxval(abs(normal))==sum(abs(normal))
-                           
-    if (constant_normal) then
-      
-      vdim=maxloc(node_val(vertical_normal,1),1)
-      do i=1, u%dim
-        if (i/=vdim) then
-          component = extract_scalar_field(u, i)
-          ! move the contribution of already computed horizontal components
-          ! to the rhs of the continuity eqn
-          call mult_addto(full_ct_rhs, block(full_ct_m, 1, i), component, scale=-1.0)
-        end if
-      end do
-      
-    else
-    
-      FLExit("The hydrostatic projection does not yet work for varying gravitational direction (e.g. on the sphere).")
-      
+
+    type(mesh_type), pointer:: mesh
+
+    p_mesh => extract_pressure_mesh(state)
+    if (.not. (element_degree(p_mesh)==element_degree(u)+1 .and. continuity(p_mesh)<0 .and. continuity(u)>=0)) then
+      FLExit("Hydrostatic pressure projection only works for PnDG-Pn+1")
     end if
 
-    p => extract_scalar_field(state, "Pressure")
-    
-    vct_m => extract_csr_matrix(state, "VerticalVelocityGradientMatrix", stat=stat)
-    ! do we need to reassemble it - should be the logic as for full ct_m
-    get_vct_m = get_ct_m
-    if (stat/=0) then
-      
-      vct_sparsity => get_csr_sparsity_firstorder(state, p%mesh, p%mesh)
-      
-      call allocate(temp_vct_m, vct_sparsity, name="VerticalVelocityGradientMatrix")
-      call insert(state, temp_vct_m, name="VerticalVelocityGradientMatrix")
-      call deallocate(temp_vct_m)
-      
-      vct_m => extract_csr_matrix(state, "VerticalVelocityGradientMatrix")
-      
-      get_vct_m =.true.
-      
-    end if
-    
-    if (get_vct_m) then
-      ! used in assemble_vct_ele
-      positions => extract_vector_field(state, "Coordinate")
+    do ele=1, element_count(p_mesh)
 
-      call allocate(pct_m, vct_m%sparsity, (/ 1, u%dim /), name="BlockVelocityGradientMatrix")
-
-      call allocate(pu, u%dim, p%mesh, "VelocityOnPressureMesh")
-
-      call assemble_divergence_matrix_cg(pct_m, state, full_ct_rhs, &
-              p%mesh, pu, option_path=p%option_path)
-
-      vct_m%val=pct_m%val(1,vdim)%ptr
-      
-!      do ele=1, element_count(p)
-!        call assemble_vct_ele(vct_m, p%mesh, ele)
-!      end do
-      
-    end if
-    
-    call allocate(vertical_u, p%mesh, "VerticalVelocity")
-    vertical_u%option_path=p%option_path
-    call petsc_solve(vertical_u, vct_m, full_ct_rhs)
-    
-  contains
-    
-    subroutine assemble_vct_ele(vct_m, p_mesh, ele)
-      type(csr_matrix), intent(inout):: vct_m
-      type(mesh_type), intent(in):: p_mesh
-      integer, intent(in):: ele
-      
-      real, dimension(ele_loc(p_mesh, ele), ele_ngi(p_mesh, ele), mesh_dim(p_mesh)):: dshape
-      real, dimension(ele_ngi(p_mesh, ele)):: detwei
-      integer, dimension(:), pointer:: nodes
-      
-      assert( constant_normal ) ! see above - this means we know vdim
-      
-      call transform_to_physical(positions, ele, ele_shape(p_mesh, ele), dshape, detwei)
-      nodes => ele_nodes(p_mesh, ele)
-      FLAbort("Fix the next line first")
-      !call addto(vct_m, nodes, nodes, shape_vector_dot_dshape(ele_shape(p_mesh,ele), dshape, detwei))
-      
-    end subroutine assemble_vct_ele
+    end do
     
   end subroutine reconstruct_vertical_velocities
   
