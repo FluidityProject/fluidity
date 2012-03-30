@@ -146,13 +146,6 @@ module momentum_DG
   ! Are we running a multi-phase flow simulation?
   logical :: multiphase
 
-  ! Are we doing local assembly?
-  ! If yes, then entries in the global matrix that are outside our
-  ! domain will be thrown away when constructing the linear system.
-  ! This requires that we do assembly in the L1 halo elements (more
-  ! computational work), and as a result do less communication.
-  logical :: local_assembly
-
 contains
 
   subroutine construct_momentum_dg(u, p, rho, x, &
@@ -568,10 +561,6 @@ contains
       &"/prognostic/tensor_field::SurfaceTension"//&
       &"/diagnostic/integrate_by_parts")
 
-    local_assembly = have_option("/local_assembly")
-    if (local_assembly) then
-       ewrite(2, *)'Using local assembly routines in construct_momentum_dg'
-    end if
     assert(has_faces(X%mesh))
     assert(has_faces(P%mesh))
 
@@ -583,7 +572,7 @@ contains
     end if
     call zero(RHS)
     
-    call set_local_assembly(big_m, local_assembly)
+    call set_local_assembly(big_m, .true.)
 
     if(present(inverse_masslump) .and. lump_mass) then
        call allocate(inverse_masslump, u%dim, u%mesh, "InverseLumpedMass")
@@ -917,8 +906,6 @@ contains
 
     ! In parallel, we only assemble the mass terms for the halo elements. All
     ! other terms are only assembled on elements we own.
-    logical :: owned_element
-    logical :: ele_neighbour_owned
     logical :: assemble_element
 
     ! If on the sphere evaluate gravity direction at the gauss points
@@ -966,11 +953,7 @@ contains
     p0=(element_degree(u,ele)==0)
     
     ! In parallel, we only construct the equations on elements we own.
-    owned_element=element_owned(U,ele).or..not.dg
-
-    ele_neighbour_owned=local_assembly.and.element_neighbour_owned(U, ele)
-
-    assemble_element = owned_element.or.ele_neighbour_owned
+    assemble_element = element_owned(U,ele).or..not.dg.or.element_neighbour_owned(U, ele)
 
     primal = .not.dg
     if(viscosity_scheme == CDG) primal = .true.
@@ -1275,14 +1258,14 @@ contains
                  &= big_m_tensor_addto(dim, dim, :loc, :loc) &
                  &+ dt*theta*advection_mat
          end if
-        if(acceleration.and..not.subcycle.and.owned_element) then
+        if(acceleration.and..not.subcycle) then
           rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - matmul(advection_mat, u_val(dim,:))
         end if
       end do
 
     end if
 
-    if(have_source.and.acceleration.and.owned_element) then
+    if(have_source.and.acceleration) then
       ! Momentum source matrix.
       Source_mat = shape_shape(U_shape, ele_shape(Source,ele), detwei*Rho_q)
       if(lump_source) then
@@ -1299,7 +1282,7 @@ contains
       end if
     end if
 
-    if(have_gravity.and.acceleration.and.owned_element) then
+    if(have_gravity.and.acceleration) then
       ! buoyancy
       if (on_sphere) then
       ! If were on a spherical Earth evaluate the direction of the gravity vector
@@ -1418,7 +1401,7 @@ contains
                     & dt*theta*Abs_lump_sphere(dim,dim2,i)
                 end do
               end do
-              if (acceleration.and.owned_element) then
+              if (acceleration) then
                 rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - Abs_lump_sphere(dim,dim,:)*u_val(dim,:)
                 ! off block diagonal absorption terms
                 do dim2 = 1, u%dim
@@ -1450,7 +1433,7 @@ contains
                 big_m_tensor_addto(dim, dim2, :loc, :loc) = big_m_tensor_addto(dim, dim2, :loc, :loc) + &
                   & dt*theta*Abs_mat_sphere(dim,dim2,:,:)
               end do
-              if (acceleration.and.owned_element) then
+              if (acceleration) then
                 rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - matmul(Abs_mat_sphere(dim,dim,:,:), u_val(dim,:))
                 ! off block diagonal absorption terms
                 do dim2 = 1, u%dim
@@ -1491,7 +1474,7 @@ contains
           do dim = 1, u%dim
             if (assemble_element) then
               big_m_diag_addto(dim, :loc) = big_m_diag_addto(dim, :loc) + dt*theta*abs_lump(dim,:)
-              if(acceleration.and.owned_element) then
+              if(acceleration) then
                 rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - abs_lump(dim,:)*u_val(dim,:)
               end if
             end if
@@ -1513,7 +1496,7 @@ contains
             if (assemble_element) then
               big_m_tensor_addto(dim, dim, :loc, :loc) = big_m_tensor_addto(dim, dim, :loc, :loc) + &
                 & dt*theta*Abs_mat(dim,:,:)
-              if(acceleration.and.owned_element) then
+              if(acceleration) then
                 rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - matmul(Abs_mat(dim,:,:), u_val(dim,:))
               end if
             end if
@@ -1635,7 +1618,7 @@ contains
        end if
     end if
 
-    if(have_surfacetension.and.(.not.p0).and.owned_element) then
+    if(have_surfacetension.and.(.not.p0).and.assemble_element) then
       if(integrate_surfacetension_by_parts) then
         tension = ele_val_at_quad(surfacetension, ele)
         
@@ -1782,7 +1765,7 @@ contains
             call local_assembly_bassi_rebay
         end select
         
-        if (boundary_element.and.assemble_element) then
+        if (boundary_element) then
   
             do dim=1,U%dim
   
@@ -1827,11 +1810,9 @@ contains
                         
                             ! Add BC into RHS
                             !
-                            if ( owned_element ) then
-                               rhs_addto(dim,:) = rhs_addto(dim,:) &
-                                    & -matmul(Viscosity_mat(dim,:,start:finish), &
-                                    & ele_val(velocity_bc,dim,face))
-                            end if
+                             rhs_addto(dim,:) = rhs_addto(dim,:) &
+                                  & -matmul(Viscosity_mat(dim,:,start:finish), &
+                                  & ele_val(velocity_bc,dim,face))
                             ! Ensure it is not used again.
                             Viscosity_mat(dim,:,start:finish)=0.0
                             
@@ -1857,7 +1838,7 @@ contains
                 big_m_tensor_addto(dim, dim, :, :) + &
                   Viscosity_mat(dim,:,:)*theta*dt
           
-          if (acceleration.and.owned_element) then
+          if (acceleration) then
               rhs_addto(dim, :) = rhs_addto(dim, :) &
                     -matmul(Viscosity_mat(dim,:,:), &
                     node_val(U, dim, local_glno))
@@ -1886,17 +1867,13 @@ contains
              call addto(big_m, local_glno, local_glno, big_m_tensor_addto, &
                 block_mask=diagonal_block_mask)
              ! add to the rhs
-             if (owned_element) then
-                call addto(rhs, local_glno, rhs_addto)
-             end if
+             call addto(rhs, local_glno, rhs_addto)
           else
              ! add to the matrix
              call addto(big_m, u_ele, local_glno, big_m_tensor_addto(:,:,:loc,:), &
                 block_mask=diagonal_block_mask)
              ! add to the rhs
-             if (owned_element) then
-                call addto(rhs, u_ele, rhs_addto(:,:loc))
-             end if
+             call addto(rhs, u_ele, rhs_addto(:,:loc))
           end if
           if(subcycle) then
              call addto(subcycle_m, u_ele, local_glno,&
@@ -1919,9 +1896,7 @@ contains
                block_mask=diagonal_block_mask)
           end if
           ! add to the rhs
-          if (owned_element) then
-             call addto(rhs, u_ele, rhs_addto(:,:loc))
-          end if
+          call addto(rhs, u_ele, rhs_addto(:,:loc))
        end if
          
     end if
@@ -2144,27 +2119,28 @@ contains
     free_surface=.false.
     no_normal_flow=.false.
     l_have_pressure_bc=.false.
-    if (boundary) then
-       if (local_assembly.and..not.element_owned(U, face_ele(U, face))) then
-          ! do nothing, we're in a halo region
-       else
-          do dim=1,U%dim
-             if (velocity_bc_type(dim,face)==1) then
-                dirichlet(dim)=.true.
-             end if
-          end do
-          ! free surface b.c. is set for the 1st (normal) component
-          if (velocity_bc_type(1,face)==2) then
-             free_surface=.true.
+    ! Since we're assembling in the halo, it is possible that face
+    ! does not belong to an element we own, in which case it will
+    ! index into an out-of-bounds entry in velocity_bc_type, so guard
+    ! against this by ensuring that the element the face is on is
+    ! owned
+    if (boundary.and.element_owned(U, face_ele(U, face))) then
+       do dim=1,U%dim
+          if (velocity_bc_type(dim,face)==1) then
+             dirichlet(dim)=.true.
           end if
-          ! no normal flow b.c. is set for the 1st (normal) component
-          if (velocity_bc_type(1,face)==3) then
-             ! No normal flow is implemented here by switching off the
-             ! advection boundary integral.
-             no_normal_flow=.true.
-          end if
-          l_have_pressure_bc = pressure_bc_type(face) > 0
+       end do
+       ! free surface b.c. is set for the 1st (normal) component
+       if (velocity_bc_type(1,face)==2) then
+          free_surface=.true.
        end if
+       ! no normal flow b.c. is set for the 1st (normal) component
+       if (velocity_bc_type(1,face)==3) then
+          ! No normal flow is implemented here by switching off the
+          ! advection boundary integral.
+          no_normal_flow=.true.
+       end if
+       l_have_pressure_bc = pressure_bc_type(face) > 0
     end if
 
     !----------------------------------------------------------------------
@@ -3185,8 +3161,7 @@ contains
     
     ! we first work everything out for rows corresponding to the first component
     do ele=1, element_count(u)
-      ! we only have to provide nnz for owned rows
-      ! eventhough we do non-local assembly. The owner
+      ! we only have to provide nnz for owned rows. The owner
       ! therefore needs to specify the correct nnzs including
       ! contributions from others.
       ! NOTE: that the allocate interface assumes a contiguous

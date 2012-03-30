@@ -117,8 +117,6 @@ module advection_diffusion_cg
   logical :: move_mesh
   ! Include porosity?
   logical :: include_porosity
-  ! Are we doing local assembly?
-  logical :: local_assembly
 
 contains
 
@@ -507,11 +505,6 @@ contains
       FLExit("Unknown field equation type for cg advection diffusion.")
     end select
     
-    local_assembly = have_option("/local_assembly")
-    if (local_assembly) then
-       ewrite(2, *)'Using local assembly routines in advection_diffusion_cg'
-    end if
-
     ! Step 3: Assembly
     
     call zero(matrix)
@@ -1288,7 +1281,7 @@ contains
     
     call petsc_solve(delta_t, matrix, rhs, state, option_path = t%option_path, &
                      iterations_taken = iterations_taken, &
-                     local_assembly=local_assembly)
+                     local_assembly=.true.)
     
     ewrite_minmax(delta_t)
     

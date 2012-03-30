@@ -197,17 +197,7 @@ void usage(char *cmd){
   cerr<<"\n\nUsage: "<<cmd<<" [options ...] [simulation-file]\n"
       <<"\nOptions:\n"
       <<" -h, --help\n\tHelp! Prints this message.\n"
-      <<" -l, --log\n\tCreate log file for each process (useful for non-interactive testing)."
-      <<" -N, --no-local-assembly\n\tDo not perform local assembly of linear systems"
-#ifndef _OPENMP
-      <<" (default)"
-#endif
-      <<"\n"
-      <<" -L, --local-assembly\n\tPerform local assembly of linear systems"
-#ifdef _OPENMP
-      <<" (default)"
-#endif
-      <<"\n"
+      <<" -l, --log\n\tCreate log file for each process (useful for non-interactive testing).\n"
       <<" -v <level>, --verbose\n\tVerbose output to stdout, default level 0\n"
       <<" -p, --profile\n"
       <<"\tPrint profiling data at end of run\n"
@@ -222,8 +212,6 @@ void ParseArguments(int argc, char** argv){
 #ifndef _AIX
   struct option longOptions[] = {
     {"help", 0, 0, 'h'},
-    {"no-local-assembly", no_argument, 0, 'N'},
-    {"local-assembly", no_argument, 0, 'L'},
     {"log", 0, 0, 'l'},
     {"profile", 0, 0, 'p'},
     {"verbose", optional_argument, 0, 'v'},
@@ -234,8 +222,7 @@ void ParseArguments(int argc, char** argv){
   int optionIndex = 0;
   int verbosity = 0;
   int c;
-  const char *shortopts = "hlLNpv::V";
-  int local_assembly;
+  const char *shortopts = "hlpv::V";
 
   // set opterr to nonzero to make getopt print error messages 
   opterr=1;
@@ -256,11 +243,6 @@ void ParseArguments(int argc, char** argv){
     case 'l':
       fl_command_line_options["log"] = "";
       break;        
-    case 'N':
-      fl_command_line_options["no-local-assembly"] = "Yes";
-      break;
-    case 'L':
-      fl_command_line_options["local-assembly"] = "Yes";
     case 'p':
       fl_command_line_options["profile"] = "yes";
       break;
@@ -299,28 +281,6 @@ void ParseArguments(int argc, char** argv){
   if(fl_command_line_options.count("version")){
     print_version();
     exit(0);
-  }
-
-  // Local assembly?
-  {
-      int got_local_assembly = fl_command_line_options.count("local-assembly");
-      int got_no_local_assembly = fl_command_line_options.count("no-local-assembly");
-      if ( got_local_assembly && got_no_local_assembly ) {
-          cerr << "ERROR: can't specify both local-assembly and no-local-assembly\n";
-          exit(-1);
-      }
-      // Default to on if compiled with OpenMP, off otherwise
-#ifdef _OPENMP
-      local_assembly = 1;
-#else
-      local_assembly = 0;
-#endif
-      if ( got_local_assembly ) {
-          local_assembly = 1;
-      }
-      if ( got_no_local_assembly ) {
-          local_assembly = 0;
-      }
   }
 
   // Verbose?
@@ -403,12 +363,6 @@ void ParseArguments(int argc, char** argv){
 
     // Useful for debugging options
     print_options();
-  }
-
-  // Shove local assembly option into options tree.
-  if ( local_assembly ) {
-      stat = add_option("/local_assembly");
-      assert(stat == SPUD_NEW_KEY_WARNING || stat == SPUD_NO_ERROR);
   }
 
   // Environmental stuff -- this needs to me moved out of here and

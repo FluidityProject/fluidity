@@ -403,13 +403,9 @@ contains
     
     if (associated(petsc_numbering%halo)) then
        select case(petsc_numbering%halo%data_type)
-       case (HALO_TYPE_CG_NODE)
+       case (HALO_TYPE_CG_NODE, HALO_TYPE_DG_NODE)
           insert_rows=nnodp
           insert_action=INSERT_VALUES 
-       case (HALO_TYPE_DG_NODE) 
-          insert_rows=nnodes
-          insert_action=ADD_VALUES          
-          call VecZeroEntries(vec, ierr)
        case default
           FLAbort("Matrices can only be assembled on the basis of node halos")
        end select
@@ -465,13 +461,9 @@ contains
     
     if (associated(petsc_numbering%halo)) then
        select case(petsc_numbering%halo%data_type)
-       case (HALO_TYPE_CG_NODE)
+       case (HALO_TYPE_CG_NODE, HALO_TYPE_DG_NODE)
           insert_rows=nnodp
           insert_action=INSERT_VALUES 
-       case (HALO_TYPE_DG_NODE) 
-          insert_rows=nnodes
-          insert_action=ADD_VALUES          
-          call VecZeroEntries(vec, ierr)
        case default
           FLAbort("Matrices can only be assembled on the basis of node halos")
        end select
@@ -536,13 +528,9 @@ contains
 
     if (associated(petsc_numbering%halo)) then
        select case(petsc_numbering%halo%data_type)
-       case (HALO_TYPE_CG_NODE)
+       case (HALO_TYPE_CG_NODE, HALO_TYPE_DG_NODE)
           insert_rows=nnodp
           insert_action=INSERT_VALUES 
-       case (HALO_TYPE_DG_NODE) 
-          insert_rows=nnodes
-          insert_action=ADD_VALUES          
-          call VecZeroEntries(vec, ierr)
        case default
           FLAbort("Matrices can only be assembled on the basis of node halos")
        end select
@@ -582,11 +570,12 @@ contains
   
   end subroutine ScalarField2Petsc
   
-  function PetscNumberingCreateVec(petsc_numbering) result (vec)
+  function PetscNumberingCreateVec(petsc_numbering, local_assembly) result (vec)
   !!< Creates a petsc array with size corresponding to petsc_numbering.
   !!< After use it should be destroyed with VecDestroy. No vector values
   !!< are set in this function.
   type(petsc_numbering_type), intent(in):: petsc_numbering
+  logical, intent(in), optional :: local_assembly
   Vec vec
   
     
@@ -615,6 +604,9 @@ contains
     end if
 
     call VecSetOption(vec, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE, ierr)
+    if (present_and_true(local_assembly)) then
+       call VecSetOption(vec, VEC_IGNORE_OFF_PROC_ENTRIES, PETSC_TRUE, ierr)
+    end if
 
   end function PetscNumberingCreateVec
   
@@ -1018,13 +1010,9 @@ contains
     
     if (associated(row_numbering%halo)) then
        select case(row_numbering%halo%data_type)
-       case (HALO_TYPE_CG_NODE)
+       case (HALO_TYPE_CG_NODE, HALO_TYPE_DG_NODE)
           loop_rows=nbrowsp
           insert_action=INSERT_VALUES 
-       case (HALO_TYPE_DG_NODE) 
-          loop_rows=nbrows
-          insert_action=ADD_VALUES          
-          call MatZeroEntries(M, ierr)
        case default
           FLAbort("Matrices can only be assembled on the basis of node halos")
        end select

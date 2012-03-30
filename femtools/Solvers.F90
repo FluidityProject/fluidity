@@ -929,7 +929,7 @@ logical, optional, intent(in) :: local_assembly
     
   end if
   
-  b=PetscNumberingCreateVec(petsc_numbering)
+  b=PetscNumberingCreateVec(petsc_numbering, local_assembly=local_assembly)
   call VecDuplicate(b, y, ierr)
   
   if (timing) then

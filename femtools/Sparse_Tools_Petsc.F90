@@ -229,18 +229,7 @@ contains
         matrix%column_numbering, ldiagonal, use_inodes=use_inodes)
       
     else
-    
-      if (associated(sparsity%row_halo)) then
-        if (sparsity%row_halo%data_type==HALO_TYPE_CG_NODE) then
-          ! Mask out non-local rows, as the assembled bits in those
-          ! will be incomplete and need to be thrown out. In the case
-          ! of DG assembly however the local bits are proper contributions
-          ! and need to be added in the global matrix
-          nprows=matrix%row_numbering%nprivatenodes
-          matrix%row_numbering%gnn2unn(nprows+1:,:)=-1
-        end if
-      end if
-        
+
       ! Create parallel matrix:
       matrix%M=csr2petsc_CreateMPIAIJ(sparsity, matrix%row_numbering, &
         matrix%column_numbering, ldiagonal, use_inodes=use_inodes)
@@ -375,20 +364,6 @@ contains
       
     urows=matrix%row_numbering%universal_length
     ucols=matrix%column_numbering%universal_length
-    
-    if (IsParallel()) then
-      nprows=matrix%row_numbering%nprivatenodes
-      npcols=matrix%column_numbering%nprivatenodes
-      if (associated(lrow_halo)) then
-        if (lrow_halo%data_type==HALO_TYPE_CG_NODE) then
-          ! Mask out non-local rows, as the assembled bits in those
-          ! will be incomplete and need to be thrown out. In the case
-          ! of DG assembly however the local bits are proper contributions
-          ! and need to be added in the global matrix
-          matrix%row_numbering%gnn2unn(nprows+1:,:)=-1
-        end if
-      end if
-    end if
     
     if (use_element_blocks .and. .not. IsParallel()) then
       
