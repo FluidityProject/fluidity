@@ -2471,6 +2471,7 @@
            quad_cv_sgi, quad_cv_siloc, cv_sgk, cv_sngi_2, quad_cv_sjloc, quad_sgi, &
            xnodi, xnodj, nodi, nodj, cv_iloc_cells, cv_jloc_cells
       real :: xgi, ygi, zgi, volume, sarea, normx, normy, normz, d2_quad
+      real :: half_side_length
 
       ewrite(3,*)'In shape_tri_tet'
 
@@ -3067,6 +3068,37 @@
          cvfem_neiloc( cv_iloc, 3 ) = -1
       end if
 
+      print *,'scvweigh:',scvweigh
+
+! this works for 2d and 3d...
+      half_side_length=0.5*sqrt((lx(1)-lx(2))**2+(ly(1)-ly(2))**2)
+      print *,'half_side_length=',half_side_length
+! sort this out.....
+! Divide half the length of an edge so the weights are scaled properly...
+      scvweigh=(0.5/half_side_length)*scvweigh
+      print *,'after correction'
+      print *,'scvweigh:',scvweigh
+         print *,' '
+         do cv_sgi = 1, scvngi
+           print *,'cv_sgi=',cv_sgi
+           print *,'sn( :, cv_sgi )    =', sn( :, cv_sgi )
+         end do
+         print *,' '
+         do cv_sgi = 1, scvngi
+           print *,'cv_sgi=',cv_sgi
+           print *,'sufnlx( :, cv_sgi )=',sufnlx( :, cv_sgi )
+         end do
+         print *,' '
+         do cv_sgi = 1, scvngi
+           print *,'cv_sgi=',cv_sgi
+           print *,'snlx( :, cv_sgi ):', snlx( :, cv_sgi )
+         end do
+         print *,' '
+         do cv_sgi = 1, scvngi
+           print *,'cv_sgi=',cv_sgi
+           print *,'snly( :, cv_sgi ):', snly( :, cv_sgi )
+         end do
+!      stop 281
 
       deallocate( quad_cvweight )
       deallocate( detwei )

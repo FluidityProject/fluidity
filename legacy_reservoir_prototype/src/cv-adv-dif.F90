@@ -936,6 +936,11 @@ if( (ele == 11 ) .or. (ele==10))  then
                       ENDIF
                    ENDIF
 
+!                   print *,'IGOT_THETA_FLUX,GET_THETA_FLUX,USE_THETA_FLUX:', &
+!                            IGOT_THETA_FLUX,GET_THETA_FLUX,USE_THETA_FLUX
+!                   print *,'FTHETA_T2,ONE_M_FTHETA_T2OLD:',FTHETA_T2,ONE_M_FTHETA_T2OLD
+!                   stop 2821
+
                    ROBIN1=0.0
                    ROBIN2=0.0
                    IF(SELE /= 0) THEN
@@ -947,7 +952,7 @@ if( (ele == 11 ) .or. (ele==10))  then
 
                    !====================== ACV AND RHS ASSEMBLY ===================
                    Conditional_GETCT2 : IF( GETCT ) THEN ! Obtain the CV discretised CT eqations plus RHS
-
+          print *,'gi,SCVFEWEIGH(gi)=',gi,SCVFEWEIGH(gi)
                       CALL PUT_IN_CT_RHS(CT, CT_RHS, U_NLOC, SCVNGI, GI, NCOLCT, NDIM, &
                            CV_NONODS, U_NONODS, NPHASE, IPHASE, TOTELE, ELE, ELE2, SELE, &
                            JCOUNT_KLOC, JCOUNT_KLOC2, U_OTHER_LOC, U_NDGLN, NU, NV, NW,  &
@@ -2734,6 +2739,8 @@ if( (ele == 11 ) .or. (ele==10))  then
        !     - of the Gauss pnt GI with the co-ordinate origin positioned at the
        !     - current control volume NODI.
        !     
+       print *,'quadrature pt:',POSVGIX,     POSVGIY,     POSVGIZ
+       print *,'SVNLX(:,GI):',SVNLX(:,GI)
 
        POSVGIX = POSVGIX - XC
        POSVGIY = POSVGIY - YC
@@ -2753,6 +2760,11 @@ if( (ele == 11 ) .or. (ele==10))  then
             DXDLX,       DYDLX,       DZDLX, &
             DXDLY,       DYDLY,       DZDLY,&
             POSVGIX,     POSVGIY,     POSVGIZ )
+
+       print *,'CVNORMX(GI), CVNORMY(GI), CVNORMZ(GI):',CVNORMX(GI), CVNORMY(GI), CVNORMZ(GI)
+       print *,'DXDLX,       DYDLX,       DZDLX:',DXDLX,       DYDLX,       DZDLX
+       print *,'DXDLY,       DYDLY,       DZDLY:',DXDLY,       DYDLY,       DZDLY
+       print *,'POSVGIX,     POSVGIY,     POSVGIZ:',POSVGIX,     POSVGIY,     POSVGIZ
        !     
        !     - End of GI loop
 
@@ -4267,17 +4279,20 @@ if( (ele == 11 ) .or. (ele==10))  then
     cv_nodj=cv_nodj_ipha-(iphase-1)*cv_nonods
 
 
-    print *, 'ele, ele2, gi, cv_iloc, cv_jloc, sele, cv_nodi, cv_nodj, income, ndotq', &
-    ele, ele2, gi, cv_iloc, cv_jloc , sele, cv_nodi, cv_nodj, income, ndotq
+    print *, 'ele, ele2, gi, cv_iloc, cv_jloc, sele', &
+    ele, ele2, gi, cv_iloc, cv_jloc , sele
+    print *, 'cv_nodi, cv_nodj, income, ndotq', &
+    sele, cv_nodi, cv_nodj, income, ndotq
+    print *,'iphase,INCOME,INCOMEold:',iphase,INCOME,INCOMEold
 
     print *, UGI_COEF_ELE
-    print *, UGI_COEF_ELE2
+!    print *, UGI_COEF_ELE2
 
     print *, VGI_COEF_ELE
-    print *, VGI_COEF_ELE2
+!    print *, VGI_COEF_ELE2
 
-    print *, WGI_COEF_ELE
-    print *, WGI_COEF_ELE2
+!    print *, WGI_COEF_ELE
+!    print *, WGI_COEF_ELE2
 
     print *, ''
 
@@ -5736,7 +5751,9 @@ if( (ele == 11 ) .or. (ele==10))  then
          U_KLOC_LEV, U_NLOC_LEV
     REAL :: RCON,UDGI_IMP,VDGI_IMP,WDGI_IMP,NDOTQ_IMP
 
-    ewrite(3,*)' In PUT_IN_CT_RHS '
+    ewrite(3,*)' In PUT_IN_CT_RHS CVNORMX( GI ),CVNORMY( GI ):',CVNORMX( GI ),CVNORMY( GI )
+    ewrite(3,*)' SCVDETWEI( GI ):',SCVDETWEI( GI )
+    ewrite(3,*)' SUFEN( :, GI ):',SUFEN( :, GI )
 
     !      U_NLOC_LEV =U_NLOC /CV_NLOC
 
@@ -5790,6 +5807,7 @@ if( (ele == 11 ) .or. (ele==10))  then
             )/ DENOLD( CV_NODI_IPHA ) 
     ENDIF
 
+    ewrite(3,*)'JCOUNT_KLOC:', JCOUNT_KLOC( 1 : u_nloc)
     ewrite(3,*)'JCOUNT_KLOC2:', JCOUNT_KLOC2( 1 : u_nloc)
     ewrite(3,*)'ele2, ele:', ele2, ele
     IF((ELE2 /= 0).AND.(ELE2 /= ELE)) THEN

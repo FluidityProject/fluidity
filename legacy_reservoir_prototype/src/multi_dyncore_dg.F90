@@ -1900,6 +1900,9 @@ contains
          FINDGPTS, COLGPTS, NCOLGPTS, &
          SELE_OVERLAP_SCALE ) 
 
+!     print *,'nface=',nface
+!     stop 775
+
     ALLOCATE( FACE_ELE( NFACE, TOTELE ))
     ! Calculate FACE_ELE
     CALL CALC_FACE_ELE( FACE_ELE, TOTELE, STOTEL, NFACE, &
