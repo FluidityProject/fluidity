@@ -706,7 +706,9 @@ contains
                      YC_CV(CV_NODI),     ZC_CV(CV_NODI),    X,       & 
                      Y,        Z,                &
                      D1,       D3,      DCYL )
-
+if( (ele == 11 ) .or. (ele==10))  then
+     ewrite(3,*)'ele, gi, SCVDETWEI, cvnormx, cvnormy:', ele, gi, SCVDETWEI(gi), cvnormx(gi), cvnormy(gi)
+  end if
 
                 ! ================ COMPUTE THE FLUX ACROSS SUB-CV FACE ===============
 
@@ -2593,7 +2595,7 @@ contains
        Y,        Z,  &
                                 !     - LOGICALS
        D1,       D3,       DCYL )
-use shape_functions_NDim
+    use shape_functions_NDim
     !     --------------------------------------------------
     !     
     !     - this subroutine calculates the control volume (CV) 
@@ -2605,6 +2607,7 @@ use shape_functions_NDim
     !     -------------------------------
     !     - date last modified : 15/03/2003
     !     -------------------------------
+    IMPLICIT NONE
     INTEGER, intent( in ) :: ELE,    GI
     INTEGER, intent( in ) ::  NLOC
     INTEGER , intent( in ) ::  SVNGI,  TOTELE
@@ -2739,6 +2742,7 @@ use shape_functions_NDim
 
        DETJ = SQRT( DXDLX**2 + DYDLX**2 )
        CVDETWEI(GI)  = TWOPI*RGI*DETJ*SVWEIGH(GI)
+       
        !
        !     - Calculate the normal at the Gauss pts
        !     - TANX1 = DXDLX, TANY1 = DYDLX, TANZ1 = DZDLX,    
@@ -3583,6 +3587,10 @@ use shape_functions_NDim
 
     ELSE ! Conditional_SELE. Not on the boundary of the domain.
        Conditional_ELE2: IF(( ELE2 == 0 ).OR.( ELE2 == ELE)) THEN
+          if( ( ele == 11) .or. ( ele == 10 ) ) then
+             ewrite(3,*) 'ele, ele2, gi, sele, income:', ele, ele2, gi, sele, income
+             ewrite(3,*) ' '
+          end if
           UDGI = 0.0
           VDGI = 0.0
           WDGI = 0.0
@@ -3824,6 +3832,7 @@ use shape_functions_NDim
                 INCOMEOLD=2.*(1.-UPWIND_FRAC)*MASS_CV(CV_NODI)/(MASS_CV(CV_NODI)+MASS_CV(CV_NODJ))
              ENDIF
           ENDIF
+
           UDGI = 0.0
           VDGI = 0.0
           WDGI = 0.0
@@ -3855,6 +3864,14 @@ use shape_functions_NDim
              UGI_COEF_ELE(U_KLOC2)=UGI_COEF_ELE(U_KLOC2)+INCOME
              VGI_COEF_ELE(U_KLOC2)=VGI_COEF_ELE(U_KLOC2)+INCOME
              WGI_COEF_ELE(U_KLOC2)=WGI_COEF_ELE(U_KLOC2)+INCOME
+
+          if( ( ele == 11) .or. ( ele == 10 ) ) then
+             ewrite(3,*) 'ele, ele2, gi, sele, income:', ele, ele2, gi, sele, income
+             ewrite(3,*) 'u_kloc, u_kloc2, ugi_coeff1/2:', u_kloc, u_kloc2, UGI_COEF_ELE( U_KLOC ), UGI_COEF_ELE(U_KLOC2)
+             ewrite(3,*) ' '
+
+          end if
+
           END DO
 
 
@@ -4258,7 +4275,6 @@ use shape_functions_NDim
 
     print *, 'ele, ele2, gi, cv_iloc, cv_jloc, sele, cv_nodi, cv_nodj, income, ndotq', &
     ele, ele2, gi, cv_iloc, cv_jloc , sele, cv_nodi, cv_nodj, income, ndotq
-
 
     print *, UGI_COEF_ELE
     print *, UGI_COEF_ELE2
