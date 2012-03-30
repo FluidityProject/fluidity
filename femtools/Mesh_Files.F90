@@ -135,7 +135,6 @@ contains
 
   ! --------------------------------------------------------------------------
 
-
   function read_mesh_files_to_field(filename, format, shape) result (field)
     character(len=*), intent(in) :: filename
     type(element_type), intent(in), target :: shape
@@ -256,8 +255,8 @@ contains
             no_faces, quad_family)
 
     case("exodusii")
-!       field = read_exodusii_file(filename, quad_degree, quad_ngi, &
-!            no_faces, quad_family)
+       field = read_exodusii_file(filename, quad_degree, quad_ngi, &
+            no_faces, quad_family)
 
        ! Additional mesh format subroutines go here
 

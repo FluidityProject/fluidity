@@ -5,7 +5,7 @@ module exodusii_f_interface
 
   private
 
-  public :: f_read_ex_open, &
+  public :: c_read_ex_open, c_read_ex_open_short, &
             f_ex_get_init, f_ex_get_coord, &
             f_ex_get_node_num_map, f_ex_get_elem_num_map, &
             f_ex_get_elem_order_map, f_ex_get_elem_block_parameters, &
@@ -16,30 +16,30 @@ module exodusii_f_interface
 
   ! Open an ExodusII mesh file
   interface f_read_ex_open
-    function c_read_ex_open_long(path, mode, comp_ws, io_ws, version) result(exoid) bind(c,name="c_read_ex_open_long")
+    function c_read_ex_open(path, mode, comp_ws, io_ws, version) result(exoid) bind(c)
        use, intrinsic :: iso_c_binding
        implicit none
        character(kind=c_char, len=1):: path
        integer(kind=c_int) :: mode
        integer(kind=c_int) :: comp_ws
        integer(kind=c_int) :: io_ws
-       real(kind=c_float) :: version
-       integer(kind=c_int) :: exoid
-     end function c_read_ex_open_long
-     ! A nicer interface for opening an exodusII meshfile
-    function c_read_ex_open(path, version) result(exoid) bind(c,name="c_read_ex_open")
-       use, intrinsic :: iso_c_binding
-       character(kind=c_char, len=1):: path
-       real(kind=c_float) :: version
+       real(kind=c_double) :: version
        integer(kind=c_int) :: exoid
      end function c_read_ex_open
-  end interface f_read_ex_open
+     ! A nicer interface for opening an exodusII meshfile
+    function c_read_ex_open_short(path, version) result(exoid) bind(c)
+       use, intrinsic :: iso_c_binding
+       character(kind=c_char, len=1):: path
+       real(kind=c_double) :: version
+       integer(kind=c_int) :: exoid
+     end function c_read_ex_open_short
+  end interface
 
   ! Get database parameters from exodusII file
   interface f_ex_get_init
      function c_ex_get_init(exoid, title, num_dim, num_nodes, num_elem, &
                             num_elem_blk, num_node_sets, num_side_sets) &
-                            result(error) bind(c,name="c_ex_get_init")
+                            result(error) bind(c)
        use, intrinsic :: iso_c_binding
        !implicit none
        integer(kind=c_int) :: exoid
@@ -52,7 +52,7 @@ module exodusii_f_interface
        integer(kind=c_int) :: num_side_sets
        integer(kind=c_int) :: error
      end function c_ex_get_init
-  end interface f_ex_get_init
+  end interface
 
   ! Get coordinates of nodes:
   interface f_ex_get_coord
@@ -64,7 +64,7 @@ module exodusii_f_interface
       real(kind=c_float) :: z(*)
       integer(kind=c_int) :: error
     end function c_ex_get_coord
-  end interface f_ex_get_coord
+  end interface
 
   ! Get node number map
   interface f_ex_get_node_num_map
@@ -74,7 +74,7 @@ module exodusii_f_interface
       integer(kind=c_int) :: node_map(*)
       integer(kind=c_int) :: error
     end function c_ex_get_node_num_map
-  end interface f_ex_get_node_num_map
+  end interface
 
   ! Get element number map
   interface f_ex_get_elem_num_map
@@ -84,7 +84,7 @@ module exodusii_f_interface
       integer(kind=c_int) :: elem_num_map(*)
       integer(kind=c_int) :: error
     end function c_ex_get_elem_num_map
-  end interface f_ex_get_elem_num_map
+  end interface
 
   ! Get element order map:
   interface f_ex_get_elem_order_map
@@ -94,7 +94,7 @@ module exodusii_f_interface
       integer(kind=c_int) :: elem_order_map(*)
       integer(kind=c_int) :: error
     end function c_ex_get_elem_order_map
-  end interface f_ex_get_elem_order_map
+  end interface
 
   ! Get block parameters
   interface f_ex_get_elem_block_parameters
@@ -109,7 +109,7 @@ module exodusii_f_interface
       integer(kind=c_int) :: num_nodes_per_elem(*)
       integer(kind=c_int) :: error
     end function c_ex_get_elem_block_parameters
-  end interface f_ex_get_elem_block_parameters
+  end interface
   
   interface f_ex_get_elem_connectivity
     function c_ex_get_elem_connectivity(exoid, block_id, elem_connectivity) result(error) bind(c)
@@ -119,7 +119,7 @@ module exodusii_f_interface
       integer(kind=c_int) :: elem_connectivity(*)
       integer(kind=c_int) :: error
     end function c_ex_get_elem_connectivity
-  end interface f_ex_get_elem_connectivity
+  end interface
 
   interface f_ex_get_node_set_param
     function c_ex_get_node_set_param(exoid, num_node_sets, node_set_ids, num_nodes_in_set) result(error) bind(c)
@@ -130,7 +130,7 @@ module exodusii_f_interface
       integer(kind=c_int) :: num_nodes_in_set(*)
       integer(kind=c_int) :: error
     end function c_ex_get_node_set_param
-  end interface f_ex_get_node_set_param
+  end interface
 
   interface f_ex_get_node_set_node_list
     function c_ex_get_node_set_node_list(exoid, num_node_sets, node_set_id, node_set_node_list) result(error) bind(c)
@@ -141,17 +141,17 @@ module exodusii_f_interface
       integer(kind=c_int) :: node_set_node_list(*)
       integer(kind=c_int) :: error
     end function c_ex_get_node_set_node_list
-  end interface f_ex_get_node_set_node_list
+  end interface
 
   ! Closing exodusII file
   interface f_ex_close
-     function c_ex_close(exoid) result(ierr) bind(c,name="c_ex_close")
+     function c_ex_close(exoid) result(ierr) bind(c)
        use, intrinsic :: iso_c_binding
        !implicit none
        integer(kind=c_int) :: exoid
        integer(kind=c_int) :: ierr
      end function c_ex_close
-  end interface f_ex_close
+  end interface
 
 
 end module exodusii_f_interface

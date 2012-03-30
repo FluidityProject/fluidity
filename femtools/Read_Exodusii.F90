@@ -47,7 +47,7 @@ module read_exodusii
 
   interface read_exodusii_file
      module procedure  read_exodusii_file_to_field, &
-                      ! read_exodusii_simple !, &
+                       read_exodusii_simple, &
                        read_exodusii_file_to_state
   end interface
 
@@ -55,9 +55,57 @@ module read_exodusii
 
 contains
 
+
+
+  function read_exodusii_simple(filename, quad_degree, &
+       quad_ngi, no_faces, quad_family ) result (field)
+    !!< A simpler mechanism for reading a GMSH file into a field.
+    !!< In parallel the filename must *not* include the process number.
+    character(len=*), intent(in) :: filename
+    !! The degree of the quadrature.
+    integer, intent(in), optional, target :: quad_degree
+    !! The degree of the quadrature.
+    integer, intent(in), optional, target :: quad_ngi
+    !! Whether to add_faces on the resulting mesh.
+    logical, intent(in), optional :: no_faces
+    !! What quadrature family to use
+    integer, intent(in), optional :: quad_family
+    type(vector_field) :: field
+    type(quadrature_type) :: quad
+    type(element_type) :: shape
+    integer :: dim, loc
+    
+    ewrite(2,*) "In read_exodusii_simple"
+    
+    if(isparallel()) then
+       call identify_exodusii_file(parallel_filename(filename), dim, loc)
+    else
+       call identify_exodusii_file(filename, dim, loc)
+    end if
+
+
+    if (present(quad_degree)) then
+       quad = make_quadrature(loc, dim, degree=quad_degree, family=quad_family)
+    else if (present(quad_ngi)) then
+       quad = make_quadrature(loc, dim, ngi=quad_ngi, family=quad_family)
+    else
+       FLAbort("Need to specify either quadrature degree or ngi")
+    end if
+
+    shape=make_element_shape(loc, dim, 1, quad)
+    
+    field=read_exodusii_file(filename, shape)
+    ! code here
+
+    ewrite(2,*) "Out of read_exodusii_simple"
+
+  end function read_exodusii_simple
+
+
+
+
   ! -----------------------------------------------------------------
   ! ExodusII version of triangle equivalent.
-
   subroutine identify_exodusii_file(filename, numDimenOut, locOut, &
        numNodesOut, numElementsOut, &
        nodeAttributesOut, selementsOut, boundaryFlagOut)
@@ -67,13 +115,11 @@ contains
     ! In parallel, filename must *include* the process number.
 
     character(len=*), intent(in) :: filename
-!    character(len=option_path_len) :: lfilename
 
     !! Number of vertices of elements.
     integer, intent(out), optional :: numDimenOut, locOut, numNodesOut
     integer, intent(out), optional :: numElementsOut, nodeAttributesOut
     integer, intent(out), optional :: selementsOut, boundaryFlagOut
-
 
     logical :: fileExists
 
@@ -85,18 +131,22 @@ contains
 
     real :: version
     integer :: exoid, ierr
-    character(kind=c_char, len=option_path_len) :: lfilename
+    integer :: comp_ws, io_ws, mode
+    character(kind=c_char, len=OPTION_PATH_LEN) :: lfilename
+    
+    character(kind=c_char, len=OPTION_PATH_LEN) :: title
+    integer :: num_dim, num_nodes, num_elem, num_elem_blk
+    integer :: num_node_sets, num_side_sets
 
 
     logical :: haveBounds, haveInternalBounds
 
     ewrite(2,*) "In identify_exodusii_file"
     
-    ewrite(2,*) "Filename:", filename
 
     ! An ExodusII file can have the following file extensions:
     ! e, exo, E, EXO, our first guess shall be exo    
-    lfilename = trim(filename) // ".exo"
+    lfilename = trim(filename)//".exo"
 
     ! Read node file header
     inquire(file = trim(lfilename), exist = fileExists)
@@ -115,39 +165,46 @@ contains
         end if
       end if
     end if
-    
-    ! append c null char since lfilename is being passed to c routines
-    lfilename = lfilename//C_NULL_CHAR
+
+
+    lfilename = trim(lfilename)
 
     ewrite(2, *) "Opening " // trim(lfilename) // " for reading."
-    print*, "*************************"
-    print*, "test the exodusII lib"
+    ewrite(2,*) "*************************"
+    ewrite(2,*) "test the exodusII lib"
+    
+    ewrite(2,*) "open exodus file:"
     version = 0.0
-    exoid = f_read_ex_open(trim(lfilename), version)
-    print*, "exoid: ", exoid
-    print*, "exodus file version: ", version
+    mode = 0; comp_ws=0; io_ws=0;
+    exoid = c_read_ex_open(trim(lfilename)//C_NULL_CHAR, mode, comp_ws, io_ws, version)
+    
+    ewrite(2,*) "exoid : ", exoid
 
-    if (exoid /= 0) then
+    if (exoid <= 0) then
       FLExit("Unable to open "//trim(lfilename))
-    end if 
+    end if
 
     ! Get database parameters from exodusII file
-!    ierr = f_ex_get_init(exoid, title, num_dim, num_nodes, &
-!                       num_elem, num_elem_blk, num_node_sets, &
-!                       num_side_sets)
-!    print*, "num_dim = ", num_dim
-!    print*, "num_nodes = ", num_nodes
-!    print*, "num_elem = ", num_elem
-!    print*, "num_elem_blk = ", num_elem_blk
-!    print*, "num_node_sets = ", num_node_sets
-!    print*, "num_side_sets = ", num_side_sets
-!    if (ierr /= 0) then
-!       FLExit("Unable to read database parameters from "//trim(lfilename))
-!    end if
+    ierr = f_ex_get_init(exoid, title, num_dim, num_nodes, &
+                       num_elem, num_elem_blk, num_node_sets, &
+                       num_side_sets)
+    ewrite(2,*) "num_dim = ", num_dim
+    ewrite(2,*) "num_nodes = ", num_nodes
+    ewrite(2,*) "num_elem = ", num_elem
+    ewrite(2,*) "num_elem_blk = ", num_elem_blk
+    ewrite(2,*) "num_node_sets = ", num_node_sets
+    ewrite(2,*) "num_side_sets = ", num_side_sets
+    if (ierr /= 0) then
+       FLExit("Unable to read database parameters from "//trim(lfilename))
+    end if
+
+    ierr = f_ex_close(exoid)
+    ewrite(2,*) "ierr = ", ierr
 
     ewrite(2,*) "Out of identify_exodusii_file"
 
   end subroutine identify_exodusii_file
+
 
 
   ! -----------------------------------------------------------------
@@ -218,6 +275,7 @@ contains
 
 
 
+
   ! -----------------------------------------------------------------
   ! The main function for reading ExodusII files
   function read_exodusii_file_to_field(filename, shape) result (field)
@@ -228,48 +286,6 @@ contains
   end function read_exodusii_file_to_field
 
 
-
-
-
-
-!  function read_exodusii_simple(filename, quad_degree, &
-!       quad_ngi, no_faces, quad_family ) result (field)
-!    !!< A simpler mechanism for reading a GMSH file into a field.
-!    !!< In parallel the filename must *not* include the process number.
-!    character(len=*), intent(in) :: filename
-!    !! The degree of the quadrature.
-!    integer, intent(in), optional, target :: quad_degree
-!    !! The degree of the quadrature.
-!    integer, intent(in), optional, target :: quad_ngi
-!    !! Whether to add_faces on the resulting mesh.
-!    logical, intent(in), optional :: no_faces
-!    !! What quadrature family to use
-!    integer, intent(in), optional :: quad_family
-!    type(vector_field) :: field
-!    type(quadrature_type) :: quad
-!    type(element_type) :: shape
-!    integer :: dim, loc
-!    
-!    if(isparallel()) then
-!       call identify_exodusii_file(parallel_filename(filename), dim, loc)
-!    else
-!       call identify_exodusii_file(filename, dim, loc)
-!    end if
-!
-!
-!    if (present(quad_degree)) then
-!       quad = make_quadrature(loc, dim, degree=quad_degree, family=quad_family)
-!    else if (present(quad_ngi)) then
-!       quad = make_quadrature(loc, dim, ngi=quad_ngi, family=quad_family)
-!    else
-!       FLAbort("Need to specify either quadrature degree or ngi")
-!    end if
-!
-!    shape=make_element_shape(loc, dim, 1, quad)
-!    
-!    field=read_exodusii_file(filename, shape)
-!    ! code here
-!  end function read_exodusii_simple
 
 
   ! -----------------------------------------------------------------
@@ -288,9 +304,6 @@ contains
     FLAbort("read_gmsh_file_to_state() not implemented yet")
 
   end function read_exodusii_file_to_state
-
-
-
 
 
 

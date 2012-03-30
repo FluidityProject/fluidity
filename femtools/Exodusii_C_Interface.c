@@ -1,19 +1,20 @@
 #include <stdio.h>
-#include <stdlib.h> 
+#include <stdlib.h>
 #include "netcdf.h"
 #include "exodusII.h"
 
 
 /* Open ExodusII File for reading */
-int c_read_ex_open_long(const char *path, int mode, int *comp_ws, int *io_ws, float *version)
+int c_read_ex_open(const char *path, int mode, int *comp_ws, int *io_ws, float *version)
 {
    int exoid;
-   exoid = ex_open(path, EX_READ, comp_ws, io_ws, version);
+   int c_comp_ws = 0, c_io_ws = 0;
+   exoid = ex_open(path, EX_READ, &c_comp_ws, &c_io_ws, version);
    return (exoid);
 }
 
 /* Nicer function for open ExodusII File for reading */
-int c_read_ex_open(const char *path, float *version)
+int c_read_ex_open_short(const char *path, float *version)
 {
    int exoid;
    int comp_ws=0, io_ws=0;
