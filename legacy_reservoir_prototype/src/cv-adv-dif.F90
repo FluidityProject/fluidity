@@ -701,8 +701,8 @@ contains
                      X_NLOC,  SCVNGI,  TOTELE,  &
                      X_NDGLN,  X_NONODS,         &
                      SCVDETWEI, CVNORMX, CVNORMY, &  
-                     CVNORMZ,  SCVFEN,     SCVFENLX,   &   
-                     SCVFENLY, SCVFEWEIGH, XC_CV(CV_NODI),    & 
+                     CVNORMZ,  SCVFEN,     SCVFENSLX,   &   
+                     SCVFENSLY, SCVFEWEIGH, XC_CV(CV_NODI),    & 
                      YC_CV(CV_NODI),     ZC_CV(CV_NODI),    X,       & 
                      Y,        Z,                &
                      D1,       D3,      DCYL )

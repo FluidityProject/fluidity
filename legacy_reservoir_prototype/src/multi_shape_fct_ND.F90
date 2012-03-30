@@ -3075,7 +3075,7 @@
       print *,'half_side_length=',half_side_length
 ! sort this out.....
 ! Divide half the length of an edge so the weights are scaled properly...
-      scvweigh=(0.5/half_side_length)*scvweigh
+!      scvweigh=(0.5/half_side_length)*scvweigh
       print *,'after correction'
       print *,'scvweigh:',scvweigh
          print *,' '
