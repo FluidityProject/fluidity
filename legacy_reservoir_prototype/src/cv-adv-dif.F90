@@ -4257,17 +4257,11 @@ if( (ele == 11 ) .or. (ele==10))  then
     NDOTQOLD =  CVNORMX( GI ) * UOLDDGI + CVNORMY( GI ) * VOLDDGI + CVNORMZ(GI) * WOLDDGI
 
     ! Define whether flux is incoming or outgoing, depending on direction of flow
-    IF( NDOTQ >  0.0 ) THEN
-       INCOME = 0.0  !Outgoing
-    ELSE
-       INCOME = 1.0  !Incoming
-    ENDIF
-    IF( NDOTQOLD >  0.0 ) THEN
-       INCOMEOLD = 0.0  !Outgoing
-    ELSE
-       INCOMEOLD = 1.0  !Incoming
-    ENDIF
+    INCOME = 1.
+    IF( NDOTQ > 0. ) INCOME = 0.
 
+    INCOMEOLD = 1.
+    IF( NDOTQOLD > 0. ) INCOMEOLD = 0.
 
     cv_nodi=cv_nodi_ipha-(iphase-1)*cv_nonods
     cv_nodj=cv_nodj_ipha-(iphase-1)*cv_nonods

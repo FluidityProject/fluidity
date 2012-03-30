@@ -389,6 +389,7 @@ module copy_outof_into_state
       ndgln_switch = .true.
       if( ndim == 1 ) ndgln_switch = .false.
 
+      u_nonods = u_nloc * totele
       xu_nonods = max( ( xu_nloc - 1 ) * totele + 1, totele )
 
       allocate( cv_ndgln( totele * cv_nloc ) )
@@ -398,31 +399,9 @@ module copy_outof_into_state
       allocate( x_ndgln( totele * cv_nloc ) )
       allocate( mat_ndgln( totele * mat_nloc ) )
 
-      allocate( xu( xu_nonods ) )
-      allocate( yu( xu_nonods ) )
-      allocate( zu( xu_nonods ) )
-      xu = 0.
-      yu = 0.
-      zu = 0.
-
-      u_nonods = u_nloc * totele
-
-      allocate( nu( u_nonods * nphases ))
-      allocate( nv( u_nonods * nphases ))
-      allocate( nw( u_nonods * nphases ))
-      allocate( ug( u_nonods * nphases ))
-      allocate( vg( u_nonods * nphases ))
-      allocate( wg( u_nonods * nphases ))
-
-      ! was nu=1., nv1., nw=1.
-      nu = 0.
-      nv = 0.
-      nw = 0.
-      if ( ndim > 1 ) nv = 0.
-      if ( ndim > 2 ) nw = 0.
-      ug = 0.
-      vg = 0.
-      wg = 0.
+      allocate( xu( xu_nonods )) ; xu = 0.
+      allocate( yu( xu_nonods )) ; yu = 0.
+      allocate( zu( xu_nonods )) ; zu = 0.
 
       !! global numbering to allow proper copying of fields
       cv_nod = 0
@@ -532,13 +511,11 @@ module copy_outof_into_state
       !z = 0.
 
       if ( ndgln_switch) then
-         x_nonods = size( positions % val( 1, : ) )
-         allocate( x( x_nonods ) )
-         allocate( y( x_nonods ) )
-         allocate( z( x_nonods ) )
-         x = 0.
-         y = 0.
-         z = 0.
+         x_nonods = node_count(positions)
+         allocate( x( x_nonods ) ) ; x = 0.
+         allocate( y( x_nonods ) ) ; y = 0.
+         allocate( z( x_nonods ) ) ; z = 0.
+
          allocate( index( 1 : x_nonods ) )
          allocate( x_temp( 1 : x_nonods ))
 
@@ -1187,27 +1164,36 @@ module copy_outof_into_state
       ewrite(3,*) "velocity..."
 
       if (.not. allocated(u)) then
-         allocate(u(nphases*size(velocity%val(1, :)))) ; u = 0.
-         allocate(v(nphases*size(velocity%val(1, :)))) ; v = 0.
-         allocate(w(nphases*size(velocity%val(1, :)))) ; w = 0. 
-      endif
+         allocate( u( nphases * u_nonods )) ; u = 0.
+         allocate( v( nphases * u_nonods )) ; v = 0.
+         allocate( w( nphases * u_nonods )) ; w = 0. 
+      end if
 
       if (.not.allocated(wic_u_bc)) then
          allocate( wic_u_bc( stotel * nphases ))
          wic_u_bc = 0
-      endif
+      end if
       if (.not.allocated(suf_u_bc)) then
          allocate( suf_u_bc( stotel * u_snloc * nphases ))
          suf_u_bc = 0.
-      endif
+      end if
       if (.not.allocated(suf_v_bc)) then
          allocate( suf_v_bc( stotel * u_snloc * nphases ))
          suf_v_bc = 0.
-      endif
+      end if
       if (.not.allocated(suf_w_bc)) then
          allocate( suf_w_bc( stotel * u_snloc * nphases ))
          suf_w_bc = 0.
-      endif
+      end if
+
+      allocate( nu(nphases * u_nonods )) ; nu = 0.
+      allocate( nv(nphases * u_nonods )) ; nv = 0.
+      allocate( nw(nphases * u_nonods )) ; nw = 0.
+
+      allocate( ug(nphases * u_nonods )) ; ug = 0.
+      allocate( vg(nphases * u_nonods )) ; vg = 0.
+      allocate( wg(nphases * u_nonods )) ; wg = 0.
+
 
       Loop_Velocity: do i = 1, nphases
 
@@ -1221,28 +1207,14 @@ module copy_outof_into_state
          call get_option(trim(option_path)//"/prognostic/initial_condition::WholeMesh/constant", &
               initial_constant_velocity)
 
-         u((i-1)*size(velocity%val(1, :))+1:i*size(velocity%val(1, :)))=initial_constant_velocity(1)
-         if (ndim>1) v((i-1)*size(velocity%val(1, :))+1:i*size(velocity%val(1, :)))=initial_constant_velocity(2)
-         if (ndim>2) w((i-1)*size(velocity%val(1, :))+1:i*size(velocity%val(1, :)))=initial_constant_velocity(3)
+         u((i-1)*u_nonods+1:i*u_nonods)=initial_constant_velocity(1)
+         if (ndim>1) v((i-1)*u_nonods+1:i*u_nonods)=initial_constant_velocity(2)
+         if (ndim>2) w((i-1)*u_nonods+1:i*u_nonods)=initial_constant_velocity(3)
 
-         ! This will make sure that the fields in the PC *does not* contain any boundary conditions
-         ! elements. This need to be changed along with the future data structure to take into 
-         ! account the overlapping formulation.
-         do j = size(velocity%val(1, :)), 1, -1
-            u((i-1)*size(velocity%val(1, :))+j)=velocity%val(X_, j)
-            if( j == 1 ) u( ( i - 1 ) * size(velocity%val(1, :)) + j ) = &
-                 u( ( i - 1 ) * size(velocity%val(1, :)) + j + 1)
-            if (ndim>1) then
-               v((i-1)*size(velocity%val(1, :))+j)=velocity%val(Y_, j)
-               if( j == 1 ) v( ( i - 1 ) * size(velocity%val(1, :)) + j ) = &
-                    v( ( i - 1 ) * size(velocity%val(1, :)) + j + 1)
-            endif
-            if (ndim>2) then
-               w((i-1)*size(velocity%val(1, :))+j)=velocity%val(Z_, j)
-               if( j == 1 ) w( ( i - 1 ) * size(velocity%val(1, :)) + j ) = &
-                    w( ( i - 1 ) * size(velocity%val(1, :)) + j + 1)
-            endif
-         enddo
+         ! set nu to u
+         nu((i-1)*u_nonods+1:i*u_nonods)=initial_constant_velocity(1)
+         if (ndim>1) nv((i-1)*u_nonods+1:i*u_nonods)=initial_constant_velocity(2)
+         if (ndim>2) nw((i-1)*u_nonods+1:i*u_nonods)=initial_constant_velocity(3)
 
          Conditional_Velocity_BC: if( have_option( '/material_phase[' // int2str(i-1) // &
               ']/vector_field::Velocity/prognostic/' // &
@@ -1301,7 +1273,6 @@ module copy_outof_into_state
          endif Conditional_Velocity_BC
 
       end do Loop_Velocity ! This is the phase loop
-
 
       allocate(uabs_option(nphases))
       allocate(eos_option(nphases))
