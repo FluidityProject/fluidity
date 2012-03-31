@@ -781,7 +781,7 @@ contains
             call get_option(trim(bc_type_path)//"/from_field/parent_field_name", parent_field_name)
             parent_field => extract_scalar_field(state, parent_field_name, stat)
             if(stat /= 0) then
-               FLAbort("Could not extract parent scalar field. Check options file?")
+               FLExit("Could not extract parent scalar field. Check options file?")
             end if
 
             call remap_field_to_surface(parent_field, surface_field, surface_element_list, stat)
@@ -1010,7 +1010,7 @@ contains
                      call get_option(trim(bc_type_path)//"/from_field/parent_field_name", parent_field_name)
                      parent_field => extract_vector_field(state, parent_field_name, stat)
                      if(stat /= 0) then
-                        FLAbort("Could not extract parent vector field. Check options file?")
+                        FLExit("Could not extract parent vector field. Check options file?")
                      end if
                      parent_field_component = extract_scalar_field(parent_field, j)
 
