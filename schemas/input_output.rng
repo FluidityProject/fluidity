@@ -149,7 +149,12 @@ where X is a tuple of length geometry dimension.</a:documentation>
       </element>
       <element name="from_field">
         <a:documentation>The parent field contains the boundary values that you want to apply as a boundary condition to this field.
-Note: Only works with a parent field in the same material_phase.</a:documentation>
+
+Note 1: Only works with a parent field in the same material_phase.
+
+Note 2: If the parent field is time-dependent, then the boundary values being used will be 1 timestep out since the parent field is only re-computed after BCs are set at the beginning of each timestep.
+
+Note 3: The parent field must be remappable to this field (e.g. remapping from a discontinuous to a continuous field, or from a higher order to a lower order field, is not allowed).</a:documentation>
         <attribute name="parent_field_name">
           <data type="string"/>
         </attribute>

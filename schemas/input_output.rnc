@@ -113,7 +113,14 @@ input_choice_real_contents =
       python_code
    }|
    ## The parent field contains the boundary values that you want to apply as a boundary condition to this field.
-   ## Note: Only works with a parent field in the same material_phase.
+   ##
+   ## Note 1: Only works with a parent field in the same material_phase.
+   ##
+   ## Note 2: If the parent field is time-dependent, then the boundary values being used will be 1 timestep out since the parent field is only re-computed after BCs are set at the beginning of each timestep.
+   ##
+   ## Note 3: The parent field must be remappable to this field (e.g. remapping from a discontinuous to a continuous field, or from a higher order to a lower order field, is not allowed).
+   
+   
    element from_field {
       attribute parent_field_name { xsd:string }
    }
