@@ -1006,7 +1006,7 @@
       logical :: integrat_at_gi
       integer :: scvngi, cv_ngi, cv_ngi_short, sbcvngi, nface, &
            ncolgpts, i_dummy, ele, ele2, ele3, cv_iloc, cv_jloc, cv_nodi, cv_nodj, &
-           cv_nodj2, gcount, gcount2, gcount3, gi, cv_nod, count2
+           cv_nodj2, gcount, gcount2, gcount3, gi, cv_nod, count2, count
 
       ! Computing Gauss points and array containing node points on neighboors elements
       call retrieve_ngi( ndim, cv_ele_type, cv_nloc, u_nloc, &
@@ -1100,18 +1100,26 @@
       ewrite(3,*)'findgpts:', size( findgpts ), '==>', findgpts( 1: cv_nloc + 1 )
       ewrite(3,*)'colgpts:', size( colgpts ), ncolgpts, '==>', colgpts( 1 : ncolgpts )
 
-
+      found=.false.
+! set the diagonal to true...
+      do cv_nodi=1,cv_nonods
+         do gcount = findm( cv_nodi ), findm( cv_nodi + 1 ) - 1
+            if(colm(gcount)==cv_nodi) found( gcount ) = .true.
+         end do 
+      end do
+! now the off diagonal terms...
       Loop_Elements_1: do ele = 1, totele
          Loop_CVILOC_1: do cv_iloc = 1, cv_nloc
             cv_nodi = cv_ndgln( ( ele - 1 ) * cv_nloc + cv_iloc )
             Loop_GI_1: do gi = 1, scvngi
                cv_jloc = cv_neiloc( cv_iloc, gi ) 
-               if ( ( ( ele - 1 ) * cv_nloc + cv_jloc ) <= 0 ) cycle
-               cv_nodj = cv_ndgln( ( ele - 1 ) * cv_nloc + cv_jloc )
-               Loop_GCOUNT_1: do gcount = findm( cv_nodi ), findm( cv_nodi + 1 ) - 1
-                  cv_nodj2 = colm( gcount )
-                  if ( cv_nodj == cv_nodj2 ) found( gcount ) = .true.
-               end do Loop_GCOUNT_1
+               if ( cv_jloc  > 0 ) then
+                  cv_nodj = cv_ndgln( ( ele - 1 ) * cv_nloc + cv_jloc )
+                  Loop_GCOUNT_1: do gcount = findm( cv_nodi ), findm( cv_nodi + 1 ) - 1
+                     cv_nodj2 = colm( gcount )
+                     if ( cv_nodj == cv_nodj2 ) found( gcount ) = .true.
+                  end do Loop_GCOUNT_1
+               endif
             end do Loop_GI_1
          end do Loop_CVILOC_1
       end do Loop_Elements_1
@@ -1130,9 +1138,15 @@
       ncolacv_loc = gcount2
       finacv_loc( cv_nonods + 1 ) = gcount2 + 1
 
+
+      print *,'acv:'
+      do cv_nodi=1,cv_nonods
+        print *,'for row:',cv_nodi,' the colns are:'
+        print *,(colacv_loc(count),count=finacv_loc(cv_nodi),finacv_loc(cv_nodi+1)-1)
+      end do
       
 !      stop 1824
-return
+      return
 
 
       x_share = .false.
