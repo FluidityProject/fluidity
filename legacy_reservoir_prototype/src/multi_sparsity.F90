@@ -1131,7 +1131,7 @@
       finacv_loc( cv_nonods + 1 ) = gcount2 + 1
 
       
-      stop 1824
+!      stop 1824
 return
 
 
