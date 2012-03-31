@@ -985,7 +985,7 @@
       integer, intent( inout ) :: ncolacv_loc
       integer, dimension( cv_nonods + 1 ), intent( inout ) :: finacv_loc
       !  integer, dimension( mxnacv_loc ), intent( inout ) :: colacv_loc
-      integer, dimension( cv_nonods * cv_nonods ), intent( inout ) :: colacv_loc
+      integer, dimension( mxnacv_loc ), intent( inout ) :: colacv_loc
       integer, dimension( cv_nonods ), intent( inout ) :: midacv_loc
       ! Local variables
       logical, dimension( : ), allocatable :: found, x_share
@@ -1129,6 +1129,9 @@
       end do
       ncolacv_loc = gcount2
       finacv_loc( cv_nonods + 1 ) = gcount2 + 1
+
+      
+      stop 1824
 return
 
 
@@ -1318,6 +1321,7 @@ return
       integer, dimension( cv_nonods ), intent( inout ) :: midm
       ! Local variables 
       integer :: mx_ncolele_pha, nacv_loc, nacv_loc2, ele, iloc1, iloc2, globi, globj
+      integer :: mx_ncolacv_loc
       logical :: presym
       integer, dimension( : ), allocatable :: colele_pha, finele_pha, midele_pha, &
            centct, dummyvec, midacv_loc, finacv_loc, colacv_loc
@@ -1448,9 +1452,10 @@ return
       !-
       !- Computing sparsity for CV multiphase eqns (e.g. vol frac, temp)
       !-
+      mx_ncolacv_loc=mx_ncolacv/(nphase**2)
       allocate( midacv_loc( cv_nonods ) )
       allocate( finacv_loc( cv_nonods + 1 ) )
-      allocate( colacv_loc( cv_nonods * cv_nonods ) )
+      allocate( colacv_loc( mx_ncolacv_loc ) )
       midacv_loc = 0 ; finacv_loc = 0 ; colacv_loc = 0
       Conditional_Dimensional_5: if ( ndim == 1 ) then 
          call def_spar( 1, cv_nonods, 3 * cv_nonods, nacv_loc, &
@@ -1461,7 +1466,7 @@ return
               cv_snloc, u_snloc, cv_nonods, x_nonods, &
               cv_ndgln, x_ndgln, xu_ndgln, &
               ncolele, finele, colele, &
-              ncolm, 3 * cv_nonods, findm, colm, &
+              ncolm, mx_ncolacv_loc, findm, colm, &
               nacv_loc, finacv_loc, colacv_loc, midacv_loc )
       end if Conditional_Dimensional_5
       nacv_loc2 = nacv_loc

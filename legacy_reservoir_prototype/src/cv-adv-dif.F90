@@ -303,7 +303,7 @@ contains
          DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX, BCZERO, ROBIN1, ROBIN2, &
          SUM, &
          SUM_LIMT, SUM_LIMTOLD, FTHETA_T2, ONE_M_FTHETA_T2OLD
-    integer :: x_nod1,x_nod2,x_nod3
+    integer :: x_nod1,x_nod2,x_nod3,cv_inod_ipha
     real :: x_mean,y_mean
     ! Functions...
     !REAL :: R2NORM,FACE_THETA  
@@ -497,6 +497,7 @@ contains
          ewrite(3,*)'iloc, cv_on_face:', cv_iloc, ( cv_on_face( cv_iloc, gi ), gi = 1, scvngi )
          ewrite(3,*)'iloc, cvfem_on_face:', cv_iloc, ( cvfem_on_face( cv_iloc, gi ), gi = 1, scvngi )
       end do
+    
 
     ! Determine FEMT (finite element wise) etc from T (control volume wise)
     ! Also determine the CV mass matrix MASS_CV and centre of the CV's XC_CV,YC_CV,ZC_CV. 
@@ -570,6 +571,21 @@ contains
          T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD, &
          DENMIN_NOD, DENMAX_NOD, DENOLDMIN_NOD, DENOLDMAX_NOD )
 
+      print *,'acv:'
+      do cv_inod_ipha=1,cv_nonods*nphase
+        print *,'for row:',cv_inod_ipha,' the colns are:'
+        print *,(colacv(count),count=finacv(cv_inod_ipha),finacv(cv_inod_ipha+1)-1)
+      end do
+
+      print *,'m:'
+      do cv_inod=1,cv_nonods
+        print *,'for row:',cv_inod,' the colns are:'
+        print *,(colm(count),count=findm(cv_inod),findm(cv_inod+1)-1)
+      end do
+      
+        
+                              ewrite(1,*)'midacv:', midacv( 1 : cv_nonods * nphase )
+                         stop 2821
 
     ALLOCATE( FACE_ELE( NFACE, TOTELE ))
     ! Calculate FACE_ELE
