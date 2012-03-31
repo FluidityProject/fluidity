@@ -2799,7 +2799,10 @@
             Loop_NGI: do quad_cv_sgi = 1, quad_cv_sngi 
                cv_sgi = ( ele - 1 ) * quad_cv_sngi * stotel + ( sele - 1 ) * &
                     quad_cv_sngi + quad_cv_sgi
-               gl_quad_scvweigh( cv_sgi ) = quad_sdetwei( quad_cv_sgi )
+! we do not multiply the weight by the determinant as we are operating in 
+! local coordinates...
+!               gl_quad_scvweigh( cv_sgi ) = quad_sdetwei( quad_cv_sgi )
+               gl_quad_scvweigh( cv_sgi ) = quad_scvweight( quad_cv_sgi )
 
                xgi = 0. ; ygi = 0. ; zgi = 0.
                do quad_cv_siloc = 1, quad_cv_snloc
@@ -3068,15 +3071,6 @@
          cvfem_neiloc( cv_iloc, 3 ) = -1
       end if
 
-      print *,'scvweigh:',scvweigh
-
-! this works for 2d and 3d...
-      half_side_length=0.5*sqrt((lx(1)-lx(2))**2+(ly(1)-ly(2))**2)
-      print *,'half_side_length=',half_side_length
-! sort this out.....
-! Divide half the length of an edge so the weights are scaled properly...
-!      scvweigh=(0.5/half_side_length)*scvweigh
-      print *,'after correction'
       print *,'scvweigh:',scvweigh
          print *,' '
          do cv_sgi = 1, scvngi

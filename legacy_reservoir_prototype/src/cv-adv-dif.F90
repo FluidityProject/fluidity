@@ -303,6 +303,8 @@ contains
          DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX, BCZERO, ROBIN1, ROBIN2, &
          SUM, &
          SUM_LIMT, SUM_LIMTOLD, FTHETA_T2, ONE_M_FTHETA_T2OLD
+    integer :: x_nod1,x_nod2,x_nod3
+    real :: x_mean,y_mean
     ! Functions...
     !REAL :: R2NORM,FACE_THETA  
     !        ===>  LOGICALS  <===
@@ -953,6 +955,19 @@ if( (ele == 11 ) .or. (ele==10))  then
                    !====================== ACV AND RHS ASSEMBLY ===================
                    Conditional_GETCT2 : IF( GETCT ) THEN ! Obtain the CV discretised CT eqations plus RHS
           print *,'gi,SCVFEWEIGH(gi)=',gi,SCVFEWEIGH(gi)
+          x_nod1=x_NDGLN(( ELE - 1 )  * CV_NLOC + 1 )
+          x_nod2=x_NDGLN(( ELE - 1 )  * CV_NLOC + 2 )
+          x_nod3=x_NDGLN(( ELE - 1 )  * CV_NLOC + 3 )
+          x_mean=0.333333333*(x(x_nod1)+x(x_nod2)+x(x_nod3))
+          y_mean=0.333333333*(y(x_nod1)+y(x_nod2)+y(x_nod3))
+          print *,'mean coord:',x_mean,y_mean
+          print *,'length of quad 2,4,7:',sqrt( (0.5*(x(x_nod1)+x(x_nod2))-x_mean)**2 &
+                                               +(0.5*(y(x_nod1)+y(x_nod2))-y_mean)**2 ),  &
+                                          sqrt( (0.5*(x(x_nod1)+x(x_nod3))-x_mean)**2 &
+                                               +(0.5*(y(x_nod1)+y(x_nod3))-y_mean)**2 ), &
+                                          sqrt( (0.5*(x(x_nod2)+x(x_nod3))-x_mean)**2 &
+                                               +(0.5*(y(x_nod2)+y(x_nod3))-y_mean)**2 ) 
+
                       CALL PUT_IN_CT_RHS(CT, CT_RHS, U_NLOC, SCVNGI, GI, NCOLCT, NDIM, &
                            CV_NONODS, U_NONODS, NPHASE, IPHASE, TOTELE, ELE, ELE2, SELE, &
                            JCOUNT_KLOC, JCOUNT_KLOC2, U_OTHER_LOC, U_NDGLN, NU, NV, NW,  &
