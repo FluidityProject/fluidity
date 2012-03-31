@@ -1457,7 +1457,7 @@
       !-
       !- Computing sparsity for CV multiphase eqns (e.g. vol frac, temp)
       !-
-      mx_ncolacv_loc=mx_ncolacv/(nphase**2)
+      mx_ncolacv_loc=mx_ncolacv/nphase
       allocate( midacv_loc( cv_nonods ) )
       allocate( finacv_loc( cv_nonods + 1 ) )
       allocate( colacv_loc( mx_ncolacv_loc ) )

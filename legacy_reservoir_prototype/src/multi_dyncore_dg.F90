@@ -556,7 +556,7 @@ contains
     ! this is the pivit matrix to use in the projection method...
     REAL, DIMENSION( :, :, : ), allocatable :: PIVIT_MAT, INV_PIVIT_MAT
     INTEGER :: CV_NOD, COUNT, CV_JNOD, IPHASE, ele, x_nod1, x_nod2, x_nod3, &
-         cv_nod1, cv_nod2, cv_nod3, mat_nod1
+         cv_nod1, cv_nod2, cv_nod3, mat_nod1, u_iloc
     REAL :: der1, der2, der3, uabs
     LOGICAL :: JUST_BL_DIAG_MAT
 
@@ -762,15 +762,32 @@ contains
 !       ewrite(3,*)'after correcting vel U=',U
 
         
-       ewrite(3,*)'p,x:'
+       ewrite(3,*)'x,p:'
        DO CV_NOD = 1, CV_NONODS
-         ewrite(3,*)p(cv_nod),x(cv_nod)
+         ewrite(3,*)x(cv_nod),p(cv_nod)
+       end do
+       do iphase=1,nphase
+          print *,'iphase:', iphase
+          do ele=1,totele
+            print *,'ele=',ele
+            print *,'u:',(u((ele-1)*u_nloc +u_iloc +(iphase-1)*u_nonods), &
+                         u_iloc=1,u_nloc)
+          end do
+       end do
+       do iphase=1,nphase
+          print *,'iphase:', iphase
+          do ele=1,totele
+            print *,'ele=',ele
+            print *,'v:',(v((ele-1)*u_nloc +u_iloc +(iphase-1)*u_nonods), &
+                         u_iloc=1,u_nloc)
+          end do
        end do
 !       ewrite(3,*)'u:',u
 !       ewrite(3,*)'v:',v
 !       DO u_NOD = 1, u_NONODS
 !         ewrite(3,*)u(u_nod)
 !       end do
+        pause
          
 
     ENDIF
