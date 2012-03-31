@@ -1006,7 +1006,8 @@
       logical :: integrat_at_gi
       integer :: scvngi, cv_ngi, cv_ngi_short, sbcvngi, nface, &
            ncolgpts, i_dummy, ele, ele2, ele3, cv_iloc, cv_jloc, cv_nodi, cv_nodj, &
-           cv_nodj2, gcount, gcount2, gcount3, gi, cv_nod, count2, count
+           cv_nodj2, gcount, gcount2, gcount3, gi, cv_nod, count2, count, iface, &
+           x_nodi, x_nodi2, mxnele, FACE_COUNT, cv_nodi2, cv_iloc2
 
       ! Computing Gauss points and array containing node points on neighboors elements
       call retrieve_ngi( ndim, cv_ele_type, cv_nloc, u_nloc, &
@@ -1124,6 +1125,33 @@
          end do Loop_CVILOC_1
       end do Loop_Elements_1
 
+! for discontinuous elements...
+      if(totele*cv_nloc==cv_nonods) then
+
+         Loop_Elements_4: do ele = 1, totele
+            do FACE_COUNT=FINELE(ELE),FINELE(ELE+1)-1
+             
+               ele2=COLELE(FACE_COUNT)
+               if((ele2>0).and.(ele2.ne.ele)) then
+                  Loop_CVILOC_5: do cv_iloc = 1, cv_nloc ! Loop over nodes of the elements
+                     cv_nodi = cv_ndgln( ( ele - 1 ) * cv_nloc + cv_iloc )
+                     x_nodi = x_ndgln( ( ele - 1 ) * cv_nloc + cv_iloc )
+                     Loop_CVILOC_6: do cv_iloc2 = 1, cv_nloc ! Loop over nodes of the elements
+                        cv_nodi2 = cv_ndgln( ( ele2 - 1 ) * cv_nloc + cv_iloc2 )
+                        x_nodi2 = x_ndgln( ( ele2 - 1 ) * cv_nloc + cv_iloc2 )
+                        if(x_nodi==x_nodi2) then
+                            do gcount = findm( cv_nodi ), findm( cv_nodi + 1 ) - 1
+                               cv_nodj2 = colm( gcount )
+                              if ( cv_nodi2 == cv_nodj2 ) found( gcount ) = .true.
+                            end do
+                        endif
+                     end do Loop_CVILOC_6
+                  end do Loop_CVILOC_5
+               endif
+            end do
+         end do Loop_Elements_4
+      endif
+
       gcount2 = 0 ! Now reducing the size of the stencil
       do cv_nodi = 1, cv_nonods
          finacv_loc( cv_nodi ) = gcount2 + 1
@@ -1144,47 +1172,10 @@
         print *,'for row:',cv_nodi,' the colns are:'
         print *,(colacv_loc(count),count=finacv_loc(cv_nodi),finacv_loc(cv_nodi+1)-1)
       end do
-      
+       
+      RETURN
+
 !      stop 1824
-      return
-
-
-      x_share = .false.
-      count2 = 0
-      ! Computing the sparsity pattern of the CV matrix
-      Loop_Elements_2: do ele = 1, totele
-         Loop_CVILOC_2: do cv_iloc = 1, cv_nloc ! Loop over nodes of the elements
-            cv_nodi = cv_ndgln( ( ele - 1 ) * cv_nloc + cv_iloc )
-
-            ! Now loop over quadrature points in ELE neighbouring CV_ILOC
-            Loop_GCOUNT_2: do gcount = findgpts( cv_iloc ), findgpts( cv_iloc + 1 ) - 1, 1 
-               gi = colgpts( gcount ) ! Stores the local quadrature number in the ELE
-               ! Now get the neighbouring node for node ILOC and Gauss point GI
-               cv_jloc = cv_neiloc( cv_iloc, gi ) 
-               ele2 = 0
-               integrat_at_gi = .true.
-               Conditional_NeighboorElem2: if ( cv_jloc == -1 ) then
-                  call find_other_side( cv_other_loc, cv_nloc, cv_nodi, u_other_loc, u_nloc, &
-                       mat_other_loc, mat_nloc, integrat_at_gi, &
-                       totele, x_nloc, xu_nloc, x_ndgln, cv_ndgln, xu_ndgln, &
-                       cv_snloc, cvfem_on_face, scvngi, gi, x_share, x_nonods, ele, ele2, &
-                       finele, colele, ncolele )
-                  cv_jloc = cv_other_loc( cv_iloc )
-                  cv_nodj = cv_ndgln( ( ele2 - 1 ) * cv_nloc + cv_jloc )
-                  ! For this sparsity - *ACV_LOC, are we interested on neighboors (a) CV (therefore cv_jloc /= -1 or 0)
-                  ! or (b) elements  (therefore cv_jloc == -1)? Assuming for the time being (b).
-                  Loop_GCOUNT_3: do gcount2 = finele( ele ), finele( ele + 1 ) - 1, 1
-                     ele3 = colele( gcount2 )
-                     cv_nod = cv_ndgln( ( ele3 - 1 ) * cv_nloc + cv_iloc )
-                     if( cv_nod == cv_nodi ) count2 = count2 + 1
-                  end do Loop_GCOUNT_3
-
-               end if Conditional_NeighboorElem2
-
-            end do Loop_GCOUNT_2
-         end do Loop_CVILOC_2
-      end do Loop_Elements_2
-
 
       deallocate( cv_neiloc )
       deallocate( cvfem_neiloc )
