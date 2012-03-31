@@ -34,6 +34,19 @@
         </stat>
       </from_mesh>
     </mesh>
+    <mesh name="TemperatureMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">2</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
     <quadrature>
       <degree>
         <integer_value rank="0">3</integer_value>
@@ -49,7 +62,7 @@
         <real_value rank="0">0.0</real_value>
       </constant>
     </dump_period>
-    <output_mesh name="CoordinateMesh"/>
+    <output_mesh name="VelocityMesh"/>
     <stat/>
   </io>
   <timestepping>
@@ -158,11 +171,15 @@
     </vector_field>
     <scalar_field name="Parent" rank="0">
       <prescribed>
-        <mesh name="VelocityMesh"/>
+        <mesh name="CoordinateMesh"/>
         <value name="WholeMesh">
-          <constant>
-            <real_value rank="0">5.0</real_value>
-          </constant>
+          <from_file file_name="src/boundary_data.vtu">
+            <format name="vtu">
+              <field_name>
+                <string_value lines="1">BC</string_value>
+              </field_name>
+            </format>
+          </from_file>
         </value>
         <output/>
         <stat/>
@@ -173,7 +190,7 @@
     </scalar_field>
     <scalar_field name="Temperature" rank="0">
       <prognostic>
-        <mesh name="CoordinateMesh"/>
+        <mesh name="TemperatureMesh"/>
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>
@@ -209,7 +226,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value rank="0">0.0</real_value>
+            <real_value rank="0">5.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="All">

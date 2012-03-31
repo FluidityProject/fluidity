@@ -18,11 +18,22 @@ s = stat_parser("bc_from_field.stat")
 time=s["ElapsedTime"]["value"]
     </variable>
     
-    <variable name="temperature_max" language="python">
-from fluidity_tools import stat_parser
-s = stat_parser("bc_from_field.stat")
-temperature_max=s["Gas"]["Temperature"]["max"]
+    <variable name="temperature" language="python">
+import vtktools
+
+file = vtktools.vtu('bc_from_field_5.vtu')
+file.GetFieldNames()
+temperature = file.GetScalarField('Temperature')
     </variable>
+    
+    <variable name="positions" language="python">
+import vtktools
+
+file = vtktools.vtu('bc_from_field_5.vtu')
+file.GetFieldNames()
+positions = file.GetLocations()
+    </variable>
+    
   </variables>
     
   <pass_tests>
@@ -31,9 +42,18 @@ import fluidity_tools
 fluidity_tools.compare_variable(abs(time[-1]), 0.05, 1.0e-14)
     </test>
     
-    <test name="Maximum value of Temperature is 5.0" language="python">
+    <test name="Temperature is assigned the correct boundary values " language="python">
 import fluidity_tools
-fluidity_tools.compare_variables(temperature_max, [5.0, 5.0, 5.0, 5.0, 5.0], 1.0e-14)
+from math import sin
+
+nnodes = len(temperature)
+for i in range(nnodes):
+   if( (positions[i][1] &gt; 0.99) or (positions[i][1] &lt; 0.01) or (positions[i][0] &lt; 0.01) or (positions[i][0] &gt; 0.99)):
+      # If we have a boundary node, check it's value against sin(y) (i.e. the boundary value in src/boundary_data.vtu)
+      fluidity_tools.compare_variable(temperature[i], sin(positions[i][1]), 1.0e-14)
+   else:
+      # The Temperature field should be 5.0 elsewhere.
+      fluidity_tools.compare_variable(temperature[i], 5.0, 1.0e-14)
     </test>
   </pass_tests>
   
