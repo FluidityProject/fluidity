@@ -6,7 +6,7 @@ input_choice_real =
 
 input_choice_real_plus_boundary_forcing =
    (
-      input_choice_real_contents|
+      input_choice_real_plus_field|
         element from_file {
            element tidal {
                 attribute file_name { string },
@@ -97,6 +97,21 @@ input_choice_real_plus_list =
       }
    )
 
+input_choice_real_plus_field =
+   (
+      input_choice_real_contents|
+      ## The parent field contains the boundary values that you want to apply as a boundary condition to this field.
+      ##
+      ## Note 1: Only works with a parent field in the same material_phase.
+      ##
+      ## Note 2: If the parent field is time-dependent, then the boundary values being used will be 1 timestep out since the parent field is only re-computed after BCs are set at the beginning of each timestep.
+      ##
+      ## Note 3: The parent field must be remappable to this field (e.g. remapping from a discontinuous to a continuous field, or from a higher order to a lower order field, is not allowed).
+      element from_field {
+         attribute parent_field_name { xsd:string }
+      }
+   )
+   
 input_choice_real_contents =
    ## Constant value
    element constant {
@@ -111,18 +126,6 @@ input_choice_real_contents =
    ## where X is a tuple of length geometry dimension.
    element python {
       python_code
-   }|
-   ## The parent field contains the boundary values that you want to apply as a boundary condition to this field.
-   ##
-   ## Note 1: Only works with a parent field in the same material_phase.
-   ##
-   ## Note 2: If the parent field is time-dependent, then the boundary values being used will be 1 timestep out since the parent field is only re-computed after BCs are set at the beginning of each timestep.
-   ##
-   ## Note 3: The parent field must be remappable to this field (e.g. remapping from a discontinuous to a continuous field, or from a higher order to a lower order field, is not allowed).
-   
-   
-   element from_field {
-      attribute parent_field_name { xsd:string }
    }
 
 initial_condition_scalar = 
@@ -323,7 +326,7 @@ input_choice_real_dim_vector_plus_file =
          empty
       }
    )
-
+   
 input_choice_real_dim_vector_contents =
    ## Constant value
    element constant {
@@ -537,7 +540,7 @@ region_ids =
 
 input_choice_real_bc_component = 
    (
-      input_choice_real|
+      input_choice_real_plus_field|
       element synthetic_eddy_method {
          ## use a large number to ensure Gaussian 
          ## behaviour of the fluctuating component
