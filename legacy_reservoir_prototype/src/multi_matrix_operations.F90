@@ -398,7 +398,7 @@
            TOTELE, U_NLOC, NCOLCT, NCOLCMC
       INTEGER, DIMENSION( U_NONODS + 1 ), intent( in ) ::FINDC
       INTEGER, DIMENSION( NCOLC ), intent( in ) :: COLC
-      REAL, DIMENSION( TOTELE, U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM ), intent( inout ) :: INV_PIVIT_MAT
+      REAL, DIMENSION( TOTELE, U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM ), intent( in ) :: INV_PIVIT_MAT
       INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ) ::  U_NDGLN
       INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCT
       INTEGER, DIMENSION( NCOLCT ), intent( in ) :: COLCT
@@ -639,16 +639,16 @@
           end do
        endif
 
-         print *,'ncolor=',ncolor
-         print *,'CMC_COLOR_VEC:',CMC_COLOR_VEC
+!         print *,'ncolor=',ncolor
+!         print *,'CMC_COLOR_VEC:',CMC_COLOR_VEC
       end do
         
-      print *,' '
-      print *,'ct(1),c(1):',ct(1),c(1)
-      print *,'ct(ncolct),c(ncolc):',ct(ncolct),c(ncolc)
+!      print *,' '
+!      print *,'ct(1),c(1):',ct(1),c(1)
+!      print *,'ct(ncolct),c(ncolc):',ct(ncolct),c(ncolc)
 
 
-      if(.true.) then
+      if(.false.) then
          DO CV_NOD = 1, CV_NONODS
 
             print *,'cv_nod=',cv_nod

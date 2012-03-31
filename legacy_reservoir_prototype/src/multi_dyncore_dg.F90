@@ -746,7 +746,7 @@ contains
        CALL C_MULT( CDP, DP, CV_NONODS, U_NONODS, NDIM, NPHASE, &
             C, NCOLC, FINDC, COLC)
 
-       ewrite(3,*)'before correcting vel CDP=',CDP
+!       ewrite(3,*)'before correcting vel CDP=',CDP
 
        ! correct velocity...
        ! DU = BLOCK_MAT * CDP 
@@ -759,7 +759,19 @@ contains
        U = U + DU
        IF( NDIM >= 2) V = V + DV
        IF( NDIM >= 3) W = W + DW
-       ewrite(3,*)'after correcting vel U=',U
+!       ewrite(3,*)'after correcting vel U=',U
+
+        
+       ewrite(3,*)'p,x:'
+       DO CV_NOD = 1, CV_NONODS
+         ewrite(3,*)p(cv_nod),x(cv_nod)
+       end do
+!       ewrite(3,*)'u:',u
+!       ewrite(3,*)'v:',v
+!       DO u_NOD = 1, u_NONODS
+!         ewrite(3,*)u(u_nod)
+!       end do
+         
 
     ENDIF
 
@@ -774,9 +786,9 @@ contains
        END DO
     END DO
     CV_P = CV_P / MASS_CV
-    ewrite(3,*)'also CV_P=',CV_P
+!    ewrite(3,*)'also CV_P=',CV_P
 
-     stop 443
+!     stop 443
 
     ewrite(3,*)'the velocity should be:'
     do ele=1,-totele
