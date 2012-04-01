@@ -29,6 +29,7 @@ module hydrostatic_projection
   use fldebug
   use sparse_tools
   use fields
+  use data_structures
   use state_module
   use sparse_matrices_fields
   use sparsity_patterns_meshes
@@ -198,17 +199,96 @@ contains
     type(scalar_field):: full_ct_rhs
     logical, intent(in):: get_ct_m
 
-    type(mesh_type), pointer:: mesh
+    type(mesh_type), pointer:: p_mesh, l_mesh
+    type(scalar_field), pointer:: bottom_distance
+    integer, dimension(:) ,pointer:: surface_element_list
+    integer :: i, sele, ele
 
     p_mesh => extract_pressure_mesh(state)
-    if (.not. (element_degree(p_mesh)==element_degree(u)+1 .and. continuity(p_mesh)<0 .and. continuity(u)>=0)) then
+    if (.not. (element_degree(p_mesh,1)==element_degree(u,1)+1 .and. continuity(p_mesh)<0 .and. continuity(u)>=0)) then
       FLExit("Hydrostatic pressure projection only works for PnDG-Pn+1")
     end if
+    call find_linear_parent_mesh(state, p_mesh, l_mesh)
+    if (.not. associated(l_mesh%columns)) then
+      ! this could be made to work without the %columns, but that requires computing
+      ! face normals, which is expensive.
+      FLExit("Hydrostatic pressure projection only works for extruded meshes")
+    end if
 
-    do ele=1, element_count(p_mesh)
+    ! we start from the bottom - its surface mesh is stored as a boundary condition under "DistanceToBottom"
+    bottom_distance => extract_scalar_field(state, "DistanceToBottom")
+    call get_boundary_condition(bottom_distance, 1, &
+        surface_element_list=surface_element_list)
+    do i=1, size(surface_element_list)
+      sele = surface_element_list(i)
+      do
+        ele = face_ele(l_mesh, sele)
+        if (ele<=0) exit
+
+        call vertical_reconstruction_ele(ele, sele)
+
+      end do
 
     end do
-    
+
+    contains
+
+    subroutine vertical_reconstruction_ele(ele, sele)
+      integer, intent(in):: ele
+      integer, intent(inout):: sele
+
+      integer, dimension(face_loc(l_mesh,sele)):: flnodes
+      type(integer_set):: fnodes
+      integer, dimension(:), pointer:: faces, nodes, row
+      integer:: j
+
+      ! find the face between this element and the next in the column
+      ! this should be an element whose nodes are all in different columns
+      faces => ele_faces(l_mesh, ele)
+      do j=1, size(faces)
+        if (faces(j)==sele) cycle
+        flnodes=face_global_nodes(l_mesh, faces(j))
+        if (all_different(l_mesh%columns(flnodes))) exit
+      end do
+      if (j>size(faces)) then
+        ! no such face found, something is wrong
+        ewrite(-1,*) "It seems the mesh is not columnar"
+        ! how did we get here if %columns is present?
+        FLExit("Hydrostatic pressure projection requires columnar mesh.")
+      end if
+
+      nodes => ele_nodes(p_mesh, ele)
+      call allocate(fnodes)
+      call insert(fnodes, face_global_nodes(p_mesh, faces(j)))
+
+      do j=1, size(nodes)
+        ! if this node is on the next face, we'll deal with in the next element
+        if (has_value(fnodes, nodes(j))) cycle
+        row => row_m_ptr(full_ct_m%sparsity, nodes(j))
+      end do
+
+      call deallocate(fnodes)
+
+    end subroutine vertical_reconstruction_ele
+
+    logical function all_different(array)
+      ! checks whether all items in the array are different
+      integer, dimension(:), intent(in):: array
+
+      integer:: i
+      ! compare each with next
+      do i=1, size(array)-1
+        if (array(i)==array(i+1)) then
+          all_different=.false.
+          return
+        end if
+      end do
+      
+      ! finally, compare last with first
+      all_different=array(i)/=array(1)
+
+    end function all_different
+
   end subroutine reconstruct_vertical_velocities
   
 end module hydrostatic_projection
