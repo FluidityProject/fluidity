@@ -77,11 +77,13 @@ contains
     real, dimension(ele_loc(positionsS, 1), ele_loc(positionsS, 1)) :: inversion_matrix_S
     real, dimension(ele_loc(positionsS, 1), ele_loc(positionsS, 1), ele_count(positionsF)) :: inversion_matrices_F
     integer :: dim, max_degree
-    
+
     ! Variables for ilist when using rtree intersection finder:
     type(ilist) :: map_SF_rtree
     integer :: nele_fs, j, maplen, ntests
-    
+
+    character(len=OPTION_PATH_LEN) :: tmp
+
     integer :: stat
 
     ! As the projections are bounded, we need to define lumped versions of the mass matrices:
@@ -228,14 +230,19 @@ contains
     ! project alpha from the supermesh to the fluid mesh
 
     ! Set solver options for the interpolations:
+    tmp = alpha_sf%option_path
     alpha_sf%option_path = "/implicit_solids/one_way_coupling/galerkin_projection/continuous"
 
     ! Project alpha to the fluid mesh:
     call petsc_solve(alpha_sf, mass_matrix_fluid, rhs_alpha_sf)
 
-    ! Bound the projection:
-    alpha_sf%option_path = "/implicit_solids/one_way_coupling"
-    call bound_projection(alpha_sf, rhs_alpha_sf, mass_matrix_fluid, lumped_mass_matrix_fluid, lumped_inverse_mass_matrix_fluid, positionsF)
+    ! Resetting option path for alpha_sf:
+    alpha_sf%option_path = trim(tmp)
+
+    ! Get options from option tree if projection is bounded or not:
+    if (have_option('/implicit_solids/one_way_coupling/galerkin_projection/continuous/bounded[0]')) then
+       call bound_projection(alpha_sf, rhs_alpha_sf, mass_matrix_fluid, lumped_mass_matrix_fluid, lumped_inverse_mass_matrix_fluid, positionsF)
+    end if
 
     call deallocate(mass_matrix_fluid)
     call deallocate(rhs_alpha_sf)

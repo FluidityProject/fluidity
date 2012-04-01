@@ -320,6 +320,34 @@ Free_Surface.o ../include/free_surface_module.mod: Free_Surface.F90 \
    ../include/sparse_tools.mod ../include/spud.mod ../include/state_module.mod \
    ../include/tidal_module.mod ../include/vertical_extrapolation_module.mod
 
+../include/fsi_model.mod: Fsi_Model.o
+	@true
+
+Fsi_Model.o ../include/fsi_model.mod: Fsi_Model.F90 \
+   ../include/adjacency_lists.mod ../include/bound_field_module.mod \
+   ../include/boundary_conditions.mod \
+   ../include/conservative_interpolation_module.mod \
+   ../include/data_structures.mod ../include/diagnostic_variables.mod \
+   ../include/edge_length_module.mod ../include/elements.mod \
+   ../include/fdebug.h ../include/fefields.mod ../include/fetools.mod \
+   ../include/field_derivatives.mod ../include/fields.mod \
+   ../include/fields_manipulation.mod ../include/fldebug.mod \
+   ../include/futils.mod ../include/global_parameters.mod ../include/halos.mod \
+   ../include/interpolation_module.mod \
+   ../include/intersection_finder_module.mod ../include/linked_lists.mod \
+   ../include/mesh_files.mod ../include/meshdiagnostics.mod \
+   ../include/parallel_tools.mod ../include/pickers_inquire.mod \
+   ../include/qmesh_module.mod ../include/quadrature.mod \
+   ../include/read_triangle.mod ../include/solvers.mod \
+   ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
+   ../include/sparsity_patterns.mod ../include/spud.mod \
+   ../include/state_fields_module.mod ../include/state_module.mod \
+   ../include/supermesh_construction.mod ../include/supermesh_force.mod \
+   ../include/tensors.mod ../include/tetrahedron_intersection_module.mod \
+   ../include/timeloop_utilities.mod ../include/transform_elements.mod \
+   ../include/unify_meshes_module.mod ../include/unittest_tools.mod \
+   ../include/vector_tools.mod ../include/vtk_interfaces.mod
+
 ../include/full_projection.mod: Full_Projection.o
 	@true
 

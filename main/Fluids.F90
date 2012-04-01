@@ -74,6 +74,7 @@ module fluids_module
   use write_triangle
   use biology
   use foam_flow_module, only: calculate_potential_flow, calculate_foam_velocity
+  use fsi_model, only: fsi_modelling, fsi_model_compute_diagnostics, fsi_model_nonlinear_iteration_converged
   use momentum_equation
   use timeloop_utilities
   use free_surface_module
@@ -625,6 +626,10 @@ contains
           if (have_option("/implicit_solids")) then
              call solids(state(1), its, nonlinear_iterations)
           end if
+          
+          if (have_option("/embedded_models/fsi_model")) then
+             call fsi_modelling(state(1), its, nonlinear_iterations)
+          end if
 
           field_loop: do it = 1, ntsol
              ewrite(2, "(a,i0,a,i0)") "Considering scalar field ", it, " of ", ntsol
@@ -794,6 +799,15 @@ contains
              end if
           end if
 
+          if (have_option("/embedded_models/fsi_model")) then
+             call fsi_model_compute_diagnostics(state(1))
+             if (have_option("/timestepping/nonlinear_iterations/tolerance")) then
+                if ((its < nonlinear_iterations .and. change < abs(nonlinear_iteration_tolerance))) then
+                   call fsi_model_nonlinear_iteration_converged()
+                end if
+             end if
+          end if
+
           if(have_solids) then
              ewrite(2,*) 'into solid_data_update'
              call solid_data_update(state(ss:ss), its, nonlinear_iterations)
@@ -821,7 +835,7 @@ contains
              end if
           end if
        end if
-
+       
        if(have_option(trim('/mesh_adaptivity/mesh_movement/vertical_ale'))) then
           ewrite(1,*) 'Entering vertical_ale routine'
           !move the mesh and calculate the grid velocity
