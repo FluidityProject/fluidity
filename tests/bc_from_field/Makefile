@@ -1,7 +1,6 @@
 preprocess:
 	@echo **********Creating 2D mesh
-	gmsh -2 -o bc_from_field.msh src/bc_from_field.geo
-	../../bin/gmsh2triangle --2d bc_from_field.msh
+	../../bin/gmsh2triangle --2d src/bc_from_field.msh
 
 run:
 	@echo **********Running simulation
