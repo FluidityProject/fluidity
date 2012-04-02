@@ -648,10 +648,10 @@ contains
 
     ELSE ! solve using a projection method
 
-!       ewrite(3,*) 'pivit_mat', pivit_mat
-       
+       !       ewrite(3,*) 'pivit_mat', pivit_mat
+
        CALL PHA_BLOCK_INV( INV_PIVIT_MAT, PIVIT_MAT, TOTELE, U_NLOC * NPHASE * NDIM )
-!       p=1.-x
+       !       p=1.-x
 
        ! Put pressure in rhs of force balance eqn:  CDP=C*P
        CALL C_MULT( CDP, P, CV_NONODS, U_NONODS, NDIM, NPHASE, C, NCOLC, FINDC, COLC)
@@ -665,11 +665,11 @@ contains
 
        CALL UVW_2_ULONG( U, V, W, UP_VEL, U_NONODS, NDIM, NPHASE )
 
-!       ewrite(3,*) 'JUST_BL_DIAG_MAT,INV_PIVIT_MAT:',JUST_BL_DIAG_MAT,INV_PIVIT_MAT
-!       ewrite(3,*) 'U_RHS_CDP:',U_RHS_CDP
-!        print *,'u=',u
-!        print *,'v=',v
-         
+       !       ewrite(3,*) 'JUST_BL_DIAG_MAT,INV_PIVIT_MAT:',JUST_BL_DIAG_MAT,INV_PIVIT_MAT
+       !       ewrite(3,*) 'U_RHS_CDP:',U_RHS_CDP
+       !        print *,'u=',u
+       !        print *,'v=',v
+
 
        IF( JUST_BL_DIAG_MAT ) THEN
 
@@ -702,7 +702,7 @@ contains
              CV_JNOD = COLCMC( COUNT )
              P_RHS( CV_NOD ) = P_RHS( CV_NOD ) &
                   - DIAG_SCALE_PRES( CV_NOD ) * MASS_MN_PRES( COUNT ) * P( CV_JNOD )
-                  
+
              ewrite(3,*) cv_nod, cv_jnod, count, P_RHS( CV_NOD ), DIAG_SCALE_PRES( CV_NOD ),  MASS_MN_PRES( COUNT ), P( CV_JNOD )    
           END DO
        END DO
@@ -730,16 +730,17 @@ contains
              END DO
              print *,'rsum=',rsum
           END DO
-!          stop 1244
+          !          stop 1244
        endif
 
        ewrite(3,*)'b4 pressure solve P_RHS:', P_RHS
 
-!       ewrite(3,*) 'CMC: ', CMC
-!       ewrite(3,*) 'FINDCMC: ', FINDCMC
-!       ewrite(3,*) 'COLCMC: ', COLCMC
-                cmc(midCMC( 2 ))=1.e+6
-                cmc(midCMC( 4 ))=1.e+6
+       !       ewrite(3,*) 'CMC: ', CMC
+       !       ewrite(3,*) 'FINDCMC: ', FINDCMC
+       !       ewrite(3,*) 'COLCMC: ', COLCMC
+       ! Big hack here for debugging purposes:
+       cmc(midCMC( 2 ))=1.e+6
+       cmc(midCMC( 4 ))=1.e+6
 
        CALL SOLVER( CMC, DP, P_RHS, &
             FINDCMC, COLCMC, &
@@ -755,8 +756,20 @@ contains
        CALL C_MULT( CDP, DP, CV_NONODS, U_NONODS, NDIM, NPHASE, &
             C, NCOLC, FINDC, COLC)
 
-!       ewrite(3,*)'before correcting vel CDP=',CDP
+       ! ewrite(3,*)'before correcting vel CDP=',size( cdp),u_nonods * nphase + u_nonods, CDP( u_nonods * nphase + u_nonods : u_nonods * ndim * nphase ), '==', cdp(487:490)
 
+       do count = 1, ndim
+          do iphase = 1, nphase
+             do ele = 1, totele
+                do cv_nod = 1, u_nloc
+                   x_nod1 = u_ndgln( ( ele - 1 ) * u_nloc + cv_nod )
+                   x_nod2 = ( count - 1 ) * nphase * u_nonods + ( iphase - 1 ) * u_nonods + x_nod1
+                   ewrite(3,*)'idim, iph, ele, nod, cdp:', count, iphase, ele, cv_nod, x_nod2, cdp( x_nod2 )
+                end do
+             end do
+          end do
+       end do
+       stop 2
        ! correct velocity...
        ! DU = BLOCK_MAT * CDP 
 
@@ -768,36 +781,36 @@ contains
        U = U + DU
        IF( NDIM >= 2) V = V + DV
        IF( NDIM >= 3) W = W + DW
-!       ewrite(3,*)'after correcting vel U=',U
+       !       ewrite(3,*)'after correcting vel U=',U
 
-        
+
        ewrite(3,*)'x,p:'
        DO CV_NOD = 1, CV_NONODS
-         ewrite(3,*)x(cv_nod),p(cv_nod)
+          ewrite(3,*)x(cv_nod),p(cv_nod)
        end do
        do iphase=1,nphase
           print *,'iphase:', iphase
           do ele=1,totele
-            print *,'ele=',ele
-            print *,'u:',(u((ele-1)*u_nloc +u_iloc +(iphase-1)*u_nonods), &
-                         u_iloc=1,u_nloc)
+             print *,'ele=',ele
+             print *,'u:',(u((ele-1)*u_nloc +u_iloc +(iphase-1)*u_nonods), &
+                  u_iloc=1,u_nloc)
           end do
        end do
        do iphase=1,nphase
           print *,'iphase:', iphase
           do ele=1,totele
-            print *,'ele=',ele
-            print *,'v:',(v((ele-1)*u_nloc +u_iloc +(iphase-1)*u_nonods), &
-                         u_iloc=1,u_nloc)
+             print *,'ele=',ele
+             print *,'v:',(v((ele-1)*u_nloc +u_iloc +(iphase-1)*u_nonods), &
+                  u_iloc=1,u_nloc)
           end do
        end do
-!       ewrite(3,*)'u:',u
-!       ewrite(3,*)'v:',v
-!       DO u_NOD = 1, u_NONODS
-!         ewrite(3,*)u(u_nod)
-!       end do
-        !pause
-         
+       !       ewrite(3,*)'u:',u
+       !       ewrite(3,*)'v:',v
+       !       DO u_NOD = 1, u_NONODS
+       !         ewrite(3,*)u(u_nod)
+       !       end do
+       !pause
+
 
     ENDIF
 
@@ -812,9 +825,9 @@ contains
        END DO
     END DO
     CV_P = CV_P / MASS_CV
-!    ewrite(3,*)'also CV_P=',CV_P
+    !    ewrite(3,*)'also CV_P=',CV_P
 
-!     stop 443
+    stop 443
     print *,'MASS_MN_PRES:',MASS_MN_PRES
     print *,'DIAG_SCALE_PRES:',DIAG_SCALE_PRES
 
@@ -843,9 +856,9 @@ contains
     end do
 
 
-!    print *,'VOLFRA_PORE:',VOLFRA_PORE
-     print *,'den:',den
-     print *,'denold:',denold
+    !    print *,'VOLFRA_PORE:',VOLFRA_PORE
+    print *,'den:',den
+    print *,'denold:',denold
     stop 821
 
 
@@ -861,12 +874,12 @@ contains
           !! endif
 
           ewrite(3,*)'iphase,du:',iphase,du
-!          CALL CT_MULT(P_RHS, U, V, W, CV_NONODS, U_NONODS, NDIM, NPHASE, &
+          !          CALL CT_MULT(P_RHS, U, V, W, CV_NONODS, U_NONODS, NDIM, NPHASE, &
           CALL CT_MULT(P_RHS, DU, DV, DW, CV_NONODS, U_NONODS, NDIM, NPHASE, &
                CT, NCOLCT, FINDCT, COLCT)
-!          print *,'P_RHS:',P_RHS
-!          print *,'CT_RHS:',CT_RHS
-!          stop 292
+          !          print *,'P_RHS:',P_RHS
+          !          print *,'CT_RHS:',CT_RHS
+          !          stop 292
 
           if(iphase==1) then
              SATURA(1+CV_NONODS*(IPHASE-1):CV_NONODS*IPHASE) &
@@ -3059,7 +3072,7 @@ contains
     EWRITE(3,*)'-WIC_P_BC:', WIC_P_BC( 1 : STOTEL * NPHASE )
     EWRITE(3,*)'-SUF_P_BC:', SUF_P_BC( 1 : STOTEL * P_SNLOC * NPHASE )
     ewrite(3,*)'pqp'
-     stop 242
+    ! stop 242
 
     DEALLOCATE( DETWEI )
     DEALLOCATE( RA )
