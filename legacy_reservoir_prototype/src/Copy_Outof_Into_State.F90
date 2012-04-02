@@ -678,7 +678,7 @@ module copy_outof_into_state
          do j = 1, stotel
             ewrite(3,*)'cv_sndgln:', j, ( cv_sndgln( ( j - 1 ) * cv_snloc + k ), k = 1, cv_snloc )
          end do
-
+         p_sndgln = cv_sndgln
 
 
          ewrite(3,*)'stotel, u_snloc:', stotel, u_snloc

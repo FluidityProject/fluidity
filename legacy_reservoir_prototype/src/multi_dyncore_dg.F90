@@ -2462,7 +2462,7 @@ contains
                    !   IF((U_ELE_TYPE/=2).OR.( P_JLOC == ILEV)) THEN 
                    if( ( .not. is_overlapping ) .or. ( p_jloc == ilev ) ) then
                       JCV_NOD = P_SNDGLN(( SELE - 1 ) * P_SNLOC + P_SJLOC )
-
+                      ewrite(3,*)'ele, sele, p_jloc, jcv_nod:', ele, sele, p_jloc, jcv_nod
                       NMX = 0.0  
                       NMY = 0.0 
                       NMZ = 0.0   
@@ -2490,12 +2490,12 @@ contains
                             IF( NDIM >= 3 ) C( COUNT_PHA + 2 * NCOLC ) = C( COUNT_PHA + 2 * NCOLC ) &
                                  + NMZ * SELE_OVERLAP_SCALE(P_JLOC)
 
-                       if(ele==10) then
-                         print *,'iphase,ilev,u_iloc,u_siloc,P_JLOC,NMX, SELE_OVERLAP_SCALE(P_JLOC):', &
-                                  iphase,ilev,u_iloc,u_siloc,P_JLOC,NMX, SELE_OVERLAP_SCALE(P_JLOC)
-!                         print *,'cv_ndgln((ele-1)*cv_nloc+1),cv_ndgln((ele-1)*cv_nloc+2):', &
-!                                  cv_ndgln((ele-1)*cv_nloc+1),cv_ndgln((ele-1)*cv_nloc+2)
-                       endif
+                            if(ele==10) then
+                               print *,'iphase,ilev,u_iloc,u_siloc,P_JLOC,NMX, SELE_OVERLAP_SCALE(P_JLOC):', &
+                                    iphase,ilev,u_iloc,u_siloc,P_JLOC,NMX, SELE_OVERLAP_SCALE(P_JLOC)
+                               !print *,'cv_ndgln((ele-1)*cv_nloc+1),cv_ndgln((ele-1)*cv_nloc+2):', &
+                               !cv_ndgln((ele-1)*cv_nloc+1),cv_ndgln((ele-1)*cv_nloc+2)
+                            endif
 
                             U_RHS( IU_PHA_NOD ) = U_RHS( IU_PHA_NOD ) &
                                  - NMX * SUF_P_BC( SUF_P_SJ_IPHA ) * SELE_OVERLAP_SCALE(P_JLOC)
