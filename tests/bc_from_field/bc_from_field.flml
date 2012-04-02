@@ -49,7 +49,7 @@
     </mesh>
     <quadrature>
       <degree>
-        <integer_value rank="0">3</integer_value>
+        <integer_value rank="0">4</integer_value>
       </degree>
     </quadrature>
   </geometry>
