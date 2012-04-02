@@ -770,6 +770,7 @@ contains
           end do
        end do
        stop 2
+
        ! correct velocity...
        ! DU = BLOCK_MAT * CDP 
 
@@ -827,7 +828,8 @@ contains
     CV_P = CV_P / MASS_CV
     !    ewrite(3,*)'also CV_P=',CV_P
 
-    stop 443
+
+     stop 443
     print *,'MASS_MN_PRES:',MASS_MN_PRES
     print *,'DIAG_SCALE_PRES:',DIAG_SCALE_PRES
 
@@ -2472,6 +2474,7 @@ contains
                          NMZ = NMZ + SNORMZN( SGI ) * SBUFEN( U_SILOC, SGI ) * SBCVFEN( P_SJLOC, SGI ) * SDETWE( SGI )
                       END DO Loop_GaussPoints2
 
+
                       ! Put into matrix
 
                       ! Find COUNT - position in matrix : FINMCY, COLMCY
@@ -3072,7 +3075,8 @@ contains
     EWRITE(3,*)'-WIC_P_BC:', WIC_P_BC( 1 : STOTEL * NPHASE )
     EWRITE(3,*)'-SUF_P_BC:', SUF_P_BC( 1 : STOTEL * P_SNLOC * NPHASE )
     ewrite(3,*)'pqp'
-    ! stop 242
+
+    !stop 242
 
     DEALLOCATE( DETWEI )
     DEALLOCATE( RA )
