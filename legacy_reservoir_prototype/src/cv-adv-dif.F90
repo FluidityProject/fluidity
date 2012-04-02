@@ -3679,6 +3679,9 @@ contains
           CV_NODI=CV_NODI_IPHA -(IPHASE-1)*CV_NONODS
           CV_NODJ=CV_NODJ_IPHA -(IPHASE-1)*CV_NONODS
 
+!          print *,'IN_ELE_UPWIND:',IN_ELE_UPWIND
+!          stop 362
+
 
           IF(IN_ELE_UPWIND==1) THEN
              IF(NDOTQ < 0.0) THEN
@@ -3709,6 +3712,7 @@ contains
                 !         INCOMEOLD=2.*(1.-UPWIND_FRAC)*MASS_CV(CV_NODI)/(MASS_CV(CV_NODI)+MASS_CV(CV_NODJ))
              ENDIF
           ELSE IF(IN_ELE_UPWIND==3) THEN ! the best optimal upwind frac.
+!          ELSE IF(IN_ELE_UPWIND==-3) THEN ! the best optimal upwind frac.
 
              NDOTQ = CVNORMX( GI ) * UDGI + CVNORMY( GI ) * VDGI  &
                   + CVNORMZ(GI) * WDGI 
@@ -3879,7 +3883,12 @@ contains
                 !         INCOMEOLD=0.2
                 INCOMEOLD=2.*(1.-UPWIND_FRAC)*MASS_CV(CV_NODI)/(MASS_CV(CV_NODI)+MASS_CV(CV_NODJ))
              ENDIF
+!             INCOME=0.5
+!             INCOMEOLD=0.5
           ENDIF
+
+!          print *,'INCOME,INCOMEOLD:',INCOME,INCOMEOLD
+!          stop 4411
 
           UDGI = 0.0
           VDGI = 0.0
@@ -5815,6 +5824,10 @@ contains
        IF( NDIM >= 3 ) &
             CT( JCOUNT_IPHA + ( IDIM - 1 ) * NCOLCT ) =  CT( JCOUNT_IPHA + ( IDIM - 1 ) * NCOLCT ) &
             +  RCON * WGI_COEF_ELE(U_KLOC)* CVNORMZ( GI )
+     print *,'U_KLOC,UGI_COEF_ELE(U_KLOC),VGI_COEF_ELE(U_KLOC):',  &
+              U_KLOC,UGI_COEF_ELE(U_KLOC),VGI_COEF_ELE(U_KLOC)
+     print *,'SCVDETWEI( GI ),FTHETA_T2,LIMDT:',SCVDETWEI( GI ),FTHETA_T2,LIMDT
+     print *,'SUFEN( U_KLOC, GI ),DENOLD( CV_NODI_IPHA ):',SUFEN( U_KLOC, GI ),DENOLD( CV_NODI_IPHA )
     END DO
 
     IF(SELE /= 0) THEN
@@ -5830,6 +5843,9 @@ contains
           VDGI_IMP=VDGI_IMP + SUFEN( U_KLOC, GI ) * VGI_COEF_ELE(U_KLOC) * NV(U_NODK_IPHA) 
           WDGI_IMP=WDGI_IMP + SUFEN( U_KLOC, GI ) * WGI_COEF_ELE(U_KLOC) * NW(U_NODK_IPHA) 
        END DO
+       print *,'CVNORMX( GI ),UDGI_IMP,CVNORMY( GI ),VDGI_IMP,CVNORMZ( GI ),WDGI_IMP:', &
+                CVNORMX( GI ),UDGI_IMP,CVNORMY( GI ),VDGI_IMP,CVNORMZ( GI ),WDGI_IMP
+       print *,'NDOTQOLD,NDOTQ,NDOTQ_IMP:',NDOTQOLD,NDOTQ,NDOTQ_IMP
        NDOTQ_IMP=CVNORMX( GI ) * UDGI_IMP + CVNORMY( GI ) * VDGI_IMP + CVNORMZ( GI ) * WDGI_IMP
 
        !print *, 'UDGI_IMP, VDGI_IMP, WDGI_IMP:',UDGI_IMP, VDGI_IMP, WDGI_IMP

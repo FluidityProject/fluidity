@@ -483,7 +483,7 @@
             print *,(colc(count2),COUNT2=FINDC(U_JNOD),FINDC(U_JNOD+1)-1)
             print *,(c(count2),COUNT2=FINDC(U_JNOD),FINDC(U_JNOD+1)-1)
          end do
-         stop 221
+!         stop 221
 
       endif
 

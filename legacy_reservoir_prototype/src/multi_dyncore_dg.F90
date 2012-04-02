@@ -557,7 +557,7 @@ contains
     REAL, DIMENSION( :, :, : ), allocatable :: PIVIT_MAT, INV_PIVIT_MAT
     INTEGER :: CV_NOD, COUNT, CV_JNOD, IPHASE, ele, x_nod1, x_nod2, x_nod3, &
          cv_nod1, cv_nod2, cv_nod3, mat_nod1, u_iloc
-    REAL :: der1, der2, der3, uabs
+    REAL :: der1, der2, der3, uabs, rsum
     LOGICAL :: JUST_BL_DIAG_MAT
 
     ewrite(3,*) 'In FORCE_BAL_CTY_ASSEM_SOLVE'
@@ -651,6 +651,7 @@ contains
 !       ewrite(3,*) 'pivit_mat', pivit_mat
        
        CALL PHA_BLOCK_INV( INV_PIVIT_MAT, PIVIT_MAT, TOTELE, U_NLOC * NPHASE * NDIM )
+!       p=1.-x
 
        ! Put pressure in rhs of force balance eqn:  CDP=C*P
        CALL C_MULT( CDP, P, CV_NONODS, U_NONODS, NDIM, NPHASE, C, NCOLC, FINDC, COLC)
@@ -666,6 +667,9 @@ contains
 
 !       ewrite(3,*) 'JUST_BL_DIAG_MAT,INV_PIVIT_MAT:',JUST_BL_DIAG_MAT,INV_PIVIT_MAT
 !       ewrite(3,*) 'U_RHS_CDP:',U_RHS_CDP
+!        print *,'u=',u
+!        print *,'v=',v
+         
 
        IF( JUST_BL_DIAG_MAT ) THEN
 
@@ -718,10 +722,13 @@ contains
        if(.true.) then
           DO CV_NOD = 1, CV_NONODS
              print *,'cv_nod=',cv_nod
+             rsum=0.0
              DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
                 CV_JNOD = COLCMC( COUNT )
                 print *,'CV_JNOD,cmc(count):',CV_JNOD,cmc(count)
+                rsum=rsum+cmc(count)
              END DO
+             print *,'rsum=',rsum
           END DO
 !          stop 1244
        endif
@@ -731,6 +738,8 @@ contains
 !       ewrite(3,*) 'CMC: ', CMC
 !       ewrite(3,*) 'FINDCMC: ', FINDCMC
 !       ewrite(3,*) 'COLCMC: ', COLCMC
+                cmc(midCMC( 2 ))=1.e+6
+                cmc(midCMC( 4 ))=1.e+6
 
        CALL SOLVER( CMC, DP, P_RHS, &
             FINDCMC, COLCMC, &
@@ -806,6 +815,8 @@ contains
 !    ewrite(3,*)'also CV_P=',CV_P
 
 !     stop 443
+    print *,'MASS_MN_PRES:',MASS_MN_PRES
+    print *,'DIAG_SCALE_PRES:',DIAG_SCALE_PRES
 
     ewrite(3,*)'the velocity should be:'
     do ele=1,-totele
@@ -832,6 +843,10 @@ contains
     end do
 
 
+!    print *,'VOLFRA_PORE:',VOLFRA_PORE
+     print *,'den:',den
+     print *,'denold:',denold
+    stop 821
 
 
     IF(.false.) THEN
@@ -846,8 +861,13 @@ contains
           !! endif
 
           ewrite(3,*)'iphase,du:',iphase,du
+!          CALL CT_MULT(P_RHS, U, V, W, CV_NONODS, U_NONODS, NDIM, NPHASE, &
           CALL CT_MULT(P_RHS, DU, DV, DW, CV_NONODS, U_NONODS, NDIM, NPHASE, &
                CT, NCOLCT, FINDCT, COLCT)
+!          print *,'P_RHS:',P_RHS
+!          print *,'CT_RHS:',CT_RHS
+!          stop 292
+
           if(iphase==1) then
              SATURA(1+CV_NONODS*(IPHASE-1):CV_NONODS*IPHASE) &
                   = SATURAOLD(1+CV_NONODS*(IPHASE-1):CV_NONODS*IPHASE) +(-DT*P_RHS(1:CV_NONODS)+DT*CT_RHS(1:CV_NONODS))  &
@@ -2457,6 +2477,13 @@ contains
                             IF( NDIM >= 3 ) C( COUNT_PHA + 2 * NCOLC ) = C( COUNT_PHA + 2 * NCOLC ) &
                                  + NMZ * SELE_OVERLAP_SCALE(P_JLOC)
 
+                       if(ele==10) then
+                         print *,'iphase,ilev,u_iloc,u_siloc,P_JLOC,NMX, SELE_OVERLAP_SCALE(P_JLOC):', &
+                                  iphase,ilev,u_iloc,u_siloc,P_JLOC,NMX, SELE_OVERLAP_SCALE(P_JLOC)
+!                         print *,'cv_ndgln((ele-1)*cv_nloc+1),cv_ndgln((ele-1)*cv_nloc+2):', &
+!                                  cv_ndgln((ele-1)*cv_nloc+1),cv_ndgln((ele-1)*cv_nloc+2)
+                       endif
+
                             U_RHS( IU_PHA_NOD ) = U_RHS( IU_PHA_NOD ) &
                                  - NMX * SUF_P_BC( SUF_P_SJ_IPHA ) * SELE_OVERLAP_SCALE(P_JLOC)
                             IF( NDIM >= 2 ) U_RHS( IU_PHA_NOD + U_NONODS )  = &
@@ -3032,6 +3059,7 @@ contains
     EWRITE(3,*)'-WIC_P_BC:', WIC_P_BC( 1 : STOTEL * NPHASE )
     EWRITE(3,*)'-SUF_P_BC:', SUF_P_BC( 1 : STOTEL * P_SNLOC * NPHASE )
     ewrite(3,*)'pqp'
+     stop 242
 
     DEALLOCATE( DETWEI )
     DEALLOCATE( RA )
