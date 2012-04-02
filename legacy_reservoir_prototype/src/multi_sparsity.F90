@@ -261,20 +261,20 @@
 
   contains
 
-    subroutine getfinele( totele, nloc, snloc, nonods, ndglno, nface_p1, &
+    subroutine getfinele( totele, nloc, snloc, nonods, ndglno, mx_nface_p1, &
          mxnele, ncolele, finele, colele, midele )
       ! This sub caluculates COLELE the element connectivitiy list 
       ! in order of faces.
       implicit none
       integer, intent( in ) :: totele, nloc, snloc, nonods
       integer, dimension( totele * nloc ), intent( in ) :: ndglno
-      integer, intent( in ) :: nface_p1, mxnele
+      integer, intent( in ) :: mx_nface_p1, mxnele
       integer, intent( inout ) :: ncolele
       integer, dimension( mxnele ), intent( inout ) :: colele
       integer, dimension( totele + 1 ), intent( inout ) :: finele
       integer, dimension( totele ), intent( inout ) :: midele
       ! Local variables
-      integer :: nface, ele, iloc, jloc, iloc2, nod, inod, jnod, count, ele2, i, hit, &
+      integer :: ele, iloc, jloc, iloc2, nod, inod, jnod, count, ele2, i, hit, &
            iface, iface2, kface, ncolel, itemp, count2
       logical :: found
 
@@ -282,11 +282,10 @@
 
 
       allocate( fintran( nonods + 1 ))
-      allocate( coltran( max( totele, nonods ) * nface_p1 ))
+      allocate( coltran( max( totele, nonods ) * mx_nface_p1 ))
       allocate( icount( nonods * totele ))
       !allocate( icount( max( nonods, totele )))
 
-      nface = nface_p1 - 1
 
       ewrite(3,*)' iloc, nod, nonods, totele, icount( nod ) '
       icount = 0
@@ -295,16 +294,6 @@
             nod = ndglno( ( ele - 1 ) * nloc + iloc )
             icount( nod ) = icount( nod ) + 1
          end do
-      end do
-
-      ! Not sure if this is correct -- double check later on.
-      midele( 1 ) = 1
-      do ele = 2, totele
-         count = 0 
-         do iloc = 1, nloc
-            count = count + 1
-         end do
-         midele( ele ) = midele( ele - 1 ) + count 
       end do
 
       fintran = 0
@@ -323,7 +312,7 @@
             icount( nod ) = icount( nod ) + 1
          end do
       end do
-      ! ewrite(3,*)'coltran:', coltran( 1: max(totele, nonods ) * nface_p1 )
+      ! ewrite(3,*)'coltran:', coltran( 1: max(totele, nonods ) * mx_nface_p1 )
       ! ewrite(3,*)'fintran:', fintran( 1: nonods + 1 )
       !    ewrite(3,*)'X_NDGLN:', ndglno( 1: totele*nloc )
 
@@ -338,7 +327,7 @@
                ele2 = coltran( count )
                found = .false. ! Add ELE2 into list FINELE and COLELE
                do i = 1, icount( ele )
-                  if( colele( ( ele - 1 ) * nface_p1 + i ) == ele2 ) found = .true.
+                  if( colele( ( ele - 1 ) * mx_nface_p1 + i ) == ele2 ) found = .true.
                end do
 
                Conditional_Found: if ( .not. found ) then ! Do elements ELE and ELE2 share at least 3 nodes?
@@ -353,7 +342,7 @@
                   end do
                   if ( hit >= snloc ) then
                      icount( ele ) = icount( ele ) + 1
-                     colele( ( ele - 1 ) * nface_p1 + icount( ele )) = ele2 
+                     colele( ( ele - 1 ) * mx_nface_p1 + icount( ele )) = ele2 
                      ncolele = ncolele + 1 
                   end if
 
@@ -370,13 +359,14 @@
          finele( ele + 1 ) = finele( ele ) + icount( ele )
       end do
 
+! order elements in increasing order...
       count = 0
       Loop_Elements2: do ele = 1, totele
          ! Shorten COLELE then perform a bubble sort to get the ordering right for.
-         do iface = 1, nface_p1
-            if ( colele( ( ele - 1 ) * nface_p1 + iface ) /= 0 ) then
+         do iface = 1, mx_nface_p1
+            if ( colele( ( ele - 1 ) * mx_nface_p1 + iface ) /= 0 ) then
                count = count + 1
-               colele( count ) = colele( ( ele - 1 ) * nface_p1 + iface )
+               colele( count ) = colele( ( ele - 1 ) * mx_nface_p1 + iface )
             end if
          end do
       end do Loop_Elements2
@@ -392,6 +382,19 @@
             end do
          end do
       end do Loop_BubbleSort
+
+      ! Calculate midele: 
+      do ele = 1, totele
+         do count = finele( ele ) , finele( ele + 1 ) - 1
+           if(colele(count)==ele) midele( ele ) = count
+         end do
+      end do
+
+        print *,'mx_nface_p1=',mx_nface_p1
+
+        print *,'ncolele=',ncolele
+        print *,'colele(1:ncolele):',colele(1:ncolele)
+!        stop 292
 
       deallocate( fintran )
       deallocate( coltran )
@@ -439,6 +442,13 @@
       end do Loop_Phase1
 
       finm_pha( nphase * nonods + 1 ) = count2 + 1
+!      ncolm_pha= count2 
+       if(count2.ne.ncolm_pha) then
+          print *,'not correct length count2,ncolm_pha:',count2,ncolm_pha
+          stop 2821
+       end if
+
+       print *,'colm_pha--',colm_pha(1:ncolm_pha)
 
       ewrite(3,*) 'Leaving exten_sparse_multi_phase subrt.'
       return
@@ -598,6 +608,10 @@
 
       type( row ), dimension( : ), allocatable :: matrix
       type( node ), pointer :: list, current, next
+
+       print *,'in pousinmc2'
+       print *,'totele, nonods1, nloc1, nonods2, nloc2, nimem, lencolm:', &
+                totele, nonods1, nloc1, nonods2, nloc2, nimem, lencolm
 
       allocate( matrix( nonods2 ))
       do i = 1, nonods2
@@ -1249,7 +1263,7 @@
     use sparsity_1D
     use sparsity_ND
     use shape_functions
-    integer, parameter :: nface_p1 = 3
+!    integer, parameter :: nface_p1 = 3
 
   contains
 
@@ -1275,14 +1289,14 @@
                                 ! pressure matrix for projection method
          mx_ncolcmc, ncolcmc, findcmc, colcmc, midcmc, &
                                 ! CV-FEM matrix
-         mx_ncolm, ncolm, findm, colm, midm )
+         mx_ncolm, ncolm, findm, colm, midm, mx_nface_p1 )
       ! Obtain the sparsity patterns of the two types of matricies for
       ! (momentum + cty) and for energy
       implicit none
       integer, intent( in ) :: ndim, nphase, totele, u_pha_nonods, &
            cv_pha_nonods,u_nonods, cv_nonods, x_nonods, cv_ele_type, &
            u_ele_type, u_nloc, cv_nloc, x_nloc, xu_nloc, mat_nloc, &
-           u_snloc, cv_snloc, x_snloc
+           u_snloc, cv_snloc, x_snloc, mx_nface_p1
       integer, dimension( u_nloc * totele ), intent( in ) :: u_ndgln
       integer, dimension( cv_nloc * totele ), intent( in ) :: cv_ndgln, x_ndgln
       integer, dimension( xu_nloc * totele ), intent( in ) :: xu_ndgln
@@ -1341,7 +1355,7 @@
          call def_spar( 1, totele, mxnele, ncolele, &
               midele, finele, colele )
       else
-         call getfinele( totele, cv_nloc, cv_snloc, x_nonods, x_ndgln, nface_p1, &
+         call getfinele( totele, cv_nloc, cv_snloc, x_nonods, x_ndgln, mx_nface_p1, &
               mxnele, ncolele, finele, colele, midele )
       end if Conditional_Dimensional_1
       ewrite(3,*)'finele: ', size( finele ), '==>', finele( 1 : totele + 1 )
@@ -1351,12 +1365,13 @@
       !-
       !- Computing sparsity for force balance
       !-
-      mx_ncolele_pha = nphase * mxnele + ( nphase - 1 ) * nphase * totele
+!      mx_ncolele_pha = nphase * mxnele + ( nphase - 1 ) * nphase * totele
+      mx_ncolele_pha = nphase * ncolele + ( nphase - 1 ) * nphase * totele
       allocate( colele_pha( mx_ncolele_pha ) )
       allocate( finele_pha( totele * nphase + 1 ) )
       allocate( midele_pha( totele * nphase ) )
       colele_pha = 0 ; finele_pha = 0 ; midele_pha = 0
-      call exten_sparse_multi_phase( totele, mxnele, finele, colele, &
+      call exten_sparse_multi_phase( totele, ncolele, finele, colele, &
            nphase, totele * nphase, mx_ncolele_pha, &
            finele_pha, colele_pha, midele_pha )
       ewrite(3,*)'finele_pha: ', finele_pha( 1 : totele * nphase + 1 )
@@ -1383,11 +1398,12 @@
          call def_spar_ct_dg( cv_nonods, mx_nct, nct, findct, colct, &
               totele, cv_nloc, u_nloc, u_ndgln, u_ele_type, cv_ndgln )
       else
-         ewrite(3,*),'u_nonods, u_nloc, cv_nonods, cv_nloc, mx_nct:', &
-                      u_nonods, u_nloc, cv_nonods, cv_nloc, mx_nct
+         ewrite(3,*),'u_nonods, u_nloc, cv_nonods, cv_nloc, mx_nct, nct:', &
+                      u_nonods, u_nloc, cv_nonods, cv_nloc, mx_nct, nct
          call pousinmc2( totele, u_nonods, u_nloc, cv_nonods, cv_nloc, &
               mx_nct, u_ndgln, cv_ndgln, &
               nct, findct, colct, centct )
+          print *,'finished pousinmc2'
       end if Conditional_Dimensional_2
       nc = nct
       ewrite(3,*) 'findct: ', size( findct ), '==>', findct( 1 : cv_nonods + 1 )
@@ -1484,7 +1500,7 @@
       finacv = 0 ; colacv = 0 ; midacv = 0
       ewrite(3,*) 'ncolacv, mx_ncolacv:', ncolacv, mx_ncolacv
       call exten_sparse_multi_phase( cv_nonods, nacv_loc2, finacv_loc, colacv_loc, &
-           nphase, cv_pha_nonods, max( mx_ncolacv, ncolacv ), &
+           nphase, cv_pha_nonods, ncolacv, &
            finacv, colacv, midacv )
       ewrite(3,*)'finacv: ', finacv( 1 : cv_pha_nonods + 1 )
       ewrite(3,*)'colacv: ', colacv( 1 : ncolacv )

@@ -134,7 +134,7 @@ module mp_prototype
       integer, dimension( : ), allocatable :: colacv, colele, colct, colc, coldgm_pha, colmcy, colcmc, colm
       integer :: mxnele, mx_nct, mx_nc, mx_ncolcmc, mx_ncoldgm_pha, mx_ncolmcy, mx_ncolacv, mx_ncolm
       integer :: ncolacv, ncolmcy, ncolele, ncolct, ncolc, ncolcmc, ncolm
-      integer :: nkcomp
+      integer :: nkcomp, mx_nface_p1
 
       integer, parameter :: new_unit_debug = 304
       
@@ -303,15 +303,19 @@ module mp_prototype
 
 
       ! Defining lengths
-      mxnele = ( 2 * ndim + 1 ) * totele
-      mx_nct = cv_nonods * ( 2 * u_nloc + 1 ) * ndim * nphase
+      mx_nface_p1 = 2 * ndim + 1
+      mxnele = mx_nface_p1 * totele
+!      mx_nct = cv_nonods * ( 2 * u_nloc + 1 ) * ndim * nphase
+      mx_nct = totele * u_nloc * cv_nloc * ndim * nphase
+!      print *,'mx_nct, old:',mx_nct, &
+!                cv_nonods * ( 2 * u_nloc + 1 ) * ndim * nphase
       mx_nc = mx_nct  
 
-      mx_ncolcmc = ( 2 * ( cv_nloc + 2 ) + 1 ) * cv_nonods
+      mx_ncolcmc = mx_nface_p1 *  cv_nloc  * cv_nonods
 
       mx_ncoldgm_pha = mxnele * ( u_nloc * ndim )**2 * nphase + totele * ( u_nloc * ndim * nphase )**2
       mx_ncolmcy = mx_ncoldgm_pha + mx_nct + mx_nc + mx_ncolcmc
-      mx_ncolacv = ( 2 * ndim + 1 ) * cv_nonods * cv_nonods * nphase + cv_nonods * ( nphase - 1 ) * nphase
+      mx_ncolacv = 3 * mx_nface_p1 * cv_nonods * nphase + cv_nonods * ( nphase - 1 ) * nphase
       mx_ncolm = mxnele * cv_nloc * cv_nloc
 
       allocate( colmcy( mx_ncolmcy ))
@@ -346,7 +350,7 @@ module mp_prototype
                                 ! pressure matrix for projection method
          mx_ncolcmc, ncolcmc, findcmc, colcmc, midcmc, &
                                 ! CV-FEM matrix
-         mx_ncolm, ncolm, findm, colm, midm )
+         mx_ncolm, ncolm, findm, colm, midm, mx_nface_p1 )
 
 
       call check_sparsity( &
