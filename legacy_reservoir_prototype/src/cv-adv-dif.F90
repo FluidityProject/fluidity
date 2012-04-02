@@ -492,12 +492,14 @@ contains
          FINDGPTS, COLGPTS, NCOLGPTS, &
          SELE_OVERLAP_SCALE )  
 
-      ewrite(3,*)'back in cv-adv-dif'
-!      do cv_iloc = 1, cv_nloc
-!         ewrite(3,*)'iloc, cv_on_face:', cv_iloc, ( cv_on_face( cv_iloc, gi ), gi = 1, scvngi )
-!         ewrite(3,*)'iloc, cvfem_on_face:', cv_iloc, ( cvfem_on_face( cv_iloc, gi ), gi = 1, scvngi )
-!      end do
-    
+    ewrite(3,*)'back in cv-adv-dif'
+    !do cv_iloc = 1, cv_nloc
+    !ewrite(3,*)'iloc, cv_on_face:', cv_iloc, &
+    !( cv_on_face( cv_iloc, gi ), gi = 1, scvngi )
+    !ewrite(3,*)'iloc, cvfem_on_face:', cv_iloc, &
+    !( cvfem_on_face( cv_iloc, gi ), gi = 1, scvngi )
+    !end do
+
 
     ! Determine FEMT (finite element wise) etc from T (control volume wise)
     ! Also determine the CV mass matrix MASS_CV and centre of the CV's XC_CV,YC_CV,ZC_CV. 
@@ -571,21 +573,21 @@ contains
          T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD, &
          DENMIN_NOD, DENMAX_NOD, DENOLDMIN_NOD, DENOLDMAX_NOD )
 
-!      print *,'acv:'
-!      do cv_inod_ipha=1,cv_nonods*nphase
-!        print *,'for row:',cv_inod_ipha,' the colns are:'
-!        print *,(colacv(count),count=finacv(cv_inod_ipha),finacv(cv_inod_ipha+1)-1)
-!      end do
+    !      print *,'acv:'
+    !      do cv_inod_ipha=1,cv_nonods*nphase
+    !        print *,'for row:',cv_inod_ipha,' the colns are:'
+    !        print *,(colacv(count),count=finacv(cv_inod_ipha),finacv(cv_inod_ipha+1)-1)
+    !      end do
 
-!      print *,'m:'
-!      do cv_inod=1,cv_nonods
-!        print *,'for row:',cv_inod,' the colns are:'
-!        print *,(colm(count),count=findm(cv_inod),findm(cv_inod+1)-1)
-!      end do
-      
-        
-!                              ewrite(1,*)'midacv:', midacv( 1 : cv_nonods * nphase )
-!                         stop 2821
+    !      print *,'m:'
+    !      do cv_inod=1,cv_nonods
+    !        print *,'for row:',cv_inod,' the colns are:'
+    !        print *,(colm(count),count=findm(cv_inod),findm(cv_inod+1)-1)
+    !      end do
+
+
+    !                              ewrite(1,*)'midacv:', midacv( 1 : cv_nonods * nphase )
+    !                         stop 2821
 
     ALLOCATE( FACE_ELE( NFACE, TOTELE ))
     ! Calculate FACE_ELE
@@ -661,7 +663,7 @@ contains
 
              ! Get the neighbouring node for node ILOC and Gauss point GI
              CV_JLOC = CV_NEILOC( CV_ILOC, GI )
-          PRINT *,'*** CV_JLOC,GI,TOTELE:',CV_JLOC,GI,TOTELE
+             PRINT *,'*** CV_JLOC,GI,TOTELE:',CV_JLOC,GI,TOTELE
 
              ELE2 = 0
              SELE = 0
@@ -715,6 +717,9 @@ contains
 
                 ! Calculate the control volume normals at the Gauss pts.
                 !     EWRITE(3,*)'************CV_ILOC=',CV_ILOC
+                if( ele == totele )then
+                   ewrite(3,*)'+++ele, gi:', ele, gi
+                end if
                 CALL SCVDETNX( ELE,      GI,          &
                      X_NLOC,  SCVNGI,  TOTELE,  &
                      X_NDGLN,  X_NONODS,         &
@@ -724,9 +729,9 @@ contains
                      YC_CV(CV_NODI),     ZC_CV(CV_NODI),    X,       & 
                      Y,        Z,                &
                      D1,       D3,      DCYL )
-if( (ele == 11 ) .or. (ele==10))  then
-     ewrite(3,*)'ele, gi, SCVDETWEI, cvnormx, cvnormy:', ele, gi, SCVDETWEI(gi), cvnormx(gi), cvnormy(gi)
-  end if
+                if( (ele == 11 ) .or. (ele==10))  then
+                   ewrite(3,*)'ele, gi, SCVDETWEI, cvnormx, cvnormy:', ele, gi, SCVDETWEI(gi), cvnormx(gi), cvnormy(gi)
+                end if
 
                 ! ================ COMPUTE THE FLUX ACROSS SUB-CV FACE ===============
 
@@ -954,10 +959,10 @@ if( (ele == 11 ) .or. (ele==10))  then
                       ENDIF
                    ENDIF
 
-!                   print *,'IGOT_THETA_FLUX,GET_THETA_FLUX,USE_THETA_FLUX:', &
-!                            IGOT_THETA_FLUX,GET_THETA_FLUX,USE_THETA_FLUX
-!                   print *,'FTHETA_T2,ONE_M_FTHETA_T2OLD:',FTHETA_T2,ONE_M_FTHETA_T2OLD
-!                   stop 2821
+                   !                   print *,'IGOT_THETA_FLUX,GET_THETA_FLUX,USE_THETA_FLUX:', &
+                   !                            IGOT_THETA_FLUX,GET_THETA_FLUX,USE_THETA_FLUX
+                   !                   print *,'FTHETA_T2,ONE_M_FTHETA_T2OLD:',FTHETA_T2,ONE_M_FTHETA_T2OLD
+                   !                   stop 2821
 
                    ROBIN1=0.0
                    ROBIN2=0.0
@@ -970,19 +975,19 @@ if( (ele == 11 ) .or. (ele==10))  then
 
                    !====================== ACV AND RHS ASSEMBLY ===================
                    Conditional_GETCT2 : IF( GETCT ) THEN ! Obtain the CV discretised CT eqations plus RHS
-          print *,'gi,SCVFEWEIGH(gi)=',gi,SCVFEWEIGH(gi)
-          x_nod1=x_NDGLN(( ELE - 1 )  * CV_NLOC + 1 )
-          x_nod2=x_NDGLN(( ELE - 1 )  * CV_NLOC + 2 )
-          x_nod3=x_NDGLN(( ELE - 1 )  * CV_NLOC + 3 )
-          x_mean=0.333333333*(x(x_nod1)+x(x_nod2)+x(x_nod3))
-          y_mean=0.333333333*(y(x_nod1)+y(x_nod2)+y(x_nod3))
-          print *,'mean coord:',x_mean,y_mean
-          print *,'length of quad 2,4,7:',sqrt( (0.5*(x(x_nod1)+x(x_nod2))-x_mean)**2 &
-                                               +(0.5*(y(x_nod1)+y(x_nod2))-y_mean)**2 ),  &
-                                          sqrt( (0.5*(x(x_nod1)+x(x_nod3))-x_mean)**2 &
-                                               +(0.5*(y(x_nod1)+y(x_nod3))-y_mean)**2 ), &
-                                          sqrt( (0.5*(x(x_nod2)+x(x_nod3))-x_mean)**2 &
-                                               +(0.5*(y(x_nod2)+y(x_nod3))-y_mean)**2 ) 
+                      print *,'gi,SCVFEWEIGH(gi)=',gi,SCVFEWEIGH(gi)
+                      x_nod1=x_NDGLN(( ELE - 1 )  * CV_NLOC + 1 )
+                      x_nod2=x_NDGLN(( ELE - 1 )  * CV_NLOC + 2 )
+                      x_nod3=x_NDGLN(( ELE - 1 )  * CV_NLOC + 3 )
+                      x_mean=0.333333333*(x(x_nod1)+x(x_nod2)+x(x_nod3))
+                      y_mean=0.333333333*(y(x_nod1)+y(x_nod2)+y(x_nod3))
+                      print *,'mean coord:',x_mean,y_mean
+                      print *,'length of quad 2,4,7:',sqrt( (0.5*(x(x_nod1)+x(x_nod2))-x_mean)**2 &
+                           +(0.5*(y(x_nod1)+y(x_nod2))-y_mean)**2 ),  &
+                           sqrt( (0.5*(x(x_nod1)+x(x_nod3))-x_mean)**2 &
+                           +(0.5*(y(x_nod1)+y(x_nod3))-y_mean)**2 ), &
+                           sqrt( (0.5*(x(x_nod2)+x(x_nod3))-x_mean)**2 &
+                           +(0.5*(y(x_nod2)+y(x_nod3))-y_mean)**2 ) 
 
                       CALL PUT_IN_CT_RHS(CT, CT_RHS, U_NLOC, SCVNGI, GI, NCOLCT, NDIM, &
                            CV_NONODS, U_NONODS, NPHASE, IPHASE, TOTELE, ELE, ELE2, SELE, &
@@ -1027,8 +1032,8 @@ if( (ele == 11 ) .or. (ele==10))  then
                          IMID_IPHA = MIDACV( CV_NODI_IPHA )
 
                          if( imid_ipha < 1 ) then
-                              ewrite(1,*)'midacv:', midacv( 1 : cv_nonods * nphase )
-                              ewrite(1,*)' cv_nodi_ipha, IMID_IPHA :', cv_nodi_ipha, IMID_IPHA
+                            ewrite(1,*)'midacv:', midacv( 1 : cv_nonods * nphase )
+                            ewrite(1,*)' cv_nodi_ipha, IMID_IPHA :', cv_nodi_ipha, IMID_IPHA
                          endif
 
                          ACV( IMID_IPHA ) =  ACV( IMID_IPHA ) &

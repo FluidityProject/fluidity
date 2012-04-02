@@ -495,7 +495,7 @@
             endif
          endif
       endif
-ewrite(3,*)'absp:', absp
+
       RETURN
     END SUBROUTINE relperm_corey
 

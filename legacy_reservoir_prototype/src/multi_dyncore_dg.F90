@@ -787,7 +787,7 @@ contains
 !       DO u_NOD = 1, u_NONODS
 !         ewrite(3,*)u(u_nod)
 !       end do
-        pause
+        !pause
          
 
     ENDIF
@@ -1929,8 +1929,8 @@ contains
          FINDGPTS, COLGPTS, NCOLGPTS, &
          SELE_OVERLAP_SCALE ) 
 
-!     print *,'nface=',nface
-!     stop 775
+    !     print *,'nface=',nface
+    !     stop 775
 
     ALLOCATE( FACE_ELE( NFACE, TOTELE ))
     ! Calculate FACE_ELE
@@ -1961,11 +1961,11 @@ contains
             CVFEN, CVFENLX, CVFENLY, CVFENLZ, CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
             CVFENX, CVFENY, CVFENZ, &
             U_NLOC, UFENLX, UFENLY, UFENLZ, UFENX, UFENY, UFENZ ) 
-! Adjust the volume according to the number of levels. 
+       ! Adjust the volume according to the number of levels. 
        VOLUME=VOLUME/REAL(NLEV)
        MASS_ELE(ELE)=VOLUME
-!         print *,'volume,0.1/18.:',volume,0.1/18.
-!       stop 2892
+       !         print *,'volume,0.1/18.:',volume,0.1/18.
+       !       stop 2892
 
        UD = 0.0
        VD = 0.0
@@ -2245,11 +2245,10 @@ contains
        ! Add-in  surface contributions.
 
        ! Find diffusion contributions at the surface
-       !       CALL DG_DIFFUSION( ELE, U_NLOC, U_NONODS, TOTELE, LMMAT1, LMMAT, LNXNMAT1, LNNXMAT, LINVMMAT1, &
-       !            LINVMNXNMAT1, AMAT )
-
-       !       ewrite(3,*) 'DETWEI:',DETWEI
-       !       stop 82
+       !CALL DG_DIFFUSION( ELE, U_NLOC, U_NONODS, TOTELE, LMMAT1, LMMAT, LNXNMAT1, LNNXMAT, LINVMMAT1, &
+       !LINVMNXNMAT1, AMAT )
+       !ewrite(3,*) 'DETWEI:',DETWEI
+       !stop 82
 
        ! Add in C matrix contribution: (DG velocities)
        Loop_U_ILOC1: DO U_ILOC = 1, U_NLOC
@@ -2265,13 +2264,14 @@ contains
              GRAD_SOU_GI_NMY = 0.0 
              GRAD_SOU_GI_NMZ = 0.0  
              Loop_GaussPoints1: DO GI = 1, CV_NGI
-                !        ewrite(3,*) 'P_JLOC, GI, CVFENX( P_JLOC, GI ):',P_JLOC, GI, CVFENX( P_JLOC, GI )
-                !        ewrite(3,*) 'u_iLOC, GI, UFEN( U_ILOC, GI ):',u_iLOC, GI, UFEN( U_ILOC, GI )
+                !ewrite(3,*) 'P_JLOC, GI, CVFENX( P_JLOC, GI ):',P_JLOC, GI, CVFENX( P_JLOC, GI )
+                !ewrite(3,*) 'u_iLOC, GI, UFEN( U_ILOC, GI ):',u_iLOC, GI, UFEN( U_ILOC, GI )
                 NMX = NMX + UFEN( U_ILOC, GI ) * CVFENX( P_JLOC, GI ) * DETWEI( GI )
                 NMY = NMY + UFEN( U_ILOC, GI ) * CVFENY( P_JLOC, GI ) * DETWEI( GI )
                 NMZ = NMZ + UFEN( U_ILOC, GI ) * CVFENZ( P_JLOC, GI ) * DETWEI( GI )
 
-                print *, '* i, j, gi', U_ILOC,P_JLOC, gi, ':',UFEN( U_ILOC, GI ), ':',CVFENX( P_JLOC, GI ),  CVFENY( P_JLOC, GI ),  CVFENZ( P_JLOC, GI ), ':', DETWEI( GI )
+                !print *, '* i, j, gi', U_ILOC,P_JLOC, gi, ':',UFEN( U_ILOC, GI ), ':',CVFENX( P_JLOC, GI ),  CVFENY( P_JLOC, GI ),  CVFENZ( P_JLOC, GI ), ':', DETWEI( GI )
+
                 IF( IPLIKE_GRAD_SOU == 1 ) THEN 
                    GRAD_SOU_GI_NMX( : ) = GRAD_SOU_GI_NMX( : )  &
                         + GRAD_SOU_GI( GI, : ) * UFEN( U_ILOC, GI ) * &
@@ -2283,14 +2283,14 @@ contains
                         + GRAD_SOU_GI( GI, : ) * UFEN( U_ILOC, GI ) * &
                         CVFENZ( P_JLOC, GI ) * DETWEI( GI )
                 ENDIF
-!                  PRINT *,'ELE,GI,U_ILOC,P_JLOC,::,NMX,NMY,NMZ:', &
-!                           ELE,GI,U_ILOC,P_JLOC,'::',NMX,NMY,NMZ
-!                  print *, ' '
-!                  print *, ' '
+                !PRINT *,'ELE,GI,U_ILOC,P_JLOC,::,NMX,NMY,NMZ:', &
+                !ELE,GI,U_ILOC,P_JLOC,'::',NMX,NMY,NMZ
+                !print *, ' '
+                !print *, ' '
              END DO Loop_GaussPoints1
 
 
-              print *, 'ELE,U_ILOC,P_JLOC,NMX,NMY,NMZ:',ELE,U_ILOC,P_JLOC,NMX,NMY,NMZ
+             print *, 'ELE,U_ILOC,P_JLOC,NMX,NMY,NMZ:',ELE,U_ILOC,P_JLOC,NMX,NMY,NMZ
 
              ! Put into matrix
 
@@ -2352,29 +2352,29 @@ contains
 
     END DO Loop_Elements
 
-         print *,'c=',c
+    print *,'c=',c
 
-       do iphase=1,nphase
+    do iphase=1,nphase
        do idim=1,ndim
-         do u_inod=1,u_nonods
-           print *,'iphase,idim,u_inod:',iphase,idim,u_inod
-           print *,'colc:',(colc(count),count=findc(u_inod),findc(u_inod+1)-1)
-           print *,'c:',(c(count+(idim-1)*ncolc+(iphase-1)*ndim*ncolc), &
-                         count=findc(u_inod),findc(u_inod+1)-1)
-         end do
+          do u_inod=1,u_nonods
+             print *,'iphase,idim,u_inod:',iphase,idim,u_inod
+             print *,'colc:',(colc(count),count=findc(u_inod),findc(u_inod+1)-1)
+             print *,'c:',(c(count+(idim-1)*ncolc+(iphase-1)*ndim*ncolc), &
+                  count=findc(u_inod),findc(u_inod+1)-1)
+          end do
        end do
-       end do
+    end do
 
-!         print *,'x:',x
-!         print *,'y:',y
-!         print *,'mass_ele:',mass_ele
-!         rsum=0.0
-!         do ele=1,totele
-!           rsum=rsum+mass_ele(ele)
-!         end do
-!         print *,'vol of domain=',rsum
- 
-!           stop 27
+    !         print *,'x:',x
+    !         print *,'y:',y
+    !         print *,'mass_ele:',mass_ele
+    !         rsum=0.0
+    !         do ele=1,totele
+    !           rsum=rsum+mass_ele(ele)
+    !         end do
+    !         print *,'vol of domain=',rsum
+
+    !           stop 27
 
     !! *************************loop over surfaces*********************************************
 
@@ -3198,7 +3198,7 @@ contains
     !      CALL MATMASSINV( MASINV, MMAT, U_NONODS, U_NLOC, TOTELE)
 
     ewrite(3,*)'Leaving assemb_force_cty'
-        !stop 98123
+    !stop 98123
 
     RETURN
 
