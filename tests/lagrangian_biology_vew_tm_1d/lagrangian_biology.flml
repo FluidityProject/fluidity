@@ -799,9 +799,10 @@ def val(position, element, local_coords, dt):
             <biology>
               <python>
                 <string_value lines="20" type="code" language="python">import fluidity.lerm_ps as lerm
+params = lerm.params_Default_Diatom_Variety
 
 def val(biovars, env, dt):
-  lerm.update_Living_Diatom(biovars, env, dt)
+  lerm.update_Living_Diatom(params, biovars, env, dt)
   return biovars</string_value>
               </python>
             </biology>
@@ -878,9 +879,10 @@ def val(position, element, local_coords, dt):
             <biology>
               <python>
                 <string_value lines="20" type="code" language="python">import fluidity.lerm_ps as lerm
+params = lerm.params_Default_Diatom_Variety
 
 def val(biovars, env, dt):
-  lerm.update_Dead_Diatom(biovars, env, dt)
+  lerm.update_Dead_Diatom(params, biovars, env, dt)
   return biovars</string_value>
               </python>
             </biology>
