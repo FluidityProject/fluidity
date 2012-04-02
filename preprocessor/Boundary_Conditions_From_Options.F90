@@ -1005,9 +1005,9 @@ contains
                     foamvel_component=extract_scalar_field(foamvel, j)
                     call remap_field_to_surface(foamvel_component, surface_field_component, surface_element_list)
 
-                  else if (have_option(trim(bc_type_path)//"/from_field")) then
+                  else if (have_option(trim(bc_component_path)//"/from_field")) then
                      ! The parent field contains the boundary values that you want to apply to surface_field.
-                     call get_option(trim(bc_type_path)//"/from_field/parent_field_name", parent_field_name)
+                     call get_option(trim(bc_component_path)//"/from_field/parent_field_name", parent_field_name)
                      parent_field => extract_vector_field(state, parent_field_name, stat)
                      if(stat /= 0) then
                         FLExit("Could not extract parent vector field. Check options file?")
