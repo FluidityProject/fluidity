@@ -834,6 +834,10 @@
                   COUNT_DIM_PHA = COUNT + NCOLC*(IDIM-1) + NCOLC*NDIM*(IPHASE-1)
                   I1 = U_INOD + (IDIM-1)*U_NONODS + ( IPHASE - 1 ) * NDIM * U_NONODS
                   CDP( I1 ) = CDP( I1 ) + C( COUNT_DIM_PHA ) * DP( P_JNOD )
+          if(i1==86) then
+        print *,'CDP( I1 ),C( COUNT_DIM_PHA ),P_JNOD,DP( P_JNOD ):', &
+                 CDP( I1 ),C( COUNT_DIM_PHA ),P_JNOD,DP( P_JNOD )
+          endif
                END DO Loop_Dim
             END DO Loop_Phase
 

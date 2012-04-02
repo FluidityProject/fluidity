@@ -719,7 +719,7 @@ contains
        DP = 0.0
 
        ! print cmc
-       if(.true.) then
+       if(.false.) then
           DO CV_NOD = 1, CV_NONODS
              print *,'cv_nod=',cv_nod
              rsum=0.0
@@ -739,8 +739,8 @@ contains
        !       ewrite(3,*) 'FINDCMC: ', FINDCMC
        !       ewrite(3,*) 'COLCMC: ', COLCMC
        ! Big hack here for debugging purposes:
-       cmc(midCMC( 2 ))=1.e+6
-       cmc(midCMC( 4 ))=1.e+6
+!       cmc(midCMC( 2 ))=1.e+6
+!       cmc(midCMC( 4 ))=1.e+6
 
        CALL SOLVER( CMC, DP, P_RHS, &
             FINDCMC, COLCMC, &
@@ -758,7 +758,7 @@ contains
 
        ! ewrite(3,*)'before correcting vel CDP=',size( cdp),u_nonods * nphase + u_nonods, CDP( u_nonods * nphase + u_nonods : u_nonods * ndim * nphase ), '==', cdp(487:490)
 
-       do count = 1, ndim
+       do count = 1, -ndim
           do iphase = 1, nphase
              do ele = 1, totele
                 do cv_nod = 1, u_nloc
@@ -2489,12 +2489,12 @@ contains
                             IF( NDIM >= 3 ) C( COUNT_PHA + 2 * NCOLC ) = C( COUNT_PHA + 2 * NCOLC ) &
                                  + NMZ * SELE_OVERLAP_SCALE(P_JLOC)
 
-                            if(ele==10) then
-                               print *,'iphase,ilev,u_iloc,u_siloc,P_JLOC,NMX, SELE_OVERLAP_SCALE(P_JLOC):', &
-                                    iphase,ilev,u_iloc,u_siloc,P_JLOC,NMX, SELE_OVERLAP_SCALE(P_JLOC)
+!                            if(ele==10) then
+!                               print *,'iphase,ilev,u_iloc,u_siloc,P_JLOC,NMX, SELE_OVERLAP_SCALE(P_JLOC):', &
+!                                    iphase,ilev,u_iloc,u_siloc,P_JLOC,NMX, SELE_OVERLAP_SCALE(P_JLOC)
                                !print *,'cv_ndgln((ele-1)*cv_nloc+1),cv_ndgln((ele-1)*cv_nloc+2):', &
                                !cv_ndgln((ele-1)*cv_nloc+1),cv_ndgln((ele-1)*cv_nloc+2)
-                            endif
+!                            endif
 
                             U_RHS( IU_PHA_NOD ) = U_RHS( IU_PHA_NOD ) &
                                  - NMX * SUF_P_BC( SUF_P_SJ_IPHA ) * SELE_OVERLAP_SCALE(P_JLOC)
