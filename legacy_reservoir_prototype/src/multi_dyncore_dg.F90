@@ -769,7 +769,6 @@ contains
              end do
           end do
        end do
-       stop 2
 
        ! correct velocity...
        ! DU = BLOCK_MAT * CDP 
@@ -826,10 +825,8 @@ contains
        END DO
     END DO
     CV_P = CV_P / MASS_CV
-    !    ewrite(3,*)'also CV_P=',CV_P
+    !ewrite(3,*)'also CV_P=',CV_P
 
-
-     stop 443
     print *,'MASS_MN_PRES:',MASS_MN_PRES
     print *,'DIAG_SCALE_PRES:',DIAG_SCALE_PRES
 
@@ -861,7 +858,6 @@ contains
     !    print *,'VOLFRA_PORE:',VOLFRA_PORE
     print *,'den:',den
     print *,'denold:',denold
-    stop 821
 
 
     IF(.false.) THEN
