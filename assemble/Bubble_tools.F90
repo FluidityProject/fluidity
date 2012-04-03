@@ -28,6 +28,7 @@
 
 module bubble_tools
 use fields
+use sparse_matrices_fields
 use sparsity_patterns_meshes
 use element_numbering
 use state_module
@@ -47,7 +48,7 @@ contains
     type(state_type), intent(inout) :: state
     type(mesh_type), intent(inout) :: Cg_mesh, Dg_mesh
     !
-    type(csr_matrix) :: cg_dg_projection, cg_mass, dg_mass
+    type(csr_matrix) :: cgdg_proj_mat, cg_mass, dg_mass
     type(scalar_field) :: cg_lumped_mass, dg_lumped_mass
     type(csr_matrix), pointer :: matrix
     type(csr_sparsity), pointer :: sparsity
@@ -101,9 +102,9 @@ contains
     if(projection_stat.ne.0) then
        sparsity => get_csr_sparsity_firstorder(&
             state, Cg_mesh, Dg_mesh)
-       call allocate(cg_dg_projection,sparsity,name=trim(Cg_mesh%name)//&
+       call allocate(cgdg_proj_mat,sparsity,name=trim(Cg_mesh%name)//&
             &trim(Dg_mesh%name)//"Projection")
-       call zero(cg_dg_projection)
+       call zero(cgdg_proj_mat)
     end if
 
     if(any((/cg_mass_stat,cg_lumped_mass_stat,dg_mass_stat&
@@ -134,8 +135,8 @@ contains
     end if
 
     if(projection_stat.ne.0) then
-       call insert(state,cg_dg_projection,cg_dg_projection%name)
-       call deallocate(cg_dg_projection)
+       call insert(state,cgdg_proj_mat,cgdg_proj_mat%name)
+       call deallocate(cgdg_proj_mat)
     end if
 
   contains 
@@ -188,11 +189,57 @@ real, dimension(ele_loc(cg_mesh,ele),ele_loc(dg_mesh,ele)) :: &
       end if
       if(projection_stat.ne.0) then
          l_projection = shape_shape(cg_shape,dg_shape,detweI)
-         call addto(cg_dg_projection,cg_ele,dg_ele,l_projection)
+         call addto(cgdg_proj_mat,cg_ele,dg_ele,l_projection)
       end if
 
     end subroutine setup_Cg_Dg_projection_ele
   end subroutine setup_Cg_Dg_projection
+
+  subroutine cg_dg_projection(state,cg_field,dg_field,tol)
+    type(state_type), intent(inout) :: state
+    type(scalar_field), intent(inout) :: cg_field
+    type(scalar_field), intent(inout) :: dg_field
+    real, intent(in) :: tol
+    !
+    type(scalar_field) :: cg_residual, cg_field_tmp, dg_field_tmp
+    type(csr_matrix), pointer :: cgdg_proj_mat, cg_mass, dg_mass
+    type(scalar_field), pointer :: cg_lumped_mass, dg_lumped_mass
+    real :: residual
+
+    call allocate(cg_residual,cg_field%mesh,trim(cg_field%name)//'Residual')
+    call allocate(cg_field_tmp,cg_field%mesh,trim(cg_field%name)//'Tmp')
+    call allocate(dg_field_tmp,dg_field%mesh,trim(dg_field%name)//'Tmp')
+
+    cgdg_proj_mat => extract_csr_matrix(state,trim(Cg_field%mesh%name)//trim(Dg_field%mesh%name)//"Projection")
+    cg_mass=>extract_csr_matrix(state,trim(Cg_field%mesh%name)//"Mass")
+    dg_mass=>extract_csr_matrix(state,trim(Dg_field%mesh%name)//"Mass")
+    dg_lumped_mass=>extract_scalar_field(state,trim(Dg_field%mesh%name)//"LumpedMass")
+    cg_lumped_mass=>extract_scalar_field(state,trim(Cg_field%mesh%name)//"LumpedMass")
+    !Initial guess
+    call mult_t(dg_field,cgdg_proj_mat,cg_field)
+    dg_field%val = dg_field%val/dg_lumped_mass%val
+
+    cg_dg_solver_loop: do
+       !Compute residual
+       call mult(cg_residual,cg_mass,cg_field)
+       call mult(cg_field_tmp,cgdg_proj_mat,dg_field)
+       call addto(cg_residual, cg_field_tmp, -1.0)
+       residual = maxval(abs(cg_residual%val))
+       ewrite(2,*) 'residual', residual
+       if(residual>tol) exit cg_dg_solver_loop
+       
+       !Divide by lumped mass to approximate error
+       cg_residual%val = cg_residual%val/cg_lumped_mass%val
+
+       !Compute DG approximation to error
+       call mult_t(dg_field_tmp,cgdg_proj_mat,cg_residual)
+       dg_field%val = dg_field%val + dg_field%val/dg_lumped_mass%val       
+    end do cg_dg_solver_loop
+
+    call deallocate(cg_residual)
+    call deallocate(cg_field_tmp)
+    call deallocate(dg_field_tmp)
+  end subroutine cg_dg_projection
   
   subroutine nodalise_bubble_basis(shape)
     !Subroutine to transform bubble basis to a equivalent nodal one.
