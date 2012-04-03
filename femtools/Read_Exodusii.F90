@@ -142,6 +142,8 @@ contains
     integer, allocatable, dimension(:) :: node_map, elem_num_map, elem_order_map
     integer, allocatable, dimension(:) :: block_ids, num_elem_in_block, num_nodes_per_elem
     integer, allocatable, dimension(:) :: elem_blk_connectivity, elem_connectivity
+    integer, allocatable, dimension(:) :: node_set_ids, num_nodes_in_set
+    integer, allocatable, dimension(:) :: node_set_node_list, total_node_sets_node_list
 
     logical :: haveBounds, haveInternalBounds
 
@@ -260,10 +262,39 @@ contains
     ewrite(2,*) "elem_connectivity = ", elem_connectivity
     ewrite(2,*) "ierr = ", ierr
 
+    ! Get node sets
+    ! Node sets in exodusii are what physical lines/surfaces/volumes are in gmsh
+    allocate(node_set_ids(num_node_sets))
+    allocate(num_nodes_in_set(num_node_sets))
+    ierr = f_ex_get_node_set_param(exoid, num_node_sets, node_set_ids, num_nodes_in_set)
+    ewrite(2,*) "node_set_ids = ", node_set_ids
+    ewrite(2,*) "num_nodes_in_set = ", num_nodes_in_set
+    ewrite(2,*) "ierr = ", ierr
+    ! if (ierr /= 0): not node sets/physical boundaries have been defined in the mesh
+
+    ! Get node lists of all node sets:
+    ! initial length of the array holding all the nodes with an ID
+    allocate(total_node_sets_node_list(0))
+    do i=1, num_node_sets
+       allocate(node_set_node_list(num_nodes_in_set(i)))
+       ierr = f_ex_get_node_set_node_list(exoid, num_node_sets, node_set_ids(i), node_set_node_list)
+       call append_array(total_node_sets_node_list, node_set_node_list)
+       deallocate(node_set_node_list)
+    end do
+    ewrite(2,*) "total_node_sets_node_list = ", total_node_sets_node_list
+    ewrite(2,*) "ierr = ", ierr
 
 
     ierr = f_ex_close(exoid)
     ewrite(2,*) "ierr = ", ierr
+
+
+    ! Deallocate arrays:
+    deallocate(coord_x); deallocate(coord_y); deallocate(coord_z); 
+    deallocate(node_map); deallocate(elem_num_map); deallocate(elem_order_map); 
+    deallocate(block_ids); deallocate(num_elem_in_block); deallocate(num_nodes_per_elem); 
+    deallocate(elem_connectivity); 
+    deallocate(node_set_ids); deallocate(num_nodes_in_set); deallocate(total_node_sets_node_list);
 
     ewrite(2,*) "Out of identify_exodusii_file"
 
