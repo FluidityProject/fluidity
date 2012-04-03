@@ -139,6 +139,7 @@ contains
     integer :: num_node_sets, num_side_sets
 
     real(real_4), allocatable, dimension(:) :: coord_x, coord_y, coord_z
+    integer, allocatable, dimension(:) :: node_map, elem_num_map, elem_order_map
 
     logical :: haveBounds, haveInternalBounds
 
@@ -214,7 +215,12 @@ contains
     ewrite(2,*) coord_y
     ewrite(2,*) coord_z
 
-
+    ! Read node number map:
+    allocate(node_map(num_nodes))
+    num_nodes = 0
+    ierr = f_ex_get_node_num_map(exoid, node_map)
+    ewrite(2,*) "node_map = ", node_map
+    ewrite(2,*) "ierr = ", ierr
 
 
 
