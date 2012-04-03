@@ -141,6 +141,7 @@ contains
     real(real_4), allocatable, dimension(:) :: coord_x, coord_y, coord_z
     integer, allocatable, dimension(:) :: node_map, elem_num_map, elem_order_map
     integer, allocatable, dimension(:) :: block_ids, num_elem_in_block, num_nodes_per_elem
+    integer, allocatable, dimension(:) :: elem_blk_connectivity, elem_connectivity
 
     logical :: haveBounds, haveInternalBounds
 
@@ -246,6 +247,19 @@ contains
     ewrite(2,*) "num_elem_in_block = ", num_elem_in_block
     ewrite(2,*) "num_nodes_per_elem = ", num_nodes_per_elem
     ewrite(2,*) "ierr = ", ierr
+
+    ! read element connectivity:
+    allocate(elem_connectivity(0))
+    do i=1, num_elem_blk
+       ! Get element connectivity of block 'i' and append to global element connectivity:
+       allocate(elem_blk_connectivity(num_nodes_per_elem(i) * num_elem_in_block(i)))
+       ierr = f_ex_get_elem_connectivity(exoid, block_ids(i), elem_blk_connectivity)
+       call append_array(elem_connectivity, elem_blk_connectivity)
+       deallocate(elem_blk_connectivity)
+    end do
+    ewrite(2,*) "elem_connectivity = ", elem_connectivity
+    ewrite(2,*) "ierr = ", ierr
+
 
 
     ierr = f_ex_close(exoid)
