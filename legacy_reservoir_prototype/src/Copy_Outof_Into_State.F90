@@ -685,8 +685,6 @@ module copy_outof_into_state
          ewrite(3,*)'stotel, u_snloc:', stotel, u_snloc
          call getsndgln( vmesh, u_sndgln2 )
 
-
-
          ! convert u_sndgln2 to overlapping u_sndgln...
 
          do sele=1,stotel
@@ -697,10 +695,6 @@ module copy_outof_into_state
                   inod_remain=u_sndgln2((sele-1)*u_snloc2 + u_siloc2)-(ele-1)*u_nloc2
                   u_sndgln( (sele-1)*u_snloc + u_siloc) &
                        =(ele-1)*u_nloc + inod_remain + (ilev-1)*u_nloc2
-
-                  print *, 'sele, ilev, u_siloc, stotel, ele, inod_remain, u_2, idx:::',&
-                       sele, ilev, u_siloc, stotel, ele, inod_remain, u_sndgln2((sele-1)*u_snloc2 + u_siloc2), (sele-1)*u_snloc + u_siloc
-
                end do
             end do
          end do

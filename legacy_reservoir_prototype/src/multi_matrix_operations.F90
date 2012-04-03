@@ -430,24 +430,9 @@
       ALLOCATE( DW( U_NONODS * NPHASE ))
       ALLOCATE( CMC_COLOR_VEC( CV_NONODS )) 
 
-!      print *,'c=',c
-!      stop 282
-!      do iphase=1,nphase
-!         do idim=1,ndim
-!            do u_inod=1,u_nonods
-!               print *,'iphase,idim,u_inod:',iphase,idim,u_inod
-!               print *,'colc:',(colc(count),count=findc(u_inod),findc(u_inod+1)-1)
-!               print *,'c:',(c(count+(idim-1)*ncolc+(iphase-1)*ndim*ncolc), &
-!                    count=findc(u_inod),findc(u_inod+1)-1)
-!            end do
-!         end do
-!      end do
-!         stop 292
-
-
       if(.false.) then
 
-         print *,'NCOLCT,NDIM,NCOLC,cv_nonods,u_nonods,nphase:', &
+         ewrite(3,*)'NCOLCT,NDIM,NCOLC,cv_nonods,u_nonods,nphase:', &
                   NCOLCT,NDIM,NCOLC,cv_nonods,u_nonods,nphase
 !         stop 321
          DO CV_NOD = 1, CV_NONODS
@@ -470,18 +455,18 @@
             END DO
          END DO
 
-         print *,'colct:'
+         ewrite(3,*)'colct:'
          DO CV_NOD = 1, CV_NONODS
-               print *,'cv_NOD=',cv_NOD
-               print *,(colct(count2),COUNT2=FINDCt(cv_NOD),FINDCt(cv_NOD+1)-1)
-               print *,(ct(count2),COUNT2=FINDCt(cv_NOD),FINDCt(cv_NOD+1)-1)
+              ewrite(3,*) 'cv_NOD=',cv_NOD
+              ewrite(3,*) (colct(count2),COUNT2=FINDCt(cv_NOD),FINDCt(cv_NOD+1)-1)
+              ewrite(3,*) (ct(count2),COUNT2=FINDCt(cv_NOD),FINDCt(cv_NOD+1)-1)
          end do
 
-         print *,'colc:'
+         ewrite(3,*)'colc:'
          do U_JNOD=1,u_nonods
-            print *,'U_JNOD=',U_JNOD
-            print *,(colc(count2),COUNT2=FINDC(U_JNOD),FINDC(U_JNOD+1)-1)
-            print *,(c(count2),COUNT2=FINDC(U_JNOD),FINDC(U_JNOD+1)-1)
+            ewrite(3,*) 'U_JNOD=',U_JNOD
+            ewrite(3,*) (colc(count2),COUNT2=FINDC(U_JNOD),FINDC(U_JNOD+1)-1)
+            ewrite(3,*) (c(count2),COUNT2=FINDC(U_JNOD),FINDC(U_JNOD+1)-1)
          end do
 !         stop 221
 
@@ -639,27 +624,19 @@
           end do
        endif
 
-!         print *,'ncolor=',ncolor
-!         print *,'CMC_COLOR_VEC:',CMC_COLOR_VEC
       end do
-        
-!      print *,' '
-!      print *,'ct(1),c(1):',ct(1),c(1)
-!      print *,'ct(ncolct),c(ncolc):',ct(ncolct),c(ncolc)
-
 
       if(.false.) then
          DO CV_NOD = 1, CV_NONODS
 
-            print *,'cv_nod=',cv_nod
+            ewrite(3,*) 'cv_nod=',cv_nod
             DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
                CV_JNOD = COLCMC( COUNT )
-               print *,'CV_JNOD,cmc(count):',CV_JNOD,cmc(count)
+               ewrite(3,*) 'CV_JNOD,cmc(count):',CV_JNOD,cmc(count)
 
             END DO
 
          END DO
-         !       cmc(FINDCMC( CV_NONODS + 1 ) - 1)=50000.
          stop 1244 
       endif
 
@@ -834,10 +811,6 @@
                   COUNT_DIM_PHA = COUNT + NCOLC*(IDIM-1) + NCOLC*NDIM*(IPHASE-1)
                   I1 = U_INOD + (IDIM-1)*U_NONODS + ( IPHASE - 1 ) * NDIM * U_NONODS
                   CDP( I1 ) = CDP( I1 ) + C( COUNT_DIM_PHA ) * DP( P_JNOD )
-          if(i1==86) then
-        print *,'CDP( I1 ),C( COUNT_DIM_PHA ),P_JNOD,DP( P_JNOD ):', &
-                 CDP( I1 ),C( COUNT_DIM_PHA ),P_JNOD,DP( P_JNOD )
-          endif
                END DO Loop_Dim
             END DO Loop_Phase
 

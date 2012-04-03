@@ -3071,26 +3071,26 @@
          cvfem_neiloc( cv_iloc, 3 ) = -1
       end if
 
-      print *,'scvweigh:',scvweigh
-         print *,' '
+      ewrite(3,*) 'scvweigh:',scvweigh
+         ewrite(3,*) ' '
          do cv_sgi = 1, scvngi
-           print *,'cv_sgi=',cv_sgi
-           print *,'sn( :, cv_sgi )    =', sn( :, cv_sgi )
+           ewrite(3,*) 'cv_sgi=',cv_sgi
+           ewrite(3,*) 'sn( :, cv_sgi )    =', sn( :, cv_sgi )
          end do
-         print *,' '
+         ewrite(3,*) ' '
          do cv_sgi = 1, scvngi
-           print *,'cv_sgi=',cv_sgi
-           print *,'sufnlx( :, cv_sgi )=',sufnlx( :, cv_sgi )
+           ewrite(3,*) 'cv_sgi=',cv_sgi
+           ewrite(3,*) 'sufnlx( :, cv_sgi )=',sufnlx( :, cv_sgi )
          end do
-         print *,' '
+         ewrite(3,*) ' '
          do cv_sgi = 1, scvngi
-           print *,'cv_sgi=',cv_sgi
-           print *,'snlx( :, cv_sgi ):', snlx( :, cv_sgi )
+           ewrite(3,*) 'cv_sgi=',cv_sgi
+           ewrite(3,*) 'snlx( :, cv_sgi ):', snlx( :, cv_sgi )
          end do
-         print *,' '
+         ewrite(3,*) ' '
          do cv_sgi = 1, scvngi
-           print *,'cv_sgi=',cv_sgi
-           print *,'snly( :, cv_sgi ):', snly( :, cv_sgi )
+           ewrite(3,*) 'cv_sgi=',cv_sgi
+           ewrite(3,*) 'snly( :, cv_sgi ):', snly( :, cv_sgi )
          end do
 !      stop 281
 
@@ -3380,12 +3380,12 @@
       call shatri_hex( quad_l1, quad_l2, quad_l3, quad_l4, rdummy, d3, &
            cv_nloc, cv_ngi, n, nlx, nly, nlz, &
            .true. )
-      print *,'cvweigh:',cvweigh
+      ewrite(3,*)'cvweigh:',cvweigh
       rsum=0.0
       do cv_gi=1,cv_ngi
          rsum=rsum+cvweigh(cv_gi)
       end do
-      print *,'rsum:',rsum
+      ewrite(3,*)'rsum:',rsum
 !      stop 2821
       deallocate( quad_l1 )
       deallocate( quad_l2 )

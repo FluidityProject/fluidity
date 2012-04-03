@@ -234,9 +234,6 @@
       FINDCT( CV_NONODS + 1) = COUNT + 1
       NCT = COUNT
 
-      print *, colct(1:nct)
-      print *, nct, mx_nct
-
       IF(NCT > MX_NCT ) THEN
          EWRITE(3,*)'MX_NCT is not long enough NCT,MX_NCT:',NCT,MX_NCT
       ENDIF
@@ -390,11 +387,6 @@
          end do
       end do
 
-        print *,'mx_nface_p1=',mx_nface_p1
-
-        print *,'ncolele=',ncolele
-        print *,'colele(1:ncolele):',colele(1:ncolele)
-!        stop 292
 
       deallocate( fintran )
       deallocate( coltran )
@@ -444,11 +436,11 @@
       finm_pha( nphase * nonods + 1 ) = count2 + 1
 !      ncolm_pha= count2 
        if(count2.ne.ncolm_pha) then
-          print *,'not correct length count2,ncolm_pha:',count2,ncolm_pha
+          ewrite(3,*) 'not correct length count2,ncolm_pha:',count2,ncolm_pha
           stop 2821
        end if
 
-       print *,'colm_pha--',colm_pha(1:ncolm_pha)
+      !ewrite(3,*) 'colm_pha--',colm_pha(1:ncolm_pha)
 
       ewrite(3,*) 'Leaving exten_sparse_multi_phase subrt.'
       return
@@ -609,10 +601,6 @@
       type( row ), dimension( : ), allocatable :: matrix
       type( node ), pointer :: list, current, next
 
-       print *,'in pousinmc2'
-       print *,'totele, nonods1, nloc1, nonods2, nloc2, nimem, lencolm:', &
-                totele, nonods1, nloc1, nonods2, nloc2, nimem, lencolm
-
       allocate( matrix( nonods2 ))
       do i = 1, nonods2
          allocate( list )
@@ -716,8 +704,6 @@
 
       deallocate( matrix )
 
-      print *, 'nimem, lencolm', nimem, lencolm
-      !stop 999
       return
     end subroutine pousinmc2
 
@@ -1181,11 +1167,11 @@
       finacv_loc( cv_nonods + 1 ) = gcount2 + 1
 
 
-      print *,'acv:'
-      do cv_nodi=1,cv_nonods
-        print *,'for row:',cv_nodi,' the colns are:'
-        print *,(colacv_loc(count),count=finacv_loc(cv_nodi),finacv_loc(cv_nodi+1)-1)
-      end do
+      !ewrite(3,*) 'acv:'
+      !do cv_nodi=1,cv_nonods
+      !  ewrite(3,*) 'for row:',cv_nodi,' the colns are:'
+      !  ewrite(3,*) (colacv_loc(count),count=finacv_loc(cv_nodi),finacv_loc(cv_nodi+1)-1)
+      !end do
        
       RETURN
 
@@ -1403,7 +1389,7 @@
          call pousinmc2( totele, u_nonods, u_nloc, cv_nonods, cv_nloc, &
               mx_nct, u_ndgln, cv_ndgln, &
               nct, findct, colct, centct )
-          print *,'finished pousinmc2'
+          ewrite(3,*) 'finished pousinmc2'
       end if Conditional_Dimensional_2
       nc = nct
       ewrite(3,*) 'findct: ', size( findct ), '==>', findct( 1 : cv_nonods + 1 )

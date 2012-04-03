@@ -7773,7 +7773,7 @@
             RA( GI ) = RGI
             DETWEI( GI ) = TWOPIE * RGI * DETJ * WEIGHT( GI )
             VOLUME = VOLUME + DETWEI( GI )
-!            print *,'volume,DETWEI( GI ),TWOPIE , RGI , DETJ , WEIGHT( GI ):', &
+!            ewrite(3,*)'volume,DETWEI( GI ),TWOPIE , RGI , DETJ , WEIGHT( GI ):', &
 !                     volume,DETWEI( GI ),TWOPIE , RGI , DETJ , WEIGHT( GI )
 !            ewrite(3,*) 'ele, gi, detj, detwei:', ele, gi, detj, detwei(gi)
 !            rsum=rsum+WEIGHT( GI )
@@ -7784,8 +7784,8 @@
                NZ( L, GI ) = 0.0
             END DO Loop_L5
 
-!            print *,'nx:',nx
-!            print *,'ny:',ny
+!            ewrite(3,*) 'nx:',nx
+!            ewrite(3,*) 'ny:',ny
 
             Loop_L6: DO L = 1, U_NLOC
                UNX( L, GI ) = (  DGI * UNLX( L, GI ) - BGI * UNLY( L, GI )) / DETJ
@@ -7795,7 +7795,7 @@
 
          END DO Loop_GI2
 
-!         print *,'ngi,sum(weight),rsum:',ngi,sum(weight),rsum
+!         ewrite(3,*)'ngi,sum(weight),rsum:',ngi,sum(weight),rsum
 
       ELSE ! FOR 1D...
 

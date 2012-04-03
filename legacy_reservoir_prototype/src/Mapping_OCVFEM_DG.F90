@@ -358,8 +358,8 @@ module mapping_for_ocvfem
                matloc_cv( cv_iloc,cv_jloc ) = matloc_cv( cv_iloc,cv_jloc ) + cvfen_short( cv_iloc, cv_gi ) * cvfen_short(   cv_jloc, cv_gi ) * detwei( cv_gi )
              end do
           end do loop_cv_jloc
- !         print*, 'dg', matloc_cv(cv_iloc,:)
-!          print*, 'row sum', sum(matloc_cv(cv_iloc,:))
+!         ewrite(3,*) 'dg', matloc_cv(cv_iloc,:)
+!         ewrite(3,*) 'row sum', sum(matloc_cv(cv_iloc,:))
        end do loop_cv_iloc
        
        matloc = 0.0
@@ -369,14 +369,14 @@ module mapping_for_ocvfem
              do cv_gi = 1, cv_ngi
                 matloc( cv_iloc,cv_jloc ) = matloc( cv_iloc,cv_jloc )  + cvfen( cv_iloc, cv_gi )   * ufen(cv_jloc, cv_gi ) * detwei( cv_gi )
              end do
-          ! if(matloc(cv_iloc,cv_jloc) < 1.0E-8) print*, matloc(cv_iloc,cv_jloc), cv_iloc,cv_jloc
+          ! if(matloc(cv_iloc,cv_jloc) < 1.0E-8) ewrite(3,*) matloc(cv_iloc,cv_jloc), cv_iloc,cv_jloc
           end do
-!          print*, 'dg-ocv', matloc(cv_iloc,:)
-!          print*, 'row sum', sum(matloc(cv_iloc,:)),sum(matloc)
+!          ewrite(3,*) 'dg-ocv', matloc(cv_iloc,:)
+!          ewrite(3,*) 'row sum', sum(matloc(cv_iloc,:)),sum(matloc)
        end do 
        
        
-!       print*, sum(matloc), sum(matloc_cv)
+!       ewrite(3,*) sum(matloc), sum(matloc_cv)
 
 ! solver here...
         matloc_cv_inv = matloc_cv
@@ -429,10 +429,10 @@ module mapping_for_ocvfem
 !             rhsloc_v = matmul(matloc_cv_inv,matmul(matloc,rhsloc_uv))
 !             rhsloc_w = matmul(matloc_cv_inv,matmul(matloc,rhsloc_uw))
              
-!             print*, 'dg mat', matloc_cv
-!             print*, 'dg-ocv mat', matloc
-!             print*, 'rhs',matmul(matloc,rhsloc_uu)
-!             print*, 'rhslocuu', rhsloc_uu
+!             ewrite(3,*) 'dg mat', matloc_cv
+!             ewrite(3,*) 'dg-ocv mat', matloc
+!             ewrite(3,*) 'rhs',matmul(matloc,rhsloc_uu)
+!             ewrite(3,*) 'rhslocuu', rhsloc_uu
              do cv_iloc = 1, cv_nloc
                cv_nodi = (ele - 1)*cv_nloc + cv_iloc
                velocity_dg(cv_nodi, iphase, 1) = rhsloc_u(cv_iloc) 
@@ -447,7 +447,7 @@ module mapping_for_ocvfem
    open(103,file="velocity_projected_x_2", action='write')
 
    
-!   print *, "output to file ... "
+!   ewrite(3,*) "output to file ... "
    u_iloc= 0
    
    do ele = 1, totele ! volume integral
@@ -460,7 +460,7 @@ module mapping_for_ocvfem
    end do
    
  
-!   print*, cv_nloc, u_nloc,x_nloc, totele, x_nonods, u_nonods, cv_nonods, u_iloc, size(x); pause
+   !ewrite(3,*) cv_nloc, u_nloc,x_nloc, totele, x_nonods, u_nonods, cv_nonods, u_iloc, size(x)
  
    close(102); close(103)
 
