@@ -5,7 +5,7 @@ module exodusii_f_interface
 
   private
 
-  public :: c_read_ex_open, c_read_ex_open_short, &
+  public :: f_read_ex_open, &
             f_ex_get_init, f_ex_get_coord, &
             f_ex_get_node_num_map, f_ex_get_elem_num_map, &
             f_ex_get_elem_order_map, f_ex_get_elem_block_parameters, &
@@ -23,16 +23,9 @@ module exodusii_f_interface
        integer(kind=c_int) :: mode
        integer(kind=c_int) :: comp_ws
        integer(kind=c_int) :: io_ws
-       real(kind=c_double) :: version
+       real(kind=c_float) :: version
        integer(kind=c_int) :: exoid
      end function c_read_ex_open
-     ! A nicer interface for opening an exodusII meshfile
-    function c_read_ex_open_short(path, version) result(exoid) bind(c)
-       use, intrinsic :: iso_c_binding
-       character(kind=c_char, len=1):: path
-       real(kind=c_double) :: version
-       integer(kind=c_int) :: exoid
-     end function c_read_ex_open_short
   end interface
 
   ! Get database parameters from exodusII file
