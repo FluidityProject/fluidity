@@ -42,9 +42,7 @@
 using namespace std;
 
 extern "C"{
-#define fladapt F77_FUNC(fladapt, FLADAPT)
-  void fladapt(const char* input_basename, const int* input_basename_len,
-               const char* output_basename, const int* output_basename_len);
+  void fladapt(const char *, size_t, const char *, size_t);
 #ifdef HAVE_PYTHON
 #include "python_statec.h"
 #endif

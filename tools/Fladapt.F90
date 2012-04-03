@@ -28,10 +28,11 @@
 #include "fdebug.h"
 
 subroutine fladapt(input_basename_, input_basename_len, &
-  & output_basename_, output_basename_len)
+  & output_basename_, output_basename_len)  bind(c)
   !!< Peforms a mesh adapt based on the supplied input options file.
   !!< Outputs the resulting mesh.
-  
+ 
+  use iso_c_binding
   use adapt_state_module
   use diagnostic_fields_wrapper
   use diagnostic_fields_new, only : &
@@ -49,6 +50,9 @@ subroutine fladapt(input_basename_, input_basename_len, &
   use vtk_interfaces
   use mesh_files
   use populate_state_module
+
+  implicit none
+  
   interface
     subroutine check_options()
     end subroutine check_options
