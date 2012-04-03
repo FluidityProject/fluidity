@@ -28,6 +28,7 @@
 
 module bubble_tools
 use fields
+use vector_tools
 use sparse_matrices_fields
 use sparsity_patterns_meshes
 use element_numbering
@@ -38,7 +39,8 @@ use spud
 implicit none
 
 private
-public nodalise_bubble_basis, setup_Cg_dg_projection
+public nodalise_bubble_basis, setup_Cg_dg_projection, &
+     & cg_dg_projection
 
 contains
 
@@ -181,7 +183,8 @@ real, dimension(ele_loc(cg_mesh,ele),ele_loc(dg_mesh,ele)) :: &
       end if
       if(dg_mass_stat.ne.0) then
          l_dg_mass = shape_shape(dg_shape,dg_shape,detweI)
-         call addto(dg_mass,dg_ele,dg_ele,l_dg_mass)
+         call invert(l_dg_mass)
+         call set(dg_mass,dg_ele,dg_ele,l_dg_mass)
       end if
       if(dg_lumped_mass_stat.ne.0) then
          l_dg_mass = shape_shape(dg_shape,dg_shape,detweI)
@@ -201,7 +204,7 @@ real, dimension(ele_loc(cg_mesh,ele),ele_loc(dg_mesh,ele)) :: &
     type(scalar_field), intent(inout) :: dg_field
     real, intent(in) :: tol
     !
-    type(scalar_field) :: cg_residual, cg_field_tmp, dg_field_tmp
+    type(scalar_field) :: cg_residual, cg_field_tmp, dg_field_tmp, dg_field_tmp2
     type(csr_matrix), pointer :: cgdg_proj_mat, cg_mass, dg_mass
     type(scalar_field), pointer :: cg_lumped_mass, dg_lumped_mass
     real :: residual
@@ -209,6 +212,7 @@ real, dimension(ele_loc(cg_mesh,ele),ele_loc(dg_mesh,ele)) :: &
     call allocate(cg_residual,cg_field%mesh,trim(cg_field%name)//'Residual')
     call allocate(cg_field_tmp,cg_field%mesh,trim(cg_field%name)//'Tmp')
     call allocate(dg_field_tmp,dg_field%mesh,trim(dg_field%name)//'Tmp')
+    call allocate(dg_field_tmp2,dg_field%mesh,trim(dg_field%name)//'Tmp2')
 
     cgdg_proj_mat => extract_csr_matrix(state,trim(Cg_field%mesh%name)//trim(Dg_field%mesh%name)//"Projection")
     cg_mass=>extract_csr_matrix(state,trim(Cg_field%mesh%name)//"Mass")
@@ -222,23 +226,28 @@ real, dimension(ele_loc(cg_mesh,ele),ele_loc(dg_mesh,ele)) :: &
     cg_dg_solver_loop: do
        !Compute residual
        call mult(cg_residual,cg_mass,cg_field)
+       residual = maxval(abs(cg_residual%val))
+       print *, 'residual', residual
+
        call mult(cg_field_tmp,cgdg_proj_mat,dg_field)
        call addto(cg_residual, cg_field_tmp, -1.0)
        residual = maxval(abs(cg_residual%val))
-       ewrite(2,*) 'residual', residual
-       if(residual>tol) exit cg_dg_solver_loop
+       print *, 'residual', residual
+       if(residual<tol) exit cg_dg_solver_loop
        
        !Divide by lumped mass to approximate error
        cg_residual%val = cg_residual%val/cg_lumped_mass%val
 
        !Compute DG approximation to error
        call mult_t(dg_field_tmp,cgdg_proj_mat,cg_residual)
-       dg_field%val = dg_field%val + dg_field%val/dg_lumped_mass%val       
+       call mult(dg_field_tmp2,dg_mass,dg_field_tmp)
+       dg_field%val = dg_field%val + dg_field_tmp2%val
     end do cg_dg_solver_loop
 
     call deallocate(cg_residual)
     call deallocate(cg_field_tmp)
     call deallocate(dg_field_tmp)
+    call deallocate(dg_field_tmp2)
   end subroutine cg_dg_projection
   
   subroutine nodalise_bubble_basis(shape)
