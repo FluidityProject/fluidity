@@ -37,120 +37,163 @@ use spud
 implicit none
 
 private
-public nodalise_bubble_basis
-!public get_p2b_mass, solve_p2b_lumped_mass
-
-!subroutine get_p2b_mass(state,p2b_mass,p2b_lumped_mass)
-!end subroutine get_p2b_mass
+public nodalise_bubble_basis, setup_Cg_dg_projection
 
 contains
 
-  subroutine setup_P2b_P1dg_projection(state,P2b_mesh,P1dg_mesh)
-    !Check if various matrices for P2b_P1dg projection are present,
+  subroutine setup_Cg_Dg_projection(state,Cg_mesh,Dg_mesh)
+    !Check if various matrices for Cg_Dg projection are present,
     !if not, create them.
     type(state_type), intent(inout) :: state
-    type(mesh_type), intent(inout) :: P2b_mesh, P1dg_mesh
+    type(mesh_type), intent(inout) :: Cg_mesh, Dg_mesh
     !
-    integer :: stat, ele
-    type(csr_matrix) :: p2b_p1dg_projection, p2b_mass, p1dg_mass
-    type(scalar_field) :: p2b_lumped_mass, p1dg_lumped_mass
+    type(csr_matrix) :: cg_dg_projection, cg_mass, dg_mass
+    type(scalar_field) :: cg_lumped_mass, dg_lumped_mass
     type(csr_matrix), pointer :: matrix
     type(csr_sparsity), pointer :: sparsity
     type(scalar_field), pointer :: s_field
+    type(vector_field), pointer :: X
+    integer :: ele, cg_mass_stat, cg_lumped_mass_stat, &
+         & dg_mass_stat, dg_lumped_mass_stat, projection_stat
 
-    !! P2b mass matrix
-    matrix=>extract_csr_matrix(state,trim(P2b_mesh%name)//"Mass",stat)
-    if(stat.ne.0) then
+    X => extract_vector_field(state,"Coordinate")
+
+    !! Cg mass matrix
+    matrix=>extract_csr_matrix(state,trim(Cg_mesh%name)//"Mass",cg_mass_stat)
+    if(cg_mass_stat.ne.0) then
        sparsity => get_csr_sparsity_firstorder(&
-            state, p2b_mesh, p2b_mesh)
-       call allocate(p2b_mass,sparsity,name=trim(P2b_mesh%name)//"Mass")
-       do ele = 1, element_count(P2b_mesh)
-          call get_p2b_mass_ele(ele)
-       end do
-       call insert(state,p2b_mass,p2b_mass%name)
-       call deallocate(p2b_mass)
+            state, cg_mesh, cg_mesh)
+       call allocate(cg_mass,sparsity,name=trim(Cg_mesh%name)//"Mass")
+       call zero(cg_mass)
     end if
 
-    !! Lumped P2b mass matrix (stored as scalar field)
-    s_field=>extract_scalar_field(state,trim(P2b_mesh%name)//"LumpedMass",stat)
-    if(stat.ne.0) then
-       call allocate(p2b_lumped_mass,P2b_mesh,&
-            name=trim(P2b_mesh%name)//"LumpedMass")
-       do ele = 1, element_count(P2b_mesh)
-          call get_p2b_lumped_mass_ele(ele)
-       end do
-       call insert(state,p2b_lumped_mass,p2b_lumped_mass%name)
-       call deallocate(p2b_lumped_mass)
+    !! Lumped Cg mass matrix (stored as scalar field)
+    s_field=>extract_scalar_field(state,trim(Cg_mesh%name)//"LumpedMass",&
+         &cg_lumped_mass_stat)
+    if(cg_lumped_mass_stat.ne.0) then
+       call allocate(cg_lumped_mass,Cg_mesh,&
+            name=trim(Cg_mesh%name)//"LumpedMass")
+       call zero(cg_lumped_mass)
     end if
 
-    !! P1dg mass matrix
-    matrix=>extract_csr_matrix(state,trim(P1dg_mesh%name)//"Mass",stat)
-    if(stat.ne.0) then
+    !! Dg mass matrix
+    matrix=>extract_csr_matrix(state,trim(Dg_mesh%name)//"Mass",&
+         &dg_mass_stat)
+    if(dg_mass_stat.ne.0) then
        sparsity => get_csr_sparsity_firstorder(&
-            state, p1dg_mesh, p1dg_mesh)
-       call allocate(p1dg_mass,sparsity,name=trim(P1dg_mesh%name)//"Mass")
-       do ele = 1, element_count(P1dg_mesh)
-          call get_p1dg_mass_ele(ele)
-       end do
-       call insert(state,p1dg_mass,p1dg_mass%name)
-       call deallocate(p1dg_mass)
+            state, dg_mesh, dg_mesh)
+       call allocate(dg_mass,sparsity,name=trim(Dg_mesh%name)//"Mass")
+       call zero(dg_mass)
     end if
 
-    !! Lumped P1dg mass matrix (stored as scalar field)
-    s_field=>extract_scalar_field(state,trim(P1dg_mesh%name)//"LumpedMass",stat)
-    if(stat.ne.0) then
-       call allocate(p1dg_lumped_mass,P1dg_mesh,&
-            name=trim(P1dg_mesh%name)//"LumpedMass")
-       do ele = 1, element_count(P1dg_mesh)
-          call get_p1dg_lumped_mass_ele(ele)
-       end do
-       call insert(state,p1dg_lumped_mass,p1dg_lumped_mass%name)
-       call deallocate(p1dg_lumped_mass)
+    !! Lumped Dg mass matrix (stored as scalar field)
+    s_field=>extract_scalar_field(state,trim(Dg_mesh%name)//"LumpedMass",&
+         &dg_lumped_mass_stat)
+    if(dg_lumped_mass_stat.ne.0) then
+       call allocate(dg_lumped_mass,Dg_mesh,&
+            name=trim(Dg_mesh%name)//"LumpedMass")
+       call zero(dg_lumped_mass)
     end if
 
-    !!P1dg to P2b projection matrix
-    matrix=>extract_csr_matrix(state,trim(P2b_mesh%name)//&
-         &trim(P1dg_mesh%name)//"Projection",stat)
-    if(stat.ne.0) then
+    !!Dg to Cg projection matrix
+    matrix=>extract_csr_matrix(state,trim(Cg_mesh%name)//&
+         &trim(Dg_mesh%name)//"Projection",projection_stat)
+    if(projection_stat.ne.0) then
        sparsity => get_csr_sparsity_firstorder(&
-            state, P2b_mesh, P1dg_mesh)
-       call allocate(p2b_p1dg_projection,sparsity,name=trim(P2b_mesh%name)//&
-            &trim(P1dg_mesh%name)//"Projection")
-       do ele = 1, element_count(P2b_mesh)
-          call get_p2b_p1dg_projection_ele(ele)
-       end do
-       call insert(state,p2b_p1dg_projection,p2b_p1dg_projection%name)
-       call deallocate(p2b_p1dg_projection)
+            state, Cg_mesh, Dg_mesh)
+       call allocate(cg_dg_projection,sparsity,name=trim(Cg_mesh%name)//&
+            &trim(Dg_mesh%name)//"Projection")
+       call zero(cg_dg_projection)
+    end if
+
+    if(any((/cg_mass_stat,cg_lumped_mass_stat,dg_mass_stat&
+         &,dg_lumped_mass_stat,projection_stat/).ne.0)) then
+       do ele = 1, element_count(dg_mesh)
+          call setup_Cg_Dg_projection_ele(ele)
+       end do       
+    end if
+
+    if(cg_mass_stat.ne.0) then
+       call insert(state,cg_mass,cg_mass%name)
+       call deallocate(cg_mass)
+    end if
+
+    if(cg_lumped_mass_stat.ne.0) then
+       call insert(state,cg_lumped_mass,cg_lumped_mass%name)
+       call deallocate(cg_lumped_mass)
+    end if
+
+    if(dg_mass_stat.ne.0) then
+       call insert(state,dg_mass,dg_mass%name)
+       call deallocate(dg_mass)
+    end if
+
+    if(dg_lumped_mass_stat.ne.0) then
+       call insert(state,dg_lumped_mass,dg_lumped_mass%name)
+       call deallocate(dg_lumped_mass)
+    end if
+
+    if(projection_stat.ne.0) then
+       call insert(state,cg_dg_projection,cg_dg_projection%name)
+       call deallocate(cg_dg_projection)
     end if
 
   contains 
-    subroutine get_p2b_mass_ele(ele)
+    subroutine setup_Cg_Dg_projection_ele(ele)
       integer, intent(in) :: ele
       !
-    end subroutine get_p2b_mass_ele
+      real, dimension(ele_ngi(X,ele)) :: detwei, detJ
+      real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+      type(element_type) :: cg_shape, dg_shape
+      integer, pointer, dimension(:) :: cg_ele, dg_ele
+      real, dimension(ele_loc(cg_mesh,ele),ele_loc(cg_mesh,ele)) :: &
+           & l_cg_mass
+      real, dimension(ele_loc(dg_mesh,ele),ele_loc(dg_mesh,ele)) :: &
+           & l_dg_mass
+real, dimension(ele_loc(cg_mesh,ele),ele_loc(dg_mesh,ele)) :: &
+           & l_projection
+      real, dimension(ele_loc(cg_mesh,ele)) :: l_cg_lumped_mass
+      real :: omega_v, omega_e, omega_b
 
-    subroutine get_p2b_lumped_mass_ele(ele)
-      integer, intent(in) :: ele
-      !
-    end subroutine get_p2b_lumped_mass_ele
+      cg_shape = ele_shape(cg_mesh,ele)
+      dg_shape = ele_shape(dg_mesh,ele)
+      cg_ele => ele_nodes(cg_mesh,ele)
+      dg_ele => ele_nodes(dg_mesh,ele)
 
-    subroutine get_p1dg_mass_ele(ele)
-      integer, intent(in) :: ele
-      !
-    end subroutine get_p1dg_mass_ele
+      call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
+           detwei=detwei)
 
-    subroutine get_p1dg_lumped_mass_ele(ele)
-      integer, intent(in) :: ele
-      !
-    end subroutine get_p1dg_lumped_mass_ele
+      if(cg_mass_stat.ne.0) then
+         l_cg_mass = shape_shape(cg_shape,cg_shape,detwei)
+         call addto(cg_mass,cg_ele,cg_ele,l_cg_mass)
+      end if
+      if(cg_lumped_mass_stat.ne.0) then
+         if((cg_shape%dim.ne.2) .or. (cg_shape%loc.ne.7)) then
+            FLAbort('Only P2 bubble currently supported')
+         end if
+         omega_v = 1./20.
+         omega_e = 2./15.
+         omega_b = 9./20.
+         l_cg_lumped_mass = (/ omega_v,omega_e,omega_v,omega_e,omega_e,&
+              & omega_v,omega_b /)*detwei(1)         
+         call addto(cg_lumped_mass,cg_ele,l_cg_lumped_mass)
+      end if
+      if(dg_mass_stat.ne.0) then
+         l_dg_mass = shape_shape(dg_shape,dg_shape,detweI)
+         call addto(dg_mass,dg_ele,dg_ele,l_dg_mass)
+      end if
+      if(dg_lumped_mass_stat.ne.0) then
+         l_dg_mass = shape_shape(dg_shape,dg_shape,detweI)
+         call addto(dg_lumped_mass,dg_ele,sum(l_dg_mass,2))
+      end if
+      if(projection_stat.ne.0) then
+         l_projection = shape_shape(cg_shape,dg_shape,detweI)
+         call addto(cg_dg_projection,cg_ele,dg_ele,l_projection)
+      end if
 
-    subroutine get_p2b_p1dg_projection_ele(ele)
-      integer, intent(in) :: ele
-      !
-    end subroutine get_p2b_p1dg_projection_ele
-
-  end subroutine setup_P2b_P1dg_projection
-
+    end subroutine setup_Cg_Dg_projection_ele
+  end subroutine setup_Cg_Dg_projection
+  
   subroutine nodalise_bubble_basis(shape)
     !Subroutine to transform bubble basis to a equivalent nodal one.
     type(element_type), intent(inout) :: shape

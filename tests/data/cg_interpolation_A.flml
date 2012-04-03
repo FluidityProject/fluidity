@@ -1,14 +1,11 @@
 <?xml version='1.0' encoding='utf-8'?>
-<fluidity_options>
+<shallow_water_options>
   <simulation_name>
     <string_value lines="1">square-2d</string_value>
   </simulation_name>
-  <problem_type>
-    <string_value lines="1">oceans</string_value>
-  </problem_type>
   <geometry>
     <dimension>
-      <integer_value rank="0">2</integer_value>
+      <integer_value rank="0">3</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
       <from_file file_name="data/dg_interpolation_A">
@@ -63,7 +60,6 @@
       </constant>
     </dump_period>
     <output_mesh name="VelocityMesh"/>
-    <stat/>
   </io>
   <timestepping>
     <current_time>
@@ -72,62 +68,73 @@
     <timestep>
       <real_value rank="0">0.025</real_value>
     </timestep>
+    <theta>
+      <real_value rank="0"/>
+    </theta>
+    <nonlinear_iterations>
+      <integer_value rank="0"/>
+    </nonlinear_iterations>
     <finish_time>
       <real_value rank="0">0.05</real_value>
     </finish_time>
   </timestepping>
-  <physical_parameters/>
-  <material_phase name="Water">
+  <physical_parameters>
+    <gravity>
+      <magnitude>
+        <real_value rank="0"/>
+      </magnitude>
+      <vector_field name="GravityDirection" rank="1">
+        <prescribed>
+          <mesh name="CoordinateMesh"/>
+          <value name="WholeMesh">
+            <constant>
+              <real_value dim1="dim" rank="1"/>
+            </constant>
+          </value>
+          <output/>
+          <stat>
+            <include_in_stat/>
+          </stat>
+          <detectors>
+            <exclude_from_detectors/>
+          </detectors>
+          <adjoint_storage>
+            <exists_in_forward/>
+          </adjoint_storage>
+        </prescribed>
+      </vector_field>
+    </gravity>
+  </physical_parameters>
+  <material_phase name="Fluid">
     <vector_field name="Velocity" rank="1">
-      <prescribed>
-        <mesh name="VelocityMesh"/>
-        <value name="WholeMesh">
-          <constant>
-            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
-          </constant>
-        </value>
-        <output/>
-        <stat>
-          <include_in_stat/>
-        </stat>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-      </prescribed>
-    </vector_field>
-    <scalar_field name="CgInterpolant" rank="0">
       <prognostic>
         <mesh name="VelocityMesh"/>
-        <equation name="AdvectionDiffusion"/>
+        <equation name="ShallowWater"/>
         <spatial_discretisation>
-          <continuous_galerkin>
-            <stabilisation>
-              <no_stabilisation/>
-            </stabilisation>
-            <advection_terms/>
-            <mass_terms/>
-          </continuous_galerkin>
-          <conservative_advection>
-            <real_value rank="0">0.0</real_value>
-          </conservative_advection>
+          <discontinuous_galerkin>
+            <wave_equation/>
+            <advection_scheme>
+              <edge_coordinates_upwind/>
+            </advection_scheme>
+          </discontinuous_galerkin>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta>
-            <real_value rank="0">0.5</real_value>
-          </theta>
+          <relaxation>
+            <real_value rank="0"/>
+          </relaxation>
         </temporal_discretisation>
         <solver>
           <iterative_method name="gmres">
             <restart>
-              <integer_value rank="0">30</integer_value>
+              <integer_value rank="0"/>
             </restart>
           </iterative_method>
           <preconditioner name="sor"/>
           <relative_error>
-            <real_value rank="0">1.0e-7</real_value>
+            <real_value rank="0"/>
           </relative_error>
           <max_iterations>
-            <integer_value rank="0">10000</integer_value>
+            <integer_value rank="0"/>
           </max_iterations>
           <never_ignore_solver_failures/>
           <diagnostics>
@@ -135,13 +142,11 @@
           </diagnostics>
         </solver>
         <initial_condition name="WholeMesh">
-          <python>
-            <string_value lines="20" type="python">def val(X, t):
-  return X[0]**2 + X[1]**2</string_value>
-          </python>
+          <constant>
+            <real_value dim1="dim" rank="1"/>
+          </constant>
         </initial_condition>
         <output/>
-        <stat/>
         <convergence>
           <include_in_convergence/>
         </convergence>
@@ -151,26 +156,9 @@
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
-        <galerkin_projection>
-          <continuous>
-            <solver>
-              <iterative_method name="cg"/>
-              <preconditioner name="sor"/>
-              <relative_error>
-                <real_value rank="0">1.0e-7</real_value>
-              </relative_error>
-              <max_iterations>
-                <integer_value rank="0">10000</integer_value>
-              </max_iterations>
-              <never_ignore_solver_failures/>
-              <diagnostics>
-                <monitors/>
-              </diagnostics>
-            </solver>
-          </continuous>
-        </galerkin_projection>
+        <consistent_interpolation/>
       </prognostic>
-    </scalar_field>
+    </vector_field>
   </material_phase>
   <mesh_adaptivity>
     <hr_adaptivity>
@@ -197,4 +185,4 @@
       </tensor_field>
     </hr_adaptivity>
   </mesh_adaptivity>
-</fluidity_options>
+</shallow_water_options>
