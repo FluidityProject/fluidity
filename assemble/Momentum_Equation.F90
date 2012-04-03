@@ -74,6 +74,7 @@
       use slope_limiters_dg
       use implicit_solids
       use multiphase_module
+      use pressure_dirichlet_bcs_cv
 
       implicit none
 
@@ -587,6 +588,11 @@
                      state(istate), &
                      assemble_ct_matrix_here=reassemble_ct_m .and. .not. cv_pressure, &
                      include_pressure_and_continuity_bcs=.not. cv_pressure)
+            end if
+            
+            ! If CV pressure then add in any dirichlet pressure BC integrals to the mom_rhs.
+            if (cv_pressure) then
+               call add_pressure_dirichlet_bcs_cv(mom_rhs(istate), u, p, state(istate))
             end if
             
             ! Add in multiphase interactions (e.g. fluid-particle drag) if necessary
@@ -2060,7 +2066,8 @@
             ! Check options for case with CG pressure and
             ! testing continuity with CV dual mesh. 
             ! Will not work with compressible, free surface or 
-            ! wetting and drying and implicit solids two way coupling. 
+            ! wetting and drying and implicit solids two way coupling 
+            ! (when solves for the fluid velocity). 
             ! Also will not work if the pressure is on a mesh that has 
             ! bubble or trace shape functions.
             if (have_option("/material_phase["//int2str(i)//&
@@ -2103,7 +2110,7 @@
                end if
                
                ! Check that implicit solids two way coupling is not being used
-               if (have_option("/implicit_solids/two_way_coupling")) then
+               if (have_option("/implicit_solids/two_way_coupling/fluids_scheme/use_fluid_velocity")) then
                   FLExit("For CG Pressure cannot test the continuity equation with CV when using implicit solids two way coupling model")
                end if
                
@@ -2132,7 +2139,7 @@
             ! which is not possible yet for the two way coupling terms.
             ! Note the check of CG pressure with CV tested continuity 
             ! and implicit solids two way coupling has been done above.
-            if (have_option("/implicit_solids/two_way_coupling")) then
+            if (have_option("/implicit_solids/two_way_coupling/fluids_scheme/use_fluid_velocity")) then
                
                if (have_option("/material_phase["//int2str(i)//&
                                  &"]/scalar_field::Pressure/prognostic&

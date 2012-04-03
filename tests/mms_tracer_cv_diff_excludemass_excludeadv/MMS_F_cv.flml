@@ -150,7 +150,7 @@
           <type name="dirichlet">
             <apply_weakly/>
             <python>
-              <string_value lines="20" type="python">def val(XX, t):
+              <string_value lines="20" type="code" language="python">def val(XX, t):
    from math import sin,cos,sqrt
    omega = 0.0;
    x = XX[0];
@@ -168,7 +168,7 @@
           </surface_ids>
           <type name="neumann">
             <python>
-              <string_value lines="20" type="python">def val(XX, t):
+              <string_value lines="20" type="code" language="python">def val(XX, t):
    from math import sin,cos,sqrt
    omega = 0.0;
    nu = 0.7;
@@ -188,7 +188,7 @@
           </surface_ids>
           <type name="neumann">
             <python>
-              <string_value lines="20" type="python">def val(XX, t):
+              <string_value lines="20" type="code" language="python">def val(XX, t):
    from math import sin,cos,sqrt
    omega = 0.0;
    nu = 0.7;
@@ -218,7 +218,7 @@
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="python">def val(XX, t):
+                <string_value lines="20" type="code" language="python">def val(XX, t):
    from math import sin,cos,sqrt
    nu = 0.7;
    omega = 0.0;
@@ -279,7 +279,7 @@ S = T_t + adv*(u*T_x + v*T_y + beta*(T*(u_x + v_y))) - nu*(T_xx + T_yy)
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(XX, t):
+            <string_value lines="20" type="code" language="python">def val(XX, t):
    from math import sin,cos,sqrt
    omega = 0.0;
    x = XX[0];

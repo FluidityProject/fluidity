@@ -78,7 +78,8 @@ module diagnostic_variables
   use detector_parallel
   use detector_move_lagrangian
   use ieee_arithmetic, only: cget_nan
-
+  use state_fields_module, only: get_cv_mass
+  
   implicit none
 
   private
@@ -1880,7 +1881,7 @@ contains
   
   subroutine write_diagnostics(state, time, dt, timestep, not_to_move_det_yet)
     !!< Write the diagnostics to the previously opened diagnostics file.
-    type(state_type), dimension(:), intent(in) :: state
+    type(state_type), dimension(:), intent(inout) :: state
     real, intent(in) :: time, dt
     integer, intent(in) :: timestep
     logical, intent(in), optional :: not_to_move_det_yet 
@@ -1901,6 +1902,7 @@ contains
     type(vector_field), pointer :: vfield
     type(tensor_field), pointer :: tfield
     type(vector_field) :: xfield
+    type(scalar_field), pointer :: cv_mass => null()
     type(registered_diagnostic_item), pointer :: iterator => NULL()
     logical :: l_move_detectors
 
@@ -1966,8 +1968,11 @@ contains
           ! Control volume stats
           if(have_option(trim(complete_field_path(sfield%option_path,stat=stat)) //&
                & "/stat/include_cv_stats")) then
+            
+            ! Get the CV mass matrix 
+            cv_mass => get_cv_mass(state(phase), sfield%mesh)
 
-            call field_cv_stats(sfield, Xfield, fnorm2_cv, fintegral_cv)
+            call field_cv_stats(sfield, cv_mass, fnorm2_cv, fintegral_cv)
 
             ! Only the first process should write statistics information
             if(getprocno() == 1) then

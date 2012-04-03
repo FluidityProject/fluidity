@@ -91,7 +91,7 @@
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
    from math import sin, cos
    # Shear rotation about origin.
    return (sin(X[0])*cos(X[1]), -1.0*cos(X[0])*sin(X[1]))</string_value>
@@ -185,7 +185,7 @@
         <explicit/>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
 	from math import sqrt, pi
 	xc = pi/2
 	yc = 0.2*(1.0+pi)
@@ -289,7 +289,7 @@
         <explicit/>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
 	from math import sqrt, pi
 	xc = pi/2
 	yc = 0.2*(1.0+pi)

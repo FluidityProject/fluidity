@@ -19,7 +19,7 @@ western_boundary_width=min(downx)
     </variable>    
   </variables>
   <pass_tests>
-    <test name="Check width of western boundary current (&amp;0.25)." language="python">
+    <test name="Check width of western boundary current (&lt; 0.25)." language="python">
 import fluidity_tools
 assert( western_boundary_width &lt; 0.25 )
     </test>

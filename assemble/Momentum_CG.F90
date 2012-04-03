@@ -1049,7 +1049,7 @@
           end if
           if (pressure_corrected_absorption) then
             if (assemble_inverse_masslump.and.(.not.(abs_lump_on_submesh))) then
-              call addto(masslump, u_nodes_bdy, theta*lumped_fs_surfacestab)
+              call addto(masslump, u_nodes_bdy, dt*theta*lumped_fs_surfacestab)
             else
               FLExit("Error?") 
             end if
@@ -1855,12 +1855,12 @@
           absorption_mat = shape_shape_vector(test_function, ele_shape(u, ele), detwei*density_gi, absorption_gi)
           absorption_lump = sum(absorption_mat, 3)
           if (assemble_inverse_masslump.and.(.not.(abs_lump_on_submesh))) then
-            call addto(masslump, ele_nodes(u, ele), theta*absorption_lump)
+            call addto(masslump, ele_nodes(u, ele), dt*theta*absorption_lump)
           end if
           if (assemble_mass_matrix) then
             do dim = 1, u%dim
               call addto(mass, dim, dim, ele_nodes(u, ele), ele_nodes(u,ele), &
-                 theta*absorption_mat(dim,:,:))
+                 dt*theta*absorption_mat(dim,:,:))
             end do
           end if
         end if
@@ -1894,12 +1894,12 @@
         end if
         if (pressure_corrected_absorption) then
           if (assemble_inverse_masslump.and.(.not.(abs_lump_on_submesh))) then
-            call addto(masslump, ele_nodes(u, ele), theta*absorption_lump)
+            call addto(masslump, ele_nodes(u, ele), dt*theta*absorption_lump)
           end if
           if (assemble_mass_matrix) then
             do dim = 1, u%dim
               call addto(mass, dim, dim, ele_nodes(u, ele), ele_nodes(u,ele), &
-                 theta*absorption_mat(dim,:,:))
+                 dt*theta*absorption_mat(dim,:,:))
             end do
           end if
         end if

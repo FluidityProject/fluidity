@@ -34,7 +34,8 @@ filename =
 python_code =
    (
       element string_value{
-         attribute type { "python" },
+         attribute type { "code" },
+         attribute language { "python" },
          # Lines is a hint to the gui about the size of the text box.
          # It is not an enforced limit on string length.
          attribute lines { "20" },
