@@ -783,9 +783,11 @@
 
 
     subroutine retrieve_ngi( ndim, cv_ele_type, cv_nloc, u_nloc, &
-         cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface )
+         cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, QUAD_OVER_WHOLE_ELE )
       implicit none
       integer, intent( in ) :: ndim, cv_ele_type, cv_nloc, u_nloc
+! If QUAD_OVER_WHOLE_ELE=.true. then dont divide element into CV's to form quadrature.
+      logical, intent( in ) :: QUAD_OVER_WHOLE_ELE
       integer, intent( inout ) :: cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface
       ! Local variables
       character( len = option_path_len ) :: overlapping_path

@@ -1011,7 +1011,7 @@
 
       ! Computing Gauss points and array containing node points on neighboors elements
       call retrieve_ngi( ndim, cv_ele_type, cv_nloc, u_nloc, &
-           cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface )
+           cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, .false. )
       allocate( cv_neiloc( cv_nloc, scvngi ) ) 
       allocate( cvfem_neiloc( cv_nloc, scvngi ) ) 
 !!      allocate( cv_neiloc( cv_nloc, scvngi ) ) ; cv_neiloc = 0
@@ -1097,7 +1097,7 @@
            cv_sloclist, u_sloclist, cv_snloc, u_snloc, &
                                 ! Define the gauss points that lie on the surface of the CV
            findgpts, colgpts, ncolgpts, &
-           sele_overlap_scale )   
+           sele_overlap_scale, .false. )   
       ewrite(3,*)'findgpts:', size( findgpts ), '==>', findgpts( 1: cv_nloc + 1 )
       ewrite(3,*)'colgpts:', size( colgpts ), ncolgpts, '==>', colgpts( 1 : ncolgpts )
 

@@ -151,7 +151,7 @@ module mapping_for_ocvfem
 
     
     call retrieve_ngi( ndim, cv_ele_type, cv_nloc, u_nloc, &
-         cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface )
+         cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, .false. )
          
          
  !   cv_ngi = cv_ngi_short
@@ -282,7 +282,7 @@ module mapping_for_ocvfem
          cv_sloclist, u_sloclist, cv_snloc, u_snloc, &
                                 ! define the gauss points that lie on the surface of the cv...
          findgpts, colgpts, ncolgpts, &
-         sele_overlap_scale ) 
+         sele_overlap_scale, .false. ) 
 
 
 

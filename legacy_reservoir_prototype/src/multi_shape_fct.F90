@@ -1571,7 +1571,7 @@
          cv_sloclist, u_sloclist, cv_snloc, u_snloc, &
                                 ! Define the gauss points that lie on the surface of the CV
          findgpts, colgpts, ncolgpts, &
-         sele_overlap_scale ) 
+         sele_overlap_scale, QUAD_OVER_WHOLE_ELE ) 
       ! This subrt defines the sub-control volume and FEM shape functions.
       ! Shape functions associated with volume integration using both CV basis 
       ! functions CVN as well as FEM basis functions CVFEN (and its derivatives 
@@ -1596,6 +1596,8 @@
            sufenly, sufenlz
       logical, dimension( u_nloc, scvngi ), intent( inout ) :: u_on_face, ufem_on_face
       integer, intent( in ) :: nface, sbcvngi
+      logical, intent( in ) :: QUAD_OVER_WHOLE_ELE
+! if QUAD_OVER_WHOLE_ELE then dont divide element into CV's to form quadrature.
       real, dimension( cv_snloc, sbcvngi ), intent( inout ) :: sbcvfen, sbcvfenslx, sbcvfensly
       real, dimension( sbcvngi ), intent( inout ) :: sbcvfeweigh
       real, dimension( cv_snloc, sbcvngi ), intent( inout ) :: sbcvfenlx, sbcvfenly, sbcvfenlz

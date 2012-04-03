@@ -65,7 +65,9 @@
          THETA_FLUX, ONE_M_THETA_FLUX, THETA_GDIFF, &
          SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
          NOIT_DIM, &
-         MEAN_PORE_CV )
+         MEAN_PORE_CV, &
+         FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES )
+
       !  =====================================================================
       !     In this subroutine the advection terms in the advection-diffusion
       !     equation (in the matrix and RHS) are calculated as ACV and CV_RHS. 
@@ -194,7 +196,8 @@
            NPHASE, CV_NLOC, U_NLOC, X_NLOC, MAT_NLOC, &
            CV_SNLOC, U_SNLOC, STOTEL, CV_DISOPT, CV_DG_VEL_INT_OPT, NDIM, &
            NCOLM, XU_NLOC, NCOLELE, NOPT_VEL_UPWIND_COEFS, &
-           IGOT_T2, IGOT_THETA_FLUX, SCVNGI_THETA, IN_ELE_UPWIND, DG_ELE_UPWIND
+           IGOT_T2, IGOT_THETA_FLUX, SCVNGI_THETA, IN_ELE_UPWIND, DG_ELE_UPWIND, &
+           NCOLCMC
       INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in ) :: CV_NDGLN
       INTEGER, DIMENSION( TOTELE * X_NLOC ), intent( in ) ::  X_NDGLN
       INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ) :: U_NDGLN 
@@ -215,6 +218,10 @@
       REAL, DIMENSION( CV_NONODS  ), intent( inout ) :: CT_RHS
       INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCT
       INTEGER, DIMENSION( NCOLCT ), intent( in ) :: COLCT
+      INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCMC
+      INTEGER, DIMENSION( NCOLCMC ), intent( in ) :: COLCMC
+      REAL, DIMENSION( NCOLCMC ), intent( inout ) :: MASS_MN_PRES
+
       REAL, DIMENSION( X_NONODS ), intent( in ) :: X, Y, Z
       REAL, DIMENSION( U_NONODS * NPHASE ), intent( in ) :: NU, NV, NW, NUOLD, NVOLD, NWOLD
       REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: T, TOLD, DEN, DENOLD
@@ -303,14 +310,14 @@
            DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX, BCZERO, ROBIN1, ROBIN2, &
            SUM, &
            SUM_LIMT, SUM_LIMTOLD, FTHETA_T2, ONE_M_FTHETA_T2OLD
-      integer :: x_nod1,x_nod2,x_nod3,cv_inod_ipha
+      integer :: x_nod1,x_nod2,x_nod3,cv_inod_ipha, IGETCT
       real :: x_mean,y_mean
       ! Functions...
       !REAL :: R2NORM,FACE_THETA  
       !        ===>  LOGICALS  <===
       LOGICAL :: GETMAT, &
            D1, D3, DCYL, GOT_DIFFUS, INTEGRAT_AT_GI, &
-           NORMALISE, SUM2ONE, GET_GTHETA
+           NORMALISE, SUM2ONE, GET_GTHETA, QUAD_OVER_WHOLE_ELE
 
       ewrite(3,*) 'In CV_ASSEMB'
       ewrite(3,*)'ENTERING CONSTRUCT_ADVECTION_DIFFUSION_CV()'
@@ -319,8 +326,10 @@
 
       ndotq = 0. ; ndotqold = 0.
 
+      QUAD_OVER_WHOLE_ELE=.FALSE. 
+! If QUAD_OVER_WHOLE_ELE=.true. then dont divide element into CV's to form quadrature.
       call retrieve_ngi( ndim, cv_ele_type, cv_nloc, u_nloc, &
-           cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface )
+           cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, QUAD_OVER_WHOLE_ELE )
 
       GOT_DIFFUS = ( R2NORM( TDIFFUSION, MAT_NONODS * NDIM * NDIM * NPHASE ) /= 0 )
 
@@ -490,7 +499,7 @@
            CV_SLOCLIST, U_SLOCLIST, CV_SNLOC, U_SNLOC, &
                                 ! Define the gauss points that lie on the surface of the CV...
            FINDGPTS, COLGPTS, NCOLGPTS, &
-           SELE_OVERLAP_SCALE )  
+           SELE_OVERLAP_SCALE, QUAD_OVER_WHOLE_ELE )  
 
       ewrite(3,*)'back in cv-adv-dif'
       !do cv_iloc = 1, cv_nloc
@@ -523,6 +532,8 @@
       ALLOCATE( DTOLDZ_ELE( CV_NLOC, NPHASE,TOTELE ))
 
       ewrite(3,*)'here2'
+      IGETCT=0
+      IF(GETCT) IGETCT=1
 
       CALL PROJ_CV_TO_FEM_4( FEMT, FEMTOLD, FEMDEN, FEMDENOLD, T, TOLD, DEN, DENOLD, &
            IGOT_T2, T2,T2OLD, FEMT2,FEMT2OLD, &
@@ -530,7 +541,8 @@
            NDIM, NPHASE, CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
            CV_NGI_SHORT, CV_NLOC, CVN_SHORT, CVWEIGHT_SHORT, &
            CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, &
-           X_NONODS, X, Y, Z, NCOLM, FINDM, COLM, MIDM) 
+           X_NONODS, X, Y, Z, NCOLM, FINDM, COLM, MIDM, &
+           IGETCT, MASS_MN_PRES, FINDCMC, COLCMC, NCOLCMC )
 
       NORMALISE = .false.
       IF( NORMALISE ) THEN
@@ -1082,7 +1094,9 @@
             !       IF((CV_ILOC.EQ.1).and.(ELE.EQ.2)) stop 39831
          END DO Loop_CV_ILOC
 
+
       END DO Loop_Elements
+
 
       !    stop 123
 
@@ -1485,12 +1499,13 @@
          XC_CV,YC_CV,ZC_CV, MASS_CV, MASS_ELE, &
          NDIM, NPHASE, CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
          CV_NGI, CV_NLOC, CVN, CVWEIGHT, N, NLX, NLY, NLZ, &
-         X_NONODS, X, Y, Z, NCOLM, FINDM, COLM, MIDM)
+         X_NONODS, X, Y, Z, NCOLM, FINDM, COLM, MIDM, &
+         IGETCT, MASS_MN_PRES, FINDCMC, COLCMC, NCOLCMC )
 
       ! determine FEMT (finite element wise) etc from T (control volume wise) 
       IMPLICIT NONE
       INTEGER, intent( in ) :: NDIM, NPHASE, CV_NONODS, TOTELE, X_NLOC, CV_NGI, CV_NLOC, &
-           X_NONODS, NCOLM, IGOT_T2
+           X_NONODS, NCOLM, IGOT_T2, IGETCT, NCOLCMC
       INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in ) :: CV_NDGLN
       INTEGER, DIMENSION( TOTELE * X_NLOC ), intent( in ) ::  X_NDGLN
       REAL, DIMENSION( CV_NONODS*NPHASE ), intent( inout ) :: FEMT, FEMTOLD, FEMDEN, FEMDENOLD
@@ -1506,6 +1521,10 @@
       INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDM
       INTEGER, DIMENSION( NCOLM ), intent( in ) :: COLM
       INTEGER, DIMENSION( CV_NONODS ), intent( in ) :: MIDM
+
+      REAL, DIMENSION( IGETCT*NCOLCMC ), intent( inout ) :: MASS_MN_PRES
+      INTEGER, DIMENSION( IGETCT*(CV_NONODS + 1) ), intent( in ) :: FINDCMC
+      INTEGER, DIMENSION( IGETCT*NCOLCMC ), intent( in ) :: COLCMC
       ! Local variables
       REAL, DIMENSION( : ), allocatable :: PSI, FEMPSI, PSI_AVE, PSI_INT
       INTEGER :: NTSOL,NTSOL_AVE,NTSOL_INT,ELE,CV_ILOC,X_INOD,CV_INOD,NL,NFIELD
@@ -1549,7 +1568,8 @@
            PSI_AVE,NTSOL_AVE, PSI_INT,NTSOL_INT, MASS_ELE, &
            CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
            CV_NGI, CV_NLOC, CVN, CVWEIGHT, N, NLX, NLY, NLZ, &
-           X_NONODS, X, Y, Z, NCOLM, FINDM, COLM, MIDM)
+           X_NONODS, X, Y, Z, NCOLM, FINDM, COLM, MIDM, &
+           IGETCT, MASS_MN_PRES, FINDCMC, COLCMC, NCOLCMC )
 
       NL=CV_NONODS*NPHASE
       FEMT( 1 : NL ) = FEMPSI( 1 + 0 * NL : NL + 0 * NL ) 
@@ -1584,7 +1604,8 @@
          PSI_AVE, NTSOL_AVE, PSI_INT, NTSOL_INT, MASS_ELE, &
          CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
          CV_NGI, CV_NLOC, CVN, CVWEIGHT, N, NLX, NLY, NLZ, &
-         X_NONODS, X, Y, Z, NCOLM, FINDM, COLM, MIDM)
+         X_NONODS, X, Y, Z, NCOLM, FINDM, COLM, MIDM, &
+         IGETCT, MASS_MN_PRES, FINDCMC, COLCMC, NCOLCMC )
 
       ! Determine FEMT (finite element wise) etc from T (control volume wise)
       ! Also integrate PSI_INT over each CV and avergae PSI_AVE over each CV. 
@@ -1594,7 +1615,7 @@
       use matrix_operations
       IMPLICIT NONE
       INTEGER, intent( in ) :: NTSOL, NTSOL_AVE, NTSOL_INT, NDIM, CV_NONODS, TOTELE, &
-           X_NLOC, CV_NGI, CV_NLOC, X_NONODS, NCOLM     
+           X_NLOC, CV_NGI, CV_NLOC, X_NONODS, NCOLM, IGETCT, NCOLCMC
       INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in ) :: CV_NDGLN
       INTEGER, DIMENSION( TOTELE * X_NLOC ), intent( in ) ::  X_NDGLN
       REAL, DIMENSION( CV_NONODS * NTSOL ), intent( inout ) :: FEMPSI
@@ -1609,6 +1630,10 @@
       INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDM
       INTEGER, DIMENSION( NCOLM ), intent( in ) :: COLM
       INTEGER, DIMENSION( CV_NONODS ), intent( in ) :: MIDM
+
+      REAL, DIMENSION( IGETCT*NCOLCMC ), intent( inout ) :: MASS_MN_PRES
+      INTEGER, DIMENSION( IGETCT*(CV_NONODS + 1) ), intent( in ) :: FINDCMC
+      INTEGER, DIMENSION( IGETCT*NCOLCMC ), intent( in ) :: COLCMC
       ! Local variables
       LOGICAL :: D1, D3, DCYL
       REAL, DIMENSION( : ), allocatable :: MASS_CV, FEMPSI_RHS, &
@@ -1638,6 +1663,7 @@
       FEMPSI_RHS = 0.0
       MAT = 0.0
       MASS_CV = 0.0
+      IF(IGETCT.NE.0) MASS_MN_PRES=0.0
 
       D1 = ( NDIM == 1 )
       D3 = ( NDIM == 3 )
@@ -1669,6 +1695,12 @@
                   MN = MN + CVN( CV_ILOC, CV_GI ) * N( CV_JLOC, CV_GI )   * DETWEI( CV_GI )
                   MM = MM + CVN( CV_ILOC, CV_GI ) * CVN( CV_JLOC, CV_GI ) * DETWEI( CV_GI )
                END DO
+
+               IF(IGETCT.NE.0) THEN
+                  CALL POSINMAT( COUNT, CV_NODI, CV_NODJ, CV_NONODS, FINDCMC, COLCMC, NCOLCMC )
+
+                  MASS_MN_PRES( COUNT ) = MASS_MN_PRES( COUNT ) + MN
+               ENDIF
 
                CALL POSINMAT( COUNT, CV_NODI, CV_NODJ, CV_NONODS, FINDM, COLM, NCOLM )
 

@@ -314,7 +314,7 @@ contains
     
    
     call retrieve_ngi( ndim, cv_ele_type, cv_nloc, u_nloc, &
-         cv_ngi, cv_ngi_short, scvngi_theta, sbcvngi, nface )
+         cv_ngi, cv_ngi_short, scvngi_theta, sbcvngi, nface, .false. )
 
     allocate( theta_flux( totele * igot_theta_flux, cv_nloc, scvngi_theta, nphase ))
     allocate( one_m_theta_flux( totele * igot_theta_flux, cv_nloc, scvngi_theta, nphase ))

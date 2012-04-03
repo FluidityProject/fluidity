@@ -263,10 +263,12 @@ contains
          ELE, MAT_ILOC, MAT_JLOC, CV_GI, U_JLOC, MAT_KLOC, MAT_NODI, MAT_NOD, &
          U_NODJ, IPHASE, U_NODJ_IP, IDIM, JDIM, MAT_NOD_ID_IP, CV_GI_SHORT, NCOLGPTS 
     REAL :: NN, NFEMU, VOLUME, MASELE
-    LOGICAL :: D1, D3, DCYL
+    LOGICAL :: D1, D3, DCYL, QUAD_OVER_WHOLE_ELE
 
+      QUAD_OVER_WHOLE_ELE=.FALSE. 
+! If QUAD_OVER_WHOLE_ELE=.true. then dont divide element into CV's to form quadrature.
     call  retrieve_ngi( ndim, u_ele_type, cv_nloc, u_nloc, &
-         cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface )
+         cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, QUAD_OVER_WHOLE_ELE )
 
     ALLOCATE( DETWEI( CV_NGI ))
     ALLOCATE( RA( CV_NGI ))
@@ -365,7 +367,7 @@ contains
          CV_SLOCLIST, U_SLOCLIST, CV_SNLOC, U_SNLOC, &
                                 ! Define the gauss points that lie on the surface of the CV...
          FINDGPTS, COLGPTS, NCOLGPTS, &
-         SELE_OVERLAP_SCALE ) 
+         SELE_OVERLAP_SCALE, QUAD_OVER_WHOLE_ELE ) 
 
 
     ALLOCATE( MASS( MAT_NLOC, MAT_NLOC ))

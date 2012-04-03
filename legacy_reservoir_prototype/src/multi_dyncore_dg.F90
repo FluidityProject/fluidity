@@ -196,7 +196,8 @@
               THETA_FLUX, ONE_M_THETA_FLUX, THETA_GDIFF, &
               SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
               NOIT_DIM, &
-              MEAN_PORE_CV )
+              MEAN_PORE_CV, &
+              FINACV, COLACV, NCOLACV, ACV)
 
          Conditional_Lumping: IF(LUMP_EQNS) THEN
             ! Lump the multi-phase flow eqns together
@@ -401,7 +402,8 @@
               THETA_FLUX, ONE_M_THETA_FLUX, THETA_GDIFF, &
               SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
               NOIT_DIM, &
-              MEAN_PORE_CV )
+              MEAN_PORE_CV, &
+              FINACV, COLACV, NCOLACV, ACV)
 
          CALL SOLVER( ACV, SATURA, CV_RHS, &
               FINACV, COLACV, &
@@ -1369,7 +1371,7 @@
            DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparsity
            NCOLELE, FINELE, COLELE, & ! Element connectivity.
            XU_NLOC, XU_NDGLN, &
-           FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, PIVIT_MAT, JUST_BL_DIAG_MAT, &
+           PIVIT_MAT, JUST_BL_DIAG_MAT, &
            UDIFFUSION, IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD )
 
 
@@ -1383,7 +1385,7 @@
               U_NONODS, NCOLC, C, FINDC )
       ENDIF
 
-      ! Form CT matrix...
+      ! Form CT & MASS_MN_PRES matrix...
       CALL CV_ASSEMB( CV_RHS, &
            NCOLACV, ACV, FINACV, COLACV, MIDACV, &
            NCOLCT, CT, DIAG_SCALE_PRES, CT_RHS, FINDCT, COLCT, &
@@ -1412,7 +1414,8 @@
            THETA_FLUX, ONE_M_THETA_FLUX, THETA_GDIFF, &
            SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
            NOIT_DIM, &
-           MEAN_PORE_CV )
+           MEAN_PORE_CV, &
+           FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES )
 
       ewrite(3,*)'Back from cv_assemb'
 
@@ -1612,7 +1615,7 @@
          DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparsity
          NCOLELE, FINELE, COLELE, & ! Element connectivity.
          XU_NLOC, XU_NDGLN, &
-         FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, PIVIT_MAT, JUST_BL_DIAG_MAT,  &
+         PIVIT_MAT, JUST_BL_DIAG_MAT,  &
          UDIFFUSION, IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD )
       use shape_functions_NDim
       implicit none
@@ -1620,7 +1623,7 @@
       INTEGER, intent( in ) :: NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
            U_ELE_TYPE, P_ELE_TYPE, U_NONODS, CV_NONODS, X_NONODS, &
            MAT_NONODS, STOTEL, U_SNLOC, P_SNLOC, CV_SNLOC, &
-           NCOLC, NCOLDGM_PHA, NCOLELE, XU_NLOC, NCOLCMC, IPLIKE_GRAD_SOU
+           NCOLC, NCOLDGM_PHA, NCOLELE, XU_NLOC, IPLIKE_GRAD_SOU
       INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ) :: U_NDGLN
       INTEGER, DIMENSION( TOTELE * P_NLOC ), intent( in )  :: P_NDGLN
       INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in )  :: CV_NDGLN
@@ -1631,8 +1634,6 @@
       INTEGER, DIMENSION( STOTEL * P_SNLOC ), intent( in )  :: P_SNDGLN
       INTEGER, DIMENSION( STOTEL * CV_SNLOC ), intent( in ) :: CV_SNDGLN 
       INTEGER, DIMENSION( STOTEL * NPHASE ), intent( in ) ::  WIC_U_BC, WIC_P_BC
-      INTEGER, DIMENSION( CV_NONODS+1 ), intent( in ) ::  FINDCMC
-      INTEGER, DIMENSION( NCOLCMC ), intent( in ) ::  COLCMC
 
       REAL, DIMENSION( STOTEL * U_SNLOC * NPHASE ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
       REAL, DIMENSION( STOTEL * P_SNLOC * NPHASE ), intent( in ) :: SUF_P_BC
@@ -1647,7 +1648,6 @@
       REAL, intent( in ) :: DT
       REAL, DIMENSION( U_NONODS * NDIM * NPHASE ), intent( inout ) :: U_RHS 
       REAL, DIMENSION( NCOLC * NDIM * NPHASE ), intent( inout ) :: C 
-      REAL, DIMENSION( NCOLCMC ), intent( inout ) :: MASS_MN_PRES
       INTEGER, DIMENSION( U_NONODS + 1 ), intent( in ) :: FINDC
       INTEGER, DIMENSION( NCOLC ), intent( in ) :: COLC
       REAL, DIMENSION( NCOLDGM_PHA ), intent( inout ) :: DGM_PHA
@@ -1699,7 +1699,7 @@
            CVFEM_ON_FACE, UFEM_ON_FACE
 
 
-      LOGICAL :: D1, D3, DCYL, GOT_DIFFUS, GOT_UDEN, DISC_PRES
+      LOGICAL :: D1, D3, DCYL, GOT_DIFFUS, GOT_UDEN, DISC_PRES,QUAD_OVER_WHOLE_ELE
       INTEGER :: CV_NGI, CV_NGI_SHORT, SCVNGI, SBCVNGI, NFACE
       INTEGER :: IPHASE, ELE, GI, ILOC, GLOBI, GLOBJ, U_NOD, IU_NOD, JCV_NOD, &
            COUNT, COUNT2, IPHA_IDIM, JPHA_JDIM, COUNT_PHA, IU_PHA_NOD, MAT_NOD, SGI, SELE, &
@@ -1730,8 +1730,6 @@
       ewrite(3,*) 'COLDGM_PHA with size,', size( COLDGM_PHA ), ':', COLDGM_PHA( 1 :  size( COLDGM_PHA ) )
       ewrite(3,*) 'FINELE with size,', size( FINELE ), ':', FINELE( 1 :  size( FINELE ) )
       ewrite(3,*) 'COLELE with size,', size( COLELE ), ':', COLELE( 1 :  size( COLELE ) )
-      ewrite(3,*) 'FINDCMC with size,', size( FINDCMC ), ':', FINDCMC( 1 :  size( FINDCMC ) )
-      ewrite(3,*) 'COLCMC with size,', size( COLCMC ), ':', COLCMC( 1 :  size( COLCMC ) )
 
 
       is_overlapping = .false.
@@ -1739,8 +1737,10 @@
            overlapping_path )
       if( trim( overlapping_path ) == 'overlapping' ) is_overlapping = .true.
 
+      QUAD_OVER_WHOLE_ELE=.FALSE. 
+! If QUAD_OVER_WHOLE_ELE=.true. then dont divide element into CV's to form quadrature.
       call retrieve_ngi( ndim, u_ele_type, cv_nloc, u_nloc, &
-           cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface )
+           cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, QUAD_OVER_WHOLE_ELE )
       if(is_overlapping) then
          nlev=cv_nloc
       else
@@ -1921,7 +1921,6 @@
 
       IF( .NOT. JUST_BL_DIAG_MAT ) DGM_PHA = 0.0
       C = 0.0
-      MASS_MN_PRES = 0.0
       U_RHS = 0.0
 
       PIVIT_MAT = 0.0
@@ -1956,7 +1955,7 @@
            CV_SLOCLIST, U_SLOCLIST, CV_SNLOC, U_SNLOC, &
                                 ! Define the gauss points that lie on the surface of the CV...
            FINDGPTS, COLGPTS, NCOLGPTS, &
-           SELE_OVERLAP_SCALE ) 
+           SELE_OVERLAP_SCALE, QUAD_OVER_WHOLE_ELE ) 
 
       ALLOCATE( FACE_ELE( NFACE, TOTELE ))
       ! Calculate FACE_ELE
@@ -2355,25 +2354,6 @@
             END DO Loop_P_JLOC1
 
          END DO Loop_U_ILOC1
-
-
-         ! Form the pressure mass matrix MASS_MN_PRES
-         Loop_U_ILOC3: DO P_ILOC = 1, P_NLOC
-            ICV_NOD = P_NDGLN(( ELE - 1 ) * P_NLOC + P_ILOC )
-
-            Loop_JLOC3: DO P_JLOC = 1, P_NLOC
-               JCV_NOD = P_NDGLN(( ELE - 1 ) * P_NLOC + P_JLOC )
-               MN = 0.0  
-               Loop_GaussPoints3: DO GI = 1, CV_NGI_SHORT
-                  MN = MN + CVN_SHORT( P_ILOC, GI ) * CVFEN_SHORT( P_JLOC, GI ) * DETWEI( GI )
-               END DO Loop_GaussPoints3
-
-               CALL POSINMAT( COUNT, ICV_NOD, JCV_NOD,&
-                    CV_NONODS, FINDCMC, COLCMC, NCOLCMC )
-               MASS_MN_PRES(COUNT) = MASS_MN_PRES(COUNT) + MN 
-            END DO Loop_JLOC3
-
-         END DO Loop_U_ILOC3
 
 
       END DO Loop_Elements
