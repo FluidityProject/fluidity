@@ -140,6 +140,7 @@ contains
 
     real(real_4), allocatable, dimension(:) :: coord_x, coord_y, coord_z
     integer, allocatable, dimension(:) :: node_map, elem_num_map, elem_order_map
+    integer, allocatable, dimension(:) :: block_ids, num_elem_in_block, num_nodes_per_elem
 
     logical :: haveBounds, haveInternalBounds
 
@@ -236,6 +237,15 @@ contains
     ewrite(2,*) "elem_order_map = ", elem_order_map
     ewrite(2,*) "ierr = ", ierr
 
+    ! read element block parameters (required for element connectivity)
+    allocate(block_ids(num_elem_blk))
+    allocate(num_elem_in_block(num_elem_blk))
+    allocate(num_nodes_per_elem(num_elem_blk))
+    ierr = f_ex_get_elem_block_parameters(exoid, num_elem_blk, block_ids, num_elem_in_block, num_nodes_per_elem)
+    ewrite(2,*) "block_ids = ", block_ids
+    ewrite(2,*) "num_elem_in_block = ", num_elem_in_block
+    ewrite(2,*) "num_nodes_per_elem = ", num_nodes_per_elem
+    ewrite(2,*) "ierr = ", ierr
 
 
     ierr = f_ex_close(exoid)
