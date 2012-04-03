@@ -222,6 +222,20 @@ contains
     ewrite(2,*) "node_map = ", node_map
     ewrite(2,*) "ierr = ", ierr
 
+    ! read element number map
+    allocate(elem_num_map(num_elem))
+    elem_num_map = 0
+    ierr = f_ex_get_elem_num_map(exoid, elem_num_map)
+    ewrite(2,*) "elem_num_map = ", elem_num_map
+    ewrite(2,*) "ierr = ", ierr
+
+    ! read element order map
+    allocate(elem_order_map(num_elem))
+    elem_order_map = 0
+    ierr = f_ex_get_elem_order_map(exoid, elem_order_map)
+    ewrite(2,*) "elem_order_map = ", elem_order_map
+    ewrite(2,*) "ierr = ", ierr
+
 
 
     ierr = f_ex_close(exoid)
