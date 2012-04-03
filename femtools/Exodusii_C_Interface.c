@@ -8,8 +8,7 @@
 int c_read_ex_open(const char *path, int mode, int *comp_ws, int *io_ws, float *version)
 {
    int exoid;
-   int c_comp_ws = 0, c_io_ws = 0;
-   exoid = ex_open(path, EX_READ, &c_comp_ws, &c_io_ws, version);
+   exoid = ex_open(path, EX_READ, comp_ws, io_ws, version);
    return (exoid);
 }
 

@@ -32,14 +32,14 @@ module read_exodusii
   ! node coordinates, their connectivity, and node sets (grouped nodes
   ! given an ID, e.g. for setting physical boundaries)
 
-  use iso_c_binding, only: C_INT, C_CHAR, C_NULL_CHAR
+  use iso_c_binding, only: C_INT, C_FLOAT, C_CHAR, C_NULL_CHAR
   use futils
   use elements
   use fields
   use state_module
   use spud
   use exodusii_f_interface
-  use global_parameters, only : OPTION_PATH_LEN
+  use global_parameters, only : OPTION_PATH_LEN, real_4
 
   implicit none
 
@@ -129,15 +129,16 @@ contains
     integer :: loc, effDimen, nodeAttributes
     integer :: i, filestatus
 
-    real :: version
     integer :: exoid, ierr
-    integer :: comp_ws, io_ws, mode
+    real(kind=c_float) :: version
+    integer(kind=c_int) :: comp_ws, io_ws, mode
     character(kind=c_char, len=OPTION_PATH_LEN) :: lfilename
-    
+
     character(kind=c_char, len=OPTION_PATH_LEN) :: title
     integer :: num_dim, num_nodes, num_elem, num_elem_blk
     integer :: num_node_sets, num_side_sets
 
+    real(real_4), allocatable, dimension(:) :: coord_x, coord_y, coord_z
 
     logical :: haveBounds, haveInternalBounds
 
@@ -176,9 +177,11 @@ contains
     ewrite(2,*) "open exodus file:"
     version = 0.0
     mode = 0; comp_ws=0; io_ws=0;
-    exoid = c_read_ex_open(trim(lfilename)//C_NULL_CHAR, mode, comp_ws, io_ws, version)
+    exoid = f_read_ex_open(trim(lfilename)//C_NULL_CHAR, mode, comp_ws, io_ws, version)
     
+
     ewrite(2,*) "exoid : ", exoid
+    ewrite(2,*) "version : ", version
 
     if (exoid <= 0) then
       FLExit("Unable to open "//trim(lfilename))
@@ -197,6 +200,23 @@ contains
     if (ierr /= 0) then
        FLExit("Unable to read database parameters from "//trim(lfilename))
     end if
+
+    ! read nodal coordinates values and names from database
+    allocate(coord_x(num_nodes))
+    allocate(coord_y(num_nodes))
+    allocate(coord_z(num_nodes))
+    coord_x=0.0; coord_y=0.0; coord_z=0.0
+    ! Get coordinates from the mesh:
+    ierr = f_ex_get_coord(exoid, coord_x, coord_y, coord_z)
+    ewrite(2,*) "ierr = ", ierr
+    ewrite(2,*) "coordinates: "
+    ewrite(2,*) coord_x
+    ewrite(2,*) coord_y
+    ewrite(2,*) coord_z
+
+
+
+
 
     ierr = f_ex_close(exoid)
     ewrite(2,*) "ierr = ", ierr
