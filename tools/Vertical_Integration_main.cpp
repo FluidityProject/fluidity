@@ -48,11 +48,10 @@ typedef float real_t;
 #endif
 
 extern "C"{
-#define vertical_integration F77_FUNC(vertical_integration, VERTICAL_INTEGRATION)
-  void vertical_integration(const char* target_basename, int* target_basename_len,
-                            const char* integrated_filename, int* integrated_filename_len,
-                            const char* output_basename, int* output_basename_len,
-                            real_t* top, real_t* bottom, real_t* sizing, int* result_continuity, int* result_degree);
+  void vertical_integration(const char* target_basename, size_t target_basename_len,
+                            const char* integrated_filename, size_t integrated_filename_len,
+                            const char* output_basename, size_t output_basename_len,
+                            real_t top, real_t bottom, real_t sizing, size_t result_continuity, size_t result_degree);
 
 #ifdef HAVE_PYTHON
 #include "python_statec.h"
@@ -145,11 +144,11 @@ int main(int argc, char** argv){
   if(args.count('t') > 0){
     top = atof(args['t'].c_str());
   }
-  int result_degree = 1;
+  size_t result_degree = 1;
   if(args.count('p') > 0){
     result_degree = atoi(args['p'].c_str());
   }
-  int result_continuity = args.count('d') > 0 ? -1 : (result_degree == 0 ? -1 : 0);
+  size_t result_continuity = args.count('d') > 0 ? -1 : (result_degree == 0 ? -1 : 0);
   
   // Input / output
   string target_basename, integrated_filename, integrated_fieldname, output_basename;
@@ -166,13 +165,13 @@ int main(int argc, char** argv){
     exit(-1);
   }
       
-  int target_basename_len = target_basename.size();
-  int integrated_filename_len = integrated_filename.size();
-  int output_basename_len = output_basename.size();
-  vertical_integration(target_basename.c_str(), &target_basename_len,
-                       integrated_filename.c_str(), &integrated_filename_len,
-                       output_basename.c_str(), &output_basename_len,
-                       &top, &bottom, &sizing, &result_continuity, &result_degree);
+  size_t target_basename_len = target_basename.size();
+  size_t integrated_filename_len = integrated_filename.size();
+  size_t output_basename_len = output_basename.size();
+  vertical_integration(target_basename.c_str(), target_basename_len,
+                       integrated_filename.c_str(), integrated_filename_len,
+                       output_basename.c_str(), output_basename_len,
+                       top, bottom, sizing, result_continuity, result_degree);
 
 #ifdef HAVE_PYTHON
   // Finalize the Python Interpreter
