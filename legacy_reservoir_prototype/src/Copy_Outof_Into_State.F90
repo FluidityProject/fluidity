@@ -339,10 +339,11 @@ module copy_outof_into_state
       if( is_overlapping ) u_nloc = cv_nloc * xu_nloc
 
       ewrite(3,*)'ndim, cv_nloc, x_nloc, xu_nloc, u_nloc:', ndim, cv_nloc, x_nloc, xu_nloc, u_nloc 
+      ewrite(3,*)'cv_nloc, shared_nodes, totele, pmesh', cv_nloc, shared_nodes, totele, pmesh%continuity
 
       if (pmesh%continuity>=0) then
          ! Continuous pressure mesh
-         cv_nonods = ( cv_nloc - shared_nodes ) * totele + shared_nodes
+         cv_nonods = node_count(pmesh) !( cv_nloc - shared_nodes ) * totele + shared_nodes
       else
          ! Discontinuous pressure mesh
          cv_nonods = cv_nloc * totele

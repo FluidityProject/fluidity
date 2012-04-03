@@ -716,7 +716,7 @@
 
       deallocate( matrix )
 
-      print *, nimem, lencolm
+      print *, 'nimem, lencolm', nimem, lencolm
       !stop 999
       return
     end subroutine pousinmc2
