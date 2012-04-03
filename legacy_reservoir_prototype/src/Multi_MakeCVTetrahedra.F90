@@ -111,8 +111,8 @@
       lz( tet_nodes( 0, ilayer - 1 ) + 1 + ilayer * 0 ) = &
            sqrt( 2. / 3. ) * h_scale
 
-      !print*, tet_nodes( 0, ilayer - 1 ) + 1 + ilayer * 0, tet_nodes( 0, ilayer0 - 1 ) + 1,tet_nodes( 0, ilayer0 - 1 ) + 1 + ilayer0
-      !print*, lx(1), lx( 5), lx(7), lx(9)
+      !ewrite(3,*)  tet_nodes( 0, ilayer - 1 ) + 1 + ilayer * 0, tet_nodes( 0, ilayer0 - 1 ) + 1,tet_nodes( 0, ilayer0 - 1 ) + 1 + ilayer0
+      !ewrite(3,*)  lx(1), lx( 5), lx(7), lx(9)
       !stop 986
 
       fem_nod = 0! FEM_NOD contains the local triangle/tet FEM node
@@ -133,11 +133,11 @@
             z( tet_nodes( 0, ilayer - 1 ) + iloc ) = lz( tet_nodes( 0, ilayer - 1 ) + iloc )
             fem_nod( tet_nodes( 0, ilayer - 1 ) + iloc ) = ifem
             iloc2 = tet_nodes( 0, ilayer - 1 ) + iloc
-            print*, ilayer, iloc2, x( iloc2 ), y( iloc2 ), z( iloc2 )
+            ewrite(3,*)  ilayer, iloc2, x( iloc2 ), y( iloc2 ), z( iloc2 )
          end do
       end do Loop_Layers0
 
-      print*, '  '
+      ewrite(3,*)  '  '
 !!!
 !!! Numbering the remaining node points in the *BASIS* of the large tetrahedron,
 !!! i.e., ilayer =nlayer
@@ -297,9 +297,9 @@
          end do
       end if
 
-      print*, node, x( node ), y( node ), z( node )
-      print*, nodeplus1, x( nodeplus1 ), y( nodeplus1 ), z( nodeplus1 )
-      print*, nodeplus2, x( nodeplus2 ), y( nodeplus2 ), z( nodeplus2 )
+      ewrite(3,*)  node, x( node ), y( node ), z( node )
+      ewrite(3,*)  nodeplus1, x( nodeplus1 ), y( nodeplus1 ), z( nodeplus1 )
+      ewrite(3,*)  nodeplus2, x( nodeplus2 ), y( nodeplus2 ), z( nodeplus2 )
 
 
       return
@@ -340,7 +340,7 @@
             !ewrite(3, '(a10,i3,i3,g12.5)')'SideNodes:', ilayer, node, x( node )
          end do Loop_ILOC0
       end do Loop_Side0
-      !print*, '++'
+      !ewrite(3,*)  '++'
 
       return
     end subroutine Mapping_QTet_TriangleSide
@@ -532,13 +532,13 @@
                     ( ele2 - 1 ) * no_of_nodes_in_faces + ( ele - 1 )  
                x_ndgln2( node + iloc2 ) = &
                     x_ndgln( ( ele - 1 ) * ( tet_totele + 1 ) + inc_tri( ( ele2 - 1 ) * tri_totele + iloc2 ) )
-               print*, ele, ele2, iloc2 + node, x_ndgln2( node + iloc2 )
+               ewrite(3,*)  ele, ele2, iloc2 + node, x_ndgln2( node + iloc2 )
             end do Loop_Iloc_Triangle
          end do Loop_Elements_Triangle
          nodeplustetnodes = nodeplustetnodes + 1
          x_ndgln2( ele * tet_totele * no_of_nodes_in_faces + ele ) = &
               x_ndgln( ( ele - 1 ) * ( tet_totele + 1 ) + 5 )
-         print*, '->:', ele, ele * tet_totele * no_of_nodes_in_faces + ele, &
+         ewrite(3,*)  '->:', ele, ele * tet_totele * no_of_nodes_in_faces + ele, &
               x_ndgln2( ele * tet_totele * no_of_nodes_in_faces +  ele )
       end do Loop_Elements_Tets1
 
@@ -652,17 +652,17 @@
                  ( abs( z( node1 ) - z( node2 ) ) <= toler ) )then
                icount = icount + 1
                x_ndgln2( ele2 ) = x_ndgln2( ele )
-               print*, ele, x( node1 ), y( node1 ), z( node1 )
-               print*, ele2, x( node2 ), y( node2 ), z( node2 )
-               print*, ' ', icount
-               !  print*, ele, ele2, x_temp( ele ), x_ndgln2( ele2 ) 
+               ewrite(3,*)  ele, x( node1 ), y( node1 ), z( node1 )
+               ewrite(3,*)  ele2, x( node2 ), y( node2 ), z( node2 )
+               ewrite(3,*)  ' ', icount
+               !  ewrite(3,*)  ele, ele2, x_temp( ele ), x_ndgln2( ele2 ) 
             end if Conditional_Coord
          end do Loop_Scan2
-         !  print*, x_temp( ele ), x_ndgln2( ele )
+         !  ewrite(3,*)  x_temp( ele ), x_ndgln2( ele )
       end do Loop_Scan1
 
-      print*, ' '
-      print*, 'comparing the x_ndgln2 with the old one '
+      ewrite(3,*)  ' '
+      ewrite(3,*)  'comparing the x_ndgln2 with the old one '
       ele2 = 0
       do ele = 1, ntotel
          ewrite(3,*) ele, x( x_temp( ele ) ), y( x_temp( ele ) ), z( x_temp( ele ) )
@@ -917,7 +917,7 @@
             do j = i + 1 , n
                QTet_CheckRepetitiveNodes = delta_diff( temp, x( j ) )
                if( QTet_CheckRepetitiveNodes ) then
-                  print*, i, j, x( i ), x( j )
+                  ewrite(3,*)  i, j, x( i ), x( j )
                   return
                end if
             end do

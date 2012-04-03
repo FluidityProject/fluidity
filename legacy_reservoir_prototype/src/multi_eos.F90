@@ -524,11 +524,11 @@
 
       SATURATION = SAT
       IF( IPHASE == 2 ) SATURATION = 1. - SAT
-      
-      
-      
+
+
+
       S_GT = S_GI/(1+ CS_GI)
-      
+
       S_GF = 0.5*( ( S_GI - S_GT) + (( S_GI - S_GT)**2.0 + (4.0/C)*( S_GI - S_GT))**0.5)
 
       ABSP = S_GF 
