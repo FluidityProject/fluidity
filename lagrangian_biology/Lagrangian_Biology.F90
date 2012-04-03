@@ -576,6 +576,8 @@ contains
              end if
           end if
        end do
+       ewrite(-1,*) "Lagrangian biology: Target stage ID ", agent%biology(BIOVAR_STAGE), "not defined"
+       FLExit("Lagrangian biology: Target stage not found")
     end do stage_change_loop
 
     ! Derive the full set af eulerian diagnostic fields

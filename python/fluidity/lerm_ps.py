@@ -128,3 +128,161 @@ def update_Dead_Diatom(param, vars, env, dt):
   vars['Nitrate'] = Nitrate_new
   vars['Silicate'] = Silicate_new
   vars['Ammonium'] = Ammonium_new
+
+# Parameters for FGroup Copepod
+# Species: Default_Copepod_Variety
+params_Default_Copepod_Variety = {
+    'A_rep' : 480.0,
+    'A_rmax' : 960.0,
+    'C1_min' : 6.25e-05,
+    'C2_min' : 9.2e-05,
+    'C3_min' : 0.00021,
+    'C4_min' : 0.00058,
+    'C5_min' : 0.00125,
+    'C6_min' : 0.00333,
+    'C_Cal' : 20.3,
+    'C_conv1' : 12000.0,
+    'E_m' : 0.25,
+    'E_mech' : 0.3,
+    'G_max' : 0.00833,
+    'G_min' : 1e-05,
+    'N4_min' : 1.7e-05,
+    'N5_min' : 2.5e-05,
+    'N6_min' : 3.75e-05,
+    'N_mp' : 0.9,
+    'OW_lipid' : 0.00633,
+    'PreOW4' : 0.00058,
+    'PreOW5' : 0.00125,
+    'QR_10' : 3.4,
+    'Q_Nmax' : 0.23,
+    'QnProt' : 1.0,
+    'S_max' : 0.0013,
+    'T_ref' : 10.0,
+    'V_max' : 45.0,
+    'V_mconv1' : 0.0278,
+    'Vol_conv1' : 1e-09,
+    'a' : 1.584,
+    'b' : 1.584,
+    'delta' : 0.15,
+    'k' : 85.2,
+    'mi' : 0.0119,
+    'n' : 0.8,
+    'r_bas' : 0.000417,
+    'r_sda' : 0.17,
+    't_max' : 1.08,
+    't_min' : 0.58,
+    'vPrey' : 4.2e-09,
+    'vol_gut' : 1.5e-08,
+    'z_startOW' : 400.0,
+}
+
+def update_OW5_Copepod(param, vars, env, dt):
+  """ FGroup:  Copepod
+      Stage:   OW5   ID: 14
+  """
+  dt_in_hours = dt / 3600.0
+
+  ### Copepod size ###
+  C_pmax_new = ((vars['C_N']) if ((vars['C_N'] > vars['C_pmax'])) else (vars['C_pmax']))
+
+  ### Overwintering motion ###
+  V_m = 0.0
+
+  ### Basal metabolic cost ###
+  R_bas = (param['r_bas'] * math.pow(vars['C_N'], 0.8) * math.pow(param['QR_10'], ((env['Temperature'] - param['T_ref']) / 10.0)))
+
+  ### Overwintering phase OW5 ###
+  R_ow = (R_bas * param['delta'])
+  if (param['d_year'] == 75.0):
+    vars['Stage'] = 16.0  # OWA5
+
+  ### Assimilation efficiency ###
+  Gut_time = 0.0
+  k_N = (1.0 - math.exp(-(param['a'] * Gut_time)))
+
+  ### Assimilation ###
+  A_Ammonium = (k_N * vars['AmmoniumIngested'])
+  A_Nitrate = (k_N * vars['NitrateIngested'])
+
+  ### Energetics during OW ###
+  A_C = 0.0
+  growth = A_C
+  respiration = R_ow
+  Growth_net = (growth - respiration)
+
+  ### CNN update non-repro ###
+  gamma = 0.0
+  alpha = 0.05
+  C_NN_new = (((vars['C_NN'] + (gamma * (1.0 - alpha) * Growth_net * dt_in_hours))) if ((Growth_net >= 0.0)) else ((((vars['C_NN'] + (Growth_net * dt_in_hours))) if ((vars['C_NN'] >= (abs( Growth_net ) * dt_in_hours))) else (vars['C_NN']))))
+
+  ### Lipids pool ###
+  Q_N = ((vars['Ammonium'] + (A_Ammonium * dt_in_hours)) / (vars['Carbon'] + (Growth_net * dt_in_hours)))
+  NProt_excess = ((((vars['Carbon'] + (Growth_net * dt_in_hours)) * (Q_N - param['Q_Nmax']))) if (((vars['C_NN'] >= (abs( Growth_net ) * dt_in_hours))) and ((Q_N > param['Q_Nmax']))) else (0.0))
+
+  ### C_N Update non-repro ###
+  C_N_new = (((vars['C_N'] + ((1.0 - gamma) * (1.0 - alpha) * Growth_net * dt_in_hours))) if ((Growth_net >= 0.0)) else (((vars['C_N']) if ((vars['C_NN'] >= (abs( Growth_net ) * dt_in_hours))) else ((vars['C_N'] + (Growth_net * dt_in_hours))))))
+
+  ### Protein Pool ###
+  Cprot = (((param['QnProt'] * abs( Growth_net ) * dt_in_hours)) if (((Growth_net < 0.0)) and ((vars['C_NN'] < (abs( Growth_net ) * dt_in_hours)))) else (0.0))
+
+  ### Total C ###
+  Carbon_new = (vars['C_N'] + vars['C_NN'] + vars['C_shell'])
+
+  ### Ammonium Pool ###
+  A_PelletLoss = 0.0
+  Ammonium_new = ((vars['Ammonium'] + vars['AmmoniumIngested'] + A_Nitrate) - (A_PelletLoss + NProt_excess + Cprot))
+
+  ### Nitrate Pool ###
+  Nitrate_new = 0.0
+
+  ### Mortality due to starvation ###
+  if (vars['C_N'] <= (vars['C_pmax'] / 2.0)):
+    vars['Stage'] = 26.0  # Dead
+
+  ### Excretion ###
+  C = (NProt_excess + Cprot)
+  vars['AmmoniumRelease'] = C
+
+  ### Setting pool variables
+  vars['C_pmax'] = C_pmax_new
+  vars['Ammonium'] = Ammonium_new
+  vars['Carbon'] = Carbon_new
+  vars['Nitrate'] = Nitrate_new
+  vars['C_N'] = C_N_new
+  vars['C_NN'] = C_NN_new
+
+def update_Dead_Copepod(param, vars, env, dt):
+  """ FGroup:  Copepod
+      Stage:   Dead   ID: 26
+  """
+  dt_in_hours = dt / 3600.0
+
+  ### Copepod size ###
+  C_pmax_new = ((vars['C_N']) if ((vars['C_N'] > vars['C_pmax'])) else (vars['C_pmax']))
+
+  ### Length and Surface Area ###
+  L = math.pow(10.0, ((math.log10((vars['C_pmax'] * param['C_conv1'])) + 8.37) / 3.07))
+  S = (L * 5.4e-07)
+
+  ### Sinking ###
+  V_m = (100.0 * (S / param['S_max']) * dt_in_hours)
+
+  ### Total C ###
+  Carbon_new = (vars['C_N'] + vars['C_NN'] + vars['C_shell'])
+
+  ### Total N ###
+  Nitrogen_new = (vars['Ammonium'] + vars['Nitrate'])
+
+  ### Remineralisation ###
+  R_nT = (0.0042 * math.pow(2.95, (((env['Temperature'] + 273.0) - 283.0) / 10.0)))
+  vars['AmmoniumRelease'] = max(((vars['Ammonium'] + vars['Nitrate']) * R_nT * dt_in_hours), 0.0)
+  Ammonium_new = max(((vars['Ammonium'] - (vars['Ammonium'] * R_nT * dt_in_hours)) + vars['AmmoniumIngested']), 0.0)
+  Nitrate_new = max(((vars['Nitrate'] - (vars['Nitrate'] * R_nT * dt_in_hours)) + vars['NitrateIngested']), 0.0)
+  vars['SilicateRelease'] = vars['SilicateIngested']
+
+  ### Setting pool variables
+  vars['C_pmax'] = C_pmax_new
+  vars['Carbon'] = Carbon_new
+  vars['Nitrate'] = Nitrate_new
+  vars['Ammonium'] = Ammonium_new
+  vars['Nitrogen'] = Nitrogen_new
