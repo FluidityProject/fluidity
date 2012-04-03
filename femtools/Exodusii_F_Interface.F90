@@ -23,7 +23,7 @@ module exodusii_f_interface
        integer(kind=c_int) :: mode
        integer(kind=c_int) :: comp_ws
        integer(kind=c_int) :: io_ws
-       real(kind=c_float) :: version
+       real(kind=c_float) :: version 
        integer(kind=c_int) :: exoid
      end function c_read_ex_open
   end interface
