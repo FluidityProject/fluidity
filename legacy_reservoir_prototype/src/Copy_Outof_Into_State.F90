@@ -27,38 +27,48 @@
 
 #include "fdebug.h"
 
-module copy_outof_into_state
-  !! This module enables the multiphase prototype code to interact with state
-  !! First copying everything required from state to the old variable space
-  !! Second copying what is needed back to state for output 
+  module copy_outof_into_state
+    !! This module enables the multiphase prototype code to interact with state
+    !! First copying everything required from state to the old variable space
+    !! Second copying what is needed back to state for output 
 
-  use fldebug
-  use state_module
-  use fields
-  use field_options
-  use spud
-  use populate_state_module
-  use diagnostic_variables
-  use diagnostic_fields
-  use diagnostic_fields_wrapper
-  use global_parameters, only: option_path_len
-  use diagnostic_fields_wrapper_new
+    use fldebug
+    use state_module
+    use fields
+    use field_options
+    use spud
+    use populate_state_module
+    use diagnostic_variables
+    use diagnostic_fields
+    use diagnostic_fields_wrapper
+    use global_parameters, only: option_path_len
+    use diagnostic_fields_wrapper_new
 
-  use element_numbering
-  use boundary_conditions
-  use printout
-  
-  use quicksort
+    use element_numbering
+    use shape_functions
+    use fefields
+    use boundary_conditions
+    use printout
+
+    use quicksort
 
 
-  implicit none
-  
-  private
-  
-  public :: copy_outof_state, copy_into_state
-  
+    implicit none
+
+    private
+
+    public :: copy_outof_state, copy_into_state
+
+   interface Get_Ndgln
+     module procedure Get_Scalar_Ndgln, Get_Vector_Ndgln, Get_Mesh_Ndgln
+   end interface Get_Ndgln
+
+   interface Get_SNdgln
+     module procedure Get_Scalar_SNdgln, Get_Vector_SNdgln
+   end interface Get_SNdgln
+
   contains
-  
+
     subroutine copy_outof_state(state, &
          nonlinear_iterations, nonlinear_iteration_tolerance, &
                                 ! Begin here all the variables from read_scalar
@@ -124,6 +134,9 @@ module copy_outof_into_state
       type(vector_field), pointer :: velocity, velocity_source
       type(vector_field), pointer :: velocity_bc
 
+      type(mesh_type), pointer :: velocity_cg_mesh
+      type(vector_field) :: velocity_cg
+
       type(tensor_field), pointer :: viscosity_ph1, viscosity_ph2, t_permeability
 
       integer :: nonlinear_iterations, stat, nstates
@@ -166,7 +179,7 @@ module copy_outof_into_state
            cv_snloc, u_snloc, p_snloc, stotel, &
            ncoef, nuabs_coefs, &
            u_ele_type, p_ele_type, mat_ele_type, cv_ele_type, &
-           cv_sele_type, u_sele_type
+           cv_sele_type, u_sele_type, x_snloc
 
       integer :: u_snloc2, ilev, ele, sele, u_siloc, u_siloc2, inod_remain
 
@@ -242,364 +255,132 @@ module copy_outof_into_state
 
       ewrite(3,*) 'In copy_outof_state'
 
-      nlev = 3
+      ! Getting all primary scalars necessary to the model
+      call Get_Primary_Scalars( state, &         
+           nphases, nstates, ncomps, totele, ndim, stotel, &
+           u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc, &
+           x_snloc, cv_snloc, u_snloc, p_snloc, &
+           cv_nonods, mat_nonods, u_nonods, xu_nonods, x_nonods, p_nonods, dx, &
+           is_overlapping )
 
-      nstates = option_count("/material_phase")
+      ewrite(3,*) 'nphases, nstates, ncomps, totele, ndim, stotel:', &
+           nphases, nstates, ncomps, totele, ndim, stotel
+      ewrite(3,*) 'u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc:', &
+           u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc
+      ewrite(3,*) 'x_snloc, cv_snloc, u_snloc, p_snloc:', &
+           x_snloc, cv_snloc, u_snloc, p_snloc
+      ewrite(3,*) 'cv_nonods, mat_nonods, u_nonods, xu_nonods, x_nonods, p_nonods :', &
+           cv_nonods, mat_nonods, u_nonods, xu_nonods, x_nonods, p_nonods
+      ewrite(3,*) 'is_overlapping????:',  is_overlapping
 
-      ewrite(3,*) ' nstates:', nstates
 
-      ! Assume there are the same number of components in each phase (will need to check this eventually)
-      ncomps=0
-      do i=1,nstates
-         if (have_option("/material_phase[" // int2str(i-1) // "]/is_multiphase_component")) then
-            ncomps=ncomps+1
-         end if
+      ! Allocating Volume-based Global Node Numbers:
+      ! Positions/Coordinates
+      positions => extract_vector_field( state( 1 ), "Coordinate" )
+      allocate( x_ndgln( totele * x_nloc ) ) ; x_ndgln = 0
+      ewrite(3,*)'Coordinates'
+      call Get_Ndgln( positions, x_ndgln )
+      ewrite(3,*) '   '
+
+      ! Pressure and Control Volume
+      pressure => extract_scalar_field( state( 1 ), "Pressure" )
+      allocate( cv_ndgln( totele * cv_nloc ) ) ; cv_ndgln = 0
+      ewrite(3,*)'CV'
+      call Get_Ndgln( pressure, cv_ndgln )
+      allocate( p_ndgln( totele * p_nloc ) ) ; p_ndgln = 0
+      allocate( mat_ndgln( totele * mat_nloc ) ) ; mat_ndgln = 0
+      p_ndgln = cv_ndgln
+      mat_ndgln = cv_ndgln
+      ewrite(3,*) '   '
+
+      ! Velocities
+      velocity => extract_vector_field( state( 1 ), "Velocity" )
+      allocate( u_ndgln( totele * u_nloc ) ) ;  u_ndgln = 0
+      ewrite(3,*)'Velocities'
+      call Get_Ndgln( velocity, u_ndgln )
+      ewrite(3,*) '   '
+
+      ! Velocity in the continuous space
+      velocity_cg_mesh => extract_mesh( state( 1 ), "VelocityMesh_Continuous" )
+      allocate( xu_ndgln( totele * xu_nloc ) ) ;  xu_ndgln = 0
+      ewrite(3,*)'Velocities Continuous'
+      call Get_Ndgln( velocity_cg_mesh, xu_ndgln )
+      ewrite(3,*) '   '
+
+      ! Allocating Surface-based Global Node Numbers:
+      ! Control Volumes
+      allocate( cv_sndgln( stotel * cv_snloc ) ) ; cv_sndgln = 0
+      ewrite(3,*)'Surface Control Volume'
+      call Get_SNdgln( pressure, cv_sndgln )
+      ewrite(3,*) '   '
+
+      ! Pressure
+      allocate( p_sndgln( stotel * p_snloc ) ) ; p_sndgln = 0
+      p_sndgln = cv_sndgln
+
+      ! Velocities
+      if( is_overlapping ) u_snloc = u_snloc * cv_nloc
+      u_snloc2 = u_snloc / cv_nloc
+      u_nloc2 = u_nloc / cv_nloc
+      allocate( u_sndgln2( stotel * u_snloc2 ) ) ; u_sndgln2 = 0
+      ewrite(3,*)'Surface Velocities'
+      call Get_SNdgln( velocity, u_sndgln2 )
+      allocate( u_sndgln( stotel * u_snloc ) ) ; u_sndgln = 0
+      ! Convert u_sndgln2 to overlapping u_sndgln
+      do sele = 1, stotel
+         do u_siloc2 = 1, u_snloc2
+            do ilev = 1, cv_nloc
+               u_siloc = ( ilev - 1 ) * u_snloc2 + u_siloc2
+               ele = int( ( u_sndgln2 ( ( sele - 1 ) * u_snloc2 + &
+                    u_siloc2 ) - 1 ) / u_nloc2) + 1
+               inod_remain = u_sndgln2( ( sele - 1 ) * u_snloc2 + &
+                    u_siloc2 ) - ( ele - 1 ) * u_nloc2
+               u_sndgln( ( sele - 1 ) * u_snloc + u_siloc ) = &
+                    ( ele - 1 ) * u_nloc + inod_remain + &
+                    ( ilev - 1 ) * u_nloc2
+            end do
+         end do
       end do
 
-      nphases = nstates - ncomps
-      assert(nphases > 0)
-      ewrite(3,*)'nstates, ncomps, nphases:', nstates, ncomps, nphases
-
-      ! Get the coordinate, velocity and pressure mesh (which must exist)
-      cmesh => extract_mesh(state, "CoordinateMesh", stat=stat)
-
-      if (stat /= 0) then
-         FLExit('Require mesh with name CoordinateMesh')
-      end if
-
-      vmesh => extract_mesh(state, "VelocityMesh", stat=stat)
-
-      if (stat /= 0) then
-         FLExit('Require mesh with name VelocityMesh')
-      end if
-
-      pmesh => extract_mesh(state, "PressureMesh", stat=stat)
-
-      if (stat /= 0) then
-         FLExit('Require mesh with name PressureMesh')
-      end if
-
-      positions => extract_vector_field( state, "Coordinate" )
-      cv_positions = get_coordinate_field( state(1), pmesh )
-      totele = ele_count( cmesh )
-      stotel = surface_element_count( cmesh )
+      ewrite(3,*) ' Final u_sndgln: '
+      do sele = 1, stotel
+         ewrite(3,*) sele, ( u_sndgln( (sele - 1 ) * u_snloc + k ), k = 1, u_snloc )
+      end do
 
 
-      call get_option("/geometry/dimension",ndim)
 
-      if( ndim == 1 ) then
-         ! This is a strictly 1d property, so will have a suitably 1d method for finding it in state!
-         coord_min=1.0e9
-         coord_max=-1.0e-9
-         do i=1,node_count(positions)
-            coord_min=min(coord_min,positions%val(X_,i))
-            coord_max=max(coord_max,positions%val(X_,i))
-         end do
-         domain_length = coord_max - coord_min
-         ! Still need dx for the old way of setting up x (and y, z)
-         dx = domain_length/real(totele)
-      end if
 
-      ! get the vel element type.
-      call get_option('/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
-           vel_element_type)
 
-      select case(ndim)
-      case(1)
-         xu_nloc = 2
-         cv_nloc = pmesh%shape%degree + 1
-         shared_nodes = 1
-      case(2)
-         xu_nloc = 3
-         cv_nloc = tr(pmesh%shape%degree+1)
-         select case(pmesh%shape%degree)
-         case(1)
-            shared_nodes=2
-         case(2)
-            shared_nodes=3
-         end select
-      case(3)
-         xu_nloc = 4
-         cv_nloc = te(pmesh%shape%degree+1)
-         select case(pmesh%shape%degree)
-         case(1)
-            shared_nodes=3
-         case(2)
-            shared_nodes=6
-         end select
-      end select
-      x_nloc = cv_nloc
-      p_nloc = cv_nloc
-      mat_nloc = cv_nloc
-      u_nloc = xu_nloc    
+      ! Variables hard-wired that *MUST BE* deleted as they were never used
+      nlev = 3
 
-      is_overlapping = .false.
-      if ( trim( vel_element_type ) == 'overlapping' ) is_overlapping = .true. 
-
-      if( is_overlapping ) u_nloc = cv_nloc * xu_nloc
-
-      ewrite(3,*)'ndim, cv_nloc, x_nloc, xu_nloc, u_nloc:', ndim, cv_nloc, x_nloc, xu_nloc, u_nloc 
-      ewrite(3,*)'cv_nloc, shared_nodes, totele, pmesh', cv_nloc, shared_nodes, totele, pmesh%continuity
-
-      if (pmesh%continuity>=0) then
-         ! Continuous pressure mesh
-         cv_nonods = node_count(pmesh) !( cv_nloc - shared_nodes ) * totele + shared_nodes
-      else
-         ! Discontinuous pressure mesh
-         cv_nonods = cv_nloc * totele
-      endif
-
-      ! u_snloc is 1 for the single phase advection case:
-      if (nstates==1) then
-         u_snloc = 1
-         xu_nloc = u_nloc
-         p_nonods = u_nloc * totele ! = u_nonods
-      else
-         u_snloc = 3
-         p_nonods = cv_nonods
-      endif
-
-      Select Case( ndim )
-      case( 1 )
-         cv_snloc = 1
-      case( 2 )
-         u_snloc = face_loc( vmesh, 1 )
-         cv_snloc = face_loc( pmesh, 1 )
-      case default; FLAbort("Incorrect number of dimension - ndim")
-      end Select
-
-      p_snloc = face_loc(pmesh, 1)
-
-      mat_nonods = mat_nloc * totele
-
-      ewrite(3,*)'cv_nonods, u_snloc, cv_snloc:', cv_nonods, u_snloc, cv_snloc
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!
-      !! GLOBAL NUMBERING SECTION
-      !!
-      !! nb. This could all be moved to a separate subrtn now, but it needed to be moved
-      !! as it's needed by the field setup bits below
-      !!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-!!!!!!
-      !!  x, y, z are ordered in the global numbering order, and not in spatial order
-      !!  This seems to be consistent with other places in the code (cv-adv-dif, etc)
-!!!!!!
-      !! Switch on (true) or off (false) using Fluidity node numbering
-      ndgln_switch = .true.
-      if( ndim == 1 ) ndgln_switch = .false.
-
-      u_nonods = u_nloc * totele
-      xu_nonods = max( ( xu_nloc - 1 ) * totele + 1, totele )
-
-      allocate( cv_ndgln( totele * cv_nloc ) )
-      allocate( p_ndgln( totele * p_nloc ) )
-      allocate( u_ndgln( totele * u_nloc ) )
-      allocate( xu_ndgln( totele * xu_nloc ) )
-      allocate( x_ndgln( totele * cv_nloc ) )
-      allocate( mat_ndgln( totele * mat_nloc ) )
 
       allocate( xu( xu_nonods )) ; xu = 0.
       allocate( yu( xu_nonods )) ; yu = 0.
       allocate( zu( xu_nonods )) ; zu = 0.
 
-      !! global numbering to allow proper copying of fields
-      cv_nod = 0
-      u_nod = 0
-      xu_nod = 0
-      x_nod = 0
-      mat_nod = 0
-      pressure => extract_scalar_field( state(1), "Pressure")
-      velocity => extract_vector_field( state(1), "Velocity")
-      Loop_OverElements1: do k = 1,totele
-         if ( ndgln_switch ) then
-            element_nodes => ele_nodes( pressure, k )
-            do j = 1, size( element_nodes )
-               cv_ndgln( ( k - 1 ) * size( element_nodes ) + j ) = element_nodes( j )  
-               !ewrite(3,*)'ele, nod, cv_ndgln:', &
-               !     k, j, cv_ndgln( ( k - 1 ) * size( element_nodes ) + j )          
-            end do
-         else
-            do j = 1, cv_nloc
-               cv_nod = cv_nod + 1
-               cv_ndgln( ( k - 1 ) * cv_nloc + j ) = cv_nod
-            end do
-            if( cv_nonods /= totele * cv_nloc ) cv_nod = cv_nod - 1
-         end if
+      call allocate( velocity_cg, ndim, velocity_cg_mesh, "Velocity_CG_Coordinates" )
+      velocity_cg%val(:, :)= 0
+      call project_field( positions, velocity_cg, positions )
 
-         !! mat_ndgln on the pressure mesh but always discontinuous
-         if ( ndgln_switch ) then
-            element_nodes => ele_nodes( pressure, k )
-            do j = 1, size( element_nodes )
-               mat_ndgln( ( k - 1 ) * size( element_nodes ) + j ) = element_nodes( j )  
-            end do
-         else
-            do j = 1, mat_nloc
-               mat_nod = mat_nod + 1
-               mat_ndgln( ( k - 1 ) * mat_nloc + j ) = mat_nod
-               !ewrite(3,*)'ele, nod, mat_ndgln:', k, j, mat_nod
-            end do
-         end if
-
-         !if( ndgln_switch .and. ndim>1 ) then
-         !   element_nodes => ele_nodes( velocity, k )
-         !   do j = 1, size( element_nodes )
-         !      u_ndgln( ( k - 1 ) * size( element_nodes ) + j ) = element_nodes( j )  
-         !      ewrite(3,*)'ele, nod, u_ndgln:', k, j, u_ndgln( ( k - 1 ) * size( element_nodes ) + j )
-         !   end do
-         !else
-         do j = 1, u_nloc
-            u_nod = u_nod + 1
-            u_ndgln(( k - 1 ) * u_nloc + j ) = u_nod
-            ewrite(3,*)'ele, nod, u_ndgln:', k, j, u_nod
+      !! Global numbering to allow proper copying of fields
+      do k = 1, totele
+         element_nodes => ele_nodes( velocity_cg_mesh, k )
+         do j = 1, xu_nloc
+            xu( element_nodes( j ) ) = velocity_cg % val( 1, element_nodes( j ) )
+            if( ndim > 1 ) yu( element_nodes( j ) ) = velocity_cg % val( 2, element_nodes( j ) )
+            if( ndim > 2 ) zu( element_nodes( j ) ) = velocity_cg % val( 3, element_nodes( j ) )
          end do
-         !end if
+      end do
+      call deallocate( velocity_cg )
 
-         if( ndgln_switch )then
-            element_nodes => ele_nodes( positions, k )
-            !    do j = 1, size( element_nodes )
-            do j = 1, xu_nloc
-               xu_nod = xu_nod + 1
-               xu_ndgln( ( k - 1 ) * xu_nloc + j ) = element_nodes( j )
-               !       xu( xu_nod ) = positions % val( 1, xu_nod )
-               if( .true. ) then
-                  xu( element_nodes( j ) ) = positions % val( 1, element_nodes( j ) )
-                  if( ndim > 1 ) yu( element_nodes( j ) ) = positions % val( 2, element_nodes( j ) )
-                  if( ndim > 2 ) zu( element_nodes( j ) ) = positions % val( 3, element_nodes( j ) )
-               else
-                  xu( xu_nod ) = positions % val( 1, element_nodes( j ) )
-                  if ( ndim > 1 ) yu( xu_nod ) = positions %val( 2, element_nodes( j ) )
-                  if ( ndim > 2 ) zu( xu_nod ) = positions %val( 3, element_nodes( j ) ) 
-               end if
-               !ewrite(3,*) 'ele, xu_iloc, xu_ndgln :', k, j, xu_ndgln( ( k - 1 ) * xu_nloc + j )
-               !ewrite(3,*) 'xu_nod, xu, yu:', element_nodes( j ), xu( element_nodes( j ) ), yu( element_nodes( j ) )
-            end do
-            if( .not. .true. )then
-               if( xu_nloc /= 1 ) xu_nod = xu_nod - 1
-            end if
-         else
-            do j = 1, xu_nloc
-               xu_nod = xu_nod + 1
-               xu_ndgln((k-1)*xu_nloc+j) = xu_nod
-               xu( xu_nod ) = positions%val(1,xu_nod)
-               if (ndim>1) yu(xu_nod) = positions%val(2,xu_nod)
-               if (ndim>2) zu(xu_nod) = positions%val(3,xu_nod)
-            end do
-            if( xu_nloc /= 1 ) xu_nod = xu_nod - 1
-         end if
-      end do Loop_OverElements1
+      allocate( x( x_nonods ) ) ; x = 0.
+      allocate( y( x_nonods ) ) ; y = 0.
+      allocate( z( x_nonods ) ) ; z = 0.
 
-      p_ndgln = cv_ndgln
-
-      if ( ndgln_switch) then
-         x_ndgln = cv_ndgln
-
-         ewrite(3,*)' '
-         do k = 1, totele
-            do j = 1, x_nloc
-               ewrite(3,*)'ele, loc, x_ndgln:', k, j, x_ndgln( ( k - 1 ) * x_nloc + j )
-            end do
-         end do
-      end if
-
-      !x_nonods = max( ( x_nloc - 1 ) * totele + 1, totele )
-      !allocate( x( x_nonods ) )
-      !allocate( y( x_nonods ) )
-      !allocate( z( x_nonods ) )
-      !x = 0.
-      !y = 0.
-      !z = 0.
-
-      if ( ndgln_switch) then
-         x_nonods = node_count(positions)
-         allocate( x( x_nonods ) ) ; x = 0.
-         allocate( y( x_nonods ) ) ; y = 0.
-         allocate( z( x_nonods ) ) ; z = 0.
-
-         allocate( index( 1 : x_nonods ) )
-         allocate( x_temp( 1 : x_nonods ))
-
-         x = positions % val( 1, : )
-         if( ndim > 1 ) y = positions % val( 2, : )
-         if( ndim > 2 ) z = positions % val( 3, : )
-         do k = 1, totele
-            element_nodes => ele_nodes( pressure, k )
-            do j = 1, size( element_nodes )
-               x_ndgln( ( k - 1 ) * size( element_nodes ) + j ) = element_nodes( j )
-               ewrite(3,*)'ele, loc, x_ndgln2:', k, j, element_nodes( j )
-            end do
-         end do
-
-         if ( .false. ) then
-            x = cv_positions % val( 1, : )
-            x_temp = x
-            index = 0
-            call qsort( x_temp, index )
-            x_nod = 0
-            do j = 1, x_nonods 
-               x_nod = x_nod + 1
-               x( x_nod ) = x_temp( index( j ))
-            end do
-            if ( ndim > 1 ) then
-               y = cv_positions % val( 2, : )
-               x_temp = y
-               index = 0
-               call qsort( x_temp, index )
-               x_nod = 0
-               do j = 1, x_nonods 
-                  x_nod = x_nod + 1
-                  y( x_nod ) = x_temp( index( j ))
-               end do
-            endif
-            if ( ndim > 2 ) then
-               z = cv_positions % val( 3, : )
-               x_temp = z
-               index = 0
-               call qsort( x_temp, index )
-               x_nod = 0
-               do j = 1, x_nonods 
-                  x_nod = x_nod + 1
-                  z( x_nod ) = x_temp( index( j ))
-               end do
-            end if
-            x_nod=0
-            do k = 1, totele
-               do j = 1, x_nloc
-                  x_nod = x_nod + 1
-                  x_ndgln( ( k - 1 ) * x_nloc + j ) = x_nod
-               end do
-               if( x_nloc /= 1 ) x_nod = x_nod - 1
-            end do
-         end if
-      else ! Do it the old way (just for 1D)
-         x_nonods = max( ( x_nloc - 1 ) * totele + 1, totele )
-         allocate( x( x_nonods ) )
-         allocate( y( x_nonods ) )
-         allocate( z( x_nonods ) )
-         x = 0.
-         y = 0.
-         z = 0.
-         if( ndim == 1 ) then
-            x_nod=0
-            x = 0
-            do i=1,totele
-               do j = 1, x_nloc
-                  x_nod = x_nod + 1
-                  x_ndgln( ( i - 1 ) * x_nloc + j ) = x_nod
-                  if ( x_nloc == 1 ) then
-                     x( x_nod ) = ( real( i - 1 ) + 0.5 ) * dx 
-                  else
-                     x( x_nod ) = real( i - 1 ) * dx + real( j - 1 ) * dx / real ( x_nloc - 1 )
-                  end if
-               end do
-               if( x_nloc /= 1 ) x_nod = x_nod - 1
-            end do
-            ewrite(3,*) 'x:', size( x ), x
-            ewrite(3,*) 'x_ndgln2: ', size( x_ndgln ), x_ndgln
-         end if
-      end if
+      x = positions % val( 1, : )
+      if( ndim > 1 ) y = positions % val( 2, : )
+      if( ndim > 2 ) z = positions % val( 3, : )
 
       !-
       !- u_ele_type = cv_ele_type = p_ele_type will flag the dimension and 
@@ -1485,7 +1266,7 @@ module copy_outof_into_state
 
       !      stop 999
 
-    end subroutine copy_outof_state
+    end subroutine Copy_outof_state
 
     subroutine copy_into_state(state, &
          proto_saturations, &
@@ -1514,7 +1295,7 @@ module copy_outof_into_state
       real, dimension(:), intent(in) :: proto_velocity_w      
       real, dimension(:), intent(in) :: proto_densities
       real, dimension(:), intent(in) :: proto_components
-!      real, dimension(:,:,:), intent(in) :: velocity_dg
+      !      real, dimension(:,:,:), intent(in) :: velocity_dg
       integer, intent(in) :: ncomp      
       integer, intent(in) :: nphase
       integer, dimension(:), intent(in) :: cv_ndgln
@@ -1758,8 +1539,207 @@ module copy_outof_into_state
     end subroutine copy_into_state
 
 
+    subroutine Get_Primary_Scalars( state, &         
+         nphases, nstates, ncomps, totele, ndim, stotel, &
+         u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc, &
+         x_snloc, cv_snloc, u_snloc, p_snloc, &
+         cv_nonods, mat_nonods, u_nonods, xu_nonods, x_nonods, p_nonods, dx, &
+         is_overlapping )
+      !! This subroutine extracts all primary variables associated with the mesh from state,
+      !! and associated them with the variables used in the MultiFluids model.
+      implicit none
+      type(state_type), dimension(:), intent( in ) :: state
+      integer, intent( inout ) :: nphases, nstates, ncomps, totele, ndim, &
+           stotel, u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc, &
+           x_snloc, cv_snloc, u_snloc, p_snloc, cv_nonods, mat_nonods, &
+           u_nonods, xu_nonods, x_nonods, p_nonods
+      real, intent( inout ) :: dx
+      logical, intent( inout ) :: is_overlapping
+
+      ! Local variables
+      character( len = option_path_len ) :: vel_element_type
+      type( vector_field ), pointer :: positions, velocity
+      type( scalar_field ), pointer :: pressure
+      type( mesh_type ), pointer :: velocity_cg_mesh
+      integer :: i
+
+      ewrite(3,*)' In Get_Primary_Scalars'
+
+      ! Defining dimension and nstates
+      call get_option( "/geometry/dimension", ndim )
+      nstates = option_count( "/material_phase" )
+
+      ! Assume there are the same number of components in each phase
+      ! (will need to check this eventually)
+      ncomps = 0
+      do i = 1, nstates
+         if( have_option( "/material_phase[" // int2str(i-1) // &
+              "]/is_multiphase_component" ) ) then
+            ncomps = ncomps + 1
+         end if
+      end do
+      nphases = nstates - ncomps
+      assert( nphases > 0 ) ! Check if there is more than 0 phases
+      ewrite(3,*)'nstates, ncomps, nphases:', nstates, ncomps, nphases
+
+      ! Get the vel element type.
+      call get_option('/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
+           vel_element_type)
+      is_overlapping = .false.
+      if ( trim( vel_element_type ) == 'overlapping' ) is_overlapping = .true. 
+
+      ! Defining number of elements and surface elements, coordinates, locs and snlocs
+      positions => extract_vector_field( state, "Coordinate" )
+      totele = ele_count( positions )
+      stotel = surface_element_count( positions )
+
+      ! Coordinates
+      x_nloc = ele_loc( positions, 1 )
+      x_snloc = face_loc( positions, 1 )
+      xu_nloc = x_nloc
+      x_nonods = node_count( positions)
+
+      ! Pressure, Control Volumes and Materials
+      pressure => extract_scalar_field( state, "Pressure" )
+      p_nloc = ele_loc( pressure, 1 )
+      p_snloc = face_loc( pressure, 1 )
+      p_nonods = node_count( pressure )
+      cv_nloc = p_nloc
+      cv_snloc = p_snloc
+      cv_nonods = p_nonods
+      mat_nloc = cv_nloc
+      mat_nonods = cv_nonods
+
+      ! Velocities and velocities (DG) associated with the continuous space (CG)
+      velocity => extract_vector_field( state, "Velocity" )
+      u_nloc = ele_loc( velocity, 1 )
+      u_snloc = face_loc( velocity, 1 )
+      u_nonods = node_count( velocity )
+
+      ! Get the continuous space of the velocity field
+      velocity_cg_mesh => extract_mesh( state, "VelocityMesh_Continuous" )
+      xu_nonods = node_count( velocity_cg_mesh )
+
+
+      dx = maxval( positions%val(1,:) ) - minval( positions%val(1,:) )
+
+
+
+      return
+    end subroutine Get_Primary_Scalars
+
+    subroutine Get_Scalar_Ndgln( field, ndgln )
+      implicit none
+      type( scalar_field ), intent( in ) :: field
+      integer, dimension( : ), intent( inout ) :: ndgln
+      ! Local variables
+      integer, dimension( : ), pointer :: nloc
+      integer :: ele, iloc
+
+      do ele = 1, ele_count( field )
+         nloc => ele_nodes( field, ele )
+         do iloc = 1, ele_loc( field, ele )
+            ndgln( ( ele - 1 ) * ele_loc( field, ele ) + iloc ) =  nloc( iloc )
+            ewrite(3,*)'ele, iloc, ndgln:', ele, iloc, &
+                 ndgln( ( ele - 1 ) * ele_loc( field, ele ) + iloc )
+         end do
+      end do
+
+      return
+    end subroutine Get_Scalar_Ndgln
+
+    subroutine Get_Vector_Ndgln( field, ndgln )
+      implicit none
+      type( vector_field ), intent( in ) :: field
+      integer, dimension( : ), intent( inout ) :: ndgln
+      ! Local variables
+      integer, dimension( : ), pointer :: nloc
+      integer :: ele, iloc
+
+      do ele = 1, ele_count( field )
+         nloc => ele_nodes( field, ele )
+         do iloc = 1, ele_loc( field, ele )
+            ndgln( ( ele - 1 ) * ele_loc( field, ele ) + iloc ) =  nloc( iloc )
+            ewrite(3,*)'ele, iloc, ndgln:', ele, iloc, &
+                 ndgln( ( ele - 1 ) * ele_loc( field, ele ) + iloc )
+         end do
+      end do
+
+      return
+    end subroutine Get_Vector_Ndgln
+
+
+   subroutine Get_Mesh_Ndgln( mesh, ndgln )
+      implicit none
+      type( mesh_type ), intent( in ) :: mesh
+      integer, dimension( : ), intent( inout ) :: ndgln
+      ! Local variables
+      integer, dimension( : ), pointer :: nloc
+      integer :: ele, iloc
+
+      do ele = 1, ele_count( mesh )
+         nloc => ele_nodes( mesh, ele )
+         do iloc = 1, ele_loc( mesh, ele )
+            ndgln( ( ele - 1 ) * ele_loc( mesh, ele ) + iloc ) =  nloc( iloc )
+            ewrite(3,*)'ele, iloc, ndgln:', ele, iloc, &
+                 ndgln( ( ele - 1 ) * ele_loc( mesh, ele ) + iloc )
+         end do
+      end do
+
+      return
+    end subroutine Get_Mesh_Ndgln
+
+
+    subroutine Get_Scalar_SNdgln( field, sndgln )
+      implicit none
+      type( scalar_field ), intent( in ) :: field
+      integer, dimension( : ), intent( inout ) :: sndgln
+      ! Local variables
+      integer, dimension( : ), allocatable :: snloc
+      integer :: sele, iloc
+
+      allocate( snloc( face_loc( field, 1 ) ) )
+      do sele = 1, surface_element_count( field )
+         snloc = face_global_nodes( field, sele )
+         do iloc = 1, face_loc( field, sele )
+            sndgln( ( sele - 1 ) * face_loc( field, sele ) + iloc ) =  snloc( iloc )
+            ewrite(3,*)'sele, iloc, sndgln:', sele, iloc, &
+                 sndgln( ( sele - 1 ) * face_loc( field, sele ) + iloc )
+         end do
+      end do
+
+      deallocate( snloc )
+
+      return
+    end subroutine Get_Scalar_SNdgln
+
+    subroutine Get_Vector_SNdgln( field, sndgln )
+      implicit none
+      type( vector_field ), intent( in ) :: field
+      integer, dimension( : ), intent( inout ) :: sndgln
+      ! Local variables
+      integer, dimension( : ), allocatable :: snloc
+      integer :: sele, iloc
+
+      allocate( snloc( face_loc( field, 1 ) ) )
+      do sele = 1, surface_element_count( field )
+         snloc = face_global_nodes( field, sele )
+         do iloc = 1, face_loc( field, sele )
+            sndgln( ( sele - 1 ) * face_loc( field, sele ) + iloc ) =  snloc( iloc )
+            ewrite(3,*)'sele, iloc, sndgln:', sele, iloc, &
+                 sndgln( ( sele - 1 ) * face_loc( field, sele ) + iloc )
+         end do
+      end do
+
+      deallocate( snloc )
+
+      return
+    end subroutine Get_Vector_SNdgln
+
+
+
     subroutine Get_ScalarFields_Outof_State( state, iphase, field, &
-         field_prot, wic_bc, suf_bc, field_prot_source, field_prot_absorption)
+         field_prot, wic_bc, suf_bc, field_prot_source, field_prot_absorption )
       implicit none
       type( state_type ), dimension( : ), intent( inout ) :: state
       integer, intent( in ) :: iphase
