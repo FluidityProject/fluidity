@@ -201,6 +201,10 @@ contains
 
     type(mesh_type), pointer:: p_mesh, l_mesh
     type(scalar_field), pointer:: bottom_distance
+    type(vector_field), pointer:: gravity_normal
+    type(vector_field):: ugravity_normal
+    type(integer_set):: column_nodes
+    real, dimension(u%dim):: uvec, unorm
     integer, dimension(:) ,pointer:: surface_element_list
     integer :: i, sele, ele
 
@@ -215,12 +219,28 @@ contains
       FLExit("Hydrostatic pressure projection only works for extruded meshes")
     end if
 
+    ! FIXME: do something with the rhs (also this assert is obv. wrong)
+    assert(maxval(full_ct_rhs)==0.0)
+
+    gravity_normal => extract_vector_field(state, "GravityDirection")
+    call allocate(ugravity_normal, u%dim, u%mesh, "UGravityDirection")
+    call remap_field(gravity_normal, ugravity_normal)
+
+    ! make sure we start out with a zero vertical velocity, by projecting out that component
+    do i=1, node_count(u)
+      unorm=node_val(ugravity_normal, i)
+      uvec=node_val(u,i)
+      call set(u, i, uvec - dot_product(unorm,uvec)*unorm)
+    end do
+
     ! we start from the bottom - its surface mesh is stored as a boundary condition under "DistanceToBottom"
     bottom_distance => extract_scalar_field(state, "DistanceToBottom")
     call get_boundary_condition(bottom_distance, 1, &
         surface_element_list=surface_element_list)
     do i=1, size(surface_element_list)
       sele = surface_element_list(i)
+      ! the set of velocity nodes in this column, we've solved already:
+      call allocate(column_nodes)
       do
         ele = face_ele(l_mesh, sele)
         if (ele<=0) exit
@@ -228,8 +248,11 @@ contains
         call vertical_reconstruction_ele(ele, sele)
 
       end do
+      call deallocate(column_nodes)
 
     end do
+
+    call deallocate(ugravity_normal)
 
     contains
 
@@ -239,8 +262,12 @@ contains
 
       integer, dimension(face_loc(l_mesh,sele)):: flnodes
       type(integer_set):: fnodes
-      integer, dimension(:), pointer:: faces, nodes, row
-      integer:: j
+      type(real_vector), dimension(u%dim):: rowvals
+      real, dimension(ele_loc(p_mesh,ele)):: rhs
+      real, dimension(size(rhs), size(rhs)):: matrix
+      real, dimension(u%dim):: unorm
+      integer, dimension(:), pointer:: faces, pnodes, unodes, row
+      integer:: j, k, k1, m, p
 
       ! find the face between this element and the next in the column
       ! this should be an element whose nodes are all in different columns
@@ -257,14 +284,66 @@ contains
         FLExit("Hydrostatic pressure projection requires columnar mesh.")
       end if
 
-      nodes => ele_nodes(p_mesh, ele)
+      pnodes => ele_nodes(p_mesh, ele)
+      unodes => ele_nodes(u, ele)
       call allocate(fnodes)
       call insert(fnodes, face_global_nodes(p_mesh, faces(j)))
+      call insert(column_nodes, unodes)
 
-      do j=1, size(nodes)
+      p=0
+pressure_node_loop: do j=1, size(pnodes)
         ! if this node is on the next face, we'll deal with in the next element
-        if (has_value(fnodes, nodes(j))) cycle
-        row => row_m_ptr(full_ct_m%sparsity, nodes(j))
+        if (has_value(fnodes, pnodes(j))) cycle
+        p=p+1 ! count the pressure nodes we do deal with
+
+        ! get the column indices, and matrix values for this pressure row
+        row => row_m_ptr(full_ct_m, pnodes(j))
+        do m=1, u%dim
+          rowvals(m)%ptr => row_val_ptr(full_ct_m, 1, m, pnodes(j))
+        end do
+
+        ! Multiply current velocity with ct_m and put on rhs. Only velocity dofs
+        ! that we've visisted before within this column are included. By the choice of pressure
+        ! points within this element these are the only u-nodes that we should encounter in this
+        ! matrix row, so that effectively we're computing the restriction of this pressure test
+        ! function to the column. Note that this includes u-nodes within this element, of which
+        ! the vertical component has been zeroed, for the other nodes, strictly below the element
+        ! this vertical component has been computed before and is included in the rhs.
+        ! Also in this loop, we find the start of the u-nodes of this element itelf within row(:) - assuming sorted rows
+        rhs(p)=0
+        do k=1, size(row)
+          if (has_value(column_nodes, row(k))) then
+            do m=1, u%dim
+              rhs(p) = rhs(p) - rowvals(m)%ptr(k)*node_val(u, k, row(k))
+            end do
+            if (row(k)==unodes(1)) k1=k-1
+          end if
+        end do
+
+        ! the row of the local matrix associated with this pressure node
+        ! is computed by taking the inner product of the normal with ct_m
+        ! restricting to only the u-nodes of this element
+        do k=1, size(unodes)
+          unorm=node_val(ugravity_normal, unodes(k))
+          assert( row(k1+k)==unodes(k) )
+          matrix(p, k)=0.0
+          do m=1, u%dim
+            matrix(p, k)=matrix(p, k) - unorm(m)*rowvals(m)%ptr(k1+k)
+          end do
+        end do
+
+      end do pressure_node_loop
+
+      ! make sure the number of pressure-tested eqns equals the number of velocity dofs to solve for
+      assert( p==ele_loc(u, ele) )
+
+      call solve(matrix, rhs)
+
+      ! the answer is returned in rhs
+      ! multiply with the upward normal and add in to the velocity:
+      do k=1, size(unodes)
+        unorm=node_val(ugravity_normal, unodes(k))
+        call addto(u, unodes(k), -unorm*rhs(k))
       end do
 
       call deallocate(fnodes)
