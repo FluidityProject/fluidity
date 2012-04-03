@@ -306,12 +306,18 @@ module mp_prototype
       mx_nface_p1 = 2 * ndim + 1
       mxnele = mx_nface_p1 * totele
 !      mx_nct = cv_nonods * ( 2 * u_nloc + 1 ) * ndim * nphase
-      mx_nct = totele * u_nloc * cv_nloc * ndim * nphase
+      if(cv_nonods==cv_nloc*totele) then ! is DG for pressure...
+         mx_nct = totele * u_nloc * cv_nloc * mx_nface_p1* ndim * nphase
+      else
+         mx_nct = totele * u_nloc * cv_nloc * ndim * nphase
+      endif
 !      print *,'mx_nct, old:',mx_nct, &
 !                cv_nonods * ( 2 * u_nloc + 1 ) * ndim * nphase
       mx_nc = mx_nct  
 
-      mx_ncolcmc = mx_nface_p1 *  cv_nloc  * cv_nonods
+!      mx_ncolcmc = mx_nface_p1 *  cv_nloc  * cv_nonods
+! assume the DG representation requires ths most stroage...
+      mx_ncolcmc = mx_nface_p1 *  cv_nloc  * cv_nloc * totele 
 
       mx_ncoldgm_pha = mxnele * ( u_nloc * ndim )**2 * nphase + totele * ( u_nloc * ndim * nphase )**2
       mx_ncolmcy = mx_ncoldgm_pha + mx_nct + mx_nc + mx_ncolcmc
