@@ -367,8 +367,9 @@ module copy_outof_into_state
          cv_snloc = face_loc( pmesh, 1 )
       case default; FLAbort("Incorrect number of dimension - ndim")
       end Select
-      p_snloc = 2
-      ! x_snloc = 1
+
+      p_snloc = face_loc(pmesh, 1)
+
       mat_nonods = mat_nloc * totele
 
       ewrite(3,*)'cv_nonods, u_snloc, cv_snloc:', cv_nonods, u_snloc, cv_snloc
