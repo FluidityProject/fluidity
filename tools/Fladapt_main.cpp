@@ -124,10 +124,11 @@ int main(int argc, char** argv){
     exit(-1);
   }
       
-  int input_basename_len = input_basename.size();
-  int output_basename_len = output_basename.size();
-  fladapt(input_basename.c_str(), &input_basename_len,
-          output_basename.c_str(), &output_basename_len);
+  size_t input_basename_len = input_basename.size();
+  size_t output_basename_len = output_basename.size();
+
+  fladapt(input_basename.c_str(), input_basename_len,
+          output_basename.c_str(), output_basename_len);
 
 #ifdef HAVE_PYTHON
   // Finalize the Python Interpreter
