@@ -43,8 +43,7 @@
 using namespace std;
 
 extern "C"{
-#define checkmesh F77_FUNC(checkmesh, CHECKMESH)
-  void checkmesh(const char* basename, const int* basename_len);
+  void checkmesh(const char *, size_t);
 }
 
 void Usage(){
@@ -75,7 +74,7 @@ int main(int argc, char** argv){
 if(nprocs > 1){
   int rank = 0;
 #ifdef HAVE_MPI
-  f(MPI::Is_initialized()){
+  if (MPI::Is_initialized()){
     rank = MPI::COMM_WORLD.Get_rank();
   }
 #endif

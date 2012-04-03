@@ -1,6 +1,6 @@
 #include "fdebug.h"
 
-subroutine checkmesh(filename_, filename_len)
+subroutine checkmesh(filename_, filename_len) bind(c)
   !!< Checks the validity of the supplied triangle mesh
 
 ! these 5 need to be on top and in this order, so as not to confuse silly old intel compiler 
@@ -18,6 +18,7 @@ subroutine checkmesh(filename_, filename_len)
   use mesh_files
   use supermesh_construction
   use tetrahedron_intersection_module
+  use iso_c_binding
 
   implicit none
 
@@ -26,7 +27,7 @@ subroutine checkmesh(filename_, filename_len)
 
   character(len = filename_len) :: filename
   character(len = real_format_len()) :: rformat
-  integer :: global_ele, global_nodes, global_sele, global_facets
+  integer :: global_ele, global_nodes, global_sele, global_facets, i
   type(vector_field) :: positions
 
   do i=1, filename_len
