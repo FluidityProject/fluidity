@@ -177,7 +177,7 @@
       integer :: nphases, ncomps, totele, ndim, nlev, &
            u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc, &
            cv_snloc, u_snloc, p_snloc, stotel, &
-           ncoef, nuabs_coefs, &
+           ncoef, ncoef_max, nuabs_coefs, &
            u_ele_type, p_ele_type, mat_ele_type, cv_ele_type, &
            cv_sele_type, u_sele_type, x_snloc
 
@@ -226,7 +226,7 @@
 
       real, dimension( : , : , : ), allocatable :: comp_diff_coef, capil_pres_coef, &
            u_abs_stab, u_absorb, comp_absorb, &
-           t_absorb, v_absorb, &
+           t_absorb, v_absorb, vel_absorb, &
            perm, K_Comp
 
       real, dimension( : , : , : , : ), allocatable :: comp_diffusion
@@ -341,6 +341,7 @@
             end do
          end do
       end do
+      deallocate(u_sndgln2)
 
       ewrite(3,*) ' Final u_sndgln: '
       do sele = 1, stotel
@@ -348,13 +349,7 @@
       end do
 
 
-
-
-
-      ! Variables hard-wired that *MUST BE* deleted as they were never used
-      nlev = 3
-
-
+      ! Velocity on the coordinate mesh (CG)
       allocate( xu( xu_nonods )) ; xu = 0.
       allocate( yu( xu_nonods )) ; yu = 0.
       allocate( zu( xu_nonods )) ; zu = 0.
@@ -374,6 +369,7 @@
       end do
       call deallocate( velocity_cg )
 
+      ! Coordinate mesh
       allocate( x( x_nonods ) ) ; x = 0.
       allocate( y( x_nonods ) ) ; y = 0.
       allocate( z( x_nonods ) ) ; z = 0.
@@ -382,201 +378,24 @@
       if( ndim > 1 ) y = positions % val( 2, : )
       if( ndim > 2 ) z = positions % val( 3, : )
 
-      !-
-      !- u_ele_type = cv_ele_type = p_ele_type will flag the dimension and 
-      !- type of element:
-      !- = 1 or 2: 1D (linear and quadratic, respectively)
-      !- = 3 or 4: triangle (linear or quadratic, respectively)
-      !- = 5 or 6: quadrilateral (bi-linear or tri-linear, respectively)
-      !- = 7 or 8: tetrahedron (linear or quadratic, respectively)
-      !- = 9 or 10: hexahedron (bi-linear or tri-linear, respectively)
-      !-
-      !- In order to determine if the model utilises a overlapping 
-      !- formulation, just use in the appropriate subroutine:
-      !- is_overlapping = .false.
-      !- if ( trim( vel_element_type ) == 'overlapping' ) is_overlapping = .true. 
-      !-
-      !- We need a mechanism to flag this throughout the code, for testing
-      !- the current 1D cases. For now:
-      !-
-      Select Case( ndim )
-      case( 1 )
-         p_ele_type = 2
-         cv_ele_type = 2
-         u_ele_type = 2
-      case( 2 ) ! Hack ... just linear triangle
-         p_ele_type = 3
-         cv_ele_type = 3
-         u_ele_type = 3
-      case default; FLAbort("Incorrect number of dimension - ndim")
-      end Select
-      !   if( .true. ) then
-      !      p_ele_type = 2
-      !      cv_ele_type = 2
-      !      u_ele_type = 2
-      !   else
-      !      p_ele_type = 1
-      !      cv_ele_type = 1
-      !      u_ele_type = 1
-      !   end if
 
-      !- 
-      !- The follow will disapear soon as they are never used:
-      !- mat_ele_type, u_sele_type, cv_sele_type
-      mat_ele_type = 1 ; u_sele_type = 1 ; cv_sele_type = 1
+      ! Defining element type 
+      call Get_Ele_Type(x_nloc, cv_ele_type, p_ele_type, u_ele_type)
 
+      ! Defining  solvers options
+      call Get_Solvers_Options( nphases, &
+           nits, nits_internal, &
+           ndpset, nits_flux_lim_volfra, nits_flux_lim_comp, &
+           nits_flux_lim_t, t_disopt, v_disopt, t_beta, v_beta, &
+           t_theta, v_theta, u_theta, &
+           nonlinear_iteration_tolerance, lump_eqns )
 
-      if( is_overlapping ) u_snloc = u_snloc * cv_nloc
+      ! Initial pressure -- this can be deleted later on.
+      call get_option('/material_phase[0]/scalar_field::Pressure/prognostic/&
+           atmospheric_pressure', patmos, default=0.0)
+      call get_option('/material_phase[0]/scalar_field::Pressure/prognostic/&
+           initial_condition::WholeMesh/constant',p_ini, default=0.0)
 
-      u_snloc2=u_snloc/cv_nloc
-      u_nloc2=u_nloc/cv_nloc
-
-      allocate( cv_sndgln( stotel * cv_snloc ) )
-      allocate( p_sndgln( stotel * p_snloc ) )
-      allocate( u_sndgln( stotel * u_snloc ) )
-      allocate( u_sndgln2( stotel * u_snloc2 ) )
-
-
-
-      Mapping_Surfaces: Select Case( ndim ) ! THIS NEED TO BE CHANGED
-      case( 1 )
-         cv_sndgln( 1 ) = 1
-         cv_sndgln( 2 ) = cv_ndgln( size( cv_ndgln ) )
-         p_sndgln( 1 ) = 1
-         p_sndgln( 2 ) = p_ndgln( size( p_ndgln ) )
-         ! if( u_ele_type == 2 ) then
-         if( is_overlapping ) then
-            u_nloc2 = u_nloc / cv_nloc
-            do j = 1, cv_nloc
-               u_sndgln( j ) = 1 + ( j-1 ) * u_nloc2
-               u_sndgln( j + cv_nloc ) = u_nonods - u_nloc + j * u_nloc2
-            end do
-         else
-            u_sndgln( 1 ) = 1
-            u_sndgln( 2 ) = u_nonods
-         end if
-      case( 2 : 3 )
-         ewrite(3,*)'stotel, cv_snloc:', stotel, cv_snloc
-         call getsndgln( pmesh, cv_sndgln )
-         do j = 1, stotel
-            ewrite(3,*)'cv_sndgln:', j, ( cv_sndgln( ( j - 1 ) * cv_snloc + k ), k = 1, cv_snloc )
-         end do
-         p_sndgln = cv_sndgln
-
-
-         ewrite(3,*)'stotel, u_snloc:', stotel, u_snloc
-         call getsndgln( vmesh, u_sndgln2 )
-
-         ! convert u_sndgln2 to overlapping u_sndgln...
-
-         do sele=1,stotel
-            do u_siloc2=1,u_snloc2
-               do ilev=1,cv_nloc
-                  u_siloc=(ilev-1)*u_snloc2 + u_siloc2
-                  ele=int((u_sndgln2((sele-1)*u_snloc2 + u_siloc2)-1)/u_nloc2) +1
-                  inod_remain=u_sndgln2((sele-1)*u_snloc2 + u_siloc2)-(ele-1)*u_nloc2
-                  u_sndgln( (sele-1)*u_snloc + u_siloc) &
-                       =(ele-1)*u_nloc + inod_remain + (ilev-1)*u_nloc2
-               end do
-            end do
-         end do
-
-         !do j = 1, stotel
-         !   ewrite(3,*)'u_sndgln2:', j, ( u_sndgln2( ( j - 1 ) * u_snloc2 + k ), k = 1, u_snloc2 )
-         !end do
-
-         deallocate(u_sndgln2)
-
-         do j = 1, stotel
-            ewrite(3,*)'u_sndgln:', j, ( u_sndgln( ( j - 1 ) * u_snloc + k ), k = 1, u_snloc )
-         end do
-
-      case default
-         FLAbort("Don't have surface global node numbers for this dimension, i.e., > 3")
-      end select Mapping_Surfaces
-
-      !! EoS things are going to be done very differently
-      !! Currently the default value of ncoef is 10 so I'm going
-      !! to put that here until we have a more concrete idea of what
-      !! we're dealing with
-      ncoef = 10
-
-      !! I don't understand why absorption needs a coefficient, or what it is
-      !! but it's equal to 1 in all the test cases
-      nuabs_coefs = 1
-
-      ewrite(3,*) ' Getting iteration info'
-      call get_option( '/timestepping/nonlinear_iterations', nonlinear_iterations, &
-           default = 3 )
-      nits = nonlinear_iterations
-
-      if( have_option( '/timestepping/nonlinear_iterations/tolerance' )) then
-         call get_option( '/timestepping/nonlinear_iterations/tolerance', &
-              nonlinear_iteration_tolerance )
-      else
-         nonlinear_iteration_tolerance = 1.e-6
-      end if
-
-      ! This one is only for compositional problems
-      call get_option('/material_phase[0]/scalar_field::component1/&
-           &prognostic/temporal_discretisation/control_volumes/number_advection_iterations',&
-           &nits_internal, default=1)
-
-      ! a mystery
-      ndpset = 0
-      noit_dim = 5
-
-      ! Get the number of advection CV face value iterations.
-      call get_option("/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/" // &
-           "temporal_discretisation/control_volumes/number_advection_iterations", nits_flux_lim_volfra, default=3)
-
-      call get_option("/material_phase[" // int2str(nphases) // "]/scalar_field::ComponentMassFractionPhase1/" // &
-           "temporal_discretisation/control_volumes/number_advection_iterations", nits_flux_lim_comp, default=3)
-
-      call get_option("/material_phase[0]/scalar_field::Temperature/prognostic/" // &
-           "temporal_discretisation/control_volumes/number_advection_iterations", nits_flux_lim_t, default=3)
-
-      !! disopt options: going to need to change the schema I think
-      !       =0      1st order in space          Theta=specified    UNIVERSAL
-      !       =1      1st order in space          Theta=non-linear   UNIVERSAL
-      !       =2      Trapezoidal rule in space   Theta=specified    UNIVERSAL
-      !       =2 if isotropic limiter then FEM-quadratic & stratification adjust. Theta=non-linear 
-      !       =3      Trapezoidal rule in space   Theta=non-linear   UNIVERSAL
-      !       =4      Finite elements in space    Theta=specified    UNIVERSAL
-      !       =5      Finite elements in space    Theta=non-linear   UNIVERSAL
-      !       =6      Finite elements in space    Theta=specified    NONE
-      !       =7      Finite elements in space    Theta=non-linear   NONE
-      !       =8      Finite elements in space    Theta=specified    DOWNWIND+
-      !       =9      Finite elements in space    Theta=non-linear   DOWNWIND+
-
-      if (have_option('/material_phase[0]/scalar_field::Temperature/prognostic/' // &
-           'spatial_discretisation/control_volumes/face_value::FiniteElement/limit_face_value')) then
-         t_disopt = 8 
-      else
-         t_disopt = 1
-      endif
-
-      ! hard wired option
-      u_disopt = 1
-
-      if (have_option('/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
-           'spatial_discretisation/control_volumes/face_value::FirstOrderUpwind')) then
-         v_disopt = 0 ! Unless theta=non_linear ???
-      elseif (have_option('/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
-           'spatial_discretisation/control_volumes/face_value::Trapezoidal')) then
-         v_disopt = 2 ! Unless theta=non_linear ???
-      elseif (have_option('/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
-           'spatial_discretisation/control_volumes/face_value::FiniteElement/do_not_limit_face_value')) then
-         v_disopt = 6 ! Unless theta=non_linear ???
-      elseif (have_option('/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
-           'spatial_discretisation/control_volumes/face_value::FiniteElement/limit_face_value')) then
-         v_disopt = 8 !! Unless all the other options, but need to be able to get 8 here
-      endif
-
-      t_dg_vel_int_opt = 0
-      u_dg_vel_int_opt = 4 ! Not used -- it can be deleted
-      v_dg_vel_int_opt = 4
-      w_dg_vel_int_opt = 0 ! Not used -- it can be deleted
 
       ewrite(3,*) ' Getting capillary pressure options'
       if (have_option('/porous_media/multiphase_parameters/cp_A')) then
@@ -589,46 +408,27 @@
          ncapil_pres_coef = 0
       end if
 
-      !! These are not currently used in any of the code
+      ! IN/DG_ELE_UPWIND are options for optimisation of upwinding across faces in the overlapping
+      ! formulation. The data structure and options for this formulation need to be added later. 
+      in_ele_upwind = 3
+      dg_ele_upwind = 3
+
+      ! Variables *ENTIRELY HARD-WIRED* that *MUST BE REPLACED* in the future
+      t_dg_vel_int_opt = 0
+      u_dg_vel_int_opt = 4 ! Not used -- it can be deleted
+      v_dg_vel_int_opt = 4
+      w_dg_vel_int_opt = 0 ! Not used -- it can be deleted
       comp_diffusion_opt = 0
       ncomp_diff_coef = 0
-
-      call get_option('/material_phase[0]/scalar_field::Pressure/prognostic/&
-           &atmospheric_pressure', patmos, default=0.0)
-      call get_option('/material_phase[0]/scalar_field::Pressure/prognostic/&
-           &initial_condition::WholeMesh/constant',p_ini, default=0.0)
-
-      call get_option('/material_phase[0]/scalar_field::Temperature/prognostic/' // &
-           'spatial_discretisation/conservative_advection', t_beta, default=0.5)
-
-      call get_option('/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
-           'spatial_discretisation/conservative_advection', v_beta)
-
-      call get_option('/material_phase[0]/scalar_field::Temperature/prognostic/' // &
-           'temporal_discretisation/theta', t_theta, default=0.5)
-
-      call get_option('/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
-           'temporal_discretisation/theta', v_theta)
-      call get_option('/material_phase[0]/vector_field::Velocity/prognostic/' // &
-           'temporal_discretisation/theta', u_theta)
-
-      !! I'm going to get this one from the PhaseVolumeFraction scalar_field
-      lump_eqns = have_option('/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
-           'spatial_discretisation/continuous_galerkin/mass_terms/lump_mass_matrix')
-
       volfra_use_theta_flux = .false.
       volfra_get_theta_flux = .true.
       comp_use_theta_flux = .false.
       comp_get_theta_flux = .true.
       t_use_theta_flux = .false.
       t_get_theta_flux = .true.
+      nlev = 3
+      mat_ele_type = 1 ; u_sele_type = 1 ; cv_sele_type = 1
 
-      ewrite(3,*) 'Finished stuff from read_scalar'
-
-      ! IN/DG_ELE_UPWIND are options for optimisation of upwinding across faces in the overlapping
-      ! formulation. The data structure and options for this formulation need to be added later. 
-      in_ele_upwind = 3
-      dg_ele_upwind = 3
 
       ! Calculating Mobility
       ewrite(3,*) "going to get viscosities"
@@ -849,14 +649,6 @@
 
       end do Loop_Component
 
-      allocate( suf_cpd_bc( stotel * cv_snloc * nphases ) )
-      suf_cpd_bc = 0.      
-
-      ! Extra allocation to stop the code dying when also running everything through the old io
-      allocate( suf_one_bc( stotel * cv_snloc * nphases ) )
-      suf_one_bc=0.
-
-!!!
 !!!  Density
 !!!
       ewrite(3,*) "density..."
@@ -881,7 +673,7 @@
 !!!
 !!! Pressure
 !!!
-      ewrite(3,*) "pressure..."
+      ewrite(3,*) "pressure"
 
       field => extract_scalar_field( state( 1 ), "Pressure" )
       allocate( p( node_count( field ))) ; p=0.
@@ -909,7 +701,7 @@
 !!!
 !!! Volume Fraction (or Saturation)
 !!!
-      ewrite(3,*) "phasevolumefraction..."
+      ewrite(3,*) "phasevolumefraction"
 
       Loop_VolumeFraction: do i = 1, nphases
 
@@ -925,9 +717,13 @@
             allocate( suf_vol_bc( stotel * cv_snloc * nphases ))
             suf_vol_bc = 0.
          endif
+         if(.not. allocated( v_source ) ) then
+            allocate( v_source( cv_nonods * nphases ) ) ; v_source = 0.
+         end if
          k = ( i - 1 ) * node_count( field )
          call Get_ScalarFields_Outof_State( state, i, field, &
-              satura( k + 1 : k + node_count( field ) ), wic_vol_bc, suf_vol_bc )
+              satura( k + 1 : k + node_count( field ) ), wic_vol_bc, suf_vol_bc, &
+              field_prot_source = v_source )
 
       enddo Loop_VolumeFraction
 
@@ -938,7 +734,7 @@
 !!!
 !!! Velocity and associated boundary conditions:
 !!!
-      ewrite(3,*) "velocity..."
+      ewrite(3,*) "velocity"
 
       if (.not. allocated(u)) then
          allocate( u( nphases * u_nonods )) ; u = 0.
@@ -972,84 +768,27 @@
       allocate( wg(nphases * u_nonods )) ; wg = 0.
 
 
+      allocate( u_absorb( cv_nloc * totele, ndim * nphases, &
+           ndim * nphases ) ) ; u_absorb = 0.
+      allocate( vel_absorb( u_nloc * totele, ndim * nphases, &
+           ndim * nphases ) ) ; vel_absorb = 0.
+
       Loop_Velocity: do i = 1, nphases
 
          velocity => extract_vector_field(state(i), "Velocity")
-         option_path = "/material_phase["//int2str(i-1)//"]/vector_field::Velocity"
+         call Get_VectorFields_Outof_State( state, i, velocity, &
+              u, v, w, nu, nv, nw, &
+              wic_u_bc, suf_u_bc, suf_v_bc, suf_w_bc, u_source, vel_absorb )
 
-         ! facility to initialise velocity field with the initial value from diamond
-         ! as long as it's a constant value
-         if (.not. allocated(initial_constant_velocity)) allocate(initial_constant_velocity(ndim))
-         initial_constant_velocity=0.
-         call get_option(trim(option_path)//"/prognostic/initial_condition::WholeMesh/constant", &
-              initial_constant_velocity)
+      end do Loop_Velocity
 
-         u((i-1)*u_nonods+1:i*u_nonods)=initial_constant_velocity(1)
-         if (ndim>1) v((i-1)*u_nonods+1:i*u_nonods)=initial_constant_velocity(2)
-         if (ndim>2) w((i-1)*u_nonods+1:i*u_nonods)=initial_constant_velocity(3)
+      allocate( comp_absorb( cv_nonods, nphases, nphases ) ) 
+      comp_absorb=0.
+      allocate( t_absorb( cv_nonods, nphases, nphases ) ) 
+      t_absorb=0.
+      allocate( v_absorb( cv_nonods, nphases, nphases ) ) 
+      v_absorb=0.
 
-         ! set nu to u
-         nu((i-1)*u_nonods+1:i*u_nonods)=initial_constant_velocity(1)
-         if (ndim>1) nv((i-1)*u_nonods+1:i*u_nonods)=initial_constant_velocity(2)
-         if (ndim>2) nw((i-1)*u_nonods+1:i*u_nonods)=initial_constant_velocity(3)
-
-         Conditional_Velocity_BC: if( have_option( '/material_phase[' // int2str(i-1) // &
-              ']/vector_field::Velocity/prognostic/' // &
-              'boundary_conditions[0]/type::dirichlet' )) then
-
-            nobcs = get_boundary_condition_count( velocity )
-            Velocity_BC_Type = 1
-
-            do k = 1, nobcs
-               velocity_bc => extract_surface_field( velocity, k, "value" )
-
-               shape_option=option_shape("/material_phase[" // int2str(i-1) // "]/vector_field::Velocity/&
-                    &prognostic/boundary_conditions["//int2str(k-1)//"]/surface_ids")
-
-               allocate(velocity_sufid_bc(1:shape_option(1)))
-
-               call get_option( "/material_phase[" // int2str(i-1) // "]/vector_field::Velocity/&
-                    &prognostic/boundary_conditions[" // int2str(k-1) // "]/surface_ids", Velocity_SufID_BC )
-
-               ! we can delete this 
-               ! Specify the boundary condition type.
-               !do j = 1, shape_option( 1 )
-               !   wic_u_bc( velocity_sufid_bc(j) + ( i - 1 ) * nphases ) = Velocity_BC_Type
-               !enddo
-
-               allocate(face_nodes(face_loc(velocity, 1)))
-               face_nodes=(/( l, l=1, u_snloc2)/)
-
-               do j = 1, stotel
-
-                  if( any ( velocity_sufid_bc == vmesh%faces%boundary_ids(j) ) ) then 
-
-                     wic_u_bc( j  + ( i - 1 ) * stotel ) = Velocity_BC_Type
-
-                     count=1
-                     do kk = 1, u_snloc
-
-                        suf_u_bc( ( i - 1 ) * stotel*u_snloc + (j-1)*u_snloc + kk ) = velocity_bc%val( 1, face_nodes(count) )
-                        if (velocity%dim>1) suf_v_bc( ( i - 1 ) * stotel*u_snloc + (j-1)*u_snloc + kk ) = velocity_bc%val( 2, face_nodes(count) )
-                        if (velocity%dim>2) suf_w_bc( ( i - 1 ) * stotel*u_snloc + (j-1)*u_snloc + kk ) = velocity_bc%val( 3, face_nodes(count) )
-
-                        count=count+1
-                        if ( mod(kk, u_snloc2)==0. ) count=1
-                     end do
-
-                     face_nodes = face_nodes + u_snloc2
-
-                  end if
-               end do
-
-               deallocate(face_nodes)
-               deallocate(velocity_sufid_bc)
-
-            end do ! End of BC Loop 
-
-         endif Conditional_Velocity_BC
-
-      end do Loop_Velocity ! This is the phase loop
 
       allocate(uabs_option(nphases))
       allocate(eos_option(nphases))
@@ -1072,9 +811,12 @@
          cp_option(i) = 1
       enddo
 
+
       !! uabs_coefs is currently only used in rel perm options which aren't
       !! selected in any of the test cases, ie the 'standard polynomial
       !! representation of relative permeability'
+      nuabs_coefs = 1
+      ncoef = 10
       allocate(uabs_coefs(nphases, nuabs_coefs))
       allocate(eos_coefs(nphases, ncoef))
       eos_coefs=0.
@@ -1165,18 +907,6 @@
          end do
       end if
 
-      ewrite(3,*) 'Getting PVF Source'
-      do i=1,nphases
-         pvf_source => extract_scalar_field(state(i), "PhaseVolumeFractionSource", stat)
-         if (.not.allocated(v_source)) allocate(v_source(cv_nonods*nphases))
-         if (stat==0) then
-            do j=1,node_count(pvf_source)
-               v_source((i-1)*node_count(pvf_source)+j)=pvf_source%val(j)
-            enddo
-         else
-            v_source = 0.
-         endif
-      enddo
 
 !!!
 !!!  Temperature
@@ -1222,14 +952,6 @@
       allocate(u_abs_stab(cv_nloc*totele, ndim*nphases, ndim*nphases))
       u_abs_stab=0.
       ! or this one
-      allocate(u_absorb(cv_nloc*totele, ndim*nphases, ndim*nphases))
-      u_absorb=0.
-      allocate(comp_absorb(cv_nonods, nphases, nphases))
-      comp_absorb=0.
-      allocate( t_absorb( cv_nonods, nphases, nphases ))
-      t_absorb=0.
-      allocate( v_absorb( cv_nonods, nphases, nphases ))
-      v_absorb=0.
       allocate( k_comp( ncomps, nphases, nphases ))
       k_comp=0.
       if (KComp_Sigmoid) then
@@ -1248,19 +970,21 @@
       cv_one = 1.0
 
 
-      call test_bc( ndim, nphases, &
-           u_nonods, cv_nonods, x_nonods, &
-           u_snloc, p_snloc, cv_snloc, stotel, u_sndgln, p_sndgln, cv_sndgln, &
+      if( .false. ) then
+         call test_bc( ndim, nphases, &
+              u_nonods, cv_nonods, x_nonods, &
+              u_snloc, p_snloc, cv_snloc, stotel, u_sndgln, p_sndgln, cv_sndgln, &
                                 ! For force balance eqn:
-           suf_u_bc, suf_v_bc, suf_w_bc, suf_p_bc, &
-           suf_u_bc_rob1, suf_u_bc_rob2, suf_v_bc_rob1, suf_v_bc_rob2, &
-           suf_w_bc_rob1, suf_w_bc_rob2, &
-           wic_u_bc, wic_p_bc, &
+              suf_u_bc, suf_v_bc, suf_w_bc, suf_p_bc, &
+              suf_u_bc_rob1, suf_u_bc_rob2, suf_v_bc_rob1, suf_v_bc_rob2, &
+              suf_w_bc_rob1, suf_w_bc_rob2, &
+              wic_u_bc, wic_p_bc, &
                                 ! For cty eqn: 
-           suf_vol_bc, suf_d_bc, &
-           suf_vol_bc_rob1, suf_vol_bc_rob2, &
-           wic_vol_bc, wic_d_bc, &
-           x, y, z )
+              suf_vol_bc, suf_d_bc, &
+              suf_vol_bc_rob1, suf_vol_bc_rob2, &
+              wic_vol_bc, wic_d_bc, &
+              x, y, z )
+      end if
 
       ewrite(3,*) "Leaving copy_outof_state"
 
@@ -1623,8 +1347,6 @@
 
       dx = maxval( positions%val(1,:) ) - minval( positions%val(1,:) )
 
-
-
       return
     end subroutine Get_Primary_Scalars
 
@@ -1737,17 +1459,16 @@
     end subroutine Get_Vector_SNdgln
 
 
-
     subroutine Get_ScalarFields_Outof_State( state, iphase, field, &
          field_prot, wic_bc, suf_bc, field_prot_source, field_prot_absorption )
       implicit none
       type( state_type ), dimension( : ), intent( inout ) :: state
       integer, intent( in ) :: iphase
-      type(scalar_field), pointer :: field, field_prot_bc
-      real, dimension(:), intent(inout) :: field_prot
-      real, dimension(:), intent(inout), optional :: field_prot_source, field_prot_absorption
+      type( scalar_field ), pointer :: field, field_prot_bc
+      real, dimension( : ), intent( inout ) :: field_prot
+      real, dimension( : ), intent( inout ), optional :: field_prot_source, field_prot_absorption
       integer, dimension( : ), intent( inout ) :: wic_bc
-      real, dimension(:), intent(inout) :: suf_bc
+      real, dimension( : ), intent( inout ) :: suf_bc
 
       ! Local variables
       type( mesh_type ), pointer :: pmesh, cmesh
@@ -1761,7 +1482,6 @@
       logical :: have_source, have_absorption
 
       field_name = trim( field % name )
-      field => extract_scalar_field( state( iphase ), field_name )
 
       field_source => extract_scalar_field( state( iphase ), field_name // "Source", stat )
       have_source = (stat == 0)
@@ -1773,8 +1493,8 @@
       ! this is basically p_snloc
       snloc = face_loc( pressure, 1 )
 
-      pmesh => extract_mesh(state, "PressureMesh" )
-      cmesh => extract_mesh(state, "CoordinateMesh" )
+      pmesh => extract_mesh( state, "PressureMesh" )
+      cmesh => extract_mesh( state, "CoordinateMesh" )
 
       stotel = surface_element_count( cmesh )
       nstates = option_count("/material_phase")
@@ -1852,5 +1572,374 @@
 
       return
     end subroutine Get_ScalarFields_Outof_State
+
+    subroutine Get_VectorFields_Outof_State( state, iphase, field, &
+         field_u_prot, field_v_prot, field_w_prot, field_nu_prot, field_nv_prot, field_nw_prot, &
+         wic_bc, suf_u_bc, suf_v_bc, suf_w_bc, field_prot_source, field_prot_absorption )
+      implicit none
+      type( state_type ), dimension( : ), intent( inout ) :: state
+      integer, intent( in ) :: iphase
+      type(vector_field), pointer :: field, field_prot_bc
+      real, dimension( : ), intent( inout ) :: field_u_prot, field_v_prot, field_w_prot, &
+           field_nu_prot, field_nv_prot, field_nw_prot
+      real, dimension( : ), intent( inout ), optional :: field_prot_source
+      real, dimension( : , :, : ), intent( inout ), optional :: field_prot_absorption
+      integer, dimension( : ), intent( inout ) :: wic_bc
+      real, dimension( : ), intent( inout ) :: suf_u_bc, suf_v_bc, suf_w_bc
+
+      ! Local variables
+      type( mesh_type ), pointer :: pmesh, cmesh
+      type(scalar_field), pointer :: pressure, field_source, field_absorption
+      integer, dimension(:), allocatable :: sufid_bc, face_nodes
+      character( len = option_path_len ) :: option_path, field_name
+      integer :: ndim, stotel, snloc, snloc2, nonods, nobcs, bc_type, j, k, kk, l, &
+           shape_option( 2 ), count
+      real, dimension( : ), allocatable :: initial_constant_field
+      logical :: have_source, have_absorption
+
+      pmesh => extract_mesh(state, "PressureMesh" )
+      cmesh => extract_mesh(state, "CoordinateMesh" )
+
+      ndim = field % dim
+      stotel = surface_element_count( cmesh )
+      snloc = face_loc(field, 1) * face_loc(pmesh, 1)
+      snloc2 = face_loc(field, 1)
+      nonods = node_count( field )
+
+      field_name = trim( field % name )
+
+      option_path = "/material_phase["//int2str(iphase-1)//"]/vector_field::" // &
+           trim(field_name)
+
+      ! facility to initialise velocity field with the initial value from diamond
+      ! as long as it's a constant value
+      allocate(initial_constant_field(ndim)) ; initial_constant_field=0.
+      call get_option(trim(option_path)//"/prognostic/initial_condition::WholeMesh/constant", &
+           initial_constant_field)
+
+      field_u_prot((iphase-1) * nonods+1 : iphase * nonods)=initial_constant_field(1)
+      if (ndim>1) field_v_prot((iphase-1) * nonods+1 : iphase * nonods)=initial_constant_field(2)
+      if (ndim>2) field_w_prot((iphase-1) * nonods+1 : iphase * nonods)=initial_constant_field(3)
+
+      ! set nu to u
+      field_nu_prot((iphase-1) * nonods+1 : iphase * nonods) = initial_constant_field(1)
+      if (ndim>1) field_nv_prot((iphase-1) * nonods+1 : iphase * nonods) = initial_constant_field(2)
+      if (ndim>2) field_nw_prot((iphase-1) * nonods+1 : iphase * nonods) = initial_constant_field(3)
+
+      Conditional_Field_BC: if( have_option( '/material_phase[' // int2str(iphase-1) // &
+           ']/vector_field::' // trim(field_name) // ' /prognostic/' // &
+           'boundary_conditions[0]/type::dirichlet' )) then
+
+         BC_Type = 1
+         nobcs = get_boundary_condition_count( field )
+
+         do k = 1, nobcs
+            field_prot_bc => extract_surface_field( field, k, "value" )
+
+            shape_option = option_shape('/material_phase[' // int2str(iphase-1) // &
+                 ']/vector_field::' // trim(field_name) //&
+                 '/prognostic/boundary_conditions[' //int2str(k-1)// ']/surface_ids' )
+
+            allocate(sufid_bc(1:shape_option(1)))
+
+            call get_option( '/material_phase[' // int2str(iphase-1) // &
+                 ']/vector_field::' // trim(field_name) // &
+                 '/prognostic/boundary_conditions[' // int2str(k-1) // &
+                 ']/surface_ids', SufID_BC )
+
+            allocate(face_nodes(face_loc(field, 1)))
+            face_nodes=(/( l, l=1, snloc2)/)
+
+            do j = 1, stotel
+
+               if( any ( sufid_bc == field%mesh%faces%boundary_ids(j) ) ) then 
+
+                  wic_bc( j  + ( iphase - 1 ) * stotel ) = BC_Type
+
+                  count = 1
+                  do kk = 1, snloc
+                     suf_u_bc( ( iphase - 1 ) * stotel * snloc + (j-1) * snloc + kk ) = &
+                          field_prot_bc%val( 1, face_nodes(count) )
+                     if (ndim>1) suf_v_bc( ( iphase - 1 ) * stotel * snloc + & 
+                          (j-1) * snloc + kk ) = field_prot_bc%val( 2, face_nodes(count) )
+                     if (ndim>2) suf_w_bc( ( iphase - 1 ) * stotel * snloc + &
+                          (j-1) * snloc + kk ) = field_prot_bc%val( 3, face_nodes(count) )
+
+                     count=count+1
+                     if ( mod(kk, snloc2)==0. ) count=1
+                  end do
+
+                  face_nodes = face_nodes + snloc2
+
+               end if
+            end do
+
+            deallocate(face_nodes)
+            deallocate(sufid_bc)
+
+         end do ! End of BC Loop 
+
+      endif Conditional_Field_BC
+
+      deallocate( initial_constant_field ) 
+
+      return
+    end subroutine Get_VectorFields_Outof_State
+
+
+    subroutine Get_Ele_Type(x_nloc, cv_ele_type, p_ele_type, u_ele_type)
+
+      !-
+      !- u_ele_type = cv_ele_type = p_ele_type will flag the dimension and 
+      !- type of element:
+      !- = 1 or 2: 1D (linear and quadratic, respectively)
+      !- = 3 or 4: triangle (linear or quadratic, respectively)
+      !- = 5 or 6: quadrilateral (bi-linear or tri-linear, respectively)
+      !- = 7 or 8: tetrahedron (linear or quadratic, respectively)
+      !- = 9 or 10: hexahedron (bi-linear or tri-linear, respectively)
+      !-
+
+      implicit none
+
+      integer, intent(in) :: x_nloc
+      integer, intent( inout ) :: cv_ele_type, p_ele_type, u_ele_type
+
+      ! Local variables
+      integer :: ndim, degree
+
+
+
+      call get_option("/geometry/dimension", ndim)
+
+      call get_option( &
+           "/geometry/mesh::PressureMesh/from_mesh/mesh_shape/polynomial_degree", &
+           degree)
+
+      Select Case( ndim )
+      case( 1 ) ! ndim
+
+         Select Case( degree )
+
+         case( 1 ) ! degree
+
+            ! ndim=1; p=1
+            cv_ele_type = 1
+
+         case( 2 ) ! degree
+
+            ! ndim=1; p=2
+            cv_ele_type = 2
+
+         case default; FLAbort("Degree error")
+
+         end Select ! degree
+
+      case( 2 ) ! ndim
+
+         Select Case( degree )
+
+         case( 1 ) ! degree
+
+            Select Case( x_nloc )
+
+            case( 3 ) ! x_nloc
+
+               ! ndim=2; p=1; x_nloc=3
+               ! linear triangle
+               cv_ele_type = 3
+
+            case( 4 ) ! x_nloc
+
+               ! ndim=2; p=1; x_nloc=4
+               ! bilinear quad
+               cv_ele_type = 5
+
+            case default; FLAbort("X_nloc error")
+
+            end Select ! x_nloc
+
+         case( 2 ) ! degree
+
+            Select Case( x_nloc )
+
+            case( 3 ) ! x_nloc
+
+               ! ndim=2; p=2; x_nloc=3
+               ! quadratic triangle
+               cv_ele_type = 4
+
+            case( 4 ) ! x_nloc
+
+               ! ndim=2; p=2; x_nloc=4
+               ! bi-quadratic quad
+               cv_ele_type = 6
+
+            case default; FLAbort("X_nloc error")
+
+            end Select ! x_nloc
+
+         case default; FLAbort("Degree error")
+
+         end Select ! degree
+
+      case( 3 ) ! ndim
+
+         Select Case( degree )
+
+         case( 1 ) ! degree
+
+            Select Case( x_nloc )
+
+            case( 4 ) ! x_nloc
+
+               ! ndim=3; p=1; x_nloc=4
+               ! linear tets
+               cv_ele_type = 7
+
+            case( 8 ) ! x_nloc
+
+               ! ndim=3; p=1; x_nloc=8
+               ! tri-linear hex
+               cv_ele_type = 9
+
+            case default; FLAbort("X_nloc error")
+
+            end Select ! x_nloc
+
+         case( 2 ) ! degree
+
+            Select Case( x_nloc )
+
+            case( 4 ) ! x_nloc
+
+               ! ndim=3; p=2; x_nloc=4
+               ! quadratic tet
+               cv_ele_type = 8
+
+            case( 8 ) ! x_nloc
+
+               ! ndim=3; p=2; x_nloc=8
+               ! bilinear quad
+               cv_ele_type = 10
+
+            case default; FLAbort("X_nloc error")
+
+            end Select ! x_nloc
+
+         case default; FLAbort("Degree error")
+
+         end Select ! degree
+
+      end Select ! ndim
+
+      p_ele_type = cv_ele_type ; u_ele_type = cv_ele_type
+
+      return
+    end subroutine Get_Ele_Type
+
+
+    subroutine Get_Solvers_Options( nphases, &
+         nits, nits_internal, &
+         ndpset, nits_flux_lim_volfra, nits_flux_lim_comp, &
+         nits_flux_lim_t, t_disopt, v_disopt, t_beta, v_beta, &
+         t_theta, v_theta, u_theta, &
+         nonlinear_iteration_tolerance, lump_eqns  )
+      ! This subroutine extract all solvers information from diamons
+      implicit none
+      integer, intent( in ) :: nphases
+      integer, intent( inout ) :: nits, nits_internal, ndpset, &
+           nits_flux_lim_volfra, nits_flux_lim_comp, &
+           nits_flux_lim_t, t_disopt, v_disopt
+      real, intent( inout ) :: t_beta, v_beta, t_theta, v_theta, u_theta, &
+           nonlinear_iteration_tolerance
+      logical, intent( inout ) :: lump_eqns
+
+      call get_option( '/timestepping/nonlinear_iterations', nits, &
+           default = 3 )
+
+      if( have_option( '/timestepping/nonlinear_iterations/tolerance' )) then
+         call get_option( '/timestepping/nonlinear_iterations/tolerance', &
+              nonlinear_iteration_tolerance )
+      else
+         nonlinear_iteration_tolerance = 1.e-6
+      end if
+
+      ! This one is only for compositional problems
+      call get_option('/material_phase[0]/scalar_field::component1/' // &
+           'prognostic/temporal_discretisation/control_volumes/' // &
+           'number_advection_iterations', nits_internal, default=1)
+
+      ! Refernce pressure node to be set
+      call get_option('/material_phase[0]/scalar_field::Pressure/' // &
+           'prognostic/spatial_discretisation/reference_node', ndpset, default = 0 )
+
+
+      ! Get the number of advection CV face value iterations.
+      call get_option('/material_phase[0]/scalar_field::PhaseVolumeFraction/' // &
+           'prognostic/temporal_discretisation/control_volumes/' // &
+           'number_advection_iterations', nits_flux_lim_volfra, default=3 )
+
+      call get_option('/material_phase[' // int2str(nphases) // &
+           ']/scalar_field::ComponentMassFractionPhase1/' // &
+           'temporal_discretisation/control_volumes/' // &
+           'number_advection_iterations', nits_flux_lim_comp, default=3 )
+
+      call get_option('/material_phase[0]/scalar_field::Temperature/prognostic/' // &
+           'temporal_discretisation/control_volumes/number_advection_iterations', &
+           nits_flux_lim_t, default=3 )
+
+      ! Still hard-wired: MUST BE REVIEWED LATER
+      t_disopt = 1
+      if (have_option('/material_phase[0]/scalar_field::Temperature/prognostic/' // &
+           'spatial_discretisation/control_volumes/face_value::FiniteElement/' // &
+           'limit_face_value') ) t_disopt = 8
+      !! disopt options: going to need to change the schema I think
+      !       =0      1st order in space          Theta=specified    UNIVERSAL
+      !       =1      1st order in space          Theta=non-linear   UNIVERSAL
+      !       =2      Trapezoidal rule in space   Theta=specified    UNIVERSAL
+      !       =2 if isotropic limiter then FEM-quadratic & stratification adjust. Theta=non-linear 
+      !       =3      Trapezoidal rule in space   Theta=non-linear   UNIVERSAL
+      !       =4      Finite elements in space    Theta=specified    UNIVERSAL
+      !       =5      Finite elements in space    Theta=non-linear   UNIVERSAL
+      !       =6      Finite elements in space    Theta=specified    NONE
+      !       =7      Finite elements in space    Theta=non-linear   NONE
+      !       =8      Finite elements in space    Theta=specified    DOWNWIND+
+      !       =9      Finite elements in space    Theta=non-linear   DOWNWIND+
+
+
+      ! Add this variables into spud and replace them in cv_assemb and multi_dyncore
+      if (have_option('/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
+           'spatial_discretisation/control_volumes/face_value::FirstOrderUpwind')) then
+         v_disopt = 0 ! Unless theta=non_linear ???
+      elseif (have_option('/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
+           'spatial_discretisation/control_volumes/face_value::Trapezoidal')) then
+         v_disopt = 2 ! Unless theta=non_linear ???
+      elseif (have_option('/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
+           'spatial_discretisation/control_volumes/face_value::FiniteElement/do_not_limit_face_value')) then
+         v_disopt = 6 ! Unless theta=non_linear ???
+      elseif (have_option('/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
+           'spatial_discretisation/control_volumes/face_value::FiniteElement/limit_face_value')) then
+         v_disopt = 8 !! Unless all the other options, but need to be able to get 8 here
+      endif
+
+      call get_option('/material_phase[0]/scalar_field::Temperature/prognostic/' // &
+           'spatial_discretisation/conservative_advection', t_beta, default=0.0)
+      call get_option('/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
+           'spatial_discretisation/conservative_advection', v_beta )
+
+      call get_option('/material_phase[0]/scalar_field::Temperature/prognostic/' // &
+           'temporal_discretisation/theta', t_theta, default=1. )
+      call get_option('/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
+           'temporal_discretisation/theta', v_theta)
+      call get_option('/material_phase[0]/vector_field::Velocity/prognostic/' // &
+           'temporal_discretisation/theta', u_theta)
+
+      !! I'm going to get this one from the PhaseVolumeFraction scalar_field
+      lump_eqns = have_option('/material_phase[0]/scalar_field::PhaseVolumeFraction/' // &
+           'prognostic/spatial_discretisation/continuous_galerkin/' // &
+           'mass_terms/lump_mass_matrix')
+
+      return
+    end subroutine Get_Solvers_Options
 
   end module copy_outof_into_state

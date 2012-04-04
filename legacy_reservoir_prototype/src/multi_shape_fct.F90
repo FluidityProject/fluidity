@@ -2028,6 +2028,7 @@
       Loop_SGI1: do cv_sgi = 1, scvngi
          r_prodt = 1.
          Loop_NLOC: do cv_iloc = 1, cv_snloc
+ewrite(3,*)'cv_iloc, cv_snloc, cv_nloc, cv_sgi, scvngi:', cv_iloc, cv_snloc, cv_nloc, cv_sgi, scvngi
             r_prodt = r_prodt * scvfen( cv_iloc, cv_sgi )
          end do Loop_NLOC
          ewrite(3,*) 'cv_sgi, r_prodt:', cv_sgi, r_prodt

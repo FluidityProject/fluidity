@@ -204,7 +204,6 @@ module mp_prototype
       ncp_coefs = nphase
       nlenmcy = u_pha_nonods + cv_nonods
 
-      if( ndpset < 0 ) ndpset = cv_nonods
 
       ! This should really be in the copy routine, but it isn't used
       ! anyway

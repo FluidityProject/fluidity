@@ -467,7 +467,8 @@ start =
                                  ## There should probably be at least 9
                                  ## see multi_eos.F90 lines 132-140
                                  element specify_all {
-                                    real_vector
+                                       element number_of_ccefficients{ real },
+                                       element coefficients{ real_vector }
                                  }
                               ),
                               ## The reference or background density

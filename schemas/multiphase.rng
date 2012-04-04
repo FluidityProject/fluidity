@@ -550,7 +550,12 @@ the test cases (=1)</a:documentation>
                         <a:documentation>Specify the coefficients separately
 There should probably be at least 9
 see multi_eos.F90 lines 132-140</a:documentation>
-                        <ref name="real_vector"/>
+                        <element name="number_of_ccefficients">
+                          <ref name="real"/>
+                        </element>
+                        <element name="coefficients">
+                          <ref name="real_vector"/>
+                        </element>
                       </element>
                     </choice>
                     <optional>
