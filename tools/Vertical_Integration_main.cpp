@@ -51,7 +51,7 @@ extern "C"{
   void vertical_integration(const char* target_basename, size_t target_basename_len,
                             const char* integrated_filename, size_t integrated_filename_len,
                             const char* output_basename, size_t output_basename_len,
-                            real_t top, real_t bottom, real_t sizing, size_t result_continuity, size_t result_degree);
+                            real_t top, real_t bottom, real_t sizing, int32_t result_continuity, int32_t result_degree);
 
 #ifdef HAVE_PYTHON
 #include "python_statec.h"
@@ -144,11 +144,11 @@ int main(int argc, char** argv){
   if(args.count('t') > 0){
     top = atof(args['t'].c_str());
   }
-  size_t result_degree = 1;
+  int32_t result_degree = 1;
   if(args.count('p') > 0){
     result_degree = atoi(args['p'].c_str());
   }
-  size_t result_continuity = args.count('d') > 0 ? -1 : (result_degree == 0 ? -1 : 0);
+  int32_t result_continuity = args.count('d') > 0 ? -1 : (result_degree == 0 ? -1 : 0);
   
   // Input / output
   string target_basename, integrated_filename, integrated_fieldname, output_basename;
