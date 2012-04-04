@@ -36,20 +36,11 @@ subroutine mainfl() bind(C)
   use signals
   use spud
   use tictoc
-#ifdef HAVE_LIBNUMA
-  use parallel_tools, only: getrank
-#endif  
 #ifdef HAVE_ZOLTAN
   use zoltan
 #endif
   
   implicit none
-
-#ifdef HAVE_LIBNUMA
-  character*256 :: file_name
-  integer :: r
-  character*256 :: cr
-#endif
 
   ! We need to do this here because the fortran Zoltan initialisation
   ! routine does extra things on top of the C one. That wasn't a fun
@@ -60,19 +51,6 @@ subroutine mainfl() bind(C)
 
   ierr = Zoltan_Initialize(ver)  
   assert(ierr == ZOLTAN_OK)
-#endif
-
-#ifdef HAVE_LIBNUMA
-  r = getrank()
-  write (cr,*) r
-  cr = adjustl(cr)
-  ! concatenate rank ID with profiler and .txt to create a
-  ! process specific file for profiler output
-  file_name = "profile" // trim(cr) // ".txt" 
-  ! create file to output profiler information to
-  open(unit=20, file=file_name, status="replace", action="write")
-  write(20,*) "Profiling information - page faults & node residence"
-  write(20,*) "===================================================="
 #endif
   
   ! Establish signal handlers
@@ -98,13 +76,6 @@ subroutine mainfl() bind(C)
      ewrite(1, *) "Exited fluids"
      call toc(TICTOC_ID_SIMULATION)
      call tictoc_report(2, TICTOC_ID_SIMULATION)
-
-#ifdef HAVE_LIBNUMA
-     ! Close profileRANK.txt
-     flush(20)
-     close(20)
-#endif
-
   end if
 
   if(SIG_INT) then

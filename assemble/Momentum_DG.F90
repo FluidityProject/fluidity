@@ -261,15 +261,6 @@ contains
     type(scalar_field), pointer :: vfrac
     type(scalar_field) :: nvfrac ! Non-linear approximation to the PhaseVolumeFraction
 
-#ifdef HAVE_LIBNUMA
-    !! Arrays to hold page faults per colour
-    integer, dimension(:,:), allocatable :: minor_pagefaults
-    integer, dimension (:), allocatable  :: minor_pagefaults_sum
-    !! number of minor and major faults
-    integer :: minfaults_tic, minfaults_toc, majfaults_tic, majfaults_toc 
-    integer :: thr
-#endif
-
     ewrite(1, *) "In construct_momentum_dg"
 
     call profiler_tic("construct_momentum_dg")
@@ -649,30 +640,13 @@ contains
     end if
 #endif
     call profiler_toc(u, "element_loop-omp_overhead")
-
-#ifdef HAVE_LIBNUMA    
-    ! set array length to number of colours * number of threads
-    allocate(minor_pagefaults(size(colours),0:num_threads-1))
-    allocate(minor_pagefaults_sum(size(colours)))
-    write(20,*) "Momentum_DG element loop :: Minor page faults"
-    write(20,*) "Number of colours = ",size(colours)
-#endif
     
     call profiler_tic(u, "element_loop")
 
     !$OMP PARALLEL DEFAULT(SHARED) &
-#ifdef HAVE_LIBNUMA
-    !$OMP PRIVATE(clr, nnid, ele, len, minfaults_tic, minfaults_toc)
-#else
     !$OMP PRIVATE(clr, nnid, ele, len)
-#endif
 
     colour_loop: do clr = 1, size(colours) 
-
-#ifdef HAVE_LIBNUMA
-      call profiler_minorpagefaults(minfaults_tic)
-#endif
-
       len = key_count(colours(clr))
 
       !$OMP DO SCHEDULE(STATIC)
@@ -694,29 +668,10 @@ contains
       !!we do need all the threads to finish before moving to the next colour
       !$OMP BARRIER
 
-#ifdef HAVE_LIBNUMA
-      call profiler_minorpagefaults(minfaults_toc)      
-      minor_pagefaults(clr,omp_get_thread_num()) = minfaults_toc - minfaults_tic
-      flush(20)
-#endif
-
     end do colour_loop
     !$OMP END PARALLEL
 
     call profiler_toc(u, "element_loop")
-
-#ifdef HAVE_LIBNUMA
-    do clr = 1, size(colours) 
-       minor_pagefaults_sum = 0
-       do thr = 0, num_threads-1
-          minor_pagefaults_sum(clr) = minor_pagefaults_sum(clr) &
-               + minor_pagefaults(clr,thr)
-       end do
-       write(20,*) "Colour :: ", clr, " :: Sum of minor page faults = ", &
-            minor_pagefaults_sum(clr)
-       flush(20)
-    end do
-#endif
 
     if (have_wd_abs) then
       ! the remapped field is not needed anymore.

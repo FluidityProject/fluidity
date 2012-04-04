@@ -28,12 +28,6 @@
 
 #include "Profiler.h"
 
-#ifdef HAVE_LIBNUMA
-#include <numa.h>
-#include <numaif.h>
-#include <sys/resource.h>
-#endif 
-
 using namespace std;
 
 Profiler::Profiler(){
