@@ -683,8 +683,7 @@
               supg_element(thread_num+1))
       end do element_loop
       !$OMP END DO
-      !!we do need all the threads to finish before moving to the next colour
-      !$OMP BARRIER
+
     end do colour_loop
     !$OMP END PARALLEL
 
