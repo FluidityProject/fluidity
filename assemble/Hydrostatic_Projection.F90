@@ -209,7 +209,7 @@ contains
     integer :: i, sele, ele
 
     p_mesh => extract_pressure_mesh(state)
-    if (.not. (element_degree(p_mesh,1)==element_degree(u,1)+1 .and. continuity(p_mesh)<0 .and. continuity(u)>=0)) then
+    if (.not. (element_degree(p_mesh,1)==element_degree(u,1)+1 .and. continuity(p_mesh)>=0 .and. continuity(u)<0)) then
       FLExit("Hydrostatic pressure projection only works for PnDG-Pn+1")
     end if
     call find_linear_parent_mesh(state, p_mesh, l_mesh)
@@ -242,10 +242,13 @@ contains
       ! the set of velocity nodes in this column, we've solved already:
       call allocate(column_nodes)
       do
-        ele = face_ele(l_mesh, sele)
-        if (ele<=0) exit
+        ele=face_ele(p_mesh, sele)
+        ! solve the velocities in the element ele above sele
+        ! this routine returns the sele that faces the element above
+        ! or returns sele=-1 if we've reached the top
+        call vertical_reconstruction_ele(column_nodes, ele, sele)
 
-        call vertical_reconstruction_ele(ele, sele)
+        if (sele<0) exit
 
       end do
       call deallocate(column_nodes)
@@ -256,7 +259,8 @@ contains
 
     contains
 
-    subroutine vertical_reconstruction_ele(ele, sele)
+    subroutine vertical_reconstruction_ele(column_nodes, ele, sele)
+      type(integer_set), intent(inout):: column_nodes
       integer, intent(in):: ele
       integer, intent(inout):: sele
 
@@ -267,7 +271,7 @@ contains
       real, dimension(size(rhs), size(rhs)):: matrix
       real, dimension(u%dim):: unorm
       integer, dimension(:), pointer:: faces, pnodes, unodes, row
-      integer:: j, k, k1, m, p
+      integer:: j, k, k1, m, p, next_sele
 
       ! find the face between this element and the next in the column
       ! this should be an element whose nodes are all in different columns
@@ -283,11 +287,12 @@ contains
         ! how did we get here if %columns is present?
         FLExit("Hydrostatic pressure projection requires columnar mesh.")
       end if
+      next_sele=faces(j)
 
       pnodes => ele_nodes(p_mesh, ele)
       unodes => ele_nodes(u, ele)
       call allocate(fnodes)
-      call insert(fnodes, face_global_nodes(p_mesh, faces(j)))
+      call insert(fnodes, face_global_nodes(p_mesh, next_sele))
       call insert(column_nodes, unodes)
 
       p=0
@@ -314,7 +319,7 @@ pressure_node_loop: do j=1, size(pnodes)
         do k=1, size(row)
           if (has_value(column_nodes, row(k))) then
             do m=1, u%dim
-              rhs(p) = rhs(p) - rowvals(m)%ptr(k)*node_val(u, k, row(k))
+              rhs(p) = rhs(p) - rowvals(m)%ptr(k)*node_val(u, m, row(k))
             end do
             if (row(k)==unodes(1)) k1=k-1
           end if
@@ -347,6 +352,8 @@ pressure_node_loop: do j=1, size(pnodes)
       end do
 
       call deallocate(fnodes)
+
+      sele=face_opposite(p_mesh, next_sele)
 
     end subroutine vertical_reconstruction_ele
 
