@@ -155,28 +155,6 @@ contains
 
     ewrite(2,*) "In identify_exodusii_file"
 
-!    ! An ExodusII file can have the following file extensions:
-!    ! e, exo, E, EXO, our first guess shall be exo    
-!    lfilename = trim(filename)//".exo"
-!    ! Read node file header
-!    inquire(file = trim(lfilename), exist = fileExists)
-!    if(.not. fileExists) then
-!      lfilename = trim(filename) // ".e"
-!      inquire(file = trim(lfilename), exist = fileExists)
-!      if(.not. fileExists) then
-!        lfilename = trim(filename) // ".EXO"
-!        inquire(file = trim(lfilename), exist = fileExists)
-!        if(.not. fileExists) then
-!          lfilename = trim(filename) // ".E"
-!          inquire(file = trim(lfilename), exist = fileExists)
-!          if(.not. fileExists) then
-!            FLExit("None of the possible ExodusII files " // trim(filename) //".exo /.e /.EXO /.E were found")
-!          end if
-!        end if
-!      end if
-!    end if
-!    lfilename = trim(lfilename)
-
     call get_exodusii_fileextension(filename, lfilename)
 
     ewrite(2, *) "Opening " // trim(lfilename) // " for reading."
@@ -251,30 +229,6 @@ contains
     integer, allocatable, dimension(:) :: node_set_node_list, total_node_sets_node_list
     
     integer :: i
-
-    ! code here
-
-!    ! An ExodusII file can have the following file extensions:
-!    ! e, exo, E, EXO, our first guess shall be exo    
-!    lfilename = trim(filename)//".exo"
-!    ! Read node file header
-!    inquire(file = trim(lfilename), exist = fileExists)
-!    if(.not. fileExists) then
-!      lfilename = trim(filename) // ".e"
-!      inquire(file = trim(lfilename), exist = fileExists)
-!      if(.not. fileExists) then
-!        lfilename = trim(filename) // ".EXO"
-!        inquire(file = trim(lfilename), exist = fileExists)
-!        if(.not. fileExists) then
-!          lfilename = trim(filename) // ".E"
-!          inquire(file = trim(lfilename), exist = fileExists)
-!          if(.not. fileExists) then
-!            FLExit("None of the possible ExodusII files " // trim(filename) //".exo /.e /.EXO /.E were found")
-!          end if
-!        end if
-!      end if
-!    end if
-!    lfilename = trim(lfilename)
 
     call get_exodusii_fileextension(filename, lfilename)
 
@@ -414,73 +368,6 @@ contains
 
 
   ! -----------------------------------------------------------------
-  ! Read through the head and decide whether this looks 
-  ! like an ExodusII mesh file or not.
-
-  subroutine read_header( fd, lfilename, exoFormat )
-    integer fd, exoFormat
-
-    character(kind=c_char, len=option_path_len) :: lfilename
-    character(kind=c_char, len=option_path_len) :: charBuf, exotitle
-    character :: newlineChar
-    integer exoFileType, exoDataSize, one
-    real versionNumber
-    
-    integer num_dim, num_nodes, num_elem, num_elem_blk, num_node_sets, num_side_sets
-
-    ewrite(2,*) "Inside read_header"
-
-    ! Error checking ...
-
-    
-    !close(fd)
-    !open(unit = fd, file = trim(lfilename), action="read", access="stream", form="formatted", IOSTAT=filestatus )
-    !call im_ex_get_coord_names(fd, charBuf)
-    ! call im_ex_get_init(fd, exotitle, num_dim, num_nodes, num_elem, num_elem_blk, num_node_sets, num_side_sets)
-    
-    !read(fd, *) charBuf
-    !ewrite(2,*) charBuf
-    !if( trim(charBuf) .ne. "netCDF" ) then
-    !   FLExit("Error: can't find 'netCDF' (ExodusII mesh file?)")
-    !end if
-
-    !read(fd, *) charBuf, gmshFileType, gmshDataSize
-
-    !read(charBuf,*) versionNumber
-    !if( versionNumber .lt. 2.0 .or. versionNumber .ge. 3.0 ) then
-    !   FLExit("Error: GMSH mesh version must be 2.x")
-    !end if
-
-
-    !if( gmshDataSize .ne. doubleNumBytes ) then
-    !   write(charBuf,*) doubleNumBytes
-    !   FLExit("Error: GMSH data size does not equal "//trim(adjustl(charBuf)))
-    !end if
-
-
-
-    !! GMSH binary format continues the integer 1, in binary.
-    !if( gmshFileType .eq. binaryFormat ) then
-    !   call binary_formatting(fd, lfilename, "read")
-    !   read(fd) one, newlineChar
-    !   call ascii_formatting(fd, lfilename, "read")
-    !end if
-
-
-    !read(fd, *) charBuf
-    !if( trim(charBuf) .ne. "$EndMeshFormat" ) then
-    !   FLExit("Error: can't find '$EndMeshFormat' (is this a GMSH mesh file?)")
-    !end if
-
-    !! Done with error checking... set format (ie. ascii or binary)
-    !gmshFormat = gmshFileType
-    
-    ewrite(2,*) "Outside read_header"
-
-  end subroutine read_header
-
-
-  ! -----------------------------------------------------------------
   ! Read ExodusII file to state object.
   function read_exodusii_file_to_state(filename, shape,shape_type,n_states) &
        result (result_state)
@@ -496,8 +383,6 @@ contains
     FLAbort("read_gmsh_file_to_state() not implemented yet")
 
   end function read_exodusii_file_to_state
-
-
 
 
 
@@ -527,7 +412,7 @@ contains
   ! -----------------------------------------------------------------
   ! Tries valid exodusii file extensions and quits if none of them
   ! has been found aka file does not exist
-  subroutine get_exodusii_fileextension(filename, lfilename)
+  subroutine get_exodusii_filename(filename, lfilename)
     character(len=*), intent(in) :: filename
     character(len=*), intent(inout) :: lfilename
     logical :: fileExists
@@ -551,9 +436,7 @@ contains
       end if
     end if
     lfilename = trim(lfilename)
-  end subroutine get_exodusii_fileextension
-
-
+  end subroutine get_exodusii_filename
 
 
 end module read_exodusii
