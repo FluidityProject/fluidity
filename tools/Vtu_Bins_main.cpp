@@ -34,7 +34,7 @@
 #endif
 
 extern "C" {
-  void vtu_bins(const char*, size_t, const char*, size_t, float*, size_t);
+  void vtu_bins(const char*, size_t, const char*, size_t, double*, size_t);
 }
 
 #ifdef _AIX
@@ -121,7 +121,7 @@ int main(int argc, char **argv){
   int input_fieldname_len = input_fieldname.size();
   
   size_t nbounds =  argc - optind - 2;
-  float bounds[nbounds];
+  double bounds[nbounds];
   for(int i = 0;i < nbounds;i++){
     bounds[i] = atof(argv[optind + 2 + i]);
   }

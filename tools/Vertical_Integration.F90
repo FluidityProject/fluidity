@@ -31,9 +31,7 @@ subroutine vertical_integration(target_basename_, target_basename_len, &
   integer(kind=c_size_t), value :: target_basename_len
   integer(kind=c_size_t), value :: integrated_filename_len
   integer(kind=c_size_t), value :: output_basename_len
-  real(kind=c_float), value :: top
-  real(kind=c_float), value :: bottom
-  real(kind=c_float), value :: sizing
+  real(kind=c_double), value :: top, bottom, sizing
   integer(kind=c_int32_t), value :: field_b_continuity
   integer(kind=c_int32_t), value :: field_b_degree
   character(kind=c_char, len=1) :: target_basename_(*)

@@ -41,17 +41,12 @@
 
 using namespace std;
 
-#ifdef DOUBLEP
-typedef double real_t;
-#else
-typedef float real_t;
-#endif
 
 extern "C"{
   void vertical_integration(const char* target_basename, size_t target_basename_len,
                             const char* integrated_filename, size_t integrated_filename_len,
                             const char* output_basename, size_t output_basename_len,
-                            real_t top, real_t bottom, real_t sizing, int32_t result_continuity, int32_t result_degree);
+                            double_t top, double_t bottom, double_t sizing, int32_t result_continuity, int32_t result_degree);
 
 #ifdef HAVE_PYTHON
 #include "python_statec.h"
@@ -126,7 +121,7 @@ int main(int argc, char** argv){
   set_global_debug_level_fc(&verbosity);
   
   // Options
-  real_t bottom, sizing, top = 0.0;
+  double_t bottom, sizing, top = 0.0;
   if(args.count('b') > 0){
     bottom = atof(args['b'].c_str());
   }else{

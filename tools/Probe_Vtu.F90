@@ -45,7 +45,7 @@ subroutine probe_vtu(vtu_filename_, vtu_filename_len, fieldname_, &
   character(kind=c_char, len=1) :: vtu_filename_(*)
   character(kind=c_char, len=1) :: fieldname_(*)
   integer(kind=c_int), value :: dim, vtu_filename_len, fieldname_len
-  real(kind=c_float), value :: x, y, z
+  real(kind=c_double), value :: x, y, z
 
   character(len = 1 + 1 + real_format_len(padding = 1) + 1) :: format
   integer :: ele, stat, i

@@ -47,7 +47,7 @@ subroutine vtu_bins(input_filename_, input_filename_len, input_fieldname_, &
   integer(kind=c_size_t), value :: nbounds
   character(kind=c_char, len=1) :: input_filename_(*)
   character(kind=c_char, len=1) :: input_fieldname_(*)
-  real(kind=c_float), dimension(nbounds) :: bounds
+  real(kind=c_double), dimension(nbounds) :: bounds
   
   character(len = input_filename_len) :: input_filename
   character(len = input_fieldname_len) :: input_fieldname

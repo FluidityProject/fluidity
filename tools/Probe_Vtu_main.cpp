@@ -34,7 +34,7 @@
 #endif
 
 extern "C" {
-  void probe_vtu(const char*, size_t, const char*, size_t, float, float, float, size_t);
+  void probe_vtu(const char*, size_t, const char*, size_t, double, double, double, size_t);
 }
 
 #ifdef _AIX
@@ -120,7 +120,7 @@ int main(int argc, char **argv){
   size_t fieldname_len = fieldname.size();
   
   size_t dim = 1;
-  float x, y = 0.0, z = 0.0;
+  double x, y = 0.0, z = 0.0;
   
   x = atof(argv[optind + 2]);  
   if(optind < argc - 3){
