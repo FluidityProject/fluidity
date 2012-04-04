@@ -262,6 +262,7 @@
            x_snloc, cv_snloc, u_snloc, p_snloc, &
            cv_nonods, mat_nonods, u_nonods, xu_nonods, x_nonods, p_nonods, dx, &
            is_overlapping )
+       if( is_overlapping ) u_nloc = u_nloc * cv_nloc
 
       ewrite(3,*) 'nphases, nstates, ncomps, totele, ndim, stotel:', &
            nphases, nstates, ncomps, totele, ndim, stotel
@@ -279,14 +280,14 @@
       positions => extract_vector_field( state( 1 ), "Coordinate" )
       allocate( x_ndgln( totele * x_nloc ) ) ; x_ndgln = 0
       ewrite(3,*)'Coordinates'
-      call Get_Ndgln( positions, x_ndgln )
+      call Get_Ndgln( x_ndgln, positions )
       ewrite(3,*) '   '
 
       ! Pressure and Control Volume
       pressure => extract_scalar_field( state( 1 ), "Pressure" )
       allocate( cv_ndgln( totele * cv_nloc ) ) ; cv_ndgln = 0
       ewrite(3,*)'CV'
-      call Get_Ndgln( pressure, cv_ndgln )
+      call Get_Ndgln( cv_ndgln, pressure )
       allocate( p_ndgln( totele * p_nloc ) ) ; p_ndgln = 0
       allocate( mat_ndgln( totele * mat_nloc ) ) ; mat_ndgln = 0
       p_ndgln = cv_ndgln
@@ -297,21 +298,21 @@
       velocity => extract_vector_field( state( 1 ), "Velocity" )
       allocate( u_ndgln( totele * u_nloc ) ) ;  u_ndgln = 0
       ewrite(3,*)'Velocities'
-      call Get_Ndgln( velocity, u_ndgln )
+      call Get_Ndgln( u_ndgln, velocity, is_overlapping, cv_nloc )
       ewrite(3,*) '   '
 
       ! Velocity in the continuous space
       velocity_cg_mesh => extract_mesh( state( 1 ), "VelocityMesh_Continuous" )
       allocate( xu_ndgln( totele * xu_nloc ) ) ;  xu_ndgln = 0
       ewrite(3,*)'Velocities Continuous'
-      call Get_Ndgln( velocity_cg_mesh, xu_ndgln )
+      call Get_Ndgln( xu_ndgln, velocity_cg_mesh )
       ewrite(3,*) '   '
 
       ! Allocating Surface-based Global Node Numbers:
       ! Control Volumes
       allocate( cv_sndgln( stotel * cv_snloc ) ) ; cv_sndgln = 0
       ewrite(3,*)'Surface Control Volume'
-      call Get_SNdgln( pressure, cv_sndgln )
+      call Get_SNdgln( cv_sndgln, pressure )
       ewrite(3,*) '   '
 
       ! Pressure
@@ -324,7 +325,7 @@
       u_nloc2 = u_nloc / cv_nloc
       allocate( u_sndgln2( stotel * u_snloc2 ) ) ; u_sndgln2 = 0
       ewrite(3,*)'Surface Velocities'
-      call Get_SNdgln( velocity, u_sndgln2 )
+      call Get_SNdgln( u_sndgln2, velocity )
       allocate( u_sndgln( stotel * u_snloc ) ) ; u_sndgln = 0
       ! Convert u_sndgln2 to overlapping u_sndgln
       do sele = 1, stotel
@@ -1350,9 +1351,11 @@
       return
     end subroutine Get_Primary_Scalars
 
-    subroutine Get_Scalar_Ndgln( field, ndgln )
+    subroutine Get_Scalar_Ndgln( ndgln, field, is_overlapping, cv_nloc )
       implicit none
       type( scalar_field ), intent( in ) :: field
+      integer, intent( in ), optional :: cv_nloc
+      logical, intent( in ), optional :: is_overlapping
       integer, dimension( : ), intent( inout ) :: ndgln
       ! Local variables
       integer, dimension( : ), pointer :: nloc
@@ -1370,20 +1373,36 @@
       return
     end subroutine Get_Scalar_Ndgln
 
-    subroutine Get_Vector_Ndgln( field, ndgln )
+    subroutine Get_Vector_Ndgln( ndgln, field, is_overlapping, cv_nloc )
       implicit none
       type( vector_field ), intent( in ) :: field
+      integer, intent( in ), optional :: cv_nloc
+      logical, intent( in ), optional :: is_overlapping
       integer, dimension( : ), intent( inout ) :: ndgln
       ! Local variables
       integer, dimension( : ), pointer :: nloc
-      integer :: ele, iloc
+      integer :: ele, iloc, count, cv_nloc2
+      logical :: is_overlapping2
 
+
+      is_overlapping2 = .false.
+      if ( present( is_overlapping ) ) is_overlapping2 = is_overlapping
+      cv_nloc2 = 1
+      if ( is_overlapping2 ) cv_nloc2 = cv_nloc
+
+      count=0
       do ele = 1, ele_count( field )
          nloc => ele_nodes( field, ele )
-         do iloc = 1, ele_loc( field, ele )
-            ndgln( ( ele - 1 ) * ele_loc( field, ele ) + iloc ) =  nloc( iloc )
+         do iloc = 1, ele_loc( field, 1 ) * cv_nloc2
+             ewrite(3,*) '===:', ele_loc( field, 1 ) ,  cv_nloc2, is_overlapping2
+            if( is_overlapping2 ) then
+               count = count + 1
+               ndgln( ( ele - 1 ) * ele_loc( field, 1 ) + iloc ) = count
+            else
+               ndgln( ( ele - 1 ) * ele_loc( field, 1 ) + iloc ) =  nloc( iloc )
+            end if
             ewrite(3,*)'ele, iloc, ndgln:', ele, iloc, &
-                 ndgln( ( ele - 1 ) * ele_loc( field, ele ) + iloc )
+                 ndgln( ( ele - 1 ) * ele_loc( field, 1 ) + iloc )
          end do
       end do
 
@@ -1391,9 +1410,11 @@
     end subroutine Get_Vector_Ndgln
 
 
-   subroutine Get_Mesh_Ndgln( mesh, ndgln )
+   subroutine Get_Mesh_Ndgln( ndgln, mesh, is_overlapping, cv_nloc )
       implicit none
       type( mesh_type ), intent( in ) :: mesh
+      integer, intent( in ), optional :: cv_nloc
+      logical, intent( in ), optional :: is_overlapping
       integer, dimension( : ), intent( inout ) :: ndgln
       ! Local variables
       integer, dimension( : ), pointer :: nloc
@@ -1412,10 +1433,12 @@
     end subroutine Get_Mesh_Ndgln
 
 
-    subroutine Get_Scalar_SNdgln( field, sndgln )
+    subroutine Get_Scalar_SNdgln( sndgln, field, is_overlapping, cv_nloc  )
       implicit none
       type( scalar_field ), intent( in ) :: field
       integer, dimension( : ), intent( inout ) :: sndgln
+      integer, intent( in ), optional :: cv_nloc
+      logical, intent( in ), optional :: is_overlapping
       ! Local variables
       integer, dimension( : ), allocatable :: snloc
       integer :: sele, iloc
@@ -1435,10 +1458,12 @@
       return
     end subroutine Get_Scalar_SNdgln
 
-    subroutine Get_Vector_SNdgln( field, sndgln )
+    subroutine Get_Vector_SNdgln( sndgln, field, is_overlapping, cv_nloc  )
       implicit none
       type( vector_field ), intent( in ) :: field
       integer, dimension( : ), intent( inout ) :: sndgln
+      integer, intent( in ), optional :: cv_nloc
+      logical, intent( in ), optional :: is_overlapping
       ! Local variables
       integer, dimension( : ), allocatable :: snloc
       integer :: sele, iloc
