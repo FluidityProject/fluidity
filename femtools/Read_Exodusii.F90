@@ -76,7 +76,7 @@ contains
     integer :: dim, loc
     
     ewrite(2,*) "In read_exodusii_simple"
-    
+
     if(isparallel()) then
        call identify_exodusii_file(parallel_filename(filename), dim, loc)
     else
@@ -93,15 +93,27 @@ contains
     end if
 
     shape=make_element_shape(loc, dim, 1, quad)
-    
+
+    ewrite(2,*) "*************************"
+    ewrite(2,*) "before read_exodusii_file"
+!    ewrite(2,*) "quad%dim = ", quad%dim
+!    ewrite(2,*) "quad%degree = ", quad%degree
+!    ewrite(2,*) "quad%vertices = ", quad%vertices
+!    ewrite(2,*) "quad%ngi = ", quad%ngi
+!    ewrite(2,*) "quad%family = ", quad%family
+!    ewrite(2,*) "shape%dim = ", shape%dim
+!    ewrite(2,*) "shape%loc = ", shape%loc
+!    ewrite(2,*) "shape%degree = ", shape%degree
+!    ewrite(2,*) "shape%ngi = ", shape%ngi
+
     field=read_exodusii_file(filename, shape)
-    ! code here
+
+    call deallocate_element(shape)
+    call deallocate(quad)
 
     ewrite(2,*) "Out of read_exodusii_simple"
 
   end function read_exodusii_simple
-
-
 
 
   ! -----------------------------------------------------------------
@@ -121,13 +133,106 @@ contains
     integer, intent(out), optional :: numElementsOut, nodeAttributesOut
     integer, intent(out), optional :: selementsOut, boundaryFlagOut
 
-    logical :: fileExists
-
     ! type(GMSHnode), pointer :: nodes(:)
     ! type(GMSHelement), pointer :: elements(:), faces(:)
     integer :: numElements, boundaryFlag, numNodes, numDimen
     integer :: loc, effDimen, nodeAttributes
     integer :: i, filestatus
+
+    logical :: fileExists
+
+    integer :: exoid, ierr
+    real(kind=c_float) :: version
+    integer(kind=c_int) :: comp_ws, io_ws, mode
+    character(kind=c_char, len=OPTION_PATH_LEN) :: lfilename
+
+    character(kind=c_char, len=OPTION_PATH_LEN) :: title
+    integer :: num_dim, num_nodes, num_elem, num_elem_blk
+    integer :: num_node_sets, num_side_sets
+    integer, allocatable, dimension(:) :: block_ids, num_elem_in_block, num_nodes_per_elem
+
+    logical :: haveBounds, haveInternalBounds
+
+    ewrite(2,*) "In identify_exodusii_file"
+
+!    ! An ExodusII file can have the following file extensions:
+!    ! e, exo, E, EXO, our first guess shall be exo    
+!    lfilename = trim(filename)//".exo"
+!    ! Read node file header
+!    inquire(file = trim(lfilename), exist = fileExists)
+!    if(.not. fileExists) then
+!      lfilename = trim(filename) // ".e"
+!      inquire(file = trim(lfilename), exist = fileExists)
+!      if(.not. fileExists) then
+!        lfilename = trim(filename) // ".EXO"
+!        inquire(file = trim(lfilename), exist = fileExists)
+!        if(.not. fileExists) then
+!          lfilename = trim(filename) // ".E"
+!          inquire(file = trim(lfilename), exist = fileExists)
+!          if(.not. fileExists) then
+!            FLExit("None of the possible ExodusII files " // trim(filename) //".exo /.e /.EXO /.E were found")
+!          end if
+!        end if
+!      end if
+!    end if
+!    lfilename = trim(lfilename)
+
+    call get_exodusii_fileextension(filename, lfilename)
+
+    ewrite(2, *) "Opening " // trim(lfilename) // " for reading."
+    ewrite(2,*) "*************************"
+
+    version = 0.0
+    mode = 0; comp_ws=0; io_ws=0;
+    exoid = f_read_ex_open(trim(lfilename)//C_NULL_CHAR, mode, comp_ws, io_ws, version)
+
+    if (exoid <= 0) then
+      FLExit("Unable to open "//trim(lfilename))
+    end if
+
+    ! Get database parameters from exodusII file
+    ierr = f_ex_get_init(exoid, title, num_dim, num_nodes, &
+                       num_elem, num_elem_blk, num_node_sets, &
+                       num_side_sets)
+    if (ierr /= 0) then
+       FLExit("Unable to read database parameters from "//trim(lfilename))
+    end if
+
+    ! Get num_nodes_per_elem
+    allocate(block_ids(num_elem_blk))
+    allocate(num_elem_in_block(num_elem_blk))
+    allocate(num_nodes_per_elem(num_elem_blk))
+    ierr = f_ex_get_elem_block_parameters(exoid, num_elem_blk, block_ids, num_elem_in_block, num_nodes_per_elem)
+    if (ierr /= 0) then
+       FLExit("Unable to read in block parameters from "//trim(lfilename))
+    end if
+
+    ierr = f_ex_close(exoid)
+    if (ierr /= 0) then
+       FLExit("Unable close file "//trim(lfilename))
+    end if
+
+    ! Return optional variables requested
+!    if(present(nodeAttributesOut)) nodeAttributesOut=nodeAttributes
+    if(present(numDimenOut)) numDimenOut=num_dim
+    if(present(numElementsOut)) numElementsOut=num_elem
+    ! We're assuming all elements have the same number of vertices/nodes
+    if(present(locOut)) locOut=num_nodes_per_elem(1)
+!    if(present(boundaryFlagOut)) boundaryFlagOut=boundaryFlag
+
+    ewrite(2,*) "Out of identify_exodusii_file"
+
+  end subroutine identify_exodusii_file
+
+
+  ! -----------------------------------------------------------------
+  ! The main function for reading ExodusII files
+  function read_exodusii_file_to_field(filename, shape) result (field)
+    character(len=*), intent(in) :: filename
+    type(element_type), intent(in), target :: shape
+    type(vector_field)  :: field
+
+    logical :: fileExists
 
     integer :: exoid, ierr
     real(kind=c_float) :: version
@@ -144,49 +249,41 @@ contains
     integer, allocatable, dimension(:) :: elem_blk_connectivity, elem_connectivity
     integer, allocatable, dimension(:) :: node_set_ids, num_nodes_in_set
     integer, allocatable, dimension(:) :: node_set_node_list, total_node_sets_node_list
-
-    logical :: haveBounds, haveInternalBounds
-
-    ewrite(2,*) "In identify_exodusii_file"
     
+    integer :: i
 
-    ! An ExodusII file can have the following file extensions:
-    ! e, exo, E, EXO, our first guess shall be exo    
-    lfilename = trim(filename)//".exo"
+    ! code here
 
-    ! Read node file header
-    inquire(file = trim(lfilename), exist = fileExists)
-    if(.not. fileExists) then
-      lfilename = trim(filename) // ".e"
-      inquire(file = trim(lfilename), exist = fileExists)
-      if(.not. fileExists) then
-        lfilename = trim(filename) // ".EXO"
-        inquire(file = trim(lfilename), exist = fileExists)
-        if(.not. fileExists) then
-          lfilename = trim(filename) // ".E"
-          inquire(file = trim(lfilename), exist = fileExists)
-          if(.not. fileExists) then
-            FLExit("None of the possible ExodusII files " // trim(filename) //".exo /.e /.EXO /.E were found")
-          end if
-        end if
-      end if
-    end if
+!    ! An ExodusII file can have the following file extensions:
+!    ! e, exo, E, EXO, our first guess shall be exo    
+!    lfilename = trim(filename)//".exo"
+!    ! Read node file header
+!    inquire(file = trim(lfilename), exist = fileExists)
+!    if(.not. fileExists) then
+!      lfilename = trim(filename) // ".e"
+!      inquire(file = trim(lfilename), exist = fileExists)
+!      if(.not. fileExists) then
+!        lfilename = trim(filename) // ".EXO"
+!        inquire(file = trim(lfilename), exist = fileExists)
+!        if(.not. fileExists) then
+!          lfilename = trim(filename) // ".E"
+!          inquire(file = trim(lfilename), exist = fileExists)
+!          if(.not. fileExists) then
+!            FLExit("None of the possible ExodusII files " // trim(filename) //".exo /.e /.EXO /.E were found")
+!          end if
+!        end if
+!      end if
+!    end if
+!    lfilename = trim(lfilename)
 
-
-    lfilename = trim(lfilename)
+    call get_exodusii_fileextension(filename, lfilename)
 
     ewrite(2, *) "Opening " // trim(lfilename) // " for reading."
     ewrite(2,*) "*************************"
-    ewrite(2,*) "test the exodusII lib"
-    
-    ewrite(2,*) "open exodus file:"
+
     version = 0.0
     mode = 0; comp_ws=0; io_ws=0;
     exoid = f_read_ex_open(trim(lfilename)//C_NULL_CHAR, mode, comp_ws, io_ws, version)
-    
-
-    ewrite(2,*) "exoid : ", exoid
-    ewrite(2,*) "version : ", version
 
     if (exoid <= 0) then
       FLExit("Unable to open "//trim(lfilename))
@@ -213,7 +310,9 @@ contains
     coord_x=0.0; coord_y=0.0; coord_z=0.0
     ! Get coordinates from the mesh:
     ierr = f_ex_get_coord(exoid, coord_x, coord_y, coord_z)
-    ewrite(2,*) "ierr = ", ierr
+    if (ierr /= 0) then
+       FLExit("Unable to read in node coordinates "//trim(lfilename))
+    end if
     ewrite(2,*) "coordinates: "
     ewrite(2,*) coord_x
     ewrite(2,*) coord_y
@@ -223,32 +322,40 @@ contains
     allocate(node_map(num_nodes))
     num_nodes = 0
     ierr = f_ex_get_node_num_map(exoid, node_map)
+    if (ierr /= 0) then
+       FLExit("Unable to read in node number map from "//trim(lfilename))
+    end if
     ewrite(2,*) "node_map = ", node_map
-    ewrite(2,*) "ierr = ", ierr
 
     ! read element number map
     allocate(elem_num_map(num_elem))
     elem_num_map = 0
     ierr = f_ex_get_elem_num_map(exoid, elem_num_map)
+    if (ierr /= 0) then
+       FLExit("Unable to read in element number map "//trim(lfilename))
+    end if
     ewrite(2,*) "elem_num_map = ", elem_num_map
-    ewrite(2,*) "ierr = ", ierr
 
     ! read element order map
     allocate(elem_order_map(num_elem))
     elem_order_map = 0
     ierr = f_ex_get_elem_order_map(exoid, elem_order_map)
+    if (ierr /= 0) then
+       FLExit("Unable to read in element order map "//trim(lfilename))
+    end if
     ewrite(2,*) "elem_order_map = ", elem_order_map
-    ewrite(2,*) "ierr = ", ierr
 
     ! read element block parameters (required for element connectivity)
     allocate(block_ids(num_elem_blk))
     allocate(num_elem_in_block(num_elem_blk))
     allocate(num_nodes_per_elem(num_elem_blk))
     ierr = f_ex_get_elem_block_parameters(exoid, num_elem_blk, block_ids, num_elem_in_block, num_nodes_per_elem)
+    if (ierr /= 0) then
+       FLExit("Unable to read in block parameters from "//trim(lfilename))
+    end if
     ewrite(2,*) "block_ids = ", block_ids
     ewrite(2,*) "num_elem_in_block = ", num_elem_in_block
     ewrite(2,*) "num_nodes_per_elem = ", num_nodes_per_elem
-    ewrite(2,*) "ierr = ", ierr
 
     ! read element connectivity:
     allocate(elem_connectivity(0))
@@ -259,47 +366,51 @@ contains
        call append_array(elem_connectivity, elem_blk_connectivity)
        deallocate(elem_blk_connectivity)
     end do
+    if (ierr /= 0) then
+       FLExit("Unable to read in element connectivity from "//trim(lfilename))
+    end if
     ewrite(2,*) "elem_connectivity = ", elem_connectivity
-    ewrite(2,*) "ierr = ", ierr
 
     ! Get node sets
     ! Node sets in exodusii are what physical lines/surfaces/volumes are in gmsh
     allocate(node_set_ids(num_node_sets))
     allocate(num_nodes_in_set(num_node_sets))
     ierr = f_ex_get_node_set_param(exoid, num_node_sets, node_set_ids, num_nodes_in_set)
+    if (ierr /= 0) then
+       ewrite(2,*) "No node sets found in "//trim(lfilename)
+    end if
     ewrite(2,*) "node_set_ids = ", node_set_ids
     ewrite(2,*) "num_nodes_in_set = ", num_nodes_in_set
-    ewrite(2,*) "ierr = ", ierr
-    ! if (ierr /= 0): not node sets/physical boundaries have been defined in the mesh
 
     ! Get node lists of all node sets:
-    ! initial length of the array holding all the nodes with an ID
-    allocate(total_node_sets_node_list(0))
-    do i=1, num_node_sets
-       allocate(node_set_node_list(num_nodes_in_set(i)))
-       ierr = f_ex_get_node_set_node_list(exoid, num_node_sets, node_set_ids(i), node_set_node_list)
-       call append_array(total_node_sets_node_list, node_set_node_list)
-       deallocate(node_set_node_list)
-    end do
-    ewrite(2,*) "total_node_sets_node_list = ", total_node_sets_node_list
-    ewrite(2,*) "ierr = ", ierr
-
-
-    ierr = f_ex_close(exoid)
-    ewrite(2,*) "ierr = ", ierr
-
+    if (ierr == 0) then ! we have found and read in node sets
+       ! initial length of the array holding all the nodes with an ID
+       allocate(total_node_sets_node_list(0))
+       do i=1, num_node_sets
+          allocate(node_set_node_list(num_nodes_in_set(i)))
+          ierr = f_ex_get_node_set_node_list(exoid, num_node_sets, node_set_ids(i), node_set_node_list)
+          call append_array(total_node_sets_node_list, node_set_node_list)
+          deallocate(node_set_node_list)
+       end do
+       if (ierr /= 0) then
+          FLExit("Unable to read in the node list corresponding to node sets from "//trim(lfilename))
+       end if
+       ewrite(2,*) "total_node_sets_node_list = ", total_node_sets_node_list
+    end if
 
     ! Deallocate arrays:
-    deallocate(coord_x); deallocate(coord_y); deallocate(coord_z); 
+    deallocate(coord_x); deallocate(coord_y); deallocate(coord_z)
     deallocate(node_map); deallocate(elem_num_map); deallocate(elem_order_map); 
     deallocate(block_ids); deallocate(num_elem_in_block); deallocate(num_nodes_per_elem); 
     deallocate(elem_connectivity); 
     deallocate(node_set_ids); deallocate(num_nodes_in_set); deallocate(total_node_sets_node_list);
 
-    ewrite(2,*) "Out of identify_exodusii_file"
+    ierr = f_ex_close(exoid)
+    if (ierr /= 0) then
+       FLExit("Unable close file "//trim(lfilename))
+    end if
 
-  end subroutine identify_exodusii_file
-
+  end function read_exodusii_file_to_field
 
 
   ! -----------------------------------------------------------------
@@ -369,20 +480,6 @@ contains
   end subroutine read_header
 
 
-
-
-  ! -----------------------------------------------------------------
-  ! The main function for reading ExodusII files
-  function read_exodusii_file_to_field(filename, shape) result (field)
-    character(len=*), intent(in) :: filename
-    type(element_type), intent(in), target :: shape
-    type(vector_field)  :: field
-    ! code here
-  end function read_exodusii_file_to_field
-
-
-
-
   ! -----------------------------------------------------------------
   ! Read ExodusII file to state object.
   function read_exodusii_file_to_state(filename, shape,shape_type,n_states) &
@@ -415,19 +512,46 @@ contains
 !        array = tmp
 !     end subroutine resize_array
 
-     subroutine append_array(array, array2)
-        integer, allocatable, dimension(:), intent(inout) :: array
-        integer, allocatable, dimension(:), intent(in) :: array2
-        integer, allocatable, dimension(:) :: tmp
-        allocate(tmp(size(array) + size(array2)))
-        tmp(1:size(array)) = array
-        tmp(size(array)+1:size(array)+size(array2)) = array2
-        deallocate(array)
-        allocate(array(size(tmp)))
-        array = tmp
-     end subroutine append_array
+  subroutine append_array(array, array2)
+     integer, allocatable, dimension(:), intent(inout) :: array
+     integer, allocatable, dimension(:), intent(in) :: array2
+     integer, allocatable, dimension(:) :: tmp
+     allocate(tmp(size(array) + size(array2)))
+     tmp(1:size(array)) = array
+     tmp(size(array)+1:size(array)+size(array2)) = array2
+     deallocate(array)
+     allocate(array(size(tmp)))
+     array = tmp
+  end subroutine append_array
 
-
+  ! -----------------------------------------------------------------
+  ! Tries valid exodusii file extensions and quits if none of them
+  ! has been found aka file does not exist
+  subroutine get_exodusii_fileextension(filename, lfilename)
+    character(len=*), intent(in) :: filename
+    character(len=*), intent(inout) :: lfilename
+    logical :: fileExists
+    ! An ExodusII file can have the following file extensions:
+    ! e, exo, E, EXO, our first guess shall be exo    
+    lfilename = trim(filename)//".exo"
+    inquire(file = trim(lfilename), exist = fileExists)
+    if(.not. fileExists) then
+      lfilename = trim(filename) // ".e"
+      inquire(file = trim(lfilename), exist = fileExists)
+      if(.not. fileExists) then
+        lfilename = trim(filename) // ".EXO"
+        inquire(file = trim(lfilename), exist = fileExists)
+        if(.not. fileExists) then
+          lfilename = trim(filename) // ".E"
+          inquire(file = trim(lfilename), exist = fileExists)
+          if(.not. fileExists) then
+            FLExit("None of the possible ExodusII files " // trim(filename) //".exo /.e /.EXO /.E were found")
+          end if
+        end if
+      end if
+    end if
+    lfilename = trim(lfilename)
+  end subroutine get_exodusii_fileextension
 
 
 
