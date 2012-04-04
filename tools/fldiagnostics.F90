@@ -26,7 +26,7 @@ subroutine fldiag_add_diag(input_name_, input_name_len, &
 
   integer(kind=c_size_t), value :: input_name_len, output_name_len, outfield_name_len, &
     & meshfield_name_len, state_name_len
-  integer(kind=c_size_t), value :: outfield_rank
+  integer(kind=c_int32_t), value :: outfield_rank
 
   character(kind=c_char, len=1) :: input_name_(*), output_name_(*), outfield_name_(*), & 
     & meshfield_name_(*), state_name_(*)

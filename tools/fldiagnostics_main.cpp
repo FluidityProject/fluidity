@@ -27,7 +27,7 @@ extern "C"{
                           const char*, size_t,
                           const char*, size_t,
                           const char*, size_t,
-                          size_t);
+                          int32_t);
 }
 
 
@@ -279,7 +279,7 @@ int main(int argc, char** argv){
         state_name = "";
       }
       state_name_len = strlen(state_name);
-      size_t outfield_rank;
+      int32_t outfield_rank;
       if(HaveOption("outfield_rank")){
         outfield_rank = atoi(GetOption("outfield_rank"));
       } else{
