@@ -232,6 +232,7 @@ contains
     integer, allocatable, dimension(:) :: node_set_node_list, total_node_sets_node_list
     
     real(real_4), allocatable, dimension(:,:) :: node_coord
+    integer, allocatable, dimension(:) :: elem_node_list, total_elem_node_list
     
     integer :: loc, nodeID, eff_dim, i, d, n, e, z
 
@@ -312,7 +313,6 @@ contains
     allocate(num_nodes_per_elem(num_elem_blk))
     allocate(elem_type(num_elem_blk))
     allocate(num_attr(num_elem_blk))
-    ewrite(2,*) "num_elem_blk = ", num_elem_blk
     do i=1, num_elem_blk
        ierr = f_ex_get_elem_block(exoid, block_ids(i), elem_type_char, &
                                   num_elem_in_block(i), &
@@ -342,7 +342,6 @@ contains
     if (ierr /= 0) then
        FLExit("Unable to read in element block parameters from "//trim(lfilename))
     end if
-    ewrite(2,*) "block_ids = ", block_ids
     ewrite(2,*) "elem_type = ", elem_type
     ewrite(2,*) "num_elem_in_block = ", num_elem_in_block
     ewrite(2,*) "num_nodes_per_elem = ", num_nodes_per_elem
@@ -407,9 +406,34 @@ contains
     call allocate(mesh, num_nodes, num_elem, shape, name="CoordinateMesh")
     call allocate( field, eff_dim, mesh, name="Coordinate")
     call deallocate( mesh )
+    
+    ! Get element node number (allows for different element types)
 
 
-
+    ! Reorder element node numbering (if necessary):
+    ! (allows for different element types)
+    allocate(total_elem_node_list(0))
+    z = 0
+    do i=1, num_elem_blk
+       ! assemble element node list as we go:
+       allocate(elem_node_list(num_nodes_per_elem(i)))
+       do e=1, num_elem_in_block(i)
+          do n=1, num_nodes_per_elem(i)
+             elem_node_list(n) = elem_connectivity(n + z)
+          end do
+          call toFluidityElementNodeOrdering( elem_node_list, elem_type(i) )
+          ! Now append elem_node_list to total_elem_node_list
+          call append_array(total_elem_node_list, elem_node_list)
+          ! ewrite(2,*) "elem_node_list = ", elem_node_list
+          z = z + num_nodes_per_elem(i)
+       ! reset node list:
+       elem_node_list = 0
+       end do
+       ! deallocate elem_node_list for next block
+       deallocate(elem_node_list)
+    end do
+    
+    ewrite(2,*) "total_elem_node_list = ", total_elem_node_list
 
 !    ! In future, we can set the number of elements per 'block', 
 !    ! but for now, we assume the mesh has at most 1 block
@@ -441,17 +465,6 @@ contains
     if (eff_dim .eq. 3) then
        node_coord(3,:) = coord_z(:)
     end if
-    ! TEST:
-!    ewrite(2,*) "node_coord(1,:) = ", node_coord(1,:)
-!    ewrite(2,*) "coord_x = ", coord_x
-!    if (eff_dim .eq. 2 .or. eff_dim .eq. 3) then
-!       ewrite(2,*) "node_coord(2,:) = ", node_coord(2,:)
-!       ewrite(2,*) "coord_y = ", coord_y
-!    end if
-!    if (num_dim .eq. 3) then
-!       ewrite(2,*) "node_coord(3,:) = ", node_coord(3,:)
-!       ewrite(2,*) "coord_z = ", coord_z
-!    end if
 
     do n=1, num_nodes
        nodeID = node_map(n)
@@ -464,13 +477,6 @@ contains
 !       end if
     end do
 
-!    ! Copy elements to field
-!    do e=1, num_elem
-!       field%mesh%ndglno((e-1)*loc+1:e*loc) = elem_num_map(e) !elements(e)%nodeIDs
-!       !if (haveRegionIDs) field%mesh%region_ids(e) = elements(e)%tags(1)
-!    end do
-
-
 
 
     ! Deallocate arrays (exodusii arrays):
@@ -482,7 +488,7 @@ contains
     deallocate(node_set_ids); deallocate(num_nodes_in_set); deallocate(total_node_sets_node_list);
 
     ! Deallocate other arrays:
-    deallocate(node_coord);
+    deallocate(node_coord); deallocate(total_elem_node_list)
 
 
 
@@ -509,6 +515,43 @@ contains
 
   end function read_exodusii_file_to_state
 
+
+  ! -----------------------------------------------------------------
+  ! Reorder to Fluidity node ordering
+
+  subroutine toFluidityElementNodeOrdering( oldList, elemType )
+    integer, allocatable, dimension(:) :: oldList, flNodeList, nodeOrder
+    integer i, elemType, numNodes
+
+    numNodes = size(oldList)
+    allocate( flNodeList(numNodes) )
+    allocate( nodeOrder(numNodes) )
+
+    ! Specify node ordering
+    select case( elemType )
+    ! Quads
+    case (3)
+       nodeOrder = (/1, 2, 4, 3/)
+    ! Hexahedron  
+    case (5)
+       nodeOrder = (/1, 2, 4, 3, 5, 6, 8, 7/)
+    case default
+       do i=1, numNodes
+          nodeOrder(i) = i
+       end do
+    end select
+
+    ! Reorder nodes
+    do i=1, numNodes
+       flNodeList(i) = oldList( nodeOrder(i) )
+    end do
+
+    ! Allocate to original list, and dealloc temp list.
+    oldList(:) = flNodeList(:)
+    deallocate( flNodeList )
+    deallocate(nodeOrder)
+
+  end subroutine toFluidityElementNodeOrdering
 
 
 !     subroutine resize_array(array, new_size)
