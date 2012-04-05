@@ -784,12 +784,9 @@
       end do Loop_Velocity
 
       allocate( comp_absorb( cv_nonods, nphases, nphases ) ) 
-      comp_absorb=0.
       allocate( t_absorb( cv_nonods, nphases, nphases ) ) 
-      t_absorb=0.
       allocate( v_absorb( cv_nonods, nphases, nphases ) ) 
-      v_absorb=0.
-
+      comp_absorb=0. ; t_absorb=0. ; v_absorb=0.
 
       allocate(uabs_option(nphases))
       allocate(eos_option(nphases))
