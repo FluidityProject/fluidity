@@ -225,6 +225,8 @@ contains
     real(real_4), allocatable, dimension(:) :: coord_x, coord_y, coord_z
     integer, allocatable, dimension(:) :: node_map, elem_num_map, elem_order_map
     integer, allocatable, dimension(:) :: block_ids, num_elem_in_block, num_nodes_per_elem
+    character(len=6) :: elem_type_char
+    integer, allocatable, dimension(:) :: elem_type, num_attr
     integer, allocatable, dimension(:) :: elem_blk_connectivity, elem_connectivity
     integer, allocatable, dimension(:) :: node_set_ids, num_nodes_in_set
     integer, allocatable, dimension(:) :: node_set_node_list, total_node_sets_node_list
@@ -297,17 +299,55 @@ contains
     end if
     ewrite(2,*) "elem_order_map = ", elem_order_map
 
-    ! read element block parameters (required for element connectivity)
+    ! Get block ids:
     allocate(block_ids(num_elem_blk))
-    allocate(num_elem_in_block(num_elem_blk))
-    allocate(num_nodes_per_elem(num_elem_blk))
-    ierr = f_ex_get_elem_block_parameters(exoid, num_elem_blk, block_ids, num_elem_in_block, num_nodes_per_elem)
+    ierr = f_ex_get_elem_blk_ids(exoid, block_ids)
     if (ierr /= 0) then
-       FLExit("Unable to read in block parameters from "//trim(lfilename))
+       FLExit("Unable to read in element block ids from "//trim(lfilename))
     end if
     ewrite(2,*) "block_ids = ", block_ids
+    
+    ! Get block parameters:
+    allocate(num_elem_in_block(num_elem_blk))
+    allocate(num_nodes_per_elem(num_elem_blk))
+    allocate(elem_type(num_elem_blk))
+    allocate(num_attr(num_elem_blk))
+    ewrite(2,*) "num_elem_blk = ", num_elem_blk
+    elem_type_char = "SHELL4"
+    do i=1, num_elem_blk
+       ierr = f_ex_get_elem_block(exoid, block_ids(i), elem_type_char, &
+                                  num_elem_in_block(i), &
+                                  num_nodes_per_elem(i), &
+                                  num_attr(i))
+       ! assemble array to hold integers determining the element type
+       ! element type names in exodusii are:
+       ! Integer to element type relation (same as for gmsh):
+       ! 2: TRI3 (triangle)
+       ! 3: SHELL4 (quad)
+       ! 4: TETRA (tetrahedra)
+       ! 5: HEX8 (hexahedron)
+       ! assemble array to hold integers to identify element type of element block i:
+       if (trim(elem_type_char(1:4)) .eq. "TRI3") then
+          elem_type(i) = 2
+       else if (trim(elem_type_char(1:6)) .eq. "SHELL4") then
+          elem_type(i) = 3
+       else if (trim(elem_type_char(1:5)) .eq. "TETRA") then
+          elem_type(i) = 4
+       else if (trim(elem_type_char(1:4)) .eq. "HEX8") then
+          elem_type(i) = 5
+       end if
+       ewrite(2,*) "elem_type_char = ", elem_type_char
+    end do
+    if (ierr /= 0) then
+       FLExit("Unable to read in element block parameters from "//trim(lfilename))
+    end if
+    ewrite(2,*) "block_ids = ", block_ids
+    ewrite(2,*) "elem_type = ", elem_type
     ewrite(2,*) "num_elem_in_block = ", num_elem_in_block
     ewrite(2,*) "num_nodes_per_elem = ", num_nodes_per_elem
+    ewrite(2,*) "num_attr = ", num_attr
+
+
 
     ! read element connectivity:
     allocate(elem_connectivity(0))
@@ -434,7 +474,8 @@ contains
     ! Deallocate arrays (exodusii arrays):
     deallocate(coord_x); deallocate(coord_y); deallocate(coord_z)
     deallocate(node_map); deallocate(elem_num_map); deallocate(elem_order_map); 
-    deallocate(block_ids); deallocate(num_elem_in_block); deallocate(num_nodes_per_elem); 
+    deallocate(block_ids); deallocate(num_elem_in_block); deallocate(num_nodes_per_elem);
+    deallocate(elem_type); deallocate(num_attr)
     deallocate(elem_connectivity); 
     deallocate(node_set_ids); deallocate(num_nodes_in_set); deallocate(total_node_sets_node_list);
 
