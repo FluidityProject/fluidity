@@ -83,7 +83,6 @@ contains
        call identify_exodusii_file(filename, dim, loc)
     end if
 
-
     if (present(quad_degree)) then
        quad = make_quadrature(loc, dim, degree=quad_degree, family=quad_family)
     else if (present(quad_ngi)) then
@@ -158,7 +157,6 @@ contains
     call get_exodusii_filename(filename, lfilename)
 
     ewrite(2, *) "Opening " // trim(lfilename) // " for reading."
-    ewrite(2,*) "*************************"
 
     version = 0.0
     mode = 0; comp_ws=0; io_ws=0;
@@ -195,7 +193,9 @@ contains
     if(present(numDimenOut)) numDimenOut=num_dim
     if(present(numElementsOut)) numElementsOut=num_elem
     ! We're assuming all elements have the same number of vertices/nodes
-    if(present(locOut)) locOut=num_nodes_per_elem(1)
+    ! depending on 2D/3D, we could have edges/faces, thus we have to
+    ! get the max value of num_nodes_per_elem and assign it to locOut
+    if(present(locOut)) locOut=maxval(num_nodes_per_elem)
 !    if(present(boundaryFlagOut)) boundaryFlagOut=boundaryFlag
 
     ewrite(2,*) "Out of identify_exodusii_file"
@@ -233,7 +233,7 @@ contains
     
     real(real_4), allocatable, dimension(:,:) :: node_coord
     
-    integer :: loc, nodeID, eff_dim, i, d, n, e
+    integer :: loc, nodeID, eff_dim, i, d, n, e, z
 
     call get_exodusii_filename(filename, lfilename)
 
@@ -313,7 +313,6 @@ contains
     allocate(elem_type(num_elem_blk))
     allocate(num_attr(num_elem_blk))
     ewrite(2,*) "num_elem_blk = ", num_elem_blk
-    elem_type_char = "SHELL4"
     do i=1, num_elem_blk
        ierr = f_ex_get_elem_block(exoid, block_ids(i), elem_type_char, &
                                   num_elem_in_block(i), &
@@ -322,12 +321,15 @@ contains
        ! assemble array to hold integers determining the element type
        ! element type names in exodusii are:
        ! Integer to element type relation (same as for gmsh):
+       ! 1: BAR2 (line)
        ! 2: TRI3 (triangle)
        ! 3: SHELL4 (quad)
        ! 4: TETRA (tetrahedra)
        ! 5: HEX8 (hexahedron)
        ! assemble array to hold integers to identify element type of element block i:
-       if (trim(elem_type_char(1:4)) .eq. "TRI3") then
+       if (trim(elem_type_char(1:4)) .eq. "BAR2") then
+          elem_type(i) = 1
+       else if (trim(elem_type_char(1:4)) .eq. "TRI3") then
           elem_type(i) = 2
        else if (trim(elem_type_char(1:6)) .eq. "SHELL4") then
           elem_type(i) = 3
@@ -336,7 +338,6 @@ contains
        else if (trim(elem_type_char(1:4)) .eq. "HEX8") then
           elem_type(i) = 5
        end if
-       ewrite(2,*) "elem_type_char = ", elem_type_char
     end do
     if (ierr /= 0) then
        FLExit("Unable to read in element block parameters from "//trim(lfilename))
@@ -346,8 +347,6 @@ contains
     ewrite(2,*) "num_elem_in_block = ", num_elem_in_block
     ewrite(2,*) "num_nodes_per_elem = ", num_nodes_per_elem
     ewrite(2,*) "num_attr = ", num_attr
-
-
 
     ! read element connectivity:
     allocate(elem_connectivity(0))
@@ -408,6 +407,9 @@ contains
     call allocate(mesh, num_nodes, num_elem, shape, name="CoordinateMesh")
     call allocate( field, eff_dim, mesh, name="Coordinate")
     call deallocate( mesh )
+
+
+
 
 !    ! In future, we can set the number of elements per 'block', 
 !    ! but for now, we assume the mesh has at most 1 block
