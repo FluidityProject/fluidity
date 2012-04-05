@@ -155,7 +155,7 @@ contains
 
     ewrite(2,*) "In identify_exodusii_file"
 
-    call get_exodusii_fileextension(filename, lfilename)
+    call get_exodusii_filename(filename, lfilename)
 
     ewrite(2, *) "Opening " // trim(lfilename) // " for reading."
     ewrite(2,*) "*************************"
@@ -209,6 +209,7 @@ contains
     character(len=*), intent(in) :: filename
     type(element_type), intent(in), target :: shape
     type(vector_field)  :: field
+    type(mesh_type) :: mesh
 
     logical :: fileExists
 
@@ -228,9 +229,11 @@ contains
     integer, allocatable, dimension(:) :: node_set_ids, num_nodes_in_set
     integer, allocatable, dimension(:) :: node_set_node_list, total_node_sets_node_list
     
-    integer :: i
+    real(real_4), allocatable, dimension(:,:) :: node_coord
+    
+    integer :: loc, nodeID, eff_dim, i, d, n, e
 
-    call get_exodusii_fileextension(filename, lfilename)
+    call get_exodusii_filename(filename, lfilename)
 
     ewrite(2, *) "Opening " // trim(lfilename) // " for reading."
     ewrite(2,*) "*************************"
@@ -267,14 +270,9 @@ contains
     if (ierr /= 0) then
        FLExit("Unable to read in node coordinates "//trim(lfilename))
     end if
-    ewrite(2,*) "coordinates: "
-    ewrite(2,*) coord_x
-    ewrite(2,*) coord_y
-    ewrite(2,*) coord_z
 
     ! Read node number map:
     allocate(node_map(num_nodes))
-    num_nodes = 0
     ierr = f_ex_get_node_num_map(exoid, node_map)
     if (ierr /= 0) then
        FLExit("Unable to read in node number map from "//trim(lfilename))
@@ -352,17 +350,101 @@ contains
        ewrite(2,*) "total_node_sets_node_list = ", total_node_sets_node_list
     end if
 
-    ! Deallocate arrays:
+    ierr = f_ex_close(exoid)
+    if (ierr /= 0) then
+       FLExit("Unable close file "//trim(lfilename))
+    end if
+
+    !---------------------------------
+    ! At this point, all relevant data has been read in from the exodusii file
+    ! Now construct within Fluidity data structures
+
+    if( num_dim .eq. 2 .and. have_option("/geometry/spherical_earth/") ) then
+       eff_dim = num_dim+1
+    else
+       eff_dim = num_dim
+    end if
+
+    call allocate(mesh, num_nodes, num_elem, shape, name="CoordinateMesh")
+    call allocate( field, eff_dim, mesh, name="Coordinate")
+    call deallocate( mesh )
+
+!    ! In future, we can set the number of elements per 'block', 
+!    ! but for now, we assume the mesh has at most 1 block
+!    allocate( field%mesh%region_ids(num_elem) ) 
+!    allocate(field%mesh%columns(1:num_nodes))
+!    loc = size( elements(1)%nodeIDs )
+
+    ! FACES ARE STILL MISSING IN FOR EXODUSII MESH:
+!    if (numFaces>0) then
+!      sloc = size( faces(1)%nodeIDs )
+!    else
+!      sloc = 0
+!    end if
+
+    ! check if number of vertices/nodes are consistent with shape
+!    loc = num_nodes_per_elem(1)
+!    assert(loc==shape%loc)
+
+!    ! Loop round nodes copying across coords and column IDs to field mesh,
+!    ! if they exist
+    ! First, assemble array containing all node coordinates:
+    allocate(node_coord(eff_dim, num_nodes))
+    node_coord = 0
+    ewrite(2,*) "*********************************"
+    node_coord(1,:) = coord_x(:)
+    if (eff_dim .eq. 2 .or. eff_dim .eq. 3) then
+       node_coord(2,:) = coord_y(:)
+    end if
+    if (eff_dim .eq. 3) then
+       node_coord(3,:) = coord_z(:)
+    end if
+    ! TEST:
+!    ewrite(2,*) "node_coord(1,:) = ", node_coord(1,:)
+!    ewrite(2,*) "coord_x = ", coord_x
+!    if (eff_dim .eq. 2 .or. eff_dim .eq. 3) then
+!       ewrite(2,*) "node_coord(2,:) = ", node_coord(2,:)
+!       ewrite(2,*) "coord_y = ", coord_y
+!    end if
+!    if (num_dim .eq. 3) then
+!       ewrite(2,*) "node_coord(3,:) = ", node_coord(3,:)
+!       ewrite(2,*) "coord_z = ", coord_z
+!    end if
+
+    do n=1, num_nodes
+       nodeID = node_map(n)
+       forall (d = 1:eff_dim)
+          field%val(d,nodeID) = node_coord(d,n)
+       end forall
+!       ! If there's a valid node column ID, use it.
+!       if ( nodes(n)%columnID .ne. -1 ) then
+!          field%mesh%columns(nodeID) = nodes(n)%columnID
+!       end if
+    end do
+
+!    ! Copy elements to field
+!    do e=1, num_elem
+!       field%mesh%ndglno((e-1)*loc+1:e*loc) = elem_num_map(e) !elements(e)%nodeIDs
+!       !if (haveRegionIDs) field%mesh%region_ids(e) = elements(e)%tags(1)
+!    end do
+
+
+
+
+    ! Deallocate arrays (exodusii arrays):
     deallocate(coord_x); deallocate(coord_y); deallocate(coord_z)
     deallocate(node_map); deallocate(elem_num_map); deallocate(elem_order_map); 
     deallocate(block_ids); deallocate(num_elem_in_block); deallocate(num_nodes_per_elem); 
     deallocate(elem_connectivity); 
     deallocate(node_set_ids); deallocate(num_nodes_in_set); deallocate(total_node_sets_node_list);
 
-    ierr = f_ex_close(exoid)
-    if (ierr /= 0) then
-       FLExit("Unable close file "//trim(lfilename))
-    end if
+    ! Deallocate other arrays:
+    deallocate(node_coord);
+
+
+
+
+
 
   end function read_exodusii_file_to_field
 
