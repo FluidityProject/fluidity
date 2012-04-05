@@ -8,7 +8,9 @@ module exodusii_f_interface
   public :: f_read_ex_open, &
             f_ex_get_init, f_ex_get_coord, &
             f_ex_get_node_num_map, f_ex_get_elem_num_map, &
-            f_ex_get_elem_order_map, f_ex_get_elem_block_parameters, &
+            f_ex_get_elem_order_map, f_ex_get_elem_blk_ids, &
+            f_ex_get_elem_block, &
+            f_ex_get_elem_block_parameters, &
             f_ex_get_elem_connectivity, &
             f_ex_get_node_set_param, f_ex_get_node_set_node_list, &
             f_ex_close
@@ -87,6 +89,33 @@ module exodusii_f_interface
       integer(kind=c_int) :: elem_order_map(*)
       integer(kind=c_int) :: error
     end function c_ex_get_elem_order_map
+  end interface
+
+  ! Get block ids:
+  interface f_ex_get_elem_blk_ids
+    function c_ex_get_elem_blk_ids(exoid, block_ids) result(error) bind(c)
+      use, intrinsic :: iso_c_binding
+      integer(kind=c_int) :: exoid
+      integer(kind=c_int) :: block_ids(*)
+      integer(kind=c_int) :: error
+    end function c_ex_get_elem_blk_ids
+  end interface
+
+  interface f_ex_get_elem_block
+    function c_ex_get_elem_block(exoid, block_id, elem_type, &
+                                 num_elem_in_block, &
+                                 num_nodes_per_elem, &
+                                 num_attr) &
+                                 result(error) bind(c)
+      use, intrinsic :: iso_c_binding
+      integer(kind=c_int) :: exoid
+      integer(kind=c_int) :: block_id
+      character(kind=c_char, len=1):: elem_type
+      integer(kind=c_int) :: num_elem_in_block
+      integer(kind=c_int) :: num_nodes_per_elem
+      integer(kind=c_int) :: num_attr
+      integer(kind=c_int) :: error
+    end function c_ex_get_elem_block
   end interface
 
   ! Get block parameters

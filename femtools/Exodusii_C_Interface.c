@@ -12,14 +12,6 @@ int c_read_ex_open(const char *path, int mode, int *comp_ws, int *io_ws, float *
    return (exoid);
 }
 
-/* Nicer function for open ExodusII File for reading */
-int c_read_ex_open_short(const char *path, float *version)
-{
-   int exoid;
-   int comp_ws=0, io_ws=0;
-   exoid = ex_open(path, EX_READ, &comp_ws, &io_ws, version);
-   return (exoid);
-}
 
 /* read database parameters */
 int c_ex_get_init(int *exoid, char *title, int *num_dim, int *num_nodes,
@@ -64,6 +56,63 @@ int c_ex_get_elem_order_map(int *exoid, int *elem_order_map)
    return (error);
 }
 
+/* get element block ids only */
+int c_ex_get_elem_blk_ids(int *exoid, int *block_ids)
+{
+   int error;
+   error = ex_get_elem_blk_ids(*exoid, block_ids);
+   return (error);
+}
+
+/* get element type of blocks, number of elements in blocks,
+   and number of nodes per element */
+int c_ex_get_elem_block(int *exoid, int *block_id, const char *elem_type, int *num_elem_in_block, int *num_nodes_per_elem, int *num_attr)
+{
+   int error;
+   error = ex_get_elem_block(*exoid,
+                             *block_id,
+                             elem_type,
+                             num_elem_in_block,
+                             num_nodes_per_elem,
+                             num_attr);
+   return (error);
+}
+
+/* read element connectivity of block with id 'block_id' */
+int c_ex_get_elem_connectivity(int *exoid, int *block_id, int *elem_connectivity)
+{
+   int error;
+   error = ex_get_elem_conn(*exoid, *block_id, elem_connectivity);
+   return (error);
+}
+
+/* read node list for node set of id 'node_set_id' */
+int c_ex_get_node_set_node_list(int *exoid, int *num_node_sets, int *node_set_id, int *node_set_node_list)
+{
+   int error;
+   error = ex_get_node_set(*exoid, *node_set_id, node_set_node_list);
+   return (error);
+}
+
+/* Close ExodusII File */
+int c_ex_close(int *exoid)
+{
+   int ierr;
+   ierr = ex_close(*exoid);
+   return (ierr);
+}
+
+
+/* Following some additional interfaces that differ from the official interfaces of the exodusii library */
+
+/* Nicer function for open ExodusII File for reading */
+int c_read_ex_open_short(const char *path, float *version)
+{
+   int exoid;
+   int comp_ws=0, io_ws=0;
+   exoid = ex_open(path, EX_READ, &comp_ws, &io_ws, version);
+   return (exoid);
+}
 
 /* get element block ids and block parameters */
 int c_ex_get_elem_block_parameters(int *exoid, int *num_elem_blk, int *block_ids, int *num_elem_in_block, int *num_nodes_per_elem)
@@ -84,17 +133,10 @@ int c_ex_get_elem_block_parameters(int *exoid, int *num_elem_blk, int *block_ids
                                 block_ids[i],
                                 elem_type,
                                 &(num_elem_in_block[i]),
-                                &(num_nodes_per_elem[i]), &(num_attr[i]));
+                                &(num_nodes_per_elem[i]),
+                                &(num_attr[i]));
    }
    free(num_attr);
-   return (error);
-}
-
-/* read element connectivity of block with id 'block_id' */
-int c_ex_get_elem_connectivity(int *exoid, int *block_id, int *elem_connectivity)
-{
-   int error;
-   error = ex_get_elem_conn(*exoid, *block_id, elem_connectivity);
    return (error);
 }
 
@@ -112,21 +154,5 @@ int c_ex_get_node_set_param(int *exoid, int *num_node_sets, int *node_set_ids, i
       error = ex_get_node_set_param(*exoid, node_set_ids[i], &num_nodes_in_set[i], &num_df_in_set);
    }
    return (error);
-}
-
-/* read node list for node set of id 'node_set_id' */
-int c_ex_get_node_set_node_list(int *exoid, int *num_node_sets, int *node_set_id, int *node_set_node_list)
-{
-   int error;
-   error = ex_get_node_set(*exoid, *node_set_id, node_set_node_list);
-   return (error);
-}
-
-/* Close ExodusII File */
-int c_ex_close(int *exoid)
-{
-   int ierr;
-   ierr = ex_close(*exoid);
-   return (ierr);
 }
 
