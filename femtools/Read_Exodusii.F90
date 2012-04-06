@@ -38,6 +38,7 @@ module read_exodusii
   use fields
   use state_module
   use spud
+  use exodusii_common
   use exodusii_f_interface
   use global_parameters, only : OPTION_PATH_LEN, real_4
 
@@ -154,7 +155,10 @@ contains
 
     ewrite(2,*) "In identify_exodusii_file"
 
-    call get_exodusii_filename(filename, lfilename)
+    call get_exodusii_filename(filename, lfilename, fileExists)
+    if(.not. fileExists) then
+       FLExit("None of the possible ExodusII files " // trim(filename) //".exo /.e /.EXO /.E were found")
+    end if
 
     ewrite(2, *) "Opening " // trim(lfilename) // " for reading."
 
@@ -236,7 +240,10 @@ contains
     
     integer :: loc, nodeID, eff_dim, i, d, n, e, z
 
-    call get_exodusii_filename(filename, lfilename)
+    call get_exodusii_filename(filename, lfilename, fileExists)
+    if(.not. fileExists) then
+       FLExit("None of the possible ExodusII files " // trim(filename) //".exo /.e /.EXO /.E were found")
+    end if
 
     ewrite(2, *) "Opening " // trim(lfilename) // " for reading."
     ewrite(2,*) "*************************"
@@ -516,43 +523,6 @@ contains
   end function read_exodusii_file_to_state
 
 
-  ! -----------------------------------------------------------------
-  ! Reorder to Fluidity node ordering
-
-  subroutine toFluidityElementNodeOrdering( oldList, elemType )
-    integer, allocatable, dimension(:) :: oldList, flNodeList, nodeOrder
-    integer i, elemType, numNodes
-
-    numNodes = size(oldList)
-    allocate( flNodeList(numNodes) )
-    allocate( nodeOrder(numNodes) )
-
-    ! Specify node ordering
-    select case( elemType )
-    ! Quads
-    case (3)
-       nodeOrder = (/1, 2, 4, 3/)
-    ! Hexahedron  
-    case (5)
-       nodeOrder = (/1, 2, 4, 3, 5, 6, 8, 7/)
-    case default
-       do i=1, numNodes
-          nodeOrder(i) = i
-       end do
-    end select
-
-    ! Reorder nodes
-    do i=1, numNodes
-       flNodeList(i) = oldList( nodeOrder(i) )
-    end do
-
-    ! Allocate to original list, and dealloc temp list.
-    oldList(:) = flNodeList(:)
-    deallocate( flNodeList )
-    deallocate(nodeOrder)
-
-  end subroutine toFluidityElementNodeOrdering
-
 
 !     subroutine resize_array(array, new_size)
 !        integer, allocatable, dimension(:), intent(inout) :: array
@@ -576,35 +546,6 @@ contains
      allocate(array(size(tmp)))
      array = tmp
   end subroutine append_array
-
-  ! -----------------------------------------------------------------
-  ! Tries valid exodusii file extensions and quits if none of them
-  ! has been found aka file does not exist
-  subroutine get_exodusii_filename(filename, lfilename)
-    character(len=*), intent(in) :: filename
-    character(len=*), intent(inout) :: lfilename
-    logical :: fileExists
-    ! An ExodusII file can have the following file extensions:
-    ! e, exo, E, EXO, our first guess shall be exo    
-    lfilename = trim(filename)//".exo"
-    inquire(file = trim(lfilename), exist = fileExists)
-    if(.not. fileExists) then
-      lfilename = trim(filename) // ".e"
-      inquire(file = trim(lfilename), exist = fileExists)
-      if(.not. fileExists) then
-        lfilename = trim(filename) // ".EXO"
-        inquire(file = trim(lfilename), exist = fileExists)
-        if(.not. fileExists) then
-          lfilename = trim(filename) // ".E"
-          inquire(file = trim(lfilename), exist = fileExists)
-          if(.not. fileExists) then
-            FLExit("None of the possible ExodusII files " // trim(filename) //".exo /.e /.EXO /.E were found")
-          end if
-        end if
-      end if
-    end if
-    lfilename = trim(lfilename)
-  end subroutine get_exodusii_filename
 
 
 end module read_exodusii

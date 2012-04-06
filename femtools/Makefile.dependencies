@@ -338,6 +338,11 @@ Embed_Python_Fortran.o ../include/embed_python.mod: Embed_Python_Fortran.F90 \
 EventCounter.o ../include/eventcounter.mod: EventCounter.F90 \
    ../include/fdebug.h ../include/fldebug.mod
 
+../include/exodusii_common.mod: Exodusii_Common.o
+	@true
+
+Exodusii_Common.o ../include/exodusii_common.mod: Exodusii_Common.F90
+
 ../include/exodusii_f_interface.mod: Exodusii_F_Interface.o
 	@true
 
@@ -909,8 +914,9 @@ Quadrature_Test.o ../include/quadrature_test.mod: Quadrature_Test.F90 \
 	@true
 
 Read_Exodusii.o ../include/read_exodusii.mod: Read_Exodusii.F90 \
-   ../include/elements.mod ../include/exodusii_f_interface.mod \
-   ../include/fdebug.h ../include/fields.mod ../include/futils.mod \
+   ../include/elements.mod ../include/exodusii_common.mod \
+   ../include/exodusii_f_interface.mod ../include/fdebug.h \
+   ../include/fields.mod ../include/futils.mod \
    ../include/global_parameters.mod ../include/spud.mod \
    ../include/state_module.mod
 
