@@ -242,7 +242,8 @@ contains
     integer, allocatable, dimension(:) :: faces
     
     integer :: num_faces
-    integer :: loc, nodeID, eff_dim, i, d, n, e, z
+    integer :: loc, sloc
+    integer :: nodeID, eff_dim, i, d, n, e, z
 
     call get_exodusii_filename(filename, lfilename, fileExists)
     if(.not. fileExists) then
@@ -510,16 +511,22 @@ contains
     ! This does not support a 1D mesh,
     ! because you do NOT want to use fancy cubit to create a 1D mesh, do you?!
     num_faces = 0
+    sloc = 0
     do i=1, num_elem_blk
        ! 2D faces as follows (only lines/edges):
        if (num_dim .eq. 2) then
           if (elem_type(i) .eq. 1) then
              num_faces = num_faces + num_elem_in_block(i)
+             sloc = 2 ! edge
           end if
        ! 3D faces as follows (only triangles and quads):
        else if (num_dim .eq. 3) then
-          if ( elem_type(i) .eq. 2 .or. elem_type(i) .eq. 3 ) then
+          if ( elem_type(i) .eq. 2 ) then
              num_faces = num_faces + num_elem_in_block(i)
+             sloc = 3 ! triangle
+          else if ( elem_type(i) .eq. 3 ) then
+             num_faces = num_faces + num_elem_in_block(i)
+             sloc = 4 ! quad
           end if
        end if
     end do
