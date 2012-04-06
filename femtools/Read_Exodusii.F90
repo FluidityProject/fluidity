@@ -217,15 +217,16 @@ contains
 
     logical :: fileExists
 
+    ! exodusii lib basic variables:
     integer :: exoid, ierr
     real(kind=c_float) :: version
     integer(kind=c_int) :: comp_ws, io_ws, mode
     character(kind=c_char, len=OPTION_PATH_LEN) :: lfilename
-
     character(kind=c_char, len=OPTION_PATH_LEN) :: title
     integer :: num_dim, num_nodes, num_elem, num_elem_blk
     integer :: num_node_sets, num_side_sets
 
+    ! exodusii lib variables:
     real(real_4), allocatable, dimension(:) :: coord_x, coord_y, coord_z
     integer, allocatable, dimension(:) :: node_map, elem_num_map, elem_order_map
     integer, allocatable, dimension(:) :: block_ids, num_elem_in_block, num_nodes_per_elem
@@ -235,9 +236,12 @@ contains
     integer, allocatable, dimension(:) :: node_set_ids, num_nodes_in_set
     integer, allocatable, dimension(:) :: node_set_node_list, total_node_sets_node_list
     
+    ! variables for conversion to fluidity structure:
     real(real_4), allocatable, dimension(:,:) :: node_coord
     integer, allocatable, dimension(:) :: elem_node_list, total_elem_node_list
+    integer, allocatable, dimension(:) :: faces
     
+    integer :: num_faces
     integer :: loc, nodeID, eff_dim, i, d, n, e, z
 
     call get_exodusii_filename(filename, lfilename, fileExists)
@@ -484,7 +488,7 @@ contains
           z = z + num_nodes_per_elem(i)
        end do
     end do
-    
+
 !    ! Test:
 !    z = 0
 !    do i=1, num_elem_blk
@@ -496,6 +500,34 @@ contains
 !    end do
 
 
+    ! Now faces
+    ! First of all: assemble array with faces:
+    ! In 2D: Faces are lines/edges
+    ! In 3D: Faces are surfaces
+    ! Find total number of such faces in all blocks
+    ! loop over blocks, check for element type in block i,
+    ! and depending on the mesh dimension, determine if element e is a face or element
+    ! This does not support a 1D mesh,
+    ! because you do NOT want to use fancy cubit to create a 1D mesh, do you?!
+    num_faces = 0
+    do i=1, num_elem_blk
+       ! 2D faces as follows (only lines/edges):
+       if (num_dim .eq. 2) then
+          if (elem_type(i) .eq. 1) then
+             num_faces = num_faces + num_elem_in_block(i)
+          end if
+       ! 3D faces as follows (only triangles and quads):
+       else if (num_dim .eq. 3) then
+          if ( elem_type(i) .eq. 2 .or. elem_type(i) .eq. 3 ) then
+             num_faces = num_faces + num_elem_in_block(i)
+          end if
+       end if
+    end do
+    ewrite(2,*) "total number of faces: ", num_faces
+
+    allocate(faces(num_faces))
+    
+    
 !    ! Now faces
 !    allocate(sndglno(1:numFaces*sloc))
 !    sndglno=0
@@ -511,6 +543,8 @@ contains
 !       if(haveBounds) boundaryIDs(f) = faces(f)%tags(1)
 !       if(haveElementOwners) faceOwner(f) = faces(f)%tags(4)
 !    end do
+
+
 
 !    ! If we've got boundaries, do something
 !    if( haveBounds ) then
@@ -547,6 +581,7 @@ contains
 
     ! Deallocate other arrays:
     deallocate(node_coord); deallocate(total_elem_node_list)
+    deallocate(faces);
 
 
 
