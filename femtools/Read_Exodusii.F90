@@ -447,19 +447,11 @@ contains
 !    allocate(field%mesh%columns(1:num_nodes))
 !    loc = size( elements(1)%nodeIDs )
 
-    ! FACES ARE STILL MISSING IN FOR EXODUSII MESH:
-!    if (numFaces>0) then
-!      sloc = size( faces(1)%nodeIDs )
-!    else
-!      sloc = 0
-!    end if
-
     ! check if number of vertices/nodes are consistent with shape
     loc = maxval(num_nodes_per_elem)
     assert(loc==shape%loc)
 
-!    ! Loop round nodes copying across coords and column IDs to field mesh,
-!    ! if they exist
+    ! Loop round nodes copying across coords
     ! First, assemble array containing all node coordinates:
     allocate(node_coord(eff_dim, num_nodes))
     node_coord = 0
@@ -480,22 +472,15 @@ contains
        end forall
     end do
 
-    ! Copy elements to field
-    ! currently allows only for one block
-!    do e=1, num_elem
-!       !field%mesh%ndglno((e-1)*loc+1:e*loc) = elements(e)%nodeIDs
-!       field%mesh%ndglno((e-1)*loc+1:e*loc) = 
-!       !if (haveRegionIDs) field%mesh%region_ids(e) = elements(e)%tags(1)
-!    end do
+    ! Copy elements to field (allows for several blocks):
     z = 0
     do i=1, num_elem_blk
        do e=1, num_elem_in_block(i)
-          !field%mesh%ndglno((e-1)*loc+1:e*loc) = elements(e)%nodeIDs
           do n=1, num_nodes_per_elem(i)
              field%mesh%ndglno(n+z) = total_elem_node_list(n+z)
-             !elem_node_list(n) = elem_connectivity(n + z)
+             ! check for regionIDS:
+             ! if (haveRegionIDs) field%mesh%region_ids(e) = elements(e)%tags(1)
           end do
-          ! ewrite(2,*) "elem_node_list = ", elem_node_list
           z = z + num_nodes_per_elem(i)
        end do
     end do
@@ -511,46 +496,6 @@ contains
 !    end do
 
 
-
-
-!    ! Now construct within Fluidity data structures
-!
-!    if (haveRegionIDs) then
-!      allocate( field%mesh%region_ids(numElements) )
-!    end if
-!    if(nodes(1)%columnID.ge.0)  allocate(field%mesh%columns(1:numNodes))
-!
-!    loc = size( elements(1)%nodeIDs )
-!    if (numFaces>0) then
-!      sloc = size( faces(1)%nodeIDs )
-!    else
-!      sloc = 0
-!    end if
-!
-!    assert(loc==shape%loc)
-!
-!    ! Loop round nodes copying across coords and column IDs to field mesh,
-!    ! if they exist
-!    do n=1, numNodes
-!
-!       nodeID = nodes(n)%nodeID
-!       forall (d = 1:effDimen)
-!          field%val(d,nodeID) = nodes(n)%x(d)
-!       end forall
-!
-!       ! If there's a valid node column ID, use it.
-!       if ( nodes(n)%columnID .ne. -1 ) then
-!          field%mesh%columns(nodeID) = nodes(n)%columnID
-!       end if
-!
-!    end do
-!
-!    ! Copy elements to field
-!    do e=1, numElements
-!       field%mesh%ndglno((e-1)*loc+1:e*loc) = elements(e)%nodeIDs
-!       if (haveRegionIDs) field%mesh%region_ids(e) = elements(e)%tags(1)
-!    end do
-!
 !    ! Now faces
 !    allocate(sndglno(1:numFaces*sloc))
 !    sndglno=0
