@@ -413,9 +413,8 @@ contains
     call allocate(mesh, num_nodes, num_elem, shape, name="CoordinateMesh")
     call allocate( field, eff_dim, mesh, name="Coordinate")
     call deallocate( mesh )
-    
-    ! Get element node number (allows for different element types)
 
+    ! Get element node number (allows for different element types)
 
     ! Reorder element node numbering (if necessary):
     ! (allows for different element types)
@@ -439,7 +438,7 @@ contains
        ! deallocate elem_node_list for next block
        deallocate(elem_node_list)
     end do
-    
+
     ewrite(2,*) "total_elem_node_list = ", total_elem_node_list
 
 !    ! In future, we can set the number of elements per 'block', 
@@ -456,8 +455,8 @@ contains
 !    end if
 
     ! check if number of vertices/nodes are consistent with shape
-!    loc = num_nodes_per_elem(1)
-!    assert(loc==shape%loc)
+    loc = maxval(num_nodes_per_elem)
+    assert(loc==shape%loc)
 
 !    ! Loop round nodes copying across coords and column IDs to field mesh,
 !    ! if they exist
@@ -473,16 +472,123 @@ contains
        node_coord(3,:) = coord_z(:)
     end if
 
+    ! copy coordinates into Coordinate field
     do n=1, num_nodes
        nodeID = node_map(n)
        forall (d = 1:eff_dim)
           field%val(d,nodeID) = node_coord(d,n)
        end forall
+    end do
+
+    ! Copy elements to field
+    ! currently allows only for one block
+!    do e=1, num_elem
+!       !field%mesh%ndglno((e-1)*loc+1:e*loc) = elements(e)%nodeIDs
+!       field%mesh%ndglno((e-1)*loc+1:e*loc) = 
+!       !if (haveRegionIDs) field%mesh%region_ids(e) = elements(e)%tags(1)
+!    end do
+    z = 0
+    do i=1, num_elem_blk
+       do e=1, num_elem_in_block(i)
+          !field%mesh%ndglno((e-1)*loc+1:e*loc) = elements(e)%nodeIDs
+          do n=1, num_nodes_per_elem(i)
+             field%mesh%ndglno(n+z) = total_elem_node_list(n+z)
+             !elem_node_list(n) = elem_connectivity(n + z)
+          end do
+          ! ewrite(2,*) "elem_node_list = ", elem_node_list
+          z = z + num_nodes_per_elem(i)
+       end do
+    end do
+    
+!    ! Test:
+!    z = 0
+!    do i=1, num_elem_blk
+!       do e=1, num_elem_in_block(i)
+!          ewrite(2,*) "field%mesh%ndglno(e) = ", field%mesh%ndglno(z+1:z+num_nodes_per_elem(i))
+!          ewrite(2,*) "total_elem_node_list(e) = ", total_elem_node_list(z+1:z+num_nodes_per_elem(i))
+!          z = z + num_nodes_per_elem(i)
+!       end do
+!    end do
+
+
+
+
+!    ! Now construct within Fluidity data structures
+!
+!    if (haveRegionIDs) then
+!      allocate( field%mesh%region_ids(numElements) )
+!    end if
+!    if(nodes(1)%columnID.ge.0)  allocate(field%mesh%columns(1:numNodes))
+!
+!    loc = size( elements(1)%nodeIDs )
+!    if (numFaces>0) then
+!      sloc = size( faces(1)%nodeIDs )
+!    else
+!      sloc = 0
+!    end if
+!
+!    assert(loc==shape%loc)
+!
+!    ! Loop round nodes copying across coords and column IDs to field mesh,
+!    ! if they exist
+!    do n=1, numNodes
+!
+!       nodeID = nodes(n)%nodeID
+!       forall (d = 1:effDimen)
+!          field%val(d,nodeID) = nodes(n)%x(d)
+!       end forall
+!
 !       ! If there's a valid node column ID, use it.
 !       if ( nodes(n)%columnID .ne. -1 ) then
 !          field%mesh%columns(nodeID) = nodes(n)%columnID
 !       end if
-    end do
+!
+!    end do
+!
+!    ! Copy elements to field
+!    do e=1, numElements
+!       field%mesh%ndglno((e-1)*loc+1:e*loc) = elements(e)%nodeIDs
+!       if (haveRegionIDs) field%mesh%region_ids(e) = elements(e)%tags(1)
+!    end do
+!
+!    ! Now faces
+!    allocate(sndglno(1:numFaces*sloc))
+!    sndglno=0
+!    if(haveBounds) then
+!      allocate(boundaryIDs(1:numFaces))
+!    end if
+!    if(haveElementOwners) then
+!      allocate(faceOwner(1:numFaces))
+!    end if
+
+!    do f=1, numFaces
+!       sndglno((f-1)*sloc+1:f*sloc) = faces(f)%nodeIDs(1:sloc)
+!       if(haveBounds) boundaryIDs(f) = faces(f)%tags(1)
+!       if(haveElementOwners) faceOwner(f) = faces(f)%tags(4)
+!    end do
+
+!    ! If we've got boundaries, do something
+!    if( haveBounds ) then
+!       if ( haveElementOwners ) then
+!          call add_faces( field%mesh, &
+!               sndgln = sndglno(1:numFaces*sloc), &
+!               boundary_ids = boundaryIDs(1:numFaces), &
+!               element_owner=faceOwner )
+!       else
+!          call add_faces( field%mesh, &
+!               sndgln = sndglno(1:numFaces*sloc), &
+!               boundary_ids = boundaryIDs(1:numFaces) )
+!       end if
+!    else
+!       ewrite(2,*) "WARNING: no boundaries in GMSH file "//trim(lfilename)
+!       call add_faces( field%mesh, sndgln = sndglno(1:numFaces*sloc) )
+!    end if
+
+
+
+
+
+
 
 
 
