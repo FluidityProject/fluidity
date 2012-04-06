@@ -278,14 +278,14 @@
       ! Positions/Coordinates
       positions => extract_vector_field( state( 1 ), "Coordinate" )
       allocate( x_ndgln( totele * x_nloc ) ) ; x_ndgln = 0
-      ewrite(3,*)'Coordinates'
+      ewrite(3,*)'X_NDGLN:'
       call Get_Ndgln( x_ndgln, positions )
       ewrite(3,*) '   '
 
       ! Pressure and Control Volume
       pressure => extract_scalar_field( state( 1 ), "Pressure" )
       allocate( cv_ndgln( totele * cv_nloc ) ) ; cv_ndgln = 0
-      ewrite(3,*)'CV'
+      ewrite(3,*)'CV_NDGLN'
       call Get_Ndgln( cv_ndgln, pressure )
       allocate( p_ndgln( totele * p_nloc ) ) ; p_ndgln = 0
       allocate( mat_ndgln( totele * mat_nloc ) ) ; mat_ndgln = 0
@@ -296,21 +296,21 @@
       ! Velocities
       velocity => extract_vector_field( state( 1 ), "Velocity" )
       allocate( u_ndgln( totele * u_nloc ) ) ;  u_ndgln = 0
-      ewrite(3,*)'Velocities'
+      ewrite(3,*)'U_NDGLN'
       call Get_Ndgln( u_ndgln, velocity, is_overlapping, cv_nloc )
       ewrite(3,*) '   '
 
       ! Velocity in the continuous space
       velocity_cg_mesh => extract_mesh( state( 1 ), "VelocityMesh_Continuous" )
       allocate( xu_ndgln( totele * xu_nloc ) ) ;  xu_ndgln = 0
-      ewrite(3,*)'Velocities Continuous'
+      ewrite(3,*)'XU_NDGLN'
       call Get_Ndgln( xu_ndgln, velocity_cg_mesh )
       ewrite(3,*) '   '
 
       ! Allocating Surface-based Global Node Numbers:
       ! Control Volumes
       allocate( cv_sndgln( stotel * cv_snloc ) ) ; cv_sndgln = 0
-      ewrite(3,*)'Surface Control Volume'
+      ewrite(3,*)'CV_SNGLN'
       call Get_SNdgln( cv_sndgln, pressure )
       ewrite(3,*) '   '
 
@@ -322,7 +322,7 @@
       u_snloc2 = u_snloc / cv_nloc
       u_nloc2 = u_nloc / cv_nloc
       allocate( u_sndgln2( stotel * u_snloc2 ) ) ; u_sndgln2 = 0
-      ewrite(3,*)'Surface Velocities'
+      ewrite(3,*)'U_SNGLN'
       call Get_SNdgln( u_sndgln2, velocity )
       allocate( u_sndgln( stotel * u_snloc ) ) ; u_sndgln = 0
       ! Convert u_sndgln2 to overlapping u_sndgln
@@ -340,12 +340,13 @@
             end do
          end do
       end do
-      deallocate(u_sndgln2)
+      deallocate( u_sndgln2 )
 
       ewrite(3,*) ' Final u_sndgln: '
       do sele = 1, stotel
          ewrite(3,*) sele, ( u_sndgln( (sele - 1 ) * u_snloc + k ), k = 1, u_snloc )
       end do
+      ewrite(3,*) '  '
 
 
       ! Velocity on the coordinate mesh (CG)
@@ -353,8 +354,10 @@
       allocate( yu( xu_nonods )) ; yu = 0.
       allocate( zu( xu_nonods )) ; zu = 0.
 
+      ewrite(3,*) ' X/Y/ZU:'
+
       call allocate( velocity_cg, ndim, velocity_cg_mesh, "Velocity_CG_Coordinates" )
-      velocity_cg%val(:, :)= 0
+      velocity_cg % val( :, : )= 0
       call project_field( positions, velocity_cg, positions )
 
       !! Global numbering to allow proper copying of fields
@@ -364,9 +367,14 @@
             xu( element_nodes( j ) ) = velocity_cg % val( 1, element_nodes( j ) )
             if( ndim > 1 ) yu( element_nodes( j ) ) = velocity_cg % val( 2, element_nodes( j ) )
             if( ndim > 2 ) zu( element_nodes( j ) ) = velocity_cg % val( 3, element_nodes( j ) )
+            ewrite(3,*)'ele, ndgln, xu, yu:', k, xu_ndgln( ( k - 1 ) * xu_nloc + j ), &
+                 xu( xu_ndgln( ( k - 1 ) * xu_nloc + j ) ), &
+                 yu( xu_ndgln( ( k - 1 ) * xu_nloc + j ))
          end do
+         ewrite(3,*) ' '
       end do
       call deallocate( velocity_cg )
+
 
       ! Coordinate mesh
       allocate( x( x_nonods ) ) ; x = 0.
@@ -376,10 +384,17 @@
       x = positions % val( 1, : )
       if( ndim > 1 ) y = positions % val( 2, : )
       if( ndim > 2 ) z = positions % val( 3, : )
-
+      do k = 1, totele
+         do j = 1, x_nloc
+            ewrite(3,*)'ele, ndgln, x, y:', k, x_ndgln( ( k - 1 ) * x_nloc + j ), &
+                 x( x_ndgln( ( k - 1 ) * x_nloc + j ) ), &
+                 y( x_ndgln( ( k - 1 ) * x_nloc + j ))
+         end do
+      end do
 
       ! Defining element type 
       call Get_Ele_Type(x_nloc, cv_ele_type, p_ele_type, u_ele_type)
+      ewrite(3,*)'cv_ele_type:', cv_ele_type
 
       ! Defining  solvers options
       call Get_Solvers_Options( nphases, &
@@ -984,7 +999,7 @@
 
       ewrite(3,*) "Leaving copy_outof_state"
 
-      !      stop 999
+      return
 
     end subroutine Copy_outof_state
 
@@ -1300,7 +1315,6 @@
       end do
       nphases = nstates - ncomps
       assert( nphases > 0 ) ! Check if there is more than 0 phases
-      ewrite(3,*)'nstates, ncomps, nphases:', nstates, ncomps, nphases
 
       ! Get the vel element type.
       call get_option('/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
@@ -1384,25 +1398,23 @@
       integer :: ele, iloc, count, cv_nloc2
       logical :: is_overlapping2
 
-
       is_overlapping2 = .false.
       if ( present( is_overlapping ) ) is_overlapping2 = is_overlapping
       cv_nloc2 = 1
       if ( is_overlapping2 ) cv_nloc2 = cv_nloc
 
-      count=0
+      count = 0
       do ele = 1, ele_count( field )
          nloc => ele_nodes( field, ele )
          do iloc = 1, ele_loc( field, 1 ) * cv_nloc2
-             ewrite(3,*) '===:', ele_loc( field, 1 ) ,  cv_nloc2, is_overlapping2
             if( is_overlapping2 ) then
                count = count + 1
-               ndgln( ( ele - 1 ) * ele_loc( field, 1 ) + iloc ) = count
+               ndgln( ( ele - 1 ) * ele_loc( field, 1 ) * cv_nloc2 + iloc ) = count
             else
-               ndgln( ( ele - 1 ) * ele_loc( field, 1 ) + iloc ) =  nloc( iloc )
+               ndgln( ( ele - 1 ) * ele_loc( field, 1 ) * cv_nloc2  + iloc ) =  nloc( iloc )
             end if
             ewrite(3,*)'ele, iloc, ndgln:', ele, iloc, &
-                 ndgln( ( ele - 1 ) * ele_loc( field, 1 ) + iloc )
+                 ndgln( ( ele - 1 ) * ele_loc( field, 1 ) * cv_nloc2  + iloc )
          end do
       end do
 
