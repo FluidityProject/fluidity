@@ -561,10 +561,10 @@ contains
        IXMAX=0
        IYMIN=0
        IYMAX=0
-       DO CV_SILOC=1,U_SNLOC
-          CV_NOD=U_SNDGLN((SELE-1)*U_SNLOC+CV_SILOC)
+       DO CV_SILOC=1,CV_SNLOC
+          CV_NOD=CV_SNDGLN((SELE-1)*CV_SNLOC+CV_SILOC)
 
-          print *, 'sele, cv_siloc, cv_nod', sele, cv_siloc, cv_nod
+          ewrite(3,*), 'sele, cv_siloc, cv_nod', sele, cv_siloc, cv_nod
 
           IF(ABS(X(CV_NOD)-XMIN).LT.1.E-4) THEN ! Left boundary
              IXMIN=IXMIN+1
