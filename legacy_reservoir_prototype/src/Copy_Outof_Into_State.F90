@@ -262,7 +262,6 @@
            x_snloc, cv_snloc, u_snloc, p_snloc, &
            cv_nonods, mat_nonods, u_nonods, xu_nonods, x_nonods, p_nonods, dx, &
            is_overlapping )
-       if( is_overlapping ) u_nloc = u_nloc * cv_nloc
 
       ewrite(3,*) 'nphases, nstates, ncomps, totele, ndim, stotel:', &
            nphases, nstates, ncomps, totele, ndim, stotel
@@ -320,7 +319,6 @@
       p_sndgln = cv_sndgln
 
       ! Velocities
-      if( is_overlapping ) u_snloc = u_snloc * cv_nloc
       u_snloc2 = u_snloc / cv_nloc
       u_nloc2 = u_nloc / cv_nloc
       allocate( u_sndgln2( stotel * u_snloc2 ) ) ; u_sndgln2 = 0
@@ -1310,16 +1308,16 @@
       is_overlapping = .false.
       if ( trim( vel_element_type ) == 'overlapping' ) is_overlapping = .true. 
 
-      ! Defining number of elements and surface elements, coordinates, locs and snlocs
       positions => extract_vector_field( state, "Coordinate" )
+
+      ! Defining number of elements and surface elements, coordinates, locs and snlocs
       totele = ele_count( positions )
       stotel = surface_element_count( positions )
 
       ! Coordinates
       x_nloc = ele_loc( positions, 1 )
       x_snloc = face_loc( positions, 1 )
-      xu_nloc = x_nloc
-      x_nonods = node_count( positions)
+      x_nonods = node_count( positions )
 
       ! Pressure, Control Volumes and Materials
       pressure => extract_scalar_field( state, "Pressure" )
@@ -1330,7 +1328,7 @@
       cv_snloc = p_snloc
       cv_nonods = p_nonods
       mat_nloc = cv_nloc
-      mat_nonods = cv_nonods
+      mat_nonods = mat_nloc * totele
 
       ! Velocities and velocities (DG) associated with the continuous space (CG)
       velocity => extract_vector_field( state, "Velocity" )
@@ -1340,8 +1338,13 @@
 
       ! Get the continuous space of the velocity field
       velocity_cg_mesh => extract_mesh( state, "VelocityMesh_Continuous" )
-      xu_nonods = node_count( velocity_cg_mesh )
+      xu_nloc = ele_loc( velocity_cg_mesh, 1 )
+      xu_nonods = max(( xu_nloc - 1 ) * totele + 1, totele )
 
+      ! Take care of overlapping elements
+      if( is_overlapping ) u_nonods = u_nonods * cv_nloc
+      if( is_overlapping ) u_nloc = u_nloc * cv_nloc
+      if( is_overlapping ) u_snloc = u_snloc * cv_nloc
 
       dx = maxval( positions%val(1,:) ) - minval( positions%val(1,:) )
 

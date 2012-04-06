@@ -1384,12 +1384,11 @@
          call def_spar_ct_dg( cv_nonods, mx_nct, nct, findct, colct, &
               totele, cv_nloc, u_nloc, u_ndgln, u_ele_type, cv_ndgln )
       else
-         ewrite(3,*),'u_nonods, u_nloc, cv_nonods, cv_nloc, mx_nct, nct:', &
-                      u_nonods, u_nloc, cv_nonods, cv_nloc, mx_nct, nct
          call pousinmc2( totele, u_nonods, u_nloc, cv_nonods, cv_nloc, &
               mx_nct, u_ndgln, cv_ndgln, &
               nct, findct, colct, centct )
-          ewrite(3,*) 'finished pousinmc2'
+         ewrite(3,*),'u_nonods, u_nloc, cv_nonods, cv_nloc, mx_nct, nct:', &
+              u_nonods, u_nloc, cv_nonods, cv_nloc, mx_nct, nct
       end if Conditional_Dimensional_2
       nc = nct
       ewrite(3,*) 'findct: ', size( findct ), '==>', findct( 1 : cv_nonods + 1 )

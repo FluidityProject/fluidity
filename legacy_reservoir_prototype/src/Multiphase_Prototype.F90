@@ -198,21 +198,10 @@ module mp_prototype
       ! Going to move to here a load of random things
       nopt_vel_upwind_coefs = mat_nonods * nphase * ndim * ndim * 2
 
-      if( u_snloc < 0 ) u_snloc = 1 * nlev
-      cv_pha_nonods = cv_nonods * nphase
-      u_pha_nonods = u_nonods * nphase
-      ncp_coefs = nphase
-      nlenmcy = u_pha_nonods + cv_nonods
-
-
       ! This should really be in the copy routine, but it isn't used
       ! anyway
       allocate( opt_vel_upwind_coefs( nopt_vel_upwind_coefs ))
       opt_vel_upwind_coefs = 0.
-
-      ! Set up Global node number for velocity and scalar fields
-      allocate( x_sndgln( stotel * cv_snloc ))
-      x_sndgln = 0
 
       ewrite(3,*) 'cv_ele_type', cv_ele_type
       ewrite(3,*) 'cv_sele_type', cv_sele_type
@@ -228,19 +217,17 @@ module mp_prototype
 
       nkcomp = Combination( ncomp, 2 )
 
-
-     ! if( u_snloc < 0 ) u_snloc = 1 * nlev
-     ! cv_pha_nonods = cv_nonods * nphase
-     ! u_pha_nonods = u_nonods * nphase
-     ! ncp_coefs = nphase
-     ! nlenmcy = u_pha_nonods + cv_nonods
-     ! if( ndpset < 0 ) ndpset = cv_nonods
-
       ! This should really be in the copy routine, but it isn't used
       ! anyway
       !      allocate( opt_vel_upwind_coefs( nopt_vel_upwind_coefs ))
       opt_vel_upwind_coefs = 0.
       nopt_vel_upwind_coefs = mat_nonods * nphase * ndim * ndim * 2
+
+      if( u_snloc < 0 ) u_snloc = 1 * nlev
+      cv_pha_nonods = cv_nonods * nphase
+      u_pha_nonods = u_nonods * nphase
+      ncp_coefs = nphase
+      nlenmcy = u_pha_nonods + cv_nonods
 
       ! Set up scalar and vector fields for previous time-step
       allocate( uold( u_pha_nonods ))
@@ -300,22 +287,21 @@ module mp_prototype
       allocate( findm( cv_nonods + 1 )) ! Sparsity for the CV-FEM
       allocate( midm( cv_nonods ))
 
-
       ! Defining lengths
       mx_nface_p1 = 2 * ndim + 1
       mxnele = mx_nface_p1 * totele
-!      mx_nct = cv_nonods * ( 2 * u_nloc + 1 ) * ndim * nphase
+      !mx_nct = cv_nonods * ( 2 * u_nloc + 1 ) * ndim * nphase
       if(cv_nonods==cv_nloc*totele) then ! is DG for pressure...
          mx_nct = totele * u_nloc * cv_nloc * mx_nface_p1* ndim * nphase
       else
          mx_nct = totele * u_nloc * cv_nloc * ndim * nphase
       endif
-!      print *,'mx_nct, old:',mx_nct, &
-!                cv_nonods * ( 2 * u_nloc + 1 ) * ndim * nphase
+      !ewrite(3,*)'mx_nct, old:',mx_nct, &
+      !cv_nonods * ( 2 * u_nloc + 1 ) * ndim * nphase
       mx_nc = mx_nct  
 
-!      mx_ncolcmc = mx_nface_p1 *  cv_nloc  * cv_nonods
-! assume the DG representation requires ths most stroage...
+      ! mx_ncolcmc = mx_nface_p1 *  cv_nloc  * cv_nonods
+      ! Assume the DG representation requires ths most stroage...
       mx_ncolcmc = mx_nface_p1 *  cv_nloc  * cv_nloc * totele 
 
       mx_ncoldgm_pha = mxnele * ( u_nloc * ndim )**2 * nphase + totele * ( u_nloc * ndim * nphase )**2
