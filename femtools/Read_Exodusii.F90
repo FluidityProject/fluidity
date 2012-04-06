@@ -243,7 +243,7 @@ contains
     
     integer :: num_faces
     integer :: loc, sloc
-    integer :: nodeID, eff_dim, i, d, n, e, z
+    integer :: nodeID, eff_dim, b, d, e, f, i, n, z
 
     call get_exodusii_filename(filename, lfilename, fileExists)
     if(.not. fileExists) then
@@ -502,7 +502,7 @@ contains
 
 
     ! Now faces
-    ! First of all: assemble array with faces:
+    ! First of all: get total number of faces, then assemble array with faces:
     ! In 2D: Faces are lines/edges
     ! In 3D: Faces are surfaces
     ! Find total number of such faces in all blocks
@@ -532,9 +532,45 @@ contains
     end do
     ewrite(2,*) "total number of faces: ", num_faces
 
+    ! assemble array with faces (faces contains element number (=element id of mesh)):
     allocate(faces(num_faces))
-    
-    
+    faces = 0
+    f=1; b=0;
+    ewrite(2,*) "************************************************"
+    do i=1, num_elem_blk
+       do e=1, num_elem_in_block(i)
+          ! 2D faces as follows (only lines/edges):
+          if (num_dim .eq. 2) then
+             if (elem_type(i) .eq. 1) then
+                faces(f) = elem_num_map(e + b)
+                f = f+1
+             end if
+          ! 3D faces as follows (only triangles and quads):
+          else if (num_dim .eq. 3) then
+             if ( elem_type(i) .eq. 2 .or. elem_type(i) .eq. 3 ) then
+                faces(f) = elem_num_map(e + b)
+                f = f+1
+             end if
+          end if
+       end do
+       b = b + num_elem_in_block(i)
+    end do
+    ewrite(2,*) "faces = ", faces
+
+
+!    if (havebounds) then
+!      allocate(boundaryIDs(1:numFaces))
+!    end if
+!    if(haveElementOwners) then
+!      allocate(faceOwner(1:numFaces))
+!    end if
+!    do f=1, num_faces
+!       faces((f-1)*sloc+1:f*sloc) = faces(f)%nodeIDs(1:sloc)
+!       if(haveBounds) boundaryIDs(f) = faces(f)%tags(1)
+!       if(haveElementOwners) faceOwner(f) = faces(f)%tags(4)
+!    end do
+
+
 !    ! Now faces
 !    allocate(sndglno(1:numFaces*sloc))
 !    sndglno=0
