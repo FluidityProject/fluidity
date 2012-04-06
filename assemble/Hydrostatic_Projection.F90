@@ -63,7 +63,7 @@ contains
     integer:: stat
     
     p_mesh => extract_pressure_mesh(state)
-    u_mesh => extract_pressure_mesh(state)
+    u_mesh => extract_velocity_mesh(state)
     
     ! retreive the list of surface elements for the surface_mesh
     topdis => extract_scalar_field(state, "DistanceToTop", stat=stat)

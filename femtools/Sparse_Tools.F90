@@ -4341,6 +4341,7 @@ contains
                       product%sparsity%colm(nentry0) = j
                       if(i==j) product%sparsity%centrm(i) = nentry0
                    end if
+                   assert(product%sparsity%colm(nentry0)==j)
                 end if
              end if
           end do
