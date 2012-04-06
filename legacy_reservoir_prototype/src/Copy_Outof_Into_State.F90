@@ -980,7 +980,6 @@
       allocate( cv_one( nphases * cv_nonods ))
       cv_one = 1.0
 
-
       if( .false. ) then
          call test_bc( ndim, nphases, &
               u_nonods, cv_nonods, x_nonods, &
@@ -1639,7 +1638,7 @@
 
       ndim = field % dim
       stotel = surface_element_count( cmesh )
-      snloc = face_loc(field, 1) * face_loc(pmesh, 1)
+      snloc = face_loc(field, 1) * ele_loc(pmesh, 1)
       snloc2 = face_loc(field, 1)
       nonods = node_count( field )
 
