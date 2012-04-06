@@ -206,7 +206,9 @@ contains
     type(integer_set):: column_nodes
     real, dimension(u%dim):: uvec, unorm
     integer, dimension(:) ,pointer:: surface_element_list
-    integer :: i, sele, ele
+    integer :: i, sele, ele, c
+
+    ewrite(1,*) "Inside reconstruct_vertical_velocities"
 
     p_mesh => extract_pressure_mesh(state)
     if (.not. (element_degree(p_mesh,1)==element_degree(u,1)+1 .and. continuity(p_mesh)>=0 .and. continuity(u)<0)) then
@@ -237,6 +239,7 @@ contains
     bottom_distance => extract_scalar_field(state, "DistanceToBottom")
     call get_boundary_condition(bottom_distance, 1, &
         surface_element_list=surface_element_list)
+    c=0 ! count the elements we've visited
     do i=1, size(surface_element_list)
       sele = surface_element_list(i)
       ! the set of velocity nodes in this column, we've solved already:
@@ -247,6 +250,7 @@ contains
         ! this routine returns the sele that faces the element above
         ! or returns sele=-1 if we've reached the top
         call vertical_reconstruction_ele(column_nodes, ele, sele)
+        c=c+1
 
         if (sele<0) exit
 
@@ -255,7 +259,12 @@ contains
 
     end do
 
+    if (c/=element_count(p_mesh)) then
+      FLExit("Something's wrong with this mesh - not columnar?")
+    end if
+
     call deallocate(ugravity_normal)
+    ewrite_minmax(u)
 
     contains
 
@@ -267,7 +276,7 @@ contains
       integer, dimension(face_loc(l_mesh,sele)):: flnodes
       type(integer_set):: fnodes
       type(real_vector), dimension(u%dim):: rowvals
-      real, dimension(ele_loc(p_mesh,ele)):: rhs
+      real, dimension(ele_loc(u,ele)):: rhs
       real, dimension(size(rhs), size(rhs)):: matrix
       real, dimension(u%dim):: unorm
       integer, dimension(:), pointer:: faces, pnodes, unodes, row
@@ -376,5 +385,38 @@ pressure_node_loop: do j=1, size(pnodes)
     end function all_different
 
   end subroutine reconstruct_vertical_velocities
+
+  subroutine finalise_hydrostatic_pressure_projection(state, surface_p, old_surface_p)
+  !!< Extrapolate the solved for surface pressure 'surface_p' into the full prognostic "Pressure" field
+  !!< Then deallocate surface_p and old_surface_p
+    type(state_type), intent(inout):: state
+    type(scalar_field), intent(inout):: surface_p, old_surface_p
+
+    type(vector_field), pointer:: positions, vertical_normal
+    type(scalar_field), pointer:: p, topdis
+    integer, dimension(:), pointer:: surface_element_list
+    integer:: i, sele
+
+    ! retreive the list of surface elements for the surface_mesh
+    topdis => extract_scalar_field(state, "DistanceToTop")
+    call get_boundary_condition(topdis, 1, surface_element_list=surface_element_list)
+
+    ! copy values of surface_p to surface of Pressure field
+    p => extract_scalar_field(state, "Pressure")
+    do i=1, size(surface_element_list)
+      sele=surface_element_list(i)
+      call set(p, face_global_nodes(p, sele), ele_val(surface_p,i))
+    end do
+
+    ! extrapolate p downwards
+    positions => extract_vector_field(state, "Coordinate")
+    vertical_normal => extract_vector_field(state, "GravityDirection")
+    call VerticalExtrapolation(p, p, &
+       positions, vertical_normal, surface_element_list)
+
+    call deallocate(surface_p)
+    call deallocate(old_surface_p)
+
+  end subroutine finalise_hydrostatic_pressure_projection
   
 end module hydrostatic_projection

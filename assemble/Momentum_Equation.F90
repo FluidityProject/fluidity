@@ -1058,6 +1058,9 @@
                call profiler_toc(p, "assembly")
             end if
 
+            if (use_hydrostatic_projection) then
+              call finalise_hydrostatic_pressure_projection(state(prognostic_p_istate), p, old_p)
+            end if
 
             !! Correct and update velocity fields to u^{n+1} using pressure correction term delta_p
             if(prognostic_p) then
