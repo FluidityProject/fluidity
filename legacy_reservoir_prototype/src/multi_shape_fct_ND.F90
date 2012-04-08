@@ -2475,7 +2475,7 @@
       real :: xgi, ygi, zgi, volume, sarea, normx, normy, normz, d2_quad
       real :: half_side_length
 
-      ewrite(3,*)'In shape_tri_tet'
+      ewrite(3,*)'In shape_tri_tet s'
 
       sn=0.0
       snlx=0.0
@@ -3189,7 +3189,7 @@
          quad_cv_ngi = 8
          dummy_sngi = 4
          dummy_snloc = 4
-         nwicel = 3
+         nwicel = 1 ! was 3
          if( cv_nloc == 10 ) then ! Quadratic hexs
             quad_cv_ngi = 27
             nwicel = 4
@@ -3246,8 +3246,10 @@
          cv_ele_type, ndim, totele, cv_nloc, cv_ngi, x_nonods, &
          quad_cv_nloc, x_ndgln, x, y, z, lx, ly, lz, &
          n, nlx, nly, nlz, cvweigh )
-! Determine the volume shape functions n, nlx, nly, nlz 
-! and weights cvweigh for the cv_nloc_cells CV cells. 
+
+      ! Determine the volume shape functions n, nlx, nly, nlz 
+      ! and weights cvweigh for the cv_nloc_cells CV cells. 
+
       use shape_functions
       implicit none
       integer, intent( in ) :: cv_ele_type, ndim, totele, cv_nloc, cv_ngi, &
@@ -3270,14 +3272,14 @@
       ewrite(3,*)'in shape_tri_tet'
 
       d3 = ( ndim == 3 )
-      d1 = .false.
+      d1 = ( ndim == 1 )
       dcyl = .false. 
 
       Conditional_Dimensionality1: if( d3 ) then
          quad_cv_ngi = 8
          dummy_sngi = 4
          dummy_snloc = 4
-         nwicel = 3
+         nwicel = 1 ! was 3
          if( cv_nloc_cells == 10 ) then ! Quadratic hexs
             quad_cv_ngi = 27
             nwicel = 4
@@ -3346,7 +3348,7 @@
          Loop_NGI: do quad_cv_gi = 1, quad_cv_ngi ! Determine the quadrature points and weights
             cv_gi = ( ele - 1 ) * quad_cv_ngi + quad_cv_gi
             ewrite(3,*)'ele, totele, quad_cv_gi, quad_cv_ngi, cv_gi, cv_ngi:', ele, totele, quad_cv_gi, quad_cv_ngi, cv_gi, cv_ngi
-! the weights need to sum to 0.5 in 2D triangles and 1./6. in 3D tets...
+            ! the weights need to sum to 0.5 in 2D triangles and 1./6. in 3D tets...
             if(ndim==1) cvweigh( cv_gi ) = detwei( quad_cv_gi )
             if(ndim==2) cvweigh( cv_gi ) = 0.5*detwei( quad_cv_gi )
             if(ndim==3) cvweigh( cv_gi ) = (1./6.)*detwei( quad_cv_gi )
@@ -3716,7 +3718,7 @@
       integer :: ipoly, iqadra, iloc
       real, dimension( : ), allocatable :: rdum 
 
-      ewrite(3,*)' In shape_l_q_quad'
+      ewrite(3,*)' In shape_l_q_quad', nwicel, d3
 
       allocate( rdum( 1 ) )
 
@@ -3767,15 +3769,14 @@
       integer :: cv_iloc
       real :: xgi, ygi, zgi
       integer, parameter :: n = 3
-      real, dimension( n ) :: lx, ly, lz
+      real, dimension( : ) :: lx, ly, lz
       ! Local variables
       integer :: ipt
       real, dimension( :, : ), allocatable :: lxyz
-      real, dimension( : ), allocatable :: xyzgi
+      real :: xyzgi(3)
       real :: loc_x_coord, loc_y_coord, loc_z_coord, loc_zz_coord
 
       allocate( lxyz( n + 1, n ) )
-      allocate( xyzgi( n ) )
 
       do ipt = 1, n + 1
          lxyz( ipt, 1 ) = lx( ipt ) 
@@ -3802,7 +3803,6 @@
       end Select
 
       deallocate( lxyz )
-      deallocate( xyzgi )
 
       return
     end function volume_quad_map
