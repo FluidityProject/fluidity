@@ -721,7 +721,8 @@
       integer :: col, u_nod, cv_nod, count, count2
       integer, dimension( : ), allocatable :: in_row_c
 
-      ewrite(3,*) 'In conv_ct2c subrt.', colct
+      ewrite(3,*) 'In conv_ct2c subrt.'
+      ewrite(3,*) ' max( colct ):', maxval( colct )
 
       ! No. of non-zero's in row of C matrix. 
       allocate( in_row_c( u_nonods ) )
@@ -1341,7 +1342,7 @@
          call def_spar( 1, totele, mxnele, ncolele, &
               midele, finele, colele )
       else
-         call getfinele( totele, cv_nloc, cv_snloc, x_nonods, x_ndgln, mx_nface_p1, &
+         call getfinele( totele, cv_nloc, cv_snloc, cv_nonods, cv_ndgln, mx_nface_p1, &
               mxnele, ncolele, finele, colele, midele )
       end if Conditional_Dimensional_1
       ewrite(3,*)'finele: ', size( finele ), '==>', finele( 1 : totele + 1 )
@@ -1379,6 +1380,9 @@
       !-
       allocate( centct( cv_nonods ) )
       findct = 0 ; colct = 0 ; centct = 0
+      ewrite(3,*)'u_ele_type:', u_ele_type
+      ewrite(3,*)'u_ndgln:', u_ndgln
+      ewrite(3,*)'cv_ndgln:', cv_ndgln
       Conditional_Dimensional_2: if ( ndim == 1 ) then 
          !Conditional_Dimensional_2: if ( ndim == 1 ) then 
          call def_spar_ct_dg( cv_nonods, mx_nct, nct, findct, colct, &
@@ -1387,13 +1391,14 @@
          call pousinmc2( totele, u_nonods, u_nloc, cv_nonods, cv_nloc, &
               mx_nct, u_ndgln, cv_ndgln, &
               nct, findct, colct, centct )
+
          ewrite(3,*),'u_nonods, u_nloc, cv_nonods, cv_nloc, mx_nct, nct:', &
               u_nonods, u_nloc, cv_nonods, cv_nloc, mx_nct, nct
+
       end if Conditional_Dimensional_2
       nc = nct
       ewrite(3,*) 'findct: ', size( findct ), '==>', findct( 1 : cv_nonods + 1 )
       ewrite(3,*) 'colct: ', size( colct ), nct, '==>', colct( 1 : nct )
-
       !-
       !- Convert CT sparsity to C sparsity
       !-
