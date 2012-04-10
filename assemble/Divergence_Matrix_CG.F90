@@ -58,7 +58,10 @@ module divergence_matrix_cg
   integer :: nu_bar_scheme
   real :: nu_bar_scale
 
-contains
+  !! Are we running a multiphase flow simulation?
+  logical :: multiphase
+
+  contains
 
     subroutine assemble_divergence_matrix_cg(CT_m, state, ct_rhs, & 
                                              test_mesh, field, option_path, &
@@ -119,7 +122,6 @@ contains
       logical :: l_get_ct
 
       !! Multiphase variables
-      logical :: multiphase
       ! Volume fraction fields
       type(scalar_field), pointer :: vfrac
       type(scalar_field) :: nvfrac
@@ -355,26 +357,36 @@ contains
 
     end subroutine assemble_divergence_matrix_cg
 
-    subroutine assemble_compressible_divergence_matrix_cg(ctp_m, state, ct_rhs)
+    subroutine assemble_compressible_divergence_matrix_cg(ctp_m, state, istate, ct_rhs)
       
       ! inputs/outputs
       ! bucket full of fields
       type(state_type), dimension(:), intent(inout) :: state
-
+      integer, intent(in) :: istate
       ! the compressible divergence matrix
       type(block_csr_matrix), intent(inout) :: ctp_m
 
       type(scalar_field), intent(inout), optional :: ct_rhs
 
-      if((size(state)==1).and.(.not.has_scalar_field(state(1), "MaterialVolumeFraction"))) then
-      
-        call assemble_1mat_compressible_divergence_matrix_cg(ctp_m, state(1), ct_rhs)
-        
+      if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
+         multiphase = .true.
+         call assemble_1mat_compressible_divergence_matrix_cg(ctp_m, state(istate), ct_rhs)
       else
-      
-        FLExit("Multimaterial compressible continuous_galerkin pressure not possible.")
-        
+         multiphase = .false.
+
+         if((size(state)==1).and.(.not.has_scalar_field(state(1), "MaterialVolumeFraction"))) then
+         
+            call assemble_1mat_compressible_divergence_matrix_cg(ctp_m, state(1), ct_rhs)
+         
+         else
+
+            FLExit("Multimaterial compressible continuous_galerkin pressure not possible.")
+         
+         end if
+
       end if
+
+
     
     end subroutine assemble_compressible_divergence_matrix_cg
 
@@ -407,6 +419,7 @@ contains
       
       real, dimension(:), allocatable :: density_at_quad, olddensity_at_quad
       real, dimension(:,:), allocatable :: density_grad_at_quad, nlvelocity_at_quad
+      real, dimension(:,:), allocatable :: grad_one_over_density_at_quad, grad_one_over_olddensity_at_quad
 
       ! loop integers
       integer :: ele, sele, dim
@@ -427,6 +440,14 @@ contains
       
       integer :: stat
 
+      !! Multiphase variables
+      ! Volume fraction fields
+      type(scalar_field), pointer :: vfrac
+      type(scalar_field) :: nvfrac
+      type(element_type), pointer :: nvfrac_shape
+      ! Transformed gradient function for the non-linear PhaseVolumeFraction. 
+      real, dimension(:, :, :), allocatable :: dnvfrac_t
+
       ! =============================================================
       ! Subroutine to construct the matrix ctp_m (a.k.a. C1/2/3TP).
       ! =============================================================
@@ -443,6 +464,17 @@ contains
       velocity=>extract_vector_field(state, "Velocity")
       nonlinearvelocity=>extract_vector_field(state, "NonlinearVelocity") ! maybe this should be updated after the velocity solve?
       
+      ! Get the non-linear PhaseVolumeFraction field if multiphase
+      if(multiphase) then
+         vfrac => extract_scalar_field(state, "PhaseVolumeFraction")
+         call allocate(nvfrac, vfrac%mesh, "NonlinearPhaseVolumeFraction")
+         call zero(nvfrac)
+         call get_nonlinear_volume_fraction(state, nvfrac)
+         ewrite_minmax(nvfrac)
+      else
+         nullify(vfrac)
+      end if
+
       integrate_by_parts=have_option(trim(complete_field_path(density%option_path, stat=stat))//&
           &"/spatial_discretisation/continuous_galerkin/advection_terms/integrate_advection_by_parts")&
           .or. have_option(trim(complete_field_path(velocity%option_path, stat=stat))//&
@@ -492,10 +524,17 @@ contains
                detwei(ele_ngi(field, 1)), &
                density_at_quad(ele_ngi(density, 1)), &
                olddensity_at_quad(ele_ngi(density, 1)), &
+               grad_one_over_density_at_quad(field%dim, ele_ngi(density,1)), &
+               grad_one_over_olddensity_at_quad(field%dim, ele_ngi(density,1)), &
                nlvelocity_at_quad(nonlinearvelocity%dim, ele_ngi(nonlinearvelocity, 1)), &
                density_grad_at_quad(field%dim, ele_ngi(density,1)), &
                j_mat(field%dim, field%dim, ele_ngi(density, 1)))
       
+      if(multiphase) then
+         ! We will need grad(nvfrac) if we are not integrating by parts below
+         allocate(dnvfrac_t(ele_loc(nvfrac,1), ele_ngi(nvfrac,1), field%dim))
+      end if
+
       do ele=1, element_count(test_mesh)
 
         test_nodes=>ele_nodes(test_mesh, ele)
@@ -509,7 +548,7 @@ contains
         olddensity_at_quad = ele_val_at_quad(olddensity, ele)
         
         nlvelocity_at_quad = ele_val_at_quad(nonlinearvelocity, ele)
-        
+
         if(any(stabilisation_scheme == (/STABILISATION_STREAMLINE_UPWIND, STABILISATION_SUPG/))) then
           call transform_to_physical(coordinate, ele, test_shape_ptr, dshape = dtest_t, &
                                      detwei = detwei, j = j_mat)
@@ -545,16 +584,47 @@ contains
 
 
         if(integrate_by_parts) then
+            call invert(density)
+            call invert(olddensity)
+            grad_one_over_density_at_quad = ele_grad_at_quad(density, ele, ddensity_t)
+            grad_one_over_olddensity_at_quad = ele_grad_at_quad(olddensity, ele, ddensity_t)
+            call invert(density)
+            call invert(olddensity)
+
             ! if SUPG is fixed for P>1 then this dtest_t should be updated
-            ele_mat = -dshape_shape(dtest_t, field_shape, &
-                       detwei*(theta*density_at_quad + (1-theta)*olddensity_at_quad))
+            if(multiphase) then
+               ele_mat = -shape_shape_vector(test_shape, field_shape, detwei*ele_val_at_quad(nvfrac, ele)*(theta*density_at_quad + (1-theta)*olddensity_at_quad), theta*(grad_one_over_density_at_quad)+(1-theta)*(grad_one_over_olddensity_at_quad)) - dshape_shape(dtest_t, field_shape, detwei*ele_val_at_quad(nvfrac, ele))
+            else
+               ele_mat = -dshape_shape(dtest_t, field_shape, &
+                        detwei*(theta*density_at_quad + (1-theta)*olddensity_at_quad))
+            end if
         else
             density_grad_at_quad = theta*(ele_grad_at_quad(density, ele, ddensity_t))+&
                                    (1-theta)*(ele_grad_at_quad(olddensity, ele, ddensity_t))
             
-            ele_mat = shape_dshape(test_shape, dfield_t, &
+            if(multiphase) then
+
+               ! If the field and nvfrac meshes are different, then we need to
+               ! compute the derivatives of the nvfrac shape functions.
+               if(.not.(nvfrac%mesh == field%mesh)) then
+                  nvfrac_shape => ele_shape(nvfrac%mesh, ele)
+                  call transform_to_physical(coordinate, ele, nvfrac_shape, dshape=dnvfrac_t)
+               else
+                  dnvfrac_t = dfield_t
+               end if
+
+               ! Split up the divergence term (1/rho)*div(rho*vfrac*u) = (1/rho)*rho*vfrac*div(u) + (1/rho)*u*grad(rho*vfrac)
+               ! = (1/rho)*rho*vfrac*div(u) + (1/rho)*u*(vfrac*grad(rho) + rho*grad(vfrac))
+               ele_mat = shape_dshape(test_shape, dfield_t, detwei*ele_val_at_quad(nvfrac, ele)) + &
+                         shape_shape_vector(test_shape, field_shape, detwei*ele_val_at_quad(nvfrac, ele)/(theta*density_at_quad + (1-theta)*olddensity_at_quad), density_grad_at_quad) + &
+                         shape_shape_vector(test_shape, field_shape, detwei, ele_grad_at_quad(nvfrac, ele, dnvfrac_t))
+
+            else
+               ele_mat = shape_dshape(test_shape, dfield_t, &
                                    detwei*(theta*density_at_quad + (1-theta)*olddensity_at_quad)) + &
                       shape_shape_vector(test_shape, field_shape, detwei, density_grad_at_quad)
+            end if
+
         end if
         
         ! Stabilisation does not return the right shape for this operator!
@@ -618,8 +688,14 @@ contains
               &                          detwei_f=detwei_bdy,&
               &                          normal=normal_bdy) 
 
-          ele_mat_bdy = shape_shape_vector(test_shape_ptr, field_shape, &
-                                           detwei_bdy*density_bdy, normal_bdy)
+
+          if(multiphase) then
+            ele_mat_bdy = shape_shape_vector(test_shape_ptr, field_shape, &
+                                             detwei_bdy*face_val_at_quad(nvfrac, sele), normal_bdy)
+          else
+            ele_mat_bdy = shape_shape_vector(test_shape_ptr, field_shape, &
+                                             detwei_bdy*density_bdy, normal_bdy)
+          end if
 
           do dim = 1, field%dim
             if((field_bc_type(dim, sele)==1).and.present(ct_rhs)) then
@@ -640,6 +716,11 @@ contains
         deallocate(detwei_bdy, normal_bdy, density_bdy)
         deallocate(test_nodes_bdy, field_nodes_bdy)
 
+      end if
+
+      if(multiphase) then
+         deallocate(dnvfrac_t)
+         call deallocate(nvfrac)
       end if
       
     end subroutine assemble_1mat_compressible_divergence_matrix_cg
