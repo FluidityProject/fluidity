@@ -1597,7 +1597,7 @@
       logical, dimension( u_nloc, scvngi ), intent( inout ) :: u_on_face, ufem_on_face
       integer, intent( in ) :: nface, sbcvngi
       logical, intent( in ) :: QUAD_OVER_WHOLE_ELE
-! if QUAD_OVER_WHOLE_ELE then dont divide element into CV's to form quadrature.
+      ! if QUAD_OVER_WHOLE_ELE then dont divide element into CV's to form quadrature.
       real, dimension( cv_snloc, sbcvngi ), intent( inout ) :: sbcvfen, sbcvfenslx, sbcvfensly
       real, dimension( sbcvngi ), intent( inout ) :: sbcvfeweigh
       real, dimension( cv_snloc, sbcvngi ), intent( inout ) :: sbcvfenlx, sbcvfenly, sbcvfenlz
@@ -1938,8 +1938,10 @@
          SCVFENLX, SCVFENLY, SCVFENLZ,  &
          U_NLOC,  SUFEN, SUFENSLX, SUFENSLY,  &
          SUFENLX, SUFENLY, SUFENLZ,  &
-         SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, SBCVFENLX, SBCVFENLY, SBCVFENLZ, &
-         SBUFEN, SBUFENSLX, SBUFENSLY, SBUFENLX, SBUFENLY, SBUFENLZ, &
+         SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, &
+         SBCVFENLX, SBCVFENLY, SBCVFENLZ, &
+         SBUFEN, SBUFENSLX, SBUFENSLY, &
+         SBUFENLX, SBUFENLY, SBUFENLZ, &
          CV_SLOCLIST, U_SLOCLIST, CV_SNLOC, U_SNLOC, &
          NDIM, CV_ELE_TYPE )
       !     
@@ -2028,7 +2030,7 @@
       Loop_SGI1: do cv_sgi = 1, scvngi
          r_prodt = 1.
          Loop_NLOC: do cv_iloc = 1, cv_snloc
-ewrite(3,*)'cv_iloc, cv_snloc, cv_nloc, cv_sgi, scvngi:', cv_iloc, cv_snloc, cv_nloc, cv_sgi, scvngi
+            ewrite(3,*)'cv_iloc, cv_snloc, cv_nloc, cv_sgi, scvngi:', cv_iloc, cv_snloc, cv_nloc, cv_sgi, scvngi
             r_prodt = r_prodt * scvfen( cv_iloc, cv_sgi )
          end do Loop_NLOC
          ewrite(3,*) 'cv_sgi, r_prodt:', cv_sgi, r_prodt
@@ -2294,7 +2296,6 @@ ewrite(3,*)'cv_iloc, cv_snloc, cv_nloc, cv_sgi, scvngi:', cv_iloc, cv_snloc, cv_
               scvfen, scvfenlx, scvfenly, scvfenlz, scvfenslx, scvfensly,  &
               sufen, sufenlx, sufenly, sufenlz, sufenslx, sufensly, &
               cv_neiloc, cvfem_neiloc, ufem_neiloc )
-
       case( 5 ) ! Bi-linear Quadrilateral
          call fvquad( scvngi, cv_nloc, scvngi, &
               m, scvfen, scvfenslx, & 
@@ -2349,6 +2350,7 @@ ewrite(3,*)'cv_iloc, cv_snloc, cv_nloc, cv_sgi, scvngi:', cv_iloc, cv_snloc, cv_
       end if
 
       ewrite(3,*)'cv_ele_type:', cv_ele_type
+      ewrite(3,*)'cv_nloc, scvngi:', cv_nloc, scvngi
 
       cv_on_face = .false. ; cvfem_on_face = .false.
       if ( ( cv_ele_type == 1 ) .or. ( cv_ele_type == 2 ) ) then ! 1D
@@ -2388,7 +2390,6 @@ ewrite(3,*)'cv_iloc, cv_snloc, cv_nloc, cv_sgi, scvngi:', cv_iloc, cv_snloc, cv_
       deallocate( cvn_dummy )
       deallocate( cvweigh_dummy )
       deallocate( cvfem_neiloc )
-
 
       return
     end subroutine shapesv_fem_plus

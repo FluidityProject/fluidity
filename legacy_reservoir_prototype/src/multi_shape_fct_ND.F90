@@ -2425,12 +2425,12 @@
          quad_cv_nloc, x_ndgln, x, y, z, lx, ly, lz, fem_nod, &
          sn, snlx, snly, snlz, sufnlx, sufnly, &
          scvweigh, cv_neiloc_cells, cvfem_neiloc )
-! this subroutine calculates shape functions sn, snlx, snly, snlz, sufnlx, sufnly, 
-! their weights scvweigh and local connectivity cv_neiloc_cells, cvfem_neiloc 
-! on the boundaries of the cv_nloc_cells control volumes. 
-! The control volume types are defines using cv_ele_type_cells. 
-! cv_neiloc_cells is associated with the CV cells 
-! cvfem_neiloc is associated with the FEM basis SN etc.
+      ! this subroutine calculates shape functions sn, snlx, snly, snlz, sufnlx, sufnly, 
+      ! their weights scvweigh and local connectivity cv_neiloc_cells, cvfem_neiloc 
+      ! on the boundaries of the cv_nloc_cells control volumes. 
+      ! The control volume types are defines using cv_ele_type_cells. 
+      ! cv_neiloc_cells is associated with the CV cells 
+      ! cvfem_neiloc is associated with the FEM basis SN etc.
       use shape_functions
       implicit none
       integer, intent( in ) :: cv_nloc_cells, cv_ele_type_cells
@@ -2486,7 +2486,7 @@
 
       d3 = ( ndim == 3 )
       d2 = ( ndim == 2 )
-      d1 = .false.
+      d1 = ( ndim == 1 )
       dcyl = .false. 
 
       ! Compute some dummy variables
@@ -2497,7 +2497,7 @@
            mloc, dummy_smloc, lowqua, npoly )
 
       quad_cv_snloc = npoly ** ( ndim - 1 )
-      !      quad_cv_sngi = quad_cv_snloc
+      ! quad_cv_sngi = quad_cv_snloc
       quad_cv_sngi = max(1,npoly-1) ** ( ndim - 1 )
 
       nface = 1
@@ -2695,9 +2695,9 @@
                end do Loop_Poly2d_1_1
 
             else ! 3D
-               Loop_Poly2d_2_1: do ip = 1, npoly
-                  Loop_Poly2d_2_2: do jp = 1, npoly
-                     Loop_Poly2d_2_3: do kp = 1, npoly
+               Loop_Poly3d_2_1: do ip = 1, npoly
+                  Loop_Poly3d_2_2: do jp = 1, npoly
+                     Loop_Poly3d_2_3: do kp = 1, npoly
                         quad_cv_iloc = ( kp - 1 ) * npoly * npoly + &
                              ( jp - 1 ) * npoly + ip 
                         found = .false.
@@ -2722,9 +2722,9 @@
                                 x_ndgln( ( ele - 1 ) * quad_cv_nloc + quad_cv_iloc )
                            loc_2nd_lev( sele, quad_cv_siloc ) = quad_cv_iloc
                         end if
-                     end do Loop_Poly2d_2_3
-                  end do Loop_Poly2d_2_2
-               end do Loop_Poly2d_2_1
+                     end do Loop_Poly3d_2_3
+                  end do Loop_Poly3d_2_2
+               end do Loop_Poly3d_2_1
             endif Conditional_Dimension
 
             ! Now compute the determinant -- Quad_Sdetwei
@@ -3001,6 +3001,7 @@
       ewrite(3,*)'l1:', l1
       ewrite(3,*)'l2:', l2
       ewrite(3,*)'l3:', l3
+      ewrite(3,*)'l4:', l4
       ewrite(3,*)'sn:', sn
       ewrite(3,*)'snlx:', snlx
       ewrite(3,*)'snly:', snly
@@ -3019,11 +3020,12 @@
       cvfem_neiloc = 0
       ! calculate cvfem_neiloc from local coords l1-4:
       Loop_SurfaceQuadrature: do cv_sgi = 1, scvngi
-         zer_l1 = ( abs( l1( cv_sgi ) ) < 1.0e-4 )
-         zer_l2 = ( abs( l2( cv_sgi ) ) < 1.0e-4 )
-         zer_l3 = ( abs( l3( cv_sgi ) ) < 1.0e-4 )
-         if ( d3 ) zer_l4 = ( abs( l4( cv_sgi )) < 1.0e-4 )
+         zer_l1 = ( abs( l1( cv_sgi ) ) < 1.0e-3 )
+         zer_l2 = ( abs( l2( cv_sgi ) ) < 1.0e-3 )
+         zer_l3 = ( abs( l3( cv_sgi ) ) < 1.0e-3 )
+         if ( d3 ) zer_l4 = ( abs( l4( cv_sgi )) < 1.0e-3 )
          Conditional_Neiloc: if ( d3 ) then
+            ewrite(3,*)'cv_sgi, zer_l1/2/3/4:', cv_sgi, (zer_l1.or.zer_l2.or.zer_l3.or.zer_l4)
             if ( zer_l1 .or. zer_l2 .or. zer_l3 .or. zer_l4 ) then
                ! on the surface of the element: 
                do cv_iloc = 1, cv_nloc
@@ -3032,7 +3034,7 @@
                end do
             endif
          else
-            ewrite(3,*)'cv_sgi, zer_l1/2/3:', cv_sgi, (zer_l1.or.zer_l2.or.zer_l3) 
+            ewrite(3,*)'cv_sgi, zer_l1/2/3:', cv_sgi, (zer_l1.or.zer_l2.or.zer_l3)
             if ( zer_l1 .or. zer_l2 .or. zer_l3 ) then
                ! on the surface of the element: 
                do cv_iloc = 1, cv_nloc
