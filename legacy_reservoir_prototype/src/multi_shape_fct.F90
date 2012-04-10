@@ -1542,7 +1542,7 @@
          call vol_cv_tri_tet_shape( cv_ele_type, ndim, cv_ngi, cv_nloc, u_nloc, cvn, &
               cvweigh, n, nlx, nly, nlz, &
               un, unlx, unly, unlz )
-
+!stop 12
       case default; FLExit( "Wrong integer for CV_ELE_TYPE" )
       end Select
 
@@ -1976,6 +1976,8 @@
       ! Local variables
       INTEGER :: CV_KLOC, CV_SKLOC, U_KLOC, U_SKLOC, CV_BSNGI
 
+      ewrite(3,*) 'In DET_SUF_ELE_SHAPE'
+    
       ! Obtain SBCVFEN from SCVFEN: 
       CALL SCVFEN_2_SBCVFEN( CV_NLOC, CV_SNLOC, SCVNGI, SBCVNGI, CVFEM_ON_FACE, &
            SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFENLX, SBCVFENLY, SBCVFENLZ, SBCVFEWEIGH, &
@@ -2021,6 +2023,8 @@
       logical, dimension( : ), allocatable :: candidate_gi
       integer :: cv_siloc, cv_iloc, cv_bsgi, cv_sgi
       real :: r_prodt
+
+      ewrite(3,*) ' In scvfen_2_sbcvfen'
 
       allocate( candidate_gi( scvngi ) )
 

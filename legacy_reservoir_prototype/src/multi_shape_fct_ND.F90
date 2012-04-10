@@ -818,7 +818,8 @@
             scvngi = 3
             sbcvngi = 2 
          case( 6 ) ! Quadratic Triangle
-            cv_ngi = 48 ! 36
+            cv_ngi = 36
+            !!cv_ngi = 48 ! 36
             scvngi = 18
             sbcvngi = 6 
          case default; FLExit(" Invalid integer for cv_nloc ")
@@ -2475,7 +2476,7 @@
       real :: xgi, ygi, zgi, volume, sarea, normx, normy, normz, d2_quad
       real :: half_side_length
 
-      ewrite(3,*)'In shape_tri_tet s'
+      ewrite(3,*)'Compute_SurfaceShapeFunctions_Triangle_Tetrahedron'
 
       sn=0.0
       snlx=0.0
@@ -3076,27 +3077,27 @@
       end if
 
       ewrite(3,*) 'scvweigh:',scvweigh
-         ewrite(3,*) ' '
-         do cv_sgi = 1, scvngi
-           ewrite(3,*) 'cv_sgi=',cv_sgi
-           ewrite(3,*) 'sn( :, cv_sgi )    =', sn( :, cv_sgi )
-         end do
-         ewrite(3,*) ' '
-         do cv_sgi = 1, scvngi
-           ewrite(3,*) 'cv_sgi=',cv_sgi
-           ewrite(3,*) 'sufnlx( :, cv_sgi )=',sufnlx( :, cv_sgi )
-         end do
-         ewrite(3,*) ' '
-         do cv_sgi = 1, scvngi
-           ewrite(3,*) 'cv_sgi=',cv_sgi
-           ewrite(3,*) 'snlx( :, cv_sgi ):', snlx( :, cv_sgi )
-         end do
-         ewrite(3,*) ' '
-         do cv_sgi = 1, scvngi
-           ewrite(3,*) 'cv_sgi=',cv_sgi
-           ewrite(3,*) 'snly( :, cv_sgi ):', snly( :, cv_sgi )
-         end do
-!      stop 281
+      ewrite(3,*) ' '
+      do cv_sgi = 1, scvngi
+         ewrite(3,*) 'cv_sgi=',cv_sgi
+         ewrite(3,*) 'sn( :, cv_sgi )    =', sn( :, cv_sgi )
+      end do
+      ewrite(3,*) ' '
+      do cv_sgi = 1, scvngi
+         ewrite(3,*) 'cv_sgi=',cv_sgi
+         ewrite(3,*) 'sufnlx( :, cv_sgi )=',sufnlx( :, cv_sgi )
+      end do
+      ewrite(3,*) ' '
+      do cv_sgi = 1, scvngi
+         ewrite(3,*) 'cv_sgi=',cv_sgi
+         ewrite(3,*) 'snlx( :, cv_sgi ):', snlx( :, cv_sgi )
+      end do
+      ewrite(3,*) ' '
+      do cv_sgi = 1, scvngi
+         ewrite(3,*) 'cv_sgi=',cv_sgi
+         ewrite(3,*) 'snly( :, cv_sgi ):', snly( :, cv_sgi )
+      end do
+      !      stop 281
 
       deallocate( quad_cvweight )
       deallocate( detwei )
@@ -3271,7 +3272,7 @@
       real, dimension( :, : ), allocatable :: quad_n, quad_nlx, quad_nly, quad_nlz, &
            quad_nx, quad_ny, quad_nz
 
-      ewrite(3,*)'in shape_tri_tet'
+      ewrite(3,*)'In shape_tri_tet'
 
       d3 = ( ndim == 3 )
       d1 = ( ndim == 1 )
@@ -3294,10 +3295,11 @@
          dummy_snloc = 2
          nwicel = 1
          if ( cv_nloc_cells == 6 ) then ! Quadratic quads
-            quad_cv_ngi = 9
+            !!quad_cv_ngi = 9
             dummy_sngi = 3
             dummy_snloc = 3
-            nwicel = 2
+            !!nwicel = 2
+            nwicel = 3
          end if
       end if Conditional_Dimensionality1
 
