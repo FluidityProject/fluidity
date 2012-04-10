@@ -20,44 +20,16 @@
 #include <mpi.h>
 #endif
 
-/*
-#define fldiag_diff_fc F77_FUNC(fldiag_diff, FLDIAG_DIFF)
-extern "C"{
-  void fldiag_diff_fc(const char* input_name, const int* input_name_len,
-                      const char* output_name, const int* output_name_len,
-                      const char* infield_name, const int* infield_name_len,
-                      const char* outfield_name, const int* outfield_name_len,
-                      const char* diff_type, const int* diff_type_len,
-                      const char* coords_name, const int* coords_name_len);
-}
-*/
 
-#define fldiag_add_diag_fc F77_FUNC(fldiag_add_diag, FLDIAG_ADD_DIAG)
 extern "C"{
-  void fldiag_add_diag_fc(const char* input_name, const int* input_name_len,
-                          const char* output_name, const int* output_name_len,
-                          const char* outfield_name,
-                            const int* outfield_name_len,
-                          const char* meshfield_name,
-                            const int* meshfield_name_len,
-                          const char* state_name,
-                            const int* state_name_len,
-                          const int* outfield_rank);
+  void fldiag_add_diag(const char*, size_t,
+                          const char*, size_t,
+                          const char*, size_t,
+                          const char*, size_t,
+                          const char*, size_t,
+                          int32_t);
 }
 
-/*
-#define fldiag_add_presc_fc F77_FUNC(fldiag_add_presc, FLDIAG_ADD_PRESC)
-extern "C"{
-  void fldiag_add_presc_fc(const char* input_name, const int* input_name_len,
-                           const char* output_name, const int* output_name_len,
-                           const char* outfield_name,
-                             const int* outfield_name_len,
-                           const char* meshfield_name,
-                             const int* meshfield_name_len,
-                           const char* state_name,
-                             const int* state_name_len);
-}
-*/
 
 void Help();
 bool ParseArgs(int argc, char** argv);
@@ -87,24 +59,6 @@ void Help(){
             << "              -s STATE  Name of the state from which to read options in the \n"
             << "                        options file (defaults to the first state)\n"
             << "              -x FLML   Model options file (not always required)"
-/*          << "\n"
-            << "add-presc   Add a prescribed field, as specified from the supplied options file.\n"
-            << "            Options:\n"
-            << "              -m NAME   Field from which to extract a mesh to use with the\n"
-            << "                        prescribed field (default \"Velocity\")\n"
-            << "              -o NAME   Prescribed field name\n"
-            << "              -s STATE  Name of the state from which to read options in the \n"
-            << "                        options file (defaults to the first state)\n"
-            << "              -x FLML   Model options file"
-            << "\n"
-            << "diff  Take the derivative of the supplied field. Options:\n"
-            << "        -d TYPE  Derivative type. Supported types:\n"
-            << "                   grad  Gradient operator\n"
-            << "        -i NAME  Input field name\n"
-            << "        -o NAME  Output field name\n"
-            << "        -p NAME  Set the name of the coordinates field
-  (default \"Coordinate\")\n"
-*/
             << std::endl;
 
   return;
@@ -183,57 +137,6 @@ bool ParseArgs(int argc, char** argv){
       return false;
     }
   }
-/*
-  else if(strlen(argv[1]) == 9 and strncmp(argv[1], "add-presc", 9) == 0){
-    fldiagnostics_opts["meshfield_name"] = "Velocity";
-
-    char opt;
-    while(true){
-      opt = getopt(argc, argv, "m:o:r:s:x:");
-      if(opt == '?'){
-        return false;
-      }
-      else if(opt == -1){
-        break;
-      }
-      switch(opt){
-        case 'm':
-          if(optarg == NULL){
-            return false;
-          }
-          fldiagnostics_opts["meshfield_name"] = optarg;
-          break;
-
-        case 'o':
-          if(optarg == NULL){
-            return false;
-          }
-          fldiagnostics_opts["outfield_name"] = optarg;
-          break;
-
-        case 's':
-          if(optarg == NULL){
-            return false;
-          }
-          fldiagnostics_opts["state_name"] = optarg;
-          break;
-
-        case 'x':
-          if(optarg == NULL){
-            return false;
-          }
-          fldiagnostics_opts["options_file"] = optarg;
-          break;
-
-        default:
-          break;
-      }
-    }
-    if(!HaveOption("outfield_name") or !HaveOption("options_file")){
-      return false;
-    }
-  }
-*/
   else{
     return false;
   }
@@ -356,18 +259,18 @@ int main(int argc, char** argv){
 
   while(input_names.size() > 0){
     const char* input_name = input_names.front().c_str();
-      int input_name_len = strlen(input_name);
+      size_t input_name_len = strlen(input_name);
     const char* output_name = output_names.front().c_str();
-      int output_name_len = strlen(output_name);
+      size_t output_name_len = strlen(output_name);
 
     const char* action = GetOption("action");
     if((strlen(action) == 8 and strncmp(action, "add-diag", 8) == 0) or (strlen(action) == 3 and strncmp(action, "add", 3) == 0)){
       const char* outfield_name = GetOption("outfield_name");
-        int outfield_name_len = strlen(outfield_name);
+        size_t outfield_name_len = strlen(outfield_name);
       const char* meshfield_name = GetOption("meshfield_name");
-        int meshfield_name_len = strlen(meshfield_name);
+        size_t meshfield_name_len = strlen(meshfield_name);
       const char* state_name;
-        int state_name_len;
+        size_t state_name_len;
 
       if(HaveOption("state_name")){
         state_name = GetOption("state_name");
@@ -376,63 +279,22 @@ int main(int argc, char** argv){
         state_name = "";
       }
       state_name_len = strlen(state_name);
-      int outfield_rank;
+      int32_t outfield_rank;
       if(HaveOption("outfield_rank")){
         outfield_rank = atoi(GetOption("outfield_rank"));
+      } else{
+          outfield_rank = 0;
       }
 
       std::cout << "Adding diagnostic field: " << input_name << " + " << outfield_name << " => " << output_name << std::endl;
 
-      fldiag_add_diag_fc(input_name, &input_name_len,
-                         output_name, &output_name_len,
-                         outfield_name, &outfield_name_len,
-                         meshfield_name, &meshfield_name_len,
-                         state_name, &state_name_len,
-                         HaveOption("outfield_rank") ? &outfield_rank : NULL);
+      fldiag_add_diag(input_name, input_name_len,
+                         output_name, output_name_len,
+                         outfield_name, outfield_name_len,
+                         meshfield_name, meshfield_name_len,
+                         state_name, state_name_len,
+                         outfield_rank);
     }
-/*
-    else if(strlen(argv[1]) == 9 and strncmp(argv[1], "add-presc", 9) == 0){
-      const char* outfield_name = GetOption("outfield_name");
-        int outfield_name_len = strlen(outfield_name);
-      const char* meshfield_name = GetOption("meshfield_name");
-        int meshfield_name_len = strlen(meshfield_name);
-      const char* state_name;
-        int state_name_len;
-
-      if(HaveOption("state_name")){
-        state_name = GetOption("state_name");
-      }
-      else{
-        state_name = "";
-      }
-      state_name_len = strlen(state_name);
-      
-      std::cout << "Adding prescribed field: " << input_name << " + " << outfield << " => " << output_name << std::endl;
-      
-      fldiag_add_presc_fc(input_name, &input_name_len,
-                         output_name, &output_name_len,
-                         outfield_name, &outfield_name_len,
-                         meshfield_name, &meshfield_name_len,
-                         state_name, &state_name_len)
-    }
-    else if(strlen(action) == 4 and strncmp(action, "diff", 4) == 0){
-      const char* infield_name = GetOption("infield_name");
-        int infield_name_len = strlen(infield_name);
-      const char* outfield_name = GetOption("outfield_name");
-        int outfield_name_len = strlen(outfield_name);
-      const char* diff_type = GetOption("diff_type");
-        int diff_type_len = strlen(diff_type);
-      const char* coords_name = GetOption("coords_name");
-        int coords_name_len = strlen(coords_name);
-
-      fldiag_diff_fc(input_name, &input_name_len,
-                     output_name, &output_name_len,
-                     infield_name, &infield_name_len,
-                     outfield_name, &outfield_name_len,
-                     diff_type, &diff_type_len,
-                     coords_name, &coords_name_len);
-    }
-*/
     else{
       std::cerr << "Command not found" << std::endl;
       return 1;
