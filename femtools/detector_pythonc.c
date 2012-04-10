@@ -66,6 +66,7 @@ void python_run_string_store_locals_c(char *str, int strlen,
 
 void python_run_random_walk_from_locals_c(double position[], int ele, int dim, 
                                            double lcoords[], double *dt,
+                                           double vars[], int vars_ind[], int varslen,
                                            char *dict, int dictlen, 
                                            char *key, int keylen,
                                            double value[], int *stat){
@@ -107,15 +108,32 @@ void python_run_random_walk_from_locals_c(double position[], int ele, int dim,
   // Create dt argument
   PyObject *pDt = PyFloat_FromDouble(*dt);
 
+  // If additional variables are given populate the vars dict
+  PyObject *pPersistent, *pFGVarNames, *pVarNames;
+  PyObject *pVars = PyDict_New();
+  if(varslen > 0){
+    // Grab variable names from persistent dict
+    pPersistent = PyDict_GetItemString(pGlobals, "persistent");
+    pFGVarNames = PyDict_GetItemString(pPersistent, "fg_var_names");
+    pVarNames = PyDict_GetItemString(pFGVarNames, local_dict);
+
+    for(i=0; i<varslen; i++){
+      PyObject *pVarVal = PyFloat_FromDouble(vars[i]);
+      PyDict_SetItem(pVars, PyList_GET_ITEM(pVarNames, vars_ind[i]-1), pVarVal);
+      Py_DECREF(pVarVal);
+    }
+  }
+
   // Create argument array
   PyObject **pArgs= malloc(sizeof(PyObject*)*4);
   pArgs[0] = pPosition;
   pArgs[1] = pEle;
   pArgs[2] = pLCoords;
-  pArgs[3] = pDt;
+  pArgs[3] = pVars;
+  pArgs[4] = pDt;
 
   // Run val(ele, local_coords)
-  PyObject *pResult = PyEval_EvalCodeEx((PyCodeObject *)pFuncCode, pLocals, NULL, pArgs, 4, NULL, 0, NULL, 0, NULL);
+  PyObject *pResult = PyEval_EvalCodeEx((PyCodeObject *)pFuncCode, pLocals, NULL, pArgs, 5, NULL, 0, NULL, 0, NULL);
  
   // Check for Python errors
   *stat=0;
@@ -123,6 +141,12 @@ void python_run_random_walk_from_locals_c(double position[], int ele, int dim,
     PyErr_Print();
     *stat=-1;
     return;
+  }
+
+  if(varslen > 0){
+    for(i=0; i<varslen; i++){
+      vars[i] = PyFloat_AsDouble( PyDict_GetItem(pVars, PyList_GET_ITEM(pVarNames, vars_ind[i]-1)) );
+    }
   }
 
   // Convert the python result
@@ -138,6 +162,7 @@ void python_run_random_walk_from_locals_c(double position[], int ele, int dim,
   Py_DECREF(pDt);
   Py_DECREF(pLCoords);
   Py_DECREF(pPosition);
+  Py_DECREF(pVars);
   Py_DECREF(pFuncCode);
   Py_DECREF(pResult);
   free(pArgs);

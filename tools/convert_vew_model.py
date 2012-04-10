@@ -208,6 +208,8 @@ class FGroup:
         v = "vars['" + v.split("$")[0] + "Ingested" + "']"
       elif v.endswith("$Conc"):
         v = "env['Dissolved" + v.split("$")[0] + "']"
+      elif v == 'V_m':
+        v = "vars['V_m']"
 
       elif v in self.parameters.keys():
         v = "param['" + v + "']"
@@ -247,6 +249,8 @@ class FGroup:
         elif v in self.state_vars:
           v = v + "_new"
           self.pool_update_vars[v] = t[1]
+        elif v == 'V_m':
+          v = "vars['V_m']"
 
         term = self.eval_token(t[2])
         code = ""
@@ -339,7 +343,7 @@ class FGroup:
     elif t[0] == visIrradAt:
       return "param['surface_irradiance']"
     elif t[0] == integrate:
-      return "TODO INTEGRATE( " + self.eval_token(t[1]) + " )"
+      return self.eval_token(t[1])
     elif t[0] == ingest:
       return "#TODO INGEST( " + self.eval_token(t[1]) + ", " + self.eval_token(t[2]) + ", " + self.eval_token(t[3]) + " )"
     elif t[0] == create:
@@ -429,7 +433,7 @@ fg_motion_functions = {
 
 fg_write_stages = {
   "Diatom" : [ "Living", "Dead" ],
-  "Copepod" : [ "Dead", "OW5" ] #, "OWA5" ]
+  "Copepod" : [ "Dead", "OW5", "OWA5" ]
 }
 
 filename = sys.argv[1]

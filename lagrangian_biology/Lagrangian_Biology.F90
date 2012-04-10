@@ -291,6 +291,7 @@ contains
 
     character(len=OPTION_PATH_LEN) :: var_buffer, stage_buffer
     character(len=FIELD_NAME_LEN) :: biovar_name, field_name
+    type(ilist) :: motion_variables
     integer :: i, vars_state, vars_chem, vars_uptake, vars_release, &
                vars_total, var_index, chemvar_index, stage_count
 
@@ -344,6 +345,11 @@ contains
              fgroup%variables(var_index)%write_to_file=.true.
           end if
 
+          ! Record indices of motion variables
+          if (have_option(trim(var_buffer)//"/include_in_motion")) then
+             call insert(motion_variables, var_index)
+          end if
+
           ! Record according diagnostic field
           if (have_option(trim(var_buffer)//"/scalar_field")) then
              fgroup%variables(var_index)%field_type = BIOFIELD_DIAG
@@ -360,6 +366,9 @@ contains
           end if
           var_index = var_index+1
        end do
+
+       allocate(fgroup%motion_var_inds(motion_variables%length))
+       fgroup%motion_var_inds = list2vector(motion_variables)
 
        ! Add chemical variables
        do i=1, vars_chem

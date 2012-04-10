@@ -384,6 +384,12 @@ This option is generally only useful for testing. </a:documentation>
         </element>
       </optional>
       <optional>
+        <element name="include_in_motion">
+          <a:documentation>Expose this variable to the Python Random Walk interface, as well as the biology update.</a:documentation>
+          <empty/>
+        </element>
+      </optional>
+      <optional>
         <element name="include_in_io">
           <empty/>
         </element>

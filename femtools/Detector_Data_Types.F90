@@ -121,7 +121,7 @@ module detector_data_types
     character(len=FIELD_NAME_LEN) :: field_name
     character(len=OPTION_PATH_LEN) :: field_path
     ! Option path for the depletion field (Uptake vars only)
-    character(len=OPTION_PATH_LEN):: depletion_field_path
+    character(len=OPTION_PATH_LEN) :: depletion_field_path
     ! Name of chemical field associated with uptake/release variables
     character(len=FIELD_NAME_LEN) :: chemfield
 
@@ -139,6 +139,8 @@ module detector_data_types
     character(len=FIELD_NAME_LEN) :: name
     ! List of variables that define each agent of this group
     type(biovar), dimension(:), allocatable :: variables
+    ! Indices of all variables that are exposed to the Python motion functions
+    integer, dimension(:), allocatable :: motion_var_inds
     ! List of all stages within this FG
     type(stringlist) :: stage_names
     ! Option path for the Agents diagnostic field

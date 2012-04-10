@@ -321,6 +321,10 @@ state_variable =
                empty
             }?
          }?,
+         ## Expose this variable to the Python Random Walk interface, as well as the biology update.
+         element include_in_motion {
+            empty
+         }?,
          element include_in_io {
             empty
          }?

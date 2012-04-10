@@ -186,14 +186,14 @@ def update_OW5_Copepod(param, vars, env, dt):
   C_pmax_new = ((vars['C_N']) if ((vars['C_N'] > vars['C_pmax'])) else (vars['C_pmax']))
 
   ### Overwintering motion ###
-  V_m = 0.0
+  vars['V_m'] = 0.0
 
   ### Basal metabolic cost ###
   R_bas = (param['r_bas'] * math.pow(vars['C_N'], 0.8) * math.pow(param['QR_10'], ((env['Temperature'] - param['T_ref']) / 10.0)))
 
   ### Overwintering phase OW5 ###
   R_ow = (R_bas * param['delta'])
-  if (param['d_year'] == 75.0):
+  if (param['d_year'] == 1.0):
     vars['Stage'] = 16.0  # OWA5
 
   ### Assimilation efficiency ###
@@ -251,6 +251,152 @@ def update_OW5_Copepod(param, vars, env, dt):
   vars['C_N'] = C_N_new
   vars['C_NN'] = C_NN_new
 
+def update_OWA5_Copepod(param, vars, env, dt):
+  """ FGroup:  Copepod
+      Stage:   OWA5   ID: 16
+  """
+  dt_in_hours = dt / 3600.0
+
+  ### Copepod size ###
+  C_pmax_new = ((vars['C_N']) if ((vars['C_N'] > vars['C_pmax'])) else (vars['C_pmax']))
+
+  ### Length and Surface Area ###
+  L = math.pow(10.0, ((math.log10((vars['C_pmax'] * param['C_conv1'])) + 8.37) / 3.07))
+  S = (L * 5.4e-07)
+
+  ### Day-time motion ###
+  I_t = ((2.0 - vars['Gut_f']) * min((param['S_max'] / S), 1.0))
+
+  ### Post-overwintering ascent OWA5 ###
+  vars['V_m'] = -(1.0 * dt_in_hours)
+  if ((vars['z'] <= param['Max_MLD'])) or ((I_t <= env['Irradiance'])):
+    vars['Stage'] = 19.0  # C5
+
+  ### Ingestion ###
+  V_gut_new = (param['vol_gut'] * L)
+  I_gCells = sum(env['CopepodIngestedCells'])
+  Clock_new = (((vars['Clock'] + 1.0)) if ((vars['Clock'] < 48.0)) else (0.0))
+  Prey_vol = (param['vPrey'] * I_gCells)
+  Prey_VolDaily_new = (((vars['Prey_VolDaily'] + Prey_vol)) if ((vars['Clock'] < 48.0)) else (0.0))
+
+  ### Basal metabolic cost ###
+  R_bas = (param['r_bas'] * math.pow(vars['C_N'], 0.8) * math.pow(param['QR_10'], ((env['Temperature'] - param['T_ref']) / 10.0)))
+
+  ### Swimming cost ###
+  P_swim = (((param['k'] / 2.0) * math.pow(((1000.0 + env['Density']) / 1000.0), (1.0 - param['n'])) * math.pow((L / 10000.0), -param['n']) * math.pow((abs( (vars['V_m'] / dt_in_hours) ) * param['V_mconv1']), (3.0 - param['n'])) * math.pow(param['mi'], param['n']) * S) / 1.0)
+  Z_swim = (P_swim / (param['E_mech'] * param['E_m']))
+  O_cons = (((Z_swim / 1000.0) * 3600.0) / (param['C_Cal'] / 1000.0))
+  R_swim = (O_cons * (12.0 / 22.4) * 1000.0 * 8.33e-05)
+
+  ### Gut content ###
+  Gut_contPlusPrey = (vars['Gut_content'] + Prey_vol)
+  Gut_time = ((((param['t_min'] * param['t_max']) / (((Gut_contPlusPrey / vars['V_gut']) * (param['t_max'] - param['t_min'])) + param['t_min']))) if ((vars['V_gut'] > 0.0)) else (param['t_max']))
+  Gut_clear = (((Gut_contPlusPrey / Gut_time)) if ((Gut_time > 0.0)) else (0.0))
+  k_C = (1.0 - math.exp(-(param['b'] * Gut_time)))
+  E = ((1.0 - k_C) * Gut_clear)
+  A = (k_C * Gut_clear)
+  A_C = (k_C * vars['CarbonIngested'])
+  E_C = ((1.0 - k_C) * vars['CarbonIngested'])
+  Gut_contTemp = max(0.0, (Gut_contPlusPrey - ((A + E) * dt_in_hours)))
+  Gut_ftemp = ((0.0) if (((Gut_contTemp == 0.0)) and ((vars['V_gut'] == 0.0))) else (math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)))
+  Gut_f_new = Gut_ftemp
+  I_max = (((0.67 * vars['V_gut']) - Gut_contTemp) / (param['vPrey'] * 1800.0))
+  I_gv = (((min((((math.pi * math.pow((L * 2.9), 2.0) * 1.0 * env['CopepodP'] * 1.0 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7 * env['CopepodP']))))) if ((vars['V_gut'] > 0.0)) else (I_max)), I_max)) if ((env['CopepodP'] > param['P_min'])) else (0.0)) / ((abs( (vars['z'] - vars['z'][int(1.0)]) )) if ((vars['z'] != vars['z'][int(1.0)])) else (1.0)))
+  #TODO INGEST( env['CopepodP'], param['P_min'], I_gv )
+
+  ### Assimilation efficiency ###
+  k_N = (1.0 - math.exp(-(param['a'] * Gut_time)))
+
+  ### Egestion ###
+  E_N = ((1.0 - k_N) * (vars['AmmoniumIngested'] + vars['NitrateIngested']))
+  E_Si = vars['SilicateIngested']
+
+  ### Faecal pellet ###
+  PV_egest = (1.4 * (vars['Carbon'] / param['G_max']))
+  PV_new = ((0.0) if (((vars['PV'] + (E * dt_in_hours)) >= PV_egest)) else ((vars['PV'] + (E * dt_in_hours))))
+  P_amm_new = ((0.0) if (((vars['PV'] + (E * dt_in_hours)) >= PV_egest)) else ((vars['P_amm'] + E_N)))
+  Pc_new = ((0.0) if (((vars['PV'] + (E * dt_in_hours)) >= PV_egest)) else ((vars['Pc'] + E_C)))
+  A_PelletLoss = (((vars['P_amm'] + E_N)) if (((vars['PV'] + (E * dt_in_hours)) >= PV_egest)) else (0.0))
+  if ((vars['PV'] + (E * dt_in_hours)) >= PV_egest):
+    pass
+    #TODO CREATE( Pellet, ...)!!! 
+  vars['SilicateRelease'] = E_Si
+
+  ### Assimilation ###
+  A_Ammonium = (k_N * vars['AmmoniumIngested'])
+  A_Nitrate = (k_N * vars['NitrateIngested'])
+
+  ### Specific Dynamic Action cost ###
+  R_sda = (param['r_sda'] * A_C)
+
+  ### Energetics ###
+  growth = A_C
+  respiration = (R_bas + R_sda + R_swim)
+  Growth_net = (growth - respiration)
+
+  ### Ontogenetic fraction of C allocated to storage 2 ###
+  gamma = 0.7
+
+  ### Fraction allocated to carapace ###
+  alpha = ((0.05) if ((Growth_net > 0.0)) else (0.0))
+
+  ### CNN update non-repro ###
+  C_NN_new = (((vars['C_NN'] + (gamma * (1.0 - alpha) * Growth_net * dt_in_hours))) if ((Growth_net >= 0.0)) else ((((vars['C_NN'] + (Growth_net * dt_in_hours))) if ((vars['C_NN'] >= (abs( Growth_net ) * dt_in_hours))) else (vars['C_NN']))))
+
+  ### Lipids pool ###
+  Q_N = ((vars['Ammonium'] + (A_Ammonium * dt_in_hours)) / (vars['Carbon'] + (Growth_net * dt_in_hours)))
+  NProt_excess = ((((vars['Carbon'] + (Growth_net * dt_in_hours)) * (Q_N - param['Q_Nmax']))) if (((vars['C_NN'] >= (abs( Growth_net ) * dt_in_hours))) and ((Q_N > param['Q_Nmax']))) else (0.0))
+
+  ### C_N Update non-repro ###
+  C_N_new = (((vars['C_N'] + ((1.0 - gamma) * (1.0 - alpha) * Growth_net * dt_in_hours))) if ((Growth_net >= 0.0)) else (((vars['C_N']) if ((vars['C_NN'] >= (abs( Growth_net ) * dt_in_hours))) else ((vars['C_N'] + (Growth_net * dt_in_hours))))))
+
+  ### Protein Pool ###
+  Cprot = (((param['QnProt'] * abs( Growth_net ) * dt_in_hours)) if (((Growth_net < 0.0)) and ((vars['C_NN'] < (abs( Growth_net ) * dt_in_hours)))) else (0.0))
+
+  ### Carapace C Pool ###
+  C_shell_new = (vars['C_shell'] + (((Growth_net * alpha * dt_in_hours)) if ((Growth_net > 0.0)) else (0.0)))
+
+  ### Total C ###
+  Carbon_new = (vars['C_N'] + vars['C_NN'] + vars['C_shell'])
+
+  ### Ammonium Pool ###
+  Ammonium_new = ((vars['Ammonium'] + vars['AmmoniumIngested'] + A_Nitrate) - (A_PelletLoss + NProt_excess + Cprot))
+
+  ### Nitrate Pool ###
+  Nitrate_new = 0.0
+
+  ### Total N ###
+  Nitrogen_new = (vars['Ammonium'] + vars['Nitrate'])
+
+  ### Silicon Pool ###
+  Silicate_new = 0.0
+
+  ### Mortality due to starvation ###
+  if (vars['C_N'] <= (vars['C_pmax'] / 2.0)):
+    vars['Stage'] = 26.0  # Dead
+
+  ### Excretion ###
+  C = (NProt_excess + Cprot)
+  vars['AmmoniumRelease'] = C
+
+  ### Setting pool variables
+  vars['Clock'] = Clock_new
+  vars['C_pmax'] = C_pmax_new
+  vars['Pc'] = Pc_new
+  vars['Prey_VolDaily'] = Prey_VolDaily_new
+  vars['C_shell'] = C_shell_new
+  vars['V_gut'] = V_gut_new
+  vars['Nitrogen'] = Nitrogen_new
+  vars['Carbon'] = Carbon_new
+  vars['PV'] = PV_new
+  vars['Silicate'] = Silicate_new
+  vars['P_amm'] = P_amm_new
+  vars['C_NN'] = C_NN_new
+  vars['C_N'] = C_N_new
+  vars['Gut_f'] = Gut_f_new
+  vars['Nitrate'] = Nitrate_new
+  vars['Ammonium'] = Ammonium_new
+
 def update_Dead_Copepod(param, vars, env, dt):
   """ FGroup:  Copepod
       Stage:   Dead   ID: 26
@@ -265,7 +411,7 @@ def update_Dead_Copepod(param, vars, env, dt):
   S = (L * 5.4e-07)
 
   ### Sinking ###
-  V_m = (100.0 * (S / param['S_max']) * dt_in_hours)
+  vars['V_m'] = (100.0 * (S / param['S_max']) * dt_in_hours)
 
   ### Total C ###
   Carbon_new = (vars['C_N'] + vars['C_NN'] + vars['C_shell'])

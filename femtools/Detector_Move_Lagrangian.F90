@@ -352,7 +352,7 @@ contains
 
                       ! Python
                       elseif (detector_list%random_walks(rw)%python_random_walk) then
-                         call python_run_random_walk(detector,xfield,sub_dt, trim(detector_list%name), &
+                         call python_run_random_walk(detector,detector_list%fgroup,xfield,sub_dt, trim(detector_list%name), &
                                   trim(detector_list%random_walks(rw)%name),rw_displacement)
                       end if
 
