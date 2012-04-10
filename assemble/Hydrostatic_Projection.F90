@@ -201,7 +201,8 @@ contains
 
     type(mesh_type), pointer:: p_mesh, l_mesh
     type(scalar_field), pointer:: bottom_distance
-    type(vector_field), pointer:: gravity_normal
+    type(vector_field), pointer:: gravity_normal, positions
+    type(scalar_field):: inter_column
     type(vector_field):: ugravity_normal
     type(integer_set):: column_nodes
     real, dimension(u%dim):: uvec, unorm
@@ -210,6 +211,7 @@ contains
 
     ewrite(1,*) "Inside reconstruct_vertical_velocities"
 
+    positions => extract_vector_field(state, "Coordinate")
     p_mesh => extract_pressure_mesh(state)
     if (.not. (element_degree(p_mesh,1)==element_degree(u,1)+1 .and. continuity(p_mesh)>=0 .and. continuity(u)<0)) then
       FLExit("Hydrostatic pressure projection only works for PnDG-Pn+1")
@@ -235,6 +237,8 @@ contains
       call set(u, i, uvec - dot_product(unorm,uvec)*unorm)
     end do
 
+    call allocate(inter_column, p_mesh, "InterColumnFaceIntegrals")
+
     ! we start from the bottom - its surface mesh is stored as a boundary condition under "DistanceToBottom"
     bottom_distance => extract_scalar_field(state, "DistanceToBottom")
     call get_boundary_condition(bottom_distance, 1, &
@@ -242,6 +246,7 @@ contains
     c=0 ! count the elements we've visited
     do i=1, size(surface_element_list)
       sele = surface_element_list(i)
+      call zero(inter_column)
       ! the set of velocity nodes in this column, we've solved already:
       call allocate(column_nodes)
       do
@@ -276,11 +281,14 @@ contains
       integer, dimension(face_loc(l_mesh,sele)):: flnodes
       type(integer_set):: fnodes
       type(real_vector), dimension(u%dim):: rowvals
+      real, dimension(face_ngi(u,sele)):: detwei_f
+      real, dimension(u%dim, face_ngi(u,sele)):: normal
+      real, dimension(ele_loc(p_mesh,ele)):: inter_column_face_integral
       real, dimension(ele_loc(u,ele)):: rhs
       real, dimension(size(rhs), size(rhs)):: matrix
       real, dimension(u%dim):: unorm
       integer, dimension(:), pointer:: faces, pnodes, unodes, row
-      integer:: j, k, k1, m, p, next_sele
+      integer:: j, k, k1, m, p, next_sele, f, f2
 
       ! find the face between this element and the next in the column
       ! this should be an element whose nodes are all in different columns
@@ -304,6 +312,19 @@ contains
       call insert(fnodes, face_global_nodes(p_mesh, next_sele))
       call insert(column_nodes, unodes)
 
+      do j=1, size(faces)
+        f=faces(j)
+        if (f==sele .or. f==next_sele) cycle
+        f2=face_opposite(p_mesh, f)
+        if (f2>0) then
+          call transform_facet_to_physical(positions, f, detwei_f, normal)
+          call addto(inter_column, face_global_nodes(p_mesh,f), &
+              shape_rhs(face_shape(p_mesh, f), detwei_f * &
+                 -sum(normal*(face_val_at_quad(u, f)+face_val_at_quad(u,f2))/2.0, dim=1)))
+        end if
+      end do
+      inter_column_face_integral=ele_val(inter_column, ele)
+
       p=0
 pressure_node_loop: do j=1, size(pnodes)
         ! if this node is on the next face, we'll deal with in the next element
@@ -324,7 +345,7 @@ pressure_node_loop: do j=1, size(pnodes)
         ! the vertical component has been zeroed, for the other nodes, strictly below the element
         ! this vertical component has been computed before and is included in the rhs.
         ! Also in this loop, we find the start of the u-nodes of this element itelf within row(:) - assuming sorted rows
-        rhs(p)=0
+        rhs(p)=inter_column_face_integral(j)
         do k=1, size(row)
           if (has_value(column_nodes, row(k))) then
             do m=1, u%dim
