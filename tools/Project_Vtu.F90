@@ -27,7 +27,8 @@
 
 #include "fdebug.h"
 
-subroutine project_vtu(input_filename, input_filename_len, donor_basename, donor_basename_len, target_basename, target_basename_len, output_filename, output_filename_len)
+subroutine project_vtu(input_filename_, input_filename_len, donor_basename_, donor_basename_len, &
+                       &target_basename_, target_basename_len, output_filename_, output_filename_len) bind(c)
 
   use conservative_interpolation_module
   use fields
@@ -41,18 +42,18 @@ subroutine project_vtu(input_filename, input_filename_len, donor_basename, donor
   use read_triangle
   use vtk_interfaces
   use write_triangle
-  
+  use iso_c_binding
   implicit none
   
-  integer, intent(in) :: input_filename_len
-  integer, intent(in) :: donor_basename_len
-  integer, intent(in) :: target_basename_len
-  integer, intent(in) :: output_filename_len
-  character(len = input_filename_len), intent(in) :: input_filename
-  character(len = donor_basename_len), intent(in) :: donor_basename
-  character(len = target_basename_len), intent(in) :: target_basename
-  character(len = output_filename_len), intent(in) :: output_filename
+  integer(kind=c_size_t), value :: input_filename_len, donor_basename_len
+  integer(kind=c_size_t), value :: target_basename_len, output_filename_len
+  character(kind=c_char, len=1) :: input_filename_(*), donor_basename_(*)
+  character(kind=c_char, len=1) :: target_basename_(*), output_filename_(*)
   
+  character(len = input_filename_len) :: input_filename
+  character(len = donor_basename_len) :: donor_basename
+  character(len = target_basename_len) :: target_basename
+  character(len = output_filename_len) :: output_filename
   character(len = *), parameter :: fields_path = "/dummy"
   integer :: i
   integer, parameter :: quad_degree = 4
@@ -69,6 +70,21 @@ subroutine project_vtu(input_filename, input_filename_len, donor_basename, donor
   type(tensor_field), pointer :: input_t_field
   
   ewrite(1, *) "In project_vtu"
+
+  do i=1, input_filename_len
+    input_filename(i:i)=input_filename_(i)
+  end do
+  do i=1, donor_basename_len
+    donor_basename(i:i)=donor_basename_(i)
+  end do
+  do i=1, target_basename_len
+    target_basename(i:i)=target_basename_(i)
+  end do
+  do i=1, output_filename_len
+    output_filename(i:i)=output_filename_(i)
+  end do
+
+
   
   call set_solver_options(fields_path // "/galerkin_projection/continuous", &
     & ksptype = "cg", pctype = "sor", atol = epsilon(0.0), rtol = 0.0, max_its = 2000, start_from_zero = .true.)

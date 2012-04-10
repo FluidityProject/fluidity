@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testproblem>
+  <name>p1cv advection equation spatial convergence test using a FE face value with the Ultimate limiter</name>
+  <owner userid="btollit"/>
+  <tags>flml</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>fluidity -v1 -l MMS_A_cv.flml; fluidity -v1 -l MMS_B_cv.flml; fluidity -v1 -l MMS_C_cv.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="ab_convergence_gal_stat" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+
+a_error = stat("MMS_A_cv.stat")["Burgers"]["AbsoluteDifference"]["cv_l2norm"][-1]
+b_error = stat("MMS_B_cv.stat")["Burgers"]["AbsoluteDifference"]["cv_l2norm"][-1]
+
+a_error_inf = stat("MMS_A_cv.stat")["Burgers"]["AbsoluteDifference"]["max"][-1]
+b_error_inf = stat("MMS_B_cv.stat")["Burgers"]["AbsoluteDifference"]["max"][-1]
+
+print a_error
+print b_error
+
+print a_error_inf
+print b_error_inf
+
+ab_ratio = a_error / b_error
+ab_ratio_inf = a_error_inf / b_error_inf
+ab_convergence_gal_stat = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
+    </variable>
+    <variable name="bc_convergence_gal_stat" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+
+b_error = stat("MMS_B_cv.stat")["Burgers"]["AbsoluteDifference"]["cv_l2norm"][-1]
+c_error = stat("MMS_C_cv.stat")["Burgers"]["AbsoluteDifference"]["cv_l2norm"][-1]
+
+b_error_inf = stat("MMS_B_cv.stat")["Burgers"]["AbsoluteDifference"]["max"][-1]
+c_error_inf = stat("MMS_C_cv.stat")["Burgers"]["AbsoluteDifference"]["max"][-1]
+
+print b_error
+print c_error
+
+print b_error_inf
+print c_error_inf
+
+bc_ratio = b_error / c_error
+bc_ratio_inf = b_error_inf / c_error_inf
+bc_convergence_gal_stat = [log(bc_ratio, 2), log(bc_ratio_inf, 2)]
+    </variable>
+    <variable name="a_finish_time" language="python">
+from fluidity_tools import stat_parser as stat
+a_finish_time = stat("MMS_A_cv.stat")["ElapsedTime"]["value"][-1]
+    </variable>
+    <variable name="b_finish_time" language="python">
+from fluidity_tools import stat_parser as stat
+b_finish_time = stat("MMS_B_cv.stat")["ElapsedTime"]["value"][-1]
+    </variable>
+    <variable name="c_finish_time" language="python">
+from fluidity_tools import stat_parser as stat
+c_finish_time = stat("MMS_C_cv.stat")["ElapsedTime"]["value"][-1]
+    </variable>
+    <variable name="a_final_change" language="python">
+import vtktools
+from fluidity_tools import stat_parser as stat
+vtu = vtktools.vtu("MMS_A_cv_1.vtu")
+dt = stat("MMS_A_cv.stat")["dt"]["value"][-1]
+a_final_change = max(abs(vtu.GetScalarField("NumericalSolution")-vtu.GetScalarField("OldNumericalSolution"))/dt)
+    </variable>
+    <variable name="b_final_change" language="python">
+import vtktools
+from fluidity_tools import stat_parser as stat
+vtu = vtktools.vtu("MMS_B_cv_1.vtu")
+dt = stat("MMS_B_cv.stat")["dt"]["value"][-1]
+b_final_change = max(abs(vtu.GetScalarField("NumericalSolution")-vtu.GetScalarField("OldNumericalSolution"))/dt)
+    </variable>
+    <variable name="c_final_change" language="python">
+import vtktools
+from fluidity_tools import stat_parser as stat
+vtu = vtktools.vtu("MMS_C_cv_1.vtu")
+dt = stat("MMS_C_cv.stat")["dt"]["value"][-1]
+c_final_change = max(abs(vtu.GetScalarField("NumericalSolution")-vtu.GetScalarField("OldNumericalSolution"))/dt)
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="ab_convergence_stat: L2 order in [0.8,1.0]" language="python">
+assert(abs(ab_convergence_gal_stat[0]-0.9) &lt; 0.1)
+    </test>
+    <test name="bc_convergence_stat: L2 order in [0.8,1.0]" language="python">
+assert(abs(bc_convergence_gal_stat[0]-0.9) &lt; 0.1)
+    </test>
+    <test name="checking A finished in less than 8.0" language="python">
+assert(a_finish_time-8.0 &lt; 1.E-10)
+    </test>
+    <test name="checking B finished in less than 8.0" language="python">
+assert(b_finish_time-8.0 &lt; 1.E-10)
+    </test>
+    <test name="checking C finished in less than 8.0" language="python">
+assert(c_finish_time-8.0 &lt; 1.E-10)
+    </test>
+    <test name="checking steady state was reached in A" language="python">
+assert(a_final_change &lt; 1.E-5)
+    </test>
+    <test name="checking steady state was reached in B" language="python">
+assert(b_final_change &lt; 1.E-5)
+    </test>
+    <test name="checking steady state was reached in C" language="python">
+assert(c_final_change &lt; 1.E-5)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
+
