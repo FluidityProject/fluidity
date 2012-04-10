@@ -467,13 +467,13 @@
                end select
             end if
 
-            if (has_boundary_condition(u, "free_surface") .or. use_compressible_projection) then
+            if (has_boundary_condition(u, "free_surface")) then
                ! this needs fixing for multiphase theta_pg could in principle be chosen
                ! per phase but then we need an array and we'd have to include theta_pg
                ! in cmc_m, i.e. solve for theta_div*dt*dp instead of theta_div*theta_pg*dt*dp
                ! theta_div can only be set once, but where and what is the default?
                if (multiphase) then
-                 FLExit("Multiphase does not work with a free surface or compressible flow.")
+                 FLExit("Multiphase does not work with a free surface.")
                end if
 
 
@@ -514,6 +514,7 @@
             ! Allocation of big_m
             if(dg(istate)) then
                call allocate_big_m_dg(state(istate), big_m(istate), u)
+
                if(subcycle(istate)) then
                   u_sparsity => get_csr_sparsity_firstorder(state, u%mesh, u%mesh)
                   ! subcycle_m currently only contains advection, so diagonal=.true.
@@ -531,7 +532,7 @@
             ! Initialise the big_m, ct_m and ctp_m matrices
             call zero(big_m(istate))
             if(reassemble_ct_m) then
-               call zero(ct_m(istate)%ptr)               
+               call zero(ct_m(istate)%ptr)         
                if ((.not. use_compressible_projection) .and. cg_pressure_cv_test_continuity) then
                   call zero(ctp_m(istate)%ptr)
                end if
@@ -683,7 +684,7 @@
                
                ! Set up the left C matrix in CMC
                
-               if(use_compressible_projection) then
+               if(use_compressible_projection .and. have_option(trim(density%option_path)//"/prognostic")) then
                   allocate(ctp_m(istate)%ptr)
                   call allocate(ctp_m(istate)%ptr, ct_m(istate)%ptr%sparsity, (/1, u%dim/), name="CTP_m")
                   ! NOTE that this is not optimal in that the ct_rhs
@@ -691,7 +692,7 @@
                   if(cv_pressure) then
                      call assemble_compressible_divergence_matrix_cv(ctp_m(istate)%ptr, state, ct_rhs(istate))
                   else
-                     call assemble_compressible_divergence_matrix_cg(ctp_m(istate)%ptr, state, ct_rhs(istate))
+                     call assemble_compressible_divergence_matrix_cg(ctp_m(istate)%ptr, state, istate, ct_rhs(istate))
                   end if               
                else                  
                   ! Incompressible scenario
@@ -1041,7 +1042,8 @@
 
                      call profiler_toc(u, "assembly")
 
-                     if(use_compressible_projection) then
+                     density => extract_scalar_field(state(istate), "Density", stat)
+                     if(use_compressible_projection .and. have_option(trim(density%option_path)//"/prognostic")) then
                         call deallocate(ctp_m(istate)%ptr)
                         deallocate(ctp_m(istate)%ptr)
                      end if
@@ -1505,7 +1507,7 @@
          integer, intent(in) :: istate
 
          type(vector_field), pointer :: u, old_u
-         type(scalar_field), pointer :: p, p_theta
+         type(scalar_field), pointer :: p, p_theta, density
 
          ! Compressible pressure gradient operator/left hand matrix of CMC
          type(block_csr_matrix_pointer), dimension(:), intent(inout) :: ctp_m
@@ -1579,15 +1581,16 @@
          call deallocate(kmk_rhs)
 
          cmc_m => extract_csr_matrix(state(istate), "PressurePoissonMatrix", stat)
+         density => extract_scalar_field(state(istate), "Density", stat)
 
-         if(use_compressible_projection) then
+         if(use_compressible_projection .and. have_option(trim(density%option_path)//"/prognostic")) then
             call allocate(compress_projec_rhs, p%mesh, "CompressibleProjectionRHS")
 
             if(cv_pressure) then
                call assemble_compressible_projection_cv(state, cmc_m, compress_projec_rhs, dt, &
                                                       theta_pg, theta_divergence, reassemble_cmc_m)
             else
-               call assemble_compressible_projection_cg(state, cmc_m, compress_projec_rhs, dt, &
+               call assemble_compressible_projection_cg(state, istate, cmc_m, compress_projec_rhs, dt, &
                                                       theta_pg, theta_divergence, reassemble_cmc_m)
             end if
 
