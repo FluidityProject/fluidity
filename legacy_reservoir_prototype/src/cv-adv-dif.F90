@@ -5322,7 +5322,7 @@
                   ELSE ! is a surface element
                      CV_INOD=CV_NDGLN((ELE-1)*CV_NLOC+CV_ILOC)
                      DO CV_SILOC2=1,CV_SNLOC
-                        !        ewrite(3,*)'(SELE2-1)*CV_SNLOC+CV_SILOC2,SELE2,CV_SNLOC,CV_SILOC2:', &
+                        ! ewrite(3,*)'(SELE2-1)*CV_SNLOC+CV_SILOC2,SELE2,CV_SNLOC,CV_SILOC2:', &
                         !                 (SELE2-1)*CV_SNLOC+CV_SILOC2,SELE2,CV_SNLOC,CV_SILOC2
                         CV_INOD2=CV_SNDGLN((SELE2-1)*CV_SNLOC+CV_SILOC2) 
                         IF(CV_INOD == CV_INOD2) FOUND=.TRUE.

@@ -2801,9 +2801,9 @@
             Loop_NGI: do quad_cv_sgi = 1, quad_cv_sngi 
                cv_sgi = ( ele - 1 ) * quad_cv_sngi * stotel + ( sele - 1 ) * &
                     quad_cv_sngi + quad_cv_sgi
-! we do not multiply the weight by the determinant as we are operating in 
-! local coordinates...
-!               gl_quad_scvweigh( cv_sgi ) = quad_sdetwei( quad_cv_sgi )
+               ! we do not multiply the weight by the determinant as we are operating in 
+               ! local coordinates...
+               ! gl_quad_scvweigh( cv_sgi ) = quad_sdetwei( quad_cv_sgi )
                gl_quad_scvweigh( cv_sgi ) = quad_scvweight( quad_cv_sgi )
 
                xgi = 0. ; ygi = 0. ; zgi = 0.
@@ -2811,7 +2811,7 @@
                   xnod = x_sndgln( ( sele - 1 ) * quad_cv_snloc + quad_cv_siloc )
                   xgi =  xgi + quad_sn( quad_cv_siloc, quad_cv_sgi ) * x( xnod )
                   ygi =  ygi + quad_sn( quad_cv_siloc, quad_cv_sgi ) * y( xnod )
-                  if( d3 ) zgi =  zgi + quad_sn( quad_cv_iloc, quad_cv_sgi ) * z( xnod )
+                  if( d3 ) zgi =  zgi + quad_sn( quad_cv_siloc, quad_cv_sgi ) * z( xnod )
                end do
 
                if( d3 ) then ! local coords for the tetrahedron
@@ -3768,25 +3768,16 @@
       implicit none
       integer :: cv_iloc
       real :: xgi, ygi, zgi
-      integer, parameter :: n = 3
       real, dimension( : ) :: lx, ly, lz
       ! Local variables
-      integer :: ipt
-      real, dimension( :, : ), allocatable :: lxyz
-      real :: xyzgi(3)
+      real :: lxyz( size(lx), 3 ), xyzgi( 3 )
       real :: loc_x_coord, loc_y_coord, loc_z_coord, loc_zz_coord
 
-      allocate( lxyz( n + 1, n ) )
+      lxyz( :, 1 ) = lx( : ) 
+      lxyz( :, 2 ) = ly( : )
+      lxyz( :, 3 ) = lz( : )
 
-      do ipt = 1, n + 1
-         lxyz( ipt, 1 ) = lx( ipt ) 
-         lxyz( ipt, 2 ) = ly( ipt )
-         lxyz( ipt, 3 ) = lz( ipt )
-      end do
-
-      xyzgi( 1 ) = xgi
-      xyzgi( 2 ) = ygi
-      xyzgi( 3 ) = zgi
+      xyzgi( : ) = (/ xgi, ygi, zgi /)
 
       ! Local coordinates:
       loc_x_coord = tet_vol( lxyz( 2, : ), lxyz( 3, : ), lxyz( 4, : ), xyzgi )
@@ -3801,8 +3792,6 @@
       case( 4 ); volume_quad_map = loc_zz_coord
       case default; FLExit( " Wrong number of cv_iloc " )
       end Select
-
-      deallocate( lxyz )
 
       return
     end function volume_quad_map

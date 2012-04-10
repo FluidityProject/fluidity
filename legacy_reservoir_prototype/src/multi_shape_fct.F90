@@ -2075,36 +2075,34 @@ ewrite(3,*)'cv_iloc, cv_snloc, cv_nloc, cv_sgi, scvngi:', cv_iloc, cv_snloc, cv_
       INTEGER :: IFACE, quad_cv_siloc, quad_cv_iloc, NPOLY, IP, JP, KP
       LOGICAL :: FOUND
 
-     ewrite(3,*)  'edw111::', CV_NLOC, CV_SNLOC, SCVNGI, NFACE, ndim , cv_ele_type
-
       CONDITIONAL_DIMENSION: IF(NDIM==1) THEN
          ! 1d: 
          IF(NFACE.NE.2) THEN
             EWRITE(3,*) 'NFACE not correct NFACE=',NFACE
             STOP 4332
-         ENDIF
+         END IF
          CV_SLOCLIST(1,1)=1
          CV_SLOCLIST(2,1)=CV_NLOC
       ELSE IF(NDIM==2) THEN
          ! 2d: 
          ! linear triangle: 
          IF(CV_NLOC==3) THEN
-            IF(NFACE.NE.3) THEN
+            IF(NFACE/=3) THEN
                EWRITE(3,*) 'NFACE not correct NFACE=',NFACE
                STOP 4333
-            ENDIF
-            CV_SLOCLIST(1,1)=1  ! this is local cv number (1,2,3)
-            CV_SLOCLIST(1,2)=2  ! but what is the face numbering?
-            CV_SLOCLIST(2,1)=1  ! could be right or wrong...
+            END IF
+            CV_SLOCLIST(1,1)=1
+            CV_SLOCLIST(1,2)=2
+            CV_SLOCLIST(2,1)=1
             CV_SLOCLIST(2,2)=3
             CV_SLOCLIST(3,1)=2
             CV_SLOCLIST(3,2)=3
             ! linear quad: 
          ELSE IF(CV_NLOC==4) THEN
-            IF(NFACE.NE.4) THEN
+            IF(NFACE/=4) THEN
                EWRITE(3,*) 'NFACE not correct NFACE=',NFACE
                STOP 4334
-            ENDIF
+            END IF
             CV_SLOCLIST(1,1)=1
             CV_SLOCLIST(1,2)=3
             CV_SLOCLIST(2,1)=2
@@ -2115,10 +2113,10 @@ ewrite(3,*)'cv_iloc, cv_snloc, cv_nloc, cv_sgi, scvngi:', cv_iloc, cv_snloc, cv_
             CV_SLOCLIST(4,2)=2
             ! quadratic triangle: 
          ELSE IF(CV_NLOC==6) THEN
-            IF(NFACE.NE.3) THEN
+            IF(NFACE/=3) THEN
                EWRITE(3,*) 'NFACE not correct NFACE=',NFACE
                STOP 4335
-            ENDIF
+            END IF
             CV_SLOCLIST(1,1)=1
             CV_SLOCLIST(1,2)=2
             CV_SLOCLIST(1,3)=3
@@ -2130,7 +2128,7 @@ ewrite(3,*)'cv_iloc, cv_snloc, cv_nloc, cv_sgi, scvngi:', cv_iloc, cv_snloc, cv_
             CV_SLOCLIST(3,3)=6
             ! quadratic quad: 
          ELSE IF(CV_NLOC==9) THEN
-            IF(NFACE.NE.4) THEN
+            IF(NFACE/=4) THEN
                EWRITE(3,*) 'NFACE not correct NFACE=',NFACE
                STOP 4336
             ENDIF
@@ -2147,87 +2145,87 @@ ewrite(3,*)'cv_iloc, cv_snloc, cv_nloc, cv_sgi, scvngi:', cv_iloc, cv_snloc, cv_
             CV_SLOCLIST(4,2)=8
             CV_SLOCLIST(4,3)=9
 
-         ELSE IF(NDIM==3) THEN
-            ! 3d: 
-            ! linear triangle: 
-            IF(CV_NLOC==4) THEN
-               IF(NFACE.NE.4) THEN
-                  EWRITE(3,*) 'NFACE not correct NFACE=',NFACE
-                  STOP 4337
-               ENDIF
-               CV_SLOCLIST(1,1)=1
-               CV_SLOCLIST(1,2)=2
-               CV_SLOCLIST(1,3)=3
-               CV_SLOCLIST(2,1)=1
-               CV_SLOCLIST(2,2)=2
-               CV_SLOCLIST(2,3)=4
-               CV_SLOCLIST(3,1)=1
-               CV_SLOCLIST(3,2)=3
-               CV_SLOCLIST(3,3)=4
-               CV_SLOCLIST(4,1)=2
-               CV_SLOCLIST(4,2)=3
-               CV_SLOCLIST(4,3)=4
-               ! quadratic triangle: 
-               IF(CV_NLOC==10) THEN
-                  IF(NFACE.NE.4) THEN
-                     EWRITE(3,*) 'NFACE not correct NFACE=',NFACE
-                     STOP 4338
-                  ENDIF
-                  CV_SLOCLIST(1,1)=1
-                  CV_SLOCLIST(1,2)=2
-                  CV_SLOCLIST(1,3)=3
-                  CV_SLOCLIST(1,4)=3
-                  CV_SLOCLIST(2,1)=1
-                  CV_SLOCLIST(2,2)=2
-                  CV_SLOCLIST(2,3)=4
-                  CV_SLOCLIST(3,1)=1
-                  CV_SLOCLIST(3,2)=3
-                  CV_SLOCLIST(3,3)=4
-                  CV_SLOCLIST(4,1)=2
-                  CV_SLOCLIST(4,2)=3
-                  CV_SLOCLIST(4,3)=4
-                  ! general hex: 
-               ELSE 
-                  IF(NFACE.NE.6) THEN
-                     EWRITE(3,*) 'NFACE not correct NFACE=',NFACE
-                     STOP 4339
-                  ENDIF
-                  npoly=INT(REAL(CV_NLOC+0.01)**0.333333)
-                  do iface=1,nface
-                     quad_cv_siloc =0
-                     Loop_Poly2d_2_1: do ip = 1, npoly
-                        Loop_Poly2d_2_2: do jp = 1, npoly
-                           Loop_Poly2d_2_3: do kp = 1, npoly
-                              quad_cv_iloc = ( kp - 1 ) * npoly * npoly + &
-                                   ( jp - 1 ) * npoly + ip 
-                              found = .false.
-                              Select Case( iface )
-                              case( 1 )
-                                 if( ip == 1 ) found = .true.
-                              case( 2 )  
-                                 if( ip == npoly ) found = .true.
-                              case( 3 )
-                                 if( jp == 1 ) found = .true.
-                              case( 4 )
-                                 if( jp == npoly ) found = .true.
-                              case( 5 )
-                                 if( kp == 1 ) found = .true.
-                              case( 6 )
-                                 if( kp == npoly ) found = .true.
-                              case default; FLExit( "Wrong integer for IFACE" )
-                              end Select
-                              if( found ) then
-                                 quad_cv_siloc = quad_cv_siloc + 1
-                                 CV_SLOCLIST(iface,quad_cv_siloc)=quad_cv_iloc
+         END IF
 
-                              end if
-                           end do Loop_Poly2d_2_3
-                        end do Loop_Poly2d_2_2
-                     end do Loop_Poly2d_2_1
-                  end do
-
-               END IF
+      ELSE IF(NDIM==3) THEN
+         ! 3d: 
+         ! linear triangle: 
+         IF(CV_NLOC==4) THEN
+            IF(NFACE/=4) THEN
+               EWRITE(3,*) 'NFACE not correct NFACE=',NFACE
+               STOP 4337
             END IF
+            CV_SLOCLIST(1,1)=1
+            CV_SLOCLIST(1,2)=2
+            CV_SLOCLIST(1,3)=3
+            CV_SLOCLIST(2,1)=1
+            CV_SLOCLIST(2,2)=2
+            CV_SLOCLIST(2,3)=4
+            CV_SLOCLIST(3,1)=1
+            CV_SLOCLIST(3,2)=3
+            CV_SLOCLIST(3,3)=4
+            CV_SLOCLIST(4,1)=2
+            CV_SLOCLIST(4,2)=3
+            CV_SLOCLIST(4,3)=4
+            ! quadratic triangle: 
+         ELSE IF(CV_NLOC==10) THEN
+            IF(NFACE/=4) THEN
+               EWRITE(3,*) 'NFACE not correct NFACE=',NFACE
+               STOP 4338
+            END IF
+            CV_SLOCLIST(1,1)=1
+            CV_SLOCLIST(1,2)=2
+            CV_SLOCLIST(1,3)=3
+            CV_SLOCLIST(1,4)=3
+            CV_SLOCLIST(2,1)=1
+            CV_SLOCLIST(2,2)=2
+            CV_SLOCLIST(2,3)=4
+            CV_SLOCLIST(3,1)=1
+            CV_SLOCLIST(3,2)=3
+            CV_SLOCLIST(3,3)=4
+            CV_SLOCLIST(4,1)=2
+            CV_SLOCLIST(4,2)=3
+            CV_SLOCLIST(4,3)=4
+            ! general hex: 
+         ELSE 
+            IF(NFACE/=6) THEN
+               EWRITE(3,*) 'NFACE not correct NFACE=',NFACE
+               STOP 4339
+            ENDIF
+            npoly=INT(REAL(CV_NLOC+0.01)**0.333333)
+            do iface=1,nface
+               quad_cv_siloc =0
+               Loop_Poly2d_2_1: do ip = 1, npoly
+                  Loop_Poly2d_2_2: do jp = 1, npoly
+                     Loop_Poly2d_2_3: do kp = 1, npoly
+                        quad_cv_iloc = ( kp - 1 ) * npoly * npoly + &
+                             ( jp - 1 ) * npoly + ip 
+                        found = .false.
+                        Select Case( iface )
+                        case( 1 )
+                           if( ip == 1 ) found = .true.
+                        case( 2 )  
+                           if( ip == npoly ) found = .true.
+                        case( 3 )
+                           if( jp == 1 ) found = .true.
+                        case( 4 )
+                           if( jp == npoly ) found = .true.
+                        case( 5 )
+                           if( kp == 1 ) found = .true.
+                        case( 6 )
+                           if( kp == npoly ) found = .true.
+                        case default; FLExit( "Wrong integer for IFACE" )
+                        end Select
+                        if( found ) then
+                           quad_cv_siloc = quad_cv_siloc + 1
+                           CV_SLOCLIST(iface,quad_cv_siloc)=quad_cv_iloc
+
+                        end if
+                     end do Loop_Poly2d_2_3
+                  end do Loop_Poly2d_2_2
+               end do Loop_Poly2d_2_1
+            end do
+
          END IF
       END IF CONDITIONAL_DIMENSION
 
