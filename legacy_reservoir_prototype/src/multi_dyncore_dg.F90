@@ -2605,6 +2605,7 @@
                                 U_NONODS, FINDC, COLC, NCOLC )
                            CALL POSINMAT( COUNT2, U_INOD, P_JNOD2,&
                                 U_NONODS, FINDC, COLC, NCOLC )
+
                            Loop_Phase5: DO IPHASE = 1, NPHASE
                               COUNT_PHA  = COUNT  + ( IPHASE - 1 ) * NDIM * NCOLC
                               COUNT_PHA2 = COUNT2 + ( IPHASE - 1 ) * NDIM * NCOLC
@@ -2775,29 +2776,29 @@
 
                         If_GOT_DIFFUS: IF(GOT_DIFFUS) THEN
                            ! These subs caculate the effective diffusion coefficient DIFF_COEF_DIVDX,DIFF_COEFOLD_DIVDX
-                           IF(NDIM==1) THEN
+                           IF(IDIM==1) THEN
                               CALL DIFFUS_CAL_COEFF(DIFF_COEF_DIVDX( SGI,IDIM,IPHASE ), &
                                    DIFF_COEFOLD_DIVDX( SGI,IDIM,IPHASE ),  &
                                    U_NLOC, MAT_NLOC, U_NONODS, NPHASE, TOTELE, MAT_NONODS,MAT_NDGLN, &
-                                   SCVFEN,SCVNGI,SGI,IPHASE,NDIM,UDIFFUSION,HDC, U,UOLD,U_NODJ_IPHA,U_NODI_IPHA,ELE,ELE2, &
+                                   SBUFEN,SBCVNGI,SGI,IPHASE,NDIM,UDIFFUSION,HDC, U,UOLD,U_NODJ_IPHA,U_NODI_IPHA,ELE,ELE2, &
                                    SNORMXN,SNORMYN,SNORMZN,  &
                                    DUX_ELE,DUY_ELE,DUZ_ELE,DUOLDX_ELE,DUOLDY_ELE,DUOLDZ_ELE, &
                                    SELE,STOTEL,WIC_U_BC,WIC_U_BC_DIRICHLET, U_OTHER_LOC,MAT_OTHER_LOC )
                            ENDIF
-                           IF(NDIM==2) THEN
+                           IF(IDIM==2) THEN
                               CALL DIFFUS_CAL_COEFF(DIFF_COEF_DIVDX( SGI,IDIM,IPHASE ), &
                                    DIFF_COEFOLD_DIVDX( SGI,IDIM,IPHASE ),  &
                                    U_NLOC, MAT_NLOC, U_NONODS, NPHASE, TOTELE, MAT_NONODS,MAT_NDGLN, &
-                                   SCVFEN,SCVNGI,SGI,IPHASE,NDIM,UDIFFUSION,HDC, V,VOLD,U_NODJ_IPHA,U_NODI_IPHA,ELE,ELE2, &
+                                   SBUFEN,SBCVNGI,SGI,IPHASE,NDIM,UDIFFUSION,HDC, V,VOLD,U_NODJ_IPHA,U_NODI_IPHA,ELE,ELE2, &
                                    SNORMXN,SNORMYN,SNORMZN,  &
                                    DVX_ELE,DVY_ELE,DVZ_ELE,DVOLDX_ELE,DVOLDY_ELE,DVOLDZ_ELE, &
                                    SELE,STOTEL,WIC_U_BC,WIC_U_BC_DIRICHLET, U_OTHER_LOC,MAT_OTHER_LOC )
                            ENDIF
-                           IF(NDIM==3) THEN
+                           IF(IDIM==3) THEN
                               CALL DIFFUS_CAL_COEFF(DIFF_COEF_DIVDX( SGI,IDIM,IPHASE ), &
                                    DIFF_COEFOLD_DIVDX( SGI,IDIM,IPHASE ),  &
                                    U_NLOC, MAT_NLOC, U_NONODS, NPHASE, TOTELE, MAT_NONODS,MAT_NDGLN, &
-                                   SCVFEN,SCVNGI,SGI,IPHASE,NDIM,UDIFFUSION,HDC, W,WOLD,U_NODJ_IPHA,U_NODI_IPHA,ELE,ELE2, &
+                                   SBUFEN,SBCVNGI,SGI,IPHASE,NDIM,UDIFFUSION,HDC, W,WOLD,U_NODJ_IPHA,U_NODI_IPHA,ELE,ELE2, &
                                    SNORMXN,SNORMYN,SNORMZN,  &
                                    DWX_ELE,DWY_ELE,DWZ_ELE,DWOLDX_ELE,DWOLDY_ELE,DWOLDZ_ELE, &
                                    SELE,STOTEL,WIC_U_BC,WIC_U_BC_DIRICHLET, U_OTHER_LOC,MAT_OTHER_LOC )
@@ -2879,11 +2880,17 @@
 
                            CALL POSINMAT( COUNT, IU_NOD_DIM_PHA, JU_NOD_DIM_PHA, &
                                 U_NONODS * NPHASE * NDIM, FINDGM_PHA, COLDGM_PHA, NCOLDGM_PHA )
+! The below is more efficient and used in the future:
+!                           COUNT=STORE_POS_MAT(U_ILOC+(IDIM-1)*U_NLOC+(IPHASE-1)*NDIM*U_NLOC, &
+!                                               JU_NOD_DIM_PHA) 
 
                            IF(SELE2 == 0) THEN
 
                               CALL POSINMAT( COUNT2, IU_NOD_DIM_PHA, JU_NOD2_DIM_PHA, &
                                    U_NONODS * NPHASE * NDIM, FINDGM_PHA, COLDGM_PHA, NCOLDGM_PHA )
+! The below is more efficient and used in the future:
+!                              COUNT2=STORE_POS_MAT(U_ILOC+(IDIM-1)*U_NLOC+(IPHASE-1)*NDIM*U_NLOC, &
+!                                                   JU_NOD2_DIM_PHA) 
 
                               IF(MOM_CONSERV) THEN
                                  DGM_PHA( COUNT )  =  DGM_PHA( COUNT )  + VLM_NEW + NN_SNDOTQ_OUT
