@@ -292,6 +292,7 @@ lagrangian_biology =
                   }?
                }*
             },
+            food_set,
             ## Number of agents
             element scalar_field {
                attribute name { 'Agents' },
@@ -417,6 +418,26 @@ chemical_variable =
             empty
          }?
       }
+   )
+
+food_set = 
+   (
+      element food_set {
+         attribute name { xsd:string },
+         ## Concentration field on a discontinuous mesh mesh
+         element scalar_field {
+            attribute name { "Concentration" },
+            element diagnostic {
+               internal_algorithm,
+               diagnostic_scalar_field_no_adapt
+            }
+         },
+         ## Individual food type for this set
+         element food_type {
+            attribute functional_group { xsd:string },
+            attribute stage { xsd:string }
+         }*
+      }*
    )
 
 hyperlight = 

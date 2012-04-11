@@ -289,11 +289,12 @@ contains
     type(functional_group), intent(out) :: fgroup
     character(len=*), intent(in) :: fg_path
 
-    character(len=OPTION_PATH_LEN) :: var_buffer, stage_buffer
-    character(len=FIELD_NAME_LEN) :: biovar_name, field_name
+    character(len=OPTION_PATH_LEN) :: var_buffer, stage_buffer, food_buffer, food_type_buffer
+    character(len=FIELD_NAME_LEN) :: biovar_name, field_name, fg_name, stage_name
     type(ilist) :: motion_variables
-    integer :: i, vars_state, vars_chem, vars_uptake, vars_release, &
-               vars_total, var_index, chemvar_index, stage_count
+    integer :: i, f, vars_state, vars_chem, vars_uptake, vars_release, &
+               vars_total, var_index, chemvar_index, stage_count, &
+               n_food_sets, n_food_types
 
     call get_option(trim(fg_path)//"/name", fgroup%name)
 
@@ -459,7 +460,26 @@ contains
           end if
 
        end do
-    end if
+    end if ! vars > 0
+
+    n_food_sets = option_count(trim(fg_path)//"/food_set")
+    allocate(fgroup%food_sets(n_food_sets))
+    do i=1, n_food_sets
+       write(food_buffer, "(a,i0,a)") trim(fg_path)//"/food_set[",i-1,"]"
+
+       call get_option(trim(food_buffer)//"/name", fgroup%food_sets(i)%name)
+       fgroup%food_sets(i)%conc_field_name = trim(fgroup%name)//trim(fgroup%food_sets(i)%name)//"Concentration"
+       fgroup%food_sets(i)%conc_field_path = trim(food_buffer)//"/scalar_field::Concentration"
+       n_food_types = option_count(trim(food_buffer)//"/food_type")
+       allocate(fgroup%food_sets(i)%source_fields%ptr(n_food_types))
+       do f=1, n_food_types
+          write(food_type_buffer, "(a,i0,a)") trim(food_buffer)//"/food_type[",f-1,"]"
+
+          call get_option(trim(food_type_buffer)//"/functional_group", fg_name)
+          call get_option(trim(food_type_buffer)//"/stage", stage_name)
+          fgroup%food_sets(i)%source_fields%ptr(f) = trim(fg_name)//"EnsembleSize"//trim(stage_name)
+       end do
+    end do
 
   end subroutine read_functional_group
 
@@ -501,7 +521,7 @@ contains
     type(detector_type), pointer :: agent, agent_to_move
     type(detector_linked_list) :: stage_change_list
     type(vector_field), pointer :: xfield
-    integer :: i, j, pm_period
+    integer :: i, j, f, pm_period
     logical :: python_update, lerm_living_update, lerm_dead_update
 
     ewrite(1,*) "Lagrangian biology: Updating agents..."
@@ -517,6 +537,13 @@ contains
        ! Move lagrangian detectors
        if (check_any_lagrangian(agent_arrays(i))) then
           call move_lagrangian_detectors(state, agent_arrays(i), dt, timestep)
+       end if
+
+       ! Aggregate food concentrations
+       if (allocated(agent_arrays(i)%fgroup%food_sets)) then
+          do f=1, size(agent_arrays(i)%fgroup%food_sets)
+             call aggregate_food_fields(state(1), agent_arrays(i)%fgroup%food_sets(f))
+          end do
        end if
 
        if (have_option(trim(agent_arrays(i)%stage_options)//"/biology")) then
@@ -781,6 +808,24 @@ contains
     call profiler_toc(trim(agent_list%name)//"::diagnostics")
 
   end subroutine derive_per_stage_diagnostics
+
+  subroutine aggregate_food_fields(state, food)
+    type(state_type), intent(inout) :: state
+    type(food_set), intent(in) :: food
+
+    type(scalar_field), pointer :: concentration
+    type(scalar_field), pointer :: source_field
+    integer :: i
+
+    concentration => extract_scalar_field(state, trim(food%conc_field_name))
+    call zero(concentration)
+
+    do i=1, size(food%source_fields%ptr)
+       source_field => extract_scalar_field(state, trim(food%source_fields%ptr(i)))
+       call addto(concentration, source_field)
+    end do
+
+  end subroutine aggregate_food_fields
 
   subroutine chemical_uptake(state)
     ! Handle uptake and release of chemicals

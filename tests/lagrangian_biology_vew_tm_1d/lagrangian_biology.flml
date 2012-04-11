@@ -1095,6 +1095,7 @@ def val(biovars, env, dt):
         <environment>
           <field name="Temperature"/>
           <field name="Irradiance"/>
+          <field name="CopepodPConcentration"/>
         </environment>
         <stages>
           <stage name="OW5">
@@ -1224,6 +1225,19 @@ def val(biovars, env, dt):
             </biology>
           </stage>
         </stages>
+        <food_set name="P">
+          <scalar_field name="Concentration">
+            <diagnostic>
+              <algorithm name="Internal" material_phase_support="multiple"/>
+              <output/>
+              <stat/>
+              <detectors>
+                <include_in_detectors/>
+              </detectors>
+            </diagnostic>
+          </scalar_field>
+          <food_type functional_group="Diatom" stage="Living"/>
+        </food_set>
         <scalar_field name="Agents">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>

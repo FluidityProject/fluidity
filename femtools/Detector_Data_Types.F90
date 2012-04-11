@@ -38,7 +38,7 @@ module detector_data_types
   
   public :: detector_type, detector_linked_list, &
             detector_list_ptr, stringlist, &
-            random_walk, biovar, functional_group, &
+            random_walk, biovar, functional_group, food_set, &
             STATIC_DETECTOR, LAGRANGIAN_DETECTOR, &
             GUIDED_SEARCH_TRACKING, RTREE_TRACKING, GEOMETRIC_TRACKING
 
@@ -111,6 +111,15 @@ module detector_data_types
     character(len=PYTHON_FUNC_LEN) :: python_code
   end type random_walk
 
+  type food_set
+    character(len=FIELD_NAME_LEN) :: name
+    ! List of fields to aggregate
+    type(stringlist) :: source_fields
+    ! Concentration field
+    character(len=FIELD_NAME_LEN) :: conc_field_name
+    character(len=OPTION_PATH_LEN) :: conc_field_path
+  end type
+
   ! Type holding meta-information about biology variables of LE agents
   type biovar
     character(len=FIELD_NAME_LEN) :: name
@@ -145,6 +154,8 @@ module detector_data_types
     type(stringlist) :: stage_names
     ! Option path for the Agents diagnostic field
     character(len=OPTION_PATH_LEN) :: agents_field_path
+    ! Food sets
+    type(food_set), dimension(:), allocatable :: food_sets
   end type functional_group
 
   type detector_linked_list
