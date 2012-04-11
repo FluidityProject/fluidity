@@ -2147,8 +2147,8 @@
          ly( 3 ) = sqrt( 3. / 4. ) * h_scale
          lz( 3 ) = 0.
 
-         lx( 4 ) = 0.5 * ( lx( 1 ) + lx( 2 ) ) * h_scale
-         ly( 4 ) = 0.5 * ( ly( 1 ) + ly( 3 ) ) * h_scale 
+         lx( 4 ) = 0.5 * ( lx( 1 ) + lx( 2 ) ) 
+         ly( 4 ) = 0.5 * ( ly( 1 ) + ly( 3 ) ) 
          lz( 4 ) = sqrt( 2. / 3. ) * h_scale
 
          ! Remmaping

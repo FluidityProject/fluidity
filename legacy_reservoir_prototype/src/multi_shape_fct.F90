@@ -1899,15 +1899,7 @@
          ewrite(3,*) 'U_NLOC  , U_SNLOC  ', u_nloc  , u_snloc
          ewrite(3,*) 'U_NLOC2, U_SNLOC2', u_nloc2, u_snloc2
 
-         allocate( u_sloclist2( 1 : nface, u_snloc2 ) )
-         allocate( sbufen2( u_snloc2, sbcvngi ) )
-         allocate( sbufenslx2( u_snloc2, sbcvngi ) )
-         allocate( sbufensly2( u_snloc2, sbcvngi ) )
-         allocate( sbufenlx2( u_snloc2, sbcvngi ) )
-         allocate( sbufenly2( u_snloc2, sbcvngi ) )
-         allocate( sbufenlz2( u_snloc2, sbcvngi ) )
-
-         if(QUAD_OVER_WHOLE_ELE) then ! not integrate over whole element 
+         if(.not.QUAD_OVER_WHOLE_ELE) then ! not integrate over whole element 
          call det_suf_ele_shape( scvngi, nface, &
               cvfem_on_face, &
               cv_nloc, scvfen, scvfenslx, scvfensly, scvfeweigh, &
@@ -1953,7 +1945,7 @@
          end do Loop_ILEV3
 
       else
-         if(QUAD_OVER_WHOLE_ELE) then ! not integrate over whole element 
+         if(.not.QUAD_OVER_WHOLE_ELE) then ! not integrate over whole element 
          call det_suf_ele_shape( scvngi, nface, &
               cvfem_on_face, &
               cv_nloc, scvfen, scvfenslx, scvfensly, scvfeweigh, &
