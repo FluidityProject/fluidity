@@ -2454,8 +2454,6 @@
       REAL, intent( in ) :: TC,TD, TUPWIN, TDCEN, TD_MIN,TD_MAX
 ! local variables...
        REAL :: TDELE_int,tdcen_w,DENOOU,FTILOU,CTILOU,TDLIM_w,w
-! Functions...
-       REAL :: NVDFUNNEW,TOLFUN
 
        TDELE_int = 2.*TC - TUPWIN
        TDELE_int = max(min(TDELE_int, TD_MAX),TD_MIN)

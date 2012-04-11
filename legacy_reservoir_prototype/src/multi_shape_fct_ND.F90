@@ -4111,7 +4111,7 @@
       ! functions CVN as well as FEM basis functions CVFEN (and its derivatives 
       ! CVFENLX, CVFENLY, CVFENLZ)
       implicit none
-      integer, intent( in ) :: ndim, cv_ele_type, cv_ngi, cv_ngi_short, cv_nloc, u_nloc
+      integer, intent( in ) :: ndim, cv_ele_type, cv_ngi, cv_nloc, u_nloc
       real, dimension( cv_ngi ), intent( inout ) :: cvweight
       real, dimension( cv_nloc, cv_ngi ), intent( inout ) :: cvfen, cvfenlx, cvfenly, cvfenlz
       real, dimension( u_nloc, cv_ngi ), intent( inout ) :: ufen, ufenlx, ufenly, ufenlz
@@ -5004,7 +5004,7 @@
        REAL M(MLOC,NGI),WEIGHT(NGI)
        REAL N(NLOC,NGI),NLX(NLOC,NGI),NLY(NLOC,NGI)
         REAL NLZ(NLOC,NGI)
-         REAL SPECFU,RGPTWE
+         REAL RGPTWE
          REAL WEIT(30),NODPOS(30),QUAPOS(30)
          INTEGER GPOI
          LOGICAL DIFF,NDIFF,D3,D2
@@ -5264,7 +5264,6 @@
       LOGICAL DIFF
       INTEGER INOD,NDNOD,IPOLY
       REAL LXGP,NODPOS(NDNOD)
-      REAL LAGRAN,CHEBY1,CHEBY2,LEGEND
 !     INOD contains the node at which the polynomial is associated with
 !     LXGP is the position at which the polynomial is to be avaluated.\
 !     If(DIFF) then find the D poly/DX. 
@@ -5309,13 +5308,69 @@
       END DO
       END SUBROUTINE CHEROT
 
+      SUBROUTINE LEGROT(WEIT,QUAPOS,NDGI,GETNDP)
+      IMPLICIT NONE
+!     This computes the weight and points for Chebyshev-Gauss-Lobatto quadrature.
+!     See page 69 of:Spectral Methods in Fluid Dynamics, C.Canuto
+!     IF(GETNDP) then get the POSITION OF THE NODES 
+!     AND DONT BOTHER WITH THE WEITS.
+      INTEGER NDGI
+      REAL WEIT(NDGI),QUAPOS(NDGI)
+      LOGICAL GETNDP
+      INTEGER N,IG
+!     Work out the root's i.e the quad positions first.
+      CALL LROOTS(QUAPOS,NDGI)
+      IF(.NOT.GETNDP) THEN
+!     THE WEIGHTS...
+         N=NDGI-1
+      do IG=1,NDGI
+            WEIT(IG)=2./(REAL(N*(N+1))*PLEGEN(QUAPOS(IG),NDGI-1)**2)
+         END DO
+      ENDIF
+      END SUBROUTINE LEGROT
 
+  real function PLEGEN(LX,K)
+      REAL LX
+      REAL R
+      INTEGER K,L
+      R=0.
+      DO L=0,INT(K/2)
+         R=R+((-1)**L)*binomial_coefficient(K,L)*binomial_coefficient(2*K-2*L,K)*LX**(K-2*L)
+      END DO
+      PLEGEN=R/REAL(2**K)
+  end function plegen
 
+   
+  real function binomial_coefficient(K,L)
+    !<! Calculate binomial coefficients
+    
+      INTEGER K,L
+      binomial_coefficient=factorial(K)/(factorial(L)*factorial(K-L))
+
+  end function binomial_coefficient
+
+      SUBROUTINE LROOTS(QUAPOS,NDGI)
+      IMPLICIT NONE
+      INTEGER NDGI
+      REAL QUAPOS(NDGI)
+      REAL ALPHA,BETA,RKEEP
+      INTEGER N,I
+!     This sub works out the Gauss-Lobatto-Legendre roots.
+      ALPHA = 0.
+      BETA   = 0.
+!     
+      N=NDGI-1
+      CALL JACOBL(N,ALPHA,BETA,QUAPOS)
+!     Now reverse ordering. 
+      do I=1,INT(0.1+ NDGI/2)
+         RKEEP=QUAPOS(I)
+         QUAPOS(I)=QUAPOS(NDGI+1-I)
+         QUAPOS(NDGI+1-I)=RKEEP
+      END DO
+      END SUBROUTINE LROOTS
 
       REAL FUNCTION CHEBY1(DIFF,LX,INOD,NDNOD,NODPOS)
       IMPLICIT NONE
-      EXTERNAL TCHEB
-      REAL TCHEB
       INTEGER NDNOD,INOD
       REAL NODPOS(NDNOD),LX,RNX
       LOGICAL DIFF,DIFF2
@@ -5359,8 +5414,6 @@
       
       REAL FUNCTION CHEBY2(DIFF,LX,INOD,NDNOD,NODPOS)
       IMPLICIT NONE
-      EXTERNAL TCHEB
-      REAL TCHEB
       INTEGER NDNOD,INOD
       REAL NODPOS(NDNOD)
       REAL LX,R,RR,RCONST
@@ -5523,7 +5576,308 @@
       LEGEND=1.
       END FUNCTION LEGEND
 
+    SUBROUTINE DETERMIN_SLOCLIST( CV_SLOCLIST, CV_NLOC, CV_SNLOC, SCVNGI, NFACE,  &
+         ndim, cv_ele_type )
+      ! determine CV_SLOCLIST
+      IMPLICIT NONE
+      INTEGER, intent( in ) :: CV_NLOC, CV_SNLOC, SCVNGI, NFACE, ndim, cv_ele_type
+      INTEGER, DIMENSION( NFACE, CV_SNLOC ), intent( inout ) :: CV_SLOCLIST
+      ! Local variables
+      INTEGER :: IFACE, quad_cv_siloc, quad_cv_iloc, NPOLY, IP, JP, KP
+      LOGICAL :: FOUND
 
+      CONDITIONAL_DIMENSION: IF(NDIM==1) THEN
+         ! 1d: 
+         IF(NFACE.NE.2) THEN
+            EWRITE(3,*) 'NFACE not correct NFACE=',NFACE
+            STOP 4332
+         END IF
+         CV_SLOCLIST(1,1)=1
+         CV_SLOCLIST(2,1)=CV_NLOC
+      ELSE IF(NDIM==2) THEN
+         ! 2d: 
+         ! linear triangle: 
+         IF(CV_NLOC==3) THEN
+            IF(NFACE/=3) THEN
+               EWRITE(3,*) 'NFACE not correct NFACE=',NFACE
+               STOP 4333
+            END IF
+            CV_SLOCLIST(1,1)=1
+            CV_SLOCLIST(1,2)=2
+            CV_SLOCLIST(2,1)=1
+            CV_SLOCLIST(2,2)=3
+            CV_SLOCLIST(3,1)=2
+            CV_SLOCLIST(3,2)=3
+            ! linear quad: 
+         ELSE IF(CV_NLOC==4) THEN
+            IF(NFACE/=4) THEN
+               EWRITE(3,*) 'NFACE not correct NFACE=',NFACE
+               STOP 4334
+            END IF
+            CV_SLOCLIST(1,1)=1
+            CV_SLOCLIST(1,2)=3
+            CV_SLOCLIST(2,1)=2
+            CV_SLOCLIST(2,2)=4
+            CV_SLOCLIST(3,1)=1
+            CV_SLOCLIST(3,2)=2
+            CV_SLOCLIST(4,1)=1
+            CV_SLOCLIST(4,2)=2
+            ! quadratic triangle: 
+         ELSE IF(CV_NLOC==6) THEN
+            IF(NFACE/=3) THEN
+               EWRITE(3,*) 'NFACE not correct NFACE=',NFACE
+               STOP 4335
+            END IF
+            CV_SLOCLIST(1,1)=1
+            CV_SLOCLIST(1,2)=2
+            CV_SLOCLIST(1,3)=3
+            CV_SLOCLIST(2,1)=1
+            CV_SLOCLIST(2,2)=4
+            CV_SLOCLIST(2,3)=6
+            CV_SLOCLIST(3,1)=1
+            CV_SLOCLIST(3,2)=5
+            CV_SLOCLIST(3,3)=6
+            ! quadratic quad: 
+         ELSE IF(CV_NLOC==9) THEN
+            IF(NFACE/=4) THEN
+               EWRITE(3,*) 'NFACE not correct NFACE=',NFACE
+               STOP 4336
+            ENDIF
+            CV_SLOCLIST(1,1)=1
+            CV_SLOCLIST(1,2)=4
+            CV_SLOCLIST(1,3)=7
+            CV_SLOCLIST(2,1)=3
+            CV_SLOCLIST(2,2)=6
+            CV_SLOCLIST(2,3)=9
+            CV_SLOCLIST(3,1)=1
+            CV_SLOCLIST(3,2)=2
+            CV_SLOCLIST(3,3)=3
+            CV_SLOCLIST(4,1)=7
+            CV_SLOCLIST(4,2)=8
+            CV_SLOCLIST(4,3)=9
+
+         END IF
+
+      ELSE IF(NDIM==3) THEN
+         ! 3d: 
+         ! linear triangle: 
+         IF(CV_NLOC==4) THEN
+            IF(NFACE/=4) THEN
+               EWRITE(3,*) 'NFACE not correct NFACE=',NFACE
+               STOP 4337
+            END IF
+            CV_SLOCLIST(1,1)=1
+            CV_SLOCLIST(1,2)=2
+            CV_SLOCLIST(1,3)=3
+            CV_SLOCLIST(2,1)=1
+            CV_SLOCLIST(2,2)=2
+            CV_SLOCLIST(2,3)=4
+            CV_SLOCLIST(3,1)=1
+            CV_SLOCLIST(3,2)=3
+            CV_SLOCLIST(3,3)=4
+            CV_SLOCLIST(4,1)=2
+            CV_SLOCLIST(4,2)=3
+            CV_SLOCLIST(4,3)=4
+            ! quadratic triangle: 
+         ELSE IF(CV_NLOC==10) THEN
+            IF(NFACE/=4) THEN
+               EWRITE(3,*) 'NFACE not correct NFACE=',NFACE
+               STOP 4338
+            END IF
+            CV_SLOCLIST(1,1)=1
+            CV_SLOCLIST(1,2)=2
+            CV_SLOCLIST(1,3)=3
+            CV_SLOCLIST(1,4)=3
+            CV_SLOCLIST(2,1)=1
+            CV_SLOCLIST(2,2)=2
+            CV_SLOCLIST(2,3)=4
+            CV_SLOCLIST(3,1)=1
+            CV_SLOCLIST(3,2)=3
+            CV_SLOCLIST(3,3)=4
+            CV_SLOCLIST(4,1)=2
+            CV_SLOCLIST(4,2)=3
+            CV_SLOCLIST(4,3)=4
+            ! general hex: 
+         ELSE 
+            IF(NFACE/=6) THEN
+               EWRITE(3,*) 'NFACE not correct NFACE=',NFACE
+               STOP 4339
+            ENDIF
+            npoly=INT(REAL(CV_NLOC+0.01)**0.333333)
+            do iface=1,nface
+               quad_cv_siloc =0
+               Loop_Poly2d_2_1: do ip = 1, npoly
+                  Loop_Poly2d_2_2: do jp = 1, npoly
+                     Loop_Poly2d_2_3: do kp = 1, npoly
+                        quad_cv_iloc = ( kp - 1 ) * npoly * npoly + &
+                             ( jp - 1 ) * npoly + ip 
+                        found = .false.
+                        Select Case( iface )
+                        case( 1 )
+                           if( ip == 1 ) found = .true.
+                        case( 2 )  
+                           if( ip == npoly ) found = .true.
+                        case( 3 )
+                           if( jp == 1 ) found = .true.
+                        case( 4 )
+                           if( jp == npoly ) found = .true.
+                        case( 5 )
+                           if( kp == 1 ) found = .true.
+                        case( 6 )
+                           if( kp == npoly ) found = .true.
+                        case default; FLExit( "Wrong integer for IFACE" )
+                        end Select
+                        if( found ) then
+                           quad_cv_siloc = quad_cv_siloc + 1
+                           CV_SLOCLIST(iface,quad_cv_siloc)=quad_cv_iloc
+
+                        end if
+                     end do Loop_Poly2d_2_3
+                  end do Loop_Poly2d_2_2
+               end do Loop_Poly2d_2_1
+            end do
+
+         END IF
+      END IF CONDITIONAL_DIMENSION
+
+      RETURN
+    END SUBROUTINE DETERMIN_SLOCLIST
+
+
+
+      SUBROUTINE JACOBL(N,ALPHA,BETA,XJAC)
+      IMPLICIT NONE
+!     COMPUTES THE GAUSS-LOBATTO COLLOCATION POINTS FOR JACOBI POLYNOMIALS
+!     
+!     N:       DEGREE OF APPROXIMATION
+!     ALPHA:   PARAMETER IN JACOBI WEIGHT
+!     BETA:    PARAMETER IN JACOBI WEIGHT
+!     
+!     XJAC:    OUTPUT ARRAY WITH THE GAUSS-LOBATTO ROOTS
+!     THEY ARE ORDERED FROM LARGEST (+1.0) TO SMALLEST (-1.0)
+!     
+      INTEGER N
+      REAL ALPHA,BETA
+!      IMPLICIT REAL(A-H,O-Z)
+!      REAL XJAC(1)
+      REAL XJAC(N+1)
+      REAL ALP,BET,RV
+      REAL PNP1P,PDNP1P,PNP,PDNP,PNM1P,PDNM1,PNP1M,PDNP1M,PNM,PDNM,PNM1M
+      REAL DET,RP,RM,A,B,DTH,CD,SD,CS,SS,X,PNP1,PDNP1,PN,PDN,PNM1,POLY
+      REAL PDER,RECSUM,DELX,CSSAVE
+      INTEGER NP,NH,J,K,JM,I,NPP
+      COMMON /JACPAR/ALP,BET,RV
+      INTEGER KSTOP
+      DATA KSTOP/10/
+      REAL EPS
+      DATA EPS/1.0E-12/
+      ALP = ALPHA
+      BET =BETA
+      RV = 1 + ALP
+      NP = N+1
+!
+!  COMPUTE THE PARAMETERS IN THE POLYNOMIAL WHOSE ROOTS ARE DESIRED
+!
+      CALL JACOBF(NP,PNP1P,PDNP1P,PNP,PDNP,PNM1P,PDNM1,1.0)
+      CALL JACOBF(NP,PNP1M,PDNP1M,PNM,PDNM,PNM1M,PDNM1,-1.0)
+      DET = PNP*PNM1M-PNM*PNM1P
+      RP = -PNP1P
+      RM = -PNP1M
+      A = (RP*PNM1M-RM*PNM1P)/DET
+      B = (RM*PNP-RP*PNM)/DET
+!
+      XJAC(1) = 1.0
+      NH = (N+1)/2
+!
+!  SET-UP RECURSION RELATION FOR INITIAL GUESS FOR THE ROOTS
+!
+      DTH = 3.14159265/(2*N+1)
+      CD = COS(2.*DTH)
+      SD = SIN(2.*DTH)
+      CS = COS(DTH)
+      SS = SIN(DTH)
+!
+!  COMPUTE THE FIRST HALF OF THE ROOTS BY POLYNOMIAL DEFLATION
+!
+      do  J=2,NH! Was loop 39
+         X = CS
+      do  K=1,KSTOP! Was loop 29
+            CALL JACOBF(NP,PNP1,PDNP1,PN,PDN,PNM1,PDNM1,X)
+            POLY = PNP1+A*PN+B*PNM1
+            PDER = PDNP1+A*PDN+B*PDNM1
+            RECSUM = 0.0
+            JM = J-1
+      do  I=1,JM! Was loop 27
+               RECSUM = RECSUM+1.0/(X-XJAC(I))
+      end do ! Was loop 27
+28          CONTINUE
+            DELX = -POLY/(PDER-RECSUM*POLY)
+            X = X+DELX
+            IF(ABS(DELX) .LT. EPS) GO TO 30
+      end do ! Was loop 29
+30       CONTINUE
+         XJAC(J) = X
+         CSSAVE = CS*CD-SS*SD
+         SS = CS*SD+SS*CD
+         CS = CSSAVE
+      end do ! Was loop 39
+      XJAC(NP) = -1.0
+      NPP = N+2
+!
+! USE SYMMETRY FOR SECOND HALF OF THE ROOTS
+!
+      do  I=2,NH! Was loop 49
+         XJAC(NPP-I) = -XJAC(I)
+      end do ! Was loop 49
+      IF(N .NE. 2*(N/2)) RETURN
+      XJAC(NH+1) = 0.0
+      RETURN
+      END SUBROUTINE JACOBL
+      
+      
+      SUBROUTINE JACOBF(N,POLY,PDER,POLYM1,PDERM1,POLYM2,PDERM2,X)
+      IMPLICIT NONE
+!     
+!     COMPUTES THE JACOBI POLYNOMIAL (POLY) AND ITS DERIVATIVE
+!     (PDER) OF DEGREE  N  AT  X
+!     
+      INTEGER N
+      REAL APB,POLY,PDER,POLYM1,PDERM1,POLYM2,PDERM2,X
+!     IMPLICIT REAL(A-H,O-Z)
+      COMMON /JACPAR/ALP,BET,RV
+      REAL ALP,BET,RV,POLYLST,PDERLST,A1,A2,B3,A3,A4
+      REAL POLYN,PDERN,PSAVE,PDSAVE
+      INTEGER K
+      APB = ALP+BET
+      POLY = 1.0
+      PDER = 0.0
+      IF(N .EQ. 0) RETURN
+      POLYLST = POLY
+      PDERLST = PDER
+      POLY = RV * X
+      PDER = RV
+      IF(N .EQ. 1) RETURN
+      do K=2,N
+         A1 = 2.*K*(K+APB)*(2.*K+APB-2.)
+         A2 = (2.*K+APB-1.)*(ALP**2-BET**2)
+         B3 = (2.*K+APB-2.)
+         A3 = B3*(B3+1.)*(B3+2.)
+         A4 = 2.*(K+ALP-1)*(K+BET-1.)*(2.*K+APB)
+         POLYN = ((A2+A3*X)*POLY-A4*POLYLST)*A1
+         PDERN = ((A2+A3*X)*PDER-A4*PDERLST+A3*POLY)*A1
+         PSAVE = POLYLST
+         PDSAVE = PDERLST
+         POLYLST = POLY
+         POLY = POLYN
+         PDERLST = PDER
+         PDER = PDERN
+      END DO
+      POLYM1 = POLYLST
+      PDERM1 = PDERLST
+      POLYM2 = PSAVE
+      PDERM2 = PDSAVE
+      RETURN
+      END SUBROUTINE JACOBF
 
 
   end module shape_functions_NDim
