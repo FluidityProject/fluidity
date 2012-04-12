@@ -39,8 +39,7 @@
 using namespace std;
 
 extern "C"{
-#define vtu2triangle F77_FUNC(vtu2triangle, TRIANGLE2VTU)
-  void vtu2triangle(const char* filename, const int* filename_len);
+  void vtu2triangle(const char* filename, size_t filename_len);
 }
 
 void usage(){
@@ -60,8 +59,11 @@ int main(int argc, char** argv){
     return -1;
   }
 
-  int filename_len=strlen(argv[1]);
-  vtu2triangle(argv[1], &filename_len);
+  string basename;
+  basename.append(argv[1]);
+  size_t basename_len = basename.size();
+  vtu2triangle(basename.c_str(), basename_len);
+
 
 #ifdef HAVE_MPI
   MPI::Finalize();

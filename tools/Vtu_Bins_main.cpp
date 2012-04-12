@@ -34,8 +34,7 @@
 #endif
 
 extern "C" {
-#define vtu_bins_fc F77_FUNC(vtu_bins, VTU_BINS)
-  void vtu_bins_fc(const char*, int*, const char*, int*, flfloat_t*, int*);
+  void vtu_bins(const char*, size_t, const char*, size_t, double*, size_t);
 }
 
 #ifdef _AIX
@@ -115,19 +114,19 @@ int main(int argc, char **argv){
   set_global_debug_level_fc(&val);
 
   string input_filename = argv[optind];
-  int input_filename_len = input_filename.length();  
+  size_t input_filename_len = input_filename.size();  
   
   string input_fieldname;
   input_fieldname = argv[optind + 1];  
-  int input_fieldname_len = input_fieldname.length();
+  int input_fieldname_len = input_fieldname.size();
   
-  int nbounds =  argc - optind - 2;
-  flfloat_t bounds[nbounds];
+  size_t nbounds =  argc - optind - 2;
+  double bounds[nbounds];
   for(int i = 0;i < nbounds;i++){
     bounds[i] = atof(argv[optind + 2 + i]);
   }
 
-  vtu_bins_fc(input_filename.c_str(), &input_filename_len, input_fieldname.c_str(), &input_fieldname_len, bounds, &nbounds);
+  vtu_bins(input_filename.c_str(), input_filename_len, input_fieldname.c_str(), input_fieldname_len, bounds, nbounds);
     
 #ifdef HAVE_PETSC
   PetscFinalize();
