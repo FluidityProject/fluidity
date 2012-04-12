@@ -1384,7 +1384,6 @@
       ewrite(3,*)'u_ndgln:', u_ndgln
       ewrite(3,*)'cv_ndgln:', cv_ndgln
       Conditional_Dimensional_2: if ( ndim == 1 ) then 
-         !Conditional_Dimensional_2: if ( ndim == 1 ) then 
          call def_spar_ct_dg( cv_nonods, mx_nct, nct, findct, colct, &
               totele, cv_nloc, u_nloc, u_ndgln, u_ele_type, cv_ndgln )
       else

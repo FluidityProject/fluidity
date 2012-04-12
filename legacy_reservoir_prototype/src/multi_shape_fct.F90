@@ -2024,7 +2024,7 @@
       integer :: cv_siloc, cv_iloc, cv_bsgi, cv_sgi
       real :: r_prodt
 
-      ewrite(3,*) ' In scvfen_2_sbcvfen'
+      ewrite(3,*) ' In scvfen_2_sbcvfen', cv_snloc, sbcvngi
 
       allocate( candidate_gi( scvngi ) )
 
@@ -2048,11 +2048,10 @@
             Conditional_1: if( candidate_gi( cv_sgi ) ) then
                Conditional_2: if( cvfem_on_face( cv_iloc, cv_sgi ) ) then
                   cv_bsgi = cv_bsgi + 1
-                  sbcvfen( cv_siloc, cv_bsgi ) = scvfen( cv_iloc, cv_sgi )
                   ewrite(3,*) 'cv_siloc, cv_bsgi,cv_iloc, cv_sgi:', &
                        cv_siloc, cv_bsgi,cv_iloc, cv_sgi
-                  ewrite(3,*) 'sbcvfen( cv_siloc, cv_bsgi ),scvfen( cv_iloc, cv_sgi ):', &
-                       sbcvfen( cv_siloc, cv_bsgi ),scvfen( cv_iloc, cv_sgi )
+                  ewrite(3,*) 'scvfen( cv_iloc, cv_sgi ):', scvfen( cv_iloc, cv_sgi )
+                  sbcvfen( cv_siloc, cv_bsgi ) = scvfen( cv_iloc, cv_sgi )
                   sbcvfenslx( cv_siloc, cv_bsgi ) = scvfenslx( cv_iloc, cv_sgi )
                   sbcvfensly( cv_siloc, cv_bsgi ) = scvfensly( cv_iloc, cv_sgi )
                   sbcvfenlx( cv_siloc, cv_bsgi ) = scvfenlx( cv_iloc, cv_sgi )

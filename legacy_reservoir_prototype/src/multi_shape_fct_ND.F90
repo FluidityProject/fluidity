@@ -224,6 +224,7 @@
       integer :: p, q, ir, corn, gpoi, ngi1d, gi
       real :: posi, rdum, rlx, rly, rlz
 
+      ewrite(3,*)' In re3dn8 subrt. '
       ! Allocating memory
       allocate( lx( nl ) )
       allocate( ly( nl ) )
@@ -1884,7 +1885,6 @@
 
          totele = 3
          x_nonods = 7
-         !h_scale = 2.70240031 ! Scaling factor to give a unity area of the local triangle
          h_scale =  1.5196713713031851 ! Scaling factor to give a unity area of the local triangle
 
          ! Setting-up unity area triangle
@@ -1953,7 +1953,6 @@
 
          x_nonods = 16
          totele = 9
-         !h_scale = 2.70240031 ! Scaling factor to give a unity area of the local triangle
          h_scale =  1.5196713713031851 ! Scaling factor to give a unity area of the local triangle
 
          ! Setting-up unity area triangle
@@ -2082,7 +2081,7 @@
       case( 7 ) ! Linear Tetrahedra
          x_nonods = 15
          totele = 4
-         h_scale = 2.04 ! Scaling factor to give a unity area of the local tetrahedron
+         h_scale = 2.0396489026555056 ! Scaling factor to give a unity volume of the local tetrahedron
 
          ! Setting-up unity volume tetrahedron
          lx( 1 ) = 0.
@@ -2097,8 +2096,8 @@
          ly( 3 ) = sqrt( 3. / 4. ) * h_scale
          lz( 3 ) = 0.
 
-         lx( 4 ) = 0.5 * ( lx( 1 ) + lx( 2 ) ) * h_scale
-         ly( 4 ) = 0.5 * ( ly( 1 ) + ly( 3 ) ) * h_scale 
+         lx( 4 ) = 0.5 * ( lx( 1 ) + lx( 2 ) )
+         ly( 4 ) = 0.5 * ( ly( 1 ) + ly( 3 ) ) 
          lz( 4 ) = sqrt( 2. / 3. ) * h_scale
 
          ! Remmaping
@@ -2129,7 +2128,7 @@
          fem_nod( 7 ) = 3
          ! Node point 15
          x( 15 ) = lx( 4 )
-         y( 15 ) = lx( 4 )
+         y( 15 ) = ly( 4 )
          z( 15 ) = lz( 4 )
          fem_nod( 15 ) = 4
          ! Node point 8
@@ -2170,8 +2169,8 @@
 
          x_ndgln( ( ele - 1 ) * quad_cv_nloc + 5 ) = 9
          x_ndgln( ( ele - 1 ) * quad_cv_nloc + 6 ) = 8
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 7 ) = 11
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 8 ) = 12
+         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 7 ) = 12
+         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 8 ) = 11
 
          ele = 2
          x_ndgln( ( ele - 1 ) * quad_cv_nloc + 1 ) = 2
@@ -2181,7 +2180,7 @@
 
          x_ndgln( ( ele - 1 ) * quad_cv_nloc + 5 ) = 8
          x_ndgln( ( ele - 1 ) * quad_cv_nloc + 6 ) = 10
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 7 ) = 12
+         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 7 ) = 11
          x_ndgln( ( ele - 1 ) * quad_cv_nloc + 8 ) = 13
 
          ele = 3
@@ -2190,16 +2189,16 @@
          x_ndgln( ( ele - 1 ) * quad_cv_nloc + 3 ) = 7
          x_ndgln( ( ele - 1 ) * quad_cv_nloc + 4 ) = 6
 
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 5 ) = 11
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 6 ) = 12
+         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 5 ) = 12
+         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 6 ) = 11
          x_ndgln( ( ele - 1 ) * quad_cv_nloc + 7 ) = 14
          x_ndgln( ( ele - 1 ) * quad_cv_nloc + 8 ) = 13
 
          ele = 4
          x_ndgln( ( ele - 1 ) * quad_cv_nloc + 1 ) = 9
          x_ndgln( ( ele - 1 ) * quad_cv_nloc + 2 ) = 8
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 3 ) = 11
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 4 ) = 12
+         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 3 ) = 12
+         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 4 ) = 11
 
          x_ndgln( ( ele - 1 ) * quad_cv_nloc + 5 ) = 15
          x_ndgln( ( ele - 1 ) * quad_cv_nloc + 6 ) = 10
@@ -2734,8 +2733,8 @@
                xsl( quad_cv_siloc ) = x( xnod )
                ysl( quad_cv_siloc ) = y( xnod )
                if( d3 ) zsl( quad_cv_siloc ) = z( xnod )
-               ewrite(3,*)'x/ysl:', ele, sele, quad_cv_siloc, xsl( quad_cv_siloc ), &
-                    ysl( quad_cv_siloc )
+               !ewrite(3,*)'x/y/zsl:', ele, sele, quad_cv_siloc, xsl( quad_cv_siloc ), &
+               !     ysl( quad_cv_siloc ), zsl( quad_cv_siloc )
             end do
 
             call dgsdetnxloc2( quad_cv_snloc, quad_cv_sngi, &
@@ -2744,11 +2743,11 @@
                  ( ndim == 1 ), ( ndim == 3 ), ( ndim == -2 ), &
                  normxn, normyn, normzn, &
                  normx, normy, normz )
-            ewrite(3,*)'normx/y/z:', normx, normy, normz
-            ewrite(3,*)'quad_sdetwei:', ( quad_sdetwei( xnod ), xnod = 1, quad_cv_sngi )
-            do xnod = 1, quad_cv_sngi
-               ewrite(3,*)'normx/y/zn:', normxn(xnod), normyn(xnod), normyn(xnod)
-            end do
+            !ewrite(3,*)'normx/y/z:', normx, normy, normz
+            !ewrite(3,*)'quad_sdetwei:', ( quad_sdetwei( xnod ), xnod = 1, quad_cv_sngi )
+            !do xnod = 1, quad_cv_sngi
+            !  ewrite(3,*)'normx/y/zn:', xnod, normxn(xnod), normyn(xnod), normzn(xnod)
+            !end do
 
             ! Take out quadrature points that are inside a CV: 
             ! NB: fem_nod(xnod) = 0 if not a local finite element node ELSE = local node no.
@@ -2795,8 +2794,8 @@
 
             end do Loop_QUAD_CV_SGI
 
-            ewrite(3,*)'ele, totele, quad_cv_sngi:', &
-                 ele, totele, quad_cv_sngi
+            ewrite(3,*)'ele, sele, totele, quad_cv_sngi, quad_cv_snloc:', &
+                 ele, sele, totele, quad_cv_sngi, quad_cv_snloc
 
             ! Determine the quadrature points and weights
             Loop_NGI: do quad_cv_sgi = 1, quad_cv_sngi 
@@ -2827,7 +2826,6 @@
                else 
                   gl_quad_l1( cv_sgi ) = 1.0
                end if
-
             end do Loop_NGI
 
          end do Loop_SurfaceElements
@@ -3021,21 +3019,26 @@
       cvfem_neiloc = 0
       ! calculate cvfem_neiloc from local coords l1-4:
       Loop_SurfaceQuadrature: do cv_sgi = 1, scvngi
-         zer_l1 = ( abs( l1( cv_sgi ) ) < 1.0e-3 )
-         zer_l2 = ( abs( l2( cv_sgi ) ) < 1.0e-3 )
-         zer_l3 = ( abs( l3( cv_sgi ) ) < 1.0e-3 )
-         if ( d3 ) zer_l4 = ( abs( l4( cv_sgi )) < 1.0e-3 )
+         zer_l1 = ( abs( l1( cv_sgi ) ) < 1.0e-4 )
+         zer_l2 = ( abs( l2( cv_sgi ) ) < 1.0e-4 )
+         zer_l3 = ( abs( l3( cv_sgi ) ) < 1.0e-4 )
+         if ( d3 ) zer_l4 = ( abs( l4( cv_sgi )) < 1.0e-4 )
+
+         !ewrite(3,*) 'gi, l1/2/3/4:', cv_sgi, abs( l1( cv_sgi ) ), abs( l2( cv_sgi ) ), &
+         !     abs( l3( cv_sgi ) ), abs( l4( cv_sgi ) )
+
          Conditional_Neiloc: if ( d3 ) then
-            ewrite(3,*)'cv_sgi, zer_l1/2/3/4:', cv_sgi, (zer_l1.or.zer_l2.or.zer_l3.or.zer_l4)
+            !ewrite(3,*)'cv_sgi, zer_l1/2/3/4:', cv_sgi, (zer_l1.or.zer_l2.or.zer_l3.or.zer_l4)
             if ( zer_l1 .or. zer_l2 .or. zer_l3 .or. zer_l4 ) then
                ! on the surface of the element: 
                do cv_iloc = 1, cv_nloc
+                  !ewrite(3,*)'iloc, sn',cv_iloc, abs(sn( cv_iloc, cv_sgi )), abs ( sn( cv_iloc, cv_sgi )) > 1.e-4
                   if ( abs ( sn( cv_iloc, cv_sgi )) > 1.e-4 ) &
                        cvfem_neiloc( cv_iloc, cv_sgi ) = -1
                end do
             endif
          else
-            ewrite(3,*)'cv_sgi, zer_l1/2/3:', cv_sgi, (zer_l1.or.zer_l2.or.zer_l3)
+            !ewrite(3,*)'cv_sgi, zer_l1/2/3:', cv_sgi, (zer_l1.or.zer_l2.or.zer_l3)
             if ( zer_l1 .or. zer_l2 .or. zer_l3 ) then
                ! on the surface of the element: 
                do cv_iloc = 1, cv_nloc
@@ -3052,6 +3055,15 @@
                  quad_cv_siloc, cv_sgi, cvfem_neiloc( quad_cv_siloc, cv_sgi )
          end do
       end do
+
+      !ewrite(3,*) ''
+      !do cv_sgi = 1, scvngi
+      !  do quad_cv_siloc = 1, cv_nloc
+      !    ewrite(3,*)'iloc, gi, cvfem_neiloc::', &
+      !         quad_cv_siloc, cv_sgi, cvfem_neiloc( quad_cv_siloc, cv_sgi )
+      !  end do
+      !end do
+      !stop 999
 
       ! Calculate cvfem_neiloc from local coordinates l1-4: (hard-wired for linear traingles)
       if( .false. ) then
@@ -3097,7 +3109,7 @@
          ewrite(3,*) 'cv_sgi=',cv_sgi
          ewrite(3,*) 'snly( :, cv_sgi ):', snly( :, cv_sgi )
       end do
-      !      stop 281
+      !stop 281
 
       deallocate( quad_cvweight )
       deallocate( detwei )
@@ -3359,19 +3371,31 @@
             xgi = 0.
             ygi = 0.
             zgi = 0.
-
             do quad_cv_iloc = 1, quad_cv_nloc
                xnod = x_ndgln( ( ele - 1 ) * quad_cv_nloc + quad_cv_iloc )
-               xgi =  xgi + quad_n( quad_cv_iloc, quad_cv_gi ) * x( xnod )
-               ygi =  ygi + quad_n( quad_cv_iloc, quad_cv_gi ) * y( xnod )
-               if( d3 ) zgi =  zgi + quad_n( quad_cv_iloc, quad_cv_gi ) * z( xnod )
+               xgi = xgi + quad_n( quad_cv_iloc, quad_cv_gi ) * x( xnod )
+               ygi = ygi + quad_n( quad_cv_iloc, quad_cv_gi ) * y( xnod )
+               if( d3 ) zgi = zgi + quad_n( quad_cv_iloc, quad_cv_gi ) * z( xnod )
             end do
 
+            !ewrite(3,*)  'quad_cv_gi, xgi,  ygi, zgi', quad_cv_gi, xgi,  ygi, zgi
+            !ewrite(3,*) lx(1:4)
+            !ewrite(3,*) ly(1:4)
+            !ewrite(3,*) lz(1:4)
+            !ewrite(3,*) volume_quad_map( 1, sum(lx(1:4))/4., sum(ly(1:4))/4., sum(lz(1:4))/4., lx, ly, lz )
+            !ewrite(3,*) volume_quad_map( 2, sum(lx(1:4))/4., sum(ly(1:4))/4., sum(lz(1:4))/4., lx, ly, lz )
+            !ewrite(3,*) volume_quad_map( 3, sum(lx(1:4))/4., sum(ly(1:4))/4., sum(lz(1:4))/4., lx, ly, lz )
+            !ewrite(3,*) volume_quad_map( 4, sum(lx(1:4))/4., sum(ly(1:4))/4., sum(lz(1:4))/4., lx, ly, lz )
+
             if( d3 ) then ! local coords for the triangle
-               quad_l1( cv_gi ) = volume_quad_map( 1, xgi, ygi, zgi, lx, ly, lz )
-               quad_l2( cv_gi ) = volume_quad_map( 2, xgi, ygi, zgi, lx, ly, lz )
-               quad_l3( cv_gi ) = volume_quad_map( 3, xgi, ygi, zgi, lx, ly, lz )
-               quad_l4( cv_gi ) = volume_quad_map( 4, xgi, ygi, zgi, lx, ly, lz )
+               quad_l1( cv_gi ) = volume_quad_map( 1, xgi, ygi, zgi, lx(1:4), ly(1:4), lz(1:4) )
+               quad_l2( cv_gi ) = volume_quad_map( 2, xgi, ygi, zgi, lx(1:4), ly(1:4), lz(1:4) )
+               quad_l3( cv_gi ) = volume_quad_map( 3, xgi, ygi, zgi, lx(1:4), ly(1:4), lz(1:4) )
+               quad_l4( cv_gi ) = volume_quad_map( 4, xgi, ygi, zgi, lx(1:4), ly(1:4), lz(1:4) )
+               !quad_l1( cv_gi ) = volume_quad_map( 1, xgi, ygi, zgi, lx, ly, lz )
+               !quad_l2( cv_gi ) = volume_quad_map( 2, xgi, ygi, zgi, lx, ly, lz )
+               !quad_l3( cv_gi ) = volume_quad_map( 3, xgi, ygi, zgi, lx, ly, lz )
+               !quad_l4( cv_gi ) = volume_quad_map( 4, xgi, ygi, zgi, lx, ly, lz )
             else
                quad_l1( cv_gi ) = area_quad_map( 1, xgi, ygi, lx, ly )
                quad_l2( cv_gi ) = area_quad_map( 2, xgi, ygi, lx, ly )
@@ -3379,9 +3403,7 @@
             end if
 
          end do Loop_NGI
-
       end do Loop_Elements
-
 
       ! Now determine the basis functions and derivatives at the 
       ! quadrature pts quad_L1, quad_L2, quad_L3, quad_L4, etc
@@ -3902,8 +3924,8 @@
       REAL, DIMENSION( SNGI ), intent( inout ) :: SDETWE 
       REAL, intent( inout ) ::  SAREA
       LOGICAL, intent( in ) ::  D1,D3,DCYL
-      REAL, DIMENSION( SNGI ), intent( inout ) :: NORMXN, NORMYN ,NORMZN
-      REAL, intent( inout ) :: NORMX, NORMY, NORMZ
+      REAL, DIMENSION( SNGI ), intent( inout ) :: NORMXN, NORMYN, NORMZN
+      REAL, intent( in ) :: NORMX, NORMY, NORMZ
       ! Local variables
       real, parameter :: pi = 3.141592654
       INTEGER :: GI, SL, IGLX
@@ -3943,9 +3965,7 @@
             CALL NORMGI(NORMXN(GI),NORMYN(GI),NORMZN(GI), &
                  DXDLX,DYDLX,DZDLX, DXDLY,DYDLY,DZDLY, &
                  NORMX,NORMY,NORMZ)
-
          END DO
-
       ELSE IF(.NOT.D1) THEN
          TWOPI=1.0
          IF(DCYL) TWOPI=2.*PI
@@ -3969,7 +3989,6 @@
             DETJ=SQRT( DXDLX**2 + DYDLX**2 )
             SDETWE(GI)=TWOPI*RGI*DETJ*SWEIGH(GI)
             SAREA=SAREA+SDETWE(GI)
-            NORMZ=0.
             CALL NORMGI(NORMXN(GI),NORMYN(GI),NORMZN(GI), &
                  DXDLX,DYDLX,DZDLX, DXDLY,DYDLY,DZDLY, &
                  NORMX,NORMY,NORMZ)

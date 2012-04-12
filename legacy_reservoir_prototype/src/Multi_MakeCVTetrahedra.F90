@@ -34,8 +34,7 @@
     integer, parameter :: nlayer = 2, totele = 8, tet_totele = 4, tri_totele = 3, &
          quad_cv_nloc = 8, no_of_nodes_in_faces = 7, no_faces = 4, nside = 3 
     integer, parameter :: no_elements = 8 ! this is hard-coded for now 
-    real, parameter :: h_scale = 2.04 !scaling factor to give a unity area of the local triangle
-
+    real, parameter :: h_scale = 2.0396489026555056 ! Scaling factor to give a unity volume of the local tetrahedron
 
   contains
 

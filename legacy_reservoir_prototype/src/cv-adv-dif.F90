@@ -755,7 +755,7 @@
                            U_NODK = U_NDGLN(( ELE2 - 1 ) * U_NLOC + U_KLOC )
                            ewrite(3,*)'U_NODK:',U_NODK
                            JCOUNT = 0
-                           DO COUNT = FINDCT( CV_NODI ), FINDCT( CV_NODI + 1 ) - 1, 1
+                           DO COUNT = FINDCT( CV_NODJ ), FINDCT( CV_NODJ + 1 ) - 1, 1
                               IF(COLCT( COUNT ) == U_NODK) JCOUNT = COUNT
                            END DO
                            JCOUNT_KLOC2( U_KLOC ) = JCOUNT
@@ -994,7 +994,6 @@
 
                      Conditional_GETCV_DISC: IF(GETCV_DISC) THEN 
                         ! Obtain the CV discretised advection/diffusion equations
-
                         IF(GETMAT) THEN
                            ! - Calculate the integration of the limited, high-order flux over a face  
                            ! Conservative discretisation. The matrix (PIVOT ON LOW ORDER SOLN)
@@ -1002,7 +1001,6 @@
                               DO COUNT = FINACV( CV_NODI_IPHA ), FINACV( CV_NODI_IPHA + 1 ) - 1, 1
                                  IF( COLACV( COUNT ) == CV_NODJ_IPHA )  JCOUNT_IPHA = COUNT
                               END DO
-
                               ACV( JCOUNT_IPHA ) =  ACV( JCOUNT_IPHA ) &
                                    +  FTHETA_T2 * SCVDETWEI( GI ) * NDOTQ * INCOME * LIMD  &  ! advection
                                    -  FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX   ! Diffusion contribution
@@ -1010,14 +1008,16 @@
                                  THETA_GDIFF( CV_NODI_IPHA ) =  THETA_GDIFF( CV_NODI_IPHA ) &
                                       +  FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX *T(CV_NODJ_IPHA) !Diffusion contribution
                               ENDIF
-                           ELSE IF(WIC_T_BC(SELE+(IPHASE-1)*STOTEL) == WIC_T_BC_DIRICHLET) THEN
-                              CV_RHS( CV_NODI_IPHA ) =  CV_RHS( CV_NODI_IPHA )  &
-                                   + FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX  &
-                                   *SUF_T_BC(CV_SILOC+(SELE-1)*CV_SNLOC + (IPHASE-1)*STOTEL*CV_SNLOC)
-                              IF(GET_GTHETA) THEN
-                                 THETA_GDIFF( CV_NODI_IPHA ) =  THETA_GDIFF( CV_NODI_IPHA ) &
+                           ELSE IF(SELE/=0 ) THEN
+                              IF(WIC_T_BC(SELE+(IPHASE-1)*STOTEL) == WIC_T_BC_DIRICHLET) THEN
+                                 CV_RHS( CV_NODI_IPHA ) =  CV_RHS( CV_NODI_IPHA )  &
                                       + FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX  &
                                       *SUF_T_BC(CV_SILOC+(SELE-1)*CV_SNLOC + (IPHASE-1)*STOTEL*CV_SNLOC)
+                                 IF(GET_GTHETA) THEN
+                                    THETA_GDIFF( CV_NODI_IPHA ) =  THETA_GDIFF( CV_NODI_IPHA ) &
+                                         + FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX  &
+                                         *SUF_T_BC(CV_SILOC+(SELE-1)*CV_SNLOC + (IPHASE-1)*STOTEL*CV_SNLOC)
+                                 ENDIF
                               ENDIF
                            ENDIF
 
@@ -5578,7 +5578,8 @@
                      DENOLDMIN( CV_INOD_IPHA ) = SUF_D_BC( SUF_CV_SI_IPHA )
                      DENOLDMIN_NOD( CV_INOD_IPHA ) =  CV_INOD_IPHA
                   ENDIF
-                  !print*, 'Dens:',DENMAX( CV_INOD_IPHA ), DENMIN( CV_INOD_IPHA ), DENOLDMAX( CV_INOD_IPHA ),DENOLDMIN( CV_INOD_IPHA )
+                  !ewrite(3,*) 'Dens:',DENMAX( CV_INOD_IPHA ), DENMIN( CV_INOD_IPHA ), &
+                  !     DENOLDMAX( CV_INOD_IPHA ),DENOLDMIN( CV_INOD_IPHA )
                ENDIF
             END DO
 
@@ -5764,7 +5765,7 @@
            U_KLOC_LEV, U_NLOC_LEV
       REAL :: RCON,UDGI_IMP,VDGI_IMP,WDGI_IMP,NDOTQ_IMP
 
-      ewrite(3,*)' In PUT_IN_CT_RHS CVNORMX( GI ),CVNORMY( GI ):',CVNORMX( GI ),CVNORMY( GI )
+      ewrite(3,*)' In PUT_IN_CT_RHS CVNORMX/Y/Z( GI ):',CVNORMX( GI ),CVNORMY( GI ),CVNORMZ( GI )
       ewrite(3,*)' SCVDETWEI( GI ):',SCVDETWEI( GI )
       ewrite(3,*)' SUFEN( :, GI ):',SUFEN( :, GI )
 
