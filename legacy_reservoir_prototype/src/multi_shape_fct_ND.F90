@@ -819,8 +819,7 @@
             scvngi = 3
             sbcvngi = 2 
          case( 6 ) ! Quadratic Triangle
-            cv_ngi = 36
-            !!cv_ngi = 48 ! 36
+            cv_ngi = 48 ! 36
             scvngi = 18
             sbcvngi = 6 
          case default; FLExit(" Invalid integer for cv_nloc ")
@@ -1694,15 +1693,15 @@
 
       ! And for velocities:
       if(u_nloc==1) then ! constant basis function throughout element...
-        un=1.0
-        unlx=0.0
-        unly=0.0
-        unlz=0.0
+         un=1.0
+         unlx=0.0
+         unly=0.0
+         unlz=0.0
       else
-        call shape_tri_tet( cv_ele_type, cv_nloc, &
-           cv_ele_type, ndim, totele, u_nloc, cv_ngi, x_nonods, &
-           quad_cv_nloc, x_ndgln, x, y, z, lx, ly, lz, &
-           un, unlx, unly, unlz, cvweigh_dummy )
+         call shape_tri_tet( cv_ele_type, cv_nloc, &
+              cv_ele_type, ndim, totele, u_nloc, cv_ngi, x_nonods, &
+              quad_cv_nloc, x_ndgln, x, y, z, lx, ly, lz, &
+              un, unlx, unly, unlz, cvweigh_dummy )
       endif
 
       deallocate( lx )
@@ -1951,132 +1950,10 @@
 
       case( 4 ) ! Quadratic Triangles 
 
-         x_nonods = 16
-         totele = 9
-         h_scale =  1.5196713713031851 ! Scaling factor to give a unity area of the local triangle
-
-         ! Setting-up unity area triangle
-         lx( 1 ) = 0.
-         ly( 1 ) = 0.
-
-         lx( 2 ) = 1. * h_scale
-         ly( 2 ) = 0.
-
-         lx( 3 ) = .5 * h_scale
-         ly( 3 ) = sqrt( 3./4. ) * h_scale
-
-         ! Remmaping
-         ! Node point 1
-         x( 1 ) = lx( 1 )
-         y( 1 ) = ly( 1 )
-         fem_nod( 1 ) = 1
-         ! Node point 2
-         x( 2 ) = 0.25 * lx( 2 ) + 3. / 4. * lx( 1 ) 
-         y( 2 ) = 0.25 * ly( 2 ) + 3. / 4. * ly( 2 ) 
-         ! Node point 3
-         x( 3 ) = 0.5 * ( lx( 1 ) + lx( 2 ) )
-         y( 3 ) = 0.5 * ( ly( 1 ) + ly( 2 ) )
-         fem_nod( 3 ) = 2
-         ! Node point 4
-         x( 4 ) = 0.25 * lx( 1 ) + 3. / 4. * lx( 2 ) 
-         y( 4 ) = 0.25 * lx( 1 ) + 3. / 4. * lx( 2 ) 
-         ! Node point 5
-         x( 5 ) = lx( 2 )
-         y( 5 ) = ly( 2 )
-         fem_nod( 5 ) = 3
-         ! Node point 11
-         x( 11 ) = 0.5 * ( lx( 1 ) + lx( 3 ) )
-         y( 11 ) = 0.5 * ( ly( 1 ) + ly( 3 ) )
-         fem_nod( 11 ) = 4
-         ! Node point 12
-         x( 12 ) = 0.5 * ( lx( 2 ) + lx( 3 ) )
-         y( 12 ) = 0.5 * ( ly( 2 ) + ly( 3 ) )
-         fem_nod( 12 ) = 5
-         ! Node point 16
-         x( 16 ) = lx( 3 )
-         y( 16 ) = ly( 3 )
-         fem_nod( 16 ) = 6
-         ! Node point 6
-         x( 6 ) = 0.5 * ( x( 1 ) + x( 11 ) )
-         y( 6 ) = 0.5 * ( y( 1 ) + y( 11 ) )
-         ! Node point 7
-         x( 7 ) = 1. / 3. * ( x( 1 ) + x( 3 ) + x( 11 ) )
-         y( 7 ) = 1. / 3. * ( y( 1 ) + y( 3 ) + y( 11 ) )
-         ! Node point 8
-         x( 8 ) = 1. / 3. * ( x( 3 ) + x( 11 ) + x( 12 ) )
-         y( 8 ) = 1. / 3. * ( y( 3 ) + y( 11 ) + y( 12 ) )
-         ! Node point 9
-         x( 9 ) = 1. / 3. * ( x( 3 ) + x( 5 ) + x( 12 ) )
-         y( 9 ) = 1. / 3. * ( y( 3 ) + y( 5 ) + y( 12 ) )
-         ! Node point 10
-         x( 10 ) = 0.5 * ( x( 5 ) + x( 12 ) )
-         y( 10 ) = 0.5 * ( y( 5 ) + y( 12 ) )
-         ! Node point 13
-         x( 13 ) = 1. / 3. * ( x( 11 ) + x( 12 ) + x( 16 ) )
-         y( 13 ) = 1. / 3. * ( y( 11 ) + y( 12 ) + y( 16 ) )
-         ! Node point 14
-         x( 14 ) = 0.5 * ( x( 11 ) + x( 16 ) )
-         y( 14 ) = 0.5 * ( y( 11 ) + y( 16 ) )
-         ! Node point 15
-         x( 15 ) = 0.5 * ( x( 12 ) + x( 16 ) )
-         y( 15 ) = 0.5 * ( y( 12 ) + y( 16 ) )
-
-         z = 0.
-
-         ! Computing sudo elements
-         ele = 1 
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 1 ) = 1 
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 2 ) = 2
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 3 ) = 6
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 4 ) = 7
-
-         ele = 2
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 1 ) = 2
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 2 ) = 3
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 3 ) = 7
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 4 ) = 8
-
-         ele = 3
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 1 ) = 3
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 2 ) = 4
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 3 ) = 8
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 4 ) = 9
-
-         ele = 4
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 1 ) = 4
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 2 ) = 5
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 3 ) = 9
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 4 ) = 10
-
-         ele = 5
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 1 ) = 6
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 2 ) = 7
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 3 ) = 11
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 4 ) = 8
-
-         ele = 6
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 1 ) = 8
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 2 ) = 9
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 3 ) = 12
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 4 ) = 10
-
-         ele = 7
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 1 ) = 11
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 2 ) = 8
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 3 ) = 14
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 4 ) = 13
-
-         ele = 8
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 1 ) = 8
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 2 ) = 12
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 3 ) = 13
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 4 ) = 15
-
-         ele = 9
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 1 ) = 14
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 2 ) = 13
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 3 ) = 16
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 4 ) = 15
+         x_nonods = max_x_nonods ! x_nonods is assessed below
+         totele = 12
+         call Make_QTri( totele, quad_cv_nloc, x_nonods, &
+              x_ndgln, lx, ly, x, y, fem_nod )
 
       case( 7 ) ! Linear Tetrahedra
          x_nonods = 15
@@ -2366,19 +2243,19 @@
 
       ! And for velocities:
       if(u_nloc==1) then ! a constant basis function... 
-        sufen=1.0 
-        sufenlx=0.0 
-        sufenly=0.0
-        sufenlz=0.0 
-        sufenslx=0.0
-        sufensly=0.0
+         sufen=1.0 
+         sufenlx=0.0 
+         sufenly=0.0
+         sufenlz=0.0 
+         sufenslx=0.0
+         sufensly=0.0
       else
-        call Compute_SurfaceShapeFunctions_Triangle_Tetrahedron( &
-           cv_nloc, cv_ele_type, &
-           cv_ele_type, ndim, totele, u_nloc, scvngi, x_nonods, &
-           quad_cv_nloc, x_ndgln, x, y, z, lx, ly, lz, fem_nod, &
-           sufen, sufenlx, sufenly, sufenlz, sufenslx, sufensly, &
-           scvfeweigh_dummy, cv_neiloc_cells_dummy, ufem_neiloc )
+         call Compute_SurfaceShapeFunctions_Triangle_Tetrahedron( &
+              cv_nloc, cv_ele_type, &
+              cv_ele_type, ndim, totele, u_nloc, scvngi, x_nonods, &
+              quad_cv_nloc, x_ndgln, x, y, z, lx, ly, lz, fem_nod, &
+              sufen, sufenlx, sufenly, sufenlz, sufenslx, sufensly, &
+              scvfeweigh_dummy, cv_neiloc_cells_dummy, ufem_neiloc )
       endif
 
       ewrite(3,*)'Shape Functions for velocity fields -- SUFEN'
@@ -3227,7 +3104,7 @@
       !      if ( cv_sngi == 9 ) quad_cv_ngi = 3
       ! Consistency check:
       if( .false. )then
-      !if( cv_sngi /= totele * quad_cv_ngi ) then
+         !if( cv_sngi /= totele * quad_cv_ngi ) then
          FLExit( "Wrong number for CV_NGI" )
       end if
 
@@ -3295,6 +3172,10 @@
          dummy_sngi = 4
          dummy_snloc = 4
          nwicel = 1 ! was 3
+         quad_u_loc_dummy = 1
+         mloc = 1
+         dummy_smloc = 1
+         lowqua = .false.
          if( cv_nloc_cells == 10 ) then ! Quadratic hexs
             quad_cv_ngi = 27
             nwicel = 4
@@ -3306,12 +3187,17 @@
          dummy_sngi = 2
          dummy_snloc = 2
          nwicel = 1
+         quad_u_loc_dummy = 1
+         mloc = 1
+         dummy_smloc = 1
+         lowqua = .false.
          if ( cv_nloc_cells == 6 ) then ! Quadratic quads
             !!quad_cv_ngi = 9
             dummy_sngi = 3
             dummy_snloc = 3
             !!nwicel = 2
             nwicel = 3
+            mloc = 4
          end if
       end if Conditional_Dimensionality1
 
@@ -3323,11 +3209,6 @@
       if( cv_ngi /= totele * quad_cv_ngi ) then
          FLExit( "Wrong number for CV_NGI" )
       end if
-
-      quad_u_loc_dummy = 1
-      mloc = 1
-      dummy_smloc = 1
-      lowqua = .false.
 
       ! Allocating memory
       allocate( quad_l1( cv_ngi ) )
@@ -3354,6 +3235,14 @@
            rdummy, rdummy, rdummy, rdummy, rdummy, rdummy, rdummy, &
            nwicel, d3 )   
 
+      do ele = 1, totele
+         ewrite(3,*)'ele, quad_cv_iloc, xnod, x', quad_cv_nloc
+         do quad_cv_iloc = 1, quad_cv_nloc
+            xnod = x_ndgln( ( ele - 1 ) * quad_cv_nloc + quad_cv_iloc )
+            ewrite(3,*) ele, quad_cv_iloc, xnod, x( xnod )
+         end do
+      end do
+      !stop 12
       Loop_Elements: do ele = 1, totele ! Calculate DETWEI,RA,NX,NY,NZ for element ELE
 
          call detnlxr( ele, x, y, z, x_ndgln, totele, x_nonods, quad_cv_nloc, quad_cv_ngi, &
@@ -3363,11 +3252,12 @@
 
          Loop_NGI: do quad_cv_gi = 1, quad_cv_ngi ! Determine the quadrature points and weights
             cv_gi = ( ele - 1 ) * quad_cv_ngi + quad_cv_gi
-            ewrite(3,*)'ele, totele, quad_cv_gi, quad_cv_ngi, cv_gi, cv_ngi:', ele, totele, quad_cv_gi, quad_cv_ngi, cv_gi, cv_ngi
+            ewrite(3,*)'ele, totele, quad_cv_gi, quad_cv_ngi, cv_gi, cv_ngi:', &
+                 ele, totele, quad_cv_gi, quad_cv_ngi, cv_gi, cv_ngi
             ! the weights need to sum to 0.5 in 2D triangles and 1./6. in 3D tets...
-            if(ndim==1) cvweigh( cv_gi ) = detwei( quad_cv_gi )
-            if(ndim==2) cvweigh( cv_gi ) = 0.5*detwei( quad_cv_gi )
-            if(ndim==3) cvweigh( cv_gi ) = (1./6.)*detwei( quad_cv_gi )
+            if( ndim == 1)  cvweigh( cv_gi ) = detwei( quad_cv_gi )
+            if( ndim == 2 ) cvweigh( cv_gi ) = 0.5 * detwei( quad_cv_gi )
+            if( ndim == 3 ) cvweigh( cv_gi ) = ( 1. / 6. ) * detwei( quad_cv_gi )
             xgi = 0.
             ygi = 0.
             zgi = 0.
@@ -3411,12 +3301,12 @@
            cv_nloc, cv_ngi, n, nlx, nly, nlz, &
            .true. )
       ewrite(3,*)'cvweigh:',cvweigh
-      rsum=0.0
-      do cv_gi=1,cv_ngi
-         rsum=rsum+cvweigh(cv_gi)
+      rsum = 0.0
+      do cv_gi = 1, cv_ngi
+         rsum = rsum + cvweigh( cv_gi )
       end do
-      ewrite(3,*)'rsum:',rsum
-!      stop 2821
+      ewrite(3,*)'rsum:', rsum
+
       deallocate( quad_l1 )
       deallocate( quad_l2 )
       deallocate( quad_l3 )
@@ -3521,7 +3411,7 @@
 
       return
     end subroutine shatri_hex
-      
+
 
     subroutine shatri( l1, l2, l3, l4, weight, d3, &
          nloc, ngi, &
@@ -4056,6 +3946,346 @@
 
       RETURN
     END subroutine XPROD
+
+
+!!!!
+
+    subroutine Make_QTri( totele, x_nloc, x_nonods, &
+         x_ndgln, lx, ly, x, y, fem_nod )
+      implicit none
+      integer, intent( in ) :: totele, x_nloc
+      integer, intent( inout ) :: x_nonods
+      integer, dimension( totele * x_nloc ), intent( inout ) :: x_ndgln
+      real, dimension( x_nonods ), intent( inout ) :: lx, ly, x, y
+      integer, dimension( x_nonods ), intent( inout ) :: fem_nod
+      ! Local variables
+      ! Scaling factor to give a unity area of the local triangle
+      real, parameter :: h_scale =  1.5196713713031851
+      integer, parameter :: x_nloc_big = 7, totele_big = 4, &
+           nonods_big = x_nloc_big * totele_big
+      integer, dimension( : ), allocatable :: x_ndgln_big
+      real, dimension( : ), allocatable :: x_big, y_big
+      integer :: ele_big, increment_ele_big, ele, x_iloc, elebig_ele, iloc, xnod, &
+           ele_ref
+
+      ewrite(3,*)' In Make_QTri'
+
+      ! Setting-up unity area triangle
+      lx( 1 ) = 0.
+      ly( 1 ) = 0.
+
+      lx( 2 ) = 1. * h_scale
+      ly( 2 ) = 0.
+
+      lx( 3 ) = .5 * h_scale
+      ly( 3 ) = sqrt( 3./4. ) * h_scale
+
+      ! Remaping Big Triangle
+      ! Node point 1
+      x( 1 ) = lx( 1 )
+      y( 1 ) = ly( 1 )
+      fem_nod( 1 ) = 1
+      ! Node point 2
+      x( 2 ) = lx( 2 )
+      y( 2 ) = ly( 2 )
+      fem_nod( 2 ) = 2
+      ! Node point 3
+      x( 3 ) = lx( 3 )
+      y( 3 ) = ly( 3 )
+      fem_nod( 3 ) = 3
+
+      ! Remaping Mid Triangle
+      ! Node point 4
+      x( 4 ) = 0.5 * ( lx( 1 ) + lx( 2 ) )
+      y( 4 ) = 0.5 * ( ly( 1 ) + ly( 2 ) )
+      fem_nod( 4 ) = 4
+      ! Node point 5
+      x( 5 ) = 0.5 * ( lx( 1 ) + lx( 3 ) )
+      y( 5 ) = 0.5 * ( ly( 1 ) + ly( 3 ) )
+      fem_nod( 5 ) = 5
+      ! Node point 6
+      x( 6 ) = 0.5 * ( lx( 2 ) + lx( 3 ) )
+      y( 6 ) = 0.5 * ( ly( 2 ) + ly( 3 ) )
+      fem_nod( 6 ) = 6
+
+
+      allocate( x_ndgln_big( x_nloc_big * totele_big ) )
+      x_ndgln_big = 0
+
+      allocate( x_big( x_nonods * x_nloc ) ) ;  x_big = 0.
+      allocate( y_big( x_nonods * x_nloc ) ) ;  y_big = 0.
+      x_big( 1 : x_nonods ) = x ( 1 : x_nonods )
+      y_big( 1 : x_nonods ) = y ( 1 : x_nonods )
+
+      ele_big = 1
+      x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + 1 ) = 1
+      x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + 2 ) = 4
+      x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + 3 ) = 5
+
+      ele_big = 2
+      x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + 1 ) = 4
+      x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + 2 ) = 5
+      x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + 3 ) = 6
+
+      ele_big = 3
+      x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + 1 ) = 4
+      x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + 2 ) = 2
+      x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + 3 ) = 6
+
+      ele_big = 4
+      x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + 1 ) = 5
+      x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + 2 ) = 6
+      x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + 3 ) = 3
+
+      increment_ele_big = 6
+      ele_ref = 1
+      do ele_big = 1, 4
+         call Computing_Small_QTriangles( ele_big, x_nloc_big, totele_big, &
+              x_nonods * x_nloc, increment_ele_big, x_ndgln_big, &
+              x_big, y_big ) 
+
+         call ReMaping_Fields_QTriangles( ele_big, x_nloc_big, totele_big, &
+              x_nonods * x_nloc, x_ndgln_big, x_big, y_big, &
+              x_nonods, x_nloc, totele, x_ndgln, ele_ref, x, y ) 
+      end do
+
+      ! Just eliminating repetitive nodes in the 4 nodes pts of the quads
+      call Eliminating_Repetitive_Nodes( totele, x_nloc, x_nonods, .false., &
+           x_ndgln, x, y ) 
+
+      ! Extra Nodes in each Quad (now 9 / quad )
+      call Adding_Extra_Parametric_Nodes( totele, x_nloc, x_nonods, &
+           x_ndgln, x, y )
+
+      call Eliminating_Repetitive_Nodes( totele, x_nloc, x_nonods, .true., &
+           x_ndgln, x, y )
+
+      x_nonods = maxval( x_ndgln )
+
+      deallocate( x_ndgln_big )
+      deallocate( x_big )
+      deallocate( y_big )
+
+      return
+    end subroutine Make_QTri
+
+    subroutine Computing_Small_QTriangles( ele_big, x_nloc_big, totele_big, &
+         x_nonods_big, increment_ele_big, x_ndgln_big,  &
+         x_big, y_big ) 
+      implicit none
+      integer, intent( in ) :: ele_big, x_nloc_big, totele_big, x_nonods_big
+      integer, intent( inout ) :: increment_ele_big
+      integer, dimension( x_nloc_big * totele_big ), intent( inout ) :: x_ndgln_big
+      real, dimension( x_nonods_big ), intent( inout ) :: x_big, y_big
+      ! Local variables
+      integer :: iloc, xnod1, xnod2, xnod3, iloc2, x_nloc_big2
+
+      ewrite(3,*)' In Computing_Small_QTriangles '
+
+      x_nloc_big2 = x_nloc_big / 2
+      iloc2 = x_nloc_big2
+      do iloc = 1, x_nloc_big2
+         if( iloc < x_nloc_big2 ) then
+            xnod1 = x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + iloc )
+            xnod2 = x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + iloc + 1 )
+         else
+            xnod1 = x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + iloc )
+            xnod2 = x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + 1 )
+         end if
+         iloc2 = iloc2 + 1
+         increment_ele_big = increment_ele_big + 1
+         x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + iloc2 ) = &
+              increment_ele_big
+         x_big( increment_ele_big ) = 0.5 * ( x_big( xnod1 ) + x_big( xnod2 ) )
+         y_big( increment_ele_big ) = 0.5 * ( y_big( xnod1 ) + y_big( xnod2 ) )
+      end do
+
+      increment_ele_big = increment_ele_big + 1
+      iloc2 = iloc2 + 1
+      x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + iloc2 ) = &
+           increment_ele_big
+      xnod1 = x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + 1 )
+      xnod2 = x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + 2 )
+      xnod3 = x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + 3 )  
+      x_big( increment_ele_big ) = 1. / 3. * ( x_big( xnod1 ) + &
+           x_big( xnod2 ) + x_big( xnod3 ) )
+      y_big( increment_ele_big ) = 1. / 3. * ( y_big( xnod1 ) + &
+           y_big( xnod2 ) + y_big( xnod3 ) )
+
+      return
+    end subroutine Computing_Small_QTriangles
+
+    subroutine ReMaping_Fields_QTriangles( ele_big, x_nloc_big, totele_big, &
+         x_nonods_big, x_ndgln_big, x_big, y_big, &
+         x_nonods, x_nloc, totele, x_ndgln, ele_ref, x, y )
+      implicit none
+      integer, intent( in ) :: ele_big, x_nloc_big, totele_big, x_nonods_big
+      integer, dimension( x_nloc_big * totele_big ), intent( in ) :: x_ndgln_big
+      real, dimension( x_nonods_big ), intent( in ) :: x_big, y_big
+      integer, intent( in ) :: x_nonods, x_nloc, totele
+      integer, dimension( x_nloc * totele ), intent( inout ) :: x_ndgln
+      integer, intent( inout ) :: ele_ref
+      real, dimension( x_nonods ), intent( inout ) :: x, y
+      ! Local variables
+      integer :: xnod, iloc, x_nloc_big2, ele_ref2, ele
+
+      ewrite(3,*)' In ReMaping_Fields_QTriangles'
+
+      x_nloc_big2 = x_nloc_big / 2
+
+      ! Element 1
+      ele = ele_ref
+      ele_ref2 = ele_ref
+      iloc = 1
+      x_ndgln( ( ele - 1 ) * x_nloc + iloc ) = &
+           x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + 1 )
+
+      iloc = 2
+      x_ndgln( ( ele - 1 ) * x_nloc + iloc ) = &
+           x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + x_nloc_big2 + 1 )
+
+      iloc = 3
+      x_ndgln( ( ele - 1 ) * x_nloc + iloc ) = &
+           x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + x_nloc_big2 + 4 )
+
+      iloc = 4
+      x_ndgln( ( ele - 1 ) * x_nloc + iloc ) = &
+           x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + x_nloc_big2 + 3 )
+
+      ! Element 2
+      ele = ele + 1
+      iloc = 1
+      x_ndgln( ( ele - 1 ) * x_nloc + iloc ) = &
+           x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + x_nloc_big2 + 1 )
+
+      iloc = 2
+      x_ndgln( ( ele - 1 ) * x_nloc + iloc ) = &
+           x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + 2 )
+
+      iloc = 3
+      x_ndgln( ( ele - 1 ) * x_nloc + iloc ) = &
+           x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + x_nloc_big2 + 2 )
+
+      iloc = 4
+      x_ndgln( ( ele - 1 ) * x_nloc + iloc ) = &
+           x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + x_nloc_big2 + 4 )
+
+      ! Element 3
+      ele = ele + 1
+      iloc = 1
+      x_ndgln( ( ele - 1 ) * x_nloc + iloc ) = &
+           x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + x_nloc_big2 + 3 )
+
+      iloc = 2
+      x_ndgln( ( ele - 1 ) * x_nloc + iloc ) = &
+           x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + 3 )
+
+      iloc = 3
+      x_ndgln( ( ele - 1 ) * x_nloc + iloc ) = &
+           x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + x_nloc_big2 + 2 )
+
+      iloc = 4
+      x_ndgln( ( ele - 1 ) * x_nloc + iloc ) = &
+           x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + x_nloc_big2 + 4 )
+
+      ele_ref = ele_ref + 3
+
+      do ele = ele_ref2, ele_ref2 + 2
+         do iloc = 1, 4 ! Just the initial quad node points
+            xnod = x_ndgln( ( ele - 1 ) * x_nloc + iloc )
+            x( xnod ) = x_big( xnod )
+            y( xnod ) = y_big( xnod )
+         end do
+      end do
+
+      return
+    end subroutine ReMaping_Fields_QTriangles
+
+
+    subroutine Eliminating_Repetitive_Nodes( totele, x_nloc, x_nonods, over_all, &
+         x_ndgln, x, y )
+      implicit none
+      integer, intent( in ) :: totele, x_nloc, x_nonods
+      logical, intent( in ) :: over_all
+      integer, dimension( totele * x_nloc ), intent( inout ) :: x_ndgln
+      real, dimension( x_nonods ), intent( in ) :: x, y
+      ! Local variables
+      real, parameter :: toler = 1.e-10
+      integer :: ele, ele2, iloc, jloc, inod, jnod, x_nloc2
+
+      ewrite(3,*) 'In Eliminating_Repetitive_Nodes'
+
+      x_nloc2 = x_nloc
+      if( .not. over_all)  x_nloc2 = 4
+
+      do ele = 1, totele - 1
+         do iloc = 1, x_nloc2
+            inod = x_ndgln( ( ele - 1 ) * x_nloc + iloc )
+            do ele2 = ele, totele
+               do jloc = 1, x_nloc2
+                  jnod = x_ndgln( ( ele2 - 1 ) * x_nloc + jloc )
+                  if( ( abs( x( inod ) - x( jnod ) ) <= toler ) .and. &
+                       ( abs( y( inod ) - y( jnod ) ) <= toler ) ) then
+                     x_ndgln( ( ele2 - 1 ) * x_nloc + jloc ) = &
+                          x_ndgln( ( ele - 1 ) * x_nloc + iloc )
+                  end if
+               end do
+            end do
+         end do
+      end do
+
+      return
+    end subroutine Eliminating_Repetitive_Nodes
+
+    
+    subroutine Adding_Extra_Parametric_Nodes( totele, x_nloc, x_nonods, &
+         x_ndgln, x, y )
+      implicit none
+      integer, intent( in ) :: totele, x_nloc, x_nonods
+      integer, dimension( totele * x_nloc ), intent( inout ) :: x_ndgln
+      real, dimension( x_nonods ), intent( inout ) :: x, y
+      ! Local variables
+      integer :: ele, iloc, iloc2, x_loc_ref, xnod1, xnod2, xnod3, xnod4
+      real :: rsumx, rsumy
+
+      ewrite(3,*) 'In Adding_Extra_Parametric_Nodes'
+
+      x_loc_ref = maxval( x_ndgln ) + 1
+      do ele = 1, totele
+         iloc2 = 4
+         do iloc = 1, 4
+            iloc2 = iloc2 + 1
+            if ( iloc < 4 ) then
+               xnod1 = x_ndgln( ( ele - 1 ) * x_nloc + iloc )
+               xnod2 = x_ndgln( ( ele - 1 ) * x_nloc + iloc + 1 )
+               x_ndgln( ( ele - 1 ) * x_nloc + iloc2 ) = x_loc_ref
+            else
+               xnod1 = x_ndgln( ( ele - 1 ) * x_nloc + iloc )
+               xnod2 = x_ndgln( ( ele - 1 ) * x_nloc + 1 )
+               x_ndgln( ( ele - 1 ) * x_nloc + iloc2 ) = x_loc_ref
+            end if
+            xnod3 = x_loc_ref
+            x( xnod3 ) = 0.5 * ( x( xnod1 ) + x( xnod2 ) ) 
+            y( xnod3 ) = 0.5 * ( y( xnod1 ) + y( xnod2 ) ) 
+            x_loc_ref = x_loc_ref + 1
+         end do
+
+         x_ndgln( ( ele - 1 ) * x_nloc + x_nloc ) = x_loc_ref
+         xnod4 = x_loc_ref
+         rsumx = 0. ; rsumy = 0.
+         do iloc = 1, x_nloc - 1
+            xnod1 = x_ndgln( ( ele - 1 ) * x_nloc + iloc )
+            rsumx = rsumx + 1. / real( x_nloc - 1 ) * x( xnod1 )
+            rsumy = rsumy + 1. / real( x_nloc - 1 ) * y( xnod1 )
+         end do
+         x( xnod4 ) = rsumx 
+         y( xnod4 ) = rsumy
+
+         x_loc_ref = x_loc_ref + 1
+      end do
+
+      return
+    end subroutine Adding_Extra_Parametric_Nodes
 
 
   end module shape_functions_NDim
