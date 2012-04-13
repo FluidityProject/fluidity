@@ -29,9 +29,9 @@
   
   
 !!!!==============================================!!!!
-!!!!     SHAPE FUNCTIONS SUBRTS FOR MULTI-D       !!!!
-!!!! (Quadrilaterals, Triangles, Hexaedra and     !!!!
-!!!!             Tetrahedra)                      !!!!
+!!!!                        SHAPE FUNCTIONS SUBRTS FOR MULTI-D                      !!!!
+!!!!                        (Quadrilaterals, Triangles, Hexaedra and                     !!!!
+!!!!                                            Tetrahedra)                                          !!!!
 !!!!==============================================!!!!
   
 
@@ -2727,9 +2727,9 @@
          ewrite(3,*)'gl_quad_sn:', xnod, ( gl_quad_sn( xnod, ele ), &
               ele = 1, stotel * quad_cv_sngi * totele )
          ewrite(3,*)'gl_quad_snlx:', xnod, ( gl_quad_snlx( xnod, ele ), &
-              ele = stotel * 1, quad_cv_sngi * totele )
+              ele = 1, stotel * quad_cv_sngi * totele )
          ewrite(3,*)'gl_quad_snly:', xnod, ( gl_quad_snly( xnod, ele ), &
-              ele = stotel * 1, quad_cv_sngi * totele )
+              ele = 1, stotel * quad_cv_sngi * totele )
       end do
       ! 
       ! Find shared quadrature points to see what is on the other side 

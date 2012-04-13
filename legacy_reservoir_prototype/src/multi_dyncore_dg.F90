@@ -651,25 +651,18 @@
          !ewrite(3,*) 'pivit_mat', pivit_mat
 
          CALL PHA_BLOCK_INV( INV_PIVIT_MAT, PIVIT_MAT, TOTELE, U_NLOC * NPHASE * NDIM )
-         !p=1.-x
 
          ! Put pressure in rhs of force balance eqn:  CDP=C*P
          CALL C_MULT( CDP, P, CV_NONODS, U_NONODS, NDIM, NPHASE, C, NCOLC, FINDC, COLC)
 
          !ewrite(3,*) 'U_RHS:',U_RHS
          !ewrite(3,*) 'CDP:',CDP
-1        ewrite(3,*) 'P:',P
+         !ewrite(3,*) 'P:',P
          !ewrite(3,*) 'C:',C
 
          U_RHS_CDP = U_RHS + CDP
 
          CALL UVW_2_ULONG( U, V, W, UP_VEL, U_NONODS, NDIM, NPHASE )
-
-         !ewrite(3,*) 'JUST_BL_DIAG_MAT,INV_PIVIT_MAT:',JUST_BL_DIAG_MAT,INV_PIVIT_MAT
-         !ewrite(3,*) 'U_RHS_CDP:',U_RHS_CDP
-         !ewrite(3,*) 'u=',u
-         !ewrite(3,*) 'v=',v
-
 
          IF( JUST_BL_DIAG_MAT ) THEN
 
@@ -707,9 +700,6 @@
             END DO
          END DO
 
-         ewrite(3,*) 'u::', u
-         ewrite(3,*) 'v::', v
-         ewrite(3,*) 'w::', w
          ewrite(3,*) 'P_RHS::', p_rhs
          ewrite(3,*) 'CT_RHS::', ct_rhs
 
@@ -734,14 +724,6 @@
          endif
 
          ewrite(3,*)'b4 pressure solve P_RHS:', P_RHS
-
-         !       ewrite(3,*) 'CMC: ', CMC
-         !       ewrite(3,*) 'FINDCMC: ', FINDCMC
-         !       ewrite(3,*) 'COLCMC: ', COLCMC
-         ! Big hack here for debugging purposes:
-         !       cmc(midCMC( 2 ))=1.e+6
-         !       cmc(midCMC( 4 ))=1.e+6
-
          CALL SOLVER( CMC, DP, P_RHS, &
               FINDCMC, COLCMC, &
               option_path = '/material_phase[0]/scalar_field::Pressure')
@@ -756,7 +738,8 @@
          CALL C_MULT( CDP, DP, CV_NONODS, U_NONODS, NDIM, NPHASE, &
               C, NCOLC, FINDC, COLC)
 
-         ! ewrite(3,*)'before correcting vel CDP=',size( cdp),u_nonods * nphase + u_nonods, CDP( u_nonods * nphase + u_nonods : u_nonods * ndim * nphase ), '==', cdp(487:490)
+         ! ewrite(3,*)'before correcting vel CDP=',size( cdp),u_nonods * nphase + u_nonods, &
+         ! CDP( u_nonods * nphase + u_nonods : u_nonods * ndim * nphase ), '==', cdp(487:490)
 
          do count = 1, -ndim
             do iphase = 1, nphase
@@ -781,8 +764,6 @@
          U = U + DU
          IF( NDIM >= 2) V = V + DV
          IF( NDIM >= 3) W = W + DW
-         !       ewrite(3,*)'after correcting vel U=',U
-
 
          ewrite(3,*)'x,p:'
          DO CV_NOD = 1, CV_NONODS
@@ -804,13 +785,14 @@
                     u_iloc=1,u_nloc)
             end do
          end do
-         !       ewrite(3,*)'u:',u
-         !       ewrite(3,*)'v:',v
-         !       DO u_NOD = 1, u_NONODS
-         !         ewrite(3,*)u(u_nod)
-         !       end do
-         !pause
-
+         do iphase=1,nphase
+            ewrite(3,*) 'iphase:', iphase
+            do ele=1,totele
+               ewrite(3,*) 'ele=',ele
+               ewrite(3,*) 'w:',(w((ele-1)*u_nloc +u_iloc +(iphase-1)*u_nonods), &
+                    u_iloc=1,u_nloc)
+            end do
+         end do
 
       ENDIF
 
@@ -1342,8 +1324,8 @@
       ALLOCATE( ACV( NCOLACV )) 
       ALLOCATE( CV_RHS( CV_NONODS * NPHASE ))
       ALLOCATE( TDIFFUSION( MAT_NONODS, NDIM, NDIM, NPHASE ))
-      ALLOCATE( SUF_VOL_BC_ROB1( STOTEL * CV_SNLOC * NPHASE ))
-      ALLOCATE( SUF_VOL_BC_ROB2( STOTEL * CV_SNLOC * NPHASE ))
+      ALLOCATE( SUF_VOL_BC_ROB1( STOTEL * CV_SNLOC * NPHASE )) ; SUF_VOL_BC_ROB1 = 0.
+      ALLOCATE( SUF_VOL_BC_ROB2( STOTEL * CV_SNLOC * NPHASE )) ; SUF_VOL_BC_ROB2 = 0.
       ALLOCATE( MEAN_PORE_CV( CV_NONODS ))
       ALLOCATE( SAT_FEMT( NPHASE * CV_NONODS ) )
       ALLOCATE( DEN_FEMT( NPHASE * CV_NONODS ) )
@@ -1430,7 +1412,6 @@
               CV_NONODS, NCOLCT, CT, DIAG_SCALE_PRES, FINDCT, &
               FINDCMC, NCOLCMC, MASS_MN_PRES ) 
       ENDIF
-
 
       call test_bc( ndim, nphase, &
            u_nonods, cv_nonods, x_nonods, &

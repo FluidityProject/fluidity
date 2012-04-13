@@ -684,6 +684,7 @@
                   ewrite(3,*)'mat_other_loc:', mat_other_loc( 1 : mat_nloc )
                   ewrite(3,*)'x_share:', x_share( cv_nodi )
                   ewrite(3,*) 'INTEGRAT_AT_GI=  ',INTEGRAT_AT_GI
+                  ewrite(3,*)'============================================================= '
 
                   IF(INTEGRAT_AT_GI) THEN
                      CV_JLOC = CV_OTHER_LOC( CV_ILOC )
@@ -710,10 +711,6 @@
                   ! if necessary determine the derivatives between elements ELE and ELE2
 
                   ! Calculate the control volume normals at the Gauss pts.
-                  !     EWRITE(3,*)'************CV_ILOC=',CV_ILOC
-                  if( ele == totele )then
-                     ewrite(3,*)'+++ele, gi:', ele, gi
-                  end if
                   CALL SCVDETNX( ELE,      GI,          &
                        X_NLOC,  SCVNGI,  TOTELE,  &
                        X_NDGLN,  X_NONODS,         &
@@ -723,9 +720,6 @@
                        YC_CV(CV_NODI),     ZC_CV(CV_NODI),    X,       & 
                        Y,        Z,                &
                        D1,       D3,      DCYL )
-                  if( (ele == 11 ) .or. (ele==10))  then
-                     ewrite(3,*)'ele, gi, SCVDETWEI, cvnormx, cvnormy:', ele, gi, SCVDETWEI(gi), cvnormx(gi), cvnormy(gi)
-                  end if
 
                   ! ================ COMPUTE THE FLUX ACROSS SUB-CV FACE ===============
 
@@ -915,10 +909,10 @@
                      END DO
 
                      IF( SUM2ONE ) THEN
-                        LIMT   =LIMT/SUM_LIMT
-                        LIMTOLD=LIMTOLD/SUM_LIMTOLD
-                        LIMDT=LIMT*LIMD
-                        LIMDTOLD=LIMTOLD*LIMDOLD
+                        LIMT = LIMT/SUM_LIMT
+                        LIMTOLD = LIMTOLD/SUM_LIMTOLD
+                        LIMDT = LIMT*LIMD
+                        LIMDTOLD = LIMTOLD*LIMDOLD
                      ENDIF
 
 
@@ -938,8 +932,8 @@
                              TOLD(CV_NODI_IPHA)*DENOLD(CV_NODI_IPHA) )
                      ENDIF
 
-                     FTHETA_T2         =FTHETA*LIMT2
-                     ONE_M_FTHETA_T2OLD=(1.0-FTHETA)*LIMT2OLD
+                     FTHETA_T2 = FTHETA*LIMT2
+                     ONE_M_FTHETA_T2OLD = (1.0-FTHETA)*LIMT2OLD
 
 
                      IF(IGOT_THETA_FLUX==1) THEN
@@ -1025,7 +1019,7 @@
 
                            if( imid_ipha < 1 ) then
                               ewrite(1,*)'midacv:', midacv( 1 : cv_nonods * nphase )
-                              ewrite(1,*)' cv_nodi_ipha, IMID_IPHA :', cv_nodi_ipha, IMID_IPHA
+                              ewrite(1,*)'cv_nodi_ipha, IMID_IPHA :', cv_nodi_ipha, IMID_IPHA
                            endif
 
                            ACV( IMID_IPHA ) =  ACV( IMID_IPHA ) &
@@ -1114,19 +1108,17 @@
 
          ewrite(3,*)'before adding extra bits*****DEN:',DEN
          ewrite(3,*)'before adding extra bits*****DENOLD:',DENOLD
+         ewrite(3,*)'before adding extra bits*****T:',T
          ewrite(3,*)'before adding extra bits*****TOLD:',TOLD
          ewrite(3,*)'before adding extra bits*****MEAN_PORE_CV:',MEAN_PORE_CV
-
-         !sourct2( 1 : cv_nonods ) = -.0 !-981. * ( 1.05 - .71 )
-         !sourct2( cv_nonods + 1 : cv_nonods * nphase ) = -0.!-10.0e-1 !-981. * ( 1.05 - .71 )
 
          Loop_CVNODI2: DO CV_NODI = 1, CV_NONODS! Put onto the diagonal of the matrix 
 
             Loop_IPHASE2: DO IPHASE = 1, NPHASE    
                CV_NODI_IPHA = CV_NODI + ( IPHASE - 1 ) * CV_NONODS
                ! For the gravity term
-!!!! SOURCT2( CV_NODI_IPHA ) = SOURCT( CV_NODI_IPHA ) * DEN( CV_NODI_IPHA ) 
-!!!! SOURCT2( CV_NODI_IPHA ) = SOURCT2( CV_NODI_IPHA ) * DEN( CV_NODI_IPHA ) 
+               ! SOURCT2( CV_NODI_IPHA ) = SOURCT( CV_NODI_IPHA ) * DEN( CV_NODI_IPHA ) 
+               ! SOURCT2( CV_NODI_IPHA ) = SOURCT2( CV_NODI_IPHA ) * DEN( CV_NODI_IPHA ) 
                IMID_IPHA = MIDACV( CV_NODI_IPHA )
 
                IF(IGOT_T2==1) THEN
@@ -1217,34 +1209,31 @@
 
       ENDIF
 
-
-      ewrite(3,*)'upwind fraction:'
-      ewrite(3,*) 'This is wrong now, but up_wind_nod is not used anyway I think', cv_nonods, x_nonods
-      do iphase=1,nphase
-         ewrite(3,*)'for phase iphase=',iphase
-         do ele=1,totele-1
-            do cv_iloc=1,cv_nloc
-               cv_nodi = cv_ndgln((ele-1)*cv_nloc+cv_iloc)
-               mat_nodi = mat_ndgln((ele-1)*cv_nloc+cv_iloc)
-               cv_nodi_IPHA=cv_nodi +(IPHASE-1)*CV_NONODS
-
-               if(cv_nonods==x_nonods) then
-                  !                ewrite(3,*)0.5*(x(cv_nodi)+x(cv_nodi+1)),UP_WIND_NOD(cv_nodi_IPHA)
-                  ewrite(3,*)0.5*(x(x_ndgln((ele-1)*x_nloc+cv_iloc))+x(x_ndgln((ele-1)*x_nloc+cv_iloc+1))),  &
-                       UP_WIND_NOD(cv_nodi_IPHA)
-               else
-                  if(cv_iloc==cv_nloc) then
-                     ewrite(3,*)x(x_ndgln((ele-1)*x_nloc+cv_iloc)),  &
-                          UP_WIND_NOD(cv_nodi_IPHA)
-                  else
-                     ewrite(3,*)0.5*(x(x_ndgln((ele-1)*x_nloc+cv_iloc))+x(x_ndgln((ele-1)*x_nloc+cv_iloc+1))),  &
-                          UP_WIND_NOD(cv_nodi_IPHA)
-                  endif
-               endif
-
-            end do
-         end do
-      end do
+      !ewrite(3,*)'upwind fraction:'
+      !ewrite(3,*) 'This is wrong now, but up_wind_nod is not used anyway I think', cv_nonods, x_nonods
+      !do iphase=1,nphase
+      !   ewrite(3,*)'for phase iphase=',iphase
+      !   do ele=1,totele-1
+      !      do cv_iloc=1,cv_nloc
+      !         cv_nodi = cv_ndgln((ele-1)*cv_nloc+cv_iloc)
+      !         mat_nodi = mat_ndgln((ele-1)*cv_nloc+cv_iloc)
+      !         cv_nodi_IPHA=cv_nodi +(IPHASE-1)*CV_NONODS
+      !         if(cv_nonods==x_nonods) then
+      !            !ewrite(3,*)0.5*(x(cv_nodi)+x(cv_nodi+1)),UP_WIND_NOD(cv_nodi_IPHA)
+      !            ewrite(3,*)0.5*(x(x_ndgln((ele-1)*x_nloc+cv_iloc))+x(x_ndgln((ele-1)*x_nloc+cv_iloc+1))),  &
+      !                 UP_WIND_NOD(cv_nodi_IPHA)
+      !         else
+      !            if(cv_iloc==cv_nloc) then
+      !               ewrite(3,*)x(x_ndgln((ele-1)*x_nloc+cv_iloc)),  &
+      !                    UP_WIND_NOD(cv_nodi_IPHA)
+      !            else
+      !               ewrite(3,*)0.5*(x(x_ndgln((ele-1)*x_nloc+cv_iloc))+x(x_ndgln((ele-1)*x_nloc+cv_iloc+1))),  &
+      !                    UP_WIND_NOD(cv_nodi_IPHA)
+      !            endif
+      !         endif
+      !      end do
+      !   end do
+      !end do
 
       ! for the output
       T_FEMT = femt

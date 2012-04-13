@@ -980,7 +980,7 @@
       allocate( cv_one( nphases * cv_nonods ))
       cv_one = 1.0
 
-      if( .false. ) then
+      if( .true. ) then
          call test_bc( ndim, nphases, &
               u_nonods, cv_nonods, x_nonods, &
               u_snloc, p_snloc, cv_snloc, stotel, u_sndgln, p_sndgln, cv_sndgln, &
