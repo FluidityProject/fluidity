@@ -1950,8 +1950,9 @@
 
       case( 4 ) ! Quadratic Triangles 
 
-         x_nonods = max_x_nonods ! x_nonods is assessed below
+         x_nonods = max_x_nonods ! x_nonods will be assessed and updated below
          totele = 12
+         x = 0. ; y = 0. ; z = 0.
          call Make_QTri( totele, quad_cv_nloc, x_nonods, &
               x_ndgln, lx, ly, x, y, fem_nod )
 
@@ -2090,6 +2091,8 @@
       case default; FLExit( "Wrong integer for CV_ELE_TYPE" )
       end Select Conditional_ElementTypes
 
+      ewrite(3,*) ' Leaving Compute_XNDGLN_TriTetQuadHex'
+
       return
     end subroutine Compute_XNDGLN_TriTetQuadHex
 
@@ -2156,7 +2159,7 @@
       integer, dimension( :,: ), allocatable :: cv_neiloc_cells_dummy
       real, dimension( : ), allocatable :: lx, ly, lz, x, y, z, scvfeweigh_dummy
       logical :: d1, dcyl, d3
-      integer :: x_nonods, totele, ele, cv_iloc, quad_cv_ngi, quad_cv_nloc
+      integer :: x_nonods, totele, ele, cv_iloc, quad_cv_ngi, quad_cv_nloc, inod
 
       ewrite(3,*)' In vol_cv_tri_shape'
 
@@ -2198,18 +2201,27 @@
            totele, x_nonods, &
            x_ndgln, lx, ly, lz, x, y, z, fem_nod )
 
-      ewrite(3,*)'cv_ele_type, totele, x_nonods:', cv_ele_type, totele, x_nonods
-      ewrite(3,*)'x_ndgln:'
+      ewrite(3,*)'cv_ele_type, totele, x_nonods, quad_cv_nloc :', &
+                cv_ele_type, totele, x_nonods, quad_cv_nloc
+      ewrite(3,*)'x_ndgln, x, y:'
       do ele = 1, totele
          ewrite(3,*)( x_ndgln( ( ele - 1 ) * quad_cv_nloc + cv_iloc ), &
               cv_iloc = 1, quad_cv_nloc )
       end do
-      ewrite(3,*)'x:', ( x( cv_iloc ), cv_iloc = 1, x_nonods )
-      ewrite(3,*)'y:', ( y( cv_iloc ), cv_iloc = 1, x_nonods )
-      ewrite(3,*)'z:', ( z( cv_iloc ), cv_iloc = 1, x_nonods )
-      ewrite(3,*)'lx:', ( lx( cv_iloc ), cv_iloc = 1, 3 )
-      ewrite(3,*)'ly:', ( ly( cv_iloc ), cv_iloc = 1, 3 )
-      ewrite(3,*)'lz:', ( lz( cv_iloc ), cv_iloc = 1, 3 )
+
+      ewrite(3,*)'X / Y'
+      do ele = 1, totele
+          do cv_iloc = 1, quad_cv_nloc
+             inod = x_ndgln( ( ele - 1 ) * quad_cv_nloc + cv_iloc )
+             ewrite(3,*) ele, cv_iloc, inod, x( inod ), y( inod ), z ( inod )
+          end do
+      end do
+      !ewrite(3,*)'x:', ( x( cv_iloc ), cv_iloc = 1, x_nonods )
+      !ewrite(3,*)'y:', ( y( cv_iloc ), cv_iloc = 1, x_nonods )
+      !ewrite(3,*)'z:', ( z( cv_iloc ), cv_iloc = 1, x_nonods )
+      !ewrite(3,*)'lx:', ( lx( cv_iloc ), cv_iloc = 1, 3 )
+      !ewrite(3,*)'ly:', ( ly( cv_iloc ), cv_iloc = 1, 3 )
+      !ewrite(3,*)'lz:', ( lz( cv_iloc ), cv_iloc = 1, 3 )
 
       ! Compute the shape functions using these quadrilaterals and hexahedra:
       ! For pressure:
@@ -2354,12 +2366,12 @@
 
       ewrite(3,*)'Compute_SurfaceShapeFunctions_Triangle_Tetrahedron'
 
-      sn=0.0
-      snlx=0.0
-      snly=0.0
-      snlz=0.0
-      sufnlx=0.0
-      sufnly=0.0
+      sn = 0.0
+      snlx = 0.0
+      snly = 0.0
+      snlz = 0.0
+      sufnlx = 0.0
+      sufnly = 0.0
 
       d3 = ( ndim == 3 )
       d2 = ( ndim == 2 )
