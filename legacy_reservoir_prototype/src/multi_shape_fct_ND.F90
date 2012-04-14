@@ -2040,48 +2040,52 @@
 
          ! Computing sudo elements
          ele = 1
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 1 ) = 1
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 2 ) = 2
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 3 ) = 4
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 4 ) = 5
 
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 5 ) = 9
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 6 ) = 8
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 7 ) = 12
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 8 ) = 11
-
-         ele = 2
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 1 ) = 2
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 2 ) = 3
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 3 ) = 5
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 4 ) = 6
-
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 5 ) = 8
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 6 ) = 10
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 7 ) = 11
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 8 ) = 13
-
-         ele = 3
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 1 ) = 4
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 2 ) = 5
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 3 ) = 7
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 4 ) = 6
-
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 5 ) = 12
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 6 ) = 11
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 7 ) = 14
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 8 ) = 13
-
-         ele = 4
          x_ndgln( ( ele - 1 ) * quad_cv_nloc + 1 ) = 9
          x_ndgln( ( ele - 1 ) * quad_cv_nloc + 2 ) = 8
          x_ndgln( ( ele - 1 ) * quad_cv_nloc + 3 ) = 12
          x_ndgln( ( ele - 1 ) * quad_cv_nloc + 4 ) = 11
 
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 5 ) = 15
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 6 ) = 10
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 7 ) = 14
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 8 ) = 13
+         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 5 ) = 1
+         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 6 ) = 2
+         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 7 ) = 4
+         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 8 ) = 5
+
+         ele = 2
+
+         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 1 ) = 8
+         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 2 ) = 10
+         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 3 ) = 11
+         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 4 ) = 13
+
+         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 5 ) = 2
+         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 6 ) = 3
+         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 7 ) = 5
+         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 8 ) = 6
+
+         ele = 3
+
+         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 1 ) = 12
+         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 2 ) = 11
+         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 3 ) = 14
+         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 4 ) = 13
+
+         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 5 ) = 4
+         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 6 ) = 5
+         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 7 ) = 7
+         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 8 ) = 6
+
+         ele = 4
+
+         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 1 ) = 15
+         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 2 ) = 10
+         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 3 ) = 14
+         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 4 ) = 13
+
+         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 5 ) = 9
+         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 6 ) = 8
+         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 7 ) = 12
+         x_ndgln( ( ele - 1 ) * quad_cv_nloc + 8 ) = 11
 
       case( 8 ) ! Quadratic Tetrahedra 
          call get_x_ndgln_qtet( max_x_nonods, max_totele, quad_cv_nloc, &
