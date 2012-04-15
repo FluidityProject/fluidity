@@ -141,7 +141,9 @@ Note 1: Only works with a parent field in the same material_phase.
 
 Note 2: If the parent field is time-dependent, then the boundary values being used will be 1 timestep out since the parent field is only re-computed after BCs are set at the beginning of each timestep.
 
-Note 3: The parent field must be remappable to this field (e.g. remapping from a discontinuous to a continuous field, or from a higher order to a lower order field, is not allowed).</a:documentation>
+Note 3: The parent field must be remappable to this field (e.g. remapping from a discontinuous to a continuous field, or from a higher order to a lower order field, is not allowed).
+
+Note 4: The j-th component of a vector field BC can be set from either a scalar parent field or a vector parent field. In the latter case, the BC data will be obtained from j-th component of the parent field. A scalar field BC can only be set from a scalar parent field.</a:documentation>
         <attribute name="parent_field_name">
           <data type="string"/>
         </attribute>
