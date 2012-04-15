@@ -4,7 +4,8 @@ preprocess:
 
 run:
 	@echo **********Running simulation
-	../../bin/fluidity -v2 -l bc_from_field.flml
+	../../bin/fluidity -v2 -l scalar_field_bc_from_field.flml
+	../../bin/fluidity -v2 -l vector_field_bc_from_field.flml
 
 input: clean preprocess
 
