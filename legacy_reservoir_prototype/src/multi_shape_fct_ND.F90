@@ -29,9 +29,9 @@
   
   
 !!!!==============================================!!!!
-!!!!                        SHAPE FUNCTIONS SUBRTS FOR MULTI-D                      !!!!
-!!!!                        (Quadrilaterals, Triangles, Hexaedra and                     !!!!
-!!!!                                            Tetrahedra)                                          !!!!
+!!!!      SHAPE FUNCTIONS SUBRTS FOR MULTI-D      !!!!
+!!!!  (Quadrilaterals, Triangles, Hexaedra and    !!!!
+!!!!            Tetrahedra)                       !!!!
 !!!!==============================================!!!!
   
 
@@ -411,6 +411,8 @@
            xn, yn, zn, dxn, dyn, dzn
       integer :: nquad, p, q, corn, gpoi, ilx, ily, nj
       real :: posi, rlx, rly
+
+      ewrite(3,*) 'In re2dn9'
 
       ! Allocating memory
       allocate( lx( nl ) )
@@ -1675,6 +1677,7 @@
       allocate(cvweigh_dummy(cv_ngi)) 
 
       ! Get the x_ndgln for the nodes of the triangle or tet or hex/quad super-elements:
+      x = 0. ; y = 0. ; z = 0. ; lx = 0. ; ly = 0. ; lz = 0. ; fem_nod = 0 ; x_ndgln = 0
       call Compute_XNDGLN_TriTetQuadHex( cv_ele_type, &
            max_totele, max_x_nonods, quad_cv_nloc, &
            totele, x_nonods, &
@@ -1949,12 +1952,33 @@
          x_ndgln( ( ele - 1 ) * quad_cv_nloc + 4 ) = 6
 
       case( 4 ) ! Quadratic Triangles 
-
-         x_nonods = max_x_nonods ! x_nonods will be assessed and updated below
+         x_nonods = max( max_x_nonods, 10000 ) ! x_nonods will be assessed and updated below
          totele = 12
          x = 0. ; y = 0. ; z = 0.
+         x_ndgln = 0
          call Make_QTri( totele, quad_cv_nloc, x_nonods, &
               x_ndgln, lx, ly, x, y, fem_nod )
+
+         !! Just debugging local numbering:
+         ewrite(3,*)'Just out of M'
+         ewrite(3,*)'cv_ele_type, totele, x_nonods, quad_cv_nloc :', &
+              cv_ele_type, totele, x_nonods, quad_cv_nloc
+         ewrite(3,*)'fem_nod:', ( fem_nod( ele ), ele = 1, 3 )
+         ewrite(3,*)'lx:', ( lx( ele ), ele = 1, 3 )
+         ewrite(3,*)'ly:', ( ly( ele ), ele = 1, 3 )
+         ewrite(3,*)'x_ndgln:'
+         do ele = 1, totele
+            ewrite(3,*) ele, ( x_ndgln( ( ele - 1 ) * quad_cv_nloc + cv_iloc ), &
+                 cv_iloc = 1, quad_cv_nloc )
+         end do
+
+         ewrite(3,*)'X / Y / Z'
+         do ele = 1, totele
+            do cv_iloc = 1, quad_cv_nloc
+               xnod = x_ndgln( ( ele - 1 ) * quad_cv_nloc + cv_iloc )
+               ewrite(3,*) ele, cv_iloc, xnod, x( xnod ), y( xnod ), z ( xnod )
+            end do
+         end do
 
       case( 7 ) ! Linear Tetrahedra
          x_nonods = 15
@@ -2158,7 +2182,7 @@
       integer, dimension( cv_nloc, scvngi ), intent( inout ) :: cv_neiloc, cvfem_neiloc
       integer, dimension( u_nloc, scvngi ), intent( inout ) :: ufem_neiloc
       ! Local variables
-      integer, parameter :: max_totele = 1000, max_x_nonods = 1000
+      integer, parameter :: max_totele = 1000, max_x_nonods = 10000
       integer, dimension( : ), allocatable :: x_ndgln, fem_nod
       integer, dimension( :,: ), allocatable :: cv_neiloc_cells_dummy
       real, dimension( : ), allocatable :: lx, ly, lz, x, y, z, scvfeweigh_dummy
@@ -2199,33 +2223,11 @@
 
       ! Get the x_ndgln for the nodes of triangles, tetrahedra, quadrilaterals or hexahedra
       ! super-elements:
-      x = 0. ; y = 0. ; z = 0. ; lx = 0. ; ly = 0. ; lz = 0.
+      x = 0. ; y = 0. ; z = 0. ; lx = 0. ; ly = 0. ; lz = 0. ; fem_nod = 0 ; x_ndgln = 0
       call Compute_XNDGLN_TriTetQuadHex( cv_ele_type, &
            max_totele, max_x_nonods, quad_cv_nloc, &
            totele, x_nonods, &
            x_ndgln, lx, ly, lz, x, y, z, fem_nod )
-
-      ewrite(3,*)'cv_ele_type, totele, x_nonods, quad_cv_nloc :', &
-                cv_ele_type, totele, x_nonods, quad_cv_nloc
-      ewrite(3,*)'x_ndgln, x, y:'
-      do ele = 1, totele
-         ewrite(3,*)( x_ndgln( ( ele - 1 ) * quad_cv_nloc + cv_iloc ), &
-              cv_iloc = 1, quad_cv_nloc )
-      end do
-
-      ewrite(3,*)'X / Y'
-      do ele = 1, totele
-          do cv_iloc = 1, quad_cv_nloc
-             inod = x_ndgln( ( ele - 1 ) * quad_cv_nloc + cv_iloc )
-             ewrite(3,*) ele, cv_iloc, inod, x( inod ), y( inod ), z ( inod )
-          end do
-      end do
-      !ewrite(3,*)'x:', ( x( cv_iloc ), cv_iloc = 1, x_nonods )
-      !ewrite(3,*)'y:', ( y( cv_iloc ), cv_iloc = 1, x_nonods )
-      !ewrite(3,*)'z:', ( z( cv_iloc ), cv_iloc = 1, x_nonods )
-      !ewrite(3,*)'lx:', ( lx( cv_iloc ), cv_iloc = 1, 3 )
-      !ewrite(3,*)'ly:', ( ly( cv_iloc ), cv_iloc = 1, 3 )
-      !ewrite(3,*)'lz:', ( lz( cv_iloc ), cv_iloc = 1, 3 )
 
       ! Compute the shape functions using these quadrilaterals and hexahedra:
       ! For pressure:
@@ -2308,8 +2310,6 @@
 
       return
     end subroutine suf_cv_tri_tet_shape
-
-
 
 
     subroutine Compute_SurfaceShapeFunctions_Triangle_Tetrahedron( &
@@ -3218,8 +3218,6 @@
       end if Conditional_Dimensionality1
 
       if ( cv_ngi == 9 ) quad_cv_ngi = 3
-      ewrite(3,*) 'totele, cv_nloc_cells, cv_nloc, cv_ngi, quad_cv_ngi:', &
-           totele, cv_nloc_cells, cv_nloc, cv_ngi, quad_cv_ngi
 
       ! Consistency check:
       if( cv_ngi /= totele * quad_cv_ngi ) then
@@ -3227,21 +3225,27 @@
       end if
 
       ! Allocating memory
-      allocate( quad_l1( cv_ngi ) )
-      allocate( quad_l2( cv_ngi ) )
-      allocate( quad_l3( cv_ngi ) )
-      allocate( quad_l4( cv_ngi ) )
-      allocate( quad_cvweight( quad_cv_ngi ) )
-      allocate( detwei( quad_cv_ngi ) )
-      allocate( ra( quad_cv_ngi ) )
-      allocate( quad_n( quad_cv_nloc, quad_cv_ngi ) )
-      allocate( quad_nlx( quad_cv_nloc, quad_cv_ngi ) )
-      allocate( quad_nly( quad_cv_nloc, quad_cv_ngi ) )
-      allocate( quad_nlz( quad_cv_nloc, quad_cv_ngi ) )
-      allocate( quad_nx( quad_cv_nloc, quad_cv_ngi ) )
-      allocate( quad_ny( quad_cv_nloc, quad_cv_ngi ) )
-      allocate( quad_nz( quad_cv_nloc, quad_cv_ngi ) )
-      allocate( rdummy( 10000 ) )
+      allocate( quad_l1( cv_ngi ) ) ; quad_l1 = 0.
+      allocate( quad_l2( cv_ngi ) ) ; quad_l2 = 0.
+      allocate( quad_l3( cv_ngi ) ) ; quad_l3 = 0.
+      allocate( quad_l4( cv_ngi ) ) ; quad_l4 = 0.
+      allocate( quad_cvweight( quad_cv_ngi ) ) ; quad_cvweight = 0.
+      allocate( detwei( quad_cv_ngi ) ) ; detwei = 0.
+      allocate( ra( quad_cv_ngi ) ) ; ra = 0.
+      allocate( quad_n( quad_cv_nloc, quad_cv_ngi ) ) ;  quad_n = 0.
+      allocate( quad_nlx( quad_cv_nloc, quad_cv_ngi ) ) ; quad_nlx = 0.
+      allocate( quad_nly( quad_cv_nloc, quad_cv_ngi ) ) ; quad_nly = 0.
+      allocate( quad_nlz( quad_cv_nloc, quad_cv_ngi ) ) ; quad_nlz = 0.
+      allocate( quad_nx( quad_cv_nloc, quad_cv_ngi ) ) ; quad_nx = 0.
+      allocate( quad_ny( quad_cv_nloc, quad_cv_ngi ) ) ; quad_ny = 0.
+      allocate( quad_nz( quad_cv_nloc, quad_cv_ngi ) ) ; quad_nz = 0.
+      allocate( rdummy( 10000 ) ) ;  rdummy = 0.
+
+      ewrite(3,*)'Just b4 shape_l_q_quad from shape_tri_tet'
+      ewrite(3,*) 'totele, cv_nloc_cells, cv_nloc, cv_ngi:', &
+           totele, cv_nloc_cells, cv_nloc, cv_ngi
+      ewrite(3,*)'quad_cv_ngi, lowqua, mloc, nwicel:', &
+           quad_cv_ngi, lowqua, mloc, nwicel
 
       ! Now we need to compute QUAD_NLX/Y/Z - get the hex or quad
       ! shape functions quad_n etc.
@@ -3251,14 +3255,6 @@
            rdummy, rdummy, rdummy, rdummy, rdummy, rdummy, rdummy, &
            nwicel, d3 )   
 
-      do ele = 1, totele
-         ewrite(3,*)'ele, quad_cv_iloc, xnod, x', quad_cv_nloc
-         do quad_cv_iloc = 1, quad_cv_nloc
-            xnod = x_ndgln( ( ele - 1 ) * quad_cv_nloc + quad_cv_iloc )
-            ewrite(3,*) ele, quad_cv_iloc, xnod, x( xnod )
-         end do
-      end do
-      !stop 12
       Loop_Elements: do ele = 1, totele ! Calculate DETWEI,RA,NX,NY,NZ for element ELE
 
          call detnlxr( ele, x, y, z, x_ndgln, totele, x_nonods, quad_cv_nloc, quad_cv_ngi, &
@@ -3266,11 +3262,18 @@
               detwei, ra, volume, d1, d3, dcyl, &       
               quad_nx, quad_ny, quad_nz )
 
+         do quad_cv_iloc = 1, quad_cv_nloc
+            ewrite(3,*)' quad_cv_iloc: ', quad_cv_iloc
+            ewrite(3,*)'quad_nx:', ( quad_nx( quad_cv_iloc, quad_cv_gi ), &
+                 quad_cv_gi = 1, quad_cv_ngi )
+            ewrite(3,*)'quad_ny:', ( quad_ny( quad_cv_iloc, quad_cv_gi ), &
+                 quad_cv_gi = 1, quad_cv_ngi )
+            ewrite(3,*)'detwei:', ( detwei( quad_cv_gi ), quad_cv_gi = 1, quad_cv_ngi )
+         end do
+
          Loop_NGI: do quad_cv_gi = 1, quad_cv_ngi ! Determine the quadrature points and weights
             cv_gi = ( ele - 1 ) * quad_cv_ngi + quad_cv_gi
-            ewrite(3,*)'ele, totele, quad_cv_gi, quad_cv_ngi, cv_gi, cv_ngi:', &
-                 ele, totele, quad_cv_gi, quad_cv_ngi, cv_gi, cv_ngi
-            ! the weights need to sum to 0.5 in 2D triangles and 1./6. in 3D tets...
+            ! the weights need to sum to 0.5 in 2D triangles and 1./6. in 3D tetrahedra
             if( ndim == 1)  cvweigh( cv_gi ) = detwei( quad_cv_gi )
             if( ndim == 2 ) cvweigh( cv_gi ) = 0.5 * detwei( quad_cv_gi )
             if( ndim == 3 ) cvweigh( cv_gi ) = ( 1. / 6. ) * detwei( quad_cv_gi )
@@ -3303,9 +3306,9 @@
                !quad_l3( cv_gi ) = volume_quad_map( 3, xgi, ygi, zgi, lx, ly, lz )
                !quad_l4( cv_gi ) = volume_quad_map( 4, xgi, ygi, zgi, lx, ly, lz )
             else
-               quad_l1( cv_gi ) = area_quad_map( 1, xgi, ygi, lx, ly )
-               quad_l2( cv_gi ) = area_quad_map( 2, xgi, ygi, lx, ly )
-               quad_l3( cv_gi ) = area_quad_map( 3, xgi, ygi, lx, ly )
+               quad_l1( cv_gi ) = area_quad_map( 1, xgi, ygi, lx( 1 : 3 ), ly( 1 : 3 ) )
+               quad_l2( cv_gi ) = area_quad_map( 2, xgi, ygi, lx( 1 : 3 ), ly( 1 : 3 ) )
+               quad_l3( cv_gi ) = area_quad_map( 3, xgi, ygi, lx( 1 : 3 ), ly( 1 : 3 ) )
             end if
 
          end do Loop_NGI
@@ -3360,6 +3363,8 @@
       integer :: nwicel, mloc, snloc, sngi
       real, dimension( : ), allocatable :: rdum, sweigh
       real, dimension( :, : ), allocatable ::  m, sn, snlx, snly
+
+      ewrite(3,*)'In shatri_hex'
 
       Conditional_Dimension: if( tri_tet ) then ! traingles and tets
 
@@ -3443,6 +3448,8 @@
            unly_dummy, unlz_dummy
       real, dimension( : ), allocatable :: cvweigh_dummy
 
+      ewrite(3,*)'In shatri'
+
       Conditional_Dimensionality: if( .not. d3 ) then ! Assume a triangle
 
          Conditional_NLOC: Select Case( nloc )
@@ -3457,7 +3464,7 @@
                ! x-derivative (nb. l1 + l2 + l3 + l4 = 1 )                
                nlx( 1, gi ) = 4. * l1( gi ) - 1.              
                nlx( 2, gi ) = 0.           
-               nlx( 3, gi ) = -4. * ( 1. - l2( gi ) ) + 4. * l1( gi ) + 1.                            
+               nlx( 3, gi ) = -4. * ( 1. - l2( gi ) ) + 4. * l1( gi ) + 1. 
                nlx( 4, gi ) = 4 * l2( gi )            
                nlx( 5, gi ) = - 4 * l2( gi )          
                nlx( 6, gi ) = 4. * ( 1. - l2( gi ) ) -8. * l1( gi )            
@@ -3603,6 +3610,8 @@
       ! Local variables
       integer :: ele, nod, quad_cv_iloc, xnod, quad_cv_gi, cv_gi, &
            quad_cv_ngi
+     
+      ewrite(3,*)'In Calc_CVN_TriTetQuadHex'
 
       cvn = 0.
       Loop_Elements: do ele = 1, totele
@@ -3610,6 +3619,7 @@
          do quad_cv_iloc = 1, quad_cv_nloc
             xnod = x_ndgln( ( ele - 1 ) * quad_cv_nloc + quad_cv_iloc )
             if( fem_nod( xnod ) /= 0 ) nod = fem_nod( xnod )
+            ewrite(3,*) 'ele, xnod, fem_nod, nod:', ele, xnod, fem_nod( xnod ), nod
          end do
 
          if( nod == 0 ) FLExit(" Problem with CVN calculation " )
@@ -4014,15 +4024,12 @@
       ! Node point 4
       x( 4 ) = 0.5 * ( lx( 1 ) + lx( 2 ) )
       y( 4 ) = 0.5 * ( ly( 1 ) + ly( 2 ) )
-      fem_nod( 4 ) = 4
       ! Node point 5
       x( 5 ) = 0.5 * ( lx( 1 ) + lx( 3 ) )
       y( 5 ) = 0.5 * ( ly( 1 ) + ly( 3 ) )
-      fem_nod( 5 ) = 5
       ! Node point 6
       x( 6 ) = 0.5 * ( lx( 2 ) + lx( 3 ) )
       y( 6 ) = 0.5 * ( ly( 2 ) + ly( 3 ) )
-      fem_nod( 6 ) = 6
 
 
       allocate( x_ndgln_big( x_nloc_big * totele_big ) )
@@ -4068,13 +4075,27 @@
       ! Just eliminating repetitive nodes in the 4 nodes pts of the quads
       call Eliminating_Repetitive_Nodes( totele, x_nloc, x_nonods, .false., &
            x_ndgln, x, y ) 
+      ewrite(3,*)'xndgln0:'
+      do ele = 1, totele
+         ewrite(3,*) ele, ( x_ndgln( ( ele - 1 ) * x_nloc + x_iloc ), x_iloc = 1, x_nloc )
+      end do
 
       ! Extra Nodes in each Quad (now 9 / quad )
       call Adding_Extra_Parametric_Nodes( totele, x_nloc, x_nonods, &
            x_ndgln, x, y )
+      ewrite(3,*)'xndgln1:'
+      do ele = 1, totele
+         ewrite(3,*) ele, ( x_ndgln( ( ele - 1 ) * x_nloc + x_iloc ), x_iloc = 1, x_nloc )
+      end do
 
       call Eliminating_Repetitive_Nodes( totele, x_nloc, x_nonods, .true., &
            x_ndgln, x, y )
+      ewrite(3,*)'New x_nonods:', x_nonods
+
+      ewrite(3,*)'xndgln2'
+      do ele = 1, totele
+         ewrite(3,*) ele, ( x_ndgln( ( ele - 1 ) * x_nloc + x_iloc ), x_iloc = 1, x_nloc )
+      end do
 
       x_nonods = maxval( x_ndgln )
 
@@ -4221,13 +4242,16 @@
     subroutine Eliminating_Repetitive_Nodes( totele, x_nloc, x_nonods, over_all, &
          x_ndgln, x, y )
       implicit none
-      integer, intent( in ) :: totele, x_nloc, x_nonods
+      integer, intent( in ) :: totele, x_nloc
+      integer, intent( inout ) :: x_nonods
       logical, intent( in ) :: over_all
       integer, dimension( totele * x_nloc ), intent( inout ) :: x_ndgln
       real, dimension( x_nonods ), intent( in ) :: x, y
       ! Local variables
       real, parameter :: toler = 1.e-10
-      integer :: ele, ele2, iloc, jloc, inod, jnod, x_nloc2
+      integer :: ele, ele2, iloc, jloc, inod, jnod, jnod2, x_nloc2, isum, iref
+      logical :: found
+      integer, dimension( : ), allocatable :: x_ndgln2
 
       ewrite(3,*) 'In Eliminating_Repetitive_Nodes'
 
@@ -4237,7 +4261,7 @@
       do ele = 1, totele - 1
          do iloc = 1, x_nloc2
             inod = x_ndgln( ( ele - 1 ) * x_nloc + iloc )
-            do ele2 = ele, totele
+            do ele2 = ele + 1, totele
                do jloc = 1, x_nloc2
                   jnod = x_ndgln( ( ele2 - 1 ) * x_nloc + jloc )
                   if( ( abs( x( inod ) - x( jnod ) ) <= toler ) .and. &
@@ -4249,6 +4273,23 @@
             end do
          end do
       end do
+
+      if( over_all )then
+         isum = 1 
+         do iloc = 2, totele * x_nloc
+            found = .false. ; jnod2 = 6666
+            inod = x_ndgln( iloc )
+            do jloc = 1, iloc - 1
+               jnod = x_ndgln( jloc )
+               if( inod == jnod ) then
+                  found = .true.
+                  jnod2 = jnod
+               end if
+            end do
+            if( .not. found ) isum = isum + 1    
+            ewrite(3,*)'::', iloc, inod, jnod2, isum
+         end do
+      end if
 
       return
     end subroutine Eliminating_Repetitive_Nodes
