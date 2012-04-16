@@ -137,7 +137,7 @@
 
    contains
 
-      subroutine solve_momentum(state, at_first_timestep, timestep, POD_state)
+      subroutine solve_momentum(state, at_first_timestep, timestep, POD_state, snapmean, eps, its)
          !!< Construct and solve the momentum and continuity equations
          !!< using Chorin's projection method (Chorin, 1968)
 
@@ -244,9 +244,9 @@
          type(ilist), save :: stiff_nodes_list
 
          !! Variables for reduced model
-         type(vector_field), pointer :: snapmean_velocity
-         type(scalar_field), pointer :: snapmean_pressure
-         integer :: d
+         !type(vector_field), pointer :: snapmean_velocity
+         !type(scalar_field), pointer :: snapmean_pressure
+         !integer :: d
 
          !! Variables for multi-phase flow model
          integer :: prognostic_count
@@ -263,8 +263,52 @@
          ! Do we have fluid-particle drag between phases?
          logical :: have_fp_drag
 
-         ewrite(1,*) 'Entering solve_momentum'
 
+      !!for reduced model
+      type(vector_field), pointer :: snapmean_velocity
+      type(scalar_field), pointer :: snapmean_pressure
+      type(vector_field), pointer :: POD_velocity
+      type(scalar_field), pointer :: POD_pressure
+!      type(vector_field) :: perturb_u
+!      type(scalar_field) :: perturb_p
+!      type(petsc_csr_matrix) :: pod_big_m_0, pod_big_m
+!      type(block_csr_matrix), pointer :: pod_ct_m_0, pod_ct_m
+!      type(vector_field) :: pod_mom_rhs_0, pod_mom_rhs
+!      type(scalar_field) :: pod_ct_rhs_0, pod_ct_rhs
+      type(pod_matrix_type) :: pod_matrix
+      type(pod_rhs_type) :: pod_rhs
+      real, dimension(:), allocatable :: pod_coef,pod_coef_dt
+      real, dimension(:,:), allocatable :: pod_sol_velocity
+      real, dimension(:), allocatable :: pod_sol_pressure
+      integer :: d, i, j, k
+      real, intent(in) :: eps
+      logical, intent(in) :: snapmean
+      logical :: timestep_check
+      type(scalar_field) :: u_cpt
+
+
+      real, dimension(:,:), allocatable :: pod_matrix_snapmean
+      real, dimension(:), allocatable :: pod_rhs_snapmean
+      real, dimension(:,:), allocatable :: pod_matrix_perturbed
+      real, dimension(:), allocatable :: pod_rhs_perturbed
+
+      !nonlinear_iteration_loop
+      integer :: nonlinear_iterations
+      integer, intent(in) :: its
+
+      !free surface matrix
+      type(csr_matrix) :: fs_m
+
+      logical :: on_sphere, have_absorption, have_vertical_stabilization
+      type(vector_field), pointer :: dummy_absorption
+
+      ewrite(1,*) 'Entering solve_momentum'
+
+      reduced_model= have_option("/reduced_model/execute_reduced_model")
+
+      if(timestep==1)timestep_check=.true.
+
+      if(.not.reduced_model .or. (reduced_model .and. timestep_check))then
 
          !! Get diagnostics (equations of state, etc) and assemble matrices
 
@@ -783,7 +827,7 @@
                         ewrite(2,*) "Adding free surface to full_projection auxiliary matrix"
                         call add_free_surface_to_cmc_projection(state(istate), &
                                           schur_auxiliary_matrix, dt, theta_pg, &
-                                          theta_divergence, get_cmc=.true., rhs=ct_rhs(istate))
+                                          theta_divergence, get_cmc=.true., rhs=ct_rhs(istate), fs_m=fs_m)
                      end if
                   end if
                end if
@@ -821,7 +865,7 @@
                if (has_boundary_condition(u, "free_surface")) then
                   call add_free_surface_to_cmc_projection(state(istate), &
                            cmc_m, dt, theta_pg, theta_divergence, &
-                           get_cmc=reassemble_cmc_m, rhs=ct_rhs(istate))
+                           get_cmc=reassemble_cmc_m, rhs=ct_rhs(istate), fs_m=fs_m)
                end if
                
                if(get_diag_schur) then
@@ -904,6 +948,8 @@
 
             call profiler_toc(p, "assembly")
          end if ! end of prognostic pressure
+
+  endif  !end of if (.not.reduced_model or (reduced_model and timestep_check))
 
 
          if (.not.reduced_model) then
@@ -1068,8 +1114,14 @@
 
          else !! Reduced model version
 
-            call profiler_tic("reduced_model_loop")
-            reduced_model_loop: do istate = 1, size(state)
+            call get_option('/timestepping/nonlinear_iterations', nonlinear_iterations, default=1)
+            !!print*,'its = ', its, ' nonlinear_iterations = ', nonlinear_iterations
+
+            !enter reduced model process after the last nonliear_iteration
+            if(its==nonlinear_iterations)then
+               call profiler_tic("reduced_model_loop")
+
+               reduced_model_loop: do istate = 1, size(state)
 
                ! Get the velocity
                u => extract_vector_field(state(istate), "Velocity", stat)
@@ -1086,6 +1138,8 @@
                   have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
                                        &"/discontinuous_galerkin")) then
 
+!!speedup version of reduced model
+
                   ! Allocate the change in pressure field
                   call allocate(delta_p, p%mesh, "DeltaP")
                   delta_p%option_path = trim(p%option_path)
@@ -1095,32 +1149,195 @@
                   delta_u%option_path = trim(u%option_path)
                   call zero(delta_u)
 
-                  call solve_momentum_reduced(delta_u, delta_p, big_m(istate), mom_rhs(istate), ct_m(istate)%ptr, ct_rhs(istate), timestep, POD_state)
 
-                  snapmean_velocity => extract_vector_field(POD_state(1), "SnapmeanVelocity")
-                  snapmean_pressure => extract_scalar_field(POD_state(1), "SnapmeanPressure")
+                  call get_option("/timestepping/timestep", dt)
+               
 
-                  if(timestep == 1) then
-                     do d = 1, snapmean_velocity%dim
-                        u%val(d,:)=snapmean_velocity%val(d,:)
+
+                  allocate(pod_matrix_snapmean((u%dim+1)*size(POD_state),(u%dim+1)*size(POD_state)))
+                  allocate(pod_rhs_snapmean((u%dim+1)*size(POD_state)))
+                  allocate(pod_matrix_perturbed((u%dim+1)*size(POD_state),(u%dim+1)*size(POD_state)))
+                  allocate(pod_rhs_perturbed((u%dim+1)*size(POD_state)))
+                  allocate(pod_coef((u%dim+1)*size(POD_state)))
+                  allocate(pod_coef_dt((u%dim+1)*size(POD_state)))
+
+                  !!the ct_rhs for reduced model
+                  ct_rhs(istate)%val=ct_rhs(istate)%val/dt/theta_divergence
+
+                  print*,'theta_pg',theta_pg
+                  print*,'theta_div',theta_divergence
+                  print*,'ct_rhs',ct_rhs(istate)%val(1:10)
+                  !stop 
+
+                  if (timestep==1)then
+
+                     print*,has_boundary_condition(u,'free_surface')
+                     !project to reduced matrix
+                     if(has_boundary_condition(u,'free_surface'))then
+                     call project_reduced(big_m(istate), mom_rhs(istate), ct_m(istate)%ptr, ct_rhs(istate), pod_matrix, pod_rhs, dt, POD_state, fs_m=fs_m)
+                     else
+                     call project_reduced(big_m(istate), mom_rhs(istate), ct_m(istate)%ptr, ct_rhs(istate), pod_matrix, pod_rhs, dt, POD_state)
+                     endif
+
+                     !save the pod_matrix and pod_rhs for snapmean state
+                     if(snapmean)then
+                        ewrite(1,*)'snapmean'
+                        print*,'snapmean'
+                        open(unit=20,file='pod_matrix_snapmean')
+                        write(20,*)((pod_matrix%val(i,j),j=1,(u%dim+1)*size(POD_state)),i=1,(u%dim+1)*size(POD_state))
+                        write(20,*)(pod_rhs%val(i),i=1,(u%dim+1)*size(POD_state))
+                        close(20)
+                     endif      
+                   
+                     if(eps.ne.0.0)then
+
+                        ewrite(1,*)'perturbed'
+                        print*,'perturbed'
+                        open(unit=20,file='pod_matrix_snapmean')
+                        read(20,*)((pod_matrix_snapmean(i,j),j=1,(u%dim+1)*size(POD_state)),i=1,(u%dim+1)*size(POD_state))
+                        read(20,*)(pod_rhs_snapmean(i),i=1,(u%dim+1)*size(POD_state))
+                        close(20)
+
+                        pod_matrix%val(:,:)=(pod_matrix%val(:,:)-pod_matrix_snapmean(:,:))/eps
+                        pod_rhs%val(:)=(pod_rhs%val(:)-pod_rhs_snapmean(:))/eps
+                      
+                        !save pod_matrix and pod_rhs for perturbed state (related to POD_velocity%dim, size(POD_state))
+                        write(30,*)((pod_matrix%val(i,j),j=1,(u%dim+1)*size(POD_state)),i=1,(u%dim+1)*size(POD_state))
+                        write(30,*)(pod_rhs%val(i),i=1,(u%dim+1)*size(POD_state))
+
+                     elseif(eps.eq.0.0 .and. .not.snapmean)then
+                        !need to exclude snapmean
+                        ewrite(1,*)'reduced'
+
+                        !from initial condition
+                        call solve(pod_matrix%val, pod_rhs%val)
+                        pod_coef_dt(:)=pod_rhs%val
+                        pod_rhs%val=0.0
+
+                        print*,'pod_coef_dt at timestep1'
+                        print*,pod_coef_dt
+   
+                        !print*,'istate = ',istate
+                        !get the initial velocity
+                        u=>extract_vector_field(state(istate), "Velocity")
+                        !get the initial pressure
+                        p=>extract_scalar_field(state(istate), "Pressure")
+
+                        do i=1,size(POD_state)
+                           POD_velocity=>extract_vector_field(POD_state(i), "PODVelocity")
+                           do j=1,u%dim
+                              pod_coef(i+size(POD_state)*(j-1))=dot_product(POD_velocity%val(j,:),u%val(j,:))
+                           enddo
+                           POD_pressure=>extract_scalar_field(POD_state(i), "PODPressure")
+                           pod_coef(i+size(POD_state)*u%dim)=dot_product(POD_pressure,p)
+                        enddo
+
+                        print*,'pod_coef0'
+                        print*,pod_coef
+                        
+                        !!print*,'before add pod_coef_dt*dt to pod_coef_initial'
+                        !!print*,pod_coef(2),pod_coef_dt(2)
+                        !divided by the number of nonlinear_iterations???
+                        pod_coef(:)=pod_coef(:)+dt*pod_coef_dt(:)
+                        !pod_coef(:)=pod_coef_dt(:)
+                        !!print*,pod_coef(2)
+
+                        !save pod_coef for timestep 2
+                        write(40,*)(pod_coef(i),i=1,(u%dim+1)*size(POD_state))
+                        call project_full(delta_u, delta_p, pod_sol_velocity, pod_sol_pressure, POD_state, pod_coef)
+                        !save u1 
+
+                        print*,'pod_coef at timestep1'
+                        print*,pod_coef
+                     endif
+
+                  else !timestep.lg.1
+                     ewrite(1,*)'timestep=',timestep
+
+                     POD_velocity=>extract_vector_field(POD_state(1), "PODVelocity")
+                     POD_pressure=>extract_scalar_field(POD_state(1), "PODPressure")
+                     call allocate(pod_matrix, POD_velocity, POD_pressure)
+                     call allocate(pod_rhs, POD_velocity, POD_pressure)
+
+                     !pod_coef is from the previous timestep, argument?
+                     open(40,file='pod_coef')
+                     read(40,*)(pod_coef(i),i=1,(u%dim+1)*size(POD_state))
+                     close(40)
+
+                     open(unit=20,file='pod_matrix_snapmean')
+                     read(20,*)((pod_matrix_snapmean(i,j),j=1,(u%dim+1)*size(POD_state)),i=1,(u%dim+1)*size(POD_state))
+                     read(20,*)(pod_rhs_snapmean(i),i=1,(u%dim+1)*size(POD_state))
+                     close(20)
+             
+                     pod_matrix%val=pod_matrix_snapmean(:,:)
+                     pod_rhs%val=pod_rhs_snapmean(:)
+
+!goto 100
+                     do k=1,size(POD_state)
+                        do d=1, u%dim
+
+                        read(30,*)((pod_matrix_perturbed(i,j),j=1,(u%dim+1)*size(POD_state)),i=1,(u%dim+1)*size(POD_state))
+                        read(30,*)(pod_rhs_perturbed(i),i=1,(u%dim+1)*size(POD_state))
+
+                        pod_matrix%val=pod_matrix%val+pod_coef(k+(d-1)*size(POD_state))*pod_matrix_perturbed(:,:)
+                        pod_rhs%val=pod_rhs%val+pod_coef(k+(d-1)*size(POD_state))*pod_rhs_perturbed(:)
+                        enddo
+
+                        read(30,*)((pod_matrix_perturbed(i,j),j=1,(u%dim+1)*size(POD_state)),i=1,(u%dim+1)*size(POD_state))
+                        read(30,*)(pod_rhs_perturbed(i),i=1,(u%dim+1)*size(POD_state))
+
+                        pod_matrix%val=pod_matrix%val+pod_coef(k+u%dim*size(POD_state))*pod_matrix_perturbed(:,:)
+                        pod_rhs%val=pod_rhs%val+pod_coef(k+u%dim*size(POD_state))*pod_rhs_perturbed(:)
                      enddo
-                     p%val = snapmean_pressure%val
 
-                     call addto(u, delta_u, dt)
-                     call addto(p, delta_p, dt)
-                  else
-                     call addto(u, delta_u, dt)
-                     call addto(p, delta_p, dt)
-                  endif
+!100 continue
+
+                     call solve(pod_matrix%val, pod_rhs%val)
+                     pod_coef_dt=0.0
+                     pod_coef_dt=pod_rhs%val
+                     pod_rhs%val=0.0
+
+                     pod_coef(:)=pod_coef(:)+dt*pod_coef_dt(:)
+                     !pod_coef(:)=pod_coef_dt(:)
+
+                     !save pod_coef, rewrite every timestep
+                     open(40,file='pod_coef')
+                     write(40,*)(pod_coef(i),i=1,(u%dim+1)*size(POD_state))
+                     close(40)
+                     print*,pod_coef
+
+                     call project_full(delta_u, delta_p, pod_sol_velocity, pod_sol_pressure, POD_state, pod_coef)
+
+
+                  endif ! timestep          
+
+!1000 continue
+
+                  snapmean_velocity=>extract_vector_field(POD_state(1),"SnapmeanVelocity")
+                  snapmean_pressure=>extract_Scalar_field(POD_state(1),"SnapmeanPressure")
+                  !call addto(u, delta_u, dt)
+                  u%val=snapmean_velocity%val
+                  call addto(u, delta_u)
+                  p%val=snapmean_pressure%val
+                  call addto(p, delta_p)
 
                   call deallocate(delta_p)
                   call deallocate(delta_u)
 
-               end if ! prognostic velocity
+                  deallocate(pod_matrix_snapmean)
+                  deallocate(pod_rhs_snapmean)
+                  deallocate(pod_matrix_perturbed)
+                  deallocate(pod_rhs_perturbed)
+                  call deallocate(pod_matrix)
+                  call deallocate(pod_rhs)
 
-            end do reduced_model_loop
+
+               endif ! prognostic velocity
+
+            enddo reduced_model_loop
             call profiler_toc("reduced_model_loop")
 
+            endif ! its=nonlinear_iterations
          end if ! end of 'if .not.reduced_model'
 
 
@@ -1163,6 +1380,8 @@
          deallocate(ctp_m)
          deallocate(subcycle_m)
          deallocate(inner_m)
+
+         !call deallocate(fs_m)
 
          if(multiphase .and. associated(cmc_global)) then
             call deallocate(cmc_global)

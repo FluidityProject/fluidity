@@ -39,10 +39,11 @@ module reduced_model_runtime
   use vector_tools
   implicit none
   
-  private
+!  private
 
-  public :: read_pod_basis, solve_momentum_reduced
-  public :: pod_matrix_type, pod_rhs_type
+  public :: read_pod_basis, solve_momentum_reduced, solve_advection_diffusion_cg_reduced
+  public :: project_reduced, project_reduced_t, project_full, project_full_t
+  public :: pod_matrix_type, pod_rhs_type, pod_matrix_t_type, pod_rhs_t_type
 
   type(state_type), dimension(:), allocatable, save :: POD_state
 
@@ -56,12 +57,23 @@ module reduced_model_runtime
      integer :: u_nodes, p_nodes, u_dim
   end type pod_rhs_type
 
+  type pod_matrix_t_type
+     real, dimension(:,:), allocatable :: val
+     integer :: t_nodes
+  end type pod_matrix_t_type
+
+  type pod_rhs_t_type
+     real, dimension(:), allocatable :: val
+     integer :: t_nodes 
+  end type pod_rhs_t_type
+
+
   interface allocate
-     module procedure allocate_pod_matrix, allocate_pod_rhs
+     module procedure allocate_pod_matrix, allocate_pod_rhs, allocate_pod_matrix_t, allocate_pod_rhs_t
   end interface
 
   interface deallocate
-     module procedure deallocate_pod_matrix, deallocate_pod_rhs
+     module procedure deallocate_pod_matrix, deallocate_pod_rhs, deallocate_pod_matrix_t, deallocate_pod_rhs_t
   end interface
 
   interface addto
@@ -69,7 +81,11 @@ module reduced_model_runtime
   end interface
 
   interface addto_p
-     module procedure addto_pod_matrix_pressure, addto_pod_rhs_pressure
+     module procedure addto_pod_matrix_pressure, addto_pod_rhs_pressure, addto_pod_matrix_free_surface
+  end interface
+
+  interface addto_t
+     module procedure addto_pod_matrix_t, addto_pod_rhs_t
   end interface
 
 contains
@@ -79,14 +95,14 @@ contains
 
     character(len=1024) :: simulation_name, filename
 
-    integer :: quadrature_degree
-    integer :: i,total_dumps
+    integer :: dump_period, quadrature_degree
+    integer :: i,j,total_dumps
 
     type(state_type), dimension(:), allocatable :: POD_state
     type(state_type), dimension(:) :: state
     type(vector_field) :: podVelocity, newpodVelocity
-    type(scalar_field) :: podPressure, newpodPressure
-    type(mesh_type) :: VelocityMesh, PressureMesh
+    type(scalar_field) :: podPressure, newpodPressure, podTemperature, newpodTemperature
+    type(mesh_type) :: VelocityMesh, PressureMesh, TemperatureMesh
 
 
     call get_option('/simulation_name', simulation_name)
@@ -112,7 +128,6 @@ contains
        call allocate(newpodVelocity, podVelocity%dim, VelocityMesh, "PODVelocity")
        call remap_field(from_field=podVelocity, to_field=newpodVelocity)
        call insert(POD_state(i), newpodVelocity, "PODVelocity")
-
        call deallocate(newpodVelocity)
 
        PODPressure=extract_scalar_field(POD_state(i),"PODPressure")
@@ -120,10 +135,18 @@ contains
        call allocate(newpodPressure, PressureMesh, "PODPressure")
        call remap_field(from_field=podPressure, to_field=newpodPressure)
        call insert(POD_state(i), newpodPressure, "PODPressure")
-
-       
        call deallocate(newpodPressure)
 
+       if(have_option('/material_phase::ocean/scalar_field::Temperature'))then
+
+          TemperatureMesh=extract_mesh(state,"CoordinateMesh")
+          PODTemperature=extract_scalar_field(POD_state(i),"PODTemperature")
+          call allocate(newpodTemperature, TemperatureMesh, "PODTemperaturecsr_mult")
+          call remap_field(from_field=podTemperature, to_field=newpodTemperature)
+          call insert(POD_state(i), newpodTemperature, "PODTemperature")
+          call deallocate(newpodTemperature)
+
+       endif
     end do
 
   contains
@@ -153,12 +176,11 @@ contains
       if (count==0) then
          FLExit("No POD.vtu files found!")
       end if
-      
-    end function count_dumps
+    end function count_dumps    
 
   end subroutine read_pod_basis
 
-  subroutine solve_momentum_reduced(delta_u, delta_p, big_m, mom_rhs, ct_m, ct_rhs, timestep, POD_state) 
+  subroutine solve_momentum_reduced(delta_u, delta_p, big_m, mom_rhs, ct_m, ct_rhs, timestep, dt, POD_state) 
     !!< Solve the momentum equation in reduced space.
     type(vector_field), intent(inout) :: delta_u
     type(scalar_field), intent(inout) :: delta_p
@@ -168,20 +190,16 @@ contains
     type(block_csr_matrix), intent(in) :: ct_m
     type(vector_field), intent(in) :: mom_rhs
     type(scalar_field), intent(in) :: ct_rhs
+    real, intent(in) :: dt
 
     type(vector_field), pointer :: POD_u
     type(scalar_field), pointer :: POD_p
-
-    type(vector_field), dimension(:), allocatable :: u_tmp
-    type(vector_field) :: u_c
-    type(scalar_field) :: ct_tmp
-    type(scalar_field) :: comp1, comp2
+    type(scalar_field) :: snapmean_pressure 
 
     type(pod_matrix_type) :: pod_matrix
     type(pod_rhs_type) :: pod_rhs
 
-    integer :: i, j, d1, d2, u_nodes, p_nodes, POD_num, timestep
-    real, dimension(:,:), allocatable :: pod_tmp
+    integer :: i, j, d, d1, d2, u_nodes, p_nodes, POD_num, timestep
 
     real, dimension(:), allocatable :: pod_coef 
     real, dimension(:,:), allocatable :: pod_sol_velocity
@@ -190,24 +208,103 @@ contains
     POD_u=>extract_vector_field(POD_state(1), "PODVelocity")
     POD_p=>extract_scalar_field(POD_state(1), "PODPressure")
 
+    POD_num=size(POD_state)
+
+    allocate(pod_coef(POD_u%dim*POD_num+POD_num))
+    pod_coef=0.0
+
+    call project_reduced(big_m, mom_rhs, ct_m, ct_rhs, pod_matrix, pod_rhs, dt, POD_state)
+
+!!call solver
+!        call LEGS_POD(pod_matrix%val, POD_u%dim*POD_num+POD_num, pod_rhs%val, pod_coef) 
+     
+     call solve(pod_matrix%val, pod_rhs%val)
+     pod_coef=pod_rhs%val
+     print*,pod_coef
+!!project back to velocity and pressure 
+
+     call project_full(delta_u, delta_p, pod_sol_velocity, pod_sol_pressure, POD_state, pod_coef)
+       
+!!output to .vtu files
+    
+!       call form_podstate_solution(POD_state, pod_state_solution, pod_sol_velocity, pod_sol_pressure)
+
+!       call get_option('/simulation_name', simulation_name)
+       
+!       call vtk_write_state(filename=trim(simulation_name)//"_sol", index=timestep, state=pod_state_solution(1,:))
+
+     call deallocate(pod_matrix)
+     call deallocate(pod_rhs)
+     deallocate(pod_coef)
+
+  end subroutine solve_momentum_reduced
+
+
+  subroutine project_reduced(big_m, mom_rhs, ct_m, ct_rhs, pod_matrix, pod_rhs, dt, POD_state, fs_m)
+    !!< project the momentum equation to reduced space.
+    type(state_type), dimension(:) :: POD_state
+
+    type(petsc_csr_matrix), intent(inout) :: big_m
+    type(block_csr_matrix), intent(in) :: ct_m
+    type(vector_field), intent(in) :: mom_rhs
+    type(scalar_field), intent(in) :: ct_rhs
+    real, intent(in) :: dt
+
+    type(vector_field), pointer :: POD_u
+    type(scalar_field), pointer :: POD_p
+    type(scalar_field) :: snapmean_pressure
+
+    type(vector_field), dimension(:), allocatable :: u_tmp
+    type(vector_field) :: u_c, mom_rhs_tmp
+    type(scalar_field) :: ct_tmp
+    type(scalar_field) :: comp1, comp2
+
+    type(pod_matrix_type), intent(out) :: pod_matrix
+    type(pod_rhs_type), intent(out) :: pod_rhs
+
+    integer :: i, j, d, d1, d2, u_nodes, p_nodes, POD_num
+    real, dimension(:,:), allocatable :: pod_tmp
+
+    type(csr_matrix), optional, intent(in) :: fs_m
+    type(scalar_field) :: fs_tmp
+
+    ewrite(1,*)'in project_reduced'
+    print*,'in project_reduced'
+
+    POD_u=>extract_vector_field(POD_state(1), "PODVelocity")
+    POD_p=>extract_scalar_field(POD_state(1), "PODPressure")
+
+    snapmean_pressure=extract_scalar_field(POD_state(1), "SnapmeanPressure")
+
     u_nodes=node_count(POD_u)
     p_nodes=node_count(POD_p)
     POD_num=size(POD_state)
 
-    allocate(pod_coef(POD_u%dim*POD_num+POD_num))
     allocate(pod_tmp(POD_u%dim,POD_u%dim))
     allocate(u_tmp(POD_u%dim))
-    pod_coef=0.0
     pod_tmp=0.0
 
     do d1=1,POD_u%dim
        call allocate(u_tmp(d1), POD_u%dim, POD_u%mesh, "PODTmpU")
     end do
     call allocate(u_c, POD_u%dim, POD_u%mesh, "PODTmpComponent")
-    call allocate(ct_tmp,POD_p%mesh, "PODTmpCT")
-    
-    call allocate(pod_matrix, POD_u, POD_p) 
+    call allocate(ct_tmp, POD_p%mesh, "PODTmpCT")
+    if(present(fs_m))then
+       call allocate(fs_tmp, POD_p%mesh, "PODTmpFS")
+    endif
+
+    call allocate(pod_matrix, POD_u, POD_p)
     call allocate(pod_rhs, POD_u, POD_p)
+
+    call allocate(mom_rhs_tmp, POD_u%dim, POD_u%mesh, "mom_rhs_tmp")
+!!Are we solving for p^{n+1}-p^n or p^{n+1}? Take p^{n+1}-p^n now.
+    call mult_T(mom_rhs_tmp, ct_m, snapmean_pressure)
+
+    !mom_rhs_tmp is constant
+!    do d=1, POD_u%dim
+!!       mom_rhs%val(d)%ptr=mom_rhs%val(d)%ptr-mom_rhs_tmp%val(d)%ptr
+!       mom_rhs%val(d,:)=mom_rhs%val(d,:)-mom_rhs_tmp%val(d,:)
+!    enddo
 
     do j=1, POD_num
        POD_u=>extract_vector_field(POD_state(j), "PODVelocity")
@@ -223,14 +320,20 @@ contains
              end if
           end do
 
-          call mult(u_tmp(d1), big_m, u_c)          
-
+          call mult(u_tmp(d1), big_m, u_c)
           call mult(ct_tmp, ct_m, u_c)
 
-!!calculations for pod_rhs
+          !print*, 'u_c'
+          !print*, u_c%val(1,1:50)
+          print*, 'u_tmp'
+          print*, u_tmp(d1)%val(:,1)
+          !stop
 
+!!calculations for pod_rhs
           call addto(POD_state, pod_rhs, j, d1, sum(dot_product(mom_rhs, u_c)))
-          call addto_p(POD_state, POD_u, pod_rhs, j, dot_product(ct_rhs, POD_p))
+          call addto_p(POD_state, POD_u, pod_rhs, j, dot_product(ct_rhs, POD_p), dt)
+          print*,'pod_rhs'
+          print*,pod_rhs%val
 
 !          pod_rhs%val(j+(d1-1)*POD_num)=sum(dot_product(mom_rhs, u_c))
 !          pod_rhs%val(j+POD_u%dim*POD_num)=dot_product(ct_rhs, POD_p)
@@ -239,13 +342,22 @@ contains
                POD_p=>extract_scalar_field(POD_state(i), "PODPressure")
 
                 call addto_p(POD_state, pod_matrix, d1, i, j, dot_product(ct_tmp, POD_p))
-
 !!transpose the block corresponding to ct_m
                 pod_matrix%val(j+(d1-1)*POD_num, i+pod_matrix%u_dim*POD_num)=&
                                & pod_matrix%val(i+pod_matrix%u_dim*POD_num, j+(d1-1)*POD_num)
-
             end do
         end do
+
+!!free surface matrix
+        if(present(fs_m))then
+        POD_p=>extract_scalar_field(POD_state(j), "PODPressure")
+        call mult(fs_tmp, fs_m, POD_p)       
+        do i=1, POD_num
+           POD_p=>extract_scalar_field(POD_state(i), "PODPressure")
+           call addto_p(POD_state, pod_matrix, i, j, dot_product(fs_tmp, POD_p))
+        enddo
+        endif
+
 
 !!summation of collumns after multiplication
           do i=1, POD_num
@@ -263,39 +375,120 @@ contains
 
                 end do
              end do
-       
+
          enddo
      enddo
 
-!!call solver
-!        call LEGS_POD(pod_matrix%val, POD_u%dim*POD_num+POD_num, pod_rhs%val, pod_coef) 
-     
-     call solve(pod_matrix%val, pod_rhs%val)
-     pod_coef=pod_rhs%val
-
-!!project back to velocity and pressure 
-
-     call project(delta_u, delta_p, pod_sol_velocity, pod_sol_pressure, POD_state, pod_coef)
-       
-!!output to .vtu files
-    
-!       call form_podstate_solution(POD_state, pod_state_solution, pod_sol_velocity, pod_sol_pressure)
-
-!       call get_option('/simulation_name', simulation_name)
-       
-!       call vtk_write_state(filename=trim(simulation_name)//"_sol", index=timestep, state=pod_state_solution(1,:))
-
-     call deallocate(pod_matrix)
-     call deallocate(pod_rhs)
+     print*,pod_matrix%val
+     !stop
+ 
      do d1=1,POD_u%dim
         call deallocate(u_tmp(d1))
      end do
      deallocate(u_tmp)
      call deallocate(ct_tmp)
-     deallocate(pod_coef)
+     if(present(fs_m))then
+        call deallocate(fs_tmp)
+     endif
      call deallocate(u_c)
+     call deallocate(mom_rhs_tmp)
+     
+  end subroutine project_reduced
 
-  end subroutine solve_momentum_reduced
+  subroutine solve_advection_diffusion_cg_reduced(delta_t, matrix, rhs, timestep, POD_state)
+    !!< Solve the advection_diffusion_cg equation in reduced space.
+    type(scalar_field), intent(inout) :: delta_t
+    type(state_type), dimension(:), intent(in) :: POD_state
+    type(csr_matrix), intent(in) :: matrix
+    type(scalar_field), intent(in) :: rhs
+
+    type(scalar_field), pointer :: POD_t
+    type(pod_matrix_t_type) :: pod_matrix_t
+    type(pod_rhs_t_type) :: pod_rhs_t
+
+    integer :: i, j, t_nodes, POD_num, timestep
+
+    real, dimension(:), allocatable :: pod_coef
+    real, dimension(:), allocatable :: pod_sol_pressure
+    real, dimension(:), allocatable :: pod_sol_temperature
+    type(state_type), dimension(:,:), allocatable :: pod_state_solution
+
+    POD_t=>extract_scalar_field(POD_state(1), "PODTemperature")
+
+    t_nodes=node_count(POD_t)
+    POD_num=size(POD_state)
+
+    allocate(pod_coef(POD_num))
+    pod_coef=0.0
+
+    call project_reduced_t(matrix, rhs, pod_matrix_t, pod_rhs_t, POD_state)
+
+!!call solver
+!    call LEGS_POD(pod_matrix%val, POD_num, pod_rhs%val, pod_coef) 
+
+     call solve(pod_matrix_t%val, pod_rhs_t%val)
+     pod_coef=pod_rhs_t%val
+     print*,pod_coef
+!!project back to velocity and pressure 
+
+     call project_full_t(delta_t, pod_sol_temperature, POD_state, pod_coef)
+
+!!output to .vtu files
+
+!       call form_podstate_solution(POD_state, pod_state_solution, pod_sol_velocity, pod_sol_pressure)
+
+!       call get_option('/simulation_name', simulation_name)
+
+!       call vtk_write_state(filename=trim(simulation_name)//"_sol", index=timestep, state=pod_state_solution(1,:))
+
+     call deallocate(pod_matrix_t)
+     call deallocate(pod_rhs_t)
+     deallocate(pod_coef)
+
+  end subroutine solve_advection_diffusion_cg_reduced
+
+
+  subroutine project_reduced_t(matrix, rhs, pod_matrix_t, pod_rhs_t, POD_state)
+    !!< Project the advection_diffusion_cg equation to reduced space.
+    type(state_type), dimension(:), intent(in) :: POD_state
+    type(csr_matrix), intent(in) :: matrix
+    type(scalar_field), intent(in) :: rhs
+
+    type(scalar_field), pointer :: POD_t
+    type(scalar_field) :: t_tmp
+
+    type(pod_matrix_t_type) :: pod_matrix_t
+    type(pod_rhs_t_type) :: pod_rhs_t
+
+    integer :: i, j, t_nodes, POD_num
+
+    POD_t=>extract_scalar_field(POD_state(1), "PODTemperature")
+
+    t_nodes=node_count(POD_t)
+    POD_num=size(POD_state)
+
+    call allocate(t_tmp,POD_t%mesh, "PODTmpT")
+    call allocate(pod_matrix_t, POD_t)
+    call allocate(pod_rhs_t, POD_t)
+
+    do j=1, POD_num
+
+       POD_t=>extract_scalar_field(POD_state(j), "PODTemperature")
+       call mult_T(t_tmp%val, matrix, POD_t%val)
+
+       do i=1, POD_num
+          POD_t=>extract_scalar_field(POD_state(i), "PODTemperature")
+
+           !!calculations for pod_matrix
+           call addto_t(pod_matrix_t, i, j, dot_product(t_tmp, POD_t))
+           !!calculations for pod_rhs
+           call addto_t(pod_rhs_t, i, dot_product(rhs, POD_t))
+!          pod_rhs%val(i)=dot_product(rhs, POD_t)
+       enddo
+    enddo
+
+     call deallocate(t_tmp)
+  end subroutine project_reduced_t 
 
   subroutine allocate_pod_matrix(matrix,u,p)
     type(pod_matrix_type), intent(inout) :: matrix
@@ -327,6 +520,29 @@ contains
 
   end subroutine allocate_pod_rhs
 
+  subroutine allocate_pod_matrix_t(pod_matrix_t,t)
+    type(pod_matrix_t_type), intent(inout) :: pod_matrix_t
+    type(scalar_field), intent(in) :: t
+    integer POD_num
+
+    call get_option('/reduced_model/pod_basis_formation/pod_basis_count', POD_num)
+    allocate(pod_matrix_t%val(POD_num, POD_num))
+
+    pod_matrix_t%val=0.0
+
+  end subroutine allocate_pod_matrix_t
+
+  subroutine allocate_pod_rhs_t(rhs,t)
+    type(pod_rhs_t_type), intent(inout) :: rhs
+    type(scalar_field), intent(in) :: t
+    integer POD_num
+
+    call get_option('/reduced_model/pod_basis_formation/pod_basis_count', POD_num)
+    allocate(rhs%val(POD_num))
+
+    rhs%val=0.0
+
+  end subroutine allocate_pod_rhs_t
 
   subroutine deallocate_pod_matrix(matrix)
     type(pod_matrix_type), intent(inout) :: matrix
@@ -349,6 +565,24 @@ contains
     deallocate(rhs%val)
 
   end subroutine deallocate_pod_rhs
+
+  subroutine deallocate_pod_matrix_t(matrix)
+    type(pod_matrix_t_type), intent(inout) :: matrix
+    integer POD_num
+
+    POD_num=0
+    deallocate(matrix%val)
+
+  end subroutine deallocate_pod_matrix_t
+
+  subroutine deallocate_pod_rhs_t(rhs)
+    type(pod_rhs_t_type), intent(inout) :: rhs
+    integer POD_num
+
+    POD_num=0
+    deallocate(rhs%val)
+
+  end subroutine deallocate_pod_rhs_t
 
   subroutine addto_pod_matrix_vector_vector(POD_state, matrix, d1, d2, i, j, value)
     type(pod_matrix_type), intent(inout) :: matrix
@@ -381,6 +615,32 @@ contains
 
   end subroutine addto_pod_matrix_pressure
 
+  subroutine addto_pod_matrix_free_surface(POD_state, matrix, i, j, value)
+     type(pod_matrix_type), intent(inout) :: matrix
+     type(state_type), dimension(:), intent(in) :: POD_state
+
+     integer, intent(in) :: i, j
+     real :: value
+     integer :: POD_num
+
+     POD_num=size(POD_state)
+     matrix%val(i+matrix%u_dim*POD_num, j+matrix%u_dim*POD_num) =&
+                         matrix%val(i+matrix%u_dim*POD_num, j+matrix%u_dim*POD_num)+ &
+                         value
+
+  end subroutine addto_pod_matrix_free_surface
+
+  subroutine addto_pod_matrix_t(matrix, i, j, value)
+     type(pod_matrix_t_type), intent(inout) :: matrix
+
+     integer, intent(in) :: i, j
+     real :: value
+
+     matrix%val(i,j) = matrix%val(i,j)+value
+
+  end subroutine addto_pod_matrix_t
+
+
   subroutine addto_pod_rhs_velocity(POD_state, pod_rhs, j, d1, value)
     type(pod_rhs_type), intent(inout) :: pod_rhs
     type(state_type), dimension(:), intent(in) :: POD_state
@@ -395,21 +655,31 @@ contains
 
   end subroutine addto_pod_rhs_velocity
 
-  subroutine addto_pod_rhs_pressure(POD_state,  pod_u, pod_rhs, j, value)
+  subroutine addto_pod_rhs_pressure(POD_state, pod_u, pod_rhs, j, value, dt)
     type(pod_rhs_type), intent(inout)          :: pod_rhs
     type(state_type), dimension(:), intent(in) :: POD_state
     type(vector_field), pointer                :: POD_u
-
+    real, intent(in) :: dt
     integer, intent(in) :: j 
+
     real :: value
     integer ::  POD_num
 
     POD_num=size(POD_state)
          
-    pod_rhs%val(j+POD_u%dim*POD_num)=pod_rhs%val(j+POD_u%dim*POD_num)+value
+    pod_rhs%val(j+POD_u%dim*POD_num)=pod_rhs%val(j+POD_u%dim*POD_num)+value/dt
           
   end subroutine addto_pod_rhs_pressure
 
+  subroutine addto_pod_rhs_t(pod_rhs, i, value)
+    type(pod_rhs_t_type), intent(inout) :: pod_rhs
+
+    integer, intent(in) :: i
+    real :: value
+
+    pod_rhs%val(i)=pod_rhs%val(i)+value
+
+  end subroutine addto_pod_rhs_t
 
     SUBROUTINE LEGS_POD(A,N,B,X)
 
@@ -510,7 +780,7 @@ contains
 !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
       
-      subroutine project(delta_u, delta_p, pod_sol_velocity, pod_sol_pressure, POD_state, pod_coef)
+      subroutine project_full(delta_u, delta_p, pod_sol_velocity, pod_sol_pressure, POD_state, pod_coef)
 
         type(vector_field), intent(inout) :: delta_u
         type(scalar_field), intent(inout) :: delta_p
@@ -526,7 +796,6 @@ contains
         type(scalar_field), pointer :: snapmean_pressure
 
         integer :: d, POD_num, i, u_nodes, p_nodes, stat
-
 
         type(mesh_type), pointer :: pod_umesh, pod_pmesh
 
@@ -547,6 +816,7 @@ contains
         POD_num=size(POD_state)
 
         do i=1,POD_num
+!        do i=1,1
 
            POD_velocity=>extract_vector_field(POD_state(i), "PODVelocity")
            POD_pressure=>extract_scalar_field(POD_state(i), "PODPressure")
@@ -572,8 +842,46 @@ contains
         deallocate(pod_sol_pressure)
 
 
-      end subroutine project
+      end subroutine project_full
+ 
+      subroutine project_full_t(delta_t, pod_sol_temperature, POD_state, pod_coef)
+        type(scalar_field), intent(inout) :: delta_t
+        real, dimension(:), intent(out), allocatable :: pod_sol_temperature
+        type(state_type), dimension(:), intent(in) :: POD_state
+        real, dimension(:), intent(in) :: pod_coef
 
+        type(scalar_field), pointer :: POD_temperature
+        type(scalar_field), pointer :: snapmean_temperature
+
+        integer :: d, POD_num, i, t_nodes, stat
+
+        type(mesh_type), pointer :: pod_tmesh
+
+        POD_temperature=>extract_scalar_field(POD_state(1), "PODTemperature")
+        snapmean_temperature=>extract_scalar_field(POD_state(1), "SnapmeanTemperature")
+
+        t_nodes=node_count(POD_temperature)
+
+        allocate(pod_sol_temperature(t_nodes))
+        pod_sol_temperature=0.0
+
+        POD_num=size(POD_state)
+
+        do i=1,POD_num
+
+           POD_temperature=>extract_scalar_field(POD_state(i), "PODTemperature")
+
+           pod_sol_temperature(:)=pod_sol_temperature(:)+pod_coef(i)*POD_temperature%val(:)
+
+           pod_tmesh => extract_mesh(pod_state(1), "Mesh", stat)
+
+           call set_all(delta_t, pod_sol_temperature(:))
+
+        enddo
+
+        deallocate(pod_sol_temperature)
+
+      end subroutine project_full_t
 
   subroutine form_podstate_solution(pod_state, pod_state_solution, pod_sol_velocity, pod_sol_pressure)
 
@@ -590,8 +898,9 @@ contains
     type(vector_field), pointer :: snapmean_velocity
     type(scalar_field) :: pod_pressure
 
-    integer :: POD_num
-    integer :: stat,dim,d
+    integer :: quadrature_degree, nonods
+    integer :: u_nodes, p_nodes, POD_num
+    integer :: i,j,k,total_dumps,stat,dim,d
     logical :: all_meshes_same
 
     allocate(pod_state_solution(1,1))

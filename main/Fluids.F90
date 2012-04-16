@@ -95,6 +95,7 @@ module fluids_module
                                topology_mesh_name
   use eventcounter
   use reduced_model_runtime
+  use reducedmodel_momentum_equation_wrapper
   use implicit_solids
   use sediment
 #ifdef HAVE_HYPERLIGHT
@@ -174,6 +175,9 @@ contains
     logical::use_advdif=.true.  ! decide whether we enter advdif or not
 
     INTEGER :: adapt_count
+    
+    logical :: snapmean
+    real :: eps
 
     ! Absolute first thing: check that the options, if present, are valid.
     call check_options
@@ -756,10 +760,18 @@ contains
 
           if(use_sub_state()) then
              call update_subdomain_fields(state,sub_state)
-             call solve_momentum(sub_state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep, POD_state=POD_state)
+             if(.not.have_option("/reduced_model/execute_reduced_model"))then
+                call solve_momentum(sub_state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep, POD_state=POD_state, snapmean=snapmean, eps=eps, its=its)
+             else
+                call momentum_loop(sub_state, at_first_timestep=((timestep==1).and.(its==1)), timestep=timestep, POD_state=POD_state, its=its)
+             endif
              call sub_state_remap_to_full_mesh(state, sub_state)
           else
-             call solve_momentum(state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep, POD_state=POD_state)
+             if(.not.have_option("/reduced_model/execute_reduced_model"))then
+                call solve_momentum(state,at_first_timestep=((timestep==1).and.(its==1)),timestep=timestep, POD_state=POD_state, snapmean=snapmean, eps=eps, its=its)
+             else
+                call momentum_loop(state,at_first_timestep=((timestep==1).and.(its==1)), timestep=timestep, POD_state=POD_state, its=its)
+             endif
           end if
 
           if(nonlinear_iterations > 1) then
