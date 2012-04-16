@@ -725,7 +725,7 @@
          end if
          if (.not. allocated(wic_vol_bc)) then
             allocate( wic_vol_bc( stotel * nphases ))
-            wic_vol_bc = 0.
+            wic_vol_bc = 0
          endif
          if (.not. allocated(suf_vol_bc)) then
             allocate( suf_vol_bc( stotel * cv_snloc * nphases ))
@@ -1511,11 +1511,12 @@
       type(scalar_field), pointer :: pressure, field_source, field_absorption
       integer, dimension(:), allocatable :: sufid_bc
       character( len = option_path_len ) :: option_path, field_name
-      integer :: stotel, nobcs, bc_type, i, j, k, kk
+      integer :: stotel, nobcs, bc_type, i, j, k, kk, sele
       integer :: nstates, nphases, ncomps, snloc, stat
       integer :: shape_option(2)
       real :: initial_constant
       logical :: have_source, have_absorption
+      integer, dimension(:), allocatable :: face_nodes
 
       field_name = trim( field % name )
 
@@ -1550,7 +1551,7 @@
       if (stat==0) then
          field_prot = initial_constant
       else
-         ewrite(1, *) "No initial condition for field::", trim(field_name)
+         ewrite(-1, *) "No initial condition for field::", trim(field_name)
          FLAbort("Check initial conditions")
       end if
 
@@ -1566,25 +1567,31 @@
             shape_option = option_shape( trim( option_path ) // &
                  "/prognostic/boundary_conditions["// int2str(k-1)//"]/surface_ids" )
 
-            allocate( sufid_bc( 1 : shape_option( 1 )) )
+            allocate( sufid_bc( 1 : shape_option( 1 ) ) )
 
             call get_option( '/material_phase[' // int2str(iphase-1) // &
                  ']/scalar_field::' // trim(field_name) // '/prognostic/' // &
                  'boundary_conditions['//int2str(k-1)//']/surface_ids', SufID_BC )
 
+            allocate( face_nodes( face_loc(field,1) ) )
+
+            sele=1
             do j = 1, stotel
                if( any ( SufID_BC == pmesh%faces%boundary_ids(j) ) ) then
 
                   wic_bc( j + ( iphase - 1 ) * stotel ) = BC_Type
 
+                  face_nodes = ele_nodes(field_prot_bc, sele)
                   do kk = 1, snloc
-                     ! this assumes a constant bc (i.e. python functions are not supported)
-                     suf_bc( ( iphase - 1 ) * stotel*snloc + (j-1)*snloc + kk ) = field_prot_bc%val(1)
+                     suf_bc( ( iphase - 1 ) * stotel*snloc + (j-1)*snloc + kk ) = &
+                          field_prot_bc%val(face_nodes( 1 ))
                   end do
 
+                  sele=sele+1
                end if
             end do
 
+            deallocate(face_nodes)
             deallocate( sufid_bc )
 
          end do ! End of BC loop
