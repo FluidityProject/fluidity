@@ -1952,7 +1952,7 @@
          x_ndgln( ( ele - 1 ) * quad_cv_nloc + 4 ) = 6
 
       case( 4 ) ! Quadratic Triangles 
-         x_nonods = max( max_x_nonods, 10000 ) ! x_nonods will be assessed and updated below
+         x_nonods = max( max_x_nonods, 10000 ) ! x_nonods will be assessed and updated in Make_QTri
          totele = 12
          x = 0. ; y = 0. ; z = 0.
          x_ndgln = 0
@@ -1960,10 +1960,10 @@
               x_ndgln, lx, ly, x, y, fem_nod )
 
          !! Just debugging local numbering:
-         ewrite(3,*)'Just out of M'
+         ewrite(3,*)'Just out of Make_QTri'
          ewrite(3,*)'cv_ele_type, totele, x_nonods, quad_cv_nloc :', &
               cv_ele_type, totele, x_nonods, quad_cv_nloc
-         ewrite(3,*)'fem_nod:', ( fem_nod( ele ), ele = 1, 3 )
+         ewrite(3,*)'fem_nod:', ( fem_nod( ele ), ele = 1, 6 )
          ewrite(3,*)'lx:', ( lx( ele ), ele = 1, 3 )
          ewrite(3,*)'ly:', ( ly( ele ), ele = 1, 3 )
          ewrite(3,*)'x_ndgln:'
@@ -4095,7 +4095,6 @@
 
       call Eliminating_Repetitive_Nodes( totele, x_nloc, x_nonods, .true., &
            x_ndgln, x, y )
-      ewrite(3,*)'New x_nonods:', x_nonods
 
       ewrite(3,*)'xndgln2'
       do ele = 1, totele
