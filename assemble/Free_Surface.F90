@@ -89,7 +89,7 @@ contains
   
   subroutine add_free_surface_to_cmc_projection(state, cmc, dt, &
                                                 theta_pressure_gradient, theta_divergence, &
-                                                get_cmc, rhs, fs_m)
+                                                get_cmc, rhs)
   !!< Adds a boundary integral to the continuity equation
   !!< that weakly enforces the kinematic boundary condition.
   !!<
@@ -135,15 +135,7 @@ contains
       logical:: have_wd, have_wd_node_int
       
       real, save :: coef_old = 0.0
-
-      !!the free surface matrix in the continuity equation
-      !!fs_m=alpha M_fs/theta_divergence/dt
-      !!use poisson_rhs as the RHS of the continuity equation (in this subroutine rhs=ct_rhs, cmc=cmc_m)
-      !!output to Momentum_Equation.F90 for the POD reduced model
-      type(csr_matrix), optional, intent(out) :: fs_m
-      call allocate(fs_m,cmc%sparsity)
-      call zero(fs_m)
- 
+      
       ewrite(1,*) 'Entering add_free_surface_to_cmc_projection routine'
       ewrite(2,*) "Are we adding free-surface contribution to RHS:",present(rhs)
 
@@ -220,13 +212,6 @@ contains
           end do
         end if
       end do
-
-      !!save free surface matrix
-      open(20,file='fs_m.dat')
-      write(20,*)fs_m%val
-      close(20)
-      !stop
-
       if(addto_cmc) then
         ! cmc has been modified (most likely by changing the timestep)
         ! therefore we need to invalidate the solver context
@@ -285,11 +270,6 @@ contains
           end do
         end if
       end if
-
-!!no moving mesh and adaptive timestep for ReducedModel.(ignore coef_old for the time being) 
-      call addto(fs_m, &
-          face_global_nodes(p, sele), face_global_nodes(p,sele), &
-          alpha/dt/theta_divergence*mass_ele)
 
       if (addto_cmc) then
         ! we consider the projection equation to solve for 

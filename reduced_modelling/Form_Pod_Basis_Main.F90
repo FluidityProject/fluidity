@@ -148,28 +148,20 @@ contains
     u_nodes=node_count(velocity)
 
     snapshots=size(state)
-!print*,snapshots
 
     allocate(snapmatrix_velocity(u_nodes,snapshots,dim))
     allocate(snapmatrix_pressure(p_nodes,snapshots))
     allocate(snapmean_velocity(u_nodes,dim))
     allocate(snapmean_pressure(p_nodes))
-    
-    snapmatrix_velocity=0.0
-    snapmatrix_pressure=0.0
-    snapmean_velocity=0.0
-    snapmean_pressure=0.0
 
     do i = 1, snapshots
        velocity => extract_vector_field(state(i), "Velocity")
        pressure => extract_scalar_field(state(i), "Pressure")
 
        do d = 1, dim
-!          snapmatrix_velocity(:,i,d)=field_val(velocity,d)
-           snapmatrix_velocity(:,i,d)=velocity%val(d,:)
+          snapmatrix_velocity(:,i,d)=field_val(velocity,d)
        end do
-!       snapmatrix_pressure(:,i)=field_val(pressure)
-        snapmatrix_pressure(:,i)=pressure%val
+       snapmatrix_pressure(:,i)=field_val(pressure)
     end do
 
     do i=1, snapshots
