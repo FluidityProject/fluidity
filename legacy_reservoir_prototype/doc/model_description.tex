@@ -7,7 +7,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Numerical Formulation -- Transport Methods for Multiphase Flow Model}%\index{\fluidity Module! Transport methods}
-\label{fluid_transport_methods_section}
+\label{fluid_transport_methods_section} 
 
 \subsection{Non-linear Petrov-Galerkin methods}\index{\fluidity Module! Transport methods ! Petrov-Galerkin}
 
@@ -179,6 +179,90 @@ and
 \end{equation}
 which results in useful bounded schemes. Moreover the scheme defined by Eqns. \ref{r} and \ref{r_p} introduce less dissipation than other bounded
 schemes. These two flux limiting methods will prevent any new extrema from forming, however for a given direction new extrema can form along this direction results in oscillations in the solution. However, by choosing a control volume value in the upwind direction from face $f$ and just upwind from CV $c$ then this problem can be circumvented.
+
+
+\subsection{Extrema detection to remove extrema}
+
+A disadvantage of the above approach is that it is still based on 
+both values of the CV solution either side of a face i.e. $T_c$ and $T_d$. 
+However, one can determine if $T_c$ is at an extrema in the solution by 
+using a different value of $T_d$ other than the immediate downwind 
+value. To do this we use the the second largest value ($T_{2nd-max-c}$)
+and minimium value ($T_{2nd-min-c}$) of $T$ excluding 
+$T_c$ in the local vacinity of $T_c$ defined by the CV stencil. 
+The first step in the process is to uselinear extrapollation 
+to  calculate the down wind solution, 
+that is
+
+\begin{equation}
+{T}^{\prime\prime}_{d} = 2 T_{c} - T_{u}. 
+\label{T_d-extrapolate}
+\end{equation}
+
+If $T_c>T_d$ then
+\begin{equation}
+T_u=T_{max}, \;\;\;\;
+T^\prime_{max}=T_{2nd-max-c}, \;\;\;\;
+T^\prime_{min}=T_{min}, 
+\label{T_d-max-c}
+\end{equation}
+
+else
+
+\begin{equation}
+T_u=T_{min}, \;\;\;\;
+T^\prime_{min}=T_{2nd-min-c}, \;\;\;\;
+T^\prime_{max}=T_{max}. 
+\label{T_d-max-c}
+\end{equation}
+
+Then the new downwind solution value is assumed to be: 
+
+
+\begin{equation}
+T_{int-d}=max\{ min\{{T}^{\prime\prime}_{d}, T^\prime_{max} \}, T^\prime_{min} \}.
+\label{T_d-max-c}
+\end{equation}
+
+Now we project the face value of the control volume onto 
+the edge in the CV stencil between $T_c$ and $T_d$ with 
+
+\begin{equation}
+w=\frac{T_d-T_f}{T_d-T_c}
+\label{T_d-min-c}
+\end{equation}
+and the value to be limited along the new edge is:
+
+\begin{equation}
+{T_{int}}_f=w T_c + (1-w) T_{int-d}
+\label{T_d-min-c}
+\end{equation}
+then
+
+\begin{equation}
+\mathcal{T}_f= \frac{{T_{int}}_f - T_u}{T_{int-d}- T_u}, 
+\label{T_d-min-c}
+\end{equation}
+
+\begin{equation}
+\mathcal{T}_c= \frac{{T_c} - T_u}{T_{int-d}- T_u}, 
+\label{T_d-min-c}
+\end{equation}
+and limit as in the previous section to obtain $\tilde{T_{int}}_f$ 
+from high order face value ${T_{int}}_f$. 
+This face value lies between $T_c$ and $T_{int-d}$ 
+and is projected back onto the edge between $T_c$ and $T_d$ using: 
+
+
+\begin{equation}
+\tilde{T_f} = w T_c + (1-w) T_d, 
+\label{T_d-min-c}
+\end{equation}
+with
+\begin{equation}
+w=\frac{T_{int-d}-\tilde{T_{int}}_f}{T_{int-d}- T_c}. 
+\label{T_d-min-c}
+\end{equation}
 
 
 \subsection{Time Discretization} \label{time_discretisation}\index{\fluidity Module! Transport methods ! Time discretisation}
