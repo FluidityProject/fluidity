@@ -1420,19 +1420,21 @@
               FINDCMC, NCOLCMC, MASS_MN_PRES ) 
       ENDIF
 
-      call test_bc( ndim, nphase, &
-           u_nonods, cv_nonods, x_nonods, &
-           u_snloc, p_snloc, cv_snloc, stotel, u_sndgln, p_sndgln, cv_sndgln, &
+      if (.false.) then
+         call test_bc( ndim, nphase, &
+              u_nonods, cv_nonods, x_nonods, &
+              u_snloc, p_snloc, cv_snloc, stotel, u_sndgln, p_sndgln, cv_sndgln, &
                                 ! For force balance eqn:
-           suf_u_bc, suf_v_bc, suf_w_bc, suf_p_bc, &
-           suf_u_bc_rob1, suf_u_bc_rob2, suf_v_bc_rob1, suf_v_bc_rob2, &
-           suf_w_bc_rob1, suf_w_bc_rob2, &
-           wic_u_bc, wic_p_bc, &
+              suf_u_bc, suf_v_bc, suf_w_bc, suf_p_bc, &
+              suf_u_bc_rob1, suf_u_bc_rob2, suf_v_bc_rob1, suf_v_bc_rob2, &
+              suf_w_bc_rob1, suf_w_bc_rob2, &
+              wic_u_bc, wic_p_bc, &
                                 ! For cty eqn: 
-           suf_vol_bc, suf_d_bc, &
-           suf_vol_bc_rob1, suf_vol_bc_rob2, &
-           wic_vol_bc, wic_d_bc, &
-           x, y, z )
+              suf_vol_bc, suf_d_bc, &
+              suf_vol_bc_rob1, suf_vol_bc_rob2, &
+              wic_vol_bc, wic_d_bc, &
+              x, y, z )
+      end if
 
       DEALLOCATE( T2 )
       DEALLOCATE( T2OLD )

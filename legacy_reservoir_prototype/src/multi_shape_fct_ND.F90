@@ -2139,7 +2139,7 @@
       integer :: triangle_totele, nodeplustetnodes
 
       totele2 = totele
-      x_nonods2 =  no_of_nodes_in_faces * no_faces * totele2 + totele2
+      x_nonods2 = 18*4*4      !no_of_nodes_in_faces * no_faces * totele2 + totele2
       triangle_totele = totele2 * tet_totele
       allocate( x_ndgln2( x_nonods2 ) )
       allocate( x_ndgln_big( x_nonods2 ) )
@@ -2147,7 +2147,7 @@
       ! Sanity check
       if( x_nonods2 > max_totele2 * quad_cv_nloc2 ) &
            FLExit( "Dimension for x_ndgln is wrong" )
-
+      
       call numbering_tet_elements( x_nonods2, triangle_totele, nodeplustetnodes, &
            x_ndgln_return, &
            x, y, z, lx, ly, lz, fem_nod, &
@@ -3218,6 +3218,8 @@
       end if Conditional_Dimensionality1
 
       if ( cv_ngi == 9 ) quad_cv_ngi = 3
+
+      print *, cv_ngi, totele, quad_cv_ngi, cv_nloc, cv_nloc_cells
 
       ! Consistency check:
       if( cv_ngi /= totele * quad_cv_ngi ) then
