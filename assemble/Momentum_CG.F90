@@ -647,8 +647,6 @@
         call zero(visc_inverse_masslump)
       end if
 
-      call set_local_assembly(big_m, .true.)
-
       call get_mesh_colouring(state, u%mesh, COLOURING_CG1, colours)
       ! ----- Volume integrals over elements -------------
       

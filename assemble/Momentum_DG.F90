@@ -563,8 +563,6 @@ contains
     end if
     call zero(RHS)
     
-    call set_local_assembly(big_m, .true.)
-
     if(present(inverse_masslump) .and. lump_mass) then
        call allocate(inverse_masslump, u%dim, u%mesh, "InverseLumpedMass")
        call zero(inverse_masslump)

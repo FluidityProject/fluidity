@@ -60,7 +60,7 @@ public petsc_solve, petsc_solve_needs_state, &
 contains
 
   subroutine petsc_solve_scalar_state(x, matrix, rhs, state, &
-    option_path, local_assembly, iterations_taken)
+    option_path, iterations_taken)
     !!< Solve a linear system the nice way.
     !!< This version uses state to pull geometric information from
     !!< if required for the specified options.
@@ -70,8 +70,6 @@ contains
     type(state_type), intent(in):: state
     !! override x%option_path if provided:
     character(len=*), optional, intent(in):: option_path
-    !! Are we performing local assembly? (Ignoring off process entries)
-    logical, optional, intent(in) :: local_assembly
     !! the number of petsc iterations taken
     integer, intent(out), optional :: iterations_taken
     
@@ -90,8 +88,7 @@ contains
         call petsc_solve(x, matrix, rhs, &
            prolongators=prolongators, &
            surface_node_list=surface_nodes, option_path=option_path, &
-           iterations_taken = iterations_taken, &
-           & local_assembly = local_assembly)
+           iterations_taken = iterations_taken)
            
         deallocate(surface_nodes)
         
@@ -99,8 +96,7 @@ contains
       
         call petsc_solve(x, matrix, rhs, &
            prolongators=prolongators, option_path=option_path, &
-           iterations_taken = iterations_taken, &
-           & local_assembly = local_assembly)
+           iterations_taken = iterations_taken)
         
       end if
       
@@ -112,8 +108,7 @@ contains
     else
     
       call petsc_solve(x, matrix, rhs, option_path=option_path, &
-                       iterations_taken = iterations_taken,&
-                       & local_assembly = local_assembly)
+                       iterations_taken = iterations_taken)
       
     end if
     

@@ -433,8 +433,7 @@ contains
 
     call zero(delta_T) ! Impose zero initial guess.
     ! Solve for the change in T.
-    call petsc_solve(delta_T, matrix, rhs, state, &
-         local_assembly=.true.)
+    call petsc_solve(delta_T, matrix, rhs, state)
 
     ! Add the change in T to T.
     call addto(T, delta_T, dt)
@@ -630,8 +629,7 @@ contains
        call addto(matrix_diff,mass)
        call zero(delta_T) ! Impose zero initial guess.
        ! Solve for the change in T.
-       call petsc_solve(delta_T, matrix_diff, RHS_diff, state, &
-            local_assembly=.true.)
+       call petsc_solve(delta_T, matrix_diff, RHS_diff, state)
 
        ! Add the change in T to T.
        call addto(T, delta_T, dt)

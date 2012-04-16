@@ -560,23 +560,22 @@ contains
   end subroutine ScalarFields2Petsc
   
   subroutine ScalarField2Petsc(field, petsc_numbering, vec)
-  !!< Assembles petsc array using the specified numbering.
-  !!< Allocates a petsc Vec that should be destroyed with VecDestroy
-  type(scalar_field), intent(in):: field
-  type(petsc_numbering_type), intent(in):: petsc_numbering
-  Vec, intent(inout) :: vec
+    !!< Assembles petsc array using the specified numbering.
+    !!< Allocates a petsc Vec that should be destroyed with VecDestroy
+    type(scalar_field), intent(in):: field
+    type(petsc_numbering_type), intent(in):: petsc_numbering
+    Vec, intent(inout) :: vec
   
     call ScalarFields2Petsc( (/ field /), petsc_numbering, vec)
   
   end subroutine ScalarField2Petsc
   
-  function PetscNumberingCreateVec(petsc_numbering, local_assembly) result (vec)
-  !!< Creates a petsc array with size corresponding to petsc_numbering.
-  !!< After use it should be destroyed with VecDestroy. No vector values
-  !!< are set in this function.
-  type(petsc_numbering_type), intent(in):: petsc_numbering
-  logical, intent(in), optional :: local_assembly
-  Vec vec
+  function PetscNumberingCreateVec(petsc_numbering) result (vec)
+    !!< Creates a petsc array with size corresponding to petsc_numbering.
+    !!< After use it should be destroyed with VecDestroy. No vector values
+    !!< are set in this function.
+    type(petsc_numbering_type), intent(in):: petsc_numbering
+    Vec vec
   
     
     integer ierr, nnodp, plength, ulength, nfields
@@ -604,18 +603,16 @@ contains
     end if
 
     call VecSetOption(vec, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE, ierr)
-    if (present_and_true(local_assembly)) then
-       call VecSetOption(vec, VEC_IGNORE_OFF_PROC_ENTRIES, PETSC_TRUE, ierr)
-    end if
+    call VecSetOption(vec, VEC_IGNORE_OFF_PROC_ENTRIES, PETSC_TRUE, ierr)
 
   end function PetscNumberingCreateVec
   
   subroutine Petsc2Array(vec, petsc_numbering, array)
-  !!< Copies the values of a PETSc Vec into an array. The PETSc Vec
-  !!< must have been assembled using the same petsc_numbering.
-  Vec, intent(in):: vec
-  type(petsc_numbering_type), intent(in):: petsc_numbering
-  real, dimension(:), intent(out) :: array
+    !!< Copies the values of a PETSc Vec into an array. The PETSc Vec
+    !!< must have been assembled using the same petsc_numbering.
+    Vec, intent(in):: vec
+    type(petsc_numbering_type), intent(in):: petsc_numbering
+    real, dimension(:), intent(out) :: array
     
     integer ierr, nnodp, start, b, nfields, nnodes
 #ifndef DOUBLEP
@@ -676,13 +673,13 @@ contains
   end subroutine Petsc2Array
 
   subroutine Petsc2ScalarFields(vec, petsc_numbering, fields, rhs)
-  !!< Copies the values of a PETSc Vec into scalar fields. The PETSc Vec
-  !!< must have been assembled using the same petsc_numbering.
-  Vec, intent(in):: vec
-  type(petsc_numbering_type), intent(in):: petsc_numbering
-  type(scalar_field), dimension(:), intent(inout) :: fields
-  !! for ghost_nodes the value of the rhs gets copied into fields
-  type(scalar_field), dimension(:), intent(in), optional :: rhs
+    !!< Copies the values of a PETSc Vec into scalar fields. The PETSc Vec
+    !!< must have been assembled using the same petsc_numbering.
+    Vec, intent(in):: vec
+    type(petsc_numbering_type), intent(in):: petsc_numbering
+    type(scalar_field), dimension(:), intent(inout) :: fields
+    !! for ghost_nodes the value of the rhs gets copied into fields
+    type(scalar_field), dimension(:), intent(in), optional :: rhs
     
     integer ierr, nnodp, b, nfields, nnodes
 #ifndef DOUBLEP
@@ -856,7 +853,7 @@ contains
   end subroutine Petsc2VectorField
     
   function csr2petsc(A, petsc_numbering, column_petsc_numbering, &
-       use_inodes, local_assembly) result(M)
+       use_inodes) result(M)
   !!< Converts a csr_matrix from Sparse_Tools into a PETSc matrix.
   !!< Note: this function creates a PETSc matrix, it has to be deallocated
   !!< with MatDestroy by the user.
@@ -871,8 +868,6 @@ contains
   !! petsc's inodes don't work with certain preconditioners ("mg" and "eisenstat")
   !! that's why we default to not use them
   logical, intent(in), optional:: use_inodes
-  !! Are we performing local assembly? (Ignoring off process entries)
-  logical, optional, intent(in) :: local_assembly
   Mat M
     
     type(block_csr_matrix) block_matrix
@@ -881,14 +876,14 @@ contains
     
     M=block_csr2petsc(block_matrix, petsc_numbering=petsc_numbering, &
         column_petsc_numbering=column_petsc_numbering, &
-        use_inodes=use_inodes, local_assembly=local_assembly)
+        use_inodes=use_inodes)
         
     call deallocate(block_matrix)
     
   end function csr2petsc
   
   function block_csr2petsc(A, petsc_numbering, column_petsc_numbering, &
-       use_inodes, local_assembly) result(M)
+       use_inodes) result(M)
   !!< Converts a block_csr_matrix from Sparse_Tools into a PETSc matrix.
   !!< Note: this function creates a PETSc matrix, it has to be deallocated
   !!< with MatDestroy by the user. 
@@ -903,8 +898,6 @@ contains
   !! petsc's inodes don't work with certain preconditioners ("mg" and "eisenstat")
   !! that's why we default to not use them
   logical, intent(in), optional:: use_inodes
-  !! Are we performing local assembly? (Ignoring off process entries)
-  logical, optional, intent(in) :: local_assembly
   Mat M
     
     type(petsc_numbering_type) row_numbering, col_numbering

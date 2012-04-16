@@ -1235,8 +1235,7 @@ contains
     integer, intent(out), optional :: iterations_taken
     
     call petsc_solve(delta_t, matrix, rhs, state, option_path = t%option_path, &
-                     iterations_taken = iterations_taken, &
-                     local_assembly=.true.)
+                     iterations_taken = iterations_taken)
     
     ewrite_minmax(delta_t)
     
