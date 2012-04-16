@@ -3610,7 +3610,7 @@
       ! Local variables
       integer :: ele, nod, quad_cv_iloc, xnod, quad_cv_gi, cv_gi, &
            quad_cv_ngi
-     
+
       ewrite(3,*)'In Calc_CVN_TriTetQuadHex'
 
       cvn = 0.
@@ -3624,11 +3624,11 @@
 
          if( nod == 0 ) FLExit(" Problem with CVN calculation " )
 
-         quad_cv_ngi = cv_ngi / totele
-         do quad_cv_gi = 1, quad_cv_ngi
-            cv_gi = ( ele - 1 ) * quad_cv_ngi + quad_cv_gi
-            cvn( nod, cv_gi ) = 1.
-         end do
+            quad_cv_ngi = cv_ngi / totele
+            do quad_cv_gi = 1, quad_cv_ngi
+               cv_gi = ( ele - 1 ) * quad_cv_ngi + quad_cv_gi
+               cvn( nod, cv_gi ) = 1.
+            end do
 
       end do Loop_Elements
 
@@ -4011,25 +4011,28 @@
       x( 1 ) = lx( 1 )
       y( 1 ) = ly( 1 )
       fem_nod( 1 ) = 1
-      ! Node point 2
-      x( 2 ) = lx( 2 )
-      y( 2 ) = ly( 2 )
-      fem_nod( 2 ) = 2
       ! Node point 3
-      x( 3 ) = lx( 3 )
-      y( 3 ) = ly( 3 )
+      x( 3 ) = lx( 2 )
+      y( 3 ) = ly( 2 )
       fem_nod( 3 ) = 3
+      ! Node point 6
+      x( 6 ) = lx( 3 )
+      y( 6 ) = ly( 3 )
+      fem_nod( 6 ) = 6
 
       ! Remaping Mid Triangle
+      ! Node point 2
+      x( 2 ) = 0.5 * ( lx( 1 ) + lx( 2 ) )
+      y( 2 ) = 0.5 * ( ly( 1 ) + ly( 2 ) )
+      fem_nod( 2 ) = 2
       ! Node point 4
-      x( 4 ) = 0.5 * ( lx( 1 ) + lx( 2 ) )
-      y( 4 ) = 0.5 * ( ly( 1 ) + ly( 2 ) )
+      x( 4 ) = 0.5 * ( lx( 1 ) + lx( 3 ) )
+      y( 4 ) = 0.5 * ( ly( 1 ) + ly( 3 ) )
+      fem_nod( 4 ) = 4
       ! Node point 5
-      x( 5 ) = 0.5 * ( lx( 1 ) + lx( 3 ) )
-      y( 5 ) = 0.5 * ( ly( 1 ) + ly( 3 ) )
-      ! Node point 6
-      x( 6 ) = 0.5 * ( lx( 2 ) + lx( 3 ) )
-      y( 6 ) = 0.5 * ( ly( 2 ) + ly( 3 ) )
+      x( 5 ) = 0.5 * ( lx( 2 ) + lx( 3 ) )
+      y( 5 ) = 0.5 * ( ly( 2 ) + ly( 3 ) )
+      fem_nod( 5 ) = 5
 
 
       allocate( x_ndgln_big( x_nloc_big * totele_big ) )
@@ -4042,23 +4045,23 @@
 
       ele_big = 1
       x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + 1 ) = 1
+      x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + 2 ) = 2
+      x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + 3 ) = 4
+
+      ele_big = 2
+      x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + 1 ) = 2
       x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + 2 ) = 4
       x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + 3 ) = 5
 
-      ele_big = 2
+      ele_big = 3
+      x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + 1 ) = 2
+      x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + 2 ) = 3
+      x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + 3 ) = 5
+
+      ele_big = 4
       x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + 1 ) = 4
       x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + 2 ) = 5
       x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + 3 ) = 6
-
-      ele_big = 3
-      x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + 1 ) = 4
-      x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + 2 ) = 2
-      x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + 3 ) = 6
-
-      ele_big = 4
-      x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + 1 ) = 5
-      x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + 2 ) = 6
-      x_ndgln_big( ( ele_big - 1 ) * x_nloc_big + 3 ) = 3
 
       increment_ele_big = 6
       ele_ref = 1
