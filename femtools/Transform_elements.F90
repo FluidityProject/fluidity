@@ -180,9 +180,9 @@ contains
     logical :: face_cache_valid
     cache_valid=.true.
     face_cache_valid=.true.
-    ! The caches are not thread safe, so we want a simple way to
-    ! construct them if appropriate before entering a threaded
-    ! region.
+    ! Although the caches are thread safe, the code that assembles the
+    ! caches is not so we want a simple way to construct them if
+    ! appropriate before entering a threaded region.
     if (X%refcount%id /= position_id) then
        cache_valid=.false.
        if (X%name/="Coordinate") then
