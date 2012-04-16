@@ -485,11 +485,9 @@
 !!!
 !!! Assuming for now that porosity is constant across an element
       porosity => extract_scalar_field(state, "Porosity")
-
-      allocate(volfra_pore(totele))
+      allocate(volfra_pore(totele)) ; volfra_pore = 0.
       pore_ele_loop: do k = 1,element_count(porosity)
          element_nodes => ele_nodes( porosity, k )
-
          volfra_pore(k) = porosity%val( element_nodes( 1 ))
       end do pore_ele_loop
 
@@ -497,11 +495,9 @@
       if (have_option("/porous_media/scalar_field::Permeability")) then
 
          permeability => extract_scalar_field(state(1), "Permeability")
-         allocate(perm(totele, ndim, ndim))
-         perm = 0.
+         allocate(perm(totele, ndim, ndim)) ; perm = 0.
          perm_ele_loop: do k = 1,element_count(permeability)
             element_nodes => ele_nodes(permeability,k)
-            ! only constant permeability supported for now
             forall(i=1:ndim)perm(k, i, i) = permeability%val(element_nodes(1))
          end do perm_ele_loop
 
@@ -603,6 +599,10 @@
                FLExit("Incorrect initial condition for field")
             end if
          end if
+
+      else
+
+         FLAbort("Unknown permeability option")
 
       end if
 
@@ -1550,9 +1550,8 @@
       if (stat==0) then
          field_prot = initial_constant
       else
-         field_prot = 1
-         ewrite(1, *) "WARNING: Initialising field_prot to 1."
-         ewrite(1, *) "field name::", trim(field_name)
+         ewrite(1, *) "No initial condition for field::", trim(field_name)
+         FLAbort("Check initial conditions")
       end if
 
       Conditional_Field_BC: if( have_option( trim( option_path ) // &

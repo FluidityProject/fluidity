@@ -565,29 +565,31 @@
       ewrite(3,*) 'In FORCE_BAL_CTY_ASSEM_SOLVE'
 
       ALLOCATE( ACV( NCOLACV )) 
-      ALLOCATE( CT( NCOLCT * NDIM * NPHASE ))
-      ALLOCATE( CT_RHS( CV_NONODS ))
+      ALLOCATE( CT( NCOLCT * NDIM * NPHASE )); CT=0.
+      ALLOCATE( CT_RHS( CV_NONODS ));CT_RHS=0.
       ALLOCATE( DIAG_SCALE_PRES( CV_NONODS ))
-      ALLOCATE( U_RHS( U_NONODS * NDIM * NPHASE ))
+      ALLOCATE( U_RHS( U_NONODS * NDIM * NPHASE )); U_RHS=0.
       ALLOCATE( MCY_RHS( U_NONODS * NDIM * NPHASE + CV_NONODS ))
-      ALLOCATE( C( NCOLC * NDIM * NPHASE ))
+      ALLOCATE( C( NCOLC * NDIM * NPHASE )); C=0.
       ALLOCATE( MCY( NCOLMCY ))
       ALLOCATE( CMC( NCOLCMC ))
       ALLOCATE( MASS_MN_PRES( NCOLCMC ))
       ALLOCATE( MASS_CV( CV_NONODS ))
-      ALLOCATE( P_RHS( CV_NONODS ))
-      ALLOCATE( UP( NLENMCY ))
-      ALLOCATE( U_RHS_CDP( U_NONODS * NDIM * NPHASE ))
-      ALLOCATE( DP( CV_NONODS ))
-      ALLOCATE( CDP( U_NONODS * NDIM * NPHASE ))
-      ALLOCATE( DU_VEL( U_NONODS * NDIM * NPHASE ))
-      ALLOCATE( UP_VEL( U_NONODS * NDIM * NPHASE ))
-      ALLOCATE( DU( U_NONODS * NPHASE ))
-      ALLOCATE( DV( U_NONODS * NPHASE ))
-      ALLOCATE( DW( U_NONODS * NPHASE ))
+      ALLOCATE( P_RHS( CV_NONODS ));P_RHS=0.
+      ALLOCATE( UP( NLENMCY ));UP=0.
+      ALLOCATE( U_RHS_CDP( U_NONODS * NDIM * NPHASE )); U_RHS_CDP=0.
+      ALLOCATE( DP( CV_NONODS )) ; DP=0.
+      ALLOCATE( CDP( U_NONODS * NDIM * NPHASE )) ; CDP=0. 
+      ALLOCATE( DU_VEL( U_NONODS * NDIM * NPHASE ));DU_VEL=0.
+      ALLOCATE( UP_VEL( U_NONODS * NDIM * NPHASE ));UP_VEL=0.
+      ALLOCATE( DU( U_NONODS * NPHASE ));DU=0.
+      ALLOCATE( DV( U_NONODS * NPHASE ));DV=0.
+      ALLOCATE( DW( U_NONODS * NPHASE ));DW=0.
       ALLOCATE( PIVIT_MAT( TOTELE, U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM ))
       ALLOCATE( INV_PIVIT_MAT( TOTELE, U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM ))
       ALLOCATE( DGM_PHA( NCOLDGM_PHA ))
+
+      PIVIT_MAT=0.; INV_PIVIT_MAT=0.
 
       CALL CV_ASSEMB_FORCE_CTY_PRES(  &
            NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
@@ -652,6 +654,7 @@
 
          CALL PHA_BLOCK_INV( INV_PIVIT_MAT, PIVIT_MAT, TOTELE, U_NLOC * NPHASE * NDIM )
 
+
          ! Put pressure in rhs of force balance eqn:  CDP=C*P
          CALL C_MULT( CDP, P, CV_NONODS, U_NONODS, NDIM, NPHASE, C, NCOLC, FINDC, COLC)
 
@@ -696,19 +699,20 @@
                P_RHS( CV_NOD ) = P_RHS( CV_NOD ) &
                     - DIAG_SCALE_PRES( CV_NOD ) * MASS_MN_PRES( COUNT ) * P( CV_JNOD )
 
-               ewrite(3,*) cv_nod, cv_jnod, count, P_RHS( CV_NOD ), DIAG_SCALE_PRES( CV_NOD ),  MASS_MN_PRES( COUNT ), P( CV_JNOD )    
+               ewrite(3,*) cv_nod, cv_jnod, count, P_RHS( CV_NOD ), &
+                    DIAG_SCALE_PRES( CV_NOD ),  MASS_MN_PRES( COUNT ), P( CV_JNOD )    
             END DO
          END DO
 
-         ewrite(3,*) 'P_RHS::', p_rhs
-         ewrite(3,*) 'CT_RHS::', ct_rhs
+         !ewrite(3,*) 'P_RHS::', p_rhs
+         !ewrite(3,*) 'CT_RHS::', ct_rhs
 
          ! solve for pressure correction DP that is solve CMC *DP=P_RHS...
          ewrite(3,*)'about to solve for pressure'
 
          DP = 0.0
 
-         ! print cmc
+         ! Print cmc
          if(.false.) then
             DO CV_NOD = 1, CV_NONODS
                ewrite(3,*) 'cv_nod=',cv_nod
@@ -720,7 +724,7 @@
                END DO
                ewrite(3,*) 'rsum=',rsum
             END DO
-            !          stop 1244
+            !stop 1244
          endif
 
          ewrite(3,*)'b4 pressure solve P_RHS:', P_RHS
@@ -738,15 +742,12 @@
          CALL C_MULT( CDP, DP, CV_NONODS, U_NONODS, NDIM, NPHASE, &
               C, NCOLC, FINDC, COLC)
 
-         ! ewrite(3,*)'before correcting vel CDP=',size( cdp),u_nonods * nphase + u_nonods, &
-         ! CDP( u_nonods * nphase + u_nonods : u_nonods * ndim * nphase ), '==', cdp(487:490)
-
-         do count = 1, -ndim
+         do count = 1, ndim
             do iphase = 1, nphase
                do ele = 1, totele
                   do cv_nod = 1, u_nloc
                      x_nod1 = u_ndgln( ( ele - 1 ) * u_nloc + cv_nod )
-                     x_nod2 = ( count - 1 ) * nphase * u_nonods + ( iphase - 1 ) * u_nonods + x_nod1
+                     x_nod2 = ( iphase- 1 ) * ndim * u_nonods + ( count - 1 ) * u_nonods + x_nod1
                      ewrite(3,*)'idim, iph, ele, nod, cdp:', count, iphase, ele, cv_nod, x_nod2, cdp( x_nod2 )
                   end do
                end do
@@ -761,40 +762,46 @@
 
          CALL ULONG_2_UVW( DU, DV, DW, DU_VEL, U_NONODS, NDIM, NPHASE )
 
+         !ewrite(3,*)'DU', DU
+         !ewrite(3,*)'DV', DV
+         !ewrite(3,*)'DW', DW
+
          U = U + DU
          IF( NDIM >= 2) V = V + DV
          IF( NDIM >= 3) W = W + DW
 
-         ewrite(3,*)'x,p:'
-         DO CV_NOD = 1, CV_NONODS
-            ewrite(3,*)x(cv_nod),p(cv_nod)
-         end do
-         do iphase=1,nphase
-            ewrite(3,*) 'iphase:', iphase
-            do ele=1,totele
-               ewrite(3,*) 'ele=',ele
-               ewrite(3,*) 'u:',(u((ele-1)*u_nloc +u_iloc +(iphase-1)*u_nonods), &
-                    u_iloc=1,u_nloc)
-            end do
-         end do
-         do iphase=1,nphase
-            ewrite(3,*) 'iphase:', iphase
-            do ele=1,totele
-               ewrite(3,*) 'ele=',ele
-               ewrite(3,*) 'v:',(v((ele-1)*u_nloc +u_iloc +(iphase-1)*u_nonods), &
-                    u_iloc=1,u_nloc)
-            end do
-         end do
-         do iphase=1,nphase
-            ewrite(3,*) 'iphase:', iphase
-            do ele=1,totele
-               ewrite(3,*) 'ele=',ele
-               ewrite(3,*) 'w:',(w((ele-1)*u_nloc +u_iloc +(iphase-1)*u_nonods), &
-                    u_iloc=1,u_nloc)
-            end do
-         end do
+         !ewrite(3,*)'x,p:'
+         !DO CV_NOD = 1, CV_NONODS
+         !   ewrite(3,*)x(cv_nod),p(cv_nod)
+         !end do
+         !do iphase=1,nphase
+         !   ewrite(3,*) 'iphase:', iphase
+         !   do ele=1,totele
+         !      ewrite(3,*) 'ele=',ele
+         !      ewrite(3,*) 'u:',(u((ele-1)*u_nloc +u_iloc +(iphase-1)*u_nonods), &
+         !           u_iloc=1,u_nloc)
+         !   end do
+         !end do
+         !do iphase=1,nphase
+         !   ewrite(3,*) 'iphase:', iphase
+         !   do ele=1,totele
+         !      ewrite(3,*) 'ele=',ele
+         !      ewrite(3,*) 'v:',(v((ele-1)*u_nloc +u_iloc +(iphase-1)*u_nonods), &
+         !           u_iloc=1,u_nloc)
+         !   end do
+         !end do
+         !do iphase=1,nphase
+         !   ewrite(3,*) 'iphase:', iphase
+         !   do ele=1,totele
+         !      ewrite(3,*) 'ele=',ele
+         !      ewrite(3,*) 'w:',(w((ele-1)*u_nloc +u_iloc +(iphase-1)*u_nonods), &
+         !           u_iloc=1,u_nloc)
+         !   end do
+         !end do
 
       ENDIF
+
+      !stop 999
 
 
       ! Calculate control volume averaged pressure CV_P from fem pressure P
@@ -2309,7 +2316,7 @@
                   COUNT_PHA = COUNT + ( IPHASE - 1 ) * NDIM * NCOLC
 
                   C( COUNT_PHA ) = C( COUNT_PHA ) - NMX
-                  IF( NDIM >= 2 ) C( COUNT_PHA + NCOLC )     = C( COUNT_PHA + NCOLC )     - NMY
+                  IF( NDIM >= 2 ) C( COUNT_PHA + NCOLC ) = C( COUNT_PHA + NCOLC ) - NMY
                   IF( NDIM >= 3 ) C( COUNT_PHA + 2 * NCOLC ) = C( COUNT_PHA + 2 * NCOLC ) - NMZ
 
                   IF( IPLIKE_GRAD_SOU == 1 ) THEN ! Capillary pressure for example terms...
