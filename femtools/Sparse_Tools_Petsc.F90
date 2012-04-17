@@ -250,6 +250,9 @@ contains
     ! the provided n/o nonzeros the assembly will become very slow!!!
     call MatSetOption(matrix%M, MAT_IGNORE_ZERO_ENTRIES, PETSC_TRUE, ierr)
 
+    ! Necessary for local assembly: we don't want to communicate non-local dofs
+    call MatSetOption(matrix%M, MAT_IGNORE_OFF_PROC_ENTRIES, PETSC_TRUE, ierr)
+
     ! to make sure we're not underestimating the number of nonzeros ever, make
     ! petsc fail if new allocations are necessary. If uncommenting the setting of this
     ! option fixes your problem the number of no
@@ -431,6 +434,9 @@ contains
       call MatSetOption(matrix%M, MAT_IGNORE_ZERO_ENTRIES, PETSC_TRUE, ierr)
     end if
 
+    ! Necessary for local assembly: we don't want to communicate non-local dofs
+    call MatSetOption(matrix%M, MAT_IGNORE_OFF_PROC_ENTRIES, PETSC_TRUE, ierr)
+
     ! to make sure we're not underestimating the number of nonzeros ever, make
     ! petsc fail if new allocations are necessary. If uncommenting the setting of this
     ! option fixes your problem the number of no
@@ -510,6 +516,9 @@ contains
     ! that try to add zeros outside the provided sparsity; if we go outside
     ! the provided n/o nonzeros the assembly will become very slow!!!
     call MatSetOption(matrix%M, MAT_IGNORE_ZERO_ENTRIES, PETSC_TRUE, ierr)
+
+    ! Necessary for local assembly: we don't want to communicate non-local dofs
+    call MatSetOption(matrix%M, MAT_IGNORE_OFF_PROC_ENTRIES, PETSC_TRUE, ierr)
 
     ! to make sure we're not underestimating the number of nonzeros ever, make
     ! petsc fail if new allocations are necessary. If uncommenting the setting of this
