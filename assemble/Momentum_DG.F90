@@ -1217,7 +1217,7 @@ contains
 
     end if
 
-    if(have_source.and.acceleration) then
+    if(have_source.and.acceleration.and.assemble_element) then
       ! Momentum source matrix.
       Source_mat = shape_shape(U_shape, ele_shape(Source,ele), detwei*Rho_q)
       if(lump_source) then
@@ -1234,7 +1234,7 @@ contains
       end if
     end if
 
-    if(have_gravity.and.acceleration) then
+    if(have_gravity.and.acceleration.and.assemble_element) then
       ! buoyancy
       if (on_sphere) then
       ! If were on a spherical Earth evaluate the direction of the gravity vector
