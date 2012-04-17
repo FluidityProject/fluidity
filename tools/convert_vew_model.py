@@ -187,57 +187,63 @@ class FGroup:
         sname = stage.firstChild.data
         self.stages[sname].add_function(fname, function)
 
+  def eval_var(self, t, hist_ind=None):
+    v = str(t[1])
+    if hist_ind != None:
+      return "vars['" + v + "_" + str(hist_ind) + "']"
+
+    if v == "TimeStep":
+      v = "dt_in_hours"
+    elif v == "PI":
+      v = "math.pi"
+    elif v == "Temp":
+      v = "env['Temperature']"
+    elif v == "Vis_Irrad":
+      v = "env['Irradiance']"
+    elif v == "Density":  # Use Pade approximation in Fluidity
+      v = "(26.776016*env['Density'])" # Value is surface density from VEW initialisation
+    elif v.endswith("$Pool"):
+      v = "vars['" + v.split("$")[0] + "']"
+    elif v.endswith("$Ingested"):
+      v = "vars['" + v.split("$")[0] + "Ingested" + "']"
+    elif v.endswith("$Conc"):
+      v = "env['Dissolved" + v.split("$")[0] + "']"
+    elif v == 'V_m':
+      v = "vars['V_m']"
+
+    elif v in self.parameters.keys():
+      v = "param['" + v + "']"
+    elif v in self.state_vars:
+      v = "vars['" + v + "']"
+    elif v in self.local_vars:
+      v = v
+      self.used_vars.append(v)
+    elif v in self.variety_local:
+      v = v
+    elif v in self.variety_param.keys():
+      v = "param['" + v + "']"
+    # External values that we need to re-create VEW hacks
+    elif v in ['MLDepth', 'Max_MLD', 'd_year']:
+      v = "param['" + v + "']"
+    # Food sets and ingested cells
+    elif v in ['P']:
+      v = "env['" + self.name + v + "Concentration']"
+    elif v in ['IngestedCells']:
+      v = "vars['P" + v + "']"
+
+    # Dev exceptions...
+    elif v in ['z', 'S_t']:
+      v = "vars['" + v + "']"
+    else:
+      raise Exception("Unkown variable: " + v)
+    return v
+
   ### The big eval function....
   def eval_token(self, t):
     global indent, stage_id
 
     if t[0] == var:
-      v = str(t[1])
-      if v == "TimeStep":
-        v = "dt_in_hours"
-      elif v == "PI":
-        v = "math.pi"
-      elif v == "Temp":
-        v = "env['Temperature']"
-      elif v == "Vis_Irrad":
-        v = "env['Irradiance']"
-      elif v == "Density":  # Use Pade approximation in Fluidity
-        v = "(26.776016*env['Density'])" # Value is surface density from VEW initialisation
-      elif v.endswith("$Pool"):
-        v = "vars['" + v.split("$")[0] + "']"
-      elif v.endswith("$Ingested"):
-        v = "vars['" + v.split("$")[0] + "Ingested" + "']"
-      elif v.endswith("$Conc"):
-        v = "env['Dissolved" + v.split("$")[0] + "']"
-      elif v == 'V_m':
-        v = "vars['V_m']"
-
-      elif v in self.parameters.keys():
-        v = "param['" + v + "']"
-      elif v in self.state_vars:
-        v = "vars['" + v + "']"
-      elif v in self.local_vars:
-        v = v
-        self.used_vars.append(v)
-      elif v in self.variety_local:
-        v = v
-      elif v in self.variety_param.keys():
-        v = "param['" + v + "']"
-      # External values that we need to re-create VEW hacks
-      elif v in ['MLDepth', 'Max_MLD', 'd_year']:
-        v = "param['" + v + "']"
-      # Food sets and ingested cells
-      elif v in ['P']:
-        v = "env['" + self.name + v + "Concentration']"
-      elif v in ['IngestedCells']:
-        v = "vars['P" + v + "']"
-
-      # Dev exceptions...
-      elif v in ['z', 'S_t']:
-        v = "vars['" + v + "']"
-      else:
-        raise Exception("Unkown variable: " + v)
-      return v
+      return self.eval_var(t)
 
     elif t[0] == assign:
       if t[1][0] == var:
@@ -342,7 +348,8 @@ class FGroup:
     elif t[0] == varietysum:
       return self.eval_token(t[1])
     elif t[0] == varhist:
-      return self.eval_token(t[1]) + "[int(" + self.eval_token(t[2]) + ")]"
+      hist_ind = int(float(self.eval_token(t[2])))
+      return self.eval_var(t[1], hist_ind)
     elif t[0] == visIrradAt:
       return "param['surface_irradiance']"
     elif t[0] == integrate:

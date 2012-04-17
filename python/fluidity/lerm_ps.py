@@ -303,7 +303,7 @@ def update_OWA5_Copepod(param, vars, env, dt):
   Gut_ftemp = ((0.0) if (((Gut_contTemp == 0.0)) and ((vars['V_gut'] == 0.0))) else (math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)))
   Gut_f_new = Gut_ftemp
   I_max = (((0.67 * vars['V_gut']) - Gut_contTemp) / (param['vPrey'] * 1800.0))
-  I_gv = (((min((((math.pi * math.pow((L * 2.9), 2.0) * 1.0 * env['CopepodPConcentration'] * 1.0 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7 * env['CopepodPConcentration']))))) if ((vars['V_gut'] > 0.0)) else (I_max)), I_max)) if ((env['CopepodPConcentration'] > param['P_min'])) else (0.0)) / ((abs( (vars['z'] - vars['z'][int(1.0)]) )) if ((vars['z'] != vars['z'][int(1.0)])) else (1.0)))
+  I_gv = (((min((((math.pi * math.pow((L * 2.9), 2.0) * 1.0 * env['CopepodPConcentration'] * 1.0 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7 * env['CopepodPConcentration']))))) if ((vars['V_gut'] > 0.0)) else (I_max)), I_max)) if ((env['CopepodPConcentration'] > param['P_min'])) else (0.0)) / ((abs( (vars['z'] - vars['z_1']) )) if ((vars['z'] != vars['z_1'])) else (1.0)))
   #TODO INGEST( env['CopepodPConcentration'], param['P_min'], I_gv )
 
   ### Assimilation efficiency ###

@@ -314,6 +314,10 @@ state_variable =
          element include_in_motion {
             empty
          }?,
+         ## Depth of history buffer
+         element history {
+            integer
+         }?,
          element include_in_io {
             empty
          }?

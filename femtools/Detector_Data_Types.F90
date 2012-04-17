@@ -148,6 +148,8 @@ module detector_data_types
     type(biovar), dimension(:), allocatable :: variables
     ! Indices of all variables that are exposed to the Python motion functions
     integer, dimension(:), allocatable :: motion_var_inds
+    ! Indices of all variables that are history buffers
+    integer, dimension(:), allocatable :: history_var_inds
     ! List of all stages within this FG
     type(stringlist) :: stage_names
     ! Option path for the Agents diagnostic field

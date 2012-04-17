@@ -373,6 +373,12 @@ This option is generally only useful for testing. </a:documentation>
         </element>
       </optional>
       <optional>
+        <element name="history">
+          <a:documentation>Depth of history buffer</a:documentation>
+          <ref name="integer"/>
+        </element>
+      </optional>
+      <optional>
         <element name="include_in_io">
           <empty/>
         </element>

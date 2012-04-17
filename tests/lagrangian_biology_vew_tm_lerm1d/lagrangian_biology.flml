@@ -577,7 +577,7 @@ for n in range(field.node_count):
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value type="code" lines="20" language="python">global read_physics_file
+            <string_value lines="20" type="code" language="python">global read_physics_file
 
 f = open("vew_salinity_init.csv" , 'r')
 depth_sal = {}
@@ -1046,6 +1046,9 @@ def val(biovars, env, dt):
           <state_variable name="Gut_content"/>
           <state_variable name="z">
             <include_in_motion/>
+            <history>
+              <integer_value rank="0">6</integer_value>
+            </history>
           </state_variable>
           <state_variable name="V_m">
             <include_in_motion/>
@@ -1226,12 +1229,12 @@ mld = abs(persistent['diffusivity_mld_data'])
 
 def val(position, element, local_coords, vars, dt):
   z = abs(position[0])
-  v = [ vars['V_m'] ]
+  v = -vars['V_m']
   if z &lt;= mld:
     rnd = random.uniform(0.,mld, 1)
-    v = [v[0] -1. * (rnd - z) ]
-  vars['z'] = z + v[0]
-  return v</string_value>
+    v = v - (rnd - z)
+  vars['z'] = z + v
+  return [ v ]</string_value>
                 </python>
               </random_walk>
             </movement>
@@ -1283,12 +1286,12 @@ mld = abs(persistent['diffusivity_mld_data'])
 
 def val(position, element, local_coords, vars, dt):
   z = abs(position[0])
-  v = [ vars['V_m'] ]
+  v = -vars['V_m']
   if z &lt;= mld:
     rnd = random.uniform(0.,mld, 1)
-    v = [v[0] -1. * (rnd - z) ]
-  vars['z'] = z + v[0]
-  return v</string_value>
+    v = v - (rnd - z)
+  vars['z'] = z + v
+  return [ v ]</string_value>
                 </python>
               </random_walk>
             </movement>

@@ -293,10 +293,10 @@ contains
 
     character(len=OPTION_PATH_LEN) :: var_buffer, stage_buffer, food_buffer, food_type_buffer
     character(len=FIELD_NAME_LEN) :: biovar_name, field_name, fg_name, stage_name, food_name
-    type(ilist) :: motion_variables
-    integer :: i, f, vars_state, vars_chem, vars_ingest, vars_uptake, vars_release, &
+    type(ilist) :: motion_variables, history_variables
+    integer :: i, f, vars_state, vars_hist, vars_chem, vars_ingest, vars_uptake, vars_release, &
                vars_total, var_index, chemvar_index, stage_count, &
-               n_food_sets, n_food_types
+               n_food_sets, n_food_types, hist, history_depth
 
     call get_option(trim(fg_path)//"/name", fgroup%name)
 
@@ -321,6 +321,15 @@ contains
     n_food_sets = option_count(trim(fg_path)//"/food_set")
     vars_state = option_count(trim(fg_path)//"/variables/state_variable") 
     vars_chem = option_count(trim(fg_path)//"/variables/chemical_variable")
+    vars_hist = 0
+    do i=1, vars_state
+       write(var_buffer, "(a,i0,a)") trim(fg_path)//"/variables/state_variable[",i-1,"]"
+       if (have_option(trim(var_buffer)//"/history")) then
+          call get_option(trim(var_buffer)//"/history", history_depth)
+          vars_hist = vars_hist + history_depth - 1
+       end if
+    end do
+
     vars_ingest = 0
     vars_uptake = 0
     vars_release = 0
@@ -336,7 +345,7 @@ contains
           vars_release = vars_release + 1
        end if
     end do
-    vars_total = vars_state + vars_chem + vars_ingest + vars_uptake + vars_release + 2*n_food_sets
+    vars_total = vars_state + vars_hist + vars_chem + vars_ingest + vars_uptake + vars_release + 2*n_food_sets
 
     if (vars_total > 0) then
 
@@ -368,7 +377,21 @@ contains
              fgroup%variables(var_index)%field_type = BIOFIELD_NONE
           end if
           var_index = var_index+1
+
+          if (have_option(trim(var_buffer)//"/history")) then
+             call get_option(trim(var_buffer)//"/history", history_depth)
+             do hist = 2, history_depth
+                fgroup%variables(var_index)%name=trim(biovar_name)//"_"//int2str(hist - 1)
+                fgroup%variables(var_index)%field_type = BIOFIELD_NONE
+                fgroup%variables(var_index)%pool_index = var_index - 1
+                call insert(history_variables, var_index)
+                var_index = var_index+1
+             end do
+          end if
        end do
+
+       allocate(fgroup%history_var_inds(history_variables%length))
+       fgroup%history_var_inds = list2vector(history_variables)
 
        allocate(fgroup%motion_var_inds(motion_variables%length))
        fgroup%motion_var_inds = list2vector(motion_variables)
@@ -510,7 +533,7 @@ contains
     type(detector_linked_list) :: stage_change_list
     type(vector_field), pointer :: xfield
     type(scalar_field_pointer), dimension(:), pointer :: env_fields
-    integer :: i, j, f, env, pm_period
+    integer :: i, j, f, env, pm_period, hvar, hvar_ind, hvar_src_ind
     logical :: python_update, lerm_living_update, lerm_dead_update
 
     ewrite(1,*) "Lagrangian biology: Updating agents..."
@@ -568,6 +591,13 @@ contains
           ! Update agent biology
           agent=>agent_arrays(i)%first
           do while (associated(agent))
+
+             ! Advance history variables (loop must be backwards)
+             do hvar=size(agent_arrays(i)%fgroup%history_var_inds), 1, -1
+                hvar_ind = agent_arrays(i)%fgroup%history_var_inds(hvar)
+                hvar_src_ind = agent_arrays(i)%fgroup%variables(hvar_ind)%pool_index
+                agent%biology(hvar_ind) = agent%biology(hvar_src_ind)
+             end do
 
              if (python_update) then
                 call python_calc_agent_biology(agent, env_fields, dt, trim(agent_arrays(i)%name), trim("biology_update"))
