@@ -789,7 +789,7 @@
          cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, QUAD_OVER_WHOLE_ELE )
       implicit none
       integer, intent( in ) :: ndim, cv_ele_type, cv_nloc, u_nloc
-! If QUAD_OVER_WHOLE_ELE=.true. then dont divide element into CV's to form quadrature.
+      ! If QUAD_OVER_WHOLE_ELE=.true. then dont divide element into CV's to form quadrature.
       logical, intent( in ) :: QUAD_OVER_WHOLE_ELE
       integer, intent( inout ) :: cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface
       ! Local variables
@@ -1294,7 +1294,7 @@
 
       END IF Loop_Weight
 
-    !  RETURN
+      !  RETURN
 
     END FUNCTION RGPTWE
 
@@ -3093,6 +3093,11 @@
 
       ewrite(3,*)'In dummy_tri_tet'
 
+      quad_u_loc_dummy = 1
+      mloc = 1
+      dummy_smloc = 1
+      lowqua = .false.
+
       Conditional_Dimensionality1: if( d3 ) then
          quad_cv_ngi = 8
          dummy_sngi = 4
@@ -3103,6 +3108,7 @@
             nwicel = 3
             dummy_sngi = 9
             dummy_snloc = 9
+            mloc = 4
          end if
       else
          quad_cv_ngi = 4
@@ -3114,20 +3120,16 @@
             dummy_sngi = 3
             dummy_snloc = 3
             nwicel = 3
+            mloc = 4
          end if
       end if Conditional_Dimensionality1
 
       !      if ( cv_sngi == 9 ) quad_cv_ngi = 3
       ! Consistency check:
       if( .false. )then
-         !if( cv_sngi /= totele * quad_cv_ngi ) then
-         FLExit( "Wrong number for CV_NGI" )
+         if( cv_sngi /= totele * quad_cv_ngi ) &
+              FLExit( "Wrong number for CV_NGI" )
       end if
-
-      quad_u_loc_dummy = 1
-      mloc = 1
-      dummy_smloc = 1
-      lowqua = .false.
 
       npoly = 2 ! Linear default
       if( d1 ) then
