@@ -29,26 +29,26 @@ biomass_dead = stat_parser("vew_toymodel.stat")['Water']['DiatomEnsembleSizeDead
     </variable>
     <variable name="dissolved_ammonium_min" language="python">
 from fluidity_tools import stat_parser
-dissolved_ammonium_min = stat_parser("vew_toymodel.stat")['Water']['DissolvedAmmonium']['min']
+dissolved_ammonium_min = min(stat_parser("vew_toymodel.stat")['Water']['DissolvedAmmonium']['min'])
     </variable>
     <variable name="dissolved_nitrate_min" language="python">
 from fluidity_tools import stat_parser
-dissolved_nitrate_min = stat_parser("vew_toymodel.stat")['Water']['DissolvedNitrate']['min']
+dissolved_nitrate_min = min(stat_parser("vew_toymodel.stat")['Water']['DissolvedNitrate']['min'])
     </variable>
     <variable name="dissolved_silicate_min" language="python">
 from fluidity_tools import stat_parser
-dissolved_silicate_min = stat_parser("vew_toymodel.stat")['Water']['DissolvedSilicate']['min']
+dissolved_silicate_min = min(stat_parser("vew_toymodel.stat")['Water']['DissolvedSilicate']['min'])
     </variable>
   </variables>
   <pass_tests>
     <test name="ammonium_non_negative" language="python">
-assert abs(dissolved_ammonium_min).all() &gt; 1.0e-12
+assert abs(dissolved_ammonium_min) &gt; 1.0e-12
     </test>
     <test name="nitrate_non_negative" language="python">
-assert abs(dissolved_nitrate_min).all() &gt; 1.0e-12
+assert abs(dissolved_nitrate_min) &gt; 1.0e-12
     </test>
     <test name="silicate_non_negative" language="python">
-assert abs(dissolved_silicate_min).all() &gt; 1.0e-12
+assert abs(dissolved_silicate_min) &gt; 1.0e-12
     </test>
   </pass_tests>
   <warn_tests>
