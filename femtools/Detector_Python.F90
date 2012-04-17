@@ -177,26 +177,24 @@ contains
     
   end subroutine python_run_random_walk
 
-  subroutine python_calc_agent_biology(agent, agent_list, state, dt, dict, key, stat)
+  subroutine python_calc_agent_biology(agent, env_fields, dt, dict, key, stat)
     !!< Wrapper function for python_run_agent_biology_c
     type(detector_type), pointer, intent(in) :: agent
-    type(detector_linked_list), intent(in) :: agent_list
-    type(state_type), intent(inout) :: state
+    type(scalar_field_pointer), dimension(:), pointer, intent(inout) :: env_fields
     real, intent(in) :: dt
     character(len = *), intent(in) :: dict, key
     integer, optional, intent(out) :: stat
     
     integer :: lstat, i
-    real, dimension(size(agent_list%env_field_name)) :: env_field_values
+    real, dimension(size(env_fields)) :: env_field_values
     type(scalar_field), pointer :: env_field
 
-    call profiler_tic(trim(agent_list%name)//"::biology_update")
+    call profiler_tic(trim(dict)//"::biology_update")
 
     if(present(stat)) stat = 0
     
-    do i=1, size(agent_list%env_field_name)
-       env_field=>extract_scalar_field(state,trim(agent_list%env_field_name(i)))
-       env_field_values(i)=eval_field(agent%element,env_field,agent%local_coords)
+    do i=1, size(env_fields)
+       env_field_values(i)=eval_field(agent%element,env_fields(i)%ptr,agent%local_coords)
     end do
 
     call python_run_agent_biology(dt, dict, len_trim(dict), key,len_trim(key), &
@@ -211,7 +209,7 @@ contains
       end if
     end if
 
-    call profiler_toc(trim(agent_list%name)//"::biology_update")
+    call profiler_toc(trim(dict)//"::biology_update")
     
   end subroutine python_calc_agent_biology
 

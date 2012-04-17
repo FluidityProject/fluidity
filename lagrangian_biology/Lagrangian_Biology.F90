@@ -521,7 +521,8 @@ contains
     type(detector_type), pointer :: agent, agent_to_move
     type(detector_linked_list) :: stage_change_list
     type(vector_field), pointer :: xfield
-    integer :: i, j, f, pm_period
+    type(scalar_field_pointer), dimension(:), pointer :: env_fields
+    integer :: i, j, f, env, pm_period
     logical :: python_update, lerm_living_update, lerm_dead_update
 
     ewrite(1,*) "Lagrangian biology: Updating agents..."
@@ -569,6 +570,11 @@ contains
           if (python_update) then
              ! Compile python function to set bio-variable, and store in the global dictionary
              call python_run_detector_string(trim(agent_arrays(i)%biovar_pycode), trim(agent_arrays(i)%name), trim("biology_update"))
+
+             allocate(env_fields(size(agent_arrays(i)%env_field_name)))
+             do env=1, size(agent_arrays(i)%env_field_name)
+                env_fields(env)%ptr => extract_scalar_field(state(1), agent_arrays(i)%env_field_name(env))
+             end do
           end if
 
           ! Update agent biology
@@ -576,7 +582,7 @@ contains
           do while (associated(agent))
 
              if (python_update) then
-                call python_calc_agent_biology(agent, agent_arrays(i), state(1), dt, trim(agent_arrays(i)%name), trim("biology_update"))
+                call python_calc_agent_biology(agent, env_fields, dt, trim(agent_arrays(i)%name), trim("biology_update"))
 
              elseif (lerm_living_update) then
                 call LERM_update_living_diatom(agent, agent_arrays(i), state(1), dt)
@@ -593,6 +599,10 @@ contains
                 agent=>agent%next
              end if
           end do
+
+          if (python_update) then
+             deallocate(env_fields)
+          end if
 
        end if
     end do
