@@ -822,8 +822,8 @@
             sbcvngi = 2 
          case( 6 ) ! Quadratic Triangle
             cv_ngi = 48 ! 36
-            scvngi = 18
-            sbcvngi = 6 
+            scvngi = 24 ! was 18 but was wrong
+            sbcvngi = 8 ! it was 6 but that was wrong 
          case default; FLExit(" Invalid integer for cv_nloc ")
          end Select Conditional_CV_NLOC2D_Tri
          nface = 3
@@ -1297,6 +1297,52 @@
       !  RETURN
 
     END FUNCTION RGPTWE
+
+
+
+       subroutine quad_basis_funs_1d(sngi, snloc,  &
+                 sweigh, sn, snlx )
+       
+! determine the 1d shape functions sn and its local derivative slnx. 
+      implicit none
+      integer, intent( in ) :: sngi, snloc
+      real, dimension( snloc, sngi ), intent( inout ) :: sn, snlx
+      real, dimension( sngi ), intent( inout ) :: sweigh
+! local variables...
+      integer :: iloc, gpoi
+      real :: lxgp
+      logical :: diff, ndiff, getndp
+      real, dimension( : ), allocatable :: quad_pts, snodpos, rdummy
+
+      allocate(quad_pts(sngi))
+      allocate(snodpos(snloc))
+      allocate(rdummy(snloc))
+
+      ! Find the roots of the quadrature points and nodes
+      ! also get the weights.
+      diff = .true.
+      ndiff = .false.
+
+      getndp = .true.
+      call lagrot( rdummy, snodpos, snloc, getndp )
+
+      getndp = .false.
+      !     Compute standard Gauss quadrature: weights and points
+      call lagrot( sweigh, quad_pts, sngi, getndp )
+
+      do iloc = 1, snloc
+        do gpoi=1,sngi
+               lxgp=quad_pts(gpoi)
+               sn( iloc, gpoi )   = lagran( ndiff, lxgp, iloc, snloc, snodpos )
+               snlx( iloc, gpoi ) = lagran( diff,  lxgp, iloc, snloc, snodpos )
+        end do
+      end do
+      deallocate(quad_pts)
+      deallocate(snodpos)
+      deallocate(rdummy)
+       return
+       end subroutine quad_basis_funs_1d
+
 
 
   end module shape_functions_Linear_Quadratic
@@ -2369,6 +2415,8 @@
       real :: half_side_length
 
       ewrite(3,*)'Compute_SurfaceShapeFunctions_Triangle_Tetrahedron'
+      ewrite(3,*)'scvngi=',scvngi
+!      stop 22
 
       sn = 0.0
       snlx = 0.0
@@ -2540,6 +2588,7 @@
       do xnod = 1, cv_nloc
          ewrite(3,*)'sn_i_xj:', xnod, ( sn_i_xj( xnod, ele ), ele = 1, x_nonods )
       end do
+!        stop 2929
 
       Loop_Elements: do ele = 1, totele ! Calculate SDETWEI,RA,SNX,SNY,SNZ for element ELE
          ! What is the fem node belonging to this element (CV_ILOC):
@@ -2826,6 +2875,8 @@
 
       ewrite(3,*) 'suf_quad_snlx:', suf_quad_snlx
       ewrite(3,*) 'suf_quad_snly:', suf_quad_snly
+      ewrite(3,*) 'remove_ig_pt:', remove_ig_pt
+      ewrite(3,*) 'fem_nod:',fem_nod
 
       cv_sgk = 0 ; cv_neiloc_cells_2 = 0
       do cv_sgi = 1, stotel * quad_cv_sngi * totele
@@ -2850,6 +2901,10 @@
       ewrite(3,*) 'suf_snlx_2:', suf_snlx_2
 
       cv_sngi_2 = cv_sgk
+      ewrite(3,*) 'quad_cv_sngi:',quad_cv_sngi
+
+      ewrite(3,*) 'stotel * quad_cv_sngi * totele,cv_sngi_2:', &
+                   stotel * quad_cv_sngi * totele,cv_sngi_2
 
       ! Take out repetition of quadrature points
       cv_sgk = 0 ; cv_neiloc_cells = 0 ; l1 = 0. ; l2 = 0. ; l3 = 0.
@@ -3690,10 +3745,18 @@
             call re2dn9( lowqua, ngi, 0, nloc, mloc, &
                  m, weight, n, nlx, nly, &
                  rdum, rdum )
+! 1d...
+            call quad_basis_funs_1d(sngi, snloc,  &
+                 sweigh, sn, snlx )
+
          else ! Lagrange 27 nodes 3D element - bilinear pressure
             call re3d27( lowqua, ngi, 0, nloc, mloc, &
                  m, weight, n, nlx, nly, nlz, &
                  rdum, rdum, rdum )
+
+            call re2dn9( lowqua, sngi, 0, snloc, mloc, &
+                 m, sweigh, sn, snlx, snly, &
+                 rdum, rdum )
          end if
 
       end Select
@@ -3702,6 +3765,9 @@
 
       return
     end subroutine shape_l_q_quad
+
+
+
 
 
 !!!-                           -!!!
