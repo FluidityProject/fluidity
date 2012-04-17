@@ -328,7 +328,7 @@ contains
     logical, intent(in)                       :: have_anisotropy
     ! Local quantities
     type(tensor_field), pointer               :: tensorfield
-    character(len=OPTION_PATH_LEN)            :: lpath
+    character(len=OPTION_PATH_LEN)            :: lpath, first_filter_type
     integer                                   :: i,gi
     real, dimension(:), allocatable           :: u_loc
     real, dimension(:,:), allocatable         :: t_loc
@@ -349,14 +349,26 @@ contains
 
     ! Apply Velocity BCs to filtered field
 
+    ! Is the first filtering explicit or implicit?
+    call get_option(trim(lpath)//"/first_filter_type", first_filter_type)
+    ewrite (2,*) "First filter type: ", trim(first_filter_type)
+
     ! Filter the nonlinear velocity at both filter levels sequentially
     if(have_anisotropy) then
-      call set(nu_f1, nu)
-      !call anisotropic_smooth_vector(nu, positions, nu_f1, alpha, lpath)
+      select case(first_filter_type)
+        case ("implicit")
+          call set(nu_f1, nu)
+        case ("explicit")
+          call anisotropic_smooth_vector(nu, positions, nu_f1, alpha, lpath)
+      end select
       call anisotropic_smooth_vector(nu_f1, positions, nu_f2, gamma, lpath)
     else
-      call set(nu_f1, nu)
-      !call smooth_vector(nu, positions, nu_f1, alpha, lpath)
+      select case(first_filter_type)
+        case ("implicit")
+          call set(nu_f1, nu)
+        case ("explicit")
+          call smooth_vector(nu, positions, nu_f1, alpha, lpath)
+      end select
       call smooth_vector(nu_f1, positions, nu_f2, gamma, lpath)
     end if
 

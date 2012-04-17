@@ -651,6 +651,12 @@ prognostic_velocity_field =
                      element anisotropic_viscosity {
                         empty
                      }?,
+                     ## Is the first-filtered velocity implicitly filtered (i.e. equal to the simulated velocity)
+                     ## or explicitly filtered (i.e. perform an inverse Helmholtz filtering on the simulated velocity)?
+                     ##
+                     element first_filter_type {
+                     "implicit"|"explicit"
+                     },
                      ## Spatially varying Smagorinsky coefficient.
                      ## As diagnostic quantities are computed elementwise,
                      ## nodal values are averages of the surrounding elements.

@@ -770,6 +770,15 @@ Both definitions preserve the volume of the tetrahedral element.
                       <empty/>
                     </element>
                   </optional>
+                  <element name="first_filter_type">
+                    <a:documentation>Is the first-filtered velocity implicitly filtered (i.e. equal to the simulated velocity)
+or explicitly filtered (i.e. perform an inverse Helmholtz filtering on the simulated velocity)?
+</a:documentation>
+                    <choice>
+                      <value>implicit</value>
+                      <value>explicit</value>
+                    </choice>
+                  </element>
                   <optional>
                     <element name="scalar_field">
                       <a:documentation>Spatially varying Smagorinsky coefficient.
