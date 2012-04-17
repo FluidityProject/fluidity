@@ -518,6 +518,34 @@ The scaled release quantity will then get added to the according source field of
             <ref name="diagnostic_scalar_field_no_adapt"/>
           </element>
         </element>
+        <element name="scalar_field">
+          <attribute name="name">
+            <value>Request</value>
+          </attribute>
+          <element name="diagnostic">
+            <ref name="internal_algorithm"/>
+            <ref name="diagnostic_scalar_field_no_adapt"/>
+          </element>
+          <element name="stage_aggregate">
+            <a:documentation>Food requests always need to be aggregated</a:documentation>
+            <empty/>
+          </element>
+        </element>
+        <element name="scalar_field">
+          <attribute name="name">
+            <value>IngestedCells</value>
+          </attribute>
+          <element name="diagnostic">
+            <ref name="internal_algorithm"/>
+            <ref name="diagnostic_scalar_field_no_adapt"/>
+          </element>
+          <optional>
+            <element name="stage_aggregate">
+              <a:documentation>Add diagnostic field that represents the total quantity across all stages of the FG.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+        </element>
         <zeroOrMore>
           <element name="food_type">
             <a:documentation>Individual food type for this set</a:documentation>

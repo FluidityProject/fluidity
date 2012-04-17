@@ -70,6 +70,11 @@ Note: For 2-year runs with VEW data use: 63070200</comment>
     </finish_time>
   </timestepping>
   <material_phase name="Water">
+    <equation_of_state>
+      <fluids>
+        <ocean_pade_approximation/>
+      </fluids>
+    </equation_of_state>
     <subgridscale_parameterisations>
       <prescribed_diffusivity>
         <tensor_field name="PrescribedDiffusivity" rank="2">
@@ -146,6 +151,23 @@ def val(X,t):
         </tensor_field>
       </prescribed_diffusivity>
     </subgridscale_parameterisations>
+    <scalar_field name="Density" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
     <vector_field name="Velocity" rank="1">
       <prescribed>
         <mesh name="VelocityMesh"/>
@@ -513,6 +535,80 @@ for n in range(field.node_count):
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
+    </scalar_field>
+    <scalar_field name="Salinity" rank="0">
+      <prognostic>
+        <mesh name="VelocityMesh"/>
+        <equation name="AdvectionDiffusion"/>
+        <spatial_discretisation>
+          <continuous_galerkin>
+            <stabilisation>
+              <no_stabilisation/>
+            </stabilisation>
+            <advection_terms/>
+            <mass_terms/>
+          </continuous_galerkin>
+          <conservative_advection>
+            <real_value rank="0">0.</real_value>
+          </conservative_advection>
+        </spatial_discretisation>
+        <temporal_discretisation>
+          <theta>
+            <real_value rank="0">0.5</real_value>
+          </theta>
+        </temporal_discretisation>
+        <solver>
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">30</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1.0e-7</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">100000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <initial_condition name="WholeMesh">
+          <python>
+            <string_value type="code" lines="20" language="python">global read_physics_file
+
+f = open("vew_salinity_init.csv" , 'r')
+depth_sal = {}
+depth = 0
+for line in f:
+  depth_sal[depth] = float(line.split(",")[0])
+  depth = depth + 1
+persistent['salinity_data'] = depth_sal
+
+def val(X,t):
+  if abs(X[0]) &lt;= 499:
+    z = abs(X[0])
+  else:
+    z = 499
+  return persistent['salinity_data'][z]</string_value>
+          </python>
+        </initial_condition>
+        <subgridscale_parameterisation name="prescribed_diffusivity"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <consistent_interpolation/>
+      </prognostic>
     </scalar_field>
   </material_phase>
   <embedded_models>
@@ -1005,6 +1101,16 @@ def val(biovars, env, dt):
               </diagnostic>
               <stage_aggregate/>
             </scalar_field>
+            <scalar_field name="Ingested">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
+            </scalar_field>
           </chemical_variable>
           <chemical_variable name="Nitrogen"/>
           <chemical_variable name="Nitrate">
@@ -1071,6 +1177,7 @@ def val(biovars, env, dt):
           <field name="Temperature"/>
           <field name="Irradiance"/>
           <field name="CopepodPConcentration"/>
+          <field name="Density"/>
         </environment>
         <stages>
           <stage name="OW5">
@@ -1210,6 +1317,28 @@ def val(biovars, env, dt):
                 <include_in_detectors/>
               </detectors>
             </diagnostic>
+          </scalar_field>
+          <scalar_field name="Request">
+            <diagnostic>
+              <algorithm name="Internal" material_phase_support="multiple"/>
+              <output/>
+              <stat/>
+              <detectors>
+                <include_in_detectors/>
+              </detectors>
+            </diagnostic>
+            <stage_aggregate/>
+          </scalar_field>
+          <scalar_field name="IngestedCells">
+            <diagnostic>
+              <algorithm name="Internal" material_phase_support="multiple"/>
+              <output/>
+              <stat/>
+              <detectors>
+                <include_in_detectors/>
+              </detectors>
+            </diagnostic>
+            <stage_aggregate/>
           </scalar_field>
           <food_type functional_group="Diatom" stage="Living"/>
         </food_set>

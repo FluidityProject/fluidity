@@ -165,10 +165,11 @@ class FGroup:
         varval = float(valtag[0].firstChild.data)
       self.local_vars[varname] = varval
 
-    self.variety_param = []
+    self.variety_param = {}
     for vparam in self.dom.getElementsByTagName("varietyparameter"):
       varname = vparam.getElementsByTagName("name")[0].firstChild.data
-      self.variety_param.append(varname)
+      val_str = vparam.getElementsByTagName("value")[0].firstChild.data
+      self.variety_param[varname] = float(val_str)
 
     self.variety_local = []
     for vlocal in self.dom.getElementsByTagName("varietylocal"):
@@ -200,8 +201,8 @@ class FGroup:
         v = "env['Temperature']"
       elif v == "Vis_Irrad":
         v = "env['Irradiance']"
-      elif v == "Density":
-        v = "env['Density']"
+      elif v == "Density":  # Use Pade approximation in Fluidity
+        v = "(26.776016*env['Density'])" # Value is surface density from VEW initialisation
       elif v.endswith("$Pool"):
         v = "vars['" + v.split("$")[0] + "']"
       elif v.endswith("$Ingested"):
@@ -220,14 +221,16 @@ class FGroup:
         self.used_vars.append(v)
       elif v in self.variety_local:
         v = v
-      elif v in self.variety_param:
+      elif v in self.variety_param.keys():
         v = "param['" + v + "']"
       # External values that we need to re-create VEW hacks
       elif v in ['MLDepth', 'Max_MLD', 'd_year']:
         v = "param['" + v + "']"
       # Food sets and ingested cells
-      elif v in ['P', 'IngestedCells']:
-        v = "env['" + self.name + v + "']"
+      elif v in ['P']:
+        v = "env['" + self.name + v + "Concentration']"
+      elif v in ['IngestedCells']:
+        v = "vars['P" + v + "']"
 
       # Dev exceptions...
       elif v in ['z', 'S_t']:
@@ -337,7 +340,7 @@ class FGroup:
 
     # TODO
     elif t[0] == varietysum:
-      return "sum(" + self.eval_token(t[1]) + ")"
+      return self.eval_token(t[1])
     elif t[0] == varhist:
       return self.eval_token(t[1]) + "[int(" + self.eval_token(t[2]) + ")]"
     elif t[0] == visIrradAt:
@@ -373,6 +376,10 @@ class FGroup:
     file.write("\nparams_" + species + " = {\n")
     for p in sorted_nicely( self.species[species].keys() ):
       file.write("    '" + p + "' : " + str(self.species[species][p]) + ",\n")
+    if len(self.variety_param) > 0:
+      file.write("### Variety parameters ###\n")
+      for vp in sorted_nicely( self.variety_param.keys() ):
+        file.write("    '" + vp + "' : " + str(self.variety_param[vp]) + ",\n")
     file.write("}\n")
 
   def write_update_kernel(self, file, stage):
@@ -454,7 +461,8 @@ for fg in fgroups:
       sname = s.getAttribute("name").replace(' ', '_')
       print "Adding species: " + sname
       fgroup.add_species(sname , s )
-      fgroup.write_parameters(f, sname)
+
+  fgroup.write_parameters(f, sname)
 
   sorted_stages = sorted(fgroup.stages.iteritems(), key=lambda stage: stage[1].id)
   for (sname, stage) in sorted_stages:

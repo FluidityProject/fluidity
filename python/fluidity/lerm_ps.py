@@ -174,6 +174,8 @@ params_Default_Copepod_Variety = {
     'vPrey' : 4.2e-09,
     'vol_gut' : 1.5e-08,
     'z_startOW' : 400.0,
+### Variety parameters ###
+    'P_min' : 100000.0,
 }
 
 def update_OW5_Copepod(param, vars, env, dt):
@@ -274,7 +276,7 @@ def update_OWA5_Copepod(param, vars, env, dt):
 
   ### Ingestion ###
   V_gut_new = (param['vol_gut'] * L)
-  I_gCells = sum(env['CopepodIngestedCells'])
+  I_gCells = vars['PIngestedCells']
   Clock_new = (((vars['Clock'] + 1.0)) if ((vars['Clock'] < 48.0)) else (0.0))
   Prey_vol = (param['vPrey'] * I_gCells)
   Prey_VolDaily_new = (((vars['Prey_VolDaily'] + Prey_vol)) if ((vars['Clock'] < 48.0)) else (0.0))
@@ -283,7 +285,7 @@ def update_OWA5_Copepod(param, vars, env, dt):
   R_bas = (param['r_bas'] * math.pow(vars['C_N'], 0.8) * math.pow(param['QR_10'], ((env['Temperature'] - param['T_ref']) / 10.0)))
 
   ### Swimming cost ###
-  P_swim = (((param['k'] / 2.0) * math.pow(((1000.0 + env['Density']) / 1000.0), (1.0 - param['n'])) * math.pow((L / 10000.0), -param['n']) * math.pow((abs( (vars['V_m'] / dt_in_hours) ) * param['V_mconv1']), (3.0 - param['n'])) * math.pow(param['mi'], param['n']) * S) / 1.0)
+  P_swim = (((param['k'] / 2.0) * math.pow(((1000.0 + (26.776016*env['Density'])) / 1000.0), (1.0 - param['n'])) * math.pow((L / 10000.0), -param['n']) * math.pow((abs( (vars['V_m'] / dt_in_hours) ) * param['V_mconv1']), (3.0 - param['n'])) * math.pow(param['mi'], param['n']) * S) / 1.0)
   Z_swim = (P_swim / (param['E_mech'] * param['E_m']))
   O_cons = (((Z_swim / 1000.0) * 3600.0) / (param['C_Cal'] / 1000.0))
   R_swim = (O_cons * (12.0 / 22.4) * 1000.0 * 8.33e-05)
@@ -301,8 +303,8 @@ def update_OWA5_Copepod(param, vars, env, dt):
   Gut_ftemp = ((0.0) if (((Gut_contTemp == 0.0)) and ((vars['V_gut'] == 0.0))) else (math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)))
   Gut_f_new = Gut_ftemp
   I_max = (((0.67 * vars['V_gut']) - Gut_contTemp) / (param['vPrey'] * 1800.0))
-  I_gv = (((min((((math.pi * math.pow((L * 2.9), 2.0) * 1.0 * env['CopepodP'] * 1.0 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7 * env['CopepodP']))))) if ((vars['V_gut'] > 0.0)) else (I_max)), I_max)) if ((env['CopepodP'] > param['P_min'])) else (0.0)) / ((abs( (vars['z'] - vars['z'][int(1.0)]) )) if ((vars['z'] != vars['z'][int(1.0)])) else (1.0)))
-  #TODO INGEST( env['CopepodP'], param['P_min'], I_gv )
+  I_gv = (((min((((math.pi * math.pow((L * 2.9), 2.0) * 1.0 * env['CopepodPConcentration'] * 1.0 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7 * env['CopepodPConcentration']))))) if ((vars['V_gut'] > 0.0)) else (I_max)), I_max)) if ((env['CopepodPConcentration'] > param['P_min'])) else (0.0)) / ((abs( (vars['z'] - vars['z'][int(1.0)]) )) if ((vars['z'] != vars['z'][int(1.0)])) else (1.0)))
+  #TODO INGEST( env['CopepodPConcentration'], param['P_min'], I_gv )
 
   ### Assimilation efficiency ###
   k_N = (1.0 - math.exp(-(param['a'] * Gut_time)))

@@ -1438,7 +1438,9 @@ contains
             if (fgroup%variables(v)%field_type == BIOFIELD_DIAG .or. &
                 fgroup%variables(v)%field_type == BIOFIELD_UPTAKE .or. &
                 fgroup%variables(v)%field_type == BIOFIELD_RELEASE .or. &
-                fgroup%variables(v)%field_type == BIOFIELD_INGESTED ) then
+                fgroup%variables(v)%field_type == BIOFIELD_INGESTED .or. &
+                fgroup%variables(v)%field_type == BIOFIELD_FOOD_REQUEST .or. &
+                fgroup%variables(v)%field_type == BIOFIELD_FOOD_INGEST ) then
 
                ! Allocate primary diagnostic fields, ie. <FG><Variable><Stage>
                do i=1, size(fgroup%stage_names%ptr)
@@ -1449,7 +1451,7 @@ contains
                end do
 
                ! Allocate the stage-aggregated diagnostic field, ie. <FG><Variable>
-               if (fgroup%variables(v)%stage_aggregate) then
+               if (stage_aggregate(fgroup%variables(v))) then
                   call allocate_and_insert_scalar_field(trim(fgroup%variables(v)%field_path), &
                          state, parent_mesh="BiologyMesh", &
                          field_name=trim(fgroup%variables(v)%field_name), &

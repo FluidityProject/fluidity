@@ -136,8 +136,6 @@ module detector_data_types
 
     ! Flag indicating whether this variables gets written to the output file
     logical :: write_to_file = .false.
-    ! Flag indicating whether to aggregate by stage
-    logical :: stage_aggregate = .false.
     ! Variable index of the corresponding pool variable for uptake/release variables
     integer :: pool_index
     ! Variable index of the corresponding 'Ingested' variable for pool variables

@@ -423,6 +423,28 @@ food_set =
                diagnostic_scalar_field_no_adapt
             }
          },
+         element scalar_field {
+            attribute name { "Request" },
+            element diagnostic {
+               internal_algorithm,
+               diagnostic_scalar_field_no_adapt
+            },
+            ## Food requests always need to be aggregated
+            element stage_aggregate {
+               empty
+            }
+         },
+         element scalar_field {
+            attribute name { "IngestedCells" },
+            element diagnostic {
+               internal_algorithm,
+               diagnostic_scalar_field_no_adapt
+            },
+            ## Add diagnostic field that represents the total quantity across all stages of the FG.
+            element stage_aggregate {
+               empty
+            }?
+         },
          ## Individual food type for this set
          element food_type {
             attribute functional_group { xsd:string },

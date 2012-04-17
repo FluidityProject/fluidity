@@ -53,15 +53,17 @@ implicit none
 
   public :: initialise_lagrangian_biology_metamodel, initialise_lagrangian_biology_agents, &
             lagrangian_biology_cleanup, update_lagrangian_biology, calculate_agent_diagnostics, &
-            get_num_functional_groups, get_functional_group
-  public :: BIOFIELD_NONE, BIOFIELD_DIAG, BIOFIELD_UPTAKE, BIOFIELD_RELEASE, BIOFIELD_INGESTED
+            get_num_functional_groups, get_functional_group, stage_aggregate
+  public :: BIOFIELD_NONE, BIOFIELD_DIAG, BIOFIELD_UPTAKE, BIOFIELD_RELEASE, BIOFIELD_INGESTED, &
+            BIOFIELD_FOOD_REQUEST, BIOFIELD_FOOD_INGEST
 
   type(detector_linked_list), dimension(:), allocatable, target, save :: agent_arrays
   type(functional_group), dimension(:), allocatable, target, save :: functional_groups
 
   character(len=FIELD_NAME_LEN), dimension(:), pointer :: uptake_field_names, release_field_names
 
-  integer, parameter :: BIOFIELD_NONE=0, BIOFIELD_DIAG=1, BIOFIELD_UPTAKE=2, BIOFIELD_RELEASE=3, BIOFIELD_INGESTED=4
+  integer, parameter :: BIOFIELD_NONE=0, BIOFIELD_DIAG=1, BIOFIELD_UPTAKE=2, BIOFIELD_RELEASE=3, BIOFIELD_INGESTED=4, &
+                        BIOFIELD_FOOD_REQUEST=5, BIOFIELD_FOOD_INGEST=6
   integer, parameter :: BIOVAR_STAGE=1, BIOVAR_SIZE=2
 
 contains
@@ -290,7 +292,7 @@ contains
     character(len=*), intent(in) :: fg_path
 
     character(len=OPTION_PATH_LEN) :: var_buffer, stage_buffer, food_buffer, food_type_buffer
-    character(len=FIELD_NAME_LEN) :: biovar_name, field_name, fg_name, stage_name
+    character(len=FIELD_NAME_LEN) :: biovar_name, field_name, fg_name, stage_name, food_name
     type(ilist) :: motion_variables
     integer :: i, f, vars_state, vars_chem, vars_ingest, vars_uptake, vars_release, &
                vars_total, var_index, chemvar_index, stage_count, &
@@ -316,6 +318,7 @@ contains
     end if
 
     ! Determine number of variables
+    n_food_sets = option_count(trim(fg_path)//"/food_set")
     vars_state = option_count(trim(fg_path)//"/variables/state_variable") 
     vars_chem = option_count(trim(fg_path)//"/variables/chemical_variable")
     vars_ingest = 0
@@ -333,7 +336,7 @@ contains
           vars_release = vars_release + 1
        end if
     end do
-    vars_total = vars_state + vars_chem + vars_ingest + vars_uptake + vars_release
+    vars_total = vars_state + vars_chem + vars_ingest + vars_uptake + vars_release + 2*n_food_sets
 
     if (vars_total > 0) then
 
@@ -361,11 +364,6 @@ contains
              call get_option(trim(var_buffer)//"/scalar_field/name", field_name)                   
              fgroup%variables(var_index)%field_name = trim(fgroup%name)//trim(field_name)//trim(biovar_name)
              fgroup%variables(var_index)%field_path = trim(var_buffer)//"/scalar_field"
-             if (have_option(trim(var_buffer)//"/scalar_field/stage_aggregate")) then
-                fgroup%variables(var_index)%stage_aggregate=.true.
-             else
-                fgroup%variables(var_index)%stage_aggregate=.false.
-             end if
           else
              fgroup%variables(var_index)%field_type = BIOFIELD_NONE
           end if
@@ -390,11 +388,6 @@ contains
              call get_option(trim(var_buffer)//"/scalar_field/name", field_name)
              fgroup%variables(var_index)%field_name = trim(fgroup%name)//trim(field_name)//trim(biovar_name)
              fgroup%variables(var_index)%field_path = trim(var_buffer)//"/scalar_field"
-             if (have_option(trim(var_buffer)//"/scalar_field/stage_aggregate::Particulate")) then
-                fgroup%variables(var_index)%stage_aggregate=.true.
-             else
-                fgroup%variables(var_index)%stage_aggregate=.false.
-             end if
           else
              fgroup%variables(var_index)%field_type = BIOFIELD_NONE
           end if
@@ -407,11 +400,6 @@ contains
              fgroup%variables(var_index)%field_type = BIOFIELD_INGESTED
              fgroup%variables(var_index)%field_name = trim(fgroup%name)//"Ingested"//trim(biovar_name)
              fgroup%variables(var_index)%field_path = trim(var_buffer)//"/scalar_field::Ingested"
-             if (have_option(trim(var_buffer)//"/scalar_field/stage_aggregate::Ingested")) then
-                fgroup%variables(var_index)%stage_aggregate=.true.
-             else
-                fgroup%variables(var_index)%stage_aggregate=.false.
-             end if
 
              fgroup%variables(var_index)%pool_index = chemvar_index
              !fgroup%variables(var_index)%request_index = var_index - 1
@@ -430,11 +418,6 @@ contains
              call get_option(trim(var_buffer)//"/uptake/source_field/name", fgroup%variables(var_index)%chemfield)
              call insert_global_uptake_field(fgroup%variables(var_index)%chemfield)
 
-             if (have_option(trim(var_buffer)//"/uptake/scalar_field::Request/stage_aggregate")) then
-                fgroup%variables(var_index)%stage_aggregate=.true.
-             else
-                fgroup%variables(var_index)%stage_aggregate=.false.
-             end if
              fgroup%variables(var_index)%pool_index = chemvar_index
              var_index = var_index+1
           end if
@@ -448,11 +431,6 @@ contains
              call get_option(trim(var_buffer)//"/release/target_field/name", fgroup%variables(var_index)%chemfield)
              call insert_global_release_field(fgroup%variables(var_index)%chemfield)
 
-             if (have_option(trim(var_buffer)//"/release/scalar_field::Release/stage_aggregate")) then
-                fgroup%variables(var_index)%stage_aggregate=.true.
-             else
-                fgroup%variables(var_index)%stage_aggregate=.false.
-             end if
              fgroup%variables(var_index)%pool_index = chemvar_index
              var_index = var_index+1
           end if
@@ -460,12 +438,12 @@ contains
        end do
     end if ! vars > 0
 
-    n_food_sets = option_count(trim(fg_path)//"/food_set")
     allocate(fgroup%food_sets(n_food_sets))
     do i=1, n_food_sets
        write(food_buffer, "(a,i0,a)") trim(fg_path)//"/food_set[",i-1,"]"
 
-       call get_option(trim(food_buffer)//"/name", fgroup%food_sets(i)%name)
+       call get_option(trim(food_buffer)//"/name", food_name)
+       fgroup%food_sets(i)%name = trim(food_name)
        fgroup%food_sets(i)%conc_field_name = trim(fgroup%name)//trim(fgroup%food_sets(i)%name)//"Concentration"
        fgroup%food_sets(i)%conc_field_path = trim(food_buffer)//"/scalar_field::Concentration"
        n_food_types = option_count(trim(food_buffer)//"/food_type")
@@ -477,6 +455,18 @@ contains
           call get_option(trim(food_type_buffer)//"/stage", stage_name)
           fgroup%food_sets(i)%source_fields%ptr(f) = trim(fg_name)//"EnsembleSize"//trim(stage_name)
        end do
+
+       fgroup%variables(var_index)%name = trim(food_name)//"Request"
+       fgroup%variables(var_index)%field_type = BIOFIELD_FOOD_INGEST
+       fgroup%variables(var_index)%field_name = trim(fgroup%name)//trim(food_name)//"Request"
+       fgroup%variables(var_index)%field_path = trim(food_buffer)//"/scalar_field::Request"
+       var_index = var_index+1
+
+       fgroup%variables(var_index)%name = trim(food_name)//"IngestedCells"
+       fgroup%variables(var_index)%field_type = BIOFIELD_FOOD_INGEST
+       fgroup%variables(var_index)%field_name = trim(fgroup%name)//trim(food_name)//"IngestedCells"
+       fgroup%variables(var_index)%field_path = trim(food_buffer)//"/scalar_field::IngestedCells"
+       var_index = var_index+1
     end do
 
   end subroutine read_functional_group
@@ -678,7 +668,7 @@ contains
        if (have_option(trim(agent_arrays(i)%stage_options)//"/biology")) then
           do j=1, size(agent_arrays(i)%fgroup%variables)
              ! Reset stage-aggregated diagnostics
-             if (agent_arrays(i)%fgroup%variables(j)%stage_aggregate.and.agent_arrays(i)%fgroup%variables(j)%field_type /= BIOFIELD_NONE) then
+             if (stage_aggregate(agent_arrays(i)%fgroup%variables(j)).and.agent_arrays(i)%fgroup%variables(j)%field_type /= BIOFIELD_NONE) then
                 diagfield_agg=>extract_scalar_field(state, trim(agent_arrays(i)%fgroup%variables(j)%field_name))
                 call zero(diagfield_agg)
              end if
@@ -712,33 +702,24 @@ contains
           do j=1, size(agent_arrays(i)%fgroup%variables)
 
              ! Aggregate stage-aggregated diagnostic fields
-             if (agent_arrays(i)%fgroup%variables(j)%stage_aggregate.and.agent_arrays(i)%fgroup%variables(j)%field_type /= BIOFIELD_NONE) then
+             if (stage_aggregate(agent_arrays(i)%fgroup%variables(j)).and.agent_arrays(i)%fgroup%variables(j)%field_type /= BIOFIELD_NONE) then
                 diagfield_stage=>extract_scalar_field(state, trim(agent_arrays(i)%fgroup%variables(j)%field_name)//trim(agent_arrays(i)%stage_name))
                 diagfield_agg=>extract_scalar_field(state, trim(agent_arrays(i)%fgroup%variables(j)%field_name))
-
-                do ele=1, ele_count(diagfield_agg)
-                   call addto(diagfield_agg, ele_nodes(diagfield_stage, ele), ele_val(diagfield_stage, ele))
-                end do
+                call addto(diagfield_agg, diagfield_stage)
              end if
 
              ! Aggregate chemical uptake request
              if (agent_arrays(i)%fgroup%variables(j)%field_type == BIOFIELD_UPTAKE) then
                 diagfield_stage=>extract_scalar_field(state, trim(agent_arrays(i)%fgroup%variables(j)%field_name)//trim(agent_arrays(i)%stage_name))
                 diagfield_agg=>extract_scalar_field(state, trim(agent_arrays(i)%fgroup%variables(j)%chemfield)//"Request")
-
-                do ele=1, ele_count(diagfield_agg)
-                   call addto(diagfield_agg, ele_nodes(diagfield_stage, ele), ele_val(diagfield_stage, ele))
-                end do
+                call addto(diagfield_agg, diagfield_stage)
              end if
 
              ! Aggregate chemical release quantity
              if (agent_arrays(i)%fgroup%variables(j)%field_type == BIOFIELD_RELEASE) then
                 diagfield_stage=>extract_scalar_field(state, trim(agent_arrays(i)%fgroup%variables(j)%field_name)//trim(agent_arrays(i)%stage_name))
                 diagfield_agg=>extract_scalar_field(state, trim(agent_arrays(i)%fgroup%variables(j)%chemfield)//"Release")
-
-                do ele=1, ele_count(diagfield_agg)
-                   call addto(diagfield_agg, ele_nodes(diagfield_stage, ele), ele_val(diagfield_stage, ele))
-                end do
+                call addto(diagfield_agg, diagfield_stage)
              end if
           end do
        end if
@@ -749,6 +730,18 @@ contains
     ewrite(2,*) "Exiting calculate_agent_diagnostics"
 
   end subroutine calculate_agent_diagnostics
+
+  function stage_aggregate(var)
+    type(biovar), intent(in) :: var
+    logical :: stage_aggregate
+
+    if (have_option(trim(var%field_path)//"/stage_aggregate")) then
+       stage_aggregate = .true.
+    else
+       stage_aggregate = .false.
+    end if
+
+  end function
 
   subroutine derive_per_stage_diagnostics(agent_list, state)
     ! Set per-stage diagnostic fields from agent variables, 
