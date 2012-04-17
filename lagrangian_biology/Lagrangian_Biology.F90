@@ -292,7 +292,7 @@ contains
     character(len=OPTION_PATH_LEN) :: var_buffer, stage_buffer, food_buffer, food_type_buffer
     character(len=FIELD_NAME_LEN) :: biovar_name, field_name, fg_name, stage_name
     type(ilist) :: motion_variables
-    integer :: i, f, vars_state, vars_chem, vars_uptake, vars_release, &
+    integer :: i, f, vars_state, vars_chem, vars_ingest, vars_uptake, vars_release, &
                vars_total, var_index, chemvar_index, stage_count, &
                n_food_sets, n_food_types
 
@@ -318,18 +318,22 @@ contains
     ! Determine number of variables
     vars_state = option_count(trim(fg_path)//"/variables/state_variable") 
     vars_chem = option_count(trim(fg_path)//"/variables/chemical_variable")
+    vars_ingest = 0
     vars_uptake = 0
     vars_release = 0
     do i=1, vars_chem
        write(var_buffer, "(a,i0,a)") trim(fg_path)//"/variables/chemical_variable[",i-1,"]"
+       if (have_option(trim(var_buffer)//"/scalar_field::Ingested")) then
+          vars_ingest = vars_ingest + 1
+       end if
        if (have_option(trim(var_buffer)//"/uptake")) then
-          vars_uptake = vars_uptake + 2
+          vars_uptake = vars_uptake + 1
        end if
        if (have_option(trim(var_buffer)//"/release")) then
           vars_release = vars_release + 1
        end if
     end do
-    vars_total = vars_state + vars_chem + vars_uptake + vars_release
+    vars_total = vars_state + vars_chem + vars_ingest + vars_uptake + vars_release
 
     if (vars_total > 0) then
 
@@ -381,12 +385,12 @@ contains
 
           ! Chemical pool variable and according diagnostic fields
           fgroup%variables(var_index)%name = trim(biovar_name)
-          if (have_option(trim(var_buffer)//"/scalar_field")) then
+          if (have_option(trim(var_buffer)//"/scalar_field::Particulate")) then
              fgroup%variables(var_index)%field_type = BIOFIELD_DIAG
              call get_option(trim(var_buffer)//"/scalar_field/name", field_name)
              fgroup%variables(var_index)%field_name = trim(fgroup%name)//trim(field_name)//trim(biovar_name)
              fgroup%variables(var_index)%field_path = trim(var_buffer)//"/scalar_field"
-             if (have_option(trim(var_buffer)//"/scalar_field/stage_aggregate")) then
+             if (have_option(trim(var_buffer)//"/scalar_field/stage_aggregate::Particulate")) then
                 fgroup%variables(var_index)%stage_aggregate=.true.
              else
                 fgroup%variables(var_index)%stage_aggregate=.false.
@@ -397,19 +401,33 @@ contains
           chemvar_index = var_index
           var_index = var_index+1
 
+          ! Create a 'ChemIngested' variable
+          if (have_option(trim(var_buffer)//"/scalar_field::Ingested")) then
+             fgroup%variables(var_index)%name = trim(biovar_name)//"Ingested"
+             fgroup%variables(var_index)%field_type = BIOFIELD_INGESTED
+             fgroup%variables(var_index)%field_name = trim(fgroup%name)//"Ingested"//trim(biovar_name)
+             fgroup%variables(var_index)%field_path = trim(var_buffer)//"/scalar_field::Ingested"
+             if (have_option(trim(var_buffer)//"/scalar_field/stage_aggregate::Ingested")) then
+                fgroup%variables(var_index)%stage_aggregate=.true.
+             else
+                fgroup%variables(var_index)%stage_aggregate=.false.
+             end if
+
+             fgroup%variables(var_index)%pool_index = chemvar_index
+             !fgroup%variables(var_index)%request_index = var_index - 1
+             fgroup%variables(chemvar_index)%ingest_index = var_index
+             var_index = var_index+1
+          end if
+
           ! Chemical uptake
           ! Note check for existence of Request and Depletion field, and record Depletion field
           if (have_option(trim(var_buffer)//"/uptake")) then
-             if (.not.have_option(trim(var_buffer)//"/chemical_field")) then
-                FLExit("No chemical field specified for "//trim(biovar_name)//" uptake in functional group "//trim(fgroup%name))
-             end if
-
              fgroup%variables(var_index)%name = trim(biovar_name)//"Uptake"
              fgroup%variables(var_index)%field_type = BIOFIELD_UPTAKE
              fgroup%variables(var_index)%field_name = trim(fgroup%name)//"Request"//trim(biovar_name)
              fgroup%variables(var_index)%field_path = trim(var_buffer)//"/uptake/scalar_field::Request"
              fgroup%variables(var_index)%depletion_field_path = trim(var_buffer)//"/uptake/scalar_field::Depletion"
-             call get_option(trim(var_buffer)//"/chemical_field/name", fgroup%variables(var_index)%chemfield)
+             call get_option(trim(var_buffer)//"/uptake/source_field/name", fgroup%variables(var_index)%chemfield)
              call insert_global_uptake_field(fgroup%variables(var_index)%chemfield)
 
              if (have_option(trim(var_buffer)//"/uptake/scalar_field::Request/stage_aggregate")) then
@@ -419,35 +437,15 @@ contains
              end if
              fgroup%variables(var_index)%pool_index = chemvar_index
              var_index = var_index+1
-
-             ! Create a 'ChemIngested' variable
-             fgroup%variables(var_index)%name = trim(biovar_name)//"Ingested"
-             fgroup%variables(var_index)%field_type = BIOFIELD_INGESTED
-             fgroup%variables(var_index)%field_name = trim(fgroup%name)//"Ingested"//trim(biovar_name)
-             fgroup%variables(var_index)%field_path = trim(var_buffer)//"/uptake/scalar_field::Ingested"
-             call get_option(trim(var_buffer)//"/chemical_field/name", fgroup%variables(var_index)%chemfield)
-
-             if (have_option(trim(var_buffer)//"/uptake/scalar_field::Ingested/stage_aggregate")) then
-                fgroup%variables(var_index)%stage_aggregate=.true.
-             else
-                fgroup%variables(var_index)%stage_aggregate=.false.
-             end if
-             fgroup%variables(var_index)%pool_index = chemvar_index
-             fgroup%variables(var_index)%request_index = var_index - 1
-             var_index = var_index+1
           end if
 
           ! Chemical release
           if (have_option(trim(var_buffer)//"/release")) then
-             if (.not.have_option(trim(var_buffer)//"/chemical_field")) then
-                FLExit("No chemical field specified for "//trim(biovar_name)//" release in functional group "//trim(fgroup%name))
-             end if
-
              fgroup%variables(var_index)%name = trim(biovar_name)//"Release"
              fgroup%variables(var_index)%field_type = BIOFIELD_RELEASE
              fgroup%variables(var_index)%field_name = trim(fgroup%name)//"Release"//trim(biovar_name)
              fgroup%variables(var_index)%field_path = trim(var_buffer)//"/release/scalar_field::Release"
-             call get_option(trim(var_buffer)//"/chemical_field/name", fgroup%variables(var_index)%chemfield)
+             call get_option(trim(var_buffer)//"/release/target_field/name", fgroup%variables(var_index)%chemfield)
              call insert_global_release_field(fgroup%variables(var_index)%chemfield)
 
              if (have_option(trim(var_buffer)//"/release/scalar_field::Release/stage_aggregate")) then
@@ -844,7 +842,7 @@ contains
     type(scalar_field), pointer :: request_field, chemfield, depletion_field
     type(vector_field), pointer :: xfield
     type(detector_type), pointer :: agent
-    integer :: i, j, n, ele
+    integer :: i, j, n, ele, ingest_ind
     integer, dimension(:), pointer :: element_nodes
     real :: chemval, chemval_new, chem_integral
     real, dimension(1) :: request, depletion
@@ -904,13 +902,14 @@ contains
        if (have_option(trim(agent_arrays(i)%stage_options)//"/biology")) then
           do j=1, size(agent_arrays(i)%fgroup%variables)
 
-             if (agent_arrays(i)%fgroup%variables(j)%field_type == BIOFIELD_INGESTED) then
+             if (agent_arrays(i)%fgroup%variables(j)%field_type == BIOFIELD_UPTAKE) then
                 depletion_field=>extract_scalar_field(state, trim(agent_arrays(i)%fgroup%variables(j)%chemfield)//"Depletion")
 
                 agent => agent_arrays(i)%first
                 do while (associated(agent))
                    depletion = ele_val(depletion_field, agent%element)
-                   agent%biology(j) = depletion(1) * agent%biology(agent_arrays(i)%fgroup%variables(j)%request_index)
+                   ingest_ind = agent_arrays(i)%fgroup%variables( agent_arrays(i)%fgroup%variables(j)%pool_index )%ingest_index
+                   agent%biology(ingest_ind) = depletion(1) * agent%biology(j)
 
                    agent => agent%next
                 end do

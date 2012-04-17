@@ -140,8 +140,8 @@ module detector_data_types
     logical :: stage_aggregate = .false.
     ! Variable index of the corresponding pool variable for uptake/release variables
     integer :: pool_index
-    ! Variable index of the corresponding request variable for 'Ingested' variables
-    integer :: request_index
+    ! Variable index of the corresponding 'Ingested' variable for pool variables
+    integer :: ingest_index
   end type biovar
 
   type functional_group

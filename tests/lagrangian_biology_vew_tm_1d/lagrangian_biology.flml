@@ -548,20 +548,20 @@ for n in range(field.node_count):
               </diagnostic>
               <stage_aggregate/>
             </scalar_field>
-            <chemical_field name="DissolvedAmmonium"/>
+            <scalar_field name="Ingested">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
+              <stage_aggregate/>
+            </scalar_field>
             <uptake>
+              <source_field name="DissolvedAmmonium"/>
               <scalar_field name="Request">
-                <diagnostic>
-                  <algorithm name="Internal" material_phase_support="multiple"/>
-                  <output/>
-                  <stat/>
-                  <detectors>
-                    <include_in_detectors/>
-                  </detectors>
-                </diagnostic>
-                <stage_aggregate/>
-              </scalar_field>
-              <scalar_field name="Ingested">
                 <diagnostic>
                   <algorithm name="Internal" material_phase_support="multiple"/>
                   <output/>
@@ -584,6 +584,7 @@ for n in range(field.node_count):
               </scalar_field>
             </uptake>
             <release>
+              <target_field name="DissolvedAmmonium"/>
               <scalar_field name="Release">
                 <diagnostic>
                   <algorithm name="Internal" material_phase_support="multiple"/>
@@ -609,20 +610,20 @@ for n in range(field.node_count):
               </diagnostic>
               <stage_aggregate/>
             </scalar_field>
-            <chemical_field name="DissolvedNitrate"/>
+            <scalar_field name="Ingested">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
+              <stage_aggregate/>
+            </scalar_field>
             <uptake>
+              <source_field name="DissolvedNitrate"/>
               <scalar_field name="Request">
-                <diagnostic>
-                  <algorithm name="Internal" material_phase_support="multiple"/>
-                  <output/>
-                  <stat/>
-                  <detectors>
-                    <include_in_detectors/>
-                  </detectors>
-                </diagnostic>
-                <stage_aggregate/>
-              </scalar_field>
-              <scalar_field name="Ingested">
                 <diagnostic>
                   <algorithm name="Internal" material_phase_support="multiple"/>
                   <output/>
@@ -657,20 +658,20 @@ for n in range(field.node_count):
               </diagnostic>
               <stage_aggregate/>
             </scalar_field>
-            <chemical_field name="DissolvedSilicate"/>
+            <scalar_field name="Ingested">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
+              <stage_aggregate/>
+            </scalar_field>
             <uptake>
+              <source_field name="DissolvedSilicate"/>
               <scalar_field name="Request">
-                <diagnostic>
-                  <algorithm name="Internal" material_phase_support="multiple"/>
-                  <output/>
-                  <stat/>
-                  <detectors>
-                    <include_in_detectors/>
-                  </detectors>
-                </diagnostic>
-                <stage_aggregate/>
-              </scalar_field>
-              <scalar_field name="Ingested">
                 <diagnostic>
                   <algorithm name="Internal" material_phase_support="multiple"/>
                   <output/>
@@ -693,6 +694,7 @@ for n in range(field.node_count):
               </scalar_field>
             </uptake>
             <release>
+              <target_field name="DissolvedSilicate"/>
               <scalar_field name="Release">
                 <diagnostic>
                   <algorithm name="Internal" material_phase_support="multiple"/>

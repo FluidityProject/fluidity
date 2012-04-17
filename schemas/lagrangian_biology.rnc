@@ -310,18 +310,6 @@ state_variable =
       ## Internal state variable of a biology agent that defines an arbitrary internal property.
       element state_variable {
          attribute name { xsd:string },
-         # Agent diagnostic field
-         element scalar_field {
-            attribute name { xsd:string },
-            element diagnostic {
-               internal_algorithm,
-               diagnostic_scalar_field_no_adapt
-            },
-            ## Add diagnostic field that represents the total quantity across all stages of the FG.
-            element stage_aggregate {
-               empty
-            }?
-         }?,
          ## Expose this variable to the Python Random Walk interface, as well as the biology update.
          element include_in_motion {
             empty
@@ -353,10 +341,17 @@ chemical_variable =
                empty
             }?
          }?,
-         ## Name of the field representing the dissolved chemical in the environment.
-         ## This option is required if 'uptake' or 'release' are specified.
-         element chemical_field {
-            attribute name { xsd:string }
+         ## Ingested field on a discontinuous mesh
+         element scalar_field {
+            attribute name { "Ingested" },
+            element diagnostic {
+               internal_algorithm,
+               diagnostic_scalar_field_no_adapt
+            },
+            ## Add diagnostic field that represents the total quantity across all stages of the FG.
+            element stage_aggregate {
+               empty
+            }?
          }?,
          ## Option to define chemical uptake from the environment. 
          ## This will create internal fields to represent the accumulated requested quantity 
@@ -364,21 +359,13 @@ chemical_variable =
          ## according to availability in the environment. 
          ## The scaled request quantity will then get added to the according absorption field of the dissolved chemical.
          element uptake {
-            ## Request field on a discontinuous mesh mesh
+            ## Name of the source field representing the dissolved chemical in the environment
+            element source_field {
+               attribute name { xsd:string }
+            },
+            ## Request field on a discontinuous mesh
             element scalar_field {
                attribute name { "Request" },
-               element diagnostic {
-                  internal_algorithm,
-                  diagnostic_scalar_field_no_adapt
-               },
-               ## Add diagnostic field that represents the total quantity across all stages of the FG.
-               element stage_aggregate {
-                  empty
-               }?
-            },
-            ## Ingested field on a discontinuous mesh mesh
-            element scalar_field {
-               attribute name { "Ingested" },
                element diagnostic {
                   internal_algorithm,
                   diagnostic_scalar_field_no_adapt
@@ -401,7 +388,11 @@ chemical_variable =
          ## This will create internal fields to represent the accumulated release quantity.
          ## The scaled release quantity will then get added to the according source field of the dissolved chemical.
          element release {
-            ## Release field on a discontinuous mesh mesh
+            ## Name of the target field representing the dissolved chemical in the environment
+            element target_field {
+               attribute name { xsd:string }
+            },
+            ## Release field on a discontinuous mesh
             element scalar_field {
                attribute name { "Release" },
                element diagnostic {

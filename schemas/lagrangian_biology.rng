@@ -367,24 +367,6 @@ This option is generally only useful for testing. </a:documentation>
         <data type="string"/>
       </attribute>
       <optional>
-        <!-- Agent diagnostic field -->
-        <element name="scalar_field">
-          <attribute name="name">
-            <data type="string"/>
-          </attribute>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="diagnostic_scalar_field_no_adapt"/>
-          </element>
-          <optional>
-            <element name="stage_aggregate">
-              <a:documentation>Add diagnostic field that represents the total quantity across all stages of the FG.</a:documentation>
-              <empty/>
-            </element>
-          </optional>
-        </element>
-      </optional>
-      <optional>
         <element name="include_in_motion">
           <a:documentation>Expose this variable to the Python Random Walk interface, as well as the biology update.</a:documentation>
           <empty/>
@@ -426,12 +408,21 @@ This field must be on a discontinuous mesh</a:documentation>
         </element>
       </optional>
       <optional>
-        <element name="chemical_field">
-          <a:documentation>Name of the field representing the dissolved chemical in the environment.
-This option is required if 'uptake' or 'release' are specified.</a:documentation>
+        <element name="scalar_field">
+          <a:documentation>Ingested field on a discontinuous mesh</a:documentation>
           <attribute name="name">
-            <data type="string"/>
+            <value>Ingested</value>
           </attribute>
+          <element name="diagnostic">
+            <ref name="internal_algorithm"/>
+            <ref name="diagnostic_scalar_field_no_adapt"/>
+          </element>
+          <optional>
+            <element name="stage_aggregate">
+              <a:documentation>Add diagnostic field that represents the total quantity across all stages of the FG.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
         </element>
       </optional>
       <optional>
@@ -441,26 +432,16 @@ This will create internal fields to represent the accumulated requested quantity
 and the depletion factor, which scales the amount actually ingested by the agent 
 according to availability in the environment. 
 The scaled request quantity will then get added to the according absorption field of the dissolved chemical.</a:documentation>
-          <element name="scalar_field">
-            <a:documentation>Request field on a discontinuous mesh mesh</a:documentation>
+          <element name="source_field">
+            <a:documentation>Name of the source field representing the dissolved chemical in the environment</a:documentation>
             <attribute name="name">
-              <value>Request</value>
+              <data type="string"/>
             </attribute>
-            <element name="diagnostic">
-              <ref name="internal_algorithm"/>
-              <ref name="diagnostic_scalar_field_no_adapt"/>
-            </element>
-            <optional>
-              <element name="stage_aggregate">
-                <a:documentation>Add diagnostic field that represents the total quantity across all stages of the FG.</a:documentation>
-                <empty/>
-              </element>
-            </optional>
           </element>
           <element name="scalar_field">
-            <a:documentation>Ingested field on a discontinuous mesh mesh</a:documentation>
+            <a:documentation>Request field on a discontinuous mesh</a:documentation>
             <attribute name="name">
-              <value>Ingested</value>
+              <value>Request</value>
             </attribute>
             <element name="diagnostic">
               <ref name="internal_algorithm"/>
@@ -490,8 +471,14 @@ The scaled request quantity will then get added to the according absorption fiel
           <a:documentation>Option to define chemical release into the environment. 
 This will create internal fields to represent the accumulated release quantity.
 The scaled release quantity will then get added to the according source field of the dissolved chemical.</a:documentation>
+          <element name="target_field">
+            <a:documentation>Name of the target field representing the dissolved chemical in the environment</a:documentation>
+            <attribute name="name">
+              <data type="string"/>
+            </attribute>
+          </element>
           <element name="scalar_field">
-            <a:documentation>Release field on a discontinuous mesh mesh</a:documentation>
+            <a:documentation>Release field on a discontinuous mesh</a:documentation>
             <attribute name="name">
               <value>Release</value>
             </attribute>
