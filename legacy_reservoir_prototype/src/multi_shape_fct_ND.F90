@@ -2702,6 +2702,7 @@
             do quad_cv_sjloc = 1, quad_cv_snloc
                xnod = x_sndgln( ( sele - 1 ) * quad_cv_snloc + quad_cv_sjloc )
                if( fem_nod( xnod ) /= 0 ) found_fem_nod = .true.
+               ewrite(3,*)'xnod, fem_nod:', xnod, fem_nod( xnod ), found_fem_nod
             end do
 
             ! Keep record of the nodes that are neighbours to this surface quadrature pt
@@ -2765,6 +2766,7 @@
                   gl_quad_l3( cv_sgi ) = volume_quad_map( 3, xgi, ygi, zgi, lx, ly, lz )
                   gl_quad_l4( cv_sgi ) = volume_quad_map( 4, xgi, ygi, zgi, lx, ly, lz )
                else if(.not.d1) then ! 2D
+                  !ewrite(3,*) 'xnod, xgi, ygi, lx, ly:', xnod, xgi, ygi, lx(1:3), ly(1:3) 
                   gl_quad_l1( cv_sgi ) = area_quad_map( 1, xgi, ygi, lx, ly )
                   gl_quad_l2( cv_sgi ) = area_quad_map( 2, xgi, ygi, lx, ly )
                   gl_quad_l3( cv_sgi ) = area_quad_map( 3, xgi, ygi, lx, ly )
@@ -2812,8 +2814,8 @@
                     + abs( gl_quad_l4( cv_sgi ) - gl_quad_l4( cv_sgj ) )
                if( d2_quad < 1.0e-5 ) then ! same pt
                   found = .true. 
-                  ewrite(3,*) cv_sgi, cv_sgj, next_to_cv_iloc_gi( cv_sgi ), &
-                       next_to_cv_iloc_gi( cv_sgj ), fem_nod( next_to_cv_iloc_gi( cv_sgj ) )
+                  ! ewrite(3,*) cv_sgi, cv_sgj, next_to_cv_iloc_gi( cv_sgi ), &
+                  ! next_to_cv_iloc_gi( cv_sgj ), fem_nod( next_to_cv_iloc_gi( cv_sgj ) )
                   ! next_to_cv_iloc_gi2( cv_sgi ) contains the node on the other side.
                   next_to_cv_iloc_gi2( cv_sgi ) = next_to_cv_iloc_gi( cv_sgj )
                endif
@@ -2898,6 +2900,7 @@
             l2_2( cv_sgk ) = gl_quad_l2( cv_sgi )
             l3_2( cv_sgk ) = gl_quad_l3( cv_sgi )
             if( d3 ) l4_2( cv_sgk ) = gl_quad_l4( cv_sgi )
+            ewrite(3,*)'cv_sgk, l1/2/3:', cv_sgk, l1_2( cv_sgk ), l2_2( cv_sgk ), l3_2( cv_sgk )
          end if
       end do
 
@@ -2937,8 +2940,8 @@
             if( d3 ) l4( cv_sgk ) = l4_2( cv_sgi )
             cv_neiloc_cells( :, cv_sgk ) = cv_neiloc_cells_2( :, cv_sgi )   
             ewrite(3,*) 'cv_sgk, cv_sgi :' ,cv_sgk, cv_sgi 
-            ewrite(3,*) 'suf_snlx_2( :, cv_sgi ):', suf_snlx_2( :, cv_sgi )      
-            ewrite(3,*) 'sufnlx( :, cv_sgk ):', sufnlx( :, cv_sgk )       
+            !ewrite(3,*) 'suf_snlx_2( :, cv_sgi ):', suf_snlx_2( :, cv_sgi )      
+            !ewrite(3,*) 'sufnlx( :, cv_sgk ):', sufnlx( :, cv_sgk )       
          endif
       end do Loop_CV_SGI
       ewrite(3,*) 'sufnlx( : , 1 : scvngi ):', sufnlx( :, 1 : scvngi )
@@ -4239,7 +4242,7 @@
       print *,'x_nloc=',x_nloc
 
       ! Extra Nodes in each Quad (now 9 / quad )
-      call Adding_Extra_Parametric_Nodes( totele, x_nloc, x_nonods, &
+      call Adding_Extra_Parametric_Nodes( totele, x_nloc, mx_x_nonods, &
            x_ndgln, x, y )
       ewrite(3,*)'xndgln1:'
       do ele = 1, totele
@@ -4530,43 +4533,52 @@
     end subroutine Eliminating_Repetitive_Nodes_all
 
     
-    subroutine Adding_Extra_Parametric_Nodes( totele, x_nloc, x_nonods, &
+    subroutine Adding_Extra_Parametric_Nodes( totele, x_nloc, mx_x_nonods, &
          x_ndgln, x, y )
       implicit none
-      integer, intent( in ) :: totele, x_nloc, x_nonods
+      integer, intent( in ) :: totele, x_nloc, mx_x_nonods
       integer, dimension( totele * x_nloc ), intent( inout ) :: x_ndgln
-      real, dimension( x_nonods ), intent( inout ) :: x, y
+      real, dimension( mx_x_nonods ), intent( inout ) :: x, y
       ! Local variables
-      integer :: ele, iloc, iloc2, x_loc_ref, xnod1, xnod2, xnod3, xnod4
+      integer, dimension( : ), allocatable :: x_ndgln2, loclist
+      integer :: ele, iloc, iloc2, x_loc_ref, xnod1, xnod2, xnod3, xnod4, npoly, inod
       integer :: iloc_list(4),jloc_list(4),iiloc,ii,jloc
       real :: rsumx, rsumy
 
       ewrite(3,*) 'In Adding_Extra_Parametric_Nodes'
 
       x_loc_ref = maxval( x_ndgln ) 
-      print *,'before adding more nodes x_loc_ref:', x_loc_ref 
-      iloc_list(1)=1
-      jloc_list(1)=2
-      iloc_list(2)=3
-      jloc_list(2)=4
-      iloc_list(3)=1
-      jloc_list(3)=3
-      iloc_list(4)=2
-      jloc_list(4)=4
+      ewrite(3,*)' x_loc_ref:', x_loc_ref
       do ele = 1, totele
-         iiloc=4
+         ewrite(3,*)'x_ndgln:', ele, &
+              ( x_ndgln( ( ele - 1 ) * x_nloc + iloc ) , iloc = 1, x_nloc )
+      end do
 
-         do ii=1,4
-            iloc=iloc_list(ii)
-            jloc=jloc_list(ii)
-            xnod1 = x_ndgln( ( ele - 1 ) * x_nloc + iloc )
-            xnod2 = x_ndgln( ( ele - 1 ) * x_nloc + jloc )
-            x_loc_ref = x_loc_ref + 1
-            iiloc=iiloc+1
-            x_ndgln( ( ele - 1 ) * x_nloc + iiloc ) = x_loc_ref
-            x( x_loc_ref ) = 0.5 * ( x( xnod1 ) + x( xnod2 ) ) 
-            y( x_loc_ref ) = 0.5 * ( y( xnod1 ) + y( xnod2 ) ) 
-         end do
+      if( .true. ) then
+         print *,'before adding more nodes x_loc_ref:', x_loc_ref 
+         iloc_list(1)=1
+         jloc_list(1)=2
+         iloc_list(2)=3
+         jloc_list(2)=4
+         iloc_list(3)=1
+         jloc_list(3)=3
+         iloc_list(4)=2
+         jloc_list(4)=4
+         do ele = 1, totele
+            iiloc=4
+
+            do ii=1,4
+               iloc=iloc_list(ii)
+               jloc=jloc_list(ii)
+               xnod1 = x_ndgln( ( ele - 1 ) * x_nloc + iloc )
+               xnod2 = x_ndgln( ( ele - 1 ) * x_nloc + jloc )
+               x_loc_ref = x_loc_ref + 1
+               iiloc=iiloc+1
+               x_ndgln( ( ele - 1 ) * x_nloc + iiloc ) = x_loc_ref
+            ewrite(3,*)'xdo1-2:', xnod1, xnod2
+               x( x_loc_ref ) = 0.5 * ( x( xnod1 ) + x( xnod2 ) ) 
+               y( x_loc_ref ) = 0.5 * ( y( xnod1 ) + y( xnod2 ) ) 
+            end do
 
             xnod1 = x_ndgln( ( ele - 1 ) * x_nloc + 1 )
             xnod2 = x_ndgln( ( ele - 1 ) * x_nloc + 2 )
@@ -4577,9 +4589,10 @@
             x_ndgln( ( ele - 1 ) * x_nloc + iiloc ) = x_loc_ref
             x( x_loc_ref ) = 0.25 * ( x( xnod1 ) + x( xnod2 ) + x( xnod3 ) + x( xnod4 )) 
             y( x_loc_ref ) = 0.25 * ( y( xnod1 ) + y( xnod2 ) + y( xnod3 ) + y( xnod4 ) ) 
-      end do
+         end do
+      end if ! false
 
-    if(.false.) then
+if( .false. ) then
       do ele = 1, totele
          iloc2 = 4
          do iloc = 1, 4
@@ -4612,7 +4625,34 @@
 
          x_loc_ref = x_loc_ref + 1
       end do
-    endif
+   end if
+
+      allocate( x_ndgln2( totele * x_nloc ) ) ; x_ndgln2 = 0
+      allocate( loclist( x_nloc ) ) ; loclist = 0
+      x_ndgln2 = x_ndgln ; x_ndgln = 0 ; inod = 0 ; jloc = 0
+
+      loclist = (/ 1, 5, 2, 6, 7, 8, 3, 9, 4 /)
+      !  loclist = ( / 1, 5, 6, 2, 7, 8, 9, 10, 11, 12, 13, 14, 3, 15, 16, 4 / )
+
+      do ele = 1, totele
+         do iloc = 1, x_nloc
+            jloc = loclist( iloc )
+            x_ndgln( ( ele - 1 ) * x_nloc + iloc ) = &
+                 x_ndgln2( ( ele - 1 ) * x_nloc + jloc )  
+         end do
+      end do
+
+ewrite(3,*) '-'
+ewrite(3,*) ''
+
+      do ele = 1, totele
+         ewrite(3,*)'x_ndgln:', ele, &
+              ( x_ndgln( ( ele - 1 ) * x_nloc + iloc ) , iloc = 1, x_nloc )
+      end do
+      stop 87
+
+      deallocate( x_ndgln2 )
+      deallocate( loclist )
 
       return
     end subroutine Adding_Extra_Parametric_Nodes
