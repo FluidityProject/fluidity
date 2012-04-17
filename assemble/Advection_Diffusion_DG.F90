@@ -2385,11 +2385,7 @@ contains
     ! Boundary nodes have both faces the same.
     boundary=(face==face_2)
     dirichlet=.false.
-    ! Since we're assembling in the halo, it is possible that face does not
-    ! belong to an element we own, in which case it will index into an
-    ! out-of-bounds entry in bc_type, so guard against this by ensuring that
-    ! the element the face is on is owned
-    if (boundary .and. element_owned(T, face_ele(T, face))) then
+    if (boundary) then
        if (bc_type(face)==BCTYPE_WEAKDIRICHLET) then
          dirichlet=.true.
        end if

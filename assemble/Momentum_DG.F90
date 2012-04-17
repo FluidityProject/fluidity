@@ -1618,14 +1618,9 @@ contains
             ! Internal faces.
             face_2=ele_face(U, ele_2, ele)
         ! Check if face is turbine face (note: get_entire_boundary_condition only returns "applied" boundaries and we reset the apply status in each timestep)
-        elseif (element_owned(U, face_ele(U, face))) then
-           if (velocity_bc_type(1,face)==4 .or. velocity_bc_type(1,face)==5) then
-              face_2=face_neigh(turbine_conn_mesh, face)
-              turbine_face=.true.
-           else
-              face_2=face
-              boundary_element=.true.
-           end if
+        elseif (velocity_bc_type(1,face)==4 .or. velocity_bc_type(1,face)==5) then
+           face_2=face_neigh(turbine_conn_mesh, face)
+           turbine_face=.true.
         else 
            ! External face.
            face_2=face
@@ -2068,12 +2063,7 @@ contains
     free_surface=.false.
     no_normal_flow=.false.
     l_have_pressure_bc=.false.
-    ! Since we're assembling in the halo, it is possible that face
-    ! does not belong to an element we own, in which case it will
-    ! index into an out-of-bounds entry in velocity_bc_type, so guard
-    ! against this by ensuring that the element the face is on is
-    ! owned
-    if (boundary.and.element_owned(U, face_ele(U, face))) then
+    if (boundary) then
        do dim=1,U%dim
           if (velocity_bc_type(dim,face)==1) then
              dirichlet(dim)=.true.
