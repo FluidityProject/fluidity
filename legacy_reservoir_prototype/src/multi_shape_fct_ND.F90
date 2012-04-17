@@ -3994,7 +3994,7 @@
       integer, dimension( : ), allocatable :: x_ndgln_big
       real, dimension( : ), allocatable :: x_big, y_big
       integer :: ele_big, increment_ele_big, ele, x_iloc, elebig_ele, iloc, xnod, &
-           ele_ref
+           ele_ref, mx_x_nonods
 
       ewrite(3,*)' In Make_QTri'
 
@@ -4080,10 +4080,60 @@
       ! Just eliminating repetitive nodes in the 4 nodes pts of the quads
       call Eliminating_Repetitive_Nodes( totele, x_nloc, x_nonods, .false., &
            x_ndgln, x, y ) 
+
+! the elements are anti-clockwise correct to make the local numbering correct...
+      do ele = 1, totele
+        xnod=x_ndgln( ( ele - 1 ) * x_nloc + 3 )
+        x_ndgln( ( ele - 1 ) * x_nloc + 3 )=x_ndgln( ( ele - 1 ) * x_nloc + 4 )
+        x_ndgln( ( ele - 1 ) * x_nloc + 4 )=xnod
+      end do
+! these elements are inside out so correct them...
+      ele=3
+      xnod=x_ndgln( ( ele - 1 ) * x_nloc + 1 )
+      x_ndgln( ( ele - 1 ) * x_nloc + 1 )=x_ndgln( ( ele - 1 ) * x_nloc + 2 )
+      x_ndgln( ( ele - 1 ) * x_nloc + 2 )=xnod
+      xnod=x_ndgln( ( ele - 1 ) * x_nloc + 3 )
+      x_ndgln( ( ele - 1 ) * x_nloc + 3 )=x_ndgln( ( ele - 1 ) * x_nloc + 4 )
+      x_ndgln( ( ele - 1 ) * x_nloc + 4 )=xnod
+      ele=4
+      xnod=x_ndgln( ( ele - 1 ) * x_nloc + 1 )
+      x_ndgln( ( ele - 1 ) * x_nloc + 1 )=x_ndgln( ( ele - 1 ) * x_nloc + 2 )
+      x_ndgln( ( ele - 1 ) * x_nloc + 2 )=xnod
+      xnod=x_ndgln( ( ele - 1 ) * x_nloc + 3 )
+      x_ndgln( ( ele - 1 ) * x_nloc + 3 )=x_ndgln( ( ele - 1 ) * x_nloc + 4 )
+      x_ndgln( ( ele - 1 ) * x_nloc + 4 )=xnod
+      ele=5
+      xnod=x_ndgln( ( ele - 1 ) * x_nloc + 1 )
+      x_ndgln( ( ele - 1 ) * x_nloc + 1 )=x_ndgln( ( ele - 1 ) * x_nloc + 2 )
+      x_ndgln( ( ele - 1 ) * x_nloc + 2 )=xnod
+      xnod=x_ndgln( ( ele - 1 ) * x_nloc + 3 )
+      x_ndgln( ( ele - 1 ) * x_nloc + 3 )=x_ndgln( ( ele - 1 ) * x_nloc + 4 )
+      x_ndgln( ( ele - 1 ) * x_nloc + 4 )=xnod
+      ele=9
+      xnod=x_ndgln( ( ele - 1 ) * x_nloc + 1 )
+      x_ndgln( ( ele - 1 ) * x_nloc + 1 )=x_ndgln( ( ele - 1 ) * x_nloc + 2 )
+      x_ndgln( ( ele - 1 ) * x_nloc + 2 )=xnod
+      xnod=x_ndgln( ( ele - 1 ) * x_nloc + 3 )
+      x_ndgln( ( ele - 1 ) * x_nloc + 3 )=x_ndgln( ( ele - 1 ) * x_nloc + 4 )
+      x_ndgln( ( ele - 1 ) * x_nloc + 4 )=xnod
+      ele=12
+      xnod=x_ndgln( ( ele - 1 ) * x_nloc + 1 )
+      x_ndgln( ( ele - 1 ) * x_nloc + 1 )=x_ndgln( ( ele - 1 ) * x_nloc + 2 )
+      x_ndgln( ( ele - 1 ) * x_nloc + 2 )=xnod
+      xnod=x_ndgln( ( ele - 1 ) * x_nloc + 3 )
+      x_ndgln( ( ele - 1 ) * x_nloc + 3 )=x_ndgln( ( ele - 1 ) * x_nloc + 4 )
+      x_ndgln( ( ele - 1 ) * x_nloc + 4 )=xnod
+
+
       ewrite(3,*)'xndgln0:'
       do ele = 1, totele
-         ewrite(3,*) ele, ( x_ndgln( ( ele - 1 ) * x_nloc + x_iloc ), x_iloc = 1, x_nloc )
+!         ewrite(3,*) ele, ( x_ndgln( ( ele - 1 ) * x_nloc + x_iloc ), x_iloc = 1, x_nloc )
+         ewrite(3,*) ele, ( x_ndgln( ( ele - 1 ) * x_nloc + x_iloc ), x_iloc = 1, 4 )
+         ewrite(3,*) ele, ( x(x_ndgln( ( ele - 1 ) * x_nloc + x_iloc )), x_iloc = 1, 4 )
+         ewrite(3,*) ele, ( y(x_ndgln( ( ele - 1 ) * x_nloc + x_iloc )), x_iloc = 1, 4 )
       end do
+!      stop 92
+      print *,'x_nloc=',x_nloc
 
       ! Extra Nodes in each Quad (now 9 / quad )
       call Adding_Extra_Parametric_Nodes( totele, x_nloc, x_nonods, &
@@ -4093,13 +4143,19 @@
          ewrite(3,*) ele, ( x_ndgln( ( ele - 1 ) * x_nloc + x_iloc ), x_iloc = 1, x_nloc )
       end do
 
-      call Eliminating_Repetitive_Nodes( totele, x_nloc, x_nonods, .true., &
+      mx_x_nonods=maxval(x_ndgln)
+      call Eliminating_Repetitive_Nodes_all( totele, x_nloc, x_nonods, mx_x_nonods,  &
            x_ndgln, x, y )
 
       ewrite(3,*)'xndgln2'
       do ele = 1, totele
          ewrite(3,*) ele, ( x_ndgln( ( ele - 1 ) * x_nloc + x_iloc ), x_iloc = 1, x_nloc )
       end do
+!      do xnod = 1, x_nonods
+      do xnod = 1, 100
+         ewrite(3,*) xnod, x(xnod),y(xnod)
+      end do
+!       stop 9829
 
       x_nonods = maxval( x_ndgln )
 
@@ -4252,12 +4308,17 @@
       integer, dimension( totele * x_nloc ), intent( inout ) :: x_ndgln
       real, dimension( x_nonods ), intent( in ) :: x, y
       ! Local variables
-      real, parameter :: toler = 1.e-10
+      real, parameter :: toler = 1.e-5
       integer :: ele, ele2, iloc, jloc, inod, jnod, jnod2, x_nloc2, isum, iref
+      integer :: count_nod
       logical :: found
-      integer, dimension( : ), allocatable :: x_ndgln2
+      integer, dimension( : ), allocatable :: x_ndgln2,new2old,old2new
+      real, dimension( : ), allocatable :: x2,y2
 
       ewrite(3,*) 'In Eliminating_Repetitive_Nodes'
+
+
+    if(.true.) then
 
       x_nloc2 = x_nloc
       if( .not. over_all)  x_nloc2 = 4
@@ -4295,8 +4356,71 @@
          end do
       end if
 
+    endif
+
       return
     end subroutine Eliminating_Repetitive_Nodes
+
+
+    subroutine Eliminating_Repetitive_Nodes_all( totele, x_nloc, x_nonods, mx_x_nonods,  &
+         x_ndgln, x, y )
+      implicit none
+      integer, intent( in ) :: totele, x_nloc, mx_x_nonods
+      integer, intent( inout ) :: x_nonods
+      integer, dimension( totele * x_nloc ), intent( inout ) :: x_ndgln
+      real, dimension( mx_x_nonods ), intent( inout ) :: x, y
+      ! Local variables
+      real, parameter :: toler = 1.e-4
+      integer :: ele, ele2, iloc, jloc, inod, jnod, jnod2, x_nloc2, isum, iref
+      integer :: count_nod,jnod_found
+      integer, dimension( : ), allocatable :: x_ndgln2,new2old,old2new
+      real, dimension( : ), allocatable :: x2,y2
+
+      ewrite(3,*) 'In Eliminating_Repetitive_Nodes'
+
+      x_nonods = maxval( x_ndgln ) 
+      allocate( new2old( x_nonods ) )
+      allocate( old2new( x_nonods ) )
+      allocate( x2( x_nonods ) )
+      allocate( y2( x_nonods ) )
+      x2(1:x_nonods)=x(1:x_nonods)
+      y2(1:x_nonods)=y(1:x_nonods)
+      x=0.0
+      y=0.0
+
+      print *,'before eliminating nodes x_nonods:',x_nonods
+
+      count_nod=0
+      do inod=1,x_nonods
+        jnod_found=0
+        do jnod=1,count_nod
+          if( ( abs( x2( inod ) - x( jnod ) ) <= toler ) .and. &
+              ( abs( y2( inod ) - y( jnod ) ) <= toler ) ) jnod_found=jnod
+        end do
+        if(jnod_found.eq.0) then
+           count_nod=count_nod+1
+           new2old(count_nod)=inod
+           old2new(inod)=count_nod
+           x(count_nod)=x2(inod)
+           y(count_nod)=y2(inod)
+        else
+           old2new(inod)=jnod_found
+        endif
+      end do
+      print *,'old2new(1:x_nonods):',old2new(1:x_nonods)
+
+      do ele = 1, totele 
+         do iloc = 1, x_nloc
+            inod = x_ndgln( ( ele - 1 ) * x_nloc + iloc )
+            x_ndgln( ( ele - 1 ) * x_nloc + iloc )=old2new(inod)
+         end do
+      end do
+      x_nonods=count_nod
+
+      print *,'after eliminating nodes x_nonods:',x_nonods
+
+      return
+    end subroutine Eliminating_Repetitive_Nodes_all
 
     
     subroutine Adding_Extra_Parametric_Nodes( totele, x_nloc, x_nonods, &
@@ -4307,11 +4431,48 @@
       real, dimension( x_nonods ), intent( inout ) :: x, y
       ! Local variables
       integer :: ele, iloc, iloc2, x_loc_ref, xnod1, xnod2, xnod3, xnod4
+      integer :: iloc_list(4),jloc_list(4),iiloc,ii,jloc
       real :: rsumx, rsumy
 
       ewrite(3,*) 'In Adding_Extra_Parametric_Nodes'
 
-      x_loc_ref = maxval( x_ndgln ) + 1
+      x_loc_ref = maxval( x_ndgln ) 
+      print *,'before adding more nodes x_loc_ref:', x_loc_ref 
+      iloc_list(1)=1
+      jloc_list(1)=2
+      iloc_list(2)=3
+      jloc_list(2)=4
+      iloc_list(3)=1
+      jloc_list(3)=3
+      iloc_list(4)=2
+      jloc_list(4)=4
+      do ele = 1, totele
+         iiloc=4
+
+         do ii=1,4
+            iloc=iloc_list(ii)
+            jloc=jloc_list(ii)
+            xnod1 = x_ndgln( ( ele - 1 ) * x_nloc + iloc )
+            xnod2 = x_ndgln( ( ele - 1 ) * x_nloc + jloc )
+            x_loc_ref = x_loc_ref + 1
+            iiloc=iiloc+1
+            x_ndgln( ( ele - 1 ) * x_nloc + iiloc ) = x_loc_ref
+            x( x_loc_ref ) = 0.5 * ( x( xnod1 ) + x( xnod2 ) ) 
+            y( x_loc_ref ) = 0.5 * ( y( xnod1 ) + y( xnod2 ) ) 
+         end do
+
+            xnod1 = x_ndgln( ( ele - 1 ) * x_nloc + 1 )
+            xnod2 = x_ndgln( ( ele - 1 ) * x_nloc + 2 )
+            xnod3 = x_ndgln( ( ele - 1 ) * x_nloc + 3 )
+            xnod4 = x_ndgln( ( ele - 1 ) * x_nloc + 4 )
+            x_loc_ref = x_loc_ref + 1
+            iiloc=iiloc+1
+            x_ndgln( ( ele - 1 ) * x_nloc + iiloc ) = x_loc_ref
+            x( x_loc_ref ) = 0.25 * ( x( xnod1 ) + x( xnod2 ) + x( xnod3 ) + x( xnod4 )) 
+            y( x_loc_ref ) = 0.25 * ( y( xnod1 ) + y( xnod2 ) + y( xnod3 ) + y( xnod4 ) ) 
+      end do
+
+    if(.false.) then
       do ele = 1, totele
          iloc2 = 4
          do iloc = 1, 4
@@ -4344,6 +4505,7 @@
 
          x_loc_ref = x_loc_ref + 1
       end do
+    endif
 
       return
     end subroutine Adding_Extra_Parametric_Nodes
