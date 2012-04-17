@@ -4242,7 +4242,7 @@
       print *,'x_nloc=',x_nloc
 
       ! Extra Nodes in each Quad (now 9 / quad )
-      call Adding_Extra_Parametric_Nodes( totele, x_nloc, mx_x_nonods, &
+      call Adding_Extra_Parametric_Nodes( totele, x_nloc, max( 10000, x_nonods ), &
            x_ndgln, x, y )
       ewrite(3,*)'xndgln1:'
       do ele = 1, totele
@@ -4548,11 +4548,6 @@
       ewrite(3,*) 'In Adding_Extra_Parametric_Nodes'
 
       x_loc_ref = maxval( x_ndgln ) 
-      ewrite(3,*)' x_loc_ref:', x_loc_ref
-      do ele = 1, totele
-         ewrite(3,*)'x_ndgln:', ele, &
-              ( x_ndgln( ( ele - 1 ) * x_nloc + iloc ) , iloc = 1, x_nloc )
-      end do
 
       if( .true. ) then
          print *,'before adding more nodes x_loc_ref:', x_loc_ref 
@@ -4575,7 +4570,6 @@
                x_loc_ref = x_loc_ref + 1
                iiloc=iiloc+1
                x_ndgln( ( ele - 1 ) * x_nloc + iiloc ) = x_loc_ref
-            ewrite(3,*)'xdo1-2:', xnod1, xnod2
                x( x_loc_ref ) = 0.5 * ( x( xnod1 ) + x( xnod2 ) ) 
                y( x_loc_ref ) = 0.5 * ( y( xnod1 ) + y( xnod2 ) ) 
             end do
@@ -4592,40 +4586,40 @@
          end do
       end if ! false
 
-if( .false. ) then
-      do ele = 1, totele
-         iloc2 = 4
-         do iloc = 1, 4
-            iloc2 = iloc2 + 1
-            if ( iloc < 4 ) then
+      if( .false. ) then
+         do ele = 1, totele
+            iloc2 = 4
+            do iloc = 1, 4
+               iloc2 = iloc2 + 1
+               if ( iloc < 4 ) then
+                  xnod1 = x_ndgln( ( ele - 1 ) * x_nloc + iloc )
+                  xnod2 = x_ndgln( ( ele - 1 ) * x_nloc + iloc + 1 )
+                  x_ndgln( ( ele - 1 ) * x_nloc + iloc2 ) = x_loc_ref
+               else
+                  xnod1 = x_ndgln( ( ele - 1 ) * x_nloc + iloc )
+                  xnod2 = x_ndgln( ( ele - 1 ) * x_nloc + 1 )
+                  x_ndgln( ( ele - 1 ) * x_nloc + iloc2 ) = x_loc_ref
+               end if
+               xnod3 = x_loc_ref
+               x( xnod3 ) = 0.5 * ( x( xnod1 ) + x( xnod2 ) ) 
+               y( xnod3 ) = 0.5 * ( y( xnod1 ) + y( xnod2 ) ) 
+               x_loc_ref = x_loc_ref + 1
+            end do
+
+            x_ndgln( ( ele - 1 ) * x_nloc + x_nloc ) = x_loc_ref
+            xnod4 = x_loc_ref
+            rsumx = 0. ; rsumy = 0.
+            do iloc = 1, x_nloc - 1
                xnod1 = x_ndgln( ( ele - 1 ) * x_nloc + iloc )
-               xnod2 = x_ndgln( ( ele - 1 ) * x_nloc + iloc + 1 )
-               x_ndgln( ( ele - 1 ) * x_nloc + iloc2 ) = x_loc_ref
-            else
-               xnod1 = x_ndgln( ( ele - 1 ) * x_nloc + iloc )
-               xnod2 = x_ndgln( ( ele - 1 ) * x_nloc + 1 )
-               x_ndgln( ( ele - 1 ) * x_nloc + iloc2 ) = x_loc_ref
-            end if
-            xnod3 = x_loc_ref
-            x( xnod3 ) = 0.5 * ( x( xnod1 ) + x( xnod2 ) ) 
-            y( xnod3 ) = 0.5 * ( y( xnod1 ) + y( xnod2 ) ) 
+               rsumx = rsumx + 1. / real( x_nloc - 1 ) * x( xnod1 )
+               rsumy = rsumy + 1. / real( x_nloc - 1 ) * y( xnod1 )
+            end do
+            x( xnod4 ) = rsumx 
+            y( xnod4 ) = rsumy
+
             x_loc_ref = x_loc_ref + 1
          end do
-
-         x_ndgln( ( ele - 1 ) * x_nloc + x_nloc ) = x_loc_ref
-         xnod4 = x_loc_ref
-         rsumx = 0. ; rsumy = 0.
-         do iloc = 1, x_nloc - 1
-            xnod1 = x_ndgln( ( ele - 1 ) * x_nloc + iloc )
-            rsumx = rsumx + 1. / real( x_nloc - 1 ) * x( xnod1 )
-            rsumy = rsumy + 1. / real( x_nloc - 1 ) * y( xnod1 )
-         end do
-         x( xnod4 ) = rsumx 
-         y( xnod4 ) = rsumy
-
-         x_loc_ref = x_loc_ref + 1
-      end do
-   end if
+      end if
 
       allocate( x_ndgln2( totele * x_nloc ) ) ; x_ndgln2 = 0
       allocate( loclist( x_nloc ) ) ; loclist = 0
@@ -4642,14 +4636,10 @@ if( .false. ) then
          end do
       end do
 
-ewrite(3,*) '-'
-ewrite(3,*) ''
-
       do ele = 1, totele
          ewrite(3,*)'x_ndgln:', ele, &
               ( x_ndgln( ( ele - 1 ) * x_nloc + iloc ) , iloc = 1, x_nloc )
       end do
-      stop 87
 
       deallocate( x_ndgln2 )
       deallocate( loclist )
