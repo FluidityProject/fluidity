@@ -32,6 +32,7 @@ module transform_elements
   use quadrature
   use elements
   use vector_tools
+  use parallel_tools, only: abort_if_in_parallel_region
   use fields_base
   use cv_faces, only: cv_faces_type
   use eventcounter
@@ -225,6 +226,8 @@ contains
 
 !    ewrite(1,*) "Reconstructing element geometry cache."
 
+    call abort_if_in_parallel_region
+
     position_id=X%refcount%id
     last_mesh_movement=eventcount(EVENT_MESH_MOVEMENT)
 
@@ -350,6 +353,8 @@ contains
     integer, dimension(:), pointer :: neigh
     
 !    ewrite(1,*) "Reconstructing element geometry cache."
+
+    call abort_if_in_parallel_region
 
     face_position_id=X%refcount%id
     face_last_mesh_movement=eventcount(EVENT_MESH_MOVEMENT)

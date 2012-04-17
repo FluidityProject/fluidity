@@ -1149,8 +1149,8 @@ Timers.o ../include/timers.mod: Timers.F90 ../include/fdebug.h \
 Transform_elements.o ../include/transform_elements.mod: Transform_elements.F90 \
    ../include/cv_faces.mod ../include/elements.mod ../include/eventcounter.mod \
    ../include/fdebug.h ../include/fields_base.mod \
-   ../include/memory_diagnostics.mod ../include/quadrature.mod \
-   ../include/vector_tools.mod
+   ../include/memory_diagnostics.mod ../include/parallel_tools.mod \
+   ../include/quadrature.mod ../include/vector_tools.mod
 
 ../include/unify_meshes_module.mod: Unify_meshes.o
 	@true
