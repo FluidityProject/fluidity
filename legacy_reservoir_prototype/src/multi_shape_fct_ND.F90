@@ -2632,9 +2632,12 @@
                         x_sndgln( ( sele - 1 ) * quad_cv_snloc + quad_cv_siloc ) = &
                              x_ndgln( ( ele - 1 ) * quad_cv_nloc + quad_cv_iloc )
                         loc_2nd_lev( sele, quad_cv_siloc ) = quad_cv_iloc
+           ewrite(3, *) 'ele,sele,quad_cv_snloc,quad_cv_nloc,quad_cv_siloc,x_sndgln:', &
+                    ele,sele,quad_cv_snloc,quad_cv_nloc,quad_cv_siloc,x_sndgln( ( sele - 1 ) * quad_cv_snloc + quad_cv_siloc )
                      end if
                   end do Loop_Poly2d_1_2
                end do Loop_Poly2d_1_1
+                  stop 9822
 
             else ! 3D
                Loop_Poly3d_2_1: do ip = 1, npoly
@@ -4059,10 +4062,11 @@
       real, parameter :: h_scale =  1.5196713713031851
       integer, parameter :: x_nloc_big = 7, totele_big = 4, &
            nonods_big = x_nloc_big * totele_big
-      integer, dimension( : ), allocatable :: x_ndgln_big
+      logical, dimension( : ), allocatable :: node_belong
+      integer, dimension( : ), allocatable :: x_ndgln_big, old2new
       real, dimension( : ), allocatable :: x_big, y_big
       integer :: ele_big, increment_ele_big, ele, x_iloc, elebig_ele, iloc, xnod, &
-           ele_ref, mx_x_nonods
+           ele_ref, mx_x_nonods, inod, count_nod
 
       ewrite(3,*)' In Make_QTri'
 
@@ -4192,6 +4196,37 @@
       x_ndgln( ( ele - 1 ) * x_nloc + 3 )=x_ndgln( ( ele - 1 ) * x_nloc + 4 )
       x_ndgln( ( ele - 1 ) * x_nloc + 4 )=xnod
 
+! At this pt we need to shift the node numbers down so there are only 19 nodes: 
+      allocate(node_belong(x_nonods)) ; node_belong=.false.
+      allocate(old2new(x_nonods)) ; old2new=0
+      do ele=1,totele
+        do x_iloc=1,4
+          inod=x_ndgln( ( ele - 1 ) * x_nloc + x_iloc )
+          node_belong(inod)=.true.
+        end do
+      end do
+!
+      count_nod=0
+      do inod=1,x_nonods
+        if(node_belong(inod)) then
+           count_nod=count_nod+1
+           old2new(inod)=count_nod           
+           x(count_nod)=x(inod)
+           y(count_nod)=y(inod)
+        endif
+      end do
+
+      do ele = 1, totele 
+         do iloc = 1, 4
+            inod = x_ndgln( ( ele - 1 ) * x_nloc + iloc )
+            x_ndgln( ( ele - 1 ) * x_nloc + iloc )=old2new(inod)
+!            print *,'iloc,old2new(inod):',iloc,old2new(inod)
+         end do
+!         stop 292
+      end do
+      x_nonods=count_nod
+       print *,'x_nonods=',x_nonods
+
 
       ewrite(3,*)'xndgln0:'
       do ele = 1, totele
@@ -4223,7 +4258,7 @@
       do xnod = 1, 100
          ewrite(3,*) xnod, x(xnod),y(xnod)
       end do
-!       stop 9829
+       stop 9829
 
       x_nonods = maxval( x_ndgln )
 
@@ -4447,8 +4482,8 @@
       ewrite(3,*) 'In Eliminating_Repetitive_Nodes'
 
       x_nonods = maxval( x_ndgln ) 
-      allocate( new2old( x_nonods ) )
-      allocate( old2new( x_nonods ) )
+      allocate( new2old( x_nonods ) ) ; new2old = 0
+      allocate( old2new( x_nonods ) ) ; old2new = 0
       allocate( x2( x_nonods ) )
       allocate( y2( x_nonods ) )
       x2(1:x_nonods)=x(1:x_nonods)
@@ -4471,7 +4506,9 @@
            old2new(inod)=count_nod
            x(count_nod)=x2(inod)
            y(count_nod)=y2(inod)
+!           print *,'count_nod,inod:',count_nod,inod
         else
+!            print *,'***** inod,jnod_found',inod,jnod_found
            old2new(inod)=jnod_found
         endif
       end do
@@ -4481,7 +4518,9 @@
          do iloc = 1, x_nloc
             inod = x_ndgln( ( ele - 1 ) * x_nloc + iloc )
             x_ndgln( ( ele - 1 ) * x_nloc + iloc )=old2new(inod)
+!            print *,'iloc,old2new(inod):',iloc,old2new(inod)
          end do
+!         stop 292
       end do
       x_nonods=count_nod
 
