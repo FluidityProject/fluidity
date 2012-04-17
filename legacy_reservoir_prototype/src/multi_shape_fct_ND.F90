@@ -3100,7 +3100,7 @@
          nwicel = 1 ! was 3
          if( cv_nloc == 10 ) then ! Quadratic hexs
             quad_cv_ngi = 27
-            nwicel = 4
+            nwicel = 3
             dummy_sngi = 9
             dummy_snloc = 9
          end if
@@ -3113,7 +3113,7 @@
             quad_cv_ngi = 9
             dummy_sngi = 3
             dummy_snloc = 3
-            nwicel = 2
+            nwicel = 3
          end if
       end if Conditional_Dimensionality1
 
