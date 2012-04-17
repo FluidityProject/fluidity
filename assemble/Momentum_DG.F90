@@ -855,8 +855,8 @@ contains
     !Switch to select if we are assembling the primal or dual form
     logical :: primal
 
-    ! In parallel, we only assemble the mass terms for the halo elements. All
-    ! other terms are only assembled on elements we own.
+    ! In parallel, we assemble terms on elements we own, and those in
+    ! the L1 element halo
     logical :: assemble_element
 
     ! If on the sphere evaluate gravity direction at the gauss points
@@ -903,8 +903,9 @@ contains
     dg=continuity(U)<0
     p0=(element_degree(u,ele)==0)
     
-    ! In parallel, we only construct the equations on elements we own.
-    assemble_element = element_owned(U,ele).or..not.dg.or.element_neighbour_owned(U, ele)
+    ! In parallel, we construct terms on elements we own and those in
+    ! the L1 element halo.
+    assemble_element = .not.dg.or.element_neighbour_owned(U, ele)
 
     primal = .not.dg
     if(viscosity_scheme == CDG) primal = .true.
@@ -2016,10 +2017,7 @@ contains
 
     logical :: p0
 
-    logical :: owned_element
     integer :: d1, d2
-
-    owned_element = element_owned(u, ele)
 
     floc = face_loc(u, face)
 
@@ -2205,32 +2203,30 @@ contains
                     nnAdvection_in*dt*theta
             end if
         
-            if (owned_element) then
-               if (.not.dirichlet(dim)) then
-                  ! For interior interfaces this is the upwinding term. For a
-                  ! Neumann boundary it's necessary to apply downwinding here
-                  ! to maintain the surface integral. Fortunately, since
-                  ! face_2==face for a boundary this is automagic.
+            if (.not.dirichlet(dim)) then
+               ! For interior interfaces this is the upwinding term. For a
+               ! Neumann boundary it's necessary to apply downwinding here
+               ! to maintain the surface integral. Fortunately, since
+               ! face_2==face for a boundary this is automagic.
 
-                  if (acceleration) then
-                     rhs_addto(dim,u_face_l) = rhs_addto(dim,u_face_l) &
-                          ! Outflow boundary integral.
-                          -matmul(nnAdvection_out,face_val(U,dim,face))&
-                          ! Inflow boundary integral.
-                          -matmul(nnAdvection_in,face_val(U,dim,face_2))
-                  end if
-               
-               else
-
+               if (acceleration) then
                   rhs_addto(dim,u_face_l) = rhs_addto(dim,u_face_l) &
                        ! Outflow boundary integral.
                        -matmul(nnAdvection_out,face_val(U,dim,face))&
                        ! Inflow boundary integral.
-                       -matmul(nnAdvection_in,ele_val(velocity_bc,dim,face))
+                       -matmul(nnAdvection_in,face_val(U,dim,face_2))
                end if
+               
+            else
+
+               rhs_addto(dim,u_face_l) = rhs_addto(dim,u_face_l) &
+                    ! Outflow boundary integral.
+                    -matmul(nnAdvection_out,face_val(U,dim,face))&
+                    ! Inflow boundary integral.
+                    -matmul(nnAdvection_in,ele_val(velocity_bc,dim,face))
             end if
          end if
-       end do
+      end do
         
     end if
 
@@ -2275,7 +2271,7 @@ contains
     !----------------------------------------------------------------------
 
     ! Insert pressure boundary integral.
-    if (l_include_pressure_bcs .and. boundary .and. l_have_pressure_bc .and. owned_element) then
+    if (l_include_pressure_bcs .and. boundary .and. l_have_pressure_bc) then
     
        if(multiphase) then
           mnCT(1,:,:,:) = shape_shape_vector(P_shape, U_shape_2, detwei*nvfrac_gi, normal)
