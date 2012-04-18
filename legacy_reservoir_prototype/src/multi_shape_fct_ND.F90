@@ -2006,11 +2006,11 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
          x_ndgln( ( ele - 1 ) * quad_cv_nloc + 4 ) = 6
 
       case( 4 ) ! Quadratic Triangles 
-         x_nonods = max( max_x_nonods, 10000 ) ! x_nonods will be assessed and updated in Make_QTri
+         x_nonods = max_x_nonods ! x_nonods will be assessed and updated in Make_QTri
          totele = 12
          x = 0. ; y = 0. ; z = 0.
          x_ndgln = 0
-         call Make_QTri( totele, quad_cv_nloc, x_nonods, &
+         call Make_QTri( totele, quad_cv_nloc, max_x_nonods, x_nonods, &
               x_ndgln, lx, ly, x, y, fem_nod )
 
          !! Just debugging local numbering:
@@ -2314,13 +2314,13 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
       ewrite(3,*) ( scvfeweigh( cv_iloc ), cv_iloc = 1, scvngi )
 
       ! And for velocities:
-      if(u_nloc==1) then ! a constant basis function... 
-         sufen=1.0 
-         sufenlx=0.0 
-         sufenly=0.0
-         sufenlz=0.0 
-         sufenslx=0.0
-         sufensly=0.0
+      if( u_nloc == 1 ) then ! a constant basis function 
+         sufen = 1.0 
+         sufenlx = 0.0 
+         sufenly = 0.0
+         sufenlz = 0.0 
+         sufenslx = 0.0
+         sufensly = 0.0
       else
          call Compute_SurfaceShapeFunctions_Triangle_Tetrahedron( &
               cv_nloc, cv_ele_type, &
@@ -2350,7 +2350,7 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
 
       ewrite(3,*)'Shape Functions for velocity fields -- SCVFEWEIGH'
       ewrite(3,*) ( scvfeweigh( cv_iloc ), cv_iloc = 1, scvngi )
-
+   
       deallocate( lx )
       deallocate( ly )
       deallocate( lz )
@@ -2645,7 +2645,6 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
                      end if
                   end do Loop_Poly2d_1_2
                end do Loop_Poly2d_1_1
-!                  stop 9822
 
             else ! 3D
                Loop_Poly3d_2_1: do ip = 1, npoly
@@ -4070,14 +4069,14 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
 
 !!!!
 
-    subroutine Make_QTri( totele, x_nloc, x_nonods, &
+    subroutine Make_QTri( totele, x_nloc, max_x_nonods, x_nonods, &
          x_ndgln, lx, ly, x, y, fem_nod )
       implicit none
-      integer, intent( in ) :: totele, x_nloc
+      integer, intent( in ) :: totele, x_nloc, max_x_nonods
       integer, intent( inout ) :: x_nonods
       integer, dimension( totele * x_nloc ), intent( inout ) :: x_ndgln
-      real, dimension( x_nonods ), intent( inout ) :: lx, ly, x, y
-      integer, dimension( x_nonods ), intent( inout ) :: fem_nod
+      real, dimension( max_x_nonods ), intent( inout ) :: lx, ly, x, y
+      integer, dimension( max_x_nonods ), intent( inout ) :: fem_nod
       ! Local variables
       ! Scaling factor to give a unity area of the local triangle
       real, parameter :: h_scale =  1.5196713713031851
@@ -4293,12 +4292,6 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
       do ele = 1, totele
          ewrite(3,*) ele, ( x_ndgln( ( ele - 1 ) * x_nloc + x_iloc ), x_iloc = 1, x_nloc )
       end do
-!      stop 2822
-!      do xnod = 1, x_nonods
-      do xnod = 1, 100
-         ewrite(3,*) xnod, x(xnod),y(xnod)
-      end do
-!       stop 9829
 
       x_nonods = maxval( x_ndgln )
 
