@@ -4539,9 +4539,14 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
       do inod=1,x_nonods
         jnod_found=0
         do jnod=1,count_nod
-          if( ( abs( x2( inod ) - x2( jnod ) ) <= toler ) .and. &
-              ( abs( y2( inod ) - y2( jnod ) ) <= toler ) .and. &
-              ( abs( z2( inod ) - z2( jnod ) ) <= toler ) ) jnod_found=jnod
+          if( ( abs( x2( inod ) - x( jnod ) ) <= toler ) .and. &
+              ( abs( y2( inod ) - y( jnod ) ) <= toler ) ) then
+             if( present( z ) ) then
+                 if( ( abs( z2( inod ) - z( jnod ) ) <= toler ) )jnod_found=jnod
+             else
+                 jnod_found=jnod
+              end if
+           end if
         end do
         if(jnod_found.eq.0) then
            count_nod=count_nod+1
