@@ -2273,7 +2273,7 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
       allocate( x_ndgln( max_totele * quad_cv_nloc ) )
       allocate( fem_nod( max_x_nonods ) )
       allocate( scvfeweigh_dummy( scvngi ) )
-      allocate( cv_neiloc_cells_dummy( cv_nloc,scvngi ) )
+      allocate( cv_neiloc_cells_dummy( cv_nloc, scvngi ) )
 
       ! Get the x_ndgln for the nodes of triangles, tetrahedra, quadrilaterals or hexahedra
       ! super-elements:
@@ -2386,7 +2386,7 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
       integer, dimension( totele * quad_cv_nloc ), intent( in ) :: x_ndgln
       integer, dimension( x_nonods ), intent( in ) :: fem_nod
       integer, dimension( cv_nloc_cells, scvngi ), intent( inout ) :: cv_neiloc_cells
-      integer, dimension( cv_nloc_cells, scvngi ), intent( inout ) :: cvfem_neiloc
+      integer, dimension( cv_nloc, scvngi ), intent( inout ) :: cvfem_neiloc
       real, dimension( x_nonods ), intent( in ) :: x, y, z
       real, dimension( quad_cv_nloc ), intent( in ) :: lx, ly, lz ! corner nodes
       real, dimension( cv_nloc, scvngi ), intent( inout ) :: sn, snlx, snly, snlz, &
@@ -2763,7 +2763,6 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
                xgi = 0. ; ygi = 0. ; zgi = 0.
                do quad_cv_siloc = 1, quad_cv_snloc
                   xnod = x_sndgln( ( sele - 1 ) * quad_cv_snloc + quad_cv_siloc )
-
                   xgi =  xgi + quad_sn( quad_cv_siloc, quad_cv_sgi ) * x( xnod )
                   ygi =  ygi + quad_sn( quad_cv_siloc, quad_cv_sgi ) * y( xnod )
                   if( d3 ) zgi =  zgi + quad_sn( quad_cv_siloc, quad_cv_sgi ) * z( xnod )
@@ -2983,7 +2982,7 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
          end do
       end do
 
-      cvfem_neiloc = 0
+      cvfem_neiloc( :, : ) = 0
       ! calculate cvfem_neiloc from local coords l1-4:
       Loop_SurfaceQuadrature: do cv_sgi = 1, scvngi
          zer_l1 = ( abs( l1( cv_sgi ) ) < 1.0e-4 )
