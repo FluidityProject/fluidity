@@ -1979,12 +1979,16 @@
       ewrite(3,*) 'In DET_SUF_ELE_SHAPE'
     
       ! Obtain SBCVFEN from SCVFEN: 
-      CALL SCVFEN_2_SBCVFEN( CV_NLOC, CV_SNLOC, SCVNGI, SBCVNGI, CVFEM_ON_FACE, &
+      print *,'for cv:'
+      CALL SCVFEN_2_SBCVFEN( CV_NLOC, CV_SNLOC, SCVNGI, SBCVNGI, &
+           CV_NLOC, CV_SNLOC, CVFEM_ON_FACE, &
            SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFENLX, SBCVFENLY, SBCVFENLZ, SBCVFEWEIGH, &
            SCVFEN, SCVFENSLX, SCVFENSLY, SCVFENLX, SCVFENLY, SCVFENLZ, SCVFEWEIGH )
 
+      print *,'for u:'
       ! Obtain SBUFEN from SUFEN: 
-      CALL SCVFEN_2_SBCVFEN( U_NLOC, U_SNLOC, SCVNGI, SBCVNGI, CVFEM_ON_FACE, &
+      CALL SCVFEN_2_SBCVFEN( U_NLOC, U_SNLOC, SCVNGI, SBCVNGI, &
+           CV_NLOC, CV_SNLOC, CVFEM_ON_FACE, &
            SBUFEN, SBUFENSLX, SBUFENSLY, SBUFENLX, SBUFENLY, SBUFENLZ, SBCVFEWEIGH, &
            SUFEN, SUFENSLX, SUFENSLY, SUFENLX, SUFENLY, SUFENLZ, SCVFEWEIGH )
 
@@ -2006,13 +2010,15 @@
     END SUBROUTINE DET_SUF_ELE_SHAPE
 
 
-    subroutine scvfen_2_sbcvfen( cv_nloc, cv_snloc, scvngi, sbcvngi, cvfem_on_face, &
+    subroutine scvfen_2_sbcvfen( cv_nloc, cv_snloc, scvngi, sbcvngi, &
+         cv_nloc_cells, cv_snloc_cells, cvfem_on_face, &
          sbcvfen, sbcvfenslx, sbcvfensly, sbcvfenlx, sbcvfenly, sbcvfenlz, sbcvfeweigh, &
          scvfen, scvfenslx, scvfensly, scvfenlx, scvfenly, scvfenlz, scvfeweigh )
       ! Compute SBCVFEN from SCVFEN
       implicit none
       integer, intent( in ) :: cv_nloc, cv_snloc, scvngi, sbcvngi
-      logical, dimension( cv_nloc, scvngi ), intent( in ) :: cvfem_on_face
+      integer, intent( in ) :: cv_nloc_cells, cv_snloc_cells
+      logical, dimension( cv_nloc_cells, scvngi ), intent( in ) :: cvfem_on_face
       real, dimension( cv_snloc, sbcvngi ), intent( inout ) :: sbcvfen, sbcvfenslx, &
            sbcvfensly, sbcvfenlx, sbcvfenly, sbcvfenlz
       real, dimension( sbcvngi ), intent( inout ) :: sbcvfeweigh
@@ -2020,16 +2026,18 @@
            scvfenslx, scvfensly, scvfenlx, scvfenly, scvfenlz
       real, dimension( scvngi ), intent( in ) :: scvfeweigh
       ! Local variables
-      logical, dimension( : ), allocatable :: candidate_gi
-      integer :: cv_siloc, cv_iloc, cv_bsgi, cv_sgi
+      logical, dimension( : ), allocatable :: candidate_gi,candidate_gi2
+      integer :: cv_siloc, cv_iloc, cv_bsgi, cv_sgi, cv_iloc_cells
       real :: r_prodt
 
       ewrite(3,*) ' In scvfen_2_sbcvfen', cv_snloc, sbcvngi
 
       allocate( candidate_gi( scvngi ) )
+      allocate( candidate_gi2( scvngi ) )
 
       ! The CV_SNLOC surface nodes are the only nodes that are candidates. 
       ! They are the 1st nodes in the local list for the volumes
+! WE CAN DELETE THE next bit probably...
       candidate_gi = .false.
       Loop_SGI1: do cv_sgi = 1, scvngi
          r_prodt = 1.
@@ -2041,12 +2049,25 @@
          if( r_prodt > 1.e-5 ) candidate_gi( cv_sgi ) = .true.
       end do Loop_SGI1
 
+      print *,'candidate_gi:',candidate_gi
+
+      candidate_gi2 = .false.
+      do cv_sgi = 1, scvngi
+         candidate_gi2( cv_sgi ) = .false.
+         do cv_iloc_cells = 1, cv_snloc_cells
+            if( cvfem_on_face(cv_iloc_cells,cv_sgi) ) candidate_gi2( cv_sgi ) = .true.
+         end do 
+         print *,'cv_sgi,cvfem_on_face(:,cv_sgi):',cv_sgi,cvfem_on_face(:,cv_sgi)
+      end do 
+
+      print *,'candidate_gi2:',candidate_gi2
+
       Loop_SNLOC: do cv_siloc = 1, cv_snloc
          cv_iloc = cv_siloc
          cv_bsgi = 0
          Loop_SGI2: do cv_sgi = 1, scvngi
-            Conditional_1: if( candidate_gi( cv_sgi ) ) then
-               Conditional_2: if( cvfem_on_face( cv_iloc, cv_sgi ) ) then
+!            Conditional_1: if( candidate_gi( cv_sgi ) ) then
+               Conditional_2: if( candidate_gi2( cv_sgi ) ) then
                   cv_bsgi = cv_bsgi + 1
                   ewrite(3,*) 'cv_siloc, cv_bsgi,cv_iloc, cv_sgi:', &
                        cv_siloc, cv_bsgi,cv_iloc, cv_sgi
@@ -2059,11 +2080,17 @@
                   sbcvfenlz( cv_siloc, cv_bsgi ) = scvfenlz( cv_iloc, cv_sgi )
                   sbcvfeweigh( cv_bsgi ) = scvfeweigh( cv_sgi )
                end if Conditional_2
-            end if Conditional_1
+!            end if Conditional_1
          end do Loop_SGI2
       end do Loop_SNLOC
 
+      print *,'cv_nloc, cv_snloc, scvngi, sbcvngi:',cv_nloc, cv_snloc, scvngi, sbcvngi
+      print *,'cv_nloc_cells, cv_snloc_cells:',cv_nloc_cells, cv_snloc_cells
+      print *,'cvfem_on_face:',cvfem_on_face
+
       deallocate( candidate_gi )
+      deallocate( candidate_gi2 )
+         if(cv_nloc_cells.ne.cv_nloc) stop 29892
 
       return
     end subroutine scvfen_2_sbcvfen
@@ -2299,6 +2326,7 @@
               scvfen, scvfenlx, scvfenly, scvfenlz, scvfenslx, scvfensly,  &
               sufen, sufenlx, sufenly, sufenlz, sufenslx, sufensly, &
               cv_neiloc, cvfem_neiloc, ufem_neiloc )
+         print *,'here1 - just outside of suf_cv_tri_tet_shape'
       case( 5 ) ! Bi-linear Quadrilateral
          call fvquad( scvngi, cv_nloc, scvngi, &
               m, scvfen, scvfenslx, & 
