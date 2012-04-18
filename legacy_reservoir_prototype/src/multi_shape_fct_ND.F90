@@ -2424,7 +2424,8 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
 
       ewrite(3,*)'Compute_SurfaceShapeFunctions_Triangle_Tetrahedron'
       ewrite(3,*)'scvngi=',scvngi
-!      stop 22
+      ewrite(3,*)'lx:', lx( 1 : quad_cv_nloc )
+      !      stop 22
 
       sn = 0.0
       snlx = 0.0
@@ -2517,10 +2518,10 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
       allocate( ysl( quad_cv_snloc ) ) 
       allocate( zsl( quad_cv_snloc ) ) 
 
-      allocate( l1( stotel * quad_cv_sngi * totele ) )
-      allocate( l2( stotel * quad_cv_sngi * totele ) )
-      allocate( l3( stotel * quad_cv_sngi * totele ) )
-      allocate( l4( stotel * quad_cv_sngi * totele ) )
+      allocate( l1( stotel * quad_cv_sngi * totele ) ) ; l1 = 0.
+      allocate( l2( stotel * quad_cv_sngi * totele ) ) ; l2 = 0.
+      allocate( l3( stotel * quad_cv_sngi * totele ) ) ; l3 = 0.
+      allocate( l4( stotel * quad_cv_sngi * totele ) ) ; l4 = 0.
 
       normx = 1. ; normy = 0. ; normz = 0.
 
@@ -2596,7 +2597,7 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
       do xnod = 1, cv_nloc
          ewrite(3,*)'sn_i_xj:', xnod, ( sn_i_xj( xnod, ele ), ele = 1, x_nonods )
       end do
-!        stop 2929
+      !        stop 2929
 
       Loop_Elements: do ele = 1, totele ! Calculate SDETWEI,RA,SNX,SNY,SNZ for element ELE
          ! What is the fem node belonging to this element (CV_ILOC):
@@ -2640,8 +2641,8 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
                         x_sndgln( ( sele - 1 ) * quad_cv_snloc + quad_cv_siloc ) = &
                              x_ndgln( ( ele - 1 ) * quad_cv_nloc + quad_cv_iloc )
                         loc_2nd_lev( sele, quad_cv_siloc ) = quad_cv_iloc
-           ewrite(3, *) 'ele,sele,quad_cv_snloc,quad_cv_nloc,quad_cv_siloc,x_sndgln:', &
-                    ele,sele,quad_cv_snloc,quad_cv_nloc,quad_cv_siloc,x_sndgln( ( sele - 1 ) * quad_cv_snloc + quad_cv_siloc )
+                        ewrite(3, *) 'ele,sele,quad_cv_snloc,quad_cv_nloc,quad_cv_siloc,x_sndgln:', &
+                             ele,sele,quad_cv_snloc,quad_cv_nloc,quad_cv_siloc,x_sndgln( ( sele - 1 ) * quad_cv_snloc + quad_cv_siloc )
                      end if
                   end do Loop_Poly2d_1_2
                end do Loop_Poly2d_1_1
@@ -2762,10 +2763,7 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
                xgi = 0. ; ygi = 0. ; zgi = 0.
                do quad_cv_siloc = 1, quad_cv_snloc
                   xnod = x_sndgln( ( sele - 1 ) * quad_cv_snloc + quad_cv_siloc )
-        if((ele==4).or.(ele==7)) then
-           print *,'--xnod,x(xnod),y(xnod):',xnod,x(xnod),y(xnod) 
-        endif
-                  
+
                   xgi =  xgi + quad_sn( quad_cv_siloc, quad_cv_sgi ) * x( xnod )
                   ygi =  ygi + quad_sn( quad_cv_siloc, quad_cv_sgi ) * y( xnod )
                   if( d3 ) zgi =  zgi + quad_sn( quad_cv_siloc, quad_cv_sgi ) * z( xnod )
@@ -2781,10 +2779,6 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
                   gl_quad_l1( cv_sgi ) = area_quad_map( 1, xgi, ygi, lx, ly )
                   gl_quad_l2( cv_sgi ) = area_quad_map( 2, xgi, ygi, lx, ly )
                   gl_quad_l3( cv_sgi ) = area_quad_map( 3, xgi, ygi, lx, ly )
-        if((ele==4).or.(ele==7)) then
-           print *,'--ele,sele,cv_sgi, 3 coords:',ele,sele,cv_sgi, &
-               gl_quad_l1( cv_sgi ),gl_quad_l2( cv_sgi ),gl_quad_l3( cv_sgi ) 
-        endif
                else 
                   gl_quad_l1( cv_sgi ) = 1.0
                end if
@@ -2844,11 +2838,11 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
          endif
       end do
 
-       print *,'cv_nloc, stotel * quad_cv_sngi * totele:',cv_nloc, stotel * quad_cv_sngi * totele
-!       stop 88
+      print *,'cv_nloc, stotel * quad_cv_sngi * totele:',cv_nloc, stotel * quad_cv_sngi * totele
+      !       stop 88
       allocate( sn_2( cv_nloc, stotel * quad_cv_sngi * totele ) ) ; sn_2 = 0.
-!      sn_2(:,49)=0.0
-!         stop 878
+      !      sn_2(:,49)=0.0
+      !         stop 878
       allocate( suf_snlx_2( cv_nloc, stotel * quad_cv_sngi * totele ) ) ; suf_snlx_2 = 0.
       allocate( suf_snly_2( cv_nloc, stotel * quad_cv_sngi * totele ) ) ; suf_snly_2 = 0.
       allocate( snlx_2( cv_nloc, stotel * quad_cv_sngi * totele ) ) ; snlx_2 = 0.
@@ -2928,7 +2922,7 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
       ewrite(3,*) 'quad_cv_sngi:',quad_cv_sngi
 
       ewrite(3,*) 'stotel * quad_cv_sngi * totele,cv_sngi_2:', &
-                   stotel * quad_cv_sngi * totele,cv_sngi_2
+           stotel * quad_cv_sngi * totele,cv_sngi_2
 
       ! Take out repetition of quadrature points
       cv_sgk = 0 ; cv_neiloc_cells = 0 ; l1 = 0. ; l2 = 0. ; l3 = 0.
@@ -2997,8 +2991,8 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
          zer_l3 = ( abs( l3( cv_sgi ) ) < 1.0e-4 )
          if ( d3 ) zer_l4 = ( abs( l4( cv_sgi )) < 1.0e-4 )
 
-         !ewrite(3,*) 'gi, l1/2/3/4:', cv_sgi, abs( l1( cv_sgi ) ), abs( l2( cv_sgi ) ), &
-         !     abs( l3( cv_sgi ) ), abs( l4( cv_sgi ) )
+         ewrite(3,*) 'gi, l1/2/3/4:', cv_sgi, abs( l1( cv_sgi ) ), abs( l2( cv_sgi ) ), &
+              abs( l3( cv_sgi ) ), abs( l4( cv_sgi ) )
 
          Conditional_Neiloc: if ( d3 ) then
             !ewrite(3,*)'cv_sgi, zer_l1/2/3/4:', cv_sgi, (zer_l1.or.zer_l2.or.zer_l3.or.zer_l4)
@@ -3028,6 +3022,7 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
                  quad_cv_siloc, cv_sgi, cvfem_neiloc( quad_cv_siloc, cv_sgi )
          end do
       end do
+      ewrite(3,*)'lx:', lx( 1 : quad_cv_nloc )
 
       !ewrite(3,*) ''
       !do cv_sgi = 1, scvngi
