@@ -2192,8 +2192,8 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
       integer, dimension( : ), allocatable :: x_ndgln_big, x_ndgln2
       integer :: triangle_totele, nodeplustetnodes
 
-      totele2 = totele
-      triangle_totele = totele2 * tet_totele
+      totele2 = totele * tet_totele
+      triangle_totele = totele * tet_totele
       x_nonods2 = no_of_nodes_in_faces * no_faces * triangle_totele + triangle_totele
       allocate( x_ndgln2( x_nonods2 ) )
       allocate( x_ndgln_big( x_nonods2 ) )
@@ -4498,19 +4498,20 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
     end subroutine Eliminating_Repetitive_Nodes
 
 
-    subroutine Eliminating_Repetitive_Nodes_all( totele, x_nloc, x_nonods, mx_x_nonods,  &
-         x_ndgln, x, y )
+    subroutine Eliminating_Repetitive_Nodes_all( totele, x_nloc, x_nonods, &
+         mx_x_nonods, x_ndgln, x, y, z )
       implicit none
       integer, intent( in ) :: totele, x_nloc, mx_x_nonods
       integer, intent( inout ) :: x_nonods
       integer, dimension( totele * x_nloc ), intent( inout ) :: x_ndgln
       real, dimension( mx_x_nonods ), intent( inout ) :: x, y
+      real, dimension( mx_x_nonods ), intent( inout ), optional :: z
       ! Local variables
       real, parameter :: toler = 1.e-4
       integer :: ele, ele2, iloc, jloc, inod, jnod, jnod2, x_nloc2, isum, iref
       integer :: count_nod,jnod_found
       integer, dimension( : ), allocatable :: x_ndgln2,new2old,old2new
-      real, dimension( : ), allocatable :: x2,y2
+      real, dimension( : ), allocatable :: x2,y2, z2
 
       ewrite(3,*) 'In Eliminating_Repetitive_Nodes'
 
@@ -4519,10 +4520,18 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
       allocate( old2new( x_nonods ) ) ; old2new = 0
       allocate( x2( x_nonods ) )
       allocate( y2( x_nonods ) )
+      allocate( z2( x_nonods ) )
+
       x2(1:x_nonods)=x(1:x_nonods)
       y2(1:x_nonods)=y(1:x_nonods)
-      x=0.0
-      y=0.0
+      if (present(z)) then
+         z2(1:x_nonods)=z(1:x_nonods)
+      else
+         z2=0.
+      end if
+
+      x=0. ; y=0. 
+      if (present(z)) z=0.
 
       print *,'before eliminating nodes x_nonods:',x_nonods
 
@@ -4530,8 +4539,9 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
       do inod=1,x_nonods
         jnod_found=0
         do jnod=1,count_nod
-          if( ( abs( x2( inod ) - x( jnod ) ) <= toler ) .and. &
-              ( abs( y2( inod ) - y( jnod ) ) <= toler ) ) jnod_found=jnod
+          if( ( abs( x2( inod ) - x2( jnod ) ) <= toler ) .and. &
+              ( abs( y2( inod ) - y2( jnod ) ) <= toler ) .and. &
+              ( abs( z2( inod ) - z2( jnod ) ) <= toler ) ) jnod_found=jnod
         end do
         if(jnod_found.eq.0) then
            count_nod=count_nod+1
@@ -4539,6 +4549,7 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
            old2new(inod)=count_nod
            x(count_nod)=x2(inod)
            y(count_nod)=y2(inod)
+           if (present(z)) z(count_nod)=z2(inod)
 !           print *,'count_nod,inod:',count_nod,inod
         else
 !            print *,'***** inod,jnod_found',inod,jnod_found
@@ -4711,7 +4722,122 @@ ewrite(3,*) ''
       return
     end subroutine Adding_Extra_Parametric_Nodes
 
-    
+    subroutine Adding_Extra_Parametric_Nodes_Tet( totele, x_nloc, mx_x_nonods, &
+         x_ndgln, x, y, z )
+      implicit none
+      integer, intent( in ) :: totele, x_nloc, mx_x_nonods
+      integer, dimension( totele * x_nloc ), intent( inout ) :: x_ndgln
+      real, dimension( mx_x_nonods ), intent( inout ) :: x, y, z
+      ! Local variables
+      integer, dimension( : ), allocatable :: x_ndgln2, loclist
+      integer :: ele, iloc, iloc2, x_loc_ref
+      integer :: xnod1, xnod2, xnod3, xnod4
+      integer :: xnod5, xnod6, xnod7, xnod8 
+      integer :: npoly, inod
+      integer :: iloc_list(4),jloc_list(4),iiloc,jloc, ii, jj
+      real :: rsumx, rsumy
+
+      ewrite(3,*) 'In Adding_Extra_Parametric_Nodes'
+
+      x_loc_ref = maxval( x_ndgln ) 
+
+      if( .true. ) then
+         print *,'before adding more nodes x_loc_ref:', x_loc_ref 
+         iloc_list(1)=1
+         jloc_list(1)=1
+         iloc_list(2)=1
+         jloc_list(2)=1
+         iloc_list(3)=1
+         jloc_list(3)=1
+         iloc_list(4)=1
+         jloc_list(4)=1
+
+         do ele = 1, totele ! loop over hexes
+            iiloc=8
+
+            do ii = 1, 6 ! loop over faces
+
+               do jj = 1, 4 ! loop over edges
+
+                  iloc=1
+                  jloc=1
+                  xnod1 = x_ndgln( ( ele - 1 ) * x_nloc + iloc )
+                  xnod2 = x_ndgln( ( ele - 1 ) * x_nloc + jloc )
+
+                  x_loc_ref = x_loc_ref + 1
+                  iiloc=iiloc+1
+
+                  ! add a parametric node on the edge
+                  x_ndgln( ( ele - 1 ) * x_nloc + iiloc ) = x_loc_ref
+                  x( x_loc_ref ) = 0.5 * ( x( xnod1 ) + x( xnod2 ) ) 
+                  y( x_loc_ref ) = 0.5 * ( y( xnod1 ) + y( xnod2 ) ) 
+                  z( x_loc_ref ) = 0.5 * ( z( xnod1 ) + z( xnod2 ) ) 
+               end do
+
+               xnod1 = x_ndgln( ( ele - 1 ) * x_nloc + 1 ) ! this 1 2 3 4 is wrong
+               xnod2 = x_ndgln( ( ele - 1 ) * x_nloc + 2 )
+               xnod3 = x_ndgln( ( ele - 1 ) * x_nloc + 3 )
+               xnod4 = x_ndgln( ( ele - 1 ) * x_nloc + 4 )
+
+               x_loc_ref = x_loc_ref + 1
+               iiloc=iiloc+1
+
+               ! add a parametric node on the face
+               x_ndgln( ( ele - 1 ) * x_nloc + iiloc ) = x_loc_ref
+               x( x_loc_ref ) = 0.25 * ( x( xnod1 ) + x( xnod2 ) + x( xnod3 ) + x( xnod4 ) ) 
+               y( x_loc_ref ) = 0.25 * ( y( xnod1 ) + y( xnod2 ) + y( xnod3 ) + y( xnod4 ) )
+               z( x_loc_ref ) = 0.25 * ( z( xnod1 ) + z( xnod2 ) + z( xnod3 ) + z( xnod4 ) )
+            end do ! loop over faces
+            
+            xnod1 = x_ndgln( ( ele - 1 ) * x_nloc + 1 ) ! this 1 2 3 4... is wrong
+            xnod2 = x_ndgln( ( ele - 1 ) * x_nloc + 2 )
+            xnod3 = x_ndgln( ( ele - 1 ) * x_nloc + 3 )
+            xnod4 = x_ndgln( ( ele - 1 ) * x_nloc + 4 )
+            xnod5 = x_ndgln( ( ele - 1 ) * x_nloc + 5 )
+            xnod6 = x_ndgln( ( ele - 1 ) * x_nloc + 6 )
+            xnod7 = x_ndgln( ( ele - 1 ) * x_nloc + 7 )
+            xnod8 = x_ndgln( ( ele - 1 ) * x_nloc + 8 )
+
+            x_loc_ref = x_loc_ref + 1
+            iiloc=iiloc+1
+
+            ! add a parametric node on the volume 
+            x_ndgln( ( ele - 1 ) * x_nloc + iiloc ) = x_loc_ref
+            x( x_loc_ref ) = 0.125 * ( x( xnod1 ) + x( xnod2 ) + x( xnod3 ) + x( xnod4 ) + &
+                 x( xnod5 ) + x( xnod6 ) + x( xnod7 ) + x( xnod8 ) )
+            y( x_loc_ref ) = 0.125 * ( y( xnod1 ) + y( xnod2 ) + y( xnod3 ) + y( xnod4 ) + &
+                 y( xnod5 ) + y( xnod6 ) + y( xnod7 ) + y( xnod8 ) )
+            z( x_loc_ref ) = 0.125 * ( z( xnod1 ) + z( xnod2 ) + z( xnod3 ) + z( xnod4 ) + &
+                 z( xnod5 ) + z( xnod6 ) + z( xnod7 ) + z( xnod8 ) )
+
+         end do ! loop over hexes
+
+      end if
+
+      allocate( x_ndgln2( totele * x_nloc ) ) ; x_ndgln2 = 0
+      allocate( loclist( x_nloc ) ) ; loclist = 0
+      x_ndgln2 = x_ndgln ; x_ndgln = 0 ; inod = 0 ; jloc = 0
+
+      loclist = (/ 1, 5, 2, 6, 7, 8, 3, 9, 4 /) ! this is wrong
+
+      do ele = 1, totele
+         do iloc = 1, x_nloc
+            jloc = loclist( iloc )
+            x_ndgln( ( ele - 1 ) * x_nloc + iloc ) = &
+                 x_ndgln2( ( ele - 1 ) * x_nloc + jloc )  
+         end do
+      end do
+
+      do ele = 1, totele
+         ewrite(3,*)'x_ndgln:', ele, &
+              ( x_ndgln( ( ele - 1 ) * x_nloc + iloc ) , iloc = 1, x_nloc )
+      end do
+
+      deallocate( x_ndgln2 )
+      deallocate( loclist )
+
+      return
+    end subroutine Adding_Extra_Parametric_Nodes_Tet
 
   end module shape_functions_NDim
 

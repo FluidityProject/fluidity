@@ -373,7 +373,8 @@
                     y( tet_nodes( 0, ilayer - 1 ) + 1 + 2 * ilayer + 1 + ilayer0 )
                ! Node Point - Z coordinates 
                z( node + inod ) = z( tet_nodes( 0, ilayer - 1 ) + 1 )
-               ewrite(3,'(i3,1x,i3,3g12.5)') ilayer, node + inod , x( node + inod ), y( node + inod ), z( node + inod )
+               ewrite(3,'(i3,1x,i3,3g12.5)') ilayer, node + inod , &
+                    x( node + inod ), y( node + inod ), z( node + inod )
             end do Loop_Centre_Nodes1
          end do Loop_Centre_Nodes0
       end if Conditional_Centre_Nodes
