@@ -584,7 +584,11 @@ module compressible_projection
         ! Important note: with SUPG the test function derivatives have not been
         ! modified.
   
-        ele_mat = (1./(dt*dt*theta_divergence*theta_pg))*shape_shape(test_shape, test_shape_ptr, detwei*ele_val_at_quad(nvfrac, ele)*drhodp_at_quad/density_at_quad)
+        if(multiphase) then
+           ele_mat = (1./(dt*dt*theta_divergence*theta_pg))*shape_shape(test_shape, test_shape_ptr, detwei*ele_val_at_quad(nvfrac, ele)*drhodp_at_quad/density_at_quad)
+        else
+           ele_mat = (1./(dt*dt*theta_divergence*theta_pg))*shape_shape(test_shape, test_shape_ptr, detwei*drhodp_at_quad/density_at_quad)
+        end if
         !       /
         ! rhs = |test_shape* &
         !       /
