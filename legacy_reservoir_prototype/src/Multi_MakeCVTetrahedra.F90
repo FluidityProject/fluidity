@@ -32,7 +32,8 @@
     use fldebug
 
     integer, parameter :: nlayer = 2, totele = 8, tet_totele = 4, tri_totele = 3, &
-         quad_cv_nloc = 8, no_of_nodes_in_faces = 7, no_faces = 4, nside = 3 
+         quad_cv_nloc = 8, no_of_nodes_in_faces = 7, no_faces = 4, nside = 3
+    integer, parameter :: no_elements = 8 ! this is hard-coded for now
     real, parameter :: h_scale = 2.0396489026555056 ! Scaling factor to give a unity volume of the local tetrahedron
 
   contains
@@ -109,7 +110,8 @@
       lz( tet_nodes( 0, ilayer - 1 ) + 1 + ilayer * 0 ) = &
            sqrt( 2. / 3. ) * h_scale
 
-      !ewrite(3,*)  tet_nodes( 0, ilayer - 1 ) + 1 + ilayer * 0, tet_nodes( 0, ilayer0 - 1 ) + 1,tet_nodes( 0, ilayer0 - 1 ) + 1 + ilayer0
+      !ewrite(3,*)  tet_nodes( 0, ilayer - 1 ) + 1 + ilayer * 0, tet_nodes( 0, ilayer0 - 1 ) + 
+      !1,tet_nodes( 0, ilayer0 - 1 ) + 1 + ilayer0
       !ewrite(3,*)  lx(1), lx( 5), lx(7), lx(9)
       !stop 986
 
@@ -218,6 +220,7 @@
       end do
       !stop 987
 
+      !x_nonods = maxval(x_ndgln_big)
 
       return
     end subroutine numbering_tet_elements

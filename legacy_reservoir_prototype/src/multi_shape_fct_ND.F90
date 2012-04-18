@@ -596,6 +596,8 @@
       integer :: nquad, p, q, ir, corn, gpoi, ilx, ily, ilz, nj
       real :: posi
 
+      ewrite(3,*)'In re3d27'
+
       ! Allocating memory
       allocate( lx( nl ) )
       allocate( ly( nl ) )
@@ -845,13 +847,13 @@
       case( 7, 8 ) ! Tetrahedra
          Conditional_CV_NLOC3D_Tet: Select Case( cv_nloc )
          case( 4 ) ! Linear 
-            cv_ngi = 32
+            cv_ngi = 32 ! 4x8
             scvngi = 6
             sbcvngi = 3
-         case( 10 ) ! Quadratic (double check this)
-            cv_ngi = 128
-            scvngi = 96
-            sbcvngi = 54
+         case( 10 ) ! Quadratic
+            cv_ngi = 864 ! 8x4x27
+            scvngi = 192
+            sbcvngi = 48
          case default; FLExit(" Invalid integer for cv_nloc ")
          end Select Conditional_CV_NLOC3D_Tet
          nface = 4
@@ -1084,7 +1086,7 @@
       logical :: diff
       real :: lx
       integer :: inod, ndnod
-      real, dimension( 0 : ndnod ) :: nodpos
+      real, dimension( 0 : ndnod - 1 ) :: nodpos
       ! Local variables
       integer :: n, k, i, j
       real :: denomi, over, over1
@@ -1356,9 +1358,9 @@
   contains
 
     subroutine quad_1d_shape( cv_ngi, cv_nloc, u_nloc, cvn, cvweigh, n, nlx, un, unlx )
-      ! For quadatic elements. Shape functions associated with volume integration 
+      ! For quadratic elements. Shape functions associated with volume integration 
       ! using both CV basis functions CVN as well as FEM basis functions N (and 
-      !its derivatives NLX, NLY, NLZ)
+      ! its derivatives NLX, NLY, NLZ)
       implicit none
       integer, intent( in ) :: cv_ngi, cv_nloc, u_nloc
       real, dimension( cv_nloc, cv_ngi ), intent( inout ) :: cvn
@@ -1374,6 +1376,7 @@
       real :: vol_cv, lx_tran, lxgp
 
       ewrite( 3, * ) 'In QUAD_1D_SHAPE'
+      ewrite( 3, * ) 'cv_ngi, cv_nloc', cv_ngi, cv_nloc
 
       nquad = cv_ngi / cv_nloc
 
@@ -1516,6 +1519,8 @@
       integer :: cv_ngi_1d, cv_nloc_1d, u_nloc_1d
 
       ewrite(3,*) 'In MD_Shapes subrt: quad_nd_shape'
+      ewrite(3,*) 'cv_ngi, cv_nloc, u_nloc::', &
+           cv_ngi, cv_nloc, u_nloc
 
       Conditional_Dimensionality: Select Case( ndim )
       case( 1 )
@@ -1529,16 +1534,16 @@
          u_nloc_1d = int( sqrt( 1.e-3 + u_nloc ))
 
       case( 3 )
-         cv_ngi_1d = int( ( 1.e-3 + cv_ngi ) ** 1./3. )
-         cv_nloc_1d = int( ( 1.e-3 + cv_nloc ) ** 1./3. )
-         u_nloc_1d = int( ( 1.e-3 + u_nloc ) ** 1./3. )
+         cv_ngi_1d = int( ( 1.e-3 + cv_ngi ) ** (1./3.) )
+         cv_nloc_1d = int( ( 1.e-3 + cv_nloc ) ** (1./3.) )
+         u_nloc_1d = int( ( 1.e-3 + u_nloc ) ** (1./3.) )
 
       case default; FLExit( " Invalid integer for NDIM " )
 
       end Select Conditional_Dimensionality
 
       ! Allocating memory
-      allocate( cvweigh_1d_dum( cv_ngi_1d ) )
+      allocate( cvweigh_1d( cv_ngi_1d ) )
       allocate( n_1d( cv_nloc_1d, cv_ngi_1d ) )
       allocate( nlx_1d( cv_nloc_1d, cv_ngi_1d ) )
       allocate( un_1d( u_nloc_1d, cv_ngi_1d ) )
@@ -1598,6 +1603,9 @@
       ! Local variables
       integer :: cv_iloc_1d, cv_jloc_1d, cv_kloc_1d, cv_iloc, cv_jloc, cv_kloc, cv_igi, &
            cv_igi_1d, cv_jgi_1d, cv_kgi_1d
+
+print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
+
 
       Conditional_Dimensionality: Select Case( ndim )
       case( 1 )
@@ -2185,8 +2193,8 @@
       integer :: triangle_totele, nodeplustetnodes
 
       totele2 = totele
-      x_nonods2 = 18*4*4      !no_of_nodes_in_faces * no_faces * totele2 + totele2
       triangle_totele = totele2 * tet_totele
+      x_nonods2 = no_of_nodes_in_faces * no_faces * triangle_totele + triangle_totele
       allocate( x_ndgln2( x_nonods2 ) )
       allocate( x_ndgln_big( x_nonods2 ) )
 
@@ -2779,7 +2787,6 @@
 
       end do Loop_Elements
 
-
       ! Now determine the basis functions and derivatives at the 
       ! quadrature pts quad_L1, quad_L2, quad_L3, quad_L4, etc
       tri_tet = .true.
@@ -3166,7 +3173,7 @@
          nwicel = 1 ! was 3
          if( cv_nloc == 10 ) then ! Quadratic hexs
             quad_cv_ngi = 27
-            nwicel = 3
+            nwicel = 3 ! was 1
             dummy_sngi = 9
             dummy_snloc = 9
             mloc = 4
@@ -3257,7 +3264,7 @@
          lowqua = .false.
          if( cv_nloc_cells == 10 ) then ! Quadratic hexs
             quad_cv_ngi = 27
-            nwicel = 4
+            nwicel = 1
             dummy_sngi = 9
             dummy_snloc = 9
          end if
@@ -3274,15 +3281,12 @@
             !!quad_cv_ngi = 9
             dummy_sngi = 3
             dummy_snloc = 3
-            !!nwicel = 2
             nwicel = 3
             mloc = 4
          end if
       end if Conditional_Dimensionality1
 
       if ( cv_ngi == 9 ) quad_cv_ngi = 3
-
-      print *, cv_ngi, totele, quad_cv_ngi, cv_nloc, cv_nloc_cells
 
       ! Consistency check:
       if( cv_ngi /= totele * quad_cv_ngi ) then
@@ -3307,8 +3311,10 @@
       allocate( rdummy( 10000 ) ) ;  rdummy = 0.
 
       ewrite(3,*)'Just b4 shape_l_q_quad from shape_tri_tet'
-      ewrite(3,*) 'totele, cv_nloc_cells, cv_nloc, cv_ngi:', &
-           totele, cv_nloc_cells, cv_nloc, cv_ngi
+      ewrite(3,*) 'totele, x_nonods, cv_nloc_cells, cv_nloc, cv_ngi:', &
+           totele, x_nonods, cv_nloc_cells, cv_nloc, cv_ngi
+      ewrite(3,*) 'quad_cv_nloc, quad_cv_ngi:', &
+           quad_cv_nloc, quad_cv_ngi
       ewrite(3,*)'quad_cv_ngi, lowqua, mloc, nwicel:', &
            quad_cv_ngi, lowqua, mloc, nwicel
 
@@ -3321,6 +3327,8 @@
            nwicel, d3 )   
 
       Loop_Elements: do ele = 1, totele ! Calculate DETWEI,RA,NX,NY,NZ for element ELE
+
+         ewrite(3,*) '+++++++ELE::', ele
 
          call detnlxr( ele, x, y, z, x_ndgln, totele, x_nonods, quad_cv_nloc, quad_cv_ngi, &
               quad_n, quad_nlx, quad_nly, quad_nlz, quad_cvweight, &
@@ -3366,10 +3374,6 @@
                quad_l2( cv_gi ) = volume_quad_map( 2, xgi, ygi, zgi, lx(1:4), ly(1:4), lz(1:4) )
                quad_l3( cv_gi ) = volume_quad_map( 3, xgi, ygi, zgi, lx(1:4), ly(1:4), lz(1:4) )
                quad_l4( cv_gi ) = volume_quad_map( 4, xgi, ygi, zgi, lx(1:4), ly(1:4), lz(1:4) )
-               !quad_l1( cv_gi ) = volume_quad_map( 1, xgi, ygi, zgi, lx, ly, lz )
-               !quad_l2( cv_gi ) = volume_quad_map( 2, xgi, ygi, zgi, lx, ly, lz )
-               !quad_l3( cv_gi ) = volume_quad_map( 3, xgi, ygi, zgi, lx, ly, lz )
-               !quad_l4( cv_gi ) = volume_quad_map( 4, xgi, ygi, zgi, lx, ly, lz )
             else
                quad_l1( cv_gi ) = area_quad_map( 1, xgi, ygi, lx( 1 : 3 ), ly( 1 : 3 ) )
                quad_l2( cv_gi ) = area_quad_map( 2, xgi, ygi, lx( 1 : 3 ), ly( 1 : 3 ) )
@@ -3597,9 +3601,10 @@
                  u_nloc_dummy, cvn_dummy, cvweigh_dummy, &
                  n, nlx, nly, nlz, &
                  un_dummy, unlx_dummy, unly_dummy, unlz_dummy )
-            !call quad_nd_shape( ndim, cv_ele_type_dummy, cv_ngi, cv_nloc, u_nloc_dummy, cvn_dummy, cvweigh_dummy, &
-            !                 n, nlx, nly, nlz, &
-            !                 un_dummy, unlx_dummy, unly_dummy, unlz_dummy )
+            !call quad_nd_shape( ndim, cv_ele_type_dummy, cv_ngi, &
+            !    cv_nloc, u_nloc_dummy, cvn_dummy, cvweigh_dummy, &
+            !    n, nlx, nly, nlz, &
+            !    un_dummy, unlx_dummy, unly_dummy, unlz_dummy )
             if( nloc == 11 ) then ! Bubble function
                n( 11, : ) = l1 * l2 * l3 * l4
                nlx( 11, : ) = l2 * l3 * ( -l2 - l3 + 1. ) - 2. * l1 * l2 * l3
