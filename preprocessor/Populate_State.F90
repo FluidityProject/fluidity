@@ -1480,6 +1480,14 @@ contains
                       field_name=trim(fgroup%variables(v)%chemfield)//"Release", &
                       dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
             end if
+
+            ! Allocate depletion for food requests
+            if (fgroup%variables(v)%field_type == BIOFIELD_FOOD_REQUEST) then
+               call allocate_and_insert_scalar_field(trim(fgroup%variables(v)%depletion_field_path), &
+                      state, parent_mesh="BiologyMesh", &
+                      field_name=trim(fgroup%variables(v)%field_name)//"Depletion", &
+                      dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+            end if
          end do
       end do
 

@@ -201,7 +201,7 @@ class FGroup:
     elif v == "Vis_Irrad":
       v = "env['Irradiance']"
     elif v == "Density":  # Use Pade approximation in Fluidity
-      v = "(26.776016*env['Density'])" # Value is surface density from VEW initialisation
+      v = "(1000.*(env['Density'])-1000.)"
     elif v.endswith("$Pool"):
       v = "vars['" + v.split("$")[0] + "']"
     elif v.endswith("$Ingested"):
@@ -344,7 +344,6 @@ class FGroup:
       chem = str(t[2][1]).split("$")[0]
       return "vars['" + chem + "Release'] = " + self.eval_token(t[1])
 
-    # TODO
     elif t[0] == varietysum:
       return self.eval_token(t[1])
     elif t[0] == varhist:
@@ -352,10 +351,16 @@ class FGroup:
       return self.eval_var(t[1], hist_ind)
     elif t[0] == visIrradAt:
       return "param['surface_irradiance']"
+
+    # TODO
     elif t[0] == integrate:
       return self.eval_token(t[1])
     elif t[0] == ingest:
-      return "#TODO INGEST( " + self.eval_token(t[1]) + ", " + self.eval_token(t[2]) + ", " + self.eval_token(t[3]) + " )"
+      species_conc = self.eval_token(t[1])
+      ing_threshold = self.eval_token(t[2])
+      ing_amount = self.eval_token(t[3])
+      # PRequest should not be hardcoded, but I'm lazy today...
+      return "vars['PRequest'] = " + ing_amount + " if (" + species_conc + " > " + ing_threshold + ") else 0.0"
     elif t[0] == create:
       s = str(t[2])
       return "pass\n    #TODO CREATE( " + s + ", ...)!!! " 

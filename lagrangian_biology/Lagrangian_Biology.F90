@@ -480,15 +480,18 @@ contains
        end do
 
        fgroup%variables(var_index)%name = trim(food_name)//"Request"
-       fgroup%variables(var_index)%field_type = BIOFIELD_FOOD_INGEST
+       fgroup%variables(var_index)%field_type = BIOFIELD_FOOD_REQUEST
        fgroup%variables(var_index)%field_name = trim(fgroup%name)//trim(food_name)//"Request"
        fgroup%variables(var_index)%field_path = trim(food_buffer)//"/scalar_field::Request"
+       fgroup%variables(var_index)%depletion_field_path = trim(food_buffer)//"/scalar_field::Depletion"
+       fgroup%food_sets(i)%request_ind = var_index
        var_index = var_index+1
 
        fgroup%variables(var_index)%name = trim(food_name)//"IngestedCells"
        fgroup%variables(var_index)%field_type = BIOFIELD_FOOD_INGEST
        fgroup%variables(var_index)%field_name = trim(fgroup%name)//trim(food_name)//"IngestedCells"
        fgroup%variables(var_index)%field_path = trim(food_buffer)//"/scalar_field::IngestedCells"
+       fgroup%food_sets(i)%ingest_ind = var_index
        var_index = var_index+1
     end do
 
@@ -546,6 +549,20 @@ contains
     call python_add_state(state(1))
 
     do i = 1, size(agent_arrays)
+
+       if (have_option(trim(agent_arrays(i)%stage_options)//"/biology")) then
+          agent=>agent_arrays(i)%first
+          do while (associated(agent))
+             ! Advance history variables (loop must be backwards)
+             do hvar=size(agent_arrays(i)%fgroup%history_var_inds), 1, -1
+                hvar_ind = agent_arrays(i)%fgroup%history_var_inds(hvar)
+                hvar_src_ind = agent_arrays(i)%fgroup%variables(hvar_ind)%pool_index
+                agent%biology(hvar_ind) = agent%biology(hvar_src_ind)
+             end do
+             agent=>agent%next
+          end do
+       end if
+
        ! Move lagrangian detectors
        if (check_any_lagrangian(agent_arrays(i))) then
           call move_lagrangian_detectors(state, agent_arrays(i), dt, timestep)
@@ -591,13 +608,6 @@ contains
           ! Update agent biology
           agent=>agent_arrays(i)%first
           do while (associated(agent))
-
-             ! Advance history variables (loop must be backwards)
-             do hvar=size(agent_arrays(i)%fgroup%history_var_inds), 1, -1
-                hvar_ind = agent_arrays(i)%fgroup%history_var_inds(hvar)
-                hvar_src_ind = agent_arrays(i)%fgroup%variables(hvar_ind)%pool_index
-                agent%biology(hvar_ind) = agent%biology(hvar_src_ind)
-             end do
 
              if (python_update) then
                 call python_calc_agent_biology(agent, env_fields, dt, trim(agent_arrays(i)%name), trim("biology_update"))
@@ -652,6 +662,9 @@ contains
     ! Execute chemical uptake/release
     call chemical_uptake(state(1))
     call chemical_release(state(1))
+
+    ! Handle ingestion
+    call ingestion_handling(state(1))
 
     ! Particle Management
     do i = 1, size(agent_arrays)
@@ -780,7 +793,7 @@ contains
     type(state_type), intent(inout) :: state
 
     type(vector_field), pointer :: xfield
-    type(scalar_field), dimension(size(agent_list%fgroup%variables)) :: diagfields
+    type(scalar_field_pointer), dimension(size(agent_list%fgroup%variables)) :: diagfields
     type(scalar_field), pointer :: agent_count_field
     type(detector_type), pointer :: agent
     integer :: i
@@ -797,8 +810,8 @@ contains
     ! Pull and reset all per-stage-array diagnostic fields
     do i=1, size(agent_list%fgroup%variables)
        if (agent_list%fgroup%variables(i)%field_type /= BIOFIELD_NONE) then
-          diagfields(i)=extract_scalar_field(state, trim(agent_list%fgroup%variables(i)%field_name)//trim(agent_list%stage_name))
-          call zero(diagfields(i))
+          diagfields(i)%ptr => extract_scalar_field(state, trim(agent_list%fgroup%variables(i)%field_name)//trim(agent_list%stage_name))
+          call zero(diagfields(i)%ptr)
        end if
     end do
 
@@ -818,18 +831,18 @@ contains
 
              ! Agent size (number of individuals represented) does not get multiplied by itself
              if (i == BIOVAR_SIZE) then
-                call addto(diagfields(i), agent%element, agent%biology(i) / ele_volume)
+                call addto(diagfields(i)%ptr, agent%element, agent%biology(i) / ele_volume)
              else
-                call addto(diagfields(i), agent%element, agent%biology(i)*agent%biology(BIOVAR_SIZE) / ele_volume)
+                call addto(diagfields(i)%ptr, agent%element, agent%biology(i)*agent%biology(BIOVAR_SIZE) / ele_volume)
              end if
 
-          ! Uptake request and release are total amounts, so don't divide by element volume
-          elseif (agent_list%fgroup%variables(i)%field_type == BIOFIELD_UPTAKE) then 
-                call addto(diagfields(i), agent%element, agent%biology(i)*agent%biology(BIOVAR_SIZE))
-          elseif (agent_list%fgroup%variables(i)%field_type == BIOFIELD_RELEASE) then
-                ! Make sure we don't release more than we have
-                !release_amount = min(agent%biology(i), agent%biology(agent_list%fgroup%variables(i)%pool_index))
-                call addto(diagfields(i), agent%element, agent%biology(i)*agent%biology(BIOVAR_SIZE))
+          ! Ingestion, uptake and release requests are total amounts, so don't divide by element volume
+          elseif (agent_list%fgroup%variables(i)%field_type == BIOFIELD_UPTAKE .or. &
+                  agent_list%fgroup%variables(i)%field_type == BIOFIELD_RELEASE .or. &
+                  agent_list%fgroup%variables(i)%field_type == BIOFIELD_FOOD_REQUEST .or. &
+                  agent_list%fgroup%variables(i)%field_type == BIOFIELD_FOOD_INGEST) then
+
+             call addto(diagfields(i)%ptr, agent%element, agent%biology(i)*agent%biology(BIOVAR_SIZE))
           end if
        end do
 
@@ -1008,6 +1021,57 @@ contains
     call profiler_toc("/chemical_exchange")
 
   end subroutine chemical_release
+
+  subroutine ingestion_handling(state)
+    type(state_type), intent(inout) :: state
+
+    type(scalar_field), pointer :: conc_field, request_field, depletion_field
+    type(food_set), pointer :: fset
+    type(biovar), pointer :: request_var
+    type(detector_type), pointer :: agent
+    real, dimension(1) :: conc, request, depletion
+    integer :: i, fs, ele
+
+    ewrite(2,*) "In ingestion_handling"
+
+    do i=1, size(agent_arrays)
+       if (allocated(agent_arrays(i)%fgroup%food_sets)) then
+          do fs=1, size(agent_arrays(i)%fgroup%food_sets)
+             fset => agent_arrays(i)%fgroup%food_sets(fs)
+             request_var => agent_arrays(i)%fgroup%variables(fset%request_ind)
+
+             conc_field => extract_scalar_field(state, fset%conc_field_name)
+             request_field => extract_scalar_field(state, trim(request_var%field_name))
+             depletion_field => extract_scalar_field(state, trim(request_var%field_name)//"Depletion")       
+
+             ! Loop over all elements in the source concentration field
+             do ele=1,ele_count(conc_field)
+                conc = ele_val(conc_field, ele)
+                request = ele_val(request_field, ele)
+
+                ! Derive depletion factor
+                if (request(1) > conc(1) .and. request(1) > 0.0) then 
+                   depletion(1) = conc(1) / request(1)
+                else
+                   depletion(1) = 1.0
+                end if
+                call set(depletion_field, ele, depletion(1))
+             end do
+
+             ! Loop over agents to set Ingest variables
+             agent => agent_arrays(i)%first
+             do while (associated(agent))
+                depletion = ele_val(depletion_field, agent%element)
+                agent%biology(fset%ingest_ind) = depletion(1) * agent%biology(fset%request_ind)
+
+                agent => agent%next
+             end do
+
+          end do
+       end if
+    end do
+
+  end subroutine ingestion_handling
 
   subroutine particle_management(state, agent_list)
     type(state_type), intent(inout) :: state

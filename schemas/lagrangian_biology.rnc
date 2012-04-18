@@ -438,6 +438,14 @@ food_set =
                empty
             }
          },
+         ## Depletion factor
+         element scalar_field {
+            attribute name { "Depletion" },
+            element diagnostic {
+               internal_algorithm,
+               diagnostic_scalar_field_no_adapt
+            }
+         },
          element scalar_field {
             attribute name { "IngestedCells" },
             element diagnostic {

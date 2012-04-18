@@ -118,6 +118,8 @@ module detector_data_types
     ! Concentration field
     character(len=FIELD_NAME_LEN) :: conc_field_name
     character(len=OPTION_PATH_LEN) :: conc_field_path
+    ! Indices for the associated request/ingest variables
+    integer :: request_ind, ingest_ind
   end type
 
   ! Type holding meta-information about biology variables of LE agents

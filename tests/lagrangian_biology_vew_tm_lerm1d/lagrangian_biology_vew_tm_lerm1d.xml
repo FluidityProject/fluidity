@@ -39,6 +39,10 @@ dissolved_nitrate_min = min(stat_parser("vew_toymodel.stat")['Water']['Dissolved
 from fluidity_tools import stat_parser
 dissolved_silicate_min = min(stat_parser("vew_toymodel.stat")['Water']['DissolvedSilicate']['min'])
     </variable>
+    <variable name="copepod_food_request_max" language="python">
+from fluidity_tools import stat_parser
+copepod_food_request_max = max(stat_parser("vew_toymodel.stat")['Water']['CopepodPRequest']['max'])
+    </variable>
   </variables>
   <pass_tests>
     <test name="ammonium_non_negative" language="python">
