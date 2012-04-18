@@ -2645,7 +2645,7 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
                      end if
                   end do Loop_Poly2d_1_2
                end do Loop_Poly2d_1_1
-                  stop 9822
+!                  stop 9822
 
             else ! 3D
                Loop_Poly3d_2_1: do ip = 1, npoly
@@ -2763,6 +2763,10 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
                xgi = 0. ; ygi = 0. ; zgi = 0.
                do quad_cv_siloc = 1, quad_cv_snloc
                   xnod = x_sndgln( ( sele - 1 ) * quad_cv_snloc + quad_cv_siloc )
+        if((ele==4).or.(ele==7)) then
+           print *,'--xnod,x(xnod),y(xnod):',xnod,x(xnod),y(xnod) 
+        endif
+                  
                   xgi =  xgi + quad_sn( quad_cv_siloc, quad_cv_sgi ) * x( xnod )
                   ygi =  ygi + quad_sn( quad_cv_siloc, quad_cv_sgi ) * y( xnod )
                   if( d3 ) zgi =  zgi + quad_sn( quad_cv_siloc, quad_cv_sgi ) * z( xnod )
@@ -2778,6 +2782,10 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
                   gl_quad_l1( cv_sgi ) = area_quad_map( 1, xgi, ygi, lx, ly )
                   gl_quad_l2( cv_sgi ) = area_quad_map( 2, xgi, ygi, lx, ly )
                   gl_quad_l3( cv_sgi ) = area_quad_map( 3, xgi, ygi, lx, ly )
+        if((ele==4).or.(ele==7)) then
+           print *,'--ele,sele,cv_sgi, 3 coords:',ele,sele,cv_sgi, &
+               gl_quad_l1( cv_sgi ),gl_quad_l2( cv_sgi ),gl_quad_l3( cv_sgi ) 
+        endif
                else 
                   gl_quad_l1( cv_sgi ) = 1.0
                end if
@@ -2837,7 +2845,11 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
          endif
       end do
 
+       print *,'cv_nloc, stotel * quad_cv_sngi * totele:',cv_nloc, stotel * quad_cv_sngi * totele
+!       stop 88
       allocate( sn_2( cv_nloc, stotel * quad_cv_sngi * totele ) ) ; sn_2 = 0.
+!      sn_2(:,49)=0.0
+!         stop 878
       allocate( suf_snlx_2( cv_nloc, stotel * quad_cv_sngi * totele ) ) ; suf_snlx_2 = 0.
       allocate( suf_snly_2( cv_nloc, stotel * quad_cv_sngi * totele ) ) ; suf_snly_2 = 0.
       allocate( snlx_2( cv_nloc, stotel * quad_cv_sngi * totele ) ) ; snlx_2 = 0.
@@ -2934,6 +2946,7 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
 
          if( .not. found ) then
             cv_sgk = cv_sgk + 1
+            print *,'cv_sgk,cv_sgi:',cv_sgk,cv_sgi,sn_2( :, cv_sgi )
             sn( :, cv_sgk ) = sn_2( :, cv_sgi )
             if( ndim.ge.2 ) sufnlx( :, cv_sgk ) = suf_snlx_2( :, cv_sgi )
             if( ndim.ge.3 ) sufnly( :, cv_sgk ) = suf_snly_2( :, cv_sgi )
@@ -4116,6 +4129,7 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
       y( 5 ) = 0.5 * ( ly( 2 ) + ly( 3 ) )
       fem_nod( 5 ) = 5
 
+      mx_x_nonods=x_nonods
 
       allocate( x_ndgln_big( x_nloc_big * totele_big ) )
       x_ndgln_big = 0
@@ -4247,26 +4261,44 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
       print *,'x_nloc=',x_nloc
 
       ! Extra Nodes in each Quad (now 9 / quad )
-      call Adding_Extra_Parametric_Nodes( totele, x_nloc, max( 10000, x_nonods ), &
+      call Adding_Extra_Parametric_Nodes( totele, x_nloc, mx_x_nonods, &
            x_ndgln, x, y )
       ewrite(3,*)'xndgln1:'
       do ele = 1, totele
-         ewrite(3,*) ele, ( x_ndgln( ( ele - 1 ) * x_nloc + x_iloc ), x_iloc = 1, x_nloc )
+        if((ele==4).or.(ele==7)) then
+         ewrite(3,*) 'ele:',ele
+         ewrite(3,*) ( x_ndgln( ( ele - 1 ) * x_nloc + x_iloc ), x_iloc = 1, x_nloc )
+         print *,'x:',(x(x_ndgln( ( ele - 1 ) * x_nloc + x_iloc )), x_iloc = 1, x_nloc )
+         print *,'y:',(y(x_ndgln( ( ele - 1 ) * x_nloc + x_iloc )), x_iloc = 1, x_nloc )
+        endif
       end do
+!      stop 2821
 
       mx_x_nonods=maxval(x_ndgln)
       call Eliminating_Repetitive_Nodes_all( totele, x_nloc, x_nonods, mx_x_nonods,  &
            x_ndgln, x, y )
 
+      ewrite(3,*)'xndgln1:'
+      do ele = 1, totele
+        if((ele==4).or.(ele==7)) then
+         ewrite(3,*) 'ele:',ele
+         ewrite(3,*) ( x_ndgln( ( ele - 1 ) * x_nloc + x_iloc ), x_iloc = 1, x_nloc )
+         print *,'x:',(x(x_ndgln( ( ele - 1 ) * x_nloc + x_iloc )), x_iloc = 1, x_nloc )
+         print *,'y:',(y(x_ndgln( ( ele - 1 ) * x_nloc + x_iloc )), x_iloc = 1, x_nloc )
+        endif
+      end do
+!      stop 2821
+
       ewrite(3,*)'xndgln2'
       do ele = 1, totele
          ewrite(3,*) ele, ( x_ndgln( ( ele - 1 ) * x_nloc + x_iloc ), x_iloc = 1, x_nloc )
       end do
+!      stop 2822
 !      do xnod = 1, x_nonods
       do xnod = 1, 100
          ewrite(3,*) xnod, x(xnod),y(xnod)
       end do
-       stop 9829
+!       stop 9829
 
       x_nonods = maxval( x_ndgln )
 
@@ -4537,7 +4569,7 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
       return
     end subroutine Eliminating_Repetitive_Nodes_all
 
-    
+
     subroutine Adding_Extra_Parametric_Nodes( totele, x_nloc, mx_x_nonods, &
          x_ndgln, x, y )
       implicit none
@@ -4547,12 +4579,17 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
       ! Local variables
       integer, dimension( : ), allocatable :: x_ndgln2, loclist
       integer :: ele, iloc, iloc2, x_loc_ref, xnod1, xnod2, xnod3, xnod4, npoly, inod
-      integer :: iloc_list(4),jloc_list(4),iiloc,ii,jloc
+      integer :: iloc_list(4),jloc_list(4),iiloc,ii,jloc,x_iloc
       real :: rsumx, rsumy
 
       ewrite(3,*) 'In Adding_Extra_Parametric_Nodes'
 
       x_loc_ref = maxval( x_ndgln ) 
+      ewrite(3,*)' x_loc_ref:', x_loc_ref
+      do ele = 1, totele
+         ewrite(3,*)'x_ndgln:', ele, &
+              ( x_ndgln( ( ele - 1 ) * x_nloc + iloc ) , iloc = 1, x_nloc )
+      end do
 
       if( .true. ) then
          print *,'before adding more nodes x_loc_ref:', x_loc_ref 
@@ -4575,6 +4612,7 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
                x_loc_ref = x_loc_ref + 1
                iiloc=iiloc+1
                x_ndgln( ( ele - 1 ) * x_nloc + iiloc ) = x_loc_ref
+            ewrite(3,*)'xdo1-2:', xnod1, xnod2
                x( x_loc_ref ) = 0.5 * ( x( xnod1 ) + x( xnod2 ) ) 
                y( x_loc_ref ) = 0.5 * ( y( xnod1 ) + y( xnod2 ) ) 
             end do
@@ -4591,46 +4629,58 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
          end do
       end if ! false
 
-      if( .false. ) then
-         do ele = 1, totele
-            iloc2 = 4
-            do iloc = 1, 4
-               iloc2 = iloc2 + 1
-               if ( iloc < 4 ) then
-                  xnod1 = x_ndgln( ( ele - 1 ) * x_nloc + iloc )
-                  xnod2 = x_ndgln( ( ele - 1 ) * x_nloc + iloc + 1 )
-                  x_ndgln( ( ele - 1 ) * x_nloc + iloc2 ) = x_loc_ref
-               else
-                  xnod1 = x_ndgln( ( ele - 1 ) * x_nloc + iloc )
-                  xnod2 = x_ndgln( ( ele - 1 ) * x_nloc + 1 )
-                  x_ndgln( ( ele - 1 ) * x_nloc + iloc2 ) = x_loc_ref
-               end if
-               xnod3 = x_loc_ref
-               x( xnod3 ) = 0.5 * ( x( xnod1 ) + x( xnod2 ) ) 
-               y( xnod3 ) = 0.5 * ( y( xnod1 ) + y( xnod2 ) ) 
-               x_loc_ref = x_loc_ref + 1
-            end do
+      ewrite(3,*)'1st x_ndgln:'
+      do ele = 1, totele
+        if((ele==4).or.(ele==7)) then
+         ewrite(3,*) 'ele:',ele
+         ewrite(3,*) ( x_ndgln( ( ele - 1 ) * x_nloc + x_iloc ), x_iloc = 1, x_nloc )
+         print *,'x:',(x(x_ndgln( ( ele - 1 ) * x_nloc + x_iloc )), x_iloc = 1, x_nloc )
+         print *,'y:',(y(x_ndgln( ( ele - 1 ) * x_nloc + x_iloc )), x_iloc = 1, x_nloc )
+        endif
+      end do
+!      stop 2819
 
-            x_ndgln( ( ele - 1 ) * x_nloc + x_nloc ) = x_loc_ref
-            xnod4 = x_loc_ref
-            rsumx = 0. ; rsumy = 0.
-            do iloc = 1, x_nloc - 1
+if( .false. ) then
+      do ele = 1, totele
+         iloc2 = 4
+         do iloc = 1, 4
+            iloc2 = iloc2 + 1
+            if ( iloc < 4 ) then
                xnod1 = x_ndgln( ( ele - 1 ) * x_nloc + iloc )
-               rsumx = rsumx + 1. / real( x_nloc - 1 ) * x( xnod1 )
-               rsumy = rsumy + 1. / real( x_nloc - 1 ) * y( xnod1 )
-            end do
-            x( xnod4 ) = rsumx 
-            y( xnod4 ) = rsumy
-
+               xnod2 = x_ndgln( ( ele - 1 ) * x_nloc + iloc + 1 )
+               x_ndgln( ( ele - 1 ) * x_nloc + iloc2 ) = x_loc_ref
+            else
+               xnod1 = x_ndgln( ( ele - 1 ) * x_nloc + iloc )
+               xnod2 = x_ndgln( ( ele - 1 ) * x_nloc + 1 )
+               x_ndgln( ( ele - 1 ) * x_nloc + iloc2 ) = x_loc_ref
+            end if
+            xnod3 = x_loc_ref
+            x( xnod3 ) = 0.5 * ( x( xnod1 ) + x( xnod2 ) ) 
+            y( xnod3 ) = 0.5 * ( y( xnod1 ) + y( xnod2 ) ) 
             x_loc_ref = x_loc_ref + 1
          end do
-      end if
+
+         x_ndgln( ( ele - 1 ) * x_nloc + x_nloc ) = x_loc_ref
+         xnod4 = x_loc_ref
+         rsumx = 0. ; rsumy = 0.
+         do iloc = 1, x_nloc - 1
+            xnod1 = x_ndgln( ( ele - 1 ) * x_nloc + iloc )
+            rsumx = rsumx + 1. / real( x_nloc - 1 ) * x( xnod1 )
+            rsumy = rsumy + 1. / real( x_nloc - 1 ) * y( xnod1 )
+         end do
+         x( xnod4 ) = rsumx 
+         y( xnod4 ) = rsumy
+
+         x_loc_ref = x_loc_ref + 1
+      end do
+   end if
 
       allocate( x_ndgln2( totele * x_nloc ) ) ; x_ndgln2 = 0
       allocate( loclist( x_nloc ) ) ; loclist = 0
       x_ndgln2 = x_ndgln ; x_ndgln = 0 ; inod = 0 ; jloc = 0
 
-      loclist = (/ 1, 5, 2, 6, 7, 8, 3, 9, 4 /)
+      loclist = (/ 1, 5, 2, 7, 9, 8, 3, 6, 4 /)
+        print *,'loclist:',loclist
       !  loclist = ( / 1, 5, 6, 2, 7, 8, 9, 10, 11, 12, 13, 14, 3, 15, 16, 4 / )
 
       do ele = 1, totele
@@ -4641,10 +4691,26 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
          end do
       end do
 
+ewrite(3,*) '-'
+ewrite(3,*) ''
+
       do ele = 1, totele
          ewrite(3,*)'x_ndgln:', ele, &
               ( x_ndgln( ( ele - 1 ) * x_nloc + iloc ) , iloc = 1, x_nloc )
       end do
+
+      ewrite(3,*)'2nd x_ndgln:'
+
+      do ele = 1, totele
+        if((ele==4).or.(ele==7)) then
+         ewrite(3,*) 'ele:',ele
+         ewrite(3,*) ( x_ndgln( ( ele - 1 ) * x_nloc + x_iloc ), x_iloc = 1, x_nloc )
+         print *,'x:',(x(x_ndgln( ( ele - 1 ) * x_nloc + x_iloc )), x_iloc = 1, x_nloc )
+         print *,'y:',(y(x_ndgln( ( ele - 1 ) * x_nloc + x_iloc )), x_iloc = 1, x_nloc )
+        endif
+      end do
+
+!      stop 87
 
       deallocate( x_ndgln2 )
       deallocate( loclist )
@@ -4652,6 +4718,7 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
       return
     end subroutine Adding_Extra_Parametric_Nodes
 
+    
 
   end module shape_functions_NDim
 
