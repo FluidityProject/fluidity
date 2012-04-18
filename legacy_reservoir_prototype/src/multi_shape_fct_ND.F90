@@ -4433,7 +4433,7 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
          x_ndgln, x, y )
       implicit none
       integer, intent( in ) :: totele, x_nloc
-      integer, intent( inout ) :: x_nonods
+      integer, intent( in ) :: x_nonods
       logical, intent( in ) :: over_all
       integer, dimension( totele * x_nloc ), intent( inout ) :: x_ndgln
       real, dimension( x_nonods ), intent( in ) :: x, y
