@@ -684,7 +684,7 @@
                
                ! Set up the left C matrix in CMC
                
-               if(use_compressible_projection .and. have_option(trim(density%option_path)//"/prognostic")) then
+               if(use_compressible_projection .and. have_option('/material_phase::'//trim(state(istate)%name)//'/equation_of_state/compressible')) then
                   allocate(ctp_m(istate)%ptr)
                   call allocate(ctp_m(istate)%ptr, ct_m(istate)%ptr%sparsity, (/1, u%dim/), name="CTP_m")
                   ! NOTE that this is not optimal in that the ct_rhs
@@ -1043,7 +1043,7 @@
                      call profiler_toc(u, "assembly")
 
                      density => extract_scalar_field(state(istate), "Density", stat)
-                     if(use_compressible_projection .and. have_option(trim(density%option_path)//"/prognostic")) then
+                     if(use_compressible_projection .and. have_option('/material_phase::'//trim(state(istate)%name)//'/equation_of_state/compressible')) then
                         call deallocate(ctp_m(istate)%ptr)
                         deallocate(ctp_m(istate)%ptr)
                      end if
@@ -1583,7 +1583,7 @@
          cmc_m => extract_csr_matrix(state(istate), "PressurePoissonMatrix", stat)
          density => extract_scalar_field(state(istate), "Density", stat)
 
-         if(use_compressible_projection .and. have_option(trim(density%option_path)//"/prognostic")) then
+         if(use_compressible_projection .and. have_option('/material_phase::'//trim(state(istate)%name)//'/equation_of_state/compressible')) then
             call allocate(compress_projec_rhs, p%mesh, "CompressibleProjectionRHS")
 
             if(cv_pressure) then
