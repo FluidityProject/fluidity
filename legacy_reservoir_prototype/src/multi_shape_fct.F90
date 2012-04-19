@@ -2052,14 +2052,14 @@
 
       print *,'candidate_gi:',candidate_gi
 
-      candidate_gi2 = .false.
-      do cv_sgi = 1, scvngi
-         candidate_gi2( cv_sgi ) = .false.
-         do cv_iloc_cells = 1, cv_snloc_cells
-            if( cvfem_on_face(cv_iloc_cells,cv_sgi) ) candidate_gi2( cv_sgi ) = .true.
-         end do
-         print *,'cv_sgi,cvfem_on_face(:,cv_sgi):',cv_sgi,cvfem_on_face(:,cv_sgi)
-      end do
+!!$      candidate_gi2 = .false.
+!!$      do cv_sgi = 1, scvngi
+!!$         candidate_gi2( cv_sgi ) = .false.
+!!$         do cv_iloc_cells = 1, cv_snloc_cells
+!!$            if( cvfem_on_face(cv_iloc_cells,cv_sgi) ) candidate_gi2( cv_sgi ) = .true.
+!!$         end do
+!!$         print *,'cv_sgi,cvfem_on_face(:,cv_sgi):',cv_sgi,cvfem_on_face(:,cv_sgi)
+!!$      end do
 
       print *,'candidate_gi2:',candidate_gi2
 
@@ -2067,8 +2067,9 @@
          cv_iloc = cv_siloc
          cv_bsgi = 0
          Loop_SGI2: do cv_sgi = 1, scvngi
-!            Conditional_1: if( candidate_gi( cv_sgi ) ) then
-               Conditional_2: if( candidate_gi2( cv_sgi ) ) then
+            Conditional_1: if( candidate_gi( cv_sgi ) ) then
+               Conditional_2: if( cvfem_on_face( cv_iloc, cv_sgi ) ) then
+!               Conditional_2: if( candidate_gi2( cv_sgi ) ) then
                   cv_bsgi = cv_bsgi + 1
                   ewrite(3,*) 'cv_siloc, cv_bsgi,cv_iloc, cv_sgi:', &
                        cv_siloc, cv_bsgi,cv_iloc, cv_sgi
@@ -2081,17 +2082,12 @@
                   sbcvfenlz( cv_siloc, cv_bsgi ) = scvfenlz( cv_iloc, cv_sgi )
                   sbcvfeweigh( cv_bsgi ) = scvfeweigh( cv_sgi )
                end if Conditional_2
-!            end if Conditional_1
+            end if Conditional_1
          end do Loop_SGI2
       end do Loop_SNLOC
 
-      print *,'cv_nloc, cv_snloc, scvngi, sbcvngi:',cv_nloc, cv_snloc, scvngi, sbcvngi
-      print *,'cv_nloc_cells, cv_snloc_cells:',cv_nloc_cells, cv_snloc_cells
-      print *,'cvfem_on_face:',cvfem_on_face
-
       deallocate( candidate_gi )
       deallocate( candidate_gi2 )
-         if(cv_nloc_cells.ne.cv_nloc) stop 29892
 
       return
     end subroutine scvfen_2_sbcvfen
