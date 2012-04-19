@@ -1434,7 +1434,7 @@
               suf_vol_bc_rob1, suf_vol_bc_rob2, &
               wic_vol_bc, wic_d_bc, &
               x, y, z )
-      end if
+      endif
 
       DEALLOCATE( T2 )
       DEALLOCATE( T2OLD )
@@ -1972,7 +1972,8 @@
       Loop_Elements: DO ELE = 1, TOTELE ! Volume integral
 
          ! Calculate DETWEI,RA,NX,NY,NZ for element ELE
-         CALL DETNLXR_PLUS_U( ELE, X, Y, Z, CV_NDGLN, TOTELE, X_NONODS, CV_NLOC, X_NLOC, CV_NGI, &
+         CALL DETNLXR_PLUS_U( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, &
+              X_NLOC, CV_NLOC, CV_NGI, &
               CVFEN, CVFENLX, CVFENLY, CVFENLZ, CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
               CVFENX, CVFENY, CVFENZ, &
               U_NLOC, UFENLX, UFENLY, UFENLZ, UFENX, UFENY, UFENZ ) 
@@ -2281,6 +2282,7 @@
                Loop_GaussPoints1: DO GI = 1, CV_NGI
                   !ewrite(3,*) 'P_JLOC, GI, CVFENX( P_JLOC, GI ):',P_JLOC, GI, CVFENX( P_JLOC, GI )
                   !ewrite(3,*) 'u_iLOC, GI, UFEN( U_ILOC, GI ):',u_iLOC, GI, UFEN( U_ILOC, GI )
+                  !ewrite(3,*) 'detwei:', detwei( gi )
                   NMX = NMX + UFEN( U_ILOC, GI ) * CVFENX( P_JLOC, GI ) * DETWEI( GI )
                   NMY = NMY + UFEN( U_ILOC, GI ) * CVFENY( P_JLOC, GI ) * DETWEI( GI )
                   NMZ = NMZ + UFEN( U_ILOC, GI ) * CVFENZ( P_JLOC, GI ) * DETWEI( GI )
@@ -2503,9 +2505,11 @@
                MAT_OTHER_LOC=0
                DO MAT_SILOC = 1, CV_SNLOC
                   MAT_ILOC = CV_SLOC2LOC( MAT_SILOC )
-                  MAT_INOD = X_NDGLN(( ELE - 1 ) * MAT_NLOC + MAT_ILOC )
+                  MAT_INOD = CV_NDGLN(( ELE - 1 ) * MAT_NLOC + MAT_ILOC )
+                  !MAT_INOD = X_NDGLN(( ELE - 1 ) * MAT_NLOC + MAT_ILOC )
                   DO MAT_ILOC2 = 1, MAT_NLOC
-                     MAT_INOD2 = X_NDGLN(( ELE2 - 1 ) * MAT_NLOC + MAT_ILOC2 )
+                     MAT_INOD2 = CV_NDGLN(( ELE2 - 1 ) * MAT_NLOC + MAT_ILOC2 )
+                     !MAT_INOD2 = X_NDGLN(( ELE2 - 1 ) * MAT_NLOC + MAT_ILOC2 )
                      IF( MAT_INOD2 == MAT_INOD ) THEN
                         MAT_OTHER_LOC( MAT_ILOC )=MAT_ILOC2
                      ENDIF

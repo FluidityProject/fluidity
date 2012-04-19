@@ -3009,6 +3009,7 @@
                        abs ( sn( cv_iloc, cv_sgi )) > 1.e-4
                   if ( abs( sn( cv_iloc, cv_sgi )) > 1.e-4 ) &
                        cvfem_neiloc( cv_iloc, cv_sgi ) = -1
+                  ewrite(3,*)'iloc, sn',cv_iloc, abs(sn( cv_iloc, cv_sgi )), abs ( sn( cv_iloc, cv_sgi )) > 1.e-4
                end do
             endif
          endif Conditional_Neiloc

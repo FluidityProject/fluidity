@@ -1618,7 +1618,7 @@
            sbufen2, sbufenslx2, sbufensly2, sbufenlx2, sbufenly2, sbufenlz2 
       character( len = option_path_len ) :: overlapping_path 
       logical :: is_overlapping   
-      integer :: u_nloc2, ilev, ilev2, u_snloc2, u_ele_type2, gi
+      integer :: u_nloc2, ilev, ilev2, u_snloc2, u_ele_type2, gi, cv_iloc
 
       ewrite(3,*) 'in  cv_fem_shape_funs subrt'
 
@@ -1813,6 +1813,10 @@
 
          ewrite(3,*) 'U_NLOC  , U_SNLOC  ', u_nloc  , u_snloc
          ewrite(3,*) 'U_NLOC2, U_SNLOC2', u_nloc2, u_snloc2
+         ewrite(3,*) 'scvfen:', size( scvfen ) 
+         do  cv_iloc = 1, cv_nloc
+            ewrite(3,*) ( scvfen( cv_iloc, gi ), gi = 1, scvngi )
+         end do
 
          allocate( u_sloclist2( 1 : nface, u_snloc2 ) )
          allocate( sbufen2( u_snloc2, sbcvngi ) )
@@ -7672,15 +7676,16 @@
 
 
 
-    SUBROUTINE DETNLXR_PLUS_U( ELE, X, Y, Z, XONDGL, TOTELE, NONODS, X_NLOC, NGI, X_NLOC2, &
+    SUBROUTINE DETNLXR_PLUS_U( ELE, X, Y, Z, XONDGL, TOTELE, NONODS, &
+         X_NLOC, CV_NLOC, NGI, &
          N, NLX, NLY, NLZ, WEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
          NX, NY, NZ, &
          U_NLOC, UNLX, UNLY, UNLZ, UNX, UNY, UNZ ) 
       implicit none
-      INTEGER, intent( in ) :: ELE, TOTELE, NONODS, X_NLOC, NGI, X_NLOC2, U_NLOC
+      INTEGER, intent( in ) :: ELE, TOTELE, NONODS, X_NLOC, NGI, CV_NLOC, U_NLOC
       INTEGER, DIMENSION( TOTELE * X_NLOC ), intent( in ) :: XONDGL
       REAL, DIMENSION( NONODS ), intent( in ) :: X, Y, Z
-      REAL, DIMENSION( X_NLOC, NGI ), intent( in ) :: N, NLX, NLY, NLZ 
+      REAL, DIMENSION( CV_NLOC, NGI ), intent( in ) :: N, NLX, NLY, NLZ 
       REAL, DIMENSION( NGI ), intent( in ) :: WEIGHT
       REAL, DIMENSION( NGI ), intent( inout ) :: DETWEI, RA
       REAL, intent( inout ) :: VOLUME
@@ -7693,8 +7698,10 @@
       REAL, PARAMETER :: PIE = 3.141592654
       REAL :: AGI, BGI, CGI, DGI, EGI, FGI, GGI, HGI, KGI, A11, A12, A13, A21, &
            A22, A23, A31, A32, A33, DETJ, TWOPIE, RGI, rsum
-      INTEGER :: GI, L, IGLX, xnod1, xnod2, xnod3, xnod4, cv_nloc2
+      INTEGER :: GI, L, IGLX
+      real :: xnod1, xnod2, ynod1, ynod2
       real, dimension( : ) , allocatable :: x2, y2, z2
+      integer, dimension( : ), allocatable :: loc_list
 
       ewrite(3,*)' In Detnlxr_Plus_U'
 
@@ -7820,34 +7827,48 @@
             CGI = 0.
             DGI = 0.
 
-            if( x_nloc == 6 ) then ! Then quadratic
+            if( cv_nloc == 6 ) then ! Then quadratic
                allocate( x2( nonods * nonods ) ) ; x2 = 0.
                allocate( y2( nonods * nonods ) ) ; y2 = 0.
-               x2(1:nonods) = x ; y2(1:nonods) = y 
-               cv_nloc2 = x_nloc / x_nloc2
-               do l = 1, cv_nloc2
-                  xnod1 = 0 ; xnod2 = 0 ; xnod3 = 0
-                  if( l < cv_nloc2 ) then
-                     xnod1 = xondgl( ( ele - 1 ) * x_nloc + l )
-                     xnod2 = xondgl( ( ele - 1 ) * x_nloc + l + 1 )
-                  else
-                     xnod1 = xondgl( ( ele - 1 ) * x_nloc + l )
-                     xnod2 = xondgl( ( ele - 1 ) * x_nloc + 1 )
-                  end if
-                  xnod3 = xondgl( ( ele - 1 ) * x_nloc + cv_nloc2 + l ) 
-                  x2( xnod3 ) = 0.5 * ( x2( xnod1 ) + x2( xnod2 ) )
-                  y2( xnod3 ) = 0.5 * ( y2( xnod1 ) + y2( xnod2 ) )
+               allocate( loc_list ( cv_nloc ) ) ; loc_list = 0
+
+               !x2(1:nonods) = x ; y2(1:nonods) = y
+
+               do l=1, x_nloc
+                  x2(l) = x( xondgl( ( ele - 1 ) * x_nloc + l )) 
+                  y2(l) = y( xondgl( ( ele - 1 ) * x_nloc + l ))
                end do
 
-               Loop_L4_Quad: DO L = 1, X_NLOC
-                  IGLX = XONDGL(( ELE - 1 ) * X_NLOC + L )
+
+               do l = 1, x_nloc
+                  xnod1 = 0. ; xnod2 = 0.
+                  loc_list( l ) = l
+                  if( l < x_nloc ) then
+                     xnod1 = x2(l)   ; ynod1 = y2(l)
+                     xnod2 = x2(l+1) ; ynod2 = y2(l+1)
+                  else
+                     xnod1 = x2(l)   ; ynod1 = y2(l)
+                     xnod2 = x2(1)   ; ynod2 = y2(1)
+                  end if
+                  loc_list( x_nloc + l ) = x_nloc + l
+                  x2( x_nloc + l ) = 0.5 * (  xnod1  +  xnod2  )
+                  y2( x_nloc + l ) = 0.5 * (  ynod1  +  ynod2  )
+               end do
+
+               !Loop_L4_Quad: DO L = 1, X_NLOC
+               Loop_L4_Quad: DO L = 1, CV_NLOC
+                  !IGLX = XONDGL(( ELE - 1 ) * X_NLOC + L )
+                  IGLX = loc_list( l )
                   AGI = AGI + NLX( L, GI ) * X2( IGLX ) 
                   BGI = BGI + NLX( L, GI ) * Y2( IGLX ) 
                   CGI = CGI + NLY( L, GI ) * X2( IGLX ) 
                   DGI = DGI + NLY( L, GI ) * Y2( IGLX ) 
                   RGI = RGI + N( L, GI ) * Y2( IGLX )
+                  !ewrite(3,*) 'l, gi, iglx, x2, y2:', l, gi,  iglx, x2( iglx ), y2( iglx )
+                  !ewrite(3,*) 'n, nlx, nly:', n( l, gi ), nlx( l, gi ), nly( l, gi )
                END DO Loop_L4_Quad
-               deallocate( x2, y2 )
+
+               deallocate( x2, y2, loc_list )
 
             else ! Linear
                Loop_L4: DO L = 1, X_NLOC

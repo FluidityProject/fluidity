@@ -1359,6 +1359,7 @@
       if( is_overlapping ) u_nloc = u_nloc * cv_nloc
       if( is_overlapping ) u_snloc = u_snloc * cv_nloc
 
+      ! Used just for 1D:
       dx = maxval( positions%val(1,:) ) - minval( positions%val(1,:) )
 
       return
