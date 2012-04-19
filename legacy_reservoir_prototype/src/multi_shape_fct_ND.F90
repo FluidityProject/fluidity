@@ -1604,9 +1604,6 @@
       integer :: cv_iloc_1d, cv_jloc_1d, cv_kloc_1d, cv_iloc, cv_jloc, cv_kloc, cv_igi, &
            cv_igi_1d, cv_jgi_1d, cv_kgi_1d
 
-print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
-
-
       Conditional_Dimensionality: Select Case( ndim )
       case( 1 )
          cvn = cvn_1d
@@ -2938,7 +2935,6 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
 
          if( .not. found ) then
             cv_sgk = cv_sgk + 1
-            print *,'cv_sgk,cv_sgi:',cv_sgk,cv_sgi,sn_2( :, cv_sgi )
             sn( :, cv_sgk ) = sn_2( :, cv_sgi )
             if( ndim.ge.2 ) sufnlx( :, cv_sgk ) = suf_snlx_2( :, cv_sgi )
             if( ndim.ge.3 ) sufnly( :, cv_sgk ) = suf_snly_2( :, cv_sgi )
@@ -3029,20 +3025,6 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
          ewrite(3,*)'cv_sgi, cvfem_neiloc::', &
               cv_sgi, cvfem_neiloc( :, cv_sgi )
       end do
-      do xnodi = 1,x_nonods
-         print *,'xnodi,x(xnodi),y(xnodi),fem_nod(xnodi):', &
-              xnodi,x(xnodi),y(xnodi),fem_nod(xnodi)
-      end do
-      
-
-      ewrite(3,*) ''
-      do cv_sgi = 1, scvngi
-        do quad_cv_siloc = 1, cv_nloc
-          ewrite(3,*)'iloc, gi, cvfem_neiloc::', &
-               quad_cv_siloc, cv_sgi, cvfem_neiloc( quad_cv_siloc, cv_sgi )
-        end do
-      end do
-      !stop 999
 
       ! Calculate cvfem_neiloc from local coordinates l1-4: (hard-wired for linear traingles)
       if( .false. ) then
@@ -4288,57 +4270,25 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
          do iloc = 1, 4
             inod = x_ndgln( ( ele - 1 ) * x_nloc + iloc )
             x_ndgln( ( ele - 1 ) * x_nloc + iloc )=old2new(inod)
-!            print *,'iloc,old2new(inod):',iloc,old2new(inod)
          end do
-!         stop 292
       end do
       x_nonods=count_nod
-       print *,'x_nonods=',x_nonods
 
 
       ewrite(3,*)'xndgln0:'
       do ele = 1, totele
-!         ewrite(3,*) ele, ( x_ndgln( ( ele - 1 ) * x_nloc + x_iloc ), x_iloc = 1, x_nloc )
          ewrite(3,*) ele, ( x_ndgln( ( ele - 1 ) * x_nloc + x_iloc ), x_iloc = 1, 4 )
          ewrite(3,*) ele, ( x(x_ndgln( ( ele - 1 ) * x_nloc + x_iloc )), x_iloc = 1, 4 )
          ewrite(3,*) ele, ( y(x_ndgln( ( ele - 1 ) * x_nloc + x_iloc )), x_iloc = 1, 4 )
       end do
-!      stop 92
-      print *,'x_nloc=',x_nloc
 
       ! Extra Nodes in each Quad (now 9 / quad )
       call Adding_Extra_Parametric_Nodes( totele, x_nloc, mx_x_nonods, &
            x_ndgln, x, y )
-      ewrite(3,*)'xndgln1:'
-      do ele = 1, totele
-        if((ele==4).or.(ele==7)) then
-         ewrite(3,*) 'ele:',ele
-         ewrite(3,*) ( x_ndgln( ( ele - 1 ) * x_nloc + x_iloc ), x_iloc = 1, x_nloc )
-         print *,'x:',(x(x_ndgln( ( ele - 1 ) * x_nloc + x_iloc )), x_iloc = 1, x_nloc )
-         print *,'y:',(y(x_ndgln( ( ele - 1 ) * x_nloc + x_iloc )), x_iloc = 1, x_nloc )
-        endif
-      end do
-!      stop 2821
 
       mx_x_nonods=maxval(x_ndgln)
       call Eliminating_Repetitive_Nodes_all( totele, x_nloc, x_nonods, mx_x_nonods,  &
            x_ndgln, x, y )
-
-      ewrite(3,*)'xndgln1:'
-      do ele = 1, totele
-        if((ele==4).or.(ele==7)) then
-         ewrite(3,*) 'ele:',ele
-         ewrite(3,*) ( x_ndgln( ( ele - 1 ) * x_nloc + x_iloc ), x_iloc = 1, x_nloc )
-         print *,'x:',(x(x_ndgln( ( ele - 1 ) * x_nloc + x_iloc )), x_iloc = 1, x_nloc )
-         print *,'y:',(y(x_ndgln( ( ele - 1 ) * x_nloc + x_iloc )), x_iloc = 1, x_nloc )
-        endif
-      end do
-!      stop 2821
-
-      ewrite(3,*)'xndgln2'
-      do ele = 1, totele
-         ewrite(3,*) ele, ( x_ndgln( ( ele - 1 ) * x_nloc + x_iloc ), x_iloc = 1, x_nloc )
-      end do
 
       x_nonods = maxval( x_ndgln )
 
@@ -4580,8 +4530,6 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
       x=0. ; y=0. 
       if (present(z)) z=0.
 
-      print *,'before eliminating nodes x_nonods:',x_nonods
-
       count_nod=0
       do inod=1,x_nonods
         jnod_found=0
@@ -4602,25 +4550,18 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
            x(count_nod)=x2(inod)
            y(count_nod)=y2(inod)
            if (present(z)) z(count_nod)=z2(inod)
-!           print *,'count_nod,inod:',count_nod,inod
         else
-!            print *,'***** inod,jnod_found',inod,jnod_found
            old2new(inod)=jnod_found
         endif
       end do
-      print *,'old2new(1:x_nonods):',old2new(1:x_nonods)
 
       do ele = 1, totele 
          do iloc = 1, x_nloc
             inod = x_ndgln( ( ele - 1 ) * x_nloc + iloc )
             x_ndgln( ( ele - 1 ) * x_nloc + iloc )=old2new(inod)
-!            print *,'iloc,old2new(inod):',iloc,old2new(inod)
          end do
-!         stop 292
       end do
-      x_nonods=count_nod
-
-      print *,'after eliminating nodes x_nonods:',x_nonods
+      x_nonods = count_nod
 
       return
     end subroutine Eliminating_Repetitive_Nodes_all
@@ -4648,7 +4589,6 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
       end do
 
       if( .true. ) then
-         print *,'before adding more nodes x_loc_ref:', x_loc_ref 
          iloc_list(1)=1
          jloc_list(1)=2
          iloc_list(2)=3
@@ -4668,7 +4608,6 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
                x_loc_ref = x_loc_ref + 1
                iiloc=iiloc+1
                x_ndgln( ( ele - 1 ) * x_nloc + iiloc ) = x_loc_ref
-            ewrite(3,*)'xdo1-2:', xnod1, xnod2
                x( x_loc_ref ) = 0.5 * ( x( xnod1 ) + x( xnod2 ) ) 
                y( x_loc_ref ) = 0.5 * ( y( xnod1 ) + y( xnod2 ) ) 
             end do
@@ -4685,59 +4624,46 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
          end do
       end if ! false
 
-      ewrite(3,*)'1st x_ndgln:'
-      do ele = 1, totele
-        if((ele==4).or.(ele==7)) then
-         ewrite(3,*) 'ele:',ele
-         ewrite(3,*) ( x_ndgln( ( ele - 1 ) * x_nloc + x_iloc ), x_iloc = 1, x_nloc )
-         print *,'x:',(x(x_ndgln( ( ele - 1 ) * x_nloc + x_iloc )), x_iloc = 1, x_nloc )
-         print *,'y:',(y(x_ndgln( ( ele - 1 ) * x_nloc + x_iloc )), x_iloc = 1, x_nloc )
-        endif
-      end do
-!      stop 2819
+      if( .false. ) then
+         do ele = 1, totele
+            iloc2 = 4
+            do iloc = 1, 4
+               iloc2 = iloc2 + 1
+               if ( iloc < 4 ) then
+                  xnod1 = x_ndgln( ( ele - 1 ) * x_nloc + iloc )
+                  xnod2 = x_ndgln( ( ele - 1 ) * x_nloc + iloc + 1 )
+                  x_ndgln( ( ele - 1 ) * x_nloc + iloc2 ) = x_loc_ref
+               else
+                  xnod1 = x_ndgln( ( ele - 1 ) * x_nloc + iloc )
+                  xnod2 = x_ndgln( ( ele - 1 ) * x_nloc + 1 )
+                  x_ndgln( ( ele - 1 ) * x_nloc + iloc2 ) = x_loc_ref
+               end if
+               xnod3 = x_loc_ref
+               x( xnod3 ) = 0.5 * ( x( xnod1 ) + x( xnod2 ) ) 
+               y( xnod3 ) = 0.5 * ( y( xnod1 ) + y( xnod2 ) ) 
+               x_loc_ref = x_loc_ref + 1
+            end do
 
-if( .false. ) then
-      do ele = 1, totele
-         iloc2 = 4
-         do iloc = 1, 4
-            iloc2 = iloc2 + 1
-            if ( iloc < 4 ) then
+            x_ndgln( ( ele - 1 ) * x_nloc + x_nloc ) = x_loc_ref
+            xnod4 = x_loc_ref
+            rsumx = 0. ; rsumy = 0.
+            do iloc = 1, x_nloc - 1
                xnod1 = x_ndgln( ( ele - 1 ) * x_nloc + iloc )
-               xnod2 = x_ndgln( ( ele - 1 ) * x_nloc + iloc + 1 )
-               x_ndgln( ( ele - 1 ) * x_nloc + iloc2 ) = x_loc_ref
-            else
-               xnod1 = x_ndgln( ( ele - 1 ) * x_nloc + iloc )
-               xnod2 = x_ndgln( ( ele - 1 ) * x_nloc + 1 )
-               x_ndgln( ( ele - 1 ) * x_nloc + iloc2 ) = x_loc_ref
-            end if
-            xnod3 = x_loc_ref
-            x( xnod3 ) = 0.5 * ( x( xnod1 ) + x( xnod2 ) ) 
-            y( xnod3 ) = 0.5 * ( y( xnod1 ) + y( xnod2 ) ) 
+               rsumx = rsumx + 1. / real( x_nloc - 1 ) * x( xnod1 )
+               rsumy = rsumy + 1. / real( x_nloc - 1 ) * y( xnod1 )
+            end do
+            x( xnod4 ) = rsumx 
+            y( xnod4 ) = rsumy
+
             x_loc_ref = x_loc_ref + 1
          end do
-
-         x_ndgln( ( ele - 1 ) * x_nloc + x_nloc ) = x_loc_ref
-         xnod4 = x_loc_ref
-         rsumx = 0. ; rsumy = 0.
-         do iloc = 1, x_nloc - 1
-            xnod1 = x_ndgln( ( ele - 1 ) * x_nloc + iloc )
-            rsumx = rsumx + 1. / real( x_nloc - 1 ) * x( xnod1 )
-            rsumy = rsumy + 1. / real( x_nloc - 1 ) * y( xnod1 )
-         end do
-         x( xnod4 ) = rsumx 
-         y( xnod4 ) = rsumy
-
-         x_loc_ref = x_loc_ref + 1
-      end do
-   end if
+      end if
 
       allocate( x_ndgln2( totele * x_nloc ) ) ; x_ndgln2 = 0
       allocate( loclist( x_nloc ) ) ; loclist = 0
       x_ndgln2 = x_ndgln ; x_ndgln = 0 ; inod = 0 ; jloc = 0
 
       loclist = (/ 1, 5, 2, 7, 9, 8, 3, 6, 4 /)
-        print *,'loclist:',loclist
-      !  loclist = ( / 1, 5, 6, 2, 7, 8, 9, 10, 11, 12, 13, 14, 3, 15, 16, 4 / )
 
       do ele = 1, totele
          do iloc = 1, x_nloc
@@ -4747,26 +4673,13 @@ if( .false. ) then
          end do
       end do
 
-ewrite(3,*) '-'
-ewrite(3,*) ''
+      ewrite(3,*) '-'
+      ewrite(3,*) ''
 
       do ele = 1, totele
          ewrite(3,*)'x_ndgln:', ele, &
               ( x_ndgln( ( ele - 1 ) * x_nloc + iloc ) , iloc = 1, x_nloc )
       end do
-
-      ewrite(3,*)'2nd x_ndgln:'
-
-      do ele = 1, totele
-        if((ele==4).or.(ele==7)) then
-         ewrite(3,*) 'ele:',ele
-         ewrite(3,*) ( x_ndgln( ( ele - 1 ) * x_nloc + x_iloc ), x_iloc = 1, x_nloc )
-         print *,'x:',(x(x_ndgln( ( ele - 1 ) * x_nloc + x_iloc )), x_iloc = 1, x_nloc )
-         print *,'y:',(y(x_ndgln( ( ele - 1 ) * x_nloc + x_iloc )), x_iloc = 1, x_nloc )
-        endif
-      end do
-
-!      stop 87
 
       deallocate( x_ndgln2 )
       deallocate( loclist )
@@ -4794,7 +4707,6 @@ ewrite(3,*) ''
       x_loc_ref = maxval( x_ndgln ) 
 
       if( .true. ) then
-         print *,'before adding more nodes x_loc_ref:', x_loc_ref 
          iloc_list(1)=1
          jloc_list(1)=1
          iloc_list(2)=1

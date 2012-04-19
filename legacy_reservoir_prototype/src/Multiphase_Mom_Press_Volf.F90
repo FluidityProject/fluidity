@@ -595,7 +595,7 @@ contains
 
              ! Calculate the diffusion COMP_DIFFUSION...        
              CALL CALC_COMP_DIF( NDIM, NPHASE, COMP_DIFFUSION_OPT, MAT_NONODS, &
-                  TOTELE, MAT_NLOC, CV_NLOC, U_NLOC, CV_SNLOC, U_SNLOC, &
+                  TOTELE, MAT_NLOC, CV_NLOC, U_NLOC, X_NLOC, CV_SNLOC, U_SNLOC, &
                   COMP_DIFFUSION, NCOMP_DIFF_COEF, COMP_DIFF_COEF( ICOMP, :, : ), &
                   X_NONODS, X, Y, Z, NU, NV, NW, U_NONODS, CV_NONODS, &
                   MAT_NDGLN, U_NDGLN, X_NDGLN, &

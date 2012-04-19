@@ -2042,26 +2042,13 @@
       Loop_SGI1: do cv_sgi = 1, scvngi
          r_prodt = 1.
          Loop_NLOC: do cv_iloc = 1, cv_snloc
-            ewrite(3,*)'cv_iloc, cv_snloc, cv_nloc, cv_sgi, scvngi, scvfen:', &
-                 cv_iloc, cv_snloc, cv_nloc, cv_sgi, scvngi, scvfen( cv_iloc, cv_sgi )
+            !ewrite(3,*)'cv_iloc, cv_snloc, cv_nloc, cv_sgi, scvngi, scvfen:', &
+            !     cv_iloc, cv_snloc, cv_nloc, cv_sgi, scvngi, scvfen( cv_iloc, cv_sgi )
             r_prodt = r_prodt * scvfen( cv_iloc, cv_sgi )
          end do Loop_NLOC
-         ewrite(3,*) 'cv_sgi, r_prodt:', cv_sgi, r_prodt
+         !ewrite(3,*) 'cv_sgi, r_prodt:', cv_sgi, r_prodt
          if( r_prodt > 1.e-5 ) candidate_gi( cv_sgi ) = .true.
       end do Loop_SGI1
-
-      print *,'candidate_gi:',candidate_gi
-
-!!$      candidate_gi2 = .false.
-!!$      do cv_sgi = 1, scvngi
-!!$         candidate_gi2( cv_sgi ) = .false.
-!!$         do cv_iloc_cells = 1, cv_snloc_cells
-!!$            if( cvfem_on_face(cv_iloc_cells,cv_sgi) ) candidate_gi2( cv_sgi ) = .true.
-!!$         end do
-!!$         print *,'cv_sgi,cvfem_on_face(:,cv_sgi):',cv_sgi,cvfem_on_face(:,cv_sgi)
-!!$      end do
-
-      print *,'candidate_gi2:',candidate_gi2
 
       Loop_SNLOC: do cv_siloc = 1, cv_snloc
          cv_iloc = cv_siloc
@@ -2069,11 +2056,10 @@
          Loop_SGI2: do cv_sgi = 1, scvngi
             Conditional_1: if( candidate_gi( cv_sgi ) ) then
                Conditional_2: if( cvfem_on_face( cv_iloc, cv_sgi ) ) then
-!               Conditional_2: if( candidate_gi2( cv_sgi ) ) then
                   cv_bsgi = cv_bsgi + 1
-                  ewrite(3,*) 'cv_siloc, cv_bsgi,cv_iloc, cv_sgi:', &
-                       cv_siloc, cv_bsgi,cv_iloc, cv_sgi
-                  ewrite(3,*) 'scvfen( cv_iloc, cv_sgi ):', scvfen( cv_iloc, cv_sgi )
+                  !ewrite(3,*) 'cv_siloc, cv_bsgi,cv_iloc, cv_sgi:', &
+                  !     cv_siloc, cv_bsgi,cv_iloc, cv_sgi
+                  !ewrite(3,*) 'scvfen( cv_iloc, cv_sgi ):', scvfen( cv_iloc, cv_sgi )
                   sbcvfen( cv_siloc, cv_bsgi ) = scvfen( cv_iloc, cv_sgi )
                   sbcvfenslx( cv_siloc, cv_bsgi ) = scvfenslx( cv_iloc, cv_sgi )
                   sbcvfensly( cv_siloc, cv_bsgi ) = scvfensly( cv_iloc, cv_sgi )
@@ -2323,7 +2309,6 @@
               scvfen, scvfenlx, scvfenly, scvfenlz, scvfenslx, scvfensly,  &
               sufen, sufenlx, sufenly, sufenlz, sufenslx, sufensly, &
               cv_neiloc, cvfem_neiloc, ufem_neiloc )
-         print *,'here1 - just outside of suf_cv_tri_tet_shape'
       case( 5 ) ! Bi-linear Quadrilateral
          call fvquad( scvngi, cv_nloc, scvngi, &
               m, scvfen, scvfenslx, & 
@@ -7687,13 +7672,13 @@
 
 
 
-    SUBROUTINE DETNLXR_PLUS_U( ELE, X, Y, Z, XONDGL, TOTELE, NONODS, X_NLOC, NGI, &
+    SUBROUTINE DETNLXR_PLUS_U( ELE, X, Y, Z, XONDGL, TOTELE, NONODS, X_NLOC, NGI, X_NLOC2, &
          N, NLX, NLY, NLZ, WEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
          NX, NY, NZ, &
          U_NLOC, UNLX, UNLY, UNLZ, UNX, UNY, UNZ ) 
       implicit none
-      INTEGER, intent( in ) :: ELE, TOTELE, NONODS, X_NLOC, NGI, U_NLOC
-      INTEGER, DIMENSION( TOTELE * X_NLOC ) :: XONDGL
+      INTEGER, intent( in ) :: ELE, TOTELE, NONODS, X_NLOC, NGI, X_NLOC2, U_NLOC
+      INTEGER, DIMENSION( TOTELE * X_NLOC ), intent( in ) :: XONDGL
       REAL, DIMENSION( NONODS ), intent( in ) :: X, Y, Z
       REAL, DIMENSION( X_NLOC, NGI ), intent( in ) :: N, NLX, NLY, NLZ 
       REAL, DIMENSION( NGI ), intent( in ) :: WEIGHT
@@ -7708,7 +7693,8 @@
       REAL, PARAMETER :: PIE = 3.141592654
       REAL :: AGI, BGI, CGI, DGI, EGI, FGI, GGI, HGI, KGI, A11, A12, A13, A21, &
            A22, A23, A31, A32, A33, DETJ, TWOPIE, RGI, rsum
-      INTEGER :: GI, L, IGLX
+      INTEGER :: GI, L, IGLX, xnod1, xnod2, xnod3, xnod4, cv_nloc2
+      real, dimension( : ) , allocatable :: x2, y2, z2
 
       ewrite(3,*)' In Detnlxr_Plus_U'
 
@@ -7777,7 +7763,7 @@
 
          TWOPIE = 1.0 
          IF( DCYL ) TWOPIE = 2. * PIE
-!         rsum=0.0
+         !         rsum=0.0
 
          Loop_GI2: DO GI = 1, NGI
 
@@ -7787,15 +7773,45 @@
             CGI = 0.
             DGI = 0.
 
-            Loop_L4: DO L = 1, X_NLOC
-               IGLX = XONDGL(( ELE - 1 ) * X_NLOC + L )
-               AGI = AGI + NLX( L, GI ) * X( IGLX ) 
-               BGI = BGI + NLX( L, GI ) * Y( IGLX ) 
-               CGI = CGI + NLY( L, GI ) * X( IGLX ) 
-               DGI = DGI + NLY( L, GI ) * Y( IGLX ) 
-               RGI = RGI + N( L, GI ) * Y( IGLX )
-            END DO Loop_L4
+            if( x_nloc == 6 ) then ! Then quadratic
+               allocate( x2( nonods * nonods ) ) ; x2 = 0.
+               allocate( y2( nonods * nonods ) ) ; y2 = 0.
+               x2(1:nonods) = x ; y2(1:nonods) = y 
+               cv_nloc2 = x_nloc / x_nloc2
+               do l = 1, cv_nloc2
+                  xnod1 = 0 ; xnod2 = 0 ; xnod3 = 0
+                  if( l < cv_nloc2 ) then
+                     xnod1 = xondgl( ( ele - 1 ) * x_nloc + l )
+                     xnod2 = xondgl( ( ele - 1 ) * x_nloc + l + 1 )
+                  else
+                     xnod1 = xondgl( ( ele - 1 ) * x_nloc + l )
+                     xnod2 = xondgl( ( ele - 1 ) * x_nloc + 1 )
+                  end if
+                  xnod3 = xondgl( ( ele - 1 ) * x_nloc + cv_nloc2 + l ) 
+                  x2( xnod3 ) = 0.5 * ( x2( xnod1 ) + x2( xnod2 ) )
+                  y2( xnod3 ) = 0.5 * ( y2( xnod1 ) + y2( xnod2 ) )
+               end do
 
+               Loop_L4_Quad: DO L = 1, X_NLOC
+                  IGLX = XONDGL(( ELE - 1 ) * X_NLOC + L )
+                  AGI = AGI + NLX( L, GI ) * X2( IGLX ) 
+                  BGI = BGI + NLX( L, GI ) * Y2( IGLX ) 
+                  CGI = CGI + NLY( L, GI ) * X2( IGLX ) 
+                  DGI = DGI + NLY( L, GI ) * Y2( IGLX ) 
+                  RGI = RGI + N( L, GI ) * Y2( IGLX )
+               END DO Loop_L4_Quad
+               deallocate( x2, y2 )
+
+            else ! Linear
+               Loop_L4: DO L = 1, X_NLOC
+                  IGLX = XONDGL(( ELE - 1 ) * X_NLOC + L )
+                  AGI = AGI + NLX( L, GI ) * X( IGLX ) 
+                  BGI = BGI + NLX( L, GI ) * Y( IGLX ) 
+                  CGI = CGI + NLY( L, GI ) * X( IGLX ) 
+                  DGI = DGI + NLY( L, GI ) * Y( IGLX ) 
+                  RGI = RGI + N( L, GI ) * Y( IGLX )
+               END DO Loop_L4
+            end if
 
             IF( .NOT. DCYL ) RGI = 1.0
 
@@ -7803,10 +7819,10 @@
             RA( GI ) = RGI
             DETWEI( GI ) = TWOPIE * RGI * DETJ * WEIGHT( GI )
             VOLUME = VOLUME + DETWEI( GI )
-!            ewrite(3,*)'volume,DETWEI( GI ),TWOPIE , RGI , DETJ , WEIGHT( GI ):', &
-!                     volume,DETWEI( GI ),TWOPIE , RGI , DETJ , WEIGHT( GI )
-!            ewrite(3,*) 'ele, gi, detj, detwei:', ele, gi, detj, detwei(gi)
-!            rsum=rsum+WEIGHT( GI )
+            !            ewrite(3,*)'volume,DETWEI( GI ),TWOPIE , RGI , DETJ , WEIGHT( GI ):', &
+            !                     volume,DETWEI( GI ),TWOPIE , RGI , DETJ , WEIGHT( GI )
+            !            ewrite(3,*) 'ele, gi, detj, detwei:', ele, gi, detj, detwei(gi)
+            !            rsum=rsum+WEIGHT( GI )
 
             Loop_L5: DO L = 1, X_NLOC
                NX( L, GI ) = (  DGI * NLX( L, GI ) - BGI * NLY( L, GI )) / DETJ
@@ -7814,8 +7830,8 @@
                NZ( L, GI ) = 0.0
             END DO Loop_L5
 
-!            ewrite(3,*) 'nx:',nx
-!            ewrite(3,*) 'ny:',ny
+            !            ewrite(3,*) 'nx:',nx
+            !            ewrite(3,*) 'ny:',ny
 
             Loop_L6: DO L = 1, U_NLOC
                UNX( L, GI ) = (  DGI * UNLX( L, GI ) - BGI * UNLY( L, GI )) / DETJ
@@ -7825,7 +7841,7 @@
 
          END DO Loop_GI2
 
-!         ewrite(3,*)'ngi,sum(weight),rsum:',ngi,sum(weight),rsum
+         !         ewrite(3,*)'ngi,sum(weight),rsum:',ngi,sum(weight),rsum
 
       ELSE ! FOR 1D...
 

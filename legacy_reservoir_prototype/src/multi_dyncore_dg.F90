@@ -1972,7 +1972,7 @@
       Loop_Elements: DO ELE = 1, TOTELE ! Volume integral
 
          ! Calculate DETWEI,RA,NX,NY,NZ for element ELE
-         CALL DETNLXR_PLUS_U( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, CV_NLOC, CV_NGI, &
+         CALL DETNLXR_PLUS_U( ELE, X, Y, Z, CV_NDGLN, TOTELE, X_NONODS, CV_NLOC, X_NLOC, CV_NGI, &
               CVFEN, CVFENLX, CVFENLY, CVFENLZ, CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
               CVFENX, CVFENY, CVFENZ, &
               U_NLOC, UFENLX, UFENLY, UFENLZ, UFENX, UFENY, UFENZ ) 
