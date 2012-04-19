@@ -7726,38 +7726,38 @@
                ! THIS IS NOT FINISHED
                ! MAKE SURE THE ORDERING IS CORRECT
                !
-
-             allocate( x2( nonods * nonods ) ) ; x2 = 0.
-             allocate( y2( nonods * nonods ) ) ; y2 = 0.
-             allocate( z2( nonods * nonods ) ) ; z2 = 0.
-
-               x2(1:nonods) = x ; y2(1:nonods) = y ;  z2(1:nonods) = z
-               cv_nloc2 = x_nloc2
-               do l = 1, cv_nloc2
-                  xnod1 = 0 ; xnod2 = 0 ; xnod3 = 0
-                  if( l < cv_nloc2 ) then
-                     xnod1 = xondgl( ( ele - 1 ) * x_nloc + l )
-                     xnod2 = xondgl( ( ele - 1 ) * x_nloc + l + 1 )
-                  else
-                     xnod1 = xondgl( ( ele - 1 ) * x_nloc + l )
-                     xnod2 = xondgl( ( ele - 1 ) * x_nloc + 1 )
-                  end if
-                  xnod3 = xondgl( ( ele - 1 ) * x_nloc + cv_nloc2 + l ) 
-                  x2( xnod3 ) = 0.5 * ( x2( xnod1 ) + x2( xnod2 ) )
-                  y2( xnod3 ) = 0.5 * ( y2( xnod1 ) + y2( xnod2 ) )
-                  z2( xnod3 ) = 0.5 * ( z2( xnod1 ) + z2( xnod2 ) )
-
-               end do
-
-               Loop_L4_Quad: DO L = 1, X_NLOC
-                  IGLX = XONDGL(( ELE - 1 ) * X_NLOC + L )
-                  AGI = AGI + NLX( L, GI ) * X2( IGLX ) 
-                  BGI = BGI + NLX( L, GI ) * Y2( IGLX ) 
-                  CGI = CGI + NLY( L, GI ) * X2( IGLX ) 
-                  DGI = DGI + NLY( L, GI ) * Y2( IGLX ) 
-                  RGI = RGI + N( L, GI ) * Y2( IGLX )
-               END DO Loop_L4_Quad
-               deallocate( x2, y2, z2 )
+!!$
+!!$             allocate( x2( nonods * nonods ) ) ; x2 = 0.
+!!$             allocate( y2( nonods * nonods ) ) ; y2 = 0.
+!!$             allocate( z2( nonods * nonods ) ) ; z2 = 0.
+!!$
+!!$               x2(1:nonods) = x ; y2(1:nonods) = y ;  z2(1:nonods) = z
+!!$               cv_nloc2 = x_nloc2
+!!$               do l = 1, cv_nloc2
+!!$                  xnod1 = 0 ; xnod2 = 0 ; xnod3 = 0
+!!$                  if( l < cv_nloc2 ) then
+!!$                     xnod1 = xondgl( ( ele - 1 ) * x_nloc + l )
+!!$                     xnod2 = xondgl( ( ele - 1 ) * x_nloc + l + 1 )
+!!$                  else
+!!$                     xnod1 = xondgl( ( ele - 1 ) * x_nloc + l )
+!!$                     xnod2 = xondgl( ( ele - 1 ) * x_nloc + 1 )
+!!$                  end if
+!!$                  xnod3 = xondgl( ( ele - 1 ) * x_nloc + cv_nloc2 + l ) 
+!!$                  x2( xnod3 ) = 0.5 * ( x2( xnod1 ) + x2( xnod2 ) )
+!!$                  y2( xnod3 ) = 0.5 * ( y2( xnod1 ) + y2( xnod2 ) )
+!!$                  z2( xnod3 ) = 0.5 * ( z2( xnod1 ) + z2( xnod2 ) )
+!!$
+!!$               end do
+!!$
+!!$               Loop_L4_Quad: DO L = 1, X_NLOC
+!!$                  IGLX = XONDGL(( ELE - 1 ) * X_NLOC + L )
+!!$                  AGI = AGI + NLX( L, GI ) * X2( IGLX ) 
+!!$                  BGI = BGI + NLX( L, GI ) * Y2( IGLX ) 
+!!$                  CGI = CGI + NLY( L, GI ) * X2( IGLX ) 
+!!$                  DGI = DGI + NLY( L, GI ) * Y2( IGLX ) 
+!!$                  RGI = RGI + N( L, GI ) * Y2( IGLX )
+!!$               END DO Loop_L4_Quad
+!!$               deallocate( x2, y2, z2 )
 
 
                FLAbort("You are using unfinished code...")
