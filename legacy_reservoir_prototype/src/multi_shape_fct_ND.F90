@@ -2994,20 +2994,23 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
               abs( l3( cv_sgi ) ), abs( l4( cv_sgi ) )
 
          Conditional_Neiloc: if ( d3 ) then
-            !ewrite(3,*)'cv_sgi, zer_l1/2/3/4:', cv_sgi, (zer_l1.or.zer_l2.or.zer_l3.or.zer_l4)
+            ewrite(3,*)'cv_sgi, zer_l1/2/3/4:', cv_sgi, (zer_l1.or.zer_l2.or.zer_l3.or.zer_l4)
             if ( zer_l1 .or. zer_l2 .or. zer_l3 .or. zer_l4 ) then
                ! on the surface of the element: 
                do cv_iloc = 1, cv_nloc
-                  !ewrite(3,*)'iloc, sn',cv_iloc, abs(sn( cv_iloc, cv_sgi )), abs ( sn( cv_iloc, cv_sgi )) > 1.e-4
+                  ewrite(3,*)'iloc, sn',cv_iloc, abs(sn( cv_iloc, cv_sgi )), &
+                       abs ( sn( cv_iloc, cv_sgi )) > 1.e-4
                   if ( abs ( sn( cv_iloc, cv_sgi )) > 1.e-4 ) &
                        cvfem_neiloc( cv_iloc, cv_sgi ) = -1
                end do
             endif
          else
-            !ewrite(3,*)'cv_sgi, zer_l1/2/3:', cv_sgi, (zer_l1.or.zer_l2.or.zer_l3)
+            ewrite(3,*)'cv_sgi, zer_l1/2/3:', cv_sgi, (zer_l1.or.zer_l2.or.zer_l3)
             if ( zer_l1 .or. zer_l2 .or. zer_l3 ) then
                ! on the surface of the element: 
                do cv_iloc = 1, cv_nloc
+                  ewrite(3,*)'iloc, sn',cv_iloc, abs(sn( cv_iloc, cv_sgi )), &
+                       abs ( sn( cv_iloc, cv_sgi )) > 1.e-4
                   if ( abs( sn( cv_iloc, cv_sgi )) > 1.e-4 ) &
                        cvfem_neiloc( cv_iloc, cv_sgi ) = -1
                end do
@@ -3021,25 +3024,24 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
                  quad_cv_siloc, cv_sgi, cvfem_neiloc( quad_cv_siloc, cv_sgi )
          end do
       end do
-      ewrite(3,*)'lx:', lx( 1 : quad_cv_nloc )
 
-         do cv_sgi = 1, scvngi
-            ewrite(3,*)'cv_sgi, cvfem_neiloc::', &
-                 cv_sgi, cvfem_neiloc( :, cv_sgi )
-         end do
-         do xnodi = 1,x_nonods
-           print *,'xnodi,x(xnodi),y(xnodi),fem_nod(xnodi):', &
-                    xnodi,x(xnodi),y(xnodi),fem_nod(xnodi)
-         end do
-        stop 8222
+      do cv_sgi = 1, scvngi
+         ewrite(3,*)'cv_sgi, cvfem_neiloc::', &
+              cv_sgi, cvfem_neiloc( :, cv_sgi )
+      end do
+      do xnodi = 1,x_nonods
+         print *,'xnodi,x(xnodi),y(xnodi),fem_nod(xnodi):', &
+              xnodi,x(xnodi),y(xnodi),fem_nod(xnodi)
+      end do
+      
 
-      !ewrite(3,*) ''
-      !do cv_sgi = 1, scvngi
-      !  do quad_cv_siloc = 1, cv_nloc
-      !    ewrite(3,*)'iloc, gi, cvfem_neiloc::', &
-      !         quad_cv_siloc, cv_sgi, cvfem_neiloc( quad_cv_siloc, cv_sgi )
-      !  end do
-      !end do
+      ewrite(3,*) ''
+      do cv_sgi = 1, scvngi
+        do quad_cv_siloc = 1, cv_nloc
+          ewrite(3,*)'iloc, gi, cvfem_neiloc::', &
+               quad_cv_siloc, cv_sgi, cvfem_neiloc( quad_cv_siloc, cv_sgi )
+        end do
+      end do
       !stop 999
 
       ! Calculate cvfem_neiloc from local coordinates l1-4: (hard-wired for linear traingles)
@@ -3572,7 +3574,7 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
 
             base_order=.true.
             if(base_order) then
-! order so that the 1st nodes are on the base...
+               ! order so that the 1st nodes are on the base...
               call base_order_tri(n,nloc,ngi)
               call base_order_tri(nlx,nloc,ngi)
               call base_order_tri(nly,nloc,ngi)
@@ -3696,11 +3698,11 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
 
 
     subroutine base_order_tri(n,nloc,ngi)
-! order so that the 1st nodes are on the base...
+      ! order so that the 1st nodes are on the base...
       implicit none
       integer, intent( in ) :: nloc, ngi
       real, dimension( nloc, ngi ), intent( inout ) :: n
-! local variables...
+      ! local variables...
       real, dimension( :, : ), allocatable :: rn
       integer, dimension( : ), allocatable :: old2new
       integer :: iloc
@@ -3717,7 +3719,7 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
       old2new(6)=3
 
     do iloc=1,nloc
-      n(iloc,:)=rn(old2new(1),:)
+      n(iloc,:)=rn(old2new(iloc),:)
     end do
       return
     end subroutine base_order_tri

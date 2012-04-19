@@ -2037,12 +2037,13 @@
 
       ! The CV_SNLOC surface nodes are the only nodes that are candidates. 
       ! They are the 1st nodes in the local list for the volumes
-! WE CAN DELETE THE next bit probably...
+      ! WE CAN DELETE THE next bit probably...
       candidate_gi = .false.
       Loop_SGI1: do cv_sgi = 1, scvngi
          r_prodt = 1.
          Loop_NLOC: do cv_iloc = 1, cv_snloc
-            ewrite(3,*)'cv_iloc, cv_snloc, cv_nloc, cv_sgi, scvngi:', cv_iloc, cv_snloc, cv_nloc, cv_sgi, scvngi
+            ewrite(3,*)'cv_iloc, cv_snloc, cv_nloc, cv_sgi, scvngi, scvfen:', &
+                 cv_iloc, cv_snloc, cv_nloc, cv_sgi, scvngi, scvfen( cv_iloc, cv_sgi )
             r_prodt = r_prodt * scvfen( cv_iloc, cv_sgi )
          end do Loop_NLOC
          ewrite(3,*) 'cv_sgi, r_prodt:', cv_sgi, r_prodt
@@ -2056,9 +2057,9 @@
          candidate_gi2( cv_sgi ) = .false.
          do cv_iloc_cells = 1, cv_snloc_cells
             if( cvfem_on_face(cv_iloc_cells,cv_sgi) ) candidate_gi2( cv_sgi ) = .true.
-         end do 
+         end do
          print *,'cv_sgi,cvfem_on_face(:,cv_sgi):',cv_sgi,cvfem_on_face(:,cv_sgi)
-      end do 
+      end do
 
       print *,'candidate_gi2:',candidate_gi2
 
