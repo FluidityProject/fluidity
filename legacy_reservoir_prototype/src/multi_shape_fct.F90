@@ -2152,7 +2152,7 @@
             CV_SLOCLIST(2,1)=1
             CV_SLOCLIST(2,2)=4
             CV_SLOCLIST(2,3)=6
-            CV_SLOCLIST(3,1)=1
+            CV_SLOCLIST(3,1)=3
             CV_SLOCLIST(3,2)=5
             CV_SLOCLIST(3,3)=6
             ! quadratic quad: 

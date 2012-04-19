@@ -5288,6 +5288,14 @@
          END DO
       END DO
 
+
+      print *, 'X_NDGLN::', size(x_ndgln), maxval(face_ele)
+      print *, x_ndgln
+      print *, '------------'
+      print *, face_ele
+      print *, '------------'
+
+
       ! ***********************************************************    
       ! Now re-arrange ordering of elements in FACE_ELE so they are 
       ! consistent with the local nodes in CV_SLOCLIST
@@ -5301,11 +5309,18 @@
                GOT_ALL=.TRUE.
                DO CV_SILOC=1,CV_SNLOC
                   CV_ILOC=CV_SLOCLIST(IFACE,CV_SILOC)
+
+                  !print *, 'ele, sele, iface, ele2, sele2, iface2, cv_siloc, cv_iloc', &
+                  !     ele, sele, iface, ele2, sele2, iface2, cv_siloc, cv_iloc
+
                   FOUND=.FALSE. 
                   IF(SELE2 == 0) THEN ! is a volume element
-                     CV_INOD=X_NDGLN((ELE-1)*X_NLOC+CV_ILOC)
+                     CV_INOD=CV_NDGLN((ELE-1)*CV_NLOC+CV_ILOC)
                      DO CV_ILOC2=1,CV_NLOC
-                        CV_INOD2=X_NDGLN((ELE2-1)*X_NLOC+CV_ILOC2) 
+
+                        print *, (ELE2-1)*CV_NLOC+CV_ILOC2, ELE2, CV_ILOC2
+
+                        CV_INOD2=CV_NDGLN((ELE2-1)*CV_NLOC+CV_ILOC2) 
                         IF(CV_INOD == CV_INOD2) FOUND=.TRUE.
                      END DO
                   ELSE ! is a surface element
