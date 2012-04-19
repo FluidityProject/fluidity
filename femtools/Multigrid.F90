@@ -43,6 +43,12 @@ implicit none
 #if PETSC_VERSION_MINOR==2
 #define KSP_NORM_NO KSP_NORM_NONE
 #endif
+#if  PETSC_VERSION_RELEASE==0
+#define MatCreateSeqAIJ myMatCreateSeqAIJ
+#define MatCreateMPIAIJ myMatCreateMPIAIJ
+#define MatCreateSeqBAIJ myMatCreateSeqBAIJ
+#define MatCreateMPIBAIJ myMatCreateMPIBAIJ
+#endif
 
 !! Some parameters that change the behaviour of 
 !! the smoothed aggregation method. All of

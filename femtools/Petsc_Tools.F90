@@ -139,7 +139,13 @@ module Petsc_Tools
   public addup_global_assembly
   ! for petsc_numbering:
   public incref, decref, addref
-  
+#if  PETSC_VERSION_RELEASE==0
+#define MatCreateSeqAIJ myMatCreateSeqAIJ
+#define MatCreateMPIAIJ myMatCreateMPIAIJ
+#define MatCreateSeqBAIJ myMatCreateSeqBAIJ
+#define MatCreateMPIBAIJ myMatCreateMPIBAIJ
+  public MatCreateSeqAIJ, MatCreateMPIAIJ, MatCreateSeqBAIJ, MatCreateMPIBAIJ
+#endif
 contains
 
   ! Note about definitions in this module:
@@ -1511,7 +1517,69 @@ contains
     PetscErrorCode :: ierr
     call PetscInitialize(PETSC_NULL_CHARACTER, ierr); CHKERRQ(ierr);
   end subroutine Initialize_Petsc
-  
+
+! in petsc-dev the MatCreate[B]{Seq|MPI}() routines have changed to MatCreate[B]Aij
+! and MatSetup always needs to be called
+#if PETSC_VERSION_RELEASE==0
+  subroutine MatCreateSeqAIJ(MPI_Comm, nrows, ncols, &
+      nz, nnz, M, ierr)
+    integer, intent(in):: MPI_Comm
+    PetscInt, intent(in):: nrows, ncols, nz
+    PetscInt, dimension(:), intent(in):: nnz
+    Mat, intent(out):: M
+    PetscErrorCode, intent(out):: ierr
+
+    call MatCreateAij(MPI_Comm, nrows, ncols, nrows, ncols, &
+      nz, nnz, 0, PETSC_NULL_INTEGER, M, ierr)
+    call MatSetup(M, ierr)
+
+  end subroutine MatCreateSeqAIJ
+
+  subroutine MatCreateMPIAIJ(MPI_Comm, nprows, npcols, &
+      nrows, ncols, &
+      dnz, dnnz, onz, onnz, M, ierr)
+    integer, intent(in):: MPI_Comm
+    PetscInt, intent(in):: nprows, npcols,nrows, ncols, dnz, onz
+    PetscInt, dimension(:), intent(in):: dnnz, onnz
+    Mat, intent(out):: M
+    PetscErrorCode, intent(out):: ierr
+
+    call MatCreateAij(MPI_Comm, nprows, npcols, nrows, ncols, &
+      dnz, dnnz, onz, onnz, M, ierr)
+    call MatSetup(M, ierr)
+
+  end subroutine MatCreateMPIAIJ
+
+  subroutine MatCreateSeqBAIJ(MPI_Comm, bs, nrows, ncols, &
+      nz, nnz, M, ierr)
+    integer, intent(in):: MPI_Comm
+    PetscInt, intent(in):: bs, nrows, ncols, nz
+    PetscInt, dimension(:), intent(in):: nnz
+    Mat, intent(out):: M
+    PetscErrorCode, intent(out):: ierr
+
+    call MatCreateBAij(MPI_Comm, bs, nrows, ncols, nrows, ncols, &
+      nz, nnz, 0, PETSC_NULL_INTEGER, M, ierr)
+    call MatSetup(M, ierr)
+
+  end subroutine MatCreateSeqBAIJ
+
+  subroutine MatCreateMPIBAIJ(MPI_Comm, bs, nprows, npcols, &
+      nrows, ncols, &
+      dnz, dnnz, onz, onnz, M, ierr)
+    integer, intent(in):: MPI_Comm
+    PetscInt, intent(in):: bs, nprows, npcols,nrows, ncols, dnz, onz
+    PetscInt, dimension(:), intent(in):: dnnz, onnz
+    Mat, intent(out):: M
+    PetscErrorCode, intent(out):: ierr
+
+    call MatCreateBAij(MPI_Comm, bs, nprows, npcols, nrows, ncols, &
+      dnz, dnnz, onz, onnz, M, ierr)
+    call MatSetup(M, ierr)
+
+  end subroutine MatCreateMPIBAIJ
+#endif
+
 #include "Reference_count_petsc_numbering_type.F90"
 end module Petsc_Tools
 
