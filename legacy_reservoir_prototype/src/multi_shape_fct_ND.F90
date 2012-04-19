@@ -3023,6 +3023,16 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
       end do
       ewrite(3,*)'lx:', lx( 1 : quad_cv_nloc )
 
+         do cv_sgi = 1, scvngi
+            ewrite(3,*)'cv_sgi, cvfem_neiloc::', &
+                 cv_sgi, cvfem_neiloc( :, cv_sgi )
+         end do
+         do xnodi = 1,x_nonods
+           print *,'xnodi,x(xnodi),y(xnodi),fem_nod(xnodi):', &
+                    xnodi,x(xnodi),y(xnodi),fem_nod(xnodi)
+         end do
+        stop 8222
+
       !ewrite(3,*) ''
       !do cv_sgi = 1, scvngi
       !  do quad_cv_siloc = 1, cv_nloc
@@ -3518,6 +3528,7 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
       logical, intent( in ) :: d3
       real, dimension( nloc, ngi ), intent( inout ) :: n, nlx, nly, nlz
       ! Local variables
+      logical :: base_order
       integer :: gi, ndim, cv_ele_type_dummy, u_nloc_dummy
       real, dimension( :, : ), allocatable :: cvn_dummy, un_dummy, unlx_dummy, &
            unly_dummy, unlz_dummy
@@ -3558,6 +3569,14 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
                        -2. * l1( gi ) * l2( gi )
                end if
             end do
+
+            base_order=.true.
+            if(base_order) then
+! order so that the 1st nodes are on the base...
+              call base_order_tri(n,nloc,ngi)
+              call base_order_tri(nlx,nloc,ngi)
+              call base_order_tri(nly,nloc,ngi)
+            endif
 
          case( 3, 4 )
             do gi = 1, ngi 
@@ -3673,6 +3692,38 @@ print *, cv_ngi_1d, cv_nloc_1d, cv_nloc, cv_ngi
 
       return
     end subroutine shatri
+
+
+
+    subroutine base_order_tri(n,nloc,ngi)
+! order so that the 1st nodes are on the base...
+      implicit none
+      integer, intent( in ) :: nloc, ngi
+      real, dimension( nloc, ngi ), intent( inout ) :: n
+! local variables...
+      real, dimension( :, : ), allocatable :: rn
+      integer, dimension( : ), allocatable :: old2new
+      integer :: iloc
+
+      allocate(rn(nloc,ngi))
+      allocate(old2new(nloc))
+      rn=n
+
+      old2new(1)=1
+      old2new(2)=4
+      old2new(3)=2
+      old2new(4)=6
+      old2new(5)=5
+      old2new(6)=3
+
+    do iloc=1,nloc
+      n(iloc,:)=rn(old2new(1),:)
+    end do
+      return
+    end subroutine base_order_tri
+
+
+
 
     subroutine Calc_CVN_TriTetQuadHex( cv_ele_type, totele, cv_nloc, cv_ngi, x_nonods, &
          quad_cv_nloc, x_ndgln, fem_nod, cvn )
