@@ -292,9 +292,10 @@ contains
     character(len=*), intent(in) :: fg_path
 
     character(len=OPTION_PATH_LEN) :: var_buffer, stage_buffer, food_buffer, food_type_buffer
-    character(len=FIELD_NAME_LEN) :: biovar_name, field_name, fg_name, stage_name, food_name
-    type(ilist) :: motion_variables, history_variables
-    integer :: i, f, vars_state, vars_hist, vars_chem, vars_ingest, vars_uptake, vars_release, &
+    character(len=FIELD_NAME_LEN) :: biovar_name, field_name, food_name, vname
+    type(ilist) :: motion_variables, history_variables, food_chem_inds, food_target_inds
+    type(functional_group), pointer :: target_fg
+    integer :: i, f, t, v, vars_state, vars_hist, vars_chem, vars_ingest, vars_uptake, vars_release, &
                vars_total, var_index, chemvar_index, stage_count, &
                n_food_sets, n_food_types, hist, history_depth
 
@@ -469,14 +470,13 @@ contains
        fgroup%food_sets(i)%name = trim(food_name)
        fgroup%food_sets(i)%conc_field_name = trim(fgroup%name)//trim(fgroup%food_sets(i)%name)//"Concentration"
        fgroup%food_sets(i)%conc_field_path = trim(food_buffer)//"/scalar_field::Concentration"
+       call get_option(trim(food_buffer)//"/functional_group", fgroup%food_sets(i)%target_fgroup)
+
        n_food_types = option_count(trim(food_buffer)//"/food_type")
-       allocate(fgroup%food_sets(i)%source_fields%ptr(n_food_types))
+       allocate(fgroup%food_sets(i)%target_stages%ptr(n_food_types))
        do f=1, n_food_types
           write(food_type_buffer, "(a,i0,a)") trim(food_buffer)//"/food_type[",f-1,"]"
-
-          call get_option(trim(food_type_buffer)//"/functional_group", fg_name)
-          call get_option(trim(food_type_buffer)//"/stage", stage_name)
-          fgroup%food_sets(i)%source_fields%ptr(f) = trim(fg_name)//"EnsembleSize"//trim(stage_name)
+          call get_option(trim(food_type_buffer)//"/stage", fgroup%food_sets(i)%target_stages%ptr(f))
        end do
 
        fgroup%variables(var_index)%name = trim(food_name)//"Request"
@@ -493,6 +493,39 @@ contains
        fgroup%variables(var_index)%field_path = trim(food_buffer)//"/scalar_field::IngestedCells"
        fgroup%food_sets(i)%ingest_ind = var_index
        var_index = var_index+1
+
+       ! Now we collect the indices of the chemical pools to ingest
+       ! This should probably happen after all FGs are created, but it works for now...
+
+       ! First find our target FG
+       target_fg => null()
+       do v=1, size(agent_arrays)
+          if (associated(agent_arrays(v)%fgroup)) then
+             if (trim(agent_arrays(v)%fgroup%name) == trim(fgroup%food_sets(i)%target_fgroup)) then
+                target_fg => agent_arrays(v)%fgroup
+             end if
+          end if
+       end do
+       if (.not. associated(target_fg)) then
+          ewrite(-1,*) "Target for food set ", trim(fgroup%name), "::", trim(fgroup%food_sets(i)%name), " not found!"
+          FLExit("Unknown functional group "//trim(fgroup%food_sets(i)%target_fgroup))
+       end if
+
+       do v=1, var_index
+          if (fgroup%variables(v)%field_type==BIOFIELD_INGESTED) then
+             ! We have an Ingested field, check if target FG has the according Pool
+             vname = fgroup%variables( fgroup%variables(v)%pool_index )%name
+             do t=1, size(target_fg%variables)
+                if (trim(vname)==trim(target_fg%variables(t)%name)) then
+                   call insert(food_chem_inds, fgroup%variables(v)%pool_index)
+                end if
+             end do
+          end if
+       end do
+
+       ! Now store our index pairs
+       allocate(fgroup%food_sets(i)%ingest_chem_inds(food_chem_inds%length))
+       fgroup%food_sets(i)%ingest_chem_inds = list2vector(food_chem_inds)
     end do
 
   end subroutine read_functional_group
@@ -570,9 +603,7 @@ contains
 
        ! Aggregate food concentrations
        if (allocated(agent_arrays(i)%fgroup%food_sets)) then
-          do f=1, size(agent_arrays(i)%fgroup%food_sets)
-             call aggregate_food_fields(state(1), agent_arrays(i)%fgroup%food_sets(f))
-          end do
+          call aggregate_food_fields(state(1), agent_arrays(i)%fgroup)
        end if
 
        if (have_option(trim(agent_arrays(i)%stage_options)//"/biology")) then
@@ -853,24 +884,6 @@ contains
 
   end subroutine derive_per_stage_diagnostics
 
-  subroutine aggregate_food_fields(state, food)
-    type(state_type), intent(inout) :: state
-    type(food_set), intent(in) :: food
-
-    type(scalar_field), pointer :: concentration
-    type(scalar_field), pointer :: source_field
-    integer :: i
-
-    concentration => extract_scalar_field(state, trim(food%conc_field_name))
-    call zero(concentration)
-
-    do i=1, size(food%source_fields%ptr)
-       source_field => extract_scalar_field(state, trim(food%source_fields%ptr(i)))
-       call addto(concentration, source_field)
-    end do
-
-  end subroutine aggregate_food_fields
-
   subroutine chemical_uptake(state)
     ! Handle uptake and release of chemicals
     type(state_type), intent(inout) :: state
@@ -1022,15 +1035,55 @@ contains
 
   end subroutine chemical_release
 
+  subroutine aggregate_food_fields(state, fgroup)
+    type(state_type), intent(inout) :: state
+    type(functional_group), intent(inout) :: fgroup
+
+    type(scalar_field), pointer :: concentration
+    type(scalar_field), pointer :: source_field
+    type(scalar_field), pointer :: chem_field
+    type(food_set) :: food
+    type(biovar) :: chem_var
+    integer :: c, f, s
+
+    ewrite(2,*) "In aggregate_food_fields"
+
+    do f=1, size(fgroup%food_sets)
+       food = fgroup%food_sets(f)
+
+       concentration => extract_scalar_field(state, trim(food%conc_field_name))
+       call zero(concentration)
+
+       do s=1, size(food%target_stages%ptr)
+          source_field => extract_scalar_field(state, trim(food%target_fgroup)//"EnsembleSize"//trim(food%target_stages%ptr(s)))
+          call addto(concentration, source_field)
+       end do
+
+       ! Add the chemical concentrations across all target stages
+       do c=1, size(food%ingest_chem_inds)
+          chem_var = fgroup%variables( food%ingest_chem_inds(c) )
+          chem_field => extract_scalar_field(state, trim(fgroup%name)//trim(food%name)//trim(chem_var%name) )
+          call zero(chem_field)
+
+          do s=1, size(food%target_stages%ptr)
+             source_field => extract_scalar_field(state, trim(food%target_fgroup)//"Particulate"//trim(chem_var%name)//trim(food%target_stages%ptr(s)) )
+             call addto(chem_field, source_field)
+          end do
+       end do
+    end do
+
+  end subroutine aggregate_food_fields
+
   subroutine ingestion_handling(state)
     type(state_type), intent(inout) :: state
 
     type(scalar_field), pointer :: conc_field, request_field, depletion_field
+    type(scalar_field_pointer), dimension(:), allocatable :: prey_chem_fields
     type(food_set), pointer :: fset
-    type(biovar), pointer :: request_var
+    type(biovar), pointer :: request_var, chempool_var
     type(detector_type), pointer :: agent
-    real, dimension(1) :: conc, request, depletion
-    integer :: i, fs, ele
+    real, dimension(1) :: conc, request, depletion, chem_conc
+    integer :: i, c, fs, ele
 
     ewrite(2,*) "In ingestion_handling"
 
@@ -1059,14 +1112,30 @@ contains
              end do
 
              ! Loop over agents to set Ingest variables
+             allocate(prey_chem_fields(size(fset%ingest_chem_inds)))
+             do c=1, size(fset%ingest_chem_inds)
+                chempool_var => agent_arrays(i)%fgroup%variables( fset%ingest_chem_inds(c) )
+                prey_chem_fields(c)%ptr => extract_scalar_field(state, trim(agent_arrays(i)%fgroup%name)//trim(fset%name)//trim(chempool_var%name))
+             end do
+
              agent => agent_arrays(i)%first
              do while (associated(agent))
+                ! Set 'IngestedCells' variable
                 depletion = ele_val(depletion_field, agent%element)
                 agent%biology(fset%ingest_ind) = depletion(1) * agent%biology(fset%request_ind)
+
+                ! Set ChemIngested pools
+                conc = ele_val(conc_field, agent%element)
+                do c=1, size(fset%ingest_chem_inds)
+                   chempool_var => agent_arrays(i)%fgroup%variables( fset%ingest_chem_inds(c) )
+                   chem_conc = ele_val(prey_chem_fields(c)%ptr, agent%element)
+                   agent%biology( chempool_var%ingest_index ) = ( agent%biology(fset%ingest_ind) * (chem_conc(1) / conc(1)) ) / agent%biology(BIOVAR_SIZE)
+                end do
 
                 agent => agent%next
              end do
 
+             deallocate(prey_chem_fields)
           end do
        end if
     end do

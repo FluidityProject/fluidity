@@ -514,6 +514,9 @@ The scaled release quantity will then get added to the according source field of
         <attribute name="name">
           <data type="string"/>
         </attribute>
+        <attribute name="functional_group">
+          <data type="string"/>
+        </attribute>
         <element name="scalar_field">
           <a:documentation>Concentration field on a discontinuous mesh mesh</a:documentation>
           <attribute name="name">
@@ -565,9 +568,6 @@ The scaled release quantity will then get added to the according source field of
         <zeroOrMore>
           <element name="food_type">
             <a:documentation>Individual food type for this set</a:documentation>
-            <attribute name="functional_group">
-              <data type="string"/>
-            </attribute>
             <attribute name="stage">
               <data type="string"/>
             </attribute>

@@ -113,8 +113,12 @@ module detector_data_types
 
   type food_set
     character(len=FIELD_NAME_LEN) :: name
-    ! List of fields to aggregate
-    type(stringlist) :: source_fields
+    ! Functional Group of our target
+    character(len=FIELD_NAME_LEN) :: target_fgroup
+    ! List of target stages to ingest
+    type(stringlist) :: target_stages
+    ! Variable indices of the chemical pools to ingest
+    integer, dimension(:), allocatable :: ingest_chem_inds
     ! Concentration field
     character(len=FIELD_NAME_LEN) :: conc_field_name
     character(len=OPTION_PATH_LEN) :: conc_field_path

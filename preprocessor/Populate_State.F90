@@ -1408,7 +1408,8 @@ contains
 
       type(mesh_type) :: parent_mesh, biology_mesh
       type(functional_group), pointer :: fgroup
-      integer :: i, fg, v, f
+      type(biovar), pointer :: chemIng_var
+      integer :: i, fg, v, f, c
 
       ! First we allocate a piecewise constant mesh
       parent_mesh = extract_mesh(state, topology_mesh_name)
@@ -1432,6 +1433,14 @@ contains
             call allocate_and_insert_scalar_field(trim(fgroup%food_sets(f)%conc_field_path), &
                    state, parent_mesh="BiologyMesh", field_name=trim(fgroup%food_sets(f)%conc_field_name), &
                    dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+
+            ! Allocate FoodChemIngested fields
+            do c=1, size(fgroup%food_sets(f)%ingest_chem_inds)
+               chemIng_var => fgroup%variables( fgroup%food_sets(f)%ingest_chem_inds(c) )
+               call allocate_and_insert_scalar_field(trim(chemIng_var%field_path), &
+                   state, parent_mesh="BiologyMesh", field_name=trim(fgroup%name)//trim(fgroup%food_sets(f)%name)//trim(chemIng_var%name), &
+                   dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+            end do
          end do
 
          do v=1, size(fgroup%variables)

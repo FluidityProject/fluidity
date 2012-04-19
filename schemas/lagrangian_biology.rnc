@@ -419,6 +419,7 @@ food_set =
    (
       element food_set {
          attribute name { xsd:string },
+         attribute functional_group { xsd:string },
          ## Concentration field on a discontinuous mesh mesh
          element scalar_field {
             attribute name { "Concentration" },
@@ -459,7 +460,6 @@ food_set =
          },
          ## Individual food type for this set
          element food_type {
-            attribute functional_group { xsd:string },
             attribute stage { xsd:string }
          }*
       }*

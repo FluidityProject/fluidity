@@ -1403,7 +1403,7 @@ def val(biovars, env, dt):
             </biology>
           </stage>
         </stages>
-        <food_set name="P">
+        <food_set functional_group="Diatom" name="P">
           <scalar_field name="Concentration">
             <diagnostic>
               <algorithm name="Internal" material_phase_support="multiple"/>
@@ -1446,7 +1446,7 @@ def val(biovars, env, dt):
             </diagnostic>
             <stage_aggregate/>
           </scalar_field>
-          <food_type functional_group="Diatom" stage="Living"/>
+          <food_type stage="Living"/>
         </food_set>
         <scalar_field name="Agents">
           <diagnostic>
