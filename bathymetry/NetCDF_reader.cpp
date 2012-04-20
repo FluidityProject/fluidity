@@ -516,7 +516,9 @@ int NetCDF_reader::Read(vector<double> &z) const{
   int dims[MAX_VAR_DIMS];         /* variable shape */
   
   int varid = ncvarid(ncid, "z");
+  cout<<"varid"<< '\t' << varid <<endl;
   ncvarinq(ncid, varid, 0, &xtypep, &ndims, dims, NULL);
+  cout<<"After ncvarinq";
 
   z.resize(xysize);
   if(xtypep==NC_BYTE){ // signed 1 byte integer

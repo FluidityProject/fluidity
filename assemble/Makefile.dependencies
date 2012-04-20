@@ -673,6 +673,19 @@ Pseudo_supermesh.o ../include/pseudo_supermesh.mod: Pseudo_supermesh.F90 \
    ../include/interpolation_module.mod ../include/limit_metric_module.mod \
    ../include/merge_tensors.mod ../include/vtk_interfaces.mod
 
+../include/reducedmodel_momentum_equation_wrapper.mod: \
+   ReducedModel_Momentum_Equation_wrapper.o
+	@true
+
+ReducedModel_Momentum_Equation_wrapper.o \
+   ../include/reducedmodel_momentum_equation_wrapper.mod: \
+   ReducedModel_Momentum_Equation_wrapper.F90 \
+   ../include/boundary_conditions.mod \
+   ../include/boundary_conditions_from_options.mod ../include/fdebug.h \
+   ../include/momentum_diagnostic_fields.mod ../include/momentum_equation.mod \
+   ../include/multiphase_module.mod ../include/profiler.mod \
+   ../include/reduced_model_runtime.mod
+
 ../include/reduced_model_runtime.mod: Reduced_Model_Runtime.o
 	@true
 
