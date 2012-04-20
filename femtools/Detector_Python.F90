@@ -7,6 +7,7 @@ module detector_python
   use iso_c_binding
   use detector_data_types
   use Profiler
+  use ieee_arithmetic, only: ieee_is_nan
 
   implicit none
   
@@ -199,6 +200,12 @@ contains
 
     call python_run_agent_biology(dt, dict, len_trim(dict), key,len_trim(key), &
            agent%biology, size(agent%biology), env_field_values, size(env_field_values), lstat) 
+
+    do i=1, size(agent%biology)
+       if (ieee_is_nan(agent%biology(i))) then
+          FLExit('NaN agent variable detected in '//trim(dict))
+       end if
+    end do
 
     if(lstat /= 0) then
       if(present(stat)) then

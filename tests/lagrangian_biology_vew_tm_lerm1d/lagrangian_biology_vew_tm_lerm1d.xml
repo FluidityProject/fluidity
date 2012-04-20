@@ -11,21 +11,33 @@
     </command_line>
   </problem_definition>
   <variables>
-    <variable name="agent_count_living" language="python">
+    <variable name="diatom_agents_living" language="python">
 from fluidity_tools import stat_parser
-agent_count_living = stat_parser("vew_toymodel.stat")['Water']['DiatomAgentsLiving']['integral'][::48]
+diatom_agents_living = stat_parser("vew_toymodel.stat")['Water']['DiatomAgentsLiving']['integral'][::48]
     </variable>
-    <variable name="agent_count_dead" language="python">
+    <variable name="diatom_agents_dead" language="python">
 from fluidity_tools import stat_parser
-agent_count_dead = stat_parser("vew_toymodel.stat")['Water']['DiatomAgentsDead']['integral'][::48]
+diatom_agents_dead = stat_parser("vew_toymodel.stat")['Water']['DiatomAgentsDead']['integral'][::48]
     </variable>
-    <variable name="biomass_living" language="python">
+    <variable name="diatom_biomass_living" language="python">
 from fluidity_tools import stat_parser
-biomass_living = stat_parser("vew_toymodel.stat")['Water']['DiatomEnsembleSizeLiving']['integral'][::48]
+diatom_biomass_living = stat_parser("vew_toymodel.stat")['Water']['DiatomEnsembleSizeLiving']['integral'][::48]
     </variable>
-    <variable name="biomass_dead" language="python">
+    <variable name="diatom_biomass_dead" language="python">
 from fluidity_tools import stat_parser
-biomass_dead = stat_parser("vew_toymodel.stat")['Water']['DiatomEnsembleSizeDead']['integral'][::48]
+diatom_biomass_dead = stat_parser("vew_toymodel.stat")['Water']['DiatomEnsembleSizeDead']['integral'][::48]
+    </variable>
+    <variable name="copepod_agents_ow5" language="python">
+from fluidity_tools import stat_parser
+copepod_agents_ow5 = stat_parser("vew_toymodel.stat")['Water']['CopepodAgentsOW5']['integral'][::12]
+    </variable>
+    <variable name="copepod_agents_owa5" language="python">
+from fluidity_tools import stat_parser
+copepod_agents_owa5 = stat_parser("vew_toymodel.stat")['Water']['CopepodAgentsOWA5']['integral'][::12]
+    </variable>
+    <variable name="copepod_agents_dead" language="python">
+from fluidity_tools import stat_parser
+copepod_agents_dead = stat_parser("vew_toymodel.stat")['Water']['CopepodAgentsDead']['integral'][::12]
     </variable>
     <variable name="dissolved_ammonium_min" language="python">
 from fluidity_tools import stat_parser

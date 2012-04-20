@@ -569,7 +569,7 @@ contains
     type(detector_linked_list) :: stage_change_list
     type(vector_field), pointer :: xfield
     type(scalar_field_pointer), dimension(:), pointer :: env_fields
-    integer :: i, j, f, env, pm_period, hvar, hvar_ind, hvar_src_ind
+    integer :: i, j, f, v, env, pm_period, hvar, hvar_ind, hvar_src_ind
     logical :: python_update, lerm_living_update, lerm_dead_update
 
     ewrite(1,*) "Lagrangian biology: Updating agents..."
@@ -648,6 +648,13 @@ contains
              elseif (lerm_dead_update) then
                 call LERM_update_dead_diatom(agent, agent_arrays(i), state(1), dt)
              end if
+
+             ! Reset ChemIngested variables
+             do v=1, size(agent_arrays(i)%fgroup%variables)
+                if (agent_arrays(i)%fgroup%variables(v)%field_type==BIOFIELD_INGESTED) then
+                   agent%biology(v) = 0.0
+                end if
+             end do
 
              ! Check for stage change
              if (agent%biology(BIOVAR_STAGE) /= agent_arrays(i)%stage_id) then
@@ -958,7 +965,7 @@ contains
                 do while (associated(agent))
                    depletion = ele_val(depletion_field, agent%element)
                    ingest_ind = agent_arrays(i)%fgroup%variables( agent_arrays(i)%fgroup%variables(j)%pool_index )%ingest_index
-                   agent%biology(ingest_ind) = depletion(1) * agent%biology(j)
+                   agent%biology(ingest_ind) = agent%biology(ingest_ind) + depletion(1) * agent%biology(j)
 
                    agent => agent%next
                 end do
@@ -1083,7 +1090,7 @@ contains
     type(biovar), pointer :: request_var, chempool_var
     type(detector_type), pointer :: agent
     real, dimension(1) :: conc, request, depletion, chem_conc
-    integer :: i, c, fs, ele
+    integer :: i, c, fs, ele, ingest_ind
 
     ewrite(2,*) "In ingestion_handling"
 
@@ -1127,9 +1134,11 @@ contains
                 ! Set ChemIngested pools
                 conc = ele_val(conc_field, agent%element)
                 do c=1, size(fset%ingest_chem_inds)
-                   chempool_var => agent_arrays(i)%fgroup%variables( fset%ingest_chem_inds(c) )
+                   ingest_ind = agent_arrays(i)%fgroup%variables( fset%ingest_chem_inds(c) )%ingest_index
                    chem_conc = ele_val(prey_chem_fields(c)%ptr, agent%element)
-                   agent%biology( chempool_var%ingest_index ) = ( agent%biology(fset%ingest_ind) * (chem_conc(1) / conc(1)) ) / agent%biology(BIOVAR_SIZE)
+                   if (conc(1) > 0.0) then
+                      agent%biology(ingest_ind) = agent%biology(ingest_ind) + ( agent%biology(fset%ingest_ind) * (chem_conc(1) / conc(1)) ) / agent%biology(BIOVAR_SIZE)
+                   end if
                 end do
 
                 agent => agent%next

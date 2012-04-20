@@ -1208,6 +1208,7 @@ def val(biovars, env, dt):
                     <include_in_detectors/>
                   </detectors>
                 </diagnostic>
+                <stage_aggregate/>
               </scalar_field>
             </release>
           </chemical_variable>
