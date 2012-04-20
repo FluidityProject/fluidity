@@ -7709,9 +7709,6 @@
       REAL :: AGI, BGI, CGI, DGI, EGI, FGI, GGI, HGI, KGI, A11, A12, A13, A21, &
            A22, A23, A31, A32, A33, DETJ, TWOPIE, RGI, rsum
       INTEGER :: GI, L, IGLX
-      real :: xnod1, xnod2, ynod1, ynod2
-      real, dimension( : ) , allocatable :: x2, y2, z2
-      integer, dimension( : ), allocatable :: loc_list
 
       ewrite(3,*)' In Detnlxr_Plus_U'
 
@@ -7730,66 +7727,19 @@
             HGI = 0.
             KGI = 0.
 
-            if( x_nloc == 10 ) then ! Then quadratic
+            Loop_L1: DO L = 1, X_NLOC ! NB R0 does not appear here although the z-coord might be Z+R0.
+               IGLX = XONDGL(( ELE - 1 ) * X_NLOC + L)
 
-               ! READ ME
-               ! THIS IS NOT FINISHED
-               ! MAKE SURE THE ORDERING IS CORRECT
-               !
-!!$
-!!$             allocate( x2( nonods * nonods ) ) ; x2 = 0.
-!!$             allocate( y2( nonods * nonods ) ) ; y2 = 0.
-!!$             allocate( z2( nonods * nonods ) ) ; z2 = 0.
-!!$
-!!$               x2(1:nonods) = x ; y2(1:nonods) = y ;  z2(1:nonods) = z
-!!$               cv_nloc2 = x_nloc2
-!!$               do l = 1, cv_nloc2
-!!$                  xnod1 = 0 ; xnod2 = 0 ; xnod3 = 0
-!!$                  if( l < cv_nloc2 ) then
-!!$                     xnod1 = xondgl( ( ele - 1 ) * x_nloc + l )
-!!$                     xnod2 = xondgl( ( ele - 1 ) * x_nloc + l + 1 )
-!!$                  else
-!!$                     xnod1 = xondgl( ( ele - 1 ) * x_nloc + l )
-!!$                     xnod2 = xondgl( ( ele - 1 ) * x_nloc + 1 )
-!!$                  end if
-!!$                  xnod3 = xondgl( ( ele - 1 ) * x_nloc + cv_nloc2 + l ) 
-!!$                  x2( xnod3 ) = 0.5 * ( x2( xnod1 ) + x2( xnod2 ) )
-!!$                  y2( xnod3 ) = 0.5 * ( y2( xnod1 ) + y2( xnod2 ) )
-!!$                  z2( xnod3 ) = 0.5 * ( z2( xnod1 ) + z2( xnod2 ) )
-!!$
-!!$               end do
-!!$
-!!$               Loop_L4_Quad: DO L = 1, X_NLOC
-!!$                  IGLX = XONDGL(( ELE - 1 ) * X_NLOC + L )
-!!$                  AGI = AGI + NLX( L, GI ) * X2( IGLX ) 
-!!$                  BGI = BGI + NLX( L, GI ) * Y2( IGLX ) 
-!!$                  CGI = CGI + NLY( L, GI ) * X2( IGLX ) 
-!!$                  DGI = DGI + NLY( L, GI ) * Y2( IGLX ) 
-!!$                  RGI = RGI + N( L, GI ) * Y2( IGLX )
-!!$               END DO Loop_L4_Quad
-!!$               deallocate( x2, y2, z2 )
-
-
-               FLAbort("You are using unfinished code...")
-
-            else ! Linear
-
-               Loop_L1: DO L = 1, X_NLOC ! NB R0 does not appear here although the z-coord might be Z+R0.
-                  IGLX = XONDGL(( ELE - 1 ) * X_NLOC + L)
-
-                  AGI = AGI + NLX( L, GI) * X( IGLX ) 
-                  BGI = BGI + NLX( L, GI) * Y( IGLX ) 
-                  CGI = CGI + NLX( L, GI) * Z( IGLX ) 
-                  DGI = DGI + NLY( L, GI) * X( IGLX ) 
-                  EGI = EGI + NLY( L, GI) * Y( IGLX ) 
-                  FGI = FGI + NLY( L, GI) * Z( IGLX ) 
-                  GGI = GGI + NLZ( L, GI) * X( IGLX ) 
-                  HGI = HGI + NLZ( L, GI) * Y( IGLX ) 
-                  KGI = KGI + NLZ( L, GI) * Z( IGLX )
-               END DO Loop_L1
-
-            end if
-
+               AGI = AGI + NLX( L, GI) * X( IGLX ) 
+               BGI = BGI + NLX( L, GI) * Y( IGLX ) 
+               CGI = CGI + NLX( L, GI) * Z( IGLX ) 
+               DGI = DGI + NLY( L, GI) * X( IGLX ) 
+               EGI = EGI + NLY( L, GI) * Y( IGLX ) 
+               FGI = FGI + NLY( L, GI) * Z( IGLX ) 
+               GGI = GGI + NLZ( L, GI) * X( IGLX ) 
+               HGI = HGI + NLZ( L, GI) * Y( IGLX ) 
+               KGI = KGI + NLZ( L, GI) * Z( IGLX )
+            END DO Loop_L1
 
             DETJ = AGI * ( EGI * KGI - FGI * HGI ) &
                  -BGI * ( DGI * KGI - FGI * GGI ) &
@@ -7837,59 +7787,14 @@
             CGI = 0.
             DGI = 0.
 
-            if( cv_nloc == 6 ) then ! Then quadratic
-               allocate( x2( nonods * nonods ) ) ; x2 = 0.
-               allocate( y2( nonods * nonods ) ) ; y2 = 0.
-               allocate( loc_list ( cv_nloc ) ) ; loc_list = 0
-
-               !x2(1:nonods) = x ; y2(1:nonods) = y
-
-               do l=1, x_nloc
-                  x2(l) = x( xondgl( ( ele - 1 ) * x_nloc + l )) 
-                  y2(l) = y( xondgl( ( ele - 1 ) * x_nloc + l ))
-               end do
-
-
-               do l = 1, x_nloc
-                  xnod1 = 0. ; xnod2 = 0.
-                  loc_list( l ) = l
-                  if( l < x_nloc ) then
-                     xnod1 = x2(l)   ; ynod1 = y2(l)
-                     xnod2 = x2(l+1) ; ynod2 = y2(l+1)
-                  else
-                     xnod1 = x2(l)   ; ynod1 = y2(l)
-                     xnod2 = x2(1)   ; ynod2 = y2(1)
-                  end if
-                  loc_list( x_nloc + l ) = x_nloc + l
-                  x2( x_nloc + l ) = 0.5 * (  xnod1  +  xnod2  )
-                  y2( x_nloc + l ) = 0.5 * (  ynod1  +  ynod2  )
-               end do
-
-               !Loop_L4_Quad: DO L = 1, X_NLOC
-               Loop_L4_Quad: DO L = 1, CV_NLOC
-                  !IGLX = XONDGL(( ELE - 1 ) * X_NLOC + L )
-                  IGLX = loc_list( l )
-                  AGI = AGI + NLX( L, GI ) * X2( IGLX ) 
-                  BGI = BGI + NLX( L, GI ) * Y2( IGLX ) 
-                  CGI = CGI + NLY( L, GI ) * X2( IGLX ) 
-                  DGI = DGI + NLY( L, GI ) * Y2( IGLX ) 
-                  RGI = RGI + N( L, GI ) * Y2( IGLX )
-                  !ewrite(3,*) 'l, gi, iglx, x2, y2:', l, gi,  iglx, x2( iglx ), y2( iglx )
-                  !ewrite(3,*) 'n, nlx, nly:', n( l, gi ), nlx( l, gi ), nly( l, gi )
-               END DO Loop_L4_Quad
-
-               deallocate( x2, y2, loc_list )
-
-            else ! Linear
-               Loop_L4: DO L = 1, X_NLOC
-                  IGLX = XONDGL(( ELE - 1 ) * X_NLOC + L )
-                  AGI = AGI + NLX( L, GI ) * X( IGLX ) 
-                  BGI = BGI + NLX( L, GI ) * Y( IGLX ) 
-                  CGI = CGI + NLY( L, GI ) * X( IGLX ) 
-                  DGI = DGI + NLY( L, GI ) * Y( IGLX ) 
-                  RGI = RGI + N( L, GI ) * Y( IGLX )
-               END DO Loop_L4
-            end if
+            Loop_L4: DO L = 1, X_NLOC
+               IGLX = XONDGL(( ELE - 1 ) * X_NLOC + L )
+               AGI = AGI + NLX( L, GI ) * X( IGLX ) 
+               BGI = BGI + NLX( L, GI ) * Y( IGLX ) 
+               CGI = CGI + NLY( L, GI ) * X( IGLX ) 
+               DGI = DGI + NLY( L, GI ) * Y( IGLX ) 
+               RGI = RGI + N( L, GI ) * Y( IGLX )
+            END DO Loop_L4
 
             IF( .NOT. DCYL ) RGI = 1.0
 
@@ -7897,10 +7802,6 @@
             RA( GI ) = RGI
             DETWEI( GI ) = TWOPIE * RGI * DETJ * WEIGHT( GI )
             VOLUME = VOLUME + DETWEI( GI )
-            !            ewrite(3,*)'volume,DETWEI( GI ),TWOPIE , RGI , DETJ , WEIGHT( GI ):', &
-            !                     volume,DETWEI( GI ),TWOPIE , RGI , DETJ , WEIGHT( GI )
-            !            ewrite(3,*) 'ele, gi, detj, detwei:', ele, gi, detj, detwei(gi)
-            !            rsum=rsum+WEIGHT( GI )
 
             Loop_L5: DO L = 1, X_NLOC
                NX( L, GI ) = (  DGI * NLX( L, GI ) - BGI * NLY( L, GI )) / DETJ
@@ -7908,8 +7809,6 @@
                NZ( L, GI ) = 0.0
             END DO Loop_L5
 
-            !            ewrite(3,*) 'nx:',nx
-            !            ewrite(3,*) 'ny:',ny
 
             Loop_L6: DO L = 1, U_NLOC
                UNX( L, GI ) = (  DGI * UNLX( L, GI ) - BGI * UNLY( L, GI )) / DETJ
@@ -7919,7 +7818,7 @@
 
          END DO Loop_GI2
 
-         !         ewrite(3,*)'ngi,sum(weight),rsum:',ngi,sum(weight),rsum
+         !ewrite(3,*)'ngi,sum(weight),rsum:',ngi,sum(weight),rsum
 
       ELSE ! FOR 1D...
 

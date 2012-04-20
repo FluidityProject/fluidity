@@ -134,7 +134,7 @@
       type(vector_field), pointer :: velocity, velocity_source
       type(vector_field), pointer :: velocity_bc
 
-      type(mesh_type), pointer :: velocity_cg_mesh
+      type(mesh_type), pointer :: velocity_cg_mesh, pressure_cg_mesh
       type(vector_field) :: velocity_cg
 
       type(tensor_field), pointer :: viscosity_ph1, viscosity_ph2, t_permeability
@@ -151,7 +151,7 @@
       type(vector_field) :: cv_positions
 
       integer :: i, j, k, l, cv_nonods, p_nonods, mat_nonods, &
-           x_nonods, xu_nonods, u_nonods, cv_nod, u_nod, xu_nod, x_nod, mat_nod, &
+           x_nonods, x_nonods_p1, xu_nonods, u_nonods, cv_nod, u_nod, xu_nod, x_nod, mat_nod, &
            shared_nodes, u_nloc2
 
       real :: coord_min, coord_max, eos_value
@@ -161,8 +161,8 @@
       real, dimension(:,:), allocatable :: const_array
 
 
-      integer, dimension(:), allocatable :: cv_ndgln, u_ndgln, p_ndgln, x_ndgln, xu_ndgln, mat_ndgln, &
-           cv_sndgln, p_sndgln, u_sndgln, u_sndgln2
+      integer, dimension(:), allocatable :: cv_ndgln, u_ndgln, p_ndgln, x_ndgln, x_ndgln_p1, &
+           xu_ndgln, mat_ndgln, cv_sndgln, p_sndgln, u_sndgln, u_sndgln2
       integer, dimension(:), pointer :: element_nodes
 
       real, dimension(:), allocatable :: initial_constant_velocity
@@ -175,7 +175,7 @@
 
       ! Scalars (from read_scalar())
       integer :: nphases, ncomps, totele, ndim, nlev, &
-           u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc, &
+           u_nloc, xu_nloc, cv_nloc, x_nloc, x_nloc_p1, p_nloc, mat_nloc, &
            cv_snloc, u_snloc, p_snloc, stotel, &
            ncoef, ncoef_max, nuabs_coefs, &
            u_ele_type, p_ele_type, mat_ele_type, cv_ele_type, &
@@ -258,9 +258,9 @@
       ! Getting all primary scalars necessary to the model
       call Get_Primary_Scalars( state, &         
            nphases, nstates, ncomps, totele, ndim, stotel, &
-           u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc, &
+           u_nloc, xu_nloc, cv_nloc, x_nloc, x_nloc_p1, p_nloc, mat_nloc, &
            x_snloc, cv_snloc, u_snloc, p_snloc, &
-           cv_nonods, mat_nonods, u_nonods, xu_nonods, x_nonods, p_nonods, dx, &
+           cv_nonods, mat_nonods, u_nonods, xu_nonods, x_nonods, x_nonods_p1, p_nonods, dx, &
            is_overlapping )
 
       ewrite(3,*) 'nphases, nstates, ncomps, totele, ndim, stotel:', &
@@ -273,13 +273,19 @@
            cv_nonods, mat_nonods, u_nonods, xu_nonods, x_nonods, p_nonods
       ewrite(3,*) 'is_overlapping????:',  is_overlapping
 
+      positions => extract_vector_field( state( 1 ), "Coordinate" )
+      allocate( x_ndgln_p1( totele * x_nloc_p1 ) ) ; x_ndgln_p1 = 0
+      ewrite(3,*)'X_NDGLN_P1:'
+      call Get_Ndgln( x_ndgln_p1, positions )
+      ewrite(3,*) '   '
 
       ! Allocating Volume-based Global Node Numbers:
       ! Positions/Coordinates
-      positions => extract_vector_field( state( 1 ), "Coordinate" )
+      ! NB This is a continuous version of the Pressure mesh
+      pressure_cg_mesh => extract_mesh( state( 1 ), "PressureMesh_Continuous" )
       allocate( x_ndgln( totele * x_nloc ) ) ; x_ndgln = 0
       ewrite(3,*)'X_NDGLN:'
-      call Get_Ndgln( x_ndgln, positions )
+      call Get_Ndgln( x_ndgln, pressure_cg_mesh )
       ewrite(3,*) '   '
 
       ! Pressure and Control Volume
@@ -375,15 +381,15 @@
       end do
       call deallocate( velocity_cg )
 
-
       ! Coordinate mesh
       allocate( x( x_nonods ) ) ; x = 0.
       allocate( y( x_nonods ) ) ; y = 0.
       allocate( z( x_nonods ) ) ; z = 0.
 
-      x = positions % val( 1, : )
-      if( ndim > 1 ) y = positions % val( 2, : )
-      if( ndim > 2 ) z = positions % val( 3, : )
+      call xp1_2_xp2( ndim, totele, x_nloc, x_nloc_p1, x_nonods_p1, x_nonods, &
+           x_ndgln_p1, x_ndgln, positions, &
+           x, y, z )
+
       do k = 1, totele
          do j = 1, x_nloc
             ewrite(3,*)'ele, ndgln, x, y:', k, x_ndgln( ( k - 1 ) * x_nloc + j ), &
@@ -405,10 +411,10 @@
            nonlinear_iteration_tolerance, lump_eqns )
 
       ! Initial pressure -- this can be deleted later on.
-      call get_option('/material_phase[0]/scalar_field::Pressure/prognostic/&
-           atmospheric_pressure', patmos, default=0.0)
-      call get_option('/material_phase[0]/scalar_field::Pressure/prognostic/&
-           initial_condition::WholeMesh/constant',p_ini, default=0.0)
+      call get_option('/material_phase[0]/scalar_field::Pressure/prognostic/' // &
+           'atmospheric_pressure', patmos, default=0.0)
+      call get_option('/material_phase[0]/scalar_field::Pressure/prognostic/' // &
+           'initial_condition::WholeMesh/constant',p_ini, default=0.0)
 
 
       ewrite(3,*) ' Getting capillary pressure options'
@@ -1275,18 +1281,18 @@
 
     subroutine Get_Primary_Scalars( state, &         
          nphases, nstates, ncomps, totele, ndim, stotel, &
-         u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc, &
+         u_nloc, xu_nloc, cv_nloc, x_nloc, x_nloc_p1, p_nloc, mat_nloc, &
          x_snloc, cv_snloc, u_snloc, p_snloc, &
-         cv_nonods, mat_nonods, u_nonods, xu_nonods, x_nonods, p_nonods, dx, &
+         cv_nonods, mat_nonods, u_nonods, xu_nonods, x_nonods, x_nonods_p1, p_nonods, dx, &
          is_overlapping )
       !! This subroutine extracts all primary variables associated with the mesh from state,
       !! and associated them with the variables used in the MultiFluids model.
       implicit none
       type(state_type), dimension(:), intent( in ) :: state
       integer, intent( inout ) :: nphases, nstates, ncomps, totele, ndim, &
-           stotel, u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc, &
+           stotel, u_nloc, xu_nloc, cv_nloc, x_nloc, x_nloc_p1, p_nloc, mat_nloc, &
            x_snloc, cv_snloc, u_snloc, p_snloc, cv_nonods, mat_nonods, &
-           u_nonods, xu_nonods, x_nonods, p_nonods
+           u_nonods, xu_nonods, x_nonods, x_nonods_p1, p_nonods
       real, intent( inout ) :: dx
       logical, intent( inout ) :: is_overlapping
 
@@ -1294,7 +1300,7 @@
       character( len = option_path_len ) :: vel_element_type
       type( vector_field ), pointer :: positions, velocity
       type( scalar_field ), pointer :: pressure
-      type( mesh_type ), pointer :: velocity_cg_mesh
+      type( mesh_type ), pointer :: velocity_cg_mesh, pressure_cg_mesh
       integer :: i
 
       ewrite(3,*)' In Get_Primary_Scalars'
@@ -1322,15 +1328,18 @@
       if ( trim( vel_element_type ) == 'overlapping' ) is_overlapping = .true. 
 
       positions => extract_vector_field( state, "Coordinate" )
+      pressure_cg_mesh => extract_mesh( state, "PressureMesh_Continuous" )
 
       ! Defining number of elements and surface elements, coordinates, locs and snlocs
       totele = ele_count( positions )
       stotel = surface_element_count( positions )
 
       ! Coordinates
-      x_nloc = ele_loc( positions, 1 )
-      x_snloc = face_loc( positions, 1 )
-      x_nonods = node_count( positions )
+      x_nloc_p1 = ele_loc( positions, 1 )
+      x_nloc = ele_loc( pressure_cg_mesh, 1 )
+      x_snloc = face_loc( pressure_cg_mesh, 1 )
+      x_nonods_p1 = node_count( positions )
+      x_nonods = node_count( pressure_cg_mesh )
 
       ! Pressure, Control Volumes and Materials
       pressure => extract_scalar_field( state, "Pressure" )
@@ -1750,8 +1759,6 @@
       ! Local variables
       integer :: ndim, degree
 
-
-
       call get_option("/geometry/dimension", ndim)
 
       call get_option( &
@@ -1805,13 +1812,13 @@
 
             Select Case( x_nloc )
 
-            case( 3 ) ! x_nloc
+            case( 6 ) ! x_nloc
 
                ! ndim=2; p=2; x_nloc=3
                ! quadratic triangle
                cv_ele_type = 4
 
-            case( 4 ) ! x_nloc
+            case( 10 ) ! x_nloc
 
                ! ndim=2; p=2; x_nloc=4
                ! bi-quadratic quad
@@ -1984,5 +1991,100 @@
 
       return
     end subroutine Get_Solvers_Options
+
+    subroutine xp1_2_xp2( ndim, totele, x_nloc_p2, x_nloc_p1, x_nonods_p1, x_nonods_p2, &
+         x_ndgln_p1, x_ndgln_p2, positions, &
+         x, y, z )
+      ! This subrt maps the coordinate P1 mesh into a P2 mesh. 
+      implicit none
+      integer, intent( in ) :: ndim, totele, x_nloc_p2, x_nloc_p1, x_nonods_p1, x_nonods_p2
+      integer, dimension( totele * x_nloc_p1 ), intent( in ) :: x_ndgln_p1
+      integer, dimension( totele * x_nloc_p2 ), intent( in ) :: x_ndgln_p2
+      real, dimension( x_nonods_p2 ), intent( inout ) :: x, y, z
+      type(vector_field), intent(in) :: positions
+
+      ! Local variables
+      real, dimension( x_nonods_p1 ) :: x_p1, y_p1, z_p1
+      integer, dimension( : ), allocatable :: iloclist_p2
+      real, dimension( : ), allocatable :: x2, y2, z2
+      integer :: ele, iloc, inod
+      real :: xnod1, xnod2, ynod1, ynod2, xtemp, ytemp
+
+      allocate( iloclist_p2 ( x_nloc_p2 ) ) ; iloclist_p2 = 0
+      allocate( x2( x_nloc_p2 ) ) ; x2 = 0.
+      allocate( y2( x_nloc_p2 ) ) ; y2 = 0.
+      allocate( z2( x_nloc_p2 ) ) ; z2 = 0.
+
+      if( ndim == 2 ) then
+         iloclist_p2 = (/ 1, 4, 2, 5, 6, 3 /) 
+      elseif( ndim == 3 ) then
+         FLAbort( "Still need to be done" )
+      else
+         FLAbort( "Still need to be done" )
+      end if
+
+      Conditional_Pn: if ( x_nloc_p2 == 3 .or. x_nloc_p2 == 4 ) then
+
+         x = positions % val( 1, : )
+         if( ndim > 1 ) y = positions % val( 2, : )
+         if( ndim > 2 ) z = positions % val( 3, : )
+
+      else if ( x_nloc_p2 == 6 .or. x_nloc_p2 == 10 ) then
+
+         x_p1 = positions % val( 1, : )
+         y_p1 = positions % val( 2, : )
+
+         if ( ( x_nloc_p2 == 6 ) .and. ( ndim == 2 ) ) then ! 2D P2 Tri
+
+            do ele = 1, totele
+
+               x2 = 0. ; y2 = 0.
+               do iloc = 1, x_nloc_p1
+                  x2( iloc ) = x_p1( x_ndgln_p1( ( ele - 1 ) * x_nloc_p1 + iloc )) 
+                  y2( iloc ) = y_p1( x_ndgln_p1( ( ele - 1 ) * x_nloc_p1 + iloc ))
+                  print *, ele, iloc,  x_ndgln_p1( ( ele - 1 ) * x_nloc_p1 + iloc ), &
+                        x2( iloc ),        y2( iloc ) 
+
+               end do
+
+               do iloc = 1, x_nloc_p1
+                  if( iloc < x_nloc_p1 ) then
+                     xnod1 = x2( iloc )     ; ynod1 = y2( iloc )
+                     xnod2 = x2( iloc + 1 ) ; ynod2 = y2( iloc + 1 )
+                  else
+                     xnod1 = x2( iloc ) ; ynod1 = y2( iloc )
+                     xnod2 = x2( 1 )    ; ynod2 = y2 ( 1 )
+                  end if
+                  x2( x_nloc_p1 + iloc ) = 0.5 * (  xnod1  +  xnod2  )
+                  y2( x_nloc_p1 + iloc ) = 0.5 * (  ynod1  +  ynod2  )
+               end do
+
+               xtemp = x2( 5 ) ; ytemp = y2( 5 )
+               x2( 5 ) = x2( 6 ) ; y2( 5 ) = y2( 6 )
+               x2( 6 ) = xtemp   ; y2( 6 ) = ytemp
+
+               do iloc = 1, x_nloc_p2
+                  inod = x_ndgln_p2( ( ele - 1 ) * x_nloc_p2 + iloc )
+                  x( inod ) = x2( iloclist_p2( iloc ) )
+                  y( inod ) = y2( iloclist_p2( iloc ) )
+               end do
+
+            end do
+
+         else ! Quadratic Tets
+            FLAbort( "Still need some code here" )
+
+         end if
+      end if Conditional_Pn
+
+
+      deallocate( iloclist_p2 )
+      deallocate( x2 )
+      deallocate( y2 )
+      deallocate( z2 )
+
+
+      return
+    end subroutine xp1_2_xp2
 
   end module copy_outof_into_state
