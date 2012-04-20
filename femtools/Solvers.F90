@@ -1701,7 +1701,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
          FLAbort("Need petsc_numbering for monitor")
        end if
        call petsc_monitor_setup(petsc_numbering, max_its)
-       call KSPMonitorSet(ksp,MyKSPMonitor,PETSC_NULL_INTEGER, &
+       call KSPMonitorSet(ksp,MyKSPMonitor,PETSC_NULL_OBJECT, &
             &                     PETSC_NULL_FUNCTION,ierr)
     end if
 
@@ -2165,9 +2165,6 @@ subroutine MyKSPMonitor(ksp,n,rnorm,dummy,ierr)
   Mat:: Amat, Pmat
   PC:: pc
   Vec:: dummy_vec, r, rhs
-
-  ! Stop warnings.
-  ierr = dummy  
 
   !  Build the solution vector  
   call VecZeroEntries(petsc_monitor_x,ierr)
