@@ -5303,9 +5303,10 @@
                   CV_ILOC=CV_SLOCLIST(IFACE,CV_SILOC)
                   FOUND=.FALSE. 
                   IF(SELE2 == 0) THEN ! is a volume element
-                     CV_INOD=CV_NDGLN((ELE-1)*CV_NLOC+CV_ILOC)
+                     CV_INOD=X_NDGLN((ELE-1)*X_NLOC+CV_ILOC)
                      DO CV_ILOC2=1,CV_NLOC
-                        CV_INOD2=CV_NDGLN((ELE2-1)*CV_NLOC+CV_ILOC2) 
+          print *,'ELE2,X_NLOC,CV_ILOC2:',ELE2,X_NLOC,CV_ILOC2
+                        CV_INOD2=X_NDGLN((ELE2-1)*X_NLOC+CV_ILOC2) 
                         IF(CV_INOD == CV_INOD2) FOUND=.TRUE.
                      END DO
                   ELSE ! is a surface element

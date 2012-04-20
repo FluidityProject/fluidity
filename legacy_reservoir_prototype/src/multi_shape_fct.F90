@@ -2041,29 +2041,37 @@
 
       ! The CV_SNLOC surface nodes are the only nodes that are candidates. 
       ! They are the 1st nodes in the local list for the volumes
-      ! WE CAN DELETE THE next bit probably...
-      candidate_gi = .false.
-      Loop_SGI1: do cv_sgi = 1, scvngi
-         r_prodt = 1.
-         Loop_NLOC: do cv_iloc = 1, cv_snloc
-            !ewrite(3,*)'cv_iloc, cv_snloc, cv_nloc, cv_sgi, scvngi, scvfen:', &
-            !     cv_iloc, cv_snloc, cv_nloc, cv_sgi, scvngi, scvfen( cv_iloc, cv_sgi )
-            r_prodt = r_prodt * scvfen( cv_iloc, cv_sgi )
-         end do Loop_NLOC
-         !ewrite(3,*) 'cv_sgi, r_prodt:', cv_sgi, r_prodt
-         if( r_prodt > 1.e-5 ) candidate_gi( cv_sgi ) = .true.
-      end do Loop_SGI1
+! WE CAN DELETE THE next bit probably...
+!      candidate_gi = .false.
+!      Loop_SGI1: do cv_sgi = 1, scvngi
+!         r_prodt = 1.
+!         Loop_NLOC: do cv_iloc = 1, cv_snloc
+!            ewrite(3,*)'cv_iloc, cv_snloc, cv_nloc, cv_sgi, scvngi:', cv_iloc, cv_snloc, cv_nloc, cv_sgi, scvngi
+!            r_prodt = r_prodt * scvfen( cv_iloc, cv_sgi )
+!         end do Loop_NLOC
+!         ewrite(3,*) 'cv_sgi, r_prodt:', cv_sgi, r_prodt
+!         if( r_prodt > 1.e-5 ) candidate_gi( cv_sgi ) = .true.
+!      end do Loop_SGI1
+
+
+      do cv_sgi = 1, scvngi
+         candidate_gi2( cv_sgi ) = .true.
+         do cv_iloc_cells = 1, cv_snloc_cells
+            if( .not.cvfem_on_face(cv_iloc_cells,cv_sgi) ) candidate_gi2( cv_sgi ) = .false.
+         end do 
+      end do 
+
 
       Loop_SNLOC: do cv_siloc = 1, cv_snloc
          cv_iloc = cv_siloc
          cv_bsgi = 0
          Loop_SGI2: do cv_sgi = 1, scvngi
-            Conditional_1: if( candidate_gi( cv_sgi ) ) then
-               Conditional_2: if( cvfem_on_face( cv_iloc, cv_sgi ) ) then
+!            Conditional_1: if( candidate_gi( cv_sgi ) ) then
+               Conditional_2: if( candidate_gi2( cv_sgi ) ) then
                   cv_bsgi = cv_bsgi + 1
-                  !ewrite(3,*) 'cv_siloc, cv_bsgi,cv_iloc, cv_sgi:', &
-                  !     cv_siloc, cv_bsgi,cv_iloc, cv_sgi
-                  !ewrite(3,*) 'scvfen( cv_iloc, cv_sgi ):', scvfen( cv_iloc, cv_sgi )
+                  ewrite(3,*) 'cv_siloc, cv_bsgi,cv_iloc, cv_sgi:', &
+                       cv_siloc, cv_bsgi,cv_iloc, cv_sgi
+                  ewrite(3,*) 'scvfen( cv_iloc, cv_sgi ):', scvfen( cv_iloc, cv_sgi )
                   sbcvfen( cv_siloc, cv_bsgi ) = scvfen( cv_iloc, cv_sgi )
                   sbcvfenslx( cv_siloc, cv_bsgi ) = scvfenslx( cv_iloc, cv_sgi )
                   sbcvfensly( cv_siloc, cv_bsgi ) = scvfensly( cv_iloc, cv_sgi )
@@ -2072,15 +2080,17 @@
                   sbcvfenlz( cv_siloc, cv_bsgi ) = scvfenlz( cv_iloc, cv_sgi )
                   sbcvfeweigh( cv_bsgi ) = scvfeweigh( cv_sgi )
                end if Conditional_2
-            end if Conditional_1
+!            end if Conditional_1
          end do Loop_SGI2
       end do Loop_SNLOC
 
       deallocate( candidate_gi )
       deallocate( candidate_gi2 )
+!         if(cv_nloc_cells.ne.cv_nloc) stop 29892
 
       return
     end subroutine scvfen_2_sbcvfen
+
 
 
 

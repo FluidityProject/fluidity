@@ -2505,11 +2505,11 @@
                MAT_OTHER_LOC=0
                DO MAT_SILOC = 1, CV_SNLOC
                   MAT_ILOC = CV_SLOC2LOC( MAT_SILOC )
-                  MAT_INOD = CV_NDGLN(( ELE - 1 ) * MAT_NLOC + MAT_ILOC )
-                  !MAT_INOD = X_NDGLN(( ELE - 1 ) * MAT_NLOC + MAT_ILOC )
+                  !MAT_INOD = CV_NDGLN(( ELE - 1 ) * MAT_NLOC + MAT_ILOC )
+                  MAT_INOD = X_NDGLN(( ELE - 1 ) * MAT_NLOC + MAT_ILOC )
                   DO MAT_ILOC2 = 1, MAT_NLOC
-                     MAT_INOD2 = CV_NDGLN(( ELE2 - 1 ) * MAT_NLOC + MAT_ILOC2 )
-                     !MAT_INOD2 = X_NDGLN(( ELE2 - 1 ) * MAT_NLOC + MAT_ILOC2 )
+                     !MAT_INOD2 = CV_NDGLN(( ELE2 - 1 ) * MAT_NLOC + MAT_ILOC2 )
+                     MAT_INOD2 = X_NDGLN(( ELE2 - 1 ) * MAT_NLOC + MAT_ILOC2 )
                      IF( MAT_INOD2 == MAT_INOD ) THEN
                         MAT_OTHER_LOC( MAT_ILOC )=MAT_ILOC2
                      ENDIF
