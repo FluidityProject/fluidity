@@ -4,7 +4,7 @@ SIM = BL_3d
 
 input: clean
 
-	gmsh -optimize -3 src/3d_mesh.geo
+	gmsh -3 src/3d_mesh.geo
 	../../../scripts/gmsh2triangle src/3d_mesh.msh
 
 clean:

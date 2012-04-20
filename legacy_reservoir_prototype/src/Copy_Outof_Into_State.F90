@@ -2018,7 +2018,7 @@
       if( ndim == 2 ) then
          iloclist_p2 = (/ 1, 4, 2, 5, 6, 3 /) 
       elseif( ndim == 3 ) then
-         FLAbort( "Still need to be done" )
+         iloclist_p2 = (/ 1, 5, 2, 6, 7, 3, 8, 9, 10, 4 /)
       else
          FLAbort( "Still need to be done" )
       end if
@@ -2033,6 +2033,7 @@
 
          x_p1 = positions % val( 1, : )
          y_p1 = positions % val( 2, : )
+         if (ndim == 3)  z_p1 = positions % val( 3, : )
 
          if ( ( x_nloc_p2 == 6 ) .and. ( ndim == 2 ) ) then ! 2D P2 Tri
 
@@ -2042,15 +2043,12 @@
                do iloc = 1, x_nloc_p1
                   x2( iloc ) = x_p1( x_ndgln_p1( ( ele - 1 ) * x_nloc_p1 + iloc )) 
                   y2( iloc ) = y_p1( x_ndgln_p1( ( ele - 1 ) * x_nloc_p1 + iloc ))
-                  print *, ele, iloc,  x_ndgln_p1( ( ele - 1 ) * x_nloc_p1 + iloc ), &
-                        x2( iloc ),        y2( iloc ) 
-
                end do
 
                do iloc = 1, x_nloc_p1
                   if( iloc < x_nloc_p1 ) then
-                     xnod1 = x2( iloc )     ; ynod1 = y2( iloc )
-                     xnod2 = x2( iloc + 1 ) ; ynod2 = y2( iloc + 1 )
+                     xnod1 = x2( iloc )      ; ynod1 = y2( iloc )
+                     xnod2 = x2( iloc + 1 ); ynod2 = y2( iloc + 1 )
                   else
                      xnod1 = x2( iloc ) ; ynod1 = y2( iloc )
                      xnod2 = x2( 1 )    ; ynod2 = y2 ( 1 )
@@ -2061,7 +2059,7 @@
 
                xtemp = x2( 5 ) ; ytemp = y2( 5 )
                x2( 5 ) = x2( 6 ) ; y2( 5 ) = y2( 6 )
-               x2( 6 ) = xtemp   ; y2( 6 ) = ytemp
+               x2( 6 ) = xtemp ; y2( 6 ) = ytemp
 
                do iloc = 1, x_nloc_p2
                   inod = x_ndgln_p2( ( ele - 1 ) * x_nloc_p2 + iloc )
@@ -2072,6 +2070,74 @@
             end do
 
          else ! Quadratic Tets
+
+            do ele = 1, totele
+
+               x2 = 0. ; y2 = 0. ; z2 = 0.
+               do iloc = 1, x_nloc_p1
+                  x2( iloc ) = x_p1( x_ndgln_p1( ( ele - 1 ) * x_nloc_p1 + iloc )) 
+                  y2( iloc ) = y_p1( x_ndgln_p1( ( ele - 1 ) * x_nloc_p1 + iloc ))
+                  z2( iloc ) = z_p1( x_ndgln_p1( ( ele - 1 ) * x_nloc_p1 + iloc ))
+               end do
+
+               x2( 5 ) = 0.5 * (x2(1) + x2(2) )
+               y2( 5 ) = 0.5 * (y2(1) + y2(2) )
+               z2( 5 ) = 0.5 * (z2(1) + z2(2) )
+
+               x2( 6 ) = 0.5 * (x2(1) + x2(3) )
+               y2( 6 ) = 0.5 * (y2(1) + y2(3) )
+               z2( 6 ) = 0.5 * (z2(1) + z2(3) )
+
+               x2( 7 ) = 0.5 * (x2(2) + x2(3) )
+               y2( 7 ) = 0.5 * (y2(2) + y2(3) )
+               z2( 7 ) = 0.5 * (z2(2) + z2(3) )
+
+               x2( 8 ) = 0.5 * (x2(1) + x2(4) )
+               y2( 8 ) = 0.5 * (y2(1) + y2(4) )
+               z2( 8 ) = 0.5 * (z2(1) + z2(4) )
+
+               x2( 9 ) = 0.5 * (x2(3) + x2(4) )
+               y2( 9 ) = 0.5 * (y2(3) + y2(4) )
+               z2( 9 ) = 0.5 * (z2(3) + z2(4) )
+
+               x2( 10 ) = 0.5 * (x2(2) + x2(4) )
+               y2( 10 ) = 0.5 * (y2(2) + y2(4) )
+               z2( 10 ) = 0.5 * (z2(2) + z2(4) )
+
+               if (ele==5) then
+                  print *, '==================================='
+                  print *, x_ndgln_p2( ( ele - 1 ) * x_nloc_p2 + 1:( ele - 1 ) * x_nloc_p2 + x_nloc_p2 )
+                  print *, x2
+                  print *, y2
+                  print *, z2
+                  print *, '==================================='
+               end if
+
+
+               do iloc = 1, x_nloc_p2
+                  inod = x_ndgln_p2( ( ele - 1 ) * x_nloc_p2 + iloc )
+
+                  if (ele==5)then
+                     print *, iloc,  iloclist_p2( iloc ), inod
+                     if( iloclist_p2(iloc) >= 7 )then
+                         print *, x2( iloclist_p2( iloc ) ), y2( iloclist_p2( iloc ) ), z2( iloclist_p2( iloc ) )
+                     end if
+                  end if
+                  x( inod ) = x2( iloclist_p2( iloc ) )
+                  y( inod ) = y2( iloclist_p2( iloc ) )
+                  z( inod ) = z2( iloclist_p2( iloc ) )
+               end do
+
+            end do
+
+            do ele = 1, totele
+               if (ele==5) then
+                  ewrite(3,*) x(x_ndgln_p2( ( ele - 1 ) * x_nloc_p2 + 1 : ( ele - 1 ) * x_nloc_p2 + x_nloc_p2 ))
+                  ewrite(3,*) y(x_ndgln_p2( ( ele - 1 ) * x_nloc_p2 + 1 : ( ele - 1 ) * x_nloc_p2 + x_nloc_p2 ))
+                  ewrite(3,*) z(x_ndgln_p2( ( ele - 1 ) * x_nloc_p2 + 1 : ( ele - 1 ) * x_nloc_p2 + x_nloc_p2 ))
+               end if
+            end do
+
             FLAbort( "Still need some code here" )
 
          end if
