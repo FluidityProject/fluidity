@@ -882,7 +882,7 @@ subroutine keps_bcs(state)
                 FLAbort("I need the distance to the wall - enable a DistanceToWall field")
              end if
              do node = 1, node_count(field1)
-                call keps_damping_functions(field2,field1,f_1,f_2,f_mu,y,bg_visc,node)
+                call keps_damping_functions(state,field2,field1,f_1,f_2,f_mu,y,bg_visc,node)
              end do 
           end if
        
@@ -896,14 +896,18 @@ end subroutine keps_bcs
 ! Only used if bc type == k_epsilon for field and low_Re                         !
 !--------------------------------------------------------------------------------!
 
-subroutine keps_damping_functions(k,eps,f_1,f_2,f_mu,y,bg_visc,node)
+subroutine keps_damping_functions(state,k,eps,f_1,f_2,f_mu,y,bg_visc,node)
 
+    type(state_type), intent(in) :: state
     type(scalar_field), intent(inout) :: f_1, f_2, f_mu
     type(scalar_field), intent(in) :: k, eps, y
     type(tensor_field), intent(in) :: bg_visc
     integer, intent(in) :: node
 
-    real :: rhs, Re_T, R_y, fields_max = 1.e2
+    real :: rhs, Re_T, R_y, fields_max
+
+    call get_option(trim(state%option_path)// &
+         & "/subgridscale_parameterisations/k-epsilon/max_damping_value", fields_max) 
 
     if ((node_val(k,node) .eq. 0.0) .or. &
          & (node_val(y,node) .eq. 0.0) .or. &

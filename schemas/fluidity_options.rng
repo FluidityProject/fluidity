@@ -1645,6 +1645,12 @@ affect the result</a:documentation>
                       <ref name="diagnostic_scalar_field"/>
                     </element>
                   </element>
+                  <element name="max_damping_value">
+                    <a:documentation>Limit the maximum value of damping function values. This helps stability when using low_Re number
+boundary conditions. If not using low_Re boundaries this will have no effect. 
+Recommended value (default): 10.0</a:documentation>
+                    <ref name="real"/>
+                  </element>
                   <optional>
                     <element name="scalar_field">
                       <a:documentation>Describes distance to nearest solid wall.
