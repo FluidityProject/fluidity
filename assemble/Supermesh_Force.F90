@@ -231,7 +231,7 @@ contains
 
     ! Set solver options for the interpolations:
     tmp = alpha_sf%option_path
-    alpha_sf%option_path = "/implicit_solids/one_way_coupling/galerkin_projection/continuous"
+    alpha_sf%option_path = "/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/galerkin_projection/continuous"
 
     ! Project alpha to the fluid mesh:
     call petsc_solve(alpha_sf, mass_matrix_fluid, rhs_alpha_sf)
@@ -240,7 +240,8 @@ contains
     alpha_sf%option_path = trim(tmp)
 
     ! Get options from option tree if projection is bounded or not:
-    if (have_option('/implicit_solids/one_way_coupling/galerkin_projection/continuous/bounded[0]')) then
+    if (have_option('/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/galerkin_projection/continuous/bounded[0]')) then
+    
        call bound_projection(alpha_sf, rhs_alpha_sf, mass_matrix_fluid, lumped_mass_matrix_fluid, lumped_inverse_mass_matrix_fluid, positionsF)
     end if
 
