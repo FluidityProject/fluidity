@@ -2826,7 +2826,7 @@ contains
         end do
 
         ! Multiply by surface normal (dim,sgi) to obtain shear in direction normal
-        ! to surface
+        ! to surface - transpose because fluidity stores in row-major order
         normal_shear_at_quad(:,i_gi) = matmul(transpose(shear_at_quad(:,:,i_gi)), abs_normal)
      end do  
 

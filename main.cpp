@@ -48,6 +48,7 @@ extern "C" {
 #ifdef USING_GFORTRAN
   /* gfortran hack to ensure 4-byte record marker for unformatted files */
   void _gfortran_set_record_marker(int);
+  void _gfortran_set_fpe(int);
 #endif
 }
 
@@ -69,6 +70,9 @@ int main(int argc, char **argv){
 #ifdef USING_GFORTRAN
   /* gfortran hack to ensure 4-byte record marker for unformatted files */
   _gfortran_set_record_marker(4);
+#ifdef DDEBUG
+  _gfortran_set_fpe(5);
+#endif
 #endif
 
   // Get any command line arguments.
