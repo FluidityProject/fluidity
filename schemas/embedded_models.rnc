@@ -12,7 +12,11 @@ embedded_models =
             ## Solid Geometry
             element geometry
             {
-               fsi_model_input_mesh+
+               fsi_model_input_mesh+,
+               element quadrature
+               {
+                  element degree {integer}
+               }
             },
             (
                ## 1-way coupling: Stationary solid, or

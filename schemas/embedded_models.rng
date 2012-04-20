@@ -15,6 +15,11 @@ Immersed Solids</a:documentation>
             <oneOrMore>
               <ref name="fsi_model_input_mesh"/>
             </oneOrMore>
+            <element name="quadrature">
+              <element name="degree">
+                <ref name="integer"/>
+              </element>
+            </element>
           </element>
           <optional>
             <choice>
