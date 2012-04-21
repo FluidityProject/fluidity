@@ -3606,21 +3606,11 @@
             allocate( cvweigh_dummy( ngi ) )
             u_nloc_dummy = nloc
             cv_ele_type_dummy = 2
-            ndim = 3
-            call quad_nd_shape( ndim, cv_ele_type_dummy, ngi, nloc, &
-                 u_nloc_dummy, cvn_dummy, cvweigh_dummy, &
-                 n, nlx, nly, nlz, &
-                 un_dummy, unlx_dummy, unly_dummy, unlz_dummy )
-            !call quad_nd_shape( ndim, cv_ele_type_dummy, cv_ngi, &
-            !    cv_nloc, u_nloc_dummy, cvn_dummy, cvweigh_dummy, &
-            !    n, nlx, nly, nlz, &
-            !    un_dummy, unlx_dummy, unly_dummy, unlz_dummy )
-            if( nloc == 11 ) then ! Bubble function
-               n( 11, : ) = l1 * l2 * l3 * l4
-               nlx( 11, : ) = l2 * l3 * ( -l2 - l3 + 1. ) - 2. * l1 * l2 * l3
-               nly( 11, : ) = l1 * l3 * ( -l1 - l3 + 1. ) - 2. * l1 * l2 * l3
-               nlz( 11, : ) = l1 * l2 * ( -l1 - l2 + 1. ) - 2. * l1 * l2 * l3
-            end if
+            ndim = 3 
+            call SHATRIold(L1, L2, L3, L4, cvweigh_dummy, (ndim==3), &
+     &               NLOC,NGI,  &
+     &               N,NLX,NLY,NLZ)
+
             base_order=.true.
             if(base_order) then
                ! order so that the 1st nodes are on the base...
