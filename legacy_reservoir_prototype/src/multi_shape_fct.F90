@@ -2205,16 +2205,30 @@
             CV_SLOCLIST(1,1)=1
             CV_SLOCLIST(1,2)=2
             CV_SLOCLIST(1,3)=3
-            CV_SLOCLIST(1,4)=3
+            CV_SLOCLIST(1,4)=4
+            CV_SLOCLIST(1,5)=5
+            CV_SLOCLIST(1,6)=6
+
             CV_SLOCLIST(2,1)=1
-            CV_SLOCLIST(2,2)=2
-            CV_SLOCLIST(2,3)=4
-            CV_SLOCLIST(3,1)=1
-            CV_SLOCLIST(3,2)=3
-            CV_SLOCLIST(3,3)=4
-            CV_SLOCLIST(4,1)=2
-            CV_SLOCLIST(4,2)=3
-            CV_SLOCLIST(4,3)=4
+            CV_SLOCLIST(2,2)=4
+            CV_SLOCLIST(2,3)=6
+            CV_SLOCLIST(2,4)=7
+            CV_SLOCLIST(2,5)=9
+            CV_SLOCLIST(2,6)=10
+
+            CV_SLOCLIST(3,1)=6
+            CV_SLOCLIST(3,2)=5
+            CV_SLOCLIST(3,3)=3
+            CV_SLOCLIST(3,4)=9
+            CV_SLOCLIST(3,5)=8
+            CV_SLOCLIST(3,6)=10
+
+            CV_SLOCLIST(4,1)=3
+            CV_SLOCLIST(4,2)=2
+            CV_SLOCLIST(4,3)=1
+            CV_SLOCLIST(4,4)=8
+            CV_SLOCLIST(4,5)=7
+            CV_SLOCLIST(4,6)=10
             ! general hex: 
          ELSE 
             IF(NFACE/=6) THEN
