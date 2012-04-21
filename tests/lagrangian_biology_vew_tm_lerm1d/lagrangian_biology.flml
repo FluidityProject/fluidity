@@ -314,25 +314,15 @@ def val(X,t):
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">global z, c_amm
+            <string_value lines="20" type="code" language="python">from numpy import loadtxt
+global depth, ammonium
 
-def read_chem_file(filename):  
-  f = open(filename , 'r')
-  ammonium = []
-  depth = []
-  for line in f:
-    data = line.split(",")
-    depth.append(float(data[0]))
-    ammonium.append(float(data[1]))
-  f.close()
-  return depth, ammonium
-
-z, c_amm = read_chem_file("vew_tm_chem_init.csv")
+depth, ammonium = loadtxt("lerm_ps_init_col.csv",unpack=True,delimiter=',',skiprows=1,usecols=(0,3))
   
 def val(X,t):
   from numpy import interp
   # interpolate to correct t
-  conc = interp(abs(X[0]), z, c_amm)
+  conc = interp(abs(X[0]), depth, ammonium)
   return conc</string_value>
           </python>
         </initial_condition>
@@ -478,25 +468,15 @@ def val(X,t):
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">global z, c_sil
+            <string_value lines="20" type="code" language="python">from numpy import loadtxt
+global depth, silicate
 
-def read_chem_file(filename):  
-  f = open(filename , 'r')
-  silicate = []
-  depth = []
-  for line in f:
-    data = line.split(",")
-    depth.append(float(data[0]))
-    silicate.append(float(data[3])) #Silicate
-  f.close()
-  return depth, silicate
-
-z, c_sil = read_chem_file("vew_tm_chem_init.csv")
+depth, silicate = loadtxt("lerm_ps_init_col.csv",unpack=True,delimiter=',',skiprows=1,usecols=(0,4))
   
 def val(X,t):
   from numpy import interp
   # interpolate to correct t
-  conc = interp(abs(X[0]), z, c_sil)
+  conc = interp(abs(X[0]), depth, silicate)
   return conc</string_value>
           </python>
         </initial_condition>
@@ -577,22 +557,16 @@ for n in range(field.node_count):
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">global read_physics_file
+            <string_value lines="20" type="code" language="python">from numpy import loadtxt
+global depth, salinity
 
-f = open("vew_salinity_init.csv" , 'r')
-depth_sal = {}
-depth = 0
-for line in f:
-  depth_sal[depth] = float(line.split(",")[0])
-  depth = depth + 1
-persistent['salinity_data'] = depth_sal
+depth, salinity = loadtxt("lerm_ps_init_col.csv",unpack=True,delimiter=',',skiprows=1,usecols=(0,2))
 
 def val(X,t):
-  if abs(X[0]) &lt;= 499:
-    z = abs(X[0])
-  else:
-    z = 499
-  return persistent['salinity_data'][z]</string_value>
+  from numpy import interp
+  # interpolate to correct t
+  conc = interp(abs(X[0]), depth, salinity)
+  return conc</string_value>
           </python>
         </initial_condition>
         <subgridscale_parameterisation name="prescribed_diffusivity"/>
@@ -1233,7 +1207,7 @@ def val(biovars, env, dt):
   from numpy import arange
   # 300 agents, evenly spaced in [375:405]m
   # Note: Changed for development reasons...
-  positions = arange(-175.05,-205.,-0.1).reshape(300,1)
+  positions = arange(-225.05,-255.,-0.1).reshape(300,1)
   return positions</string_value>
               </position>
               <biology>

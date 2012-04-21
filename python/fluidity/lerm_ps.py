@@ -195,7 +195,7 @@ def update_OW5_Copepod(param, vars, env, dt):
 
   ### Overwintering phase OW5 ###
   R_ow = (R_bas * param['delta'])
-  if (param['d_year'] == 1.0):
+  if (param['d_year'] == 75.0):
     vars['Stage'] = 16.0  # OWA5
 
   ### Assimilation efficiency ###
