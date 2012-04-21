@@ -3621,6 +3621,14 @@
                nly( 11, : ) = l1 * l3 * ( -l1 - l3 + 1. ) - 2. * l1 * l2 * l3
                nlz( 11, : ) = l1 * l2 * ( -l1 - l2 + 1. ) - 2. * l1 * l2 * l3
             end if
+            base_order=.true.
+            if(base_order) then
+               ! order so that the 1st nodes are on the base...
+              call base_order_tet(n,nloc,ngi)
+              call base_order_tet(nlx,nloc,ngi)
+              call base_order_tet(nly,nloc,ngi)
+              call base_order_tet(nlz,nloc,ngi)
+            endif
 
             deallocate( cvn_dummy )
             deallocate( un_dummy )
@@ -3681,7 +3689,8 @@
 
 
     subroutine base_order_tri(n,nloc,ngi)
-      ! order so that the 1st nodes are on the base...
+      ! order so that the 1st nodes are on the base for a 
+      ! quadratic triangle...
       implicit none
       integer, intent( in ) :: nloc, ngi
       real, dimension( nloc, ngi ), intent( inout ) :: n
@@ -3706,6 +3715,41 @@
     end do
       return
     end subroutine base_order_tri
+
+
+
+    subroutine base_order_tet(n,nloc,ngi)
+      ! order so that the 1st nodes are on the base of tet for 
+      ! a quadratic tet...
+      implicit none
+      integer, intent( in ) :: nloc, ngi
+      real, dimension( nloc, ngi ), intent( inout ) :: n
+      ! local variables...
+      real, dimension( :, : ), allocatable :: rn
+      integer, dimension( : ), allocatable :: old2new
+      integer :: iloc
+
+      allocate(rn(nloc,ngi))
+      allocate(old2new(nloc))
+      rn=n
+
+      old2new(1)=1
+      old2new(2)=5
+      old2new(3)=2
+      old2new(4)=6
+      old2new(5)=8
+      old2new(6)=3
+
+      old2new(7)=6
+      old2new(8)=10
+      old2new(9)=9
+      old2new(10)=4
+
+    do iloc=1,nloc
+      n(iloc,:)=rn(old2new(iloc),:)
+    end do
+      return
+    end subroutine base_order_tet
 
 
 
