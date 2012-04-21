@@ -819,13 +819,25 @@
       case( 3, 4 ) ! Triangles
          Conditional_CV_NLOC2D_Tri: Select Case( cv_nloc )
          case( 3 ) ! Linear Triangle
-            cv_ngi = 12
-            scvngi = 3
-            sbcvngi = 2 
+            if(QUAD_OVER_WHOLE_ELE) then
+               cv_ngi = 3
+               sbcvngi = 2 
+               scvngi = 2
+            else
+               cv_ngi = 12
+               scvngi = 3
+               sbcvngi = 2 
+            endif
          case( 6 ) ! Quadratic Triangle
-            cv_ngi = 48 ! 36
-            scvngi = 24 ! was 18 but was wrong
-            sbcvngi = 8 ! it was 6 but that was wrong 
+            if(QUAD_OVER_WHOLE_ELE) then
+               cv_ngi = 7
+               sbcvngi = 3
+               scvngi = 3
+            else
+               cv_ngi = 48 ! 36
+               scvngi = 24 ! was 18 but was wrong
+               sbcvngi = 8 ! it was 6 but that was wrong 
+            endif
          case default; FLExit(" Invalid integer for cv_nloc ")
          end Select Conditional_CV_NLOC2D_Tri
          nface = 3
@@ -833,13 +845,25 @@
       case( 5, 6 ) ! Quads
          Conditional_CV_NLOC2D_Quad: Select Case( cv_nloc )
          case( 4 ) ! Bi-linear Quad
-            cv_ngi = 16
-            scvngi = 2
-            sbcvngi = 8 
+            if(QUAD_OVER_WHOLE_ELE) then
+               cv_ngi = 4
+               scvngi = 2
+               sbcvngi = 2 
+            else
+               cv_ngi = 16
+               scvngi = 2
+               sbcvngi = 8 
+            endif
          case( 9 ) ! Bi-quad Quad
-            cv_ngi = 36
-            scvngi = 24
-            sbcvngi = 6
+            if(QUAD_OVER_WHOLE_ELE) then
+               cv_ngi = 9
+               sbcvngi = 3
+               scvngi = 3
+            else
+               cv_ngi = 36
+               scvngi = 24
+               sbcvngi = 6
+            endif
          case default; FLExit(" Invalid integer for cv_nloc ")
          end Select Conditional_CV_NLOC2D_Quad
          nface = 4
@@ -847,13 +871,25 @@
       case( 7, 8 ) ! Tetrahedra
          Conditional_CV_NLOC3D_Tet: Select Case( cv_nloc )
          case( 4 ) ! Linear 
-            cv_ngi = 32 ! 4x8
-            scvngi = 6
-            sbcvngi = 3
+            if(QUAD_OVER_WHOLE_ELE) then
+               cv_ngi = 4
+               sbcvngi = 3
+               scvngi = 3
+            else
+               cv_ngi = 32 ! 4x8
+               scvngi = 6
+               sbcvngi = 3
+            endif
          case( 10 ) ! Quadratic
-            cv_ngi = 864 ! 8x4x27
-            scvngi = 192
-            sbcvngi = 48
+            if(QUAD_OVER_WHOLE_ELE) then
+               cv_ngi = 11
+               sbcvngi = 7
+               scvngi = 7
+            else
+               cv_ngi = 864 ! 8x4x27
+               scvngi = 192
+               sbcvngi = 48
+            endif
          case default; FLExit(" Invalid integer for cv_nloc ")
          end Select Conditional_CV_NLOC3D_Tet
          nface = 4
@@ -876,7 +912,9 @@
 
       end Select Conditional_EleType
 
-      if( cv_ele_type > 2 ) scvngi = scvngi + nface * sbcvngi
+      if(.not.QUAD_OVER_WHOLE_ELE) then
+         if( cv_ele_type > 2 ) scvngi = scvngi + nface * sbcvngi
+      endif 
       cv_ngi_short = cv_ngi
 
       call get_option( '/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
