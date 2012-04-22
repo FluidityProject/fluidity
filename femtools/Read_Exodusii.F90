@@ -97,15 +97,16 @@ contains
 
     ewrite(2,*) "*************************"
     ewrite(2,*) "before read_exodusii_file"
-!    ewrite(2,*) "quad%dim = ", quad%dim
-!    ewrite(2,*) "quad%degree = ", quad%degree
-!    ewrite(2,*) "quad%vertices = ", quad%vertices
-!    ewrite(2,*) "quad%ngi = ", quad%ngi
-!    ewrite(2,*) "quad%family = ", quad%family
-!    ewrite(2,*) "shape%dim = ", shape%dim
-!    ewrite(2,*) "shape%loc = ", shape%loc
-!    ewrite(2,*) "shape%degree = ", shape%degree
-!    ewrite(2,*) "shape%ngi = ", shape%ngi
+    ewrite(2,*) "loc = ", loc
+    ewrite(2,*) "quad%dim = ", quad%dim
+    ewrite(2,*) "quad%degree = ", quad%degree
+    ewrite(2,*) "quad%vertices = ", quad%vertices
+    ewrite(2,*) "quad%ngi = ", quad%ngi
+    ewrite(2,*) "quad%family = ", quad%family
+    ewrite(2,*) "shape%dim = ", shape%dim
+    ewrite(2,*) "shape%loc = ", shape%loc
+    ewrite(2,*) "shape%degree = ", shape%degree
+    ewrite(2,*) "shape%ngi = ", shape%ngi
 
     field=read_exodusii_file(filename, shape)
 
@@ -192,6 +193,8 @@ contains
     if (ierr /= 0) then
        FLExit("Unable close file "//trim(lfilename))
     end if
+
+
 
     ! Return optional variables requested
 !    if(present(nodeAttributesOut)) nodeAttributesOut=nodeAttributes
@@ -463,7 +466,6 @@ contains
     ! First, assemble array containing all node coordinates:
     allocate(node_coord(eff_dim, num_nodes))
     node_coord = 0
-    ewrite(2,*) "*********************************"
     node_coord(1,:) = coord_x(:)
     if (eff_dim .eq. 2 .or. eff_dim .eq. 3) then
        node_coord(2,:) = coord_y(:)
@@ -494,7 +496,7 @@ contains
     ! Set elementIDs and blockIDs of to which the elements belong to
     allelements(:)%elementID = 0.0; allelements(:)%blockID = 0.0
     allelements(:)%type = 0.0; allelements(:)%numTags = 0.0
-    b=0; z=0; z2=0;
+    z=0; z2=0;
     do i=1, num_elem_blk
        do e=1, num_elem_in_block(i)
           ! Set elementID:
@@ -517,8 +519,6 @@ contains
     ewrite(2,*) "allelements%elementID: ", allelements%elementID
     ewrite(2,*) "allelements%blockID: ", allelements%blockID
     ewrite(2,*) "allelements%type: ", allelements%type
-
-
     
     ! Now faces
     ! First of all: get total number of faces, then assemble array with faces:
@@ -606,32 +606,30 @@ contains
 
 
     ! Copy elements (normal elements, no faces) to field:
-    b=0; z=0; z2=0; f=1; exo_e=1;
+    z=0; exo_e=1;
     do i=1, num_elem_blk
        do e=1, num_elem_in_block(i)
-          if( (num_dim .eq. 2 .and. elem_type(i) .eq. 1) .or. &
+          if(.not.( (num_dim .eq. 2 .and. elem_type(i) .eq. 1) .or. &
             (num_dim .eq. 3 .and. &
-            (elem_type(i) .eq. 2 .or. elem_type(i) .eq. 3)) ) then
-             ! These are faces:
-          else !these are normal elements:
+            (elem_type(i) .eq. 2 .or. elem_type(i) .eq. 3)) ) ) then
+            !these are normal elements:
              do n=1, num_nodes_per_elem(i)
-                field%mesh%ndglno(n+z) = exo_element(exo_e)%nodeIDs(n+z2)
+                field%mesh%ndglno(n+z) = exo_element(exo_e)%nodeIDs(n)
              end do
              exo_e = exo_e+1
              z = z+num_nodes_per_elem(i)
           end if
        end do
-       b = b + num_elem_in_block(i)
     end do
 
+    call vtk_write_fields("coord_field", index=1, position=field, model=field%mesh, vfields=(/field/))
 
-    
 
     call add_faces( field%mesh, sndgln = sndglno(1:num_faces*sloc) )
     ewrite(2,*) "after add_faces"
 
 
-    call vtk_write_fields("coord_field", index=1, position=field, model=field%mesh, vfields=(/field/))
+!    call vtk_write_fields("coord_field", index=1, position=field, model=field%mesh, vfields=(/field/))
 
 
     ! Copy node number of faces to 
