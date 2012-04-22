@@ -244,7 +244,7 @@ contains
     
     integer :: num_faces
     integer :: loc, sloc
-    integer :: nodeID, eff_dim, b, d, e, f, i, n, z, z2
+    integer :: nodeID, elemID, blockID, eff_dim, b, d, e, f, i, n, z, z2
     
     type(EXOnode), pointer :: exo_nodes(:)
     type(EXOelement), pointer :: exo_element(:)
@@ -472,27 +472,44 @@ contains
        node_coord(3,:) = coord_z(:)
     end if
 
+    
+    ! Now set up elements, their IDs and blockIDs:
+    ! Allocate exodus elements:
+    allocate(exo_element(num_elem))
+    ! Set elementIDs and blockIDs of to which the elements belong to
+    exo_element(:)%blockID = 0.0
+    exo_element(:)%elementID = 0.0
+    b=0; z=0; z2=0;
+    do i=1, num_elem_blk
+       do e=1, num_elem_in_block(i)
+          ! Set elementID:
+          exo_element(e+z)%elementID = elem_order_map(e+z)
+          ! Set blockID of element e
+          exo_element(e+z)%blockID = block_ids(i)
+          !do n=1, num_nodes_per_elem(i)
+             ! (placeholder for further development
+          !end do
+       end do
+       z = z + num_elem_in_block(i)
+    end do
+
+    ! Now set up nodes, their IDs and coordinates:
+    ! Allocate exodus nodes
+    allocate(exo_nodes(num_nodes))
+    ! setting all node properties to zero
+    exo_nodes(:)%nodeID = 0.0
+    exo_nodes(:)%x(1)=0.0; exo_nodes(:)%x(2)=0.0; exo_nodes(:)%x(3)=0.0;
     ! copy coordinates into Coordinate field
     do n=1, num_nodes
        nodeID = node_map(n)
+       exo_nodes(n)%nodeID = nodeID
        forall (d = 1:eff_dim)
-          field%val(d,nodeID) = node_coord(d,n)
+          exo_nodes(n)%x(d) = node_coord(d,n)
+          field%val(d,nodeID) = exo_nodes(n)%x(d)
        end forall
     end do
 
-    ! Works for meshes without faces:
-!    ! Copy elements to field (allows for several blocks):
-!    z = 0
-!    do i=1, num_elem_blk
-!       do e=1, num_elem_in_block(i)
-!          do n=1, num_nodes_per_elem(i)
-!             field%mesh%ndglno(n+z) = total_elem_node_list(n+z)
-!             ! check for regionIDS:
-!             ! if (haveRegionIDs) field%mesh%region_ids(e) = elements(e)%tags(1)
-!          end do
-!          z = z + num_nodes_per_elem(i)
-!       end do
-!    end do
+
 
     ! Copy elements to field (allows for several blocks):
     ! But only elements that are not faces!!!
@@ -696,6 +713,7 @@ contains
     deallocate(node_coord); deallocate(total_elem_node_list)
     deallocate(faces);
     call deallocate( mesh )
+    deallocate(exo_nodes); deallocate(exo_element)
 
 
 
