@@ -33,6 +33,7 @@ module exodusii_common
 
   type EXOnode
      integer :: nodeID, blockID
+     double precision :: x(3)
   end type EXOnode
 
   type EXOelement
