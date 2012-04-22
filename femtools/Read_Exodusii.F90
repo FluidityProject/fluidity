@@ -603,54 +603,26 @@ contains
        end do
        b = b + num_elem_in_block(i)
     end do
-!    ewrite(2,*) "faces = ", faces
-!    ewrite(2,*) "sndglno = ", sndglno
 
 
-    ! Copy elements to field (allows for several blocks):
-    ! But only elements that are not faces!!!
-    b=0; z=0; z2=0;
+    ! Copy elements (normal elements, no faces) to field:
+    b=0; z=0; z2=0; f=1; exo_e=1;
     do i=1, num_elem_blk
        do e=1, num_elem_in_block(i)
-          ! check if elements in this block are elements, not faces
-          ! First for 2D meshes
-          if (num_dim .eq. 2) then
-             if (elem_type(i) .eq. 2 .or. elem_type(i) .eq. 3) then
-                do n=1, num_nodes_per_elem(i)
-                   field%mesh%ndglno(n+z) = total_elem_node_list(n+z2)
-!                  ! check for regionIDS:
-!                  ! if (haveRegionIDs) field%mesh%region_ids(e) = elements(e)%tags(1)
-                end do
-                z = z + num_nodes_per_elem(i)
-             end if
-             z2 = z2+num_nodes_per_elem(i)
+          if( (num_dim .eq. 2 .and. elem_type(i) .eq. 1) .or. &
+            (num_dim .eq. 3 .and. &
+            (elem_type(i) .eq. 2 .or. elem_type(i) .eq. 3)) ) then
+             ! These are faces:
+          else !these are normal elements:
+             do n=1, num_nodes_per_elem(i)
+                field%mesh%ndglno(n+z) = exo_element(exo_e)%nodeIDs(n+z2)
+             end do
+             exo_e = exo_e+1
+             z = z+num_nodes_per_elem(i)
           end if
-!!       ! Now the 3D meshes:
-!          if (num_dim .eq. 3) then
-!             if (elem_type(i) .eq. 4 .or. elem_type(i) .eq. 5) then
-!                do n=1, num_nodes_per_elem(i)
-!                   field%mesh%ndglno(n+z) = total_elem_node_list(n+z2)
-!!                  ! check for regionIDS:
-!!                  ! if (haveRegionIDs) field%mesh%region_ids(e) = elements(e)%tags(1)
-!                end do
-!                z = z + num_nodes_per_elem(i)
-!             end if
-!             z2 = z2+num_nodes_per_elem(i)
-!          end if
        end do
        b = b + num_elem_in_block(i)
     end do
-
-
-!    ! Test:
-!    z = 0
-!    do i=1, num_elem_blk
-!       do e=1, num_elem_in_block(i)
-!          ewrite(2,*) "field%mesh%ndglno(e) = ", field%mesh%ndglno(z+1:z+num_nodes_per_elem(i))
-!          ewrite(2,*) "total_elem_node_list(e) = ", total_elem_node_list(z+1:z+num_nodes_per_elem(i))
-!          z = z + num_nodes_per_elem(i)
-!       end do
-!    end do
 
 
     
