@@ -245,6 +245,9 @@ contains
     integer :: num_faces
     integer :: loc, sloc
     integer :: nodeID, eff_dim, b, d, e, f, i, n, z, z2
+    
+    type(EXOnode), pointer :: exo_nodes(:)
+    type(EXOelement), pointer :: exo_element(:)
 
     call get_exodusii_filename(filename, lfilename, fileExists)
     if(.not. fileExists) then
