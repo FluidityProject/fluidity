@@ -472,27 +472,6 @@ contains
        node_coord(3,:) = coord_z(:)
     end if
 
-    
-    ! Now set up elements, their IDs and blockIDs:
-    ! Allocate exodus elements:
-    allocate(exo_element(num_elem))
-    ! Set elementIDs and blockIDs of to which the elements belong to
-    exo_element(:)%blockID = 0.0
-    exo_element(:)%elementID = 0.0
-    b=0; z=0; z2=0;
-    do i=1, num_elem_blk
-       do e=1, num_elem_in_block(i)
-          ! Set elementID:
-          exo_element(e+z)%elementID = elem_order_map(e+z)
-          ! Set blockID of element e
-          exo_element(e+z)%blockID = block_ids(i)
-          !do n=1, num_nodes_per_elem(i)
-             ! (placeholder for further development
-          !end do
-       end do
-       z = z + num_elem_in_block(i)
-    end do
-
     ! Now set up nodes, their IDs and coordinates:
     ! Allocate exodus nodes
     allocate(exo_nodes(num_nodes))
@@ -508,6 +487,34 @@ contains
           field%val(d,nodeID) = exo_nodes(n)%x(d)
        end forall
     end do
+
+
+    ! Now set up elements, their IDs and blockIDs:
+    ! Allocate exodus elements:
+    allocate(exo_element(num_elem))
+    ! Set elementIDs and blockIDs of to which the elements belong to
+    exo_element(:)%elementID = 0.0; exo_element(:)%blockID = 0.0
+    exo_element(:)%type = 0.0; exo_element(:)%numTags = 0.0
+    b=0; z=0; z2=0;
+    do i=1, num_elem_blk
+       do e=1, num_elem_in_block(i)
+          ! Set elementID:
+          exo_element(e+z)%elementID = elem_order_map(e+z)
+          ! Set blockID of element e
+          exo_element(e+z)%blockID = block_ids(i)
+          ! Set type of element:
+          exo_element(e+z)%type = elem_type(i)
+          !do n=1, num_nodes_per_elem(i)
+             ! (placeholder for further development
+          !end do
+       end do
+       z = z + num_elem_in_block(i)
+    end do
+    ewrite(2,*) "exo_element%elementID: ", exo_element%elementID
+    ewrite(2,*) "exo_element%blockID: ", exo_element%blockID
+    ewrite(2,*) "exo_element%type: ", exo_element%type
+
+
 
 
 
