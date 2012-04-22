@@ -244,10 +244,10 @@ contains
     
     integer :: num_faces
     integer :: loc, sloc
-    integer :: nodeID, elemID, blockID, eff_dim, b, d, e, f, i, n, z, z2
+    integer :: nodeID, elemID, blockID, eff_dim, b, d, e, f, i, n, z, z2, exo_e
     
     type(EXOnode), pointer :: exo_nodes(:)
-    type(EXOelement), pointer :: exo_element(:)
+    type(EXOelement), pointer :: exo_element(:), exo_face(:), allelements(:)
 
     call get_exodusii_filename(filename, lfilename, fileExists)
     if(.not. fileExists) then
@@ -489,91 +489,37 @@ contains
     end do
 
 
-    ! Now set up elements, their IDs and blockIDs:
-    ! Allocate exodus elements:
-    allocate(exo_element(num_elem))
+    ! Set up for allelements:
+    allocate(allelements(num_elem))
     ! Set elementIDs and blockIDs of to which the elements belong to
-    exo_element(:)%elementID = 0.0; exo_element(:)%blockID = 0.0
-    exo_element(:)%type = 0.0; exo_element(:)%numTags = 0.0
+    allelements(:)%elementID = 0.0; allelements(:)%blockID = 0.0
+    allelements(:)%type = 0.0; allelements(:)%numTags = 0.0
     b=0; z=0; z2=0;
     do i=1, num_elem_blk
        do e=1, num_elem_in_block(i)
           ! Set elementID:
-          exo_element(e+z)%elementID = elem_order_map(e+z)
+          allelements(e+z)%elementID = elem_order_map(e+z)
           ! Set blockID of element e
-          exo_element(e+z)%blockID = block_ids(i)
+          allelements(e+z)%blockID = block_ids(i)
           ! Set type of element:
-          exo_element(e+z)%type = elem_type(i)
-          
+          allelements(e+z)%type = elem_type(i)
           ! For nodeIDs:
-          allocate( exo_element(e+z)%nodeIDs(num_nodes_per_elem(i)) )
+          allocate( allelements(e+z)%nodeIDs(num_nodes_per_elem(i)) )
           do n=1, num_nodes_per_elem(i)
              ! copy the nodes of the element out of total_elem_node_list:
-             exo_element(e+z)%nodeIDs(n) = total_elem_node_list(n+z2)
+             allelements(e+z)%nodeIDs(n) = total_elem_node_list(n+z2)
           end do
           z2 = z2+num_nodes_per_elem(i)
        end do
        z = z + num_elem_in_block(i)
     end do
-    ewrite(2,*) "exo_element%elementID: ", exo_element%elementID
-    ewrite(2,*) "exo_element%blockID: ", exo_element%blockID
-    ewrite(2,*) "exo_element%type: ", exo_element%type
+    ! At this stage 'allelements' contains all elements (faces and elements) of all blocks of the mesh
+    ewrite(2,*) "allelements%elementID: ", allelements%elementID
+    ewrite(2,*) "allelements%blockID: ", allelements%blockID
+    ewrite(2,*) "allelements%type: ", allelements%type
+
+
     
-
-
-
-
-
-    ! Copy elements to field (allows for several blocks):
-    ! But only elements that are not faces!!!
-    b=0; z=0; z2=0;
-    do i=1, num_elem_blk
-       do e=1, num_elem_in_block(i)
-          ! check if elements in this block are elements, not faces
-          ! First for 2D meshes
-          if (num_dim .eq. 2) then
-             if (elem_type(i) .eq. 2 .or. elem_type(i) .eq. 3) then
-                do n=1, num_nodes_per_elem(i)
-                   field%mesh%ndglno(n+z) = total_elem_node_list(n+z2)
-!                  ! check for regionIDS:
-!                  ! if (haveRegionIDs) field%mesh%region_ids(e) = elements(e)%tags(1)
-                end do
-                z = z + num_nodes_per_elem(i)
-             end if
-             z2 = z2+num_nodes_per_elem(i)
-          end if
-!       ! Now the 3D meshes:
-          if (num_dim .eq. 3) then
-             if (elem_type(i) .eq. 4 .or. elem_type(i) .eq. 5) then
-                do n=1, num_nodes_per_elem(i)
-                   field%mesh%ndglno(n+z) = total_elem_node_list(n+z2)
-!                  ! check for regionIDS:
-!                  ! if (haveRegionIDs) field%mesh%region_ids(e) = elements(e)%tags(1)
-                end do
-                z = z + num_nodes_per_elem(i)
-             end if
-             z2 = z2+num_nodes_per_elem(i)
-          end if
-       end do
-       b = b + num_elem_in_block(i)
-    end do
-
-    !call vtk_write_fields("coord_field", index=1, position=field, model=field%mesh, vfields=(/field/))
-
-
-
-
-!    ! Test:
-!    z = 0
-!    do i=1, num_elem_blk
-!       do e=1, num_elem_in_block(i)
-!          ewrite(2,*) "field%mesh%ndglno(e) = ", field%mesh%ndglno(z+1:z+num_nodes_per_elem(i))
-!          ewrite(2,*) "total_elem_node_list(e) = ", total_elem_node_list(z+1:z+num_nodes_per_elem(i))
-!          z = z + num_nodes_per_elem(i)
-!       end do
-!    end do
-
-
     ! Now faces
     ! First of all: get total number of faces, then assemble array with faces:
     ! In 2D: Faces are lines/edges
@@ -583,6 +529,7 @@ contains
     ! and depending on the mesh dimension, determine if element e is a face or element
     ! This does not support a 1D mesh,
     ! because you do NOT want to use fancy cubit to create a 1D mesh, do you?!
+    ! Identify the number of faces:
     num_faces = 0
     sloc = 0
     do i=1, num_elem_blk
@@ -605,43 +552,104 @@ contains
     end do
     ewrite(2,*) "total number of faces: ", num_faces
 
+    ! Now actually set the elements and face-elements:
     ! assemble array with faces (faces contains element number (=element id of mesh))
     ! and sndglno contains the corresponding node numbers:
+    allocate(exo_element(num_elem-num_faces)); allocate(exo_face(num_faces))
     allocate(faces(num_faces))
     faces = 0
     allocate(sndglno(1:num_faces*sloc))
     sndglno=0
-    f=1; b=0; z=0; z2=0;
+    f=1; b=0; z=0; exo_e=1;
     do i=1, num_elem_blk
        do e=1, num_elem_in_block(i)
           ! 2D faces as follows (only lines/edges):
-          if (num_dim .eq. 2) then
-             if (elem_type(i) .eq. 1) then
-                faces(f) = elem_num_map(e + b)
-                do n=1, num_nodes_per_elem(i)
-                   sndglno(n+z) = total_elem_node_list(n+z2)
-                end do
-                f = f+1
-                z = z+num_nodes_per_elem(i)
-             end if
-             z2 = z2+num_nodes_per_elem(i)
-          ! 3D faces as follows (only triangles and quads):
-          else if (num_dim .eq. 3) then
-             if ( elem_type(i) .eq. 2 .or. elem_type(i) .eq. 3 ) then
-                faces(f) = elem_num_map(e + b)
-                do n=1, num_nodes_per_elem(i)
-                   sndglno(n+z) = total_elem_node_list(n+z2)
-                end do
-                f = f+1
-                z = z+num_nodes_per_elem(i)
-             end if
-             z2 = z2+num_nodes_per_elem(i)
+          if( (num_dim .eq. 2 .and. elem_type(i) .eq. 1) .or. &
+            (num_dim .eq. 3 .and. &
+            (elem_type(i) .eq. 2 .or. elem_type(i) .eq. 3)) ) then ! these are faces
+             ! Assemble faces:
+             faces(f) = elem_num_map(e + b)
+!             allocate( exo_face(f)%tags(size(allElements(e+b)%tags)))
+             allocate( exo_face(f)%nodeIDs(size(allElements(e+b)%nodeIDs)))
+             exo_face(f)%elementID = allelements(e+b)%elementID
+             exo_face(f)%blockID = allelements(e+b)%blockID
+!             exo_face(f)%tags = allelements(e+b)%tags
+             exo_face(f)%nodeIDs = allelements(e+b)%nodeIDs
+!             print *, "these are FACES: "
+!             print *, "exo_face(f)%elementID = ", exo_face(f)%elementID
+!             print *, "exo_face(f)%blockID = ", exo_face(f)%blockID
+!             print *, "exo_face(f)%nodeIDs = ", exo_face(f)%nodeIDs(:)
+             ! For face-elements, also assemble sndglno:
+             do n=1, num_nodes_per_elem(i)
+                sndglno(n+z) = allelements(e+b)%nodeIDs(n)
+             end do
+             f = f+1
+             z = z+num_nodes_per_elem(i)
+          else !these are elements: 
+             allocate( exo_element(exo_e)%nodeIDs(size(allElements(e+b)%nodeIDs)))
+             exo_element(exo_e)%elementID = allelements(e+b)%elementID
+             exo_element(exo_e)%blockID = allelements(e+b)%blockID
+             exo_element(exo_e)%nodeIDs = allelements(e+b)%nodeIDs
+!             print *, "these are ELEMENTS: "
+!             print *, "exo_element(exo_e)%elementID = ", exo_element(exo_e)%elementID
+!             print *, "exo_element(exo_e)%blockID = ", exo_element(exo_e)%blockID
+!             print *, "exo_element(exo_e)%nodeIDs = ", exo_element(exo_e)%nodeIDs(:)
+             exo_e = exo_e + 1
           end if
        end do
        b = b + num_elem_in_block(i)
     end do
-    ewrite(2,*) "faces = ", faces
-    ewrite(2,*) "sndglno = ", sndglno
+!    ewrite(2,*) "faces = ", faces
+!    ewrite(2,*) "sndglno = ", sndglno
+
+
+
+!    ! Copy elements to field (allows for several blocks):
+!    ! But only elements that are not faces!!!
+!    b=0; z=0; z2=0;
+!    do i=1, num_elem_blk
+!       do e=1, num_elem_in_block(i)
+!          ! check if elements in this block are elements, not faces
+!          ! First for 2D meshes
+!          if (num_dim .eq. 2) then
+!             if (elem_type(i) .eq. 2 .or. elem_type(i) .eq. 3) then
+!                do n=1, num_nodes_per_elem(i)
+!                   field%mesh%ndglno(n+z) = total_elem_node_list(n+z2)
+!!                  ! check for regionIDS:
+!!                  ! if (haveRegionIDs) field%mesh%region_ids(e) = elements(e)%tags(1)
+!                end do
+!                z = z + num_nodes_per_elem(i)
+!             end if
+!             z2 = z2+num_nodes_per_elem(i)
+!          end if
+!!       ! Now the 3D meshes:
+!          if (num_dim .eq. 3) then
+!             if (elem_type(i) .eq. 4 .or. elem_type(i) .eq. 5) then
+!                do n=1, num_nodes_per_elem(i)
+!                   field%mesh%ndglno(n+z) = total_elem_node_list(n+z2)
+!!                  ! check for regionIDS:
+!!                  ! if (haveRegionIDs) field%mesh%region_ids(e) = elements(e)%tags(1)
+!                end do
+!                z = z + num_nodes_per_elem(i)
+!             end if
+!             z2 = z2+num_nodes_per_elem(i)
+!          end if
+!       end do
+!       b = b + num_elem_in_block(i)
+!    end do
+
+
+!    ! Test:
+!    z = 0
+!    do i=1, num_elem_blk
+!       do e=1, num_elem_in_block(i)
+!          ewrite(2,*) "field%mesh%ndglno(e) = ", field%mesh%ndglno(z+1:z+num_nodes_per_elem(i))
+!          ewrite(2,*) "total_elem_node_list(e) = ", total_elem_node_list(z+1:z+num_nodes_per_elem(i))
+!          z = z + num_nodes_per_elem(i)
+!       end do
+!    end do
+
+
     
 
     call add_faces( field%mesh, sndgln = sndglno(1:num_faces*sloc) )
@@ -726,13 +734,15 @@ contains
     deallocate(node_coord); deallocate(total_elem_node_list)
     deallocate(faces);
     call deallocate( mesh )
-    deallocate(exo_nodes); deallocate(exo_element)
+    deallocate(allelements)
+    deallocate(exo_nodes); deallocate(exo_element); deallocate(exo_face)
 
 
 
 
 
   end function read_exodusii_file_to_field
+
 
 
   ! -----------------------------------------------------------------
@@ -752,6 +762,7 @@ contains
 
   end function read_exodusii_file_to_state
 
+  ! -----------------------------------------------------------------
 
 
 !     subroutine resize_array(array, new_size)
