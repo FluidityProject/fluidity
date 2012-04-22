@@ -50,6 +50,11 @@ module detector_data_types
      character(len=FIELD_NAME_LEN), dimension(:), pointer :: ptr
   end type stringlist
 
+  type detector_list_ptr
+     ! Container type for detector_linked_list
+     type(detector_linked_list), pointer :: ptr
+  end type detector_list_ptr
+
   !! Type for caching detector position and search information.
   type detector_type
      !! Physical location of the detector.
@@ -117,6 +122,8 @@ module detector_data_types
     character(len=FIELD_NAME_LEN) :: target_fgroup
     ! List of target stages to ingest
     type(stringlist) :: target_stages
+    ! Pointers to agent arrays for each target stage
+    type(detector_list_ptr), dimension(:), allocatable :: target_agent_lists
     ! Variable indices of the chemical pools to ingest
     integer, dimension(:), allocatable :: ingest_chem_inds
     ! Concentration field
@@ -124,7 +131,7 @@ module detector_data_types
     character(len=OPTION_PATH_LEN) :: conc_field_path
     ! Indices for the associated request/ingest variables
     integer :: request_ind, ingest_ind
-  end type
+  end type food_set
 
   ! Type holding meta-information about biology variables of LE agents
   type biovar
@@ -227,9 +234,5 @@ module detector_data_types
      integer :: mpi_write_offset = 0     ! Offset in MPI file
      integer :: total_num_det = 0        ! Global number of detectors in this list
   end type detector_linked_list
-
-  type detector_list_ptr
-     type(detector_linked_list), pointer :: ptr
-  end type detector_list_ptr
 
 end module detector_data_types

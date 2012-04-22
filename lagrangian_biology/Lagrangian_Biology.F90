@@ -526,6 +526,20 @@ contains
        ! Now store our index pairs
        allocate(fgroup%food_sets(i)%ingest_chem_inds(food_chem_inds%length))
        fgroup%food_sets(i)%ingest_chem_inds = list2vector(food_chem_inds)
+
+       ! And finally we go through all target stages and 
+       ! associate a pointer with the according agent list
+       allocate(fgroup%food_sets(i)%target_agent_lists(size(fgroup%food_sets(i)%target_stages%ptr)))
+       do t=1, size(fgroup%food_sets(i)%target_stages%ptr)
+          do v=1, size(agent_arrays)
+             if (associated(agent_arrays(v)%fgroup)) then
+                if (trim(agent_arrays(v)%fgroup%name) == trim(fgroup%food_sets(i)%target_fgroup) .and. &
+                    trim(agent_arrays(v)%stage_name) == trim(fgroup%food_sets(i)%target_stages%ptr(t)) ) then
+                    fgroup%food_sets(i)%target_agent_lists(t)%ptr => agent_arrays(v)
+                end if
+             end if
+          end do
+       end do
     end do
 
   end subroutine read_functional_group
@@ -640,6 +654,15 @@ contains
           agent=>agent_arrays(i)%first
           do while (associated(agent))
 
+             ! Reset Request variables
+             do v=1, size(agent_arrays(i)%fgroup%variables)
+                if (agent_arrays(i)%fgroup%variables(v)%field_type==BIOFIELD_UPTAKE .or. &
+                    agent_arrays(i)%fgroup%variables(v)%field_type==BIOFIELD_RELEASE .or. &
+                    agent_arrays(i)%fgroup%variables(v)%field_type==BIOFIELD_FOOD_REQUEST) then
+                   agent%biology(v) = 0.0
+                end if
+             end do
+
              if (python_update) then
                 call python_calc_agent_biology(agent, env_fields, dt, trim(agent_arrays(i)%name), trim("biology_update"))
 
@@ -649,9 +672,10 @@ contains
                 call LERM_update_dead_diatom(agent, agent_arrays(i), state(1), dt)
              end if
 
-             ! Reset ChemIngested variables
+             ! Reset Ingested variables
              do v=1, size(agent_arrays(i)%fgroup%variables)
-                if (agent_arrays(i)%fgroup%variables(v)%field_type==BIOFIELD_INGESTED) then
+                if (agent_arrays(i)%fgroup%variables(v)%field_type==BIOFIELD_INGESTED .or. &
+                    agent_arrays(i)%fgroup%variables(v)%field_type==BIOFIELD_FOOD_INGEST) then
                    agent%biology(v) = 0.0
                 end if
              end do
@@ -1090,7 +1114,8 @@ contains
     type(biovar), pointer :: request_var, chempool_var
     type(detector_type), pointer :: agent
     real, dimension(1) :: conc, request, depletion, chem_conc
-    integer :: i, c, fs, ele, ingest_ind
+    real :: prop, old_size
+    integer :: i, c, fs, t, ele, ingest_ind
 
     ewrite(2,*) "In ingestion_handling"
 
@@ -1118,7 +1143,7 @@ contains
                 call set(depletion_field, ele, depletion(1))
              end do
 
-             ! Loop over agents to set Ingest variables
+             ! Loop over predator agents to set Ingest variables
              allocate(prey_chem_fields(size(fset%ingest_chem_inds)))
              do c=1, size(fset%ingest_chem_inds)
                 chempool_var => agent_arrays(i)%fgroup%variables( fset%ingest_chem_inds(c) )
@@ -1143,8 +1168,27 @@ contains
 
                 agent => agent%next
              end do
-
              deallocate(prey_chem_fields)
+
+             ! Loop over prey agents to adjust ensemble size
+             do t=1, size(fset%target_agent_lists)
+                agent => fset%target_agent_lists(t)%ptr%first
+                do while (associated(agent))
+                   conc = ele_val(conc_field, agent%element)
+                   request = ele_val(request_field, agent%element)
+                   if (conc(1) > 0.0 .and. request(1) > 0.0) then                      
+                      depletion = ele_val(depletion_field, agent%element)
+                      old_size = agent%biology(BIOVAR_SIZE)
+
+                      ! Proportion of food ingested
+                      prop = (request(1) * depletion(1)) / conc(1)
+                      agent%biology(BIOVAR_SIZE) = old_size - (prop * old_size)
+                   end if
+
+                   agent => agent%next
+                end do
+             end do
+
           end do
        end if
     end do

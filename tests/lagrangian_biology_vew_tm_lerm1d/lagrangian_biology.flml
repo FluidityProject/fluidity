@@ -1207,7 +1207,7 @@ def val(biovars, env, dt):
   from numpy import arange
   # 300 agents, evenly spaced in [375:405]m
   # Note: Changed for development reasons...
-  positions = arange(-225.05,-255.,-0.1).reshape(300,1)
+  positions = arange(-175.05,-205.,-0.1).reshape(300,1)
   return positions</string_value>
               </position>
               <biology>
