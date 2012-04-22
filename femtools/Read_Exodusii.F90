@@ -38,6 +38,7 @@ module read_exodusii
   use fields
   use state_module
   use spud
+  use vtk_interfaces
   use exodusii_common
   use exodusii_f_interface
   use global_parameters, only : OPTION_PATH_LEN, real_4
@@ -417,7 +418,6 @@ contains
 
     call allocate(mesh, num_nodes, num_elem, shape, name="CoordinateMesh")
     call allocate( field, eff_dim, mesh, name="Coordinate")
-    call deallocate( mesh )
 
     ! Get element node number (allows for different element types)
 
@@ -456,7 +456,7 @@ contains
     loc = maxval(num_nodes_per_elem)
     assert(loc==shape%loc)
 
-    ! Loop round nodes copying across coords
+    ! Loop around nodes copying across coords
     ! First, assemble array containing all node coordinates:
     allocate(node_coord(eff_dim, num_nodes))
     node_coord = 0
@@ -477,18 +477,58 @@ contains
        end forall
     end do
 
+    ! Works for meshes without faces:
+!    ! Copy elements to field (allows for several blocks):
+!    z = 0
+!    do i=1, num_elem_blk
+!       do e=1, num_elem_in_block(i)
+!          do n=1, num_nodes_per_elem(i)
+!             field%mesh%ndglno(n+z) = total_elem_node_list(n+z)
+!             ! check for regionIDS:
+!             ! if (haveRegionIDs) field%mesh%region_ids(e) = elements(e)%tags(1)
+!          end do
+!          z = z + num_nodes_per_elem(i)
+!       end do
+!    end do
+
     ! Copy elements to field (allows for several blocks):
-    z = 0
+    ! But only elements that are not faces!!!
+    b=0; z=0; z2=0;
     do i=1, num_elem_blk
        do e=1, num_elem_in_block(i)
-          do n=1, num_nodes_per_elem(i)
-             field%mesh%ndglno(n+z) = total_elem_node_list(n+z)
-             ! check for regionIDS:
-             ! if (haveRegionIDs) field%mesh%region_ids(e) = elements(e)%tags(1)
-          end do
-          z = z + num_nodes_per_elem(i)
+          ! check if elements in this block are elements, not faces
+          ! First for 2D meshes
+          if (num_dim .eq. 2) then
+             if (elem_type(i) .eq. 2 .or. elem_type(i) .eq. 3) then
+                do n=1, num_nodes_per_elem(i)
+                   field%mesh%ndglno(n+z) = total_elem_node_list(n+z2)
+!                  ! check for regionIDS:
+!                  ! if (haveRegionIDs) field%mesh%region_ids(e) = elements(e)%tags(1)
+                end do
+                z = z + num_nodes_per_elem(i)
+             end if
+             z2 = z2+num_nodes_per_elem(i)
+          end if
+!       ! Now the 3D meshes:
+          if (num_dim .eq. 3) then
+             if (elem_type(i) .eq. 4 .or. elem_type(i) .eq. 5) then
+                do n=1, num_nodes_per_elem(i)
+                   field%mesh%ndglno(n+z) = total_elem_node_list(n+z2)
+!                  ! check for regionIDS:
+!                  ! if (haveRegionIDs) field%mesh%region_ids(e) = elements(e)%tags(1)
+                end do
+                z = z + num_nodes_per_elem(i)
+             end if
+             z2 = z2+num_nodes_per_elem(i)
+          end if
        end do
+       b = b + num_elem_in_block(i)
     end do
+
+    !call vtk_write_fields("coord_field", index=1, position=field, model=field%mesh, vfields=(/field/))
+
+
+
 
 !    ! Test:
 !    z = 0
@@ -571,10 +611,11 @@ contains
     ewrite(2,*) "sndglno = ", sndglno
     
 
-!    call add_faces( field%mesh, sndgln = sndglno(1:numFaces*sloc) )
+    call add_faces( field%mesh, sndgln = sndglno(1:num_faces*sloc) )
+    ewrite(2,*) "after add_faces"
 
 
-
+    call vtk_write_fields("coord_field", index=1, position=field, model=field%mesh, vfields=(/field/))
 
 
     ! Copy node number of faces to 
@@ -651,7 +692,7 @@ contains
     ! Deallocate other arrays:
     deallocate(node_coord); deallocate(total_elem_node_list)
     deallocate(faces);
-
+    call deallocate( mesh )
 
 
 
