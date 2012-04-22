@@ -504,15 +504,21 @@ contains
           exo_element(e+z)%blockID = block_ids(i)
           ! Set type of element:
           exo_element(e+z)%type = elem_type(i)
-          !do n=1, num_nodes_per_elem(i)
-             ! (placeholder for further development
-          !end do
+          
+          ! For nodeIDs:
+          allocate( exo_element(e+z)%nodeIDs(num_nodes_per_elem(i)) )
+          do n=1, num_nodes_per_elem(i)
+             ! copy the nodes of the element out of total_elem_node_list:
+             exo_element(e+z)%nodeIDs(n) = total_elem_node_list(n+z2)
+          end do
+          z2 = z2+num_nodes_per_elem(i)
        end do
        z = z + num_elem_in_block(i)
     end do
     ewrite(2,*) "exo_element%elementID: ", exo_element%elementID
     ewrite(2,*) "exo_element%blockID: ", exo_element%blockID
     ewrite(2,*) "exo_element%type: ", exo_element%type
+    
 
 
 
