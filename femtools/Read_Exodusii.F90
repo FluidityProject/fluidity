@@ -575,10 +575,12 @@ contains
              exo_face(f)%blockID = allelements(e+b)%blockID
 !             exo_face(f)%tags = allelements(e+b)%tags
              exo_face(f)%nodeIDs = allelements(e+b)%nodeIDs
+             exo_face(f)%type = allelements(e+b)%type
 !             print *, "these are FACES: "
 !             print *, "exo_face(f)%elementID = ", exo_face(f)%elementID
 !             print *, "exo_face(f)%blockID = ", exo_face(f)%blockID
 !             print *, "exo_face(f)%nodeIDs = ", exo_face(f)%nodeIDs(:)
+!             print *, "exo_face(f)%type = ", exo_face(f)%type
              ! For face-elements, also assemble sndglno:
              do n=1, num_nodes_per_elem(i)
                 sndglno(n+z) = allelements(e+b)%nodeIDs(n)
@@ -590,10 +592,12 @@ contains
              exo_element(exo_e)%elementID = allelements(e+b)%elementID
              exo_element(exo_e)%blockID = allelements(e+b)%blockID
              exo_element(exo_e)%nodeIDs = allelements(e+b)%nodeIDs
+             exo_element(exo_e)%type = allelements(e+b)%type
 !             print *, "these are ELEMENTS: "
 !             print *, "exo_element(exo_e)%elementID = ", exo_element(exo_e)%elementID
 !             print *, "exo_element(exo_e)%blockID = ", exo_element(exo_e)%blockID
 !             print *, "exo_element(exo_e)%nodeIDs = ", exo_element(exo_e)%nodeIDs(:)
+!             print *, "exo_element(exo_e)%type = ", exo_element(exo_e)%type
              exo_e = exo_e + 1
           end if
        end do
@@ -603,25 +607,24 @@ contains
 !    ewrite(2,*) "sndglno = ", sndglno
 
 
-
-!    ! Copy elements to field (allows for several blocks):
-!    ! But only elements that are not faces!!!
-!    b=0; z=0; z2=0;
-!    do i=1, num_elem_blk
-!       do e=1, num_elem_in_block(i)
-!          ! check if elements in this block are elements, not faces
-!          ! First for 2D meshes
-!          if (num_dim .eq. 2) then
-!             if (elem_type(i) .eq. 2 .or. elem_type(i) .eq. 3) then
-!                do n=1, num_nodes_per_elem(i)
-!                   field%mesh%ndglno(n+z) = total_elem_node_list(n+z2)
-!!                  ! check for regionIDS:
-!!                  ! if (haveRegionIDs) field%mesh%region_ids(e) = elements(e)%tags(1)
-!                end do
-!                z = z + num_nodes_per_elem(i)
-!             end if
-!             z2 = z2+num_nodes_per_elem(i)
-!          end if
+    ! Copy elements to field (allows for several blocks):
+    ! But only elements that are not faces!!!
+    b=0; z=0; z2=0;
+    do i=1, num_elem_blk
+       do e=1, num_elem_in_block(i)
+          ! check if elements in this block are elements, not faces
+          ! First for 2D meshes
+          if (num_dim .eq. 2) then
+             if (elem_type(i) .eq. 2 .or. elem_type(i) .eq. 3) then
+                do n=1, num_nodes_per_elem(i)
+                   field%mesh%ndglno(n+z) = total_elem_node_list(n+z2)
+!                  ! check for regionIDS:
+!                  ! if (haveRegionIDs) field%mesh%region_ids(e) = elements(e)%tags(1)
+                end do
+                z = z + num_nodes_per_elem(i)
+             end if
+             z2 = z2+num_nodes_per_elem(i)
+          end if
 !!       ! Now the 3D meshes:
 !          if (num_dim .eq. 3) then
 !             if (elem_type(i) .eq. 4 .or. elem_type(i) .eq. 5) then
@@ -634,9 +637,9 @@ contains
 !             end if
 !             z2 = z2+num_nodes_per_elem(i)
 !          end if
-!       end do
-!       b = b + num_elem_in_block(i)
-!    end do
+       end do
+       b = b + num_elem_in_block(i)
+    end do
 
 
 !    ! Test:
