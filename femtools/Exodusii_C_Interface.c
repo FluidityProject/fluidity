@@ -136,6 +136,13 @@ int c_ex_get_side_set_param(int *exoid, int *side_set_id, int *num_sides_in_set,
 }
 
 
+int c_ex_get_side_set(int *exoid, int *side_set_id, int *side_set_elem_list, int *side_set_side_list)
+{
+   int error;
+   error = ex_get_side_set (*exoid, *side_set_id, side_set_elem_list, side_set_side_list);
+   return (error);
+}
+
 /* Following some additional interfaces that differ from the official interfaces of the exodusii library */
 
 /* Nicer function for open ExodusII File for reading */
