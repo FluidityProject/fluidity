@@ -32,8 +32,7 @@
 module exodusii_common
 
   type EXOnode
-     integer :: nodeID, numTags
-     integer, pointer :: tags(:)
+     integer :: nodeID
      double precision :: x(3)
   end type EXOnode
 
