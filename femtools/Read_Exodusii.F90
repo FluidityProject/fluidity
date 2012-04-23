@@ -239,7 +239,7 @@ contains
     integer, allocatable, dimension(:) :: elem_blk_connectivity, elem_connectivity
     integer, allocatable, dimension(:) :: node_set_ids, num_nodes_in_set
     integer, allocatable, dimension(:) :: node_set_node_list, total_node_sets_node_list
-    integer, allocatable, dimension(:) :: side_set_ids, num_sides_in_set
+    integer, allocatable, dimension(:) :: side_set_ids, num_sides_in_set, num_elem_in_set, num_df_in_set
     integer, allocatable, dimension(:) :: side_set_node_list, side_set_side_list, side_set_elem_list
     integer, allocatable, dimension(:) :: total_side_sets_node_list, total_side_sets_side_list, total_side_sets_elem_list
 
@@ -397,8 +397,6 @@ contains
     if (ierr /= 0) then
        ewrite(2,*) "No node sets found in "//trim(lfilename)
     end if
-    ewrite(2,*) "node_set_ids = ", node_set_ids
-    ewrite(2,*) "num_nodes_in_set = ", num_nodes_in_set
 
     ! Get node lists of all node sets:
     if (ierr == 0) then ! we have found and read in node sets
@@ -417,16 +415,37 @@ contains
     end if
 
 
+
     ! Get side sets
     ! Side sets in exodusii are what physical lines/surfaces/volumes are in gmsh
+    ! Allocate arrays for the side sets:
+    allocate(num_sides_in_set(num_side_sets)); allocate(num_elem_in_set(num_side_sets)); allocate(num_df_in_set(num_side_sets))
     allocate(side_set_ids(num_side_sets))
-    allocate(num_sides_in_set(num_side_sets))
-    ierr = f_ex_get_side_set_param(exoid, num_side_sets, side_set_ids, num_sides_in_set)
+    side_set_ids=0; num_elem_in_set=0; num_df_in_set=0; num_sides_in_set=0;
+
+    ! Get Side SetIDs:
+    ierr = f_ex_get_side_set_ids(exoid, side_set_ids);
     if (ierr /= 0) then
        ewrite(2,*) "No side sets found in "//trim(lfilename)
     end if
+
+    ewrite(2,*) "********************************SIDE SETS*************************************"
     ewrite(2,*) "side_set_ids = ", side_set_ids
+
+    ! Get side set parameters:
+    if (num_side_sets > 0) then
+       do i=1, num_side_sets
+          ierr = f_ex_get_side_set_param(exoid, side_set_ids(i), num_sides_in_set(i), num_df_in_set(i));
+       end do
+    end if
+    if (ierr /= 0) then
+       FLExit("Unable to read in the side set parameters from "//trim(lfilename))
+    end if
+    ! We don't need the distribution factors, so deallocate this immediately:
+    deallocate(num_df_in_set)
+    ! Test:
     ewrite(2,*) "num_sides_in_set = ", num_sides_in_set
+    
 
     ! Close ExodusII meshfile
     ierr = f_ex_close(exoid)
@@ -728,7 +747,7 @@ contains
     deallocate(block_ids); deallocate(num_elem_in_block); deallocate(num_nodes_per_elem);
     deallocate(elem_type); deallocate(num_attr)
     deallocate(elem_connectivity); 
-    deallocate(node_set_ids); deallocate(num_nodes_in_set); deallocate(total_node_sets_node_list);
+!    deallocate(node_set_ids); deallocate(num_nodes_in_set); deallocate(total_node_sets_node_list);
 
     ! Deallocate other arrays:
     deallocate(node_coord); deallocate(total_elem_node_list)
