@@ -220,6 +220,10 @@ contains
     type(mesh_type) :: mesh
 
     logical :: fileExists
+    logical :: haveRegionIDs
+
+    type(EXOnode), pointer :: exo_nodes(:)
+    type(EXOelement), pointer :: exo_element(:), exo_face(:), allelements(:)
 
     ! exodusii lib basic variables:
     integer :: exoid, ierr
@@ -252,9 +256,8 @@ contains
     integer :: loc, sloc
     integer :: nodeID, elemID, blockID, eff_dim, b, d, e, f, i, n, z, z2, exo_e
     
-    type(EXOnode), pointer :: exo_nodes(:)
-    type(EXOelement), pointer :: exo_element(:), exo_face(:), allelements(:)
 
+    ! First of all: Identify the filename:
     call get_exodusii_filename(filename, lfilename, fileExists)
     if(.not. fileExists) then
        FLExit("None of the possible ExodusII files " // trim(filename) //".exo /.e /.EXO /.E were found")
@@ -415,13 +418,17 @@ contains
     end if
 
 
-
+    ! We have RegionIDs when sidesets are set:
+    if (num_side_sets > 0) then
+       haveRegionIDs = .true.
+    else
+       haveRegionIDs = .false.
+    end if
     ! Get side sets
     ! Side sets in exodusii are what physical lines/surfaces/volumes are in gmsh
     ! Allocate arrays for the side sets:
-    allocate(num_sides_in_set(num_side_sets)); allocate(num_elem_in_set(num_side_sets)); allocate(num_df_in_set(num_side_sets))
-    allocate(side_set_ids(num_side_sets))
-    side_set_ids=0; num_elem_in_set=0; num_df_in_set=0; num_sides_in_set=0;
+    allocate(side_set_ids(num_side_sets)); allocate(num_sides_in_set(num_side_sets)); allocate(num_df_in_set(num_side_sets))
+    side_set_ids=0; num_sides_in_set=0; num_df_in_set=0;
 
     ! Get Side SetIDs:
     ierr = f_ex_get_side_set_ids(exoid, side_set_ids);
@@ -430,10 +437,9 @@ contains
     end if
 
     ewrite(2,*) "********************************SIDE SETS*************************************"
-    ewrite(2,*) "side_set_ids = ", side_set_ids
 
     ! Get side set parameters:
-    if (num_side_sets > 0) then
+    if (haveRegionIDs) then
        do i=1, num_side_sets
           ierr = f_ex_get_side_set_param(exoid, side_set_ids(i), num_sides_in_set(i), num_df_in_set(i));
        end do
@@ -443,9 +449,44 @@ contains
     end if
     ! We don't need the distribution factors, so deallocate this immediately:
     deallocate(num_df_in_set)
-    ! Test:
-    ewrite(2,*) "num_sides_in_set = ", num_sides_in_set
+    ! Now the element list of the side set:
+    allocate(num_elem_in_set(num_side_sets)) ! There are the same # of elements as sides in a side set
+    num_elem_in_set = num_sides_in_set;
+
+    ! Now let's finally get the stuff we need!
+    if (haveRegionIDs) then
+       allocate(total_side_sets_elem_list(0))
+       allocate(total_side_sets_side_list(0))
+       do i=1, num_side_sets
+          allocate(side_set_elem_list(num_elem_in_set(i)))
+          allocate(side_set_side_list(num_sides_in_set(i)))
+          ierr = f_ex_get_side_set(exoid, side_set_ids(i), side_set_elem_list, side_set_side_list)
+          ! append the side set element list in global array for later:
+          call append_array(total_side_sets_elem_list, side_set_elem_list)   
+          call append_array(total_side_sets_side_list, side_set_side_list)   
+          deallocate(side_set_elem_list); deallocate(side_set_side_list)
+       end do
+    end if
     
+    ! Tests:
+    ewrite(2,*) "side_set_ids = ", side_set_ids
+    ewrite(2,*) "total_side_sets_elem_list = ", total_side_sets_elem_list
+    ewrite(2,*) "total_side_sets_side_list = ", total_side_sets_side_list
+    z=1;
+    do i=1, num_side_sets
+       do e=1, num_elem_in_set(i)
+          ewrite(2,*) "elem_list = ", total_side_sets_elem_list(z)
+          z = z+1
+       end do
+       ewrite(2,*) "side_set_id(i) = ", side_set_ids(i)
+       ewrite(2,*) "******* end of elem list *******"
+    end do
+
+
+
+
+
+
 
     ! Close ExodusII meshfile
     ierr = f_ex_close(exoid)
@@ -751,11 +792,10 @@ contains
 
     ! Deallocate other arrays:
     deallocate(node_coord); deallocate(total_elem_node_list)
-    deallocate(faces);
-    call deallocate( mesh )
-    deallocate(allelements)
+    deallocate(total_side_sets_elem_list); deallocate(total_side_sets_side_list)
+    deallocate(allelements); deallocate(faces);
     deallocate(exo_nodes); deallocate(exo_element); deallocate(exo_face)
-
+    call deallocate( mesh )
 
 
 
