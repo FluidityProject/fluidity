@@ -252,9 +252,9 @@ contains
     integer, allocatable, dimension(:) :: elem_node_list, total_elem_node_list
     integer, allocatable, dimension(:) :: faces, sndglno
     
-    integer :: num_faces, num_elem
+    integer :: num_faces, num_elem, num_tags_elem
     integer :: loc, sloc
-    integer :: nodeID, elemID, blockID, eff_dim, b, d, e, f, i, n, z, z2, exo_e
+    integer :: nodeID, elemID, blockID, eff_dim, b, d, e, f, i, j, n, z, z2, exo_e
     
 
     ! First of all: Identify the filename:
@@ -468,24 +468,19 @@ contains
        end do
     end if
     
-    ! Tests:
-    ewrite(2,*) "side_set_ids = ", side_set_ids
-    ewrite(2,*) "total_side_sets_elem_list = ", total_side_sets_elem_list
-    ewrite(2,*) "total_side_sets_side_list = ", total_side_sets_side_list
-    z=1;
-    do i=1, num_side_sets
-       do e=1, num_elem_in_set(i)
-          ewrite(2,*) "elem_list = ", total_side_sets_elem_list(z)
-          z = z+1
-       end do
-       ewrite(2,*) "side_set_id(i) = ", side_set_ids(i)
-       ewrite(2,*) "******* end of elem list *******"
-    end do
-
-
-
-
-
+!    ! Tests:
+!    ewrite(2,*) "side_set_ids = ", side_set_ids
+!    ewrite(2,*) "total_side_sets_elem_list = ", total_side_sets_elem_list
+!    ewrite(2,*) "total_side_sets_side_list = ", total_side_sets_side_list
+!    z=1;
+!    do i=1, num_side_sets
+!       do e=1, num_elem_in_set(i)
+!          ewrite(2,*) "elem_list = ", total_side_sets_elem_list(z)
+!          z = z+1
+!       end do
+!       ewrite(2,*) "side_set_id(i) = ", side_set_ids(i)
+!       ewrite(2,*) "******* end of elem list *******"
+!    end do
 
 
     ! Close ExodusII meshfile
@@ -642,6 +637,64 @@ contains
     ewrite(2,*) "allelements%blockID: ", allelements%blockID
     ewrite(2,*) "allelements%type: ", allelements%type
     
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! Setting numTags to the elements with side-set-id !
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    z=1;
+    do i=1, num_side_sets
+       do e=1, num_elem_in_set(i)
+          ! Get global element id:
+          elemID = total_side_sets_elem_list(z)
+          ! Set # of tags for this particular element
+          allelements(elemID)%numTags = allelements(elemID)%numTags+1
+          z = z+1
+       end do
+    end do
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! Setting tags to the elements with side-set-id !
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    z=1;
+    do i=1, num_side_sets
+       do e=1, num_elem_in_set(i)
+          ! Get global element id:
+          elemID = total_side_sets_elem_list(z)
+          num_tags_elem = allelements(elemID)%numTags
+          ! Allocate array of tags for this particular element
+          allocate(allelements(elemID)%tags(num_tags_elem))
+          ! Initialize element%tag with a diabolic integer to indicate
+          ! that the tag has not been 'correctly' set
+          allelements(elemID)%tags(:) = -666
+          z = z+1
+       end do
+    end do
+    ! Now that the tags for all elements are allocated and uniquely marked, set them
+    z=1;
+    do i=1, num_side_sets
+       do e=1, num_elem_in_set(i)
+          ! Get global element id:
+          elemID = total_side_sets_elem_list(z)
+          num_tags_elem = allelements(elemID)%numTags
+          ! Set the side-set-id to this element
+          do j=1, num_tags_elem
+             ! Check for already existing tags in this element
+             if ( allelements(elemID)%tags(j) == -666 ) then
+                ! Set side-set-id to the element, finally
+                allelements(elemID)%tags(j) = side_set_ids(i)
+                ! end exit the inner loop after setting this side sets id to the element
+                exit
+             end if
+          end do
+          ! DEBUG statements:
+!          ewrite(2,*) "elem_list = ", total_side_sets_elem_list(z)
+!          ewrite(2,*) "allelements(elemID) = ", allelements(elemID)%elementID
+!          ewrite(2,*) "allelements(elemID)%numTags = ", allelements(elemID)%numTags
+!          ewrite(2,*) "allelements(elemID)%tags(:) = ", allelements(elemID)%tags(:)
+          z = z+1
+       end do
+!       ewrite(2,*) "side_set_id(i) = ", side_set_ids(i)
+!       ewrite(2,*) "******* end of elem list *******"
+    end do
+
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Elements and faces       !
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -684,6 +737,7 @@ contains
              allocate( exo_element(exo_e)%nodeIDs(size(allElements(e+b)%nodeIDs)))
              exo_element(exo_e)%elementID = allelements(e+b)%elementID
              exo_element(exo_e)%blockID = allelements(e+b)%blockID
+!             exo_face(f)%tags = allelements(e+b)%tags
              exo_element(exo_e)%nodeIDs = allelements(e+b)%nodeIDs
              exo_element(exo_e)%type = allelements(e+b)%type
 !             print *, "these are ELEMENTS: "
