@@ -102,6 +102,38 @@ int c_ex_close(int *exoid)
    return (ierr);
 }
 
+/* read individual node sets */
+int c_ex_get_node_set_param(int *exoid, int *num_node_sets, int *node_set_ids, int *num_nodes_in_set)
+{
+   int error;
+   int num_df_in_set;
+   int i;
+   // Get node set IDs:
+   error = ex_get_node_set_ids(*exoid, node_set_ids);
+   // Assemble array with number of nodes per node set 'num_nodes_in_set':
+   for (i=0; i<*num_node_sets; i++)
+   {
+      error = ex_get_node_set_param(*exoid, node_set_ids[i], &num_nodes_in_set[i], &num_df_in_set);
+   }
+   return (error);
+}
+
+/* read individual side sets */
+int c_ex_get_side_set_param(int *exoid, int *num_side_sets, int *side_set_ids, int *num_sides_in_set)
+{
+   int error;
+   int num_df_in_set;
+   int i;
+   // Get side set IDs:
+   error = ex_get_side_set_ids(*exoid, side_set_ids);
+   // Assemble array with number of nodes per side set 'num_sides_in_set':
+   for (i=0; i<*num_side_sets; i++)
+   {
+      error = ex_get_side_set_param(*exoid, side_set_ids[i], &num_sides_in_set[i], &num_df_in_set);
+   }
+   return (error);
+}
+
 
 /* Following some additional interfaces that differ from the official interfaces of the exodusii library */
 
@@ -137,22 +169,6 @@ int c_ex_get_elem_block_parameters(int *exoid, int *num_elem_blk, int *block_ids
                                 &(num_attr[i]));
    }
    free(num_attr);
-   return (error);
-}
-
-/* read individual node sets */
-int c_ex_get_node_set_param(int *exoid, int *num_node_sets, int *node_set_ids, int *num_nodes_in_set)
-{
-   int error;
-   int num_df_in_set;
-   int i;
-   // Get node set IDs:
-   error = ex_get_node_set_ids(*exoid, node_set_ids);
-   // Assemble array with number of nodes per node set 'num_nodes_in_set':
-   for (i=0; i<*num_node_sets; i++)
-   {
-      error = ex_get_node_set_param(*exoid, node_set_ids[i], &num_nodes_in_set[i], &num_df_in_set);
-   }
    return (error);
 }
 
