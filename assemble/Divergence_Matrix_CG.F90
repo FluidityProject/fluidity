@@ -357,7 +357,7 @@ module divergence_matrix_cg
 
     end subroutine assemble_divergence_matrix_cg
 
-    subroutine assemble_compressible_divergence_matrix_cg(ctp_m, state, istate, ct_rhs)
+    subroutine assemble_compressible_divergence_matrix_cg(ctp_m, state, istate, ct_rhs, div_mass)
       
       ! inputs/outputs
       ! bucket full of fields
@@ -368,15 +368,17 @@ module divergence_matrix_cg
 
       type(scalar_field), intent(inout), optional :: ct_rhs
 
+      type(csr_matrix), intent(inout), optional :: div_mass
+
       if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
          multiphase = .true.
-         call assemble_1mat_compressible_divergence_matrix_cg(ctp_m, state, istate, ct_rhs)
+         call assemble_1mat_compressible_divergence_matrix_cg(ctp_m, state, istate, ct_rhs, div_mass)
       else
          multiphase = .false.
 
          if((size(state)==1).and.(.not.has_scalar_field(state(1), "MaterialVolumeFraction"))) then
          
-            call assemble_1mat_compressible_divergence_matrix_cg(ctp_m, state, 1, ct_rhs)
+            call assemble_1mat_compressible_divergence_matrix_cg(ctp_m, state, 1, ct_rhs, div_mass)
          
          else
 
@@ -390,7 +392,7 @@ module divergence_matrix_cg
     
     end subroutine assemble_compressible_divergence_matrix_cg
 
-    subroutine assemble_1mat_compressible_divergence_matrix_cg(ctp_m, state, istate, ct_rhs) 
+    subroutine assemble_1mat_compressible_divergence_matrix_cg(ctp_m, state, istate, ct_rhs, div_mass) 
 
       ! inputs/outputs
       ! bucket full of fields
@@ -401,6 +403,8 @@ module divergence_matrix_cg
       type(block_csr_matrix), intent(inout) :: ctp_m
 
       type(scalar_field), intent(inout), optional :: ct_rhs
+
+      type(csr_matrix), intent(inout), optional :: div_mass
 
       ! local
       type(mesh_type), pointer :: test_mesh
@@ -420,6 +424,8 @@ module divergence_matrix_cg
       
       real, dimension(:), allocatable :: density_at_quad, olddensity_at_quad
       real, dimension(:,:), allocatable :: density_grad_at_quad, nlvelocity_at_quad
+
+      real, dimension(:,:), allocatable :: div_mass_mat
 
       ! loop integers
       integer :: ele, sele, dim
@@ -542,7 +548,8 @@ module divergence_matrix_cg
                olddensity_at_quad(ele_ngi(density, 1)), &
                nlvelocity_at_quad(nonlinearvelocity%dim, ele_ngi(nonlinearvelocity, 1)), &
                density_grad_at_quad(field%dim, ele_ngi(density,1)), &
-               j_mat(field%dim, field%dim, ele_ngi(density, 1)))
+               j_mat(field%dim, field%dim, ele_ngi(density, 1)), &
+               div_mass_mat(ele_loc(test_mesh, 1), ele_loc(test_mesh, 1)))
       
       if(multiphase) then
          ! We will need grad(nvfrac) if we are not integrating by parts below
@@ -658,6 +665,11 @@ module divergence_matrix_cg
         do dim = 1, field%dim
             call addto(ctp_m, 1, dim, test_nodes, field_nodes, ele_mat(dim,:,:))
         end do
+
+        if(present(div_mass)) then
+           div_mass_mat = shape_shape(test_shape, test_shape, detwei)
+           call addto(div_mass, test_nodes, test_nodes, div_mass_mat)         
+        end if
         
         call deallocate(test_shape)
         
