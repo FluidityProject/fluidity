@@ -502,6 +502,7 @@ This option will work only if the mesh_adaptivity is switched on.</a:documentati
       <ref name="darcy_impes_interstitial_velocity_porosity_field"/>
       <ref name="darcy_impes_interstitial_velocity_CFL_field"/>
       <ref name="darcy_impes_darcy_velocity_field"/>
+      <ref name="darcy_impes_fractional_flow_field"/>
       <ref name="darcy_impes_total_darcy_velocity_field"/>
       <ref name="darcy_impes_divergence_total_darcy_velocity_field"/>
       <ref name="darcy_impes_sum_saturation"/>
@@ -536,6 +537,7 @@ This option will work only if the mesh_adaptivity is switched on.</a:documentati
     <ref name="darcy_impes_interstitial_velocity_porosity_field"/>
     <ref name="darcy_impes_interstitial_velocity_CFL_field"/>
     <ref name="darcy_impes_darcy_velocity_field"/>
+    <ref name="darcy_impes_fractional_flow_field"/>
   </define>
   <define name="darcy_impes_pressure_field">
     <element name="scalar_field">
@@ -729,7 +731,7 @@ Finite element discretisation may become unbounded so limiting is often necessar
         <optional>
           <element name="maximum_courant_number_per_subcycle">
             <a:documentation>Specify the maximum courant number per subcycle. 
-Defualt value if not given is 0.25.</a:documentation>
+Default value if not given is 0.25.</a:documentation>
             <ref name="real"/>
           </element>
         </optional>
@@ -848,6 +850,29 @@ Defualt value if not given is 0.25.</a:documentation>
       </attribute>
       <attribute name="name">
         <value>DarcyVelocity</value>
+      </attribute>
+      <element name="diagnostic">
+        <element name="mesh">
+          <attribute name="name">
+            <value>VelocityMesh</value>
+          </attribute>
+        </element>
+        <element name="algorithm">
+          <attribute name="name">
+            <value>Internal</value>
+          </attribute>
+        </element>
+        <ref name="darcy_impes_include_cv_stat"/>
+      </element>
+    </element>
+  </define>
+  <define name="darcy_impes_fractional_flow_field">
+    <element name="vector_field">
+      <attribute name="rank">
+        <value>0</value>
+      </attribute>
+      <attribute name="name">
+        <value>FractionalFlow</value>
       </attribute>
       <element name="diagnostic">
         <element name="mesh">

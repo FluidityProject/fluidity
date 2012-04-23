@@ -159,7 +159,7 @@ program Darcy_IMPES
    integer :: darcy_debug_log_unit, darcy_debug_err_unit
 
    type(vector_field_pointer), dimension(:), pointer :: inter_velocity_porosity, old_inter_velocity_porosity
-   type(vector_field_pointer), dimension(:), pointer :: darcy_velocity   
+   type(vector_field_pointer), dimension(:), pointer :: darcy_velocity, fractional_flow   
    type(scalar_field_pointer), dimension(:), pointer :: saturation, old_saturation
    type(scalar_field_pointer), dimension(:), pointer :: relative_permeability
    type(scalar_field_pointer), dimension(:), pointer :: viscosity
@@ -315,6 +315,7 @@ program Darcy_IMPES
    allocate(cfl(number_phase))
    allocate(old_cfl(number_phase))
    allocate(darcy_velocity(number_phase))
+   allocate(fractional_flow(number_phase))
    
    do p = 1,number_phase
                   
@@ -327,6 +328,7 @@ program Darcy_IMPES
       cfl(p)%ptr                         => extract_scalar_field(state(p), "InterstitialVelocityCFL")
       old_cfl(p)%ptr                     => extract_scalar_field(state(p), "OldInterstitialVelocityCFL")
       darcy_velocity(p)%ptr              => extract_vector_field(state(p), "DarcyVelocity")
+      fractional_flow(p)%ptr             => extract_vector_field(state(p), "FractionalFlow")
                   
    end do
    
@@ -426,6 +428,7 @@ program Darcy_IMPES
                                                     gradient_pressure, &
                                                     darcy_velocity, &
                                                     total_darcy_velocity, &
+                                                    fractional_flow, &
                                                     div_total_darcy_velocity, &
                                                     old_saturation, &
                                                     inverse_cv_mass_cfl_mesh, &
@@ -484,6 +487,7 @@ program Darcy_IMPES
                                                        gradient_pressure, &
                                                        darcy_velocity, &
                                                        total_darcy_velocity, &
+                                                       fractional_flow, &
                                                        div_total_darcy_velocity, &
                                                        old_saturation, &
                                                        inverse_cv_mass_cfl_mesh, &
@@ -672,6 +676,7 @@ program Darcy_IMPES
                                              old_gradient_pressure, &
                                              darcy_velocity, &
                                              total_darcy_velocity, &
+                                             fractional_flow, &
                                              div_total_darcy_velocity, &
                                              inverse_cv_mass_cfl_mesh, &
                                              inverse_cv_mass_pressure_mesh, &
@@ -791,6 +796,7 @@ program Darcy_IMPES
                                                              gradient_pressure, &
                                                              darcy_velocity, &
                                                              total_darcy_velocity, &
+                                                             fractional_flow, &
                                                              div_total_darcy_velocity, &
                                                              old_saturation, &
                                                              inverse_cv_mass_cfl_mesh, &
@@ -912,6 +918,7 @@ program Darcy_IMPES
    deallocate(cfl)
    deallocate(old_cfl)
    deallocate(darcy_velocity) 
+   deallocate(fractional_flow) 
    call deallocate(cvfaces)
    call deallocate(x_cvshape_full)
    call deallocate(p_cvshape_full)

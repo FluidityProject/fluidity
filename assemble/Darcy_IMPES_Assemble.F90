@@ -93,6 +93,7 @@ module darcy_impes_assemble_module
                                              old_gradient_pressure, &
                                              darcy_velocity, &
                                              total_darcy_velocity, &
+                                             fractional_flow, &
                                              div_total_darcy_velocity, &
                                              inverse_cv_mass_cfl_mesh, &
                                              inverse_cv_mass_pressure_mesh, &
@@ -141,6 +142,7 @@ module darcy_impes_assemble_module
       type(vector_field),                       intent(in)    :: old_gradient_pressure
       type(vector_field_pointer), dimension(:), intent(inout) :: darcy_velocity
       type(vector_field),                       intent(inout) :: total_darcy_velocity
+      type(vector_field_pointer), dimension(:), intent(inout) :: fractional_flow
       type(scalar_field),                       intent(inout) :: div_total_darcy_velocity
       type(scalar_field),                       intent(in)    :: inverse_cv_mass_cfl_mesh
       type(scalar_field),                       intent(in)    :: inverse_cv_mass_pressure_mesh
@@ -207,6 +209,7 @@ module darcy_impes_assemble_module
                                                        gradient_pressure, &
                                                        darcy_velocity, &
                                                        total_darcy_velocity, &
+                                                       fractional_flow, &
                                                        div_total_darcy_velocity, &
                                                        old_saturation, &
                                                        inverse_cv_mass_cfl_mesh, &
@@ -605,6 +608,7 @@ module darcy_impes_assemble_module
                                                           gradient_pressure, &
                                                           darcy_velocity, &
                                                           total_darcy_velocity, &
+                                                          fractional_flow, &
                                                           div_total_darcy_velocity, &
                                                           old_saturation, &
                                                           inverse_cv_mass_cfl_mesh, &
@@ -629,6 +633,7 @@ module darcy_impes_assemble_module
       type(vector_field),                       intent(inout) :: gradient_pressure
       type(vector_field_pointer), dimension(:), intent(inout) :: darcy_velocity
       type(vector_field),                       intent(inout) :: total_darcy_velocity
+      type(vector_field_pointer), dimension(:), intent(inout) :: fractional_flow
       type(scalar_field),                       intent(inout) :: div_total_darcy_velocity
       type(scalar_field_pointer), dimension(:), intent(in)    :: old_saturation      
       type(scalar_field),                       intent(in)    :: inverse_cv_mass_cfl_mesh
@@ -732,6 +737,17 @@ module darcy_impes_assemble_module
       do p = 2, number_phase
          
          call addto(total_darcy_velocity, darcy_velocity(p)%ptr)
+         
+      end do
+      
+      ! calculate the fractional flow for each phase
+      do p = 1, number_phase
+         
+         call set(fractional_flow(p)%ptr, total_darcy_velocity)
+         
+         call invert(fractional_flow(p)%ptr)
+         
+         call scale(fractional_flow(p)%ptr, darcy_velocity(p)%ptr)
          
       end do
       

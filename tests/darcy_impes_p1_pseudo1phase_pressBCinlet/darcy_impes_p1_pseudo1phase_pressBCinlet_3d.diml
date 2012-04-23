@@ -248,6 +248,15 @@
         </stat>
       </diagnostic>
     </vector_field>
+    <vector_field name="FractionalFlow" rank="0">
+      <diagnostic>
+        <mesh name="VelocityMesh"/>
+        <algorithm name="Internal"/>
+        <stat>
+          <include_cv_stats/>
+        </stat>
+      </diagnostic>
+    </vector_field>
     <vector_field name="TotalDarcyVelocity" rank="0">
       <diagnostic>
         <mesh name="VelocityMesh"/>
@@ -343,6 +352,15 @@
       </diagnostic>
     </scalar_field>
     <vector_field name="DarcyVelocity" rank="0">
+      <diagnostic>
+        <mesh name="VelocityMesh"/>
+        <algorithm name="Internal"/>
+        <stat>
+          <include_cv_stats/>
+        </stat>
+      </diagnostic>
+    </vector_field>
+    <vector_field name="FractionalFlow" rank="0">
       <diagnostic>
         <mesh name="VelocityMesh"/>
         <algorithm name="Internal"/>
