@@ -40,7 +40,7 @@ module diagnostic_fields_matrices
   use spud
   use parallel_fields, only: zero_non_owned
   use divergence_matrix_cv, only: assemble_divergence_matrix_cv
-  use divergence_matrix_cg, only: assemble_divergence_matrix_cg
+  use divergence_matrix_cg, only: assemble_divergence_matrix_cg, assemble_compressible_divergence_matrix_cg
   use gradient_matrix_cg, only: assemble_gradient_matrix_cg
   use parallel_tools
   use sparsity_patterns, only: make_sparsity
@@ -329,7 +329,8 @@ contains
       !!< field (i.e. each phase). Used in multiphase flow simulations.
 
       type(state_type), dimension(:), intent(inout) :: state
-      type(scalar_field), pointer :: sum_velocity_divergence
+      type(scalar_field), pointer :: sum_velocity_divergence, p, density, olddensity, vfrac
+      type(scalar_field) :: drhodt, temp_vfrac
 
       ! Local variables
       type(vector_field), pointer :: u, x
@@ -343,7 +344,8 @@ contains
       type(scalar_field) :: ctfield, ct_rhs, temp
       type(scalar_field), pointer :: cv_mass
       
-      logical :: test_with_cv_dual
+      logical :: test_with_cv_dual, use_compressible_projection
+      real :: dt
 
       ewrite(1,*) 'Entering calculate_sum_velocity_divergence'
          
@@ -352,15 +354,21 @@ contains
 
       ! Allocate memory for matrices and sparsity patterns
       call allocate(ctfield, sum_velocity_divergence%mesh, name="CTField")
-      call zero (ctfield)
+      call zero(ctfield)
       call allocate(temp, sum_velocity_divergence%mesh, name="Temp")
-      
+
       ! Require a mass matrix type if not CV tested equation.
       if (.not. test_with_cv_dual) then
          mass_sparsity=make_sparsity(sum_velocity_divergence%mesh, sum_velocity_divergence%mesh, "MassSparsity")
          call allocate(mass, mass_sparsity, name="MassMatrix")
          call zero(mass)      
       end if 
+
+      p => extract_scalar_field(state(1), "Pressure")
+      use_compressible_projection = have_option(trim(p%option_path)//&
+                                       "/prognostic/scheme&
+                                       &/use_compressible_projection_method")
+      call get_option("/timestepping/timestep", dt)
       
       ! Sum up over the div's
       do i = 1, size(state)
@@ -378,26 +386,63 @@ contains
 
          ! Allocate sparsity patterns, C^T matrix and C^T RHS for current state
          divergence_sparsity=make_sparsity(sum_velocity_divergence%mesh, u%mesh, "DivergenceSparsity")
-         call allocate(ct_m, divergence_sparsity, (/1, u%dim/), name="DivergenceMatrix" )
+         call allocate(ct_m, divergence_sparsity, (/1, u%dim/), name="DivergenceMatrix")
          call allocate(ct_rhs, sum_velocity_divergence%mesh, name="CTRHS")
-         
+
          ! Reassemble C^T matrix here
          if (test_with_cv_dual) then
             call assemble_divergence_matrix_cv(ct_m, state(i), ct_rhs=ct_rhs, &
                               test_mesh=sum_velocity_divergence%mesh, field=u)
          else
-            if(i==1) then ! Construct the mass matrix (just do this once)                      
-               call assemble_divergence_matrix_cg(ct_m, state(i), ct_rhs=ct_rhs, &
-                                 test_mesh=sum_velocity_divergence%mesh, field=u, &
-                                 option_path=sum_velocity_divergence%option_path, div_mass=mass)
+            if(i==1) then ! Construct the mass matrix (just do this once)
+               if(use_compressible_projection) then
+                  call assemble_compressible_divergence_matrix_cg(ct_m, state, i, ct_rhs, div_mass=mass)
+               else
+                  call assemble_divergence_matrix_cg(ct_m, state(i), ct_rhs=ct_rhs, &
+                              test_mesh=sum_velocity_divergence%mesh, field=u, &
+                              option_path=sum_velocity_divergence%option_path, div_mass=mass)
+               end if
+
             else
-               call assemble_divergence_matrix_cg(ct_m, state(i), ct_rhs=ct_rhs, &
-                                 test_mesh=sum_velocity_divergence%mesh, field=u, &
-                                 option_path=sum_velocity_divergence%option_path)
-            end if            
+               if(use_compressible_projection) then
+                  call assemble_compressible_divergence_matrix_cg(ct_m, state, i, ct_rhs)
+               else
+                  call assemble_divergence_matrix_cg(ct_m, state(i), ct_rhs=ct_rhs, &
+                              test_mesh=sum_velocity_divergence%mesh, field=u, &
+                              option_path=sum_velocity_divergence%option_path)
+               end if
+            end if   
+
+            if(use_compressible_projection .and. have_option("/material_phase::"//trim(state(i)%name)//"/equation_of_state/compressible")) then
+               ! Get the time derivative term for the compressible phase's density, vfrac_c * d(rho_c)/dt
+
+               call allocate(drhodt, sum_velocity_divergence%mesh, name="drhodt")
+
+               density => extract_scalar_field(state(i), "Density")
+               olddensity => extract_scalar_field(state(i), "OldDensity")
+
+               ! Assumes Density and OldDensity are on the same mesh as Pressure,
+               ! as it should be according to the manual.
+               call zero(drhodt)
+               call addto(drhodt, density)
+               call addto(drhodt, olddensity, -1.0)
+               call scale(drhodt, 1.0/dt)
+
+               ! Remap PhaseVolumeFraction field in case it is not on the same mesh as the Pressure field.
+               vfrac => extract_scalar_field(state(i), "PhaseVolumeFraction")
+               call allocate(temp_vfrac, sum_velocity_divergence%mesh, "TempPhaseVolumeFraction")
+               call remap_field(vfrac, temp_vfrac)
+               call scale(drhodt, temp_vfrac)
+               call deallocate(temp_vfrac)
+
+               call addto(ctfield, drhodt)
+
+               call deallocate(drhodt)
+            end if
+         
          end if
 
-         ! Construct the linear system of equations to solve for \sum{div(vfrac*u)}
+         ! Construct the linear system of equations
          call zero(temp)
          call mult(temp, ct_m, u)
          call addto(temp, ct_rhs, -1.0)
@@ -411,7 +456,8 @@ contains
 
       end do
 
-      ! Solve for sum_velocity_divergence ( = \sum{div(vfrac*u)} )            
+      ! Solve for sum_velocity_divergence
+      ! ( = \sum{div(vfrac*u)} for incompressible multiphase flows )            
       if (test_with_cv_dual) then
          ! get the cv mass matrix
          cv_mass => get_cv_mass(state(1), sum_velocity_divergence%mesh)
