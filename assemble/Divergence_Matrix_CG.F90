@@ -370,13 +370,13 @@ module divergence_matrix_cg
 
       if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
          multiphase = .true.
-         call assemble_1mat_compressible_divergence_matrix_cg(ctp_m, state(istate), ct_rhs)
+         call assemble_1mat_compressible_divergence_matrix_cg(ctp_m, state, istate, ct_rhs)
       else
          multiphase = .false.
 
          if((size(state)==1).and.(.not.has_scalar_field(state(1), "MaterialVolumeFraction"))) then
          
-            call assemble_1mat_compressible_divergence_matrix_cg(ctp_m, state(1), ct_rhs)
+            call assemble_1mat_compressible_divergence_matrix_cg(ctp_m, state, 1, ct_rhs)
          
          else
 
@@ -390,11 +390,12 @@ module divergence_matrix_cg
     
     end subroutine assemble_compressible_divergence_matrix_cg
 
-    subroutine assemble_1mat_compressible_divergence_matrix_cg(ctp_m, state, ct_rhs) 
+    subroutine assemble_1mat_compressible_divergence_matrix_cg(ctp_m, state, istate, ct_rhs) 
 
       ! inputs/outputs
       ! bucket full of fields
-      type(state_type), intent(inout) :: state
+      type(state_type), dimension(:), intent(inout) :: state
+      integer, intent(in) :: istate
 
       ! the compressible divergence matrix
       type(block_csr_matrix), intent(inout) :: ctp_m
@@ -419,7 +420,6 @@ module divergence_matrix_cg
       
       real, dimension(:), allocatable :: density_at_quad, olddensity_at_quad
       real, dimension(:,:), allocatable :: density_grad_at_quad, nlvelocity_at_quad
-      real, dimension(:,:), allocatable :: grad_one_over_density_at_quad, grad_one_over_olddensity_at_quad
 
       ! loop integers
       integer :: ele, sele, dim
@@ -438,7 +438,7 @@ module divergence_matrix_cg
       integer, dimension(:), allocatable :: density_bc_type
       type(scalar_field) :: density_bc
       
-      integer :: stat
+      integer :: i, stat
 
       !! Multiphase variables
       ! Volume fraction fields
@@ -447,6 +447,7 @@ module divergence_matrix_cg
       type(element_type), pointer :: nvfrac_shape
       ! Transformed gradient function for the non-linear PhaseVolumeFraction. 
       real, dimension(:, :, :), allocatable :: dnvfrac_t
+      logical :: is_compressible_phase ! Is this the (single) compressible phase in a multiphase simulation?
 
       ! =============================================================
       ! Subroutine to construct the matrix ctp_m (a.k.a. C1/2/3TP).
@@ -454,22 +455,37 @@ module divergence_matrix_cg
 
       ewrite(2,*) 'In assemble_1mat_compressible_divergence_matrix_cg'
 
-      coordinate=> extract_vector_field(state, "Coordinate")
+      coordinate=> extract_vector_field(state(istate), "Coordinate")
       
-      density => extract_scalar_field(state, "Density")
-      olddensity => extract_scalar_field(state, "OldDensity")
+      density => extract_scalar_field(state(istate), "Density")
+      olddensity => extract_scalar_field(state(istate), "OldDensity")
       
-      pressure => extract_scalar_field(state, "Pressure")
+      if(have_option('/material_phase::'//trim(state(istate)%name)//'/equation_of_state/compressible')) then
+         is_compressible_phase = .true.
+      else
+         is_compressible_phase = .false.
+
+         ! Find the compressible phase and extract it's density to form rho_c * div(vfrac_i*u_i), where _c and _i represent
+         ! the compressible and incompressible phases respectively.
+         do i = 1, size(state)
+            if(have_option('/material_phase::'//trim(state(i)%name)//'/equation_of_state/compressible')) then
+               density => extract_scalar_field(state(i), "Density")
+               olddensity => extract_scalar_field(state(i), "OldDensity")
+            end if
+         end do
+      end if
+
+      pressure => extract_scalar_field(state(istate), "Pressure")
       
-      velocity=>extract_vector_field(state, "Velocity")
-      nonlinearvelocity=>extract_vector_field(state, "NonlinearVelocity") ! maybe this should be updated after the velocity solve?
+      velocity=>extract_vector_field(state(istate), "Velocity")
+      nonlinearvelocity=>extract_vector_field(state(istate), "NonlinearVelocity") ! maybe this should be updated after the velocity solve?
       
       ! Get the non-linear PhaseVolumeFraction field if multiphase
       if(multiphase) then
-         vfrac => extract_scalar_field(state, "PhaseVolumeFraction")
+         vfrac => extract_scalar_field(state(istate), "PhaseVolumeFraction")
          call allocate(nvfrac, vfrac%mesh, "NonlinearPhaseVolumeFraction")
          call zero(nvfrac)
-         call get_nonlinear_volume_fraction(state, nvfrac)
+         call get_nonlinear_volume_fraction(state(istate), nvfrac)
          ewrite_minmax(nvfrac)
       else
          nullify(vfrac)
@@ -506,7 +522,7 @@ module divergence_matrix_cg
       end if
 
       call get_option(trim(complete_field_path(density%option_path, stat=stat))//&
-          &"/temporal_discretisation/theta", theta)
+                         &"/temporal_discretisation/theta", theta)
       call get_option("/timestepping/timestep", dt)
       
       test_mesh => pressure%mesh
@@ -524,8 +540,6 @@ module divergence_matrix_cg
                detwei(ele_ngi(field, 1)), &
                density_at_quad(ele_ngi(density, 1)), &
                olddensity_at_quad(ele_ngi(density, 1)), &
-               grad_one_over_density_at_quad(field%dim, ele_ngi(density,1)), &
-               grad_one_over_olddensity_at_quad(field%dim, ele_ngi(density,1)), &
                nlvelocity_at_quad(nonlinearvelocity%dim, ele_ngi(nonlinearvelocity, 1)), &
                density_grad_at_quad(field%dim, ele_ngi(density,1)), &
                j_mat(field%dim, field%dim, ele_ngi(density, 1)))
@@ -556,7 +570,7 @@ module divergence_matrix_cg
           call transform_to_physical(coordinate, ele, test_shape_ptr, dshape = dtest_t, detwei=detwei)
         end if
         
-        if(.not.integrate_by_parts) then
+        if(.not.integrate_by_parts .or. (integrate_by_parts .and. .not.is_compressible_phase)) then
           ! transform the field (velocity) derivatives into physical space
           call transform_to_physical(coordinate, ele, field_shape, dshape=dfield_t)
           
@@ -584,19 +598,20 @@ module divergence_matrix_cg
 
 
         if(integrate_by_parts) then
-            call invert(density)
-            call invert(olddensity)
-            grad_one_over_density_at_quad = ele_grad_at_quad(density, ele, ddensity_t)
-            grad_one_over_olddensity_at_quad = ele_grad_at_quad(olddensity, ele, ddensity_t)
-            call invert(density)
-            call invert(olddensity)
 
             ! if SUPG is fixed for P>1 then this dtest_t should be updated
-            if(multiphase) then
-               ele_mat = -shape_shape_vector(test_shape, field_shape, detwei*ele_val_at_quad(nvfrac, ele)*(theta*density_at_quad + (1-theta)*olddensity_at_quad), theta*(grad_one_over_density_at_quad)+(1-theta)*(grad_one_over_olddensity_at_quad)) - dshape_shape(dtest_t, field_shape, detwei*ele_val_at_quad(nvfrac, ele))
+            if(multiphase .and. .not.is_compressible_phase) then
+               density_grad_at_quad = theta*(ele_grad_at_quad(density, ele, ddensity_t))+&
+                                   (1-theta)*(ele_grad_at_quad(olddensity, ele, ddensity_t))
+
+               ele_mat = -dshape_shape(dtest_t, field_shape, detwei*ele_val_at_quad(nvfrac, ele)*(theta*density_at_quad + (1-theta)*olddensity_at_quad)) - shape_shape_vector(test_shape, field_shape, detwei*ele_val_at_quad(nvfrac, ele), density_grad_at_quad)
+
+            else if(multiphase .and. is_compressible_phase) then
+               ele_mat = -dshape_shape(dtest_t, field_shape, detwei*ele_val_at_quad(nvfrac, ele)*(theta*density_at_quad + (1-theta)*olddensity_at_quad))
+         
             else
-               ele_mat = -dshape_shape(dtest_t, field_shape, &
-                        detwei*(theta*density_at_quad + (1-theta)*olddensity_at_quad))
+         
+               ele_mat = -dshape_shape(dtest_t, field_shape, detwei*(theta*density_at_quad + (1-theta)*olddensity_at_quad))
             end if
         else
             density_grad_at_quad = theta*(ele_grad_at_quad(density, ele, ddensity_t))+&
@@ -613,11 +628,16 @@ module divergence_matrix_cg
                   dnvfrac_t = dfield_t
                end if
 
-               ! Split up the divergence term (1/rho)*div(rho*vfrac*u) = (1/rho)*rho*vfrac*div(u) + (1/rho)*u*grad(rho*vfrac)
-               ! = (1/rho)*rho*vfrac*div(u) + (1/rho)*u*(vfrac*grad(rho) + rho*grad(vfrac))
-               ele_mat = shape_dshape(test_shape, dfield_t, detwei*ele_val_at_quad(nvfrac, ele)) + &
-                         shape_shape_vector(test_shape, field_shape, detwei*ele_val_at_quad(nvfrac, ele)/(theta*density_at_quad + (1-theta)*olddensity_at_quad), density_grad_at_quad) + &
-                         shape_shape_vector(test_shape, field_shape, detwei, ele_grad_at_quad(nvfrac, ele, dnvfrac_t))
+               ! Split up the divergence term div(rho*vfrac*u) = rho*div(u*vfrac) + vfrac*u*grad(rho)
+               ! = (rho*vfrac*div(u) + rho*u*grad(vfrac)) + u*vfrac*grad(rho)
+
+               ! First assemble rho*div(u*vfrac). This is the incompressible phase's divergence matrix.
+               ele_mat = shape_dshape(test_shape, dfield_t, detwei*(theta*density_at_quad + (1-theta)*olddensity_at_quad)*ele_val_at_quad(nvfrac, ele)) + shape_shape_vector(test_shape, field_shape, detwei*(theta*density_at_quad + (1-theta)*olddensity_at_quad), ele_grad_at_quad(nvfrac, ele, dnvfrac_t))
+
+               ! If the phase is compressible, then we now complete the assembly of div(rho*vfrac*u) below.
+               if(is_compressible_phase) then
+                  ele_mat = ele_mat + shape_shape_vector(test_shape, field_shape, detwei*ele_val_at_quad(nvfrac, ele), density_grad_at_quad)
+               end if
 
             else
                ele_mat = shape_dshape(test_shape, dfield_t, &
