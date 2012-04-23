@@ -285,6 +285,12 @@ contains
        FLExit("Unable to read database parameters from "//trim(lfilename))
     end if
 
+    ! Catch user mistake of setting node sets instead of side sets:
+    ! Give the user an error message, since node sets are not supported here, only side sets:
+    if (num_node_sets > 0) then
+       FLExit("You have specified node sets on your ExodusII meshfile '"//trim(lfilename)//"' but node sets are not supported by Fluidity. Please set your boundary conditions as side sets")
+    end if
+
     ! read nodal coordinates values and names from database
     allocate(coord_x(num_nodes))
     allocate(coord_y(num_nodes))
