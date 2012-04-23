@@ -684,7 +684,11 @@
                
                ! Set up the left C matrix in CMC
                
-               if(use_compressible_projection .and. have_option('/material_phase::'//trim(state(istate)%name)//'/equation_of_state/compressible')) then
+               if(use_compressible_projection) then
+                  ! Note: If we are running a compressible multiphase simulation then the C^T matrix for each phase becomes:
+                  ! rho*div(alpha*u) for each incompressible phase
+                  ! rho*div(alpha*u) + alpha*u*grad(rho) for the single compressible phase.
+
                   allocate(ctp_m(istate)%ptr)
                   call allocate(ctp_m(istate)%ptr, ct_m(istate)%ptr%sparsity, (/1, u%dim/), name="CTP_m")
                   ! NOTE that this is not optimal in that the ct_rhs
@@ -1043,7 +1047,7 @@
                      call profiler_toc(u, "assembly")
 
                      density => extract_scalar_field(state(istate), "Density", stat)
-                     if(use_compressible_projection .and. have_option('/material_phase::'//trim(state(istate)%name)//'/equation_of_state/compressible')) then
+                     if(use_compressible_projection) then
                         call deallocate(ctp_m(istate)%ptr)
                         deallocate(ctp_m(istate)%ptr)
                      end if
