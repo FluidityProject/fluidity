@@ -201,6 +201,7 @@ bin/$(FLUIDITY): main.o lib/lib$(FLUIDITY).a
 sw: bin/shallow_water
 be: bin/burgers_equation
 hh: bin/hybridized_helmholtz_solver
+di: bin/darcy_impes
 
 bin/shallow_water: fluidity_library bin/hybridized_helmholtz_solver main/Shallow_Water.F90
 	@cd main; $(MAKE) Shallow_Water.o
@@ -226,6 +227,14 @@ bin/burgers_equation: fluidity_library main/Burgers_Equation.F90
 	@mkdir -p bin
 	@echo "    LD burgers_equation"
 	@$(EVAL) $(FC) -o bin/burgers_equation main/Burgers_Equation.o $(FCFLAGS) $(LIBS)
+
+bin/darcy_impes: fluidity_library main/Darcy_IMPES.F90
+	@cd main; $(MAKE) Darcy_IMPES.o
+	@echo "BUILD darcy_impes"
+	@echo "    MKDIR bin"
+	@mkdir -p bin
+	@echo "    LD darcy_impes"
+	@$(EVAL) $(FC) -o bin/darcy_impes main/Darcy_IMPES.o $(FCFLAGS) $(LIBS)
 
 ifeq (@ENABLE_PSMILE@,yes)
 LIBPSMILE=@FLPSMILE_PATH@/lib/libpsmile_oa4.MPI1.a @FLPSMILE_PATH@/lib/libcommon_oa4.a @FLPSMILE_PATH@/lib/libmpp_io.a -lxml2
@@ -508,12 +517,12 @@ distclean: clean
 	@find ./ \( -name make.log \) -exec rm -f {} \; > /dev/null
 	@rm -f Makefile > /dev/null
 
-test: fltools bin/$(FLUIDITY) bin/shallow_water serialtest bin/burgers_equation
+test: fltools bin/$(FLUIDITY) bin/shallow_water serialtest bin/burgers_equation bin/darcy_impes
 
 serialtest: fltools bin/$(FLUIDITY) bin/shallow_water
 	@cd tests; ../bin/testharness -l short -p serial $(EXCLUDE_TAGS) -n $(THREADS)
 
-mediumtest: fltools bin/$(FLUIDITY) manual bin/burgers_equation bin/shallow_water spudtools
+mediumtest: fltools bin/$(FLUIDITY) manual bin/burgers_equation bin/shallow_water bin/darcy_impes spudtools
 	@cd tests; ../bin/testharness -l medium $(EXCLUDE_TAGS) -n $(THREADS)
 
 .PHONY: spudtools
@@ -617,7 +626,7 @@ endif
 	$(MAKE) clean-light
 	@echo "    Congratulations, make makefiles succeeded!"
 
-install: default fltools bin/shallow_water bin/burgers_equation
+install: default fltools bin/shallow_water bin/burgers_equation bin/darcy_impes
 	@mkdir -p $(DESTDIR)$(bindir) $(DESTDIR)$(docdir)/fluidity
 	find bin/ -maxdepth 1 -type f -exec cp '{}' $(DESTDIR)$(bindir) \;
 	rm -f $(DESTDIR)$(bindir)/spud-* $(DESTDIR)$(bindir)/diamond $(DESTDIR)$(bindir)/silenteval $(DESTDIR)$(bindir)/runut

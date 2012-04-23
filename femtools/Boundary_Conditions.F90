@@ -1881,11 +1881,11 @@ contains
     !!< so this is only useful for fully explicit problems.
     !!<
     !!< This assumes that boundary conditions are applied in rate of change
-    !!< form.
+    !!< form if dt is present.
     type(scalar_field), intent(inout) :: lhs
     type(scalar_field), intent(inout) :: rhs
     type(scalar_field), intent(in) :: field
-    real, intent(in) :: dt
+    real, optional, intent(in) :: dt
     
     type(scalar_field), pointer:: surface_field
     integer, dimension(:), pointer:: surface_node_list
@@ -1900,16 +1900,25 @@ contains
        
        surface_field => extract_surface_field(field, i, "value")
        
-       do j=1,size(surface_node_list)
-          call set(rhs, surface_node_list(j), &
-               ((node_val(surface_field, j)- &
-                node_val(field, surface_node_list(j)) &
-                ) /dt)*INFINITY)
+       if (present(dt)) then
+          do j=1,size(surface_node_list)
+             call set(rhs, surface_node_list(j), &
+                  ((node_val(surface_field, j)- &
+                   node_val(field, surface_node_list(j)) &
+                   ) /dt)*INFINITY)
 
-          call set(lhs, surface_node_list(j), &
-               INFINITY)
-
-       end do
+             call set(lhs, surface_node_list(j), &
+                  INFINITY)
+          end do
+       else
+          do j=1, size(surface_node_list)
+            call set(rhs, surface_node_list(j), &
+                     node_val(surface_field, j)*INFINITY)
+          
+             call set(lhs, surface_node_list(j), &
+                      INFINITY)          
+          end do       
+       end if 
        
     end do bcloop
     
