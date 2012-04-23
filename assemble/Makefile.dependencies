@@ -153,10 +153,10 @@ Compressible_Projection.o ../include/compressible_projection.mod: \
    Compressible_Projection.F90 ../include/equation_of_state.mod \
    ../include/fdebug.h ../include/fefields.mod ../include/field_options.mod \
    ../include/fields.mod ../include/fldebug.mod \
-   ../include/global_parameters.mod ../include/sparse_matrices_fields.mod \
-   ../include/sparse_tools.mod ../include/spud.mod \
-   ../include/state_fields_module.mod ../include/state_module.mod \
-   ../include/upwind_stabilisation.mod
+   ../include/global_parameters.mod ../include/multiphase_module.mod \
+   ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
+   ../include/spud.mod ../include/state_fields_module.mod \
+   ../include/state_module.mod ../include/upwind_stabilisation.mod
 
 ../include/coriolis_module.mod: Coriolis.o
 	@true
