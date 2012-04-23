@@ -149,7 +149,7 @@ contains
     character(kind=c_char, len=OPTION_PATH_LEN) :: lfilename
 
     character(kind=c_char, len=OPTION_PATH_LEN) :: title
-    integer :: num_dim, num_nodes, num_elem, num_elem_blk
+    integer :: num_dim, num_nodes, num_allelem, num_elem_blk
     integer :: num_node_sets, num_side_sets
     integer, allocatable, dimension(:) :: block_ids, num_elem_in_block, num_nodes_per_elem
 
@@ -174,7 +174,7 @@ contains
 
     ! Get database parameters from exodusII file
     ierr = f_ex_get_init(exoid, title, num_dim, num_nodes, &
-                       num_elem, num_elem_blk, num_node_sets, &
+                       num_allelem, num_elem_blk, num_node_sets, &
                        num_side_sets)
     if (ierr /= 0) then
        FLExit("Unable to read database parameters from "//trim(lfilename))
@@ -199,7 +199,7 @@ contains
     ! Return optional variables requested
 !    if(present(nodeAttributesOut)) nodeAttributesOut=nodeAttributes
     if(present(numDimenOut)) numDimenOut=num_dim
-    if(present(numElementsOut)) numElementsOut=num_elem
+    if(present(numElementsOut)) numElementsOut=num_allelem
     ! We're assuming all elements have the same number of vertices/nodes
     ! depending on 2D/3D, we could have edges/faces, thus we have to
     ! get the max value of num_nodes_per_elem and assign it to locOut
@@ -227,7 +227,7 @@ contains
     integer(kind=c_int) :: comp_ws, io_ws, mode
     character(kind=c_char, len=OPTION_PATH_LEN) :: lfilename
     character(kind=c_char, len=OPTION_PATH_LEN) :: title
-    integer :: num_dim, num_nodes, num_elem, num_elem_blk
+    integer :: num_dim, num_nodes, num_allelem, num_elem_blk
     integer :: num_node_sets, num_side_sets
 
     ! exodusii lib variables:
@@ -245,7 +245,7 @@ contains
     integer, allocatable, dimension(:) :: elem_node_list, total_elem_node_list
     integer, allocatable, dimension(:) :: faces, sndglno
     
-    integer :: num_faces
+    integer :: num_faces, num_elem
     integer :: loc, sloc
     integer :: nodeID, elemID, blockID, eff_dim, b, d, e, f, i, n, z, z2, exo_e
     
@@ -270,11 +270,11 @@ contains
 
     ! Get database parameters from exodusII file
     ierr = f_ex_get_init(exoid, title, num_dim, num_nodes, &
-                       num_elem, num_elem_blk, num_node_sets, &
+                       num_allelem, num_elem_blk, num_node_sets, &
                        num_side_sets)
     ewrite(2,*) "num_dim = ", num_dim
     ewrite(2,*) "num_nodes = ", num_nodes
-    ewrite(2,*) "num_elem = ", num_elem
+    ewrite(2,*) "num_allelem = ", num_allelem
     ewrite(2,*) "num_elem_blk = ", num_elem_blk
     ewrite(2,*) "num_node_sets = ", num_node_sets
     ewrite(2,*) "num_side_sets = ", num_side_sets
@@ -302,7 +302,7 @@ contains
     ewrite(2,*) "node_map = ", node_map
 
     ! read element number map
-    allocate(elem_num_map(num_elem))
+    allocate(elem_num_map(num_allelem))
     elem_num_map = 0
     ierr = f_ex_get_elem_num_map(exoid, elem_num_map)
     if (ierr /= 0) then
@@ -311,7 +311,7 @@ contains
     ewrite(2,*) "elem_num_map = ", elem_num_map
 
     ! read element order map
-    allocate(elem_order_map(num_elem))
+    allocate(elem_order_map(num_allelem))
     elem_order_map = 0
     ierr = f_ex_get_elem_order_map(exoid, elem_order_map)
     if (ierr /= 0) then
@@ -422,8 +422,6 @@ contains
        eff_dim = num_dim
     end if
 
-    call allocate(mesh, num_nodes, num_elem, shape, name="CoordinateMesh")
-    call allocate( field, eff_dim, mesh, name="Coordinate")
 
     ! Get element node number (allows for different element types)
 
@@ -449,78 +447,14 @@ contains
        ! deallocate elem_node_list for next block
        deallocate(elem_node_list)
     end do
-
     ewrite(2,*) "total_elem_node_list = ", total_elem_node_list
-
-!    ! In future, we can set the number of elements per 'block', 
-!    ! but for now, we assume the mesh has at most 1 block
-!    allocate( field%mesh%region_ids(num_elem) ) 
-!    allocate(field%mesh%columns(1:num_nodes))
-!    loc = size( elements(1)%nodeIDs )
 
     ! check if number of vertices/nodes are consistent with shape
     loc = maxval(num_nodes_per_elem)
     assert(loc==shape%loc)
 
-    ! Loop around nodes copying across coords
-    ! First, assemble array containing all node coordinates:
-    allocate(node_coord(eff_dim, num_nodes))
-    node_coord = 0
-    node_coord(1,:) = coord_x(:)
-    if (eff_dim .eq. 2 .or. eff_dim .eq. 3) then
-       node_coord(2,:) = coord_y(:)
-    end if
-    if (eff_dim .eq. 3) then
-       node_coord(3,:) = coord_z(:)
-    end if
 
-    ! Now set up nodes, their IDs and coordinates:
-    ! Allocate exodus nodes
-    allocate(exo_nodes(num_nodes))
-    ! setting all node properties to zero
-    exo_nodes(:)%nodeID = 0.0
-    exo_nodes(:)%x(1)=0.0; exo_nodes(:)%x(2)=0.0; exo_nodes(:)%x(3)=0.0;
-    ! copy coordinates into Coordinate field
-    do n=1, num_nodes
-       nodeID = node_map(n)
-       exo_nodes(n)%nodeID = nodeID
-       forall (d = 1:eff_dim)
-          exo_nodes(n)%x(d) = node_coord(d,n)
-          field%val(d,nodeID) = exo_nodes(n)%x(d)
-       end forall
-    end do
-
-
-    ! Set up for allelements:
-    allocate(allelements(num_elem))
-    ! Set elementIDs and blockIDs of to which the elements belong to
-    allelements(:)%elementID = 0.0; allelements(:)%blockID = 0.0
-    allelements(:)%type = 0.0; allelements(:)%numTags = 0.0
-    z=0; z2=0;
-    do i=1, num_elem_blk
-       do e=1, num_elem_in_block(i)
-          ! Set elementID:
-          allelements(e+z)%elementID = elem_order_map(e+z)
-          ! Set blockID of element e
-          allelements(e+z)%blockID = block_ids(i)
-          ! Set type of element:
-          allelements(e+z)%type = elem_type(i)
-          ! For nodeIDs:
-          allocate( allelements(e+z)%nodeIDs(num_nodes_per_elem(i)) )
-          do n=1, num_nodes_per_elem(i)
-             ! copy the nodes of the element out of total_elem_node_list:
-             allelements(e+z)%nodeIDs(n) = total_elem_node_list(n+z2)
-          end do
-          z2 = z2+num_nodes_per_elem(i)
-       end do
-       z = z + num_elem_in_block(i)
-    end do
-    ! At this stage 'allelements' contains all elements (faces and elements) of all blocks of the mesh
-    ewrite(2,*) "allelements%elementID: ", allelements%elementID
-    ewrite(2,*) "allelements%blockID: ", allelements%blockID
-    ewrite(2,*) "allelements%type: ", allelements%type
-    
-    ! Now faces
+    ! Now faces:
     ! First of all: get total number of faces, then assemble array with faces:
     ! In 2D: Faces are lines/edges
     ! In 3D: Faces are surfaces
@@ -552,10 +486,84 @@ contains
     end do
     ewrite(2,*) "total number of faces: ", num_faces
 
+    ! Now, after finding out the # of faces, assemble your CoordinateMesh:
+    num_elem = num_allelem - num_faces
+    call allocate(mesh, num_nodes, num_elem, shape, name="CoordinateMesh")
+    call allocate(field, eff_dim, mesh, name="Coordinate")
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! Coordinates              !
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! Loop around nodes copying across coords
+    ! First, assemble array containing all node coordinates:
+    allocate(node_coord(eff_dim, num_nodes))
+    node_coord = 0
+    node_coord(1,:) = coord_x(:)
+    if (eff_dim .eq. 2 .or. eff_dim .eq. 3) then
+       node_coord(2,:) = coord_y(:)
+    end if
+    if (eff_dim .eq. 3) then
+       node_coord(3,:) = coord_z(:)
+    end if
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! Node IDs                 !
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! Now set up nodes, their IDs and coordinates:
+    ! Allocate exodus nodes
+    allocate(exo_nodes(num_nodes))
+    ! setting all node properties to zero
+    exo_nodes(:)%nodeID = 0.0
+    exo_nodes(:)%x(1)=0.0; exo_nodes(:)%x(2)=0.0; exo_nodes(:)%x(3)=0.0;
+    ! copy coordinates into Coordinate field
+    do n=1, num_nodes
+       nodeID = node_map(n)
+       exo_nodes(n)%nodeID = nodeID
+       forall (d = 1:eff_dim)
+          exo_nodes(n)%x(d) = node_coord(d,n)
+          field%val(d,nodeID) = exo_nodes(n)%x(d)
+       end forall
+    end do
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! Elements (incl faces)    !
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! Set up for allelements:
+    allocate(allelements(num_allelem))
+    ! Set elementIDs and blockIDs of to which the elements belong to
+    allelements(:)%elementID = 0.0; allelements(:)%blockID = 0.0
+    allelements(:)%type = 0.0; allelements(:)%numTags = 0.0
+    z=0; z2=0;
+    do i=1, num_elem_blk
+       do e=1, num_elem_in_block(i)
+          ! Set elementID:
+          allelements(e+z)%elementID = elem_order_map(e+z)
+          ! Set blockID of element e
+          allelements(e+z)%blockID = block_ids(i)
+          ! Set type of element:
+          allelements(e+z)%type = elem_type(i)
+          ! For nodeIDs:
+          allocate( allelements(e+z)%nodeIDs(num_nodes_per_elem(i)) )
+          do n=1, num_nodes_per_elem(i)
+             ! copy the nodes of the element out of total_elem_node_list:
+             allelements(e+z)%nodeIDs(n) = total_elem_node_list(n+z2)
+          end do
+          z2 = z2+num_nodes_per_elem(i)
+       end do
+       z = z + num_elem_in_block(i)
+    end do
+    ! At this stage 'allelements' contains all elements (faces and elements) of all blocks of the mesh
+    ewrite(2,*) "allelements%elementID: ", allelements%elementID
+    ewrite(2,*) "allelements%blockID: ", allelements%blockID
+    ewrite(2,*) "allelements%type: ", allelements%type
+    
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! Elements and faces       !
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Now actually set the elements and face-elements:
     ! assemble array with faces (faces contains element number (=element id of mesh))
     ! and sndglno contains the corresponding node numbers:
-    allocate(exo_element(num_elem-num_faces)); allocate(exo_face(num_faces))
+    allocate(exo_element(num_elem)); allocate(exo_face(num_faces))
     allocate(faces(num_faces))
     faces = 0
     allocate(sndglno(1:num_faces*sloc))
@@ -604,8 +612,9 @@ contains
        b = b + num_elem_in_block(i)
     end do
 
-
-    ! Copy elements (normal elements, no faces) to field:
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! Copy (only) Elements to the mesh !
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     z=0; exo_e=1;
     do i=1, num_elem_blk
        do e=1, num_elem_in_block(i)
@@ -621,6 +630,7 @@ contains
           end if
        end do
     end do
+
 
     call vtk_write_fields("coord_field", index=1, position=field, model=field%mesh, vfields=(/field/))
 
