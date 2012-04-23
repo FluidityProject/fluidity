@@ -1114,15 +1114,11 @@ contains
        !       (i.e. there are 2 opposite faces between two elements)
        ! and mesh%faces%face_element_list  storing the element adjacent to
        !     each face
-       ewrite(2,*) "model is not present!!!!!!"
-       ewrite(2,*) "calling add_faces_face_list"
-       ewrite(2,*) "sndgln", sndgln
-       ewrite(2,*) "element_owner", element_owner
        call add_faces_face_list(mesh, sndgln, &
          boundary_ids=boundary_ids, &
          element_owner=element_owner, &
          incomplete_surface_mesh=incomplete_surface_mesh)
-       ewrite(2,*) "AFTER calling add_faces_face_list"
+         
        ! we don't calculate coplanar_ids here, as we need positions
        mesh%faces%coplanar_ids => null()
 
@@ -1167,7 +1163,6 @@ contains
          mesh%faces%has_internal_boundaries = .true.
                      
       else
-         ewrite(2,*) "in ELSE statement: no periodic model!"
          ! Transfer the faces from model to mesh
          mesh%faces%face_list=model%faces%face_list
          call incref(mesh%faces%face_list)
@@ -1175,8 +1170,6 @@ contains
          ! have internal faces if the model does
          mesh%faces%has_internal_boundaries = has_internal_boundaries(model)
       end if
-      ewrite(2,*) "after if-statement periodic model"
-      ewrite(2,*) "sndgln = ", sndgln
         
       ! face_element_list is a pure copy of that of the model
       allocate( mesh%faces%face_element_list(1:size(model%faces%face_element_list)) )
@@ -1226,10 +1219,8 @@ contains
     allocate(mesh%faces%shape)
     mesh%faces%shape = make_element_shape(vertices=face_vertices(element), &
          & dim=mesh_dim(mesh)-1, degree=element%degree, quad=quad_face)
-    
-    ewrite(2,*) "before face_count: "
+
     face_count=entries(mesh%faces%face_list)
-    ewrite(2,*) "face_count = ", face_count
     snloc=mesh%faces%shape%loc
     allocate(mesh%faces%face_lno( face_count*snloc ))
 #ifdef HAVE_MEMORY_STATS
@@ -1347,26 +1338,14 @@ contains
 
     mesh_shape=>ele_shape(mesh, 1)
     nloc=mesh_shape%loc
-    
-    ewrite(2,*) "======================================"
-    ewrite(2,*) "inside add_faces_face_list"
-    
-    ewrite(2,*) "sndgln = ", sndgln
-    ewrite(2,*) "calling extract_lists"
 
     ! Calculate the node-to-element list.
     ! Calculate the element adjacency list.
     call extract_lists(mesh, nelist = nelist, eelist = sparsity)
-    
-    ewrite(2,*) "allocate face_list of mesh:"
-    ewrite(2,*) "nelist = ", nelist
-!    ewrite(2,*) "face_list = ", face_list
-    
+
     call allocate(mesh%faces%face_list, sparsity, type=CSR_INTEGER, &
         name=trim(mesh%name)//"FaceList")
     call zero(mesh%faces%face_list)
-    
-    ewrite(2,*) "size((mesh%faces%face_list)) = ", size(mesh%faces%face_list)
 
     no_faces=size(mesh%faces%face_list%sparsity%colm)
     allocate(mesh%faces%face_element_list(no_faces))
@@ -1382,7 +1361,6 @@ contains
       
       stotel=size(sndgln)/snloc
       
-      ewrite(2,*) "before do-loop over surface elements:"
       do sele=1, stotel
         
         ! find the elements adjacent to this surface element
