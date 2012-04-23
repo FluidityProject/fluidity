@@ -166,13 +166,13 @@
       <real_value rank="0">0.0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">600</real_value>
+      <real_value rank="0">300</real_value>
     </timestep>
     <finish_time>
       <real_value rank="0">99600</real_value>
     </finish_time>
     <nonlinear_iterations>
-      <integer_value rank="0">20</integer_value>
+      <integer_value rank="0">25</integer_value>
       <tolerance>
         <real_value rank="0">1.0E-5</real_value>
         <infinity_norm/>
