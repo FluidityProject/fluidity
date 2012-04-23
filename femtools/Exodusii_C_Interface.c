@@ -97,9 +97,9 @@ int c_ex_get_node_set_node_list(int *exoid, int *num_node_sets, int *node_set_id
 /* Close ExodusII File */
 int c_ex_close(int *exoid)
 {
-   int ierr;
-   ierr = ex_close(*exoid);
-   return (ierr);
+   int error;
+   error = ex_close(*exoid);
+   return (error);
 }
 
 /* read individual node sets */
@@ -118,19 +118,10 @@ int c_ex_get_node_set_param(int *exoid, int *num_node_sets, int *node_set_ids, i
    return (error);
 }
 
-/* read individual side sets */
-int c_ex_get_side_set_param(int *exoid, int *num_side_sets, int *side_set_ids, int *num_sides_in_set)
+int c_ex_get_side_set_ids(int *exoid, int *side_set_ids)
 {
    int error;
-   int num_df_in_set;
-   int i;
-   // Get side set IDs:
-   error = ex_get_side_set_ids(*exoid, side_set_ids);
-   // Assemble array with number of nodes per side set 'num_sides_in_set':
-   for (i=0; i<*num_side_sets; i++)
-   {
-      error = ex_get_side_set_param(*exoid, side_set_ids[i], &num_sides_in_set[i], &num_df_in_set);
-   }
+   error = ex_get_side_set_ids (*exoid, side_set_ids);
    return (error);
 }
 
