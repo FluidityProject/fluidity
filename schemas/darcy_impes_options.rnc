@@ -702,7 +702,7 @@ darcy_impes_saturation_field_temporal_discretisation_only_explicit =
                }
             },
             ## Specify the maximum courant number per subcycle. 
-            ## Defualt value if not given is 0.25.
+            ## Default value if not given is 0.25.
             element maximum_courant_number_per_subcycle {
                real
             }?
