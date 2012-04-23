@@ -1,0 +1,1375 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+  <include href="spud_base.rng"/>
+  <include href="adaptivity_options.rng"/>
+  <include href="diagnostic_algorithms.rng"/>
+  <include href="input_output.rng"/>
+  <include href="solvers.rng"/>
+  <include href="stabilisation.rng"/>
+  <include href="mesh_options.rng"/>
+  <include href="prognostic_field_options.rng"/>
+  <include href="prescribed_field_options.rng"/>
+  <include href="spatial_discretisation.rng"/>
+  <include href="temporal_discretisation.rng"/>
+  <include href="porous_media.rng"/>
+  <start>
+    <element name="darcy_impes_options">
+      <a:documentation>The root node of the options dictionary.</a:documentation>
+      <ref name="comment"/>
+      <optional>
+        <element name="simulation_name">
+          <a:documentation>Model output files are named according to the simulation
+name, e.g. [simulation_name]_0.vtu. Non-standard
+characters in the simulation name should be avoided.
+If not activated then the filename is used for the simulation name.</a:documentation>
+          <ref name="anystring"/>
+        </element>
+      </optional>
+      <ref name="darcy_impes_geometry"/>
+      <ref name="darcy_impes_io"/>
+      <ref name="darcy_impes_timestepping"/>
+      <ref name="darcy_impes_material_phases"/>
+      <optional>
+        <ref name="darcy_impes_mesh_adaptivity_options"/>
+      </optional>
+      <ref name="darcy_impes_porous_media_model"/>
+    </element>
+  </start>
+  <define name="darcy_impes_geometry">
+    <element name="geometry">
+      <a:documentation>Options dealing with the specification of geometry</a:documentation>
+      <element name="dimension">
+        <a:documentation>Dimension of the problem.
+&lt;b&gt;This can only be set once&lt;/b&gt;</a:documentation>
+        <element name="integer_value">
+          <attribute name="rank">
+            <value>0</value>
+          </attribute>
+          <choice>
+            <value>3</value>
+            <value>2</value>
+            <value>1</value>
+          </choice>
+        </element>
+      </element>
+      <element name="mesh">
+        <a:documentation>The position mesh</a:documentation>
+        <attribute name="name">
+          <value>CoordinateMesh</value>
+        </attribute>
+        <ref name="darcy_impes_position_mesh_info"/>
+      </element>
+      <element name="mesh">
+        <a:documentation>The pressure mesh which is also used 
+for the phase saturation and relative permeability.</a:documentation>
+        <attribute name="name">
+          <value>PressureMesh</value>
+        </attribute>
+        <ref name="darcy_impes_pressure_mesh_info"/>
+      </element>
+      <element name="mesh">
+        <a:documentation>The velocity mesh which is also used 
+for the interstitial velocity CFL number.</a:documentation>
+        <attribute name="name">
+          <value>VelocityMesh</value>
+        </attribute>
+        <ref name="darcy_impes_velocity_mesh_info"/>
+      </element>
+      <element name="mesh">
+        <a:documentation>The element wise mesh used for porosity, 
+absolute permeability and phase viscosity.</a:documentation>
+        <attribute name="name">
+          <value>ElementWiseMesh</value>
+        </attribute>
+        <ref name="darcy_impes_element_wise_mesh_info"/>
+      </element>
+      <element name="mesh">
+        <a:documentation>The output mesh for all fields.</a:documentation>
+        <attribute name="name">
+          <value>OutputMesh</value>
+        </attribute>
+        <ref name="darcy_impes_output_mesh_info"/>
+      </element>
+      <element name="quadrature">
+        <a:documentation>Quadrature</a:documentation>
+        <element name="degree">
+          <a:documentation>Quadrature degree
+
+note: this specifies the degree of quadrature,
+not the number of gauss points</a:documentation>
+          <element name="integer_value">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <value>1</value>
+          </element>
+        </element>
+      </element>
+    </element>
+  </define>
+  <define name="darcy_impes_position_mesh_info">
+    <element name="from_file">
+      <a:documentation>Read mesh from file.</a:documentation>
+      <choice>
+        <element name="format">
+          <a:documentation>Triangle mesh format.
+
+Enter the base name without the .edge .ele, .face or
+.node extensions, and without process numbers.</a:documentation>
+          <attribute name="name">
+            <value>triangle</value>
+          </attribute>
+          <ref name="comment"/>
+        </element>
+        <element name="format">
+          <a:documentation>Read the mesh from a vtu. Note that the mesh will have no 
+surface or region IDs.</a:documentation>
+          <attribute name="name">
+            <value>vtu</value>
+          </attribute>
+          <ref name="comment"/>
+        </element>
+        <element name="format">
+          <a:documentation>GMSH mesh format</a:documentation>
+          <attribute name="name">
+            <value>gmsh</value>
+          </attribute>
+          <ref name="comment"/>
+        </element>
+      </choice>
+      <attribute name="file_name">
+        <data type="string"/>
+      </attribute>
+      <ref name="from_file_mesh_stat_options"/>
+      <ref name="comment"/>
+    </element>
+  </define>
+  <define name="darcy_impes_pressure_mesh_info">
+    <element name="from_mesh">
+      <a:documentation>Make mesh from existing mesh. </a:documentation>
+      <ref name="comment"/>
+      <ref name="mesh_choice_coordinate"/>
+      <element name="mesh_shape">
+        <element name="polynomial_degree">
+          <element name="integer_value">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <value>1</value>
+          </element>
+        </element>
+        <element name="element_type">
+          <element name="string_value">
+            <value>lagrangian</value>
+          </element>
+        </element>
+      </element>
+      <ref name="derived_mesh_stat_options"/>
+    </element>
+  </define>
+  <define name="darcy_impes_velocity_mesh_info">
+    <element name="from_mesh">
+      <a:documentation>Make mesh from existing mesh. </a:documentation>
+      <ref name="comment"/>
+      <ref name="mesh_choice_pressure"/>
+      <element name="mesh_continuity">
+        <element name="string_value">
+          <value>discontinuous</value>
+        </element>
+      </element>
+      <ref name="derived_mesh_stat_options"/>
+    </element>
+  </define>
+  <define name="darcy_impes_element_wise_mesh_info">
+    <element name="from_mesh">
+      <a:documentation>Make mesh from existing mesh. </a:documentation>
+      <ref name="comment"/>
+      <ref name="mesh_choice_coordinate"/>
+      <element name="mesh_shape">
+        <element name="polynomial_degree">
+          <element name="integer_value">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <value>0</value>
+          </element>
+        </element>
+        <element name="element_type">
+          <element name="string_value">
+            <value>lagrangian</value>
+          </element>
+        </element>
+      </element>
+      <element name="mesh_continuity">
+        <element name="string_value">
+          <value>discontinuous</value>
+        </element>
+      </element>
+      <ref name="derived_mesh_stat_options"/>
+    </element>
+  </define>
+  <define name="darcy_impes_output_mesh_info">
+    <element name="from_mesh">
+      <a:documentation>Make mesh from existing mesh. </a:documentation>
+      <ref name="comment"/>
+      <ref name="mesh_choice_pressure"/>
+      <element name="mesh_continuity">
+        <element name="string_value">
+          <value>discontinuous</value>
+        </element>
+      </element>
+      <ref name="derived_mesh_stat_options"/>
+    </element>
+  </define>
+  <define name="mesh_choice_coordinate">
+    <element name="mesh">
+      <attribute name="name">
+        <value>CoordinateMesh</value>
+      </attribute>
+    </element>
+  </define>
+  <define name="mesh_choice_pressure">
+    <element name="mesh">
+      <attribute name="name">
+        <value>PressureMesh</value>
+      </attribute>
+    </element>
+  </define>
+  <define name="mesh_choice_output">
+    <element name="mesh">
+      <attribute name="name">
+        <value>OutputMesh</value>
+      </attribute>
+    </element>
+  </define>
+  <define name="mesh_choice_element_wise">
+    <element name="mesh">
+      <attribute name="name">
+        <value>ElementWiseMesh</value>
+      </attribute>
+    </element>
+  </define>
+  <define name="darcy_impes_io">
+    <element name="io">
+      <a:documentation>Input/output options</a:documentation>
+      <element name="dump_format">
+        <a:documentation>Format for dump files. Only vtk for now.</a:documentation>
+        <element name="string_value">
+          <value>vtk</value>
+        </element>
+      </element>
+      <choice>
+        <element name="dump_period">
+          <a:documentation>Period between dumps in time units.
+
+Specifies the period between each dump of the solution to disk.
+A value of 0.0 indicates that there would be a dump at every timestep.</a:documentation>
+          <choice>
+            <element name="constant">
+              <ref name="real"/>
+            </element>
+            <element name="python">
+              <a:documentation>Python function prescribing real input. Functions should be of the form:
+
+ def val(t):
+    # Function code
+    return # Return value
+
+</a:documentation>
+              <ref name="python_code"/>
+            </element>
+          </choice>
+        </element>
+        <element name="dump_period_in_timesteps">
+          <a:documentation>Dump period, in timesteps.
+
+Specifies the number of timesteps between each dump of the solution to disk.
+A value of 0 indicates a dump at every timestep.</a:documentation>
+          <choice>
+            <element name="constant">
+              <ref name="integer"/>
+            </element>
+            <element name="python">
+              <a:documentation>Python function prescribing integer input. Functions should be of the form:
+
+ def val(t):
+    # Function code
+    return # Return value
+
+</a:documentation>
+              <ref name="python_code"/>
+            </element>
+          </choice>
+        </element>
+      </choice>
+      <element name="output_mesh">
+        <a:documentation>The mesh on to which all the fields will be
+interpolated for VTK output.</a:documentation>
+        <attribute name="name">
+          <value>OutputMesh</value>
+        </attribute>
+      </element>
+      <optional>
+        <element name="convergence">
+          <a:documentation>Options for convergence analysis.</a:documentation>
+          <optional>
+            <element name="convergence_file">
+              <a:documentation>Whether to enable the creation of a convergence
+file, giving details of the convergence of each
+field over the global nonlinear iteration loop.
+The .convergence file is in the same format as the .stat file.</a:documentation>
+              <ref name="comment"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="convergence_vtus">
+              <a:documentation>Write state to a vtu on every iteration.
+
+This is a useful debugging tool if things are not converging.
+To prevent an excessive number of files being accumulated previous
+timestep files will be overwritten hence it is best to use
+in conjunction with /timestepping/nonlinear_iterations/terminate_if_not_converged</a:documentation>
+              <ref name="comment"/>
+            </element>
+          </optional>
+        </element>
+      </optional>
+      <optional>
+        <element name="checkpointing">
+          <a:documentation>Whether to enable dumping of checkpointing output.
+
+See http://amcg.ese.ic.ac.uk/index.php?title=Local:Checkpointing_from_new_options</a:documentation>
+          <element name="checkpoint_period_in_dumps">
+            <a:documentation>Checkpointing period, in dumps. Non-negative value
+required. A value of zero indicates that checkpoints
+should be created at every dump. If
+/io/max_dumpfile_count is exceeded then earlier
+checkpoints may be overwritten.</a:documentation>
+            <ref name="integer"/>
+          </element>
+          <optional>
+            <element name="checkpoint_at_start">
+              <a:documentation>Enable to checkpoint at simulation start.</a:documentation>
+              <ref name="comment"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="checkpoint_at_end">
+              <a:documentation>Enable to force a checkpoint at simulation end.</a:documentation>
+              <ref name="comment"/>
+            </element>
+          </optional>
+          <ref name="comment"/>
+        </element>
+      </optional>
+      <element name="stat">
+        <a:documentation>Diagnostic output (.stat file) options</a:documentation>
+        <element name="output_at_start">
+          <a:documentation>Enable to write diagnostic output at simulation start</a:documentation>
+          <ref name="comment"/>
+        </element>
+        <optional>
+          <element name="output_before_adapts">
+            <a:documentation>Enable to write diagnostic output immediately before mesh adapts</a:documentation>
+            <ref name="comment"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="output_after_adapts">
+            <a:documentation>Enable to write diagnostic output immediately after mesh adapts</a:documentation>
+            <ref name="comment"/>
+          </element>
+        </optional>
+        <ref name="comment"/>
+      </element>
+    </element>
+  </define>
+  <define name="darcy_impes_timestepping">
+    <element name="timestepping">
+      <a:documentation>Options dealing with time discretisation</a:documentation>
+      <element name="current_time">
+        <a:documentation>Current simulation time. At the start of the simulation this
+is the start time.</a:documentation>
+        <ref name="real"/>
+        <optional>
+          <element name="time_units">
+            <a:documentation>The following excerpt from the Udunits
+documentation explains the time unit encoding by
+example:
+
+The specification:
+
+seconds since 1992-10-8 15:15:42.5 -6:00
+
+indicates seconds since October 8th, 1992 at 3
+hours, 15 minutes and 42.5 seconds in the afternoon
+in the time zone which is six hours to the west of
+Coordinated Universal Time (i.e.  Mountain Daylight
+Time). The time zone specification can also be
+written without a colon using one or two-digits
+(indicating hours) or three or four digits
+(indicating hours and minutes).
+
+Time units are particularly required in situations
+where the problem (time-varying) boundary conditions
+and/ initial conditions are a function of time as
+defined by a calendar.  Examples include atmospheric
+forcing and climatology. The current time, specified
+above, is zero at the reference data/time.</a:documentation>
+            <attribute name="date">
+              <data type="string"/>
+            </attribute>
+          </element>
+        </optional>
+      </element>
+      <element name="timestep">
+        <a:documentation>The time step size. If adaptive time stepping is used
+then this is the initial time step size.</a:documentation>
+        <ref name="real"/>
+      </element>
+      <element name="finish_time">
+        <a:documentation>Simulation time at which the simulation should end.</a:documentation>
+        <ref name="real"/>
+      </element>
+      <optional>
+        <element name="final_timestep">
+          <a:documentation>Timestep after which the simulation should end.</a:documentation>
+          <ref name="integer"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="nonlinear_iterations">
+          <a:documentation>Maximum number of non-linear iterations.</a:documentation>
+          <ref name="integer"/>
+          <optional>
+            <element name="tolerance">
+              <a:documentation>Tolerance for non-linear iteration.</a:documentation>
+              <ref name="real"/>
+              <choice>
+                <element name="infinity_norm">
+                  <a:documentation>Select the norm with which you want the tolerance to be tested.
+
+The infinity norm.</a:documentation>
+                  <empty/>
+                </element>
+                <element name="l2_norm">
+                  <a:documentation>Select the norm with which you want the tolerance to be tested.
+
+The l2 norm.</a:documentation>
+                  <empty/>
+                </element>
+                <element name="cv_l2_norm">
+                  <a:documentation>Select the norm with which you want the tolerance to be tested.
+
+The l2 norm evaluated on a control volume mesh.</a:documentation>
+                  <empty/>
+                </element>
+              </choice>
+            </element>
+          </optional>
+          <optional>
+            <element name="terminate_if_not_converged">
+              <a:documentation>Terminate the simulation if the number of
+nonlinear_iterations is reached
+and the tolerance criterion is not met.
+This is mostly useful as a debugging option if you
+suspect the solution is not converging.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="nonlinear_iterations_at_adapt">
+              <a:documentation>Number of non-linear iterations for the first time step after adapting the mesh.
+This option will work only if the mesh_adaptivity is switched on.</a:documentation>
+              <ref name="integer"/>
+            </element>
+          </optional>
+        </element>
+      </optional>
+    </element>
+  </define>
+  <define name="darcy_impes_material_phases">
+    <element name="material_phase">
+      <a:documentation>The phase options</a:documentation>
+      <attribute name="name">
+        <value>Phase1</value>
+      </attribute>
+      <ref name="darcy_impes_pressure_field"/>
+      <ref name="darcy_impes_saturation_field_phase_one"/>
+      <ref name="darcy_impes_relative_permeability_field"/>
+      <ref name="darcy_impes_viscosity_field"/>
+      <ref name="darcy_impes_gradient_pressure_field"/>
+      <ref name="darcy_impes_interstitial_velocity_porosity_field"/>
+      <ref name="darcy_impes_interstitial_velocity_CFL_field"/>
+      <ref name="darcy_impes_darcy_velocity_field"/>
+      <ref name="darcy_impes_total_darcy_velocity_field"/>
+      <ref name="darcy_impes_divergence_total_darcy_velocity_field"/>
+      <ref name="darcy_impes_sum_saturation"/>
+    </element>
+    <oneOrMore>
+      <choice>
+        <element name="material_phase">
+          <attribute name="name">
+            <data type="string"/>
+          </attribute>
+          <ref name="darcy_impes_other_phase_options"/>
+        </element>
+        <element name="material_phase">
+          <attribute name="name">
+            <value>Phase2</value>
+          </attribute>
+          <ref name="darcy_impes_other_phase_options"/>
+        </element>
+        <element name="material_phase">
+          <attribute name="name">
+            <value>Phase3</value>
+          </attribute>
+          <ref name="darcy_impes_other_phase_options"/>
+        </element>
+      </choice>
+    </oneOrMore>
+  </define>
+  <define name="darcy_impes_other_phase_options">
+    <ref name="darcy_impes_saturation_field"/>
+    <ref name="darcy_impes_relative_permeability_field"/>
+    <ref name="darcy_impes_viscosity_field"/>
+    <ref name="darcy_impes_interstitial_velocity_porosity_field"/>
+    <ref name="darcy_impes_interstitial_velocity_CFL_field"/>
+    <ref name="darcy_impes_darcy_velocity_field"/>
+  </define>
+  <define name="darcy_impes_pressure_field">
+    <element name="scalar_field">
+      <attribute name="rank">
+        <value>0</value>
+      </attribute>
+      <attribute name="name">
+        <value>Pressure</value>
+      </attribute>
+      <element name="prognostic">
+        <element name="mesh">
+          <attribute name="name">
+            <value>PressureMesh</value>
+          </attribute>
+        </element>
+        <element name="solver">
+          <ref name="linear_solver_options_asym"/>
+        </element>
+        <oneOrMore>
+          <ref name="initial_condition_scalar"/>
+        </oneOrMore>
+        <oneOrMore>
+          <ref name="darcy_impes_bc_pressure_field"/>
+        </oneOrMore>
+        <ref name="adaptivity_options_prognostic_scalar_field"/>
+        <ref name="interpolation_algorithm_scalar"/>
+      </element>
+    </element>
+  </define>
+  <define name="darcy_impes_saturation_field_phase_one">
+    <element name="scalar_field">
+      <attribute name="rank">
+        <value>0</value>
+      </attribute>
+      <attribute name="name">
+        <value>Saturation</value>
+      </attribute>
+      <choice>
+        <element name="diagnostic">
+          <element name="mesh">
+            <attribute name="name">
+              <value>PressureMesh</value>
+            </attribute>
+          </element>
+          <ref name="darcy_impes_saturation_field_spatial_discretisation_only_upwind"/>
+          <ref name="darcy_impes_saturation_field_temporal_discretisation_only_explicit"/>
+          <ref name="darcy_impes_include_cv_stat"/>
+          <ref name="adaptivity_options_prognostic_scalar_field"/>
+          <ref name="interpolation_algorithm_scalar"/>
+        </element>
+        <element name="prognostic">
+          <element name="mesh">
+            <attribute name="name">
+              <value>PressureMesh</value>
+            </attribute>
+          </element>
+          <ref name="darcy_impes_saturation_field_spatial_discretisation_only_upwind"/>
+          <ref name="darcy_impes_saturation_field_temporal_discretisation_only_explicit"/>
+          <oneOrMore>
+            <ref name="initial_condition_scalar"/>
+          </oneOrMore>
+          <oneOrMore>
+            <ref name="darcy_impes_bc_saturation_field"/>
+          </oneOrMore>
+          <ref name="darcy_impes_include_cv_stat"/>
+          <ref name="adaptivity_options_prognostic_scalar_field"/>
+          <ref name="interpolation_algorithm_scalar"/>
+        </element>
+      </choice>
+    </element>
+  </define>
+  <define name="darcy_impes_saturation_field">
+    <element name="scalar_field">
+      <attribute name="rank">
+        <value>0</value>
+      </attribute>
+      <attribute name="name">
+        <value>Saturation</value>
+      </attribute>
+      <element name="prognostic">
+        <element name="mesh">
+          <attribute name="name">
+            <value>PressureMesh</value>
+          </attribute>
+        </element>
+        <oneOrMore>
+          <ref name="initial_condition_scalar"/>
+        </oneOrMore>
+        <oneOrMore>
+          <ref name="darcy_impes_bc_saturation_field"/>
+        </oneOrMore>
+        <ref name="darcy_impes_include_cv_stat"/>
+        <ref name="adaptivity_options_prognostic_scalar_field"/>
+        <ref name="interpolation_algorithm_scalar"/>
+      </element>
+    </element>
+  </define>
+  <define name="darcy_impes_saturation_field_spatial_discretisation_only_upwind">
+    <element name="spatial_discretisation">
+      <element name="control_volumes">
+        <element name="face_value">
+          <a:documentation>First Order Upwind face value discretisation
+ face_value = donor_value, 
+where
+ donor_value = income*val_1 + (1.-income)*val_2, 
+where val_i is the value on the ith node neighbouring the face and
+income = [0, 1] depending on whether the flow is coming from node 1 or 2
+First order upwinding is monotonic so no limiting is ever required</a:documentation>
+          <attribute name="name">
+            <value>FirstOrderUpwind</value>
+          </attribute>
+          <empty/>
+        </element>
+      </element>
+      <ref name="darcy_impes_saturation_field_conservative_advection"/>
+    </element>
+  </define>
+  <define name="darcy_impes_saturation_field_spatial_discretisation">
+    <element name="spatial_discretisation">
+      <element name="control_volumes">
+        <choice>
+          <element name="face_value">
+            <a:documentation>First Order Upwind face value discretisation
+ face_value = donor_value, 
+where
+ donor_value = income*val_1 + (1.-income)*val_2, 
+where val_i is the value on the ith node neighbouring the face and
+income = [0, 1] depending on whether the flow is coming from node 1 or 2
+First order upwinding is monotonic so no limiting is ever required</a:documentation>
+            <attribute name="name">
+              <value>FirstOrderUpwind</value>
+            </attribute>
+            <empty/>
+          </element>
+          <element name="face_value">
+            <a:documentation>Trapezoidal face value discretisation
+ face_value = 0.5*(val_1 + val_2), 
+where
+ val_i is the value on the ith node neighbouring the face
+
+Trapezoidal discretisation is unbounded so limiting is compulsory</a:documentation>
+            <attribute name="name">
+              <value>Trapezoidal</value>
+            </attribute>
+            <ref name="limiter_options"/>
+          </element>
+          <element name="face_value">
+            <a:documentation>Finite Element face value discretisation
+ face_value = finite element interpolation from surrounding nodes
+
+Finite element discretisation may become unbounded so limiting is often necessary.</a:documentation>
+            <attribute name="name">
+              <value>FiniteElement</value>
+            </attribute>
+            <ref name="limiter_options"/>
+          </element>
+        </choice>
+      </element>
+      <ref name="darcy_impes_saturation_field_conservative_advection"/>
+    </element>
+  </define>
+  <define name="darcy_impes_saturation_field_conservative_advection">
+    <element name="conservative_advection">
+      <element name="real_value">
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <value>1.0</value>
+      </element>
+    </element>
+  </define>
+  <define name="darcy_impes_saturation_field_temporal_discretisation_only_explicit">
+    <element name="temporal_discretisation">
+      <element name="theta">
+        <element name="real_value">
+          <attribute name="rank">
+            <value>0</value>
+          </attribute>
+          <value>0.0</value>
+        </element>
+      </element>
+      <element name="control_volumes">
+        <element name="pivot_theta">
+          <element name="real_value">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <value>0.0</value>
+          </element>
+        </element>
+        <optional>
+          <element name="maximum_courant_number_per_subcycle">
+            <a:documentation>Specify the maximum courant number per subcycle. 
+Defualt value if not given is 0.25.</a:documentation>
+            <ref name="real"/>
+          </element>
+        </optional>
+      </element>
+    </element>
+  </define>
+  <define name="darcy_impes_relative_permeability_field">
+    <element name="scalar_field">
+      <attribute name="rank">
+        <value>0</value>
+      </attribute>
+      <attribute name="name">
+        <value>RelativePermeability</value>
+      </attribute>
+      <element name="diagnostic">
+        <element name="mesh">
+          <attribute name="name">
+            <value>PressureMesh</value>
+          </attribute>
+        </element>
+        <ref name="scalar_python_diagnostic_algorithm"/>
+        <ref name="darcy_impes_include_cv_stat"/>
+      </element>
+    </element>
+  </define>
+  <define name="darcy_impes_viscosity_field">
+    <element name="scalar_field">
+      <attribute name="rank">
+        <value>0</value>
+      </attribute>
+      <attribute name="name">
+        <value>Viscosity</value>
+      </attribute>
+      <element name="prescribed">
+        <element name="mesh">
+          <attribute name="name">
+            <value>ElementWiseMesh</value>
+          </attribute>
+        </element>
+        <ref name="prescribed_scalar_field_no_adapt"/>
+      </element>
+    </element>
+  </define>
+  <define name="darcy_impes_gradient_pressure_field">
+    <element name="vector_field">
+      <attribute name="rank">
+        <value>0</value>
+      </attribute>
+      <attribute name="name">
+        <value>GradientPressure</value>
+      </attribute>
+      <element name="diagnostic">
+        <element name="mesh">
+          <attribute name="name">
+            <value>ElementWiseMesh</value>
+          </attribute>
+        </element>
+        <element name="algorithm">
+          <attribute name="name">
+            <value>Internal</value>
+          </attribute>
+        </element>
+      </element>
+    </element>
+  </define>
+  <define name="darcy_impes_interstitial_velocity_porosity_field">
+    <element name="vector_field">
+      <attribute name="rank">
+        <value>0</value>
+      </attribute>
+      <attribute name="name">
+        <value>InterstitialVelocityPorosity</value>
+      </attribute>
+      <element name="diagnostic">
+        <element name="mesh">
+          <attribute name="name">
+            <value>VelocityMesh</value>
+          </attribute>
+        </element>
+        <element name="algorithm">
+          <attribute name="name">
+            <value>Internal</value>
+          </attribute>
+        </element>
+        <ref name="darcy_impes_include_cv_stat"/>
+      </element>
+    </element>
+  </define>
+  <define name="darcy_impes_interstitial_velocity_CFL_field">
+    <element name="scalar_field">
+      <attribute name="rank">
+        <value>0</value>
+      </attribute>
+      <attribute name="name">
+        <value>InterstitialVelocityCFL</value>
+      </attribute>
+      <element name="diagnostic">
+        <element name="mesh">
+          <attribute name="name">
+            <value>PressureMesh</value>
+          </attribute>
+        </element>
+        <element name="algorithm">
+          <attribute name="name">
+            <value>Internal</value>
+          </attribute>
+        </element>
+        <ref name="darcy_impes_include_cv_stat"/>
+      </element>
+    </element>
+  </define>
+  <define name="darcy_impes_darcy_velocity_field">
+    <element name="vector_field">
+      <attribute name="rank">
+        <value>0</value>
+      </attribute>
+      <attribute name="name">
+        <value>DarcyVelocity</value>
+      </attribute>
+      <element name="diagnostic">
+        <element name="mesh">
+          <attribute name="name">
+            <value>VelocityMesh</value>
+          </attribute>
+        </element>
+        <element name="algorithm">
+          <attribute name="name">
+            <value>Internal</value>
+          </attribute>
+        </element>
+        <ref name="darcy_impes_include_cv_stat"/>
+      </element>
+    </element>
+  </define>
+  <define name="darcy_impes_total_darcy_velocity_field">
+    <element name="vector_field">
+      <attribute name="rank">
+        <value>0</value>
+      </attribute>
+      <attribute name="name">
+        <value>TotalDarcyVelocity</value>
+      </attribute>
+      <element name="diagnostic">
+        <element name="mesh">
+          <attribute name="name">
+            <value>VelocityMesh</value>
+          </attribute>
+        </element>
+        <element name="algorithm">
+          <attribute name="name">
+            <value>Internal</value>
+          </attribute>
+        </element>
+        <ref name="darcy_impes_include_cv_stat"/>
+      </element>
+    </element>
+  </define>
+  <define name="darcy_impes_divergence_total_darcy_velocity_field">
+    <element name="scalar_field">
+      <attribute name="rank">
+        <value>0</value>
+      </attribute>
+      <attribute name="name">
+        <value>DivergenceTotalDarcyVelocity</value>
+      </attribute>
+      <element name="diagnostic">
+        <element name="mesh">
+          <attribute name="name">
+            <value>PressureMesh</value>
+          </attribute>
+        </element>
+        <element name="algorithm">
+          <attribute name="name">
+            <value>Internal</value>
+          </attribute>
+        </element>
+        <ref name="darcy_impes_include_cv_stat"/>
+      </element>
+    </element>
+  </define>
+  <define name="darcy_impes_sum_saturation">
+    <element name="scalar_field">
+      <attribute name="rank">
+        <value>0</value>
+      </attribute>
+      <attribute name="name">
+        <value>SumSaturation</value>
+      </attribute>
+      <element name="diagnostic">
+        <element name="mesh">
+          <attribute name="name">
+            <value>PressureMesh</value>
+          </attribute>
+        </element>
+        <element name="algorithm">
+          <attribute name="name">
+            <value>Internal</value>
+          </attribute>
+        </element>
+        <ref name="darcy_impes_include_cv_stat"/>
+      </element>
+    </element>
+  </define>
+  <define name="darcy_impes_bc_pressure_field">
+    <element name="boundary_conditions">
+      <a:documentation>Boundary conditions</a:documentation>
+      <attribute name="name">
+        <data type="string" datatypeLibrary=""/>
+      </attribute>
+      <element name="surface_ids">
+        <a:documentation>Surface id</a:documentation>
+        <ref name="integer_vector"/>
+      </element>
+      <element name="type">
+        <attribute name="name">
+          <value>dirichlet</value>
+        </attribute>
+        <ref name="input_choice_real"/>
+      </element>
+    </element>
+  </define>
+  <define name="darcy_impes_bc_saturation_field">
+    <element name="boundary_conditions">
+      <a:documentation>Boundary conditions</a:documentation>
+      <attribute name="name">
+        <data type="string" datatypeLibrary=""/>
+      </attribute>
+      <element name="surface_ids">
+        <a:documentation>Surface id</a:documentation>
+        <ref name="integer_vector"/>
+      </element>
+      <choice>
+        <element name="type">
+          <attribute name="name">
+            <value>dirichlet</value>
+          </attribute>
+          <ref name="input_choice_real"/>
+        </element>
+        <element name="type">
+          <attribute name="name">
+            <value>zero_flux</value>
+          </attribute>
+        </element>
+      </choice>
+    </element>
+  </define>
+  <define name="darcy_impes_include_cv_stat">
+    <element name="stat">
+      <element name="include_cv_stats">
+        <ref name="comment"/>
+      </element>
+    </element>
+  </define>
+  <define name="darcy_impes_mesh_adaptivity_options">
+    <element name="mesh_adaptivity">
+      <ref name="hr_adaptivity"/>
+    </element>
+  </define>
+  <define name="darcy_impes_porous_media_model">
+    <element name="porous_media">
+      <a:documentation>Porous Media</a:documentation>
+      <element name="scalar_field">
+        <a:documentation>Specify scalar field Porosity which is inserted into 
+the first material_phase state then aliased in all others.</a:documentation>
+        <attribute name="name">
+          <value>Porosity</value>
+        </attribute>
+        <choice>
+          <element name="prescribed">
+            <ref name="mesh_choice_element_wise"/>
+            <ref name="prescribed_scalar_field"/>
+          </element>
+          <element name="diagnostic">
+            <ref name="mesh_choice_element_wise"/>
+            <ref name="scalar_python_diagnostic_algorithm"/>
+            <ref name="diagnostic_scalar_field"/>
+          </element>
+        </choice>
+      </element>
+      <element name="scalar_field">
+        <a:documentation>Specify field AbsolutePermeability which is inserted into 
+the first material_phase state then aliased in all others.</a:documentation>
+        <attribute name="name">
+          <value>AbsolutePermeability</value>
+        </attribute>
+        <choice>
+          <element name="prescribed">
+            <ref name="mesh_choice_element_wise"/>
+            <ref name="prescribed_scalar_field"/>
+          </element>
+          <element name="diagnostic">
+            <ref name="mesh_choice_element_wise"/>
+            <ref name="scalar_python_diagnostic_algorithm"/>
+            <ref name="diagnostic_scalar_field"/>
+          </element>
+        </choice>
+      </element>
+    </element>
+  </define>
+  <!-- Nasty options copy -->
+  <!-- Default child of diagnostic scalar field -->
+  <define name="diagnostic_scalar_field">
+    <ref name="diagnostic_output_options"/>
+    <ref name="diagnostic_scalar_stat_options"/>
+    <ref name="scalar_convergence_options"/>
+    <ref name="diagnostic_detector_options"/>
+    <ref name="scalar_steady_state_options"/>
+    <ref name="adaptivity_options_scalar_field"/>
+    <optional>
+      <ref name="recalculation_options"/>
+    </optional>
+    <optional>
+      <ref name="interpolation_algorithm_scalar"/>
+    </optional>
+  </define>
+  <!-- Default child of diagnostic vector field -->
+  <define name="diagnostic_vector_field">
+    <ref name="diagnostic_output_options"/>
+    <ref name="diagnostic_vector_stat_options"/>
+    <ref name="vector_convergence_options"/>
+    <ref name="diagnostic_detector_options"/>
+    <ref name="vector_steady_state_options"/>
+    <ref name="adaptivity_options_vector_field"/>
+    <optional>
+      <ref name="recalculation_options"/>
+    </optional>
+    <optional>
+      <ref name="interpolation_algorithm_vector"/>
+    </optional>
+  </define>
+  <define name="limiter_options">
+    <choice>
+      <element name="limit_face_value">
+        <a:documentation>Limit the face value to satisfy a boundedness criterion.</a:documentation>
+        <choice>
+          <ref name="sweby_limiter"/>
+          <ref name="ultimate_limiter"/>
+        </choice>
+      </element>
+      <element name="do_not_limit_face_value">
+        <a:documentation>Do not limit the face value</a:documentation>
+        <empty/>
+      </element>
+    </choice>
+  </define>
+  <!--
+    cv limiter options that 
+    have NO reliance on any CFL field. 
+  -->
+  <define name="limiter_options_excluding_cfl">
+    <choice>
+      <element name="limit_face_value">
+        <a:documentation>Limit the face value to satisfy a boundedness criterion.</a:documentation>
+        <ref name="sweby_limiter"/>
+      </element>
+      <element name="do_not_limit_face_value">
+        <a:documentation>Do not limit the face value</a:documentation>
+        <empty/>
+      </element>
+    </choice>
+  </define>
+  <define name="sweby_limiter">
+    <element name="limiter">
+      <a:documentation>See "High-Resolution Schemes Using Flux Limiters for
+Hyperbolic Conservation-Laws", P. K. Sweby, 1984, Siam
+Journal on Numerical Analysis, 21, 995-1011</a:documentation>
+      <attribute name="name">
+        <value>Sweby</value>
+      </attribute>
+      <optional>
+        <ref name="slope_options"/>
+      </optional>
+      <optional>
+        <ref name="upwind_value_options"/>
+      </optional>
+    </element>
+  </define>
+  <define name="ultimate_limiter">
+    <element name="limiter">
+      <a:documentation>See "The Ultimate Conservative Difference Scheme Applied
+to Unsteady One-Dimensional Advection", B. P. Leonard,
+1991, Computer Methods in Applied Mechanics and
+Engineering, 88, 17-74</a:documentation>
+      <attribute name="name">
+        <value>Ultimate</value>
+      </attribute>
+      <ref name="field_based_cfl_number_options"/>
+      <optional>
+        <ref name="upwind_value_options"/>
+      </optional>
+    </element>
+  </define>
+  <define name="slope_options">
+    <element name="slopes">
+      <a:documentation>Control the upper and lower slopes of the NVD limiter</a:documentation>
+      <optional>
+        <element name="lower">
+          <a:documentation>Defaults to Sweby, 1984 limiter (= 1.0) if unselected</a:documentation>
+          <ref name="real"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="upper">
+          <a:documentation>Defaults to Sweby, 1984 limiter (= 2.0) if unselected</a:documentation>
+          <ref name="real"/>
+        </element>
+      </optional>
+    </element>
+  </define>
+  <define name="upwind_value_options">
+    <choice>
+      <element name="project_upwind_value_from_point">
+        <a:documentation>Select the method to be used for calculating the upwind value.
+If not selected will default to project_upwind_value_from_point for
+simplex element meshes and to a locally_bound_upwind_value for cube
+element meshes.
+
+This method projects the upwind value from a point in the element just
+upwind of the node pair straddling the face.  It is otherwise known as 
+anisotropic limiting.
+This is only available on simplex meshes as it involes a search around
+the donor node to find the upwind element.</a:documentation>
+        <optional>
+          <element name="reflect_off_domain_boundaries">
+            <a:documentation>When the donor node is on a domain boundary reflect the projection
+back into the mesh.</a:documentation>
+            <empty/>
+          </element>
+        </optional>
+        <optional>
+          <element name="bound_projected_value_locally">
+            <a:documentation>Constrain the projected value to be between the min and max of the
+element values which it was found from.</a:documentation>
+            <empty/>
+          </element>
+        </optional>
+        <optional>
+          <element name="store_upwind_elements">
+            <a:documentation>Store the locations of the elements where the upwind values
+are projected from for each node pair.
+This inserts an integer csr matrix into state so is memory expensive but
+saves a significant amount of time (searching around the neighbouring elements).
+This is unsafe for moving meshes but should be ok for adaptive meshes.</a:documentation>
+            <optional>
+              <element name="store_upwind_quadrature">
+                <a:documentation>Store the quadrature locations within the elements
+where the upwind values
+are projected from for each node pair.
+This inserts a real block csr matrix into state so is even more memory
+expensive than just storing the upwind elements and
+only saves a comparitively
+marginal amount of time (as actually searching the
+neighbouring elements is the
+slowest bit, finding the quadrature is relatively easy).</a:documentation>
+                <empty/>
+              </element>
+            </optional>
+          </element>
+        </optional>
+      </element>
+      <element name="project_upwind_value_from_gradient">
+        <a:documentation>Select the method to be used for calculating the upwind value.
+If not selected will default to project_upwind_value_from_point for
+simplex element meshes and to a locally_bound_upwind_value for cube
+element meshes.
+
+Projects the value of the advected variable from the downwind or donor node
+using the interpolated gradient at the donor node in the
+direction of the vector
+connecting the node pair straddling the face.
+This is available on all meshes (except if bounding the values).</a:documentation>
+        <choice>
+          <element name="project_from_downwind_value">
+            <a:documentation>Select which node to project from:
+Project from the downwind node (Jasak et al., 1999) so that:
+upwind_value = downwind_value - 2*gradient.vector</a:documentation>
+            <ref name="comment"/>
+          </element>
+          <element name="project_from_donor_value">
+            <a:documentation>Select which node to project from:
+Project from the donor node so that:
+upwind_value = donor_value - gradient.vector</a:documentation>
+            <ref name="comment"/>
+          </element>
+        </choice>
+        <optional>
+          <element name="reflect_off_domain_boundaries">
+            <a:documentation>When the donor node is on a domain boundary reflect the projection
+back into the mesh.</a:documentation>
+            <empty/>
+          </element>
+        </optional>
+        <optional>
+          <element name="bound_projected_value_locally">
+            <a:documentation>Constrain the projected value to be between the min and max of the
+element values which surround it.
+This is only available on simplex meshes as it involes a search around
+the donor node to find the upwind element.</a:documentation>
+            <optional>
+              <element name="store_upwind_elements">
+                <a:documentation>Store the locations of the elements closest to the project value.
+This inserts an integer csr matrix into state so is
+memory expensive but
+saves a significant amount of time (searching around
+the neighbouring elements).
+This is unsafe for moving meshes but should be ok for adaptive meshes.</a:documentation>
+                <ref name="comment"/>
+              </element>
+            </optional>
+          </element>
+        </optional>
+      </element>
+      <element name="locally_bound_upwind_value">
+        <a:documentation>Select the method to be used for calculating the upwind value.
+If not selected will default to project_upwind_value_from_point for
+simplex element meshes and to a locally_bound_upwind_value for cube
+element meshes.
+
+Chooses an upwind value by selecting the maximum or minimum of the neighbouring
+nodes depending on the local slope of the donor and downwind values.
+Otherwise known as isotropic limiting.
+This is available on all meshes except periodic domains.</a:documentation>
+        <empty/>
+      </element>
+      <element name="pseudo_structured_upwind_value">
+        <a:documentation>Select the method to be used for calculating the upwind value.
+If not selected will default to project_upwind_value_from_point for
+simplex element meshes and to a locally_bound_upwind_value for cube
+element meshes.
+
+Chooses an upwind value by selecting the value at the node most directy
+upwind from the vector connecting the donor and downwind nodes.
+This is available on all meshes.</a:documentation>
+        <empty/>
+      </element>
+    </choice>
+  </define>
+  <define name="field_based_cfl_number_options">
+    <element name="courant_number">
+      <a:documentation>Select the Courant Number definition to be used.
+
+This uses the control volume approximation of the CFL Number 
+and the interstitial velocity for porous media flow.</a:documentation>
+      <attribute name="name">
+        <value>InterstitialVelocityCVCourantNumber</value>
+      </attribute>
+      <ref name="porosity_include_cv_cfl"/>
+    </element>
+  </define>
+  <define name="cv_face_cfl_number_options">
+    <element name="courant_number">
+      <a:documentation>Select the Courant Number definition to be used in the slope of
+the NVD diagram upper bound.
+This uses a control volume definition of the CFL Number
+and the interstitial velocity for porous media flow.</a:documentation>
+      <attribute name="name">
+        <value>InterstitialVelocityCVCourantNumber</value>
+      </attribute>
+      <ref name="porosity_include_cv_cfl"/>
+    </element>
+  </define>
+  <define name="timestep_cfl_number_options">
+    <element name="courant_number">
+      <a:documentation>Select the Courant Number definition to be used for adaptive timestepping.
+This uses the control volume approximation of the CFL Number 
+and the interstitial velocity for porous media flow.         </a:documentation>
+      <attribute name="name">
+        <value>InterstitialVelocityCVCourantNumber</value>
+      </attribute>
+      <ref name="velocity_mesh_choice"/>
+      <ref name="porosity_include_cv_cfl"/>
+    </element>
+  </define>
+  <define name="prescribed_output_options">
+    <empty/>
+  </define>
+  <define name="prescribed_scalar_stat_options">
+    <empty/>
+  </define>
+  <define name="prescribed_detector_options">
+    <empty/>
+  </define>
+  <define name="diagnostic_output_options">
+    <empty/>
+  </define>
+  <define name="diagnostic_scalar_stat_options">
+    <empty/>
+  </define>
+  <define name="prescribed_vector_stat_options">
+    <empty/>
+  </define>
+  <!--
+    Detector output defaults on for prognostic and diagnostic fields, 
+    off for prescribed.
+  -->
+  <define name="prognostic_detector_options">
+    <empty/>
+  </define>
+  <define name="diagnostic_detector_options">
+    <empty/>
+  </define>
+  <define name="prescribed_detector_options">
+    <empty/>
+  </define>
+  <!-- Field output options for all other fields -->
+  <define name="field_output_options">
+    <empty/>
+  </define>
+  <!-- Diagnostic statistics for all other scalar fields -->
+  <define name="prognostic_scalar_stat_no_old_or_nonlinear_options">
+    <empty/>
+  </define>
+  <!-- Options for whether a field is to be included in detector output. -->
+  <define name="detector_options_disabled_default">
+    <empty/>
+  </define>
+  <!-- Convergence options for prognostic scalar fields -->
+  <define name="scalar_convergence_options">
+    <empty/>
+  </define>
+  <define name="discrete_properties_algorithm_scalar">
+    <empty/>
+  </define>
+  <!-- Steady state options for prognostic scalar fields -->
+  <define name="scalar_steady_state_options">
+    <empty/>
+  </define>
+  <define name="prognostic_scalar_stat_no_old_or_nonlinear_options.stat">
+    <empty/>
+  </define>
+  <define name="recalculation_options">
+    <empty/>
+  </define>
+  <define name="diagnostic_vector_stat_options">
+    <empty/>
+  </define>
+  <define name="vector_convergence_options">
+    <empty/>
+  </define>
+  <define name="vector_steady_state_options">
+    <empty/>
+  </define>
+</grammar>
