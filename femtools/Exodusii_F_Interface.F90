@@ -176,10 +176,10 @@ module exodusii_f_interface
   end interface
 
   interface f_ex_get_side_set_param
-    function c_ex_get_side_set_param(exoid, side_set_ids, num_sides_in_set, num_df_in_set) result(error) bind(c)
+    function c_ex_get_side_set_param(exoid, side_set_id, num_sides_in_set, num_df_in_set) result(error) bind(c)
       use, intrinsic :: iso_c_binding
       integer(kind=c_int) :: exoid
-      integer(kind=c_int) :: side_set_ids
+      integer(kind=c_int) :: side_set_id
       integer(kind=c_int) :: num_sides_in_set
       integer(kind=c_int) :: num_df_in_set
       integer(kind=c_int) :: error
