@@ -239,7 +239,10 @@ contains
     integer, allocatable, dimension(:) :: elem_blk_connectivity, elem_connectivity
     integer, allocatable, dimension(:) :: node_set_ids, num_nodes_in_set
     integer, allocatable, dimension(:) :: node_set_node_list, total_node_sets_node_list
-    
+    integer, allocatable, dimension(:) :: side_set_ids, num_sides_in_set
+    integer, allocatable, dimension(:) :: side_set_node_list, side_set_side_list, side_set_elem_list
+    integer, allocatable, dimension(:) :: total_side_sets_node_list, total_side_sets_side_list, total_side_sets_elem_list
+
     ! variables for conversion to fluidity structure:
     real(real_4), allocatable, dimension(:,:) :: node_coord
     integer, allocatable, dimension(:) :: elem_node_list, total_elem_node_list
@@ -407,10 +410,24 @@ contains
        ewrite(2,*) "total_node_sets_node_list = ", total_node_sets_node_list
     end if
 
+
+    ! Get side sets
+    ! Side sets in exodusii are what physical lines/surfaces/volumes are in gmsh
+    allocate(side_set_ids(num_side_sets))
+    allocate(num_sides_in_set(num_side_sets))
+    ierr = f_ex_get_side_set_param(exoid, num_side_sets, side_set_ids, num_sides_in_set)
+    if (ierr /= 0) then
+       ewrite(2,*) "No side sets found in "//trim(lfilename)
+    end if
+    ewrite(2,*) "side_set_ids = ", side_set_ids
+    ewrite(2,*) "num_sides_in_set = ", num_sides_in_set
+
+    ! Close ExodusII meshfile
     ierr = f_ex_close(exoid)
     if (ierr /= 0) then
        FLExit("Unable close file "//trim(lfilename))
     end if
+
 
     !---------------------------------
     ! At this point, all relevant data has been read in from the exodusii file
@@ -506,6 +523,7 @@ contains
        node_coord(3,:) = coord_z(:)
     end if
 
+
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Node IDs                 !
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -524,6 +542,7 @@ contains
           field%val(d,nodeID) = exo_nodes(n)%x(d)
        end forall
     end do
+
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Elements (incl faces)    !
@@ -631,15 +650,7 @@ contains
        end do
     end do
 
-
-    call vtk_write_fields("coord_field", index=1, position=field, model=field%mesh, vfields=(/field/))
-
-
     call add_faces( field%mesh, sndgln = sndglno(1:num_faces*sloc) )
-    ewrite(2,*) "after add_faces"
-
-
-!    call vtk_write_fields("coord_field", index=1, position=field, model=field%mesh, vfields=(/field/))
 
 
     ! Copy node number of faces to 
