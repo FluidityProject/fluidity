@@ -898,10 +898,16 @@ darcy_impes_bc_pressure_field =
          element surface_ids {
             integer_vector
          },
-         element type {
-            attribute name { "dirichlet" },
-            input_choice_real
-         }
+         (
+            element type {
+               attribute name { "dirichlet" },
+               input_choice_real
+            }|
+            element type {
+               attribute name { "neumann" },
+               input_choice_real
+            }
+         )            
       }   
    )
 

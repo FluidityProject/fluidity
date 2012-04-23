@@ -420,11 +420,13 @@ program Darcy_IMPES
    ! Initialise the Darcy IMPES specific diagnostic fields (gradient pressure, inter_velocity_porosity ... etc)
    call darcy_impes_calculate_gradient_pressure_etc(pressure, & 
                                                     positions, &
+                                                    positions_pressure_mesh, &
                                                     old_porosity, &
                                                     absolute_permeability,&
                                                     relative_permeability,&
                                                     viscosity,&
                                                     inter_velocity_porosity, &
+                                                    old_inter_velocity_porosity, &
                                                     gradient_pressure, &
                                                     darcy_velocity, &
                                                     total_darcy_velocity, &
@@ -437,6 +439,7 @@ program Darcy_IMPES
                                                     saturation_cv_options, &
                                                     cvfaces, &
                                                     x_cvshape, &
+                                                    x_cvbdyshape, &
                                                     p_cvshape, &
                                                     number_phase, &
                                                     dt)
@@ -479,11 +482,13 @@ program Darcy_IMPES
       ! Initialise the Darcy IMPES specific diagnostic fields (gradient pressure, inter_velocity_porosity ... etc)
       call darcy_impes_calculate_gradient_pressure_etc(pressure, & 
                                                        positions, &
+                                                       positions_pressure_mesh, &
                                                        old_porosity, &
                                                        absolute_permeability,&
                                                        relative_permeability,&
                                                        viscosity,&
                                                        inter_velocity_porosity, &
+                                                       old_inter_velocity_porosity, &
                                                        gradient_pressure, &
                                                        darcy_velocity, &
                                                        total_darcy_velocity, &
@@ -496,6 +501,7 @@ program Darcy_IMPES
                                                        saturation_cv_options, &
                                                        cvfaces, &
                                                        x_cvshape, &
+                                                       x_cvbdyshape, &
                                                        p_cvshape, &
                                                        number_phase, &
                                                        dt)
@@ -788,11 +794,13 @@ program Darcy_IMPES
             ! Initialise the Darcy IMPES specific diagnostic fields (gradient pressure, inter_velocity_porosity ... etc)
             call darcy_impes_calculate_gradient_pressure_etc(pressure, & 
                                                              positions, &
+                                                             positions_pressure_mesh, &
                                                              old_porosity, &
                                                              absolute_permeability,&
                                                              relative_permeability,&
                                                              viscosity,&
                                                              inter_velocity_porosity, &
+                                                             old_inter_velocity_porosity, &
                                                              gradient_pressure, &
                                                              darcy_velocity, &
                                                              total_darcy_velocity, &
@@ -805,6 +813,7 @@ program Darcy_IMPES
                                                              saturation_cv_options, &
                                                              cvfaces, &
                                                              x_cvshape, &
+                                                             x_cvbdyshape, &
                                                              p_cvshape, &
                                                              number_phase, &
                                                              dt)

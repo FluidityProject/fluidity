@@ -968,12 +968,20 @@ Default value if not given is 0.25.</a:documentation>
         <a:documentation>Surface id</a:documentation>
         <ref name="integer_vector"/>
       </element>
-      <element name="type">
-        <attribute name="name">
-          <value>dirichlet</value>
-        </attribute>
-        <ref name="input_choice_real"/>
-      </element>
+      <choice>
+        <element name="type">
+          <attribute name="name">
+            <value>dirichlet</value>
+          </attribute>
+          <ref name="input_choice_real"/>
+        </element>
+        <element name="type">
+          <attribute name="name">
+            <value>neumann</value>
+          </attribute>
+          <ref name="input_choice_real"/>
+        </element>
+      </choice>
     </element>
   </define>
   <define name="darcy_impes_bc_saturation_field">
