@@ -4887,167 +4887,186 @@
 !!!!!!!!
 
 
-  subroutine Make_QTets( totele, quad_cv_nloc, max_x_nonods, x_nonods, &
-       x_ndgln, lx, ly, lz, x, y, z, fem_nod )
-    ! This subrt creates the local coordinates and node points for:
-    ! (a) quadratic tetrahedra of unit volume and (b) 27 points of
-    ! the 8 hexahedra  within the 8 linear tetrahedra.
-    ! FEM_NOD is the local numbering of the FEM representation of
-    ! the unit volume quadratic tetrahedron.
-    implicit none
-    integer, intent( inout ) :: totele, x_nonods
-    integer, intent( in ) :: quad_cv_nloc, max_x_nonods
-    integer, dimension( max_x_nonods ), intent( inout ) :: x_ndgln
-    real, dimension( max_x_nonods ), intent( inout ) :: lx, ly, lz, x, y, z
-    integer, dimension( max_x_nonods ), intent( inout ) :: fem_nod
+    subroutine Make_QTets( totele, quad_cv_nloc, max_x_nonods, x_nonods, &
+         x_ndgln_real, lx, ly, lz, x, y, z, fem_nod )
+      ! This subrt creates the local coordinates and node points for:
+      ! (a) quadratic tetrahedra of unit volume and (b) 27 points of
+      ! the 8 hexahedra  within the 8 linear tetrahedra.
+      ! FEM_NOD is the local numbering of the FEM representation of
+      ! the unit volume quadratic tetrahedron.
+      implicit none
+      integer, intent( inout ) :: totele, x_nonods
+      integer, intent( in ) :: quad_cv_nloc, max_x_nonods
+      integer, dimension( max_x_nonods ), intent( inout ) :: x_ndgln_real
+      real, dimension( max_x_nonods ), intent( inout ) :: lx, ly, lz, x, y, z
+      integer, dimension( max_x_nonods ), intent( inout ) :: fem_nod
 
-    ! Local variables
-    real, parameter :: h_scale = 2.0396489026555056
-    integer, parameter :: number_of_hexs = 4,  number_of_nodes = 27
-    integer :: ele, iloc, istart, ifinish
-    integer, dimension( : ), allocatable :: x_ndgln_p2
+      ! Local variables
+      real, parameter :: h_scale = 2.0396489026555056
+      integer, parameter :: number_of_hexs = 4,  number_of_nodes = 27
+      integer :: ele, iloc, istart, ifinish
+      integer, dimension( : ), allocatable :: x_ndgln, x_ndgln_p2, iloclist
 
 !!!
 !!! Setting up unity area quadratic tetrahedron
 !!!
-    ! Level 2 (basis of the tetrahedron )
-    lx( 1 ) = 0.
-    ly( 1 ) = 0.
-    lz( 1 ) = 0.
+      ! Level 2 (basis of the tetrahedron )
+      lx( 1 ) = 0.
+      ly( 1 ) = 0.
+      lz( 1 ) = 0.
 
-    lx( 2 ) = 1. * h_scale
-    ly( 2 ) = 0.
-    lz( 2 ) = 0.
+      lx( 2 ) = 1. * h_scale
+      ly( 2 ) = 0.
+      lz( 2 ) = 0.
 
-    lx( 3 ) = .5 * h_scale
-    ly( 3 ) = sqrt( 3. / 4. ) * h_scale
-    lz( 3 ) = 0.
+      lx( 3 ) = .5 * h_scale
+      ly( 3 ) = sqrt( 3. / 4. ) * h_scale
+      lz( 3 ) = 0.
 
-    lx( 4 ) = 0.5 * ( lx( 1 ) + lx( 2 ) )
-    ly( 4 ) = 0.5 * ( ly( 1 ) + ly( 3 ) )
-    lz( 4 ) = sqrt( 2. / 3. ) * h_scale
+      lx( 4 ) = 0.5 * ( lx( 1 ) + lx( 2 ) )
+      ly( 4 ) = 0.5 * ( ly( 1 ) + ly( 3 ) )
+      lz( 4 ) = sqrt( 2. / 3. ) * h_scale
 
 
 
-    ! Computing X / Y / Z and FEM_NOD for the tetrahedra
-    x( 1 ) = 0.
-    y( 1 ) = 0.
-    z( 1 ) = 0.
+      ! Computing X / Y / Z and FEM_NOD for the tetrahedra
+      x( 1 ) = 0.
+      y( 1 ) = 0.
+      z( 1 ) = 0.
 
-    x( 3 ) = 1. * h_scale
-    y( 3 ) = 0.
-    z( 3 ) = 0.
+      x( 3 ) = 1. * h_scale
+      y( 3 ) = 0.
+      z( 3 ) = 0.
 
-    x( 2 ) = 0.5 * ( x( 1 ) + x( 3 ) )
-    y( 2 ) = 0.5 * ( y( 1 ) + y( 3 ) )
-    z( 2 ) = 0.5 * ( z( 1 ) + z( 3 ) )
+      x( 2 ) = 0.5 * ( x( 1 ) + x( 3 ) )
+      y( 2 ) = 0.5 * ( y( 1 ) + y( 3 ) )
+      z( 2 ) = 0.5 * ( z( 1 ) + z( 3 ) )
 
-    x( 6 ) = 0.5 * h_scale
-    y( 6 ) = sqrt( 3. / 4. ) * h_scale
-    z( 6 ) = 0.
+      x( 6 ) = 0.5 * h_scale
+      y( 6 ) = sqrt( 3. / 4. ) * h_scale
+      z( 6 ) = 0.
 
-    x( 5 ) = 0.5 * ( x( 3 ) + x( 6 ) )
-    y( 5 ) = 0.5 * ( y( 3 ) + y( 6 ) )
-    z( 5 ) = 0.5 * ( z( 3 ) + z( 6 ) ) 
+      x( 5 ) = 0.5 * ( x( 3 ) + x( 6 ) )
+      y( 5 ) = 0.5 * ( y( 3 ) + y( 6 ) )
+      z( 5 ) = 0.5 * ( z( 3 ) + z( 6 ) ) 
 
-    x( 4 ) = 0.5 * ( x( 1 ) + x( 6 ) )
-    y( 4 ) = 0.5 * ( y( 1 ) + y( 6 ) )
-    z( 4 ) = 0.5 * ( z( 1 ) + z( 6 ) )
+      x( 4 ) = 0.5 * ( x( 1 ) + x( 6 ) )
+      y( 4 ) = 0.5 * ( y( 1 ) + y( 6 ) )
+      z( 4 ) = 0.5 * ( z( 1 ) + z( 6 ) )
 
-    ! Level 0 (top of the tetrahedron )
-    x( 10 ) = 0.5 * ( x( 1 ) + x( 3 ) )
-    y( 10 ) = 0.5 * ( y( 1 ) + y( 6 ) )
-    z( 10 ) = sqrt( 2. / 3. ) * h_scale
+      ! Level 0 (top of the tetrahedron )
+      x( 10 ) = 0.5 * ( x( 1 ) + x( 3 ) )
+      y( 10 ) = 0.5 * ( y( 1 ) + y( 6 ) )
+      z( 10 ) = sqrt( 2. / 3. ) * h_scale
 
-    ! Level 1 (Intermediate level)
-    x( 7 ) = 0.5 * ( x( 1 ) + x( 10 ) )
-    y( 7 ) = 0.5 * ( y( 1 ) + y( 10 ) )
-    z( 7 ) = 0.5 * ( z( 1 ) + z( 10 ) )
+      ! Level 1 (Intermediate level)
+      x( 7 ) = 0.5 * ( x( 1 ) + x( 10 ) )
+      y( 7 ) = 0.5 * ( y( 1 ) + y( 10 ) )
+      z( 7 ) = 0.5 * ( z( 1 ) + z( 10 ) )
 
-    x( 8 ) = 0.5 * ( x( 3 ) + x( 10 ) )
-    y( 8 ) = 0.5 * ( y( 3 ) + y( 10 ) )
-    z( 8 ) = 0.5 * ( z( 3 ) + z( 10 ) )
+      x( 8 ) = 0.5 * ( x( 3 ) + x( 10 ) )
+      y( 8 ) = 0.5 * ( y( 3 ) + y( 10 ) )
+      z( 8 ) = 0.5 * ( z( 3 ) + z( 10 ) )
 
-    x( 9 ) = 0.5 * ( x( 6 ) + x( 10 ) )
-    y( 9 ) = 0.5 * ( y( 6 ) + y( 10 ) )
-    z( 9 ) = 0.5 * ( z( 6 ) + z( 10 ) )
+      x( 9 ) = 0.5 * ( x( 6 ) + x( 10 ) )
+      y( 9 ) = 0.5 * ( y( 6 ) + y( 10 ) )
+      z( 9 ) = 0.5 * ( z( 6 ) + z( 10 ) )
 
-    ! Defining FEM_NODs
-    do iloc = 1, 10
-       fem_nod( iloc ) = iloc
-    end do
+      ! Defining FEM_NODs
+      do iloc = 1, 10
+         fem_nod( iloc ) = iloc
+      end do
 
 !!!
 !!! Defining linear tetrahedra (8 within the quadratic tetrahedron)
 !!!
-    allocate( x_ndgln_p2( max_x_nonods ) )
-    ! Number of nodes within a linear tetrahedron
-    !quad_cv_nloc = number_of_hexs * number_of_nodes
+      allocate( x_ndgln( max_x_nonods ) )
+      allocate( x_ndgln_p2( max_x_nonods ) )
+      ! Number of nodes within a linear tetrahedron
+      !quad_cv_nloc = number_of_hexs * number_of_nodes
 
-    ele = 1 ! Top tetrahedra
-    x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 1 ) = 10
-    x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 2 ) = 7
-    x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 3 ) = 8
-    x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 4 ) = 9
+      ele = 1 ! Top tetrahedra
+      x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 1 ) = 10
+      x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 2 ) = 7
+      x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 3 ) = 8
+      x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 4 ) = 9
 
-    ele = 2
-    x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 1 ) = 7
-    x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 2 ) = 1
-    x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 3 ) = 2
-    x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 4 ) = 4
+      ele = 2
+      x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 1 ) = 7
+      x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 2 ) = 1
+      x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 3 ) = 2
+      x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 4 ) = 4
 
-    ele = 3
-    x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 1 ) = 7
-    x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 2 ) = 8
-    x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 3 ) = 2
-    x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 4 ) = 4
+      ele = 3
+      x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 1 ) = 7
+      x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 2 ) = 8
+      x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 3 ) = 2
+      x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 4 ) = 4
 
-    ele = 4
-    x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 1 ) = 8
-    x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 2 ) = 2
-    x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 3 ) = 3
-    x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 4 ) = 4
+      ele = 4
+      x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 1 ) = 8
+      x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 2 ) = 2
+      x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 3 ) = 3
+      x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 4 ) = 4
 
-    ele = 5
-    x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 1 ) = 8
-    x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 2 ) = 3
-    x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 3 ) = 5
-    x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 4 ) = 4
+      ele = 5
+      x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 1 ) = 8
+      x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 2 ) = 3
+      x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 3 ) = 5
+      x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 4 ) = 4
 
-    ele = 6
-    x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 1 ) = 8
-    x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 2 ) = 9
-    x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 3 ) = 5
-    x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 4 ) = 4
+      ele = 6
+      x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 1 ) = 8
+      x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 2 ) = 9
+      x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 3 ) = 5
+      x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 4 ) = 4
 
-    ele = 7
-    x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 1 ) = 9
-    x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 2 ) = 5
-    x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 3 ) = 6
-    x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 4 ) = 4
+      ele = 7
+      x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 1 ) = 9
+      x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 2 ) = 5
+      x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 3 ) = 6
+      x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 4 ) = 4
 
-    ele = 8
-    x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 1 ) = 7
-    x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 2 ) = 8
-    x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 3 ) = 9
-    x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 4 ) = 4
+      ele = 8
+      x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 1 ) = 7
+      x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 2 ) = 8
+      x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 3 ) = 9
+      x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 4 ) = 4
 
-    do ele = 1, totele
-       istart = x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 1 ) 
-       ifinish = x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + quad_cv_nloc )
-       call Make_Linear_Tetrahedron( ele, quad_cv_nloc, x_nonods, &
-            number_of_hexs, &
-            x( istart : ifinish ), y( istart : ifinish ), z( istart : ifinish ), &
-            x_ndgln_p2, x_ndgln )
-    end do
+      do ele = 1, totele
+         istart = x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + 1 ) 
+         ifinish = x_ndgln_p2( ( ele - 1 ) * quad_cv_nloc + quad_cv_nloc )
+         call Make_Linear_Tetrahedron( ele, quad_cv_nloc, x_nonods, &
+              number_of_hexs, &
+              x( istart : ifinish ), y( istart : ifinish ), z( istart : ifinish ), &
+              x_ndgln_p2, x_ndgln )
+      end do
 
-    call Make_BiLinear_Hexahedra( totele, number_of_hexs, quad_cv_nloc, x_nonods, &
-             x, y, z, x_ndgln )
+      call Make_BiLinear_Hexahedra( totele, number_of_hexs, quad_cv_nloc, x_nonods, &
+           x, y, z, x_ndgln )
 
-    deallocate( x_ndgln_p2 )
-    
-    return
-  end subroutine Make_QTets
+      ! Now building the final X_NDGLN with the numbering consistent with the remanining of the model
+      allocate( iloclist( quad_cv_nloc ) ) ; iloclist = 0
+      iloclist = &
+           (/  5, 14,  6, 17, 18, 15,  7, 16,  8, &
+           19, 23, 20, 26, 27, 24, 21, 25, 22, &
+           1,  9,  2, 12, 13, 10,  3, 11,  4  /)
+
+      totele = totele * number_of_hexs ! From now, TOTELE is actual total number of hexahedra
+      do ele = 1, totele
+         do iloc = 1, quad_cv_nloc
+            x_ndgln_real( ( ele - 1 ) * quad_cv_nloc + iloc ) = &
+                 x_ndgln( ( ele - 1 ) * quad_cv_nloc + iloclist( iloc ) )
+         end do
+      end do
+      x_nonods = maxval( x_ndgln_real )
+
+      deallocate( x_ndgln_p2 )
+      deallocate( x_ndgln )
+      deallocate( iloclist )
+
+      return
+    end subroutine Make_QTets
 
 
   subroutine Make_Linear_Tetrahedron( ele, quad_cv_nloc, x_nonods, &
