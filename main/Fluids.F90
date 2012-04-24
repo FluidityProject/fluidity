@@ -411,7 +411,6 @@ contains
     ! Initialise lagrangian biology agents
     if (have_option("/embedded_models/lagrangian_ensemble_biology")) then
        call initialise_lagrangian_biology_agents(state)
-       call calculate_agent_diagnostics(state(1))
     end if
 
     call initialise_diagnostics(filename, state)

@@ -52,8 +52,8 @@ implicit none
   private
 
   public :: initialise_lagrangian_biology_metamodel, initialise_lagrangian_biology_agents, &
-            lagrangian_biology_cleanup, update_lagrangian_biology, calculate_agent_diagnostics, &
-            get_num_functional_groups, get_functional_group, stage_aggregate
+            lagrangian_biology_cleanup, update_lagrangian_biology, stage_aggregate, &
+            get_num_functional_groups, get_functional_group
   public :: BIOFIELD_NONE, BIOFIELD_DIAG, BIOFIELD_UPTAKE, BIOFIELD_RELEASE, BIOFIELD_INGESTED, &
             BIOFIELD_FOOD_REQUEST, BIOFIELD_FOOD_INGEST
 
@@ -281,7 +281,10 @@ contains
 
        call write_detector_header(state, agent_arrays(array))
 
+       call derive_primary_diagnostics(agent_arrays(array), state(1))
     end do
+
+    call aggregate_diagnostics_by_stage(state(1))
 
     ewrite(1,*) "Lagrangian biology: Initialised agents"
 
@@ -584,7 +587,7 @@ contains
     type(vector_field), pointer :: xfield
     type(scalar_field_pointer), dimension(:), pointer :: env_fields
     integer :: i, j, f, v, env, pm_period, hvar, hvar_ind, hvar_src_ind
-    logical :: python_update, lerm_living_update, lerm_dead_update
+    logical :: python_update
 
     ewrite(1,*) "Lagrangian biology: Updating agents..."
     call profiler_tic("/update_lagrangian_biology")
@@ -617,27 +620,17 @@ contains
 
        ! Aggregate food concentrations
        if (allocated(agent_arrays(i)%fgroup%food_sets)) then
-          call aggregate_food_fields(state(1), agent_arrays(i)%fgroup)
+          call aggregate_food_diagnostics(state(1), agent_arrays(i)%fgroup)
        end if
 
        if (have_option(trim(agent_arrays(i)%stage_options)//"/biology")) then
 
           ewrite(2,*) "Lagrangian biology: Updating ", trim(agent_arrays(i)%name)
-
+          
           if (have_option(trim(agent_arrays(i)%stage_options)//"/biology/python")) then
              python_update=.true.
           else
              python_update=.false.
-          end if
-          if (have_option(trim(agent_arrays(i)%stage_options)//"/biology/lerm_living_diatom")) then
-             lerm_living_update=.true.
-          else
-             lerm_living_update=.false.
-          end if
-          if (have_option(trim(agent_arrays(i)%stage_options)//"/biology/lerm_dead_diatom")) then
-             lerm_dead_update=.true.
-          else
-             lerm_dead_update=.false.
           end if
 
           if (python_update) then
@@ -666,9 +659,9 @@ contains
              if (python_update) then
                 call python_calc_agent_biology(agent, env_fields, dt, trim(agent_arrays(i)%name), trim("biology_update"))
 
-             elseif (lerm_living_update) then
+             elseif (have_option(trim(agent_arrays(i)%stage_options)//"/biology/lerm_living_diatom")) then
                 call LERM_update_living_diatom(agent, agent_arrays(i), state(1), dt)
-             elseif (lerm_dead_update) then
+             elseif (have_option(trim(agent_arrays(i)%stage_options)//"/biology/lerm_dead_diatom")) then
                 call LERM_update_dead_diatom(agent, agent_arrays(i), state(1), dt)
              end if
 
@@ -694,6 +687,8 @@ contains
              deallocate(env_fields)
           end if
 
+          call derive_primary_diagnostics(agent_arrays(i), state(1))
+
        end if
     end do
 
@@ -716,16 +711,14 @@ contains
        FLExit("Lagrangian biology: Target stage not found")
     end do stage_change_loop
 
-    ! Derive the full set af eulerian diagnostic fields
-    ! This includes per-stage and stage-aggregated, 
-    ! as well as request/release quantities 
-    call calculate_agent_diagnostics(state(1))
-
     ! Execute chemical uptake/release
+    call aggregate_chemical_diagnostics(state(1))
     call chemical_uptake(state(1))
     call chemical_release(state(1))
 
     ! Handle ingestion
+    ! Note: FoodRequest is a stage-aggregate
+    call aggregate_diagnostics_by_stage(state(1))
     call ingestion_handling(state(1))
 
     ! Particle Management
@@ -736,10 +729,13 @@ contains
              call particle_management(state(1), agent_arrays(i))
           end if
        end if
+
+       ! Re-derive the required agent diagnostic variables...
+       call derive_primary_diagnostics(agent_arrays(i), state(1))
     end do
 
-    ! Re-derive the required agent diagnostic variables
-    call calculate_agent_diagnostics(state(1))
+    ! ... and aggregate them
+    call aggregate_diagnostics_by_stage(state(1))
 
     ! Output agent positions
     do i = 1, size(agent_arrays)
@@ -749,92 +745,6 @@ contains
     call profiler_toc("/update_lagrangian_biology")
 
   end subroutine update_lagrangian_biology
-
-  subroutine calculate_agent_diagnostics(state)
-    type(state_type), intent(inout) :: state
-
-    type(scalar_field), pointer :: diagfield_stage, diagfield_agg, agent_count_field
-    type(detector_type), pointer :: agent
-    integer :: i, j, ele
-
-    ewrite(1,*) "In calculate_agent_diagnostics"
-
-    ! First we derive the per-stage diagnostic quantities from the agent data
-    do i = 1, size(agent_arrays)
-       if (have_option(trim(agent_arrays(i)%stage_options)//"/biology")) then
-          call derive_per_stage_diagnostics(agent_arrays(i), state)
-       end if
-    end do
-
-    ! Then we reset all aggregated diagnostics
-    do i = 1, size(agent_arrays)
-       call profiler_tic(trim(agent_arrays(i)%name)//"::diagnostics")
-
-       if (have_option(trim(agent_arrays(i)%stage_options)//"/biology")) then
-          do j=1, size(agent_arrays(i)%fgroup%variables)
-             ! Reset stage-aggregated diagnostics
-             if (stage_aggregate(agent_arrays(i)%fgroup%variables(j)).and.agent_arrays(i)%fgroup%variables(j)%field_type /= BIOFIELD_NONE) then
-                diagfield_agg=>extract_scalar_field(state, trim(agent_arrays(i)%fgroup%variables(j)%field_name))
-                call zero(diagfield_agg)
-             end if
-          end do
-       end if
-
-       call profiler_toc(trim(agent_arrays(i)%name)//"::diagnostics")
-    end do
-
-    ! Reset global request fields
-    if (associated(uptake_field_names)) then
-       do i = 1, size(uptake_field_names)
-          diagfield_agg=>extract_scalar_field(state, trim(uptake_field_names(i))//"Request")
-          call zero(diagfield_agg)
-       end do
-    end if
-
-    ! Reset global release fields
-    if (associated(release_field_names)) then
-       do i = 1, size(release_field_names)
-          diagfield_agg=>extract_scalar_field(state, trim(release_field_names(i))//"Release")
-          call zero(diagfield_agg)
-       end do
-    end if
-
-    ! Now we derive all aggregated quantities
-    do i = 1, size(agent_arrays)
-       call profiler_tic(trim(agent_arrays(i)%name)//"::diagnostics")
-
-       if (have_option(trim(agent_arrays(i)%stage_options)//"/biology")) then
-          do j=1, size(agent_arrays(i)%fgroup%variables)
-
-             ! Aggregate stage-aggregated diagnostic fields
-             if (stage_aggregate(agent_arrays(i)%fgroup%variables(j)).and.agent_arrays(i)%fgroup%variables(j)%field_type /= BIOFIELD_NONE) then
-                diagfield_stage=>extract_scalar_field(state, trim(agent_arrays(i)%fgroup%variables(j)%field_name)//trim(agent_arrays(i)%stage_name))
-                diagfield_agg=>extract_scalar_field(state, trim(agent_arrays(i)%fgroup%variables(j)%field_name))
-                call addto(diagfield_agg, diagfield_stage)
-             end if
-
-             ! Aggregate chemical uptake request
-             if (agent_arrays(i)%fgroup%variables(j)%field_type == BIOFIELD_UPTAKE) then
-                diagfield_stage=>extract_scalar_field(state, trim(agent_arrays(i)%fgroup%variables(j)%field_name)//trim(agent_arrays(i)%stage_name))
-                diagfield_agg=>extract_scalar_field(state, trim(agent_arrays(i)%fgroup%variables(j)%chemfield)//"Request")
-                call addto(diagfield_agg, diagfield_stage)
-             end if
-
-             ! Aggregate chemical release quantity
-             if (agent_arrays(i)%fgroup%variables(j)%field_type == BIOFIELD_RELEASE) then
-                diagfield_stage=>extract_scalar_field(state, trim(agent_arrays(i)%fgroup%variables(j)%field_name)//trim(agent_arrays(i)%stage_name))
-                diagfield_agg=>extract_scalar_field(state, trim(agent_arrays(i)%fgroup%variables(j)%chemfield)//"Release")
-                call addto(diagfield_agg, diagfield_stage)
-             end if
-          end do
-       end if
-
-       call profiler_toc(trim(agent_arrays(i)%name)//"::diagnostics")
-    end do
-
-    ewrite(2,*) "Exiting calculate_agent_diagnostics"
-
-  end subroutine calculate_agent_diagnostics
 
   function stage_aggregate(var)
     type(biovar), intent(in) :: var
@@ -848,7 +758,7 @@ contains
 
   end function
 
-  subroutine derive_per_stage_diagnostics(agent_list, state)
+  subroutine derive_primary_diagnostics(agent_list, state)
     ! Set per-stage diagnostic fields from agent variables, 
     ! including agent counts and chemical request/release fields
     type(detector_linked_list), intent(inout) :: agent_list
@@ -861,7 +771,9 @@ contains
     integer :: i
     real :: ele_volume, release_amount
 
-    call profiler_tic(trim(agent_list%name)//"::diagnostics")
+    ewrite(2,*) "Lagrangian biology: Deriving primary diagnostic fields"
+
+    call profiler_tic(trim(agent_list%name)//"::primary_diagnostics")
 
     xfield=>extract_vector_field(state, "Coordinate")
 
@@ -901,6 +813,7 @@ contains
           ! Ingestion, uptake and release requests are total amounts, so don't divide by element volume
           elseif (agent_list%fgroup%variables(i)%field_type == BIOFIELD_UPTAKE .or. &
                   agent_list%fgroup%variables(i)%field_type == BIOFIELD_RELEASE .or. &
+                  agent_list%fgroup%variables(i)%field_type == BIOFIELD_INGESTED .or. &
                   agent_list%fgroup%variables(i)%field_type == BIOFIELD_FOOD_REQUEST .or. &
                   agent_list%fgroup%variables(i)%field_type == BIOFIELD_FOOD_INGEST) then
 
@@ -911,9 +824,99 @@ contains
        agent => agent%next
     end do
 
-    call profiler_toc(trim(agent_list%name)//"::diagnostics")
+    call profiler_toc(trim(agent_list%name)//"::primary_diagnostics")
 
-  end subroutine derive_per_stage_diagnostics
+  end subroutine derive_primary_diagnostics
+
+  subroutine aggregate_diagnostics_by_stage(state)
+    type(state_type), intent(inout) :: state
+
+    type(scalar_field), pointer :: diagfield_agg, diagfield_stage
+    type(biovar), pointer :: var
+    integer :: i, v
+
+    ewrite(2,*) "Lagrangian biology: Aggregating stage-diagnostics"
+
+    ! First we reset all aggregated diagnostics
+    do i = 1, size(agent_arrays)
+       if (associated(agent_arrays(i)%fgroup)) then
+          do v=1, size(agent_arrays(i)%fgroup%variables)
+             var => agent_arrays(i)%fgroup%variables(v)
+
+             if (stage_aggregate(var) .and. var%field_type /= BIOFIELD_NONE) then
+                diagfield_agg=>extract_scalar_field(state, trim(var%field_name))
+                call zero(diagfield_agg)
+             end if
+          end do
+       end if
+    end do
+
+    ! Now we derive all aggregated quantities
+    do i = 1, size(agent_arrays)
+       if (associated(agent_arrays(i)%fgroup)) then
+          do v=1, size(agent_arrays(i)%fgroup%variables)
+             var => agent_arrays(i)%fgroup%variables(v)
+
+             ! Aggregate stage-aggregated diagnostic fields
+             if (stage_aggregate(var) .and. var%field_type /= BIOFIELD_NONE) then
+                diagfield_stage=>extract_scalar_field(state, trim(var%field_name)//trim(agent_arrays(i)%stage_name))
+                diagfield_agg=>extract_scalar_field(state, trim(var%field_name))
+                call addto(diagfield_agg, diagfield_stage)
+             end if
+          end do
+       end if
+    end do
+
+  end subroutine aggregate_diagnostics_by_stage
+
+  subroutine aggregate_chemical_diagnostics(state)
+    type(state_type), intent(inout) :: state
+
+    type(scalar_field), pointer :: diagfield_agg, diagfield_stage
+    type(biovar), pointer :: var
+    integer :: i, v
+
+    ewrite(2,*) "Lagrangian biology: Aggregating chemical request/release fields"
+
+    ! Reset global request fields
+    if (associated(uptake_field_names)) then
+       do i = 1, size(uptake_field_names)
+          diagfield_agg=>extract_scalar_field(state, trim(uptake_field_names(i))//"Request")
+          call zero(diagfield_agg)
+       end do
+    end if
+
+    ! Reset global release fields
+    if (associated(release_field_names)) then
+       do i = 1, size(release_field_names)
+          diagfield_agg=>extract_scalar_field(state, trim(release_field_names(i))//"Release")
+          call zero(diagfield_agg)
+       end do
+    end if
+
+    do i = 1, size(agent_arrays)
+       if (associated(agent_arrays(i)%fgroup)) then
+          do v=1, size(agent_arrays(i)%fgroup%variables)
+             var => agent_arrays(i)%fgroup%variables(v)
+
+             ! Aggregate chemical uptake request
+             if (var%field_type == BIOFIELD_UPTAKE) then
+                diagfield_stage=>extract_scalar_field(state, trim(var%field_name)//trim(agent_arrays(i)%stage_name))
+                diagfield_agg=>extract_scalar_field(state, trim(var%chemfield)//"Request")
+                call addto(diagfield_agg, diagfield_stage)
+             end if
+
+             ! Aggregate chemical release quantity
+             if (var%field_type == BIOFIELD_RELEASE) then
+                diagfield_stage=>extract_scalar_field(state, trim(var%field_name)//trim(agent_arrays(i)%stage_name))
+                diagfield_agg=>extract_scalar_field(state, trim(var%chemfield)//"Release")
+                call addto(diagfield_agg, diagfield_stage)
+             end if
+          end do
+       end if
+    end do
+
+  end subroutine aggregate_chemical_diagnostics
 
   subroutine chemical_uptake(state)
     ! Handle uptake and release of chemicals
@@ -1066,7 +1069,7 @@ contains
 
   end subroutine chemical_release
 
-  subroutine aggregate_food_fields(state, fgroup)
+  subroutine aggregate_food_diagnostics(state, fgroup)
     type(state_type), intent(inout) :: state
     type(functional_group), intent(inout) :: fgroup
 
@@ -1077,7 +1080,7 @@ contains
     type(biovar) :: chem_var
     integer :: c, f, s
 
-    ewrite(2,*) "In aggregate_food_fields"
+    ewrite(2,*) "Lagrangian biology: Aggregating food sets for FG::", fgroup%name
 
     do f=1, size(fgroup%food_sets)
        food = fgroup%food_sets(f)
@@ -1103,7 +1106,7 @@ contains
        end do
     end do
 
-  end subroutine aggregate_food_fields
+  end subroutine aggregate_food_diagnostics
 
   subroutine ingestion_handling(state)
     type(state_type), intent(inout) :: state
@@ -1117,7 +1120,7 @@ contains
     real :: prop, old_size
     integer :: i, c, fs, t, ele, ingest_ind
 
-    ewrite(2,*) "In ingestion_handling"
+    ewrite(2,*) "Lagrangian_biology: Handling ingestion"
 
     do i=1, size(agent_arrays)
        if (allocated(agent_arrays(i)%fgroup%food_sets)) then
@@ -1174,15 +1177,17 @@ contains
              do t=1, size(fset%target_agent_lists)
                 agent => fset%target_agent_lists(t)%ptr%first
                 do while (associated(agent))
-                   conc = ele_val(conc_field, agent%element)
                    request = ele_val(request_field, agent%element)
-                   if (conc(1) > 0.0 .and. request(1) > 0.0) then                      
-                      depletion = ele_val(depletion_field, agent%element)
-                      old_size = agent%biology(BIOVAR_SIZE)
+                   if (request(1) > 0.0) then     
+                      conc = ele_val(conc_field, agent%element)
+                      if (conc(1) > 0.0) then                 
+                         depletion = ele_val(depletion_field, agent%element)
+                         old_size = agent%biology(BIOVAR_SIZE)
 
-                      ! Proportion of food ingested
-                      prop = (request(1) * depletion(1)) / conc(1)
-                      agent%biology(BIOVAR_SIZE) = old_size - (prop * old_size)
+                         ! Proportion of food ingested
+                         prop = old_size / conc(1)
+                         agent%biology(BIOVAR_SIZE) = old_size - (prop * request(1) * depletion(1))
+                      end if
                    end if
 
                    agent => agent%next
