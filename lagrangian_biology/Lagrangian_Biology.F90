@@ -57,7 +57,6 @@ implicit none
   public :: BIOFIELD_NONE, BIOFIELD_DIAG, BIOFIELD_UPTAKE, BIOFIELD_RELEASE, BIOFIELD_INGESTED, &
             BIOFIELD_FOOD_REQUEST, BIOFIELD_FOOD_INGEST
 
-  type(detector_linked_list), dimension(:), allocatable, target, save :: agent_arrays
   type(functional_group), dimension(:), allocatable, target, save :: functional_groups
 
   character(len=FIELD_NAME_LEN), dimension(:), pointer :: uptake_field_names, release_field_names
@@ -83,9 +82,11 @@ contains
   subroutine initialise_lagrangian_biology_metamodel()
     character(len=OPTION_PATH_LEN) :: fg_buffer, stage_buffer, env_field_buffer
     character(len=FIELD_NAME_LEN) :: stage_name
+    type(functional_group), pointer :: fgroup
+    type(detector_linked_list), pointer :: agent_array
     integer, dimension(:), allocatable :: rnd_seed
     integer :: i, rnd_seed_int, rnd_dim
-    integer :: j, array, fg, stage, n_agent_arrays, n_fgroups, n_stages, n_env_fields
+    integer :: j, fg, stage, n_fgroups, n_stages, n_env_fields, array
 
     if (.not.have_option("/embedded_models/lagrangian_ensemble_biology")) return
 
@@ -103,37 +104,27 @@ contains
     deallocate(rnd_seed)
     ewrite(2,*) "Lagrangian biology: Initialised RNG"
 
-    ! Determine how many arrays we need across all functional groups
-    n_agent_arrays = 0
     n_fgroups = option_count("/embedded_models/lagrangian_ensemble_biology/functional_group")
     allocate(functional_groups(n_fgroups))
     ewrite(2,*) "Lagrangian biology: Allocated ", n_fgroups, " functional groups"
-
-    do fg=1, n_fgroups
-       write(fg_buffer, "(a,i0,a)") "/embedded_models/lagrangian_ensemble_biology/functional_group[",fg-1,"]"
-       n_agent_arrays = n_agent_arrays + option_count(trim(fg_buffer)//"/stages/stage")
-    end do
-
-    allocate(agent_arrays(n_agent_arrays))
-    ewrite(2,*) "Lagrangian biology: Allocated ", n_agent_arrays, " agent arrays"
 
     ! Create a persistent dictionary of FG variable and environment name mappings
     call python_run_string("persistent['fg_var_names'] = dict()")
     call python_run_string("persistent['fg_env_names'] = dict()")
 
     ! We create an agent array for each stage of each Functional Group
-    array = 1
+    array=1
     do fg=1, n_fgroups
+       fgroup => functional_groups(fg)
        write(fg_buffer, "(a,i0,a)") "/embedded_models/lagrangian_ensemble_biology/functional_group[",fg-1,"]"
-       n_stages = option_count(trim(fg_buffer)//"/stages/stage")
 
        ! Get biology meta-data
        if (have_option(trim(fg_buffer)//"/variables")) then
-          call read_functional_group(functional_groups(fg), trim(fg_buffer))
+          call read_functional_group(fgroup, trim(fg_buffer))
 
        ! Get biology meta-data for LERM diatoms
        elseif (have_option(trim(fg_buffer)//"/variables_lerm")) then
-          call LERM_get_diatom_fgroup(functional_groups(fg), trim(fg_buffer))
+          call LERM_get_diatom_fgroup(fgroup, trim(fg_buffer))
 
           allocate(uptake_field_names(3))
           uptake_field_names(1)="DissolvedAmmonium"
@@ -148,52 +139,56 @@ contains
           FLExit("No variables defined for functional group under: "//trim(fg_buffer))
        end if
 
+       n_stages = option_count(trim(fg_buffer)//"/stages/stage")
+       allocate(fgroup%agent_arrays(n_stages))
+       ewrite(2,*) "Lagrangian biology: Allocated ", n_stages, " agent arrays for FG::", trim(fgroup%name)
        do stage = 1, n_stages
+          agent_array => fgroup%agent_arrays(stage)
           write(stage_buffer, "(a,i0,a)") trim(fg_buffer)//"/stages/stage[",stage-1,"]"
-          agent_arrays(array)%stage_options = trim(stage_buffer)
+          agent_array%stage_options = trim(stage_buffer)
           call get_option(trim(stage_buffer)//"/name", stage_name)
-          agent_arrays(array)%fgroup => functional_groups(fg)
+          agent_array%fgroup => fgroup
 
-          agent_arrays(array)%name = trim(functional_groups(fg)%name)//trim(stage_name)
-          agent_arrays(array)%stage_name = trim(stage_name)
-          call get_option(trim(stage_buffer)//"/id", agent_arrays(array)%stage_id)
-          agent_arrays(array)%id=array
+          agent_array%name = trim(functional_groups(fg)%name)//trim(stage_name)
+          agent_array%stage_name = trim(stage_name)
+          call get_option(trim(stage_buffer)//"/id", agent_array%stage_id)
+          agent_array%id=array
 
           ! Register the agent array, so Zoltan/Adaptivity will not forget about it
-          call register_detector_list(agent_arrays(array))
+          call register_detector_list(agent_array)
 
           ! Get options for lagrangian detector movement
-          call read_detector_move_options(agent_arrays(array), trim(stage_buffer)//"/movement")
+          call read_detector_move_options(agent_array, trim(stage_buffer)//"/movement")
 
           ! Get options for Random Walk
-          call read_random_walk_options(agent_arrays(array), trim(stage_buffer)//"/movement")
+          call read_random_walk_options(agent_array, trim(stage_buffer)//"/movement")
 
           ! Now we know the variable names for the FG, so we record them in Python
-          call python_run_string("persistent['fg_var_names']['"//trim(agent_arrays(array)%name)//"'] = []")
+          call python_run_string("persistent['fg_var_names']['"//trim(agent_array%name)//"'] = []")
           do j=1, size(functional_groups(fg)%variables)
-             call python_run_string("persistent['fg_var_names']['"//trim(agent_arrays(array)%name)//"'].append('"//trim(functional_groups(fg)%variables(j)%name)//"')")
+             call python_run_string("persistent['fg_var_names']['"//trim(agent_array%name)//"'].append('"//trim(functional_groups(fg)%variables(j)%name)//"')")
           end do
 
           ! Record which environment fields to evaluate and pass to the update function
           if (have_option(trim(fg_buffer)//"/environment")) then
              n_env_fields = option_count(trim(fg_buffer)//"/environment/field")
-             call python_run_string("persistent['fg_env_names']['"//trim(agent_arrays(array)%name)//"'] = []")
-             allocate(agent_arrays(array)%env_field_name(n_env_fields))
+             call python_run_string("persistent['fg_env_names']['"//trim(agent_array%name)//"'] = []")
+             allocate(agent_array%env_field_name(n_env_fields))
              do j=1, n_env_fields
                 write(env_field_buffer, "(a,i0,a)") trim(fg_buffer)//"/environment/field[",j-1,"]"
-                call get_option(trim(env_field_buffer)//"/name", agent_arrays(array)%env_field_name(j))
-                call python_run_string("persistent['fg_env_names']['"//trim(agent_arrays(array)%name)//"'].append('"//trim(agent_arrays(array)%env_field_name(j))//"')")
+                call get_option(trim(env_field_buffer)//"/name", agent_array%env_field_name(j))
+                call python_run_string("persistent['fg_env_names']['"//trim(agent_array%name)//"'].append('"//trim(agent_array%env_field_name(j))//"')")
              end do
 
           elseif (have_option(trim(fg_buffer)//"/environment_lerm")) then
-             call LERM_get_diatom_env_fields(agent_arrays(array)%env_field_name)
+             call LERM_get_diatom_env_fields(agent_array%env_field_name)
           else
-             FLExit("No environment fields defined for functional group "//trim(agent_arrays(array)%fgroup%name))
+             FLExit("No environment fields defined for functional group "//trim(agent_array%fgroup%name))
           end if
 
           ! Store the python update code
           if (have_option(trim(stage_buffer)//"/biology/python")) then
-             call get_option(trim(stage_buffer)//"/biology/python", agent_arrays(array)%biovar_pycode)
+             call get_option(trim(stage_buffer)//"/biology/python", agent_array%biovar_pycode)
           end if
 
           array = array + 1
@@ -207,15 +202,15 @@ contains
   subroutine initialise_lagrangian_biology_agents(state)
     type(state_type), dimension(:), intent(inout) :: state
 
+    type(functional_group), pointer :: fgroup
+    type(detector_linked_list), pointer :: agent_array
     type(detector_type), pointer :: agent
     type(vector_field), pointer :: xfield
     character(len=PYTHON_FUNC_LEN) :: func
-    character(len=OPTION_PATH_LEN) :: fg_buffer, stage_buffer
-    character(len=FIELD_NAME_LEN) :: field_name, fg_name, stage_name
+    character(len=OPTION_PATH_LEN) :: stage_buffer
     real, allocatable, dimension(:,:) :: coords
     real:: current_time
-    integer :: j, dim, n_fgroups, n_agents, n_fg_arrays, &
-               ierror, det_type, array
+    integer :: ag, fg, stage, dim, n_agents
 
     if (.not.have_option("/embedded_models/lagrangian_ensemble_biology")) return
 
@@ -230,61 +225,68 @@ contains
     ewrite(2,*) "Lagrangian biology: Initialised ID counter"
 
     ! We create an agent array for each stage of each Functional Group
-    do array=1, size(agent_arrays)
-       stage_buffer = trim(agent_arrays(array)%stage_options)
+    do fg=1, get_num_functional_groups()
+       fgroup => get_functional_group(fg)
+       do stage=1, size(fgroup%agent_arrays)
+          agent_array => fgroup%agent_arrays(stage)
+          stage_buffer = trim(agent_array%stage_options)
 
-       call get_option(trim(stage_buffer)//"/initial_state/number_of_agents", n_agents)
-       agent_arrays(array)%total_num_det=n_agents
+          call get_option(trim(stage_buffer)//"/initial_state/number_of_agents", n_agents)
+          agent_array%total_num_det=n_agents
 
-       ! Set other meta-information
-       agent_arrays(array)%binary_output=.true.
-       det_type=LAGRANGIAN_DETECTOR
+          ! Only allow binary output
+          agent_array%binary_output=.true.
 
-       ! Create agent and insert into list
-       call get_option(trim(stage_buffer)//"/initial_state/position", func)
-       allocate(coords(dim,n_agents))
-       call set_detector_coords_from_python(coords, n_agents, func, current_time)
+          ! Create agent and insert into list
+          call get_option(trim(stage_buffer)//"/initial_state/position", func)
+          allocate(coords(dim,n_agents))
+          call set_detector_coords_from_python(coords, n_agents, func, current_time)
 
-       do j = 1, n_agents
-          call create_single_detector(agent_arrays(array), xfield, coords(:,j), det_type)
-       end do
-       deallocate(coords)
+          do ag=1, n_agents
+             call create_single_detector(agent_array, xfield, coords(:,ag), LAGRANGIAN_DETECTOR)
+          end do
+          deallocate(coords)
 
-       ! Set agent%list_id, because we need it to detect stage changes
-       agent=>agent_arrays(array)%first
-       do while (associated(agent))
-          agent%list_id=agent_arrays(array)%id
-          agent=>agent%next
-       end do
+          ! Set agent%list_id, because we need it to detect stage changes
+          agent=>agent_array%first
+          do while (associated(agent))
+             agent%list_id=agent_array%id
+             agent=>agent%next
+          end do
 
-       ewrite(2,*) "Lagrangian biology: Initialised ", agent_arrays(array)%length, "agents locally for ", trim(agent_arrays(array)%name)
+          ewrite(2,*) "Lagrangian biology: Initialised ", agent_array%length, "agents locally for ", trim(agent_array%name)
 
-       ! Initialise agent biology variables
-       if (associated(agent_arrays(array)%fgroup)) then
-          if (have_option(trim(stage_buffer)//"/initial_state/biology")) then
-             call get_option(trim(stage_buffer)//"/initial_state/biology", func)
-             agent => agent_arrays(array)%first
-             do while (associated(agent))
-                allocate(agent%biology(size(agent_arrays(array)%fgroup%variables)))
-                call python_init_agent_biology(agent, agent_arrays(array), trim(func))
-                agent => agent%next
-             end do
-          elseif (have_option(trim(stage_buffer)//"/initial_state/biology_lerm_living_diatom")) then
-             agent => agent_arrays(array)%first
-             do while (associated(agent))
-                allocate(agent%biology(size(agent_arrays(array)%fgroup%variables)))
-                call LERM_initialise_living_diatom(agent%biology)
-                agent => agent%next
-             end do
+          ! Initialise agent biology variables
+          if (allocated(fgroup%variables)) then
+             if (have_option(trim(stage_buffer)//"/initial_state/biology")) then
+                call get_option(trim(stage_buffer)//"/initial_state/biology", func)
+                agent => agent_array%first
+                do while (associated(agent))
+                   allocate(agent%biology(size(fgroup%variables)))
+                   call python_init_agent_biology(agent, agent_array, trim(func))
+                   agent => agent%next
+                end do
+             elseif (have_option(trim(stage_buffer)//"/initial_state/biology_lerm_living_diatom")) then
+                agent => agent_array%first
+                do while (associated(agent))
+                   allocate(agent%biology(size(fgroup%variables)))
+                   call LERM_initialise_living_diatom(agent%biology)
+                   agent => agent%next
+                end do
+             end if
           end if
-       end if
 
-       call write_detector_header(state, agent_arrays(array))
+          call write_detector_header(state, agent_array)
 
-       call derive_primary_diagnostics(agent_arrays(array), state(1))
-    end do
+          ! Derive diagnostics from initial state...
+          call derive_primary_diagnostics(state(1), agent_array)
 
-    call aggregate_diagnostics_by_stage(state(1))
+       end do  ! Stage
+
+       ! ... and aggregate them
+       call aggregate_diagnostics_by_stage(state(1), fgroup)
+
+    end do  ! FGroup
 
     ewrite(1,*) "Lagrangian biology: Initialised agents"
 
@@ -502,11 +504,9 @@ contains
 
        ! First find our target FG
        target_fg => null()
-       do v=1, size(agent_arrays)
-          if (associated(agent_arrays(v)%fgroup)) then
-             if (trim(agent_arrays(v)%fgroup%name) == trim(fgroup%food_sets(i)%target_fgroup)) then
-                target_fg => agent_arrays(v)%fgroup
-             end if
+       do v=1, get_num_functional_groups()
+          if (trim(functional_groups(v)%name) == trim(fgroup%food_sets(i)%target_fgroup)) then
+             target_fg => functional_groups(v)
           end if
        end do
        if (.not. associated(target_fg)) then
@@ -534,12 +534,9 @@ contains
        ! associate a pointer with the according agent list
        allocate(fgroup%food_sets(i)%target_agent_lists(size(fgroup%food_sets(i)%target_stages%ptr)))
        do t=1, size(fgroup%food_sets(i)%target_stages%ptr)
-          do v=1, size(agent_arrays)
-             if (associated(agent_arrays(v)%fgroup)) then
-                if (trim(agent_arrays(v)%fgroup%name) == trim(fgroup%food_sets(i)%target_fgroup) .and. &
-                    trim(agent_arrays(v)%stage_name) == trim(fgroup%food_sets(i)%target_stages%ptr(t)) ) then
-                    fgroup%food_sets(i)%target_agent_lists(t)%ptr => agent_arrays(v)
-                end if
+          do v=1, size(target_fg%agent_arrays)
+             if (trim(target_fg%agent_arrays(v)%stage_name) == trim(fgroup%food_sets(i)%target_stages%ptr(t)) ) then
+                 fgroup%food_sets(i)%target_agent_lists(t)%ptr => target_fg%agent_arrays(v)
              end if
           end do
        end do
@@ -550,17 +547,24 @@ contains
   subroutine lagrangian_biology_cleanup(state)
     type(state_type), intent(inout) :: state
 
-    integer :: i, ierror
+    type(functional_group), pointer :: fgroup
+    type(detector_linked_list), pointer :: agent_array
     type(mesh_type) :: biology_mesh
+    integer :: fg, stage, ierror
 
-    do i = 1, size(agent_arrays)
-       call delete_all(agent_arrays(i))
-       if (agent_arrays(i)%output_unit/=0) then
-          call MPI_FILE_CLOSE(agent_arrays(i)%output_unit, ierror) 
-          if(ierror /= MPI_SUCCESS) then
-             ewrite(0,*) "Warning: failed to close .detector file open with mpi_file_open"
+    do fg=1, get_num_functional_groups()
+       fgroup => get_functional_group(fg)
+       do stage=1, size(fgroup%agent_arrays)
+          agent_array=>fgroup%agent_arrays(stage)
+
+          call delete_all(agent_array)
+          if (agent_array%output_unit/=0) then
+             call MPI_FILE_CLOSE(agent_array%output_unit, ierror) 
+             if(ierror /= MPI_SUCCESS) then
+                ewrite(0,*) "Warning: failed to close .detector file open with mpi_file_open"
+             end if
           end if
-       end if
+       end do
     end do
 
     biology_mesh = extract_mesh(state, "BiologyMesh")
@@ -582,11 +586,13 @@ contains
     real, intent(in) :: time, dt
     integer, intent(in) :: timestep
 
+    type(functional_group), pointer :: fgroup
+    type(detector_linked_list), pointer :: agent_array
     type(detector_type), pointer :: agent, agent_to_move
     type(detector_linked_list) :: stage_change_list
     type(vector_field), pointer :: xfield
     type(scalar_field_pointer), dimension(:), pointer :: env_fields
-    integer :: i, j, f, v, env, pm_period, hvar, hvar_ind, hvar_src_ind
+    integer :: i, j, f, v, env, pm_period, hvar, hvar_ind, hvar_src_ind, fg, stage
     logical :: python_update
 
     ewrite(1,*) "Lagrangian biology: Updating agents..."
@@ -598,148 +604,162 @@ contains
     call python_reset()
     call python_add_state(state(1))
 
-    do i = 1, size(agent_arrays)
-
-       if (have_option(trim(agent_arrays(i)%stage_options)//"/biology")) then
-          agent=>agent_arrays(i)%first
-          do while (associated(agent))
-             ! Advance history variables (loop must be backwards)
-             do hvar=size(agent_arrays(i)%fgroup%history_var_inds), 1, -1
-                hvar_ind = agent_arrays(i)%fgroup%history_var_inds(hvar)
-                hvar_src_ind = agent_arrays(i)%fgroup%variables(hvar_ind)%pool_index
-                agent%biology(hvar_ind) = agent%biology(hvar_src_ind)
-             end do
-             agent=>agent%next
-          end do
-       end if
-
-       ! Move lagrangian detectors
-       if (check_any_lagrangian(agent_arrays(i))) then
-          call move_lagrangian_detectors(state, agent_arrays(i), dt, timestep)
-       end if
+    do fg=1, get_num_functional_groups()
+       fgroup => get_functional_group(fg)
 
        ! Aggregate food concentrations
-       if (allocated(agent_arrays(i)%fgroup%food_sets)) then
-          call aggregate_food_diagnostics(state(1), agent_arrays(i)%fgroup)
+       if (allocated(fgroup%food_sets)) then
+          call aggregate_food_diagnostics(state(1), fgroup)
        end if
 
-       if (have_option(trim(agent_arrays(i)%stage_options)//"/biology")) then
+       do stage=1, size(fgroup%agent_arrays)
+          agent_array=>fgroup%agent_arrays(stage)
 
-          ewrite(2,*) "Lagrangian biology: Updating ", trim(agent_arrays(i)%name)
-          
-          if (have_option(trim(agent_arrays(i)%stage_options)//"/biology/python")) then
-             python_update=.true.
-          else
-             python_update=.false.
-          end if
-
-          if (python_update) then
-             ! Compile python function to set bio-variable, and store in the global dictionary
-             call python_run_detector_string(trim(agent_arrays(i)%biovar_pycode), trim(agent_arrays(i)%name), trim("biology_update"))
-
-             allocate(env_fields(size(agent_arrays(i)%env_field_name)))
-             do env=1, size(agent_arrays(i)%env_field_name)
-                env_fields(env)%ptr => extract_scalar_field(state(1), agent_arrays(i)%env_field_name(env))
+          ! Advance history variables
+          if (have_option(trim(agent_array%stage_options)//"/biology")) then
+             agent=>agent_array%first
+             do while (associated(agent))
+                ! Loop over variables backwards
+                do hvar=size(fgroup%history_var_inds), 1, -1
+                   hvar_ind = fgroup%history_var_inds(hvar)
+                   hvar_src_ind = fgroup%variables(hvar_ind)%pool_index
+                   agent%biology(hvar_ind) = agent%biology(hvar_src_ind)
+                end do
+                agent=>agent%next
              end do
           end if
 
-          ! Update agent biology
-          agent=>agent_arrays(i)%first
-          do while (associated(agent))
+          ! Move lagrangian detectors
+          if (check_any_lagrangian(agent_array)) then
+             call move_lagrangian_detectors(state, agent_array, dt, timestep)
+          end if
 
-             ! Reset Request variables
-             do v=1, size(agent_arrays(i)%fgroup%variables)
-                if (agent_arrays(i)%fgroup%variables(v)%field_type==BIOFIELD_UPTAKE .or. &
-                    agent_arrays(i)%fgroup%variables(v)%field_type==BIOFIELD_RELEASE .or. &
-                    agent_arrays(i)%fgroup%variables(v)%field_type==BIOFIELD_FOOD_REQUEST) then
-                   agent%biology(v) = 0.0
+          if (have_option(trim(agent_array%stage_options)//"/biology")) then
+
+             ewrite(2,*) "Lagrangian biology: Updating ", trim(agent_array%name)
+             
+             if (have_option(trim(agent_array%stage_options)//"/biology/python")) then
+                python_update=.true.
+             else
+                python_update=.false.
+             end if
+
+             if (have_option(trim(agent_array%stage_options)//"/biology/python")) then
+                ! Compile python function to set bio-variable, and store in the global dictionary
+                call python_run_detector_string(trim(agent_array%biovar_pycode), trim(agent_array%name), trim("biology_update"))
+
+                allocate(env_fields(size(agent_array%env_field_name)))
+                do env=1, size(agent_array%env_field_name)
+                   env_fields(env)%ptr => extract_scalar_field(state(1), agent_array%env_field_name(env))
+                end do
+             end if
+
+             ! Update agent biology
+             agent=>agent_array%first
+             do while (associated(agent))
+
+                ! Reset Request variables
+                do v=1, size(fgroup%variables)
+                   if ( fgroup%variables(v)%field_type==BIOFIELD_UPTAKE .or. &
+                        fgroup%variables(v)%field_type==BIOFIELD_RELEASE .or. &
+                        fgroup%variables(v)%field_type==BIOFIELD_FOOD_REQUEST) then
+                      agent%biology(v) = 0.0
+                   end if
+                end do
+
+                if (python_update) then
+                   call python_calc_agent_biology(agent, env_fields, dt, trim(agent_array%name), trim("biology_update"))
+
+                ! Note: We should not do schema queries inside the agent loop!
+                elseif (have_option(trim(agent_array%stage_options)//"/biology/lerm_living_diatom")) then
+                   call LERM_update_living_diatom(agent, agent_array, state(1), dt)
+                elseif (have_option(trim(agent_array%stage_options)//"/biology/lerm_dead_diatom")) then
+                   call LERM_update_dead_diatom(agent, agent_array, state(1), dt)
+                else
+                   FLExit("No biology update function specified!")
+                end if
+
+                ! Reset Ingested variables
+                do v=1, size(fgroup%variables)
+                   if ( fgroup%variables(v)%field_type==BIOFIELD_INGESTED .or. &
+                        fgroup%variables(v)%field_type==BIOFIELD_FOOD_INGEST) then
+                      agent%biology(v) = 0.0
+                   end if
+                end do
+
+                ! Check for stage change
+                if (agent%biology(BIOVAR_STAGE) /= agent_array%stage_id) then
+                   agent_to_move=>agent
+                   agent=>agent%next
+                   call move(agent_to_move, agent_array, stage_change_list)
+                else
+                   agent=>agent%next
                 end if
              end do
 
              if (python_update) then
-                call python_calc_agent_biology(agent, env_fields, dt, trim(agent_arrays(i)%name), trim("biology_update"))
-
-             elseif (have_option(trim(agent_arrays(i)%stage_options)//"/biology/lerm_living_diatom")) then
-                call LERM_update_living_diatom(agent, agent_arrays(i), state(1), dt)
-             elseif (have_option(trim(agent_arrays(i)%stage_options)//"/biology/lerm_dead_diatom")) then
-                call LERM_update_dead_diatom(agent, agent_arrays(i), state(1), dt)
+                deallocate(env_fields)
              end if
+          end if  ! have_biology
 
-             ! Reset Ingested variables
-             do v=1, size(agent_arrays(i)%fgroup%variables)
-                if (agent_arrays(i)%fgroup%variables(v)%field_type==BIOFIELD_INGESTED .or. &
-                    agent_arrays(i)%fgroup%variables(v)%field_type==BIOFIELD_FOOD_INGEST) then
-                   agent%biology(v) = 0.0
-                end if
-             end do
+       end do  ! stages
 
-             ! Check for stage change
-             if (agent%biology(BIOVAR_STAGE) /= agent_arrays(i)%stage_id) then
+       ! Handle stage changes within FG
+       ewrite(2,*) "Handling stage changes for FG::", fgroup%name
+       agent=>stage_change_list%first
+       stage_change_loop: do while (associated(agent))
+          do j=1, size(fgroup%agent_arrays)
+             if (fgroup%agent_arrays(j)%stage_id==agent%biology(BIOVAR_STAGE)) then
                 agent_to_move=>agent
                 agent=>agent%next
-                call move(agent_to_move, agent_arrays(i), stage_change_list)
-             else
-                agent=>agent%next
-             end if
-          end do
-
-          if (python_update) then
-             deallocate(env_fields)
-          end if
-
-          call derive_primary_diagnostics(agent_arrays(i), state(1))
-
-       end if
-    end do
-
-    ewrite(2,*) "Handling stage changes across all agent lists"
-
-    ! Handle stage changes within FG
-    agent=>stage_change_list%first
-    stage_change_loop: do while (associated(agent))
-       do j=1, size(agent_arrays)
-          if (trim(agent_arrays(j)%fgroup%name) == trim(agent_arrays(agent%list_id)%fgroup%name)) then
-             if (agent_arrays(j)%stage_id==agent%biology(BIOVAR_STAGE)) then
-                agent_to_move=>agent
-                agent=>agent%next
-                call move(agent_to_move, stage_change_list, agent_arrays(j))
+                call move(agent_to_move, stage_change_list, fgroup%agent_arrays(j))
                 cycle stage_change_loop
              end if
-          end if
+          end do
+          ewrite(-1,*) "Lagrangian biology: Target stage ID ", agent%biology(BIOVAR_STAGE), "not defined"
+          FLExit("Lagrangian biology: Target stage not found")
+       end do stage_change_loop
+
+       ! Derive the primary (per-stage) diangostic fields for each stage
+       ! before we iterate over the next FGroup, since the food aggregation
+       ! depends on the primary diagnostic fields
+       do stage=1, size(fgroup%agent_arrays)
+          agent_array=>fgroup%agent_arrays(stage)
+          call derive_primary_diagnostics(state(1), agent_array)
        end do
-       ewrite(-1,*) "Lagrangian biology: Target stage ID ", agent%biology(BIOVAR_STAGE), "not defined"
-       FLExit("Lagrangian biology: Target stage not found")
-    end do stage_change_loop
+       ! The stage-aggregated diagnostic are necessary for the ingestion_handling, 
+       ! since FoodRequest is a stage-aggregate
+       call aggregate_diagnostics_by_stage(state(1), fgroup)
+
+    end do  ! FGroup
 
     ! Execute chemical uptake/release
     call aggregate_chemical_diagnostics(state(1))
     call chemical_uptake(state(1))
     call chemical_release(state(1))
-
-    ! Handle ingestion
-    ! Note: FoodRequest is a stage-aggregate
-    call aggregate_diagnostics_by_stage(state(1))
     call ingestion_handling(state(1))
 
     ! Particle Management
-    do i = 1, size(agent_arrays)
-       if (have_option(trim(agent_arrays(i)%stage_options)//"/particle_management")) then
-          call get_option(trim(agent_arrays(i)%stage_options)//"/particle_management/period_in_timesteps", pm_period)
-          if (timestep == 1 .or. mod(timestep, pm_period) == 0) then
-             call particle_management(state(1), agent_arrays(i))
+    do fg=1, get_num_functional_groups()
+       fgroup => get_functional_group(fg)
+       do stage=1, size(fgroup%agent_arrays)
+          agent_array => fgroup%agent_arrays(stage)
+
+          if (have_option(trim(agent_array%stage_options)//"/particle_management")) then
+             call get_option(trim(agent_array%stage_options)//"/particle_management/period_in_timesteps", pm_period)
+             if (timestep == 1 .or. mod(timestep, pm_period) == 0) then
+                call particle_management(state(1), agent_array)
+             end if
           end if
-       end if
 
-       ! Re-derive the required agent diagnostic variables...
-       call derive_primary_diagnostics(agent_arrays(i), state(1))
-    end do
+          ! Output agent positions after re-sampling
+          call write_detectors(state, agent_array, time, dt, timestep)
 
-    ! ... and aggregate them
-    call aggregate_diagnostics_by_stage(state(1))
-
-    ! Output agent positions
-    do i = 1, size(agent_arrays)
-       call write_detectors(state, agent_arrays(i), time, dt, timestep)
+          ! Re-derive the required agent diagnostic variables...
+          call derive_primary_diagnostics(state(1), agent_array)
+       end do
+       ! ... and aggregate them
+       call aggregate_diagnostics_by_stage(state(1), fgroup)
     end do
 
     call profiler_toc("/update_lagrangian_biology")
@@ -747,7 +767,7 @@ contains
   end subroutine update_lagrangian_biology
 
   function stage_aggregate(var)
-    type(biovar), intent(in) :: var
+    type(le_variable), intent(in) :: var
     logical :: stage_aggregate
 
     if (have_option(trim(var%field_path)//"/stage_aggregate")) then
@@ -758,11 +778,11 @@ contains
 
   end function
 
-  subroutine derive_primary_diagnostics(agent_list, state)
+  subroutine derive_primary_diagnostics(state, agent_list)
     ! Set per-stage diagnostic fields from agent variables, 
     ! including agent counts and chemical request/release fields
-    type(detector_linked_list), intent(inout) :: agent_list
     type(state_type), intent(inout) :: state
+    type(detector_linked_list), intent(inout) :: agent_list
 
     type(vector_field), pointer :: xfield
     type(scalar_field_pointer), dimension(size(agent_list%fgroup%variables)) :: diagfields
@@ -828,41 +848,28 @@ contains
 
   end subroutine derive_primary_diagnostics
 
-  subroutine aggregate_diagnostics_by_stage(state)
+  subroutine aggregate_diagnostics_by_stage(state, fgroup)
     type(state_type), intent(inout) :: state
+    type(functional_group), pointer , intent(inout):: fgroup
 
     type(scalar_field), pointer :: diagfield_agg, diagfield_stage
-    type(biovar), pointer :: var
-    integer :: i, v
+    type(le_variable), pointer :: var
+    integer :: v, s
 
     ewrite(2,*) "Lagrangian biology: Aggregating stage-diagnostics"
 
-    ! First we reset all aggregated diagnostics
-    do i = 1, size(agent_arrays)
-       if (associated(agent_arrays(i)%fgroup)) then
-          do v=1, size(agent_arrays(i)%fgroup%variables)
-             var => agent_arrays(i)%fgroup%variables(v)
-
-             if (stage_aggregate(var) .and. var%field_type /= BIOFIELD_NONE) then
-                diagfield_agg=>extract_scalar_field(state, trim(var%field_name))
-                call zero(diagfield_agg)
-             end if
-          end do
-       end if
-    end do
-
     ! Now we derive all aggregated quantities
-    do i = 1, size(agent_arrays)
-       if (associated(agent_arrays(i)%fgroup)) then
-          do v=1, size(agent_arrays(i)%fgroup%variables)
-             var => agent_arrays(i)%fgroup%variables(v)
+    do v=1, size(fgroup%variables)
+       var => fgroup%variables(v)
 
-             ! Aggregate stage-aggregated diagnostic fields
-             if (stage_aggregate(var) .and. var%field_type /= BIOFIELD_NONE) then
-                diagfield_stage=>extract_scalar_field(state, trim(var%field_name)//trim(agent_arrays(i)%stage_name))
-                diagfield_agg=>extract_scalar_field(state, trim(var%field_name))
-                call addto(diagfield_agg, diagfield_stage)
-             end if
+       ! Aggregate stage-aggregated diagnostic fields
+       if (stage_aggregate(var) .and. var%field_type /= BIOFIELD_NONE) then
+          diagfield_agg=>extract_scalar_field(state, trim(var%field_name))
+          call zero(diagfield_agg)
+
+          do s=1, size(fgroup%stage_names%ptr)
+             diagfield_stage=>extract_scalar_field(state, trim(var%field_name)//trim(fgroup%stage_names%ptr(s)))
+             call addto(diagfield_agg, diagfield_stage)
           end do
        end if
     end do
@@ -872,48 +879,40 @@ contains
   subroutine aggregate_chemical_diagnostics(state)
     type(state_type), intent(inout) :: state
 
+    type(functional_group), pointer :: fgroup
     type(scalar_field), pointer :: diagfield_agg, diagfield_stage
-    type(biovar), pointer :: var
-    integer :: i, v
+    type(le_variable), pointer :: var
+    integer :: i, v, fg, s
 
     ewrite(2,*) "Lagrangian biology: Aggregating chemical request/release fields"
 
-    ! Reset global request fields
-    if (associated(uptake_field_names)) then
-       do i = 1, size(uptake_field_names)
-          diagfield_agg=>extract_scalar_field(state, trim(uptake_field_names(i))//"Request")
-          call zero(diagfield_agg)
-       end do
-    end if
+    do fg=1, get_num_functional_groups()
+       fgroup => get_functional_group(fg)
+       do v=1, size(fgroup%variables)
+          var => fgroup%variables(v)
 
-    ! Reset global release fields
-    if (associated(release_field_names)) then
-       do i = 1, size(release_field_names)
-          diagfield_agg=>extract_scalar_field(state, trim(release_field_names(i))//"Release")
-          call zero(diagfield_agg)
-       end do
-    end if
+          ! Aggregate chemical uptake request
+          if (var%field_type == BIOFIELD_UPTAKE) then
+             diagfield_agg=>extract_scalar_field(state, trim(var%chemfield)//"Request")
+             call zero(diagfield_agg)
 
-    do i = 1, size(agent_arrays)
-       if (associated(agent_arrays(i)%fgroup)) then
-          do v=1, size(agent_arrays(i)%fgroup%variables)
-             var => agent_arrays(i)%fgroup%variables(v)
-
-             ! Aggregate chemical uptake request
-             if (var%field_type == BIOFIELD_UPTAKE) then
-                diagfield_stage=>extract_scalar_field(state, trim(var%field_name)//trim(agent_arrays(i)%stage_name))
-                diagfield_agg=>extract_scalar_field(state, trim(var%chemfield)//"Request")
+             do s=1, size(fgroup%stage_names%ptr)
+                diagfield_stage=>extract_scalar_field(state, trim(var%field_name)//trim(fgroup%stage_names%ptr(s)))             
                 call addto(diagfield_agg, diagfield_stage)
-             end if
+             end do
+          end if
 
-             ! Aggregate chemical release quantity
-             if (var%field_type == BIOFIELD_RELEASE) then
-                diagfield_stage=>extract_scalar_field(state, trim(var%field_name)//trim(agent_arrays(i)%stage_name))
-                diagfield_agg=>extract_scalar_field(state, trim(var%chemfield)//"Release")
+          ! Aggregate chemical release quantity
+          if (var%field_type == BIOFIELD_RELEASE) then
+             diagfield_agg=>extract_scalar_field(state, trim(var%chemfield)//"Release")
+             call zero(diagfield_agg)
+
+             do s=1, size(fgroup%stage_names%ptr)
+                diagfield_stage=>extract_scalar_field(state, trim(var%field_name)//trim(fgroup%stage_names%ptr(s)))
                 call addto(diagfield_agg, diagfield_stage)
-             end if
-          end do
-       end if
+             end do
+          end if
+       end do
     end do
 
   end subroutine aggregate_chemical_diagnostics
@@ -922,10 +921,12 @@ contains
     ! Handle uptake and release of chemicals
     type(state_type), intent(inout) :: state
 
+    type(functional_group), pointer :: fgroup
+    type(detector_linked_list), pointer :: agent_array
     type(scalar_field), pointer :: request_field, chemfield, depletion_field
     type(vector_field), pointer :: xfield
     type(detector_type), pointer :: agent
-    integer :: i, j, n, ele, ingest_ind
+    integer :: i, j, n, ele, ingest_ind, fg, stage
     integer, dimension(:), pointer :: element_nodes
     real :: chemval, chemval_new, chem_integral
     real, dimension(1) :: request, depletion
@@ -981,24 +982,29 @@ contains
     end do
 
     ! Apply depletion factor to uptake variables
-    do i = 1, size(agent_arrays)
-       if (have_option(trim(agent_arrays(i)%stage_options)//"/biology")) then
-          do j=1, size(agent_arrays(i)%fgroup%variables)
+    do fg=1, get_num_functional_groups()
+       fgroup => get_functional_group(fg)
+       do stage=1, size(fgroup%agent_arrays)
+          agent_array => fgroup%agent_arrays(stage)
 
-             if (agent_arrays(i)%fgroup%variables(j)%field_type == BIOFIELD_UPTAKE) then
-                depletion_field=>extract_scalar_field(state, trim(agent_arrays(i)%fgroup%variables(j)%chemfield)//"Depletion")
+          if (have_option(trim(agent_array%stage_options)//"/biology")) then
+             do j=1, size(fgroup%variables)
 
-                agent => agent_arrays(i)%first
-                do while (associated(agent))
-                   depletion = ele_val(depletion_field, agent%element)
-                   ingest_ind = agent_arrays(i)%fgroup%variables( agent_arrays(i)%fgroup%variables(j)%pool_index )%ingest_index
-                   agent%biology(ingest_ind) = agent%biology(ingest_ind) + depletion(1) * agent%biology(j)
+                if (fgroup%variables(j)%field_type == BIOFIELD_UPTAKE) then
+                   depletion_field=>extract_scalar_field(state, trim(fgroup%variables(j)%chemfield)//"Depletion")
 
-                   agent => agent%next
-                end do
-             end if
-          end do
-       end if
+                   agent => agent_array%first
+                   do while (associated(agent))
+                      depletion = ele_val(depletion_field, agent%element)
+                      ingest_ind = fgroup%variables( fgroup%variables(j)%pool_index )%ingest_index
+                      agent%biology(ingest_ind) = agent%biology(ingest_ind) + depletion(1) * agent%biology(j)
+
+                      agent => agent%next
+                   end do
+                end if
+             end do
+          end if
+       end do
     end do
 
     call profiler_toc("/chemical_exchange")
@@ -1077,7 +1083,7 @@ contains
     type(scalar_field), pointer :: source_field
     type(scalar_field), pointer :: chem_field
     type(food_set) :: food
-    type(biovar) :: chem_var
+    type(le_variable) :: chem_var
     integer :: c, f, s
 
     ewrite(2,*) "Lagrangian biology: Aggregating food sets for FG::", fgroup%name
@@ -1111,22 +1117,26 @@ contains
   subroutine ingestion_handling(state)
     type(state_type), intent(inout) :: state
 
+    type(functional_group), pointer :: fgroup
+    type(detector_linked_list), pointer :: agent_array
     type(scalar_field), pointer :: conc_field, request_field, depletion_field
     type(scalar_field_pointer), dimension(:), allocatable :: prey_chem_fields
     type(food_set), pointer :: fset
-    type(biovar), pointer :: request_var, chempool_var
+    type(le_variable), pointer :: request_var, chempool_var
     type(detector_type), pointer :: agent
     real, dimension(1) :: conc, request, depletion, chem_conc
     real :: prop, old_size
-    integer :: i, c, fs, t, ele, ingest_ind
+    integer :: i, c, fs, fg, t, ele, ingest_ind, stage
 
     ewrite(2,*) "Lagrangian_biology: Handling ingestion"
 
-    do i=1, size(agent_arrays)
-       if (allocated(agent_arrays(i)%fgroup%food_sets)) then
-          do fs=1, size(agent_arrays(i)%fgroup%food_sets)
-             fset => agent_arrays(i)%fgroup%food_sets(fs)
-             request_var => agent_arrays(i)%fgroup%variables(fset%request_ind)
+    do fg=1, get_num_functional_groups()
+       fgroup => get_functional_group(fg)
+
+       if (allocated(fgroup%food_sets)) then
+          do fs=1, size(fgroup%food_sets)
+             fset => fgroup%food_sets(fs)
+             request_var => fgroup%variables(fset%request_ind)
 
              conc_field => extract_scalar_field(state, fset%conc_field_name)
              request_field => extract_scalar_field(state, trim(request_var%field_name))
@@ -1149,27 +1159,31 @@ contains
              ! Loop over predator agents to set Ingest variables
              allocate(prey_chem_fields(size(fset%ingest_chem_inds)))
              do c=1, size(fset%ingest_chem_inds)
-                chempool_var => agent_arrays(i)%fgroup%variables( fset%ingest_chem_inds(c) )
-                prey_chem_fields(c)%ptr => extract_scalar_field(state, trim(agent_arrays(i)%fgroup%name)//trim(fset%name)//trim(chempool_var%name))
+                chempool_var => fgroup%variables( fset%ingest_chem_inds(c) )
+                prey_chem_fields(c)%ptr => extract_scalar_field(state, trim(fgroup%name)//trim(fset%name)//trim(chempool_var%name))
              end do
 
-             agent => agent_arrays(i)%first
-             do while (associated(agent))
-                ! Set 'IngestedCells' variable
-                depletion = ele_val(depletion_field, agent%element)
-                agent%biology(fset%ingest_ind) = depletion(1) * agent%biology(fset%request_ind)
+             do stage=1, size(fgroup%agent_arrays)
+                agent_array => fgroup%agent_arrays(stage)
 
-                ! Set ChemIngested pools
-                conc = ele_val(conc_field, agent%element)
-                do c=1, size(fset%ingest_chem_inds)
-                   ingest_ind = agent_arrays(i)%fgroup%variables( fset%ingest_chem_inds(c) )%ingest_index
-                   chem_conc = ele_val(prey_chem_fields(c)%ptr, agent%element)
-                   if (conc(1) > 0.0) then
-                      agent%biology(ingest_ind) = agent%biology(ingest_ind) + ( agent%biology(fset%ingest_ind) * (chem_conc(1) / conc(1)) ) / agent%biology(BIOVAR_SIZE)
-                   end if
+                agent => agent_array%first
+                do while (associated(agent))
+                   ! Set 'IngestedCells' variable
+                   depletion = ele_val(depletion_field, agent%element)
+                   agent%biology(fset%ingest_ind) = depletion(1) * agent%biology(fset%request_ind)
+
+                   ! Set ChemIngested pools
+                   conc = ele_val(conc_field, agent%element)
+                   do c=1, size(fset%ingest_chem_inds)
+                      ingest_ind = fgroup%variables( fset%ingest_chem_inds(c) )%ingest_index
+                      chem_conc = ele_val(prey_chem_fields(c)%ptr, agent%element)
+                      if (conc(1) > 0.0) then
+                         agent%biology(ingest_ind) = agent%biology(ingest_ind) + ( agent%biology(fset%ingest_ind) * (chem_conc(1) / conc(1)) ) / agent%biology(BIOVAR_SIZE)
+                      end if
+                   end do
+
+                   agent => agent%next
                 end do
-
-                agent => agent%next
              end do
              deallocate(prey_chem_fields)
 
@@ -1194,9 +1208,9 @@ contains
                 end do
              end do
 
-          end do
+          end do  ! FoodSet
        end if
-    end do
+    end do  ! FGroup
 
   end subroutine ingestion_handling
 

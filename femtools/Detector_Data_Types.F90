@@ -36,9 +36,8 @@ module detector_data_types
   
   private
   
-  public :: detector_type, detector_linked_list, &
-            detector_list_ptr, stringlist, &
-            random_walk, biovar, functional_group, food_set, &
+  public :: detector_type, detector_linked_list, detector_list_ptr, stringlist, &
+            random_walk, le_variable, functional_group, food_set, &
             STATIC_DETECTOR, LAGRANGIAN_DETECTOR, &
             GUIDED_SEARCH_TRACKING, RTREE_TRACKING, GEOMETRIC_TRACKING
 
@@ -134,7 +133,7 @@ module detector_data_types
   end type food_set
 
   ! Type holding meta-information about biology variables of LE agents
-  type biovar
+  type le_variable
     character(len=FIELD_NAME_LEN) :: name
     ! Type of variable, ie. diagnostic, uptake, release
     integer :: field_type = 0
@@ -153,23 +152,7 @@ module detector_data_types
     integer :: pool_index
     ! Variable index of the corresponding 'Ingested' variable for pool variables
     integer :: ingest_index
-  end type biovar
-
-  type functional_group
-    character(len=FIELD_NAME_LEN) :: name
-    ! List of variables that define each agent of this group
-    type(biovar), dimension(:), allocatable :: variables
-    ! Indices of all variables that are exposed to the Python motion functions
-    integer, dimension(:), allocatable :: motion_var_inds
-    ! Indices of all variables that are history buffers
-    integer, dimension(:), allocatable :: history_var_inds
-    ! List of all stages within this FG
-    type(stringlist) :: stage_names
-    ! Option path for the Agents diagnostic field
-    character(len=OPTION_PATH_LEN) :: agents_field_path
-    ! Food sets
-    type(food_set), dimension(:), allocatable :: food_sets
-  end type functional_group
+  end type le_variable
 
   type detector_linked_list
      !! Doubly linked list implementation
@@ -234,5 +217,27 @@ module detector_data_types
      integer :: mpi_write_offset = 0     ! Offset in MPI file
      integer :: total_num_det = 0        ! Global number of detectors in this list
   end type detector_linked_list
+
+  type functional_group
+    character(len=FIELD_NAME_LEN) :: name
+
+    ! List of all stages within this FG
+    type(stringlist) :: stage_names
+    ! Agent arrays for each stage
+    type(detector_linked_list), dimension(:), allocatable :: agent_arrays
+
+    ! List of variables that define each agent of this group
+    type(le_variable), dimension(:), allocatable :: variables
+    ! Food sets
+    type(food_set), dimension(:), allocatable :: food_sets
+
+    ! Indices of all variables that are exposed to the Python motion functions
+    integer, dimension(:), allocatable :: motion_var_inds
+    ! Indices of all variables that are history buffers
+    integer, dimension(:), allocatable :: history_var_inds
+
+    ! Option path for the Agents diagnostic field
+    character(len=OPTION_PATH_LEN) :: agents_field_path
+  end type functional_group
 
 end module detector_data_types

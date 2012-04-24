@@ -1408,7 +1408,7 @@ contains
 
       type(mesh_type) :: parent_mesh, biology_mesh
       type(functional_group), pointer :: fgroup
-      type(biovar), pointer :: chemIng_var
+      type(le_variable), pointer :: chemIng_var
       integer :: i, fg, v, f, c
 
       ! First we allocate a piecewise constant mesh
