@@ -170,17 +170,17 @@ Coriolis.o ../include/coriolis_module.mod: Coriolis.F90 \
 
 Darcy_IMPES_Assemble.o ../include/darcy_impes_assemble_module.mod: Darcy_IMPES_Assemble.F90 \
    ../include/fdebug.h ../include/fldebug.mod ../include/global_parameters.mod \
-   ../include/boundary_conditions.mod \
-   ../include/boundary_conditions_from_options.mod ../include/elements.mod \
-   ../include/field_options.mod ../include/fields.mod \
+   ../include/boundary_conditions.mod ../include/parallel_tools.mod \
+   ../include/fefields ../include/elements.mod \
+   ../include/fields.mod \
    ../include/petsc_solve_state_module.mod ../include/porous_media.mod \
-   ../include/quadrature.mod ../include/sparse_tools.mod ../include/sparsity_patterns_meshes.mod \
+   ../include/quadrature.mod ../include/sparse_tools.mod \
    ../include/spud.mod ../include/state_module.mod \
    ../include/cv_face_values.mod ../include/cv_faces.mod \
    ../include/cv_fields.mod ../include/cv_options.mod \
    ../include/cv_shape_functions.mod ../include/cv_upwind_values.mod \
    ../include/cvtools.mod ../include/diagnostic_fields.mod \
-   ../include/transform_elements.mod
+   ../include/transform_elements.mod ../include/field_derivatives.mod 
 
 ../include/diagnostic_children.mod: Diagnostic_Children.o
 	@true
