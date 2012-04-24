@@ -93,6 +93,9 @@ program Darcy_IMPES
    use boundary_conditions_from_options
    use checkpoint
    use sparsity_patterns_meshes
+   use cv_shape_functions
+   use cv_faces
+   use cv_options
    
    ! *** Use Darcy IMPES module ***
    use darcy_impes_assemble_module
