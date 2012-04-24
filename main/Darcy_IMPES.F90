@@ -96,6 +96,7 @@ program Darcy_IMPES
    use cv_shape_functions
    use cv_faces
    use cv_options
+   use FEFields
    
    ! *** Use Darcy IMPES module ***
    use darcy_impes_assemble_module
