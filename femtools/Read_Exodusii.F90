@@ -220,7 +220,7 @@ contains
     type(mesh_type) :: mesh
 
     logical :: fileExists
-    logical :: haveRegionIDs
+    logical :: haveRegionIDs, haveBounds
 
     type(EXOnode), pointer :: exo_nodes(:)
     type(EXOelement), pointer :: exo_element(:), exo_face(:), allelements(:)
@@ -252,7 +252,7 @@ contains
     integer, allocatable, dimension(:) :: elem_node_list, total_elem_node_list
     integer, allocatable, dimension(:) :: faces, sndglno
     
-    integer :: num_faces, num_elem, num_tags_elem
+    integer :: num_faces, num_elem, num_tags_elem, elementType
     integer :: loc, sloc
     integer :: nodeID, elemID, blockID, eff_dim, b, d, e, f, i, j, n, z, z2, exo_e
     
@@ -418,6 +418,9 @@ contains
     end if
 
 
+    ! Initialize logical variables:
+    haveBounds = .false.
+    haveRegionIDs = .false.
     ! We have RegionIDs when sidesets are set:
     if (num_side_sets > 0) then
        haveRegionIDs = .true.
@@ -633,9 +636,9 @@ contains
        z = z + num_elem_in_block(i)
     end do
     ! At this stage 'allelements' contains all elements (faces and elements) of all blocks of the mesh
-    ewrite(2,*) "allelements%elementID: ", allelements%elementID
-    ewrite(2,*) "allelements%blockID: ", allelements%blockID
-    ewrite(2,*) "allelements%type: ", allelements%type
+!    ewrite(2,*) "allelements%elementID: ", allelements%elementID
+!    ewrite(2,*) "allelements%blockID: ", allelements%blockID
+!    ewrite(2,*) "allelements%type: ", allelements%type
     
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Setting numTags to the elements with side-set-id !
@@ -678,7 +681,6 @@ contains
           do j=1, num_tags_elem
              ! Check for already existing tags in this element
              if ( allelements(elemID)%tags(j) == -666 ) then
-                ! Set side-set-id to the element, finally
                 allelements(elemID)%tags(j) = side_set_ids(i)
                 ! end exit the inner loop after setting this side sets id to the element
                 exit
@@ -689,15 +691,18 @@ contains
 !          ewrite(2,*) "allelements(elemID) = ", allelements(elemID)%elementID
 !          ewrite(2,*) "allelements(elemID)%numTags = ", allelements(elemID)%numTags
 !          ewrite(2,*) "allelements(elemID)%tags(:) = ", allelements(elemID)%tags(:)
+!       ewrite(2,*) "************* next element in side sets *************"
           z = z+1
        end do
 !       ewrite(2,*) "side_set_id(i) = ", side_set_ids(i)
-!       ewrite(2,*) "******* end of elem list *******"
+!       ewrite(2,*) "******************** end of elem list ********************"
     end do
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Elements and faces       !
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    print *, "------------------------------------------"
+    print *, "total_side_sets_elem_list = ", total_side_sets_elem_list
     ! Now actually set the elements and face-elements:
     ! assemble array with faces (faces contains element number (=element id of mesh))
     ! and sndglno contains the corresponding node numbers:
@@ -709,24 +714,34 @@ contains
     f=1; b=0; z=0; exo_e=1;
     do i=1, num_elem_blk
        do e=1, num_elem_in_block(i)
-          ! 2D faces as follows (only lines/edges):
+          ! Distinguish between faces/edges and elements:
           if( (num_dim .eq. 2 .and. elem_type(i) .eq. 1) .or. &
-            (num_dim .eq. 3 .and. &
-            (elem_type(i) .eq. 2 .or. elem_type(i) .eq. 3)) ) then ! these are faces
+               (num_dim .eq. 3 .and. &
+               (elem_type(i) .eq. 2 .or. elem_type(i) .eq. 3)) ) then
              ! Assemble faces:
              faces(f) = elem_num_map(e + b)
-!             allocate( exo_face(f)%tags(size(allElements(e+b)%tags)))
              allocate( exo_face(f)%nodeIDs(size(allElements(e+b)%nodeIDs)))
              exo_face(f)%elementID = allelements(e+b)%elementID
              exo_face(f)%blockID = allelements(e+b)%blockID
-!             exo_face(f)%tags = allelements(e+b)%tags
              exo_face(f)%nodeIDs = allelements(e+b)%nodeIDs
              exo_face(f)%type = allelements(e+b)%type
+             exo_face(f)%numTags = allelements(e+b)%numTags
+             ! Debugging statements:
+!             print *, "================================================================="
 !             print *, "these are FACES: "
 !             print *, "exo_face(f)%elementID = ", exo_face(f)%elementID
-!             print *, "exo_face(f)%blockID = ", exo_face(f)%blockID
-!             print *, "exo_face(f)%nodeIDs = ", exo_face(f)%nodeIDs(:)
 !             print *, "exo_face(f)%type = ", exo_face(f)%type
+!             print *, "allelements(e+b)%numTags = ", allelements(e+b)%numTags
+!             print *, "exo_face(f)%numTags = ", exo_face(f)%numTags
+             if (exo_face(f)%numTags > 0) then
+                ! State that there is at least one face with side-set-id/physical-id in the mesh
+                haveBounds = .true. ! it's repetitive, but doesn't slow it down by all these i/o operations anyway ;)
+                ! Allocate and set tags here
+                allocate( exo_face(f)%tags(size(allElements(e+b)%tags)))
+                exo_face(f)%tags = allelements(e+b)%tags
+!                print *, "allelements(e+b)%tags = ", allelements(e+b)%tags
+!                print *, "exo_face(f)%tags = ", exo_face(f)%tags
+             end if
              ! For face-elements, also assemble sndglno:
              do n=1, num_nodes_per_elem(i)
                 sndglno(n+z) = allelements(e+b)%nodeIDs(n)
@@ -737,23 +752,39 @@ contains
              allocate( exo_element(exo_e)%nodeIDs(size(allElements(e+b)%nodeIDs)))
              exo_element(exo_e)%elementID = allelements(e+b)%elementID
              exo_element(exo_e)%blockID = allelements(e+b)%blockID
-!             exo_face(f)%tags = allelements(e+b)%tags
              exo_element(exo_e)%nodeIDs = allelements(e+b)%nodeIDs
              exo_element(exo_e)%type = allelements(e+b)%type
+             exo_element(exo_e)%numTags = allelements(e+b)%numTags
+             ! Debugging statements:
+!             print *, "================================================================="
 !             print *, "these are ELEMENTS: "
 !             print *, "exo_element(exo_e)%elementID = ", exo_element(exo_e)%elementID
-!             print *, "exo_element(exo_e)%blockID = ", exo_element(exo_e)%blockID
-!             print *, "exo_element(exo_e)%nodeIDs = ", exo_element(exo_e)%nodeIDs(:)
 !             print *, "exo_element(exo_e)%type = ", exo_element(exo_e)%type
+!             print *, "allelements(e+b)%numTags = ", allelements(e+b)%numTags
+!             print *, "exo_element(exo_e)%numTags = ", exo_element(exo_e)%numTags
+             if (exo_element(exo_e)%numTags > 0) then
+                ! Allocate and set tags here
+                allocate( exo_element(exo_e)%tags(size(allElements(e+b)%tags)))
+                exo_element(exo_e)%tags = allelements(e+b)%tags
+!                print *, "allelements(e+b)%tags = ", allelements(e+b)%tags
+!                print *, "exo_element(exo_e)%tags = ", exo_element(exo_e)%tags
+             end if
              exo_e = exo_e + 1
           end if
+!          print *, "**************** next element ****************"
        end do
        b = b + num_elem_in_block(i)
     end do
 
+
+
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Copy (only) Elements to the mesh !
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    if (haveRegionIDs) then
+      allocate( field%mesh%region_ids(num_elem) )
+      field%mesh%region_ids = 0
+    end if
     z=0; exo_e=1;
     do i=1, num_elem_blk
        do e=1, num_elem_in_block(i)
@@ -763,29 +794,27 @@ contains
             !these are normal elements:
              do n=1, num_nodes_per_elem(i)
                 field%mesh%ndglno(n+z) = exo_element(exo_e)%nodeIDs(n)
+                if (haveRegionIDs .and. exo_element(exo_e)%numTags > 0) then
+!                   do j=1, exo_element(exo_e)%numTags
+                      field%mesh%region_ids(exo_e) = exo_element(exo_e)%tags(1)
+!                   end do
+                end if 
              end do
              exo_e = exo_e+1
              z = z+num_nodes_per_elem(i)
           end if
        end do
     end do
+    
 
-    call add_faces( field%mesh, sndgln = sndglno(1:num_faces*sloc) )
+!    if (haveBounds) then
+!       call add_faces( field%mesh, sndgln = sndglno(1:num_faces*sloc)  )
+!    else
+       call add_faces( field%mesh, sndgln = sndglno(1:num_faces*sloc) )
+!    end if
 
 
     ! Copy node number of faces to 
-!    do f=1, num_faces
-!       faces((f-1)*sloc+1:f*sloc) = faces(f)%nodeIDs(1:sloc)
-!       if(haveBounds) boundaryIDs(f) = faces(f)%tags(1)
-!       if(haveElementOwners) faceOwner(f) = faces(f)%tags(4)
-!    end do
-
-!    if (havebounds) then
-!      allocate(boundaryIDs(1:numFaces))
-!    end if
-!    if(haveElementOwners) then
-!      allocate(faceOwner(1:numFaces))
-!    end if
 !    do f=1, num_faces
 !       faces((f-1)*sloc+1:f*sloc) = faces(f)%nodeIDs(1:sloc)
 !       if(haveBounds) boundaryIDs(f) = faces(f)%tags(1)
