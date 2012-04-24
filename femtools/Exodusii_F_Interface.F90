@@ -199,11 +199,11 @@ module exodusii_f_interface
   end interface
 
   interface f_ex_get_side_set_node_list
-    function c_ex_get_side_set_node_list(exoid, side_set_id, side_set_ctr_list, side_set_node_list) result(error) bind(c)
+    function c_ex_get_side_set_node_list(exoid, side_set_id, side_set_node_cnt_list, side_set_node_list) result(error) bind(c)
       use, intrinsic :: iso_c_binding
       integer(kind=c_int) :: exoid
       integer(kind=c_int) :: side_set_id
-      integer(kind=c_int) :: side_set_ctr_list(*)
+      integer(kind=c_int) :: side_set_node_cnt_list(*)
       integer(kind=c_int) :: side_set_node_list(*)
       integer(kind=c_int) :: error
     end function c_ex_get_side_set_node_list
