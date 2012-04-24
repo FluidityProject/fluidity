@@ -135,11 +135,19 @@ int c_ex_get_side_set_param(int *exoid, int *side_set_id, int *num_sides_in_set,
    return (error);
 }
 
-
+/* Get individual side set element and side lists */
 int c_ex_get_side_set(int *exoid, int *side_set_id, int *side_set_elem_list, int *side_set_side_list)
 {
    int error;
    error = ex_get_side_set (*exoid, *side_set_id, side_set_elem_list, side_set_side_list);
+   return (error);
+}
+
+/* Get individual node list of a side set */
+int c_ex_get_side_set_node_list(int *exoid, int *side_set_id, int *side_set_tmp, int *side_set_node_list)
+{
+   int error;
+   error = ex_get_side_set_node_list(*exoid, *side_set_id, side_set_tmp, side_set_node_list);
    return (error);
 }
 

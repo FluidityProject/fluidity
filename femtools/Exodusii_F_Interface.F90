@@ -14,7 +14,7 @@ module exodusii_f_interface
             f_ex_get_elem_connectivity, &
             f_ex_get_node_set_param, f_ex_get_node_set_node_list, &
             f_ex_get_side_set_ids, f_ex_get_side_set_param, &
-            f_ex_get_side_set, &
+            f_ex_get_side_set, f_ex_get_side_set_node_list, &
             f_ex_close
 
 
@@ -196,6 +196,17 @@ module exodusii_f_interface
       integer(kind=c_int) :: side_list(*)
       integer(kind=c_int) :: error
     end function c_ex_get_side_set
+  end interface
+
+  interface f_ex_get_side_set_node_list
+    function c_ex_get_side_set_node_list(exoid, side_set_id, side_set_ctr_list, side_set_node_list) result(error) bind(c)
+      use, intrinsic :: iso_c_binding
+      integer(kind=c_int) :: exoid
+      integer(kind=c_int) :: side_set_id
+      integer(kind=c_int) :: side_set_ctr_list(*)
+      integer(kind=c_int) :: side_set_node_list(*)
+      integer(kind=c_int) :: error
+    end function c_ex_get_side_set_node_list
   end interface
 
   ! Closing exodusII file
