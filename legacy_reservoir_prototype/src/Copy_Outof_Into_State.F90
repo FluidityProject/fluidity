@@ -1860,13 +1860,13 @@
 
             Select Case( x_nloc )
 
-            case( 4 ) ! x_nloc
+            case( 10 ) ! x_nloc
 
                ! ndim=3; p=2; x_nloc=4
                ! quadratic tet
                cv_ele_type = 8
 
-            case( 8 ) ! x_nloc
+            case( 27 ) ! x_nloc
 
                ! ndim=3; p=2; x_nloc=8
                ! bilinear quad
@@ -2104,41 +2104,15 @@
                y2( 10 ) = 0.5 * (y2(3) + y2(4) )
                z2( 10 ) = 0.5 * (z2(3) + z2(4) )
 
-               if (ele==5) then
-                  print *, '==================================='
-                  print *, x_ndgln_p2( ( ele - 1 ) * x_nloc_p2 + 1:( ele - 1 ) * x_nloc_p2 + x_nloc_p2 )
-                  print *, x2
-                  print *, y2
-                  print *, z2
-                  print *, '==================================='
-               end if
-
 
                do iloc = 1, x_nloc_p2
                   inod = x_ndgln_p2( ( ele - 1 ) * x_nloc_p2 + iloc )
-
-                  if (ele==5)then
-                     print *, iloc,  iloclist_p2( iloc ), inod
-                     if( iloclist_p2(iloc) >= 7 )then
-                         print *, x2( iloclist_p2( iloc ) ), y2( iloclist_p2( iloc ) ), z2( iloclist_p2( iloc ) )
-                     end if
-                  end if
                   x( inod ) = x2( iloclist_p2( iloc ) )
                   y( inod ) = y2( iloclist_p2( iloc ) )
                   z( inod ) = z2( iloclist_p2( iloc ) )
                end do
 
             end do
-
-            do ele = 1, totele
-               if (ele==5) then
-                  ewrite(3,*) x(x_ndgln_p2( ( ele - 1 ) * x_nloc_p2 + 1 : ( ele - 1 ) * x_nloc_p2 + x_nloc_p2 ))
-                  ewrite(3,*) y(x_ndgln_p2( ( ele - 1 ) * x_nloc_p2 + 1 : ( ele - 1 ) * x_nloc_p2 + x_nloc_p2 ))
-                  ewrite(3,*) z(x_ndgln_p2( ( ele - 1 ) * x_nloc_p2 + 1 : ( ele - 1 ) * x_nloc_p2 + x_nloc_p2 ))
-               end if
-            end do
-
-            FLAbort( "Still need some code here" )
 
          end if
       end if Conditional_Pn
