@@ -745,7 +745,7 @@ contains
              allocate( exo_face(exo_f)%nodeIDs(size(allElements(e+b)%nodeIDs)))
              exo_face(exo_f)%nodeIDs = allelements(e+b)%nodeIDs
              ! They commented stuff below is not needed for faces, but is kept here for now for debugging reasons
-!             exo_face(f)%elementID = allelements(e+b)%elementID
+!             exo_face(exo_f)%elementID = allelements(e+b)%elementID
 !             exo_face(f)%blockID = allelements(e+b)%blockID
 !             exo_face(f)%type = allelements(e+b)%type
 !             exo_face(f)%numTags = allelements(e+b)%numTags
@@ -756,6 +756,8 @@ contains
 !             print *, "exo_face(f)%type = ", exo_face(f)%type
 !             print *, "allelements(e+b)%numTags = ", allelements(e+b)%numTags
 !             print *, "exo_face(f)%numTags = ", exo_face(f)%numTags
+!             print *, "exo_face(exo_f)%nodeIDs = ", exo_face(exo_f)%nodeIDs
+
              exo_f = exo_f+1
           else if (allelements(e+b)%numTags == 0) then
              ! these are elements without boundaryID, thus they'll remain elements
@@ -778,7 +780,52 @@ contains
        end do
        b = b + num_elem_in_block(i)
     end do
+    ! Now derive the faces for fluidity, that are based on elements with side-set-ID:
+    n_cnt_pos=1; z=1;
+    do i=1, num_side_sets
+       do e=1, num_elem_in_set(i)
+          num_nodes_face_ele = total_side_sets_node_cnt_list(e)
+          allocate( exo_face(exo_f)%nodeIDs(num_nodes_face_ele))
+          do n=1, num_nodes_face_ele
+             exo_face(exo_f)%nodeIDs(n) = total_side_sets_node_list(n_cnt_pos)
+             n_cnt_pos = n_cnt_pos+1
+          end do
+          ! Set boundaryID to face:
+          allocate(exo_face(exo_f)%tags(1))
+          exo_face(exo_f)%tags = side_set_ids(i)
+          exo_f = exo_f+1
+       end do
+    end do
     
+!    z=1; n_cnt_pos=1;
+!    do i=1, num_side_sets
+!       do e=1, num_elem_in_set(i)
+!          ewrite(2,*) "elem_list = ", total_side_sets_elem_list(z)
+!          do n=1, total_side_sets_node_cnt_list(e)
+!             ewrite(2,*) "node(n) of face of ele above: ", total_side_sets_node_list(n_cnt_pos)
+!             n_cnt_pos = n_cnt_pos + 1
+!          end do
+!          z = z+1
+!       end do
+!       ewrite(2,*) "side_set_id(i) = ", side_set_ids(i)
+!       ewrite(2,*) "******* end of elem list *******"
+!    end do
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     ! Assemble the CoordinateMesh:
