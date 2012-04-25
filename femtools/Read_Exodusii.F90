@@ -663,8 +663,8 @@ contains
     ! At this stage, the elements of 'allelements' have been correctly tagged, 
     ! meaning they carry the side set ID(s) as tags, which later will
     ! become the boundary ID of their face(s)
-    print *, "------------------------------------------"
-    print *, "total_side_sets_elem_list = ", total_side_sets_elem_list
+!    print *, "------------------------------------------"
+!    print *, "total_side_sets_elem_list = ", total_side_sets_elem_list
 
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -706,32 +706,24 @@ contains
     end do
     ewrite(2,*) "intermediate number of faces: ", num_faces
     ewrite(2,*) "intermediate number of elem: ", num_elem
-    ! Now check for site-set-id/physical-id:
-    z=1;
-    do i=1, num_allelem
-       elemID = allelements(i)%elementID
-       num_tags_elem = allelements(elemID)%numTags
-       ! Is there at least one site set ID assigned to the element, it is a potentially a face:
-       if (num_tags_elem > 0) then
-          ! For next check, determine number of faces of this element based on it's type:
-          if (allelements(elemID)%type == 2) then
-             num_faces_ele = 3
-          else if (allelements(elemID)%type == 3) then
-             num_faces_ele = 4
-          else if (allelements(elemID)%type == 4) then
-             num_faces_ele = 4
-          else if (allelements(elemID)%type == 5) then
-             num_faces_ele = 6
-          end if
-          ! check if number of tags of this element is equal to number of faces of this element
-          if (.not. num_tags_elem == num_faces_ele) then
-             ! Increase number of faces, as this element is identified as face:
+    ! Now check for site-set-id/physical-id, if element has numTags>0,
+    ! than this element will become a face with boundaryID assigned to it
+    if (haveBoundaries) then
+       z=1;
+       do i=1, num_allelem
+          elemID = allelements(i)%elementID
+          print *, "elemID = ", elemID
+          num_tags_elem = allelements(elemID)%numTags
+          print *, "num_tags_elem = ", num_tags_elem
+          ! Is there at least one site set ID assigned to the element, it is a face:
+          if (num_tags_elem > 0) then
+             ! increase number of faces in the mesh...
              num_faces = num_faces + num_tags_elem
-          else !else we have to correct the element counter because all faces of this element possess a side set id
+             ! and reduce number of elements, as this element will become a face (at least one) with boundaryID
              num_elem = num_elem-1
           end if
-       end if
-    end do
+       end do
+    end if
     ewrite(2,*) "total number of faces: ", num_faces
 
 
