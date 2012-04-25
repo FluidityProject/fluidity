@@ -395,13 +395,15 @@ contains
 
 
     ! Initialize logical variables:
-    haveBounds = .false.
-    haveRegionIDs = .false.
-    ! We have RegionIDs when sidesets are set:
+    ! We have RegionIDs when there are blockIDs assigned to elements
+    ! so basically always when supplying an exodusII mesh, as an blockID is assigned
+    ! to all elements of the mesh if the user does not specify an blockID manually
+    haveRegionIDs = .true. ! redundant for reasons stated above, but kept here to keep it consistent with gmshreader for now
+    ! Boundaries: Boundaries are present if at least one side-set was supplied by the user:
     if (num_side_sets > 0) then
-       haveRegionIDs = .true.
+       haveBoundaries = .true.
     else
-       haveRegionIDs = .false.
+       haveBoundaries = .false.
     end if
     ! Get side sets
     ! Side sets in exodusii are what physical lines/surfaces/volumes are in gmsh
