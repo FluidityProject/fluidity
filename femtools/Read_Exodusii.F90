@@ -418,7 +418,7 @@ contains
     end if
 
     ! Get side set parameters:
-    if (haveRegionIDs) then
+    if (haveBoundaries) then
        do i=1, num_side_sets
           ierr = f_ex_get_side_set_param(exoid, side_set_ids(i), num_sides_in_set(i), num_df_in_set(i));
        end do
@@ -431,7 +431,7 @@ contains
     num_elem_in_set = num_sides_in_set;
 
     ! Now let's finally get the side-set-ids!
-    if (haveRegionIDs) then
+    if (haveBoundaries) then
        allocate(total_side_sets_elem_list(0))
        allocate(total_side_sets_node_list(0))
        allocate(total_side_sets_node_cnt_list(0))
