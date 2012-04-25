@@ -320,26 +320,30 @@ This option is generally only useful for testing. </a:documentation>
                     <element name="period_in_timesteps">
                       <ref name="integer"/>
                     </element>
-                    <element name="minimum">
-                      <choice>
-                        <element name="constant">
-                          <ref name="real"/>
-                        </element>
-                        <element name="python">
-                          <ref name="python_code"/>
-                        </element>
-                      </choice>
-                    </element>
-                    <element name="maximum">
-                      <choice>
-                        <element name="constant">
-                          <ref name="real"/>
-                        </element>
-                        <element name="python">
-                          <ref name="python_code"/>
-                        </element>
-                      </choice>
-                    </element>
+                    <optional>
+                      <element name="minimum">
+                        <choice>
+                          <element name="constant">
+                            <ref name="real"/>
+                          </element>
+                          <element name="python">
+                            <ref name="python_code"/>
+                          </element>
+                        </choice>
+                      </element>
+                    </optional>
+                    <optional>
+                      <element name="maximum">
+                        <choice>
+                          <element name="constant">
+                            <ref name="real"/>
+                          </element>
+                          <element name="python">
+                            <ref name="python_code"/>
+                          </element>
+                        </choice>
+                      </element>
+                    </optional>
                   </element>
                 </optional>
               </element>

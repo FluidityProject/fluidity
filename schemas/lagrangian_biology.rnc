@@ -278,7 +278,7 @@ lagrangian_biology =
                               python_code
                            }
                         )
-                     },
+                     }?,
                      element maximum {
                         (
                            element constant {
@@ -288,7 +288,7 @@ lagrangian_biology =
                               python_code
                            }
                         )
-                     }
+                     }?
                   }?
                }*
             },

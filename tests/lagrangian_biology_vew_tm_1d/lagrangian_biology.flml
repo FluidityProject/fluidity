@@ -64,7 +64,8 @@
     </timestep>
     <finish_time>
       <real_value rank="0">63070200</real_value>
-      <comment>31536000 - 1 year
+      <comment>2592000 - 1 month
+31536000 - 1 year
 63072000 - 2 year
 Note: For 2-year runs with VEW data use: 63070200</comment>
     </finish_time>
@@ -897,11 +898,6 @@ def val(biovars, env, dt):
               <period_in_timesteps>
                 <integer_value rank="0">1</integer_value>
               </period_in_timesteps>
-              <minimum>
-                <constant>
-                  <real_value rank="0">1.0</real_value>
-                </constant>
-              </minimum>
               <maximum>
                 <constant>
                   <real_value rank="0">1.0</real_value>
