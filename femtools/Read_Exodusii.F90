@@ -741,10 +741,9 @@ contains
 !             print *, "exo_face(f)%type = ", exo_face(f)%type
 !             print *, "allelements(e+b)%numTags = ", allelements(e+b)%numTags
 !             print *, "exo_face(f)%numTags = ", exo_face(f)%numTags
-             end if
              exo_f = exo_f+1
              z = z+num_nodes_per_elem(i)
-          else if (allelements%numTags == 0) then
+          else if (allelements(e+b)%numTags == 0) then
              ! these are elements without boundaryID, thus they'll remain elements
              allocate( exo_element(exo_e)%nodeIDs(size(allElements(e+b)%nodeIDs)))
              exo_element(exo_e)%elementID = allelements(e+b)%elementID
