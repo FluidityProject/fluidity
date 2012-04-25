@@ -559,9 +559,9 @@ This option will work only if the mesh_adaptivity is switched on.</a:documentati
         <oneOrMore>
           <ref name="initial_condition_scalar"/>
         </oneOrMore>
-        <oneOrMore>
+        <zeroOrMore>
           <ref name="darcy_impes_bc_pressure_field"/>
-        </oneOrMore>
+        </zeroOrMore>
         <ref name="adaptivity_options_prognostic_scalar_field"/>
         <ref name="interpolation_algorithm_scalar"/>
       </element>
@@ -599,9 +599,9 @@ This option will work only if the mesh_adaptivity is switched on.</a:documentati
           <oneOrMore>
             <ref name="initial_condition_scalar"/>
           </oneOrMore>
-          <oneOrMore>
+          <zeroOrMore>
             <ref name="darcy_impes_bc_saturation_field"/>
-          </oneOrMore>
+          </zeroOrMore>
           <ref name="darcy_impes_include_cv_stat"/>
           <ref name="adaptivity_options_prognostic_scalar_field"/>
           <ref name="interpolation_algorithm_scalar"/>
@@ -862,6 +862,9 @@ Default value if not given is 0.25.</a:documentation>
             <value>Internal</value>
           </attribute>
         </element>
+        <zeroOrMore>
+          <ref name="darcy_impes_bc_darcy_velocity_field"/>
+        </zeroOrMore>
         <ref name="darcy_impes_include_cv_stat"/>
       </element>
     </element>
@@ -908,6 +911,9 @@ Default value if not given is 0.25.</a:documentation>
             <value>Internal</value>
           </attribute>
         </element>
+        <zeroOrMore>
+          <ref name="darcy_impes_bc_total_darcy_velocity_field"/>
+        </zeroOrMore>
         <ref name="darcy_impes_include_cv_stat"/>
       </element>
     </element>
@@ -968,20 +974,12 @@ Default value if not given is 0.25.</a:documentation>
         <a:documentation>Surface id</a:documentation>
         <ref name="integer_vector"/>
       </element>
-      <choice>
-        <element name="type">
-          <attribute name="name">
-            <value>dirichlet</value>
-          </attribute>
-          <ref name="input_choice_real"/>
-        </element>
-        <element name="type">
-          <attribute name="name">
-            <value>neumann</value>
-          </attribute>
-          <ref name="input_choice_real"/>
-        </element>
-      </choice>
+      <element name="type">
+        <attribute name="name">
+          <value>dirichlet</value>
+        </attribute>
+        <ref name="input_choice_real"/>
+      </element>
     </element>
   </define>
   <define name="darcy_impes_bc_saturation_field">
@@ -1007,6 +1005,42 @@ Default value if not given is 0.25.</a:documentation>
           </attribute>
         </element>
       </choice>
+    </element>
+  </define>
+  <define name="darcy_impes_bc_darcy_velocity_field">
+    <element name="boundary_conditions">
+      <a:documentation>Boundary conditions</a:documentation>
+      <attribute name="name">
+        <data type="string" datatypeLibrary=""/>
+      </attribute>
+      <element name="surface_ids">
+        <a:documentation>Surface id</a:documentation>
+        <ref name="integer_vector"/>
+      </element>
+      <element name="type">
+        <attribute name="name">
+          <value>normal_flow</value>
+        </attribute>
+        <ref name="input_choice_real"/>
+      </element>
+    </element>
+  </define>
+  <define name="darcy_impes_bc_total_darcy_velocity_field">
+    <element name="boundary_conditions">
+      <a:documentation>Boundary conditions</a:documentation>
+      <attribute name="name">
+        <data type="string" datatypeLibrary=""/>
+      </attribute>
+      <element name="surface_ids">
+        <a:documentation>Surface id</a:documentation>
+        <ref name="integer_vector"/>
+      </element>
+      <element name="type">
+        <attribute name="name">
+          <value>normal_flow</value>
+        </attribute>
+        <ref name="input_choice_real"/>
+      </element>
     </element>
   </define>
   <define name="darcy_impes_include_cv_stat">

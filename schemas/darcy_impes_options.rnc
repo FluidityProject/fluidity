@@ -558,7 +558,7 @@ darcy_impes_pressure_field =
                linear_solver_options_asym
             },
             initial_condition_scalar+,
-            darcy_impes_bc_pressure_field+,
+            darcy_impes_bc_pressure_field*,
             adaptivity_options_prognostic_scalar_field,
             interpolation_algorithm_scalar
          }
@@ -589,7 +589,7 @@ darcy_impes_saturation_field_phase_one =
                darcy_impes_saturation_field_spatial_discretisation_only_upwind,
                darcy_impes_saturation_field_temporal_discretisation_only_explicit,
                initial_condition_scalar+,
-               darcy_impes_bc_saturation_field+,
+               darcy_impes_bc_saturation_field*,
                darcy_impes_include_cv_stat,
                adaptivity_options_prognostic_scalar_field,
                interpolation_algorithm_scalar         
@@ -811,6 +811,7 @@ darcy_impes_darcy_velocity_field =
             element algorithm {
                attribute name { "Internal" }
             }, 
+            darcy_impes_bc_darcy_velocity_field*,
             darcy_impes_include_cv_stat
          }
       }
@@ -847,6 +848,7 @@ darcy_impes_total_darcy_velocity_field =
             element algorithm {
                attribute name { "Internal" }
             }, 
+            darcy_impes_bc_total_darcy_velocity_field*,
             darcy_impes_include_cv_stat
          }
       }
@@ -898,16 +900,10 @@ darcy_impes_bc_pressure_field =
          element surface_ids {
             integer_vector
          },
-         (
-            element type {
-               attribute name { "dirichlet" },
-               input_choice_real
-            }|
-            element type {
-               attribute name { "neumann" },
-               input_choice_real
-            }
-         )            
+         element type {
+            attribute name { "dirichlet" },
+            input_choice_real
+         }            
       }   
    )
 
@@ -931,6 +927,42 @@ darcy_impes_bc_saturation_field =
             }
          )
       }   
+   )
+
+
+darcy_impes_bc_darcy_velocity_field =
+   (
+      ## Boundary conditions
+      element boundary_conditions {
+         attribute name { string },
+         ## Surface id
+         element surface_ids {
+            integer_vector
+         },
+         element type {
+            attribute name { "normal_flow" },
+            input_choice_real
+         }            
+      }   
+   
+   )
+
+
+darcy_impes_bc_total_darcy_velocity_field =
+   (
+      ## Boundary conditions
+      element boundary_conditions {
+         attribute name { string },
+         ## Surface id
+         element surface_ids {
+            integer_vector
+         },
+         element type {
+            attribute name { "normal_flow" },
+            input_choice_real
+         }            
+      }   
+   
    )
 
 

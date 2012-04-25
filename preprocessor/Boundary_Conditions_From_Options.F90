@@ -117,11 +117,11 @@ contains
           vfield => extract_vector_field(states(p+1), f)
           field_path=vfield%option_path
           
-          if (.not. have_option(trim(field_path)//'/prognostic')) cycle
-
-          ! only prognostic fields from here:
           call populate_vector_boundary_conditions(states(p+1),vfield, &
                trim(field_path)//'/prognostic/boundary_conditions', position)
+
+          call populate_vector_boundary_conditions(states(p+1),vfield, &
+               trim(field_path)//'/diagnostic/boundary_conditions', position)
 
        end do
 
@@ -441,6 +441,17 @@ contains
           call insert_surface_field(field, i+1, scalar_surface_field)
           call deallocate(scalar_surface_field)
 
+       case("normal_flow")
+
+          call add_boundary_condition(field, trim(bc_name), trim(bc_type), &
+               & surface_ids, option_path=bc_path_i)
+          deallocate(surface_ids)
+
+          call get_boundary_condition(field, i+1, surface_mesh=surface_mesh)
+          call allocate(scalar_surface_field, surface_mesh, name="value")
+          call insert_surface_field(field, i+1, scalar_surface_field)
+          call deallocate(scalar_surface_field)
+
        case ("wind_forcing")
 
           call add_boundary_condition(field, trim(bc_name), trim(bc_type), &
@@ -648,11 +659,13 @@ contains
        do f = 1, nfields
           vfield => extract_vector_field(states(p+1), f)
           field_path=vfield%option_path
-          if (.not. have_option(trim(field_path)//'/prognostic')) cycle
 
-          ! only prognostic fields from here:
           call set_vector_boundary_conditions_values(states(p+1), vfield, &
                trim(field_path)//'/prognostic/boundary_conditions', &
+               position, shift_time=shift_time)
+
+          call set_vector_boundary_conditions_values(states(p+1), vfield, &
+               trim(field_path)//'/diagnostic/boundary_conditions', &
                position, shift_time=shift_time)
 
        end do
@@ -1086,6 +1099,19 @@ contains
 
           call initialise_field(scalar_surface_field, bc_path_i, bc_position, &
             time=time)
+          call deallocate(bc_position)
+
+       case("normal_flow")
+
+          call get_boundary_condition(field, i+1, surface_mesh=surface_mesh, &
+               surface_element_list=surface_element_list)
+          
+          scalar_surface_field => extract_scalar_surface_field(field, bc_name, name="value")
+          
+          ! map the coordinate field onto this mesh
+          bc_position = get_coordinates_remapped_to_surface(position, surface_mesh, surface_element_list) 
+
+          call initialise_field(scalar_surface_field, bc_path_i, bc_position, time=time)
           call deallocate(bc_position)
 
        case("wind_forcing")

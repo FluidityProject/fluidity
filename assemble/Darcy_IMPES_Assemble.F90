@@ -89,7 +89,12 @@ module darcy_impes_assemble_module
       type(scalar_field) :: cv_mass_pressure_mesh_with_old_porosity 
       type(scalar_field) :: cfl_subcycle
       type(scalar_field) :: old_saturation_subcycle   
-      type(csr_sparsity), pointer :: sparsity   
+      type(scalar_field), dimension(:), pointer :: darcy_velocity_normal_flow_bc_value
+      type(scalar_field) :: total_darcy_velocity_normal_flow_bc_value
+      type(mesh_type), pointer :: darcy_velocity_surface_mesh
+      integer, dimension(:,:), pointer :: darcy_velocity_normal_flow_bc_flag
+      integer, dimension(:), pointer :: total_darcy_velocity_normal_flow_bc_flag      
+      type(csr_sparsity), pointer :: sparsity
       integer :: p, number_phase, quaddegree   
       type(cv_options_type) :: saturation_cv_options
       type(cv_faces_type) :: cvfaces
@@ -219,16 +224,14 @@ module darcy_impes_assemble_module
       integer, dimension(:),     pointer     :: x_pmesh_nodes
       integer, dimension(:),     pointer     :: p_nodes      
       integer, dimension(:),     pointer     :: upwind_nodes
-      real,    dimension(:),     allocatable :: pressure_bc_sele_val
+      real,    dimension(:),     allocatable :: bc_sele_val
       real,    dimension(:,:),   allocatable :: normal_bdy
       real,    dimension(:),     allocatable :: detwei_bdy
       real,    dimension(:,:),   allocatable :: x_ele_bdy
       real,    dimension(:),     allocatable :: p_rhs_local_bdy
       integer, dimension(:),     allocatable :: p_nodes_bdy
-      integer, dimension(:),     allocatable :: pressure_bc_type
-      type(scalar_field) :: pressure_bc
-      integer, parameter :: BC_TYPE_NEUMANN = 1, BC_TYPE_DIRICHLET = 2
-      
+      integer, parameter :: BC_TYPE_NORMAL_FLOW = 1
+            
       ! allocate arrays used in assemble process - many assume
       ! that all elements are the same type.
       allocate(x_ele(di%positions%dim, ele_loc(di%positions,1)))      
@@ -245,7 +248,7 @@ module darcy_impes_assemble_module
       allocate(relperm_ele(di%number_phase,ele_loc(di%pressure,1)))
       allocate(old_vphi_face(di%positions%dim,di%p_cvshape%ngi,di%number_phase))
 
-      allocate(pressure_bc_sele_val(face_loc(di%pressure,1)))
+      allocate(bc_sele_val(face_loc(di%pressure,1)))
       allocate(detwei_bdy(di%x_cvbdyshape%ngi))
       allocate(normal_bdy(di%positions%dim, di%x_cvbdyshape%ngi))
       allocate(p_rhs_local_bdy(face_loc(di%pressure,1)))
@@ -414,49 +417,121 @@ module darcy_impes_assemble_module
       
       call scale(di%rhs, 1.0/di%dt)
       
-      ! Add pressure BC integrals to rhs      
-      allocate(pressure_bc_type(surface_element_count(di%pressure)))         
+      ! Add normal darcy velocity or normal total darcy velocity BC integrals
+      ! - NOTE that there cannot be individual phase darcy velocity BCs
+      !        when there is a total darcy velocity BC on a surface element. 
       
-      call get_entire_boundary_condition(di%pressure, (/"neumann  ", &
-                                                     "dirichlet"/), pressure_bc, pressure_bc_type)
-     
+      ! Get the total darcy velocity BC info
+      call get_darcy_velocity_normal_flow_boundary_condition(di%total_darcy_velocity, &
+                                                             di%darcy_velocity_surface_mesh, &
+                                                             di%total_darcy_velocity_normal_flow_bc_value, &
+                                                             di%total_darcy_velocity_normal_flow_bc_flag)
+      
+      ! Get the darcy velocity BC info for each phase
+      do p = 1, di%number_phase
+      
+         call get_darcy_velocity_normal_flow_boundary_condition(di%darcy_velocity(p)%ptr, &
+                                                                di%darcy_velocity_surface_mesh, &
+                                                                di%darcy_velocity_normal_flow_bc_value(p), &
+                                                                di%darcy_velocity_normal_flow_bc_flag(:,p))
+      
+      end do
+      
       sele_loop: do sele = 1, surface_element_count(di%pressure)
-                  
-         if (pressure_bc_type(sele) == BC_TYPE_DIRICHLET) cycle
          
-         pressure_bc_sele_val = ele_val(pressure_bc, sele)
-                  
-         x_ele       = ele_val(di%positions, face_ele(di%positions, sele))
-         x_ele_bdy   = face_val(di%positions, sele)
-         p_nodes_bdy = face_global_nodes(di%pressure%mesh, sele)
+         ! If total darcy BC then apply, else apply individual phase darcy BC
+         ! and where there is no velocity BC include necessary pressure integral.
+                 
+         have_total_darcy_vel_bc: if (di%total_darcy_velocity_normal_flow_bc_flag(sele) == BC_TYPE_NORMAL_FLOW) then
+            
+            ! Check that there are no individual darcy velocity phase BC
+            do p = 1, di%number_phase
+               if (di%darcy_velocity_normal_flow_bc_flag(sele,p) == BC_TYPE_NORMAL_FLOW) then
+                  ewrite(-1,*) 'Issue with DarcyVelocity normal_flow BC for phase ',p
+                  FLExit('Cannot apply individual phase DarcyVelocity normal_flow BC when one is applied to the TotalDarcyVelocity')
+               end if
+            end do
+
+            bc_sele_val = ele_val(di%total_darcy_velocity_normal_flow_bc_value, sele)
+
+            x_ele       = ele_val(di%positions, face_ele(di%positions, sele))
+            x_ele_bdy   = face_val(di%positions, sele)
+            p_nodes_bdy = face_global_nodes(di%pressure%mesh, sele)
+
+            call transform_cvsurf_facet_to_physical(x_ele, x_ele_bdy, di%x_cvbdyshape, normal_bdy, detwei_bdy)
+
+            p_rhs_local_bdy = 0.0
+
+            total_bc_iloc_loop: do iloc = 1, di%pressure%mesh%faces%shape%loc
+
+               total_bc_face_loop: do face = 1, di%cvfaces%sfaces
+
+                  total_bc_neigh_if: if(di%cvfaces%sneiloc(iloc,face)/=0) then
+
+                     total_bc_quad_loop: do gi = 1, di%cvfaces%shape%ngi
+
+                        ggi = (face-1)*di%cvfaces%shape%ngi + gi
+
+                        p_rhs_local_bdy(iloc) = p_rhs_local_bdy(iloc) - bc_sele_val(iloc)* detwei_bdy(ggi)                    
+
+                     end do total_bc_quad_loop
+
+                  end if total_bc_neigh_if
+
+               end do total_bc_face_loop
+
+            end do total_bc_iloc_loop
+
+            call addto(di%rhs, p_nodes_bdy, p_rhs_local_bdy)
+             
+         else have_total_darcy_vel_bc
          
-         call transform_cvsurf_facet_to_physical(x_ele, x_ele_bdy, di%x_cvbdyshape, normal_bdy, detwei_bdy)
+            loop_phase_darcy_vel_bc: do p = 1, di%number_phase
+               
+               have_phase_darcy_vel_bc: if (di%darcy_velocity_normal_flow_bc_flag(sele,p) == BC_TYPE_NORMAL_FLOW) then
 
-         ! Initialise the local rhs to assemble for this element
-         p_rhs_local_bdy = 0.0
+                  bc_sele_val = ele_val(di%darcy_velocity_normal_flow_bc_value(p), sele)
 
-         bc_iloc_loop: do iloc = 1, di%pressure%mesh%faces%shape%loc
+                  x_ele       = ele_val(di%positions, face_ele(di%positions, sele))
+                  x_ele_bdy   = face_val(di%positions, sele)
+                  p_nodes_bdy = face_global_nodes(di%pressure%mesh, sele)
 
-            bc_face_loop: do face = 1, di%cvfaces%sfaces
+                  call transform_cvsurf_facet_to_physical(x_ele, x_ele_bdy, di%x_cvbdyshape, normal_bdy, detwei_bdy)
 
-               bc_neigh_if: if(di%cvfaces%sneiloc(iloc,face)/=0) then
-
-                  bc_quad_loop: do gi = 1, di%cvfaces%shape%ngi
-
-                     ggi = (face-1)*di%cvfaces%shape%ngi + gi
-                                        
-                     p_rhs_local_bdy(iloc) = p_rhs_local_bdy(iloc) - pressure_bc_sele_val(iloc)* detwei_bdy(ggi)                    
-                     
-                  end do bc_quad_loop
-
-               end if bc_neigh_if
-
-            end do bc_face_loop
-
-         end do bc_iloc_loop
-
-         call addto(di%rhs, p_nodes_bdy, p_rhs_local_bdy)
+                  p_rhs_local_bdy = 0.0
                   
+                  bc_iloc_loop: do iloc = 1, di%pressure%mesh%faces%shape%loc
+
+                     bc_face_loop: do face = 1, di%cvfaces%sfaces
+
+                        bc_neigh_if: if(di%cvfaces%sneiloc(iloc,face)/=0) then
+
+                           bc_quad_loop: do gi = 1, di%cvfaces%shape%ngi
+
+                              ggi = (face-1)*di%cvfaces%shape%ngi + gi
+
+                              p_rhs_local_bdy(iloc) = p_rhs_local_bdy(iloc) - bc_sele_val(iloc)* detwei_bdy(ggi)                    
+
+                           end do bc_quad_loop
+
+                        end if bc_neigh_if
+
+                     end do bc_face_loop
+
+                  end do bc_iloc_loop
+
+                  call addto(di%rhs, p_nodes_bdy, p_rhs_local_bdy)                  
+                  
+               else have_phase_darcy_vel_bc
+                  
+                  
+                  
+               end if have_phase_darcy_vel_bc
+            
+            end do loop_phase_darcy_vel_bc
+         
+         end if have_total_darcy_vel_bc
+                           
       end do sele_loop      
       
       ! Apply any strong dirichlet BC's
@@ -479,14 +554,12 @@ module darcy_impes_assemble_module
       deallocate(old_saturation_ele)
       deallocate(relperm_ele)
       deallocate(old_vphi_face)
-      deallocate(pressure_bc_sele_val)
+      deallocate(bc_sele_val)
       deallocate(detwei_bdy)
       deallocate(normal_bdy)
       deallocate(p_rhs_local_bdy)
       deallocate(x_ele_bdy)      
       deallocate(p_nodes_bdy)
-      deallocate(pressure_bc_type)
-      call deallocate(pressure_bc)
    
    end subroutine solve_pressure
 
@@ -1199,6 +1272,80 @@ module darcy_impes_assemble_module
        
    end subroutine darcy_impes_calculate_sum_saturation
 
+! ----------------------------------------------------------------------------
+
+  subroutine get_darcy_velocity_normal_flow_boundary_condition(darcy_velocity, &
+                                                               darcy_velocity_surface_mesh, &
+                                                               darcy_velocity_normal_flow_bc_value, &
+                                                               darcy_velocity_normal_flow_bc_flag)
+    
+    !!< Form the data associated with darcy velocity normal_flow BC by returning 
+    !!< full surface mesh arrays of a flag indicating normal_flow and the value.
+    !!< This can be used for the phase DarcyVelocity and the TotalDarcyVelocity.
+    
+    type(vector_field),               intent(in),   target :: darcy_velocity
+    type(mesh_type),                  intent(in)           :: darcy_velocity_surface_mesh
+    type(scalar_field),               intent(inout)        :: darcy_velocity_normal_flow_bc_value
+    integer,            dimension(:), intent(inout)        :: darcy_velocity_normal_flow_bc_flag
+    
+    ! Local variables
+    type(scalar_field),                         pointer :: scalar_surface_field
+    integer,                      dimension(:), pointer :: surface_element_list
+    integer                                             :: i, k, sele
+    character(len=FIELD_NAME_LEN)                       :: bctype
+    
+    ! Zero the normal_flow value surface field on whole boundary mesh  
+    call zero(darcy_velocity_normal_flow_bc_value)
+    
+    ! Initialise flag for whether surface element has normal_flow BC
+    darcy_velocity_normal_flow_bc_flag = 0
+
+    ! Loop each BC object instance for the darcy_velocity
+    ! (May have multiple normal_flow BC's applied to different surface id's)
+    BC_loop: do i=1, get_boundary_condition_count(darcy_velocity)
+       
+       ! Get this BC info
+       call get_boundary_condition(darcy_velocity, i, type = bctype, &
+                                   surface_element_list = surface_element_list)
+          
+       ! check this is a normal_flow BC (nothing else is permitted)
+       if (trim(bctype) /= 'normal_flow') then
+          FLAbort('Have unknown BC type for either DarcyVelocity or TotalDarcyVelocity')
+       end if
+       
+       ! Extract the scalar_surface_field for this BC 
+       if (associated(darcy_velocity%bc%boundary_condition(i)%scalar_surface_fields)) then
+          scalar_surface_field => darcy_velocity%bc%boundary_condition(i)%scalar_surface_fields(1)
+       else
+          FLAbort('Component scalar_surface_fields for DarcyVelocity or TotalDarcyVelocity BC type not associated')
+       end if
+       
+       ! Loop the surface elements associated with this BC instance
+       ! and place the required BC value in whole boundary field
+       BC_sele_loop: do k=1, size(surface_element_list)
+          
+          ! Find the whole domain surface element number
+          sele = surface_element_list(k)
+          
+          ! Check that there is only 1 BC applied per surface element
+          if (darcy_velocity_normal_flow_bc_flag(sele) /= 0) then             
+             FLExit('Cannot apply more than 1 BC to a surface element for DarcyVelocity and TotalDarcyVelocity')
+          end if
+          
+          ! Set the sele flag to indicate it has a normal_flow BC
+          darcy_velocity_normal_flow_bc_flag(sele) = 1
+          
+          ! Set the normal_flow field values from this BC for its sele
+          call set(darcy_velocity_normal_flow_bc_value, &
+                   ele_nodes(darcy_velocity_surface_mesh, sele), &
+                   ele_val(scalar_surface_field, k))
+          
+       end do BC_sele_loop
+    
+    end do BC_loop
+
+  end subroutine get_darcy_velocity_normal_flow_boundary_condition
+  
 ! ----------------------------------------------------------------------------
 
 end module darcy_impes_assemble_module

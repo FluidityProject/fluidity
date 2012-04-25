@@ -635,7 +635,28 @@ contains
       call compute_cv_mass(di%positions, di%inverse_cv_mass_pressure_mesh)
 
       call invert(di%inverse_cv_mass_pressure_mesh)   
+      
+      ! Allocate the darcy velocity (and total) BC normal_flow value fields and flag
+      di%darcy_velocity_surface_mesh => get_dg_surface_mesh(di%darcy_velocity(1)%ptr%mesh)
 
+      call allocate(di%total_darcy_velocity_normal_flow_bc_value, &
+                   &di%darcy_velocity_surface_mesh, &
+                   &name=trim(di%total_darcy_velocity%name)//'NormalFlowBCValue')
+      
+      allocate(di%total_darcy_velocity_normal_flow_bc_flag(surface_element_count(di%darcy_velocity(1)%ptr)))
+      
+      allocate(di%darcy_velocity_normal_flow_bc_value(di%number_phase))
+      
+      do p = 1,di%number_phase
+         
+         call allocate(di%darcy_velocity_normal_flow_bc_value(p), &
+                      &di%darcy_velocity_surface_mesh, &
+                      &name=trim(di%darcy_velocity(p)%ptr%name)//'NormalFlowBCValue')         
+         
+      end do      
+
+      allocate(di%darcy_velocity_normal_flow_bc_flag(surface_element_count(di%darcy_velocity(1)%ptr), di%number_phase))
+      
       ! Get the saturation cv options from the first phase
       di%saturation_cv_options = get_cv_options(di%saturation(1)%ptr%option_path, &
                                                &di%saturation(1)%ptr%mesh%shape%numbering%family, &
@@ -723,6 +744,9 @@ contains
       
       ! Deallocate data types that are NOT pointers to data in di%state
       
+      ! local variable
+      integer :: p
+      
       call deallocate(di%positions_pressure_mesh)
       call deallocate(di%pressure_matrix)
       call deallocate(di%lhs)
@@ -735,6 +759,13 @@ contains
       call deallocate(di%cv_mass_pressure_mesh_with_porosity)
       call deallocate(di%cv_mass_pressure_mesh_with_old_porosity)
       call deallocate(di%cfl_subcycle)
+      call deallocate(di%total_darcy_velocity_normal_flow_bc_value)
+      do p = 1,di%number_phase
+         call deallocate(di%darcy_velocity_normal_flow_bc_value(p))
+      end do
+      deallocate(di%darcy_velocity_normal_flow_bc_value)
+      deallocate(di%total_darcy_velocity_normal_flow_bc_flag)
+      deallocate(di%darcy_velocity_normal_flow_bc_flag)      
       deallocate(di%saturation)
       deallocate(di%old_saturation)
       deallocate(di%relative_permeability)
