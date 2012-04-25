@@ -255,6 +255,7 @@ contains
     integer :: num_nodes_face_ele, num_nodes_per_elem_ele
     integer :: loc, sloc
     integer :: nodeID, elemID, blockID, eff_dim, b, d, e, f, i, j, n, z, z2, exo_e, exo_f
+    integer :: n_cnt_pos
     
 
     ! First of all: Identify the filename:
@@ -455,19 +456,23 @@ contains
        end do
     end if
 
-!    ! Tests:
-!    ewrite(2,*) "********************************SIDE SETS*************************************"
-!    ewrite(2,*) "side_set_ids = ", side_set_ids
-!    ewrite(2,*) "total_side_sets_elem_list = ", total_side_sets_elem_list
-!    z=1;
-!    do i=1, num_side_sets
-!       do e=1, num_elem_in_set(i)
-!          ewrite(2,*) "elem_list = ", total_side_sets_elem_list(z)
-!          z = z+1
-!       end do
-!       ewrite(2,*) "side_set_id(i) = ", side_set_ids(i)
-!       ewrite(2,*) "******* end of elem list *******"
-!    end do
+    ! Tests:
+    ewrite(2,*) "********************************SIDE SETS*************************************"
+    ewrite(2,*) "side_set_ids = ", side_set_ids
+    ewrite(2,*) "total_side_sets_elem_list = ", total_side_sets_elem_list
+    z=1; n_cnt_pos=1;
+    do i=1, num_side_sets
+       do e=1, num_elem_in_set(i)
+          ewrite(2,*) "elem_list = ", total_side_sets_elem_list(z)
+          do n=1, total_side_sets_node_cnt_list(e)
+             ewrite(2,*) "node(n) of face of ele above: ", total_side_sets_node_list(n_cnt_pos)
+             n_cnt_pos = n_cnt_pos + 1
+          end do
+          z = z+1
+       end do
+       ewrite(2,*) "side_set_id(i) = ", side_set_ids(i)
+       ewrite(2,*) "******* end of elem list *******"
+    end do
     ! Tests:
     print *, "size(total_side_sets_node_list) = ", size(total_side_sets_node_list)
     print *, "size(total_side_sets_elem_list) = ", size(total_side_sets_elem_list)
