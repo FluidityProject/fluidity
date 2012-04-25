@@ -4988,10 +4988,10 @@
          fem_nod( iloc ) = iloc
       end do
 
-     ewrite(3,*)' X/Y/Z for the P2 Tetrahedron:'
-     do iloc = 1, 10
-        ewrite(3,*) iloc, xp2( iloc ), yp2( iloc ), zp2( iloc )
-     end do
+      ewrite(3,*)' X/Y/Z for the P2 Tetrahedron:'
+      do iloc = 1, 10
+         ewrite(3,*) iloc, xp2( iloc ), yp2( iloc ), zp2( iloc )
+      end do
 
 
 !!!
@@ -5060,7 +5060,9 @@
       call Make_BiLinear_Hexahedra( totele, number_of_hexs, quad_cv_nloc, x_nonods, &
            x, y, z, x_ndgln )
 
-      ! Now building the final X_NDGLN with the numbering consistent with the remanining of the model
+      ! Now building the final X_NDGLN with the numbering consistent with the 
+      ! remanining of the model
+
       allocate( iloclist( quad_cv_nloc ) ) ; iloclist = 0
       iloclist = &
            (/  5, 14,  6, 17, 18, 15,  7, 16,  8, & ! Level 1
@@ -5080,6 +5082,8 @@
       deallocate( x_ndgln )
       deallocate( iloclist )
 
+
+stop 6661
       return
     end subroutine Make_QTets
 
@@ -5098,7 +5102,7 @@
 
       ! Local variables
       real, dimension( 4 ) :: lx, ly, lz
-      integer :: ele_hex, hex_numbering, jloc, iloc, kloc
+      integer :: ele_hex, hex_numbering, jloc, iloc, kloc, piloc
       integer, dimension( : ), allocatable :: inod
 
       ewrite(3,*)' In Make_Linear_Tetrahedron'
@@ -5109,15 +5113,15 @@
          ly( iloc ) = yp2( x_ndgln_p2( ( ele - 1 ) * x_nloc + iloc ) )
          lz( iloc ) = zp2( x_ndgln_p2( ( ele - 1 ) * x_nloc + iloc ) )
 
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc * number_of_hexs + iloc ) = &
-              x_ndgln_p2( ( ele - 1 ) * x_nloc + iloc )
+ !        x_ndgln( ( ele - 1 ) * quad_cv_nloc * number_of_hexs + iloc ) = &
+ !              x_ndgln_p2( ( ele - 1 ) * x_nloc + iloc )
 
-         x( x_ndgln( (ele - 1 ) * quad_cv_nloc * number_of_hexs + iloc ) ) = &
-              xp2( x_ndgln_p2( ( ele - 1 ) * x_nloc + iloc ) )
-         y( x_ndgln( (ele - 1 ) * quad_cv_nloc * number_of_hexs + iloc ) ) = &
-              yp2( x_ndgln_p2( ( ele - 1 ) * x_nloc + iloc ) )
-         z( x_ndgln( (ele - 1 ) * quad_cv_nloc * number_of_hexs + iloc ) )= &
-              zp2( x_ndgln_p2( ( ele - 1 ) * x_nloc + iloc ) )
+ !        x( x_ndgln( (ele - 1 ) * quad_cv_nloc * number_of_hexs + iloc ) ) = &
+ !             xp2( x_ndgln_p2( ( ele - 1 ) * x_nloc + iloc ) )
+ !        y( x_ndgln( (ele - 1 ) * quad_cv_nloc * number_of_hexs + iloc ) ) = &
+ !             yp2( x_ndgln_p2( ( ele - 1 ) * x_nloc + iloc ) )
+ !        z( x_ndgln( (ele - 1 ) * quad_cv_nloc * number_of_hexs + iloc ) )= &
+ !             zp2( x_ndgln_p2( ( ele - 1 ) * x_nloc + iloc ) )
       end do
 
       ewrite(3,*)'lx:', lx( 1 : 4 )
@@ -5127,12 +5131,12 @@
       ! Creating the numbering for the P1 tets and hexs
       allocate( inod( 11 ) ) ; inod = 0
       do iloc = 1, 11
-         x_ndgln( ( ele - 1 ) * quad_cv_nloc * number_of_hexs + 4 + iloc ) = &
+         x_ndgln( ( ele - 1 ) * quad_cv_nloc * number_of_hexs + iloc ) = &
               ( ele - 1 ) * quad_cv_nloc * number_of_hexs + 10 + iloc
-         inod( iloc ) = x_ndgln( ( ele - 1 ) * quad_cv_nloc * number_of_hexs + 4 + iloc )
+         inod( iloc ) = x_ndgln( ( ele - 1 ) * quad_cv_nloc * number_of_hexs + iloc )
       end do
 
-      do iloc = 1, 15
+      do iloc = 1, 11
          ewrite(3,*)'x_ndgln(), x_ndgln:',  ( ele - 1 ) * quad_cv_nloc * number_of_hexs + iloc, &
               x_ndgln( ( ele - 1 ) * quad_cv_nloc * number_of_hexs + iloc )     
       end do
@@ -5203,7 +5207,7 @@
 !!! Computing sudo elements
 !!!
 
-      jloc = 4
+      jloc = 0
       hex_numbering = ( ele - 1 ) * number_of_hexs
 
       ele_hex = hex_numbering + 1 ! Hex 1
@@ -5252,50 +5256,13 @@
       x_ndgln( ( ele_hex - 1 ) * quad_cv_nloc + 7 ) = inod( 9 )  ! Node 12
       x_ndgln( ( ele_hex - 1 ) * quad_cv_nloc + 8 ) = inod( 8 )  ! Node 11
 
-
-!!$
-!!$
-!!$      ele_hex = hex_numbering + 2 ! Hex 2
-!!$      x_ndgln( ( ele_hex - 1 ) * quad_cv_nloc + jloc + 1 ) = inod( 5 ) ! Node 8
-!!$      x_ndgln( ( ele_hex - 1 ) * quad_cv_nloc + jloc + 2 ) = inod( 7 ) ! Node 10
-!!$      x_ndgln( ( ele_hex - 1 ) * quad_cv_nloc + jloc + 3 ) = inod( 8 ) ! Node 11
-!!$      x_ndgln( ( ele_hex - 1 ) * quad_cv_nloc + jloc + 4 ) = inod( 10 )! Node 13
-!!$      x_ndgln( ( ele_hex - 1 ) * quad_cv_nloc + jloc + 5 ) = inod( 1 ) ! Node 2
-!!$      x_ndgln( ( ele_hex - 1 ) * quad_cv_nloc + jloc + 6 ) = &
-!!$           x_ndgln_p2( ( ele - 1 ) * x_nloc + 2 )                      ! Node 3
-!!$      x_ndgln( ( ele_hex - 1 ) * quad_cv_nloc + jloc + 7 ) = inod( 3 ) ! Node 5
-!!$      x_ndgln( ( ele_hex - 1 ) * quad_cv_nloc + jloc + 8 ) = inod( 4 ) ! Node 6
-!!$
-!!$
-!!$      ele_hex = hex_numbering + 3 ! Hex 3
-!!$      x_ndgln( ( ele_hex - 1 ) * quad_cv_nloc + jloc + 1 ) = inod( 9 )  ! Node 12
-!!$      x_ndgln( ( ele_hex - 1 ) * quad_cv_nloc + jloc + 2 ) = inod( 8 )  ! Node 11
-!!$      x_ndgln( ( ele_hex - 1 ) * quad_cv_nloc + jloc + 3 ) = inod( 11 ) ! Node 14
-!!$      x_ndgln( ( ele_hex - 1 ) * quad_cv_nloc + jloc + 4 ) = inod( 10 ) ! Node 13
-!!$      x_ndgln( ( ele_hex - 1 ) * quad_cv_nloc + jloc + 5 ) = inod( 2 )  ! Node 4
-!!$      x_ndgln( ( ele_hex - 1 ) * quad_cv_nloc + jloc + 6 ) = inod( 3 )  ! Node 5
-!!$      x_ndgln( ( ele_hex - 1 ) * quad_cv_nloc + jloc + 7 ) = &
-!!$           x_ndgln_p2( ( ele - 1 ) * x_nloc + 3 )                       ! Node 7
-!!$      x_ndgln( ( ele_hex - 1 ) * quad_cv_nloc + jloc + 8 ) = inod( 9 )  ! Node 6
-!!$
-!!$      ele_hex = hex_numbering + 4 ! Hex 4
-!!$      x_ndgln( ( ele_hex - 1 ) * quad_cv_nloc + jloc + 1 ) = &
-!!$           x_ndgln_p2( ( ele - 1 ) * x_nloc + 4 )                       ! Node 15
-!!$      x_ndgln( ( ele_hex - 1 ) * quad_cv_nloc + jloc + 2 ) = inod( 7 )  ! Node 10
-!!$      x_ndgln( ( ele_hex - 1 ) * quad_cv_nloc + jloc + 3 ) = inod( 11 ) ! Node 14
-!!$      x_ndgln( ( ele_hex - 1 ) * quad_cv_nloc + jloc + 4 ) = inod( 10 ) ! Node 13
-!!$      x_ndgln( ( ele_hex - 1 ) * quad_cv_nloc + jloc + 5 ) = inod( 6 )  ! Node 9
-!!$      x_ndgln( ( ele_hex - 1 ) * quad_cv_nloc + jloc + 6 ) = inod( 5 )  ! Node 8
-!!$      x_ndgln( ( ele_hex - 1 ) * quad_cv_nloc + jloc + 7 ) = inod( 9 )  ! Node 12
-!!$      x_ndgln( ( ele_hex - 1 ) * quad_cv_nloc + jloc + 8 ) = inod( 8 )  ! Node 11
-!!$
-
       ewrite(3,*)'Checking the initial numbering - X_NDGLN, for the hexs:'
       ewrite(3,*) ' ele, ele_hex, xndgln()=, xndgln:'
       do ele_hex = 1, 4
          kloc = ( ele - 1 ) * number_of_hexs + ele_hex
-         jloc = 8
-         if( ele_hex == 1 ) jloc = 12
+         jloc = 8 ; piloc = 0
+         !if( ele_hex == 1 ) jloc = 12
+         !if( ele_hex == 1 ) piloc = 0
          do iloc = 1, jloc
             ewrite(3,*) ele, ele_hex, ( kloc - 1 ) * quad_cv_nloc + iloc, &
                  x_ndgln( ( kloc - 1 ) * quad_cv_nloc + iloc ) 
@@ -5313,10 +5280,10 @@
     implicit none
     integer, intent( in ) :: totele, number_of_hexs, quad_cv_nloc
     integer, intent( inout ) :: x_nonods
-    real, dimension( : ), intent( inout ) :: x, y, z
-    integer, dimension( : ), intent( inout ) :: x_ndgln
+    real, dimension( x_nonods ), intent( inout ) :: x, y, z
+    integer, dimension( x_nonods ), intent( inout ) :: x_ndgln
     ! Local variables
-    integer :: ele, ele_hex, iloc
+    integer :: ele, ele_hex, iloc, kloc, ele_hex2
 
 
     Loop_Tets: do ele = 1, totele
@@ -5330,31 +5297,45 @@
     call Eliminating_Repetitive_Nodes_all( totele * number_of_hexs, quad_cv_nloc, x_nonods, &
          x_nonods, x_ndgln, x, y, z )
 
+    ele = 4
+    ewrite(3,*) ' ele, ele_hex, xndgln()=, xndgln:'
+    do ele_hex2 = 1, number_of_hexs
+       kloc = ( ele - 1 ) * number_of_hexs + ele_hex2
+       do iloc = 1, 27
+          ewrite(3,*) ele, ele_hex2, ( kloc - 1 ) * quad_cv_nloc + iloc, &
+               x_ndgln( ( kloc - 1 ) * quad_cv_nloc + iloc ) 
+       end do
+    end do
+
+
     return
   end subroutine Make_BiLinear_Hexahedra
-
+ 
 
   subroutine Adding_Parametric_Nodes_Hex( ele, ele_hex, totele, number_of_hexs, &
        quad_cv_nloc, x_nonods, &
        x, y, z, x_ndgln )
     implicit none
     integer, intent( in ) :: ele, ele_hex, totele, number_of_hexs, quad_cv_nloc, x_nonods
-    real, dimension( : ), intent( inout ) :: x, y, z
-    integer, dimension( : ), intent( inout ) :: x_ndgln
+    real, dimension( x_nonods ), intent( inout ) :: x, y, z
+    integer, dimension( x_nonods ), intent( inout ) :: x_ndgln
     ! Local variables
     integer, parameter :: jloc2 = 8
     integer, dimension( : ), allocatable :: xnod
-    integer :: jloc, inod2, jnod, knod, iloc, ele_hex2
+    integer :: jloc, inod2, jnod, knod, iloc, ele_hex2, kloc
     integer, dimension( : ), allocatable :: inod
 
     ewrite(3,*)' In Adding_Parametric_Nodes_Hex '
 
     ele_hex2 = ( ele - 1 ) * number_of_hexs  + ele_hex
     jloc = 0
-    if( ele_hex == 1 ) jloc = 4
+    !if( ele_hex == 1 ) jloc = 4
 
     ewrite(3,*)' Hexahedron', ele_hex, 'is based on the following nodes:'
-    ewrite(3,*) ( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + iloc  ), iloc = 1, 8 )
+    do iloc = 1, 8
+       ewrite(3,*) ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + iloc , &
+            x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + iloc )
+    end do
 
     ewrite(3,*)' Master node points for the Hex:'
     do iloc = 1, 8
@@ -5362,11 +5343,12 @@
        ewrite(3,*) jnod, x( jnod ), y( jnod ), z( jnod )
     end do
 
-    inod2 = x_ndgln( ( ele - 1 ) * quad_cv_nloc * number_of_hexs + 4 + 11 )
+    inod2 = x_ndgln( ( ele - 1 ) * quad_cv_nloc * number_of_hexs + 11 )
     allocate( inod ( 19 ) ) ; inod = 0
     do iloc = 1, 19 ! Extra parametric nodes 
        x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + jloc2 + iloc ) = inod2 + iloc
        inod( iloc ) = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + jloc2 + iloc )
+       ewrite(3,*)'inod:', iloc, inod( iloc )
     end do
 
     ewrite(3,*)'Numbering / Address for the Hex with parametric nodes'
@@ -5541,7 +5523,21 @@
        ewrite(3,*) inod( iloc ), x( inod ( iloc ) ), y( inod ( iloc ) ), z( inod ( iloc ) )
     end do
 
-   deallocate( inod ) 
+
+
+    ewrite(3,*)'Checking the initial numbering - X_NDGLN22, for the hexs:'
+    ewrite(3,*) ' ele, ele_hex, xndgln()=, xndgln:'
+    do ele_hex2 = 1, ele_hex 
+       kloc = ( ele - 1 ) * number_of_hexs + ele_hex2
+       jloc = 27
+       !if( ele_hex == 1 ) jloc = 27 + 4
+       do iloc = 1, jloc
+          ewrite(3,*) ele, ele_hex2, ( kloc - 1 ) * quad_cv_nloc + iloc, &
+               x_ndgln( ( kloc - 1 ) * quad_cv_nloc + iloc ) 
+       end do
+    end do
+
+    deallocate( inod ) 
 
     return
   end subroutine Adding_Parametric_Nodes_Hex
