@@ -127,6 +127,16 @@
             <real_value rank="0">0</real_value>
           </constant>
         </initial_condition>
+        <boundary_conditions name="right">
+          <surface_ids>
+            <integer_value shape="1" rank="1">8</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <constant>
+              <real_value rank="0">0.0</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
@@ -260,16 +270,6 @@ for n in range(field.node_count):
           <type name="normal_flow">
             <constant>
               <real_value rank="0">-1</real_value>
-            </constant>
-          </type>
-        </boundary_conditions>
-        <boundary_conditions name="right">
-          <surface_ids>
-            <integer_value shape="1" rank="1">8</integer_value>
-          </surface_ids>
-          <type name="normal_flow">
-            <constant>
-              <real_value rank="0">1</real_value>
             </constant>
           </type>
         </boundary_conditions>
