@@ -380,6 +380,7 @@ contains
     ewrite(2,*) "num_nodes_per_elem = ", num_nodes_per_elem
     ewrite(2,*) "num_attr = ", num_attr
 
+
     ! read element connectivity:
     allocate(elem_connectivity(0))
     do i=1, num_elem_blk
@@ -393,31 +394,6 @@ contains
        FLExit("Unable to read in element connectivity from "//trim(lfilename))
     end if
     ewrite(2,*) "elem_connectivity = ", elem_connectivity
-
-    ! Get node sets
-    ! Node sets in exodusii are what physical lines/surfaces/volumes are in gmsh
-    allocate(node_set_ids(num_node_sets))
-    allocate(num_nodes_in_set(num_node_sets))
-    ierr = f_ex_get_node_set_param(exoid, num_node_sets, node_set_ids, num_nodes_in_set)
-    if (ierr /= 0) then
-       ewrite(2,*) "No node sets found in "//trim(lfilename)
-    end if
-
-    ! Get node lists of all node sets:
-    if (ierr == 0) then ! we have found and read in node sets
-       ! initial length of the array holding all the nodes with an ID
-       allocate(total_node_sets_node_list(0))
-       do i=1, num_node_sets
-          allocate(node_set_node_list(num_nodes_in_set(i)))
-          ierr = f_ex_get_node_set_node_list(exoid, num_node_sets, node_set_ids(i), node_set_node_list)
-          call append_array(total_node_sets_node_list, node_set_node_list)
-          deallocate(node_set_node_list)
-       end do
-       if (ierr /= 0) then
-          FLExit("Unable to read in the node list corresponding to node sets from "//trim(lfilename))
-       end if
-       ewrite(2,*) "total_node_sets_node_list = ", total_node_sets_node_list
-    end if
 
 
     ! Initialize logical variables:
