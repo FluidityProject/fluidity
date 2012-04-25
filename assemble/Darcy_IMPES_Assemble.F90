@@ -574,7 +574,7 @@ module darcy_impes_assemble_module
       ! local variables
       logical :: inflow
       integer :: vele, p, nloc, dim, iloc, oloc, face, gi, ggi, sele
-      real :: visc_ele, absperm_ele
+      real :: visc_ele, absperm_ele, darcy_vel_face_value_dot_n
       real    :: income, old_vphi_dot_n, vphi_face_value_dot_n
       real, dimension(1) :: dummy
       real, dimension(di%positions%dim) :: grad_pressure_ele
@@ -591,6 +591,8 @@ module darcy_impes_assemble_module
       real,    dimension(:,:),   allocatable :: x_face_quad
       real,    dimension(:,:),   allocatable :: vphi_ele
       real,    dimension(:),     allocatable :: vphi_face_value
+      real,    dimension(:,:),   allocatable :: darcy_vel_ele
+      real,    dimension(:),     allocatable :: darcy_vel_face_value
       integer, dimension(:),     pointer     :: x_pmesh_nodes
       integer, dimension(:),     pointer     :: p_nodes      
       integer, dimension(:),     pointer     :: upwind_nodes
@@ -601,6 +603,7 @@ module darcy_impes_assemble_module
       real,    dimension(:),     allocatable :: div_tvphi_rhs_local_bdy
       integer, dimension(:),     allocatable :: p_nodes_bdy
       real,    dimension(:,:),   allocatable :: vphi_sele
+      real,    dimension(:,:),   allocatable :: darcy_vel_sele
       
       ! Calculate the gradient pressure field assumed DG
       call grad(di%pressure, &
@@ -713,8 +716,10 @@ module darcy_impes_assemble_module
       allocate(div_tvphi_rhs_local(ele_loc(di%pressure,1)))
       allocate(x_face_quad(di%positions%dim, di%x_cvshape%ngi))
       allocate(vphi_ele(di%positions%dim,ele_loc(di%inter_velocity_porosity(1)%ptr,1)))
+      allocate(darcy_vel_ele(di%positions%dim,ele_loc(di%darcy_velocity(1)%ptr,1)))
       allocate(old_vphi_face(di%positions%dim,di%p_cvshape%ngi))
       allocate(vphi_face_value(di%positions%dim))
+      allocate(darcy_vel_face_value(di%positions%dim))
       
       allocate(detwei_bdy(di%x_cvbdyshape%ngi))
       allocate(normal_bdy(di%positions%dim, di%x_cvbdyshape%ngi))
@@ -722,6 +727,7 @@ module darcy_impes_assemble_module
       allocate(div_tvphi_rhs_local_bdy(face_loc(di%pressure,1)))      
       allocate(x_ele_bdy(di%positions%dim, face_loc(di%positions,1)))      
       allocate(vphi_sele(di%positions%dim,face_loc(di%inter_velocity_porosity(1)%ptr,1)))
+      allocate(darcy_vel_sele(di%positions%dim,face_loc(di%darcy_velocity(1)%ptr,1)))
       allocate(p_nodes_bdy(face_loc(di%pressure%mesh,1)))
 
       call zero(di%div_total_darcy_velocity)
@@ -734,6 +740,9 @@ module darcy_impes_assemble_module
 
             ! The interstitial velocity porosity ele value
             vphi_ele(:,:) = ele_val(di%inter_velocity_porosity(p)%ptr, vele)
+
+            ! The darcy velocity ele value
+            darcy_vel_ele(:,:) = ele_val(di%darcy_velocity(p)%ptr, vele)
 
             ! the old intersitial velocity_porosity at the quadrature points, used to determine upwind
             ! via a FE interpolation using the pressure basis functions (which for linear is fine)
@@ -816,9 +825,13 @@ module darcy_impes_assemble_module
 
                       vphi_face_value_dot_n = dot_product(vphi_face_value, normgi)
 
-                      div_tvphi_rhs_local(iloc) = div_tvphi_rhs_local(iloc) + vphi_face_value_dot_n * detwei(ggi)
+                      darcy_vel_face_value(:) = income*darcy_vel_ele(:,oloc) + (1.0-income)*darcy_vel_ele(:,iloc)
 
-                      div_tvphi_rhs_local(oloc) = div_tvphi_rhs_local(oloc) - vphi_face_value_dot_n * detwei(ggi)
+                      darcy_vel_face_value_dot_n = dot_product(darcy_vel_face_value, normgi)
+
+                      div_tvphi_rhs_local(iloc) = div_tvphi_rhs_local(iloc) + darcy_vel_face_value_dot_n * detwei(ggi)
+
+                      div_tvphi_rhs_local(oloc) = div_tvphi_rhs_local(oloc) - darcy_vel_face_value_dot_n * detwei(ggi)
 
                       cfl_rhs_local(iloc) = cfl_rhs_local(iloc) + abs(vphi_face_value_dot_n) * detwei(ggi) * (1.0 - income)
 
@@ -844,6 +857,8 @@ module darcy_impes_assemble_module
 
             vphi_sele(:,:) = face_val(di%inter_velocity_porosity(p)%ptr, sele)
 
+            darcy_vel_sele(:,:) = face_val(di%darcy_velocity(p)%ptr, sele)
+
             x_ele       = ele_val(di%positions, face_ele(di%positions, sele))
             x_ele_bdy   = face_val(di%positions, sele)
             p_nodes_bdy = face_global_nodes(di%pressure%mesh, sele)
@@ -866,8 +881,10 @@ module darcy_impes_assemble_module
 
                         vphi_face_value_dot_n = dot_product(vphi_sele(:,iloc), normal_bdy(:,ggi))
 
+                        darcy_vel_face_value_dot_n = dot_product(darcy_vel_sele(:,iloc), normal_bdy(:,ggi))
+
                         div_tvphi_rhs_local_bdy(iloc) = div_tvphi_rhs_local_bdy(iloc) + &
-                                                       &vphi_face_value_dot_n * detwei_bdy(ggi)                   
+                                                       &darcy_vel_face_value_dot_n * detwei_bdy(ggi)                   
 
                         cfl_rhs_local_bdy(iloc) = cfl_rhs_local_bdy(iloc) + &
                                                  &abs(vphi_face_value_dot_n) * detwei_bdy(ggi) * (1.0 - income)                     
@@ -900,8 +917,10 @@ module darcy_impes_assemble_module
       deallocate(div_tvphi_rhs_local)      
       deallocate(x_face_quad)
       deallocate(vphi_ele)
+      deallocate(darcy_vel_ele)
       deallocate(old_vphi_face)
       deallocate(vphi_face_value)
+      deallocate(darcy_vel_face_value)
 
       deallocate(detwei_bdy)
       deallocate(normal_bdy)
@@ -910,6 +929,7 @@ module darcy_impes_assemble_module
       deallocate(cfl_rhs_local_bdy)
       deallocate(div_tvphi_rhs_local_bdy)      
       deallocate(vphi_sele)      
+      deallocate(darcy_vel_sele)      
             
       deallocate(relperm_ele)
       deallocate(inter_velocity_porosity_local)
