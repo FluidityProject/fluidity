@@ -796,36 +796,7 @@ contains
           exo_f = exo_f+1
        end do
     end do
-    
-!    z=1; n_cnt_pos=1;
-!    do i=1, num_side_sets
-!       do e=1, num_elem_in_set(i)
-!          ewrite(2,*) "elem_list = ", total_side_sets_elem_list(z)
-!          do n=1, total_side_sets_node_cnt_list(e)
-!             ewrite(2,*) "node(n) of face of ele above: ", total_side_sets_node_list(n_cnt_pos)
-!             n_cnt_pos = n_cnt_pos + 1
-!          end do
-!          z = z+1
-!       end do
-!       ewrite(2,*) "side_set_id(i) = ", side_set_ids(i)
-!       ewrite(2,*) "******* end of elem list *******"
-!    end do
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    ! faces and elements are now all set
 
 
     ! Assemble the CoordinateMesh:
@@ -855,25 +826,27 @@ contains
     ! Copy (only) Elements to the mesh !
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! RegionIDs in fluidity are blockIDs in exodusII:
-!    if (haveRegionIDs) then
-!      allocate( field%mesh%region_ids(num_elem) )
-!      field%mesh%region_ids = 0
-!    end if
+    if (haveRegionIDs) then
+      allocate( field%mesh%region_ids(num_elem) )
+      field%mesh%region_ids = 0
+    end if
 
     z=0; exo_e=1;
-    do i=1, num_elem_blk
-       do e=1, num_elem_in_block(i)
-          if(.not.( (num_dim .eq. 2 .and. elem_type(i) .eq. 1) .or. &
-            (num_dim .eq. 3 .and. &
-            (elem_type(i) .eq. 2 .or. elem_type(i) .eq. 3)) ) ) then
-            !these are normal elements:
-             do n=1, num_nodes_per_elem(i)
-                field%mesh%ndglno(n+z) = exo_element(exo_e)%nodeIDs(n)
-             end do
-             exo_e = exo_e+1
-             z = z+num_nodes_per_elem(i)
+    do i=1, num_elem
+       if(.not.( (num_dim .eq. 2 .and. elem_type(i) .eq. 1) .or. &
+         (num_dim .eq. 3 .and. &
+         (elem_type(i) .eq. 2 .or. elem_type(i) .eq. 3)) ) ) then
+         !these are normal elements:
+          do n=1, num_nodes_per_elem(i)
+             field%mesh%ndglno(n+z) = exo_element(exo_e)%nodeIDs(n)
+          end do
+          ! Set region_id of element (this will be its blockID in exodus)
+          if (haveRegionIDS) then
+             field%mesh%region_ids = exo_element(exo_e)%blockID
           end if
-       end do
+          exo_e = exo_e+1
+          z = z+num_nodes_per_elem(i)
+       end if
     end do
     
 
