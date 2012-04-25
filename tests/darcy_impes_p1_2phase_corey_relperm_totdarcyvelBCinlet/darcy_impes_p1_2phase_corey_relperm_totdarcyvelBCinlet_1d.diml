@@ -127,11 +127,21 @@
             <real_value rank="0">0</real_value>
           </constant>
         </initial_condition>
+        <boundary_conditions name="right">
+          <surface_ids>
+            <integer_value shape="1" rank="1">2</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <constant>
+              <real_value rank="0">0</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
     <scalar_field name="Saturation" rank="0">
-      <diagnostic>
+      <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
           <control_volumes>
@@ -151,11 +161,26 @@
             </pivot_theta>
           </control_volumes>
         </temporal_discretisation>
+        <initial_condition name="WholeMesh">
+          <constant>
+            <real_value rank="0">0.2</real_value>
+          </constant>
+        </initial_condition>
+        <boundary_conditions name="left">
+          <surface_ids>
+            <integer_value shape="1" rank="1">1</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <constant>
+              <real_value rank="0">0.8</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
         <stat>
           <include_cv_stats/>
         </stat>
         <consistent_interpolation/>
-      </diagnostic>
+      </prognostic>
     </scalar_field>
     <scalar_field name="RelativePermeability" rank="0">
       <diagnostic>
@@ -239,16 +264,6 @@ for n in range(field.node_count):
           <type name="normal_flow">
             <constant>
               <real_value rank="0">-1</real_value>
-            </constant>
-          </type>
-        </boundary_conditions>
-        <boundary_conditions name="right">
-          <surface_ids>
-            <integer_value shape="1" rank="1">2</integer_value>
-          </surface_ids>
-          <type name="normal_flow">
-            <constant>
-              <real_value rank="0">1</real_value>
             </constant>
           </type>
         </boundary_conditions>
