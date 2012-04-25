@@ -90,7 +90,7 @@ module exodusii_common
     ! Quads
     case (3)
        nodeOrder = (/1, 2, 4, 3/)
-    ! Hexahedron  
+    ! Hexahedron
     case (5)
        nodeOrder = (/1, 2, 4, 3, 5, 6, 8, 7/)
     case default

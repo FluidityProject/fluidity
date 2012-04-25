@@ -437,6 +437,8 @@ contains
        allocate(total_side_sets_node_list(0))
        allocate(total_side_sets_node_cnt_list(0))
        do i=1, num_side_sets
+          ! Reset the node index to 1 for the ith side set:
+          n_cnt_pos = 1
           ! Arrays for side list and element list of side sets:
           allocate(side_set_elem_list(num_elem_in_set(i))); allocate(side_set_side_list(num_sides_in_set(i)))
           ! Arrays needed to obtain the node list:
@@ -447,6 +449,23 @@ contains
           ! Get side set node list:
           ierr = f_ex_get_side_set_node_list(exoid, side_set_ids(i), side_set_node_cnt_list, side_set_node_list)
 
+          ! In case the present element is a hexahedron, its face should be a quad... otherwise sth seriously went wrong
+          ! Thus, renumber the node list of that quad before adding the node list to the global array:
+          do e=1, num_elem_in_set(i)
+             if (side_set_node_cnt_list(e) == 4) then
+                allocate(elem_node_list(side_set_node_cnt_list(e)))
+                ! Copy relevant nodes to a tmp array:
+                elem_node_list(:) = side_set_node_list( n_cnt_pos : n_cnt_pos+side_set_node_cnt_list(e)-1 )
+                ! Renumber the local node list of that face
+                call toFluidityElementNodeOrdering( elem_node_list, 3 )
+                ! After renumbering the face-nodes, copy them back into side_set_node_list:
+                side_set_node_list( n_cnt_pos : n_cnt_pos+side_set_node_cnt_list(e)-1 ) = elem_node_list(:)
+                deallocate(elem_node_list)
+             end if
+             ! Increase the node-index by number of nodes in element e of side-set i
+             n_cnt_pos = n_cnt_pos + side_set_node_cnt_list(e)
+          end do
+
           ! append the side set element list in global array for later:
           call append_array(total_side_sets_elem_list, side_set_elem_list)
           call append_array(total_side_sets_node_list, side_set_node_list)
@@ -455,24 +474,27 @@ contains
           deallocate(side_set_node_list); deallocate(side_set_node_cnt_list)
        end do
     end if
+    ! We don't need the distribution factors, so deallocate this immediately:
+    deallocate(num_df_in_set)
+
 
     ! Tests:
-    ewrite(2,*) "********************************SIDE SETS*************************************"
-    ewrite(2,*) "side_set_ids = ", side_set_ids
-    ewrite(2,*) "total_side_sets_elem_list = ", total_side_sets_elem_list
-    z=1; n_cnt_pos=1;
-    do i=1, num_side_sets
-       do e=1, num_elem_in_set(i)
-          ewrite(2,*) "elem_list = ", total_side_sets_elem_list(z)
-          do n=1, total_side_sets_node_cnt_list(e)
-             ewrite(2,*) "node(n) of face of ele above: ", total_side_sets_node_list(n_cnt_pos)
-             n_cnt_pos = n_cnt_pos + 1
-          end do
-          z = z+1
-       end do
-       ewrite(2,*) "side_set_id(i) = ", side_set_ids(i)
-       ewrite(2,*) "******* end of elem list *******"
-    end do
+!    ewrite(2,*) "********************************SIDE SETS*************************************"
+!    ewrite(2,*) "side_set_ids = ", side_set_ids
+!    ewrite(2,*) "total_side_sets_elem_list = ", total_side_sets_elem_list
+!    z=1; n_cnt_pos=1;
+!    do i=1, num_side_sets
+!       do e=1, num_elem_in_set(i)
+!          ewrite(2,*) "elem_list = ", total_side_sets_elem_list(z)
+!          do n=1, total_side_sets_node_cnt_list(e)
+!             ewrite(2,*) "node(n) of face of ele above: ", total_side_sets_node_list(n_cnt_pos)
+!             n_cnt_pos = n_cnt_pos + 1
+!          end do
+!          z = z+1
+!       end do
+!       ewrite(2,*) "side_set_id(i) = ", side_set_ids(i)
+!       ewrite(2,*) "******* end of elem list *******"
+!    end do
     ! Tests:
     print *, "size(total_side_sets_node_list) = ", size(total_side_sets_node_list)
     print *, "size(total_side_sets_elem_list) = ", size(total_side_sets_elem_list)
@@ -480,8 +502,7 @@ contains
     print *, "total_side_sets_elem_list = ", total_side_sets_elem_list
     print *, "total_side_sets_node_cnt_list = ", total_side_sets_node_cnt_list
     ewrite(2,*) "side_set_ids = ", side_set_ids
-    ! We don't need the distribution factors, so deallocate this immediately:
-    deallocate(num_df_in_set)
+
 
 
     ! Close ExodusII meshfile
