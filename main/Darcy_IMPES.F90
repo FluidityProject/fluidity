@@ -313,8 +313,6 @@ program Darcy_IMPES
          FLAbort("The timestep is not global across all processes!")
       end if
 
-      if(simulation_completed(current_time, timestep)) exit timestep_loop
-
       if( &
                                ! Do not dump at the start of the simulation (this is handled by write_state call earlier)
            & current_time > simulation_start_time &
@@ -351,6 +349,10 @@ program Darcy_IMPES
       
          ! *** Solve the Darcy equations using IMPES ***
          call darcy_impes_assemble_and_solve(di)
+      
+         ! calculate and write diagnostics before the timestep gets changed
+         call calculate_diagnostic_variables(state, exclude_nonrecalculated=.true.)
+         call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
 
          if(nonlinear_iterations > 1) then
             
@@ -390,10 +392,6 @@ program Darcy_IMPES
 
       ! if strong bc or weak that overwrite then enforce the bc on the fields
       call set_dirichlet_consistent(state)
-      
-      ! calculate and write diagnostics before the timestep gets changed
-      call calculate_diagnostic_variables(state, exclude_nonrecalculated=.true.)
-      call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
        
       ! Call the modern and significantly less satanic version of study
       call write_diagnostics(state, current_time, dt, timestep)
@@ -458,6 +456,14 @@ program Darcy_IMPES
       ! *** Set the darcy impes time step ***
       di%dt = dt
 
+      if(simulation_completed(current_time, timestep)) then
+         
+         ewrite(1,*) 'Simulation completed. Exiting timestep loop'
+         
+         exit timestep_loop
+      
+      end if
+      
    end do timestep_loop
    
    ! ****************************
@@ -547,6 +553,8 @@ contains
       ! Local variables
       integer :: p
       
+      ewrite(1,*) 'Initialise Darcy IMPES data'
+      
       di%dt = dt
       
       di%state => state
@@ -560,6 +568,7 @@ contains
       di%absolute_permeability     => extract_scalar_field(di%state(1), "AbsolutePermeability")
       di%positions                 => extract_vector_field(di%state(1), "Coordinate")
       di%total_darcy_velocity      => extract_vector_field(di%state(1), "TotalDarcyVelocity")
+      di%total_darcy_velocity_cv   => extract_vector_field(di%state(1), "TotalDarcyVelocityCV")
       di%sum_saturation            => extract_scalar_field(di%state(1), "SumSaturation")
       di%old_sum_saturation        => extract_scalar_field(di%state(1), "OldSumSaturation")
       di%div_total_darcy_velocity  => extract_scalar_field(di%state(1), "DivergenceTotalDarcyVelocity")
@@ -580,10 +589,14 @@ contains
       call allocate(di%old_saturation_subcycle, di%pressure%mesh)
       call allocate(di%cv_mass_pressure_mesh_with_porosity, di%pressure%mesh)
       call allocate(di%cv_mass_pressure_mesh_with_old_porosity, di%pressure%mesh)
+      call allocate(di%cv_mass_velocity_mesh, di%total_darcy_velocity%mesh)
 
       ! Calculate the latest CV mass on the pressure mesh with porosity
       call compute_cv_mass(di%positions, di%cv_mass_pressure_mesh_with_porosity, di%porosity)      
-
+      
+      ! Calculte the CV mass on the velocity mesh
+      call compute_cv_mass(di%positions, di%cv_mass_velocity_mesh)
+      
       ! deduce the number of phase
       di%number_phase = size(di%state)
 
@@ -731,7 +744,9 @@ contains
       call copy_to_stored_values(di%state,"Old")
       call copy_to_stored_values(di%state,"Iterated")
       call relax_to_nonlinear(di%state)
-   
+      
+      ewrite(1,*) 'Finished initialising Darcy IMPES data'
+      
    end subroutine darcy_impes_initialise
 
 ! ----------------------------------------------------------------------------
@@ -747,6 +762,8 @@ contains
       ! local variable
       integer :: p
       
+      ewrite(1,*) 'Finalise Darcy IMPES data'
+      
       call deallocate(di%positions_pressure_mesh)
       call deallocate(di%pressure_matrix)
       call deallocate(di%lhs)
@@ -758,6 +775,7 @@ contains
       call deallocate(di%inverse_cv_mass_pressure_mesh)
       call deallocate(di%cv_mass_pressure_mesh_with_porosity)
       call deallocate(di%cv_mass_pressure_mesh_with_old_porosity)
+      call deallocate(di%cv_mass_velocity_mesh)
       call deallocate(di%cfl_subcycle)
       call deallocate(di%total_darcy_velocity_normal_flow_bc_value)
       do p = 1,di%number_phase
@@ -782,7 +800,9 @@ contains
       call deallocate(di%x_cvshape)
       call deallocate(di%p_cvshape)
       call deallocate(di%x_cvbdyshape)
-            
+      
+      ewrite(1,*) 'Finished finalising Darcy IMPES data'
+         
    end subroutine darcy_impes_finalise
 
 ! ----------------------------------------------------------------------------
@@ -792,6 +812,8 @@ contains
       !!< Update the Darcy IMPES data post spatial adapt
       
       type(darcy_impes_type), intent(inout) :: di
+      
+      ewrite(1,*) 'Update Darcy IMPES data post spatial adapt'
       
       ! Auxilliary fields.
       call allocate_and_insert_auxilliary_fields(di%state)
@@ -863,6 +885,8 @@ contains
       call compute_cv_mass(di%positions, di%inverse_cv_mass_pressure_mesh)
 
       call invert(di%inverse_cv_mass_pressure_mesh)      
+      
+      ewrite(1,*) 'Finished updating Darcy IMPES data post spatial adapt'
       
    end subroutine darcy_impes_update_post_spatial_adapt
 

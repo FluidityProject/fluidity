@@ -501,7 +501,9 @@ darcy_impes_material_phases =
 
          darcy_impes_fractional_flow_field,
          
-         darcy_impes_total_darcy_velocity_field,         
+         darcy_impes_total_darcy_velocity_field_subcv,         
+
+         darcy_impes_total_darcy_velocity_field_cv,         
          
          darcy_impes_divergence_total_darcy_velocity_field,
          
@@ -559,6 +561,7 @@ darcy_impes_pressure_field =
             },
             initial_condition_scalar+,
             darcy_impes_bc_pressure_field*,
+            scalar_convergence_options, 
             adaptivity_options_prognostic_scalar_field,
             interpolation_algorithm_scalar
          }
@@ -579,6 +582,7 @@ darcy_impes_saturation_field_phase_one =
                darcy_impes_saturation_field_spatial_discretisation_only_upwind,
                darcy_impes_saturation_field_temporal_discretisation_only_explicit,
                darcy_impes_include_cv_stat,
+               scalar_convergence_options,
                adaptivity_options_prognostic_scalar_field,
                interpolation_algorithm_scalar
             }|
@@ -591,6 +595,7 @@ darcy_impes_saturation_field_phase_one =
                initial_condition_scalar+,
                darcy_impes_bc_saturation_field*,
                darcy_impes_include_cv_stat,
+               scalar_convergence_options,
                adaptivity_options_prognostic_scalar_field,
                interpolation_algorithm_scalar         
             }
@@ -611,6 +616,7 @@ darcy_impes_saturation_field =
             initial_condition_scalar+,
             darcy_impes_bc_saturation_field+,
             darcy_impes_include_cv_stat,
+            scalar_convergence_options,
             adaptivity_options_prognostic_scalar_field,
             interpolation_algorithm_scalar
          }
@@ -836,7 +842,7 @@ darcy_impes_fractional_flow_field =
    )
 
 
-darcy_impes_total_darcy_velocity_field =
+darcy_impes_total_darcy_velocity_field_subcv =
    (
       element vector_field {
          attribute rank { "0" },
@@ -849,6 +855,24 @@ darcy_impes_total_darcy_velocity_field =
                attribute name { "Internal" }
             }, 
             darcy_impes_bc_total_darcy_velocity_field*,
+            darcy_impes_include_cv_stat
+         }
+      }
+   )
+
+
+darcy_impes_total_darcy_velocity_field_cv =
+   (
+      element vector_field {
+         attribute rank { "0" },
+         attribute name { "TotalDarcyVelocityCV" },
+         element diagnostic {
+            element mesh {
+               attribute name { "PressureMesh" }      
+            },
+            element algorithm {
+               attribute name { "Internal" }
+            }, 
             darcy_impes_include_cv_stat
          }
       }
@@ -1300,9 +1324,6 @@ prognostic_scalar_stat_no_old_or_nonlinear_options = empty
 # Options for whether a field is to be included in detector output.
 detector_options_disabled_default =  empty
 
-# Convergence options for prognostic scalar fields
-scalar_convergence_options = empty
-
 discrete_properties_algorithm_scalar = empty
 
 # Steady state options for prognostic scalar fields
@@ -1313,5 +1334,32 @@ prognostic_scalar_stat_no_old_or_nonlinear_options.stat = empty
 recalculation_options = empty
 
 diagnostic_vector_stat_options = empty
-vector_convergence_options = empty
 vector_steady_state_options = empty
+vector_convergence_options = empty
+
+# Convergence options for prognostic scalar fields
+scalar_convergence_options =
+   (
+      ## Decide whether this field is tested for convergence
+      ## during nonlinear iterations
+      ## (if /timestepping/nonlinear_iterations and
+      ## /timestepping/nonlinear_iterations/tolerance are
+      ## enabled).
+      ## Also specifies whether the field is added to the 
+      ## convergence file (if /io/convergence_file is enabled).
+      element convergence {
+         (
+            ## Include this field in convergence testing
+            ## (if /timestepping/nonlinear_iterations and
+            ## /timestepping/nonlinear_iterations/tolerance are
+            ## enabled) and file (if /io/convergence_file is enabled)
+            element include_in_convergence {
+               comment
+            }|
+            ## Exclude this field from convergence testing and file 
+            element exclude_from_convergence {
+               comment
+            }
+         )
+      }
+   )

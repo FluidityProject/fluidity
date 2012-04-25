@@ -30,3 +30,4 @@ clean:
 	rm -f $(SIM)*.log*
 	rm -f matrixdump*
 	rm -f first_timestep_adapted_mesh*
+	rm -f *.convergence 

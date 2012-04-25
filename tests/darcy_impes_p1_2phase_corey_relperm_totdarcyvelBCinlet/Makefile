@@ -3,9 +3,9 @@ SHELL = sh
 SIM = darcy_impes_p1_2phase_corey_relperm_totdarcyvelBCinlet
 
 # options for 1d mesh interval script
-MESH_SIZE = 15.0
+MESH_SIZE = 0.05
 LEFT_X    = 0.0
-RIGHT_X   = 300.0
+RIGHT_X   = 1.0
 
 input: clean
 	interval --dx=$(MESH_SIZE) $(LEFT_X) $(RIGHT_X) $(SIM)_1d
@@ -30,3 +30,4 @@ clean:
 	rm -f $(SIM)*.log*
 	rm -f matrixdump*
 	rm -f first_timestep_adapted_mesh*
+	rm -f *.convergence 

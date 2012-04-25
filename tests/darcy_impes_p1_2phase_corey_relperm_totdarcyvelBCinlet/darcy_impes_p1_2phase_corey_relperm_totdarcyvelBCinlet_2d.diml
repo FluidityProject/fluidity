@@ -94,10 +94,10 @@
       <real_value rank="0">0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">1.0e-01</real_value>
+      <real_value rank="0">1.0e-03</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">20.0</real_value>
+      <real_value rank="0">0.2</real_value>
     </finish_time>
   </timestepping>
   <material_phase name="Phase1">
@@ -110,7 +110,7 @@
               <integer_value rank="0">30</integer_value>
             </restart>
           </iterative_method>
-          <preconditioner name="sor"/>
+          <preconditioner name="ilu"/>
           <relative_error>
             <real_value rank="0">1.0e-10</real_value>
           </relative_error>
@@ -137,6 +137,9 @@
             </constant>
           </type>
         </boundary_conditions>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
@@ -163,7 +166,7 @@
         </temporal_discretisation>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value rank="0">0.2</real_value>
+            <real_value rank="0">0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="left">
@@ -172,7 +175,7 @@
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">0.8</real_value>
+              <real_value rank="0">1.0</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -185,6 +188,9 @@
         <stat>
           <include_cv_stats/>
         </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
@@ -198,7 +204,9 @@ for n in range(field.node_count):
    
    sat_n = sat.node_val(n)
    
-   relperm_n = sat_n ** 2.0
+   sat_2_n = 1.0 - sat_n
+   
+   relperm_n = (1.0 - sat_2_n ** 2.0) * (1.0 - sat_2_n)**2.0
    
    field.set(n,relperm_n)</string_value>
         </algorithm>
@@ -278,6 +286,15 @@ for n in range(field.node_count):
         </stat>
       </diagnostic>
     </vector_field>
+    <vector_field name="TotalDarcyVelocityCV" rank="0">
+      <diagnostic>
+        <mesh name="PressureMesh"/>
+        <algorithm name="Internal"/>
+        <stat>
+          <include_cv_stats/>
+        </stat>
+      </diagnostic>
+    </vector_field>
     <scalar_field name="DivergenceTotalDarcyVelocity" rank="0">
       <diagnostic>
         <mesh name="PressureMesh"/>
@@ -303,7 +320,7 @@ for n in range(field.node_count):
         <mesh name="PressureMesh"/>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value rank="0">0.8</real_value>
+            <real_value rank="0">1.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="left">
@@ -312,7 +329,7 @@ for n in range(field.node_count):
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">0.2</real_value>
+              <real_value rank="0">0.0</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -325,6 +342,9 @@ for n in range(field.node_count):
         <stat>
           <include_cv_stats/>
         </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
@@ -338,7 +358,7 @@ for n in range(field.node_count):
    
    sat_n = sat.node_val(n)
    
-   relperm_n = sat_n ** 2.0
+   relperm_n = sat_n ** 4.0
    
    field.set(n,relperm_n)</string_value>
         </algorithm>

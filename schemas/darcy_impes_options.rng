@@ -503,7 +503,8 @@ This option will work only if the mesh_adaptivity is switched on.</a:documentati
       <ref name="darcy_impes_interstitial_velocity_CFL_field"/>
       <ref name="darcy_impes_darcy_velocity_field"/>
       <ref name="darcy_impes_fractional_flow_field"/>
-      <ref name="darcy_impes_total_darcy_velocity_field"/>
+      <ref name="darcy_impes_total_darcy_velocity_field_subcv"/>
+      <ref name="darcy_impes_total_darcy_velocity_field_cv"/>
       <ref name="darcy_impes_divergence_total_darcy_velocity_field"/>
       <ref name="darcy_impes_sum_saturation"/>
     </element>
@@ -562,6 +563,7 @@ This option will work only if the mesh_adaptivity is switched on.</a:documentati
         <zeroOrMore>
           <ref name="darcy_impes_bc_pressure_field"/>
         </zeroOrMore>
+        <ref name="scalar_convergence_options"/>
         <ref name="adaptivity_options_prognostic_scalar_field"/>
         <ref name="interpolation_algorithm_scalar"/>
       </element>
@@ -585,6 +587,7 @@ This option will work only if the mesh_adaptivity is switched on.</a:documentati
           <ref name="darcy_impes_saturation_field_spatial_discretisation_only_upwind"/>
           <ref name="darcy_impes_saturation_field_temporal_discretisation_only_explicit"/>
           <ref name="darcy_impes_include_cv_stat"/>
+          <ref name="scalar_convergence_options"/>
           <ref name="adaptivity_options_prognostic_scalar_field"/>
           <ref name="interpolation_algorithm_scalar"/>
         </element>
@@ -603,6 +606,7 @@ This option will work only if the mesh_adaptivity is switched on.</a:documentati
             <ref name="darcy_impes_bc_saturation_field"/>
           </zeroOrMore>
           <ref name="darcy_impes_include_cv_stat"/>
+          <ref name="scalar_convergence_options"/>
           <ref name="adaptivity_options_prognostic_scalar_field"/>
           <ref name="interpolation_algorithm_scalar"/>
         </element>
@@ -630,6 +634,7 @@ This option will work only if the mesh_adaptivity is switched on.</a:documentati
           <ref name="darcy_impes_bc_saturation_field"/>
         </oneOrMore>
         <ref name="darcy_impes_include_cv_stat"/>
+        <ref name="scalar_convergence_options"/>
         <ref name="adaptivity_options_prognostic_scalar_field"/>
         <ref name="interpolation_algorithm_scalar"/>
       </element>
@@ -892,7 +897,7 @@ Default value if not given is 0.25.</a:documentation>
       </element>
     </element>
   </define>
-  <define name="darcy_impes_total_darcy_velocity_field">
+  <define name="darcy_impes_total_darcy_velocity_field_subcv">
     <element name="vector_field">
       <attribute name="rank">
         <value>0</value>
@@ -914,6 +919,29 @@ Default value if not given is 0.25.</a:documentation>
         <zeroOrMore>
           <ref name="darcy_impes_bc_total_darcy_velocity_field"/>
         </zeroOrMore>
+        <ref name="darcy_impes_include_cv_stat"/>
+      </element>
+    </element>
+  </define>
+  <define name="darcy_impes_total_darcy_velocity_field_cv">
+    <element name="vector_field">
+      <attribute name="rank">
+        <value>0</value>
+      </attribute>
+      <attribute name="name">
+        <value>TotalDarcyVelocityCV</value>
+      </attribute>
+      <element name="diagnostic">
+        <element name="mesh">
+          <attribute name="name">
+            <value>PressureMesh</value>
+          </attribute>
+        </element>
+        <element name="algorithm">
+          <attribute name="name">
+            <value>Internal</value>
+          </attribute>
+        </element>
         <ref name="darcy_impes_include_cv_stat"/>
       </element>
     </element>
@@ -1413,10 +1441,6 @@ and the interstitial velocity for porous media flow.         </a:documentation>
   <define name="detector_options_disabled_default">
     <empty/>
   </define>
-  <!-- Convergence options for prognostic scalar fields -->
-  <define name="scalar_convergence_options">
-    <empty/>
-  </define>
   <define name="discrete_properties_algorithm_scalar">
     <empty/>
   </define>
@@ -1433,10 +1457,35 @@ and the interstitial velocity for porous media flow.         </a:documentation>
   <define name="diagnostic_vector_stat_options">
     <empty/>
   </define>
+  <define name="vector_steady_state_options">
+    <empty/>
+  </define>
   <define name="vector_convergence_options">
     <empty/>
   </define>
-  <define name="vector_steady_state_options">
-    <empty/>
+  <!-- Convergence options for prognostic scalar fields -->
+  <define name="scalar_convergence_options">
+    <element name="convergence">
+      <a:documentation>Decide whether this field is tested for convergence
+during nonlinear iterations
+(if /timestepping/nonlinear_iterations and
+/timestepping/nonlinear_iterations/tolerance are
+enabled).
+Also specifies whether the field is added to the 
+convergence file (if /io/convergence_file is enabled).</a:documentation>
+      <choice>
+        <element name="include_in_convergence">
+          <a:documentation>Include this field in convergence testing
+(if /timestepping/nonlinear_iterations and
+/timestepping/nonlinear_iterations/tolerance are
+enabled) and file (if /io/convergence_file is enabled)</a:documentation>
+          <ref name="comment"/>
+        </element>
+        <element name="exclude_from_convergence">
+          <a:documentation>Exclude this field from convergence testing and file </a:documentation>
+          <ref name="comment"/>
+        </element>
+      </choice>
+    </element>
   </define>
 </grammar>

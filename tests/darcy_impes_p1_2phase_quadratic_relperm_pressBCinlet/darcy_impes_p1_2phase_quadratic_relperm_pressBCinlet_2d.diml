@@ -147,6 +147,9 @@
             </constant>
           </type>
         </boundary_conditions>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
@@ -174,6 +177,9 @@
         <stat>
           <include_cv_stats/>
         </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
         <consistent_interpolation/>
       </diagnostic>
     </scalar_field>
@@ -257,6 +263,15 @@ for n in range(field.node_count):
         </stat>
       </diagnostic>
     </vector_field>
+    <vector_field name="TotalDarcyVelocityCV" rank="0">
+      <diagnostic>
+        <mesh name="PressureMesh"/>
+        <algorithm name="Internal"/>
+        <stat>
+          <include_cv_stats/>
+        </stat>
+      </diagnostic>
+    </vector_field>
     <scalar_field name="DivergenceTotalDarcyVelocity" rank="0">
       <diagnostic>
         <mesh name="PressureMesh"/>
@@ -304,6 +319,9 @@ for n in range(field.node_count):
         <stat>
           <include_cv_stats/>
         </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>

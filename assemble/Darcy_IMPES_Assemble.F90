@@ -77,7 +77,7 @@ module darcy_impes_assemble_module
       type(scalar_field), pointer :: porosity, old_porosity
       type(scalar_field), pointer :: absolute_permeability
       type(vector_field), pointer :: positions
-      type(vector_field), pointer :: total_darcy_velocity   
+      type(vector_field), pointer :: total_darcy_velocity, total_darcy_velocity_cv   
       type(scalar_field), pointer :: sum_saturation, old_sum_saturation
       type(scalar_field), pointer :: div_total_darcy_velocity
       type(vector_field) :: positions_pressure_mesh
@@ -87,6 +87,7 @@ module darcy_impes_assemble_module
       type(scalar_field) :: inverse_cv_mass_pressure_mesh
       type(scalar_field) :: cv_mass_pressure_mesh_with_porosity   
       type(scalar_field) :: cv_mass_pressure_mesh_with_old_porosity 
+      type(scalar_field) :: cv_mass_velocity_mesh
       type(scalar_field) :: cfl_subcycle
       type(scalar_field) :: old_saturation_subcycle   
       type(scalar_field), dimension(:), pointer :: darcy_velocity_normal_flow_bc_value
@@ -120,7 +121,9 @@ module darcy_impes_assemble_module
       ! local variables
       integer :: p, number_subcycle
       real    :: dt_subcycle, max_cfl
-
+      
+      ewrite(1,*) 'Start Darcy IMPES assemble and solve'
+      
       ! Copy to Old the CV mass on the pressure mesh with porosity 
       call set(di%cv_mass_pressure_mesh_with_old_porosity, di%cv_mass_pressure_mesh_with_porosity)
       
@@ -152,10 +155,16 @@ module darcy_impes_assemble_module
          
          call scale(di%cfl_subcycle, 1.0/real(number_subcycle))
          
+         ewrite(1,*) 'Solve phase ',p,' Saturation with number_subcycle ',number_subcycle,' and dt_subcycle ',dt_subcycle
+         
          call solve_phase_saturation(di, &
                                      number_subcycle, &
                                      dt_subcycle, &
                                      p)
+         
+         ewrite(1,*) 'Finished solve phase ',p,' Saturation'
+         
+         ewrite_minmax(di%saturation(p)%ptr)
                   
       end do s_phase_loop
       
@@ -182,16 +191,24 @@ module darcy_impes_assemble_module
          
          call scale(di%cfl_subcycle, 1.0/real(number_subcycle))
          
+         ewrite(1,*) 'Solve phase 1 Saturation with number_subcycle ',number_subcycle,' and dt_subcycle ',dt_subcycle
+
          call solve_phase_saturation(di, &
                                      number_subcycle, &
                                      dt_subcycle, &
                                      p = 1)
+
+         ewrite(1,*) 'Finished solve phase 1 Saturation'
+         
+         ewrite_minmax(di%saturation(1)%ptr)
       
       end if s1_solve_if
 
       ! Calculate the sum of the saturations
       call darcy_impes_calculate_sum_saturation(di)
-            
+      
+      ewrite(1,*) 'Finished Darcy IMPES assemble and solve'
+           
    end subroutine darcy_impes_assemble_and_solve
 
 ! ----------------------------------------------------------------------------
@@ -254,6 +271,8 @@ module darcy_impes_assemble_module
       allocate(p_rhs_local_bdy(face_loc(di%pressure,1)))
       allocate(x_ele_bdy(di%positions%dim, face_loc(di%positions,1)))      
       allocate(p_nodes_bdy(face_loc(di%pressure%mesh,1)))
+      
+      ewrite(1,*) 'Solve Pressure'
       
       ! Initialise the matrix and rhs
       call zero(di%pressure_matrix)
@@ -524,6 +543,8 @@ module darcy_impes_assemble_module
                   
                else have_phase_darcy_vel_bc
                   
+                  ! ***** the integral of the phase coeff * grad_p over the boundary cv surface requires coding here *****
+                  
                   
                   
                end if have_phase_darcy_vel_bc
@@ -560,7 +581,11 @@ module darcy_impes_assemble_module
       deallocate(p_rhs_local_bdy)
       deallocate(x_ele_bdy)      
       deallocate(p_nodes_bdy)
-   
+      
+      ewrite(1,*) 'Finished solve Pressure'
+      
+      ewrite_minmax(di%pressure)
+      
    end subroutine solve_pressure
 
 ! ----------------------------------------------------------------------------
@@ -604,11 +629,18 @@ module darcy_impes_assemble_module
       integer, dimension(:),     allocatable :: p_nodes_bdy
       real,    dimension(:,:),   allocatable :: vphi_sele
       real,    dimension(:,:),   allocatable :: darcy_vel_sele
+      real,    dimension(:,:),   allocatable :: total_darcy_vel_ele
+      
+      ewrite(1,*) 'Calculate GradientPressure'
       
       ! Calculate the gradient pressure field assumed DG
       call grad(di%pressure, &
                 di%positions, &
                 di%gradient_pressure)
+      
+      ewrite_minmax(di%gradient_pressure)
+      
+      ewrite(1,*) 'Calculate InterstitialVelocityPorosity'
       
       ! Calculate the inter_velocity_porosity field = - (1.0/old_sigma) * grad_pressure, where sigma = visc / absperm * relperm
       
@@ -660,8 +692,14 @@ module darcy_impes_assemble_module
          
       end do
       
+      do p = 1,di%number_phase
+         ewrite_minmax(di%inter_velocity_porosity(p)%ptr)
+      end do
+      
       ! calculate the darcy velocity = inter_velocity_porosity * old_saturation
       do p = 1, di%number_phase         
+         
+         ewrite(1,*) 'Calculate DarcyVelocity for phase ',p
          
          call zero(di%darcy_velocity(p)%ptr)
          
@@ -680,7 +718,11 @@ module darcy_impes_assemble_module
 
          call scale(di%darcy_velocity(p)%ptr, di%inter_velocity_porosity(p)%ptr)
          
+         ewrite_minmax(di%darcy_velocity(p)%ptr)
+         
       end do 
+      
+      ewrite(1,*) 'Calculate TotalDarcyVelocity'
       
       ! calculate the total darcy velocity
       call set(di%total_darcy_velocity, di%darcy_velocity(1)%ptr)
@@ -691,8 +733,41 @@ module darcy_impes_assemble_module
          
       end do
       
+      ewrite_minmax(di%total_darcy_velocity)
+      
+      ewrite(1,*) 'Calculate TotalDarcyVelocityCV'
+      
+      ! calculate the total darcy velocity on the pressure mesh
+      allocate(total_darcy_vel_ele(di%positions%dim,ele_loc(di%total_darcy_velocity,1)))
+      
+      call zero(di%total_darcy_velocity_cv)
+      
+      do vele = 1, element_count(di%pressure)
+         
+         total_darcy_vel_ele = ele_val(di%total_darcy_velocity,vele)
+         
+         do dim = 1, di%positions%dim
+            
+            call addto(di%total_darcy_velocity_cv, &
+                       dim, &
+                       ele_nodes(di%total_darcy_velocity_cv,vele), &
+                       total_darcy_vel_ele(dim,:)*ele_val(di%cv_mass_velocity_mesh,vele))
+            
+         end do
+         
+      end do 
+
+      deallocate(total_darcy_vel_ele)
+      
+      call scale(di%total_darcy_velocity_cv, &
+                 di%inverse_cv_mass_pressure_mesh)            
+      
+      ewrite_minmax(di%total_darcy_velocity_cv)
+      
       ! calculate the fractional flow for each phase
       do p = 1, di%number_phase
+         
+         ewrite(1,*) 'Calculate FractionalFlow for phase ',p
          
          call set(di%fractional_flow(p)%ptr, di%total_darcy_velocity)
          
@@ -700,7 +775,11 @@ module darcy_impes_assemble_module
          
          call scale(di%fractional_flow(p)%ptr, di%darcy_velocity(p)%ptr)
          
+         ewrite_minmax(di%fractional_flow(p)%ptr)
+      
       end do
+      
+      ewrite(1,*) 'Calculate the DivergenceTotalDarcyVelocity'
       
       ! calculate the divergence of the total darcy velocity
       ! and the CFL number of each phase using CV surface integrals
@@ -906,7 +985,9 @@ module darcy_impes_assemble_module
       end do
       
       call scale(di%div_total_darcy_velocity, di%inverse_cv_mass_pressure_mesh)
-
+      
+      ewrite_minmax(di%div_total_darcy_velocity)
+      
       ! deallocate local variables as required
       deallocate(x_ele)
       deallocate(normal)
@@ -1261,6 +1342,8 @@ module darcy_impes_assemble_module
       ! local variables
       integer :: p
       
+      ewrite(1,*) 'Calculate phase 1 diagnostic Saturation'
+      
       call set(di%saturation(1)%ptr, 1.0)
       
       do p = 2, di%number_phase
@@ -1268,6 +1351,8 @@ module darcy_impes_assemble_module
          call addto(di%saturation(1)%ptr, di%saturation(p)%ptr, scale = -1.0)
          
       end do
+      
+      ewrite_minmax(di%saturation(1)%ptr)
        
    end subroutine darcy_impes_calculate_phase_one_saturation_diagnostic
 
@@ -1282,6 +1367,8 @@ module darcy_impes_assemble_module
       ! local variables
       integer :: p
       
+      ewrite(1,*) 'Calculate SumSaturation'
+      
       call zero(di%sum_saturation)
       
       do p = 1, di%number_phase
@@ -1289,6 +1376,8 @@ module darcy_impes_assemble_module
          call addto(di%sum_saturation, di%saturation(p)%ptr)
          
       end do
+      
+      ewrite_minmax(di%sum_saturation)
        
    end subroutine darcy_impes_calculate_sum_saturation
 
@@ -1313,6 +1402,8 @@ module darcy_impes_assemble_module
     integer,                      dimension(:), pointer :: surface_element_list
     integer                                             :: i, k, sele
     character(len=FIELD_NAME_LEN)                       :: bctype
+    
+    ewrite(1,*) 'Get ',trim(darcy_velocity%name),' normal_flow boundary condition data'
     
     ! Zero the normal_flow value surface field on whole boundary mesh  
     call zero(darcy_velocity_normal_flow_bc_value)
@@ -1363,6 +1454,10 @@ module darcy_impes_assemble_module
        end do BC_sele_loop
     
     end do BC_loop
+    
+    ewrite_minmax(darcy_velocity_normal_flow_bc_value)
+    
+    ewrite(1,*) 'Finished get ',trim(darcy_velocity%name),' normal_flow boundary condition data'
 
   end subroutine get_darcy_velocity_normal_flow_boundary_condition
   

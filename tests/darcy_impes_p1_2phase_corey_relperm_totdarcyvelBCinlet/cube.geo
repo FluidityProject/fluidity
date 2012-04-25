@@ -4,7 +4,7 @@ lay_y = 2;
 lay_z = 2;
 
 // define a len variable
-len = 300.0;
+len = 1.0;
 
 Point(1) = {0.0, 0.0, 0.0, 1.0};
 
