@@ -153,7 +153,7 @@ contains
     integer :: num_node_sets, num_side_sets
     integer, allocatable, dimension(:) :: block_ids, num_elem_in_block, num_nodes_per_elem
 
-    logical :: haveBounds, haveInternalBounds
+    logical :: haveBoundaries, haveInternalBounds
 
     ewrite(2,*) "In identify_exodusii_file"
 
@@ -220,7 +220,7 @@ contains
     type(mesh_type) :: mesh
 
     logical :: fileExists
-    logical :: haveRegionIDs, haveBounds
+    logical :: haveRegionIDs, haveBoundaries
 
     type(EXOnode), pointer :: exo_nodes(:)
     type(EXOelement), pointer :: exo_element(:), exo_face(:), allelements(:)
@@ -243,7 +243,7 @@ contains
     integer, allocatable, dimension(:) :: elem_blk_connectivity, elem_connectivity
     integer, allocatable, dimension(:) :: side_set_ids, num_sides_in_set, num_elem_in_set, num_df_in_set
     integer, allocatable, dimension(:) :: side_set_node_list, side_set_side_list, side_set_elem_list
-    integer, allocatable, dimension(:) :: total_side_sets_node_list, total_side_sets_side_list, total_side_sets_elem_list
+    integer, allocatable, dimension(:) :: total_side_sets_node_list, total_side_sets_elem_list
     integer, allocatable, dimension(:) :: side_set_node_cnt_list, total_side_sets_node_cnt_list
 
     ! variables for conversion to fluidity structure:
@@ -406,7 +406,7 @@ contains
        haveBoundaries = .false.
     end if
     ! Get side sets
-    ! Side sets in exodusii are what physical lines/surfaces/volumes are in gmsh
+    ! Side sets in exodusii are what physical lines/surfaces are in gmsh (so basically boundary-IDs)
     ! Allocate arrays for the side sets:
     allocate(side_set_ids(num_side_sets)); allocate(num_sides_in_set(num_side_sets)); allocate(num_df_in_set(num_side_sets))
     side_set_ids=0; num_sides_in_set=0; num_df_in_set=0;
@@ -416,8 +416,6 @@ contains
     if (ierr /= 0) then
        ewrite(2,*) "No side sets found in "//trim(lfilename)
     end if
-
-    ewrite(2,*) "********************************SIDE SETS*************************************"
 
     ! Get side set parameters:
     if (haveRegionIDs) then
@@ -435,7 +433,6 @@ contains
     ! Now let's finally get the side-set-ids!
     if (haveRegionIDs) then
        allocate(total_side_sets_elem_list(0))
-       allocate(total_side_sets_side_list(0))
        allocate(total_side_sets_node_list(0))
        allocate(total_side_sets_node_cnt_list(0))
        do i=1, num_side_sets
@@ -451,17 +448,17 @@ contains
 
           ! append the side set element list in global array for later:
           call append_array(total_side_sets_elem_list, side_set_elem_list)
-          call append_array(total_side_sets_side_list, side_set_side_list)
           call append_array(total_side_sets_node_list, side_set_node_list)
           call append_array(total_side_sets_node_cnt_list, side_set_node_cnt_list)
           deallocate(side_set_elem_list); deallocate(side_set_side_list)
           deallocate(side_set_node_list); deallocate(side_set_node_cnt_list)
        end do
     end if
+
 !    ! Tests:
+!    ewrite(2,*) "********************************SIDE SETS*************************************"
 !    ewrite(2,*) "side_set_ids = ", side_set_ids
 !    ewrite(2,*) "total_side_sets_elem_list = ", total_side_sets_elem_list
-!    ewrite(2,*) "total_side_sets_side_list = ", total_side_sets_side_list
 !    z=1;
 !    do i=1, num_side_sets
 !       do e=1, num_elem_in_set(i)
@@ -475,7 +472,6 @@ contains
     print *, "size(total_side_sets_node_list) = ", size(total_side_sets_node_list)
     print *, "size(total_side_sets_elem_list) = ", size(total_side_sets_elem_list)
     print *, "total_side_sets_node_list = ", total_side_sets_node_list
-    print *, "total_side_sets_side_list = ", total_side_sets_side_list
     print *, "total_side_sets_elem_list = ", total_side_sets_elem_list
     print *, "total_side_sets_node_cnt_list = ", total_side_sets_node_cnt_list
     ewrite(2,*) "side_set_ids = ", side_set_ids
@@ -889,8 +885,7 @@ contains
 
     ! Deallocate other arrays:
     deallocate(node_coord); deallocate(total_elem_node_list)
-    deallocate(total_side_sets_elem_list); deallocate(total_side_sets_side_list)
-    deallocate(total_side_sets_node_cnt_list)
+    deallocate(total_side_sets_elem_list); deallocate(total_side_sets_node_cnt_list)
     deallocate(allelements)
     deallocate(exo_nodes); deallocate(exo_element); deallocate(exo_face)
     call deallocate( mesh )
