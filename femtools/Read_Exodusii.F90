@@ -241,8 +241,6 @@ contains
     character(len=6) :: elem_type_char
     integer, allocatable, dimension(:) :: elem_type, num_attr
     integer, allocatable, dimension(:) :: elem_blk_connectivity, elem_connectivity
-    integer, allocatable, dimension(:) :: node_set_ids, num_nodes_in_set
-    integer, allocatable, dimension(:) :: node_set_node_list, total_node_sets_node_list
     integer, allocatable, dimension(:) :: side_set_ids, num_sides_in_set, num_elem_in_set, num_df_in_set
     integer, allocatable, dimension(:) :: side_set_node_list, side_set_side_list, side_set_elem_list
     integer, allocatable, dimension(:) :: total_side_sets_node_list, total_side_sets_side_list, total_side_sets_elem_list
@@ -886,7 +884,6 @@ contains
     deallocate(block_ids); deallocate(num_elem_in_block); deallocate(num_nodes_per_elem);
     deallocate(elem_type); deallocate(num_attr)
     deallocate(elem_connectivity); 
-!    deallocate(node_set_ids); deallocate(num_nodes_in_set); deallocate(total_node_sets_node_list);
 
     ! Deallocate other arrays:
     deallocate(node_coord); deallocate(total_elem_node_list)
