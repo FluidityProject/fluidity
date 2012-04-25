@@ -712,9 +712,7 @@ contains
        z=1;
        do i=1, num_allelem
           elemID = allelements(i)%elementID
-          print *, "elemID = ", elemID
           num_tags_elem = allelements(elemID)%numTags
-          print *, "num_tags_elem = ", num_tags_elem
           ! Is there at least one site set ID assigned to the element, it is a face:
           if (num_tags_elem > 0) then
              ! increase number of faces in the mesh...
@@ -725,7 +723,7 @@ contains
        end do
     end if
     ewrite(2,*) "total number of faces: ", num_faces
-
+    ewrite(2,*) "num_elem = ", num_elem
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Setting Elements and faces !
@@ -733,11 +731,10 @@ contains
     ! Now actually set the elements and face-elements:
     ! assemble array with faces (exo_face contains element number (=element id of mesh))
     ! and sndglno contains the corresponding node numbers:
-    ewrite(2,*) "num_elem = ", num_elem
     allocate(exo_element(num_elem)); allocate(exo_face(num_faces))
     allocate(sndglno(1:num_faces*sloc))
     sndglno=0
-    exo_f=1; b=0; z=0; exo_e=1;
+    b=0; exo_e=1; exo_f=1;
     do i=1, num_elem_blk
        do e=1, num_elem_in_block(i)
           ! Distinguish between faces/edges and elements:
@@ -760,7 +757,6 @@ contains
 !             print *, "allelements(e+b)%numTags = ", allelements(e+b)%numTags
 !             print *, "exo_face(f)%numTags = ", exo_face(f)%numTags
              exo_f = exo_f+1
-             z = z+num_nodes_per_elem(i)
           else if (allelements(e+b)%numTags == 0) then
              ! these are elements without boundaryID, thus they'll remain elements
              allocate( exo_element(exo_e)%nodeIDs(size(allElements(e+b)%nodeIDs)))
@@ -782,6 +778,7 @@ contains
        end do
        b = b + num_elem_in_block(i)
     end do
+    
 
 
     ! Assemble the CoordinateMesh:
