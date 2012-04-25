@@ -44,7 +44,7 @@ ARFLAGS = @ARFLAGS@
 
 LIB = ../lib/lib$(FLUIDITY).a
 
-OBJS = Lagrangian_Biology.o LERM.o LERM_Diatom_c.o\
+OBJS = Lagrangian_Biology.o Particle_Management.o LERM.o LERM_Diatom_c.o\
 
 .SUFFIXES: .f90 .F90 .c .o .a
 
