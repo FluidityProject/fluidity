@@ -201,7 +201,9 @@ contains
        call local_solve_residuals_ele(U_res,D_res,&
             newton_local_solver_cache(ele)%ptr,ele)
     end do
-    
+
+    call scale(U_res,-1.0)
+    call scale(D_res,-1.0)
     call addto(newU,U_res)
     call addto(newD,D_res)
 

@@ -71,7 +71,6 @@ for line in f:
    if 'Percentage Change in energy:=' in line:
       line = line.replace('Percentage Change in energy:=','')
       DeltaE = double(line)
-      print DeltaE
 f.close()
     </variable>
   </variables>

@@ -133,7 +133,6 @@
     ! Always output the initial conditions.
     call output_state(states)
     call compute_energy_hybridized(states(1),energy)
-    ewrite(2,*) 'Initial Energy:', energy
 
     timestep_loop: do
        timestep=timestep+1
@@ -156,7 +155,6 @@
 
        !Update the variables
        call compute_energy_hybridized(states(1),energy)
-       ewrite(2,*) 'Energy = ',energy
        call write_diagnostics(states,current_time, dt, timestep)
 
     end do timestep_loop
