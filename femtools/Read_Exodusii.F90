@@ -401,21 +401,22 @@ contains
     ! to all elements of the mesh if the user does not specify an blockID manually
     haveRegionIDs = .true. ! redundant for reasons stated above, but kept here to keep it consistent with gmshreader for now
     ! Boundaries: Boundaries are present if at least one side-set was supplied by the user:
-    if (num_side_sets > 0) then
-       haveBoundaries = .true.
-    else
+    if (num_side_sets == 0) then
        haveBoundaries = .false.
+    else
+       haveBoundaries = .true.
     end if
     ! Get side sets
     ! Side sets in exodusii are what physical lines/surfaces are in gmsh (so basically boundary-IDs)
     ! Allocate arrays for the side sets:
-    allocate(side_set_ids(num_side_sets)); allocate(num_sides_in_set(num_side_sets)); allocate(num_df_in_set(num_side_sets))
-    side_set_ids=0; num_sides_in_set=0; num_df_in_set=0;
-
     ! Get Side SetIDs:
-    ierr = f_ex_get_side_set_ids(exoid, side_set_ids);
-    if (ierr /= 0) then
-       ewrite(2,*) "No side sets found in "//trim(lfilename)
+    if (haveBoundaries) then
+       allocate(side_set_ids(num_side_sets)); allocate(num_sides_in_set(num_side_sets)); allocate(num_df_in_set(num_side_sets))
+       side_set_ids=0; num_sides_in_set=0; num_df_in_set=0;
+       ierr = f_ex_get_side_set_ids(exoid, side_set_ids);
+       if (ierr /= 0) then
+          ewrite(2,*) "No side sets found in "//trim(lfilename)
+       end if
     end if
 
     ! Get side set parameters:
@@ -428,11 +429,12 @@ contains
        FLExit("Unable to read in the side set parameters from "//trim(lfilename))
     end if
     ! Now the element list of the side set:
-    allocate(num_elem_in_set(num_side_sets)) ! There are the same # of elements as sides in a side set
-    num_elem_in_set = num_sides_in_set;
+
 
     ! Now let's finally get the side-set-ids!
     if (haveBoundaries) then
+       allocate(num_elem_in_set(num_side_sets)) ! There are the same # of elements as sides in a side set
+       num_elem_in_set = num_sides_in_set;
        allocate(total_side_sets_elem_list(0))
        allocate(total_side_sets_node_list(0))
        allocate(total_side_sets_node_cnt_list(0))
@@ -473,9 +475,10 @@ contains
           deallocate(side_set_elem_list); deallocate(side_set_side_list)
           deallocate(side_set_node_list); deallocate(side_set_node_cnt_list)
        end do
+       ! We don't need the distribution factors, so deallocate this immediately:
+       deallocate(num_df_in_set)
     end if
-    ! We don't need the distribution factors, so deallocate this immediately:
-    deallocate(num_df_in_set)
+
 
 
     ! Tests:
@@ -496,12 +499,14 @@ contains
 !       ewrite(2,*) "******* end of elem list *******"
 !    end do
     ! Tests:
-    print *, "size(total_side_sets_node_list) = ", size(total_side_sets_node_list)
-    print *, "size(total_side_sets_elem_list) = ", size(total_side_sets_elem_list)
-    print *, "total_side_sets_node_list = ", total_side_sets_node_list
-    print *, "total_side_sets_elem_list = ", total_side_sets_elem_list
-    print *, "total_side_sets_node_cnt_list = ", total_side_sets_node_cnt_list
-    ewrite(2,*) "side_set_ids = ", side_set_ids
+    if (haveBoundaries) then
+       print *, "size(total_side_sets_node_list) = ", size(total_side_sets_node_list)
+       print *, "size(total_side_sets_elem_list) = ", size(total_side_sets_elem_list)
+       print *, "total_side_sets_node_list = ", total_side_sets_node_list
+       print *, "total_side_sets_elem_list = ", total_side_sets_elem_list
+       print *, "total_side_sets_node_cnt_list = ", total_side_sets_node_cnt_list
+       ewrite(2,*) "side_set_ids = ", side_set_ids
+    end if
 
 
 
@@ -605,66 +610,67 @@ contains
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Setting numTags to the elements with side-set-id !
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    z=1;
-    do i=1, num_side_sets
-       do e=1, num_elem_in_set(i)
-          ! Get global element id:
-          elemID = total_side_sets_elem_list(z)
-          ! Set # of tags for this particular element
-          allelements(elemID)%numTags = allelements(elemID)%numTags+1
-          z = z+1
+    if (haveBoundaries) then
+       z=1;
+       do i=1, num_side_sets
+          do e=1, num_elem_in_set(i)
+             ! Get global element id:
+             elemID = total_side_sets_elem_list(z)
+             ! Set # of tags for this particular element
+             allelements(elemID)%numTags = allelements(elemID)%numTags+1
+             z = z+1
+          end do
        end do
-    end do
-
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Setting tags to the elements with side-set-id !
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    z=1;
-    do i=1, num_side_sets
-       do e=1, num_elem_in_set(i)
-          ! Get global element id:
-          elemID = total_side_sets_elem_list(z)
-          num_tags_elem = allelements(elemID)%numTags
-          ! Allocate array of tags for this particular element
-          allocate(allelements(elemID)%tags(num_tags_elem))
-          ! Initialize element%tag with a diabolic integer to indicate
-          ! that the tag has not been 'correctly' set
-          allelements(elemID)%tags(:) = -666
-          z = z+1
-       end do
-    end do
-    ! Now that the tags for all elements are allocated and uniquely marked, set them
-    z=1;
-    do i=1, num_side_sets
-       do e=1, num_elem_in_set(i)
-          ! Get global element id:
-          elemID = total_side_sets_elem_list(z)
-          num_tags_elem = allelements(elemID)%numTags
-          ! Set the side-set-id to this element
-          do j=1, num_tags_elem
-             ! Check for already existing tags in this element
-             if ( allelements(elemID)%tags(j) == -666 ) then
-                allelements(elemID)%tags(j) = side_set_ids(i)
-                ! end exit the inner loop after setting this side sets id to the element
-                exit
-             end if
+       z=1;
+       do i=1, num_side_sets
+          do e=1, num_elem_in_set(i)
+             ! Get global element id:
+             elemID = total_side_sets_elem_list(z)
+             num_tags_elem = allelements(elemID)%numTags
+             ! Allocate array of tags for this particular element
+             allocate(allelements(elemID)%tags(num_tags_elem))
+             ! Initialize element%tag with a diabolic integer to indicate
+             ! that the tag has not been 'correctly' set
+             allelements(elemID)%tags(:) = -666
+             z = z+1
           end do
-          ! DEBUG statements:
-!          ewrite(2,*) "elem_list = ", total_side_sets_elem_list(z)
-!          ewrite(2,*) "allelements(elemID) = ", allelements(elemID)%elementID
-!          ewrite(2,*) "allelements(elemID)%numTags = ", allelements(elemID)%numTags
-!          ewrite(2,*) "allelements(elemID)%tags(:) = ", allelements(elemID)%tags(:)
-!       ewrite(2,*) "************* next element in side sets *************"
-          z = z+1
        end do
-!       ewrite(2,*) "side_set_id(i) = ", side_set_ids(i)
-!       ewrite(2,*) "******************** end of elem list ********************"
-    end do
-    ! At this stage, the elements of 'allelements' have been correctly tagged, 
-    ! meaning they carry the side set ID(s) as tags, which later will
-    ! become the boundary ID of their face(s)
-!    print *, "------------------------------------------"
-!    print *, "total_side_sets_elem_list = ", total_side_sets_elem_list
+       ! Now that the tags for all elements are allocated and uniquely marked, set them
+       z=1;
+       do i=1, num_side_sets
+          do e=1, num_elem_in_set(i)
+             ! Get global element id:
+             elemID = total_side_sets_elem_list(z)
+             num_tags_elem = allelements(elemID)%numTags
+             ! Set the side-set-id to this element
+             do j=1, num_tags_elem
+                ! Check for already existing tags in this element
+                if ( allelements(elemID)%tags(j) == -666 ) then
+                   allelements(elemID)%tags(j) = side_set_ids(i)
+                   ! end exit the inner loop after setting this side sets id to the element
+                   exit
+                end if
+             end do
+             ! DEBUG statements:
+!             ewrite(2,*) "elem_list = ", total_side_sets_elem_list(z)
+!             ewrite(2,*) "allelements(elemID) = ", allelements(elemID)%elementID
+!             ewrite(2,*) "allelements(elemID)%numTags = ", allelements(elemID)%numTags
+!             ewrite(2,*) "allelements(elemID)%tags(:) = ", allelements(elemID)%tags(:)
+!             ewrite(2,*) "************* next element in side sets *************"
+             z = z+1
+          end do
+!         ewrite(2,*) "side_set_id(i) = ", side_set_ids(i)
+!         ewrite(2,*) "******************** end of elem list ********************"
+       end do
+       ! At this stage, the elements of 'allelements' have been correctly tagged, 
+       ! meaning they carry the side set ID(s) as tags, which later will
+       ! become the boundary ID of their face(s)
+!       print *, "------------------------------------------"
+!       print *, "total_side_sets_elem_list = ", total_side_sets_elem_list
+    end if
 
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -780,21 +786,23 @@ contains
        b = b + num_elem_in_block(i)
     end do
     ! Now derive the faces for fluidity, that are based on elements with side-set-ID:
-    n_cnt_pos=1; z=1;
-    do i=1, num_side_sets
-       do e=1, num_elem_in_set(i)
-          num_nodes_face_ele = total_side_sets_node_cnt_list(e)
-          allocate( exo_face(exo_f)%nodeIDs(num_nodes_face_ele))
-          do n=1, num_nodes_face_ele
-             exo_face(exo_f)%nodeIDs(n) = total_side_sets_node_list(n_cnt_pos)
-             n_cnt_pos = n_cnt_pos+1
+    if (haveBoundaries) then
+       n_cnt_pos=1; z=1;
+       do i=1, num_side_sets
+          do e=1, num_elem_in_set(i)
+             num_nodes_face_ele = total_side_sets_node_cnt_list(e)
+             allocate( exo_face(exo_f)%nodeIDs(num_nodes_face_ele))
+             do n=1, num_nodes_face_ele
+                exo_face(exo_f)%nodeIDs(n) = total_side_sets_node_list(n_cnt_pos)
+                n_cnt_pos = n_cnt_pos+1
+             end do
+             ! Set boundaryID to face:
+             allocate(exo_face(exo_f)%tags(1))
+             exo_face(exo_f)%tags = side_set_ids(i)
+             exo_f = exo_f+1
           end do
-          ! Set boundaryID to face:
-          allocate(exo_face(exo_f)%tags(1))
-          exo_face(exo_f)%tags = side_set_ids(i)
-          exo_f = exo_f+1
        end do
-    end do
+    end if
     ! faces and elements are now all set
 
 
@@ -829,7 +837,6 @@ contains
       allocate( field%mesh%region_ids(num_elem) )
       field%mesh%region_ids = 0
     end if
-
     z=0; exo_e=1;
     do i=1, num_elem
        elementType = exo_element(exo_e)%type
@@ -851,7 +858,7 @@ contains
     end do
 
     ! Assemble array with faces, and boundaryIDs
-    if (num_faces>0) then
+    if (haveBoundaries) then
        allocate(sndglno(1:num_faces*sloc))
        sndglno=0
        if(haveBoundaries) then
@@ -867,7 +874,7 @@ contains
 
 
     if (haveBoundaries) then
-       call add_faces( field%mesh, sndgln = sndglno(1:num_faces*sloc), boundary_ids = boundaryIDs(1:numFaces) )
+       call add_faces( field%mesh, sndgln = sndglno(1:num_faces*sloc), boundary_ids = boundaryIDs(1:num_faces) )
     else
        call add_faces( field%mesh, sndgln = sndglno(1:num_faces*sloc) )
     end if
@@ -912,7 +919,10 @@ contains
 
     ! Deallocate other arrays:
     deallocate(node_coord); deallocate(total_elem_node_list)
-    deallocate(total_side_sets_elem_list); deallocate(total_side_sets_node_cnt_list)
+    if (haveBoundaries) then
+       deallocate(total_side_sets_elem_list); deallocate(total_side_sets_node_list)
+       deallocate(total_side_sets_node_cnt_list); deallocate(num_elem_in_set)
+    end if
     deallocate(allelements)
     deallocate(exo_nodes); deallocate(exo_element); deallocate(exo_face)
     call deallocate( mesh )
