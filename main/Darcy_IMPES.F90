@@ -595,7 +595,7 @@ contains
       call allocate(di%rhs, di%pressure%mesh)
       call allocate(di%rhs_adv, di%pressure%mesh)
       call allocate(di%rhs_time, di%pressure%mesh)
-      call allocate(di%old_saturation_subcycle, di%pressure%mesh)
+      call allocate(di%old_sfield_subcycle, di%pressure%mesh)
       call allocate(di%cv_mass_pressure_mesh_with_porosity, di%pressure%mesh)
       call allocate(di%cv_mass_pressure_mesh_with_old_porosity, di%pressure%mesh)
 
@@ -655,7 +655,12 @@ contains
       call invert(di%inverse_cv_mass_pressure_mesh)   
       
       ! Allocate the darcy velocity (and total) BC normal_flow value fields and flag
-      di%darcy_velocity_surface_mesh => get_dg_surface_mesh(di%darcy_velocity(1)%ptr%mesh)
+      
+      ! always make a surface mesh for the darcy velocity (and total) BC arrays
+      di%darcy_velocity_surface_mesh = make_mesh(di%darcy_velocity(1)%ptr%mesh%faces%surface_mesh, &
+                                                 di%darcy_velocity(1)%ptr%mesh%faces%shape, &
+                                                 continuity=-1, &
+                                                 name=trim(di%darcy_velocity(1)%ptr%mesh%name)//"DGSurfaceMesh")
 
       call allocate(di%total_darcy_velocity_normal_flow_bc_value, &
                    &di%darcy_velocity_surface_mesh, &
@@ -800,7 +805,7 @@ contains
       call deallocate(di%rhs)
       call deallocate(di%rhs_adv)
       call deallocate(di%rhs_time)
-      call deallocate(di%old_saturation_subcycle)      
+      call deallocate(di%old_sfield_subcycle)      
       call deallocate(di%cv_mass_pressure_mesh_with_porosity)
       call deallocate(di%cv_mass_pressure_mesh_with_old_porosity)
       
@@ -824,7 +829,7 @@ contains
       call deallocate(di%inverse_cv_mass_cfl_mesh)
       call deallocate(di%inverse_cv_mass_pressure_mesh)
       
-      nullify(di%darcy_velocity_surface_mesh)
+      call deallocate(di%darcy_velocity_surface_mesh)
       
       call deallocate(di%total_darcy_velocity_normal_flow_bc_value)
       deallocate(di%total_darcy_velocity_normal_flow_bc_flag)
@@ -838,6 +843,8 @@ contains
       ! Nothing can be done for di%saturation_cv_options
       
       di%saturation_max_courant_per_subcycle = 0.0
+      
+      di%quaddegree = 0
       
       call deallocate(di%cvfaces)
       call deallocate(di%x_cvshape_full)
