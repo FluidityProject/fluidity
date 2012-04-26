@@ -249,7 +249,7 @@ contains
     ! variables for conversion to fluidity structure:
     real(real_4), allocatable, dimension(:,:) :: node_coord
     integer, allocatable, dimension(:) :: elem_node_list, total_elem_node_list
-    integer, allocatable, dimension(:) :: sndglno
+    integer, allocatable, dimension(:) :: sndglno, boundaryIDs
     
     integer :: num_faces, num_faces_ele, num_elem, num_tags_elem, elementType
     integer :: num_nodes_face_ele, num_nodes_per_elem_ele
@@ -730,10 +730,7 @@ contains
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Now actually set the elements and face-elements:
     ! assemble array with faces (exo_face contains element number (=element id of mesh))
-    ! and sndglno contains the corresponding node numbers:
     allocate(exo_element(num_elem)); allocate(exo_face(num_faces))
-    allocate(sndglno(1:num_faces*sloc))
-    sndglno=0
     b=0; exo_e=1; exo_f=1;
     do i=1, num_elem_blk
        do e=1, num_elem_in_block(i)
@@ -748,7 +745,9 @@ contains
 !             exo_face(exo_f)%elementID = allelements(e+b)%elementID
 !             exo_face(f)%blockID = allelements(e+b)%blockID
 !             exo_face(f)%type = allelements(e+b)%type
-!             exo_face(f)%numTags = allelements(e+b)%numTags
+             exo_face(exo_f)%numTags = 0
+             allocate(exo_face(exo_f)%tags(1))
+             exo_face(exo_f)%tags = -666
              ! Debugging statements:
 !             print *, "================================================================="
 !             print *, "these are FACES: "
@@ -833,11 +832,13 @@ contains
 
     z=0; exo_e=1;
     do i=1, num_elem
-       if(.not.( (num_dim .eq. 2 .and. elem_type(i) .eq. 1) .or. &
+       elementType = exo_element(exo_e)%type
+       if(.not.( (num_dim .eq. 2 .and. elementType .eq. 1) .or. &
          (num_dim .eq. 3 .and. &
-         (elem_type(i) .eq. 2 .or. elem_type(i) .eq. 3)) ) ) then
+         (elementType .eq. 2 .or. elementType .eq. 3)) ) ) then
          !these are normal elements:
-          do n=1, num_nodes_per_elem(i)
+          num_nodes_per_elem_ele = size(exo_element(exo_e)%nodeIDs)
+          do n=1, num_nodes_per_elem_ele
              field%mesh%ndglno(n+z) = exo_element(exo_e)%nodeIDs(n)
           end do
           ! Set region_id of element (this will be its blockID in exodus)
@@ -845,44 +846,36 @@ contains
              field%mesh%region_ids = exo_element(exo_e)%blockID
           end if
           exo_e = exo_e+1
-          z = z+num_nodes_per_elem(i)
+          z = z+num_nodes_per_elem_ele
        end if
     end do
-    
+
+    ! Assemble array with faces, and boundaryIDs
+    if (num_faces>0) then
+       allocate(sndglno(1:num_faces*sloc))
+       sndglno=0
+       if(haveBoundaries) then
+          allocate(boundaryIDs(1:num_faces))
+       end if
+       
+       do f=1, num_faces
+          sndglno((f-1)*sloc+1:f*sloc) = exo_face(f)%nodeIDs(1:sloc)
+          if(haveBoundaries) boundaryIDs(f) = exo_face(f)%tags(1)
+       end do
+    end if
 
 
-    call add_faces( field%mesh, sndgln = sndglno(1:num_faces*sloc) )
+
+    if (haveBoundaries) then
+       call add_faces( field%mesh, sndgln = sndglno(1:num_faces*sloc), boundary_ids = boundaryIDs(1:numFaces) )
+    else
+       call add_faces( field%mesh, sndgln = sndglno(1:num_faces*sloc) )
+    end if
 
     ! To check if boundary ids are set correctly:
     ! surface_element_count; surface_element_id; ele_region_id; has_faces; 
     !surface_element_id(mesh, sele)
     
-
-
-    ! Copy node number of faces to 
-!    do f=1, num_faces
-!       faces((f-1)*sloc+1:f*sloc) = faces(f)%nodeIDs(1:sloc)
-!       if(haveBounds) boundaryIDs(f) = faces(f)%tags(1)
-!       if(haveElementOwners) faceOwner(f) = faces(f)%tags(4)
-!    end do
-
-
-!    ! Now faces
-!    allocate(sndglno(1:numFaces*sloc))
-!    sndglno=0
-!    if(haveBounds) then
-!      allocate(boundaryIDs(1:numFaces))
-!    end if
-!    if(haveElementOwners) then
-!      allocate(faceOwner(1:numFaces))
-!    end if
-
-!    do f=1, numFaces
-!       sndglno((f-1)*sloc+1:f*sloc) = faces(f)%nodeIDs(1:sloc)
-!       if(haveBounds) boundaryIDs(f) = faces(f)%tags(1)
-!       if(haveElementOwners) faceOwner(f) = faces(f)%tags(4)
-!    end do
-
 
 
 !    ! If we've got boundaries, do something
