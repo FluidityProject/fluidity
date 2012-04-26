@@ -377,7 +377,7 @@ contains
        FLExit("Unable to read in element block parameters from "//trim(lfilename))
     end if
     ! Get faceType and give the user an error if he supplied a mesh with an unsupported combination of element types:
-    elementType = 0
+    elementType = 0; faceType = 0
     do i=1, num_elem_blk
        ! 2D meshes:
        if (num_dim == 2) then 
@@ -395,10 +395,10 @@ contains
                 FLExit("Mesh file "//trim(lfilename)//": You have generated a hybrid 3D mesh with Tetrahedras and Hexahedrons which Fluidity does not support. Please choose either Tetrahedras or Hexahedrons.")
              end if
           end if
-          if (elementType == 4) then ! tet
+          if (elem_type(i) == 4) then ! tet
              ! Set faceType for tets
              faceType = 2
-          else if (elementType == 5) then !hex
+          else if (elem_type(i) == 5) then !hex
              ! Set faceType for hexas
              faceType = 3
           end if
@@ -758,8 +758,8 @@ contains
           if (num_tags_elem > 0) then
              ! increase number of faces in the mesh...
              num_faces = num_faces + num_tags_elem
-             ! and reduce number of elements, as this element will become a face (at least one) with boundaryID
-             num_elem = num_elem-1
+!             ! and reduce number of elements, as this element will become a face (at least one) with boundaryID
+!             num_elem = num_elem-1
           end if
        end do
     end if
@@ -799,8 +799,8 @@ contains
 !             print *, "exo_face(exo_f)%nodeIDs = ", exo_face(exo_f)%nodeIDs
 
              exo_f = exo_f+1
-          else if (allelements(e+b)%numTags == 0) then
-!          else
+!          else if (allelements(e+b)%numTags == 0) then
+          else
              ! these are elements without boundaryID, thus they'll remain elements
              allocate( exo_element(exo_e)%nodeIDs(size(allElements(e+b)%nodeIDs)))
              exo_element(exo_e)%elementID = allelements(e+b)%elementID
