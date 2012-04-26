@@ -400,10 +400,10 @@
 
 ! TODO LIST FOR BDFM1 SWE
 
-! Matrix-ify Helmholtz solver - CODED
-! Newton iteration for linear equations - CODED
-! Call to Newton iteration from main code - CODED
-! Check that timestepping produces some output - DOING NOW
+! Matrix-ify Helmholtz solver - CODED and TESTED
+! Newton iteration for linear equations - CODED and TESTED
+! Call to Newton iteration from main code - CODED and TESTED
+! Check that timestepping produces some output - DONE
 ! Extract fluxes from DG
 ! Vorticity calculation
 ! Mass lumping for P2b

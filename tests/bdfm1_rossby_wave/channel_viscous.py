@@ -50,7 +50,7 @@ def generate_meshfile(name,layers):
                  ).replace('<layers>',str(layers)))
 
     os.system("gmsh -3 "+name+".geo")
-    os.system("../../scripts/gmsh2triangle "+name+".msh")
+    os.system("../../tools/gmsh2triangle.py "+name+".msh")
 
 def generate_meshfile_rot(name,layers):
 
