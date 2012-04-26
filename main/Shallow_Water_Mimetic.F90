@@ -126,6 +126,7 @@
 
     call calculate_diagnostic_variables(states)
     call calculate_diagnostic_variables_new(states)
+    call get_option("/timestepping/timestep", dt)
     call write_diagnostics(states, current_time, dt, timestep)
 
     ! Always output the initial conditions.
@@ -135,7 +136,6 @@
        timestep=timestep+1
        if (simulation_completed(current_time, timestep)) exit timestep_loop
        ewrite (1,*) "SW: start of timestep ", timestep, current_time
-
        call execute_timestep(states(1))
 
        call project_local_to_cartesian(states(1))
@@ -199,6 +199,8 @@
       call set(newD,D)
       call set(newU,U)
 
+      !Here check for wave equation solve, if it is switched off,
+      !Just advance the D and PV fields.
       do nits = 1, nonlinear_iterations
          call solve_hybridised_timestep_residual(state,newU,newD)
       end do

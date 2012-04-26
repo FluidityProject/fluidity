@@ -71,9 +71,10 @@ contains
     type(vector_field), intent(inout) :: newU !U at next timestep
     type(scalar_field), intent(inout) :: newD !D at next timestep
     !
-    type(vector_field), pointer :: X, U, down, U_cart, U_res
-    type(scalar_field), pointer :: D,f, D_res
-    type(scalar_field) :: lambda
+    type(vector_field), pointer :: X, U, down, U_cart
+    type(scalar_field), pointer :: D,f
+    type(scalar_field) :: lambda, D_res
+    type(vector_field) :: U_res
     type(scalar_field), target :: lambda_rhs, u_cpt
     type(csr_sparsity) :: lambda_sparsity, continuity_sparsity
     type(csr_matrix) :: continuity_block_mat
@@ -470,8 +471,8 @@ contains
             rhs_loc2((dim1-1)*uloc+1:dim1*uloc))
     end do
     call set(D_res,ele_nodes(D,ele),&
-         -rhs_loc1((mesh_dim(U)-1)*uloc+1:d_end) + &
-         rhs_loc2((mesh_dim(U)-1)*uloc+1:d_end))
+         -rhs_loc1(mesh_dim(U)*uloc+1:d_end) + &
+         rhs_loc2(mesh_dim(U)*uloc+1:d_end))
   end subroutine get_linear_residuals_ele
 
   subroutine local_solve_residuals_ele(U_res,D_res,&
@@ -481,10 +482,12 @@ contains
     real, dimension(:,:), intent(in) :: local_solver_matrix
     integer, intent(in) :: ele
     !
-    real, dimension(mesh_dim(U_res)*ele_loc(U_res,ele)+ele_loc(D_res,ele))&
-         :: rhs_loc
+    real, dimension(mesh_dim(U_res)*ele_loc(U_res,ele)+ele_loc(D_res,ele)+&
+         &ele_n_constraints(U_res,ele)) :: rhs_loc
     real, dimension(mesh_dim(U_res),ele_loc(U_res,ele)) :: U_val
     integer :: uloc,dloc, d_end, dim1
+
+    rhs_loc = 0.
 
     uloc = ele_loc(U_res,ele)
     dloc = ele_loc(D_res,ele)
@@ -496,7 +499,7 @@ contains
     end do
     rhs_loc(mesh_dim(U_res)*uloc+1:mesh_dim(U_res)*uloc+dloc) = &
          & ele_val(D_res,ele)
-    
+
     call solve(local_solver_matrix,Rhs_loc)
 
     do dim1 = 1, mesh_dim(U_res)
@@ -504,7 +507,7 @@ contains
             rhs_loc((dim1-1)*uloc+1:dim1*uloc))
     end do
     call set(D_res,ele_nodes(D_res,ele),&
-         rhs_loc((mesh_dim(U_res)-1)*uloc+1:d_end))
+         rhs_loc(mesh_dim(U_res)*uloc+1:d_end))
   end subroutine local_solve_residuals_ele
 
   subroutine assemble_newton_solver_ele(D,f,U,X,down,lambda_rhs,ele, &

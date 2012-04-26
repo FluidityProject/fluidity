@@ -39,14 +39,13 @@ use bound_field_module
 use vtk_interfaces
 use transform_elements
 use vector_tools
-use hybridized_helmholtz, only : get_up_gi
 implicit none
 
 private
 public limit_slope_dg, limit_fpn, limit_vb, limit_hull
 
 interface limit_slope_dg
-   module procedure limit_slope_dg_scalar, limit_slope_dg_vector
+   module procedure limit_slope_dg_scalar
 end interface limit_slope_dg
 
 integer, parameter :: LIMITER_MINIMAL=1
@@ -238,29 +237,6 @@ contains
     ewrite(2,*) 'END subroutine limit_slope_dg'
 
   end subroutine limit_slope_dg_scalar
-
-  subroutine limit_slope_dg_vector(V, state, limiter)
-    !! Advected velocity
-    type(vector_field), intent(inout) :: V
-    type(state_type), intent(inout) :: state
-    integer, intent(in) :: limiter
-
-    integer :: ele, stat
-
-    ewrite(2,*) 'subroutine limit_slope_dg_vector'
-
-    select case (limiter)
-    case (VECTOR_LIMITER_vb)
-       call limit_vector_vb(state, V)
-       
-    case default
-       ewrite(-1,*) 'limiter = ', limiter
-       FLAbort('no such limiter exists')
-    end select
-
-    ewrite(2,*) 'END subroutine limit_slope_dg'
-
-  end subroutine limit_slope_dg_vector
 
   subroutine limit_slope_ele_dg(ele, T, X, T_limit)
     
@@ -1657,202 +1633,6 @@ contains
     call deallocate(T_min)
 
   end subroutine limit_vb
-
-  subroutine limit_vector_vb(state, V)
-    !Vector valued limiter on manifolds
-    !Based on vertex-based limiter
-    !
-    !Idea: instead of creating vertex mins and maxes, we 
-    !create vertex convex hulls.
-    !STEPS:
-    !First compute the limits on the vector.
-    !1) Compute the mean velocities in each element.
-    !2) For each element and each vertex, we define 
-    ! a method to rotate the mean velocity into the 2D plane.
-    ! Here we use quite a crude method that doesn't use the pullback
-    ! if it leads to grid imprinting then it will need to be improved.
-    !3) At each vertex, we obtain a set of 2D vectors coming from the 
-    ! elements neighbouring that vertex.
-    !4) At each vertex, We compute the convex hull of that set.
-    !This is done in the convex_hull() function in Vector_Tools.F90
-    !Now the limiting steps.
-
-    !5) For each element E write V = V_0 + \Delta V where V_0 is the cell
-    ! average. For each vertex v in element E, find 0=>a_{Ev}>=1 such that
-    ! V' = V_0 + a_{Ev}\Delta V is inside the convex hull of vertex v.
-    ! This is done in the limit_hull() function
-
-    type(state_type), intent(inout) :: state
-    type(vector_field), intent(inout) :: V
-    !
-    ! This is the limited version of the field, we have to make a copy
-    type(vector_field) :: V_limit
-    type(mesh_type), pointer :: vertex_mesh
-    ! counters
-    integer :: ele, node, ele2, neigh,stat, hull_count, i
-    ! local numbers
-    integer, dimension(:), pointer :: V_ele, neighs
-    ! local field values
-    real, dimension(V%dim,ele_loc(V,1)) :: V_val, E_normal_val, V_val_slope
-    real, dimension(V%dim,ele_loc(V,1)) :: v_normal_val, v_tangent1_val, &
-         & v_tangent2_val
-    real, dimension(V%dim) :: Vbar, ENbar
-    real, dimension(2) :: V_val_slope2d, Vbar_2d
-    type(csr_sparsity), pointer :: NEList
-    type(vector_field), pointer :: ElementNormals, VertexNormals, &
-         VertexTangent1, VertexTangent2
-    type(real_matrix), dimension(:), allocatable :: Hulls
-    real, dimension(:,:), allocatable :: Vectors
-    real, dimension(:), allocatable :: HullFlags
-    integer, dimension(:), pointer :: E_nodes
-    real :: alpha
-    
-    if (.not. element_degree(V%mesh, 1)==1 .or. continuity(V%mesh)>=0) then
-       FLExit("The vertex based vector slope limiter only works for P1DG fields.")
-    end if
-    if (.not. mesh_dim(V)==2) then
-       FLExit("Vertex based vector slope limiter only works on 2D meshes.")
-    end if
-    if (.not. V%dim==3) then
-       FLExit("Vertex based vector slope limiter only coded for 3D vectors.")
-    end if
-
-    !Get normals to rotate into 2D plane
-    !Normals and tangents on each vertex (set from Diamond)
-    VertexNormals => extract_vector_field(state,'VertexNormal')
-    VertexTangent1 => extract_vector_field(state,'VertexTangent1')
-    VertexTangent2 => extract_vector_field(state,'VertexTangent2')
-    !Normals on each element (set from Advection_Local.F90)
-    ElementNormals => extract_vector_field(state,'ElementNormals',stat)
-    if(stat /= 0) then
-       call get_element_normals(ElementNormals,state)
-    end if
-
-    ! returns linear version of V%mesh (if is periodic, so is vertex_mesh)
-    call find_linear_parent_mesh(state, V%mesh, vertex_mesh)
-    NEList => extract_nelist(vertex_mesh)
-
-    ! Allocate copy of field
-    call allocate(V_limit, V%dim,V%mesh,trim(V%name)//"Limited")
-    call set(V_limit, V)
-
-    !Construct convex hulls
-    allocate(Hulls(node_count(V)))
-    allocate(HullFlags(node_count(V)))
-    !loop over all elements
-    hull_count = 0
-    convex_ele: do ele = 1, ele_count(V)
-       E_nodes => ele_nodes(vertex_mesh,ele)
-       !Get vertex normals
-       v_normal_val = ele_val(VertexNormals,ele)
-       v_tangent1_val = ele_val(VertexTangent1,ele)       
-       v_tangent2_val = ele_val(VertexTangent2,ele)
-       !loop over nodes in element
-       convex_node: do node = 1, ele_loc(V,ele)
-          !Get elements surrounding vertex
-          neighs => row_m_ptr(NEList, E_nodes(node))
-          !Set up list of element mean vectors for vertex
-          allocate(Vectors(2,size(neighs)))
-          !Loop over surrounding elements and get means
-          convex_ele2: do neigh = 1, size(neighs)
-             ele2 = neighs(neigh)
-             !Get element normals in ele2
-             E_normal_val = ele_val(ElementNormals,ele2)
-             ENbar = sum(E_normal_val,2)/size(E_normal_val,2)
-             !Get mean vector value in ele2
-             V_val = ele_val(V,ele2)
-             Vbar = sum(V_val,2)/size(V_val,2)
-             Vectors(:,neigh) = rotate_ele2vertex(&
-                  &V_normal_val(:,node),ENbar,&
-                  &V_tangent1_val(:,node),V_tangent2_val(:,node),Vbar)
-          end do convex_ele2
-          hull_count = hull_count+1
-          call convex_hull(Vectors,Hulls(hull_count)%ptr)          
-          deallocate(Vectors)
-       end do convex_node
-    end do convex_ele
-
-    !Compute limiting alpha
-    hull_count = 0
-    limiting_ele: do ele = 1, ele_count(V)
-       V_ele => ele_nodes(V,ele)
-       E_nodes => ele_nodes(vertex_mesh,ele)
-       V_val = ele_val(V,ele)
-       Vbar = sum(V_val,2)/size(V_val,2)
-       !Get vertex normals
-       v_normal_val = ele_val(VertexNormals,ele)
-       v_tangent1_val = ele_val(VertexTangent1,ele)       
-       v_tangent2_val = ele_val(VertexTangent2,ele)
-
-       do node = 1, ele_loc(V,ele)
-          V_val_slope(:,node) = V_val(:,node) - Vbar       
-          V_val(:,node) = Vbar
-       end do
-       call set(V_limit,V_ele,V_val)
-       alpha = 1.0
-       limiting_node: do node = 1, ele_loc(V,ele)
-          Vbar_2d = rotate_ele2vertex(&
-               &V_normal_val(:,node),ENbar,&
-               &V_tangent1_val(:,node),V_tangent2_val(:,node),Vbar)
-          V_val_slope2d = rotate_ele2vertex(&
-               &V_normal_val(:,node),ENbar,&
-               &V_tangent1_val(:,node),V_tangent2_val(:,node),&
-               &V_val_slope(:,node))
-          hull_count = hull_count + 1
-          alpha = min(alpha,limit_hull(Vbar_2d,V_val_slope2d,&
-               &hulls(hull_count)%ptr))
-       end do limiting_node
-       call addto(V_limit, V_ele, alpha*V_val_slope)
-    end do limiting_ele
-    
-    !Deallocate copy of field
-    call set(V, V_limit)
-    call halo_update(V)
-    call deallocate(V_limit)
-    do node = 1, size(Hulls)
-       deallocate(Hulls(node)%ptr)
-    end do
-    deallocate(Hulls)
-
-    contains
-
-      subroutine get_element_normals(ElementNormals,state)
-        type(vector_field), pointer, intent(inout) :: ElementNormals
-        type(state_type), intent(inout) :: state
-        !
-        integer :: ele
-        type(vector_field), pointer :: down, X
-
-        down=>extract_vector_field(state, "GravityDirection")
-        X=>extract_vector_field(state, "Coordinate")        
-        call allocate(ElementNormals,X%dim,X%mesh,name='ElementNormals')
-
-        do ele = 1, ele_count(ElementNormals)
-           call get_element_normals_ele(ElementNormals,down,X,ele)
-        end do
-        call insert(state,ElementNormals,ElementNormals%name)
-      end subroutine get_element_normals
-
-      subroutine get_element_normals_ele(ElementNormals,down,X,ele)
-        type(vector_field), pointer, intent(inout) :: ElementNormals
-        type(vector_field), intent(in) :: down, X
-        integer, intent(in) :: ele
-        !
-        integer, dimension(:), pointer :: EN_nodes
-        real, dimension(X%dim, ele_ngi(X,ele)) :: up_gi        
-        integer :: nod
-
-        EN_nodes => ele_nodes(ElementNormals,ele)
-
-        !Get element normal
-        up_gi = -ele_val_at_quad(down,ele)
-        call get_up_gi(X,ele,up_gi)
-        do nod = 1, size(EN_nodes)
-           call set(ElementNormals,EN_nodes(nod),sum(up_gi,2)/size(up_gi,2))
-        end do
-
-      end subroutine get_element_normals_ele
-  end subroutine limit_vector_vb
 
   function rotate_ele2vertex(V_normal,E_normal,V_tangent1,V_tangent2,Vbar)
     real, dimension(3), intent(in) :: V_normal, E_normal, V_tangent1&
