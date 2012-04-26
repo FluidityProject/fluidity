@@ -726,27 +726,22 @@ contains
     do i=1, num_elem_blk
        ! 2D faces as follows (only lines/edges):
        if (num_dim .eq. 2) then
-          if (elem_type(i) .eq. 1) then
-             num_faces = num_faces + num_elem_in_block(i)
-             sloc = 2 ! edge
-          else ! this is an element:
+          if (elem_type(i) .eq. 2 .or. elem_type(i) .eq. 3) then
+             ! this is an element:
              num_elem = num_elem + num_elem_in_block(i)
           end if
        ! 3D faces as follows (only triangles and quads):
        else if (num_dim .eq. 3) then
-          if ( elem_type(i) .eq. 2 ) then
-             num_faces = num_faces + num_elem_in_block(i)
-             sloc = 3 ! triangle
-          else if ( elem_type(i) .eq. 3 ) then
-             num_faces = num_faces + num_elem_in_block(i)
-             sloc = 4 ! quad
-          else ! this is an element:
+          if ( elem_type(i) .eq. 4 .or. elem_type(i) .eq. 5 ) then
+             ! this is an element:
              num_elem = num_elem + num_elem_in_block(i)
           end if
        end if
     end do
-    ewrite(2,*) "intermediate number of faces: ", num_faces
-    ewrite(2,*) "intermediate number of elem: ", num_elem
+    ! Set sloc based on faceType:
+    ! Only faceTypes 1, 2, and 3 are allowed (see above), their corresponding sloc is faceType+1,
+    ! e.g. if faceType = 2 (triangle), it should have 3 nodes, which is faceType+1
+    sloc = faceType+1
     ! Now check for site-set-id/physical-id, if element has numTags>0,
     ! than this element will become a face with boundaryID assigned to it
     if (haveBoundaries) then
@@ -780,15 +775,15 @@ contains
                (num_dim .eq. 3 .and. &
                (elem_type(i) .eq. 2 .or. elem_type(i) .eq. 3)) ) then
              ! Assemble faces:
-             allocate( exo_face(exo_f)%nodeIDs(size(allElements(e+b)%nodeIDs)))
-             exo_face(exo_f)%nodeIDs = allelements(e+b)%nodeIDs
-             ! They commented stuff below is not needed for faces, but is kept here for now for debugging reasons
+!             allocate( exo_face(exo_f)%nodeIDs(size(allElements(e+b)%nodeIDs)))
+!             exo_face(exo_f)%nodeIDs = allelements(e+b)%nodeIDs
+!             ! The commented stuff below is not needed for faces, but is kept here for now for debugging reasons
 !             exo_face(exo_f)%elementID = allelements(e+b)%elementID
 !             exo_face(f)%blockID = allelements(e+b)%blockID
 !             exo_face(f)%type = allelements(e+b)%type
-             exo_face(exo_f)%numTags = 0
-             allocate(exo_face(exo_f)%tags(1))
-             exo_face(exo_f)%tags = -666
+!             exo_face(exo_f)%numTags = 0
+!             allocate(exo_face(exo_f)%tags(1))
+!             exo_face(exo_f)%tags = -666
              ! Debugging statements:
 !             print *, "================================================================="
 !             print *, "these are FACES: "
@@ -798,7 +793,7 @@ contains
 !             print *, "exo_face(f)%numTags = ", exo_face(f)%numTags
 !             print *, "exo_face(exo_f)%nodeIDs = ", exo_face(exo_f)%nodeIDs
 
-             exo_f = exo_f+1
+!             exo_f = exo_f+1
 !          else if (allelements(e+b)%numTags == 0) then
           else
              ! these are elements without boundaryID, thus they'll remain elements
