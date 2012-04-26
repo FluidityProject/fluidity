@@ -553,24 +553,28 @@ contains
     type(block_csr_matrix), intent(in) :: A
     type(vector_field), intent(in) :: b
 
-    real, dimension(:), allocatable :: tmpb
+    real, dimension(:), allocatable :: tmpb, deltax
     integer :: dim
 
     assert(all(A%blocks==(/b%dim,1/)))
 
     call zero(x)
+    allocate(deltax(node_count(x)))
 
     do dim=1,b%dim
        select case(b%field_type)
        case(FIELD_TYPE_NORMAL)
-          call mult_T(x%val, block(A,dim,1), b%val(dim,:))
+          call mult_T(deltax, block(A,dim,1), b%val(dim,:))
+          x%val = x%val + deltax
        case(FIELD_TYPE_CONSTANT)
           allocate(tmpb(node_count(b)))
           tmpb=b%val(dim,1)
-          call mult_T(x%val, block(A,dim,1), tmpb)
+          call mult_T(deltax, block(A,dim,1), tmpb)
+          x%val = x%val + deltax
           deallocate(tmpb)
        end select
     end do
+    deallocate(deltax)
 
   end subroutine csr_mult_T_scalar_vector
 

@@ -73,8 +73,8 @@ contains
     !
     type(vector_field), pointer :: X, U, down, U_cart
     type(scalar_field), pointer :: D,f
-    type(scalar_field) :: lambda, D_res
-    type(vector_field) :: U_res
+    type(scalar_field) :: lambda, D_res, D_res2
+    type(vector_field) :: U_res, U_res2
     type(scalar_field), target :: lambda_rhs, u_cpt
     type(csr_sparsity) :: lambda_sparsity, continuity_sparsity
     type(csr_matrix) :: continuity_block_mat
@@ -110,6 +110,8 @@ contains
     call zero(lambda_rhs)
     call allocate(U_res,U%dim,U%mesh,"VelocityResidual")
     call allocate(D_res,D%mesh,"LayerThicknessResidual")
+    call allocate(U_res2,U%dim,U%mesh,"VelocityResidual2")
+    call allocate(D_res2,D%mesh,"LayerThicknessResidual2")
 
     if(.not.newton_initialised) then
        !construct/extract sparsities
@@ -174,10 +176,8 @@ contains
             newton_local_solver_cache(ele)%ptr,ele)
     end do
 
-    !lambda_rhs_loc = -matmul(transpose(l_continuity_mat),&
-    !  &Rhs_loc)
     call mult_t(lambda_rhs,Newton_continuity_mat,U_res)
-    !call scale(lambda_rhs,-1.0)
+    call scale(lambda_rhs,-1.0)
     ewrite(2,*) 'LAMBDARHS', maxval(abs(lambda_rhs%val))
 
     call zero(lambda)
@@ -187,39 +187,31 @@ contains
          &"/from_mesh/constraint_type")
     ewrite(2,*) 'LAMBDA', maxval(abs(lambda%val))
 
-    ! ( M     aC  aR^T -L)(du) =    
-    ! ( -aC^T N   0    0 )(dh) = (j)
-    ! ( R     0   0    0 )(k ) = 
-    ! ( L^T   0   0    0 )(l )   (0)
-    ! 
-    ! (u)   (M    C)^{-1}(v)   (M    C)^{-1}(L)
-    ! (h) = (-C^T N)     (j) + (-C^T N)     (0)(l)
-    ! so
-    !        (M    C)^{-1}(L)         (M    C)^{-1}(v)
-    ! (L^T 0)(-C^T N)     (0)=-(L^T 0)(-C^T N)     (j)
-
-    ! (u)   (M    C)^{-1}(v)   (M    C)^{-1}(L)
-    ! (h) = (-C^T N)     (j) + (-C^T N)     (0)(l)
     !Update new U and new D from lambda
-    call addto(newU,U_res)
-    call addto(newD,D_res)
-    call zero(U_res)
-    call zero(D_res)
-    call mult(U_res,Newton_continuity_mat,lambda)
+    !Compute residuals 
+    do ele = 1, ele_count(D)
+       call get_linear_residuals_ele(U_res,D_res,&
+            U,D,newU,newD,&
+            newton_local_solver_cache(ele)%ptr,&
+            newton_local_solver_rhs_cache(ele)%ptr,ele)
+    end do
+    call mult(U_res2,Newton_continuity_mat,lambda)
+    call addto(U_res,U_res2)
     do ele = 1, ele_count(U)
        call local_solve_residuals_ele(U_res,D_res,&
             newton_local_solver_cache(ele)%ptr,ele)
     end do
+    
     call addto(newU,U_res)
     call addto(newD,D_res)
-
-    ewrite(2,*) 'D_res', maxval(abs(D_res%val))
 
     !Deallocate local variables
     call deallocate(lambda_rhs)
     call deallocate(lambda)
     call deallocate(U_res)
     call deallocate(D_res)
+    call deallocate(U_res2)
+    call deallocate(D_res2)
 
     ewrite(1,*) 'END solve_hybridised_timestep_residual(state)'
   
@@ -538,7 +530,6 @@ contains
          & ele_val(D_res,ele)
 
     call solve(local_solver_matrix,Rhs_loc)
-
     do dim1 = 1, mesh_dim(U_res)
        call set(U_res,dim1,ele_nodes(U_res,ele),&
             rhs_loc(u_start(dim1):u_end(dim1)))
