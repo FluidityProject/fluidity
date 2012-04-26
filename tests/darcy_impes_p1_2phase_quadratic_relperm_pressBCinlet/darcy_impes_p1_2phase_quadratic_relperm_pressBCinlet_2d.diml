@@ -263,15 +263,6 @@ for n in range(field.node_count):
         </stat>
       </diagnostic>
     </vector_field>
-    <vector_field name="TotalDarcyVelocityCV" rank="0">
-      <diagnostic>
-        <mesh name="PressureMesh"/>
-        <algorithm name="Internal"/>
-        <stat>
-          <include_cv_stats/>
-        </stat>
-      </diagnostic>
-    </vector_field>
     <scalar_field name="DivergenceTotalDarcyVelocity" rank="0">
       <diagnostic>
         <mesh name="PressureMesh"/>

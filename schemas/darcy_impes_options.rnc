@@ -501,9 +501,7 @@ darcy_impes_material_phases =
 
          darcy_impes_fractional_flow_field,
          
-         darcy_impes_total_darcy_velocity_field_subcv,         
-
-         darcy_impes_total_darcy_velocity_field_cv,         
+         darcy_impes_total_darcy_velocity_field,         
          
          darcy_impes_divergence_total_darcy_velocity_field,
          
@@ -780,7 +778,11 @@ darcy_impes_interstitial_velocity_porosity_field =
             },
             element algorithm {
                attribute name { "Internal" }
-            }, 
+            },
+            ## Form an average of the sub CV field values over the CV
+            element average_over_CV {
+               empty
+            }?,
             darcy_impes_include_cv_stat
          }
       }
@@ -842,7 +844,7 @@ darcy_impes_fractional_flow_field =
    )
 
 
-darcy_impes_total_darcy_velocity_field_subcv =
+darcy_impes_total_darcy_velocity_field =
    (
       element vector_field {
          attribute rank { "0" },

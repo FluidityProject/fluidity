@@ -209,11 +209,14 @@ program Darcy_IMPES
    
    call check_diagnostic_dependencies(state)
 
-   call allocate_and_insert_auxilliary_fields(state)   
-
    default_stat%zoltan_drive_call=.false.
 
-   ! set the nonlinear timestepping options, needs to be before the adapt at first timestep
+   call get_option("/timestepping/timestep", dt)   
+
+   ! *** Initialise data used in IMPES solver *** 
+   call darcy_impes_initialise(di, state, dt)
+   
+   ! Set non linear iteration data - required before first adapt
    call get_option("/timestepping/nonlinear_iterations", &
                   & nonlinear_iterations, &
                   & default = 1)
@@ -221,14 +224,7 @@ program Darcy_IMPES
    call get_option("/timestepping/nonlinear_iterations/tolerance", &
                   & nonlinear_iteration_tolerance, &
                   & default = 0.0)
-
-   call get_option("/timestepping/timestep", dt)   
    
-   if(have_option("/timestepping/adaptive_timestep/at_first_timestep")) then
-      call calc_cflnumber_field_based_dt(state, dt, force_calculation = .true.)
-      call set_option("/timestepping/timestep", dt)
-   end if
-
    call get_option("/timestepping/current_time", current_time)
    call get_option("/timestepping/finish_time", finish_time)
  
@@ -239,10 +235,15 @@ program Darcy_IMPES
    call get_option("/timestepping/nonlinear_iterations/tolerance", &
                   & nonlinear_iteration_tolerance, &
                   & default = 0.0)
-
-   ! *** Initialise data used in IMPES solver *** 
-   call darcy_impes_initialise(di, state, dt)
-          
+   
+   ! Adapt time at first time step - required before first adapt
+   if(have_option("/timestepping/adaptive_timestep/at_first_timestep")) then
+      call calc_cflnumber_field_based_dt(state, dt, force_calculation = .true.)
+      call set_option("/timestepping/timestep", dt)
+      ! *** Set the darcy impes time step ***
+      di%dt = dt
+   end if
+      
    if(have_option("/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep")) then
 
       if(have_option("/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt")) then
@@ -253,7 +254,9 @@ program Darcy_IMPES
       call adapt_state_first_timestep(state)
       
       ! *** Update Darcy IMPES post spatial adapt ***
-      call darcy_impes_update_post_spatial_adapt(di)
+      call darcy_impes_update_post_spatial_adapt(di, &
+                                                 state, &
+                                                 dt)
             
       ! Ensure that checkpoints do not adapt at first timestep.
       call delete_option("/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep")
@@ -427,7 +430,9 @@ program Darcy_IMPES
             end if
             
             ! *** Update Darcy IMPES post spatial adapt ***
-            call darcy_impes_update_post_spatial_adapt(di)
+            call darcy_impes_update_post_spatial_adapt(di, &
+                                                       state, &
+                                                       dt)
 
             if (have_option("/mesh_adaptivity/hr_adaptivity/adaptive_timestep_at_adapt")) then
                if (have_option("/timestepping/adaptive_timestep/minimum_timestep")) then
@@ -547,7 +552,7 @@ contains
       !!< Initialise the Darcy IMPES type from options and state
       
       type(darcy_impes_type),                       intent(inout) :: di
-      type(state_type),       dimension(:), target, intent(in)    :: state
+      type(state_type),       dimension(:), target, intent(inout) :: state
       real,                                         intent(in)    :: dt
       
       ! Local variables
@@ -555,7 +560,12 @@ contains
       
       ewrite(1,*) 'Initialise Darcy IMPES data'
       
+      ! Auxilliary fields.
+      call allocate_and_insert_auxilliary_fields(state)
+      
       di%dt = dt
+      
+      call get_option('/geometry/dimension', di%ndim)
       
       di%state => state
       
@@ -568,7 +578,6 @@ contains
       di%absolute_permeability     => extract_scalar_field(di%state(1), "AbsolutePermeability")
       di%positions                 => extract_vector_field(di%state(1), "Coordinate")
       di%total_darcy_velocity      => extract_vector_field(di%state(1), "TotalDarcyVelocity")
-      di%total_darcy_velocity_cv   => extract_vector_field(di%state(1), "TotalDarcyVelocityCV")
       di%sum_saturation            => extract_scalar_field(di%state(1), "SumSaturation")
       di%old_sum_saturation        => extract_scalar_field(di%state(1), "OldSumSaturation")
       di%div_total_darcy_velocity  => extract_scalar_field(di%state(1), "DivergenceTotalDarcyVelocity")
@@ -599,7 +608,7 @@ contains
       
       ! deduce the number of phase
       di%number_phase = size(di%state)
-
+      
       ! Pull phase dependent fields from state
 
       allocate(di%saturation(di%number_phase))
@@ -627,12 +636,24 @@ contains
          di%fractional_flow(p)%ptr             => extract_vector_field(di%state(p), "FractionalFlow")
 
       end do
-
+      
       ! Allocate field used for the subcycle time step cfl
       call allocate(di%cfl_subcycle, di%cfl(1)%ptr%mesh)
 
       di%phase_one_saturation_diagnostic = have_option(trim(di%saturation(1)%ptr%option_path)//'/diagnostic')
 
+      ! allocate and set an option for each phase for the interstitialvelocity_porosity
+      allocate(di%vphi_average_over_CV(di%number_phase))
+      do p = 1,di%number_phase
+         di%vphi_average_over_CV(p) = have_option(trim(di%inter_velocity_porosity(p)%ptr%option_path)//&
+                                                  &'/diagnostic/average_over_CV')
+      end do
+
+      ! Allocate temporary field to store phase vphi
+      call allocate(di%inter_velocity_porosity_tmp, &
+                    di%ndim, &
+                    di%inter_velocity_porosity(1)%ptr%mesh)
+      
       ! Determine the inverse cv mass matrix of cfl mesh
       call allocate(di%inverse_cv_mass_cfl_mesh, &
                     di%cfl(1)%ptr%mesh)
@@ -757,33 +778,51 @@ contains
       
       type(darcy_impes_type), intent(inout) :: di
       
-      ! Deallocate data types that are NOT pointers to data in di%state
+      ! Deallocate, nullify or zero Darcy IMPES data
+      !  - pointers to data in state are nullified
+      !  - objects with memory only in darcy_impes_type are deallocated
+      !  - variables in darcy_impes_type are zeroed
+      
+      ! The darcy_impes_type components are finalised in the same order they are initialised
       
       ! local variable
       integer :: p
       
       ewrite(1,*) 'Finalise Darcy IMPES data'
       
+      di%dt = 0.0
+      
+      di%ndim = 0
+      
+      nullify(di%state)
+      
+      nullify(di%pressure)
+      nullify(di%old_pressure)
+      nullify(di%gradient_pressure)
+      nullify(di%old_gradient_pressure)
+      nullify(di%porosity)
+      nullify(di%old_porosity)
+      nullify(di%absolute_permeability)
+      nullify(di%positions)
+      nullify(di%total_darcy_velocity)
+      nullify(di%sum_saturation)
+      nullify(di%old_sum_saturation)
+      nullify(di%div_total_darcy_velocity)
+      
       call deallocate(di%positions_pressure_mesh)
+      nullify(di%sparsity)
       call deallocate(di%pressure_matrix)
       call deallocate(di%lhs)
       call deallocate(di%rhs)
       call deallocate(di%rhs_adv)
       call deallocate(di%rhs_time)
       call deallocate(di%old_saturation_subcycle)      
-      call deallocate(di%inverse_cv_mass_cfl_mesh)
-      call deallocate(di%inverse_cv_mass_pressure_mesh)
       call deallocate(di%cv_mass_pressure_mesh_with_porosity)
       call deallocate(di%cv_mass_pressure_mesh_with_old_porosity)
       call deallocate(di%cv_mass_velocity_mesh)
-      call deallocate(di%cfl_subcycle)
-      call deallocate(di%total_darcy_velocity_normal_flow_bc_value)
-      do p = 1,di%number_phase
-         call deallocate(di%darcy_velocity_normal_flow_bc_value(p))
-      end do
-      deallocate(di%darcy_velocity_normal_flow_bc_value)
-      deallocate(di%total_darcy_velocity_normal_flow_bc_flag)
-      deallocate(di%darcy_velocity_normal_flow_bc_flag)      
+      
+      di%number_phase = 0
+
       deallocate(di%saturation)
       deallocate(di%old_saturation)
       deallocate(di%relative_permeability)
@@ -794,6 +833,33 @@ contains
       deallocate(di%old_cfl)
       deallocate(di%darcy_velocity) 
       deallocate(di%fractional_flow) 
+
+      call deallocate(di%cfl_subcycle)
+      
+      di%phase_one_saturation_diagnostic = .false.
+      
+      deallocate(di%vphi_average_over_CV)
+           
+      call deallocate(di%inter_velocity_porosity_tmp)
+      
+      call deallocate(di%inverse_cv_mass_cfl_mesh)
+      call deallocate(di%inverse_cv_mass_pressure_mesh)
+      
+      nullify(di%darcy_velocity_surface_mesh)
+      
+      call deallocate(di%total_darcy_velocity_normal_flow_bc_value)
+      deallocate(di%total_darcy_velocity_normal_flow_bc_flag)
+
+      do p = 1,di%number_phase
+         call deallocate(di%darcy_velocity_normal_flow_bc_value(p))
+      end do
+      deallocate(di%darcy_velocity_normal_flow_bc_value)
+      deallocate(di%darcy_velocity_normal_flow_bc_flag)      
+      
+      ! Nothing can be done for di%saturation_cv_options
+      
+      di%saturation_max_courant_per_subcycle = 0.0
+      
       call deallocate(di%cvfaces)
       call deallocate(di%x_cvshape_full)
       call deallocate(di%p_cvshape_full)
@@ -807,84 +873,26 @@ contains
 
 ! ----------------------------------------------------------------------------
    
-   subroutine darcy_impes_update_post_spatial_adapt(di)
+   subroutine darcy_impes_update_post_spatial_adapt(di, &
+                                                    state, &
+                                                    dt)
       
       !!< Update the Darcy IMPES data post spatial adapt
       
-      type(darcy_impes_type), intent(inout) :: di
+      type(darcy_impes_type),                       intent(inout) :: di
+      type(state_type),       dimension(:), target, intent(inout) :: state
+      real,                                         intent(in)    :: dt
       
       ewrite(1,*) 'Update Darcy IMPES data post spatial adapt'
       
-      ! Auxilliary fields.
-      call allocate_and_insert_auxilliary_fields(di%state)
-
-      ! If the first phase saturation is diagnostic then calculate it
-      if (di%phase_one_saturation_diagnostic) call darcy_impes_calculate_phase_one_saturation_diagnostic(di)
-
-      ! Calculate the relative permeabilities - and other generic diagnostic fields
-      ! (NOTE this is required before the darcy impes specific diagnostic fields below are calculated)
-      call calculate_diagnostic_variables(di%state)
-      call calculate_diagnostic_variables_new(di%state)
-
-      ! Copy field values to Old - required before below
-      call copy_to_stored_values(di%state,"Old")
-
-      ! Initialise the Darcy IMPES specific diagnostic fields (gradient pressure, inter_velocity_porosity ... etc)
-      call darcy_impes_calculate_gradient_pressure_etc(di)
-
-      ! Calculate the sum of the saturations
-      call darcy_impes_calculate_sum_saturation(di)
-
-      ! Copy ALL latest fields to Old and Iterated
-      call copy_to_stored_values(di%state,"Old")
-      call copy_to_stored_values(di%state,"Iterated")
-      call relax_to_nonlinear(di%state)
-
-      ! Re-allocate IMPES data
-      call deallocate(di%positions_pressure_mesh)
-      call deallocate(di%pressure_matrix)
-      call deallocate(di%lhs)
-      call deallocate(di%rhs)
-      call deallocate(di%rhs_adv)
-      call deallocate(di%rhs_time)
-      call deallocate(di%old_saturation_subcycle)      
-      call deallocate(di%inverse_cv_mass_cfl_mesh)
-      call deallocate(di%inverse_cv_mass_pressure_mesh)
-      call deallocate(di%cv_mass_pressure_mesh_with_porosity)
-      call deallocate(di%cv_mass_pressure_mesh_with_old_porosity)
-      call deallocate(di%cfl_subcycle)
-
-      call compute_cv_mass(di%positions, di%cv_mass_pressure_mesh_with_porosity, di%porosity)      
-
-      di%positions_pressure_mesh = get_coordinate_field(di%state(1), di%pressure%mesh)
-
-      di%sparsity => get_csr_sparsity_firstorder(di%state(1), di%pressure%mesh, di%pressure%mesh)
-
-      call allocate(di%pressure_matrix, di%sparsity)
-
-      call allocate(di%lhs, di%pressure%mesh)   
-      call allocate(di%rhs, di%pressure%mesh)
-      call allocate(di%rhs_adv, di%pressure%mesh)
-      call allocate(di%rhs_time, di%pressure%mesh)
-      call allocate(di%old_saturation_subcycle, di%pressure%mesh)
-      call allocate(di%cv_mass_pressure_mesh_with_porosity, di%pressure%mesh)
-      call allocate(di%cv_mass_pressure_mesh_with_old_porosity, di%pressure%mesh)
-
-      call allocate(di%cfl_subcycle, di%cfl(1)%ptr%mesh)
-
-      call allocate(di%inverse_cv_mass_cfl_mesh, &
-                    di%cfl(1)%ptr%mesh)
-
-      call compute_cv_mass(di%positions, di%inverse_cv_mass_cfl_mesh)
-
-      call invert(di%inverse_cv_mass_cfl_mesh)   
-
-      call allocate(di%inverse_cv_mass_pressure_mesh, &
-                    di%pressure%mesh)
-
-      call compute_cv_mass(di%positions, di%inverse_cv_mass_pressure_mesh)
-
-      call invert(di%inverse_cv_mass_pressure_mesh)      
+      ! ALL THE IMPORTANT SOLUTION DATA IS IN STATE
+      ! WHICH IS NOT DEALLOCATED IN THE FOLLOWING PROCEDURE
+      
+      call darcy_impes_finalise(di)
+            
+      call darcy_impes_initialise(di, &
+                                  state, &
+                                  dt)
       
       ewrite(1,*) 'Finished updating Darcy IMPES data post spatial adapt'
       

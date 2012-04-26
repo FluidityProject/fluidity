@@ -77,10 +77,11 @@ module darcy_impes_assemble_module
       type(scalar_field), pointer :: porosity, old_porosity
       type(scalar_field), pointer :: absolute_permeability
       type(vector_field), pointer :: positions
-      type(vector_field), pointer :: total_darcy_velocity, total_darcy_velocity_cv   
+      type(vector_field), pointer :: total_darcy_velocity   
       type(scalar_field), pointer :: sum_saturation, old_sum_saturation
       type(scalar_field), pointer :: div_total_darcy_velocity
       type(vector_field) :: positions_pressure_mesh
+      type(vector_field) :: inter_velocity_porosity_tmp
       type(csr_matrix) :: pressure_matrix
       type(scalar_field) :: lhs, rhs, rhs_adv, rhs_time
       type(scalar_field) :: inverse_cv_mass_cfl_mesh
@@ -103,8 +104,10 @@ module darcy_impes_assemble_module
       type(element_type) :: x_cvshape, p_cvshape
       type(element_type) :: x_cvbdyshape
       logical :: phase_one_saturation_diagnostic
+      logical, dimension(:), pointer :: vphi_average_over_CV
       real :: saturation_max_courant_per_subcycle
       real :: dt
+      integer :: ndim
       type(state_type), dimension(:), pointer :: state
    end type darcy_impes_type
    
@@ -251,25 +254,25 @@ module darcy_impes_assemble_module
             
       ! allocate arrays used in assemble process - many assume
       ! that all elements are the same type.
-      allocate(x_ele(di%positions%dim, ele_loc(di%positions,1)))      
+      allocate(x_ele(di%ndim, ele_loc(di%positions,1)))      
       allocate(p_dshape(ele_loc(di%pressure,1), di%x_cvshape%ngi, mesh_dim(di%pressure)))
-      allocate(normal(di%positions%dim,di%x_cvshape%ngi))
+      allocate(normal(di%ndim,di%x_cvshape%ngi))
       allocate(detwei(di%x_cvshape%ngi))      
-      allocate(normgi(di%positions%dim))
+      allocate(normgi(di%ndim))
       allocate(notvisited(di%x_cvshape%ngi))
       allocate(p_mat_local(ele_loc(di%pressure,1), ele_loc(di%pressure,1)))
-      allocate(x_face_quad(di%positions%dim, di%x_cvshape%ngi))
-      allocate(minus_grad_old_p_quad(di%positions%dim, di%p_cvshape%ngi))
+      allocate(x_face_quad(di%ndim, di%x_cvshape%ngi))
+      allocate(minus_grad_old_p_quad(di%ndim, di%p_cvshape%ngi))
       allocate(visc_vele(di%number_phase))
       allocate(old_saturation_ele(di%number_phase,ele_loc(di%pressure,1)))
       allocate(relperm_ele(di%number_phase,ele_loc(di%pressure,1)))
-      allocate(old_vphi_face(di%positions%dim,di%p_cvshape%ngi,di%number_phase))
+      allocate(old_vphi_face(di%ndim,di%p_cvshape%ngi,di%number_phase))
 
       allocate(bc_sele_val(face_loc(di%pressure,1)))
       allocate(detwei_bdy(di%x_cvbdyshape%ngi))
-      allocate(normal_bdy(di%positions%dim, di%x_cvbdyshape%ngi))
+      allocate(normal_bdy(di%ndim, di%x_cvbdyshape%ngi))
       allocate(p_rhs_local_bdy(face_loc(di%pressure,1)))
-      allocate(x_ele_bdy(di%positions%dim, face_loc(di%positions,1)))      
+      allocate(x_ele_bdy(di%ndim, face_loc(di%positions,1)))      
       allocate(p_nodes_bdy(face_loc(di%pressure%mesh,1)))
       
       ewrite(1,*) 'Solve Pressure'
@@ -602,7 +605,7 @@ module darcy_impes_assemble_module
       real :: visc_ele, absperm_ele, darcy_vel_face_value_dot_n
       real    :: income, old_vphi_dot_n, vphi_face_value_dot_n
       real, dimension(1) :: dummy
-      real, dimension(di%positions%dim) :: grad_pressure_ele
+      real, dimension(di%ndim) :: grad_pressure_ele
       real, dimension(:), allocatable :: relperm_ele
       real, dimension(:), allocatable :: inter_velocity_porosity_local
       real,    dimension(:,:),   allocatable :: old_vphi_face
@@ -629,7 +632,6 @@ module darcy_impes_assemble_module
       integer, dimension(:),     allocatable :: p_nodes_bdy
       real,    dimension(:,:),   allocatable :: vphi_sele
       real,    dimension(:,:),   allocatable :: darcy_vel_sele
-      real,    dimension(:,:),   allocatable :: total_darcy_vel_ele
       
       ewrite(1,*) 'Calculate GradientPressure'
       
@@ -660,7 +662,7 @@ module darcy_impes_assemble_module
          dummy = ele_val(di%absolute_permeability, vele)
          absperm_ele = dummy(1)
                   
-         do dim = 1,di%positions%dim         
+         do dim = 1,di%ndim         
             dummy = ele_val(di%gradient_pressure, dim, vele)
             grad_pressure_ele(dim) = dummy(1)         
          end do
@@ -677,7 +679,7 @@ module darcy_impes_assemble_module
             
             ! find the local DG values for inter_velocity_porosity for each geometric dimension
             ! (if absperm and viscosity are considered tensors this requires modifying below)
-            do dim = 1,di%positions%dim
+            do dim = 1,di%ndim
                
                inter_velocity_porosity_local(:) = - relperm_ele(:) * absperm_ele * grad_pressure_ele(dim) / visc_ele
             
@@ -689,6 +691,43 @@ module darcy_impes_assemble_module
             end do
             
          end do
+         
+      end do
+      
+      ! Average the interstitalvelocity_porosity over the CV if required
+      do p = 1, di%number_phase
+         
+         if (di%vphi_average_over_CV(p)) then
+         
+            ewrite(1,*) 'Average InterstitialVelocityPorosity over CV for phase ',p
+            
+            call set(di%inter_velocity_porosity_tmp, &
+                     di%inter_velocity_porosity(p)%ptr)
+                        
+            allocate(vphi_ele(di%ndim, ele_loc(di%inter_velocity_porosity(p)%ptr,1)))
+
+            call zero(di%inter_velocity_porosity(p)%ptr)
+
+            do vele = 1, element_count(di%pressure)
+
+               vphi_ele = ele_val(di%inter_velocity_porosity_tmp,vele)
+
+               do dim = 1, di%ndim
+
+                  call addto(di%inter_velocity_porosity(p)%ptr, &
+                             dim, &
+                             ele_nodes(di%inter_velocity_porosity(p)%ptr,vele), &
+                             vphi_ele(dim,:)*&
+                            &ele_val(di%cv_mass_velocity_mesh,vele)*&
+                            &ele_val(di%inverse_cv_mass_pressure_mesh,vele))
+
+               end do
+
+            end do 
+
+            deallocate(vphi_ele)
+            
+         end if
          
       end do
       
@@ -705,7 +744,7 @@ module darcy_impes_assemble_module
          
          do vele = 1, element_count(di%pressure)
             
-            do dim = 1, di%positions%dim
+            do dim = 1, di%ndim
             
                call addto(di%darcy_velocity(p)%ptr, &
                           dim, &
@@ -734,36 +773,7 @@ module darcy_impes_assemble_module
       end do
       
       ewrite_minmax(di%total_darcy_velocity)
-      
-      ewrite(1,*) 'Calculate TotalDarcyVelocityCV'
-      
-      ! calculate the total darcy velocity on the pressure mesh
-      allocate(total_darcy_vel_ele(di%positions%dim,ele_loc(di%total_darcy_velocity,1)))
-      
-      call zero(di%total_darcy_velocity_cv)
-      
-      do vele = 1, element_count(di%pressure)
-         
-         total_darcy_vel_ele = ele_val(di%total_darcy_velocity,vele)
-         
-         do dim = 1, di%positions%dim
             
-            call addto(di%total_darcy_velocity_cv, &
-                       dim, &
-                       ele_nodes(di%total_darcy_velocity_cv,vele), &
-                       total_darcy_vel_ele(dim,:)*ele_val(di%cv_mass_velocity_mesh,vele))
-            
-         end do
-         
-      end do 
-
-      deallocate(total_darcy_vel_ele)
-      
-      call scale(di%total_darcy_velocity_cv, &
-                 di%inverse_cv_mass_pressure_mesh)            
-      
-      ewrite_minmax(di%total_darcy_velocity_cv)
-      
       ! calculate the fractional flow for each phase
       do p = 1, di%number_phase
          
@@ -786,27 +796,27 @@ module darcy_impes_assemble_module
 
       ! allocate arrays used in assemble process - many assume
       ! that all elements are the same type.
-      allocate(x_ele(di%positions%dim, ele_loc(di%positions,1)))      
-      allocate(normal(di%positions%dim,di%x_cvshape%ngi))
+      allocate(x_ele(di%ndim, ele_loc(di%positions,1)))      
+      allocate(normal(di%ndim,di%x_cvshape%ngi))
       allocate(detwei(di%x_cvshape%ngi))      
-      allocate(normgi(di%positions%dim))
+      allocate(normgi(di%ndim))
       allocate(notvisited(di%x_cvshape%ngi))
       allocate(cfl_rhs_local(ele_loc(di%pressure,1)))
       allocate(div_tvphi_rhs_local(ele_loc(di%pressure,1)))
-      allocate(x_face_quad(di%positions%dim, di%x_cvshape%ngi))
-      allocate(vphi_ele(di%positions%dim,ele_loc(di%inter_velocity_porosity(1)%ptr,1)))
-      allocate(darcy_vel_ele(di%positions%dim,ele_loc(di%darcy_velocity(1)%ptr,1)))
-      allocate(old_vphi_face(di%positions%dim,di%p_cvshape%ngi))
-      allocate(vphi_face_value(di%positions%dim))
-      allocate(darcy_vel_face_value(di%positions%dim))
+      allocate(x_face_quad(di%ndim, di%x_cvshape%ngi))
+      allocate(vphi_ele(di%ndim,ele_loc(di%inter_velocity_porosity(1)%ptr,1)))
+      allocate(darcy_vel_ele(di%ndim,ele_loc(di%darcy_velocity(1)%ptr,1)))
+      allocate(old_vphi_face(di%ndim,di%p_cvshape%ngi))
+      allocate(vphi_face_value(di%ndim))
+      allocate(darcy_vel_face_value(di%ndim))
       
       allocate(detwei_bdy(di%x_cvbdyshape%ngi))
-      allocate(normal_bdy(di%positions%dim, di%x_cvbdyshape%ngi))
+      allocate(normal_bdy(di%ndim, di%x_cvbdyshape%ngi))
       allocate(cfl_rhs_local_bdy(face_loc(di%pressure,1)))
       allocate(div_tvphi_rhs_local_bdy(face_loc(di%pressure,1)))      
-      allocate(x_ele_bdy(di%positions%dim, face_loc(di%positions,1)))      
-      allocate(vphi_sele(di%positions%dim,face_loc(di%inter_velocity_porosity(1)%ptr,1)))
-      allocate(darcy_vel_sele(di%positions%dim,face_loc(di%darcy_velocity(1)%ptr,1)))
+      allocate(x_ele_bdy(di%ndim, face_loc(di%positions,1)))      
+      allocate(vphi_sele(di%ndim,face_loc(di%inter_velocity_porosity(1)%ptr,1)))
+      allocate(darcy_vel_sele(di%ndim,face_loc(di%darcy_velocity(1)%ptr,1)))
       allocate(p_nodes_bdy(face_loc(di%pressure%mesh,1)))
 
       call zero(di%div_total_darcy_velocity)
@@ -1063,24 +1073,24 @@ module darcy_impes_assemble_module
          
       ! allocate arrays used in assemble process - many assume
       ! that all elements are the same type.
-      allocate(x_ele(di%positions%dim, ele_loc(di%positions,1)))      
-      allocate(normal(di%positions%dim,di%x_cvshape%ngi))
+      allocate(x_ele(di%ndim, ele_loc(di%positions,1)))      
+      allocate(normal(di%ndim,di%x_cvshape%ngi))
       allocate(detwei(di%x_cvshape%ngi))      
-      allocate(normgi(di%positions%dim))
+      allocate(normgi(di%ndim))
       allocate(notvisited(di%x_cvshape%ngi))
       allocate(s_rhs_local(ele_loc(di%pressure,1)))
-      allocate(x_face_quad(di%positions%dim, di%x_cvshape%ngi))
+      allocate(x_face_quad(di%ndim, di%x_cvshape%ngi))
       allocate(old_saturation_ele(ele_loc(di%pressure,1)))
-      allocate(vphi_ele(di%positions%dim,ele_loc(di%inter_velocity_porosity(p)%ptr,1)))
-      allocate(old_vphi_face(di%positions%dim,di%p_cvshape%ngi))
-      allocate(vphi_face_value(di%positions%dim))
+      allocate(vphi_ele(di%ndim,ele_loc(di%inter_velocity_porosity(p)%ptr,1)))
+      allocate(old_vphi_face(di%ndim,di%p_cvshape%ngi))
+      allocate(vphi_face_value(di%ndim))
       
       allocate(old_saturation_ele_bdy(face_loc(di%pressure,1)))
       allocate(detwei_bdy(di%x_cvbdyshape%ngi))
-      allocate(normal_bdy(di%positions%dim, di%x_cvbdyshape%ngi))
+      allocate(normal_bdy(di%ndim, di%x_cvbdyshape%ngi))
       allocate(s_rhs_local_bdy(face_loc(di%pressure,1)))
-      allocate(x_ele_bdy(di%positions%dim, face_loc(di%positions,1)))      
-      allocate(vphi_sele(di%positions%dim,face_loc(di%inter_velocity_porosity(p)%ptr,1)))
+      allocate(x_ele_bdy(di%ndim, face_loc(di%positions,1)))      
+      allocate(vphi_sele(di%ndim,face_loc(di%inter_velocity_porosity(p)%ptr,1)))
       allocate(p_nodes_bdy(face_loc(di%pressure%mesh,1)))
       
       ! Inititalise rhs advection field
