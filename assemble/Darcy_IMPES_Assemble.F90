@@ -81,14 +81,12 @@ module darcy_impes_assemble_module
       type(scalar_field), pointer :: sum_saturation, old_sum_saturation
       type(scalar_field), pointer :: div_total_darcy_velocity
       type(vector_field) :: positions_pressure_mesh
-      type(vector_field) :: inter_velocity_porosity_tmp
       type(csr_matrix) :: pressure_matrix
       type(scalar_field) :: lhs, rhs, rhs_adv, rhs_time
       type(scalar_field) :: inverse_cv_mass_cfl_mesh
       type(scalar_field) :: inverse_cv_mass_pressure_mesh
       type(scalar_field) :: cv_mass_pressure_mesh_with_porosity   
       type(scalar_field) :: cv_mass_pressure_mesh_with_old_porosity 
-      type(scalar_field) :: cv_mass_velocity_mesh
       type(scalar_field) :: cfl_subcycle
       type(scalar_field) :: old_saturation_subcycle   
       type(scalar_field), dimension(:), pointer :: darcy_velocity_normal_flow_bc_value
@@ -104,7 +102,6 @@ module darcy_impes_assemble_module
       type(element_type) :: x_cvshape, p_cvshape
       type(element_type) :: x_cvbdyshape
       logical :: phase_one_saturation_diagnostic
-      logical, dimension(:), pointer :: vphi_average_over_CV
       real :: saturation_max_courant_per_subcycle
       real :: dt
       integer :: ndim
@@ -693,44 +690,7 @@ module darcy_impes_assemble_module
          end do
          
       end do
-      
-      ! Average the interstitalvelocity_porosity over the CV if required
-      do p = 1, di%number_phase
-         
-         if (di%vphi_average_over_CV(p)) then
-         
-            ewrite(1,*) 'Average InterstitialVelocityPorosity over CV for phase ',p
             
-            call set(di%inter_velocity_porosity_tmp, &
-                     di%inter_velocity_porosity(p)%ptr)
-                        
-            allocate(vphi_ele(di%ndim, ele_loc(di%inter_velocity_porosity(p)%ptr,1)))
-
-            call zero(di%inter_velocity_porosity(p)%ptr)
-
-            do vele = 1, element_count(di%pressure)
-
-               vphi_ele = ele_val(di%inter_velocity_porosity_tmp,vele)
-
-               do dim = 1, di%ndim
-
-                  call addto(di%inter_velocity_porosity(p)%ptr, &
-                             dim, &
-                             ele_nodes(di%inter_velocity_porosity(p)%ptr,vele), &
-                             vphi_ele(dim,:)*&
-                            &ele_val(di%cv_mass_velocity_mesh,vele)*&
-                            &ele_val(di%inverse_cv_mass_pressure_mesh,vele))
-
-               end do
-
-            end do 
-
-            deallocate(vphi_ele)
-            
-         end if
-         
-      end do
-      
       do p = 1,di%number_phase
          ewrite_minmax(di%inter_velocity_porosity(p)%ptr)
       end do

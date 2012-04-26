@@ -4,7 +4,7 @@
 <testproblem>
   <name>darcy_impes_p1_2phase_quadratic_relperm_pressBCinlet</name>
   <owner userid="btollit"/>
-  <tags>diml darcy</tags>
+  <tags>diml</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>
 ../../bin/darcy_impes darcy_impes_p1_2phase_quadratic_relperm_pressBCinlet_1d.diml 

@@ -598,13 +598,9 @@ contains
       call allocate(di%old_saturation_subcycle, di%pressure%mesh)
       call allocate(di%cv_mass_pressure_mesh_with_porosity, di%pressure%mesh)
       call allocate(di%cv_mass_pressure_mesh_with_old_porosity, di%pressure%mesh)
-      call allocate(di%cv_mass_velocity_mesh, di%total_darcy_velocity%mesh)
 
       ! Calculate the latest CV mass on the pressure mesh with porosity
       call compute_cv_mass(di%positions, di%cv_mass_pressure_mesh_with_porosity, di%porosity)      
-      
-      ! Calculte the CV mass on the velocity mesh
-      call compute_cv_mass(di%positions, di%cv_mass_velocity_mesh)
       
       ! deduce the number of phase
       di%number_phase = size(di%state)
@@ -641,18 +637,6 @@ contains
       call allocate(di%cfl_subcycle, di%cfl(1)%ptr%mesh)
 
       di%phase_one_saturation_diagnostic = have_option(trim(di%saturation(1)%ptr%option_path)//'/diagnostic')
-
-      ! allocate and set an option for each phase for the interstitialvelocity_porosity
-      allocate(di%vphi_average_over_CV(di%number_phase))
-      do p = 1,di%number_phase
-         di%vphi_average_over_CV(p) = have_option(trim(di%inter_velocity_porosity(p)%ptr%option_path)//&
-                                                  &'/diagnostic/average_over_CV')
-      end do
-
-      ! Allocate temporary field to store phase vphi
-      call allocate(di%inter_velocity_porosity_tmp, &
-                    di%ndim, &
-                    di%inter_velocity_porosity(1)%ptr%mesh)
       
       ! Determine the inverse cv mass matrix of cfl mesh
       call allocate(di%inverse_cv_mass_cfl_mesh, &
@@ -819,7 +803,6 @@ contains
       call deallocate(di%old_saturation_subcycle)      
       call deallocate(di%cv_mass_pressure_mesh_with_porosity)
       call deallocate(di%cv_mass_pressure_mesh_with_old_porosity)
-      call deallocate(di%cv_mass_velocity_mesh)
       
       di%number_phase = 0
 
@@ -837,11 +820,7 @@ contains
       call deallocate(di%cfl_subcycle)
       
       di%phase_one_saturation_diagnostic = .false.
-      
-      deallocate(di%vphi_average_over_CV)
-           
-      call deallocate(di%inter_velocity_porosity_tmp)
-      
+            
       call deallocate(di%inverse_cv_mass_cfl_mesh)
       call deallocate(di%inverse_cv_mass_pressure_mesh)
       
