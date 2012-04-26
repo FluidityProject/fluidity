@@ -45,8 +45,8 @@ module lagrangian_biology
   use diagnostic_fields
   use Profiler
   use integer_hash_table_module
-  use LERM
   use lagrangian_biology_pm
+  use lebiology_python
 
 implicit none
 
@@ -112,6 +112,7 @@ contains
     ! Create a persistent dictionary of FG variable and environment name mappings
     call python_run_string("persistent['fg_var_names'] = dict()")
     call python_run_string("persistent['fg_env_names'] = dict()")
+    call lebiology_init_module()
 
     ! We create an agent array for each stage of each Functional Group
     array=1
@@ -122,20 +123,7 @@ contains
        ! Get biology meta-data
        if (have_option(trim(fg_buffer)//"/variables")) then
           call read_functional_group(fgroup, trim(fg_buffer))
-
-       ! Get biology meta-data for LERM diatoms
-       elseif (have_option(trim(fg_buffer)//"/variables_lerm")) then
-          call LERM_get_diatom_fgroup(fgroup, trim(fg_buffer))
-
-          allocate(uptake_field_names(3))
-          uptake_field_names(1)="DissolvedAmmonium"
-          uptake_field_names(2)="DissolvedNitrate"
-          uptake_field_names(3)="DissolvedSilicate"
-
-          allocate(release_field_names(2))
-          release_field_names(1)="DissolvedAmmonium"
-          release_field_names(2)="DissolvedSilicate"
-
+          call lebiology_add_variables(fgroup)
        else
           FLExit("No variables defined for functional group under: "//trim(fg_buffer))
        end if
@@ -154,6 +142,7 @@ contains
           agent_array%stage_name = trim(stage_name)
           call get_option(trim(stage_buffer)//"/id", agent_array%stage_id)
           agent_array%id=array
+          call lebiology_set_stage_id(fgroup, stage_name, agent_array%stage_id)
 
           ! Register the agent array, so Zoltan/Adaptivity will not forget about it
           call register_detector_list(agent_array)
@@ -180,9 +169,6 @@ contains
                 call get_option(trim(env_field_buffer)//"/name", agent_array%env_field_name(j))
                 call python_run_string("persistent['fg_env_names']['"//trim(agent_array%name)//"'].append('"//trim(agent_array%env_field_name(j))//"')")
              end do
-
-          elseif (have_option(trim(fg_buffer)//"/environment_lerm")) then
-             call LERM_get_diatom_env_fields(agent_array%env_field_name)
           else
              FLExit("No environment fields defined for functional group "//trim(agent_array%fgroup%name))
           end if
@@ -265,13 +251,6 @@ contains
                 do while (associated(agent))
                    allocate(agent%biology(size(fgroup%variables)))
                    call python_init_agent_biology(agent, agent_array, trim(func))
-                   agent => agent%next
-                end do
-             elseif (have_option(trim(stage_buffer)//"/initial_state/biology_lerm_living_diatom")) then
-                agent => agent_array%first
-                do while (associated(agent))
-                   allocate(agent%biology(size(fgroup%variables)))
-                   call LERM_initialise_living_diatom(agent%biology)
                    agent => agent%next
                 end do
              end if
@@ -635,7 +614,7 @@ contains
              call move_lagrangian_detectors(state, agent_array, dt, timestep)
           end if
 
-          if (have_option(trim(agent_array%stage_options)//"/biology")) then
+          if (have_option(trim(agent_array%stage_options)//"/biology") .and. agent_array%length > 0 ) then
 
              ewrite(2,*) "Lagrangian biology: Updating ", trim(agent_array%name)
              
@@ -670,12 +649,6 @@ contains
 
                 if (python_update) then
                    call python_calc_agent_biology(agent, env_fields, dt, trim(agent_array%name), trim("biology_update"))
-
-                ! Note: We should not do schema queries inside the agent loop!
-                elseif (have_option(trim(agent_array%stage_options)//"/biology/lerm_living_diatom")) then
-                   call LERM_update_living_diatom(agent, agent_array, state(1), dt)
-                elseif (have_option(trim(agent_array%stage_options)//"/biology/lerm_dead_diatom")) then
-                   call LERM_update_dead_diatom(agent, agent_array, state(1), dt)
                 else
                    FLExit("No biology update function specified!")
                 end if
