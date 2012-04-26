@@ -734,8 +734,8 @@ Finite element discretisation may become unbounded so limiting is often necessar
         </element>
         <optional>
           <element name="maximum_courant_number_per_subcycle">
-            <a:documentation>Specify the maximum courant number per subcycle. 
-Default value if not given is 0.25.</a:documentation>
+            <a:documentation>Use timestep subcycling to solve this field.
+Specify the maximum courant number per subcycle. </a:documentation>
             <ref name="real"/>
           </element>
         </optional>
