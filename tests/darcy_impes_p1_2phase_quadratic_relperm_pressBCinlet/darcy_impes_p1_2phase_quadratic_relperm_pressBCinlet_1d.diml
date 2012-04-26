@@ -99,6 +99,11 @@
     <finish_time>
       <real_value rank="0">20.0</real_value>
     </finish_time>
+    <adaptive_timestep>
+      <requested_cfl>
+        <real_value rank="0">0.25</real_value>
+      </requested_cfl>
+    </adaptive_timestep>
   </timestepping>
   <material_phase name="Phase1">
     <scalar_field name="Pressure" rank="0">

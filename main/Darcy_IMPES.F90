@@ -237,11 +237,10 @@ program Darcy_IMPES
                   & default = 0.0)
    
    ! Adapt time at first time step - required before first adapt
-   if(have_option("/timestepping/adaptive_timestep/at_first_timestep")) then
-      call calc_cflnumber_field_based_dt(state, dt, force_calculation = .true.)
-      call set_option("/timestepping/timestep", dt)
-      ! *** Set the darcy impes time step ***
-      di%dt = dt
+   if(di%adaptive_dt_options%have .and. di%adaptive_dt_options%at_first_dt) then
+      call darcy_impes_calculate_cflnumber_field_based_dt(di)
+      call set_option("/timestepping/timestep", di%dt)
+      dt = di%dt
    end if
       
    if(have_option("/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep")) then
@@ -399,9 +398,10 @@ program Darcy_IMPES
       ! Call the modern and significantly less satanic version of study
       call write_diagnostics(state, current_time, dt, timestep)
       
-      if(have_option("/timestepping/adaptive_timestep")) call calc_cflnumber_field_based_dt(state, dt)
+      if(di%adaptive_dt_options%have) call darcy_impes_calculate_cflnumber_field_based_dt(di)
       
-      call set_option("/timestepping/timestep", dt)
+      dt = di%dt
+      call set_option("/timestepping/timestep", di%dt)
       call set_option("/timestepping/current_time", current_time)            
          
       ! ******************
@@ -438,15 +438,18 @@ program Darcy_IMPES
                if (have_option("/timestepping/adaptive_timestep/minimum_timestep")) then
                   call get_option("/timestepping/adaptive_timestep/minimum_timestep", dt)
                   call set_option("/timestepping/timestep", dt)
+                  ! *** Set Darcy IMPES dt
+                  di%dt = dt
                else
                   ewrite(-1,*) "Warning: you have adaptive timestep adjustment after &&
                                 && adapt, but have not set a minimum timestep"
                end if
             else
                ! Timestep adapt
-               if(have_option("/timestepping/adaptive_timestep")) then
-                  call calc_cflnumber_field_based_dt(state, dt, force_calculation = .true.)
-                  call set_option("/timestepping/timestep", dt)
+               if(di%adaptive_dt_options%have) then
+                  call darcy_impes_calculate_cflnumber_field_based_dt(di)
+                  call set_option("/timestepping/timestep", di%dt)
+                  dt = di%dt
                end if
             end if
                         
@@ -457,9 +460,6 @@ program Darcy_IMPES
          end if do_adapt_if
 
       end if adapt_if
-
-      ! *** Set the darcy impes time step ***
-      di%dt = dt
 
       if(simulation_completed(current_time, timestep)) then
          
@@ -697,6 +697,35 @@ contains
       
       end if
       
+      ! Determine the adaptive time stepping options
+      di%adaptive_dt_options%have = have_option('/timestepping/adaptive_timestep')
+      
+      if (di%adaptive_dt_options%have) then 
+         
+         call get_option('/timestepping/adaptive_timestep/requested_cfl', &
+                        &di%adaptive_dt_options%requested_cfl, &
+                        &default = 0.5)
+         
+         call get_option('/timestepping/adaptive_timestep/minimum_timestep', &
+                        &di%adaptive_dt_options%min_dt, &
+                        &default = tiny(0.0))
+         
+         call get_option('/timestepping/adaptive_timestep/maximum_timestep', &
+                         &di%adaptive_dt_options%max_dt, &
+                         &default = huge(0.0))
+         
+         call get_option('/timestepping/adaptive_timestep/increase_tolerance', &
+                        &di%adaptive_dt_options%increase_tolerance, &
+                        &default = huge(0.0) * epsilon(0.0))
+            
+         di%adaptive_dt_options%min_dt_terminate_if_reached = &
+        &have_option('/timestepping/adaptive_timestep/minimum_timestep/terminate_if_reached')
+
+         di%adaptive_dt_options%at_first_dt = &
+        &have_option('/timestepping/adaptive_timestep/at_first_dt')
+      
+      end if
+      
       ! Determine the CV surface degree to use when integrating functions across them
       call get_option("/geometry/quadrature/controlvolume_surface_degree", &
                       di%quaddegree, default = 1)
@@ -853,6 +882,15 @@ contains
       di%subcy_opt_sat%have = .false.
       
       di%subcy_opt_sat%max_courant_per_subcycle = 0.0
+      
+      di%adaptive_dt_options%have = .false.
+      
+      di%adaptive_dt_options%requested_cfl = 0.0
+      di%adaptive_dt_options%min_dt = 0.0
+      di%adaptive_dt_options%max_dt = 0.0
+      di%adaptive_dt_options%increase_tolerance = 0.0
+      di%adaptive_dt_options%min_dt_terminate_if_reached = .false.
+      di%adaptive_dt_options%at_first_dt = .false.
       
       di%quaddegree = 0
       

@@ -472,6 +472,46 @@ darcy_impes_timestepping =
             element nonlinear_iterations_at_adapt {
                integer
             }?
+         }?,
+         ## Vary the timestep according to the courant number.
+         element adaptive_timestep {
+            ## The timestep will be adjusted (within the tolerance
+            ## and bounds specified) to target this courant
+            ## number. Timestep adapts occur at the end of each
+            ## timestep and after a mesh adapt. The default 
+            ## value if not given is 0.5.
+            element requested_cfl {
+               real
+            }?,
+            ## Minimum time step size.
+            ## Manual suggests 0.0
+            element minimum_timestep {
+               ## If enabled, signals model termination if a timestep less
+               ## than or equal to the minimum_timestep is requested. The
+               ## model will stop at the end of the timestep in order to
+               ## allow for the latest output to be written. 
+               element terminate_if_reached {
+                  comment
+               }?,
+               real
+            }?,
+            ## Maximum time step size.
+            ## Manual suggests 1.E+10
+            element maximum_timestep {
+               real
+            }?,
+            ## The maximum ratio by which the timestep is allowed
+            ## to increase in a timestep adapt. e.g., a value of
+            ## 1.1 indicates that the timestep may be increased by
+            ## at most 10%.
+            element increase_tolerance {
+               real
+            }?,
+            ## Specify whether you want to calculate a new timestep
+            ## at the first timestep or not.
+            element at_first_timestep {
+               empty
+            }?
          }?
       }
    )
@@ -577,7 +617,7 @@ darcy_impes_saturation_field_phase_one =
                element mesh {
                   attribute name { "PressureMesh" }      
                },
-               darcy_impes_saturation_field_spatial_discretisation_only_upwind,
+               darcy_impes_saturation_field_spatial_discretisation,
                darcy_impes_saturation_field_temporal_discretisation_only_explicit,
                darcy_impes_include_cv_stat,
                scalar_convergence_options,
@@ -588,7 +628,7 @@ darcy_impes_saturation_field_phase_one =
                element mesh {
                   attribute name { "PressureMesh" }      
                },
-               darcy_impes_saturation_field_spatial_discretisation_only_upwind,
+               darcy_impes_saturation_field_spatial_discretisation,
                darcy_impes_saturation_field_temporal_discretisation_only_explicit,
                initial_condition_scalar+,
                darcy_impes_bc_saturation_field*,
@@ -619,27 +659,6 @@ darcy_impes_saturation_field =
             interpolation_algorithm_scalar
          }
       }                  
-   )
-
-
-darcy_impes_saturation_field_spatial_discretisation_only_upwind = 
-   (
-      element spatial_discretisation {
-         element control_volumes {
-            ## First Order Upwind face value discretisation
-            ##  face_value = donor_value, 
-            ## where
-            ##  donor_value = income*val_1 + (1.-income)*val_2, 
-            ## where val_i is the value on the ith node neighbouring the face and
-            ## income = [0, 1] depending on whether the flow is coming from node 1 or 2
-            ## First order upwinding is monotonic so no limiting is ever required
-            element face_value {
-              attribute name { "FirstOrderUpwind" },
-              empty
-            }          
-         },
-         darcy_impes_saturation_field_conservative_advection
-      }
    )
    
    
@@ -1265,37 +1284,12 @@ upwind_value_options =
 
 field_based_cfl_number_options =
    (
-      ## Select the Courant Number definition to be used.
+      ## The Courant Number definition to be used.
       ##
       ## This uses the control volume approximation of the CFL Number 
       ## and the interstitial velocity for porous media flow.
       element courant_number {
-         attribute name { "InterstitialVelocityCVCourantNumber" },
-         porosity_include_cv_cfl
-      }
-   )
-
-cv_face_cfl_number_options =
-   (
-      ## Select the Courant Number definition to be used in the slope of
-      ## the NVD diagram upper bound.
-      ## This uses a control volume definition of the CFL Number
-      ## and the interstitial velocity for porous media flow.
-      element courant_number {
-         attribute name { "InterstitialVelocityCVCourantNumber" },
-         porosity_include_cv_cfl
-      }
-   )
-
-timestep_cfl_number_options =
-   (
-      ## Select the Courant Number definition to be used for adaptive timestepping.
-      ## This uses the control volume approximation of the CFL Number 
-      ## and the interstitial velocity for porous media flow.         
-      element courant_number {
-         attribute name { "InterstitialVelocityCVCourantNumber" },
-         velocity_mesh_choice,
-         porosity_include_cv_cfl
+         attribute name { "InterstitialVelocityCFL" }
       }
    )
 

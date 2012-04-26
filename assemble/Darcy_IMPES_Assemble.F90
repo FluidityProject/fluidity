@@ -53,6 +53,8 @@ module darcy_impes_assemble_module
    use spud
    use porous_media
    use parallel_tools
+   use adaptive_timestepping
+   use signal_vars, only : SIG_INT
    use global_parameters, only : FIELD_NAME_LEN, OPTION_PATH_LEN
 
    implicit none
@@ -63,12 +65,23 @@ module darcy_impes_assemble_module
              darcy_impes_assemble_and_solve, &
              darcy_impes_calculate_gradient_pressure_etc, &
              darcy_impes_calculate_phase_one_saturation_diagnostic, &
-             darcy_impes_calculate_sum_saturation
+             darcy_impes_calculate_sum_saturation, &
+             darcy_impes_calculate_cflnumber_field_based_dt
    
    type darcy_impes_subcycle_options_type
       logical :: have
       real :: max_courant_per_subcycle         
    end type darcy_impes_subcycle_options_type
+   
+   type darcy_impex_adaptive_dt_options_type
+      logical :: have
+      real :: requested_cfl
+      real :: min_dt
+      real :: max_dt
+      real :: increase_tolerance
+      logical :: min_dt_terminate_if_reached
+      logical :: at_first_dt
+   end type darcy_impex_adaptive_dt_options_type
    
    type darcy_impes_type
       type(vector_field_pointer), dimension(:), pointer :: inter_velocity_porosity, old_inter_velocity_porosity
@@ -110,6 +123,7 @@ module darcy_impes_assemble_module
       type(darcy_impes_subcycle_options_type) :: subcy_opt_sat
       real :: dt
       integer :: ndim
+      type(darcy_impex_adaptive_dt_options_type) :: adaptive_dt_options
       type(state_type), dimension(:), pointer :: state
    end type darcy_impes_type
    
@@ -619,6 +633,86 @@ module darcy_impes_assemble_module
 
 ! ----------------------------------------------------------------------------
 
+   subroutine get_darcy_velocity_normal_flow_boundary_condition(darcy_velocity, &
+                                                                darcy_velocity_surface_mesh, &
+                                                                darcy_velocity_normal_flow_bc_value, &
+                                                                darcy_velocity_normal_flow_bc_flag)
+
+      !!< Form the data associated with darcy velocity normal_flow BC by returning 
+      !!< full surface mesh arrays of a flag indicating normal_flow and the value.
+      !!< This can be used for the phase DarcyVelocity and the TotalDarcyVelocity.
+
+      type(vector_field),               intent(in),   target :: darcy_velocity
+      type(mesh_type),                  intent(in)           :: darcy_velocity_surface_mesh
+      type(scalar_field),               intent(inout)        :: darcy_velocity_normal_flow_bc_value
+      integer,            dimension(:), intent(inout)        :: darcy_velocity_normal_flow_bc_flag
+
+      ! Local variables
+      type(scalar_field),                         pointer :: scalar_surface_field
+      integer,                      dimension(:), pointer :: surface_element_list
+      integer                                             :: i, k, sele
+      character(len=FIELD_NAME_LEN)                       :: bctype
+
+      ewrite(1,*) 'Get ',trim(darcy_velocity%name),' normal_flow boundary condition data'
+
+      ! Zero the normal_flow value surface field on whole boundary mesh  
+      call zero(darcy_velocity_normal_flow_bc_value)
+
+      ! Initialise flag for whether surface element has normal_flow BC
+      darcy_velocity_normal_flow_bc_flag = 0
+
+      ! Loop each BC object instance for the darcy_velocity
+      ! (May have multiple normal_flow BC's applied to different surface id's)
+      BC_loop: do i=1, get_boundary_condition_count(darcy_velocity)
+
+         ! Get this BC info
+         call get_boundary_condition(darcy_velocity, i, type = bctype, &
+                                     surface_element_list = surface_element_list)
+
+         ! check this is a normal_flow BC (nothing else is permitted)
+         if (trim(bctype) /= 'normal_flow') then
+            FLAbort('Have unknown BC type for either DarcyVelocity or TotalDarcyVelocity')
+         end if
+
+         ! Extract the scalar_surface_field for this BC 
+         if (associated(darcy_velocity%bc%boundary_condition(i)%scalar_surface_fields)) then
+            scalar_surface_field => darcy_velocity%bc%boundary_condition(i)%scalar_surface_fields(1)
+         else
+            FLAbort('Component scalar_surface_fields for DarcyVelocity or TotalDarcyVelocity BC type not associated')
+         end if
+
+         ! Loop the surface elements associated with this BC instance
+         ! and place the required BC value in whole boundary field
+         BC_sele_loop: do k=1, size(surface_element_list)
+
+            ! Find the whole domain surface element number
+            sele = surface_element_list(k)
+
+            ! Check that there is only 1 BC applied per surface element
+            if (darcy_velocity_normal_flow_bc_flag(sele) /= 0) then             
+               FLExit('Cannot apply more than 1 BC to a surface element for DarcyVelocity and TotalDarcyVelocity')
+            end if
+
+            ! Set the sele flag to indicate it has a normal_flow BC
+            darcy_velocity_normal_flow_bc_flag(sele) = 1
+
+            ! Set the normal_flow field values from this BC for its sele
+            call set(darcy_velocity_normal_flow_bc_value, &
+                     ele_nodes(darcy_velocity_surface_mesh, sele), &
+                     ele_val(scalar_surface_field, k))
+
+         end do BC_sele_loop
+
+      end do BC_loop
+
+      ewrite_minmax(darcy_velocity_normal_flow_bc_value)
+
+      ewrite(1,*) 'Finished get ',trim(darcy_velocity%name),' normal_flow boundary condition data'
+
+   end subroutine get_darcy_velocity_normal_flow_boundary_condition
+  
+! ----------------------------------------------------------------------------
+
    subroutine darcy_impes_calculate_gradient_pressure_etc(di)
       
       !!< Calculate the gradient pressure, inter_velocity_porosity, CFL and darcy velocity fields
@@ -778,7 +872,7 @@ module darcy_impes_assemble_module
       
       end do
       
-      ewrite(1,*) 'Calculate the DivergenceTotalDarcyVelocity'
+      ewrite(1,*) 'Calculate the DivergenceTotalDarcyVelocity and each phase InterstitialVelocityPorosityCFL'
       
       ! calculate the divergence of the total darcy velocity
       ! and the CFL number of each phase using CV surface integrals
@@ -980,6 +1074,8 @@ module darcy_impes_assemble_module
          end do sele_loop
                   
          di%cfl(p)%ptr%val = di%cfl(p)%ptr%val * di%dt / di%cv_mass_pressure_mesh_with_porosity%val
+
+         ewrite_minmax(di%cfl(p)%ptr)
          
       end do
       
@@ -1472,85 +1568,45 @@ module darcy_impes_assemble_module
    end subroutine darcy_impes_calculate_sum_saturation
 
 ! ----------------------------------------------------------------------------
+   
+   subroutine darcy_impes_calculate_cflnumber_field_based_dt(di)
+      
+      !!< Calculate the cfl number field based adaptive time step
+      
+      type(darcy_impes_type), intent(inout) :: di
+      
+      ! local variables
+      integer :: p
+      real, dimension(di%number_phase) :: phase_dt
+      
+      ewrite(1,*) 'Calculate CFL number field based adaptive timestep'
+      
+      ! Find the adaptive dt for each phase then take the minimum
+      
+      phase_dt = di%dt
+      
+      phase_loop: do p = 1, di%number_phase
+         
+         phase_dt(p) = cflnumber_field_based_dt(di%cfl(p)%ptr, &
+                                                di%dt, &
+                                                di%adaptive_dt_options%requested_cfl, &
+                                                di%adaptive_dt_options%min_dt, &
+                                                di%adaptive_dt_options%max_dt, &
+                                                di%adaptive_dt_options%increase_tolerance)         
+         
+      end do phase_loop
+      
+      di%dt = minval(phase_dt)
 
-  subroutine get_darcy_velocity_normal_flow_boundary_condition(darcy_velocity, &
-                                                               darcy_velocity_surface_mesh, &
-                                                               darcy_velocity_normal_flow_bc_value, &
-                                                               darcy_velocity_normal_flow_bc_flag)
-    
-    !!< Form the data associated with darcy velocity normal_flow BC by returning 
-    !!< full surface mesh arrays of a flag indicating normal_flow and the value.
-    !!< This can be used for the phase DarcyVelocity and the TotalDarcyVelocity.
-    
-    type(vector_field),               intent(in),   target :: darcy_velocity
-    type(mesh_type),                  intent(in)           :: darcy_velocity_surface_mesh
-    type(scalar_field),               intent(inout)        :: darcy_velocity_normal_flow_bc_value
-    integer,            dimension(:), intent(inout)        :: darcy_velocity_normal_flow_bc_flag
-    
-    ! Local variables
-    type(scalar_field),                         pointer :: scalar_surface_field
-    integer,                      dimension(:), pointer :: surface_element_list
-    integer                                             :: i, k, sele
-    character(len=FIELD_NAME_LEN)                       :: bctype
-    
-    ewrite(1,*) 'Get ',trim(darcy_velocity%name),' normal_flow boundary condition data'
-    
-    ! Zero the normal_flow value surface field on whole boundary mesh  
-    call zero(darcy_velocity_normal_flow_bc_value)
-    
-    ! Initialise flag for whether surface element has normal_flow BC
-    darcy_velocity_normal_flow_bc_flag = 0
+      if(di%adaptive_dt_options%min_dt_terminate_if_reached) then
+         if(di%dt <= di%adaptive_dt_options%min_dt + spacing(di%adaptive_dt_options%min_dt)) then
+            ewrite(0, *) "Minimum timestep reached - terminating"
+            SIG_INT = .true.
+         end if
+      end if
+       
+   end subroutine darcy_impes_calculate_cflnumber_field_based_dt
 
-    ! Loop each BC object instance for the darcy_velocity
-    ! (May have multiple normal_flow BC's applied to different surface id's)
-    BC_loop: do i=1, get_boundary_condition_count(darcy_velocity)
-       
-       ! Get this BC info
-       call get_boundary_condition(darcy_velocity, i, type = bctype, &
-                                   surface_element_list = surface_element_list)
-          
-       ! check this is a normal_flow BC (nothing else is permitted)
-       if (trim(bctype) /= 'normal_flow') then
-          FLAbort('Have unknown BC type for either DarcyVelocity or TotalDarcyVelocity')
-       end if
-       
-       ! Extract the scalar_surface_field for this BC 
-       if (associated(darcy_velocity%bc%boundary_condition(i)%scalar_surface_fields)) then
-          scalar_surface_field => darcy_velocity%bc%boundary_condition(i)%scalar_surface_fields(1)
-       else
-          FLAbort('Component scalar_surface_fields for DarcyVelocity or TotalDarcyVelocity BC type not associated')
-       end if
-       
-       ! Loop the surface elements associated with this BC instance
-       ! and place the required BC value in whole boundary field
-       BC_sele_loop: do k=1, size(surface_element_list)
-          
-          ! Find the whole domain surface element number
-          sele = surface_element_list(k)
-          
-          ! Check that there is only 1 BC applied per surface element
-          if (darcy_velocity_normal_flow_bc_flag(sele) /= 0) then             
-             FLExit('Cannot apply more than 1 BC to a surface element for DarcyVelocity and TotalDarcyVelocity')
-          end if
-          
-          ! Set the sele flag to indicate it has a normal_flow BC
-          darcy_velocity_normal_flow_bc_flag(sele) = 1
-          
-          ! Set the normal_flow field values from this BC for its sele
-          call set(darcy_velocity_normal_flow_bc_value, &
-                   ele_nodes(darcy_velocity_surface_mesh, sele), &
-                   ele_val(scalar_surface_field, k))
-          
-       end do BC_sele_loop
-    
-    end do BC_loop
-    
-    ewrite_minmax(darcy_velocity_normal_flow_bc_value)
-    
-    ewrite(1,*) 'Finished get ',trim(darcy_velocity%name),' normal_flow boundary condition data'
-
-  end subroutine get_darcy_velocity_normal_flow_boundary_condition
-  
 ! ----------------------------------------------------------------------------
 
 end module darcy_impes_assemble_module
