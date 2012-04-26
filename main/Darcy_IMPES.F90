@@ -672,7 +672,8 @@ contains
       
       do p = 1,di%number_phase
          
-         call allocate(di%darcy_velocity_normal_flow_bc_value(p), &
+         allocate(di%darcy_velocity_normal_flow_bc_value(p)%ptr)
+         call allocate(di%darcy_velocity_normal_flow_bc_value(p)%ptr, &
                       &di%darcy_velocity_surface_mesh, &
                       &name=trim(di%darcy_velocity(p)%ptr%name)//'NormalFlowBCValue')         
          
@@ -809,8 +810,8 @@ contains
       call deallocate(di%cv_mass_pressure_mesh_with_porosity)
       call deallocate(di%cv_mass_pressure_mesh_with_old_porosity)
       
-      di%number_phase = 0
-
+      ! number_phase is zeroed at end as it is used for looping
+      
       deallocate(di%saturation)
       deallocate(di%old_saturation)
       deallocate(di%relative_permeability)
@@ -835,7 +836,8 @@ contains
       deallocate(di%total_darcy_velocity_normal_flow_bc_flag)
 
       do p = 1,di%number_phase
-         call deallocate(di%darcy_velocity_normal_flow_bc_value(p))
+         call deallocate(di%darcy_velocity_normal_flow_bc_value(p)%ptr)
+         deallocate(di%darcy_velocity_normal_flow_bc_value(p)%ptr)
       end do
       deallocate(di%darcy_velocity_normal_flow_bc_value)
       deallocate(di%darcy_velocity_normal_flow_bc_flag)      
@@ -852,6 +854,9 @@ contains
       call deallocate(di%x_cvshape)
       call deallocate(di%p_cvshape)
       call deallocate(di%x_cvbdyshape)
+      
+      ! This must be last as it is used in loops above
+      di%number_phase = 0
       
       ewrite(1,*) 'Finished finalising Darcy IMPES data'
          

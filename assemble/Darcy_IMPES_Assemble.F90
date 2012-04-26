@@ -89,7 +89,7 @@ module darcy_impes_assemble_module
       type(scalar_field) :: cv_mass_pressure_mesh_with_old_porosity 
       type(scalar_field) :: cfl_subcycle
       type(scalar_field) :: old_sfield_subcycle   
-      type(scalar_field), dimension(:), pointer :: darcy_velocity_normal_flow_bc_value
+      type(scalar_field_pointer), dimension(:), pointer :: darcy_velocity_normal_flow_bc_value
       type(scalar_field) :: total_darcy_velocity_normal_flow_bc_value
       type(mesh_type) :: darcy_velocity_surface_mesh
       integer, dimension(:,:), pointer :: darcy_velocity_normal_flow_bc_flag
@@ -451,7 +451,7 @@ module darcy_impes_assemble_module
       
          call get_darcy_velocity_normal_flow_boundary_condition(di%darcy_velocity(p)%ptr, &
                                                                 di%darcy_velocity_surface_mesh, &
-                                                                di%darcy_velocity_normal_flow_bc_value(p), &
+                                                                di%darcy_velocity_normal_flow_bc_value(p)%ptr, &
                                                                 di%darcy_velocity_normal_flow_bc_flag(:,p))
       
       end do
@@ -509,7 +509,7 @@ module darcy_impes_assemble_module
                
                have_phase_darcy_vel_bc: if (di%darcy_velocity_normal_flow_bc_flag(sele,p) == BC_TYPE_NORMAL_FLOW) then
 
-                  bc_sele_val = ele_val(di%darcy_velocity_normal_flow_bc_value(p), sele)
+                  bc_sele_val = ele_val(di%darcy_velocity_normal_flow_bc_value(p)%ptr, sele)
 
                   x_ele       = ele_val(di%positions, face_ele(di%positions, sele))
                   x_ele_bdy   = face_val(di%positions, sele)
