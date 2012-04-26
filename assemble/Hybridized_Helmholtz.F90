@@ -49,7 +49,162 @@ module hybridized_helmholtz
     use manifold_tools
     implicit none
 
+    !Variables belonging to the Newton solver
+    logical, private :: newton_initialised = .false.
+    !Cached Newton solver matrices
+    type(csr_matrix), private :: Newton_lambda_mat
+    type(block_csr_matrix), private :: Newton_continuity_mat
+    type(real_matrix), pointer, dimension(:), private &
+         &:: Newton_local_solver_cache=>null()
+    type(real_matrix), pointer, dimension(:), private &
+         &:: Newton_local_solver_rhs_cache=>null()
+
 contains 
+
+  subroutine solve_hybridised_timestep_residual(state,newU,newD)
+
+    ! Subroutine to apply one Newton iteration to hybridised shallow
+    ! water equations
+    ! Written to cache all required matrices
+    implicit none
+    type(state_type), intent(inout) :: state
+    type(vector_field), intent(inout) :: newU !U at next timestep
+    type(scalar_field), intent(inout) :: newD !D at next timestep
+    !
+    type(vector_field), pointer :: X, U, down, U_cart, U_res
+    type(scalar_field), pointer :: D,f, D_res
+    type(scalar_field) :: lambda
+    type(scalar_field), target :: lambda_rhs, u_cpt
+    type(csr_sparsity) :: lambda_sparsity, continuity_sparsity
+    type(csr_matrix) :: continuity_block_mat
+    type(mesh_type), pointer :: lambda_mesh
+    real :: D0, dt, g, theta, tolerance
+    integer :: ele,i1, stat, dim1, dloc, uloc,mdim,n_constraints
+    logical :: have_constraint
+    character(len=OPTION_PATH_LEN) :: constraint_option_string
+
+    ewrite(1,*) 'solve_hybridised_timestep_residual(state)'
+
+    !get parameters
+    call get_option("/physical_parameters/gravity/magnitude", g)
+    call get_option("/timestepping/theta",theta)
+    call get_option("/material_phase::Fluid/scalar_field::LayerThickness/&
+         &prognostic/mean_layer_thickness",D0)
+    call get_option("/timestepping/timestep", dt)
+
+    !Pull the fields out of state
+    D=>extract_scalar_field(state, "LayerThickness")
+    f=>extract_scalar_field(state, "Coriolis")
+    U=>extract_vector_field(state, "LocalVelocity")
+    X=>extract_vector_field(state, "Coordinate")
+    down=>extract_vector_field(state, "GravityDirection")
+    U_cart => extract_vector_field(state, "Velocity")
+
+    !Allocate local field variables
+    lambda_mesh=>extract_mesh(state, "VelocityMeshTrace")
+    call allocate(lambda,lambda_mesh,name="LagrangeMultiplier")
+    call allocate(lambda_rhs,lambda%mesh,"LambdaRHS")
+    call zero(lambda_rhs)
+    call allocate(U_res,U%dim,U%mesh,"VelocityResidual")
+    call allocate(D_res,D%mesh,"LayerThicknessResidual")
+
+    if(.not.newton_initialised) then
+       !construct/extract sparsities
+       lambda_sparsity=get_csr_sparsity_firstorder(&
+            &state, lambda%mesh, lambda&
+            &%mesh)
+       continuity_sparsity=get_csr_sparsity_firstorder(state, u%mesh,&
+            & lambda%mesh)
+
+       !allocate matrices
+       call allocate(Newton_lambda_mat,lambda_sparsity)
+       call zero(Newton_lambda_mat)
+       call allocate(Newton_continuity_mat,continuity_sparsity,(/U%dim,1/))
+       call zero(Newton_continuity_mat)
+
+       mdim = mesh_dim(U)
+       have_constraint = &
+            &have_option(trim(U%mesh%option_path)//"/from_mesh/constraint_type")
+
+       allocate(newton_local_solver_cache(ele_count(U)))
+       allocate(newton_local_solver_rhs_cache(ele_count(U)))
+       do ele = 1, ele_count(D)
+          uloc = ele_loc(U,ele)
+          dloc = ele_loc(d,ele)
+          n_constraints = 0
+          if(have_constraint) then
+             n_constraints = ele_n_constraints(U,ele)
+             allocate(newton_local_solver_cache(ele)%ptr(&
+                  mdim*uloc+dloc+n_constraints,&
+                  mdim*uloc+dloc+n_constraints))
+             allocate(newton_local_solver_rhs_cache(ele)%ptr(&
+                  mdim*uloc+dloc,mdim*uloc+dloc))
+          end if
+       end do
+
+       !Assemble matrices
+       do ele = 1, ele_count(D)
+          call assemble_newton_solver_ele(D,f,U,X,down,lambda_rhs,ele, &
+               &g,dt,theta,D0,&
+               &lambda_mat=Newton_lambda_mat,&
+               &continuity_mat=Newton_continuity_mat,&
+               &Local_solver_matrix=Newton_local_solver_cache(ele)%ptr,&
+               &Local_solver_rhs=Newton_local_solver_rhs_cache(ele)%ptr)
+       end do
+       newton_initialised = .true.
+    end if
+
+    !Get the residuals
+    !THIS IS WHERE WE WILL INSERT THE NONLINEAR SOLVES
+    !Compute residuals 
+    do ele = 1, ele_count(D)
+       call get_linear_residuals_ele(U_res,D_res,&
+            U,D,newU,newD,&
+            newton_local_solver_cache(ele)%ptr,&
+            newton_local_solver_rhs_cache(ele)%ptr,ele)
+    end do
+
+    do ele = 1, ele_count(D)
+       call local_solve_residuals_ele(U_res,D_res,&
+            newton_local_solver_cache(ele)%ptr,ele)
+    end do
+
+    !lambda_rhs_loc = -matmul(transpose(l_continuity_mat),&
+    !  &Rhs_loc)
+    call mult_t(lambda_rhs,Newton_continuity_mat,U_res)
+    call scale(lambda_rhs,-1.0)
+    ewrite(2,*) 'LAMBDARHS', maxval(abs(lambda_rhs%val))
+
+    call zero(lambda)
+    !Solve the equations
+    call petsc_solve(lambda,newton_lambda_mat,lambda_rhs,&
+         option_path=trim(U_cart%mesh%option_path)//&
+         &"/from_mesh/constraint_type")
+    ewrite(2,*) 'LAMBDA', maxval(abs(lambda%val))
+
+    !Update new U and new D from lambda
+    call addto(newU,U_res)
+    call addto(newD,D_res)
+    call zero(U_res)
+    call zero(D_res)
+    call mult(U_res,Newton_continuity_mat,lambda)
+    do ele = 1, ele_count(U)
+       call local_solve_residuals_ele(U_res,D_res,&
+            newton_local_solver_cache(ele)%ptr,ele)
+    end do
+    call addto(newU,U_res)
+    call addto(newD,D_res)
+
+    !Deallocate local variables
+    call deallocate(lambda_rhs)
+    call deallocate(lambda)
+    call deallocate(U_res)
+    call deallocate(D_res)
+
+    ewrite(1,*) 'END solve_hybridised_timestep_residual(state)'
+  
+  end subroutine solve_hybridised_timestep_residual
+
   subroutine solve_hybridized_helmholtz(state,D_rhs,U_Rhs,&
        &D_out,U_out,&
        &dt_in,theta_in,&
@@ -65,7 +220,7 @@ contains
     ! <<\gamma, [u]>> = 0
     ! (i.e. for unit testing)
     ! otherwise solve:
-    ! <w,u> + dt*theta*<w,fu^\perp> - dt*theta*g <div w,d> + <<[w],d>> = 
+    ! <w,u> + dt*theta*<w,fu^\perp> - dt*theta*g <div w,d> + <<[w],l>> = 
     ! -dt*<w f(u^n)^\perp> + dt*g*<div w, d^n>
     ! <\phi,\eta> +  dt*theta*<\phi,div u> = <\ph
     ! <<\gamma, [u]>> = 0
@@ -268,6 +423,7 @@ contains
     end if
     
     call deallocate(lambda_mat)
+    call deallocate(continuity_mat)
     call deallocate(lambda_rhs)
     call deallocate(lambda)
     deallocate(weights)
@@ -275,6 +431,206 @@ contains
     ewrite(1,*) 'END subroutine solve_hybridized_helmholtz'
 
   end subroutine solve_hybridized_helmholtz
+
+  subroutine get_linear_residuals_ele(U_res,D_res,U,D,&
+       newU,newD,local_solver,local_solver_rhs,ele)
+    !Subroutine
+    type(vector_field), intent(inout) :: U_res,U,newU
+    type(scalar_field), intent(inout) :: D_res,D,newD
+    real, dimension(:,:), intent(in) :: local_solver, local_solver_rhs
+    integer, intent(in) :: ele
+    !
+    integer :: uloc, dloc, dim1, d_end
+    real, dimension(mesh_dim(U)*ele_loc(U,ele)+ele_loc(D,ele))&
+         :: rhs_loc1,rhs_loc2
+    real, dimension(mesh_dim(U),ele_loc(U,ele)) :: U_val
+
+    uloc = ele_loc(U,ele)
+    dloc = ele_loc(D,ele)
+    d_end = uloc*mesh_dim(U)+dloc
+
+    U_val = ele_val(U,ele)
+    do dim1 = 1, mesh_dim(U)
+       rhs_loc1((dim1-1)*uloc+1:dim1*uloc) = u_val(dim1,:)
+    end do
+    rhs_loc1(mesh_dim(U)*uloc+1:mesh_dim(U)*uloc+dloc) = &
+         & ele_val(D,ele)
+    rhs_loc1 = matmul(local_solver_rhs,rhs_loc1)
+    U_val = ele_val(newU,ele)
+    do dim1 = 1, mesh_dim(U)
+       rhs_loc2((dim1-1)*uloc+1:dim1*uloc) = u_val(dim1,:)
+    end do
+    rhs_loc2(mesh_dim(U)*uloc+1:mesh_dim(U)*uloc+dloc) = &
+         & ele_val(newD,ele)
+    rhs_loc2 = matmul(local_solver(1:d_end,1:d_end),rhs_loc2)
+
+    do dim1 = 1, mesh_dim(U)
+       call set(U_res,dim1,ele_nodes(U,ele),&
+            -rhs_loc1((dim1-1)*uloc+1:dim1*uloc) + &
+            rhs_loc2((dim1-1)*uloc+1:dim1*uloc))
+    end do
+    call set(D_res,ele_nodes(D,ele),&
+         -rhs_loc1((mesh_dim(U)-1)*uloc+1:d_end) + &
+         rhs_loc2((mesh_dim(U)-1)*uloc+1:d_end))
+  end subroutine get_linear_residuals_ele
+
+  subroutine local_solve_residuals_ele(U_res,D_res,&
+       local_solver_matrix,ele)
+    type(vector_field), intent(inout) :: U_res
+    type(scalar_field), intent(inout) :: D_res
+    real, dimension(:,:), intent(in) :: local_solver_matrix
+    integer, intent(in) :: ele
+    !
+    real, dimension(mesh_dim(U_res)*ele_loc(U_res,ele)+ele_loc(D_res,ele))&
+         :: rhs_loc
+    real, dimension(mesh_dim(U_res),ele_loc(U_res,ele)) :: U_val
+    integer :: uloc,dloc, d_end, dim1
+
+    uloc = ele_loc(U_res,ele)
+    dloc = ele_loc(D_res,ele)
+    d_end = mesh_dim(U_res)*uloc+dloc
+
+    U_val = ele_val(U_res,ele)
+    do dim1 = 1, mesh_dim(U_res)
+       rhs_loc((dim1-1)*uloc+1:dim1*uloc) = u_val(dim1,:)
+    end do
+    rhs_loc(mesh_dim(U_res)*uloc+1:mesh_dim(U_res)*uloc+dloc) = &
+         & ele_val(D_res,ele)
+    
+    call solve(local_solver_matrix,Rhs_loc)
+
+    do dim1 = 1, mesh_dim(U_res)
+       call set(U_res,dim1,ele_nodes(U_res,ele),&
+            rhs_loc((dim1-1)*uloc+1:dim1*uloc))
+    end do
+    call set(D_res,ele_nodes(D_res,ele),&
+         rhs_loc((mesh_dim(U_res)-1)*uloc+1:d_end))
+  end subroutine local_solve_residuals_ele
+
+  subroutine assemble_newton_solver_ele(D,f,U,X,down,lambda_rhs,ele, &
+       &g,dt,theta,D0,&
+       &lambda_mat,continuity_mat,&
+       &Local_solver_matrix,Local_solver_rhs)
+    implicit none
+    type(scalar_field), intent(in) :: D,f
+    type(scalar_field), intent(in) :: lambda_rhs
+    type(vector_field), intent(in) :: U,X,down
+    integer, intent(in) :: ele
+    real, intent(in) :: g,dt,theta,D0
+    type(csr_matrix), intent(inout) :: lambda_mat
+    type(block_csr_matrix), intent(inout) :: continuity_mat
+    real, dimension(:,:), intent(inout) ::&
+         & local_solver_matrix
+    real, dimension(:,:), intent(inout) ::&
+         & local_solver_rhs
+    !
+    real, allocatable, dimension(:,:),target :: &
+         &l_continuity_mat, l_continuity_mat2
+    real, allocatable, dimension(:,:) :: helmholtz_loc_mat
+    real, allocatable, dimension(:,:,:) :: continuity_face_mat
+    real, allocatable, dimension(:,:) :: scalar_continuity_face_mat
+    integer :: ni, face
+    integer, dimension(:), pointer :: neigh
+    type(element_type) :: U_shape
+    integer :: stat, d_start, d_end, dim1, mdim, uloc,dloc, lloc, iloc
+    integer, dimension(mesh_dim(U)) :: U_start, U_end
+    type(real_matrix), dimension(mesh_dim(U)) :: &
+         & continuity_mat_u_ptr
+    logical :: have_constraint
+    integer :: constraint_choice, n_constraints, constraints_start
+
+    !Get some sizes
+    lloc = ele_loc(lambda_rhs,ele)
+    mdim = mesh_dim(U)
+    uloc = ele_loc(U,ele)
+    dloc = ele_loc(d,ele)
+    U_shape = ele_shape(U,ele)
+
+    have_constraint = &
+         &have_option(trim(U%mesh%option_path)//"/from_mesh/constraint_type")
+    n_constraints = 0
+    if(have_constraint) then
+       n_constraints = ele_n_constraints(U,ele)
+    end if
+
+    !Calculate indices in a vector containing all the U and D dofs in
+    !element ele, First the u1 components, then the u2 components, then the
+    !D components are stored.
+    do dim1 = 1, mdim
+       u_start(dim1) = uloc*(dim1-1)+1
+       u_end(dim1) = uloc*dim1
+    end do
+    d_start = uloc*mdim + 1
+    d_end   = uloc*mdim+dloc
+
+    !Get pointers to different parts of l_continuity_mat
+    allocate(l_continuity_mat(2*uloc+dloc+n_constraints,lloc))
+    do dim1= 1,mdim
+       continuity_mat_u_ptr(dim1)%ptr => &
+            & l_continuity_mat(u_start(dim1):u_end(dim1),:)
+    end do
+
+    ! ( M    C  -L)(u)   (v)
+    ! ( -C^T N  0 )(h) = (j)
+    ! ( L^T  0  0 )(l)   (0)
+    ! 
+    ! (u)   (M    C)^{-1}(v)   (M    C)^{-1}(L)
+    ! (h) = (-C^T N)     (j) + (-C^T N)     (0)(l)
+    ! so
+    !        (M    C)^{-1}(L)         (M    C)^{-1}(v)
+    ! (L^T 0)(-C^T N)     (0)=-(L^T 0)(-C^T N)     (j)
+
+    !Get the local_solver matrix that obtains U and D from Lambda on the
+    !boundaries
+    call get_local_solver(local_solver_matrix,U,X,down,D,f,ele,&
+         & g,dt,theta,D0,pullback=.false.,weight=1.0,&
+         & have_constraint=have_constraint,&
+         & projection=.false.,poisson=.false.,&
+         & local_solver_rhs=local_solver_rhs)
+
+    !!!Construct the continuity matrix that multiplies lambda in 
+    !!! the U equation
+    !allocate l_continuity_mat
+    l_continuity_mat = 0.
+    !get list of neighbours
+    neigh => ele_neigh(D,ele)
+    !calculate l_continuity_mat
+    do ni = 1, size(neigh)
+       face=ele_face(U, ele, neigh(ni))
+       allocate(continuity_face_mat(mdim,face_loc(U,face)&
+            &,face_loc(lambda_rhs,face)))
+       continuity_face_mat = 0.
+       call get_continuity_face_mat(continuity_face_mat,face,&
+            U,lambda_rhs)
+       do dim1 = 1, mdim
+          continuity_mat_u_ptr(dim1)%ptr(face_local_nodes(U,face),&
+               face_local_nodes(lambda_rhs,face))=&
+          continuity_mat_u_ptr(dim1)%ptr(face_local_nodes(U,face),&
+               face_local_nodes(lambda_rhs,face))+&
+               continuity_face_mat(dim1,:,:)
+       end do
+       do  dim1 = 1, mdim
+          call addto(continuity_mat,dim1,1,face_global_nodes(U,face)&
+               &,face_global_nodes(lambda_rhs,face),&
+               &continuity_face_mat(dim1,:,:))
+       end do
+
+       deallocate(continuity_face_mat)
+    end do
+
+    !compute l_continuity_mat2 = inverse(local_solver)*l_continuity_mat
+    allocate(l_continuity_mat2(uloc*2+dloc+n_constraints,lloc))
+    l_continuity_mat2 = l_continuity_mat
+    call solve(local_solver_matrix,l_continuity_mat2)
+
+    !compute helmholtz_loc_mat
+    allocate(helmholtz_loc_mat(lloc,lloc))
+    helmholtz_loc_mat = matmul(transpose(l_continuity_mat),l_continuity_mat2)
+
+    !insert helmholtz_loc_mat into global lambda matrix
+    call addto(lambda_mat,ele_nodes(lambda_rhs,ele),&
+         ele_nodes(lambda_rhs,ele),helmholtz_loc_mat)
+  end subroutine assemble_newton_solver_ele
  
   subroutine assemble_hybridized_helmholtz_ele(D,f,U,X,down,ele, &
        g,dt,theta,D0,pullback,weight,lambda_mat,lambda_rhs,U_rhs,D_rhs,&

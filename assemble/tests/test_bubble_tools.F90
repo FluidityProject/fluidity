@@ -19,7 +19,7 @@ subroutine test_bubble_tools
   type(state_type), dimension(:), pointer :: states
   type(mesh_type), pointer :: cg_mesh, dg_mesh
   type(scalar_field) :: p2bubble_field, p1dg_field2
-  type(scalar_field), pointer :: p1dg_field
+  type(scalar_field), pointer :: p1dg_field, cg_lumped_mass
   type(csr_matrix), pointer :: cgdg_projection
 
   quad = make_quadrature(vertices=3,dim=2,degree=8,family=FAMILY_COOLS)
@@ -40,11 +40,12 @@ subroutine test_bubble_tools
   call report_test("[Partition of unity]", fail,&
        &.false., "Should sum to 1.")  
 
-  call load_options("data/blob.flml")
+  call load_options("data/blob.swml")
   call populate_state(states)
 
   ! set up projection
   cg_mesh => extract_mesh(states(1),"P2BubbleMesh")
+  call nodalise_bubble_basis(cg_mesh%shape)
   dg_mesh => extract_mesh(states(1),"DGMesh")
   call setup_Cg_Dg_projection(states(1),Cg_mesh,Dg_mesh)
 
@@ -54,6 +55,9 @@ subroutine test_bubble_tools
   cgdg_projection => extract_csr_matrix(states(1),&
        &trim(Cg_mesh%name)//trim(Dg_mesh%name)//"Projection")
   call mult(P2bubble_field,cgdg_projection,p1dg_field)
+
+  cg_lumped_mass => extract_scalar_field(states(1),name="P2BubbleMeshLumpedM&
+       &ass")
 
   ! try to undo the projection
   call allocate(p1dg_field2,dg_mesh,"P1DGField2")

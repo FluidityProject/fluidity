@@ -198,7 +198,8 @@ bin/$(FLUIDITY): main.o lib/lib$(FLUIDITY).a
 	@echo "    LD $(PROGRAM)"
 	@$(EVAL) $(LINKER) -o $(PROGRAM) main.o $(LIBS)
 
-sw: bin/shallow_water
+sw: bin/shallow_water 
+swm: bin/shallow_water_mimetic
 test_sw: bin/test_sw_advection
 be: bin/burgers_equation
 hh: bin/hybridized_helmholtz_solver
@@ -211,6 +212,14 @@ bin/shallow_water: fluidity_library bin/hybridized_helmholtz_solver main/Shallow
 	@echo "    LD shallow_water"
 	@$(EVAL) $(FLLINKER) -o bin/hybridized_helmholtz_solver main/Hybridized_Helmholtz_Solver.o $(LIBS)
 	@$(EVAL) $(FLLINKER) -o bin/shallow_water main/Shallow_Water.o $(LIBS)
+
+bin/shallow_water_mimetic: fluidity_library main/Shallow_Water_Mimetic.F90
+	@cd main; $(MAKE) Shallow_Water_Mimetic.o
+	@echo "BUILD shallow_water_mimetic"
+	@echo "    MKDIR bin"
+	@mkdir -p bin
+	@echo "    LD shallow_water_mimetic"
+	@$(EVAL) $(FLLINKER) -o bin/shallow_water_mimetic main/Shallow_Water_Mimetic.o $(LIBS)
 
 bin/test_sw_advection: fluidity_library main/test_sw_advection.F90
 	@cd main; $(MAKE) test_sw_advection.o
