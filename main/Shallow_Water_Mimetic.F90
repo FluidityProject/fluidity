@@ -89,6 +89,7 @@
     integer :: ierr
     integer, save :: dump_no=0
     integer :: stat
+    real :: energy
 
 #ifdef HAVE_MPI
     call mpi_init(ierr)
@@ -131,6 +132,8 @@
 
     ! Always output the initial conditions.
     call output_state(states)
+    call compute_energy_hybridized(states(1),energy)
+    ewrite(2,*) 'Initial Energy:', energy
 
     timestep_loop: do
        timestep=timestep+1
@@ -151,9 +154,15 @@
           call output_state(states)
        end if
 
+       !Update the variables
+       call compute_energy_hybridized(states(1),energy)
+       ewrite(2,*) 'Energy = ',energy
        call write_diagnostics(states,current_time, dt, timestep)
 
     end do timestep_loop
+
+    call compute_energy_hybridized(states(1),energy)
+    ewrite(2,*) 'Energy = ',energy
 
     ! One last dump
     call output_state(states)
@@ -194,6 +203,9 @@
       !From previous timestep
       U => extract_vector_field(states, "LocalVelocity", stat)
       D => extract_scalar_field(states, "LayerThickness", stat)
+
+      ewrite(1,*) 'Uvals Dvals', maxval(U%val), maxval(D%val)
+
       call allocate(newU,U%dim,U%mesh,"NewLocalVelocity", stat)
       call allocate(newD,D%mesh,"NewLayerThickness", stat)
       call set(newD,D)
@@ -204,6 +216,9 @@
       do nits = 1, nonlinear_iterations
          call solve_hybridised_timestep_residual(state,newU,newD)
       end do
+      
+      ewrite(1,*) 'jump in D', maxval(abs(d%val-newd%val))
+      ewrite(1,*) 'jump in U', maxval(abs(U%val-newU%val))
 
       call set(D,newD)
       call set(U,newU)

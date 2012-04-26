@@ -86,6 +86,8 @@ contains
 
     ewrite(1,*) 'solve_hybridised_timestep_residual(state)'
 
+    ewrite(1,*) 'TIMESTEPPING LAMBDA'
+
     !get parameters
     call get_option("/physical_parameters/gravity/magnitude", g)
     call get_option("/timestepping/theta",theta)
@@ -165,6 +167,8 @@ contains
             newton_local_solver_rhs_cache(ele)%ptr,ele)
     end do
 
+    ewrite(2,*) 'D_res', maxval(abs(D_res%val))
+
     do ele = 1, ele_count(D)
        call local_solve_residuals_ele(U_res,D_res,&
             newton_local_solver_cache(ele)%ptr,ele)
@@ -173,7 +177,7 @@ contains
     !lambda_rhs_loc = -matmul(transpose(l_continuity_mat),&
     !  &Rhs_loc)
     call mult_t(lambda_rhs,Newton_continuity_mat,U_res)
-    call scale(lambda_rhs,-1.0)
+    !call scale(lambda_rhs,-1.0)
     ewrite(2,*) 'LAMBDARHS', maxval(abs(lambda_rhs%val))
 
     call zero(lambda)
@@ -183,6 +187,19 @@ contains
          &"/from_mesh/constraint_type")
     ewrite(2,*) 'LAMBDA', maxval(abs(lambda%val))
 
+    ! ( M     aC  aR^T -L)(du) =    
+    ! ( -aC^T N   0    0 )(dh) = (j)
+    ! ( R     0   0    0 )(k ) = 
+    ! ( L^T   0   0    0 )(l )   (0)
+    ! 
+    ! (u)   (M    C)^{-1}(v)   (M    C)^{-1}(L)
+    ! (h) = (-C^T N)     (j) + (-C^T N)     (0)(l)
+    ! so
+    !        (M    C)^{-1}(L)         (M    C)^{-1}(v)
+    ! (L^T 0)(-C^T N)     (0)=-(L^T 0)(-C^T N)     (j)
+
+    ! (u)   (M    C)^{-1}(v)   (M    C)^{-1}(L)
+    ! (h) = (-C^T N)     (j) + (-C^T N)     (0)(l)
     !Update new U and new D from lambda
     call addto(newU,U_res)
     call addto(newD,D_res)
@@ -195,6 +212,8 @@ contains
     end do
     call addto(newU,U_res)
     call addto(newD,D_res)
+
+    ewrite(2,*) 'D_res', maxval(abs(D_res%val))
 
     !Deallocate local variables
     call deallocate(lambda_rhs)
@@ -441,38 +460,45 @@ contains
     real, dimension(:,:), intent(in) :: local_solver, local_solver_rhs
     integer, intent(in) :: ele
     !
-    integer :: uloc, dloc, dim1, d_end
+    integer :: uloc, dloc, dim1, d_start, d_end, mdim
+    integer, dimension(mesh_dim(U)) :: U_start, U_end
     real, dimension(mesh_dim(U)*ele_loc(U,ele)+ele_loc(D,ele))&
          :: rhs_loc1,rhs_loc2
     real, dimension(mesh_dim(U),ele_loc(U,ele)) :: U_val
 
-    uloc = ele_loc(U,ele)
-    dloc = ele_loc(D,ele)
-    d_end = uloc*mesh_dim(U)+dloc
+    !Calculate indices in a vector containing all the U and D dofs in
+    !element ele, First the u1 components, then the u2 components, then the
+    !D components are stored.
+    uloc = ele_loc(U_res,ele)
+    dloc = ele_loc(D_res,ele)
+    d_end = mesh_dim(U_res)*uloc+dloc
+    mdim = mesh_dim(U)
+    do dim1 = 1, mdim
+       u_start(dim1) = uloc*(dim1-1)+1
+       u_end(dim1) = uloc*dim1
+    end do
+    d_start = uloc*mdim + 1
+    d_end   = uloc*mdim+dloc
 
     U_val = ele_val(U,ele)
     do dim1 = 1, mesh_dim(U)
-       rhs_loc1((dim1-1)*uloc+1:dim1*uloc) = u_val(dim1,:)
+       rhs_loc1(u_start(dim1):u_end(dim1)) = u_val(dim1,:)
     end do
-    rhs_loc1(mesh_dim(U)*uloc+1:mesh_dim(U)*uloc+dloc) = &
-         & ele_val(D,ele)
+    rhs_loc1(d_start:d_end) = ele_val(D,ele)
     rhs_loc1 = matmul(local_solver_rhs,rhs_loc1)
     U_val = ele_val(newU,ele)
     do dim1 = 1, mesh_dim(U)
-       rhs_loc2((dim1-1)*uloc+1:dim1*uloc) = u_val(dim1,:)
+       rhs_loc2(u_start(dim1):u_end(dim1)) = u_val(dim1,:)
     end do
-    rhs_loc2(mesh_dim(U)*uloc+1:mesh_dim(U)*uloc+dloc) = &
-         & ele_val(newD,ele)
+    rhs_loc2(d_start:d_end) = ele_val(newD,ele)
     rhs_loc2 = matmul(local_solver(1:d_end,1:d_end),rhs_loc2)
-
+    rhs_loc2 = rhs_loc2-rhs_loc1
     do dim1 = 1, mesh_dim(U)
        call set(U_res,dim1,ele_nodes(U,ele),&
-            -rhs_loc1((dim1-1)*uloc+1:dim1*uloc) + &
-            rhs_loc2((dim1-1)*uloc+1:dim1*uloc))
+            rhs_loc2(u_start(dim1):u_end(dim1)))
     end do
     call set(D_res,ele_nodes(D,ele),&
-         -rhs_loc1(mesh_dim(U)*uloc+1:d_end) + &
-         rhs_loc2(mesh_dim(U)*uloc+1:d_end))
+         rhs_loc2(d_start:d_end))
   end subroutine get_linear_residuals_ele
 
   subroutine local_solve_residuals_ele(U_res,D_res,&
@@ -485,29 +511,40 @@ contains
     real, dimension(mesh_dim(U_res)*ele_loc(U_res,ele)+ele_loc(D_res,ele)+&
          &ele_n_constraints(U_res,ele)) :: rhs_loc
     real, dimension(mesh_dim(U_res),ele_loc(U_res,ele)) :: U_val
-    integer :: uloc,dloc, d_end, dim1
+    integer :: uloc,dloc, d_start, d_end, dim1, mdim
+    integer, dimension(mesh_dim(U_res)) :: U_start, U_end
 
     rhs_loc = 0.
 
+    !Calculate indices in a vector containing all the U and D dofs in
+    !element ele, First the u1 components, then the u2 components, then the
+    !D components are stored.
     uloc = ele_loc(U_res,ele)
     dloc = ele_loc(D_res,ele)
     d_end = mesh_dim(U_res)*uloc+dloc
+    mdim = mesh_dim(U_res)
+    do dim1 = 1, mdim
+       u_start(dim1) = uloc*(dim1-1)+1
+       u_end(dim1) = uloc*dim1
+    end do
+    d_start = uloc*mdim + 1
+    d_end   = uloc*mdim+dloc
 
     U_val = ele_val(U_res,ele)
     do dim1 = 1, mesh_dim(U_res)
-       rhs_loc((dim1-1)*uloc+1:dim1*uloc) = u_val(dim1,:)
+       rhs_loc(u_start(dim1):u_end(dim1)) = u_val(dim1,:)
     end do
-    rhs_loc(mesh_dim(U_res)*uloc+1:mesh_dim(U_res)*uloc+dloc) = &
+    rhs_loc(d_start:d_end) = &
          & ele_val(D_res,ele)
 
     call solve(local_solver_matrix,Rhs_loc)
 
     do dim1 = 1, mesh_dim(U_res)
        call set(U_res,dim1,ele_nodes(U_res,ele),&
-            rhs_loc((dim1-1)*uloc+1:dim1*uloc))
+            rhs_loc(u_start(dim1):u_end(dim1)))
     end do
     call set(D_res,ele_nodes(D_res,ele),&
-         rhs_loc(mesh_dim(U_res)*uloc+1:d_end))
+         rhs_loc(d_start:d_end))
   end subroutine local_solve_residuals_ele
 
   subroutine assemble_newton_solver_ele(D,f,U,X,down,lambda_rhs,ele, &

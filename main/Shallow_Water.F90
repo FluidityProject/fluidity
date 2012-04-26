@@ -636,6 +636,8 @@
       old_U=extract_vector_field(state, "OldLocalVelocity")
       advecting_u=>extract_vector_field(state, "NonlinearVelocity")
 
+      ewrite(1,*) 'Uvals Dvals', maxval(U%val), maxval(h%val)
+
       call execute_timestep_setup(h,h_DG,U,h_rhs,u_rhs, &
            old_u,old_h,old_h_DG,delta_h,delta_u)
 
