@@ -686,11 +686,17 @@ contains
                                                &di%saturation(1)%ptr%mesh%shape%numbering%family, &
                                                &mesh_dim(di%saturation(1)%ptr))
 
-      ! Determine the max courant number per saturation subcycle
-      call get_option(trim(complete_field_path(di%saturation(1)%ptr%option_path))//'/temporal_discretisation/control_volumes/maximum_courant_number_per_subcycle', &
-                      di%saturation_max_courant_per_subcycle, &
-                      default = 0.25)
-
+      ! Determine the saturation subcycle options
+      di%subcy_opt_sat%have = have_option(trim(complete_field_path(di%saturation(1)%ptr%option_path))//&
+                                         &'/temporal_discretisation/control_volumes/maximum_courant_number_per_subcycle')
+      
+      if (di%subcy_opt_sat%have) then
+      
+         call get_option(trim(complete_field_path(di%saturation(1)%ptr%option_path))//'/temporal_discretisation/control_volumes/maximum_courant_number_per_subcycle', &
+                         di%subcy_opt_sat%max_courant_per_subcycle)
+      
+      end if
+      
       ! Determine the CV surface degree to use when integrating functions across them
       call get_option("/geometry/quadrature/controlvolume_surface_degree", &
                       di%quaddegree, default = 1)
@@ -844,7 +850,9 @@ contains
       
       ! Nothing can be done for di%saturation_cv_options
       
-      di%saturation_max_courant_per_subcycle = 0.0
+      di%subcy_opt_sat%have = .false.
+      
+      di%subcy_opt_sat%max_courant_per_subcycle = 0.0
       
       di%quaddegree = 0
       

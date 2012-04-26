@@ -65,6 +65,11 @@ module darcy_impes_assemble_module
              darcy_impes_calculate_phase_one_saturation_diagnostic, &
              darcy_impes_calculate_sum_saturation
    
+   type darcy_impes_subcycle_options_type
+      logical :: have
+      real :: max_courant_per_subcycle         
+   end type darcy_impes_subcycle_options_type
+   
    type darcy_impes_type
       type(vector_field_pointer), dimension(:), pointer :: inter_velocity_porosity, old_inter_velocity_porosity
       type(vector_field_pointer), dimension(:), pointer :: darcy_velocity, fractional_flow   
@@ -102,7 +107,7 @@ module darcy_impes_assemble_module
       type(element_type) :: x_cvshape, p_cvshape
       type(element_type) :: x_cvbdyshape
       logical :: phase_one_saturation_diagnostic
-      real :: saturation_max_courant_per_subcycle
+      type(darcy_impes_subcycle_options_type) :: subcy_opt_sat
       real :: dt
       integer :: ndim
       type(state_type), dimension(:), pointer :: state
@@ -141,19 +146,31 @@ module darcy_impes_assemble_module
          
          ! Deduce the number of subcycles to do and the subcycle time step size
          
-         ! Find the max cfl number for this phase (accounting for parallel)
-         max_cfl = maxval(di%cfl(p)%ptr)
+         if (di%subcy_opt_sat%have) then
          
-         call allmax(max_cfl)
-         
-         ! Find the subcycle dt and cfl field (which may be used for face value limiting)
-         number_subcycle = max(1,ceiling(max_cfl/di%saturation_max_courant_per_subcycle))
-           
-         dt_subcycle = di%dt/real(number_subcycle)
+            ! Find the max cfl number for this phase (accounting for parallel)
+            max_cfl = maxval(di%cfl(p)%ptr)
 
-         call set(di%cfl_subcycle, di%cfl(p)%ptr)
+            call allmax(max_cfl)
+
+            ! Find the subcycle dt and cfl field (which may be used for face value limiting)
+            number_subcycle = max(1,ceiling(max_cfl/di%subcy_opt_sat%max_courant_per_subcycle))
+
+            dt_subcycle = di%dt/real(number_subcycle)
+
+            call set(di%cfl_subcycle, di%cfl(p)%ptr)
+
+            call scale(di%cfl_subcycle, 1.0/real(number_subcycle))
          
-         call scale(di%cfl_subcycle, 1.0/real(number_subcycle))
+         else 
+            
+            number_subcycle = 1
+            
+            dt_subcycle = di%dt
+
+            call set(di%cfl_subcycle, di%cfl(p)%ptr)
+         
+         end if 
          
          ewrite(1,*) 'Solve phase ',p,' Saturation with number_subcycle ',number_subcycle,' and dt_subcycle ',dt_subcycle
          
@@ -177,19 +194,31 @@ module darcy_impes_assemble_module
 
          ! Deduce the number of subcycles to do and the subcycle time step size
          
-         ! Find the max cfl number for this phase (accounting for parallel)
-         max_cfl = maxval(di%cfl(1)%ptr)
+         if (di%subcy_opt_sat%have) then
          
-         call allmax(max_cfl)
+            ! Find the max cfl number for this phase (accounting for parallel)
+            max_cfl = maxval(di%cfl(1)%ptr)
+
+            call allmax(max_cfl)
+
+            ! Find the subcycle dt and cfl field (which may be used for face value limiting)
+            number_subcycle = max(1,ceiling(max_cfl/di%subcy_opt_sat%max_courant_per_subcycle))
+
+            dt_subcycle = di%dt/real(number_subcycle)
+
+            call set(di%cfl_subcycle, di%cfl(1)%ptr)
+
+            call scale(di%cfl_subcycle, 1.0/real(number_subcycle))
          
-         ! Find the subcycle dt and cfl field (which may be used for face value limiting)
-         number_subcycle = max(1,ceiling(max_cfl/di%saturation_max_courant_per_subcycle))
-           
-         dt_subcycle = di%dt/real(number_subcycle)
+         else 
+
+            number_subcycle = 1
+            
+            dt_subcycle = di%dt
+
+            call set(di%cfl_subcycle, di%cfl(1)%ptr)
          
-         call set(di%cfl_subcycle, di%cfl(1)%ptr)
-         
-         call scale(di%cfl_subcycle, 1.0/real(number_subcycle))
+         end if 
          
          ewrite(1,*) 'Solve phase 1 Saturation with number_subcycle ',number_subcycle,' and dt_subcycle ',dt_subcycle
 
@@ -1080,7 +1109,7 @@ module darcy_impes_assemble_module
       real    :: old_sfield_face_value, v_face_value_dot_n
       logical :: inflow
       real,    dimension(:,:),   allocatable :: old_v_face
-      real,    dimension(:),     allocatable :: old_sfield_ele
+      real,    dimension(:),     allocatable :: old_sfield_subcycle_ele
       real,    dimension(:,:),   allocatable :: x_ele
       real,    dimension(:,:),   allocatable :: normal
       real,    dimension(:),     allocatable :: detwei
@@ -1093,7 +1122,7 @@ module darcy_impes_assemble_module
       integer, dimension(:),     pointer     :: x_smesh_nodes
       integer, dimension(:),     pointer     :: s_nodes      
       integer, dimension(:),     pointer     :: upwind_nodes
-      real,    dimension(:),     allocatable :: old_sfield_ele_bdy
+      real,    dimension(:),     allocatable :: old_sfield_subcycle_ele_bdy
       real,    dimension(:,:),   allocatable :: normal_bdy
       real,    dimension(:),     allocatable :: detwei_bdy
       real,    dimension(:,:),   allocatable :: x_ele_bdy
@@ -1113,12 +1142,12 @@ module darcy_impes_assemble_module
       allocate(notvisited(x_cvshape%ngi))
       allocate(s_rhs_local(ele_loc(sfield,1)))
       allocate(x_face_quad(ndim, x_cvshape%ngi))
-      allocate(old_sfield_ele(ele_loc(sfield,1)))
+      allocate(old_sfield_subcycle_ele(ele_loc(sfield,1)))
       allocate(v_ele(ndim,ele_loc(velocity,1)))
       allocate(old_v_face(ndim,s_cvshape%ngi))
       allocate(v_face_value(ndim))
       
-      allocate(old_sfield_ele_bdy(face_loc(sfield,1)))
+      allocate(old_sfield_subcycle_ele_bdy(face_loc(sfield,1)))
       allocate(detwei_bdy(x_cvbdyshape%ngi))
       allocate(normal_bdy(ndim, x_cvbdyshape%ngi))
       allocate(s_rhs_local_bdy(face_loc(sfield,1)))
@@ -1126,180 +1155,9 @@ module darcy_impes_assemble_module
       allocate(v_sele(ndim,face_loc(velocity,1)))
       allocate(s_nodes_bdy(face_loc(sfield,1)))
       
-      ! Inititalise rhs advection field
-      call zero(rhs_adv)
-                 
-      ! Loop volume elements assembling local contributions    
-      vol_element_loop: do vele = 1,element_count(sfield)
-         
-         ! get the old sfield ele values
-         old_sfield_ele(:) = ele_val(old_sfield, vele)
-
-         ! The velocity ele value
-         v_ele(:,:) = ele_val(velocity, vele)
-
-         ! the old velocity at the quadrature points, used to determine upwind
-         ! via a FE interpolation using the sfield basis functions (which for linear is fine)
-         old_v_face(:,:) = ele_val_at_quad(old_velocity, vele, s_cvshape)         
-                  
-         ! get the coordinate values for this element for each positions local node
-         x_ele = ele_val(positions, vele)         
-         
-         ! get the coordinate values for this element for each quadrature point
-         x_face_quad = ele_val_at_quad(positions, vele, x_cvshape)
-         
-         ! The node indices of the sfield field
-         s_nodes => ele_nodes(sfield, vele)
-         
-         ! The node indices of the positions projected to the sfield mesh
-         x_smesh_nodes => ele_nodes(positions_sfield_mesh, vele)
-         
-         ! Determine the node numbers to use to determine the upwind values
-         if((sfield_cv_options%upwind_scheme == CV_UPWINDVALUE_PROJECT_POINT).or.&
-            (sfield_cv_options%upwind_scheme == CV_UPWINDVALUE_PROJECT_GRAD)) then
-            
-            upwind_nodes => x_smesh_nodes
-        
-         else
-            
-            upwind_nodes => s_nodes
-         
-         end if
-         
-         ! obtain the transformed determinant*weight and normals
-         call transform_cvsurf_to_physical(x_ele, x_cvshape, &
-                                           detwei, normal, cvfaces)
-                  
-         ! Initialise array for the quadrature points of this 
-         ! element for whether it has already been visited
-         notvisited = .true.
-         
-         ! Initialise the local rhs to assemble for this element
-         s_rhs_local = 0.0
-
-         ! loop over local nodes within this element
-         nodal_loop_i: do iloc = 1, sfield%mesh%shape%loc
-
-           ! loop over CV faces internal to this element
-           face_loop: do face = 1, cvfaces%faces
-
-             ! is this a face neighbouring iloc?
-             is_neigh: if(cvfaces%neiloc(iloc, face) /= 0) then
-
-               ! find the opposing local node across the CV face
-               oloc = cvfaces%neiloc(iloc, face)
-
-               ! loop over gauss points on face
-               quadrature_loop: do gi = 1, cvfaces%shape%ngi
-
-                 ! global gauss pt index for this element
-                 ggi = (face-1)*cvfaces%shape%ngi + gi
-
-                 ! check if this quadrature point has already been visited
-                 check_visited: if(notvisited(ggi)) then
-
-                   notvisited(ggi) = .false.
-
-                   ! correct the orientation of the normal so it points away from iloc
-                   normgi = orientate_cvsurf_normgi(node_val(positions_sfield_mesh, x_smesh_nodes(iloc)), &
-                                                   &x_face_quad(:,ggi), normal(:,ggi))
-                   
-                   ! determine if the flow is in or out of the face at this quadrature
-                   ! with respect to the normal orientation using the old v - same as pressure assemble
-                   old_v_dot_n = dot_product(old_v_face(:,ggi), normgi(:))
-                                      
-                   inflow = (old_v_dot_n<=0.0)
-                   
-                   income = merge(1.0,0.0,inflow)
-
-                   ! Evaluate the face value for old sfield and velocity
-                   ! (assuming upwind for now) and evaluate the full face value.
-                                                                  
-                   old_sfield_face_value = income*old_sfield_ele(oloc) + (1.0-income)*old_sfield_ele(iloc)
-                   
-                   v_face_value(:) = income*v_ele(:,oloc) + (1.0-income)*v_ele(:,iloc)
-
-                   v_face_value_dot_n = dot_product(v_face_value, normgi)
-
-                   face_value = old_sfield_face_value * v_face_value_dot_n * detwei(ggi)
-                                                         
-                   ! Form the local rhs for iloc
-                   s_rhs_local(iloc) = s_rhs_local(iloc) - face_value
-                   
-                   ! Also form contribution to opposing local node with sign change due to reverse normal vector
-                   s_rhs_local(oloc) = s_rhs_local(oloc) + face_value
-                   
-                 end if check_visited
-                 
-               end do quadrature_loop
-
-             end if is_neigh
-             
-           end do face_loop
-         
-         end do nodal_loop_i
-         
-         ! Add volume element contribution to global rhs advection field
-         call addto(rhs_adv, s_nodes, s_rhs_local)
-         
-      end do vol_element_loop
-      
-      ! Add BC integrals
-
-      allocate(sfield_bc_type(surface_element_count(sfield)))         
-      
-      call get_entire_boundary_condition(sfield, (/"zero_flux", &
-                                                   "dirichlet"/), sfield_bc, sfield_bc_type)
-     
-      sele_loop: do sele = 1, surface_element_count(sfield)
-         
-         if (sfield_bc_type(sele) == BC_TYPE_ZERO_FLUX) cycle
-         
-         if (sfield_bc_type(sele) == BC_TYPE_DIRICHLET) cycle
-         
-         old_sfield_ele_bdy = face_val(old_sfield, sele)
-                           
-         v_sele(:,:) = face_val(velocity, sele)
-         
-         x_ele       = ele_val(positions, face_ele(positions, sele))
-         x_ele_bdy   = face_val(positions, sele)
-         s_nodes_bdy = face_global_nodes(sfield%mesh, sele)
-         
-         call transform_cvsurf_facet_to_physical(x_ele, x_ele_bdy, x_cvbdyshape, normal_bdy, detwei_bdy)
-
-         ! Initialise the local rhs to assemble for this element
-         s_rhs_local_bdy = 0.0
-
-         bc_iloc_loop: do iloc = 1, sfield%mesh%faces%shape%loc
-
-            bc_face_loop: do face = 1, cvfaces%sfaces
-
-               bc_neigh_if: if(cvfaces%sneiloc(iloc,face)/=0) then
-
-                  bc_quad_loop: do gi = 1, cvfaces%shape%ngi
-
-                     ggi = (face-1)*cvfaces%shape%ngi + gi
-
-                     v_face_value_dot_n = dot_product(v_sele(:,iloc), normal_bdy(:,ggi))
-                   
-                     face_value = old_sfield_ele_bdy(iloc) * v_face_value_dot_n * detwei_bdy(ggi)
-                     
-                     s_rhs_local_bdy(iloc) = s_rhs_local_bdy(iloc) - face_value                     
-                     
-                  end do bc_quad_loop
-
-               end if bc_neigh_if
-
-            end do bc_face_loop
-
-         end do bc_iloc_loop
-
-         call addto(rhs_adv, s_nodes_bdy, s_rhs_local_bdy)
-                  
-      end do sele_loop
-
       ! Solve the sfield for each subcycle via:            
       !  - Form the lhs = cv_mass_sfield_mesh_with_porosity / dt
+      !  - Assemble the rhs_adv contribution via discretising using CV
       !  - and rhs = rhs_adv + rhs_time, where rhs_time = cv_mass_sfield_mesh_with_old_porosity * old_sfield / dt
       !  - solve for latest sfield and copy to start subcycle sfield step
       
@@ -1310,7 +1168,7 @@ module darcy_impes_assemble_module
 
       sub_loop: do isub = 1,number_subcycle
          
-         ! Form the start and end of subcycle dt
+         ! form the start and end of subcycle dt
          ! porosity linear interpolents
          alpha_start = (isub - 1) / number_subcycle
          alpha_end   = isub / number_subcycle
@@ -1322,7 +1180,8 @@ module darcy_impes_assemble_module
          call addto(lhs, cv_mass_sfield_mesh_with_old_porosity, scale = (1.0 - alpha_end))
 
          call scale(lhs, 1.0/dt_subcycle)
-
+         
+         ! form the rhs_time contribution
          call set(rhs_time, cv_mass_sfield_mesh_with_porosity)
          
          call scale(rhs_time, alpha_start)
@@ -1334,6 +1193,9 @@ module darcy_impes_assemble_module
          ! add rhs time term
          call set(rhs, rhs_time)         
          call scale(rhs, old_sfield_subcycle)
+         
+         ! assemble the rhs_adv contribution
+         call assemble_rhs_adv()
 
          ! add rhs advection term
          call addto(rhs, rhs_adv)
@@ -1357,12 +1219,12 @@ module darcy_impes_assemble_module
       deallocate(notvisited)
       deallocate(s_rhs_local)
       deallocate(x_face_quad)
-      deallocate(old_sfield_ele)
+      deallocate(old_sfield_subcycle_ele)
       deallocate(v_ele)
       deallocate(old_v_face)
       deallocate(v_face_value)
 
-      deallocate(old_sfield_ele_bdy)
+      deallocate(old_sfield_subcycle_ele_bdy)
       deallocate(detwei_bdy)
       deallocate(normal_bdy)
       deallocate(s_rhs_local_bdy)
@@ -1372,6 +1234,190 @@ module darcy_impes_assemble_module
 
       deallocate(sfield_bc_type)
       call deallocate(sfield_bc)
+      
+   contains
+         
+      ! ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+         
+         subroutine assemble_rhs_adv()
+            
+            !!< Assemble the rhs advection contribtion for sfield
+
+            ! Inititalise rhs advection field
+            call zero(rhs_adv)
+
+            ! Loop volume elements assembling local contributions    
+            vol_element_loop: do vele = 1,element_count(sfield)
+
+               ! get the old sfield ele values from start of subcycle
+               old_sfield_subcycle_ele(:) = ele_val(old_sfield_subcycle, vele)
+
+               ! The velocity ele value
+               v_ele(:,:) = ele_val(velocity, vele)
+
+               ! the old velocity at the quadrature points, used to determine upwind
+               ! via a FE interpolation using the sfield basis functions (which for linear is fine)
+               old_v_face(:,:) = ele_val_at_quad(old_velocity, vele, s_cvshape)         
+
+               ! get the coordinate values for this element for each positions local node
+               x_ele = ele_val(positions, vele)         
+
+               ! get the coordinate values for this element for each quadrature point
+               x_face_quad = ele_val_at_quad(positions, vele, x_cvshape)
+
+               ! The node indices of the sfield field
+               s_nodes => ele_nodes(sfield, vele)
+
+               ! The node indices of the positions projected to the sfield mesh
+               x_smesh_nodes => ele_nodes(positions_sfield_mesh, vele)
+
+               ! Determine the node numbers to use to determine the upwind values
+               if((sfield_cv_options%upwind_scheme == CV_UPWINDVALUE_PROJECT_POINT).or.&
+                  (sfield_cv_options%upwind_scheme == CV_UPWINDVALUE_PROJECT_GRAD)) then
+
+                  upwind_nodes => x_smesh_nodes
+
+               else
+
+                  upwind_nodes => s_nodes
+
+               end if
+
+               ! obtain the transformed determinant*weight and normals
+               call transform_cvsurf_to_physical(x_ele, x_cvshape, &
+                                                 detwei, normal, cvfaces)
+
+               ! Initialise array for the quadrature points of this 
+               ! element for whether it has already been visited
+               notvisited = .true.
+
+               ! Initialise the local rhs to assemble for this element
+               s_rhs_local = 0.0
+
+               ! loop over local nodes within this element
+               nodal_loop_i: do iloc = 1, sfield%mesh%shape%loc
+
+                 ! loop over CV faces internal to this element
+                 face_loop: do face = 1, cvfaces%faces
+
+                   ! is this a face neighbouring iloc?
+                   is_neigh: if(cvfaces%neiloc(iloc, face) /= 0) then
+
+                     ! find the opposing local node across the CV face
+                     oloc = cvfaces%neiloc(iloc, face)
+
+                     ! loop over gauss points on face
+                     quadrature_loop: do gi = 1, cvfaces%shape%ngi
+
+                       ! global gauss pt index for this element
+                       ggi = (face-1)*cvfaces%shape%ngi + gi
+
+                       ! check if this quadrature point has already been visited
+                       check_visited: if(notvisited(ggi)) then
+
+                         notvisited(ggi) = .false.
+
+                         ! correct the orientation of the normal so it points away from iloc
+                         normgi = orientate_cvsurf_normgi(node_val(positions_sfield_mesh, x_smesh_nodes(iloc)), &
+                                                         &x_face_quad(:,ggi), normal(:,ggi))
+
+                         ! determine if the flow is in or out of the face at this quadrature
+                         ! with respect to the normal orientation using the old v - same as pressure assemble
+                         old_v_dot_n = dot_product(old_v_face(:,ggi), normgi(:))
+
+                         inflow = (old_v_dot_n<=0.0)
+
+                         income = merge(1.0,0.0,inflow)
+
+                         ! Evaluate the face value for old sfield subcycle and velocity
+                         ! (assuming upwind for now) and evaluate the full face value.
+
+                         old_sfield_face_value = income*old_sfield_subcycle_ele(oloc) + (1.0-income)*old_sfield_subcycle_ele(iloc)
+
+                         v_face_value(:) = income*v_ele(:,oloc) + (1.0-income)*v_ele(:,iloc)
+
+                         v_face_value_dot_n = dot_product(v_face_value, normgi)
+
+                         face_value = old_sfield_face_value * v_face_value_dot_n * detwei(ggi)
+
+                         ! Form the local rhs for iloc
+                         s_rhs_local(iloc) = s_rhs_local(iloc) - face_value
+
+                         ! Also form contribution to opposing local node with sign change due to reverse normal vector
+                         s_rhs_local(oloc) = s_rhs_local(oloc) + face_value
+
+                       end if check_visited
+
+                     end do quadrature_loop
+
+                   end if is_neigh
+
+                 end do face_loop
+
+               end do nodal_loop_i
+
+               ! Add volume element contribution to global rhs advection field
+               call addto(rhs_adv, s_nodes, s_rhs_local)
+
+            end do vol_element_loop
+
+            ! Add BC integrals
+
+            allocate(sfield_bc_type(surface_element_count(sfield)))         
+
+            call get_entire_boundary_condition(sfield, (/"zero_flux", &
+                                                         "dirichlet"/), sfield_bc, sfield_bc_type)
+
+            sele_loop: do sele = 1, surface_element_count(sfield)
+
+               if (sfield_bc_type(sele) == BC_TYPE_ZERO_FLUX) cycle
+
+               if (sfield_bc_type(sele) == BC_TYPE_DIRICHLET) cycle
+
+               old_sfield_subcycle_ele_bdy = face_val(old_sfield_subcycle, sele)
+
+               v_sele(:,:) = face_val(velocity, sele)
+
+               x_ele       = ele_val(positions, face_ele(positions, sele))
+               x_ele_bdy   = face_val(positions, sele)
+               s_nodes_bdy = face_global_nodes(sfield%mesh, sele)
+
+               call transform_cvsurf_facet_to_physical(x_ele, x_ele_bdy, x_cvbdyshape, normal_bdy, detwei_bdy)
+
+               ! Initialise the local rhs to assemble for this element
+               s_rhs_local_bdy = 0.0
+
+               bc_iloc_loop: do iloc = 1, sfield%mesh%faces%shape%loc
+
+                  bc_face_loop: do face = 1, cvfaces%sfaces
+
+                     bc_neigh_if: if(cvfaces%sneiloc(iloc,face)/=0) then
+
+                        bc_quad_loop: do gi = 1, cvfaces%shape%ngi
+
+                           ggi = (face-1)*cvfaces%shape%ngi + gi
+
+                           v_face_value_dot_n = dot_product(v_sele(:,iloc), normal_bdy(:,ggi))
+
+                           face_value = old_sfield_subcycle_ele_bdy(iloc) * v_face_value_dot_n * detwei_bdy(ggi)
+
+                           s_rhs_local_bdy(iloc) = s_rhs_local_bdy(iloc) - face_value                     
+
+                        end do bc_quad_loop
+
+                     end if bc_neigh_if
+
+                  end do bc_face_loop
+
+               end do bc_iloc_loop
+
+               call addto(rhs_adv, s_nodes_bdy, s_rhs_local_bdy)
+
+            end do sele_loop
+         
+         end subroutine assemble_rhs_adv
+      
+      ! ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
       
    end subroutine solve_scalar_field_using_cv_cts_mesh_with_subcv_velocity
 
