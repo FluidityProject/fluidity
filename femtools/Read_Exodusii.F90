@@ -251,7 +251,7 @@ contains
     integer, allocatable, dimension(:) :: elem_node_list, total_elem_node_list
     integer, allocatable, dimension(:) :: sndglno, boundaryIDs
     
-    integer :: num_faces, num_faces_ele, num_elem, num_tags_elem, elementType
+    integer :: num_faces, num_faces_ele, num_elem, num_tags_elem, elementType, faceType
     integer :: num_nodes_face_ele, num_nodes_per_elem_ele
     integer :: loc, sloc
     integer :: nodeID, elemID, blockID, eff_dim, b, d, e, f, i, j, n, z, z2, exo_e, exo_f
@@ -369,15 +369,50 @@ contains
           elem_type(i) = 4
        else if (trim(elem_type_char(1:4)) .eq. "HEX8") then
           elem_type(i) = 5
+       else ! element type is not supported, give user an error
+          FLExit("Mesh file "//trim(lfilename)//": Fluidity does not support meshes with elements of type"//trim(elem_type_char(1:6))//". Please provide a mesh with Triangles, Shells, Tetrahedras or Hexahedrons.")
        end if
     end do
     if (ierr /= 0) then
        FLExit("Unable to read in element block parameters from "//trim(lfilename))
     end if
+    ! Get faceType and give the user an error if he supplied a mesh with an unsupported combination of element types:
+    elementType = 0
+    do i=1, num_elem_blk
+       ! 2D meshes:
+       if (num_dim == 2) then 
+          if (elem_type(i) .ne. 1) then !then it's no edge, but either triangle or shell
+             if (elementType .ne. 0 .and. elementType .ne. elem_type(i)) then
+                FLExit("Mesh file "//trim(lfilename)//": You have generated a hybrid 2D mesh with Triangles and Shells which Fluidity does not support. Please choose either Triangles or Shells.")
+             end if
+          end if
+          ! the face type of 2D meshes are obviously edges, aka type '1'
+          faceType = 1
+       ! Now 3D meshes:
+       else if (num_dim == 3) then
+          if (elem_type(i) .ne. 2 .and. elem_type(i) .ne. 3) then !then it's not a triangle nor a shell
+             if (elementType .ne. 0 .and. elementType .ne. elem_type(i)) then
+                FLExit("Mesh file "//trim(lfilename)//": You have generated a hybrid 3D mesh with Tetrahedras and Hexahedrons which Fluidity does not support. Please choose either Tetrahedras or Hexahedrons.")
+             end if
+          end if
+          if (elementType == 4) then ! tet
+             ! Set faceType for tets
+             faceType = 2
+          else if (elementType == 5) then !hex
+             ! Set faceType for hexas
+             faceType = 3
+          end if
+       elementType = elem_type(i)
+       else
+          FLExit("Mesh file "//trim(lfilename)//": Fluidity currently does not support 1D exodusII meshes. But you do NOT want to use fancy cubit to create a 1D mesh, do you? GMSH or other meshing tools can easily be used to generate 1D meshes")
+       end if
+    end do
     ewrite(2,*) "elem_type = ", elem_type
     ewrite(2,*) "num_elem_in_block = ", num_elem_in_block
     ewrite(2,*) "num_nodes_per_elem = ", num_nodes_per_elem
     ewrite(2,*) "num_attr = ", num_attr
+    ewrite(2,*) "elementType = ", elementType
+    ewrite(2,*) "faceType = ", faceType
 
 
     ! read element connectivity:
@@ -729,7 +764,7 @@ contains
        end do
     end if
     ewrite(2,*) "total number of faces: ", num_faces
-    ewrite(2,*) "num_elem = ", num_elem
+    ewrite(2,*) "total number of elements = ", num_elem
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Setting Elements and faces !
@@ -765,6 +800,7 @@ contains
 
              exo_f = exo_f+1
           else if (allelements(e+b)%numTags == 0) then
+!          else
              ! these are elements without boundaryID, thus they'll remain elements
              allocate( exo_element(exo_e)%nodeIDs(size(allElements(e+b)%nodeIDs)))
              exo_element(exo_e)%elementID = allelements(e+b)%elementID
@@ -864,6 +900,11 @@ contains
        if(haveBoundaries) then
           allocate(boundaryIDs(1:num_faces))
        end if
+       
+       print *, "*****************"
+       print *, "sloc = ", sloc
+       print *, "size(sndglno) ", size(sndglno)
+       print *, "size(boundaryIDs) ", size(boundaryIDs)
        
        do f=1, num_faces
           sndglno((f-1)*sloc+1:f*sloc) = exo_face(f)%nodeIDs(1:sloc)
