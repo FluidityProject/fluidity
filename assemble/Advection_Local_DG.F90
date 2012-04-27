@@ -159,6 +159,7 @@ module advection_local_DG
        !Allocate matrix that maps T values to upwind fluxes
        sparsity => get_csr_sparsity_firstorder(state,lambda_mesh,T%mesh)
        call allocate(UpwindFluxMatrix,sparsity)
+       call zero(UpwindFluxMatrix)
     end if
 
     mass_sparsity=make_sparsity_dg_mass(T%mesh)
@@ -245,6 +246,11 @@ module advection_local_DG
        call mult(delta_T, matrix, T)
        FLAbort('This is where we need to get the flux')
        ! dT = dT + RHS
+       if(present(Flux)) then
+          if(maxval(abs(RHS%val))>1.0e-8) then
+             FLAbort('Flux reconstruction doesn''t work if diffusion/bcs present')
+          end if
+       end if
        call addto(delta_T, RHS, -1.0)
        ! dT = M^(-1) dT
        call dg_apply_mass(inv_mass, delta_T)
@@ -533,14 +539,14 @@ module advection_local_DG
       end if
 
       call construct_adv_interface_dg(ele, face, face_2,&
-           & big_m, rhs, X, T, U_nl)
+           & big_m, rhs, X, T, U_nl, upwindflux, upwindfluxmatrix)
 
    end do neighbourloop
     
  end subroutine construct_adv_element_dg
   
   subroutine construct_adv_interface_dg(ele, face, face_2, &
-       big_m, rhs, X, T, U_nl)
+       big_m, rhs, X, T, U_nl,upwindflux, upwindfluxmatrix)
 
     !!< Construct the DG element boundary integrals on the ni-th face of
     !!< element ele.
@@ -552,10 +558,14 @@ module advection_local_DG
     ! We pass these additional fields to save on state lookups.
     type(vector_field), intent(in) :: X, U_nl
     type(scalar_field), intent(in) :: T
+    !! Upwind flux field
+    type(scalar_field), intent(in), optional :: UpwindFlux
+    !! Upwind flux matrix
+    type(csr_matrix), intent(inout), optional :: UpwindFluxMatrix
 
     ! Face objects and numberings.
     type(element_type), pointer :: T_shape, T_shape_2
-    integer, dimension(face_loc(T,face)) :: T_face, T_face_l
+    integer, dimension(face_loc(T,face)) :: T_face
     integer, dimension(face_loc(T,face_2)) :: T_face_2
     integer, dimension(face_loc(U_nl,face)) :: U_face
     integer, dimension(face_loc(U_nl,face_2)) :: U_face_2
@@ -580,7 +590,6 @@ module advection_local_DG
     integer :: i
 
     T_face=face_global_nodes(T, face)
-    T_face_l=face_local_nodes(T, face)
     T_shape=>face_shape(T, face)
 
     T_face_2=face_global_nodes(T, face_2)
@@ -649,10 +658,40 @@ module advection_local_DG
        call addto(big_M, T_face, T_face_2,&
             nnAdvection_in)
 
+       if(present(UpwindFlux).and.present(UpwindFluxMatrix)) then
+          call addto_upwindfluxmatrix(upwindflux,upwindfluxmatrix,face&
+               &,face_2,T_face,T_face_2,nnAdvection_out,nnAdvection_in)
+       end if
+
     end if
-
   end subroutine construct_adv_interface_dg
+  
+  subroutine addto_upwindfluxmatrix(upwindflux,upwindfluxmatrix,face,face_2,&
+       &T_face,T_face_2,&
+       &nnAdvection_out,nnAdvection_in)
+    !! Upwind flux field
+    type(scalar_field), intent(in) :: UpwindFlux
+    !! Upwind flux matrix
+    type(csr_matrix), intent(inout) :: UpwindFluxMatrix
+    integer, intent(in) :: face,face_2
+    integer, dimension(:), intent(in) :: T_face, T_face_2
+    real, dimension(:,:), intent(in) :: nnAdvection_out
+    real, dimension(:,:), intent(in) :: nnAdvection_in
+    !
+    integer, dimension(face_loc(upwindflux,face)) :: UF_face
 
+    UF_face=face_global_nodes(UpwindFlux, face)
+
+    ! Outflow boundary integral.
+    call addto(UpwindFluxMatrix, UF_face, T_face,&
+         nnAdvection_out)
+    
+    ! Inflow boundary integral.
+    call addto(UpwindFluxMatrix, UF_face, T_face_2,&
+         nnAdvection_in)    
+    
+  end subroutine addto_upwindfluxmatrix
+  
   subroutine solve_vector_advection_dg_subcycle(field_name, state, velocity_name)
     !!< Construct and solve the advection equation for the given
     !!< field using discontinuous elements.
