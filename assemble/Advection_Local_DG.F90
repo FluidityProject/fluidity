@@ -240,8 +240,6 @@ module advection_local_DG
     if (limit_slope) then
        ! Filter wiggles from T
        call limit_slope_dg(T, U_nl, X, state, limiter, delta_T)
-       FLAbort('This is where we need to update the interior components of f&
-            &lux') 
        call zero(upwindflux)
        call update_flux(Flux, Delta_T, UpwindFlux)
    end if
@@ -271,7 +269,6 @@ module advection_local_DG
        if (limit_slope) then
           ! Filter wiggles from T
           call limit_slope_dg(T, U_nl, X, state, limiter, delta_T)
-          FLAbort('This is where we need to update the interior components of flux')
           call addto(delta_t_total, delta_t)
       end if
       call update_flux(Flux, Delta_T_total, UpwindFlux)
@@ -281,7 +278,6 @@ module advection_local_DG
        call deallocate(UpwindFlux)
        call deallocate(UpwindFluxMatrix)
        call deallocate(delta_T_total)
-       FLAbort('Need to do debugging check')
     end if
 
     call deallocate(delta_T)
@@ -337,6 +333,8 @@ module advection_local_DG
 
     Flux_rhs = 0.
     Flux_mat = 0.
+
+    FLAbort('Need to do debugging check')
 
   end subroutine update_flux_ele
 
