@@ -88,12 +88,13 @@ integer :: limit_count
 
 contains
 
-  subroutine limit_slope_dg_scalar(T, U, X, state, limiter)
+  subroutine limit_slope_dg_scalar(T, U, X, state, limiter, delta_T)
     !! Assume 1D linear elements
     type(scalar_field), intent(inout) :: T
     type(vector_field), intent(in) :: X, U
     type(state_type), intent(inout) :: state
     integer, intent(in) :: limiter
+    type(scalar_field), intent(inout), optional :: delta_T
 
     integer :: ele, stat
     type(scalar_field) :: T_limit
@@ -218,13 +219,7 @@ contains
        call deallocate(T_limit)
 
     case (LIMITER_VB)
-       call limit_VB(state, T)
-
-    case (LIMITER_EB)
-       call limit_EB(state, T)
-
-    case (LIMITER_BJ)
-       call limit_BJ(state, T)
+       call limit_VB(state, T, delta_t)
 
     case (LIMITER_FPN)
        call limit_fpn(state, T)      
@@ -1366,184 +1361,13 @@ contains
     
   end function get_H
 
-  subroutine limit_eb(state, t)
-    !edge-based limiter, edge-based version of 
-    !vertex-based limiter
-    !
-    type(state_type), intent(inout) :: state
-    type(scalar_field), intent(inout) :: t
-    !
-    ! This is the limited version of the field, we have to make a copy
-    type(scalar_field) :: T_limit
-    ! counters
-    integer :: ele, node, neigh, ele2, face
-    integer, dimension(:), pointer :: neighs
-    ! local numbers
-    integer, dimension(:), pointer :: T_ele
-    ! gradient scaling factor
-    real :: alpha
-    ! local field values
-    real, dimension(ele_loc(T,1)) :: T_val, T_val_slope, T_val2
-    real :: T_min,T_max
-    real :: Tbar, Tbar2
-
-    if (.not. element_degree(T%mesh, 1)==1 .or. continuity(T%mesh)>=0) then
-       FLExit("The vertex based slope limiter only works for P1DG fields.")
-    end if
-    
-    ! Allocate copy of field
-    call allocate(T_limit, T%mesh,trim(T%name)//"Limited")
-    call set(T_limit, T)
-    
-    do ele = 1, ele_count(T)
-
-       T_ele => ele_nodes(T,ele)
-       T_val = ele_val(T,ele)
-       Tbar = sum(T_val)/size(T_val)
-       T_val_slope = T_val - Tbar
-
-       !Set slope factor to 1
-       alpha = 1.
-
-       ! for each edge, obtain the max and mins for the 
-       ! two elements either side of it
-       neighs=>ele_neigh(T, ele)
-       do neigh = 1, size(neighs)
-          ele2 = neighs(neigh)
-          if(ele2>0) then
-             T_ele => ele_nodes(T,ele2)
-             T_val2 = ele_val(T,ele2)
-             Tbar2 = sum(T_val2)/size(T_val2)
-             T_max = max(Tbar2,Tbar)
-             T_min = min(Tbar2,Tbar)
-
-             !loop over nodes on edge and decrease
-             !alpha if necessary
-             face=ele_face(T, ele, ele2)
-             call limit_face(alpha,T,face,Tbar,T_max,T_min)
-          end if
-       end do
-
-       call set(T_limit, T_ele, Tbar + alpha*T_val_slope)
-    end do
-
-    !Deallocate copy of field
-    call set(T, T_limit)
-    call halo_update(T)
-    call deallocate(T_limit)
-
-    contains 
-      subroutine limit_face(alpha,T,face,Tbar,T_max,T_min)
-        real, intent(inout) :: alpha
-        type(scalar_field), intent(in) :: T
-        integer, intent(in) :: face
-        real, intent(in) :: Tbar,T_max,T_min
-        !
-        real, dimension(face_loc(T,face)) :: T_face
-        integer :: node
-        real :: alpha_d
-        
-        T_face = face_val(T,face)
-
-       !loop over nodes, adjust alpha
-        do node = 1, size(T_face)
-           if(T_face(node)>Tbar*(1.0+sign(1.0e-12,Tbar))) then
-              alpha = min(alpha,(T_max-Tbar)/(T_face(node)-Tbar))
-           else if(T_face(node)<Tbar*(1.0-sign(1.0e-12,Tbar))) then
-              alpha = min(alpha,(T_min-Tbar)/(T_face(node)-Tbar))
-           end if
-        end do
-
-        do node = 1, size(T_face)
-           assert(Tbar+alpha*(T_face(node)-Tbar).le.T_max+1.0e-12)
-           assert(Tbar+alpha*(T_face(node)-Tbar).ge.T_min-1.0e-12)
-        end do
-      end subroutine limit_face
-
-  end subroutine limit_eb
-
-  subroutine limit_bj(state, t)
-    !Barth-Jespersen limiter as described in
-    !Kuzmin, J. Comp. Appl. Math., 2010
-    ! doi:10.1016/j.cam.2009.05.028
-    type(state_type), intent(inout) :: state
-    type(scalar_field), intent(inout) :: t
-    !
-    ! This is the limited version of the field, we have to make a copy
-    type(scalar_field) :: T_limit
-    ! counters
-    integer :: ele, node, neigh, ele2
-    integer, dimension(:), pointer :: neighs
-    ! local numbers
-    integer, dimension(:), pointer :: T_ele
-    ! gradient scaling factor
-    real :: alpha
-    ! local field values
-    real, dimension(ele_loc(T,1)) :: T_val, T_val_slope
-    real :: T_min,T_max
-    real :: Tbar
-
-    if (.not. element_degree(T%mesh, 1)==1 .or. continuity(T%mesh)>=0) then
-       FLExit("The vertex based slope limiter only works for P1DG fields.")
-    end if
-    
-    ! Allocate copy of field
-    call allocate(T_limit, T%mesh,trim(T%name)//"Limited")
-    call set(T_limit, T)
-    
-    do ele = 1, ele_count(T)
-       ! for each vertex in the mesh store the min and max values of the P1DG
-       !  elements directly surrounding it       
-       T_max = -huge(0.0)
-       T_min = huge(0.0)
-       neighs=>ele_neigh(T, ele)
-       do neigh = 1, size(neighs)
-          ele2 = neighs(neigh)
-          if(ele2>0) then
-             T_ele => ele_nodes(T,ele2)
-             T_val = ele_val(T,ele2)
-             Tbar = sum(T_val)/size(T_val)
-             T_max = max(T_max,Tbar)
-             T_min = min(T_min,Tbar)
-          end if
-       end do
-       T_ele => ele_nodes(T,ele)
-       T_val = ele_val(T,ele)
-       Tbar = sum(T_val)/size(T_val)
-       T_max = max(T_max,Tbar)
-       T_min = min(T_min,Tbar)
-       
-       T_val_slope = T_val - Tbar
-       
-       ! now for each P1DG node make sure the field value is between the
-       !  recorded vertex min and max       
-       !Set slope factor to 1
-       alpha = 1.
-
-       !loop over nodes, adjust alpha
-       do node = 1, size(T_val)
-          if(T_val(node)>Tbar*(1.0+sign(1.0e-12,Tbar))) then
-             alpha = min(alpha,(T_max-Tbar)/(T_val(node)-Tbar))
-          else if(T_val(node)<Tbar*(1.0-sign(1.0e-12,Tbar))) then
-             alpha = min(alpha,(T_min-Tbar)/(T_val(node)-Tbar))
-          end if
-       end do
-
-       call set(T_limit, T_ele, Tbar + alpha*T_val_slope)
-    end do
-
-    !Deallocate copy of field
-    call set(T, T_limit)
-    call halo_update(T)
-    call deallocate(T_limit)
-  end subroutine limit_bj
-
-  subroutine limit_vb(state, t)
+  subroutine limit_vb(state, t, delta_t)
     !Vertex-based (not Victoria Bitter) limiter from
     !Kuzmin, J. Comp. Appl. Math., 2010
     ! doi:10.1016/j.cam.2009.05.028
     type(state_type), intent(inout) :: state
     type(scalar_field), intent(inout) :: t
+    type(scalar_field), intent(inout), optional :: delta_t
     !
     ! This is the limited version of the field, we have to make a copy
     type(scalar_field) :: T_limit, T_max, T_min
@@ -1625,9 +1449,16 @@ contains
        call set(T_limit, T_ele, Tbar + alpha*T_val_slope)
     end do
 
-    !Deallocate copy of field
+    !Update fields
+    if(present(delta_t)) then
+       call set(delta_t, T)
+       call scale(delta_t, -1.0)
+       call addto(delta_t, T_limit)
+    end if
     call set(T, T_limit)
     call halo_update(T)
+
+    !Deallocate copy of field
     call deallocate(T_limit)
     call deallocate(T_max)
     call deallocate(T_min)

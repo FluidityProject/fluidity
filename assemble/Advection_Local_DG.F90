@@ -102,7 +102,7 @@ module advection_local_DG
     type(vector_field) :: U_nl_cartesian
 
     !! Change in T over one timestep.
-    type(scalar_field) :: delta_T
+    type(scalar_field) :: delta_T, delta_T_total
 
     !! Sparsity of advection matrix.    
     type(csr_sparsity), pointer :: sparsity
@@ -172,6 +172,10 @@ module advection_local_DG
     call allocate(delta_T, T%mesh, "delta_T")
     call zero(delta_T)
     delta_T%option_path = T%option_path
+    if(present(Flux)) then
+       call allocate(delta_T_total, T%mesh, "deltaT_total")
+       call zero(delta_T_total)
+    end if
     call allocate(rhs, T%mesh, trim(field_name)//" RHS")
     call zero(rhs)
 
@@ -234,44 +238,50 @@ module advection_local_DG
     U_nl=>extract_vector_field(state, velocity_name)
 
     if (limit_slope) then
-       FLAbort('Need to add optional delta_T to limit_slope_dg')
        ! Filter wiggles from T
-       call limit_slope_dg(T, U_nl, X, state, limiter)
-       FLAbort('This is where we need to update the interior components of flux') 
+       call limit_slope_dg(T, U_nl, X, state, limiter, delta_T)
+       FLAbort('This is where we need to update the interior components of f&
+            &lux') 
+       call zero(upwindflux)
+       call update_flux(Flux, Delta_T, UpwindFlux)
    end if
 
     do i=1, subcycles
 
+       call zero(delta_t_total)
        ! dT = Advection * T
        call mult(delta_T, matrix, T)
        ! dT = dT + RHS
+       call addto(delta_T, RHS, -1.0)
        if(present(Flux)) then
           if(maxval(abs(RHS%val))>1.0e-8) then
-             FLAbort('Flux reconstruction doesn''t work if diffusion/bcs present')
+             FLAbort('Flux reconstruction doesn''t work if diffusion/bcs present at the moment')
           end if
-          call mult_addto(delta_T, upwindfluxmatrix, T)
        end if
-       call addto(delta_T, RHS, -1.0)
        ! dT = M^(-1) dT
        call dg_apply_mass(inv_mass, delta_T)
-       FLAbort('This is where we need to update the interior components of flux')
-       ewrite_minmax(delta_T)
-       
+       call mult(UpwindFlux, upwindfluxmatrix, T)
+       call scale(UpwindFlux,-dt/subcycles)
        ! T = T + dt/s * dT
        call addto(T, delta_T, scale=-dt/subcycles)
+       call addto(delta_t_total,delta_t, scale=-dt/subcycles)
+       !Probably need to halo_update(delta_T) as well
        call halo_update(T)
 
        if (limit_slope) then
           ! Filter wiggles from T
-          call limit_slope_dg(T, U_nl, X, state, limiter)
+          call limit_slope_dg(T, U_nl, X, state, limiter, delta_T)
           FLAbort('This is where we need to update the interior components of flux')
+          call addto(delta_t_total, delta_t)
       end if
-
+      call update_flux(Flux, Delta_T_total, UpwindFlux)
     end do
 
     if(present(Flux)) then
        call deallocate(UpwindFlux)
        call deallocate(UpwindFluxMatrix)
+       call deallocate(delta_T_total)
+       FLAbort('Need to do debugging check')
     end if
 
     call deallocate(delta_T)
@@ -282,6 +292,53 @@ module advection_local_DG
     call deallocate(rhs)
 
   end subroutine solve_advection_dg_subcycle
+
+  subroutine update_flux(Flux, Delta_T, UpwindFlux)
+    !! Subroutine to compute div-conforming Flux such that
+    !! div Flux = Delta_T
+    !! with Flux.n = UpwindFlux on element boundaries
+    type(vector_field), intent(inout) :: Flux
+    type(scalar_field), intent(in) :: Delta_T
+    type(scalar_field), intent(in) :: UpwindFlux
+    !
+    integer :: ele
+    !Checking the Flux is in local representation
+    assert(Flux%dim==mesh_dim(Flux))
+
+    do ele = 1, ele_count(Flux)
+       call update_flux_ele(Flux, Delta_T, UpwindFlux,ele)
+    end do
+    
+  end subroutine update_flux
+
+  subroutine update_flux_ele(Flux, Delta_T, UpwindFlux,ele)
+    !! Subroutine to compute div-conforming Flux such that
+    !! div Flux = Delta_T
+    !! with Flux.n = UpwindFlux on element boundaries
+    type(vector_field), intent(inout) :: Flux
+    type(scalar_field), intent(in) :: Delta_T
+    type(scalar_field), intent(in) :: UpwindFlux
+    integer, intent(in) :: ele
+    !
+    real, dimension(Flux%dim,ele_loc(Flux,ele)) :: Flux_vals
+    real, dimension(ele_loc(Delta_T,ele)) :: Delta_T_vals
+    real, dimension(Flux%dim*ele_loc(Flux,ele),&
+         Flux%dim*ele_loc(Flux,ele)) :: Flux_mat
+    real, dimension(Flux%dim*ele_loc(Flux,ele)) :: Flux_rhs
+
+    !! Need to set up and solve equation for flux DOFs
+    !! Rows are as follows:
+    !! All of the normal fluxes through edges, numbered according to
+    !! UpwindFlux numbering
+    !! Inner product of Flux with grad basis equaling gradient of delta_T
+    !! plus boundary conditions
+    !! Inner product of solution with curl basis equals zero
+    !! inner product of solution with constraint basis equals zero
+
+    Flux_rhs = 0.
+    Flux_mat = 0.
+
+  end subroutine update_flux_ele
 
   subroutine construct_advection_dg(big_m, rhs, field_name,&
        & state, mass, velocity_name, continuity,&
