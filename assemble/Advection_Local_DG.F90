@@ -244,12 +244,12 @@ module advection_local_DG
 
        ! dT = Advection * T
        call mult(delta_T, matrix, T)
-       FLAbort('This is where we need to get the flux')
        ! dT = dT + RHS
        if(present(Flux)) then
           if(maxval(abs(RHS%val))>1.0e-8) then
              FLAbort('Flux reconstruction doesn''t work if diffusion/bcs present')
           end if
+          call mult_addto(delta_T, upwindfluxmatrix, T)
        end if
        call addto(delta_T, RHS, -1.0)
        ! dT = M^(-1) dT
