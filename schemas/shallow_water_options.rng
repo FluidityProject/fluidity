@@ -814,8 +814,7 @@ An example that returns the three-dimensional identity:
     <element name="spatial_discretisation">
       <a:documentation>Spatial discretisation options</a:documentation>
       <element name="discontinuous_galerkin">
-        <a:documentation>Discontinuous galerkin formulation. Confusingly it is not necessary to provide
-a discontinuous velocity field for this to work!</a:documentation>
+        <a:documentation>Discontinuous galerkin formulation.</a:documentation>
         <element name="wave_equation">
           <a:documentation>Options for the wave equation solver</a:documentation>
           <optional>

@@ -77,7 +77,7 @@ module advection_local_DG
   contains
 
     subroutine solve_advection_dg_subcycle(field_name, state, velocity_name,&
-         &continuity)
+         &continuity, flux)
     !!< Construct and solve the advection equation for the given
     !!< field using discontinuous elements.
     
@@ -89,6 +89,8 @@ module advection_local_DG
     character(len = *), intent(in) :: velocity_name
     !! Solve continuity equation as opposed to advection equation
     logical, intent(in), optional :: continuity
+    !! Return a flux variable such that T-T_old=div(Flux)
+    type(vector_field), intent(inout), optional :: Flux
 
     !! Tracer to be solved for.
     type(scalar_field), pointer :: T, T_old, s_field
@@ -123,6 +125,14 @@ module advection_local_DG
     integer :: subcycles
     real :: max_courant_number
 
+    !! Flux reconstruction stuff:
+    !! Upwind fluxes trace variable
+    type(scalar_field) :: UpwindFlux
+    !! Mesh where UpwindFlux lives
+    type(mesh_type), pointer :: lambda_mesh
+    !! Upwind Flux matrix
+    type(csr_matrix) :: UpwindFluxMatrix
+
     character(len=FIELD_NAME_LEN) :: limiter_name
     integer :: i
 
@@ -132,12 +142,24 @@ module advection_local_DG
 
     ! Reset T to value at the beginning of the timestep.
     call set(T, T_old)
+    if(present(Flux)) then
+       call zero(Flux)
+    end if
 
     sparsity => get_csr_sparsity_firstorder(state, T%mesh, T%mesh)
-
     call allocate(matrix, sparsity) ! Add data space to the sparsity
     ! pattern.
     call zero(matrix)
+    
+    !Flux reconstruction allocations
+    if(present(Flux)) then
+       !Allocate trace variable for upwind fluxes
+       lambda_mesh=>extract_mesh(state, "VelocityMeshTrace")
+       call allocate(UpwindFlux,lambda_mesh, "UpwindFlux")
+       !Allocate matrix that maps T values to upwind fluxes
+       sparsity => get_csr_sparsity_firstorder(state,lambda_mesh,T%mesh)
+       call allocate(UpwindFluxMatrix,sparsity)
+    end if
 
     mass_sparsity=make_sparsity_dg_mass(T%mesh)
     call allocate(mass, mass_sparsity)
@@ -152,8 +174,14 @@ module advection_local_DG
     call allocate(rhs, T%mesh, trim(field_name)//" RHS")
     call zero(rhs)
 
-    call construct_advection_dg(matrix, rhs, field_name, state, &
-         mass, velocity_name=velocity_name,continuity=continuity)
+    if(present(Flux)) then
+       call construct_advection_dg(matrix, rhs, field_name, state, &
+            mass, velocity_name=velocity_name,continuity=continuity, &
+            UpwindFlux=upwindflux, UpwindFluxMatrix=UpwindFluxMatrix)
+    else
+       call construct_advection_dg(matrix, rhs, field_name, state, &
+            mass, velocity_name=velocity_name,continuity=continuity)
+    end if
 
     call get_dg_inverse_mass_matrix(inv_mass, mass)
     
@@ -191,10 +219,6 @@ module advection_local_DG
        select case(trim(limiter_name))
        case("Vertex_Based")
           limiter=LIMITER_VB
-       case("Edge_Based")
-          limiter=LIMITER_EB
-       case("Barth_Jespersen")
-          limiter=LIMITER_BJ
        case default
           FLAbort('No such limiter')
        end select
@@ -209,18 +233,22 @@ module advection_local_DG
     U_nl=>extract_vector_field(state, velocity_name)
 
     if (limit_slope) then
+       FLAbort('Need to add optional delta_T to limit_slope_dg')
        ! Filter wiggles from T
        call limit_slope_dg(T, U_nl, X, state, limiter)
-    end if
+       FLAbort('This is where we need to update the interior components of flux') 
+   end if
 
     do i=1, subcycles
 
        ! dT = Advection * T
        call mult(delta_T, matrix, T)
+       FLAbort('This is where we need to get the flux')
        ! dT = dT + RHS
        call addto(delta_T, RHS, -1.0)
        ! dT = M^(-1) dT
        call dg_apply_mass(inv_mass, delta_T)
+       FLAbort('This is where we need to update the interior components of flux')
        ewrite_minmax(delta_T)
        
        ! T = T + dt/s * dT
@@ -230,9 +258,15 @@ module advection_local_DG
        if (limit_slope) then
           ! Filter wiggles from T
           call limit_slope_dg(T, U_nl, X, state, limiter)
-       end if
+          FLAbort('This is where we need to update the interior components of flux')
+      end if
 
     end do
+
+    if(present(Flux)) then
+       call deallocate(UpwindFlux)
+       call deallocate(UpwindFluxMatrix)
+    end if
 
     call deallocate(delta_T)
     call deallocate(matrix)
@@ -244,7 +278,8 @@ module advection_local_DG
   end subroutine solve_advection_dg_subcycle
 
   subroutine construct_advection_dg(big_m, rhs, field_name,&
-       & state, mass, velocity_name, continuity) 
+       & state, mass, velocity_name, continuity,&
+       & UpwindFlux, UpwindFluxMatrix)
     !!< Construct the advection equation for discontinuous elements in
     !!< acceleration form.
     !!< 
@@ -267,6 +302,10 @@ module advection_local_DG
     character(len = *), intent(in), optional :: velocity_name
     !! solve the continuity equation
     logical, intent(in), optional :: continuity
+    !! Upwind flux field
+    type(scalar_field), intent(in), optional :: UpwindFlux
+    !! Upwind flux matrix
+    type(csr_matrix), intent(inout), optional :: UpwindFluxMatrix
 
     !! Position, and velocity fields.
     type(vector_field) :: X, U, U_nl
@@ -322,7 +361,8 @@ module advection_local_DG
     element_loop: do ele=1,element_count(T)
        
        call construct_adv_element_dg(ele, big_m, rhs,&
-            & X, T, U_nl, mass, continuity=continuity)
+            & X, T, U_nl, mass, continuity=continuity,&
+            & upwindflux=upwindflux, upwindfluxmatrix=upwindfluxmatrix)
        
     end do element_loop
     
@@ -333,7 +373,7 @@ module advection_local_DG
   end subroutine construct_advection_dg
 
   subroutine construct_adv_element_dg(ele, big_m, rhs,&
-       & X, T, U_nl, mass, continuity)
+       & X, T, U_nl, mass, continuity, upwindflux, upwindfluxmatrix)
     !!< Construct the advection_diffusion equation for discontinuous elements in
     !!< acceleration form.
     implicit none
@@ -350,6 +390,12 @@ module advection_local_DG
     type(vector_field), intent(in) :: X, U_nl
 
     type(scalar_field), intent(in) :: T
+
+    !! Upwind flux field
+    type(scalar_field), intent(in), optional :: UpwindFlux
+    !! Upwind flux matrix
+    type(csr_matrix), intent(inout), optional :: UpwindFluxMatrix
+
 
     !! Solve the continuity equation rather than advection
     logical, intent(in), optional :: continuity

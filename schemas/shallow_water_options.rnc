@@ -662,8 +662,7 @@ prognostic_sw_velocity_field =
       velocity_equation_choice,
       ## Spatial discretisation options
       element spatial_discretisation {
-         ## Discontinuous galerkin formulation. Confusingly it is not necessary to provide
-         ## a discontinuous velocity field for this to work!
+         ## Discontinuous galerkin formulation.
          element discontinuous_galerkin {
             ## Options for the wave equation solver
             element wave_equation {
