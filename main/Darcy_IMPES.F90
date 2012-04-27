@@ -586,11 +586,13 @@ contains
       di%positions_pressure_mesh = get_coordinate_field(di%state(1), di%pressure%mesh)
 
       ! Determine the pressure matrix sparsity
-      di%sparsity => get_csr_sparsity_firstorder(di%state(1), di%pressure%mesh, di%pressure%mesh)
-
+      di%sparsity_pmesh_pmesh => get_csr_sparsity_firstorder(di%state(1), di%pressure%mesh, di%pressure%mesh)
+      
+      ! Allocate crs matrice used to store the upwind scalar field values in CV assemble
+      call allocate(di%old_sfield_upwind, di%sparsity_pmesh_pmesh) 
+      
       ! Allocate the pressure matrix and lhs and rhs to use for saturations
-      call allocate(di%pressure_matrix, di%sparsity)
-
+      call allocate(di%pressure_matrix, di%sparsity_pmesh_pmesh)
       call allocate(di%lhs, di%pressure%mesh)
       call allocate(di%rhs, di%pressure%mesh)
       call allocate(di%rhs_adv, di%pressure%mesh)
@@ -635,7 +637,7 @@ contains
       
       ! Allocate field used for the subcycle time step cfl
       call allocate(di%cfl_subcycle, di%cfl(1)%ptr%mesh)
-
+            
       di%phase_one_saturation_diagnostic = have_option(trim(di%saturation(1)%ptr%option_path)//'/diagnostic')
       
       ! Determine the inverse cv mass matrix of cfl mesh
@@ -768,7 +770,11 @@ contains
       ! evaluated at the control volume faces located on the domain boundary
       ! for the positions mesh assuming all boundary elements are the same type.
       di%x_cvbdyshape = make_cvbdy_element_shape(di%cvfaces, di%positions%mesh%faces%shape)
-
+      
+      ! allocate the arrays used to cache the phase face values 
+      ! which are perhaps summed over the subcycles.
+      call darcy_impex_allocate_cached_phase_face_value(di)
+      
       ! If the first phase saturation is diagnostic then calculate it
       if (di%phase_one_saturation_diagnostic) call darcy_impes_calculate_phase_one_saturation_diagnostic(di)
 
@@ -835,7 +841,8 @@ contains
       nullify(di%div_total_darcy_velocity)
       
       call deallocate(di%positions_pressure_mesh)
-      nullify(di%sparsity)
+      nullify(di%sparsity_pmesh_pmesh)
+      call deallocate(di%old_sfield_upwind)
       call deallocate(di%pressure_matrix)
       call deallocate(di%lhs)
       call deallocate(di%rhs)
@@ -859,7 +866,7 @@ contains
       deallocate(di%fractional_flow) 
 
       call deallocate(di%cfl_subcycle)
-      
+            
       di%phase_one_saturation_diagnostic = .false.
             
       call deallocate(di%inverse_cv_mass_cfl_mesh)
@@ -900,6 +907,8 @@ contains
       call deallocate(di%x_cvshape)
       call deallocate(di%p_cvshape)
       call deallocate(di%x_cvbdyshape)
+      
+      deallocate(di%cached_phase_face_value)
       
       ! This must be last as it is used in loops above
       di%number_phase = 0
