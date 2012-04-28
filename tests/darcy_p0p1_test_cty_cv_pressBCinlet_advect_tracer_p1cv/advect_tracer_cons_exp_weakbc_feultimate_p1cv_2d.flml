@@ -14,7 +14,7 @@ sigma*darcy_vel = - grad P
 
 where darcy_vel = porosity*interstitial_velocity
 
-sigma is a function of viscosity and permeability
+sigma is a function of viscosity and absolute permeability
 
 python diagnostics are used to form the sigma term that is assoicated with a p0 dg mesh (ie. element wise) and the interstitial velocity
 

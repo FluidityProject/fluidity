@@ -69,10 +69,12 @@ module darcy_impes_assemble_module
              darcy_impes_calculate_cflnumber_field_based_dt, &
              darcy_impex_allocate_cached_phase_face_value
    
-   ! Options associated with explicit subcycling for CV scalar field solver
+   ! Options associated with explicit advection subcycling for CV scalar field solver
    type darcy_impes_subcycle_options_type
-      logical :: have
-      real    :: max_courant_per_subcycle         
+      logical :: have_max_cfl
+      logical :: have_number
+      integer :: number_advection_subcycle
+      real    :: max_courant_per_advection_subcycle         
    end type darcy_impes_subcycle_options_type
    
    ! Options associated with adaptive time stepping
@@ -149,6 +151,8 @@ module darcy_impes_assemble_module
       real, dimension(:,:), pointer :: cached_phase_face_value
       ! *** Time time step size, also stored here for convenience ***
       real :: dt
+      ! *** Non linear iteration, also stored here for convencience ***
+      integer :: nonlinear_iter
       ! *** Geometric dimension, also stored here for convenience ***
       integer :: ndim
       ! *** Options data associted with adaptive time stepping stored here ***
@@ -163,7 +167,8 @@ module darcy_impes_assemble_module
 
    subroutine darcy_impes_assemble_and_solve(di)
       
-      !!< Assemble and solve the Darcy equations using an IMPES algorithm
+      !!< Assemble and solve the Darcy equations using an CIMPESS algorithm
+      !!< which is a modification of the IMPES to include consistent subcycling.
       
       type(darcy_impes_type), intent(inout) :: di
       
@@ -189,23 +194,33 @@ module darcy_impes_assemble_module
       s_phase_loop: do p = 2, di%number_phase
          
          ! Deduce the number of subcycles to do and the subcycle time step size
+                  
+         if (di%subcy_opt_sat%have_number) then
          
-         if (di%subcy_opt_sat%have) then
+            number_subcycle = di%subcy_opt_sat%number_advection_subcycle
+            
+            dt_subcycle = di%dt/real(number_subcycle)
+
+            call set(di%cfl_subcycle, di%cfl(p)%ptr)
+
+            call scale(di%cfl_subcycle, 1.0/real(number_subcycle))            
+
+         else if (di%subcy_opt_sat%have_max_cfl) then
          
             ! Find the max cfl number for this phase (accounting for parallel)
             max_cfl = maxval(di%cfl(p)%ptr)
 
             call allmax(max_cfl)
 
-            ! Find the subcycle dt and cfl field (which may be used for face value limiting)
-            number_subcycle = max(1,ceiling(max_cfl/di%subcy_opt_sat%max_courant_per_subcycle))
+            number_subcycle = max(1,ceiling(max_cfl/di%subcy_opt_sat%max_courant_per_advection_subcycle))
 
             dt_subcycle = di%dt/real(number_subcycle)
 
             call set(di%cfl_subcycle, di%cfl(p)%ptr)
 
             call scale(di%cfl_subcycle, 1.0/real(number_subcycle))
-         
+
+                  
          else 
             
             number_subcycle = 1
@@ -238,15 +253,24 @@ module darcy_impes_assemble_module
 
          ! Deduce the number of subcycles to do and the subcycle time step size
          
-         if (di%subcy_opt_sat%have) then
+         if (di%subcy_opt_sat%have_number) then
+         
+            number_subcycle = di%subcy_opt_sat%number_advection_subcycle
+            
+            dt_subcycle = di%dt/real(number_subcycle)
+
+            call set(di%cfl_subcycle, di%cfl(1)%ptr)
+
+            call scale(di%cfl_subcycle, 1.0/real(number_subcycle))            
+
+         else if (di%subcy_opt_sat%have_max_cfl) then
          
             ! Find the max cfl number for this phase (accounting for parallel)
             max_cfl = maxval(di%cfl(1)%ptr)
 
             call allmax(max_cfl)
 
-            ! Find the subcycle dt and cfl field (which may be used for face value limiting)
-            number_subcycle = max(1,ceiling(max_cfl/di%subcy_opt_sat%max_courant_per_subcycle))
+            number_subcycle = max(1,ceiling(max_cfl/di%subcy_opt_sat%max_courant_per_advection_subcycle))
 
             dt_subcycle = di%dt/real(number_subcycle)
 
@@ -288,12 +312,16 @@ module darcy_impes_assemble_module
 
    subroutine solve_pressure(di)
       
-      !!< Assemble and solve the pressure
+      !!< Assemble and solve the pressure. For the first nonlinear iteration
+      !!< the phase face value is calculated here and cached to be used 
+      !!< for the calculation of total darcy velocity divergence and volume fraction  
+      !!< advection. Any further nonlinear iterations use the cached face value 
+      !!< which may contain the summed subcycled face values.
       
       type(darcy_impes_type), intent(inout) :: di
       
       ! local variables
-      integer :: p, vele, sele, iloc, oloc, jloc, face, gi, ggi, face_value_counter
+      integer :: p, vele, sele, iloc, oloc, jloc, face, gi, ggi, face_value_counter, upwind_pos
       real    :: income, face_value, old_vphi_dot_n
       real    :: old_saturation_face_value
       real    :: relperm_face_value
@@ -353,32 +381,36 @@ module darcy_impes_assemble_module
       call zero(di%rhs)
 
       phase_loop: do p = 1,di%number_phase
-      
-         ! Determine the upwind saturation values if required for higher order CV face value
-         if(need_upwind_values(di%saturation_cv_options)) then
 
-           call find_upwind_values(di%state, &
-                                   di%positions_pressure_mesh, &
-                                   di%old_saturation(p)%ptr, &
-                                   di%old_sfield_upwind, &
-                                   di%old_saturation(p)%ptr, &
-                                   di%old_sfield_upwind, &
-                                   option_path = trim(di%saturation(p)%ptr%option_path))
+         if (di%nonlinear_iter == 1) then
+         
+            ! Determine the upwind saturation values if required for higher order CV face value
+            if(need_upwind_values(di%saturation_cv_options)) then
 
-         else
+              call find_upwind_values(di%state, &
+                                      di%positions_pressure_mesh, &
+                                      di%old_saturation(p)%ptr, &
+                                      di%old_sfield_upwind, &
+                                      di%old_saturation(p)%ptr, &
+                                      di%old_sfield_upwind, &
+                                      option_path = trim(di%saturation(p)%ptr%option_path))
 
-           call zero(di%old_sfield_upwind)
+            else
 
+              call zero(di%old_sfield_upwind)
+
+            end if
+         
          end if
          
          ! Initialise the face value counter
          face_value_counter = 0
+         
+         ! Initialise optimisation flag used in finding upwind value in high resolution schemes
+         upwind_pos = 0
             
          ! Loop volume elements assembling local contributions     
          vol_element_loop: do vele = 1,element_count(di%pressure)
-
-            ! get the old saturation ele values for this phase
-            old_saturation_ele = ele_val(di%old_saturation(p)%ptr, vele)
 
             ! get the relperm ele values for this phase
             relperm_ele = ele_val(di%relative_permeability(p)%ptr, vele)
@@ -388,9 +420,6 @@ module darcy_impes_assemble_module
 
             ! get the absolute permeability value for this element
             absperm_vele = ele_val(di%absolute_permeability, vele)         
-            
-            ! get the CFL values for this element
-            cfl_ele = ele_val(di%cfl(p)%ptr, vele)
             
             ! get the coordinate values for this element for each positions local node
             x_ele = ele_val(di%positions, vele)         
@@ -404,19 +433,30 @@ module darcy_impes_assemble_module
             ! The node indices of the positions projected to the pressure mesh
             x_pmesh_nodes => ele_nodes(di%positions_pressure_mesh, vele)
 
-            ! Determine the node numbers to use to determine the
-            ! Saturation and RelPerm upwind values
-            if((di%saturation_cv_options%upwind_scheme == CV_UPWINDVALUE_PROJECT_POINT).or.&
-               (di%saturation_cv_options%upwind_scheme == CV_UPWINDVALUE_PROJECT_GRAD)) then
+            if (di%nonlinear_iter == 1) then
 
-               upwind_nodes => x_pmesh_nodes
+               ! get the old saturation ele values for this phase
+               old_saturation_ele = ele_val(di%old_saturation(p)%ptr, vele)
+            
+               ! get the CFL values for this element
+               cfl_ele = ele_val(di%cfl(p)%ptr, vele)
+            
+               ! Determine the node numbers to use to determine the
+               ! Saturation and RelPerm upwind values
+               if((di%saturation_cv_options%upwind_scheme == CV_UPWINDVALUE_PROJECT_POINT).or.&
+                  (di%saturation_cv_options%upwind_scheme == CV_UPWINDVALUE_PROJECT_GRAD)) then
 
-            else
+                  upwind_nodes => x_pmesh_nodes
 
-               upwind_nodes => p_nodes
+               else
 
+                  upwind_nodes => p_nodes
+
+               end if
+            
+            
             end if
-
+            
             ! obtain the transformed determinant*weight and normals
             call transform_cvsurf_to_physical(x_ele, di%x_cvshape, &
                                               detwei, normal, di%cvfaces)
@@ -473,25 +513,34 @@ module darcy_impes_assemble_module
                       inflow = (old_vphi_dot_n<=0.0)
 
                       income = merge(1.0,0.0,inflow)
-
-                      ! evaluate the nonlinear face value for saturation
-                      call evaluate_face_val(old_saturation_face_value, &
-                                             old_saturation_face_value, & 
-                                             iloc, &
-                                             oloc, &
-                                             ggi, &
-                                             upwind_nodes, &
-                                             di%p_cvshape, &
-                                             old_saturation_ele, &
-                                             old_saturation_ele, &
-                                             di%old_sfield_upwind, &
-                                             di%old_sfield_upwind, &
-                                             inflow, &
-                                             cfl_ele, &
-                                             di%saturation_cv_options)
                       
-                      ! cache the saturation face value for consistent use
-                      di%cached_phase_face_value(face_value_counter, p) = old_saturation_face_value
+                      if (di%nonlinear_iter == 1) then
+                      
+                         ! evaluate the nonlinear face value for saturation
+                         call evaluate_face_val(old_saturation_face_value, &
+                                                old_saturation_face_value, & 
+                                                iloc, &
+                                                oloc, &
+                                                ggi, &
+                                                upwind_nodes, &
+                                                di%p_cvshape, &
+                                                old_saturation_ele, &
+                                                old_saturation_ele, &
+                                                di%old_sfield_upwind, &
+                                                di%old_sfield_upwind, &
+                                                inflow, &
+                                                cfl_ele, &
+                                                di%saturation_cv_options, &
+                                                save_pos = upwind_pos)
+
+                         ! cache the saturation face value for consistent use
+                         di%cached_phase_face_value(face_value_counter, p) = old_saturation_face_value
+
+                      else 
+                      
+                         old_saturation_face_value = di%cached_phase_face_value(face_value_counter, p)
+                      
+                      end if 
                       
                       ! Evaluate the face value for old relperm (assuming upwind for now, hence upwind for vphi) 
                       relperm_face_value = income*relperm_ele(oloc) + (1.0-income)*relperm_ele(iloc)
@@ -659,7 +708,7 @@ module darcy_impes_assemble_module
       
       ! Solve the pressure
       call petsc_solve(di%pressure, di%pressure_matrix, di%rhs, di%state(1))
-      
+
       ! deallocate local variables as required
       deallocate(x_ele)
       deallocate(p_dshape)
@@ -818,7 +867,6 @@ module darcy_impes_assemble_module
       ewrite(1,*) 'Calculate InterstitialVelocityPorosity'
       
       ! Calculate the inter_velocity_porosity field = - (1.0/old_sigma) * grad_pressure, where sigma = visc / absperm * relperm
-      
       allocate(relperm_ele(ele_loc(di%pressure,1)))
       
       ! deduce the number of local nodes (all elements assumed same) for inter_velocity_porosity and CFL
@@ -1121,7 +1169,7 @@ module darcy_impes_assemble_module
          di%cfl(p)%ptr%val = di%cfl(p)%ptr%val * di%dt / di%cv_mass_pressure_mesh_with_porosity%val
 
          ewrite_minmax(di%cfl(p)%ptr)
-         
+
       end do phase_loop
       
       call scale(di%div_total_darcy_velocity, di%inverse_cv_mass_pressure_mesh)
@@ -1167,7 +1215,7 @@ module darcy_impes_assemble_module
       integer,                intent(in)    :: number_subcycle
       real,                   intent(in)    :: dt_subcycle
       integer,                intent(in)    :: p
-      
+
       call solve_scalar_field_using_cv_cts_mesh_with_subcv_velocity(di%saturation(p)%ptr, &
                                                                     di%old_saturation(p)%ptr, &
                                                                     di%inter_velocity_porosity(p)%ptr, &
@@ -1191,7 +1239,8 @@ module darcy_impes_assemble_module
                                                                     di%state, &
                                                                     di%ndim, &
                                                                     number_subcycle, &
-                                                                    dt_subcycle)
+                                                                    dt_subcycle, &
+                                                                    di%cached_phase_face_value(:,p))
       
    end subroutine solve_phase_saturation
 
@@ -1220,7 +1269,8 @@ module darcy_impes_assemble_module
                                                                        state, &
                                                                        ndim, &
                                                                        number_subcycle, &
-                                                                       dt_subcycle)
+                                                                       dt_subcycle, &
+                                                                       cached_face_value)
       
       !!< Assemble and solve a time+advection equation for the scalar field 
       !!< using CV on a continous mesh with a subcv velocity
@@ -1249,12 +1299,13 @@ module darcy_impes_assemble_module
       integer,                             intent(in)    :: ndim
       integer,                             intent(in)    :: number_subcycle
       real,                                intent(in)    :: dt_subcycle
+      real,                  dimension(:), intent(inout), optional :: cached_face_value
 
       ! local variables
-      integer :: vele, iloc, oloc, face, gi, ggi, sele, isub
+      integer :: vele, iloc, oloc, face, gi, ggi, sele, isub, face_value_counter, upwind_pos
       real    :: income, face_value, old_v_dot_n, alpha_start, alpha_end
       real    :: old_sfield_face_value, v_face_value_dot_n
-      logical :: inflow
+      logical :: inflow, cached_face_value_present, determine_face_value
       real,    dimension(:,:),   allocatable :: old_v_face
       real,    dimension(:),     allocatable :: old_sfield_subcycle_ele
       real,    dimension(:),     allocatable :: cfl_ele
@@ -1280,7 +1331,10 @@ module darcy_impes_assemble_module
       integer, dimension(:),     allocatable :: sfield_bc_type
       type(scalar_field) :: sfield_bc
       integer, parameter :: BC_TYPE_WEAKDIRICHLET = 1, BC_TYPE_ZERO_FLUX = 2, BC_TYPE_DIRICHLET = 3
-         
+       
+      ! set a local flag for whether cached face value is present
+      cached_face_value_present = present(cached_face_value)
+      
       ! allocate arrays used in assemble process - many assume
       ! that all elements are the same type.
       allocate(x_ele(ndim, ele_loc(positions,1)))      
@@ -1395,32 +1449,40 @@ module darcy_impes_assemble_module
 
             ! Inititalise rhs advection field
             call zero(rhs_adv)
+            
+            ! Decide if a face value needs to be determined
+            determine_face_value = (cached_face_value_present .and. isub > 1) .or. &
+                                  &(.not. cached_face_value_present)
+            
+            if (determine_face_value) then
+            
+               ! Determine the upwind saturation values if required for higher order CV face value
+               if(need_upwind_values(sfield_cv_options)) then
 
-            ! Determine the upwind saturation values if required for higher order CV face value
-            if(need_upwind_values(sfield_cv_options)) then
+                 call find_upwind_values(state, &
+                                         positions_sfield_mesh, &
+                                         old_sfield, &
+                                         old_sfield_upwind, &
+                                         old_sfield, &
+                                         old_sfield_upwind, &
+                                         option_path = trim(sfield%option_path))
 
-              call find_upwind_values(state, &
-                                      positions_sfield_mesh, &
-                                      old_sfield, &
-                                      old_sfield_upwind, &
-                                      old_sfield, &
-                                      old_sfield_upwind, &
-                                      option_path = trim(sfield%option_path))
+               else
 
-            else
+                 call zero(old_sfield_upwind)
 
-              call zero(old_sfield_upwind)
-
+               end if
+            
             end if
-
+            
+            ! Initialise face_value_counter
+            face_value_counter = 0
+      
+            ! Initialise optimisation flag used in finding upwind value in high resolution schemes
+            upwind_pos = 0
+            
             ! Loop volume elements assembling local contributions    
             vol_element_loop: do vele = 1,element_count(sfield)
-               
-               ! get the old sfield ele values from start of subcycle
-               old_sfield_subcycle_ele = ele_val(old_sfield_subcycle, vele)
-       
-               ! get the CFL values for this element
-               cfl_ele = ele_val(cfl, vele)
 
                ! The velocity ele value
                v_ele = ele_val(velocity, vele)
@@ -1441,18 +1503,28 @@ module darcy_impes_assemble_module
                ! The node indices of the positions projected to the sfield mesh
                x_smesh_nodes => ele_nodes(positions_sfield_mesh, vele)
 
-               ! Determine the node numbers to use to determine the upwind values
-               if((sfield_cv_options%upwind_scheme == CV_UPWINDVALUE_PROJECT_POINT).or.&
-                  (sfield_cv_options%upwind_scheme == CV_UPWINDVALUE_PROJECT_GRAD)) then
+               if (determine_face_value) then
+               
+                  ! get the old sfield ele values from start of subcycle
+                  old_sfield_subcycle_ele = ele_val(old_sfield_subcycle, vele)
 
-                  upwind_nodes => x_smesh_nodes
+                  ! get the CFL values for this element
+                  cfl_ele = ele_val(cfl, vele)
+               
+                  ! Determine the node numbers to use to determine the upwind values
+                  if((sfield_cv_options%upwind_scheme == CV_UPWINDVALUE_PROJECT_POINT).or.&
+                     (sfield_cv_options%upwind_scheme == CV_UPWINDVALUE_PROJECT_GRAD)) then
 
-               else
+                     upwind_nodes => x_smesh_nodes
 
-                  upwind_nodes => s_nodes
+                  else
 
+                     upwind_nodes => s_nodes
+
+                  end if
+               
                end if
-
+               
                ! obtain the transformed determinant*weight and normals
                call transform_cvsurf_to_physical(x_ele, x_cvshape, &
                                                  detwei, normal, cvfaces)
@@ -1486,7 +1558,9 @@ module darcy_impes_assemble_module
                        check_visited: if(notvisited(ggi)) then
 
                          notvisited(ggi) = .false.
-
+                         
+                         face_value_counter = face_value_counter + 1
+                         
                          ! correct the orientation of the normal so it points away from iloc
                          normgi = orientate_cvsurf_normgi(node_val(positions_sfield_mesh, x_smesh_nodes(iloc)), &
                                                          &x_face_quad(:,ggi), normal(:,ggi))
@@ -1499,21 +1573,37 @@ module darcy_impes_assemble_module
 
                          income = merge(1.0,0.0,inflow)
 
-                         ! evaluate the nonlinear face value for sfield
-                         call evaluate_face_val(old_sfield_face_value, &
-                                                old_sfield_face_value, & 
-                                                iloc, &
-                                                oloc, &
-                                                ggi, &
-                                                upwind_nodes, &
-                                                s_cvshape, &
-                                                old_sfield_subcycle_ele, &
-                                                old_sfield_subcycle_ele, &
-                                                old_sfield_upwind, &
-                                                old_sfield_upwind, &
-                                                inflow, &
-                                                cfl_ele, &
-                                                sfield_cv_options)
+                         if (determine_face_value) then
+
+                            ! evaluate the nonlinear face value for sfield
+                            call evaluate_face_val(old_sfield_face_value, &
+                                                   old_sfield_face_value, & 
+                                                   iloc, &
+                                                   oloc, &
+                                                   ggi, &
+                                                   upwind_nodes, &
+                                                   s_cvshape, &
+                                                   old_sfield_subcycle_ele, &
+                                                   old_sfield_subcycle_ele, &
+                                                   old_sfield_upwind, &
+                                                   old_sfield_upwind, &
+                                                   inflow, &
+                                                   cfl_ele, &
+                                                   sfield_cv_options, &
+                                                   save_pos = upwind_pos)
+
+                            if (cached_face_value_present) then
+                            
+                               cached_face_value(face_value_counter) = cached_face_value(face_value_counter) + &
+                                                                      &old_sfield_face_value
+                            
+                            end if
+                         
+                         else 
+                         
+                            old_sfield_face_value = cached_face_value(face_value_counter)
+                         
+                         end if
                           
                          ! Evaluate the face value for velocity (assuming upwind for now)
                          v_face_value(:) = income*v_ele(:,oloc) + (1.0-income)*v_ele(:,iloc)

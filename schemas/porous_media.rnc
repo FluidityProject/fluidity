@@ -19,10 +19,10 @@ porous_media_model =
             )
          },
          (
-            ## Specify field Permeability which is inserted into 
+            ## Specify field AbsolutePermeability which is inserted into 
             ## the first material_phase state then aliased in all others.
             element scalar_field {
-               attribute name { "Permeability" },
+               attribute name { "AbsolutePermeability" },
                (
                   element prescribed {
                      velocity_mesh_choice,
@@ -35,10 +35,10 @@ porous_media_model =
                   }
                )
             }|
-            ## Specify field Permeability which is inserted into 
+            ## Specify field AbsolutePermeability which is inserted into 
             ## the first material_phase state then aliased in all others.
             element vector_field {
-               attribute name { "Permeability" },
+               attribute name { "AbsolutePermeability" },
                (
                   element prescribed {
                      velocity_mesh_choice,

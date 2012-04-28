@@ -1570,22 +1570,22 @@ contains
           call insert(states(i+1), sfield, 'Porosity')
        end do
        
-       ! alias the Permeability field which may be 
+       ! alias the AbsolutePermeability field which may be 
        ! either scalar or vector (if present)
        
-       sfield=extract_scalar_field(states(1), 'Permeability', stat = stat)
+       sfield=extract_scalar_field(states(1), 'AbsolutePermeability', stat = stat)
        if (stat == 0) then       
           sfield%aliased = .true.
           do i = 1,nstates-1
-             call insert(states(i+1), sfield, 'Permeability')
+             call insert(states(i+1), sfield, 'AbsolutePermeability')
           end do       
        end if
        
-       vfield=extract_vector_field(states(1), 'Permeability', stat = stat)
+       vfield=extract_vector_field(states(1), 'AbsolutePermeability', stat = stat)
        if (stat == 0) then       
           vfield%aliased = .true.
           do i = 1,nstates-1
-             call insert(states(i+1), vfield, 'Permeability')
+             call insert(states(i+1), vfield, 'AbsolutePermeability')
           end do       
        end if
     
@@ -2480,16 +2480,24 @@ contains
 
   end subroutine initialise_prognostic_fields
 
-  subroutine allocate_and_insert_auxilliary_fields(states)
+  subroutine allocate_and_insert_auxilliary_fields(states, force_prescribed_diagnositc_allocate_old_iterated)
     ! Set up some auxilliary fields to the prognostic fields.
     ! i.e. old and iterated fields depending on options set
     type(state_type), dimension(:), intent(inout):: states
-
+    ! If present and true then force the allocation of Old and 
+    ! Iterated fields for prescribed and diagnostic fields
+    ! rather than aliasing them.
+    logical, intent(in), optional :: force_prescribed_diagnositc_allocate_old_iterated
+    
+    ! Local variables
+    logical :: l_force_prescribed_diagnositc_allocate_old_iterated
     type(scalar_field), pointer :: sfield
     type(vector_field), pointer :: vfield
+    type(tensor_field), pointer :: tfield
 
     type(scalar_field) :: aux_sfield
     type(vector_field) :: aux_vfield
+    type(tensor_field) :: aux_tfield
 
     integer :: iterations
     logical :: steady_state_global, prognostic, prescribed, diagnostic, gravity
@@ -2497,13 +2505,19 @@ contains
     character(len=FIELD_NAME_LEN) :: field_name
     character(len=OPTION_PATH_LEN) :: state_path, field_path
 
-    integer :: nsfields, nvfields, p, f, p2, stat
+    integer :: nsfields, nvfields, ntfields, p, f, p2, stat
     real :: current_time
 
     type(mesh_type), pointer :: x_mesh
 
     ewrite(1,*) "In allocate_and_insert_auxilliary_fields"
-
+    
+    if (present(force_prescribed_diagnositc_allocate_old_iterated)) then
+       l_force_prescribed_diagnositc_allocate_old_iterated = force_prescribed_diagnositc_allocate_old_iterated
+    else
+       l_force_prescribed_diagnositc_allocate_old_iterated = .false.
+    end if
+    
     call get_option("/timestepping/nonlinear_iterations", iterations, default=1)
     steady_state_global = have_option("/timestepping/steady_state")
 
@@ -2530,10 +2544,12 @@ contains
           prescribed=have_option(trim(sfield%option_path)//"/prescribed")
           diagnostic=have_option(trim(sfield%option_path)//"/diagnostic")
 
-          ! if (prognostic or diagnostic) and (doing a steady state check on this field or doing more than 1 global iteration)
-          if((prognostic.or.diagnostic)&
-              .and.((steady_state_global.and.steady_state_field(sfield)).or.(iterations>1) .or. &
-              have_option(trim(sfield%option_path) // '/prognostic/spatial_discretisation/discontinuous_galerkin/slope_limiter::FPN') )) then
+          if( ((prognostic.or.diagnostic) .and. &
+               ((steady_state_global.and.steady_state_field(sfield)) .or. &
+                (iterations>1) .or. &
+                have_option(trim(sfield%option_path) // '/prognostic/spatial_discretisation/discontinuous_galerkin/slope_limiter::FPN') .or. &
+                l_force_prescribed_diagnositc_allocate_old_iterated)) .or. &
+              (prescribed .and. l_force_prescribed_diagnositc_allocate_old_iterated) ) then
 
             call allocate(aux_sfield, sfield%mesh, "Old"//trim(sfield%name))
             call zero(aux_sfield)
@@ -2552,8 +2568,10 @@ contains
 
           end if
 
-          if((prognostic.or.diagnostic)&
-              .and.((convergence_field(sfield).and.(iterations>1)))) then
+          if( ((prognostic.or.diagnostic) .and. &
+               ((convergence_field(sfield).and.(iterations>1)) .or. &
+                l_force_prescribed_diagnositc_allocate_old_iterated)) .or. &
+              (prescribed .and. l_force_prescribed_diagnositc_allocate_old_iterated) ) then
 
             call allocate(aux_sfield, sfield%mesh, "Iterated"//trim(sfield%name))
             call zero(aux_sfield)
@@ -2596,8 +2614,11 @@ contains
           prescribed=have_option(trim(vfield%option_path)//"/prescribed")
           diagnostic=have_option(trim(vfield%option_path)//"/diagnostic")
 
-          if((prognostic.or.diagnostic)&
-             .and.((steady_state_global.and.steady_state_field(vfield)).or.(iterations>1))) then
+          if( ((prognostic.or.diagnostic) .and. &
+               ((steady_state_global.and.steady_state_field(vfield)) .or. &
+                (iterations>1) .or. &
+                l_force_prescribed_diagnositc_allocate_old_iterated)) .or. &
+              (prescribed .and. l_force_prescribed_diagnositc_allocate_old_iterated) ) then
 
             call allocate(aux_vfield, vfield%dim, vfield%mesh, "Old"//trim(vfield%name))
             call zero(aux_vfield)
@@ -2616,8 +2637,10 @@ contains
 
           end if
 
-          if((prognostic.or.diagnostic)&
-              .and.(convergence_field(vfield).and.(iterations>1))) then
+          if( ((prognostic.or.diagnostic) .and. &
+               ((convergence_field(vfield).and.(iterations>1)).or. &
+                l_force_prescribed_diagnositc_allocate_old_iterated)) .or. &
+              (prescribed .and. l_force_prescribed_diagnositc_allocate_old_iterated)) then
 
             call allocate(aux_vfield, vfield%dim, vfield%mesh, "Iterated"//trim(vfield%name))
             call zero(aux_vfield)
@@ -2697,6 +2720,51 @@ contains
         end if
 
       end do
+
+      ! Get number of tensor fields that are children of this state
+      ntfields=tensor_field_count(states(p))
+
+      ! Loop over tensor fields
+      do f=1, ntfields
+
+        tfield => extract_tensor_field(states(p), f)
+
+        ! Save path to field
+        field_path=trim(tfield%option_path)
+
+        ! Get field name - this checks if the field has an option_path
+        call get_option(trim(field_path)//"/name", field_name, stat)
+                
+        if((stat==0).and.(.not.aliased(tfield))) then
+
+          prognostic=have_option(trim(tfield%option_path)//"/prognostic")
+          prescribed=have_option(trim(tfield%option_path)//"/prescribed")
+          diagnostic=have_option(trim(tfield%option_path)//"/diagnostic")
+
+          if( ((prognostic.or.diagnostic) .and. &
+                l_force_prescribed_diagnositc_allocate_old_iterated) .or. &
+              (prescribed .and. l_force_prescribed_diagnositc_allocate_old_iterated) ) then
+
+            call allocate(aux_tfield, tfield%mesh, "Old"//trim(tfield%name))
+            call zero(aux_tfield)
+            call insert(states(p), aux_tfield, trim(aux_tfield%name))
+            call deallocate(aux_tfield)
+
+          else
+
+            aux_tfield = extract_tensor_field(states(p), trim(tfield%name))
+            aux_tfield%name = "Old"//trim(tfield%name)
+            aux_tfield%option_path=""  ! blank the option path so that it 
+                                       ! doesn't get picked up in the next 
+                                       ! aliased field loop
+            aux_tfield%aliased=.true.
+            call insert(states(p), aux_tfield, trim(aux_tfield%name))
+
+          end if
+
+        end if
+
+      end do 
 
     end do
 
@@ -2823,8 +2891,57 @@ contains
 
       end do
 
-    end do
-      
+      ! Get number of tensor fields that are children of this state
+      ntfields=tensor_field_count(states(p))
+
+      ! Loop over tensor fields
+      do f=1, ntfields
+
+        tfield => extract_tensor_field(states(p), f)
+
+        ! Save path to field
+        field_path=trim(tfield%option_path)
+
+        ! Get field name - this checks if the field has an option_path
+        ! but if it's aliased the name that it gets from the option path will be of the field it's aliased to!
+        call get_option(trim(field_path)//"/name", field_name, stat)
+
+        if((stat==0).and.aliased(tfield).and.(tfield%option_path(:15)=="/material_phase")) then
+
+          prognostic=have_option(trim(tfield%option_path)//"/prognostic")
+          prescribed=have_option(trim(tfield%option_path)//"/prescribed")
+          diagnostic=have_option(trim(tfield%option_path)//"/diagnostic")
+
+          if(prognostic.or.prescribed.or.diagnostic) then
+
+            do p2 = 1, size(states)
+              write(state_path, '(a,i0,a)') "/material_phase[",p2-1,"]"
+              if(starts_with(trim(field_path), trim(state_path))) exit
+            end do
+
+            if(p2==size(states)+1) then
+              FLAbort("tensor_field aliased but could not find to which material_phase")
+            end if
+
+            aux_tfield=extract_tensor_field(states(p2), "Old"//trim(field_name))
+            aux_tfield%name = "Old"//trim(tfield%name)
+            aux_tfield%aliased = .true.
+            aux_tfield%option_path = ""  ! blank the option path for consistency
+            call insert(states(p), aux_tfield, trim(aux_tfield%name))
+
+            aux_tfield=extract_tensor_field(states(p2), "Iterated"//trim(field_name))
+            aux_tfield%name = "Iterated"//trim(tfield%name)
+            aux_tfield%aliased = .true.
+            aux_tfield%option_path = ""  ! blank the option path for consistency
+            call insert(states(p), aux_tfield, trim(aux_tfield%name))
+
+          end if
+
+        end if
+
+      end do
+
+    end do      
     
     ! for mesh movement we need a "OriginalCoordinate", 
     ! "OldCoordinate" and "IteratedCoordinate" fields
@@ -2903,7 +3020,7 @@ contains
     call insert(states, aux_sfield, trim(aux_sfield%name))
     call deallocate(aux_sfield)
     
-    ! Porous media fields
+    ! Porous media fields - insert alias of fields in first state into all others
     have_porous_media: if (have_option('/porous_media')) then
        
        ! alias the OldPorosity field
@@ -2914,24 +3031,24 @@ contains
           call insert(states(p+1), aux_sfield, 'OldPorosity')
        end do
        
-       ! alias the OldPermeability field which may be 
+       ! alias the OldAbsolutePermeability field which may be 
        ! either scalar or vector (if present)
        
-       aux_sfield=extract_scalar_field(states(1), 'OldPermeability', stat = stat)
+       aux_sfield=extract_scalar_field(states(1), 'OldAbsolutePermeability', stat = stat)
        if (stat == 0) then       
           aux_sfield%aliased = .true.
           aux_sfield%option_path = ""
           do p = 1,size(states)-1
-             call insert(states(p+1), aux_sfield, 'OldPermeability')
+             call insert(states(p+1), aux_sfield, 'OldAbsolutePermeability')
           end do       
        end if
        
-       aux_vfield=extract_vector_field(states(1), 'OldPermeability', stat = stat)
+       aux_vfield=extract_vector_field(states(1), 'OldAbsolutePermeability', stat = stat)
        if (stat == 0) then       
           aux_vfield%aliased = .true.
           aux_vfield%option_path = ""
           do p = 1,size(states)-1
-             call insert(states(p+1), aux_vfield, 'OldPermeability')
+             call insert(states(p+1), aux_vfield, 'OldAbsolutePermeability')
           end do       
        end if
 
@@ -2943,24 +3060,24 @@ contains
           call insert(states(p+1), aux_sfield, 'IteratedPorosity')
        end do
        
-       ! alias the IteratedPermeability field which may be 
+       ! alias the IteratedAbsolutePermeability field which may be 
        ! either scalar or vector (if present)
        
-       aux_sfield=extract_scalar_field(states(1), 'IteratedPermeability', stat = stat)
+       aux_sfield=extract_scalar_field(states(1), 'IteratedAbsolutePermeability', stat = stat)
        if (stat == 0) then       
           aux_sfield%aliased = .true.
           aux_sfield%option_path = ""
           do p = 1,size(states)-1
-             call insert(states(p+1), aux_sfield, 'IteratedPermeability')
+             call insert(states(p+1), aux_sfield, 'IteratedAbsolutePermeability')
           end do       
        end if
        
-       aux_vfield=extract_vector_field(states(1), 'IteratedPermeability', stat = stat)
+       aux_vfield=extract_vector_field(states(1), 'IteratedAbsolutePermeability', stat = stat)
        if (stat == 0) then       
           aux_vfield%aliased = .true.
           aux_vfield%option_path = ""
           do p = 1,size(states)-1
-             call insert(states(p+1), aux_vfield, 'IteratedPermeability')
+             call insert(states(p+1), aux_vfield, 'IteratedAbsolutePermeability')
           end do       
        end if
     

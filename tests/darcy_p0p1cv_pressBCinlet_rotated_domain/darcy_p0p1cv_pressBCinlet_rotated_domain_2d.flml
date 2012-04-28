@@ -230,7 +230,7 @@
             <mesh name="DGP0"/>
             <algorithm name="vector_python_diagnostic" material_phase_support="multiple">
               <string_value lines="20" type="code" language="python"># get the prescribed fields 
-perm = states["fluid"].scalar_fields["Permeability"]
+perm = states["fluid"].scalar_fields["AbsolutePermeability"]
 visc = states["fluid"].scalar_fields["Viscosity"]
 
 # loop the DMmesh_p0 nodes (which are element centred)
@@ -300,7 +300,7 @@ also assume that the velocity is dg</comment>
         </detectors>
       </prescribed>
     </scalar_field>
-    <scalar_field name="Permeability" rank="0">
+    <scalar_field name="AbsolutePermeability" rank="0">
       <prescribed>
         <mesh name="DGP0"/>
         <value name="WholeMesh">

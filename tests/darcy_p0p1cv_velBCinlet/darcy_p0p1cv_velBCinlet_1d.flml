@@ -12,7 +12,7 @@ the darcy flow equation is
 
 sigma*darcy_vel = - grad P
 
-sigma is a function of viscosity and permeability which are two input fields that are named in the flml - not on fluidity special names (ie. this doesnt use the porous media object options)
+sigma is a function of viscosity and absolute permeability which are two input fields that are named in the flml - not on fluidity special names (ie. this doesnt use the porous media object options)
 
 python diagnostics are used to form the sigma term that is assoicated with a p0 dg mesh (ie. element wise) and the interstitial velocity
 
@@ -249,7 +249,7 @@ the geometry is 1d and one time step is done (as nothing depends on time)</comme
             <mesh name="DGP0"/>
             <algorithm name="vector_python_diagnostic" material_phase_support="multiple">
               <string_value lines="20" type="code" language="python"># get the prescribed fields 
-perm = states["fluid"].scalar_fields["Permeability"]
+perm = states["fluid"].scalar_fields["AbsolutePermeability"]
 visc = states["fluid"].scalar_fields["Viscosity"]
 
 # loop the DMmesh_p0 nodes (which are element centred)
@@ -319,7 +319,7 @@ also assume that the velocity is dg</comment>
         </detectors>
       </prescribed>
     </scalar_field>
-    <scalar_field name="Permeability" rank="0">
+    <scalar_field name="AbsolutePermeability" rank="0">
       <prescribed>
         <mesh name="DGP0"/>
         <value name="WholeMesh">

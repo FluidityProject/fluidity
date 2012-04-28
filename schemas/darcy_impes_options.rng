@@ -767,11 +767,18 @@ Finite element discretisation may become unbounded so limiting is often necessar
           </element>
         </element>
         <optional>
-          <element name="maximum_courant_number_per_subcycle">
-            <a:documentation>Use timestep subcycling to solve this field.
+          <choice>
+            <element name="maximum_courant_number_per_advection_subcycle">
+              <a:documentation>Use timestep subcycling to solve the field advection.
 Specify the maximum courant number per subcycle. </a:documentation>
-            <ref name="real"/>
-          </element>
+              <ref name="real"/>
+            </element>
+            <element name="number_advection_subcycle">
+              <a:documentation>Use timestep subcycling to solve the field advection.
+Specify the number of advection subcycls. </a:documentation>
+              <ref name="real"/>
+            </element>
+          </choice>
         </optional>
       </element>
     </element>
@@ -1113,7 +1120,56 @@ Specify the maximum courant number per subcycle. </a:documentation>
   </define>
   <define name="darcy_impes_mesh_adaptivity_options">
     <element name="mesh_adaptivity">
-      <ref name="hr_adaptivity"/>
+      <ref name="darcy_impes_hr_adaptivity"/>
+    </element>
+  </define>
+  <define name="darcy_impes_hr_adaptivity">
+    <element name="hr_adaptivity">
+      <a:documentation>Anisotropic mesh hr-adaptivity</a:documentation>
+      <ref name="hr_adaptivity_period"/>
+      <optional>
+        <ref name="adaptive_timestep_at_adapt"/>
+      </optional>
+      <optional>
+        <ref name="minimum_number_of_nodes"/>
+      </optional>
+      <ref name="max_nodes_and_max_node_increase"/>
+      <optional>
+        <ref name="node_locking"/>
+      </optional>
+      <optional>
+        <ref name="functional_tolerance"/>
+      </optional>
+      <ref name="gradation_options_full"/>
+      <optional>
+        <!--
+          metric advection disabled, for now ...
+          metric_advection?,
+        -->
+        <ref name="geometric_constraints"/>
+      </optional>
+      <optional>
+        <ref name="bounding_box_factor"/>
+      </optional>
+      <ref name="min_and_max_edge_and_reference_mesh_bound_and_aspect_ratio_bound"/>
+      <optional>
+        <ref name="preserve_mesh_regions"/>
+      </optional>
+      <optional>
+        <ref name="vertically_structured_adaptivity"/>
+      </optional>
+      <optional>
+        <ref name="zoltan_options"/>
+      </optional>
+      <optional>
+        <ref name="adaptivity_library"/>
+      </optional>
+      <optional>
+        <ref name="adapt_iterations"/>
+      </optional>
+      <optional>
+        <ref name="hr_adaptivity_debug"/>
+      </optional>
     </element>
   </define>
   <define name="darcy_impes_porous_media_model">

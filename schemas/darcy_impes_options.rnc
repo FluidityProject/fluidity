@@ -728,11 +728,18 @@ darcy_impes_saturation_field_temporal_discretisation_only_explicit =
                   ("0.0")
                }
             },
-            ## Use timestep subcycling to solve this field.
-            ## Specify the maximum courant number per subcycle. 
-            element maximum_courant_number_per_subcycle {
-               real
-            }?
+            (
+               ## Use timestep subcycling to solve the field advection.
+               ## Specify the maximum courant number per subcycle. 
+               element maximum_courant_number_per_advection_subcycle {
+                  real
+               }|
+               ## Use timestep subcycling to solve the field advection.
+               ## Specify the number of advection subcycls. 
+               element number_advection_subcycle {
+                  real
+               }
+            )?               
          }
       }
    )
@@ -1019,9 +1026,35 @@ darcy_impes_include_cv_stat =
 
 darcy_impes_mesh_adaptivity_options =
    element mesh_adaptivity {
-      hr_adaptivity
+      darcy_impes_hr_adaptivity
    }
 
+
+darcy_impes_hr_adaptivity = 
+   (
+      ## Anisotropic mesh hr-adaptivity
+      element hr_adaptivity {
+         hr_adaptivity_period,
+         adaptive_timestep_at_adapt?,
+         minimum_number_of_nodes?,
+         max_nodes_and_max_node_increase,
+         node_locking?,
+         functional_tolerance?,
+         gradation_options_full,
+         # metric advection disabled, for now ...
+         #metric_advection?,
+         geometric_constraints?,
+         bounding_box_factor?,
+         min_and_max_edge_and_reference_mesh_bound_and_aspect_ratio_bound,
+         preserve_mesh_regions?,
+         vertically_structured_adaptivity?,
+         zoltan_options?,
+         adaptivity_library?,
+         adapt_iterations?,
+         hr_adaptivity_debug?
+      }   
+   )
+   
 
 darcy_impes_porous_media_model =
    (

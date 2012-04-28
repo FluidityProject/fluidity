@@ -242,24 +242,6 @@ program Darcy_IMPES
       call set_option("/timestepping/timestep", di%dt)
       dt = di%dt
    end if
-      
-   if(have_option("/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep")) then
-
-      if(have_option("/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt")) then
-         call get_option('/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt',nonlinear_iterations_adapt)
-         nonlinear_iterations = nonlinear_iterations_adapt
-      end if
-
-      call adapt_state_first_timestep(state)
-      
-      ! *** Update Darcy IMPES post spatial adapt ***
-      call darcy_impes_update_post_spatial_adapt(di, &
-                                                 state, &
-                                                 dt)
-            
-      ! Ensure that checkpoints do not adapt at first timestep.
-      call delete_option("/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep")
-   end if
    
    ! Initial diagnostics output via ewrite
    call run_diagnostics(state)
@@ -348,7 +330,10 @@ program Darcy_IMPES
          ewrite(1,*)'###################'         
          
          call copy_to_stored_values(state, "Iterated")
-      
+         
+         ! *** Set the Darcy IMPES nonlinear_iter
+         di%nonlinear_iter = its
+         
          ! *** Solve the Darcy equations using IMPES ***
          call darcy_impes_assemble_and_solve(di)
       
@@ -561,9 +546,12 @@ contains
       ewrite(1,*) 'Initialise Darcy IMPES data'
       
       ! Auxilliary fields.
-      call allocate_and_insert_auxilliary_fields(state)
+      call allocate_and_insert_auxilliary_fields(state, &
+                                                 force_prescribed_diagnositc_allocate_old_iterated = .true.)
       
       di%dt = dt
+      
+      di%nonlinear_iter = 0
       
       call get_option('/geometry/dimension', di%ndim)
       
@@ -632,7 +620,10 @@ contains
          di%old_cfl(p)%ptr                     => extract_scalar_field(di%state(p), "OldInterstitialVelocityCFL")
          di%darcy_velocity(p)%ptr              => extract_vector_field(di%state(p), "DarcyVelocity")
          di%fractional_flow(p)%ptr             => extract_vector_field(di%state(p), "FractionalFlow")
-
+         
+         ! Initialise the inter vphi to 0.0
+         call zero(di%inter_velocity_porosity(p)%ptr)
+         
       end do
       
       ! Allocate field used for the subcycle time step cfl
@@ -688,15 +679,29 @@ contains
                                                &di%saturation(1)%ptr%mesh%shape%numbering%family, &
                                                &mesh_dim(di%saturation(1)%ptr))
 
-      ! Determine the saturation subcycle options
-      di%subcy_opt_sat%have = have_option(trim(complete_field_path(di%saturation(1)%ptr%option_path))//&
-                                         &'/temporal_discretisation/control_volumes/maximum_courant_number_per_subcycle')
+      ! Determine the saturation advection subcycle options
+      di%subcy_opt_sat%have_max_cfl = have_option(trim(complete_field_path(di%saturation(1)%ptr%option_path))//&
+                                     &'/temporal_discretisation/control_volumes/maximum_courant_number_per_advection_subcycle')
       
-      if (di%subcy_opt_sat%have) then
+      if (di%subcy_opt_sat%have_max_cfl) then
       
-         call get_option(trim(complete_field_path(di%saturation(1)%ptr%option_path))//'/temporal_discretisation/control_volumes/maximum_courant_number_per_subcycle', &
-                         di%subcy_opt_sat%max_courant_per_subcycle)
+         call get_option(trim(complete_field_path(di%saturation(1)%ptr%option_path))//'/temporal_discretisation/control_volumes/maximum_courant_number_per_advection_subcycle', &
+                         di%subcy_opt_sat%max_courant_per_advection_subcycle)
       
+      end if
+
+      di%subcy_opt_sat%have_number = have_option(trim(complete_field_path(di%saturation(1)%ptr%option_path))//&
+                                    &'/temporal_discretisation/control_volumes/number_advection_subcycle')
+      
+      if (di%subcy_opt_sat%have_number) then
+      
+         call get_option(trim(complete_field_path(di%saturation(1)%ptr%option_path))//'/temporal_discretisation/control_volumes/number_advection_subcycle', &
+                         di%subcy_opt_sat%number_advection_subcycle)
+      
+      end if
+      
+      if (di%subcy_opt_sat%have_max_cfl .and. di%subcy_opt_sat%have_number) then
+         FLAbort('Cannot have max cfl and given number for subcycling')
       end if
       
       ! Determine the adaptive time stepping options
@@ -823,6 +828,8 @@ contains
       
       di%dt = 0.0
       
+      di%nonlinear_iter = 0
+      
       di%ndim = 0
       
       nullify(di%state)
@@ -886,18 +893,18 @@ contains
       
       ! Nothing can be done for di%saturation_cv_options
       
-      di%subcy_opt_sat%have = .false.
+      di%subcy_opt_sat%have_number                        = .false.
+      di%subcy_opt_sat%have_max_cfl                       = .false.
+      di%subcy_opt_sat%number_advection_subcycle          = 0      
+      di%subcy_opt_sat%max_courant_per_advection_subcycle = 0.0
       
-      di%subcy_opt_sat%max_courant_per_subcycle = 0.0
-      
-      di%adaptive_dt_options%have = .false.
-      
-      di%adaptive_dt_options%requested_cfl = 0.0
-      di%adaptive_dt_options%min_dt = 0.0
-      di%adaptive_dt_options%max_dt = 0.0
-      di%adaptive_dt_options%increase_tolerance = 0.0
+      di%adaptive_dt_options%have                        = .false.
+      di%adaptive_dt_options%requested_cfl               = 0.0
+      di%adaptive_dt_options%min_dt                      = 0.0
+      di%adaptive_dt_options%max_dt                      = 0.0
+      di%adaptive_dt_options%increase_tolerance          = 0.0
       di%adaptive_dt_options%min_dt_terminate_if_reached = .false.
-      di%adaptive_dt_options%at_first_dt = .false.
+      di%adaptive_dt_options%at_first_dt                 = .false.
       
       di%quaddegree = 0
       
