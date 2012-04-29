@@ -332,7 +332,8 @@ Fsi_Model.o ../include/fsi_model.mod: Fsi_Model.F90 \
    ../include/fdebug.h ../include/fefields.mod ../include/fetools.mod \
    ../include/field_derivatives.mod ../include/fields.mod \
    ../include/fields_manipulation.mod ../include/fldebug.mod \
-   ../include/futils.mod ../include/global_parameters.mod ../include/halos.mod \
+   ../include/fsi_projections.mod ../include/futils.mod \
+   ../include/global_parameters.mod ../include/halos.mod \
    ../include/interpolation_module.mod \
    ../include/intersection_finder_module.mod ../include/linked_lists.mod \
    ../include/mesh_files.mod ../include/meshdiagnostics.mod \
@@ -342,11 +343,21 @@ Fsi_Model.o ../include/fsi_model.mod: Fsi_Model.F90 \
    ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
    ../include/sparsity_patterns.mod ../include/spud.mod \
    ../include/state_fields_module.mod ../include/state_module.mod \
-   ../include/supermesh_construction.mod ../include/supermesh_force.mod \
-   ../include/tensors.mod ../include/tetrahedron_intersection_module.mod \
+   ../include/supermesh_construction.mod ../include/tensors.mod \
+   ../include/tetrahedron_intersection_module.mod \
    ../include/timeloop_utilities.mod ../include/transform_elements.mod \
    ../include/unify_meshes_module.mod ../include/unittest_tools.mod \
    ../include/vector_tools.mod ../include/vtk_interfaces.mod
+
+../include/fsi_projections.mod: Fsi_Projections.o
+	@true
+
+Fsi_Projections.o ../include/fsi_projections.mod: Fsi_Projections.F90 \
+   ../include/bound_field_module.mod ../include/fdebug.h \
+   ../include/fefields.mod ../include/global_parameters.mod \
+   ../include/linked_lists.mod ../include/solvers.mod \
+   ../include/supermesh_construction.mod \
+   ../include/tetrahedron_intersection_module.mod
 
 ../include/full_projection.mod: Full_Projection.o
 	@true
@@ -789,25 +800,6 @@ State_Matrices.o ../include/state_matrices_module.mod: State_Matrices.F90 \
    ../include/global_parameters.mod ../include/gradient_matrix_cg.mod \
    ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
    ../include/state_module.mod
-
-../include/supermesh_force.mod: Supermesh_Force.o
-	@true
-
-Supermesh_Force.o ../include/supermesh_force.mod: Supermesh_Force.F90 \
-   ../include/adjacency_lists.mod ../include/bound_field_module.mod \
-   ../include/boundary_conditions.mod ../include/data_structures.mod \
-   ../include/diagnostic_fields.mod ../include/fdebug.h \
-   ../include/fefields.mod ../include/fetools.mod ../include/fields.mod \
-   ../include/futils.mod ../include/global_parameters.mod ../include/halos.mod \
-   ../include/interpolation_module.mod \
-   ../include/intersection_finder_module.mod ../include/linked_lists.mod \
-   ../include/meshdiagnostics.mod ../include/solvers.mod \
-   ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
-   ../include/sparsity_patterns.mod ../include/spud.mod \
-   ../include/state_module.mod ../include/supermesh_construction.mod \
-   ../include/tensors.mod ../include/tetrahedron_intersection_module.mod \
-   ../include/transform_elements.mod ../include/unittest_tools.mod \
-   ../include/vector_tools.mod ../include/vtk_interfaces.mod
 
 ../include/surface_id_interleaving.mod: Surface_Id_Interleaving.o
 	@true
