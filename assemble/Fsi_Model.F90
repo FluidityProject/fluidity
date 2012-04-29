@@ -82,7 +82,7 @@ module fsi_model
   implicit none
 
   logical, save :: adapt_at_previous_dt
-  logical, save :: have_prescribed_solid_movement
+!  logical, save :: have_prescribed_solid_movement
 
   private
   
@@ -96,9 +96,8 @@ module fsi_model
     !! Main routine for FSI, being called every picard iteration
         type(state_type), intent(inout) :: state
         integer, intent(in) :: its, itinoi
-        type(vector_field), pointer :: fluid_position, fluid_velocity
-        type(scalar_field), pointer :: alpha_global, alpha_solidmesh
-        type(scalar_field), pointer :: old_alpha_global, old_alpha_solidmesh
+        type(scalar_field), pointer :: alpha_global
+        type(scalar_field), pointer :: old_alpha_global
         logical :: recompute_alpha
         logical :: solid_moved
 
@@ -134,8 +133,6 @@ module fsi_model
         !end if
 
         ! Do we need to compute the new alpha field(s)?
-        print *, "*****************************************************"
-        print *, "value of recompute_alpha = ", recompute_alpha
         if (recompute_alpha) then
             call fsi_ibm_projections(state)
         end if
@@ -200,7 +197,7 @@ module fsi_model
         type(vector_field), pointer :: solid_position_mesh
         type(scalar_field), pointer :: alpha_global, alpha_solidmesh
         
-        type(scalar_field) :: solid_unity, alpha_tmp
+        type(scalar_field) :: alpha_tmp
         character(len=OPTION_PATH_LEN) :: mesh_name
         integer :: num_solid_mesh
         integer :: i
@@ -239,9 +236,6 @@ module fsi_model
             ! And add the alpha of the current solid to the global alpha (of all solids):
             call addto(alpha_global, alpha_solidmesh)
 
-            ewrite(2,*) "**********************************************"
-            ewrite_minmax(alpha_global)
-
             ! Deallocate temp arrays:
             call deallocate(alpha_tmp)
 
@@ -277,13 +271,10 @@ module fsi_model
 
         else if (have_option("/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/grandy_interpolation")) then
             ! Grandy interpolation:
-!            ! Get list of intersections:
-!            allocate(map_SF(ele_count(fluid_position)))
-!            call fsi_compute_intersection_map(state, solid_position, map_SF)
-            ! Compute alpha:
             call fsi_one_way_grandy_interpolation(fluid_position, solid_position, alpha_tmp)
         
-        ! Add more interpolations here
+        !else
+            ! Add more interpolations here
         
         end if
 
@@ -355,7 +346,6 @@ module fsi_model
         type(vector_field), pointer, intent(in) :: fluid_position, solid_position
 
         type(mesh_type), pointer :: solid_mesh, fluid_mesh
-        type(vector_field) :: solid_pos, fluid_pos
 
         ewrite(2,*) "inside fsi_assemble_fs_states"
 
@@ -414,8 +404,6 @@ module fsi_model
       type(state_type), intent(in) :: state
       type(vector_field), pointer :: solid_position
       type(vector_field) :: solid_movement
-      real :: test
-      character(len=PYTHON_FUNC_LEN) :: func
 
       ewrite(2,*) "inside move_solid_mesh"
 
@@ -597,7 +585,6 @@ module fsi_model
               do i = 1, size(nodes)
                   if (node_val(alpha, nodes(i)) .gt. 0.0) then
                       do j = 1, solidforce%dim
-!                          call set(solidforce, j, nodes(i), node_val(fluid_absorption,j, nodes(i))*node_val(fluid_velocity,j,nodes(i)))
                           call set(solidforce, j, nodes(i), (node_val(alpha, nodes(i)) / dt) * (node_val(fluid_velocity,j,nodes(i))) )
                       end do
                   end if
@@ -697,7 +684,6 @@ module fsi_model
     !! Compute all sorts of FSI diagnostics
       type(state_type), intent(inout) :: state
       type(vector_field), pointer :: fluid_coord
-      type(scalar_field) :: lumped_mass
       type(vector_field), pointer :: solidforce
 
       real, dimension(:), allocatable :: solid_force_diag, pre_solid_vel
@@ -798,7 +784,7 @@ module fsi_model
     subroutine fsi_initialise(state)
     !! Initialise fields and meshes for FSI problems
       type(state_type), intent(inout) :: state
-      type(vector_field), pointer :: fluid_positions, solid_force
+      type(vector_field), pointer :: fluid_position, solid_force
       type(vector_field) :: solid_position, solidforce_mesh
       type(scalar_field) :: alpha_solidmesh
       type(scalar_field), pointer :: alpha_global
@@ -809,7 +795,7 @@ module fsi_model
       integer :: i, num_solid_mesh
 
       ! pointer to vector field of coordinates of fluids mesh:
-      fluid_positions => extract_vector_field(state, "Coordinate")
+      fluid_position => extract_vector_field(state, "Coordinate")
       ! Get global solid volume fraction field:
       alpha_global => extract_scalar_field(state, "SolidConcentration")
       ! and the solid force field in state:
@@ -819,11 +805,9 @@ module fsi_model
       ! check for mutiple solids and get translation coordinates
       num_solid_mesh = option_count('/embedded_models/fsi_model/geometry/mesh')
 
-      ! Get option of interpolation/projection to obtain the SolidConcentration:
-!      have_supermesh_projection = have_option('/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/galerkin_projection')
-!      have_grandy_projection = have_option('/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/grandy_interpolation')
-
       ! If we have multiple solids with the exact same geometry, we could just translate their positions via a python function:
+      ! The code below might work, but routines are called that are not designed for this, 
+      ! so the code below needs to be reviewed and changed if this functionality is wanted!
       !if (translate_solid) then
          !allocate(translation_coordinates(positions%dim, number_of_solids))
          !call get_option("/embedded_models/fsi_model/mesh[0]/python", python_function)
@@ -851,23 +835,19 @@ module fsi_model
          ! Now copy those back to the solid_position field:
          solid_position%mesh = solid_mesh
          solid_position%name = trim(solid_mesh%name)//'SolidCoordinate'
-         
+
          ! Insert solid_mesh and solid_position into state:
          call insert(state, solid_mesh, trim(solid_mesh%name))
          call insert(state, solid_position, trim(solid_position%name))
 
          ! Also set-up solidvolumefraction field for all solids:
-         call allocate(alpha_solidmesh, fluid_positions%mesh, trim(solid_mesh%name)//"SolidConcentration")
+         call allocate(alpha_solidmesh, fluid_position%mesh, trim(solid_mesh%name)//"SolidConcentration")
          alpha_solidmesh%option_path = alpha_global%option_path
          call zero(alpha_solidmesh)
          ! And insert it into state so that we have one solidconcentration field per solidmesh:
          call insert(state, alpha_solidmesh, trim(solid_mesh%name)//"SolidConcentration")
          call deallocate(alpha_solidmesh)
-         
-         ! Same for absorption and force:
-         ! Absorption first:
-!         solidforce => extract_vector_field(state, trim(solid_mesh%name)//"SolidForce")
-         
+
          ! And the solidforce:
          call allocate(solidforce_mesh, solid_force%dim, solid_force%mesh, trim(solid_mesh%name)//"SolidForce")
          solidforce_mesh%option_path = solid_force%option_path
@@ -875,10 +855,13 @@ module fsi_model
          call insert(state, solidforce_mesh, trim(solid_mesh%name)//"SolidForce")
          call deallocate(solidforce_mesh)
 
+         ! Abort if dimensions of fluid and solid mesh don't add up
+         assert(fluid_position%dim == solid_position%dim)         
+
       end do solid_mesh_loop
 
       ! 1D set-ups not supported:
-      assert(fluid_positions%dim >= 2)
+      assert(fluid_position%dim >= 2)
 
     end subroutine fsi_initialise
 
