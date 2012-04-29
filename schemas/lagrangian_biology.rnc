@@ -49,22 +49,40 @@ lagrangian_biology =
                      state_variable |
                      chemical_variable
                   )*
-               }|
-               ## Built-in variable set corresponding to LERM Diatoms.
-               element variables_lerm {
-                  element scalar_field {
-                     attribute name { 'Particulate' },
-                     element diagnostic {
-                        internal_algorithm,
-                        diagnostic_scalar_field_no_adapt
-                     },
-                     ## Add diagnostic field that represents the total quantity across all stages of the FG.
-                     element stage_aggregate {
-                        empty
-                     }?
-                  }
                }
             ),
+            element initial_state {
+               ## The number of detectors prescribed by the python function.
+               element number_of_agents {
+                  integer
+               },                     
+               ## Python function prescribing dimensional vector input. Functions should be of the form:
+               ##
+               ##  def val(t):
+               ##     # Function code
+               ##     return # Return value
+               ##
+               ## The return value must have length number_of_detectors.
+               ##
+               ## *** IMPORTANT NOTE ***
+               ##
+               ## The t argument is for future use only - currently detector locations are only set at simulation start.
+               element position {
+                  python_code
+               },
+               (
+                  ## Python function to set the initial state of the agent. 
+                  ## A dictionary mapping variable name to value gets passed to the function, where the stage ID is already set,
+                  ## which needs to be returned with the appropriate initial variable values, eg.:
+                  ##
+                  ##  def val(biovars):
+                  ##     biovars['VarName'] = 1.0
+                  ##     return biovars
+                  element biology {
+                     python_code
+                  }
+               )
+            },
             (
                ## This option holds a list of fields that define the ambient environment for agents of this Functional Group. 
                ## The local values of fields listed here will be presented in a dictionary 'environment' to the agent update function.
@@ -73,10 +91,6 @@ lagrangian_biology =
                   element field {
                      attribute name { xsd:string }
                   }*
-               }|
-               ## Built-in environment option for LERM Diatoms.
-               element environment_lerm {
-                  empty
                }
             ),
             ##
@@ -85,43 +99,6 @@ lagrangian_biology =
                element stage {
                   comment,
                   attribute name { xsd:string },
-                  ## Stage identifier
-                  element id { real },
-                  element initial_state {
-                     ## The number of detectors prescribed by the python function.
-                     element number_of_agents {
-                        integer
-                     },                     
-                     ## Python function prescribing dimensional vector input. Functions should be of the form:
-                     ##
-                     ##  def val(t):
-                     ##     # Function code
-                     ##     return # Return value
-                     ##
-                     ## The return value must have length number_of_detectors.
-                     ##
-                     ## *** IMPORTANT NOTE ***
-                     ##
-                     ## The t argument is for future use only - currently detector locations are only set at simulation start.
-                     element position {
-                        python_code
-                     },
-                     (
-                        ## Python function to set the initial state of the agent. 
-                        ## A dictionary mapping variable name to value gets passed to the function, where the stage ID is already set,
-                        ## which needs to be returned with the appropriate initial variable values, eg.:
-                        ##
-                        ##  def val(biovars):
-                        ##     biovars['VarName'] = 1.0
-                        ##     return biovars
-                        element biology {
-                           python_code
-                        }|
-                        element biology_lerm_living_diatom {
-                           empty
-                        }
-                     )
-                  },
                   ## Movement options
                   element movement {
                      ## Number of explicit subdivisions of the timestep.
@@ -247,14 +224,6 @@ lagrangian_biology =
                            ## Python code specifying the biology model.
                            element python {
                               python_code
-                           }|
-                           ## Builtin update code for living LERM diatoms
-                           element lerm_living_diatom {
-                              empty
-                           }|
-                           ## Builtin update code for dead LERM diatoms
-                           element lerm_dead_diatom {
-                              empty
                            }
                         )
                      }|

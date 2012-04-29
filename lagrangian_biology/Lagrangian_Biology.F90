@@ -112,6 +112,8 @@ contains
     ! Create a persistent dictionary of FG variable and environment name mappings
     call python_run_string("persistent['fg_var_names'] = dict()")
     call python_run_string("persistent['fg_env_names'] = dict()")
+
+    ! Initialise Python module 'lebiology'
     call lebiology_init_module()
 
     ! We create an agent array for each stage of each Functional Group
@@ -123,9 +125,33 @@ contains
        ! Get biology meta-data
        if (have_option(trim(fg_buffer)//"/variables")) then
           call read_functional_group(fgroup, trim(fg_buffer))
+
+          ! Add variable names to the Python module
           call lebiology_add_variables(fgroup)
        else
           FLExit("No variables defined for functional group under: "//trim(fg_buffer))
+       end if
+
+       ! Record the environment fields to sample before agent update
+       if (have_option(trim(fg_buffer)//"/environment")) then
+          n_env_fields = option_count(trim(fg_buffer)//"/environment/field")
+          allocate(fgroup%envfield_names(n_env_fields))
+          do j=1, n_env_fields
+             write(env_field_buffer, "(a,i0,a)") trim(fg_buffer)//"/environment/field[",j-1,"]"
+             call get_option(trim(env_field_buffer)//"/name", fgroup%envfield_names(j))
+          end do
+
+          ! Add field names to the Python module
+          call lebiology_add_envfields(fgroup)
+       else
+          FLExit("No environment fields defined for functional group "//trim(fgroup%name))
+       end if
+
+       ! Get initialisation options
+       if (have_option(trim(fg_buffer)//"/initial_state")) then
+          fgroup%init_options = trim(fg_buffer)//"/initial_state"
+       else
+          FLExit("No initialisation options found for FG::"//trim(fgroup%name))
        end if
 
        n_stages = option_count(trim(fg_buffer)//"/stages/stage")
@@ -140,9 +166,8 @@ contains
 
           agent_array%name = trim(functional_groups(fg)%name)//trim(stage_name)
           agent_array%stage_name = trim(stage_name)
-          call get_option(trim(stage_buffer)//"/id", agent_array%stage_id)
           agent_array%id=array
-          call lebiology_set_stage_id(fgroup, stage_name, agent_array%stage_id)
+          call lebiology_set_stage_id(fgroup, stage_name, float(array))
 
           ! Register the agent array, so Zoltan/Adaptivity will not forget about it
           call register_detector_list(agent_array)
@@ -158,20 +183,6 @@ contains
           do j=1, size(functional_groups(fg)%variables)
              call python_run_string("persistent['fg_var_names']['"//trim(agent_array%name)//"'].append('"//trim(functional_groups(fg)%variables(j)%name)//"')")
           end do
-
-          ! Record which environment fields to evaluate and pass to the update function
-          if (have_option(trim(fg_buffer)//"/environment")) then
-             n_env_fields = option_count(trim(fg_buffer)//"/environment/field")
-             call python_run_string("persistent['fg_env_names']['"//trim(agent_array%name)//"'] = []")
-             allocate(agent_array%env_field_name(n_env_fields))
-             do j=1, n_env_fields
-                write(env_field_buffer, "(a,i0,a)") trim(fg_buffer)//"/environment/field[",j-1,"]"
-                call get_option(trim(env_field_buffer)//"/name", agent_array%env_field_name(j))
-                call python_run_string("persistent['fg_env_names']['"//trim(agent_array%name)//"'].append('"//trim(agent_array%env_field_name(j))//"')")
-             end do
-          else
-             FLExit("No environment fields defined for functional group "//trim(agent_array%fgroup%name))
-          end if
 
           ! Store the python update code
           if (have_option(trim(stage_buffer)//"/biology/python")) then
@@ -191,9 +202,10 @@ contains
 
     type(functional_group), pointer :: fgroup
     type(detector_linked_list), pointer :: agent_array
+    type(detector_linked_list) :: init_array
     type(detector_type), pointer :: agent
     type(vector_field), pointer :: xfield
-    character(len=PYTHON_FUNC_LEN) :: func
+    character(len=PYTHON_FUNC_LEN) :: pos_func, bio_func
     character(len=OPTION_PATH_LEN) :: stage_buffer
     real, allocatable, dimension(:,:) :: coords
     real:: current_time
@@ -214,25 +226,45 @@ contains
     ! We create an agent array for each stage of each Functional Group
     do fg=1, get_num_functional_groups()
        fgroup => get_functional_group(fg)
+
+       ! Create agents and insert into list
+       call get_option(trim(fgroup%init_options)//"/number_of_agents", n_agents)
+       call get_option(trim(fgroup%init_options)//"/position", pos_func)
+       allocate(coords(dim,n_agents))
+       call set_detector_coords_from_python(coords, n_agents, pos_func, current_time)
+
+       do ag=1, n_agents
+          call create_single_detector(init_array, xfield, coords(:,ag), LAGRANGIAN_DETECTOR)
+       end do
+       deallocate(coords)
+
+       ! Initialise agent biology variables
+       if (allocated(fgroup%variables)) then
+          if (have_option(trim(fgroup%init_options)//"/biology")) then
+             call get_option(trim(fgroup%init_options)//"/biology", bio_func)
+             call lebiology_prepare_pyfunc(fgroup, "Agent_Init", bio_func)
+
+             agent => init_array%first
+             do while (associated(agent))
+                allocate(agent%biology(size(fgroup%variables)))
+                call lebiology_initialise_agent(fgroup, "Agent_Init", agent)
+                agent => agent%next
+             end do
+          end if
+       end if
+
+       ewrite(2,*) "Lagrangian biology: Initialised ", init_array%length, " agents for FG::", trim(fgroup%name)
+
+       ! After initialising agents in a temporary array 
+       ! we now move them according to their stage
+       call distribute_by_stage(fgroup, init_array)
+
        do stage=1, size(fgroup%agent_arrays)
           agent_array => fgroup%agent_arrays(stage)
           stage_buffer = trim(agent_array%stage_options)
 
-          call get_option(trim(stage_buffer)//"/initial_state/number_of_agents", n_agents)
-          agent_array%total_num_det=n_agents
-
           ! Only allow binary output
           agent_array%binary_output=.true.
-
-          ! Create agent and insert into list
-          call get_option(trim(stage_buffer)//"/initial_state/position", func)
-          allocate(coords(dim,n_agents))
-          call set_detector_coords_from_python(coords, n_agents, func, current_time)
-
-          do ag=1, n_agents
-             call create_single_detector(agent_array, xfield, coords(:,ag), LAGRANGIAN_DETECTOR)
-          end do
-          deallocate(coords)
 
           ! Set agent%list_id, because we need it to detect stage changes
           agent=>agent_array%first
@@ -240,21 +272,6 @@ contains
              agent%list_id=agent_array%id
              agent=>agent%next
           end do
-
-          ewrite(2,*) "Lagrangian biology: Initialised ", agent_array%length, "agents locally for ", trim(agent_array%name)
-
-          ! Initialise agent biology variables
-          if (allocated(fgroup%variables)) then
-             if (have_option(trim(stage_buffer)//"/initial_state/biology")) then
-                call get_option(trim(stage_buffer)//"/initial_state/biology", func)
-                agent => agent_array%first
-                do while (associated(agent))
-                   allocate(agent%biology(size(fgroup%variables)))
-                   call python_init_agent_biology(agent, agent_array, trim(func))
-                   agent => agent%next
-                end do
-             end if
-          end if
 
           call write_detector_header(state, agent_array)
 
@@ -568,12 +585,11 @@ contains
 
     type(functional_group), pointer :: fgroup
     type(detector_linked_list), pointer :: agent_array
-    type(detector_type), pointer :: agent, agent_to_move
     type(detector_linked_list) :: stage_change_list
+    type(detector_type), pointer :: agent, agent_to_move
     type(vector_field), pointer :: xfield
     type(scalar_field_pointer), dimension(:), pointer :: env_fields
     integer :: i, j, f, v, env, pm_period, hvar, hvar_ind, hvar_src_ind, fg, stage
-    logical :: python_update
 
     ewrite(1,*) "Lagrangian biology: Updating agents..."
     call profiler_tic("/update_lagrangian_biology")
@@ -581,8 +597,10 @@ contains
     xfield=>extract_vector_field(state(1), "Coordinate")
 
     ! Prepare python-state
+    call profiler_tic("/update_lagrangian_biology::python_reload")
     call python_reset()
     call python_add_state(state(1))
+    call profiler_toc("/update_lagrangian_biology::python_reload")
 
     do fg=1, get_num_functional_groups()
        fgroup => get_functional_group(fg)
@@ -590,6 +608,13 @@ contains
        ! Aggregate food concentrations
        if (allocated(fgroup%food_sets)) then
           call aggregate_food_diagnostics(state(1), fgroup)
+       end if
+
+       if (allocated(fgroup%envfield_names)) then
+          allocate(env_fields(size(fgroup%envfield_names)))
+          do env=1, size(fgroup%envfield_names)
+             env_fields(env)%ptr => extract_scalar_field(state(1), fgroup%envfield_names(env))
+          end do
        end if
 
        do stage=1, size(fgroup%agent_arrays)
@@ -615,23 +640,11 @@ contains
           end if
 
           if (have_option(trim(agent_array%stage_options)//"/biology") .and. agent_array%length > 0 ) then
-
              ewrite(2,*) "Lagrangian biology: Updating ", trim(agent_array%name)
-             
-             if (have_option(trim(agent_array%stage_options)//"/biology/python")) then
-                python_update=.true.
-             else
-                python_update=.false.
-             end if
 
              if (have_option(trim(agent_array%stage_options)//"/biology/python")) then
                 ! Compile python function to set bio-variable, and store in the global dictionary
-                call python_run_detector_string(trim(agent_array%biovar_pycode), trim(agent_array%name), trim("biology_update"))
-
-                allocate(env_fields(size(agent_array%env_field_name)))
-                do env=1, size(agent_array%env_field_name)
-                   env_fields(env)%ptr => extract_scalar_field(state(1), agent_array%env_field_name(env))
-                end do
+                call lebiology_prepare_pyfunc(fgroup, trim(agent_array%stage_name)//"_Update", agent_array%biovar_pycode)
              end if
 
              ! Update agent biology
@@ -647,11 +660,8 @@ contains
                    end if
                 end do
 
-                if (python_update) then
-                   call python_calc_agent_biology(agent, env_fields, dt, trim(agent_array%name), trim("biology_update"))
-                else
-                   FLExit("No biology update function specified!")
-                end if
+                ! Update agent via the Python module
+                call lebiology_update_agent(fgroup, trim(agent_array%stage_name)//"_Update", agent, env_fields, dt)
 
                 ! Reset Ingested variables
                 do v=1, size(fgroup%variables)
@@ -662,7 +672,7 @@ contains
                 end do
 
                 ! Check for stage change
-                if (agent%biology(BIOVAR_STAGE) /= agent_array%stage_id) then
+                if (nint(agent%biology(BIOVAR_STAGE)) /= agent_array%id) then
                    agent_to_move=>agent
                    agent=>agent%next
                    call move(agent_to_move, agent_array, stage_change_list)
@@ -671,28 +681,16 @@ contains
                 end if
              end do
 
-             if (python_update) then
-                deallocate(env_fields)
-             end if
           end if  ! have_biology
 
        end do  ! stages
 
+       if (associated(env_fields)) then
+          deallocate(env_fields)
+       end if
+
        ! Handle stage changes within FG
-       ewrite(2,*) "Handling stage changes for FG::", fgroup%name
-       agent=>stage_change_list%first
-       stage_change_loop: do while (associated(agent))
-          do j=1, size(fgroup%agent_arrays)
-             if (fgroup%agent_arrays(j)%stage_id==agent%biology(BIOVAR_STAGE)) then
-                agent_to_move=>agent
-                agent=>agent%next
-                call move(agent_to_move, stage_change_list, fgroup%agent_arrays(j))
-                cycle stage_change_loop
-             end if
-          end do
-          ewrite(-1,*) "Lagrangian biology: Target stage ID ", agent%biology(BIOVAR_STAGE), "not defined"
-          FLExit("Lagrangian biology: Target stage not found")
-       end do stage_change_loop
+       call distribute_by_stage(fgroup, stage_change_list)
 
        ! Derive the primary (per-stage) diangostic fields for each stage
        ! before we iterate over the next FGroup, since the food aggregation
@@ -708,10 +706,15 @@ contains
     end do  ! FGroup
 
     ! Execute chemical uptake/release
+    call profiler_tic("/update_lagrangian_biology::chemical_exchange")
     call aggregate_chemical_diagnostics(state(1))
     call chemical_uptake(state(1))
     call chemical_release(state(1))
+    call profiler_toc("/update_lagrangian_biology::chemical_exchange")
+
+    call profiler_tic("/update_lagrangian_biology::ingestion_handling")
     call ingestion_handling(state(1))
+    call profiler_toc("/update_lagrangian_biology::ingestion_handling")
 
     ! Particle Management
     do fg=1, get_num_functional_groups()
@@ -752,6 +755,31 @@ contains
 
   end function
 
+  subroutine distribute_by_stage(fgroup, agent_list)
+    type(functional_group), pointer, intent(inout):: fgroup
+    type(detector_linked_list), intent(inout):: agent_list
+
+    type(detector_type), pointer :: agent, agent_to_move
+    integer :: j
+
+    ! Handle stage changes within FG
+    ewrite(2,*) "Lagrangian biology: Distributing agents by stage for FG::", fgroup%name
+    agent=>agent_list%first
+    agent_loop: do while (associated(agent))
+       do j=1, size(fgroup%agent_arrays)
+          if (fgroup%agent_arrays(j)%id==nint(agent%biology(BIOVAR_STAGE))) then
+             agent_to_move=>agent
+             agent=>agent%next
+             call move(agent_to_move, agent_list, fgroup%agent_arrays(j))
+             cycle agent_loop
+          end if
+       end do
+       ewrite(-1,*) "Lagrangian biology: Target stage ID ", agent%biology(BIOVAR_STAGE), "not defined"
+       FLExit("Lagrangian biology: Target stage not found")
+    end do agent_loop
+
+  end subroutine distribute_by_stage
+
   subroutine derive_primary_diagnostics(state, agent_list)
     ! Set per-stage diagnostic fields from agent variables, 
     ! including agent counts and chemical request/release fields
@@ -765,7 +793,7 @@ contains
     integer :: i
     real :: ele_volume, release_amount
 
-    ewrite(2,*) "Lagrangian biology: Deriving primary diagnostic fields"
+    ewrite(2,*) "Lagrangian biology: Deriving primary diagnostic fields for ", (agent_list%name)
 
     call profiler_tic(trim(agent_list%name)//"::primary_diagnostics")
 
@@ -824,7 +852,7 @@ contains
 
   subroutine aggregate_diagnostics_by_stage(state, fgroup)
     type(state_type), intent(inout) :: state
-    type(functional_group), pointer , intent(inout):: fgroup
+    type(functional_group), pointer, intent(inout):: fgroup
 
     type(scalar_field), pointer :: diagfield_agg, diagfield_stage
     type(le_variable), pointer :: var

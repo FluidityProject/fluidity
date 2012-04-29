@@ -167,12 +167,9 @@ module detector_data_types
 
      !! Biology options
      type(functional_group), pointer :: fgroup => null()
-     real :: stage_id
      character(len=FIELD_NAME_LEN) :: stage_name
      character(len=OPTION_PATH_LEN) :: stage_options
      character(len=PYTHON_FUNC_LEN) :: biovar_pycode
-
-     character(len=FIELD_NAME_LEN), dimension(:), allocatable :: env_field_name
 
      !!!!!!!!!!!!!!!!!!!!!!!!!
      !!! Detector movement !!!
@@ -228,14 +225,18 @@ module detector_data_types
 
     ! List of variables that define each agent of this group
     type(le_variable), dimension(:), allocatable :: variables
-    ! Food sets
+    ! List of aggregated agent sets to feed on
     type(food_set), dimension(:), allocatable :: food_sets
+    ! List of environment fields to sample before the agent update
+    character(len=FIELD_NAME_LEN), dimension(:), allocatable :: envfield_names
 
     ! Indices of all variables that are exposed to the Python motion functions
     integer, dimension(:), allocatable :: motion_var_inds
     ! Indices of all variables that are history buffers
     integer, dimension(:), allocatable :: history_var_inds
 
+    ! Initialisation options
+    character(len=OPTION_PATH_LEN) :: init_options
     ! Option path for the Agents diagnostic field
     character(len=OPTION_PATH_LEN) :: agents_field_path
   end type functional_group

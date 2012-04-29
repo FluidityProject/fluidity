@@ -1,4 +1,5 @@
 import math
+from lebiology import stage_id
 
 # Parameters for FGroup Diatom
 # Species: Default_Diatom_Variety
@@ -36,7 +37,7 @@ params_Default_Diatom_Variety = {
 
 def update_Living_Diatom(param, vars, env, dt):
   """ FGroup:  Diatom
-      Stage:   Living   ID: 0
+      Stage:   Living
   """
   dt_in_hours = dt / 3600.0
 
@@ -85,7 +86,7 @@ def update_Living_Diatom(param, vars, env, dt):
   C_new = max(0.0, (((vars['Carbon'] * (P_phot_c - (R_C * T_function)) * dt_in_hours) + vars['Carbon']) / C_d))
   death_flag = ((1.0) if ((C_new <= param['C_starve'])) else (0.0))
   if (death_flag == 1.0):
-    vars['Stage'] = 1.0  # Dead
+    vars['Stage'] = stage_id('Diatom', 'Dead')
   Carbon_new = C_new
   Chlorophyll_new = ((max((((((vars['Chlorophyll'] + (Rho_Chl * (vars['AmmoniumIngested'] + vars['NitrateIngested'])))) if ((Theta_N <= param['Theta_max_N'])) else ((vars['Chlorophyll'] - (vars['Chlorophyll'] - ((vars['Ammonium'] + vars['Nitrate']) * param['Theta_max_N']))))) - ((vars['Chlorophyll'] * param['R_Chl'] * dt_in_hours * T_function) + 0.0)) / C_d), 0.0)) if ((death_flag == 0.0)) else (0.0))
   Nitrogen_new = (vars['Ammonium'] + vars['Nitrate'])
@@ -111,7 +112,7 @@ def update_Living_Diatom(param, vars, env, dt):
 
 def update_Dead_Diatom(param, vars, env, dt):
   """ FGroup:  Diatom
-      Stage:   Dead   ID: 1
+      Stage:   Dead
   """
   dt_in_hours = dt / 3600.0
 
@@ -180,7 +181,7 @@ params_Default_Copepod_Variety = {
 
 def update_OW5_Copepod(param, vars, env, dt):
   """ FGroup:  Copepod
-      Stage:   OW5   ID: 14
+      Stage:   OW5
   """
   dt_in_hours = dt / 3600.0
 
@@ -195,8 +196,8 @@ def update_OW5_Copepod(param, vars, env, dt):
 
   ### Overwintering phase OW5 ###
   R_ow = (R_bas * param['delta'])
-  if (param['d_year'] == 1.0):
-    vars['Stage'] = 16.0  # OWA5
+  if (param['d_year'] == 75.0):
+    vars['Stage'] = stage_id('Copepod', 'OWA5')
 
   ### Assimilation efficiency ###
   Gut_time = 0.0
@@ -239,7 +240,7 @@ def update_OW5_Copepod(param, vars, env, dt):
 
   ### Mortality due to starvation ###
   if (vars['C_N'] <= (vars['C_pmax'] / 2.0)):
-    vars['Stage'] = 26.0  # Dead
+    vars['Stage'] = stage_id('Copepod', 'Dead')
 
   ### Excretion ###
   C = (NProt_excess + Cprot)
@@ -255,7 +256,7 @@ def update_OW5_Copepod(param, vars, env, dt):
 
 def update_OWA5_Copepod(param, vars, env, dt):
   """ FGroup:  Copepod
-      Stage:   OWA5   ID: 16
+      Stage:   OWA5
   """
   dt_in_hours = dt / 3600.0
 
@@ -272,7 +273,7 @@ def update_OWA5_Copepod(param, vars, env, dt):
   ### Post-overwintering ascent OWA5 ###
   vars['V_m'] = -(1.0 * dt_in_hours)
   if ((vars['z'] <= param['Max_MLD'])) or ((I_t <= env['Irradiance'])):
-    vars['Stage'] = 19.0  # C5
+    vars['Stage'] = stage_id('Copepod', 'C5')
 
   ### Ingestion ###
   V_gut_new = (param['vol_gut'] * L)
@@ -320,8 +321,13 @@ def update_OWA5_Copepod(param, vars, env, dt):
   Pc_new = ((0.0) if (((vars['PV'] + (E * dt_in_hours)) >= PV_egest)) else ((vars['Pc'] + E_C)))
   A_PelletLoss = (((vars['P_amm'] + E_N)) if (((vars['PV'] + (E * dt_in_hours)) >= PV_egest)) else (0.0))
   if ((vars['PV'] + (E * dt_in_hours)) >= PV_egest):
-    pass
-    #TODO CREATE( Pellet, ...)!!! 
+    new_agent_vars = {}
+    new_agent_vars['Stage'] = stage_id('Copepod', 'Pellet')
+    new_agent_vars['Size'] = 1.0
+    new_agent_vars['Ammonium'] = ((vars['P_amm'] + E_N))
+    new_agent_vars['PV'] = (vars['PV'] + (E * dt_in_hours))
+    new_agent_vars['Carbon'] = (vars['Pc'] + E_C)
+    lebiology.add_agent(new_agent_vars)
   vars['SilicateRelease'] = E_Si
 
   ### Assimilation ###
@@ -375,7 +381,7 @@ def update_OWA5_Copepod(param, vars, env, dt):
 
   ### Mortality due to starvation ###
   if (vars['C_N'] <= (vars['C_pmax'] / 2.0)):
-    vars['Stage'] = 26.0  # Dead
+    vars['Stage'] = stage_id('Copepod', 'Dead')
 
   ### Excretion ###
   C = (NProt_excess + Cprot)
@@ -401,7 +407,7 @@ def update_OWA5_Copepod(param, vars, env, dt):
 
 def update_Dead_Copepod(param, vars, env, dt):
   """ FGroup:  Copepod
-      Stage:   Dead   ID: 26
+      Stage:   Dead
   """
   dt_in_hours = dt / 3600.0
 

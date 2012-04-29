@@ -740,6 +740,37 @@ for n in range(field.node_count):
           <chemical_variable name="Nitrogen"/>
           <chemical_variable name="ChltoC"/>
         </variables>
+        <initial_state>
+          <number_of_agents>
+            <integer_value rank="0">4000</integer_value>
+          </number_of_agents>
+          <position>
+            <string_value lines="20" type="code" language="python">def val(t):
+  from numpy import arange
+  # 4000 agents, evenly spaced in [0:200]m
+  positions = arange(-199.975,0.,0.05).reshape(4000,1)
+  return positions</string_value>
+          </position>
+          <biology>
+            <string_value lines="20" type="code" language="python">from __builtin__ import str
+from lebiology import stage_id
+
+def val(agent):
+  agent['Stage'] = stage_id('Diatom', 'Living')
+  agent['Size'] = 50000.0
+  agent['Ammonium'] = 2.2e-9
+  agent['Carbon'] = 1.5e-8
+  agent['Chlorophyll'] = 2.7e-9
+  agent['Nitrate'] = 0.0
+  agent['Silicate'] = 1.05E-9
+  agent['AmmoniumUptake'] = 0.0
+  agent['NitrateUptake'] = 0.0
+  agent['SilicateUptake'] = 0.0
+  agent['AmmoniumRelease'] = 0.0
+  agent['SilicateRelease'] = 0.0
+  return agent</string_value>
+          </biology>
+        </initial_state>
         <environment>
           <field name="Irradiance"/>
           <field name="Temperature"/>
@@ -749,36 +780,6 @@ for n in range(field.node_count):
         </environment>
         <stages>
           <stage name="Living">
-            <id>
-              <real_value rank="0">0.0</real_value>
-            </id>
-            <initial_state>
-              <number_of_agents>
-                <integer_value rank="0">4000</integer_value>
-              </number_of_agents>
-              <position>
-                <string_value lines="20" type="code" language="python">def val(t):
-  from numpy import arange
-  # 4000 agents, evenly spaced in [0:200]m
-  positions = arange(-199.975,0.,0.05).reshape(4000,1)
-  return positions</string_value>
-              </position>
-              <biology>
-                <string_value lines="20" type="code" language="python">def val(variables):
-  variables['Size'] = 50000.0
-  variables['Ammonium'] = 2.2e-9
-  variables['Carbon'] = 1.5e-8
-  variables['Chlorophyll'] = 2.7e-9
-  variables['Nitrate'] = 0.0
-  variables['Silicate'] = 1.05E-9
-  variables['AmmoniumUptake'] = 0.0
-  variables['NitrateUptake'] = 0.0
-  variables['SilicateUptake'] = 0.0
-  variables['AmmoniumRelease'] = 0.0
-  variables['SilicateRelease'] = 0.0
-  return variables</string_value>
-              </biology>
-            </initial_state>
             <movement>
               <subcycles>
                 <integer_value rank="0">1</integer_value>
@@ -790,7 +791,7 @@ for n in range(field.node_count):
               <parametric_guided_search/>
               <random_walk name="RandomDisplacement">
                 <python>
-                  <string_value lines="20" type="code" language="python">from __builtin__ import abs
+                  <string_value lines="20" type="code" language="python">from __builtin__ import abs, str
 from numpy import random
 
 mld = abs(persistent['diffusivity_mld_data'])
@@ -800,7 +801,7 @@ def val(position, element, local_coords, vars, dt):
   v = [-0.000011111 * dt]
   if z &lt;= mld:
     rnd = random.uniform(0.,mld, 1)
-    v = [v[0] -1. * (rnd - z) ]
+    v = [v[0] - (rnd - z) ]
   return v</string_value>
                 </python>
               </random_walk>
@@ -810,9 +811,9 @@ def val(position, element, local_coords, vars, dt):
                 <string_value lines="20" type="code" language="python">import fluidity.lerm_ps as lerm
 params = lerm.params_Default_Diatom_Variety
 
-def val(biovars, env, dt):
-  lerm.update_Living_Diatom(params, biovars, env, dt)
-  return biovars</string_value>
+def val(agent, env, dt):
+  lerm.update_Living_Diatom(params, agent, env, dt)
+  return agent</string_value>
               </python>
             </biology>
             <particle_management>
@@ -841,23 +842,6 @@ def val(X):
             </particle_management>
           </stage>
           <stage name="Dead">
-            <id>
-              <real_value rank="0">1.0</real_value>
-            </id>
-            <initial_state>
-              <number_of_agents>
-                <integer_value rank="0">0</integer_value>
-              </number_of_agents>
-              <position>
-                <string_value lines="20" type="code" language="python">def val(t):
-  return []</string_value>
-              </position>
-              <biology>
-                <string_value lines="20" type="code" language="python">def val(variables):
-  variables['Size'] = 50000.0
-  return variables</string_value>
-              </biology>
-            </initial_state>
             <movement>
               <subcycles>
                 <integer_value rank="0">1</integer_value>
@@ -869,7 +853,7 @@ def val(X):
               <parametric_guided_search/>
               <random_walk name="RandomDisplacement">
                 <python>
-                  <string_value lines="20" type="code" language="python">from __builtin__ import abs
+                  <string_value lines="20" type="code" language="python">from __builtin__ import abs, str
 from numpy import random
 
 mld = abs(persistent['diffusivity_mld_data'])
@@ -879,7 +863,7 @@ def val(position, element, local_coords, vars, dt):
   v = [-0.000011111 * dt]
   if z &lt;= mld:
     rnd = random.uniform(0.,mld, 1)
-    v = [v[0] -1. * (rnd - z) ]
+    v = [v[0] - (rnd - z) ]
   return v</string_value>
                 </python>
               </random_walk>

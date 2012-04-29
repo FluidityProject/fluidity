@@ -14,7 +14,6 @@ module detector_python
   private
   
   public :: python_run_detector_string, python_run_random_walk
-  public :: python_init_agent_biology, python_calc_agent_biology
   public :: python_get_element_limit
 
   interface
@@ -57,45 +56,6 @@ module detector_python
       real(c_double), dimension(dim), intent(out) :: value
       integer(c_int), intent(out) :: stat
     end subroutine python_run_random_walk_from_locals
-
-    !! Evaluate the detector val() function for agent-based biology
-    !! Interface: val(biovars, environment, dt), where 
-    !!   biovars: dict mapping agent variables to values
-    !!   environment: dict mapping environment fields to local values
-    !!   dt: timestep size
-    !! Wrapped by python_calc_agent_biology
-    subroutine python_run_agent_biology(dt, dict, dictlen, key, keylen, &
-           biovars, n_biovars, env_values, n_env_values, stat) &
-           bind(c, name='python_run_agent_biology_c')
-      use :: iso_c_binding
-      implicit none
-      integer(c_int), intent(in), value :: n_biovars, n_env_values
-      real(c_double), intent(in) :: dt
-      integer(c_int), intent(in), value :: dictlen, keylen
-      character(kind=c_char), dimension(dictlen), intent(in) :: dict
-      character(kind=c_char), dimension(keylen), intent(in) :: key
-      real(c_double), dimension(n_biovars), intent(inout) :: biovars
-      real(c_double), dimension(n_env_values), intent(inout) :: env_values
-      integer(c_int), intent(out) :: stat
-    end subroutine python_run_agent_biology
-
-    !! Initialise agent biology variables.
-    !! Interface: val(biovars), where 
-    !!   biovars: dict mapping agent variables to values; This gets initialised
-    !!            with stage already set and everything else set to 0.0
-    !! Wrapped by python_init_agent_biology
-    subroutine python_run_agent_biology_init(function, function_len, &
-           var_list, var_list_len, biovars, n_biovars, stage_id, stat) &
-           bind(c, name='python_run_agent_biology_init_c')
-      use :: iso_c_binding
-      implicit none
-      integer(c_int), intent(in), value :: n_biovars, function_len, var_list_len
-      character(kind=c_char), dimension(function_len), intent(in) :: function
-      character(kind=c_char), dimension(var_list_len), intent(in) :: var_list
-      real(c_double), dimension(n_biovars), intent(inout) :: biovars
-      real(c_double), intent(in) :: stage_id
-      integer(c_int), intent(out) :: stat
-    end subroutine python_run_agent_biology_init
 
     !! Query user for an integer given one element
     subroutine python_get_element_integer(dim, coords_centre, dict, dictlen, key, keylen, &
@@ -177,73 +137,6 @@ contains
     end if
     
   end subroutine python_run_random_walk
-
-  subroutine python_calc_agent_biology(agent, env_fields, dt, dict, key, stat)
-    !!< Wrapper function for python_run_agent_biology_c
-    type(detector_type), pointer, intent(in) :: agent
-    type(scalar_field_pointer), dimension(:), pointer, intent(inout) :: env_fields
-    real, intent(in) :: dt
-    character(len = *), intent(in) :: dict, key
-    integer, optional, intent(out) :: stat
-    
-    integer :: lstat, i
-    real, dimension(size(env_fields)) :: env_field_values
-    type(scalar_field), pointer :: env_field
-
-    call profiler_tic(trim(dict)//"::biology_update")
-
-    if(present(stat)) stat = 0
-    
-    do i=1, size(env_fields)
-       env_field_values(i)=eval_field(agent%element,env_fields(i)%ptr,agent%local_coords)
-    end do
-
-    call python_run_agent_biology(dt, dict, len_trim(dict), key,len_trim(key), &
-           agent%biology, size(agent%biology), env_field_values, size(env_field_values), lstat) 
-
-    do i=1, size(agent%biology)
-       if (ieee_is_nan(agent%biology(i))) then
-          FLExit('NaN agent variable detected in '//trim(dict))
-       end if
-    end do
-
-    if(lstat /= 0) then
-      if(present(stat)) then
-        stat = -1
-      else
-        ewrite(-1, *) "Python error in biology update function of agent array"
-        FLExit("Dying")
-      end if
-    end if
-
-    call profiler_toc(trim(dict)//"::biology_update")
-    
-  end subroutine python_calc_agent_biology
-
-  subroutine python_init_agent_biology(agent, agent_list, pyfunction, stat)
-    !!< Wrapper function for python_run_agent_biology_init_c
-    type(detector_type), pointer, intent(in) :: agent
-    type(detector_linked_list), intent(in) :: agent_list
-    character(len=*), intent(in) :: pyfunction
-    integer, optional, intent(out) :: stat
-
-    integer :: lstat
-
-    if(present(stat)) stat = 0
-
-    call python_run_agent_biology_init(trim(pyfunction), len_trim(pyfunction), &
-           trim(agent_list%name), len_trim(agent_list%name), &
-           agent%biology, size(agent%biology), agent_list%stage_id, lstat)
-
-    if(lstat /= 0) then
-      if(present(stat)) then
-        stat = -1
-      else
-        ewrite(-1, *) "Python error in biology agent initialisation"
-        FLExit("Dying")
-      end if
-    end if
-  end subroutine python_init_agent_biology
 
   subroutine python_get_element_limit(element, xfield, dict, key, result, stat)
     !!< Wrapper function for python_get_element_integer

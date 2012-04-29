@@ -9,22 +9,51 @@
 PyMODINIT_FUNC initlebiology(void);
 
 /* Static dictionaries that hold meta-data for access at runtime.
- * The first index is always the FGroup name, eg. pFGVarNames['FGroup']
+ * The first index is always the FGroup name, eg. pFGVarNames['FGroup'] 
  */
-static PyObject *pFGVarNames;  // List of variable names
-static PyObject *pFGStageID;   // Dict of stage->ID mappings
+static PyObject *pFGLocalsDict; // Dict of local namespaces with compiled function objects
+static PyObject *pFGVarNames;   // List of agent variable names
+static PyObject *pFGEnvNames;   // List of environment field names
+static PyObject *pFGStageID;    // Dict of stage->ID mappings
+
+/* The main compile function runs the outer Python code and stores the local namespace, 
+ * including the compiled function object for 'val', in pFGLocalsDict 
+ */
+void lebiology_compile_function_c(char *fg, int fglen, char *key, int keylen, char *func, int funclen, int *stat);
+
+/* Initialise agent biology from a Python function
+ * Usage: def val(agent):
+ *          agent['var'] = value
+ *          return agent
+ */
+void lebiology_agent_init_c(char *fg, int fglen, char *key, int keylen, double vars[], int n_vars, int *stat);
+
+/* Update agent biology from a Python function
+ * Usage: def val(agent, env, dt):
+ *          agent['var'] = f( env['field'], dt )
+ *          return agent
+ */
+void lebiology_agent_update_c(char *fg, int fglen, char *key, int keylen, double vars[], int n_vars, double envvals[], int n_envvals, double *dt, int *stat);
 
 /* Add a variable name to the array under pFGVarNames['fg'] */
 void lebiology_add_fg_varname_c(char *fg, int fglen, char *var, int varlen, int *stat);
+
+/* Add an environment name to the array under pFGEnvNames['fg'] */
+void lebiology_add_fg_envname_c(char *fg, int fglen, char *env, int envlen, int *stat);
 
 /* Add a stage ID to pFGStageID['fg'] */
 void lebiology_add_fg_stage_id_c(char *fg, int fglen, char *stage, int stagelen, double *id, int *stat);
 
 /* Callback function to add new agents to the system from inside the embedded Python biology update */
-static PyObject *lebiology_addagent(PyObject *self, PyObject *args);
+static PyObject *lebiology_add_agent(PyObject *self, PyObject *args);
+
+/* Callback function to translate stage names to internal IDs */
+static PyObject *lebiology_stage_id(PyObject *self, PyObject *args);
 
 static PyMethodDef LEBiologyMethods[] = {
-  {"addagent",  lebiology_addagent, METH_VARARGS,
+  {"add_agent",  lebiology_add_agent, METH_VARARGS,
+   "Add a new agent to the system"},
+  {"stage_id",  lebiology_stage_id, METH_VARARGS,
    "Add a new agent to the system"},
   {NULL, NULL, 0, NULL}        /* Sentinel */
 };

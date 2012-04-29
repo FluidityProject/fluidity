@@ -117,7 +117,6 @@ planktonica = ( stmt )
 
 indent = 2
 id_counter = 0
-stage_id = {}
 fgroup = None
 
 ### Metamodel definitions
@@ -131,8 +130,6 @@ class Stage:
     self.function_eqns = {}
     self.assigned_locals = []
     id_counter = id_counter + 1
-    stage_id[self.name] = self.id # Global record for evaluating variables
-    #print "  Stage: " + self.name + "    ID: " + str(self.id)
 
   def add_function(self, fname, function):
     self.functions.append(fname)
@@ -240,7 +237,7 @@ class FGroup:
 
   ### The big eval function....
   def eval_token(self, t):
-    global indent, stage_id
+    global indent
 
     if t[0] == var:
       return self.eval_var(t)
@@ -336,7 +333,7 @@ class FGroup:
       return "vars['Size'] = vars['Size'] * " + self.eval_token(t[1])
     elif t[0] == change:
       s = str(t[2])
-      return "vars['Stage'] = " + str(float(stage_id[s])) + "  # " + s
+      return "vars['Stage'] = stage_id('" + self.name + "', '" + s + "')"
     elif t[0] == uptake:
       chem = str(t[2][1]).split("$")[0]
       return "vars['" + chem + "Uptake'] = " + self.eval_token(t[1])
@@ -363,7 +360,16 @@ class FGroup:
       return "vars['PRequest'] = " + ing_amount + " if (" + species_conc + " > " + ing_threshold + ") else 0.0"
     elif t[0] == create:
       s = str(t[2])
-      return "pass\n    #TODO CREATE( " + s + ", ...)!!! " 
+      indent_str = ""
+      for i in range(indent):
+        indent_str = indent_str + " "
+      c = "new_agent_vars = {}"
+      c = c + "\n" + indent_str + "new_agent_vars['Stage'] = stage_id('" + self.name + "', '" + s + "')"
+      c = c + "\n" + indent_str + "new_agent_vars['Size'] = " + self.eval_token(t[3])
+      for i in range(4,len(t)):
+        c = c + "\n" + indent_str + "new_agent_" + self.eval_token(t[i][1]) + " = " + self.eval_token(t[i][2]) 
+      c = c + "\n" + indent_str + "lebiology.add_agent(new_agent_vars)"
+      return c
     elif t[0] == pchange:
       s = str(t[2])
       return "#TODO PCHANGE( " + s + ", " + self.eval_token(t[3]) + " )" 
@@ -400,7 +406,7 @@ class FGroup:
     print "  Writing Stage: " + stage.name
     file.write("\ndef update_" + stage.name + "_" + self.name + "(param, vars, env, dt):\n")
     file.write('  """ FGroup:  ' + self.name + '\n')
-    file.write('      Stage:   ' + stage.name + '   ID: ' + str(stage.id) + '\n  """\n')
+    file.write('      Stage:   ' + stage.name + '\n  """\n')
     file.write("  dt_in_hours = dt / 3600.0\n")
 
     self.pool_update_vars = {}
@@ -459,6 +465,7 @@ filename = sys.argv[1]
 out_filename = filename.split(".")[0].strip() + '.py'
 f = open(out_filename, "w")
 f.write("import math\n")
+f.write("from lebiology import stage_id\n")
 
 dom = parse(filename)
 fgroups = dom.getElementsByTagName("functionalgroup")[0:2]

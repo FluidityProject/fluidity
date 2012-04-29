@@ -16,10 +16,10 @@ Lagrangian_Biology.o ../include/lagrangian_biology.mod: Lagrangian_Biology.F90 \
    ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
    ../include/futils.mod ../include/global_parameters.mod \
    ../include/integer_hash_table_module.mod \
-   ../include/lagrangian_biology_pm.mod ../include/mpi_interfaces.mod \
-   ../include/parallel_tools.mod ../include/pickers_inquire.mod \
-   ../include/profiler.mod ../include/python_state.mod ../include/spud.mod \
-   ../include/state_module.mod
+   ../include/lagrangian_biology_pm.mod ../include/lebiology_python.mod \
+   ../include/mpi_interfaces.mod ../include/parallel_tools.mod \
+   ../include/pickers_inquire.mod ../include/profiler.mod \
+   ../include/python_state.mod ../include/spud.mod ../include/state_module.mod
 
 ../include/lagrangian_biology_pm.mod: Particle_Management.o
 	@true
