@@ -138,9 +138,9 @@
             </constant>
           </type>
         </boundary_conditions>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
+        <stat>
+          <include_cv_stats/>
+        </stat>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
@@ -214,6 +214,7 @@ for n in range(field.node_count):
         <stat>
           <include_cv_stats/>
         </stat>
+        <consistent_interpolation/>
       </diagnostic>
     </scalar_field>
     <scalar_field name="Viscosity" rank="0">
@@ -224,12 +225,19 @@ for n in range(field.node_count):
             <real_value rank="0">1.0e-04</real_value>
           </constant>
         </value>
+        <stat>
+          <include_cv_stats/>
+        </stat>
       </prescribed>
     </scalar_field>
     <vector_field name="GradientPressure" rank="0">
       <diagnostic>
         <mesh name="ElementWiseMesh"/>
         <algorithm name="Internal"/>
+        <stat>
+          <include_cv_stats/>
+        </stat>
+        <consistent_interpolation/>
       </diagnostic>
     </vector_field>
     <vector_field name="InterstitialVelocityPorosity" rank="0">
@@ -239,6 +247,7 @@ for n in range(field.node_count):
         <stat>
           <include_cv_stats/>
         </stat>
+        <consistent_interpolation/>
       </diagnostic>
     </vector_field>
     <scalar_field name="InterstitialVelocityCFL" rank="0">
@@ -248,6 +257,7 @@ for n in range(field.node_count):
         <stat>
           <include_cv_stats/>
         </stat>
+        <consistent_interpolation/>
       </diagnostic>
     </scalar_field>
     <vector_field name="DarcyVelocity" rank="0">
@@ -257,6 +267,7 @@ for n in range(field.node_count):
         <stat>
           <include_cv_stats/>
         </stat>
+        <consistent_interpolation/>
       </diagnostic>
     </vector_field>
     <vector_field name="FractionalFlow" rank="0">
@@ -266,6 +277,7 @@ for n in range(field.node_count):
         <stat>
           <include_cv_stats/>
         </stat>
+        <consistent_interpolation/>
       </diagnostic>
     </vector_field>
     <vector_field name="TotalDarcyVelocity" rank="0">
@@ -285,6 +297,7 @@ for n in range(field.node_count):
         <stat>
           <include_cv_stats/>
         </stat>
+        <consistent_interpolation/>
       </diagnostic>
     </vector_field>
     <scalar_field name="DivergenceTotalDarcyVelocity" rank="0">
@@ -294,6 +307,7 @@ for n in range(field.node_count):
         <stat>
           <include_cv_stats/>
         </stat>
+        <consistent_interpolation/>
       </diagnostic>
     </scalar_field>
     <scalar_field name="SumSaturation" rank="0">
@@ -303,10 +317,45 @@ for n in range(field.node_count):
         <stat>
           <include_cv_stats/>
         </stat>
+        <consistent_interpolation/>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="AveragePressure" rank="0">
+      <diagnostic>
+        <mesh name="PressureMesh"/>
+        <algorithm name="Internal"/>
+        <stat>
+          <include_cv_stats/>
+        </stat>
+        <consistent_interpolation/>
       </diagnostic>
     </scalar_field>
   </material_phase>
   <material_phase name="Phase2">
+    <scalar_field name="Pressure" rank="0">
+      <diagnostic>
+        <mesh name="PressureMesh"/>
+        <algorithm name="Internal"/>
+        <stat>
+          <include_cv_stats/>
+        </stat>
+        <consistent_interpolation/>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="CapilliaryPressure" rank="0">
+      <diagnostic>
+        <mesh name="PressureMesh"/>
+        <algorithm name="scalar_python_diagnostic" material_phase_support="multiple">
+          <string_value lines="20" type="code" language="python">for n in range(field.node_count):
+   
+   field.set(n,0.0)</string_value>
+        </algorithm>
+        <stat>
+          <include_cv_stats/>
+        </stat>
+        <consistent_interpolation/>
+      </diagnostic>
+    </scalar_field>
     <scalar_field name="Saturation" rank="0">
       <prognostic>
         <mesh name="PressureMesh"/>
@@ -357,6 +406,7 @@ for n in range(field.node_count):
         <stat>
           <include_cv_stats/>
         </stat>
+        <consistent_interpolation/>
       </diagnostic>
     </scalar_field>
     <scalar_field name="Viscosity" rank="0">
@@ -367,8 +417,21 @@ for n in range(field.node_count):
             <real_value rank="0">1.0e-04</real_value>
           </constant>
         </value>
+        <stat>
+          <include_cv_stats/>
+        </stat>
       </prescribed>
     </scalar_field>
+    <vector_field name="GradientPressure" rank="0">
+      <diagnostic>
+        <mesh name="ElementWiseMesh"/>
+        <algorithm name="Internal"/>
+        <stat>
+          <include_cv_stats/>
+        </stat>
+        <consistent_interpolation/>
+      </diagnostic>
+    </vector_field>
     <vector_field name="InterstitialVelocityPorosity" rank="0">
       <diagnostic>
         <mesh name="VelocityMesh"/>
@@ -376,6 +439,7 @@ for n in range(field.node_count):
         <stat>
           <include_cv_stats/>
         </stat>
+        <consistent_interpolation/>
       </diagnostic>
     </vector_field>
     <scalar_field name="InterstitialVelocityCFL" rank="0">
@@ -385,6 +449,7 @@ for n in range(field.node_count):
         <stat>
           <include_cv_stats/>
         </stat>
+        <consistent_interpolation/>
       </diagnostic>
     </scalar_field>
     <vector_field name="DarcyVelocity" rank="0">
@@ -394,6 +459,7 @@ for n in range(field.node_count):
         <stat>
           <include_cv_stats/>
         </stat>
+        <consistent_interpolation/>
       </diagnostic>
     </vector_field>
     <vector_field name="FractionalFlow" rank="0">
@@ -403,6 +469,7 @@ for n in range(field.node_count):
         <stat>
           <include_cv_stats/>
         </stat>
+        <consistent_interpolation/>
       </diagnostic>
     </vector_field>
   </material_phase>
@@ -415,6 +482,9 @@ for n in range(field.node_count):
             <real_value rank="0">0.5</real_value>
           </constant>
         </value>
+        <stat>
+          <include_cv_stats/>
+        </stat>
       </prescribed>
     </scalar_field>
     <scalar_field name="AbsolutePermeability">
@@ -425,6 +495,9 @@ for n in range(field.node_count):
             <real_value rank="0">1.0e-10</real_value>
           </constant>
         </value>
+        <stat>
+          <include_cv_stats/>
+        </stat>
       </prescribed>
     </scalar_field>
   </porous_media>
