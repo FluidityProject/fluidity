@@ -251,7 +251,7 @@ module fsi_model
 
     subroutine fsi_ibm_projections_mesh(state, solid_position, alpha_tmp)
         type(state_type), intent(inout) :: state
-        type(vector_field), pointer, intent(in) :: solid_position
+        type(vector_field), pointer, intent(inout) :: solid_position
         type(scalar_field), intent(inout) :: alpha_tmp
         type(vector_field), pointer :: fluid_position, fluid_velocity
         
