@@ -801,11 +801,6 @@ contains
 
           if (have_option("/embedded_models/fsi_model")) then
              call fsi_model_compute_diagnostics(state(1))
-             if (have_option("/timestepping/nonlinear_iterations/tolerance")) then
-                if ((its < nonlinear_iterations .and. change < abs(nonlinear_iteration_tolerance))) then
-                   call fsi_model_nonlinear_iteration_converged()
-                end if
-             end if
           end if
 
           if(have_solids) then
@@ -824,6 +819,14 @@ contains
           if(its >= nonlinear_iterations .and. change >= abs(nonlinear_iteration_tolerance)) then
              ewrite(0, *) "Nonlinear iteration tolerance not reached - termininating"
              exit timestep_loop
+          end if
+       end if
+
+       if (have_option("/embedded_models/fsi_model")) then
+          if (have_option("/timestepping/nonlinear_iterations/tolerance")) then
+             if ((its < nonlinear_iterations .and. change < abs(nonlinear_iteration_tolerance))) then
+                call fsi_model_nonlinear_iteration_converged(state(1))
+             end if
           end if
        end if
 
