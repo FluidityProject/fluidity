@@ -29,24 +29,21 @@
 
 module supermesh_force
 
-  use fields
   use supermesh_construction
-  use sparsity_patterns
   use solvers
-  use spud
-  use vtk_interfaces
   use global_parameters, only: OPTION_PATH_LEN
   use linked_lists
   use bound_field_module
   use fefields, only: compute_lumped_mass
+  use tetrahedron_intersection_module
 
   implicit none
 
-  public :: one_way_unity_projection
+  public :: fsi_one_way_galerkin_projection, fsi_one_way_grandy_interpolation
 
 contains
 
-  subroutine one_way_unity_projection(fieldF, positionsF, positionsS, alpha_sf)
+  subroutine fsi_one_way_galerkin_projection(fieldF, positionsF, positionsS, alpha_sf)
     !! Return the volume fraction scalar field by projecting unity from the supermesh to the fluid mesh
     !! Since positionsF and positionsS are different, we need to supermesh!
     !! positionsF and positionsS are the coordinate fields of the fluid and solid mesh respectively
@@ -224,7 +221,6 @@ contains
     !end do
     ! =====================================================================================================
 
-
     ! 3rd step: Project alpha from the supermesh to the fluid and solid mesh:
     ! loop over fluid and solid elements and solve the last equation, which will
     ! project alpha from the supermesh to the fluid mesh
@@ -252,7 +248,7 @@ contains
 
     ewrite(2,*) "leaving one_way_unity_projection"
 
-  end subroutine one_way_unity_projection
+  end subroutine fsi_one_way_galerkin_projection
 
   subroutine compute_alpha_on_supermesh(supermesh_field_shape, solid_positions, ele_B, alpha_sf_ele_value, &
                                         supermesh, inversion_matrix_B, alpha_sf_on_supermesh)
@@ -481,6 +477,122 @@ contains
     call deallocate(bounded_soln)
 
    end subroutine bound_projection
+
+   subroutine fsi_one_way_grandy_interpolation(fluid_position, solid_position, alpha)
+
+       type(vector_field), pointer, intent(in) :: fluid_position
+       type(vector_field), pointer, intent(in) :: solid_position
+       type(scalar_field), intent(inout) :: alpha
+
+       type(vector_field), pointer :: positions
+       type(vector_field) :: external_positions_local
+       integer :: ele_A, ele_B, ele_C
+       type(tet_type) :: tet_A, tet_B
+       type(plane_type), dimension(:), allocatable :: planes_A
+       integer :: stat, nintersections, i, j, k, ntests
+       integer, dimension(:), pointer :: ele_A_nodes
+       type(vector_field) :: intersection
+       real, dimension(:, :), allocatable :: pos_A
+       real, dimension(:), allocatable :: detwei
+       real :: vol, ele_A_vol
+
+       ! Set the input of the RTREE finder as the coordinates of the fluids mesh:
+       call rtree_intersection_finder_set_input(fluid_position)
+
+       ! For all elements of the solids mesh:
+       do ele_B = 1, ele_count(solid_position)
+
+          ! Via RTREE, find intersection of solid element 'ele_B' with the
+          ! input mesh (fluid coordinate mesh 'positions'):
+          call rtree_intersection_finder_find(solid_position, ele_B)
+          ! Fetch output, the number of intersections of this solid element:
+          call rtree_intersection_finder_query_output(nintersections)
+
+          if (fluid_position%dim == 3) then
+             ! Get (solid) element value (coordinate), form tetrahedra:
+             tet_B%v = ele_val(solid_position, ele_B)
+          else
+             call intersector_set_dimension(fluid_position%dim)
+          end if
+
+          ! 1st inner-loop
+          ! For all intersections of solid element ele_B with fluid mesh:
+          do j = 1, nintersections
+             ! Get the donor (fluid) element which intersects with ele_B
+             call rtree_intersection_finder_get_output(ele_A, j)
+             ! If 3D
+             if (fluid_position%dim == 3) then
+                ! Get the global coordinates of fluid element ele_A:
+                if (ele_loc(fluid_position, ele_A)==4) then
+                   ! if fluid element is a tetrahedra
+                   allocate(planes_A(4))
+                   tet_A%v = ele_val(fluid_position, ele_A)
+                   planes_A = get_planes(tet_A)
+                else
+                   ! if fluid element is not a tetrahedra, 
+                   ! assumed to be a hexahedra:
+                   allocate(planes_A(6))
+                   planes_A = get_planes(fluid_position, ele_A)
+                end if
+                ! Get the coordinates of nodes of the intersection
+                ! between of both elements, store in intersection
+                call intersect_tets(tet_B, planes_A, &
+                     ele_shape(solid_position, ele_B), &
+                     stat=stat, output=intersection)
+                deallocate(planes_A)
+             else ! 2D
+                allocate(pos_A(fluid_position%dim, ele_loc(fluid_position, ele_A)))
+                pos_A = ele_val(fluid_position, ele_A)
+                intersection = intersect_elements(solid_position, ele_B, pos_A, ele_shape(solid_position, ele_B))
+                deallocate(pos_A)
+                stat = 0
+             end if ! end of dim==3
+
+             ! No intersection, cycle:
+             if (stat == 1) cycle
+
+             ! Compute intersection volume:
+             vol = 0.0
+             do ele_C = 1, ele_count(intersection)
+                vol = vol + abs(simplex_volume(intersection, ele_C))
+             end do
+
+             ! Compute the volume of the fluid element:
+             allocate(detwei(ele_ngi(fluid_position, ele_A)))
+             call transform_to_physical(fluid_position, ele_A, detwei=detwei)
+             ele_A_vol = sum(detwei)
+             deallocate(detwei)
+
+             ! Compute the volume fraction:
+             ! ele_A_nodes: pointer to global node numbers of
+             ! fluid element ele_A of the coordinate mesh
+             ele_A_nodes => ele_nodes(fluid_position, ele_A)
+             do k = 1, size(ele_A_nodes)
+                ! Volume fraction by grandy projection
+                call addto(alpha, ele_A_nodes(k), vol/ele_A_vol)
+             end do
+             call deallocate(intersection)
+          end do
+       end do
+
+       call finalise_tet_intersector
+       call rtree_intersection_finder_reset(ntests)
+
+       ! Bound field:
+       call bound_scalar_field(alpha, 0.0, 1.0)
+
+    end subroutine fsi_one_way_grandy_interpolation
+
+    subroutine bound_scalar_field(sfield, minvalue, maxvalue)
+        type(scalar_field), intent(inout) :: sfield
+        real, intent(in) :: minvalue, maxvalue
+        integer :: i
+
+        do i = 1, node_count(sfield)
+           call set(sfield, i, max(minvalue, min(maxvalue, node_val(sfield, i))))
+        end do
+
+    end subroutine bound_scalar_field
 
 end module supermesh_force
 
