@@ -428,14 +428,14 @@ Hydrostatic_Pressure.o ../include/hydrostatic_pressure.mod: \
 
 Implicit_Solids.o ../include/implicit_solids.mod: Implicit_Solids.F90 \
    ../include/adjacency_lists.mod ../include/bound_field_module.mod \
-   ../include/boundary_conditions.mod \
-   ../include/conservative_interpolation_module.mod \
-   ../include/data_structures.mod ../include/diagnostic_variables.mod \
-   ../include/edge_length_module.mod ../include/elements.mod \
-   ../include/fdebug.h ../include/fefields.mod ../include/fetools.mod \
-   ../include/field_derivatives.mod ../include/fields.mod \
-   ../include/fields_manipulation.mod ../include/fldebug.mod \
-   ../include/futils.mod ../include/global_parameters.mod ../include/halos.mod \
+   ../include/boundary_conditions.mod ../include/data_structures.mod \
+   ../include/detector_tools.mod ../include/diagnostic_fields.mod \
+   ../include/diagnostic_variables.mod ../include/edge_length_module.mod \
+   ../include/elements.mod ../include/fdebug.h ../include/fefields.mod \
+   ../include/fetools.mod ../include/field_derivatives.mod \
+   ../include/fields.mod ../include/fields_manipulation.mod \
+   ../include/fldebug.mod ../include/futils.mod \
+   ../include/global_parameters.mod ../include/halos.mod \
    ../include/interpolation_module.mod \
    ../include/intersection_finder_module.mod ../include/linked_lists.mod \
    ../include/mesh_files.mod ../include/meshdiagnostics.mod \
@@ -444,8 +444,7 @@ Implicit_Solids.o ../include/implicit_solids.mod: Implicit_Solids.F90 \
    ../include/read_triangle.mod ../include/solvers.mod \
    ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
    ../include/sparsity_patterns.mod ../include/spud.mod \
-   ../include/state_fields_module.mod ../include/state_module.mod \
-   ../include/supermesh_construction.mod ../include/supermesh_force.mod \
+   ../include/state_module.mod ../include/supermesh_construction.mod \
    ../include/tensors.mod ../include/tetrahedron_intersection_module.mod \
    ../include/timeloop_utilities.mod ../include/transform_elements.mod \
    ../include/unify_meshes_module.mod ../include/unittest_tools.mod \
@@ -795,11 +794,20 @@ State_Matrices.o ../include/state_matrices_module.mod: State_Matrices.F90 \
 	@true
 
 Supermesh_Force.o ../include/supermesh_force.mod: Supermesh_Force.F90 \
-   ../include/bound_field_module.mod ../include/fdebug.h \
-   ../include/fefields.mod ../include/fields.mod \
-   ../include/global_parameters.mod ../include/linked_lists.mod \
-   ../include/solvers.mod ../include/sparsity_patterns.mod ../include/spud.mod \
-   ../include/supermesh_construction.mod ../include/vtk_interfaces.mod
+   ../include/adjacency_lists.mod ../include/bound_field_module.mod \
+   ../include/boundary_conditions.mod ../include/data_structures.mod \
+   ../include/diagnostic_fields.mod ../include/fdebug.h \
+   ../include/fefields.mod ../include/fetools.mod ../include/fields.mod \
+   ../include/futils.mod ../include/global_parameters.mod ../include/halos.mod \
+   ../include/interpolation_module.mod \
+   ../include/intersection_finder_module.mod ../include/linked_lists.mod \
+   ../include/meshdiagnostics.mod ../include/solvers.mod \
+   ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
+   ../include/sparsity_patterns.mod ../include/spud.mod \
+   ../include/state_module.mod ../include/supermesh_construction.mod \
+   ../include/tensors.mod ../include/tetrahedron_intersection_module.mod \
+   ../include/transform_elements.mod ../include/unittest_tools.mod \
+   ../include/vector_tools.mod ../include/vtk_interfaces.mod
 
 ../include/surface_id_interleaving.mod: Surface_Id_Interleaving.o
 	@true
