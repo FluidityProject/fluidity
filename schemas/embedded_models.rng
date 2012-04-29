@@ -91,16 +91,21 @@ solid with prescribed movement</a:documentation>
 of fields between fluid and solid mesh
 Currently only the Galerkin Projection via 
 supermeshing is supported.</a:documentation>
-      <element name="galerkin_projection">
-        <a:documentation>Construction of a supermesh for the part of 
+      <choice>
+        <element name="galerkin_projection">
+          <a:documentation>Construction of a supermesh for the part of 
 the fluid mesh which is occupied by the solid mesh.
 The SolidConcentration is then obtained by projecting
 unity from the supermesh, to the fluid mesh.</a:documentation>
-        <ref name="continuous_discontinuous_projection"/>
-        <optional>
-          <ref name="supermesh_conservation"/>
-        </optional>
-      </element>
+          <ref name="continuous_discontinuous_projection"/>
+          <optional>
+            <ref name="supermesh_conservation"/>
+          </optional>
+        </element>
+        <element name="grandy_interpolation">
+          <empty/>
+        </element>
+      </choice>
     </element>
   </define>
   <define name="fsi_model_input_real_dim_vector_python">

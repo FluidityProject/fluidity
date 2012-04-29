@@ -80,7 +80,8 @@ fsi_model_projection =
         element galerkin_projection{
            continuous_discontinuous_projection,
            supermesh_conservation?
-        }
+        }|
+        element grandy_interpolation{empty}
     }
 
 fsi_model_input_real_dim_vector_python =
