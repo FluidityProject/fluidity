@@ -1320,6 +1320,7 @@ module darcy_impes_assemble_module
       integer, dimension(:),     pointer     :: upwind_nodes
       real,    dimension(1)                  :: absperm_sele, visc_sele
       real,    dimension(:),     allocatable :: old_sfield_subcycle_ele_bdy
+      real,    dimension(:),     allocatable :: ghost_old_sfield_subcycle_ele_bdy      
       real,    dimension(:,:),   allocatable :: normal_bdy
       real,    dimension(:),     allocatable :: detwei_bdy
       real,    dimension(:,:),   allocatable :: x_ele_bdy
@@ -1329,7 +1330,7 @@ module darcy_impes_assemble_module
       real,    dimension(:),     allocatable :: relperm_sele
       integer, dimension(:),     allocatable :: sfield_bc_type
       type(scalar_field) :: sfield_bc
-      integer, parameter :: BC_TYPE_WEAKDIRICHLET = 1, BC_TYPE_ZERO_FLUX = 2, BC_TYPE_DIRICHLET = 3
+      integer, parameter :: BC_TYPE_WEAKDIRICHLET = 1, BC_TYPE_DIRICHLET = 2, BC_TYPE_ZERO_FLUX = 3
        
       ! set a local flag for whether cached face value is present
       cached_face_value_present = present(cached_face_value)
@@ -1348,8 +1349,9 @@ module darcy_impes_assemble_module
       allocate(relperm_ele(ele_loc(sfield,1)))
       allocate(vphi_face(ndim,s_cvshape%ngi))
       allocate(grad_pressure_ele(ndim,1))
-      
-      allocate(old_sfield_subcycle_ele_bdy(face_loc(sfield,1)))
+
+      allocate(old_sfield_subcycle_ele_bdy(face_loc(sfield,1)))      
+      allocate(ghost_old_sfield_subcycle_ele_bdy(face_loc(sfield,1)))
       allocate(detwei_bdy(x_cvbdyshape%ngi))
       allocate(normal_bdy(ndim, x_cvbdyshape%ngi))
       allocate(s_rhs_local_bdy(face_loc(sfield,1)))
@@ -1374,8 +1376,9 @@ module darcy_impes_assemble_module
       ! a end of overall time step values are used for all subcycles. 
       allocate(sfield_bc_type(surface_element_count(sfield)))         
 
-      call get_entire_boundary_condition(sfield, (/"zero_flux", &
-                                                   "dirichlet"/), sfield_bc, sfield_bc_type)
+      call get_entire_boundary_condition(sfield, (/"weakdirichlet", &
+                                                   "dirichlet    ", &
+                                                   "zero_flux    "/), sfield_bc, sfield_bc_type)
 
       sub_loop: do isub = 1,number_subcycle
          
@@ -1437,6 +1440,7 @@ module darcy_impes_assemble_module
       deallocate(grad_pressure_ele)
 
       deallocate(old_sfield_subcycle_ele_bdy)
+      deallocate(ghost_old_sfield_subcycle_ele_bdy)
       deallocate(detwei_bdy)
       deallocate(normal_bdy)
       deallocate(s_rhs_local_bdy)
@@ -1659,10 +1663,16 @@ module darcy_impes_assemble_module
 
             sele_loop: do sele = 1, surface_element_count(sfield)
 
-               if (sfield_bc_type(sele) == BC_TYPE_ZERO_FLUX) cycle
-
                if (sfield_bc_type(sele) == BC_TYPE_DIRICHLET) cycle
 
+               if (sfield_bc_type(sele) == BC_TYPE_ZERO_FLUX) cycle
+               
+               if (sfield_bc_type(sele) == BC_TYPE_WEAKDIRICHLET) then
+                  ghost_old_sfield_subcycle_ele_bdy = ele_val(sfield_bc, sele)
+               else
+                  ghost_old_sfield_subcycle_ele_bdy = face_val(old_sfield_subcycle, sele)               
+               end if
+               
                old_sfield_subcycle_ele_bdy = face_val(old_sfield_subcycle, sele)
                relperm_sele                = face_val(relative_permeability, sele)
                visc_sele                   = face_val(viscosity, sele)
@@ -1688,10 +1698,21 @@ module darcy_impes_assemble_module
 
                            ggi = (face-1)*cvfaces%shape%ngi + gi
 
-                           face_value = old_sfield_subcycle_ele_bdy(iloc) * relperm_sele(iloc) * absperm_sele(1) * &
-                                        dot_product(grad_pressure_sele(:,1), normal_bdy(:,ggi)) / visc_sele(1)
+                           ! Currently only consider the domain value for vphi
+                           ! rather than also the weak value on the boundary (due to weak saturation)
+                           vphi_dot_n = - relperm_sele(iloc) * absperm_sele(1) * &
+                                          dot_product(grad_pressure_sele(:,1), normal_bdy(:,ggi)) / visc_sele(1)
 
-                           s_rhs_local_bdy(iloc) = s_rhs_local_bdy(iloc) + face_value * detwei_bdy(ggi)                     
+                           inflow = (vphi_dot_n<=0.0)
+
+                           income = merge(1.0,0.0,inflow)
+                           
+                           old_sfield_face_value = income*ghost_old_sfield_subcycle_ele_bdy(iloc) + &
+                                                   (1.0 - income)*old_sfield_subcycle_ele_bdy(iloc)
+                                                      
+                           face_value = old_sfield_face_value * vphi_dot_n
+
+                           s_rhs_local_bdy(iloc) = s_rhs_local_bdy(iloc) - face_value * detwei_bdy(ggi)                     
 
                         end do bc_quad_loop
 
