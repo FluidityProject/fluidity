@@ -544,6 +544,23 @@
            X_NONODS, X, Y, Z, NCOLM, FINDM, COLM, MIDM, &
            IGETCT, MASS_MN_PRES, FINDCMC, COLCMC, NCOLCMC )
 
+      x_mean=0.
+      DO CV_INOD = 1, totele
+         print *, MASS_ELE(cv_inod)
+         x_mean=x_mean+MASS_ELE(cv_inod)
+      end do
+      print *,  'SUM MASS_ELE', x_mean
+
+      x_mean=0.
+      DO CV_INOD = 1, cv_nonods
+         print *, MASS_cv(cv_inod)
+         x_mean=x_mean+MAss_cv(cv_inod)
+      end do
+      print *,  'SUM MASS_CV', x_mean
+
+
+      stop 666
+
       NORMALISE = .false.
       IF( NORMALISE ) THEN
          ! make sure the FEM representation sums to unity so we dont get surprising results...

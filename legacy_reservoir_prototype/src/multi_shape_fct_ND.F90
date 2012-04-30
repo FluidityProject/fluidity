@@ -990,11 +990,17 @@
       REAL, PARAMETER :: PIE = 3.141592654
       REAL :: AGI, BGI, CGI, DGI, EGI, FGI, GGI, HGI, KGI, A11, A12, A13, A21, &
            A22, A23, A31, A32, A33, DETJ, TWOPIE, RGI
-      INTEGER :: GI, L, IGLX
+      INTEGER :: GI, L, IGLX, ii
+      logical, save :: first = .true.
+      real, save :: rsum, rsumabs
       !
       VOLUME = 0.
       !
       IF(D3) THEN
+         if( first ) then
+            rsum = 0. ; rsumabs = 0.
+            first = .false.
+         end if
          do  GI=1,NGI! Was loop 331
             !
             AGI=0.
@@ -1031,6 +1037,9 @@
             DETWEI(GI)=DETJ*WEIGHT(GI)
             RA(GI)=1.0
             VOLUME=VOLUME+DETWEI(GI)
+            ewrite(3,*)'detj', detj
+            rsum = rsum + detj
+            rsumabs = rsum + abs( detj )
             ! For coefficient in the inverse mat of the jacobian. 
             A11= (EGI*KGI-FGI*HGI) /DETJ
             A21=-(DGI*KGI-FGI*GGI) /DETJ
@@ -1050,6 +1059,7 @@
             end do ! Was loop 373
             !
          end do ! Was loop 331
+         ewrite(3,*)'ele, sum(detj), sum(abs(detj)):', ele, rsum, rsumabs
          ! IF(D3) THEN...
       ELSE IF(.NOT.D1) THEN
          TWOPIE=1.0 
@@ -3408,6 +3418,8 @@
               detwei, ra, volume, d1, d3, dcyl, &       
               quad_nx, quad_ny, quad_nz )
 
+         ewrite(3,*)'detwei for ele=:', ele, detwei
+
          do quad_cv_iloc = 1, quad_cv_nloc
             ewrite(3,*)' quad_cv_iloc: ', quad_cv_iloc
 
@@ -3461,7 +3473,7 @@
 
          end do Loop_NGI
       end do Loop_Elements
-
+stop 189
       ! Now determine the basis functions and derivatives at the 
       ! quadrature pts quad_L1, quad_L2, quad_L3, quad_L4, etc
       call shatri_hex( quad_l1, quad_l2, quad_l3, quad_l4, rdummy, d3, &
@@ -5031,8 +5043,8 @@
 
       ele = 1
       x_ndgln_p2( ( ele - 1 ) * x_nloc + 1 ) = 7
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 2 ) = 9
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 3 ) = 8
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 2 ) = 8
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 3 ) = 9
       x_ndgln_p2( ( ele - 1 ) * x_nloc + 4 ) = 10
 
       ele = 2
@@ -5106,6 +5118,17 @@
       x_nonods = maxval( x_ndgln_real )
       ewrite(3,*) 'just before leaving Make_QTets'
       ewrite(3,*) 'x_nonods:', x_nonods
+
+      ele = 30+2
+      ewrite(3,*) x_ndgln_real( ( ele - 1 ) * quad_cv_nloc + 1 :  ( ele - 1 ) * quad_cv_nloc + 27 )
+      do iloc = 1, quad_cv_nloc
+         ewrite(3,*) x_ndgln_real( ( ele - 1 ) * quad_cv_nloc + iloc ), &
+              x(x_ndgln_real( ( ele - 1 ) * quad_cv_nloc + iloc )), &
+              y(x_ndgln_real( ( ele - 1 ) * quad_cv_nloc + iloc )), &
+              z(x_ndgln_real( ( ele - 1 ) * quad_cv_nloc + iloc ))
+      end do
+      !stop 999
+
 
       deallocate( x_ndgln_p2 )
       deallocate( x_ndgln )
