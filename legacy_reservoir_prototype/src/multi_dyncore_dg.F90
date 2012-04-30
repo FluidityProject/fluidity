@@ -1713,13 +1713,13 @@
       logical :: is_overlapping   
 
       ewrite(3,*) 'In ASSEMB_FORCE_CTY'
-      ewrite(3,*) 'Just double-checking sparsity patterns memory allocation:'
-      ewrite(3,*) 'FINDC with size,', size( FINDC ), ':', FINDC( 1 :  size( FINDC ) )
-      ewrite(3,*) 'COLC with size,', size( COLC ), ':', COLC( 1 :  size( COLC ) )
-      ewrite(3,*) 'FINDGM_PHA with size,', size( FINDGM_PHA ), ':', FINDGM_PHA( 1 :  size( FINDGM_PHA ) )
-      ewrite(3,*) 'COLDGM_PHA with size,', size( COLDGM_PHA ), ':', COLDGM_PHA( 1 :  size( COLDGM_PHA ) )
-      ewrite(3,*) 'FINELE with size,', size( FINELE ), ':', FINELE( 1 :  size( FINELE ) )
-      ewrite(3,*) 'COLELE with size,', size( COLELE ), ':', COLELE( 1 :  size( COLELE ) )
+      !ewrite(3,*) 'Just double-checking sparsity patterns memory allocation:'
+      !ewrite(3,*) 'FINDC with size,', size( FINDC ), ':', FINDC( 1 :  size( FINDC ) )
+      !ewrite(3,*) 'COLC with size,', size( COLC ), ':', COLC( 1 :  size( COLC ) )
+      !ewrite(3,*) 'FINDGM_PHA with size,', size( FINDGM_PHA ), ':', FINDGM_PHA( 1 :  size( FINDGM_PHA ) )
+      !ewrite(3,*) 'COLDGM_PHA with size,', size( COLDGM_PHA ), ':', COLDGM_PHA( 1 :  size( COLDGM_PHA ) )
+      !ewrite(3,*) 'FINELE with size,', size( FINELE ), ':', FINELE( 1 :  size( FINELE ) )
+      !ewrite(3,*) 'COLELE with size,', size( COLELE ), ':', COLELE( 1 :  size( COLELE ) )
 
 
       is_overlapping = .false.
@@ -1980,7 +1980,7 @@
          ! Adjust the volume according to the number of levels. 
          VOLUME=VOLUME/REAL(NLEV)
          MASS_ELE(ELE)=VOLUME
-         !ewrite(3,*) 'volume,0.1/18.:',volume,0.1/18.
+        ewrite(3,*) 'Leaving detnlxr_plus_u'
          !stop 2892
 
          UD = 0.0
@@ -2258,6 +2258,8 @@
 
          END DO Loop_DGNods1
 
+         ewrite(3,*)'just after Loop_DGNods1'
+
          ! Add-in  surface contributions.
 
          ! Find diffusion contributions at the surface
@@ -2347,6 +2349,7 @@
 
          END DO Loop_U_ILOC1
 
+         ewrite(3,*)'just after Loop_U_ILOC1'
 
       END DO Loop_Elements
 

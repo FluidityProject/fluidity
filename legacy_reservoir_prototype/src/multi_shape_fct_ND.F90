@@ -5026,8 +5026,8 @@
 !!!
 !!! Defining linear tetrahedra (8 within the quadratic tetrahedron)
 !!!
-      allocate( x_ndgln( max_x_nonods ) )
-      allocate( x_ndgln_p2( max_x_nonods ) )
+      allocate( x_ndgln( max_x_nonods ) ) ; x_ndgln = 0
+      allocate( x_ndgln_p2( max_x_nonods ) ) ; x_ndgln_p2 = 0
 
       ele = 1
       x_ndgln_p2( ( ele - 1 ) * x_nloc + 1 ) = 7
@@ -5350,7 +5350,6 @@
     integer, dimension( x_nonods ), intent( inout ) :: x_ndgln
     ! Local variables
     integer, parameter :: jloc2 = 8
-    integer, dimension( : ), allocatable :: xnod
     integer :: inod2, jnod, knod, iloc, ele_hex2, kloc
     integer, dimension( : ), allocatable :: inod
 
@@ -5370,7 +5369,7 @@
        ewrite(3,*) jnod, x( jnod ), y( jnod ), z( jnod )
     end do
 
-    inod2=maxval(x_ndgln)
+    inod2 = maxval( x_ndgln )
 
     allocate( inod ( 19 ) ) ; inod = 0
     do iloc = 1, 19 ! Extra parametric nodes 
