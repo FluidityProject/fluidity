@@ -7415,7 +7415,7 @@
                COUNT = COUNT + 1
                COLGPTS( COUNT ) = GI
             END IF
-            !   ewrite(3,*)'iloc,gi,NEILOC( ILOC, GI ):',iloc,gi,NEILOC( ILOC, GI )
+            !ewrite(3,*)'iloc,gi,NEILOC( ILOC, GI ):',iloc,gi,NEILOC( ILOC, GI )
 
          END DO
 
@@ -7423,7 +7423,7 @@
 
       FINDGPTS( NLOC + 1 ) = COUNT + 1
       NCOLGPTS = COUNT
-      !    stop 2821
+      !stop 2821
 
       RETURN 
     END SUBROUTINE GAUSSILOC

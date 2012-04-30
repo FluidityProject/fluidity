@@ -886,9 +886,9 @@
                sbcvngi = 7
                scvngi = 7
             else
-               cv_ngi = 864 ! 8x4x27
-               scvngi = 192
-               sbcvngi = 48
+               cv_ngi = 864 ! 8x4x27 (tets x hexs x 3x3x3)
+               scvngi = 192 ! 6x8x4 (cv_faces x hexs x tets)
+               sbcvngi = 48 ! 4x12 (sngi x cv_faces)
             endif
          case default; FLExit(" Invalid integer for cv_nloc ")
          end Select Conditional_CV_NLOC3D_Tet
@@ -2632,20 +2632,25 @@
            tri_tet  )
       ! Chacking the output from shatri
       do xnod = 1, x_nonods
-         ewrite(3,*)'loc_coord_nod_l1/3x:',loc_coord_nod_l1(xnod), loc_coord_nod_l2(xnod), &
-              loc_coord_nod_l3(xnod)
+         ewrite(3,*)'loc_coord_nod_l1/4, sum:', loc_coord_nod_l1(xnod), &
+              loc_coord_nod_l2(xnod), loc_coord_nod_l3(xnod), loc_coord_nod_l4(xnod)
       end do
       do xnod = 1, cv_nloc
          ewrite(3,*)'sn_i_xj:', xnod, ( sn_i_xj( xnod, ele ), ele = 1, x_nonods )
       end do
-      !        stop 2929
+      !stop 2929
 
       Loop_Elements: do ele = 1, totele ! Calculate SDETWEI,RA,SNX,SNY,SNZ for element ELE
          ! What is the fem node belonging to this element (CV_ILOC):
          cv_iloc_belong = 0
          do quad_cv_iloc = 1, quad_cv_nloc
             xnod = x_ndgln( ( ele - 1 ) * quad_cv_nloc + quad_cv_iloc )
-            if( fem_nod( xnod ) /= 0 ) cv_iloc_belong = xnod 
+            if( fem_nod( xnod ) /= 0 ) cv_iloc_belong = xnod
+
+            print *, ele, quad_cv_iloc, &
+                 ( ele - 1 ) * quad_cv_nloc + quad_cv_iloc, &
+                 xnod, fem_nod(xnod), &
+                 x(xnod), y(xnod),z(xnod)
          end do
 
          Loop_SurfaceElements: do sele = 1, stotel ! Extract surface nodes
@@ -2805,8 +2810,7 @@
                ! gl_quad_scvweigh( cv_sgi ) = quad_sdetwei( quad_cv_sgi )
                gl_quad_scvweigh( cv_sgi ) = quad_scvweight( quad_cv_sgi )
 
-               print *, ''
-
+               ewrite(3,*) ''
 
                xgi = 0. ; ygi = 0. ; zgi = 0.
                do quad_cv_siloc = 1, quad_cv_snloc
@@ -2815,25 +2819,23 @@
                   ygi =  ygi + quad_sn( quad_cv_siloc, quad_cv_sgi ) * y( xnod )
                   if( d3 ) zgi =  zgi + quad_sn( quad_cv_siloc, quad_cv_sgi ) * z( xnod )
 
-                  ewrite(3,*)  quad_cv_siloc, x( xnod ), y( xnod ), z( xnod ), '::', &
-                       xnod
+                  !ewrite(3,*)  quad_cv_siloc, x( xnod ), y( xnod ), z( xnod ), '::', &
+                  !     xnod
 
                end do
 
-               ewrite(3,*) x_ndgln( ( ele - 1 ) * quad_cv_snloc + 1:&
-                    ( ele - 1 ) * quad_cv_snloc + quad_cv_nloc )
-               ewrite(3,*)  '------>> quad_cv_gi, xgi,  ygi, zgi, xnods', &
-                    quad_cv_sgi, cv_sgi, xgi,  ygi, zgi
+               !ewrite(3,*) x_ndgln( ( ele - 1 ) * quad_cv_snloc + 1:&
+               !     ( ele - 1 ) * quad_cv_snloc + quad_cv_nloc )
+               !ewrite(3,*)  '------>> quad_cv_gi, xgi,  ygi, zgi', &
+               !     quad_cv_sgi, cv_sgi, xgi,  ygi, zgi
 
-              ! ewrite(3,*) lx(1:4)
-              ! ewrite(3,*) ly(1:4)
-              ! ewrite(3,*) lz(1:4)
-              ! ewrite(3,*) volume_quad_map( 1, sum(lx(1:4))/4., sum(ly(1:4))/4., sum(lz(1:4))/4., lx, ly, lz )
-              ! ewrite(3,*) volume_quad_map( 2, sum(lx(1:4))/4., sum(ly(1:4))/4., sum(lz(1:4))/4., lx, ly, lz )
-              ! ewrite(3,*) volume_quad_map( 3, sum(lx(1:4))/4., sum(ly(1:4))/4., sum(lz(1:4))/4., lx, ly, lz )
-              ! ewrite(3,*) volume_quad_map( 4, sum(lx(1:4))/4., sum(ly(1:4))/4., sum(lz(1:4))/4., lx, ly, lz )
-
-
+               ! ewrite(3,*) lx(1:4)
+               ! ewrite(3,*) ly(1:4)
+               ! ewrite(3,*) lz(1:4)
+               ! ewrite(3,*) volume_quad_map( 1, sum(lx(1:4))/4., sum(ly(1:4))/4., sum(lz(1:4))/4., lx, ly, lz )
+               ! ewrite(3,*) volume_quad_map( 2, sum(lx(1:4))/4., sum(ly(1:4))/4., sum(lz(1:4))/4., lx, ly, lz )
+               ! ewrite(3,*) volume_quad_map( 3, sum(lx(1:4))/4., sum(ly(1:4))/4., sum(lz(1:4))/4., lx, ly, lz )
+               ! ewrite(3,*) volume_quad_map( 4, sum(lx(1:4))/4., sum(ly(1:4))/4., sum(lz(1:4))/4., lx, ly, lz )
 
                if( d3 ) then ! local coords for the tetrahedron
                   gl_quad_l1( cv_sgi ) = volume_quad_map( 1, xgi, ygi, zgi, lx(1:4), ly(1:4), lz(1:4) )
@@ -2903,12 +2905,7 @@
          endif
       end do
 
-      print *,'cv_nloc, stotel * quad_cv_sngi * totele:',cv_nloc, stotel * quad_cv_sngi * totele
       allocate( sn_2( cv_nloc, stotel * quad_cv_sngi * totele ) ) ; sn_2 = 0.
-
-      print *, 'XXXXX', size(sn_2), scvngi
-
-
       allocate( suf_snlx_2( cv_nloc, stotel * quad_cv_sngi * totele ) ) ; suf_snlx_2 = 0.
       allocate( suf_snly_2( cv_nloc, stotel * quad_cv_sngi * totele ) ) ; suf_snly_2 = 0.
       allocate( snlx_2( cv_nloc, stotel * quad_cv_sngi * totele ) ) ; snlx_2 = 0.
@@ -2917,10 +2914,10 @@
       allocate( scvweigh_2( stotel * quad_cv_sngi * totele ) )
       allocate( cv_neiloc_cells_2( cv_nloc_cells, stotel * quad_cv_sngi * totele ) )
       allocate( cv_neiloc_cells_3( cv_nloc_cells, stotel * quad_cv_sngi * totele ) )
-      allocate( l1_2( stotel * quad_cv_sngi * totele ) )
-      allocate( l2_2( stotel * quad_cv_sngi * totele ) )
-      allocate( l3_2( stotel * quad_cv_sngi * totele ) )
-      allocate( l4_2( stotel * quad_cv_sngi * totele ) )
+      allocate( l1_2( stotel * quad_cv_sngi * totele ) ) ; l1_2 = 0.
+      allocate( l2_2( stotel * quad_cv_sngi * totele ) ) ; l2_2 = 0.
+      allocate( l3_2( stotel * quad_cv_sngi * totele ) ) ; l3_2 = 0.
+      allocate( l4_2( stotel * quad_cv_sngi * totele ) ) ; l4_2 = 0.
 
       cv_neiloc_cells_3 = 0
       ! Define cv_neiloc_cells_3 from next_to_cv_iloc_gi2; next_to_cv_iloc_gi: 
@@ -2980,20 +2977,21 @@
             l2_2( cv_sgk ) = gl_quad_l2( cv_sgi )
             l3_2( cv_sgk ) = gl_quad_l3( cv_sgi )
             if( d3 ) l4_2( cv_sgk ) = gl_quad_l4( cv_sgi )
-            ewrite(3,*)'cv_sgk, l1/2/3:', cv_sgk, l1_2( cv_sgk ), l2_2( cv_sgk ), l3_2( cv_sgk )
+            ewrite(3,*)'cv_sgk, l1/2/3/4:', cv_sgk, l1_2( cv_sgk ), &
+                 l2_2( cv_sgk ), l3_2( cv_sgk ), l4_2( cv_sgk )
          end if
       end do
 
       ewrite(3,*) 'suf_snlx_2:', suf_snlx_2
 
       cv_sngi_2 = cv_sgk
-      ewrite(3,*) 'quad_cv_sngi:', quad_cv_sngi
+      ewrite(3,*) 'quad_cv_ngi, cv_sngi_2:', quad_cv_sngi, cv_sngi_2
 
-      ewrite(3,*) 'stotel * quad_cv_sngi * totele, cv_sngi_2:', &
-           stotel * quad_cv_sngi * totele, cv_sngi_2
+      ewrite(3,*) 'd3, stotel * quad_cv_sngi * totele, cv_sngi_2:', &
+           d3, stotel * quad_cv_sngi * totele, cv_sngi_2
 
       ! Take out repetition of quadrature points
-      cv_sgk = 0 ; cv_neiloc_cells = 0 ; l1 = 0. ; l2 = 0. ; l3 = 0.
+      cv_sgk = 0 ; cv_neiloc_cells = 0 ; l1 = 0. ; l2 = 0. ; l3 = 0. ; l4=0.
       Loop_CV_SGI: do cv_sgi = 1, cv_sngi_2
          found = .false.
          Loop_CV_SGJ: do cv_sgj = 1, cv_sgi - 1
@@ -3002,13 +3000,13 @@
                  + abs( l3_2( cv_sgi ) - l3_2( cv_sgj ) ) 
             if( d3 ) d2_quad = d2_quad &
                  + abs( l4_2( cv_sgi ) - l4_2( cv_sgj ) ) 
-            if( d2_quad < 1.0e-5 ) found = .true. ! same pt -- remove repetation
+            if( d2_quad < 1.0e-5 ) found = .true. ! same pt -- remove repetition
          end do Loop_CV_SGJ
 
          if( .not. found ) then
             cv_sgk = cv_sgk + 1
 
-            print *, 'YYY', cv_sgi, cv_sgk
+            ewrite(3,*)cv_sgi, cv_sgk,scvngi,cv_sngi_2, sn_2( 1:3, cv_sgi )
 
             sn( :, cv_sgk ) = sn_2( :, cv_sgi )
             if( ndim.ge.2 ) sufnlx( :, cv_sgk ) = suf_snlx_2( :, cv_sgi )
@@ -3021,10 +3019,7 @@
             l2( cv_sgk ) = l2_2( cv_sgi )
             l3( cv_sgk ) = l3_2( cv_sgi )
             if( d3 ) l4( cv_sgk ) = l4_2( cv_sgi )
-            cv_neiloc_cells( :, cv_sgk ) = cv_neiloc_cells_2( :, cv_sgi )   
-            ewrite(3,*) 'cv_sgk, cv_sgi :' ,cv_sgk, cv_sgi 
-            !ewrite(3,*) 'suf_snlx_2( :, cv_sgi ):', suf_snlx_2( :, cv_sgi )      
-            !ewrite(3,*) 'sufnlx( :, cv_sgk ):', sufnlx( :, cv_sgk )       
+            cv_neiloc_cells( :, cv_sgk ) = cv_neiloc_cells_2( :, cv_sgi )    
          endif
       end do Loop_CV_SGI
 
@@ -3936,13 +3931,9 @@
       return
     end subroutine shape_l_q_quad
 
-
-
-
-
-!!!-                           -!!!
+!!!-                                      -!!!
 !!!-     And the functions:    -!!!
-!!!-                           -!!!
+!!!-                                      -!!!
 
 
     real function volume_quad_map( cv_iloc, xgi, ygi, zgi, lx, ly, lz )
@@ -4971,7 +4962,6 @@
       ly( 4 ) = 0.5 * ( ly( 1 ) + ly( 3 ) )
       lz( 4 ) = sqrt( 2. / 3. ) * h_scale
 
-
       ewrite(3,*)'lx:', lx( 1 : 4 )
       ewrite(3,*)'ly:', ly( 1 : 4 )
       ewrite(3,*)'lz:', lz( 1 : 4 )
@@ -5033,56 +5023,53 @@
          ewrite(3,*) iloc, xp2( iloc ), yp2( iloc ), zp2( iloc )
       end do
 
-
 !!!
 !!! Defining linear tetrahedra (8 within the quadratic tetrahedron)
 !!!
       allocate( x_ndgln( max_x_nonods ) )
       allocate( x_ndgln_p2( max_x_nonods ) )
-      ! Number of nodes within a linear tetrahedron
-      !quad_cv_nloc = number_of_hexs * number_of_nodes
 
-      ele = 1 ! Top tetrahedra
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 1 ) = 10
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 2 ) = 7
+      ele = 1
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 1 ) = 7
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 2 ) = 9
       x_ndgln_p2( ( ele - 1 ) * x_nloc + 3 ) = 8
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 4 ) = 9
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 4 ) = 10
 
       ele = 2
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 1 ) = 7
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 2 ) = 1
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 3 ) = 2
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 1 ) = 1
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 2 ) = 2
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 3 ) = 7
       x_ndgln_p2( ( ele - 1 ) * x_nloc + 4 ) = 4
 
       ele = 3
       x_ndgln_p2( ( ele - 1 ) * x_nloc + 1 ) = 7
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 2 ) = 8
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 3 ) = 2
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 4 ) = 4
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 2 ) = 2
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 3 ) = 4
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 4 ) = 8
 
       ele = 4
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 1 ) = 8
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 2 ) = 2
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 3 ) = 3
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 4 ) = 4
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 1 ) = 2
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 2 ) = 3
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 3 ) = 4
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 4 ) = 8
 
       ele = 5
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 1 ) = 8
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 1 ) = 4
       x_ndgln_p2( ( ele - 1 ) * x_nloc + 2 ) = 3
       x_ndgln_p2( ( ele - 1 ) * x_nloc + 3 ) = 5
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 4 ) = 4
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 4 ) = 8
 
       ele = 6
       x_ndgln_p2( ( ele - 1 ) * x_nloc + 1 ) = 8
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 2 ) = 9
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 2 ) = 4
       x_ndgln_p2( ( ele - 1 ) * x_nloc + 3 ) = 5
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 4 ) = 4
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 4 ) = 9
 
       ele = 7
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 1 ) = 9
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 1 ) = 4
       x_ndgln_p2( ( ele - 1 ) * x_nloc + 2 ) = 5
       x_ndgln_p2( ( ele - 1 ) * x_nloc + 3 ) = 6
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 4 ) = 4
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 4 ) = 9
 
       ele = 8
       x_ndgln_p2( ( ele - 1 ) * x_nloc + 1 ) = 7
@@ -5105,9 +5092,9 @@
 
       allocate( iloclist( quad_cv_nloc ) ) ; iloclist = 0
       iloclist = &
-           (/  5, 14,  6, 17, 18, 15,  7, 16,  8, & ! Level 1
-           19, 23, 20, 26, 27, 24, 21, 25, 22, &    ! Level 2
-           1,  9,  2, 12, 13, 10,  3, 11,  4  /)    ! Level 3
+           (/  5, 14,  6, 17, 18, 15,  7, 16,  8, &  ! Level 1
+           19, 23, 20, 26, 27, 24, 21, 25, 22, & ! Level 2
+           1,  9,  2, 12, 13, 10,  3, 11,  4  /)       ! Level 3
 
       totele = totele * number_of_hexs ! From now, TOTELE is actual total number of hexahedra
       do ele = 1, totele
@@ -5117,6 +5104,8 @@
          end do
       end do
       x_nonods = maxval( x_ndgln_real )
+      ewrite(3,*) 'just before leaving Make_QTets'
+      ewrite(3,*) 'x_nonods:', x_nonods
 
       deallocate( x_ndgln_p2 )
       deallocate( x_ndgln )
@@ -5132,7 +5121,7 @@
          x_ndgln_p2, x_ndgln )
       implicit none
       integer, intent( in ) :: ele, quad_cv_nloc, x_nloc, x_nonods, &
-           &                   number_of_hexs
+           &                           number_of_hexs
       real, dimension( 10 ), intent( in ) :: xp2, yp2, zp2
       real, dimension( x_nonods ), intent( inout ) :: x, y, z
       integer, dimension( x_nonods ), intent( in ) :: x_ndgln_p2
@@ -5140,11 +5129,10 @@
 
       ! Local variables
       real, dimension( 4 ) :: lx, ly, lz
-      integer :: ele_hex, hex_numbering, jloc, iloc, kloc, piloc, ten
+      integer :: ele_hex, hex_numbering, jloc, iloc, kloc, piloc
       integer, dimension( : ), allocatable :: inod
 
       ewrite(3,*)' In Make_Linear_Tetrahedron'
-
 
       do iloc = 1, x_nloc
          lx( iloc ) = xp2( x_ndgln_p2( ( ele - 1 ) * x_nloc + iloc ) )
@@ -5152,34 +5140,21 @@
          lz( iloc ) = zp2( x_ndgln_p2( ( ele - 1 ) * x_nloc + iloc ) )
 
          ewrite(3,*) iloc, x_ndgln_p2( ( ele - 1 ) * x_nloc + iloc ) 
-
-         ! x_ndgln( ( ele - 1 ) * quad_cv_nloc * number_of_hexs + iloc ) = &
-         !   x_ndgln_p2( ( ele - 1 ) * x_nloc + iloc )
-         ! x( x_ndgln( (ele - 1 ) * quad_cv_nloc * number_of_hexs + iloc ) ) = &
-         !   xp2( x_ndgln_p2( ( ele - 1 ) * x_nloc + iloc ) )
-         ! y( x_ndgln( (ele - 1 ) * quad_cv_nloc * number_of_hexs + iloc ) ) = &
-         !   yp2( x_ndgln_p2( ( ele - 1 ) * x_nloc + iloc ) )
-         !z( x_ndgln( (ele - 1 ) * quad_cv_nloc * number_of_hexs + iloc ) )= &
-         !   zp2( x_ndgln_p2( ( ele - 1 ) * x_nloc + iloc ) )
       end do
 
       ewrite(3,*)'lx:', lx( 1 : 4 )
       ewrite(3,*)'ly:', ly( 1 : 4 )
       ewrite(3,*)'lz:', lz( 1 : 4 )
 
-
-      ten=0
-      if (ele==1) ten=10
-
       ! Creating the numbering for the P1 tets and hexs
       allocate( inod( 11 ) ) ; inod = 0
       do iloc = 1, 11
-         inod( iloc ) = ( ele - 1 ) * quad_cv_nloc * number_of_hexs + ten + iloc
+         inod( iloc ) = ( ele - 1 ) * quad_cv_nloc * number_of_hexs + 10 + iloc
       end do
 
       do iloc = 1, 11
          ewrite(3,*)'x_ndgln(), inod:',  &
-              ( ele - 1 ) * quad_cv_nloc * number_of_hexs + iloc, &
+              ( ele - 1 ) * quad_cv_nloc * number_of_hexs +iloc, &
               inod( iloc )
       end do
 
@@ -5245,7 +5220,7 @@
       z( inod( 11 ) ) = 0.5 * ( lz( 3 ) + lz( 4 ) )
 
 !!!
-!!! Computing sudo elements
+!!! Computing pseudo elements
 !!!
 
       hex_numbering = ( ele - 1 ) * number_of_hexs
@@ -5258,7 +5233,7 @@
       x_ndgln( ( ele_hex - 1 ) * quad_cv_nloc + 5 ) = &
            x_ndgln_p2( ( ele - 1 ) * x_nloc + 1 )                          ! Node 1
       x_ndgln( ( ele_hex - 1 ) * quad_cv_nloc + 6 ) = inod( 1 ) ! Node 2
-      x_ndgln( ( ele_hex - 1 ) * quad_cv_nloc + 7 ) = inod( 4 ) ! Node 4
+      x_ndgln( ( ele_hex - 1 ) * quad_cv_nloc + 7 ) = inod( 2 ) ! Node 4
       x_ndgln( ( ele_hex - 1 ) * quad_cv_nloc + 8 ) = inod( 3 ) ! Node 5
 
       x( x_ndgln( ( ele_hex - 1 ) * quad_cv_nloc + 5 )  ) = &
@@ -5295,7 +5270,7 @@
       x_ndgln( ( ele_hex - 1 ) * quad_cv_nloc + 6 ) = inod( 3 )   ! Node 5
       x_ndgln( ( ele_hex - 1 ) * quad_cv_nloc + 7 ) = &
            x_ndgln_p2( ( ele - 1 ) * x_nloc + 3 )                            ! Node 7
-      x_ndgln( ( ele_hex - 1 ) * quad_cv_nloc + 8 ) = inod( 9 )   ! Node 6
+      x_ndgln( ( ele_hex - 1 ) * quad_cv_nloc + 8 ) = inod( 4 )   ! Node 6
 
       x( x_ndgln( ( ele_hex - 1 ) * quad_cv_nloc + 7 )  ) = &
            xp2( x_ndgln_p2( ( ele - 1 ) * x_nloc + 3 )   )
@@ -5326,8 +5301,7 @@
       ewrite(3,*) ' ele, ele_hex, xndgln()=, xndgln:'
       do ele_hex = 1, 4
          kloc = ( ele - 1 ) * number_of_hexs + ele_hex
-         jloc = 8 ; piloc = 0
-         do iloc = 1, jloc
+         do iloc = 1, 8
             ewrite(3,*) ele, ele_hex, ( kloc - 1 ) * quad_cv_nloc + iloc, &
                  x_ndgln( ( kloc - 1 ) * quad_cv_nloc + iloc ), &
                  x( x_ndgln(( kloc - 1 ) * quad_cv_nloc + iloc) ), &
@@ -5352,7 +5326,6 @@
     ! Local variables
     integer :: ele, ele_hex, iloc, kloc, ele_hex2
 
-
     Loop_Tets: do ele = 1, totele
        Loop_Hexs: do ele_hex = 1, number_of_hexs
           call Adding_Parametric_Nodes_Hex( ele, ele_hex, totele, number_of_hexs, &
@@ -5363,17 +5336,6 @@
 
     call Eliminating_Repetitive_Nodes_all( totele * number_of_hexs, quad_cv_nloc, x_nonods, &
          x_nonods, x_ndgln, x, y, z )
-
-    ele = 4
-    ewrite(3,*) ' ele, ele_hex, xndgln()=, xndgln:'
-    do ele_hex2 = 1, number_of_hexs
-       kloc = ( ele - 1 ) * number_of_hexs + ele_hex2
-       do iloc = 1, 27
-          ewrite(3,*) ele, ele_hex2, ( kloc - 1 ) * quad_cv_nloc + iloc, &
-               x_ndgln( ( kloc - 1 ) * quad_cv_nloc + iloc ) 
-       end do
-    end do
-
 
     return
   end subroutine Make_BiLinear_Hexahedra
@@ -5389,24 +5351,22 @@
     ! Local variables
     integer, parameter :: jloc2 = 8
     integer, dimension( : ), allocatable :: xnod
-    integer :: jloc, inod2, jnod, knod, iloc, ele_hex2, kloc
+    integer :: inod2, jnod, knod, iloc, ele_hex2, kloc
     integer, dimension( : ), allocatable :: inod
 
     ewrite(3,*)' In Adding_Parametric_Nodes_Hex '
 
     ele_hex2 = ( ele - 1 ) * number_of_hexs  + ele_hex
-    jloc = 0
-    !if( ele_hex == 1 ) jloc = 4
 
     ewrite(3,*)' Hexahedron', ele_hex, 'is based on the following nodes:'
     do iloc = 1, 8
-       ewrite(3,*) ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + iloc , &
-            x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + iloc )
+       ewrite(3,*) ( ele_hex2 - 1 ) * quad_cv_nloc + iloc , &
+            x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + iloc )
     end do
 
     ewrite(3,*)' Master node points for the Hex:'
     do iloc = 1, 8
-       jnod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + iloc )
+       jnod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + iloc )
        ewrite(3,*) jnod, x( jnod ), y( jnod ), z( jnod )
     end do
 
@@ -5414,177 +5374,175 @@
 
     allocate( inod ( 19 ) ) ; inod = 0
     do iloc = 1, 19 ! Extra parametric nodes 
-       x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + jloc2 + iloc ) = inod2 + iloc
-       inod( iloc ) = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + jloc2 + iloc )
-       ewrite(3,*)'inod:', iloc, inod( iloc )
+       x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc2 + iloc ) = inod2 + iloc
+       inod( iloc ) = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc2 + iloc )
+       ewrite(3,*)'inod:', iloc, ( ele_hex2 - 1 ) * quad_cv_nloc + jloc2 + iloc, inod( iloc )
     end do
 
     ewrite(3,*)'Numbering / Address for the Hex with parametric nodes'
-    ewrite(3,*) x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + jloc2 + 1 : &
-         ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + jloc2 + 19 )
+    ewrite(3,*) x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc2 + 1 : &
+         ( ele_hex2 - 1 ) * quad_cv_nloc + jloc2 + 19 )
 
 !!!
 !!! Level 1
 !!!
     ! Node 9
-    jnod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 1 )
-    knod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 2 )
+    jnod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 1 )
+    knod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 2 )
 
     x( inod( 1 ) ) = 0.5 * ( x( jnod ) + x( knod ) )
     y( inod( 1 ) ) = 0.5 * ( y( jnod ) + y( knod ) )
     z( inod( 1 ) ) = 0.5 * ( z( jnod ) + z( knod ) )
 
     ! Node 10
-    jnod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 2 )
-    knod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 4 )
+    jnod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 2 )
+    knod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 4 )
 
     x( inod( 2 ) ) = 0.5 * ( x( jnod ) + x( knod ) )
     y( inod( 2 ) ) = 0.5 * ( y( jnod ) + y( knod ) )
     z( inod( 2 ) ) = 0.5 * ( z( jnod ) + z( knod ) )
 
     ! Node 11
-    jnod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 3 )
-    knod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 4 )
+    jnod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 3 )
+    knod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 4 )
 
     x( inod( 3 ) ) = 0.5 * ( x( jnod ) + x( knod ) )
     y( inod( 3 ) ) = 0.5 * ( y( jnod ) + y( knod ) )
     z( inod( 3 ) ) = 0.5 * ( z( jnod ) + z( knod ) )
 
     ! Node 12
-    jnod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 1 )
-    knod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 3 )
+    jnod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 1 )
+    knod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 3 )
 
     x( inod( 4 ) ) = 0.5 * ( x( jnod ) + x( knod ) )
     y( inod( 4 ) ) = 0.5 * ( y( jnod ) + y( knod ) )
     z( inod( 4 ) ) = 0.5 * ( z( jnod ) + z( knod ) )
 
     ! Node 13
-    x( inod( 5 ) ) = 0.25 * ( sum( x ( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 1  : &
-         ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 4 ) ) ) )
-    y( inod( 5 ) ) = 0.25 * ( sum( y ( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 1  : &
-         ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 4 ) ) ) )
-    z( inod( 5 ) ) = 0.25 * ( sum( z ( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 1  : &
-         ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 4 ) ) ) )
+    x( inod( 5 ) ) = 0.25 * ( sum( x ( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 1  : &
+         ( ele_hex2 - 1 ) * quad_cv_nloc + 4 ) ) ) )
+    y( inod( 5 ) ) = 0.25 * ( sum( y ( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 1  : &
+         ( ele_hex2 - 1 ) * quad_cv_nloc + 4 ) ) ) )
+    z( inod( 5 ) ) = 0.25 * ( sum( z ( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 1  : &
+         ( ele_hex2 - 1 ) * quad_cv_nloc + 4 ) ) ) )
 
 !!!
 !!! Level 3
 !!!
     ! Node 14
-    jnod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 5 )
-    knod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 6 )
+    jnod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 5 )
+    knod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 6 )
 
     x( inod( 6 ) ) = 0.5 * ( x( jnod ) + x( knod ) )
     y( inod( 6 ) ) = 0.5 * ( y( jnod ) + y( knod ) )
     z( inod( 6 ) ) = 0.5 * ( z( jnod ) + z( knod ) )
 
     ! Node 15
-    jnod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 6 )
-    knod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 8 )
+    jnod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 6 )
+    knod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 8 )
 
     x( inod( 7 ) ) = 0.5 * ( x( jnod ) + x( knod ) )
     y( inod( 7 ) ) = 0.5 * ( y( jnod ) + y( knod ) )
     z( inod( 7 ) ) = 0.5 * ( z( jnod ) + z( knod ) )
 
     ! Node 16
-    jnod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 7 )
-    knod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 8 )
+    jnod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 7 )
+    knod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 8 )
 
     x( inod( 8 ) ) = 0.5 * ( x( jnod ) + x( knod ) )
     y( inod( 8 ) ) = 0.5 * ( y( jnod ) + y( knod ) )
     z( inod( 8 ) ) = 0.5 * ( z( jnod ) + z( knod ) )
 
     ! Node 17
-    jnod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 5 )
-    knod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 7 )
+    jnod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 5 )
+    knod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 7 )
 
     x( inod( 9 ) ) = 0.5 * ( x( jnod ) + x( knod ) )
     y( inod( 9 ) ) = 0.5 * ( y( jnod ) + y( knod ) )
     z( inod( 9 ) ) = 0.5 * ( z( jnod ) + z( knod ) )
 
     ! Node 18
-    x( inod( 10 ) ) = 0.25 * ( sum( x ( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 5  : &
-         ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 8 ) ) ) )
-    y( inod( 10 ) ) = 0.25 * ( sum( y ( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 5  : &
-         ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 8 ) ) ) )
-    z( inod( 10 ) ) = 0.25 * ( sum( z ( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 5  : &
-         ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 8 ) ) ) )
-
+    x( inod( 10 ) ) = 0.25 * ( sum( x ( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 5  : &
+         ( ele_hex2 - 1 ) * quad_cv_nloc + 8 ) ) ) )
+    y( inod( 10 ) ) = 0.25 * ( sum( y ( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 5  : &
+         ( ele_hex2 - 1 ) * quad_cv_nloc + 8 ) ) ) )
+    z( inod( 10 ) ) = 0.25 * ( sum( z ( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 5  : &
+         ( ele_hex2 - 1 ) * quad_cv_nloc + 8 ) ) ) )
 
 !!!
 !!! Level 2
 !!!
     ! Node 19
-    x( inod( 11 ) ) = 0.5 * ( x( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 1 ) ) + &
-         x( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 5 ) ) )
-    y( inod( 11 ) ) = 0.5 * ( y( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 1 ) ) + &
-         y( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 5 ) ) )
-    z( inod( 11 ) ) = 0.5 * ( z( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 1 ) ) + &
-         z( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 5 ) ) )
+    x( inod( 11 ) ) = 0.5 * ( x( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 1 ) ) + &
+         x( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 5 ) ) )
+    y( inod( 11 ) ) = 0.5 * ( y( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 1 ) ) + &
+         y( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 5 ) ) )
+    z( inod( 11 ) ) = 0.5 * ( z( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 1 ) ) + &
+         z( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 5 ) ) )
 
     ! Node 20
-    x( inod( 12 ) ) = 0.5 * ( x( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 2 ) ) + &
-         x( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 6 ) ) )
-    y( inod( 12 ) ) = 0.5 * ( y( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 2 ) ) + &
-         y( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 6 ) ) )
-    z( inod( 12 ) ) = 0.5 * ( z( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 2 ) ) + &
-         z( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 6 ) ) )
+    x( inod( 12 ) ) = 0.5 * ( x( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 2 ) ) + &
+         x( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 6 ) ) )
+    y( inod( 12 ) ) = 0.5 * ( y( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 2 ) ) + &
+         y( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 6 ) ) )
+    z( inod( 12 ) ) = 0.5 * ( z( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 2 ) ) + &
+         z( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 6 ) ) )
 
     ! Node 21
-    x( inod( 13 ) ) = 0.5 * ( x( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 3 ) ) + &
-         x( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 7 ) ) )
-    y( inod( 13 ) ) = 0.5 * ( y( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 3 ) ) + &
-         y( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 7 ) ) )
-    z( inod( 13 ) ) = 0.5 * ( z( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 3 ) ) + &
-         z( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 7 ) ) )
+    x( inod( 13 ) ) = 0.5 * ( x( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 3 ) ) + &
+         x( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 7 ) ) )
+    y( inod( 13 ) ) = 0.5 * ( y( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 3 ) ) + &
+         y( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 7 ) ) )
+    z( inod( 13 ) ) = 0.5 * ( z( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 3 ) ) + &
+         z( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 7 ) ) )
 
     ! Node 22 
-    x( inod( 14 ) ) = 0.5 * ( x( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 4 ) ) + &
-         x( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 8 ) ) )
-    y( inod( 14 ) ) = 0.5 * ( y( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 4 ) ) + &
-         y( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 8 ) ) )
-    z( inod( 14 ) ) = 0.5 * ( z( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 4 ) ) + &
-         z( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 8 ) ) )
-
+    x( inod( 14 ) ) = 0.5 * ( x( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 4 ) ) + &
+         x( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 8 ) ) )
+    y( inod( 14 ) ) = 0.5 * ( y( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 4 ) ) + &
+         y( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 8 ) ) )
+    z( inod( 14 ) ) = 0.5 * ( z( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 4 ) ) + &
+         z( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 8 ) ) )
 
     ! Node 23
-    jnod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 19 )
-    knod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 20 )
+    jnod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 19 )
+    knod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 20 )
 
     x( inod( 15 ) ) = 0.5 * ( x( jnod ) + x( knod ) )
     y( inod( 15 ) ) = 0.5 * ( y( jnod ) + y( knod ) )
     z( inod( 15 ) ) = 0.5 * ( z( jnod ) + z( knod ) )
 
     ! Node 24
-    jnod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 20 )
-    knod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 22 )
+    jnod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 20 )
+    knod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 22 )
 
     x( inod( 16 ) ) = 0.5 * ( x( jnod ) + x( knod ) )
     y( inod( 16 ) ) = 0.5 * ( y( jnod ) + y( knod ) )
     z( inod( 16 ) ) = 0.5 * ( z( jnod ) + z( knod ) )
 
     ! Node 25
-    jnod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 21 )
-    knod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 22 )
+    jnod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 21 )
+    knod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 22 )
 
     x( inod( 17 ) ) = 0.5 * ( x( jnod ) + x( knod ) )
     y( inod( 17 ) ) = 0.5 * ( y( jnod ) + y( knod ) )
     z( inod( 17 ) ) = 0.5 * ( z( jnod ) + z( knod ) )
 
     ! Node 26
-    jnod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 19 )
-    knod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 21 )
+    jnod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 19 )
+    knod = x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 21 )
 
     x( inod( 18 ) ) = 0.5 * ( x( jnod ) + x( knod ) )
     y( inod( 18 ) ) = 0.5 * ( y( jnod ) + y( knod ) )
     z( inod( 18 ) ) = 0.5 * ( z( jnod ) + z( knod ) )
 
     ! Node 27
-    x( inod( 19 ) ) = 0.25 * ( sum( x ( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 19 : &
-         ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 22 ) ) ) )
-    y( inod( 19 ) ) = 0.25 * ( sum( y ( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 19 : &
-         ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 22 ) ) ) )
-    z( inod( 19 ) ) = 0.25 * ( sum( z ( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 19 : &
-         ( ele_hex2 - 1 ) * quad_cv_nloc + jloc + 22 ) ) ) )
+    x( inod( 19 ) ) = 0.25 * ( sum( x ( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 19 : &
+         ( ele_hex2 - 1 ) * quad_cv_nloc + 22 ) ) ) )
+    y( inod( 19 ) ) = 0.25 * ( sum( y ( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 19 : &
+         ( ele_hex2 - 1 ) * quad_cv_nloc + 22 ) ) ) )
+    z( inod( 19 ) ) = 0.25 * ( sum( z ( x_ndgln( ( ele_hex2 - 1 ) * quad_cv_nloc + 19 : &
+         ( ele_hex2 - 1 ) * quad_cv_nloc + 22 ) ) ) )
 
     ewrite(3,*)'X / Y / Z of parametric nodes:'
     do iloc = 1, 19
@@ -6130,7 +6088,7 @@
         IMPLICIT NONE
         INTEGER NLOC,NGI
         LOGICAL D3
-	REAL L1(NGI), L2(NGI), L3(NGI), L4(NGI)
+        REAL L1(NGI), L2(NGI), L3(NGI), L4(NGI)
         REAL WEIGHT(NGI)
         REAL N(NLOC,NGI),NLX(NLOC,NGI),NLY(NLOC,NGI),NLZ(NLOC,NGI)
 ! Local variables...
