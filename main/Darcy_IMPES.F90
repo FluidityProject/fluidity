@@ -38,10 +38,8 @@ program Darcy_IMPES
    use MeshDiagnostics
    use signal_vars
    use spud
-   use equation_of_state
    use timers
    use adapt_state_module
-   use adapt_state_prescribed_module
    use FLDebug
    use sparse_tools
    use elements
@@ -50,26 +48,16 @@ program Darcy_IMPES
    use reserve_state_module
    use vtk_interfaces
    use Diagnostic_variables
-   use diagnostic_fields_new, only : &
-     & calculate_diagnostic_variables_new => calculate_diagnostic_variables, &
-     & check_diagnostic_dependencies
-   use diagnostic_fields_wrapper
-   use diagnostic_children
-   use field_equations_cv, only: solve_field_eqn_cv, initialise_advection_convergence, coupled_cv_field_eqn
    use vertical_extrapolation_module
    use qmesh_module
    use synthetic_bc
-   use goals
    use adaptive_timestepping
    use conformity_measurement
    use adjacency_lists
    use parallel_tools
    use write_triangle
    use timeloop_utilities
-   use free_surface_module
-   use field_priority_lists
    use boundary_conditions
-   use discrete_properties_module
    use halos
    use memory_diagnostics
    use global_parameters, only: current_time, &
@@ -81,7 +69,6 @@ program Darcy_IMPES
                                 simulation_start_wall_time, &
                                 topology_mesh_name
    use eventcounter
-   use reduced_model_runtime
    use detector_parallel, only: sync_detector_coordinates, deallocate_detector_list_array
 #ifdef HAVE_ZOLTAN
    use zoltan
@@ -97,6 +84,7 @@ program Darcy_IMPES
    use cv_faces
    use cv_options
    use FEFields
+   use state_module
    
    ! *** Use Darcy IMPES module ***
    use darcy_impes_assemble_module
@@ -207,14 +195,9 @@ program Darcy_IMPES
    
    call populate_state(state)
    
-   call check_diagnostic_dependencies(state)
-
    default_stat%zoltan_drive_call=.false.
 
    call get_option("/timestepping/timestep", dt)   
-
-   ! *** Initialise data used in IMPES solver *** 
-   call darcy_impes_initialise(di, state, dt)
    
    ! Set non linear iteration data - required before first adapt
    call get_option("/timestepping/nonlinear_iterations", &
@@ -235,6 +218,9 @@ program Darcy_IMPES
    call get_option("/timestepping/nonlinear_iterations/tolerance", &
                   & nonlinear_iteration_tolerance, &
                   & default = 0.0)
+
+   ! *** Initialise data used in IMPES solver *** 
+   call darcy_impes_initialise(di, state, dt, current_time)
    
    ! Adapt time at first time step - required before first adapt
    if(di%adaptive_dt_options%have .and. di%adaptive_dt_options%at_first_dt) then
@@ -344,10 +330,6 @@ program Darcy_IMPES
          
          ! *** Solve the Darcy equations using IMPES ***
          call darcy_impes_assemble_and_solve(di)
-      
-         ! calculate and write diagnostics before the timestep gets changed
-         call calculate_diagnostic_variables(state, exclude_nonrecalculated=.true.)
-         call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
 
          if(nonlinear_iterations > 1) then
             
@@ -386,13 +368,16 @@ program Darcy_IMPES
       end if
             
       current_time = current_time + DT
-
+      ! *** Update DarcyIMPES current_time
+      di%current_time = current_time
+      
       ! if strong bc or weak that overwrite then enforce the bc on the fields
       call set_dirichlet_consistent(state)
        
       ! Call the modern and significantly less satanic version of study
       call write_diagnostics(state, current_time, dt, timestep)
       
+      ! *** Darcy IMPES adaptive time stepping choice ***
       if(di%adaptive_dt_options%have) call darcy_impes_calculate_cflnumber_field_based_dt(di)
       
       dt = di%dt
@@ -427,7 +412,8 @@ program Darcy_IMPES
             ! *** Update Darcy IMPES post spatial adapt ***
             call darcy_impes_update_post_spatial_adapt(di, &
                                                        state, &
-                                                       dt)
+                                                       dt, &
+                                                       current_time)
 
             if (have_option("/mesh_adaptivity/hr_adaptivity/adaptive_timestep_at_adapt")) then
                if (have_option("/timestepping/adaptive_timestep/minimum_timestep")) then
@@ -534,13 +520,15 @@ contains
 
    subroutine darcy_impes_initialise(di, &
                                      state, &
-                                     dt)
+                                     dt, &
+                                     current_time)
       
       !!< Initialise the Darcy IMPES type from options and state
       
       type(darcy_impes_type),                       intent(inout) :: di
       type(state_type),       dimension(:), target, intent(inout) :: state
       real,                                         intent(in)    :: dt
+      real,                                         intent(in)    :: current_time
       
       ! Local variables
       integer :: p
@@ -552,6 +540,8 @@ contains
                                                  force_prescribed_diagnositc_allocate_old_iterated = .true.)
       
       di%dt = dt
+
+      di%current_time = current_time
       
       di%nonlinear_iter = 0
       
@@ -572,6 +562,13 @@ contains
       di%sum_saturation            => extract_scalar_field(di%state(1), "SumSaturation")
       di%old_sum_saturation        => extract_scalar_field(di%state(1), "OldSumSaturation")
       di%div_total_darcy_velocity  => extract_scalar_field(di%state(1), "DivergenceTotalDarcyVelocity")
+      di%gravity_direction         => extract_vector_field(di%state(1), "GravityDirection")
+     
+      ! get the gravity magnitude from options
+      call get_option('/physical_parameters/gravity/magnitude', di%gravity_magnitude)
+      
+      ! allocate the gravity field (which will contain both the magnitude and direction)
+      call allocate(di%gravity, di%gravity_direction%dim, di%gravity_direction%mesh)
       
       ! Form the positions on the pressure mesh
       di%positions_pressure_mesh = get_coordinate_field(di%state(1), di%pressure_mesh)
@@ -615,14 +612,16 @@ contains
       allocate(di%old_cfl(di%number_phase))
       allocate(di%darcy_velocity(di%number_phase))
       allocate(di%fractional_flow(di%number_phase))
+      allocate(di%density(di%number_phase))
+      allocate(di%old_density(di%number_phase))
 
       do p = 1,di%number_phase
 
          di%pressure(p)%ptr                    => extract_scalar_field(di%state(p), "Pressure")
          di%old_pressure(p)%ptr                => extract_scalar_field(di%state(p), "OldPressure")
          if (p > 1) then
-            di%capilliary_pressure(p)%ptr         => extract_scalar_field(di%state(p), "CapilliaryPressure")
-            di%old_capilliary_pressure(p)%ptr     => extract_scalar_field(di%state(p), "OldCapilliaryPressure")
+            di%capilliary_pressure(p)%ptr      => extract_scalar_field(di%state(p), "CapilliaryPressure")
+            di%old_capilliary_pressure(p)%ptr  => extract_scalar_field(di%state(p), "OldCapilliaryPressure")
          end if
          di%gradient_pressure(p)%ptr           => extract_vector_field(di%state(p), "GradientPressure")
          di%old_gradient_pressure(p)%ptr       => extract_vector_field(di%state(p), "OldGradientPressure")
@@ -636,6 +635,8 @@ contains
          di%old_cfl(p)%ptr                     => extract_scalar_field(di%state(p), "OldInterstitialVelocityCFL")
          di%darcy_velocity(p)%ptr              => extract_vector_field(di%state(p), "DarcyVelocity")
          di%fractional_flow(p)%ptr             => extract_vector_field(di%state(p), "FractionalFlow")
+         di%density(p)%ptr                     => extract_scalar_field(di%state(p), "Density")
+         di%old_density(p)%ptr                 => extract_scalar_field(di%state(p), "OldDensity")
          
       end do
       
@@ -751,10 +752,30 @@ contains
       
       end if
       
+      ! Determine the EoS options for each phase
+      allocate(di%eos_options(di%number_phase))
+      do p = 1, di%number_phase
+         di%eos_options(p)%have_fluids_linear = &
+        &have_option(trim(di%density(p)%ptr%option_path)//'/diagnostic/equation_of_state::IncompressibleLinear')
+         
+         if (di%eos_options(p)%have_fluids_linear) then
+            call get_option(trim(di%density(p)%ptr%option_path)//'/diagnostic/equation_of_state::IncompressibleLinear/reference_density', &
+                            di%eos_options(p)%fluids_linear_reference_density)
+         else
+            di%eos_options(p)%fluids_linear_reference_density = 0.0
+         end if
+      end do
+      
+      ! Determine if the Porosity is diagnostic, else it is prescribed
+      di%porosity_is_diagnostic = have_option('/porous_media/scalar_field::Porosity/diagnostic')
+      
+      ! Determine if the AbsolutePermeability is diagnostic, else it is prescribed
+      di%absolute_permeability_is_diagnostic = have_option('/porous_media/scalar_field::AbsolutePermeability/diagnostic')
+      
       ! Determine the CV surface degree to use when integrating functions across them
       call get_option("/geometry/quadrature/controlvolume_surface_degree", &
                       di%quaddegree, default = 1)
-
+    
       ! Determine the CV faces information for the pressure mesh
       ! assuming all elements are the same type
       di%cvfaces = find_cv_faces(vertices   = ele_vertices(di%pressure_mesh, 1), &
@@ -796,18 +817,20 @@ contains
       
       ! allocate the arrays used to cache the phase face values 
       ! which are perhaps summed over the subcycles.
-      call darcy_impex_allocate_cached_phase_face_value(di)
+      call darcy_impes_allocate_cached_phase_face_value(di)
       
       ! If the first phase saturation is diagnostic then calculate it
       if (di%phase_one_saturation_diagnostic) call darcy_impes_calculate_phase_one_saturation_diagnostic(di)
-
-      ! Calculate the relative permeabilities - and other generic diagnostic fields
-      ! (NOTE this is required before the darcy impes specific diagnostic fields below are calculated)
-      call calculate_diagnostic_variables(di%state)
-      call calculate_diagnostic_variables_new(di%state)
-
+            
       ! Calculate the gradient pressure for each phase
       call darcy_impes_calculate_gradient_pressures(di)
+
+      ! Calculate the generic python diagnostic Darcy IMPES fields: 
+      ! - RelativePermeability (All phases)
+      ! - CapilliaryPressure (Not first phase)
+      ! - Porosity?
+      ! - AbsolutePermeability?
+      call darcy_impes_calculate_generic_python_diagnostic_fields(di)
 
       ! Calculate the non first phase pressure's
       call darcy_impes_calculate_non_first_phase_pressures(di)       
@@ -817,6 +840,9 @@ contains
 
       ! Calculate the sum of the saturations
       call darcy_impes_calculate_sum_saturation(di)
+
+      ! Calculate the density field of each phase
+      call darcy_impes_calculate_densities(di)
 
       ! Copy ALL latest fields to Old and Iterated
       call copy_to_stored_values(di%state,"Old")
@@ -868,6 +894,11 @@ contains
       nullify(di%sum_saturation)
       nullify(di%old_sum_saturation)
       nullify(di%div_total_darcy_velocity)
+      nullify(di%gravity_direction)
+      
+      di%gravity_magnitude = 0.0
+      
+      call deallocate(di%gravity)
             
       call deallocate(di%positions_pressure_mesh)
       nullify(di%sparsity_pmesh_pmesh)
@@ -899,6 +930,8 @@ contains
       deallocate(di%old_cfl)
       deallocate(di%darcy_velocity) 
       deallocate(di%fractional_flow) 
+      deallocate(di%density) 
+      deallocate(di%old_density) 
       
       di%first_phase_pressure_prognostic = .false.
       
@@ -936,6 +969,11 @@ contains
       di%adaptive_dt_options%min_dt_terminate_if_reached = .false.
       di%adaptive_dt_options%at_first_dt                 = .false.
       
+      deallocate(di%eos_options)
+      
+      di%porosity_is_diagnostic              = .false.
+      di%absolute_permeability_is_diagnostic = .false.
+      
       di%quaddegree = 0
       
       call deallocate(di%cvfaces)
@@ -958,13 +996,15 @@ contains
    
    subroutine darcy_impes_update_post_spatial_adapt(di, &
                                                     state, &
-                                                    dt)
+                                                    dt, &
+                                                    current_time)
       
       !!< Update the Darcy IMPES data post spatial adapt
       
       type(darcy_impes_type),                       intent(inout) :: di
       type(state_type),       dimension(:), target, intent(inout) :: state
       real,                                         intent(in)    :: dt
+      real,                                         intent(in)    :: current_time
       
       ewrite(1,*) 'Update Darcy IMPES data post spatial adapt'
       
@@ -975,7 +1015,8 @@ contains
             
       call darcy_impes_initialise(di, &
                                   state, &
-                                  dt)
+                                  dt, &
+                                  current_time)
       
       ewrite(1,*) 'Finished updating Darcy IMPES data post spatial adapt'
       

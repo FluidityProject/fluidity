@@ -11,6 +11,7 @@ include "prescribed_field_options.rnc"
 include "spatial_discretisation.rnc"
 include "temporal_discretisation.rnc"
 include "porous_media.rnc"
+include "physical_parameters.rnc"
 
 
 start =
@@ -32,6 +33,8 @@ start =
          darcy_impes_io,
          
          darcy_impes_timestepping,
+         
+         darcy_impes_physical_parameters,
 
          darcy_impes_material_phases,
          
@@ -517,6 +520,14 @@ darcy_impes_timestepping =
    )
 
 
+darcy_impes_physical_parameters =
+   (
+      element physical_parameters {
+         gravity_options
+      }   
+   )
+
+
 darcy_impes_material_phases =
    (
       ## The phase options
@@ -530,6 +541,8 @@ darcy_impes_material_phases =
          darcy_impes_relative_permeability_field,
          
          darcy_impes_viscosity_field,
+         
+         darcy_impes_density_field,
 
          darcy_impes_gradient_pressure_field,
                   
@@ -580,6 +593,8 @@ darcy_impes_other_phase_options =
       darcy_impes_relative_permeability_field,
 
       darcy_impes_viscosity_field,
+      
+      darcy_impes_density_field,
 
       darcy_impes_gradient_pressure_field,
 
@@ -633,9 +648,6 @@ darcy_impes_non_first_phase_pressure_field =
             element mesh {
                attribute name { "PressureMesh" }      
             },
-            element algorithm {
-               attribute name { "Internal" }
-            },
             darcy_impes_include_cv_stat, 
             adaptivity_options_scalar_field,
             interpolation_algorithm_scalar
@@ -669,9 +681,6 @@ darcy_impes_average_pressure =
          element diagnostic {
             element mesh {
                attribute name { "PressureMesh" }      
-            },
-            element algorithm {
-               attribute name { "Internal" }
             },
             darcy_impes_include_cv_stat, 
             interpolation_algorithm_scalar
@@ -725,7 +734,7 @@ darcy_impes_saturation_field =
                attribute name { "PressureMesh" }      
             },
             initial_condition_scalar+,
-            darcy_impes_bc_saturation_field+,
+            darcy_impes_bc_saturation_field*,
             darcy_impes_include_cv_stat,
             scalar_convergence_options,
             adaptivity_options_prognostic_scalar_field,
@@ -851,6 +860,39 @@ darcy_impes_viscosity_field =
    )
 
 
+darcy_impes_density_field =
+   (
+      element scalar_field {
+         attribute rank { "0" },
+         attribute name { "Density" },
+         element diagnostic {
+            element mesh {
+               attribute name { "PressureMesh" }      
+            },
+            darcy_impes_eos,
+            darcy_impes_include_cv_stat, 
+            interpolation_algorithm_scalar
+         }
+      }   
+   )
+
+
+darcy_impes_eos =
+   (
+      ## Equations of state for simple fluid applications
+      element equation_of_state {
+         comment,         
+         
+         attribute name { "IncompressibleLinear" },
+         
+         ## The reference density
+         element reference_density {
+            real
+         }
+      }
+   )
+   
+   
 darcy_impes_gradient_pressure_field =
    (
       element vector_field {
@@ -859,9 +901,6 @@ darcy_impes_gradient_pressure_field =
          element diagnostic {
             element mesh {
                attribute name { "ElementWiseMesh" }      
-            },
-            element algorithm {
-               attribute name { "Internal" }
             },
             darcy_impes_include_cv_stat, 
             interpolation_algorithm_scalar
@@ -879,9 +918,6 @@ darcy_impes_interstitial_velocity_porosity_field =
             element mesh {
                attribute name { "VelocityMesh" }      
             },
-            element algorithm {
-               attribute name { "Internal" }
-            },
             darcy_impes_include_cv_stat, 
             interpolation_algorithm_scalar
          }
@@ -898,9 +934,6 @@ darcy_impes_interstitial_velocity_CFL_field =
             element mesh {
                attribute name { "PressureMesh" }      
             },
-            element algorithm {
-               attribute name { "Internal" }
-            }, 
             darcy_impes_include_cv_stat, 
             interpolation_algorithm_scalar
          }
@@ -917,9 +950,6 @@ darcy_impes_darcy_velocity_field =
             element mesh {
                attribute name { "VelocityMesh" }      
             },
-            element algorithm {
-               attribute name { "Internal" }
-            }, 
             darcy_impes_bc_darcy_velocity_field*,
             darcy_impes_include_cv_stat, 
             interpolation_algorithm_scalar
@@ -937,9 +967,6 @@ darcy_impes_fractional_flow_field =
             element mesh {
                attribute name { "VelocityMesh" }      
             },
-            element algorithm {
-               attribute name { "Internal" }
-            }, 
             darcy_impes_include_cv_stat, 
             interpolation_algorithm_scalar
          }
@@ -956,9 +983,6 @@ darcy_impes_total_darcy_velocity_field =
             element mesh {
                attribute name { "VelocityMesh" }      
             },
-            element algorithm {
-               attribute name { "Internal" }
-            }, 
             darcy_impes_bc_total_darcy_velocity_field*,
             darcy_impes_include_cv_stat, 
             interpolation_algorithm_scalar
@@ -976,9 +1000,6 @@ darcy_impes_total_darcy_velocity_field_cv =
             element mesh {
                attribute name { "PressureMesh" }      
             },
-            element algorithm {
-               attribute name { "Internal" }
-            }, 
             darcy_impes_include_cv_stat, 
             interpolation_algorithm_scalar
          }
@@ -995,9 +1016,6 @@ darcy_impes_divergence_total_darcy_velocity_field =
             element mesh {
                attribute name { "PressureMesh" }      
             },
-            element algorithm {
-               attribute name { "Internal" }
-            }, 
             darcy_impes_include_cv_stat, 
             interpolation_algorithm_scalar
          }
@@ -1014,9 +1032,6 @@ darcy_impes_sum_saturation =
             element mesh {
                attribute name { "PressureMesh" }      
             },
-            element algorithm {
-               attribute name { "Internal" }
-            }, 
             darcy_impes_include_cv_stat, 
             interpolation_algorithm_scalar
          }
@@ -1033,10 +1048,7 @@ darcy_impes_bc_pressure_field =
          element surface_ids {
             integer_vector
          },
-         element type {
-            attribute name { "dirichlet" },
-            input_choice_real
-         }            
+         darcy_impes_dirichlet_bc            
       }   
    )
 
@@ -1051,10 +1063,7 @@ darcy_impes_bc_saturation_field =
             integer_vector
          },
          (
-            element type {
-               attribute name { "dirichlet" },
-               input_choice_real
-            }|
+            darcy_impes_dirichlet_bc|
             element type {
                attribute name { "zero_flux" }
             }
@@ -1062,6 +1071,24 @@ darcy_impes_bc_saturation_field =
       }   
    )
 
+
+darcy_impes_dirichlet_bc = 
+   (
+      element type {
+         attribute name { "dirichlet" },
+         (
+            ## Apply the dirichlet BC strongly
+            element apply_strongly {
+               empty
+            }|
+            ## Apply the dirichlet BC weakly
+            element apply_weakly {
+               empty
+            }
+         ),
+         input_choice_real
+      }   
+   )
 
 darcy_impes_bc_darcy_velocity_field =
    (

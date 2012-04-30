@@ -54,6 +54,7 @@ module darcy_impes_assemble_module
    use porous_media
    use parallel_tools
    use adaptive_timestepping
+   use python_diagnostics
    use signal_vars, only : SIG_INT
    use global_parameters, only : FIELD_NAME_LEN, OPTION_PATH_LEN
 
@@ -66,10 +67,12 @@ module darcy_impes_assemble_module
              darcy_impes_calculate_gradient_pressures, &
              darcy_impes_calculate_non_first_phase_pressures, &
              darcy_impes_calculate_phase_one_saturation_diagnostic, &
+             darcy_impes_calculate_generic_python_diagnostic_fields, &
              darcy_impes_calculate_velocity_and_cfl_fields, &
              darcy_impes_calculate_sum_saturation, &
+             darcy_impes_calculate_densities, &
              darcy_impes_calculate_cflnumber_field_based_dt, &
-             darcy_impex_allocate_cached_phase_face_value
+             darcy_impes_allocate_cached_phase_face_value
    
    ! Options associated with explicit advection subcycling for CV scalar field solver
    type darcy_impes_subcycle_options_type
@@ -80,7 +83,7 @@ module darcy_impes_assemble_module
    end type darcy_impes_subcycle_options_type
    
    ! Options associated with adaptive time stepping
-   type darcy_impex_adaptive_dt_options_type
+   type darcy_impes_adaptive_dt_options_type
       logical :: have
       real    :: requested_cfl
       real    :: min_dt
@@ -88,7 +91,13 @@ module darcy_impes_assemble_module
       real    :: increase_tolerance
       logical :: min_dt_terminate_if_reached
       logical :: at_first_dt
-   end type darcy_impex_adaptive_dt_options_type
+   end type darcy_impes_adaptive_dt_options_type
+   
+   ! Options associated with EoS for a phase
+   type darcy_impes_eos_options_type
+      logical :: have_fluids_linear
+      real    :: fluids_linear_reference_density
+   end type darcy_impes_eos_options_type
    
    type darcy_impes_type
       ! *** Pointers to fields from state that have array length of number of phases ***
@@ -108,6 +117,8 @@ module darcy_impes_assemble_module
       type(scalar_field_pointer), dimension(:), pointer :: old_capilliary_pressure
       type(vector_field_pointer), dimension(:), pointer :: gradient_pressure
       type(vector_field_pointer), dimension(:), pointer :: old_gradient_pressure
+      type(scalar_field_pointer), dimension(:), pointer :: density
+      type(scalar_field_pointer), dimension(:), pointer :: old_density
       ! *** Pointers to fields from state that are NOT phase dependent ***
       type(mesh_type),    pointer :: pressure_mesh
       type(mesh_type),    pointer :: velocity_mesh      
@@ -121,6 +132,11 @@ module darcy_impes_assemble_module
       type(scalar_field), pointer :: sum_saturation
       type(scalar_field), pointer :: old_sum_saturation
       type(scalar_field), pointer :: div_total_darcy_velocity
+      type(vector_field), pointer :: gravity_direction
+      ! *** The gravity magnitude ***
+      real :: gravity_magnitude
+      ! *** The full gravity field - direction * magnitude, allocated here ***
+      type(vector_field) :: gravity
       ! *** Fields allocated here used in assemble algorithm ***
       type(vector_field) :: positions_pressure_mesh
       type(csr_matrix)   :: pressure_matrix
@@ -155,18 +171,26 @@ module darcy_impes_assemble_module
       logical                                 :: phase_one_saturation_diagnostic
       type(darcy_impes_subcycle_options_type) :: subcy_opt_sat
       type(csr_matrix)                        :: old_sfield_upwind
-      ! *** Flag for whether the first phase pressure is prognostic, else it is prescribed
+      ! *** Flag for whether the first phase pressure is prognostic, else it is prescribed *** 
       logical :: first_phase_pressure_prognostic
+      ! *** Flag for whether the Porosity is diagnostic, else it is prescribed *** 
+      logical :: porosity_is_diagnostic
+      ! *** Flag for whether the AbsolutePermeability is diagnostic, else it is prescribed *** 
+      logical :: absolute_permeability_is_diagnostic
       ! *** The cached phase face value at each quadrature point summed over subcycles if necessary for each phase ***
       real, dimension(:,:), pointer :: cached_phase_face_value
       ! *** Time time step size, also stored here for convenience ***
       real :: dt
+      ! *** The current time, also stored here for convenience ***
+      real :: current_time 
       ! *** Non linear iteration, also stored here for convencience ***
       integer :: nonlinear_iter
       ! *** Geometric dimension, also stored here for convenience ***
       integer :: ndim
-      ! *** Options data associted with adaptive time stepping stored here ***
-      type(darcy_impex_adaptive_dt_options_type) :: adaptive_dt_options
+      ! *** Options data associated with adaptive time stepping stored here ***
+      type(darcy_impes_adaptive_dt_options_type) :: adaptive_dt_options
+      ! *** Options data associated with each phase EoS stored here *** 
+      type(darcy_impes_eos_options_type), dimension(:), pointer :: eos_options
       ! *** Pointer to main state array, for convenience ***
       type(state_type), dimension(:), pointer :: state
    end type darcy_impes_type
@@ -183,6 +207,10 @@ module darcy_impes_assemble_module
       type(darcy_impes_type), intent(inout) :: di
       
       ewrite(1,*) 'Start Darcy IMPES assemble and solve'
+      
+      ! Form the full gravity field
+      call set(di%gravity, di%gravity_direction)
+      call scale(di%gravity, di%gravity_magnitude)
       
       ! Copy to Old the CV mass on the pressure mesh with porosity included
       call set(di%cv_mass_pressure_mesh_with_old_porosity, di%cv_mass_pressure_mesh_with_porosity)
@@ -201,12 +229,22 @@ module darcy_impes_assemble_module
       
       ! Assemble and solve the phase saturations
       call darcy_impes_assemble_and_solve_phase_saturations(di)
+      
+      ! Calculate the generic python diagnostic Darcy IMPES fields: 
+      ! - RelativePermeability
+      ! - CapilliaryPressure
+      ! - Porosity?
+      ! - AbsolutePermeability?
+      call darcy_impes_calculate_generic_python_diagnostic_fields(di)
             
       ! calculate the Velocity, Fractional flow and CFL fields
       call darcy_impes_calculate_velocity_and_cfl_fields(di)
       
       ! Calculate the sum of the saturations
       call darcy_impes_calculate_sum_saturation(di)
+      
+      ! Calculate the density field of each phase
+      call darcy_impes_calculate_densities(di)
       
       ewrite(1,*) 'Finished Darcy IMPES assemble and solve'
            
@@ -1699,29 +1737,61 @@ module darcy_impes_assemble_module
    end subroutine darcy_impes_calculate_phase_one_saturation_diagnostic
 
 ! ----------------------------------------------------------------------------
-   
-   subroutine darcy_impes_calculate_sum_saturation(di)
-      
-      !!< Calculate the sum of the saturation fields
+
+   subroutine darcy_impes_calculate_generic_python_diagnostic_fields(di)
+
+      !!< Calculate the generic python diagnostic Darcy IMPES fields: 
+      !!< - RelativePermeability (All phases)
+      !!< - CapilliaryPressure (Not first phase)
+      !!< - Porosity?
+      !!< - AbsolutePermeability?
       
       type(darcy_impes_type), intent(inout) :: di
       
       ! local variables
       integer :: p
       
-      ewrite(1,*) 'Calculate SumSaturation'
+      phase_loop: do p = 1, di%number_phase
       
-      call zero(di%sum_saturation)
-      
-      do p = 1, di%number_phase
+         call calculate_scalar_python_diagnostic(di%state, &
+                                                 state_index  = p, &
+                                                 s_field      = di%relative_permeability(p)%ptr, &
+                                                 current_time = di%current_time, &
+                                                 dt           = di%dt)
          
-         call addto(di%sum_saturation, di%saturation(p)%ptr)
+         if (p > 1) then
          
-      end do
+            call calculate_scalar_python_diagnostic(di%state, &
+                                                    state_index  = p, &
+                                                    s_field      = di%capilliary_pressure(p)%ptr, &
+                                                    current_time = di%current_time, &
+                                                    dt           = di%dt)
+         
+         end if
+         
+      end do phase_loop
       
-      ewrite_minmax(di%sum_saturation)
-       
-   end subroutine darcy_impes_calculate_sum_saturation
+      if (di%porosity_is_diagnostic) then
+      
+         call calculate_scalar_python_diagnostic(di%state, &
+                                                 state_index  = 1, &
+                                                 s_field      = di%porosity, &
+                                                 current_time = di%current_time, &
+                                                 dt           = di%dt)
+      
+      end if 
+
+      if (di%absolute_permeability_is_diagnostic) then
+      
+         call calculate_scalar_python_diagnostic(di%state, &
+                                                 state_index  = 1, &
+                                                 s_field      = di%absolute_permeability, &
+                                                 current_time = di%current_time, &
+                                                 dt           = di%dt)
+      
+      end if 
+      
+   end subroutine darcy_impes_calculate_generic_python_diagnostic_fields
 
 ! ----------------------------------------------------------------------------
    
@@ -2077,6 +2147,60 @@ module darcy_impes_assemble_module
    end subroutine darcy_impes_calculate_velocity_and_cfl_fields
 
 ! ----------------------------------------------------------------------------
+   
+   subroutine darcy_impes_calculate_sum_saturation(di)
+      
+      !!< Calculate the sum of the saturation fields
+      
+      type(darcy_impes_type), intent(inout) :: di
+      
+      ! local variables
+      integer :: p
+      
+      ewrite(1,*) 'Calculate SumSaturation'
+      
+      call zero(di%sum_saturation)
+      
+      do p = 1, di%number_phase
+         
+         call addto(di%sum_saturation, di%saturation(p)%ptr)
+         
+      end do
+      
+      ewrite_minmax(di%sum_saturation)
+       
+   end subroutine darcy_impes_calculate_sum_saturation
+
+! ----------------------------------------------------------------------------
+   
+   subroutine darcy_impes_calculate_densities(di)
+      
+      !!< Calculate the density field of each phase
+      
+      type(darcy_impes_type), intent(inout) :: di
+      
+      ! local variables
+      integer :: p
+      
+      ewrite(1,*) 'Calculate Density of each phase'
+            
+      do p = 1, di%number_phase
+         
+         if (di%eos_options(p)%have_fluids_linear) then
+            
+            ! Currently no variation of the reference density by any pertubation
+            
+            call set(di%density(p)%ptr, di%eos_options(p)%fluids_linear_reference_density)
+         
+         end if
+
+         ewrite_minmax(di%density(p)%ptr)
+         
+      end do 
+       
+   end subroutine darcy_impes_calculate_densities
+
+! ----------------------------------------------------------------------------
     
    subroutine darcy_impes_calculate_cflnumber_field_based_dt(di)
       
@@ -2118,7 +2242,7 @@ module darcy_impes_assemble_module
 
 ! ----------------------------------------------------------------------------
    
-   subroutine darcy_impex_allocate_cached_phase_face_value(di)
+   subroutine darcy_impes_allocate_cached_phase_face_value(di)
    
       !!< Allocate the cached_phase_face_value variable
 
@@ -2177,7 +2301,7 @@ module darcy_impes_assemble_module
       
       deallocate(notvisited)
       
-   end subroutine darcy_impex_allocate_cached_phase_face_value
+   end subroutine darcy_impes_allocate_cached_phase_face_value
 
 ! ----------------------------------------------------------------------------
 

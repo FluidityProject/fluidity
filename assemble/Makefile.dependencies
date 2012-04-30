@@ -178,6 +178,7 @@ Darcy_IMPES_Assemble.o ../include/darcy_impes_assemble_module.mod: \
    ../include/fields.mod ../include/fldebug.mod \
    ../include/global_parameters.mod ../include/parallel_tools.mod \
    ../include/petsc_solve_state_module.mod ../include/porous_media.mod \
+   ../include/python_diagnostics.mod \
    ../include/quadrature.mod ../include/sparse_tools.mod ../include/spud.mod \
    ../include/state_module.mod ../include/transform_elements.mod \
    ../include/adaptive_timestepping.mod ../include/signal_vars.mod

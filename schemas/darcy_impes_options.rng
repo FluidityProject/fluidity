@@ -12,6 +12,7 @@
   <include href="spatial_discretisation.rng"/>
   <include href="temporal_discretisation.rng"/>
   <include href="porous_media.rng"/>
+  <include href="physical_parameters.rng"/>
   <start>
     <element name="darcy_impes_options">
       <a:documentation>The root node of the options dictionary.</a:documentation>
@@ -28,6 +29,7 @@ If not activated then the filename is used for the simulation name.</a:documenta
       <ref name="darcy_impes_geometry"/>
       <ref name="darcy_impes_io"/>
       <ref name="darcy_impes_timestepping"/>
+      <ref name="darcy_impes_physical_parameters"/>
       <ref name="darcy_impes_material_phases"/>
       <optional>
         <ref name="darcy_impes_mesh_adaptivity_options"/>
@@ -542,6 +544,11 @@ at the first timestep or not.</a:documentation>
       </optional>
     </element>
   </define>
+  <define name="darcy_impes_physical_parameters">
+    <element name="physical_parameters">
+      <ref name="gravity_options"/>
+    </element>
+  </define>
   <define name="darcy_impes_material_phases">
     <element name="material_phase">
       <a:documentation>The phase options</a:documentation>
@@ -552,6 +559,7 @@ at the first timestep or not.</a:documentation>
       <ref name="darcy_impes_saturation_field_phase_one"/>
       <ref name="darcy_impes_relative_permeability_field"/>
       <ref name="darcy_impes_viscosity_field"/>
+      <ref name="darcy_impes_density_field"/>
       <ref name="darcy_impes_gradient_pressure_field"/>
       <ref name="darcy_impes_interstitial_velocity_porosity_field"/>
       <ref name="darcy_impes_interstitial_velocity_CFL_field"/>
@@ -591,6 +599,7 @@ at the first timestep or not.</a:documentation>
     <ref name="darcy_impes_saturation_field"/>
     <ref name="darcy_impes_relative_permeability_field"/>
     <ref name="darcy_impes_viscosity_field"/>
+    <ref name="darcy_impes_density_field"/>
     <ref name="darcy_impes_gradient_pressure_field"/>
     <ref name="darcy_impes_interstitial_velocity_porosity_field"/>
     <ref name="darcy_impes_interstitial_velocity_CFL_field"/>
@@ -651,11 +660,6 @@ at the first timestep or not.</a:documentation>
             <value>PressureMesh</value>
           </attribute>
         </element>
-        <element name="algorithm">
-          <attribute name="name">
-            <value>Internal</value>
-          </attribute>
-        </element>
         <ref name="darcy_impes_include_cv_stat"/>
         <ref name="adaptivity_options_scalar_field"/>
         <ref name="interpolation_algorithm_scalar"/>
@@ -694,11 +698,6 @@ at the first timestep or not.</a:documentation>
         <element name="mesh">
           <attribute name="name">
             <value>PressureMesh</value>
-          </attribute>
-        </element>
-        <element name="algorithm">
-          <attribute name="name">
-            <value>Internal</value>
           </attribute>
         </element>
         <ref name="darcy_impes_include_cv_stat"/>
@@ -767,9 +766,9 @@ at the first timestep or not.</a:documentation>
         <oneOrMore>
           <ref name="initial_condition_scalar"/>
         </oneOrMore>
-        <oneOrMore>
+        <zeroOrMore>
           <ref name="darcy_impes_bc_saturation_field"/>
-        </oneOrMore>
+        </zeroOrMore>
         <ref name="darcy_impes_include_cv_stat"/>
         <ref name="scalar_convergence_options"/>
         <ref name="adaptivity_options_prognostic_scalar_field"/>
@@ -906,6 +905,39 @@ Specify the number of advection subcycls. </a:documentation>
       </element>
     </element>
   </define>
+  <define name="darcy_impes_density_field">
+    <element name="scalar_field">
+      <attribute name="rank">
+        <value>0</value>
+      </attribute>
+      <attribute name="name">
+        <value>Density</value>
+      </attribute>
+      <element name="diagnostic">
+        <element name="mesh">
+          <attribute name="name">
+            <value>PressureMesh</value>
+          </attribute>
+        </element>
+        <ref name="darcy_impes_eos"/>
+        <ref name="darcy_impes_include_cv_stat"/>
+        <ref name="interpolation_algorithm_scalar"/>
+      </element>
+    </element>
+  </define>
+  <define name="darcy_impes_eos">
+    <element name="equation_of_state">
+      <a:documentation>Equations of state for simple fluid applications</a:documentation>
+      <ref name="comment"/>
+      <attribute name="name">
+        <value>IncompressibleLinear</value>
+      </attribute>
+      <element name="reference_density">
+        <a:documentation>The reference or background density</a:documentation>
+        <ref name="real"/>
+      </element>
+    </element>
+  </define>
   <define name="darcy_impes_gradient_pressure_field">
     <element name="vector_field">
       <attribute name="rank">
@@ -918,11 +950,6 @@ Specify the number of advection subcycls. </a:documentation>
         <element name="mesh">
           <attribute name="name">
             <value>ElementWiseMesh</value>
-          </attribute>
-        </element>
-        <element name="algorithm">
-          <attribute name="name">
-            <value>Internal</value>
           </attribute>
         </element>
         <ref name="darcy_impes_include_cv_stat"/>
@@ -944,11 +971,6 @@ Specify the number of advection subcycls. </a:documentation>
             <value>VelocityMesh</value>
           </attribute>
         </element>
-        <element name="algorithm">
-          <attribute name="name">
-            <value>Internal</value>
-          </attribute>
-        </element>
         <ref name="darcy_impes_include_cv_stat"/>
         <ref name="interpolation_algorithm_scalar"/>
       </element>
@@ -968,11 +990,6 @@ Specify the number of advection subcycls. </a:documentation>
             <value>PressureMesh</value>
           </attribute>
         </element>
-        <element name="algorithm">
-          <attribute name="name">
-            <value>Internal</value>
-          </attribute>
-        </element>
         <ref name="darcy_impes_include_cv_stat"/>
         <ref name="interpolation_algorithm_scalar"/>
       </element>
@@ -990,11 +1007,6 @@ Specify the number of advection subcycls. </a:documentation>
         <element name="mesh">
           <attribute name="name">
             <value>VelocityMesh</value>
-          </attribute>
-        </element>
-        <element name="algorithm">
-          <attribute name="name">
-            <value>Internal</value>
           </attribute>
         </element>
         <zeroOrMore>
@@ -1019,11 +1031,6 @@ Specify the number of advection subcycls. </a:documentation>
             <value>VelocityMesh</value>
           </attribute>
         </element>
-        <element name="algorithm">
-          <attribute name="name">
-            <value>Internal</value>
-          </attribute>
-        </element>
         <ref name="darcy_impes_include_cv_stat"/>
         <ref name="interpolation_algorithm_scalar"/>
       </element>
@@ -1041,11 +1048,6 @@ Specify the number of advection subcycls. </a:documentation>
         <element name="mesh">
           <attribute name="name">
             <value>VelocityMesh</value>
-          </attribute>
-        </element>
-        <element name="algorithm">
-          <attribute name="name">
-            <value>Internal</value>
           </attribute>
         </element>
         <zeroOrMore>
@@ -1070,11 +1072,6 @@ Specify the number of advection subcycls. </a:documentation>
             <value>PressureMesh</value>
           </attribute>
         </element>
-        <element name="algorithm">
-          <attribute name="name">
-            <value>Internal</value>
-          </attribute>
-        </element>
         <ref name="darcy_impes_include_cv_stat"/>
         <ref name="interpolation_algorithm_scalar"/>
       </element>
@@ -1092,11 +1089,6 @@ Specify the number of advection subcycls. </a:documentation>
         <element name="mesh">
           <attribute name="name">
             <value>PressureMesh</value>
-          </attribute>
-        </element>
-        <element name="algorithm">
-          <attribute name="name">
-            <value>Internal</value>
           </attribute>
         </element>
         <ref name="darcy_impes_include_cv_stat"/>
@@ -1118,11 +1110,6 @@ Specify the number of advection subcycls. </a:documentation>
             <value>PressureMesh</value>
           </attribute>
         </element>
-        <element name="algorithm">
-          <attribute name="name">
-            <value>Internal</value>
-          </attribute>
-        </element>
         <ref name="darcy_impes_include_cv_stat"/>
         <ref name="interpolation_algorithm_scalar"/>
       </element>
@@ -1138,12 +1125,7 @@ Specify the number of advection subcycls. </a:documentation>
         <a:documentation>Surface id</a:documentation>
         <ref name="integer_vector"/>
       </element>
-      <element name="type">
-        <attribute name="name">
-          <value>dirichlet</value>
-        </attribute>
-        <ref name="input_choice_real"/>
-      </element>
+      <ref name="darcy_impes_dirichlet_bc"/>
     </element>
   </define>
   <define name="darcy_impes_bc_saturation_field">
@@ -1157,18 +1139,31 @@ Specify the number of advection subcycls. </a:documentation>
         <ref name="integer_vector"/>
       </element>
       <choice>
-        <element name="type">
-          <attribute name="name">
-            <value>dirichlet</value>
-          </attribute>
-          <ref name="input_choice_real"/>
-        </element>
+        <ref name="darcy_impes_dirichlet_bc"/>
         <element name="type">
           <attribute name="name">
             <value>zero_flux</value>
           </attribute>
         </element>
       </choice>
+    </element>
+  </define>
+  <define name="darcy_impes_dirichlet_bc">
+    <element name="type">
+      <attribute name="name">
+        <value>dirichlet</value>
+      </attribute>
+      <choice>
+        <element name="apply_strongly">
+          <a:documentation>Apply the dirichlet BC strongly</a:documentation>
+          <empty/>
+        </element>
+        <element name="apply_weakly">
+          <a:documentation>Apply the dirichlet BC weakly</a:documentation>
+          <empty/>
+        </element>
+      </choice>
+      <ref name="input_choice_real"/>
     </element>
   </define>
   <define name="darcy_impes_bc_darcy_velocity_field">
