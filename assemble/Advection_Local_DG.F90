@@ -139,6 +139,7 @@ module advection_local_DG
     T=>extract_scalar_field(state, field_name)
     T_old=>extract_scalar_field(state, "Old"//field_name)
     X=>extract_vector_field(state, "Coordinate")
+    U_nl=>extract_vector_field(state, velocity_name)
 
     ! Reset T to value at the beginning of the timestep.
     call set(T, T_old)
@@ -234,8 +235,6 @@ module advection_local_DG
        end if
 
     end if
-
-    U_nl=>extract_vector_field(state, velocity_name)
 
     if (limit_slope) then
        ! Filter wiggles from T

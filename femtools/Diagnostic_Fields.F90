@@ -1649,7 +1649,7 @@ contains
        FLExit('Missing velocity field!')
     end if
     x=>extract_vector_field(state, "Coordinate")
-
+       
     if(present(dt)) then
        l_dt = dt
     else

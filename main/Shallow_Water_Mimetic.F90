@@ -42,6 +42,7 @@
     use diagnostic_variables
     use diagnostic_fields_wrapper
     use hybridized_helmholtz
+    use advection_local_dg
     use global_parameters, only: option_path_len, python_func_len, current_time, dt
     use memory_diagnostics
     use reserve_state_module
@@ -188,7 +189,7 @@
     subroutine execute_timestep(state)
       type(state_type), intent(inout) :: state
       !
-      type(vector_field), pointer :: U
+      type(vector_field), pointer :: U, advecting_u
       type(scalar_field), pointer :: D
       type(vector_field) :: newU
       type(scalar_field) :: newD
@@ -199,39 +200,45 @@
 
       !Set up iterative solutions and provide initial guess
       !From previous timestep
-      U => extract_vector_field(states, "LocalVelocity", stat)
-      D => extract_scalar_field(states, "LayerThickness", stat)
+      U => extract_vector_field(states, "LocalVelocity")
+      D => extract_scalar_field(states, "LayerThickness")
+      advecting_u=>extract_vector_field(state, "NonlinearVelocity")
 
       ewrite(1,*) 'Uvals Dvals', maxval(U%val), maxval(D%val)
-
-      call allocate(newU,U%dim,U%mesh,"NewLocalVelocity", stat)
-      call allocate(newD,D%mesh,"NewLayerThickness", stat)
-      call set(newD,D)
-      call set(newU,U)
-
-      !Here check for wave equation solve, if it is switched off,
-      !Just advance the D and PV fields.
-      do nits = 1, nonlinear_iterations
-         call solve_hybridised_timestep_residual(state,newU,newD)
-      end do
       
-      ewrite(1,*) 'jump in D', maxval(abs(d%val-newd%val))
-      ewrite(1,*) 'jump in U', maxval(abs(U%val-newU%val))
+      if(have_option('/material_phase::Fluid/vector_field::Velocity/&
+           &prognostic/spatial_discretisation/discontinuous_galerkin/wave&
+           &_equation/no_wave_equation_step')) then
+         !   !Just advance the D and PV fields.
+         call solve_advection_dg_subcycle("LayerThickness", state, &
+              "LocalVelocity",continuity=.true.)
+      else
+               call allocate(newU,U%dim,U%mesh,"NewLocalVelocity")
+               call allocate(newD,D%mesh,"NewLayerThickness")
+               call set(newD,D)
+               call set(newU,U)
 
-      call set(D,newD)
-      call set(U,newU)
+         do nits = 1, nonlinear_iterations
+            call solve_hybridised_timestep_residual(state,newU,newD)
+         end do
+         ewrite(1,*) 'jump in D', maxval(abs(d%val-newd%val))
+         ewrite(1,*) 'jump in U', maxval(abs(U%val-newU%val))
+         
+         call set(D,newD)
+         call set(U,newU)
+         call deallocate(newU)
+         call deallocate(newD)
+      end if
 
-      call deallocate(newU)
-      call deallocate(newD)
     end subroutine execute_timestep
 
     subroutine setup_fields()
       type(vector_field), pointer :: v_field,U,X
       type(scalar_field), pointer :: s_field,D,f_ptr
       type(mesh_type), pointer :: v_mesh
-      type(vector_field) :: U_local
+      type(vector_field) :: U_local, advecting_u
       character(len=PYTHON_FUNC_LEN) :: coriolis
-      type(scalar_field) :: f
+      type(scalar_field) :: f, old_D
 
       X=>extract_vector_field(states, "Coordinate")
       U=>extract_vector_field(states, "Velocity")
@@ -243,8 +250,21 @@
       call zero(U_local)
       call insert(states, U_local, "LocalVelocity")
       call deallocate(U_local)
-      v_field => extract_vector_field(states(1), "Velocity", stat)
+      v_field => extract_vector_field(states(1), "Velocity")
       call project_cartesian_to_local(states(1), v_field)
+
+      !Advecting velocity (just used for courant number)
+      call allocate(advecting_u, mesh_dim(U), U%mesh, "NonlinearVelocity")
+      call zero(advecting_u)
+      call insert(states, advecting_u, "NonlinearVelocity")
+      call deallocate(advecting_u)
+
+      !Old layer thickness (used for advection dg)
+      D => extract_scalar_field(states, "LayerThickness")
+      call allocate(old_d, D%mesh, "OldLayerThickness")
+      call zero(old_d)
+      call insert(states, old_d, "OldLayerThickness")
+      call deallocate(old_d)         
       
       !SET UP CORIOLIS FORCE
       f_ptr => extract_scalar_field(states,"Coriolis",stat=stat)
@@ -259,7 +279,7 @@
          call insert(states, f, "Coriolis")
          call deallocate(f)
       end if
-      v_field => extract_vector_field(states(1), "LocalVelocity", stat)
+      v_field => extract_vector_field(states(1), "LocalVelocity")
       call project_to_constrained_space(states(1),v_field)
 
     !VARIOUS BALANCED INITIAL OPTIONS
@@ -295,6 +315,7 @@
        call set_layerthickness_projection(states(1),&
             &"PrescribedLayerDepthFromProjection")
     end if
+
     end subroutine setup_fields
 
     subroutine advance_current_time(current_time, dt)
