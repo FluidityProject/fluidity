@@ -248,9 +248,9 @@ Detector_Tools.o ../include/detector_tools.mod: Detector_Tools.F90 \
 Dgtools.o ../include/dgtools.mod: Dgtools.F90 \
    ../include/boundary_conditions.mod ../include/elements.mod \
    ../include/fdebug.h ../include/fetools.mod ../include/fields.mod \
-   ../include/fields_data_types.mod ../include/sparse_tools.mod \
-   ../include/sparsity_patterns.mod ../include/transform_elements.mod \
-   ../include/vector_tools.mod
+   ../include/fields_data_types.mod ../include/halos_base.mod \
+   ../include/sparse_tools.mod ../include/sparsity_patterns.mod \
+   ../include/transform_elements.mod ../include/vector_tools.mod
 
 ../include/diagnostic_fields.mod: Diagnostic_Fields.o
 	@true

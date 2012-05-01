@@ -58,14 +58,14 @@ if nodecount<0:
 
 dim=options.dim
 
-gmsh_node_map = {}
 nodefile_linelist = []
 for i in range(nodecount):
     # Node syntax
     line = mshfile.readline().split()
-    gmsh_node = line[0] # the node number that gmsh has assigned, which might
-                        # not be consecutive
-    gmsh_node_map[gmsh_node] = str(i+1)
+    # compare node id assigned by gmsh to consecutive node id (assumed by fluidity)
+    if eval(line[0])!=i+1:
+      print line[0], i+1
+      sys.stderr.write("ERROR: Nodes in gmsh .msh file must be numbered consecutively.")
     nodefile_linelist.append( line[1:dim+1] )
 
 assert(mshfile.readline().strip()=="$EndNodes")
@@ -153,35 +153,15 @@ else:
     sys.stderr.write("Unable to determine dimension of problem\n")
     sys.exit(1)
 
-# Get rid of isolated nodes
-isolated=set(range(1,nodecount+1))
-for ele in elements:
-    for i in range(loc):
-        isolated.discard(int(gmsh_node_map[ele[i]]))
-
-for i in range(nodecount):
-    j = str(i+1)
-    if int(gmsh_node_map[j]) in isolated:
-        gmsh_node_map[j] = -666
-    else:
-        gmsh_node_map[j] = int(gmsh_node_map[j])
-        gmsh_node_map[j] -= sum(gmsh_node_map[j] > k for k in isolated)
-        gmsh_node_map[j] = str(gmsh_node_map[j])
-
-newnodecount = nodecount-len(isolated)
-
 nodefile=file(basename+".node", 'w')
-nodefile.write(`newnodecount`+" "+`options.dim`+" 0 0\n")
+nodefile.write(`nodecount`+" "+`options.dim`+" 0 0\n")
 j=0
 for i in range(nodecount):    
-    if not(i+1 in isolated):
-        j=j+1
-        nodefile.write(" ".join( [str(j)] + nodefile_linelist[i] )+"\n")
+  j=j+1
+  nodefile.write(" ".join( [str(j)] + nodefile_linelist[i] )+"\n")
 
 nodefile.write("# Produced by: "+" ".join(argv)+"\n")
 nodefile.close()
-
-nodecount=newnodecount
 
 # Output ele file
 elefile.write(`len(elements)`+" "+`loc`+" 1\n")
@@ -189,7 +169,7 @@ elefile.write(`len(elements)`+" "+`loc`+" 1\n")
 for i, element in enumerate(elements):
     elefile.write(`i+1`+" ")
     for j in node_order:
-        elefile.write(" ".join([gmsh_node_map[x] for x in element[j-1:j]])+" ")
+      elefile.write(" ".join(element[j-1:j])+" ")
     elefile.write(" ".join(element[-1:]))
     elefile.write(" "+"\n")
 
@@ -201,7 +181,7 @@ if options.internal_faces:
   # make node element list
   ne_list = [set() for i in range(nodecount)]
   for i, element in enumerate(elements):
-      element=[eval(gmsh_node_map[element[j-1]]) for j in node_order]
+      element=[eval(element[j-1]) for j in node_order]
       for node in element:
         ne_list[node-1].add(i)
 
@@ -212,7 +192,7 @@ if options.internal_faces:
     face_nodes=[eval(node) for node in face[:-1]]
     # loop through elements around node face_nodes[0]
     for ele in ne_list[face_nodes[0]-1]:
-      element=[eval(gmsh_node_map[elements[ele][j-1]]) for j in node_order]
+      element=[eval(elements[ele][j-1]) for j in node_order]
       if set(face_nodes) < set(element):
         facelist.append(face+[`ele+1`])
   
