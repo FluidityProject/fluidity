@@ -935,7 +935,6 @@ contains
   function read_exodusii_file_to_state(filename, shape,shape_type,n_states) &
        result (result_state)
     ! Filename is the base name of the ExodusII file without file extension, e.g. .exo
-    ! In parallel the filename must *not* include the process number.
 
     character(len=*), intent(in) :: filename
     type(element_type), intent(in), target :: shape
@@ -943,7 +942,7 @@ contains
     integer, intent(in), optional :: n_states
     type(state_type)  :: result_state
 
-    FLAbort("read_gmsh_file_to_state() not implemented yet")
+    FLAbort("read_exodusii_file_to_state() not implemented yet")
 
   end function read_exodusii_file_to_state
 
