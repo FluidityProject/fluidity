@@ -5075,14 +5075,14 @@
 
       ele = 3
       x_ndgln_p2( ( ele - 1 ) * x_nloc + 1 ) = 2
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 2 ) = 8
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 3 ) = 7
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 2 ) = 7
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 3 ) = 8
       x_ndgln_p2( ( ele - 1 ) * x_nloc + 4 ) = 4
 
       Volume_P1( ele ) = Volume_TetHex( .false., &
-           xp2( 2 ), xp2( 8 ), xp2( 7 ), xp2( 4 ), &
-           yp2( 2 ), yp2( 8 ), yp2( 7 ), yp2( 4 ), &
-           zp2( 2 ), zp2( 8 ), zp2( 7 ), zp2( 4 ) )
+           xp2( 2 ), xp2( 7 ), xp2( 8 ), xp2( 4 ), &
+           yp2( 2 ), yp2( 7 ), yp2( 8 ), yp2( 4 ), &
+           zp2( 2 ), zp2( 7 ), zp2( 8 ), zp2( 4 ) )
       ewrite(3,*)'Tet, Volume of P1 Tets:', ele, Volume_P1( ele ) 
 
 
