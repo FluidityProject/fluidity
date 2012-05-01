@@ -198,7 +198,7 @@ class FGroup:
     elif v == "Vis_Irrad":
       v = "env['Irradiance']"
     elif v == "Density":  # Use Pade approximation in Fluidity
-      v = "(1000.*(env['Density'])-1000.)"
+      v = "env['Density']"
     elif v.endswith("$Pool"):
       v = "vars['" + v.split("$")[0] + "']"
     elif v.endswith("$Ingested"):
@@ -271,7 +271,12 @@ class FGroup:
         raise Exception("Assigning a non-variable..?")
 
     elif t[0] == val:
-      return str(float(t[2]))
+      base = float(t[2])
+      e_pow = int(t[3])
+      if e_pow > 0:
+        return str(base) + "e" +str(e_pow)
+      else:
+        return str(base)
     elif t[0] == add:
       c = "(" + self.eval_token(t[1])
       for summand in t[2:]:
@@ -357,7 +362,7 @@ class FGroup:
       ing_threshold = self.eval_token(t[2])
       ing_amount = self.eval_token(t[3])
       # PRequest should not be hardcoded, but I'm lazy today...
-      return "vars['PRequest'] = " + ing_amount + " if (" + species_conc + " > " + ing_threshold + ") else 0.0"
+      return "vars['PRequest'] = (3600.0 * dt_in_hours * " + ing_amount + ") if (" + species_conc + " > " + ing_threshold + ") else 0.0"
     elif t[0] == create:
       s = str(t[2])
       indent_str = ""
@@ -458,7 +463,7 @@ fg_motion_functions = {
 
 fg_write_stages = {
   "Diatom" : [ "Living", "Dead" ],
-  "Copepod" : [ "Dead", "OW5", "OWA5" ]
+  "Copepod" : [ "Dead", "OW5", "OWA5", "C5" ]
 }
 
 filename = sys.argv[1]

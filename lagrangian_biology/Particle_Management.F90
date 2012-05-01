@@ -43,7 +43,7 @@ implicit none
 
   private
 
-  public :: particle_management
+  public :: particle_management, pm_strip_insignificant
 
   integer, parameter :: BIOVAR_STAGE=1, BIOVAR_SIZE=2
 
@@ -196,7 +196,7 @@ contains
 
           agent=>split_lists(i)%first
           do while(associated(agent))
-             if (minval(xbiggest_sizes) < agent%biology(BIOVAR_SIZE)) then
+             if (minval(xbiggest_sizes) <= agent%biology(BIOVAR_SIZE)) then
                 index = minval(minloc(xbiggest_sizes))
                 xbiggest_ids(index) = agent%id_number 
                 xbiggest_sizes(index) = agent%biology(BIOVAR_SIZE)
@@ -262,7 +262,7 @@ contains
 
           agent=>merge_lists(i)%first
           do while(associated(agent))
-             if (maxval(xsmallest_sizes) > agent%biology(BIOVAR_SIZE)) then
+             if (maxval(xsmallest_sizes) >= agent%biology(BIOVAR_SIZE)) then
                 index = minval(maxloc(xsmallest_sizes))
                 xsmallest_ids(index) = agent%id_number 
                 xsmallest_sizes(index) = agent%biology(BIOVAR_SIZE)
@@ -415,5 +415,26 @@ contains
     end function wtavg
 
   end subroutine pm_merge
+
+  subroutine pm_strip_insignificant(agent_list)
+    type(detector_linked_list), intent(inout) :: agent_list
+
+    type(detector_type), pointer :: agent, agent_to_delete
+    integer :: kill_count
+
+    kill_count = 0
+    agent=>agent_list%first
+    do while(associated(agent))
+       if (agent%biology(BIOVAR_SIZE) < 1.0e-10) then
+          agent_to_delete => agent
+          agent => agent%next
+          call delete(agent_to_delete, agent_list)
+          kill_count = kill_count + 1
+       else
+          agent => agent%next
+       end if
+    end do 
+    ewrite(2,*) "Lagrangian biology: Stripped", kill_count, " insignificant agents"
+  end subroutine pm_strip_insignificant
 
 end module lagrangian_biology_pm

@@ -46,6 +46,7 @@ module detector_move_lagrangian
   use integer_hash_table_module
   use pickers
   use parallel_fields, only: element_owner
+  use ieee_arithmetic, only: ieee_is_nan
 
   implicit none
   
@@ -225,7 +226,7 @@ contains
     type(vector_field), pointer :: vfield, xfield
     type(detector_type), pointer :: detector, move_detector
     type(halo_type), pointer :: ele_halo
-    integer :: dim, stage, cycle, rw
+    integer :: dim, stage, cycle, rw, i
     real :: sub_dt
 
     ! Random Walk velocity source
@@ -309,6 +310,12 @@ contains
        do while (associated(detector))
           if(detector%type==LAGRANGIAN_DETECTOR) then
              detector%update_vector = detector%position
+
+             do i=1, size(detector%update_vector)
+                if (ieee_is_nan(detector%update_vector(i))) then
+                   FLAbort("Encountered NaN detector position")
+                end if
+             end do
           end if
           detector => detector%next
        end do

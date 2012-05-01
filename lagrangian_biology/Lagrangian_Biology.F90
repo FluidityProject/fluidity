@@ -173,10 +173,10 @@ contains
           call register_detector_list(agent_array)
 
           ! Get options for lagrangian detector movement
-          call read_detector_move_options(agent_array, trim(stage_buffer)//"/movement")
+          call read_detector_move_options(agent_array, trim(fg_buffer)//"/movement")
 
           ! Get options for Random Walk
-          call read_random_walk_options(agent_array, trim(stage_buffer)//"/movement")
+          call read_random_walk_options(agent_array, trim(fg_buffer)//"/movement")
 
           ! Now we know the variable names for the FG, so we record them in Python
           call python_run_string("persistent['fg_var_names']['"//trim(agent_array%name)//"'] = []")
@@ -722,6 +722,12 @@ contains
        do stage=1, size(fgroup%agent_arrays)
           agent_array => fgroup%agent_arrays(stage)
 
+          ! First remove all agent with zero biomass to avoid div-by-zero errors
+          call pm_strip_insignificant(agent_array)
+
+          ! Re-derive agent density field
+          call derive_primary_diagnostics(state(1), agent_array)
+
           if (have_option(trim(agent_array%stage_options)//"/particle_management")) then
              call get_option(trim(agent_array%stage_options)//"/particle_management/period_in_timesteps", pm_period)
              if (timestep == 1 .or. mod(timestep, pm_period) == 0) then
@@ -763,7 +769,7 @@ contains
     integer :: j
 
     ! Handle stage changes within FG
-    ewrite(2,*) "Lagrangian biology: Distributing agents by stage for FG::", fgroup%name
+    ewrite(2,*) "Lagrangian biology: Distributing ", agent_list%length," agents by stage for FG::", fgroup%name
     agent=>agent_list%first
     agent_loop: do while (associated(agent))
        do j=1, size(fgroup%agent_arrays)
@@ -1123,6 +1129,7 @@ contains
     type(detector_linked_list), pointer :: agent_array
     type(scalar_field), pointer :: conc_field, request_field, depletion_field
     type(scalar_field_pointer), dimension(:), allocatable :: prey_chem_fields
+    type(vector_field), pointer :: xfield
     type(food_set), pointer :: fset
     type(le_variable), pointer :: request_var, chempool_var
     type(detector_type), pointer :: agent
@@ -1131,6 +1138,8 @@ contains
     integer :: i, c, fs, fg, t, ele, ingest_ind, stage
 
     ewrite(2,*) "Lagrangian_biology: Handling ingestion"
+
+    xfield=>extract_vector_field(state, "Coordinate")
 
     do fg=1, get_num_functional_groups()
        fgroup => get_functional_group(fg)
@@ -1146,7 +1155,7 @@ contains
 
              ! Loop over all elements in the source concentration field
              do ele=1,ele_count(conc_field)
-                conc = ele_val(conc_field, ele)
+                conc = integral_element(conc_field, xfield, ele)
                 request = ele_val(request_field, ele)
 
                 ! Derive depletion factor
@@ -1175,10 +1184,10 @@ contains
                    agent%biology(fset%ingest_ind) = depletion(1) * agent%biology(fset%request_ind)
 
                    ! Set ChemIngested pools
-                   conc = ele_val(conc_field, agent%element)
+                   conc = integral_element(conc_field, xfield, agent%element)
                    do c=1, size(fset%ingest_chem_inds)
                       ingest_ind = fgroup%variables( fset%ingest_chem_inds(c) )%ingest_index
-                      chem_conc = ele_val(prey_chem_fields(c)%ptr, agent%element)
+                      chem_conc = integral_element(prey_chem_fields(c)%ptr, xfield, agent%element)
                       if (conc(1) > 0.0) then
                          agent%biology(ingest_ind) = agent%biology(ingest_ind) + ( agent%biology(fset%ingest_ind) * (chem_conc(1) / conc(1)) ) / agent%biology(BIOVAR_SIZE)
                       end if
@@ -1195,7 +1204,7 @@ contains
                 do while (associated(agent))
                    request = ele_val(request_field, agent%element)
                    if (request(1) > 0.0) then     
-                      conc = ele_val(conc_field, agent%element)
+                      conc = integral_element(conc_field, xfield, agent%element)
                       if (conc(1) > 0.0) then                 
                          depletion = ele_val(depletion_field, agent%element)
                          old_size = agent%biology(BIOVAR_SIZE)

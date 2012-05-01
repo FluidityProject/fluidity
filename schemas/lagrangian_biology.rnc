@@ -83,6 +83,124 @@ lagrangian_biology =
                   }
                )
             },
+            ## Movement options
+            element movement {
+               ## Number of explicit subdivisions of the timestep.
+               element subcycles {
+                  integer
+               },
+               ## Tolerance for deciding if detector is in a given
+               ## element. Recommended value 1.0e-10
+               element search_tolerance {
+                  real
+               },
+               (
+                  element reflect_on_boundary{
+                     empty
+                  }|
+                  element turn_static_on_boundary{
+                     empty
+                  }
+               ),
+               (
+                  element parametric_guided_search{
+                     empty
+                  }|
+                  element rtree_tracking{
+                     empty
+                  }|
+                  element geometric_tracking{
+                     empty
+                  }
+               ),
+               (
+                  ## Use explicit Forward Euler method with
+                  ## guided search particle tracking
+                  element forward_euler_guided_search {
+                     empty
+                  }|
+                  ## Use fourth order Runge-Kutta method with
+                  ## guided search particle tracking
+                  element rk4_guided_search {
+                     empty
+                  }|
+                  ## Use explicit runge kutta method with
+                  ## guided search particle tracking
+                  element explicit_runge_kutta_guided_search {
+                     ## Number of RK stages
+                     ## For the RK4 method, it should be 4.
+                     element n_stages {
+                        integer
+                     },
+                     ## ERK stage array. This is an array
+                     ## containing the lower-triangular
+                     ## part of the Butcher weight matrix
+                     ## A that explains how to compute the
+                     ## RK stages.  See
+                     ## http://en.wikipedia.org/wiki/Runge–Kutta_methods#Explicit_Runge.E2.80.93Kutta_methods
+                     ## for notation.  The array is stored
+                     ## in the following order:
+                     ## [a_{21},a_{31},a_{32},...,a_{s1},a_{s2},a_{s(s-1)}]
+                     ## and so the array has size s(s-1)/2
+                     ## where s is the number of stages.
+                     ## For the RK4 method, it should be
+                     ## [0.5,0,0.5,0,0,1]
+                     element stage_weights {
+                        real_vector
+                     },
+                     ## ERK timestep weights. This is the
+                     ## b vector that explains how to
+                     ## compute the timestep from the RK
+                     ## stages.  See
+                     ## http://en.wikipedia.org/wiki/Runge–Kutta_methods#Explicit_Runge.E2.80.93Kutta_methods
+                     ## for notation.  It should have size
+                     ## s where s is the number of stages.
+                     ## For the RK4 method, it should be
+                     ## [1/6,1/3,1/3,1/6]
+                     element timestep_weights {
+                        real_vector
+                     }
+                  }
+               )?,
+               (
+                  ##
+                  element random_walk {
+                     attribute name { xsd:string },
+                     ## Python function prescribing additional agent displacement due to turbulence. 
+                     ## The return value will be added to the lagrangian advection at each sub-timestep. 
+                     ## Fields should be pulled from 'state' before the val(ele, local_coord) function is evaluated.
+                     ## Functions should be of the form:
+                     ## 
+                     ##  field = state.scalar_fields['Field_name']
+                     ##
+                     ##  def val(ele, local_coord):
+                     ##     # x = field.eval_field(ele, local_coord)
+                     ##     return # Return some f(x)
+                     element python{
+                        python_code
+                     }
+                  }|
+                  ## Hardcoded Random Walk scheme for non-homogeneous diffusivity fields.
+                  ## Described in Visser, 1997 and Ross and Sharples, 2004.
+                  ## Requires name of diffusivity field and according gradient field.
+                  element random_walk {
+                     attribute name {"Diffusive"},
+                     attribute diffusivity_field { xsd:string },
+                     attribute diffusivity_gradient { xsd:string },
+                     element auto_subcycle {
+                        attribute diffusivity_2nd_gradient { xsd:string },
+                        element scale_factor { 
+                           real
+                        }
+                     }?
+                  }|
+                  ## Hardcoded Naive Random Walk scheme for verifying the RNG
+                  element random_walk {
+                     attribute name {"Naive"},
+                     attribute diffusivity_field { xsd:string }
+                  }
+               )*
+            },
             (
                ## This option holds a list of fields that define the ambient environment for agents of this Functional Group. 
                ## The local values of fields listed here will be presented in a dictionary 'environment' to the agent update function.
@@ -99,124 +217,6 @@ lagrangian_biology =
                element stage {
                   comment,
                   attribute name { xsd:string },
-                  ## Movement options
-                  element movement {
-                     ## Number of explicit subdivisions of the timestep.
-                     element subcycles {
-                        integer
-                     },
-                     ## Tolerance for deciding if detector is in a given
-                     ## element. Recommended value 1.0e-10
-                     element search_tolerance {
-                        real
-                     },
-                     (
-                        element reflect_on_boundary{
-                           empty
-                        }|
-                        element turn_static_on_boundary{
-                           empty
-                        }
-                     ),
-                     (
-                        element parametric_guided_search{
-                           empty
-                        }|
-                        element rtree_tracking{
-                           empty
-                        }|
-                        element geometric_tracking{
-                           empty
-                        }
-                     ),
-                     (
-                        ## Use explicit Forward Euler method with
-                        ## guided search particle tracking
-                        element forward_euler_guided_search {
-                           empty
-                        }|
-                        ## Use fourth order Runge-Kutta method with
-                        ## guided search particle tracking
-                        element rk4_guided_search {
-                           empty
-                        }|
-                        ## Use explicit runge kutta method with
-                        ## guided search particle tracking
-                        element explicit_runge_kutta_guided_search {
-                           ## Number of RK stages
-                           ## For the RK4 method, it should be 4.
-                           element n_stages {
-                              integer
-                           },
-                           ## ERK stage array. This is an array
-                           ## containing the lower-triangular
-                           ## part of the Butcher weight matrix
-                           ## A that explains how to compute the
-                           ## RK stages.  See
-                           ## http://en.wikipedia.org/wiki/Runge–Kutta_methods#Explicit_Runge.E2.80.93Kutta_methods
-                           ## for notation.  The array is stored
-                           ## in the following order:
-                           ## [a_{21},a_{31},a_{32},...,a_{s1},a_{s2},a_{s(s-1)}]
-                           ## and so the array has size s(s-1)/2
-                           ## where s is the number of stages.
-                           ## For the RK4 method, it should be
-                           ## [0.5,0,0.5,0,0,1]
-                           element stage_weights {
-                              real_vector
-                           },
-                           ## ERK timestep weights. This is the
-                           ## b vector that explains how to
-                           ## compute the timestep from the RK
-                           ## stages.  See
-                           ## http://en.wikipedia.org/wiki/Runge–Kutta_methods#Explicit_Runge.E2.80.93Kutta_methods
-                           ## for notation.  It should have size
-                           ## s where s is the number of stages.
-                           ## For the RK4 method, it should be
-                           ## [1/6,1/3,1/3,1/6]
-                           element timestep_weights {
-                              real_vector
-                           }
-                        }
-                     )?,
-                     (
-                        ##
-                        element random_walk {
-                           attribute name { xsd:string },
-                           ## Python function prescribing additional agent displacement due to turbulence. 
-                           ## The return value will be added to the lagrangian advection at each sub-timestep. 
-                           ## Fields should be pulled from 'state' before the val(ele, local_coord) function is evaluated.
-                           ## Functions should be of the form:
-                           ## 
-                           ##  field = state.scalar_fields['Field_name']
-                           ##
-                           ##  def val(ele, local_coord):
-                           ##     # x = field.eval_field(ele, local_coord)
-                           ##     return # Return some f(x)
-                           element python{
-                              python_code
-                           }
-                        }|
-                        ## Hardcoded Random Walk scheme for non-homogeneous diffusivity fields.
-                        ## Described in Visser, 1997 and Ross and Sharples, 2004.
-                        ## Requires name of diffusivity field and according gradient field.
-                        element random_walk {
-                           attribute name {"Diffusive"},
-                           attribute diffusivity_field { xsd:string },
-                           attribute diffusivity_gradient { xsd:string },
-                           element auto_subcycle {
-                              attribute diffusivity_2nd_gradient { xsd:string },
-                              element scale_factor { 
-                                 real
-                              }
-                           }?
-                        }|
-                        ## Hardcoded Naive Random Walk scheme for verifying the RNG
-                        element random_walk {
-                           attribute name {"Naive"},
-                           attribute diffusivity_field { xsd:string }
-                        }
-                     )*
-                  },
                   (
                      ## Biology model for this type of agent.
                      element biology {

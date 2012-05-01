@@ -35,10 +35,11 @@ copepod_agents_ow5 = stat_parser("vew_toymodel.stat")['Water']['CopepodAgentsOW5
 from fluidity_tools import stat_parser
 copepod_agents_owa5 = stat_parser("vew_toymodel.stat")['Water']['CopepodAgentsOWA5']['integral'][::12]
     </variable>
-    <variable name="copepod_agents_dead" language="python">
+<!--    <variable name="copepod_agents_dead" language="python">
 from fluidity_tools import stat_parser
 copepod_agents_dead = stat_parser("vew_toymodel.stat")['Water']['CopepodAgentsDead']['integral'][::12]
     </variable>
+-->
     <variable name="dissolved_ammonium_min" language="python">
 from fluidity_tools import stat_parser
 dissolved_ammonium_min = min(stat_parser("vew_toymodel.stat")['Water']['DissolvedAmmonium']['min'])
