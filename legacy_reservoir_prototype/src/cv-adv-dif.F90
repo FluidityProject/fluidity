@@ -559,7 +559,7 @@
       print *,  'SUM MASS_CV', x_mean
 
 
-      stop 666
+      !stop 666
 
       NORMALISE = .false.
       IF( NORMALISE ) THEN

@@ -4950,7 +4950,8 @@
       integer, parameter :: number_of_hexs = 4,  number_of_nodes = 27
       integer :: ele, iloc, istart, ifinish
       integer, dimension( : ), allocatable :: x_ndgln, x_ndgln_p2, iloclist
-      real, dimension( : ), allocatable :: xp2, yp2, zp2
+      real, dimension( : ), allocatable :: xp2, yp2, zp2, Volume_P1
+      real :: Volume_P2, Volume_P1_Tets
 
       ewrite(3,*)' In Make_QTets'
 
@@ -5025,6 +5026,12 @@
       yp2( 9 ) = 0.5 * ( yp2( 6 ) + yp2( 10 ) )
       zp2( 9 ) = 0.5 * ( zp2( 6 ) + zp2( 10 ) )
 
+      Volume_P2 = Volume_TetHex( .false., &
+           xp2( 1 ), xp2( 3 ), xp2( 6 ), xp2( 10 ), &
+           yp2( 1 ), yp2( 3 ), yp2( 6 ), yp2( 10 ), &
+           zp2( 1 ), zp2( 3 ), zp2( 6 ), zp2( 10 ) )
+      ewrite(3,*)'Volume of P2 Tets:', Volume_P2
+
       ! Defining FEM_NODs
       do iloc = 1, 10
          fem_nod( iloc ) = iloc
@@ -5040,24 +5047,44 @@
 !!!
       allocate( x_ndgln( max_x_nonods ) ) ; x_ndgln = 0
       allocate( x_ndgln_p2( max_x_nonods ) ) ; x_ndgln_p2 = 0
+      allocate( Volume_P1( 8 ) ) ; Volume_P1 = 0.
 
       ele = 1
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 1 ) = 10
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 2 ) = 9
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 3 ) = 8
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 4 ) = 7
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 1 ) = 7
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 2 ) = 8
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 3 ) = 9
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 4 ) = 10
+
+      Volume_P1( ele ) = Volume_TetHex( .false., &
+           xp2( 7 ), xp2( 8 ), xp2( 9 ), xp2( 10 ), &
+           yp2( 7 ), yp2( 8 ), yp2( 9 ), yp2( 10 ), &
+           zp2( 7 ), zp2( 8 ), zp2( 9 ), zp2( 10 ) )
+      ewrite(3,*)'Tet, Volume of P1 Tets:', ele, Volume_P1( ele )
 
       ele = 2
       x_ndgln_p2( ( ele - 1 ) * x_nloc + 1 ) = 1
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 2 ) = 7
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 3 ) = 2
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 4 ) = 4
-
-      ele = 3
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 1 ) = 7
       x_ndgln_p2( ( ele - 1 ) * x_nloc + 2 ) = 2
       x_ndgln_p2( ( ele - 1 ) * x_nloc + 3 ) = 4
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 4 ) = 8
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 4 ) = 7
+
+      Volume_P1( ele ) = Volume_TetHex( .false., &
+           xp2( 1 ), xp2( 2 ), xp2( 4 ), xp2( 7 ), &
+           yp2( 1 ), yp2( 2 ), yp2( 4 ), yp2( 7 ), &
+           zp2( 1 ), zp2( 2 ), zp2( 4 ), zp2( 7 ) )
+      ewrite(3,*)'Tet, Volume of P1 Tets:', ele, Volume_P1( ele )
+
+      ele = 3
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 1 ) = 2
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 2 ) = 8
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 3 ) = 7
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 4 ) = 4
+
+      Volume_P1( ele ) = Volume_TetHex( .false., &
+           xp2( 2 ), xp2( 8 ), xp2( 7 ), xp2( 4 ), &
+           yp2( 2 ), yp2( 8 ), yp2( 7 ), yp2( 4 ), &
+           zp2( 2 ), zp2( 8 ), zp2( 7 ), zp2( 4 ) )
+      ewrite(3,*)'Tet, Volume of P1 Tets:', ele, Volume_P1( ele ) 
+
 
       ele = 4
       x_ndgln_p2( ( ele - 1 ) * x_nloc + 1 ) = 2
@@ -5065,29 +5092,71 @@
       x_ndgln_p2( ( ele - 1 ) * x_nloc + 3 ) = 4
       x_ndgln_p2( ( ele - 1 ) * x_nloc + 4 ) = 8
 
+      Volume_P1( ele ) = Volume_TetHex( .false., &
+           xp2( 2 ), xp2( 3 ), xp2( 4 ), xp2( 8 ), &
+           yp2( 2 ), yp2( 3 ), yp2( 4 ), yp2( 8 ), &
+           zp2( 2 ), zp2( 3 ), zp2( 4 ), zp2( 8 ) )
+      ewrite(3,*)'Tet, Volume of P1 Tets:', ele, Volume_P1( ele )
+
       ele = 5
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 1 ) = 4
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 2 ) = 3
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 3 ) = 5
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 1 ) = 3
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 2 ) = 5
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 3 ) = 4
       x_ndgln_p2( ( ele - 1 ) * x_nloc + 4 ) = 8
 
+      Volume_P1( ele ) = Volume_TetHex( .false., &
+           xp2( 3 ), xp2( 5 ), xp2( 4 ), xp2( 8 ), &
+           yp2( 3 ), yp2( 5 ), yp2( 4 ), yp2( 8 ), &
+           zp2( 3 ), zp2( 5 ), zp2( 4 ), zp2( 8 ) )
+      ewrite(3,*)'Tet, Volume of P1 Tets:', ele, Volume_P1( ele )
+
       ele = 6
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 1 ) = 8
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 1 ) = 4
       x_ndgln_p2( ( ele - 1 ) * x_nloc + 2 ) = 5
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 3 ) = 9
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 4 ) = 8
+
+      Volume_P1( ele ) = Volume_TetHex( .false., &
+           xp2( 4 ), xp2( 5 ), xp2( 9 ), xp2( 8 ), &
+           yp2( 4 ), yp2( 5 ), yp2( 9 ), yp2( 8 ), &
+           zp2( 4 ), zp2( 5 ), zp2( 9 ), zp2( 8 ) )
+      ewrite(3,*)'Tet, Volume of P1 Tets:', ele, Volume_P1( ele )
+
+
+      ele = 7
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 1 ) = 5
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 2 ) = 6
       x_ndgln_p2( ( ele - 1 ) * x_nloc + 3 ) = 4
       x_ndgln_p2( ( ele - 1 ) * x_nloc + 4 ) = 9
 
-      ele = 7
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 1 ) = 4
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 2 ) = 5
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 3 ) = 6
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 4 ) = 9
+      Volume_P1( ele ) = Volume_TetHex( .false., &
+           xp2( 5 ), xp2( 6 ), xp2( 4 ), xp2( 9 ), &
+           yp2( 5 ), yp2( 6 ), yp2( 4 ), yp2( 9 ), &
+           zp2( 5 ), zp2( 6 ), zp2( 4 ), zp2( 9 ) )
+      ewrite(3,*)'Tet, Volume of P1 Tets:', ele, Volume_P1( ele )
 
       ele = 8
       x_ndgln_p2( ( ele - 1 ) * x_nloc + 1 ) = 7
       x_ndgln_p2( ( ele - 1 ) * x_nloc + 2 ) = 9
       x_ndgln_p2( ( ele - 1 ) * x_nloc + 3 ) = 8
       x_ndgln_p2( ( ele - 1 ) * x_nloc + 4 ) = 4
+
+      Volume_P1( ele ) = Volume_TetHex( .false., &
+           xp2( 7 ), xp2( 9 ), xp2( 8 ), xp2( 4 ), &
+           yp2( 7 ), yp2( 9 ), yp2( 8 ), yp2( 4 ), &
+           zp2( 7 ), zp2( 9 ), zp2( 8 ), zp2( 4 ) )
+      ewrite(3,*)'Tet, Volume of P1 Tets:', ele, Volume_P1( ele )
+
+      Volume_P1_Tets = 0.
+      do ele = 1, totele
+         Volume_P1_Tets = Volume_P1_Tets + Volume_P1( ele ) 
+      end do
+
+      ewrite(3,*)' Total Volume of P1 Tets:', Volume_P1_Tets
+
+      if( abs( Volume_P1_Tets - Volume_P2 ) >= 1.e-7 ) then
+           FLAbort( "Volumes of P2 and the sum of 8 P1s dont match " )
+        end if
 
       do ele = 1, totele
          call Make_Linear_Tetrahedron( ele, quad_cv_nloc, x_nloc, x_nonods, &
@@ -7396,6 +7465,37 @@
 
 
 
+
+  real function Volume_TetHex( hexs, &
+       x1, x2, x3, x4, &
+       y1, y2, y3, y4, &
+       z1, z2, z3, z4 )
+    implicit none
+    logical :: hexs
+    real :: x1, x2, x3, x4, &
+       y1, y2, y3, y4, &
+       z1, z2, z3, z4 
+    integer :: iloc
+
+    Volume_TetHex = &
+         
+         ( x4 - x1 ) * ( &
+         ( y2 - y1 ) * ( z3 - z1 ) - ( z2 - z1 ) * ( y3 - y1 ) &
+         ) + &
+         
+         ( y4 - y1 ) * ( &
+         ( z2 - z1 ) * ( x3 - x1 ) - ( x2 - x1 ) * ( z3 - z1 ) &
+         ) + &
+         
+         ( z4 - z1 ) * ( &
+         ( x2 - x1 ) * ( y3 - y1 ) - ( y2 - y1 ) * ( x3 - x1 ) &
+         )
+
+    if( .not. hexs ) Volume_TetHex = Volume_TetHex / 6.
+
+
+    return
+  end function Volume_TetHex
 
 
   end module shape_functions_NDim

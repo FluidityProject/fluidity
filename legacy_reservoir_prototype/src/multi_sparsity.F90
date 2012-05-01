@@ -1396,8 +1396,8 @@
 
       end if Conditional_Dimensional_2
       nc = nct
-      ewrite(3,*) 'findct: ', size( findct ), '==>', findct( 1 : cv_nonods + 1 )
-      ewrite(3,*) 'colct: ', size( colct ), nct, '==>', colct( 1 : nct )
+      !ewrite(3,*) 'findct: ', size( findct ), '==>', findct( 1 : cv_nonods + 1 )
+      !ewrite(3,*) 'colct: ', size( colct ), nct, '==>', colct( 1 : nct )
       !-
       !- Convert CT sparsity to C sparsity
       !-
