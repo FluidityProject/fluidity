@@ -619,7 +619,7 @@
             lz( 1 ) = l3(1)
             weit( 1 ) = 2.
             nquad=1
-        if( lowqua .or. (ngi == 8) ) then
+        else if( lowqua .or. (ngi == 8) ) then
          posi = 1. / sqrt( 3. )
          if( ngi_l /= 0 ) then
             lx( 1 ) = l1(1)
