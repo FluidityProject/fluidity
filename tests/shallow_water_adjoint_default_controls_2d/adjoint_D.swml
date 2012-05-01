@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <shallow_water_options>
   <simulation_name>
     <string_value lines="1">wave_D</string_value>
@@ -53,7 +53,7 @@
             <integer_value shape="1" rank="1">8</integer_value>
           </aliased_boundary_ids>
           <coordinate_map>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
   result = list(X)
   result[0]=result[0]-1.0
   return result</string_value>
@@ -67,7 +67,7 @@
             <integer_value shape="1" rank="1">9</integer_value>
           </aliased_boundary_ids>
           <coordinate_map>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
   result = list(X)
   result[1]=result[1]-1.0
   return result</string_value>
@@ -167,7 +167,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X, t):
+            <string_value lines="20" type="code" language="python">def val(X, t):
   import constants_2d
   return constants_2d.u_exact(X, t)</string_value>
           </python>
@@ -176,7 +176,7 @@
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="python">def val(X, t):
+                <string_value lines="20" type="code" language="python">def val(X, t):
   import constants_2d
   return constants_2d.u_src(X, t)</string_value>
               </python>
@@ -253,7 +253,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X, t):
+            <string_value lines="20" type="code" language="python">def val(X, t):
   import constants_2d
   return constants_2d.eta_exact(X, t)</string_value>
           </python>
@@ -265,7 +265,7 @@
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="python">def val(X, t):
+                <string_value lines="20" type="code" language="python">def val(X, t):
   import constants_2d
   return constants_2d.eta_src(X, t)</string_value>
               </python>
@@ -290,7 +290,7 @@
         <mesh name="PressureMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X, t):
+            <string_value lines="20" type="code" language="python">def val(X, t):
   import constants_2d
   return constants_2d.eta_exact(X, t)</string_value>
           </python>
@@ -330,7 +330,7 @@
     <scalar_field name="dJdh" rank="0">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="python">import fluidity.state_types
+          <string_value lines="20" type="code" language="python">import fluidity.state_types
 import numpy
 field.val[:] = 0.0
 dJ = 0.0
@@ -381,7 +381,7 @@ field.val[:] = dJ</string_value>
     <scalar_field name="MyEtaSource" rank="0">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="python">import constants_2d as constants
+          <string_value lines="20" type="code" language="python">import constants_2d as constants
 timeprime = time + constants.theta*dt
 coord  = state.vector_fields["Coordinate"]
 field[:] = 0.0
@@ -411,7 +411,7 @@ for ele in range(coord.ele_count):
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X, t):
+            <string_value lines="20" type="code" language="python">def val(X, t):
   import constants_2d
   return constants_2d.u_exact(X, t)</string_value>
           </python>
@@ -455,7 +455,7 @@ for ele in range(coord.ele_count):
     <vector_field name="MyVelocitySource" rank="1">
       <diagnostic>
         <algorithm name="vector_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="python">import constants_2d as constants
+          <string_value lines="20" type="code" language="python">import constants_2d as constants
 timeprime = time + constants.theta*dt
 coord  = state.vector_fields["Coordinate"]
 field[:] = 0.0
@@ -487,7 +487,7 @@ for ele in range(field.ele_count):
     <functional name="integral_eta_t1">
       <functional_value>
         <algorithm name="functional_value">
-          <string_value lines="20" type="python">J = 0.0
+          <string_value lines="20" type="code" language="python">J = 0.0
 T = 1.0 # the time at which to evaluate
 if time &lt; T &lt;= time+dt:
   import numpy
@@ -515,7 +515,7 @@ if time &lt; T &lt;= time+dt:
       </functional_value>
       <functional_dependencies>
         <algorithm name="functional_dependencies">
-          <string_value lines="20" type="python">def dependencies(times, timestep):
+          <string_value lines="20" type="code" language="python">def dependencies(times, timestep):
   if times[0] &lt; 1.0 &lt;= times[1]:
     return {"Fluid::Coordinate": [0],
             "Fluid::LayerThickness": [timestep-1, timestep]}

@@ -165,7 +165,7 @@
               <boundary_overwrites_initial_condition/>
             </apply_weakly>
             <python>
-              <string_value lines="20" type="python">def val(XX, t):
+              <string_value lines="20" type="code" language="python">def val(XX, t):
    from math import exp
    x = XX[0];
    y = XX[1];
@@ -191,7 +191,7 @@
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="python">def val(XX, t):
+                <string_value lines="20" type="code" language="python">def val(XX, t):
    from math import exp
    x = XX[0];
    y = XX[1];
@@ -257,7 +257,7 @@ sage: S
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(XX, t):
+            <string_value lines="20" type="code" language="python">def val(XX, t):
    from math import exp
    x = XX[0];
    y = XX[1];

@@ -3205,17 +3205,17 @@ If off then fluidity computes the tangent.  </a:documentation>
       <element name="align_bc_with_surface">
         <optional>
           <element name="normal_component">
-            <ref name="input_choice_real"/>
+            <ref name="input_choice_real_plus_field"/>
           </element>
         </optional>
         <optional>
           <element name="tangent_component_1">
-            <ref name="input_choice_real"/>
+            <ref name="input_choice_real_plus_field"/>
           </element>
         </optional>
         <optional>
           <element name="tangent_component_2">
-            <ref name="input_choice_real"/>
+            <ref name="input_choice_real_plus_field"/>
           </element>
         </optional>
         <ref name="rotation_matrix_components"/>
@@ -4983,9 +4983,6 @@ Adapting to this field is not recommended</a:documentation>
           <element name="diagnostic">
             <ref name="internal_algorithm"/>
             <ref name="velocity_mesh_choice"/>
-            <optional>
-              <ref name="porosity_include_cv_cfl"/>
-            </optional>
             <ref name="diagnostic_scalar_field"/>
           </element>
           <element name="aliased">
@@ -5009,9 +5006,84 @@ Adapting to this field is not recommended</a:documentation>
           <element name="diagnostic">
             <ref name="internal_algorithm"/>
             <ref name="velocity_mesh_choice"/>
-            <optional>
-              <ref name="porosity_include_dg_cfl"/>
-            </optional>
+            <ref name="diagnostic_scalar_field"/>
+          </element>
+          <element name="aliased">
+            <ref name="generic_aliased_field"/>
+          </element>
+        </choice>
+      </element>
+      <element name="scalar_field">
+        <a:documentation>InterstitialVelocityCGCourantNumber
+
+Courant Number as defined on a CG mesh 
+using the interstitial velocity for 
+porous media flow.
+
+Adapting to this field is not recommended</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>InterstitialVelocityCGCourantNumber</value>
+        </attribute>
+        <choice>
+          <element name="diagnostic">
+            <ref name="internal_algorithm"/>
+            <ref name="velocity_mesh_choice"/>
+            <ref name="porosity_include_dg_and_cg_cfl"/>
+            <ref name="diagnostic_scalar_field"/>
+          </element>
+          <element name="aliased">
+            <ref name="generic_aliased_field"/>
+          </element>
+        </choice>
+      </element>
+      <element name="scalar_field">
+        <a:documentation>InterstitialVelocityCVCourantNumber
+
+Courant Number as defined on a CV mesh 
+using the interstitial velocity for 
+porous media flow.
+
+Adapting to this field is not recommended</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>InterstitialVelocityCVCourantNumber</value>
+        </attribute>
+        <choice>
+          <element name="diagnostic">
+            <ref name="internal_algorithm"/>
+            <ref name="velocity_mesh_choice"/>
+            <ref name="porosity_include_cv_cfl"/>
+            <ref name="diagnostic_scalar_field"/>
+          </element>
+          <element name="aliased">
+            <ref name="generic_aliased_field"/>
+          </element>
+        </choice>
+      </element>
+      <element name="scalar_field">
+        <a:documentation>InterstitialVelocityDGCourantNumber
+
+Courant Number as defined on a DG mesh 
+using the interstitial velocity for 
+porous media flow.
+
+Adapting to this field is not recommended</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>InterstitialVelocityDGCourantNumber</value>
+        </attribute>
+        <choice>
+          <element name="diagnostic">
+            <ref name="internal_algorithm"/>
+            <ref name="velocity_mesh_choice"/>
+            <ref name="porosity_include_dg_and_cg_cfl"/>
             <ref name="diagnostic_scalar_field"/>
           </element>
           <element name="aliased">
@@ -6937,6 +7009,22 @@ Defaults to -huge(0.0)*epsilon(0.0) if not set.</a:documentation>
       </element>
     </choice>
   </define>
+  <!--
+    cv limiter options that 
+    have NO reliance on any CFL field. 
+  -->
+  <define name="limiter_options_excluding_cfl">
+    <choice>
+      <element name="limit_face_value">
+        <a:documentation>Limit the face value to satisfy a boundedness criterion.</a:documentation>
+        <ref name="sweby_limiter"/>
+      </element>
+      <element name="do_not_limit_face_value">
+        <a:documentation>Do not limit the face value</a:documentation>
+        <empty/>
+      </element>
+    </choice>
+  </define>
   <define name="sweby_limiter">
     <element name="limiter">
       <a:documentation>See "High-Resolution Schemes Using Flux Limiters for
@@ -7145,6 +7233,26 @@ This uses the finite element approximation of the CFL Number.</a:documentation>
         <empty/>
       </element>
       <element name="courant_number">
+        <a:documentation>Select the Courant Number definition to be used.
+
+This uses the control volume approximation of the CFL Number 
+and the interstitial velocity for porous media flow.</a:documentation>
+        <attribute name="name">
+          <value>InterstitialVelocityCVCourantNumber</value>
+        </attribute>
+        <ref name="porosity_include_cv_cfl"/>
+      </element>
+      <element name="courant_number">
+        <a:documentation>Select the Courant Number definition to be used.
+
+This uses the CG finite element approximation of the CFL Number 
+and the interstitial velocity for porous media flow.</a:documentation>
+        <attribute name="name">
+          <value>InterstitialVelocityCGCourantNumber</value>
+        </attribute>
+        <ref name="porosity_include_cv_cfl"/>
+      </element>
+      <element name="courant_number">
         <a:documentation>Select the Courant Number definition to be used.</a:documentation>
         <attribute name="name">
           <data type="string" datatypeLibrary=""/>
@@ -7152,6 +7260,44 @@ This uses the finite element approximation of the CFL Number.</a:documentation>
         <empty/>
       </element>
     </choice>
+  </define>
+  <define name="dg_field_based_cfl_number_options">
+    <optional>
+      <choice>
+        <element name="courant_number">
+          <a:documentation>IF NOT SELECTED THEN THE DEFAULT DG_CourantNumber IS USED.
+
+Select the Courant Number definition to be used.
+
+This uses the DG finite element approximation of the CFL Number.</a:documentation>
+          <attribute name="name">
+            <value>DG_CourantNumber</value>
+          </attribute>
+          <empty/>
+        </element>
+        <element name="courant_number">
+          <a:documentation>IF NOT SELECTED THEN THE DEFAULT DG_CourantNumber IS USED.
+
+Select the Courant Number definition to be used.
+
+This uses the DG finite element approximation of the CFL Number 
+and the interstitial velocity for porous media flow.</a:documentation>
+          <attribute name="name">
+            <value>InterstitialVelocityDGCourantNumber</value>
+          </attribute>
+          <ref name="porosity_include_cv_cfl"/>
+        </element>
+        <element name="courant_number">
+          <a:documentation>IF NOT SELECTED THEN THE DEFAULT DG_CourantNumber IS USED.
+
+Select the Courant Number definition to be used.</a:documentation>
+          <attribute name="name">
+            <data type="string" datatypeLibrary=""/>
+          </attribute>
+          <empty/>
+        </element>
+      </choice>
+    </optional>
   </define>
   <define name="cv_face_cfl_number_options">
     <choice>
@@ -7189,6 +7335,16 @@ This uses the finite element approximation of the CFL Number.</a:documentation>
         <empty/>
       </element>
       <element name="courant_number">
+        <a:documentation>Select the Courant Number definition to be used in the slope of
+the NVD diagram upper bound.
+This uses a control volume definition of the CFL Number
+and the interstitial velocity for porous media flow.</a:documentation>
+        <attribute name="name">
+          <value>InterstitialVelocityCVCourantNumber</value>
+        </attribute>
+        <ref name="porosity_include_cv_cfl"/>
+      </element>
+      <element name="courant_number">
         <a:documentation>***UNDER TESTING***
 
 Select the Courant Number definition to be used in the slope of
@@ -7221,6 +7377,26 @@ This uses the control volume definition of the CFL Number.</a:documentation>
         <ref name="velocity_mesh_choice">
           <a:documentation>Select the mesh on which you wish to evaluate the ControlVolumeCFLNumber.</a:documentation>
         </ref>
+      </element>
+      <element name="courant_number">
+        <a:documentation>Select the Courant Number definition to be used for adaptive timestepping.
+This uses the CG finite element approximation of the CFL Number 
+and the interstitial velocity for porous media flow.</a:documentation>
+        <attribute name="name">
+          <value>InterstitialVelocityCGCourantNumber</value>
+        </attribute>
+        <ref name="velocity_mesh_choice"/>
+        <ref name="porosity_include_dg_and_cg_cfl"/>
+      </element>
+      <element name="courant_number">
+        <a:documentation>Select the Courant Number definition to be used for adaptive timestepping.
+This uses the control volume approximation of the CFL Number 
+and the interstitial velocity for porous media flow.         </a:documentation>
+        <attribute name="name">
+          <value>InterstitialVelocityCVCourantNumber</value>
+        </attribute>
+        <ref name="velocity_mesh_choice"/>
+        <ref name="porosity_include_cv_cfl"/>
       </element>
     </choice>
   </define>

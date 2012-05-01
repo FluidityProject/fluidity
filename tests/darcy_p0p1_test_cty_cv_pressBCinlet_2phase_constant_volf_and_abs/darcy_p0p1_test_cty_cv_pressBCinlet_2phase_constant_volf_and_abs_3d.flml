@@ -270,7 +270,7 @@ the absorption term is included in the pressure correction (being a necessity as
           <diagnostic>
             <mesh name="DGP0"/>
             <algorithm name="vector_python_diagnostic" material_phase_support="multiple">
-              <string_value lines="20" type="python">from numpy import zeros
+              <string_value lines="20" type="code" language="python">from numpy import zeros
 
 # set the dimension
 dim = 3
@@ -454,7 +454,7 @@ for ele in range(field.element_count):
     <scalar_field name="SumPhaseVolumeFraction" rank="0">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="multiple">
-          <string_value lines="20" type="python">sat_1 = states["phase1"].scalar_fields["PhaseVolumeFraction"]
+          <string_value lines="20" type="code" language="python">sat_1 = states["phase1"].scalar_fields["PhaseVolumeFraction"]
 sat_2 = states["phase2"].scalar_fields["PhaseVolumeFraction"]
 
 for n in range(field.node_count):
@@ -479,6 +479,23 @@ for n in range(field.node_count):
       </diagnostic>
     </scalar_field>
     <scalar_field name="ControlVolumeCFLNumber" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="InterstitialVelocityCVCourantNumber" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
@@ -586,7 +603,7 @@ for n in range(field.node_count):
           <diagnostic>
             <mesh name="DGP0"/>
             <algorithm name="vector_python_diagnostic" material_phase_support="multiple">
-              <string_value lines="20" type="python">from numpy import zeros
+              <string_value lines="20" type="code" language="python">from numpy import zeros
 
 # set the dimension
 dim = 3

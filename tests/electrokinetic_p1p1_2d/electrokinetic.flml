@@ -240,7 +240,7 @@
           <diagnostic>
             <mesh name="DGP0"/>
             <algorithm name="vector_python_diagnostic" material_phase_support="multiple">
-              <string_value lines="20" type="python"># get the prescribed fields 
+              <string_value lines="20" type="code" language="python"># get the prescribed fields 
 perm = states["water"].scalar_fields["Permeability"]
 visc = states["water"].scalar_fields["Viscosity"]
 
@@ -417,7 +417,7 @@ for n in range(field.node_count):
           <diagnostic>
             <mesh name="VelocityMesh"/>
             <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-              <string_value lines="20" type="python">from math import log10
+              <string_value lines="20" type="code" language="python">from math import log10
 x = log10(0.8410792485)
 c = (-8.0613,-0.807,0.107,-0.0996,-0.1064)
 for i in range(field.mesh.node_count):

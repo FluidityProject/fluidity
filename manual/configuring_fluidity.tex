@@ -2406,13 +2406,15 @@ Third, the pressure options require setting where:
 Fourth, to transport a scalar field (for example \option{Tracer}) through the porous media using the Darcy velocity requires:
 \begin{itemize}
 \item the \option{Tracer} field to include the porosity via the option \option{\ldots/scalar\_field::Tracer/prognostic/porosity},
-\item the \option{ControlVolumeCFLNumber} field to include porosity via the option \option{\ldots/scalar\_field::ControlVolumeCFLNumber/diagnostic/porosity},
 \item the metric advection to include porosity via the option \option{/mesh\_adaptivity/hr\_adaptivity/metric\_advection/porosity},
-\item if a diffusivity, absorption or source term is included in the \option{Tracer} equation then the \option{Porosity} must be included manually using the python diagnostics.
+\item if a diffusivity, absorption or source term is included in the \option{Tracer} equation then the \option{Porosity} must be included manually using the python diagnostics,
+\item for CV or DG subcycling a Courant number field based on the interstitial velocity should be chosen,
+\item for CV face value schemes and limiters a Courant number field based on the interstitial velocity should be chosen, 
+\item for adaptive time stepping a Courant number field based on the interstitial velocity should be chosen.
 \end{itemize}
 
-Finally, the inclusion of porosity in any prognostic scalar field, the \option{ControlVolumeCFLNumber} field and the metric advection defaults to use the scalar field named \option{Porosity} and a theta value of $0.0$. These can be changed via the options
+Finally, the inclusion of porosity defaults to use the scalar field named \option{Porosity} and a theta value of $0.0$. These can be changed via the options
 \begin{itemize}
 \item \option{\ldots/porosity/porosity\_field\_name},
-\item \option{\ldots/porosity/temporal\_discretisation/theta}.
+\item \option{\ldots/porosity/porosity\_temporal\_theta}.
 \end{itemize} 

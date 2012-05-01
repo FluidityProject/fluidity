@@ -158,7 +158,7 @@
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="python">def val(X, t):
+                <string_value lines="20" type="code" language="python">def val(X, t):
    from math import sin,pi
    S = -(0.1*pi/(1.0))*sin(pi*X[1]/(1.0))
    return S</string_value>
@@ -208,7 +208,7 @@
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X, t):
+            <string_value lines="20" type="code" language="python">def val(X, t):
    from math import sqrt, sin, exp, pi
    lam = 1.0
    b = 1.0

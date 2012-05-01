@@ -192,7 +192,7 @@
         <scalar_field name="Source" rank="0">
           <diagnostic>
             <algorithm name="scalar_python_diagnostic" material_phase_support="multiple">
-              <string_value lines="20" type="python">import numpy
+              <string_value lines="20" type="code" language="python">import numpy
 
 coord = states["One"].vector_fields["Coordinate"]
 
@@ -344,7 +344,7 @@ for ele in range(field.element_count):
         <scalar_field name="Source" rank="0">
           <diagnostic>
             <algorithm name="scalar_python_diagnostic" material_phase_support="multiple">
-              <string_value lines="20" type="python">import numpy
+              <string_value lines="20" type="code" language="python">import numpy
 
 coord = states["One"].vector_fields["Coordinate"]
 
@@ -461,7 +461,7 @@ for ele in range(field.element_count):
     <scalar_field name="Eigenvalue" rank="0">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="multiple">
-          <string_value lines="20" type="python">from math import sqrt
+          <string_value lines="20" type="code" language="python">from math import sqrt
 
 flux1_ele = states["One"].scalar_fields["Flux1_ele"]
 flux2_ele = states["One"].scalar_fields["Flux2_ele"]

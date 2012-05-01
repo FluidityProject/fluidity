@@ -546,7 +546,7 @@ contains
          ! can remap from coordinate field
          call allocate(positions, coordinate_field%dim, mesh, name="Coordinate")
          
-         if (mesh_periodic(mesh)) then
+         if (mesh_periodic(mesh) .and. continuity(mesh)>=0) then
             call remap_field(coordinate_field, positions, stat=stat)
             if (stat/=REMAP_ERR_UNPERIODIC_PERIODIC) then
               FLAbort("Error remapping coordinate field")

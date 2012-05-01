@@ -46,6 +46,7 @@ module advection_diffusion_cg
   use state_module
   use upwind_stabilisation
   use sparsity_patterns_meshes
+  use porous_media
   
   implicit none
   
@@ -231,11 +232,8 @@ contains
       
     type(element_type) :: supg_element
     
-    ! Porosity fields, field name, theta value
-    type(scalar_field), pointer :: porosity_old, porosity_new
-    type(scalar_field) :: porosity_theta 
-    character(len=OPTION_PATH_LEN) :: porosity_name
-    real :: porosity_theta_value
+    ! Porosity field
+    type(scalar_field) :: porosity_theta
   
     ewrite(1, *) "In assemble_advection_diffusion_cg"
     
@@ -351,34 +349,9 @@ contains
     ! Porosity
     if (have_option(trim(complete_field_path(t%option_path))//'/porosity')) then
        include_porosity = .true.
-         
-       ! get the name of the field to use as porosity
-       call get_option(trim(complete_field_path(t%option_path))//'/porosity/porosity_field_name', &
-                       porosity_name, &
-                       default = 'Porosity')
-         
-       ! get the porosity theta value
-       call get_option(trim(complete_field_path(t%option_path))//'/porosity/temporal_discretisation/theta', &
-                       porosity_theta_value, &
-                       default = 0.0)
-         
-       porosity_new => extract_scalar_field(state, trim(porosity_name), stat = stat)                  
-
-       if (stat /=0) then
-          FLExit('Including porosity in Advection_Diffusion_CG but failed to extract Porosity from state')
-       end if
        
-       porosity_old => extract_scalar_field(state, "Old"//trim(porosity_name), stat = stat)
-
-       if (stat /=0) then
-          FLExit('Including porosity in Advection_Diffusion_CG but failed to extract Porosity from state')
-       end if
-       
-       call allocate(porosity_theta, porosity_new%mesh)
-         
-       call set(porosity_theta, porosity_new, porosity_old, porosity_theta_value)
-         
-       ewrite_minmax(porosity_theta)         
+       ! get the porosity theta averaged field - this will allocate it
+       call form_porosity_theta(porosity_theta, state, option_path = trim(complete_field_path(t%option_path))//'/porosity')       
     else
        include_porosity = .false.
        call allocate(porosity_theta, t%mesh, field_type=FIELD_TYPE_CONSTANT)

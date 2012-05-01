@@ -18,13 +18,11 @@ sigma is a function of viscosity and permeability
 
 python diagnostics are used to form the sigma term that is assoicated with a p0 dg mesh (ie. element wise) and the interstitial velocity
 
-this case has a 1 region 1 material with pressure boundary condition inflow. 
-
 to get a darcy equation the time, stress and advection terms are not included in a bousinessq formulation (to avoid needing to specify a density). Ideally it would be better to actually have a darcy momentum option to simplify the input.
 
 the absorption term is included in the pressure correction (being a necessity as it is the only term in the matrix equation) 
 
-the geometry is 2d (although this is a 1d problem)
+the geometry is 2d 
 
 NOTE: Because the velocity and pressure are time independent the simulation is broken into two.
       First the velocity and pressure are solved and checkpointed. 
@@ -160,7 +158,7 @@ NOTE: Because the velocity and pressure are time independent the simulation is b
                   <store_upwind_quadrature/>
                 </store_upwind_elements>
               </project_upwind_value_from_point>
-              <courant_number name="ControlVolumeCFLNumber"/>
+              <courant_number name="InterstitialVelocityCVCourantNumber"/>
             </face_value>
             <diffusion_scheme name="ElementGradient"/>
           </control_volumes>
@@ -175,7 +173,7 @@ NOTE: Because the velocity and pressure are time independent the simulation is b
           <control_volumes>
             <maximum_courant_number_per_subcycle>
               <real_value rank="0">0.25</real_value>
-              <courant_number name="ControlVolumeCFLNumber"/>
+              <courant_number name="InterstitialVelocityCVCourantNumber"/>
             </maximum_courant_number_per_subcycle>
             <pivot_theta>
               <real_value rank="0">0.0</real_value>
@@ -227,17 +225,10 @@ NOTE: Because the velocity and pressure are time independent the simulation is b
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="ControlVolumeCFLNumber" rank="0">
+    <scalar_field name="InterstitialVelocityCVCourantNumber" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="PressureMesh"/>
-        <porosity>
-          <temporal_discretisation>
-            <theta>
-              <real_value rank="0">0.0</real_value>
-            </theta>
-          </temporal_discretisation>
-        </porosity>
+        <mesh name="VelocityMesh"/>
         <output/>
         <stat/>
         <convergence>

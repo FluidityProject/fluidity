@@ -124,15 +124,19 @@ class DataWidget(gtk.VBox):
       buf = gtksourceview2.Buffer()
       lang_manager = gtksourceview2.LanguageManager()
       buf.set_highlight_matching_brackets(True)
-      if self.node is not None and self.node.is_python_code():
-        python = lang_manager.get_language("python")
-        buf.set_language(python)
+      if self.node is not None and self.node.is_code():
+        codelanguage = self.node.get_code_language();
+        if codelanguage in lang_manager.get_language_ids():
+          language = lang_manager.get_language(codelanguage)
+        else:
+          language = lang_manager.get_language("python")
+        buf.set_language(language)
         buf.set_highlight_syntax(True)
       textview = gtksourceview2.View(buffer=buf)
       textview.set_auto_indent(True)
       textview.set_insert_spaces_instead_of_tabs(True)
       textview.set_tab_width(2)
-      if self.node is not None and self.node.is_python_code():
+      if self.node is not None and self.node.is_code():
         textview.set_show_line_numbers(True)
         font_desc = pango.FontDescription("monospace")
         if font_desc:

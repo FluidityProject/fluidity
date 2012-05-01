@@ -131,15 +131,15 @@ Porosity is used by default.</a:documentation>
     </element>
   </define>
   <define name="porosity_include_cv_cfl">
-    <element name="porosity">
-      <a:documentation>Include the porosity in the calculation of 
-the CV Courant number. This is required if 
-the Velocity field has embedded in it the 
-porosity and the CFL number is used to 
-determine the CV face value in an 
-advection scheme (such as HyperC) or 
-a sub cycled advection scheme is used 
-that dependends on this Courant number.
+    <optional>
+      <element name="porosity_field_name">
+        <a:documentation>Specify the name of the field 
+to use for porosity. This field must 
+exist in the state of the associated 
+material_phase.
+
+If not specified the field name 
+Porosity is used by default.
 
 The porosity must be associated 
 with a mesh that has shape functions that 
@@ -149,59 +149,38 @@ to be solved for. If the latter then
 the porosity is assumed to be represented 
 with the control volumes or the sub 
 control volumes for a discontinuous mesh.</a:documentation>
-      <ref name="comment"/>
-      <optional>
-        <element name="porosity_field_name">
-          <a:documentation>Specify the name of the field 
-to use for porosity. This field must 
-exist in the state of the associated 
-material_phase.
-
-If not specified the field name 
-Porosity is used by default.</a:documentation>
-          <data type="string"/>
-        </element>
-      </optional>
-      <optional>
-        <ref name="porosity_include_temporal_discretisation"/>
-      </optional>
-    </element>
+        <data type="string"/>
+      </element>
+    </optional>
+    <optional>
+      <ref name="porosity_include_temporal_discretisation"/>
+    </optional>
   </define>
-  <define name="porosity_include_dg_cfl">
-    <element name="porosity">
-      <a:documentation>Include the porosity in the calculation of 
-the DG Courant number. This is required if 
-the Velocity field has embedded in it the 
-porosity and a sub cycled advection scheme 
-is used that dependends on this Courant number.</a:documentation>
-      <ref name="comment"/>
-      <optional>
-        <element name="porosity_field_name">
-          <a:documentation>Specify the name of the field 
+  <define name="porosity_include_dg_and_cg_cfl">
+    <optional>
+      <element name="porosity_field_name">
+        <a:documentation>Specify the name of the field 
 to use for porosity. This field must 
 exist in the state of the associated 
 material_phase.
 
 If not specified the field name 
 Porosity is used by default.</a:documentation>
-          <data type="string"/>
-        </element>
-      </optional>
-      <optional>
-        <ref name="porosity_include_temporal_discretisation"/>
-      </optional>
-    </element>
+        <data type="string"/>
+      </element>
+    </optional>
+    <optional>
+      <ref name="porosity_include_temporal_discretisation"/>
+    </optional>
   </define>
   <define name="porosity_include_temporal_discretisation">
-    <element name="temporal_discretisation">
+    <element name="porosity_temporal_theta">
       <a:documentation>Temporal discretisation of Porosity 
 to use in the parent field equation.
 
 If not included then a theta value of 
 0.0 is used by default.</a:documentation>
-      <element name="theta">
-        <ref name="real"/>
-      </element>
+      <ref name="real"/>
     </element>
   </define>
 </grammar>

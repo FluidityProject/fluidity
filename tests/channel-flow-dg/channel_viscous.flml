@@ -53,7 +53,7 @@
             <integer_value shape="1" rank="1">2</integer_value>
           </aliased_boundary_ids>
           <coordinate_map>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
 	result = list(X)
 	result[0]=result[0]-1.0
 	return result</string_value>
@@ -218,7 +218,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">import channel_viscous
+            <string_value lines="20" type="code" language="python">import channel_viscous
 global sol
 sol=channel_viscous.solution(channel_viscous.forcing)
         
@@ -262,7 +262,7 @@ def val(X,t):
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="python">def val(X,t):
+                <string_value lines="20" type="code" language="python">def val(X,t):
         import channel_viscous
         return channel_viscous.numeric_forcing(X)</string_value>
               </python>
@@ -301,7 +301,7 @@ def val(X,t):
     <scalar_field name="AnalyticUVelocitySolutionError" rank="0">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="python">V=state.vector_fields["Velocity"]
+          <string_value lines="20" type="code" language="python">V=state.vector_fields["Velocity"]
 S=state.scalar_fields["AnalyticUVelocitySolution"]
 
 for n in range(field.node_count):
@@ -328,7 +328,7 @@ for n in range(field.node_count):
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">import sys
+            <string_value lines="20" type="code" language="python">import sys
 sys.path.append(".")
 import channel_viscous
 
@@ -352,7 +352,7 @@ def val(X,t):
         <mesh name="PressureMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">import sys
+            <string_value lines="20" type="code" language="python">import sys
 sys.path.append(".")
 import channel_viscous
 
@@ -374,7 +374,7 @@ def val(X,t):
     <scalar_field name="AnalyticPressureSolutionError" rank="0">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="python">P=state.scalar_fields["Pressure"]
+          <string_value lines="20" type="code" language="python">P=state.scalar_fields["Pressure"]
 S=state.scalar_fields["AnalyticPressureSolution"]
 
 # Remove the arbitrary constant
