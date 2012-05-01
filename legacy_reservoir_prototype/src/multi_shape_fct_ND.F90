@@ -3458,6 +3458,7 @@
          lowqua = .false.
          if( cv_nloc_cells == 10 ) then ! Quadratic hexs
             quad_cv_ngi = 27
+            if(cv_ngi==32) quad_cv_ngi = 1 ! one pt quadrature...
             nwicel = 3
             dummy_sngi = 9
             dummy_snloc = 9
