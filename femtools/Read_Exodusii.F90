@@ -143,7 +143,7 @@ contains
        FLExit("None of the possible ExodusII files "//trim(filename)//".exo /.e /.EXO /.E were found")
     end if
 
-    ewrite(2, *) "Opening " // trim(lfilename) // " for reading."
+    ewrite(2, *) "Opening " // trim(lfilename) // " for reading in database parameters"
 
     version = 0.0
     mode = 0; comp_ws=0; io_ws=0;
@@ -197,7 +197,6 @@ contains
 
   end subroutine identify_exodusii_file
 
-
   ! -----------------------------------------------------------------
   ! The main function for reading ExodusII files
   function read_exodusii_file_to_field(filename, shape) result (field)
@@ -248,11 +247,10 @@ contains
     ! First of all: Identify the filename:
     call get_exodusii_filename(filename, lfilename, fileExists)
     if(.not. fileExists) then
-       FLExit("None of the possible ExodusII files " // trim(filename) //".exo /.e /.EXO /.E were found")
+       FLExit("None of the possible ExodusII files "//trim(filename)//".exo /.e /.EXO /.E were found")
     end if
 
-    ewrite(2, *) "Opening " // trim(lfilename) // " for reading."
-    ewrite(2,*) "*************************"
+    ewrite(2, *) "Opening " // trim(lfilename) // " for reading in the mesh"
 
     version = 0.0
     mode = 0; comp_ws=0; io_ws=0;
@@ -266,12 +264,6 @@ contains
     ierr = f_ex_get_init(exoid, title, num_dim, num_nodes, &
                        num_allelem, num_elem_blk, num_node_sets, &
                        num_side_sets)
-    ewrite(2,*) "num_dim = ", num_dim
-    ewrite(2,*) "num_nodes = ", num_nodes
-    ewrite(2,*) "num_allelem = ", num_allelem
-    ewrite(2,*) "num_elem_blk = ", num_elem_blk
-    ewrite(2,*) "num_node_sets = ", num_node_sets
-    ewrite(2,*) "num_side_sets = ", num_side_sets
     if (ierr /= 0) then
        FLExit("Unable to read database parameters from "//trim(lfilename))
     end if
@@ -279,6 +271,7 @@ contains
     ! Catch user mistake of setting node sets instead of side sets:
     ! Give the user an error message, since node sets are not supported here, only side sets:
     if (num_node_sets > 0) then
+       ! Maybe a warning might be better here, instead of FLExit:
        FLExit("You have specified node sets on your ExodusII meshfile '"//trim(lfilename)//"' but node sets are not supported by Fluidity. Please set your boundary conditions as side sets")
     end if
 
@@ -299,7 +292,6 @@ contains
     if (ierr /= 0) then
        FLExit("Unable to read in node number map from "//trim(lfilename))
     end if
-    ewrite(2,*) "node_map = ", node_map
 
     ! read element number map
     allocate(elem_num_map(num_allelem))
@@ -308,7 +300,6 @@ contains
     if (ierr /= 0) then
        FLExit("Unable to read in element number map "//trim(lfilename))
     end if
-    ewrite(2,*) "elem_num_map = ", elem_num_map
 
     ! read element order map
     allocate(elem_order_map(num_allelem))
@@ -317,7 +308,6 @@ contains
     if (ierr /= 0) then
        FLExit("Unable to read in element order map "//trim(lfilename))
     end if
-    ewrite(2,*) "elem_order_map = ", elem_order_map
 
     ! Get block ids:
     allocate(block_ids(num_elem_blk))
@@ -325,7 +315,6 @@ contains
     if (ierr /= 0) then
        FLExit("Unable to read in element block ids from "//trim(lfilename))
     end if
-    ewrite(2,*) "block_ids = ", block_ids
     
     ! Get block parameters:
     allocate(num_elem_in_block(num_elem_blk))
@@ -394,13 +383,6 @@ contains
           FLExit("Mesh file "//trim(lfilename)//": Fluidity currently does not support 1D exodusII meshes. But you do NOT want to use fancy cubit to create a 1D mesh, do you? GMSH or other meshing tools can easily be used to generate 1D meshes")
        end if
     end do
-    ewrite(2,*) "elem_type = ", elem_type
-    ewrite(2,*) "num_elem_in_block = ", num_elem_in_block
-    ewrite(2,*) "num_nodes_per_elem = ", num_nodes_per_elem
-    ewrite(2,*) "num_attr = ", num_attr
-    ewrite(2,*) "elementType = ", elementType
-    ewrite(2,*) "faceType = ", faceType
-
 
     ! read element connectivity:
     allocate(elem_connectivity(0))
@@ -414,8 +396,6 @@ contains
     if (ierr /= 0) then
        FLExit("Unable to read in element connectivity from "//trim(lfilename))
     end if
-    ewrite(2,*) "elem_connectivity = ", elem_connectivity
-
 
     ! Initialize logical variables:
     ! We have RegionIDs when there are blockIDs assigned to elements
@@ -423,10 +403,10 @@ contains
     ! to all elements of the mesh if the user does not specify an blockID manually
     haveRegionIDs = .true. ! redundant for reasons stated above, but kept here to keep it consistent with gmshreader for now
     ! Boundaries: Boundaries are present if at least one side-set was supplied by the user:
-    if (num_side_sets == 0) then
-       haveBoundaries = .false.
-    else
+    if (num_side_sets >= 0) then
        haveBoundaries = .true.
+    else
+       haveBoundaries = .false.
     end if
     ! Get side sets
     ! Side sets in exodusii are what physical lines/surfaces are in gmsh (so basically boundary-IDs)
@@ -450,8 +430,6 @@ contains
     if (ierr /= 0) then
        FLExit("Unable to read in the side set parameters from "//trim(lfilename))
     end if
-    ! Now the element list of the side set:
-
 
     ! Now let's finally get the side-set-ids!
     if (haveBoundaries) then
@@ -501,25 +479,6 @@ contains
        deallocate(num_df_in_set)
     end if
 
-
-
-    ! Tests:
-!    ewrite(2,*) "********************************SIDE SETS*************************************"
-!    ewrite(2,*) "side_set_ids = ", side_set_ids
-!    ewrite(2,*) "total_side_sets_elem_list = ", total_side_sets_elem_list
-!    z=1; n_cnt_pos=1;
-!    do i=1, num_side_sets
-!       do e=1, num_elem_in_set(i)
-!          ewrite(2,*) "elem_list = ", total_side_sets_elem_list(z)
-!          do n=1, total_side_sets_node_cnt_list(e)
-!             ewrite(2,*) "node(n) of face of ele above: ", total_side_sets_node_list(n_cnt_pos)
-!             n_cnt_pos = n_cnt_pos + 1
-!          end do
-!          z = z+1
-!       end do
-!       ewrite(2,*) "side_set_id(i) = ", side_set_ids(i)
-!       ewrite(2,*) "******* end of elem list *******"
-!    end do
     ! Tests:
     if (haveBoundaries) then
        print *, "size(total_side_sets_node_list) = ", size(total_side_sets_node_list)
