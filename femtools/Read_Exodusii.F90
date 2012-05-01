@@ -479,18 +479,6 @@ contains
        deallocate(num_df_in_set)
     end if
 
-    ! Tests:
-    if (haveBoundaries) then
-       print *, "size(total_side_sets_node_list) = ", size(total_side_sets_node_list)
-       print *, "size(total_side_sets_elem_list) = ", size(total_side_sets_elem_list)
-       print *, "total_side_sets_node_list = ", total_side_sets_node_list
-       print *, "total_side_sets_elem_list = ", total_side_sets_elem_list
-       print *, "total_side_sets_node_cnt_list = ", total_side_sets_node_cnt_list
-       ewrite(2,*) "side_set_ids = ", side_set_ids
-    end if
-
-
-
     ! Close ExodusII meshfile
     ierr = f_ex_close(exoid)
     if (ierr /= 0) then
@@ -508,8 +496,6 @@ contains
        eff_dim = num_dim
     end if
 
-
-    ! Get element node number (allows for different element types)
     ! Reorder element node numbering (if necessary):
     ! (allows for different element types)
     allocate(total_elem_node_list(0))
@@ -524,7 +510,6 @@ contains
           call toFluidityElementNodeOrdering( elem_node_list, elem_type(i) )
           ! Now append elem_node_list to total_elem_node_list
           call append_array(total_elem_node_list, elem_node_list)
-          ! ewrite(2,*) "elem_node_list = ", elem_node_list
           z = z + num_nodes_per_elem(i)
        ! reset node list:
        elem_node_list = 0
@@ -532,12 +517,10 @@ contains
        ! deallocate elem_node_list for next block
        deallocate(elem_node_list)
     end do
-    ewrite(2,*) "total_elem_node_list = ", total_elem_node_list
 
     ! check if number of vertices/nodes are consistent with shape
     loc = maxval(num_nodes_per_elem)
     assert(loc==shape%loc)
-
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Coordinates              !
@@ -553,7 +536,6 @@ contains
     if (eff_dim .eq. 3) then
        node_coord(3,:) = coord_z(:)
     end if
-
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Elements (incl faces)    !
@@ -583,10 +565,6 @@ contains
        z = z + num_elem_in_block(i)
     end do
     ! At this stage 'allelements' contains all elements (faces and elements) of all blocks of the mesh
-!    ewrite(2,*) "allelements%elementID: ", allelements%elementID
-!    ewrite(2,*) "allelements%blockID: ", allelements%blockID
-!    ewrite(2,*) "allelements%type: ", allelements%type
-
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Setting numTags to the elements with side-set-id !
@@ -619,7 +597,7 @@ contains
              z = z+1
           end do
        end do
-       ! Now that the tags for all elements are allocated and uniquely marked, set them
+       ! Now that the tags for all elements are allocated and uniquely marked, set them:
        z=1;
        do i=1, num_side_sets
           do e=1, num_elem_in_set(i)
@@ -635,30 +613,22 @@ contains
                    exit
                 end if
              end do
-             ! DEBUG statements:
-!             ewrite(2,*) "elem_list = ", total_side_sets_elem_list(z)
-!             ewrite(2,*) "allelements(elemID) = ", allelements(elemID)%elementID
-!             ewrite(2,*) "allelements(elemID)%numTags = ", allelements(elemID)%numTags
-!             ewrite(2,*) "allelements(elemID)%tags(:) = ", allelements(elemID)%tags(:)
-!             ewrite(2,*) "************* next element in side sets *************"
              z = z+1
           end do
-!         ewrite(2,*) "side_set_id(i) = ", side_set_ids(i)
-!         ewrite(2,*) "******************** end of elem list ********************"
        end do
-       ! At this stage, the elements of 'allelements' have been correctly tagged, 
-       ! meaning they carry the side set ID(s) as tags, which later will
-       ! become the boundary ID of their face(s)
-!       print *, "------------------------------------------"
-!       print *, "total_side_sets_elem_list = ", total_side_sets_elem_list
     end if
-
+   ! At this stage, the elements of 'allelements' have been correctly tagged, 
+   ! meaning they carry the side set ID(s) as tags, which later will
+   ! become the boundary ID of their face(s)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Identify Faces           !
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Now faces:
-    ! First of all: get total number of faces, then assemble array with faces:
+    ! First of all: Face elements in the mesh (-file) are neglected, thus get the 
+    ! number of elements (-minus number of face-elements in the mesh),
+    ! and by 'elements' we mean no edges/faces in 2D/3D.
+    ! And then subtract the amount of elements that carry at least one side-set-id
     ! In 2D: Faces are lines/edges
     ! In 3D: Faces are surfaces
     ! Find total number of such faces in all blocks
@@ -670,13 +640,11 @@ contains
     num_faces = 0; num_elem = 0
     sloc = 0
     do i=1, num_elem_blk
-       ! 2D faces as follows (only lines/edges):
        if (num_dim .eq. 2) then
           if (elem_type(i) .eq. 2 .or. elem_type(i) .eq. 3) then
              ! this is an element:
              num_elem = num_elem + num_elem_in_block(i)
           end if
-       ! 3D faces as follows (only triangles and quads):
        else if (num_dim .eq. 3) then
           if ( elem_type(i) .eq. 4 .or. elem_type(i) .eq. 5 ) then
              ! this is an element:
@@ -689,7 +657,8 @@ contains
     ! e.g. if faceType = 2 (triangle), it should have 3 nodes, which is faceType+1
     sloc = faceType+1
     ! Now check for site-set-id/physical-id, if element has numTags>0,
-    ! than this element will become a face with boundaryID assigned to it
+    ! than an edge/face will be generated next to that element, 
+    ! and the element's side-set-ID will be assigned to the newly generated edge/face
     if (haveBoundaries) then
        z=1;
        do i=1, num_allelem
@@ -699,13 +668,9 @@ contains
           if (num_tags_elem > 0) then
              ! increase number of faces in the mesh...
              num_faces = num_faces + num_tags_elem
-!             ! and reduce number of elements, as this element will become a face (at least one) with boundaryID
-!             num_elem = num_elem-1
           end if
        end do
     end if
-    ewrite(2,*) "total number of faces: ", num_faces
-    ewrite(2,*) "total number of elements = ", num_elem
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Setting Elements and faces !
