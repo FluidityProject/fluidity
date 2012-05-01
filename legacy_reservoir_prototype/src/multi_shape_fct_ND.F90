@@ -1737,12 +1737,13 @@
       real, dimension( cv_nloc, cv_ngi ), intent( inout ) :: n, nlx, nly, nlz
       real, dimension( u_nloc, cv_ngi ), intent( inout ) :: un, unlx, unly, unlz
       ! Local variables
-      integer, dimension( : ), allocatable :: x_ndgln, fem_nod
-      real, dimension( : ), allocatable :: lx, ly, lz, x, y, z, cvweigh_dummy
+      integer, dimension( : ), allocatable :: x_ndgln, fem_nod, x_ndgln_ideal
+      real, dimension( : ), allocatable :: lx, ly, lz, x, y, z, cvweigh_dummy, &
+           x_ideal, y_ideal, z_ideal
       integer, parameter :: max_totele = 10000, max_x_nonods = 10000
       logical :: d1, dcyl, d3
       integer :: ele, quad_cv_ngi, quad_cv_nloc, totele, x_nonods, &
-           cv_gj,cv_gk,cv_iloc,cv_gi
+           cv_gj, cv_gk, cv_iloc, cv_gi, totele_sub
       real :: rsum
 
       ewrite(3,*)'In vol_cv_tri_tet_shape'
@@ -1766,23 +1767,27 @@
       endif
 
       ! Allocating memory
-      allocate( lx( max_x_nonods ) )
-      allocate( ly( max_x_nonods ) )
-      allocate( lz( max_x_nonods ) )
-      allocate( x( max_x_nonods ))
-      allocate( y( max_x_nonods ))
-      allocate( z( max_x_nonods ))
-      allocate( fem_nod( max_x_nonods ) )
-      allocate( x_ndgln( max_totele * quad_cv_nloc ) )
-      allocate(cvweigh_dummy(cv_ngi)) 
+      allocate( lx( max_x_nonods ) ) ; lx = 0.
+      allocate( ly( max_x_nonods ) ) ; ly = 0.
+      allocate( lz( max_x_nonods ) ) ; lz = 0.
+      allocate( x( max_x_nonods )) ; x = 0.
+      allocate( y( max_x_nonods )) ; y =0.
+      allocate( z( max_x_nonods )) ; z = 0.
+      allocate( fem_nod( max_x_nonods ) ) ; fem_nod = 0
+      allocate( x_ndgln( max_totele * quad_cv_nloc ) ) ; x_ndgln = 0
+      allocate( cvweigh_dummy( cv_ngi )) ; cvweigh_dummy = 0.
+      allocate( x_ideal( max_x_nonods ) ) ; x_ideal = 0.
+      allocate( y_ideal( max_x_nonods ) ) ; y_ideal = 0.
+      allocate( z_ideal( max_x_nonods ) ) ; z_ideal = 0.
+      allocate( x_ndgln_ideal( max_x_nonods ) ) ; x_ndgln_ideal = 0
 
       ! Get the x_ndgln for the nodes of the triangle or tet or hex/quad super-elements:
       x = 0. ; y = 0. ; z = 0. ; lx = 0. ; ly = 0. ; lz = 0. ; fem_nod = 0 ; x_ndgln = 0
       call Compute_XNDGLN_TriTetQuadHex( cv_ele_type, &
            max_totele, max_x_nonods, quad_cv_nloc, &
            totele, x_nonods, &
-           x_ndgln, lx, ly, lz, x, y, z, &
-           fem_nod,x_ideal,y_ideal,z_ideal,x_ndgln_ideal )
+           x_ndgln, lx, ly, lz, x, y, z, fem_nod, &
+           x_ideal, y_ideal, z_ideal, x_ndgln_ideal )
 
       ! Compute the shape functions using these quadrilaterals/hexs:
       ! For pressure:
@@ -1795,19 +1800,20 @@
       call Calc_CVN_TriTetQuadHex( cv_ele_type, totele, cv_nloc, cv_ngi, x_nonods, &
            quad_cv_nloc, x_ndgln, fem_nod, cvn )
 
-        print *,'cvweigh:',cvweigh
-        do cv_iloc=1,cv_nloc
-           rsum=0.0
-           do cv_gi=1,cv_ngi
-             rsum=rsum+cvn(cv_iloc,cv_gi)*cvweigh(cv_gi)
-           end do
-           print *,'cv_iloc,rsum:',cv_iloc,rsum
-        end do
-!         stop 2922
+      print *,'cvweigh:',cvweigh
+      do cv_iloc=1,cv_nloc
+         rsum=0.0
+         do cv_gi=1,cv_ngi
+            rsum=rsum+cvn(cv_iloc,cv_gi)*cvweigh(cv_gi)
+         end do
+         print *,'cv_iloc,rsum:',cv_iloc,rsum
+      end do
+      !         stop 2922
       if(cv_nloc==10) then
-            totele_sub=8
-            call test_quad_tet(cv_nloc,cv_ngi,cvn,n,nlx,nly,nlz, &
-                       cvweigh,x_ideal,y_ideal,z_ideal,cv_nloc,x_ndgln_ideal,totele_sub) 
+         totele_sub=8
+         !call test_quad_tet( cv_nloc, cv_ngi, cvn, n, nlx, nly, nlz, &
+         call test_quad_tet( 4, cv_ngi, cvn, n, nlx, nly, nlz, &
+              cvweigh, x_ideal, y_ideal, z_ideal, cv_nloc, x_ndgln_ideal, totele_sub) 
       endif
 
       ! And for velocities:
@@ -1838,22 +1844,23 @@
 
 
 
-     subroutine test_quad_tet(cv_nloc,cv_ngi,cvn,n,nlx,nly,nlz, &
-                       cvweigh,x,y,z,x_nonods,x_ndgln,totele)
+     subroutine test_quad_tet( cv_nloc, cv_ngi, cvn, n, nlx, nly, nlz, &
+                       cvweight, x, y, z, x_nonods, x_ndgln, totele )
 ! test the volumes of idealised triangle 
       implicit none
-      integer, intent( in ) :: cv_nloc,cv_ngi,x_nonods
+      integer, intent( in ) :: cv_nloc, cv_ngi, x_nonods, totele
       real, dimension( x_nonods ), intent( in ) :: x, y, z
-      real, dimension( cv_ngi ), intent( in ) :: cvweigh
+      integer, dimension( totele * cv_nloc ), intent( in ) :: x_ndgln
+      real, dimension( cv_ngi ), intent( in ) :: cvweight
       real, dimension( cv_nloc,cv_ngi ), intent( in ) :: cvn
       REAL, DIMENSION( CV_NLOC, CV_NGI ), intent( in ) :: N, NLX, NLY, NLZ 
 ! local variables...
       integer, dimension( : ), allocatable :: x_ndgln2, x_ndgln_big
       real, dimension( : ), allocatable :: DETWEI,RA
       real, dimension( :,: ), allocatable :: NX,NY,NZ
-      INTEGER :: NDIM
+      INTEGER :: NDIM, ele
       LOGICAL :: D1,D3,DCYL
-      REAL :: VOLUME
+      REAL :: VOLUME, rsum
 
       ALLOCATE( DETWEI( CV_NGI )) 
       ALLOCATE( RA( CV_NGI ))
@@ -1890,7 +1897,8 @@
     subroutine Compute_XNDGLN_TriTetQuadHex( cv_ele_type, &
          max_totele, max_x_nonods, quad_cv_nloc, &
          totele, x_nonods, &
-         x_ndgln, lx, ly, lz, x, y, z, fem_nod )
+         x_ndgln, lx, ly, lz, x, y, z, fem_nod, &
+         x_ideal, y_ideal, z_ideal, x_ndgln_ideal  )
       ! Get the x_ndgln for the nodes of triangles or tetrahedra
       implicit none
       integer, intent( in ) :: cv_ele_type, max_totele, max_x_nonods, quad_cv_nloc
@@ -1898,6 +1906,8 @@
       real, dimension( max_x_nonods ), intent( inout ) :: lx, ly, lz, x, y, z
       integer, dimension( max_x_nonods ), intent( inout ) :: fem_nod
       integer, dimension( max_totele * quad_cv_nloc ), intent( inout ) :: x_ndgln
+      real, dimension( max_x_nonods ), intent( inout ) :: x_ideal, y_ideal, z_ideal
+      integer, dimension( max_x_nonods ), intent( inout ) :: x_ndgln_ideal
       ! Local variables
       integer, dimension( : ), allocatable :: x_ndgln2, x_ndgln_big
       real, dimension( : ), allocatable :: x2, y2, z2
@@ -2281,7 +2291,8 @@
 
          totele = 8 ;  x_nonods = max_x_nonods ; x_nloc = 4
          call  Make_QTets( totele, quad_cv_nloc, x_nloc, max_x_nonods, x_nonods, &
-              x_ndgln, lx, ly, lz, x, y, z, fem_nod )
+              x_ndgln, lx, ly, lz, x, y, z, fem_nod, &
+              x_ideal, y_ideal, z_ideal, x_ndgln_ideal )
 
          !         call get_x_ndgln_qtet( max_x_nonods, max_totele, quad_cv_nloc, &
          !              x_nonods, totele, fem_nod, x_ndgln, &
@@ -2354,9 +2365,10 @@
       integer, dimension( u_nloc, scvngi ), intent( inout ) :: ufem_neiloc
       ! Local variables
       integer, parameter :: max_totele = 1000, max_x_nonods = 10000
-      integer, dimension( : ), allocatable :: x_ndgln, fem_nod
+      integer, dimension( : ), allocatable :: x_ndgln, fem_nod, x_ndgln_ideal
       integer, dimension( :,: ), allocatable :: cv_neiloc_cells_dummy
-      real, dimension( : ), allocatable :: lx, ly, lz, x, y, z, scvfeweigh_dummy
+      real, dimension( : ), allocatable :: lx, ly, lz, x, y, z, scvfeweigh_dummy, &
+           x_ideal, y_ideal, z_ideal
       logical :: d1, dcyl, d3
       integer :: x_nonods, totele, ele, cv_iloc, quad_cv_ngi, quad_cv_nloc, inod
 
@@ -2391,6 +2403,10 @@
       allocate( fem_nod( max_x_nonods ) )
       allocate( scvfeweigh_dummy( scvngi ) )
       allocate( cv_neiloc_cells_dummy( cv_nloc, scvngi ) )
+      allocate( x_ideal( max_x_nonods ) ) ; x_ideal = 0.
+      allocate( y_ideal( max_x_nonods ) ) ; y_ideal = 0.
+      allocate( z_ideal( max_x_nonods ) ) ; z_ideal = 0.
+      allocate( x_ndgln_ideal( max_x_nonods ) ) ; x_ndgln_ideal = 0
 
       ! Get the x_ndgln for the nodes of triangles, tetrahedra, quadrilaterals or hexahedra
       ! super-elements:
@@ -2398,7 +2414,8 @@
       call Compute_XNDGLN_TriTetQuadHex( cv_ele_type, &
            max_totele, max_x_nonods, quad_cv_nloc, &
            totele, x_nonods, &
-           x_ndgln, lx, ly, lz, x, y, z, fem_nod )
+           x_ndgln, lx, ly, lz, x, y, z, fem_nod, &
+           x_ideal, y_ideal, z_ideal, x_ndgln_ideal )
 
       ! Compute the shape functions using these quadrilaterals and hexahedra:
       ! For pressure:
@@ -4998,7 +5015,8 @@
 
 
     subroutine Make_QTets( totele, quad_cv_nloc, x_nloc, max_x_nonods, x_nonods, &
-         x_ndgln_real, lx, ly, lz, x, y, z, fem_nod )
+         x_ndgln_real, lx, ly, lz, x, y, z, fem_nod, &
+         xp2, yp2, zp2, x_ndgln_p2 )
       ! This subrt creates the local coordinates and node points for:
       ! (a) quadratic tetrahedra of unit volume and (b) 27 points of
       ! the 8 hexahedra  within the 8 linear tetrahedra.
@@ -5010,13 +5028,14 @@
       integer, dimension( max_x_nonods ), intent( inout ) :: x_ndgln_real
       real, dimension( max_x_nonods ), intent( inout ) :: lx, ly, lz, x, y, z
       integer, dimension( max_x_nonods ), intent( inout ) :: fem_nod
-
+      real, dimension( max_x_nonods ), intent( inout ) :: xp2, yp2, zp2
+      integer, dimension( max_x_nonods ), intent( inout ) :: x_ndgln_p2
       ! Local variables
       real, parameter :: h_scale = 2.0396489026555056
       integer, parameter :: number_of_hexs = 4,  number_of_nodes = 27
       integer :: ele, iloc, istart, ifinish
-      integer, dimension( : ), allocatable :: x_ndgln, x_ndgln_p2, iloclist
-      real, dimension( : ), allocatable :: xp2, yp2, zp2, Volume_P1
+      integer, dimension( : ), allocatable :: x_ndgln, iloclist
+      real, dimension( : ), allocatable :: Volume_P1
       real :: Volume_P2, Volume_P1_Tets
 
       ewrite(3,*)' In Make_QTets'
@@ -5046,9 +5065,7 @@
       ewrite(3,*)'lz:', lz( 1 : 4 )
 
       ! Computing X / Y / Z and FEM_NOD for the tetrahedra
-      allocate( xp2( 10 ) ) ; xp2 = 0.
-      allocate( yp2( 10 ) ) ; yp2 = 0.
-      allocate( zp2( 10 ) ) ; zp2 = 0.
+      xp2 = 0. ; yp2 = 0. ; zp2 = 0.
 
       xp2( 1 ) = 0.
       yp2( 1 ) = 0.
@@ -5112,7 +5129,7 @@
 !!! Defining linear tetrahedra (8 within the quadratic tetrahedron)
 !!!
       allocate( x_ndgln( max_x_nonods ) ) ; x_ndgln = 0
-      allocate( x_ndgln_p2( max_x_nonods ) ) ; x_ndgln_p2 = 0
+      !allocate( x_ndgln_p2( max_x_nonods ) ) ; x_ndgln_p2 = 0
       allocate( Volume_P1( 8 ) ) ; Volume_P1 = 0.
 
       ele = 1
@@ -5265,7 +5282,7 @@
       !stop 999
 
 
-      deallocate( x_ndgln_p2 )
+      ! deallocate( x_ndgln_p2 )
       deallocate( x_ndgln )
       deallocate( iloclist )
 
