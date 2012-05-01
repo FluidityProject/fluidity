@@ -928,8 +928,6 @@ contains
 
   end function read_exodusii_file_to_field
 
-
-
   ! -----------------------------------------------------------------
   ! Read ExodusII file to state object.
   function read_exodusii_file_to_state(filename, shape,shape_type,n_states) &
@@ -948,18 +946,6 @@ contains
 
   ! -----------------------------------------------------------------
 
-
-!     subroutine resize_array(array, new_size)
-!        integer, allocatable, dimension(:), intent(inout) :: array
-!        integer, intent(in) :: new_size
-!        integer, allocatable, dimension(:) :: tmp
-!        allocate(tmp(new_size))
-!        tmp(1:size(array)) = array
-!        deallocate(array)
-!        allocate(array(size(tmp)))
-!        array = tmp
-!     end subroutine resize_array
-
   subroutine append_array(array, array2)
      integer, allocatable, dimension(:), intent(inout) :: array
      integer, allocatable, dimension(:), intent(in) :: array2
@@ -971,6 +957,5 @@ contains
      allocate(array(size(tmp)))
      array = tmp
   end subroutine append_array
-
 
 end module read_exodusii
