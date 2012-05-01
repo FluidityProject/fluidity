@@ -919,8 +919,17 @@ subroutine keps_damping_functions(state,k,eps,f_1,f_2,f_mu,y,bg_visc,node)
        return
     end if
 
-    Re_T = node_val(k,node)**2.0 / (node_val(eps,node) * node_val(bg_visc,1,1,node))
-    R_y = node_val(k,node)**0.5 * node_val(y,node) / node_val(bg_visc,1,1,node)
+    if (node_val(bg_visc,1,1,node) /= 0.0) then
+       if (node_val(eps,node) /= 0.0) then
+          Re_T = node_val(k,node)**2.0 / (node_val(eps,node) * node_val(bg_visc,1,1,node))
+       else 
+          Re_T = 1e5
+       end if
+       R_y = node_val(k,node)**0.5 * node_val(y,node) / node_val(bg_visc,1,1,node)
+    else
+       Re_T = 1e5
+       R_y = 1e5
+    end if
     
     rhs = (- exp(- 0.0165*R_y) + 1.0)**2.0 * (20.5/Re_T + 1.0)
     if (rhs > 1.0) then
