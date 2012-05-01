@@ -613,7 +613,13 @@
       allocate( dyn( nl ) )
       allocate( dzn( nl ) )
 
-      Conditional_LOWQUA: if( lowqua .or. (ngi == 8) ) then
+      Conditional_LOWQUA: if((ngi == 1) ) then
+            lx( 1 ) = l1(1)
+            ly( 1 ) = l2(1)
+            lz( 1 ) = l3(1)
+            weit( 1 ) = 2.
+            nquad=1
+        if( lowqua .or. (ngi == 8) ) then
          posi = 1. / sqrt( 3. )
          if( ngi_l /= 0 ) then
             lx( 1 ) = l1(1)
