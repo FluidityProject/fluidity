@@ -57,12 +57,9 @@ module read_exodusii
 
 contains
 
-
-
   function read_exodusii_simple(filename, quad_degree, &
        quad_ngi, no_faces, quad_family ) result (field)
-    !!< A simpler mechanism for reading a GMSH file into a field.
-    !!< In parallel the filename must *not* include the process number.
+    !!< A simpler mechanism for reading an ExodusII file into a field.
     character(len=*), intent(in) :: filename
     !! The degree of the quadrature.
     integer, intent(in), optional, target :: quad_degree
@@ -135,8 +132,6 @@ contains
     integer, intent(out), optional :: numElementsOut, nodeAttributesOut
     integer, intent(out), optional :: selementsOut, boundaryFlagOut
 
-    ! type(GMSHnode), pointer :: nodes(:)
-    ! type(GMSHelement), pointer :: elements(:), faces(:)
     integer :: numElements, boundaryFlag, numNodes, numDimen
     integer :: loc, effDimen, nodeAttributes
     integer :: i, filestatus
@@ -907,44 +902,12 @@ contains
        end do
     end if
 
-
-
+    ! Adding the face-elements to the mesh:
     if (haveBoundaries) then
-       call add_faces( field%mesh, sndgln = sndglno(1:num_faces*sloc), boundary_ids = boundaryIDs(1:num_faces) )
+       call add_faces(field%mesh, sndgln = sndglno(1:num_faces*sloc), boundary_ids = boundaryIDs(1:num_faces))
     else
-       call add_faces( field%mesh, sndgln = sndglno(1:num_faces*sloc) )
+       call add_faces(field%mesh, sndgln = sndglno(1:num_faces*sloc))
     end if
-
-    ! To check if boundary ids are set correctly:
-    ! surface_element_count; surface_element_id; ele_region_id; has_faces; 
-    !surface_element_id(mesh, sele)
-    
-
-
-!    ! If we've got boundaries, do something
-!    if( haveBounds ) then
-!       if ( haveElementOwners ) then
-!          call add_faces( field%mesh, &
-!               sndgln = sndglno(1:numFaces*sloc), &
-!               boundary_ids = boundaryIDs(1:numFaces), &
-!               element_owner=faceOwner )
-!       else
-!          call add_faces( field%mesh, &
-!               sndgln = sndglno(1:numFaces*sloc), &
-!               boundary_ids = boundaryIDs(1:numFaces) )
-!       end if
-!    else
-!       ewrite(2,*) "WARNING: no boundaries in GMSH file "//trim(lfilename)
-!       call add_faces( field%mesh, sndgln = sndglno(1:numFaces*sloc) )
-!    end if
-
-
-
-
-
-
-
-
 
     ! Deallocate arrays (exodusii arrays):
     deallocate(coord_x); deallocate(coord_y); deallocate(coord_z)
@@ -962,9 +925,6 @@ contains
     deallocate(allelements)
     deallocate(exo_nodes); deallocate(exo_element); deallocate(exo_face)
     call deallocate( mesh )
-
-
-
 
   end function read_exodusii_file_to_field
 
