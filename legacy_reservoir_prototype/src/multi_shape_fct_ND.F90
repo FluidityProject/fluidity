@@ -1915,6 +1915,8 @@
             rsum2=0.0
             do cv_gi=1,cv_ngi
                rsum2=rsum2+cvn(cv_iloc,cv_gi)*detwei(cv_gi)
+               print *,'cv_gi,cvn(cv_iloc,cv_gi),detwei(cv_gi),CVWEIGHT(cv_gi):', &
+                        cv_gi,cvn(cv_iloc,cv_gi),detwei(cv_gi),CVWEIGHT(cv_gi)
             end do
             print *,'cv_iloc,its vol:',cv_iloc,rsum2
          end do
