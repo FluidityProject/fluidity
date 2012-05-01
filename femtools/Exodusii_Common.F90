@@ -25,8 +25,6 @@
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
 
-
-
 ! This module contains code and types variables common to all the ExodusII I/O routinesmodule
 
 module exodusii_common
@@ -42,10 +40,6 @@ module exodusii_common
   end type EXOelement
 
   contains
-
-
-  ! Get basic database parameters from exodusii file:
-  
 
   ! -----------------------------------------------------------------
   ! Tries valid exodusii file extensions and quits if none of them
