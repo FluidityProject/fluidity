@@ -191,7 +191,7 @@
       !
       type(vector_field), pointer :: U, advecting_u
       type(scalar_field), pointer :: D_old, D
-      type(vector_field) :: newU
+      type(vector_field) :: newU, MassFlux
       type(scalar_field) :: newD
       integer :: nonlinear_iterations, nits
 
@@ -211,10 +211,10 @@
            &_equation/no_wave_equation_step')) then
          !   !Just advance the D and PV fields.
          call set(advecting_u, u)
-         ewrite(1,*) maxval(abs(advecting_u%val))
-
+         call allocate(MassFlux,mesh_dim(U),u%mesh,'MassFlux')
          call solve_advection_dg_subcycle("LayerThickness", state, &
-              "NonlinearVelocity",continuity=.true.)
+              "NonlinearVelocity",continuity=.true.,Flux=MassFlux)
+         call deallocate(MassFlux)
       else
                call allocate(newU,U%dim,U%mesh,"NewLocalVelocity")
                call allocate(newD,D%mesh,"NewLayerThickness")

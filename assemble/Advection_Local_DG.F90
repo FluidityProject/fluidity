@@ -336,7 +336,9 @@ module advection_local_DG
     real, dimension(Flux%dim*ele_loc(Flux,ele),&
          Flux%dim*ele_loc(Flux,ele)) :: Flux_mat
     real, dimension(Flux%dim*ele_loc(Flux,ele)) :: Flux_rhs
-
+    integer :: row, ni, ele2, face, face2, floc
+    integer, dimension(:), pointer :: neigh
+    type(constraints_type), pointer :: flux_constraint
     !! Need to set up and solve equation for flux DOFs
     !! Rows are as follows:
     !! All of the normal fluxes through edges, numbered according to
@@ -348,6 +350,23 @@ module advection_local_DG
 
     Flux_rhs = 0.
     Flux_mat = 0.
+    flux_constraint => flux%mesh%shape%constraints
+
+    row = 1
+    !first do the face DOFs
+    neigh => ele_neigh(Flux,ele)
+    do ni = 1, size(neigh)
+       ele2 = neigh(ni)
+       face = ele_face(Flux,ele,ele2)
+       face2 = ele_face(Flux,ele2,ele)
+       floc = flux_constraint%n_face_basis
+       
+       !call update_flux_face(&
+       !     Flux,X,down,Python_Function,face,&
+       !     face2,ele,ele2,projection_mat(row:row+floc-1,:),&
+       !     projection_rhs(row:row+floc-1))
+       row = row + floc
+    end do
 
     FLAbort('Need to do debugging check')
 
@@ -729,38 +748,49 @@ module advection_local_DG
             nnAdvection_in)
 
        if(present(UpwindFlux).and.present(UpwindFluxMatrix)) then
-          call addto_upwindfluxmatrix(upwindflux,upwindfluxmatrix,face&
-               &,face_2,T_face,T_face_2,nnAdvection_out,nnAdvection_in)
+          call construct_upwindflux_interface(upwindflux,upwindfluxmatrix)
        end if
-
     end if
-  end subroutine construct_adv_interface_dg
-  
-  subroutine addto_upwindfluxmatrix(upwindflux,upwindfluxmatrix,face,face_2,&
-       &T_face,T_face_2,&
-       &nnAdvection_out,nnAdvection_in)
-    !! Upwind flux field
-    type(scalar_field), intent(in) :: UpwindFlux
-    !! Upwind flux matrix
-    type(csr_matrix), intent(inout) :: UpwindFluxMatrix
-    integer, intent(in) :: face,face_2
-    integer, dimension(:), intent(in) :: T_face, T_face_2
-    real, dimension(:,:), intent(in) :: nnAdvection_out
-    real, dimension(:,:), intent(in) :: nnAdvection_in
-    !
-    integer, dimension(face_loc(upwindflux,face)) :: UF_face
 
-    UF_face=face_global_nodes(UpwindFlux, face)
+    contains 
+      subroutine construct_upwindflux_interface(upwindflux,upwindfluxmatrix)
+        type(scalar_field), intent(in) :: upwindflux
+        type(csr_matrix), intent(inout) :: upwindfluxmatrix
+        !
+        ! Bilinear forms
+        real, dimension(face_loc(upwindflux,face),&
+             face_loc(T,face)) :: upwindflux_out
+        real, dimension(face_loc(upwindflux,face),&
+             face_loc(T,face_2)) :: upwindflux_in
+        type(element_type), pointer :: flux_shape
+        integer, dimension(face_loc(upwindflux,face)) :: flux_face
 
-    ! Outflow boundary integral.
-    call addto(UpwindFluxMatrix, UF_face, T_face,&
-         nnAdvection_out)
-    
-    ! Inflow boundary integral.
-    call addto(UpwindFluxMatrix, UF_face, T_face_2,&
-         nnAdvection_in)    
-    
-  end subroutine addto_upwindfluxmatrix
+        flux_shape=>face_shape(upwindflux, face)
+        T_face=face_global_nodes(upwindflux, face)
+
+       ! first the integral around the inside of the element
+       ! (this is the flux *out* of the element)
+       inner_advection_integral = (1.-income)*u_nl_q_dotn
+       upwindflux_out=shape_shape(flux_shape, T_shape,  &
+            inner_advection_integral*T_shape%quadrature%weight)
+
+       ! now the integral around the outside of the element
+       ! (this is the flux *in* to the element)
+       outer_advection_integral = income*u_nl_q_dotn
+       upwindflux_in=shape_shape(flux_shape, T_shape_2, &
+            outer_advection_integral*T_shape%quadrature%weight)
+        
+       ! Outflow boundary integral.
+       call addto(upwindfluxmatrix, flux_face, T_face,&
+            upwindflux_out)
+       
+       ! Inflow boundary integral.
+       call addto(upwindfluxmatrix, flux_face, T_face_2,&
+            upwindflux_in)
+
+      end subroutine construct_upwindflux_interface
+
+  end subroutine construct_adv_interface_dg  
   
   subroutine solve_vector_advection_dg_subcycle(field_name, state, velocity_name)
     !!< Construct and solve the advection equation for the given
