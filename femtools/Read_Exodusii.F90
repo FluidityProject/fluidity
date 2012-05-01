@@ -682,50 +682,22 @@ contains
     do i=1, num_elem_blk
        do e=1, num_elem_in_block(i)
           ! Distinguish between faces/edges and elements:
-          if( (num_dim .eq. 2 .and. elem_type(i) .eq. 1) .or. &
+          if( .not. ( (num_dim .eq. 2 .and. elem_type(i) .eq. 1) .or. &
                (num_dim .eq. 3 .and. &
-               (elem_type(i) .eq. 2 .or. elem_type(i) .eq. 3)) ) then
-             ! Assemble faces:
-!             allocate( exo_face(exo_f)%nodeIDs(size(allElements(e+b)%nodeIDs)))
-!             exo_face(exo_f)%nodeIDs = allelements(e+b)%nodeIDs
-!             ! The commented stuff below is not needed for faces, but is kept here for now for debugging reasons
-!             exo_face(exo_f)%elementID = allelements(e+b)%elementID
-!             exo_face(f)%blockID = allelements(e+b)%blockID
-!             exo_face(f)%type = allelements(e+b)%type
-!             exo_face(exo_f)%numTags = 0
-!             allocate(exo_face(exo_f)%tags(1))
-!             exo_face(exo_f)%tags = -666
-             ! Debugging statements:
-!             print *, "================================================================="
-!             print *, "these are FACES: "
-!             print *, "exo_face(f)%elementID = ", exo_face(f)%elementID
-!             print *, "exo_face(f)%type = ", exo_face(f)%type
-!             print *, "allelements(e+b)%numTags = ", allelements(e+b)%numTags
-!             print *, "exo_face(f)%numTags = ", exo_face(f)%numTags
-!             print *, "exo_face(exo_f)%nodeIDs = ", exo_face(exo_f)%nodeIDs
-
-!             exo_f = exo_f+1
-!          else if (allelements(e+b)%numTags == 0) then
-          else
-             ! these are elements without boundaryID, thus they'll remain elements
+               (elem_type(i) .eq. 2 .or. elem_type(i) .eq. 3)) ) ) then
+             ! these are elements (not edges/faces)
              allocate( exo_element(exo_e)%nodeIDs(size(allElements(e+b)%nodeIDs)))
              exo_element(exo_e)%elementID = allelements(e+b)%elementID
              exo_element(exo_e)%blockID = allelements(e+b)%blockID
              exo_element(exo_e)%nodeIDs = allelements(e+b)%nodeIDs
              exo_element(exo_e)%type = allelements(e+b)%type
-!             exo_element(exo_e)%numTags = allelements(e+b)%numTags
-             ! Debugging statements:
-!             print *, "================================================================="
-!             print *, "these are ELEMENTS: "
-!             print *, "exo_element(exo_e)%elementID = ", exo_element(exo_e)%elementID
-!             print *, "exo_element(exo_e)%type = ", exo_element(exo_e)%type
-!             print *, "allelements(e+b)%numTags = ", allelements(e+b)%numTags
-!             print *, "exo_element(exo_e)%numTags = ", exo_element(exo_e)%numTags
              exo_e = exo_e + 1
+          ! else
+             ! These are edges/faces, thus do nothing
           end if
-!          print *, "**************** next element ****************"
+       ! next element e of block i
        end do
-       b = b + num_elem_in_block(i)
+       b = b + num_elem_in_block(i) ! next block
     end do
     ! Now derive the faces for fluidity, that are based on elements with side-set-ID:
     if (haveBoundaries) then
@@ -746,7 +718,6 @@ contains
        end do
     end if
     ! faces and elements are now all set
-
 
     ! Assemble the CoordinateMesh:
     call allocate(mesh, num_nodes, num_elem, shape, name="CoordinateMesh")
@@ -806,12 +777,6 @@ contains
        if(haveBoundaries) then
           allocate(boundaryIDs(1:num_faces))
        end if
-       
-       print *, "*****************"
-       print *, "sloc = ", sloc
-       print *, "size(sndglno) ", size(sndglno)
-       print *, "size(boundaryIDs) ", size(boundaryIDs)
-       
        do f=1, num_faces
           sndglno((f-1)*sloc+1:f*sloc) = exo_face(f)%nodeIDs(1:sloc)
           if(haveBoundaries) boundaryIDs(f) = exo_face(f)%tags(1)
