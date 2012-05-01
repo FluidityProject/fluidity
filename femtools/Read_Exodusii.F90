@@ -77,7 +77,8 @@ contains
     ewrite(2,*) "In read_exodusii_simple"
 
     if(isparallel()) then
-       call identify_exodusii_file(parallel_filename(filename), dim, loc)
+       !call identify_exodusii_file(parallel_filename(filename), dim, loc)
+       FLExit("Currently we cannot read in a decomposed Exodus mesh file")
     else
        call identify_exodusii_file(filename, dim, loc)
     end if
@@ -101,16 +102,14 @@ contains
 
   end function read_exodusii_simple
 
-
   ! -----------------------------------------------------------------
-  ! ExodusII version of triangle equivalent.
+  ! ExodusII version of gmsh/triangle equivalent.
   subroutine identify_exodusii_file(filename, numDimenOut, locOut, &
        numNodesOut, numElementsOut, &
        nodeAttributesOut, selementsOut, boundaryFlagOut)
     ! Discover the dimension and size of the ExodusII mesh.
     ! Filename is the base name of the file without the
     ! ExodusII extension .e .exo .E .EXO
-    ! In parallel, filename must *include* the process number.
 
     character(len=*), intent(in) :: filename
 
@@ -141,7 +140,7 @@ contains
 
     call get_exodusii_filename(filename, lfilename, fileExists)
     if(.not. fileExists) then
-       FLExit("None of the possible ExodusII files " // trim(filename) //".exo /.e /.EXO /.E were found")
+       FLExit("None of the possible ExodusII files "//trim(filename)//".exo /.e /.EXO /.E were found")
     end if
 
     ewrite(2, *) "Opening " // trim(lfilename) // " for reading."
@@ -161,6 +160,13 @@ contains
     if (ierr /= 0) then
        FLExit("Unable to read database parameters from "//trim(lfilename))
     end if
+    
+    ! Check for boundaries (internal boundaries currently not supported):
+    if (num_side_sets /= 0) then
+       boundaryFlag = 1 ! physical boundaries found
+    else
+       boundaryFlag = 0 ! no physical boundaries defined
+    end if
 
     ! Get num_nodes_per_elem
     allocate(block_ids(num_elem_blk))
@@ -176,17 +182,16 @@ contains
        FLExit("Unable close file "//trim(lfilename))
     end if
 
-
-
     ! Return optional variables requested
 !    if(present(nodeAttributesOut)) nodeAttributesOut=nodeAttributes
     if(present(numDimenOut)) numDimenOut=num_dim
     if(present(numElementsOut)) numElementsOut=num_allelem
-    ! We're assuming all elements have the same number of vertices/nodes
-    ! depending on 2D/3D, we could have edges/faces, thus we have to
+    ! Here we are assuming all elements have the same number of vertices/nodes.
+    ! Depending on 2D/3D, we could have edges/faces, thus we have to
     ! get the max value of num_nodes_per_elem and assign it to locOut
+    ! Note: We check for hybrid meshes in a bit, and abort if it is present.
     if(present(locOut)) locOut=maxval(num_nodes_per_elem)
-!    if(present(boundaryFlagOut)) boundaryFlagOut=boundaryFlag
+    if(present(boundaryFlagOut)) boundaryFlagOut=boundaryFlag
 
     ewrite(2,*) "Out of identify_exodusii_file"
 
