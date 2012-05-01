@@ -20,7 +20,7 @@
             </region_ids>
             <bottom_depth>
               <python>
-                <string_value lines="20" type="python">def val(X,t):
+                <string_value lines="20" type="code" language="python">def val(X,t):
    return X[0]+400.0</string_value>
               </python>
             </bottom_depth>
@@ -63,7 +63,7 @@
             </region_ids>
             <bottom_depth>
               <python>
-                <string_value lines="20" type="python">def val(X,t):
+                <string_value lines="20" type="code" language="python">def val(X,t):
   return -X[0]+10000.0+6400.0</string_value>
               </python>
             </bottom_depth>
@@ -489,7 +489,7 @@
         <explicit/>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
    if (X[1] &lt;=-2400):
       return 1.0
    else:
@@ -695,7 +695,7 @@
         <explicit/>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
    if (X[1] &lt;=-400) and (X[0] &lt;= 1000):
       return 1.0
    else:

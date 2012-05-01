@@ -820,4 +820,67 @@ velocity.</a:documentation>
       </element>
     </choice>
   </define>
+  <!--
+    standard control volume face value options that 
+    have NO reliance on any CFL field.
+  -->
+  <define name="standard_control_volume_options_excluding_cfl">
+    <choice>
+      <element name="face_value">
+        <a:documentation>First Order Upwind face value discretisation
+ face_value = donor_value, 
+where
+ donor_value = income*val_1 + (1.-income)*val_2, 
+where val_i is the value on the ith node neighbouring the face and
+income = [0, 1] depending on whether the flow is coming from node 1 or 2
+First order upwinding is monotonic so no limiting is ever required</a:documentation>
+        <attribute name="name">
+          <value>FirstOrderUpwind</value>
+        </attribute>
+        <empty/>
+      </element>
+      <element name="face_value">
+        <a:documentation>Trapezoidal face value discretisation
+ face_value = 0.5*(val_1 + val_2), 
+where
+ val_i is the value on the ith node neighbouring the face
+
+Trapezoidal discretisation is unbounded so limiting is compulsory</a:documentation>
+        <attribute name="name">
+          <value>Trapezoidal</value>
+        </attribute>
+        <ref name="limiter_options_excluding_cfl"/>
+      </element>
+      <element name="face_value">
+        <a:documentation>Finite Element face value discretisation
+ face_value = finite element interpolation from surrounding nodes
+
+Finite element discretisation may become unbounded so limiting is often necessary.</a:documentation>
+        <attribute name="name">
+          <value>FiniteElement</value>
+        </attribute>
+        <optional>
+          <element name="only_sinking_velocity">
+            <a:documentation>Disable advection, but still permit a sinking velocity.
+Useful for pseudo-1D simulations involving biology</a:documentation>
+            <empty/>
+          </element>
+        </optional>
+        <ref name="limiter_options_excluding_cfl"/>
+      </element>
+      <element name="face_value">
+        <a:documentation>First Order Downwind face value discretisation
+ face_value = downwind_value, 
+where
+ donor_value = (1.-income)*val_1 + income*val_2, 
+where val_i is the value on the ith node neighbouring the face and
+income = [0, 1] depending on whether the flow is coming from node 1 or 2
+First order downwinding is unconditionally unstable</a:documentation>
+        <attribute name="name">
+          <value>FirstOrderDownwind</value>
+        </attribute>
+        <empty/>
+      </element>
+    </choice>
+  </define>
 </grammar>

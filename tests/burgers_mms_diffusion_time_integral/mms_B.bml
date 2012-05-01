@@ -85,7 +85,7 @@
         <remove_advection_term/>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X, t):
+            <string_value lines="20" type="code" language="python">def val(X, t):
   from math import sin
   x = X[0]
   return sin(x+t)</string_value>
@@ -97,7 +97,7 @@
           </surface_ids>
           <type name="dirichlet">
             <python>
-              <string_value lines="20" type="python">def val(X, t):
+              <string_value lines="20" type="code" language="python">def val(X, t):
   from math import sin
   x = X[0]
   return sin(x+t)</string_value>
@@ -115,7 +115,7 @@
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="python">def val(X, t):
+                <string_value lines="20" type="code" language="python">def val(X, t):
   from math import sin, cos
   x = X[0]
   return sin(x+t) + cos(x+t)</string_value>
@@ -130,7 +130,7 @@
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X, t):
+            <string_value lines="20" type="code" language="python">def val(X, t):
   from math import sin
   x = X[0]
   return sin(x+t)</string_value>
@@ -145,7 +145,7 @@
       <diagnostic>
         <mesh name="VelocityMesh"/>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="python">soln = state.scalar_fields["Velocity"]
+          <string_value lines="20" type="code" language="python">soln = state.scalar_fields["Velocity"]
 exact = state.scalar_fields["AnalyticalSolution"]
 # The problem is only specified up to a constant, so add on the constant
 constant = exact.node_val(0) - soln.node_val(0)
@@ -164,7 +164,7 @@ for i in range(field.node_count):
     <functional name="time_integral_ad">
       <functional_value>
         <algorithm name="functional_value">
-          <string_value lines="20" type="python">import numpy
+          <string_value lines="20" type="code" language="python">import numpy
 
 coord = states[0]["Fluid"].vector_fields["Coordinate"]
 u = states[n]["Fluid"].scalar_fields["Velocity"]
@@ -191,7 +191,7 @@ J = dt * (int_u + int_u_prev) * 0.5
       </functional_value>
       <functional_dependencies>
         <algorithm name="functional_dependencies">
-          <string_value lines="20" type="python">def dependencies(times, timestep):
+          <string_value lines="20" type="code" language="python">def dependencies(times, timestep):
   return {"Fluid::Coordinate": [0],
           "Fluid::Velocity": [timestep-1, timestep]}</string_value>
         </algorithm>
@@ -200,7 +200,7 @@ J = dt * (int_u + int_u_prev) * 0.5
     <functional name="time_integral_hc">
       <functional_derivative>
         <algorithm name="functional_derivative">
-          <string_value lines="20" type="python">import numpy
+          <string_value lines="20" type="code" language="python">import numpy
 
 if n == 0 or n == len(times) - 1:
   multiple = 1
@@ -223,7 +223,7 @@ if derivative.name == "Fluid::Velocity":
       </functional_derivative>
       <functional_dependencies>
         <algorithm name="functional_dependencies">
-          <string_value lines="20" type="python">def dependencies(times, timestep):
+          <string_value lines="20" type="code" language="python">def dependencies(times, timestep):
   return {"Fluid::Coordinate": [0],
           "Fluid::Velocity": [timestep-1, timestep]}</string_value>
         </algorithm>

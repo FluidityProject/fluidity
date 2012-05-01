@@ -92,7 +92,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
   if X[0]&lt;=0.0:
     return 1.0
   else:
@@ -135,7 +135,7 @@
         </temporal_discretisation>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
   if X[0]&lt;=0.0:
     return 1.0
   else:
@@ -333,7 +333,7 @@
     <scalar_field name="AnalyticalPressure" rank="0">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="python">import numpy
+          <string_value lines="20" type="code" language="python">import numpy
 import shocktube
 x = state.vector_fields['Coordinate']
 time = state.scalar_fields['Time']
@@ -376,7 +376,7 @@ for (i,xi) in enumerate(x.val):
     <scalar_field name="AnalyticalDensity" rank="0">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="python">import numpy
+          <string_value lines="20" type="code" language="python">import numpy
 import shocktube
 x = state.vector_fields['Coordinate']
 time = state.scalar_fields['Time']
@@ -419,7 +419,7 @@ for (i,xi) in enumerate(x.val):
     <scalar_field name="AnalyticalInternalEnergy" rank="0">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="python">import numpy
+          <string_value lines="20" type="code" language="python">import numpy
 import shocktube
 x = state.vector_fields['Coordinate']
 time = state.scalar_fields['Time']
@@ -463,7 +463,7 @@ for (i,xi) in enumerate(x.val):
     <vector_field name="AnalyticalVelocity" rank="1">
       <diagnostic>
         <algorithm name="vector_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="python">import numpy
+          <string_value lines="20" type="code" language="python">import numpy
 import shocktube
 x = state.vector_fields['Coordinate']
 time = state.scalar_fields['Time']

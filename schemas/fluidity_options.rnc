@@ -2402,13 +2402,13 @@ velocity_components_choice =
          }|
          element align_bc_with_surface {
             element normal_component {
-               input_choice_real
+               input_choice_real_plus_field
             }?,
             element tangent_component_1 {
-               input_choice_real
+               input_choice_real_plus_field
             }?,
             element tangent_component_2 {
-               input_choice_real
+               input_choice_real_plus_field
             }?,
             rotation_matrix_components,
             ## this will calculate the determinant of the
@@ -5560,6 +5560,24 @@ limiter_options =
           (
             sweby_limiter|
             ultimate_limiter
+          )
+        }|
+        ## Do not limit the face value
+        element do_not_limit_face_value{
+          empty
+        }
+      )
+  )
+
+# cv limiter options that 
+# have NO reliance on any CFL field. 
+limiter_options_excluding_cfl =
+  (
+      (
+        ## Limit the face value to satisfy a boundedness criterion.
+        element limit_face_value{
+          (
+            sweby_limiter
           )
         }|
         ## Do not limit the face value

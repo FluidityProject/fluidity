@@ -30,7 +30,10 @@ class MixedTree:
 
     self.name = parent.name
     self.schemaname = parent.schemaname
-    self.attrs = dict(self.parent.attrs.items() + self.child.attrs.items())
+
+    excluded_attrs = ["shape"]
+    self.attrs = dict(self.parent.attrs.items() + [x for x in self.child.attrs.items() if x[0] not in excluded_attrs])
+
     self.children = parent.children
     self.datatype = child.datatype
     self.data = child.data
@@ -181,16 +184,15 @@ class MixedTree:
 
     return dim1 == dim2 and "symmetric" in self.child.attrs.keys() and self.child.attrs["symmetric"][1] == "true"
 
-  def is_python_code(self):
+  def is_code(self):
     """
     Perform a series of tests on the current MixedTree, to determine if
-    it is intended to be used to store python code data.
+    it is intended to be used to store code data.
     """
-
     try:
-       lang = self.get_attr("language")
-       if lang == "python":
-         return True
+      lang = self.get_attr("language")
+      if lang == "python":
+        return True
     except:
       pass
 
@@ -198,9 +200,27 @@ class MixedTree:
       return False
 
     if "type" in self.child.attrs.keys():
-      return self.child.attrs["type"][1] == "python"
+      return self.child.attrs["type"][1] == "code"
     
     return False
+
+  def get_code_language(self):
+    """
+    Assuming this is a code snippet return the language.
+    """
+
+    if not self.is_code():
+      return "python"
+
+    try:
+      lang = self.child.get_attr("language")
+      return lang
+    except:
+      try:
+        lang = self.get_attr("language")
+        return lang
+      except:   
+        return "python"
 
   def get_name_path(self, leaf = True):
     return self.parent.get_name_path(leaf)
