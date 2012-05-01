@@ -134,6 +134,30 @@ contains
          end if
        end if
 
+       s_field => extract_scalar_field(state(i), "InterstitialVelocityCGCourantNumber", stat)
+       if(stat == 0) then
+         if(recalculate(trim(s_field%option_path))) then
+           call calculate_diagnostic_variable(state(i), "InterstitialVelocityCGCourantNumber", &
+             & s_field)
+         end if
+       end if
+
+       s_field => extract_scalar_field(state(i), "InterstitialVelocityDGCourantNumber", stat)
+       if(stat == 0) then
+         if(recalculate(trim(s_field%option_path))) then
+           call calculate_diagnostic_variable(state(i), "InterstitialVelocityDGCourantNumber", &
+             & s_field)
+         end if
+       end if
+
+       s_field => extract_scalar_field(state(i), "InterstitialVelocityCVCourantNumber", stat)
+       if(stat == 0) then
+         if(recalculate(trim(s_field%option_path))) then
+           call calculate_diagnostic_variable(state(i), "InterstitialVelocityCVCourantNumber", &
+             & s_field)
+         end if
+       end if
+
        s_field => extract_scalar_field(state(i), "KineticEnergyDensity", stat)
        if(stat == 0) then
          if(recalculate(trim(s_field%option_path))) then

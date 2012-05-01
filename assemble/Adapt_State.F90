@@ -1003,13 +1003,9 @@ contains
     call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/element_quality_cutoff", &
        & quality_tolerance, default = 0.6)
 
-    if (max_adapt_iteration .ne. 1) then
-       zoltan_min_adapt_iterations = adapt_iterations()
-       zoltan_max_adapt_iterations = zoltan_min_adapt_iterations + zoltan_additional_adapt_iterations
-    else
-       zoltan_min_adapt_iterations = adapt_iterations()
-       zoltan_max_adapt_iterations = zoltan_min_adapt_iterations
-    end if
+    zoltan_min_adapt_iterations = adapt_iterations()
+    zoltan_max_adapt_iterations = zoltan_min_adapt_iterations + zoltan_additional_adapt_iterations
+
 #endif
 
     finished_adapting = .false.
@@ -1238,7 +1234,11 @@ contains
           ! call zoltan now but we need to pass in both the 2d metric (metric) and the 3d full metric (full_metric)
           ! the first is needed to define the element qualities while the second must be interpolated to the newly
           ! decomposed mesh
-          call zoltan_drive(states, final_adapt_iteration, global_min_quality, metric = metric, full_metric = full_metric)
+          if (zoltan_additional_adapt_iterations .gt. 0) then
+             call zoltan_drive(states, final_adapt_iteration, global_min_quality = global_min_quality, metric = metric, full_metric = full_metric)
+          else
+             call zoltan_drive(states, final_adapt_iteration, metric = metric, full_metric = full_metric)
+          end if
           default_stat%zoltan_drive_call=.true.
 
           ! now we can deallocate the horizontal metric and point metric back at the full metric again
@@ -1246,7 +1246,11 @@ contains
           metric = full_metric
         else
 
-          call zoltan_drive(states, final_adapt_iteration, global_min_quality, metric = metric)
+          if (zoltan_additional_adapt_iterations .gt. 0) then
+             call zoltan_drive(states, final_adapt_iteration, global_min_quality = global_min_quality, metric = metric)
+          else
+             call zoltan_drive(states, final_adapt_iteration, metric = metric)
+          end if
           default_stat%zoltan_drive_call=.true.
 
         end if
@@ -1303,10 +1307,12 @@ contains
                ewrite(2,*) "The next iteration will be final adapt iteration else we'll go over the maximum adapt iterations."
             end if
 
-            if (global_min_quality .le. quality_tolerance) then
-               ewrite(-1,*) "Mesh contains elements with quality below element quality tolerance. May need to increase number of adapt iterations to ensure good quality mesh."
-               ewrite(-1,*) "min_quality = ", global_min_quality
-               ewrite(-1,*) "quality_tolerance = ", quality_tolerance
+            if (zoltan_additional_adapt_iterations .gt. 0) then
+               if (global_min_quality .le. quality_tolerance) then
+                  ewrite(-1,*) "Mesh contains elements with quality below element quality tolerance. May need to increase number of adapt iterations to ensure good quality mesh."
+                  ewrite(-1,*) "min_quality = ", global_min_quality
+                  ewrite(-1,*) "quality_tolerance = ", quality_tolerance
+               end if
             end if
             
             final_adapt_iteration = .true.

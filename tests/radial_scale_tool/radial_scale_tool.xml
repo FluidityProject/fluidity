@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<testproblem>
+  <name>radial_scale_tool</name>
+  <owner userid="slm06"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity radial_scale_tool.flml; ../../bin/radial_scale -s 10 radial_0.vtu </command_line>
+    <!-- Test for radial scale tool. -->
+  </problem_definition>
+  <variables>
+    <variable name="scale_error" language="python">
+import vtktools
+import math
+
+u=vtktools.vtu('scaled_radial_0.vtu')
+dist_to_top=u.GetScalarField('DistanceToTop')
+dist=0.0
+index=0
+
+while True:
+    index+=1
+    dist=dist_to_top[index]
+    if dist>=0.5:
+        break
+
+(x,y,z) = u.ugrid.GetPoint(index)
+radius = math.sqrt( x**2 + y**2 + z**2 )
+
+scaled_distance= 6.37101e+06 - radius
+scale = scaled_distance / dist
+scale_error = math.fabs(scale - 10.0)
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Scale correctly applied" language="python">
+assert scale_error &lt; 0.001
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

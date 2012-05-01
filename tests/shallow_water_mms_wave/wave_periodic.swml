@@ -53,7 +53,7 @@
             <integer_value shape="1" rank="1">2</integer_value>
           </aliased_boundary_ids>
           <coordinate_map>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
   result = list(X)
   result[0]=result[0]-1.0
   return result</string_value>
@@ -153,7 +153,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X, t):
+            <string_value lines="20" type="code" language="python">def val(X, t):
   from math import cos,pi, sin
   k_x=pi*2.0
   coef=0.01
@@ -219,7 +219,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X, t):
+            <string_value lines="20" type="code" language="python">def val(X, t):
   from math import cos,pi, sin
   k_x=pi*2.0
   coef=0.01
@@ -239,7 +239,7 @@
         <mesh name="PressureMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X, t):
+            <string_value lines="20" type="code" language="python">def val(X, t):
   from math import cos,pi, sin
   k_x=pi*2.0
   coef=0.01
@@ -283,7 +283,7 @@
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X, t):
+            <string_value lines="20" type="code" language="python">def val(X, t):
   from math import cos,pi, sin
   k_x=pi*2.0
   coef=0.01

@@ -25,22 +25,27 @@
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
 
-subroutine triangle2vtu(filename, filename_len)
+subroutine triangle2vtu(filename_, filename_len) bind(c)
   !!< Read in a triangle mesh and output a vtu mesh.
   
   use fields
   use read_triangle
   use vtk_interfaces
-  
+  use iso_c_binding
   implicit none
   
-  integer, intent(in) :: filename_len
+  integer(kind=c_size_t), value :: filename_len
+  character(kind=c_char, len=1) :: filename_(*)
   
-  character(len=filename_len), intent(in) :: filename
+  character(len=filename_len) :: filename
   
-  integer :: stat
+  integer :: stat, i
   type(vector_field), target :: positions
   type(scalar_field) :: mapA, mapB, regions
+
+  do i=1, filename_len
+    filename(i:i)=filename_(i)
+  end do
 
   positions=read_triangle_files(filename, quad_degree=3, no_faces=.true.)
 

@@ -53,6 +53,7 @@ module advection_diffusion_DG
   use sparsity_patterns_meshes
   use diagnostic_fields, only: calculate_diagnostic_variable
   use global_parameters, only : FIELD_NAME_LEN
+  use porous_media
 
   implicit none
 
@@ -486,6 +487,9 @@ contains
 
     character(len=FIELD_NAME_LEN) :: limiter_name
     integer :: i
+    
+    !! Courant number field name used for temporal subcycling
+    character(len=FIELD_NAME_LEN) :: Courant_number_name
 
     T=>extract_scalar_field(state, field_name)
     T_old=>extract_scalar_field(state, "Old"//field_name)
@@ -524,10 +528,12 @@ contains
     call allocate(rhs_diff, T%mesh, trim(field_name)//" Diffusion RHS")
    
     call construct_advection_diffusion_dg(matrix, rhs, field_name, state, &
-         mass, matrix_diff, rhs_diff, semidiscrete=.true., &
+         mass=mass, diffusion_m=matrix_diff, diffusion_rhs=rhs_diff, semidiscrete=.true., &
          velocity_name=velocity_name)
 
-    call get_dg_inverse_mass_matrix(inv_mass, mass)
+    ! mass has only been assembled only for owned elements, so we can only compute
+    ! its inverse for owned elements
+    call get_dg_inverse_mass_matrix(inv_mass, mass, only_owned_elements=.true.)
     
     ! Note that since theta and dt are module global, these lines have to
     ! come after construct_advection_diffusion_dg.
@@ -546,9 +552,17 @@ contains
             &"/prognostic/temporal_discretisation/discontinuous_galerkin"//&
             &"/maximum_courant_number_per_subcycle", Max_Courant_number)
        
-       s_field => extract_scalar_field(state, "DG_CourantNumber")
-       call calculate_diagnostic_variable(state, "DG_CourantNumber", &
-            & s_field)
+       ! Determine the courant field to use to find the max
+       call get_option(trim(T%option_path)//&
+            &"/prognostic/temporal_discretisation/discontinuous_galerkin"//&
+            &"/maximum_courant_number_per_subcycle/courant_number/name", &
+            &Courant_number_name, default="DG_CourantNumber")
+       
+       s_field => extract_scalar_field(state, trim(Courant_number_name))
+       call calculate_diagnostic_variable(state, trim(Courant_number_name), &
+            & s_field, option_path=trim(T%option_path)//&
+            &"/prognostic/temporal_discretisation/discontinuous_galerkin"//&
+            &"/courant_number")
        
        subcycles = ceiling( maxval(s_field%val)/Max_Courant_number)
        call allmax(subcycles)
@@ -718,11 +732,8 @@ contains
 
     type(mesh_type), pointer :: mesh_cg
     
-    ! Porosity fields, field name, theta value
-    type(scalar_field), pointer :: porosity_old, porosity_new
-    type(scalar_field) :: porosity_theta 
-    character(len=FIELD_NAME_LEN) :: porosity_name
-    real :: porosity_theta_value
+    ! Porosity field
+    type(scalar_field) :: porosity_theta
     
     !! Add the Source directly to the right hand side?
     logical :: add_src_directly_to_rhs
@@ -850,34 +861,9 @@ contains
     ! Porosity
     if (have_option(trim(T%option_path)//'/prognostic/porosity')) then
        include_porosity = .true.
-         
-       ! get the name of the field to use as porosity
-       call get_option(trim(T%option_path)//'/prognostic/porosity/porosity_field_name', &
-                       porosity_name, &
-                       default = 'Porosity')
-         
-       ! get the porosity theta value
-       call get_option(trim(T%option_path)//'/prognostic/porosity/temporal_discretisation/theta', &
-                       porosity_theta_value, &
-                       default = 0.0)
-         
-       porosity_new => extract_scalar_field(state, trim(porosity_name), stat=stat)
-       
-       if (stat /=0) then
-          FLExit('Including porosity in Advection_Diffusion_DG but failed to extract Porosity from state')
-       end if
-                      
-       porosity_old => extract_scalar_field(state, "Old"//trim(porosity_name), stat=stat)
 
-       if (stat /=0) then
-          FLExit('Including porosity in Advection_Diffusion_DG but failed to extract OldPorosity from state')
-       end if
-       
-       call allocate(porosity_theta, porosity_new%mesh)
-         
-       call set(porosity_theta, porosity_new, porosity_old, porosity_theta_value)
-         
-       ewrite_minmax(porosity_theta)         
+       ! get the porosity theta averaged field - this will allocate it
+       call form_porosity_theta(porosity_theta, state, option_path = trim(T%option_path)//'/prognostic/porosity')       
     else
        include_porosity = .false.
        call allocate(porosity_theta, T%mesh, field_type=FIELD_TYPE_CONSTANT)
