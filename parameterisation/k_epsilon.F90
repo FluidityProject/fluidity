@@ -304,7 +304,7 @@ subroutine assemble_keps_tke_ele(src_abs_terms, kk, eps, EV, u, buoyant_fields, 
   integer, intent(in) :: ele
 
   real, dimension(ele_loc(kk, ele), ele_ngi(kk, ele), positions%dim) :: dshape_kk
-  real, dimension(ele_ngi(kk, ele)) :: detwei, strain_ngi
+  real, dimension(ele_ngi(kk, ele)) :: detwei, strain_ngi, inv_k
   real, dimension(3, ele_loc(kk, ele)) :: rhs_addto
   integer, dimension(ele_loc(kk, ele)) :: nodes_kk
   real, dimension(ele_loc(kk, ele), ele_loc(kk, ele)) :: invmass
@@ -323,8 +323,13 @@ subroutine assemble_keps_tke_ele(src_abs_terms, kk, eps, EV, u, buoyant_fields, 
   rhs_addto(1,:) = shape_rhs(shape_kk, detwei*strain_ngi*ele_val_at_quad(EV, ele))
 
   ! Absorption term:
-  rhs_addto(2,:) = shape_rhs(shape_kk, detwei*ele_val_at_quad(eps,ele)/&
-       &ele_val_at_quad(kk,ele))
+  inv_k = ele_val_at_quad(kk,ele)
+  where (inv_k /= 0.0)
+     inv_k = 1.0/inv_k
+  elsewhere
+     inv_k = 0.0
+  end where
+  rhs_addto(2,:) = shape_rhs(shape_kk, detwei*ele_val_at_quad(eps,ele)*inv_k)
 
   ! Buoyancy term - As absorbtion:
   ! zero buoyancy addto array
@@ -370,7 +375,7 @@ subroutine calculate_buoyancy_term_kk(rhs_addto, kk, EV, u, buoyant_field, beta,
   integer, intent(in) :: ele
 
   real, dimension(u%dim, ele_ngi(u, ele))  :: vector
-  real, dimension(ele_ngi(u, ele)) :: scalar 
+  real, dimension(ele_ngi(u, ele)) :: scalar, inv_k 
   real, dimension(ele_loc(buoyant_field, ele),ele_ngi(buoyant_field, ele),positions%dim) :: dshape_s
   type(element_type), pointer :: shape_s
 
@@ -383,7 +388,13 @@ subroutine calculate_buoyancy_term_kk(rhs_addto, kk, EV, u, buoyant_field, beta,
   ! calculate scalar and vector components of the source term
   vector = ele_val_at_quad(g, ele)*ele_grad_at_quad(buoyant_field,&
        & ele, dshape_s)
-  scalar = 1/ele_val_at_quad(kk,ele)*beta*g_magnitude*ele_val_at_quad(EV,&
+  inv_k = ele_val_at_quad(kk,ele)
+  where (inv_k /= 0.0)
+     inv_k = 1.0 / inv_k
+  elsewhere
+     inv_k = 0.0
+  end where
+  scalar = inv_k*beta*g_magnitude*ele_val_at_quad(EV,&
        & ele)/delta_t
 
   ! multiply vector component by scalar and sum across dimensions - note that the
@@ -567,7 +578,7 @@ subroutine assemble_keps_eps_ele(src_abs_terms, tke_old, tke_src_old, eps, EV, u
   logical, intent(in) :: gravity, have_buoyant_fields
   integer, intent(in) :: ele
 
-  real, dimension(ele_ngi(eps, ele)) :: detwei
+  real, dimension(ele_ngi(eps, ele)) :: detwei, inv_tke_old
   real, dimension(3, ele_loc(eps, ele)) :: rhs_addto
   integer, dimension(ele_loc(eps, ele)) :: nodes_eps
   real, dimension(ele_loc(eps, ele), ele_loc(eps, ele)) :: invmass
@@ -582,12 +593,18 @@ subroutine assemble_keps_eps_ele(src_abs_terms, tke_old, tke_src_old, eps, EV, u
   call transform_to_physical(positions, ele, detwei=detwei)
 
   ! Source term:
-  rhs_addto(1,:) = shape_rhs(shape_eps, detwei*c_eps_1*ele_val_at_quad(eps,ele)/ &
-       ele_val_at_quad(tke_old,ele)*ele_val_at_quad(tke_src_old,ele))
+  inv_tke_old = ele_val_at_quad(tke_old,ele)
+  where (inv_tke_old /= 0.0)
+     inv_tke_old = 1.0/inv_tke_old
+  elsewhere
+     inv_tke_old = 0.0
+  end where
+  rhs_addto(1,:) = shape_rhs(shape_eps, detwei*c_eps_1*ele_val_at_quad(eps,ele)*&
+       inv_tke_old*ele_val_at_quad(tke_src_old,ele)) 
 
   ! Absorption term:
-  rhs_addto(2,:) = shape_rhs(shape_eps, detwei*c_eps_2*ele_val_at_quad(eps,ele)/ &
-       ele_val_at_quad(tke_old,ele))
+  rhs_addto(2,:) = shape_rhs(shape_eps, detwei*c_eps_2*ele_val_at_quad(eps,ele)*&
+       inv_tke_old)
 
   ! Buoyancy term - As absorbtion:
   ! zero buoyancy addto array
@@ -604,7 +621,11 @@ subroutine assemble_keps_eps_ele(src_abs_terms, tke_old, tke_src_old, eps, EV, u
         do i_dim = 1, u%dim
            u_xy(i_dim, i_gi) = max(abs(u_xy(i_dim, i_gi)), u_min)
         end do
-        c_eps_3(i_gi) = tanh(norm2(u_z(:, i_gi))/norm2(u_xy(:, i_gi))) 
+        if (norm2(u_xy(:, i_gi)) /= 0.0) then
+           c_eps_3(i_gi) = tanh(norm2(u_z(:, i_gi))/norm2(u_xy(:, i_gi))) 
+        else
+           c_eps_3(i_gi) = 1.0
+        end if
      end do
      ! loop through buoyant fields, calculate source term and add to addto array
      do i_field = 1, size(buoyant_fields, 1)
@@ -643,7 +664,7 @@ subroutine calculate_buoyancy_term_eps(rhs_addto, tke_old, EV, u, buoyant_field,
   integer, intent(in) :: ele
 
   real, dimension(u%dim, ele_ngi(u, ele))  :: vector
-  real, dimension(ele_ngi(u, ele)) :: scalar 
+  real, dimension(ele_ngi(u, ele)) :: scalar, inv_tke_old
   real, dimension(ele_loc(buoyant_field, ele),ele_ngi(buoyant_field, ele),positions%dim) :: dshape_s
   type(element_type), pointer :: shape_s
 
@@ -656,7 +677,13 @@ subroutine calculate_buoyancy_term_eps(rhs_addto, tke_old, EV, u, buoyant_field,
   ! calculate scalar and vector components of the source term
   vector = ele_val_at_quad(g, ele)*ele_grad_at_quad(buoyant_field, &
        & ele, dshape_s)
-  scalar = c_eps_1*c_eps_3*1/ele_val_at_quad(tke_old,ele)&
+  inv_tke_old = ele_val_at_quad(tke_old,ele)
+  where (inv_tke_old /= 0.0)
+     inv_tke_old = 1.0/inv_tke_old
+  elsewhere
+     inv_tke_old = 0.0
+  end where  
+  scalar = c_eps_1*c_eps_3*1*inv_tke_old&
        &*beta*g_magnitude*ele_val_at_quad(EV, ele)/delta_t
 
   ! multiply vector component by scalar and sum across dimensions - note that the

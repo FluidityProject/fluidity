@@ -297,8 +297,12 @@ contains
     call allocate(bedload_remap, surface_mesh, name="bedload_remap")
     call remap_field_to_surface(bedload, bedload_remap, surface_element_list)
     nodes: do i_node = 1, node_count(reentrainment)
-       call set(reentrainment, i_node, min(max(node_val(reentrainment, i_node), 0.0),&
-            & node_val(bedload_remap, i_node)/dt))
+       if(dt/=0.0) then
+          call set(reentrainment, i_node, min(max(node_val(reentrainment, i_node), 0.0),&
+               & node_val(bedload_remap, i_node)/dt))
+       else
+          call set(reentrainment, i_node, max(node_val(reentrainment, i_node), 0.0))
+       end if
     end do nodes
 
     ewrite_minmax(bedload)  

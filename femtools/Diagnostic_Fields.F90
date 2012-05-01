@@ -2730,6 +2730,7 @@ contains
          if(continuity(bed_shear_stress)>=0) then
             call allocate(masslump, bed_shear_stress%mesh, 'Masslump')
          end if
+         call zero(masslump)
 
          ! generate surface_mesh
          do face = 1, surface_element_count(bed_shear_stress)

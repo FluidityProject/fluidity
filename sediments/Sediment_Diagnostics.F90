@@ -554,7 +554,7 @@ contains
     real, dimension(ele_ngi(sigma_surface, i_ele))           :: detwei, total_bedload, &
          & mean_diameter, sigma_numerator, diameter_temp
     real, dimension(ele_loc(sigma_surface, i_ele))           :: sigma
-    integer                                                  :: i_field, i_gi
+    integer                                                  :: i_field, i_gi, i_loc
     real                                                     :: min_bedload = 1.0e-20
 
     ele => ele_nodes(sigma_surface, i_ele)
@@ -581,7 +581,7 @@ contains
        mean_diameter = mean_diameter + face_val_at_quad(bedload(i_field)%ptr, i_ele) *&
             & diameter(i_field)
     end do mean_calculation_loop
-    where (total_bedload > min_bedload) 
+    where ((total_bedload > min_bedload)) 
        mean_diameter = mean_diameter / total_bedload
     elsewhere
        mean_diameter = 0.0
@@ -594,11 +594,12 @@ contains
        sigma_numerator = sigma_numerator + face_val_at_quad(bedload(i_field)%ptr, i_ele) &
             &* (diameter_temp - mean_diameter)**2.0
     end do sigma_calculation_loop
-    where (total_bedload > min_bedload) 
-       sigma = shape_rhs(shape, (sigma_numerator / total_bedload)**0.5 * detwei)
+    where ((total_bedload > min_bedload)) 
+        sigma_numerator = sigma_numerator / total_bedload
     elsewhere
-       sigma = 0.0
+        sigma_numerator = 0.0
     end where
+    sigma = shape_rhs(shape, sigma_numerator**0.5 * detwei)
 
     if(continuity(sigma_surface)<0) then
        ! DG case.
@@ -716,7 +717,8 @@ contains
     type(element_type), pointer                              :: shape
     real, dimension(ele_loc(volume_fraction_surface, i_ele), &
          & ele_loc(volume_fraction_surface, i_ele))          :: invmass
-    real, dimension(ele_ngi(volume_fraction_surface, i_ele)) :: detwei
+    real, dimension(ele_ngi(volume_fraction_surface, i_ele)) :: detwei, &
+         & volume_fraction_at_quad 
     real, dimension(ele_loc(volume_fraction_surface, i_ele)) :: volume_fraction
     real                                                     :: min_bedload = 1.0e-20
 
@@ -734,11 +736,12 @@ contains
     end if
 
     where (face_val_at_quad(total_bedload, i_ele) > min_bedload) 
-       volume_fraction = shape_rhs(shape, face_val_at_quad(bedload, i_ele) /&
-            & face_val_at_quad(total_bedload, i_ele) * detwei)
+       volume_fraction_at_quad = face_val_at_quad(bedload, i_ele) / &
+            & face_val_at_quad(total_bedload, i_ele) 
     elsewhere
-       volume_fraction = 0.0
+       volume_fraction_at_quad = 0.0
     end where
+    volume_fraction = shape_rhs(shape, volume_fraction_at_quad * detwei)
 
     if(continuity(volume_fraction_surface)<0) then
        ! DG case.
