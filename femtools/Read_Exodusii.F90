@@ -92,19 +92,6 @@ contains
 
     shape=make_element_shape(loc, dim, 1, quad)
 
-    ewrite(2,*) "*************************"
-    ewrite(2,*) "before read_exodusii_file"
-    ewrite(2,*) "loc = ", loc
-    ewrite(2,*) "quad%dim = ", quad%dim
-    ewrite(2,*) "quad%degree = ", quad%degree
-    ewrite(2,*) "quad%vertices = ", quad%vertices
-    ewrite(2,*) "quad%ngi = ", quad%ngi
-    ewrite(2,*) "quad%family = ", quad%family
-    ewrite(2,*) "shape%dim = ", shape%dim
-    ewrite(2,*) "shape%loc = ", shape%loc
-    ewrite(2,*) "shape%degree = ", shape%degree
-    ewrite(2,*) "shape%ngi = ", shape%ngi
-
     field=read_exodusii_file(filename, shape)
 
     call deallocate_element(shape)
