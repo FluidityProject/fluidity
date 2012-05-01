@@ -85,6 +85,7 @@ program Darcy_IMPES
    use cv_options
    use FEFields
    use state_module
+   use python_diagnostics
    
    ! *** Use Darcy IMPES module ***
    use darcy_impes_assemble_module
@@ -330,6 +331,17 @@ program Darcy_IMPES
          
          ! *** Solve the Darcy equations using IMPES ***
          call darcy_impes_assemble_and_solve(di)
+         
+         ! *** Calculate the Darcy IMPES python diagnostic fields, needs to be called from here for successful make***
+         ! Calculate the generic python diagnostic Darcy IMPES fields: 
+         ! - RelativePermeability
+         ! - CapilliaryPressure
+         ! - Porosity?
+         ! - AbsolutePermeability?
+         call darcy_impes_calculate_generic_python_diagnostic_fields(di)
+         
+         ! *** Calculate the Darcy IMPES Velocity, Fractional flow and CFL fields, needs to be after the python fields ***
+         call darcy_impes_calculate_velocity_and_cfl_fields(di)
 
          if(nonlinear_iterations > 1) then
             
@@ -1023,6 +1035,63 @@ contains
    end subroutine darcy_impes_update_post_spatial_adapt
 
 ! --------------------------------------------------------------------------------
+
+   subroutine darcy_impes_calculate_generic_python_diagnostic_fields(di)
+
+      !!< Calculate the generic python diagnostic Darcy IMPES fields: 
+      !!< - RelativePermeability (All phases)
+      !!< - CapilliaryPressure (Not first phase)
+      !!< - Porosity?
+      !!< - AbsolutePermeability?
+      
+      type(darcy_impes_type), intent(inout) :: di
+      
+      ! local variables
+      integer :: p
+      
+      phase_loop: do p = 1, di%number_phase
+      
+         call calculate_scalar_python_diagnostic(di%state, &
+                                                 state_index  = p, &
+                                                 s_field      = di%relative_permeability(p)%ptr, &
+                                                 current_time = di%current_time, &
+                                                 dt           = di%dt)
+         
+         if (p > 1) then
+         
+            call calculate_scalar_python_diagnostic(di%state, &
+                                                    state_index  = p, &
+                                                    s_field      = di%capilliary_pressure(p)%ptr, &
+                                                    current_time = di%current_time, &
+                                                    dt           = di%dt)
+         
+         end if
+         
+      end do phase_loop
+      
+      if (di%porosity_is_diagnostic) then
+      
+         call calculate_scalar_python_diagnostic(di%state, &
+                                                 state_index  = 1, &
+                                                 s_field      = di%porosity, &
+                                                 current_time = di%current_time, &
+                                                 dt           = di%dt)
+      
+      end if 
+
+      if (di%absolute_permeability_is_diagnostic) then
+      
+         call calculate_scalar_python_diagnostic(di%state, &
+                                                 state_index  = 1, &
+                                                 s_field      = di%absolute_permeability, &
+                                                 current_time = di%current_time, &
+                                                 dt           = di%dt)
+      
+      end if 
+      
+   end subroutine darcy_impes_calculate_generic_python_diagnostic_fields
+
+! ----------------------------------------------------------------------------
 
    subroutine set_simulation_start_times()
       !!< Set the simulation start times

@@ -54,7 +54,6 @@ module darcy_impes_assemble_module
    use porous_media
    use parallel_tools
    use adaptive_timestepping
-   use python_diagnostics
    use signal_vars, only : SIG_INT
    use global_parameters, only : FIELD_NAME_LEN, OPTION_PATH_LEN
 
@@ -67,7 +66,6 @@ module darcy_impes_assemble_module
              darcy_impes_calculate_gradient_pressures, &
              darcy_impes_calculate_non_first_phase_pressures, &
              darcy_impes_calculate_phase_one_saturation_diagnostic, &
-             darcy_impes_calculate_generic_python_diagnostic_fields, &
              darcy_impes_calculate_velocity_and_cfl_fields, &
              darcy_impes_calculate_sum_saturation, &
              darcy_impes_calculate_densities, &
@@ -230,22 +228,12 @@ module darcy_impes_assemble_module
       ! Assemble and solve the phase saturations
       call darcy_impes_assemble_and_solve_phase_saturations(di)
       
-      ! Calculate the generic python diagnostic Darcy IMPES fields: 
-      ! - RelativePermeability
-      ! - CapilliaryPressure
-      ! - Porosity?
-      ! - AbsolutePermeability?
-      call darcy_impes_calculate_generic_python_diagnostic_fields(di)
-            
-      ! calculate the Velocity, Fractional flow and CFL fields
-      call darcy_impes_calculate_velocity_and_cfl_fields(di)
-      
       ! Calculate the sum of the saturations
       call darcy_impes_calculate_sum_saturation(di)
       
       ! Calculate the density field of each phase
       call darcy_impes_calculate_densities(di)
-      
+            
       ewrite(1,*) 'Finished Darcy IMPES assemble and solve'
            
    end subroutine darcy_impes_assemble_and_solve
@@ -1756,63 +1744,6 @@ module darcy_impes_assemble_module
       ewrite_minmax(di%saturation(1)%ptr)
        
    end subroutine darcy_impes_calculate_phase_one_saturation_diagnostic
-
-! ----------------------------------------------------------------------------
-
-   subroutine darcy_impes_calculate_generic_python_diagnostic_fields(di)
-
-      !!< Calculate the generic python diagnostic Darcy IMPES fields: 
-      !!< - RelativePermeability (All phases)
-      !!< - CapilliaryPressure (Not first phase)
-      !!< - Porosity?
-      !!< - AbsolutePermeability?
-      
-      type(darcy_impes_type), intent(inout) :: di
-      
-      ! local variables
-      integer :: p
-      
-      phase_loop: do p = 1, di%number_phase
-      
-         call calculate_scalar_python_diagnostic(di%state, &
-                                                 state_index  = p, &
-                                                 s_field      = di%relative_permeability(p)%ptr, &
-                                                 current_time = di%current_time, &
-                                                 dt           = di%dt)
-         
-         if (p > 1) then
-         
-            call calculate_scalar_python_diagnostic(di%state, &
-                                                    state_index  = p, &
-                                                    s_field      = di%capilliary_pressure(p)%ptr, &
-                                                    current_time = di%current_time, &
-                                                    dt           = di%dt)
-         
-         end if
-         
-      end do phase_loop
-      
-      if (di%porosity_is_diagnostic) then
-      
-         call calculate_scalar_python_diagnostic(di%state, &
-                                                 state_index  = 1, &
-                                                 s_field      = di%porosity, &
-                                                 current_time = di%current_time, &
-                                                 dt           = di%dt)
-      
-      end if 
-
-      if (di%absolute_permeability_is_diagnostic) then
-      
-         call calculate_scalar_python_diagnostic(di%state, &
-                                                 state_index  = 1, &
-                                                 s_field      = di%absolute_permeability, &
-                                                 current_time = di%current_time, &
-                                                 dt           = di%dt)
-      
-      end if 
-      
-   end subroutine darcy_impes_calculate_generic_python_diagnostic_fields
 
 ! ----------------------------------------------------------------------------
    
