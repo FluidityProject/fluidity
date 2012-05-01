@@ -614,9 +614,15 @@
       allocate( dzn( nl ) )
 
       Conditional_LOWQUA: if((ngi == 1) ) then
-            lx( 1 ) = l1(1)
-            ly( 1 ) = l2(1)
-            lz( 1 ) = l3(1)
+            if(ngi_l /= 0) then
+               lx( 1 ) = l1(1)
+               ly( 1 ) = l2(1)
+               lz( 1 ) = l3(1)
+            else
+               lx( 1 ) = 0.0
+               ly( 1 ) = 0.0
+               lz( 1 ) = 0.0
+            endif
             weit( 1 ) = 2.
             nquad=1
         else if( lowqua .or. (ngi == 8) ) then
