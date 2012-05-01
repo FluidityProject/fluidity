@@ -1039,7 +1039,7 @@
             VOLUME=VOLUME+DETWEI(GI)
             ewrite(3,*)'detj', detj
             rsum = rsum + detj
-            rsumabs = rsum + abs( detj )
+            rsumabs = rsumabs + abs( detj )
             ! For coefficient in the inverse mat of the jacobian. 
             A11= (EGI*KGI-FGI*HGI) /DETJ
             A21=-(DGI*KGI-FGI*GGI) /DETJ
@@ -3421,18 +3421,18 @@
          ewrite(3,*)'detwei for ele=:', ele, detwei
 
          do quad_cv_iloc = 1, quad_cv_nloc
-            ewrite(3,*)' quad_cv_iloc: ', quad_cv_iloc
+            !ewrite(3,*)' quad_cv_iloc: ', quad_cv_iloc
 
-            ewrite(3,*)'quad_nlx:', ( quad_nlx( quad_cv_iloc, quad_cv_gi ), &
-                 quad_cv_gi = 1, quad_cv_ngi )
+            !ewrite(3,*)'quad_nlx:', ( quad_nlx( quad_cv_iloc, quad_cv_gi ), &
+            !     quad_cv_gi = 1, quad_cv_ngi )
 
-            ewrite(3,*)'quad_nx:', ( quad_nx( quad_cv_iloc, quad_cv_gi ), &
-                 quad_cv_gi = 1, quad_cv_ngi )
-            ewrite(3,*)'quad_ny:', ( quad_ny( quad_cv_iloc, quad_cv_gi ), &
-                 quad_cv_gi = 1, quad_cv_ngi )
-            ewrite(3,*)'quad_nz:', ( quad_nz( quad_cv_iloc, quad_cv_gi ), &
-                 quad_cv_gi = 1, quad_cv_ngi )
-            ewrite(3,*)'detwei:', ( detwei( quad_cv_gi ), quad_cv_gi = 1, quad_cv_ngi )
+            !ewrite(3,*)'quad_nx:', ( quad_nx( quad_cv_iloc, quad_cv_gi ), &
+            !     quad_cv_gi = 1, quad_cv_ngi )
+            !ewrite(3,*)'quad_ny:', ( quad_ny( quad_cv_iloc, quad_cv_gi ), &
+            !     quad_cv_gi = 1, quad_cv_ngi )
+            !ewrite(3,*)'quad_nz:', ( quad_nz( quad_cv_iloc, quad_cv_gi ), &
+            !     quad_cv_gi = 1, quad_cv_ngi )
+            !ewrite(3,*)'detwei:', ( detwei( quad_cv_gi ), quad_cv_gi = 1, quad_cv_ngi )
          end do
 
          Loop_NGI: do quad_cv_gi = 1, quad_cv_ngi ! Determine the quadrature points and weights
@@ -3473,7 +3473,7 @@
 
          end do Loop_NGI
       end do Loop_Elements
-stop 189
+
       ! Now determine the basis functions and derivatives at the 
       ! quadrature pts quad_L1, quad_L2, quad_L3, quad_L4, etc
       call shatri_hex( quad_l1, quad_l2, quad_l3, quad_l4, rdummy, d3, &
@@ -3814,16 +3814,16 @@ stop 189
       rn=n
 
       old2new(1)=1
-      old2new(2)=5
-      old2new(3)=2
+      old2new(2)=2
+      old2new(3)=3
       old2new(4)=6
-      old2new(5)=8
-      old2new(6)=3
+      old2new(5)=4
+      old2new(6)=5
 
-      old2new(7)=6
-      old2new(8)=10
+      old2new(7)=7
+      old2new(8)=8
       old2new(9)=9
-      old2new(10)=4
+      old2new(10)=10
 
     do iloc=1,nloc
       n(iloc,:)=rn(old2new(iloc),:)
@@ -5042,15 +5042,15 @@ stop 189
       allocate( x_ndgln_p2( max_x_nonods ) ) ; x_ndgln_p2 = 0
 
       ele = 1
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 1 ) = 7
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 2 ) = 8
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 3 ) = 9
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 4 ) = 10
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 1 ) = 10
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 2 ) = 9
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 3 ) = 8
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 4 ) = 7
 
       ele = 2
       x_ndgln_p2( ( ele - 1 ) * x_nloc + 1 ) = 1
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 2 ) = 2
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 3 ) = 7
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 2 ) = 7
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 3 ) = 2
       x_ndgln_p2( ( ele - 1 ) * x_nloc + 4 ) = 4
 
       ele = 3
@@ -5073,8 +5073,8 @@ stop 189
 
       ele = 6
       x_ndgln_p2( ( ele - 1 ) * x_nloc + 1 ) = 8
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 2 ) = 4
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 3 ) = 5
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 2 ) = 5
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 3 ) = 4
       x_ndgln_p2( ( ele - 1 ) * x_nloc + 4 ) = 9
 
       ele = 7
@@ -5085,8 +5085,8 @@ stop 189
 
       ele = 8
       x_ndgln_p2( ( ele - 1 ) * x_nloc + 1 ) = 7
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 2 ) = 8
-      x_ndgln_p2( ( ele - 1 ) * x_nloc + 3 ) = 9
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 2 ) = 9
+      x_ndgln_p2( ( ele - 1 ) * x_nloc + 3 ) = 8
       x_ndgln_p2( ( ele - 1 ) * x_nloc + 4 ) = 4
 
       do ele = 1, totele

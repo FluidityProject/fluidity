@@ -5322,14 +5322,13 @@
                   IF(SELE2 == 0) THEN ! is a volume element
                      CV_INOD=X_NDGLN((ELE-1)*X_NLOC+CV_ILOC)
                      DO CV_ILOC2=1,CV_NLOC
-          print *,'ELE2,X_NLOC,CV_ILOC2:',ELE2,X_NLOC,CV_ILOC2
                         CV_INOD2=X_NDGLN((ELE2-1)*X_NLOC+CV_ILOC2) 
                         IF(CV_INOD == CV_INOD2) FOUND=.TRUE.
                      END DO
                   ELSE ! is a surface element
                      CV_INOD=CV_NDGLN((ELE-1)*CV_NLOC+CV_ILOC)
                      DO CV_SILOC2=1,CV_SNLOC
-                        ! ewrite(3,*)'(SELE2-1)*CV_SNLOC+CV_SILOC2,SELE2,CV_SNLOC,CV_SILOC2:', &
+                        !ewrite(3,*)'(SELE2-1)*CV_SNLOC+CV_SILOC2,SELE2,CV_SNLOC,CV_SILOC2:', &
                         !                 (SELE2-1)*CV_SNLOC+CV_SILOC2,SELE2,CV_SNLOC,CV_SILOC2
                         CV_INOD2=CV_SNDGLN((SELE2-1)*CV_SNLOC+CV_SILOC2) 
                         IF(CV_INOD == CV_INOD2) FOUND=.TRUE.
@@ -5342,14 +5341,13 @@
          END DO
          ! Re-order row...
          FACE_ELE(:,ELE)=ELE_ROW(:)
-         !     ewrite(3,*)'FACE_ELE(:,ELE):',FACE_ELE(:,ELE)
+         !ewrite(3,*)'FACE_ELE(:,ELE):',FACE_ELE(:,ELE)
       END DO
-      !   stop 922
 
-      !    do ele=1,totele
-      !       ewrite(3,*)'ele',ele,' FACE_ELE(IFACE,ELE):',(FACE_ELE(IFACE,ELE),iface=1,nface) 
-      !    end do
-      !    stop 2982
+      !do ele=1,totele
+      !   ewrite(3,*)'ele',ele,' FACE_ELE(IFACE,ELE):',(FACE_ELE(IFACE,ELE),iface=1,nface) 
+      !end do
+      !stop 2982
 
       DEALLOCATE( NOD_BELONG_ELE )
       DEALLOCATE( NOD_COUNT_SELE )
