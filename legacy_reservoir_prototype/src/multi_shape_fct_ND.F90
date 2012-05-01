@@ -1037,7 +1037,7 @@
             DETWEI(GI)=DETJ*WEIGHT(GI)
             RA(GI)=1.0
             VOLUME=VOLUME+DETWEI(GI)
-            ewrite(3,*)'detj', detj
+            !ewrite(3,*)'detj', detj
             rsum = rsum + detj
             rsumabs = rsumabs + abs( detj )
             ! For coefficient in the inverse mat of the jacobian. 
@@ -1059,7 +1059,7 @@
             end do ! Was loop 373
             !
          end do ! Was loop 331
-         ewrite(3,*)'ele, sum(detj), sum(abs(detj)):', ele, rsum, rsumabs
+         !ewrite(3,*)'ele, sum(detj), sum(abs(detj)):', ele, rsum, rsumabs
          ! IF(D3) THEN...
       ELSE IF(.NOT.D1) THEN
          TWOPIE=1.0 
@@ -1880,8 +1880,8 @@
          CALL DETNLXR( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, CV_NLOC, CV_NGI, &
               N, NLX, NLY, NLZ, CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
               NX, NY, NZ ) 
-         PRINT *,'VOLUME=',VOLUME
-         PRINT *,'detwei:',detwei
+         PRINT *,'ele, VOLUME=',ele, VOLUME
+         !PRINT *,'detwei:',sum(detwei)
          RSUM=RSUM+VOLUME
       END DO Loop_Elements
 
