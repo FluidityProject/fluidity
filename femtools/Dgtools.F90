@@ -11,6 +11,7 @@ use fields_data_types
 use FETools
 use transform_elements
 use boundary_conditions, only: get_boundary_condition_nodes
+use halos_base
 
 implicit none
 
@@ -433,20 +434,29 @@ contains
 
   end subroutine dcsr_assemble_local_lumped_mass
 
-  subroutine csr_dg_inverse_mass_from_mass(inv_mass, mass)
+  subroutine csr_dg_inverse_mass_from_mass(inv_mass, mass, only_owned_elements)
     !!< Put the inverse of mass into inv_mass. This is short-circuited by
     !!< knowing that mass is DG.
     type(csr_matrix), intent(inout) :: inv_mass
     type(csr_matrix), intent(in) :: mass
+    !! if present and true, only computed inverse mass for owned elements, the rest of inv_mass is zeroed
+    !! this means that after multiplication with this matrix, you need to halo_update:
+    logical, intent(in), optional :: only_owned_elements
 
-    integer :: row, colm_pos, nloc
+    integer :: row, colm_pos, nloc, last_row
 
-    row=0
+    row=1
     colm_pos=0
+
+    if (present_and_true(only_owned_elements) .and. associated(mass%sparsity%row_halo)) then
+      last_row = halo_nowned_nodes(mass%sparsity%row_halo)
+    else
+      last_row = size(mass,1)
+    end if
     
     do 
-       if(row>=size(mass,1)) exit
-       nloc=row_length(mass, row+1)
+       if(row>last_row) exit
+       nloc=row_length(mass, row)
        inv_mass%val(colm_pos+1:colm_pos+nloc**2) &
             = reshape(&
             &  inverse(&
@@ -458,6 +468,11 @@ contains
        row=row+nloc
        colm_pos=colm_pos+nloc**2
     end do
+
+    if (present_and_true(only_owned_elements) .and. associated(mass%sparsity%row_halo)) then
+      ! rest is zeroed
+      inv_mass%val(colm_pos+1:)=0.0
+    end if
  
   end subroutine csr_dg_inverse_mass_from_mass
 

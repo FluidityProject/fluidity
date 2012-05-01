@@ -11615,7 +11615,7 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
-LIBS="$tmpLIBS -L$ParMetis_LIBS_PATH -lparmetis -lmetis -lm"
+LIBS="$tmpLIBS -L$ParMetis_LIBS_PATH -lparmetis -lmetis -lm $ZOLTAN_DEPS"
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ParMETIS_V3_AdaptiveRepart in -lparmetis" >&5
 $as_echo_n "checking for ParMETIS_V3_AdaptiveRepart in -lparmetis... " >&6; }
 if test "${ac_cv_lib_parmetis_ParMETIS_V3_AdaptiveRepart+set}" = set; then :

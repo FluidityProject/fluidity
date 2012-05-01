@@ -114,29 +114,29 @@ void NetCDFReader::GetGrid(){
   if(verbose)
     cout<<"NetCDFReader::GetGrid()\n";
 #ifdef HAVE_NETCDF
-  // Get dimensions -- longitude
-  int id = ncdimid(ncid, "longitude");
+  // Get dimensions -- lon
+  int id = ncdimid(ncid, "lon");
   if(ncerr!=NC_NOERR){
     cout.flush();
-    cerr<<__FILE__<<", "<<__LINE__<<": ERROR - dimension variable \"longitude\" does not exist\n";
+    cerr<<__FILE__<<", "<<__LINE__<<": ERROR - dimension variable \"lon\" does not exist\n";
     exit(-1);
   }
   ncdiminq(ncid, id, (char *)0, &(dimension[0]));
     
-  // Get dimensions -- latitude
-  id = ncdimid(ncid, "latitude");
+  // Get dimensions -- lat
+  id = ncdimid(ncid, "lat");
   if(ncerr!=NC_NOERR){
     cout.flush();
-    cerr<<__FILE__<<", "<<__LINE__<<": ERROR - dimension variable \"latitude\" does not exist\n";
+    cerr<<__FILE__<<", "<<__LINE__<<": ERROR - dimension variable \"lat\" does not exist\n";
     exit(-1);
   }
   ncdiminq(ncid, id, (char *)0, &(dimension[1]));
 
   // Longitude range
-  int varid = ncvarid(ncid, "longitude");
+  int varid = ncvarid(ncid, "lon");
   if(ncerr!=NC_NOERR){
     cout.flush();
-    cerr<<__FILE__<<", "<<__LINE__<<": ERROR - variable \"longitude\" does not exist.\n";
+    cerr<<__FILE__<<", "<<__LINE__<<": ERROR - variable \"lon\" does not exist.\n";
     exit(-1);
   }
   
@@ -157,10 +157,10 @@ void NetCDFReader::GetGrid(){
   }
 
   // Latitude range
-  varid = ncvarid(ncid, "latitude");
+  varid = ncvarid(ncid, "lat");
   if(ncerr!=NC_NOERR){
     cout.flush();
-    cerr<<__FILE__<<", "<<__LINE__<<": ERROR - variable latitude does not exist.\n";
+    cerr<<__FILE__<<", "<<__LINE__<<": ERROR - variable lat does not exist.\n";
     exit(-1);
   }
 

@@ -33,8 +33,7 @@
 #endif
 
 extern "C" {
-#define differentiate_vtu_fc F77_FUNC(differentiate_vtu, DIFFERENTIATE_VTU)
-  void differentiate_vtu_fc(const char*, int*, const char*, int*, const char*, int*);
+  void differentiate_vtu(const char *, size_t, const char *, size_t, const char *, size_t);
 }
 
 #ifdef _AIX
@@ -116,10 +115,10 @@ int main(int argc, char **argv){
   set_global_debug_level_fc(&val);
 
   string input_filename = argv[optind];
-  int input_filename_len = input_filename.length();  
+  size_t input_filename_len = input_filename.size();  
   
   string output_filename = argv[optind + 1];
-  int output_filename_len = output_filename.length(); 
+  size_t output_filename_len = output_filename.size(); 
   
   string input_fieldname;
   if(optind <= argc - 3){
@@ -127,9 +126,9 @@ int main(int argc, char **argv){
   }else{
     input_fieldname = "";
   }
-  int input_fieldname_len = input_fieldname.length(); 
+  size_t input_fieldname_len = input_fieldname.size(); 
 
-  differentiate_vtu_fc(input_filename.c_str(), &input_filename_len, output_filename.c_str(), &output_filename_len, input_fieldname.c_str(), &input_fieldname_len);
+  differentiate_vtu(input_filename.c_str(), input_filename_len, output_filename.c_str(), output_filename_len, input_fieldname.c_str(), input_fieldname_len);
     
 #ifdef HAVE_PETSC
   PetscFinalize();

@@ -12,12 +12,14 @@
 ../../bin/fluidity advect_tracer_cons_imp_weakbc_upwind_p1cv_2d.flml 
 ../../bin/fluidity advect_tracer_cons_exp_weakbc_hyperc_p1cv_2d.flml 
 ../../bin/fluidity advect_tracer_cons_imp_weakbc_fesweby_p1cv_2d.flml 
+../../bin/fluidity advect_tracer_cons_exp_weakbc_feultimate_p1cv_2d.flml 
 
 ../../bin/fluidity darcy_p0p1_test_cty_cv_pressBCinlet_3d.flml
 ../../bin/fluidity advect_tracer_cons_exp_weakbc_upwind_p1cv_3d.flml 
 ../../bin/fluidity advect_tracer_cons_imp_weakbc_upwind_p1cv_3d.flml 
 ../../bin/fluidity advect_tracer_cons_exp_weakbc_hyperc_p1cv_3d.flml 
 ../../bin/fluidity advect_tracer_cons_imp_weakbc_fesweby_p1cv_3d.flml
+../../bin/fluidity advect_tracer_cons_exp_weakbc_feultimate_p1cv_3d.flml 
     </command_line>
     <!-- Two/Three dimensional (actual physics is 1d) case for darcy flow with one region and one material using p0p1_test_cty_cv element type testing the pressure gradient against analytic and the darcy velocity. First vel-press is solved then a second run advects a tracer using the checkpointed velocity. -->
   </problem_definition>
@@ -80,6 +82,18 @@ max_tracer_cons_imp_weakbc_fesweby_2d = stat("advect_tracer_cons_imp_weakbc_fesw
 from fluidity_tools import stat_parser as stat
 min_tracer_cons_imp_weakbc_fesweby_2d = stat("advect_tracer_cons_imp_weakbc_fesweby_p1cv_2d.stat")["fluid"]["Tracer"]["min"][-1]
     </variable>
+    <variable name="cv_integral_tracer_cons_exp_weakbc_feultimate_2d" language="python">    
+from fluidity_tools import stat_parser as stat
+cv_integral_tracer_cons_exp_weakbc_feultimate_2d = stat("advect_tracer_cons_exp_weakbc_feultimate_p1cv_2d.stat")["fluid"]["Tracer"]["cv_integral"][-1]
+    </variable>
+    <variable name="max_tracer_cons_exp_weakbc_feultimate_2d" language="python">    
+from fluidity_tools import stat_parser as stat
+max_tracer_cons_exp_weakbc_feultimate_2d = stat("advect_tracer_cons_exp_weakbc_feultimate_p1cv_2d.stat")["fluid"]["Tracer"]["max"][-1]
+    </variable>
+    <variable name="min_tracer_cons_exp_weakbc_feultimate_2d" language="python">    
+from fluidity_tools import stat_parser as stat
+min_tracer_cons_exp_weakbc_feultimate_2d = stat("advect_tracer_cons_exp_weakbc_feultimate_p1cv_2d.stat")["fluid"]["Tracer"]["min"][-1]
+    </variable>
 
     <variable name="pressure_3d" language="python">
 import vtktools
@@ -138,6 +152,18 @@ max_tracer_cons_imp_weakbc_fesweby_3d = stat("advect_tracer_cons_imp_weakbc_fesw
     <variable name="min_tracer_cons_imp_weakbc_fesweby_3d" language="python">    
 from fluidity_tools import stat_parser as stat
 min_tracer_cons_imp_weakbc_fesweby_3d = stat("advect_tracer_cons_imp_weakbc_fesweby_p1cv_3d.stat")["fluid"]["Tracer"]["min"][-1]
+    </variable>
+    <variable name="cv_integral_tracer_cons_exp_weakbc_feultimate_3d" language="python">    
+from fluidity_tools import stat_parser as stat
+cv_integral_tracer_cons_exp_weakbc_feultimate_3d = stat("advect_tracer_cons_exp_weakbc_feultimate_p1cv_3d.stat")["fluid"]["Tracer"]["cv_integral"][-1]
+    </variable>
+    <variable name="max_tracer_cons_exp_weakbc_feultimate_3d" language="python">    
+from fluidity_tools import stat_parser as stat
+max_tracer_cons_exp_weakbc_feultimate_3d = stat("advect_tracer_cons_exp_weakbc_feultimate_p1cv_3d.stat")["fluid"]["Tracer"]["max"][-1]
+    </variable>
+    <variable name="min_tracer_cons_exp_weakbc_feultimate_3d" language="python">    
+from fluidity_tools import stat_parser as stat
+min_tracer_cons_exp_weakbc_feultimate_3d = stat("advect_tracer_cons_exp_weakbc_feultimate_p1cv_3d.stat")["fluid"]["Tracer"]["min"][-1]
     </variable>
   </variables>
   <pass_tests>
@@ -217,6 +243,21 @@ analytic_int = 0.0
 print 'Solution absolute error: ',abs(min_tracer_cons_imp_weakbc_fesweby_2d - analytic_int)
 assert abs(min_tracer_cons_imp_weakbc_fesweby_2d - analytic_int) &lt; 2.2e-05
     </test>
+    <test name="CV Integral of tracer_cons_exp_weakbc_feultimate for 2d at half way through domain, check with tolerance 5.0e-08" language="python">
+analytic_int = 45000
+print 'Solution relative error: ',abs((cv_integral_tracer_cons_exp_weakbc_feultimate_2d - analytic_int)/analytic_int)
+assert abs((cv_integral_tracer_cons_exp_weakbc_feultimate_2d - analytic_int)/analytic_int) &lt; 5.0e-08
+    </test>
+    <test name="Max of tracer_cons_exp_weakbc_feultimate for 2d should be 1.0, check with tolerance 5.0e-08" language="python">
+analytic_int = 1.0
+print 'Solution relative error: ',abs((max_tracer_cons_exp_weakbc_feultimate_2d - analytic_int)/analytic_int)
+assert abs((max_tracer_cons_exp_weakbc_feultimate_2d - analytic_int)/analytic_int) &lt; 5.0e-08
+    </test>
+    <test name="Min of tracer_cons_exp_weakbc_feultimate for 2d should be 0.0, check with tolerance 5.0e-08" language="python">
+analytic_int = 0.0
+print 'Solution absolute error: ',abs(min_tracer_cons_exp_weakbc_feultimate_2d - analytic_int)
+assert abs(min_tracer_cons_exp_weakbc_feultimate_2d - analytic_int) &lt; 5.0e-08
+    </test>
 
     <test name="change_P for 3D should equal domain_length*visc*phi*vel_BC/perm, check relative difference to be under tolerance 5.0e-08" language="python">
 change_P = abs(max(pressure_3d) - min(pressure_3d))
@@ -293,6 +334,21 @@ assert abs((max_tracer_cons_imp_weakbc_fesweby_3d - analytic_int)/analytic_int) 
 analytic_int = 0.0
 print 'Solution absolute error: ',abs(min_tracer_cons_imp_weakbc_fesweby_3d - analytic_int)
 assert abs(min_tracer_cons_imp_weakbc_fesweby_3d - analytic_int) &lt; 2.2e-05
+    </test>
+    <test name="CV Integral of tracer_cons_exp_weakbc_feultimate for 3D at half way through domain, check with tolerance 5.0e-08" language="python">
+analytic_int = 45000*300
+print 'Solution relative error: ',abs((cv_integral_tracer_cons_exp_weakbc_feultimate_3d - analytic_int)/analytic_int)
+assert abs((cv_integral_tracer_cons_exp_weakbc_feultimate_3d - analytic_int)/analytic_int) &lt; 5.0e-08
+    </test>
+    <test name="Max of tracer_cons_exp_weakbc_feultimate for 3D should be 1.0, check with tolerance 5.0e-08" language="python">
+analytic_int = 1.0
+print 'Solution relative error: ',abs((max_tracer_cons_exp_weakbc_feultimate_3d - analytic_int)/analytic_int)
+assert abs((max_tracer_cons_exp_weakbc_feultimate_3d - analytic_int)/analytic_int) &lt; 5.0e-08
+    </test>
+    <test name="Min of tracer_cons_exp_weakbc_feultimate for 3D should be 0.0, check with tolerance 5.0e-08" language="python">
+analytic_int = 0.0
+print 'Solution absolute error: ',abs(min_tracer_cons_exp_weakbc_feultimate_3d - analytic_int)
+assert abs(min_tracer_cons_exp_weakbc_feultimate_3d - analytic_int) &lt; 5.0e-08
     </test>
   </pass_tests>
   <warn_tests>
