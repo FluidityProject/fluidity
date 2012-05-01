@@ -1810,10 +1810,11 @@
       end do
       !         stop 2922
       if(cv_nloc==10) then
+        print *,'cv_nloc=',cv_nloc
          totele_sub=8
          !call test_quad_tet( cv_nloc, cv_ngi, cvn, n, nlx, nly, nlz, &
-         call test_quad_tet( 4, cv_ngi, cvn, n, nlx, nly, nlz, &
-              cvweigh, x_ideal, y_ideal, z_ideal, cv_nloc, x_ndgln_ideal, totele_sub) 
+         call test_quad_tet( cv_nloc, cv_ngi, cvn, n, nlx, nly, nlz, &
+              cvweigh, x_ideal, y_ideal, z_ideal, cv_nloc, x_ndgln_ideal, 1) 
       endif
 
       ! And for velocities:
@@ -1845,28 +1846,34 @@
 
 
      subroutine test_quad_tet( cv_nloc, cv_ngi, cvn, n, nlx, nly, nlz, &
-                       cvweight, x, y, z, x_nonods, x_ndgln, totele )
+                       cvweight, x, y, z, x_nonods, x_ndgln2, totele )
 ! test the volumes of idealised triangle 
       implicit none
       integer, intent( in ) :: cv_nloc, cv_ngi, x_nonods, totele
       real, dimension( x_nonods ), intent( in ) :: x, y, z
-      integer, dimension( totele * cv_nloc ), intent( in ) :: x_ndgln
+      integer, dimension( totele * cv_nloc ), intent( in ) :: x_ndgln2
       real, dimension( cv_ngi ), intent( in ) :: cvweight
       real, dimension( cv_nloc,cv_ngi ), intent( in ) :: cvn
       REAL, DIMENSION( CV_NLOC, CV_NGI ), intent( in ) :: N, NLX, NLY, NLZ 
 ! local variables...
-      integer, dimension( : ), allocatable :: x_ndgln2, x_ndgln_big
+      integer, dimension( : ), allocatable :: x_ndgln
       real, dimension( : ), allocatable :: DETWEI,RA
       real, dimension( :,: ), allocatable :: NX,NY,NZ
-      INTEGER :: NDIM, ele
+      INTEGER :: NDIM, ele, cv_iloc, cv_gi
       LOGICAL :: D1,D3,DCYL
-      REAL :: VOLUME, rsum
+      REAL :: VOLUME, rsum, rsum2
 
       ALLOCATE( DETWEI( CV_NGI )) 
+      ALLOCATE( x_ndgln( CV_Nloc )) 
+      do cv_iloc=1,cv_nloc
+          x_ndgln( CV_iloc )=cv_iloc 
+      end do
       ALLOCATE( RA( CV_NGI ))
       ALLOCATE( NX( CV_NLOC, CV_NGI ))
       ALLOCATE( NY( CV_NLOC, CV_NGI ))
       ALLOCATE( NZ( CV_NLOC, CV_NGI ))
+
+
 
       ndim=3
       D1 = ( NDIM == 1 )
@@ -1883,6 +1890,14 @@
          PRINT *,'ele, VOLUME=',ele, VOLUME
          !PRINT *,'detwei:',sum(detwei)
          RSUM=RSUM+VOLUME
+         
+         do cv_iloc=1,cv_nloc
+            rsum2=0.0
+            do cv_gi=1,cv_ngi
+               rsum2=rsum2+cvn(cv_iloc,cv_gi)*detwei(cv_gi)
+            end do
+            print *,'cv_iloc,its vol:',cv_iloc,rsum2
+         end do
       END DO Loop_Elements
 
       PRINT *,'VOLUME OF THE DOMAIN(SHOULD BE 1):',RSUM
