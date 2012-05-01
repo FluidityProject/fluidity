@@ -796,6 +796,7 @@
       integer, intent( inout ) :: cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface
       ! Local variables
       character( len = option_path_len ) :: overlapping_path
+      integer :: volume_order
 
       Conditional_EleType: Select Case( cv_ele_type )
 
@@ -886,9 +887,14 @@
                sbcvngi = 7
                scvngi = 7
             else
+
+               volume_order=1
+
                cv_ngi = 864 ! 8x4x27 (tets x hexs x 3x3x3)
                scvngi = 192 ! 6x8x4 (cv_faces x hexs x tets)
                sbcvngi = 48 ! 4x12 (sngi x cv_faces)
+               if (volume_order==1) cv_ngi=8*4*1
+
             endif
          case default; FLExit(" Invalid integer for cv_nloc ")
          end Select Conditional_CV_NLOC3D_Tet
@@ -1017,6 +1023,8 @@
             !
             do  L=1,NLOC! Was loop 79
                IGLX=XONDGL((ELE-1)*NLOC+L)
+               ewrite(3,*)'ele, xndgln, x/y/z:', &
+                    ele, iglx, x(iglx), y(iglx), z(iglx)
                ! NB R0 does not appear here although the z-coord might be Z+R0. 
                AGI=AGI+NLX(L,GI)*X(IGLX) 
                BGI=BGI+NLX(L,GI)*Y(IGLX) 
