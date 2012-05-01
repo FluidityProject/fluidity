@@ -1068,7 +1068,7 @@ case unless using stress form viscosity and/or coriolis).</a:documentation>
     </optional>
     <element name="solver">
       <a:documentation>Solver</a:documentation>
-      <ref name="linear_solver_options_asym"/>
+      <ref name="linear_solver_options_asym_vector"/>
     </element>
     <oneOrMore>
       <choice>
@@ -1526,7 +1526,7 @@ Doesn't really matter if you've lumped your mass or not but why would you if you
                     <value>FullMomentumMatrix</value>
                   </attribute>
                   <element name="solver">
-                    <ref name="linear_solver_options_asym"/>
+                    <ref name="linear_solver_options_asym_vector"/>
                   </element>
                 </element>
               </choice>

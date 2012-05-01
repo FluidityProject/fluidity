@@ -5,7 +5,9 @@
     the only difference between the _asym and _sym versions
     is the order of cg and gmres. Not providing cg for _asym is
     not possible as in some cases the asymmetric equation is in fact symmetric
-    (e.g. momentum with no advection or coriolis).
+    (e.g. momentum with no advection or coriolis). The _asym version also
+    has a _vector version which is used for the Velocity solve - only difference
+    here being the null space options
   -->
   <define name="linear_solver_options_asym">
     <choice>
@@ -32,7 +34,34 @@ by the PETSc library. Many more methods are provided.
       <ref name="pcasm_options"/>
       <ref name="pcother_options"/>
     </choice>
-    <ref name="generic_solver_options"/>
+    <ref name="generic_solver_options_scalar"/>
+  </define>
+  <define name="linear_solver_options_asym_vector">
+    <choice>
+      <a:documentation>Iterative (Krylov) method to solve the linear discretised equation
+Given are the most frequently used methods. The solution is done
+by the PETSc library. Many more methods are provided.
+</a:documentation>
+      <ref name="kspgmres_options"/>
+      <ref name="kspcg_options"/>
+      <ref name="ksppreonly_options"/>
+      <ref name="ksprichardson_options"/>
+      <ref name="kspother_options"/>
+    </choice>
+    <choice>
+      <a:documentation>Preconditioner to be used in combination with the iterative method.</a:documentation>
+      <ref name="pcsor_options"/>
+      <ref name="pceisenstat_options"/>
+      <ref name="pcilu_options"/>
+      <ref name="pclu_options"/>
+      <ref name="pcmg_options"/>
+      <ref name="pcprometheus_options"/>
+      <ref name="pchypre_options"/>
+      <ref name="pcbjacobi_options"/>
+      <ref name="pcasm_options"/>
+      <ref name="pcother_options"/>
+    </choice>
+    <ref name="generic_solver_options_vector"/>
   </define>
   <define name="linear_solver_options_sym">
     <choice>
@@ -61,7 +90,7 @@ by the PETSc library. Many more methods are provided.
       <ref name="pcksp_options"/>
       <ref name="pcother_options"/>
     </choice>
-    <ref name="generic_solver_options"/>
+    <ref name="generic_solver_options_scalar"/>
   </define>
   <!--
     ####################################################################
@@ -361,7 +390,7 @@ by the PETSc library. Many more methods are provided.
       <ref name="pcasm_options"/>
       <ref name="pcother_options"/>
     </choice>
-    <ref name="generic_solver_options"/>
+    <ref name="generic_solver_options_scalar"/>
   </define>
   <!--
     ####################################################################
@@ -370,7 +399,97 @@ by the PETSc library. Many more methods are provided.
     
     ####################################################################
   -->
-  <define name="generic_solver_options">
+  <define name="generic_solver_options_scalar">
+    <ref name="basic_solver_options"/>
+    <optional>
+      <element name="remove_null_space">
+        <a:documentation>If the constant solution is a null vector of the linear system (e.g. Poisson equation with only Neumann bcs)
+use this option to remove the constant component from the solution every iteration of the linear solver. This
+leads to better convergence rates, when compared to imposing a reference_node to pin the solution.</a:documentation>
+        <empty/>
+      </element>
+    </optional>
+    <ref name="miscellaneous_solver_options"/>
+  </define>
+  <define name="generic_solver_options_vector">
+    <ref name="basic_solver_options"/>
+    <optional>
+      <element name="remove_null_space">
+        <a:documentation>If the linear system admits null vectors (i.e. the system is under-constrained)
+use this option to project out the null space component from the solution every iteration of the linear solver. This
+leads to better convergence rates, when compared to imposing a reference_node to pin the solution.
+Depending on boundary conditions, a velocity equation without mass (time-derivative), absorption and coriolis terms,
+may have a constant null solution for each component independently. Additionally, for a pure viscosity problem (Stokes equations)
+a rotational mode around each axis may be present.</a:documentation>
+        <ref name="null_space_options"/>
+      </element>
+    </optional>
+    <optional>
+      <element name="multigrid_near_null_space">
+        <ref name="null_space_options"/>
+      </element>
+    </optional>
+    <ref name="miscellaneous_solver_options"/>
+  </define>
+  <define name="null_space_options">
+    <choice>
+      <element name="all_components">
+        <a:documentation>The nullspace contains all independent constant-component solutions</a:documentation>
+        <empty/>
+      </element>
+      <element name="specify_components">
+        <a:documentation>Remove only the specified constant-component solution</a:documentation>
+        <optional>
+          <element name="x_component">
+            <a:documentation>Remove the constant x-component solution</a:documentation>
+            <empty/>
+          </element>
+        </optional>
+        <optional>
+          <element name="y_component">
+            <a:documentation>Remove the constant y-component solution</a:documentation>
+            <empty/>
+          </element>
+        </optional>
+        <optional>
+          <element name="z_component">
+            <a:documentation>Remove the constant z-component solution</a:documentation>
+            <empty/>
+          </element>
+        </optional>
+      </element>
+    </choice>
+    <optional>
+      <choice>
+        <element name="all_rotations">
+          <a:documentation>All rotational modes are removed</a:documentation>
+          <empty/>
+        </element>
+        <element name="specify_rotations">
+          <a:documentation>Specify rotational modes individually</a:documentation>
+          <optional>
+            <element name="xy_rotation">
+              <a:documentation>remove rotation in the xy-plane, around the z-axis</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="xz_rotation">
+              <a:documentation>remove rotation in the xz-plane, around the y-axis</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="yz_rotation">
+              <a:documentation>remove rotation in the yz-plane, around the x-axis</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+        </element>
+      </choice>
+    </optional>
+  </define>
+  <define name="basic_solver_options">
     <element name="relative_error">
       <a:documentation>Relative error
 
@@ -399,14 +518,8 @@ start at zero in which case this switch will have no effect (see the log output)
         <empty/>
       </element>
     </optional>
-    <optional>
-      <element name="remove_null_space">
-        <a:documentation>Remove Null-space from residual after applying preconditioner.
-This often leads to better convergence rates, when compared to
-imposing a reference_node to pin the solution.</a:documentation>
-        <empty/>
-      </element>
-    </optional>
+  </define>
+  <define name="miscellaneous_solver_options">
     <choice>
       <element name="never_ignore_solver_failures">
         <a:documentation>Solver failures are always treated as fatal errors. The

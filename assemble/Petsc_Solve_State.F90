@@ -177,6 +177,8 @@ contains
     !! override x%option_path if provided:
     character(len=*), optional, intent(in):: option_path
     
+    type(vector_field), pointer :: coordinates
+    type(vector_field) :: mesh_coordinates
     integer, dimension(:), pointer:: surface_nodes
     type(petsc_csr_matrix), dimension(:), pointer:: prolongators
     character(len=OPTION_PATH_LEN):: solver_option_path
@@ -185,11 +187,16 @@ contains
     ! no solver cache for petsc_csr_matrices at the mo'
     call petsc_solve_state_setup(solver_option_path, prolongators, surface_nodes, &
       state, x%mesh, x%dim, x%option_path, .false., option_path=option_path)
+
+    coordinates => extract_vector_field(state, "Coordinate")
+    call allocate(mesh_coordinates, coordinates%dim, x%mesh, "MeshCoordinates")
+    call remap_field(coordinates, mesh_coordinates)
+
     
     if (associated(prolongators)) then
     
       call petsc_solve(x, matrix, rhs, &
-           prolongators=prolongators, option_path=option_path)
+           prolongators=prolongators, option_path=option_path, positions=mesh_coordinates)
       
       do i=1, size(prolongators)
         call deallocate(prolongators(i))
@@ -198,9 +205,11 @@ contains
     
     else
     
-      call petsc_solve(x, matrix, rhs, option_path=option_path)
+      call petsc_solve(x, matrix, rhs, option_path=option_path, positions=mesh_coordinates)
       
     end if
+
+    call deallocate(coordinates)
     
   end subroutine petsc_solve_vector_state_petsc_csr
     

@@ -3,7 +3,9 @@
 # the only difference between the _asym and _sym versions
 # is the order of cg and gmres. Not providing cg for _asym is
 # not possible as in some cases the asymmetric equation is in fact symmetric
-# (e.g. momentum with no advection or coriolis).
+# (e.g. momentum with no advection or coriolis). The _asym version also
+# has a _vector version which is used for the Velocity solve - only difference
+# here being the null space options
 linear_solver_options_asym =
    (
       ## Iterative (Krylov) method to solve the linear discretised equation
@@ -30,7 +32,36 @@ linear_solver_options_asym =
          pcasm_options|
          pcother_options
       ),
-      generic_solver_options
+      generic_solver_options_scalar
+   )
+
+linear_solver_options_asym_vector =
+   (
+      ## Iterative (Krylov) method to solve the linear discretised equation
+      ## Given are the most frequently used methods. The solution is done
+      ## by the PETSc library. Many more methods are provided.
+      ##
+      (
+         kspgmres_options|
+         kspcg_options|
+         ksppreonly_options|
+         ksprichardson_options|
+         kspother_options
+      ),
+      ## Preconditioner to be used in combination with the iterative method.
+      (
+         pcsor_options|
+         pceisenstat_options|
+         pcilu_options|
+         pclu_options|
+         pcmg_options|
+         pcprometheus_options|
+         pchypre_options|
+         pcbjacobi_options|
+         pcasm_options|
+         pcother_options
+      ),
+      generic_solver_options_vector
    )
 
 linear_solver_options_sym =
@@ -61,7 +92,7 @@ linear_solver_options_sym =
          pcksp_options|
          pcother_options
       ),
-      generic_solver_options
+      generic_solver_options_scalar
    )
 
 # ####################################################################
@@ -348,7 +379,7 @@ pc_ksp_solver_options =
          pcasm_options|
          pcother_options
       ),
-      generic_solver_options
+      generic_solver_options_scalar
    )
 
 # ####################################################################
@@ -357,7 +388,83 @@ pc_ksp_solver_options =
 #
 # ####################################################################
 
-generic_solver_options =
+generic_solver_options_scalar =
+   (
+      basic_solver_options,
+      ## If the constant solution is a null vector of the linear system (e.g. Poisson equation with only Neumann bcs)
+      ## use this option to remove the constant component from the solution every iteration of the linear solver. This
+      ## leads to better convergence rates, when compared to imposing a reference_node to pin the solution.
+      element remove_null_space {
+         empty
+      }?,
+      miscellaneous_solver_options
+   )
+
+generic_solver_options_vector =
+   (
+      basic_solver_options,
+      ## If the linear system admits null vectors (i.e. the system is under-constrained)
+      ## use this option to project out the null space component from the solution every iteration of the linear solver. This
+      ## leads to better convergence rates, when compared to imposing a reference_node to pin the solution.
+      ## Depending on boundary conditions, a velocity equation without mass (time-derivative), absorption and coriolis terms,
+      ## may have a constant null solution for each component independently. Additionally, for a pure viscosity problem (Stokes equations)
+      ## a rotational mode around each axis may be present.
+      element remove_null_space {
+         null_space_options
+      }?,
+      element multigrid_near_null_space {
+         null_space_options
+      }?,
+      miscellaneous_solver_options
+   )
+
+null_space_options =
+   (
+      (
+        ## The nullspace contains all independent constant-component solutions
+        element all_components {
+          empty
+        }|
+        ## Remove only the specified constant-component solution
+        element specify_components {
+          ## Remove the constant x-component solution
+          element x_component {
+             empty
+          }?,
+          ## Remove the constant y-component solution
+          element y_component {
+             empty
+          }?,
+          ## Remove the constant z-component solution
+          element z_component {
+             empty
+          }?
+        }
+      ),
+      (
+        ## All rotational modes are removed
+        element all_rotations {
+          empty
+        }|
+        ## Specify rotational modes individually
+        element specify_rotations {
+          ## remove rotation in the xy-plane, around the z-axis
+          element xy_rotation {
+             empty
+          }?,
+          ## remove rotation in the xz-plane, around the y-axis
+          element xz_rotation {
+             empty
+          }?,
+          ## remove rotation in the yz-plane, around the x-axis
+          element yz_rotation {
+             empty
+          }?
+        }
+      )?
+   )
+
+basic_solver_options =
    (
       ## Relative error
       ##
@@ -382,13 +489,11 @@ generic_solver_options =
       ## start at zero in which case this switch will have no effect (see the log output).
       element start_from_zero {
          empty
-      }?,
-      ## Remove Null-space from residual after applying preconditioner.
-      ## This often leads to better convergence rates, when compared to
-      ## imposing a reference_node to pin the solution.
-      element remove_null_space {
-         empty
-      }?,
+      }?
+   )
+
+miscellaneous_solver_options =
+   (
       (
          ## Solver failures are always treated as fatal errors. The
          ## model stops at the end of the time step in order to allow

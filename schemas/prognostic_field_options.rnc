@@ -911,7 +911,7 @@ prognostic_velocity_field =
       }?,
       ## Solver
       element solver {
-         linear_solver_options_asym
+         linear_solver_options_asym_vector
       },
       (
          ## Initial condition for WholeMesh
@@ -1261,7 +1261,7 @@ prognostic_pressure_field =
                    element inner_matrix {
                      attribute name { "FullMomentumMatrix" },
                      element solver {
-                       linear_solver_options_asym
+                       linear_solver_options_asym_vector
                      }
                    }
                  ),
