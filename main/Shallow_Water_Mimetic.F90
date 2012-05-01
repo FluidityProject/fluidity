@@ -124,7 +124,7 @@
     call get_option('/simulation_name',simulation_name)
     call initialise_diagnostics(trim(simulation_name),states)
     
-    call setup_fields()
+    call setup_fields(states(1))
 
     call calculate_diagnostic_variables(states)
     call calculate_diagnostic_variables_new(states)
@@ -190,7 +190,7 @@
       type(state_type), intent(inout) :: state
       !
       type(vector_field), pointer :: U, advecting_u
-      type(scalar_field), pointer :: D
+      type(scalar_field), pointer :: D_old, D
       type(vector_field) :: newU
       type(scalar_field) :: newD
       integer :: nonlinear_iterations, nits
@@ -200,18 +200,21 @@
 
       !Set up iterative solutions and provide initial guess
       !From previous timestep
-      U => extract_vector_field(states, "LocalVelocity")
-      D => extract_scalar_field(states, "LayerThickness")
+      U => extract_vector_field(state, "LocalVelocity")
+      D => extract_scalar_field(state, "LayerThickness")
+      D_old => extract_scalar_field(state, "OldLayerThickness")
+      call set(D_old,D)
       advecting_u=>extract_vector_field(state, "NonlinearVelocity")
 
-      ewrite(1,*) 'Uvals Dvals', maxval(U%val), maxval(D%val)
-      
       if(have_option('/material_phase::Fluid/vector_field::Velocity/&
            &prognostic/spatial_discretisation/discontinuous_galerkin/wave&
            &_equation/no_wave_equation_step')) then
          !   !Just advance the D and PV fields.
+         call set(advecting_u, u)
+         ewrite(1,*) maxval(abs(advecting_u%val))
+
          call solve_advection_dg_subcycle("LayerThickness", state, &
-              "LocalVelocity",continuity=.true.)
+              "NonlinearVelocity",continuity=.true.)
       else
                call allocate(newU,U%dim,U%mesh,"NewLocalVelocity")
                call allocate(newD,D%mesh,"NewLayerThickness")
@@ -232,7 +235,8 @@
 
     end subroutine execute_timestep
 
-    subroutine setup_fields()
+    subroutine setup_fields(state)
+      type(state_type), intent(inout) :: state
       type(vector_field), pointer :: v_field,U,X
       type(scalar_field), pointer :: s_field,D,f_ptr
       type(mesh_type), pointer :: v_mesh
@@ -240,34 +244,34 @@
       character(len=PYTHON_FUNC_LEN) :: coriolis
       type(scalar_field) :: f, old_D
 
-      X=>extract_vector_field(states, "Coordinate")
-      U=>extract_vector_field(states, "Velocity")
+      X=>extract_vector_field(state, "Coordinate")
+      U=>extract_vector_field(state, "Velocity")
 
       !SET UP LOCAL VELOCITY
       !This needs an option to switch on as we don't always want to do it.
       !   !project velocity into div-conforming space
       call allocate(U_local, mesh_dim(U), U%mesh, "LocalVelocity")
       call zero(U_local)
-      call insert(states, U_local, "LocalVelocity")
+      call insert(state, U_local, "LocalVelocity")
       call deallocate(U_local)
-      v_field => extract_vector_field(states(1), "Velocity")
-      call project_cartesian_to_local(states(1), v_field)
+      v_field => extract_vector_field(state, "Velocity")
+      call project_cartesian_to_local(state, v_field)
 
       !Advecting velocity (just used for courant number)
       call allocate(advecting_u, mesh_dim(U), U%mesh, "NonlinearVelocity")
       call zero(advecting_u)
-      call insert(states, advecting_u, "NonlinearVelocity")
+      call insert(state, advecting_u, "NonlinearVelocity")
       call deallocate(advecting_u)
 
       !Old layer thickness (used for advection dg)
-      D => extract_scalar_field(states, "LayerThickness")
+      D => extract_scalar_field(state, "LayerThickness")
       call allocate(old_d, D%mesh, "OldLayerThickness")
       call zero(old_d)
-      call insert(states, old_d, "OldLayerThickness")
-      call deallocate(old_d)         
+      call insert(state, old_d, "OldLayerThickness")
+      call deallocate(old_d)
       
       !SET UP CORIOLIS FORCE
-      f_ptr => extract_scalar_field(states,"Coriolis",stat=stat)
+      f_ptr => extract_scalar_field(state,"Coriolis",stat=stat)
       if(stat.ne.0) then
          call allocate(f, U%mesh, "Coriolis")
          call get_option("/physical_parameters/coriolis", coriolis, stat)
@@ -276,43 +280,43 @@
          else
             call zero(f)
          end if
-         call insert(states, f, "Coriolis")
+         call insert(state, f, "Coriolis")
          call deallocate(f)
       end if
-      v_field => extract_vector_field(states(1), "LocalVelocity")
-      call project_to_constrained_space(states(1),v_field)
+      v_field => extract_vector_field(state, "LocalVelocity")
+      call project_to_constrained_space(state,v_field)
 
     !VARIOUS BALANCED INITIAL OPTIONS
     ! Geostrophic balanced initial condition, if required
     if(have_option("/material_phase::Fluid/vector_field::Velocity/prognostic&
          &/initial_condition::WholeMesh/balanced")) then
-       call set_velocity_from_geostrophic_balance_hybridized(states(1))
+       call set_velocity_from_geostrophic_balance_hybridized(state)
     end if
     !Set velocity from commuting projection?
     if(have_option("/material_phase::Fluid/vector_field::Velocity/&
          &prognostic/initial_condition::WholeMesh/&
          &commuting_projection")) then
-       call set_velocity_commuting_projection(states(1))
+       call set_velocity_commuting_projection(state)
     end if
     if(have_option("/material_phase::Fluid/vector_field::&
          &PrescribedVelocityFromCommutingProjection")) then
-       call set_velocity_commuting_projection(states(1),"PrescribedVelocityFr&
+       call set_velocity_commuting_projection(state,"PrescribedVelocityFr&
             &omCommutingProjection")
     end if
 
     !Set velocity from spherical components
     if(have_option("/material_phase::Fluid/vector_field::Velocity/prognost&
          &ic/initial_condition::WholeMesh/from_sphere_pullback")) then
-       call set_velocity_from_sphere_pullback(states(1))
+       call set_velocity_from_sphere_pullback(state)
     end if
     
     if(have_option("/material_phase::Fluid/scalar_field::LayerThickness/pr&
          &ognostic/initial_condition::ProjectionFromPython")) then
-       call set_layerthickness_projection(states(1))
+       call set_layerthickness_projection(state)
     end if
     if(have_option("/material_phase::Fluid/scalar_field::PrescribedLayerDe&
          &pthFromProjection")) then
-       call set_layerthickness_projection(states(1),&
+       call set_layerthickness_projection(state,&
             &"PrescribedLayerDepthFromProjection")
     end if
 

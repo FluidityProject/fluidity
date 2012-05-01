@@ -136,10 +136,15 @@ module advection_local_DG
     character(len=FIELD_NAME_LEN) :: limiter_name
     integer :: i
 
+    ewrite(1,*) 'subroutine solve_advection_dg_subcycle'
+
+
     T=>extract_scalar_field(state, field_name)
     T_old=>extract_scalar_field(state, "Old"//field_name)
     X=>extract_vector_field(state, "Coordinate")
     U_nl=>extract_vector_field(state, velocity_name)
+
+    ewrite(1,*) 'UVALS in dg', maxval(abs(U_nl%val))
 
     ! Reset T to value at the beginning of the timestep.
     call set(T, T_old)
@@ -209,7 +214,7 @@ module advection_local_DG
        s_field => extract_scalar_field(state, "DG_CourantNumber")
        call calculate_diagnostic_variable(state, "DG_CourantNumber_Local", &
             & s_field)
-       
+       ewrite_minmax(s_field)
        subcycles = ceiling( maxval(s_field%val)/Max_Courant_number)
        call allmax(subcycles)
        ewrite(2,*) 'Number of subcycles for tracer eqn: ', subcycles
@@ -239,13 +244,17 @@ module advection_local_DG
     if (limit_slope) then
        ! Filter wiggles from T
        call limit_slope_dg(T, U_nl, X, state, limiter, delta_T)
-       call zero(upwindflux)
-       call update_flux(Flux, Delta_T, UpwindFlux)
+       if(present(flux)) then
+          call zero(upwindflux)
+          call update_flux(Flux, Delta_T, UpwindFlux)
+       end if
    end if
 
     do i=1, subcycles
 
-       call zero(delta_t_total)
+       if(present(flux)) then
+          call zero(delta_t_total)
+       end if
        ! dT = Advection * T
        call mult(delta_T, matrix, T)
        ! dT = dT + RHS
@@ -257,20 +266,27 @@ module advection_local_DG
        end if
        ! dT = M^(-1) dT
        call dg_apply_mass(inv_mass, delta_T)
-       call mult(UpwindFlux, upwindfluxmatrix, T)
-       call scale(UpwindFlux,-dt/subcycles)
+       ewrite(1,*) 'Delta_T', maxval(abs(delta_T%val))
+       if(present(flux)) then
+          call mult(UpwindFlux, upwindfluxmatrix, T)
+          call scale(UpwindFlux,-dt/subcycles)
+          call addto(delta_t_total,delta_t, scale=-dt/subcycles)
+       end if
        ! T = T + dt/s * dT
        call addto(T, delta_T, scale=-dt/subcycles)
-       call addto(delta_t_total,delta_t, scale=-dt/subcycles)
        !Probably need to halo_update(delta_T) as well
        call halo_update(T)
 
        if (limit_slope) then
           ! Filter wiggles from T
           call limit_slope_dg(T, U_nl, X, state, limiter, delta_T)
-          call addto(delta_t_total, delta_t)
+          if(present(flux)) then
+             call addto(delta_t_total, delta_t)
+          end if
       end if
-      call update_flux(Flux, Delta_T_total, UpwindFlux)
+      if(present(flux)) then
+         call update_flux(Flux, Delta_T_total, UpwindFlux)
+      end if
     end do
 
     if(present(Flux)) then
