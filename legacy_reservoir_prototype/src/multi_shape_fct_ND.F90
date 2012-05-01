@@ -1742,7 +1742,8 @@
       integer, parameter :: max_totele = 10000, max_x_nonods = 10000
       logical :: d1, dcyl, d3
       integer :: ele, quad_cv_ngi, quad_cv_nloc, totele, x_nonods, &
-           cv_gj,cv_gk,cv_iloc
+           cv_gj,cv_gk,cv_iloc,cv_gi
+      real :: rsum
 
       ewrite(3,*)'In vol_cv_tri_tet_shape'
 
@@ -1780,7 +1781,8 @@
       call Compute_XNDGLN_TriTetQuadHex( cv_ele_type, &
            max_totele, max_x_nonods, quad_cv_nloc, &
            totele, x_nonods, &
-           x_ndgln, lx, ly, lz, x, y, z, fem_nod )
+           x_ndgln, lx, ly, lz, x, y, z, &
+           fem_nod,x_ideal,y_ideal,z_ideal,x_ndgln_ideal )
 
       ! Compute the shape functions using these quadrilaterals/hexs:
       ! For pressure:
@@ -1792,6 +1794,21 @@
       ! Compute cvn: 
       call Calc_CVN_TriTetQuadHex( cv_ele_type, totele, cv_nloc, cv_ngi, x_nonods, &
            quad_cv_nloc, x_ndgln, fem_nod, cvn )
+
+        print *,'cvweigh:',cvweigh
+        do cv_iloc=1,cv_nloc
+           rsum=0.0
+           do cv_gi=1,cv_ngi
+             rsum=rsum+cvn(cv_iloc,cv_gi)*cvweigh(cv_gi)
+           end do
+           print *,'cv_iloc,rsum:',cv_iloc,rsum
+        end do
+!         stop 2922
+      if(cv_nloc==10) then
+            totele_sub=8
+            call test_quad_tet(cv_nloc,cv_ngi,cvn,n,nlx,nly,nlz, &
+                       cvweigh,x_ideal,y_ideal,z_ideal,cv_nloc,x_ndgln_ideal,totele_sub) 
+      endif
 
       ! And for velocities:
       if(u_nloc==1) then ! constant basis function throughout element...
@@ -1818,6 +1835,55 @@
 
       return
     end subroutine vol_cv_tri_tet_shape
+
+
+
+     subroutine test_quad_tet(cv_nloc,cv_ngi,cvn,n,nlx,nly,nlz, &
+                       cvweigh,x,y,z,x_nonods,x_ndgln,totele)
+! test the volumes of idealised triangle 
+      implicit none
+      integer, intent( in ) :: cv_nloc,cv_ngi,x_nonods
+      real, dimension( x_nonods ), intent( in ) :: x, y, z
+      real, dimension( cv_ngi ), intent( in ) :: cvweigh
+      real, dimension( cv_nloc,cv_ngi ), intent( in ) :: cvn
+      REAL, DIMENSION( CV_NLOC, CV_NGI ), intent( in ) :: N, NLX, NLY, NLZ 
+! local variables...
+      integer, dimension( : ), allocatable :: x_ndgln2, x_ndgln_big
+      real, dimension( : ), allocatable :: DETWEI,RA
+      real, dimension( :,: ), allocatable :: NX,NY,NZ
+      INTEGER :: NDIM
+      LOGICAL :: D1,D3,DCYL
+      REAL :: VOLUME
+
+      ALLOCATE( DETWEI( CV_NGI )) 
+      ALLOCATE( RA( CV_NGI ))
+      ALLOCATE( NX( CV_NLOC, CV_NGI ))
+      ALLOCATE( NY( CV_NLOC, CV_NGI ))
+      ALLOCATE( NZ( CV_NLOC, CV_NGI ))
+
+      ndim=3
+      D1 = ( NDIM == 1 )
+      D3 = ( NDIM == 3 )
+      DCYL = .FALSE. 
+
+      RSUM=0.0
+      Loop_Elements: DO ELE = 1, TOTELE
+
+         ! Calculate DETWEI,RA,NX,NY,NZ for element ELE
+         CALL DETNLXR( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, CV_NLOC, CV_NGI, &
+              N, NLX, NLY, NLZ, CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
+              NX, NY, NZ ) 
+         PRINT *,'VOLUME=',VOLUME
+         PRINT *,'detwei:',detwei
+         RSUM=RSUM+VOLUME
+      END DO Loop_Elements
+
+      PRINT *,'VOLUME OF THE DOMAIN(SHOULD BE 1):',RSUM
+    
+      STOP 2992
+
+      return
+     end subroutine test_quad_tet
 
 
 
