@@ -308,6 +308,7 @@ module advection_local_DG
     !! Subroutine to compute div-conforming Flux such that
     !! div Flux = Delta_T
     !! with Flux.n = UpwindFlux on element boundaries
+    !! and then to add to Flux
     type(vector_field), intent(inout) :: Flux
     type(scalar_field), intent(in) :: Delta_T
     type(scalar_field), intent(in) :: UpwindFlux
@@ -336,7 +337,7 @@ module advection_local_DG
     real, dimension(Flux%dim*ele_loc(Flux,ele),&
          Flux%dim*ele_loc(Flux,ele)) :: Flux_mat
     real, dimension(Flux%dim*ele_loc(Flux,ele)) :: Flux_rhs
-    integer :: row, ni, ele2, face, face2, floc
+    integer :: row, ni, ele2, face, floc
     integer, dimension(:), pointer :: neigh
     type(constraints_type), pointer :: flux_constraint
     !! Need to set up and solve equation for flux DOFs
@@ -358,19 +359,71 @@ module advection_local_DG
     do ni = 1, size(neigh)
        ele2 = neigh(ni)
        face = ele_face(Flux,ele,ele2)
-       face2 = ele_face(Flux,ele2,ele)
-       floc = flux_constraint%n_face_basis
+       floc = face_loc(upwindflux,face)
        
-       !call update_flux_face(&
-       !     Flux,X,down,Python_Function,face,&
-       !     face2,ele,ele2,projection_mat(row:row+floc-1,:),&
-       !     projection_rhs(row:row+floc-1))
+       call update_flux_face(&
+            Flux,UpwindFlux,face,&
+            ele,ele2,Flux_mat(row:row+floc-1,:),&
+            Flux_rhs(row:row+floc-1))
        row = row + floc
     end do
 
+    !Next the gradient basis
+
+    !Then the curl basis
+
+    !Then the constraints
+
+    !A debugging check.
     FLAbort('Need to do debugging check')
 
   end subroutine update_flux_ele
+
+  subroutine update_flux_face(&
+       Flux,UpwindFlux,face,&
+       ele,ele2,Flux_mat_rows,Flux_rhs_rows)
+    type(vector_field), intent(in) :: Flux
+    type(scalar_Field), intent(in) :: UpwindFlux
+    integer, intent(in) :: face,ele,ele2
+    real, dimension(face_loc(upwindflux,ele),&
+         &mesh_dim(flux)*ele_loc(flux,ele)), &
+         &intent(inout) :: flux_mat_rows
+    real, dimension(flux%mesh%shape%constraints%n_face_basis), intent(inout)&
+         &:: flux_rhs_rows
+    !
+    integer :: dim1, row, flux_dim1
+    real, dimension(mesh_dim(flux), face_ngi(flux, face)) :: n_local
+    real, dimension(face_ngi(flux,face)) :: detwei_f
+    real :: weight
+    type(element_type), pointer :: flux_face_shape, upwindflux_face_shape
+    integer, dimension(face_loc(flux,face)) :: flux_face_nodes
+    real, dimension(mesh_dim(flux),face_loc(upwindflux,face),&
+         face_loc(flux,face)) :: face_mat
+    !
+    flux_face_shape=>face_shape(flux, face)
+    upwindflux_face_shape=>face_shape(upwindflux, face)
+    flux_face_nodes=face_local_nodes(flux, face)
+
+    !Get normal in local coordinates
+    call get_local_normal(n_local,weight,flux,&
+         &local_face_number(flux%mesh,face))
+    detwei_f = weight*flux_face_shape%quadrature%weight
+    face_mat = shape_shape_vector(&
+         upwindflux_face_shape,flux_face_shape,detwei_f,n_local)
+    !Equation is:
+    ! <\phi,Flux.n> = <\phi,UpwindFlux> for all trace test functions \phi.
+
+    do row = 1, size(flux_mat_rows,1)
+       flux_mat_rows(row,:) = 0.
+       do dim1 = 1,mesh_dim(flux)
+          flux_dim1 = (dim1-1)*ele_loc(flux,ele)
+          flux_mat_rows(row,flux_dim1+flux_face_nodes)&
+               &=face_mat(dim1,row,:)
+       end do
+    end do
+    flux_rhs_rows = ele_val(UpwindFlux,face)
+
+  end subroutine update_flux_face
 
   subroutine construct_advection_dg(big_m, rhs, field_name,&
        & state, mass, velocity_name, continuity,&
