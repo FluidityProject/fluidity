@@ -61,7 +61,7 @@ module transform_elements
   public :: transform_to_physical, transform_facet_to_physical, &
             transform_cvsurf_to_physical, transform_cvsurf_facet_to_physical, &
             transform_superconvergent_to_physical, transform_horizontal_to_physical, &
-            compute_jacobian, compute_inverse_jacobian, element_volume,&
+            compute_jacobian, compute_inverse_jacobian, element_volume, surface_element_area, &
             cache_transform_elements, deallocate_transform_cache
   
   integer, parameter :: cyc3(1:5)=(/ 1, 2, 3, 1, 2 /)  
@@ -1790,5 +1790,19 @@ contains
     element_volume=sum(detwei)
 
   end function element_volume
+
+  function surface_element_area(position, face)
+    !!< Return the area of surface element in the positions field.
+    real :: surface_element_area
+    type(vector_field), intent(in) :: position
+    integer, intent(in) :: face
+    
+    real, dimension(face_ngi(position, face)) :: detwei_f
+
+    call transform_facet_to_physical(position, face, detwei_f)
+    
+    surface_element_area=sum(detwei_f)
+
+  end function surface_element_area
 
 end module transform_elements

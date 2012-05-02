@@ -622,7 +622,7 @@ darcy_impes_first_phase_pressure_field =
                   linear_solver_options_asym
                },
                initial_condition_scalar+,
-               darcy_impes_bc_pressure_field*,
+               darcy_impes_first_phase_bc_pressure_field*,
                darcy_impes_include_cv_stat, 
                adaptivity_options_prognostic_scalar_field,
                interpolation_algorithm_scalar
@@ -648,6 +648,7 @@ darcy_impes_non_first_phase_pressure_field =
             element mesh {
                attribute name { "PressureMesh" }      
             },
+            darcy_impes_non_first_phase_bc_pressure_field*,
             darcy_impes_include_cv_stat, 
             adaptivity_options_scalar_field,
             interpolation_algorithm_scalar
@@ -918,6 +919,7 @@ darcy_impes_interstitial_velocity_porosity_field =
             element mesh {
                attribute name { "VelocityMesh" }      
             },
+            darcy_impes_bc_velocity_field*, 
             darcy_impes_include_cv_stat, 
             interpolation_algorithm_scalar
          }
@@ -950,7 +952,6 @@ darcy_impes_darcy_velocity_field =
             element mesh {
                attribute name { "VelocityMesh" }      
             },
-            darcy_impes_bc_darcy_velocity_field*,
             darcy_impes_include_cv_stat, 
             interpolation_algorithm_scalar
          }
@@ -983,7 +984,6 @@ darcy_impes_total_darcy_velocity_field =
             element mesh {
                attribute name { "VelocityMesh" }      
             },
-            darcy_impes_bc_total_darcy_velocity_field*,
             darcy_impes_include_cv_stat, 
             interpolation_algorithm_scalar
          }
@@ -1039,7 +1039,7 @@ darcy_impes_sum_saturation =
    )
 
 
-darcy_impes_bc_pressure_field =
+darcy_impes_first_phase_bc_pressure_field =
    (
       ## Boundary conditions
       element boundary_conditions {
@@ -1053,6 +1053,20 @@ darcy_impes_bc_pressure_field =
    )
 
 
+darcy_impes_non_first_phase_bc_pressure_field =
+   (
+      ## Boundary conditions
+      element boundary_conditions {
+         attribute name { string },
+         ## Surface id
+         element surface_ids {
+            integer_vector
+         },
+         darcy_impes_weak_dirichlet_bc            
+      }   
+   )
+
+
 darcy_impes_bc_saturation_field =
    (
       ## Boundary conditions
@@ -1062,12 +1076,7 @@ darcy_impes_bc_saturation_field =
          element surface_ids {
             integer_vector
          },
-         (
-            darcy_impes_dirichlet_bc|
-            element type {
-               attribute name { "zero_flux" }
-            }
-         )
+         darcy_impes_dirichlet_bc
       }   
    )
 
@@ -1090,25 +1099,21 @@ darcy_impes_dirichlet_bc =
       }   
    )
 
-darcy_impes_bc_darcy_velocity_field =
+
+darcy_impes_weak_dirichlet_bc = 
    (
-      ## Boundary conditions
-      element boundary_conditions {
-         attribute name { string },
-         ## Surface id
-         element surface_ids {
-            integer_vector
+      element type {
+         attribute name { "dirichlet" },
+         ## Apply the dirichlet BC weakly
+         element apply_weakly {
+            empty
          },
-         element type {
-            attribute name { "normal_flow" },
-            input_choice_real
-         }            
+         input_choice_real
       }   
-   
    )
 
 
-darcy_impes_bc_total_darcy_velocity_field =
+darcy_impes_bc_velocity_field =
    (
       ## Boundary conditions
       element boundary_conditions {
@@ -1117,10 +1122,15 @@ darcy_impes_bc_total_darcy_velocity_field =
          element surface_ids {
             integer_vector
          },
-         element type {
-            attribute name { "normal_flow" },
-            input_choice_real
-         }            
+         (
+            element type {
+               attribute name { "normal_flow" },
+               input_choice_real
+            }|
+            element type {
+               attribute name { "no_normal_flow" }
+            }
+         )                        
       }   
    
    )

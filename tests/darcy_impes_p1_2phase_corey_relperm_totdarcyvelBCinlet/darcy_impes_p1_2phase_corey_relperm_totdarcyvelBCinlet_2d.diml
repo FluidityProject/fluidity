@@ -193,17 +193,11 @@
             <integer_value shape="1" rank="1">10</integer_value>
           </surface_ids>
           <type name="dirichlet">
-            <apply_strongly/>
+            <apply_weakly/>
             <constant>
               <real_value rank="0">1.0</real_value>
             </constant>
           </type>
-        </boundary_conditions>
-        <boundary_conditions name="top_bottom">
-          <surface_ids>
-            <integer_value shape="2" rank="1">7 9</integer_value>
-          </surface_ids>
-          <type name="zero_flux"/>
         </boundary_conditions>
         <stat>
           <include_cv_stats/>
@@ -275,6 +269,22 @@ for n in range(field.node_count):
     <vector_field name="InterstitialVelocityPorosity" rank="0">
       <diagnostic>
         <mesh name="VelocityMesh"/>
+        <boundary_conditions name="left">
+          <surface_ids>
+            <integer_value shape="1" rank="1">10</integer_value>
+          </surface_ids>
+          <type name="normal_flow">
+            <constant>
+              <real_value rank="0">-1.0</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
+        <boundary_conditions name="top_bottom">
+          <surface_ids>
+            <integer_value shape="2" rank="1">7 9</integer_value>
+          </surface_ids>
+          <type name="no_normal_flow"/>
+        </boundary_conditions>
         <stat>
           <include_cv_stats/>
         </stat>
@@ -311,16 +321,6 @@ for n in range(field.node_count):
     <vector_field name="TotalDarcyVelocity" rank="0">
       <diagnostic>
         <mesh name="VelocityMesh"/>
-        <boundary_conditions name="left">
-          <surface_ids>
-            <integer_value shape="1" rank="1">10</integer_value>
-          </surface_ids>
-          <type name="normal_flow">
-            <constant>
-              <real_value rank="0">-1</real_value>
-            </constant>
-          </type>
-        </boundary_conditions>
         <stat>
           <include_cv_stats/>
         </stat>
@@ -392,17 +392,11 @@ for n in range(field.node_count):
             <integer_value shape="1" rank="1">10</integer_value>
           </surface_ids>
           <type name="dirichlet">
-            <apply_strongly/>
+            <apply_weakly/>
             <constant>
               <real_value rank="0">0.0</real_value>
             </constant>
           </type>
-        </boundary_conditions>
-        <boundary_conditions name="top_bottom">
-          <surface_ids>
-            <integer_value shape="2" rank="1">7 9</integer_value>
-          </surface_ids>
-          <type name="zero_flux"/>
         </boundary_conditions>
         <stat>
           <include_cv_stats/>
@@ -472,6 +466,12 @@ for n in range(field.node_count):
     <vector_field name="InterstitialVelocityPorosity" rank="0">
       <diagnostic>
         <mesh name="VelocityMesh"/>
+        <boundary_conditions name="top_bottom">
+          <surface_ids>
+            <integer_value shape="2" rank="1">7 9</integer_value>
+          </surface_ids>
+          <type name="no_normal_flow"/>
+        </boundary_conditions>
         <stat>
           <include_cv_stats/>
         </stat>

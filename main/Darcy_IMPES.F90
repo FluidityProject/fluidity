@@ -171,9 +171,9 @@ program Darcy_IMPES
     
    call read_command_line_load_options_set_simulation_name(darcy_debug_log_unit, darcy_debug_err_unit)
    
-   ewrite(1,*) "***************"    
-   ewrite(1,*) "* Darcy IMPES *"
-   ewrite(1,*) "***************"
+   ewrite(1,*) "***********************"    
+   ewrite(1,*) "* Fluidity-DarcyIMPES *"
+   ewrite(1,*) "***********************"
 
 #ifdef HAVE_ZOLTAN
    ierrz = Zoltan_Initialize(ver)  
@@ -510,9 +510,9 @@ program Darcy_IMPES
    call toc(TICTOC_ID_SIMULATION)
    call tictoc_report(2, TICTOC_ID_SIMULATION)
 
-   ewrite(1,*) "************************"    
-   ewrite(1,*) "* Finished Darcy IMPES *"
-   ewrite(1,*) "************************"
+   ewrite(1,*) "********************************"    
+   ewrite(1,*) "* Finished Fluidity-DarcyIMPES *"
+   ewrite(1,*) "********************************"
 
    if(output_log_file) close(darcy_debug_log_unit)
    if(output_log_file) close(darcy_debug_err_unit)
@@ -569,6 +569,7 @@ contains
       di%porosity                  => extract_scalar_field(di%state(1), "Porosity")
       di%old_porosity              => extract_scalar_field(di%state(1), "OldPorosity")
       di%absolute_permeability     => extract_scalar_field(di%state(1), "AbsolutePermeability")
+      di%old_absolute_permeability => extract_scalar_field(di%state(1), "OldAbsolutePermeability")
       di%positions                 => extract_vector_field(di%state(1), "Coordinate")
       di%total_darcy_velocity      => extract_vector_field(di%state(1), "TotalDarcyVelocity")
       di%sum_saturation            => extract_scalar_field(di%state(1), "SumSaturation")
@@ -617,7 +618,9 @@ contains
       allocate(di%saturation(di%number_phase))
       allocate(di%old_saturation(di%number_phase))
       allocate(di%relative_permeability(di%number_phase))
+      allocate(di%old_relative_permeability(di%number_phase))
       allocate(di%viscosity(di%number_phase))      
+      allocate(di%old_viscosity(di%number_phase)) 
       allocate(di%inter_velocity_porosity(di%number_phase))
       allocate(di%old_inter_velocity_porosity(di%number_phase))
       allocate(di%cfl(di%number_phase))
@@ -640,7 +643,9 @@ contains
          di%saturation(p)%ptr                  => extract_scalar_field(di%state(p), "Saturation")
          di%old_saturation(p)%ptr              => extract_scalar_field(di%state(p), "OldSaturation")
          di%relative_permeability(p)%ptr       => extract_scalar_field(di%state(p), "RelativePermeability")
+         di%old_relative_permeability(p)%ptr   => extract_scalar_field(di%state(p), "OldRelativePermeability")
          di%viscosity(p)%ptr                   => extract_scalar_field(di%state(p), "Viscosity")
+         di%old_viscosity(p)%ptr               => extract_scalar_field(di%state(p), "OldViscosity")
          di%inter_velocity_porosity(p)%ptr     => extract_vector_field(di%state(p), "InterstitialVelocityPorosity")
          di%old_inter_velocity_porosity(p)%ptr => extract_vector_field(di%state(p), "OldInterstitialVelocityPorosity")
          di%cfl(p)%ptr                         => extract_scalar_field(di%state(p), "InterstitialVelocityCFL")
@@ -676,32 +681,47 @@ contains
 
       call invert(di%inverse_cv_mass_pressure_mesh)   
       
-      ! Allocate the darcy velocity (and total) BC normal_flow value fields and flag
+      ! Allocate the vphi, pressure and saturation BC value mesh, field and flag
       
-      ! always make a surface mesh for the darcy velocity (and total) BC arrays
-      di%darcy_velocity_surface_mesh = make_mesh(di%darcy_velocity(1)%ptr%mesh%faces%surface_mesh, &
-                                                 di%darcy_velocity(1)%ptr%mesh%faces%shape, &
-                                                 continuity=-1, &
-                                                 name=trim(di%darcy_velocity(1)%ptr%mesh%name)//"DGSurfaceMesh")
+      di%bc_surface_mesh = make_mesh(di%pressure_mesh%faces%surface_mesh, &
+                                     di%pressure_mesh%faces%shape, &
+                                     continuity=-1, &
+                                     name='DGSurfaceMesh')
+               
+      call allocate(di%vphi_bc_value, &
+                   &di%bc_surface_mesh, &
+                   &name='VPHIBCValue')         
+      
+      allocate(di%vphi_bc_flag(surface_element_count(di%pressure_mesh)))
 
-      call allocate(di%total_darcy_velocity_normal_flow_bc_value, &
-                   &di%darcy_velocity_surface_mesh, &
-                   &name=trim(di%total_darcy_velocity%name)//'NormalFlowBCValue')
+      call allocate(di%saturation_bc_value, &
+                   &di%bc_surface_mesh, &
+                   &name='SaturationBCValue')         
       
-      allocate(di%total_darcy_velocity_normal_flow_bc_flag(surface_element_count(di%darcy_velocity(1)%ptr)))
-      
-      allocate(di%darcy_velocity_normal_flow_bc_value(di%number_phase))
-      
-      do p = 1,di%number_phase
-         
-         allocate(di%darcy_velocity_normal_flow_bc_value(p)%ptr)
-         call allocate(di%darcy_velocity_normal_flow_bc_value(p)%ptr, &
-                      &di%darcy_velocity_surface_mesh, &
-                      &name=trim(di%darcy_velocity(p)%ptr%name)//'NormalFlowBCValue')         
-         
-      end do      
+      allocate(di%saturation_bc_flag(surface_element_count(di%pressure_mesh)))
 
-      allocate(di%darcy_velocity_normal_flow_bc_flag(surface_element_count(di%darcy_velocity(1)%ptr), di%number_phase))
+      call allocate(di%pressure_bc_value, &
+                   &di%bc_surface_mesh, &
+                   &name='PressureBCValue')         
+      
+      allocate(di%pressure_bc_flag(surface_element_count(di%pressure_mesh)))
+      
+      ! Allocate and find a flag for each phase for whether it has pressure BC's
+      allocate(di%pressure_has_weak_dirichlet_bcs(di%number_phase))
+      
+      do p = 1, di%number_phase
+      
+         di%pressure_has_weak_dirichlet_bcs(p) = has_boundary_condition(di%pressure(p)%ptr, 'weakdirichlet')
+         
+      end do
+      
+      ! Initialise a surface field used to cache the inverse characteristic 
+      ! length required for weak dirichlet BCs for pressure
+      call allocate(di%inverse_characteristic_length, &
+                   &di%bc_surface_mesh, &
+                   &name='InverseCharacteristicLength')
+      
+      call darcy_impes_calculate_inverse_characteristic_length(di)
       
       ! Get the saturation cv options from the first phase
       di%saturation_cv_options = get_cv_options(di%saturation(1)%ptr%option_path, &
@@ -826,10 +846,15 @@ contains
       ! evaluated at the control volume faces located on the domain boundary
       ! for the positions mesh assuming all boundary elements are the same type.
       di%x_cvbdyshape = make_cvbdy_element_shape(di%cvfaces, di%positions%mesh%faces%shape)
+
+      ! Generate the CV shape function with reduced number of derivatives
+      ! evaluated at the control volume faces located on the domain boundary
+      ! for the pressure mesh assuming all boundary elements are the same type.
+      di%p_cvbdyshape = make_cvbdy_element_shape(di%cvfaces, di%pressure_mesh%faces%shape)
       
-      ! allocate the arrays used to cache the phase face values 
+      ! Initialise the arrays used to cache the phase face values 
       ! which are perhaps summed over the subcycles.
-      call darcy_impes_allocate_cached_phase_face_value(di)
+      call darcy_impes_initialise_cached_phase_face_value(di)
       
       ! If the first phase saturation is diagnostic then calculate it
       if (di%phase_one_saturation_diagnostic) call darcy_impes_calculate_phase_one_saturation_diagnostic(di)
@@ -880,7 +905,7 @@ contains
       
       ! The darcy_impes_type components are finalised in the same order they are initialised
       
-      ! local variable
+      ! local variables
       integer :: p
       
       ewrite(1,*) 'Finalise Darcy IMPES data'
@@ -901,6 +926,7 @@ contains
       nullify(di%porosity)
       nullify(di%old_porosity)
       nullify(di%absolute_permeability)
+      nullify(di%old_absolute_permeability)
       nullify(di%positions)
       nullify(di%total_darcy_velocity)
       nullify(di%sum_saturation)
@@ -935,7 +961,9 @@ contains
       deallocate(di%saturation)
       deallocate(di%old_saturation)
       deallocate(di%relative_permeability)
+      deallocate(di%old_relative_permeability)
       deallocate(di%viscosity)
+      deallocate(di%old_viscosity)
       deallocate(di%inter_velocity_porosity)
       deallocate(di%old_inter_velocity_porosity)      
       deallocate(di%cfl)
@@ -954,17 +982,15 @@ contains
       call deallocate(di%inverse_cv_mass_cfl_mesh)
       call deallocate(di%inverse_cv_mass_pressure_mesh)
       
-      call deallocate(di%darcy_velocity_surface_mesh)
-      
-      call deallocate(di%total_darcy_velocity_normal_flow_bc_value)
-      deallocate(di%total_darcy_velocity_normal_flow_bc_flag)
-
-      do p = 1,di%number_phase
-         call deallocate(di%darcy_velocity_normal_flow_bc_value(p)%ptr)
-         deallocate(di%darcy_velocity_normal_flow_bc_value(p)%ptr)
-      end do
-      deallocate(di%darcy_velocity_normal_flow_bc_value)
-      deallocate(di%darcy_velocity_normal_flow_bc_flag)      
+      call deallocate(di%bc_surface_mesh)      
+      call deallocate(di%vphi_bc_value)
+      deallocate(di%vphi_bc_flag)      
+      call deallocate(di%saturation_bc_value)
+      deallocate(di%saturation_bc_flag)      
+      call deallocate(di%pressure_bc_value)
+      deallocate(di%pressure_bc_flag)      
+      deallocate(di%pressure_has_weak_dirichlet_bcs)
+      call deallocate(di%inverse_characteristic_length)
       
       ! Nothing can be done for di%saturation_cv_options
       
@@ -994,8 +1020,16 @@ contains
       call deallocate(di%x_cvshape)
       call deallocate(di%p_cvshape)
       call deallocate(di%x_cvbdyshape)
+      call deallocate(di%p_cvbdyshape)
       
-      deallocate(di%cached_phase_face_value)
+      do p = 1,di%number_phase
+         deallocate(di%cached_phase_face_value_domain(p)%value)
+         deallocate(di%cached_phase_face_value_domain(p)%ele_base)      
+         deallocate(di%cached_phase_face_value_boundary(p)%value)
+         deallocate(di%cached_phase_face_value_boundary(p)%ele_base)
+      end do
+      deallocate(di%cached_phase_face_value_domain)
+      deallocate(di%cached_phase_face_value_boundary)
       
       ! This must be last as it is used in loops above
       di%number_phase = 0

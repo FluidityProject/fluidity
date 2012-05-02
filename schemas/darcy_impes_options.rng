@@ -628,7 +628,7 @@ at the first timestep or not.</a:documentation>
             <ref name="initial_condition_scalar"/>
           </oneOrMore>
           <zeroOrMore>
-            <ref name="darcy_impes_bc_pressure_field"/>
+            <ref name="darcy_impes_first_phase_bc_pressure_field"/>
           </zeroOrMore>
           <ref name="darcy_impes_include_cv_stat"/>
           <ref name="adaptivity_options_prognostic_scalar_field"/>
@@ -660,6 +660,9 @@ at the first timestep or not.</a:documentation>
             <value>PressureMesh</value>
           </attribute>
         </element>
+        <zeroOrMore>
+          <ref name="darcy_impes_non_first_phase_bc_pressure_field"/>
+        </zeroOrMore>
         <ref name="darcy_impes_include_cv_stat"/>
         <ref name="adaptivity_options_scalar_field"/>
         <ref name="interpolation_algorithm_scalar"/>
@@ -933,7 +936,7 @@ Specify the number of advection subcycls. </a:documentation>
         <value>IncompressibleLinear</value>
       </attribute>
       <element name="reference_density">
-        <a:documentation>The reference or background density</a:documentation>
+        <a:documentation>The reference density</a:documentation>
         <ref name="real"/>
       </element>
     </element>
@@ -971,6 +974,9 @@ Specify the number of advection subcycls. </a:documentation>
             <value>VelocityMesh</value>
           </attribute>
         </element>
+        <zeroOrMore>
+          <ref name="darcy_impes_bc_velocity_field"/>
+        </zeroOrMore>
         <ref name="darcy_impes_include_cv_stat"/>
         <ref name="interpolation_algorithm_scalar"/>
       </element>
@@ -1009,9 +1015,6 @@ Specify the number of advection subcycls. </a:documentation>
             <value>VelocityMesh</value>
           </attribute>
         </element>
-        <zeroOrMore>
-          <ref name="darcy_impes_bc_darcy_velocity_field"/>
-        </zeroOrMore>
         <ref name="darcy_impes_include_cv_stat"/>
         <ref name="interpolation_algorithm_scalar"/>
       </element>
@@ -1050,9 +1053,6 @@ Specify the number of advection subcycls. </a:documentation>
             <value>VelocityMesh</value>
           </attribute>
         </element>
-        <zeroOrMore>
-          <ref name="darcy_impes_bc_total_darcy_velocity_field"/>
-        </zeroOrMore>
         <ref name="darcy_impes_include_cv_stat"/>
         <ref name="interpolation_algorithm_scalar"/>
       </element>
@@ -1115,7 +1115,7 @@ Specify the number of advection subcycls. </a:documentation>
       </element>
     </element>
   </define>
-  <define name="darcy_impes_bc_pressure_field">
+  <define name="darcy_impes_first_phase_bc_pressure_field">
     <element name="boundary_conditions">
       <a:documentation>Boundary conditions</a:documentation>
       <attribute name="name">
@@ -1128,6 +1128,19 @@ Specify the number of advection subcycls. </a:documentation>
       <ref name="darcy_impes_dirichlet_bc"/>
     </element>
   </define>
+  <define name="darcy_impes_non_first_phase_bc_pressure_field">
+    <element name="boundary_conditions">
+      <a:documentation>Boundary conditions</a:documentation>
+      <attribute name="name">
+        <data type="string" datatypeLibrary=""/>
+      </attribute>
+      <element name="surface_ids">
+        <a:documentation>Surface id</a:documentation>
+        <ref name="integer_vector"/>
+      </element>
+      <ref name="darcy_impes_weak_dirichlet_bc"/>
+    </element>
+  </define>
   <define name="darcy_impes_bc_saturation_field">
     <element name="boundary_conditions">
       <a:documentation>Boundary conditions</a:documentation>
@@ -1138,14 +1151,7 @@ Specify the number of advection subcycls. </a:documentation>
         <a:documentation>Surface id</a:documentation>
         <ref name="integer_vector"/>
       </element>
-      <choice>
-        <ref name="darcy_impes_dirichlet_bc"/>
-        <element name="type">
-          <attribute name="name">
-            <value>zero_flux</value>
-          </attribute>
-        </element>
-      </choice>
+      <ref name="darcy_impes_dirichlet_bc"/>
     </element>
   </define>
   <define name="darcy_impes_dirichlet_bc">
@@ -1166,25 +1172,19 @@ Specify the number of advection subcycls. </a:documentation>
       <ref name="input_choice_real"/>
     </element>
   </define>
-  <define name="darcy_impes_bc_darcy_velocity_field">
-    <element name="boundary_conditions">
-      <a:documentation>Boundary conditions</a:documentation>
+  <define name="darcy_impes_weak_dirichlet_bc">
+    <element name="type">
       <attribute name="name">
-        <data type="string" datatypeLibrary=""/>
+        <value>dirichlet</value>
       </attribute>
-      <element name="surface_ids">
-        <a:documentation>Surface id</a:documentation>
-        <ref name="integer_vector"/>
+      <element name="apply_weakly">
+        <a:documentation>Apply the dirichlet BC weakly</a:documentation>
+        <empty/>
       </element>
-      <element name="type">
-        <attribute name="name">
-          <value>normal_flow</value>
-        </attribute>
-        <ref name="input_choice_real"/>
-      </element>
+      <ref name="input_choice_real"/>
     </element>
   </define>
-  <define name="darcy_impes_bc_total_darcy_velocity_field">
+  <define name="darcy_impes_bc_velocity_field">
     <element name="boundary_conditions">
       <a:documentation>Boundary conditions</a:documentation>
       <attribute name="name">
@@ -1194,12 +1194,19 @@ Specify the number of advection subcycls. </a:documentation>
         <a:documentation>Surface id</a:documentation>
         <ref name="integer_vector"/>
       </element>
-      <element name="type">
-        <attribute name="name">
-          <value>normal_flow</value>
-        </attribute>
-        <ref name="input_choice_real"/>
-      </element>
+      <choice>
+        <element name="type">
+          <attribute name="name">
+            <value>normal_flow</value>
+          </attribute>
+          <ref name="input_choice_real"/>
+        </element>
+        <element name="type">
+          <attribute name="name">
+            <value>no_normal_flow</value>
+          </attribute>
+        </element>
+      </choice>
     </element>
   </define>
   <define name="darcy_impes_include_cv_stat">
