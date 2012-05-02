@@ -770,9 +770,13 @@
                      Loop_ILZ2: do ilz = 1, nl
                         nj = ilx + ( ily - 1 ) * 3 + ( ilz - 1 ) * 9
                         n( nj, gpoi ) = xn( ilx ) * yn( ily ) * zn( ilz )
+!                 print *,'nj, gpoi,n( nj, gpoi ),xn( ilx ), yn( ily ),zn( ilz ):', &
+!                          nj, gpoi,n( nj, gpoi ),xn( ilx ), yn( ily ),zn( ilz )
                         nlx( nj, gpoi ) = dxn( ilx ) * yn( ily ) * zn( ilz )
                         nly( nj, gpoi ) = xn( ilx ) * dyn( ily ) * zn( ilz )
                         nlz( nj, gpoi ) = xn( ilx ) * yn( ily ) * dzn( ilz )
+                 print *,'nj, gpoi,nlx( nj, gpoi ),dxn( ilx ), yn( ily ),zn( ilz ):', &
+                          nj, gpoi,nlx( nj, gpoi ),dxn( ilx ), yn( ily ),zn( ilz )
                      end do Loop_ILZ2
                   end do Loop_ILY2
                end do Loop_ILX2
@@ -1908,7 +1912,8 @@
               N, NLX, NLY, NLZ, CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
               NX, NY, NZ ) 
          PRINT *,'ele, VOLUME=',ele, VOLUME
-         !PRINT *,'detwei:',sum(detwei)
+         print *,'detwei:',detwei
+         PRINT *,'sum of detwei:',sum(detwei)
          RSUM=RSUM+VOLUME
          
          do cv_iloc=1,cv_nloc
@@ -3442,12 +3447,18 @@
       ! Local variables
       logical :: d1, dcyl, d3, lowqua
       integer :: ele, quad_cv_ngi, quad_cv_gi, cv_gi, nwicel, xnod, quad_cv_iloc, &
-           quad_u_loc_dummy, mloc, dummy_sngi, dummy_snloc, dummy_smloc
-      real :: xgi, ygi, zgi, volume, rsum
+           quad_u_loc_dummy, mloc, dummy_sngi, dummy_snloc, dummy_smloc, &
+           id,jd,kd
+      real :: xgi, ygi, zgi, volume, rsum, xstar, xfini, ystar, yfini 
+      real :: zstar, zfini,xcoord,ycoord,zcoord
+      real :: rsum1,rsum2,rsum3,rsum4,rsum5,rsum6,rsum7,rsum8
+      integer :: nod1,nod2,nod3, nod4,nod5,nod6,nod7,nod8
       real, dimension( : ), allocatable :: quad_l1, quad_l2, quad_l3, quad_l4, &
-           quad_cvweight, detwei, ra, rdummy
+           quad_cvweight, detwei, ra, rdummy, &
+           x_temp, y_temp, z_temp
       real, dimension( :, : ), allocatable :: quad_n, quad_nlx, quad_nly, quad_nlz, &
            quad_nx, quad_ny, quad_nz
+      integer, dimension( : ), allocatable :: x_ndgln_temp
 
       ewrite(3,*)'In shape_tri_tet'
 
@@ -3530,31 +3541,161 @@
            rdummy, rdummy, rdummy, rdummy, rdummy, rdummy, rdummy, &
            nwicel, d3 )   
 
+       print *,'quad_n:',quad_n
+       print *,'quad_nlx:',quad_nlx
+       print *,'quad_nly:',quad_nly
+       print *,'quad_nlz:',quad_nlz
+
+!        stop 2921
+
+        if(.false.) then
+               xnod = x_ndgln( 1 )
+            print *,'node1, x,y,z:',xnod,x(xnod),y(xnod),z(xnod)
+               xnod = x_ndgln( 3 )
+            print *,'node3, x,y,z:',xnod,x(xnod),y(xnod),z(xnod)
+               xnod = x_ndgln( 7 )
+            print *,'node7, x,y,z:',xnod,x(xnod),y(xnod),z(xnod)
+               xnod = x_ndgln( 9 )
+            print *,'node9, x,y,z:',xnod,x(xnod),y(xnod),z(xnod)
+
+               xnod = x_ndgln( 19 )
+            print *,'node19, x,y,z:',xnod,x(xnod),y(xnod),z(xnod)
+               xnod = x_ndgln( 21 )
+            print *,'node21, x,y,z:',xnod,x(xnod),y(xnod),z(xnod)
+               xnod = x_ndgln( 25 )
+            print *,'node25, x,y,z:',xnod,x(xnod),y(xnod),z(xnod)
+               xnod = x_ndgln( 27 )
+            print *,'node27, x,y,z:',xnod,x(xnod),y(xnod),z(xnod)
+        stop 3923
+      endif
+
       Loop_Elements: do ele = 1, totele ! Calculate DETWEI,RA,NX,NY,NZ for element ELE
 
+
+     if(.true.) then
          ewrite(3,*) '+++++++ELE::', ele
+       allocate(x_temp(27))
+       allocate(y_temp(27))
+       allocate(z_temp(27))
+       allocate(x_ndgln_temp(27))
+       xstar=-1.
+       xfini=+1.
+       ystar=-1.
+       yfini=+1.
+       zstar=-1.
+       zfini=+1.
+! redfine hex nodes
+       do id=1,3
+       do jd=1,3
+       do kd=1,3
+         quad_cv_iloc=(kd-1)*9 +(jd-1)*3+ id
+         xcoord= xstar + (real(id-1)/2.) * (xfini-xstar)
+         ycoord= ystar + (real(jd-1)/2.) * (yfini-ystar)
+         zcoord= zstar + (real(kd-1)/2.) * (zfini-zstar)
+         x_ndgln_temp(quad_cv_iloc)=quad_cv_iloc
+         x_temp(quad_cv_iloc)=xcoord
+         y_temp(quad_cv_iloc)=ycoord
+         z_temp(quad_cv_iloc)=zcoord
+       end do
+       end do
+       end do
+
+
+         call detnlxr( ele, x_temp, y_temp, z_temp, x_ndgln_temp, 1, 27, quad_cv_nloc, quad_cv_ngi, &
+              quad_n, quad_nlx, quad_nly, quad_nlz, quad_cvweight, &
+              detwei, ra, volume, d1, d3, dcyl, &       
+              quad_nx, quad_ny, quad_nz )
+
+      else
 
          call detnlxr( ele, x, y, z, x_ndgln, totele, x_nonods, quad_cv_nloc, quad_cv_ngi, &
               quad_n, quad_nlx, quad_nly, quad_nlz, quad_cvweight, &
               detwei, ra, volume, d1, d3, dcyl, &       
               quad_nx, quad_ny, quad_nz )
 
+!  nod1 to nod8 are the corners of the hex:
+        nod1=x_ndgln((ele-1)*quad_cv_nloc+1) 
+        nod2=x_ndgln((ele-1)*quad_cv_nloc+3) 
+        nod3=x_ndgln((ele-1)*quad_cv_nloc+7) 
+        nod4=x_ndgln((ele-1)*quad_cv_nloc+9) 
+
+        nod1=x_ndgln((ele-1)*quad_cv_nloc+19) 
+        nod2=x_ndgln((ele-1)*quad_cv_nloc+21) 
+        nod3=x_ndgln((ele-1)*quad_cv_nloc+25) 
+        nod8=x_ndgln((ele-1)*quad_cv_nloc+27) 
+
+! calculate the volume of the hex: 
+        
+        rsum1=Volume_TetHex( .false., &
+       x(nod1), x(nod2), x(nod3), x(nod4), &
+       y(nod1), y(nod2), y(nod3), y(nod4), &
+       z(nod1), z(nod2), z(nod3), z(nod4) )
+
+        rsum2=Volume_TetHex( .false., &
+       x(nod1), x(nod2), x(nod3), x(nod4), &
+       y(nod1), y(nod2), y(nod3), y(nod4), &
+       z(nod1), z(nod2), z(nod3), z(nod4) )
+
+        rsum3=Volume_TetHex( .false., &
+       x(nod1), x(nod2), x(nod3), x(nod4), &
+       y(nod1), y(nod2), y(nod3), y(nod4), &
+       z(nod1), z(nod2), z(nod3), z(nod4) )
+
+        rsum4=Volume_TetHex( .false., &
+       x(nod1), x(nod2), x(nod3), x(nod4), &
+       y(nod1), y(nod2), y(nod3), y(nod4), &
+       z(nod1), z(nod2), z(nod3), z(nod4) )
+
+        rsum5=Volume_TetHex( .false., &
+       x(nod1), x(nod2), x(nod3), x(nod4), &
+       y(nod1), y(nod2), y(nod3), y(nod4), &
+       z(nod1), z(nod2), z(nod3), z(nod4) )
+
+        rsum6=Volume_TetHex( .false., &
+       x(nod1), x(nod2), x(nod3), x(nod4), &
+       y(nod1), y(nod2), y(nod3), y(nod4), &
+       z(nod1), z(nod2), z(nod3), z(nod4) )
+
+        rsum7=Volume_TetHex( .false., &
+       x(nod1), x(nod2), x(nod3), x(nod4), &
+       y(nod1), y(nod2), y(nod3), y(nod4), &
+       z(nod1), z(nod2), z(nod3), z(nod4) )
+
+        rsum8=Volume_TetHex( .false., &
+       x(nod1), x(nod2), x(nod3), x(nod4), &
+       y(nod1), y(nod2), y(nod3), y(nod4), &
+       z(nod1), z(nod2), z(nod3), z(nod4) )
+
+      print *,'rsum1,rsum2,rsum3,rsum4,rsum5,rsum6,rsum7,rsum8:', &
+               rsum1,rsum2,rsum3,rsum4,rsum5,rsum6,rsum7,rsum8
+
+      print *,'rsum1+rsum2+rsum3+rsum4+rsum5+rsum6+rsum7+rsum8:', &
+               rsum1+rsum2+rsum3+rsum4+rsum5+rsum6+rsum7+rsum8
+
+       stop 2921
+
+
+       endif
+
+
+
          ewrite(3,*)'detwei for ele=:', ele, detwei
 
          do quad_cv_iloc = 1, quad_cv_nloc
-            !ewrite(3,*)' quad_cv_iloc: ', quad_cv_iloc
+            ewrite(3,*)' quad_cv_iloc: ', quad_cv_iloc
 
-            !ewrite(3,*)'quad_nlx:', ( quad_nlx( quad_cv_iloc, quad_cv_gi ), &
-            !     quad_cv_gi = 1, quad_cv_ngi )
+            ewrite(3,*)'quad_nlx:', ( quad_nlx( quad_cv_iloc, quad_cv_gi ), &
+                 quad_cv_gi = 1, quad_cv_ngi )
 
-            !ewrite(3,*)'quad_nx:', ( quad_nx( quad_cv_iloc, quad_cv_gi ), &
-            !     quad_cv_gi = 1, quad_cv_ngi )
-            !ewrite(3,*)'quad_ny:', ( quad_ny( quad_cv_iloc, quad_cv_gi ), &
-            !     quad_cv_gi = 1, quad_cv_ngi )
-            !ewrite(3,*)'quad_nz:', ( quad_nz( quad_cv_iloc, quad_cv_gi ), &
-            !     quad_cv_gi = 1, quad_cv_ngi )
-            !ewrite(3,*)'detwei:', ( detwei( quad_cv_gi ), quad_cv_gi = 1, quad_cv_ngi )
+            ewrite(3,*)'quad_nx:', ( quad_nx( quad_cv_iloc, quad_cv_gi ), &
+                 quad_cv_gi = 1, quad_cv_ngi )
+            ewrite(3,*)'quad_ny:', ( quad_ny( quad_cv_iloc, quad_cv_gi ), &
+                 quad_cv_gi = 1, quad_cv_ngi )
+            ewrite(3,*)'quad_nz:', ( quad_nz( quad_cv_iloc, quad_cv_gi ), &
+                 quad_cv_gi = 1, quad_cv_ngi )
+            ewrite(3,*)'detwei:', ( detwei( quad_cv_gi ), quad_cv_gi = 1, quad_cv_ngi )
          end do
+         stop 3838
 
          Loop_NGI: do quad_cv_gi = 1, quad_cv_ngi ! Determine the quadrature points and weights
             cv_gi = ( ele - 1 ) * quad_cv_ngi + quad_cv_gi
@@ -3606,6 +3747,8 @@
          rsum = rsum + cvweigh( cv_gi )
       end do
       ewrite(3,*)'rsum:', rsum
+      ewrite(3,*)'sum(cvweigh):',sum(cvweigh)
+        stop 2921
 
       deallocate( quad_l1 )
       deallocate( quad_l2 )
