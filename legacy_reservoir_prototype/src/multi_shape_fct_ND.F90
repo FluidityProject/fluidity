@@ -3460,6 +3460,7 @@
            quad_nx, quad_ny, quad_nz
       integer, dimension( : ), allocatable :: x_ndgln_temp
 
+
       ewrite(3,*)'In shape_tri_tet'
 
       d3 = ( ndim == 3 )
@@ -3572,7 +3573,7 @@
       Loop_Elements: do ele = 1, totele ! Calculate DETWEI,RA,NX,NY,NZ for element ELE
 
 
-     if(.true.) then
+     if(.false.) then
          ewrite(3,*) '+++++++ELE::', ele
        allocate(x_temp(27))
        allocate(y_temp(27))
@@ -3619,58 +3620,50 @@
         nod3=x_ndgln((ele-1)*quad_cv_nloc+7) 
         nod4=x_ndgln((ele-1)*quad_cv_nloc+9) 
 
-        nod1=x_ndgln((ele-1)*quad_cv_nloc+19) 
-        nod2=x_ndgln((ele-1)*quad_cv_nloc+21) 
-        nod3=x_ndgln((ele-1)*quad_cv_nloc+25) 
+        nod5=x_ndgln((ele-1)*quad_cv_nloc+19) 
+        nod6=x_ndgln((ele-1)*quad_cv_nloc+21) 
+        nod7=x_ndgln((ele-1)*quad_cv_nloc+25) 
         nod8=x_ndgln((ele-1)*quad_cv_nloc+27) 
 
 ! calculate the volume of the hex: 
         
         rsum1=Volume_TetHex( .false., &
-       x(nod1), x(nod2), x(nod3), x(nod4), &
-       y(nod1), y(nod2), y(nod3), y(nod4), &
-       z(nod1), z(nod2), z(nod3), z(nod4) )
+       x(nod1), x(nod2), x(nod3), x(nod7), &
+       y(nod1), y(nod2), y(nod3), y(nod7), &
+       z(nod1), z(nod2), z(nod3), z(nod7) )
 
         rsum2=Volume_TetHex( .false., &
-       x(nod1), x(nod2), x(nod3), x(nod4), &
-       y(nod1), y(nod2), y(nod3), y(nod4), &
-       z(nod1), z(nod2), z(nod3), z(nod4) )
+       x(nod5), x(nod6), x(nod7), x(nod1), &
+       y(nod5), y(nod6), y(nod7), y(nod1), &
+       z(nod5), z(nod6), z(nod7), z(nod1) )
 
         rsum3=Volume_TetHex( .false., &
-       x(nod1), x(nod2), x(nod3), x(nod4), &
-       y(nod1), y(nod2), y(nod3), y(nod4), &
-       z(nod1), z(nod2), z(nod3), z(nod4) )
+       x(nod6), x(nod7), x(nod2), x(nod1), &
+       y(nod6), y(nod7), y(nod2), y(nod1), &
+       z(nod6), z(nod7), z(nod2), z(nod1) )
 
         rsum4=Volume_TetHex( .false., &
-       x(nod1), x(nod2), x(nod3), x(nod4), &
-       y(nod1), y(nod2), y(nod3), y(nod4), &
-       z(nod1), z(nod2), z(nod3), z(nod4) )
+       x(nod2), x(nod3), x(nod4), x(nod8), &
+       y(nod2), y(nod3), y(nod4), y(nod8), &
+       z(nod2), z(nod3), z(nod4), z(nod8) )
 
         rsum5=Volume_TetHex( .false., &
-       x(nod1), x(nod2), x(nod3), x(nod4), &
-       y(nod1), y(nod2), y(nod3), y(nod4), &
-       z(nod1), z(nod2), z(nod3), z(nod4) )
+       x(nod6), x(nod7), x(nod8), x(nod2), &
+       y(nod6), y(nod7), y(nod8), y(nod2), &
+       z(nod6), z(nod7), z(nod8), z(nod2) )
 
         rsum6=Volume_TetHex( .false., &
-       x(nod1), x(nod2), x(nod3), x(nod4), &
-       y(nod1), y(nod2), y(nod3), y(nod4), &
-       z(nod1), z(nod2), z(nod3), z(nod4) )
+       x(nod7), x(nod3), x(nod2), x(nod8), &
+       y(nod7), y(nod3), y(nod2), y(nod8), &
+       z(nod7), z(nod3), z(nod2), z(nod8) )
 
-        rsum7=Volume_TetHex( .false., &
-       x(nod1), x(nod2), x(nod3), x(nod4), &
-       y(nod1), y(nod2), y(nod3), y(nod4), &
-       z(nod1), z(nod2), z(nod3), z(nod4) )
+      print *,'rsum1,rsum2,rsum3,rsum4,rsum5,rsum6:', &
+               rsum1,rsum2,rsum3,rsum4,rsum5,rsum6
 
-        rsum8=Volume_TetHex( .false., &
-       x(nod1), x(nod2), x(nod3), x(nod4), &
-       y(nod1), y(nod2), y(nod3), y(nod4), &
-       z(nod1), z(nod2), z(nod3), z(nod4) )
-
-      print *,'rsum1,rsum2,rsum3,rsum4,rsum5,rsum6,rsum7,rsum8:', &
-               rsum1,rsum2,rsum3,rsum4,rsum5,rsum6,rsum7,rsum8
-
-      print *,'rsum1+rsum2+rsum3+rsum4+rsum5+rsum6+rsum7+rsum8:', &
-               rsum1+rsum2+rsum3+rsum4+rsum5+rsum6+rsum7+rsum8
+      print *, 'should be 1/32=', 1./32.
+      print *,'rsum1+rsum2+rsum3+rsum4+rsum5+rsum6:', &
+               abs(rsum1) + abs(rsum2) + abs(rsum3) + &
+               abs(rsum4) + abs(rsum5) + abs(rsum6)
 
        stop 2921
 
