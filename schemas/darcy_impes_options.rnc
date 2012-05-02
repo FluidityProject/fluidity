@@ -40,9 +40,24 @@ start =
          
          darcy_impes_mesh_adaptivity_options?,
          
-         darcy_impes_porous_media_model
+         darcy_impes_porous_media_model, 
+         
+         darcy_impes_weak_pressure_bc_coeff?
       }
    )      
+
+
+darcy_impes_weak_pressure_bc_coeff =
+   (
+      ## A scaling coefficient to apply to weak pressure
+      ## boundary condition surface integrals. The default 
+      ## value if not given is 1.0
+      element weak_pressure_bc_coefficient {
+         comment,
+         
+         real
+      }
+   )
 
 
 darcy_impes_geometry = 
@@ -648,7 +663,6 @@ darcy_impes_non_first_phase_pressure_field =
             element mesh {
                attribute name { "PressureMesh" }      
             },
-            darcy_impes_non_first_phase_bc_pressure_field*,
             darcy_impes_include_cv_stat, 
             adaptivity_options_scalar_field,
             interpolation_algorithm_scalar
@@ -1049,20 +1063,6 @@ darcy_impes_first_phase_bc_pressure_field =
             integer_vector
          },
          darcy_impes_dirichlet_bc            
-      }   
-   )
-
-
-darcy_impes_non_first_phase_bc_pressure_field =
-   (
-      ## Boundary conditions
-      element boundary_conditions {
-         attribute name { string },
-         ## Surface id
-         element surface_ids {
-            integer_vector
-         },
-         darcy_impes_weak_dirichlet_bc            
       }   
    )
 

@@ -166,8 +166,8 @@ module darcy_impes_assemble_module
       integer,           dimension(:), pointer :: pressure_bc_flag
       type(scalar_field)                       :: saturation_bc_value
       integer,           dimension(:), pointer :: saturation_bc_flag
-      logical,           dimension(:), pointer :: pressure_has_weak_dirichlet_bcs
       type(scalar_field)                       :: inverse_characteristic_length
+      real                                     :: weak_pressure_bc_coeff
       ! *** The pressure mesh - pressure mesh sparsity, used for pressure matrix and finding CV upwind values ***
       type(csr_sparsity), pointer :: sparsity_pmesh_pmesh
       ! *** The number of phase and the CV surface quadrature degree to use ***
@@ -314,7 +314,6 @@ module darcy_impes_assemble_module
       real,    dimension(1)                  :: old_absperm_ele_bdy, old_visc_ele_bdy
       real,    dimension(:),     allocatable :: old_relperm_ele_bdy
       real,    dimension(:,:),   allocatable :: grad_pressure_ele_bdy
-      real,    dimension(:),     allocatable :: old_cappress_ele_bdy
       real,    dimension(:),     allocatable :: bc_sele_val
       real,    dimension(:),     allocatable :: inv_char_len_ele_bdy
       real,    dimension(:),     allocatable :: old_saturation_ele_bdy
@@ -346,7 +345,6 @@ module darcy_impes_assemble_module
       allocate(grad_pressure_ele(di%ndim,1))
 
       allocate(old_relperm_ele_bdy(face_loc(di%pressure_mesh,1)))
-      allocate(old_cappress_ele_bdy(face_loc(di%pressure_mesh,1)))
       allocate(grad_pressure_ele_bdy(di%ndim,1))
       allocate(old_saturation_ele_bdy(face_loc(di%pressure_mesh,1)))      
       allocate(ghost_old_saturation_ele_bdy(face_loc(di%pressure_mesh,1)))
@@ -587,10 +585,15 @@ module darcy_impes_assemble_module
       call scale(di%rhs, 1.0/di%dt)
                   
       ! Add normal vphi BC integrals for each phase, else include if required 
-      ! a weak pressure BC (which if not given for phase 1 is assumed zero, 
-      ! then for other phases added a capilliary pressure term + phase 1 zero).
+      ! a weak pressure BC (which if not given for phase 1 is assumed zero).
       ! This all requires a value  of the saturation of each phase on the boundary 
       ! which must take account of any weak BC it has.
+
+      call get_entire_saturation_or_pressure_boundary_condition(di%pressure(1)%ptr, &
+                                                                (/"weakdirichlet"/), &
+                                                                di%bc_surface_mesh, &
+                                                                di%pressure_bc_value, &
+                                                                di%pressure_bc_flag)
       phase_loop_bc: do p = 1, di%number_phase
          
          ! Get this phase vphi BC info - only for no_normal_flow and normal_flow which is special as it is a scalar
@@ -608,43 +611,11 @@ module darcy_impes_assemble_module
                                                                    di%saturation_bc_value, &
                                                                    di%saturation_bc_flag)
          
-         ! Get the weak dirichlet pressure BCs for this phase p
-         if (di%pressure_has_weak_dirichlet_bcs(p)) then
-         
-            call get_entire_saturation_or_pressure_boundary_condition(di%pressure(p)%ptr, &
-                                                                      (/"weakdirichlet"/), &
-                                                                      di%bc_surface_mesh, &
-                                                                      di%pressure_bc_value, &
-                                                                      di%pressure_bc_flag)
-         
-         else if ((p > 1) .and. di%pressure_has_weak_dirichlet_bcs(1)) then
-         
-            call get_entire_saturation_or_pressure_boundary_condition(di%pressure(1)%ptr, &
-                                                                      (/"weakdirichlet"/), &
-                                                                      di%bc_surface_mesh, &
-                                                                      di%pressure_bc_value, &
-                                                                      di%pressure_bc_flag)
-                  
-         end if
-
          vphi_sele_loop: do sele = 1, surface_element_count(di%pressure_mesh)
             
-            if (di%vphi_bc_flag(sele) == VPHI_BC_TYPE_NO_NORMAL_FLOW) then
-               
-               ! Check that there is no pressure BC for this phase for this sele
-               if (di%pressure_has_weak_dirichlet_bcs(p) .and. &
-                  &(di%pressure_bc_flag(sele) == PRESSURE_BC_TYPE_WEAKDIRICHLET)) then
-                  
-                  ewrite(-1,*) 'Issue with InterstitialVelocityPorosity-Pressure BCs for phase ',p
-                  FLExit('Cannot have a weak dirichlet Pressure BC on a surface that also has a InterstitialVelocityPorosity no_normal_flow BC')
-                  
-               end if 
-               
-               ! A no_normal_flow BC adds nothing to the matrix and rhs so cycle sele loop
-               cycle vphi_sele_loop
-               
-            end if
-         
+            ! A no_normal_flow BC adds nothing to the matrix and rhs so cycle sele loop
+            if (di%vphi_bc_flag(sele) == VPHI_BC_TYPE_NO_NORMAL_FLOW) cycle vphi_sele_loop
+                     
             ! Initialise the face value counter for this ele
             f_ele_counter = 0
 
@@ -652,16 +623,7 @@ module darcy_impes_assemble_module
             f_ele_base = di%cached_phase_face_value_boundary(p)%ele_base(sele)
             
             if (di%vphi_bc_flag(sele) == VPHI_BC_TYPE_NORMAL_FLOW) then
-               
-               ! Check that there is no pressure BC for this phase for this sele
-               if (di%pressure_has_weak_dirichlet_bcs(p) .and. &
-                  &(di%pressure_bc_flag(sele) == PRESSURE_BC_TYPE_WEAKDIRICHLET)) then
-                  
-                  ewrite(-1,*) 'Issue with InterstitialVelocityPorosity-Pressure BCs for phase ',p
-                  FLExit('Cannot have a weak dirichlet Pressure BC on a surface that also has a InterstitialVelocityPorosity normal_flow BC')
-                  
-               end if 
-               
+                              
                if (determine_face_value) then
                
                   bc_sele_val = ele_val(di%vphi_bc_value, sele)
@@ -678,11 +640,6 @@ module darcy_impes_assemble_module
 
                ! get the old_absolute permeability value for this sele
                old_absperm_ele_bdy = face_val(di%old_absolute_permeability, sele)         
-
-               if (p > 1) then
-                  ! get the old_capilliary pressure value for this sele
-                  old_cappress_ele_bdy = face_val(di%old_capilliary_pressure(p)%ptr, sele)         
-               end if
                
                ! get the latest gradient pressure for this sele 
                ! - used to determine upwind direction and for the bc integral (really this should be implicit)
@@ -691,8 +648,12 @@ module darcy_impes_assemble_module
                ! the inverse characteristic length used for pressure weak bc
                inv_char_len_ele_bdy = ele_val(di%inverse_characteristic_length, sele)
                               
-               ! Get the pressure BC value
-               bc_sele_val = ele_val(di%pressure_bc_value, sele)
+               ! Get the pressure BC value if required
+               if (di%pressure_bc_flag(sele) == PRESSURE_BC_TYPE_WEAKDIRICHLET) then
+               
+                  bc_sele_val = ele_val(di%pressure_bc_value, sele)
+               
+               end if
                
             end if 
 
@@ -726,8 +687,11 @@ module darcy_impes_assemble_module
 
                         f_ele_counter = f_ele_counter + 1
                         
-                        if (di%vphi_bc_flag(sele) == VPHI_BC_TYPE_NORMAL_FLOW) then
                         
+                        if (di%vphi_bc_flag(sele) == VPHI_BC_TYPE_NORMAL_FLOW) then
+                           
+                           ! If have normal_flow BC for this phase then include CV integral of value * saturation
+                           
                            if (determine_face_value) then
 
                               ! Determine the upwind saturation boundary values to use from the sign 
@@ -757,7 +721,11 @@ module darcy_impes_assemble_module
                            p_rhs_local_bdy(iloc) = p_rhs_local_bdy(iloc) - face_value * detwei_bdy(ggi)
                         
                         else 
-                        
+                           
+                           ! Else apply a weak pressure BC, which has a value of zero by default (if not given)
+                           ! - NOTE for non first phases P = P_1 + P_C, and P_C = 0.0 on boundary so
+                           !        all phases pressure boundary conditions related to phase 1
+                           
                            old_relperm_absperm_over_visc = old_relperm_ele_bdy(iloc) * old_absperm_ele_bdy(1) / old_visc_ele_bdy(1)
                            
                            vphi_dot_n = - old_relperm_absperm_over_visc * dot_product(grad_pressure_ele_bdy(:,1), normal_bdy(:,ggi))
@@ -770,48 +738,47 @@ module darcy_impes_assemble_module
                            old_saturation_face_value = income*ghost_old_saturation_ele_bdy(iloc) + &
                                                       &(1.0-income)*old_saturation_ele_bdy(iloc)
                            
-                           if (di%pressure_has_weak_dirichlet_bcs(p)) then
-                              
+                           ! If have phase pressure BC then include integral of BC value in rhs
+                           ! - if not given then this implies adding a zero weak pressure BC
+                           if (di%pressure_bc_flag(sele) == PRESSURE_BC_TYPE_WEAKDIRICHLET) then
+                                                            
                               do jloc = 1,di%pressure_mesh%faces%shape%loc 
                               
-                                 p_matrix_local_bdy(iloc,jloc) = p_matrix_local_bdy(iloc,jloc) - &
-                                                                 inv_char_len_ele_bdy(jloc) * &
-                                                                 di%p_cvbdyshape%n(jloc,ggi) * &
-                                                                 old_relperm_absperm_over_visc * &
-                                                                 old_saturation_face_value * &
-                                                                 sum(normal_bdy(:,ggi)) * &
-                                                                 detwei_bdy(ggi)
-
                                  p_rhs_local_bdy(iloc) = p_rhs_local_bdy(iloc) - &
-                                                         inv_char_len_ele_bdy(jloc) * &
+                                                         inv_char_len_ele_bdy(jloc) *&
                                                          di%p_cvbdyshape%n(jloc,ggi) * &
                                                          bc_sele_val(jloc) * &
                                                          old_relperm_absperm_over_visc * &
                                                          old_saturation_face_value * &
                                                          sum(normal_bdy(:,ggi)) * &
-                                                         detwei_bdy(ggi)
+                                                         detwei_bdy(ggi) * &
+                                                         di%weak_pressure_bc_coeff
                                                             
                               end do
                               
-                              ! Add coeff *gradient of pressure term to rhs 
-                              ! (to be fully implicit this should be added to matrix)
-                              p_rhs_local_bdy(iloc) = p_rhs_local_bdy(iloc) - vphi_dot_n * detwei_bdy(ggi)
-                              
-                           else if (p == 1) then
+                           end if 
                            
+                           ! Include weak pressure BC implicit term in matrix
+                           ! - if no pressure BC adding this term implies a 
+                           !   a default of weak zero pressure BC
+                           do jloc = 1,di%pressure_mesh%faces%shape%loc 
+
+                              p_matrix_local_bdy(iloc,jloc) = p_matrix_local_bdy(iloc,jloc) - &
+                                                              inv_char_len_ele_bdy(jloc) *&
+                                                              di%p_cvbdyshape%n(jloc,ggi) * &
+                                                              old_relperm_absperm_over_visc * &
+                                                              old_saturation_face_value * &
+                                                              sum(normal_bdy(:,ggi)) * &
+                                                              detwei_bdy(ggi) * &
+                                                              di%weak_pressure_bc_coeff
+
+                           end do
                            
-                           else
-                           
-                              if (di%pressure_has_weak_dirichlet_bcs(1)) then
-                              
-                              
-                              else
-                              
-                              
-                              end if
-                           
-                           end if
-                           
+                           ! Add coeff *gradient of pressure term to rhs via vphi_dot_n 
+                           !  - which may include gravity and capilliary pressure term already                           
+                           ! (to be fully implicit this should be added to matrix but 2 non linear iterations may save us ...)
+                           p_rhs_local_bdy(iloc) = p_rhs_local_bdy(iloc) - vphi_dot_n * detwei_bdy(ggi)
+                                                      
                         end if
                         
                      end do bc_quad_loop
@@ -852,7 +819,6 @@ module darcy_impes_assemble_module
       deallocate(grad_pressure_ele)
 
       deallocate(old_relperm_ele_bdy)
-      deallocate(old_cappress_ele_bdy)
       deallocate(grad_pressure_ele_bdy)
       deallocate(old_saturation_ele_bdy)
       deallocate(ghost_old_saturation_ele_bdy)
@@ -1327,6 +1293,8 @@ module darcy_impes_assemble_module
                end do bc_face_loop
 
             end do bc_iloc_loop
+
+            call addto(di%div_total_darcy_velocity, p_nodes_bdy, div_tvphi_rhs_local_bdy)
 
          end do sele_loop
          

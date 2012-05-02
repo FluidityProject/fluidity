@@ -35,8 +35,20 @@ If not activated then the filename is used for the simulation name.</a:documenta
         <ref name="darcy_impes_mesh_adaptivity_options"/>
       </optional>
       <ref name="darcy_impes_porous_media_model"/>
+      <optional>
+        <ref name="darcy_impes_weak_pressure_bc_coeff"/>
+      </optional>
     </element>
   </start>
+  <define name="darcy_impes_weak_pressure_bc_coeff">
+    <element name="weak_pressure_bc_coefficient">
+      <a:documentation>A scaling coefficient to apply to weak pressure
+boundary condition surface integrals. The default 
+value if not given is 1.0</a:documentation>
+      <ref name="comment"/>
+      <ref name="real"/>
+    </element>
+  </define>
   <define name="darcy_impes_geometry">
     <element name="geometry">
       <a:documentation>Options dealing with the specification of geometry</a:documentation>
@@ -660,9 +672,6 @@ at the first timestep or not.</a:documentation>
             <value>PressureMesh</value>
           </attribute>
         </element>
-        <zeroOrMore>
-          <ref name="darcy_impes_non_first_phase_bc_pressure_field"/>
-        </zeroOrMore>
         <ref name="darcy_impes_include_cv_stat"/>
         <ref name="adaptivity_options_scalar_field"/>
         <ref name="interpolation_algorithm_scalar"/>
@@ -1126,19 +1135,6 @@ Specify the number of advection subcycls. </a:documentation>
         <ref name="integer_vector"/>
       </element>
       <ref name="darcy_impes_dirichlet_bc"/>
-    </element>
-  </define>
-  <define name="darcy_impes_non_first_phase_bc_pressure_field">
-    <element name="boundary_conditions">
-      <a:documentation>Boundary conditions</a:documentation>
-      <attribute name="name">
-        <data type="string" datatypeLibrary=""/>
-      </attribute>
-      <element name="surface_ids">
-        <a:documentation>Surface id</a:documentation>
-        <ref name="integer_vector"/>
-      </element>
-      <ref name="darcy_impes_weak_dirichlet_bc"/>
     </element>
   </define>
   <define name="darcy_impes_bc_saturation_field">

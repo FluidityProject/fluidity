@@ -472,6 +472,12 @@ for n in range(field.node_count):
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
+        <boundary_conditions name="left">
+          <surface_ids>
+            <integer_value shape="1" rank="1">3</integer_value>
+          </surface_ids>
+          <type name="no_normal_flow"/>
+        </boundary_conditions>
         <stat>
           <include_cv_stats/>
         </stat>

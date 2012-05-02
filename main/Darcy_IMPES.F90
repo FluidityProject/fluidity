@@ -706,15 +706,11 @@ contains
       
       allocate(di%pressure_bc_flag(surface_element_count(di%pressure_mesh)))
       
-      ! Allocate and find a flag for each phase for whether it has pressure BC's
-      allocate(di%pressure_has_weak_dirichlet_bcs(di%number_phase))
-      
-      do p = 1, di%number_phase
-      
-         di%pressure_has_weak_dirichlet_bcs(p) = has_boundary_condition(di%pressure(p)%ptr, 'weakdirichlet')
-         
-      end do
-      
+      ! Find the weak_pressure_bc_coefficient option
+      call get_option('/weak_pressure_bc_coefficient', &
+                      di%weak_pressure_bc_coeff, &
+                      default = 1.0)
+            
       ! Initialise a surface field used to cache the inverse characteristic 
       ! length required for weak dirichlet BCs for pressure
       call allocate(di%inverse_characteristic_length, &
@@ -989,7 +985,7 @@ contains
       deallocate(di%saturation_bc_flag)      
       call deallocate(di%pressure_bc_value)
       deallocate(di%pressure_bc_flag)      
-      deallocate(di%pressure_has_weak_dirichlet_bcs)
+      di%weak_pressure_bc_coeff = 0.0
       call deallocate(di%inverse_characteristic_length)
       
       ! Nothing can be done for di%saturation_cv_options

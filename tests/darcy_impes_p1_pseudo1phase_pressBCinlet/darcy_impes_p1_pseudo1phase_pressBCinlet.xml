@@ -11,7 +11,7 @@
 ../../bin/darcy_impes darcy_impes_p1_pseudo1phase_pressBCinlet_2d.diml 
 ../../bin/darcy_impes darcy_impes_p1_pseudo1phase_pressBCinlet_3d.diml 
     </command_line>
-    <!-- One/two/three dimensional problem for darcy flow using the IMPES solver with one region and one material using p1 element type testing the pressure gradient against analytic using 2 phases to test a 1 phase problem. -->
+    <!-- One/two/three dimensional problem for darcy flow using the IMPES solver with one region and one material using p1 element type testing the pressure gradient as well as pressure min and max against analytic using 2 phases to test a 1 phase problem. -->
   </problem_definition>
   <variables>
     <variable name="pressure_1d" language="python">
@@ -57,6 +57,32 @@ perm = 1.0e-10
 domain_length = 300.0
 print 'Relative error of pressure difference: ',abs((change_P - domain_length*visc*darcy_vel_BC/perm)/(domain_length*visc*darcy_vel_BC/perm))
 assert abs((change_P - domain_length*visc*darcy_vel_BC/perm)/(domain_length*visc*darcy_vel_BC/perm)) &lt; 1.0e-09
+    </test>
+
+    <test name="max_P for 1d should equal 1.5e+09, check relative difference to be under tolerance 1.0e-09" language="python">
+print 'Relative error of pressure max ',abs((max(pressure_1d) - 1.5e+09)/1.5e+09)
+assert abs((max(pressure_1d) - 1.5e+09)/1.5e+09) &lt; 1.0e-09
+    </test>
+    <test name="max_P for 2d should equal 1.5e+09, check relative difference to be under tolerance 1.0e-09" language="python">
+print 'Relative error of pressure max ',abs((max(pressure_2d) - 1.5e+09)/1.5e+09)
+assert abs((max(pressure_2d) - 1.5e+09)/1.5e+09) &lt; 1.0e-09
+    </test>
+    <test name="max_P for 3d should equal 1.5e+09, check relative difference to be under tolerance 1.0e-09" language="python">
+print 'Relative error of pressure max ',abs((max(pressure_3d) - 1.5e+09)/1.5e+09)
+assert abs((max(pressure_3d) - 1.5e+09)/1.5e+09) &lt; 1.0e-09
+    </test>
+
+    <test name="min_P for 1d should equal 0.0, check absolute difference to be under tolerance 1.0e-09" language="python">
+print 'Absolute error of pressure min ',abs(min(pressure_1d))
+assert abs(min(pressure_1d)) &lt; 1.0e-09
+    </test>
+    <test name="min_P for 2d should equal 0.0, check relative difference to be under tolerance 1.0e-09" language="python">
+print 'Absolute error of pressure min ',abs(min(pressure_2d))
+assert abs(min(pressure_2d)) &lt; 1.0e-09
+    </test>
+    <test name="min_P for 3d should equal 0.0, check relative difference to be under tolerance 1.0e-09" language="python">
+print 'Absolute error of pressure min ',abs(min(pressure_3d))
+assert abs(min(pressure_3d)) &lt; 1.0e-09
     </test>
   </pass_tests>
   <warn_tests>

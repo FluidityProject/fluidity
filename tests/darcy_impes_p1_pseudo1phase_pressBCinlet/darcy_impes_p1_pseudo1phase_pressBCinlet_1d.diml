@@ -511,4 +511,7 @@
       </prescribed>
     </scalar_field>
   </porous_media>
+  <weak_pressure_bc_coefficient>
+    <real_value rank="0">1.0e+20</real_value>
+  </weak_pressure_bc_coefficient>
 </darcy_impes_options>
