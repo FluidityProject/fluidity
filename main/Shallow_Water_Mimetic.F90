@@ -428,9 +428,9 @@
 ! Matrix-ify Helmholtz solver - CODED and TESTED
 ! Newton iteration for linear equations - CODED and TESTED
 ! Call to Newton iteration from main code - CODED and TESTED
-! Check that timestepping produces some output - DONE
-! Extract fluxes from DG -- DONE
-! Vorticity calculation
+! Check that timestepping produces some output - DONE and TESTED
+! Extract fluxes from DG -- DONE and TESTED
+! Vorticity calculation -- WORKING ON
 ! Mass lumping for P2b
 ! Visualisation of P2b by mapping back to P2
 ! Mass mapping from P1dg to P2b
