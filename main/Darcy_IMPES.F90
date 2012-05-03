@@ -569,6 +569,7 @@ contains
       di%state => state
       
       di%pressure_mesh             => extract_mesh(di%state(1), "PressureMesh")
+      di%gradient_pressure_mesh    => extract_mesh(di%state(1), "GradientPressureMesh")
       di%velocity_mesh             => extract_mesh(di%state(1), "VelocityMesh")
       di%elementwise_mesh          => extract_mesh(di%state(1), "ElementWiseMesh")
       
@@ -837,6 +838,13 @@ contains
       di%p_cvshape_full = make_cv_element_shape(di%cvfaces, di%pressure_mesh%shape, &
                                                 type = ELEMENT_CONTROLVOLUME_SURFACE_BODYDERIVATIVES)
 
+      ! Generate the CV shape function that contains the derivatives with respect
+      ! to the parent elements canonical coordinates evaluated at the 
+      ! control volume faces for the gradient pressure mesh, assuming all elements 
+      ! are the same type.      
+      di%gradp_cvshape_full = make_cv_element_shape(di%cvfaces, di%gradient_pressure(1)%ptr%mesh%shape, &
+                                                    type = ELEMENT_CONTROLVOLUME_SURFACE_BODYDERIVATIVES)
+
       ! Generate the CV shape function with reduced number of derivatives 
       ! evaluated at the control volume faces for the positions mesh, 
       ! assuming all elements are the same type. Reduced refers to 
@@ -937,6 +945,7 @@ contains
       nullify(di%state)
       
       nullify(di%pressure_mesh)
+      nullify(di%gradient_pressure_mesh)
       nullify(di%velocity_mesh)
       nullify(di%elementwise_mesh)
       
@@ -1036,6 +1045,7 @@ contains
       call deallocate(di%cvfaces)
       call deallocate(di%x_cvshape_full)
       call deallocate(di%p_cvshape_full)
+      call deallocate(di%gradp_cvshape_full)
       call deallocate(di%x_cvshape)
       call deallocate(di%p_cvshape)
       call deallocate(di%gradp_cvshape)

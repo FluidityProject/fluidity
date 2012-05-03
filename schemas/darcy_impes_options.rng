@@ -82,6 +82,13 @@ for the phase saturation and relative permeability.</a:documentation>
         <ref name="darcy_impes_pressure_mesh_info"/>
       </element>
       <element name="mesh">
+        <a:documentation>The gradient pressure mesh.</a:documentation>
+        <attribute name="name">
+          <value>GradientPressureMesh</value>
+        </attribute>
+        <ref name="darcy_impes_gradient_pressure_mesh_info"/>
+      </element>
+      <element name="mesh">
         <a:documentation>The velocity mesh which is also used 
 for the interstitial velocity CFL number.</a:documentation>
         <attribute name="name">
@@ -176,6 +183,34 @@ surface or region IDs.</a:documentation>
           <element name="string_value">
             <value>lagrangian</value>
           </element>
+        </element>
+      </element>
+      <ref name="derived_mesh_stat_options"/>
+    </element>
+  </define>
+  <define name="darcy_impes_gradient_pressure_mesh_info">
+    <element name="from_mesh">
+      <a:documentation>Make mesh from existing mesh. </a:documentation>
+      <ref name="comment"/>
+      <ref name="mesh_choice_coordinate"/>
+      <element name="mesh_shape">
+        <element name="polynomial_degree">
+          <element name="integer_value">
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <value>0</value>
+          </element>
+        </element>
+        <element name="element_type">
+          <element name="string_value">
+            <value>lagrangian</value>
+          </element>
+        </element>
+      </element>
+      <element name="mesh_continuity">
+        <element name="string_value">
+          <value>discontinuous</value>
         </element>
       </element>
       <ref name="derived_mesh_stat_options"/>

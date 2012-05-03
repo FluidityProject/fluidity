@@ -83,6 +83,12 @@ darcy_impes_geometry =
             attribute name { "PressureMesh" },
             darcy_impes_pressure_mesh_info
          },
+         ## The gradient pressure mesh.
+         element mesh {
+            attribute name { "GradientPressureMesh" },
+            darcy_impes_gradient_pressure_mesh_info
+         },
+
          ## The velocity mesh which is also used 
          ## for the interstitial velocity CFL number.
          element mesh {
@@ -175,6 +181,41 @@ darcy_impes_pressure_mesh_info =
          
          derived_mesh_stat_options
       }   
+   )
+   
+   
+darcy_impes_gradient_pressure_mesh_info =
+   (
+      ## Make mesh from existing mesh. 
+      element from_mesh {
+         comment,
+         
+         mesh_choice_coordinate,
+         
+         element mesh_shape {
+            
+            element polynomial_degree {
+               element integer_value {
+                  attribute rank { "0" },
+                  ("0")
+               }
+            },
+            
+            element element_type {
+              element string_value{
+                 "lagrangian"
+              }
+            }
+         },
+
+         element mesh_continuity {
+            element string_value{
+               "discontinuous"
+            }
+         },
+         
+         derived_mesh_stat_options
+      }      
    )
    
    
