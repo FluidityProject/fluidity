@@ -373,7 +373,7 @@ class FGroup:
       c = c + "\n" + indent_str + "new_agent_vars['Size'] = " + self.eval_token(t[3])
       for i in range(4,len(t)):
         c = c + "\n" + indent_str + "new_agent_" + self.eval_token(t[i][1]) + " = " + self.eval_token(t[i][2]) 
-      c = c + "\n" + indent_str + "lebiology.add_agent(new_agent_vars)"
+      c = c + "\n" + indent_str + "add_agent('" + self.name + "', new_agent_vars, [-vars['z']])"
       return c
     elif t[0] == pchange:
       s = str(t[2])
@@ -463,14 +463,14 @@ fg_motion_functions = {
 
 fg_write_stages = {
   "Diatom" : [ "Living", "Dead" ],
-  "Copepod" : [ "Dead", "OW5", "OWA5", "C5" ]
+  "Copepod" : [ "Dead", "OW5", "OWA5", "C5", "Pellet" ]
 }
 
 filename = sys.argv[1]
 out_filename = filename.split(".")[0].strip() + '.py'
 f = open(out_filename, "w")
 f.write("import math\n")
-f.write("from lebiology import stage_id\n")
+f.write("from lebiology import stage_id, add_agent\n")
 
 dom = parse(filename)
 fgroups = dom.getElementsByTagName("functionalgroup")[0:2]

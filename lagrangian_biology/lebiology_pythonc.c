@@ -333,14 +333,64 @@ static PyObject *lebiology_stage_id(PyObject *self, PyObject *args)
 
 static PyObject *lebiology_add_agent(PyObject *self, PyObject *args)
 {
-  PyObject *pAgentDict;
-  int ok;
-
-  if (!PyArg_ParseTuple(args, "O", pAgentDict)) {
+  PyObject *pAgentDict, *pPositionList, *pAgentVar;
+  const char *fg;
+  if (!PyArg_ParseTuple(args, "sOO", &fg, &pAgentDict, &pPositionList)) {
     return NULL;
   }
 
-  PyErr_SetString(PyExc_Exception, "lebiology.add_agent not implemented yet!");
-  Py_INCREF(PyExc_Exception);
-  return NULL;
+  // Check for correctly parsed agent argument
+  if (!pAgentDict) {
+     PyErr_SetString(PyExc_TypeError, "Error parsing agent dictionary in lebiology.add_agent");
+     Py_INCREF(PyExc_TypeError);
+     return NULL;
+  }
+
+  // Check for correctly parsed agent argument
+  if (!pPositionList) {
+     PyErr_SetString(PyExc_TypeError, "Error parsing position list in lebiology.add_agent");
+     Py_INCREF(PyExc_TypeError);
+     return NULL;
+  }
+
+  // Check if given FGroup exists
+  PyObject *pVarNames = PyDict_GetItemString(pFGVarNames, fg);
+  if (!pVarNames) {
+     PyErr_SetString(PyExc_KeyError, "FGroup not found in lebiology.add_agent");
+     Py_INCREF(PyExc_KeyError);
+     return NULL;
+  }
+
+  // Convert the agent dict
+  int *n_vars = malloc(sizeof(int));
+  *n_vars = PyList_Size(pVarNames);
+  double *vars = malloc(*n_vars * sizeof(double));
+  int i;
+  for (i=0; i<*n_vars; i++) {
+    pAgentVar = PyDict_GetItem(pAgentDict, PyList_GET_ITEM(pVarNames, i));
+    if (pAgentVar) {
+      vars[i] = PyFloat_AsDouble(pAgentVar);
+    } else {
+      vars[i] = 0.0;
+    }
+  }
+
+  //Convert the position list
+  int *n_pos = malloc(sizeof(int));
+  *n_pos = PyList_Size(pPositionList);
+  double *pos = malloc(*n_pos * sizeof(double));
+  for (i=0; i<*n_pos; i++) {
+    pos[i] = PyFloat_AsDouble( PyList_GET_ITEM(pPositionList, i) );
+  }
+
+  // Pass the new agent on to the Fortran
+  fl_add_agent_c(vars, n_vars, pos, n_pos);
+
+  free(vars);
+  free(n_vars);
+  free(pos);
+  free(n_pos);
+
+  Py_INCREF(Py_None);
+  return Py_None;
 }

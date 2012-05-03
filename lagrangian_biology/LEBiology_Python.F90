@@ -4,6 +4,8 @@ module lebiology_python
   use fldebug
   use fields
   use detector_data_types
+  use detector_tools
+  use detector_parallel
   use Profiler
   use ieee_arithmetic, only: ieee_is_nan
 
@@ -14,7 +16,9 @@ module lebiology_python
   public :: lebiology_init_module, lebiology_set_stage_id, &
             lebiology_add_variables, lebiology_add_envfields, &
             lebiology_prepare_pyfunc, lebiology_initialise_agent, &
-            lebiology_update_agent
+            lebiology_update_agent, get_new_agent_list
+
+  type(detector_linked_list), target, save :: new_agent_list
 
   interface
 
@@ -94,6 +98,12 @@ module lebiology_python
   end interface
 
 contains
+
+  function get_new_agent_list() result(agent_list_ptr)
+    type(detector_linked_list), pointer :: agent_list_ptr
+
+    agent_list_ptr => new_agent_list
+  end function get_new_agent_list
 
   subroutine lebiology_add_variables(fgroup)
     type(functional_group), intent(inout) :: fgroup
@@ -209,5 +219,30 @@ contains
        FLExit("Python error in LE-Biology")
     end if
   end subroutine lebiology_update_agent
+
+  subroutine fl_add_agent(vars, n_vars, pos, n_pos) &
+         bind(c, name='fl_add_agent_c')
+    use :: iso_c_binding
+    implicit none
+    integer(c_int), intent(inout) :: n_vars, n_pos
+    real(c_double), dimension(n_vars), intent(inout) :: vars
+    real(c_double), dimension(n_pos), intent(inout) :: pos
+
+    type(detector_type), pointer :: agent
+
+    allocate(agent)
+    allocate(agent%position(n_pos))
+    allocate(agent%biology(n_vars))
+    allocate(agent%local_coords(n_pos+1))
+
+    call get_next_detector_id(agent%id_number)
+    agent%name = trim(int2str(agent%id_number))
+    agent%type = LAGRANGIAN_DETECTOR
+
+    agent%position = pos
+    agent%biology = vars
+
+    call insert(agent, new_agent_list)
+  end subroutine fl_add_agent
 
 end module lebiology_python

@@ -1,5 +1,5 @@
 import math
-from lebiology import stage_id
+from lebiology import stage_id, add_agent
 
 # Parameters for FGroup Diatom
 # Species: Default_Diatom_Variety
@@ -327,7 +327,7 @@ def update_OWA5_Copepod(param, vars, env, dt):
     new_agent_vars['Ammonium'] = ((vars['P_amm'] + E_N))
     new_agent_vars['PV'] = (vars['PV'] + (E * dt_in_hours))
     new_agent_vars['Carbon'] = (vars['Pc'] + E_C)
-    lebiology.add_agent(new_agent_vars)
+    add_agent('Copepod', new_agent_vars, [-vars['z']])
   vars['SilicateRelease'] = E_Si
 
   ### Assimilation ###
@@ -491,7 +491,7 @@ def update_C5_Copepod(param, vars, env, dt):
     new_agent_vars['Ammonium'] = ((vars['P_amm'] + E_N))
     new_agent_vars['PV'] = (vars['PV'] + (E * dt_in_hours))
     new_agent_vars['Carbon'] = (vars['Pc'] + E_C)
-    lebiology.add_agent(new_agent_vars)
+    add_agent('Copepod', new_agent_vars, [-vars['z']])
   vars['SilicateRelease'] = E_Si
 
   ### Assimilation ###
@@ -578,6 +578,23 @@ def update_C5_Copepod(param, vars, env, dt):
   vars['Gut_f'] = Gut_f_new
   vars['Ammonium'] = Ammonium_new
   vars['Gut_content'] = Gut_content_new
+
+def update_Pellet_Copepod(param, vars, env, dt):
+  """ FGroup:  Copepod
+      Stage:   Pellet
+  """
+  dt_in_hours = dt / 3600.0
+
+  ### Remineralisation ###
+  R_nT = (0.0042 * math.pow(2.95, (((env['Temperature'] + 273.0) - 283.0) / 10.0)))
+  vars['AmmoniumRelease'] = max(((vars['Ammonium'] + vars['Nitrate']) * R_nT * dt_in_hours), 0.0)
+  Ammonium_new = max(((vars['Ammonium'] - (vars['Ammonium'] * R_nT * dt_in_hours)) + vars['AmmoniumIngested']), 0.0)
+  Nitrate_new = max(((vars['Nitrate'] - (vars['Nitrate'] * R_nT * dt_in_hours)) + vars['NitrateIngested']), 0.0)
+  vars['SilicateRelease'] = vars['SilicateIngested']
+
+  ### Setting pool variables
+  vars['Nitrate'] = Nitrate_new
+  vars['Ammonium'] = Ammonium_new
 
 def update_Dead_Copepod(param, vars, env, dt):
   """ FGroup:  Copepod

@@ -47,9 +47,13 @@ void lebiology_add_fg_stage_id_c(char *fg, int fglen, char *stage, int stagelen,
 /* Callback function to add new agents to the system from inside the embedded Python biology update */
 static PyObject *lebiology_add_agent(PyObject *self, PyObject *args);
 
+/* Wrapper for Fortran function to add converted new agents to the system */
+void fl_add_agent_c(double vars[], int *n_vars, double pos[], int *n_pos);
+
 /* Callback function to translate stage names to internal IDs */
 static PyObject *lebiology_stage_id(PyObject *self, PyObject *args);
 
+/* Method definitions for lebilogy module */
 static PyMethodDef LEBiologyMethods[] = {
   {"add_agent",  lebiology_add_agent, METH_VARARGS,
    "Add a new agent to the system"},

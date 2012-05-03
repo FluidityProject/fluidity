@@ -584,7 +584,7 @@ contains
     integer, intent(in) :: timestep
 
     type(functional_group), pointer :: fgroup
-    type(detector_linked_list), pointer :: agent_array
+    type(detector_linked_list), pointer :: agent_array, new_agent_list
     type(detector_linked_list) :: stage_change_list
     type(detector_type), pointer :: agent, agent_to_move
     type(vector_field), pointer :: xfield
@@ -689,6 +689,25 @@ contains
           deallocate(env_fields)
        end if
 
+       ! Deal with newly created agents
+       new_agent_list => get_new_agent_list()
+       agent => new_agent_list%first
+       do while (associated(agent))
+          ! Let the picker determine parametric coordinates
+          ! Note: Picker will only be run locally, since it does MPI comms
+          ! The assumption is that an agent created on this proc
+          ! will exist on the local partition
+          call picker_inquire(xfield,agent%position,agent%element,local_coord=agent%local_coords,global=.false.)
+          if (agent%element <= 0) then
+             ewrite(-1,*) "Agent added outside the computational domain!"
+             ewrite(-1,*) "Position:", agent%position, " , element:", agent%element, ", local coordinates:", agent%local_coords
+             FLAbort("Error establishing parametric coordinates for new agent")
+          end if
+
+          agent=>agent%next
+       end do
+       call distribute_by_stage(fgroup, new_agent_list)
+
        ! Handle stage changes within FG
        call distribute_by_stage(fgroup, stage_change_list)
 
@@ -728,7 +747,8 @@ contains
           ! Re-derive agent density field
           call derive_primary_diagnostics(state(1), agent_array)
 
-          if (have_option(trim(agent_array%stage_options)//"/particle_management")) then
+          if (have_option(trim(agent_array%stage_options)//"/particle_management") .and. &
+              agent_array%length > 0) then
              call get_option(trim(agent_array%stage_options)//"/particle_management/period_in_timesteps", pm_period)
              if (timestep == 1 .or. mod(timestep, pm_period) == 0) then
                 call particle_management(state(1), agent_array)
@@ -767,6 +787,10 @@ contains
 
     type(detector_type), pointer :: agent, agent_to_move
     integer :: j
+
+    if (agent_list%length <= 0) then
+       return
+    end if
 
     ! Handle stage changes within FG
     ewrite(2,*) "Lagrangian biology: Distributing ", agent_list%length," agents by stage for FG::", fgroup%name
