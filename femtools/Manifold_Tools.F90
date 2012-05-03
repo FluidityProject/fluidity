@@ -620,6 +620,8 @@ module manifold_tools
     integer :: ele
     logical :: lump_mass
     
+    ewrite(1,*) 'subroutine get_vorticity'
+
     vorticity_mass_sparsity => &
          get_csr_sparsity_firstorder(state, vorticity%mesh, vorticity%mesh)
 
@@ -636,8 +638,10 @@ module manifold_tools
             &,down,vorticity_rhs,ele)
     end do
 
-    call petsc_solve(vorticity,vorticity_mass_matrix,vorticity_rhs)
+    ewrite(1,*) 'Vorticity rhs', maxval(abs(vorticity_rhs%val))
 
+    call petsc_solve(vorticity,vorticity_mass_matrix,vorticity_rhs)
+    ewrite(1,*) 'Solved Vorticity', maxval(abs(vorticity_rhs%val))
     call deallocate(vorticity_mass_matrix)
     call deallocate(vorticity_rhs)
 

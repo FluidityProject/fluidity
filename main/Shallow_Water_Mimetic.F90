@@ -190,7 +190,7 @@
       type(state_type), intent(inout) :: state
       !
       type(vector_field), pointer :: U, advecting_u
-      type(scalar_field), pointer :: D_old, D
+      type(scalar_field), pointer :: D_old, D, vorticity
       type(vector_field) :: newU, MassFlux
       type(scalar_field) :: newD
       integer :: nonlinear_iterations, nits
@@ -202,7 +202,8 @@
       !From previous timestep
       U => extract_vector_field(state, "LocalVelocity")
       D => extract_scalar_field(state, "LayerThickness")
-      D_old => extract_scalar_field(state, "OldLayerThickness")
+      D_old => extract_scalar_field(state, "OldLayerThickness")      
+      vorticity => extract_scalar_field(state, "Vorticity")
       call set(D_old,D)
       advecting_u=>extract_vector_field(state, "NonlinearVelocity")
 
@@ -214,13 +215,16 @@
          call allocate(MassFlux,mesh_dim(U),u%mesh,'MassFlux')
          call solve_advection_dg_subcycle("LayerThickness", state, &
               "NonlinearVelocity",continuity=.true.,Flux=MassFlux)
+         ! This is where the PV advection goes
          call deallocate(MassFlux)
-      else
-               call allocate(newU,U%dim,U%mesh,"NewLocalVelocity")
-               call allocate(newD,D%mesh,"NewLayerThickness")
-               call set(newD,D)
-               call set(newU,U)
 
+         call get_vorticity(state,vorticity,U)
+      else
+         call allocate(newU,U%dim,U%mesh,"NewLocalVelocity")
+         call allocate(newD,D%mesh,"NewLayerThickness")
+         call set(newD,D)
+         call set(newU,U)
+         
          do nits = 1, nonlinear_iterations
             call solve_hybridised_timestep_residual(state,newU,newD)
          end do

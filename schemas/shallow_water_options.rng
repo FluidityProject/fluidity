@@ -95,6 +95,13 @@ Checks for jumps using local coordinates</a:documentation>
           </attribute>
           <ref name="mesh_info"/>
         </element>
+        <element name="mesh">
+          <a:documentation>Vorticity mesh</a:documentation>
+          <attribute name="name">
+            <value>VorticityMesh</value>
+          </attribute>
+          <ref name="mesh_info"/>
+        </element>
         <zeroOrMore>
           <element name="mesh">
             <attribute name="name">

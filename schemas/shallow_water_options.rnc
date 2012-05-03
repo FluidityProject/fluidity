@@ -82,6 +82,11 @@ start =
                attribute name { "PressureMesh" },
                mesh_info
             },
+            ## Vorticity mesh
+            element mesh {
+               attribute name { "VorticityMesh" },
+               mesh_info
+            },
             element mesh {
                attribute name { xsd:string },
                mesh_info,
