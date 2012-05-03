@@ -280,6 +280,31 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
+    <scalar_field name="Vorticity" rank="0">
+      <prognostic>
+        <mesh name="VorticityMesh"/>
+        <vorticity_equation>
+          <lump_mass/>
+        </vorticity_equation>
+        <solver>
+          <iterative_method name="cg"/>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1.0e-8</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">1000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <output/>
+        <stat/>
+        <consistent_interpolation/>
+      </prognostic>
+    </scalar_field>
     <scalar_field name="DG_CourantNumber" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>

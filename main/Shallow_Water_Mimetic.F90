@@ -429,7 +429,7 @@
 ! Newton iteration for linear equations - CODED and TESTED
 ! Call to Newton iteration from main code - CODED and TESTED
 ! Check that timestepping produces some output - DONE
-! Extract fluxes from DG
+! Extract fluxes from DG -- DONE
 ! Vorticity calculation
 ! Mass lumping for P2b
 ! Visualisation of P2b by mapping back to P2

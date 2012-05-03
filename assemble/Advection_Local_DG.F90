@@ -55,7 +55,6 @@ module advection_local_DG
   use manifold_tools
   use diagnostic_fields, only: calculate_diagnostic_variable
   use global_parameters, only : FIELD_NAME_LEN
-  use hybridized_helmholtz, only : get_up_gi
 
   implicit none
 

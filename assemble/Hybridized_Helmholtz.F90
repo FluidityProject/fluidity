@@ -1203,62 +1203,6 @@ contains
         
   end subroutine get_local_solver
 
-  subroutine get_up_gi(X,ele,up_gi,orientation)
-    !subroutine to replace up_gi with a normal to the surface
-    !with the same orientation
-    implicit none
-    type(vector_field), intent(in) :: X
-    integer, intent(in) :: ele
-    real, dimension(X%dim,ele_ngi(X,ele)), intent(inout) :: up_gi
-    integer, intent(out), optional :: orientation
-    !
-    real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
-    integer :: gi
-    real, dimension(X%dim,ele_ngi(X,ele)) :: normal_gi
-    real, dimension(ele_ngi(X,ele)) :: orientation_gi
-    integer :: l_orientation
-    real :: norm
-
-    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J)
-
-    select case(mesh_dim(X)) 
-    case (2)
-       do gi = 1, ele_ngi(X,ele)
-          normal_gi(:,gi) = cross_product(J(1,:,gi),J(2,:,gi))
-          norm = sqrt(sum(normal_gi(:,gi)**2))
-          normal_gi(:,gi) = normal_gi(:,gi)/norm
-       end do
-       do gi = 1, ele_ngi(X,ele)
-          orientation_gi(gi) = dot_product(normal_gi(:,gi),up_gi(:,gi))
-       end do
-       do gi = 1, ele_ngi(X,ele)
-          if(sign(1.0,orientation_gi(gi)).ne.sign(1.0,orientation_gi(1))) then
-             ewrite(0,*) 'gi=',gi
-             ewrite(0,*) 'normal=',normal_gi(:,gi)
-             ewrite(0,*) 'up=',up_gi(:,gi)
-             ewrite(0,*) 'orientation=',orientation_gi(gi)
-             ewrite(0,*) 'orientation(1)=',orientation_gi(1)
-             FLAbort('Nasty geometry problem')
-          end if
-       end do
-
-
-       if(orientation_gi(1)>0.0) then
-          l_orientation = 1
-       else
-          l_orientation = -1
-       end if
-       if(present(orientation)) then
-          orientation =l_orientation
-       end if
-       do gi = 1, ele_ngi(X,ele)
-          up_gi(:,gi) = normal_gi(:,gi)*l_orientation
-       end do
-    case default
-       FLAbort('not implemented')
-    end select
-  end subroutine get_up_gi
-
   function get_orientation(X_val, up) result (orientation)
     !function compares the orientation of the element with the 
     !up direction

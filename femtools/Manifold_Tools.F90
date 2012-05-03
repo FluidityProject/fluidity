@@ -26,9 +26,15 @@
 !    USA
 #include "fdebug.h"
 module manifold_tools
+  use spud
   use state_module
   use fields
   use fields_base
+  use sparse_tools
+  use sparsity_patterns
+  use sparse_matrices_fields
+  use sparsity_patterns_meshes
+  use solvers
 
   implicit none
   
@@ -42,9 +48,66 @@ module manifold_tools
   private 
 
   public :: project_cartesian_to_local, project_local_to_cartesian,&
-       & get_local_normal, get_face_normal_manifold, get_up_vec, get_weights
+       & get_local_normal, get_face_normal_manifold, get_up_vec,&
+       & get_weights,get_vorticity, get_up_gi
 
   contains 
+
+  subroutine get_up_gi(X,ele,up_gi,orientation)
+    !subroutine to replace up_gi with a normal to the surface
+    !with the same orientation
+    implicit none
+    type(vector_field), intent(in) :: X
+    integer, intent(in) :: ele
+    real, dimension(X%dim,ele_ngi(X,ele)), intent(inout) :: up_gi
+    integer, intent(out), optional :: orientation
+    !
+    real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+    integer :: gi
+    real, dimension(X%dim,ele_ngi(X,ele)) :: normal_gi
+    real, dimension(ele_ngi(X,ele)) :: orientation_gi
+    integer :: l_orientation
+    real :: norm
+
+    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J)
+
+    select case(mesh_dim(X)) 
+    case (2)
+       do gi = 1, ele_ngi(X,ele)
+          normal_gi(:,gi) = cross_product(J(1,:,gi),J(2,:,gi))
+          norm = sqrt(sum(normal_gi(:,gi)**2))
+          normal_gi(:,gi) = normal_gi(:,gi)/norm
+       end do
+       do gi = 1, ele_ngi(X,ele)
+          orientation_gi(gi) = dot_product(normal_gi(:,gi),up_gi(:,gi))
+       end do
+       do gi = 1, ele_ngi(X,ele)
+          if(sign(1.0,orientation_gi(gi)).ne.sign(1.0,orientation_gi(1))) then
+             ewrite(0,*) 'gi=',gi
+             ewrite(0,*) 'normal=',normal_gi(:,gi)
+             ewrite(0,*) 'up=',up_gi(:,gi)
+             ewrite(0,*) 'orientation=',orientation_gi(gi)
+             ewrite(0,*) 'orientation(1)=',orientation_gi(1)
+             FLAbort('Nasty geometry problem')
+          end if
+       end do
+
+
+       if(orientation_gi(1)>0.0) then
+          l_orientation = 1
+       else
+          l_orientation = -1
+       end if
+       if(present(orientation)) then
+          orientation =l_orientation
+       end if
+       do gi = 1, ele_ngi(X,ele)
+          up_gi(:,gi) = normal_gi(:,gi)*l_orientation
+       end do
+    case default
+       FLAbort('not implemented')
+    end select
+  end subroutine get_up_gi
 
   subroutine project_cartesian_to_local_state(state, field, transpose)
     !!< Project the cartesian velocity to local coordinates
@@ -545,4 +608,89 @@ module manifold_tools
     
   end subroutine get_weights_ele
 
+  subroutine get_vorticity(state,vorticity,velocity)
+    type(state_type), intent(inout) :: state
+    type(vector_field), intent(inout) :: velocity
+    type(scalar_field), intent(inout) :: vorticity
+    !
+    type(vector_field), pointer :: X, down
+    type(csr_matrix) :: vorticity_mass_matrix
+    type(csr_sparsity), pointer :: vorticity_mass_sparsity, curl_sparsity
+    type(scalar_field) :: vorticity_rhs
+    integer :: ele
+    logical :: lump_mass
+    
+    vorticity_mass_sparsity => &
+         get_csr_sparsity_firstorder(state, vorticity%mesh, vorticity%mesh)
+
+    X=>extract_vector_field(state, "Coordinate")
+    down=>extract_vector_field(state, "GravityDirection")
+    call allocate(vorticity_mass_matrix,vorticity_mass_sparsity)
+    call allocate(vorticity_rhs, vorticity%mesh, 'VorticityRHS')
+    call zero(vorticity_mass_matrix)
+    call zero(vorticity_rhs)
+    
+    lump_mass = have_option('/material_phase::Fluid/scalar_field::Vorticity/prognostic/vorticity_equation/lump_mass')
+    do ele = 1, ele_count(vorticity)
+       call assemble_vorticity_ele(velocity,vorticity_mass_matrix,X&
+            &,down,vorticity_rhs,ele)
+    end do
+
+    call petsc_solve(vorticity,vorticity_mass_matrix,vorticity_rhs)
+
+    call deallocate(vorticity_mass_matrix)
+    call deallocate(vorticity_rhs)
+
+  end subroutine get_vorticity
+
+  subroutine assemble_vorticity_ele(&
+       velocity,vorticity_mass_matrix,X&
+            &,down,vorticity_rhs,ele)
+    !!Subroutine to compute the vorticity from a *local velocity* field
+    type(vector_field), intent(in) :: X, down
+    type(vector_field), intent(inout) :: velocity
+    type(scalar_field), intent(inout) :: vorticity_rhs
+    type(csr_matrix), intent(inout) :: vorticity_mass_matrix
+    integer, intent(in) :: ele
+    real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+    real, dimension(ele_ngi(X,ele)) :: detwei
+    real, dimension(ele_loc(vorticity_rhs,ele),ele_loc(vorticity_rhs,ele))&
+         :: l_mass_mat
+    real, dimension(ele_loc(vorticity_rhs,ele))&
+         :: l_rhs
+    real, dimension(mesh_dim(velocity),ele_loc(vorticity_rhs,ele))&
+         :: grad_gamma_u
+    real, dimension(velocity%dim,ele_ngi(velocity,ele)) :: velocity_gi
+    real, dimension(X%dim, ele_ngi(X,ele)) :: up_gi
+    integer :: orientation
+    !
+    up_gi = -ele_val_at_quad(down,ele)
+    call get_up_gi(X,ele,up_gi,orientation)
+
+    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J, detwei)    
+    l_mass_mat = shape_shape(ele_shape(vorticity_rhs,ele),&
+         ele_shape(vorticity_rhs,ele),detwei)
+
+    velocity_gi = ele_val_at_quad(velocity,ele)
+    ! < \nabla^\perp \gamma, u> in local coordinates
+    ! requires us to know the orientation of the manifold
+
+    select case(mesh_dim(X))
+    case (2)
+       grad_gamma_u = dshape_rhs(vorticity_rhs%mesh%shape%dn, &
+            velocity_gi(1,:)*X%mesh%shape%quadrature%weight)
+       l_rhs = -grad_gamma_u(2,:)
+       grad_gamma_u = dshape_rhs(vorticity_rhs%mesh%shape%dn, &
+            velocity_gi(2,:)*X%mesh%shape%quadrature%weight)
+       l_rhs = l_rhs + grad_gamma_u(1,:)
+       l_rhs = l_rhs*orientation
+    case default
+       FLAbort('Exterior derivative not implemented for given mesh dimension')
+    end select
+
+    call addto(vorticity_mass_matrix,ele_nodes(vorticity_rhs,ele),&
+         ele_nodes(vorticity_rhs,ele),l_mass_mat)
+    call addto(vorticity_rhs,ele_nodes(vorticity_rhs,ele),l_rhs)
+
+  end subroutine assemble_vorticity_ele
 end module manifold_tools
