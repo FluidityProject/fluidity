@@ -734,9 +734,9 @@
          end do Loop_ILY1
       end do Loop_ILX1
 
-      Loop_P2: do p = 1, nquad
+      Loop_P2: do ir = 1, nquad
          Loop_Q2: do q = 1, nquad
-            Loop_IR2: do ir = 1, nquad
+            Loop_IR2: do p = 1, nquad
                gpoi = ( p - 1 ) * nquad + q + ( ir - 1 ) * nquad * nquad
                ! Weight
                weight( gpoi ) = weit( p ) * weit( q ) * weit( ir )
@@ -905,6 +905,7 @@
             else
 
                volume_order=1
+!               volume_order=3
 
                cv_ngi = 864 ! 8x4x27 (tets x hexs x 3x3x3)
                scvngi = 192 ! 6x8x4 (cv_faces x hexs x tets)
@@ -3579,11 +3580,11 @@
        allocate(y_temp(27))
        allocate(z_temp(27))
        allocate(x_ndgln_temp(27))
-       xstar=-1.
+       xstar=-0.
        xfini=+1.
-       ystar=-1.
+       ystar=-0.
        yfini=+1.
-       zstar=-1.
+       zstar=-0.
        zfini=+1.
 ! redfine hex nodes
        do id=1,3
@@ -3615,32 +3616,61 @@
        x_temp=x
        y_temp=y
        z_temp=z
+       allocate(x_ndgln_temp(27))
+       x_ndgln_temp(1:27)=x_ndgln(1:27)
+
+     if(.true.) then
+       xstar=-0.
+       xfini=+1.
+       ystar=-0.
+       yfini=+1.
+       zstar=-0.
+       zfini=+1.
+! redfine hex nodes
+       do id=1,3
+       do jd=1,3
+       do kd=1,3
+         quad_cv_iloc=(kd-1)*9 +(jd-1)*3+ id
+         xcoord= xstar + (real(id-1)/2.) * (xfini-xstar)
+         ycoord= ystar + (real(jd-1)/2.) * (yfini-ystar)
+         zcoord= zstar + (real(kd-1)/2.) * (zfini-zstar)
+         x_ndgln_temp(quad_cv_iloc)=quad_cv_iloc
+         x_temp(quad_cv_iloc)=xcoord
+         y_temp(quad_cv_iloc)=ycoord
+         z_temp(quad_cv_iloc)=zcoord
+       end do
+       end do
+       end do
+       x_temp(1)=0.5
+!       x_temp(5)=0.5
+     endif
+
         allocate(nod_pt(27))
 !  nod1 to nod8 are the corners of the hex:
-        nod1=x_ndgln((ele-1)*quad_cv_nloc+1) 
-        nod2=x_ndgln((ele-1)*quad_cv_nloc+3) 
-        nod3=x_ndgln((ele-1)*quad_cv_nloc+7) 
-        nod4=x_ndgln((ele-1)*quad_cv_nloc+9) 
+        nod1=x_ndgln_temp((ele-1)*quad_cv_nloc+1) 
+        nod2=x_ndgln_temp((ele-1)*quad_cv_nloc+3) 
+        nod3=x_ndgln_temp((ele-1)*quad_cv_nloc+7) 
+        nod4=x_ndgln_temp((ele-1)*quad_cv_nloc+9) 
 
-        nod5=x_ndgln((ele-1)*quad_cv_nloc+19) 
-        nod6=x_ndgln((ele-1)*quad_cv_nloc+21) 
-        nod7=x_ndgln((ele-1)*quad_cv_nloc+25) 
-        nod8=x_ndgln((ele-1)*quad_cv_nloc+27) 
-        nod_pt(1:27)=x_ndgln((ele-1)*quad_cv_nloc+1:(ele-1)*quad_cv_nloc+27)
+        nod5=x_ndgln_temp((ele-1)*quad_cv_nloc+19) 
+        nod6=x_ndgln_temp((ele-1)*quad_cv_nloc+21) 
+        nod7=x_ndgln_temp((ele-1)*quad_cv_nloc+25) 
+        nod8=x_ndgln_temp((ele-1)*quad_cv_nloc+27) 
+        nod_pt(1:27)=x_ndgln_temp((ele-1)*quad_cv_nloc+1:(ele-1)*quad_cv_nloc+27)
 ! redefine hex:
 ! 1st level:
-        x_temp(nod_pt(2))=0.5*(x(nod1)+x(nod2))
-        x_temp(nod_pt(4))=0.5*(x(nod1)+x(nod3))
-        x_temp(nod_pt(6))=0.5*(x(nod2)+x(nod4))
-        x_temp(nod_pt(8))=0.5*(x(nod3)+x(nod4))
-        x_temp(nod_pt(5))=0.25*( x(nod1)+x(nod2) +x(nod3)+x(nod4) )
+        x_temp(nod_pt(2))=0.5*(x_temp(nod1)+x_temp(nod2))
+        x_temp(nod_pt(4))=0.5*(x_temp(nod1)+x_temp(nod3))
+        x_temp(nod_pt(6))=0.5*(x_temp(nod2)+x_temp(nod4))
+        x_temp(nod_pt(8))=0.5*(x_temp(nod3)+x_temp(nod4))
+        x_temp(nod_pt(5))=0.25*( x_temp(nod1)+x_temp(nod2) +x_temp(nod3)+x_temp(nod4) )
 
 ! 3rd level:
-        x_temp(nod_pt(2+18))=0.5*(x(nod5)+x(nod6))
-        x_temp(nod_pt(4+18))=0.5*(x(nod5)+x(nod7))
-        x_temp(nod_pt(6+18))=0.5*(x(nod6)+x(nod8))
-        x_temp(nod_pt(8+18))=0.5*(x(nod7)+x(nod8))
-        x_temp(nod_pt(5+18))=0.25*( x(nod5)+x(nod6) +x(nod7)+x(nod8) )
+        x_temp(nod_pt(2+18))=0.5*(x_temp(nod5)+x(nod6))
+        x_temp(nod_pt(4+18))=0.5*(x_temp(nod5)+x_temp(nod7))
+        x_temp(nod_pt(6+18))=0.5*(x_temp(nod6)+x_temp(nod8))
+        x_temp(nod_pt(8+18))=0.5*(x_temp(nod7)+x_temp(nod8))
+        x_temp(nod_pt(5+18))=0.25*( x_temp(nod5)+x_temp(nod6) +x_temp(nod7)+x_temp(nod8) )
 
 ! 2nd level:
        do id=1,9 ! average of the 2 levels...
@@ -3649,18 +3679,18 @@
 
 ! y:
 ! 1st level:
-        y_temp(nod_pt(2))=0.5*(y(nod1)+y(nod2))
-        y_temp(nod_pt(4))=0.5*(y(nod1)+y(nod3))
-        y_temp(nod_pt(6))=0.5*(y(nod2)+y(nod4))
-        y_temp(nod_pt(8))=0.5*(y(nod3)+y(nod4))
-        y_temp(nod_pt(5))=0.25*( y(nod1)+y(nod2) +y(nod3)+y(nod4) )
+        y_temp(nod_pt(2))=0.5*(y_temp(nod1)+y_temp(nod2))
+        y_temp(nod_pt(4))=0.5*(y_temp(nod1)+y_temp(nod3))
+        y_temp(nod_pt(6))=0.5*(y_temp(nod2)+y_temp(nod4))
+        y_temp(nod_pt(8))=0.5*(y_temp(nod3)+y_temp(nod4))
+        y_temp(nod_pt(5))=0.25*( y_temp(nod1)+y_temp(nod2) +y_temp(nod3)+y_temp(nod4) )
 
 ! 3rd level:
-        y_temp(nod_pt(2+18))=0.5*(y(nod5)+y(nod6))
-        y_temp(nod_pt(4+18))=0.5*(y(nod5)+y(nod7))
-        y_temp(nod_pt(6+18))=0.5*(y(nod6)+y(nod8))
-        y_temp(nod_pt(8+18))=0.5*(y(nod7)+y(nod8))
-        y_temp(nod_pt(5+18))=0.25*( y(nod5)+y(nod6) +y(nod7)+y(nod8) )
+        y_temp(nod_pt(2+18))=0.5*(y_temp(nod5)+y_temp(nod6))
+        y_temp(nod_pt(4+18))=0.5*(y_temp(nod5)+y_temp(nod7))
+        y_temp(nod_pt(6+18))=0.5*(y_temp(nod6)+y_temp(nod8))
+        y_temp(nod_pt(8+18))=0.5*(y_temp(nod7)+y_temp(nod8))
+        y_temp(nod_pt(5+18))=0.25*( y_temp(nod5)+y_temp(nod6) +y_temp(nod7)+y_temp(nod8) )
 
 ! 2nd level:
        do id=1,9 ! average of the 2 levels...
@@ -3668,19 +3698,28 @@
        end do
 
 ! z: 
+      if(.false.) then
+        z_temp=0.0
+        z_temp(nod_pt(2+18))=0.1
+        z_temp(nod_pt(4+18))=0.1
+        z_temp(nod_pt(6+18))=0.1
+        z_temp(nod_pt(8+18))=0.1
+        z_temp(nod_pt(5+18))=0.1
+      else
 ! 1st level:
-        z_temp(nod_pt(2))=0.5*(z(nod1)+z(nod2))
-        z_temp(nod_pt(4))=0.5*(z(nod1)+z(nod3))
-        z_temp(nod_pt(6))=0.5*(z(nod2)+z(nod4))
-        z_temp(nod_pt(8))=0.5*(z(nod3)+z(nod4))
-        z_temp(nod_pt(5))=0.25*( z(nod1)+z(nod2) +z(nod3)+z(nod4) )
+        z_temp(nod_pt(2))=0.5*(z_temp(nod1)+z_temp(nod2))
+        z_temp(nod_pt(4))=0.5*(z_temp(nod1)+z_temp(nod3))
+        z_temp(nod_pt(6))=0.5*(z_temp(nod2)+z_temp(nod4))
+        z_temp(nod_pt(8))=0.5*(z_temp(nod3)+z_temp(nod4))
+        z_temp(nod_pt(5))=0.25*( z_temp(nod1)+z_temp(nod2) +z_temp(nod3)+z_temp(nod4) )
 
 ! 3rd level:
-        z_temp(nod_pt(2+18))=0.5*(z(nod5)+z(nod6))
-        z_temp(nod_pt(4+18))=0.5*(z(nod5)+z(nod7))
-        z_temp(nod_pt(6+18))=0.5*(z(nod6)+z(nod8))
-        z_temp(nod_pt(8+18))=0.5*(z(nod7)+z(nod8))
-        z_temp(nod_pt(5+18))=0.25*( z(nod5)+z(nod6) +z(nod7)+z(nod8) )
+        z_temp(nod_pt(2+18))=0.5*(z_temp(nod5)+z_temp(nod6))
+        z_temp(nod_pt(4+18))=0.5*(z_temp(nod5)+z_temp(nod7))
+        z_temp(nod_pt(6+18))=0.5*(z_temp(nod6)+z_temp(nod8))
+        z_temp(nod_pt(8+18))=0.5*(z_temp(nod7)+z_temp(nod8))
+        z_temp(nod_pt(5+18))=0.25*( z_temp(nod5)+z_temp(nod6) +z_temp(nod7)+z_temp(nod8) )
+      endif
 
 ! 2nd level:
        do id=1,9 ! average of the 2 levels...
@@ -3690,24 +3729,55 @@
 
         print *,'d1, d3, dcyl:',d1, d3, dcyl
 !         call detnlxr( ele, x, y, z, x_ndgln, totele, x_nonods, quad_cv_nloc, quad_cv_ngi, &
-         call detnlxr( ele, x_temp, y_temp, z_temp, x_ndgln, totele, x_nonods, quad_cv_nloc, quad_cv_ngi, &
+         call detnlxr( ele, x_temp, y_temp, z_temp, x_ndgln_temp, 1, x_nonods, quad_cv_nloc, quad_cv_ngi, &
               quad_n, quad_nlx, quad_nly, quad_nlz, quad_cvweight, &
               detwei, ra, volume, d1, d3, dcyl, &       
               quad_nx, quad_ny, quad_nz )
 
 !  nod1 to nod8 are the corners of the hex:
-        nod1=x_ndgln((ele-1)*quad_cv_nloc+1) 
-        nod2=x_ndgln((ele-1)*quad_cv_nloc+3) 
-        nod3=x_ndgln((ele-1)*quad_cv_nloc+7) 
-        nod4=x_ndgln((ele-1)*quad_cv_nloc+9) 
+        nod1=x_ndgln_temp((ele-1)*quad_cv_nloc+1) 
+        nod2=x_ndgln_temp((ele-1)*quad_cv_nloc+3) 
+        nod3=x_ndgln_temp((ele-1)*quad_cv_nloc+7) 
+        nod4=x_ndgln_temp((ele-1)*quad_cv_nloc+9) 
 
-        nod5=x_ndgln((ele-1)*quad_cv_nloc+19) 
-        nod6=x_ndgln((ele-1)*quad_cv_nloc+21) 
-        nod7=x_ndgln((ele-1)*quad_cv_nloc+25) 
-        nod8=x_ndgln((ele-1)*quad_cv_nloc+27) 
+        nod5=x_ndgln_temp((ele-1)*quad_cv_nloc+19) 
+        nod6=x_ndgln_temp((ele-1)*quad_cv_nloc+21) 
+        nod7=x_ndgln_temp((ele-1)*quad_cv_nloc+25) 
+        nod8=x_ndgln_temp((ele-1)*quad_cv_nloc+27) 
 
 ! calculate the volume of the hex: 
         
+      if(.true.) then
+        rsum1=Volume_TetHex( .false., &
+       x_temp(nod1), x_temp(nod2), x_temp(nod3), x_temp(nod7), &
+       y_temp(nod1), y_temp(nod2), y_temp(nod3), y_temp(nod7), &
+       z_temp(nod1), z_temp(nod2), z_temp(nod3), z_temp(nod7) )
+
+        rsum2=Volume_TetHex( .false., &
+       x_temp(nod5), x_temp(nod6), x_temp(nod7), x_temp(nod1), &
+       y_temp(nod5), y_temp(nod6), y_temp(nod7), y_temp(nod1), &
+       z_temp(nod5), z_temp(nod6), z_temp(nod7), z_temp(nod1) )
+
+        rsum3=Volume_TetHex( .false., &
+       x_temp(nod6), x_temp(nod7), x_temp(nod2), x_temp(nod1), &
+       y_temp(nod6), y_temp(nod7), y_temp(nod2), y_temp(nod1), &
+       z_temp(nod6), z_temp(nod7), z_temp(nod2), z_temp(nod1) )
+
+        rsum4=Volume_TetHex( .false., &
+       x_temp(nod2), x_temp(nod3), x_temp(nod4), x_temp(nod8), &
+       y_temp(nod2), y_temp(nod3), y_temp(nod4), y_temp(nod8), &
+       z_temp(nod2), z_temp(nod3), z_temp(nod4), z_temp(nod8) )
+
+        rsum5=Volume_TetHex( .false., &
+       x_temp(nod6), x_temp(nod7), x_temp(nod8), x_temp(nod2), &
+       y_temp(nod6), y_temp(nod7), y_temp(nod8), y_temp(nod2), &
+       z_temp(nod6), z_temp(nod7), z_temp(nod8), z_temp(nod2) )
+
+        rsum6=Volume_TetHex( .false., &
+       x_temp(nod7), x_temp(nod3), x_temp(nod2), x_temp(nod8), &
+       y_temp(nod7), y_temp(nod3), y_temp(nod2), y_temp(nod8), &
+       z_temp(nod7), z_temp(nod3), z_temp(nod2), z_temp(nod8) )
+     else
         rsum1=Volume_TetHex( .false., &
        x(nod1), x(nod2), x(nod3), x(nod7), &
        y(nod1), y(nod2), y(nod3), y(nod7), &
@@ -3737,6 +3807,7 @@
        x(nod7), x(nod3), x(nod2), x(nod8), &
        y(nod7), y(nod3), y(nod2), y(nod8), &
        z(nod7), z(nod3), z(nod2), z(nod8) )
+     endif
 
       print *,'rsum1,rsum2,rsum3,rsum4,rsum5,rsum6:', &
                rsum1,rsum2,rsum3,rsum4,rsum5,rsum6
