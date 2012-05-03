@@ -759,15 +759,15 @@
                ! ZN
                zn( 1 ) = 0.5 * lz( ir ) * ( lz( ir ) - 1. )
                zn( 2 ) = 1. - lz( ir ) * lz( ir )
-               zn( 3 ) = 0.5 * lz( q ) * ( ly( q ) + 1. )
+               zn( 3 ) = 0.5 * lz( ir ) * ( lz( ir ) + 1. )
                ! DZDN
                dzn( 1 ) = 0.5 * ( 2. * lz( ir ) - 1. )
                dzn( 2 ) = -2. * lz( ir )
                dzn( 3 ) = 0.5 * ( 2. * lz( ir ) + 1. )
                ! N, NLX and NLY
-               Loop_ILX2: do ilx = 1, nl
+               Loop_ILX2: do ilz = 1, nl
                   Loop_ILY2: do ily = 1, nl
-                     Loop_ILZ2: do ilz = 1, nl
+                     Loop_ILZ2: do ilx = 1, nl
                         nj = ilx + ( ily - 1 ) * 3 + ( ilz - 1 ) * 9
                         n( nj, gpoi ) = xn( ilx ) * yn( ily ) * zn( ilz )
 !                 print *,'nj, gpoi,n( nj, gpoi ),xn( ilx ), yn( ily ),zn( ilz ):', &
@@ -3458,7 +3458,7 @@
            x_temp, y_temp, z_temp
       real, dimension( :, : ), allocatable :: quad_n, quad_nlx, quad_nly, quad_nlz, &
            quad_nx, quad_ny, quad_nz
-      integer, dimension( : ), allocatable :: x_ndgln_temp
+      integer, dimension( : ), allocatable :: x_ndgln_temp, nod_pt
 
 
       ewrite(3,*)'In shape_tri_tet'
@@ -3609,7 +3609,88 @@
 
       else
 
-         call detnlxr( ele, x, y, z, x_ndgln, totele, x_nonods, quad_cv_nloc, quad_cv_ngi, &
+       allocate(x_temp(x_nonods))
+       allocate(y_temp(x_nonods))
+       allocate(z_temp(x_nonods))
+       x_temp=x
+       y_temp=y
+       z_temp=z
+        allocate(nod_pt(27))
+!  nod1 to nod8 are the corners of the hex:
+        nod1=x_ndgln((ele-1)*quad_cv_nloc+1) 
+        nod2=x_ndgln((ele-1)*quad_cv_nloc+3) 
+        nod3=x_ndgln((ele-1)*quad_cv_nloc+7) 
+        nod4=x_ndgln((ele-1)*quad_cv_nloc+9) 
+
+        nod5=x_ndgln((ele-1)*quad_cv_nloc+19) 
+        nod6=x_ndgln((ele-1)*quad_cv_nloc+21) 
+        nod7=x_ndgln((ele-1)*quad_cv_nloc+25) 
+        nod8=x_ndgln((ele-1)*quad_cv_nloc+27) 
+        nod_pt(1:27)=x_ndgln((ele-1)*quad_cv_nloc+1:(ele-1)*quad_cv_nloc+27)
+! redefine hex:
+! 1st level:
+        x_temp(nod_pt(2))=0.5*(x(nod1)+x(nod2))
+        x_temp(nod_pt(4))=0.5*(x(nod1)+x(nod3))
+        x_temp(nod_pt(6))=0.5*(x(nod2)+x(nod4))
+        x_temp(nod_pt(8))=0.5*(x(nod3)+x(nod4))
+        x_temp(nod_pt(5))=0.25*( x(nod1)+x(nod2) +x(nod3)+x(nod4) )
+
+! 3rd level:
+        x_temp(nod_pt(2+18))=0.5*(x(nod5)+x(nod6))
+        x_temp(nod_pt(4+18))=0.5*(x(nod5)+x(nod7))
+        x_temp(nod_pt(6+18))=0.5*(x(nod6)+x(nod8))
+        x_temp(nod_pt(8+18))=0.5*(x(nod7)+x(nod8))
+        x_temp(nod_pt(5+18))=0.25*( x(nod5)+x(nod6) +x(nod7)+x(nod8) )
+
+! 2nd level:
+       do id=1,9 ! average of the 2 levels...
+        x_temp(nod_pt(id+9))=0.5*(x_temp(nod_pt(id))+x_temp(nod_pt(id+18)))
+       end do
+
+! y:
+! 1st level:
+        y_temp(nod_pt(2))=0.5*(y(nod1)+y(nod2))
+        y_temp(nod_pt(4))=0.5*(y(nod1)+y(nod3))
+        y_temp(nod_pt(6))=0.5*(y(nod2)+y(nod4))
+        y_temp(nod_pt(8))=0.5*(y(nod3)+y(nod4))
+        y_temp(nod_pt(5))=0.25*( y(nod1)+y(nod2) +y(nod3)+y(nod4) )
+
+! 3rd level:
+        y_temp(nod_pt(2+18))=0.5*(y(nod5)+y(nod6))
+        y_temp(nod_pt(4+18))=0.5*(y(nod5)+y(nod7))
+        y_temp(nod_pt(6+18))=0.5*(y(nod6)+y(nod8))
+        y_temp(nod_pt(8+18))=0.5*(y(nod7)+y(nod8))
+        y_temp(nod_pt(5+18))=0.25*( y(nod5)+y(nod6) +y(nod7)+y(nod8) )
+
+! 2nd level:
+       do id=1,9 ! average of the 2 levels...
+        y_temp(nod_pt(id+9))=0.5*(y_temp(nod_pt(id))+y_temp(nod_pt(id+18)))
+       end do
+
+! z: 
+! 1st level:
+        z_temp(nod_pt(2))=0.5*(z(nod1)+z(nod2))
+        z_temp(nod_pt(4))=0.5*(z(nod1)+z(nod3))
+        z_temp(nod_pt(6))=0.5*(z(nod2)+z(nod4))
+        z_temp(nod_pt(8))=0.5*(z(nod3)+z(nod4))
+        z_temp(nod_pt(5))=0.25*( z(nod1)+z(nod2) +z(nod3)+z(nod4) )
+
+! 3rd level:
+        z_temp(nod_pt(2+18))=0.5*(z(nod5)+z(nod6))
+        z_temp(nod_pt(4+18))=0.5*(z(nod5)+z(nod7))
+        z_temp(nod_pt(6+18))=0.5*(z(nod6)+z(nod8))
+        z_temp(nod_pt(8+18))=0.5*(z(nod7)+z(nod8))
+        z_temp(nod_pt(5+18))=0.25*( z(nod5)+z(nod6) +z(nod7)+z(nod8) )
+
+! 2nd level:
+       do id=1,9 ! average of the 2 levels...
+        z_temp(nod_pt(id+9))=0.5*(z_temp(nod_pt(id))+z_temp(nod_pt(id+18)))
+       end do
+
+
+        print *,'d1, d3, dcyl:',d1, d3, dcyl
+!         call detnlxr( ele, x, y, z, x_ndgln, totele, x_nonods, quad_cv_nloc, quad_cv_ngi, &
+         call detnlxr( ele, x_temp, y_temp, z_temp, x_ndgln, totele, x_nonods, quad_cv_nloc, quad_cv_ngi, &
               quad_n, quad_nlx, quad_nly, quad_nlz, quad_cvweight, &
               detwei, ra, volume, d1, d3, dcyl, &       
               quad_nx, quad_ny, quad_nz )
@@ -3664,6 +3745,8 @@
       print *,'rsum1+rsum2+rsum3+rsum4+rsum5+rsum6:', &
                abs(rsum1) + abs(rsum2) + abs(rsum3) + &
                abs(rsum4) + abs(rsum5) + abs(rsum6)
+
+      print *,'detwei, volume:',detwei, volume
 
        stop 2921
 
