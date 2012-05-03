@@ -638,10 +638,9 @@ module manifold_tools
             &,down,vorticity_rhs,ele)
     end do
 
-    ewrite(1,*) 'Vorticity rhs', maxval(abs(vorticity_rhs%val))
+    !call petsc_solve(vorticity,vorticity_mass_matrix,vorticity_rhs)
+    call set(vorticity,vorticity_rhs)
 
-    call petsc_solve(vorticity,vorticity_mass_matrix,vorticity_rhs)
-    ewrite(1,*) 'Solved Vorticity', maxval(abs(vorticity_rhs%val))
     call deallocate(vorticity_mass_matrix)
     call deallocate(vorticity_rhs)
 
@@ -664,7 +663,8 @@ module manifold_tools
          :: l_rhs
     real, dimension(mesh_dim(velocity),ele_loc(vorticity_rhs,ele))&
          :: grad_gamma_u
-    real, dimension(velocity%dim,ele_ngi(velocity,ele)) :: velocity_gi
+    real, dimension(velocity%dim,ele_ngi(velocity,ele)) :: velocity_gi,&
+         velocity_perp_gi
     real, dimension(X%dim, ele_ngi(X,ele)) :: up_gi
     integer :: orientation
     !
@@ -676,17 +676,15 @@ module manifold_tools
          ele_shape(vorticity_rhs,ele),detwei)
 
     velocity_gi = ele_val_at_quad(velocity,ele)
-    ! < \nabla^\perp \gamma, u> in local coordinates
+    ! < \nabla \gamma, u^\perp> in local coordinates
     ! requires us to know the orientation of the manifold
 
     select case(mesh_dim(X))
     case (2)
-       grad_gamma_u = dshape_rhs(vorticity_rhs%mesh%shape%dn, &
-            velocity_gi(1,:)*X%mesh%shape%quadrature%weight)
-       l_rhs = -grad_gamma_u(2,:)
-       grad_gamma_u = dshape_rhs(vorticity_rhs%mesh%shape%dn, &
-            velocity_gi(2,:)*X%mesh%shape%quadrature%weight)
-       l_rhs = l_rhs + grad_gamma_u(1,:)
+       velocity_perp_gi(1,:) = -velocity_gi(2,:)
+       velocity_perp_gi(2,:) =  velocity_gi(1,:)
+       l_rhs = dshape_dot_vector_rhs(vorticity_rhs%mesh%shape%dn, &
+            velocity_perp_gi,X%mesh%shape%quadrature%weight)
        l_rhs = l_rhs*orientation
     case default
        FLAbort('Exterior derivative not implemented for given mesh dimension')
