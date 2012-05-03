@@ -106,9 +106,6 @@ lagrangian_biology =
                   element parametric_guided_search{
                      empty
                   }|
-                  element rtree_tracking{
-                     empty
-                  }|
                   element geometric_tracking{
                      empty
                   }
@@ -207,7 +204,10 @@ lagrangian_biology =
                element environment {
                   ## Environment field whose ambient value will be presented to the update code in the 'environment' dictionary.
                   element field {
-                     attribute name { xsd:string }
+                     attribute name { xsd:string },
+                     element integrate_along_path {
+                        empty
+                     }?
                   }*
                }
             ),

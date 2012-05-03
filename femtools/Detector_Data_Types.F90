@@ -31,6 +31,7 @@ module detector_data_types
 
   use fldebug
   use global_parameters, only : FIELD_NAME_LEN, OPTION_PATH_LEN, PYTHON_FUNC_LEN
+  use linked_lists
   
   implicit none
   
@@ -39,7 +40,7 @@ module detector_data_types
   public :: detector_type, detector_linked_list, detector_list_ptr, stringlist, &
             random_walk, le_variable, functional_group, food_set, &
             STATIC_DETECTOR, LAGRANGIAN_DETECTOR, &
-            GUIDED_SEARCH_TRACKING, RTREE_TRACKING, GEOMETRIC_TRACKING
+            GUIDED_SEARCH_TRACKING, GEOMETRIC_TRACKING
 
   integer, parameter :: STATIC_DETECTOR=1, LAGRANGIAN_DETECTOR=2
   integer, parameter :: GUIDED_SEARCH_TRACKING=1, RTREE_TRACKING=2, GEOMETRIC_TRACKING=3
@@ -80,6 +81,12 @@ module detector_data_types
      real, dimension(:), allocatable :: ray_o, ray_d
      ! Distance to the target coordinate
      real :: target_distance, current_t
+
+     ! Element list and distances for path integration
+     type(ilist) :: ele_path_list
+     integer, dimension(:), allocatable :: ele_path
+     type(rlist) :: ele_dist_list
+     real, dimension(:), allocatable :: ele_dist
 
      !! Biology variables
      real, dimension(:), allocatable :: biology
@@ -227,8 +234,10 @@ module detector_data_types
     type(le_variable), dimension(:), allocatable :: variables
     ! List of aggregated agent sets to feed on
     type(food_set), dimension(:), allocatable :: food_sets
+
     ! List of environment fields to sample before the agent update
     character(len=FIELD_NAME_LEN), dimension(:), allocatable :: envfield_names
+    logical, dimension(:), allocatable :: envfield_integrate
 
     ! Indices of all variables that are exposed to the Python motion functions
     integer, dimension(:), allocatable :: motion_var_inds

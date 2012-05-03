@@ -192,13 +192,35 @@ contains
     real, intent(in) :: dt
 
     real, dimension(size(envfields)) :: envfield_vals
-    integer :: f, v, stat
+    real, dimension(:), allocatable :: envval_ele
+    real, dimension(1) :: val
+    real :: path_total
+    integer :: f, v, e, stat
 
     call profiler_tic(trim(fgroup%name)//"::"//trim(key))
 
     ! Sample environment fields
     do f=1, size(envfields)
-       envfield_vals(f) = eval_field(agent%element, envfields(f)%ptr, agent%local_coords)
+       if (fgroup%envfield_integrate(f) .and. size(agent%ele_path) > 0) then
+
+          ! Integrate along the path of the agent
+          allocate(envval_ele(size(agent%ele_path)))
+          do e=1, size(agent%ele_path)
+             val = ele_val(envfields(f)%ptr, agent%ele_path(e))
+             envval_ele = agent%ele_dist(e) * val(1)
+          end do
+
+          envfield_vals(f) = sum(envval_ele) / size(agent%ele_path)
+          path_total = sum(agent%ele_dist)
+          if (path_total > 0.0) then
+             envfield_vals(f) = envfield_vals(f) / path_total
+          end if
+          deallocate(envval_ele)
+
+       else
+          ! Evaluate at detector position
+          envfield_vals(f) = eval_field(agent%element, envfields(f)%ptr, agent%local_coords)
+       end if
     end do
 
     stat=0

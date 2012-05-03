@@ -151,8 +151,6 @@ contains
 
        if (have_option(trim(options_path)//trim("/parametric_guided_search"))) then
           detector_list%tracking_method = GUIDED_SEARCH_TRACKING
-       elseif (have_option(trim(options_path)//trim("/rtree_tracking"))) then
-          detector_list%tracking_method = RTREE_TRACKING
        elseif (have_option(trim(options_path)//trim("/geometric_tracking"))) then
           detector_list%tracking_method = GEOMETRIC_TRACKING
        else
@@ -523,6 +521,16 @@ contains
           end if
           detector%current_t = 0.0
 
+          call flush_list(detector%ele_path_list)
+          if (allocated(detector%ele_path)) then
+             deallocate(detector%ele_path)
+          end if
+
+          call flush_list(detector%ele_dist_list)
+          if (allocated(detector%ele_dist)) then
+             deallocate(detector%ele_dist)
+          end if
+
           detector => detector%next
        end do
     else
@@ -549,23 +557,19 @@ contains
              end if
 
              if (detector_list%tracking_method == GUIDED_SEARCH_TRACKING) then
-                call profiler_tic(trim(detector_list%name)//"::movement::tracking::guided_search")
                 call local_guided_search(xfield,detector%update_vector,detector%element,&
                         search_tolerance,new_owner,detector%local_coords)
-                call profiler_toc(trim(detector_list%name)//"::movement::tracking::guided_search")
-
-             elseif (detector_list%tracking_method == RTREE_TRACKING) then
-                call profiler_tic(trim(detector_list%name)//"::movement::tracking::rtree_tracking")
-                call picker_inquire(xfield, detector%update_vector, detector%element, detector%local_coords, global=.false.)
-                new_owner = element_owner(xfield, detector%element)
-                call profiler_toc(trim(detector_list%name)//"::movement::tracking::rtree_tracking")
 
              elseif (detector_list%tracking_method == GEOMETRIC_TRACKING) then
-                call profiler_tic(trim(detector_list%name)//"::movement::tracking::geometric_tracking")
                 call geometric_ray_tracing(xfield,detector%ray_o,detector%ray_d,detector%target_distance,&
-                        detector%element,new_owner,detector%current_t,search_tolerance)
+                        detector%element,new_owner,detector%current_t,search_tolerance, &
+                        detector%ele_path_list, detector%ele_dist_list)
                 detector%local_coords = local_coords(xfield,detector%element,detector%update_vector)
-                call profiler_toc(trim(detector_list%name)//"::movement::tracking::geometric_tracking")
+
+                allocate(detector%ele_path(detector%ele_path_list%length))
+                detector%ele_path = list2vector(detector%ele_path_list)
+                allocate(detector%ele_dist(detector%ele_dist_list%length))
+                detector%ele_dist = list2vector(detector%ele_dist_list)
 
              else
                 FLExit('No lagrangian particle tracking method specified')
@@ -708,7 +712,7 @@ contains
 
   end subroutine local_guided_search
 
-  subroutine geometric_ray_tracing(xfield,r_o,r_d,target_distance,new_element,new_owner,current_t,search_tolerance)
+  subroutine geometric_ray_tracing(xfield,r_o,r_d,target_distance,new_element,new_owner,current_t,search_tolerance,ele_path,ele_dist)
     ! This tracking method is based on a standard Ray-tracing algorithm using planes and half-spaces.
     ! Reference: 
     type(vector_field), pointer, intent(in) :: xfield
@@ -717,6 +721,8 @@ contains
     integer, intent(out) :: new_owner
     real, intent(in) :: target_distance, search_tolerance
     real, intent(inout) :: current_t
+    type(ilist), intent(inout), optional :: ele_path
+    type(rlist), intent(inout), optional :: ele_dist
 
     real :: face_t, ele_t
     integer :: i, neigh_face, next_face
@@ -727,6 +733,8 @@ contains
        new_owner=getprocno()
        return
     end if
+
+    call insert(ele_path, new_element)
 
     search_loop: do 
 
@@ -746,9 +754,20 @@ contains
        if (ele_t < target_distance) then
           neigh_face = face_neigh(xfield, next_face)
           if (neigh_face /= next_face) then
+
+             if (present(ele_dist)) then
+                call insert(ele_dist, ele_t - current_t)
+             end if
+
              ! Recurse on the next element
              current_t = ele_t
              new_element = face_ele(xfield, neigh_face)
+
+             ! Record the elements along the path travelled
+             ! and the distance travelled within them
+             if (present(ele_path)) then
+                call insert(ele_path, new_element)
+             end if
           else
              if (element_owned(xfield,new_element)) then
                 ! Detector is going outside domain
@@ -762,6 +781,10 @@ contains
           end if
        else
           ! The arrival point is in this element, we're done
+          if (present(ele_dist)) then
+             call insert(ele_dist, target_distance - current_t)
+          end if
+
           new_owner=getprocno()
           exit search_loop
        end if
@@ -777,7 +800,7 @@ contains
       real, intent(out) :: t
 
       real :: d, v_n, v_d
-      integer, dimension(:), allocatable :: face_nodes
+      integer, dimension(face_loc(xfield, face)) :: face_nodes
       real, dimension(xfield%dim,xfield%mesh%faces%shape%ngi) :: facet_normals
       real, dimension(xfield%mesh%faces%shape%ngi) :: detwei_f
       real, dimension(xfield%dim) :: face_normal, face_node_val
@@ -787,11 +810,9 @@ contains
       face_normal = facet_normals(:,1)
 
       ! Establish d using a point on the plane
-      allocate(face_nodes(face_loc(xfield, face)))
       face_nodes = face_global_nodes(xfield, face)
       face_node_val = node_val(xfield,face_nodes(1))
       d = - sum(face_normal * face_node_val)
-      deallocate(face_nodes)
 
       ! Calculate t, the distance along the ray to the face intersection
       v_n = dot_product(face_normal, r_o) + d

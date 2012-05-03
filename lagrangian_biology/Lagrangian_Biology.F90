@@ -136,15 +136,22 @@ contains
        if (have_option(trim(fg_buffer)//"/environment")) then
           n_env_fields = option_count(trim(fg_buffer)//"/environment/field")
           allocate(fgroup%envfield_names(n_env_fields))
+          allocate(fgroup%envfield_integrate(n_env_fields))
           do j=1, n_env_fields
              write(env_field_buffer, "(a,i0,a)") trim(fg_buffer)//"/environment/field[",j-1,"]"
              call get_option(trim(env_field_buffer)//"/name", fgroup%envfield_names(j))
+
+             if (have_option(trim(env_field_buffer)//"/integrate_along_path")) then
+                fgroup%envfield_integrate(j) = .true.
+             else
+                fgroup%envfield_integrate(j) = .false.
+             end if
           end do
 
           ! Add field names to the Python module
           call lebiology_add_envfields(fgroup)
        else
-          FLExit("No environment fields defined for functional group "//trim(fgroup%name))
+          FLExit("No environment fields defined for FG::"//trim(fgroup%name))
        end if
 
        ! Get initialisation options
