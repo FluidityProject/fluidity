@@ -558,7 +558,29 @@ at the first timestep or not.</a:documentation>
   </define>
   <define name="darcy_impes_physical_parameters">
     <element name="physical_parameters">
-      <ref name="gravity_options"/>
+      <ref name="darcy_impes_gravity_options"/>
+    </element>
+  </define>
+  <define name="darcy_impes_gravity_options">
+    <element name="gravity">
+      <a:documentation>Set a gravity to be included in the buoyancy term.</a:documentation>
+      <element name="magnitude">
+        <a:documentation>Acceleration due to gravity. 9.8 m/s^2 on earth.</a:documentation>
+        <ref name="real"/>
+      </element>
+      <element name="vector_field">
+        <a:documentation>The direction of the gravity vector.</a:documentation>
+        <attribute name="name">
+          <value>GravityDirection</value>
+        </attribute>
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <element name="prescribed">
+          <ref name="mesh_choice_element_wise"/>
+          <ref name="prescribed_vector_field_no_adapt"/>
+        </element>
+      </element>
     </element>
   </define>
   <define name="darcy_impes_material_phases">

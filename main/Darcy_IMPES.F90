@@ -308,7 +308,10 @@ program Darcy_IMPES
          call write_state(dump_no, state)
       end if
 
-      call copy_to_stored_values(state,"Old")
+      call copy_to_stored_values(state,"Old")      
+      
+      ! *** Darcy IMPES copy non state data to old ***
+      call darcy_impes_copy_to_old(di)
       
       ! this may already have been done in populate_state, but now
       ! we evaluate at the correct "shifted" time level:
@@ -317,6 +320,10 @@ program Darcy_IMPES
       ! evaluate prescribed fields at time = current_time+dt
       call set_prescribed_field_values(state, exclude_interpolated=.true., &
            exclude_nonreprescribed=.true., time=current_time+dt)
+      
+      ! *** Darcy IMPES calculate latest gravity field - direction field could be defined by python function ***
+      call set(di%gravity, di%gravity_direction)
+      call scale(di%gravity, di%gravity_magnitude)
 
       nonlinear_iteration_loop: do its = 1,nonlinear_iterations
 
@@ -582,7 +589,12 @@ contains
       
       ! allocate the gravity field (which will contain both the magnitude and direction)
       call allocate(di%gravity, di%gravity_direction%dim, di%gravity_direction%mesh)
+      call allocate(di%old_gravity, di%gravity_direction%dim, di%gravity_direction%mesh)
       
+      ! Set the latest gravity field values
+      call set(di%gravity, di%gravity_direction)
+      call scale(di%gravity, di%gravity_magnitude)
+            
       ! Form the positions on the pressure mesh
       di%positions_pressure_mesh = get_coordinate_field(di%state(1), di%pressure_mesh)
 
@@ -838,6 +850,11 @@ contains
       ! assuming all elements are the same type.     
       di%p_cvshape = make_cv_element_shape(di%cvfaces, di%pressure_mesh%shape) 
 
+      ! Generate the CV shape function with reduced number of derivatives 
+      ! evaluated at the control volume faces for the gradient pressure mesh, 
+      ! assuming all elements are the same type.     
+      di%gradp_cvshape = make_cv_element_shape(di%cvfaces, di%gradient_pressure(1)%ptr%mesh%shape) 
+
       ! Generate the CV shape function with reduced number of derivatives
       ! evaluated at the control volume faces located on the domain boundary
       ! for the positions mesh assuming all boundary elements are the same type.
@@ -847,6 +864,11 @@ contains
       ! evaluated at the control volume faces located on the domain boundary
       ! for the pressure mesh assuming all boundary elements are the same type.
       di%p_cvbdyshape = make_cvbdy_element_shape(di%cvfaces, di%pressure_mesh%faces%shape)
+
+      ! Generate the CV shape function with reduced number of derivatives
+      ! evaluated at the control volume faces located on the domain boundary
+      ! for the gradient pressure mesh assuming all boundary elements are the same type.
+      di%gradp_cvbdyshape = make_cvbdy_element_shape(di%cvfaces, di%gradient_pressure(1)%ptr%mesh%faces%shape)
       
       ! Initialise the arrays used to cache the phase face values 
       ! which are perhaps summed over the subcycles.
@@ -933,6 +955,7 @@ contains
       di%gravity_magnitude = 0.0
       
       call deallocate(di%gravity)
+      call deallocate(di%old_gravity)
             
       call deallocate(di%positions_pressure_mesh)
       nullify(di%sparsity_pmesh_pmesh)
@@ -1015,8 +1038,10 @@ contains
       call deallocate(di%p_cvshape_full)
       call deallocate(di%x_cvshape)
       call deallocate(di%p_cvshape)
+      call deallocate(di%gradp_cvshape)
       call deallocate(di%x_cvbdyshape)
       call deallocate(di%p_cvbdyshape)
+      call deallocate(di%gradp_cvbdyshape)
       
       do p = 1,di%number_phase
          deallocate(di%cached_phase_face_value_domain(p)%value)

@@ -110,7 +110,7 @@
       </magnitude>
       <vector_field name="GravityDirection" rank="1">
         <prescribed>
-          <mesh name="CoordinateMesh"/>
+          <mesh name="ElementWiseMesh"/>
           <value name="WholeMesh">
             <constant>
               <real_value shape="3" dim1="dim" rank="1">0.0 0.0 0.0</real_value>

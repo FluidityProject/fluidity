@@ -538,9 +538,28 @@ darcy_impes_timestepping =
 darcy_impes_physical_parameters =
    (
       element physical_parameters {
-         gravity_options
+         darcy_impes_gravity_options
       }   
    )
+
+
+darcy_impes_gravity_options =
+   ## Set a gravity to be included in the buoyancy term.
+   element gravity {
+      ## Acceleration due to gravity. 9.8 m/s^2 on earth.
+      element magnitude {
+         real
+      },
+      ## The direction of the gravity vector.
+      element vector_field {
+         attribute name { "GravityDirection" },
+         attribute rank { "1" },
+         element prescribed {
+            mesh_choice_element_wise,
+            prescribed_vector_field_no_adapt
+         }
+      }
+   }
 
 
 darcy_impes_material_phases =
