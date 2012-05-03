@@ -135,7 +135,7 @@ module advection_local_DG
     type(csr_matrix) :: UpwindFluxMatrix
 
     character(len=FIELD_NAME_LEN) :: limiter_name
-    integer :: i
+    integer :: i, ele
 
     ewrite(1,*) 'subroutine solve_advection_dg_subcycle'
 
@@ -265,19 +265,18 @@ module advection_local_DG
              FLAbort('Flux reconstruction doesn''t work if diffusion/bcs present at the moment')
           end if
        end if
+       call scale(delta_T, -dt/subcycles)
        ! dT = M^(-1) dT
        if(present(flux)) then
-          call zero(delta_t_total)
           call mult(UpwindFlux, upwindfluxmatrix, T)
           call scale(UpwindFlux,-dt/subcycles)
-          call addto(delta_t_total,delta_t, scale=-dt/subcycles)
-          call update_flux(Flux, Delta_T_total, UpwindFlux)
+          call update_flux(Flux, Delta_T, UpwindFlux)
        end if
        ! T = T + dt/s * dT
        call dg_apply_mass(inv_mass, delta_T)
        ewrite(2,*) 'Delta_T', maxval(abs(delta_T%val))
-       call addto(T, delta_T, scale=-dt/subcycles)
-       !Probably need to halo_update(delta_T) as well
+       call addto(T, delta_T)
+       !Probably need to halo_update(Flux) as well       
        call halo_update(T)
 
        if (limit_slope) then
@@ -285,15 +284,19 @@ module advection_local_DG
           call limit_slope_dg(T, U_nl, X, state, limiter, delta_T)
           if(present(flux)) then
              call mult(delta_t_total, mass, delta_t)
+             call zero(UpwindFlux)
+             call update_flux(Flux, Delta_T_total, UpwindFlux)
           end if
-      end if
-      if(present(flux)) then
-         call zero(UpwindFlux)
-         call update_flux(Flux, Delta_T_total, UpwindFlux)
-      end if
+       end if
     end do
 
     if(present(Flux)) then
+       if(have_option('/material_phase::Fluid/scalar_field::LayerThickness/p&
+            &rognostic/spatial_discretisation/debug')) then
+          do ele = 1, ele_count(Flux)
+             call check_flux(Flux,T,T_old,X,ele)
+          end do
+       end if
        call deallocate(UpwindFlux)
        call deallocate(UpwindFluxMatrix)
        call deallocate(delta_T_total)
@@ -307,6 +310,42 @@ module advection_local_DG
     call deallocate(rhs)
 
   end subroutine solve_advection_dg_subcycle
+
+  subroutine check_flux(Flux,T,T_old,X,ele)
+    type(vector_field), intent(in) :: Flux, X
+    type(scalar_field), intent(in) :: T,T_old
+    integer, intent(in) :: ele
+    !
+    real, dimension(Flux%dim,ele_loc(Flux,ele)) :: Flux_vals
+    real, dimension(ele_ngi(T,ele)) :: Div_Flux_gi
+    real, dimension(ele_ngi(T,ele)) :: Delta_T_gi
+    real, dimension(ele_loc(T,ele)) :: Delta_T_rhs, Div_Flux_rhs
+    integer :: dim1, loc
+    real, dimension(ele_ngi(X,ele)) :: detwei
+    real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J_mat
+
+    Delta_T_gi = ele_val_at_quad(T,ele)-ele_val_at_quad(T_old,ele)
+    Flux_vals = ele_val(Flux,ele)
+
+    Div_Flux_gi = 0.
+    !dn is loc x ngi x dim    
+    do dim1 = 1, Flux%dim
+       do loc = 1, ele_loc(Flux,ele)
+          Div_Flux_gi = Div_Flux_gi + Flux%mesh%shape%dn(loc,:,dim1)*&
+               &Flux_vals(dim1,loc)
+       end do
+    end do
+
+    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele),&
+         detwei=detwei,J=J_mat)
+    
+    Delta_T_rhs = shape_rhs(ele_shape(T,ele),Delta_T_gi*detwei)
+    Div_Flux_rhs = shape_rhs(ele_shape(T,ele),Div_Flux_gi*&
+         Flux%mesh%shape%quadrature%weight)
+
+    assert(maxval(abs(Delta_T_rhs-Div_Flux_rhs))<1.0e-10)
+
+  end subroutine check_flux
 
   subroutine update_flux(Flux, Delta_T, UpwindFlux)
     !! Subroutine to compute div-conforming Flux such that

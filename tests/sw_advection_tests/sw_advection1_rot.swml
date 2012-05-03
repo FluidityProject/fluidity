@@ -238,6 +238,7 @@
           <conservative_advection>
             <real_value rank="0">0.</real_value>
           </conservative_advection>
+          <debug/>
         </spatial_discretisation>
         <temporal_discretisation>
           <discontinuous_galerkin>

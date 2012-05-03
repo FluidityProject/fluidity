@@ -845,7 +845,10 @@ prognostic_layerthickness_field =
             ##  0. < TBETA < 1.
             element conservative_advection {
                real
-            }
+            },
+            element debug {
+               empty
+            }?
          )
       },
       ## Temporal discretisation options

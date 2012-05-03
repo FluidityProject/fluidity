@@ -1039,6 +1039,11 @@ conservative_advection below).</a:documentation>
  0. &lt; TBETA &lt; 1.</a:documentation>
         <ref name="real"/>
       </element>
+      <optional>
+        <element name="debug">
+          <empty/>
+        </element>
+      </optional>
     </element>
     <element name="temporal_discretisation">
       <a:documentation>Temporal discretisation options</a:documentation>
