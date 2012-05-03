@@ -196,6 +196,12 @@ contains
              call get_option(trim(stage_buffer)//"/biology/python", agent_array%biovar_pycode)
           end if
 
+          if (have_option(trim(stage_buffer)//"/io_period")) then
+             call get_option(trim(stage_buffer)//"/io_period", agent_array%output_period)
+          else
+             agent_array%output_period = 1.0
+          end if
+
           array = array + 1
        end do 
     end do
@@ -411,7 +417,7 @@ contains
           write(var_buffer, "(a,i0,a)") trim(fg_path)//"/variables/chemical_variable[",i-1,"]"
           call get_option(trim(var_buffer)//"/name", biovar_name)
           if (have_option(trim(var_buffer)//"/include_in_io")) then
-             fgroup%variables(var_index)%write_to_file=.true.
+             fgroup%variables(var_index)%write_to_file = .true.
           end if
 
           ! Chemical pool variable and according diagnostic fields
@@ -437,6 +443,11 @@ contains
              fgroup%variables(var_index)%pool_index = chemvar_index
              !fgroup%variables(var_index)%request_index = var_index - 1
              fgroup%variables(chemvar_index)%ingest_index = var_index
+
+             if (have_option(trim(var_buffer)//"/scalar_field::Ingested/include_in_io")) then
+                fgroup%variables(var_index)%write_to_file = .true.
+             end if
+
              var_index = var_index+1
           end if
 
@@ -451,6 +462,10 @@ contains
              call get_option(trim(var_buffer)//"/uptake/source_field/name", fgroup%variables(var_index)%chemfield)
              call insert_global_uptake_field(fgroup%variables(var_index)%chemfield)
 
+             if (have_option(trim(var_buffer)//"/uptake/include_in_io")) then
+                fgroup%variables(var_index)%write_to_file = .true.
+             end if
+
              fgroup%variables(var_index)%pool_index = chemvar_index
              var_index = var_index+1
           end if
@@ -463,6 +478,10 @@ contains
              fgroup%variables(var_index)%field_path = trim(var_buffer)//"/release/scalar_field::Release"
              call get_option(trim(var_buffer)//"/release/target_field/name", fgroup%variables(var_index)%chemfield)
              call insert_global_release_field(fgroup%variables(var_index)%chemfield)
+
+             if (have_option(trim(var_buffer)//"/release/include_in_io")) then
+                fgroup%variables(var_index)%write_to_file = .true.
+             end if
 
              fgroup%variables(var_index)%pool_index = chemvar_index
              var_index = var_index+1
@@ -763,7 +782,9 @@ contains
           end if
 
           ! Output agent positions after re-sampling
-          call write_detectors(state, agent_array, time, dt, timestep)
+          if (timestep == 1 .or. mod(time, agent_array%output_period) == 0) then
+             call write_detectors(state, agent_array, time, dt, timestep)
+          end if
 
           ! Re-derive the required agent diagnostic variables...
           call derive_primary_diagnostics(state(1), agent_array)

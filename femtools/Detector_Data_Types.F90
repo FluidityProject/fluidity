@@ -205,6 +205,8 @@ module detector_data_types
      !!!!!!!!!!!!!!!!!!!!!!!!!
      !!! Detector I/O      !!!
      !!!!!!!!!!!!!!!!!!!!!!!!!
+
+
      !! Optional array for detector names; names are held in read order
      character(len=FIELD_NAME_LEN), dimension(:), allocatable :: detector_names
 
@@ -217,8 +219,9 @@ module detector_data_types
      !! I/O parameters
      logical :: binary_output = .false.
      logical :: write_nan_outside = .false.
-     integer :: output_unit = 0          ! Output filehandle, assumed non-opened if 0
-     integer :: mpi_write_offset = 0     ! Offset in MPI file
+     integer :: output_unit = 0          ! Assumed non-opened as long this is 0
+     real :: output_period               ! Output period (simulation time)
+     integer :: write_index = 0          ! Current position in output file
      integer :: total_num_det = 0        ! Global number of detectors in this list
   end type detector_linked_list
 

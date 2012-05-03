@@ -221,22 +221,27 @@ contains
        column=1
 
        ! First the detector ID...
-       buffer=field_tag(name="ID_Number", column=column, statistic="Detector")
+       buffer=field_tag(name="id_number", column=column, statistic="detector")
        write(detector_list%output_unit, '(a)') trim(buffer)
        column=column+1
 
        ! ...then the timestep
-       buffer=field_tag(name="Timestep", column=column, statistic="Detector")
+       buffer=field_tag(name="timestep", column=column, statistic="detector")
        write(detector_list%output_unit, '(a)') trim(buffer)
        column=column+1
 
        ! Write ElapsedTime
-       buffer=field_tag(name="ElapsedTime", column=column, statistic="Detector")
+       buffer=field_tag(name="ElapsedTime", column=column, statistic="value")
+       write(detector_list%output_unit, '(a)') trim(buffer)
+       column=column+1
+
+       ! Write dt
+       buffer=field_tag(name="dt", column=column, statistic="value")
        write(detector_list%output_unit, '(a)') trim(buffer)
        column=column+1
 
        ! Write position field 
-       buffer=field_tag(name="position", column=column, statistic="Detector",components=dim)
+       buffer=field_tag(name="position", column=column, statistic="detector",components=dim)
        write(detector_list%output_unit, '(a)') trim(buffer)
        column=column+dim
 
@@ -246,7 +251,7 @@ contains
              if (size(detector_list%sfield_list(phase)%ptr)>0) then
                 do i=1, size(detector_list%sfield_list(phase)%ptr)
                    buffer=field_tag(name=detector_list%sfield_list(phase)%ptr(i), column=column, &
-                       statistic="Detector", material_phase_name=state(phase)%name)
+                       statistic="detector", material_phase_name=state(phase)%name)
                    write(detector_list%output_unit, '(a)') trim(buffer)
                    column=column+1
                 end do
@@ -258,7 +263,7 @@ contains
              if (size(detector_list%vfield_list(phase)%ptr)>0) then
                 do i=1, size(detector_list%vfield_list(phase)%ptr)
                    buffer=field_tag(name=detector_list%vfield_list(phase)%ptr(i), column=column, &
-                       statistic="Detector", material_phase_name=state(phase)%name, components=dim)
+                       statistic="detector", material_phase_name=state(phase)%name, components=dim)
                    write(detector_list%output_unit, '(a)') trim(buffer)
                    column=column+dim
                 end do
@@ -270,7 +275,7 @@ contains
        if (associated(detector_list%fgroup)) then
           do i=1,size(detector_list%fgroup%variables)
              if (detector_list%fgroup%variables(i)%write_to_file) then
-                buffer=field_tag(name=trim(detector_list%fgroup%variables(i)%name), column=column, statistic="Detector")
+                buffer=field_tag(name=trim(detector_list%fgroup%variables(i)%name), column=column, statistic="detector")
                 write(detector_list%output_unit, '(a)') trim(buffer)
                 column=column+1
              end if
@@ -280,7 +285,7 @@ contains
        ! Write ID->Name mapping into the xml header
        if (allocated(detector_list%detector_names)) then
           do i=1, size(detector_list%detector_names)
-             buffer=mapping_tag(name=trim(detector_list%detector_names(i)), id=i)
+             buffer=detector_tag(name=trim(detector_list%detector_names(i)), id=i)
              write(detector_list%output_unit, '(a)') trim(buffer)
              column=column+1
           end do
@@ -313,22 +318,23 @@ contains
 
   contains
 
-    function mapping_tag(name, id)
+    function detector_tag(name, id)
       !!< Create a tag for detector id->name mapping.
       character(len=*), intent(in) :: name
       integer, intent(in) :: id
 
-      character(len=254) :: mapping_tag
+      character(len=254) :: detector_tag
 
-      mapping_tag='<mapping name="'//trim(name)//'" id_number="'//trim(int2str(id))//'" />'
+      detector_tag='<detector name="'//trim(name)//'" id_number="'//trim(int2str(id))//'" />'
 
-    end function mapping_tag
+    end function detector_tag
 
   end subroutine write_detector_header
 
   subroutine write_detectors(state,detector_list,time,dt,timestep)
-    ! Writes detector information (position, value of scalar and vector fields at that position, etc.) into detectors file using MPI output 
-    ! commands so that when running in parallel all processors can write at the same time information into the file at the right location.  
+    ! Writes detector information (position, value of scalar and vector fields at that position, etc.) into .detectors file(s).
+    ! If detector_list%binary_output is true we use MPI commands and calculate the location_to_write to for each detector.
+    ! Non-binary output writes plain ASCII text.
     type(state_type), dimension(:), intent(in) :: state
     type(detector_linked_list), intent(inout) :: detector_list
     real, intent(in) :: time, dt
@@ -344,15 +350,15 @@ contains
     type(detector_type), pointer :: detector
     character(len=10) :: format_buffer
 
-    ewrite(2,*) "In write_detectors_mpi for detector_list: ", trim(detector_list%name)
+    ewrite(2,*) "In write_detectors for detector_list: ", trim(detector_list%name)
 
     call mpi_type_extent(getpreal(), realsize, ierror)
     assert(ierror == MPI_SUCCESS)
 
     call get_option("/geometry/dimension",dim)
 
-    ! Total number of columns = id_number(1) + time data(2) + position(dim)
-    ncolumns = 3 + dim
+    ! Total number of columns = id_number + timestep + dt + ElapsedTime + position(dim)
+    ncolumns = 4 + dim
     ! Scalar detector fields
     ncolumns = ncolumns + detector_list%num_sfields
     ! Vector detector fields
@@ -383,7 +389,7 @@ contains
     current_det = 0
     detector => detector_list%first
     do while(associated(detector))
-       location_to_write = detector_list%mpi_write_offset + proc_offset + current_det * ncolumns * realsize
+       location_to_write = detector_list%write_index + proc_offset + current_det * ncolumns * realsize
 
        ! Output detector ID
        call write_scalar_to_file(real(detector%id_number))
@@ -393,6 +399,9 @@ contains
 
        ! Output ElapsedTime
        call write_scalar_to_file(time)
+
+       ! Output dt
+       call write_scalar_to_file(dt)
 
        ! Output detector coordinates
        assert(size(detector%position) == vfield%dim)
@@ -470,7 +479,7 @@ contains
     do i=1, size(ndets_owned)
        proc_offset = proc_offset + ndets_owned(i)
     end do
-    detector_list%mpi_write_offset = detector_list%mpi_write_offset + proc_offset * ncolumns * realsize
+    detector_list%write_index = detector_list%write_index + proc_offset * ncolumns * realsize
 
     ! Sanity checks
     ndets_global=detector_list%length

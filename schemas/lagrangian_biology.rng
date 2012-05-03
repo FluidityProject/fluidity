@@ -303,6 +303,11 @@ This option is generally only useful for testing. </a:documentation>
                     </optional>
                   </element>
                 </optional>
+                <optional>
+                  <element name="io_period">
+                    <ref name="real"/>
+                  </element>
+                </optional>
               </element>
             </zeroOrMore>
           </element>
@@ -390,6 +395,11 @@ This field must be on a discontinuous mesh</a:documentation>
               <empty/>
             </element>
           </optional>
+          <optional>
+            <element name="include_in_io">
+              <empty/>
+            </element>
+          </optional>
         </element>
       </optional>
       <optional>
@@ -431,6 +441,11 @@ The scaled request quantity will then get added to the according absorption fiel
               <ref name="diagnostic_scalar_field_no_adapt"/>
             </element>
           </element>
+          <optional>
+            <element name="include_in_io">
+              <empty/>
+            </element>
+          </optional>
         </element>
       </optional>
       <optional>
@@ -460,6 +475,11 @@ The scaled release quantity will then get added to the according source field of
               </element>
             </optional>
           </element>
+          <optional>
+            <element name="include_in_io">
+              <empty/>
+            </element>
+          </optional>
         </element>
       </optional>
       <optional>

@@ -258,6 +258,9 @@ lagrangian_biology =
                            }
                         )
                      }?
+                  }?,
+                  element io_period {
+                     real
                   }?
                }*
             },
@@ -324,6 +327,9 @@ chemical_variable =
             ## Add diagnostic field that represents the total quantity across all stages of the FG.
             element stage_aggregate {
                empty
+            }?,
+            element include_in_io {
+               empty
             }?
          }?,
          ## Option to define chemical uptake from the environment. 
@@ -355,7 +361,10 @@ chemical_variable =
                   internal_algorithm,
                   diagnostic_scalar_field_no_adapt
                }
-            }
+            },
+            element include_in_io {
+               empty
+            }?
          }?,
          ## Option to define chemical release into the environment. 
          ## This will create internal fields to represent the accumulated release quantity.
@@ -376,7 +385,10 @@ chemical_variable =
                element stage_aggregate {
                   empty
                }?
-            }
+            },
+            element include_in_io {
+               empty
+            }?
          }?,
          element include_in_io {
             empty
