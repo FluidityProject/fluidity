@@ -44,6 +44,7 @@ module advection_local_DG
   use fldebug
   use vtk_interfaces
   use Coordinates
+  use Tensors
   use petsc_solve_state_module
   use spud
   use slope_limiters_dg
@@ -162,6 +163,7 @@ module advection_local_DG
        !Allocate trace variable for upwind fluxes
        lambda_mesh=>extract_mesh(state, "VelocityMeshTrace")
        call allocate(UpwindFlux,lambda_mesh, "UpwindFlux")
+       call zero(UpwindFlux)
        !Allocate matrix that maps T values to upwind fluxes
        sparsity => get_csr_sparsity_firstorder(state,lambda_mesh,T%mesh)
        call allocate(UpwindFluxMatrix,sparsity)
@@ -246,15 +248,14 @@ module advection_local_DG
        call limit_slope_dg(T, U_nl, X, state, limiter, delta_T)
        if(present(flux)) then
           call zero(upwindflux)
-          call update_flux(Flux, Delta_T, UpwindFlux)
+          call mult(delta_T_total, mass, delta_T)
+          call update_flux(Flux, Delta_T_total, UpwindFlux)
        end if
    end if
 
     do i=1, subcycles
+       ewrite(1,*) 'SUBCYCLE', i
 
-       if(present(flux)) then
-          call zero(delta_t_total)
-       end if
        ! dT = Advection * T
        call mult(delta_T, matrix, T)
        ! dT = dT + RHS
@@ -265,14 +266,16 @@ module advection_local_DG
           end if
        end if
        ! dT = M^(-1) dT
-       call dg_apply_mass(inv_mass, delta_T)
-       ewrite(1,*) 'Delta_T', maxval(abs(delta_T%val))
        if(present(flux)) then
+          call zero(delta_t_total)
           call mult(UpwindFlux, upwindfluxmatrix, T)
           call scale(UpwindFlux,-dt/subcycles)
           call addto(delta_t_total,delta_t, scale=-dt/subcycles)
+          call update_flux(Flux, Delta_T_total, UpwindFlux)
        end if
        ! T = T + dt/s * dT
+       call dg_apply_mass(inv_mass, delta_T)
+       ewrite(2,*) 'Delta_T', maxval(abs(delta_T%val))
        call addto(T, delta_T, scale=-dt/subcycles)
        !Probably need to halo_update(delta_T) as well
        call halo_update(T)
@@ -281,10 +284,11 @@ module advection_local_DG
           ! Filter wiggles from T
           call limit_slope_dg(T, U_nl, X, state, limiter, delta_T)
           if(present(flux)) then
-             call addto(delta_t_total, delta_t)
+             call mult(delta_t_total, mass, delta_t)
           end if
       end if
       if(present(flux)) then
+         call zero(UpwindFlux)
          call update_flux(Flux, Delta_T_total, UpwindFlux)
       end if
     end do
@@ -337,9 +341,18 @@ module advection_local_DG
     real, dimension(Flux%dim*ele_loc(Flux,ele),&
          Flux%dim*ele_loc(Flux,ele)) :: Flux_mat
     real, dimension(Flux%dim*ele_loc(Flux,ele)) :: Flux_rhs
-    integer :: row, ni, ele2, face, floc
+    integer :: row, ni, ele2, face, face2,floc, i, dim1, dim2
     integer, dimension(:), pointer :: neigh
     type(constraints_type), pointer :: flux_constraint
+    type(element_type), pointer :: flux_shape, T_shape
+    real, dimension(Flux%dim,ele_loc(Delta_T,ele),&
+         &ele_loc(Flux,ele)) :: grad_mat
+    real, dimension(ele_loc(Delta_t,ele)) :: delta_t_val
+    real, dimension(ele_loc(flux,ele),ele_loc(flux,ele)) &
+         &:: flux_mass_mat
+    real, dimension(ele_loc(Delta_t,ele)) :: div_flux_val
+    real, dimension(ele_ngi(Delta_t,ele)) :: div_flux_gi
+    real :: total_flux
     !! Need to set up and solve equation for flux DOFs
     !! Rows are as follows:
     !! All of the normal fluxes through edges, numbered according to
@@ -349,8 +362,33 @@ module advection_local_DG
     !! Inner product of solution with curl basis equals zero
     !! inner product of solution with constraint basis equals zero
 
+    !! Debugging check:
+    !! \int \Delta T dV = \int div Flux dV = \int Flux.n dS
+    !!                                     = \int \hat{Flux}.\hat{n dS}
+    
+
+    neigh => ele_neigh(Flux,ele)
+    total_flux = 0.
+    do ni = 1, size(neigh)
+       ele2 = neigh(ni)
+       face = ele_face(Flux,ele,ele2)
+       if(ele2>0) then
+          face2 = ele_face(Flux,ele2,ele)
+       else
+          face2 = face
+       end if
+       if(face>face2) then
+          total_flux=total_flux+sum(face_val(UpwindFlux,face))
+       else
+          total_flux=total_flux-sum(face_val(UpwindFlux,face))
+       end if
+    end do
+    assert(abs(total_flux-sum(ele_val(Delta_T,ele)))<1.0e-10)
+
     Flux_rhs = 0.
     Flux_mat = 0.
+    flux_shape => ele_shape(flux,ele)
+    T_shape => ele_shape(delta_t,ele)
     flux_constraint => flux%mesh%shape%constraints
 
     row = 1
@@ -359,32 +397,101 @@ module advection_local_DG
     do ni = 1, size(neigh)
        ele2 = neigh(ni)
        face = ele_face(Flux,ele,ele2)
+       if(ele2>0) then
+          face2 = ele_face(Flux,ele2,ele)
+       else
+          face2 = face
+       end if
        floc = face_loc(upwindflux,face)
        
        call update_flux_face(&
-            Flux,UpwindFlux,face,&
+            Flux,UpwindFlux,face,face2,&
             ele,ele2,Flux_mat(row:row+floc-1,:),&
             Flux_rhs(row:row+floc-1))
        row = row + floc
     end do
-
+    
     !Next the gradient basis
+    !Start with \nabla\cdot F = \Delta T
+    !Integrate with test function over element
+    ! <\phi,Div F>_E = <\phi, \Delta T>_E
 
+    grad_mat = shape_dshape(T_shape, flux_shape%dn,&
+           & T_shape%quadrature%weight)
+    delta_t_val = ele_val(delta_t,ele)
+    do i = 1, ele_loc(Delta_T,ele)-1
+       do dim1 = 1, flux%dim
+          Flux_mat(row,(dim1-1)*ele_loc(flux,ele)+1:dim1*ele_loc(flux,ele))&
+               &=grad_mat(dim1,i,:)
+       end do
+       flux_rhs(row) = delta_t_val(i)
+       row = row + 1
+    end do
+    
     !Then the curl basis
+    !Adding in the curl terms
+    flux_mass_mat = shape_shape(flux_shape,flux_shape,T_shape%quadrature%weight)
+    do i = 1, flux_constraint%n_curl_basis
+       flux_mat(row,:) = 0.
+       flux_rhs(row) = 0.
+       do dim1 = 1, mesh_dim(flux)
+          do dim2 = 1, mesh_dim(flux)
+             flux_mat(&
+                  row,(dim2-1)*ele_loc(flux,ele)+1:dim2*ele_loc(flux,ele)) =&
+                  flux_mat(&
+                  row,(dim2-1)*ele_loc(flux,ele)+1:dim2*ele_loc(flux,ele)) +&
+                  matmul(flux_constraint%curl_basis(i,:,dim1),&
+                  flux_mass_mat)
+          end do
+       end do
+       row = row + 1
+    end do
 
     !Then the constraints
+    do i = 1, flux_constraint%n_constraints
+       do dim1 = 1, mesh_dim(flux)
+          flux_mat(&
+               row,(dim1-1)*ele_loc(flux,ele)+1:&
+               dim1*ele_loc(flux,ele)) =&
+               flux_constraint%orthogonal(i,:,dim1)
+       end do
+       row = row + 1
+    end do
+
+    call solve(flux_mat,flux_rhs)
+
+    do dim1 = 1, mesh_dim(flux)
+       flux_vals(dim1,:) = &
+            flux_rhs((dim1-1)*ele_loc(flux,ele)+1:dim1*ele_loc(flux,ele))
+    end do
 
     !A debugging check.
-    FLAbort('Need to do debugging check')
+    !Computing < \phi, div F> in local coordinates
+    !and comparing with <\phi, delta_T> in global coordinates
+    !(works because of pullback formula)
 
+    !dn is loc x ngi x dim
+    !Flux is dim x loc
+    div_flux_gi = 0.
+    do dim1 =1, size(flux_vals,1)
+       do i=1,size(flux_vals,2)
+          div_flux_gi = div_flux_gi + flux_vals(dim1,i)*&
+               &flux_shape%dn(i,:,dim1)
+       end do
+    end do
+    div_flux_val = shape_rhs(T_shape,div_flux_gi*T_shape%quadrature%weight)
+    assert(maxval(abs(div_flux_val-delta_T_val))<1.0e-10)
+
+    !Add the flux in
+    call addto(flux,ele_nodes(flux,ele),flux_vals)
   end subroutine update_flux_ele
 
   subroutine update_flux_face(&
-       Flux,UpwindFlux,face,&
+       Flux,UpwindFlux,face,face2,&
        ele,ele2,Flux_mat_rows,Flux_rhs_rows)
     type(vector_field), intent(in) :: Flux
     type(scalar_Field), intent(in) :: UpwindFlux
-    integer, intent(in) :: face,ele,ele2
+    integer, intent(in) :: face,face2,ele,ele2
     real, dimension(face_loc(upwindflux,ele),&
          &mesh_dim(flux)*ele_loc(flux,ele)), &
          &intent(inout) :: flux_mat_rows
@@ -407,6 +514,7 @@ module advection_local_DG
     !Get normal in local coordinates
     call get_local_normal(n_local,weight,flux,&
          &local_face_number(flux%mesh,face))
+
     detwei_f = weight*flux_face_shape%quadrature%weight
     face_mat = shape_shape_vector(&
          upwindflux_face_shape,flux_face_shape,detwei_f,n_local)
@@ -421,8 +529,17 @@ module advection_local_DG
                &=face_mat(dim1,row,:)
        end do
     end do
-    flux_rhs_rows = ele_val(UpwindFlux,face)
-
+    !Need to adopt a sign convention:
+    !If face>face_2
+    !We store flux with normal pointing from face into face_2
+    !Otherwise 
+    !We store flux with normal pointing from face_2 into face
+    ! Outflow boundary integral.
+    if(face>face2) then
+       flux_rhs_rows = face_val(UpwindFlux,face)
+    else
+       flux_rhs_rows = -face_val(UpwindFlux,face)
+    end if
   end subroutine update_flux_face
 
   subroutine construct_advection_dg(big_m, rhs, field_name,&
@@ -812,34 +929,40 @@ module advection_local_DG
         !
         ! Bilinear forms
         real, dimension(face_loc(upwindflux,face),&
-             face_loc(T,face)) :: upwindflux_out
-        real, dimension(face_loc(upwindflux,face),&
-             face_loc(T,face_2)) :: upwindflux_in
+             face_loc(T,face)) :: upwindflux_mat_in,upwindflux_mat_out
         type(element_type), pointer :: flux_shape
         integer, dimension(face_loc(upwindflux,face)) :: flux_face
+        integer :: sign
 
         flux_shape=>face_shape(upwindflux, face)
-        T_face=face_global_nodes(upwindflux, face)
+        flux_face=face_global_nodes(upwindflux, face)
 
-       ! first the integral around the inside of the element
-       ! (this is the flux *out* of the element)
-       inner_advection_integral = (1.-income)*u_nl_q_dotn
-       upwindflux_out=shape_shape(flux_shape, T_shape,  &
-            inner_advection_integral*T_shape%quadrature%weight)
+       upwindflux_mat_in=shape_shape(flux_shape, T_shape,  &
+            income*u_nl_q_dotn*T_shape%quadrature%weight)
+       upwindflux_mat_out=shape_shape(flux_shape, T_shape,  &
+            (1.0-income)*u_nl_q_dotn*T_shape%quadrature%weight)
 
-       ! now the integral around the outside of the element
-       ! (this is the flux *in* to the element)
-       outer_advection_integral = income*u_nl_q_dotn
-       upwindflux_in=shape_shape(flux_shape, T_shape_2, &
-            outer_advection_integral*T_shape%quadrature%weight)
-        
+       !Need to adopt a sign convention:
+       !If face>face_2
+       !We store flux with normal pointing from face into face_2
+       !Otherwise 
+       !We store flux with normal pointing from face_2 into face
        ! Outflow boundary integral.
+
+       !inflow = u_nl_q_dotn<0.0
+       !income = 1 if(inflow) and 0 otherwise
+       if(face>face_2) then
+          sign = 1
+       else
+          sign = -1
+       end if
+
+       if(face.ne.face_2) then
+          call addto(upwindfluxmatrix, flux_face, T_face_2,&
+               0.5*sign*upwindflux_mat_in)
+       end if
        call addto(upwindfluxmatrix, flux_face, T_face,&
-            upwindflux_out)
-       
-       ! Inflow boundary integral.
-       call addto(upwindfluxmatrix, flux_face, T_face_2,&
-            upwindflux_in)
+            0.5*sign*upwindflux_mat_out)
 
       end subroutine construct_upwindflux_interface
 

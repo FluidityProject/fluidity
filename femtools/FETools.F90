@@ -333,7 +333,7 @@ contains
     !! The gauss weights transformed by the coordinate transform
     !! from real to computational space.
     real, dimension(shape%ngi), intent(in) :: detwei
-
+    !! (dimensions, nodes_1, nodes_2)
     real, dimension(size(dshape,3), shape%loc, size(dshape,1)) :: shape_dshape
 
     integer :: iloc,jloc

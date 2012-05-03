@@ -8,7 +8,7 @@
       <integer_value rank="0">3</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_file file_name="channel">
+      <from_file file_name="channel_rot">
         <format name="triangle"/>
         <dimension>
           <integer_value rank="0">2</integer_value>
@@ -207,8 +207,8 @@
   x = X[0]
   y = X[1]
   z = X[2]
-  
-  return [-sin(2*pi*x)*cos(2*pi*y),cos(2*pi*x)*sin(2*pi*y),0.]</string_value>
+  return [-sin(2*pi*x)*cos(2*pi*z),0.,cos(2*pi*x)*sin(2*pi*z)]</string_value>
+            <comment>streamfunction is sin(2*pi*x)*sin(2*pi*z)</comment>
           </python>
         </initial_condition>
         <output/>
@@ -268,7 +268,7 @@
   y = X[1]
   z = X[2]
   
-  return sin(pi*x)*sin(pi*y)</string_value>
+  return sin(pi*x)*sin(pi*z)</string_value>
           </python>
         </initial_condition>
         <mean_layer_thickness>
