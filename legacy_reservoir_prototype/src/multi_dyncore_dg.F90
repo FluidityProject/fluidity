@@ -658,10 +658,10 @@
          ! Put pressure in rhs of force balance eqn:  CDP=C*P
          CALL C_MULT( CDP, P, CV_NONODS, U_NONODS, NDIM, NPHASE, C, NCOLC, FINDC, COLC)
 
-         !ewrite(3,*) 'U_RHS:',U_RHS
-         !ewrite(3,*) 'CDP:',CDP
-         !ewrite(3,*) 'P:',P
-         !ewrite(3,*) 'C:',C
+         ewrite(3,*) 'U_RHS:',U_RHS
+         ewrite(3,*) 'CDP:',CDP
+         ewrite(3,*) 'P:',P
+         ewrite(3,*) 'C:',C
 
          U_RHS_CDP = U_RHS + CDP
 
@@ -709,6 +709,8 @@
 
          ! solve for pressure correction DP that is solve CMC *DP=P_RHS...
          ewrite(3,*)'about to solve for pressure'
+
+         stop 999
 
          DP = 0.0
 
