@@ -1843,6 +1843,7 @@
          ewrite(3,*) 'sbcvfen:', sbcvfen
          ewrite(3,*) 'sufen2:', sufen2
          ewrite(3,*) 'scvfen:', scvfen
+         stop 2882
 
          Loop_ILEV3: do ilev = 1, cv_nloc
 
@@ -1990,12 +1991,16 @@
            SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFENLX, SBCVFENLY, SBCVFENLZ, SBCVFEWEIGH, &
            SCVFEN, SCVFENSLX, SCVFENSLY, SCVFENLX, SCVFENLY, SCVFENLZ, SCVFEWEIGH )
 
+      print *,'U_NLOC, U_SNLOC, SCVNGI, SBCVNGI, CV_NLOC, CV_SNLOC:', &
+               U_NLOC, U_SNLOC, SCVNGI, SBCVNGI, CV_NLOC, CV_SNLOC
       print *,'for u:'
       ! Obtain SBUFEN from SUFEN: 
       CALL SCVFEN_2_SBCVFEN( U_NLOC, U_SNLOC, SCVNGI, SBCVNGI, &
            CV_NLOC, CV_SNLOC, CVFEM_ON_FACE, &
            SBUFEN, SBUFENSLX, SBUFENSLY, SBUFENLX, SBUFENLY, SBUFENLZ, SBCVFEWEIGH, &
            SUFEN, SUFENSLX, SUFENSLY, SUFENLX, SUFENLY, SUFENLZ, SCVFEWEIGH )
+       print *,'SBUFEN:',SBUFEN
+       print *,'sufen:',sufen
 
       ! Determine CV_SLOCLIST & U_SLOCLIST
       CALL DETERMIN_SLOCLIST( CV_SLOCLIST, CV_NLOC, CV_SNLOC, SCVNGI, NFACE, &
@@ -2010,6 +2015,7 @@
       ewrite(3,*)'CV_SNLOC, U_SNLOC, SCVNGI:', CV_SNLOC, U_SNLOC, SCVNGI
       ewrite(3,*)'CV_SLOCLIST:', CV_SLOCLIST
       ewrite(3,*)'U_SLOCLIST:', U_SLOCLIST
+       stop 2982
 
       RETURN
     END SUBROUTINE DET_SUF_ELE_SHAPE
@@ -2061,9 +2067,12 @@
          candidate_gi2( cv_sgi ) = .true.
          do cv_iloc_cells = 1, cv_snloc_cells
             if( .not.cvfem_on_face(cv_iloc_cells,cv_sgi) ) candidate_gi2( cv_sgi ) = .false.
+            print *,'cv_iloc_cells,cv_sgi, cvfem_on_face(cv_iloc_cells,cv_sgi):', &
+                     cv_iloc_cells,cv_sgi, cvfem_on_face(cv_iloc_cells,cv_sgi)
          end do
       end do
 
+      print *,'candidate_gi2:',candidate_gi2
 
       Loop_SNLOC: do cv_siloc = 1, cv_snloc
          cv_iloc = cv_siloc
@@ -2086,6 +2095,11 @@
 !            end if Conditional_1
          end do Loop_SGI2
       end do Loop_SNLOC
+
+      if(cv_bsgi.ne.sbcvngi) then
+         print *,'cv_bsgi,sbcvngi:',cv_bsgi,sbcvngi
+         FLAbort("cv_bsgi.ne.sbcvngi")
+      endif
 
       deallocate( candidate_gi )
       deallocate( candidate_gi2 )

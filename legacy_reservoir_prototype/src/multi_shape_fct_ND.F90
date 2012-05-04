@@ -428,7 +428,13 @@
       allocate( dyn( nl ) )
       allocate( dzn( nl ) )
 
-      Conditional_LOWQUA: if( lowqua .or. (ngi == 4) ) then
+      Conditional_LOWQUA:if( ngi == 1 ) then
+         lx( 1 ) = 0.0
+         ly( 1 ) = 0.0
+         lz( 1 ) = 0.0
+         weit( 1 ) = 2.
+         nquad = 1 
+      else if( lowqua .or. (ngi == 4) ) then
          posi = 1. / sqrt( 3. )
          lx( 1 ) = -posi
          ly( 1 ) = -posi
@@ -812,7 +818,7 @@
       integer, intent( inout ) :: cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface
       ! Local variables
       character( len = option_path_len ) :: overlapping_path
-      integer :: volume_order
+      integer :: volume_order,surface_order
 
       Conditional_EleType: Select Case( cv_ele_type )
 
@@ -909,10 +915,16 @@
 !               volume_order=3
 
                cv_ngi = 864 ! 8x4x27 (tets x hexs x 3x3x3)
-               scvngi = 192 ! 6x8x4 (cv_faces x hexs x tets)
-               sbcvngi = 48 ! 4x12 (sngi x cv_faces)
                if (volume_order==1) cv_ngi=8*4*1   !8*4*1
                if (volume_order==2) cv_ngi=8*4*8   !8*4*8
+
+               surface_order=1
+!               surface_order=2
+!               surface_order=3
+               scvngi = 192 ! 6x8x4 (cv_faces x hexs x sngi)
+               sbcvngi = 48 ! 4x12 (sngi x cv_faces)
+               if (surface_order==1) scvngi = 48 ! 6x8x1 (cv_faces x tets x sngi)
+               if (surface_order==1) sbcvngi = 12 ! 1x12 (sngi x cv_faces)
 
             endif
          case default; FLExit(" Invalid integer for cv_nloc ")
@@ -2604,7 +2616,7 @@
            ip, jp, kp, sele, iface, stotel, nface, npoly, quad_cv_snloc, quad_cv_sngi, &
            cv_iloc, cv_jloc, cv_iloc_belong, cv_ngi_2, cv_sgi, cv_sgj, &
            quad_cv_sgi, quad_cv_siloc, cv_sgk, cv_sngi_2, quad_cv_sjloc, quad_sgi, &
-           xnodi, xnodj, nodi, nodj, cv_iloc_cells, cv_jloc_cells
+           xnodi, xnodj, nodi, nodj, cv_iloc_cells, cv_jloc_cells, npoly_ngi
       real :: xgi, ygi, zgi, volume, sarea, normx, normy, normz, d2_quad
       real :: half_side_length
 
@@ -2631,10 +2643,10 @@
       call dummy_tri_tet( d1, d3, quad_cv_ngi, quad_cv_nloc, &
            dummy_sngi, dummy_snloc, nwicel, & 
            cv_nloc_cells, scvngi, totele, quad_u_loc_dummy, &
-           mloc, dummy_smloc, lowqua, npoly )
+           mloc, dummy_smloc, lowqua, npoly, npoly_ngi )
 
       quad_cv_snloc = npoly ** ( ndim - 1 )
-      quad_cv_sngi = max(1,npoly-1) ** ( ndim - 1 )
+      quad_cv_sngi = max(1,npoly_ngi) ** ( ndim - 1 )
 
       nface = 1
       if( d2 ) nface = 4
@@ -2717,6 +2729,7 @@
            lowqua, quad_cv_ngi, mloc
       ewrite(3,*) 'dummy_sngi, dummy_snloc, dummy_smloc, quad_cv_ngi:', &
            dummy_sngi, dummy_snloc, dummy_smloc, quad_cv_ngi
+!        stop 331
 
       ! Work out local coords of the nodes
       loc_coord_nod_l1 = 0. ; loc_coord_nod_l2 = 0. ; loc_coord_nod_l3 = 0. ; &
@@ -3287,7 +3300,7 @@
          ewrite(3,*) 'cv_sgi=',cv_sgi
          ewrite(3,*) 'snly( :, cv_sgi ):', snly( :, cv_sgi )
       end do
-      !stop 281
+!      stop 281
 
       deallocate( quad_cvweight )
       deallocate( detwei )
@@ -3364,7 +3377,7 @@
     subroutine dummy_tri_tet( d1, d3, quad_cv_ngi, quad_cv_nloc, &
          dummy_sngi, dummy_snloc, nwicel, & 
          cv_nloc, cv_sngi, totele, quad_u_loc_dummy, &
-         mloc, dummy_smloc, lowqua, npoly )
+         mloc, dummy_smloc, lowqua, npoly, npoly_ngi )
       implicit none
       ! Compute some local variables for suf_shape_tri_tet
       logical, intent( in ) :: d1, d3
@@ -3374,7 +3387,7 @@
       integer, intent( in ) :: cv_nloc, cv_sngi, totele 
       integer, intent( inout ) :: quad_u_loc_dummy, mloc, dummy_smloc
       logical, intent( inout ) :: lowqua
-      integer, intent( inout ) :: npoly
+      integer, intent( inout ) :: npoly, npoly_ngi
 
       ewrite(3,*)'In dummy_tri_tet'
 
@@ -3424,8 +3437,35 @@
       else ! 3D
          if( quad_cv_nloc == 27 ) npoly = 3 ! Quadratic
       endif
-
       if( quad_cv_nloc == 1 ) npoly = 1
+
+! for the quadrature pts:
+      npoly_ngi = npoly
+      if (( .not. d1 ).and. (.not. d3) ) then ! 2D
+         if( quad_cv_nloc == 4 ) then
+            if(cv_sngi == 2*3 ) npoly_ngi = 3 ! 3 pt
+            if(cv_sngi == 2*2 ) npoly_ngi = 2 ! 2 pt
+            if(cv_sngi == 2*1 ) npoly_ngi = 1 ! 1 pt
+         else if( quad_cv_nloc == 9 ) then
+            if(cv_sngi == 4*3 ) npoly_ngi = 3 ! 3 pt
+            if(cv_sngi == 4*2 ) npoly_ngi = 2 ! 2 pt
+            if(cv_sngi == 4*1 ) npoly_ngi = 1 ! 1 pt
+         endif 
+      else ! 3D
+         if( quad_cv_nloc == 8 ) then
+            npoly_ngi = 3 ! Quadratic
+            if(cv_sngi == 18*9 ) npoly_ngi = 3 ! 3*3 pt
+            if(cv_sngi == 18*4 ) npoly_ngi = 2 ! 2*2 pt
+            if(cv_sngi == 18*1 ) npoly_ngi = 1 ! 1 pt
+         else if( quad_cv_nloc == 27 ) then
+            npoly_ngi = 3 ! Quadratic
+            if(cv_sngi == 96*9 ) npoly_ngi = 3 ! 3*3 pt
+            if(cv_sngi == 96*4 ) npoly_ngi = 2 ! 2*2 pt
+            if(cv_sngi == 96*1 ) npoly_ngi = 1 ! 1 pt
+         endif 
+      endif
+      if( quad_cv_nloc == 1 ) npoly_ngi = 1
+
 
       if( d1 .and. ( npoly /= 1 )) then
          ewrite(3,*) 'npoly is wrong -- it should be 1 instead of ', npoly
@@ -3548,6 +3588,7 @@
            quad_cv_nloc, quad_cv_ngi
       ewrite(3,*)'quad_cv_ngi, lowqua, mloc, nwicel:', &
            quad_cv_ngi, lowqua, mloc, nwicel
+!       stop 3821
 
       ! Now we need to compute QUAD_NLX/Y/Z - get the hex or quad
       ! shape functions quad_n etc.
@@ -7693,8 +7734,8 @@
             CV_SLOCLIST(1,2)=2
             CV_SLOCLIST(1,3)=3
             CV_SLOCLIST(2,1)=1
-            CV_SLOCLIST(2,2)=2
-            CV_SLOCLIST(2,3)=4
+            CV_SLOCLIST(2,2)=4
+            CV_SLOCLIST(2,3)=2
             CV_SLOCLIST(3,1)=1
             CV_SLOCLIST(3,2)=3
             CV_SLOCLIST(3,3)=4
