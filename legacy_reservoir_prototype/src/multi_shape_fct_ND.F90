@@ -1061,7 +1061,7 @@
             DETJ=AGI*(EGI*KGI-FGI*HGI)&
                  -BGI*(DGI*KGI-FGI*GGI)&
                  +CGI*(DGI*HGI-EGI*GGI)
-            DETWEI(GI)=DETJ*WEIGHT(GI)
+            DETWEI(GI)=ABS(DETJ)*WEIGHT(GI)
             RA(GI)=1.0
             VOLUME=VOLUME+DETWEI(GI)
             ewrite(3,*)'gi, detj, weight(gi)', gi, detj, weight(gi)
@@ -1939,7 +1939,7 @@
 
       PRINT *,'VOLUME OF THE DOMAIN(SHOULD BE 1):',RSUM
     
-      STOP 2992
+      !STOP 2992
 
       return
      end subroutine test_quad_tet
@@ -3393,7 +3393,7 @@
             nwicel = 3 ! was 1
             dummy_sngi = 9
             dummy_snloc = 9
-            mloc = 4
+            mloc = 8
          end if
       else
          quad_cv_ngi = 4
@@ -3833,7 +3833,7 @@
 
             print *,'detwei, volume:',detwei, volume
 
-            stop 2921
+            !stop 2921
 
 
          endif
@@ -3930,7 +3930,7 @@
       end do
       ewrite(3,*)'rsum:', rsum
       ewrite(3,*)'sum(cvweigh):',sum(cvweigh)
-      stop 2921
+      !stop 2921
 
       deallocate( quad_l1 )
       deallocate( quad_l2 )

@@ -7487,9 +7487,9 @@
 
          DETJ = AGI * ( EGI * KGI - FGI * HGI) &
               -BGI * ( DGI * KGI - FGI * GGI ) &
-              +CGI * ( DGI * HGI - EGI *GGI )
+              +CGI * ( DGI * HGI - EGI *GGI)
 
-         DETWEI( GI ) = abs( DETJ ) * WEIGHT( GI )
+         DETWEI( GI ) = ABS( DETJ ) * WEIGHT( GI )
          VOLUME = VOLUME + DETWEI( GI )
 
          A11( GI )= ( EGI * KGI-FGI * HGI ) / DETJ
@@ -7582,7 +7582,7 @@
             DETJ = AGI * ( EGI * KGI - FGI * HGI ) &
                  -BGI * ( DGI * KGI - FGI * GGI ) &
                  +CGI * ( DGI * HGI - EGI * GGI )
-            DETWEI( GI ) = DETJ * WEIGHT( GI )
+            DETWEI( GI ) = ABS( DETJ ) * WEIGHT( GI )
             RA( GI ) = 1.0
             VOLUME = VOLUME + DETWEI( GI )
 
@@ -7836,7 +7836,7 @@
             kgi = kgi + nclz( l, gi ) * zl( l ) 
          end do Loop_NCLOC
 
-         detj =  agi * (egi * kgi - fgi * hgi) &
+         detj = agi * (egi * kgi - fgi * hgi) &
               - bgi * (dgi * kgi - fgi * ggi) &
               + cgi * (dgi * hgi - egi * ggi)
 
