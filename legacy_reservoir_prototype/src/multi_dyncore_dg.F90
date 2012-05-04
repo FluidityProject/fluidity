@@ -2356,6 +2356,7 @@
       END DO Loop_Elements
 
       ewrite(3,*) 'c=',c
+      print *,'here1 u_rhs:',u_rhs
 
       !! *************************loop over surfaces*********************************************
 
@@ -2418,6 +2419,9 @@
                            NMX = NMX + SNORMXN( SGI ) * SBUFEN( U_SILOC, SGI ) * SBCVFEN( P_SJLOC, SGI ) * SDETWE( SGI )
                            NMY = NMY + SNORMYN( SGI ) * SBUFEN( U_SILOC, SGI ) * SBCVFEN( P_SJLOC, SGI ) * SDETWE( SGI )
                            NMZ = NMZ + SNORMZN( SGI ) * SBUFEN( U_SILOC, SGI ) * SBCVFEN( P_SJLOC, SGI ) * SDETWE( SGI )
+        print *,'sgi,SNORMXN( SGI ),SBUFEN( U_SILOC, SGI ),SBCVFEN( P_SJLOC, SGI ),SDETWE( SGI ):', &
+                 sgi,SNORMXN( SGI ),SBUFEN( U_SILOC, SGI ),SBCVFEN( P_SJLOC, SGI ),SDETWE( SGI )
+!                  stop 821
                         END DO Loop_GaussPoints2
 
 
@@ -2438,6 +2442,8 @@
                                    + NMY * SELE_OVERLAP_SCALE(P_JLOC)
                               IF( NDIM >= 3 ) C( COUNT_PHA + 2 * NCOLC ) = C( COUNT_PHA + 2 * NCOLC ) &
                                    + NMZ * SELE_OVERLAP_SCALE(P_JLOC)
+  print *,'sele,IU_PHA_NOD,SUF_P_SJ_IPHA,NMX,NMy,NMz,SUF_P_BC( SUF_P_SJ_IPHA ),SELE_OVERLAP_SCALE(P_JLOC):', &
+           sele,IU_PHA_NOD,SUF_P_SJ_IPHA,NMX,NMy,NMz,SUF_P_BC( SUF_P_SJ_IPHA ),SELE_OVERLAP_SCALE(P_JLOC)
 
                               U_RHS( IU_PHA_NOD ) = U_RHS( IU_PHA_NOD ) &
                                    - NMX * SUF_P_BC( SUF_P_SJ_IPHA ) * SELE_OVERLAP_SCALE(P_JLOC)
