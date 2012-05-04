@@ -522,14 +522,7 @@ contains
           detector%current_t = 0.0
 
           call flush_list(detector%ele_path_list)
-          if (allocated(detector%ele_path)) then
-             deallocate(detector%ele_path)
-          end if
-
           call flush_list(detector%ele_dist_list)
-          if (allocated(detector%ele_dist)) then
-             deallocate(detector%ele_dist)
-          end if
 
           detector => detector%next
        end do
@@ -566,8 +559,15 @@ contains
                         detector%ele_path_list, detector%ele_dist_list)
                 detector%local_coords = local_coords(xfield,detector%element,detector%update_vector)
 
+                if (allocated(detector%ele_path)) then
+                   deallocate(detector%ele_path)
+                end if
                 allocate(detector%ele_path(detector%ele_path_list%length))
                 detector%ele_path = list2vector(detector%ele_path_list)
+
+                if (allocated(detector%ele_dist)) then
+                   deallocate(detector%ele_dist)
+                end if
                 allocate(detector%ele_dist(detector%ele_dist_list%length))
                 detector%ele_dist = list2vector(detector%ele_dist_list)
 
