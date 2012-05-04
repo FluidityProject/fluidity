@@ -905,12 +905,14 @@
             else
 
                volume_order=1
+!               volume_order=2
 !               volume_order=3
 
                cv_ngi = 864 ! 8x4x27 (tets x hexs x 3x3x3)
                scvngi = 192 ! 6x8x4 (cv_faces x hexs x tets)
                sbcvngi = 48 ! 4x12 (sngi x cv_faces)
-               if (volume_order==1) cv_ngi=8*4*8   !8*4*1
+               if (volume_order==1) cv_ngi=8*4*1   !8*4*1
+               if (volume_order==2) cv_ngi=8*4*8   !8*4*8
 
             endif
          case default; FLExit(" Invalid integer for cv_nloc ")
@@ -1915,6 +1917,8 @@
          PRINT *,'ele, VOLUME=',ele, VOLUME
          print *,'detwei:',detwei
          PRINT *,'sum of detwei:',sum(detwei)
+         print *,'nx=',nx
+         print *,'nlx=',nlx
          RSUM=RSUM+VOLUME
          
          do cv_iloc=1,cv_nloc
@@ -1928,9 +1932,14 @@
          end do
       END DO Loop_Elements
 
+         do cv_iloc=1,cv_nloc
+            print *,'cv_iloc,nod,X, Y, Z:',cv_iloc,X_NDGLN(cv_iloc), &
+                    X(X_NDGLN(cv_iloc)), Y(X_NDGLN(cv_iloc)), Z(X_NDGLN(cv_iloc))
+         end do
+
       PRINT *,'VOLUME OF THE DOMAIN(SHOULD BE 1):',RSUM
     
-      !STOP 2992
+      STOP 2992
 
       return
      end subroutine test_quad_tet
@@ -3479,11 +3488,13 @@
          lowqua = .false.
          if( cv_nloc_cells == 10 ) then ! Quadratic hexs
             quad_cv_ngi =  8  !27
-            !if(cv_ngi==32) quad_cv_ngi = 1 ! one pt quadrature...
+            if(cv_ngi==32) quad_cv_ngi = 1 ! one pt quadrature...
+            if(cv_ngi==32*8) quad_cv_ngi = 8 ! 2 pt quadrature...
+            if(cv_ngi==32*27) quad_cv_ngi = 27 ! 3 pt quadrature...
             nwicel = 3
             dummy_sngi = 9
             dummy_snloc = 9
-            mloc = 4
+            mloc = 8
          end if
       else
          quad_cv_ngi = 4
@@ -3496,6 +3507,9 @@
          lowqua = .false.
          if ( cv_nloc_cells == 6 ) then ! Quadratic quads
             !!quad_cv_ngi = 9
+            if(cv_ngi==12) quad_cv_ngi = 1 ! one pt quadrature...
+            if(cv_ngi==12*4) quad_cv_ngi = 4 ! 2 pt quadrature...
+            if(cv_ngi==12*9) quad_cv_ngi = 9  ! 3 pt quadrature...
             dummy_sngi = 3
             dummy_snloc = 3
             nwicel = 3
@@ -3850,7 +3864,7 @@
 
          print *, 'vol:', sum(detwei)
 
-         !stop 3838
+!         stop 3838
 
          Loop_NGI: do quad_cv_gi = 1, quad_cv_ngi ! Determine the quadrature points and weights
             cv_gi = ( ele - 1 ) * quad_cv_ngi + quad_cv_gi
@@ -3897,13 +3911,26 @@
            cv_nloc, cv_ngi, n, nlx, nly, nlz, &
            .true. )
       ewrite(3,*)'cvweigh:',cvweigh
+      print *,'nlx(1,:):',nlx(1,:)
+      rsum=-1.e+5
+      do cv_gi = 1, cv_ngi
+         rsum = max(rsum,nlx(1,cv_gi))
+      end do
+      print *,'max(nlx(1,:)):',rsum
+      rsum=+1.e+5
+      do cv_gi = 1, cv_ngi
+         rsum = min(rsum,nlx(1,cv_gi))
+      end do
+      print *,'min(nlx(1,:)):',rsum
+
+      print *,'sum(nlx(1,:)):',sum(nlx(1,:))
       rsum = 0.0
       do cv_gi = 1, cv_ngi
          rsum = rsum + cvweigh( cv_gi )
       end do
       ewrite(3,*)'rsum:', rsum
       ewrite(3,*)'sum(cvweigh):',sum(cvweigh)
-      !stop 2921
+      stop 2921
 
       deallocate( quad_l1 )
       deallocate( quad_l2 )
@@ -4028,7 +4055,7 @@
            unly_dummy, unlz_dummy
       real, dimension( : ), allocatable :: cvweigh_dummy
 
-      ewrite(3,*)'In shatri'
+      ewrite(3,*)'In shatri d3,nloc=',d3,nloc
 
       Conditional_Dimensionality: if( .not. d3 ) then ! Assume a triangle
 
@@ -4116,6 +4143,7 @@
             u_nloc_dummy = nloc
             cv_ele_type_dummy = 2
             ndim = 3 
+            print *,'going into SHATRIold'
             call SHATRIold(L1, L2, L3, L4, cvweigh_dummy, (ndim==3), &
      &               NLOC,NGI,  &
      &               N,NLX,NLY,NLZ)
@@ -6613,6 +6641,7 @@
          N(4,GI)=4.*L1(GI)*L2(GI)
          N(5,GI)=4.*L2(GI)*L3(GI)
          N(6,GI)=4.*L1(GI)*L3(GI)
+
 !
 ! nb L1+L2+L3+L4=1
 ! x-derivative...
@@ -6681,10 +6710,15 @@
 ! This is for 5 point quadrature. 
         IF((NLOC.EQ.10).OR.(NLOC.EQ.11)) THEN
         DO 40 GI=1,NGI
+!         print *,'gi,L1(GI),L2(GI),L3(GI),L4(GI):',gi,L1(GI),L2(GI),L3(GI),L4(GI)
          N(1,GI)=(2.*L1(GI)-1.)*L1(GI)
          N(3,GI)=(2.*L2(GI)-1.)*L2(GI)
          N(5,GI)=(2.*L3(GI)-1.)*L3(GI)
          N(10,GI)=(2.*L4(GI)-1.)*L4(GI)
+
+      if(L1(GI).gt.-1.93) print *,'gi,L1(GI), L2(GI), L3(GI), L4(GI),N(1,GI):', &
+                                  gi,L1(GI), L2(GI), L3(GI), L4(GI),N(1,GI)
+!
 !
          N(2,GI)=4.*L1(GI)*L2(GI)
          N(6,GI)=4.*L1(GI)*L3(GI)
@@ -6699,6 +6733,8 @@
          NLX(3,GI)=0.
          NLX(5,GI)=0.
          NLX(10,GI)=-4.*(1.-L2(GI)-L3(GI))+4.*L1(GI) + 1.
+      if(L1(GI).gt.-1.93) print *,'Nlx(1,GI):', &
+                                  Nlx(1,GI)
 !
          NLX(2,GI)=4.*L2(GI)
          NLX(6,GI)=4.*L3(GI)

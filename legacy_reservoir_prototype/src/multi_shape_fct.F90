@@ -1813,6 +1813,7 @@
 
          ewrite(3,*) 'U_NLOC  , U_SNLOC  ', u_nloc  , u_snloc
          ewrite(3,*) 'U_NLOC2, U_SNLOC2', u_nloc2, u_snloc2
+         ewrite(3,*) 'SBCVNGI                   ', sbcvngi
          ewrite(3,*) 'scvfen:', size( scvfen ) 
          do  cv_iloc = 1, cv_nloc
             ewrite(3,*) ( scvfen( cv_iloc, gi ), gi = 1, scvngi )
@@ -2034,7 +2035,9 @@
       integer :: cv_siloc, cv_iloc, cv_bsgi, cv_sgi, cv_iloc_cells
       real :: r_prodt
 
-      ewrite(3,*) ' In scvfen_2_sbcvfen', cv_snloc, sbcvngi
+      ewrite(3,*) ' In scvfen_2_sbcvfen'
+      ewrite(3,*) ' cv_nloc, cv_snloc, scvngi, sbcvngi, cv_nloc_cells, cv_snloc_cells:', &
+           cv_nloc, cv_snloc, scvngi, sbcvngi, cv_nloc_cells, cv_snloc_cells
 
       allocate( candidate_gi( scvngi ) )
       allocate( candidate_gi2( scvngi ) )
@@ -2058,8 +2061,8 @@
          candidate_gi2( cv_sgi ) = .true.
          do cv_iloc_cells = 1, cv_snloc_cells
             if( .not.cvfem_on_face(cv_iloc_cells,cv_sgi) ) candidate_gi2( cv_sgi ) = .false.
-         end do 
-      end do 
+         end do
+      end do
 
 
       Loop_SNLOC: do cv_siloc = 1, cv_snloc
