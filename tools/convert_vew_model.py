@@ -362,7 +362,7 @@ class FGroup:
       ing_threshold = self.eval_token(t[2])
       ing_amount = self.eval_token(t[3])
       # PRequest should not be hardcoded, but I'm lazy today...
-      return "vars['PRequest'] = (3600.0 * dt_in_hours * " + ing_amount + ") if (" + species_conc + " > " + ing_threshold + ") else 0.0"
+      return "vars['PRequest'] = (dt * " + ing_amount + ") if (" + species_conc + " > " + ing_threshold + ") else 0.0"
     elif t[0] == create:
       s = str(t[2])
       indent_str = ""

@@ -305,7 +305,7 @@ def update_OWA5_Copepod(param, vars, env, dt):
   Gut_f_new = Gut_ftemp
   I_max = (((0.67 * vars['V_gut']) - Gut_contTemp) / (param['vPrey'] * 1800.0))
   I_gv = min((((math.pi * math.pow((L * 2.9), 2.0) * 1.0 * env['CopepodPConcentration'] * 1.0 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7 * env['CopepodPConcentration']))))) if ((vars['V_gut'] > 0.0)) else (I_max)), I_max)
-  vars['PRequest'] = (3600.0 * dt_in_hours * I_gv) if (env['CopepodPConcentration'] > param['P_min']) else 0.0
+  vars['PRequest'] = (dt * I_gv) if (env['CopepodPConcentration'] > param['P_min']) else 0.0
 
   ### Assimilation efficiency ###
   k_N = (1.0 - math.exp(-(param['a'] * Gut_time)))
@@ -469,7 +469,7 @@ def update_C5_Copepod(param, vars, env, dt):
   Gut_f_new = Gut_ftemp
   I_max = (((0.67 * vars['V_gut']) - Gut_contTemp) / (param['vPrey'] * 1800.0))
   I_gv = min((((math.pi * math.pow((L * 2.9), 2.0) * 1.0 * env['CopepodPConcentration'] * 1.0 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7 * env['CopepodPConcentration']))))) if ((vars['V_gut'] > 0.0)) else (I_max)), I_max)
-  vars['PRequest'] = (3600.0 * dt_in_hours * I_gv) if (env['CopepodPConcentration'] > param['P_min']) else 0.0
+  vars['PRequest'] = (dt * I_gv) if (env['CopepodPConcentration'] > param['P_min']) else 0.0
 
   ### Assimilation efficiency ###
   k_N = (1.0 - math.exp(-(param['a'] * Gut_time)))

@@ -495,6 +495,8 @@ contains
     integer :: k, nprocs, new_owner, all_send_lists_empty
     logical :: outside_domain, any_lagrangian, have_ray
 
+    ewrite(2,*) "In track_detectors"
+
     call profiler_tic(trim(detector_list%name)//"::movement::tracking")
 
     ! We allocate a sendlist for every processor
@@ -580,6 +582,16 @@ contains
                    ! We reflect the detector path at the face we just went through
                    call reflect_on_boundary(xfield,detector%update_vector,detector%element)
 
+                   if (detector_list%tracking_method == GEOMETRIC_TRACKING) then
+                      ! After reflection our geometry changes:
+                      ! We move our origin to the last known point on our ray (ele_t), 
+                      ! and calculate a new direction
+                      detector%ray_o = detector%ray_o + (detector%current_t * detector%ray_d)
+                      detector%ray_d = detector%update_vector - detector%ray_o
+                      detector%target_distance = detector%target_distance - detector%current_t
+
+                      call insert(detector%ele_path_list, detector%element)
+                   end if
                 else
                    ! Turn detector static inside the domain
                    ewrite(1,*) "WARNING: detector attempted to leave computational domain;"
@@ -753,14 +765,15 @@ contains
 
        if (ele_t < target_distance) then
           neigh_face = face_neigh(xfield, next_face)
+
+          ! Record our next t and the distance covered
+          if (present(ele_dist)) then
+             call insert(ele_dist, ele_t - current_t)
+          end if
+          current_t = ele_t
+
           if (neigh_face /= next_face) then
-
-             if (present(ele_dist)) then
-                call insert(ele_dist, ele_t - current_t)
-             end if
-
              ! Recurse on the next element
-             current_t = ele_t
              new_element = face_ele(xfield, neigh_face)
 
              ! Record the elements along the path travelled
