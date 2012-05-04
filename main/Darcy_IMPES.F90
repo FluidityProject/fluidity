@@ -678,13 +678,13 @@ contains
             
       di%phase_one_saturation_diagnostic = have_option(trim(di%saturation(1)%ptr%option_path)//'/diagnostic')
       
-      ! Determine the inverse cv mass matrix of cfl mesh
-      call allocate(di%inverse_cv_mass_cfl_mesh, &
-                    di%pressure_mesh)
+      ! Determine the inverse cv mass matrix of velocity mesh
+      call allocate(di%inverse_cv_mass_velocity_mesh, &
+                    di%velocity_mesh)
 
-      call compute_cv_mass(di%positions, di%inverse_cv_mass_cfl_mesh)
+      call compute_cv_mass(di%positions, di%inverse_cv_mass_velocity_mesh)
 
-      call invert(di%inverse_cv_mass_cfl_mesh)   
+      call invert(di%inverse_cv_mass_velocity_mesh)   
 
       ! Determine the inverse cv mass matrix of pressure mesh
       call allocate(di%inverse_cv_mass_pressure_mesh, &
@@ -877,7 +877,7 @@ contains
       ! evaluated at the control volume faces located on the domain boundary
       ! for the gradient pressure mesh assuming all boundary elements are the same type.
       di%gradp_cvbdyshape = make_cvbdy_element_shape(di%cvfaces, di%gradient_pressure(1)%ptr%mesh%faces%shape)
-      
+
       ! Initialise the arrays used to cache the phase face values 
       ! which are perhaps summed over the subcycles.
       call darcy_impes_initialise_cached_phase_face_value(di)
@@ -1007,7 +1007,7 @@ contains
             
       di%phase_one_saturation_diagnostic = .false.
             
-      call deallocate(di%inverse_cv_mass_cfl_mesh)
+      call deallocate(di%inverse_cv_mass_velocity_mesh)
       call deallocate(di%inverse_cv_mass_pressure_mesh)
       
       call deallocate(di%bc_surface_mesh)      
