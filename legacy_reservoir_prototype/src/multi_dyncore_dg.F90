@@ -2780,29 +2780,30 @@
 
                         If_GOT_DIFFUS: IF(GOT_DIFFUS) THEN
                            ! These subs caculate the effective diffusion coefficient DIFF_COEF_DIVDX,DIFF_COEFOLD_DIVDX
-                           IF(NDIM==1) THEN
+
+                           IF(IDIM==1) THEN
                               CALL DIFFUS_CAL_COEFF(DIFF_COEF_DIVDX( SGI,IDIM,IPHASE ), &
                                    DIFF_COEFOLD_DIVDX( SGI,IDIM,IPHASE ),  &
                                    U_NLOC, MAT_NLOC, U_NONODS, NPHASE, TOTELE, MAT_NONODS,MAT_NDGLN, &
-                                   SCVFEN,SCVNGI,SGI,IPHASE,NDIM,UDIFFUSION,HDC, U,UOLD,U_NODJ_IPHA,U_NODI_IPHA,ELE,ELE2, &
+                                   SBUFEN,SBCVNGI,SGI,IPHASE,NDIM,UDIFFUSION,HDC, U,UOLD,U_NODJ_IPHA,U_NODI_IPHA,ELE,ELE2, &
                                    SNORMXN,SNORMYN,SNORMZN,  &
                                    DUX_ELE,DUY_ELE,DUZ_ELE,DUOLDX_ELE,DUOLDY_ELE,DUOLDZ_ELE, &
                                    SELE,STOTEL,WIC_U_BC,WIC_U_BC_DIRICHLET, U_OTHER_LOC,MAT_OTHER_LOC )
                            ENDIF
-                           IF(NDIM==2) THEN
+                           IF(IDIM==2) THEN
                               CALL DIFFUS_CAL_COEFF(DIFF_COEF_DIVDX( SGI,IDIM,IPHASE ), &
                                    DIFF_COEFOLD_DIVDX( SGI,IDIM,IPHASE ),  &
                                    U_NLOC, MAT_NLOC, U_NONODS, NPHASE, TOTELE, MAT_NONODS,MAT_NDGLN, &
-                                   SCVFEN,SCVNGI,SGI,IPHASE,NDIM,UDIFFUSION,HDC, V,VOLD,U_NODJ_IPHA,U_NODI_IPHA,ELE,ELE2, &
+                                   SBUFEN,SBCVNGI,SGI,IPHASE,NDIM,UDIFFUSION,HDC, V,VOLD,U_NODJ_IPHA,U_NODI_IPHA,ELE,ELE2, &
                                    SNORMXN,SNORMYN,SNORMZN,  &
                                    DVX_ELE,DVY_ELE,DVZ_ELE,DVOLDX_ELE,DVOLDY_ELE,DVOLDZ_ELE, &
                                    SELE,STOTEL,WIC_U_BC,WIC_U_BC_DIRICHLET, U_OTHER_LOC,MAT_OTHER_LOC )
                            ENDIF
-                           IF(NDIM==3) THEN
+                           IF(IDIM==3) THEN
                               CALL DIFFUS_CAL_COEFF(DIFF_COEF_DIVDX( SGI,IDIM,IPHASE ), &
                                    DIFF_COEFOLD_DIVDX( SGI,IDIM,IPHASE ),  &
                                    U_NLOC, MAT_NLOC, U_NONODS, NPHASE, TOTELE, MAT_NONODS,MAT_NDGLN, &
-                                   SCVFEN,SCVNGI,SGI,IPHASE,NDIM,UDIFFUSION,HDC, W,WOLD,U_NODJ_IPHA,U_NODI_IPHA,ELE,ELE2, &
+                                   SBUFEN,SBCVNGI,SGI,IPHASE,NDIM,UDIFFUSION,HDC, W,WOLD,U_NODJ_IPHA,U_NODI_IPHA,ELE,ELE2, &
                                    SNORMXN,SNORMYN,SNORMZN,  &
                                    DWX_ELE,DWY_ELE,DWZ_ELE,DWOLDX_ELE,DWOLDY_ELE,DWOLDZ_ELE, &
                                    SELE,STOTEL,WIC_U_BC,WIC_U_BC_DIRICHLET, U_OTHER_LOC,MAT_OTHER_LOC )
