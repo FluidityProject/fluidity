@@ -710,7 +710,7 @@
          ! solve for pressure correction DP that is solve CMC *DP=P_RHS...
          ewrite(3,*)'about to solve for pressure'
 
-         stop 999
+!         stop 999
 
          DP = 0.0
 

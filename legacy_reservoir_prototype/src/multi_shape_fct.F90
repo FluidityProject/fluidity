@@ -1843,7 +1843,7 @@
          ewrite(3,*) 'sbcvfen:', sbcvfen
          ewrite(3,*) 'sufen2:', sufen2
          ewrite(3,*) 'scvfen:', scvfen
-         stop 2882
+!         stop 2882
 
          Loop_ILEV3: do ilev = 1, cv_nloc
 
@@ -2015,7 +2015,7 @@
       ewrite(3,*)'CV_SNLOC, U_SNLOC, SCVNGI:', CV_SNLOC, U_SNLOC, SCVNGI
       ewrite(3,*)'CV_SLOCLIST:', CV_SLOCLIST
       ewrite(3,*)'U_SLOCLIST:', U_SLOCLIST
-       stop 2982
+!       stop 2982
 
       RETURN
     END SUBROUTINE DET_SUF_ELE_SHAPE

@@ -910,16 +910,16 @@
                scvngi = 7
             else
 
-               volume_order=1
-!               volume_order=2
+!               volume_order=1
+               volume_order=2
 !               volume_order=3
 
                cv_ngi = 864 ! 8x4x27 (tets x hexs x 3x3x3)
                if (volume_order==1) cv_ngi=8*4*1   !8*4*1
                if (volume_order==2) cv_ngi=8*4*8   !8*4*8
 
-               surface_order=1
-!               surface_order=2
+!               surface_order=1
+               surface_order=2
 !               surface_order=3
                scvngi = 192 ! 6x8x4 (cv_faces x hexs x sngi)
                sbcvngi = 48 ! 4x12 (sngi x cv_faces)
@@ -2616,7 +2616,7 @@
            ip, jp, kp, sele, iface, stotel, nface, npoly, quad_cv_snloc, quad_cv_sngi, &
            cv_iloc, cv_jloc, cv_iloc_belong, cv_ngi_2, cv_sgi, cv_sgj, &
            quad_cv_sgi, quad_cv_siloc, cv_sgk, cv_sngi_2, quad_cv_sjloc, quad_sgi, &
-           xnodi, xnodj, nodi, nodj, cv_iloc_cells, cv_jloc_cells, npoly_ngi
+           xnodi, xnodj, nodi, nodj, cv_iloc_cells, cv_jloc_cells, npoly_ngi, icount
       real :: xgi, ygi, zgi, volume, sarea, normx, normy, normz, d2_quad
       real :: half_side_length
 
@@ -3207,6 +3207,7 @@
          end do
       end do
 
+      icount=0
       cvfem_neiloc( :, : ) = 0
       ! calculate cvfem_neiloc from local coords l1-4:
       Loop_SurfaceQuadrature: do cv_sgi = 1, scvngi
@@ -3215,6 +3216,9 @@
          zer_l3 = ( abs( l3( cv_sgi ) ) < 1.0e-4 )
          if ( d3 ) zer_l4 = ( abs( l4( cv_sgi )) < 1.0e-4 )
 
+!         if(zer_l4 ) icount=icount+1
+         if( zer_l1 .or. zer_l2 .or. zer_l3 .or. zer_l4 )  icount=icount+1
+
          ewrite(3,*) 'gi, l1/2/3/4:', cv_sgi, abs( l1( cv_sgi ) ), abs( l2( cv_sgi ) ), &
               abs( l3( cv_sgi ) ), abs( l4( cv_sgi ) )
 
@@ -3222,12 +3226,54 @@
             ewrite(3,*)'cv_sgi, zer_l1/2/3/4:', cv_sgi, (zer_l1.or.zer_l2.or.zer_l3.or.zer_l4)
             if ( zer_l1 .or. zer_l2 .or. zer_l3 .or. zer_l4 ) then
                ! on the surface of the element: 
+               if(cv_nloc==10) then
+                 if(zer_l1) then
+! face 1:
+                    cvfem_neiloc( 6, cv_sgi )=-1
+                    cvfem_neiloc( 5, cv_sgi )=-1
+                    cvfem_neiloc( 3, cv_sgi )=-1
+                    cvfem_neiloc( 9, cv_sgi )=-1
+                    cvfem_neiloc( 8, cv_sgi )=-1
+                    cvfem_neiloc( 10, cv_sgi )=-1
+                 else if(zer_l2) then
+! face 2:
+                    cvfem_neiloc( 1, cv_sgi )=-1
+                    cvfem_neiloc( 4, cv_sgi )=-1
+                    cvfem_neiloc( 6, cv_sgi )=-1
+                    cvfem_neiloc( 7, cv_sgi )=-1
+                    cvfem_neiloc( 9, cv_sgi )=-1
+                    cvfem_neiloc( 10, cv_sgi )=-1
+                 else if(zer_l3) then
+! face 3:
+                    cvfem_neiloc( 1, cv_sgi )=-1
+                    cvfem_neiloc( 2, cv_sgi )=-1
+                    cvfem_neiloc( 3, cv_sgi )=-1
+                    cvfem_neiloc( 7, cv_sgi )=-1
+                    cvfem_neiloc( 8, cv_sgi )=-1
+                    cvfem_neiloc( 10, cv_sgi )=-1
+                 else if(zer_l4) then
+! face 4:
+                    cvfem_neiloc( 1, cv_sgi )=-1
+                    cvfem_neiloc( 2, cv_sgi )=-1
+                    cvfem_neiloc( 3, cv_sgi )=-1
+                    cvfem_neiloc( 4, cv_sgi )=-1
+                    cvfem_neiloc( 5, cv_sgi )=-1
+                    cvfem_neiloc( 6, cv_sgi )=-1
+                 endif
+               else
                do cv_iloc = 1, cv_nloc
                   ewrite(3,*)'iloc, sn',cv_iloc, abs(sn( cv_iloc, cv_sgi )), &
                        abs ( sn( cv_iloc, cv_sgi )) > 1.e-4
                   if ( abs ( sn( cv_iloc, cv_sgi )) > 1.e-4 ) &
                        cvfem_neiloc( cv_iloc, cv_sgi ) = -1
+
+!         if(zer_l4 ) then
+!            print *,'***cv_iloc, cv_sgi, cvfem_neiloc( cv_iloc, cv_sgi ):', &
+!                        cv_iloc, cv_sgi, cvfem_neiloc( cv_iloc, cv_sgi )
+!         endif
+
                end do
+               endif
             endif
          else
             ewrite(3,*)'cv_sgi, zer_l1/2/3:', cv_sgi, (zer_l1.or.zer_l2.or.zer_l3)
@@ -3242,7 +3288,10 @@
                end do
             endif
          endif Conditional_Neiloc
+
       end do Loop_SurfaceQuadrature
+
+      print *,'icount::',icount
 
       do quad_cv_siloc = 1, cv_nloc
          do cv_sgi = 1, scvngi
