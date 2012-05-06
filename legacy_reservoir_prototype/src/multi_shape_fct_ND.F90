@@ -3075,6 +3075,9 @@
          endif
       end do
 
+      print *,'stotel, quad_cv_sngi, totele:',stotel, quad_cv_sngi, totele
+      print *,'stotel * quad_cv_sngi * totele:',stotel * quad_cv_sngi * totele
+
       allocate( sn_2( cv_nloc, stotel * quad_cv_sngi * totele ) ) ; sn_2 = 0.
       allocate( suf_snlx_2( cv_nloc, stotel * quad_cv_sngi * totele ) ) ; suf_snlx_2 = 0.
       allocate( suf_snly_2( cv_nloc, stotel * quad_cv_sngi * totele ) ) ; suf_snly_2 = 0.
@@ -3515,16 +3518,18 @@
       if( quad_cv_nloc == 1 ) npoly = 1
 
 ! for the quadrature pts:
+!         print *,'quad_cv_nloc,cv_sngi =',quad_cv_nloc, cv_sngi
+!          stop 8221
       npoly_ngi = npoly
       if (( .not. d1 ).and. (.not. d3) ) then ! 2D
          if( quad_cv_nloc == 4 ) then
-            if(cv_sngi == 2*3 ) npoly_ngi = 3 ! 3 pt
-            if(cv_sngi == 2*2 ) npoly_ngi = 2 ! 2 pt
-            if(cv_sngi == 2*1 ) npoly_ngi = 1 ! 1 pt
+            if(cv_sngi == 9*3 ) npoly_ngi = 3 ! 3 pt
+            if(cv_sngi == 9*2 ) npoly_ngi = 2 ! 2 pt
+            if(cv_sngi == 9*1 ) npoly_ngi = 1 ! 1 pt
          else if( quad_cv_nloc == 9 ) then
-            if(cv_sngi == 4*3 ) npoly_ngi = 3 ! 3 pt
-            if(cv_sngi == 4*2 ) npoly_ngi = 2 ! 2 pt
-            if(cv_sngi == 4*1 ) npoly_ngi = 1 ! 1 pt
+            if(cv_sngi == 24*3 ) npoly_ngi = 3 ! 3 pt
+            if(cv_sngi == 24*2 ) npoly_ngi = 2 ! 2 pt
+            if(cv_sngi == 24*1 ) npoly_ngi = 1 ! 1 pt
          endif 
       else ! 3D
          if( quad_cv_nloc == 8 ) then
