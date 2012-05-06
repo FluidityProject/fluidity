@@ -346,6 +346,9 @@ program Darcy_IMPES
          ! - Porosity?
          ! - AbsolutePermeability?
          call darcy_impes_calculate_generic_python_diagnostic_fields(di)
+      
+         ! *** Calculate the latest modified relative permeability, needs to be after the python fields ***
+         call darcy_impes_calculate_modified_relative_permeability(di)
          
          ! *** Calculate the Darcy IMPES Velocity, Fractional flow and CFL fields, needs to be after the python fields ***
          call darcy_impes_calculate_velocity_and_cfl_fields(di)
@@ -373,6 +376,8 @@ program Darcy_IMPES
             end if
          
          end if
+         
+         if (SIG_INT) exit nonlinear_iteration_loop
 
       end do nonlinear_iteration_loop
 
@@ -568,6 +573,9 @@ contains
       
       di%state => state
       
+      ! deduce the number of phase
+      di%number_phase = size(di%state)
+      
       di%pressure_mesh             => extract_mesh(di%state(1), "PressureMesh")
       di%gradient_pressure_mesh    => extract_mesh(di%state(1), "GradientPressureMesh")
       di%velocity_mesh             => extract_mesh(di%state(1), "VelocityMesh")
@@ -614,12 +622,19 @@ contains
       call allocate(di%old_sfield_subcycle, di%pressure_mesh)
       call allocate(di%cv_mass_pressure_mesh_with_porosity, di%pressure_mesh)
       call allocate(di%cv_mass_pressure_mesh_with_old_porosity, di%pressure_mesh)
-
+      
+      ! Allocate the modified_relative_permeability array of fields
+      allocate(di%old_modified_relative_permeability(di%number_phase))
+      allocate(di%modified_relative_permeability(di%number_phase))      
+      do p = 1, di%number_phase         
+         allocate(di%modified_relative_permeability(p)%ptr)
+         allocate(di%old_modified_relative_permeability(p)%ptr)
+         call allocate(di%modified_relative_permeability(p)%ptr, di%pressure_mesh)
+         call allocate(di%old_modified_relative_permeability(p)%ptr, di%pressure_mesh)
+      end do
+      
       ! Calculate the latest CV mass on the pressure mesh with porosity
       call compute_cv_mass(di%positions, di%cv_mass_pressure_mesh_with_porosity, di%porosity)      
-      
-      ! deduce the number of phase
-      di%number_phase = size(di%state)
       
       ! Pull phase dependent fields from state
       allocate(di%pressure(di%number_phase))
@@ -634,8 +649,8 @@ contains
       allocate(di%old_relative_permeability(di%number_phase))
       allocate(di%viscosity(di%number_phase))      
       allocate(di%old_viscosity(di%number_phase)) 
-      allocate(di%inter_velocity_porosity(di%number_phase))
-      allocate(di%old_inter_velocity_porosity(di%number_phase))
+      allocate(di%darcy_velocity_over_saturation(di%number_phase))
+      allocate(di%old_darcy_velocity_over_saturation(di%number_phase))
       allocate(di%cfl(di%number_phase))
       allocate(di%old_cfl(di%number_phase))
       allocate(di%darcy_velocity(di%number_phase))
@@ -645,28 +660,28 @@ contains
 
       do p = 1,di%number_phase
 
-         di%pressure(p)%ptr                    => extract_scalar_field(di%state(p), "Pressure")
-         di%old_pressure(p)%ptr                => extract_scalar_field(di%state(p), "OldPressure")
+         di%pressure(p)%ptr                           => extract_scalar_field(di%state(p), "Pressure")
+         di%old_pressure(p)%ptr                       => extract_scalar_field(di%state(p), "OldPressure")
          if (p > 1) then
-            di%capilliary_pressure(p)%ptr      => extract_scalar_field(di%state(p), "CapilliaryPressure")
-            di%old_capilliary_pressure(p)%ptr  => extract_scalar_field(di%state(p), "OldCapilliaryPressure")
+            di%capilliary_pressure(p)%ptr             => extract_scalar_field(di%state(p), "CapilliaryPressure")
+            di%old_capilliary_pressure(p)%ptr         => extract_scalar_field(di%state(p), "OldCapilliaryPressure")
          end if
-         di%gradient_pressure(p)%ptr           => extract_vector_field(di%state(p), "GradientPressure")
-         di%old_gradient_pressure(p)%ptr       => extract_vector_field(di%state(p), "OldGradientPressure")
-         di%saturation(p)%ptr                  => extract_scalar_field(di%state(p), "Saturation")
-         di%old_saturation(p)%ptr              => extract_scalar_field(di%state(p), "OldSaturation")
-         di%relative_permeability(p)%ptr       => extract_scalar_field(di%state(p), "RelativePermeability")
-         di%old_relative_permeability(p)%ptr   => extract_scalar_field(di%state(p), "OldRelativePermeability")
-         di%viscosity(p)%ptr                   => extract_scalar_field(di%state(p), "Viscosity")
-         di%old_viscosity(p)%ptr               => extract_scalar_field(di%state(p), "OldViscosity")
-         di%inter_velocity_porosity(p)%ptr     => extract_vector_field(di%state(p), "InterstitialVelocityPorosity")
-         di%old_inter_velocity_porosity(p)%ptr => extract_vector_field(di%state(p), "OldInterstitialVelocityPorosity")
-         di%cfl(p)%ptr                         => extract_scalar_field(di%state(p), "InterstitialVelocityCFL")
-         di%old_cfl(p)%ptr                     => extract_scalar_field(di%state(p), "OldInterstitialVelocityCFL")
-         di%darcy_velocity(p)%ptr              => extract_vector_field(di%state(p), "DarcyVelocity")
-         di%fractional_flow(p)%ptr             => extract_vector_field(di%state(p), "FractionalFlow")
-         di%density(p)%ptr                     => extract_scalar_field(di%state(p), "Density")
-         di%old_density(p)%ptr                 => extract_scalar_field(di%state(p), "OldDensity")
+         di%gradient_pressure(p)%ptr                  => extract_vector_field(di%state(p), "GradientPressure")
+         di%old_gradient_pressure(p)%ptr              => extract_vector_field(di%state(p), "OldGradientPressure")
+         di%saturation(p)%ptr                         => extract_scalar_field(di%state(p), "Saturation")
+         di%old_saturation(p)%ptr                     => extract_scalar_field(di%state(p), "OldSaturation")
+         di%relative_permeability(p)%ptr              => extract_scalar_field(di%state(p), "RelativePermeability")
+         di%old_relative_permeability(p)%ptr          => extract_scalar_field(di%state(p), "OldRelativePermeability")
+         di%viscosity(p)%ptr                          => extract_scalar_field(di%state(p), "Viscosity")
+         di%old_viscosity(p)%ptr                      => extract_scalar_field(di%state(p), "OldViscosity")
+         di%darcy_velocity_over_saturation(p)%ptr     => extract_vector_field(di%state(p), "DarcyVelocityOverSaturation")
+         di%old_darcy_velocity_over_saturation(p)%ptr => extract_vector_field(di%state(p), "OldDarcyVelocityOverSaturation")
+         di%cfl(p)%ptr                                => extract_scalar_field(di%state(p), "DarcyVelocityOverSaturationCFL")
+         di%old_cfl(p)%ptr                            => extract_scalar_field(di%state(p), "OldDarcyVelocityOverSaturationCFL")
+         di%darcy_velocity(p)%ptr                     => extract_vector_field(di%state(p), "DarcyVelocity")
+         di%fractional_flow(p)%ptr                    => extract_vector_field(di%state(p), "FractionalFlow")
+         di%density(p)%ptr                            => extract_scalar_field(di%state(p), "Density")
+         di%old_density(p)%ptr                        => extract_scalar_field(di%state(p), "OldDensity")
          
       end do
       
@@ -694,18 +709,18 @@ contains
 
       call invert(di%inverse_cv_mass_pressure_mesh)   
       
-      ! Allocate the vphi, pressure and saturation BC value mesh, field and flag
+      ! Allocate the v_over_s, pressure and saturation BC value mesh, field and flag
       
       di%bc_surface_mesh = make_mesh(di%pressure_mesh%faces%surface_mesh, &
                                      di%pressure_mesh%faces%shape, &
                                      continuity=-1, &
                                      name='DGSurfaceMesh')
                
-      call allocate(di%vphi_bc_value, &
+      call allocate(di%v_over_s_bc_value, &
                    &di%bc_surface_mesh, &
-                   &name='VPHIBCValue')         
+                   &name='DarcyVelocityOverSaturationBCValue')         
       
-      allocate(di%vphi_bc_flag(surface_element_count(di%pressure_mesh)))
+      allocate(di%v_over_s_bc_flag(surface_element_count(di%pressure_mesh)))
 
       call allocate(di%saturation_bc_value, &
                    &di%bc_surface_mesh, &
@@ -731,6 +746,11 @@ contains
                    &name='InverseCharacteristicLength')
       
       call darcy_impes_calculate_inverse_characteristic_length(di)
+      
+      ! Find the minimum saturation value to use in forming the modified relative perm
+      call get_option('/min_saturation_value_for_modified_relative_permeability', & 
+                      di%min_sat_value_for_mod_relperm, &
+                      default = 1.0e-06)
       
       ! Get the saturation cv options from the first phase
       di%saturation_cv_options = get_cv_options(di%saturation(1)%ptr%option_path, &
@@ -814,15 +834,15 @@ contains
       di%absolute_permeability_is_diagnostic = have_option('/porous_media/scalar_field::AbsolutePermeability/diagnostic')
       
       ! Determine the CV surface degree to use when integrating functions across them
-      call get_option("/geometry/quadrature/controlvolume_surface_degree", &
-                      di%quaddegree, default = 1)
+      call get_option('/geometry/quadrature/controlvolume_surface_degree', &
+                      di%cv_surface_quaddegree)
     
       ! Determine the CV faces information for the pressure mesh
       ! assuming all elements are the same type
       di%cvfaces = find_cv_faces(vertices   = ele_vertices(di%pressure_mesh, 1), &
                                  dimension  = mesh_dim(di%pressure_mesh), &
                                  polydegree = di%pressure_mesh%shape%degree, &
-                                 quaddegree = di%quaddegree)
+                                 quaddegree = di%cv_surface_quaddegree)
 
       ! Generate the CV shape function that contains the derivatives with respect
       ! to the parent elements canonical coordinates evaluated at the 
@@ -894,11 +914,14 @@ contains
       ! - Porosity?
       ! - AbsolutePermeability?
       call darcy_impes_calculate_generic_python_diagnostic_fields(di)
-
-      ! Calculate the non first phase pressure's
+      
+      ! Calculate the latest modified relative permeability, needs to be after the python fields
+      call darcy_impes_calculate_modified_relative_permeability(di)
+      
+      ! Calculate the non first phase pressure's, needs to be after the python fields
       call darcy_impes_calculate_non_first_phase_pressures(di)       
 
-      ! calculate the Velocity, Fractional flow and CFL fields
+      ! calculate the Velocity, Fractional flow and CFL fields, needs to be after the python fields
       call darcy_impes_calculate_velocity_and_cfl_fields(di)
 
       ! Calculate the sum of the saturations
@@ -943,6 +966,8 @@ contains
       di%ndim = 0
       
       nullify(di%state)
+
+      ! number_phase is zeroed at end as it is used for looping
       
       nullify(di%pressure_mesh)
       nullify(di%gradient_pressure_mesh)
@@ -978,8 +1003,15 @@ contains
       call deallocate(di%cv_mass_pressure_mesh_with_porosity)
       call deallocate(di%cv_mass_pressure_mesh_with_old_porosity)
       
-      ! number_phase is zeroed at end as it is used for looping
-
+      do p = 1, di%number_phase
+         call deallocate(di%modified_relative_permeability(p)%ptr)
+         call deallocate(di%old_modified_relative_permeability(p)%ptr)
+         deallocate(di%modified_relative_permeability(p)%ptr)
+         deallocate(di%old_modified_relative_permeability(p)%ptr)
+      end do
+      deallocate(di%modified_relative_permeability)
+      deallocate(di%old_modified_relative_permeability)
+            
       deallocate(di%pressure)
       deallocate(di%old_pressure)
       deallocate(di%capilliary_pressure)
@@ -992,8 +1024,8 @@ contains
       deallocate(di%old_relative_permeability)
       deallocate(di%viscosity)
       deallocate(di%old_viscosity)
-      deallocate(di%inter_velocity_porosity)
-      deallocate(di%old_inter_velocity_porosity)      
+      deallocate(di%darcy_velocity_over_saturation)
+      deallocate(di%old_darcy_velocity_over_saturation)      
       deallocate(di%cfl)
       deallocate(di%old_cfl)
       deallocate(di%darcy_velocity) 
@@ -1011,14 +1043,16 @@ contains
       call deallocate(di%inverse_cv_mass_pressure_mesh)
       
       call deallocate(di%bc_surface_mesh)      
-      call deallocate(di%vphi_bc_value)
-      deallocate(di%vphi_bc_flag)      
+      call deallocate(di%v_over_s_bc_value)
+      deallocate(di%v_over_s_bc_flag)      
       call deallocate(di%saturation_bc_value)
       deallocate(di%saturation_bc_flag)      
       call deallocate(di%pressure_bc_value)
       deallocate(di%pressure_bc_flag)      
       di%weak_pressure_bc_coeff = 0.0
       call deallocate(di%inverse_characteristic_length)
+      
+      di%min_sat_value_for_mod_relperm = 0.0
       
       ! Nothing can be done for di%saturation_cv_options
       
@@ -1040,7 +1074,7 @@ contains
       di%porosity_is_diagnostic              = .false.
       di%absolute_permeability_is_diagnostic = .false.
       
-      di%quaddegree = 0
+      di%cv_surface_quaddegree = 0
       
       call deallocate(di%cvfaces)
       call deallocate(di%x_cvshape_full)

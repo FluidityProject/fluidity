@@ -92,6 +92,9 @@
       <degree>
         <integer_value rank="0">1</integer_value>
       </degree>
+      <controlvolume_surface_degree>
+        <integer_value rank="0">1</integer_value>
+      </controlvolume_surface_degree>
     </quadrature>
   </geometry>
   <io>
@@ -285,7 +288,7 @@ for n in range(field.node_count):
         <consistent_interpolation/>
       </diagnostic>
     </vector_field>
-    <vector_field name="InterstitialVelocityPorosity" rank="0">
+    <vector_field name="DarcyVelocityOverSaturation" rank="0">
       <diagnostic>
         <mesh name="VelocityMesh"/>
         <boundary_conditions name="left">
@@ -304,7 +307,7 @@ for n in range(field.node_count):
         <consistent_interpolation/>
       </diagnostic>
     </vector_field>
-    <scalar_field name="InterstitialVelocityCFL" rank="0">
+    <scalar_field name="DarcyVelocityOverSaturationCFL" rank="0">
       <diagnostic>
         <mesh name="PressureMesh"/>
         <stat>
@@ -476,7 +479,7 @@ for n in range(field.node_count):
         <consistent_interpolation/>
       </diagnostic>
     </vector_field>
-    <vector_field name="InterstitialVelocityPorosity" rank="0">
+    <vector_field name="DarcyVelocityOverSaturation" rank="0">
       <diagnostic>
         <mesh name="VelocityMesh"/>
         <boundary_conditions name="left">
@@ -491,7 +494,7 @@ for n in range(field.node_count):
         <consistent_interpolation/>
       </diagnostic>
     </vector_field>
-    <scalar_field name="InterstitialVelocityCFL" rank="0">
+    <scalar_field name="DarcyVelocityOverSaturationCFL" rank="0">
       <diagnostic>
         <mesh name="PressureMesh"/>
         <stat>

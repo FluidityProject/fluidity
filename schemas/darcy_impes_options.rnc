@@ -42,7 +42,9 @@ start =
          
          darcy_impes_porous_media_model, 
          
-         darcy_impes_weak_pressure_bc_coeff?
+         darcy_impes_weak_pressure_bc_coeff?,
+         
+         darcy_impes_min_sat_value_for_mod_relperm?
       }
    )      
 
@@ -57,6 +59,17 @@ darcy_impes_weak_pressure_bc_coeff =
          
          real
       }
+   )
+
+
+darcy_impes_min_sat_value_for_mod_relperm = 
+   (
+      ## Define the minimum saturation value used in the 
+      ## denominator of the modified relative permeability.
+      ## If not given then the default value of 1.0e-06 is used.
+      element min_saturation_value_for_modified_relative_permeability {
+         real
+      }?
    )
 
 
@@ -90,7 +103,7 @@ darcy_impes_geometry =
          },
 
          ## The velocity mesh which is also used 
-         ## for the interstitial velocity CFL number.
+         ## for the DarcyVelocityOverSaturation CFL number.
          element mesh {
             attribute name { "VelocityMesh" },
             darcy_impes_velocity_mesh_info
@@ -113,6 +126,16 @@ darcy_impes_geometry =
             ## note: this specifies the degree of quadrature,
             ## not the number of gauss points
             element degree {
+               element integer_value {
+                  attribute rank { "0" },
+                  ("1")
+               }
+            },
+            ## Control volume surface quadrature degree
+            ## 
+            ## note: this specifies the degree of quadrature,
+            ## not the number of gauss points
+            element controlvolume_surface_degree {
                element integer_value {
                   attribute rank { "0" },
                   ("1")
@@ -621,9 +644,9 @@ darcy_impes_material_phases =
 
          darcy_impes_gradient_pressure_field,
                   
-         darcy_impes_interstitial_velocity_porosity_field,
+         darcy_impes_darcy_velocity_over_saturation_field,
          
-         darcy_impes_interstitial_velocity_CFL_field, 
+         darcy_impes_darcy_velocity_over_saturation_CFL_field, 
          
          darcy_impes_darcy_velocity_field,
 
@@ -673,9 +696,9 @@ darcy_impes_other_phase_options =
 
       darcy_impes_gradient_pressure_field,
 
-      darcy_impes_interstitial_velocity_porosity_field,
+      darcy_impes_darcy_velocity_over_saturation_field,
 
-      darcy_impes_interstitial_velocity_CFL_field,
+      darcy_impes_darcy_velocity_over_saturation_CFL_field,
 
       darcy_impes_darcy_velocity_field,   
       
@@ -984,11 +1007,11 @@ darcy_impes_gradient_pressure_field =
    )
 
 
-darcy_impes_interstitial_velocity_porosity_field =
+darcy_impes_darcy_velocity_over_saturation_field =
    (
       element vector_field {
          attribute rank { "0" },
-         attribute name { "InterstitialVelocityPorosity" },
+         attribute name { "DarcyVelocityOverSaturation" },
          element diagnostic {
             element mesh {
                attribute name { "VelocityMesh" }      
@@ -1001,11 +1024,11 @@ darcy_impes_interstitial_velocity_porosity_field =
    )
 
 
-darcy_impes_interstitial_velocity_CFL_field =
+darcy_impes_darcy_velocity_over_saturation_CFL_field =
    (
       element scalar_field {
          attribute rank { "0" },
-         attribute name { "InterstitialVelocityCFL" },
+         attribute name { "DarcyVelocityOverSaturationCFL" },
          element diagnostic {
             element mesh {
                attribute name { "PressureMesh" }      
@@ -1508,9 +1531,9 @@ field_based_cfl_number_options =
       ## The Courant Number definition to be used.
       ##
       ## This uses the control volume approximation of the CFL Number 
-      ## and the interstitial velocity for porous media flow.
+      ## and the DarcyVelocityOverSaturation for porous media flow.
       element courant_number {
-         attribute name { "InterstitialVelocityCFL" }
+         attribute name { "DarcyVelocityOverSaturationCFL" }
       }
    )
 

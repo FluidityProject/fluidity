@@ -72,7 +72,8 @@ module darcy_impes_assemble_module
              darcy_impes_calculate_densities, &
              darcy_impes_calculate_cflnumber_field_based_dt, &
              darcy_impes_initialise_cached_phase_face_value, &
-             darcy_impes_calculate_inverse_characteristic_length
+             darcy_impes_calculate_inverse_characteristic_length, &
+             darcy_impes_calculate_modified_relative_permeability
    
    ! Options associated with explicit advection subcycling for CV scalar field solver
    type darcy_impes_subcycle_options_type
@@ -107,8 +108,8 @@ module darcy_impes_assemble_module
    
    type darcy_impes_type
       ! *** Pointers to fields from state that have array length of number of phases ***
-      type(vector_field_pointer), dimension(:), pointer :: inter_velocity_porosity
-      type(vector_field_pointer), dimension(:), pointer :: old_inter_velocity_porosity
+      type(vector_field_pointer), dimension(:), pointer :: darcy_velocity_over_saturation
+      type(vector_field_pointer), dimension(:), pointer :: old_darcy_velocity_over_saturation
       type(vector_field_pointer), dimension(:), pointer :: darcy_velocity   
       type(vector_field_pointer), dimension(:), pointer :: fractional_flow
       type(scalar_field_pointer), dimension(:), pointer :: saturation
@@ -162,11 +163,16 @@ module darcy_impes_assemble_module
       type(scalar_field) :: cv_mass_pressure_mesh_with_porosity   
       type(scalar_field) :: cv_mass_pressure_mesh_with_old_porosity 
       type(scalar_field) :: cfl_subcycle
-      type(scalar_field) :: old_sfield_subcycle   
-      ! *** Data associated with vphi, pressure and saturation BC allocated here ***
+      type(scalar_field) :: old_sfield_subcycle
+      ! *** The modified relative permeability fields for each phase ***
+      type(scalar_field_pointer), dimension(:), pointer :: modified_relative_permeability
+      type(scalar_field_pointer), dimension(:), pointer :: old_modified_relative_permeability
+      ! *** Minimum value of saturation used in denominator of modified relperm from options ***
+      real :: min_sat_value_for_mod_relperm
+      ! *** Data associated with v_over_s, pressure and saturation BC allocated here ***
       type(mesh_type)                          :: bc_surface_mesh
-      type(scalar_field)                       :: vphi_bc_value
-      integer,           dimension(:), pointer :: vphi_bc_flag
+      type(scalar_field)                       :: v_over_s_bc_value
+      integer,           dimension(:), pointer :: v_over_s_bc_flag
       type(scalar_field)                       :: pressure_bc_value
       integer,           dimension(:), pointer :: pressure_bc_flag
       type(scalar_field)                       :: saturation_bc_value
@@ -174,7 +180,7 @@ module darcy_impes_assemble_module
       type(scalar_field)                       :: inverse_characteristic_length
       real                                     :: weak_pressure_bc_coeff
       ! *** The number of phase and the CV surface quadrature degree to use ***
-      integer :: number_phase, quaddegree   
+      integer :: number_phase, cv_surface_quaddegree   
       ! *** Data specifically associated with the CV discretisation allocated here ***
       type(cv_options_type)                   :: saturation_cv_options
       type(cv_faces_type)                     :: cvfaces
@@ -224,10 +230,19 @@ module darcy_impes_assemble_module
       !!< Copy to old darcy impes data not associated with di%state
 
       type(darcy_impes_type), intent(inout) :: di
-
+      
+      ! local variables
+      integer :: p
+      
       call set(di%old_gravity, di%gravity)
       
       call set(di%cv_mass_pressure_mesh_with_old_porosity, di%cv_mass_pressure_mesh_with_porosity)
+      
+      phase_loop: do p = 1, di%number_phase
+      
+         call set(di%old_modified_relative_permeability(p)%ptr, di%modified_relative_permeability(p)%ptr)
+      
+      end do phase_loop
       
    end subroutine darcy_impes_copy_to_old
 
@@ -306,17 +321,17 @@ module darcy_impes_assemble_module
       ! local variables
       logical :: inflow, determine_face_value
       integer :: p, vele, sele, iloc, oloc, jloc, face, gi, ggi, f_ele_counter, f_ele_base, upwind_pos, dim
-      real    :: income, face_value, vphi_dot_n, old_relperm_absperm_over_visc, grad_cap_p_dot_n
-      real    :: old_saturation_face_value, old_relperm_face_value, g_dot_n, old_den_face_value
+      real    :: income, face_value, v_over_s_dot_n, old_modrelperm_absperm_over_visc, grad_cap_p_dot_n
+      real    :: old_saturation_face_value, old_modrelperm_face_value, g_dot_n, old_den_face_value
       real,    dimension(1)                  :: old_absperm_ele, old_visc_ele
       real,    dimension(:),     allocatable :: old_saturation_ele
-      real,    dimension(:),     allocatable :: old_relperm_ele
+      real,    dimension(:),     allocatable :: old_modrelperm_ele
       real,    dimension(:),     allocatable :: old_den_ele
       real,    dimension(:,:),   allocatable :: old_grav_ele
       real,    dimension(:),     allocatable :: cfl_ele
       real,    dimension(:,:),   allocatable :: grad_pressure_face_quad
       real,    dimension(:,:),   allocatable :: grad_cap_pressure_face_quad
-      real,    dimension(:,:),   allocatable :: vphi_face_quad
+      real,    dimension(:,:),   allocatable :: v_over_s_face_quad
       real,    dimension(:,:),   allocatable :: x_ele
       real,    dimension(:,:,:), allocatable :: p_dshape
       real,    dimension(:,:),   allocatable :: normal
@@ -330,10 +345,10 @@ module darcy_impes_assemble_module
       integer, dimension(:),     pointer     :: p_nodes      
       integer, dimension(:),     pointer     :: upwind_nodes
       real,    dimension(1)                  :: old_absperm_ele_bdy, old_visc_ele_bdy
-      real,    dimension(:),     allocatable :: old_relperm_ele_bdy
+      real,    dimension(:),     allocatable :: old_modrelperm_ele_bdy
       real,    dimension(:,:),   allocatable :: old_grav_ele_bdy
       real,    dimension(:,:),   allocatable :: grad_pressure_face_quad_bdy
-      real,    dimension(:,:),   allocatable :: vphi_face_quad_bdy
+      real,    dimension(:,:),   allocatable :: v_over_s_face_quad_bdy
       real,    dimension(:),     allocatable :: bc_sele_val
       real,    dimension(:),     allocatable :: inv_char_len_ele_bdy
       real,    dimension(:),     allocatable :: old_saturation_ele_bdy
@@ -346,7 +361,7 @@ module darcy_impes_assemble_module
       integer, dimension(:),     allocatable :: p_nodes_bdy
       integer, parameter :: PRESSURE_BC_TYPE_WEAKDIRICHLET   = 1
       integer, parameter :: SATURATION_BC_TYPE_WEAKDIRICHLET = 1
-      integer, parameter :: VPHI_BC_TYPE_NORMAL_FLOW         = 1, VPHI_BC_TYPE_NO_NORMAL_FLOW = 2
+      integer, parameter :: V_OVER_S_BC_TYPE_NORMAL_FLOW     = 1, V_OVER_S_BC_TYPE_NO_NORMAL_FLOW = 2
             
       ! allocate arrays used in assemble process - many assume
       ! that all elements are the same type.
@@ -360,18 +375,18 @@ module darcy_impes_assemble_module
       allocate(p_rhs_local(ele_loc(di%pressure_mesh,1)))
       allocate(x_face_quad(di%ndim, di%x_cvshape%ngi))
       allocate(old_saturation_ele(ele_loc(di%pressure_mesh,1)))
-      allocate(old_relperm_ele(ele_loc(di%pressure_mesh,1)))
+      allocate(old_modrelperm_ele(ele_loc(di%pressure_mesh,1)))
       allocate(old_den_ele(ele_loc(di%pressure_mesh,1)))
       allocate(old_grav_ele(di%ndim,1))
       allocate(cfl_ele(ele_loc(di%pressure_mesh,1)))
       allocate(grad_pressure_face_quad(di%ndim, di%p_cvshape%ngi))
       allocate(grad_cap_pressure_face_quad(di%ndim, di%p_cvshape%ngi))
-      allocate(vphi_face_quad(di%ndim,di%p_cvshape%ngi))
+      allocate(v_over_s_face_quad(di%ndim,di%p_cvshape%ngi))
 
-      allocate(old_relperm_ele_bdy(face_loc(di%pressure_mesh,1)))
+      allocate(old_modrelperm_ele_bdy(face_loc(di%pressure_mesh,1)))
       allocate(old_grav_ele_bdy(di%ndim,1))
       allocate(grad_pressure_face_quad_bdy(di%ndim, di%p_cvbdyshape%ngi))
-      allocate(vphi_face_quad_bdy(di%ndim, di%p_cvbdyshape%ngi))
+      allocate(v_over_s_face_quad_bdy(di%ndim, di%p_cvbdyshape%ngi))
       allocate(old_saturation_ele_bdy(face_loc(di%pressure_mesh,1)))      
       allocate(ghost_old_saturation_ele_bdy(face_loc(di%pressure_mesh,1)))
       allocate(bc_sele_val(face_loc(di%pressure_mesh,1)))
@@ -401,7 +416,9 @@ module darcy_impes_assemble_module
            
       ! Assemble a contribution from each phase to form a global continuity equation to solve for first phase pressure
       phase_loop: do p = 1, di%number_phase
- 
+         
+         ewrite(1,*) 'Assemble volume contribution to global continuity from phase ',p
+         
          if (determine_face_value) then
 
             ! Initialise the cached phase face values
@@ -455,8 +472,8 @@ module darcy_impes_assemble_module
 
             if (determine_face_value) then
 
-               ! get the old_relperm ele values for this phase
-               old_relperm_ele = ele_val(di%old_relative_permeability(p)%ptr, vele)
+               ! get the old_modrelperm ele values for this phase
+               old_modrelperm_ele = ele_val(di%old_modified_relative_permeability(p)%ptr, vele)
 
                ! get the old saturation ele values for this phase
                old_saturation_ele = ele_val(di%old_saturation(p)%ptr, vele)
@@ -464,8 +481,7 @@ module darcy_impes_assemble_module
                ! get the CFL values for this element
                cfl_ele = ele_val(di%cfl(p)%ptr, vele)
             
-               ! Determine the node numbers to use to determine the
-               ! Saturation and RelPerm upwind values
+               ! Determine the node numbers to use to determine the Saturation upwind values
                if((di%saturation_cv_options%upwind_scheme == CV_UPWINDVALUE_PROJECT_POINT).or.&
                   (di%saturation_cv_options%upwind_scheme == CV_UPWINDVALUE_PROJECT_GRAD)) then
 
@@ -507,15 +523,13 @@ module darcy_impes_assemble_module
               &darcy_impes_ele_grad_at_quad_scalar(di%capilliary_pressure(p)%ptr, vele, dn = p_dshape)
             end if
             
-            ! the latest intersitial velocity_porosity at the quadrature points
+            ! the latest DarcyVelocityOverSaturation at the quadrature points
             ! determined from FE interpolation of each component, only used to determine upwind.
             do dim = 1,di%ndim
 
-               vphi_face_quad(dim,:) =  &
-              &- (ele_val_at_quad(di%old_relative_permeability(p)%ptr, vele, di%p_cvshape) * &
-                  old_absperm_ele(1) / old_visc_ele(1)) * &
-                 (grad_pressure_face_quad(dim,:) - &
-                  ele_val_at_quad(di%old_density(p)%ptr, vele, di%p_cvshape) * old_grav_ele(dim,1))   
+               v_over_s_face_quad(dim,:) =  &
+- (ele_val_at_quad(di%old_modified_relative_permeability(p)%ptr, vele, di%p_cvshape) * old_absperm_ele(1) / old_visc_ele(1)) * &
+  (grad_pressure_face_quad(dim,:) - ele_val_at_quad(di%old_density(p)%ptr, vele, di%p_cvshape) * old_grav_ele(dim,1))
 
             end do
             
@@ -557,10 +571,10 @@ module darcy_impes_assemble_module
                                                        &x_face_quad(:,ggi), normal(:,ggi))
 
                        ! determine if the flow is in or out of the face at this quadrature
-                       ! with respect to the normal orientation using the latest vphi
-                       vphi_dot_n = dot_product(vphi_face_quad(:,ggi), normgi)
+                       ! with respect to the normal orientation using the latest v_over_s
+                       v_over_s_dot_n = dot_product(v_over_s_face_quad(:,ggi), normgi)
 
-                       inflow = (vphi_dot_n<=0.0)
+                       inflow = (v_over_s_dot_n<=0.0)
 
                        income = merge(1.0,0.0,inflow)
 
@@ -583,12 +597,12 @@ module darcy_impes_assemble_module
                                                  di%saturation_cv_options, &
                                                  save_pos = upwind_pos)
 
-                          ! Evaluate the face value for old_relperm (assuming upwind) 
-                          old_relperm_face_value = income*old_relperm_ele(oloc) + (1.0-income)*old_relperm_ele(iloc)
+                          ! Evaluate the face value for old_modrelperm (taking upwind) 
+                          old_modrelperm_face_value = income*old_modrelperm_ele(oloc) + (1.0-income)*old_modrelperm_ele(iloc)
 
-                          ! face value = S*old_relperm*old_absperm/old_visc, where old_absperm is phase independent
+                          ! face value = S*old_modrelperm*old_absperm/old_visc, where old_absperm is phase independent
                           ! (if absperm and viscosity are considered tensors this requires modifying below)
-                          face_value = old_saturation_face_value * old_relperm_face_value * old_absperm_ele(1) / old_visc_ele(1)
+                          face_value = old_saturation_face_value * old_modrelperm_face_value * old_absperm_ele(1) / old_visc_ele(1)
 
                           ! cache the phase face value for consistent use later
                           di%cached_phase_face_value_domain(p)%value((f_ele_base - 1) + f_ele_counter) = face_value
@@ -601,7 +615,7 @@ module darcy_impes_assemble_module
 
                        face_value = face_value * detwei(ggi)
 
-                       ! Form the local matrix given by - n_i . sum_{phase} ( S*old_relperm*old_absperm/old_visc ) dP_1/dx_j
+                       ! Form the local matrix given by - n_i . sum_{phase} ( S*old_modrelperm*old_absperm/old_visc ) dP_1/dx_j
                        do jloc = 1,di%pressure_mesh%shape%loc
 
                           p_mat_local(iloc,jloc) = p_mat_local(iloc,jloc) - &
@@ -612,12 +626,12 @@ module darcy_impes_assemble_module
 
                        end do
 
-                       ! Add gravity term to rhs = - n_i . sum_{phase} ( S*old_relperm*old_absperm/old_visc ) * old_den * old_grav
+                       ! Add gravity term to rhs = - n_i . sum_{phase} ( S*old_modrelperm*old_absperm/old_visc ) * old_den * old_grav
 
                        ! Find g dot n
                        g_dot_n = dot_product(old_grav_ele(:,1), normgi)
 
-                       ! Find the old_density face value (assuming upwind) 
+                       ! Find the old_density face value (taking upwind) 
                        old_den_face_value = income*old_den_ele(oloc) + (1.0-income)*old_den_ele(iloc)
 
                        p_rhs_local(iloc)  = p_rhs_local(iloc) - &
@@ -625,7 +639,7 @@ module darcy_impes_assemble_module
                                             old_den_face_value * &
                                             g_dot_n
 
-                       ! Add capilliary pressure term to rhs = n_i . sum_{phase} ( S*old_relperm*old_absperm/old_visc ) dP_c/dx_j
+                       ! Add capilliary pressure term to rhs = n_i . sum_{phase} ( S*old_modrelperm*old_absperm/old_visc ) dP_c/dx_j
                        ! only for phase > 1
                        if (p > 1) then
 
@@ -634,7 +648,7 @@ module darcy_impes_assemble_module
                           
                           p_rhs_local(iloc) = p_rhs_local(iloc) + &
                                               face_value * &
-                                              g_dot_n
+                                              grad_cap_p_dot_n
                                                     
                        end if
                        
@@ -655,37 +669,39 @@ module darcy_impes_assemble_module
 
       end do phase_loop
                   
-      ! Add normal vphi BC integrals for each phase, else include if required 
-      ! a weak pressure BC (which if not given for phase 1 is assumed zero).
-      ! This all requires a value  of the saturation of each phase on the boundary 
-      ! which must take account of any weak BC it has.
+      ! Add normal v_over_s * S BC integrals for each phase, else include if required 
+      ! a weak pressure BC (which if not given is assumed zero).
 
-      call get_entire_saturation_or_pressure_boundary_condition(di%pressure(1)%ptr, &
-                                                                (/"weakdirichlet"/), &
-                                                                di%bc_surface_mesh, &
-                                                                di%pressure_bc_value, &
-                                                                di%pressure_bc_flag)
       phase_loop_bc: do p = 1, di%number_phase
+
+         ewrite(1,*) 'Assemble boundary contribution to global continuity from phase ',p
          
-         ! Get this phase vphi BC info - only for no_normal_flow and normal_flow which is special as it is a scalar
-         call get_vphi_boundary_condition(di%inter_velocity_porosity(p)%ptr, &
-                                          (/"normal_flow   ", &
-                                            "no_normal_flow"/), &
-                                          di%bc_surface_mesh, &
-                                          di%vphi_bc_value, &
-                                          di%vphi_bc_flag)
+         ! Get the phase pressure BC - if no v_over_s and weak pressure then extra integrals are added
+         call get_entire_saturation_or_pressure_boundary_condition(di%pressure(p)%ptr, &
+                                                                   (/"weakdirichlet"/), &
+                                                                   di%bc_surface_mesh, &
+                                                                   di%pressure_bc_value, &
+                                                                   di%pressure_bc_flag)
          
-         ! Get this phase old_satutation BC info - only weak dirichlet
+         ! Get this phase v_over_s BC info - only for no_normal_flow and normal_flow which is special as it is a scalar
+         call get_v_over_s_boundary_condition(di%darcy_velocity_over_saturation(p)%ptr, &
+                                              (/"normal_flow   ", &
+                                                "no_normal_flow"/), &
+                                              di%bc_surface_mesh, &
+                                              di%v_over_s_bc_value, &
+                                              di%v_over_s_bc_flag)
+         
+         ! Get this phase satutation BC info - only weak dirichlet
          call get_entire_saturation_or_pressure_boundary_condition(di%saturation(p)%ptr, &
                                                                    (/"weakdirichlet"/), &
                                                                    di%bc_surface_mesh, &
                                                                    di%saturation_bc_value, &
                                                                    di%saturation_bc_flag)
          
-         vphi_sele_loop: do sele = 1, surface_element_count(di%pressure_mesh)
+         sele_loop: do sele = 1, surface_element_count(di%pressure_mesh)
             
             ! A no_normal_flow BC adds nothing to the matrix and rhs so cycle sele loop
-            if (di%vphi_bc_flag(sele) == VPHI_BC_TYPE_NO_NORMAL_FLOW) cycle vphi_sele_loop
+            if (di%v_over_s_bc_flag(sele) == V_OVER_S_BC_TYPE_NO_NORMAL_FLOW) cycle sele_loop
                      
             ! Initialise the face value counter for this ele
             f_ele_counter = 0
@@ -693,18 +709,18 @@ module darcy_impes_assemble_module
             ! Find the face value ele base
             f_ele_base = di%cached_phase_face_value_boundary(p)%ele_base(sele)
             
-            if (di%vphi_bc_flag(sele) == VPHI_BC_TYPE_NORMAL_FLOW) then
+            if (di%v_over_s_bc_flag(sele) == V_OVER_S_BC_TYPE_NORMAL_FLOW) then
                               
                if (determine_face_value) then
                
-                  bc_sele_val = ele_val(di%vphi_bc_value, sele)
+                  bc_sele_val = ele_val(di%v_over_s_bc_value, sele)
                                                    
                end if
             
             else
             
-               ! get the old_relperm sele values for this phase
-               old_relperm_ele_bdy = face_val(di%old_relative_permeability(p)%ptr, sele)
+               ! get the old_modrelperm sele values for this phase
+               old_modrelperm_ele_bdy = face_val(di%old_modified_relative_permeability(p)%ptr, sele)
 
                ! get the old_viscosity value for this sele for this phase
                old_visc_ele_bdy = face_val(di%old_viscosity(p)%ptr, sele)
@@ -728,16 +744,15 @@ module darcy_impes_assemble_module
                ! The old gravity values for this element for each direction
                old_grav_ele_bdy = face_val(di%old_gravity, sele) 
 
-               ! the latest intersitial velocity_porosity at the quadrature points
+               ! the latest DarcyVelocityOverSaturation at the quadrature points
                ! determined from FE interpolation of each component, 
-               ! used to determine upwind and also added in certain integrals.
+               ! used to determine upwind and also added in certain integrals
+               ! associated with weak pressure BCs.
                do dim = 1,di%ndim
 
-                  vphi_face_quad_bdy(dim,:) =  &
-                 &- (face_val_at_quad(di%old_relative_permeability(p)%ptr, sele, di%p_cvbdyshape) * &
-                     old_absperm_ele_bdy(1) / old_visc_ele_bdy(1)) * &
-                    (grad_pressure_face_quad_bdy(dim,:) - &
-                     face_val_at_quad(di%old_density(p)%ptr, sele, di%p_cvbdyshape) * old_grav_ele_bdy(dim,1))   
+                  v_over_s_face_quad_bdy(dim,:) =  &
+- (face_val_at_quad(di%old_modified_relative_permeability(p)%ptr, sele, di%p_cvbdyshape) * old_absperm_ele_bdy(1) / old_visc_ele_bdy(1)) * &
+  (grad_pressure_face_quad_bdy(dim,:) - face_val_at_quad(di%old_density(p)%ptr, sele, di%p_cvbdyshape) * old_grav_ele_bdy(dim,1))
 
                end do
                
@@ -772,9 +787,8 @@ module darcy_impes_assemble_module
                         ggi = (face-1)*di%cvfaces%shape%ngi + gi
 
                         f_ele_counter = f_ele_counter + 1
-                        
-                        
-                        if (di%vphi_bc_flag(sele) == VPHI_BC_TYPE_NORMAL_FLOW) then
+                                                
+                        if (di%v_over_s_bc_flag(sele) == V_OVER_S_BC_TYPE_NORMAL_FLOW) then
                            
                            ! If have normal_flow BC for this phase then include CV integral of value * saturation
                            
@@ -813,15 +827,15 @@ module darcy_impes_assemble_module
                            !        all phases pressure boundary conditions related to phase 1
                            
                            ! determine if the flow is in or out of the face at this quadrature
-                           ! with respect to the normal orientation using the latest vphi
-                           vphi_dot_n = dot_product(vphi_face_quad_bdy(:,ggi), normal_bdy(:,ggi))
+                           ! with respect to the normal orientation using the latest v_over_s
+                           v_over_s_dot_n = dot_product(v_over_s_face_quad_bdy(:,ggi), normal_bdy(:,ggi))
 
-                           inflow = (vphi_dot_n<=0.0)
+                           inflow = (v_over_s_dot_n<=0.0)
 
                            income = merge(1.0,0.0,inflow)
                            
-                           ! Find old_relperm * old_absperm / old_visc
-                           old_relperm_absperm_over_visc = old_relperm_ele_bdy(iloc) * old_absperm_ele_bdy(1) / old_visc_ele_bdy(1)
+                           ! Find old_modrelperm * old_absperm / old_visc
+                           old_modrelperm_absperm_over_visc = old_modrelperm_ele_bdy(iloc) * old_absperm_ele_bdy(1) / old_visc_ele_bdy(1)
                            
                            ! Find upwind old saturation face value
                            old_saturation_face_value = income*ghost_old_saturation_ele_bdy(iloc) + &
@@ -837,7 +851,7 @@ module darcy_impes_assemble_module
                                                          inv_char_len_ele_bdy(jloc) *&
                                                          di%p_cvbdyshape%n(jloc,ggi) * &
                                                          bc_sele_val(jloc) * &
-                                                         old_relperm_absperm_over_visc * &
+                                                         old_modrelperm_absperm_over_visc * &
                                                          old_saturation_face_value * &
                                                          sum(normal_bdy(:,ggi)) * &
                                                          detwei_bdy(ggi) * &
@@ -855,7 +869,7 @@ module darcy_impes_assemble_module
                               p_matrix_local_bdy(iloc,jloc) = p_matrix_local_bdy(iloc,jloc) - &
                                                               inv_char_len_ele_bdy(jloc) *&
                                                               di%p_cvbdyshape%n(jloc,ggi) * &
-                                                              old_relperm_absperm_over_visc * &
+                                                              old_modrelperm_absperm_over_visc * &
                                                               old_saturation_face_value * &
                                                               sum(normal_bdy(:,ggi)) * &
                                                               detwei_bdy(ggi) * &
@@ -863,10 +877,11 @@ module darcy_impes_assemble_module
 
                            end do
                            
-                           ! Add coeff *gradient of pressure term to rhs via vphi_dot_n 
-                           !  - which may include gravity and capilliary pressure term already                           
+                           ! Add coeff * gradient of pressure term to rhs via v_over_s_dot_n * old_saturation_face_value
+                           !  - which will include gravity and capilliary pressure term as required                         
                            ! (to be fully implicit this should be added to matrix but 2 non linear iterations may save us ...)
-                           p_rhs_local_bdy(iloc) = p_rhs_local_bdy(iloc) - vphi_dot_n * detwei_bdy(ggi)
+                           p_rhs_local_bdy(iloc) = p_rhs_local_bdy(iloc) - &
+                                                 & v_over_s_dot_n * old_saturation_face_value * detwei_bdy(ggi)
                                                       
                         end if
                         
@@ -882,7 +897,7 @@ module darcy_impes_assemble_module
             
             call addto(di%pressure_matrix, p_nodes_bdy, p_nodes_bdy, p_matrix_local_bdy)
 
-         end do vphi_sele_loop      
+         end do sele_loop      
 
       end do phase_loop_bc
             
@@ -903,18 +918,18 @@ module darcy_impes_assemble_module
       deallocate(p_rhs_local)
       deallocate(x_face_quad)
       deallocate(old_saturation_ele)
-      deallocate(old_relperm_ele)
+      deallocate(old_modrelperm_ele)
       deallocate(old_den_ele)
       deallocate(old_grav_ele)
       deallocate(cfl_ele)
       deallocate(grad_pressure_face_quad)
       deallocate(grad_cap_pressure_face_quad)
-      deallocate(vphi_face_quad)
+      deallocate(v_over_s_face_quad)
 
-      deallocate(old_relperm_ele_bdy)
+      deallocate(old_modrelperm_ele_bdy)
       deallocate(old_grav_ele_bdy)
       deallocate(grad_pressure_face_quad_bdy)
-      deallocate(vphi_face_quad_bdy)
+      deallocate(v_over_s_face_quad_bdy)
       deallocate(old_saturation_ele_bdy)
       deallocate(ghost_old_saturation_ele_bdy)
       deallocate(bc_sele_val)
@@ -934,21 +949,21 @@ module darcy_impes_assemble_module
 
 ! ----------------------------------------------------------------------------
 
-   subroutine get_vphi_boundary_condition(vphi, &
-                                          types, &
-                                          bc_surface_mesh, &
-                                          vphi_bc_value, &
-                                          vphi_bc_flag)
+   subroutine get_v_over_s_boundary_condition(v_over_s, &
+                                              types, &
+                                              bc_surface_mesh, &
+                                              v_over_s_bc_value, &
+                                              v_over_s_bc_flag)
 
-      !!< Form the data associated with any vphi BC by returning 
+      !!< Form the data associated with any v_over_s BC by returning 
       !!< full surface mesh arrays of a flag indicating  either 
       !!< no_normal_flow or normal_flow and the value.
 
-      type(vector_field),               intent(in),   target :: vphi
+      type(vector_field),               intent(in),   target :: v_over_s
       character(len=*),   dimension(:), intent(in)           :: types
       type(mesh_type),                  intent(in)           :: bc_surface_mesh
-      type(scalar_field),               intent(inout)        :: vphi_bc_value
-      integer,            dimension(:), intent(inout)        :: vphi_bc_flag
+      type(scalar_field),               intent(inout)        :: v_over_s_bc_value
+      integer,            dimension(:), intent(inout)        :: v_over_s_bc_flag
 
       ! Local variables
       character(len=FIELD_NAME_LEN)                       :: bctype
@@ -956,33 +971,33 @@ module darcy_impes_assemble_module
       integer,                      dimension(:), pointer :: surface_element_list
       integer                                             :: i, j, k, sele
 
-      ewrite(1,*) 'Get InterstitialVelocityPorosity boundary condition data'
+      ewrite(1,*) 'Get DarcyVelocityOverSaturation boundary condition data'
 
       ! Zero the normal_flow value surface field on whole boundary mesh  
-      call zero(vphi_bc_value)
+      call zero(v_over_s_bc_value)
 
       ! Initialise flag for whether surface element has normal_flow BC
-      vphi_bc_flag = 0
+      v_over_s_bc_flag = 0
 
-      ! Loop each BC object instance for the vphi
+      ! Loop each BC object instance for the v_over_s
       ! (May have multiple normal_flow BC's applied to different surface id's)
-      BC_loop: do i=1, get_boundary_condition_count(vphi)
+      BC_loop: do i=1, get_boundary_condition_count(v_over_s)
 
          ! Get this BC info
-         call get_boundary_condition(vphi, i, type = bctype, &
+         call get_boundary_condition(v_over_s, i, type = bctype, &
                                      surface_element_list = surface_element_list)
 
          ! check this is a normal_flow BC  or no_normal_flow (nothing else is permitted)
          if ((trim(bctype) /= 'normal_flow') .and. (trim(bctype) /= 'no_normal_flow')) then
-            FLAbort('Have unknown BC type for a InterstitialvphiPorosity')
+            FLAbort('Have unknown BC type for a DarcyVelocityOverSaturation')
          end if
 
          ! Extract the scalar_surface_field for this BC for normal_flow
          if (trim(bctype) == 'normal_flow') then
-            if (associated(vphi%bc%boundary_condition(i)%scalar_surface_fields)) then
-               scalar_surface_field => vphi%bc%boundary_condition(i)%scalar_surface_fields(1)
+            if (associated(v_over_s%bc%boundary_condition(i)%scalar_surface_fields)) then
+               scalar_surface_field => v_over_s%bc%boundary_condition(i)%scalar_surface_fields(1)
             else
-               FLAbort('Component scalar_surface_fields for InterstitialVelocityPorosity BC type not associated')
+               FLAbort('Component scalar_surface_fields for DarcyVelocityOverSaturation BC type not associated')
             end if
          end if 
          
@@ -995,8 +1010,8 @@ module darcy_impes_assemble_module
             sele = surface_element_list(k)
 
             ! Check that there is only 1 BC applied per surface element
-            if (vphi_bc_flag(sele) /= 0) then             
-               FLExit('Cannot apply more than 1 BC to a surface element for InterstitialVelocityPorosity')
+            if (v_over_s_bc_flag(sele) /= 0) then             
+               FLExit('Cannot apply more than 1 BC to a surface element for DarcyVelocityOverSaturation')
             end if
 
             ! Set the sele flag to indicate the BC type
@@ -1004,14 +1019,14 @@ module darcy_impes_assemble_module
                if (trim(types(j)) == trim(bctype)) exit
             end do
             if (j > size(types)) then
-               FLAbort('Cannot find no_normal_flow or normal_flow bctype for InterstitialVelocityPorosity')
+               FLAbort('Cannot find no_normal_flow or normal_flow bctype for DarcyVelocityOverSaturation')
             end if
             
-            vphi_bc_flag(sele) = j
+            v_over_s_bc_flag(sele) = j
 
             ! Set the normal_flow field values from this BC for its sele
             if (trim(bctype) == 'normal_flow') then
-               call set(vphi_bc_value, &
+               call set(v_over_s_bc_value, &
                         ele_nodes(bc_surface_mesh, sele), &
                         ele_val(scalar_surface_field, k))
             end if
@@ -1020,11 +1035,11 @@ module darcy_impes_assemble_module
 
       end do BC_loop
 
-      ewrite_minmax(vphi_bc_value)
+      ewrite_minmax(v_over_s_bc_value)
 
-      ewrite(1,*) 'Finished get InterstitialVelocityPorosity boundary condition data'
+      ewrite(1,*) 'Finished get DarcyVelocityOverSaturation boundary condition data'
 
-   end subroutine get_vphi_boundary_condition
+   end subroutine get_v_over_s_boundary_condition
   
 ! ----------------------------------------------------------------------------
 
@@ -1175,6 +1190,10 @@ module darcy_impes_assemble_module
    subroutine darcy_impes_calculate_gradient_pressures(di)
       
       !!< Calculate the gradient pressures for each phase
+      
+      ! This routine requires optimisation and would become 
+      ! not required if ele_grad_at_quad is used for pressure 
+      ! and a face_grad_at_quad is made available
 
       type(darcy_impes_type), intent(inout) :: di
       
@@ -1209,27 +1228,27 @@ module darcy_impes_assemble_module
       ! local variables
       logical :: inflow
       integer :: vele, p, iloc, oloc, face, gi, ggi, sele, f_ele_counter, f_ele_base, dim
-      real    :: income, darcy_vel_face_value_dot_n, vphi_dot_n, old_den_face_value
+      real    :: income, darcy_vel_face_value_dot_n, v_over_s_dot_n, old_den_face_value
       real,    dimension(1)                  :: old_absperm_ele, old_visc_ele
       real,    dimension(:,:),   allocatable :: grad_pressure_face_quad
       real,    dimension(:),     allocatable :: old_den_ele
       real,    dimension(:,:),   allocatable :: old_grav_ele
-      real,    dimension(:,:),   allocatable :: vphi_face_quad
+      real,    dimension(:,:),   allocatable :: v_over_s_face_quad
       real,    dimension(:,:),   allocatable :: x_ele
       real,    dimension(:,:),   allocatable :: normal
       real,    dimension(:),     allocatable :: detwei
       real,    dimension(:),     allocatable :: normgi
       logical, dimension(:),     allocatable :: notvisited
-      real,    dimension(:),     allocatable :: div_tvphi_rhs_local
+      real,    dimension(:),     allocatable :: div_tvel_rhs_local
       real,    dimension(:,:),   allocatable :: x_face_quad
       integer, dimension(:),     pointer     :: x_pmesh_nodes
       integer, dimension(:),     pointer     :: p_nodes      
       real,    dimension(:,:),   allocatable :: normal_bdy
       real,    dimension(:),     allocatable :: detwei_bdy
       real,    dimension(:,:),   allocatable :: x_ele_bdy
-      real,    dimension(:),     allocatable :: div_tvphi_rhs_local_bdy
+      real,    dimension(:),     allocatable :: div_tvel_rhs_local_bdy
       integer, dimension(:),     allocatable :: p_nodes_bdy
-      integer, parameter :: VPHI_BC_TYPE_NORMAL_FLOW = 1, VPHI_BC_TYPE_NO_NORMAL_FLOW = 2
+      integer, parameter :: V_OVER_S_BC_TYPE_NORMAL_FLOW = 1, V_OVER_S_BC_TYPE_NO_NORMAL_FLOW = 2
                         
       ewrite(1,*) 'Calculate the DivergenceTotalDarcyVelocity'
       
@@ -1240,16 +1259,16 @@ module darcy_impes_assemble_module
       allocate(detwei(di%x_cvshape%ngi))      
       allocate(normgi(di%ndim))
       allocate(notvisited(di%x_cvshape%ngi))
-      allocate(div_tvphi_rhs_local(ele_loc(di%pressure_mesh,1)))
+      allocate(div_tvel_rhs_local(ele_loc(di%pressure_mesh,1)))
       allocate(x_face_quad(di%ndim, di%x_cvshape%ngi))
       allocate(grad_pressure_face_quad(di%ndim, di%p_cvshape%ngi))
       allocate(old_den_ele(ele_loc(di%pressure_mesh,1)))
       allocate(old_grav_ele(di%ndim,1))
-      allocate(vphi_face_quad(di%ndim,di%p_cvshape%ngi))
+      allocate(v_over_s_face_quad(di%ndim,di%p_cvshape%ngi))
       
       allocate(detwei_bdy(di%x_cvbdyshape%ngi))
       allocate(normal_bdy(di%ndim, di%x_cvbdyshape%ngi))
-      allocate(div_tvphi_rhs_local_bdy(face_loc(di%pressure_mesh,1)))      
+      allocate(div_tvel_rhs_local_bdy(face_loc(di%pressure_mesh,1)))      
       allocate(x_ele_bdy(di%ndim, face_loc(di%positions,1)))      
       allocate(p_nodes_bdy(face_loc(di%pressure_mesh,1)))
 
@@ -1296,15 +1315,13 @@ module darcy_impes_assemble_module
             call transform_cvsurf_to_physical(x_ele, di%x_cvshape, &
                                               detwei, normal, di%cvfaces)
 
-            ! the latest intersitial velocity_porosity at the quadrature points
+            ! the latest DarcyVelocityOverSaturation at the quadrature points
             ! determined from FE interpolation of each component, only used to determine upwind.
             do dim = 1,di%ndim
 
-               vphi_face_quad(dim,:) =  &
-              &- (ele_val_at_quad(di%old_relative_permeability(p)%ptr, vele, di%p_cvshape) * &
-                  old_absperm_ele(1) / old_visc_ele(1)) * &
-                 (grad_pressure_face_quad(dim,:) - &
-                  ele_val_at_quad(di%old_density(p)%ptr, vele, di%p_cvshape) * old_grav_ele(dim,1))   
+               v_over_s_face_quad(dim,:) =  &
+- (ele_val_at_quad(di%old_modified_relative_permeability(p)%ptr, vele, di%p_cvshape) * old_absperm_ele(1) / old_visc_ele(1)) * &
+  (grad_pressure_face_quad(dim,:) - ele_val_at_quad(di%old_density(p)%ptr, vele, di%p_cvshape) * old_grav_ele(dim,1))   
 
             end do
 
@@ -1313,7 +1330,7 @@ module darcy_impes_assemble_module
             notvisited = .true.
 
             ! Initialise the local rhs to assemble for this element
-            div_tvphi_rhs_local = 0.0
+            div_tvel_rhs_local = 0.0
 
             ! loop over local nodes within this element
             nodal_loop_i: do iloc = 1, di%pressure_mesh%shape%loc
@@ -1345,27 +1362,27 @@ module darcy_impes_assemble_module
                                                        &x_face_quad(:,ggi), normal(:,ggi))
 
                        ! determine if the flow is in or out of the face at this quadrature
-                       ! with respect to the normal orientation using the latest vphi
-                       vphi_dot_n = dot_product(vphi_face_quad(:,ggi), normgi)
+                       ! with respect to the normal orientation using the latest v_over_s
+                       v_over_s_dot_n = dot_product(v_over_s_face_quad(:,ggi), normgi)
 
-                       inflow = (vphi_dot_n<=0.0)
+                       inflow = (v_over_s_dot_n<=0.0)
 
                        income = merge(1.0,0.0,inflow)
 
-                       ! Find the old_density face value (assuming upwind) 
+                       ! Find the old_density face value (taking upwind) 
                        old_den_face_value = income*old_den_ele(oloc) + (1.0-income)*old_den_ele(iloc)
 
-                       darcy_vel_face_value_dot_n = - dot_product(normgi, &
+                       darcy_vel_face_value_dot_n = - dot_product( normgi, &
                       &di%cached_phase_face_value_domain(p)%value((f_ele_base - 1) + f_ele_counter) * &
                       &(grad_pressure_face_quad(:,ggi) - old_den_face_value * old_grav_ele(:,1)) )
 
-                       div_tvphi_rhs_local(iloc) = div_tvphi_rhs_local(iloc) + &
-                                                   darcy_vel_face_value_dot_n * &
-                                                   detwei(ggi)
+                       div_tvel_rhs_local(iloc) = div_tvel_rhs_local(iloc) + &
+                                                  darcy_vel_face_value_dot_n * &
+                                                  detwei(ggi)
 
-                       div_tvphi_rhs_local(oloc) = div_tvphi_rhs_local(oloc) - &
-                                                   darcy_vel_face_value_dot_n * &
-                                                   detwei(ggi)
+                       div_tvel_rhs_local(oloc) = div_tvel_rhs_local(oloc) - &
+                                                  darcy_vel_face_value_dot_n * &
+                                                  detwei(ggi)
 
                     end if check_visited
 
@@ -1377,21 +1394,21 @@ module darcy_impes_assemble_module
 
             end do nodal_loop_i
 
-            call addto(di%div_total_darcy_velocity, p_nodes, div_tvphi_rhs_local)
+            call addto(di%div_total_darcy_velocity, p_nodes, div_tvel_rhs_local)
 
          end do vele_loop
 
-         ! Get this phase vphi BC info - only for no_normal_flow and normal_flow which is special as it is a scalar
-         call get_vphi_boundary_condition(di%inter_velocity_porosity(p)%ptr, &
-                                          (/"normal_flow   ", &
-                                            "no_normal_flow"/), &
-                                          di%bc_surface_mesh, &
-                                          di%vphi_bc_value, &
-                                          di%vphi_bc_flag)
+         ! Get this phase v_over_s BC info - only for no_normal_flow and normal_flow which is special as it is a scalar
+         call get_v_over_s_boundary_condition(di%darcy_velocity_over_saturation(p)%ptr, &
+                                              (/"normal_flow   ", &
+                                                "no_normal_flow"/), &
+                                              di%bc_surface_mesh, &
+                                              di%v_over_s_bc_value, &
+                                              di%v_over_s_bc_flag)
          
          sele_loop: do sele = 1, surface_element_count(di%pressure_mesh)
             
-            if (di%vphi_bc_flag(sele) == VPHI_BC_TYPE_NO_NORMAL_FLOW) cycle sele_loop
+            if (di%v_over_s_bc_flag(sele) == V_OVER_S_BC_TYPE_NO_NORMAL_FLOW) cycle sele_loop
          
             ! Initialise the face value counter for this ele
             f_ele_counter = 0
@@ -1406,7 +1423,7 @@ module darcy_impes_assemble_module
             call transform_cvsurf_facet_to_physical(x_ele, x_ele_bdy, di%x_cvbdyshape, normal_bdy, detwei_bdy)
 
             ! Initialise the local rhs to assemble for this element
-            div_tvphi_rhs_local_bdy = 0.0
+            div_tvel_rhs_local_bdy = 0.0
 
             bc_iloc_loop: do iloc = 1, di%pressure_mesh%faces%shape%loc
 
@@ -1420,9 +1437,9 @@ module darcy_impes_assemble_module
                        
                         f_ele_counter = f_ele_counter + 1
                         
-                        if (di%vphi_bc_flag(sele) == VPHI_BC_TYPE_NORMAL_FLOW) then
+                        if (di%v_over_s_bc_flag(sele) == V_OVER_S_BC_TYPE_NORMAL_FLOW) then
 
-                           div_tvphi_rhs_local_bdy(iloc) = div_tvphi_rhs_local_bdy(iloc) + &
+                           div_tvel_rhs_local_bdy(iloc) = div_tvel_rhs_local_bdy(iloc) + &
                           &di%cached_phase_face_value_boundary(p)%value((f_ele_base - 1) + f_ele_counter) * detwei_bdy(ggi)                   
                         
                         else
@@ -1439,7 +1456,7 @@ module darcy_impes_assemble_module
 
             end do bc_iloc_loop
 
-            call addto(di%div_total_darcy_velocity, p_nodes_bdy, div_tvphi_rhs_local_bdy)
+            call addto(di%div_total_darcy_velocity, p_nodes_bdy, div_tvel_rhs_local_bdy)
 
          end do sele_loop
          
@@ -1455,16 +1472,16 @@ module darcy_impes_assemble_module
       deallocate(detwei)
       deallocate(normgi)
       deallocate(notvisited)
-      deallocate(div_tvphi_rhs_local)      
+      deallocate(div_tvel_rhs_local)      
       deallocate(x_face_quad)
       deallocate(grad_pressure_face_quad)
       deallocate(old_den_ele)
       deallocate(old_grav_ele)
-      deallocate(vphi_face_quad)
+      deallocate(v_over_s_face_quad)
 
       deallocate(detwei_bdy)
       deallocate(normal_bdy)
-      deallocate(div_tvphi_rhs_local_bdy)
+      deallocate(div_tvel_rhs_local_bdy)
       deallocate(x_ele_bdy)
       deallocate(p_nodes_bdy)
 
@@ -1476,56 +1493,26 @@ module darcy_impes_assemble_module
 
    subroutine darcy_impes_assemble_and_solve_phase_saturations(di)
       
-      !!< Assemble and solve the phase saturations
+      !!< Assemble and solve the phase saturations. Phase 1 is special
+      !!< as it may be either solved prognostically or calculated 
+      !!< diagnostically from the other phase saturation values that 
+      !!< are solved first.
+      
       type(darcy_impes_type), intent(inout) :: di
       
       ! local variables
       integer :: p, number_subcycle
-      real    :: dt_subcycle, max_cfl
+      real    :: dt_subcycle
 
       ewrite(1,*) 'Assemble and solve saturations'
       
-      ! solve the saturation for each phase but not the first
+      ! solve the saturation for each phase but not the first (this is done after)
       s_phase_loop: do p = 2, di%number_phase
          
          ! Deduce the number of subcycles to do and the subcycle time step size
+         ! as well as a suitable scaled CFL field
+         call deduce_subcycle_number_dt_and_cfl_field(di, number_subcycle, dt_subcycle, p)
                   
-         if (di%subcy_opt_sat%have_number) then
-         
-            number_subcycle = di%subcy_opt_sat%number_advection_subcycle
-            
-            dt_subcycle = di%dt/real(number_subcycle)
-
-            call set(di%cfl_subcycle, di%cfl(p)%ptr)
-
-            call scale(di%cfl_subcycle, 1.0/real(number_subcycle))            
-
-         else if (di%subcy_opt_sat%have_max_cfl) then
-         
-            ! Find the max cfl number for this phase (accounting for parallel)
-            max_cfl = maxval(di%cfl(p)%ptr)
-
-            call allmax(max_cfl)
-
-            number_subcycle = max(1,ceiling(max_cfl/di%subcy_opt_sat%max_courant_per_advection_subcycle))
-
-            dt_subcycle = di%dt/real(number_subcycle)
-
-            call set(di%cfl_subcycle, di%cfl(p)%ptr)
-
-            call scale(di%cfl_subcycle, 1.0/real(number_subcycle))
-
-                  
-         else 
-            
-            number_subcycle = 1
-            
-            dt_subcycle = di%dt
-
-            call set(di%cfl_subcycle, di%cfl(p)%ptr)
-         
-         end if 
-         
          ewrite(1,*) 'Solve phase ',p,' Saturation with number_subcycle ',number_subcycle,' and dt_subcycle ',dt_subcycle
          
          call solve_phase_saturation(di, &
@@ -1547,41 +1534,8 @@ module darcy_impes_assemble_module
       else s1_solve_if
 
          ! Deduce the number of subcycles to do and the subcycle time step size
-         
-         if (di%subcy_opt_sat%have_number) then
-         
-            number_subcycle = di%subcy_opt_sat%number_advection_subcycle
-            
-            dt_subcycle = di%dt/real(number_subcycle)
-
-            call set(di%cfl_subcycle, di%cfl(1)%ptr)
-
-            call scale(di%cfl_subcycle, 1.0/real(number_subcycle))            
-
-         else if (di%subcy_opt_sat%have_max_cfl) then
-         
-            ! Find the max cfl number for this phase (accounting for parallel)
-            max_cfl = maxval(di%cfl(1)%ptr)
-
-            call allmax(max_cfl)
-
-            number_subcycle = max(1,ceiling(max_cfl/di%subcy_opt_sat%max_courant_per_advection_subcycle))
-
-            dt_subcycle = di%dt/real(number_subcycle)
-
-            call set(di%cfl_subcycle, di%cfl(1)%ptr)
-
-            call scale(di%cfl_subcycle, 1.0/real(number_subcycle))
-         
-         else 
-
-            number_subcycle = 1
-            
-            dt_subcycle = di%dt
-
-            call set(di%cfl_subcycle, di%cfl(1)%ptr)
-         
-         end if 
+         ! as well as a suitable scaled CFL field
+         call deduce_subcycle_number_dt_and_cfl_field(di, number_subcycle, dt_subcycle, p = 1)
          
          ewrite(1,*) 'Solve phase 1 Saturation with number_subcycle ',number_subcycle,' and dt_subcycle ',dt_subcycle
 
@@ -1601,6 +1555,65 @@ module darcy_impes_assemble_module
    end subroutine darcy_impes_assemble_and_solve_phase_saturations
 
 ! ----------------------------------------------------------------------------
+   
+   subroutine deduce_subcycle_number_dt_and_cfl_field(di, &
+                                                      number_subcycle, &
+                                                      dt_subcycle, &
+                                                      p)
+      
+      !!< Deduce the number of subcycles to do and the subcycle time step size
+      !!< as well as a suitable scaled CFL field for phase p
+
+      type(darcy_impes_type), intent(inout) :: di
+      integer,                intent(inout) :: number_subcycle
+      real,                   intent(inout) :: dt_subcycle
+      integer,                intent(in)    :: p
+      
+      ! local variables
+      real :: max_cfl
+
+      ewrite(1,*) 'Deduce subcycle number, dt and CFL field for phase ',p
+      
+      if (di%subcy_opt_sat%have_number) then
+
+         number_subcycle = di%subcy_opt_sat%number_advection_subcycle
+
+         dt_subcycle = di%dt/real(number_subcycle)
+
+         call set(di%cfl_subcycle, di%cfl(p)%ptr)
+
+         call scale(di%cfl_subcycle, 1.0/real(number_subcycle))            
+
+      else if (di%subcy_opt_sat%have_max_cfl) then
+
+         ! Find the max cfl number for this phase (accounting for parallel)
+         max_cfl = maxval(di%cfl(p)%ptr)
+
+         call allmax(max_cfl)
+
+         number_subcycle = max(1,ceiling(max_cfl/di%subcy_opt_sat%max_courant_per_advection_subcycle))
+
+         dt_subcycle = di%dt/real(number_subcycle)
+
+         call set(di%cfl_subcycle, di%cfl(p)%ptr)
+
+         call scale(di%cfl_subcycle, 1.0/real(number_subcycle))
+
+      else 
+
+         number_subcycle = 1
+
+         dt_subcycle = di%dt
+
+         call set(di%cfl_subcycle, di%cfl(p)%ptr)
+
+      end if 
+
+      ewrite(1,*) 'Finished Deduce subcycle number, dt and CFL field for phase ',p
+      
+   end subroutine deduce_subcycle_number_dt_and_cfl_field
+
+! ----------------------------------------------------------------------------
 
    subroutine solve_phase_saturation(di, &
                                      number_subcycle, &
@@ -1618,7 +1631,7 @@ module darcy_impes_assemble_module
                                                 di%old_saturation(p)%ptr, &
                                                 di%gradient_pressure(p)%ptr, &
                                                 di%old_viscosity(p)%ptr, &
-                                                di%old_relative_permeability(p)%ptr, &
+                                                di%old_modified_relative_permeability(p)%ptr, &
                                                 di%old_absolute_permeability, &
                                                 di%old_density(p)%ptr, &
                                                 di%old_gravity, &
@@ -1629,10 +1642,13 @@ module darcy_impes_assemble_module
                                                 di%cv_mass_pressure_mesh_with_old_porosity, &
                                                 di%old_sfield_upwind, &
                                                 di%cfl(p)%ptr, &
-                                                di%inter_velocity_porosity(p)%ptr, &
+                                                di%darcy_velocity_over_saturation(p)%ptr, &
                                                 di%bc_surface_mesh, &
-                                                di%vphi_bc_value, &
-                                                di%vphi_bc_flag, &
+                                                di%v_over_s_bc_value, &
+                                                di%v_over_s_bc_flag, &
+                                                di%pressure(p)%ptr, &
+                                                di%pressure_bc_value, &
+                                                di%pressure_bc_flag, &
                                                 di%rhs_adv, &
                                                 di%rhs_time, &
                                                 di%rhs, &
@@ -1660,7 +1676,7 @@ module darcy_impes_assemble_module
                                                    old_sfield, &
                                                    gradient_pressure, &
                                                    old_viscosity, &
-                                                   old_relative_permeability, &
+                                                   old_modified_relative_permeability, &
                                                    old_absolute_permeability, &
                                                    old_density, &
                                                    old_gravity, &
@@ -1671,10 +1687,13 @@ module darcy_impes_assemble_module
                                                    cv_mass_sfield_mesh_with_old_porosity, &
                                                    old_sfield_upwind, &
                                                    cfl, &
-                                                   vphi, &
+                                                   darcy_velocity_over_saturation, &
                                                    bc_surface_mesh, &
-                                                   vphi_bc_value, &
-                                                   vphi_bc_flag, &
+                                                   v_over_s_bc_value, &
+                                                   v_over_s_bc_flag, &
+                                                   pressure, &
+                                                   pressure_bc_value, &
+                                                   pressure_bc_flag, &
                                                    rhs_adv, &
                                                    rhs_time, &
                                                    rhs, &
@@ -1696,13 +1715,13 @@ module darcy_impes_assemble_module
       
       !!< Assemble and solve a time+advection equation for the scalar field 
       !!< using CV on a continous mesh with advecting velocity calculated 
-      !!< on the go from the relation vphi = - Kk/nu (grad P - den*g)
+      !!< on the go from the relation v_over_s = - K*mod_k/nu (grad P - den*g)
       
       type(scalar_field),                  intent(inout) :: sfield
       type(scalar_field),                  intent(inout) :: old_sfield
       type(vector_field),                  intent(in)    :: gradient_pressure
       type(scalar_field),                  intent(in)    :: old_viscosity
-      type(scalar_field),                  intent(in)    :: old_relative_permeability
+      type(scalar_field),                  intent(in)    :: old_modified_relative_permeability
       type(scalar_field),                  intent(in)    :: old_absolute_permeability
       type(scalar_field),                  intent(in)    :: old_density
       type(vector_field),                  intent(in)    :: old_gravity
@@ -1713,10 +1732,13 @@ module darcy_impes_assemble_module
       type(scalar_field),                  intent(in)    :: cv_mass_sfield_mesh_with_old_porosity
       type(csr_matrix),                    intent(inout) :: old_sfield_upwind
       type(scalar_field),                  intent(in)    :: cfl
-      type(vector_field),                  intent(in)    :: vphi
+      type(vector_field),                  intent(in)    :: darcy_velocity_over_saturation
       type(mesh_type),                     intent(in)    :: bc_surface_mesh
-      type(scalar_field),                  intent(inout) :: vphi_bc_value
-      integer,               dimension(:), intent(inout) :: vphi_bc_flag
+      type(scalar_field),                  intent(inout) :: v_over_s_bc_value
+      integer,               dimension(:), intent(inout) :: v_over_s_bc_flag
+      type(scalar_field),                  intent(in)    :: pressure
+      type(scalar_field),                  intent(inout) :: pressure_bc_value
+      integer,               dimension(:), intent(inout) :: pressure_bc_flag
       type(scalar_field),                  intent(inout) :: rhs_adv
       type(scalar_field),                  intent(inout) :: rhs_time
       type(scalar_field),                  intent(inout) :: rhs
@@ -1739,15 +1761,15 @@ module darcy_impes_assemble_module
       ! local variables
       logical :: inflow, cached_face_value_present, determine_face_value
       integer :: vele, iloc, oloc, face, gi, ggi, sele, isub, f_ele_counter, f_ele_base, upwind_pos, dim
-      real    :: income, face_value, vphi_dot_n, alpha_start, alpha_end
-      real    :: old_sfield_face_value, old_relperm_face_value, old_den_face_value
+      real    :: income, face_value, v_over_s_dot_n, alpha_start, alpha_end
+      real    :: old_sfield_face_value, old_modrelperm_face_value, old_den_face_value
       real,    dimension(1)                :: old_absperm_ele, old_visc_ele
       real,    dimension(:,:), allocatable :: grad_pressure_face_quad
       real,    dimension(:),   allocatable :: old_den_ele
       real,    dimension(:,:), allocatable :: old_grav_ele
-      real,    dimension(:,:), allocatable :: vphi_face_quad
+      real,    dimension(:,:), allocatable :: v_over_s_face_quad
       real,    dimension(:),   allocatable :: old_sfield_subcycle_ele
-      real,    dimension(:),   allocatable :: old_relperm_ele
+      real,    dimension(:),   allocatable :: old_modrelperm_ele
       real,    dimension(:),   allocatable :: cfl_ele
       real,    dimension(:,:), allocatable :: x_ele
       real,    dimension(:,:), allocatable :: normal
@@ -1760,22 +1782,24 @@ module darcy_impes_assemble_module
       integer, dimension(:),   pointer     :: s_nodes      
       integer, dimension(:),   pointer     :: upwind_nodes
       real,    dimension(1)                :: old_absperm_ele_bdy, old_visc_ele_bdy
-      real,    dimension(:),   allocatable :: old_relperm_ele_bdy
+      real,    dimension(:),   allocatable :: old_modrelperm_ele_bdy
       real,    dimension(:,:), allocatable :: old_grav_ele_bdy
       real,    dimension(:,:), allocatable :: grad_pressure_face_quad_bdy
-      real,    dimension(:,:), allocatable :: vphi_face_quad_bdy
+      real,    dimension(:,:), allocatable :: v_over_s_face_quad_bdy
+      real,    dimension(:),   allocatable :: bc_sele_val
+      real,    dimension(:),   allocatable :: inv_char_len_ele_bdy
       real,    dimension(:),   allocatable :: old_sfield_subcycle_ele_bdy
       real,    dimension(:),   allocatable :: ghost_old_sfield_subcycle_ele_bdy      
-      real,    dimension(:),   allocatable :: bc_sele_val
       real,    dimension(:,:), allocatable :: normal_bdy
       real,    dimension(:),   allocatable :: detwei_bdy
       real,    dimension(:,:), allocatable :: x_ele_bdy
       real,    dimension(:),   allocatable :: s_rhs_local_bdy
       integer, dimension(:),   allocatable :: s_nodes_bdy
-      integer, dimension(:),   allocatable :: sfield_bc_type
+      integer, dimension(:),   allocatable :: sfield_bc_flag
       type(scalar_field) :: sfield_bc
-      integer, parameter :: S_BC_TYPE_WEAKDIRICHLET  = 1, S_BC_TYPE_DIRICHLET         = 2, S_BC_TYPE_ZERO_FLUX = 3
-      integer, parameter :: VPHI_BC_TYPE_NORMAL_FLOW = 1, VPHI_BC_TYPE_NO_NORMAL_FLOW = 2
+      integer, parameter :: S_BC_TYPE_WEAKDIRICHLET        = 1, S_BC_TYPE_DIRICHLET             = 2, S_BC_TYPE_ZERO_FLUX = 3
+      integer, parameter :: V_OVER_S_BC_TYPE_NORMAL_FLOW   = 1, V_OVER_S_BC_TYPE_NO_NORMAL_FLOW = 2
+      integer, parameter :: PRESSURE_BC_TYPE_WEAKDIRICHLET = 1
              
       ! set a local flag for whether cached face value is present
       cached_face_value_present = present(cached_face_value_domain)
@@ -1801,19 +1825,20 @@ module darcy_impes_assemble_module
       allocate(x_face_quad(ndim, x_cvshape%ngi))
       allocate(old_sfield_subcycle_ele(ele_loc(sfield,1)))
       allocate(cfl_ele(ele_loc(cfl,1)))
-      allocate(old_relperm_ele(ele_loc(sfield,1)))
+      allocate(old_modrelperm_ele(ele_loc(sfield,1)))
       allocate(grad_pressure_face_quad(ndim, p_cvshape%ngi))
       allocate(old_den_ele(ele_loc(sfield,1)))
       allocate(old_grav_ele(ndim,1))
-      allocate(vphi_face_quad(ndim,p_cvshape%ngi))
+      allocate(v_over_s_face_quad(ndim,p_cvshape%ngi))
 
-      allocate(old_relperm_ele_bdy(face_loc(sfield,1)))
+      allocate(old_modrelperm_ele_bdy(face_loc(sfield,1)))
       allocate(old_grav_ele_bdy(ndim,1))
       allocate(grad_pressure_face_quad_bdy(ndim, p_cvbdyshape%ngi))
-      allocate(vphi_face_quad_bdy(ndim, p_cvbdyshape%ngi))
+      allocate(v_over_s_face_quad_bdy(ndim, p_cvbdyshape%ngi))
+      allocate(bc_sele_val(face_loc(sfield,1)))
+      allocate(inv_char_len_ele_bdy(face_loc(sfield,1)))
       allocate(old_sfield_subcycle_ele_bdy(face_loc(sfield,1)))      
       allocate(ghost_old_sfield_subcycle_ele_bdy(face_loc(sfield,1)))
-      allocate(bc_sele_val(face_loc(sfield,1)))
       allocate(detwei_bdy(x_cvbdyshape%ngi))
       allocate(normal_bdy(ndim, x_cvbdyshape%ngi))
       allocate(s_rhs_local_bdy(face_loc(sfield,1)))
@@ -1830,26 +1855,32 @@ module darcy_impes_assemble_module
       ! are linearly interpolated values from the main time step start and end
       
       call set(old_sfield_subcycle, old_sfield)
-
       
       ! Allocate and get the BC data. If the BC is time dependent then
       ! the end of overall time step values are used for all subcycles. 
-      allocate(sfield_bc_type(surface_element_count(sfield)))         
+      allocate(sfield_bc_flag(surface_element_count(sfield)))         
 
       call get_entire_boundary_condition(sfield, &
                                          (/"weakdirichlet", &
                                            "dirichlet    ", &
                                            "zero_flux    "/), &
                                          sfield_bc, &
-                                         sfield_bc_type)
+                                         sfield_bc_flag)
 
-      ! Get this phase vphi BC info - only for no_normal_flow and normal_flow which is special as it is a scalar
-      call get_vphi_boundary_condition(vphi, &
-                                       (/"normal_flow   ", &
-                                         "no_normal_flow"/), &
-                                       bc_surface_mesh, &
-                                       vphi_bc_value, &
-                                       vphi_bc_flag)
+      ! Get this phase v_over_s BC info - only for no_normal_flow and normal_flow which is special as it is a scalar
+      call get_v_over_s_boundary_condition(darcy_velocity_over_saturation, &
+                                           (/"normal_flow   ", &
+                                             "no_normal_flow"/), &
+                                           bc_surface_mesh, &
+                                           v_over_s_bc_value, &
+                                           v_over_s_bc_flag)
+      
+      ! Get the pressure BC - required if no v_over_s given and weak pressure dirichlet given for extra integrals
+      call get_entire_saturation_or_pressure_boundary_condition(pressure, &
+                                                                (/"weakdirichlet"/), &
+                                                                bc_surface_mesh, &
+                                                                pressure_bc_value, &
+                                                                pressure_bc_flag)
 
       sub_loop: do isub = 1,number_subcycle
          
@@ -1906,26 +1937,27 @@ module darcy_impes_assemble_module
       deallocate(x_face_quad)
       deallocate(old_sfield_subcycle_ele)
       deallocate(cfl_ele)
-      deallocate(old_relperm_ele)
+      deallocate(old_modrelperm_ele)
       deallocate(grad_pressure_face_quad)
       deallocate(old_den_ele)
       deallocate(old_grav_ele)
-      deallocate(vphi_face_quad)
+      deallocate(v_over_s_face_quad)
 
-      deallocate(old_relperm_ele_bdy)
+      deallocate(old_modrelperm_ele_bdy)
       deallocate(old_grav_ele_bdy)
       deallocate(grad_pressure_face_quad_bdy)
-      deallocate(vphi_face_quad_bdy)
+      deallocate(v_over_s_face_quad_bdy)
+      deallocate(bc_sele_val)
+      deallocate(inv_char_len_ele_bdy)
       deallocate(old_sfield_subcycle_ele_bdy)      
       deallocate(ghost_old_sfield_subcycle_ele_bdy)
-      deallocate(bc_sele_val)
       deallocate(detwei_bdy)
       deallocate(normal_bdy)
       deallocate(s_rhs_local_bdy)
       deallocate(x_ele_bdy)
       deallocate(s_nodes_bdy)
 
-      deallocate(sfield_bc_type)
+      deallocate(sfield_bc_flag)
       call deallocate(sfield_bc)
       
    contains
@@ -1968,7 +2000,7 @@ module darcy_impes_assemble_module
             upwind_pos = 0
             
             ! Loop volume elements assembling local contributions    
-            vol_element_loop: do vele = 1,element_count(sfield)
+            vol_element_loop: do vele = 1, element_count(sfield)
 
                ! Initialise the face value counter for this ele
                f_ele_counter = 0
@@ -2005,8 +2037,8 @@ module darcy_impes_assemble_module
 
                if (determine_face_value) then
 
-                  ! get the old_relperm ele values
-                  old_relperm_ele = ele_val(old_relative_permeability, vele)
+                  ! get the old_modrelperm ele values
+                  old_modrelperm_ele = ele_val(old_modified_relative_permeability, vele)
                
                   ! get the old sfield ele values from start of subcycle
                   old_sfield_subcycle_ele = ele_val(old_sfield_subcycle, vele)
@@ -2028,15 +2060,13 @@ module darcy_impes_assemble_module
 
                end if
 
-               ! the latest intersitial velocity_porosity at the quadrature points
+               ! the latest DarcyVelocityOverSaturation at the quadrature points
                ! determined from FE interpolation of each component, only used to determine upwind.
                do dim = 1,ndim
 
-                  vphi_face_quad(dim,:) =  &
-                 &- (ele_val_at_quad(old_relative_permeability, vele, p_cvshape) * &
-                     old_absperm_ele(1) / old_visc_ele(1)) * &
-                    (grad_pressure_face_quad(dim,:) - &
-                     ele_val_at_quad(old_density, vele, p_cvshape) * old_grav_ele(dim,1))   
+                  v_over_s_face_quad(dim,:) =  &
+- (ele_val_at_quad(old_modified_relative_permeability, vele, p_cvshape) * old_absperm_ele(1) / old_visc_ele(1)) * &
+  (grad_pressure_face_quad(dim,:) - ele_val_at_quad(old_density, vele, p_cvshape) * old_grav_ele(dim,1))   
 
                end do
                               
@@ -2080,10 +2110,10 @@ module darcy_impes_assemble_module
                                                          &x_face_quad(:,ggi), normal(:,ggi))
 
                          ! determine if the flow is in or out of the face at this quadrature
-                         ! with respect to the normal orientation using latest vphi
-                         vphi_dot_n = dot_product(vphi_face_quad(:,ggi), normgi(:))
+                         ! with respect to the normal orientation using latest v_over_s
+                         v_over_s_dot_n = dot_product(v_over_s_face_quad(:,ggi), normgi(:))
 
-                         inflow = (vphi_dot_n<=0.0)
+                         inflow = (v_over_s_dot_n<=0.0)
 
                          income = merge(1.0,0.0,inflow)
 
@@ -2106,12 +2136,12 @@ module darcy_impes_assemble_module
                                                    sfield_cv_options, &
                                                    save_pos = upwind_pos)
 
-                            ! Evaluate the face value for old_relperm (assuming upwind for now) 
-                            old_relperm_face_value = income*old_relperm_ele(oloc) + (1.0-income)*old_relperm_ele(iloc)
+                            ! Evaluate the face value for old_modrelperm (taking upwind) 
+                            old_modrelperm_face_value = income*old_modrelperm_ele(oloc) + (1.0-income)*old_modrelperm_ele(iloc)
 
-                            ! face value = S*old_relperm*old_absperm/old_visc, where old_absperm is phase independent
+                            ! face value = S*old_modrelperm*old_absperm/old_visc, where old_absperm is phase independent
                             ! (if old_absperm and old_viscosity are considered tensors this requires modifying below)
-                            face_value = old_sfield_face_value * old_relperm_face_value * old_absperm_ele(1) / old_visc_ele(1)
+                            face_value = old_sfield_face_value * old_modrelperm_face_value * old_absperm_ele(1) / old_visc_ele(1)
 
                             if (cached_face_value_present) then
                             
@@ -2126,7 +2156,7 @@ module darcy_impes_assemble_module
                          
                          end if
 
-                         ! Find the old_density face value (assuming upwind) 
+                         ! Find the old_density face value (taking upwind) 
                          old_den_face_value = income*old_den_ele(oloc) + (1.0-income)*old_den_ele(iloc)
 
                          face_value = face_value * detwei(ggi) * &
@@ -2156,50 +2186,48 @@ module darcy_impes_assemble_module
             
             sele_loop: do sele = 1, surface_element_count(sfield)
 
-               if (sfield_bc_type(sele) == S_BC_TYPE_DIRICHLET) cycle sele_loop
+               if (sfield_bc_flag(sele) == S_BC_TYPE_DIRICHLET) cycle sele_loop
 
-               if (sfield_bc_type(sele) == S_BC_TYPE_ZERO_FLUX) cycle sele_loop
+               if (sfield_bc_flag(sele) == S_BC_TYPE_ZERO_FLUX) cycle sele_loop
                
-               if (vphi_bc_flag(sele) == VPHI_BC_TYPE_NO_NORMAL_FLOW) cycle sele_loop
+               if (v_over_s_bc_flag(sele) == V_OVER_S_BC_TYPE_NO_NORMAL_FLOW) cycle sele_loop
 
                ! Initialise the face value counter for this ele
                f_ele_counter = 0
 
                ! Find the face value ele base
                f_ele_base = cached_face_value_boundary%ele_base(sele)
-                              
-               if (vphi_bc_flag(sele) == VPHI_BC_TYPE_NORMAL_FLOW) then
+               
+               if (v_over_s_bc_flag(sele) == V_OVER_S_BC_TYPE_NORMAL_FLOW) then
                
                   if (determine_face_value) then
 
-                     bc_sele_val = ele_val(vphi_bc_value, sele)
+                     bc_sele_val = ele_val(v_over_s_bc_value, sele)
 
                   end if                
                
                else
 
-                  old_relperm_ele_bdy         = face_val(old_relative_permeability, sele)
+                  old_modrelperm_ele_bdy      = face_val(old_modified_relative_permeability, sele)
                   old_visc_ele_bdy            = face_val(old_viscosity, sele)
                   old_absperm_ele_bdy         = face_val(old_absolute_permeability, sele)
                   grad_pressure_face_quad_bdy = face_val_at_quad(gradient_pressure, sele, gradp_cvbdyshape)         
                   old_grav_ele_bdy            = face_val(old_gravity, sele) 
 
-                  ! the latest intersitial velocity_porosity at the quadrature points
+                  ! the latest DarcyVelocityOverSaturation at the quadrature points
                   ! determined from FE interpolation of each component, 
                   ! used to determine upwind and also added in certain integrals.
                   do dim = 1,ndim
 
-                     vphi_face_quad_bdy(dim,:) =  &
-                    &- (face_val_at_quad(old_relative_permeability, sele, p_cvbdyshape) * &
-                        old_absperm_ele_bdy(1) / old_visc_ele_bdy(1)) * &
-                       (grad_pressure_face_quad_bdy(dim,:) - &
-                        face_val_at_quad(old_density, sele, p_cvbdyshape) * old_grav_ele_bdy(dim,1))   
+                     v_over_s_face_quad_bdy(dim,:) =  &
+- (face_val_at_quad(old_modified_relative_permeability, sele, p_cvbdyshape) * old_absperm_ele_bdy(1) / old_visc_ele_bdy(1)) * &
+  (grad_pressure_face_quad_bdy(dim,:) - face_val_at_quad(old_density, sele, p_cvbdyshape) * old_grav_ele_bdy(dim,1))   
 
                   end do
                
                end if
 
-               if (sfield_bc_type(sele) == S_BC_TYPE_WEAKDIRICHLET) then
+               if (sfield_bc_flag(sele) == S_BC_TYPE_WEAKDIRICHLET) then
                   ghost_old_sfield_subcycle_ele_bdy = ele_val(sfield_bc, sele)
                else
                   ghost_old_sfield_subcycle_ele_bdy = face_val(old_sfield_subcycle, sele)               
@@ -2228,7 +2256,7 @@ module darcy_impes_assemble_module
                            
                            f_ele_counter = f_ele_counter + 1
                            
-                           if (vphi_bc_flag(sele) == VPHI_BC_TYPE_NORMAL_FLOW) then
+                           if (v_over_s_bc_flag(sele) == V_OVER_S_BC_TYPE_NORMAL_FLOW) then
                            
                               if (determine_face_value) then
 
@@ -2264,17 +2292,17 @@ module darcy_impes_assemble_module
                            else                            
                               
                               ! determine if the flow is in or out of the face at this quadrature
-                              ! with respect to the normal orientation using the latest vphi
-                              vphi_dot_n = dot_product(vphi_face_quad_bdy(:,ggi), normal_bdy(:,ggi))
+                              ! with respect to the normal orientation using the latest v_over_s
+                              v_over_s_dot_n = dot_product(v_over_s_face_quad_bdy(:,ggi), normal_bdy(:,ggi))
                               
-                              inflow = (vphi_dot_n<=0.0)
+                              inflow = (v_over_s_dot_n<=0.0)
 
                               income = merge(1.0,0.0,inflow)
 
                               old_sfield_face_value = income*ghost_old_sfield_subcycle_ele_bdy(iloc) + &
                                                       (1.0 - income)*old_sfield_subcycle_ele_bdy(iloc)
 
-                              face_value = old_sfield_face_value * vphi_dot_n
+                              face_value = old_sfield_face_value * v_over_s_dot_n
 
                               s_rhs_local_bdy(iloc) = s_rhs_local_bdy(iloc) - face_value * detwei_bdy(ggi)                           
 
@@ -2334,13 +2362,11 @@ module darcy_impes_assemble_module
       ! local variables
       logical :: inflow
       integer :: vele, p, dim, iloc, oloc, face, gi, ggi, sele
-      real    :: income, vphi_dot_n, vphi_face_value_dot_n, old_relperm_face_value
+      real    :: income, v_over_s_dot_n, v_over_s_face_value_dot_n
       real,    dimension(1)                  :: old_visc_ele, old_absperm_ele
       real,    dimension(:,:),   allocatable :: grad_pressure_face_quad
-      real,    dimension(:),     allocatable :: old_relperm_ele
-      real,    dimension(:),     allocatable :: old_den_ele
       real,    dimension(:,:),   allocatable :: old_grav_ele
-      real,    dimension(:,:),   allocatable :: vphi_face_quad
+      real,    dimension(:,:),   allocatable :: v_over_s_face_quad
       real,    dimension(:,:),   allocatable :: x_ele
       real,    dimension(:,:),   allocatable :: normal
       real,    dimension(:),     allocatable :: detwei
@@ -2351,43 +2377,42 @@ module darcy_impes_assemble_module
       integer, dimension(:),     pointer     :: x_pmesh_nodes
       integer, dimension(:),     pointer     :: p_nodes      
       real,    dimension(1)                  :: old_visc_ele_bdy, old_absperm_ele_bdy
-      real,    dimension(:),     allocatable :: old_relperm_ele_bdy
       real,    dimension(:,:),   allocatable :: old_grav_ele_bdy
       real,    dimension(:,:),   allocatable :: grad_pressure_face_quad_bdy
-      real,    dimension(:,:),   allocatable :: vphi_face_quad_bdy
+      real,    dimension(:,:),   allocatable :: v_over_s_face_quad_bdy
       real,    dimension(:,:),   allocatable :: normal_bdy
       real,    dimension(:),     allocatable :: detwei_bdy
       real,    dimension(:,:),   allocatable :: x_ele_bdy
       real,    dimension(:),     allocatable :: cfl_rhs_local_bdy
       integer, dimension(:),     allocatable :: p_nodes_bdy
       real,    dimension(:),     allocatable :: bc_sele_val
-      integer, parameter :: VPHI_BC_TYPE_NORMAL_FLOW = 1, VPHI_BC_TYPE_NO_NORMAL_FLOW = 2
+      integer, parameter :: V_OVER_S_BC_TYPE_NORMAL_FLOW = 1, V_OVER_S_BC_TYPE_NO_NORMAL_FLOW = 2
             
       ewrite(1,*) 'Calculate Velocity, FractionalFlow and CFL fields'
       
-      ewrite(1,*) 'Calculate InterstitialVelocityPorosity'
+      ewrite(1,*) 'Calculate DarcyVelocityOverSaturation'
       
-      ! Calculate the inter_velocity_porosity field = - (1.0/old_sigma) * ( grad_pressure - old_den * old_grav), 
-      ! where old_sigma = old_visc / old_absperm * old_relperm
+      ! Calculate the darcy_velocity_over_saturation field = - (1.0/old_sigma) * ( grad_pressure - old_den * old_grav), 
+      ! where old_sigma = old_visc / (old_absperm * old_modrelperm)
       
       do p = 1, di%number_phase
          
          ! *** NEED TO FIGURE OUT WHAT TO DO HERE ***
-         ! - how define vphi basis? 
+         ! - how define v_over_s basis? 
          ! - subcv for linear pressure, what about quadratic pressure --> subcv again or overlapping?!?!
          ! - or just always go for element wise?
          ! - or evaluate cv surface values and some sort or remap (although quadrature rule doesnt support this)?!?
          ! - consider what definition would give div . q_t = 0 for incompressible when d phi / dt = 0
          
-         call zero(di%inter_velocity_porosity(p)%ptr)
+         call zero(di%darcy_velocity_over_saturation(p)%ptr)
       
       end do 
                   
       do p = 1,di%number_phase
-         ewrite_minmax(di%inter_velocity_porosity(p)%ptr)
+         ewrite_minmax(di%darcy_velocity_over_saturation(p)%ptr)
       end do
       
-      ! calculate the darcy velocity = inter_velocity_porosity * old_saturation
+      ! calculate the darcy velocity = darcy_velocity_over_saturation * old_saturation
       do p = 1, di%number_phase         
          
          ewrite(1,*) 'Calculate DarcyVelocity for phase ',p
@@ -2432,15 +2457,12 @@ module darcy_impes_assemble_module
       allocate(cfl_rhs_local(ele_loc(di%pressure_mesh,1)))
       allocate(x_face_quad(di%ndim, di%x_cvshape%ngi))
       allocate(grad_pressure_face_quad(di%ndim, di%p_cvshape%ngi))
-      allocate(old_relperm_ele(ele_loc(di%pressure_mesh,1)))
-      allocate(old_den_ele(ele_loc(di%pressure_mesh,1)))
       allocate(old_grav_ele(di%ndim,1))
-      allocate(vphi_face_quad(di%ndim,di%p_cvshape%ngi))
+      allocate(v_over_s_face_quad(di%ndim,di%p_cvshape%ngi))
       
-      allocate(old_relperm_ele_bdy(face_loc(di%pressure_mesh,1)))
       allocate(old_grav_ele_bdy(di%ndim,1))
       allocate(grad_pressure_face_quad_bdy(di%ndim, di%p_cvbdyshape%ngi))
-      allocate(vphi_face_quad_bdy(di%ndim, di%p_cvbdyshape%ngi))
+      allocate(v_over_s_face_quad_bdy(di%ndim, di%p_cvbdyshape%ngi))
       allocate(detwei_bdy(di%x_cvbdyshape%ngi))
       allocate(normal_bdy(di%ndim, di%x_cvbdyshape%ngi))
       allocate(cfl_rhs_local_bdy(face_loc(di%pressure_mesh,1)))
@@ -2466,12 +2488,6 @@ module darcy_impes_assemble_module
             ! The node indices of the positions projected to the pressure mesh
             x_pmesh_nodes => ele_nodes(di%positions_pressure_mesh, vele)
             
-            ! get the old_relperm ele values for this phase
-            old_relperm_ele = ele_val(di%old_relative_permeability(p)%ptr, vele)
-
-            ! get the old_density value for this element for this phase
-            old_den_ele = ele_val(di%old_density(p)%ptr, vele)
-            
             ! The old gravity values for this element for each direction
             old_grav_ele = ele_val(di%old_gravity, vele) 
 
@@ -2484,15 +2500,13 @@ module darcy_impes_assemble_module
             ! get the latest gradient pressure at the cv surface quadrature points for each direction for this phase
             grad_pressure_face_quad = ele_val_at_quad(di%gradient_pressure(p)%ptr, vele, di%gradp_cvshape)
 
-            ! the latest intersitial velocity_porosity at the quadrature points
+            ! the latest DarcyVelocityOverSaturation at the quadrature points
             ! determined from FE interpolation of each component, only used to determine upwind.
             do dim = 1,di%ndim
 
-               vphi_face_quad(dim,:) =  &
-              &- (ele_val_at_quad(di%old_relative_permeability(p)%ptr, vele, di%p_cvshape) * &
-                  old_absperm_ele(1) / old_visc_ele(1)) * &
-                 (grad_pressure_face_quad(dim,:) - &
-                  ele_val_at_quad(di%old_density(p)%ptr, vele, di%p_cvshape) * old_grav_ele(dim,1))   
+               v_over_s_face_quad(dim,:) =  &
+- (ele_val_at_quad(di%old_modified_relative_permeability(p)%ptr, vele, di%p_cvshape) * old_absperm_ele(1) / old_visc_ele(1)) * &
+  (grad_pressure_face_quad(dim,:) - ele_val_at_quad(di%old_density(p)%ptr, vele, di%p_cvshape) * old_grav_ele(dim,1))   
 
             end do
 
@@ -2534,26 +2548,20 @@ module darcy_impes_assemble_module
                                                       &x_face_quad(:,ggi), normal(:,ggi))
 
                       ! determine if the flow is in or out of the face at this quadrature
-                      ! with respect to the normal orientation using the latest vphi
-                      vphi_dot_n = dot_product(vphi_face_quad(:,ggi), normgi(:))
+                      ! with respect to the normal orientation using the latest v_over_s
+                      v_over_s_dot_n = dot_product(v_over_s_face_quad(:,ggi), normgi(:))
 
-                      inflow = (vphi_dot_n<=0.0)
+                      inflow = (v_over_s_dot_n<=0.0)
 
                       income = merge(1.0,0.0,inflow)
 
-                      ! Evaluate the face value for old_relperm (assuming upwind for now) 
-                      old_relperm_face_value = income*old_relperm_ele(oloc) + (1.0-income)*old_relperm_ele(iloc)
-
-                      vphi_face_value_dot_n = - old_relperm_face_value * old_absperm_ele(1) * &
-                                                dot_product(grad_pressure_face_quad(:,ggi), normgi) / old_visc_ele(1) 
-
                       cfl_rhs_local(iloc) = cfl_rhs_local(iloc) + &
-                                            abs(vphi_face_value_dot_n) * &
+                                            abs(v_over_s_dot_n) * &
                                             detwei(ggi) * &
                                             (1.0 - income)
 
                       cfl_rhs_local(oloc) = cfl_rhs_local(oloc) + &
-                                            abs(vphi_face_value_dot_n) * &
+                                            abs(v_over_s_dot_n) * &
                                             detwei(ggi) * &
                                             income
 
@@ -2571,39 +2579,36 @@ module darcy_impes_assemble_module
 
          end do vele_loop
 
-         ! Get this phase vphi BC info - only for no_normal_flow and normal_flow which is special as it is a scalar
-         call get_vphi_boundary_condition(di%inter_velocity_porosity(p)%ptr, &
-                                          (/"normal_flow   ", &
-                                            "no_normal_flow"/), &
-                                          di%bc_surface_mesh, &
-                                          di%vphi_bc_value, &
-                                          di%vphi_bc_flag)
+         ! Get this phase v_over_s BC info - only for no_normal_flow and normal_flow which is special as it is a scalar
+         call get_v_over_s_boundary_condition(di%darcy_velocity_over_saturation(p)%ptr, &
+                                              (/"normal_flow   ", &
+                                                "no_normal_flow"/), &
+                                              di%bc_surface_mesh, &
+                                              di%v_over_s_bc_value, &
+                                              di%v_over_s_bc_flag)
          
          sele_loop: do sele = 1, surface_element_count(di%pressure_mesh)
             
-            if (di%vphi_bc_flag(sele) == VPHI_BC_TYPE_NO_NORMAL_FLOW) cycle sele_loop
+            if (di%v_over_s_bc_flag(sele) == V_OVER_S_BC_TYPE_NO_NORMAL_FLOW) cycle sele_loop
             
-            if (di%vphi_bc_flag(sele) == VPHI_BC_TYPE_NORMAL_FLOW) then
+            if (di%v_over_s_bc_flag(sele) == V_OVER_S_BC_TYPE_NORMAL_FLOW) then
             
-               bc_sele_val = ele_val(di%vphi_bc_value, sele)
+               bc_sele_val = ele_val(di%v_over_s_bc_value, sele)
             
             else
             
-               old_relperm_ele_bdy         = face_val(di%old_relative_permeability(p)%ptr, sele)
                old_visc_ele_bdy            = face_val(di%old_viscosity(p)%ptr, sele)
                old_absperm_ele_bdy         = face_val(di%old_absolute_permeability, sele)
                grad_pressure_face_quad_bdy = face_val_at_quad(di%gradient_pressure(p)%ptr, sele, di%gradp_cvbdyshape)         
                old_grav_ele_bdy            = face_val(di%old_gravity, sele) 
 
-               ! the latest intersitial velocity_porosity at the quadrature points
+               ! the latest DarcyVelocityOverSaturation at the quadrature points
                ! determined from FE interpolation of each component, only used to determine upwind.
                do dim = 1,di%ndim
 
-                  vphi_face_quad_bdy(dim,:) =  &
-                 &- (face_val_at_quad(di%old_relative_permeability(p)%ptr, sele, di%p_cvbdyshape) * &
-                     old_absperm_ele_bdy(1) / old_visc_ele_bdy(1)) * &
-                    (grad_pressure_face_quad_bdy(dim,:) - &
-                     face_val_at_quad(di%old_density(p)%ptr, sele, di%p_cvbdyshape) * old_grav_ele_bdy(dim,1))   
+                  v_over_s_face_quad_bdy(dim,:) =  &
+- (face_val_at_quad(di%old_modified_relative_permeability(p)%ptr, sele, di%p_cvbdyshape) * old_absperm_ele_bdy(1) / old_visc_ele_bdy(1)) * &
+  (grad_pressure_face_quad_bdy(dim,:) - face_val_at_quad(di%old_density(p)%ptr, sele, di%p_cvbdyshape) * old_grav_ele_bdy(dim,1))   
 
                end do
             
@@ -2628,11 +2633,11 @@ module darcy_impes_assemble_module
 
                         ggi = (face-1)*di%cvfaces%shape%ngi + gi
                         
-                        if (di%vphi_bc_flag(sele) == VPHI_BC_TYPE_NORMAL_FLOW) then
+                        if (di%v_over_s_bc_flag(sele) == V_OVER_S_BC_TYPE_NORMAL_FLOW) then
                         
-                           vphi_face_value_dot_n = bc_sele_val(iloc)
+                           v_over_s_face_value_dot_n = bc_sele_val(iloc)
                            
-                           if (vphi_face_value_dot_n > 0.0) then
+                           if (v_over_s_dot_n > 0.0) then
                               income = 0.0
                            else
                               income = 1.0
@@ -2641,17 +2646,17 @@ module darcy_impes_assemble_module
                         else
                         
                            ! determine if the flow is in or out of the face at this quadrature
-                           ! with respect to the normal orientation using the latest vphi
-                           vphi_face_value_dot_n = dot_product(vphi_face_quad_bdy(:,ggi), normal_bdy(:,ggi))
+                           ! with respect to the normal orientation using the latest v_over_s
+                           v_over_s_face_value_dot_n = dot_product(v_over_s_face_quad_bdy(:,ggi), normal_bdy(:,ggi))
 
-                           inflow = (vphi_face_value_dot_n<=0.0)
+                           inflow = (v_over_s_dot_n<=0.0)
 
                            income = merge(1.0,0.0,inflow)
-                        
+                                                      
                         end if
                         
                         cfl_rhs_local_bdy(iloc) = cfl_rhs_local_bdy(iloc) + &
-                                                 &abs(vphi_face_value_dot_n) * detwei_bdy(ggi) * (1.0 - income)                     
+                                                 &abs(v_over_s_face_value_dot_n) * detwei_bdy(ggi) * (1.0 - income)                     
 
                      end do bc_quad_loop
 
@@ -2680,15 +2685,12 @@ module darcy_impes_assemble_module
       deallocate(cfl_rhs_local)
       deallocate(x_face_quad)
       deallocate(grad_pressure_face_quad)
-      deallocate(old_relperm_ele)
-      deallocate(old_den_ele)
       deallocate(old_grav_ele)
-      deallocate(vphi_face_quad)
+      deallocate(v_over_s_face_quad)
       
-      deallocate(old_relperm_ele_bdy)
       deallocate(old_grav_ele_bdy)
       deallocate(grad_pressure_face_quad_bdy)
-      deallocate(vphi_face_quad_bdy)
+      deallocate(v_over_s_face_quad_bdy)
       deallocate(detwei_bdy)
       deallocate(normal_bdy)
       deallocate(x_ele_bdy)
@@ -2749,6 +2751,8 @@ module darcy_impes_assemble_module
          ewrite_minmax(di%density(p)%ptr)
          
       end do 
+
+      ewrite(1,*) 'Finished Calculate Density of each phase'
        
    end subroutine darcy_impes_calculate_densities
 
@@ -2789,6 +2793,8 @@ module darcy_impes_assemble_module
             SIG_INT = .true.
          end if
       end if
+
+      ewrite(1,*) 'Finished Calculate CFL number field based adaptive timestep'
        
    end subroutine darcy_impes_calculate_cflnumber_field_based_dt
 
@@ -2803,6 +2809,8 @@ module darcy_impes_assemble_module
       ! local variable
       integer :: p, face_value_counter, vele, sele, iloc, face, gi, ggi
       logical, dimension(:), pointer :: notvisited
+
+      ewrite(1,*) 'Allocate cached phase face value types'
 
       allocate(notvisited(di%x_cvshape%ngi))
       
@@ -2896,6 +2904,8 @@ module darcy_impes_assemble_module
       end do phase_loop
 
       deallocate(notvisited)
+
+      ewrite(1,*) 'Finished Allocate cached phase face value types'
       
    end subroutine darcy_impes_initialise_cached_phase_face_value
 
@@ -2913,6 +2923,8 @@ module darcy_impes_assemble_module
       integer :: vele, sele
       real    :: subcv_area, subcv_volume
       real, dimension(:), pointer :: len_vals
+
+      ewrite(1,*) 'Calculate inverse characteristic length'
       
       allocate(len_vals(face_loc(di%pressure_mesh,1)))
       
@@ -2941,7 +2953,42 @@ module darcy_impes_assemble_module
       
       call invert(di%inverse_characteristic_length)
       
+      ewrite_minmax(di%inverse_characteristic_length)
+      
+      ewrite(1,*) 'Finished Calculate inverse characteristic length'
+      
    end subroutine darcy_impes_calculate_inverse_characteristic_length
+
+! ----------------------------------------------------------------------------
+   
+   subroutine darcy_impes_calculate_modified_relative_permeability(di)
+   
+      !!< Calculate the modified relative permeability = relperm / max( S, S_min) for each phase
+            
+      type(darcy_impes_type), intent(inout) :: di 
+      
+      ! local variable
+      integer :: p, i
+
+      ewrite(1,*) 'Calculate modified relative permeabilities'
+      
+      phase_loop: do p = 1, di%number_phase
+         
+         node_loop: do i = 1, node_count(di%relative_permeability(p)%ptr)
+
+            di%modified_relative_permeability(p)%ptr%val(i) = &
+            di%relative_permeability(p)%ptr%val(i) / &
+            max(di%saturation(p)%ptr%val(i), di%min_sat_value_for_mod_relperm)
+            
+         end do node_loop
+         
+         ewrite_minmax(di%modified_relative_permeability(p)%ptr)
+         
+      end do phase_loop
+
+      ewrite(1,*) 'Finished Calculate modified relative permeabilities'
+      
+   end subroutine darcy_impes_calculate_modified_relative_permeability
 
 ! ----------------------------------------------------------------------------
 
