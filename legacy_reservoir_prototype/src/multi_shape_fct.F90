@@ -1551,6 +1551,8 @@
     end subroutine shape_cv_n
 
 
+
+
     subroutine cv_fem_shape_funs( &
          ndim, cv_ele_type, &
          cv_ngi, cv_ngi_short, cv_nloc, u_nloc, cvn, cvn_short, &
@@ -1616,16 +1618,61 @@
       real, dimension( :, : ), allocatable :: ufen2, ufenlx2, ufenly2, ufenlz2, & 
            sufen2, sufenslx2, sufensly2, sufenlx2, sufenly2, sufenlz2, &
            sbufen2, sbufenslx2, sbufensly2, sbufenlx2, sbufenly2, sbufenlz2 
+      real, dimension( :, : ), allocatable :: M,MLX,MLY,MLZ, sm,SMLX,SMLY
       character( len = option_path_len ) :: overlapping_path 
       logical :: is_overlapping   
-      integer :: u_nloc2, ilev, ilev2, u_snloc2, u_ele_type2, gi, cv_iloc
+      integer :: u_nloc2, ilev, ilev2, u_snloc2, u_ele_type2, gi, MLOC,SMLOC
 
       ewrite(3,*) 'in  cv_fem_shape_funs subrt'
+
+      MLOC=1
+      SMLOC=1
+      ALLOCATE(M(MLOC,CV_NGI))
+      ALLOCATE(MLX(MLOC,CV_NGI))
+      ALLOCATE(MLY(MLOC,CV_NGI))
+      ALLOCATE(MLZ(MLOC,CV_NGI))
+      ALLOCATE(SM(SMLOC,scvngi))
+      ALLOCATE(SMLX(SMLOC,scvngi))
+      ALLOCATE(SMLY(SMLOC,scvngi))
 
       is_overlapping = .false.
       call get_option( '/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
            overlapping_path )
       if( trim( overlapping_path ) == 'overlapping' ) is_overlapping = .true.
+
+      if( is_overlapping ) then
+         ! Define basis functions (overlapping) for porous media flow
+         u_nloc2 = u_nloc / cv_nloc
+
+         allocate( ufen2( u_nloc2, cv_ngi_short ) )
+         allocate( ufenlx2( u_nloc2, cv_ngi_short ) )
+         allocate( ufenly2( u_nloc2, cv_ngi_short ) )
+         allocate( ufenlz2( u_nloc2, cv_ngi_short ) )
+
+         u_nloc2 = u_nloc / cv_nloc
+         allocate( ufem_on_face2( u_nloc2, scvngi ) )
+         allocate( sufen2( u_nloc2, scvngi ) )
+         allocate( sufenslx2( u_nloc2, scvngi ) )
+         allocate( sufensly2( u_nloc2, scvngi ) )
+         allocate( sufenlx2( u_nloc2, scvngi ) )
+         allocate( sufenly2( u_nloc2, scvngi ) )
+         allocate( sufenlz2( u_nloc2, scvngi ) )
+
+         u_nloc2 = u_nloc / cv_nloc
+         u_snloc2 = u_snloc / cv_nloc
+
+         ewrite(3,*) 'U_NLOC  , U_SNLOC  ', u_nloc  , u_snloc
+         ewrite(3,*) 'U_NLOC2, U_SNLOC2', u_nloc2, u_snloc2
+
+         allocate( u_sloclist2( 1 : nface, u_snloc2 ) )
+         allocate( sbufen2( u_snloc2, sbcvngi ) )
+         allocate( sbufenslx2( u_snloc2, sbcvngi ) )
+         allocate( sbufensly2( u_snloc2, sbcvngi ) )
+         allocate( sbufenlx2( u_snloc2, sbcvngi ) )
+         allocate( sbufenly2( u_snloc2, sbcvngi ) )
+         allocate( sbufenlz2( u_snloc2, sbcvngi ) )
+      endif
+
 
       ! Sele_Overlap_Scale is the scaling needed to convert to overlapping element surfaces
       if( is_overlapping ) then
@@ -1643,17 +1690,43 @@
 
       Conditional_OverlappingMethod1: if( is_overlapping ) then
          ! Define basis functions (overlapping) for porous media flow
-         u_nloc2 = u_nloc / cv_nloc
 
-         allocate( ufen2( u_nloc2, cv_ngi_short ) )
-         allocate( ufenlx2( u_nloc2, cv_ngi_short ) )
-         allocate( ufenly2( u_nloc2, cv_ngi_short ) )
-         allocate( ufenlz2( u_nloc2, cv_ngi_short ) )
+         if(QUAD_OVER_WHOLE_ELE) then ! integrate over whole element
 
+         call SHAPE_one_ele(&
+         ndim, cv_ele_type, &
+         cv_ngi_short, cv_nloc, u_nloc2,  &
+                                ! Volume shape functions
+         cvweight_short, cvfen_short, cvfenlx_short, cvfenly_short, cvfenlz_short, &
+         ufen2, ufenlx2, ufenly2, ufenlz2, &
+                                ! Surface of each CV shape functions
+         scvngi,  &
+         scvfen, scvfenslx, scvfensly, scvfeweigh, &
+         scvfenlx, scvfenly, scvfenlz, &
+         sufen, sufenslx, sufensly, &
+         sufenlx, sufenly, sufenlz, &
+                                ! Surface element shape funcs
+         nface, &
+         cv_sloclist, u_sloclist2, cv_snloc, u_snloc2 )
+
+            if(sbcvngi.ne.scvngi) then
+!              flabort("sbcvngi.ne.scvngi")
+              print *,'sbcvngi.ne.scvngi'
+              stop 3831
+            endif
+            sbufen2=sufen2
+            sbufenslx2=sufenslx2
+            sbufensly2=sufensly2
+            if(scvngi.ne.sbcvngi) then
+               print *,'need to change scvngi,sbcvngi:',scvngi,sbcvngi
+               stop 262
+            endif
+         else
          call shape_cv_n( ndim, cv_ele_type, &
               cv_ngi_short, cv_nloc, u_nloc2, cvn_short, cvweight_short, &
               cvfen_short, cvfenlx_short, cvfenly_short, cvfenlz_short, &
               ufen2, ufenlx2, ufenly2, ufenlz2 )
+         endif
 
          ! Defining the base functions for each level
          ufen = 0. ; ufenlx = 0. ; ufenly = 0. ; ufenlz = 0. ; cvn = 0.
@@ -1693,10 +1766,32 @@
          end do Loop_ILEV1
 
       else ! if it is not overlapping formulation
+         if(QUAD_OVER_WHOLE_ELE) then ! integrate over whole element 
+         call SHAPE_one_ele(&
+         ndim, cv_ele_type, &
+         cv_ngi, cv_nloc, u_nloc,  &
+                                ! Volume shape functions
+         cvweight, cvfen, cvfenlx, cvfenly, cvfenlz, &
+         ufen, ufenlx, ufenly, ufenlz, &
+                                ! Surface of each CV shape functions
+         scvngi,  &
+         scvfen, scvfenslx, scvfensly, scvfeweigh, &
+         scvfenlx, scvfenly, scvfenlz, &
+         sufen, sufenslx, sufensly, &
+         sufenlx, sufenly, sufenlz, &
+                                ! Surface element shape funcs
+         nface, &
+         cv_sloclist, u_sloclist, cv_snloc, u_snloc ) 
+            if(scvngi.ne.sbcvngi) then
+               print *,'need to change scvngi,sbcvngi:',scvngi,sbcvngi
+               stop 263
+            endif
+         else
          call shape_cv_n( ndim, cv_ele_type, &
               cv_ngi, cv_nloc, u_nloc, cvn, cvweight, &
               cvfen, cvfenlx, cvfenly, cvfenlz, &
               ufen, ufenlx, ufenly, ufenlz )
+         endif
          cvn_short = cvn
          cvfen_short = cvfen
          cvfenlx_short = cvfenlx
@@ -1721,18 +1816,11 @@
 
       Conditional_OverlappingMethod2: if( is_overlapping ) then
          u_ele_type2 = 1
-         u_nloc2 = u_nloc / cv_nloc
-         allocate( ufem_on_face2( u_nloc2, scvngi ) )
-         allocate( sufen2( u_nloc2, scvngi ) )
-         allocate( sufenslx2( u_nloc2, scvngi ) )
-         allocate( sufensly2( u_nloc2, scvngi ) )
-         allocate( sufenlx2( u_nloc2, scvngi ) )
-         allocate( sufenly2( u_nloc2, scvngi ) )
-         allocate( sufenlz2( u_nloc2, scvngi ) )
          ewrite(3,*)'cv_nloc, cv_ngi, scvngi:', cv_nloc, cv_ngi, scvngi
          ewrite(3,*)'u_nloc, u_nloc2:', u_nloc, u_nloc2
 
 
+         if(.not.QUAD_OVER_WHOLE_ELE) then ! not integrate over whole element 
          call shapesv_fem_plus( scvngi, cv_neiloc, cv_on_face, cvfem_on_face, &
               ufem_on_face2, &
               cv_ele_type, cv_nloc, scvfen, scvfenslx, scvfensly, scvfeweigh, &
@@ -1740,6 +1828,7 @@
               u_nloc2, sufen2, sufenslx2, sufensly2, &
               sufenlx2, sufenly2, sufenlz2, &
               ndim )
+         endif
 
          !call U_Volnei( cv_ele_type, cv_nloc, u_nloc, scvngi, &
          !     cv_neiloc,   &
@@ -1787,6 +1876,7 @@
          end do Loop_ILEV2
 
       else
+         if(.not.QUAD_OVER_WHOLE_ELE) then ! not integrate over whole element 
          call shapesv_fem_plus( scvngi, cv_neiloc, cv_on_face, cvfem_on_face, &
               ufem_on_face, &
               cv_ele_type, cv_nloc, scvfen, scvfenslx, scvfensly, scvfeweigh, &
@@ -1794,6 +1884,7 @@
               u_nloc, sufen, sufenslx, sufensly, &
               sufenlx, sufenly, sufenlz, &
               ndim )
+         endif
          !call U_Volnei( cv_ele_type, cv_nloc, u_nloc, scvngi, &
          !     cv_neiloc,   &
          !     u_on_face )
@@ -1813,20 +1904,8 @@
 
          ewrite(3,*) 'U_NLOC  , U_SNLOC  ', u_nloc  , u_snloc
          ewrite(3,*) 'U_NLOC2, U_SNLOC2', u_nloc2, u_snloc2
-         ewrite(3,*) 'SBCVNGI                   ', sbcvngi
-         ewrite(3,*) 'scvfen:', size( scvfen ) 
-         do  cv_iloc = 1, cv_nloc
-            ewrite(3,*) ( scvfen( cv_iloc, gi ), gi = 1, scvngi )
-         end do
 
-         allocate( u_sloclist2( 1 : nface, u_snloc2 ) )
-         allocate( sbufen2( u_snloc2, sbcvngi ) )
-         allocate( sbufenslx2( u_snloc2, sbcvngi ) )
-         allocate( sbufensly2( u_snloc2, sbcvngi ) )
-         allocate( sbufenlx2( u_snloc2, sbcvngi ) )
-         allocate( sbufenly2( u_snloc2, sbcvngi ) )
-         allocate( sbufenlz2( u_snloc2, sbcvngi ) )
-
+         if(.not.QUAD_OVER_WHOLE_ELE) then ! not integrate over whole element 
          call det_suf_ele_shape( scvngi, nface, &
               cvfem_on_face, &
               cv_nloc, scvfen, scvfenslx, scvfensly, scvfeweigh, &
@@ -1839,11 +1918,11 @@
               sbufenlx2, sbufenly2, sbufenlz2, &
               cv_sloclist, u_sloclist2, cv_snloc, u_snloc2, &
               ndim, cv_ele_type )
+         endif
          ewrite(3,*) 'sbufen2:', sbufen2
          ewrite(3,*) 'sbcvfen:', sbcvfen
          ewrite(3,*) 'sufen2:', sufen2
          ewrite(3,*) 'scvfen:', scvfen
-!         stop 2882
 
          Loop_ILEV3: do ilev = 1, cv_nloc
 
@@ -1872,6 +1951,7 @@
          end do Loop_ILEV3
 
       else
+         if(.not.QUAD_OVER_WHOLE_ELE) then ! not integrate over whole element 
          call det_suf_ele_shape( scvngi, nface, &
               cvfem_on_face, &
               cv_nloc, scvfen, scvfenslx, scvfensly, scvfeweigh, &
@@ -1884,6 +1964,7 @@
               sbufenlx, sbufenly, sbufenlz, &
               cv_sloclist, u_sloclist, cv_snloc, u_snloc, &
               ndim, cv_ele_type )
+          endif
       end if Conditional_OverlappingMethod3
 
       ! Define the gauss points that lie on the surface of the
@@ -1936,6 +2017,9 @@
 
       return
     end subroutine cv_fem_shape_funs
+
+
+
 
 
     SUBROUTINE DET_SUF_ELE_SHAPE( SCVNGI, NFACE, &  
