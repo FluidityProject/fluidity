@@ -934,13 +934,25 @@
       case( 9, 10 )
          Conditional_CV_NLOC3D_Hex: Select Case( cv_nloc )
          case( 8 ) ! Tri-linear Hex
-            cv_ngi = 64
-            scvngi = 12
-            sbcvngi = 4
+            if(QUAD_OVER_WHOLE_ELE) then
+               cv_ngi = 8
+               sbcvngi = 4
+               scvngi = 4
+            else
+               cv_ngi = 64
+               scvngi = 12
+               sbcvngi = 4
+            endif
          case( 27 ) ! Tri-quad Hex
-            cv_ngi = 216
-            scvngi = 216
-            sbcvngi = 36
+            if(QUAD_OVER_WHOLE_ELE) then
+               cv_ngi = 27
+               sbcvngi = 9
+               scvngi = 9
+            else
+               cv_ngi = 216
+               scvngi = 216
+               sbcvngi = 36
+            endif
          case default; FLExit(" Invalid integer for cv_nloc ")
          end Select Conditional_CV_NLOC3D_Hex
          nface = 6
