@@ -3279,11 +3279,6 @@
                   if ( abs ( sn( cv_iloc, cv_sgi )) > 1.e-4 ) &
                        cvfem_neiloc( cv_iloc, cv_sgi ) = -1
 
-!         if(zer_l4 ) then
-!            print *,'***cv_iloc, cv_sgi, cvfem_neiloc( cv_iloc, cv_sgi ):', &
-!                        cv_iloc, cv_sgi, cvfem_neiloc( cv_iloc, cv_sgi )
-!         endif
-
                end do
                endif
             endif
@@ -3291,13 +3286,32 @@
             ewrite(3,*)'cv_sgi, zer_l1/2/3:', cv_sgi, (zer_l1.or.zer_l2.or.zer_l3)
             if ( zer_l1 .or. zer_l2 .or. zer_l3 ) then
                ! on the surface of the element: 
-               do cv_iloc = 1, cv_nloc
-                  ewrite(3,*)'iloc, sn',cv_iloc, abs(sn( cv_iloc, cv_sgi )), &
-                       abs ( sn( cv_iloc, cv_sgi )) > 1.e-4
-                  if ( abs( sn( cv_iloc, cv_sgi )) > 1.e-4 ) &
-                       cvfem_neiloc( cv_iloc, cv_sgi ) = -1
-                  ewrite(3,*)'iloc, sn',cv_iloc, abs(sn( cv_iloc, cv_sgi )), abs ( sn( cv_iloc, cv_sgi )) > 1.e-4
-               end do
+               if(cv_nloc==6) then ! quadratic triangle
+                 if(zer_l1) then
+! face 1:
+                    cvfem_neiloc( 3, cv_sgi )=-1
+                    cvfem_neiloc( 5, cv_sgi )=-1
+                    cvfem_neiloc( 6, cv_sgi )=-1
+                 else if(zer_l2) then
+! face 2:
+                    cvfem_neiloc( 1, cv_sgi )=-1
+                    cvfem_neiloc( 4, cv_sgi )=-1
+                    cvfem_neiloc( 6, cv_sgi )=-1
+                 else if(zer_l3) then
+! face 3:
+                    cvfem_neiloc( 1, cv_sgi )=-1
+                    cvfem_neiloc( 2, cv_sgi )=-1
+                    cvfem_neiloc( 3, cv_sgi )=-1
+                 endif
+               else
+                  do cv_iloc = 1, cv_nloc
+                     ewrite(3,*)'iloc, sn',cv_iloc, abs(sn( cv_iloc, cv_sgi )), &
+                          abs ( sn( cv_iloc, cv_sgi )) > 1.e-4
+                     if ( abs( sn( cv_iloc, cv_sgi )) > 1.e-4 ) &
+                          cvfem_neiloc( cv_iloc, cv_sgi ) = -1
+                     ewrite(3,*)'iloc, sn',cv_iloc, abs(sn( cv_iloc, cv_sgi )), abs ( sn( cv_iloc, cv_sgi )) > 1.e-4
+                  end do
+               endif
             endif
          endif Conditional_Neiloc
 
