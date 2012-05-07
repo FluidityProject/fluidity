@@ -211,14 +211,6 @@ program Darcy_IMPES
    
    call get_option("/timestepping/current_time", current_time)
    call get_option("/timestepping/finish_time", finish_time)
- 
-   call get_option("/timestepping/nonlinear_iterations", &
-                  & nonlinear_iterations, &
-                  & default = 1)
-   
-   call get_option("/timestepping/nonlinear_iterations/tolerance", &
-                  & nonlinear_iteration_tolerance, &
-                  & default = 0.0)
 
    ! *** Initialise data used in IMPES solver *** 
    call darcy_impes_initialise(di, state, dt, current_time)
@@ -324,7 +316,10 @@ program Darcy_IMPES
       ! *** Darcy IMPES calculate latest gravity field - direction field could be defined by python function ***
       call set(di%gravity, di%gravity_direction)
       call scale(di%gravity, di%gravity_magnitude)
-
+      
+      ! *** Darcy IMPES set max number non linear iterations for this time step ***
+      di%max_nonlinear_iter_this_timestep = nonlinear_iterations
+      
       nonlinear_iteration_loop: do its = 1,nonlinear_iterations
 
          ewrite(1,*)'###################'
@@ -643,6 +638,7 @@ contains
       allocate(di%old_capilliary_pressure(di%number_phase))
       allocate(di%gradient_pressure(di%number_phase))
       allocate(di%old_gradient_pressure(di%number_phase))
+      allocate(di%iterated_gradient_pressure(di%number_phase))
       allocate(di%saturation(di%number_phase))
       allocate(di%old_saturation(di%number_phase))
       allocate(di%relative_permeability(di%number_phase))
@@ -668,6 +664,7 @@ contains
          end if
          di%gradient_pressure(p)%ptr                  => extract_vector_field(di%state(p), "GradientPressure")
          di%old_gradient_pressure(p)%ptr              => extract_vector_field(di%state(p), "OldGradientPressure")
+         di%iterated_gradient_pressure(p)%ptr         => extract_vector_field(di%state(p), "IteratedGradientPressure")
          di%saturation(p)%ptr                         => extract_scalar_field(di%state(p), "Saturation")
          di%old_saturation(p)%ptr                     => extract_scalar_field(di%state(p), "OldSaturation")
          di%relative_permeability(p)%ptr              => extract_scalar_field(di%state(p), "RelativePermeability")
@@ -782,6 +779,23 @@ contains
       
       if (di%subcy_opt_sat%have_max_cfl .and. di%subcy_opt_sat%have_number) then
          FLAbort('Cannot have max cfl and given number for subcycling')
+      end if
+      
+      ! Get the maximum number of non linear iter
+      call get_option('/timestepping/nonlinear_iterations', &
+                      di%max_nonlinear_iter, &
+                      default = 1)
+      
+      ! Get the maximum number of non linear iter after adapt
+      call get_option('/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt', &
+                      di%max_nonlinear_iter_first_timestep_after_adapt, &
+                      default = 1)
+      
+      ! Cannot have diagnostic first phase saturation with subcycling with more than 1 non linear iter
+      if ((di%subcy_opt_sat%have_max_cfl .or. di%subcy_opt_sat%have_number) .and. &
+          have_option(trim(di%saturation(1)%ptr%option_path)//'/diagnostic') .and. &
+          ((di%max_nonlinear_iter > 1) .or. (di%max_nonlinear_iter_first_timestep_after_adapt>1))) then
+         FLExit('Cannot have subcycling for saturation if first phase diagnostic with the number of non linear iterations > 1, make first phase saturation prognostic')
       end if
       
       ! Determine the adaptive time stepping options
@@ -1018,6 +1032,7 @@ contains
       deallocate(di%old_capilliary_pressure)
       deallocate(di%gradient_pressure)
       deallocate(di%old_gradient_pressure)      
+      deallocate(di%iterated_gradient_pressure)
       deallocate(di%saturation)
       deallocate(di%old_saturation)
       deallocate(di%relative_permeability)
@@ -1060,6 +1075,9 @@ contains
       di%subcy_opt_sat%have_max_cfl                       = .false.
       di%subcy_opt_sat%number_advection_subcycle          = 0      
       di%subcy_opt_sat%max_courant_per_advection_subcycle = 0.0
+      
+      di%max_nonlinear_iter                            = 0
+      di%max_nonlinear_iter_first_timestep_after_adapt = 0
       
       di%adaptive_dt_options%have                        = .false.
       di%adaptive_dt_options%requested_cfl               = 0.0

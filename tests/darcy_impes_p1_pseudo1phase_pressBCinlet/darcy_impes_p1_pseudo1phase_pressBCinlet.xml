@@ -72,17 +72,17 @@ print 'Relative error of pressure max ',abs((max(pressure_3d) - 1.5e+09)/1.5e+09
 assert abs((max(pressure_3d) - 1.5e+09)/1.5e+09) &lt; 1.0e-09
     </test>
 
-    <test name="min_P for 1d should equal 0.0, check absolute difference to be under tolerance 1.0e-09" language="python">
+    <test name="min_P for 1d should equal 0.0, check absolute difference to be under tolerance 1.0e-04" language="python">
 print 'Absolute error of pressure min ',abs(min(pressure_1d))
-assert abs(min(pressure_1d)) &lt; 1.0e-09
+assert abs(min(pressure_1d)) &lt; 1.0e-04
     </test>
-    <test name="min_P for 2d should equal 0.0, check relative difference to be under tolerance 1.0e-09" language="python">
+    <test name="min_P for 2d should equal 0.0, check relative difference to be under tolerance 2.0e-03" language="python">
 print 'Absolute error of pressure min ',abs(min(pressure_2d))
-assert abs(min(pressure_2d)) &lt; 1.0e-09
+assert abs(min(pressure_2d)) &lt; 2.0e-03
     </test>
-    <test name="min_P for 3d should equal 0.0, check relative difference to be under tolerance 1.0e-09" language="python">
+    <test name="min_P for 3d should equal 0.0, check relative difference to be under tolerance 2.0e-02" language="python">
 print 'Absolute error of pressure min ',abs(min(pressure_3d))
-assert abs(min(pressure_3d)) &lt; 1.0e-09
+assert abs(min(pressure_3d)) &lt; 2.0e-02
     </test>
   </pass_tests>
   <warn_tests>

@@ -172,7 +172,7 @@
             <integer_value shape="1" rank="1">2</integer_value>
           </surface_ids>
           <type name="dirichlet">
-            <apply_strongly/>
+            <apply_weakly/>
             <constant>
               <real_value rank="0">0</real_value>
             </constant>
@@ -375,6 +375,17 @@ for n in range(field.node_count):
     <scalar_field name="Pressure" rank="0">
       <diagnostic>
         <mesh name="PressureMesh"/>
+        <boundary_conditions name="right">
+          <surface_ids>
+            <integer_value shape="1" rank="1">2</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <apply_weakly/>
+            <constant>
+              <real_value rank="0">0</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
         <stat>
           <include_cv_stats/>
         </stat>

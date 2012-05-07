@@ -754,6 +754,9 @@ at the first timestep or not.</a:documentation>
             <value>PressureMesh</value>
           </attribute>
         </element>
+        <zeroOrMore>
+          <ref name="darcy_impes_non_first_phase_bc_pressure_field"/>
+        </zeroOrMore>
         <ref name="darcy_impes_include_cv_stat"/>
         <ref name="adaptivity_options_scalar_field"/>
         <ref name="interpolation_algorithm_scalar"/>
@@ -1217,6 +1220,19 @@ Specify the number of advection subcycls. </a:documentation>
         <ref name="integer_vector"/>
       </element>
       <ref name="darcy_impes_dirichlet_bc"/>
+    </element>
+  </define>
+  <define name="darcy_impes_non_first_phase_bc_pressure_field">
+    <element name="boundary_conditions">
+      <a:documentation>Boundary conditions</a:documentation>
+      <attribute name="name">
+        <data type="string" datatypeLibrary=""/>
+      </attribute>
+      <element name="surface_ids">
+        <a:documentation>Surface id</a:documentation>
+        <ref name="integer_vector"/>
+      </element>
+      <ref name="darcy_impes_weak_dirichlet_bc"/>
     </element>
   </define>
   <define name="darcy_impes_bc_saturation_field">

@@ -746,6 +746,7 @@ darcy_impes_non_first_phase_pressure_field =
             element mesh {
                attribute name { "PressureMesh" }      
             },
+            darcy_impes_non_first_phase_bc_pressure_field*,
             darcy_impes_include_cv_stat, 
             adaptivity_options_scalar_field,
             interpolation_algorithm_scalar
@@ -1146,6 +1147,20 @@ darcy_impes_first_phase_bc_pressure_field =
             integer_vector
          },
          darcy_impes_dirichlet_bc            
+      }   
+   )
+
+
+darcy_impes_non_first_phase_bc_pressure_field =
+   (
+      ## Boundary conditions
+      element boundary_conditions {
+         attribute name { string },
+         ## Surface id
+         element surface_ids {
+            integer_vector
+         },
+         darcy_impes_weak_dirichlet_bc            
       }   
    )
 
