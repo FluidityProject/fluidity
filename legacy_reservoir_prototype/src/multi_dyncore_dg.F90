@@ -2104,10 +2104,10 @@
                VLN_OLD = 0.0
 
                Loop_Gauss2: DO GI = 1, CV_NGI
-                  NN =    NN    + UFEN( U_ILOC, GI )  * UFEN( U_JLOC,  GI )                 * DETWEI( GI )
-                  NXN =   NXN   + UFENX( U_ILOC, GI ) * UFEN( U_JLOC,  GI )                 * DETWEI( GI )
-                  NNX =   NNX   + UFEN( U_ILOC,GI )   * UFENX( U_JLOC, GI )                 * DETWEI( GI )
-                  NXNX =  NXNX  + UFENX( U_ILOC, GI ) * UFENX( U_JLOC, GI )                 * DETWEI( GI )
+                  NN = NN + UFEN( U_ILOC, GI ) * UFEN( U_JLOC,  GI ) * DETWEI( GI )
+                  NXN = NXN + UFENX( U_ILOC, GI ) * UFEN( U_JLOC,  GI ) * DETWEI( GI )
+                  NNX = NNX + UFEN( U_ILOC,GI ) * UFENX( U_JLOC, GI ) * DETWEI( GI )
+                  NXNX = NXNX + UFENX( U_ILOC, GI ) * UFENX( U_JLOC, GI ) * DETWEI( GI )
 
                   Loop_IPHASE: DO IPHASE = 1, NPHASE ! Diffusion tensor
 
@@ -2390,7 +2390,7 @@
             CALL DGSDETNXLOC2(CV_SNLOC,SBCVNGI, &
                  XSL,YSL,ZSL, &
                  SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, SDETWE,SAREA, &
-                 (NDIM==1), (NDIM==-2), (NDIM==3), &
+                 (NDIM==1), (NDIM==3), (NDIM==-2), &
                  SNORMXN,SNORMYN,SNORMZN, &
                  NORMX,NORMY,NORMZ)
 
@@ -2412,7 +2412,7 @@
                      !   IF((U_ELE_TYPE/=2).OR.( P_JLOC == ILEV)) THEN 
                      if( ( .not. is_overlapping ) .or. ( p_jloc == ilev ) ) then
                         JCV_NOD = P_SNDGLN(( SELE - 1 ) * P_SNLOC + P_SJLOC )
-                        ewrite(3,*)'ele, sele, p_jloc, jcv_nod:', ele, sele, p_jloc, jcv_nod
+                        !ewrite(3,*)'ele, sele, p_jloc, jcv_nod:', ele, sele, p_jloc, jcv_nod
                         NMX = 0.0  
                         NMY = 0.0 
                         NMZ = 0.0   
@@ -2420,8 +2420,8 @@
                            NMX = NMX + SNORMXN( SGI ) * SBUFEN( U_SILOC, SGI ) * SBCVFEN( P_SJLOC, SGI ) * SDETWE( SGI )
                            NMY = NMY + SNORMYN( SGI ) * SBUFEN( U_SILOC, SGI ) * SBCVFEN( P_SJLOC, SGI ) * SDETWE( SGI )
                            NMZ = NMZ + SNORMZN( SGI ) * SBUFEN( U_SILOC, SGI ) * SBCVFEN( P_SJLOC, SGI ) * SDETWE( SGI )
-        print *,'sgi,SNORMXN( SGI ),SBUFEN( U_SILOC, SGI ),SBCVFEN( P_SJLOC, SGI ),SDETWE( SGI ):', &
-                 sgi,SNORMXN( SGI ),SBUFEN( U_SILOC, SGI ),SBCVFEN( P_SJLOC, SGI ),SDETWE( SGI )
+!        print *,'sgi,SNORMXN( SGI ),SBUFEN( U_SILOC, SGI ),SBCVFEN( P_SJLOC, SGI ),SDETWE( SGI ):', &
+!                 sgi,SNORMXN( SGI ),SBUFEN( U_SILOC, SGI ),SBCVFEN( P_SJLOC, SGI ),SDETWE( SGI )
 !                  stop 821
                         END DO Loop_GaussPoints2
 
@@ -2443,8 +2443,8 @@
                                    + NMY * SELE_OVERLAP_SCALE(P_JLOC)
                               IF( NDIM >= 3 ) C( COUNT_PHA + 2 * NCOLC ) = C( COUNT_PHA + 2 * NCOLC ) &
                                    + NMZ * SELE_OVERLAP_SCALE(P_JLOC)
-  print *,'sele,IU_PHA_NOD,SUF_P_SJ_IPHA,NMX,NMy,NMz,SUF_P_BC( SUF_P_SJ_IPHA ),SELE_OVERLAP_SCALE(P_JLOC):', &
-           sele,IU_PHA_NOD,SUF_P_SJ_IPHA,NMX,NMy,NMz,SUF_P_BC( SUF_P_SJ_IPHA ),SELE_OVERLAP_SCALE(P_JLOC)
+ ! print *,'sele,IU_PHA_NOD,SUF_P_SJ_IPHA,NMX,NMy,NMz,SUF_P_BC( SUF_P_SJ_IPHA ),SELE_OVERLAP_SCALE(P_JLOC):', &
+ !          sele,IU_PHA_NOD,SUF_P_SJ_IPHA,NMX,NMy,NMz,SUF_P_BC( SUF_P_SJ_IPHA ),SELE_OVERLAP_SCALE(P_JLOC)
 
                               U_RHS( IU_PHA_NOD ) = U_RHS( IU_PHA_NOD ) &
                                    - NMX * SUF_P_BC( SUF_P_SJ_IPHA ) * SELE_OVERLAP_SCALE(P_JLOC)

@@ -30,8 +30,8 @@
   
 !!!!==============================================!!!!
 !!!!      SHAPE FUNCTIONS SUBRTS FOR MULTI-D      !!!!
-!!!!  (Quadrilaterals, Triangles, Hexaedra and    !!!!
-!!!!            Tetrahedra)                       !!!!
+!!!!   (Quadrilaterals, Triangles, Hexaedra and   !!!!
+!!!!                 Tetrahedra)                  !!!!
 !!!!==============================================!!!!
   
 
@@ -629,7 +629,10 @@
                ly( 1 ) = 0.0
                lz( 1 ) = 0.0
             endif
-            weit( 1 ) = 2.
+            ! this should be 2, but the
+            ! 1pt quadrature gets the 
+            ! volume wrong so adjust it...
+            weit( 1 ) = 2.0310311939315246
             nquad=1
         else if( lowqua .or. (ngi == 8) ) then
          posi = 1. / sqrt( 3. )
@@ -818,7 +821,7 @@
       integer, intent( inout ) :: cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface
       ! Local variables
       character( len = option_path_len ) :: overlapping_path
-      integer :: volume_order,surface_order
+      integer :: volume_order, surface_order
 
       Conditional_EleType: Select Case( cv_ele_type )
 
@@ -910,17 +913,17 @@
                scvngi = 7
             else
 
-!               volume_order=1
-               volume_order=2
+               volume_order=1
+!               volume_order=2
 !               volume_order=3
 
                cv_ngi = 864 ! 8x4x27 (tets x hexs x 3x3x3)
-               if (volume_order==1) cv_ngi=8*4*1   !8*4*1
-               if (volume_order==2) cv_ngi=8*4*8   !8*4*8
+               if (volume_order==1) cv_ngi=8*4*1
+               if (volume_order==2) cv_ngi=8*4*8
 
-!               surface_order=1
-               surface_order=2
-!               surface_order=3
+               surface_order=1
+!               surface_order=2
+
                scvngi = 192 ! 6x8x4 (cv_faces x hexs x sngi)
                sbcvngi = 48 ! 4x12 (sngi x cv_faces)
                if (surface_order==1) scvngi = 48 ! 6x8x1 (cv_faces x tets x sngi)
@@ -3478,10 +3481,10 @@
          quad_cv_ngi = 8
          dummy_sngi = 4
          dummy_snloc = 4
-         nwicel = 1 ! was 3
+         nwicel = 1
          if( cv_nloc == 10 ) then ! Quadratic hexs
             quad_cv_ngi = 27
-            nwicel = 3 ! was 1
+            nwicel = 3
             dummy_sngi = 9
             dummy_snloc = 9
             mloc = 8
@@ -3500,7 +3503,6 @@
          end if
       end if Conditional_Dimensionality1
 
-      !      if ( cv_sngi == 9 ) quad_cv_ngi = 3
       ! Consistency check:
       if( .false. )then
          if( cv_sngi /= totele * quad_cv_ngi ) &
@@ -3517,9 +3519,7 @@
       endif
       if( quad_cv_nloc == 1 ) npoly = 1
 
-! for the quadrature pts:
-!         print *,'quad_cv_nloc,cv_sngi =',quad_cv_nloc, cv_sngi
-!          stop 8221
+      ! for the quadrature pts:
       npoly_ngi = npoly
       if (( .not. d1 ).and. (.not. d3) ) then ! 2D
          if( quad_cv_nloc == 4 ) then
@@ -3533,7 +3533,7 @@
          endif 
       else ! 3D
          if( quad_cv_nloc == 8 ) then
-            npoly_ngi = 3 ! Quadratic
+            npoly_ngi = 3 ! Linear
             if(cv_sngi == 18*9 ) npoly_ngi = 3 ! 3*3 pt
             if(cv_sngi == 18*4 ) npoly_ngi = 2 ! 2*2 pt
             if(cv_sngi == 18*1 ) npoly_ngi = 1 ! 1 pt
@@ -3545,7 +3545,6 @@
          endif 
       endif
       if( quad_cv_nloc == 1 ) npoly_ngi = 1
-
 
       if( d1 .and. ( npoly /= 1 )) then
          ewrite(3,*) 'npoly is wrong -- it should be 1 instead of ', npoly
@@ -3571,7 +3570,7 @@
            x_nonods, quad_cv_nloc, cv_ele_type_cells, cv_nloc_cells
       integer, dimension( totele * quad_cv_nloc ), intent( in ) :: x_ndgln
       real, dimension( x_nonods ), intent( in ) :: x, y, z
-      real, dimension( quad_cv_nloc ), intent( in ) :: lx, ly, lz ! corner nodes
+      real, dimension( quad_cv_nloc ), intent( in ) :: lx, ly, lz
       real, dimension( cv_nloc, cv_ngi ), intent( inout ) :: n, nlx, nly, nlz
       real, dimension( cv_ngi ), intent( inout ) ::  cvweigh
       ! Local variables
