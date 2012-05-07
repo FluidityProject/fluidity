@@ -1694,7 +1694,7 @@
          if(QUAD_OVER_WHOLE_ELE) then ! integrate over whole element
 
            print *,'1 going into SHAPE_one_ele'
-         call SHAPE_one_ele(&
+         call SHAPE_one_ele2(&
          ndim, cv_ele_type, &
          cv_ngi_short, cv_nloc, u_nloc2,  &
                                 ! Volume shape functions
@@ -1770,7 +1770,7 @@
       else ! if it is not overlapping formulation
          if(QUAD_OVER_WHOLE_ELE) then ! integrate over whole element
            print *,'2 going into SHAPE_one_ele' 
-         call SHAPE_one_ele(&
+         call SHAPE_one_ele2(&
          ndim, cv_ele_type, &
          cv_ngi, cv_nloc, u_nloc,  &
                                 ! Volume shape functions

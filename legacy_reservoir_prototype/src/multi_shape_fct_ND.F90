@@ -38,10 +38,9 @@
   module shape_functions_Linear_Quadratic
 
     use fldebug
-!    use shape_functions
-  use state_module
-  use spud
-  use global_parameters, only: option_path_len
+    use state_module
+    use spud
+    use global_parameters, only: option_path_len
 
   contains
 
@@ -6225,7 +6224,7 @@
 !!!!!!!!
 !!!!!!!!
 
-   SUBROUTINE SHAPE_one_ele(&
+  SUBROUTINE SHAPE_one_ele2(&
          ndim, cv_ele_type, &
          cv_ngi, cv_nloc, u_nloc,  &
                                 ! Volume shape functions
@@ -6309,7 +6308,7 @@
          CALL DETERMIN_SLOCLIST( U_SLOCLIST, U_NLOC, U_SNLOC, SCVNGI, NFACE, &
               NDIM, CV_ELE_TYPE )
       ENDIF
-      END SUBROUTINE SHAPE_one_ele
+    END SUBROUTINE SHAPE_one_ele2
 
 
 
