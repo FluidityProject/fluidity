@@ -1693,6 +1693,7 @@
 
          if(QUAD_OVER_WHOLE_ELE) then ! integrate over whole element
 
+           print *,'1 going into SHAPE_one_ele'
          call SHAPE_one_ele(&
          ndim, cv_ele_type, &
          cv_ngi_short, cv_nloc, u_nloc2,  &
@@ -1708,6 +1709,7 @@
                                 ! Surface element shape funcs
          nface, &
          cv_sloclist, u_sloclist2, cv_snloc, u_snloc2 )
+           print *,'1 just out of SHAPE_one_ele'
 
             if(sbcvngi.ne.scvngi) then
 !              flabort("sbcvngi.ne.scvngi")
@@ -1766,7 +1768,8 @@
          end do Loop_ILEV1
 
       else ! if it is not overlapping formulation
-         if(QUAD_OVER_WHOLE_ELE) then ! integrate over whole element 
+         if(QUAD_OVER_WHOLE_ELE) then ! integrate over whole element
+           print *,'2 going into SHAPE_one_ele' 
          call SHAPE_one_ele(&
          ndim, cv_ele_type, &
          cv_ngi, cv_nloc, u_nloc,  &
