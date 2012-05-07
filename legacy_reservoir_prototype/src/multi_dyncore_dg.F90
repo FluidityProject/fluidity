@@ -1729,8 +1729,8 @@
            overlapping_path )
       if( trim( overlapping_path ) == 'overlapping' ) is_overlapping = .true.
 
-!      QUAD_OVER_WHOLE_ELE=.FALSE. 
-      QUAD_OVER_WHOLE_ELE=.true. 
+      QUAD_OVER_WHOLE_ELE=.FALSE. 
+!      QUAD_OVER_WHOLE_ELE=.true. 
       ! If QUAD_OVER_WHOLE_ELE=.true. then dont divide element into CV's to form quadrature.
       call retrieve_ngi( ndim, u_ele_type, cv_nloc, u_nloc, &
            cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, QUAD_OVER_WHOLE_ELE )
