@@ -663,12 +663,7 @@
 
       ! Now we begin the loop over elements to assemble the advection terms
       ! into the matrix (ACV) and the RHS
-
-      ewrite(3,*)'x,ftheta:'
-      ewrite(3,*) 'cv_ndgln: ', cv_ndgln
-
       Loop_Elements: DO ELE = 1, TOTELE
-
 
          Loop_CV_ILOC: DO CV_ILOC = 1, CV_NLOC ! Loop over the nodes of the element
 
@@ -706,7 +701,6 @@
                   ewrite(3,*)'cv_other_loc:', cv_other_loc( 1 : cv_nloc )
                   ewrite(3,*)'u_other_loc:', u_other_loc( 1 : u_nloc )
                   ewrite(3,*)'mat_other_loc:', mat_other_loc( 1 : mat_nloc )
-                  ewrite(3,*)'x_share:', x_share( cv_nodi )
                   ewrite(3,*) 'INTEGRAT_AT_GI=  ',INTEGRAT_AT_GI
 
                   IF(INTEGRAT_AT_GI) THEN
@@ -734,10 +728,6 @@
                   ! if necessary determine the derivatives between elements ELE and ELE2
 
                   ! Calculate the control volume normals at the Gauss pts.
-                  !     EWRITE(3,*)'************CV_ILOC=',CV_ILOC
-                  if( ele == totele )then
-                     ewrite(3,*)'+++ele, gi:', ele, gi
-                  end if
                   CALL SCVDETNX( ELE,      GI,          &
                        X_NLOC,  SCVNGI,  TOTELE,  &
                        X_NDGLN,  X_NONODS,         &
@@ -747,10 +737,6 @@
                        YC_CV(CV_NODI),     ZC_CV(CV_NODI),    X,       & 
                        Y,        Z,                &
                        D1,       D3,      DCYL )
-!                  if( (ele == 11 ) .or. (ele==10))  then
-!                     ewrite(3,*)'ele, gi, SCVDETWEI, cvnormx, cvnormy:', &
-!                                 ele, gi, SCVDETWEI(gi), cvnormx(gi), cvnormy(gi)
-!                  end if
 
                   ! ================ COMPUTE THE FLUX ACROSS SUB-CV FACE ===============
 
@@ -771,20 +757,21 @@
                            IF(COLCT( COUNT ) == U_NODK) JCOUNT = COUNT
                         END DO
                         JCOUNT_KLOC( U_KLOC ) = JCOUNT
-!                        ewrite(3,*)' jcount1, ele, ele2: ', jcount, ele, ele2
+                        !ewrite(3,*)' jcount1, ele, ele2: ', jcount, ele, ele2
                      END DO
 
                      IF( ( ELE2 /= 0 ) .AND. ( ELE2 /= ELE ) ) THEN
-                        ewrite(3,*)'CV_NODI, CV_NODJ, ELE, ELE2: ', CV_NODI, CV_NODJ, ELE, ELE2
+                        !ewrite(3,*)'CV_NODI, CV_NODJ, ELE, ELE2: ', CV_NODI, CV_NODJ, ELE, ELE2
                         DO U_KLOC = 1, U_NLOC
                            U_NODK = U_NDGLN(( ELE2 - 1 ) * U_NLOC + U_KLOC )
-!                           ewrite(3,*)'U_NODK:',U_NODK
+                           !ewrite(3,*)'U_NODK:',U_NODK, 'findct:',FINDCT( CV_NODI ), FINDCT( CV_NODI + 1 ) - 1
+                           !ewrite(3,*)'colct:',colct( FINDCT( CV_NODJ ) : FINDCT( CV_NODJ + 1 ) - 1 )
                            JCOUNT = 0
-                           DO COUNT = FINDCT( CV_NODI ), FINDCT( CV_NODI + 1 ) - 1, 1
+                           DO COUNT = FINDCT( CV_NODJ ), FINDCT( CV_NODJ + 1 ) - 1, 1
                               IF(COLCT( COUNT ) == U_NODK) JCOUNT = COUNT
                            END DO
                            JCOUNT_KLOC2( U_KLOC ) = JCOUNT
-!                           ewrite(3,*)' jcount2: ', jcount
+                           !ewrite(3,*)' jcount2: ', jcount
                         END DO
 
                      ENDIF
@@ -6209,7 +6196,7 @@
             IF(U_KLOC2 /= 0) THEN
                JCOUNT2_IPHA = JCOUNT_KLOC2( U_KLOC2 ) + (IPHASE - 1) * NCOLCT * NDIM
 
-               RCON    = SCVDETWEI( GI ) * FTHETA_T2 * LIMDT  &
+               RCON = SCVDETWEI( GI ) * FTHETA_T2 * LIMDT  &
                     * SUFEN( U_KLOC, GI ) / DENOLD( CV_NODI_IPHA )
 
                IDIM = 1
