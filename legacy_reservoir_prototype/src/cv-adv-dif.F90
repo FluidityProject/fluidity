@@ -5496,7 +5496,6 @@
          END DO
       END DO
 
-
       NOD_COUNT_SELE=0
       NOD_ON_BOUNDARY=.FALSE.
       DO SELE=1,STOTEL
@@ -5561,6 +5560,10 @@
          END DO
       END DO
 
+      !do ele=1,totele
+      !   ewrite(3,*)'ele',ele,' FACE_ELE(IFACE,ELE):',(FACE_ELE(IFACE,ELE),iface=1,nface) 
+      !end do
+
       ! ***********************************************************    
       ! Now re-arrange ordering of elements in FACE_ELE so they are 
       ! consistent with the local nodes in CV_SLOCLIST
@@ -5599,12 +5602,11 @@
          FACE_ELE(:,ELE)=ELE_ROW(:)
          !     ewrite(3,*)'FACE_ELE(:,ELE):',FACE_ELE(:,ELE)
       END DO
-      !   stop 922
 
-      !    do ele=1,totele
-      !       ewrite(3,*)'ele',ele,' FACE_ELE(IFACE,ELE):',(FACE_ELE(IFACE,ELE),iface=1,nface) 
-      !    end do
-      !    stop 2982
+      !do ele=1,totele
+      !   ewrite(3,*)'ele',ele,' FACE_ELE(IFACE,ELE):',(FACE_ELE(IFACE,ELE),iface=1,nface) 
+      !end do
+      !stop 2982
 
       DEALLOCATE( NOD_BELONG_ELE )
       DEALLOCATE( NOD_COUNT_SELE )

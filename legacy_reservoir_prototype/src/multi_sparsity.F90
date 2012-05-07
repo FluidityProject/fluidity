@@ -274,17 +274,12 @@
       integer :: ele, iloc, jloc, iloc2, nod, inod, jnod, count, ele2, i, hit, &
            iface, iface2, kface, ncolel, itemp, count2
       logical :: found
-
       integer, allocatable, dimension( : ) :: fintran, coltran, icount
-
 
       allocate( fintran( nonods + 1 ))
       allocate( coltran( max( totele, nonods ) * mx_nface_p1 ))
       allocate( icount( nonods * totele ))
-      !allocate( icount( max( nonods, totele )))
 
-
-      ewrite(3,*)' iloc, nod, nonods, totele, icount( nod ) '
       icount = 0
       do ele = 1, totele
          do iloc = 1, nloc
@@ -356,7 +351,7 @@
          finele( ele + 1 ) = finele( ele ) + icount( ele )
       end do
 
-! order elements in increasing order...
+      ! order elements in increasing order...
       count = 0
       Loop_Elements2: do ele = 1, totele
          ! Shorten COLELE then perform a bubble sort to get the ordering right for.
@@ -386,7 +381,6 @@
            if(colele(count)==ele) midele( ele ) = count
          end do
       end do
-
 
       deallocate( fintran )
       deallocate( coltran )
@@ -1250,7 +1244,6 @@
     use sparsity_1D
     use sparsity_ND
     use shape_functions
-!    integer, parameter :: nface_p1 = 3
 
   contains
 
@@ -1342,7 +1335,7 @@
          call def_spar( 1, totele, mxnele, ncolele, &
               midele, finele, colele )
       else
-         call getfinele( totele, cv_nloc, cv_snloc, cv_nonods, cv_ndgln, mx_nface_p1, &
+         call getfinele( totele, cv_nloc, cv_snloc, cv_nonods, x_ndgln, mx_nface_p1, &
               mxnele, ncolele, finele, colele, midele )
       end if Conditional_Dimensional_1
       !ewrite(3,*)'finele: ', size( finele ), '==>', finele( 1 : totele + 1 )
