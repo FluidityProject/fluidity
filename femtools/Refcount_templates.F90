@@ -1,9 +1,11 @@
   subroutine addref_REFCOUNT_TYPE(object)
     !!< Increment the reference count of object creating a new reference
     !!< counter if needed.
+    use parallel_tools, only: abort_if_in_parallel_region
     type(REFCOUNT_TYPE), intent(inout), target :: object
     integer, save :: id = 0
 
+    call abort_if_in_parallel_region
     if (associated(object%refcount)) then
        ! Reference count already exists, just increment it.
        object%refcount%count=object%refcount%count+1
@@ -19,10 +21,12 @@
   subroutine incref_REFCOUNT_TYPE(object)
     !!< Increment the reference count of object. If there are no references
     !!< then error.
+    use parallel_tools, only: abort_if_in_parallel_region
     type(REFCOUNT_TYPE), intent(in), target :: object
     integer, pointer :: ptr !! Dummy pointer to evade compilers which
     !! don't understand the rules for intent.
 
+    call abort_if_in_parallel_region
     if (.not.associated(object%refcount)) then
        FLAbort ("Attempt to incref REFCOUNT_TYPE "//trim(object%name)//" which has no references")
     end if
@@ -37,8 +41,10 @@
     !!< Decrement the reference count on object. If the reference count drops
     !!< to 0 deallocate the refcount as a hint to the calling routine that
     !!< the object can safely be deallocated.
+    use parallel_tools, only: abort_if_in_parallel_region
     type(REFCOUNT_TYPE), intent(inout) :: object
-    
+
+    call abort_if_in_parallel_region
     if (.not.associated(object%refcount)) then
        ! No refcount. Just exit
        return
