@@ -420,7 +420,6 @@
       INTEGER :: I, ELE,u_inod,u_nod
       REAL :: SUM
 
-
       ALLOCATE( NEED_COLOR( CV_NONODS ))
       ALLOCATE( COLOR_VEC( CV_NONODS ))
       ALLOCATE( CDP( U_NONODS * NDIM * NPHASE ))
@@ -433,8 +432,8 @@
       if(.false.) then
 
          ewrite(3,*)'NCOLCT,NDIM,NCOLC,cv_nonods,u_nonods,nphase:', &
-                  NCOLCT,NDIM,NCOLC,cv_nonods,u_nonods,nphase
-!         stop 321
+              NCOLCT,NDIM,NCOLC,cv_nonods,u_nonods,nphase
+         !stop 321
          DO CV_NOD = 1, CV_NONODS
             DO COUNT = FINDCT( CV_NOD ), FINDCT( CV_NOD + 1 ) - 1
                U_JNOD = COLCT( COUNT )
@@ -444,8 +443,8 @@
                   IF(CV_COLJ == CV_NOD) THEN
                      DO IDIM=1,NDIM
                         DO IPHASE=1,NPHASE
-!                           CT(COUNT2+(IDIM-1)*NCOLCT+NCOLCT*NDIM*(IPHASE-1))=  &
-!                                C(COUNT+(IDIM-1)*NCOLC+NCOLC*NDIM*(IPHASE-1))
+                           !CT(COUNT2+(IDIM-1)*NCOLCT+NCOLCT*NDIM*(IPHASE-1))=  &
+                           !     C(COUNT+(IDIM-1)*NCOLC+NCOLC*NDIM*(IPHASE-1))
                            CT(COUNT+(IDIM-1)*NCOLCT+NCOLCT*NDIM*(IPHASE-1))=  &
                                 C(COUNT2+(IDIM-1)*NCOLC+NCOLC*NDIM*(IPHASE-1))
                         END DO
@@ -457,9 +456,9 @@
 
          ewrite(3,*)'colct:'
          DO CV_NOD = 1, CV_NONODS
-              ewrite(3,*) 'cv_NOD=',cv_NOD
-              ewrite(3,*) (colct(count2),COUNT2=FINDCt(cv_NOD),FINDCt(cv_NOD+1)-1)
-              ewrite(3,*) (ct(count2),COUNT2=FINDCt(cv_NOD),FINDCt(cv_NOD+1)-1)
+            ewrite(3,*) 'cv_NOD=',cv_NOD
+            ewrite(3,*) (colct(count2),COUNT2=FINDCt(cv_NOD),FINDCt(cv_NOD+1)-1)
+            ewrite(3,*) (ct(count2),COUNT2=FINDCt(cv_NOD),FINDCt(cv_NOD+1)-1)
          end do
 
          ewrite(3,*)'colc:'
@@ -468,7 +467,7 @@
             ewrite(3,*) (colc(count2),COUNT2=FINDC(U_JNOD),FINDC(U_JNOD+1)-1)
             ewrite(3,*) (c(count2),COUNT2=FINDC(U_JNOD),FINDC(U_JNOD+1)-1)
          end do
-!         stop 221
+         !stop 221
 
       endif
 
@@ -499,7 +498,7 @@
 
                IF( ABS(SUM) < 0.5 ) THEN
                   COLOR_VEC( CV_NOD ) = 1.0
-                  !!                NEED_COLOR( CV_NOD ) = 0.0
+                  !NEED_COLOR( CV_NOD ) = 0.0
                ENDIF
 
             ENDIF
@@ -527,21 +526,20 @@
               C, NCOLC, FINDC, COLC )
          !!DU_LONG = BLOCK_MAT * CDP
          if(.true.) then
-!            do ele=1,totele
-!               ewrite(3,*)'ele=',ele
-!               do i=1,U_nloc*nphase*ndim
-!                  ewrite(3,*)i, INV_PIVIT_MAT(ele,i,:)
-!               end do
-!            end do
-
-!                   INV_PIVIT_MAT=0.0
-!                   do i=1,u_nloc*ndim*nphase
-!                     INV_PIVIT_MAT(:,i,i)=1.0
-!                   end do
+            !            do ele=1,totele
+            !               ewrite(3,*)'ele=',ele
+            !               do i=1,U_nloc*nphase*ndim
+            !                  ewrite(3,*)i, INV_PIVIT_MAT(ele,i,:)
+            !               end do
+            !            end do
+            !                   INV_PIVIT_MAT=0.0
+            !                   do i=1,u_nloc*ndim*nphase
+            !                     INV_PIVIT_MAT(:,i,i)=1.0
+            !                   end do
             CALL PHA_BLOCK_MAT_VEC( DU_LONG, INV_PIVIT_MAT, CDP, U_NONODS, NDIM, NPHASE, &
                  TOTELE, U_NLOC, U_NDGLN )
             ! NB. P_RHS=CT*U + CV_RHS 
-!               DU_LONG=CDP
+            !               DU_LONG=CDP
 
             CALL ULONG_2_UVW( DU, DV, DW, DU_LONG, U_NONODS, NDIM, NPHASE )
 
@@ -572,7 +570,7 @@
 
          !Put into matrix CMC
          DO CV_NOD = 1, CV_NONODS 
-            !         ewrite(3,*)CV_NOD,CMC_COLOR_VEC( CV_NOD )
+            !ewrite(3,*)CV_NOD,CMC_COLOR_VEC( CV_NOD )
 
             DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
                CV_JNOD = COLCMC( COUNT )
@@ -580,7 +578,7 @@
             END DO
 
          END DO
-         !       stop 383
+         !stop 383
 
          SUM = 0.0
          DO CV_NOD = 1, CV_NONODS
@@ -594,39 +592,39 @@
 
       do ncolor=1,-cv_nonods
 
-        COLOR_VEC=0.0
-        COLOR_VEC(ncolor)=1.0
+         COLOR_VEC=0.0
+         COLOR_VEC(ncolor)=1.0
 
-        du_long=0.0
-        cdp=0.0
+         du_long=0.0
+         cdp=0.0
 
          CALL C_MULT( CDP, COLOR_VEC, CV_NONODS, U_NONODS, NDIM, NPHASE, &
-!         CALL C_MULT( CDP, COLOR_VEC, CV_NONODS, U_NONODS, 1, 1, &
               C, NCOLC, FINDC, COLC )
 
-       if(.true.) then
-         du_long=cdp
+         if(.true.) then
+            du_long=cdp
 
-!         CALL ULONG_2_UVW( DU, DV, DW, DU_LONG, U_NONODS, 1, 1 )
-         CALL ULONG_2_UVW( DU, DV, DW, DU_LONG, U_NONODS, NDIM, NPHASE )
+            CALL ULONG_2_UVW( DU, DV, DW, DU_LONG, U_NONODS, NDIM, NPHASE )
 
-         CALL CT_MULT( CMC_COLOR_VEC, DU, DV, DW, CV_NONODS, U_NONODS, 1, 1, &
-!         CALL CT_MULT( CMC_COLOR_VEC, DU, DV, DW, CV_NONODS, U_NONODS, NDIM, NPHASE, &
-              CT, NCOLCT, FINDCT, COLCT )
-       else
-! CMC_COLOR_VEC=c^T CDP
-          CMC_COLOR_VEC=0.0
-          do u_nod=1,u_nonods
-             do count=findc(u_nod),findc(u_nod+1)-1
-                cv_jnod=colc(count)
-                CMC_COLOR_VEC(cv_jnod)=CMC_COLOR_VEC(cv_jnod)+c(count)*CDP(u_nod)
-             end do
-          end do
-       endif
+            CALL CT_MULT( CMC_COLOR_VEC, DU, DV, DW, CV_NONODS, U_NONODS, NDIM, NPHASE, &
+                 CT, NCOLCT, FINDCT, COLCT )
+         else
+            ! CMC_COLOR_VEC=c^T CDP
+            CMC_COLOR_VEC=0.0
+            do u_nod=1,u_nonods
+               do count=findc(u_nod),findc(u_nod+1)-1
+                  cv_jnod=colc(count)
+                  CMC_COLOR_VEC(cv_jnod)=CMC_COLOR_VEC(cv_jnod)+c(count)*CDP(u_nod)
+               end do
+            end do
+         endif
 
       end do
 
-      if(.false.) then
+      if(.true.) then
+
+         print *, 'cdp:', cdp
+
          DO CV_NOD = 1, CV_NONODS
 
             ewrite(3,*) 'cv_nod=',cv_nod

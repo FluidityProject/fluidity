@@ -650,7 +650,7 @@
 
       ELSE ! solve using a projection method
 
-         !ewrite(3,*) 'pivit_mat', pivit_mat
+         ewrite(3,*) 'pivit_mat', pivit_mat
 
          CALL PHA_BLOCK_INV( INV_PIVIT_MAT, PIVIT_MAT, TOTELE, U_NLOC * NPHASE * NDIM )
 
@@ -704,18 +704,16 @@
             END DO
          END DO
 
-         !ewrite(3,*) 'P_RHS::', p_rhs
-         !ewrite(3,*) 'CT_RHS::', ct_rhs
+         ewrite(3,*) 'P_RHS::', p_rhs
+         ewrite(3,*) 'CT_RHS::', ct_rhs
 
          ! solve for pressure correction DP that is solve CMC *DP=P_RHS...
          ewrite(3,*)'about to solve for pressure'
 
-!         stop 999
-
          DP = 0.0
 
          ! Print cmc
-         if(.false.) then
+         if(.true.) then
             DO CV_NOD = 1, CV_NONODS
                ewrite(3,*) 'cv_nod=',cv_nod
                rsum=0.0
@@ -735,6 +733,8 @@
               option_path = '/material_phase[0]/scalar_field::Pressure')
 
          ewrite(3,*)'after pressure solve DP:',DP
+
+         !stop 1245
 
          P = P + DP
 
@@ -764,9 +764,9 @@
 
          CALL ULONG_2_UVW( DU, DV, DW, DU_VEL, U_NONODS, NDIM, NPHASE )
 
-         !ewrite(3,*)'DU', DU
-         !ewrite(3,*)'DV', DV
-         !ewrite(3,*)'DW', DW
+         ewrite(3,*)'DU', DU
+         ewrite(3,*)'DV', DV
+         ewrite(3,*)'DW', DW
 
          U = U + DU
          IF( NDIM >= 2) V = V + DV
@@ -1150,7 +1150,7 @@
       INTEGER, intent( in ) :: CV_NONODS, U_NONODS,  &
            NDIM, NPHASE, NCOLC, TOTELE, U_NLOC, NCOLCT, NCOLCMC
       INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ) :: U_NDGLN 
-      REAL, DIMENSION( NCOLC * NDIM * NPHASE ), intent( inout ) :: C
+      REAL, DIMENSION( NCOLC * NDIM * NPHASE ), intent( in ) :: C
       INTEGER, DIMENSION( U_NONODS + 1 ), intent( in ) :: FINDC
       INTEGER, DIMENSION( NCOLC ), intent( in ) :: COLC
       REAL, DIMENSION( TOTELE, U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM ), intent( in ) :: PIVIT_MAT
@@ -1172,12 +1172,10 @@
       CALL COLOR_GET_CMC_PHA( CV_NONODS, U_NONODS, NDIM, NPHASE, &
            NCOLC, FINDC, COLC, &
            INV_PIVIT_MAT,  &
-                                !            PIVIT_MAT,  &
            TOTELE, U_NLOC, U_NDGLN, &
            NCOLCT, FINDCT, COLCT, DIAG_SCALE_PRES, &
            CMC, NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES, &
            C, CT, NDPSET )
-
 
       DEALLOCATE( INV_PIVIT_MAT )
 
@@ -1715,13 +1713,13 @@
       logical :: is_overlapping   
 
       ewrite(3,*) 'In ASSEMB_FORCE_CTY'
-      !ewrite(3,*) 'Just double-checking sparsity patterns memory allocation:'
-      !ewrite(3,*) 'FINDC with size,', size( FINDC ), ':', FINDC( 1 :  size( FINDC ) )
-      !ewrite(3,*) 'COLC with size,', size( COLC ), ':', COLC( 1 :  size( COLC ) )
-      !ewrite(3,*) 'FINDGM_PHA with size,', size( FINDGM_PHA ), ':', FINDGM_PHA( 1 :  size( FINDGM_PHA ) )
-      !ewrite(3,*) 'COLDGM_PHA with size,', size( COLDGM_PHA ), ':', COLDGM_PHA( 1 :  size( COLDGM_PHA ) )
-      !ewrite(3,*) 'FINELE with size,', size( FINELE ), ':', FINELE( 1 :  size( FINELE ) )
-      !ewrite(3,*) 'COLELE with size,', size( COLELE ), ':', COLELE( 1 :  size( COLELE ) )
+      ewrite(3,*) 'Just double-checking sparsity patterns memory allocation:'
+      ewrite(3,*) 'FINDC with size,', size( FINDC ), ':', FINDC( 1 :  size( FINDC ) )
+      ewrite(3,*) 'COLC with size,', size( COLC ), ':', COLC( 1 :  size( COLC ) )
+      ewrite(3,*) 'FINDGM_PHA with size,', size( FINDGM_PHA ), ':', FINDGM_PHA( 1 :  size( FINDGM_PHA ) )
+      ewrite(3,*) 'COLDGM_PHA with size,', size( COLDGM_PHA ), ':', COLDGM_PHA( 1 :  size( COLDGM_PHA ) )
+      ewrite(3,*) 'FINELE with size,', size( FINELE ), ':', FINELE( 1 :  size( FINELE ) )
+      ewrite(3,*) 'COLELE with size,', size( COLELE ), ':', COLELE( 1 :  size( COLELE ) )
 
 
       is_overlapping = .false.
@@ -1730,8 +1728,7 @@
       if( trim( overlapping_path ) == 'overlapping' ) is_overlapping = .true.
 
       QUAD_OVER_WHOLE_ELE=.FALSE. 
-!      QUAD_OVER_WHOLE_ELE=.true. 
-      ! If QUAD_OVER_WHOLE_ELE=.true. then dont divide element into CV's to form quadrature.
+      !QUAD_OVER_WHOLE_ELE=.TRUE. ! Do NOT divide element into CV's to form quadrature.
       call retrieve_ngi( ndim, u_ele_type, cv_nloc, u_nloc, &
            cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, QUAD_OVER_WHOLE_ELE )
       if(is_overlapping) then
@@ -2286,13 +2283,14 @@
                GRAD_SOU_GI_NMZ = 0.0  
                Loop_GaussPoints1: DO GI = 1, CV_NGI
                   !ewrite(3,*) 'P_JLOC, GI, CVFENX( P_JLOC, GI ):',P_JLOC, GI, CVFENX( P_JLOC, GI )
-                  !ewrite(3,*) 'u_iLOC, GI, UFEN( U_ILOC, GI ):',u_iLOC, GI, UFEN( U_ILOC, GI )
+                  !ewrite(3,*) 'U_ILOC, GI, UFEN( U_ILOC, GI ):',U_ILOC, GI, UFEN( U_ILOC, GI )
                   !ewrite(3,*) 'detwei:', detwei( gi )
                   NMX = NMX + UFEN( U_ILOC, GI ) * CVFENX( P_JLOC, GI ) * DETWEI( GI )
                   NMY = NMY + UFEN( U_ILOC, GI ) * CVFENY( P_JLOC, GI ) * DETWEI( GI )
                   NMZ = NMZ + UFEN( U_ILOC, GI ) * CVFENZ( P_JLOC, GI ) * DETWEI( GI )
 
-                  !ewrite(3,*)  '* i, j, gi', U_ILOC,P_JLOC, gi, ':',UFEN( U_ILOC, GI ), ':',CVFENX( P_JLOC, GI ),  CVFENY( P_JLOC, GI ),  CVFENZ( P_JLOC, GI ), ':', DETWEI( GI )
+                  !ewrite(3,*)  '* i, j, gi', U_ILOC,P_JLOC, gi, ':',UFEN( U_ILOC, GI ), ':', &
+                  !     CVFENX( P_JLOC, GI ),  CVFENY( P_JLOC, GI ),  CVFENZ( P_JLOC, GI ), ':', DETWEI( GI )
 
                   IF( IPLIKE_GRAD_SOU == 1 ) THEN 
                      GRAD_SOU_GI_NMX( : ) = GRAD_SOU_GI_NMX( : )  &
@@ -2358,6 +2356,7 @@
 
       ewrite(3,*) 'c=',c
       print *,'here1 u_rhs:',u_rhs
+      print *, 'disc_pres',  (CV_NONODS == TOTELE * CV_NLOC )
 
       !! *************************loop over surfaces*********************************************
 
@@ -2579,12 +2578,12 @@
                END DO
             ENDIF If_diffusion_or_momentum1
 
-            If_ele2_notzero: IF(ELE2 /= 0) THEN
+            If_ele2_notzero: IF(ELE2 /= 0 .and. .true.) THEN
 
                discontinuous_pres: IF(DISC_PRES) THEN 
                   DO P_SJLOC = 1, CV_SNLOC
                      P_JLOC = CV_SLOC2LOC( P_SJLOC )
-                     !     ewrite(3,*) 'P_SJLOC,p_jloc=',P_SJLOC,p_jloc
+                     !ewrite(3,*) 'P_SJLOC,p_jloc=',P_SJLOC,p_jloc
                      P_JNOD = P_NDGLN(( ELE - 1 ) * P_NLOC + P_JLOC )
                      P_JLOC2 = MAT_OTHER_LOC(P_JLOC)
                      P_JNOD2 = P_NDGLN(( ELE2 - 1 ) * P_NLOC + P_JLOC2 )
@@ -2592,8 +2591,8 @@
                         U_ILOC = U_SLOC2LOC( U_SILOC )
                         U_NLOC2=max(1,U_NLOC/CV_NLOC)
                         ILEV=(U_ILOC-1)/U_NLOC2 + 1
-                        ! IF(U_ELE_TYPE/=2) ILEV=1
-                        ! IF((U_ELE_TYPE/=2).OR.( MAT_OTHER_LOC(ILEV) /= 0)) THEN 
+                        !IF(U_ELE_TYPE/=2) ILEV=1
+                        !IF((U_ELE_TYPE/=2).OR.( MAT_OTHER_LOC(ILEV) /= 0)) THEN 
                         if( .not. is_overlapping ) ilev = 1
                         if( ( .not. is_overlapping ) .or. ( mat_other_loc( ilev ) /= 0 ) ) then
                            U_INOD = U_NDGLN(( ELE - 1 ) * U_NLOC + U_ILOC )
@@ -2617,7 +2616,7 @@
                               ! weight integral according to non-uniformmesh spacing otherwise it will go unstable.
                               IF( VOL_ELE_INT_PRES ) THEN
                                  ! bias the weighting towards bigger eles - works with 0.25 and 0.1 and not 0.01. 
-                                 MASSE=MASS_ELE(ELE)   + 0.25*MASS_ELE(ELE2)
+                                 MASSE=MASS_ELE(ELE) + 0.25*MASS_ELE(ELE2)
                                  MASSE2=MASS_ELE(ELE2) + 0.25*MASS_ELE(ELE)
                               ELSE ! Simple average (works well with IN_ELE_UPWIND=DG_ELE_UPWIND=2)...
                                  MASSE=1.0
@@ -2647,7 +2646,7 @@
                         ENDIF
                      END DO
                   END DO
-                  !  STOP 383
+                  !STOP 383
                ENDIF discontinuous_pres
 
                If_diffusion_or_momentum2: IF(GOT_DIFFUS .OR. GOT_UDEN) THEN

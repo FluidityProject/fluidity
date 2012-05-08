@@ -447,26 +447,20 @@ module mapping_for_ocvfem
 
     end do loop_elements
 
-   open(102,file="velocity_projected_x_1", action='write')
-   open(103,file="velocity_projected_x_2", action='write')
-
-   
-!   ewrite(3,*) "output to file ... "
-   u_iloc= 0
-   
-   do ele = 1, totele ! volume integral
-    do cv_iloc = 1, cv_nloc
-      cv_nodi = cv_ndgln(( ele - 1 ) * cv_nloc + cv_iloc )
-      u_iloc = u_iloc + 1
-      write(102,*) x(cv_nodi), velocity_dg((ele-1)*cv_nloc+cv_iloc,1,1)
-      if(nphase > 1) write(103,*) x(cv_nodi), velocity_dg((ele-1)*cv_nloc+cv_iloc,2,1)
-    end do
-   end do
-   
- 
+   !open(102,file="velocity_projected_x_1", action='write')
+   !open(103,file="velocity_projected_x_2", action='write')
+   !ewrite(3,*) "output to file ... "
+   !u_iloc = 0
+   !do ele = 1, totele ! volume integral
+   !   do cv_iloc = 1, cv_nloc
+   !      cv_nodi = cv_ndgln(( ele - 1 ) * cv_nloc + cv_iloc )
+   !      u_iloc = u_iloc + 1
+   !      write(102,*) x(cv_nodi), velocity_dg((ele-1)*cv_nloc+cv_iloc,1,1)
+   !      if(nphase > 1) write(103,*) x(cv_nodi), velocity_dg((ele-1)*cv_nloc+cv_iloc,2,1)
+   !   end do
+   !end do
    !ewrite(3,*) cv_nloc, u_nloc,x_nloc, totele, x_nonods, u_nonods, cv_nonods, u_iloc, size(x)
- 
-   close(102); close(103)
+   !close(102); close(103)
 
  end subroutine overlapping_to_quadratic_dg
 
