@@ -635,7 +635,6 @@
             END DO
 
          END DO
-         stop 1244 
       endif
 
       DEALLOCATE( NEED_COLOR )
