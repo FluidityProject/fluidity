@@ -2561,7 +2561,11 @@ end if
       real    :: income, v_over_s_dot_n, v_over_s_face_value_dot_n
       real,    dimension(1)                  :: visc_ele, absperm_ele
       real,    dimension(:,:),   allocatable :: grad_pressure_face_quad
+      real,    dimension(:,:),   allocatable :: grad_pressure_ele
+      real,    dimension(:),     allocatable :: v_over_s_local
       real,    dimension(:,:),   allocatable :: grav_ele
+      real,    dimension(:),     allocatable :: den_ele
+      real,    dimension(:),     allocatable :: modrelperm_ele      
       real,    dimension(:,:),   allocatable :: v_over_s_face_quad
       real,    dimension(:,:),   allocatable :: x_ele
       real,    dimension(:,:),   allocatable :: normal
@@ -2591,18 +2595,59 @@ end if
       ! Calculate the darcy_velocity_over_saturation field = - (1.0/sigma) * ( grad_pressure - den * grav), 
       ! where sigma = visc / (absperm * modrelperm)
       
-      do p = 1, di%number_phase
-         
-         ! *** NEED TO FIGURE OUT WHAT TO DO HERE ***
-         ! - how define v_over_s basis? 
-         ! - subcv for linear pressure, what about quadratic pressure --> subcv again or overlapping?!?!
-         ! - or just always go for element wise?
-         ! - or evaluate cv surface values and some sort or remap (although quadrature rule doesnt support this)?!?
-         ! - consider what definition would give div . q_t = 0 for incompressible when d phi / dt = 0
-         
-         call zero(di%darcy_velocity_over_saturation(p)%ptr)
+      allocate(den_ele(ele_loc(di%pressure_mesh,1)))
+      allocate(grav_ele(di%ndim,1))
+      allocate(modrelperm_ele(ele_loc(di%pressure_mesh,1)))
+      allocate(grad_pressure_ele(di%ndim,1))
+      allocate(v_over_s_local(ele_loc(di%pressure_mesh,1)))
       
+      do p = 1, di%number_phase
+                  
+         do vele = 1, element_count(di%velocity_mesh)
+
+            ! Find the element wise absolute_permeability
+            absperm_ele = ele_val(di%absolute_permeability, vele)
+
+            ! Find the element wise viscosity
+            visc_ele = ele_val(di%viscosity(p)%ptr, vele)
+
+            ! Find the element wise local values for modrelperm
+            modrelperm_ele = ele_val(di%modified_relative_permeability(p)%ptr, vele)
+
+            ! Find the element wise local values for density
+            den_ele = ele_val(di%density(p)%ptr, vele)
+         
+            ! The gravity values for this element for each direction
+            grav_ele = ele_val(di%gravity, vele) 
+
+            ! Find the element wise gradient pressure 
+            grad_pressure_ele = ele_val(di%gradient_pressure(p)%ptr, vele)
+
+            do dim = 1,di%ndim
+
+               do iloc = 1, di%velocity_mesh%shape%loc
+               
+                  v_over_s_local(iloc) = - (modrelperm_ele(iloc) * absperm_ele(1) / visc_ele(1)) * &
+                                         & ( grad_pressure_ele(dim,1) - den_ele(iloc) * grav_ele(dim,1))
+                                 
+               end do
+
+               call set(di%darcy_velocity_over_saturation(p)%ptr, &
+                        dim, &
+                        ele_nodes(di%velocity_mesh, vele), &
+                        v_over_s_local)               
+               
+            end do
+
+         end do
+         
       end do 
+
+      deallocate(den_ele)
+      deallocate(grav_ele)
+      deallocate(modrelperm_ele)
+      deallocate(grad_pressure_ele)
+      deallocate(v_over_s_local)
                   
       do p = 1,di%number_phase
          ewrite_minmax(di%darcy_velocity_over_saturation(p)%ptr)
@@ -2612,10 +2657,23 @@ end if
       do p = 1, di%number_phase         
          
          ewrite(1,*) 'Calculate DarcyVelocity for phase ',p
-         
+                  
          call zero(di%darcy_velocity(p)%ptr)
          
-         ! *** Dont know what to do here until the definition of vhi above is decided ***
+         do vele = 1, element_count(di%velocity_mesh)
+                        
+            do dim = 1, di%ndim
+                              
+               call addto(di%darcy_velocity(p)%ptr, &
+                          dim, &
+                          ele_nodes(di%velocity_mesh, vele), &
+                          ele_val(di%old_saturation(p)%ptr, vele))
+                           
+            end do
+            
+         end do 
+
+         call scale(di%darcy_velocity(p)%ptr, di%darcy_velocity_over_saturation(p)%ptr)
                   
          ewrite_minmax(di%darcy_velocity(p)%ptr)
          
@@ -2624,20 +2682,26 @@ end if
       ewrite(1,*) 'Calculate TotalDarcyVelocity'
       
       ! calculate the total darcy velocity
-      call zero(di%total_darcy_velocity)
+      call set(di%total_darcy_velocity, di%darcy_velocity(1)%ptr)
       
-      ! *** Dont know what to do here until the definition of vhi above is decided ***      
-            
+      do p = 2, di%number_phase
+         
+         call addto(di%total_darcy_velocity, di%darcy_velocity(p)%ptr)
+         
+      end do
+
       ewrite_minmax(di%total_darcy_velocity)
             
       ! calculate the fractional flow for each phase
       do p = 1, di%number_phase
          
          ewrite(1,*) 'Calculate FractionalFlow for phase ',p
+                  
+         call set(di%fractional_flow(p)%ptr, di%total_darcy_velocity)
          
-         call zero(di%fractional_flow(p)%ptr)
+         call invert(di%fractional_flow(p)%ptr)
          
-         ! *** Dont know what to do here until the definition of vhi above is decided ***
+         call scale(di%fractional_flow(p)%ptr, di%darcy_velocity(p)%ptr)
                   
          ewrite_minmax(di%fractional_flow(p)%ptr)
       
