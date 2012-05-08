@@ -47,6 +47,7 @@ module advection_diffusion_cg
   use upwind_stabilisation
   use sparsity_patterns_meshes
   use porous_media
+  use multiphase_module
   
   implicit none
   
@@ -112,6 +113,8 @@ module advection_diffusion_cg
   logical :: move_mesh
   ! Include porosity?
   logical :: include_porosity
+  ! Are we running a multiphase flow simulation?
+  logical :: multiphase
 
 contains
 
@@ -212,7 +215,7 @@ contains
     type(scalar_field), intent(inout) :: t
     type(csr_matrix), intent(inout) :: matrix
     type(scalar_field), intent(inout) :: rhs
-    type(state_type), intent(in) :: state
+    type(state_type), intent(inout) :: state
     real, intent(in) :: dt
     character(len = *), optional, intent(in) :: velocity_name
 
@@ -229,6 +232,10 @@ contains
     type(scalar_field), pointer :: density, olddensity
     character(len = FIELD_NAME_LEN) :: density_name
     type(scalar_field), pointer :: pressure
+    
+    ! Volume fraction fields for multiphase flow simulation
+    type(scalar_field), pointer :: vfrac
+    type(scalar_field) :: nvfrac ! Non-linear version
       
     type(element_type) :: supg_element
     
@@ -357,6 +364,7 @@ contains
        call allocate(porosity_theta, t%mesh, field_type=FIELD_TYPE_CONSTANT)
        call set(porosity_theta, 1.0)
     end if
+
     
     ! Step 2: Pull options out of the options tree
     
@@ -473,6 +481,21 @@ contains
                       
       pressure=>extract_scalar_field(state, "Pressure")
       ewrite_minmax(pressure)
+      
+      ! PhaseVolumeFraction for multiphase flow simulations
+      if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
+         multiphase = .true.
+         vfrac => extract_scalar_field(state, "PhaseVolumeFraction")
+         call allocate(nvfrac, vfrac%mesh, "NonlinearPhaseVolumeFraction")
+         call zero(nvfrac)
+         call get_nonlinear_volume_fraction(state, nvfrac)
+         
+         ewrite_minmax(nvfrac)
+      else
+         multiphase = .false.
+         nullify(vfrac)
+      end if
+
     case default
       FLExit("Unknown field equation type for cg advection diffusion.")
     end select
@@ -487,7 +510,7 @@ contains
                                         positions, old_positions, new_positions, &
                                         velocity, grid_velocity, &
                                         source, absorption, diffusivity, &
-                                        density, olddensity, pressure, porosity_theta, &
+                                        density, olddensity, pressure, porosity_theta, nvfrac, &
                                         supg_element)
     end do
 
@@ -521,7 +544,7 @@ contains
         call assemble_advection_diffusion_face_cg(i, t_bc_types(i), t, t_bc, t_bc_2, &
                                                   matrix, rhs, &
                                                   positions, velocity, grid_velocity, &
-                                                  density, olddensity)
+                                                  density, olddensity, nvfrac)
       end do
     
       call deallocate(t_bc)
@@ -536,6 +559,9 @@ contains
     ewrite_minmax(rhs)
     
     call deallocate(velocity)
+    if(equation_type == FIELD_EQUATION_INTERNALENERGY .and. multiphase) then
+       call deallocate(nvfrac)
+    end if
     call deallocate(dummydensity)
     if (stabilisation_scheme == STABILISATION_SUPG) &
          call deallocate(supg_element)
@@ -590,7 +616,7 @@ contains
                                       positions, old_positions, new_positions, &
                                       velocity, grid_velocity, &
                                       source, absorption, diffusivity, &
-                                      density, olddensity, pressure, porosity_theta, supg_shape)
+                                      density, olddensity, pressure, porosity_theta, nvfrac, supg_shape)
     integer, intent(in) :: ele
     type(scalar_field), intent(in) :: t
     type(csr_matrix), intent(inout) :: matrix
@@ -606,6 +632,7 @@ contains
     type(scalar_field), intent(in) :: olddensity
     type(scalar_field), intent(in) :: pressure
     type(scalar_field), intent(in) :: porosity_theta
+    type(scalar_field), intent(in) :: nvfrac
     type(element_type), intent(inout) :: supg_shape
 
     integer, dimension(:), pointer :: element_nodes
@@ -614,6 +641,9 @@ contains
     real, dimension(ele_loc(density, ele), ele_ngi(density, ele), mesh_dim(density)) :: drho_t
     real, dimension(ele_loc(velocity, ele), ele_ngi(velocity, ele), mesh_dim(t)) :: du_t 
     real, dimension(ele_loc(positions, ele), ele_ngi(velocity, ele), mesh_dim(t)) :: dug_t 
+    ! Derivative of shape function for nvfrac field
+    real, dimension(:, :, :), allocatable :: dnvfrac_t
+    
     real, dimension(mesh_dim(t), mesh_dim(t), ele_ngi(t, ele)) :: j_mat 
     type(element_type) :: test_function
     type(element_type), pointer :: t_shape
@@ -686,6 +716,19 @@ contains
       end if
     end if
     
+    if(have_advection .and. multiphase .and. (equation_type==FIELD_EQUATION_INTERNALENERGY)) then
+      ! If the field and nvfrac meshes are different, then we need to
+      ! compute the derivatives of the nvfrac shape functions.
+     
+      allocate(dnvfrac_t(ele_loc(nvfrac, ele), ele_ngi(nvfrac, ele), velocity%dim))      
+
+      if(ele_shape(nvfrac, ele) == t_shape) then
+         dnvfrac_t = dt_t
+      else
+         call transform_to_physical(positions, ele, ele_shape(nvfrac, ele), dshape=dnvfrac_t)
+      end if
+    end if
+
     ! Step 2: Set up test function
     
     select case(stabilisation_scheme)
@@ -709,13 +752,13 @@ contains
     ! Step 3: Assemble contributions
     
     ! Mass
-    if(have_mass) call add_mass_element_cg(ele, test_function, t, density, olddensity, porosity_theta, detwei, detwei_old, detwei_new, matrix_addto, rhs_addto)
+    if(have_mass) call add_mass_element_cg(ele, test_function, t, density, olddensity, porosity_theta, nvfrac, detwei, detwei_old, detwei_new, matrix_addto, rhs_addto)
     
     ! Advection
     if(have_advection) call add_advection_element_cg(ele, test_function, t, &
                                         velocity, grid_velocity, diffusivity, &
-                                        density, olddensity, &
-                                        dt_t, du_t, dug_t, drho_t, detwei, j_mat, matrix_addto, rhs_addto)
+                                        density, olddensity, nvfrac, &
+                                        dt_t, du_t, dug_t, drho_t, dnvfrac_t, detwei, j_mat, matrix_addto, rhs_addto)
         
     ! Absorption
     if(have_absorption) call add_absorption_element_cg(ele, test_function, t, absorption, detwei, matrix_addto, rhs_addto)
@@ -730,23 +773,28 @@ contains
     
     ! Pressure
     if(equation_type==FIELD_EQUATION_INTERNALENERGY) call add_pressurediv_element_cg(ele, test_function, t, &
-                                                                                  velocity, pressure, &
-                                                                                  du_t, detwei, rhs_addto)
+                                                                                  velocity, pressure, nvfrac, &
+                                                                                  du_t, dnvfrac_t, detwei, rhs_addto)
     
     ! Step 4: Insertion
             
     element_nodes => ele_nodes(t, ele)
     call addto(matrix, element_nodes, element_nodes, matrix_addto)
     call addto(rhs, element_nodes, rhs_addto)
+    
+    if(have_advection .and. multiphase .and. (equation_type==FIELD_EQUATION_INTERNALENERGY)) then
+       deallocate(dnvfrac_t)
+    end if
 
   end subroutine assemble_advection_diffusion_element_cg
   
-  subroutine add_mass_element_cg(ele, test_function, t, density, olddensity, porosity_theta, detwei, detwei_old, detwei_new, matrix_addto, rhs_addto)
+  subroutine add_mass_element_cg(ele, test_function, t, density, olddensity, porosity_theta, nvfrac, detwei, detwei_old, detwei_new, matrix_addto, rhs_addto)
     integer, intent(in) :: ele
     type(element_type), intent(in) :: test_function
     type(scalar_field), intent(in) :: t
     type(scalar_field), intent(in) :: density, olddensity
     type(scalar_field), intent(in) :: porosity_theta    
+    type(scalar_field), intent(in) :: nvfrac    
     real, dimension(ele_ngi(t, ele)), intent(in) :: detwei, detwei_old, detwei_new
     real, dimension(ele_loc(t, ele), ele_loc(t, ele)), intent(inout) :: matrix_addto
     real, dimension(ele_loc(t, ele)), intent(inout) :: rhs_addto
@@ -773,6 +821,8 @@ contains
       else
         if (include_porosity) then
           mass_matrix = shape_shape(test_function, ele_shape(t, ele), detwei*density_at_quad*porosity_theta_at_quad)        
+        else if(multiphase) then
+          mass_matrix = shape_shape(test_function, ele_shape(t, ele), detwei*density_at_quad*ele_val_at_quad(nvfrac, ele))
         else
           mass_matrix = shape_shape(test_function, ele_shape(t, ele), detwei*density_at_quad)
         end if
@@ -823,8 +873,8 @@ contains
   
   subroutine add_advection_element_cg(ele, test_function, t, &
                                 velocity, grid_velocity, diffusivity, &
-                                density, olddensity, &
-                                dt_t, du_t, dug_t, drho_t, detwei, j_mat, matrix_addto, rhs_addto)
+                                density, olddensity, nvfrac, &
+                                dt_t, du_t, dug_t, drho_t, dnvfrac_t, detwei, j_mat, matrix_addto, rhs_addto)
     integer, intent(in) :: ele
     type(element_type), intent(in) :: test_function
     type(scalar_field), intent(in) :: t
@@ -832,10 +882,12 @@ contains
     type(vector_field), pointer :: grid_velocity
     type(tensor_field), intent(in) :: diffusivity
     type(scalar_field), intent(in) :: density, olddensity
+    type(scalar_field), intent(in) :: nvfrac
     real, dimension(ele_loc(t, ele), ele_ngi(t, ele), mesh_dim(t)), intent(in) :: dt_t
     real, dimension(ele_loc(velocity, ele), ele_ngi(velocity, ele), mesh_dim(t)) :: du_t
     real, dimension(:, :, :) :: dug_t
     real, dimension(ele_loc(density, ele), ele_ngi(density, ele), mesh_dim(density)), intent(in) :: drho_t
+    real, dimension(:, :, :), intent(in) :: dnvfrac_t
     real, dimension(ele_ngi(t, ele)), intent(in) :: detwei
     real, dimension(mesh_dim(t), mesh_dim(t), ele_ngi(t, ele)), intent(in) :: j_mat 
     real, dimension(ele_loc(t, ele), ele_loc(t, ele)), intent(inout) :: matrix_addto
@@ -849,6 +901,10 @@ contains
     real, dimension(ele_ngi(density, ele)) :: density_at_quad
     real, dimension(velocity%dim, ele_ngi(density, ele)) :: densitygrad_at_quad
     real, dimension(ele_ngi(density, ele)) :: udotgradrho_at_quad
+    
+    real, dimension(ele_ngi(t, ele)) :: nvfrac_at_quad
+    real, dimension(velocity%dim, ele_ngi(t, ele)) :: nvfracgrad_at_quad
+    real, dimension(ele_ngi(t, ele)) :: udotgradnvfrac_at_quad
     
     assert(have_advection)
     
@@ -868,6 +924,10 @@ contains
       densitygrad_at_quad = density_theta*ele_grad_at_quad(density, ele, drho_t) &
                            +(1.-density_theta)*ele_grad_at_quad(olddensity, ele, drho_t)
       udotgradrho_at_quad = sum(densitygrad_at_quad*velocity_at_quad, 1)
+      
+      if(multiphase) then
+         nvfrac_at_quad = ele_val_at_quad(nvfrac, ele)
+      end if
     end select
                 
     if(integrate_advection_by_parts) then
@@ -877,12 +937,27 @@ contains
       !    /                                        /
       select case(equation_type)
       case(FIELD_EQUATION_INTERNALENERGY)
-        advection_mat = -dshape_dot_vector_shape(dt_t, velocity_at_quad, t_shape, detwei*density_at_quad)
+        if(multiphase) then      
+           advection_mat = -dshape_dot_vector_shape(dt_t, velocity_at_quad, t_shape, detwei*density_at_quad*nvfrac_at_quad)
+        else
+           advection_mat = -dshape_dot_vector_shape(dt_t, velocity_at_quad, t_shape, detwei*density_at_quad)
+        end if
+           
         if(abs(1.0 - beta) > epsilon(0.0)) then
           velocity_div_at_quad = ele_div_at_quad(velocity, ele, du_t)
-          advection_mat = advection_mat &
-                    - (1.0-beta) * shape_shape(test_function, t_shape, (velocity_div_at_quad*density_at_quad &
-                                                                      +udotgradrho_at_quad)* detwei)
+          
+          if(multiphase) then
+          
+             nvfracgrad_at_quad = ele_grad_at_quad(nvfrac, ele, dnvfrac_t)
+             udotgradnvfrac_at_quad = sum(nvfracgrad_at_quad*velocity_at_quad, 1)
+             
+             advection_mat = advection_mat - (1.0-beta) * ( shape_shape(test_function, t_shape, detwei*velocity_div_at_quad*density_at_quad*nvfrac_at_quad) &
+                                                           + shape_shape(test_function, t_shape, detwei*nvfrac_at_quad*udotgradrho_at_quad) &
+                                                           + shape_shape(test_function, t_shape, detwei*density_at_quad*udotgradnvfrac_at_quad) )
+          else
+             advection_mat = advection_mat - (1.0-beta) * shape_shape(test_function, t_shape, (velocity_div_at_quad*density_at_quad &
+                                                                  +udotgradrho_at_quad)*detwei)
+          end if
         end if
       case default
         advection_mat = -dshape_dot_vector_shape(dt_t, velocity_at_quad, t_shape, detwei)
@@ -899,12 +974,31 @@ contains
       !  /                                 /
       select case(equation_type)
       case(FIELD_EQUATION_INTERNALENERGY)
-        advection_mat = shape_vector_dot_dshape(test_function, velocity_at_quad, dt_t, detwei*density_at_quad)
+        
+        if(multiphase) then     
+           ! vfrac*rho*nu*grad(internalenergy)
+           advection_mat = shape_vector_dot_dshape(test_function, velocity_at_quad, dt_t, detwei*density_at_quad*nvfrac_at_quad)
+        else
+           advection_mat = shape_vector_dot_dshape(test_function, velocity_at_quad, dt_t, detwei*density_at_quad)
+        end if
+        
         if(abs(beta) > epsilon(0.0)) then
           velocity_div_at_quad = ele_div_at_quad(velocity, ele, du_t)
-          advection_mat = advection_mat &
-                    + beta*shape_shape(test_function, t_shape, (velocity_div_at_quad*density_at_quad &
-                                                                +udotgradrho_at_quad)*detwei)
+          
+          if(multiphase) then
+             ! advection_mat + internalenergy*div(vfrac*rho*nu)
+             ! Split up div(vfrac*rho*nu) = vfrac*rho*div(nu) + nu*grad(vfrac*rho) = vfrac*rho*div(nu) + nu*(vfrac*grad(rho) + rho*grad(nvfrac))
+             
+             nvfracgrad_at_quad = ele_grad_at_quad(nvfrac, ele, dnvfrac_t)
+             udotgradnvfrac_at_quad = sum(nvfracgrad_at_quad*velocity_at_quad, 1)
+             
+             advection_mat = advection_mat + beta * ( shape_shape(test_function, t_shape, detwei*velocity_div_at_quad*density_at_quad*nvfrac_at_quad) &
+                                                     + shape_shape(test_function, t_shape, detwei*nvfrac_at_quad*udotgradrho_at_quad) &
+                                                     + shape_shape(test_function, t_shape, detwei*density_at_quad*udotgradnvfrac_at_quad) )
+          else
+             advection_mat = advection_mat + beta*shape_shape(test_function, t_shape, (velocity_div_at_quad*density_at_quad &
+                                                              +udotgradrho_at_quad)*detwei)
+          end if
         end if
       case default
         advection_mat = shape_vector_dot_dshape(test_function, velocity_at_quad, dt_t, detwei)
@@ -1006,26 +1100,39 @@ contains
     
   end subroutine add_diffusivity_element_cg
   
-  subroutine add_pressurediv_element_cg(ele, test_function, t, velocity, pressure, du_t, detwei, rhs_addto)
+  subroutine add_pressurediv_element_cg(ele, test_function, t, velocity, pressure, nvfrac, du_t, dnvfrac_t, detwei, rhs_addto)
   
     integer, intent(in) :: ele
     type(element_type), intent(in) :: test_function
     type(scalar_field), intent(in) :: t
     type(vector_field), intent(in) :: velocity
     type(scalar_field), intent(in) :: pressure
-    real, dimension(ele_loc(velocity, ele), ele_ngi(velocity, ele), mesh_dim(t)) :: du_t
+    type(scalar_field), intent(in) :: nvfrac
+    real, dimension(ele_loc(velocity, ele), ele_ngi(velocity, ele), mesh_dim(t)), intent(in) :: du_t
+    real, dimension(:, :, :), intent(in) :: dnvfrac_t
     real, dimension(ele_ngi(t, ele)), intent(in) :: detwei
     real, dimension(ele_loc(t, ele)), intent(inout) :: rhs_addto
+    
+    real, dimension(velocity%dim, ele_ngi(t, ele)) :: nvfracgrad_at_quad
+    real, dimension(ele_ngi(t, ele)) :: udotgradnvfrac_at_quad
     
     assert(equation_type==FIELD_EQUATION_INTERNALENERGY)
     assert(ele_ngi(pressure, ele)==ele_ngi(t, ele))
     
-    rhs_addto = rhs_addto - &
-                shape_rhs(test_function, ele_div_at_quad(velocity, ele, du_t) * ele_val_at_quad(pressure, ele) * detwei)
+    if(multiphase) then
+       ! -p * (div(vfrac*nu)) 
+       nvfracgrad_at_quad = ele_grad_at_quad(nvfrac, ele, dnvfrac_t)
+       udotgradnvfrac_at_quad = sum(nvfracgrad_at_quad*ele_val_at_quad(velocity, ele), 1)
+             
+       rhs_addto = rhs_addto - ( shape_rhs(test_function, ele_div_at_quad(velocity, ele, du_t) * ele_val_at_quad(nvfrac, ele) * ele_val_at_quad(pressure, ele) * detwei) &
+                                 + shape_rhs(test_function, udotgradnvfrac_at_quad * ele_val_at_quad(pressure, ele) * detwei) )
+    else
+       rhs_addto = rhs_addto - shape_rhs(test_function, ele_div_at_quad(velocity, ele, du_t) * ele_val_at_quad(pressure, ele) * detwei)
+    end if
     
   end subroutine add_pressurediv_element_cg
   
-  subroutine assemble_advection_diffusion_face_cg(face, bc_type, t, t_bc, t_bc_2, matrix, rhs, positions, velocity, grid_velocity, density, olddensity)
+  subroutine assemble_advection_diffusion_face_cg(face, bc_type, t, t_bc, t_bc_2, matrix, rhs, positions, velocity, grid_velocity, density, olddensity, nvfrac)
     integer, intent(in) :: face
     integer, intent(in) :: bc_type
     type(scalar_field), intent(in) :: t
@@ -1038,6 +1145,7 @@ contains
     type(vector_field), pointer :: grid_velocity
     type(scalar_field), intent(in) :: density
     type(scalar_field), intent(in) :: olddensity
+    type(scalar_field), intent(in) :: nvfrac
     
     integer, dimension(face_loc(t, face)) :: face_nodes
     real, dimension(face_ngi(t, face)) :: detwei
