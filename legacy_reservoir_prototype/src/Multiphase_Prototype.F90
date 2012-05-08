@@ -344,17 +344,17 @@ module mp_prototype
          mx_ncolm, ncolm, findm, colm, midm, mx_nface_p1 )
 
 
-      call check_sparsity( &
-           u_nonods * nphase, cv_nonods * nphase, &
-           u_nonods, cv_nonods, totele, &
-           mx_ncolacv, ncolacv, finacv, colacv, midacv, & ! CV multi-phase eqns (e.g. vol frac, temp)
-           nlenmcy, mx_ncolmcy, ncolmcy, finmcy, colmcy, midmcy, & ! Force balance plus cty multi-phase eqns
-           mxnele, ncolele, midele, finele, colele, & ! Element connectivity 
-           mx_ncoldgm_pha, ncoldgm_pha, coldgm_pha, findgm_pha, middgm_pha, & ! Force balance sparsity  
-           mx_nct, ncolct, findct, colct, & ! CT sparsity - global cty eqn
-           mx_nc, ncolc, findc, colc, & ! C sparsity operating on pressure in force balance
-           mx_ncolcmc, ncolcmc, findcmc, colcmc, midcmc, & ! pressure matrix for projection method
-           mx_ncolm, ncolm, findm, colm, midm ) ! CV-FEM matrix
+      !call check_sparsity( &
+      !     u_nonods * nphase, cv_nonods * nphase, &
+      !     u_nonods, cv_nonods, totele, &
+      !     mx_ncolacv, ncolacv, finacv, colacv, midacv, & ! CV multi-phase eqns (e.g. vol frac, temp)
+     !      nlenmcy, mx_ncolmcy, ncolmcy, finmcy, colmcy, midmcy, & ! Force balance plus cty multi-phase eqns
+     !      mxnele, ncolele, midele, finele, colele, & ! Element connectivity 
+     !      mx_ncoldgm_pha, ncoldgm_pha, coldgm_pha, findgm_pha, middgm_pha, & ! Force balance sparsity  
+      !!     mx_nct, ncolct, findct, colct, & ! CT sparsity - global cty eqn
+      !     mx_nc, ncolc, findc, colc, & ! C sparsity operating on pressure in force balance
+     !      mx_ncolcmc, ncolcmc, findcmc, colcmc, midcmc, & ! pressure matrix for projection method
+    !       mx_ncolm, ncolm, findm, colm, midm ) ! CV-FEM matrix
       
  !     ewrite(3,*) 'mat_nloc, mat_nonods: ', mat_nloc, mat_nonods
  !     ewrite(3,*) 'mat_ndgln: ', mat_ndgln
