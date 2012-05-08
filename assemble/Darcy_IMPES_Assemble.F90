@@ -331,7 +331,7 @@ module darcy_impes_assemble_module
       ! local variables
       logical :: inflow, determine_face_value
       integer :: p, vele, sele, iloc, oloc, jloc, face, gi, ggi, f_ele_counter, f_ele_base, upwind_pos, dim
-      real    :: income, face_value, v_over_s_dot_n, old_modrelperm_absperm_over_visc, grad_cap_p_dot_n
+      real    :: income, face_value, iter_v_over_s_dot_n, old_modrelperm_absperm_over_visc, grad_cap_p_dot_n
       real    :: old_saturation_face_value, old_modrelperm_face_value, g_dot_n, old_den_face_value
       real,    dimension(1)                  :: old_absperm_ele, old_visc_ele
       real,    dimension(:),     allocatable :: old_saturation_ele
@@ -339,9 +339,9 @@ module darcy_impes_assemble_module
       real,    dimension(:),     allocatable :: old_den_ele
       real,    dimension(:,:),   allocatable :: old_grav_ele
       real,    dimension(:),     allocatable :: cfl_ele
-      real,    dimension(:,:),   allocatable :: grad_pressure_face_quad
+      real,    dimension(:,:),   allocatable :: iter_grad_pressure_face_quad
       real,    dimension(:,:),   allocatable :: grad_cap_pressure_face_quad
-      real,    dimension(:,:),   allocatable :: v_over_s_face_quad
+      real,    dimension(:,:),   allocatable :: iter_v_over_s_face_quad
       real,    dimension(:,:),   allocatable :: x_ele
       real,    dimension(:,:,:), allocatable :: p_dshape
       real,    dimension(:,:),   allocatable :: normal
@@ -357,8 +357,8 @@ module darcy_impes_assemble_module
       real,    dimension(1)                  :: old_absperm_ele_bdy, old_visc_ele_bdy
       real,    dimension(:),     allocatable :: old_modrelperm_ele_bdy
       real,    dimension(:,:),   allocatable :: old_grav_ele_bdy
-      real,    dimension(:,:),   allocatable :: grad_pressure_face_quad_bdy
-      real,    dimension(:,:),   allocatable :: v_over_s_face_quad_bdy
+      real,    dimension(:,:),   allocatable :: iter_grad_pressure_face_quad_bdy
+      real,    dimension(:,:),   allocatable :: iter_v_over_s_face_quad_bdy
       real,    dimension(:),     allocatable :: bc_sele_val
       real,    dimension(:),     allocatable :: inv_char_len_ele_bdy
       real,    dimension(:),     allocatable :: old_saturation_ele_bdy
@@ -389,14 +389,14 @@ module darcy_impes_assemble_module
       allocate(old_den_ele(ele_loc(di%pressure_mesh,1)))
       allocate(old_grav_ele(di%ndim,1))
       allocate(cfl_ele(ele_loc(di%pressure_mesh,1)))
-      allocate(grad_pressure_face_quad(di%ndim, di%p_cvshape%ngi))
+      allocate(iter_grad_pressure_face_quad(di%ndim, di%p_cvshape%ngi))
       allocate(grad_cap_pressure_face_quad(di%ndim, di%p_cvshape%ngi))
-      allocate(v_over_s_face_quad(di%ndim,di%p_cvshape%ngi))
+      allocate(iter_v_over_s_face_quad(di%ndim,di%p_cvshape%ngi))
 
       allocate(old_modrelperm_ele_bdy(face_loc(di%pressure_mesh,1)))
       allocate(old_grav_ele_bdy(di%ndim,1))
-      allocate(grad_pressure_face_quad_bdy(di%ndim, di%p_cvbdyshape%ngi))
-      allocate(v_over_s_face_quad_bdy(di%ndim, di%p_cvbdyshape%ngi))
+      allocate(iter_grad_pressure_face_quad_bdy(di%ndim, di%p_cvbdyshape%ngi))
+      allocate(iter_v_over_s_face_quad_bdy(di%ndim, di%p_cvbdyshape%ngi))
       allocate(old_saturation_ele_bdy(face_loc(di%pressure_mesh,1)))      
       allocate(ghost_old_saturation_ele_bdy(face_loc(di%pressure_mesh,1)))
       allocate(bc_sele_val(face_loc(di%pressure_mesh,1)))
@@ -517,8 +517,8 @@ module darcy_impes_assemble_module
             ! get the old_absolute permeability value for this element
             old_absperm_ele = ele_val(di%old_absolute_permeability, vele)         
 
-            ! get the latest gradient pressure at the cv surface quadrature points for each direction for this phase
-            grad_pressure_face_quad = ele_val_at_quad(di%gradient_pressure(p)%ptr, vele, di%gradp_cvshape)
+            ! get the iterated gradient pressure at the cv surface quadrature points for each direction for this phase
+            iter_grad_pressure_face_quad = ele_val_at_quad(di%iterated_gradient_pressure(p)%ptr, vele, di%gradp_cvshape)
             
             ! obtain the transformed determinant*weight and normals
             call transform_cvsurf_to_physical(x_ele, di%x_cvshape, detwei, normal, di%cvfaces)
@@ -533,13 +533,13 @@ module darcy_impes_assemble_module
               &darcy_impes_ele_grad_at_quad_scalar(di%capilliary_pressure(p)%ptr, vele, dn = p_dshape)
             end if
             
-            ! the latest DarcyVelocityOverSaturation at the quadrature points
+            ! the iterated DarcyVelocityOverSaturation at the quadrature points
             ! determined from FE interpolation of each component, only used to determine upwind.
             do dim = 1,di%ndim
 
-               v_over_s_face_quad(dim,:) =  &
+               iter_v_over_s_face_quad(dim,:) =  &
 - (ele_val_at_quad(di%old_modified_relative_permeability(p)%ptr, vele, di%p_cvshape) * old_absperm_ele(1) / old_visc_ele(1)) * &
-  (grad_pressure_face_quad(dim,:) - ele_val_at_quad(di%old_density(p)%ptr, vele, di%p_cvshape) * old_grav_ele(dim,1))
+  (iter_grad_pressure_face_quad(dim,:) - ele_val_at_quad(di%old_density(p)%ptr, vele, di%p_cvshape) * old_grav_ele(dim,1))
 
             end do
             
@@ -581,10 +581,10 @@ module darcy_impes_assemble_module
                                                        &x_face_quad(:,ggi), normal(:,ggi))
 
                        ! determine if the flow is in or out of the face at this quadrature
-                       ! with respect to the normal orientation using the latest v_over_s
-                       v_over_s_dot_n = dot_product(v_over_s_face_quad(:,ggi), normgi)
+                       ! with respect to the normal orientation using the iterated v_over_s
+                       iter_v_over_s_dot_n = dot_product(iter_v_over_s_face_quad(:,ggi), normgi)
 
-                       inflow = (v_over_s_dot_n<=0.0)
+                       inflow = (iter_v_over_s_dot_n<=0.0)
 
                        income = merge(1.0,0.0,inflow)
 
@@ -748,21 +748,21 @@ module darcy_impes_assemble_module
                
                end if
 
-               ! get the latest gradient pressure at the cv surface quadrature points for each direction
-               grad_pressure_face_quad_bdy = face_val_at_quad(di%gradient_pressure(p)%ptr, sele, di%gradp_cvbdyshape)         
+               ! get the iterated gradient pressure at the cv surface quadrature points for each direction
+               iter_grad_pressure_face_quad_bdy = face_val_at_quad(di%iterated_gradient_pressure(p)%ptr, sele, di%gradp_cvbdyshape)         
 
                ! The old gravity values for this element for each direction
                old_grav_ele_bdy = face_val(di%old_gravity, sele) 
 
-               ! the latest DarcyVelocityOverSaturation at the quadrature points
+               ! the iterated DarcyVelocityOverSaturation at the quadrature points
                ! determined from FE interpolation of each component, 
                ! used to determine upwind and also added in certain integrals
                ! associated with weak pressure BCs.
                do dim = 1,di%ndim
 
-                  v_over_s_face_quad_bdy(dim,:) =  &
+                  iter_v_over_s_face_quad_bdy(dim,:) =  &
 - (face_val_at_quad(di%old_modified_relative_permeability(p)%ptr, sele, di%p_cvbdyshape) * old_absperm_ele_bdy(1) / old_visc_ele_bdy(1)) * &
-  (grad_pressure_face_quad_bdy(dim,:) - face_val_at_quad(di%old_density(p)%ptr, sele, di%p_cvbdyshape) * old_grav_ele_bdy(dim,1))
+  (iter_grad_pressure_face_quad_bdy(dim,:) - face_val_at_quad(di%old_density(p)%ptr, sele, di%p_cvbdyshape) * old_grav_ele_bdy(dim,1))
 
                end do
                
@@ -837,8 +837,8 @@ module darcy_impes_assemble_module
                            !        all phases pressure boundary conditions related to phase 1
                            
                            ! determine if the flow is in or out of the face at this quadrature
-                           ! with respect to the normal orientation using the latest v_over_s
-                           v_over_s_dot_n = dot_product(v_over_s_face_quad_bdy(:,ggi), normal_bdy(:,ggi))
+                           ! with respect to the normal orientation using the iterated v_over_s
+                           iter_v_over_s_dot_n = dot_product(iter_v_over_s_face_quad_bdy(:,ggi), normal_bdy(:,ggi))
                            
                            ! Find old_modrelperm * old_absperm / old_visc
                            old_modrelperm_absperm_over_visc = old_modrelperm_ele_bdy(iloc) * old_absperm_ele_bdy(1) / old_visc_ele_bdy(1)
@@ -846,7 +846,7 @@ module darcy_impes_assemble_module
                            ! Find upwind old saturation face value
                            if (determine_face_value) then
 
-                              inflow = (v_over_s_dot_n<=0.0)
+                              inflow = (iter_v_over_s_dot_n<=0.0)
 
                               income = merge(1.0,0.0,inflow)
                            
@@ -862,7 +862,13 @@ module darcy_impes_assemble_module
                               face_value = di%cached_phase_face_value_boundary(p)%value((f_ele_base - 1) + f_ele_counter)
                            
                            end if 
-if (.true.) then
+
+                           ! Add coeff * gradient of pressure term to rhs via iter_v_over_s_dot_n * face_value
+                           !  - which will include gravity and capilliary pressure term as required                         
+                           ! (to be fully implicit part of this should be added to matrix but 2 non linear iterations may save us ...)
+                           p_rhs_local_bdy(iloc) = p_rhs_local_bdy(iloc) - &
+                                                 & iter_v_over_s_dot_n * face_value * detwei_bdy(ggi)
+if (.false.) then
                            ! If have phase pressure BC then include integral of BC value in rhs
                            ! - if not given then this implies adding a zero weak pressure BC
                            if (di%pressure_bc_flag(sele) == PRESSURE_BC_TYPE_WEAKDIRICHLET) then
@@ -898,13 +904,7 @@ if (.true.) then
                                                               di%weak_pressure_bc_coeff
 
                            end do
-end if                           
-                           ! Add coeff * gradient of pressure term to rhs via v_over_s_dot_n * face_value
-                           !  - which will include gravity and capilliary pressure term as required                         
-                           ! (to be fully implicit this should be added to matrix but 2 non linear iterations may save us ...)
-                           p_rhs_local_bdy(iloc) = p_rhs_local_bdy(iloc) - &
-                                                 & v_over_s_dot_n * face_value * detwei_bdy(ggi)
-                                                      
+end if                                                      
                         end if
                         
                      end do bc_quad_loop
@@ -944,14 +944,14 @@ end if
       deallocate(old_den_ele)
       deallocate(old_grav_ele)
       deallocate(cfl_ele)
-      deallocate(grad_pressure_face_quad)
+      deallocate(iter_grad_pressure_face_quad)
       deallocate(grad_cap_pressure_face_quad)
-      deallocate(v_over_s_face_quad)
+      deallocate(iter_v_over_s_face_quad)
 
       deallocate(old_modrelperm_ele_bdy)
       deallocate(old_grav_ele_bdy)
-      deallocate(grad_pressure_face_quad_bdy)
-      deallocate(v_over_s_face_quad_bdy)
+      deallocate(iter_grad_pressure_face_quad_bdy)
+      deallocate(iter_v_over_s_face_quad_bdy)
       deallocate(old_saturation_ele_bdy)
       deallocate(ghost_old_saturation_ele_bdy)
       deallocate(bc_sele_val)
@@ -1250,13 +1250,14 @@ end if
       ! local variables
       logical :: inflow
       integer :: vele, p, iloc, oloc, jloc, face, gi, ggi, sele, f_ele_counter, f_ele_base, dim
-      real    :: income, darcy_vel_face_value_dot_n, v_over_s_dot_n, old_den_face_value
+      real    :: income, darcy_vel_face_value_dot_n, v_over_s_dot_n, iter_v_over_s_dot_n, old_den_face_value
       real    :: cached_face_value, old_modrelperm_absperm_over_visc
       real,    dimension(1)                :: old_absperm_ele, old_visc_ele
       real,    dimension(:,:), allocatable :: grad_pressure_face_quad
+      real,    dimension(:,:), allocatable :: iter_grad_pressure_face_quad
       real,    dimension(:),   allocatable :: old_den_ele
       real,    dimension(:,:), allocatable :: old_grav_ele
-      real,    dimension(:,:), allocatable :: v_over_s_face_quad
+      real,    dimension(:,:), allocatable :: iter_v_over_s_face_quad
       real,    dimension(:,:), allocatable :: x_ele
       real,    dimension(:,:), allocatable :: normal
       real,    dimension(:),   allocatable :: detwei
@@ -1294,9 +1295,10 @@ end if
       allocate(div_tvel_rhs_local(ele_loc(di%pressure_mesh,1)))
       allocate(x_face_quad(di%ndim, di%x_cvshape%ngi))
       allocate(grad_pressure_face_quad(di%ndim, di%p_cvshape%ngi))
+      allocate(iter_grad_pressure_face_quad(di%ndim, di%p_cvshape%ngi))
       allocate(old_den_ele(ele_loc(di%pressure_mesh,1)))
       allocate(old_grav_ele(di%ndim,1))
-      allocate(v_over_s_face_quad(di%ndim,di%p_cvshape%ngi))
+      allocate(iter_v_over_s_face_quad(di%ndim,di%p_cvshape%ngi))
       
       allocate(old_modrelperm_ele_bdy(face_loc(di%pressure_mesh,1)))
       allocate(old_grav_ele_bdy(di%ndim,1))
@@ -1350,17 +1352,21 @@ end if
             ! get the latest gradient pressure at the cv surface quadrature points for each direction for this phase
             grad_pressure_face_quad = ele_val_at_quad(di%gradient_pressure(p)%ptr, vele, di%gradp_cvshape)
 
+            ! get the iterated gradient pressure at the cv surface quadrature points for each direction for this phase
+            ! - only used to determine upwind values, same as pressure assemble
+            iter_grad_pressure_face_quad = ele_val_at_quad(di%iterated_gradient_pressure(p)%ptr, vele, di%gradp_cvshape)
+
             ! obtain the transformed determinant*weight and normals
             call transform_cvsurf_to_physical(x_ele, di%x_cvshape, &
                                               detwei, normal, di%cvfaces)
 
-            ! the latest DarcyVelocityOverSaturation at the quadrature points
-            ! determined from FE interpolation of each component, only used to determine upwind.
+            ! the Iterated DarcyVelocityOverSaturation at the quadrature points
+            ! determined from FE interpolation of each component, only used to determine upwind, same as pressure assemble
             do dim = 1,di%ndim
 
-               v_over_s_face_quad(dim,:) =  &
+               iter_v_over_s_face_quad(dim,:) =  &
 - (ele_val_at_quad(di%old_modified_relative_permeability(p)%ptr, vele, di%p_cvshape) * old_absperm_ele(1) / old_visc_ele(1)) * &
-  (grad_pressure_face_quad(dim,:) - ele_val_at_quad(di%old_density(p)%ptr, vele, di%p_cvshape) * old_grav_ele(dim,1))   
+  (iter_grad_pressure_face_quad(dim,:) - ele_val_at_quad(di%old_density(p)%ptr, vele, di%p_cvshape) * old_grav_ele(dim,1))   
 
             end do
 
@@ -1401,10 +1407,10 @@ end if
                                                        &x_face_quad(:,ggi), normal(:,ggi))
 
                        ! determine if the flow is in or out of the face at this quadrature
-                       ! with respect to the normal orientation using the latest v_over_s
-                       v_over_s_dot_n = dot_product(v_over_s_face_quad(:,ggi), normgi)
+                       ! with respect to the normal orientation using the iterated v_over_s
+                       iter_v_over_s_dot_n = dot_product(iter_v_over_s_face_quad(:,ggi), normgi)
 
-                       inflow = (v_over_s_dot_n<=0.0)
+                       inflow = (iter_v_over_s_dot_n<=0.0)
 
                        income = merge(1.0,0.0,inflow)
 
@@ -1584,9 +1590,10 @@ end if
       deallocate(div_tvel_rhs_local)      
       deallocate(x_face_quad)
       deallocate(grad_pressure_face_quad)
+      deallocate(iter_grad_pressure_face_quad)
       deallocate(old_den_ele)
       deallocate(old_grav_ele)
-      deallocate(v_over_s_face_quad)
+      deallocate(iter_v_over_s_face_quad)
 
       deallocate(old_modrelperm_ele_bdy)
       deallocate(old_grav_ele_bdy)
@@ -1727,6 +1734,7 @@ end if
       call solve_scalar_field_using_cv_cts_mesh(di%saturation(p)%ptr, &
                                                 di%old_saturation(p)%ptr, &
                                                 di%gradient_pressure(p)%ptr, &
+                                                di%iterated_gradient_pressure(p)%ptr, &
                                                 di%old_viscosity(p)%ptr, &
                                                 di%old_modified_relative_permeability(p)%ptr, &
                                                 di%old_absolute_permeability, &
@@ -1775,6 +1783,7 @@ end if
    subroutine solve_scalar_field_using_cv_cts_mesh(sfield, &
                                                    old_sfield, &
                                                    gradient_pressure, &
+                                                   iterated_gradient_pressure, &
                                                    old_viscosity, &
                                                    old_modified_relative_permeability, &
                                                    old_absolute_permeability, &
@@ -1819,10 +1828,13 @@ end if
       !!< Assemble and solve a time+advection equation for the scalar field 
       !!< using CV on a continous mesh with advecting velocity calculated 
       !!< on the go from the relation v_over_s = - K*mod_k/nu (grad P - den*g)
+      !!< as for higher than linear meshes this will avoid complicated basis 
+      !!< (ie overlapping) expansions for the v_over_s.
       
       type(scalar_field),                  intent(inout) :: sfield
       type(scalar_field),                  intent(inout) :: old_sfield
       type(vector_field),                  intent(in)    :: gradient_pressure
+      type(vector_field),                  intent(in)    :: iterated_gradient_pressure
       type(scalar_field),                  intent(in)    :: old_viscosity
       type(scalar_field),                  intent(in)    :: old_modified_relative_permeability
       type(scalar_field),                  intent(in)    :: old_absolute_permeability
@@ -1867,13 +1879,16 @@ end if
       ! local variables
       logical :: inflow, cached_face_value_present, determine_face_value
       integer :: vele, iloc, oloc, jloc, face, gi, ggi, sele, isub, f_ele_counter, f_ele_base, upwind_pos, dim
-      real    :: income, face_value, v_over_s_dot_n, alpha_start, alpha_end, old_modrelperm_absperm_over_visc
+      real    :: income, face_value, v_over_s_dot_n, iter_v_over_s_dot_n
+      real    :: alpha_start, alpha_end, old_modrelperm_absperm_over_visc
       real    :: old_sfield_face_value, old_modrelperm_face_value, old_den_face_value
       real,    dimension(1)                :: old_absperm_ele, old_visc_ele
       real,    dimension(:,:), allocatable :: grad_pressure_face_quad
+      real,    dimension(:,:), allocatable :: iter_grad_pressure_face_quad
       real,    dimension(:),   allocatable :: old_den_ele
       real,    dimension(:,:), allocatable :: old_grav_ele
       real,    dimension(:,:), allocatable :: v_over_s_face_quad
+      real,    dimension(:,:), allocatable :: iter_v_over_s_face_quad
       real,    dimension(:),   allocatable :: old_sfield_subcycle_ele
       real,    dimension(:),   allocatable :: old_modrelperm_ele
       real,    dimension(:),   allocatable :: cfl_subcycle_ele
@@ -1891,7 +1906,9 @@ end if
       real,    dimension(:),   allocatable :: old_modrelperm_ele_bdy
       real,    dimension(:,:), allocatable :: old_grav_ele_bdy
       real,    dimension(:,:), allocatable :: grad_pressure_face_quad_bdy
+      real,    dimension(:,:), allocatable :: iter_grad_pressure_face_quad_bdy
       real,    dimension(:,:), allocatable :: v_over_s_face_quad_bdy
+      real,    dimension(:,:), allocatable :: iter_v_over_s_face_quad_bdy
       real,    dimension(:),   allocatable :: bc_sele_val
       real,    dimension(:),   allocatable :: pressure_ele_bdy
       real,    dimension(:),   allocatable :: inv_char_len_ele_bdy
@@ -1934,14 +1951,18 @@ end if
       allocate(cfl_subcycle_ele(ele_loc(cfl_subcycle,1)))
       allocate(old_modrelperm_ele(ele_loc(sfield,1)))
       allocate(grad_pressure_face_quad(ndim, p_cvshape%ngi))
+      allocate(iter_grad_pressure_face_quad(ndim, p_cvshape%ngi))
       allocate(old_den_ele(ele_loc(sfield,1)))
       allocate(old_grav_ele(ndim,1))
       allocate(v_over_s_face_quad(ndim,p_cvshape%ngi))
+      allocate(iter_v_over_s_face_quad(ndim,p_cvshape%ngi))
 
       allocate(old_modrelperm_ele_bdy(face_loc(sfield,1)))
       allocate(old_grav_ele_bdy(ndim,1))
       allocate(grad_pressure_face_quad_bdy(ndim, p_cvbdyshape%ngi))
+      allocate(iter_grad_pressure_face_quad_bdy(ndim, p_cvbdyshape%ngi))
       allocate(v_over_s_face_quad_bdy(ndim, p_cvbdyshape%ngi))
+      allocate(iter_v_over_s_face_quad_bdy(ndim, p_cvbdyshape%ngi))
       allocate(bc_sele_val(face_loc(sfield,1)))
       allocate(pressure_ele_bdy(face_loc(sfield,1)))
       allocate(inv_char_len_ele_bdy(face_loc(sfield,1)))
@@ -1955,8 +1976,9 @@ end if
             
       ! Solve the sfield for each subcycle via:            
       !  - Form the lhs = cv_mass_sfield_mesh_with_porosity / dt
-      !  - Assemble the rhs_adv contribution via discretising using CV
-      !  - and rhs = rhs_adv + rhs_time, where rhs_time = cv_mass_sfield_mesh_with_old_porosity * old_sfield / dt
+      !  - Form the rhs_time = cv_mass_sfield_mesh_with_old_porosity * old_sfield / dt and add to rhs
+      !  - Assemble the rhs_adv contribution and add to rhs 
+      !  - Apply any strong dirichlet BCs
       !  - solve for latest sfield and copy to start subcycle sfield step
       
       ! Note: the porosity at the start and end of a subcycle time step
@@ -1966,8 +1988,9 @@ end if
       
       ! Allocate and get the BC data. If the BC is time dependent then
       ! the end of overall time step values are used for all subcycles. 
-      allocate(sfield_bc_flag(surface_element_count(sfield)))         
-
+      
+      ! Get the sfield BC info
+      allocate(sfield_bc_flag(surface_element_count(sfield)))
       call get_entire_boundary_condition(sfield, &
                                          (/"weakdirichlet", &
                                            "dirichlet    "/), &
@@ -2046,14 +2069,18 @@ end if
       deallocate(cfl_subcycle_ele)
       deallocate(old_modrelperm_ele)
       deallocate(grad_pressure_face_quad)
+      deallocate(iter_grad_pressure_face_quad)
       deallocate(old_den_ele)
       deallocate(old_grav_ele)
       deallocate(v_over_s_face_quad)
+      deallocate(iter_v_over_s_face_quad)
 
       deallocate(old_modrelperm_ele_bdy)
       deallocate(old_grav_ele_bdy)
       deallocate(grad_pressure_face_quad_bdy)
+      deallocate(iter_grad_pressure_face_quad_bdy)
       deallocate(v_over_s_face_quad_bdy)
+      deallocate(iter_v_over_s_face_quad_bdy)
       deallocate(bc_sele_val)
       deallocate(pressure_ele_bdy)
       deallocate(inv_char_len_ele_bdy)
@@ -2137,12 +2164,16 @@ end if
                ! get the latest gradient pressure at the cv surface quadrature points for each direction 
                grad_pressure_face_quad = ele_val_at_quad(gradient_pressure, vele, gradp_cvshape)
 
+               ! get the iterated gradient pressure at the cv surface quadrature points for each direction 
+               iter_grad_pressure_face_quad = ele_val_at_quad(iterated_gradient_pressure, vele, gradp_cvshape)
+
                ! get the old_viscosity value for this element
                old_visc_ele = ele_val(old_viscosity, vele)
 
                ! get the old_absolute permeability value for this element
                old_absperm_ele = ele_val(old_absolute_permeability, vele)         
-
+               
+               ! Get necessary element data for determining sfield CV face value
                if (determine_face_value) then
 
                   ! get the old_modrelperm ele values
@@ -2168,13 +2199,13 @@ end if
 
                end if
 
-               ! the latest DarcyVelocityOverSaturation at the quadrature points
+               ! the iterated DarcyVelocityOverSaturation at the quadrature points
                ! determined from FE interpolation of each component, only used to determine upwind.
                do dim = 1,ndim
 
-                  v_over_s_face_quad(dim,:) =  &
+                  iter_v_over_s_face_quad(dim,:) =  &
 - (ele_val_at_quad(old_modified_relative_permeability, vele, p_cvshape) * old_absperm_ele(1) / old_visc_ele(1)) * &
-  (grad_pressure_face_quad(dim,:) - ele_val_at_quad(old_density, vele, p_cvshape) * old_grav_ele(dim,1))   
+  (iter_grad_pressure_face_quad(dim,:) - ele_val_at_quad(old_density, vele, p_cvshape) * old_grav_ele(dim,1))   
 
                end do
                               
@@ -2218,13 +2249,14 @@ end if
                                                          &x_face_quad(:,ggi), normal(:,ggi))
 
                          ! determine if the flow is in or out of the face at this quadrature
-                         ! with respect to the normal orientation using latest v_over_s
-                         v_over_s_dot_n = dot_product(v_over_s_face_quad(:,ggi), normgi(:))
+                         ! with respect to the normal orientation using iterated v_over_s
+                         iter_v_over_s_dot_n = dot_product(iter_v_over_s_face_quad(:,ggi), normgi(:))
 
-                         inflow = (v_over_s_dot_n<=0.0)
+                         inflow = (iter_v_over_s_dot_n<=0.0)
 
                          income = merge(1.0,0.0,inflow)
-
+                         
+                         ! Determine the sfield CV face value
                          if (determine_face_value) then
 
                             ! evaluate the nonlinear face value for sfield
@@ -2320,18 +2352,23 @@ end if
                   if (pressure_bc_flag(sele) == PRESSURE_BC_TYPE_WEAKDIRICHLET) then
                       bc_sele_val = ele_val(pressure_bc_value, sele)     
                   end if
-                  grad_pressure_face_quad_bdy = face_val_at_quad(gradient_pressure, sele, gradp_cvbdyshape)         
-                  old_grav_ele_bdy            = face_val(old_gravity, sele) 
-                  pressure_ele_bdy            = face_val(pressure, sele) 
+                  grad_pressure_face_quad_bdy      = face_val_at_quad(gradient_pressure, sele, gradp_cvbdyshape)         
+                  iter_grad_pressure_face_quad_bdy = face_val_at_quad(iterated_gradient_pressure, sele, gradp_cvbdyshape)
+                  old_grav_ele_bdy                 = face_val(old_gravity, sele) 
+                  pressure_ele_bdy                 = face_val(pressure, sele) 
 
-                  ! the latest DarcyVelocityOverSaturation at the quadrature points
+                  ! the latest and iterated DarcyVelocityOverSaturation at the quadrature points
                   ! determined from FE interpolation of each component, 
-                  ! used to determine upwind and also added in certain integrals.
+                  ! used to determine upwind (iterated) and also added in certain integrals (latest).
                   do dim = 1,ndim
 
                      v_over_s_face_quad_bdy(dim,:) =  &
 - (face_val_at_quad(old_modified_relative_permeability, sele, p_cvbdyshape) * old_absperm_ele_bdy(1) / old_visc_ele_bdy(1)) * &
   (grad_pressure_face_quad_bdy(dim,:) - face_val_at_quad(old_density, sele, p_cvbdyshape) * old_grav_ele_bdy(dim,1))   
+
+                     iter_v_over_s_face_quad_bdy(dim,:) =  &
+- (face_val_at_quad(old_modified_relative_permeability, sele, p_cvbdyshape) * old_absperm_ele_bdy(1) / old_visc_ele_bdy(1)) * &
+  (iter_grad_pressure_face_quad_bdy(dim,:) - face_val_at_quad(old_density, sele, p_cvbdyshape) * old_grav_ele_bdy(dim,1))   
 
                   end do
                
@@ -2403,12 +2440,12 @@ end if
                            else                            
                               
                               ! determine if the flow is in or out of the face at this quadrature
-                              ! with respect to the normal orientation using the latest v_over_s
-                              v_over_s_dot_n = dot_product(v_over_s_face_quad_bdy(:,ggi), normal_bdy(:,ggi))
+                              ! with respect to the normal orientation using the iterated v_over_s
+                              iter_v_over_s_dot_n = dot_product(iter_v_over_s_face_quad_bdy(:,ggi), normal_bdy(:,ggi))
                               
                               if (determine_face_value) then
                               
-                                 inflow = (v_over_s_dot_n<=0.0)
+                                 inflow = (iter_v_over_s_dot_n<=0.0)
 
                                  income = merge(1.0,0.0,inflow)
 
@@ -2430,6 +2467,10 @@ end if
                                  face_value = cached_face_value_boundary%value((f_ele_base - 1) + f_ele_counter)                              
                               
                               end if
+
+                              v_over_s_dot_n = dot_product(v_over_s_face_quad_bdy(:,ggi), normal_bdy(:,ggi))
+
+                              s_rhs_local_bdy(iloc) = s_rhs_local_bdy(iloc) - face_value * v_over_s_dot_n * detwei_bdy(ggi)
 if (.false.) then
                               old_modrelperm_absperm_over_visc = old_modrelperm_ele_bdy(iloc) * old_absperm_ele_bdy(1) / old_visc_ele_bdy(1)
 
@@ -2465,8 +2506,6 @@ if (.false.) then
 
                               end do
 end if
-                              s_rhs_local_bdy(iloc) = s_rhs_local_bdy(iloc) - face_value * v_over_s_dot_n * detwei_bdy(ggi)                           
-
                            end if
                            
                         end do bc_quad_loop
@@ -2662,7 +2701,7 @@ end if
             grad_pressure_face_quad = ele_val_at_quad(di%gradient_pressure(p)%ptr, vele, di%gradp_cvshape)
 
             ! the latest DarcyVelocityOverSaturation at the quadrature points
-            ! determined from FE interpolation of each component, only used to determine upwind.
+            ! determined from FE interpolation of each component
             do dim = 1,di%ndim
 
                v_over_s_face_quad(dim,:) =  &
@@ -2764,7 +2803,7 @@ end if
                old_grav_ele_bdy            = face_val(di%old_gravity, sele) 
 
                ! the latest DarcyVelocityOverSaturation at the quadrature points
-               ! determined from FE interpolation of each component, only used to determine upwind.
+               ! determined from FE interpolation of each component
                do dim = 1,di%ndim
 
                   v_over_s_face_quad_bdy(dim,:) =  &
