@@ -340,6 +340,7 @@ program Darcy_IMPES
          ! - CapilliaryPressure
          ! - Porosity?
          ! - AbsolutePermeability?
+         ! - SaturationSource?
          call darcy_impes_calculate_generic_python_diagnostic_fields(di)
       
          ! *** Calculate the latest modified relative permeability, needs to be after the python fields ***
@@ -617,6 +618,7 @@ contains
       call allocate(di%old_sfield_subcycle, di%pressure_mesh)
       call allocate(di%cv_mass_pressure_mesh_with_porosity, di%pressure_mesh)
       call allocate(di%cv_mass_pressure_mesh_with_old_porosity, di%pressure_mesh)
+      call allocate(di%cv_mass_pressure_mesh, di%pressure_mesh)
       
       ! Allocate the modified_relative_permeability array of fields
       allocate(di%old_modified_relative_permeability(di%number_phase))
@@ -630,6 +632,9 @@ contains
       
       ! Calculate the latest CV mass on the pressure mesh with porosity
       call compute_cv_mass(di%positions, di%cv_mass_pressure_mesh_with_porosity, di%porosity)      
+
+      ! Calculate the latest CV mass on the pressure mesh
+      call compute_cv_mass(di%positions, di%cv_mass_pressure_mesh)      
       
       ! Pull phase dependent fields from state
       allocate(di%pressure(di%number_phase))
@@ -641,6 +646,8 @@ contains
       allocate(di%iterated_gradient_pressure(di%number_phase))
       allocate(di%saturation(di%number_phase))
       allocate(di%old_saturation(di%number_phase))
+      allocate(di%saturation_source(di%number_phase))
+      allocate(di%old_saturation_source(di%number_phase))
       allocate(di%relative_permeability(di%number_phase))
       allocate(di%old_relative_permeability(di%number_phase))
       allocate(di%viscosity(di%number_phase))      
@@ -667,6 +674,8 @@ contains
          di%iterated_gradient_pressure(p)%ptr         => extract_vector_field(di%state(p), "IteratedGradientPressure")
          di%saturation(p)%ptr                         => extract_scalar_field(di%state(p), "Saturation")
          di%old_saturation(p)%ptr                     => extract_scalar_field(di%state(p), "OldSaturation")
+         di%saturation_source(p)%ptr                  => extract_scalar_field(di%state(p), "SaturationSource")
+         di%old_saturation_source(p)%ptr              => extract_scalar_field(di%state(p), "OldSaturationSource")
          di%relative_permeability(p)%ptr              => extract_scalar_field(di%state(p), "RelativePermeability")
          di%old_relative_permeability(p)%ptr          => extract_scalar_field(di%state(p), "OldRelativePermeability")
          di%viscosity(p)%ptr                          => extract_scalar_field(di%state(p), "Viscosity")
@@ -847,6 +856,12 @@ contains
       ! Determine if the AbsolutePermeability is diagnostic, else it is prescribed
       di%absolute_permeability_is_diagnostic = have_option('/porous_media/scalar_field::AbsolutePermeability/diagnostic')
       
+      ! Determine if the phase saturation sources are diagnostic, else it is prescribed
+      allocate(di%saturation_source_is_diagnostic(di%number_phase))
+      do p = 1, di%number_phase
+         di%saturation_source_is_diagnostic(p) = have_option(trim(di%saturation_source(p)%ptr%option_path)//'/diagnostic')
+      end do
+      
       ! Determine the CV surface degree to use when integrating functions across them
       call get_option('/geometry/quadrature/controlvolume_surface_degree', &
                       di%cv_surface_quaddegree)
@@ -927,6 +942,7 @@ contains
       ! - CapilliaryPressure (Not first phase)
       ! - Porosity?
       ! - AbsolutePermeability?
+      ! - SaturationSource?
       call darcy_impes_calculate_generic_python_diagnostic_fields(di)
       
       ! Calculate the latest modified relative permeability, needs to be after the python fields
@@ -1016,6 +1032,7 @@ contains
       call deallocate(di%old_sfield_subcycle)      
       call deallocate(di%cv_mass_pressure_mesh_with_porosity)
       call deallocate(di%cv_mass_pressure_mesh_with_old_porosity)
+      call deallocate(di%cv_mass_pressure_mesh)
       
       do p = 1, di%number_phase
          call deallocate(di%modified_relative_permeability(p)%ptr)
@@ -1035,6 +1052,8 @@ contains
       deallocate(di%iterated_gradient_pressure)
       deallocate(di%saturation)
       deallocate(di%old_saturation)
+      deallocate(di%saturation_source)
+      deallocate(di%old_saturation_source)
       deallocate(di%relative_permeability)
       deallocate(di%old_relative_permeability)
       deallocate(di%viscosity)
@@ -1091,6 +1110,8 @@ contains
       
       di%porosity_is_diagnostic              = .false.
       di%absolute_permeability_is_diagnostic = .false.
+      
+      deallocate(di%saturation_source_is_diagnostic)
       
       di%cv_surface_quaddegree = 0
       
@@ -1160,6 +1181,7 @@ contains
       !!< - CapilliaryPressure (Not first phase)
       !!< - Porosity?
       !!< - AbsolutePermeability?
+      !!< - SaturationSource?
       
       type(darcy_impes_type), intent(inout) :: di
       
@@ -1182,6 +1204,16 @@ contains
                                                     current_time = di%current_time, &
                                                     dt           = di%dt)
          
+         end if
+         
+         if (di%saturation_source_is_diagnostic(p)) then
+         
+            call calculate_scalar_python_diagnostic(di%state, &
+                                                    state_index  = p, &
+                                                    s_field      = di%saturation_source(p)%ptr, &
+                                                    current_time = di%current_time, &
+                                                    dt           = di%dt)
+                  
          end if
          
       end do phase_loop

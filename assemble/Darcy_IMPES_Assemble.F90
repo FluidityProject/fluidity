@@ -114,6 +114,8 @@ module darcy_impes_assemble_module
       type(vector_field_pointer), dimension(:), pointer :: fractional_flow
       type(scalar_field_pointer), dimension(:), pointer :: saturation
       type(scalar_field_pointer), dimension(:), pointer :: old_saturation
+      type(scalar_field_pointer), dimension(:), pointer :: saturation_source
+      type(scalar_field_pointer), dimension(:), pointer :: old_saturation_source
       type(scalar_field_pointer), dimension(:), pointer :: relative_permeability
       type(scalar_field_pointer), dimension(:), pointer :: old_relative_permeability
       type(scalar_field_pointer), dimension(:), pointer :: viscosity
@@ -163,6 +165,7 @@ module darcy_impes_assemble_module
       type(scalar_field) :: inverse_cv_mass_pressure_mesh
       type(scalar_field) :: cv_mass_pressure_mesh_with_porosity   
       type(scalar_field) :: cv_mass_pressure_mesh_with_old_porosity 
+      type(scalar_field) :: cv_mass_pressure_mesh
       type(scalar_field) :: cfl_subcycle
       type(scalar_field) :: old_sfield_subcycle
       ! *** The modified relative permeability fields for each phase ***
@@ -203,6 +206,8 @@ module darcy_impes_assemble_module
       logical :: porosity_is_diagnostic
       ! *** Flag for whether the AbsolutePermeability is diagnostic, else it is prescribed *** 
       logical :: absolute_permeability_is_diagnostic
+      ! *** Flag for whether the phase saturation sources are diagnostic, else it is prescribed ***
+      logical, dimension(:), pointer :: saturation_source_is_diagnostic
       ! *** The cached phase face value at each quadrature point summed over subcycles if necessary for each phase ***
       type(cached_face_value_type), dimension(:), pointer :: cached_phase_face_value_domain
       type(cached_face_value_type), dimension(:), pointer :: cached_phase_face_value_boundary
@@ -324,7 +329,7 @@ module darcy_impes_assemble_module
       !!< advection. Any further nonlinear iterations use the cached face value 
       !!< which may contain the summed subcycled face values. A source is included 
       !!< due to the capilliary pressures of non first phases as well as gravity 
-      !!< and the rate of change of porosity.
+      !!< and the rate of change of porosity and the individual phase sources.
       
       type(darcy_impes_type), intent(inout) :: di
       
@@ -413,14 +418,25 @@ module darcy_impes_assemble_module
       ! Initialise the matrix and rhs
       call zero(di%pressure_matrix)
       call zero(di%rhs)
+
+      ewrite(1,*) 'Add phase sources to global continuity'
+      
+      src_phase_loop: do p = 1, di%number_phase
+      
+         call addto(di%rhs, di%saturation_source(p)%ptr)
+      
+      end do src_phase_loop
+      
+      ! Should this include the porosity ...?!?!
+      call scale(di%rhs, di%cv_mass_pressure_mesh)
+            
+      ewrite(1,*) 'Add rate of change of porosity to global continuity equation'
       
       ! Add rate of change of porosity to rhs    
-      call set(di%rhs, di%cv_mass_pressure_mesh_with_old_porosity)
+      call addto(di%rhs, di%cv_mass_pressure_mesh_with_old_porosity, scale = 1.0/di%dt)
                   
-      call addto(di%rhs, di%cv_mass_pressure_mesh_with_porosity, scale = -1.0)
-      
-      call scale(di%rhs, 1.0/di%dt)
-      
+      call addto(di%rhs, di%cv_mass_pressure_mesh_with_porosity, scale = -1.0/di%dt)
+            
       ! Decide if a face value needs to be determined
       determine_face_value = di%nonlinear_iter == 1
 
@@ -669,8 +685,10 @@ module darcy_impes_assemble_module
 
             end do nodal_loop_i
 
-            ! Add volume element contribution to global pressure matrix
+            ! Add volume element contribution to global pressure matrix and rhs
             call addto(di%pressure_matrix, p_nodes, p_nodes, p_mat_local)
+            
+            call addto(di%rhs, p_nodes, p_rhs_local)
 
          end do vol_element_loop
 
@@ -776,8 +794,8 @@ module darcy_impes_assemble_module
 
             call transform_cvsurf_facet_to_physical(x_ele, x_ele_bdy, di%x_cvbdyshape, normal_bdy, detwei_bdy)
 
-            p_rhs_local_bdy    = 0.0
             p_matrix_local_bdy = 0.0
+            p_rhs_local_bdy    = 0.0
 
             bc_iloc_loop: do iloc = 1, di%pressure_mesh%faces%shape%loc
 
@@ -905,10 +923,10 @@ end if
                end do bc_face_loop
 
             end do bc_iloc_loop
-
-            call addto(di%rhs, p_nodes_bdy, p_rhs_local_bdy)
             
             call addto(di%pressure_matrix, p_nodes_bdy, p_nodes_bdy, p_matrix_local_bdy)
+
+            call addto(di%rhs, p_nodes_bdy, p_rhs_local_bdy)
 
          end do sele_loop      
 
@@ -1762,6 +1780,8 @@ end if
                                                 di%pressure_bc_flag, &
                                                 di%inverse_characteristic_length, &
                                                 di%weak_pressure_bc_coeff, &
+                                                di%saturation_source(p)%ptr, &
+                                                di%cv_mass_pressure_mesh, &
                                                 di%rhs_adv, &
                                                 di%rhs_time, &
                                                 di%rhs, &
@@ -1811,6 +1831,8 @@ end if
                                                    pressure_bc_flag, &
                                                    inverse_characteristic_length, &
                                                    weak_pressure_bc_coeff, &
+                                                   s_source, &
+                                                   cv_mass_sfield_mesh, &
                                                    rhs_adv, &
                                                    rhs_time, &
                                                    rhs, &
@@ -1862,6 +1884,8 @@ end if
       integer,               dimension(:), intent(inout) :: pressure_bc_flag
       type(scalar_field),                  intent(in)    :: inverse_characteristic_length
       real,                                intent(in)    :: weak_pressure_bc_coeff
+      type(scalar_field),                  intent(in)    :: s_source
+      type(scalar_field),                  intent(in)    :: cv_mass_sfield_mesh
       type(scalar_field),                  intent(inout) :: rhs_adv
       type(scalar_field),                  intent(inout) :: rhs_time
       type(scalar_field),                  intent(inout) :: rhs
@@ -1982,6 +2006,7 @@ end if
             
       ! Solve the sfield for each subcycle via:            
       !  - Form the lhs = cv_mass_sfield_mesh_with_porosity / dt
+      !  - Add the s_source to rhs
       !  - Form the rhs_time = cv_mass_sfield_mesh_with_old_porosity * old_sfield / dt and add to rhs
       !  - Assemble the rhs_adv contribution and add to rhs 
       !  - Apply any strong dirichlet BCs
@@ -2033,7 +2058,12 @@ end if
 
          call scale(lhs, 1.0/dt_subcycle)
          
-         ! form the rhs_time contribution
+         ! Add the s_source contribution
+         call set(rhs, s_source)
+         
+         call scale(rhs, cv_mass_sfield_mesh)
+         
+         ! form the rhs_time contribution and add
          call set(rhs_time, cv_mass_sfield_mesh_with_porosity)
          
          call scale(rhs_time, alpha_start)
@@ -2042,14 +2072,13 @@ end if
          
          call scale(rhs_time, 1.0/dt_subcycle)
 
-         ! add rhs time term
-         call set(rhs, rhs_time)         
-         call scale(rhs, old_sfield_subcycle)
+         call scale(rhs_time, old_sfield_subcycle)
+
+         call addto(rhs, rhs_time)
          
-         ! assemble the rhs_adv contribution
+         ! assemble the rhs_adv contribution and add
          call assemble_rhs_adv()
 
-         ! add rhs advection term
          call addto(rhs, rhs_adv)
 
          ! apply strong dirichlet BC
@@ -2588,124 +2617,7 @@ end if
       real,    dimension(:),     allocatable :: bc_sele_val
       integer, parameter :: V_OVER_S_BC_TYPE_NORMAL_FLOW = 1, V_OVER_S_BC_TYPE_NO_NORMAL_FLOW = 2
             
-      ewrite(1,*) 'Calculate Velocity, FractionalFlow and CFL fields'
-      
-      ewrite(1,*) 'Calculate DarcyVelocityOverSaturation'
-      
-      ! Calculate the darcy_velocity_over_saturation field = - (1.0/sigma) * ( grad_pressure - den * grav), 
-      ! where sigma = visc / (absperm * modrelperm)
-      
-      allocate(den_ele(ele_loc(di%pressure_mesh,1)))
-      allocate(grav_ele(di%ndim,1))
-      allocate(modrelperm_ele(ele_loc(di%pressure_mesh,1)))
-      allocate(grad_pressure_ele(di%ndim,1))
-      allocate(v_over_s_local(ele_loc(di%pressure_mesh,1)))
-      
-      do p = 1, di%number_phase
-                  
-         do vele = 1, element_count(di%velocity_mesh)
-
-            ! Find the element wise absolute_permeability
-            absperm_ele = ele_val(di%absolute_permeability, vele)
-
-            ! Find the element wise viscosity
-            visc_ele = ele_val(di%viscosity(p)%ptr, vele)
-
-            ! Find the element wise local values for modrelperm
-            modrelperm_ele = ele_val(di%modified_relative_permeability(p)%ptr, vele)
-
-            ! Find the element wise local values for density
-            den_ele = ele_val(di%density(p)%ptr, vele)
-         
-            ! The gravity values for this element for each direction
-            grav_ele = ele_val(di%gravity, vele) 
-
-            ! Find the element wise gradient pressure 
-            grad_pressure_ele = ele_val(di%gradient_pressure(p)%ptr, vele)
-
-            do dim = 1,di%ndim
-
-               do iloc = 1, di%velocity_mesh%shape%loc
-               
-                  v_over_s_local(iloc) = - (modrelperm_ele(iloc) * absperm_ele(1) / visc_ele(1)) * &
-                                         & ( grad_pressure_ele(dim,1) - den_ele(iloc) * grav_ele(dim,1))
-                                 
-               end do
-
-               call set(di%darcy_velocity_over_saturation(p)%ptr, &
-                        dim, &
-                        ele_nodes(di%velocity_mesh, vele), &
-                        v_over_s_local)               
-               
-            end do
-
-         end do
-         
-      end do 
-
-      deallocate(den_ele)
-      deallocate(grav_ele)
-      deallocate(modrelperm_ele)
-      deallocate(grad_pressure_ele)
-      deallocate(v_over_s_local)
-                  
-      do p = 1,di%number_phase
-         ewrite_minmax(di%darcy_velocity_over_saturation(p)%ptr)
-      end do
-      
-      ! calculate the darcy velocity = darcy_velocity_over_saturation * old_saturation
-      do p = 1, di%number_phase         
-         
-         ewrite(1,*) 'Calculate DarcyVelocity for phase ',p
-                  
-         call zero(di%darcy_velocity(p)%ptr)
-         
-         do vele = 1, element_count(di%velocity_mesh)
-                        
-            do dim = 1, di%ndim
-                              
-               call addto(di%darcy_velocity(p)%ptr, &
-                          dim, &
-                          ele_nodes(di%velocity_mesh, vele), &
-                          ele_val(di%old_saturation(p)%ptr, vele))
-                           
-            end do
-            
-         end do 
-
-         call scale(di%darcy_velocity(p)%ptr, di%darcy_velocity_over_saturation(p)%ptr)
-                  
-         ewrite_minmax(di%darcy_velocity(p)%ptr)
-         
-      end do 
-      
-      ewrite(1,*) 'Calculate TotalDarcyVelocity'
-      
-      ! calculate the total darcy velocity
-      call set(di%total_darcy_velocity, di%darcy_velocity(1)%ptr)
-      
-      do p = 2, di%number_phase
-         
-         call addto(di%total_darcy_velocity, di%darcy_velocity(p)%ptr)
-         
-      end do
-
-      ewrite_minmax(di%total_darcy_velocity)
-            
-      ! calculate the fractional flow for each phase
-      do p = 1, di%number_phase
-         
-         ewrite(1,*) 'Calculate FractionalFlow for phase ',p
-                  
-         call set(di%fractional_flow(p)%ptr, di%total_darcy_velocity)
-         
-         call invert(di%fractional_flow(p)%ptr)
-         
-         call scale(di%fractional_flow(p)%ptr, di%darcy_velocity(p)%ptr)
-                  
-         ewrite_minmax(di%fractional_flow(p)%ptr)
-      
-      end do      
+      ewrite(1,*) 'Calculate CFL, Velocity and FractionalFlow fields'
 
       ! allocate arrays used in CFL assemble process - many assume
       ! that all elements are the same type.
@@ -2729,6 +2641,11 @@ end if
       allocate(x_ele_bdy(di%ndim, face_loc(di%positions,1)))      
       allocate(p_nodes_bdy(face_loc(di%pressure_mesh,1)))
       allocate(bc_sele_val(face_loc(di%pressure_mesh,1)))
+      
+      allocate(den_ele(ele_loc(di%pressure_mesh,1)))
+      allocate(modrelperm_ele(ele_loc(di%pressure_mesh,1)))
+      allocate(grad_pressure_ele(di%ndim,1))
+      allocate(v_over_s_local(ele_loc(di%pressure_mesh,1)))
 
       phase_loop: do p = 1, di%number_phase
          
@@ -2935,6 +2852,112 @@ end if
          ewrite_minmax(di%cfl(p)%ptr)
 
       end do phase_loop      
+
+      
+      ewrite(1,*) 'Calculate DarcyVelocityOverSaturation'
+      
+      ! Calculate the darcy_velocity_over_saturation field = - (1.0/sigma) * ( grad_pressure - den * grav), 
+      ! where sigma = visc / (absperm * modrelperm)
+      
+      do p = 1, di%number_phase
+                  
+         do vele = 1, element_count(di%velocity_mesh)
+
+            ! Find the element wise absolute_permeability
+            absperm_ele = ele_val(di%absolute_permeability, vele)
+
+            ! Find the element wise viscosity
+            visc_ele = ele_val(di%viscosity(p)%ptr, vele)
+
+            ! Find the element wise local values for modrelperm
+            modrelperm_ele = ele_val(di%modified_relative_permeability(p)%ptr, vele)
+
+            ! Find the element wise local values for density
+            den_ele = ele_val(di%density(p)%ptr, vele)
+         
+            ! The gravity values for this element for each direction
+            grav_ele = ele_val(di%gravity, vele) 
+
+            ! Find the element wise gradient pressure 
+            grad_pressure_ele = ele_val(di%gradient_pressure(p)%ptr, vele)
+
+            do dim = 1,di%ndim
+
+               do iloc = 1, di%velocity_mesh%shape%loc
+               
+                  v_over_s_local(iloc) = - (modrelperm_ele(iloc) * absperm_ele(1) / visc_ele(1)) * &
+                                         & ( grad_pressure_ele(dim,1) - den_ele(iloc) * grav_ele(dim,1))
+                                 
+               end do
+
+               call set(di%darcy_velocity_over_saturation(p)%ptr, &
+                        dim, &
+                        ele_nodes(di%velocity_mesh, vele), &
+                        v_over_s_local)               
+               
+            end do
+
+         end do
+         
+      end do 
+                  
+      do p = 1,di%number_phase
+         ewrite_minmax(di%darcy_velocity_over_saturation(p)%ptr)
+      end do
+      
+      ! calculate the darcy velocity = darcy_velocity_over_saturation * old_saturation
+      do p = 1, di%number_phase         
+         
+         ewrite(1,*) 'Calculate DarcyVelocity for phase ',p
+                  
+         call zero(di%darcy_velocity(p)%ptr)
+         
+         do vele = 1, element_count(di%velocity_mesh)
+                        
+            do dim = 1, di%ndim
+                              
+               call addto(di%darcy_velocity(p)%ptr, &
+                          dim, &
+                          ele_nodes(di%velocity_mesh, vele), &
+                          ele_val(di%old_saturation(p)%ptr, vele))
+                           
+            end do
+            
+         end do 
+
+         call scale(di%darcy_velocity(p)%ptr, di%darcy_velocity_over_saturation(p)%ptr)
+                  
+         ewrite_minmax(di%darcy_velocity(p)%ptr)
+         
+      end do 
+      
+      ewrite(1,*) 'Calculate TotalDarcyVelocity'
+      
+      ! calculate the total darcy velocity
+      call set(di%total_darcy_velocity, di%darcy_velocity(1)%ptr)
+      
+      do p = 2, di%number_phase
+         
+         call addto(di%total_darcy_velocity, di%darcy_velocity(p)%ptr)
+         
+      end do
+
+      ewrite_minmax(di%total_darcy_velocity)
+            
+      ! calculate the fractional flow for each phase
+      do p = 1, di%number_phase
+         
+         ewrite(1,*) 'Calculate FractionalFlow for phase ',p
+                  
+         call set(di%fractional_flow(p)%ptr, di%total_darcy_velocity)
+         
+         call invert(di%fractional_flow(p)%ptr)
+         
+         call scale(di%fractional_flow(p)%ptr, di%darcy_velocity(p)%ptr)
+                  
+         ewrite_minmax(di%fractional_flow(p)%ptr)
+      
+      end do      
       
       ! deallocate local variables as required
       deallocate(x_ele)
@@ -2957,6 +2980,11 @@ end if
       deallocate(p_nodes_bdy)
       deallocate(cfl_rhs_local_bdy)
       deallocate(bc_sele_val)      
+
+      deallocate(den_ele)
+      deallocate(modrelperm_ele)
+      deallocate(grad_pressure_ele)
+      deallocate(v_over_s_local)
              
    end subroutine darcy_impes_calculate_velocity_and_cfl_fields
 

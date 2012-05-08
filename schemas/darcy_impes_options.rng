@@ -819,6 +819,7 @@ at the first timestep or not.</a:documentation>
           </element>
           <ref name="darcy_impes_saturation_field_spatial_discretisation"/>
           <ref name="darcy_impes_saturation_field_temporal_discretisation_only_explicit"/>
+          <ref name="darcy_impes_saturation_source"/>
           <ref name="darcy_impes_include_cv_stat"/>
           <ref name="scalar_convergence_options"/>
           <ref name="adaptivity_options_prognostic_scalar_field"/>
@@ -838,6 +839,7 @@ at the first timestep or not.</a:documentation>
           <zeroOrMore>
             <ref name="darcy_impes_bc_saturation_field"/>
           </zeroOrMore>
+          <ref name="darcy_impes_saturation_source"/>
           <ref name="darcy_impes_include_cv_stat"/>
           <ref name="scalar_convergence_options"/>
           <ref name="adaptivity_options_prognostic_scalar_field"/>
@@ -866,6 +868,7 @@ at the first timestep or not.</a:documentation>
         <zeroOrMore>
           <ref name="darcy_impes_bc_saturation_field"/>
         </zeroOrMore>
+        <ref name="darcy_impes_saturation_source"/>
         <ref name="darcy_impes_include_cv_stat"/>
         <ref name="scalar_convergence_options"/>
         <ref name="adaptivity_options_prognostic_scalar_field"/>
@@ -961,6 +964,37 @@ Specify the number of advection subcycls. </a:documentation>
           </choice>
         </optional>
       </element>
+    </element>
+  </define>
+  <define name="darcy_impes_saturation_source">
+    <element name="scalar_field">
+      <attribute name="rank">
+        <value>0</value>
+      </attribute>
+      <attribute name="name">
+        <value>Source</value>
+      </attribute>
+      <choice>
+        <element name="prescribed">
+          <element name="mesh">
+            <attribute name="name">
+              <value>PressureMesh</value>
+            </attribute>
+          </element>
+          <ref name="prescribed_scalar_field_no_adapt"/>
+          <ref name="darcy_impes_include_cv_stat"/>
+        </element>
+        <element name="diagnostic">
+          <element name="mesh">
+            <attribute name="name">
+              <value>PressureMesh</value>
+            </attribute>
+          </element>
+          <ref name="scalar_python_diagnostic_algorithm"/>
+          <ref name="darcy_impes_include_cv_stat"/>
+          <ref name="interpolation_algorithm_scalar"/>
+        </element>
+      </choice>
     </element>
   </define>
   <define name="darcy_impes_relative_permeability_field">

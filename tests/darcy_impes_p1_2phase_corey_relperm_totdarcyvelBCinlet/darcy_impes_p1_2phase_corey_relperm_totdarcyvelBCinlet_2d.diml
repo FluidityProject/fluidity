@@ -205,6 +205,19 @@
             </pivot_theta>
           </control_volumes>
         </temporal_discretisation>
+        <scalar_field name="Source" rank="0">
+          <prescribed>
+            <mesh name="PressureMesh"/>
+            <value name="WholeMesh">
+              <constant>
+                <real_value rank="0">0.0</real_value>
+              </constant>
+            </value>
+            <stat>
+              <include_cv_stats/>
+            </stat>
+          </prescribed>
+        </scalar_field>
         <stat>
           <include_cv_stats/>
         </stat>
@@ -398,6 +411,19 @@ for n in range(field.node_count):
             </constant>
           </type>
         </boundary_conditions>
+        <scalar_field name="Source" rank="0">
+          <prescribed>
+            <mesh name="PressureMesh"/>
+            <value name="WholeMesh">
+              <constant>
+                <real_value rank="0">0.0</real_value>
+              </constant>
+            </value>
+            <stat>
+              <include_cv_stats/>
+            </stat>
+          </prescribed>
+        </scalar_field>
         <stat>
           <include_cv_stats/>
         </stat>
