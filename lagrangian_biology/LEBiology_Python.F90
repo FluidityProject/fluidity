@@ -207,13 +207,15 @@ contains
           allocate(envval_ele(size(agent%ele_path)))
           do e=1, size(agent%ele_path)
              val = ele_val(envfields(f)%ptr, agent%ele_path(e))
-             envval_ele = agent%ele_dist(e) * val(1)
+             envval_ele(e) = agent%ele_dist(e) * val(1)
           end do
 
-          envfield_vals(f) = sum(envval_ele) / size(agent%ele_path)
+          envfield_vals(f) = sum(envval_ele)
           path_total = sum(agent%ele_dist)
           if (path_total > 0.0) then
              envfield_vals(f) = envfield_vals(f) / path_total
+          else
+             envfield_vals(f) = eval_field(agent%element, envfields(f)%ptr, agent%local_coords)
           end if
           deallocate(envval_ele)
 

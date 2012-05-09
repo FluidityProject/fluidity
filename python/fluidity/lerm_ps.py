@@ -304,7 +304,7 @@ def update_OWA5_Copepod(param, vars, env, dt):
   Gut_ftemp = ((0.0) if (((Gut_contTemp == 0.0)) and ((vars['V_gut'] == 0.0))) else (math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)))
   Gut_f_new = Gut_ftemp
   I_max = (((0.67 * vars['V_gut']) - Gut_contTemp) / (param['vPrey'] * 1800.0))
-  I_gv = min((((math.pi * math.pow((L * 2.9), 2.0) * 1.0 * env['CopepodPConcentration'] * 1.0 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7 * env['CopepodPConcentration']))))) if ((vars['V_gut'] > 0.0)) else (I_max)), I_max)
+  I_gv = min((((math.pi * math.pow((L * 2.9e-5), 2.0) * 1.0 * env['CopepodPConcentration'] * 1.0e-6 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7e-8 * env['CopepodPConcentration']))))) if ((vars['V_gut'] > 0.0)) else (I_max)), I_max)
   vars['PRequest'] = (dt * I_gv) if (env['CopepodPConcentration'] > param['P_min']) else 0.0
 
   ### Assimilation efficiency ###
@@ -315,7 +315,7 @@ def update_OWA5_Copepod(param, vars, env, dt):
   E_Si = vars['SilicateIngested']
 
   ### Faecal pellet ###
-  PV_egest = (1.4 * (vars['Carbon'] / param['G_max']))
+  PV_egest = (1.4e-6 * (vars['Carbon'] / param['G_max']))
   PV_new = ((0.0) if (((vars['PV'] + (E * dt_in_hours)) >= PV_egest)) else ((vars['PV'] + (E * dt_in_hours))))
   P_amm_new = ((0.0) if (((vars['PV'] + (E * dt_in_hours)) >= PV_egest)) else ((vars['P_amm'] + E_N)))
   Pc_new = ((0.0) if (((vars['PV'] + (E * dt_in_hours)) >= PV_egest)) else ((vars['Pc'] + E_C)))
@@ -468,7 +468,7 @@ def update_C5_Copepod(param, vars, env, dt):
   Gut_ftemp = ((0.0) if (((Gut_contTemp == 0.0)) and ((vars['V_gut'] == 0.0))) else (math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)))
   Gut_f_new = Gut_ftemp
   I_max = (((0.67 * vars['V_gut']) - Gut_contTemp) / (param['vPrey'] * 1800.0))
-  I_gv = min((((math.pi * math.pow((L * 2.9), 2.0) * 1.0 * env['CopepodPConcentration'] * 1.0 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7 * env['CopepodPConcentration']))))) if ((vars['V_gut'] > 0.0)) else (I_max)), I_max)
+  I_gv = min((((math.pi * math.pow((L * 2.9e-5), 2.0) * 1.0 * env['CopepodPConcentration'] * 1.0e-6 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7e-8 * env['CopepodPConcentration']))))) if ((vars['V_gut'] > 0.0)) else (I_max)), I_max)
   vars['PRequest'] = (dt * I_gv) if (env['CopepodPConcentration'] > param['P_min']) else 0.0
 
   ### Assimilation efficiency ###
@@ -479,7 +479,7 @@ def update_C5_Copepod(param, vars, env, dt):
   E_Si = vars['SilicateIngested']
 
   ### Faecal pellet ###
-  PV_egest = (1.4 * (vars['Carbon'] / param['G_max']))
+  PV_egest = (1.4e-6 * (vars['Carbon'] / param['G_max']))
   PV_new = ((0.0) if (((vars['PV'] + (E * dt_in_hours)) >= PV_egest)) else ((vars['PV'] + (E * dt_in_hours))))
   P_amm_new = ((0.0) if (((vars['PV'] + (E * dt_in_hours)) >= PV_egest)) else ((vars['P_amm'] + E_N)))
   Pc_new = ((0.0) if (((vars['PV'] + (E * dt_in_hours)) >= PV_egest)) else ((vars['Pc'] + E_C)))

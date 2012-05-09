@@ -362,6 +362,9 @@ chemical_variable =
                   diagnostic_scalar_field_no_adapt
                }
             },
+            element integrate_along_path {
+               empty
+            }?,
             element include_in_io {
                empty
             }?
@@ -386,6 +389,9 @@ chemical_variable =
                   empty
                }?
             },
+            element integrate_along_path {
+               empty
+            }?,
             element include_in_io {
                empty
             }?
@@ -418,7 +424,10 @@ food_set =
             ## Food requests always need to be aggregated
             element stage_aggregate {
                empty
-            }
+            },
+            element include_in_io {
+               empty
+            }?
          },
          ## Depletion factor
          element scalar_field {
@@ -436,6 +445,9 @@ food_set =
             },
             ## Add diagnostic field that represents the total quantity across all stages of the FG.
             element stage_aggregate {
+               empty
+            }?,
+            element include_in_io {
                empty
             }?
          },

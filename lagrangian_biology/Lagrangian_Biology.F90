@@ -459,8 +459,13 @@ contains
              fgroup%variables(var_index)%field_name = trim(fgroup%name)//"Request"//trim(biovar_name)
              fgroup%variables(var_index)%field_path = trim(var_buffer)//"/uptake/scalar_field::Request"
              fgroup%variables(var_index)%depletion_field_path = trim(var_buffer)//"/uptake/scalar_field::Depletion"
+
              call get_option(trim(var_buffer)//"/uptake/source_field/name", fgroup%variables(var_index)%chemfield)
              call insert_global_uptake_field(fgroup%variables(var_index)%chemfield)
+
+             if (have_option(trim(var_buffer)//"/uptake/integrate_along_path")) then
+                fgroup%variables(var_index)%path_integration = .true.
+             end if
 
              if (have_option(trim(var_buffer)//"/uptake/include_in_io")) then
                 fgroup%variables(var_index)%write_to_file = .true.
@@ -478,6 +483,10 @@ contains
              fgroup%variables(var_index)%field_path = trim(var_buffer)//"/release/scalar_field::Release"
              call get_option(trim(var_buffer)//"/release/target_field/name", fgroup%variables(var_index)%chemfield)
              call insert_global_release_field(fgroup%variables(var_index)%chemfield)
+
+             if (have_option(trim(var_buffer)//"/release/integrate_along_path")) then
+                fgroup%variables(var_index)%path_integration = .true.
+             end if
 
              if (have_option(trim(var_buffer)//"/release/include_in_io")) then
                 fgroup%variables(var_index)%write_to_file = .true.
@@ -513,6 +522,10 @@ contains
        fgroup%variables(var_index)%field_path = trim(food_buffer)//"/scalar_field::Request"
        fgroup%variables(var_index)%depletion_field_path = trim(food_buffer)//"/scalar_field::Depletion"
        fgroup%food_sets(i)%request_ind = var_index
+       if (have_option(trim(food_buffer)//"/scalar_field::Request/include_in_io")) then
+          fgroup%variables(var_index)%write_to_file = .true.
+       end if
+
        var_index = var_index+1
 
        fgroup%variables(var_index)%name = trim(food_name)//"IngestedCells"
@@ -520,6 +533,9 @@ contains
        fgroup%variables(var_index)%field_name = trim(fgroup%name)//trim(food_name)//"IngestedCells"
        fgroup%variables(var_index)%field_path = trim(food_buffer)//"/scalar_field::IngestedCells"
        fgroup%food_sets(i)%ingest_ind = var_index
+       if (have_option(trim(food_buffer)//"/scalar_field::IngestedCells/include_in_io")) then
+          fgroup%variables(var_index)%write_to_file = .true.
+       end if
        var_index = var_index+1
 
        ! Now we collect the indices of the chemical pools to ingest
@@ -623,10 +639,13 @@ contains
     xfield=>extract_vector_field(state(1), "Coordinate")
 
     ! Prepare python-state
-    call profiler_tic("/update_lagrangian_biology::python_reload")
-    call python_reset()
-    call python_add_state(state(1))
-    call profiler_toc("/update_lagrangian_biology::python_reload")
+    ! Note: Currently disabled for performance reasons. 
+    ! Actually only needed for Python RW with field sampling
+
+    !call profiler_tic("/update_lagrangian_biology::python_reload")
+    !call python_reset()
+    !call python_add_state(state(1))
+    !call profiler_toc("/update_lagrangian_biology::python_reload")
 
     do fg=1, get_num_functional_groups()
        fgroup => get_functional_group(fg)
@@ -640,6 +659,12 @@ contains
           allocate(env_fields(size(fgroup%envfield_names)))
           do env=1, size(fgroup%envfield_names)
              env_fields(env)%ptr => extract_scalar_field(state(1), fgroup%envfield_names(env))
+
+             ! If we want to integrate along the agent path we need to check that field is P0
+             if (fgroup%envfield_integrate(env) .and. &
+                 element_degree(env_fields(env)%ptr, 1) /= 0) then
+                FLExit("Path integration only available for P0 environment fields")
+             end if
           end do
        end if
 
@@ -848,8 +873,8 @@ contains
     type(scalar_field_pointer), dimension(size(agent_list%fgroup%variables)) :: diagfields
     type(scalar_field), pointer :: agent_count_field
     type(detector_type), pointer :: agent
-    integer :: i
-    real :: ele_volume, release_amount
+    integer :: i, ele
+    real :: ele_volume, release_amount, path_total, quantity, ele_path_volume
 
     ewrite(2,*) "Lagrangian biology: Deriving primary diagnostic fields for ", (agent_list%name)
 
@@ -897,7 +922,24 @@ contains
                   agent_list%fgroup%variables(i)%field_type == BIOFIELD_FOOD_REQUEST .or. &
                   agent_list%fgroup%variables(i)%field_type == BIOFIELD_FOOD_INGEST) then
 
-             call addto(diagfields(i)%ptr, agent%element, agent%biology(i)*agent%biology(BIOVAR_SIZE))
+             if (agent_list%fgroup%variables(i)%path_integration) then
+
+                ! Integrate along the path of the agent
+                if (allocated(agent%ele_path)) then                   
+                   path_total = sum(agent%ele_dist)
+                   quantity = agent%biology(i)*agent%biology(BIOVAR_SIZE)
+
+                   do ele=1, size(agent%ele_path)
+                      ele_path_volume = element_volume(xfield, agent%ele_path(ele))
+                      call addto(diagfields(i)%ptr, agent%ele_path(ele), (agent%ele_dist(ele) / path_total) * (quantity / ele_path_volume))
+                   end do
+                else
+                   call addto(diagfields(i)%ptr, agent%element, agent%biology(i)*agent%biology(BIOVAR_SIZE) / ele_volume)
+                end if
+             else
+
+                call addto(diagfields(i)%ptr, agent%element, agent%biology(i)*agent%biology(BIOVAR_SIZE) / ele_volume)
+             end if
           end if
        end do
 
@@ -988,8 +1030,8 @@ contains
     type(detector_type), pointer :: agent
     integer :: i, j, n, ele, ingest_ind, fg, stage
     integer, dimension(:), pointer :: element_nodes
-    real :: chemval, chemval_new, chem_integral
-    real, dimension(1) :: request, depletion
+    real :: chemval, chemval_new, chem_integral, path_total, ele_volume, request
+    real, dimension(1) :: depletion
 
     ! Exit if there are no uptake fields
     if (.not.associated(uptake_field_names)) return
@@ -1009,12 +1051,14 @@ contains
 
        ! Loop over all elements in chemical fields
        do ele=1,ele_count(chemfield)
+          ele_volume = element_volume(xfield, ele)
+
           chem_integral = integral_element(chemfield, xfield, ele)
-          request = ele_val(request_field, ele)
+          request = integral_element(request_field, xfield, ele)
 
           ! Derive depletion factor
-          if (request(1) > chem_integral .and. request(1) > 0.0) then 
-             depletion(1) = chem_integral / request(1)
+          if (request > chem_integral .and. request > 0.0) then 
+             depletion(1) = chem_integral / request
           else
              depletion(1) = 1.0
           end if
@@ -1028,7 +1072,7 @@ contains
              ! since it will cause NaNs in the solvers. Instead use tiny()
              if (chem_integral > 0.0) then 
                 ! C := C (1 - S/C_bar )
-                chemval_new = chemval * (1.0 - (request(1) * depletion(1) / chem_integral))
+                chemval_new = chemval * (1.0 - (request * depletion(1) / chem_integral))
                 if (chemval_new > 0.0) then
                    call set(chemfield, element_nodes(n), chemval_new)
                 else
@@ -1055,9 +1099,18 @@ contains
 
                    agent => agent_array%first
                    do while (associated(agent))
-                      depletion = ele_val(depletion_field, agent%element)
                       ingest_ind = fgroup%variables( fgroup%variables(j)%pool_index )%ingest_index
-                      agent%biology(ingest_ind) = agent%biology(ingest_ind) + depletion(1) * agent%biology(j)
+
+                      if (fgroup%variables(j)%path_integration) then
+                         path_total = sum(agent%ele_dist)
+                         do ele=1, size(agent%ele_path)
+                            depletion = ele_val(depletion_field, agent%ele_path(ele))
+                            agent%biology(ingest_ind) = agent%biology(ingest_ind) + depletion(1) * agent%biology(j) * agent%ele_dist(ele) / path_total
+                         end do
+                      else
+                         depletion = ele_val(depletion_field, agent%element)
+                         agent%biology(ingest_ind) = agent%biology(ingest_ind) + depletion(1) * agent%biology(j)
+                      end if
 
                       agent => agent%next
                    end do
@@ -1080,8 +1133,7 @@ contains
     type(detector_type), pointer :: agent
     integer :: i, j, n, ele, poolvar
     integer, dimension(:), pointer :: element_nodes
-    real :: chemval, chemval_new, chem_integral, ele_volume
-    real, dimension(1) :: release
+    real :: chemval, chemval_new, chem_integral, ele_volume, release
 
     ! Exit if there are no release fields
     if (.not.associated(release_field_names)) return
@@ -1101,7 +1153,7 @@ contains
        ! Loop over all elements in chemical fields
        do ele=1,ele_count(chemfield)
           chem_integral = integral_element(chemfield, xfield, ele)
-          release = ele_val(release_field, ele)
+          release = integral_element(release_field, xfield, ele)
 
           ! Set new chemical concentration
           element_nodes=>ele_nodes(chemfield, ele)
@@ -1111,7 +1163,7 @@ contains
              ! since it will cause NaNs in the solvers. Instead use tiny()
              if (chem_integral > 0.0) then 
                 ! C := C (1 + S/C_bar )
-                chemval_new = chemval * (1.0 + (release(1) / chem_integral))
+                chemval_new = chemval * (1.0 + (release / chem_integral))
                 if (chemval_new > 0.0) then
                    call set(chemfield, element_nodes(n), chemval_new)
                 else
@@ -1121,8 +1173,8 @@ contains
                 ! If there is zero chemical in this element 
                 ! we turn the total quantity into an evenly distributed concentration
                 ele_volume = element_volume(xfield, ele)
-                if (release(1) > 0.0) then
-                   call set(chemfield, element_nodes(n), release(1) / ele_volume)
+                if (release > 0.0) then
+                   call set(chemfield, element_nodes(n), release / ele_volume)
                 else
                    call set(chemfield, element_nodes(n), tiny(1.0))
                 end if 
@@ -1185,8 +1237,8 @@ contains
     type(food_set), pointer :: fset
     type(le_variable), pointer :: request_var, chempool_var
     type(detector_type), pointer :: agent
-    real, dimension(1) :: conc, request, depletion, chem_conc
-    real :: prop, old_size
+    real :: conc, request, chem_conc, prop, old_size
+    real, dimension(1) :: depletion
     integer :: i, c, fs, fg, t, ele, ingest_ind, stage
 
     ewrite(2,*) "Lagrangian_biology: Handling ingestion"
@@ -1208,11 +1260,11 @@ contains
              ! Loop over all elements in the source concentration field
              do ele=1,ele_count(conc_field)
                 conc = integral_element(conc_field, xfield, ele)
-                request = ele_val(request_field, ele)
+                request = integral_element(request_field, xfield, ele)
 
                 ! Derive depletion factor
-                if (request(1) > conc(1) .and. request(1) > 0.0) then 
-                   depletion(1) = conc(1) / request(1)
+                if (request > conc .and. request > 0.0) then 
+                   depletion(1) = conc / request
                 else
                    depletion(1) = 1.0
                 end if
@@ -1240,8 +1292,8 @@ contains
                    do c=1, size(fset%ingest_chem_inds)
                       ingest_ind = fgroup%variables( fset%ingest_chem_inds(c) )%ingest_index
                       chem_conc = integral_element(prey_chem_fields(c)%ptr, xfield, agent%element)
-                      if (conc(1) > 0.0) then
-                         agent%biology(ingest_ind) = agent%biology(ingest_ind) + ( agent%biology(fset%ingest_ind) * (chem_conc(1) / conc(1)) ) / agent%biology(BIOVAR_SIZE)
+                      if (conc > 0.0) then
+                         agent%biology(ingest_ind) = agent%biology(ingest_ind) + ( agent%biology(fset%ingest_ind) * (chem_conc / conc) ) / agent%biology(BIOVAR_SIZE)
                       end if
                    end do
 
@@ -1254,16 +1306,16 @@ contains
              do t=1, size(fset%target_agent_lists)
                 agent => fset%target_agent_lists(t)%ptr%first
                 do while (associated(agent))
-                   request = ele_val(request_field, agent%element)
-                   if (request(1) > 0.0) then     
+                   request = integral_element(request_field, xfield, ele)
+                   if (request > 0.0) then     
                       conc = integral_element(conc_field, xfield, agent%element)
-                      if (conc(1) > 0.0) then                 
+                      if (conc > 0.0) then                 
                          depletion = ele_val(depletion_field, agent%element)
                          old_size = agent%biology(BIOVAR_SIZE)
 
                          ! Proportion of food ingested
-                         prop = old_size / conc(1)
-                         agent%biology(BIOVAR_SIZE) = old_size - (prop * request(1) * depletion(1))
+                         prop = old_size / conc
+                         agent%biology(BIOVAR_SIZE) = old_size - (prop * request * depletion(1))
                       end if
                    end if
 

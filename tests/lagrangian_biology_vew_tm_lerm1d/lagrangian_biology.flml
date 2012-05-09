@@ -84,7 +84,7 @@ Note: For 2-year runs with VEW data use: 63070200</comment>
               <anisotropic_symmetric>
                 <python>
                   <string_value lines="20" type="code" language="python">from __builtin__ import str
-from toymodel import read_physics
+from toymodel import read_physics_toy as read_physics
 global calc_mu, visser_curve, quadratic_mu
 
 if not persistent.has_key('physics_fh'):
@@ -177,7 +177,7 @@ def val(X,t):
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">from toymodel import read_physics
+            <string_value lines="20" type="code" language="python">from toymodel import read_physics_toy as read_physics
 
 if not persistent.has_key('physics_fh'):
   read_physics(persistent)
@@ -203,7 +203,7 @@ def val(X,t):
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">from toymodel import read_physics
+            <string_value lines="20" type="code" language="python">from toymodel import read_physics_toy as read_physics
 
 if not persistent.has_key('physics_fh'):
   read_physics(persistent)
@@ -269,7 +269,7 @@ def val(X,t):
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">from toymodel import read_chemistry
+            <string_value lines="20" type="code" language="python">from toymodel import read_chemistry_toy as read_chemistry
 
 if not persistent.has_key('chem_ammonium'):
   read_chemistry(persistent)
@@ -339,7 +339,7 @@ def val(X,t):
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">from toymodel import read_chemistry
+            <string_value lines="20" type="code" language="python">from toymodel import read_chemistry_toy as read_chemistry
 
 if not persistent.has_key('chem_nitrate'):
   read_chemistry(persistent)
@@ -409,7 +409,7 @@ def val(X,t):
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">from toymodel import read_chemistry
+            <string_value lines="20" type="code" language="python">from toymodel import read_chemistry_toy as read_chemistry
 
 if not persistent.has_key('chem_silicate'):
   read_chemistry(persistent)
@@ -903,7 +903,9 @@ def val(biovars, env, dt):
           <state_variable name="Pc"/>
           <state_variable name="Dlocal_previous"/>
           <state_variable name="C_shell"/>
-          <state_variable name="V_gut"/>
+          <state_variable name="V_gut">
+            <include_in_io/>
+          </state_variable>
           <state_variable name="PV"/>
           <state_variable name="Direction">
             <history>
@@ -912,16 +914,20 @@ def val(biovars, env, dt):
           </state_variable>
           <state_variable name="Prey_VolDaily"/>
           <state_variable name="P_amm"/>
-          <state_variable name="Gut_f"/>
+          <state_variable name="Gut_f">
+            <include_in_io/>
+          </state_variable>
           <state_variable name="Gut_content"/>
           <state_variable name="z">
             <include_in_motion/>
             <history>
               <integer_value rank="0">2</integer_value>
             </history>
+            <include_in_io/>
           </state_variable>
           <state_variable name="V_m">
             <include_in_motion/>
+            <include_in_io/>
           </state_variable>
           <chemical_variable name="C_N">
             <scalar_field name="Particulate">
@@ -935,6 +941,7 @@ def val(biovars, env, dt):
               </diagnostic>
               <stage_aggregate/>
             </scalar_field>
+            <include_in_io/>
           </chemical_variable>
           <chemical_variable name="C_NN">
             <scalar_field name="Particulate">
@@ -948,6 +955,7 @@ def val(biovars, env, dt):
               </diagnostic>
               <stage_aggregate/>
             </scalar_field>
+            <include_in_io/>
           </chemical_variable>
           <chemical_variable name="Ammonium">
             <scalar_field name="Particulate">
@@ -1007,7 +1015,9 @@ def val(biovars, env, dt):
                   <include_in_detectors/>
                 </detectors>
               </diagnostic>
+              <include_in_io/>
             </scalar_field>
+            <include_in_io/>
           </chemical_variable>
           <chemical_variable name="Nitrogen">
             <scalar_field name="Particulate">
@@ -1140,9 +1150,7 @@ def val(position, element, local_coords, vars, dt):
         <environment>
           <field name="Temperature"/>
           <field name="Irradiance"/>
-          <field name="CopepodPConcentration">
-            <integrate_along_path/>
-          </field>
+          <field name="CopepodPConcentration"/>
           <field name="Density"/>
         </environment>
         <stages>
@@ -1154,9 +1162,9 @@ import fluidity.lerm_ps as lerm
 params = lerm.params_Default_Copepod_Variety
 params['d_year'] = persistent['physics_time'] / (3600. * 24.)
 
-def val(biovars, env, dt):
-  lerm.update_OW5_Copepod(params, biovars, env, dt)
-  return biovars</string_value>
+def val(agent, env, dt):
+  lerm.update_OW5_Copepod(params, agent, env, dt)
+  return agent</string_value>
               </python>
             </biology>
           </stage>
@@ -1186,9 +1194,9 @@ params['MLDepth'] = persistent['physics_mld']
 params['Max_MLD'] = max(persistent['physics_mld_history'])
 params['surface_irradiance'] = persistent['physics_irrad_interp'](0.0)
 
-def val(biovars, env, dt):
-  lerm.update_C5_Copepod(params, biovars, env, dt)
-  return biovars</string_value>
+def val(agent, env, dt):
+  lerm.update_C5_Copepod(params, agent, env, dt)
+  return agent</string_value>
               </python>
             </biology>
           </stage>
@@ -1199,9 +1207,9 @@ def val(biovars, env, dt):
 import fluidity.lerm_ps as lerm
 params = lerm.params_Default_Copepod_Variety
 
-def val(biovars, env, dt):
-  lerm.update_Dead_Copepod(params, biovars, env, dt)
-  return biovars</string_value>
+def val(agent, env, dt):
+  lerm.update_Dead_Copepod(params, agent, env, dt)
+  return agent</string_value>
               </python>
             </biology>
             <particle_management>
@@ -1222,9 +1230,9 @@ def val(biovars, env, dt):
 import fluidity.lerm_ps as lerm
 params = lerm.params_Default_Copepod_Variety
 
-def val(biovars, env, dt):
-  lerm.update_Pellet_Copepod(params, biovars, env, dt)
-  return biovars</string_value>
+def val(agent, env, dt):
+  lerm.update_Pellet_Copepod(params, agent, env, dt)
+  return agent</string_value>
               </python>
             </biology>
             <particle_management>
@@ -1260,6 +1268,7 @@ def val(biovars, env, dt):
               </detectors>
             </diagnostic>
             <stage_aggregate/>
+            <include_in_io/>
           </scalar_field>
           <scalar_field name="Depletion">
             <diagnostic>
@@ -1281,6 +1290,7 @@ def val(biovars, env, dt):
               </detectors>
             </diagnostic>
             <stage_aggregate/>
+            <include_in_io/>
           </scalar_field>
           <food_type stage="Living"/>
         </food_set>

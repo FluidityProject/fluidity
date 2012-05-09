@@ -159,6 +159,8 @@ module detector_data_types
     integer :: pool_index
     ! Variable index of the corresponding 'Ingested' variable for pool variables
     integer :: ingest_index
+    ! Flag signalling path integration
+    logical :: path_integration = .false.
   end type le_variable
 
   type detector_linked_list

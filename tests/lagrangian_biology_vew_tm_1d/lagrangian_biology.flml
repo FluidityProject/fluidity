@@ -80,7 +80,7 @@ Note: For 2-year runs with VEW data use: 63070200</comment>
               <anisotropic_symmetric>
                 <python>
                   <string_value lines="20" type="code" language="python">from __builtin__ import str
-from toymodel import read_physics
+from toymodel import read_physics_toy as read_physics
 global calc_mu, visser_curve, quadratic_mu
 
 if not persistent.has_key('physics_fh'):
@@ -115,7 +115,7 @@ def quadratic_mu(z, mld):
   
 def val(X,t):
   global read_physics
-  if t &gt; persistent['physics_time']:
+  while t &gt; persistent['physics_time']:
     read_physics(persistent)
 
   mu = 1.e-6
@@ -156,14 +156,14 @@ def val(X,t):
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">from toymodel import read_physics
+            <string_value lines="20" type="code" language="python">from toymodel import read_physics_toy as read_physics
 
 if not persistent.has_key('physics_fh'):
   read_physics(persistent)
 
 def val(X,t):
   global read_physics
-  if t &gt; persistent['physics_time']:
+  while t &gt; persistent['physics_time']:
     read_physics(persistent)  
 
   interp = persistent['physics_irrad_interp']
@@ -182,14 +182,14 @@ def val(X,t):
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">from toymodel import read_physics
+            <string_value lines="20" type="code" language="python">from toymodel import read_physics_toy as read_physics
 
 if not persistent.has_key('physics_fh'):
   read_physics(persistent)
 
 def val(X,t):
   global read_physics
-  if t &gt; persistent['physics_time']:
+  while t &gt; persistent['physics_time']:
     read_physics(persistent)  
 
   interp = persistent['physics_temp_interp']
@@ -248,7 +248,7 @@ def val(X,t):
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">from toymodel import read_chemistry
+            <string_value lines="20" type="code" language="python">from toymodel import read_chemistry_toy as read_chemistry
 
 if not persistent.has_key('chem_ammonium'):
   read_chemistry(persistent)
@@ -318,7 +318,7 @@ def val(X,t):
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">from toymodel import read_chemistry
+            <string_value lines="20" type="code" language="python">from toymodel import read_chemistry_toy as read_chemistry
 
 if not persistent.has_key('chem_nitrate'):
   read_chemistry(persistent)
@@ -388,7 +388,7 @@ def val(X,t):
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">from toymodel import read_chemistry
+            <string_value lines="20" type="code" language="python">from toymodel import read_chemistry_toy as read_chemistry
 
 if not persistent.has_key('chem_silicate'):
   read_chemistry(persistent)
@@ -568,7 +568,9 @@ for n in range(field.node_count):
                   </detectors>
                 </diagnostic>
               </scalar_field>
+              <include_in_io/>
             </uptake>
+            <include_in_io/>
           </chemical_variable>
           <chemical_variable name="Silicate">
             <scalar_field name="Particulate">
@@ -592,6 +594,7 @@ for n in range(field.node_count):
                 </detectors>
               </diagnostic>
               <stage_aggregate/>
+              <include_in_io/>
             </scalar_field>
             <uptake>
               <source_field name="DissolvedSilicate"/>
@@ -616,6 +619,7 @@ for n in range(field.node_count):
                   </detectors>
                 </diagnostic>
               </scalar_field>
+              <include_in_io/>
             </uptake>
             <release>
               <target_field name="DissolvedSilicate"/>
@@ -630,7 +634,9 @@ for n in range(field.node_count):
                 </diagnostic>
                 <stage_aggregate/>
               </scalar_field>
+              <include_in_io/>
             </release>
+            <include_in_io/>
           </chemical_variable>
           <chemical_variable name="Carbon">
             <scalar_field name="Particulate">

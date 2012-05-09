@@ -512,15 +512,7 @@ contains
        do while (associated(detector))
 
           ! Calcualte and normalise ray direction
-          detector%ray_d = detector%update_vector - detector%ray_o
-          detector%target_distance = sum(detector%ray_d**2)
-          if (detector%target_distance > 0.0) then
-             detector%target_distance = sqrt(detector%target_distance)
-             detector%ray_d = detector%ray_d / detector%target_distance
-          else
-             detector%target_distance = 0.0
-             detector%ray_d = 0.0
-          end if
+          call initialise_ray(detector%update_vector, detector%ray_d, detector%ray_o, detector%target_distance)
           detector%current_t = 0.0
 
           call flush_list(detector%ele_path_list)
@@ -587,10 +579,9 @@ contains
                       ! We move our origin to the last known point on our ray (ele_t), 
                       ! and calculate a new direction
                       detector%ray_o = detector%ray_o + (detector%current_t * detector%ray_d)
-                      detector%ray_d = detector%update_vector - detector%ray_o
-                      detector%target_distance = detector%target_distance - detector%current_t
 
-                      call insert(detector%ele_path_list, detector%element)
+                      call initialise_ray(detector%update_vector, detector%ray_d, detector%ray_o, detector%target_distance)
+                      detector%current_t = 0.0
                    end if
                 else
                    ! Turn detector static inside the domain
@@ -645,6 +636,24 @@ contains
     end if
 
     call profiler_toc(trim(detector_list%name)//"::movement::tracking")
+
+  contains
+
+    subroutine initialise_ray(target_coord, ray_d, ray_o, distance)
+      real, dimension(:), intent(inout) :: target_coord, ray_o, ray_d
+      real, intent(out) :: distance
+
+      ! Calculate and normalise ray direction
+      ray_d = target_coord - ray_o
+      distance = sum(ray_d**2)
+      if (distance > 0.0) then
+         distance = sqrt(distance)
+         ray_d = ray_d / distance
+      else
+         distance = 0.0
+         ray_d = 0.0
+      end if
+    end subroutine initialise_ray
 
   end subroutine track_detectors
 
@@ -724,7 +733,7 @@ contains
 
   end subroutine local_guided_search
 
-  subroutine geometric_ray_tracing(xfield,r_o,r_d,target_distance,new_element,new_owner,current_t,search_tolerance,ele_path,ele_dist)
+  subroutine geometric_ray_tracing(xfield,r_o,r_d,target_distance,new_element,new_owner,current_t,search_tolerance,ele_path_list,ele_dist_list)
     ! This tracking method is based on a standard Ray-tracing algorithm using planes and half-spaces.
     ! Reference: 
     type(vector_field), pointer, intent(in) :: xfield
@@ -733,8 +742,8 @@ contains
     integer, intent(out) :: new_owner
     real, intent(in) :: target_distance, search_tolerance
     real, intent(inout) :: current_t
-    type(ilist), intent(inout), optional :: ele_path
-    type(rlist), intent(inout), optional :: ele_dist
+    type(ilist), intent(inout), optional :: ele_path_list
+    type(rlist), intent(inout), optional :: ele_dist_list
 
     real :: face_t, ele_t
     integer :: i, neigh_face, next_face
@@ -746,7 +755,7 @@ contains
        return
     end if
 
-    call insert(ele_path, new_element)
+    call insert(ele_path_list, new_element)
 
     search_loop: do 
 
@@ -767,8 +776,8 @@ contains
           neigh_face = face_neigh(xfield, next_face)
 
           ! Record our next t and the distance covered
-          if (present(ele_dist)) then
-             call insert(ele_dist, ele_t - current_t)
+          if (present(ele_dist_list)) then
+             call insert(ele_dist_list, ele_t - current_t)
           end if
           current_t = ele_t
 
@@ -778,8 +787,8 @@ contains
 
              ! Record the elements along the path travelled
              ! and the distance travelled within them
-             if (present(ele_path)) then
-                call insert(ele_path, new_element)
+             if (present(ele_path_list)) then
+                call insert(ele_path_list, new_element)
              end if
           else
              if (element_owned(xfield,new_element)) then
@@ -794,8 +803,8 @@ contains
           end if
        else
           ! The arrival point is in this element, we're done
-          if (present(ele_dist)) then
-             call insert(ele_dist, target_distance - current_t)
+          if (present(ele_dist_list)) then
+             call insert(ele_dist_list, target_distance - current_t)
           end if
 
           new_owner=getprocno()

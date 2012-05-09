@@ -442,6 +442,11 @@ The scaled request quantity will then get added to the according absorption fiel
             </element>
           </element>
           <optional>
+            <element name="integrate_along_path">
+              <empty/>
+            </element>
+          </optional>
+          <optional>
             <element name="include_in_io">
               <empty/>
             </element>
@@ -475,6 +480,11 @@ The scaled release quantity will then get added to the according source field of
               </element>
             </optional>
           </element>
+          <optional>
+            <element name="integrate_along_path">
+              <empty/>
+            </element>
+          </optional>
           <optional>
             <element name="include_in_io">
               <empty/>
@@ -520,6 +530,11 @@ The scaled release quantity will then get added to the according source field of
             <a:documentation>Food requests always need to be aggregated</a:documentation>
             <empty/>
           </element>
+          <optional>
+            <element name="include_in_io">
+              <empty/>
+            </element>
+          </optional>
         </element>
         <element name="scalar_field">
           <a:documentation>Depletion factor</a:documentation>
@@ -542,6 +557,11 @@ The scaled release quantity will then get added to the according source field of
           <optional>
             <element name="stage_aggregate">
               <a:documentation>Add diagnostic field that represents the total quantity across all stages of the FG.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="include_in_io">
               <empty/>
             </element>
           </optional>

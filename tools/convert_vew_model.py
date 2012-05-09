@@ -273,7 +273,7 @@ class FGroup:
     elif t[0] == val:
       base = float(t[2])
       e_pow = int(t[3])
-      if e_pow > 0:
+      if e_pow != 0:
         return str(base) + "e" +str(e_pow)
       else:
         return str(base)

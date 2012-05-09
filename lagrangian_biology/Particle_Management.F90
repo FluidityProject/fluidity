@@ -249,7 +249,7 @@ contains
 
        !!!!!!!!!!!!!!!!!!!!!
        ! Original VEW merge algorithm:
-       do while(merge_lists(i)%length > element_maximum)
+       do while(merge_lists(i)%length > element_maximum .and. merge_lists(i)%length > 1)
           ! 1) Find x, the number of merges we want
           merges_wanted = merge_lists(i)%length - element_maximum
           ! We need to make sure we don't have more merge requests than agent pairs
