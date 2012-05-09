@@ -590,36 +590,40 @@
 
       END DO Loop_while
 
-      do ncolor=1,-cv_nonods
+      if (.false.) then
 
-         COLOR_VEC=0.0
-         COLOR_VEC(ncolor)=1.0
+         do ncolor=1,-cv_nonods
 
-         du_long=0.0
-         cdp=0.0
+            COLOR_VEC=0.0
+            COLOR_VEC(ncolor)=1.0
 
-         CALL C_MULT( CDP, COLOR_VEC, CV_NONODS, U_NONODS, NDIM, NPHASE, &
-              C, NCOLC, FINDC, COLC )
+            du_long=0.0
+            cdp=0.0
 
-         if(.true.) then
-            du_long=cdp
+            CALL C_MULT( CDP, COLOR_VEC, CV_NONODS, U_NONODS, NDIM, NPHASE, &
+                 C, NCOLC, FINDC, COLC )
 
-            CALL ULONG_2_UVW( DU, DV, DW, DU_LONG, U_NONODS, NDIM, NPHASE )
+            if(.true.) then
+               du_long=cdp
 
-            CALL CT_MULT( CMC_COLOR_VEC, DU, DV, DW, CV_NONODS, U_NONODS, NDIM, NPHASE, &
-                 CT, NCOLCT, FINDCT, COLCT )
-         else
-            ! CMC_COLOR_VEC=c^T CDP
-            CMC_COLOR_VEC=0.0
-            do u_nod=1,u_nonods
-               do count=findc(u_nod),findc(u_nod+1)-1
-                  cv_jnod=colc(count)
-                  CMC_COLOR_VEC(cv_jnod)=CMC_COLOR_VEC(cv_jnod)+c(count)*CDP(u_nod)
+               CALL ULONG_2_UVW( DU, DV, DW, DU_LONG, U_NONODS, NDIM, NPHASE )
+
+               CALL CT_MULT( CMC_COLOR_VEC, DU, DV, DW, CV_NONODS, U_NONODS, NDIM, NPHASE, &
+                    CT, NCOLCT, FINDCT, COLCT )
+            else
+               ! CMC_COLOR_VEC=c^T CDP
+               CMC_COLOR_VEC=0.0
+               do u_nod=1,u_nonods
+                  do count=findc(u_nod),findc(u_nod+1)-1
+                     cv_jnod=colc(count)
+                     CMC_COLOR_VEC(cv_jnod)=CMC_COLOR_VEC(cv_jnod)+c(count)*CDP(u_nod)
+                  end do
                end do
-            end do
-         endif
+            endif
 
-      end do
+         end do
+
+      end if
 
       if(.false.) then
          !print *, 'cdp:', cdp
