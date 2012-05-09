@@ -1157,12 +1157,14 @@ darcy_impes_generic_scalar_field =
             element prescribed {
                velocity_mesh_choice,
                prescribed_scalar_field,
-               darcy_impes_include_cv_stat
+               darcy_impes_include_cv_stat, 
+               darcy_impes_recalculation_options?
             }|
             element diagnostic {
                velocity_mesh_choice,                     
-               darcy_impes_scalar_python_diagnostic_algorithm,                     
-               darcy_impes_diagnostic_scalar_field
+               scalar_diagnostic_algorithms,                     
+               darcy_impes_diagnostic_scalar_field, 
+               darcy_impes_recalculation_options?
             }
          )
       }
@@ -1356,7 +1358,7 @@ darcy_impes_diagnostic_scalar_field =
    (
       darcy_impes_include_cv_stat,
       adaptivity_options_scalar_field,
-      interpolation_algorithm_scalar
+      interpolation_algorithm_scalar 
    )
 
 
@@ -1364,7 +1366,7 @@ darcy_impes_diagnostic_vector_field =
    (
       darcy_impes_include_cv_stat,
       adaptivity_options_vector_field,
-      interpolation_algorithm_vector
+      interpolation_algorithm_vector 
    )
 
 
@@ -1387,6 +1389,15 @@ darcy_impes_internal_algorithm =
    (
       element algorithm {
          attribute name { "Internal" }
+      }
+   )
+
+
+darcy_impes_recalculation_options =
+   (
+      ## Prevent this field from being recalculated at every timestep.
+      element do_not_recalculate {
+        empty
       }
    )
       

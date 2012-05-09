@@ -1235,11 +1235,17 @@ Specify the number of advection subcycls. </a:documentation>
           <ref name="velocity_mesh_choice"/>
           <ref name="prescribed_scalar_field"/>
           <ref name="darcy_impes_include_cv_stat"/>
+          <optional>
+            <ref name="darcy_impes_recalculation_options"/>
+          </optional>
         </element>
         <element name="diagnostic">
           <ref name="velocity_mesh_choice"/>
-          <ref name="darcy_impes_scalar_python_diagnostic_algorithm"/>
+          <ref name="scalar_diagnostic_algorithms"/>
           <ref name="darcy_impes_diagnostic_scalar_field"/>
+          <optional>
+            <ref name="darcy_impes_recalculation_options"/>
+          </optional>
         </element>
       </choice>
     </element>
@@ -1476,6 +1482,12 @@ and 'tensor_fields';
       <attribute name="name">
         <value>Internal</value>
       </attribute>
+    </element>
+  </define>
+  <define name="darcy_impes_recalculation_options">
+    <element name="do_not_recalculate">
+      <a:documentation>Prevent this field from being recalculated at every timestep.</a:documentation>
+      <empty/>
     </element>
   </define>
   <!-- Nasty options copy -->
