@@ -570,7 +570,7 @@ for n in range(field.node_count):
     <scalar_field name="AnalyticSaturationError">
       <diagnostic>
         <mesh name="PressureMesh"/>
-        <algorithm name="scalar_difference" source_field_1_name="Saturation" source_field_2_name="LinearInterpolatedAnalyticalSaturationSolution" source_field_2_type="scalar" material_phase_support="single" source_field_1_type="scalar">
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="Saturation" source_field_2_name="LinearInterpolatedAnalyticalSaturationSolution" material_phase_support="single" source_field_1_type="scalar">
           <absolute_difference/>
         </algorithm>
         <stat>

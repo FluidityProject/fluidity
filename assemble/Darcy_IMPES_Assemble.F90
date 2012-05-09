@@ -2152,9 +2152,9 @@ end if
 
                  call find_upwind_values(state, &
                                          positions_sfield_mesh, &
-                                         old_sfield, &
+                                         old_sfield_subcycle, &
                                          old_sfield_upwind, &
-                                         old_sfield, &
+                                         old_sfield_subcycle, &
                                          old_sfield_upwind, &
                                          option_path = trim(sfield%option_path))
 
@@ -2332,7 +2332,7 @@ end if
                          den_face_value = income*den_ele(oloc) + (1.0-income)*den_ele(iloc)
 
                          face_value = detwei(ggi) * old_sfield_face_value * modrelperm_face_value * absperm_ele(1) * &
-                        &dot_product((grad_pressure_face_quad(:,1) - den_face_value * grav_ele(:,1)), normgi)/ visc_ele(1)
+                        &dot_product((grad_pressure_face_quad(:,ggi) - den_face_value * grav_ele(:,1)), normgi)/ visc_ele(1)
 
                          ! Form the local rhs for iloc and opposing oloc with normal vector sign change
                          s_rhs_local(iloc) = s_rhs_local(iloc) + face_value
@@ -2588,6 +2588,7 @@ end if
       logical :: inflow
       integer :: vele, p, dim, iloc, oloc, face, gi, ggi, sele
       real    :: income, v_over_s_dot_n, v_over_s_face_value_dot_n
+      real    :: modrelperm_face_value, den_face_value, v_over_s_dot_n_face_value
       real,    dimension(1)                  :: visc_ele, absperm_ele
       real,    dimension(:,:),   allocatable :: grad_pressure_face_quad
       real,    dimension(:,:),   allocatable :: grad_pressure_ele
@@ -2664,6 +2665,12 @@ end if
 
             ! The node indices of the positions projected to the pressure mesh
             x_pmesh_nodes => ele_nodes(di%positions_pressure_mesh, vele)
+
+            ! get the modrelperm ele values
+            modrelperm_ele = ele_val(di%modified_relative_permeability(p)%ptr, vele)
+
+            ! get the density value for this element
+            den_ele = ele_val(di%density(p)%ptr, vele)
             
             ! The gravity values for this element for each direction
             grav_ele = ele_val(di%gravity, vele) 
@@ -2732,14 +2739,21 @@ end if
 
                       income = merge(1.0,0.0,inflow)
 
+                      ! Evaluate the face value for modrelperm (taking upwind) 
+                      modrelperm_face_value = income*modrelperm_ele(oloc) + (1.0-income)*modrelperm_ele(iloc)
+
+                      ! Find the density face value (taking upwind) 
+                      den_face_value = income*den_ele(oloc) + (1.0-income)*den_ele(iloc)
+
+                      v_over_s_dot_n_face_value = detwei(ggi) * modrelperm_face_value * absperm_ele(1) * &
+                     &dot_product((grad_pressure_face_quad(:,ggi) - den_face_value * grav_ele(:,1)), normgi)/ visc_ele(1)
+
                       cfl_rhs_local(iloc) = cfl_rhs_local(iloc) + &
-                                            abs(v_over_s_dot_n) * &
-                                            detwei(ggi) * &
+                                            abs(v_over_s_dot_n_face_value) * &
                                             (1.0 - income)
 
                       cfl_rhs_local(oloc) = cfl_rhs_local(oloc) + &
-                                            abs(v_over_s_dot_n) * &
-                                            detwei(ggi) * &
+                                            abs(v_over_s_dot_n_face_value) * &
                                             income
 
                     end if check_visited
