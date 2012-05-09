@@ -324,9 +324,9 @@ Element_set.o ../include/element_set.mod: Element_set.F90
 
 Elements.o ../include/elements.mod: Elements.F90 \
    ../include/element_numbering.mod ../include/fdebug.h ../include/fldebug.mod \
-   ../include/polynomials.mod ../include/quadrature.mod \
-   ../include/reference_counting.mod Reference_count_element_type.F90 \
-   Reference_count_interface_element_type.F90
+   ../include/parallel_tools.mod ../include/polynomials.mod \
+   ../include/quadrature.mod ../include/reference_counting.mod \
+   Reference_count_element_type.F90 Reference_count_interface_element_type.F90
 
 ../include/embed_python.mod: Embed_Python_Fortran.o
 	@true
@@ -847,9 +847,10 @@ Pickers_Base.o ../include/pickers_base.mod: Pickers_Base.F90 \
 Pickers_Deallocates.o ../include/pickers_deallocates.mod: \
    Pickers_Deallocates.F90 ../include/fdebug.h \
    ../include/fields_data_types.mod ../include/fldebug.mod \
-   ../include/global_parameters.mod ../include/picker_data_types.mod \
-   ../include/pickers_base.mod ../include/reference_counting.mod \
-   Reference_count_interface_picker_type.F90 Reference_count_picker_type.F90
+   ../include/global_parameters.mod ../include/parallel_tools.mod \
+   ../include/picker_data_types.mod ../include/pickers_base.mod \
+   ../include/reference_counting.mod Reference_count_interface_picker_type.F90 \
+   Reference_count_picker_type.F90
 
 ../include/pickers_inquire.mod: Pickers_Inquire.o
 	@true
@@ -890,8 +891,8 @@ Pseudo_Consistent_Interpolation.o \
 
 Quadrature.o ../include/quadrature.mod: Quadrature.F90 ../include/fdebug.h \
    ../include/fldebug.mod ../include/grundmann_moeller_quadrature.mod \
-   ../include/reference_counting.mod ../include/vector_tools.mod \
-   ../include/wandzura_quadrature.mod \
+   ../include/parallel_tools.mod ../include/reference_counting.mod \
+   ../include/vector_tools.mod ../include/wandzura_quadrature.mod \
    Reference_count_interface_quadrature_type.F90 \
    Reference_count_quadrature_type.F90
 
@@ -1002,7 +1003,8 @@ Sparse_Tools.o ../include/sparse_tools.mod: Sparse_Tools.F90 \
    ../include/futils.mod ../include/global_parameters.mod \
    ../include/halo_data_types.mod ../include/halos_allocates.mod \
    ../include/ieee_arithmetic.mod ../include/memory_diagnostics.mod \
-   ../include/reference_counting.mod Reference_count_block_csr_matrix.F90 \
+   ../include/parallel_tools.mod ../include/reference_counting.mod \
+   Reference_count_block_csr_matrix.F90 \
    Reference_count_block_dynamic_csr_matrix.F90 Reference_count_csr_matrix.F90 \
    Reference_count_csr_sparsity.F90 Reference_count_dynamic_csr_matrix.F90 \
    Reference_count_interface_block_csr_matrix.F90 \
