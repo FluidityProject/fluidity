@@ -244,12 +244,12 @@
             </stat>
           </prescribed>
         </scalar_field>
-        <stat>
-          <include_cv_stats/>
-        </stat>
         <convergence>
           <include_in_convergence/>
         </convergence>
+        <stat>
+          <include_cv_stats/>
+        </stat>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
@@ -283,6 +283,7 @@
     <scalar_field name="Density" rank="0">
       <diagnostic>
         <mesh name="PressureMesh"/>
+        <algorithm name="Internal"/>
         <equation_of_state name="IncompressibleLinear">
           <reference_density>
             <real_value rank="0">1.0</real_value>
@@ -297,6 +298,7 @@
     <vector_field name="GradientPressure" rank="0">
       <diagnostic>
         <mesh name="ElementWiseMesh"/>
+        <algorithm name="Internal"/>
         <stat>
           <include_cv_stats/>
         </stat>
@@ -306,6 +308,7 @@
     <vector_field name="DarcyVelocityOverSaturation" rank="0">
       <diagnostic>
         <mesh name="VelocityMesh"/>
+        <algorithm name="Internal"/>
         <stat>
           <include_cv_stats/>
         </stat>
@@ -315,6 +318,7 @@
     <scalar_field name="DarcyVelocityOverSaturationCFL" rank="0">
       <diagnostic>
         <mesh name="PressureMesh"/>
+        <algorithm name="Internal"/>
         <stat>
           <include_cv_stats/>
         </stat>
@@ -324,6 +328,7 @@
     <vector_field name="DarcyVelocity" rank="0">
       <diagnostic>
         <mesh name="VelocityMesh"/>
+        <algorithm name="Internal"/>
         <stat>
           <include_cv_stats/>
         </stat>
@@ -333,6 +338,7 @@
     <vector_field name="FractionalFlow" rank="0">
       <diagnostic>
         <mesh name="VelocityMesh"/>
+        <algorithm name="Internal"/>
         <stat>
           <include_cv_stats/>
         </stat>
@@ -342,6 +348,7 @@
     <vector_field name="TotalDarcyVelocity" rank="0">
       <diagnostic>
         <mesh name="VelocityMesh"/>
+        <algorithm name="Internal"/>
         <stat>
           <include_cv_stats/>
         </stat>
@@ -351,6 +358,7 @@
     <scalar_field name="DivergenceTotalDarcyVelocity" rank="0">
       <diagnostic>
         <mesh name="PressureMesh"/>
+        <algorithm name="Internal"/>
         <stat>
           <include_cv_stats/>
         </stat>
@@ -360,6 +368,7 @@
     <scalar_field name="SumSaturation" rank="0">
       <diagnostic>
         <mesh name="PressureMesh"/>
+        <algorithm name="Internal"/>
         <stat>
           <include_cv_stats/>
         </stat>
@@ -369,6 +378,7 @@
     <scalar_field name="AveragePressure" rank="0">
       <diagnostic>
         <mesh name="PressureMesh"/>
+        <algorithm name="Internal"/>
         <stat>
           <include_cv_stats/>
         </stat>
@@ -380,6 +390,7 @@
     <scalar_field name="Pressure" rank="0">
       <diagnostic>
         <mesh name="PressureMesh"/>
+        <algorithm name="Internal"/>
         <stat>
           <include_cv_stats/>
         </stat>
@@ -432,12 +443,12 @@
             </stat>
           </prescribed>
         </scalar_field>
-        <stat>
-          <include_cv_stats/>
-        </stat>
         <convergence>
           <include_in_convergence/>
         </convergence>
+        <stat>
+          <include_cv_stats/>
+        </stat>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
@@ -471,6 +482,7 @@
     <scalar_field name="Density" rank="0">
       <diagnostic>
         <mesh name="PressureMesh"/>
+        <algorithm name="Internal"/>
         <equation_of_state name="IncompressibleLinear">
           <reference_density>
             <real_value rank="0">1.0</real_value>
@@ -485,6 +497,7 @@
     <vector_field name="GradientPressure" rank="0">
       <diagnostic>
         <mesh name="ElementWiseMesh"/>
+        <algorithm name="Internal"/>
         <stat>
           <include_cv_stats/>
         </stat>
@@ -494,6 +507,7 @@
     <vector_field name="DarcyVelocityOverSaturation" rank="0">
       <diagnostic>
         <mesh name="VelocityMesh"/>
+        <algorithm name="Internal"/>
         <stat>
           <include_cv_stats/>
         </stat>
@@ -503,6 +517,7 @@
     <scalar_field name="DarcyVelocityOverSaturationCFL" rank="0">
       <diagnostic>
         <mesh name="PressureMesh"/>
+        <algorithm name="Internal"/>
         <stat>
           <include_cv_stats/>
         </stat>
@@ -512,6 +527,7 @@
     <vector_field name="DarcyVelocity" rank="0">
       <diagnostic>
         <mesh name="VelocityMesh"/>
+        <algorithm name="Internal"/>
         <stat>
           <include_cv_stats/>
         </stat>
@@ -521,6 +537,7 @@
     <vector_field name="FractionalFlow" rank="0">
       <diagnostic>
         <mesh name="VelocityMesh"/>
+        <algorithm name="Internal"/>
         <stat>
           <include_cv_stats/>
         </stat>

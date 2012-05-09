@@ -658,7 +658,9 @@ darcy_impes_material_phases =
          
          darcy_impes_sum_saturation, 
          
-         darcy_impes_average_pressure
+         darcy_impes_average_pressure, 
+         
+         darcy_impes_generic_scalar_field*
       },
       (
          element material_phase {
@@ -702,7 +704,9 @@ darcy_impes_other_phase_options =
 
       darcy_impes_darcy_velocity_field,   
       
-      darcy_impes_fractional_flow_field
+      darcy_impes_fractional_flow_field, 
+      
+      darcy_impes_generic_scalar_field*
    )
 
 
@@ -746,10 +750,9 @@ darcy_impes_non_first_phase_pressure_field =
             element mesh {
                attribute name { "PressureMesh" }      
             },
+            darcy_impes_internal_algorithm,
             darcy_impes_non_first_phase_bc_pressure_field*,
-            darcy_impes_include_cv_stat, 
-            adaptivity_options_scalar_field,
-            interpolation_algorithm_scalar
+            darcy_impes_diagnostic_scalar_field
          }
       }
    )
@@ -764,9 +767,8 @@ darcy_impes_capilliary_pressure_field =
             element mesh {
                attribute name { "PressureMesh" }      
             },
-            scalar_python_diagnostic_algorithm,
-            darcy_impes_include_cv_stat, 
-            interpolation_algorithm_scalar
+            darcy_impes_scalar_python_diagnostic_algorithm,
+            darcy_impes_diagnostic_scalar_field
          }
       }
    )
@@ -781,8 +783,8 @@ darcy_impes_average_pressure =
             element mesh {
                attribute name { "PressureMesh" }      
             },
-            darcy_impes_include_cv_stat, 
-            interpolation_algorithm_scalar
+            darcy_impes_internal_algorithm,
+            darcy_impes_diagnostic_scalar_field
          }
       }
    )
@@ -798,13 +800,12 @@ darcy_impes_saturation_field_phase_one =
                element mesh {
                   attribute name { "PressureMesh" }      
                },
+               darcy_impes_internal_algorithm,
                darcy_impes_saturation_field_spatial_discretisation,
                darcy_impes_saturation_field_temporal_discretisation_only_explicit,
                darcy_impes_saturation_source,
-               darcy_impes_include_cv_stat,
                scalar_convergence_options,
-               adaptivity_options_prognostic_scalar_field,
-               interpolation_algorithm_scalar
+               darcy_impes_diagnostic_scalar_field
             }|
             element prognostic {
                element mesh {
@@ -815,8 +816,8 @@ darcy_impes_saturation_field_phase_one =
                initial_condition_scalar+,
                darcy_impes_bc_saturation_field*,
                darcy_impes_saturation_source,
-               darcy_impes_include_cv_stat,
                scalar_convergence_options,
+               darcy_impes_include_cv_stat,
                adaptivity_options_prognostic_scalar_field,
                interpolation_algorithm_scalar         
             }
@@ -837,8 +838,8 @@ darcy_impes_saturation_field =
             initial_condition_scalar+,
             darcy_impes_bc_saturation_field*,
             darcy_impes_saturation_source,
-            darcy_impes_include_cv_stat,
             scalar_convergence_options,
+            darcy_impes_include_cv_stat,
             adaptivity_options_prognostic_scalar_field,
             interpolation_algorithm_scalar
          }
@@ -946,9 +947,8 @@ darcy_impes_saturation_source =
                element mesh {
                   attribute name { "PressureMesh" }      
                },
-               scalar_python_diagnostic_algorithm,
-               darcy_impes_include_cv_stat, 
-               interpolation_algorithm_scalar
+               darcy_impes_scalar_python_diagnostic_algorithm,
+               darcy_impes_diagnostic_scalar_field
             }
          )
       }
@@ -964,9 +964,8 @@ darcy_impes_relative_permeability_field =
             element mesh {
                attribute name { "PressureMesh" }      
             },
-            scalar_python_diagnostic_algorithm,
-            darcy_impes_include_cv_stat, 
-            interpolation_algorithm_scalar
+            darcy_impes_scalar_python_diagnostic_algorithm,
+            darcy_impes_diagnostic_scalar_field
          }
       }
    )
@@ -997,9 +996,9 @@ darcy_impes_density_field =
             element mesh {
                attribute name { "PressureMesh" }      
             },
+            darcy_impes_internal_algorithm,
             darcy_impes_eos,
-            darcy_impes_include_cv_stat, 
-            interpolation_algorithm_scalar
+            darcy_impes_diagnostic_scalar_field
          }
       }   
    )
@@ -1030,8 +1029,8 @@ darcy_impes_gradient_pressure_field =
             element mesh {
                attribute name { "ElementWiseMesh" }      
             },
-            darcy_impes_include_cv_stat, 
-            interpolation_algorithm_scalar
+            darcy_impes_internal_algorithm,
+            darcy_impes_diagnostic_vector_field
          }
       }
    )
@@ -1046,9 +1045,9 @@ darcy_impes_darcy_velocity_over_saturation_field =
             element mesh {
                attribute name { "VelocityMesh" }      
             },
+            darcy_impes_internal_algorithm,
             darcy_impes_bc_velocity_field*, 
-            darcy_impes_include_cv_stat, 
-            interpolation_algorithm_scalar
+            darcy_impes_diagnostic_vector_field
          }
       }
    )
@@ -1063,8 +1062,8 @@ darcy_impes_darcy_velocity_over_saturation_CFL_field =
             element mesh {
                attribute name { "PressureMesh" }      
             },
-            darcy_impes_include_cv_stat, 
-            interpolation_algorithm_scalar
+            darcy_impes_internal_algorithm,
+            darcy_impes_diagnostic_scalar_field
          }
       }
    )
@@ -1079,8 +1078,8 @@ darcy_impes_darcy_velocity_field =
             element mesh {
                attribute name { "VelocityMesh" }      
             },
-            darcy_impes_include_cv_stat, 
-            interpolation_algorithm_scalar
+            darcy_impes_internal_algorithm,
+            darcy_impes_diagnostic_vector_field
          }
       }
    )
@@ -1095,8 +1094,8 @@ darcy_impes_fractional_flow_field =
             element mesh {
                attribute name { "VelocityMesh" }      
             },
-            darcy_impes_include_cv_stat, 
-            interpolation_algorithm_scalar
+            darcy_impes_internal_algorithm,
+            darcy_impes_diagnostic_vector_field
          }
       }
    )
@@ -1111,24 +1110,8 @@ darcy_impes_total_darcy_velocity_field =
             element mesh {
                attribute name { "VelocityMesh" }      
             },
-            darcy_impes_include_cv_stat, 
-            interpolation_algorithm_scalar
-         }
-      }
-   )
-
-
-darcy_impes_total_darcy_velocity_field_cv =
-   (
-      element vector_field {
-         attribute rank { "0" },
-         attribute name { "TotalDarcyVelocityCV" },
-         element diagnostic {
-            element mesh {
-               attribute name { "PressureMesh" }      
-            },
-            darcy_impes_include_cv_stat, 
-            interpolation_algorithm_scalar
+            darcy_impes_internal_algorithm,
+            darcy_impes_diagnostic_vector_field
          }
       }
    )
@@ -1143,8 +1126,8 @@ darcy_impes_divergence_total_darcy_velocity_field =
             element mesh {
                attribute name { "PressureMesh" }      
             },
-            darcy_impes_include_cv_stat, 
-            interpolation_algorithm_scalar
+            darcy_impes_internal_algorithm,
+            darcy_impes_diagnostic_scalar_field
          }
       }
    )
@@ -1159,9 +1142,29 @@ darcy_impes_sum_saturation =
             element mesh {
                attribute name { "PressureMesh" }      
             },
-            darcy_impes_include_cv_stat, 
-            interpolation_algorithm_scalar
+            darcy_impes_internal_algorithm,
+            darcy_impes_diagnostic_scalar_field
          }
+      }
+   )
+
+
+darcy_impes_generic_scalar_field = 
+   (
+      element scalar_field {
+         attribute name { xsd:string },
+         (
+            element prescribed {
+               velocity_mesh_choice,
+               prescribed_scalar_field,
+               darcy_impes_include_cv_stat
+            }|
+            element diagnostic {
+               velocity_mesh_choice,                     
+               darcy_impes_scalar_python_diagnostic_algorithm,                     
+               darcy_impes_diagnostic_scalar_field
+            }
+         )
       }
    )
 
@@ -1321,10 +1324,8 @@ darcy_impes_porous_media_model =
                }|
                element diagnostic {
                   mesh_choice_element_wise,                     
-                  scalar_python_diagnostic_algorithm,                     
-                  diagnostic_scalar_field,
-                  darcy_impes_include_cv_stat, 
-                  interpolation_algorithm_scalar
+                  darcy_impes_scalar_python_diagnostic_algorithm,                     
+                  darcy_impes_diagnostic_scalar_field
                }
             )
          },
@@ -1341,10 +1342,8 @@ darcy_impes_porous_media_model =
                   }|
                   element diagnostic {
                      mesh_choice_element_wise,
-                     scalar_python_diagnostic_algorithm,
-                     diagnostic_scalar_field,
-                     darcy_impes_include_cv_stat, 
-                     interpolation_algorithm_scalar
+                     darcy_impes_scalar_python_diagnostic_algorithm,
+                     darcy_impes_diagnostic_scalar_field
                   }
                )
             }
@@ -1353,35 +1352,46 @@ darcy_impes_porous_media_model =
    )
 
 
+darcy_impes_diagnostic_scalar_field =
+   (
+      darcy_impes_include_cv_stat,
+      adaptivity_options_scalar_field,
+      interpolation_algorithm_scalar
+   )
+
+
+darcy_impes_diagnostic_vector_field =
+   (
+      darcy_impes_include_cv_stat,
+      adaptivity_options_vector_field,
+      interpolation_algorithm_vector
+   )
+
+
+darcy_impes_scalar_python_diagnostic_algorithm =
+   (
+      ## Algorithm for the diagnostic value coded in Python. 
+      ## The object 'state' has the attributes 'scalar_fields', 'vector_fields'
+      ## and 'tensor_fields';
+      ## 'field' is the diagnostic field to be set.
+      ## 'time' and 'dt' are the current time and timestep.
+      element algorithm {
+         attribute name { "scalar_python_diagnostic" },
+         attribute material_phase_support { "single"|"multiple" },
+         python_code
+      }
+   )
+
+
+darcy_impes_internal_algorithm =
+   (
+      element algorithm {
+         attribute name { "Internal" }
+      }
+   )
+      
 
 # Nasty options copy
-
-
-# Default child of diagnostic scalar field
-diagnostic_scalar_field =
-   (
-      diagnostic_output_options,
-      diagnostic_scalar_stat_options,
-      scalar_convergence_options,
-      diagnostic_detector_options,
-      scalar_steady_state_options,
-      adaptivity_options_scalar_field,
-      recalculation_options?,
-      interpolation_algorithm_scalar?
-   )
-
-# Default child of diagnostic vector field
-diagnostic_vector_field =
-   (
-      diagnostic_output_options,
-      diagnostic_vector_stat_options,
-      vector_convergence_options,      
-      diagnostic_detector_options,
-      vector_steady_state_options,      
-      adaptivity_options_vector_field,
-      recalculation_options?,
-      interpolation_algorithm_vector?
-   )
 
 limiter_options =
   (

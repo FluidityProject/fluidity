@@ -29,6 +29,7 @@ Darcy_IMPES.o : Darcy_IMPES.F90 ../include/adapt_state_module.mod \
    ../include/conformity_measurement.mod ../include/cv_faces.mod \
    ../include/cv_options.mod ../include/cv_shape_functions.mod \
    ../include/darcy_impes_assemble_module.mod ../include/detector_parallel.mod \
+   ../include/diagnostic_fields_new.mod \
    ../include/diagnostic_variables.mod ../include/elements.mod \
    ../include/eventcounter.mod ../include/fdebug.h ../include/fefields.mod \
    ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
