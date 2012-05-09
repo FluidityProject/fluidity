@@ -1320,7 +1320,7 @@
       integer, dimension( cv_nonods ), intent( inout ) :: midm
       ! Local variables 
       integer :: mx_ncolele_pha, nacv_loc, nacv_loc2, ele, iloc1, iloc2, globi, globj
-      integer :: mx_ncolacv_loc
+      integer :: mx_ncolacv_loc,count,cv_inod
       logical :: presym
       integer, dimension( : ), allocatable :: colele_pha, finele_pha, midele_pha, &
            centct, dummyvec, midacv_loc, finacv_loc, colacv_loc
@@ -1450,8 +1450,23 @@
          call def_spar( cv_nloc - 1, cv_nonods, mx_ncolm, ncolm, &
               midm, findm, colm )
       else
+        if(cv_nonods==x_nonods) then ! a continuouse pressure mesh
          call pousinmc2( totele, cv_nonods, cv_nloc, cv_nonods, cv_nloc, mx_ncolm, cv_ndgln, cv_ndgln, &
               ncolm, findm, colm, midm )
+        else ! a DG pressure field mesh...
+         call CT_DG_Sparsity( mx_nface_p1,  &
+         totele, cv_nloc, cv_nloc,  &
+         cv_nonods, &
+         cv_ndgln,cv_ndgln,  &
+         ncolele, finele, colele, &
+         mx_ncolm, ncolm, findm, colm )
+! determine midm...
+         do cv_inod=1,cv_nonods
+            do count=findm(cv_inod),findm(cv_inod+1)-1
+               if(colm(count)==cv_inod) midm(cv_inod)=count
+            end do
+         end do
+        endif
       end if Conditional_Dimensional_4
       ewrite(3,*)'findm: ', size( findm ), '==>', findm( 1 : cv_nonods + 1 )
       ewrite(3,*)'colm: ', size( colm ), ncolm, '==>', colm( 1 : ncolm )
