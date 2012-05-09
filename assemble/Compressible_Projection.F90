@@ -682,8 +682,8 @@ module compressible_projection
     do i=0, option_count("/material_phase")-1
       prognostic_pressure_path="/material_phase"//int2str(i)//"/scalar_field::Pressure/prognostic"
       if (have_option(trim(prognostic_pressure_path)//"/spatial_discretisation/discontinuous_galerkin") &
-        .and. have_option(trim(prognostic_pressure_path)//"/scheme/use_compressible_projection")) then
-        FLExit("With a DG pressure you cannot have use_compressible_projection")
+        .and. have_option(trim(prognostic_pressure_path)//"/scheme/use_compressible_projection_method")) then
+        FLExit("With a DG pressure you cannot have use_compressible_projection_method")
       end if
     end do
 
