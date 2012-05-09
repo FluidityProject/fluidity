@@ -7,11 +7,11 @@
   <tags>diml</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>
-../../bin/darcy_impes darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_1d.diml 
-../../bin/darcy_impes darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_2d.diml 
-../../bin/darcy_impes darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_3d.diml 
+../../bin/darcy_impes darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_p2satupwind_1d.diml 
+../../bin/darcy_impes darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_p2satupwind_2d.diml 
+../../bin/darcy_impes darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_p2satupwind_3d.diml 
     </command_line>
-    <!-- One/two/three dimensional problem for darcy flow using the IMPES solver with one region and one material using p1 element type with 2 phases using Corey relative permeabilities with a TotalDarcyVelocity BC at the inlet, a strong pressure BC at outlet and the first phase saturation diagnostic. -->
+    <!-- One/two/three dimensional problem for darcy flow using the IMPES solver with one region and one material using p1 element type with 2 phases using Corey relative permeabilities with a TotalDarcyVelocity BC at the inlet, a strong pressure BC at outlet and the first phase saturation diagnostic. Different CV face value schemes are tested in 1,2 and 3d. -->
   </problem_definition>
   <variables>
 

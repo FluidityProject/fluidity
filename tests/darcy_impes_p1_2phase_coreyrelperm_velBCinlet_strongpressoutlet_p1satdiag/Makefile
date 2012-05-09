@@ -8,7 +8,7 @@ LEFT_X    = 0.0
 RIGHT_X   = 1.0
 
 input: clean
-	interval --dx=$(MESH_SIZE) $(LEFT_X) $(RIGHT_X) $(SIM)_1d
+	interval --dx=$(MESH_SIZE) $(LEFT_X) $(RIGHT_X) line_mesh_1d
 	gmsh -2 square.geo -o square.msh
 	gmsh -3 cube.geo -o cube.msh
 
