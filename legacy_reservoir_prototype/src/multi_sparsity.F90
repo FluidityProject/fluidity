@@ -1376,9 +1376,18 @@
          call def_spar_ct_dg( cv_nonods, mx_nct, nct, findct, colct, &
               totele, cv_nloc, u_nloc, u_ndgln, u_ele_type, cv_ndgln )
       else
+        if(cv_nonods==x_nonods) then ! a continuouse pressure mesh...
          call pousinmc2( totele, u_nonods, u_nloc, cv_nonods, cv_nloc, &
               mx_nct, u_ndgln, cv_ndgln, &
               nct, findct, colct, centct )
+        else ! use finele to determine COLCT
+         call CT_DG_Sparsity( mx_nface_p1,  &
+         totele, cv_nloc, u_nloc,  &
+         cv_nonods, &
+         cv_ndgln,u_ndgln,  &
+         ncolele, finele, colele, &
+         mx_nct, nct, findct, colct )
+        endif
 
          ewrite(3,*),'u_nonods, u_nloc, cv_nonods, cv_nloc, mx_nct, nct:', &
               u_nonods, u_nloc, cv_nonods, cv_nloc, mx_nct, nct
@@ -1497,6 +1506,88 @@
 
       return
     end subroutine get_spars_pats
+
+
+
+
+    subroutine CT_DG_Sparsity(  mx_nface_p1, &
+         totele, cv_nloc, u_nloc,  &
+         cv_nonods, &
+         cv_ndgln,u_ndgln,  &
+         ncolele, finele, colele, &
+         mx_nct, nct, findct, colct )
+      implicit none
+      integer, intent( in ) :: mx_nface_p1, totele, cv_nloc, &
+           u_nloc, cv_nonods
+      integer, dimension( totele * cv_nloc ), intent( in ) :: cv_ndgln
+      integer, dimension( totele * u_nloc ), intent( in ) :: u_ndgln
+      integer, intent( in ) :: ncolele
+      integer, dimension( totele + 1 ), intent( in ) :: finele
+      integer, dimension( ncolele ), intent( in ) :: colele
+      integer, intent( in ) :: mx_nct
+      integer, intent( inout ) :: nct
+      integer, dimension( cv_nonods + 1 ), intent( inout ) :: findct
+      integer, dimension( mx_nct ), intent( inout ) :: colct
+      ! Local variables
+! start off with the inner element part
+      integer :: ele,ele2,cv_iloc,cv_nodi,count,count2,u_jloc,u_nodj, &
+                 gcount2,gcount,FACE_COUNT
+      integer, dimension( : ), allocatable :: find_ct_temp, no_in_row
+
+      allocate(find_ct_temp(cv_nonods+1))
+      allocate(no_in_row(cv_nonods))
+
+      find_ct_temp(1)=1
+      do cv_nodi=1,cv_nonods
+         find_ct_temp(cv_nodi+1)=find_ct_temp(cv_nodi)+(mx_nface_p1+1)*u_nloc
+      end do
+          
+       colct=0
+       no_in_row=0
+
+! for discontinuous elements...
+
+         Loop_Elements_4: do ele = 1, totele
+            do FACE_COUNT=FINELE(ELE),FINELE(ELE+1)-1
+             
+               ele2=COLELE(FACE_COUNT)
+               if(ele2>0) then
+                  Loop_CVILOC_5: do cv_iloc = 1, cv_nloc ! Loop over nodes of the elements
+                     cv_nodi = cv_ndgln( ( ele - 1 ) * cv_nloc + cv_iloc )
+                     count2=0
+                     Loop_CVILOC_6: do u_jloc = 1, u_nloc ! Loop over nodes of the elements
+                        u_nodj = u_ndgln( ( ele2 - 1 ) * u_nloc + u_jloc )
+
+           count2=count2+1
+           count=find_ct_temp(cv_nodi)-1+count2
+           colct(count)=u_nodj
+           no_in_row(cv_nodi)=no_in_row(cv_nodi)+1
+
+
+                     end do Loop_CVILOC_6
+                  end do Loop_CVILOC_5
+               endif
+            end do
+         end do Loop_Elements_4
+
+! shrink the sparcity up a little now...
+        
+      gcount2 = 0 ! Now reducing the size of the stencil
+      do cv_nodi = 1, cv_nonods
+         findct( cv_nodi ) = gcount2 + 1
+         do gcount = find_ct_temp( cv_nodi ), find_ct_temp( cv_nodi + 1 ) - 1
+            if( colct( gcount ).ne.0 ) then
+               gcount2 = gcount2 + 1
+               colct( gcount2 ) = colct( gcount )
+            end if
+         end do
+      end do
+      nct = gcount2
+      findct( cv_nonods + 1 ) = gcount2 + 1
+
+      return
+    end subroutine CT_DG_Sparsity
+
 
 
   subroutine check_sparsity( &
