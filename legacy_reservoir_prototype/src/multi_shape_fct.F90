@@ -1693,41 +1693,35 @@
 
          if(QUAD_OVER_WHOLE_ELE) then ! integrate over whole element
 
-           print *,'1 going into SHAPE_one_ele'
-         call SHAPE_one_ele2(&
-         ndim, cv_ele_type, &
-         cv_ngi_short, cv_nloc, u_nloc2,  &
+            ewrite(3,*)'1 going into SHAPE_one_ele'
+            call SHAPE_one_ele2(&
+                 ndim, cv_ele_type, &
+                 cv_ngi_short, cv_nloc, u_nloc2,  &
                                 ! Volume shape functions
-         cvweight_short, cvfen_short, cvfenlx_short, cvfenly_short, cvfenlz_short, &
-         ufen2, ufenlx2, ufenly2, ufenlz2, &
+                 cvweight_short, cvfen_short, cvfenlx_short, cvfenly_short, cvfenlz_short, &
+                 ufen2, ufenlx2, ufenly2, ufenlz2, &
                                 ! Surface of each CV shape functions
-         scvngi,  &
-         scvfen, scvfenslx, scvfensly, scvfeweigh, &
-         scvfenlx, scvfenly, scvfenlz, &
-         sufen, sufenslx, sufensly, &
-         sufenlx, sufenly, sufenlz, &
+                 scvngi,  &
+                 scvfen, scvfenslx, scvfensly, scvfeweigh, &
+                 scvfenlx, scvfenly, scvfenlz, &
+                 sufen, sufenslx, sufensly, &
+                 sufenlx, sufenly, sufenlz, &
                                 ! Surface element shape funcs
-         nface, &
-         cv_sloclist, u_sloclist2, cv_snloc, u_snloc2 )
-           print *,'1 just out of SHAPE_one_ele'
+                 nface, &
+                 cv_sloclist, u_sloclist2, cv_snloc, u_snloc2 )
+            ewrite(3,*)'1 just out of SHAPE_one_ele'
 
-            if(sbcvngi.ne.scvngi) then
-!              flabort("sbcvngi.ne.scvngi")
-              print *,'sbcvngi.ne.scvngi'
-              stop 3831
-            endif
             sbufen2=sufen2
             sbufenslx2=sufenslx2
             sbufensly2=sufensly2
-            if(scvngi.ne.sbcvngi) then
-               print *,'need to change scvngi,sbcvngi:',scvngi,sbcvngi
-               stop 262
-            endif
+ 
+            if(sbcvngi/=scvngi) FLAbort("sbcvngi/=scvngi")
+
          else
-         call shape_cv_n( ndim, cv_ele_type, &
-              cv_ngi_short, cv_nloc, u_nloc2, cvn_short, cvweight_short, &
-              cvfen_short, cvfenlx_short, cvfenly_short, cvfenlz_short, &
-              ufen2, ufenlx2, ufenly2, ufenlz2 )
+            call shape_cv_n( ndim, cv_ele_type, &
+                 cv_ngi_short, cv_nloc, u_nloc2, cvn_short, cvweight_short, &
+                 cvfen_short, cvfenlx_short, cvfenly_short, cvfenlz_short, &
+                 ufen2, ufenlx2, ufenly2, ufenlz2 )
          endif
 
          ! Defining the base functions for each level
@@ -1769,31 +1763,30 @@
 
       else ! if it is not overlapping formulation
          if(QUAD_OVER_WHOLE_ELE) then ! integrate over whole element
-           print *,'2 going into SHAPE_one_ele' 
-         call SHAPE_one_ele2(&
-         ndim, cv_ele_type, &
-         cv_ngi, cv_nloc, u_nloc,  &
+            ewrite(3,*)'2 going into SHAPE_one_ele' 
+            call SHAPE_one_ele2(&
+                 ndim, cv_ele_type, &
+                 cv_ngi, cv_nloc, u_nloc,  &
                                 ! Volume shape functions
-         cvweight, cvfen, cvfenlx, cvfenly, cvfenlz, &
-         ufen, ufenlx, ufenly, ufenlz, &
+                 cvweight, cvfen, cvfenlx, cvfenly, cvfenlz, &
+                 ufen, ufenlx, ufenly, ufenlz, &
                                 ! Surface of each CV shape functions
-         scvngi,  &
-         scvfen, scvfenslx, scvfensly, scvfeweigh, &
-         scvfenlx, scvfenly, scvfenlz, &
-         sufen, sufenslx, sufensly, &
-         sufenlx, sufenly, sufenlz, &
+                 scvngi,  &
+                 scvfen, scvfenslx, scvfensly, scvfeweigh, &
+                 scvfenlx, scvfenly, scvfenlz, &
+                 sufen, sufenslx, sufensly, &
+                 sufenlx, sufenly, sufenlz, &
                                 ! Surface element shape funcs
-         nface, &
-         cv_sloclist, u_sloclist, cv_snloc, u_snloc ) 
-            if(scvngi.ne.sbcvngi) then
-               print *,'need to change scvngi,sbcvngi:',scvngi,sbcvngi
-               stop 263
-            endif
+                 nface, &
+                 cv_sloclist, u_sloclist, cv_snloc, u_snloc ) 
+
+            if(scvngi/=sbcvngi) FLAbort("scvngi/=sbcvngi")
+
          else
-         call shape_cv_n( ndim, cv_ele_type, &
-              cv_ngi, cv_nloc, u_nloc, cvn, cvweight, &
-              cvfen, cvfenlx, cvfenly, cvfenlz, &
-              ufen, ufenlx, ufenly, ufenlz )
+            call shape_cv_n( ndim, cv_ele_type, &
+                 cv_ngi, cv_nloc, u_nloc, cvn, cvweight, &
+                 cvfen, cvfenlx, cvfenly, cvfenlz, &
+                 ufen, ufenlx, ufenly, ufenlz )
          endif
          cvn_short = cvn
          cvfen_short = cvfen
@@ -1824,13 +1817,13 @@
 
 
          if(.not.QUAD_OVER_WHOLE_ELE) then ! not integrate over whole element 
-         call shapesv_fem_plus( scvngi, cv_neiloc, cv_on_face, cvfem_on_face, &
-              ufem_on_face2, &
-              cv_ele_type, cv_nloc, scvfen, scvfenslx, scvfensly, scvfeweigh, &
-              scvfenlx, scvfenly, scvfenlz, &
-              u_nloc2, sufen2, sufenslx2, sufensly2, &
-              sufenlx2, sufenly2, sufenlz2, &
-              ndim )
+            call shapesv_fem_plus( scvngi, cv_neiloc, cv_on_face, cvfem_on_face, &
+                 ufem_on_face2, &
+                 cv_ele_type, cv_nloc, scvfen, scvfenslx, scvfensly, scvfeweigh, &
+                 scvfenlx, scvfenly, scvfenlz, &
+                 u_nloc2, sufen2, sufenslx2, sufensly2, &
+                 sufenlx2, sufenly2, sufenlz2, &
+                 ndim )
          endif
 
          !call U_Volnei( cv_ele_type, cv_nloc, u_nloc, scvngi, &
@@ -1880,13 +1873,13 @@
 
       else
          if(.not.QUAD_OVER_WHOLE_ELE) then ! not integrate over whole element 
-         call shapesv_fem_plus( scvngi, cv_neiloc, cv_on_face, cvfem_on_face, &
-              ufem_on_face, &
-              cv_ele_type, cv_nloc, scvfen, scvfenslx, scvfensly, scvfeweigh, &
-              scvfenlx, scvfenly, scvfenlz, &
-              u_nloc, sufen, sufenslx, sufensly, &
-              sufenlx, sufenly, sufenlz, &
-              ndim )
+            call shapesv_fem_plus( scvngi, cv_neiloc, cv_on_face, cvfem_on_face, &
+                 ufem_on_face, &
+                 cv_ele_type, cv_nloc, scvfen, scvfenslx, scvfensly, scvfeweigh, &
+                 scvfenlx, scvfenly, scvfenlz, &
+                 u_nloc, sufen, sufenslx, sufensly, &
+                 sufenlx, sufenly, sufenlz, &
+                 ndim )
          endif
          !call U_Volnei( cv_ele_type, cv_nloc, u_nloc, scvngi, &
          !     cv_neiloc,   &
@@ -1909,18 +1902,18 @@
          ewrite(3,*) 'U_NLOC2, U_SNLOC2', u_nloc2, u_snloc2
 
          if(.not.QUAD_OVER_WHOLE_ELE) then ! not integrate over whole element 
-         call det_suf_ele_shape( scvngi, nface, &
-              cvfem_on_face, &
-              cv_nloc, scvfen, scvfenslx, scvfensly, scvfeweigh, &
-              scvfenlx, scvfenly, scvfenlz, &
-              u_nloc2, sufen2, sufenslx2, sufensly2, &
-              sufenlx2, sufenly2, sufenlz2, &
-              sbcvngi, sbcvfen, sbcvfenslx, sbcvfensly, sbcvfeweigh, &
-              sbcvfenlx, sbcvfenly, sbcvfenlz, &
-              sbufen2, sbufenslx2, sbufensly2, &
-              sbufenlx2, sbufenly2, sbufenlz2, &
-              cv_sloclist, u_sloclist2, cv_snloc, u_snloc2, &
-              ndim, cv_ele_type )
+            call det_suf_ele_shape( scvngi, nface, &
+                 cvfem_on_face, &
+                 cv_nloc, scvfen, scvfenslx, scvfensly, scvfeweigh, &
+                 scvfenlx, scvfenly, scvfenlz, &
+                 u_nloc2, sufen2, sufenslx2, sufensly2, &
+                 sufenlx2, sufenly2, sufenlz2, &
+                 sbcvngi, sbcvfen, sbcvfenslx, sbcvfensly, sbcvfeweigh, &
+                 sbcvfenlx, sbcvfenly, sbcvfenlz, &
+                 sbufen2, sbufenslx2, sbufensly2, &
+                 sbufenlx2, sbufenly2, sbufenlz2, &
+                 cv_sloclist, u_sloclist2, cv_snloc, u_snloc2, &
+                 ndim, cv_ele_type )
          endif
          ewrite(3,*) 'sbufen2:', sbufen2
          ewrite(3,*) 'sbcvfen:', sbcvfen
@@ -1955,19 +1948,19 @@
 
       else
          if(.not.QUAD_OVER_WHOLE_ELE) then ! not integrate over whole element 
-         call det_suf_ele_shape( scvngi, nface, &
-              cvfem_on_face, &
-              cv_nloc, scvfen, scvfenslx, scvfensly, scvfeweigh, &
-              scvfenlx, scvfenly, scvfenlz, &
-              u_nloc, sufen2, sufenslx, sufensly, &
-              sufenlx, sufenly, sufenlz, &
-              sbcvngi, sbcvfen, sbcvfenslx, sbcvfensly, sbcvfeweigh, &
-              sbcvfenlx, sbcvfenly, sbcvfenlz,  &
-              sbufen, sbufenslx, sbufensly, &
-              sbufenlx, sbufenly, sbufenlz, &
-              cv_sloclist, u_sloclist, cv_snloc, u_snloc, &
-              ndim, cv_ele_type )
-          endif
+            call det_suf_ele_shape( scvngi, nface, &
+                 cvfem_on_face, &
+                 cv_nloc, scvfen, scvfenslx, scvfensly, scvfeweigh, &
+                 scvfenlx, scvfenly, scvfenlz, &
+                 u_nloc, sufen2, sufenslx, sufensly, &
+                 sufenlx, sufenly, sufenlz, &
+                 sbcvngi, sbcvfen, sbcvfenslx, sbcvfensly, sbcvfeweigh, &
+                 sbcvfenlx, sbcvfenly, sbcvfenlz,  &
+                 sbufen, sbufenslx, sbufensly, &
+                 sbufenlx, sbufenly, sbufenlz, &
+                 cv_sloclist, u_sloclist, cv_snloc, u_snloc, &
+                 ndim, cv_ele_type )
+         endif
       end if Conditional_OverlappingMethod3
 
       ! Define the gauss points that lie on the surface of the
@@ -2072,22 +2065,22 @@
       ewrite(3,*) 'In DET_SUF_ELE_SHAPE'
     
       ! Obtain SBCVFEN from SCVFEN: 
-      print *,'for cv:'
+      ewrite(3,*)'for cv:'
       CALL SCVFEN_2_SBCVFEN( CV_NLOC, CV_SNLOC, SCVNGI, SBCVNGI, &
            CV_NLOC, CV_SNLOC, CVFEM_ON_FACE, &
            SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFENLX, SBCVFENLY, SBCVFENLZ, SBCVFEWEIGH, &
            SCVFEN, SCVFENSLX, SCVFENSLY, SCVFENLX, SCVFENLY, SCVFENLZ, SCVFEWEIGH )
 
-      print *,'U_NLOC, U_SNLOC, SCVNGI, SBCVNGI, CV_NLOC, CV_SNLOC:', &
+      ewrite(3,*)'U_NLOC, U_SNLOC, SCVNGI, SBCVNGI, CV_NLOC, CV_SNLOC:', &
                U_NLOC, U_SNLOC, SCVNGI, SBCVNGI, CV_NLOC, CV_SNLOC
-      print *,'for u:'
+      ewrite(3,*)'for u:'
       ! Obtain SBUFEN from SUFEN: 
       CALL SCVFEN_2_SBCVFEN( U_NLOC, U_SNLOC, SCVNGI, SBCVNGI, &
            CV_NLOC, CV_SNLOC, CVFEM_ON_FACE, &
            SBUFEN, SBUFENSLX, SBUFENSLY, SBUFENLX, SBUFENLY, SBUFENLZ, SBCVFEWEIGH, &
            SUFEN, SUFENSLX, SUFENSLY, SUFENLX, SUFENLY, SUFENLZ, SCVFEWEIGH )
-       print *,'SBUFEN:',SBUFEN
-       print *,'sufen:',sufen
+       ewrite(3,*)'SBUFEN:',SBUFEN
+       ewrite(3,*)'SUFEN:',SUFEN
 
       ! Determine CV_SLOCLIST & U_SLOCLIST
       CALL DETERMIN_SLOCLIST( CV_SLOCLIST, CV_NLOC, CV_SNLOC, SCVNGI, NFACE, &
@@ -2102,7 +2095,7 @@
       ewrite(3,*)'CV_SNLOC, U_SNLOC, SCVNGI:', CV_SNLOC, U_SNLOC, SCVNGI
       ewrite(3,*)'CV_SLOCLIST:', CV_SLOCLIST
       ewrite(3,*)'U_SLOCLIST:', U_SLOCLIST
-!       stop 2982
+      !stop 2982
 
       RETURN
     END SUBROUTINE DET_SUF_ELE_SHAPE
@@ -2135,42 +2128,26 @@
       allocate( candidate_gi( scvngi ) )
       allocate( candidate_gi2( scvngi ) )
 
-      ! The CV_SNLOC surface nodes are the only nodes that are candidates. 
-      ! They are the 1st nodes in the local list for the volumes
-! WE CAN DELETE THE next bit probably...
-!      candidate_gi = .false.
-!      Loop_SGI1: do cv_sgi = 1, scvngi
-!         r_prodt = 1.
-!         Loop_NLOC: do cv_iloc = 1, cv_snloc
-!            ewrite(3,*)'cv_iloc, cv_snloc, cv_nloc, cv_sgi, scvngi:', cv_iloc, cv_snloc, cv_nloc, cv_sgi, scvngi
-!            r_prodt = r_prodt * scvfen( cv_iloc, cv_sgi )
-!         end do Loop_NLOC
-!         ewrite(3,*) 'cv_sgi, r_prodt:', cv_sgi, r_prodt
-!         if( r_prodt > 1.e-5 ) candidate_gi( cv_sgi ) = .true.
-!      end do Loop_SGI1
-
+      ! The CV_SNLOC surface nodes are the only nodes that are candidates.
 
       do cv_sgi = 1, scvngi
          candidate_gi2( cv_sgi ) = .true.
          do cv_iloc_cells = 1, cv_snloc_cells
             if( .not.cvfem_on_face(cv_iloc_cells,cv_sgi) ) candidate_gi2( cv_sgi ) = .false.
-            print *,'cv_iloc_cells,cv_sgi, cvfem_on_face(cv_iloc_cells,cv_sgi):', &
-                     cv_iloc_cells,cv_sgi, cvfem_on_face(cv_iloc_cells,cv_sgi)
+            !ewrite(3,*)'cv_iloc_cells,cv_sgi, cvfem_on_face(cv_iloc_cells,cv_sgi):', &
+            !     cv_iloc_cells,cv_sgi, cvfem_on_face(cv_iloc_cells,cv_sgi)
          end do
       end do
-
-      print *,'candidate_gi2:',candidate_gi2
 
       Loop_SNLOC: do cv_siloc = 1, cv_snloc
          cv_iloc = cv_siloc
          cv_bsgi = 0
          Loop_SGI2: do cv_sgi = 1, scvngi
-!            Conditional_1: if( candidate_gi( cv_sgi ) ) then
                Conditional_2: if( candidate_gi2( cv_sgi ) ) then
                   cv_bsgi = cv_bsgi + 1
-                  ewrite(3,*) 'cv_siloc, cv_bsgi,cv_iloc, cv_sgi:', &
-                       cv_siloc, cv_bsgi,cv_iloc, cv_sgi
-                  ewrite(3,*) 'scvfen( cv_iloc, cv_sgi ):', scvfen( cv_iloc, cv_sgi )
+                  !ewrite(3,*) 'cv_siloc, cv_bsgi,cv_iloc, cv_sgi:', &
+                  !     cv_siloc, cv_bsgi,cv_iloc, cv_sgi
+                  !ewrite(3,*) 'scvfen( cv_iloc, cv_sgi ):', scvfen( cv_iloc, cv_sgi )
                   sbcvfen( cv_siloc, cv_bsgi ) = scvfen( cv_iloc, cv_sgi )
                   sbcvfenslx( cv_siloc, cv_bsgi ) = scvfenslx( cv_iloc, cv_sgi )
                   sbcvfensly( cv_siloc, cv_bsgi ) = scvfensly( cv_iloc, cv_sgi )
@@ -2179,25 +2156,19 @@
                   sbcvfenlz( cv_siloc, cv_bsgi ) = scvfenlz( cv_iloc, cv_sgi )
                   sbcvfeweigh( cv_bsgi ) = scvfeweigh( cv_sgi )
                end if Conditional_2
-!            end if Conditional_1
          end do Loop_SGI2
       end do Loop_SNLOC
 
-      if(cv_bsgi.ne.sbcvngi) then
-         print *,'cv_bsgi,sbcvngi:',cv_bsgi,sbcvngi
-         FLAbort("cv_bsgi.ne.sbcvngi")
+      if(cv_bsgi/=sbcvngi) then
+         ewrite(3,*)'cv_bsgi,sbcvngi:',cv_bsgi,sbcvngi
+         FLAbort("cv_bsgi/=sbcvngi")
       endif
 
       deallocate( candidate_gi )
       deallocate( candidate_gi2 )
-!         if(cv_nloc_cells.ne.cv_nloc) stop 29892
 
       return
     end subroutine scvfen_2_sbcvfen
-
-
-
-
 
 
 

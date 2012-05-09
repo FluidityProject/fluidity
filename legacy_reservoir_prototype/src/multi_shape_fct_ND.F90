@@ -778,13 +778,11 @@
                      Loop_ILZ2: do ilx = 1, nl
                         nj = ilx + ( ily - 1 ) * 3 + ( ilz - 1 ) * 9
                         n( nj, gpoi ) = xn( ilx ) * yn( ily ) * zn( ilz )
-!                 print *,'nj, gpoi,n( nj, gpoi ),xn( ilx ), yn( ily ),zn( ilz ):', &
-!                          nj, gpoi,n( nj, gpoi ),xn( ilx ), yn( ily ),zn( ilz )
+                        !ewrite(3,*)'nj, gpoi,n( nj, gpoi ),xn( ilx ), yn( ily ),zn( ilz ):', &
+                        !     nj, gpoi,n( nj, gpoi ),xn( ilx ), yn( ily ),zn( ilz )
                         nlx( nj, gpoi ) = dxn( ilx ) * yn( ily ) * zn( ilz )
                         nly( nj, gpoi ) = xn( ilx ) * dyn( ily ) * zn( ilz )
                         nlz( nj, gpoi ) = xn( ilx ) * yn( ily ) * dzn( ilz )
-                 print *,'nj, gpoi,nlx( nj, gpoi ),dxn( ilx ), yn( ily ),zn( ilz ):', &
-                          nj, gpoi,nlx( nj, gpoi ),dxn( ilx ), xn(ilx), yn( ily ),zn( ilz )
                      end do Loop_ILZ2
                   end do Loop_ILY2
                end do Loop_ILX2
@@ -916,9 +914,9 @@
 !               volume_order=2
 !               volume_order=3
 
-               cv_ngi = 864 ! 8x4x27 (tets x hexs x 3x3x3)
-               if (volume_order==1) cv_ngi=8*4*1
-               if (volume_order==2) cv_ngi=8*4*8
+               if (volume_order==1) cv_ngi=8*4*1 ! (1x1x1)
+               if (volume_order==2) cv_ngi=8*4*8 ! (2x2x2)
+               if (volume_order==3) cv_ngi=8*4*27 ! (3x3x3)
 
                surface_order=1
 !               surface_order=2
@@ -1853,15 +1851,15 @@
       call Calc_CVN_TriTetQuadHex( cv_ele_type, totele, cv_nloc, cv_ngi, x_nonods, &
            quad_cv_nloc, x_ndgln, fem_nod, cvn )
 
-      print *,'cvweigh:',cvweigh
+      ewrite(3,*)'cvweigh:',cvweigh
       do cv_iloc=1,cv_nloc
          rsum=0.0
          do cv_gi=1,cv_ngi
             rsum=rsum+cvn(cv_iloc,cv_gi)*cvweigh(cv_gi)
          end do
-         print *,'cv_iloc,rsum:',cv_iloc,rsum
+         ewrite(3,*)'cv_iloc,rsum:',cv_iloc,rsum
       end do
-      !         stop 2922
+      !stop 2922
       if(cv_nloc==10) then
         print *,'cv_nloc=',cv_nloc
          totele_sub=8

@@ -621,19 +621,14 @@
 
       end do
 
-      if(.true.) then
-
-         print *, 'cdp:', cdp
-
+      if(.false.) then
+         !print *, 'cdp:', cdp
          DO CV_NOD = 1, CV_NONODS
-
             ewrite(3,*) 'cv_nod=',cv_nod
             DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
                CV_JNOD = COLCMC( COUNT )
                ewrite(3,*) 'CV_JNOD,cmc(count):',CV_JNOD,cmc(count)
-
             END DO
-
          END DO
       endif
 

@@ -733,7 +733,6 @@
               option_path = '/material_phase[0]/scalar_field::Pressure')
 
          ewrite(3,*)'after pressure solve DP:',DP
-
          !stop 1245
 
          P = P + DP
@@ -1990,7 +1989,7 @@
          VDOLD = 0.0
          WDOLD = 0.0
          DO U_ILOC = 1, U_NLOC
-            !          ewrite(3,*) 'ele, u_nonods, iloc:',ele, u_nonods, iloc
+            !ewrite(3,*) 'ele, u_nonods, iloc:',ele, u_nonods, iloc
             U_NOD = U_NDGLN(( ELE - 1 ) * U_NLOC + U_ILOC )
             DO GI = 1, CV_NGI
                DO IPHASE=1,NPHASE
@@ -2355,8 +2354,8 @@
       END DO Loop_Elements
 
       ewrite(3,*) 'c=',c
-      print *,'here1 u_rhs:',u_rhs
-      print *, 'disc_pres',  (CV_NONODS == TOTELE * CV_NLOC )
+      ewrite(3,*) 'here1 u_rhs:',u_rhs
+      ewrite(3,*) 'disc_pres',  (CV_NONODS == TOTELE * CV_NLOC )
 
       !! *************************loop over surfaces*********************************************
 
@@ -2401,7 +2400,6 @@
                   U_NLOC2=max(1,U_NLOC/CV_NLOC)
                   ILEV=(U_ILOC-1)/U_NLOC2 + 1
 
-                  !  IF(U_ELE_TYPE/=2) ILEV=1
                   if( .not. is_overlapping ) ilev = 1
 
                   IU_NOD = U_SNDGLN(( SELE - 1 ) * U_SNLOC + U_SILOC )
@@ -2419,9 +2417,8 @@
                            NMX = NMX + SNORMXN( SGI ) * SBUFEN( U_SILOC, SGI ) * SBCVFEN( P_SJLOC, SGI ) * SDETWE( SGI )
                            NMY = NMY + SNORMYN( SGI ) * SBUFEN( U_SILOC, SGI ) * SBCVFEN( P_SJLOC, SGI ) * SDETWE( SGI )
                            NMZ = NMZ + SNORMZN( SGI ) * SBUFEN( U_SILOC, SGI ) * SBCVFEN( P_SJLOC, SGI ) * SDETWE( SGI )
-!        print *,'sgi,SNORMXN( SGI ),SBUFEN( U_SILOC, SGI ),SBCVFEN( P_SJLOC, SGI ),SDETWE( SGI ):', &
-!                 sgi,SNORMXN( SGI ),SBUFEN( U_SILOC, SGI ),SBCVFEN( P_SJLOC, SGI ),SDETWE( SGI )
-!                  stop 821
+                           !ewrite(3,*)'sgi,SNORMXN( SGI ),SBUFEN( U_SILOC, SGI ),SBCVFEN( P_SJLOC, SGI ),SDETWE( SGI ):', &
+                           !     sgi,SNORMXN( SGI ),SBUFEN( U_SILOC, SGI ),SBCVFEN( P_SJLOC, SGI ),SDETWE( SGI )
                         END DO Loop_GaussPoints2
 
 
@@ -2442,8 +2439,8 @@
                                    + NMY * SELE_OVERLAP_SCALE(P_JLOC)
                               IF( NDIM >= 3 ) C( COUNT_PHA + 2 * NCOLC ) = C( COUNT_PHA + 2 * NCOLC ) &
                                    + NMZ * SELE_OVERLAP_SCALE(P_JLOC)
- ! print *,'sele,IU_PHA_NOD,SUF_P_SJ_IPHA,NMX,NMy,NMz,SUF_P_BC( SUF_P_SJ_IPHA ),SELE_OVERLAP_SCALE(P_JLOC):', &
- !          sele,IU_PHA_NOD,SUF_P_SJ_IPHA,NMX,NMy,NMz,SUF_P_BC( SUF_P_SJ_IPHA ),SELE_OVERLAP_SCALE(P_JLOC)
+                              !ewrite(3,*)'sele,IU_PHA_NOD,SUF_P_SJ_IPHA,NMX,NMy,NMz,SUF_P_BC( SUF_P_SJ_IPHA ),SELE_OVERLAP_SCALE(P_JLOC):', &
+                              !     sele,IU_PHA_NOD,SUF_P_SJ_IPHA,NMX,NMy,NMz,SUF_P_BC( SUF_P_SJ_IPHA ),SELE_OVERLAP_SCALE(P_JLOC)
 
                               U_RHS( IU_PHA_NOD ) = U_RHS( IU_PHA_NOD ) &
                                    - NMX * SUF_P_BC( SUF_P_SJ_IPHA ) * SELE_OVERLAP_SCALE(P_JLOC)
@@ -2464,7 +2461,6 @@
 
 
             If_ele2_notzero_1: IF(ELE2 /= 0) THEN
-               ! IF(U_ELE_TYPE==2) THEN
                if( is_overlapping ) then
                   U_OTHER_LOC=0
                   U_ILOC_OTHER_SIDE=0
@@ -2516,10 +2512,8 @@
                MAT_OTHER_LOC=0
                DO MAT_SILOC = 1, CV_SNLOC
                   MAT_ILOC = CV_SLOC2LOC( MAT_SILOC )
-                  !MAT_INOD = CV_NDGLN(( ELE - 1 ) * MAT_NLOC + MAT_ILOC )
                   MAT_INOD = X_NDGLN(( ELE - 1 ) * MAT_NLOC + MAT_ILOC )
                   DO MAT_ILOC2 = 1, MAT_NLOC
-                     !MAT_INOD2 = CV_NDGLN(( ELE2 - 1 ) * MAT_NLOC + MAT_ILOC2 )
                      MAT_INOD2 = X_NDGLN(( ELE2 - 1 ) * MAT_NLOC + MAT_ILOC2 )
                      IF( MAT_INOD2 == MAT_INOD ) THEN
                         MAT_OTHER_LOC( MAT_ILOC )=MAT_ILOC2
@@ -2578,32 +2572,31 @@
                END DO
             ENDIF If_diffusion_or_momentum1
 
-            If_ele2_notzero: IF(ELE2 /= 0 .and. .true.) THEN
+            If_ele2_notzero: IF(ELE2 /= 0) THEN
 
                discontinuous_pres: IF(DISC_PRES) THEN 
+
                   DO P_SJLOC = 1, CV_SNLOC
                      P_JLOC = CV_SLOC2LOC( P_SJLOC )
-                     !ewrite(3,*) 'P_SJLOC,p_jloc=',P_SJLOC,p_jloc
-                     P_JNOD = P_NDGLN(( ELE - 1 ) * P_NLOC + P_JLOC )
+                     P_JNOD = X_NDGLN(( ELE - 1 ) * P_NLOC + P_JLOC )
                      P_JLOC2 = MAT_OTHER_LOC(P_JLOC)
-                     P_JNOD2 = P_NDGLN(( ELE2 - 1 ) * P_NLOC + P_JLOC2 )
+                     P_JNOD2 = X_NDGLN(( ELE2 - 1 ) * P_NLOC + P_JLOC2 )
                      DO U_SILOC = 1, U_SNLOC
                         U_ILOC = U_SLOC2LOC( U_SILOC )
-                        U_NLOC2=max(1,U_NLOC/CV_NLOC)
-                        ILEV=(U_ILOC-1)/U_NLOC2 + 1
-                        !IF(U_ELE_TYPE/=2) ILEV=1
-                        !IF((U_ELE_TYPE/=2).OR.( MAT_OTHER_LOC(ILEV) /= 0)) THEN 
-                        if( .not. is_overlapping ) ilev = 1
-                        if( ( .not. is_overlapping ) .or. ( mat_other_loc( ilev ) /= 0 ) ) then
+                        U_NLOC2 = MAX(1,U_NLOC/CV_NLOC)
+                        ILEV = (U_ILOC-1)/U_NLOC2 + 1
+                        IF( .NOT. IS_OVERLAPPING ) ILEV = 1
+
+                        IF( ( .NOT. IS_OVERLAPPING ) .OR. ( MAT_OTHER_LOC( ILEV ) /= 0 ) ) THEN
                            U_INOD = U_NDGLN(( ELE - 1 ) * U_NLOC + U_ILOC )
                            VNMX=0.0
                            VNMY=0.0
                            VNMZ=0.0
-                           DO SGI=1,SBCVNGI
-                              RNN=SDETWE(SGI)*SBUFEN(U_SILOC,SGI)*SBCVFEN(P_SJLOC,SGI)
-                              VNMX=VNMX + SNORMXN(SGI)*RNN
-                              VNMY=VNMY + SNORMYN(SGI)*RNN
-                              VNMZ=VNMZ + SNORMZN(SGI)*RNN
+                           DO SGI = 1, SBCVNGI
+                              RNN = SDETWE(SGI) * SBUFEN(U_SILOC,SGI) * SBCVFEN(P_SJLOC,SGI)
+                              VNMX = VNMX + SNORMXN(SGI) * RNN
+                              VNMY = VNMY + SNORMYN(SGI) * RNN
+                              VNMZ = VNMZ + SNORMZN(SGI) * RNN
                            END DO
 
                            CALL POSINMAT( COUNT,  U_INOD, P_JNOD,&
@@ -2613,21 +2606,21 @@
                            Loop_Phase5: DO IPHASE = 1, NPHASE
                               COUNT_PHA  = COUNT  + ( IPHASE - 1 ) * NDIM * NCOLC
                               COUNT_PHA2 = COUNT2 + ( IPHASE - 1 ) * NDIM * NCOLC
-                              ! weight integral according to non-uniformmesh spacing otherwise it will go unstable.
+                              ! weight integral according to non-uniform mesh spacing otherwise it will go unstable.
                               IF( VOL_ELE_INT_PRES ) THEN
                                  ! bias the weighting towards bigger eles - works with 0.25 and 0.1 and not 0.01. 
-                                 MASSE=MASS_ELE(ELE) + 0.25*MASS_ELE(ELE2)
-                                 MASSE2=MASS_ELE(ELE2) + 0.25*MASS_ELE(ELE)
+                                 MASSE = MASS_ELE( ELE ) + 0.25 * MASS_ELE( ELE2 )
+                                 MASSE2 = MASS_ELE( ELE2 ) + 0.25 * MASS_ELE( ELE )
                               ELSE ! Simple average (works well with IN_ELE_UPWIND=DG_ELE_UPWIND=2)...
-                                 MASSE=1.0
-                                 MASSE2=1.0
+                                 MASSE = 1.0
+                                 MASSE2 = 1.0
                               ENDIF
 
                               ! SELE_OVERLAP_SCALE(P_JNOD) is the scaling needed to convert to overlapping element surfaces. 
                               C( COUNT_PHA ) = C( COUNT_PHA ) + VNMX * SELE_OVERLAP_SCALE(P_JLOC) &
                                    *MASSE/(MASSE+MASSE2) 
                               IF( NDIM >= 2 ) C( COUNT_PHA + NCOLC )     &
-                                   = C( COUNT_PHA + NCOLC )     + VNMY* SELE_OVERLAP_SCALE(P_JLOC) &
+                                   = C( COUNT_PHA + NCOLC ) + VNMY* SELE_OVERLAP_SCALE(P_JLOC) &
                                    *MASSE/(MASSE+MASSE2) 
                               IF( NDIM >= 3 ) C( COUNT_PHA + 2 * NCOLC ) &
                                    = C( COUNT_PHA + 2 * NCOLC ) + VNMZ* SELE_OVERLAP_SCALE(P_JLOC) &
@@ -2636,7 +2629,7 @@
                               C( COUNT_PHA2 ) = C( COUNT_PHA2 ) - VNMX* SELE_OVERLAP_SCALE(P_JLOC) &
                                    *MASSE/(MASSE+MASSE2) 
                               IF( NDIM >= 2 ) C( COUNT_PHA2 + NCOLC )     &
-                                   = C( COUNT_PHA2 + NCOLC )     - VNMY* SELE_OVERLAP_SCALE(P_JLOC) &
+                                   = C( COUNT_PHA2 + NCOLC ) - VNMY* SELE_OVERLAP_SCALE(P_JLOC) &
                                    *MASSE/(MASSE+MASSE2) 
                               IF( NDIM >= 3 ) C( COUNT_PHA2 + 2 * NCOLC ) &
                                    = C( COUNT_PHA2 + 2 * NCOLC ) - VNMZ* SELE_OVERLAP_SCALE(P_JLOC) &
