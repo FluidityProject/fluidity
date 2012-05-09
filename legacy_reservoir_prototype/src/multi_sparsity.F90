@@ -1335,7 +1335,7 @@
          call def_spar( 1, totele, mxnele, ncolele, &
               midele, finele, colele )
       else
-         call getfinele( totele, cv_nloc, cv_snloc, cv_nonods, x_ndgln, mx_nface_p1, &
+         call getfinele( totele, cv_nloc, cv_snloc, x_nonods, x_ndgln, mx_nface_p1, &
               mxnele, ncolele, finele, colele, midele )
       end if Conditional_Dimensional_1
       ewrite(3,*)'finele: ', size( finele ), '==>', finele( 1 : totele + 1 )

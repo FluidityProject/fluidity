@@ -767,7 +767,7 @@
                            !ewrite(3,*)'U_NODK:',U_NODK, 'findct:',FINDCT( CV_NODI ), FINDCT( CV_NODI + 1 ) - 1
                            !ewrite(3,*)'colct:',colct( FINDCT( CV_NODJ ) : FINDCT( CV_NODJ + 1 ) - 1 )
                            JCOUNT = 0
-                           DO COUNT = FINDCT( CV_NODJ ), FINDCT( CV_NODJ + 1 ) - 1, 1
+                           DO COUNT = FINDCT( CV_NODI ), FINDCT( CV_NODI + 1 ) - 1, 1
                               IF(COLCT( COUNT ) == U_NODK) JCOUNT = COUNT
                            END DO
                            JCOUNT_KLOC2( U_KLOC ) = JCOUNT
