@@ -316,6 +316,7 @@ program Darcy_IMPES
       ! *** Darcy IMPES calculate latest gravity field - direction field could be defined by python function ***
       call set(di%gravity, di%gravity_direction)
       call scale(di%gravity, di%gravity_magnitude)
+      ewrite_minmax(di%gravity)
       
       ! *** Darcy IMPES set max number non linear iterations for this time step ***
       di%max_nonlinear_iter_this_timestep = nonlinear_iterations

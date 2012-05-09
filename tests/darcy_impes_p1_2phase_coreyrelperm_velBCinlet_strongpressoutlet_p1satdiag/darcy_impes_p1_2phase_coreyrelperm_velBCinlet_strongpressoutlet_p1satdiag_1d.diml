@@ -5,7 +5,7 @@
       <integer_value rank="0">1</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_file file_name="darcy_impes_p1_2phase_corey_relperm_totdarcyvelBCinlet_1d">
+      <from_file file_name="darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_1d">
         <format name="triangle"/>
         <stat>
           <include_in_stat/>

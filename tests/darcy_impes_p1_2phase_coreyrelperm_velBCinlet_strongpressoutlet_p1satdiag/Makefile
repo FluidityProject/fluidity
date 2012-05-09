@@ -1,6 +1,6 @@
 SHELL = sh
 
-SIM = darcy_impes_p1_2phase_corey_relperm_totdarcyvelBCinlet
+SIM = darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag
 
 # options for 1d mesh interval script
 MESH_SIZE = 0.05
