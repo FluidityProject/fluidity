@@ -52,6 +52,7 @@ module Coordinates
        cart2spher, spher2cart, ll2r3_rotate, rotate2ll, &
        earth_radius, higher_order_sphere_projection, &
        sphere_inward_normal_at_quad_ele, sphere_inward_normal_at_quad_face, &
+       rotate_diagonal_to_cartesian_gi, rotate_diagonal_to_cartesian_face, &
        rotate_diagonal_to_sphere_gi, rotate_diagonal_to_sphere_face, &
        rotate_ct_m_sphere, rotate_momentum_to_sphere, &
        rotate_velocity_sphere, rotate_velocity_back_sphere, &
@@ -241,10 +242,10 @@ contains
 
   end function sphere_inward_normal_at_quad_face
 
-  function rotate_diagonal_to_sphere_gi(positions, ele_number, diagonal) result(quad_val)
-    ! Given the diagonal of a tensor, this function rotates it to a spherical coordinate system. 
-    ! This result is given by R(diagonal)R^T where R is the matrix of Eigen vectors of the 
-    ! spherical coordinate system.
+  function rotate_diagonal_to_cartesian_gi(positions, ele_number, diagonal) result(quad_val)
+    ! Given the diagonal of a tensor in spherical coordinates, this function transforms the
+    ! tensor components to a cartesian system system at all quadrature points of an element.
+    ! This result is given by R(diagonal)R^T where R is the transformation matrix.
     type(vector_field), intent(in) :: positions
     integer, intent(in) :: ele_number
     real, dimension(positions%dim,ele_ngi(positions,ele_number)), intent(in) :: diagonal
@@ -264,22 +265,140 @@ contains
     end do
 
     do i=1,ele_ngi(positions,ele_number)
+      ! Calculate the spherical-polar coordinates of the point
       rad=sqrt(sum(X_quad(:,i)**2))
-      phi=atan2(X_quad(2,i),X_quad(1,i))
       theta=acos(X_quad(3,i)/rad)
+      phi=atan2(X_quad(2,i),X_quad(1,i))
 
-      R(1,1)=-sin(phi)
+      R(1,1)=sin(theta)*cos(phi)
       R(1,2)=cos(theta)*cos(phi)
-      R(1,3)=sin(theta)*cos(phi)
-      R(2,1)=cos(phi)
+      R(1,3)=-sin(phi)
+      R(2,1)=sin(theta)*sin(phi)
       R(2,2)=cos(theta)*sin(phi)
-      R(2,3)=sin(theta)*sin(phi)
-      R(3,1)=0
+      R(2,3)=cos(phi)
+      R(3,1)=cos(theta)
       R(3,2)=-sin(theta)
-      R(3,3)=cos(theta)
+      R(3,3)=0.0
 
-      RT=R
-      call invert(RT)
+      RT(1,1) = R(1,1)
+      RT(1,2) = R(2,1)
+      RT(1,3) = R(3,1)
+      RT(2,1) = R(1,2)
+      RT(2,2) = R(2,2)
+      RT(2,3) = R(3,2)
+      RT(3,1) = R(1,3)
+      RT(3,2) = R(2,3)
+      RT(3,3) = R(3,3)
+
+      quad_val(:,:,i)=matmul((matmul(R,diagonal_T(:,:,i))),RT)
+
+    end do
+
+  end function rotate_diagonal_to_cartesian_gi
+
+  function rotate_diagonal_to_cartesian_face(positions, face_number, diagonal) result(quad_val)
+    ! Given the diagonal of a tensor in spherical coordinates, this function transforms the
+    ! tensor components to a cartesian system system at all quadrature points of an face.
+    ! This result is given by R(diagonal)R^T where R is the transformation matrix.
+    type(vector_field), intent(in) :: positions
+    integer, intent(in) :: face_number
+    real, dimension(positions%dim,face_ngi(positions,face_number)), intent(in) :: diagonal
+    real, dimension(positions%dim,face_ngi(positions,face_number)) :: X_quad
+    real, dimension(positions%dim,positions%dim) :: R, RT
+    real, dimension(positions%dim,positions%dim,face_ngi(positions,face_number)) :: diagonal_T, quad_val
+    real :: rad, phi, theta
+    integer :: i
+
+    assert(positions%dim==3)
+
+    X_quad=face_val_at_quad(positions, face_number)
+
+    diagonal_T=0.0
+    do i=1,positions%dim
+      diagonal_T(i,i,:)=diagonal(i,:)
+    end do
+
+    do i=1,ele_ngi(positions,face_number)
+      ! Calculate the spherical-polar coordinates of the point
+      rad=sqrt(sum(X_quad(:,i)**2))
+      theta=acos(X_quad(3,i)/rad)
+      phi=atan2(X_quad(2,i),X_quad(1,i))
+
+      R(1,1)=sin(theta)*cos(phi)
+      R(1,2)=cos(theta)*cos(phi)
+      R(1,3)=-sin(phi)
+      R(2,1)=sin(theta)*sin(phi)
+      R(2,2)=cos(theta)*sin(phi)
+      R(2,3)=cos(phi)
+      R(3,1)=cos(theta)
+      R(3,2)=-sin(theta)
+      R(3,3)=0.0
+
+      RT(1,1) = R(1,1)
+      RT(1,2) = R(2,1)
+      RT(1,3) = R(3,1)
+      RT(2,1) = R(1,2)
+      RT(2,2) = R(2,2)
+      RT(2,3) = R(3,2)
+      RT(3,1) = R(1,3)
+      RT(3,2) = R(2,3)
+      RT(3,3) = R(3,3)
+
+      quad_val(:,:,i)=matmul((matmul(R,diagonal_T(:,:,i))),RT)
+
+    end do
+
+  end function rotate_diagonal_to_cartesian_face
+
+  function rotate_diagonal_to_sphere_gi(positions, ele_number, diagonal) result(quad_val)
+    ! Given the diagonal of a tensor in cartesian coordinates, this function transforms the
+    ! tensor components to a spherical-polar basis. This result is given by R(diagonal)R^T
+    ! where R is the matrix of Eigen vectors of the sperical-polar basis, expressed in the
+    ! cartesian basis.
+    type(vector_field), intent(in) :: positions
+    integer, intent(in) :: ele_number
+    real, dimension(positions%dim,ele_ngi(positions,ele_number)), intent(in) :: diagonal
+    real, dimension(positions%dim,ele_ngi(positions,ele_number)) :: X_quad
+    real, dimension(positions%dim,positions%dim) :: R, RT
+    real, dimension(positions%dim,positions%dim,ele_ngi(positions,ele_number)) :: diagonal_T, quad_val
+    real :: rad, phi, theta
+    integer :: i
+
+    assert(positions%dim==3)
+
+    X_quad=ele_val_at_quad(positions, ele_number)
+
+    diagonal_T=0.0
+    do i=1,positions%dim
+      diagonal_T(i,i,:)=diagonal(i,:)
+    end do
+
+    do i=1,ele_ngi(positions,ele_number)
+      ! Calculate the spherical-polar coordinates of the point
+      rad=sqrt(sum(X_quad(:,i)**2))
+      theta=acos(X_quad(3,i)/rad)
+      phi=atan2(X_quad(2,i),X_quad(1,i))
+
+      R(1,1)=sin(theta)*cos(phi)
+      R(1,2)=sin(theta)*sin(phi)
+      R(1,3)=cos(theta)
+      R(2,1)=cos(theta)*cos(phi)
+      R(2,2)=cos(theta)*sin(phi)
+      R(2,3)=-sin(theta)
+      R(3,1)=-sin(phi)
+      R(3,2)=cos(phi)
+      R(3,3)=0.0
+
+      RT(1,1) = R(1,1)
+      RT(1,2) = R(2,1)
+      RT(1,3) = R(3,1)
+      RT(2,1) = R(1,2)
+      RT(2,2) = R(2,2)
+      RT(2,3) = R(3,2)
+      RT(3,1) = R(1,3)
+      RT(3,2) = R(2,3)
+      RT(3,3) = R(3,3)
+
       quad_val(:,:,i)=matmul((matmul(R,diagonal_T(:,:,i))),RT)
 
     end do
@@ -287,9 +406,10 @@ contains
   end function rotate_diagonal_to_sphere_gi
 
   function rotate_diagonal_to_sphere_face(positions, face_number, diagonal) result(quad_val)
-    ! Given the diagonal of a tensor, this function rotates it to a spherical coordinate system. 
-    ! This result is given by R(diagonal)R^T where R is the matrix of Eigen vectors of the 
-    ! spherical coordinate system.
+    ! Given the diagonal of a tensor in cartesian coordinates, this function transforms the
+    ! tensor components to a spherical-polar basis. This result is given by R(diagonal)R^T
+    ! where R is the matrix of Eigen vectors of the sperical-polar basis, expressed in the
+    ! cartesian basis.
     type(vector_field), intent(in) :: positions
     integer, intent(in) :: face_number
     real, dimension(positions%dim,face_ngi(positions,face_number)), intent(in) :: diagonal
@@ -309,22 +429,31 @@ contains
     end do
 
     do i=1,face_ngi(positions,face_number)
+      ! Calculate the spherical-polar coordinates of the point
       rad=sqrt(sum(X_quad(:,i)**2))
-      phi=atan2(X_quad(2,i),X_quad(1,i))
       theta=acos(X_quad(3,i)/rad)
+      phi=atan2(X_quad(2,i),X_quad(1,i))
 
-      R(1,1)=-sin(phi)
-      R(1,2)=cos(theta)*cos(phi)
-      R(1,3)=sin(theta)*cos(phi)
-      R(2,1)=cos(phi)
+      R(1,1)=sin(theta)*cos(phi)
+      R(1,2)=sin(theta)*sin(phi)
+      R(1,3)=cos(theta)
+      R(2,1)=cos(theta)*cos(phi)
       R(2,2)=cos(theta)*sin(phi)
-      R(2,3)=sin(theta)*sin(phi)
-      R(3,1)=0
-      R(3,2)=-sin(theta)
-      R(3,3)=cos(theta)
+      R(2,3)=-sin(theta)
+      R(3,1)=-sin(phi)
+      R(3,2)=cos(phi)
+      R(3,3)=0.0
 
-      RT=R
-      call invert(RT)
+      RT(1,1) = R(1,1)
+      RT(1,2) = R(2,1)
+      RT(1,3) = R(3,1)
+      RT(2,1) = R(1,2)
+      RT(2,2) = R(2,2)
+      RT(2,3) = R(3,2)
+      RT(3,1) = R(1,3)
+      RT(3,2) = R(2,3)
+      RT(3,3) = R(3,3)
+
       quad_val(:,:,i)=matmul((matmul(R,diagonal_T(:,:,i))),RT)
 
     end do
