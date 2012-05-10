@@ -546,8 +546,7 @@ contains
 
       end do
 
-      ! Solve for compressible_continuity
-      ! ( = \sum{div(vfrac*u)} for incompressible multiphase flows )            
+      ! Solve for compressible_continuity      
       call zero(compressible_continuity)
       call petsc_solve(compressible_continuity, mass, ctfield)
          
