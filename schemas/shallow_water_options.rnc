@@ -86,7 +86,7 @@ start =
             element mesh {
                attribute name { "VorticityMesh" },
                mesh_info
-            },
+            }?,
             element mesh {
                attribute name { xsd:string },
                mesh_info,
@@ -339,6 +339,19 @@ start =
                   element prognostic {
                      vorticity_mesh_choice,
                      prognostic_vorticity_field
+                  }
+               }?,
+               ## Projected layer depth (for PV calculations)
+               element scalar_field {
+                  attribute rank { "0" },
+                  attribute name { "ProjectedLayerThickness" },
+                  element prognostic {
+                     vorticity_mesh_choice,
+                     element solver {
+                        linear_solver_options_sym
+                     },
+                     prognostic_scalar_output_options,
+                     prognostic_scalar_stat_options
                   }
                }?,
                element scalar_field {

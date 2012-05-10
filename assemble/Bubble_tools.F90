@@ -30,6 +30,7 @@
     use fields
     use vector_tools
     use sparse_matrices_fields
+    use solvers
     use sparsity_patterns_meshes
     use element_numbering
     use state_module
@@ -39,7 +40,7 @@
     implicit none
 
     private
-    public nodalise_bubble_basis, get_lumped_mass_p2b
+    public nodalise_bubble_basis, get_lumped_mass_p2b, project_to_p2b_lumped
   contains
 
     subroutine nodalise_bubble_basis(shape)
@@ -96,6 +97,8 @@
 
     end subroutine nodalise_bubble_basis
 
+    !! This is special cased because of the special properties of the 
+    !! p2b lumped mass (it is still 3rd order, and positive).
     subroutine get_lumped_mass_p2b(state,mass,p2b_field)
       type(csr_matrix), intent(inout) :: mass
       type(state_type), intent(inout) :: state
@@ -134,8 +137,7 @@
       real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
       real, dimension(ele_ngi(X,ele)) :: detwei
       real, dimension(ele_loc(p2b_field,ele),ele_loc(p2b_field,ele))&
-           :: l_mass_mat, A
-      real, dimension(ele_loc(p2b_field,ele)) :: eigs
+           :: l_mass_mat
       real :: wv = 1.0/20., we = 2.0/15., wg = 9./20.
       real :: Area
       integer :: node, node2
@@ -158,10 +160,102 @@
       l_mass_mat(7,7) = wg*N_vals(7)**2
       L_mass_mat = L_mass_mat*Area
 
-      !call eigendecomposition(L_mass_mat, A, Eigs)
-
       call addto(mass,ele_nodes(p2b_field,ele),ele_nodes(p2b_field,ele),l_mass_mat)
 
     end subroutine get_lumped_mass_p2b_ele
-    
+
+    !! This is special cased because of the special properties of the 
+    !! p2b lumped mass (it is still 3rd order, and positivity preserving)
+    subroutine project_to_p2b_lumped(state,field,field_projected,p2b_mass)
+      type(state_type), intent(inout) :: state
+      type(scalar_field), intent(in) :: field
+      type(scalar_field), intent(inout) :: field_projected
+      type(csr_matrix), intent(in) :: p2b_mass
+      !
+      type(scalar_field) :: rhs
+      type(vector_field), pointer :: X
+      real, dimension(field_projected%mesh%shape%loc, field%mesh%shape%loc)&
+           & :: locweight
+      real, dimension(field_projected%mesh%shape%loc, field_projected%mesh%shape%loc)&
+           & :: p2b_vals
+      integer :: toloc,fromloc,ele
+      real :: wv = 1.0/20., we = 2.0/15., wg = 9./20.
+      real, dimension(7) :: weights
+      real, dimension(7) :: N_vals
+
+      if(field_projected%mesh%shape%dim.ne.2) then
+         FLAbort('Only works for 2d meshes')
+      end if
+      if(field_projected%mesh%shape%loc.ne.7) then
+         FLAbort('Expected p2 bubble mesh')
+      end if
+      X=>extract_vector_field(state, "Coordinate")
+      call allocate(rhs,field_projected%mesh,"ProjectionRHS")
+      call zero(rhs)
+
+      N_vals = eval_shape(field_projected%mesh%shape, (/1.0/3.0,1.0/3.0,1.0/3.0/))
+      weights = (/wv,we,wv,we,we,wv,wg/)
+
+      ! First construct remapping weights.
+      !! Locweight_{ij} contains value of field basis function j evaluated at
+      !! p2b node locations i
+      do toloc=1,size(locweight,1)
+         do fromloc=1,size(locweight,2)
+            locweight(toloc,fromloc)=eval_shape(field%mesh%shape, fromloc, &
+                 local_coords(toloc, field_projected%mesh%shape))
+         end do
+      end do
+
+      !! p2b_vals_{ij} contains value of p2b basis function j at p2b node
+      !!  location i
+      do toloc = 1, size(locweight,1)
+         do fromloc = 1, size(locweight,1)
+            p2b_vals(toloc,fromloc) = eval_shape(field_projected%mesh%shape, fromloc, &
+                 local_coords(toloc, field_projected%mesh%shape))
+         end do
+      end do
+
+      do ele = 1, ele_count(X)
+         call project_to_p2b_lumped_ele(X,locweight,p2b_vals,weights,&
+              rhs,field,ele)
+      end do
+      call petsc_solve(field_projected,p2b_mass,rhs)
+      ewrite (1,*) maxval(abs(field_projected%val))
+      stop
+      call deallocate(rhs)
+
+    end subroutine project_to_p2b_lumped
+
+    subroutine project_to_p2b_lumped_ele(X,locweight,weights&
+         &,p2b_vals,rhs,field,ele)
+      type(vector_field), intent(in) :: X
+      type(scalar_field), intent(in) :: field
+      type(scalar_field), intent(inout) :: rhs
+      integer, intent(in) :: ele
+      real, dimension(ele_loc(rhs,ele),ele_loc(field,ele)), intent(in) ::&
+           & locweight
+      real, dimension(ele_loc(rhs,ele),ele_loc(rhs,ele)), intent(in) :: p2b_vals
+      real, dimension(ele_loc(rhs,ele)), intent(in) :: weights
+      !
+      real, dimension(ele_loc(rhs,ele)) :: l_rhs, field_vals_rhs
+      real, dimension(ele_loc(field,ele)) :: field_vals
+      integer :: loc
+      real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+      real, dimension(ele_ngi(X,ele)) :: detwei
+      real :: area
+
+      call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J, detwei)
+      Area = sum(detwei)
+      ewrite(1,*) 'Weights', weights
+      !Values of field at field DOFs
+      field_vals = ele_val(field,ele)
+      ewrite(1,*) 'FIELD VALs', field_vals
+      field_vals_rhs = matmul(locweight,field_vals)
+      ewrite(1,*) 'FIELD VALs rhs', field_vals_rhs
+      !! Sum over p2b DOFs of p2b basis functions multiplied by
+      !! weighted values of field at p2b DOF
+      l_rhs = matmul(transpose(p2b_vals),field_vals_rhs*weights*Area)
+      ewrite(1,*) 'l_rhs', l_rhs
+      call addto(rhs,ele_nodes(rhs,ele),l_rhs)
+    end subroutine project_to_p2b_lumped_ele
   end module bubble_tools

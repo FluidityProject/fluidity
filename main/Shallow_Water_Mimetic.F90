@@ -191,7 +191,7 @@
       type(state_type), intent(inout) :: state
       !
       type(vector_field), pointer :: U, advecting_u
-      type(scalar_field), pointer :: D_old, D, vorticity
+      type(scalar_field), pointer :: D_old, D, vorticity, D_projected
       type(vector_field) :: newU, MassFlux
       type(scalar_field) :: newD
       type(csr_matrix), pointer :: Vorticity_Mass_ptr
@@ -208,6 +208,7 @@
       
       U => extract_vector_field(state, "LocalVelocity")
       D => extract_scalar_field(state, "LayerThickness")
+      D_projected=>extract_scalar_field(state, "ProjectedLayerThickness")
       D_old => extract_scalar_field(state, "OldLayerThickness")      
       vorticity => extract_scalar_field(state, "Vorticity")
       call set(D_old,D)
@@ -239,8 +240,10 @@
                     state, "LumpedVorticityMassMatrix")
             end if
             call get_vorticity(state,vorticity,U,vorticity_mass_ptr)
+            call project_to_p2b_lumped(state,D,D_projected,vorticity_mass_ptr)
          else
             call get_vorticity(state,vorticity,U)
+            call calculate_scalar_galerkin_projection(state, D_projected)
          end if
       else
          call allocate(newU,U%dim,U%mesh,"NewLocalVelocity")
@@ -458,8 +461,8 @@
 ! Check that timestepping produces some output - DONE and TESTED
 ! Extract fluxes from DG -- DONE and TESTED
 ! Vorticity calculation -- DONE
-! Mass lumping for P2b
-! Visualisation of P2b by mapping back to P2
+! Mass lumping for P2b -- DONE
+! Visualisation of P2b by mapping back to P2 -- DONE
 ! Mass mapping from P1dg to P2b
 ! Timestepping for PV
 ! Nonlinear residual calculation from PV and DG advection

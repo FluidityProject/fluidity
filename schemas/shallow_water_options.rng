@@ -95,13 +95,15 @@ Checks for jumps using local coordinates</a:documentation>
           </attribute>
           <ref name="mesh_info"/>
         </element>
-        <element name="mesh">
-          <a:documentation>Vorticity mesh</a:documentation>
-          <attribute name="name">
-            <value>VorticityMesh</value>
-          </attribute>
-          <ref name="mesh_info"/>
-        </element>
+        <optional>
+          <element name="mesh">
+            <a:documentation>Vorticity mesh</a:documentation>
+            <attribute name="name">
+              <value>VorticityMesh</value>
+            </attribute>
+            <ref name="mesh_info"/>
+          </element>
+        </optional>
         <zeroOrMore>
           <element name="mesh">
             <attribute name="name">
@@ -423,6 +425,25 @@ if isn't present as a field in state.</a:documentation>
               <element name="prognostic">
                 <ref name="vorticity_mesh_choice"/>
                 <ref name="prognostic_vorticity_field"/>
+              </element>
+            </element>
+          </optional>
+          <optional>
+            <element name="scalar_field">
+              <a:documentation>Projected layer depth (for PV calculations)</a:documentation>
+              <attribute name="rank">
+                <value>0</value>
+              </attribute>
+              <attribute name="name">
+                <value>ProjectedLayerThickness</value>
+              </attribute>
+              <element name="prognostic">
+                <ref name="vorticity_mesh_choice"/>
+                <element name="solver">
+                  <ref name="linear_solver_options_sym"/>
+                </element>
+                <ref name="prognostic_scalar_output_options"/>
+                <ref name="prognostic_scalar_stat_options"/>
               </element>
             </element>
           </optional>
