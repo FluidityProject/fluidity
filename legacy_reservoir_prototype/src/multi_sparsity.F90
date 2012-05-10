@@ -1404,6 +1404,7 @@
            mx_nc, findc, colc )
       ewrite(3,*) 'findc: ', size( findc ), '==>', findc( 1 : u_nonods + 1 )
       ewrite(3,*) 'colc: ', size( findc ), nc, '==>', colc( 1 : nc )
+      stop 666
 
       !-
       !- Computing sparsity for pressure matrix of projection method
@@ -1573,7 +1574,6 @@
                      count = find_ct_temp( cv_nodi ) - 1 + count2
                      colct( count ) = u_nodj
                      no_in_row( cv_nodi ) = no_in_row( cv_nodi ) + 1
-
                   end do Loop_CVILOC_6
                end do Loop_CVILOC_5
             end if
@@ -1585,7 +1585,7 @@
       do cv_nodi = 1, cv_nonods
          findct( cv_nodi ) = gcount2 + 1
          do gcount = find_ct_temp( cv_nodi ), find_ct_temp( cv_nodi + 1 ) - 1
-            if( colct( gcount ).ne.0 ) then
+            if( colct( gcount ) /= 0 ) then
                gcount2 = gcount2 + 1
                colct( gcount2 ) = colct( gcount )
             end if
@@ -1596,19 +1596,20 @@
 
       ! sort colct in increasing order
       do cv_nodi = 1, cv_nonods
-         call ibubble(colct(findct(cv_nodi)),findct(cv_nodi+1)-findct(cv_nodi))
+         call ibubble( colct( findct( cv_nodi ) : findct( cv_nodi + 1 ) -1 ) )
       end do
 
       return
     end subroutine CT_DG_Sparsity
 
-    subroutine ibubble(ivec, nvec)
+    subroutine ibubble(ivec)
       ! sort ivec in increasing order
       implicit none
-      integer, intent( in ) :: nvec
-      integer, dimension(nvec), intent( inout ) :: ivec
+      integer, dimension( : ), intent( inout ) :: ivec
       ! Local variables
-      integer :: i, j, itemp
+      integer :: nvec, i, j, itemp
+
+      nvec = size(ivec)
 
       do i = 1, nvec - 1
          do j = 1, nvec

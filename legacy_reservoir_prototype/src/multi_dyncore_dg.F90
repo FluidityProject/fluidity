@@ -2308,15 +2308,15 @@
                   !ewrite(3,*)  ' '
                END DO Loop_GaussPoints1
 
-
-               ewrite(3,*)  'ELE,U_ILOC,P_JLOC,NMX,NMY,NMZ:',ELE,U_ILOC,P_JLOC,NMX,NMY,NMZ
-
                ! Put into matrix
 
                ! Find COUNT - position in matrix : FINMCY, COLMCY
 
                CALL POSINMAT( COUNT, IU_NOD, JCV_NOD,&
                     U_NONODS, FINDC, COLC, NCOLC )
+
+               ewrite(3,*)'ELE,U_ILOC,P_JLOC,NMX,NMY,NMZ:', ELE,U_ILOC, P_JLOC, NMX, NMY, NMZ
+               ewrite(3,*)'IU_NOD, JCV_NOD, COUNT:', IU_NOD, JCV_NOD, COUNT
 
                Loop_Phase1: DO IPHASE = 1, NPHASE
                   COUNT_PHA = COUNT + ( IPHASE - 1 ) * NDIM * NCOLC
