@@ -96,4 +96,47 @@
 
     end subroutine nodalise_bubble_basis
 
+    subroutine get_lumped_mass_p2b(state,mass,p2b_field)
+      type(csr_matrix), intent(inout) :: mass
+      type(state_type), intent(inout) :: state
+      type(scalar_field), intent(in) :: p2b_field
+      !
+      integer :: ele
+      type(vector_field), pointer :: X
+
+      X=>extract_vector_field(state, "Coordinate")
+
+      if(p2b_field%mesh%shape%dim.ne.2) then
+         FLAbort('Only works for 2d meshes')
+      end if
+      if(p2b_field%mesh%shape%loc.ne.7) then
+         FLAbort('Expected p2 bubble mesh')
+      end if
+
+      call zero(mass)
+
+      do ele = 1, ele_count(X,ele)
+         call get_lumped_mass_p2b_ele(mass,p2b_field,X,ele)
+      end do
+
+    end subroutine get_lumped_mass_p2b
+
+    subroutine get_lumped_mass_p2b_ele(mass,p2b_field,X,ele)
+      type(csr_matrix), intent(inout) :: mass
+      type(scalar_field), intent(in) :: p2b_field
+      type(vector_field), intent(in) :: X
+      integer, intent(in) :: ele
+      !
+      real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+      real, dimension(ele_ngi(X,ele)) :: detwei
+      real, dimension(ele_loc(vorticity_rhs,ele),ele_loc(vorticity_rhs,ele))&
+           :: l_mass_mat
+      real :: wv = 1.0/20., we = 2.0/15., wg = 9./20.
+
+      call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J, detwei)
+      l_mass_mat = sum(detwei)*(/wv,we,wv,we,we,wv,wg/)
+      call addto(mass,ele_nodes(p2b_field,ele),ele_nodes(p2b_field,ele),l_mass_mat)
+
+    end subroutine get_lumped_mass_p2b_ele
+    
   end module bubble_tools

@@ -193,6 +193,9 @@
       type(scalar_field), pointer :: D_old, D, vorticity
       type(vector_field) :: newU, MassFlux
       type(scalar_field) :: newD
+      type(csr_matrix), pointer :: Vorticity_Mass_ptr
+      type(csr_matrix) :: Vorticity_Mass
+
       integer :: nonlinear_iterations, nits
 
       call get_option("/timestepping/nonlinear_iterations"&
@@ -218,6 +221,7 @@
               "NonlinearVelocity",continuity=.true.,Flux=MassFlux)
          ! This is where the PV advection goes
          call deallocate(MassFlux)
+         call extract_
          call get_vorticity(state,vorticity,U)
       else
          call allocate(newU,U%dim,U%mesh,"NewLocalVelocity")
@@ -434,12 +438,13 @@
 ! Call to Newton iteration from main code - CODED and TESTED
 ! Check that timestepping produces some output - DONE and TESTED
 ! Extract fluxes from DG -- DONE and TESTED
-! Vorticity calculation -- WORKING ON
+! Vorticity calculation -- DONE
 ! Mass lumping for P2b
 ! Visualisation of P2b by mapping back to P2
 ! Mass mapping from P1dg to P2b
 ! Timestepping for PV
 ! Nonlinear residual calculation from PV and DG advection
+! Check on spherical mesh
 ! stabilisation for PV
 ! discontinuity capturing for PV
 ! stabilisation for divergence
