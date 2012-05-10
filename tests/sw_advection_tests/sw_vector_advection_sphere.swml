@@ -67,6 +67,14 @@
         </stat>
       </from_mesh>
     </mesh>
+    <mesh name="VorticityMesh">
+      <from_file>
+        <format name="triangle"/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </from_file>
+    </mesh>
     <quadrature>
       <degree>
         <integer_value rank="0">6</integer_value>

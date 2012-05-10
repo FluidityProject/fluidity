@@ -200,6 +200,7 @@
 
       !Set up iterative solutions and provide initial guess
       !From previous timestep
+      
       U => extract_vector_field(state, "LocalVelocity")
       D => extract_scalar_field(state, "LayerThickness")
       D_old => extract_scalar_field(state, "OldLayerThickness")      
@@ -217,7 +218,6 @@
               "NonlinearVelocity",continuity=.true.,Flux=MassFlux)
          ! This is where the PV advection goes
          call deallocate(MassFlux)
-
          call get_vorticity(state,vorticity,U)
       else
          call allocate(newU,U%dim,U%mesh,"NewLocalVelocity")

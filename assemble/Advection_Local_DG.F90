@@ -144,7 +144,7 @@ module advection_local_DG
     X=>extract_vector_field(state, "Coordinate")
     U_nl=>extract_vector_field(state, velocity_name)
 
-    ewrite(1,*) 'UVALS in dg', maxval(abs(U_nl%val))
+    ewrite(2,*) 'UVALS in dg', maxval(abs(U_nl%val))
 
     ! Reset T to value at the beginning of the timestep.
     call set(T, T_old)
@@ -390,7 +390,7 @@ module advection_local_DG
          &:: flux_mass_mat
     real, dimension(ele_loc(Delta_t,ele)) :: div_flux_val
     real, dimension(ele_ngi(Delta_t,ele)) :: div_flux_gi
-    real :: total_flux
+    real :: total_flux, residual
     !! Need to set up and solve equation for flux DOFs
     !! Rows are as follows:
     !! All of the normal fluxes through edges, numbered according to
@@ -421,7 +421,10 @@ module advection_local_DG
           total_flux=total_flux-sum(face_val(UpwindFlux,face))
        end if
     end do
-    assert(abs(total_flux-sum(ele_val(Delta_T,ele)))<1.0e-10)
+    residual = abs(total_flux-sum(ele_val(Delta_T,ele)))&
+         &/max(1.0,maxval(ele_val(Delta_T,ele)))
+
+    assert(residual<1.0e-10)
 
     Flux_rhs = 0.
     Flux_mat = 0.
@@ -518,8 +521,10 @@ module advection_local_DG
        end do
     end do
     div_flux_val = shape_rhs(T_shape,div_flux_gi*T_shape%quadrature%weight)
-    assert(maxval(abs(div_flux_val-delta_T_val))<1.0e-10)
-
+    residual = maxval(abs(div_flux_val-delta_T_val))/max(1.0&
+         &,maxval(abs(delta_T_val)))
+    assert(residual<1.0e-10)
+    
     !Add the flux in
     call addto(flux,ele_nodes(flux,ele),flux_vals)
   end subroutine update_flux_ele
