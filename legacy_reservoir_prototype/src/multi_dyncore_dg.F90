@@ -2578,9 +2578,9 @@
 
                   DO P_SJLOC = 1, CV_SNLOC
                      P_JLOC = CV_SLOC2LOC( P_SJLOC )
-                     P_JNOD = X_NDGLN(( ELE - 1 ) * P_NLOC + P_JLOC )
+                     P_JNOD = P_NDGLN(( ELE - 1 ) * P_NLOC + P_JLOC )
                      P_JLOC2 = MAT_OTHER_LOC(P_JLOC)
-                     P_JNOD2 = X_NDGLN(( ELE2 - 1 ) * P_NLOC + P_JLOC2 )
+                     P_JNOD2 = P_NDGLN(( ELE2 - 1 ) * P_NLOC + P_JLOC2 )
                      DO U_SILOC = 1, U_SNLOC
                         U_ILOC = U_SLOC2LOC( U_SILOC )
                         U_NLOC2 = MAX(1,U_NLOC/CV_NLOC)
