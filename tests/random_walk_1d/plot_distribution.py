@@ -38,7 +38,7 @@ def plot_diffusivity(file):
   ylabel('Depth (m)')
   savefig('./Diffusivity.png', dpi=90,format='png')
 
-  K_grad = u.GetVectorField("Diffusivity_grad")[:,0]
+  K_grad = u.GetVectorField("DiffusivityGradient")[:,0]
   fig = figure(figsize=(3,6),dpi=90)
   ax = fig.add_axes([.24,.1,.6,.86])
   ax.plot(K_grad, z)
@@ -55,16 +55,10 @@ def plot_diffusivity(file):
 
 plot_diffusivity("random_walk_1d_0.vtu")
 
-det_count_naive = get_distribution("Naive_RW.detectors", 600, 40, 1000)
-plot_detector_distribution(det_count_naive, "Naive_RW", 600, 40, 6.)
+det_count_naive = get_distribution("NaiveRW.detectors", 600, 40, 1000)
+plot_detector_distribution(det_count_naive, "NaiveRW", 600, 40, 6.)
 
-det_count_naive_internal = get_distribution("Naive_RW_internal.detectors", 600, 40, 1000)
-plot_detector_distribution(det_count_naive_internal, "Naive_RW_internal", 600, 40, 6.)
-
-det_count_diffusive = get_distribution("Diffusive_RW.detectors", 600, 40, 1000)
-plot_detector_distribution(det_count_diffusive, "Diffusive_RW", 600, 40, 6.)
-
-det_count_diffusive_internal = get_distribution("Diffusive_RW_internal.detectors", 600, 40, 1000)
-plot_detector_distribution(det_count_diffusive_internal, "Diffusive_RW_internal", 600, 40, 6.)
+det_count_diffusive = get_distribution("DiffusiveRW.detectors", 600, 40, 1000)
+plot_detector_distribution(det_count_diffusive, "DiffusiveRW", 600, 40, 6.)
 
 show()

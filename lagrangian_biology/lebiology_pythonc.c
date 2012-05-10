@@ -1,7 +1,9 @@
 #include "lebiology_pythonc.h"
 
 /**** Initialisation function for the module 'lebiology' ****/
-PyMODINIT_FUNC initlebiology(void){
+PyMODINIT_FUNC initlebiology(void)
+{
+#ifdef HAVE_PYTHON
   // Define methods
   (void) Py_InitModule("lebiology", LEBiologyMethods);
 
@@ -11,7 +13,7 @@ PyMODINIT_FUNC initlebiology(void){
   pFGVarNames = PyDict_New();
   pFGEnvNames = PyDict_New();
   pFGStageID = PyDict_New();
-  
+#endif
 }
 
 /****************************
@@ -22,6 +24,7 @@ PyMODINIT_FUNC initlebiology(void){
 void lebiology_add_fg_varname_c(char *fg, int fglen, 
                                 char *var, int varlen, int *stat)
 {
+#ifdef HAVE_PYTHON
   //Get pFGVarNames['fg'] or create if it doesn't exist
   char *fg_key = fix_string(fg, fglen);
   PyObject *pVarList = PyDict_GetItemString(pFGVarNames, fg_key);
@@ -44,12 +47,14 @@ void lebiology_add_fg_varname_c(char *fg, int fglen,
   free(fg_key);
   free(varname); 
   return;
+#endif
 }
 
 /* Add an environment name to the array under pFGEnvNames['fg'] */
 void lebiology_add_fg_envname_c(char *fg, int fglen, 
                                 char *env, int envlen, int *stat)
 {
+#ifdef HAVE_PYTHON
   //Get pFGVarNames['fg'] or create if it doesn't exist
   char *fg_key = fix_string(fg, fglen);
   PyObject *pEnvList = PyDict_GetItemString(pFGEnvNames, fg_key);
@@ -72,6 +77,7 @@ void lebiology_add_fg_envname_c(char *fg, int fglen,
   free(fg_key);
   free(envname);
   return;
+#endif
 }
 
 /* Add a stage ID to pFGStageID['fg'] */
@@ -79,6 +85,7 @@ void lebiology_add_fg_stage_id_c(char *fg, int fglen,
                                 char *stage, int stagelen, 
                                 double *id, int *stat)
 {
+#ifdef HAVE_PYTHON
   //Get pFGStageID['fg'] or create if it doesn't exist
   char *fg_key = fix_string(fg, fglen);
   PyObject *pStageID = PyDict_GetItemString(pFGStageID, fg_key);
@@ -101,6 +108,7 @@ void lebiology_add_fg_stage_id_c(char *fg, int fglen,
   free(fg_key);
   free(stagename); 
   return;
+#endif
 }
 
 /*****************************
@@ -116,6 +124,7 @@ void lebiology_compile_function_c(char *fg, int fglen,
                                   char *func, int funclen, 
                                   int *stat)
 {
+#ifdef HAVE_PYTHON
   char *c = fix_string(func,funclen);
   int tlen=8+funclen;
   char t[tlen];
@@ -163,6 +172,7 @@ void lebiology_compile_function_c(char *fg, int fglen,
   free(fg_key);
   free(keystr);
   return;
+#endif
 }
 
 void lebiology_agent_init_c(char *fg, int fglen, 
@@ -170,6 +180,7 @@ void lebiology_agent_init_c(char *fg, int fglen,
                             double vars[], int n_vars, 
                             int *stat)
 {
+#ifdef HAVE_PYTHON
   // Get variable names and local namespace
   char *fg_key = fix_string(fg, fglen);
   PyObject *pLocalsDict = PyDict_GetItemString(pFGLocalsDict, fg_key);
@@ -222,6 +233,7 @@ void lebiology_agent_init_c(char *fg, int fglen,
   free(pArgs);
   free(fg_key);
   free(keystr);
+#endif
 }
 
 void lebiology_agent_update_c(char *fg, int fglen, 
@@ -230,6 +242,7 @@ void lebiology_agent_update_c(char *fg, int fglen,
                               double envvals[], int n_envvals, 
                               double *dt, int *stat)
 {
+#ifdef HAVE_PYTHON
   // Get variable names and local namespace
   char *fg_key = fix_string(fg, fglen);
   PyObject *pLocalsDict = PyDict_GetItemString(pFGLocalsDict, fg_key);
@@ -262,7 +275,7 @@ void lebiology_agent_update_c(char *fg, int fglen,
   // Create dt argument
   PyObject *pDt = PyFloat_FromDouble(*dt);
 
-  //   // Create args and execute kernel function 'def val(agent, env, dt):'
+  // Create args and execute kernel function 'def val(agent, env, dt):'
   PyObject **pArgs= malloc(sizeof(PyObject*)*3);
   pArgs[0] = pAgent;
   pArgs[1] = pEnvironment;
@@ -298,6 +311,97 @@ void lebiology_agent_update_c(char *fg, int fglen,
   free(pArgs);
   free(fg_key);
   free(keystr);
+#endif
+}
+
+void lebiology_agent_move_c(char *fg, int fglen, 
+                            char *key, int keylen, 
+                            double pos[], int n_pos, 
+                            double vars[], int n_vars, int var_inds[],
+                            double *dt, double vector[], int *stat)
+{
+#ifdef HAVE_PYTHON
+  // Get variable names and local namespace
+  char *fg_key = fix_string(fg, fglen);
+  PyObject *pLocalsDict = PyDict_GetItemString(pFGLocalsDict, fg_key);
+
+  // Get compiled code object from local namespace
+  char *keystr = fix_string(key,keylen);
+  PyObject *pLocals = PyDict_GetItemString(pLocalsDict, keystr);
+  PyObject *pFunc = PyDict_GetItemString(pLocals, "val");
+  PyObject *pFuncCode = PyObject_GetAttrString(pFunc, "func_code");
+
+  // Create position argument
+  int i;
+  PyObject *pPosition = PyList_New(n_pos);
+  for(i=0; i<n_pos; i++){
+    PyList_SET_ITEM(pPosition, i, PyFloat_FromDouble(pos[i]));
+  }
+
+  // If additional variables are given populate the vars dict
+  PyObject *pVarNames, *pVarVal;
+  PyObject *pVariables = PyDict_New();
+  if(n_vars > 0){
+    // Grab variable names from persistent dict
+    pVarNames = PyDict_GetItemString(pFGVarNames, fg_key);
+
+    for(i=0; i<n_vars; i++){
+      pVarVal = PyFloat_FromDouble(vars[i]);
+      PyDict_SetItem(pVariables, PyList_GET_ITEM(pVarNames, var_inds[i]-1), pVarVal);
+      Py_DECREF(pVarVal);
+    }
+  }
+
+  // Create dt argument
+  PyObject *pDt = PyFloat_FromDouble(*dt);
+
+  // Create args and execute kernel function 'def val(agent, env, dt):'
+  PyObject **pArgs= malloc(sizeof(PyObject*)*3);
+  pArgs[0] = pPosition;
+  pArgs[1] = pVariables;
+  pArgs[2] = pDt;
+
+  // Run val(ele, local_coords)
+  PyObject *pResult = PyEval_EvalCodeEx((PyCodeObject *)pFuncCode, pLocals, NULL, pArgs, 3, NULL, 0, NULL, 0, NULL);
+ 
+  // Check for Python errors
+  *stat=0;
+  if(!pResult){
+    PyErr_Print();
+    *stat=-1;
+    return;
+  }
+
+  if(n_vars > 0){
+    for(i=0; i<n_vars; i++){
+      vars[i] = PyFloat_AsDouble( PyDict_GetItem(pVariables, PyList_GET_ITEM(pVarNames, var_inds[i]-1)) );
+    }
+  }
+
+  // Convert the python result
+  PyObject *result_ref;
+  for(i=0; i<n_pos; i++){
+    result_ref = PySequence_GetItem(pResult, i);
+    vector[i] = PyFloat_AsDouble( result_ref );
+    Py_DECREF(result_ref);
+  }
+
+  // Check for exceptions
+  if (PyErr_Occurred()){
+    PyErr_Print();
+    *stat=-1;
+    return;
+  }
+
+  Py_DECREF(pPosition);
+  Py_DECREF(pVariables);
+  Py_DECREF(pDt);
+  Py_DECREF(pFuncCode);
+  Py_DECREF(pResult);
+  free(pArgs);
+  free(fg_key);
+  free(keystr);
+#endif
 }
 
 /*****************************************
@@ -306,6 +410,7 @@ void lebiology_agent_update_c(char *fg, int fglen,
 
 static PyObject *lebiology_stage_id(PyObject *self, PyObject *args)
 {
+#ifdef HAVE_PYTHON
   const char *fg, *stage;
   if (!PyArg_ParseTuple(args, "ss", &fg, &stage)) {
      return NULL;
@@ -329,10 +434,12 @@ static PyObject *lebiology_stage_id(PyObject *self, PyObject *args)
 
   Py_INCREF(pStageID);
   return pStageID;
+#endif
 }
 
 static PyObject *lebiology_add_agent(PyObject *self, PyObject *args)
 {
+#ifdef HAVE_PYTHON
   PyObject *pAgentDict, *pPositionList, *pAgentVar;
   const char *fg;
   if (!PyArg_ParseTuple(args, "sOO", &fg, &pAgentDict, &pPositionList)) {
@@ -393,4 +500,5 @@ static PyObject *lebiology_add_agent(PyObject *self, PyObject *args)
 
   Py_INCREF(Py_None);
   return Py_None;
+#endif
 }

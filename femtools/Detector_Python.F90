@@ -13,7 +13,7 @@ module detector_python
   
   private
   
-  public :: python_run_detector_string, python_run_random_walk
+  public :: python_run_detector_string
   public :: python_get_element_limit
 
   interface
@@ -32,30 +32,6 @@ module detector_python
       character(kind=c_char), dimension(keylen), intent(in) :: key
       integer(c_int), intent(out) :: stat
     end subroutine python_run_string_store_locals
-
-    !! Evaluate the detector random walk function from a local namespace given by dict and key.
-    !! Interface: val(ele, local_coords, dt), where
-    !!   ele: elelement number, integer, 
-    !!   local_coords: vector of size dim
-    !!   dt: timestep of the subcycle; val function needs to scale by this
-    !! Wrapped by python_run_random_walk
-    subroutine python_run_random_walk_from_locals(position, ele, dim, lcoords, dt, &
-           vars, vars_ind, varslen, dict, dictlen, key, keylen, &
-           value, stat) bind(c, name='python_run_random_walk_from_locals_c')
-      use :: iso_c_binding
-      implicit none
-      real(c_double), dimension(dim), intent(in) :: position
-      integer(c_int), intent(in), value :: ele, dim
-      real(c_double), dimension(dim+1), intent(in) :: lcoords
-      real(c_double), intent(in) :: dt
-      integer(c_int), intent(in), value :: varslen, dictlen, keylen
-      real(c_double), dimension(varslen) :: vars
-      integer(c_int), dimension(varslen) :: vars_ind
-      character(kind=c_char), dimension(dictlen), intent(in) :: dict
-      character(kind=c_char), dimension(keylen), intent(in) :: key
-      real(c_double), dimension(dim), intent(out) :: value
-      integer(c_int), intent(out) :: stat
-    end subroutine python_run_random_walk_from_locals
 
     !! Query user for an integer given one element
     subroutine python_get_element_integer(dim, coords_centre, dict, dictlen, key, keylen, &
@@ -95,48 +71,6 @@ contains
     end if
     
   end subroutine python_run_detector_string
-
-  subroutine python_run_random_walk(detector, fgroup, xfield, dt, dict, key, value, stat)
-    !!< Wrapper function for python_run_string_keep_locals_c
-    type(detector_type), pointer, intent(in) :: detector
-    type(functional_group), intent(inout) :: fgroup
-    type(vector_field), pointer, intent(in) :: xfield
-    real, intent(in) :: dt
-    character(len = *), intent(in) :: dict, key
-    real, dimension(size(detector%position)), intent(out) :: value
-    integer, optional, intent(out) :: stat
-    
-    integer :: i, var_index, lstat
-    real, dimension(size(fgroup%motion_var_inds)) :: state_vars
-
-    if(present(stat)) stat = 0
-
-    if (size(fgroup%motion_var_inds) > 0) then
-       do i=1, size(fgroup%motion_var_inds)
-          state_vars(i) = detector%biology( fgroup%motion_var_inds(i) )
-       end do
-    end if
-
-    call python_run_random_walk_from_locals(detector%update_vector, detector%element, &
-            xfield%dim, detector%local_coords, dt, state_vars, fgroup%motion_var_inds, size(state_vars), &
-            dict, len_trim(dict), key, len_trim(key), value, lstat) 
-
-    if (size(fgroup%motion_var_inds) > 0) then
-       do i=1, size(fgroup%motion_var_inds)
-          detector%biology( fgroup%motion_var_inds(i) ) = state_vars(i)
-       end do
-    end if
-
-    if(lstat /= 0) then
-      if(present(stat)) then
-        stat = -1
-      else
-        ewrite(-1, *) "Python error in inner val function of agent array"
-        FLExit("Dying")
-      end if
-    end if
-    
-  end subroutine python_run_random_walk
 
   subroutine python_get_element_limit(element, xfield, dict, key, result, stat)
     !!< Wrapper function for python_get_element_integer

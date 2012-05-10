@@ -716,7 +716,7 @@ from numpy import random
 
 mld = abs(persistent['physics_mld'])
 
-def val(position, element, local_coords, vars, dt):
+def val(position, vars, dt):
   z = abs(position[0])
   v = [-0.000011111 * dt]
   if z &lt;= mld:

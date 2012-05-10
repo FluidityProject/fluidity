@@ -1306,7 +1306,7 @@ contains
              do t=1, size(fset%target_agent_lists)
                 agent => fset%target_agent_lists(t)%ptr%first
                 do while (associated(agent))
-                   request = integral_element(request_field, xfield, ele)
+                   request = integral_element(request_field, xfield, agent%element)
                    if (request > 0.0) then     
                       conc = integral_element(conc_field, xfield, agent%element)
                       if (conc > 0.0) then                 

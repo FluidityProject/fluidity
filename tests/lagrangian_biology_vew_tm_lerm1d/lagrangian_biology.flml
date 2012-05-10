@@ -795,7 +795,7 @@ from numpy import random
 
 mld = abs(persistent['physics_mld'])
 
-def val(position, element, local_coords, vars, dt):
+def val(position, vars, dt):
   z = abs(position[0])
   v = [-0.000011111 * dt]
   if z &lt;= mld:
@@ -1136,7 +1136,7 @@ from numpy import random
 
 mld = abs(persistent['physics_mld'])
 
-def val(position, element, local_coords, vars, dt):
+def val(position, vars, dt):
   z = abs(position[0])
   v = -vars['V_m']
   if z &lt;= mld:
@@ -1150,7 +1150,9 @@ def val(position, element, local_coords, vars, dt):
         <environment>
           <field name="Temperature"/>
           <field name="Irradiance"/>
-          <field name="CopepodPConcentration"/>
+          <field name="CopepodPConcentration">
+            <integrate_along_path/>
+          </field>
           <field name="Density"/>
         </environment>
         <stages>
@@ -1160,7 +1162,7 @@ def val(position, element, local_coords, vars, dt):
                 <string_value lines="20" type="code" language="python">from __builtin__ import str
 import fluidity.lerm_ps as lerm
 params = lerm.params_Default_Copepod_Variety
-params['d_year'] = persistent['physics_time'] / (3600. * 24.)
+params['d_year'] = (persistent['physics_time'] / (3600. * 24.)) + 1.
 
 def val(agent, env, dt):
   lerm.update_OW5_Copepod(params, agent, env, dt)
@@ -1174,7 +1176,6 @@ def val(agent, env, dt):
                 <string_value lines="20" type="code" language="python">from __builtin__ import str
 import fluidity.lerm_ps as lerm
 params = lerm.params_Default_Copepod_Variety
-params['d_year'] = persistent['physics_time'] / (3600. * 24.)
 params['Max_MLD'] = max(persistent['physics_mld_history'])
 
 def val(agent, env, dt):
@@ -1189,7 +1190,6 @@ def val(agent, env, dt):
                 <string_value lines="20" type="code" language="python">from __builtin__ import str
 import fluidity.lerm_ps as lerm
 params = lerm.params_Default_Copepod_Variety
-params['d_year'] = persistent['physics_time'] / (3600. * 24.)
 params['MLDepth'] = persistent['physics_mld']
 params['Max_MLD'] = max(persistent['physics_mld_history'])
 params['surface_irradiance'] = persistent['physics_irrad_interp'](0.0)

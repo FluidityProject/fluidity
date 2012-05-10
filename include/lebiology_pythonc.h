@@ -35,6 +35,13 @@ void lebiology_agent_init_c(char *fg, int fglen, char *key, int keylen, double v
  */
 void lebiology_agent_update_c(char *fg, int fglen, char *key, int keylen, double vars[], int n_vars, double envvals[], int n_envvals, double *dt, int *stat);
 
+/* Agent motion interface:
+ * Usage: def val(position, vars, dt):
+ *          vector = f(position, vars, dt)
+ *          return vector
+ */
+void lebiology_agent_move_c(char *fg, int fglen, char *key, int keylen, double pos[], int n_pos, double vars[], int n_vars, int var_inds[], double *dt, double vector[], int *stat);
+
 /* Add a variable name to the array under pFGVarNames['fg'] */
 void lebiology_add_fg_varname_c(char *fg, int fglen, char *var, int varlen, int *stat);
 

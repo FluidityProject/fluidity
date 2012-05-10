@@ -3,8 +3,9 @@
 	@true
 
 LEBiology_Python.o ../include/lebiology_python.mod: LEBiology_Python.F90 \
-   ../include/detector_data_types.mod ../include/fdebug.h \
-   ../include/fldebug.mod
+   ../include/detector_data_types.mod ../include/detector_parallel.mod \
+   ../include/detector_tools.mod ../include/fdebug.h ../include/fields.mod \
+   ../include/fldebug.mod ../include/ieee_arithmetic.mod
 
 ../include/lagrangian_biology.mod: Lagrangian_Biology.o
 	@true

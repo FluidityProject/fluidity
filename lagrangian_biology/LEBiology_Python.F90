@@ -6,7 +6,6 @@ module lebiology_python
   use detector_data_types
   use detector_tools
   use detector_parallel
-  use Profiler
   use ieee_arithmetic, only: ieee_is_nan
 
   implicit none
@@ -16,7 +15,8 @@ module lebiology_python
   public :: lebiology_init_module, lebiology_set_stage_id, &
             lebiology_add_variables, lebiology_add_envfields, &
             lebiology_prepare_pyfunc, lebiology_initialise_agent, &
-            lebiology_update_agent, get_new_agent_list
+            lebiology_update_agent, lebiology_move_agent, &
+            get_new_agent_list
 
   type(detector_linked_list), target, save :: new_agent_list
 
@@ -94,6 +94,22 @@ module lebiology_python
       real(c_double), intent(in) :: dt
       integer(c_int), intent(out) :: stat
     end subroutine lebiology_agent_update
+
+    subroutine lebiology_agent_move(fg, fglen, key, keylen, pos, n_pos, &
+           vars, n_vars, var_inds, dt, vector, stat) &
+           bind(c, name='lebiology_agent_move_c')
+      use :: iso_c_binding
+      implicit none
+      integer(c_int), intent(in), value :: fglen, keylen, n_pos, n_vars
+      character(kind=c_char), dimension(fglen), intent(in) :: fg
+      character(kind=c_char), dimension(keylen), intent(in) :: key
+      real(c_double), dimension(n_pos), intent(inout) :: pos
+      real(c_double), dimension(n_vars), intent(inout) :: vars
+      integer(c_int), dimension(n_vars), intent(inout) :: var_inds
+      real(c_double), intent(in) :: dt
+      real(c_double), dimension(n_pos), intent(out) :: vector
+      integer(c_int), intent(out) :: stat
+    end subroutine lebiology_agent_move
 
   end interface
 
@@ -197,8 +213,6 @@ contains
     real :: path_total
     integer :: f, v, e, stat
 
-    call profiler_tic(trim(fgroup%name)//"::"//trim(key))
-
     ! Sample environment fields
     do f=1, size(envfields)
        if (fgroup%envfield_integrate(f) .and. size(agent%ele_path) > 0) then
@@ -236,13 +250,47 @@ contains
        end if
     end do
 
-    call profiler_toc(trim(fgroup%name)//"::"//trim(key))
-
     if (stat < 0) then
        ewrite(-1, *) "Error updating agent "//int2str(agent%id_number)//" for FG::"//trim(fgroup%name)
        FLExit("Python error in LE-Biology")
     end if
   end subroutine lebiology_update_agent
+
+  subroutine lebiology_move_agent(fgroup, key, agent, dt, vector)
+    type(functional_group), intent(inout) :: fgroup
+    character(len=*), intent(in) :: key
+    type(detector_type), intent(inout) :: agent
+    real, intent(in) :: dt
+    real, dimension(size(agent%position)), intent(out) :: vector
+
+    real, dimension(size(fgroup%motion_var_inds)) :: state_vars
+    integer :: v, stat
+
+    if (size(fgroup%motion_var_inds) > 0) then
+       do v=1, size(fgroup%motion_var_inds)
+          state_vars(v) = agent%biology( fgroup%motion_var_inds(v) )
+       end do
+    end if
+
+    stat=0
+    call lebiology_agent_move(trim(fgroup%name), len_trim(fgroup%name), &
+            trim(key), len_trim(key), agent%update_vector, size(agent%update_vector), &
+            state_vars, size(state_vars), fgroup%motion_var_inds, dt, vector, stat) 
+
+    if (size(fgroup%motion_var_inds) > 0) then
+       do v=1, size(fgroup%motion_var_inds)
+          if (ieee_is_nan(state_vars(v))) then
+             FLExit('NaN motion variable detected in '//trim(fgroup%name)//"::"//trim(key))
+          end if
+          agent%biology( fgroup%motion_var_inds(v) ) = state_vars(v)
+       end do
+    end if
+
+    if (stat < 0) then
+       ewrite(-1, *) "Error moving agent "//int2str(agent%id_number)//" for FG::"//trim(fgroup%name)
+       FLExit("Python error in LE-Biology")
+    end if
+  end subroutine lebiology_move_agent
 
   subroutine fl_add_agent(vars, n_vars, pos, n_pos) &
          bind(c, name='fl_add_agent_c')

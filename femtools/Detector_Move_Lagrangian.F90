@@ -47,6 +47,7 @@ module detector_move_lagrangian
   use pickers
   use parallel_fields, only: element_owner
   use ieee_arithmetic, only: ieee_is_nan
+  use lebiology_python
 
   implicit none
   
@@ -249,8 +250,8 @@ contains
 
           ! For Python Random Walk run the user code that pulls fields from state
           if (detector_list%random_walks(rw)%python_random_walk) then
-             call python_run_detector_string(trim(detector_list%random_walks(rw)%python_code), &
-                      trim(detector_list%name), trim(detector_list%random_walks(rw)%name))
+             call lebiology_prepare_pyfunc(detector_list%fgroup, detector_list%random_walks(rw)%name, &
+                       detector_list%random_walks(rw)%python_code)
           end if
 
           ! For hardcoded Random Walks pull the relevant fields from state
@@ -357,8 +358,8 @@ contains
 
                       ! Python
                       elseif (detector_list%random_walks(rw)%python_random_walk) then
-                         call python_run_random_walk(detector,detector_list%fgroup,xfield,sub_dt, trim(detector_list%name), &
-                                  trim(detector_list%random_walks(rw)%name),rw_displacement)
+                         call lebiology_move_agent(detector_list%fgroup, detector_list%random_walks(rw)%name, &
+                                   detector, sub_dt, rw_displacement)
                       end if
 
                       detector%update_vector=detector%update_vector + rw_displacement
