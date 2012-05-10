@@ -608,10 +608,11 @@ module manifold_tools
     
   end subroutine get_weights_ele
 
-  subroutine get_vorticity(state,vorticity,velocity)
+  subroutine get_vorticity(state,vorticity,velocity,lumped_mass)
     type(state_type), intent(inout) :: state
     type(vector_field), intent(inout) :: velocity
     type(scalar_field), intent(inout) :: vorticity
+    type(csr_matrix), intent(in), optional :: lumped_mass
     !
     type(vector_field), pointer :: X, down
     type(csr_matrix) :: vorticity_mass_matrix
@@ -620,35 +621,48 @@ module manifold_tools
     integer :: ele
     logical :: lump_mass
     
+    lump_mass = present(lumped_mass)
+    
     ewrite(1,*) 'subroutine get_vorticity'
 
-    vorticity_mass_sparsity => &
-         get_csr_sparsity_firstorder(state, vorticity%mesh, vorticity%mesh)
+    if(.not.lump_mass) then
+       vorticity_mass_sparsity => &
+            get_csr_sparsity_firstorder(state, vorticity%mesh, vorticity%mesh)
+       call allocate(vorticity_mass_matrix,vorticity_mass_sparsity)
+       call zero(vorticity_mass_matrix)
+    end if
 
     X=>extract_vector_field(state, "Coordinate")
     down=>extract_vector_field(state, "GravityDirection")
-    call allocate(vorticity_mass_matrix,vorticity_mass_sparsity)
+
     call allocate(vorticity_rhs, vorticity%mesh, 'VorticityRHS')
-    call zero(vorticity_mass_matrix)
+
     call zero(vorticity_rhs)
     
-    lump_mass = have_option('/material_phase::Fluid/scalar_field::Vorticity/prognostic/vorticity_equation/lump_mass')
+    lump_mass = have_option(&
+         '/material_phase::Fluid/scalar_field::Vorticity/prognostic/vorticit&
+         &y_equation/lump_mass')
     do ele = 1, ele_count(vorticity)
        call assemble_vorticity_ele(state,velocity,vorticity_mass_matrix,X&
-            &,down,vorticity_rhs,ele)
+            &,down,vorticity_rhs,ele,lump_mass)
     end do
 
     ewrite(2,*) maxval(abs(vorticity_rhs%val))
-    call petsc_solve(vorticity,vorticity_mass_matrix,vorticity_rhs)
-
-    call deallocate(vorticity_mass_matrix)
+    if(lump_mass) then
+       call petsc_solve(vorticity,lumped_mass,vorticity_rhs)
+    else
+       call petsc_solve(vorticity,vorticity_mass_matrix,vorticity_rhs)
+    end if
+    if(.not.lump_mass)then
+       call deallocate(vorticity_mass_matrix)
+    end if
     call deallocate(vorticity_rhs)
 
   end subroutine get_vorticity
 
   subroutine assemble_vorticity_ele(state,&
        velocity,vorticity_mass_matrix,X&
-            &,down,vorticity_rhs,ele)
+            &,down,vorticity_rhs,ele,lump_mass)
     !!Subroutine to compute the vorticity from a *local velocity* field
     type(state_type), intent(inout) :: state
     type(vector_field), intent(in) :: X, down
@@ -656,6 +670,8 @@ module manifold_tools
     type(scalar_field), intent(inout) :: vorticity_rhs
     type(csr_matrix), intent(inout) :: vorticity_mass_matrix
     integer, intent(in) :: ele
+    logical, intent(in) :: lump_mass
+    !
     real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
     real, dimension(ele_ngi(X,ele)) :: detwei, detJ
     real, dimension(ele_loc(vorticity_rhs,ele),ele_loc(vorticity_rhs,ele))&
@@ -677,8 +693,10 @@ module manifold_tools
     call get_up_gi(X,ele,up_gi,orientation)
 
     call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J, detwei, detJ)    
-    l_mass_mat = shape_shape(ele_shape(vorticity_rhs,ele),&
-         ele_shape(vorticity_rhs,ele),detwei)    
+    if(.not.lump_mass) then
+       l_mass_mat = shape_shape(ele_shape(vorticity_rhs,ele),&
+            ele_shape(vorticity_rhs,ele),detwei)    
+    end if
 
     velocity_gi = ele_val_at_quad(velocity,ele)
     do gi=1,ele_ngi(X,ele)
@@ -702,8 +720,10 @@ module manifold_tools
        FLAbort('Exterior derivative not implemented for given mesh dimension')
     end select
 
-    call addto(vorticity_mass_matrix,ele_nodes(vorticity_rhs,ele),&
-         ele_nodes(vorticity_rhs,ele),l_mass_mat)
+    if(.not.lump_mass) then
+       call addto(vorticity_mass_matrix,ele_nodes(vorticity_rhs,ele),&
+            ele_nodes(vorticity_rhs,ele),l_mass_mat)
+    end if
     call addto(vorticity_rhs,ele_nodes(vorticity_rhs,ele),l_rhs)
 
   end subroutine assemble_vorticity_ele

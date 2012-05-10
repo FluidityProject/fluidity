@@ -99,7 +99,8 @@ Shallow_Water.o : Shallow_Water.F90 \
    ../include/vtk_interfaces.mod ../include/write_state_module.mod
 
 Shallow_Water_Mimetic.o : Shallow_Water_Mimetic.F90 \
-   ../include/boundary_conditions_from_options.mod \
+   ../include/advection_local_dg.mod \
+   ../include/boundary_conditions_from_options.mod ../include/bubble_tools.mod \
    ../include/diagnostic_fields_new.mod \
    ../include/diagnostic_fields_wrapper.mod \
    ../include/diagnostic_variables.mod ../include/fdebug.h \

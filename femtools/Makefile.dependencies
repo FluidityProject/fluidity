@@ -687,6 +687,9 @@ MPI_Interfaces.o ../include/mpi_interfaces.mod: MPI_Interfaces.F90 \
 
 Manifold_Tools.o ../include/manifold_tools.mod: Manifold_Tools.F90 \
    ../include/fdebug.h ../include/fields.mod ../include/fields_base.mod \
+   ../include/solvers.mod ../include/sparse_matrices_fields.mod \
+   ../include/sparse_tools.mod ../include/sparsity_patterns.mod \
+   ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
    ../include/state_module.mod
 
 ../include/matrix_norms.mod: Matrix_Norms.o

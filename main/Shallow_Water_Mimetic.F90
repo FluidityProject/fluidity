@@ -29,6 +29,7 @@
   program shallow_water
     use spud
     use signals
+    use bubble_tools
     use fields
     use state_module
     use FLDebug
@@ -195,6 +196,7 @@
       type(scalar_field) :: newD
       type(csr_matrix), pointer :: Vorticity_Mass_ptr
       type(csr_matrix) :: Vorticity_Mass
+      type(csr_sparsity), pointer :: Vorticity_Mass_sparsity
 
       integer :: nonlinear_iterations, nits
 
@@ -221,8 +223,25 @@
               "NonlinearVelocity",continuity=.true.,Flux=MassFlux)
          ! This is where the PV advection goes
          call deallocate(MassFlux)
-         call extract_
-         call get_vorticity(state,vorticity,U)
+
+         if(have_option('/material_phase::Fluid/scalar_field::Vorticity/prog&
+              &nostic/vorticity_equation/lump_mass')) then
+            vorticity_mass_ptr=>extract_csr_matrix(&
+                 state, "LumpedVorticityMassMatrix", stat)
+            if(stat.ne.0) then
+               Vorticity_mass_sparsity=>&
+                    get_csr_sparsity_firstorder(state, vorticity%mesh, vorticity%mesh)
+               call allocate(Vorticity_mass,Vorticity_mass_sparsity)
+               call get_lumped_mass_p2b(state,vorticity_mass,vorticity)
+               call insert(state,vorticity_mass,"LumpedVorticityMassMatrix")
+               call deallocate(vorticity_mass)
+               vorticity_mass_ptr=>extract_csr_matrix(&
+                    state, "LumpedVorticityMassMatrix")
+            end if
+            call get_vorticity(state,vorticity,U,vorticity_mass_ptr)
+         else
+            call get_vorticity(state,vorticity,U)
+         end if
       else
          call allocate(newU,U%dim,U%mesh,"NewLocalVelocity")
          call allocate(newD,D%mesh,"NewLayerThickness")

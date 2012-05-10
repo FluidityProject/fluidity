@@ -39,7 +39,7 @@
     implicit none
 
     private
-    public nodalise_bubble_basis
+    public nodalise_bubble_basis, get_lumped_mass_p2b
   contains
 
     subroutine nodalise_bubble_basis(shape)
@@ -103,8 +103,11 @@
       !
       integer :: ele
       type(vector_field), pointer :: X
+      real, dimension(7) :: N_vals
 
       X=>extract_vector_field(state, "Coordinate")
+      
+      N_vals = eval_shape(p2b_field%mesh%shape, (/1.0/3.0,1.0/3.0,1.0/3.0/))
 
       if(p2b_field%mesh%shape%dim.ne.2) then
          FLAbort('Only works for 2d meshes')
@@ -115,26 +118,48 @@
 
       call zero(mass)
 
-      do ele = 1, ele_count(X,ele)
-         call get_lumped_mass_p2b_ele(mass,p2b_field,X,ele)
+      do ele = 1, ele_count(X)
+         call get_lumped_mass_p2b_ele(mass,p2b_field,X,N_vals,ele)
       end do
 
     end subroutine get_lumped_mass_p2b
 
-    subroutine get_lumped_mass_p2b_ele(mass,p2b_field,X,ele)
+    subroutine get_lumped_mass_p2b_ele(mass,p2b_field,X,N_vals,ele)
       type(csr_matrix), intent(inout) :: mass
       type(scalar_field), intent(in) :: p2b_field
       type(vector_field), intent(in) :: X
+      real, dimension(7), intent(in) :: N_vals
       integer, intent(in) :: ele
       !
       real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
       real, dimension(ele_ngi(X,ele)) :: detwei
-      real, dimension(ele_loc(vorticity_rhs,ele),ele_loc(vorticity_rhs,ele))&
-           :: l_mass_mat
+      real, dimension(ele_loc(p2b_field,ele),ele_loc(p2b_field,ele))&
+           :: l_mass_mat, A
+      real, dimension(ele_loc(p2b_field,ele)) :: eigs
       real :: wv = 1.0/20., we = 2.0/15., wg = 9./20.
-
+      real :: Area
+      integer :: node, node2
+      real, dimension(6) :: node_weights
       call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J, detwei)
-      l_mass_mat = sum(detwei)*(/wv,we,wv,we,we,wv,wg/)
+      Area = sum(detwei)
+
+      l_mass_mat = 0.0
+      node_weights = (/wv,we,wv,we,we,wv/)
+      do node = 1, 6
+         l_mass_mat(node,node) = node_weights(node)
+         do node2 = 1, 6
+            l_mass_mat(node,node2) = l_mass_mat(node,node2)+wg*N_vals(node)*N_vals(node2)
+         end do
+      end do
+      do node = 1, 6
+         l_mass_mat(node,7) = wg*N_vals(node)*N_vals(7)
+         l_mass_mat(7,node) = wg*N_vals(node)*N_vals(7)
+      end do
+      l_mass_mat(7,7) = wg*N_vals(7)**2
+      L_mass_mat = L_mass_mat*Area
+
+      !call eigendecomposition(L_mass_mat, A, Eigs)
+
       call addto(mass,ele_nodes(p2b_field,ele),ele_nodes(p2b_field,ele),l_mass_mat)
 
     end subroutine get_lumped_mass_p2b_ele

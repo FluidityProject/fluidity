@@ -156,6 +156,9 @@
       <real_value rank="0">0.5</real_value>
       <comment>24*60*60*10=846000</comment>
     </finish_time>
+    <final_timestep>
+      <integer_value rank="0">2</integer_value>
+    </final_timestep>
   </timestepping>
   <physical_parameters>
     <gravity>
@@ -323,7 +326,9 @@
     <scalar_field name="Vorticity" rank="0">
       <prognostic>
         <mesh name="VorticityMesh"/>
-        <vorticity_equation/>
+        <vorticity_equation>
+          <lump_mass/>
+        </vorticity_equation>
         <solver>
           <iterative_method name="cg"/>
           <preconditioner name="sor"/>
