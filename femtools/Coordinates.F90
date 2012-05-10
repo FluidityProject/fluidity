@@ -539,8 +539,8 @@ contains
       theta=acos(x(3)/rad)
 
       node_normal=(/sin(theta)*cos(phi),sin(theta)*sin(phi),cos(theta)/)
-      node_tangent1=(/-sin(phi),cos(phi),0.0/)
-      node_tangent2=(/cos(theta)*cos(phi),cos(theta)*sin(phi),-sin(theta)/)
+      node_tangent2=(/-sin(phi),cos(phi),0.0/)
+      node_tangent1=(/cos(theta)*cos(phi),cos(theta)*sin(phi),-sin(theta)/)
 
       call set(sphere_normal, node, node_normal)
       call set(sphere_tangent1, node, node_tangent1)
@@ -549,9 +549,9 @@ contains
     end do
 
     do node=1, mynodes
-      local_rotation(:,1)=node_val(sphere_tangent1, node)
-      local_rotation(:,2)=node_val(sphere_tangent2, node)
-      local_rotation(:,3)=node_val(sphere_normal, node)
+      local_rotation(:,2)=node_val(sphere_tangent1, node)
+      local_rotation(:,3)=node_val(sphere_tangent2, node)
+      local_rotation(:,1)=node_val(sphere_normal, node)
 
       call addto(rotation_sphere, node, node, local_rotation)
     end do
@@ -570,7 +570,7 @@ contains
     type(vector_field), intent(inout):: vfield
     type(state_type), intent(inout):: state
     
-    type(vector_field), pointer:: u
+    !type(vector_field), pointer:: u
     type(vector_field):: result
     type(petsc_csr_matrix), pointer:: rotation_sphere
     integer :: stat
@@ -578,8 +578,8 @@ contains
     rotation_sphere => extract_petsc_csr_matrix(state, "RotationMatrixSphere", stat=stat)
     if (stat/=0) then
       allocate(rotation_sphere)
-      u => extract_vector_field(state, "Velocity")
-      call create_rotation_matrix_sphere(rotation_sphere, u, state)
+      !u => extract_vector_field(state, "Velocity")
+      call create_rotation_matrix_sphere(rotation_sphere, vfield, state)
       call insert(state, rotation_sphere, "RotationMatrixSphere")
     end if
     
