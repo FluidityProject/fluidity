@@ -49,7 +49,8 @@ module Coordinates
   
   public:: &
        LongitudeLatitude,  &
-       cart2spher, spher2cart, ll2r3_rotate, rotate2ll, &
+       sphericalPolar_to_cartesian, cartesian_to_sphericalPolar, &
+       ll2r3_rotate, rotate2ll, &
        earth_radius, higher_order_sphere_projection, &
        sphere_inward_normal_at_quad_ele, sphere_inward_normal_at_quad_face, &
        rotate_diagonal_to_cartesian_gi, rotate_diagonal_to_cartesian_face, &
@@ -135,47 +136,37 @@ contains
 
   end subroutine rotate2ll
 
-  subroutine spher2cart(x,y,lat,long,prime_meridian,horiz_rescale)
-    real, intent(in)::lat,long,prime_meridian,horiz_rescale
-    real, intent(out)::x,y
+  subroutine sphericalPolar_to_cartesian(radius,theta,phi,x,y,z,)
+    !Subroutine for calculation of spherical-polar coordinates from cartesian coordinates.
+
+    implicit none
+
+    real, intent(in) :: radius  !Distance from centre of sphere
+    real, intent(in) :: theta   !Polar angle, in radians
+    real, intent(in) :: phi     !Azimuthal angle, in radians
+    real, intent(out) :: x,y,z  !cartesian coordinates
     
-    !  lat/long in degrees assumed at the moment            
-    x = earth_radius*cos(lat/rad_to_deg)*(long - prime_meridian)
-    y = earth_radius*lat      
+    x = radius*sin(theta)*cos(phi)
+    y = radius*sin(theta)*sin(phi)      
+    z = radius*cos(theta)
     
-    ! scale from real units to something that model is using      
-    x = x/horiz_rescale
-    y = y/horiz_rescale
-    
-  end subroutine spher2cart
+  end subroutine sphericalPolar_to_cartesian
   
-  pure subroutine cart2spher(x,y,lat,long,prime_meridian,horiz_rescale,rad)
-    real, intent(in)::x,y,prime_meridian,horiz_rescale
-    logical, intent(in)::rad
-    real, intent(out)::lat,long
-    
-    real xtmp,ytmp
+  subroutine cartesian_to_sphericalPolar(x,y,z,radius,theta,phi)
+    !Subroutine for calculation of cartesian coordinates from spherical-polar coordinates.
 
-    xtmp = x*horiz_rescale
-    ytmp = y*horiz_rescale
+    implicit none
 
-    !     ewrite(3,*) horiz_rescale,x,y
+    real, intent(in) :: x,y,z   !cartesian coordinates
+    real, intent(out) :: radius !Distance from centre of sphere
+    real, intent(out) :: theta  !Polar angle, in radians
+    real, intent(out) :: phi    !Azimuthal angle, in radians
 
-    lat  = ytmp/earth_radius
-    long = xtmp/(earth_radius*cos(lat))
+    radius = sqrt(x**2 + y**2 + z**2)
+    theta = acos(z/radius)
+    phi = atan2(y/x)
 
-
-    if(rad) then
-       long = long + prime_meridian/rad_to_deg
-       if(long.lt.0.0) long = 2*pi + long
-    else
-       ! convert to degrees
-       lat  = lat*rad_to_deg
-       long = long*rad_to_deg + prime_meridian
-       if(long.lt.0.0) long = 360.0 + long
-    endif
-
-  end subroutine cart2spher
+  end subroutine cartesian_to_sphericalPolar
   
   subroutine higher_order_sphere_projection(positions, s_positions)
     !!< Given a P1 'positions' field and a Pn 's_positions' field, bends the 
@@ -252,7 +243,7 @@ contains
     real, dimension(positions%dim,ele_ngi(positions,ele_number)) :: X_quad
     real, dimension(positions%dim,positions%dim) :: R, RT
     real, dimension(positions%dim,positions%dim,ele_ngi(positions,ele_number)) :: diagonal_T, quad_val
-    real :: rad, phi, theta
+    real :: radius, theta, phi !distance form origin, polar angle, azimuthal angle
     integer :: i
 
     assert(positions%dim==3)
@@ -266,9 +257,7 @@ contains
 
     do i=1,ele_ngi(positions,ele_number)
       ! Calculate the spherical-polar coordinates of the point
-      rad=sqrt(sum(X_quad(:,i)**2))
-      theta=acos(X_quad(3,i)/rad)
-      phi=atan2(X_quad(2,i),X_quad(1,i))
+      cartesian_to_sphericalPolar(X_quad(1,i), X_quad(2,i), X_quad(3,i), radius, theta, phi)
 
       R(1,1)=sin(theta)*cos(phi)
       R(1,2)=cos(theta)*cos(phi)
@@ -306,7 +295,7 @@ contains
     real, dimension(positions%dim,face_ngi(positions,face_number)) :: X_quad
     real, dimension(positions%dim,positions%dim) :: R, RT
     real, dimension(positions%dim,positions%dim,face_ngi(positions,face_number)) :: diagonal_T, quad_val
-    real :: rad, phi, theta
+    real :: radius, theta, phi !distance form origin, polar angle, azimuthal angle
     integer :: i
 
     assert(positions%dim==3)
@@ -320,9 +309,7 @@ contains
 
     do i=1,ele_ngi(positions,face_number)
       ! Calculate the spherical-polar coordinates of the point
-      rad=sqrt(sum(X_quad(:,i)**2))
-      theta=acos(X_quad(3,i)/rad)
-      phi=atan2(X_quad(2,i),X_quad(1,i))
+      cartesian_to_sphericalPolar(X_quad(1,i), X_quad(2,i), X_quad(3,i), radius, theta, phi)
 
       R(1,1)=sin(theta)*cos(phi)
       R(1,2)=cos(theta)*cos(phi)
@@ -361,7 +348,7 @@ contains
     real, dimension(positions%dim,ele_ngi(positions,ele_number)) :: X_quad
     real, dimension(positions%dim,positions%dim) :: R, RT
     real, dimension(positions%dim,positions%dim,ele_ngi(positions,ele_number)) :: diagonal_T, quad_val
-    real :: rad, phi, theta
+    real :: radius, theta, phi !distance form origin, polar angle, azimuthal angle
     integer :: i
 
     assert(positions%dim==3)
@@ -375,9 +362,7 @@ contains
 
     do i=1,ele_ngi(positions,ele_number)
       ! Calculate the spherical-polar coordinates of the point
-      rad=sqrt(sum(X_quad(:,i)**2))
-      theta=acos(X_quad(3,i)/rad)
-      phi=atan2(X_quad(2,i),X_quad(1,i))
+      cartesian_to_sphericalPolar(X_quad(1,i), X_quad(2,i), X_quad(3,i), radius, theta, phi)
 
       R(1,1)=sin(theta)*cos(phi)
       R(1,2)=sin(theta)*sin(phi)
@@ -416,7 +401,7 @@ contains
     real, dimension(positions%dim,face_ngi(positions,face_number)) :: X_quad
     real, dimension(positions%dim,positions%dim) :: R, RT
     real, dimension(positions%dim,positions%dim,face_ngi(positions,face_number)) :: diagonal_T, quad_val
-    real :: rad, phi, theta
+    real :: radius, theta, phi !distance form origin, polar angle, azimuthal angle
     integer :: i
 
     assert(positions%dim==3)
@@ -430,9 +415,7 @@ contains
 
     do i=1,face_ngi(positions,face_number)
       ! Calculate the spherical-polar coordinates of the point
-      rad=sqrt(sum(X_quad(:,i)**2))
-      theta=acos(X_quad(3,i)/rad)
-      phi=atan2(X_quad(2,i),X_quad(1,i))
+      cartesian_to_sphericalPolar(X_quad(1,i), X_quad(2,i), X_quad(3,i), radius, theta, phi)
 
       R(1,1)=sin(theta)*cos(phi)
       R(1,2)=sin(theta)*sin(phi)
@@ -476,7 +459,7 @@ contains
     type(vector_field), pointer :: position
     type(vector_field) :: u_position
     real, dimension(u%dim) :: x, node_normal, node_tangent1, node_tangent2
-    real :: phi, theta, rad
+    real :: radius, theta, phi !distance form origin, polar angle, azimuthal angle
 
     ewrite(1,*) "Inside rotate_ct_m_sphere"
 
@@ -498,11 +481,11 @@ contains
 
     do node=1, node_count(u)
 
+      !Extract the cartesian coordinates of the node.
       x=node_val(u_position, node)
 
-      rad=sqrt(sum(x(:)**2))
-      phi=atan2(x(2),x(1))
-      theta=acos(x(3)/rad)
+      !Calculate spherical-polar coordinates.
+      call cartesian_to_sphericalPolar(x(1),x(2),x(3),radius,theta,phi)
 
       node_normal=(/sin(theta)*cos(phi),sin(theta)*sin(phi),cos(theta)/)
       node_tangent1=(/-sin(phi),cos(phi),0.0/)
@@ -615,7 +598,7 @@ contains
     type(halo_type), pointer:: halo
     type(vector_field) :: sphere_normal, sphere_tangent1, sphere_tangent2
     real, dimension(u%dim) :: x, node_normal, node_tangent1, node_tangent2
-    real :: rad, phi, theta
+    real :: radius, theta, phi !distance form origin, polar angle, azimuthal angle
     real, dimension(u%dim, u%dim):: local_rotation
     integer, dimension(:), allocatable:: dnnz, onnz
     integer:: node, nodes, mynodes
@@ -661,11 +644,11 @@ contains
 
     do node=1, mynodes
 
+      !Extract the cartesian coordinates of the node.
       x=node_val(u_position, node)
 
-      rad=sqrt(sum(x(:)**2))
-      phi=atan2(x(2),x(1))
-      theta=acos(x(3)/rad)
+      !Calculate spherical-polar coordinates.
+      call cartesian_to_sphericalPolar(x(1),x(2),x(3),radius,theta,phi)
 
       node_normal=(/sin(theta)*cos(phi),sin(theta)*sin(phi),cos(theta)/)
       node_tangent2=(/-sin(phi),cos(phi),0.0/)
@@ -735,8 +718,8 @@ contains
     rotation_sphere => extract_petsc_csr_matrix(state, "RotationMatrixSphere", stat=stat)
     if (stat/=0) then
       allocate(rotation_sphere)
-      u => extract_vector_field(state, "Velocity")
-      call create_rotation_matrix_sphere(rotation_sphere, u, state)
+      !u => extract_vector_field(state, "Velocity")
+      call create_rotation_matrix_sphere(rotation_sphere, vfield, state)
       call insert(state, rotation_sphere, "RotationMatrixSphere")
     end if
     
