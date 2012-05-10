@@ -463,7 +463,7 @@
 ! Vorticity calculation -- DONE
 ! Mass lumping for P2b -- DONE
 ! Visualisation of P2b by mapping back to P2 -- DONE
-! Mass mapping from P1dg to P2b
+! Mass mapping from P1dg to P2b -- CODED, has NANs
 ! Timestepping for PV
 ! Nonlinear residual calculation from PV and DG advection
 ! Check on spherical mesh
