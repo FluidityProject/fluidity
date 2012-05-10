@@ -82,7 +82,7 @@
     END SUBROUTINE DEF_SPAR
 
     SUBROUTINE DEF_SPAR_CT_DG( CV_NONODS, MX_NCT, NCT, FINDCT, COLCT, &
-         TOTELE, CV_NLOC, U_NLOC, U_NDGLN, U_ELE_TYPE, cv_ndgln)
+         TOTELE, CV_NLOC, U_NLOC, U_NDGLN, U_ELE_TYPE, CV_NDGLN)
       ! define sparsity...
       ! SEMI_BAND_WID is the semi band width.
       IMPLICIT NONE
@@ -299,14 +299,14 @@
       do ele = 1, totele
          do iloc = 1, nloc
             nod = ndglno( ( ele - 1 ) * nloc + iloc )
-            !   ewrite(3,*)'nod, filtran, icount, ele:', nod, fintran( nod ), ele, totele, nonods
+            !ewrite(3,*)'nod, filtran, icount, ele:', nod, fintran( nod ), ele, totele, nonods
             coltran( fintran( nod ) + icount( nod )) = ele
             icount( nod ) = icount( nod ) + 1
          end do
       end do
-      ! ewrite(3,*)'coltran:', coltran( 1: max(totele, nonods ) * mx_nface_p1 )
-      ! ewrite(3,*)'fintran:', fintran( 1: nonods + 1 )
-      !    ewrite(3,*)'X_NDGLN:', ndglno( 1: totele*nloc )
+      !ewrite(3,*)'coltran:', coltran( 1: max(totele, nonods ) * mx_nface_p1 )
+      !ewrite(3,*)'fintran:', fintran( 1: nonods + 1 )
+      !ewrite(3,*)'X_NDGLN:', ndglno( 1: totele*nloc )
 
       icount = 0 ; colele = 0 ; ncolele = 0
       Loop_Elements1: do ele = 1, totele
@@ -1396,6 +1396,7 @@
       nc = nct
       ewrite(3,*) 'findct: ', size( findct ), '==>', findct( 1 : cv_nonods + 1 )
       ewrite(3,*) 'colct: ', size( colct ), nct, '==>', colct( 1 : nct )
+
       !-
       !- Convert CT sparsity to C sparsity
       !-
@@ -1450,23 +1451,23 @@
          call def_spar( cv_nloc - 1, cv_nonods, mx_ncolm, ncolm, &
               midm, findm, colm )
       else
-        if(cv_nonods==x_nonods) then ! a continuouse pressure mesh
+        if(cv_nonods==x_nonods) then ! a continuous pressure mesh
          call pousinmc2( totele, cv_nonods, cv_nloc, cv_nonods, cv_nloc, mx_ncolm, cv_ndgln, cv_ndgln, &
               ncolm, findm, colm, midm )
         else ! a DG pressure field mesh...
-         call CT_DG_Sparsity( mx_nface_p1,  &
-         totele, cv_nloc, cv_nloc,  &
+         call CT_DG_Sparsity( mx_nface_p1, &
+         totele, cv_nloc, cv_nloc, &
          cv_nonods, &
-         cv_ndgln,cv_ndgln,  &
+         cv_ndgln, cv_ndgln, &
          ncolele, finele, colele, &
          mx_ncolm, ncolm, findm, colm )
-! determine midm...
-         do cv_inod=1,cv_nonods
-            do count=findm(cv_inod),findm(cv_inod+1)-1
-               if(colm(count)==cv_inod) midm(cv_inod)=count
+         ! determine midm...
+         do cv_inod = 1, cv_nonods
+            do count = findm( cv_inod ), findm( cv_inod + 1 ) - 1
+               if( colm( count ) == cv_inod ) midm( cv_inod ) = count
             end do
          end do
-        endif
+        end if
       end if Conditional_Dimensional_4
       ewrite(3,*)'findm: ', size( findm ), '==>', findm( 1 : cv_nonods + 1 )
       ewrite(3,*)'colm: ', size( colm ), ncolm, '==>', colm( 1 : ncolm )
@@ -1525,10 +1526,10 @@
 
 
 
-    subroutine CT_DG_Sparsity(  mx_nface_p1, &
-         totele, cv_nloc, u_nloc,  &
+    subroutine CT_DG_Sparsity( mx_nface_p1, &
+         totele, cv_nloc, u_nloc, &
          cv_nonods, &
-         cv_ndgln,u_ndgln,  &
+         cv_ndgln,u_ndgln, &
          ncolele, finele, colele, &
          mx_nct, nct, findct, colct )
       implicit none
@@ -1544,49 +1545,42 @@
       integer, dimension( cv_nonods + 1 ), intent( inout ) :: findct
       integer, dimension( mx_nct ), intent( inout ) :: colct
       ! Local variables
-! start off with the inner element part
-      integer :: ele,ele2,cv_iloc,cv_nodi,count,count2,u_jloc,u_nodj, &
-                 gcount2,gcount,FACE_COUNT
+      integer :: ele, ele2, cv_iloc, cv_nodi, count, count2, u_jloc, u_nodj, &
+           gcount2, gcount, FACE_COUNT
       integer, dimension( : ), allocatable :: find_ct_temp, no_in_row
 
-      allocate(find_ct_temp(cv_nonods+1))
-      allocate(no_in_row(cv_nonods))
+      allocate( find_ct_temp( cv_nonods + 1 ) ) ; find_ct_temp = 0
+      allocate( no_in_row( cv_nonods ) ) ; no_in_row = 0
 
-      find_ct_temp(1)=1
-      do cv_nodi=1,cv_nonods
-         find_ct_temp(cv_nodi+1)=find_ct_temp(cv_nodi)+(mx_nface_p1+1)*u_nloc
+      find_ct_temp(1) = 1
+      do cv_nodi = 1, cv_nonods
+         find_ct_temp( cv_nodi + 1 ) = find_ct_temp( cv_nodi ) &
+              + ( mx_nface_p1 + 1 ) * u_nloc
       end do
-          
-       colct=0
-       no_in_row=0
 
-! for discontinuous elements...
+      colct = 0
+      Loop_Elements_4: do ele = 1, totele
+         do FACE_COUNT = FINELE( ELE ), FINELE( ELE + 1 ) - 1
 
-         Loop_Elements_4: do ele = 1, totele
-            do FACE_COUNT=FINELE(ELE),FINELE(ELE+1)-1
-             
-               ele2=COLELE(FACE_COUNT)
-               if(ele2>0) then
-                  Loop_CVILOC_5: do cv_iloc = 1, cv_nloc ! Loop over nodes of the elements
-                     cv_nodi = cv_ndgln( ( ele - 1 ) * cv_nloc + cv_iloc )
-                     count2=0
-                     Loop_CVILOC_6: do u_jloc = 1, u_nloc ! Loop over nodes of the elements
-                        u_nodj = u_ndgln( ( ele2 - 1 ) * u_nloc + u_jloc )
+            ele2 = COLELE( FACE_COUNT )
+            if( ele2 > 0 ) then
+               Loop_CVILOC_5: do cv_iloc = 1, cv_nloc ! Loop over nodes of the elements
+                  cv_nodi = cv_ndgln( ( ele - 1 ) * cv_nloc + cv_iloc )
+                  count2 = 0
+                  Loop_CVILOC_6: do u_jloc = 1, u_nloc ! Loop over nodes of the elements
+                     u_nodj = u_ndgln( ( ele2 - 1 ) * u_nloc + u_jloc )
+                     count2 = count2 + 1
+                     count = find_ct_temp( cv_nodi ) - 1 + count2
+                     colct( count ) = u_nodj
+                     no_in_row( cv_nodi ) = no_in_row( cv_nodi ) + 1
 
-           count2=count2+1
-           count=find_ct_temp(cv_nodi)-1+count2
-           colct(count)=u_nodj
-           no_in_row(cv_nodi)=no_in_row(cv_nodi)+1
+                  end do Loop_CVILOC_6
+               end do Loop_CVILOC_5
+            end if
+         end do
+      end do Loop_Elements_4
 
-
-                     end do Loop_CVILOC_6
-                  end do Loop_CVILOC_5
-               endif
-            end do
-         end do Loop_Elements_4
-
-! shrink the sparcity up a little now...
-        
+      ! shrink the sparcity up a little now...
       gcount2 = 0 ! Now reducing the size of the stencil
       do cv_nodi = 1, cv_nonods
          findct( cv_nodi ) = gcount2 + 1
@@ -1600,105 +1594,128 @@
       nct = gcount2
       findct( cv_nonods + 1 ) = gcount2 + 1
 
+      ! sort colct in increasing order
+      do cv_nodi = 1, cv_nonods
+         call ibubble(colct(findct(cv_nodi)),findct(cv_nodi+1)-findct(cv_nodi))
+      end do
+
       return
     end subroutine CT_DG_Sparsity
 
+    subroutine ibubble(ivec, nvec)
+      ! sort ivec in increasing order
+      implicit none
+      integer, intent( in ) :: nvec
+      integer, dimension(nvec), intent( inout ) :: ivec
+      ! Local variables
+      integer :: i, j, itemp
 
+      do i = 1, nvec - 1
+         do j = 1, nvec
+            if ( ivec( i ) > ivec( i + 1 ) ) then
+               itemp = ivec( i + 1 )
+               ivec( i + 1 ) = ivec( i )
+               ivec( i ) = itemp
+            end if
+         end do
+      end do
+      return
+    end subroutine ibubble
+	 
+    subroutine check_sparsity( &
+         u_pha_nonods, cv_pha_nonods, &
+         u_nonods, cv_nonods, totele, &
+         mx_ncolacv, ncolacv, finacv, colacv, midacv, & ! CV multi-phase eqns (e.g. vol frac, temp)
+         nlenmcy, mx_ncolmcy, ncolmcy, finmcy, colmcy, midmcy, & ! Force balance plus cty multi-phase eqns
+         mxnele, ncolele, midele, finele, colele, & ! Element connectivity 
+         mx_ncoldgm_pha, ncoldgm_pha, coldgm_pha, findgm_pha, middgm_pha, & ! Force balance sparsity  
+         mx_nct, ncolct, findct, colct, & ! CT sparsity - global cty eqn
+         mx_nc, ncolc, findc, colc, & ! C sparsity operating on pressure in force balance
+         mx_ncolcmc, ncolcmc, findcmc, colcmc, midcmc, & ! pressure matrix for projection method
+         mx_ncolm, ncolm, findm, colm, midm )
 
-  subroutine check_sparsity( &
-       u_pha_nonods, cv_pha_nonods, &
-       u_nonods, cv_nonods, totele, &
-       mx_ncolacv, ncolacv, finacv, colacv, midacv, & ! CV multi-phase eqns (e.g. vol frac, temp)
-       nlenmcy, mx_ncolmcy, ncolmcy, finmcy, colmcy, midmcy, & ! Force balance plus cty multi-phase eqns
-       mxnele, ncolele, midele, finele, colele, & ! Element connectivity 
-       mx_ncoldgm_pha, ncoldgm_pha, coldgm_pha, findgm_pha, middgm_pha, & ! Force balance sparsity  
-       mx_nct, ncolct, findct, colct, & ! CT sparsity - global cty eqn
-       mx_nc, ncolc, findc, colc, & ! C sparsity operating on pressure in force balance
-       mx_ncolcmc, ncolcmc, findcmc, colcmc, midcmc, & ! pressure matrix for projection method
-       mx_ncolm, ncolm, findm, colm, midm )
+      implicit none
+      integer, intent( in ) :: u_pha_nonods, cv_pha_nonods, u_nonods, cv_nonods, totele
+      integer, intent ( in ) :: mx_ncolacv, ncolacv
+      integer, dimension( cv_pha_nonods + 1 ), intent (in ) :: finacv
+      integer, dimension( mx_ncolacv ), intent (in ) :: colacv
+      integer, dimension( cv_pha_nonods ), intent (in ) :: midacv
+      integer, intent ( in ) :: nlenmcy, mx_ncolmcy, ncolmcy
+      integer, dimension( nlenmcy + 1 ), intent (in ) :: finmcy
+      integer, dimension( mx_ncolmcy ), intent (in ) :: colmcy
+      integer, dimension( nlenmcy ), intent (in ) :: midmcy
+      integer, intent ( in ) :: mxnele, ncolele
+      integer, dimension( totele ), intent (in ) :: midele
+      integer, dimension( totele + 1 ), intent (in ) :: finele
+      integer, dimension( mxnele ), intent (in ) :: colele
+      integer, intent ( in ) :: mx_ncoldgm_pha, ncoldgm_pha
+      integer, dimension( mx_ncoldgm_pha ), intent (in ) :: coldgm_pha
+      integer, dimension( u_pha_nonods + 1 ), intent (in ) :: findgm_pha
+      integer, dimension( u_pha_nonods ), intent (in ) :: middgm_pha
+      integer, intent ( in ) :: mx_nct, ncolct
+      integer, dimension( cv_nonods + 1 ), intent (in ) :: findct
+      integer, dimension( mx_nct ), intent (in ) :: colct
+      integer, intent ( in ) :: mx_nc, ncolc
+      integer, dimension( u_nonods + 1 ), intent (in ) :: findc
+      integer, dimension( mx_nc ), intent (in ) :: colc
+      integer, intent ( in ) :: mx_ncolcmc, ncolcmc
+      integer, dimension( cv_nonods + 1 ), intent (in ) :: findcmc
+      integer, dimension( mx_ncolcmc ), intent (in ) :: colcmc
+      integer, dimension( cv_nonods ), intent (in ) :: midcmc
+      integer, intent ( in ) :: mx_ncolm, ncolm
+      integer, dimension( cv_nonods + 1 ), intent (in ) :: findm
+      integer, dimension( ncolm ), intent (in ) :: colm
+      integer, dimension( cv_nonods ), intent (in ) :: midm
 
-    implicit none
-    integer, intent( in ) :: u_pha_nonods, cv_pha_nonods, u_nonods, cv_nonods, totele
-    integer, intent ( in ) :: mx_ncolacv, ncolacv
-    integer, dimension( cv_pha_nonods + 1 ), intent (in ) :: finacv
-    integer, dimension( mx_ncolacv ), intent (in ) :: colacv
-    integer, dimension( cv_pha_nonods ), intent (in ) :: midacv
-    integer, intent ( in ) :: nlenmcy, mx_ncolmcy, ncolmcy
-    integer, dimension( nlenmcy + 1 ), intent (in ) :: finmcy
-    integer, dimension( mx_ncolmcy ), intent (in ) :: colmcy
-    integer, dimension( nlenmcy ), intent (in ) :: midmcy
-    integer, intent ( in ) :: mxnele, ncolele
-    integer, dimension( totele ), intent (in ) :: midele
-    integer, dimension( totele + 1 ), intent (in ) :: finele
-    integer, dimension( mxnele ), intent (in ) :: colele
-    integer, intent ( in ) :: mx_ncoldgm_pha, ncoldgm_pha
-    integer, dimension( mx_ncoldgm_pha ), intent (in ) :: coldgm_pha
-    integer, dimension( u_pha_nonods + 1 ), intent (in ) :: findgm_pha
-    integer, dimension( u_pha_nonods ), intent (in ) :: middgm_pha
-    integer, intent ( in ) :: mx_nct, ncolct
-    integer, dimension( cv_nonods + 1 ), intent (in ) :: findct
-    integer, dimension( mx_nct ), intent (in ) :: colct
-    integer, intent ( in ) :: mx_nc, ncolc
-    integer, dimension( u_nonods + 1 ), intent (in ) :: findc
-    integer, dimension( mx_nc ), intent (in ) :: colc
-    integer, intent ( in ) :: mx_ncolcmc, ncolcmc
-    integer, dimension( cv_nonods + 1 ), intent (in ) :: findcmc
-    integer, dimension( mx_ncolcmc ), intent (in ) :: colcmc
-    integer, dimension( cv_nonods ), intent (in ) :: midcmc
-    integer, intent ( in ) :: mx_ncolm, ncolm
-    integer, dimension( cv_nonods + 1 ), intent (in ) :: findm
-    integer, dimension( ncolm ), intent (in ) :: colm
-    integer, dimension( cv_nonods ), intent (in ) :: midm
+      ! Local variables
+      integer, dimension( : ), allocatable :: dummy
 
-    ! Local variables
-    integer, dimension( : ), allocatable :: dummy
+      ewrite(3,*) 'In check_sparsity'
 
-    ewrite(3,*) 'In check_sparsity'
+      open( 15, file = 'CheckSparsityMatrix.dat', status = 'unknown' )
+      write( 15, * )'########## FINMCY, MIDMCY, COLMCY ##################'
+      write(15, * )'NCOLMCY:', NCOLMCY
+      call checksparsity( .true., 15, NCOLMCY, NLENMCY, MX_NCOLMCY, FINMCY, MIDMCY, COLMCY )
 
-    open( 15, file = 'CheckSparsityMatrix.dat', status = 'unknown' )
-    write( 15, * )'########## FINMCY, MIDMCY, COLMCY ##################'
-    write(15, * )'NCOLMCY:', NCOLMCY
-    call checksparsity( .true., 15, NCOLMCY, NLENMCY, MX_NCOLMCY, FINMCY, MIDMCY, COLMCY )
+      write( 15, * )'########## FINACV, COLACV, MIDACV ##################'
+      write(15, * )'NCOLACV:', NCOLACV
+      call checksparsity( .true., 15, NCOLACV, CV_PHA_NONODS, MX_NCOLACV, FINACV, MIDACV, COLACV  )
 
-    write( 15, * )'########## FINACV, COLACV, MIDACV ##################'
-    write(15, * )'NCOLACV:', NCOLACV
-    call checksparsity( .true., 15, NCOLACV, CV_PHA_NONODS, MX_NCOLACV, FINACV, MIDACV, COLACV  )
+      write( 15, * )'########## FINELE, MIDELE, COLELE  ##################'
+      write(15, * )'NCOLELE:',NCOLELE 
+      call checksparsity( .true., 15, NCOLELE, TOTELE, MXNELE, FINELE, MIDELE, COLELE )
 
-    write( 15, * )'########## FINELE, MIDELE, COLELE  ##################'
-    write(15, * )'NCOLELE:',NCOLELE 
-    call checksparsity( .true., 15, NCOLELE, TOTELE, MXNELE, FINELE, MIDELE, COLELE )
+      allocate( dummy( CV_NONODS ))
+      write( 15, * )'########## FINDCT, COLCT ##################'
+      write(15, * )'NCOLCT:', NCOLCT
+      call checksparsity( .false., 15, NCOLCT, CV_NONODS, MX_NCT, FINDCT, dummy, COLCT  )
+      deallocate( dummy )
 
-    allocate( dummy( CV_NONODS ))
-    write( 15, * )'########## FINDCT, COLCT ##################'
-    write(15, * )'NCOLCT:', NCOLCT
-    call checksparsity( .false., 15, NCOLCT, CV_NONODS, MX_NCT, FINDCT, dummy, COLCT  )
-    deallocate( dummy )
+      allocate( dummy( U_NONODS ))
+      write( 15, * )'########## FINDC, COLC ##################'
+      write(15, * )'NCOLC:', NCOLC
+      call checksparsity( .false., 15, NCOLC, U_NONODS, MX_NC, FINDC, dummy, COLC )
+      deallocate( dummy )
 
-    allocate( dummy( U_NONODS ))
-    write( 15, * )'########## FINDC, COLC ##################'
-    write(15, * )'NCOLC:', NCOLC
-    call checksparsity( .false., 15, NCOLC, U_NONODS, MX_NC, FINDC, dummy, COLC )
-    deallocate( dummy )
+      write( 15, * )'########## FINDGM_PHA, MIDDGM_PHA, COLDGM_PHA ##################'
+      write(15, * )'NCOLDGM_PHA:',NCOLDGM_PHA 
+      call checksparsity( .true., 15, NCOLDGM_PHA, U_PHA_NONODS, MX_NCOLDGM_PHA, FINDGM_PHA, MIDDGM_PHA, COLDGM_PHA )
 
-    write( 15, * )'########## FINDGM_PHA, MIDDGM_PHA, COLDGM_PHA ##################'
-    write(15, * )'NCOLDGM_PHA:',NCOLDGM_PHA 
-    call checksparsity( .true., 15, NCOLDGM_PHA, U_PHA_NONODS, MX_NCOLDGM_PHA, FINDGM_PHA, MIDDGM_PHA, COLDGM_PHA )
+      write( 15, * )'########## FINDCMC, MIDCMC, COLCMC ##################'
+      write(15, * )'NCOLCMC:',NCOLCMC 
+      call checksparsity( .true., 15, NCOLCMC, CV_NONODS, MX_NCOLCMC, FINDCMC, MIDCMC, COLCMC )
 
-    write( 15, * )'########## FINDCMC, MIDCMC, COLCMC ##################'
-    write(15, * )'NCOLCMC:',NCOLCMC 
-    call checksparsity( .true., 15, NCOLCMC, CV_NONODS, MX_NCOLCMC, FINDCMC, MIDCMC, COLCMC )
+      write( 15, * )'########## FINDM, MIDM, COLM ##################'
+      write(15, * )'NCOLM:',NCOLM 
+      call checksparsity( .true., 15, NCOLM, CV_NONODS, MX_NCOLM, FINDM, MIDM, COLM )
 
-    write( 15, * )'########## FINDM, MIDM, COLM ##################'
-    write(15, * )'NCOLM:',NCOLM 
-    call checksparsity( .true., 15, NCOLM, CV_NONODS, MX_NCOLM, FINDM, MIDM, COLM )
+      close( 15 )
 
-    close( 15 )
+      ewrite(3,*) 'Leaving check_sparsity'
 
-    ewrite(3,*) 'Leaving check_sparsity'
+      return
 
-    return
-
-  end subroutine check_sparsity
+    end subroutine check_sparsity
 
   subroutine checksparsity( option_mid, unit, ncol2, nonods, ncol, find, mid, col )
     implicit none

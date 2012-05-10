@@ -137,7 +137,7 @@ module mp_prototype
       integer :: nkcomp, mx_nface_p1
 
       integer, parameter :: new_unit_debug = 304
-      
+
       logical :: have_temperature_fields
 
       open( new_unit_debug, file = 'mirror_new.dat', status = 'unknown' )
@@ -290,137 +290,131 @@ module mp_prototype
       ! Defining lengths
       mx_nface_p1 = 2 * ndim + 1
       mxnele = mx_nface_p1 * totele
-      !mx_nct = cv_nonods * ( 2 * u_nloc + 1 ) * ndim * nphase
       if(cv_nonods==cv_nloc*totele) then ! is DG for pressure...
          mx_nct = totele * u_nloc * cv_nloc * mx_nface_p1* ndim * nphase
       else
          mx_nct = totele * u_nloc * cv_nloc * ndim * nphase
       endif
-      !ewrite(3,*)'mx_nct, old:',mx_nct, &
-      !cv_nonods * ( 2 * u_nloc + 1 ) * ndim * nphase
       mx_nc = mx_nct  
 
-      ! mx_ncolcmc = mx_nface_p1 *  cv_nloc  * cv_nonods
-      ! Assume the DG representation requires ths most stroage...
-      mx_ncolcmc = mx_nface_p1 *  cv_nloc  * cv_nloc * totele 
+      ! Assume the DG representation requires the most stroage...
+      mx_ncolcmc = mx_nface_p1 * cv_nloc * cv_nloc * totele 
 
       mx_ncoldgm_pha = mxnele * ( u_nloc * ndim )**2 * nphase + totele * ( u_nloc * ndim * nphase )**2
       mx_ncolmcy = mx_ncoldgm_pha + mx_nct + mx_nc + mx_ncolcmc
       mx_ncolacv = 3 * mx_nface_p1 * cv_nonods * nphase + cv_nonods * ( nphase - 1 ) * nphase
-      mx_ncolm = mxnele * cv_nloc * cv_nloc
+      mx_ncolm = mxnele * cv_nloc * cv_nloc * nphase
 
-      allocate( colmcy( mx_ncolmcy ))
-      allocate( colacv( mx_ncolacv ))
-      allocate( colele( mxnele ))
-      allocate( colct( mx_nct ))
-      allocate( colc( mx_nc ))
-      allocate( coldgm_pha( mx_ncoldgm_pha ))
-      allocate( colcmc( mx_ncolcmc ))
-      allocate( colm( mx_ncolm ))
+      allocate( colmcy( mx_ncolmcy ) )
+      allocate( colacv( mx_ncolacv ) )
+      allocate( colele( mxnele ) )
+      allocate( colct( mx_nct ) )
+      allocate( colc( mx_nc ) )
+      allocate( coldgm_pha( mx_ncoldgm_pha ) )
+      allocate( colcmc( mx_ncolcmc ) )
+      allocate( colm( mx_ncolm ) )
 
-     
       call get_spars_pats( &
-         ndim, nphase, totele, u_nonods * nphase, cv_nonods * nphase, &
-         u_nonods, cv_nonods, x_nonods, &
-         cv_ele_type, u_ele_type, &
-         u_nloc, cv_nloc, x_nloc, xu_nloc, mat_nloc, &
-         u_snloc, cv_snloc, x_snloc, &
-         u_ndgln, cv_ndgln, x_ndgln, xu_ndgln, &
+           ndim, nphase, totele, u_nonods * nphase, cv_nonods * nphase, &
+           u_nonods, cv_nonods, x_nonods, &
+           cv_ele_type, u_ele_type, &
+           u_nloc, cv_nloc, x_nloc, xu_nloc, mat_nloc, &
+           u_snloc, cv_snloc, x_snloc, &
+           u_ndgln, cv_ndgln, x_ndgln, xu_ndgln, &
                                 ! CV multi-phase eqns (e.g. vol frac, temp)
-         mx_ncolacv, ncolacv, finacv, colacv, midacv, &
+           mx_ncolacv, ncolacv, finacv, colacv, midacv, &
                                 ! Force balance plus cty multi-phase eqns
-         nlenmcy, mx_ncolmcy, ncolmcy, finmcy, colmcy, midmcy, &
+           nlenmcy, mx_ncolmcy, ncolmcy, finmcy, colmcy, midmcy, &
                                 ! Element connectivity
-         mxnele, ncolele, midele, finele, colele, &
+           mxnele, ncolele, midele, finele, colele, &
                                 ! Force balance sparsity
-         mx_ncoldgm_pha, ncoldgm_pha, coldgm_pha, findgm_pha, middgm_pha, &
+           mx_ncoldgm_pha, ncoldgm_pha, coldgm_pha, findgm_pha, middgm_pha, &
                                 ! CT sparsity - global cty eqn
-         mx_nct, ncolct, findct, colct, &
+           mx_nct, ncolct, findct, colct, &
                                 ! C sparsity operating on pressure in force balance
-         mx_nc, ncolc, findc, colc, &
+           mx_nc, ncolc, findc, colc, &
                                 ! pressure matrix for projection method
-         mx_ncolcmc, ncolcmc, findcmc, colcmc, midcmc, &
+           mx_ncolcmc, ncolcmc, findcmc, colcmc, midcmc, &
                                 ! CV-FEM matrix
-         mx_ncolm, ncolm, findm, colm, midm, mx_nface_p1 )
-
+           mx_ncolm, ncolm, findm, colm, midm, mx_nface_p1 )
 
       !call check_sparsity( &
       !     u_nonods * nphase, cv_nonods * nphase, &
       !     u_nonods, cv_nonods, totele, &
       !     mx_ncolacv, ncolacv, finacv, colacv, midacv, & ! CV multi-phase eqns (e.g. vol frac, temp)
-     !      nlenmcy, mx_ncolmcy, ncolmcy, finmcy, colmcy, midmcy, & ! Force balance plus cty multi-phase eqns
-     !      mxnele, ncolele, midele, finele, colele, & ! Element connectivity 
-     !      mx_ncoldgm_pha, ncoldgm_pha, coldgm_pha, findgm_pha, middgm_pha, & ! Force balance sparsity  
-      !!     mx_nct, ncolct, findct, colct, & ! CT sparsity - global cty eqn
+      !     nlenmcy, mx_ncolmcy, ncolmcy, finmcy, colmcy, midmcy, & ! Force balance plus cty multi-phase eqns
+      !     mxnele, ncolele, midele, finele, colele, & ! Element connectivity 
+      !     mx_ncoldgm_pha, ncoldgm_pha, coldgm_pha, findgm_pha, middgm_pha, & ! Force balance sparsity  
+      !     mx_nct, ncolct, findct, colct, & ! CT sparsity - global cty eqn
       !     mx_nc, ncolc, findc, colc, & ! C sparsity operating on pressure in force balance
-     !      mx_ncolcmc, ncolcmc, findcmc, colcmc, midcmc, & ! pressure matrix for projection method
-    !       mx_ncolm, ncolm, findm, colm, midm ) ! CV-FEM matrix
-      
- !     ewrite(3,*) 'mat_nloc, mat_nonods: ', mat_nloc, mat_nonods
- !     ewrite(3,*) 'mat_ndgln: ', mat_ndgln
+      !     mx_ncolcmc, ncolcmc, findcmc, colcmc, midcmc, & ! pressure matrix for projection method
+      !     mx_ncolm, ncolm, findm, colm, midm ) ! CV-FEM matrix
+
+      !     ewrite(3,*) 'mat_nloc, mat_nonods: ', mat_nloc, mat_nonods
+      !     ewrite(3,*) 'mat_ndgln: ', mat_ndgln
 
       call solve_multiphase_mom_press_volf( state, nphase, ncomp, totele, ndim, &
                                 ! Nodes et misc
-              u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc, &
-              cv_snloc, u_snloc, p_snloc, stotel, &
+           u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc, &
+           cv_snloc, u_snloc, p_snloc, stotel, &
                                 ! Element types
-              u_ele_type, p_ele_type, cv_ele_type, &
-              cv_sele_type, u_sele_type, &
+           u_ele_type, p_ele_type, cv_ele_type, &
+           cv_sele_type, u_sele_type, &
                                 ! Total time loop and initialisation parameters
-              ntime_dump, nits, nits_internal, dump_no, &
-              nits_flux_lim_volfra, nits_flux_lim_comp, & 
-              ndpset, &
+           ntime_dump, nits, nits_internal, dump_no, &
+           nits_flux_lim_volfra, nits_flux_lim_comp, & 
+           ndpset, &
                                 ! Discretisation parameters
-              v_beta, v_theta, &
-              v_disopt, &
-              v_dg_vel_int_opt, &
-              t_beta, t_theta, t_disopt, t_dg_vel_int_opt, lump_eqns, &
-              volfra_use_theta_flux, volfra_get_theta_flux, comp_use_theta_flux, comp_get_theta_flux, &
-              opt_vel_upwind_coefs, nopt_vel_upwind_coefs, &
-              noit_dim, &
-              in_ele_upwind, dg_ele_upwind, &
+           v_beta, v_theta, &
+           v_disopt, &
+           v_dg_vel_int_opt, &
+           t_beta, t_theta, t_disopt, t_dg_vel_int_opt, lump_eqns, &
+           volfra_use_theta_flux, volfra_get_theta_flux, comp_use_theta_flux, comp_get_theta_flux, &
+           opt_vel_upwind_coefs, nopt_vel_upwind_coefs, &
+           noit_dim, &
+           in_ele_upwind, dg_ele_upwind, &
                                 ! Total nodes for different meshes
-              domain_length, &
-              cv_nonods, u_nonods, cv_pha_nonods, u_pha_nonods, mat_nonods, &
-              x_nonods, xu_nonods, &
-              u_ndgln, xu_ndgln, cv_ndgln, x_ndgln, p_ndgln, mat_ndgln, &
-              u_sndgln, cv_sndgln, p_sndgln, &
+           domain_length, &
+           cv_nonods, u_nonods, cv_pha_nonods, u_pha_nonods, mat_nonods, &
+           x_nonods, xu_nonods, &
+           u_ndgln, xu_ndgln, cv_ndgln, x_ndgln, p_ndgln, mat_ndgln, &
+           u_sndgln, cv_sndgln, p_sndgln, &
                                 ! Boundary conditions and surface elements
-              wic_vol_bc, wic_d_bc, wic_u_bc, wic_p_bc, wic_t_bc, wic_comp_bc, &
-              suf_vol_bc, suf_d_bc, suf_p_bc, suf_t_bc, &
-              suf_u_bc, suf_v_bc, suf_w_bc, suf_comp_bc, &
-              suf_u_bc_rob1, suf_u_bc_rob2, suf_v_bc_rob1, suf_v_bc_rob2, &
-              suf_w_bc_rob1, suf_w_bc_rob2, suf_comp_bc_rob1, suf_comp_bc_rob2, &
-              suf_t_bc_rob1, suf_t_bc_rob2, suf_vol_bc_rob1, suf_vol_bc_rob2, &
+           wic_vol_bc, wic_d_bc, wic_u_bc, wic_p_bc, wic_t_bc, wic_comp_bc, &
+           suf_vol_bc, suf_d_bc, suf_p_bc, suf_t_bc, &
+           suf_u_bc, suf_v_bc, suf_w_bc, suf_comp_bc, &
+           suf_u_bc_rob1, suf_u_bc_rob2, suf_v_bc_rob1, suf_v_bc_rob2, &
+           suf_w_bc_rob1, suf_w_bc_rob2, suf_comp_bc_rob1, suf_comp_bc_rob2, &
+           suf_t_bc_rob1, suf_t_bc_rob2, suf_vol_bc_rob1, suf_vol_bc_rob2, &
                                 ! Positions and grid velocities
-              x, y, z, xu, yu, zu, nu, nv, nw, ug, vg, wg, &
+           x, y, z, xu, yu, zu, nu, nv, nw, ug, vg, wg, &
                                 ! Absorption and source terms and coefficients
-              u_abs_stab, Mobility, &
-              u_absorb, v_absorb, comp_absorb, &
-              u_source, v_source, comp_source, &
-              t_absorb, t_source, &
+           u_abs_stab, Mobility, &
+           u_absorb, v_absorb, comp_absorb, &
+           u_source, v_source, comp_source, &
+           t_absorb, t_source, &
                                 ! Diffusion parameters
-              udiffusion, &
-              tdiffusion, &
-              comp_diffusion_opt, ncomp_diff_coef, comp_diffusion, comp_diff_coef, &
+           udiffusion, &
+           tdiffusion, &
+           comp_diffusion_opt, ncomp_diff_coef, comp_diffusion, comp_diff_coef, &
                                 ! Velocities and scalar fields
-              u, v, w, &
-              den, satura, comp, t, p, cv_p, volfra_pore, &
-              perm, &
-              uold, vold, wold, denold, saturaold, compold, uden, udenold, deriv, &
-              told, pold, cv_pold, nuold, nvold, nwold, &
+           u, v, w, &
+           den, satura, comp, t, p, cv_p, volfra_pore, &
+           perm, &
+           uold, vold, wold, denold, saturaold, compold, uden, udenold, deriv, &
+           told, pold, cv_pold, nuold, nvold, nwold, &
                                 ! EOS terms
-              K_Comp, alpha_beta, &
+           K_Comp, alpha_beta, &
                                 ! Matrices sparsity
-              mx_ncolacv, ncolacv, finacv, colacv, midacv, & ! CV multi-phase eqns (e.g. vol frac, temp)
-              nlenmcy, mx_ncolmcy, ncolmcy, finmcy, colmcy, midmcy, & ! Force balance plus cty multi-phase eqns
-              mxnele, ncolele, finele, colele, & ! Element connectivity 
-              mx_ncoldgm_pha, ncoldgm_pha, coldgm_pha, findgm_pha, middgm_pha, & ! Force balance sparsity  
-              mx_nct, ncolct, findct, colct, & ! CT sparsity - global cty eqn
-              mx_nc, ncolc, findc, colc, & ! C sparsity operating on pressure in force balance
-              mx_ncolcmc, ncolcmc, findcmc, colcmc, midcmc, & ! pressure matrix for projection method
-              mx_ncolm, ncolm, findm, colm, midm, & ! CV-FEM matrix
-              have_temperature_fields, cv_one, nits_flux_lim_t, t_use_theta_flux, t_get_theta_flux) 
+           mx_ncolacv, ncolacv, finacv, colacv, midacv, & ! CV multi-phase eqns (e.g. vol frac, temp)
+           nlenmcy, mx_ncolmcy, ncolmcy, finmcy, colmcy, midmcy, & ! Force balance plus cty multi-phase eqns
+           mxnele, ncolele, finele, colele, & ! Element connectivity 
+           mx_ncoldgm_pha, ncoldgm_pha, coldgm_pha, findgm_pha, middgm_pha, & ! Force balance sparsity  
+           mx_nct, ncolct, findct, colct, & ! CT sparsity - global cty eqn
+           mx_nc, ncolc, findc, colc, & ! C sparsity operating on pressure in force balance
+           mx_ncolcmc, ncolcmc, findcmc, colcmc, midcmc, & ! pressure matrix for projection method
+           mx_ncolm, ncolm, findm, colm, midm, & ! CV-FEM matrix
+           have_temperature_fields, cv_one, nits_flux_lim_t, t_use_theta_flux, t_get_theta_flux) 
 
       ewrite(3,*) 'Leaving multiphase_prototype'
 

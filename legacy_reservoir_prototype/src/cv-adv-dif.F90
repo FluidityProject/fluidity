@@ -693,15 +693,16 @@
                        TOTELE, X_NLOC, XU_NLOC, X_NDGLN, CV_NDGLN, XU_NDGLN, &
                        CV_SNLOC, CVFEM_ON_FACE, SCVNGI, GI, X_SHARE, X_NONODS, ELE, ELE2,  &
                        FINELE, COLELE, NCOLELE )
-
-                  ewrite(3,*)'============================================================= '
+                
+                  ewrite(3,*)'================================================================================= '
                   ewrite(3,*)' ele, cv_iloc, cv_nodi, gi, cv_jloc: ', ele, cv_iloc, cv_nodi, gi, cv_jloc
                   ewrite(3,*)' ele2, integrat_at_gi:', ele2, integrat_at_gi
-                  ewrite(3,*)'============================================================= '
+                  ewrite(3,*)'================================================================================= '
                   ewrite(3,*)'cv_other_loc:', cv_other_loc( 1 : cv_nloc )
                   ewrite(3,*)'u_other_loc:', u_other_loc( 1 : u_nloc )
                   ewrite(3,*)'mat_other_loc:', mat_other_loc( 1 : mat_nloc )
-                  ewrite(3,*) 'INTEGRAT_AT_GI=  ',INTEGRAT_AT_GI
+                  ewrite(3,*)'INTEGRAT_AT_GI=', INTEGRAT_AT_GI
+                  ewrite(3,*)'================================================================================= '
 
                   IF(INTEGRAT_AT_GI) THEN
                      CV_JLOC = CV_OTHER_LOC( CV_ILOC )
@@ -750,6 +751,10 @@
 
                   Conditional_GETCT1: IF( GETCT ) THEN ! Obtain the CV discretised CT equations plus RHS
 
+                     ewrite(3,*)'CV_NODI, CV_NODJ, ELE, ELE2:', CV_NODI, CV_NODJ, ELE, ELE2
+                     ewrite(3,*)'findct:',FINDCT( CV_NODI ), FINDCT( CV_NODI + 1 ) - 1
+                     ewrite(3,*)'colct:',colct( FINDCT( CV_NODI ) : FINDCT( CV_NODI + 1 ) - 1 )
+
                      DO U_KLOC = 1, U_NLOC
                         U_NODK = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC )
                         JCOUNT = 0
@@ -757,21 +762,18 @@
                            IF(COLCT( COUNT ) == U_NODK) JCOUNT = COUNT
                         END DO
                         JCOUNT_KLOC( U_KLOC ) = JCOUNT
-                        !ewrite(3,*)' jcount1, ele, ele2: ', jcount, ele, ele2
+                        ewrite(3,*)' u_nodk, jcount1:', u_nodk, jcount
                      END DO
 
                      IF( ( ELE2 /= 0 ) .AND. ( ELE2 /= ELE ) ) THEN
-                        !ewrite(3,*)'CV_NODI, CV_NODJ, ELE, ELE2: ', CV_NODI, CV_NODJ, ELE, ELE2
                         DO U_KLOC = 1, U_NLOC
                            U_NODK = U_NDGLN(( ELE2 - 1 ) * U_NLOC + U_KLOC )
-                           !ewrite(3,*)'U_NODK:',U_NODK, 'findct:',FINDCT( CV_NODI ), FINDCT( CV_NODI + 1 ) - 1
-                           !ewrite(3,*)'colct:',colct( FINDCT( CV_NODJ ) : FINDCT( CV_NODJ + 1 ) - 1 )
                            JCOUNT = 0
                            DO COUNT = FINDCT( CV_NODI ), FINDCT( CV_NODI + 1 ) - 1, 1
                               IF(COLCT( COUNT ) == U_NODK) JCOUNT = COUNT
                            END DO
                            JCOUNT_KLOC2( U_KLOC ) = JCOUNT
-                           !ewrite(3,*)' jcount2: ', jcount
+                           ewrite(3,*)' u_nodk, jcount2:', u_nodk, jcount
                         END DO
 
                      ENDIF
@@ -1112,15 +1114,14 @@
 
             END DO Loop_GCOUNT
 
-            !       IF(CV_ILOC.EQ.3) stop 39831
-            !       IF((CV_ILOC.EQ.1).and.(ELE.EQ.2)) stop 39831
+            !IF(CV_ILOC.EQ.3) stop 39831
+            !IF((CV_ILOC.EQ.1).and.(ELE.EQ.2)) stop 39831
          END DO Loop_CV_ILOC
 
 
       END DO Loop_Elements
 
-
-      !    stop 123
+      !stop 123
 
       IF(GET_GTHETA) THEN
          DO CV_NODI = 1, CV_NONODS
@@ -1713,7 +1714,7 @@
          Loop_CV_ILOC: DO CV_ILOC = 1, CV_NLOC
 
             CV_NODI = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_ILOC )
-            !    ewrite(3,*)'ele,CV_NODI,CV_ILOC:',ele,CV_NODI,CV_ILOC, x(CV_NODI)
+            !ewrite(3,*)'ele,CV_NODI,CV_ILOC:',ele,CV_NODI,CV_ILOC, x(CV_NODI)
 
             Loop_CV_JLOC: DO CV_JLOC = 1, CV_NLOC
 
@@ -6136,6 +6137,7 @@
       ewrite(3,*)' In PUT_IN_CT_RHS CVNORMX( GI ),CVNORMY( GI ):',CVNORMX( GI ),CVNORMY( GI )
       ewrite(3,*)' SCVDETWEI( GI ):',SCVDETWEI( GI )
       ewrite(3,*)' SUFEN( :, GI ):',SUFEN( :, GI )
+      ewrite(3,*)' jcount_kloc:', jcount_kloc
 
       DO U_KLOC = 1, U_NLOC
 
