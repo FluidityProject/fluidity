@@ -1597,6 +1597,8 @@
       ! sort colct in increasing order
       do cv_nodi = 1, cv_nonods
          call ibubble( colct( findct( cv_nodi ) : findct( cv_nodi + 1 ) -1 ) )
+         ewrite(3,*) 'cv_nodi, colct:', &
+              cv_nodi, colct( findct( cv_nodi ) : findct( cv_nodi + 1 ) -1 )
       end do
 
       return
