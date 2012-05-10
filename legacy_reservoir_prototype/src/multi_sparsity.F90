@@ -1404,7 +1404,7 @@
            mx_nc, findc, colc )
       ewrite(3,*) 'findc: ', size( findc ), '==>', findc( 1 : u_nonods + 1 )
       ewrite(3,*) 'colc: ', size( findc ), nc, '==>', colc( 1 : nc )
-      stop 666
+!      stop 666
 
       !-
       !- Computing sparsity for pressure matrix of projection method
