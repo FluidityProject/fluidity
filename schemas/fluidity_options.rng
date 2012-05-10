@@ -6056,6 +6056,27 @@ or with a CG but with the continuity tested with the CV dual. </a:documentation>
           </element>
         </element>
       </element>
+      <element name="scalar_field">
+        <a:documentation>CompressibleContinuity
+
+Diagnostic field for the continuity equation used in compressible multiphase flow simulations
+i.e. vfrac_c*d(rho_c)/dt + div(rho_c*vfrac_c*u_c) + \sum_i{ rho_c*div(vfrac_i*u_i) }
+where _c and _i denote the compressible and incompressible phases respectively.</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>CompressibleContinuity</value>
+        </attribute>
+        <element name="diagnostic">
+          <ref name="velocity_mesh_choice"/>
+          <ref name="internal_algorithm"/>
+          <ref name="diagnostic_scalar_field_no_adapt"/>
+          <element name="solver">
+            <ref name="linear_solver_options_sym"/>
+          </element>
+        </element>
+      </element>
     </choice>
     <!--
       Insert new diagnostic scalar fields here using the template:

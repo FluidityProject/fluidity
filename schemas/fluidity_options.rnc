@@ -4790,7 +4790,27 @@ scalar_field_choice =
                   }
                }
             )
-         }              
+         }|
+         
+         ## CompressibleContinuity
+         ##
+         ## Diagnostic field for the continuity equation used in compressible multiphase flow simulations
+         ## i.e. vfrac_c*d(rho_c)/dt + div(rho_c*vfrac_c*u_c) + \sum_i{ rho_c*div(vfrac_i*u_i) }
+         ## where _c and _i denote the compressible and incompressible phases respectively.
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "CompressibleContinuity" },
+            (
+               element diagnostic {
+                  velocity_mesh_choice,
+                  internal_algorithm,
+                  diagnostic_scalar_field_no_adapt,
+                  element solver {
+                     linear_solver_options_sym
+                  }
+               }
+            )
+         }    
 
 # Insert new diagnostic scalar fields here using the template:
 #        element scalar_field {

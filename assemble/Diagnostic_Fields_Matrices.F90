@@ -58,7 +58,8 @@ module diagnostic_fields_matrices
   
   public :: calculate_divergence_cv, calculate_divergence_fe, &
             calculate_div_t_cv, calculate_div_t_fe, &
-            calculate_grad_fe, calculate_sum_velocity_divergence
+            calculate_grad_fe, calculate_sum_velocity_divergence, &
+            calculate_compressible_continuity
 
 contains
 
@@ -329,8 +330,8 @@ contains
       !!< field (i.e. each phase). Used in multiphase flow simulations.
 
       type(state_type), dimension(:), intent(inout) :: state
-      type(scalar_field), pointer :: sum_velocity_divergence, p, density, olddensity, vfrac
-      type(scalar_field) :: drhodt, temp_vfrac
+      type(scalar_field), pointer :: sum_velocity_divergence, vfrac
+      type(scalar_field) :: temp_vfrac
 
       ! Local variables
       type(vector_field), pointer :: u, x
@@ -344,7 +345,7 @@ contains
       type(scalar_field) :: ctfield, ct_rhs, temp
       type(scalar_field), pointer :: cv_mass
       
-      logical :: test_with_cv_dual, use_compressible_projection
+      logical :: test_with_cv_dual
       real :: dt
 
       ewrite(1,*) 'Entering calculate_sum_velocity_divergence'
@@ -363,11 +364,7 @@ contains
          call allocate(mass, mass_sparsity, name="MassMatrix")
          call zero(mass)      
       end if 
-
-      p => extract_scalar_field(state(1), "Pressure")
-      use_compressible_projection = have_option(trim(p%option_path)//&
-                                       "/prognostic/scheme&
-                                       &/use_compressible_projection_method")
+      
       call get_option("/timestepping/timestep", dt)
       
       ! Sum up over the div's
@@ -395,51 +392,15 @@ contains
                               test_mesh=sum_velocity_divergence%mesh, field=u)
          else
             if(i==1) then ! Construct the mass matrix (just do this once)
-               if(use_compressible_projection) then
-                  call assemble_compressible_divergence_matrix_cg(ct_m, state, i, ct_rhs, div_mass=mass)
-               else
-                  call assemble_divergence_matrix_cg(ct_m, state(i), ct_rhs=ct_rhs, &
+               call assemble_divergence_matrix_cg(ct_m, state(i), ct_rhs=ct_rhs, &
                               test_mesh=sum_velocity_divergence%mesh, field=u, &
                               option_path=sum_velocity_divergence%option_path, div_mass=mass)
-               end if
-
             else
-               if(use_compressible_projection) then
-                  call assemble_compressible_divergence_matrix_cg(ct_m, state, i, ct_rhs)
-               else
-                  call assemble_divergence_matrix_cg(ct_m, state(i), ct_rhs=ct_rhs, &
+               call assemble_divergence_matrix_cg(ct_m, state(i), ct_rhs=ct_rhs, &
                               test_mesh=sum_velocity_divergence%mesh, field=u, &
                               option_path=sum_velocity_divergence%option_path)
-               end if
             end if   
 
-            if(use_compressible_projection .and. have_option("/material_phase::"//trim(state(i)%name)//"/equation_of_state/compressible")) then
-               ! Get the time derivative term for the compressible phase's density, vfrac_c * d(rho_c)/dt
-
-               call allocate(drhodt, sum_velocity_divergence%mesh, name="drhodt")
-
-               density => extract_scalar_field(state(i), "Density")
-               olddensity => extract_scalar_field(state(i), "OldDensity")
-
-               ! Assumes Density and OldDensity are on the same mesh as Pressure,
-               ! as it should be according to the manual.
-               call zero(drhodt)
-               call addto(drhodt, density)
-               call addto(drhodt, olddensity, -1.0)
-               call scale(drhodt, 1.0/dt)
-
-               ! Remap PhaseVolumeFraction field in case it is not on the same mesh as the Pressure field.
-               vfrac => extract_scalar_field(state(i), "PhaseVolumeFraction")
-               call allocate(temp_vfrac, sum_velocity_divergence%mesh, "TempPhaseVolumeFraction")
-               call remap_field(vfrac, temp_vfrac)
-               call scale(drhodt, temp_vfrac)
-               call deallocate(temp_vfrac)
-
-               call addto(ctfield, drhodt)
-
-               call deallocate(drhodt)
-            end if
-         
          end if
 
          ! Construct the linear system of equations
@@ -482,4 +443,122 @@ contains
          
   end subroutine calculate_sum_velocity_divergence
 
+  
+  subroutine calculate_compressible_continuity(state, compressible_continuity)
+      !!< Calculates the continity equation used in compressible multiphase flow simulations:
+      !!< vfrac_c*d(rho_c)/dt + div(rho_c*vfrac_c*u_c) + \sum_i{ rho_c*div(vfrac_i*u_i) }
+      
+      type(state_type), dimension(:), intent(inout) :: state
+      type(scalar_field), pointer :: compressible_continuity, density, olddensity, vfrac
+      type(scalar_field) :: drhodt, temp_vfrac
+
+      ! Local variables
+      type(vector_field), pointer :: u, x
+      integer :: i, stat
+
+      type(csr_sparsity) :: divergence_sparsity
+      type(block_csr_matrix) :: ct_m
+
+      type(csr_sparsity) :: mass_sparsity
+      type(csr_matrix) :: mass
+      type(scalar_field) :: ctfield, ct_rhs, temp
+      
+      real :: dt
+
+      ewrite(1,*) 'Entering calculate_compressible_continuity'
+
+      ! Allocate memory for matrices and sparsity patterns
+      call allocate(ctfield, compressible_continuity%mesh, name="CTField")
+      call zero(ctfield)
+      call allocate(temp, compressible_continuity%mesh, name="Temp")
+      
+      mass_sparsity=make_sparsity(compressible_continuity%mesh, compressible_continuity%mesh, "MassSparsity")
+      call allocate(mass, mass_sparsity, name="MassMatrix")
+      call zero(mass)
+      
+      call get_option("/timestepping/timestep", dt)
+      
+      ! Sum up over the div's
+      do i = 1, size(state)
+         u => extract_vector_field(state(i), "Velocity", stat)
+
+         ! If there's no velocity then cycle
+         if(stat/=0) cycle
+         ! If this is an aliased velocity then cycle
+         if(aliased(u)) cycle
+         ! If the velocity isn't prognostic then cycle
+         if(.not.have_option(trim(u%option_path)//"/prognostic")) cycle
+
+         ! If velocity field is prognostic, begin calculations below
+         x => extract_vector_field(state(i), "Coordinate")
+
+         ! Allocate sparsity patterns, C^T matrix and C^T RHS for current state
+         divergence_sparsity=make_sparsity(compressible_continuity%mesh, u%mesh, "DivergenceSparsity")
+         call allocate(ct_m, divergence_sparsity, (/1, u%dim/), name="DivergenceMatrix")
+         call allocate(ct_rhs, compressible_continuity%mesh, name="CTRHS")
+
+         ! Reassemble C^T matrix here
+         if(i==1) then ! Construct the mass matrix (just do this once)
+            call assemble_compressible_divergence_matrix_cg(ct_m, state, i, ct_rhs, div_mass=mass)
+         else
+            call assemble_compressible_divergence_matrix_cg(ct_m, state, i, ct_rhs)
+         end if   
+
+         if(have_option("/material_phase::"//trim(state(i)%name)//"/equation_of_state/compressible")) then
+            ! Get the time derivative term for the compressible phase's density, vfrac_c * d(rho_c)/dt
+
+            call allocate(drhodt, compressible_continuity%mesh, name="drhodt")
+
+            density => extract_scalar_field(state(i), "Density")
+            olddensity => extract_scalar_field(state(i), "OldDensity")
+
+            ! Assumes Density and OldDensity are on the same mesh as Pressure,
+            ! as it should be according to the manual.
+            call zero(drhodt)
+            call addto(drhodt, density)
+            call addto(drhodt, olddensity, -1.0)
+            call scale(drhodt, 1.0/dt)
+
+            ! Remap PhaseVolumeFraction field in case it is not on the same mesh as the Pressure field.
+            vfrac => extract_scalar_field(state(i), "PhaseVolumeFraction")
+            call allocate(temp_vfrac, compressible_continuity%mesh, "TempPhaseVolumeFraction")
+            call remap_field(vfrac, temp_vfrac)
+            call scale(drhodt, temp_vfrac)
+            call deallocate(temp_vfrac)
+
+            call addto(ctfield, drhodt)
+
+            call deallocate(drhodt)
+         end if
+      
+
+         ! Construct the linear system of equations
+         call zero(temp)
+         call mult(temp, ct_m, u)
+         call addto(temp, ct_rhs, -1.0)
+
+         ! Now add it to the sum
+         call addto(ctfield, temp)
+
+         call deallocate(ct_m)
+         call deallocate(ct_rhs)
+         call deallocate(divergence_sparsity)
+
+      end do
+
+      ! Solve for compressible_continuity
+      ! ( = \sum{div(vfrac*u)} for incompressible multiphase flows )            
+      call zero(compressible_continuity)
+      call petsc_solve(compressible_continuity, mass, ctfield)
+         
+      ! Deallocate memory
+      call deallocate(ctfield)
+      call deallocate(temp)
+      call deallocate(mass_sparsity)
+      call deallocate(mass)
+
+      ewrite(1,*) 'Exiting calculate_compressible_continuity'
+         
+  end subroutine calculate_compressible_continuity
+  
 end module diagnostic_fields_matrices
