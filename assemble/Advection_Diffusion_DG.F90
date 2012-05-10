@@ -1348,11 +1348,11 @@ contains
 
        ! Calculate the gradient in the direction of gravity
        ! TODO: Build on_sphere into ele_val_at_quad?
-       if (on_sphere) then
-          grav_at_quads = sphere_inward_normal_at_quad_ele(X, ele)
-       else
+       !if (on_sphere) then
+       !   grav_at_quads = sphere_inward_normal_at_quad_ele(X, ele)
+       !else
           grav_at_quads = ele_val_at_quad(gravity, ele)
-       end if
+       !end if
        ! Calculate element length parallel to the direction of mixing defined above
        enodes => ele_nodes(X, ele)
        do i = 1,size(enodes)
@@ -1370,22 +1370,31 @@ contains
        end do
        ! TODO: Calculate dr - per element?  or per Guass point?
        ! dimension in which gravity lies parallel to
-       if (on_sphere) then
-         mixing_diffusion_diag(mesh_dim(X),:) = mixing_diffusion_amplitude * dt&
-               &* gravity_magnitude * dr**2 * drho_dz(:)
-         mixing_diffusion=rotate_diagonal_to_sphere_gi(X, ele, mixing_diffusion_diag)
-       else
+       !if (on_sphere) then
+       !  mixing_diffusion_diag(mesh_dim(X),:) = mixing_diffusion_amplitude * dt&
+       !        &* gravity_magnitude * dr**2 * abs(drho_dz(:))
+       !  mixing_diffusion=rotate_diagonal_to_cartesian_gi(X, ele, mixing_diffusion_diag)
+       !else
          do i = 1, mesh_dim(X)
            mixing_diffusion(i,i,:) = mixing_diffusion_amplitude * dt&
                  &* gravity_magnitude * dr**2 * gravity_at_node(i) * drho_dz(:)
          end do
+       !end if
+       if (on_sphere) then
+         do i = 1, mesh_dim(X)
+           mixing_diffusion_diag(i,:) = mixing_diffusion(i,i,:)
+         end do
+         mixing_diffusion=rotate_diagonal_to_cartesian_gi(X, ele, mixing_diffusion_diag)
        end if
        
-       !ewrite(3,*) "mixing_density_values", buoyancysample
+       print *,'***'
        ewrite(3,*) "mixing_grad_rho", minval(grad_rho(:,:)), maxval(grad_rho(:,:))
        ewrite(3,*) "mixing_drho_dz", minval(drho_dz(:)), maxval(drho_dz(:))
        ewrite(3,*) "mixing_coeffs amp dt g dr", mixing_diffusion_amplitude, dt, gravity_magnitude, dr**2
-       ewrite(3,*) "mixing_diffusion", minval(mixing_diffusion(2,2,:)), maxval(mixing_diffusion(2,2,:))
+       if (on_sphere) then
+         ewrite(3,*) "mixing_diffusion_diag", minval(mixing_diffusion_diag), maxval(mixing_diffusion_diag)
+       end if
+       ewrite(3,*) "mixing_diffusion", minval(mixing_diffusion), maxval(mixing_diffusion)
 
        mixing_diffusion_rhs=shape_tensor_rhs(T%mesh%shape, mixing_diffusion, detwei_rho)
        t_mass=shape_shape(T%mesh%shape, T%mesh%shape, detwei_rho)
