@@ -6222,18 +6222,17 @@
 !!!!!!!!
 !!!!!!!!
 
-  SUBROUTINE SHAPE_one_ele2(&
+
+   SUBROUTINE SHAPE_one_ele2(&
          ndim, cv_ele_type, &
          cv_ngi, cv_nloc, u_nloc,  &
                                 ! Volume shape functions
          cvweight, cvfen, cvfenlx, cvfenly, cvfenlz, &
          ufen, ufenlx, ufenly, ufenlz, &
                                 ! Surface of each CV shape functions
-         scvngi,  &
-         scvfen, scvfenslx, scvfensly, scvfeweigh, &
-         scvfenlx, scvfenly, scvfenlz, &
-         sufen, sufenslx, sufensly, &
-         sufenlx, sufenly, sufenlz, &
+         sbcvngi,  &
+         sbcvfen, sbcvfenslx, sbcvfensly, sbcvfeweigh, &
+         sbufen, sbufenslx, sbufensly, &
                                 ! Surface element shape funcs
          nface, &
          cv_sloclist, u_sloclist, cv_snloc, u_snloc ) 
@@ -6246,12 +6245,10 @@
       real, dimension( cv_ngi ), intent( inout ) :: cvweight
       real, dimension( cv_nloc, cv_ngi ), intent( inout ) :: cvfen, cvfenlx, cvfenly, cvfenlz
       real, dimension( u_nloc, cv_ngi ), intent( inout ) :: ufen, ufenlx, ufenly, ufenlz
-      integer, intent( in ) :: scvngi
-      real, dimension( cv_nloc, scvngi ), intent( inout ) :: scvfen, scvfenslx, scvfensly
-      real, dimension( scvngi ), intent( inout ) :: scvfeweigh
-      real, dimension( cv_nloc, scvngi ), intent( inout ) :: scvfenlx, scvfenly, scvfenlz
-      real, dimension( u_nloc, scvngi ), intent( inout ) :: sufen, sufenslx, sufensly, sufenlx, &
-           sufenly, sufenlz
+      integer, intent( in ) :: sbcvngi
+      real, dimension( cv_nloc, sbcvngi ), intent( inout ) :: sbcvfen, sbcvfenslx, sbcvfensly
+      real, dimension( sbcvngi ), intent( inout ) :: sbcvfeweigh
+      real, dimension( u_nloc, sbcvngi ), intent( inout ) :: sbufen, sbufenslx, sbufensly
       integer, intent( in ) :: nface
       integer, intent( in ) :: cv_snloc, u_snloc
       integer, dimension( nface, cv_snloc ), intent( inout ) :: cv_sloclist
@@ -6262,6 +6259,9 @@
       integer :: MLOC,SMLOC,NWICEL
       logical :: LOWQUA,d3
 
+      print *,'just inside SHAPE_one_ele' 
+!      stop 7299
+
       LOWQUA=.false.
       MLOC=1
       SMLOC=1
@@ -6269,44 +6269,83 @@
       ALLOCATE(MLX(MLOC,CV_NGI))
       ALLOCATE(MLY(MLOC,CV_NGI))
       ALLOCATE(MLZ(MLOC,CV_NGI))
-      ALLOCATE(SM(SMLOC,scvngi))
-      ALLOCATE(SMLX(SMLOC,scvngi))
-      ALLOCATE(SMLY(SMLOC,scvngi))
+      ALLOCATE(SM(SMLOC,sbcvngi))
+      ALLOCATE(SMLX(SMLOC,sbcvngi))
+      ALLOCATE(SMLY(SMLOC,sbcvngi))
       d3=(ndim==3)
  
+! for pressure...
       Conditional_Dimensionality1: if( d3 ) then
-         nwicel = 3
-         if( cv_nloc == 10 ) then ! Quadratic hexs
+         nwicel = 2
+         if( cv_nloc == 8 ) then ! Linear hex
+            nwicel = 1
+         else if( cv_nloc == 27 ) then ! Quadratic hex
+            nwicel = 3
+         else if( cv_nloc == 4 ) then ! Linear tets
             nwicel = 4
+         else if( cv_nloc == 10 ) then ! Quadratic tets
+            nwicel = 5
          end if
       else
-         nwicel = 1
-         if ( cv_nloc == 6 ) then ! Quadratic quads
-            nwicel = 2
+         nwicel = 2
+         if( cv_nloc == 4 ) then ! Linear hex
+            nwicel = 1
+         else if( cv_nloc == 9 ) then ! Quadratic hex
+            nwicel = 3
+         else if ( cv_nloc == 3 ) then ! Linear tets
+            nwicel = 4
+         else if ( cv_nloc == 6 ) then ! Quadratic tets
+            nwicel = 5
          end if
       end if Conditional_Dimensionality1
             
 ! for pressure...
-           CALL SHAPE(LOWQUA,cv_NGI,cv_NLOC,MLOC, scvngi,cv_SNLOC,SMLOC,  &
+           CALL SHAPE(LOWQUA,cv_NGI,cv_NLOC,MLOC, sbcvngi,cv_SNLOC,SMLOC,  &
         M,MLX,MLY,MLZ,cvWEIGHT,cvfen, cvfenlx, cvfenly, cvfenlz ,         & 
-        scvfeweigh,scvfen, scvfenslx, scvfensly, SM,SMLX,SMLY,            &
+        sbcvfeweigh,sbcvfen, sbcvfenslx, sbcvfensly, SM,SMLX,SMLY,            &
         NWICEL,ndim==3)
+
+
 ! for velocity...
-           CALL SHAPE(LOWQUA,cv_NGI,u_NLOC,MLOC, scvngi,u_SNLOC,SMLOC,    &
+      Conditional_Dimensionality2: if( d3 ) then
+         nwicel = 2
+         if( u_nloc == 8 ) then ! Linear hex
+            nwicel = 1
+         else if( u_nloc == 27 ) then ! Quadratic hex
+            nwicel = 3
+         else if( u_nloc == 4 ) then ! Linear tets
+            nwicel = 4
+         else if( u_nloc == 10 ) then ! Quadratic tets
+            nwicel = 5
+         end if
+      else
+         nwicel = 2
+         if( u_nloc == 4 ) then ! Linear hex
+            nwicel = 1
+         else if( u_nloc == 9 ) then ! Quadratic hex
+            nwicel = 3
+         else if ( u_nloc == 3 ) then ! Linear tets
+            nwicel = 4
+         else if ( u_nloc == 6 ) then ! Quadratic tets
+            nwicel = 5
+         end if
+      end if Conditional_Dimensionality2
+! for velocity...
+           CALL SHAPE(LOWQUA,cv_NGI,u_NLOC,MLOC, sbcvngi,u_SNLOC,SMLOC,    &
         M,MLX,MLY,MLZ,cvWEIGHT,ufen, ufenlx, ufenly, ufenlz,              & 
-        scvfeweigh,sufen, sufenslx, sufensly, SM,SMLX,SMLY,               &
+        sbcvfeweigh,sbufen, sbufenslx, sbufensly, SM,SMLX,SMLY,               &
         NWICEL,ndim==3)
       ! Determine CV_SLOCLIST & U_SLOCLIST
-      CALL DETERMIN_SLOCLIST( CV_SLOCLIST, CV_NLOC, CV_SNLOC, SCVNGI, NFACE, &
+      CALL DETERMIN_SLOCLIST( CV_SLOCLIST, CV_NLOC, CV_SNLOC, NFACE, &
            NDIM, CV_ELE_TYPE )
       IF( U_SNLOC == 1 ) THEN
          U_SLOCLIST( 1, 1 ) = 1
          U_SLOCLIST( 2, 1 ) = U_NLOC
       ELSE
-         CALL DETERMIN_SLOCLIST( U_SLOCLIST, U_NLOC, U_SNLOC, SCVNGI, NFACE, &
+         CALL DETERMIN_SLOCLIST( U_SLOCLIST, U_NLOC, U_SNLOC, NFACE, &
               NDIM, CV_ELE_TYPE )
       ENDIF
-    END SUBROUTINE SHAPE_one_ele2
+      END SUBROUTINE SHAPE_one_ele2
 
 
 
@@ -6387,49 +6426,14 @@
         ENDIF
      ENDIF
      
-     IF(NWICEL.EQ.4) THEN
-        IF(D3) THEN
-           CALL TR3D(.FALSE.,NGI,NLOC,MLOC,  &
-                M,WEIGHT,N,NLX,NLY,NLZ,      &
-                SNGI,SNLOC,SWEIGH,SN,SNLX,SNLY)
-           IF(MLOC.EQ.NLOC) THEN
-              M = N
-              MLX = NLX
-              MLY = NLY
-              MLZ = NLZ
-           END IF
-        ELSE
-           ewrite(3, *) "just befor tr2d"
-           CALL TR2D(.FALSE.,NGI,NLOC,MLOC, &
-                M,WEIGHT,N,NLX,NLY, &
-                SNGI,SNLOC,SWEIGH,SN,SNLX )
-           ewrite(3, *) "just after tr2d"
-           IF(MLOC.EQ.NLOC) THEN
-              M = N
-              MLX = NLX
-              MLY = NLY
-           END IF
-        ENDIF
-     ENDIF
-     
-     IF(NWICEL.EQ.5) THEN
-        IF(D3) THEN
-           CALL TR3DQU(NGI,NLOC,MLOC,           &
+     IF((NWICEL.EQ.4).and.(NWICEL.EQ.5)) THEN 
+! works for linear or quadratic triangles or tets...
+           CALL TR2or3DQU(NGI,NLOC,MLOC,        &
                 M,MLX,MLY,MLZ,                  &
                 WEIGHT,N,NLX,NLY,NLZ,           &
                 SNGI,SNLOC,SWEIGH,SN,SNLX,SNLY, &
                 SMLOC,                          &
-                SM,SMLX,SMLY)
-        ELSE
-           ewrite(3, *) "just befor tr2d"
-           CALL TR2DQU(NGI,NLOC,MLOC,           &
-                M,MLX,MLY,                      &
-                WEIGHT,N,NLX,NLY,               &
-                SNGI,SNLOC,SWEIGH,SN,SNLX,      &
-                SMLOC,                          &
-                SM,SMLX)
-           ewrite(3, *) "just after tr2d"
-        ENDIF
+                SM,SMLX,SMLY,D3)
      ENDIF
      
      IF(NWICEL.GE.100) THEN
@@ -6474,8 +6478,8 @@
      DD3=.FALSE.
      CALL TRIQUAold(L1, L2, L3, L3, WEIGHT, DD3,NGI)
 !
-! Work out the shape functions anf there derivatives...
-      CALL SHATRIold(L1, L2, L3, L3, WEIGHT, DD3,&
+! Work out the shape functions and there derivatives...
+        CALL SHATRIold(L1, L2, L3, L3, WEIGHT, DD3,&
      &              NLOC,NGI,&
      &              N,NLX,NLY,NLY) 
         CALL SHATRIold(L1, L2, L3, L3, WEIGHT, DD3,&
@@ -6484,14 +6488,17 @@
 
 
       IF(SNGI.GT.0) THEN
-! IQADRA=4 corresponds to Gaussian quadrature.
-         IQADRA=4
+        print *,'for surfaces SNGI,SNLOC,smloc:',SNGI,SNLOC,smloc
+! IQADRA=1 corresponds to Gaussian quadrature.
+         IQADRA=1
 ! IPOLY=1 is for Lagrange polynomials.
          IPOLY=1
 
+          print *,'for sn:'
          CALL SPECTR(SNGI,SNLOC,0,&
      &   RUB,SWEIGH,SN,SNLX,SNLX,SNLX,.FALSE.,.FALSE., IPOLY,IQADRA)
 
+          print *,'for sm:'
          CALL SPECTR(SNGI,SMLOC,0,&
      &   RUB,SWEIGH,SM,SMLX,SMLX,SMLX,.FALSE.,.FALSE., IPOLY,IQADRA)
       ENDIF
@@ -6500,12 +6507,12 @@
      
 
 
-   SUBROUTINE TR3DQU(NGI,NLOC,MLOC,&
+   SUBROUTINE TR2or3DQU(NGI,NLOC,MLOC,&
      &     M,MLX,MLY,MLZ,&
      &     WEIGHT,N,NLX,NLY,NLZ,&
      &     SNGI,SNLOC,SWEIGH,SN,SNLX,SNLY,&
      &     SMLOC,&
-     &     SM,SMLX,SMLY)
+     &     SM,SMLX,SMLY,D3)
 !     This subroutine defines the shape functions M and N and their
 !     derivatives at the Gauss points for quadratic elements. 
 !     For 3-D FLOW. 
@@ -6516,17 +6523,19 @@
       REAL M(MLOC,NGI),MLX(MLOC,NGI),MLY(MLOC,NGI),MLZ(MLOC,NGI)
       REAL WEIGHT(NGI)
       REAL N(NLOC,NGI),NLX(NLOC,NGI),NLY(NLOC,NGI),NLZ(NLOC,NGI)
+      LOGICAL D3
 ! Local variables...
-      REAL RUB(50)
+      REAL RUB(500)
       LOGICAL DD3
       REAL L1(50),L2(50),L3(50),L4(50)
+      integer IQADRA,IPOLY
 ! NB LXP(I) AND LYP(I) ARE THE LOCAL X AND Y COORDS OF NODAL POINT I
         
       ewrite(3,*) 'HERE 1 MLOC,NLOC,NGI=',MLOC,NLOC,NGI
       ewrite(3,*) 'HERE 2'
 
-! Get the quadrature positions and weights for TETS...
-      DD3=.TRUE.
+! Get the quadrature positions and weights for TRIANGLES or TETS...
+      DD3=D3
       CALL TRIQUAold(L1, L2, L3, L4, WEIGHT, DD3,NGI)
 
 ! Work out the shape functions and there derivatives...
@@ -6539,23 +6548,36 @@
 
       IF(SNGI.GT.0) THEN
 
-          CALL TR2DQU(SNGI,SNLOC,0,&
-     &      RUB,RUB,RUB,&
-     &      SWEIGH,SN,SNLX,SNLY, &
-     &      0,0,RUB,RUB,RUB,&
-     &      0,&
-     &      RUB,RUB )
-!
-          CALL TR2DQU(SNGI,SMLOC,0,&
-     &      RUB,RUB,RUB,&
-     &      SWEIGH,SM,SMLX,SMLY, &
-     &      0,0,RUB,RUB,RUB,&
-     &      0,&
-     &      RUB,RUB )
+        IF(D3) THEN
+      DD3=.FALSE.
+      CALL TRIQUAold(L1, L2, L3, L4, SWEIGH, DD3,SNGI)
+
+! Work out the shape functions and there derivatives...
+      CALL SHATRIold(L1, L2, L3, L4, SWEIGH, DD3,&
+     &              SNLOC,SNGI,&
+     &              SN,SNLX,SNLY,RUB) 
+      CALL SHATRIold(L1, L2, L3, L4, SWEIGH, DD3,&
+     &              SMLOC,NGI,&
+     &              SM,SMLX,SMLY,RUB) 
+        ELSE
+        print *,'for surfaces SNGI,SNLOC,smloc:',SNGI,SNLOC,smloc
+! IQADRA=1 corresponds to Gaussian quadrature.
+         IQADRA=1
+! IPOLY=1 is for Lagrange polynomials.
+         IPOLY=1
+
+          print *,'for sn:'
+         CALL SPECTR(SNGI,SNLOC,0,&
+     &   RUB,SWEIGH,SN,SNLX,SNLX,SNLX,.FALSE.,.FALSE., IPOLY,IQADRA)
+
+          print *,'for sm:'
+         CALL SPECTR(SNGI,SMLOC,0,&
+     &   RUB,SWEIGH,SM,SMLX,SMLX,SMLX,.FALSE.,.FALSE., IPOLY,IQADRA)
+        ENDIF
 
       ENDIF
 
-   end subroutine tr3dqu
+   end subroutine tr2or3dqu
 
 
       
@@ -6582,7 +6604,7 @@
       print *, 'HERE 2'
 
       IF((NLOC.NE.3).OR.(NGI.NE.3)) THEN
-          print *,'PROBLEM IN TR2D'
+          print *,'PROBLEM IN TR2D NLOC,NGI:',NLOC,NGI
           stop 282
       ENDIF
 
@@ -7163,6 +7185,7 @@
 ! 7 8
 ! 5 6
        
+         print *,'inside SPECTR IPOLY,IQADRA', IPOLY,IQADRA
 !
          DIFF=.TRUE.
          NDIFF=.FALSE.
@@ -7173,7 +7196,9 @@
 !
 ! Find the roots of the quadrature points and nodes
 ! also get the weights. 
+       print *,'about to go into inside GTROOT IPOLY,IQADRA',IPOLY,IQADRA
         CALL GTROOT(IPOLY,IQADRA,WEIT,NODPOS,QUAPOS,NDGI,NDNOD)
+       print *,'outside GTROOT'
       do  IGR=1,NDGI! Was loop 101
       do  IGQ=1,NDGI! Was loop 101
       do  IGP=1,NDGI! Was loop 101
@@ -7225,7 +7250,9 @@
 !
 ! Find the roots of the quadrature points and nodes
 ! also get the weights. 
+       print *,'2about to go into inside GTROOT IPOLY,IQADRA',IPOLY,IQADRA
         CALL GTROOT(IPOLY,IQADRA,WEIT,NODPOS,QUAPOS,NDGI,NMDNOD)
+       print *,'2out of GTROOT'
       do  IGR=1,NDGI! Was loop 102
       do  IGQ=1,NDGI! Was loop 102
       do  IGP=1,NDGI! Was loop 102
@@ -7716,11 +7743,11 @@
       END FUNCTION LEGEND
 
 
-    SUBROUTINE DETERMIN_SLOCLIST( CV_SLOCLIST, CV_NLOC, CV_SNLOC, SCVNGI, NFACE,  &
+    SUBROUTINE DETERMIN_SLOCLIST( CV_SLOCLIST, CV_NLOC, CV_SNLOC, NFACE,  &
          ndim, cv_ele_type )
       ! determine CV_SLOCLIST
       IMPLICIT NONE
-      INTEGER, intent( in ) :: CV_NLOC, CV_SNLOC, SCVNGI, NFACE, ndim, cv_ele_type
+      INTEGER, intent( in ) :: CV_NLOC, CV_SNLOC, NFACE, ndim, cv_ele_type
       INTEGER, DIMENSION( NFACE, CV_SNLOC ), intent( inout ) :: CV_SLOCLIST
       ! Local variables
       INTEGER :: IFACE, quad_cv_siloc, quad_cv_iloc, NPOLY, IP, JP, KP

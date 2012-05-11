@@ -1701,19 +1701,13 @@
                  cvweight_short, cvfen_short, cvfenlx_short, cvfenly_short, cvfenlz_short, &
                  ufen2, ufenlx2, ufenly2, ufenlz2, &
                                 ! Surface of each CV shape functions
-                 scvngi,  &
-                 scvfen, scvfenslx, scvfensly, scvfeweigh, &
-                 scvfenlx, scvfenly, scvfenlz, &
-                 sufen, sufenslx, sufensly, &
-                 sufenlx, sufenly, sufenlz, &
+                 sbcvngi,  &
+                 sbcvfen, sbcvfenslx, sbcvfensly, sbcvfeweigh, &
+                 sbufen2, sbufenslx2, sbufensly2, &
                                 ! Surface element shape funcs
                  nface, &
                  cv_sloclist, u_sloclist2, cv_snloc, u_snloc2 )
             ewrite(3,*)'1 just out of SHAPE_one_ele'
-
-            sbufen2=sufen2
-            sbufenslx2=sufenslx2
-            sbufensly2=sufensly2
  
             if(sbcvngi/=scvngi) FLAbort("sbcvngi/=scvngi")
 
@@ -1771,11 +1765,9 @@
                  cvweight, cvfen, cvfenlx, cvfenly, cvfenlz, &
                  ufen, ufenlx, ufenly, ufenlz, &
                                 ! Surface of each CV shape functions
-                 scvngi,  &
-                 scvfen, scvfenslx, scvfensly, scvfeweigh, &
-                 scvfenlx, scvfenly, scvfenlz, &
-                 sufen, sufenslx, sufensly, &
-                 sufenlx, sufenly, sufenlz, &
+                 sbcvngi,  &
+                 sbcvfen, sbcvfenslx, sbcvfensly, sbcvfeweigh, &
+                 sbufen, sbufenslx, sbufensly, &
                                 ! Surface element shape funcs
                  nface, &
                  cv_sloclist, u_sloclist, cv_snloc, u_snloc ) 
@@ -2083,13 +2075,13 @@
        ewrite(3,*)'SUFEN:',SUFEN
 
       ! Determine CV_SLOCLIST & U_SLOCLIST
-      CALL DETERMIN_SLOCLIST( CV_SLOCLIST, CV_NLOC, CV_SNLOC, SCVNGI, NFACE, &
+      CALL DETERMIN_SLOCLIST( CV_SLOCLIST, CV_NLOC, CV_SNLOC, NFACE, &
            NDIM, CV_ELE_TYPE )
       IF( U_SNLOC == 1 ) THEN
          U_SLOCLIST( 1, 1 ) = 1
          U_SLOCLIST( 2, 1 ) = U_NLOC
       ELSE
-         CALL DETERMIN_SLOCLIST( U_SLOCLIST, U_NLOC, U_SNLOC, SCVNGI, NFACE, &
+         CALL DETERMIN_SLOCLIST( U_SLOCLIST, U_NLOC, U_SNLOC, NFACE, &
               NDIM, CV_ELE_TYPE )
       ENDIF
       ewrite(3,*)'CV_SNLOC, U_SNLOC, SCVNGI:', CV_SNLOC, U_SNLOC, SCVNGI

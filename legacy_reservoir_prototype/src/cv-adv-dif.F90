@@ -255,6 +255,7 @@
       ! Local variables 
       LOGICAL, PARAMETER :: INCLUDE_PORE_VOL_IN_DERIV = .FALSE.
       LOGICAL, PARAMETER :: LIMIT_USE_2ND = .FALSE. ! Limiter uses 2nd largest and smallest values.
+!      LOGICAL, PARAMETER :: LIMIT_USE_2ND = .true. ! Limiter uses 2nd largest and smallest values.
       INTEGER, PARAMETER :: WIC_T_BC_DIRICHLET = 1, WIC_T_BC_ROBIN = 2, &
            WIC_T_BC_DIRI_ADV_AND_ROBIN = 3, WIC_D_BC_DIRICHLET = 1, &
            WIC_U_BC_DIRICHLET = 1
@@ -5853,14 +5854,17 @@
 
          DO IPHASE = 1,NPHASE
              CV_NODI_IPHA = CV_NODI + ( IPHASE - 1 ) * CV_NONODS
+!             print *,'CV_NODI, IPHASE, CV_NODI_IPHA=',CV_NODI, IPHASE, CV_NODI_IPHA
              TMAX_2ND_MC(CV_NODI_IPHA)  =-1.E+10
              TMIN_2ND_MC( CV_NODI_IPHA )=+1.E+10
              TOLDMAX_2ND_MC( CV_NODI_IPHA )=-1.E+10
              TOLDMIN_2ND_MC( CV_NODI_IPHA )=+1.E+10
+            if(IGOT_T2==1) then
              T2MAX_2ND_MC( CV_NODI_IPHA )=-1.E+10
              T2MIN_2ND_MC( CV_NODI_IPHA )=+1.E+10
              T2OLDMAX_2ND_MC( CV_NODI_IPHA )=-1.E+10
              T2OLDMIN_2ND_MC( CV_NODI_IPHA )=+1.E+10
+            endif
              DENMAX_2ND_MC( CV_NODI_IPHA )=-1.E+10
              DENMIN_2ND_MC( CV_NODI_IPHA )=+1.E+10
              DENOLDMAX_2ND_MC( CV_NODI_IPHA )=-1.E+10
