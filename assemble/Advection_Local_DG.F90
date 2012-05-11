@@ -53,6 +53,7 @@ module advection_local_DG
   use sparsity_patterns_meshes
   use Vector_Tools
   use manifold_tools
+  use bubble_tools
   use diagnostic_fields, only: calculate_diagnostic_variable
   use global_parameters, only : FIELD_NAME_LEN
 
@@ -62,7 +63,8 @@ module advection_local_DG
   character(len=255), private :: message
 
   private
-  public solve_advection_dg_subcycle, solve_vector_advection_dg_subcycle
+  public solve_advection_dg_subcycle, solve_vector_advection_dg_subcycle,&
+       & solve_advection_cg_tracer
 
   !parameters specifying vector upwind options
   integer, parameter :: VECTOR_UPWIND_EDGE=1, VECTOR_UPWIND_SPHERE=2
@@ -1018,6 +1020,7 @@ module advection_local_DG
     type(state_type), intent(inout) :: state
     type(scalar_field), intent(in) :: D,D_old
     type(scalar_field), intent(inout) :: T
+    type(vector_field), intent(in) :: Flux
     !
     type(csr_sparsity), pointer :: T_sparsity
     type(csr_matrix) :: Adv_mat, T_lumped_mass,T_lumped_mass_next
@@ -1056,13 +1059,16 @@ module advection_local_DG
 
     !Other fields and parameters we need
     X=>extract_vector_field(state, "Coordinate")
-    dt = get_option('/timestepping/timestep')
-    t_theta = get_option(option_path(T)//'/prognostic/timestepping/theta')
+    call get_option('/timestepping/timestep',dt)
+    call get_option(trim(T%option_path)//&
+         '/prognostic/timestepping/theta',t_theta)
 
     do ele = 1, ele_count(T)
        call construct_advection_cg_tracer_ele(T_rhs,adv_mat,T,D,D_old,Flux,&
             & X,dt,t_theta,ele,lump_mass)
     end do
+
+    call petsc_solve(T,adv_mat,T_rhs)
 
     !deallocate everything
     call deallocate(adv_mat)
@@ -1076,13 +1082,14 @@ module advection_local_DG
   end subroutine solve_advection_cg_tracer
   
   subroutine construct_advection_cg_tracer_ele(T_rhs,adv_mat,T,D,D_old,Flux,&
-       & X,dt,t_theta,ele)
+       & X,dt,t_theta,ele,lump_mass)
     type(scalar_field), intent(in) :: D,D_old,T
     type(scalar_field), intent(inout) :: T_rhs
     type(csr_matrix), intent(inout) :: Adv_mat
-    type(vector_field), intent(in) :: X
+    type(vector_field), intent(in) :: X, Flux
     integer, intent(in) :: ele
     real, intent(in) :: dt, t_theta
+    logical, intent(in) :: lump_mass
     !
     real, dimension(ele_loc(T,ele),ele_loc(T,ele)) :: l_adv_mat
     real, dimension(ele_loc(T,ele)) :: l_rhs
@@ -1111,7 +1118,7 @@ module advection_local_DG
 
     !Advection terms
     l_adv_mat = l_adv_mat - t_theta*dt*dshape_dot_vector_shape(&
-         T_shape%dn,Flux_gi,T_shape%quadrature%weight)
+         T_shape%dn,Flux_gi,T_shape,T_shape%quadrature%weight)
     l_rhs = l_rhs + dt*(1-t_theta)*dshape_dot_vector_rhs(&
          T_shape%dn,Flux_gi,T_shape%quadrature%weight)
 

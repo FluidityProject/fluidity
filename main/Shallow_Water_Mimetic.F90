@@ -225,14 +225,6 @@
          have_pv_tracer = .false.
       end if
       advecting_u=>extract_vector_field(state, "NonlinearVelocity")
-      call set(D_old,D)
-      if(have_option('/material_phase::Fluid/scalar_field::Vorticity/prog&
-           &nostic/vorticity_equation/lump_mass')) then
-         call project_to_p2b_lumped(state,D_old,&
-              old_D_projected,vorticity_mass_ptr)
-      else
-         call calculate_scalar_galerkin_projection(state, D_projected)
-      end if
 
       ! Vorticity calculation
       lump_mass = .false.
@@ -257,6 +249,17 @@
          call get_vorticity(state,vorticity,U)
          call calculate_scalar_galerkin_projection(state, D_projected)
       end if
+
+      if(have_option('/material_phase::Fluid/scalar_field::Vorticity/prog&
+           &nostic/vorticity_equation/lump_mass')) then
+         call project_to_p2b_lumped(state,D,&
+              D_projected,vorticity_mass_ptr)
+      else
+         call calculate_scalar_galerkin_projection(state, D_projected)
+      end if
+      call set(D_old,D)
+      call set(Old_D_projected,D_projected)
+
       !PV calculation
       call get_PV(vorticity,D_projected,Coriolis,PV)
 

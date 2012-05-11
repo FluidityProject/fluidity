@@ -97,7 +97,7 @@
             <integer_value shape="1" rank="1">2</integer_value>
           </aliased_boundary_ids>
           <coordinate_map>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
 	result = list(X)
 	result[0]=result[0]-1.0
 	return result</string_value>
@@ -111,7 +111,7 @@
             <integer_value shape="1" rank="1">4</integer_value>
           </aliased_boundary_ids>
           <coordinate_map>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
 	result = list(X)
 	result[1]=result[1]-1.0
 	return result</string_value>
@@ -184,7 +184,7 @@
       </vector_field>
     </gravity>
     <coriolis>
-      <string_value lines="20" type="python">def val(X,t):
+      <string_value lines="20" type="code" language="python">def val(X,t):
   return 1.4574e-4</string_value>
       <comment>Was 1.4584e-4 for f-sphere.</comment>
     </coriolis>
@@ -231,7 +231,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
   from math import sin, pi, cos
   x = X[0]
   y = X[1]
@@ -298,7 +298,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
   from math import sin, pi, cos
   x = X[0]
   y = X[1]

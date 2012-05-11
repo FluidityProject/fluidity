@@ -119,10 +119,10 @@ Advection_Diffusion_FV.o ../include/advection_diffusion_fv.mod: \
 	@true
 
 Advection_Local_DG.o ../include/advection_local_dg.mod: Advection_Local_DG.F90 \
-   ../include/coordinates.mod ../include/dgtools.mod \
-   ../include/diagnostic_fields.mod ../include/elements.mod \
-   ../include/fdebug.h ../include/fefields.mod ../include/fetools.mod \
-   ../include/fields.mod ../include/fldebug.mod \
+   ../include/bubble_tools.mod ../include/coordinates.mod \
+   ../include/dgtools.mod ../include/diagnostic_fields.mod \
+   ../include/elements.mod ../include/fdebug.h ../include/fefields.mod \
+   ../include/fetools.mod ../include/fields.mod ../include/fldebug.mod \
    ../include/global_numbering.mod ../include/global_parameters.mod \
    ../include/manifold_tools.mod ../include/petsc_solve_state_module.mod \
    ../include/shape_functions.mod ../include/slope_limiters_dg.mod \
@@ -160,7 +160,7 @@ Biology.o ../include/biology.mod: Biology.F90 \
 Bubble_tools.o ../include/bubble_tools.mod: Bubble_tools.F90 \
    ../include/element_numbering.mod ../include/fdebug.h ../include/fields.mod \
    ../include/fldebug_parameters.mod ../include/ieee_arithmetic.mod \
-   ../include/sparse_matrices_fields.mod \
+   ../include/solvers.mod ../include/sparse_matrices_fields.mod \
    ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
    ../include/state_module.mod ../include/vector_tools.mod
 

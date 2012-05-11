@@ -143,29 +143,29 @@
       real :: wv = 1.0/20., we = 2.0/15., wg = 9./20.
       real :: Area
       integer :: node, node2
-      real, dimension(6) :: node_weights
+      real, dimension(7) :: node_weights
       real, dimension(7) :: weight_vals
       call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J, detwei)
       Area = sum(detwei)
 
       l_mass_mat = 0.0
-      node_weights = (/wv,we,wv,we,we,wv/)
+      node_weights = (/wv,we,wv,we,we,wv,wg/)
       if(present(weight_field)) then
          assert(ele_loc(weight_field,ele)==7)
-         weight_vals = ele_vals(weight_field,ele)
+         weight_vals = ele_val(weight_field,ele)
          node_weights = node_weights*weight_vals
       end if
       do node = 1, 6
          l_mass_mat(node,node) = node_weights(node)
          do node2 = 1, 6
-            l_mass_mat(node,node2) = l_mass_mat(node,node2)+wg*N_vals(node)*N_vals(node2)
+            l_mass_mat(node,node2) = l_mass_mat(node,node2)+node_weights(7)*N_vals(node)*N_vals(node2)
          end do
       end do
       do node = 1, 6
-         l_mass_mat(node,7) = wg*N_vals(node)*N_vals(7)
-         l_mass_mat(7,node) = wg*N_vals(node)*N_vals(7)
+         l_mass_mat(node,7) = node_weights(7)*N_vals(node)*N_vals(7)
+         l_mass_mat(7,node) = node_weights(7)*N_vals(node)*N_vals(7)
       end do
-      l_mass_mat(7,7) = wg*N_vals(7)**2
+      l_mass_mat(7,7) = node_weights(7)*N_vals(7)**2
       L_mass_mat = L_mass_mat*Area
 
       call addto(mass,ele_nodes(p2b_field,ele),ele_nodes(p2b_field,ele),l_mass_mat)
