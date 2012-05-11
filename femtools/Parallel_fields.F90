@@ -46,8 +46,9 @@ module parallel_fields
 
   private
 
-  public :: halo_communicator, element_owned, element_owner, node_owned, assemble_ele, &
-    & surface_element_owned, nowned_nodes
+  public :: halo_communicator, element_owned, element_neighbour_owned, &
+       & element_owner, node_owned, assemble_ele, &
+       & surface_element_owned, nowned_nodes
   ! Apparently ifort has a problem with the generic name node_owned
   public :: node_owned_mesh, zero_non_owned
   
@@ -60,6 +61,12 @@ module parallel_fields
     module procedure element_owned_mesh, element_owned_scalar, &
       & element_owned_vector, element_owned_tensor
   end interface element_owned
+
+  interface element_neighbour_owned
+     module procedure element_neighbour_owned_mesh, &
+          & element_neighbour_owned_scalar, element_neighbour_owned_vector, &
+          & element_neighbour_owned_tensor
+  end interface element_neighbour_owned
 
   interface element_owner
     module procedure element_owner_mesh, element_owner_scalar, &
@@ -272,6 +279,72 @@ contains
     owned = element_owned(t_field%mesh, element_number)
 
   end function element_owned_tensor
+
+  function element_neighbour_owned_mesh(mesh, element_number) result(owned)
+    !!< Return .true. if ELEMENT_NUMBER has a neighbour in MESH that
+    !!< is owned by this process otherwise .false.
+
+    !! Effectively, this computes whether ELEMENT_NUMBER is in the L1
+    !! halo.
+    type(mesh_type), intent(in) :: mesh
+    integer, intent(in) :: element_number
+    logical :: owned
+    integer, dimension(:), pointer :: neighbours
+    integer :: i, n_neigh
+
+    neighbours => ele_neigh(mesh, element_number)
+    n_neigh = size(neighbours)
+    owned = .false.
+    do i = 1, n_neigh
+       ! If element_number is in the halo, then some of the neighbour
+       ! data might not be available, in which case neighbours(i) can
+       ! be invalid (missing data are marked by negative values).
+       if ( neighbours(i) <= 0 ) cycle
+       if ( element_owned(mesh, neighbours(i)) ) then
+          owned = .true.
+          return
+       end if
+    end do
+  end function element_neighbour_owned_mesh
+
+  function element_neighbour_owned_scalar(field, element_number) result(owned)
+    !!< Return .true. if ELEMENT_NUMBER has a neighbour in FIELD that
+    !!< is owned by this process otherwise .false.
+
+    !! Effectively, this computes whether ELEMENT_NUMBER is in the L1
+    !! halo.
+    type(scalar_field), intent(in) :: field
+    integer, intent(in) :: element_number
+    logical :: owned
+
+    owned = element_neighbour_owned(field%mesh, element_number)
+  end function element_neighbour_owned_scalar
+
+  function element_neighbour_owned_vector(field, element_number) result(owned)
+    !!< Return .true. if ELEMENT_NUMBER has a neighbour in FIELD that
+    !!< is owned by this process otherwise .false.
+
+    !! Effectively, this computes whether ELEMENT_NUMBER is in the L1
+    !! halo.
+    type(vector_field), intent(in) :: field
+    integer, intent(in) :: element_number
+    logical :: owned
+
+    owned = element_neighbour_owned(field%mesh, element_number)
+  end function element_neighbour_owned_vector
+
+  function element_neighbour_owned_tensor(field, element_number) result(owned)
+    !!< Return .true. if ELEMENT_NUMBER has a neighbour in FIELD that
+    !!< is owned by this process otherwise .false.
+
+    !! Effectively, this computes whether ELEMENT_NUMBER is in the L1
+    !! halo.
+    type(tensor_field), intent(in) :: field
+    integer, intent(in) :: element_number
+    logical :: owned
+
+    owned = element_neighbour_owned(field%mesh, element_number)
+  end function element_neighbour_owned_tensor
 
   function element_owner_mesh(mesh, element_number) result(owner)
   !!< Return number of processor that owns the supplied element in the

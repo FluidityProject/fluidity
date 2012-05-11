@@ -150,9 +150,11 @@ Checkpoint.o ../include/checkpoint.mod: Checkpoint.F90 \
 	@true
 
 Colouring.o ../include/colouring.mod: Colouring.F90 \
-   ../include/data_structures.mod ../include/fdebug.h ../include/fields.mod \
+   ../include/data_structures.mod ../include/fdebug.h \
+   ../include/field_options.mod ../include/fields.mod \
    ../include/fields_base.mod ../include/fields_manipulation.mod \
-   ../include/sparse_tools.mod
+   ../include/global_parameters.mod ../include/sparse_tools.mod \
+   ../include/sparsity_patterns_meshes.mod ../include/state_module.mod
 
 ../include/conservative_interpolation_module.mod: Conservative_interpolation.o
 	@true
@@ -322,9 +324,9 @@ Element_set.o ../include/element_set.mod: Element_set.F90
 
 Elements.o ../include/elements.mod: Elements.F90 \
    ../include/element_numbering.mod ../include/fdebug.h ../include/fldebug.mod \
-   ../include/polynomials.mod ../include/quadrature.mod \
-   ../include/reference_counting.mod Reference_count_element_type.F90 \
-   Reference_count_interface_element_type.F90
+   ../include/parallel_tools.mod ../include/polynomials.mod \
+   ../include/quadrature.mod ../include/reference_counting.mod \
+   Reference_count_element_type.F90 Reference_count_interface_element_type.F90
 
 ../include/embed_python.mod: Embed_Python_Fortran.o
 	@true
@@ -431,10 +433,11 @@ Fields_Calculations.o ../include/fields_calculations.mod: \
 	@true
 
 Fields_Data_Types.o ../include/fields_data_types.mod: Fields_Data_Types.F90 \
-   ../include/fdebug.h ../include/global_parameters.mod \
-   ../include/halo_data_types.mod ../include/picker_data_types.mod \
-   ../include/reference_counting.mod ../include/shape_functions.mod \
-   ../include/sparse_tools.mod ../include/spud.mod
+   ../include/data_structures.mod ../include/fdebug.h \
+   ../include/global_parameters.mod ../include/halo_data_types.mod \
+   ../include/picker_data_types.mod ../include/reference_counting.mod \
+   ../include/shape_functions.mod ../include/sparse_tools.mod \
+   ../include/spud.mod
 
 ../include/fields_halos.mod: Fields_Halos.o
 	@true
@@ -844,9 +847,10 @@ Pickers_Base.o ../include/pickers_base.mod: Pickers_Base.F90 \
 Pickers_Deallocates.o ../include/pickers_deallocates.mod: \
    Pickers_Deallocates.F90 ../include/fdebug.h \
    ../include/fields_data_types.mod ../include/fldebug.mod \
-   ../include/global_parameters.mod ../include/picker_data_types.mod \
-   ../include/pickers_base.mod ../include/reference_counting.mod \
-   Reference_count_interface_picker_type.F90 Reference_count_picker_type.F90
+   ../include/global_parameters.mod ../include/parallel_tools.mod \
+   ../include/picker_data_types.mod ../include/pickers_base.mod \
+   ../include/reference_counting.mod Reference_count_interface_picker_type.F90 \
+   Reference_count_picker_type.F90
 
 ../include/pickers_inquire.mod: Pickers_Inquire.o
 	@true
@@ -887,8 +891,8 @@ Pseudo_Consistent_Interpolation.o \
 
 Quadrature.o ../include/quadrature.mod: Quadrature.F90 ../include/fdebug.h \
    ../include/fldebug.mod ../include/grundmann_moeller_quadrature.mod \
-   ../include/reference_counting.mod ../include/vector_tools.mod \
-   ../include/wandzura_quadrature.mod \
+   ../include/parallel_tools.mod ../include/reference_counting.mod \
+   ../include/vector_tools.mod ../include/wandzura_quadrature.mod \
    Reference_count_interface_quadrature_type.F90 \
    Reference_count_quadrature_type.F90
 
@@ -999,7 +1003,8 @@ Sparse_Tools.o ../include/sparse_tools.mod: Sparse_Tools.F90 \
    ../include/futils.mod ../include/global_parameters.mod \
    ../include/halo_data_types.mod ../include/halos_allocates.mod \
    ../include/ieee_arithmetic.mod ../include/memory_diagnostics.mod \
-   ../include/reference_counting.mod Reference_count_block_csr_matrix.F90 \
+   ../include/parallel_tools.mod ../include/reference_counting.mod \
+   Reference_count_block_csr_matrix.F90 \
    Reference_count_block_dynamic_csr_matrix.F90 Reference_count_csr_matrix.F90 \
    Reference_count_csr_sparsity.F90 Reference_count_dynamic_csr_matrix.F90 \
    Reference_count_interface_block_csr_matrix.F90 \
@@ -1146,8 +1151,8 @@ Timers.o ../include/timers.mod: Timers.F90 ../include/fdebug.h \
 Transform_elements.o ../include/transform_elements.mod: Transform_elements.F90 \
    ../include/cv_faces.mod ../include/elements.mod ../include/eventcounter.mod \
    ../include/fdebug.h ../include/fields_base.mod \
-   ../include/memory_diagnostics.mod ../include/quadrature.mod \
-   ../include/vector_tools.mod
+   ../include/memory_diagnostics.mod ../include/parallel_tools.mod \
+   ../include/quadrature.mod ../include/vector_tools.mod
 
 ../include/unify_meshes_module.mod: Unify_meshes.o
 	@true
