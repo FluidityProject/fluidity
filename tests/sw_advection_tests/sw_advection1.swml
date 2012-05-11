@@ -185,8 +185,7 @@
     </gravity>
     <coriolis>
       <string_value lines="20" type="python">def val(X,t):
-  return 1.4574e-4
-</string_value>
+  return 1.4574e-4</string_value>
       <comment>Was 1.4584e-4 for f-sphere.</comment>
     </coriolis>
   </physical_parameters>
@@ -365,6 +364,41 @@
     </scalar_field>
     <scalar_field name="PotentialVorticity" rank="0">
       <prognostic>
+        <mesh name="VorticityMesh"/>
+        <output/>
+        <stat/>
+      </prognostic>
+    </scalar_field>
+    <scalar_field name="PotentialVorticityTracer" rank="0">
+      <prognostic>
+        <initial_condition name="WholeMesh">
+          <constant>
+            <real_value rank="0">1.0</real_value>
+          </constant>
+        </initial_condition>
+        <timestepping>
+          <theta>
+            <real_value rank="0">0.5</real_value>
+          </theta>
+        </timestepping>
+        <solver>
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">40</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1.0e-7</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">1000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
         <mesh name="VorticityMesh"/>
         <output/>
         <stat/>

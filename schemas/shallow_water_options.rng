@@ -480,6 +480,38 @@ if isn't present as a field in state.</a:documentation>
           </optional>
           <optional>
             <element name="scalar_field">
+              <a:documentation>Tracer to test PV flux calculation
+Only used if wave equation is not solved</a:documentation>
+              <attribute name="rank">
+                <value>0</value>
+              </attribute>
+              <attribute name="name">
+                <value>PotentialVorticityTracer</value>
+              </attribute>
+              <element name="prognostic">
+                <element name="initial_condition">
+                  <attribute name="name">
+                    <value>WholeMesh</value>
+                  </attribute>
+                  <ref name="input_choice_initial_condition_real"/>
+                </element>
+                <element name="timestepping">
+                  <element name="theta">
+                    <ref name="real"/>
+                  </element>
+                </element>
+                <element name="solver">
+                  <a:documentation>Solver</a:documentation>
+                  <ref name="linear_solver_options_asym"/>
+                </element>
+                <ref name="vorticity_mesh_choice"/>
+                <ref name="prognostic_scalar_output_options"/>
+                <ref name="prognostic_scalar_stat_options"/>
+              </element>
+            </element>
+          </optional>
+          <optional>
+            <element name="scalar_field">
               <attribute name="rank">
                 <value>0</value>
               </attribute>

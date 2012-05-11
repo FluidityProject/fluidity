@@ -377,6 +377,30 @@ start =
                      prognostic_scalar_stat_options
                   }
                }?,
+               ## Tracer to test PV flux calculation
+               ## Only used if wave equation is not solved
+               element scalar_field {
+                  attribute rank { "0" },
+                  attribute name { "PotentialVorticityTracer" },
+                  element prognostic {
+                     element initial_condition {
+                        attribute name { "WholeMesh" },
+                        input_choice_initial_condition_real
+                     },
+                     element timestepping {
+                        element theta {
+                           real
+                        }
+                     },
+                     ## Solver
+                     element solver {
+                        linear_solver_options_asym
+                     },
+                     vorticity_mesh_choice,
+                     prognostic_scalar_output_options,
+                     prognostic_scalar_stat_options
+                  }
+               }?,
                element scalar_field {
                   attribute rank { "0" },
                   attribute name { "InitialLayerThickness" },

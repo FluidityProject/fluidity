@@ -1010,6 +1010,115 @@ module advection_local_DG
       end subroutine construct_upwindflux_interface
 
   end subroutine construct_adv_interface_dg  
+
+  subroutine solve_advection_cg_tracer(T,D,D_old,Flux,state)
+    !!< Solve the continuity equation for D*T with Flux
+    !!< d/dt (D*T) + div(Flux*T) = diffusion terms.
+    !!< Done on the vorticity mesh
+    type(state_type), intent(inout) :: state
+    type(scalar_field), intent(in) :: D,D_old
+    type(scalar_field), intent(inout) :: T
+    !
+    type(csr_sparsity), pointer :: T_sparsity
+    type(csr_matrix) :: Adv_mat, T_lumped_mass,T_lumped_mass_next
+    type(scalar_field) :: T_rhs
+    type(vector_field), pointer :: X
+    integer :: ele
+    real :: dt, t_theta
+    logical :: lump_mass
+
+    if(have_option('/material_phase::Fluid/scalar_field::Vorticity/prognosti&
+         &c/vorticity_equation/lump_mass')) then
+       lump_mass = .true.
+    else
+       lump_mass = .false.
+    end if
+
+    !set up matrix and rhs
+    T_sparsity => get_csr_sparsity_firstorder(state, T%mesh, T%mesh)
+    call allocate(adv_mat, T_sparsity) ! Add data space to the sparsity
+    ! pattern.
+    call zero(adv_mat)
+    call allocate(T_rhs,T%mesh,trim(T%name)//"RHS")
+
+    if(lump_mass) then
+       !set up lumped mass
+       call allocate(T_lumped_mass, T_sparsity)
+       call allocate(T_lumped_mass_next, T_sparsity)
+       call get_lumped_mass_p2b(state,T_lumped_mass,T,&
+            & weight_field = D_old)
+       call mult(T_rhs,T_lumped_mass,T)
+       call allocate(T_lumped_mass_next, T_sparsity)
+       call get_lumped_mass_p2b(state,T_lumped_mass,T,&
+            & weight_field = D)
+       call set(adv_mat,T_lumped_mass_next)
+    end if
+
+    !Other fields and parameters we need
+    X=>extract_vector_field(state, "Coordinate")
+    dt = get_option('/timestepping/timestep')
+    t_theta = get_option(option_path(T)//'/prognostic/timestepping/theta')
+
+    do ele = 1, ele_count(T)
+       call construct_advection_cg_tracer_ele(T_rhs,adv_mat,T,D,D_old,Flux,&
+            & X,dt,t_theta,ele,lump_mass)
+    end do
+
+    !deallocate everything
+    call deallocate(adv_mat)
+    call deallocate(T_rhs)
+    if(lump_mass) then
+       !set up lumped mass
+       call allocate(T_lumped_mass, T_sparsity)
+       call allocate(T_lumped_mass_next, T_sparsity)
+    end if
+
+  end subroutine solve_advection_cg_tracer
+  
+  subroutine construct_advection_cg_tracer_ele(T_rhs,adv_mat,T,D,D_old,Flux,&
+       & X,dt,t_theta,ele)
+    type(scalar_field), intent(in) :: D,D_old,T
+    type(scalar_field), intent(inout) :: T_rhs
+    type(csr_matrix), intent(inout) :: Adv_mat
+    type(vector_field), intent(in) :: X
+    integer, intent(in) :: ele
+    real, intent(in) :: dt, t_theta
+    !
+    real, dimension(ele_loc(T,ele),ele_loc(T,ele)) :: l_adv_mat
+    real, dimension(ele_loc(T,ele)) :: l_rhs
+    real, dimension(Flux%dim,ele_ngi(Flux,ele)) :: Flux_gi
+    real, dimension(ele_ngi(X,ele)) :: detwei, D_gi, T_gi, D_old_gi
+    real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+    type(element_type), pointer :: T_shape
+
+    T_shape => ele_shape(T,ele)
+    D_gi = ele_val_at_quad(D,ele)
+    D_old_gi = ele_val_at_quad(D_old,ele)
+    T_gi = ele_val_at_quad(T,ele)
+    Flux_gi = ele_val_at_quad(Flux,ele)
+
+    !Mass terms
+    if(.not.lump_mass) then
+    ! Get J and detJ
+       call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), detwei&
+            &=detwei, J=J)
+       l_adv_mat = shape_shape(T_shape,T_shape,D_gi*detwei)
+       l_rhs = shape_rhs(T_shape,T_gi*D_old_gi*detwei)
+    else
+       l_adv_mat = 0.
+       l_rhs = 0.
+    end if
+
+    !Advection terms
+    l_adv_mat = l_adv_mat - t_theta*dt*dshape_dot_vector_shape(&
+         T_shape%dn,Flux_gi,T_shape%quadrature%weight)
+    l_rhs = l_rhs + dt*(1-t_theta)*dshape_dot_vector_rhs(&
+         T_shape%dn,Flux_gi,T_shape%quadrature%weight)
+
+    !NEEDS UPDATING OF FLUX, PRODUCE RHS BY PROJECTING TO PRESSURE SPACE
+    !ELEMENTWISE (CAN DO IN LOCAL COORDINATES) CHECK?!?!?
+
+  end subroutine construct_advection_cg_tracer_ele
   
   subroutine solve_vector_advection_dg_subcycle(field_name, state, velocity_name)
     !!< Construct and solve the advection equation for the given

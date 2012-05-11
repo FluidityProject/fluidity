@@ -99,10 +99,11 @@
 
     !! This is special cased because of the special properties of the 
     !! p2b lumped mass (it is still 3rd order, and positive).
-    subroutine get_lumped_mass_p2b(state,mass,p2b_field)
+    subroutine get_lumped_mass_p2b(state,mass,p2b_field,weight_field)
       type(csr_matrix), intent(inout) :: mass
       type(state_type), intent(inout) :: state
       type(scalar_field), intent(in) :: p2b_field
+      type(scalar_field), intent(in), optional :: weight_field
       !
       integer :: ele
       type(vector_field), pointer :: X
@@ -122,16 +123,17 @@
       call zero(mass)
 
       do ele = 1, ele_count(X)
-         call get_lumped_mass_p2b_ele(mass,p2b_field,X,N_vals,ele)
+         call get_lumped_mass_p2b_ele(mass,p2b_field,X,N_vals,ele,weight_field)
       end do
 
     end subroutine get_lumped_mass_p2b
 
-    subroutine get_lumped_mass_p2b_ele(mass,p2b_field,X,N_vals,ele)
+    subroutine get_lumped_mass_p2b_ele(mass,p2b_field,X,N_vals,ele,weight_field)
       type(csr_matrix), intent(inout) :: mass
       type(scalar_field), intent(in) :: p2b_field
       type(vector_field), intent(in) :: X
       real, dimension(7), intent(in) :: N_vals
+      type(scalar_field), intent(in), optional :: weight_field
       integer, intent(in) :: ele
       !
       real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
@@ -142,11 +144,17 @@
       real :: Area
       integer :: node, node2
       real, dimension(6) :: node_weights
+      real, dimension(7) :: weight_vals
       call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J, detwei)
       Area = sum(detwei)
 
       l_mass_mat = 0.0
       node_weights = (/wv,we,wv,we,we,wv/)
+      if(present(weight_field)) then
+         assert(ele_loc(weight_field,ele)==7)
+         weight_vals = ele_vals(weight_field,ele)
+         node_weights = node_weights*weight_vals
+      end if
       do node = 1, 6
          l_mass_mat(node,node) = node_weights(node)
          do node2 = 1, 6

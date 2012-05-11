@@ -192,14 +192,16 @@
       !
       type(vector_field), pointer :: U, advecting_u
       type(scalar_field), pointer :: D_old, D, vorticity, &
-           & D_projected, Coriolis, PV
+           & D_projected, Old_D_projected, Coriolis, PV
       type(vector_field) :: newU, MassFlux
       type(scalar_field) :: newD
       type(csr_matrix), pointer :: Vorticity_Mass_ptr
       type(csr_matrix) :: Vorticity_Mass
       type(csr_sparsity), pointer :: Vorticity_Mass_sparsity
+      type(scalar_field), pointer :: PVtracer
 
-      integer :: nonlinear_iterations, nits
+      integer :: nonlinear_iterations, nits, stat
+      logical :: have_pv_tracer, lump_mass
 
       call get_option("/timestepping/nonlinear_iterations"&
            &,nonlinear_iterations)
@@ -210,12 +212,53 @@
       U => extract_vector_field(state, "LocalVelocity")
       D => extract_scalar_field(state, "LayerThickness")
       D_projected=>extract_scalar_field(state, "ProjectedLayerThickness")
-      D_old => extract_scalar_field(state, "OldLayerThickness")      
+      Old_D_projected=>extract_scalar_field(&
+           state, "OldProjectedLayerThickness")
+      D_old => extract_scalar_field(state, "OldLayerThickness")
       vorticity => extract_scalar_field(state, "Vorticity")
       Coriolis => extract_scalar_field(state, "Coriolis")
       PV => extract_scalar_field(state, "PotentialVorticity")
+      PVtracer => extract_scalar_field(state, "PotentialVorticityTracer",stat)
+      if(stat==0) then
+         have_pv_tracer = .true.
+      else
+         have_pv_tracer = .false.
+      end if
       advecting_u=>extract_vector_field(state, "NonlinearVelocity")
       call set(D_old,D)
+      if(have_option('/material_phase::Fluid/scalar_field::Vorticity/prog&
+           &nostic/vorticity_equation/lump_mass')) then
+         call project_to_p2b_lumped(state,D_old,&
+              old_D_projected,vorticity_mass_ptr)
+      else
+         call calculate_scalar_galerkin_projection(state, D_projected)
+      end if
+
+      ! Vorticity calculation
+      lump_mass = .false.
+      if(have_option('/material_phase::Fluid/scalar_field::Vorticity/prog&
+           &nostic/vorticity_equation/lump_mass')) then
+         lump_mass =.true.
+         vorticity_mass_ptr=>extract_csr_matrix(&
+              state, "LumpedVorticityMassMatrix", stat)
+         if(stat.ne.0) then
+            Vorticity_mass_sparsity=>&
+                 get_csr_sparsity_firstorder(state, vorticity%mesh,&
+                 & vorticity%mesh)
+            call allocate(Vorticity_mass,Vorticity_mass_sparsity)
+            call get_lumped_mass_p2b(state,vorticity_mass,vorticity)
+            call insert(state,vorticity_mass,"LumpedVorticityMassMatrix")
+            call deallocate(vorticity_mass)
+            vorticity_mass_ptr=>extract_csr_matrix(&
+                 state, "LumpedVorticityMassMatrix")
+         end if
+         call get_vorticity(state,vorticity,U,vorticity_mass_ptr)
+      else
+         call get_vorticity(state,vorticity,U)
+         call calculate_scalar_galerkin_projection(state, D_projected)
+      end if
+      !PV calculation
+      call get_PV(vorticity,D_projected,Coriolis,PV)
 
       if(have_option('/material_phase::Fluid/vector_field::Velocity/&
            &prognostic/spatial_discretisation/discontinuous_galerkin/wave&
@@ -225,30 +268,17 @@
          call allocate(MassFlux,mesh_dim(U),u%mesh,'MassFlux')
          call solve_advection_dg_subcycle("LayerThickness", state, &
               "NonlinearVelocity",continuity=.true.,Flux=MassFlux)
-         ! This is where the PV advection goes
-         call deallocate(MassFlux)
-
-         if(have_option('/material_phase::Fluid/scalar_field::Vorticity/prog&
-              &nostic/vorticity_equation/lump_mass')) then
-            vorticity_mass_ptr=>extract_csr_matrix(&
-                 state, "LumpedVorticityMassMatrix", stat)
-            if(stat.ne.0) then
-               Vorticity_mass_sparsity=>&
-                    get_csr_sparsity_firstorder(state, vorticity%mesh, vorticity%mesh)
-               call allocate(Vorticity_mass,Vorticity_mass_sparsity)
-               call get_lumped_mass_p2b(state,vorticity_mass,vorticity)
-               call insert(state,vorticity_mass,"LumpedVorticityMassMatrix")
-               call deallocate(vorticity_mass)
-               vorticity_mass_ptr=>extract_csr_matrix(&
-                    state, "LumpedVorticityMassMatrix")
-            end if
-            call get_vorticity(state,vorticity,U,vorticity_mass_ptr)
-            call project_to_p2b_lumped(state,D,D_projected,vorticity_mass_ptr)
+         if(lump_mass) then
+            call project_to_p2b_lumped(state,D,D_projected&
+                 &,vorticity_mass_ptr)
          else
-            call get_vorticity(state,vorticity,U)
-            call calculate_scalar_galerkin_projection(state, D_projected)
+            FLAbort('No code here for consistent mass')
          end if
-         call get_PV(vorticity,D_projected,Coriolis,PV)
+         if(have_pv_tracer) then
+            call solve_advection_cg_tracer(PVtracer,D_projected,&
+                 old_d_projected,MassFlux,state)
+         end if
+         call deallocate(MassFlux)
       else
          call allocate(newU,U%dim,U%mesh,"NewLocalVelocity")
          call allocate(newD,D%mesh,"NewLayerThickness")
@@ -272,11 +302,12 @@
     subroutine setup_fields(state)
       type(state_type), intent(inout) :: state
       type(vector_field), pointer :: v_field,U,X
-      type(scalar_field), pointer :: s_field,D,f_ptr
+      type(scalar_field), pointer :: s_field,D,f_ptr, D_projected
       type(mesh_type), pointer :: v_mesh
       type(vector_field) :: U_local, advecting_u
       character(len=PYTHON_FUNC_LEN) :: coriolis
       type(scalar_field) :: f, old_D
+      integer :: stat
 
       X=>extract_vector_field(state, "Coordinate")
       U=>extract_vector_field(state, "Velocity")
@@ -303,6 +334,17 @@
       call zero(old_d)
       call insert(state, old_d, "OldLayerThickness")
       call deallocate(old_d)
+
+      !Old projected layer thickness (used for CG advection)
+      D_projected => extract_scalar_field(&
+           state, "ProjectedLayerThickness",stat)
+      if(stat==0) then
+         call allocate(old_d, D_projected%mesh,&
+              "OldProjectedLayerThickness")
+         call zero(old_d)
+         call insert(state, old_d, "OldProjectedLayerThickness")
+         call deallocate(old_d)
+      end if
       
       !SET UP CORIOLIS FORCE
       f_ptr => extract_scalar_field(state,"Coriolis",stat=stat)
