@@ -1,14 +1,14 @@
 <?xml version='1.0' encoding='utf-8'?>
 <multiphase_options>
   <simulation_name>
-    <string_value lines="1">BL_3d</string_value>
+    <string_value lines="1">BL_test_10elements_2d</string_value>
   </simulation_name>
   <geometry>
     <dimension>
-      <integer_value rank="0">3</integer_value>
+      <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_file file_name="3d_mesh">
+      <from_file file_name="2d_mesh">
         <format name="triangle"/>
         <stat>
           <include_in_stat/>
@@ -23,7 +23,7 @@
             <integer_value rank="0">1</integer_value>
           </polynomial_degree>
           <element_type>
-            <string_value>overlapping</string_value>
+            <string_value>lagrangian</string_value>
           </element_type>
         </mesh_shape>
         <mesh_continuity>
@@ -39,7 +39,7 @@
         <mesh name="CoordinateMesh"/>
         <mesh_shape>
           <polynomial_degree>
-            <integer_value rank="0">1</integer_value>
+            <integer_value rank="0">2</integer_value>
           </polynomial_degree>
         </mesh_shape>
         <mesh_continuity>
@@ -87,7 +87,7 @@
         <mesh name="CoordinateMesh"/>
         <mesh_shape>
           <polynomial_degree>
-            <integer_value rank="0">1</integer_value>
+            <integer_value rank="0">2</integer_value>
           </polynomial_degree>
         </mesh_shape>
         <mesh_continuity>
@@ -118,7 +118,7 @@
   </io>
   <timestepping>
     <current_time>
-      <real_value rank="0">0</real_value>
+      <real_value rank="0">0.</real_value>
     </current_time>
     <timestep>
       <real_value rank="0">0.001</real_value>
@@ -132,7 +132,7 @@
   </timestepping>
   <physical_parameters>
     <mobility>
-      <real_value rank="0">10</real_value>
+      <real_value rank="0">10.</real_value>
     </mobility>
   </physical_parameters>
   <material_phase name="phase1">
@@ -140,7 +140,7 @@
       <incompressible>
         <linear>
           <all_equal>
-            <real_value rank="0">1</real_value>
+            <real_value rank="0">1.</real_value>
           </all_equal>
         </linear>
       </incompressible>
@@ -163,19 +163,15 @@
               <integer_value rank="0">30</integer_value>
             </restart>
           </iterative_method>
-          <preconditioner name="jacobi"/>
+          <preconditioner name="sor"/>
           <relative_error>
-            <real_value rank="0">1.e-7</real_value>
+            <real_value rank="0">1.0e-7</real_value>
           </relative_error>
-          <absolute_error>
-            <real_value rank="0">1.e-15</real_value>
-          </absolute_error>
           <max_iterations>
-            <integer_value rank="0">1500</integer_value>
+            <integer_value rank="0">500</integer_value>
           </max_iterations>
           <never_ignore_solver_failures/>
           <diagnostics>
-            <print_norms/>
             <monitors/>
           </diagnostics>
         </solver>
@@ -184,9 +180,9 @@
             <real_value rank="0">0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions name="outflow">
+        <boundary_conditions name="ouflow">
           <surface_ids>
-            <integer_value shape="1" rank="1">4</integer_value>
+            <integer_value shape="1" rank="1">7</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <constant>
@@ -216,7 +212,7 @@
             <face_value name="FirstOrderUpwind"/>
           </control_volumes>
           <conservative_advection>
-            <real_value rank="0">0</real_value>
+            <real_value rank="0">0.</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
@@ -226,7 +222,7 @@
         </temporal_discretisation>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value rank="0">1</real_value>
+            <real_value rank="0">1.0</real_value>
           </constant>
         </initial_condition>
         <output/>
@@ -261,15 +257,15 @@
             </advection_scheme>
           </discontinuous_galerkin>
           <conservative_advection>
-            <real_value rank="0">1</real_value>
+            <real_value rank="0">1.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>
-            <real_value rank="0">1</real_value>
+            <real_value rank="0">1.0</real_value>
           </theta>
           <relaxation>
-            <real_value rank="0">1</real_value>
+            <real_value rank="0">1.0</real_value>
           </relaxation>
         </temporal_discretisation>
         <solver>
@@ -280,7 +276,7 @@
           </iterative_method>
           <preconditioner name="sor"/>
           <relative_error>
-            <real_value rank="0">1.e-7</real_value>
+            <real_value rank="0">1.0e-7</real_value>
           </relative_error>
           <max_iterations>
             <integer_value rank="0">500</integer_value>
@@ -292,12 +288,12 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="3" dim1="dim" rank="1">0 0 0</real_value>
+            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="inflow">
           <surface_ids>
-            <integer_value shape="1" rank="1">1</integer_value>
+            <integer_value shape="1" rank="1">6</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -311,17 +307,12 @@
                   <real_value rank="0">0</real_value>
                 </constant>
               </y_component>
-              <z_component>
-                <constant>
-                  <real_value rank="0">0</real_value>
-                </constant>
-              </z_component>
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
         <boundary_conditions name="sides">
           <surface_ids>
-            <integer_value shape="1" rank="1">2</integer_value>
+            <integer_value shape="1" rank="1">8</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -335,35 +326,6 @@
                   <real_value rank="0">0</real_value>
                 </constant>
               </y_component>
-              <z_component>
-                <constant>
-                  <real_value rank="0">0</real_value>
-                </constant>
-              </z_component>
-            </align_bc_with_cartesian>
-          </type>
-        </boundary_conditions>
-        <boundary_conditions name="top_bottom">
-          <surface_ids>
-            <integer_value shape="1" rank="1">3</integer_value>
-          </surface_ids>
-          <type name="dirichlet">
-            <align_bc_with_cartesian>
-              <x_component>
-                <constant>
-                  <real_value rank="0">0</real_value>
-                </constant>
-              </x_component>
-              <y_component>
-                <constant>
-                  <real_value rank="0">0</real_value>
-                </constant>
-              </y_component>
-              <z_component>
-                <constant>
-                  <real_value rank="0">0</real_value>
-                </constant>
-              </z_component>
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
@@ -373,33 +335,13 @@
             <value name="WholeMesh">
               <isotropic>
                 <constant>
-                  <real_value rank="0">1</real_value>
+                  <real_value rank="0">1.0</real_value>
                 </constant>
               </isotropic>
             </value>
             <output/>
           </prescribed>
         </tensor_field>
-        <vector_field name="Absorption" rank="1">
-          <diagnostic>
-            <mesh name="PressureMesh"/>
-            <algorithm name="Internal" material_phase_support="multiple"/>
-            <output/>
-            <stat>
-              <include_in_stat/>
-            </stat>
-            <convergence>
-              <include_in_convergence/>
-            </convergence>
-            <detectors>
-              <include_in_detectors/>
-            </detectors>
-            <steady_state>
-              <include_in_steady_state/>
-            </steady_state>
-          </diagnostic>
-          <default_absorption/>
-        </vector_field>
         <output/>
         <stat>
           <include_in_stat/>
@@ -436,12 +378,12 @@
             <diffusion_scheme name="ElementGradient"/>
           </control_volumes>
           <conservative_advection>
-            <real_value rank="0">1</real_value>
+            <real_value rank="0">1.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>
-            <real_value rank="0">1</real_value>
+            <real_value rank="0">1.0</real_value>
           </theta>
           <control_volumes/>
         </temporal_discretisation>
@@ -453,7 +395,7 @@
           </iterative_method>
           <preconditioner name="sor"/>
           <relative_error>
-            <real_value rank="0">1.e-7</real_value>
+            <real_value rank="0">1.0e-7</real_value>
           </relative_error>
           <max_iterations>
             <integer_value rank="0">500</integer_value>
@@ -465,16 +407,16 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value rank="0">0</real_value>
+            <real_value rank="0">0.0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions name="inflow">
+        <boundary_conditions name="inlet">
           <surface_ids>
-            <integer_value shape="1" rank="1">1</integer_value>
+            <integer_value shape="1" rank="1">6</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">1</real_value>
+              <real_value rank="0">1.0</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -501,7 +443,7 @@
           <iterative_method name="cg"/>
           <preconditioner name="sor"/>
           <relative_error>
-            <real_value rank="0">1.e-7</real_value>
+            <real_value rank="0">1.0e-7</real_value>
           </relative_error>
           <max_iterations>
             <integer_value rank="0">500</integer_value>
@@ -524,18 +466,13 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <multiphase_properties>
-      <relperm_type>
-        <Corey/>
-      </relperm_type>
-    </multiphase_properties>
   </material_phase>
   <material_phase name="phase2">
     <equation_of_state>
       <incompressible>
         <linear>
           <all_equal>
-            <real_value rank="0">1</real_value>
+            <real_value rank="0">1.0</real_value>
           </all_equal>
         </linear>
       </incompressible>
@@ -551,17 +488,17 @@
             <face_value name="FirstOrderUpwind"/>
           </control_volumes>
           <conservative_advection>
-            <real_value rank="0">0</real_value>
+            <real_value rank="0">0.</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>
-            <real_value rank="0">1</real_value>
+            <real_value rank="0">1.</real_value>
           </theta>
         </temporal_discretisation>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value rank="0">1</real_value>
+            <real_value rank="0">1.</real_value>
           </constant>
         </initial_condition>
         <output/>
@@ -584,7 +521,6 @@
         <equation name="LinearMomentum"/>
         <spatial_discretisation>
           <discontinuous_galerkin>
-            <mass_terms/>
             <viscosity_scheme>
               <compact_discontinuous_galerkin/>
             </viscosity_scheme>
@@ -596,15 +532,15 @@
             </advection_scheme>
           </discontinuous_galerkin>
           <conservative_advection>
-            <real_value rank="0">1</real_value>
+            <real_value rank="0">1.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>
-            <real_value rank="0">1</real_value>
+            <real_value rank="0">1.0</real_value>
           </theta>
           <relaxation>
-            <real_value rank="0">1</real_value>
+            <real_value rank="0">1.0</real_value>
           </relaxation>
         </temporal_discretisation>
         <solver>
@@ -615,7 +551,7 @@
           </iterative_method>
           <preconditioner name="sor"/>
           <relative_error>
-            <real_value rank="0">1.e-7</real_value>
+            <real_value rank="0">1.0e-7</real_value>
           </relative_error>
           <max_iterations>
             <integer_value rank="0">500</integer_value>
@@ -627,12 +563,12 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="3" dim1="dim" rank="1">0 0 0</real_value>
+            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions name="inflow">
+        <boundary_conditions name="zero_inflow">
           <surface_ids>
-            <integer_value shape="1" rank="1">1</integer_value>
+            <integer_value shape="1" rank="1">6</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -646,17 +582,12 @@
                   <real_value rank="0">0</real_value>
                 </constant>
               </y_component>
-              <z_component>
-                <constant>
-                  <real_value rank="0">0</real_value>
-                </constant>
-              </z_component>
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
         <boundary_conditions name="sides">
           <surface_ids>
-            <integer_value shape="1" rank="1">2</integer_value>
+            <integer_value shape="1" rank="1">8</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -670,35 +601,6 @@
                   <real_value rank="0">0</real_value>
                 </constant>
               </y_component>
-              <z_component>
-                <constant>
-                  <real_value rank="0">0</real_value>
-                </constant>
-              </z_component>
-            </align_bc_with_cartesian>
-          </type>
-        </boundary_conditions>
-        <boundary_conditions name="top_bottom">
-          <surface_ids>
-            <integer_value shape="1" rank="1">3</integer_value>
-          </surface_ids>
-          <type name="dirichlet">
-            <align_bc_with_cartesian>
-              <x_component>
-                <constant>
-                  <real_value rank="0">0</real_value>
-                </constant>
-              </x_component>
-              <y_component>
-                <constant>
-                  <real_value rank="0">0</real_value>
-                </constant>
-              </y_component>
-              <z_component>
-                <constant>
-                  <real_value rank="0">0</real_value>
-                </constant>
-              </z_component>
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
@@ -708,33 +610,13 @@
             <value name="WholeMesh">
               <isotropic>
                 <constant>
-                  <real_value rank="0">1</real_value>
+                  <real_value rank="0">1.0</real_value>
                 </constant>
               </isotropic>
             </value>
             <output/>
           </prescribed>
         </tensor_field>
-        <vector_field name="Absorption" rank="1">
-          <diagnostic>
-            <mesh name="PressureMesh"/>
-            <algorithm name="Internal" material_phase_support="multiple"/>
-            <output/>
-            <stat>
-              <include_in_stat/>
-            </stat>
-            <convergence>
-              <include_in_convergence/>
-            </convergence>
-            <detectors>
-              <include_in_detectors/>
-            </detectors>
-            <steady_state>
-              <include_in_steady_state/>
-            </steady_state>
-          </diagnostic>
-          <default_absorption/>
-        </vector_field>
         <output/>
         <stat>
           <include_in_stat/>
@@ -771,12 +653,12 @@
             <diffusion_scheme name="ElementGradient"/>
           </control_volumes>
           <conservative_advection>
-            <real_value rank="0">1</real_value>
+            <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>
-            <real_value rank="0">1</real_value>
+            <real_value rank="0">1.0</real_value>
           </theta>
           <control_volumes/>
         </temporal_discretisation>
@@ -788,7 +670,7 @@
           </iterative_method>
           <preconditioner name="sor"/>
           <relative_error>
-            <real_value rank="0">1.e-7</real_value>
+            <real_value rank="0">1.0e-7</real_value>
           </relative_error>
           <max_iterations>
             <integer_value rank="0">500</integer_value>
@@ -800,12 +682,12 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value rank="0">1</real_value>
+            <real_value rank="0">1.0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions name="inflow">
+        <boundary_conditions name="inlet">
           <surface_ids>
-            <integer_value shape="1" rank="1">1</integer_value>
+            <integer_value shape="1" rank="1">6</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <constant>
@@ -827,42 +709,5 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <multiphase_properties>
-      <relperm_type>
-        <Corey/>
-      </relperm_type>
-    </multiphase_properties>
   </material_phase>
-  <porous_media>
-    <scalar_field name="Porosity">
-      <prescribed>
-        <mesh name="P0DG"/>
-        <value name="WholeMesh">
-          <constant>
-            <real_value rank="0">0.5</real_value>
-          </constant>
-        </value>
-        <output/>
-        <stat/>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-      </prescribed>
-    </scalar_field>
-    <scalar_field name="Permeability">
-      <prescribed>
-        <mesh name="P0DG"/>
-        <value name="WholeMesh">
-          <constant>
-            <real_value rank="0">1</real_value>
-          </constant>
-        </value>
-        <output/>
-        <stat/>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-      </prescribed>
-    </scalar_field>
-  </porous_media>
 </multiphase_options>
