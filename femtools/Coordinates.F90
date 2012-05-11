@@ -49,7 +49,7 @@ module Coordinates
   
   public:: &
        LongitudeLatitude,  &
-       sphericalPolar_to_cartesian, cartesian_to_sphericalPolar, &
+       spherical_polar_2_cartesian, cartesian_2_spherical_polar, &
        ll2r3_rotate, rotate2ll, &
        earth_radius, higher_order_sphere_projection, &
        sphere_inward_normal_at_quad_ele, sphere_inward_normal_at_quad_face, &
@@ -61,6 +61,11 @@ module Coordinates
 
   interface LongitudeLatitude
      module procedure LongitudeLatitude_single, LongitudeLatitude_multiple
+  end interface
+
+  interface spherical_polar_2_cartesian
+     module procedure spherical_polar_2_cartesian, &
+                      spherical_polar_2_cartesian_field
   end interface
 
 contains
@@ -136,9 +141,8 @@ contains
 
   end subroutine rotate2ll
 
-  subroutine sphericalPolar_to_cartesian(radius,theta,phi,x,y,z,)
+  subroutine spherical_polar_2_cartesian(radius,theta,phi,x,y,z)
     !Subroutine for calculation of spherical-polar coordinates from cartesian coordinates.
-
     implicit none
 
     real, intent(in) :: radius  !Distance from centre of sphere
@@ -150,11 +154,10 @@ contains
     y = radius*sin(theta)*sin(phi)      
     z = radius*cos(theta)
     
-  end subroutine sphericalPolar_to_cartesian
+  end subroutine spherical_polar_2_cartesian
   
-  subroutine cartesian_to_sphericalPolar(x,y,z,radius,theta,phi)
+  subroutine cartesian_2_spherical_Polar(x,y,z,radius,theta,phi)
     !Subroutine for calculation of cartesian coordinates from spherical-polar coordinates.
-
     implicit none
 
     real, intent(in) :: x,y,z   !cartesian coordinates
@@ -164,10 +167,30 @@ contains
 
     radius = sqrt(x**2 + y**2 + z**2)
     theta = acos(z/radius)
-    phi = atan2(y/x)
+    phi = atan2(y,x)
 
-  end subroutine cartesian_to_sphericalPolar
+  end subroutine cartesian_2_spherical_polar
   
+  subroutine spherical_polar_2_cartesian_field(spherical_polar_coordinate_field, &
+                                               cartesian_coordinate_field)
+    !Subroutine for convertion of a spherical-polar coordinate field into a cartesian
+    ! coordinate field.
+    implicit none
+
+    type(vector_field) :: spherical_polar_coordinate_field
+    type(vector_field) :: cartesian_coordinate_field
+    integer :: node
+    real, dimension(3) :: X, RTP !arrays containing a signel node's position vector components
+                                 ! in certesian & spherical-polar bases 
+
+    do node=1,node_count(spherical_polar_coordinate_field)
+      RTP = node_val(spherical_polar_coordinate_field, node)
+      call spherical_polar_2_cartesian(RTP(1), RTP(2), RTP(3), X(1), X(2), X(3))
+      call set(cartesian_coordinate_field, node, X)
+    enddo
+
+  end subroutine spherical_polar_2_cartesian_field
+
   subroutine higher_order_sphere_projection(positions, s_positions)
     !!< Given a P1 'positions' field and a Pn 's_positions' field, bends the 
     !!< elements of the 's_positions' field onto the sphere
@@ -257,7 +280,7 @@ contains
 
     do i=1,ele_ngi(positions,ele_number)
       ! Calculate the spherical-polar coordinates of the point
-      cartesian_to_sphericalPolar(X_quad(1,i), X_quad(2,i), X_quad(3,i), radius, theta, phi)
+      call cartesian_2_spherical_polar(X_quad(1,i), X_quad(2,i), X_quad(3,i), radius, theta, phi)
 
       R(1,1)=sin(theta)*cos(phi)
       R(1,2)=cos(theta)*cos(phi)
@@ -309,7 +332,7 @@ contains
 
     do i=1,ele_ngi(positions,face_number)
       ! Calculate the spherical-polar coordinates of the point
-      cartesian_to_sphericalPolar(X_quad(1,i), X_quad(2,i), X_quad(3,i), radius, theta, phi)
+      call cartesian_2_spherical_polar(X_quad(1,i), X_quad(2,i), X_quad(3,i), radius, theta, phi)
 
       R(1,1)=sin(theta)*cos(phi)
       R(1,2)=cos(theta)*cos(phi)
@@ -362,7 +385,7 @@ contains
 
     do i=1,ele_ngi(positions,ele_number)
       ! Calculate the spherical-polar coordinates of the point
-      cartesian_to_sphericalPolar(X_quad(1,i), X_quad(2,i), X_quad(3,i), radius, theta, phi)
+      call cartesian_2_spherical_polar(X_quad(1,i), X_quad(2,i), X_quad(3,i), radius, theta, phi)
 
       R(1,1)=sin(theta)*cos(phi)
       R(1,2)=sin(theta)*sin(phi)
@@ -415,7 +438,7 @@ contains
 
     do i=1,face_ngi(positions,face_number)
       ! Calculate the spherical-polar coordinates of the point
-      cartesian_to_sphericalPolar(X_quad(1,i), X_quad(2,i), X_quad(3,i), radius, theta, phi)
+      call cartesian_2_spherical_polar(X_quad(1,i), X_quad(2,i), X_quad(3,i), radius, theta, phi)
 
       R(1,1)=sin(theta)*cos(phi)
       R(1,2)=sin(theta)*sin(phi)
@@ -485,7 +508,7 @@ contains
       x=node_val(u_position, node)
 
       !Calculate spherical-polar coordinates.
-      call cartesian_to_sphericalPolar(x(1),x(2),x(3),radius,theta,phi)
+      call cartesian_2_spherical_polar(x(1),x(2),x(3),radius,theta,phi)
 
       node_normal=(/sin(theta)*cos(phi),sin(theta)*sin(phi),cos(theta)/)
       node_tangent1=(/-sin(phi),cos(phi),0.0/)
@@ -648,7 +671,7 @@ contains
       x=node_val(u_position, node)
 
       !Calculate spherical-polar coordinates.
-      call cartesian_to_sphericalPolar(x(1),x(2),x(3),radius,theta,phi)
+      call cartesian_2_spherical_polar(x(1),x(2),x(3),radius,theta,phi)
 
       node_normal=(/sin(theta)*cos(phi),sin(theta)*sin(phi),cos(theta)/)
       node_tangent2=(/-sin(phi),cos(phi),0.0/)
