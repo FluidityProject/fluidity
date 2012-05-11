@@ -1,5 +1,6 @@
 subroutine test_spherical_polar_2_cartesian
-
+  !Test for ensuring the position vector at a point is correctly converted from a spherical-polar
+  ! basis to a cartesian basis.
   use fields
   use vtk_interfaces
   use state_module
@@ -30,7 +31,8 @@ subroutine test_spherical_polar_2_cartesian
     call set(difference, node, X)
   enddo
   call addto(difference, CartesianCoordinate, -1.0)
-  call vtk_write_fields("data/test_spherical_polar_2_cartesian_difference", 0, CartesianCoordinate, mesh, vfields=(/difference/))
+  call vtk_write_fields("data/test_spherical_polar_2_cartesian_difference", 0, &
+                        CartesianCoordinate, mesh, vfields=(/difference/))
   fail = any(difference%val > 1e-8)
   call report_test("[Coordinate change: Spherical-polar to Cartesian.]", &
                    fail, .false., "Position vector components not transformed correctly.")
