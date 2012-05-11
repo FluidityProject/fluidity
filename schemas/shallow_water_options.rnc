@@ -338,18 +338,41 @@ start =
                   attribute name { "Vorticity" },
                   element prognostic {
                      vorticity_mesh_choice,
-                     prognostic_vorticity_field
+                     ## Vorticity equaiton
+                     element vorticity_equation {
+                        element lump_mass {
+                           empty
+                        }?
+                     },
+                     ## Solver
+                     element solver {
+                        linear_solver_options_sym
+                     },
+                     prognostic_scalar_output_options,
+                     prognostic_scalar_stat_options,
+                     adaptivity_options_prognostic_scalar_field,
+                     interpolation_algorithm_scalar
                   }
                }?,
                ## Projected layer depth (for PV calculations)
                element scalar_field {
                   attribute rank { "0" },
                   attribute name { "ProjectedLayerThickness" },
-                  element prognostic {
+                  element diagnostic {
                      vorticity_mesh_choice,
                      element solver {
                         linear_solver_options_sym
                      },
+                     prognostic_scalar_output_options,
+                     prognostic_scalar_stat_options
+                  }
+               }?,
+               ## Potential vorticity
+               element scalar_field {
+                  attribute rank { "0" },
+                  attribute name { "PotentialVorticity" },
+                  element prognostic {
+                     vorticity_mesh_choice,
                      prognostic_scalar_output_options,
                      prognostic_scalar_stat_options
                   }
@@ -811,24 +834,6 @@ prognostic_sw_velocity_field =
    interpolation_algorithm_vector,
    discrete_properties_algorithm_vector?
 )
-
-prognostic_vorticity_field =
-   (
-      ## Vorticity equaiton
-      element vorticity_equation {
-         element lump_mass {
-            empty
-         }?
-      },
-      ## Solver
-      element solver {
-         linear_solver_options_sym
-      },
-      prognostic_scalar_output_options,
-      prognostic_scalar_stat_options,
-      adaptivity_options_prognostic_scalar_field,
-      interpolation_algorithm_scalar
-   )
 
 prognostic_layerthickness_field =
    (

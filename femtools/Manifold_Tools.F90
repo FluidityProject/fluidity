@@ -684,10 +684,6 @@ module manifold_tools
     integer :: orientation, gi
     real, dimension(mesh_dim(X), mesh_dim(X), ele_ngi(X,ele)) :: Metric
     !
-    !--------------------------DEBUGGING
-    real, dimension(ele_ngi(X,ele)) :: div_gi, D_quad
-    type(scalar_field), pointer :: D
-    !--------------------------DEBUGGING
 
     up_gi = -ele_val_at_quad(down,ele)
     call get_up_gi(X,ele,up_gi,orientation)

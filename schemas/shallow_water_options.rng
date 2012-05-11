@@ -424,7 +424,22 @@ if isn't present as a field in state.</a:documentation>
               </attribute>
               <element name="prognostic">
                 <ref name="vorticity_mesh_choice"/>
-                <ref name="prognostic_vorticity_field"/>
+                <element name="vorticity_equation">
+                  <a:documentation>Vorticity equaiton</a:documentation>
+                  <optional>
+                    <element name="lump_mass">
+                      <empty/>
+                    </element>
+                  </optional>
+                </element>
+                <element name="solver">
+                  <a:documentation>Solver</a:documentation>
+                  <ref name="linear_solver_options_sym"/>
+                </element>
+                <ref name="prognostic_scalar_output_options"/>
+                <ref name="prognostic_scalar_stat_options"/>
+                <ref name="adaptivity_options_prognostic_scalar_field"/>
+                <ref name="interpolation_algorithm_scalar"/>
               </element>
             </element>
           </optional>
@@ -437,11 +452,27 @@ if isn't present as a field in state.</a:documentation>
               <attribute name="name">
                 <value>ProjectedLayerThickness</value>
               </attribute>
-              <element name="prognostic">
+              <element name="diagnostic">
                 <ref name="vorticity_mesh_choice"/>
                 <element name="solver">
                   <ref name="linear_solver_options_sym"/>
                 </element>
+                <ref name="prognostic_scalar_output_options"/>
+                <ref name="prognostic_scalar_stat_options"/>
+              </element>
+            </element>
+          </optional>
+          <optional>
+            <element name="scalar_field">
+              <a:documentation>Potential vorticity</a:documentation>
+              <attribute name="rank">
+                <value>0</value>
+              </attribute>
+              <attribute name="name">
+                <value>PotentialVorticity</value>
+              </attribute>
+              <element name="prognostic">
+                <ref name="vorticity_mesh_choice"/>
                 <ref name="prognostic_scalar_output_options"/>
                 <ref name="prognostic_scalar_stat_options"/>
               </element>
@@ -1008,24 +1039,6 @@ requires a distinct name for the options dictionary.</a:documentation>
     <optional>
       <ref name="discrete_properties_algorithm_vector"/>
     </optional>
-  </define>
-  <define name="prognostic_vorticity_field">
-    <element name="vorticity_equation">
-      <a:documentation>Vorticity equaiton</a:documentation>
-      <optional>
-        <element name="lump_mass">
-          <empty/>
-        </element>
-      </optional>
-    </element>
-    <element name="solver">
-      <a:documentation>Solver</a:documentation>
-      <ref name="linear_solver_options_sym"/>
-    </element>
-    <ref name="prognostic_scalar_output_options"/>
-    <ref name="prognostic_scalar_stat_options"/>
-    <ref name="adaptivity_options_prognostic_scalar_field"/>
-    <ref name="interpolation_algorithm_scalar"/>
   </define>
   <define name="prognostic_layerthickness_field">
     <element name="spatial_discretisation">

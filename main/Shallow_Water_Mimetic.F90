@@ -191,7 +191,8 @@
       type(state_type), intent(inout) :: state
       !
       type(vector_field), pointer :: U, advecting_u
-      type(scalar_field), pointer :: D_old, D, vorticity, D_projected
+      type(scalar_field), pointer :: D_old, D, vorticity, &
+           & D_projected, Coriolis, PV
       type(vector_field) :: newU, MassFlux
       type(scalar_field) :: newD
       type(csr_matrix), pointer :: Vorticity_Mass_ptr
@@ -211,8 +212,10 @@
       D_projected=>extract_scalar_field(state, "ProjectedLayerThickness")
       D_old => extract_scalar_field(state, "OldLayerThickness")      
       vorticity => extract_scalar_field(state, "Vorticity")
-      call set(D_old,D)
+      Coriolis => extract_scalar_field(state, "Coriolis")
+      PV => extract_scalar_field(state, "PotentialVorticity")
       advecting_u=>extract_vector_field(state, "NonlinearVelocity")
+      call set(D_old,D)
 
       if(have_option('/material_phase::Fluid/vector_field::Velocity/&
            &prognostic/spatial_discretisation/discontinuous_galerkin/wave&
@@ -245,6 +248,7 @@
             call get_vorticity(state,vorticity,U)
             call calculate_scalar_galerkin_projection(state, D_projected)
          end if
+         call get_PV(vorticity,D_projected,Coriolis,PV)
       else
          call allocate(newU,U%dim,U%mesh,"NewLocalVelocity")
          call allocate(newD,D%mesh,"NewLayerThickness")
@@ -303,7 +307,8 @@
       !SET UP CORIOLIS FORCE
       f_ptr => extract_scalar_field(state,"Coriolis",stat=stat)
       if(stat.ne.0) then
-         call allocate(f, U%mesh, "Coriolis")
+         v_mesh => extract_mesh(state,"VorticityMesh")
+         call allocate(f, v_mesh, "Coriolis")
          call get_option("/physical_parameters/coriolis", coriolis, stat)
          if(stat==0) then
             call set_from_python_function(f, coriolis, X, time=0.0)
@@ -351,6 +356,18 @@
     end if
 
     end subroutine setup_fields
+    
+    subroutine get_PV(vorticity,D_projected,Coriolis,PV)
+      type(scalar_field), intent(in) :: vorticity,D_projected, Coriolis
+      type(scalar_field), intent(inout) :: PV
+      !
+      assert(mesh_compatible(PV%mesh, vorticity%mesh))
+      assert(mesh_compatible(PV%mesh, D_projected%mesh))
+      assert(mesh_compatible(PV%mesh, Coriolis%mesh))
+
+      PV%val = (vorticity%val + Coriolis%val)/D_projected%val
+
+    end subroutine get_PV
 
     subroutine advance_current_time(current_time, dt)
       implicit none
@@ -460,10 +477,11 @@
 ! Call to Newton iteration from main code - CODED and TESTED
 ! Check that timestepping produces some output - DONE and TESTED
 ! Extract fluxes from DG -- DONE and TESTED
-! Vorticity calculation -- DONE
-! Mass lumping for P2b -- DONE
-! Visualisation of P2b by mapping back to P2 -- DONE
-! Mass mapping from P1dg to P2b -- CODED, has NANs
+! Vorticity calculation -- DONE and TESTED
+! Mass lumping for P2b -- DONE and TESTED
+! Visualisation of P2b by mapping back to P2 -- DONE and TESTED
+! Mass mapping from P1dg to P2b -- DONE and TESTED
+! PV calculation -- 
 ! Timestepping for PV
 ! Nonlinear residual calculation from PV and DG advection
 ! Check on spherical mesh

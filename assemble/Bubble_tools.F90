@@ -220,14 +220,13 @@
               rhs,field,ele)
       end do
       call petsc_solve(field_projected,p2b_mass,rhs)
-      ewrite (1,*) maxval(abs(field_projected%val))
-      stop
+      ewrite (2,*) maxval(abs(field_projected%val))
       call deallocate(rhs)
 
     end subroutine project_to_p2b_lumped
 
-    subroutine project_to_p2b_lumped_ele(X,locweight,weights&
-         &,p2b_vals,rhs,field,ele)
+    subroutine project_to_p2b_lumped_ele(X,locweight,p2b_vals,&
+         &weights,rhs,field,ele)
       type(vector_field), intent(in) :: X
       type(scalar_field), intent(in) :: field
       type(scalar_field), intent(inout) :: rhs
@@ -246,16 +245,12 @@
 
       call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J, detwei)
       Area = sum(detwei)
-      ewrite(1,*) 'Weights', weights
       !Values of field at field DOFs
       field_vals = ele_val(field,ele)
-      ewrite(1,*) 'FIELD VALs', field_vals
       field_vals_rhs = matmul(locweight,field_vals)
-      ewrite(1,*) 'FIELD VALs rhs', field_vals_rhs
       !! Sum over p2b DOFs of p2b basis functions multiplied by
       !! weighted values of field at p2b DOF
       l_rhs = matmul(transpose(p2b_vals),field_vals_rhs*weights*Area)
-      ewrite(1,*) 'l_rhs', l_rhs
       call addto(rhs,ele_nodes(rhs,ele),l_rhs)
     end subroutine project_to_p2b_lumped_ele
   end module bubble_tools
