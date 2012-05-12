@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import sys
 import re
-from pyparsing import Literal, Word, Group, OneOrMore, ZeroOrMore, alphanums, nums, ParseException, Forward, replaceWith
+from pyparsing import Literal, Word, Group, OneOrMore, ZeroOrMore, alphanums, nums, ParseException, Forward, replaceWith, MatchFirst, Or
 from xml.dom.minidom import parse
 
 ### taken from: http://stackoverflow.com/questions/2669059/how-to-sort-alpha-numeric-set-in-python
@@ -12,40 +12,137 @@ def sorted_nicely( l ):
     return sorted(l, key = alphanum_key)
 
 
-### VEW grammar ###
+### Base grammar ###
 ident = Word( alphanums + "_" + "$" )
 number = Word( nums + "." + "-" + "e" + "E" )
 comma = Literal( ",").suppress()
 lpar = Literal( "{" ).suppress()
 rpar = Literal( "}" ).suppress()
 
-assign = Literal( r"\assign" )
-var = Literal( r"\var" )
-val = Literal( r"\val" )
-sival = Literal( r"\sival" )
-unit = Literal( r"\unit" )
-add = Literal( r"\add" )
-sub = Literal( r"\sub" )
-mul = Literal( r"\mul" )
-div = Literal( r"\div" )
-exp = Literal( r"\exp" )
-pow = Literal( r"\pow" )
-max = Literal( r"\max" )
-min = Literal( r"\min" )
-log10 = Literal( r"\log10" )
-abs = Literal( r"\abs" )
-minus = Literal( r"\minus" )
-rnd = Literal( r"\rnd" )
+expr = Forward()
+bool_expr = Forward()
+stmt = Forward()
+
+assign = Literal(r"\assign")
+val = Literal(r"\val")
+
+var = Literal(r"\var")
+variable = Group( var + lpar + ident + rpar )
+assignment = Group( assign + lpar + variable + comma + expr + rpar )
+
+si_value = Literal(r"\sival") + lpar + number + comma + number + rpar
+unit = Literal(r"\unit") + lpar + number + comma + Word(alphanums) + comma + number + rpar
+value = Group( val + lpar + si_value + comma + unit + rpar )
+
+### Math expressions
+math_ops = {
+  r"\add"   : lambda t: "(" + t[0] + "".join( [ " + " + s for s in t[1:]] ) + ")",
+  r"\mul"   : lambda t: "(" + t[0] + "".join( [ " * " + s for s in t[1:]] ) + ")",
+  r"\sub"   : lambda t: "(" + t[0] + " - " + t[1] + ")",
+  r"\div"   : lambda t: "(" + t[0] + " / " + t[1] + ")",
+  r"\pow"   : lambda t: "math.pow(" + t[0] +", " + t[1] + ")",
+  r"\max"   : lambda t: "max(" + t[0] +", " + t[1] + ")",
+  r"\min"   : lambda t: "min(" + t[0] +", " + t[1] + ")",
+  r"\exp"   : lambda t: "math.exp(" + t[0] + ")", 
+  r"\log10" : lambda t: "math.log10(" + t[0] + ")", 
+  r"\minus" : lambda t: "-" + t[0], 
+  r"\abs"   : lambda t: "abs( " + t[0] + " )", 
+  r"\rnd"   : lambda t: "TODO RND(" + t[0] + ")"
+}
+math_op = MatchFirst( map(Literal, math_ops.keys()) )
+math_expr = Group( math_op + lpar + expr + ZeroOrMore( comma + expr ) + rpar )
+
+### Booleans and conditional expressions
+bool_ops = {
+  r"\equal"        : lambda t: "(" + t[0] + " == " + t[1] + ")",
+  r"\neq"          : lambda t: "(" + t[0] + " != " + t[1] + ")",
+  r"\greaterequal" : lambda t: "(" + t[0] + " >= " + t[1] + ")",
+  r"\greater"      : lambda t: "(" + t[0] + " > " + t[1] + ")",
+  r"\lessequal"    : lambda t: "(" + t[0] + " <= " + t[1] + ")",
+  r"\less"         : lambda t: "(" + t[0] + " < " + t[1] + ")",
+  r"\and"          : lambda t: "(" + t[0] + ") and (" + t[1] + ")",
+  r"\or"           : lambda t: "(" + t[0] + ") or (" + t[1] + ")"
+}
+bool_op = Or( map(Literal, bool_ops.keys()) )
+bool_expr << Group( bool_op + lpar + expr + comma + expr + rpar ) 
+
 cond = Literal( r"\conditional" )
 ifthen = Literal( r"\ifthen" )
-eq = Literal( r"\equal" )
-neq = Literal( r"\neq" )
-geq = Literal( r"\greaterequal" )
-gt = Literal( r"\greater" )
-leq = Literal( r"\lessequal" )
-lt = Literal( r"\less" )
-boolor = Literal( r"\or" )
-booland = Literal( r"\and" )
+conditional = Group( cond + lpar + bool_expr + comma + expr + comma + expr + rpar )
+cond_stmt = Group( ifthen + lpar + bool_expr + comma + stmt + rpar )
+
+# Special system variables
+system_variables = {
+    "TimeStep" : "dt_in_hours",
+    "PI" : "math.pi",
+    "Temp" : "env['Temperature']",
+    "Vis_Irrad" : "env['Irradiance']",
+    "Density" : "env['Density']",
+    "V_m" : "vars['V_m']",
+    "S_t" : "vars['S_t']",
+    "z" : "vars['z']",
+    "IngestedCells" : "vars['PIngestedCells']",
+    "MLDepth" : "param['MLDepth']",
+    "Max_MLD" : "param['Max_MLD']",
+    "d_year" : "param['d_year']",
+    "P" : "env['CopepodPConcentration'][variety]"
+}
+
+# Variable class for converting names 
+# according to variable type 
+class Variable:
+  def __init__(self, tok):
+    global fgroup
+    if tok[0] != var:
+      raise Exception("Not a variable: " + tok)
+    self.token = tok
+    self.name = str(tok[1])
+    self.state = False
+    self.variety = False
+
+    # VEW system variables 
+    if self.name in system_variables.keys():
+      self.name = system_variables[self.name]
+
+    self.rhs = self.name
+    self.lhs = self.name
+
+    if self.name.endswith("$Pool"):
+      self.name = self.name.split("$")[0]
+      self.rhs = "vars['" + self.name + "']"
+      self.lhs = self.name + "_new"
+      self.state = True
+
+    if self.name in fgroup.state_vars:
+      self.lhs = self.name + "_new"
+      self.rhs = "vars['" + self.name + "']"
+      self.state = True
+
+    if self.name.endswith("$Ingested"):
+      self.name = self.name.split("$")[0] + "Ingested"
+      self.rhs = "vars['" + self.name + "']"
+
+    if self.name.endswith("$Conc"):
+      self.name = self.name.split("$")[0]
+      self.rhs = "env['Dissolved" + self.name + "']"
+
+    if self.name in fgroup.parameters:
+      self.rhs = "param['" + self.name + "']"
+
+    if self.name in fgroup.variety_local:
+      self.variety = True
+
+    if self.name in fgroup.variety_param:
+      self.rhs = "param['" + self.name + "'][variety]"
+      self.variety = True
+
+  def __eq__(self, other):
+    return self.name == other.name
+
+
+
+### Planktonica-specifics ###
+#############################
 
 divide = Literal( r"\divide" )
 uptake = Literal( r"\uptake" )
@@ -55,46 +152,11 @@ pchange = Literal( r"\pchange" )
 stage = Literal( r"\stage" )
 ingest = Literal( r"\ingest" )
 set = Literal( r"\set" )
-
 varietysum = Literal( r"\varietysum" )
 varhist = Literal( r"\varhist" )
 visIrradAt = Literal( r"\visIrradAt" )
 integrate = Literal( r"\integrate" )
 create = Literal( r"\create" )
-
-expr = Forward()
-bool_expr = Forward()
-stmt = Forward()
-
-variable = Group( var + lpar + ident + rpar )
-si_value = sival + lpar + number + comma + number + rpar
-unit_def = unit + lpar + number + comma + Word(alphanums) + comma + number + rpar
-value = Group( val + lpar + si_value + comma + unit_def + rpar )
-assignment = Group( assign + lpar + variable + comma + expr + rpar )
-
-# Should be a OneOrMore, but there is a dummy addition in LERM-PS_1!!!
-addition = Group( add + lpar + expr + ZeroOrMore( comma + expr ) + rpar )
-subtraction = Group( sub + lpar + expr + comma + expr + rpar )
-multiplication = Group( mul + lpar + expr + OneOrMore( comma + expr ) + rpar )
-division = Group( div + lpar + expr + comma + expr + rpar )
-exponential = Group( exp + lpar + expr + rpar )
-power = Group( pow + lpar + expr + comma + expr + rpar )
-maximum = Group( max + lpar + expr + comma + expr + rpar )
-minimum = Group( min + lpar + expr + comma + expr + rpar )
-logarithm = Group( log10 + lpar + expr + rpar )
-negation = Group( minus + lpar + expr + rpar )
-absolute = Group( abs + lpar + expr + rpar )
-random = Group( rnd + lpar + expr + rpar )
-
-bool_op = ( geq | leq | eq | gt | lt | neq )
-
-bool_expr << ( Group( bool_op + lpar + expr + comma + expr + rpar ) 
-             | Group( boolor + lpar + bool_expr + comma + bool_expr + rpar ) 
-             | Group( booland + lpar + bool_expr + comma + bool_expr + rpar ) 
-             )
-conditional = Group( cond + lpar + bool_expr + comma + expr + comma + expr + rpar )
-cond_stmt = Group( ifthen + lpar + bool_expr + comma + stmt + rpar )
-
 cell_division = Group( divide + lpar + value + rpar )
 chemical_uptake = Group( uptake + lpar + expr + comma + variable + rpar )
 chemical_release = Group( release + lpar + expr + comma + variable + rpar )
@@ -108,32 +170,212 @@ ingestion = Group( ingest + lpar + expr + comma + expr + comma + expr + rpar )
 set_variable = Group( set + lpar + variable + comma + expr + rpar )
 creation = Group( create + lpar + stage + lpar + ident + rpar + comma + expr + OneOrMore( comma + set_variable ) + rpar )
 
-expr << ( variable | value | addition | subtraction | multiplication | division | absolute | 
-          exponential | conditional | power | maximum | minimum | random | logarithm | negation | 
+expr << ( variable | value | bool_expr | math_expr | conditional |
           variety_vector_sum | variable_history | sample_irradiance | integration )
 stmt << ( assignment | cond_stmt | cell_division | chemical_uptake | chemical_release | 
           change_stage | pchange_stage | ingestion | creation | set_variable )
 planktonica = ( stmt )
 
-indent = 2
-id_counter = 0
 fgroup = None
 
-### Metamodel definitions
+### Static indentation counter
+class Indent:
+  ind = 2
+  @staticmethod
+  def line():
+    return "".join( [" " for i in range(Indent.ind)] )
+
+  @staticmethod
+  def inc():
+    Indent.ind = Indent.ind + 2
+
+  @staticmethod
+  def dec():
+    Indent.ind = Indent.ind - 2
+
+
+### The big eval function....
+def eval_expr(t):
+  global fgroup
+  out = ""
+
+  if t[0] == var:
+    v = Variable(t)
+    if v.name in fgroup.local_vars.keys():
+      fgroup.used_vars.append(v.rhs)
+    out = v.rhs
+
+  elif t[0] == val:
+    base = float(t[2])
+    e_pow = int(t[3])
+    out = str(base)
+    if e_pow != 0:
+      out = out + "e" + str(e_pow)
+
+  # Math functions
+  elif t[0] in math_ops.keys():
+    evt = [ eval_expr(tok) for tok in t[1:] ]
+    out = math_ops[t[0]](evt)
+
+  # Conditionals
+  elif t[0] in bool_ops.keys():
+    evt = [ eval_expr(tok) for tok in t[1:] ]
+    out = bool_ops[t[0]](evt)
+  elif t[0] == cond:
+    out = "((" + eval_expr(t[2]) + ") if (" + eval_expr(t[1]) + ") else (" + eval_expr(t[3]) + "))"
+
+  elif t[0] == varietysum:
+    out = eval_expr(t[1])
+
+  elif t[0] == varhist:
+    hist_ind = int(float(eval_expr(t[2])))
+    v = Variable(t[1])
+    out = "vars['" + v.name + "_" + str(hist_ind) + "']"
+
+  elif t[0] == visIrradAt:
+    out = "param['surface_irradiance']"
+
+  # integration should be done by the framework
+  elif t[0] == integrate:
+    out = eval_expr(t[1])
+
+  else:
+    raise Exception("Unkown expression: " + str(t))
+
+  return out
+
+
+def eval_stmt(t):
+  global fgroup
+  out = ""
+
+  if t[0] == assign:
+    # When assigning state or pool variables, 
+    # we create a buffer var and write the assignment at the end
+    v = Variable(t[1])
+    fgroup.initialised_vars.append(v.name)  
+
+    if v.state and not v in fgroup.pool_update_vars:
+      fgroup.pool_update_vars.append(v)      
+
+    code = ""
+    # Open a scope for variety-based calculations
+    if v.variety:      
+      code = code + v.lhs + " = {}\n" + Indent.line()
+      Indent.inc()
+      code = code + "for variety in foodset_" + fgroup.foodsets[0].name + ".keys():\n" + Indent.line()
+
+    fgroup.used_vars = []
+    term = eval_expr(t[2])
+
+    # Initialise all unitialised variables on the rhs
+    for used_local in fgroup.used_vars:                
+      if not used_local in fgroup.initialised_vars:
+        code = code + used_local + " = 0.0\n" + Indent.line()
+        fgroup.initialised_vars.append(used_local)
+
+    if v.variety:
+      Indent.dec()
+
+    out = code + v.lhs + " = " + term
+
+  elif t[0] == ifthen:
+    Indent.inc()
+    out = "if " + eval_expr(t[1]) + ":\n" + Indent.line() + eval_stmt(t[2])
+    Indent.dec()
+
+  # Planktonica
+  elif t[0] == divide:
+    out = "vars['Size'] = vars['Size'] * " + eval_expr(t[1])
+  elif t[0] == change:
+    s = str(t[2])
+    out = "vars['Stage'] = stage_id('" + fgroup.name + "', '" + s + "')"
+  elif t[0] == uptake:
+    v = Variable(t[2])
+    out = "vars['" + v.name + "Uptake'] = " + eval_expr(t[1])
+  elif t[0] == release:
+    v = Variable(t[2])
+    out = "vars['" + v.name + "Release'] = " + eval_expr(t[1])
+
+  elif t[0] == ingest:
+    species_conc = eval_expr(t[1])
+    ing_threshold = eval_expr(t[2])
+    ing_amount = eval_expr(t[3])
+    
+    code = "vars['PRequest'] = {}\n" + Indent.line()
+    Indent.inc()
+    code = code + "for variety in foodset_" + fgroup.foodsets[0].name + ".keys():\n" + Indent.line()
+    Indent.dec()
+    code = code + "vars['PRequest'][variety] = (dt * " + ing_amount + ") if (" + species_conc + " > " + ing_threshold + ") else 0.0"
+    out = code
+
+  elif t[0] == create:
+    s = str(t[2])
+    c = "new_agent_vars = {}\n"
+    c = c + Indent.line() + "new_agent_vars['Stage'] = stage_id('" + fgroup.name + "', '" + s + "')\n"
+    c = c + Indent.line() + "new_agent_vars['Size'] = " + eval_expr(t[3])
+    for i in range(4,len(t)):
+      c = c + "\n" + Indent.line() + "new_agent_" + eval_expr(t[i][1]) + " = " + eval_expr(t[i][2]) 
+    c = c + "\n" + Indent.line() + "add_agent('" + fgroup.name + "', new_agent_vars, [-vars['z']])"
+    out = c
+
+  elif t[0] == pchange:
+    s = str(t[2])
+    out = "#TODO PCHANGE( " + s + ", " + eval_expr(t[3]) + " )" 
+
+  else:
+    raise Exception("Unkown statement: " + str(t))
+
+  return out
+### End of big eval function
+
+
+### Metamodel definitions ###
+#############################
+
 class Stage:
+  counter = 0
   def __init__(self, dom_element):
     global id_counter
     self.dom = dom_element
     self.name = self.dom.getElementsByTagName("name")[0].firstChild.data
-    self.id = id_counter
+    self.id = Stage.counter
     self.functions = []
     self.function_eqns = {}
     self.assigned_locals = []
-    id_counter = id_counter + 1
+    Stage.counter = Stage.counter + 1
 
   def add_function(self, fname, function):
     self.functions.append(fname)
     self.function_eqns[fname] = function.getElementsByTagName("equation")
+
+class Species:
+  def __init__(self, dom_element):
+    self.dom = dom_element
+    self.name = self.dom.getAttribute("name").replace(' ', '_')
+    self.fg_name = self.dom.getAttribute("fg").replace(' ', '_')
+
+    self.parameter = {}
+    for p in self.dom.getElementsByTagName("param"):
+      p_name = p.getAttribute("name")
+      p_val = p.getAttribute("a")
+      self.parameter[p_name] = float(p_val)
+
+class FoodSet:
+  def __init__(self, dom_element):
+    self.dom = dom_element
+    self.species_name = self.dom.getAttribute("name").split(" : ")[0].replace(' ', '_')
+    self.name = self.species_name + "_" + self.dom.getAttribute("name").split(" : ")[1]    
+
+    self.food = {}
+    self.target_species = {}
+    for f in self.dom.getElementsByTagName("food"):
+      stage = f.getAttribute("stage")
+      self.food[stage] = {}
+      for p in f.getElementsByTagName("param"):
+        p_name = p.getAttribute("name")
+        p_val = p.getAttribute("a")
+        self.food[stage][p_name] = float(p_val)      
 
 class FGroup:
   def __init__(self, dom_element):
@@ -141,12 +383,13 @@ class FGroup:
     self.name = self.dom.getElementsByTagName("name")[0].firstChild.data.replace(" ", "_")
     print "FGroup: " + self.name
 
-    self.species = {}
-    self.parameters = {}
+    self.species = []
+    self.foodsets = []
+
+    self.parameters = []
     for parameter in self.dom.getElementsByTagName("parameter"):
       param_name = parameter.getElementsByTagName("name")[0].firstChild.data
-      val_str = parameter.getElementsByTagName("value")[0].firstChild.data
-      self.parameters[param_name] = float(val_str)
+      self.parameters.append(param_name)
 
     self.state_vars = []
     for state_var in self.dom.getElementsByTagName("variable"):
@@ -184,226 +427,26 @@ class FGroup:
         sname = stage.firstChild.data
         self.stages[sname].add_function(fname, function)
 
-  def eval_var(self, t, hist_ind=None):
-    v = str(t[1])
-    if hist_ind != None:
-      return "vars['" + v + "_" + str(hist_ind) + "']"
-
-    if v == "TimeStep":
-      v = "dt_in_hours"
-    elif v == "PI":
-      v = "math.pi"
-    elif v == "Temp":
-      v = "env['Temperature']"
-    elif v == "Vis_Irrad":
-      v = "env['Irradiance']"
-    elif v == "Density":  # Use Pade approximation in Fluidity
-      v = "env['Density']"
-    elif v.endswith("$Pool"):
-      v = "vars['" + v.split("$")[0] + "']"
-    elif v.endswith("$Ingested"):
-      v = "vars['" + v.split("$")[0] + "Ingested" + "']"
-    elif v.endswith("$Conc"):
-      v = "env['Dissolved" + v.split("$")[0] + "']"
-    elif v == 'V_m':
-      v = "vars['V_m']"
-
-    elif v in self.parameters.keys():
-      v = "param['" + v + "']"
-    elif v in self.state_vars:
-      v = "vars['" + v + "']"
-    elif v in self.local_vars:
-      v = v
-      self.used_vars.append(v)
-    elif v in self.variety_local:
-      v = v
-    elif v in self.variety_param.keys():
-      v = "param['" + v + "']"
-    # External values that we need to re-create VEW hacks
-    elif v in ['MLDepth', 'Max_MLD', 'd_year']:
-      v = "param['" + v + "']"
-    # Food sets and ingested cells
-    elif v in ['P']:
-      v = "env['" + self.name + v + "Concentration']"
-    elif v in ['IngestedCells']:
-      v = "vars['P" + v + "']"
-
-    # Dev exceptions...
-    elif v in ['z', 'S_t']:
-      v = "vars['" + v + "']"
-    else:
-      raise Exception("Unkown variable: " + v)
-    return v
-
-  ### The big eval function....
-  def eval_token(self, t):
-    global indent
-
-    if t[0] == var:
-      return self.eval_var(t)
-
-    elif t[0] == assign:
-      if t[1][0] == var:
-        # When assigning state or pool variables, 
-        # we create a buffer var and write the assignment at the end
-        v = str(t[1][1])
-        self.initialised_vars.append(v)
-        self.used_vars = []
-        if v.endswith("$Pool"):
-          v = v.split("$")[0] + "_new"
-          self.pool_update_vars[v] = t[1]
-        elif v in self.state_vars:
-          v = v + "_new"
-          self.pool_update_vars[v] = t[1]
-        elif v == 'V_m':
-          v = "vars['V_m']"
-
-        term = self.eval_token(t[2])
-        code = ""
-        for term_var in self.used_vars:
-          if term_var not in self.initialised_vars:
-            code = code + term_var + " = "+ str(self.local_vars[term_var]) + "\n"
-            for i in range(indent):
-              code = code + " "
-            self.initialised_vars.append(term_var)
-        return code + v + " = " + term
-      else:
-        raise Exception("Assigning a non-variable..?")
-
-    elif t[0] == val:
-      base = float(t[2])
-      e_pow = int(t[3])
-      if e_pow != 0:
-        return str(base) + "e" +str(e_pow)
-      else:
-        return str(base)
-    elif t[0] == add:
-      c = "(" + self.eval_token(t[1])
-      for summand in t[2:]:
-        c = c + " + " + self.eval_token(summand)
-      return c + ")"
-    elif t[0] == sub:
-      return "(" + self.eval_token(t[1]) + " - " + self.eval_token(t[2]) + ")"
-    elif t[0] == mul:
-      c = "(" + self.eval_token(t[1])
-      for factor in t[2:]:
-        c = c + " * " + self.eval_token(factor)
-      return c + ")"
-    elif t[0] == div:
-      return "(" + self.eval_token(t[1]) + " / " + self.eval_token(t[2]) + ")"
-    elif t[0] == exp:
-      return "math.exp(" + self.eval_token(t[1]) + ")"
-    elif t[0] == log10:
-      return "math.log10(" + self.eval_token(t[1]) + ")"
-    elif t[0] == pow:
-      return "math.pow(" + self.eval_token(t[1]) + ", " + self.eval_token(t[2]) + ")"
-    elif t[0] == max:
-      return "max(" + self.eval_token(t[1]) + ", " + self.eval_token(t[2]) + ")"
-    elif t[0] == min:
-      return "min(" + self.eval_token(t[1]) + ", " + self.eval_token(t[2]) + ")"
-    elif t[0] == minus:
-      return "-" + self.eval_token(t[1])
-    elif t[0] == abs:
-      return "abs( " + self.eval_token(t[1]) + " )"
-
-    elif t[0] == cond:
-      return "((" + self.eval_token(t[2]) + ") if (" + self.eval_token(t[1]) + ") else (" + self.eval_token(t[3]) + "))"
-    elif t[0] == boolor:
-      return "(" + self.eval_token(t[1]) + ") or (" + self.eval_token(t[2]) + ")"
-    elif t[0] == booland:
-      return "(" + self.eval_token(t[1]) + ") and (" + self.eval_token(t[2]) + ")"
-    elif t[0] == eq:
-      return "(" + self.eval_token(t[1]) + " == " + self.eval_token(t[2]) + ")"
-    elif t[0] == neq:
-      return "(" + self.eval_token(t[1]) + " != " + self.eval_token(t[2]) + ")"
-    elif t[0] == gt:
-      return "(" + self.eval_token(t[1]) + " > " + self.eval_token(t[2]) + ")"
-    elif t[0] == geq:
-      return "(" + self.eval_token(t[1]) + " >= " + self.eval_token(t[2]) + ")"
-    elif t[0] == lt:
-      return "(" + self.eval_token(t[1]) + " < " + self.eval_token(t[2]) + ")"
-    elif t[0] == leq:
-      return "(" + self.eval_token(t[1]) + " <= " + self.eval_token(t[2]) + ")"
-
-    elif t[0] == ifthen:
-      c = "if " + self.eval_token(t[1]) + ":\n"
-      indent = indent + 2
-      for i in range(indent):
-        c = c + " "
-      c = c + self.eval_token(t[2])
-      indent = indent - 2
-      return c
-
-    elif t[0] == divide:
-      return "vars['Size'] = vars['Size'] * " + self.eval_token(t[1])
-    elif t[0] == change:
-      s = str(t[2])
-      return "vars['Stage'] = stage_id('" + self.name + "', '" + s + "')"
-    elif t[0] == uptake:
-      chem = str(t[2][1]).split("$")[0]
-      return "vars['" + chem + "Uptake'] = " + self.eval_token(t[1])
-    elif t[0] == release:
-      chem = str(t[2][1]).split("$")[0]
-      return "vars['" + chem + "Release'] = " + self.eval_token(t[1])
-
-    elif t[0] == varietysum:
-      return self.eval_token(t[1])
-    elif t[0] == varhist:
-      hist_ind = int(float(self.eval_token(t[2])))
-      return self.eval_var(t[1], hist_ind)
-    elif t[0] == visIrradAt:
-      return "param['surface_irradiance']"
-
-    # TODO
-    elif t[0] == integrate:
-      return self.eval_token(t[1])
-    elif t[0] == ingest:
-      species_conc = self.eval_token(t[1])
-      ing_threshold = self.eval_token(t[2])
-      ing_amount = self.eval_token(t[3])
-      # PRequest should not be hardcoded, but I'm lazy today...
-      return "vars['PRequest'] = (dt * " + ing_amount + ") if (" + species_conc + " > " + ing_threshold + ") else 0.0"
-    elif t[0] == create:
-      s = str(t[2])
-      indent_str = ""
-      for i in range(indent):
-        indent_str = indent_str + " "
-      c = "new_agent_vars = {}"
-      c = c + "\n" + indent_str + "new_agent_vars['Stage'] = stage_id('" + self.name + "', '" + s + "')"
-      c = c + "\n" + indent_str + "new_agent_vars['Size'] = " + self.eval_token(t[3])
-      for i in range(4,len(t)):
-        c = c + "\n" + indent_str + "new_agent_" + self.eval_token(t[i][1]) + " = " + self.eval_token(t[i][2]) 
-      c = c + "\n" + indent_str + "add_agent('" + self.name + "', new_agent_vars, [-vars['z']])"
-      return c
-    elif t[0] == pchange:
-      s = str(t[2])
-      return "#TODO PCHANGE( " + s + ", " + self.eval_token(t[3]) + " )" 
-
-    elif t[0] == rnd:
-      return "#TODO RND( " + self.eval_token(t[1]) + " )"
-
-    else:
-      raise Exception("Unkown token: " + str(t))
-  ### End of big eval function
-
-  def add_species(self, name, species):
-    self.species[name] = {}
-    for parameter in species.getElementsByTagName("param"):
-      param_name = parameter.getAttribute("name")
-      val_str = parameter.getAttribute("a")
-      self.species[name][param_name] = float(val_str)
-
-  def write_parameters(self, file, species):
+  def write_parameters(self, file):
     file.write("\n# Parameters for FGroup " + self.name)
-    file.write("\n# Species: " + species )
-    file.write("\nparams_" + species + " = {\n")
-    for p in sorted_nicely( self.species[species].keys() ):
-      file.write("    '" + p + "' : " + str(self.species[species][p]) + ",\n")
-    if len(self.variety_param) > 0:
-      file.write("### Variety parameters ###\n")
-      for vp in sorted_nicely( self.variety_param.keys() ):
-        file.write("    '" + vp + "' : " + str(self.variety_param[vp]) + ",\n")
-    file.write("}\n")
+
+    # Write species parameter
+    for s in self.species:
+      file.write("\n# Species: " + s.name )
+      file.write("\nspecies_" + s.name + " = {\n")
+      for p in sorted_nicely( s.parameter.keys() ):
+        file.write("    '" + p + "' : " + str(s.parameter[p]) + ",\n")
+      file.write("}\n")
+
+    for fs in self.foodsets:
+      file.write("# Foodset: " + fs.name)
+      file.write("\nfoodset_" + fs.name + " = {\n")
+      for f_stage, food in fs.food.iteritems():
+        file.write("    '" + f_stage + "' : {")
+        for p in sorted_nicely( food.keys() ):
+          file.write("\n        '" + p + "' : " + str(food[p]) + ",")
+        file.write("    },\n")
+      file.write("}\n")
 
   def write_update_kernel(self, file, stage):
     global fg_motion_functions
@@ -414,7 +457,7 @@ class FGroup:
     file.write('      Stage:   ' + stage.name + '\n  """\n')
     file.write("  dt_in_hours = dt / 3600.0\n")
 
-    self.pool_update_vars = {}
+    self.pool_update_vars = []
     self.initialised_vars = []    
     for fname in stage.functions:
       if fname in fg_motion_functions[self.name]:
@@ -432,7 +475,7 @@ class FGroup:
           tokens = planktonica.parseString( eq_string )
 
           for t in tokens:
-            eq_code = eq_code + self.eval_token(t)
+            eq_code = eq_code + eval_stmt(t)
         except ParseException, err:
           print "    Eq: " + eq_name + " ... Fail"
           print "    Parse Failure: ", eq_string
@@ -444,12 +487,12 @@ class FGroup:
           print err
           raise
         finally:
-          file.write("  " + eq_code + "\n")
+          file.write(Indent.line() + eq_code + "\n")
 
     # Add the housekeeping for pool updates
     file.write("\n  ### Setting pool variables\n")
-    for temp_var, token in self.pool_update_vars.iteritems():
-      eq_code = self.eval_token(token) + " = " + temp_var
+    for v in self.pool_update_vars:
+      eq_code = v.rhs + " = " + v.lhs
       file.write("  " + eq_code + "\n")
 
 ### Main model parsing ###
@@ -463,7 +506,9 @@ fg_motion_functions = {
 
 fg_write_stages = {
   "Diatom" : [ "Living", "Dead" ],
-  "Copepod" : [ "Dead", "OW5", "OWA5", "C5", "Pellet" ]
+  "Copepod" : [ "Dead", "OW5", "OWA5", "C5", "Pellet" ],
+  #"Predator" : [ "Existance", "Pellet" ],
+  "Basal_predator" : [ "Existance", "Pellet" ]
 }
 
 filename = sys.argv[1]
@@ -473,20 +518,42 @@ f.write("import math\n")
 f.write("from lebiology import stage_id, add_agent\n")
 
 dom = parse(filename)
-fgroups = dom.getElementsByTagName("functionalgroup")[0:2]
-species = dom.getElementsByTagName("species")[1:]
+fgroup_doms = dom.getElementsByTagName("functionalgroup")
+foodsets = dom.getElementsByTagName("foodsets")[0]
 
-for fg in fgroups:
+# Create Species...
+species = []
+for sdom in dom.getElementsByTagName("species")[1:]:
+  species.append( Species(sdom) )
+
+# Create FoodSets...
+foodsets = []
+foodsets_dom = dom.getElementsByTagName("foodsets")[0]
+for fsdom in foodsets_dom.getElementsByTagName("foodset"):
+  foodsets.append( FoodSet(fsdom) )
+
+# Now create Functional Groups
+for fg in fgroup_doms:
   fgroup = FGroup(fg)
+  if not fgroup.name in fg_write_stages.keys():
+    print "  ...skipping..."
+    continue
 
-  # Add and print species parameters
+  # Add species
   for s in species:
-    if s.getAttribute("fg") == fgroup.name: 
-      sname = s.getAttribute("name").replace(' ', '_')
-      print "Adding species: " + sname
-      fgroup.add_species(sname , s )
+    if s.fg_name == fgroup.name:
+      print "Adding species: " + s.name
+      fgroup.species.append(s)
 
-  fgroup.write_parameters(f, sname)
+
+  # Add foodset
+  for s in fgroup.species:
+    for fs in foodsets:
+      if s.name == fs.species_name:
+        print "Adding foodset: " + fs.name
+        fgroup.foodsets.append(fs)
+
+  fgroup.write_parameters(f)
 
   sorted_stages = sorted(fgroup.stages.iteritems(), key=lambda stage: stage[1].id)
   for (sname, stage) in sorted_stages:

@@ -3,7 +3,7 @@ from lebiology import stage_id, add_agent
 
 # Parameters for FGroup Diatom
 # Species: Default_Diatom_Variety
-params_Default_Diatom_Variety = {
+species_Default_Diatom_Variety = {
     'A_E' : -10000.0,
     'Alpha_Chl' : 7.9e-07,
     'C_minS' : 1.584e-08,
@@ -100,15 +100,15 @@ def update_Living_Diatom(param, vars, env, dt):
   NtoC_new = ((((vars['Ammonium'] + vars['Nitrate']) / vars['Carbon'])) if ((vars['Carbon'] > 0.0)) else (0.0))
 
   ### Setting pool variables
-  vars['NtoC'] = NtoC_new
-  vars['Chlorophyll'] = Chlorophyll_new
-  vars['C_fuel'] = C_fuel_new
-  vars['Nitrogen'] = Nitrogen_new
-  vars['Carbon'] = Carbon_new
+  vars['Ammonium'] = Ammonium_new
   vars['Nitrate'] = Nitrate_new
   vars['Silicate'] = Silicate_new
-  vars['Ammonium'] = Ammonium_new
+  vars['Carbon'] = Carbon_new
+  vars['Chlorophyll'] = Chlorophyll_new
+  vars['Nitrogen'] = Nitrogen_new
+  vars['C_fuel'] = C_fuel_new
   vars['ChltoC'] = ChltoC_new
+  vars['NtoC'] = NtoC_new
 
 def update_Dead_Diatom(param, vars, env, dt):
   """ FGroup:  Diatom
@@ -126,13 +126,13 @@ def update_Dead_Diatom(param, vars, env, dt):
   Nitrate_new = max((vars['Nitrate'] - (vars['Nitrate'] * N_reminT * dt_in_hours)), 0.0)
 
   ### Setting pool variables
-  vars['Nitrate'] = Nitrate_new
   vars['Silicate'] = Silicate_new
   vars['Ammonium'] = Ammonium_new
+  vars['Nitrate'] = Nitrate_new
 
 # Parameters for FGroup Copepod
 # Species: Default_Copepod_Variety
-params_Default_Copepod_Variety = {
+species_Default_Copepod_Variety = {
     'A_rep' : 480.0,
     'A_rmax' : 960.0,
     'C1_min' : 6.25e-05,
@@ -175,8 +175,11 @@ params_Default_Copepod_Variety = {
     'vPrey' : 4.2e-09,
     'vol_gut' : 1.5e-08,
     'z_startOW' : 400.0,
-### Variety parameters ###
-    'P_min' : 100000.0,
+}
+# Foodset: Default_Copepod_Variety_P
+foodset_Default_Copepod_Variety_P = {
+    'Living' : {
+        'P_min' : 100000.0,    },
 }
 
 def update_OW5_Copepod(param, vars, env, dt):
@@ -196,7 +199,7 @@ def update_OW5_Copepod(param, vars, env, dt):
 
   ### Overwintering phase OW5 ###
   R_ow = (R_bas * param['delta'])
-  if (param['d_year'] == 75.0):
+  if (param['d_year'] == 2.0):
     vars['Stage'] = stage_id('Copepod', 'OWA5')
 
   ### Assimilation efficiency ###
@@ -215,7 +218,7 @@ def update_OW5_Copepod(param, vars, env, dt):
 
   ### CNN update non-repro ###
   gamma = 0.0
-  alpha = 0.05
+  alpha = 0.0
   C_NN_new = (((vars['C_NN'] + (gamma * (1.0 - alpha) * Growth_net * dt_in_hours))) if ((Growth_net >= 0.0)) else ((((vars['C_NN'] + (Growth_net * dt_in_hours))) if ((vars['C_NN'] >= (abs( Growth_net ) * dt_in_hours))) else (vars['C_NN']))))
 
   ### Lipids pool ###
@@ -248,11 +251,11 @@ def update_OW5_Copepod(param, vars, env, dt):
 
   ### Setting pool variables
   vars['C_pmax'] = C_pmax_new
-  vars['Ammonium'] = Ammonium_new
-  vars['Carbon'] = Carbon_new
-  vars['Nitrate'] = Nitrate_new
-  vars['C_N'] = C_N_new
   vars['C_NN'] = C_NN_new
+  vars['C_N'] = C_N_new
+  vars['Carbon'] = Carbon_new
+  vars['Ammonium'] = Ammonium_new
+  vars['Nitrate'] = Nitrate_new
 
 def update_OWA5_Copepod(param, vars, env, dt):
   """ FGroup:  Copepod
@@ -304,8 +307,12 @@ def update_OWA5_Copepod(param, vars, env, dt):
   Gut_ftemp = ((0.0) if (((Gut_contTemp == 0.0)) and ((vars['V_gut'] == 0.0))) else (math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)))
   Gut_f_new = Gut_ftemp
   I_max = (((0.67 * vars['V_gut']) - Gut_contTemp) / (param['vPrey'] * 1800.0))
-  I_gv = min((((math.pi * math.pow((L * 2.9e-5), 2.0) * 1.0 * env['CopepodPConcentration'] * 1.0e-6 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7e-8 * env['CopepodPConcentration']))))) if ((vars['V_gut'] > 0.0)) else (I_max)), I_max)
-  vars['PRequest'] = (dt * I_gv) if (env['CopepodPConcentration'] > param['P_min']) else 0.0
+  I_gv = {}
+  for variety in foodset_Default_Copepod_Variety_P.keys():
+    I_gv = min((((math.pi * math.pow((L * 2.9e-5), 2.0) * 1.0 * env['CopepodPConcentration'][variety] * 1.0e-6 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7e-8 * env['CopepodPConcentration'][variety]))))) if ((vars['V_gut'] > 0.0)) else (I_max)), I_max)
+  vars['PRequest'] = {}
+  for variety in foodset_Default_Copepod_Variety_P.keys():
+    vars['PRequest'][variety] = (dt * I_gv) if (env['CopepodPConcentration'][variety] > param['P_min'][variety]) else 0.0
 
   ### Assimilation efficiency ###
   k_N = (1.0 - math.exp(-(param['a'] * Gut_time)))
@@ -388,22 +395,22 @@ def update_OWA5_Copepod(param, vars, env, dt):
   vars['AmmoniumRelease'] = C
 
   ### Setting pool variables
-  vars['Clock'] = Clock_new
   vars['C_pmax'] = C_pmax_new
-  vars['Pc'] = Pc_new
-  vars['Prey_VolDaily'] = Prey_VolDaily_new
-  vars['C_shell'] = C_shell_new
   vars['V_gut'] = V_gut_new
-  vars['Nitrogen'] = Nitrogen_new
-  vars['Carbon'] = Carbon_new
+  vars['Clock'] = Clock_new
+  vars['Prey_VolDaily'] = Prey_VolDaily_new
+  vars['Gut_f'] = Gut_f_new
   vars['PV'] = PV_new
-  vars['Silicate'] = Silicate_new
   vars['P_amm'] = P_amm_new
+  vars['Pc'] = Pc_new
   vars['C_NN'] = C_NN_new
   vars['C_N'] = C_N_new
-  vars['Gut_f'] = Gut_f_new
-  vars['Nitrate'] = Nitrate_new
+  vars['C_shell'] = C_shell_new
+  vars['Carbon'] = Carbon_new
   vars['Ammonium'] = Ammonium_new
+  vars['Nitrate'] = Nitrate_new
+  vars['Nitrogen'] = Nitrogen_new
+  vars['Silicate'] = Silicate_new
 
 def update_C5_Copepod(param, vars, env, dt):
   """ FGroup:  Copepod
@@ -425,7 +432,7 @@ def update_C5_Copepod(param, vars, env, dt):
   I_t = ((2.0 - vars['Gut_f']) * min((param['S_max'] / S), 1.0))
 
   ### Night-time motion ###
-  Dlocal = env['CopepodPConcentration']
+  Dlocal = env['CopepodPConcentration'][variety]
   Kn_calc2 = (0.4 * (2.0 - vars['Gut_f']))
   k_v_night = ((((((-(vars['Direction_1'] * Kn_calc2)) if ((Dlocal < vars['Dlocal_previous'])) else ((vars['Direction_1'] * Kn_calc2)))) if ((vars['z'] < 250.0)) else (-1.0))) if ((vars['z'] > param['MLDepth'])) else (0.0))
   Direction_new = ((1.0) if ((k_v_night > 0.0)) else (-1.0))
@@ -468,8 +475,12 @@ def update_C5_Copepod(param, vars, env, dt):
   Gut_ftemp = ((0.0) if (((Gut_contTemp == 0.0)) and ((vars['V_gut'] == 0.0))) else (math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)))
   Gut_f_new = Gut_ftemp
   I_max = (((0.67 * vars['V_gut']) - Gut_contTemp) / (param['vPrey'] * 1800.0))
-  I_gv = min((((math.pi * math.pow((L * 2.9e-5), 2.0) * 1.0 * env['CopepodPConcentration'] * 1.0e-6 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7e-8 * env['CopepodPConcentration']))))) if ((vars['V_gut'] > 0.0)) else (I_max)), I_max)
-  vars['PRequest'] = (dt * I_gv) if (env['CopepodPConcentration'] > param['P_min']) else 0.0
+  I_gv = {}
+  for variety in foodset_Default_Copepod_Variety_P.keys():
+    I_gv = min((((math.pi * math.pow((L * 2.9e-5), 2.0) * 1.0 * env['CopepodPConcentration'][variety] * 1.0e-6 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7e-8 * env['CopepodPConcentration'][variety]))))) if ((vars['V_gut'] > 0.0)) else (I_max)), I_max)
+  vars['PRequest'] = {}
+  for variety in foodset_Default_Copepod_Variety_P.keys():
+    vars['PRequest'][variety] = (dt * I_gv) if (env['CopepodPConcentration'][variety] > param['P_min'][variety]) else 0.0
 
   ### Assimilation efficiency ###
   k_N = (1.0 - math.exp(-(param['a'] * Gut_time)))
@@ -559,25 +570,25 @@ def update_C5_Copepod(param, vars, env, dt):
   vars['AmmoniumRelease'] = C
 
   ### Setting pool variables
-  vars['Clock'] = Clock_new
   vars['C_pmax'] = C_pmax_new
-  vars['Pc'] = Pc_new
-  vars['Dlocal_previous'] = Dlocal_previous_new
-  vars['C_shell'] = C_shell_new
-  vars['V_gut'] = V_gut_new
-  vars['Nitrate'] = Nitrate_new
-  vars['Nitrogen'] = Nitrogen_new
-  vars['Carbon'] = Carbon_new
-  vars['PV'] = PV_new
-  vars['Silicate'] = Silicate_new
   vars['Direction'] = Direction_new
+  vars['Dlocal_previous'] = Dlocal_previous_new
+  vars['V_gut'] = V_gut_new
+  vars['Clock'] = Clock_new
   vars['Prey_VolDaily'] = Prey_VolDaily_new
+  vars['Gut_f'] = Gut_f_new
+  vars['PV'] = PV_new
   vars['P_amm'] = P_amm_new
+  vars['Pc'] = Pc_new
+  vars['Gut_content'] = Gut_content_new
   vars['C_NN'] = C_NN_new
   vars['C_N'] = C_N_new
-  vars['Gut_f'] = Gut_f_new
+  vars['C_shell'] = C_shell_new
+  vars['Carbon'] = Carbon_new
   vars['Ammonium'] = Ammonium_new
-  vars['Gut_content'] = Gut_content_new
+  vars['Nitrate'] = Nitrate_new
+  vars['Nitrogen'] = Nitrogen_new
+  vars['Silicate'] = Silicate_new
 
 def update_Pellet_Copepod(param, vars, env, dt):
   """ FGroup:  Copepod
@@ -593,8 +604,8 @@ def update_Pellet_Copepod(param, vars, env, dt):
   vars['SilicateRelease'] = vars['SilicateIngested']
 
   ### Setting pool variables
-  vars['Nitrate'] = Nitrate_new
   vars['Ammonium'] = Ammonium_new
+  vars['Nitrate'] = Nitrate_new
 
 def update_Dead_Copepod(param, vars, env, dt):
   """ FGroup:  Copepod
@@ -628,6 +639,163 @@ def update_Dead_Copepod(param, vars, env, dt):
   ### Setting pool variables
   vars['C_pmax'] = C_pmax_new
   vars['Carbon'] = Carbon_new
-  vars['Nitrate'] = Nitrate_new
-  vars['Ammonium'] = Ammonium_new
   vars['Nitrogen'] = Nitrogen_new
+  vars['Ammonium'] = Ammonium_new
+  vars['Nitrate'] = Nitrate_new
+
+# Parameters for FGroup Basal_predator
+# Species: Default_Basal_Predator_Variety
+species_Default_Basal_Predator_Variety = {
+    'I_max40' : 6e-05,
+    'T_ref' : 1.0,
+}
+# Foodset: Default_Basal_Predator_Variety_P
+foodset_Default_Basal_Predator_Variety_P = {
+    'OWD5' : {
+        'K_p' : 0.0001,
+        'P_minv' : 1000.0,
+        'P_size' : 0.0006,
+        'k_Iv' : 1000000.0,    },
+    'OWA4' : {
+        'K_p' : 0.0001,
+        'P_minv' : 1000.0,
+        'P_size' : 0.00021,
+        'k_Iv' : 1000000.0,    },
+    'C6' : {
+        'K_p' : 0.0001,
+        'P_minv' : 1000.0,
+        'P_size' : 0.00333,
+        'k_Iv' : 1000000.0,    },
+    'Senescent' : {
+        'K_p' : 0.0001,
+        'P_minv' : 1000.0,
+        'P_size' : 0.0083,
+        'k_Iv' : 1000000.0,    },
+    'OWA5' : {
+        'K_p' : 0.0001,
+        'P_minv' : 1000.0,
+        'P_size' : 0.0006,
+        'k_Iv' : 1000000.0,    },
+    'POW4' : {
+        'K_p' : 0.0001,
+        'P_minv' : 1000.0,
+        'P_size' : 0.00021,
+        'k_Iv' : 1000000.0,    },
+    'POW5' : {
+        'K_p' : 0.0001,
+        'P_minv' : 1000.0,
+        'P_size' : 0.0006,
+        'k_Iv' : 1000000.0,    },
+    'Adult' : {
+        'K_p' : 0.0001,
+        'P_minv' : 1000.0,
+        'P_size' : 0.0075,
+        'k_Iv' : 1000000.0,    },
+    'C5' : {
+        'K_p' : 0.0001,
+        'P_minv' : 1000.0,
+        'P_size' : 0.00125,
+        'k_Iv' : 1000000.0,    },
+    'C4OW' : {
+        'K_p' : 0.0001,
+        'P_minv' : 1000.0,
+        'P_size' : 0.00021,
+        'k_Iv' : 1000000.0,    },
+    'OWD4' : {
+        'K_p' : 0.0001,
+        'P_minv' : 1000.0,
+        'P_size' : 0.00021,
+        'k_Iv' : 1000000.0,    },
+    'Mature' : {
+        'K_p' : 0.0001,
+        'P_minv' : 1000.0,
+        'P_size' : 0.0083,
+        'k_Iv' : 1000000.0,    },
+    'C3' : {
+        'K_p' : 0.0001,
+        'P_minv' : 1000.0,
+        'P_size' : 0.00021,
+        'k_Iv' : 1000000.0,    },
+    'C2' : {
+        'K_p' : 0.0001,
+        'P_minv' : 1000.0,
+        'P_size' : 9.2e-05,
+        'k_Iv' : 1000000.0,    },
+    'C1' : {
+        'K_p' : 0.0001,
+        'P_minv' : 1000.0,
+        'P_size' : 6.25e-05,
+        'k_Iv' : 1000000.0,    },
+    'N3' : {
+        'K_p' : 0.0001,
+        'P_minv' : 1000.0,
+        'P_size' : 5e-06,
+        'k_Iv' : 1000000.0,    },
+    'N4' : {
+        'K_p' : 0.0001,
+        'P_minv' : 1000.0,
+        'P_size' : 1.7e-05,
+        'k_Iv' : 1000000.0,    },
+    'N5' : {
+        'K_p' : 0.0001,
+        'P_minv' : 1000.0,
+        'P_size' : 2.5e-05,
+        'k_Iv' : 1000000.0,    },
+    'N6' : {
+        'K_p' : 0.0001,
+        'P_minv' : 1000.0,
+        'P_size' : 3.75e-05,
+        'k_Iv' : 1000000.0,    },
+    'C4' : {
+        'K_p' : 0.0001,
+        'P_minv' : 1000.0,
+        'P_size' : 0.0006,
+        'k_Iv' : 1000000.0,    },
+}
+
+def update_Existance_Basal_predator(param, vars, env, dt):
+  """ FGroup:  Basal_predator
+      Stage:   Existance
+  """
+  dt_in_hours = dt / 3600.0
+
+  ### Ingestion ###
+  I_gv = {}
+  for variety in foodset_Default_Basal_Predator_Variety_P.keys():
+    I_gv = min(((0.3 + (0.7 * (env['Temperature'] / param['T_ref']))) * ((((env['CopepodPConcentration'][variety] - param['P_minv'][variety]) * ((env['CopepodPConcentration'][variety] - param['P_minv'][variety]) / ((env['CopepodPConcentration'][variety] - param['P_minv'][variety]) + param['k_Iv'][variety])) * param['K_p'][variety])) if ((env['CopepodPConcentration'][variety] > param['P_minv'][variety])) else (0.0))), (param['I_max40'] / param['P_size'][variety]))
+  vars['PRequest'] = {}
+  for variety in foodset_Default_Basal_Predator_Variety_P.keys():
+    vars['PRequest'][variety] = (dt * I_gv) if (env['CopepodPConcentration'][variety] > param['P_minv'][variety]) else 0.0
+
+  ### Egestion ###
+  new_agent_vars = {}
+  new_agent_vars['Stage'] = stage_id('Basal_predator', 'Pellet')
+  new_agent_vars['Size'] = 1.0
+  new_agent_vars['Ammonium'] = (vars['AmmoniumIngested'] + vars['NitrateIngested'])
+  add_agent('Basal_predator', new_agent_vars, [-vars['z']])
+
+  ### Silicon Pool ###
+  Silicate_new = 0.0
+  vars['SilicateRelease'] = vars['SilicateIngested']
+
+  ### Setting pool variables
+  vars['Silicate'] = Silicate_new
+
+def update_Pellet_Basal_predator(param, vars, env, dt):
+  """ FGroup:  Basal_predator
+      Stage:   Pellet
+  """
+  dt_in_hours = dt / 3600.0
+
+  ### Remineralisation ###
+  R_nTBP = (0.0042 * math.pow(2.95, (((env['Temperature'] + 273.0) - 283.0) / 10.0)))
+  vars['AmmoniumRelease'] = (((vars['Ammonium'] * R_nTBP * dt_in_hours)) if ((vars['Ammonium'] > 0.0)) else (0.0))
+  Ammonium_new = max((vars['Ammonium'] - (vars['Ammonium'] * R_nTBP * dt_in_hours)), 0.0)
+
+  ### Silicon Pool ###
+  Silicate_new = 0.0
+  vars['SilicateRelease'] = vars['SilicateIngested']
+
+  ### Setting pool variables
+  vars['Ammonium'] = Ammonium_new
+  vars['Silicate'] = Silicate_new
