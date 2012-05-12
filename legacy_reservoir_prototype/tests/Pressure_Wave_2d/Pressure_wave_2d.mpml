@@ -710,4 +710,36 @@
       </prognostic>
     </scalar_field>
   </material_phase>
+  <porous_media>
+    <scalar_field name="Porosity">
+      <prescribed>
+        <mesh name="P0DG"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value rank="0">0</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="Permeability">
+      <prescribed>
+        <mesh name="P0DG"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value rank="0">1</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+  </porous_media>
 </multiphase_options>

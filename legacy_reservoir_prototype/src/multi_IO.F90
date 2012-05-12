@@ -488,7 +488,7 @@ contains
 
   SUBROUTINE TEST_BC(NDIM, NPHASE, &
        U_NONODS, CV_NONODS, X_NONODS, &
-       U_SNLOC, P_SNLOC, CV_SNLOC, STOTEL, U_SNDGLN, P_SNDGLN, CV_SNDGLN, &
+       U_SNLOC, P_SNLOC, CV_SNLOC, STOTEL, U_SNDGLN, P_SNDGLN, CV_SNDGLN, X_SNDGLN, &
                                 ! for force balance eqn:
        SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_P_BC, &
        SUF_U_BC_ROB1, SUF_U_BC_ROB2, SUF_V_BC_ROB1, SUF_V_BC_ROB2,  &
@@ -504,6 +504,7 @@ contains
 
     INTEGER, intent( in ) :: NDIM, NPHASE, U_NONODS, CV_NONODS, X_NONODS, &
          STOTEL, U_SNLOC, P_SNLOC, CV_SNLOC
+    INTEGER, DIMENSION( STOTEL * CV_SNLOC ), intent( in ) :: X_SNDGLN
     INTEGER, DIMENSION( STOTEL * U_SNLOC ), intent( in ) :: U_SNDGLN
     INTEGER, DIMENSION( STOTEL * P_SNLOC ), intent( in )  :: P_SNDGLN
     INTEGER, DIMENSION( STOTEL * CV_SNLOC ), intent( in ) :: CV_SNDGLN
@@ -521,7 +522,7 @@ contains
     ! Local variables...
     REAL :: XMIN, XMAX, YMIN, YMAX
     INTEGER :: IXMIN, IXMAX, IYMIN, IYMAX
-    INTEGER :: IPHASE, XNOD, SELE, CV_SILOC, CV_NOD, CV_SNOD, SPHA, &
+    INTEGER :: IPHASE, XNOD, SELE, CV_SILOC, X_NOD, CV_SNOD, SPHA, &
          U_SILOC, U_SNOD, U_SNOD_PHAS, CV_SNOD_PHAS
 
     ewrite(3,*)' In TEST_BC'
@@ -566,21 +567,25 @@ contains
        IYMIN=0
        IYMAX=0
        DO CV_SILOC=1,CV_SNLOC
-          CV_NOD=CV_SNDGLN((SELE-1)*CV_SNLOC+CV_SILOC)
 
-          ewrite(3,*), 'sele, cv_siloc, cv_nod', sele, cv_siloc, cv_nod
+          ! if pressure is continuous use this
+          X_NOD=CV_SNDGLN((SELE-1)*CV_SNLOC+CV_SILOC)
+          ! if pressure is discontinuous use this
+          !X_NOD=X_SNDGLN((SELE-1)*CV_SNLOC+CV_SILOC)
 
-          IF(ABS(X(CV_NOD)-XMIN).LT.1.E-4) THEN ! Left boundary
+          ewrite(3,*), 'sele, cv_siloc, x_nod', sele, cv_siloc, x_nod
+
+          IF(ABS(X(X_NOD)-XMIN).LT.1.E-4) THEN ! Left boundary
              IXMIN=IXMIN+1
           ENDIF
-          IF(ABS(X(CV_NOD)-XMAX).LT.1.E-4) THEN ! Right boundary
+          IF(ABS(X(X_NOD)-XMAX).LT.1.E-4) THEN ! Right boundary
              IXMAX=IXMAX+1
           ENDIF
 
-          IF(ABS(Y(CV_NOD)-YMIN).LT.1.E-4) THEN ! Bottom boundary
+          IF(ABS(Y(X_NOD)-YMIN).LT.1.E-4) THEN ! Bottom boundary
              IYMIN=IYMIN+1
           ENDIF
-          IF(ABS(Y(CV_NOD)-YMAX).LT.1.E-4) THEN ! Top boundary
+          IF(ABS(Y(X_NOD)-YMAX).LT.1.E-4) THEN ! Top boundary
              IYMAX=IYMAX+1
           ENDIF
        END DO

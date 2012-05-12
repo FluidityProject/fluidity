@@ -355,7 +355,7 @@
       ALLOCATE( WIC_T2_BC( STOTEL * CV_SNLOC * NPHASE * IGOT_T2  ))
       ALLOCATE( THETA_GDIFF( CV_NONODS * NPHASE * IGOT_T2 ))
 
-      !    ewrite(3,*) 'In VOLFRA_ASSEM_SOLVE'
+      ewrite(3,*) 'In VOLFRA_ASSEM_SOLVE'
 
       ALLOCATE( ACV( NCOLACV ))
       ALLOCATE( CV_RHS( CV_NONODS * NPHASE ))
@@ -575,16 +575,16 @@
       ALLOCATE( CMC( NCOLCMC ))
       ALLOCATE( MASS_MN_PRES( NCOLCMC ))
       ALLOCATE( MASS_CV( CV_NONODS ))
-      ALLOCATE( P_RHS( CV_NONODS ));P_RHS=0.
-      ALLOCATE( UP( NLENMCY ));UP=0.
-      ALLOCATE( U_RHS_CDP( U_NONODS * NDIM * NPHASE )); U_RHS_CDP=0.
-      ALLOCATE( DP( CV_NONODS )) ; DP=0.
-      ALLOCATE( CDP( U_NONODS * NDIM * NPHASE )) ; CDP=0. 
-      ALLOCATE( DU_VEL( U_NONODS * NDIM * NPHASE ));DU_VEL=0.
-      ALLOCATE( UP_VEL( U_NONODS * NDIM * NPHASE ));UP_VEL=0.
-      ALLOCATE( DU( U_NONODS * NPHASE ));DU=0.
-      ALLOCATE( DV( U_NONODS * NPHASE ));DV=0.
-      ALLOCATE( DW( U_NONODS * NPHASE ));DW=0.
+      ALLOCATE( P_RHS( CV_NONODS )) ; P_RHS=0.
+      ALLOCATE( UP( NLENMCY )) ; UP=0.
+      ALLOCATE( U_RHS_CDP( U_NONODS * NDIM * NPHASE )) ; U_RHS_CDP=0.
+      ALLOCATE( DP( CV_NONODS )) ; DP = 0.
+      ALLOCATE( CDP( U_NONODS * NDIM * NPHASE )) ; CDP = 0. 
+      ALLOCATE( DU_VEL( U_NONODS * NDIM * NPHASE )) ; DU_VEL = 0.
+      ALLOCATE( UP_VEL( U_NONODS * NDIM * NPHASE )) ; UP_VEL = 0.
+      ALLOCATE( DU( U_NONODS * NPHASE )) ; DU = 0.
+      ALLOCATE( DV( U_NONODS * NPHASE )) ; DV = 0.
+      ALLOCATE( DW( U_NONODS * NPHASE )) ; DW = 0.
       ALLOCATE( PIVIT_MAT( TOTELE, U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM ))
       ALLOCATE( INV_PIVIT_MAT( TOTELE, U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM ))
       ALLOCATE( DGM_PHA( NCOLDGM_PHA ))
@@ -650,7 +650,7 @@
 
       ELSE ! solve using a projection method
 
-         ewrite(3,*) 'pivit_mat', pivit_mat
+         !ewrite(3,*) 'pivit_mat', pivit_mat
 
          CALL PHA_BLOCK_INV( INV_PIVIT_MAT, PIVIT_MAT, TOTELE, U_NLOC * NPHASE * NDIM )
 
@@ -658,10 +658,10 @@
          ! Put pressure in rhs of force balance eqn:  CDP=C*P
          CALL C_MULT( CDP, P, CV_NONODS, U_NONODS, NDIM, NPHASE, C, NCOLC, FINDC, COLC)
 
-         ewrite(3,*) 'U_RHS:',U_RHS
-         ewrite(3,*) 'CDP:',CDP
-         ewrite(3,*) 'P:',P
-         ewrite(3,*) 'C:',C
+         !ewrite(3,*) 'U_RHS:',U_RHS
+         !ewrite(3,*) 'CDP:',CDP
+         !ewrite(3,*) 'P:',P
+         !ewrite(3,*) 'C:',C
 
          U_RHS_CDP = U_RHS + CDP
 
@@ -698,14 +698,13 @@
                CV_JNOD = COLCMC( COUNT )
                P_RHS( CV_NOD ) = P_RHS( CV_NOD ) &
                     - DIAG_SCALE_PRES( CV_NOD ) * MASS_MN_PRES( COUNT ) * P( CV_JNOD )
-
-               ewrite(3,*) cv_nod, cv_jnod, count, P_RHS( CV_NOD ), &
-                    DIAG_SCALE_PRES( CV_NOD ),  MASS_MN_PRES( COUNT ), P( CV_JNOD )    
+               !ewrite(3,*) cv_nod, cv_jnod, count, P_RHS( CV_NOD ), &
+               !     DIAG_SCALE_PRES( CV_NOD ),  MASS_MN_PRES( COUNT ), P( CV_JNOD )    
             END DO
          END DO
 
-         ewrite(3,*) 'P_RHS::', p_rhs
-         ewrite(3,*) 'CT_RHS::', ct_rhs
+         !ewrite(3,*) 'P_RHS::', p_rhs
+         !ewrite(3,*) 'CT_RHS::', ct_rhs
 
          ! solve for pressure correction DP that is solve CMC *DP=P_RHS...
          ewrite(3,*)'about to solve for pressure'
@@ -715,14 +714,15 @@
          ! Print cmc
          if(.true.) then
             DO CV_NOD = 1, CV_NONODS
-               ewrite(3,*) 'cv_nod=',cv_nod
+               ewrite(3,*) 'cv_nod=',cv_nod, &
+                    'findcmc=', FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
                rsum=0.0
                DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
                   CV_JNOD = COLCMC( COUNT )
-                  ewrite(3,*) 'CV_JNOD,cmc(count):',CV_JNOD,cmc(count)
-                  rsum=rsum+cmc(count)
+                  ewrite(3,*) 'count,CV_JNOD,cmc(count):',count,CV_JNOD,cmc(count)
+                  if (cv_nod/=cv_jnod) rsum=rsum+abs(cmc(count))
                END DO
-               ewrite(3,*) 'rsum=',rsum
+               ewrite(3,*) 'off_diag, diag=',rsum,cmc(midcmc(cv_nod)) 
             END DO
             !stop 1244
          endif
@@ -763,9 +763,9 @@
 
          CALL ULONG_2_UVW( DU, DV, DW, DU_VEL, U_NONODS, NDIM, NPHASE )
 
-         ewrite(3,*)'DU', DU
-         ewrite(3,*)'DV', DV
-         ewrite(3,*)'DW', DW
+         !ewrite(3,*)'DU', DU
+         !ewrite(3,*)'DV', DV
+         !ewrite(3,*)'DW', DW
 
          U = U + DU
          IF( NDIM >= 2) V = V + DV
@@ -1327,7 +1327,7 @@
       ALLOCATE( SUF_T2_BC( STOTEL * CV_SNLOC * NPHASE * IGOT_T2  ))
       ALLOCATE( WIC_T2_BC( STOTEL * CV_SNLOC * NPHASE * IGOT_T2  ))
       ALLOCATE( THETA_GDIFF( CV_NONODS * NPHASE * IGOT_T2 ))
-      ALLOCATE( ACV( NCOLACV )) 
+      ALLOCATE( ACV( NCOLACV ))
       ALLOCATE( CV_RHS( CV_NONODS * NPHASE ))
       ALLOCATE( TDIFFUSION( MAT_NONODS, NDIM, NDIM, NPHASE ))
       ALLOCATE( SUF_VOL_BC_ROB1( STOTEL * CV_SNLOC * NPHASE )) ; SUF_VOL_BC_ROB1 = 0.
@@ -1407,7 +1407,6 @@
 
       ewrite(3,*)'Back from cv_assemb'
 
-
       IF(GLOBAL_SOLVE) THEN
          ! Put CT into global matrix MCY...
          MCY_RHS( U_NONODS * NDIM * NPHASE + 1 : U_NONODS * NDIM * NPHASE + CV_NONODS ) = &
@@ -1418,22 +1417,6 @@
               CV_NONODS, NCOLCT, CT, DIAG_SCALE_PRES, FINDCT, &
               FINDCMC, NCOLCMC, MASS_MN_PRES ) 
       ENDIF
-
-      if (.false.) then
-         call test_bc( ndim, nphase, &
-              u_nonods, cv_nonods, x_nonods, &
-              u_snloc, p_snloc, cv_snloc, stotel, u_sndgln, p_sndgln, cv_sndgln, &
-                                ! For force balance eqn:
-              suf_u_bc, suf_v_bc, suf_w_bc, suf_p_bc, &
-              suf_u_bc_rob1, suf_u_bc_rob2, suf_v_bc_rob1, suf_v_bc_rob2, &
-              suf_w_bc_rob1, suf_w_bc_rob2, &
-              wic_u_bc, wic_p_bc, &
-                                ! For cty eqn: 
-              suf_vol_bc, suf_d_bc, &
-              suf_vol_bc_rob1, suf_vol_bc_rob2, &
-              wic_vol_bc, wic_d_bc, &
-              x, y, z )
-      endif
 
       DEALLOCATE( T2 )
       DEALLOCATE( T2OLD )
@@ -2315,8 +2298,8 @@
                CALL POSINMAT( COUNT, IU_NOD, JCV_NOD,&
                     U_NONODS, FINDC, COLC, NCOLC )
 
-               ewrite(3,*)'ELE,U_ILOC,P_JLOC,NMX,NMY,NMZ:', ELE,U_ILOC, P_JLOC, NMX, NMY, NMZ
-               ewrite(3,*)'IU_NOD, JCV_NOD, COUNT:', IU_NOD, JCV_NOD, COUNT
+               !ewrite(3,*)'ELE,U_ILOC,P_JLOC,NMX,NMY,NMZ:', ELE,U_ILOC, P_JLOC, NMX, NMY, NMZ
+               !ewrite(3,*)'IU_NOD, JCV_NOD, COUNT:', IU_NOD, JCV_NOD, COUNT
 
                Loop_Phase1: DO IPHASE = 1, NPHASE
                   COUNT_PHA = COUNT + ( IPHASE - 1 ) * NDIM * NCOLC
@@ -2353,9 +2336,9 @@
 
       END DO Loop_Elements
 
-      ewrite(3,*) 'c=',c
-      ewrite(3,*) 'here1 u_rhs:',u_rhs
-      ewrite(3,*) 'disc_pres',  (CV_NONODS == TOTELE * CV_NLOC )
+      !ewrite(3,*) 'c=',c
+      !ewrite(3,*) 'here1 u_rhs:',u_rhs
+      !ewrite(3,*) 'disc_pres',  (CV_NONODS == TOTELE * CV_NLOC )
 
       !! *************************loop over surfaces*********************************************
 
@@ -3012,11 +2995,10 @@
       END DO Loop_Elements2
 
 
-      EWRITE(3,*)'-STOTEL, U_SNLOC, P_SNLOC:', STOTEL, U_SNLOC, P_SNLOC
-      EWRITE(3,*)'-WIC_P_BC:', WIC_P_BC( 1 : STOTEL * NPHASE )
-      EWRITE(3,*)'-SUF_P_BC:', SUF_P_BC( 1 : STOTEL * P_SNLOC * NPHASE )
-      ewrite(3,*)'pqp'
-
+      !EWRITE(3,*)'-STOTEL, U_SNLOC, P_SNLOC:', STOTEL, U_SNLOC, P_SNLOC
+      !EWRITE(3,*)'-WIC_P_BC:', WIC_P_BC( 1 : STOTEL * NPHASE )
+      !EWRITE(3,*)'-SUF_P_BC:', SUF_P_BC( 1 : STOTEL * P_SNLOC * NPHASE )
+      !ewrite(3,*)'pqp'
       !stop 242
 
       DEALLOCATE( DETWEI )

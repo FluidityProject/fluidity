@@ -1944,7 +1944,7 @@
                  cvfem_on_face, &
                  cv_nloc, scvfen, scvfenslx, scvfensly, scvfeweigh, &
                  scvfenlx, scvfenly, scvfenlz, &
-                 u_nloc, sufen2, sufenslx, sufensly, &
+                 u_nloc, sufen, sufenslx, sufensly, &
                  sufenlx, sufenly, sufenlz, &
                  sbcvngi, sbcvfen, sbcvfenslx, sbcvfensly, sbcvfeweigh, &
                  sbcvfenlx, sbcvfenly, sbcvfenlz,  &
@@ -2126,8 +2126,8 @@
          candidate_gi2( cv_sgi ) = .true.
          do cv_iloc_cells = 1, cv_snloc_cells
             if( .not.cvfem_on_face(cv_iloc_cells,cv_sgi) ) candidate_gi2( cv_sgi ) = .false.
-            !ewrite(3,*)'cv_iloc_cells,cv_sgi, cvfem_on_face(cv_iloc_cells,cv_sgi):', &
-            !     cv_iloc_cells,cv_sgi, cvfem_on_face(cv_iloc_cells,cv_sgi)
+            ewrite(3,*)'cv_iloc_cells, cv_sgi, cvfem_on_face(cv_iloc_cells,cv_sgi):', &
+                 cv_iloc_cells,cv_sgi, cvfem_on_face(cv_iloc_cells,cv_sgi)
          end do
       end do
 
@@ -2137,9 +2137,9 @@
          Loop_SGI2: do cv_sgi = 1, scvngi
                Conditional_2: if( candidate_gi2( cv_sgi ) ) then
                   cv_bsgi = cv_bsgi + 1
-                  !ewrite(3,*) 'cv_siloc, cv_bsgi,cv_iloc, cv_sgi:', &
-                  !     cv_siloc, cv_bsgi,cv_iloc, cv_sgi
-                  !ewrite(3,*) 'scvfen( cv_iloc, cv_sgi ):', scvfen( cv_iloc, cv_sgi )
+                  ewrite(3,*) 'cv_siloc, cv_bsgi,cv_iloc, cv_sgi:', &
+                       cv_siloc, cv_bsgi,cv_iloc, cv_sgi
+                  ewrite(3,*) 'scvfen( cv_iloc, cv_sgi ):', scvfen( cv_iloc, cv_sgi )
                   sbcvfen( cv_siloc, cv_bsgi ) = scvfen( cv_iloc, cv_sgi )
                   sbcvfenslx( cv_siloc, cv_bsgi ) = scvfenslx( cv_iloc, cv_sgi )
                   sbcvfensly( cv_siloc, cv_bsgi ) = scvfensly( cv_iloc, cv_sgi )

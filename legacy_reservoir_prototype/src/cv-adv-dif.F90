@@ -336,7 +336,7 @@
       ndotq = 0. ; ndotqold = 0.
 
       QUAD_OVER_WHOLE_ELE=.FALSE. 
-! If QUAD_OVER_WHOLE_ELE=.true. then dont divide element into CV's to form quadrature.
+      ! If QUAD_OVER_WHOLE_ELE=.true. then dont divide element into CV's to form quadrature.
       call retrieve_ngi( ndim, cv_ele_type, cv_nloc, u_nloc, &
            cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, QUAD_OVER_WHOLE_ELE )
 
@@ -751,10 +751,12 @@
                   X_NODI = X_NDGLN(( ELE - 1 ) * X_NLOC  + CV_ILOC )
 
                   Conditional_GETCT1: IF( GETCT ) THEN ! Obtain the CV discretised CT equations plus RHS
-
+                     ewrite(3,*)'==================================================================='
                      ewrite(3,*)'CV_NODI, CV_NODJ, ELE, ELE2:', CV_NODI, CV_NODJ, ELE, ELE2
                      ewrite(3,*)'findct:',FINDCT( CV_NODI ), FINDCT( CV_NODI + 1 ) - 1
                      ewrite(3,*)'colct:',colct( FINDCT( CV_NODI ) : FINDCT( CV_NODI + 1 ) - 1 )
+                     ewrite(3,*)'SCVDETWEI:', SCVDETWEI 
+                     ewrite(3,*)'n:', CVNORMX, CVNORMY, CVNORMZ
 
                      DO U_KLOC = 1, U_NLOC
                         U_NODK = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC )
@@ -1253,7 +1255,7 @@
                cv_nodi_IPHA=cv_nodi +(IPHASE-1)*CV_NONODS
 
                if(cv_nonods==x_nonods) then
-                  !                ewrite(3,*)0.5*(x(cv_nodi)+x(cv_nodi+1)),UP_WIND_NOD(cv_nodi_IPHA)
+                  !ewrite(3,*)0.5*(x(cv_nodi)+x(cv_nodi+1)),UP_WIND_NOD(cv_nodi_IPHA)
                   ewrite(3,*)0.5*(x(x_ndgln((ele-1)*x_nloc+cv_iloc))+x(x_ndgln((ele-1)*x_nloc+cv_iloc+1))),  &
                        UP_WIND_NOD(cv_nodi_IPHA)
                else
@@ -1273,6 +1275,13 @@
       ! for the output
       T_FEMT = femt
       DEN_FEMT = FEMDEN
+
+
+      print *, '----------sub cv_assemb--------'
+      print *, 'cv_rhs:', cv_rhs
+      print *, 'ct_rhs:', ct_rhs
+      print *, '----------sub cv_assemb--------'
+
 
       ewrite(3,*)'IN cv_adv_dif a CV representation t:'
       CALL PRINT_CV_DIST(CV_NONODS,X_NONODS,TOTELE,CV_NLOC,X_NLOC,NPHASE, &
@@ -6138,7 +6147,7 @@
            U_KLOC_LEV, U_NLOC_LEV
       REAL :: RCON,UDGI_IMP,VDGI_IMP,WDGI_IMP,NDOTQ_IMP
 
-      ewrite(3,*)' In PUT_IN_CT_RHS CVNORMX( GI ),CVNORMY( GI ):',CVNORMX( GI ),CVNORMY( GI )
+      ewrite(3,*)' In PUT_IN_CT_RHS CVNORMX/Y/Z:',CVNORMX( GI ),CVNORMY( GI ),CVNORMZ( GI )
       ewrite(3,*)' SCVDETWEI( GI ):',SCVDETWEI( GI )
       ewrite(3,*)' SUFEN( :, GI ):',SUFEN( :, GI )
       ewrite(3,*)' jcount_kloc:', jcount_kloc
@@ -6207,20 +6216,20 @@
 
                IDIM = 1
                CT( JCOUNT2_IPHA + ( IDIM - 1 ) * NCOLCT ) &
-                    =  CT( JCOUNT2_IPHA + ( IDIM - 1 ) * NCOLCT) &
-                    +  RCON *UGI_COEF_ELE2(U_KLOC2)* CVNORMX( GI )
+                    =  CT( JCOUNT2_IPHA + ( IDIM - 1 ) * NCOLCT ) &
+                    +  RCON * UGI_COEF_ELE2( U_KLOC2 ) * CVNORMX( GI )
 
                IDIM = 2
                IF( NDIM >= 2 ) &
                     CT( JCOUNT2_IPHA + ( IDIM - 1 ) * NCOLCT ) &
                     =  CT( JCOUNT2_IPHA + ( IDIM - 1 ) * NCOLCT ) &
-                    +  RCON * VGI_COEF_ELE2(U_KLOC2)* CVNORMY( GI )
+                    +  RCON * VGI_COEF_ELE2( U_KLOC2 ) * CVNORMY( GI )
 
                IDIM = 3
                IF( NDIM >= 3 ) &
                     CT( JCOUNT2_IPHA + ( IDIM - 1 ) * NCOLCT ) &
                     =  CT( JCOUNT2_IPHA + ( IDIM - 1 ) * NCOLCT ) &
-                    +  RCON * WGI_COEF_ELE2(U_KLOC2)* CVNORMZ( GI )
+                    +  RCON * WGI_COEF_ELE2( U_KLOC2 ) * CVNORMZ( GI )
             ENDIF
          END DO
       ENDIF

@@ -632,7 +632,7 @@ contains
                      NDIM,  &
                      NCOLM, FINDM, COLM, MIDM, &
                      XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, LUMP_EQNS, &
-                                !  OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, Comp_FEMT(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 ), Den_FEMT, & 
+                     !  OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, Comp_FEMT(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 ), Den_FEMT, & 
                      OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
                      Comp_FEMT(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 : ICOMP * NPHASE * CV_NONODS ), Den_FEMT, & 
                      IGOT_T2, SATURA, SATURAOLD, IGOT_THETA_FLUX, SCVNGI_THETA, COMP_GET_THETA_FLUX, COMP_USE_THETA_FLUX, &

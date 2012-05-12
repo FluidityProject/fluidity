@@ -162,7 +162,7 @@
 
 
       integer, dimension(:), allocatable :: cv_ndgln, u_ndgln, p_ndgln, x_ndgln, x_ndgln_p1, &
-           xu_ndgln, mat_ndgln, cv_sndgln, p_sndgln, u_sndgln, u_sndgln2
+           xu_ndgln, mat_ndgln, cv_sndgln, p_sndgln, u_sndgln, u_sndgln2, x_sndgln
       integer, dimension(:), pointer :: element_nodes
 
       real, dimension(:), allocatable :: initial_constant_velocity
@@ -325,27 +325,38 @@
       p_sndgln = cv_sndgln
 
       ! Velocities
-      u_snloc2 = u_snloc / cv_nloc
-      u_nloc2 = u_nloc / cv_nloc
+      if ( is_overlapping ) then
+         u_snloc2 = u_snloc / cv_nloc
+         u_nloc2 = u_nloc / cv_nloc
+      else
+         u_snloc2 = u_snloc
+         u_nloc2 = u_nloc
+      end if
+
       allocate( u_sndgln2( stotel * u_snloc2 ) ) ; u_sndgln2 = 0
       ewrite(3,*)'U_SNGLN'
       call Get_SNdgln( u_sndgln2, velocity )
       allocate( u_sndgln( stotel * u_snloc ) ) ; u_sndgln = 0
-      ! Convert u_sndgln2 to overlapping u_sndgln
-      do sele = 1, stotel
-         do u_siloc2 = 1, u_snloc2
-            do ilev = 1, cv_nloc
-               u_siloc = ( ilev - 1 ) * u_snloc2 + u_siloc2
-               ele = int( ( u_sndgln2 ( ( sele - 1 ) * u_snloc2 + &
-                    u_siloc2 ) - 1 ) / u_nloc2) + 1
-               inod_remain = u_sndgln2( ( sele - 1 ) * u_snloc2 + &
-                    u_siloc2 ) - ( ele - 1 ) * u_nloc2
-               u_sndgln( ( sele - 1 ) * u_snloc + u_siloc ) = &
-                    ( ele - 1 ) * u_nloc + inod_remain + &
-                    ( ilev - 1 ) * u_nloc2
+
+      if ( is_overlapping ) then
+         ! Convert u_sndgln2 to overlapping u_sndgln
+         do sele = 1, stotel
+            do u_siloc2 = 1, u_snloc2
+               do ilev = 1, cv_nloc
+                  u_siloc = ( ilev - 1 ) * u_snloc2 + u_siloc2
+                  ele = int( ( u_sndgln2 ( ( sele - 1 ) * u_snloc2 + &
+                       u_siloc2 ) - 1 ) / u_nloc2) + 1
+                  inod_remain = u_sndgln2( ( sele - 1 ) * u_snloc2 + &
+                       u_siloc2 ) - ( ele - 1 ) * u_nloc2
+                  u_sndgln( ( sele - 1 ) * u_snloc + u_siloc ) = &
+                       ( ele - 1 ) * u_nloc + inod_remain + &
+                       ( ilev - 1 ) * u_nloc2
+               end do
             end do
          end do
-      end do
+      else
+         u_sndgln=u_sndgln2
+      end if
       deallocate( u_sndgln2 )
 
       ewrite(3,*) ' Final u_sndgln: '
@@ -798,7 +809,7 @@
          velocity => extract_vector_field(state(i), "Velocity")
          call Get_VectorFields_Outof_State( state, i, velocity, &
               u, v, w, nu, nv, nw, &
-              wic_u_bc, suf_u_bc, suf_v_bc, suf_w_bc, u_source, vel_absorb )
+              wic_u_bc, suf_u_bc, suf_v_bc, suf_w_bc, u_source, vel_absorb, is_overlapping )
 
       end do Loop_Velocity
 
@@ -987,9 +998,13 @@
       cv_one = 1.0
 
       if( .false. ) then
+
+         allocate( x_sndgln( stotel * cv_snloc ) ) ; x_sndgln = 0
+         call Get_SNdgln( x_sndgln, positions )
+
          call test_bc( ndim, nphases, &
               u_nonods, cv_nonods, x_nonods, &
-              u_snloc, p_snloc, cv_snloc, stotel, u_sndgln, p_sndgln, cv_sndgln, &
+              u_snloc, p_snloc, cv_snloc, stotel, u_sndgln, p_sndgln, cv_sndgln, x_sndgln, &
                                 ! For force balance eqn:
               suf_u_bc, suf_v_bc, suf_w_bc, suf_p_bc, &
               suf_u_bc_rob1, suf_u_bc_rob2, suf_v_bc_rob1, suf_v_bc_rob2, &
@@ -1000,6 +1015,9 @@
               suf_vol_bc_rob1, suf_vol_bc_rob2, &
               wic_vol_bc, wic_d_bc, &
               x, y, z )
+
+         deallocate( x_sndgln )
+
       end if
 
       ewrite(3,*) "Leaving copy_outof_state"
@@ -1301,7 +1319,7 @@
       type( vector_field ), pointer :: positions, velocity
       type( scalar_field ), pointer :: pressure
       type( mesh_type ), pointer :: velocity_cg_mesh, pressure_cg_mesh
-      integer :: i
+      integer :: i, degree
 
       ewrite(3,*)' In Get_Primary_Scalars'
 
@@ -1627,10 +1645,11 @@
 
     subroutine Get_VectorFields_Outof_State( state, iphase, field, &
          field_u_prot, field_v_prot, field_w_prot, field_nu_prot, field_nv_prot, field_nw_prot, &
-         wic_bc, suf_u_bc, suf_v_bc, suf_w_bc, field_prot_source, field_prot_absorption )
+         wic_bc, suf_u_bc, suf_v_bc, suf_w_bc, field_prot_source, field_prot_absorption, is_overlapping )
       implicit none
       type( state_type ), dimension( : ), intent( inout ) :: state
       integer, intent( in ) :: iphase
+      logical, intent( in ) :: is_overlapping
       type(vector_field), pointer :: field, field_prot_bc
       real, dimension( : ), intent( inout ) :: field_u_prot, field_v_prot, field_w_prot, &
            field_nu_prot, field_nv_prot, field_nw_prot
@@ -1654,8 +1673,10 @@
 
       ndim = field % dim
       stotel = surface_element_count( cmesh )
-      snloc = face_loc(field, 1) * ele_loc(pmesh, 1)
       snloc2 = face_loc(field, 1)
+      snloc = snloc2
+      if ( is_overlapping ) snloc = snloc2 * ele_loc(pmesh, 1)
+
       nonods = node_count( field )
 
       field_name = trim( field % name )
