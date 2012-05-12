@@ -222,10 +222,10 @@ Detector_Move_Lagrangian.o ../include/detector_move_lagrangian.mod: \
    ../include/detector_tools.mod ../include/fdebug.h ../include/fields.mod \
    ../include/global_parameters.mod ../include/halo_data_types.mod \
    ../include/halos_base.mod ../include/ieee_arithmetic.mod \
-   ../include/integer_hash_table_module.mod ../include/lebiology_python.mod \
-   ../include/linked_lists.mod ../include/parallel_fields.mod \
-   ../include/pickers.mod ../include/profiler.mod ../include/spud.mod \
-   ../include/state_module.mod ../include/transform_elements.mod
+   ../include/integer_hash_table_module.mod ../include/linked_lists.mod \
+   ../include/parallel_fields.mod ../include/pickers.mod \
+   ../include/profiler.mod ../include/spud.mod ../include/state_module.mod \
+   ../include/transform_elements.mod
 
 ../include/detector_parallel.mod: Detector_Parallel.o
 	@true

@@ -314,6 +314,8 @@ void lebiology_agent_update_c(char *fg, int fglen,
 #endif
 }
 
+// Note: Disbaled until dependencies are sorted out
+/*
 void lebiology_agent_move_c(char *fg, int fglen, 
                             char *key, int keylen, 
                             double pos[], int n_pos, 
@@ -403,6 +405,7 @@ void lebiology_agent_move_c(char *fg, int fglen,
   free(keystr);
 #endif
 }
+*/
 
 /*****************************************
  * Callbacks via Python module "lebiology"

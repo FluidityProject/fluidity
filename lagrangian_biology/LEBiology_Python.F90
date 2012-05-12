@@ -15,8 +15,7 @@ module lebiology_python
   public :: lebiology_init_module, lebiology_set_stage_id, &
             lebiology_add_variables, lebiology_add_envfields, &
             lebiology_prepare_pyfunc, lebiology_initialise_agent, &
-            lebiology_update_agent, lebiology_move_agent, &
-            get_new_agent_list
+            lebiology_update_agent, get_new_agent_list
 
   type(detector_linked_list), target, save :: new_agent_list
 
@@ -255,42 +254,6 @@ contains
        FLExit("Python error in LE-Biology")
     end if
   end subroutine lebiology_update_agent
-
-  subroutine lebiology_move_agent(fgroup, key, agent, dt, vector)
-    type(functional_group), intent(inout) :: fgroup
-    character(len=*), intent(in) :: key
-    type(detector_type), intent(inout) :: agent
-    real, intent(in) :: dt
-    real, dimension(size(agent%position)), intent(out) :: vector
-
-    real, dimension(size(fgroup%motion_var_inds)) :: state_vars
-    integer :: v, stat
-
-    if (size(fgroup%motion_var_inds) > 0) then
-       do v=1, size(fgroup%motion_var_inds)
-          state_vars(v) = agent%biology( fgroup%motion_var_inds(v) )
-       end do
-    end if
-
-    stat=0
-    call lebiology_agent_move(trim(fgroup%name), len_trim(fgroup%name), &
-            trim(key), len_trim(key), agent%update_vector, size(agent%update_vector), &
-            state_vars, size(state_vars), fgroup%motion_var_inds, dt, vector, stat) 
-
-    if (size(fgroup%motion_var_inds) > 0) then
-       do v=1, size(fgroup%motion_var_inds)
-          if (ieee_is_nan(state_vars(v))) then
-             FLExit('NaN motion variable detected in '//trim(fgroup%name)//"::"//trim(key))
-          end if
-          agent%biology( fgroup%motion_var_inds(v) ) = state_vars(v)
-       end do
-    end if
-
-    if (stat < 0) then
-       ewrite(-1, *) "Error moving agent "//int2str(agent%id_number)//" for FG::"//trim(fgroup%name)
-       FLExit("Python error in LE-Biology")
-    end if
-  end subroutine lebiology_move_agent
 
   subroutine fl_add_agent(vars, n_vars, pos, n_pos) &
          bind(c, name='fl_add_agent_c')
