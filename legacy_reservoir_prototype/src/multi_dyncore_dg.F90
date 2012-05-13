@@ -1703,6 +1703,8 @@
       ewrite(3,*) 'FINELE with size,', size( FINELE ), ':', FINELE( 1 :  size( FINELE ) )
       ewrite(3,*) 'COLELE with size,', size( COLELE ), ':', COLELE( 1 :  size( COLELE ) )
 
+!         print *,'UDEN=',uden
+!        stop 2921
 
       is_overlapping = .false.
       call get_option( '/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
@@ -1715,8 +1717,10 @@
            cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, QUAD_OVER_WHOLE_ELE )
       if(is_overlapping) then
          nlev=cv_nloc
+         U_NLOC2=max(1,U_NLOC/CV_NLOC)
       else
          nlev=1
+         U_NLOC2=U_NLOC
       endif
 
       GOT_DIFFUS = .FALSE.
@@ -1928,6 +1932,7 @@
                                 ! Define the gauss points that lie on the surface of the CV...
            FINDGPTS, COLGPTS, NCOLGPTS, &
            SELE_OVERLAP_SCALE, QUAD_OVER_WHOLE_ELE ) 
+      
 
       ALLOCATE( FACE_ELE( NFACE, TOTELE ))
       ! Calculate FACE_ELE
@@ -1971,10 +1976,11 @@
          UDOLD = 0.0
          VDOLD = 0.0
          WDOLD = 0.0
-         DO U_ILOC = 1, U_NLOC
+         DO ILEV = 1, NLEV
+         DO U_ILOC = 1 +(ILEV-1)*U_NLOC2, ILEV*U_NLOC2
             !ewrite(3,*) 'ele, u_nonods, iloc:',ele, u_nonods, iloc
             U_NOD = U_NDGLN(( ELE - 1 ) * U_NLOC + U_ILOC )
-            DO GI = 1, CV_NGI
+            DO GI = 1 +(ILEV-1)*CV_NGI_SHORT, ILEV*CV_NGI_SHORT
                DO IPHASE=1,NPHASE
                   U_NOD_PHA=U_NOD +(IPHASE-1)*U_NONODS
                   UD( GI, IPHASE ) = UD( GI, IPHASE ) + UFEN( U_ILOC, GI ) * U( U_NOD_PHA ) 
@@ -1985,6 +1991,7 @@
                   WDOLD( GI, IPHASE ) = WDOLD( GI, IPHASE ) + UFEN( U_ILOC, GI ) * WOLD( U_NOD_PHA ) 
                END DO
             END DO
+         END DO
          END DO
 
          DENGI = 0.0
@@ -2062,10 +2069,13 @@
             END DO
          END DO
 
-         Loop_DGNods1: DO U_ILOC = 1, U_NLOC
+         Loop_ilev_DGNods1: DO ILEV=1,NLEV
+         Loop_DGNods1: DO U_ILOC = 1 +(ILEV-1)*U_NLOC2, ILEV*U_NLOC2
+!         Loop_DGNods1: DO U_ILOC = 1, U_NLOC
             GLOBI = U_NDGLN(( ELE - 1 ) * U_NLOC + U_ILOC )
 
-            Loop_DGNods2: DO U_JLOC = 1, U_NLOC
+            Loop_DGNods2: DO U_JLOC = 1 +(ILEV-1)*U_NLOC2, ILEV*U_NLOC2
+!            Loop_DGNods2: DO U_JLOC = 1, U_NLOC
 
                GLOBJ = U_NDGLN(( ELE - 1 ) * U_NLOC + U_JLOC )
 
@@ -2082,7 +2092,8 @@
                VLN = 0.0
                VLN_OLD = 0.0
 
-               Loop_Gauss2: DO GI = 1, CV_NGI
+               Loop_Gauss2: DO GI = 1 +(ILEV-1)*CV_NGI_SHORT, ILEV*CV_NGI_SHORT
+!               Loop_Gauss2: DO GI = 1, CV_NGI
                   NN = NN + UFEN( U_ILOC, GI ) * UFEN( U_JLOC,  GI ) * DETWEI( GI )
                   NXN = NXN + UFENX( U_ILOC, GI ) * UFEN( U_JLOC,  GI ) * DETWEI( GI )
                   NNX = NNX + UFEN( U_ILOC,GI ) * UFENX( U_JLOC, GI ) * DETWEI( GI )
@@ -2239,6 +2250,7 @@
             END DO Loop_DGNods2
 
          END DO Loop_DGNods1
+         END DO Loop_ilev_DGNods1
 
          ewrite(3,*)'just after Loop_DGNods1'
 
@@ -2251,7 +2263,9 @@
          !stop 82
 
          ! Add in C matrix contribution: (DG velocities)
-         Loop_U_ILOC1: DO U_ILOC = 1, U_NLOC
+         Loop_ILEV1: DO ILEV = 1, NLEV
+         Loop_U_ILOC1: DO U_ILOC = 1 + (ILEV-1)*U_NLOC2, ILEV*U_NLOC2
+!         Loop_U_ILOC1: DO U_ILOC = 1, U_NLOC
             IU_NOD = U_NDGLN(( ELE - 1 ) * U_NLOC + U_ILOC )
 
             Loop_P_JLOC1: DO P_JLOC = 1, P_NLOC
@@ -2263,7 +2277,8 @@
                GRAD_SOU_GI_NMX = 0.0  
                GRAD_SOU_GI_NMY = 0.0 
                GRAD_SOU_GI_NMZ = 0.0  
-               Loop_GaussPoints1: DO GI = 1, CV_NGI
+               Loop_GaussPoints1: DO GI = 1 +(ILEV-1)*CV_NGI_SHORT, ILEV*CV_NGI_SHORT
+!               Loop_GaussPoints1: DO GI = 1, CV_NGI
                   !ewrite(3,*) 'P_JLOC, GI, CVFENX( P_JLOC, GI ):',P_JLOC, GI, CVFENX( P_JLOC, GI )
                   !ewrite(3,*) 'U_ILOC, GI, UFEN( U_ILOC, GI ):',U_ILOC, GI, UFEN( U_ILOC, GI )
                   !ewrite(3,*) 'detwei:', detwei( gi )
@@ -2331,6 +2346,7 @@
             END DO Loop_P_JLOC1
 
          END DO Loop_U_ILOC1
+         END DO Loop_ILEV1
 
          ewrite(3,*)'just after Loop_U_ILOC1'
 
@@ -2570,7 +2586,8 @@
                         ILEV = (U_ILOC-1)/U_NLOC2 + 1
                         IF( .NOT. IS_OVERLAPPING ) ILEV = 1
 
-                        IF( ( .NOT. IS_OVERLAPPING ) .OR. ( MAT_OTHER_LOC( ILEV ) /= 0 ) ) THEN
+                        IF( ( .NOT. IS_OVERLAPPING ) .OR. &
+                       (( MAT_OTHER_LOC( ILEV ) /= 0 )) ) THEN
                            U_INOD = U_NDGLN(( ELE - 1 ) * U_NLOC + U_ILOC )
                            VNMX=0.0
                            VNMY=0.0

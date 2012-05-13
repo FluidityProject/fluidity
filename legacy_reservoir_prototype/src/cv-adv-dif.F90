@@ -594,6 +594,13 @@
       END DO
       MEAN_PORE_CV = MEAN_PORE_CV / SUM_CV
 
+!      sum=0.0
+!      DO ELE = 1, TOTELE
+!         sum=sum+mass_ele(ele)
+!      end do
+!         print *,'sum(mass_ele):',sum
+!         stop 221
+
 
       ! For each node, find the largest and smallest value of T and 
       ! DENSITY for both the current and previous timestep, out of 

@@ -1816,7 +1816,6 @@
                  u_nloc2, sufen2, sufenslx2, sufensly2, &
                  sufenlx2, sufenly2, sufenlz2, &
                  ndim )
-         endif
 
          !call U_Volnei( cv_ele_type, cv_nloc, u_nloc, scvngi, &
          !     cv_neiloc,   &
@@ -1862,6 +1861,8 @@
             ufem_on_face( 1 + ( ilev - 1 ) * u_nloc2 : ilev * u_nloc2, &
                  1 : scvngi ) = ufem_on_face2( 1 : u_nloc2, 1 : scvngi )
          end do Loop_ILEV2
+! end of if(.not.QUAD_OVER_WHOLE_ELE) then
+         endif  
 
       else
          if(.not.QUAD_OVER_WHOLE_ELE) then ! not integrate over whole element 
@@ -1955,18 +1956,13 @@
          endif
       end if Conditional_OverlappingMethod3
 
+         if(.not.QUAD_OVER_WHOLE_ELE) then ! not integrate over whole element 
       ! Define the gauss points that lie on the surface of the
       ! control volume surrounding a given local node (iloc)
       ! that is FINDGPTS, COLGPTS, NCOLGPTS
       call gaussiloc( findgpts, colgpts, ncolgpts, &
            cv_neiloc, cv_nloc, scvngi )  
-
-
-      ewrite(3,*) 'cv_on_face: ', cv_on_face
-      ewrite(3,*) 'u_on_face: ', u_on_face
-      ewrite(3,*) 'cv_sloclist: ', cv_sloclist
-      ewrite(3,*) 'u_sloclist: ', u_sloclist
-      ewrite(3,*) 'leaving cv_fem_shape_funs subrt, ncolgpts', ncolgpts
+         endif
 
       if( is_overlapping ) then
          deallocate( ufen2 )
@@ -2002,6 +1998,43 @@
               sbcvfenlz = 0.0 ; sbufensly = 0.0 ;sbufenlz = 0.0
 
       end if
+
+
+      ewrite(3,*) 'cv_on_face: ', cv_on_face
+      ewrite(3,*) 'u_on_face: ', u_on_face
+      ewrite(3,*) 'cv_sloclist: ', cv_sloclist
+      ewrite(3,*) 'u_sloclist: ', u_sloclist
+      ewrite(3,*) 'leaving cv_fem_shape_funs subrt, ncolgpts', ncolgpts
+
+!         if(QUAD_OVER_WHOLE_ELE) then
+         if(.false.) then
+      print *,'ndim, cv_ele_type,cv_ngi, cv_nloc, u_nloc:', &
+               ndim, cv_ele_type,cv_ngi, cv_nloc, u_nloc
+      print *,'cvweight:',cvweight
+      print *,'cvfen:',cvfen
+      print *,'cvfenlx:',cvfenlx
+      print *,'cvfenly:',cvfenly
+      print *,'cvfenlz:',cvfenlz 
+      print *,'ufen:',ufen
+      print *,'ufenlx:',ufenlx
+      print *,'ufenly:',ufenly
+      print *,'ufenlz:',ufenlz
+      print *,'sbcvngi=',sbcvngi
+      print *,'sbcvfen:',sbcvfen
+      print *,'sbcvfenslx:',sbcvfenslx
+      print *,'sbcvfensly:',sbcvfensly
+      print *,'sbcvfeweigh:',sbcvfeweigh
+                 
+      print *,'sbufen:',sbufen
+      print *,'sbufenslx:',sbufenslx
+      print *,'sbufensly:',sbufensly
+
+      print *,'nface:',nface
+      print *,'cv_sloclist:', cv_sloclist
+      print *,'u_sloclist:',u_sloclist
+      print *,'cv_snloc, u_snloc:',cv_snloc, u_snloc
+      stop 45
+         endif
 
       return
     end subroutine cv_fem_shape_funs

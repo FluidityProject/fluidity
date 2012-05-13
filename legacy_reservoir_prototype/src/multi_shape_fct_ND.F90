@@ -631,7 +631,7 @@
             ! this should be 2, but the
             ! 1pt quadrature gets the 
             ! volume wrong so adjust it...
-            weit( 1 ) = 2.0310311939315246
+            weit( 1 ) = 2.0
             nquad=1
         else if( lowqua .or. (ngi == 8) ) then
          posi = 1. / sqrt( 3. )
@@ -817,8 +817,23 @@
       logical, intent( in ) :: QUAD_OVER_WHOLE_ELE
       integer, intent( inout ) :: cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface
       ! Local variables
+! volume_order & surface_order are the volume and surface 
+! order of the integration used within each sub-quad/hex for CV approach.
+! Default value -ve or 0 value is always 1pt quadrature (=1). 
+      integer, PARAMETER :: volume_order=1
+!      integer, PARAMETER :: volume_order=2
+      integer, PARAMETER :: surface_order=1
+!      integer, PARAMETER :: surface_order=1
+! whole_ele_volume_order & whole_ele_surface_order are the volume and surface 
+! order of the integration used within each sub-quad/hex for QUAD_OVER_WHOLE_ELE=.true.
+! -ve or 0 and take on the default value. 
+      integer, PARAMETER :: whole_ele_volume_order=0
+!      integer, PARAMETER :: whole_ele_volume_order=1
+!      integer, PARAMETER :: whole_ele_volume_order=2
+      integer, PARAMETER :: whole_ele_surface_order=0
+!      integer, PARAMETER :: whole_ele_surface_order=1
+!      integer, PARAMETER :: whole_ele_surface_order=1
       character( len = option_path_len ) :: overlapping_path
-      integer :: volume_order, surface_order
 
       Conditional_EleType: Select Case( cv_ele_type )
 
@@ -846,20 +861,40 @@
                cv_ngi = 3
                sbcvngi = 2 
                scvngi = 2
+               if (whole_ele_volume_order==1) cv_ngi = 1
+               if (whole_ele_surface_order==1) sbcvngi = 1
+               if (whole_ele_surface_order==1) scvngi = 1
             else
-               cv_ngi = 12
-               scvngi = 3
-               sbcvngi = 2 
+               if (volume_order==1) cv_ngi = 3 ! 4x8
+               if (volume_order==2) cv_ngi = 3*4 ! 4x8
+
+               if (surface_order==1) scvngi = 3
+               if (surface_order==1) sbcvngi = 2
+               if (surface_order==2) scvngi = 3*2
+               if (surface_order==2) sbcvngi = 2*2
             endif
          case( 6 ) ! Quadratic Triangle
             if(QUAD_OVER_WHOLE_ELE) then
                cv_ngi = 7
                sbcvngi = 3
                scvngi = 3
+               if (whole_ele_volume_order==1) cv_ngi = 1
+               if (whole_ele_surface_order==1) sbcvngi = 1
+               if (whole_ele_surface_order==1) scvngi = 1
+               if (whole_ele_volume_order==2) cv_ngi = 3
+               if (whole_ele_surface_order==2) sbcvngi = 2
+               if (whole_ele_surface_order==2) scvngi = 2
+               if (whole_ele_volume_order==3) cv_ngi = 7
+               if (whole_ele_surface_order==3) sbcvngi = 3
+               if (whole_ele_surface_order==3) scvngi = 3
             else
-               cv_ngi = 48 ! 36
-               scvngi = 24 ! was 18 but was wrong
-               sbcvngi = 8 ! it was 6 but that was wrong 
+               if (volume_order==1) cv_ngi = 12
+               if (volume_order==2) cv_ngi = 48 
+
+               if (surface_order==1) scvngi = 12
+               if (surface_order==1) sbcvngi = 4 
+               if (surface_order==2) scvngi = 24
+               if (surface_order==2) sbcvngi = 8 
             endif
          case default; FLExit(" Invalid integer for cv_nloc ")
          end Select Conditional_CV_NLOC2D_Tri
@@ -872,20 +907,49 @@
                cv_ngi = 4
                scvngi = 2
                sbcvngi = 2 
+               if (whole_ele_volume_order==1) cv_ngi = 1
+               if (whole_ele_surface_order==1) sbcvngi = 1
+               if (whole_ele_surface_order==1) scvngi = 1
+               if (whole_ele_volume_order==2) cv_ngi = 4
+               if (whole_ele_surface_order==2) sbcvngi = 2
+               if (whole_ele_surface_order==2) scvngi = 2
+               if (whole_ele_volume_order==3) cv_ngi = 9
+               if (whole_ele_surface_order==3) sbcvngi = 3
+               if (whole_ele_surface_order==3) scvngi = 3
             else
-               cv_ngi = 16
-               scvngi = 2
-               sbcvngi = 8 
+               if (volume_order==1) cv_ngi = 4
+               if (volume_order==2) cv_ngi = 16
+
+               if (surface_order==1) scvngi = 4
+               if (surface_order==2) scvngi = 4*2
+               if (surface_order==1) sbcvngi = 2
+               if (surface_order==2) sbcvngi = 4 
             endif
          case( 9 ) ! Bi-quad Quad
             if(QUAD_OVER_WHOLE_ELE) then
                cv_ngi = 9
                sbcvngi = 3
                scvngi = 3
+               if (whole_ele_volume_order==1) cv_ngi = 1
+               if (whole_ele_surface_order==1) sbcvngi = 1
+               if (whole_ele_surface_order==1) scvngi = 1
+               if (whole_ele_volume_order==2) cv_ngi = 4
+               if (whole_ele_surface_order==2) sbcvngi = 2
+               if (whole_ele_surface_order==2) scvngi = 2
+               if (whole_ele_volume_order==3) cv_ngi = 9
+               if (whole_ele_surface_order==3) sbcvngi = 3
+               if (whole_ele_surface_order==3) scvngi = 3
             else
-               cv_ngi = 36
-               scvngi = 24
-               sbcvngi = 6
+               if (volume_order==1) cv_ngi = 16
+               if (volume_order==2) cv_ngi = 16*4
+               if (volume_order==3) cv_ngi = 16*9
+
+               if (surface_order==1) scvngi = 16
+               if (surface_order==1) sbcvngi = 4
+               if (surface_order==2) scvngi = 16*2
+               if (surface_order==2) sbcvngi = 4*2
+               if (surface_order==3) scvngi = 16*3
+               if (surface_order==3) sbcvngi = 4*3
             endif
          case default; FLExit(" Invalid integer for cv_nloc ")
          end Select Conditional_CV_NLOC2D_Quad
@@ -898,33 +962,48 @@
                cv_ngi = 4
                sbcvngi = 3
                scvngi = 3
+               if (whole_ele_volume_order==1) cv_ngi = 1
+               if (whole_ele_surface_order==1) sbcvngi = 1
+               if (whole_ele_surface_order==1) scvngi = 1
+               if (whole_ele_volume_order==2) cv_ngi = 4
+               if (whole_ele_surface_order==2) sbcvngi = 3
+               if (whole_ele_surface_order==2) scvngi = 3
+               if (whole_ele_volume_order==3) cv_ngi = 11
+               if (whole_ele_surface_order==3) sbcvngi = 7
+               if (whole_ele_surface_order==3) scvngi = 7
             else
-               cv_ngi = 32 ! 4x8
-               scvngi = 6
-               sbcvngi = 3
+               if (volume_order==1) cv_ngi = 4 ! 4x8
+               if (volume_order==2) cv_ngi = 32 ! 4x8
+
+               if (surface_order==1) scvngi = 6
+               if (surface_order==1) sbcvngi = 3
+               if (surface_order==2) scvngi = 6*4
+               if (surface_order==2) sbcvngi = 3*4
             endif
          case( 10 ) ! Quadratic
             if(QUAD_OVER_WHOLE_ELE) then
                cv_ngi = 11
                sbcvngi = 7
                scvngi = 7
+               if (whole_ele_volume_order==1) cv_ngi = 1
+               if (whole_ele_surface_order==1) sbcvngi = 1
+               if (whole_ele_surface_order==1) scvngi = 1
+               if (whole_ele_volume_order==2) cv_ngi = 4
+               if (whole_ele_surface_order==2) sbcvngi = 3
+               if (whole_ele_surface_order==2) scvngi = 3
+               if (whole_ele_volume_order==3) cv_ngi = 11
+               if (whole_ele_surface_order==3) sbcvngi = 7
+               if (whole_ele_surface_order==3) scvngi = 7
             else
-
-               volume_order=1
-!               volume_order=2
-!               volume_order=3
 
                if (volume_order==1) cv_ngi=8*4*1 ! (1x1x1)
                if (volume_order==2) cv_ngi=8*4*8 ! (2x2x2)
                if (volume_order==3) cv_ngi=8*4*27 ! (3x3x3)
 
-               surface_order=1
-!               surface_order=2
-
-               scvngi = 192 ! 6x8x4 (cv_faces x hexs x sngi)
-               sbcvngi = 48 ! 4x12 (sngi x cv_faces)
                if (surface_order==1) scvngi = 48 ! 6x8x1 (cv_faces x tets x sngi)
                if (surface_order==1) sbcvngi = 12 ! 1x12 (sngi x cv_faces)
+               if (surface_order==2) scvngi = 48*4 ! 6x8x4 (cv_faces x hexs x sngi)
+               if (surface_order==2) sbcvngi = 12*4 ! 4x12 (sngi x cv_faces)
 
             endif
          case default; FLExit(" Invalid integer for cv_nloc ")
@@ -938,20 +1017,49 @@
                cv_ngi = 8
                sbcvngi = 4
                scvngi = 4
+               if (whole_ele_volume_order==1) cv_ngi = 1
+               if (whole_ele_surface_order==1) sbcvngi = 1
+               if (whole_ele_surface_order==1) scvngi = 1
+               if (whole_ele_volume_order==2) cv_ngi = 8
+               if (whole_ele_surface_order==2) sbcvngi = 4
+               if (whole_ele_surface_order==2) scvngi = 4
+               if (whole_ele_volume_order==3) cv_ngi = 27
+               if (whole_ele_surface_order==3) sbcvngi = 9
+               if (whole_ele_surface_order==3) scvngi = 9
             else
-               cv_ngi = 64
-               scvngi = 12
-               sbcvngi = 4
+               if (volume_order==1) cv_ngi = 8
+               if (volume_order==2) cv_ngi = 8*8
+
+               if (surface_order==1) scvngi = 12
+               if (surface_order==1) sbcvngi = 4
+               if (surface_order==2) scvngi = 12*4
+               if (surface_order==2) sbcvngi = 4*4
             endif
          case( 27 ) ! Tri-quad Hex
             if(QUAD_OVER_WHOLE_ELE) then
                cv_ngi = 27
                sbcvngi = 9
                scvngi = 9
+               if (whole_ele_volume_order==1) cv_ngi = 1
+               if (whole_ele_surface_order==1) sbcvngi = 1
+               if (whole_ele_surface_order==1) scvngi = 1
+               if (whole_ele_volume_order==2) cv_ngi = 8
+               if (whole_ele_surface_order==2) sbcvngi = 4
+               if (whole_ele_surface_order==2) scvngi = 4
+               if (whole_ele_volume_order==3) cv_ngi = 27
+               if (whole_ele_surface_order==3) sbcvngi = 9
+               if (whole_ele_surface_order==3) scvngi = 9
             else
-               cv_ngi = 216
-               scvngi = 216
-               sbcvngi = 36
+               if (volume_order==1) cv_ngi = 64
+               if (volume_order==2) cv_ngi = 64*8
+               if (volume_order==3) cv_ngi = 64*27
+
+               if (surface_order==1) scvngi = 12*8
+               if (surface_order==1) sbcvngi = 16
+               if (surface_order==2) scvngi = 12*8*4
+               if (surface_order==2) sbcvngi = 16*4
+               if (surface_order==3) scvngi = 12*8*9
+               if (surface_order==3) sbcvngi = 16*9
             endif
          case default; FLExit(" Invalid integer for cv_nloc ")
          end Select Conditional_CV_NLOC3D_Hex
@@ -3961,8 +4069,11 @@
               detwei, ra, volume, d1, d3, dcyl, &       
               quad_nx, quad_ny, quad_nz )
          
-         
+         print *,'quad_cv_ngi=',quad_cv_ngi
          ewrite(3,*)'detwei for ele=:', ele, detwei
+! adjust the volume so that we get the volume correct: 
+         if(d3.and.(quad_cv_ngi==1)) detwei=detwei*(2.0310311939315246**3/8.0)
+!         stop 3821
 
          do quad_cv_iloc = 1, quad_cv_nloc
             ewrite(3,*)' quad_cv_iloc: ', quad_cv_iloc
@@ -6246,11 +6357,11 @@
       real, dimension( cv_nloc, cv_ngi ), intent( inout ) :: cvfen, cvfenlx, cvfenly, cvfenlz
       real, dimension( u_nloc, cv_ngi ), intent( inout ) :: ufen, ufenlx, ufenly, ufenlz
       integer, intent( in ) :: sbcvngi
-      real, dimension( cv_nloc, sbcvngi ), intent( inout ) :: sbcvfen, sbcvfenslx, sbcvfensly
-      real, dimension( sbcvngi ), intent( inout ) :: sbcvfeweigh
-      real, dimension( u_nloc, sbcvngi ), intent( inout ) :: sbufen, sbufenslx, sbufensly
-      integer, intent( in ) :: nface
       integer, intent( in ) :: cv_snloc, u_snloc
+      real, dimension( cv_snloc, sbcvngi ), intent( inout ) :: sbcvfen, sbcvfenslx, sbcvfensly
+      real, dimension( sbcvngi ), intent( inout ) :: sbcvfeweigh
+      real, dimension( u_snloc, sbcvngi ), intent( inout ) :: sbufen, sbufenslx, sbufensly
+      integer, intent( in ) :: nface
       integer, dimension( nface, cv_snloc ), intent( inout ) :: cv_sloclist
       integer, dimension( nface, u_snloc ), intent( inout ) :: u_sloclist
 
@@ -6258,6 +6369,7 @@
       real, dimension( :, : ), allocatable :: M,MLX,MLY,MLZ, sm,SMLX,SMLY
       integer :: MLOC,SMLOC,NWICEL
       logical :: LOWQUA,d3
+      REAL :: RUB(1000)
 
       print *,'just inside SHAPE_one_ele' 
 !      stop 7299
@@ -6332,8 +6444,8 @@
       end if Conditional_Dimensionality2
 ! for velocity...
            CALL SHAPE(LOWQUA,cv_NGI,u_NLOC,MLOC, sbcvngi,u_SNLOC,SMLOC,    &
-        M,MLX,MLY,MLZ,cvWEIGHT,ufen, ufenlx, ufenly, ufenlz,              & 
-        sbcvfeweigh,sbufen, sbufenslx, sbufensly, SM,SMLX,SMLY,               &
+        M,MLX,MLY,MLZ,RUB,ufen, ufenlx, ufenly, ufenlz,              & 
+        RUB,sbufen, sbufenslx, sbufensly, SM,SMLX,SMLY,               &
         NWICEL,ndim==3)
       ! Determine CV_SLOCLIST & U_SLOCLIST
       CALL DETERMIN_SLOCLIST( CV_SLOCLIST, CV_NLOC, CV_SNLOC, NFACE, &
@@ -6345,6 +6457,47 @@
          CALL DETERMIN_SLOCLIST( U_SLOCLIST, U_NLOC, U_SNLOC, NFACE, &
               NDIM, CV_ELE_TYPE )
       ENDIF
+
+      IF(NDIM.LT.3) THEN
+         CVfenlz=0.0
+         ufenlz=0.0
+         sbcvfensly=0.0
+         sbufensly=0.0
+      ENDIF
+      IF(NDIM.LT.2) THEN
+         CVfenly=0.0
+         ufenly=0.0
+         sbcvfenslx=0.0
+         sbufenslx=0.0
+      ENDIF
+
+      print *,'ndim, cv_ele_type,cv_ngi, cv_nloc, u_nloc:', &
+               ndim, cv_ele_type,cv_ngi, cv_nloc, u_nloc
+      print *,'cvweight:',cvweight
+      print *,'cvfen:',cvfen
+      print *,'cvfenlx:',cvfenlx
+      print *,'cvfenly:',cvfenly
+      print *,'cvfenlz:',cvfenlz 
+      print *,'ufen:',ufen
+      print *,'ufenlx:',ufenlx
+      print *,'ufenly:',ufenly
+      print *,'ufenlz:',ufenlz
+      print *,'sbcvngi=',sbcvngi
+      print *,'sbcvfen:',sbcvfen
+      print *,'sbcvfenslx:',sbcvfenslx
+      print *,'sbcvfensly:',sbcvfensly
+      print *,'sbcvfeweigh:',sbcvfeweigh
+                 
+      print *,'sbufen:',sbufen
+      print *,'sbufenslx:',sbufenslx
+      print *,'sbufensly:',sbufensly
+
+      print *,'nface:',nface
+      print *,'cv_sloclist:', cv_sloclist
+      print *,'u_sloclist:',u_sloclist
+      print *,'cv_snloc, u_snloc:',cv_snloc, u_snloc
+!      stop 145
+
       END SUBROUTINE SHAPE_one_ele2
 
 
@@ -6367,6 +6520,9 @@
      
      INTEGER IPOLY,IQADRA,gi,gj,ggi,i,j,ii
      
+     print *,'inside shape LOWQUA,NGI,NLOC,MLOC, SNGI,SNLOC,SMLOC:', &
+                           LOWQUA,NGI,NLOC,MLOC, SNGI,SNLOC,SMLOC
+     print *,'NWICEL,d3:',NWICEL,d3
      IF(NWICEL.EQ.1) THEN
         IF(.NOT.D3) THEN
            CALL RE2DN4(LOWQUA,NGI,0,NLOC,MLOC, &
@@ -6426,7 +6582,7 @@
         ENDIF
      ENDIF
      
-     IF((NWICEL.EQ.4).and.(NWICEL.EQ.5)) THEN 
+     IF((NWICEL.EQ.4).or.(NWICEL.EQ.5)) THEN 
 ! works for linear or quadratic triangles or tets...
            CALL TR2or3DQU(NGI,NLOC,MLOC,        &
                 M,MLX,MLY,MLZ,                  &
@@ -6434,6 +6590,8 @@
                 SNGI,SNLOC,SWEIGH,SN,SNLX,SNLY, &
                 SMLOC,                          &
                 SM,SMLX,SMLY,D3)
+!       print *,'weight:',weight
+!      STOP 3321
      ENDIF
      
      IF(NWICEL.GE.100) THEN
@@ -6477,7 +6635,7 @@
 ! Get the quadrature positions and weights for TRIANGLES...
      DD3=.FALSE.
      CALL TRIQUAold(L1, L2, L3, L3, WEIGHT, DD3,NGI)
-!
+
 ! Work out the shape functions and there derivatives...
         CALL SHATRIold(L1, L2, L3, L3, WEIGHT, DD3,&
      &              NLOC,NGI,&
@@ -6537,6 +6695,13 @@
 ! Get the quadrature positions and weights for TRIANGLES or TETS...
       DD3=D3
       CALL TRIQUAold(L1, L2, L3, L4, WEIGHT, DD3,NGI)
+       print *,'l1:',l1(1:ngi)
+       print *,'l2:',l2(1:ngi)
+       print *,'l3:',l3(1:ngi)
+       if(d3) print *,'l4:',l4(1:ngi)
+       print *,'weight:',weight
+!       stop 2821
+!
 
 ! Work out the shape functions and there derivatives...
       CALL SHATRIold(L1, L2, L3, L4, WEIGHT, DD3,&
@@ -6568,11 +6733,11 @@
 
           print *,'for sn:'
          CALL SPECTR(SNGI,SNLOC,0,&
-     &   RUB,SWEIGH,SN,SNLX,SNLX,SNLX,.FALSE.,.FALSE., IPOLY,IQADRA)
+     &   RUB,SWEIGH,SN,SNLX,RUB,RUB,.FALSE.,.FALSE., IPOLY,IQADRA)
 
           print *,'for sm:'
          CALL SPECTR(SNGI,SMLOC,0,&
-     &   RUB,SWEIGH,SM,SMLX,SMLX,SMLX,.FALSE.,.FALSE., IPOLY,IQADRA)
+     &   RUB,SWEIGH,SM,SMLX,RUB,RUB,.FALSE.,.FALSE., IPOLY,IQADRA)
         ENDIF
 
       ENDIF
