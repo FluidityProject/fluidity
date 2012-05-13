@@ -1150,9 +1150,6 @@ def val(position, vars, dt):
         <environment>
           <field name="Temperature"/>
           <field name="Irradiance"/>
-          <field name="CopepodPConcentration">
-            <integrate_along_path/>
-          </field>
           <field name="Density"/>
         </environment>
         <stages>
@@ -1175,7 +1172,9 @@ def val(agent, env, dt):
               <python>
                 <string_value lines="20" type="code" language="python">from __builtin__ import str
 import fluidity.lerm_ps as lerm
-params = lerm.species_Default_Copepod_Variety
+params = {}
+params.update( lerm.species_Default_Copepod_Variety )
+params.update( lerm.foodset_Default_Copepod_Variety_P )
 params['Max_MLD'] = max(persistent['physics_mld_history'])
 
 def val(agent, env, dt):
@@ -1292,7 +1291,7 @@ def val(agent, env, dt):
             <stage_aggregate/>
             <include_in_io/>
           </scalar_field>
-          <food_type stage="Living"/>
+          <food_type name="Living"/>
         </food_set>
         <scalar_field name="Agents">
           <diagnostic>
@@ -1486,6 +1485,51 @@ def val(agent, env, dt):
             </biology>
           </stage>
         </stages>
+        <food_set functional_group="Copepod" name="P">
+          <scalar_field name="Concentration">
+            <diagnostic>
+              <algorithm name="Internal" material_phase_support="multiple"/>
+              <output/>
+              <stat/>
+              <detectors>
+                <include_in_detectors/>
+              </detectors>
+            </diagnostic>
+          </scalar_field>
+          <scalar_field name="Request">
+            <diagnostic>
+              <algorithm name="Internal" material_phase_support="multiple"/>
+              <output/>
+              <stat/>
+              <detectors>
+                <include_in_detectors/>
+              </detectors>
+            </diagnostic>
+            <stage_aggregate/>
+          </scalar_field>
+          <scalar_field name="Depletion">
+            <diagnostic>
+              <algorithm name="Internal" material_phase_support="multiple"/>
+              <output/>
+              <stat/>
+              <detectors>
+                <include_in_detectors/>
+              </detectors>
+            </diagnostic>
+          </scalar_field>
+          <scalar_field name="IngestedCells">
+            <diagnostic>
+              <algorithm name="Internal" material_phase_support="multiple"/>
+              <output/>
+              <stat/>
+              <detectors>
+                <include_in_detectors/>
+              </detectors>
+            </diagnostic>
+          </scalar_field>
+          <food_type name="OWA5"/>
+          <food_type name="C5"/>
+        </food_set>
         <scalar_field name="Agents">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>

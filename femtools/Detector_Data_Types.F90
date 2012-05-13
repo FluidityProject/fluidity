@@ -38,7 +38,7 @@ module detector_data_types
   private
   
   public :: detector_type, detector_linked_list, detector_list_ptr, stringlist, &
-            random_walk, le_variable, functional_group, food_set, &
+            random_walk, le_variable, functional_group, food_set, food_variety, &
             STATIC_DETECTOR, LAGRANGIAN_DETECTOR, &
             GUIDED_SEARCH_TRACKING, GEOMETRIC_TRACKING
 
@@ -122,14 +122,24 @@ module detector_data_types
     character(len=PYTHON_FUNC_LEN) :: python_code
   end type random_walk
 
+  type food_variety
+    ! Name is equivalent to the target's stage name
+    character(len=FIELD_NAME_LEN) :: name
+
+    ! Target agent list
+    type(detector_list_ptr) :: target_list
+    ! Target's concentration field
+    character(len=FIELD_NAME_LEN) :: conc_field
+  end type food_variety
+
   type food_set
     character(len=FIELD_NAME_LEN) :: name
     ! Functional Group of our target
     character(len=FIELD_NAME_LEN) :: target_fgroup
-    ! List of target stages to ingest
-    type(stringlist) :: target_stages
-    ! Pointers to agent arrays for each target stage
-    type(detector_list_ptr), dimension(:), allocatable :: target_agent_lists
+
+    ! List of target varieties
+    type(food_variety), dimension(:), allocatable :: varieties
+
     ! Variable indices of the chemical pools to ingest
     integer, dimension(:), allocatable :: ingest_chem_inds
     ! Concentration field

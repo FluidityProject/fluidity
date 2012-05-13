@@ -85,7 +85,7 @@ system_variables = {
     "MLDepth" : "param['MLDepth']",
     "Max_MLD" : "param['Max_MLD']",
     "d_year" : "param['d_year']",
-    "P" : "env['CopepodPConcentration'][variety]"
+    "P" : "env['P'][variety]"
 }
 
 # Variable class for converting names 
@@ -130,10 +130,12 @@ class Variable:
       self.rhs = "param['" + self.name + "']"
 
     if self.name in fgroup.variety_local:
+      self.rhs = self.name + "[variety]"
+      self.lhs = self.name + "[variety]"
       self.variety = True
 
     if self.name in fgroup.variety_param:
-      self.rhs = "param['" + self.name + "'][variety]"
+      self.rhs = "param[variety]['" + self.name + "']"
       self.variety = True
 
   def __eq__(self, other):
@@ -261,9 +263,9 @@ def eval_stmt(t):
     code = ""
     # Open a scope for variety-based calculations
     if v.variety:      
-      code = code + v.lhs + " = {}\n" + Indent.line()
+      code = code + v.name + " = {}\n" + Indent.line()
       Indent.inc()
-      code = code + "for variety in foodset_" + fgroup.foodsets[0].name + ".keys():\n" + Indent.line()
+      code = code + "for variety in env['P'].keys():\n" + Indent.line()
 
     fgroup.used_vars = []
     term = eval_expr(t[2])
@@ -304,7 +306,7 @@ def eval_stmt(t):
     
     code = "vars['PRequest'] = {}\n" + Indent.line()
     Indent.inc()
-    code = code + "for variety in foodset_" + fgroup.foodsets[0].name + ".keys():\n" + Indent.line()
+    code = code + "for variety in env['P'].keys():\n" + Indent.line()
     Indent.dec()
     code = code + "vars['PRequest'][variety] = (dt * " + ing_amount + ") if (" + species_conc + " > " + ing_threshold + ") else 0.0"
     out = code

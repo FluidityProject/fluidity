@@ -12,6 +12,7 @@ PyMODINIT_FUNC initlebiology(void)
   pFGLocalsDict = PyDict_New();
   pFGVarNames = PyDict_New();
   pFGEnvNames = PyDict_New();
+  pFGFoodNames = PyDict_New();
   pFGStageID = PyDict_New();
 #endif
 }
@@ -76,6 +77,51 @@ void lebiology_add_fg_envname_c(char *fg, int fglen,
   Py_DECREF(pEnvName);
   free(fg_key);
   free(envname);
+  return;
+#endif
+}
+
+/* Add a food variety name to the array under pFGFoodNames['fg']['food'] */
+void lebiology_add_fg_foodname_c(char *fg, int fglen, 
+                                 char *food, int foodlen,
+                                 char *variety, int varietylen, int *stat)
+{
+#ifdef HAVE_PYTHON
+  // Get pFGFoodNames['fg'] or create if it doesn't exist
+  char *fg_key = fix_string(fg, fglen);
+  PyObject *pFoodDict = PyDict_GetItemString(pFGFoodNames, fg_key);
+  if (!pFoodDict) {
+     pFoodDict = PyDict_New();
+     *stat = PyDict_SetItemString(pFGFoodNames, fg_key, pFoodDict);
+     if (*stat<0) {
+        PyErr_Print();
+        return;
+     }
+     Py_DECREF(pFoodDict);
+  }  
+
+  // Get pFGFoodNames['fg']['food'] or create if it doesn't exist
+  char *foodname = fix_string(food, foodlen);
+  PyObject *pVarietyList = PyDict_GetItemString(pFoodDict, foodname);
+  if (!pVarietyList) {
+     pVarietyList = PyList_New(0);
+     *stat = PyDict_SetItemString(pFoodDict, foodname, pVarietyList);
+     if (*stat<0) {
+        PyErr_Print();
+        return;
+     }
+     Py_DECREF(pVarietyList);
+  }
+
+  // Append variety name
+  char *varietyname = fix_string(variety, varietylen);
+  PyObject *pVarietyName = PyString_FromString(varietyname);
+  *stat = PyList_Append(pVarietyList, pVarietyName);
+
+  Py_DECREF(pVarietyName);
+  free(fg_key);
+  free(foodname);
+  free(varietyname);
   return;
 #endif
 }
@@ -238,8 +284,10 @@ void lebiology_agent_init_c(char *fg, int fglen,
 
 void lebiology_agent_update_c(char *fg, int fglen, 
                               char *key, int keylen, 
+                              char *food, int foodlen, 
                               double vars[], int n_vars, 
                               double envvals[], int n_envvals, 
+                              double fvariety[], int n_fvariety, 
                               double *dt, int *stat)
 {
 #ifdef HAVE_PYTHON
@@ -271,6 +319,22 @@ void lebiology_agent_update_c(char *fg, int fglen,
     PyDict_SetItem(pEnvironment, PyList_GET_ITEM(pEnvNames, i), pEnvVal);
     Py_DECREF(pEnvVal);
   }
+
+  if (n_fvariety > 0) {    
+    PyObject *pFoodNames = PyDict_GetItemString(pFGFoodNames, fg_key);
+    char *food_name = fix_string(food, foodlen);
+    PyObject *pVarietyNames = PyDict_GetItemString(pFoodNames, food_name);
+    PyObject *pFoodDict = PyDict_New();
+    PyDict_SetItemString(pEnvironment, food_name, pFoodDict);
+    for (i=0; i<n_fvariety; i++) {
+       PyObject *pFoodVal = PyFloat_FromDouble(fvariety[i]);
+       PyDict_SetItem(pFoodDict, PyList_GET_ITEM(pVarietyNames, i), pFoodVal);
+       Py_DECREF(pFoodVal);
+    }
+    Py_DECREF(pFoodDict);
+    free(food_name);
+  }
+
 
   // Create dt argument
   PyObject *pDt = PyFloat_FromDouble(*dt);

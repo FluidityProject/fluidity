@@ -308,11 +308,11 @@ def update_OWA5_Copepod(param, vars, env, dt):
   Gut_f_new = Gut_ftemp
   I_max = (((0.67 * vars['V_gut']) - Gut_contTemp) / (param['vPrey'] * 1800.0))
   I_gv = {}
-  for variety in foodset_Default_Copepod_Variety_P.keys():
-    I_gv = min((((math.pi * math.pow((L * 2.9e-5), 2.0) * 1.0 * env['CopepodPConcentration'][variety] * 1.0e-6 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7e-8 * env['CopepodPConcentration'][variety]))))) if ((vars['V_gut'] > 0.0)) else (I_max)), I_max)
+  for variety in env['P'].keys():
+    I_gv[variety] = min((((math.pi * math.pow((L * 2.9e-5), 2.0) * 1.0 * env['P'][variety] * 1.0e-6 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7e-8 * env['P'][variety]))))) if ((vars['V_gut'] > 0.0)) else (I_max)), I_max)
   vars['PRequest'] = {}
-  for variety in foodset_Default_Copepod_Variety_P.keys():
-    vars['PRequest'][variety] = (dt * I_gv) if (env['CopepodPConcentration'][variety] > param['P_min'][variety]) else 0.0
+  for variety in env['P'].keys():
+    vars['PRequest'][variety] = (dt * I_gv[variety]) if (env['P'][variety] > param[variety]['P_min']) else 0.0
 
   ### Assimilation efficiency ###
   k_N = (1.0 - math.exp(-(param['a'] * Gut_time)))
@@ -432,7 +432,7 @@ def update_C5_Copepod(param, vars, env, dt):
   I_t = ((2.0 - vars['Gut_f']) * min((param['S_max'] / S), 1.0))
 
   ### Night-time motion ###
-  Dlocal = env['CopepodPConcentration'][variety]
+  Dlocal = env['P'][variety]
   Kn_calc2 = (0.4 * (2.0 - vars['Gut_f']))
   k_v_night = ((((((-(vars['Direction_1'] * Kn_calc2)) if ((Dlocal < vars['Dlocal_previous'])) else ((vars['Direction_1'] * Kn_calc2)))) if ((vars['z'] < 250.0)) else (-1.0))) if ((vars['z'] > param['MLDepth'])) else (0.0))
   Direction_new = ((1.0) if ((k_v_night > 0.0)) else (-1.0))
@@ -476,11 +476,11 @@ def update_C5_Copepod(param, vars, env, dt):
   Gut_f_new = Gut_ftemp
   I_max = (((0.67 * vars['V_gut']) - Gut_contTemp) / (param['vPrey'] * 1800.0))
   I_gv = {}
-  for variety in foodset_Default_Copepod_Variety_P.keys():
-    I_gv = min((((math.pi * math.pow((L * 2.9e-5), 2.0) * 1.0 * env['CopepodPConcentration'][variety] * 1.0e-6 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7e-8 * env['CopepodPConcentration'][variety]))))) if ((vars['V_gut'] > 0.0)) else (I_max)), I_max)
+  for variety in env['P'].keys():
+    I_gv[variety] = min((((math.pi * math.pow((L * 2.9e-5), 2.0) * 1.0 * env['P'][variety] * 1.0e-6 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7e-8 * env['P'][variety]))))) if ((vars['V_gut'] > 0.0)) else (I_max)), I_max)
   vars['PRequest'] = {}
-  for variety in foodset_Default_Copepod_Variety_P.keys():
-    vars['PRequest'][variety] = (dt * I_gv) if (env['CopepodPConcentration'][variety] > param['P_min'][variety]) else 0.0
+  for variety in env['P'].keys():
+    vars['PRequest'][variety] = (dt * I_gv[variety]) if (env['P'][variety] > param[variety]['P_min']) else 0.0
 
   ### Assimilation efficiency ###
   k_N = (1.0 - math.exp(-(param['a'] * Gut_time)))
@@ -761,11 +761,11 @@ def update_Existance_Basal_predator(param, vars, env, dt):
 
   ### Ingestion ###
   I_gv = {}
-  for variety in foodset_Default_Basal_Predator_Variety_P.keys():
-    I_gv = min(((0.3 + (0.7 * (env['Temperature'] / param['T_ref']))) * ((((env['CopepodPConcentration'][variety] - param['P_minv'][variety]) * ((env['CopepodPConcentration'][variety] - param['P_minv'][variety]) / ((env['CopepodPConcentration'][variety] - param['P_minv'][variety]) + param['k_Iv'][variety])) * param['K_p'][variety])) if ((env['CopepodPConcentration'][variety] > param['P_minv'][variety])) else (0.0))), (param['I_max40'] / param['P_size'][variety]))
+  for variety in env['P'].keys():
+    I_gv[variety] = min(((0.3 + (0.7 * (env['Temperature'] / param['T_ref']))) * ((((env['P'][variety] - param[variety]['P_minv']) * ((env['P'][variety] - param[variety]['P_minv']) / ((env['P'][variety] - param[variety]['P_minv']) + param[variety]['k_Iv'])) * param[variety]['K_p'])) if ((env['P'][variety] > param[variety]['P_minv'])) else (0.0))), (param['I_max40'] / param[variety]['P_size']))
   vars['PRequest'] = {}
-  for variety in foodset_Default_Basal_Predator_Variety_P.keys():
-    vars['PRequest'][variety] = (dt * I_gv) if (env['CopepodPConcentration'][variety] > param['P_minv'][variety]) else 0.0
+  for variety in env['P'].keys():
+    vars['PRequest'][variety] = (dt * I_gv[variety]) if (env['P'][variety] > param[variety]['P_minv']) else 0.0
 
   ### Egestion ###
   new_agent_vars = {}

@@ -14,8 +14,9 @@ module lebiology_python
   
   public :: lebiology_init_module, lebiology_set_stage_id, &
             lebiology_add_variables, lebiology_add_envfields, &
-            lebiology_prepare_pyfunc, lebiology_initialise_agent, &
-            lebiology_update_agent, get_new_agent_list
+            lebiology_add_foods, lebiology_prepare_pyfunc, &
+            lebiology_initialise_agent, lebiology_update_agent, &
+            get_new_agent_list
 
   type(detector_linked_list), target, save :: new_agent_list
 
@@ -46,6 +47,17 @@ module lebiology_python
       character(kind=c_char), dimension(envlen), intent(in) :: env
       integer(c_int), intent(out) :: stat
     end subroutine lebiology_add_fg_envname
+
+    subroutine lebiology_add_fg_foodname(fg, fglen, food, foodlen, variety, varietylen, stat) &
+           bind(c, name='lebiology_add_fg_foodname_c')
+      use :: iso_c_binding
+      implicit none
+      integer(c_int), intent(in), value :: fglen, foodlen, varietylen
+      character(kind=c_char), dimension(fglen), intent(in) :: fg
+      character(kind=c_char), dimension(foodlen), intent(in) :: food
+      character(kind=c_char), dimension(varietylen), intent(in) :: variety
+      integer(c_int), intent(out) :: stat
+    end subroutine lebiology_add_fg_foodname
 
     subroutine lebiology_add_fg_stage_id(fg, fglen, stage, stagelen, id, stat) &
            bind(c, name='lebiology_add_fg_stage_id_c')
@@ -80,16 +92,19 @@ module lebiology_python
       integer(c_int), intent(out) :: stat
     end subroutine lebiology_agent_init
 
-    subroutine lebiology_agent_update(fg, fglen, key, keylen, vars, n_vars, &
-           envvals, n_envvals, dt, stat) &
+    subroutine lebiology_agent_update(fg, fglen, key, keylen, food, foodlen, &
+           vars, n_vars, envvals, n_envvals, fvariety, n_fvariety, dt, stat) &
            bind(c, name='lebiology_agent_update_c')
       use :: iso_c_binding
       implicit none
-      integer(c_int), intent(in), value :: fglen, keylen, n_vars, n_envvals
+      integer(c_int), intent(in), value :: fglen, keylen, foodlen
+      integer(c_int), intent(in), value :: n_vars, n_envvals, n_fvariety
       character(kind=c_char), dimension(fglen), intent(in) :: fg
       character(kind=c_char), dimension(keylen), intent(in) :: key
+      character(kind=c_char), dimension(foodlen), intent(in) :: food
       real(c_double), dimension(n_vars), intent(inout) :: vars
       real(c_double), dimension(n_envvals), intent(inout) :: envvals
+      real(c_double), dimension(n_fvariety), intent(inout) :: fvariety
       real(c_double), intent(in) :: dt
       integer(c_int), intent(out) :: stat
     end subroutine lebiology_agent_update
@@ -152,6 +167,27 @@ contains
     end if
   end subroutine lebiology_add_envfields
 
+  subroutine lebiology_add_foods(fgroup)
+    type(functional_group), intent(inout) :: fgroup
+    type(food_set) :: fset
+    integer :: f, s, stat
+
+    stat=0
+    do f=1, size(fgroup%food_sets)
+       fset = fgroup%food_sets(f)
+       do s=1, size(fset%varieties)
+          call lebiology_add_fg_foodname(trim(fgroup%name), len_trim(fgroup%name), &
+                 trim(fset%name), len_trim(fset%name), trim(fset%varieties(s)%name), &
+                 len_trim(fset%varieties(s)%name), stat)
+       end do
+    end do
+
+    if (stat < 0) then
+       ewrite(-1, *) "Error setting food variety names for FG::"//trim(fgroup%name)
+       FLExit("Python error in LE-Biology")
+    end if
+  end subroutine lebiology_add_foods
+
   subroutine lebiology_set_stage_id(fgroup, stage_name, id)
     type(functional_group), intent(inout) :: fgroup
     character(len=*), intent(in) :: stage_name
@@ -199,14 +235,18 @@ contains
     end if    
   end subroutine lebiology_initialise_agent
 
-  subroutine lebiology_update_agent(fgroup, key, agent, envfields, dt)
+  subroutine lebiology_update_agent(fgroup, key, foodname, agent, xfield, envfields, foodfields, dt)
     type(functional_group), intent(inout) :: fgroup
     character(len=*), intent(in) :: key
+    character(len=*), intent(in) :: foodname
     type(detector_type), intent(inout) :: agent
+    type(vector_field), pointer, intent(inout) :: xfield
     type(scalar_field_pointer), dimension(:), pointer, intent(inout) :: envfields
+    type(scalar_field_pointer), dimension(:), pointer, intent(inout) :: foodfields
     real, intent(in) :: dt
 
     real, dimension(size(envfields)) :: envfield_vals
+    real, dimension(size(foodfields)) :: foodfield_vals
     real, dimension(:), allocatable :: envval_ele
     real, dimension(1) :: val
     real :: path_total
@@ -238,10 +278,16 @@ contains
        end if
     end do
 
+    ! Add food concentrations
+    do f=1, size(foodfields)
+       foodfield_vals(f) = integral_element(foodfields(f)%ptr, xfield, agent%element)
+    end do
+
     stat=0
     call lebiology_agent_update(trim(fgroup%name), len_trim(fgroup%name), &
-             trim(key), len_trim(key), agent%biology, size(agent%biology), &
-             envfield_vals, size(envfield_vals), dt, stat)
+             trim(key), len_trim(key), trim(foodname), len_trim(foodname), &
+             agent%biology, size(agent%biology), envfield_vals, size(envfield_vals), &
+             foodfield_vals, size(foodfield_vals), dt, stat)
 
     do v=1, size(agent%biology)
        if (ieee_is_nan(agent%biology(v))) then

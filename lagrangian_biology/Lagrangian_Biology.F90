@@ -128,6 +128,7 @@ contains
 
           ! Add variable names to the Python module
           call lebiology_add_variables(fgroup)
+          call lebiology_add_foods(fgroup)
        else
           FLExit("No variables defined for functional group under: "//trim(fg_buffer))
        end if
@@ -510,10 +511,10 @@ contains
        call get_option(trim(food_buffer)//"/functional_group", fgroup%food_sets(i)%target_fgroup)
 
        n_food_types = option_count(trim(food_buffer)//"/food_type")
-       allocate(fgroup%food_sets(i)%target_stages%ptr(n_food_types))
+       allocate(fgroup%food_sets(i)%varieties(n_food_types))
        do f=1, n_food_types
           write(food_type_buffer, "(a,i0,a)") trim(food_buffer)//"/food_type[",f-1,"]"
-          call get_option(trim(food_type_buffer)//"/stage", fgroup%food_sets(i)%target_stages%ptr(f))
+          call get_option(trim(food_type_buffer)//"/name", fgroup%food_sets(i)%varieties(f)%name)
        end do
 
        fgroup%variables(var_index)%name = trim(food_name)//"Request"
@@ -571,11 +572,11 @@ contains
 
        ! And finally we go through all target stages and 
        ! associate a pointer with the according agent list
-       allocate(fgroup%food_sets(i)%target_agent_lists(size(fgroup%food_sets(i)%target_stages%ptr)))
-       do t=1, size(fgroup%food_sets(i)%target_stages%ptr)
+       do t=1, size(fgroup%food_sets(i)%varieties)
           do v=1, size(target_fg%agent_arrays)
-             if (trim(target_fg%agent_arrays(v)%stage_name) == trim(fgroup%food_sets(i)%target_stages%ptr(t)) ) then
-                 fgroup%food_sets(i)%target_agent_lists(t)%ptr => target_fg%agent_arrays(v)
+             if (trim(target_fg%agent_arrays(v)%stage_name) == trim(fgroup%food_sets(i)%varieties(t)%name) ) then
+                 fgroup%food_sets(i)%varieties(t)%target_list%ptr => target_fg%agent_arrays(v)
+                 fgroup%food_sets(i)%varieties(t)%conc_field = trim(target_fg%variables(BIOVAR_SIZE)%field_name)//trim(fgroup%food_sets(i)%varieties(t)%name)
              end if
           end do
        end do
@@ -630,7 +631,9 @@ contains
     type(detector_linked_list) :: stage_change_list
     type(detector_type), pointer :: agent, agent_to_move
     type(vector_field), pointer :: xfield
-    type(scalar_field_pointer), dimension(:), pointer :: env_fields
+    type(scalar_field_pointer), dimension(:), pointer :: env_fields, food_fields
+    character(len=FIELD_NAME_LEN) :: foodname
+    type(food_set) :: fset
     integer :: i, j, f, v, env, pm_period, hvar, hvar_ind, hvar_src_ind, fg, stage
 
     ewrite(1,*) "Lagrangian biology: Updating agents..."
@@ -651,8 +654,18 @@ contains
        fgroup => get_functional_group(fg)
 
        ! Aggregate food concentrations
-       if (allocated(fgroup%food_sets)) then
+       if (size(fgroup%food_sets) > 0) then
           call aggregate_food_diagnostics(state(1), fgroup)
+
+          ! Note: Assume there is only one FoodSet for now...
+          fset = fgroup%food_sets(1)
+          foodname = trim(fset%name)
+          allocate(food_fields(size(fset%varieties)))
+          do f=1, size(fset%varieties)             
+             food_fields(f)%ptr => extract_scalar_field(state(1), trim(fset%varieties(f)%conc_field))
+          end do
+       else
+          allocate(food_fields(0))
        end if
 
        if (allocated(fgroup%envfield_names)) then
@@ -712,7 +725,8 @@ contains
                 end do
 
                 ! Update agent via the Python module
-                call lebiology_update_agent(fgroup, trim(agent_array%stage_name)//"_Update", agent, env_fields, dt)
+                call lebiology_update_agent(fgroup, trim(agent_array%stage_name)//"_Update", &
+                          trim(foodname), agent, xfield, env_fields, food_fields, dt)
 
                 ! Reset Ingested variables
                 do v=1, size(fgroup%variables)
@@ -1206,8 +1220,8 @@ contains
        concentration => extract_scalar_field(state, trim(food%conc_field_name))
        call zero(concentration)
 
-       do s=1, size(food%target_stages%ptr)
-          source_field => extract_scalar_field(state, trim(food%target_fgroup)//"EnsembleSize"//trim(food%target_stages%ptr(s)))
+       do s=1, size(food%varieties)
+          source_field => extract_scalar_field(state, trim(food%varieties(s)%conc_field))
           call addto(concentration, source_field)
        end do
 
@@ -1217,8 +1231,8 @@ contains
           chem_field => extract_scalar_field(state, trim(fgroup%name)//trim(food%name)//trim(chem_var%name) )
           call zero(chem_field)
 
-          do s=1, size(food%target_stages%ptr)
-             source_field => extract_scalar_field(state, trim(food%target_fgroup)//"Particulate"//trim(chem_var%name)//trim(food%target_stages%ptr(s)) )
+          do s=1, size(food%varieties)
+             source_field => extract_scalar_field(state, trim(food%target_fgroup)//"Particulate"//trim(chem_var%name)//trim(food%varieties(s)%name) )
              call addto(chem_field, source_field)
           end do
        end do
@@ -1303,8 +1317,8 @@ contains
              deallocate(prey_chem_fields)
 
              ! Loop over prey agents to adjust ensemble size
-             do t=1, size(fset%target_agent_lists)
-                agent => fset%target_agent_lists(t)%ptr%first
+             do t=1, size(fset%varieties)
+                agent => fset%varieties(t)%target_list%ptr%first
                 do while (associated(agent))
                    request = integral_element(request_field, xfield, agent%element)
                    if (request > 0.0) then     

@@ -14,7 +14,20 @@ PyMODINIT_FUNC initlebiology(void);
 static PyObject *pFGLocalsDict; // Dict of local namespaces with compiled function objects
 static PyObject *pFGVarNames;   // List of agent variable names
 static PyObject *pFGEnvNames;   // List of environment field names
+static PyObject *pFGFoodNames;  // Dict of foodname pointing to list of variety names
 static PyObject *pFGStageID;    // Dict of stage->ID mappings
+
+/* Add a variable name to the array under pFGVarNames['fg'] */
+void lebiology_add_fg_varname_c(char *fg, int fglen, char *var, int varlen, int *stat);
+
+/* Add an environment name to the array under pFGEnvNames['fg'] */
+void lebiology_add_fg_envname_c(char *fg, int fglen, char *env, int envlen, int *stat);
+
+/* Add a food variety name to the array under pFGFoodNames['fg']['food'] */
+void lebiology_add_fg_foodname_c(char *fg, int fglen, char *food, int foodlen, char *variety, int varietylen, int *stat);
+
+/* Add a stage ID to pFGStageID['fg'] */
+void lebiology_add_fg_stage_id_c(char *fg, int fglen, char *stage, int stagelen, double *id, int *stat);
 
 /* The main compile function runs the outer Python code and stores the local namespace, 
  * including the compiled function object for 'val', in pFGLocalsDict 
@@ -33,7 +46,9 @@ void lebiology_agent_init_c(char *fg, int fglen, char *key, int keylen, double v
  *          agent['var'] = f( env['field'], dt )
  *          return agent
  */
-void lebiology_agent_update_c(char *fg, int fglen, char *key, int keylen, double vars[], int n_vars, double envvals[], int n_envvals, double *dt, int *stat);
+void lebiology_agent_update_c(char *fg, int fglen, char *key, int keylen, char *food, int foodlen, 
+                              double vars[], int n_vars, double envvals[], int n_envvals, double fvariety[], int n_fvariety, 
+                              double *dt, int *stat);
 
 /* Agent motion interface:
  * Usage: def val(position, vars, dt):
@@ -42,15 +57,6 @@ void lebiology_agent_update_c(char *fg, int fglen, char *key, int keylen, double
  */
 // Note: Disabled until dependencies are sorted
 //void lebiology_agent_move_c(char *fg, int fglen, char *key, int keylen, double pos[], int n_pos, double vars[], int n_vars, int var_inds[], double *dt, double vector[], int *stat);
-
-/* Add a variable name to the array under pFGVarNames['fg'] */
-void lebiology_add_fg_varname_c(char *fg, int fglen, char *var, int varlen, int *stat);
-
-/* Add an environment name to the array under pFGEnvNames['fg'] */
-void lebiology_add_fg_envname_c(char *fg, int fglen, char *env, int envlen, int *stat);
-
-/* Add a stage ID to pFGStageID['fg'] */
-void lebiology_add_fg_stage_id_c(char *fg, int fglen, char *stage, int stagelen, double *id, int *stat);
 
 /* Callback function to add new agents to the system from inside the embedded Python biology update */
 static PyObject *lebiology_add_agent(PyObject *self, PyObject *args);

@@ -500,7 +500,7 @@ The scaled release quantity will then get added to the according source field of
     </element>
   </define>
   <define name="food_set">
-    <zeroOrMore>
+    <optional>
       <element name="food_set">
         <attribute name="name">
           <data type="string"/>
@@ -569,13 +569,13 @@ The scaled release quantity will then get added to the according source field of
         <zeroOrMore>
           <element name="food_type">
             <a:documentation>Individual food type for this set</a:documentation>
-            <attribute name="stage">
+            <attribute name="name">
               <data type="string"/>
             </attribute>
           </element>
         </zeroOrMore>
       </element>
-    </zeroOrMore>
+    </optional>
   </define>
   <define name="hyperlight">
     <element name="hyperlight">

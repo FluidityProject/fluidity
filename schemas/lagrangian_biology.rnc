@@ -453,9 +453,9 @@ food_set =
          },
          ## Individual food type for this set
          element food_type {
-            attribute stage { xsd:string }
+            attribute name { xsd:string }
          }*
-      }*
+      }?
    )
 
 hyperlight = 
