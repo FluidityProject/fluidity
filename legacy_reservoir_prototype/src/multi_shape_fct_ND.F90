@@ -823,16 +823,16 @@
       integer, PARAMETER :: volume_order=1
 !      integer, PARAMETER :: volume_order=2
       integer, PARAMETER :: surface_order=1
-!      integer, PARAMETER :: surface_order=1
+!      integer, PARAMETER :: surface_order=2
 ! whole_ele_volume_order & whole_ele_surface_order are the volume and surface 
 ! order of the integration used within each sub-quad/hex for QUAD_OVER_WHOLE_ELE=.true.
 ! -ve or 0 and take on the default value. 
-      integer, PARAMETER :: whole_ele_volume_order=0
-!      integer, PARAMETER :: whole_ele_volume_order=1
+!      integer, PARAMETER :: whole_ele_volume_order=0
+      integer, PARAMETER :: whole_ele_volume_order=1
 !      integer, PARAMETER :: whole_ele_volume_order=2
       integer, PARAMETER :: whole_ele_surface_order=0
 !      integer, PARAMETER :: whole_ele_surface_order=1
-!      integer, PARAMETER :: whole_ele_surface_order=1
+!      integer, PARAMETER :: whole_ele_surface_order=2
       character( len = option_path_len ) :: overlapping_path
 
       Conditional_EleType: Select Case( cv_ele_type )
@@ -6684,7 +6684,7 @@
       LOGICAL D3
 ! Local variables...
       REAL RUB(500)
-      LOGICAL DD3
+      LOGICAL DD3,base_order
       REAL L1(50),L2(50),L3(50),L4(50)
       integer IQADRA,IPOLY
 ! NB LXP(I) AND LYP(I) ARE THE LOCAL X AND Y COORDS OF NODAL POINT I
@@ -6706,7 +6706,33 @@
 ! Work out the shape functions and there derivatives...
       CALL SHATRIold(L1, L2, L3, L4, WEIGHT, DD3,&
      &              NLOC,NGI,&
-     &              N,NLX,NLY,NLZ) 
+     &              N,NLX,NLY,NLZ)
+! re-arrange ordering for quadratic elements...
+        if(d3) then
+         if(nloc==10) then
+            base_order=.true.
+            if(base_order) then
+               ! order so that the 1st nodes are on the base...
+              call base_order_tet(n,nloc,ngi)
+              call base_order_tet(nlx,nloc,ngi)
+              call base_order_tet(nly,nloc,ngi)
+              call base_order_tet(nlz,nloc,ngi)
+            endif 
+          endif
+        else
+         if(nloc==6) then
+            base_order=.true.
+            if(base_order) then
+               ! order so that the 1st nodes are on the base...
+              call base_order_tri(n,nloc,ngi)
+              call base_order_tri(nlx,nloc,ngi)
+              call base_order_tri(nly,nloc,ngi)
+            endif
+          endif
+        endif 
+       print *,'n::',n
+       print *,'nlx::',nlx
+       print *,'nly::',nly
       CALL SHATRIold(L1, L2, L3, L4, WEIGHT, DD3,&
      &              MLOC,NGI,&
      &              M,MLX,MLY,MLZ) 
@@ -6721,6 +6747,15 @@
       CALL SHATRIold(L1, L2, L3, L4, SWEIGH, DD3,&
      &              SNLOC,SNGI,&
      &              SN,SNLX,SNLY,RUB) 
+       if(snloc==6) then
+            base_order=.true.
+            if(base_order) then
+               ! order so that the 1st nodes are on the base...
+              call base_order_tri(sn,snloc,sngi)
+              call base_order_tri(snlx,snloc,sngi)
+              call base_order_tri(snly,snloc,sngi)
+            endif
+       endif
       CALL SHATRIold(L1, L2, L3, L4, SWEIGH, DD3,&
      &              SMLOC,NGI,&
      &              SM,SMLX,SMLY,RUB) 
@@ -6731,15 +6766,26 @@
 ! IPOLY=1 is for Lagrange polynomials.
          IPOLY=1
 
-          print *,'for sn:'
+          print *,'for sn IPOLY,IQADRA,SNGI,SNLOC:', &
+                          IPOLY,IQADRA,SNGI,SNLOC
          CALL SPECTR(SNGI,SNLOC,0,&
      &   RUB,SWEIGH,SN,SNLX,RUB,RUB,.FALSE.,.FALSE., IPOLY,IQADRA)
+          print *,'+++for sn SWEIGH:',SWEIGH
 
+       if(.false.) then
           print *,'for sm:'
          CALL SPECTR(SNGI,SMLOC,0,&
      &   RUB,SWEIGH,SM,SMLX,RUB,RUB,.FALSE.,.FALSE., IPOLY,IQADRA)
+       endif
         ENDIF
 
+      ENDIF
+! the weights need to sum to 0.5 in 2D triangles and 1./6. in 3D
+      IF(D3) THEN
+        WEIGHT=(1./6.)*WEIGHT
+        SWEIGH=0.5*SWEIGH
+      ELSE ! 2d...
+        WEIGHT=0.5*WEIGHT
       ENDIF
 
    end subroutine tr2or3dqu
@@ -7517,6 +7563,10 @@
 ! Find the roots of the quadrature points and nodes
 ! also get the weights. 
         CALL GTROOT(IPOLY,IQADRA,WEIT,NODPOS,QUAPOS,NDGI,NDNOD)
+        print *,'NDGI,NDNOD,NLOC:',NDGI,NDNOD,NLOC
+        print *,'WEIT(1:ndgi):',WEIT(1:ndgi)
+        print *,'NODPOS(1:ndnod):',NODPOS(1:ndnod)
+        print *,'QUAPOS(1:ndgi):',QUAPOS(1:ndgi)
       do  IGP=1,NDGI! Was loop 1000
          GPOI=IGP 
 !
@@ -7534,12 +7584,16 @@
 !
              NLX(ILOC,GPOI)&
      &        =SPECFU(DIFF, LXGP,INOD,NDNOD,IPOLY,NODPOS)
+         print *,'ILOC,GPOI,N(ILOC,GPOI),NLX(ILOC,GPOI):', &
+                  ILOC,GPOI,N(ILOC,GPOI),NLX(ILOC,GPOI)
 !
       end do ! Was loop 12000
       end do ! Was loop 1000
+         print *,'n WEIGHT:',WEIGHT
 !
 ! Find the roots of the quadrature points and nodes
 ! also get the weights. 
+       print *,'this is for m which we dont care about:'
         CALL GTROOT(IPOLY,IQADRA,WEIT,NODPOS,QUAPOS,NDGI,NMDNOD)
       do  IGP=1,NDGI! Was loop 1100
          GPOI=IGP 
@@ -7553,6 +7607,7 @@
       end do ! Was loop 13000
 !
       end do ! Was loop 1100
+       print *,'...finished this is for m which we dont care about:'
          ENDIF
          END SUBROUTINE SPECTR
 

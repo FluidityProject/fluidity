@@ -2005,6 +2005,7 @@
       ewrite(3,*) 'cv_sloclist: ', cv_sloclist
       ewrite(3,*) 'u_sloclist: ', u_sloclist
       ewrite(3,*) 'leaving cv_fem_shape_funs subrt, ncolgpts', ncolgpts
+      ewrite(3,*) '----sum(cvweight):',sum(cvweight)
 
 !         if(QUAD_OVER_WHOLE_ELE) then
          if(.false.) then

@@ -1968,7 +1968,8 @@
          VOLUME=VOLUME/REAL(NLEV)
          MASS_ELE(ELE)=VOLUME
         ewrite(3,*) 'Leaving detnlxr_plus_u'
-         !stop 2892
+        print *,'volume=',volume
+!         stop 2892
 
          UD = 0.0
          VD = 0.0
