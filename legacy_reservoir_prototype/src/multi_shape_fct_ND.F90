@@ -6782,7 +6782,8 @@
       ENDIF
 ! the weights need to sum to 0.5 in 2D triangles and 1./6. in 3D
       IF(D3) THEN
-        WEIGHT=(1./6.)*WEIGHT
+!        WEIGHT=(1./6.)*WEIGHT
+        WEIGHT=1.*WEIGHT
         SWEIGH=0.5*SWEIGH
       ELSE ! 2d...
         WEIGHT=0.5*WEIGHT

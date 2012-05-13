@@ -1932,6 +1932,9 @@
                                 ! Define the gauss points that lie on the surface of the CV...
            FINDGPTS, COLGPTS, NCOLGPTS, &
            SELE_OVERLAP_SCALE, QUAD_OVER_WHOLE_ELE ) 
+!       print *,'cvn:',cvn
+!       print *,'cvn_short:',cvn_short
+!       stop 768
       
 
       ALLOCATE( FACE_ELE( NFACE, TOTELE ))
@@ -1968,7 +1971,7 @@
          VOLUME=VOLUME/REAL(NLEV)
          MASS_ELE(ELE)=VOLUME
         ewrite(3,*) 'Leaving detnlxr_plus_u'
-        print *,'volume=',volume
+!        print *,'volume=',volume
 !         stop 2892
 
          UD = 0.0
@@ -2384,6 +2387,7 @@
                XSL(CV_SILOC)=X(X_INOD)
                YSL(CV_SILOC)=Y(X_INOD)
                ZSL(CV_SILOC)=Z(X_INOD)
+!               print *,'CV_SILOC,x,y,z:',CV_SILOC,XSL(CV_SILOC),ySL(CV_SILOC),zSL(CV_SILOC)
             END DO
             CALL DGSDETNXLOC2(CV_SNLOC,SBCVNGI, &
                  XSL,YSL,ZSL, &
@@ -2391,6 +2395,8 @@
                  (NDIM==1), (NDIM==3), (NDIM==-2), &
                  SNORMXN,SNORMYN,SNORMZN, &
                  NORMX,NORMY,NORMZ)
+!            print *,'sarea=',sarea
+!            stop 8821
 
             If_on_boundary_domain: IF(SELE /= 0) THEN
                ! Put the surface integrals in for pressure b.c.'s
@@ -3017,7 +3023,7 @@
       !EWRITE(3,*)'-WIC_P_BC:', WIC_P_BC( 1 : STOTEL * NPHASE )
       !EWRITE(3,*)'-SUF_P_BC:', SUF_P_BC( 1 : STOTEL * P_SNLOC * NPHASE )
       !ewrite(3,*)'pqp'
-      !stop 242
+!      stop 242
 
       DEALLOCATE( DETWEI )
       DEALLOCATE( RA )
