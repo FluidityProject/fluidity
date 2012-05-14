@@ -251,10 +251,33 @@
       RETURN
     END SUBROUTINE DEF_SPAR_CT_DG
 
+
+    subroutine ibubble(ivec)
+      ! sort ivec in increasing order
+      implicit none
+      integer, dimension( : ), intent( inout ) :: ivec
+      ! Local variables
+      integer :: nvec, i, j, itemp
+
+      nvec = size(ivec)
+
+      do i = 1, nvec - 1
+         do j = 1, nvec
+            if ( ivec( i ) > ivec( i + 1 ) ) then
+               itemp = ivec( i + 1 )
+               ivec( i + 1 ) = ivec( i )
+               ivec( i ) = itemp
+            end if
+         end do
+      end do
+      return
+    end subroutine ibubble
+
   end module sparsity_1D
 
   module sparsity_ND
     use fldebug
+    use sparsity_1D
 
   contains
 
@@ -546,33 +569,41 @@
       u_nonods = u_pha_nonods / ( nphase * ndim )
 
       count2 = 0
-      Loop_Element: do ele = 1, totele 
-         Loop_Phase1: do iphase = 1, nphase
-            Loop_Loc1: do iloc = 1, u_nloc
-               Loop_Dim1: do idim = 1, ndim
+      Loop_Phase1: do iphase = 1, nphase
+         Loop_Dim1: do idim = 1, ndim
+            Loop_Element: do ele = 1, totele 
+               Loop_Loc1: do iloc = 1, u_nloc
                   irow = ( ele - 1 ) * u_nloc + iloc  + ( idim - 1 ) * u_nonods + (iphase-1)*u_nonods*ndim
-                  !print *, 'irow, ele, u_nloc, iloc, idim, u_nonods, iphase:', &
-                  !     irow, ele, u_nloc, iloc, idim, u_nonods, iphase
+                  print *, 'irow, ele, u_nloc, iloc, idim, u_nonods, iphase, count2:', &
+                       irow, ele, u_nloc, iloc, idim, u_nonods, iphase, count2+1
                   findgm_pha( irow ) = count2 + 1
-                  Loop_Count: do count = finele( ele ), finele( ele + 1 ) - 1
-                     ele2 = colele( count )
-                     Loop_Phase2: do jphase = 1, nphase
-                        Loop_Loc2: do jloc = 1, u_nloc
-                           Loop_Dim2: do jdim = 1, ndim
+                  Loop_Phase2: do jphase = 1, nphase
+                     Loop_Dim2: do jdim = 1, ndim
+                        Loop_Count: do count = finele( ele ), finele( ele + 1 ) - 1
+                           ele2 = colele( count )
+                           Loop_Loc2: do jloc = 1, u_nloc
                               jrow = ( ele2 - 1 ) * u_nloc + jloc  + ( jdim - 1 ) * u_nonods + (jphase-1)*u_nonods*ndim
                               count2 = count2 + 1
                               coldgm_pha( count2 ) = jrow
                               if( irow == jrow ) middgm_pha( irow ) = count2
-                           end do Loop_Dim2
-                        end do Loop_Loc2
-                     end do Loop_Phase2
-                  end do Loop_Count
-               end do Loop_Dim1
-            end do Loop_Loc1
-         end do Loop_Phase1
-         findgm_pha( u_pha_nonods + 1 ) = count2 + 1
-         ncoldgm_pha = count2
-      end do Loop_Element
+                           end do Loop_Loc2
+                        end do Loop_Count
+                     end do Loop_Dim2
+                  end do Loop_Phase2
+               end do Loop_Loc1
+            end do Loop_Element
+         end do Loop_Dim1
+      end do Loop_Phase1
+      findgm_pha( u_pha_nonods + 1 ) = count2 + 1
+      ncoldgm_pha = count2
+
+      ! perform a bubble sort to order the row in ioncreasing order
+      do irow = 1, u_pha_nonods
+         call ibubble( coldgm_pha( findgm_pha( irow ) : findgm_pha( irow + 1 ) - 1 ) )
+         do count = findgm_pha( ele ), findgm_pha( ele + 1 ) - 1
+            if( irow == jrow ) middgm_pha( irow ) = count
+         end do
+      end do
 
 
       if( ncoldgm_pha > mx_ncoldgm_pha ) &
@@ -1625,27 +1656,6 @@
 
       return
     end subroutine CT_DG_Sparsity
-
-    subroutine ibubble(ivec)
-      ! sort ivec in increasing order
-      implicit none
-      integer, dimension( : ), intent( inout ) :: ivec
-      ! Local variables
-      integer :: nvec, i, j, itemp
-
-      nvec = size(ivec)
-
-      do i = 1, nvec - 1
-         do j = 1, nvec
-            if ( ivec( i ) > ivec( i + 1 ) ) then
-               itemp = ivec( i + 1 )
-               ivec( i + 1 ) = ivec( i )
-               ivec( i ) = itemp
-            end if
-         end do
-      end do
-      return
-    end subroutine ibubble
 	 
     subroutine check_sparsity( &
          u_pha_nonods, cv_pha_nonods, &

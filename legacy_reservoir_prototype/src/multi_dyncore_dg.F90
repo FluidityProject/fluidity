@@ -515,7 +515,7 @@
       INTEGER, DIMENSION( NCOLC ), intent( in ) :: COLC
       INTEGER, DIMENSION( U_NONODS * NPHASE * NDIM + 1 ), intent( in ) :: FINDGM_PHA
       INTEGER, DIMENSION( NCOLDGM_PHA ), intent( in ) :: COLDGM_PHA
-      INTEGER, DIMENSION( U_NONODS * NPHASE ), intent( in ) :: MIDDGM_PHA
+      INTEGER, DIMENSION( U_NONODS * NPHASE * NDIM), intent( in ) :: MIDDGM_PHA
 
       INTEGER, DIMENSION( TOTELE + 1 ), intent( in ) :: FINELE
       INTEGER, DIMENSION( NCOLELE ), intent( in ) :: COLELE

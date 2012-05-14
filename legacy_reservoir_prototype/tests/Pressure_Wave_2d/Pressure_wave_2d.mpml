@@ -741,7 +741,7 @@
         <mesh name="P0DG"/>
         <value name="WholeMesh">
           <constant>
-            <real_value rank="0">1</real_value>
+            <real_value rank="0">0</real_value>
           </constant>
         </value>
         <output/>
