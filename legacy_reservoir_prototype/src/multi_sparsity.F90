@@ -541,6 +541,9 @@
       return
     end subroutine exten_sparse_mom_cty
 
+
+
+
     subroutine form_dgm_pha_sparsity( totele, nphase, u_nloc, u_pha_nonods, &
          ndim, mx_ncoldgm_pha, ncoldgm_pha, &
          coldgm_pha, findgm_pha, middgm_pha, &
@@ -567,6 +570,8 @@
       ewrite(3,*) 'In form_dgm_pha_sparsity subrt.'
 
       u_nonods = u_pha_nonods / ( nphase * ndim )
+      print *,'u_nonods, u_pha_nonods, nphase, ndim:', &
+               u_nonods, u_pha_nonods, nphase, ndim
 
       count2 = 0
       Loop_Phase1: do iphase = 1, nphase
@@ -596,6 +601,10 @@
       end do Loop_Phase1
       findgm_pha( u_pha_nonods + 1 ) = count2 + 1
       ncoldgm_pha = count2
+      if(ncoldgm_pha>mx_ncoldgm_pha) then
+          print *,'ncoldgm_pha,mx_ncoldgm_pha:',ncoldgm_pha,mx_ncoldgm_pha
+          stop 2822
+      endif
 
       ! perform a bubble sort to order the row in ioncreasing order
       do irow = 1, u_pha_nonods

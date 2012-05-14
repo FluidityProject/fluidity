@@ -7233,7 +7233,7 @@
       INTEGER, DIMENSION( cv_nloc*totele ), intent( in ) :: cv_ndgln, x_ndgln
       REAL ERROR, RELAX, RELAX_DIAABS, RELAX_DIA
       INTEGER N_LIN_ITS
-      PARAMETER(ERROR=1.E-15, RELAX=1.0, RELAX_DIAABS=1.0)
+      PARAMETER(ERROR=1.E-15, RELAX=1.0, RELAX_DIAABS=2.0)
       PARAMETER(RELAX_DIA=1.0, N_LIN_ITS=10)
       ! RELAX: overall relaxation coeff; =1 for no relaxation. 
       ! RELAX_DIAABS: relaxation of the absolute values of the sum of the row of the matrix;
@@ -7288,7 +7288,7 @@
             jcolcmc=COLCMC(COUNT)
             jcolcmc_small=MAP_DG2CTY(jcolcmc)
             count2=0
-            DO COUNT3=FINDCMC_small(DG_NOD),FINDCMC_small(DG_NOD+1)-1
+            DO COUNT3=FINDCMC_small(cty_NOD),FINDCMC_small(cty_NOD+1)-1
                if(colcmc_small(count3)==jcolcmc_small) count2=count3
             end do
             if(count2==0) then
