@@ -3710,6 +3710,12 @@
          mloc = 1
          dummy_smloc = 1
          lowqua = .false.
+         if( cv_nloc_cells == 4 ) then ! Linear hexs
+            quad_cv_ngi =  8  !27
+            if(cv_ngi==4) quad_cv_ngi = 1 ! one pt quadrature...
+            if(cv_ngi==4*8) quad_cv_ngi = 8 ! 2 pt quadrature...
+            if(cv_ngi==4*27) quad_cv_ngi = 27 ! 3 pt quadrature...
+         endif
          if( cv_nloc_cells == 10 ) then ! Quadratic hexs
             quad_cv_ngi =  8  !27
             if(cv_ngi==32) quad_cv_ngi = 1 ! one pt quadrature...
@@ -3729,6 +3735,13 @@
          mloc = 1
          dummy_smloc = 1
          lowqua = .false.
+         if ( cv_nloc_cells == 3 ) then !  linear
+            !!quad_cv_ngi = 9
+            if(cv_ngi==3) quad_cv_ngi = 1 ! one pt quadrature...
+            if(cv_ngi==3*4) quad_cv_ngi = 4 ! 2 pt quadrature...
+            if(cv_ngi==3*9) quad_cv_ngi = 9 ! 3 pt quadrature...
+         endif
+
          if ( cv_nloc_cells == 6 ) then ! Quadratic quads
             !!quad_cv_ngi = 9
             if(cv_ngi==12) quad_cv_ngi = 1 ! one pt quadrature...
@@ -3745,6 +3758,8 @@
 
       ! Consistency check:
       if( cv_ngi /= totele * quad_cv_ngi ) then
+         print *,'cv_ngi, totele, quad_cv_ngi,totele * quad_cv_ngi:', &
+                  cv_ngi, totele, quad_cv_ngi,totele * quad_cv_ngi
          FLExit( "Wrong number for CV_NGI" )
       end if
 
