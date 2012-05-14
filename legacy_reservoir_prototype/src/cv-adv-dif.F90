@@ -34,7 +34,7 @@
     use state_module
     use spud
     use global_parameters, only: option_path_len
-    use sparsity_1D
+!    use sparsity_1D
 
   contains
 
@@ -7252,11 +7252,13 @@
       integer mx_ncmc_small,ncmc_small,count,count2,count3,GL_ITS
 
       ! obtain sparcity of a new matrix 
-      mx_ncmc_small=ncmc*2
+      mx_ncmc_small=ncmc*4
       allocate(FINDCmc_small(x_nonods+1))
       allocate(colcmc_small(mx_ncmc_small))
       allocate(midcmc_small(x_nonods))
       allocate(MAP_DG2CTY(cv_nonods))
+
+      PRINT *,'BEFORE pousinmc'
 
       call pousinmc( totele, x_nonods, cv_nloc, x_nonods, cv_nloc, &
            mx_ncmc_small, x_ndgln, x_ndgln, &
@@ -7300,6 +7302,7 @@
 
       DO GL_ITS=1,NGL_ITS
 
+         PRINT *,'GL_ITS=',GL_ITS
          ! SSOR smoother for the multi-grid method...
          CALL SIMPLE_SOLVER( CMC, P, RHS,  &
               NCMC, CV_NONODS, FINDCMC, COLCMC, MIDCMC,  &
@@ -7328,6 +7331,7 @@
 
          ! Course grid solver...
          DP_SMALL=0.0
+           PRINT *,'SOLVER'
          CALL SOLVER( CMC_SMALL(1:NCMC_SMALL), DP_SMALL, resid_cty, &
               FINDCMC_SMALL, COLCMC_SMALL(1:NCMC_SMALL), &
               option_path = '/material_phase[0]/scalar_field::Pressure')
