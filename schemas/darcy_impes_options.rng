@@ -1054,10 +1054,7 @@ Finite element discretisation may become unbounded so limiting is often necessar
     <choice>
       <element name="limit_face_value">
         <a:documentation>Limit the face value to satisfy a boundedness criterion.</a:documentation>
-        <choice>
-          <ref name="sweby_limiter"/>
-          <ref name="ultimate_limiter"/>
-        </choice>
+        <ref name="sweby_limiter"/>
       </element>
       <element name="do_not_limit_face_value">
         <a:documentation>Do not limit the face value</a:documentation>
@@ -1140,10 +1137,7 @@ Finite element discretisation may become unbounded so limiting is often necessar
     <choice>
       <element name="limit_face_value">
         <a:documentation>Limit the face value to satisfy a boundedness criterion.</a:documentation>
-        <choice>
-          <ref name="sweby_limiter"/>
-          <ref name="ultimate_limiter"/>
-        </choice>
+        <ref name="sweby_limiter"/>
       </element>
       <element name="do_not_limit_face_value">
         <a:documentation>Do not limit the face value</a:documentation>
@@ -1631,21 +1625,6 @@ Journal on Numerical Analysis, 21, 995-1011</a:documentation>
       <optional>
         <ref name="slope_options"/>
       </optional>
-      <optional>
-        <ref name="upwind_value_options"/>
-      </optional>
-    </element>
-  </define>
-  <define name="ultimate_limiter">
-    <element name="limiter">
-      <a:documentation>See "The Ultimate Conservative Difference Scheme Applied
-to Unsteady One-Dimensional Advection", B. P. Leonard,
-1991, Computer Methods in Applied Mechanics and
-Engineering, 88, 17-74</a:documentation>
-      <attribute name="name">
-        <value>Ultimate</value>
-      </attribute>
-      <ref name="field_based_cfl_number_options"/>
       <optional>
         <ref name="upwind_value_options"/>
       </optional>
