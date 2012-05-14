@@ -400,10 +400,11 @@ contains
     ! start of each field -1
     start=0
 
-    if (associated(petsc_numbering%halo) .and. &
-         .not. ((petsc_numbering%halo%data_type .eq. HALO_TYPE_CG_NODE) &
-           .or. (petsc_numbering%halo%data_type .eq. HALO_TYPE_DG_NODE))) then
-       FLAbort("Matrices can only be assembled on the basis of node halos")
+    if (associated(petsc_numbering%halo)) then
+       if (.not. ((petsc_numbering%halo%data_type .eq. HALO_TYPE_CG_NODE) &
+            .or. (petsc_numbering%halo%data_type .eq. HALO_TYPE_DG_NODE))) then
+          FLAbort("Matrices can only be assembled on the basis of node halos")
+       end if
     end if
 
     do b=1, nfields
@@ -448,10 +449,11 @@ contains
     nfields=size(petsc_numbering%gnn2unn, 2)
     assert( nfields==sum(fields%dim) )
     
-    if (associated(petsc_numbering%halo) .and. &
-         .not. ((petsc_numbering%halo%data_type .eq. HALO_TYPE_CG_NODE) &
-           .or. (petsc_numbering%halo%data_type .eq. HALO_TYPE_DG_NODE))) then
-       FLAbort("Matrices can only be assembled on the basis of node halos")
+    if (associated(petsc_numbering%halo)) then
+       if (.not. ((petsc_numbering%halo%data_type .eq. HALO_TYPE_CG_NODE) &
+            .or. (petsc_numbering%halo%data_type .eq. HALO_TYPE_DG_NODE))) then
+          FLAbort("Matrices can only be assembled on the basis of node halos")
+       end if
     end if
 
     b=1
@@ -506,10 +508,11 @@ contains
     nfields=size(petsc_numbering%gnn2unn, 2)
     assert(nfields==size(fields))
 
-    if (associated(petsc_numbering%halo) .and. &
-         .not. ((petsc_numbering%halo%data_type .eq. HALO_TYPE_CG_NODE) &
-           .or. (petsc_numbering%halo%data_type .eq. HALO_TYPE_DG_NODE))) then
-       FLAbort("Matrices can only be assembled on the basis of node halos")
+    if (associated(petsc_numbering%halo)) then
+       if (.not. ((petsc_numbering%halo%data_type .eq. HALO_TYPE_CG_NODE) &
+            .or. (petsc_numbering%halo%data_type .eq. HALO_TYPE_DG_NODE))) then
+          FLAbort("Matrices can only be assembled on the basis of node halos")
+       end if
     end if
 
     do b=1, nfields
@@ -970,10 +973,11 @@ contains
 
     allocate(colidx(1:nbcols))
     
-    if (associated(row_numbering%halo) .and. &
-         .not. ((row_numbering%halo%data_type .eq. HALO_TYPE_CG_NODE) &
-           .or. (row_numbering%halo%data_type .eq. HALO_TYPE_DG_NODE))) then
-       FLAbort("Matrices can only be assembled on the basis of node halos")
+    if (associated(row_numbering%halo)) then
+       if (.not. ((row_numbering%halo%data_type .eq. HALO_TYPE_CG_NODE) &
+            .or. (row_numbering%halo%data_type .eq. HALO_TYPE_DG_NODE))) then
+          FLAbort("Matrices can only be assembled on the basis of node halos")
+       end if
     end if
 
     ! loop over rows within a block:
