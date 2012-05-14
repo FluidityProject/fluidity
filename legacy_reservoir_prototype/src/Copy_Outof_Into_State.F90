@@ -857,7 +857,7 @@
                call get_option("/material_phase[" // int2str(i-1) // "]/equation_of_state/incompressible/linear/all_equal", eos_value)
                eos_coefs(i,1) = eos_value
             else
-               call get_option("/material_phase[" // int2str(i-1) // "]/equation_of_state/incompressible/linear/specify_all", eos_coefs(i, :))
+               call get_option("/material_phase[" // int2str(i-1) // "]/equation_of_state/incompressible/linear/specify_all/coefficients", eos_coefs(i, :))
             endif
          elseif (eos_option(i)==1) then
             call get_option("/material_phase[" // int2str(i-1) // "]/equation_of_state/compressible/stiffened_gas/eos_option1", eos_coefs(i, 1))

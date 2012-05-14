@@ -858,9 +858,13 @@
       lower = findrm( globi )
       upper = findrm( globi + 1 ) - 1
 
+      print *, '   l, u, i, j',  lower, upper, globi, globj
+
       count = 1
       Loop_While: do while ( count <= nmax )
          inum = lower + ( upper - lower + 1 ) / 2
+
+         print *, '     inum, l, u, count', inum, lower, upper, count
 
          if( globj >= colm( inum ) ) then
             lower = inum

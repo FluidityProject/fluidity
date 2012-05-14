@@ -139,9 +139,14 @@
     <equation_of_state>
       <incompressible>
         <linear>
-          <all_equal>
-            <real_value rank="0">1.</real_value>
-          </all_equal>
+          <specify_all>
+            <number_of_ccefficients>
+              <real_value rank="0">10</real_value>
+            </number_of_ccefficients>
+            <coefficients>
+              <real_value shape="10" rank="1">1 0 0 0 0 0 0 0 0 0</real_value>
+            </coefficients>
+          </specify_all>
         </linear>
       </incompressible>
     </equation_of_state>
@@ -471,9 +476,14 @@
     <equation_of_state>
       <incompressible>
         <linear>
-          <all_equal>
-            <real_value rank="0">1.0</real_value>
-          </all_equal>
+          <specify_all>
+            <number_of_ccefficients>
+              <real_value rank="0">10</real_value>
+            </number_of_ccefficients>
+            <coefficients>
+              <real_value shape="10" rank="1">1 0 0 0 0 0 0 0 0 0</real_value>
+            </coefficients>
+          </specify_all>
         </linear>
       </incompressible>
     </equation_of_state>

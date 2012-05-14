@@ -1703,8 +1703,8 @@
       ewrite(3,*) 'FINELE with size,', size( FINELE ), ':', FINELE( 1 :  size( FINELE ) )
       ewrite(3,*) 'COLELE with size,', size( COLELE ), ':', COLELE( 1 :  size( COLELE ) )
 
-!         print *,'UDEN=',uden
-!        stop 2921
+      !         print *,'UDEN=',uden
+      !        stop 2921
 
       is_overlapping = .false.
       call get_option( '/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
@@ -1712,7 +1712,7 @@
       if( trim( overlapping_path ) == 'overlapping' ) is_overlapping = .true.
 
       QUAD_OVER_WHOLE_ELE=.FALSE. 
-!      QUAD_OVER_WHOLE_ELE=.TRUE. ! Do NOT divide element into CV's to form quadrature.
+      !      QUAD_OVER_WHOLE_ELE=.TRUE. ! Do NOT divide element into CV's to form quadrature.
       call retrieve_ngi( ndim, u_ele_type, cv_nloc, u_nloc, &
            cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, QUAD_OVER_WHOLE_ELE )
       if(is_overlapping) then
@@ -1932,10 +1932,10 @@
                                 ! Define the gauss points that lie on the surface of the CV...
            FINDGPTS, COLGPTS, NCOLGPTS, &
            SELE_OVERLAP_SCALE, QUAD_OVER_WHOLE_ELE ) 
-!       print *,'cvn:',cvn
-!       print *,'cvn_short:',cvn_short
-!       stop 768
-      
+      !       print *,'cvn:',cvn
+      !       print *,'cvn_short:',cvn_short
+      !       stop 768
+
 
       ALLOCATE( FACE_ELE( NFACE, TOTELE ))
       ! Calculate FACE_ELE
@@ -1970,9 +1970,9 @@
          ! Adjust the volume according to the number of levels. 
          VOLUME=VOLUME/REAL(NLEV)
          MASS_ELE(ELE)=VOLUME
-        ewrite(3,*) 'Leaving detnlxr_plus_u'
-!        print *,'volume=',volume
-!         stop 2892
+         ewrite(3,*) 'Leaving detnlxr_plus_u'
+         !        print *,'volume=',volume
+         !         stop 2892
 
          UD = 0.0
          VD = 0.0
@@ -1981,21 +1981,21 @@
          VDOLD = 0.0
          WDOLD = 0.0
          DO ILEV = 1, NLEV
-         DO U_ILOC = 1 +(ILEV-1)*U_NLOC2, ILEV*U_NLOC2
-            !ewrite(3,*) 'ele, u_nonods, iloc:',ele, u_nonods, iloc
-            U_NOD = U_NDGLN(( ELE - 1 ) * U_NLOC + U_ILOC )
-            DO GI = 1 +(ILEV-1)*CV_NGI_SHORT, ILEV*CV_NGI_SHORT
-               DO IPHASE=1,NPHASE
-                  U_NOD_PHA=U_NOD +(IPHASE-1)*U_NONODS
-                  UD( GI, IPHASE ) = UD( GI, IPHASE ) + UFEN( U_ILOC, GI ) * U( U_NOD_PHA ) 
-                  VD( GI, IPHASE ) = VD( GI, IPHASE ) + UFEN( U_ILOC, GI ) * V( U_NOD_PHA ) 
-                  WD( GI, IPHASE ) = WD( GI, IPHASE ) + UFEN( U_ILOC, GI ) * W( U_NOD_PHA ) 
-                  UDOLD( GI, IPHASE ) = UDOLD( GI, IPHASE ) + UFEN( U_ILOC, GI ) * UOLD( U_NOD_PHA ) 
-                  VDOLD( GI, IPHASE ) = VDOLD( GI, IPHASE ) + UFEN( U_ILOC, GI ) * VOLD( U_NOD_PHA ) 
-                  WDOLD( GI, IPHASE ) = WDOLD( GI, IPHASE ) + UFEN( U_ILOC, GI ) * WOLD( U_NOD_PHA ) 
+            DO U_ILOC = 1 +(ILEV-1)*U_NLOC2, ILEV*U_NLOC2
+               !ewrite(3,*) 'ele, u_nonods, iloc:',ele, u_nonods, iloc
+               U_NOD = U_NDGLN(( ELE - 1 ) * U_NLOC + U_ILOC )
+               DO GI = 1 +(ILEV-1)*CV_NGI_SHORT, ILEV*CV_NGI_SHORT
+                  DO IPHASE=1,NPHASE
+                     U_NOD_PHA=U_NOD +(IPHASE-1)*U_NONODS
+                     UD( GI, IPHASE ) = UD( GI, IPHASE ) + UFEN( U_ILOC, GI ) * U( U_NOD_PHA ) 
+                     VD( GI, IPHASE ) = VD( GI, IPHASE ) + UFEN( U_ILOC, GI ) * V( U_NOD_PHA ) 
+                     WD( GI, IPHASE ) = WD( GI, IPHASE ) + UFEN( U_ILOC, GI ) * W( U_NOD_PHA ) 
+                     UDOLD( GI, IPHASE ) = UDOLD( GI, IPHASE ) + UFEN( U_ILOC, GI ) * UOLD( U_NOD_PHA ) 
+                     VDOLD( GI, IPHASE ) = VDOLD( GI, IPHASE ) + UFEN( U_ILOC, GI ) * VOLD( U_NOD_PHA ) 
+                     WDOLD( GI, IPHASE ) = WDOLD( GI, IPHASE ) + UFEN( U_ILOC, GI ) * WOLD( U_NOD_PHA ) 
+                  END DO
                END DO
             END DO
-         END DO
          END DO
 
          DENGI = 0.0
@@ -2025,10 +2025,10 @@
                DO IPHA_IDIM = 1, NDIM * NPHASE
                   DO JPHA_JDIM = 1, NDIM * NPHASE
                      SIGMAGI( GI, IPHA_IDIM, JPHA_JDIM ) = SIGMAGI( GI, IPHA_IDIM, JPHA_JDIM ) &
-                                !                                + CVfen( MAT_ILOC, GI ) * U_ABSORB( MAT_NODI, IPHA_IDIM, JPHA_JDIM )
+                                !+ CVfen( MAT_ILOC, GI ) * U_ABSORB( MAT_NODI, IPHA_IDIM, JPHA_JDIM )
                           + CVN( MAT_ILOC, GI ) * U_ABSORB( MAT_NODI, IPHA_IDIM, JPHA_JDIM ) 
                      SIGMAGI_STAB( GI, IPHA_IDIM, JPHA_JDIM ) = SIGMAGI_STAB( GI, IPHA_IDIM, JPHA_JDIM ) &
-                                !                        + CVfen( MAT_ILOC, GI ) * U_ABS_STAB( MAT_NODI, IPHA_IDIM, JPHA_JDIM )
+                                !+ CVfen( MAT_ILOC, GI ) * U_ABS_STAB( MAT_NODI, IPHA_IDIM, JPHA_JDIM )
                           + CVN( MAT_ILOC, GI ) * U_ABS_STAB( MAT_NODI, IPHA_IDIM, JPHA_JDIM )
                      !        + max(CVN( MAT_ILOC, GI ),CVfen( MAT_ILOC, GI )) * U_ABSORB( MAT_NODI, IPHA_IDIM, JPHA_JDIM )
                      !      ewrite(3,*)'ele,gi,IPHA_IDIM, JPHA_JDIM,SIGMAGI( GI, IPHA_IDIM, JPHA_JDIM ):', &
@@ -2074,186 +2074,194 @@
          END DO
 
          Loop_ilev_DGNods1: DO ILEV=1,NLEV
-         Loop_DGNods1: DO U_ILOC = 1 +(ILEV-1)*U_NLOC2, ILEV*U_NLOC2
-!         Loop_DGNods1: DO U_ILOC = 1, U_NLOC
-            GLOBI = U_NDGLN(( ELE - 1 ) * U_NLOC + U_ILOC )
+            Loop_DGNods1: DO U_ILOC = 1 +(ILEV-1)*U_NLOC2, ILEV*U_NLOC2
+               !Loop_DGNods1: DO U_ILOC = 1, U_NLOC
+               GLOBI = U_NDGLN(( ELE - 1 ) * U_NLOC + U_ILOC )
 
-            Loop_DGNods2: DO U_JLOC = 1 +(ILEV-1)*U_NLOC2, ILEV*U_NLOC2
-!            Loop_DGNods2: DO U_JLOC = 1, U_NLOC
+               Loop_DGNods2: DO U_JLOC = 1 +(ILEV-1)*U_NLOC2, ILEV*U_NLOC2
+                  !Loop_DGNods2: DO U_JLOC = 1, U_NLOC
 
-               GLOBJ = U_NDGLN(( ELE - 1 ) * U_NLOC + U_JLOC )
+                  GLOBJ = U_NDGLN(( ELE - 1 ) * U_NLOC + U_JLOC )
 
-               NN = 0.0 
-               NXUDN = 0.0 
-               NXN = 0.0   
-               NNX = 0.0     
-               NXNX = 0.0  
-               NN_SIGMAGI = 0.0
-               NN_SIGMAGI_STAB = 0.0
-               NN_MASS = 0.0 
-               NN_MASSOLD = 0.0 
-               VLK = 0.0
-               VLN = 0.0
-               VLN_OLD = 0.0
+                  NN = 0.0 
+                  NXUDN = 0.0 
+                  NXN = 0.0   
+                  NNX = 0.0     
+                  NXNX = 0.0  
+                  NN_SIGMAGI = 0.0
+                  NN_SIGMAGI_STAB = 0.0
+                  NN_MASS = 0.0 
+                  NN_MASSOLD = 0.0 
+                  VLK = 0.0
+                  VLN = 0.0
+                  VLN_OLD = 0.0
 
-               Loop_Gauss2: DO GI = 1 +(ILEV-1)*CV_NGI_SHORT, ILEV*CV_NGI_SHORT
-!               Loop_Gauss2: DO GI = 1, CV_NGI
-                  NN = NN + UFEN( U_ILOC, GI ) * UFEN( U_JLOC,  GI ) * DETWEI( GI )
-                  NXN = NXN + UFENX( U_ILOC, GI ) * UFEN( U_JLOC,  GI ) * DETWEI( GI )
-                  NNX = NNX + UFEN( U_ILOC,GI ) * UFENX( U_JLOC, GI ) * DETWEI( GI )
-                  NXNX = NXNX + UFENX( U_ILOC, GI ) * UFENX( U_JLOC, GI ) * DETWEI( GI )
+                  Loop_Gauss2: DO GI = 1 +(ILEV-1)*CV_NGI_SHORT, ILEV*CV_NGI_SHORT
+                     !Loop_Gauss2: DO GI = 1, CV_NGI
+                     NN = NN + UFEN( U_ILOC, GI ) * UFEN( U_JLOC,  GI ) * DETWEI( GI )
+                     NXN = NXN + UFENX( U_ILOC, GI ) * UFEN( U_JLOC,  GI ) * DETWEI( GI )
+                     NNX = NNX + UFEN( U_ILOC,GI ) * UFENX( U_JLOC, GI ) * DETWEI( GI )
+                     NXNX = NXNX + UFENX( U_ILOC, GI ) * UFENX( U_JLOC, GI ) * DETWEI( GI )
 
-                  Loop_IPHASE: DO IPHASE = 1, NPHASE ! Diffusion tensor
+                     Loop_IPHASE: DO IPHASE = 1, NPHASE ! Diffusion tensor
 
-                     VLK( IPHASE ) = VLK( IPHASE ) + &
-                          UFENX( U_ILOC, GI ) * ( UFENX( U_JLOC, GI ) * TEN_XX( GI, IPHASE ) +  &
-                          UFENY( U_JLOC, GI ) * TEN_XY( GI, IPHASE ) + &
-                          UFENZ( U_JLOC, GI ) * TEN_XZ( GI, IPHASE ) ) * DETWEI( GI ) + &
-                          UFENY( U_ILOC, GI ) * ( UFENX( U_JLOC, GI ) * TEN_YX( GI, IPHASE ) +  &
-                          UFENY( U_JLOC, GI ) * TEN_YY( GI, IPHASE ) + &
-                          UFENZ( U_JLOC, GI ) * TEN_YZ( GI, IPHASE ) ) * DETWEI( GI ) + &
-                          UFENZ( U_ILOC, GI ) * ( UFENX( U_JLOC, GI ) * TEN_ZX( GI, IPHASE ) +  &
-                          UFENY( U_JLOC, GI ) * TEN_ZY( GI, IPHASE ) + &
-                          UFENZ( U_JLOC, GI ) * TEN_ZZ( GI, IPHASE ) ) * DETWEI( GI )
-
-
-                     IF(MOM_CONSERV) THEN
-
-                        VLN( IPHASE ) = VLN( IPHASE ) - &
-                             DENGI(GI, IPHASE)*( UD( GI, IPHASE ) * UFENX( U_ILOC, GI ) + &
-                             VD( GI, IPHASE ) * UFENY( U_ILOC, GI ) +WD( GI, IPHASE ) * UFENZ( U_ILOC, GI ) ) &
-                             * UFEN( U_JLOC, GI ) * DETWEI( GI ) *WITH_NONLIN
-
-                        VLN_OLD( IPHASE ) = VLN_OLD( IPHASE ) - &
-                             DENGI(GI, IPHASE)*( UDOLD( GI, IPHASE ) * UFENX( U_ILOC, GI ) + &
-                             VDOLD( GI, IPHASE ) * UFENY( U_ILOC, GI ) +WDOLD( GI, IPHASE ) * UFENZ( U_ILOC, GI ) ) &
-                             * UFEN( U_JLOC, GI ) * DETWEI( GI ) *WITH_NONLIN
-
-                     ELSE
-
-                        VLN( IPHASE ) = VLN( IPHASE ) + &
-                             UFEN( U_ILOC, GI ) * DENGI(GI, IPHASE)*( UD( GI, IPHASE ) * UFENX( U_JLOC, GI ) + &
-                             VD( GI, IPHASE ) * UFENY( U_JLOC, GI ) +WD( GI, IPHASE ) * UFENZ( U_JLOC, GI ) ) &
-                             * DETWEI( GI ) *WITH_NONLIN
-
-                        VLN_OLD( IPHASE ) = VLN_OLD( IPHASE ) + &
-                             UFEN( U_ILOC, GI ) * DENGI(GI, IPHASE)*( UDOLD( GI, IPHASE ) * UFENX( U_JLOC, GI ) + &
-                             VDOLD( GI, IPHASE ) * UFENY( U_JLOC, GI ) +WDOLD( GI, IPHASE ) * UFENZ( U_JLOC, GI ) ) &
-                             * DETWEI( GI ) *WITH_NONLIN
-
-                     ENDIF
-
-                  END DO Loop_IPHASE
+                        VLK( IPHASE ) = VLK( IPHASE ) + &
+                             UFENX( U_ILOC, GI ) * ( UFENX( U_JLOC, GI ) * TEN_XX( GI, IPHASE ) +  &
+                             UFENY( U_JLOC, GI ) * TEN_XY( GI, IPHASE ) + &
+                             UFENZ( U_JLOC, GI ) * TEN_XZ( GI, IPHASE ) ) * DETWEI( GI ) + &
+                             UFENY( U_ILOC, GI ) * ( UFENX( U_JLOC, GI ) * TEN_YX( GI, IPHASE ) +  &
+                             UFENY( U_JLOC, GI ) * TEN_YY( GI, IPHASE ) + &
+                             UFENZ( U_JLOC, GI ) * TEN_YZ( GI, IPHASE ) ) * DETWEI( GI ) + &
+                             UFENZ( U_ILOC, GI ) * ( UFENX( U_JLOC, GI ) * TEN_ZX( GI, IPHASE ) +  &
+                             UFENY( U_JLOC, GI ) * TEN_ZY( GI, IPHASE ) + &
+                             UFENZ( U_JLOC, GI ) * TEN_ZZ( GI, IPHASE ) ) * DETWEI( GI )
 
 
-                  DO IPHA_IDIM = 1, NDIM * NPHASE
-                     DO JPHA_JDIM = 1, NDIM * NPHASE
-                        NN_SIGMAGI( IPHA_IDIM, JPHA_JDIM ) &
-                             = NN_SIGMAGI( IPHA_IDIM, JPHA_JDIM ) + UFEN( U_ILOC, GI ) * UFEN( U_JLOC, GI ) *  &
-                             SIGMAGI( GI, IPHA_IDIM, JPHA_JDIM ) * DETWEI( GI )
-                        NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM ) &
-                             = NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM ) + UFEN( U_ILOC, GI ) * UFEN( U_JLOC, GI ) *  &
-                             SIGMAGI_STAB( GI, IPHA_IDIM, JPHA_JDIM ) * DETWEI( GI )
+                        IF(MOM_CONSERV) THEN
+
+                           VLN( IPHASE ) = VLN( IPHASE ) - &
+                                DENGI(GI, IPHASE)*( UD( GI, IPHASE ) * UFENX( U_ILOC, GI ) + &
+                                VD( GI, IPHASE ) * UFENY( U_ILOC, GI ) +WD( GI, IPHASE ) * UFENZ( U_ILOC, GI ) ) &
+                                * UFEN( U_JLOC, GI ) * DETWEI( GI ) *WITH_NONLIN
+
+                           VLN_OLD( IPHASE ) = VLN_OLD( IPHASE ) - &
+                                DENGI(GI, IPHASE)*( UDOLD( GI, IPHASE ) * UFENX( U_ILOC, GI ) + &
+                                VDOLD( GI, IPHASE ) * UFENY( U_ILOC, GI ) +WDOLD( GI, IPHASE ) * UFENZ( U_ILOC, GI ) ) &
+                                * UFEN( U_JLOC, GI ) * DETWEI( GI ) *WITH_NONLIN
+
+                        ELSE
+
+                           VLN( IPHASE ) = VLN( IPHASE ) + &
+                                UFEN( U_ILOC, GI ) * DENGI(GI, IPHASE)*( UD( GI, IPHASE ) * UFENX( U_JLOC, GI ) + &
+                                VD( GI, IPHASE ) * UFENY( U_JLOC, GI ) +WD( GI, IPHASE ) * UFENZ( U_JLOC, GI ) ) &
+                                * DETWEI( GI ) *WITH_NONLIN
+
+                           VLN_OLD( IPHASE ) = VLN_OLD( IPHASE ) + &
+                                UFEN( U_ILOC, GI ) * DENGI(GI, IPHASE)*( UDOLD( GI, IPHASE ) * UFENX( U_JLOC, GI ) + &
+                                VDOLD( GI, IPHASE ) * UFENY( U_JLOC, GI ) +WDOLD( GI, IPHASE ) * UFENZ( U_JLOC, GI ) ) &
+                                * DETWEI( GI ) *WITH_NONLIN
+
+                        ENDIF
+
+                     END DO Loop_IPHASE
+
+
+                     DO IPHA_IDIM = 1, NDIM * NPHASE
+                        DO JPHA_JDIM = 1, NDIM * NPHASE
+                           NN_SIGMAGI( IPHA_IDIM, JPHA_JDIM ) &
+                                = NN_SIGMAGI( IPHA_IDIM, JPHA_JDIM ) + UFEN( U_ILOC, GI ) * UFEN( U_JLOC, GI ) *  &
+                                SIGMAGI( GI, IPHA_IDIM, JPHA_JDIM ) * DETWEI( GI )
+                           NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM ) &
+                                = NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM ) + UFEN( U_ILOC, GI ) * UFEN( U_JLOC, GI ) *  &
+                                SIGMAGI_STAB( GI, IPHA_IDIM, JPHA_JDIM ) * DETWEI( GI )
+                        END DO
                      END DO
-                  END DO
-                  ! Time mass term...
-                  GI_SHORT=MOD(GI,CV_NGI_SHORT)
-                  IF(GI_SHORT==0) GI_SHORT=CV_NGI_SHORT
+                     ! Time mass term...
+                     GI_SHORT=MOD(GI,CV_NGI_SHORT)
+                     IF(GI_SHORT==0) GI_SHORT=CV_NGI_SHORT
+                     DO IDIM = 1, NDIM
+                        DO IPHASE = 1, NPHASE
+                           IPHA_IDIM=(IPHASE-1)*NDIM + IDIM
+                           JPHA_JDIM=IPHA_IDIM
+                           NN_MASS(IPHA_IDIM, JPHA_JDIM ) = NN_MASS(IPHA_IDIM, JPHA_JDIM ) &
+                                + DENGI(GI_SHORT, IPHASE) * UFEN( U_ILOC, GI ) * UFEN( U_JLOC, GI ) * DETWEI( GI )
+                           NN_MASSOLD(IPHA_IDIM, JPHA_JDIM ) = NN_MASSOLD(IPHA_IDIM, JPHA_JDIM ) &
+                                + DENGIOLD(GI_SHORT, IPHASE) * UFEN( U_ILOC, GI ) * UFEN( U_JLOC, GI ) * DETWEI( GI )
+                        END DO
+                     END DO
+
+                  END DO Loop_Gauss2
+
+
                   DO IDIM = 1, NDIM
                      DO IPHASE = 1, NPHASE
-                        IPHA_IDIM=(IPHASE-1)*NDIM + IDIM
-                        JPHA_JDIM=IPHA_IDIM
-                        NN_MASS(IPHA_IDIM, JPHA_JDIM ) = NN_MASS(IPHA_IDIM, JPHA_JDIM ) &
-                             + DENGI(GI_SHORT, IPHASE) * UFEN( U_ILOC, GI ) * UFEN( U_JLOC, GI ) * DETWEI( GI )
-                        NN_MASSOLD(IPHA_IDIM, JPHA_JDIM ) = NN_MASSOLD(IPHA_IDIM, JPHA_JDIM ) &
-                             + DENGIOLD(GI_SHORT, IPHASE) * UFEN( U_ILOC, GI ) * UFEN( U_JLOC, GI ) * DETWEI( GI )
+                        U_RHS( GLOBI + (IDIM-1)*U_NONODS + ( IPHASE - 1 ) * NDIM*U_NONODS ) =   &
+                             U_RHS( GLOBI + (IDIM-1)*U_NONODS + ( IPHASE - 1 ) * NDIM*U_NONODS )     &
+                             + NN * U_SOURCE( GLOBJ + (IDIM-1)*U_NONODS + ( IPHASE - 1 ) * NDIM*U_NONODS )
                      END DO
                   END DO
 
-               END DO Loop_Gauss2
 
-
-               DO IDIM = 1, NDIM
                   DO IPHASE = 1, NPHASE
-                     U_RHS( GLOBI + (IDIM-1)*U_NONODS + ( IPHASE - 1 ) * NDIM*U_NONODS ) =   &
-                          U_RHS( GLOBI + (IDIM-1)*U_NONODS + ( IPHASE - 1 ) * NDIM*U_NONODS )     &
-                          + NN * U_SOURCE( GLOBJ + (IDIM-1)*U_NONODS + ( IPHASE - 1 ) * NDIM*U_NONODS )
-                  END DO
-               END DO
+                     DO IDIM = 1, NDIM 
+                        IPHA_IDIM = (IPHASE-1)*NDIM + IDIM
+                        DO JPHASE = 1, NPHASE
+                           DO JDIM = 1, NDIM 
+                              JPHA_JDIM = (JPHASE-1)*NDIM + JDIM
+                              U_INOD_IDIM_IPHA = GLOBI + ( IPHA_IDIM - 1 ) * U_NONODS 
+                              U_JNOD_JDIM_JPHA = GLOBJ + ( JPHA_JDIM - 1 ) * U_NONODS 
 
+                              ! Adding absorption term to the global matrix
+                              I = U_ILOC + (IPHA_IDIM-1)*U_NLOC
+                              J = U_JLOC + (JPHA_JDIM-1)*U_NLOC
 
-               DO IPHASE = 1, NPHASE
-                  DO IDIM = 1, NDIM 
-                     IPHA_IDIM = (IPHASE-1)*NDIM + IDIM
-                     DO JPHASE = 1, NPHASE
-                        DO JDIM = 1, NDIM 
-                           JPHA_JDIM = (JPHASE-1)*NDIM + JDIM
-                           U_INOD_IDIM_IPHA = GLOBI + ( IPHA_IDIM - 1 ) * U_NONODS 
-                           U_JNOD_JDIM_JPHA = GLOBJ + ( JPHA_JDIM - 1 ) * U_NONODS 
+                              IF(.NOT.JUST_BL_DIAG_MAT) THEN
 
-                           ! Adding absorption term to the global matrix
-                           I=U_ILOC+ (IPHA_IDIM-1)*U_NLOC
-                           J=U_JLOC+ (JPHA_JDIM-1)*U_NLOC
+                                 !print *, 'aa', u_iloc, u_jloc, u_nloc, u_nloc2, ele, globi, globj
+                                 !print *, 'bb', iphase, jphase, idim, jdim
+                                 !print *, 'xx', U_INOD_IDIM_IPHA, U_JNOD_JDIM_JPHA, U_NONODS , NPHASE , NDIM, NCOLDGM_PHA, nlev
+                                 !print *, 'yy', FINDGM_PHA
+                                 !print *, 'zz', COLDGM_PHA
 
-                           IF(.NOT.JUST_BL_DIAG_MAT) THEN
-                              CALL POSINMAT( COUNT, U_INOD_IDIM_IPHA, U_JNOD_JDIM_JPHA, &
-                                   U_NONODS * NPHASE * NDIM, FINDGM_PHA, COLDGM_PHA, NCOLDGM_PHA )
-                              DGM_PHA( COUNT ) =  DGM_PHA( COUNT ) &
+                                 CALL POSINMAT( COUNT, U_INOD_IDIM_IPHA, U_JNOD_JDIM_JPHA, &
+                                      U_NONODS * NPHASE * NDIM, FINDGM_PHA, COLDGM_PHA, NCOLDGM_PHA )
+
+                                 DGM_PHA( COUNT ) =  DGM_PHA( COUNT ) &
+                                      + NN_SIGMAGI( IPHA_IDIM, JPHA_JDIM ) + NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM ) &
+                                      + NN_MASS( IPHA_IDIM, JPHA_JDIM )/DT
+                              ENDIF
+                              PIVIT_MAT(ELE, I, J) =  PIVIT_MAT(ELE, I, J) &
                                    + NN_SIGMAGI( IPHA_IDIM, JPHA_JDIM ) + NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM ) &
                                    + NN_MASS( IPHA_IDIM, JPHA_JDIM )/DT
-                           ENDIF
-                           PIVIT_MAT(ELE, I, J) =  PIVIT_MAT(ELE, I, J) &
-                                + NN_SIGMAGI( IPHA_IDIM, JPHA_JDIM ) + NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM ) &
-                                + NN_MASS( IPHA_IDIM, JPHA_JDIM )/DT
-                           IF(MOM_CONSERV) THEN
-                              IF(JDIM==1) U_RHS(U_INOD_IDIM_IPHA)=U_RHS(U_INOD_IDIM_IPHA) &
-                                   - NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM )*U(GLOBJ+(JPHASE-1)*U_NONODS) &
-                                   + (NN_MASSOLD( IPHA_IDIM, JPHA_JDIM )/DT)*U(GLOBJ+(JPHASE-1)*U_NONODS)
-                              IF(JDIM==2) U_RHS(U_INOD_IDIM_IPHA)=U_RHS(U_INOD_IDIM_IPHA) &
-                                   - NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM )*V(GLOBJ+(JPHASE-1)*U_NONODS) &
-                                   + (NN_MASSOLD( IPHA_IDIM, JPHA_JDIM )/DT)*V(GLOBJ+(JPHASE-1)*U_NONODS)
-                              IF(JDIM==3) U_RHS(U_INOD_IDIM_IPHA)=U_RHS(U_INOD_IDIM_IPHA) &
-                                   - NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM )*W(GLOBJ+(JPHASE-1)*U_NONODS) &
-                                   + (NN_MASSOLD( IPHA_IDIM, JPHA_JDIM )/DT)*W(GLOBJ+(JPHASE-1)*U_NONODS)
-                           ELSE
-                              IF(JDIM==1) U_RHS(U_INOD_IDIM_IPHA)=U_RHS(U_INOD_IDIM_IPHA) &
-                                   - NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM )*U(GLOBJ+(JPHASE-1)*U_NONODS) &
-                                   + (NN_MASS( IPHA_IDIM, JPHA_JDIM )/DT)*U(GLOBJ+(JPHASE-1)*U_NONODS)
-                              IF(JDIM==2) U_RHS(U_INOD_IDIM_IPHA)=U_RHS(U_INOD_IDIM_IPHA) &
-                                   - NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM )*V(GLOBJ+(JPHASE-1)*U_NONODS) &
-                                   + (NN_MASS( IPHA_IDIM, JPHA_JDIM )/DT)*V(GLOBJ+(JPHASE-1)*U_NONODS)
-                              IF(JDIM==3) U_RHS(U_INOD_IDIM_IPHA)=U_RHS(U_INOD_IDIM_IPHA) &
-                                   - NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM )*W(GLOBJ+(JPHASE-1)*U_NONODS) &
-                                   + (NN_MASS( IPHA_IDIM, JPHA_JDIM )/DT)*W(GLOBJ+(JPHASE-1)*U_NONODS)
-                           ENDIF
+                              IF(MOM_CONSERV) THEN
+                                 IF(JDIM==1) U_RHS(U_INOD_IDIM_IPHA)=U_RHS(U_INOD_IDIM_IPHA) &
+                                      - NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM )*U(GLOBJ+(JPHASE-1)*U_NONODS) &
+                                      + (NN_MASSOLD( IPHA_IDIM, JPHA_JDIM )/DT)*U(GLOBJ+(JPHASE-1)*U_NONODS)
+                                 IF(JDIM==2) U_RHS(U_INOD_IDIM_IPHA)=U_RHS(U_INOD_IDIM_IPHA) &
+                                      - NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM )*V(GLOBJ+(JPHASE-1)*U_NONODS) &
+                                      + (NN_MASSOLD( IPHA_IDIM, JPHA_JDIM )/DT)*V(GLOBJ+(JPHASE-1)*U_NONODS)
+                                 IF(JDIM==3) U_RHS(U_INOD_IDIM_IPHA)=U_RHS(U_INOD_IDIM_IPHA) &
+                                      - NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM )*W(GLOBJ+(JPHASE-1)*U_NONODS) &
+                                      + (NN_MASSOLD( IPHA_IDIM, JPHA_JDIM )/DT)*W(GLOBJ+(JPHASE-1)*U_NONODS)
+                              ELSE
+                                 IF(JDIM==1) U_RHS(U_INOD_IDIM_IPHA)=U_RHS(U_INOD_IDIM_IPHA) &
+                                      - NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM )*U(GLOBJ+(JPHASE-1)*U_NONODS) &
+                                      + (NN_MASS( IPHA_IDIM, JPHA_JDIM )/DT)*U(GLOBJ+(JPHASE-1)*U_NONODS)
+                                 IF(JDIM==2) U_RHS(U_INOD_IDIM_IPHA)=U_RHS(U_INOD_IDIM_IPHA) &
+                                      - NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM )*V(GLOBJ+(JPHASE-1)*U_NONODS) &
+                                      + (NN_MASS( IPHA_IDIM, JPHA_JDIM )/DT)*V(GLOBJ+(JPHASE-1)*U_NONODS)
+                                 IF(JDIM==3) U_RHS(U_INOD_IDIM_IPHA)=U_RHS(U_INOD_IDIM_IPHA) &
+                                      - NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM )*W(GLOBJ+(JPHASE-1)*U_NONODS) &
+                                      + (NN_MASS( IPHA_IDIM, JPHA_JDIM )/DT)*W(GLOBJ+(JPHASE-1)*U_NONODS)
+                              ENDIF
 
+                           END DO
                         END DO
                      END DO
                   END DO
-               END DO
 
-               IF(.NOT.JUST_BL_DIAG_MAT) THEN
-                  DO IDIM = 1, NDIM 
-                     DO IPHASE = 1, NPHASE
-                        U_INOD_IDIM_IPHA = GLOBI + (IDIM-1)*U_NONODS+ ( IPHASE - 1 ) * NDIM*U_NONODS 
-                        U_JNOD_IDIM_IPHA = GLOBJ + (IDIM-1)*U_NONODS+ ( IPHASE - 1 ) * NDIM*U_NONODS 
+                  IF(.NOT.JUST_BL_DIAG_MAT) THEN
+                     DO IDIM = 1, NDIM 
+                        DO IPHASE = 1, NPHASE
+                           U_INOD_IDIM_IPHA = GLOBI + (IDIM-1)*U_NONODS + ( IPHASE - 1 ) * NDIM*U_NONODS 
+                           U_JNOD_IDIM_IPHA = GLOBJ + (IDIM-1)*U_NONODS + ( IPHASE - 1 ) * NDIM*U_NONODS 
 
-                        CALL POSINMAT( COUNT, U_INOD_IDIM_IPHA, U_JNOD_IDIM_IPHA, &
-                             U_NONODS * NPHASE * NDIM, FINDGM_PHA, COLDGM_PHA, NCOLDGM_PHA )
+                           CALL POSINMAT( COUNT, U_INOD_IDIM_IPHA, U_JNOD_IDIM_IPHA, &
+                                U_NONODS * NPHASE * NDIM, FINDGM_PHA, COLDGM_PHA, NCOLDGM_PHA )
 
-                        ! Adding diffusion and momentum terms to the global matrix
-                        I=U_ILOC+ (IDIM-1)*U_NLOC+ (IPHASE-1)*NDIM*U_NLOC
-                        J=U_JLOC+ (IDIM-1)*U_NLOC+ (IPHASE-1)*NDIM*U_NLOC
+                           ! Adding diffusion and momentum terms to the global matrix
+                           I=U_ILOC+ (IDIM-1)*U_NLOC+ (IPHASE-1)*NDIM*U_NLOC
+                           J=U_JLOC+ (IDIM-1)*U_NLOC+ (IPHASE-1)*NDIM*U_NLOC
 
-                        DGM_PHA( COUNT ) =  DGM_PHA( COUNT ) + VLK( IPHASE ) + VLN( IPHASE )
-                        PIVIT_MAT(ELE, I, J) =  PIVIT_MAT(ELE, I, J) + VLK( IPHASE )
+                           DGM_PHA( COUNT ) =  DGM_PHA( COUNT ) + VLK( IPHASE ) + VLN( IPHASE )
+                           PIVIT_MAT(ELE, I, J) =  PIVIT_MAT(ELE, I, J) + VLK( IPHASE )
+                        END DO
                      END DO
-                  END DO
-               ENDIF
+                  ENDIF
 
-            END DO Loop_DGNods2
+               END DO Loop_DGNods2
 
-         END DO Loop_DGNods1
+            END DO Loop_DGNods1
          END DO Loop_ilev_DGNods1
 
          ewrite(3,*)'just after Loop_DGNods1'
@@ -2268,88 +2276,88 @@
 
          ! Add in C matrix contribution: (DG velocities)
          Loop_ILEV1: DO ILEV = 1, NLEV
-         Loop_U_ILOC1: DO U_ILOC = 1 + (ILEV-1)*U_NLOC2, ILEV*U_NLOC2
-!         Loop_U_ILOC1: DO U_ILOC = 1, U_NLOC
-            IU_NOD = U_NDGLN(( ELE - 1 ) * U_NLOC + U_ILOC )
+            Loop_U_ILOC1: DO U_ILOC = 1 + (ILEV-1)*U_NLOC2, ILEV*U_NLOC2
+               !         Loop_U_ILOC1: DO U_ILOC = 1, U_NLOC
+               IU_NOD = U_NDGLN(( ELE - 1 ) * U_NLOC + U_ILOC )
 
-            Loop_P_JLOC1: DO P_JLOC = 1, P_NLOC
-               JCV_NOD = P_NDGLN(( ELE - 1 ) * P_NLOC + P_JLOC )
+               Loop_P_JLOC1: DO P_JLOC = 1, P_NLOC
+                  JCV_NOD = P_NDGLN(( ELE - 1 ) * P_NLOC + P_JLOC )
 
-               NMX = 0.0  
-               NMY = 0.0 
-               NMZ = 0.0   
-               GRAD_SOU_GI_NMX = 0.0  
-               GRAD_SOU_GI_NMY = 0.0 
-               GRAD_SOU_GI_NMZ = 0.0  
-               Loop_GaussPoints1: DO GI = 1 +(ILEV-1)*CV_NGI_SHORT, ILEV*CV_NGI_SHORT
-!               Loop_GaussPoints1: DO GI = 1, CV_NGI
-                  !ewrite(3,*) 'P_JLOC, GI, CVFENX( P_JLOC, GI ):',P_JLOC, GI, CVFENX( P_JLOC, GI )
-                  !ewrite(3,*) 'U_ILOC, GI, UFEN( U_ILOC, GI ):',U_ILOC, GI, UFEN( U_ILOC, GI )
-                  !ewrite(3,*) 'detwei:', detwei( gi )
-                  NMX = NMX + UFEN( U_ILOC, GI ) * CVFENX( P_JLOC, GI ) * DETWEI( GI )
-                  NMY = NMY + UFEN( U_ILOC, GI ) * CVFENY( P_JLOC, GI ) * DETWEI( GI )
-                  NMZ = NMZ + UFEN( U_ILOC, GI ) * CVFENZ( P_JLOC, GI ) * DETWEI( GI )
+                  NMX = 0.0  
+                  NMY = 0.0 
+                  NMZ = 0.0   
+                  GRAD_SOU_GI_NMX = 0.0  
+                  GRAD_SOU_GI_NMY = 0.0 
+                  GRAD_SOU_GI_NMZ = 0.0  
+                  Loop_GaussPoints1: DO GI = 1 +(ILEV-1)*CV_NGI_SHORT, ILEV*CV_NGI_SHORT
+                     !               Loop_GaussPoints1: DO GI = 1, CV_NGI
+                     !ewrite(3,*) 'P_JLOC, GI, CVFENX( P_JLOC, GI ):',P_JLOC, GI, CVFENX( P_JLOC, GI )
+                     !ewrite(3,*) 'U_ILOC, GI, UFEN( U_ILOC, GI ):',U_ILOC, GI, UFEN( U_ILOC, GI )
+                     !ewrite(3,*) 'detwei:', detwei( gi )
+                     NMX = NMX + UFEN( U_ILOC, GI ) * CVFENX( P_JLOC, GI ) * DETWEI( GI )
+                     NMY = NMY + UFEN( U_ILOC, GI ) * CVFENY( P_JLOC, GI ) * DETWEI( GI )
+                     NMZ = NMZ + UFEN( U_ILOC, GI ) * CVFENZ( P_JLOC, GI ) * DETWEI( GI )
 
-                  !ewrite(3,*)  '* i, j, gi', U_ILOC,P_JLOC, gi, ':',UFEN( U_ILOC, GI ), ':', &
-                  !     CVFENX( P_JLOC, GI ),  CVFENY( P_JLOC, GI ),  CVFENZ( P_JLOC, GI ), ':', DETWEI( GI )
+                     !ewrite(3,*)  '* i, j, gi', U_ILOC,P_JLOC, gi, ':',UFEN( U_ILOC, GI ), ':', &
+                     !     CVFENX( P_JLOC, GI ),  CVFENY( P_JLOC, GI ),  CVFENZ( P_JLOC, GI ), ':', DETWEI( GI )
 
-                  IF( IPLIKE_GRAD_SOU == 1 ) THEN 
-                     GRAD_SOU_GI_NMX( : ) = GRAD_SOU_GI_NMX( : )  &
-                          + GRAD_SOU_GI( GI, : ) * UFEN( U_ILOC, GI ) * &
-                          CVFENX( P_JLOC, GI ) * DETWEI( GI )
-                     GRAD_SOU_GI_NMY(:) = GRAD_SOU_GI_NMY(:)  &
-                          + GRAD_SOU_GI( GI, : ) * UFEN( U_ILOC, GI ) * &
-                          CVFENY( P_JLOC, GI ) * DETWEI( GI )
-                     GRAD_SOU_GI_NMZ(:) = GRAD_SOU_GI_NMZ(:)  &
-                          + GRAD_SOU_GI( GI, : ) * UFEN( U_ILOC, GI ) * &
-                          CVFENZ( P_JLOC, GI ) * DETWEI( GI )
-                  ENDIF
-                  !EWRITE(3,*) 'ELE,GI,U_ILOC,P_JLOC,::,NMX,NMY,NMZ:', &
-                  !ELE,GI,U_ILOC,P_JLOC,'::',NMX,NMY,NMZ
-                  !ewrite(3,*)  ' '
-                  !ewrite(3,*)  ' '
-               END DO Loop_GaussPoints1
+                     IF( IPLIKE_GRAD_SOU == 1 ) THEN 
+                        GRAD_SOU_GI_NMX( : ) = GRAD_SOU_GI_NMX( : )  &
+                             + GRAD_SOU_GI( GI, : ) * UFEN( U_ILOC, GI ) * &
+                             CVFENX( P_JLOC, GI ) * DETWEI( GI )
+                        GRAD_SOU_GI_NMY(:) = GRAD_SOU_GI_NMY(:)  &
+                             + GRAD_SOU_GI( GI, : ) * UFEN( U_ILOC, GI ) * &
+                             CVFENY( P_JLOC, GI ) * DETWEI( GI )
+                        GRAD_SOU_GI_NMZ(:) = GRAD_SOU_GI_NMZ(:)  &
+                             + GRAD_SOU_GI( GI, : ) * UFEN( U_ILOC, GI ) * &
+                             CVFENZ( P_JLOC, GI ) * DETWEI( GI )
+                     ENDIF
+                     !EWRITE(3,*) 'ELE,GI,U_ILOC,P_JLOC,::,NMX,NMY,NMZ:', &
+                     !ELE,GI,U_ILOC,P_JLOC,'::',NMX,NMY,NMZ
+                     !ewrite(3,*)  ' '
+                     !ewrite(3,*)  ' '
+                  END DO Loop_GaussPoints1
 
-               ! Put into matrix
+                  ! Put into matrix
 
-               ! Find COUNT - position in matrix : FINMCY, COLMCY
+                  ! Find COUNT - position in matrix : FINMCY, COLMCY
 
-               CALL POSINMAT( COUNT, IU_NOD, JCV_NOD,&
-                    U_NONODS, FINDC, COLC, NCOLC )
+                  CALL POSINMAT( COUNT, IU_NOD, JCV_NOD,&
+                       U_NONODS, FINDC, COLC, NCOLC )
 
-               !ewrite(3,*)'ELE,U_ILOC,P_JLOC,NMX,NMY,NMZ:', ELE,U_ILOC, P_JLOC, NMX, NMY, NMZ
-               !ewrite(3,*)'IU_NOD, JCV_NOD, COUNT:', IU_NOD, JCV_NOD, COUNT
+                  !ewrite(3,*)'ELE,U_ILOC,P_JLOC,NMX,NMY,NMZ:', ELE,U_ILOC, P_JLOC, NMX, NMY, NMZ
+                  !ewrite(3,*)'IU_NOD, JCV_NOD, COUNT:', IU_NOD, JCV_NOD, COUNT
 
-               Loop_Phase1: DO IPHASE = 1, NPHASE
-                  COUNT_PHA = COUNT + ( IPHASE - 1 ) * NDIM * NCOLC
+                  Loop_Phase1: DO IPHASE = 1, NPHASE
+                     COUNT_PHA = COUNT + ( IPHASE - 1 ) * NDIM * NCOLC
 
-                  C( COUNT_PHA ) = C( COUNT_PHA ) - NMX
-                  IF( NDIM >= 2 ) C( COUNT_PHA + NCOLC ) = C( COUNT_PHA + NCOLC ) - NMY
-                  IF( NDIM >= 3 ) C( COUNT_PHA + 2 * NCOLC ) = C( COUNT_PHA + 2 * NCOLC ) - NMZ
+                     C( COUNT_PHA ) = C( COUNT_PHA ) - NMX
+                     IF( NDIM >= 2 ) C( COUNT_PHA + NCOLC ) = C( COUNT_PHA + NCOLC ) - NMY
+                     IF( NDIM >= 3 ) C( COUNT_PHA + 2 * NCOLC ) = C( COUNT_PHA + 2 * NCOLC ) - NMZ
 
-                  IF( IPLIKE_GRAD_SOU == 1 ) THEN ! Capillary pressure for example terms...
-                     IDIM = 1
-                     U_RHS( IU_NOD + ( IDIM - 1 ) * U_NONODS + ( IPHASE - 1 ) * NDIM * U_NONODS ) =   &
-                          U_RHS( IU_NOD + ( IDIM - 1 ) * U_NONODS + ( IPHASE - 1 ) * NDIM * U_NONODS )     &
-                          - GRAD_SOU_GI_NMX( IPHASE ) * PLIKE_GRAD_SOU_GRAD( JCV_NOD + ( IPHASE - 1 ) * CV_NONODS )
-                     IF( NDIM >= 2 ) THEN
-                        IDIM=2
+                     IF( IPLIKE_GRAD_SOU == 1 ) THEN ! Capillary pressure for example terms...
+                        IDIM = 1
                         U_RHS( IU_NOD + ( IDIM - 1 ) * U_NONODS + ( IPHASE - 1 ) * NDIM * U_NONODS ) =   &
                              U_RHS( IU_NOD + ( IDIM - 1 ) * U_NONODS + ( IPHASE - 1 ) * NDIM * U_NONODS )     &
-                             - GRAD_SOU_GI_NMY( IPHASE ) * PLIKE_GRAD_SOU_GRAD( JCV_NOD + ( IPHASE - 1 ) * CV_NONODS )
+                             - GRAD_SOU_GI_NMX( IPHASE ) * PLIKE_GRAD_SOU_GRAD( JCV_NOD + ( IPHASE - 1 ) * CV_NONODS )
+                        IF( NDIM >= 2 ) THEN
+                           IDIM=2
+                           U_RHS( IU_NOD + ( IDIM - 1 ) * U_NONODS + ( IPHASE - 1 ) * NDIM * U_NONODS ) =   &
+                                U_RHS( IU_NOD + ( IDIM - 1 ) * U_NONODS + ( IPHASE - 1 ) * NDIM * U_NONODS )     &
+                                - GRAD_SOU_GI_NMY( IPHASE ) * PLIKE_GRAD_SOU_GRAD( JCV_NOD + ( IPHASE - 1 ) * CV_NONODS )
+                        ENDIF
+                        IF( NDIM >= 3 ) THEN
+                           IDIM=3
+                           U_RHS( IU_NOD + (IDIM-1) * U_NONODS + ( IPHASE - 1 ) * NDIM * U_NONODS ) =   &
+                                U_RHS( IU_NOD + (IDIM-1) * U_NONODS + ( IPHASE - 1 ) * NDIM * U_NONODS )     &
+                                - GRAD_SOU_GI_NMZ( IPHASE ) * PLIKE_GRAD_SOU_GRAD( JCV_NOD + ( IPHASE - 1 ) * CV_NONODS )
+                        ENDIF
                      ENDIF
-                     IF( NDIM >= 3 ) THEN
-                        IDIM=3
-                        U_RHS( IU_NOD + (IDIM-1) * U_NONODS + ( IPHASE - 1 ) * NDIM * U_NONODS ) =   &
-                             U_RHS( IU_NOD + (IDIM-1) * U_NONODS + ( IPHASE - 1 ) * NDIM * U_NONODS )     &
-                             - GRAD_SOU_GI_NMZ( IPHASE ) * PLIKE_GRAD_SOU_GRAD( JCV_NOD + ( IPHASE - 1 ) * CV_NONODS )
-                     ENDIF
-                  ENDIF
-               END DO Loop_Phase1
+                  END DO Loop_Phase1
 
-            END DO Loop_P_JLOC1
+               END DO Loop_P_JLOC1
 
-         END DO Loop_U_ILOC1
+            END DO Loop_U_ILOC1
          END DO Loop_ILEV1
 
          ewrite(3,*)'just after Loop_U_ILOC1'
@@ -2387,7 +2395,7 @@
                XSL(CV_SILOC)=X(X_INOD)
                YSL(CV_SILOC)=Y(X_INOD)
                ZSL(CV_SILOC)=Z(X_INOD)
-!               print *,'CV_SILOC,x,y,z:',CV_SILOC,XSL(CV_SILOC),ySL(CV_SILOC),zSL(CV_SILOC)
+               !print *,'CV_SILOC,x,y,z:',CV_SILOC,XSL(CV_SILOC),ySL(CV_SILOC),zSL(CV_SILOC)
             END DO
             CALL DGSDETNXLOC2(CV_SNLOC,SBCVNGI, &
                  XSL,YSL,ZSL, &
@@ -2395,8 +2403,8 @@
                  (NDIM==1), (NDIM==3), (NDIM==-2), &
                  SNORMXN,SNORMYN,SNORMZN, &
                  NORMX,NORMY,NORMZ)
-!            print *,'sarea=',sarea
-!            stop 8821
+            !print *,'sarea=',sarea
+            !stop 8821
 
             If_on_boundary_domain: IF(SELE /= 0) THEN
                ! Put the surface integrals in for pressure b.c.'s
@@ -2594,7 +2602,7 @@
                         IF( .NOT. IS_OVERLAPPING ) ILEV = 1
 
                         IF( ( .NOT. IS_OVERLAPPING ) .OR. &
-                       (( MAT_OTHER_LOC( ILEV ) /= 0 )) ) THEN
+                             (( MAT_OTHER_LOC( ILEV ) /= 0 )) ) THEN
                            U_INOD = U_NDGLN(( ELE - 1 ) * U_NLOC + U_ILOC )
                            VNMX=0.0
                            VNMY=0.0
@@ -3023,7 +3031,7 @@
       !EWRITE(3,*)'-WIC_P_BC:', WIC_P_BC( 1 : STOTEL * NPHASE )
       !EWRITE(3,*)'-SUF_P_BC:', SUF_P_BC( 1 : STOTEL * P_SNLOC * NPHASE )
       !ewrite(3,*)'pqp'
-!      stop 242
+      !      stop 242
 
       DEALLOCATE( DETWEI )
       DEALLOCATE( RA )

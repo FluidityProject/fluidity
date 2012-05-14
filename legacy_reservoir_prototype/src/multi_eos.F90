@@ -139,7 +139,7 @@
                   call get_option(trim(option_path)//"/all_equal", eos_coefs(1))
                   eos_coefs( 2:10 ) = 0.
                elseif (have_option(trim(option_path)//"/specify_all")) then
-                  call get_option(trim(option_path)//"/specify_all", eos_coefs)
+                  call get_option(trim(option_path)//"/specify_all/coefficients", eos_coefs)
                else
                   FLAbort('Unknown incompressible linear equation of state')
                endif
