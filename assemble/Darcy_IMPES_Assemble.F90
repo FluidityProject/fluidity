@@ -1,29 +1,29 @@
-  !    Copyright (C) 2006 Imperial College London and others.
-  !
-  !    Please see the AUTHORS file in the main source directory for a full list
-  !    of copyright holders.
-  !
-  !    Prof. C Pain
-  !    Applied Modelling and Computation Group
-  !    Department of Earth Science and Engineering
-  !    Imperial College London
-  !
-  !    amcgsoftware@imperial.ac.uk
-  !
-  !    This library is free software; you can redistribute it and/or
-  !    modify it under the terms of the GNU Lesser General Public
-  !    License as published by the Free Software Foundation,
-  !    version 2.1 of the License.
-  !
-  !    This library is distributed in the hope that it will be useful,
-  !    but WITHOUT ANY WARRANTY; without even the implied warranty of
-  !    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-  !    Lesser General Public License for more details.
-  !
-  !    You should have received a copy of the GNU Lesser General Public
-  !    License along with this library; if not, write to the Free Software
-  !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
-  !    USA
+!    Copyright (C) 2006 Imperial College London and others.
+!
+!    Please see the AUTHORS file in the main source directory for a full list
+!    of copyright holders.
+!
+!    Prof. C Pain
+!    Applied Modelling and Computation Group
+!    Department of Earth Science and Engineering
+!    Imperial College London
+!
+!    amcgsoftware@imperial.ac.uk
+!
+!    This library is free software; you can redistribute it and/or
+!    modify it under the terms of the GNU Lesser General Public
+!    License as published by the Free Software Foundation,
+!    version 2.1 of the License.
+!
+!    This library is distributed in the hope that it will be useful,
+!    but WITHOUT ANY WARRANTY; without even the implied warranty of
+!    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+!    Lesser General Public License for more details.
+!
+!    You should have received a copy of the GNU Lesser General Public
+!    License along with this library; if not, write to the Free Software
+!    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
+!    USA
 
 #include "fdebug.h"
 
@@ -71,16 +71,15 @@ module darcy_impes_assemble_module
              darcy_impes_calculate_sum_saturation, &
              darcy_impes_calculate_densities, &
              darcy_impes_calculate_cflnumber_field_based_dt, &
-             darcy_impes_initialise_cached_phase_face_value, &
+             darcy_impes_initialise_cached_face_value, &
              darcy_impes_calculate_inverse_characteristic_length, &
-             darcy_impes_calculate_modified_relative_permeability
+             darcy_impes_calculate_modified_relative_permeability, &
+             darcy_impes_calculate_modrelperm_den_first_sat_face_values
    
    ! Options associated with explicit advection subcycling for CV scalar field solver
    type darcy_impes_subcycle_options_type
-      logical :: have_max_cfl
-      logical :: have_number
-      integer :: number_advection_subcycle
-      real    :: max_courant_per_advection_subcycle         
+      logical :: have
+      integer :: number
    end type darcy_impes_subcycle_options_type
    
    ! Options associated with adaptive time stepping
@@ -100,10 +99,23 @@ module darcy_impes_assemble_module
       real    :: fluids_linear_reference_density
    end type darcy_impes_eos_options_type
    
-   ! Data associated with a cached CV face value
+   ! Data associated with the cached CV face values
    type cached_face_value_type
-      real,    dimension(:), pointer :: value
-      integer, dimension(:), pointer :: ele_base
+      real, dimension(:,:,:,:), pointer :: sat            ! nsub, ngi_vele, vele, nphase
+      real, dimension(:,:,:,:), pointer :: sat_bdy        ! nsub, ngi_sele, sele, nphase
+      real, dimension(:,:,:),   pointer :: modrelperm     !       ngi_vele, vele, nphase
+      real, dimension(:,:,:),   pointer :: modrelperm_bdy !       ngi_sele, sele, nphase
+      real, dimension(:,:,:),   pointer :: den            !       ngi_vele, vele, nphase
+      real, dimension(:,:,:),   pointer :: den_bdy        !       ngi_sele, sele, nphase
+      real, dimension(:,:),     pointer :: detwei         !       ngi_vele, vele
+      real, dimension(:,:),     pointer :: detwei_bdy     !       ngi_sele, sele
+      real, dimension(:,:,:),   pointer :: normal         ! ndim, ngi_vele, vele
+      real, dimension(:,:,:),   pointer :: normal_bdy     ! ndim, ngi_sele, sele
+      real, dimension(:,:,:,:), pointer :: p_dshape       ! nloc, ngi_vele, ndim, vele
+!!!!! *** THIS IS NOT POSSIBLE YET ***
+      real, dimension(:,:,:,:), pointer :: p_dshape_bdy   ! nloc, ngi_sele, ndim, sele
+      logical                           :: cached_detwei_normal
+      logical                           :: cached_p_dshape
    end type cached_face_value_type
    
    type darcy_impes_type
@@ -167,7 +179,7 @@ module darcy_impes_assemble_module
       type(scalar_field) :: cv_mass_pressure_mesh_with_old_porosity 
       type(scalar_field) :: cv_mass_pressure_mesh
       type(scalar_field) :: cfl_subcycle
-      type(scalar_field) :: old_sfield_subcycle
+      type(scalar_field) :: old_saturation_subcycle
       ! *** The modified relative permeability fields for each phase ***
       type(scalar_field_pointer), dimension(:), pointer :: modified_relative_permeability
       type(scalar_field_pointer), dimension(:), pointer :: old_modified_relative_permeability
@@ -187,6 +199,8 @@ module darcy_impes_assemble_module
       integer :: number_phase, cv_surface_quaddegree   
       ! *** Data specifically associated with the CV discretisation allocated here ***
       type(cv_options_type)                   :: saturation_cv_options
+      type(cv_options_type)                   :: modrelperm_cv_options
+      type(cv_options_type)                   :: density_cv_options
       type(cv_faces_type)                     :: cvfaces
       type(element_type)                      :: x_cvshape_full
       type(element_type)                      :: p_cvshape_full
@@ -197,23 +211,18 @@ module darcy_impes_assemble_module
       type(element_type)                      :: x_cvbdyshape
       type(element_type)                      :: p_cvbdyshape      
       type(element_type)                      :: gradp_cvbdyshape
-      logical                                 :: phase_one_saturation_diagnostic
       type(darcy_impes_subcycle_options_type) :: subcy_opt_sat
-      type(csr_matrix)                        :: old_sfield_upwind
+      type(csr_matrix)                        :: old_saturation_upwind
+      type(csr_matrix)                        :: modrelperm_upwind
+      type(csr_matrix)                        :: density_upwind
+      ! *** Flag for whether the first phase saturation is diagnostic, else it is prognostic ***
+      logical                                 :: phase_one_saturation_diagnostic      
       ! *** Flag for whether the first phase pressure is prognostic, else it is prescribed *** 
       logical :: first_phase_pressure_prognostic
-      ! *** Flag for whether the Porosity is diagnostic, else it is prescribed *** 
-      logical :: porosity_is_diagnostic
-      ! *** Flag for whether the AbsolutePermeability is diagnostic, else it is prescribed *** 
-      logical :: absolute_permeability_is_diagnostic
-      ! *** Flag for whether the phase saturation sources are diagnostic, else it is prescribed ***
-      logical, dimension(:), pointer :: saturation_source_is_diagnostic
-      ! *** The cached phase face value at each quadrature point summed over subcycles if necessary for each phase ***
-      type(cached_face_value_type), dimension(:), pointer :: cached_phase_face_value_domain
-      type(cached_face_value_type), dimension(:), pointer :: cached_phase_face_value_boundary
-      ! *** The subcycle timestep size and number of them ***
+      ! *** The cached face values for all phases ***
+      type(cached_face_value_type) :: cached_face_value
+      ! *** The advection subcycle timestep size ***
       real    :: dt_subcycle
-      integer :: number_subcycle
       ! *** Time time step size, also stored here for convenience ***
       real :: dt
       ! *** The current time, also stored here for convenience ***
@@ -226,6 +235,9 @@ module darcy_impes_assemble_module
       integer :: max_nonlinear_iter_first_timestep_after_adapt
       ! *** Max Non linear iteration for this timestep, also stored here for convencience ***
       integer :: max_nonlinear_iter_this_timestep
+      ! *** The number of volume and surface elements, stored here for convenience ***
+      integer :: number_vele
+      integer :: number_sele
       ! *** Geometric dimension, also stored here for convenience ***
       integer :: ndim
       ! *** Options data associated with adaptive time stepping stored here ***
@@ -270,10 +282,32 @@ module darcy_impes_assemble_module
       
       type(darcy_impes_type), intent(inout) :: di
       
+      ! local variables
+      logical :: form_new_subcycle_sat_face_values
+      logical :: cache_new_subcycle_sat_face_values
+      
       ewrite(1,*) 'Start Darcy IMPES assemble and solve'
                   
       ! Calculate the latest CV mass on the pressure mesh with porosity included
       call compute_cv_mass(di%positions, di%cv_mass_pressure_mesh_with_porosity, di%porosity)      
+
+      ! Calculate the modrelperm, density and first saturation face values
+      call darcy_impes_calculate_modrelperm_den_first_sat_face_values(di)
+      
+      ! If saturation phase 1 is prognostic, it is the first iteration
+      ! and there is subcycling then solve the saturations 
+      if ((.not. di%phase_one_saturation_diagnostic) .and. &
+          (di%nonlinear_iter == 1) .and. &
+          (di%subcy_opt_sat%number > 1)) then
+         
+         form_new_subcycle_sat_face_values  = .true.
+         cache_new_subcycle_sat_face_values = .true. 
+         
+         call darcy_impes_assemble_and_solve_phase_saturations(di, &
+                                                               form_new_subcycle_sat_face_values, &
+                                                               cache_new_subcycle_sat_face_values)
+         
+      end if
             
       ! Assemble and solve the phase pressures
       call darcy_impes_assemble_and_solve_phase_pressures(di)
@@ -285,7 +319,31 @@ module darcy_impes_assemble_module
       call darcy_impes_calculate_divergence_total_darcy_velocity(di)
       
       ! Assemble and solve the phase saturations
-      call darcy_impes_assemble_and_solve_phase_saturations(di)
+      
+      if (di%phase_one_saturation_diagnostic) then
+         
+         form_new_subcycle_sat_face_values  = .true.
+         cache_new_subcycle_sat_face_values = .false.         
+      
+      else 
+      
+         if (di%nonlinear_iter == di%max_nonlinear_iter_this_timestep) then
+         
+            form_new_subcycle_sat_face_values  = .false.
+            cache_new_subcycle_sat_face_values = .false.         
+         
+         else 
+         
+            form_new_subcycle_sat_face_values  = .true.
+            cache_new_subcycle_sat_face_values = .true.         
+         
+         end if 
+      
+      end if
+      
+      call darcy_impes_assemble_and_solve_phase_saturations(di, &
+                                                            form_new_subcycle_sat_face_values, &
+                                                            cache_new_subcycle_sat_face_values)
       
       ! Calculate the sum of the saturations
       call darcy_impes_calculate_sum_saturation(di)
@@ -323,95 +381,82 @@ module darcy_impes_assemble_module
 
    subroutine darcy_impes_assemble_and_solve_first_phase_pressure(di)
       
-      !!< Assemble and solve the first phase pressure. For the first nonlinear iteration
-      !!< the phase face value is calculated here and cached to be used 
-      !!< for the calculation of total darcy velocity divergence and volume fraction  
-      !!< advection. Any further nonlinear iterations use the cached face value 
-      !!< which may contain the summed subcycled face values. A source is included 
+      !!< Assemble and solve the first phase pressure. A source is included 
       !!< due to the capilliary pressures of non first phases as well as gravity 
       !!< and the rate of change of porosity and the individual phase sources.
+      !!< Face values for saturation, modified relative permeability and 
+      !!< density have already been evaluated.
       
       type(darcy_impes_type), intent(inout) :: di
       
       ! local variables
-      logical :: inflow, determine_face_value
-      integer :: p, vele, sele, iloc, oloc, jloc, face, gi, ggi, f_ele_counter, f_ele_base, upwind_pos, dim
-      real    :: income, face_value, iter_v_over_s_dot_n, modrelperm_absperm_over_visc, grad_cap_p_dot_n
-      real    :: old_saturation_face_value, modrelperm_face_value, g_dot_n, den_face_value
-      real,    dimension(1)                  :: absperm_ele, visc_ele
-      real,    dimension(:),     allocatable :: old_saturation_ele
-      real,    dimension(:),     allocatable :: modrelperm_ele
-      real,    dimension(:),     allocatable :: den_ele
-      real,    dimension(:,:),   allocatable :: grav_ele
-      real,    dimension(:),     allocatable :: cfl_ele
-      real,    dimension(:,:),   allocatable :: iter_grad_pressure_face_quad
-      real,    dimension(:,:),   allocatable :: grad_cap_pressure_face_quad
-      real,    dimension(:,:),   allocatable :: iter_v_over_s_face_quad
-      real,    dimension(:,:),   allocatable :: x_ele
-      real,    dimension(:,:,:), allocatable :: p_dshape
-      real,    dimension(:,:),   allocatable :: normal
-      real,    dimension(:),     allocatable :: detwei
-      real,    dimension(:),     allocatable :: normgi
-      logical, dimension(:),     allocatable :: notvisited
-      real,    dimension(:,:),   allocatable :: p_mat_local
-      real,    dimension(:),     allocatable :: p_rhs_local
-      real,    dimension(:,:),   allocatable :: x_face_quad
-      integer, dimension(:),     pointer     :: x_pmesh_nodes
-      integer, dimension(:),     pointer     :: p_nodes      
-      integer, dimension(:),     pointer     :: upwind_nodes
-      real,    dimension(1)                  :: absperm_ele_bdy, visc_ele_bdy
-      real,    dimension(:),     allocatable :: modrelperm_ele_bdy
-      real,    dimension(:,:),   allocatable :: grav_ele_bdy
-      real,    dimension(:,:),   allocatable :: iter_grad_pressure_face_quad_bdy
-      real,    dimension(:,:),   allocatable :: iter_v_over_s_face_quad_bdy
-      real,    dimension(:),     allocatable :: bc_sele_val
-      real,    dimension(:),     allocatable :: inv_char_len_ele_bdy
-      real,    dimension(:),     allocatable :: old_saturation_ele_bdy
-      real,    dimension(:),     allocatable :: ghost_old_saturation_ele_bdy
-      real,    dimension(:,:),   allocatable :: normal_bdy
-      real,    dimension(:),     allocatable :: detwei_bdy
-      real,    dimension(:,:),   allocatable :: x_ele_bdy
-      real,    dimension(:),     allocatable :: p_rhs_local_bdy
-      real,    dimension(:,:),   allocatable :: p_matrix_local_bdy
-      integer, dimension(:),     allocatable :: p_nodes_bdy
-      integer, parameter :: PRESSURE_BC_TYPE_WEAKDIRICHLET   = 1
+      integer :: p, vele, sele, iloc, oloc, jloc, face, gi, ggi
+      real    :: face_value, grad_cap_p_dot_n, g_dot_n
+      real,    dimension(1)              :: absperm_ele, visc_ele
+      real,    dimension(:,:),   pointer :: grav_ele
+      real,    dimension(:,:),   pointer :: grad_cap_pressure_face_quad
+      real,    dimension(:,:),   pointer :: x_ele
+      real,    dimension(:,:,:), pointer :: p_dshape
+      real,    dimension(:,:),   pointer :: normal
+      real,    dimension(:),     pointer :: detwei
+      real,    dimension(:),     pointer :: normgi
+      logical, dimension(:),     pointer :: notvisited
+      real,    dimension(:,:),   pointer :: p_mat_local
+      real,    dimension(:),     pointer :: p_rhs_local
+      real,    dimension(:,:),   pointer :: x_face_quad
+      integer, dimension(:),     pointer :: x_pmesh_nodes
+      integer, dimension(:),     pointer :: p_nodes      
+      real,    dimension(1)              :: absperm_ele_bdy, visc_ele_bdy
+      real,    dimension(:,:),   pointer :: grav_ele_bdy
+!!!!! *** THIS IS NOT POSSIBLE YET ***
+!!!!!      real,    dimension(:,:),   pointer :: grad_cap_pressure_face_quad_bdy
+!!!!!      real,    dimension(:,:,:), pointer :: p_dshape_bdy
+      real,    dimension(:),     pointer :: bc_sele_val
+      real,    dimension(:),     pointer :: inv_char_len_ele_bdy
+      real,    dimension(:,:),   pointer :: normal_bdy
+      real,    dimension(:),     pointer :: detwei_bdy
+      real,    dimension(:,:),   pointer :: x_ele_bdy
+      real,    dimension(:),     pointer :: p_rhs_local_bdy
+      real,    dimension(:,:),   pointer :: p_matrix_local_bdy
+      integer, dimension(:),     pointer :: p_nodes_bdy
+      integer, parameter :: PRESSURE_BC_TYPE_WEAKDIRICHLET   = 1, PRESSURE_BC_TYPE_DIRICHLET      = 2 
       integer, parameter :: SATURATION_BC_TYPE_WEAKDIRICHLET = 1
       integer, parameter :: V_OVER_S_BC_TYPE_NORMAL_FLOW     = 1, V_OVER_S_BC_TYPE_NO_NORMAL_FLOW = 2
             
       ! allocate arrays used in assemble process - many assume
       ! that all elements are the same type.
       allocate(x_ele(di%ndim, ele_loc(di%positions,1)))      
-      allocate(p_dshape(ele_loc(di%pressure_mesh,1), di%x_cvshape%ngi, mesh_dim(di%pressure_mesh)))
-      allocate(normal(di%ndim,di%x_cvshape%ngi))
-      allocate(detwei(di%x_cvshape%ngi))      
+      if (.not. di%cached_face_value%cached_p_dshape) then
+         allocate(p_dshape(ele_loc(di%pressure_mesh,1), di%p_cvshape%ngi, mesh_dim(di%pressure_mesh)))
+      end if
+      if (.not. di%cached_face_value%cached_detwei_normal) then
+         allocate(normal(di%ndim,di%x_cvshape%ngi))
+         allocate(detwei(di%x_cvshape%ngi))      
+      end if
       allocate(normgi(di%ndim))
       allocate(notvisited(di%x_cvshape%ngi))
       allocate(p_mat_local(ele_loc(di%pressure_mesh,1), ele_loc(di%pressure_mesh,1)))
       allocate(p_rhs_local(ele_loc(di%pressure_mesh,1)))
       allocate(x_face_quad(di%ndim, di%x_cvshape%ngi))
-      allocate(old_saturation_ele(ele_loc(di%pressure_mesh,1)))
-      allocate(modrelperm_ele(ele_loc(di%pressure_mesh,1)))
-      allocate(den_ele(ele_loc(di%pressure_mesh,1)))
       allocate(grav_ele(di%ndim,1))
-      allocate(cfl_ele(ele_loc(di%pressure_mesh,1)))
-      allocate(iter_grad_pressure_face_quad(di%ndim, di%p_cvshape%ngi))
       allocate(grad_cap_pressure_face_quad(di%ndim, di%p_cvshape%ngi))
-      allocate(iter_v_over_s_face_quad(di%ndim,di%p_cvshape%ngi))
 
-      allocate(modrelperm_ele_bdy(face_loc(di%pressure_mesh,1)))
       allocate(grav_ele_bdy(di%ndim,1))
-      allocate(iter_grad_pressure_face_quad_bdy(di%ndim, di%p_cvbdyshape%ngi))
-      allocate(iter_v_over_s_face_quad_bdy(di%ndim, di%p_cvbdyshape%ngi))
-      allocate(old_saturation_ele_bdy(face_loc(di%pressure_mesh,1)))      
-      allocate(ghost_old_saturation_ele_bdy(face_loc(di%pressure_mesh,1)))
       allocate(bc_sele_val(face_loc(di%pressure_mesh,1)))
       allocate(inv_char_len_ele_bdy(face_loc(di%pressure_mesh,1)))
-      allocate(detwei_bdy(di%x_cvbdyshape%ngi))
-      allocate(normal_bdy(di%ndim, di%x_cvbdyshape%ngi))
+      if (.not. di%cached_face_value%cached_detwei_normal) then
+         allocate(detwei_bdy(di%x_cvbdyshape%ngi))
+         allocate(normal_bdy(di%ndim, di%x_cvbdyshape%ngi))
+      end if
       allocate(p_rhs_local_bdy(face_loc(di%pressure_mesh,1)))
       allocate(p_matrix_local_bdy(face_loc(di%pressure_mesh,1),face_loc(di%pressure_mesh,1)))
       allocate(x_ele_bdy(di%ndim, face_loc(di%positions,1)))      
       allocate(p_nodes_bdy(face_loc(di%pressure_mesh,1)))
+!!!!! *** THIS IS NOT POSSIBLE YET ***
+!!!!!      allocate(grad_cap_pressure_face_quad_bdy(di%ndim, di%p_cvbdyshape_full%ngi))
+!!!!!      if (.not. di%cached_face_value%cached_p_dshape) then
+!!!!!         allocate(p_dshape_bdy(face_loc(di%pressure_mesh,1), di%p_cvbdyshape_full%ngi, mesh_dim(di%pressure_mesh)))
+!!!!!      end if
       
       ewrite(1,*) 'Solve first phase Pressure'
       
@@ -436,93 +481,17 @@ module darcy_impes_assemble_module
       call addto(di%rhs, di%cv_mass_pressure_mesh_with_old_porosity, scale = 1.0/di%dt)
                   
       call addto(di%rhs, di%cv_mass_pressure_mesh_with_porosity, scale = -1.0/di%dt)
-            
-      ! Decide if a face value needs to be determined
-      determine_face_value = di%nonlinear_iter == 1
-
+      
       ! Assemble a contribution from each phase to form a global continuity equation to solve for first phase pressure
       phase_loop: do p = 1, di%number_phase
          
          ewrite(1,*) 'Assemble volume contribution to global continuity from phase ',p
-         
-         if (determine_face_value) then
-
-            ! Initialise the cached phase face values
-            di%cached_phase_face_value_domain(p)%value   = 0.0
-            di%cached_phase_face_value_boundary(p)%value = 0.0
-         
-            ! Determine the upwind saturation values if required for higher order CV face value
-            if(need_upwind_values(di%saturation_cv_options)) then
-              
-              ! NOTE only old upwind values are required but this procedure 
-              !      expects latest and old. So pass in old twice - not optimal
-              call find_upwind_values(di%state, &
-                                      di%positions_pressure_mesh, &
-                                      di%old_saturation(p)%ptr, &
-                                      di%old_sfield_upwind, &
-                                      di%old_saturation(p)%ptr, &
-                                      di%old_sfield_upwind, &
-                                      option_path = trim(di%saturation(p)%ptr%option_path))
-
-            else
-
-              call zero(di%old_sfield_upwind)
-
-            end if
-         
-         end if
-                  
-         ! Initialise optimisation flag used in finding upwind value in high resolution schemes
-         upwind_pos = 0
             
          ! Loop volume elements assembling local contributions     
-         vol_element_loop: do vele = 1,element_count(di%pressure_mesh)
-
-            ! Initialise the face value counter for this ele
-            f_ele_counter = 0
-            
-            ! Find the face value ele base
-            f_ele_base = di%cached_phase_face_value_domain(p)%ele_base(vele)
-            
-            ! get the coordinate values for this element for each positions local node
-            x_ele = ele_val(di%positions, vele)         
-
-            ! get the coordinate values for this element for each quadrature point
-            x_face_quad = ele_val_at_quad(di%positions, vele, di%x_cvshape)
+         vol_element_loop: do vele = 1, di%number_vele
 
             ! The node indices of the pressure mesh
             p_nodes => ele_nodes(di%pressure_mesh, vele)
-
-            ! The node indices of the positions projected to the pressure mesh
-            x_pmesh_nodes => ele_nodes(di%positions_pressure_mesh, vele)
-
-            if (determine_face_value) then
-
-               ! get the old saturation ele values for this phase
-               old_saturation_ele = ele_val(di%old_saturation(p)%ptr, vele)
-            
-               ! get the CFL values for this element
-               cfl_ele = ele_val(di%cfl(p)%ptr, vele)
-            
-               ! Determine the node numbers to use to determine the Saturation upwind values
-               if((di%saturation_cv_options%upwind_scheme == CV_UPWINDVALUE_PROJECT_POINT).or.&
-                  (di%saturation_cv_options%upwind_scheme == CV_UPWINDVALUE_PROJECT_GRAD)) then
-
-                  upwind_nodes => x_pmesh_nodes
-
-               else
-
-                  upwind_nodes => p_nodes
-
-               end if
-                        
-            end if
-
-            ! get the modrelperm ele values for this phase
-            modrelperm_ele = ele_val(di%modified_relative_permeability(p)%ptr, vele)
-
-            ! get the density value for this element for this phase
-            den_ele = ele_val(di%density(p)%ptr, vele)
             
             ! The gravity values for this element for each direction
             grav_ele = ele_val(di%gravity, vele) 
@@ -532,32 +501,46 @@ module darcy_impes_assemble_module
 
             ! get the absolute permeability value for this element
             absperm_ele = ele_val(di%absolute_permeability, vele)         
-
-            ! get the iterated gradient pressure at the cv surface quadrature points for each direction for this phase
-            iter_grad_pressure_face_quad = ele_val_at_quad(di%iterated_gradient_pressure(p)%ptr, vele, di%gradp_cvshape)
             
             ! obtain the transformed determinant*weight and normals
-            call transform_cvsurf_to_physical(x_ele, di%x_cvshape, detwei, normal, di%cvfaces)
+            if (di%cached_face_value%cached_detwei_normal) then
+               
+               detwei => di%cached_face_value%detwei(:,vele)
+               
+               normal => di%cached_face_value%normal(:,:,vele)
+               
+            else
 
-            ! obtain the derivative of the pressure mesh shape function at the CV face quadrature points
-            call transform_to_physical(di%positions, vele, x_shape = di%x_cvshape_full, &
-                                       shape = di%p_cvshape_full, dshape = p_dshape)
+               ! get the coordinate values for this element for each positions local node
+               x_ele = ele_val(di%positions, vele)         
+
+               ! get the coordinate values for this element for each quadrature point
+               x_face_quad = ele_val_at_quad(di%positions, vele, di%x_cvshape)
+
+               ! The node indices of the positions projected to the pressure mesh
+               x_pmesh_nodes => ele_nodes(di%positions_pressure_mesh, vele)
             
-            ! get the old gradient capilliary pressure at the cv surface quadrature points for each direction 
+               call transform_cvsurf_to_physical(x_ele, di%x_cvshape, detwei, normal, di%cvfaces)
+            
+            end if
+            
+            ! obtain the derivative of the pressure mesh shape function at the CV face quadrature points
+            if (di%cached_face_value%cached_p_dshape) then
+               
+               p_dshape => di%cached_face_value%p_dshape(:,:,:,vele)
+               
+            else
+            
+               call transform_to_physical(di%positions, vele, x_shape = di%x_cvshape_full, &
+                                          shape = di%p_cvshape_full, dshape = p_dshape)
+            
+            end if
+            
+            ! get the gradient capilliary pressure at the cv surface quadrature points for each direction 
             if (p > 1) then
                grad_cap_pressure_face_quad = &
               &darcy_impes_ele_grad_at_quad_scalar(di%capilliary_pressure(p)%ptr, vele, dn = p_dshape)
             end if
-            
-            ! the iterated DarcyVelocityOverSaturation at the quadrature points
-            ! determined from FE interpolation of each component, only used to determine upwind.
-            do dim = 1,di%ndim
-
-               iter_v_over_s_face_quad(dim,:) =  &
-- (ele_val_at_quad(di%modified_relative_permeability(p)%ptr, vele, di%p_cvshape) * absperm_ele(1) / visc_ele(1)) * &
-  (iter_grad_pressure_face_quad(dim,:) - ele_val_at_quad(di%density(p)%ptr, vele, di%p_cvshape) * grav_ele(dim,1))
-
-            end do
             
             ! Initialise array for the quadrature points of this 
             ! element for whether it has already been visited
@@ -570,118 +553,87 @@ module darcy_impes_assemble_module
             ! loop over local nodes within this element
             nodal_loop_i: do iloc = 1, di%pressure_mesh%shape%loc
 
-              ! loop over CV faces internal to this element
-              face_loop: do face = 1, di%cvfaces%faces
+               ! loop over CV faces internal to this element
+               face_loop: do face = 1, di%cvfaces%faces
 
-                ! is this a face neighbouring iloc?
-                is_neigh: if(di%cvfaces%neiloc(iloc, face) /= 0) then
+                  ! is this a face neighbouring iloc?
+                  is_neigh: if(di%cvfaces%neiloc(iloc, face) /= 0) then
 
-                  ! find the opposing local node across the CV face
-                  oloc = di%cvfaces%neiloc(iloc, face)
+                     ! find the opposing local node across the CV face
+                     oloc = di%cvfaces%neiloc(iloc, face)
 
-                  ! loop over gauss points on face
-                  quadrature_loop: do gi = 1, di%cvfaces%shape%ngi
+                     ! loop over gauss points on face
+                     quadrature_loop: do gi = 1, di%cvfaces%shape%ngi
 
-                    ! global gauss pt index for this element
-                    ggi = (face-1)*di%cvfaces%shape%ngi + gi
+                        ! global gauss pt index for this element
+                        ggi = (face-1)*di%cvfaces%shape%ngi + gi
 
-                    ! check if this quadrature point has already been visited
-                    check_visited: if(notvisited(ggi)) then
+                        ! check if this quadrature point has already been visited
+                        check_visited: if(notvisited(ggi)) then
 
-                       notvisited(ggi) = .false.
+                           notvisited(ggi) = .false.
 
-                       f_ele_counter = f_ele_counter + 1
+                           if (di%cached_face_value%cached_detwei_normal) then
 
-                       ! correct the orientation of the normal so it points away from iloc
-                       normgi = orientate_cvsurf_normgi(node_val(di%positions_pressure_mesh, x_pmesh_nodes(iloc)), &
-                                                       &x_face_quad(:,ggi), normal(:,ggi))
+                              ! cached normal has correct orientation already
+                              normgi = normal(:,ggi)
 
-                       ! determine if the flow is in or out of the face at this quadrature
-                       ! with respect to the normal orientation using the iterated v_over_s
-                       iter_v_over_s_dot_n = dot_product(iter_v_over_s_face_quad(:,ggi), normgi)
+                           else
 
-                       inflow = (iter_v_over_s_dot_n<=0.0)
+                              ! correct the orientation of the normal so it points away from iloc
+                              normgi = orientate_cvsurf_normgi(node_val(di%positions_pressure_mesh, x_pmesh_nodes(iloc)), &
+                                                              &x_face_quad(:,ggi), normal(:,ggi))
 
-                       income = merge(1.0,0.0,inflow)
+                           end if
 
-                       if (determine_face_value) then
+                           ! Form the face value = detwei * (S*modrelperm*absperm/visc)
+                           face_value = detwei(ggi) * &
+                                        sum(di%cached_face_value%sat(:,ggi,vele,p)) * &
+                                        di%cached_face_value%modrelperm(ggi,vele,p) * &
+                                        absperm_ele(1) / &
+                                        visc_ele(1) 
+   
+                           ! Form the local matrix given by - n_i . sum_{phase} ( S*modrelperm*absperm/visc ) dP_1/dx_j
+                           do jloc = 1,di%pressure_mesh%shape%loc
+                              
+                              p_mat_local(iloc,jloc) = p_mat_local(iloc,jloc) - &
+                                                       sum(p_dshape(jloc, ggi, :)*normgi, 1)*face_value
 
-                          ! evaluate the nonlinear face value for saturation
-                          call evaluate_face_val(old_saturation_face_value, &
-                                                 old_saturation_face_value, & 
-                                                 iloc, &
-                                                 oloc, &
-                                                 ggi, &
-                                                 upwind_nodes, &
-                                                 di%p_cvshape, &
-                                                 old_saturation_ele, &
-                                                 old_saturation_ele, &
-                                                 di%old_sfield_upwind, &
-                                                 di%old_sfield_upwind, &
-                                                 inflow, &
-                                                 cfl_ele, &
-                                                 di%saturation_cv_options, &
-                                                 save_pos = upwind_pos)
+                              p_mat_local(oloc,jloc) = p_mat_local(oloc,jloc) - &
+                                                       sum(p_dshape(jloc, ggi, :)*(-normgi), 1)*face_value
 
-                          ! cache the phase face value for consistent use later
-                          di%cached_phase_face_value_domain(p)%value((f_ele_base - 1) + f_ele_counter) = old_saturation_face_value
+                           end do
 
-                       else 
+                           ! Add gravity term to rhs = - n_i . sum_{phase} ( S*modrelperm*absperm/visc ) * den*grav
 
-                          old_saturation_face_value = di%cached_phase_face_value_domain(p)%value((f_ele_base - 1) + f_ele_counter)
+                           ! Find g dot n
+                           g_dot_n = dot_product(grav_ele(:,1), normgi)
 
-                       end if 
+                           p_rhs_local(iloc)  = p_rhs_local(iloc) - &
+                                                face_value * &
+                                                di%cached_face_value%den(ggi,vele,p) * &
+                                                g_dot_n
 
-                       ! Evaluate the face value for modrelperm (taking upwind) 
-                       modrelperm_face_value = income*modrelperm_ele(oloc) + (1.0-income)*modrelperm_ele(iloc)
-                       
-                       ! Form the face value = detwei * (S*modrelperm*absperm/visc)
-                       face_value = detwei(ggi)*old_saturation_face_value*modrelperm_face_value*absperm_ele(1)/visc_ele(1) 
+                           ! Add capilliary pressure term to rhs = n_i . sum_{phase} ( S*modrelperm*absperm/visc ) dP_c/dx_j
+                           ! only for phase > 1
+                           if (p > 1) then
 
-                       ! Form the local matrix given by - n_i . sum_{phase} ( S*modrelperm*absperm/visc ) dP_1/dx_j
-                       do jloc = 1,di%pressure_mesh%shape%loc
+                              ! Find grad_P_c dot n
+                              grad_cap_p_dot_n  = dot_product(grad_cap_pressure_face_quad(:,ggi), normgi)
 
-                          p_mat_local(iloc,jloc) = p_mat_local(iloc,jloc) - &
-                                                   sum(p_dshape(jloc, ggi, :)*normgi, 1)*face_value
+                              p_rhs_local(iloc) = p_rhs_local(iloc) + &
+                                                  face_value * &
+                                                  grad_cap_p_dot_n
 
-                          p_mat_local(oloc,jloc) = p_mat_local(oloc,jloc) - &
-                                                   sum(p_dshape(jloc, ggi, :)*(-normgi), 1)*face_value
+                           end if
 
-                       end do
+                        end if check_visited
 
-                       ! Add gravity term to rhs = - n_i . sum_{phase} ( S*modrelperm*absperm/visc ) * den*grav
+                     end do quadrature_loop
 
-                       ! Find g dot n
-                       g_dot_n = dot_product(grav_ele(:,1), normgi)
+                  end if is_neigh
 
-                       ! Find the density face value (taking upwind) 
-                       den_face_value = income*den_ele(oloc) + (1.0-income)*den_ele(iloc)
-
-                       p_rhs_local(iloc)  = p_rhs_local(iloc) - &
-                                            face_value * &
-                                            den_face_value * &
-                                            g_dot_n
-
-                       ! Add capilliary pressure term to rhs = n_i . sum_{phase} ( S*modrelperm*absperm/visc ) dP_c/dx_j
-                       ! only for phase > 1
-                       if (p > 1) then
-
-                          ! Find grad_P_c dot n
-                          grad_cap_p_dot_n  = dot_product(grad_cap_pressure_face_quad(:,ggi), normgi)
-                          
-                          p_rhs_local(iloc) = p_rhs_local(iloc) + &
-                                              face_value * &
-                                              grad_cap_p_dot_n
-                                                    
-                       end if
-                       
-                    end if check_visited
-
-                  end do quadrature_loop
-
-                end if is_neigh
-
-              end do face_loop
+               end do face_loop
 
             end do nodal_loop_i
 
@@ -691,7 +643,7 @@ module darcy_impes_assemble_module
             call addto(di%rhs, p_nodes, p_rhs_local)
 
          end do vol_element_loop
-
+         
       end do phase_loop
                   
       ! Add normal v_over_s * S BC integrals for each phase, else include if required 
@@ -702,11 +654,25 @@ module darcy_impes_assemble_module
          ewrite(1,*) 'Assemble boundary contribution to global continuity from phase ',p
          
          ! Get the phase pressure BC - if no v_over_s and weak pressure then extra integrals are added
-         call get_entire_saturation_or_pressure_boundary_condition(di%pressure(p)%ptr, &
-                                                                   (/"weakdirichlet"/), &
-                                                                   di%bc_surface_mesh, &
-                                                                   di%pressure_bc_value, &
-                                                                   di%pressure_bc_flag)
+         ! For phase 1 also get strong pressure BC as this implies no need to add any surface integrals
+         if (p == 1) then
+
+            call get_entire_saturation_or_pressure_boundary_condition(di%pressure(p)%ptr, &
+                                                                      (/"weakdirichlet", &
+                                                                        "dirichlet    "/), &
+                                                                      di%bc_surface_mesh, &
+                                                                      di%pressure_bc_value, &
+                                                                      di%pressure_bc_flag)
+         
+         else
+         
+            call get_entire_saturation_or_pressure_boundary_condition(di%pressure(p)%ptr, &
+                                                                      (/"weakdirichlet"/), &
+                                                                      di%bc_surface_mesh, &
+                                                                      di%pressure_bc_value, &
+                                                                      di%pressure_bc_flag)
+         
+         end if
          
          ! Get this phase v_over_s BC info - only for no_normal_flow and normal_flow which is special as it is a scalar
          call get_v_over_s_boundary_condition(di%darcy_velocity_over_saturation(p)%ptr, &
@@ -715,24 +681,32 @@ module darcy_impes_assemble_module
                                               di%bc_surface_mesh, &
                                               di%v_over_s_bc_value, &
                                               di%v_over_s_bc_flag)
-         
-         ! Get this phase satutation BC info - only weak dirichlet
-         call get_entire_saturation_or_pressure_boundary_condition(di%saturation(p)%ptr, &
-                                                                   (/"weakdirichlet"/), &
-                                                                   di%bc_surface_mesh, &
-                                                                   di%saturation_bc_value, &
-                                                                   di%saturation_bc_flag)
-         
-         sele_loop: do sele = 1, surface_element_count(di%pressure_mesh)
+                  
+         sele_loop: do sele = 1, di%number_sele
             
             ! A no_normal_flow BC adds nothing to the matrix and rhs so cycle sele loop
             if (di%v_over_s_bc_flag(sele) == V_OVER_S_BC_TYPE_NO_NORMAL_FLOW) cycle sele_loop
-                     
-            ! Initialise the face value counter for this ele
-            f_ele_counter = 0
+            
+            ! If phase 1 and strong pressure BC then no need to add integrals so cycle sele loop
+            if ((p == 1) .and. (di%pressure_bc_flag(sele) == PRESSURE_BC_TYPE_DIRICHLET)) cycle sele_loop 
+            
+            p_nodes_bdy = face_global_nodes(di%pressure_mesh, sele)
 
-            ! Find the face value ele base
-            f_ele_base = di%cached_phase_face_value_boundary(p)%ele_base(sele)
+            ! obtain the transformed determinant*weight and normals
+            if (di%cached_face_value%cached_detwei_normal) then
+
+               detwei_bdy => di%cached_face_value%detwei_bdy(:,sele)
+               
+               normal_bdy => di%cached_face_value%normal_bdy(:,:,sele)
+            
+            else
+
+               x_ele     = ele_val(di%positions, face_ele(di%positions, sele))
+               x_ele_bdy = face_val(di%positions, sele)
+            
+               call transform_cvsurf_facet_to_physical(x_ele, x_ele_bdy, di%x_cvbdyshape, normal_bdy, detwei_bdy)
+            
+            end if
             
             if (di%v_over_s_bc_flag(sele) == V_OVER_S_BC_TYPE_NORMAL_FLOW) then
                               
@@ -740,9 +714,6 @@ module darcy_impes_assemble_module
                         
             else
             
-               ! get the modrelperm sele values for this phase
-               modrelperm_ele_bdy = face_val(di%modified_relative_permeability(p)%ptr, sele)
-
                ! get the viscosity value for this sele for this phase
                visc_ele_bdy = face_val(di%viscosity(p)%ptr, sele)
 
@@ -759,41 +730,30 @@ module darcy_impes_assemble_module
                
                end if
 
-               ! get the iterated gradient pressure at the cv surface quadrature points for each direction
-               iter_grad_pressure_face_quad_bdy = face_val_at_quad(di%iterated_gradient_pressure(p)%ptr, sele, di%gradp_cvbdyshape)         
-
                ! The gravity values for this element for each direction
                grav_ele_bdy = face_val(di%gravity, sele) 
 
-               ! the iterated DarcyVelocityOverSaturation at the quadrature points
-               ! determined from FE interpolation of each component, 
-               ! used to determine upwind and also added in certain integrals
-               ! associated with weak pressure BCs.
-               do dim = 1,di%ndim
+!!!!! *** THIS IS NOT POSSIBLE YET ***
+!!!!!               ! get the gradient capilliary pressure at the cv surface quadrature points for each direction 
+!!!!!               if (p > 1) then
+!!!!!                  grad_cap_pressure_face_quad_bdy = &
+!!!!!                 &darcy_impes_face_grad_at_quad_scalar(di%capilliary_pressure(p)%ptr, sele, dn = p_dshape)
+!!!!!               end if
 
-                  iter_v_over_s_face_quad_bdy(dim,:) =  &
-- (face_val_at_quad(di%modified_relative_permeability(p)%ptr, sele, di%p_cvbdyshape) * absperm_ele_bdy(1) / visc_ele_bdy(1)) * &
-  (iter_grad_pressure_face_quad_bdy(dim,:) - face_val_at_quad(di%density(p)%ptr, sele, di%p_cvbdyshape) * grav_ele_bdy(dim,1))
+!!!!!               ! obtain the derivative of the pressure mesh shape function at the CV face quadrature points
+!!!!!               if (di%cached_face_value%cached_p_dshape) then
 
-               end do
+!!!!!                  p_dshape_bdy => di%cached_face_value%p_dshape_bdy(:,:,:,sele)
+
+!!!!!               else
+
+!!!!!                  call transform_to_physical(di%positions, sele, x_shape = di%x_cvbdyshape_full, &
+!!!!!                                             shape = di%p_cvbdyshape_full, dshape = p_dshape_bdy)
+
+!!!!!               end if
                
             end if 
-
-            ! get the saturation domain and boundary (in case weak) on the boundary
-            old_saturation_ele_bdy = face_val(di%old_saturation(p)%ptr, sele)
-
-            if (di%saturation_bc_flag(sele) == SATURATION_BC_TYPE_WEAKDIRICHLET) then
-               ghost_old_saturation_ele_bdy = ele_val(di%saturation_bc_value, sele)
-            else
-               ghost_old_saturation_ele_bdy = face_val(di%old_saturation(p)%ptr, sele)
-            end if
-               
-            x_ele       = ele_val(di%positions, face_ele(di%positions, sele))
-            x_ele_bdy   = face_val(di%positions, sele)
-            p_nodes_bdy = face_global_nodes(di%pressure_mesh, sele)
-
-            call transform_cvsurf_facet_to_physical(x_ele, x_ele_bdy, di%x_cvbdyshape, normal_bdy, detwei_bdy)
-
+            
             p_matrix_local_bdy = 0.0
             p_rhs_local_bdy    = 0.0
 
@@ -806,80 +766,55 @@ module darcy_impes_assemble_module
                      bc_quad_loop: do gi = 1, di%cvfaces%shape%ngi
 
                         ggi = (face-1)*di%cvfaces%shape%ngi + gi
-
-                        f_ele_counter = f_ele_counter + 1
                                                 
                         if (di%v_over_s_bc_flag(sele) == V_OVER_S_BC_TYPE_NORMAL_FLOW) then
                            
                            ! If have normal_flow BC for this phase then include CV integral of value * saturation
-                           
-                           if (determine_face_value) then
-
-                              ! Determine the upwind saturation boundary values to use from the sign 
-                              ! of the normal flow BC. If positive, hence outflow, always 
-                              ! use domain value. If negative, hence inflow, use the boundary 
-                              ! value which is the weak BC value if appropriate
-
-                              if (bc_sele_val(iloc) > 0.0) then
-
-                                 old_saturation_face_value = old_saturation_ele_bdy(iloc)
-                              
-                              else
-
-                                 old_saturation_face_value = ghost_old_saturation_ele_bdy(iloc)
-                              
-                              end if 
-                            
-                              ! cache the phase face value for consistent use later
-                              di%cached_phase_face_value_boundary(p)%value((f_ele_base - 1) + f_ele_counter) = old_saturation_face_value
-                              
-                           else
-                              
-                              old_saturation_face_value = di%cached_phase_face_value_boundary(p)%value((f_ele_base - 1) + f_ele_counter)
-                           
-                           end if
-                           
-                           p_rhs_local_bdy(iloc) = p_rhs_local_bdy(iloc) - old_saturation_face_value * bc_sele_val(iloc) * detwei_bdy(ggi)
+                                                      
+                           p_rhs_local_bdy(iloc) = p_rhs_local_bdy(iloc) - &
+                                                   sum(di%cached_face_value%sat_bdy(:,ggi,sele,p)) * &
+                                                   bc_sele_val(iloc) * &
+                                                   detwei_bdy(ggi)
                         
                         else 
+                                                                                 
+                           ! Form the face value = detwei * (S*modrelperm*absperm/visc)
+                           face_value = detwei_bdy(ggi) * &
+                                        sum(di%cached_face_value%sat_bdy(:,ggi,sele,p)) * &
+                                        di%cached_face_value%modrelperm_bdy(ggi,sele,p) * &
+                                        absperm_ele_bdy(1) / &
+                                        visc_ele_bdy(1) 
                            
-                           ! Else apply a weak pressure BC, which has a value of zero by default (if not given)
-                           ! - NOTE for non first phases P = P_1 + P_C, and P_C = 0.0 on boundary so
-                           !        all phases pressure boundary conditions related to phase 1
-                           
-                           ! determine if the flow is in or out of the face at this quadrature
-                           ! with respect to the normal orientation using the iterated v_over_s
-                           iter_v_over_s_dot_n = dot_product(iter_v_over_s_face_quad_bdy(:,ggi), normal_bdy(:,ggi))
-                           
-                           ! Find modrelperm * absperm / visc
-                           modrelperm_absperm_over_visc = modrelperm_ele_bdy(iloc) * absperm_ele_bdy(1) / visc_ele_bdy(1)
-                           
-                           ! Find upwind old saturation face value
-                           if (determine_face_value) then
+                           ! Add gravity term to rhs = - n_i . sum_{phase} ( S*modrelperm*absperm/visc ) * den*grav
 
-                              inflow = (iter_v_over_s_dot_n<=0.0)
+                           ! Find g dot n
+                           g_dot_n = dot_product(grav_ele_bdy(:,1), normal_bdy(:,ggi))
+                           
+                           p_rhs_local_bdy(iloc)  = p_rhs_local_bdy(iloc) - &
+                                                    face_value * &
+                                                    di%cached_face_value%den_bdy(ggi,sele,p) * &
+                                                    g_dot_n
 
-                              income = merge(1.0,0.0,inflow)
-                           
-                              old_saturation_face_value = income*ghost_old_saturation_ele_bdy(iloc) + &
-                                                         &(1.0-income)*old_saturation_ele_bdy(iloc)
-                                                            
-                              di%cached_phase_face_value_boundary(p)%value((f_ele_base - 1) + f_ele_counter) = old_saturation_face_value
-                           
-                           else
-                           
-                              old_saturation_face_value = di%cached_phase_face_value_boundary(p)%value((f_ele_base - 1) + f_ele_counter)
-                           
-                           end if 
+!!!!! *** THIS IS NOT POSSIBLE YET ***
+!!!!!                           ! Add capilliary pressure term to rhs = n_i . sum_{phase} ( S*modrelperm*absperm/visc ) dP_c/dx_j
+!!!!!                           ! only for phase > 1
+!!!!!                           if (p > 1) then
 
-                           ! Add coeff * gradient of pressure term to rhs via iter_v_over_s_dot_n * old_saturation_face_value
-                           !  - which will include gravity and capilliary pressure term as required                         
-                           ! (to be fully implicit part of this should be added to matrix but 2 non linear iterations may save us ...)
-                           p_rhs_local_bdy(iloc) = p_rhs_local_bdy(iloc) - &
-                                                 & iter_v_over_s_dot_n * old_saturation_face_value * detwei_bdy(ggi)
-if (.false.) then
-                           ! If have phase pressure BC then include integral of BC value in rhs
-                           ! - if not given then this implies adding a zero weak pressure BC
+!!!!!                              ! Find grad_P_c dot n
+!!!!!                              grad_cap_p_dot_n  = dot_product(grad_cap_pressure_face_quad_bdy(:,ggi), normal_bdy(:,ggi))
+
+!!!!!                              p_rhs_local(iloc) = p_rhs_local(iloc) + &
+!!!!!                                                  face_value * &
+!!!!!                                                  grad_cap_p_dot_n
+
+!!!!!                           end if
+                           
+!!!!!                           ! Add implicit gradient of pressure phase 1 to matrix with coeff 
+!!!!!                           ! - n_i . sum_{phase} ( S*modrelperm*absperm/visc ) 
+
+                           
+                           ! If have phase weak pressure BC then include integral of BC value in rhs
+                           ! and an implicit surface mass matrix term
                            if (di%pressure_bc_flag(sele) == PRESSURE_BC_TYPE_WEAKDIRICHLET) then
                                                             
                               do jloc = 1,di%pressure_mesh%faces%shape%loc 
@@ -888,32 +823,25 @@ if (.false.) then
                                                          inv_char_len_ele_bdy(jloc) * &
                                                          di%p_cvbdyshape%n(jloc,ggi) * &
                                                          bc_sele_val(jloc) * &
-                                                         modrelperm_absperm_over_visc * &
-                                                         old_saturation_face_value * &
                                                          sum(normal_bdy(:,ggi)) * &
-                                                         detwei_bdy(ggi) * &
+                                                         face_value * &
                                                          di%weak_pressure_bc_coeff
                                                             
                               end do
-                              
+                                                         
+                              do jloc = 1,di%pressure_mesh%faces%shape%loc 
+
+                                 p_matrix_local_bdy(iloc,jloc) = p_matrix_local_bdy(iloc,jloc) - &
+                                                                 inv_char_len_ele_bdy(jloc) * &
+                                                                 di%p_cvbdyshape%n(jloc,ggi) * &
+                                                                 sum(normal_bdy(:,ggi)) * &
+                                                                 face_value * &
+                                                                 di%weak_pressure_bc_coeff
+
+                              end do
+
                            end if 
-                           
-                           ! Include weak pressure BC implicit term in matrix
-                           ! - if no pressure BC adding this term implies a 
-                           !   a default of weak zero pressure BC
-                           do jloc = 1,di%pressure_mesh%faces%shape%loc 
 
-                              p_matrix_local_bdy(iloc,jloc) = p_matrix_local_bdy(iloc,jloc) - &
-                                                              inv_char_len_ele_bdy(jloc) * &
-                                                              di%p_cvbdyshape%n(jloc,ggi) * &
-                                                              modrelperm_absperm_over_visc * &
-                                                              old_saturation_face_value * &
-                                                              sum(normal_bdy(:,ggi)) * &
-                                                              detwei_bdy(ggi) * &
-                                                              di%weak_pressure_bc_coeff
-
-                           end do
-end if                                                      
                         end if
                         
                      end do bc_quad_loop
@@ -932,45 +860,53 @@ end if
 
       end do phase_loop_bc
             
-      ! Apply any strong dirichlet BC's that can only be applied to the first phase pressure
+      ! Apply any strong dirichlet BC's - that can only be applied to the first phase pressure
       call apply_dirichlet_conditions(di%pressure_matrix, di%rhs, di%pressure(1)%ptr)
       
       ! Solve the pressure
       call petsc_solve(di%pressure(1)%ptr, di%pressure_matrix, di%rhs, di%state(1))
       
+      ! Set the strong BC nodes to the values to be consistent
+      call set_dirichlet_consistent(di%pressure(1)%ptr) 
+           
       ! deallocate local variables as required
       deallocate(x_ele)
-      deallocate(p_dshape)
-      deallocate(normal)
-      deallocate(detwei)
+      if (di%cached_face_value%cached_p_dshape) then
+         nullify(p_dshape)      
+      else
+         deallocate(p_dshape)
+      end if
+      if (di%cached_face_value%cached_detwei_normal) then
+         nullify(detwei)
+         nullify(normal)      
+      else
+         deallocate(detwei)
+         deallocate(normal)
+      end if
       deallocate(normgi)
       deallocate(notvisited)
       deallocate(p_mat_local)
       deallocate(p_rhs_local)
       deallocate(x_face_quad)
-      deallocate(old_saturation_ele)
-      deallocate(modrelperm_ele)
-      deallocate(den_ele)
       deallocate(grav_ele)
-      deallocate(cfl_ele)
-      deallocate(iter_grad_pressure_face_quad)
       deallocate(grad_cap_pressure_face_quad)
-      deallocate(iter_v_over_s_face_quad)
 
-      deallocate(modrelperm_ele_bdy)
       deallocate(grav_ele_bdy)
-      deallocate(iter_grad_pressure_face_quad_bdy)
-      deallocate(iter_v_over_s_face_quad_bdy)
-      deallocate(old_saturation_ele_bdy)
-      deallocate(ghost_old_saturation_ele_bdy)
       deallocate(bc_sele_val)
       deallocate(inv_char_len_ele_bdy)
-      deallocate(detwei_bdy)
-      deallocate(normal_bdy)
+      if (di%cached_face_value%cached_detwei_normal) then
+         nullify(detwei_bdy)
+         nullify(normal_bdy)      
+      else
+         deallocate(detwei_bdy)
+         deallocate(normal_bdy)
+      end if
       deallocate(p_rhs_local_bdy)
       deallocate(p_matrix_local_bdy)
       deallocate(x_ele_bdy)      
       deallocate(p_nodes_bdy)
+!!!!! *** THIS IS NOT POSSIBLE YET ***
+!!!!!      deallocate(grad_cap_pressure_face_quad_bdy)
       
       ewrite(1,*) 'Finished solve first phase Pressure'
       
@@ -1257,39 +1193,32 @@ end if
       type(darcy_impes_type), intent(inout) :: di
       
       ! local variables
-      logical :: inflow
-      integer :: vele, p, iloc, oloc, jloc, face, gi, ggi, sele, f_ele_counter, f_ele_base, dim
-      real    :: income, darcy_vel_face_value_dot_n, v_over_s_dot_n, iter_v_over_s_dot_n, den_face_value
-      real    :: old_saturation_face_value, modrelperm_absperm_over_visc, modrelperm_face_value, face_value
-      real,    dimension(1)                :: absperm_ele, visc_ele
-      real,    dimension(:,:), allocatable :: grad_pressure_face_quad
-      real,    dimension(:,:), allocatable :: iter_grad_pressure_face_quad
-      real,    dimension(:),   allocatable :: modrelperm_ele
-      real,    dimension(:),   allocatable :: den_ele
-      real,    dimension(:,:), allocatable :: grav_ele
-      real,    dimension(:,:), allocatable :: iter_v_over_s_face_quad
-      real,    dimension(:,:), allocatable :: x_ele
-      real,    dimension(:,:), allocatable :: normal
-      real,    dimension(:),   allocatable :: detwei
-      real,    dimension(:),   allocatable :: normgi
-      logical, dimension(:),   allocatable :: notvisited
-      real,    dimension(:),   allocatable :: div_tvel_rhs_local
-      real,    dimension(:,:), allocatable :: x_face_quad
-      integer, dimension(:),   pointer     :: x_pmesh_nodes
-      integer, dimension(:),   pointer     :: p_nodes      
-      real,    dimension(1)                :: absperm_ele_bdy, visc_ele_bdy
-      real,    dimension(:),   allocatable :: modrelperm_ele_bdy
-      real,    dimension(:,:), allocatable :: grav_ele_bdy
-      real,    dimension(:,:), allocatable :: grad_pressure_face_quad_bdy
-      real,    dimension(:,:), allocatable :: v_over_s_face_quad_bdy
-      real,    dimension(:),   allocatable :: bc_sele_val
-      real,    dimension(:),   allocatable :: pressure_ele_bdy
-      real,    dimension(:),   allocatable :: inv_char_len_ele_bdy
-      real,    dimension(:,:), allocatable :: normal_bdy
-      real,    dimension(:),   allocatable :: detwei_bdy
-      real,    dimension(:,:), allocatable :: x_ele_bdy
-      real,    dimension(:),   allocatable :: div_tvel_rhs_local_bdy
-      integer, dimension(:),   allocatable :: p_nodes_bdy
+      integer :: vele, p, iloc, oloc, jloc, face, gi, ggi, sele, dim
+      real    :: darcy_vel_face_value_dot_n, v_over_s_dot_n, face_value
+      real,    dimension(1)            :: absperm_ele, visc_ele
+      real,    dimension(:,:), pointer :: grad_pressure_face_quad
+      real,    dimension(:,:), pointer :: grav_ele
+      real,    dimension(:,:), pointer :: x_ele
+      real,    dimension(:,:), pointer :: normal
+      real,    dimension(:),   pointer :: detwei
+      real,    dimension(:),   pointer :: normgi
+      logical, dimension(:),   pointer :: notvisited
+      real,    dimension(:),   pointer :: div_tvel_rhs_local
+      real,    dimension(:,:), pointer :: x_face_quad
+      integer, dimension(:),   pointer :: x_pmesh_nodes
+      integer, dimension(:),   pointer :: p_nodes      
+      real,    dimension(1)            :: absperm_ele_bdy, visc_ele_bdy
+      real,    dimension(:,:), pointer :: grav_ele_bdy
+      real,    dimension(:,:), pointer :: grad_pressure_face_quad_bdy
+      real,    dimension(:,:), pointer :: v_over_s_face_quad_bdy
+      real,    dimension(:),   pointer :: bc_sele_val
+      real,    dimension(:),   pointer :: pressure_ele_bdy
+      real,    dimension(:),   pointer :: inv_char_len_ele_bdy
+      real,    dimension(:,:), pointer :: normal_bdy
+      real,    dimension(:),   pointer :: detwei_bdy
+      real,    dimension(:,:), pointer :: x_ele_bdy
+      real,    dimension(:),   pointer :: div_tvel_rhs_local_bdy
+      integer, dimension(:),   pointer :: p_nodes_bdy
       integer, parameter :: V_OVER_S_BC_TYPE_NORMAL_FLOW   = 1, V_OVER_S_BC_TYPE_NO_NORMAL_FLOW = 2
       integer, parameter :: PRESSURE_BC_TYPE_WEAKDIRICHLET = 1
                         
@@ -1298,28 +1227,27 @@ end if
       ! allocate arrays used in assemble process - many assume
       ! that all elements are the same type.
       allocate(x_ele(di%ndim, ele_loc(di%positions,1)))      
-      allocate(normal(di%ndim,di%x_cvshape%ngi))
-      allocate(detwei(di%x_cvshape%ngi))      
+      if (.not. di%cached_face_value%cached_detwei_normal) then
+         allocate(normal(di%ndim,di%x_cvshape%ngi))
+         allocate(detwei(di%x_cvshape%ngi))      
+      end if
       allocate(normgi(di%ndim))
       allocate(notvisited(di%x_cvshape%ngi))
       allocate(div_tvel_rhs_local(ele_loc(di%pressure_mesh,1)))
       allocate(x_face_quad(di%ndim, di%x_cvshape%ngi))
       allocate(grad_pressure_face_quad(di%ndim, di%p_cvshape%ngi))
-      allocate(iter_grad_pressure_face_quad(di%ndim, di%p_cvshape%ngi))
-      allocate(modrelperm_ele(ele_loc(di%pressure_mesh,1)))
-      allocate(den_ele(ele_loc(di%pressure_mesh,1)))
       allocate(grav_ele(di%ndim,1))
-      allocate(iter_v_over_s_face_quad(di%ndim,di%p_cvshape%ngi))
       
-      allocate(modrelperm_ele_bdy(face_loc(di%pressure_mesh,1)))
       allocate(grav_ele_bdy(di%ndim,1))
       allocate(grad_pressure_face_quad_bdy(di%ndim, di%p_cvbdyshape%ngi))
       allocate(v_over_s_face_quad_bdy(di%ndim, di%p_cvbdyshape%ngi))
       allocate(bc_sele_val(face_loc(di%pressure_mesh,1)))
       allocate(pressure_ele_bdy(face_loc(di%pressure_mesh,1)))
       allocate(inv_char_len_ele_bdy(face_loc(di%pressure_mesh,1)))
-      allocate(detwei_bdy(di%x_cvbdyshape%ngi))
-      allocate(normal_bdy(di%ndim, di%x_cvbdyshape%ngi))
+      if (.not. di%cached_face_value%cached_detwei_normal) then
+         allocate(detwei_bdy(di%x_cvbdyshape%ngi))
+         allocate(normal_bdy(di%ndim, di%x_cvbdyshape%ngi))
+      end if
       allocate(div_tvel_rhs_local_bdy(face_loc(di%pressure_mesh,1)))      
       allocate(x_ele_bdy(di%ndim, face_loc(di%positions,1)))      
       allocate(p_nodes_bdy(face_loc(di%pressure_mesh,1)))
@@ -1328,31 +1256,10 @@ end if
 
       phase_loop: do p = 1, di%number_phase
                        
-         vele_loop: do vele = 1, element_count(di%pressure_mesh)
-
-            ! Initialise the face value counter for this ele
-            f_ele_counter = 0
-            
-            ! Find the face value ele base
-            f_ele_base = di%cached_phase_face_value_domain(p)%ele_base(vele)
-
-            ! get the coordinate values for this element for each positions local node
-            x_ele = ele_val(di%positions, vele)         
-
-            ! get the coordinate values for this element for each quadrature point
-            x_face_quad = ele_val_at_quad(di%positions, vele, di%x_cvshape)
+         vele_loop: do vele = 1, di%number_vele
 
             ! The node indices of the pressure field
             p_nodes => ele_nodes(di%pressure_mesh, vele)
-
-            ! The node indices of the positions projected to the pressure mesh
-            x_pmesh_nodes => ele_nodes(di%positions_pressure_mesh, vele)
-
-            ! get the modrelperm ele values for this phase
-            modrelperm_ele = ele_val(di%modified_relative_permeability(p)%ptr, vele)
-
-            ! get the density value for this element for this phase
-            den_ele = ele_val(di%density(p)%ptr, vele)
             
             ! The gravity values for this element for each direction
             grav_ele = ele_val(di%gravity, vele) 
@@ -1366,23 +1273,27 @@ end if
             ! get the latest gradient pressure at the cv surface quadrature points for each direction for this phase
             grad_pressure_face_quad = ele_val_at_quad(di%gradient_pressure(p)%ptr, vele, di%gradp_cvshape)
 
-            ! get the iterated gradient pressure at the cv surface quadrature points for each direction for this phase
-            ! - only used to determine upwind values, same as pressure assemble
-            iter_grad_pressure_face_quad = ele_val_at_quad(di%iterated_gradient_pressure(p)%ptr, vele, di%gradp_cvshape)
-
             ! obtain the transformed determinant*weight and normals
-            call transform_cvsurf_to_physical(x_ele, di%x_cvshape, &
-                                              detwei, normal, di%cvfaces)
+            if (di%cached_face_value%cached_detwei_normal) then
+               
+               detwei => di%cached_face_value%detwei(:,vele)
+               
+               normal => di%cached_face_value%normal(:,:,vele)
+               
+            else
 
-            ! the Iterated DarcyVelocityOverSaturation at the quadrature points
-            ! determined from FE interpolation of each component, only used to determine upwind, same as pressure assemble
-            do dim = 1,di%ndim
+               ! get the coordinate values for this element for each positions local node
+               x_ele = ele_val(di%positions, vele)         
 
-               iter_v_over_s_face_quad(dim,:) =  &
-- (ele_val_at_quad(di%modified_relative_permeability(p)%ptr, vele, di%p_cvshape) * absperm_ele(1) / visc_ele(1)) * &
-  (iter_grad_pressure_face_quad(dim,:) - ele_val_at_quad(di%density(p)%ptr, vele, di%p_cvshape) * grav_ele(dim,1))   
+               ! get the coordinate values for this element for each quadrature point
+               x_face_quad = ele_val_at_quad(di%positions, vele, di%x_cvshape)
 
-            end do
+               ! The node indices of the positions projected to the pressure mesh
+               x_pmesh_nodes => ele_nodes(di%positions_pressure_mesh, vele)
+            
+               call transform_cvsurf_to_physical(x_ele, di%x_cvshape, detwei, normal, di%cvfaces)
+            
+            end if
 
             ! Initialise array for the quadrature points of this 
             ! element for whether it has already been visited
@@ -1394,67 +1305,62 @@ end if
             ! loop over local nodes within this element
             nodal_loop_i: do iloc = 1, di%pressure_mesh%shape%loc
 
-              ! loop over CV faces internal to this element
-              face_loop: do face = 1, di%cvfaces%faces
+               ! loop over CV faces internal to this element
+               face_loop: do face = 1, di%cvfaces%faces
 
-                ! is this a face neighbouring iloc?
-                is_neigh: if(di%cvfaces%neiloc(iloc, face) /= 0) then
+                  ! is this a face neighbouring iloc?
+                  is_neigh: if(di%cvfaces%neiloc(iloc, face) /= 0) then
 
-                  ! find the opposing local node across the CV face
-                  oloc = di%cvfaces%neiloc(iloc, face)
+                     ! find the opposing local node across the CV face
+                     oloc = di%cvfaces%neiloc(iloc, face)
 
-                  ! loop over gauss points on face
-                  quadrature_loop: do gi = 1, di%cvfaces%shape%ngi
+                     ! loop over gauss points on face
+                     quadrature_loop: do gi = 1, di%cvfaces%shape%ngi
 
-                    ! global gauss pt index for this element
-                    ggi = (face-1)*di%cvfaces%shape%ngi + gi
+                        ! global gauss pt index for this element
+                        ggi = (face-1)*di%cvfaces%shape%ngi + gi
 
-                    ! check if this quadrature point has already been visited
-                    check_visited: if(notvisited(ggi)) then
+                        ! check if this quadrature point has already been visited
+                        check_visited: if(notvisited(ggi)) then
 
-                       notvisited(ggi) = .false.
+                           notvisited(ggi) = .false.
 
-                       f_ele_counter = f_ele_counter + 1
+                           if (di%cached_face_value%cached_detwei_normal) then
 
-                       ! correct the orientation of the normal so it points away from iloc
-                       normgi = orientate_cvsurf_normgi(node_val(di%positions_pressure_mesh, x_pmesh_nodes(iloc)), &
-                                                       &x_face_quad(:,ggi), normal(:,ggi))
+                              ! cached normal has correct orientation already
+                              normgi = normal(:,ggi)
 
-                       ! determine if the flow is in or out of the face at this quadrature
-                       ! with respect to the normal orientation using the iterated v_over_s
-                       iter_v_over_s_dot_n = dot_product(iter_v_over_s_face_quad(:,ggi), normgi)
+                           else
 
-                       inflow = (iter_v_over_s_dot_n<=0.0)
+                              ! correct the orientation of the normal so it points away from iloc
+                              normgi = orientate_cvsurf_normgi(node_val(di%positions_pressure_mesh, x_pmesh_nodes(iloc)), &
+                                                              &x_face_quad(:,ggi), normal(:,ggi))
 
-                       income = merge(1.0,0.0,inflow)
+                           end if
 
-                       ! Find the density face value (taking upwind) 
-                       den_face_value = income*den_ele(oloc) + (1.0-income)*den_ele(iloc)
+                           ! Form the face value = detwei * (S*modrelperm*absperm/visc)
+                           face_value = detwei(ggi) * &
+                                        sum(di%cached_face_value%sat(:,ggi,vele,p)) * &
+                                        di%cached_face_value%modrelperm(ggi,vele,p) * &
+                                        absperm_ele(1) / &
+                                        visc_ele(1) 
 
-                       ! Evaluate the face value for modrelperm (taking upwind) 
-                       modrelperm_face_value = income*modrelperm_ele(oloc) + (1.0-income)*modrelperm_ele(iloc)
-                       
-                       old_saturation_face_value = di%cached_phase_face_value_domain(p)%value((f_ele_base - 1) + f_ele_counter)
-                       
-                       ! Form the face value = detwei * (S*modrelperm*absperm/visc)
-                       face_value = detwei(ggi)*old_saturation_face_value*modrelperm_face_value*absperm_ele(1)/visc_ele(1)                       
-                       
-                       darcy_vel_face_value_dot_n = - dot_product( normgi, &
-                      &face_value * (grad_pressure_face_quad(:,ggi) - den_face_value * grav_ele(:,1)) )
+                           darcy_vel_face_value_dot_n = - dot_product( normgi, &
+                          &face_value * (grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,p) * grav_ele(:,1)) )
 
-                       div_tvel_rhs_local(iloc) = div_tvel_rhs_local(iloc) + &
-                                                  darcy_vel_face_value_dot_n 
+                           div_tvel_rhs_local(iloc) = div_tvel_rhs_local(iloc) + &
+                                                      darcy_vel_face_value_dot_n 
 
-                       div_tvel_rhs_local(oloc) = div_tvel_rhs_local(oloc) - &
-                                                  darcy_vel_face_value_dot_n 
+                           div_tvel_rhs_local(oloc) = div_tvel_rhs_local(oloc) - &
+                                                      darcy_vel_face_value_dot_n 
 
-                    end if check_visited
+                        end if check_visited
 
-                  end do quadrature_loop
+                     end do quadrature_loop
 
-                end if is_neigh
+                  end if is_neigh
 
-              end do face_loop
+               end do face_loop
 
             end do nodal_loop_i
 
@@ -1477,23 +1383,34 @@ end if
                                                                    di%pressure_bc_value, &
                                                                    di%pressure_bc_flag)
          
-         sele_loop: do sele = 1, surface_element_count(di%pressure_mesh)
+         sele_loop: do sele = 1, di%number_sele
             
             if (di%v_over_s_bc_flag(sele) == V_OVER_S_BC_TYPE_NO_NORMAL_FLOW) cycle sele_loop
-         
-            ! Initialise the face value counter for this ele
-            f_ele_counter = 0
 
-            ! Find the face value ele base
-            f_ele_base = di%cached_phase_face_value_boundary(p)%ele_base(sele)
+            p_nodes_bdy = face_global_nodes(di%pressure_mesh, sele)
+
+            ! obtain the transformed determinant*weight and normals
+            if (di%cached_face_value%cached_detwei_normal) then
+
+               detwei_bdy => di%cached_face_value%detwei_bdy(:,sele)
+               
+               normal_bdy => di%cached_face_value%normal_bdy(:,:,sele)
             
+            else
+
+               x_ele     = ele_val(di%positions, face_ele(di%positions, sele))
+               x_ele_bdy = face_val(di%positions, sele)
+            
+               call transform_cvsurf_facet_to_physical(x_ele, x_ele_bdy, di%x_cvbdyshape, normal_bdy, detwei_bdy)
+            
+            end if
+                     
             if (di%v_over_s_bc_flag(sele) == V_OVER_S_BC_TYPE_NORMAL_FLOW) then
               
                bc_sele_val = ele_val(di%v_over_s_bc_value, sele)
             
             else
             
-               modrelperm_ele_bdy   = face_val(di%modified_relative_permeability(p)%ptr, sele)
                visc_ele_bdy         = face_val(di%viscosity(p)%ptr, sele)
                absperm_ele_bdy      = face_val(di%absolute_permeability, sele)
                inv_char_len_ele_bdy = ele_val(di%inverse_characteristic_length, sele)
@@ -1514,12 +1431,6 @@ end if
                end do
 
             end if
-            
-            x_ele       = ele_val(di%positions, face_ele(di%positions, sele))
-            x_ele_bdy   = face_val(di%positions, sele)
-            p_nodes_bdy = face_global_nodes(di%pressure_mesh, sele)
-
-            call transform_cvsurf_facet_to_physical(x_ele, x_ele_bdy, di%x_cvbdyshape, normal_bdy, detwei_bdy)
 
             ! Initialise the local rhs to assemble for this element
             div_tvel_rhs_local_bdy = 0.0
@@ -1533,25 +1444,37 @@ end if
                      bc_quad_loop: do gi = 1, di%cvfaces%shape%ngi
 
                         ggi = (face-1)*di%cvfaces%shape%ngi + gi
-                       
-                        f_ele_counter = f_ele_counter + 1
-                        
-                        old_saturation_face_value = di%cached_phase_face_value_boundary(p)%value((f_ele_base - 1) + f_ele_counter)
-                        
+                                                
                         if (di%v_over_s_bc_flag(sele) == V_OVER_S_BC_TYPE_NORMAL_FLOW) then
 
-                           div_tvel_rhs_local_bdy(iloc) = div_tvel_rhs_local_bdy(iloc) +&
-                          &old_saturation_face_value * bc_sele_val(iloc) * detwei_bdy(ggi)                   
+                           div_tvel_rhs_local_bdy(iloc) = div_tvel_rhs_local_bdy(iloc) + &
+                                                          sum(di%cached_face_value%sat_bdy(:,ggi,sele,p)) * &
+                                                          bc_sele_val(iloc) * &
+                                                          detwei_bdy(ggi)                   
                         
                         else
                          
                            v_over_s_dot_n = dot_product(v_over_s_face_quad_bdy(:,ggi), normal_bdy(:,ggi))
-                        
+                           
+                           ! Adding this term includes the gradient of pressure, gradient of capilliary pressure
+                           ! and the gravity term. Is this correct, or should modrelperm face value be used?
                            div_tvel_rhs_local_bdy(iloc) = div_tvel_rhs_local_bdy(iloc) + &
-                          &old_saturation_face_value * v_over_s_dot_n * detwei_bdy(ggi)
-if (.false.) then                           
-                           modrelperm_absperm_over_visc = modrelperm_ele_bdy(iloc) * absperm_ele_bdy(1) / visc_ele_bdy(1)
-
+                                                          sum(di%cached_face_value%sat_bdy(:,ggi,sele,p)) * &
+                                                          v_over_s_dot_n * &
+                                                          detwei_bdy(ggi)
+                           
+                           ! Add two extra terms associated with pressure BC's
+                           ! which will cancel if the pressure BC is strong
+                           ! (Note the do nothing pressure BC is weak zero)
+                           
+                           ! Form the face value = detwei * (S*modrelperm*absperm/visc)
+                           face_value = detwei_bdy(ggi) * &
+                                        sum(di%cached_face_value%sat_bdy(:,ggi,sele,p)) * &
+                                        di%cached_face_value%modrelperm_bdy(ggi,sele,p) * &
+                                        absperm_ele_bdy(1) / &
+                                        visc_ele_bdy(1) 
+                           
+                           ! Add two extra terms associated with weak pressure BC's
                            if (di%pressure_bc_flag(sele) == PRESSURE_BC_TYPE_WEAKDIRICHLET) then
 
                               do jloc = 1, di%pressure_mesh%faces%shape%loc 
@@ -1560,30 +1483,26 @@ if (.false.) then
                                                                 inv_char_len_ele_bdy(jloc) * &
                                                                 di%p_cvbdyshape%n(jloc,ggi) * &
                                                                 bc_sele_val(jloc) * &
-                                                                modrelperm_absperm_over_visc * &
-                                                                old_saturation_face_value * &
                                                                 sum(normal_bdy(:,ggi)) * &
-                                                                detwei_bdy(ggi) * &
+                                                                face_value * &
+                                                                di%weak_pressure_bc_coeff
+
+                              end do
+
+                              do jloc = 1, di%pressure_mesh%faces%shape%loc 
+
+                                 div_tvel_rhs_local_bdy(iloc) = div_tvel_rhs_local_bdy(iloc) + &
+                                                                inv_char_len_ele_bdy(jloc) * &
+                                                                di%p_cvbdyshape%n(jloc,ggi) * &
+                                                                pressure_ele_bdy(jloc) * &
+                                                                sum(normal_bdy(:,ggi)) * &
+                                                                face_value * &
                                                                 di%weak_pressure_bc_coeff
 
                               end do
 
                            end if 
-
-                           do jloc = 1, di%pressure_mesh%faces%shape%loc 
-
-                              div_tvel_rhs_local_bdy(iloc) = div_tvel_rhs_local_bdy(iloc) + &
-                                                             inv_char_len_ele_bdy(jloc) * &
-                                                             di%p_cvbdyshape%n(jloc,ggi) * &
-                                                             pressure_ele_bdy(jloc) * &
-                                                             modrelperm_absperm_over_visc * &
-                                                             old_saturation_face_value * &
-                                                             sum(normal_bdy(:,ggi)) * &
-                                                             detwei_bdy(ggi) * &
-                                                             di%weak_pressure_bc_coeff
-
-                           end do
-end if                        
+                        
                         end if
                         
                      end do bc_quad_loop
@@ -1606,28 +1525,33 @@ end if
       
       ! deallocate local variables as required
       deallocate(x_ele)
-      deallocate(normal)
-      deallocate(detwei)
+      if (di%cached_face_value%cached_detwei_normal) then
+         nullify(detwei)
+         nullify(normal)      
+      else
+         deallocate(detwei)
+         deallocate(normal)
+      end if
       deallocate(normgi)
       deallocate(notvisited)
       deallocate(div_tvel_rhs_local)      
       deallocate(x_face_quad)
       deallocate(grad_pressure_face_quad)
-      deallocate(iter_grad_pressure_face_quad)
-      deallocate(modrelperm_ele)
-      deallocate(den_ele)
       deallocate(grav_ele)
-      deallocate(iter_v_over_s_face_quad)
 
-      deallocate(modrelperm_ele_bdy)
       deallocate(grav_ele_bdy)
       deallocate(grad_pressure_face_quad_bdy)
       deallocate(v_over_s_face_quad_bdy)
       deallocate(bc_sele_val)
       deallocate(pressure_ele_bdy)
       deallocate(inv_char_len_ele_bdy)
-      deallocate(detwei_bdy)
-      deallocate(normal_bdy)
+      if (di%cached_face_value%cached_detwei_normal) then
+         nullify(detwei_bdy)
+         nullify(normal_bdy)      
+      else
+         deallocate(detwei_bdy)
+         deallocate(normal_bdy)
+      end if
       deallocate(div_tvel_rhs_local_bdy)
       deallocate(x_ele_bdy)
       deallocate(p_nodes_bdy)
@@ -1638,29 +1562,47 @@ end if
 
 ! ----------------------------------------------------------------------------
 
-   subroutine darcy_impes_assemble_and_solve_phase_saturations(di)
+   subroutine darcy_impes_assemble_and_solve_phase_saturations(di, &
+                                                               form_new_subcycle_sat_face_values, &
+                                                               cache_new_subcycle_sat_face_values)
       
       !!< Assemble and solve the phase saturations. Phase 1 is special
       !!< as it may be either solved prognostically or calculated 
       !!< diagnostically from the other phase saturation values that 
-      !!< are solved first.
+      !!< are solved first. If form_new_subcycle_sat_face_values is true
+      !!< and there are subcycles then new saturation face values are 
+      !!< formed and used. If cache_new_subcycle_sat_face_values is then 
+      !!< also true the new face values are cached.
       
       type(darcy_impes_type), intent(inout) :: di
+      logical,                intent(in)    :: form_new_subcycle_sat_face_values
+      logical,                intent(in)    :: cache_new_subcycle_sat_face_values
       
       ! local variables
       integer :: p
 
       ewrite(1,*) 'Assemble and solve saturations'
          
-      ! Deduce the number of subcycles to do and the subcycle time step size
-      call deduce_subcycle_number_dt_and_cfl_field(di)
+      ! Deduce the subcycle time step size
+      if (di%subcy_opt_sat%have) then
+
+         di%dt_subcycle = di%dt/real(di%subcy_opt_sat%number)
+
+      else 
+
+         di%dt_subcycle = di%dt
+
+      end if 
       
       ! solve the saturation for each phase but not the first (this is done after)
       s_phase_loop: do p = 2, di%number_phase
                   
-         ewrite(1,*) 'Solve phase ',p,' Saturation with number_subcycle ',di%number_subcycle,' and dt_subcycle ',di%dt_subcycle
+         ewrite(1,*) 'Solve phase ',p,' Saturation with number_subcycle ',di%subcy_opt_sat%number,' and dt_subcycle ',di%dt_subcycle
          
-         call solve_phase_saturation(di, p)
+         call solve_phase_saturation(di, &
+                                     form_new_subcycle_sat_face_values, &
+                                     cache_new_subcycle_sat_face_values, &
+                                     p)
          
          ewrite(1,*) 'Finished solve phase ',p,' Saturation'
          
@@ -1675,9 +1617,12 @@ end if
       
       else s1_solve_if
          
-         ewrite(1,*) 'Solve phase 1 Saturation with number_subcycle ',di%number_subcycle,' and dt_subcycle ',di%dt_subcycle
+         ewrite(1,*) 'Solve phase 1 Saturation with number_subcycle ',di%subcy_opt_sat%number,' and dt_subcycle ',di%dt_subcycle
 
-         call solve_phase_saturation(di, p = 1)
+         call solve_phase_saturation(di, &
+                                     form_new_subcycle_sat_face_values, &
+                                     cache_new_subcycle_sat_face_values, &
+                                     p = 1)
 
          ewrite(1,*) 'Finished solve phase 1 Saturation'
          
@@ -1690,324 +1635,98 @@ end if
    end subroutine darcy_impes_assemble_and_solve_phase_saturations
 
 ! ----------------------------------------------------------------------------
-   
-   subroutine deduce_subcycle_number_dt_and_cfl_field(di)
-      
-      !!< Deduce the number of subcycles to do and the subcycle time step size
 
+   subroutine solve_phase_saturation(di, &
+                                     form_new_subcycle_sat_face_values, &
+                                     cache_new_subcycle_sat_face_values, &
+                                     p)
+      
+      !!< Assemble and solve the saturation for the given phase number p.
+      !!< If form_new_subcycle_sat_face_values is true
+      !!< and there are subcycles then new saturation face values are 
+      !!< formed and used. If cache_new_subcycle_sat_face_values is then 
+      !!< also true the new face values are cached.
+      
       type(darcy_impes_type), intent(inout) :: di
-      
-      ! local variables
-      integer :: p
-      real    :: max_cfl
-
-      ewrite(1,*) 'Deduce subcycle number and dt to use for all phase saturations'
-      
-      if (di%subcy_opt_sat%have_number) then
-
-         di%number_subcycle = di%subcy_opt_sat%number_advection_subcycle
-
-         di%dt_subcycle = di%dt/real(di%number_subcycle)
-
-      else if (di%subcy_opt_sat%have_max_cfl) then
-         
-         ! Initialise - as will take the max number of all phases
-         di%number_subcycle = 1
-         
-         phase_loop: do p = 1, di%number_phase
-         
-            ! Find the max cfl number for this phase (accounting for parallel)
-            max_cfl = maxval(di%cfl(p)%ptr)
-
-            call allmax(max_cfl)
-
-            di%number_subcycle = max(di%number_subcycle, & 
-                                    &max(1, ceiling(max_cfl/di%subcy_opt_sat%max_courant_per_advection_subcycle)))
-
-         end do phase_loop
-         
-         ! Find min subcycle timestep of all phases
-         di%dt_subcycle = di%dt/real(di%number_subcycle)
-
-      else 
-
-         di%number_subcycle = 1
-
-         di%dt_subcycle     = di%dt
-
-      end if 
-
-      ewrite(1,*) 'Finished Deduce subcycle number and dt to use for all phase saturations'
-      
-   end subroutine deduce_subcycle_number_dt_and_cfl_field
-
-! ----------------------------------------------------------------------------
-
-   subroutine solve_phase_saturation(di, p)
-      
-      !!< Assemble and solve the saturation for the given phase number p
-
-      type(darcy_impes_type), intent(inout) :: di
+      logical,                intent(in)    :: form_new_subcycle_sat_face_values
+      logical,                intent(in)    :: cache_new_subcycle_sat_face_values      
       integer,                intent(in)    :: p
-      
-      ! Set the suitable subcycled CFL number - may be used for CV face limiting
-      call set(di%cfl_subcycle, di%cfl(p)%ptr)
-
-      call scale(di%cfl_subcycle, 1.0/real(di%number_subcycle))            
-
-      call solve_scalar_field_using_cv_cts_mesh(di%saturation(p)%ptr, &
-                                                di%old_saturation(p)%ptr, &
-                                                di%gradient_pressure(p)%ptr, &
-                                                di%iterated_gradient_pressure(p)%ptr, &
-                                                di%viscosity(p)%ptr, &
-                                                di%modified_relative_permeability(p)%ptr, &
-                                                di%absolute_permeability, &
-                                                di%density(p)%ptr, &
-                                                di%gravity, &
-                                                di%positions, &
-                                                di%positions_pressure_mesh, &
-                                                di%old_sfield_subcycle, &
-                                                di%cv_mass_pressure_mesh_with_porosity, &
-                                                di%cv_mass_pressure_mesh_with_old_porosity, &
-                                                di%old_sfield_upwind, &
-                                                di%cfl_subcycle, &
-                                                di%darcy_velocity_over_saturation(p)%ptr, &
-                                                di%bc_surface_mesh, &
-                                                di%v_over_s_bc_value, &
-                                                di%v_over_s_bc_flag, &
-                                                di%pressure(p)%ptr, &
-                                                di%pressure_bc_value, &
-                                                di%pressure_bc_flag, &
-                                                di%inverse_characteristic_length, &
-                                                di%weak_pressure_bc_coeff, &
-                                                di%saturation_source(p)%ptr, &
-                                                di%cv_mass_pressure_mesh, &
-                                                di%rhs_adv, &
-                                                di%rhs_time, &
-                                                di%rhs, &
-                                                di%lhs, &
-                                                di%x_cvshape, &
-                                                di%p_cvshape, &
-                                                di%gradp_cvshape, &
-                                                di%x_cvbdyshape, &
-                                                di%p_cvbdyshape, &
-                                                di%gradp_cvbdyshape, &
-                                                di%cvfaces, &
-                                                di%saturation_cv_options, &
-                                                di%state, &
-                                                di%ndim, &
-                                                di%number_subcycle, &
-                                                di%dt_subcycle, &
-                                                di%max_nonlinear_iter_this_timestep, &
-                                                di%cached_phase_face_value_domain(p), &
-                                                di%cached_phase_face_value_boundary(p))
-      
-   end subroutine solve_phase_saturation
-
-! ----------------------------------------------------------------------------
-
-   subroutine solve_scalar_field_using_cv_cts_mesh(sfield, &
-                                                   old_sfield, &
-                                                   gradient_pressure, &
-                                                   iterated_gradient_pressure, &
-                                                   viscosity, &
-                                                   modified_relative_permeability, &
-                                                   absolute_permeability, &
-                                                   density, &
-                                                   gravity, &
-                                                   positions, &
-                                                   positions_sfield_mesh, &
-                                                   old_sfield_subcycle, &
-                                                   cv_mass_sfield_mesh_with_porosity, &
-                                                   cv_mass_sfield_mesh_with_old_porosity, &
-                                                   old_sfield_upwind, &
-                                                   cfl_subcycle, &
-                                                   darcy_velocity_over_saturation, &
-                                                   bc_surface_mesh, &
-                                                   v_over_s_bc_value, &
-                                                   v_over_s_bc_flag, &
-                                                   pressure, &
-                                                   pressure_bc_value, &
-                                                   pressure_bc_flag, &
-                                                   inverse_characteristic_length, &
-                                                   weak_pressure_bc_coeff, &
-                                                   s_source, &
-                                                   cv_mass_sfield_mesh, &
-                                                   rhs_adv, &
-                                                   rhs_time, &
-                                                   rhs, &
-                                                   lhs, &
-                                                   x_cvshape, &
-                                                   p_cvshape, &
-                                                   gradp_cvshape, &
-                                                   x_cvbdyshape, &
-                                                   p_cvbdyshape, &
-                                                   gradp_cvbdyshape, &
-                                                   cvfaces, &
-                                                   sfield_cv_options, &
-                                                   state, &
-                                                   ndim, &
-                                                   number_subcycle, &
-                                                   dt_subcycle, &
-                                                   max_nonlinear_iter_this_timestep, &
-                                                   cached_face_value_domain, &
-                                                   cached_face_value_boundary)
-      
-      !!< Assemble and solve a time+advection equation for the scalar field 
-      !!< using CV on a continous mesh with advecting velocity calculated 
-      !!< on the go from the relation v_over_s = - K*mod_k/nu (grad P - den*g)
-      !!< as for higher than linear meshes this will avoid complicated basis 
-      !!< (ie overlapping) expansions for the v_over_s.
-      
-      type(scalar_field),                  intent(inout) :: sfield
-      type(scalar_field),                  intent(inout) :: old_sfield
-      type(vector_field),                  intent(in)    :: gradient_pressure
-      type(vector_field),                  intent(in)    :: iterated_gradient_pressure
-      type(scalar_field),                  intent(in)    :: viscosity
-      type(scalar_field),                  intent(in)    :: modified_relative_permeability
-      type(scalar_field),                  intent(in)    :: absolute_permeability
-      type(scalar_field),                  intent(in)    :: density
-      type(vector_field),                  intent(in)    :: gravity
-      type(vector_field),                  intent(in)    :: positions
-      type(vector_field),                  intent(inout) :: positions_sfield_mesh
-      type(scalar_field),                  intent(inout) :: old_sfield_subcycle
-      type(scalar_field),                  intent(in)    :: cv_mass_sfield_mesh_with_porosity
-      type(scalar_field),                  intent(in)    :: cv_mass_sfield_mesh_with_old_porosity
-      type(csr_matrix),                    intent(inout) :: old_sfield_upwind
-      type(scalar_field),                  intent(in)    :: cfl_subcycle
-      type(vector_field),                  intent(in)    :: darcy_velocity_over_saturation
-      type(mesh_type),                     intent(in)    :: bc_surface_mesh
-      type(scalar_field),                  intent(inout) :: v_over_s_bc_value
-      integer,               dimension(:), intent(inout) :: v_over_s_bc_flag
-      type(scalar_field),                  intent(in)    :: pressure
-      type(scalar_field),                  intent(inout) :: pressure_bc_value
-      integer,               dimension(:), intent(inout) :: pressure_bc_flag
-      type(scalar_field),                  intent(in)    :: inverse_characteristic_length
-      real,                                intent(in)    :: weak_pressure_bc_coeff
-      type(scalar_field),                  intent(in)    :: s_source
-      type(scalar_field),                  intent(in)    :: cv_mass_sfield_mesh
-      type(scalar_field),                  intent(inout) :: rhs_adv
-      type(scalar_field),                  intent(inout) :: rhs_time
-      type(scalar_field),                  intent(inout) :: rhs
-      type(scalar_field),                  intent(inout) :: lhs
-      type(element_type),                  intent(in)    :: x_cvshape
-      type(element_type),                  intent(in)    :: p_cvshape
-      type(element_type),                  intent(in)    :: gradp_cvshape
-      type(element_type),                  intent(in)    :: x_cvbdyshape
-      type(element_type),                  intent(in)    :: p_cvbdyshape
-      type(element_type),                  intent(in)    :: gradp_cvbdyshape
-      type(cv_faces_type),                 intent(in)    :: cvfaces
-      type(cv_options_type),               intent(in)    :: sfield_cv_options      
-      type(state_type),      dimension(:), intent(inout) :: state
-      integer,                             intent(in)    :: ndim
-      integer,                             intent(in)    :: number_subcycle
-      real,                                intent(in)    :: dt_subcycle
-      integer,                             intent(in)    :: max_nonlinear_iter_this_timestep
-      type(cached_face_value_type),        intent(inout), optional :: cached_face_value_domain
-      type(cached_face_value_type),        intent(inout), optional :: cached_face_value_boundary
 
       ! local variables
-      logical :: inflow, cached_face_value_present, determine_face_value
-      integer :: vele, iloc, oloc, jloc, face, gi, ggi, sele, isub, f_ele_counter, f_ele_base, upwind_pos, dim
-      real    :: income, face_value, v_over_s_dot_n, iter_v_over_s_dot_n
-      real    :: alpha_start, alpha_end, modrelperm_absperm_over_visc
-      real    :: old_sfield_face_value, modrelperm_face_value, den_face_value
-      real,    dimension(1)                :: absperm_ele, visc_ele
-      real,    dimension(:,:), allocatable :: grad_pressure_face_quad
-      real,    dimension(:,:), allocatable :: iter_grad_pressure_face_quad
-      real,    dimension(:),   allocatable :: den_ele
-      real,    dimension(:,:), allocatable :: grav_ele
-      real,    dimension(:,:), allocatable :: v_over_s_face_quad
-      real,    dimension(:,:), allocatable :: iter_v_over_s_face_quad
-      real,    dimension(:),   allocatable :: old_sfield_subcycle_ele
-      real,    dimension(:),   allocatable :: modrelperm_ele
-      real,    dimension(:),   allocatable :: cfl_subcycle_ele
-      real,    dimension(:,:), allocatable :: x_ele
-      real,    dimension(:,:), allocatable :: normal
-      real,    dimension(:),   allocatable :: detwei
-      real,    dimension(:),   allocatable :: normgi
-      logical, dimension(:),   allocatable :: notvisited
-      real,    dimension(:),   allocatable :: s_rhs_local
-      real,    dimension(:,:), allocatable :: x_face_quad
-      integer, dimension(:),   pointer     :: x_smesh_nodes
-      integer, dimension(:),   pointer     :: s_nodes      
-      integer, dimension(:),   pointer     :: upwind_nodes
-      real,    dimension(1)                :: absperm_ele_bdy, visc_ele_bdy
-      real,    dimension(:),   allocatable :: modrelperm_ele_bdy
-      real,    dimension(:,:), allocatable :: grav_ele_bdy
-      real,    dimension(:,:), allocatable :: grad_pressure_face_quad_bdy
-      real,    dimension(:,:), allocatable :: iter_grad_pressure_face_quad_bdy
-      real,    dimension(:,:), allocatable :: v_over_s_face_quad_bdy
-      real,    dimension(:,:), allocatable :: iter_v_over_s_face_quad_bdy
-      real,    dimension(:),   allocatable :: bc_sele_val
-      real,    dimension(:),   allocatable :: pressure_ele_bdy
-      real,    dimension(:),   allocatable :: inv_char_len_ele_bdy
-      real,    dimension(:),   allocatable :: old_sfield_subcycle_ele_bdy
-      real,    dimension(:),   allocatable :: ghost_old_sfield_subcycle_ele_bdy      
-      real,    dimension(:,:), allocatable :: normal_bdy
-      real,    dimension(:),   allocatable :: detwei_bdy
-      real,    dimension(:,:), allocatable :: x_ele_bdy
-      real,    dimension(:),   allocatable :: s_rhs_local_bdy
-      integer, dimension(:),   allocatable :: s_nodes_bdy
-      integer, dimension(:),   allocatable :: sfield_bc_flag
-      type(scalar_field) :: sfield_bc
-      integer, parameter :: S_BC_TYPE_WEAKDIRICHLET        = 1, S_BC_TYPE_DIRICHLET             = 2
-      integer, parameter :: V_OVER_S_BC_TYPE_NORMAL_FLOW   = 1, V_OVER_S_BC_TYPE_NO_NORMAL_FLOW = 2
-      integer, parameter :: PRESSURE_BC_TYPE_WEAKDIRICHLET = 1
-             
-      ! set a local flag for whether cached face value is present
-      cached_face_value_present = present(cached_face_value_domain)
-      
-      if (cached_face_value_present) then
-         
-         if (.not. present(cached_face_value_boundary)) then
-         
-            FLAbort('Issue in solve_scalar_field_using_cv_cts_mesh, must have both domain and boundary cached face value present if using them')
-         
-         end if 
-         
-      end if
+      logical :: inflow, determine_face_value
+      integer :: vele, iloc, oloc, jloc, face, gi, ggi, sele, isub, upwind_pos, dim
+      real    :: income, face_value, v_over_s_dot_n, alpha_start, alpha_end, old_saturation_face_value
+      real,    dimension(1)            :: absperm_ele, visc_ele
+      real,    dimension(:,:), pointer :: grad_pressure_face_quad
+      real,    dimension(:,:), pointer :: grav_ele
+      real,    dimension(:,:), pointer :: v_over_s_face_quad
+      real,    dimension(:),   pointer :: old_saturation_subcycle_ele
+      real,    dimension(:),   pointer :: cfl_subcycle_ele
+      real,    dimension(:,:), pointer :: x_ele
+      real,    dimension(:,:), pointer :: normal
+      real,    dimension(:),   pointer :: detwei
+      real,    dimension(:),   pointer :: normgi
+      logical, dimension(:),   pointer :: notvisited
+      real,    dimension(:),   pointer :: s_rhs_local
+      real,    dimension(:,:), pointer :: x_face_quad
+      integer, dimension(:),   pointer :: x_smesh_nodes
+      integer, dimension(:),   pointer :: s_nodes      
+      integer, dimension(:),   pointer :: upwind_nodes
+      real,    dimension(1)            :: absperm_ele_bdy, visc_ele_bdy
+      real,    dimension(:,:), pointer :: grav_ele_bdy
+      real,    dimension(:,:), pointer :: grad_pressure_face_quad_bdy
+      real,    dimension(:,:), pointer :: v_over_s_face_quad_bdy
+      real,    dimension(:),   pointer :: bc_sele_val
+      real,    dimension(:),   pointer :: pressure_ele_bdy
+      real,    dimension(:),   pointer :: inv_char_len_ele_bdy
+      real,    dimension(:),   pointer :: old_saturation_subcycle_ele_bdy
+      real,    dimension(:),   pointer :: ghost_old_saturation_subcycle_ele_bdy      
+      real,    dimension(:,:), pointer :: normal_bdy
+      real,    dimension(:),   pointer :: detwei_bdy
+      real,    dimension(:,:), pointer :: x_ele_bdy
+      real,    dimension(:),   pointer :: s_rhs_local_bdy
+      integer, dimension(:),   pointer :: s_nodes_bdy
+      integer, parameter :: SATURATION_BC_TYPE_WEAKDIRICHLET = 1, SATURATION_BC_TYPE_DIRICHLET    = 2
+      integer, parameter :: V_OVER_S_BC_TYPE_NORMAL_FLOW     = 1, V_OVER_S_BC_TYPE_NO_NORMAL_FLOW = 2
+      integer, parameter :: PRESSURE_BC_TYPE_WEAKDIRICHLET   = 1
       
       ! allocate arrays used in assemble process - many assume
       ! that all elements are the same type.
-      allocate(x_ele(ndim, ele_loc(positions,1)))      
-      allocate(normal(ndim,x_cvshape%ngi))
-      allocate(detwei(x_cvshape%ngi))      
-      allocate(normgi(ndim))
-      allocate(notvisited(x_cvshape%ngi))
-      allocate(s_rhs_local(ele_loc(sfield,1)))
-      allocate(x_face_quad(ndim, x_cvshape%ngi))
-      allocate(old_sfield_subcycle_ele(ele_loc(sfield,1)))
-      allocate(cfl_subcycle_ele(ele_loc(cfl_subcycle,1)))
-      allocate(modrelperm_ele(ele_loc(sfield,1)))
-      allocate(grad_pressure_face_quad(ndim, p_cvshape%ngi))
-      allocate(iter_grad_pressure_face_quad(ndim, p_cvshape%ngi))
-      allocate(den_ele(ele_loc(sfield,1)))
-      allocate(grav_ele(ndim,1))
-      allocate(v_over_s_face_quad(ndim,p_cvshape%ngi))
-      allocate(iter_v_over_s_face_quad(ndim,p_cvshape%ngi))
+      allocate(x_ele(di%ndim, ele_loc(di%positions,1)))      
+      if (.not. di%cached_face_value%cached_detwei_normal) then
+         allocate(normal(di%ndim,di%x_cvshape%ngi))
+         allocate(detwei(di%x_cvshape%ngi))      
+      end if
+      allocate(normgi(di%ndim))
+      allocate(notvisited(di%x_cvshape%ngi))
+      allocate(s_rhs_local(ele_loc(di%pressure_mesh,1)))
+      allocate(x_face_quad(di%ndim, di%x_cvshape%ngi))
+      allocate(old_saturation_subcycle_ele(ele_loc(di%pressure_mesh,1)))
+      allocate(cfl_subcycle_ele(ele_loc(di%cfl_subcycle,1)))
+      allocate(grad_pressure_face_quad(di%ndim, di%p_cvshape%ngi))
+      allocate(grav_ele(di%ndim,1))
+      allocate(v_over_s_face_quad(di%ndim,di%p_cvshape%ngi))
 
-      allocate(modrelperm_ele_bdy(face_loc(sfield,1)))
-      allocate(grav_ele_bdy(ndim,1))
-      allocate(grad_pressure_face_quad_bdy(ndim, p_cvbdyshape%ngi))
-      allocate(iter_grad_pressure_face_quad_bdy(ndim, p_cvbdyshape%ngi))
-      allocate(v_over_s_face_quad_bdy(ndim, p_cvbdyshape%ngi))
-      allocate(iter_v_over_s_face_quad_bdy(ndim, p_cvbdyshape%ngi))
-      allocate(bc_sele_val(face_loc(sfield,1)))
-      allocate(pressure_ele_bdy(face_loc(sfield,1)))
-      allocate(inv_char_len_ele_bdy(face_loc(sfield,1)))
-      allocate(old_sfield_subcycle_ele_bdy(face_loc(sfield,1)))      
-      allocate(ghost_old_sfield_subcycle_ele_bdy(face_loc(sfield,1)))
-      allocate(detwei_bdy(x_cvbdyshape%ngi))
-      allocate(normal_bdy(ndim, x_cvbdyshape%ngi))
-      allocate(s_rhs_local_bdy(face_loc(sfield,1)))
-      allocate(x_ele_bdy(ndim, face_loc(positions,1)))      
-      allocate(s_nodes_bdy(face_loc(sfield,1)))
+      allocate(grav_ele_bdy(di%ndim,1))
+      allocate(grad_pressure_face_quad_bdy(di%ndim, di%p_cvbdyshape%ngi))
+      allocate(v_over_s_face_quad_bdy(di%ndim, di%p_cvbdyshape%ngi))
+      allocate(bc_sele_val(face_loc(di%pressure_mesh,1)))
+      allocate(pressure_ele_bdy(face_loc(di%pressure_mesh,1)))
+      allocate(inv_char_len_ele_bdy(face_loc(di%pressure_mesh,1)))
+      allocate(old_saturation_subcycle_ele_bdy(face_loc(di%pressure_mesh,1)))      
+      allocate(ghost_old_saturation_subcycle_ele_bdy(face_loc(di%pressure_mesh,1)))
+      if (.not. di%cached_face_value%cached_detwei_normal) then
+         allocate(detwei_bdy(di%x_cvbdyshape%ngi))
+         allocate(normal_bdy(di%ndim, di%x_cvbdyshape%ngi))
+      end if
+      allocate(s_rhs_local_bdy(face_loc(di%pressure_mesh,1)))
+      allocate(x_ele_bdy(di%ndim, face_loc(di%positions,1)))      
+      allocate(s_nodes_bdy(face_loc(di%pressure_mesh,1)))
             
-      ! Solve the sfield for each subcycle via:            
+      ! Solve the saturation for each subcycle via:            
       !  - Form the lhs = cv_mass_sfield_mesh_with_porosity / dt
       !  - Add the s_source to rhs
-      !  - Form the rhs_time = cv_mass_sfield_mesh_with_old_porosity * old_sfield / dt and add to rhs
+      !  - Form the rhs_time = cv_mass_pressure_mesh_with_old_porosity * old_sfield / dt and add to rhs
       !  - Assemble the rhs_adv contribution and add to rhs 
       !  - Apply any strong dirichlet BCs
       !  - solve for latest sfield and copy to start subcycle sfield step
@@ -2015,120 +1734,125 @@ end if
       ! Note: the porosity at the start and end of a subcycle time step
       ! are linearly interpolated values from the main time step start and end
       
-      call set(old_sfield_subcycle, old_sfield)
+      ! Set the suitable subcycled CFL number - may be used for CV face limiting
+      call set(di%cfl_subcycle, di%cfl(p)%ptr)
+      call scale(di%cfl_subcycle, 1.0/real(di%subcy_opt_sat%number))            
+      
+      ! Set the initial old saturation subcycle field
+      call set(di%old_saturation_subcycle, di%old_saturation(p)%ptr)
       
       ! Allocate and get the BC data. If the BC is time dependent then
       ! the end of overall time step values are used for all subcycles. 
       
-      ! Get the sfield BC info
-      allocate(sfield_bc_flag(surface_element_count(sfield)))
-      call get_entire_boundary_condition(sfield, &
-                                         (/"weakdirichlet", &
-                                           "dirichlet    "/), &
-                                         sfield_bc, &
-                                         sfield_bc_flag)
+      ! Get this phase satutation BC info
+      call get_entire_saturation_or_pressure_boundary_condition(di%saturation(p)%ptr, &
+                                                                (/"weakdirichlet", &
+                                                                  "dirichlet    "/), &
+                                                                di%bc_surface_mesh, &
+                                                                di%saturation_bc_value, &
+                                                                di%saturation_bc_flag)
 
       ! Get this phase v_over_s BC info - only for no_normal_flow and normal_flow which is special as it is a scalar
-      call get_v_over_s_boundary_condition(darcy_velocity_over_saturation, &
+      call get_v_over_s_boundary_condition(di%darcy_velocity_over_saturation(p)%ptr, &
                                            (/"normal_flow   ", &
                                              "no_normal_flow"/), &
-                                           bc_surface_mesh, &
-                                           v_over_s_bc_value, &
-                                           v_over_s_bc_flag)
+                                           di%bc_surface_mesh, &
+                                           di%v_over_s_bc_value, &
+                                           di%v_over_s_bc_flag)
       
       ! Get the pressure BC - required if no v_over_s given and weak pressure dirichlet given for extra integrals
-      call get_entire_saturation_or_pressure_boundary_condition(pressure, &
+      call get_entire_saturation_or_pressure_boundary_condition(di%pressure(p)%ptr, &
                                                                 (/"weakdirichlet"/), &
-                                                                bc_surface_mesh, &
-                                                                pressure_bc_value, &
-                                                                pressure_bc_flag)
+                                                                di%bc_surface_mesh, &
+                                                                di%pressure_bc_value, &
+                                                                di%pressure_bc_flag)
 
-      sub_loop: do isub = 1,number_subcycle
+      sub_loop: do isub = 1, di%subcy_opt_sat%number
          
          ! form the start and end of subcycle dt
          ! porosity linear interpolents
-         alpha_start = (isub - 1) / number_subcycle
-         alpha_end   = isub / number_subcycle
+         alpha_start = (isub - 1) / di%subcy_opt_sat%number
+         alpha_end   = isub / di%subcy_opt_sat%number
          
-         call set(lhs, cv_mass_sfield_mesh_with_porosity)
+         call set(di%lhs, di%cv_mass_pressure_mesh_with_porosity)
          
-         call scale(lhs, alpha_end)
+         call scale(di%lhs, alpha_end)
          
-         call addto(lhs, cv_mass_sfield_mesh_with_old_porosity, scale = (1.0 - alpha_end))
+         call addto(di%lhs, di%cv_mass_pressure_mesh_with_old_porosity, scale = (1.0 - alpha_end))
 
-         call scale(lhs, 1.0/dt_subcycle)
+         call scale(di%lhs, 1.0/di%dt_subcycle)
          
-         ! Add the s_source contribution
-         call set(rhs, s_source)
+         ! Add the saturation_source contribution
+         call set(di%rhs, di%saturation_source(p)%ptr)
          
-         call scale(rhs, cv_mass_sfield_mesh)
+         call scale(di%rhs, di%cv_mass_pressure_mesh)
          
          ! form the rhs_time contribution and add
-         call set(rhs_time, cv_mass_sfield_mesh_with_porosity)
+         call set(di%rhs_time, di%cv_mass_pressure_mesh_with_porosity)
          
-         call scale(rhs_time, alpha_start)
+         call scale(di%rhs_time, alpha_start)
          
-         call addto(rhs_time, cv_mass_sfield_mesh_with_old_porosity, scale = (1.0 - alpha_start))
+         call addto(di%rhs_time, di%cv_mass_pressure_mesh_with_old_porosity, scale = (1.0 - alpha_start))
          
-         call scale(rhs_time, 1.0/dt_subcycle)
+         call scale(di%rhs_time, 1.0/di%dt_subcycle)
 
-         call scale(rhs_time, old_sfield_subcycle)
+         call scale(di%rhs_time, di%old_saturation_subcycle)
 
-         call addto(rhs, rhs_time)
+         call addto(di%rhs, di%rhs_time)
          
          ! assemble the rhs_adv contribution and add
          call assemble_rhs_adv()
 
-         call addto(rhs, rhs_adv)
+         call addto(di%rhs, di%rhs_adv)
 
          ! apply strong dirichlet BC
-         call apply_dirichlet_conditions(lhs, rhs, sfield)
+         call apply_dirichlet_conditions(di%lhs, di%rhs, di%saturation(p)%ptr)
 
          ! Solve for the sfield
-         sfield%val = rhs%val / lhs%val
+         di%saturation(p)%ptr%val = di%rhs%val / di%lhs%val
          
          ! Copy latest solution to old subcycle
-         call set(old_sfield_subcycle, sfield)
+         call set(di%old_saturation_subcycle, di%saturation(p)%ptr)
          
       end do sub_loop
            
       ! deallocate local variables as required
       deallocate(x_ele)
-      deallocate(normal)
-      deallocate(detwei)
+      if (di%cached_face_value%cached_detwei_normal) then
+         nullify(detwei)
+         nullify(normal)      
+      else
+         deallocate(detwei)
+         deallocate(normal)
+      end if
       deallocate(normgi)
       deallocate(notvisited)
       deallocate(s_rhs_local)
       deallocate(x_face_quad)
-      deallocate(old_sfield_subcycle_ele)
+      deallocate(old_saturation_subcycle_ele)
       deallocate(cfl_subcycle_ele)
-      deallocate(modrelperm_ele)
       deallocate(grad_pressure_face_quad)
-      deallocate(iter_grad_pressure_face_quad)
-      deallocate(den_ele)
       deallocate(grav_ele)
       deallocate(v_over_s_face_quad)
-      deallocate(iter_v_over_s_face_quad)
 
-      deallocate(modrelperm_ele_bdy)
       deallocate(grav_ele_bdy)
       deallocate(grad_pressure_face_quad_bdy)
-      deallocate(iter_grad_pressure_face_quad_bdy)
       deallocate(v_over_s_face_quad_bdy)
-      deallocate(iter_v_over_s_face_quad_bdy)
       deallocate(bc_sele_val)
       deallocate(pressure_ele_bdy)
       deallocate(inv_char_len_ele_bdy)
-      deallocate(old_sfield_subcycle_ele_bdy)      
-      deallocate(ghost_old_sfield_subcycle_ele_bdy)
-      deallocate(detwei_bdy)
-      deallocate(normal_bdy)
+      deallocate(old_saturation_subcycle_ele_bdy)      
+      deallocate(ghost_old_saturation_subcycle_ele_bdy)
+      if (di%cached_face_value%cached_detwei_normal) then
+         nullify(detwei_bdy)
+         nullify(normal_bdy)      
+      else
+         deallocate(detwei_bdy)
+         deallocate(normal_bdy)
+      end if
       deallocate(s_rhs_local_bdy)
       deallocate(x_ele_bdy)
       deallocate(s_nodes_bdy)
-
-      deallocate(sfield_bc_flag)
-      call deallocate(sfield_bc)
       
    contains
          
@@ -2136,31 +1860,30 @@ end if
          
          subroutine assemble_rhs_adv()
             
-            !!< Assemble the rhs advection contribtion for sfield
+            !!< Assemble the rhs advection contribtion for saturation phase p
 
             ! Inititalise rhs advection field
-            call zero(rhs_adv)
+            call zero(di%rhs_adv)
             
-            ! Decide if a face value needs to be determined
-            determine_face_value = (cached_face_value_present .and. isub > 1) .or. &
-                                  &(.not. cached_face_value_present)
+            ! Decide if a face value needs to be determined for this subcycle
+            determine_face_value = (form_new_subcycle_sat_face_values .and. isub > 1)
             
             if (determine_face_value) then
             
                ! Determine the upwind saturation values if required for higher order CV face value
-               if(need_upwind_values(sfield_cv_options)) then
+               if(need_upwind_values(di%saturation_cv_options)) then
 
-                 call find_upwind_values(state, &
-                                         positions_sfield_mesh, &
-                                         old_sfield_subcycle, &
-                                         old_sfield_upwind, &
-                                         old_sfield_subcycle, &
-                                         old_sfield_upwind, &
-                                         option_path = trim(sfield%option_path))
+                 call find_upwind_values(di%state, &
+                                         di%positions_pressure_mesh, &
+                                         di%old_saturation_subcycle, &
+                                         di%old_saturation_upwind, &
+                                         di%old_saturation_subcycle, &
+                                         di%old_saturation_upwind, &
+                                         option_path = trim(di%saturation(p)%ptr%option_path))
 
                else
 
-                 call zero(old_sfield_upwind)
+                 call zero(di%old_saturation_upwind)
 
                end if
             
@@ -2170,59 +1893,57 @@ end if
             upwind_pos = 0
             
             ! Loop volume elements assembling local contributions    
-            vol_element_loop: do vele = 1, element_count(sfield)
+            vol_element_loop: do vele = 1, di%number_vele
 
-               ! Initialise the face value counter for this ele
-               f_ele_counter = 0
+               ! The node indices of the pressure mesh (which saturation is associated with)
+               s_nodes => ele_nodes(di%pressure_mesh, vele)
 
-               ! Find the face value ele base
-               f_ele_base = cached_face_value_domain%ele_base(vele)
-
-               ! get the coordinate values for this element for each positions local node
-               x_ele = ele_val(positions, vele)         
-
-               ! get the coordinate values for this element for each quadrature point
-               x_face_quad = ele_val_at_quad(positions, vele, x_cvshape)
-
-               ! The node indices of the sfield field
-               s_nodes => ele_nodes(sfield, vele)
-
-               ! The node indices of the positions projected to the sfield mesh
-               x_smesh_nodes => ele_nodes(positions_sfield_mesh, vele)
-
-               ! get the modrelperm ele values
-               modrelperm_ele = ele_val(modified_relative_permeability, vele)
-
-               ! get the density value for this element
-               den_ele = ele_val(density, vele)
+               ! The node indices of the positions projected to the pressure mesh (which saturation is associated with)
+               x_smesh_nodes => ele_nodes(di%positions_pressure_mesh, vele)
 
                ! The gravity values for this element for each direction
-               grav_ele = ele_val(gravity, vele) 
-
-               ! get the latest gradient pressure at the cv surface quadrature points for each direction 
-               grad_pressure_face_quad = ele_val_at_quad(gradient_pressure, vele, gradp_cvshape)
-
-               ! get the iterated gradient pressure at the cv surface quadrature points for each direction 
-               iter_grad_pressure_face_quad = ele_val_at_quad(iterated_gradient_pressure, vele, gradp_cvshape)
+               grav_ele = ele_val(di%gravity, vele) 
 
                ! get the viscosity value for this element
-               visc_ele = ele_val(viscosity, vele)
+               visc_ele = ele_val(di%viscosity(p)%ptr, vele)
 
                ! get the absolute permeability value for this element
-               absperm_ele = ele_val(absolute_permeability, vele)         
+               absperm_ele = ele_val(di%absolute_permeability, vele)         
+
+               ! get the latest gradient pressure at the cv surface quadrature points for each direction 
+               grad_pressure_face_quad = ele_val_at_quad(di%gradient_pressure(p)%ptr, vele, di%gradp_cvshape)
+
+               ! obtain the transformed determinant*weight and normals
+               if (di%cached_face_value%cached_detwei_normal) then
+
+                  detwei => di%cached_face_value%detwei(:,vele)
+
+                  normal => di%cached_face_value%normal(:,:,vele)
+
+               else
+
+                  ! get the coordinate values for this element for each positions local node
+                  x_ele = ele_val(di%positions, vele)         
+
+                  ! get the coordinate values for this element for each quadrature point
+                  x_face_quad = ele_val_at_quad(di%positions, vele, di%x_cvshape)
+
+                  call transform_cvsurf_to_physical(x_ele, di%x_cvshape, detwei, normal, di%cvfaces)
+
+               end if
                
                ! Get necessary element data for determining sfield CV face value
                if (determine_face_value) then
                
-                  ! get the old sfield ele values from start of subcycle
-                  old_sfield_subcycle_ele = ele_val(old_sfield_subcycle, vele)
+                  ! get the old saturation ele values from start of subcycle
+                  old_saturation_subcycle_ele = ele_val(di%old_saturation_subcycle, vele)
 
                   ! get the CFL values for this element
-                  cfl_subcycle_ele = ele_val(cfl_subcycle, vele)
+                  cfl_subcycle_ele = ele_val(di%cfl_subcycle, vele)
                
                   ! Determine the node numbers to use to determine the upwind values
-                  if((sfield_cv_options%upwind_scheme == CV_UPWINDVALUE_PROJECT_POINT).or.&
-                     (sfield_cv_options%upwind_scheme == CV_UPWINDVALUE_PROJECT_GRAD)) then
+                  if((di%saturation_cv_options%upwind_scheme == CV_UPWINDVALUE_PROJECT_POINT).or.&
+                     (di%saturation_cv_options%upwind_scheme == CV_UPWINDVALUE_PROJECT_GRAD)) then
 
                      upwind_nodes => x_smesh_nodes
 
@@ -2232,20 +1953,17 @@ end if
 
                   end if
 
+                  ! the latest DarcyVelocityOverSaturation at the quadrature points
+                  ! determined from FE interpolation of each component, only used to determine upwind.
+                  do dim = 1, di%ndim
+
+                     v_over_s_face_quad(dim,:) =  &
+- (ele_val_at_quad(di%modified_relative_permeability(p)%ptr, vele, di%p_cvshape) * absperm_ele(1) / visc_ele(1)) * &
+  (grad_pressure_face_quad(dim,:) - ele_val_at_quad(di%density(p)%ptr, vele, di%p_cvshape) * grav_ele(dim,1))   
+
+                  end do
+
                end if
-
-               ! the iterated DarcyVelocityOverSaturation at the quadrature points
-               ! determined from FE interpolation of each component, only used to determine upwind.
-               do dim = 1,ndim
-
-                  iter_v_over_s_face_quad(dim,:) =  &
-- (ele_val_at_quad(modified_relative_permeability, vele, p_cvshape) * absperm_ele(1) / visc_ele(1)) * &
-  (iter_grad_pressure_face_quad(dim,:) - ele_val_at_quad(density, vele, p_cvshape) * grav_ele(dim,1))   
-
-               end do
-                              
-               ! obtain the transformed determinant*weight and normals
-               call transform_cvsurf_to_physical(x_ele, x_cvshape, detwei, normal, cvfaces)
 
                ! Initialise array for the quadrature points of this 
                ! element for whether it has already been visited
@@ -2255,182 +1973,180 @@ end if
                s_rhs_local = 0.0
 
                ! loop over local nodes within this element
-               nodal_loop_i: do iloc = 1, sfield%mesh%shape%loc
+               nodal_loop_i: do iloc = 1, di%pressure_mesh%shape%loc
 
-                 ! loop over CV faces internal to this element
-                 face_loop: do face = 1, cvfaces%faces
+                  ! loop over CV faces internal to this element
+                  face_loop: do face = 1, di%cvfaces%faces
 
-                   ! is this a face neighbouring iloc?
-                   is_neigh: if(cvfaces%neiloc(iloc, face) /= 0) then
+                     ! is this a face neighbouring iloc?
+                     is_neigh: if(di%cvfaces%neiloc(iloc, face) /= 0) then
 
-                     ! find the opposing local node across the CV face
-                     oloc = cvfaces%neiloc(iloc, face)
+                        ! find the opposing local node across the CV face
+                        oloc = di%cvfaces%neiloc(iloc, face)
 
-                     ! loop over gauss points on face
-                     quadrature_loop: do gi = 1, cvfaces%shape%ngi
+                        ! loop over gauss points on face
+                        quadrature_loop: do gi = 1, di%cvfaces%shape%ngi
 
-                       ! global gauss pt index for this element
-                       ggi = (face-1)*cvfaces%shape%ngi + gi
+                           ! global gauss pt index for this element
+                           ggi = (face-1)*di%cvfaces%shape%ngi + gi
 
-                       ! check if this quadrature point has already been visited
-                       check_visited: if(notvisited(ggi)) then
+                           ! check if this quadrature point has already been visited
+                           check_visited: if(notvisited(ggi)) then
 
-                         notvisited(ggi) = .false.
-                         
-                         f_ele_counter = f_ele_counter + 1
-                         
-                         ! correct the orientation of the normal so it points away from iloc
-                         normgi = orientate_cvsurf_normgi(node_val(positions_sfield_mesh, x_smesh_nodes(iloc)), &
-                                                         &x_face_quad(:,ggi), normal(:,ggi))
+                              notvisited(ggi) = .false.
 
-                         ! determine if the flow is in or out of the face at this quadrature
-                         ! with respect to the normal orientation using iterated v_over_s
-                         iter_v_over_s_dot_n = dot_product(iter_v_over_s_face_quad(:,ggi), normgi(:))
+                              if (di%cached_face_value%cached_detwei_normal) then
 
-                         inflow = (iter_v_over_s_dot_n<=0.0)
+                                 ! cached normal has correct orientation already
+                                 normgi = normal(:,ggi)
 
-                         income = merge(1.0,0.0,inflow)
-                         
-                         ! Determine the sfield CV face value
-                         if (determine_face_value) then
+                              else
 
-                            ! evaluate the nonlinear face value for sfield
-                            call evaluate_face_val(old_sfield_face_value, &
-                                                   old_sfield_face_value, & 
-                                                   iloc, &
-                                                   oloc, &
-                                                   ggi, &
-                                                   upwind_nodes, &
-                                                   p_cvshape, &
-                                                   old_sfield_subcycle_ele, &
-                                                   old_sfield_subcycle_ele, &
-                                                   old_sfield_upwind, &
-                                                   old_sfield_upwind, &
-                                                   inflow, &
-                                                   cfl_subcycle_ele, &
-                                                   sfield_cv_options, &
-                                                   save_pos = upwind_pos)
-                            
-                            ! Cache the phase face value if present and non linear iter > 1, else no need
-                            if (cached_face_value_present .and. (max_nonlinear_iter_this_timestep > 1)) then
-                            
-                               cached_face_value_domain%value((f_ele_base - 1) + f_ele_counter) = &
-                              &cached_face_value_domain%value((f_ele_base - 1) + f_ele_counter) + old_sfield_face_value
-                            
-                            end if
-                         
-                         else 
-                         
-                            old_sfield_face_value = cached_face_value_domain%value((f_ele_base - 1) + f_ele_counter)
-                         
-                         end if
+                                 ! correct the orientation of the normal so it points away from iloc
+                                 normgi = orientate_cvsurf_normgi(node_val(di%positions_pressure_mesh, x_smesh_nodes(iloc)), &
+                                                                 &x_face_quad(:,ggi), normal(:,ggi))
 
-                         ! Evaluate the face value for modrelperm (taking upwind) 
-                         modrelperm_face_value = income*modrelperm_ele(oloc) + (1.0-income)*modrelperm_ele(iloc)
+                              end if
 
-                         ! Find the density face value (taking upwind) 
-                         den_face_value = income*den_ele(oloc) + (1.0-income)*den_ele(iloc)
+                              ! Determine the saturation CV face value
+                              if (determine_face_value) then
 
-                         face_value = detwei(ggi) * old_sfield_face_value * modrelperm_face_value * absperm_ele(1) * &
-                        &dot_product((grad_pressure_face_quad(:,ggi) - den_face_value * grav_ele(:,1)), normgi)/ visc_ele(1)
+                                 ! determine if the flow is in or out of the face at this quadrature
+                                 ! with respect to the normal orientation using latest v_over_s
+                                 v_over_s_dot_n = dot_product(v_over_s_face_quad(:,ggi), normgi(:))
 
-                         ! Form the local rhs for iloc and opposing oloc with normal vector sign change
-                         s_rhs_local(iloc) = s_rhs_local(iloc) + face_value
+                                 inflow = (v_over_s_dot_n<=0.0)
 
-                         s_rhs_local(oloc) = s_rhs_local(oloc) - face_value
+                                 income = merge(1.0,0.0,inflow)
 
-                       end if check_visited
+                                 ! evaluate the nonlinear face value for saturation
+                                 call evaluate_face_val(old_saturation_face_value, &
+                                                        old_saturation_face_value, & 
+                                                        iloc, &
+                                                        oloc, &
+                                                        ggi, &
+                                                        upwind_nodes, &
+                                                        di%p_cvshape, &
+                                                        old_saturation_subcycle_ele, &
+                                                        old_saturation_subcycle_ele, &
+                                                        di%old_saturation_upwind, &
+                                                        di%old_saturation_upwind, &
+                                                        inflow, &
+                                                        cfl_subcycle_ele, &
+                                                        di%saturation_cv_options, &
+                                                        save_pos = upwind_pos)
 
-                     end do quadrature_loop
+                                 ! Cache the saturation face value if required
+                                 if (cache_new_subcycle_sat_face_values) then
 
-                   end if is_neigh
+                                    di%cached_face_value%sat(isub,ggi,vele,p) = old_saturation_face_value
 
-                 end do face_loop
+                                 end if
+
+                              else 
+
+                                 old_saturation_face_value = di%cached_face_value%sat(isub,ggi,vele,p)
+
+                              end if
+                              
+                              face_value = &
+detwei(ggi) * old_saturation_face_value * di%cached_face_value%modrelperm(ggi,vele,p) * absperm_ele(1) * &
+dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,p) * grav_ele(:,1)), normgi)/ visc_ele(1)
+
+                              ! Form the local rhs for iloc and opposing oloc with normal vector sign change
+                              s_rhs_local(iloc) = s_rhs_local(iloc) + face_value
+
+                              s_rhs_local(oloc) = s_rhs_local(oloc) - face_value
+
+                           end if check_visited
+
+                        end do quadrature_loop
+
+                     end if is_neigh
+
+                  end do face_loop
 
                end do nodal_loop_i
 
                ! Add volume element contribution to global rhs advection field
-               call addto(rhs_adv, s_nodes, s_rhs_local)
+               call addto(di%rhs_adv, s_nodes, s_rhs_local)
 
             end do vol_element_loop
 
             ! Add BC integrals
             
-            sele_loop: do sele = 1, surface_element_count(sfield)
+            sele_loop: do sele = 1, di%number_sele
                
-               if (v_over_s_bc_flag(sele) == V_OVER_S_BC_TYPE_NO_NORMAL_FLOW) cycle sele_loop
+               if (di%v_over_s_bc_flag(sele) == V_OVER_S_BC_TYPE_NO_NORMAL_FLOW) cycle sele_loop
 
-               ! Initialise the face value counter for this ele
-               f_ele_counter = 0
+               s_nodes_bdy = face_global_nodes(di%pressure_mesh, sele)
 
-               ! Find the face value ele base
-               f_ele_base = cached_face_value_boundary%ele_base(sele)
+               ! obtain the transformed determinant*weight and normals
+               if (di%cached_face_value%cached_detwei_normal) then
+
+                  detwei_bdy => di%cached_face_value%detwei_bdy(:,sele)
+
+                  normal_bdy => di%cached_face_value%normal_bdy(:,:,sele)
+
+               else
+
+                  x_ele     = ele_val(di%positions, face_ele(di%positions, sele))
+                  x_ele_bdy = face_val(di%positions, sele)
+
+                  call transform_cvsurf_facet_to_physical(x_ele, x_ele_bdy, di%x_cvbdyshape, normal_bdy, detwei_bdy)
+
+               end if
                
-               if (v_over_s_bc_flag(sele) == V_OVER_S_BC_TYPE_NORMAL_FLOW) then
+               if (di%v_over_s_bc_flag(sele) == V_OVER_S_BC_TYPE_NORMAL_FLOW) then
                
-                  bc_sele_val = ele_val(v_over_s_bc_value, sele)
+                  bc_sele_val = ele_val(di%v_over_s_bc_value, sele)
                
                else
 
-                  modrelperm_ele_bdy   = face_val(modified_relative_permeability, sele)
-                  visc_ele_bdy         = face_val(viscosity, sele)
-                  absperm_ele_bdy      = face_val(absolute_permeability, sele)
-                  inv_char_len_ele_bdy = ele_val(inverse_characteristic_length, sele)
-                  if (pressure_bc_flag(sele) == PRESSURE_BC_TYPE_WEAKDIRICHLET) then
-                      bc_sele_val = ele_val(pressure_bc_value, sele)     
+                  visc_ele_bdy         = face_val(di%viscosity(p)%ptr, sele)
+                  absperm_ele_bdy      = face_val(di%absolute_permeability, sele)
+                  inv_char_len_ele_bdy = ele_val(di%inverse_characteristic_length, sele)
+                  if (di%pressure_bc_flag(sele) == PRESSURE_BC_TYPE_WEAKDIRICHLET) then
+                      bc_sele_val = ele_val(di%pressure_bc_value, sele)     
                   end if
-                  grad_pressure_face_quad_bdy      = face_val_at_quad(gradient_pressure, sele, gradp_cvbdyshape)         
-                  iter_grad_pressure_face_quad_bdy = face_val_at_quad(iterated_gradient_pressure, sele, gradp_cvbdyshape)
-                  grav_ele_bdy                     = face_val(gravity, sele) 
-                  pressure_ele_bdy                 = face_val(pressure, sele) 
+                  grad_pressure_face_quad_bdy = face_val_at_quad(di%gradient_pressure(p)%ptr, sele, di%gradp_cvbdyshape)         
+                  grav_ele_bdy                = face_val(di%gravity, sele) 
+                  pressure_ele_bdy            = face_val(di%pressure(p)%ptr, sele) 
 
-                  ! the latest and iterated DarcyVelocityOverSaturation at the quadrature points
+                  ! the latest DarcyVelocityOverSaturation at the quadrature points
                   ! determined from FE interpolation of each component, 
-                  ! used to determine upwind (iterated) and also added in certain integrals (latest).
-                  do dim = 1,ndim
+                  do dim = 1, di%ndim
 
                      v_over_s_face_quad_bdy(dim,:) =  &
-- (face_val_at_quad(modified_relative_permeability, sele, p_cvbdyshape) * absperm_ele_bdy(1) / visc_ele_bdy(1)) * &
-  (grad_pressure_face_quad_bdy(dim,:) - face_val_at_quad(density, sele, p_cvbdyshape) * grav_ele_bdy(dim,1))   
-
-                     iter_v_over_s_face_quad_bdy(dim,:) =  &
-- (face_val_at_quad(modified_relative_permeability, sele, p_cvbdyshape) * absperm_ele_bdy(1) / visc_ele_bdy(1)) * &
-  (iter_grad_pressure_face_quad_bdy(dim,:) - face_val_at_quad(density, sele, p_cvbdyshape) * grav_ele_bdy(dim,1))   
+- (face_val_at_quad(di%modified_relative_permeability(p)%ptr, sele, di%p_cvbdyshape) * absperm_ele_bdy(1) / visc_ele_bdy(1)) * &
+  (grad_pressure_face_quad_bdy(dim,:) - face_val_at_quad(di%density(p)%ptr, sele, di%p_cvbdyshape) * grav_ele_bdy(dim,1))   
 
                   end do
                
                end if
 
-               if (sfield_bc_flag(sele) == S_BC_TYPE_WEAKDIRICHLET) then
-                  ghost_old_sfield_subcycle_ele_bdy = ele_val(sfield_bc, sele)
+               if (di%saturation_bc_flag(sele) == SATURATION_BC_TYPE_WEAKDIRICHLET) then
+                  ghost_old_saturation_subcycle_ele_bdy = ele_val(di%saturation_bc_value, sele)
                else
-                  ghost_old_sfield_subcycle_ele_bdy = face_val(old_sfield_subcycle, sele)               
+                  ghost_old_saturation_subcycle_ele_bdy = face_val(di%old_saturation_subcycle, sele)               
                end if
 
-               old_sfield_subcycle_ele_bdy = face_val(old_sfield_subcycle, sele)
-                             
-               x_ele       = ele_val(positions, face_ele(positions, sele))
-               x_ele_bdy   = face_val(positions, sele)
-               s_nodes_bdy = face_global_nodes(sfield%mesh, sele)
-
-               call transform_cvsurf_facet_to_physical(x_ele, x_ele_bdy, x_cvbdyshape, normal_bdy, detwei_bdy)
-
+               old_saturation_subcycle_ele_bdy = face_val(di%old_saturation_subcycle, sele)
+               
                ! Initialise the local rhs to assemble for this element
                s_rhs_local_bdy = 0.0
 
-               bc_iloc_loop: do iloc = 1, sfield%mesh%faces%shape%loc
+               bc_iloc_loop: do iloc = 1, di%pressure_mesh%faces%shape%loc
 
-                  bc_face_loop: do face = 1, cvfaces%sfaces
+                  bc_face_loop: do face = 1, di%cvfaces%sfaces
 
-                     bc_neigh_if: if(cvfaces%sneiloc(iloc,face)/=0) then
+                     bc_neigh_if: if(di%cvfaces%sneiloc(iloc,face)/=0) then
 
-                        bc_quad_loop: do gi = 1, cvfaces%shape%ngi
+                        bc_quad_loop: do gi = 1, di%cvfaces%shape%ngi
 
-                           ggi = (face-1)*cvfaces%shape%ngi + gi
-                           
-                           f_ele_counter = f_ele_counter + 1
-                           
-                           if (v_over_s_bc_flag(sele) == V_OVER_S_BC_TYPE_NORMAL_FLOW) then
+                           ggi = (face-1)*di%cvfaces%shape%ngi + gi
+                                                      
+                           if (di%v_over_s_bc_flag(sele) == V_OVER_S_BC_TYPE_NORMAL_FLOW) then
                            
                               if (determine_face_value) then
 
@@ -2440,97 +2156,107 @@ end if
                                  ! value which is the weak BC value if appropriate                                 
                                  if (bc_sele_val(iloc) > 0.0) then
                                  
-                                    old_sfield_face_value = old_sfield_subcycle_ele_bdy(iloc)
+                                    old_saturation_face_value = old_saturation_subcycle_ele_bdy(iloc)
                                  
                                  else 
                                  
-                                    old_sfield_face_value = ghost_old_sfield_subcycle_ele_bdy(iloc)
+                                    old_saturation_face_value = ghost_old_saturation_subcycle_ele_bdy(iloc)
                                  
                                  end if 
                                  
-                                 ! Cache the phase face value if present and non linear iter > 1, else no need
-                                 if (cached_face_value_present .and. (max_nonlinear_iter_this_timestep > 1)) then
+                                 ! Cache the saturation face value if required
+                                 if (cache_new_subcycle_sat_face_values) then
 
-                                    cached_face_value_boundary%value((f_ele_base - 1) + f_ele_counter) = &
-                                   &cached_face_value_boundary%value((f_ele_base - 1) + f_ele_counter) + old_sfield_face_value 
+                                    di%cached_face_value%sat_bdy(isub,ggi,sele,p) = old_saturation_face_value
 
                                  end if 
 
                               else
 
-                                 old_sfield_face_value = cached_face_value_boundary%value((f_ele_base - 1) + f_ele_counter)
+                                 old_saturation_face_value = di%cached_face_value%sat_bdy(isub,ggi,sele,p)
 
                               end if 
 
-                              s_rhs_local_bdy(iloc) = s_rhs_local_bdy(iloc) - old_sfield_face_value * bc_sele_val(iloc) * detwei_bdy(ggi)
+                              s_rhs_local_bdy(iloc) = s_rhs_local_bdy(iloc) - &
+                                                      old_saturation_face_value * &
+                                                      bc_sele_val(iloc) * &
+                                                      detwei_bdy(ggi)
                            
                            else                            
                               
                               ! determine if the flow is in or out of the face at this quadrature
-                              ! with respect to the normal orientation using the iterated v_over_s
-                              iter_v_over_s_dot_n = dot_product(iter_v_over_s_face_quad_bdy(:,ggi), normal_bdy(:,ggi))
+                              ! with respect to the normal orientation using the latest v_over_s
+                              v_over_s_dot_n = dot_product(v_over_s_face_quad_bdy(:,ggi), normal_bdy(:,ggi))
                               
                               if (determine_face_value) then
                               
-                                 inflow = (iter_v_over_s_dot_n<=0.0)
+                                 inflow = (v_over_s_dot_n<=0.0)
 
                                  income = merge(1.0,0.0,inflow)
 
-                                 old_sfield_face_value = income*ghost_old_sfield_subcycle_ele_bdy(iloc) + &
-                                                         (1.0 - income)*old_sfield_subcycle_ele_bdy(iloc)
+                                 old_saturation_face_value = income*ghost_old_saturation_subcycle_ele_bdy(iloc) + &
+                                                             (1.0 - income)*old_saturation_subcycle_ele_bdy(iloc)
                                                                
-                                 ! Cache the phase face value if present and non linear iter > 1, else no need
-                                 if (cached_face_value_present .and. (max_nonlinear_iter_this_timestep > 1)) then
+                                 ! Cache the saturation face value if required
+                                 if (cache_new_subcycle_sat_face_values) then
 
-                                    cached_face_value_boundary%value((f_ele_base - 1) + f_ele_counter) = &
-                                   &cached_face_value_boundary%value((f_ele_base - 1) + f_ele_counter) + old_sfield_face_value 
+                                    di%cached_face_value%sat_bdy(isub,ggi,sele,p) = old_saturation_face_value
 
-                                 end if                                 
+                                 end if 
                                  
                               else 
                               
-                                 old_sfield_face_value = cached_face_value_boundary%value((f_ele_base - 1) + f_ele_counter)                              
+                                 old_saturation_face_value = di%cached_face_value%sat_bdy(isub,ggi,sele,p)                              
+                              
+                              end if
+                              
+                              ! This term includes the gradient pressure, gradient capilliary pressure 
+                              ! and the gravity term. Is this correct, or should modrelperm face value be used?
+                              s_rhs_local_bdy(iloc) = s_rhs_local_bdy(iloc) - &
+                                                      old_saturation_face_value * &
+                                                      v_over_s_dot_n * &
+                                                      detwei_bdy(ggi)
+
+                              ! Add two extra terms associated with weak pressure BC's                              
+                              if (di%pressure_bc_flag(sele) == PRESSURE_BC_TYPE_WEAKDIRICHLET) then
+                                                          
+                                 ! Form the face value = detwei * (S*modrelperm*absperm/visc)
+                                 face_value = detwei_bdy(ggi) * &
+                                              old_saturation_face_value * &
+                                              di%cached_face_value%modrelperm_bdy(ggi,sele,p) * &
+                                              absperm_ele_bdy(1) / &
+                                              visc_ele_bdy(1) 
+
+                                 if (di%pressure_bc_flag(sele) == PRESSURE_BC_TYPE_WEAKDIRICHLET) then
+
+                                    do jloc = 1, di%pressure_mesh%faces%shape%loc 
+
+                                       s_rhs_local_bdy(iloc) = s_rhs_local_bdy(iloc) - &
+                                                               inv_char_len_ele_bdy(jloc) * &
+                                                               di%p_cvbdyshape%n(jloc,ggi) * &
+                                                               bc_sele_val(jloc) * &
+                                                               sum(normal_bdy(:,ggi)) * &
+                                                               face_value * &
+                                                               di%weak_pressure_bc_coeff
+
+                                    end do
+
+                                 end if 
+
+                                 do jloc = 1, di%pressure_mesh%faces%shape%loc 
+
+                                    s_rhs_local_bdy(iloc) = s_rhs_local_bdy(iloc) + &
+                                                            inv_char_len_ele_bdy(jloc) * &
+                                                            di%p_cvbdyshape%n(jloc,ggi) * &
+                                                            pressure_ele_bdy(jloc) * &
+                                                            sum(normal_bdy(:,ggi)) * &
+                                                            face_value * &
+                                                            di%weak_pressure_bc_coeff
+
+                                 end do
                               
                               end if
 
-                              v_over_s_dot_n = dot_product(v_over_s_face_quad_bdy(:,ggi), normal_bdy(:,ggi))
-
-                              s_rhs_local_bdy(iloc) = s_rhs_local_bdy(iloc) - old_sfield_face_value * v_over_s_dot_n * detwei_bdy(ggi)
-if (.false.) then
-                              modrelperm_absperm_over_visc = modrelperm_ele_bdy(iloc) * absperm_ele_bdy(1) / visc_ele_bdy(1)
-
-                              if (pressure_bc_flag(sele) == PRESSURE_BC_TYPE_WEAKDIRICHLET) then
-
-                                 do jloc = 1, sfield%mesh%faces%shape%loc 
-
-                                    s_rhs_local_bdy(iloc) = s_rhs_local_bdy(iloc) - &
-                                                            inv_char_len_ele_bdy(jloc) * &
-                                                            p_cvbdyshape%n(jloc,ggi) * &
-                                                            bc_sele_val(jloc) * &
-                                                            modrelperm_absperm_over_visc * &
-                                                            old_sfield_face_value * &
-                                                            sum(normal_bdy(:,ggi)) * &
-                                                            detwei_bdy(ggi) * &
-                                                            weak_pressure_bc_coeff
-
-                                 end do
-
-                              end if 
-
-                              do jloc = 1,sfield%mesh%faces%shape%loc 
-
-                                 s_rhs_local_bdy(iloc) = s_rhs_local_bdy(iloc) + &
-                                                         inv_char_len_ele_bdy(jloc) * &
-                                                         p_cvbdyshape%n(jloc,ggi) * &
-                                                         pressure_ele_bdy(jloc) * &
-                                                         modrelperm_absperm_over_visc * &
-                                                         old_sfield_face_value * &
-                                                         sum(normal_bdy(:,ggi)) * &
-                                                         detwei_bdy(ggi) * &
-                                                         weak_pressure_bc_coeff
-
-                              end do
-end if
                            end if
                            
                         end do bc_quad_loop
@@ -2541,7 +2267,7 @@ end if
 
                end do bc_iloc_loop
 
-               call addto(rhs_adv, s_nodes_bdy, s_rhs_local_bdy)
+               call addto(di%rhs_adv, s_nodes_bdy, s_rhs_local_bdy)
 
             end do sele_loop
          
@@ -2549,7 +2275,7 @@ end if
       
       ! ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
       
-   end subroutine solve_scalar_field_using_cv_cts_mesh
+   end subroutine solve_phase_saturation
 
 ! ----------------------------------------------------------------------------
    
@@ -2587,35 +2313,34 @@ end if
       ! local variables
       logical :: inflow
       integer :: vele, p, dim, iloc, oloc, face, gi, ggi, sele
-      real    :: income, v_over_s_dot_n, v_over_s_face_value_dot_n
-      real    :: modrelperm_face_value, den_face_value, v_over_s_dot_n_face_value
-      real,    dimension(1)                  :: visc_ele, absperm_ele
-      real,    dimension(:,:),   allocatable :: grad_pressure_face_quad
-      real,    dimension(:,:),   allocatable :: grad_pressure_ele
-      real,    dimension(:),     allocatable :: v_over_s_local
-      real,    dimension(:,:),   allocatable :: grav_ele
-      real,    dimension(:),     allocatable :: den_ele
-      real,    dimension(:),     allocatable :: modrelperm_ele      
-      real,    dimension(:,:),   allocatable :: v_over_s_face_quad
-      real,    dimension(:,:),   allocatable :: x_ele
-      real,    dimension(:,:),   allocatable :: normal
-      real,    dimension(:),     allocatable :: detwei
-      real,    dimension(:),     allocatable :: normgi
-      logical, dimension(:),     allocatable :: notvisited
-      real,    dimension(:),     allocatable :: cfl_rhs_local
-      real,    dimension(:,:),   allocatable :: x_face_quad
-      integer, dimension(:),     pointer     :: x_pmesh_nodes
-      integer, dimension(:),     pointer     :: p_nodes      
-      real,    dimension(1)                  :: visc_ele_bdy, absperm_ele_bdy
-      real,    dimension(:,:),   allocatable :: grav_ele_bdy
-      real,    dimension(:,:),   allocatable :: grad_pressure_face_quad_bdy
-      real,    dimension(:,:),   allocatable :: v_over_s_face_quad_bdy
-      real,    dimension(:,:),   allocatable :: normal_bdy
-      real,    dimension(:),     allocatable :: detwei_bdy
-      real,    dimension(:,:),   allocatable :: x_ele_bdy
-      real,    dimension(:),     allocatable :: cfl_rhs_local_bdy
-      integer, dimension(:),     allocatable :: p_nodes_bdy
-      real,    dimension(:),     allocatable :: bc_sele_val
+      real    :: income, v_over_s_dot_n, v_over_s_face_value_dot_n, v_over_s_dot_n_face_value
+      real,    dimension(1)              :: visc_ele, absperm_ele
+      real,    dimension(:,:),   pointer :: grad_pressure_face_quad
+      real,    dimension(:,:),   pointer :: grad_pressure_ele
+      real,    dimension(:),     pointer :: v_over_s_local
+      real,    dimension(:,:),   pointer :: grav_ele
+      real,    dimension(:),     pointer :: den_ele
+      real,    dimension(:),     pointer :: modrelperm_ele      
+      real,    dimension(:,:),   pointer :: v_over_s_face_quad
+      real,    dimension(:,:),   pointer :: x_ele
+      real,    dimension(:,:),   pointer :: normal
+      real,    dimension(:),     pointer :: detwei
+      real,    dimension(:),     pointer :: normgi
+      logical, dimension(:),     pointer :: notvisited
+      real,    dimension(:),     pointer :: cfl_rhs_local
+      real,    dimension(:,:),   pointer :: x_face_quad
+      integer, dimension(:),     pointer :: x_pmesh_nodes
+      integer, dimension(:),     pointer :: p_nodes      
+      real,    dimension(1)              :: visc_ele_bdy, absperm_ele_bdy
+      real,    dimension(:,:),   pointer :: grav_ele_bdy
+      real,    dimension(:,:),   pointer :: grad_pressure_face_quad_bdy
+      real,    dimension(:,:),   pointer :: v_over_s_face_quad_bdy
+      real,    dimension(:,:),   pointer :: normal_bdy
+      real,    dimension(:),     pointer :: detwei_bdy
+      real,    dimension(:,:),   pointer :: x_ele_bdy
+      real,    dimension(:),     pointer :: cfl_rhs_local_bdy
+      integer, dimension(:),     pointer :: p_nodes_bdy
+      real,    dimension(:),     pointer :: bc_sele_val
       integer, parameter :: V_OVER_S_BC_TYPE_NORMAL_FLOW = 1, V_OVER_S_BC_TYPE_NO_NORMAL_FLOW = 2
             
       ewrite(1,*) 'Calculate CFL, Velocity and FractionalFlow fields'
@@ -2623,8 +2348,10 @@ end if
       ! allocate arrays used in CFL assemble process - many assume
       ! that all elements are the same type.
       allocate(x_ele(di%ndim, ele_loc(di%positions,1)))      
-      allocate(normal(di%ndim,di%x_cvshape%ngi))
-      allocate(detwei(di%x_cvshape%ngi))      
+      if (.not. di%cached_face_value%cached_detwei_normal) then
+         allocate(normal(di%ndim,di%x_cvshape%ngi))
+         allocate(detwei(di%x_cvshape%ngi))      
+      end if
       allocate(normgi(di%ndim))
       allocate(notvisited(di%x_cvshape%ngi))
       allocate(cfl_rhs_local(ele_loc(di%pressure_mesh,1)))
@@ -2636,8 +2363,10 @@ end if
       allocate(grav_ele_bdy(di%ndim,1))
       allocate(grad_pressure_face_quad_bdy(di%ndim, di%p_cvbdyshape%ngi))
       allocate(v_over_s_face_quad_bdy(di%ndim, di%p_cvbdyshape%ngi))
-      allocate(detwei_bdy(di%x_cvbdyshape%ngi))
-      allocate(normal_bdy(di%ndim, di%x_cvbdyshape%ngi))
+      if (.not. di%cached_face_value%cached_detwei_normal) then
+         allocate(detwei_bdy(di%x_cvbdyshape%ngi))
+         allocate(normal_bdy(di%ndim, di%x_cvbdyshape%ngi))
+      end if
       allocate(cfl_rhs_local_bdy(face_loc(di%pressure_mesh,1)))
       allocate(x_ele_bdy(di%ndim, face_loc(di%positions,1)))      
       allocate(p_nodes_bdy(face_loc(di%pressure_mesh,1)))
@@ -2652,25 +2381,10 @@ end if
          
          call zero(di%cfl(p)%ptr)
               
-         vele_loop: do vele = 1, element_count(di%pressure_mesh)
-            
-            ! get the coordinate values for this element for each positions local node
-            x_ele = ele_val(di%positions, vele)         
-
-            ! get the coordinate values for this element for each quadrature point
-            x_face_quad = ele_val_at_quad(di%positions, vele, di%x_cvshape)
+         vele_loop: do vele = 1, di%number_vele
 
             ! The node indices of the pressure field
             p_nodes => ele_nodes(di%pressure_mesh, vele)
-
-            ! The node indices of the positions projected to the pressure mesh
-            x_pmesh_nodes => ele_nodes(di%positions_pressure_mesh, vele)
-
-            ! get the modrelperm ele values
-            modrelperm_ele = ele_val(di%modified_relative_permeability(p)%ptr, vele)
-
-            ! get the density value for this element
-            den_ele = ele_val(di%density(p)%ptr, vele)
             
             ! The gravity values for this element for each direction
             grav_ele = ele_val(di%gravity, vele) 
@@ -2684,18 +2398,27 @@ end if
             ! get the latest gradient pressure at the cv surface quadrature points for each direction for this phase
             grad_pressure_face_quad = ele_val_at_quad(di%gradient_pressure(p)%ptr, vele, di%gradp_cvshape)
 
-            ! the latest DarcyVelocityOverSaturation at the quadrature points
-            ! determined from FE interpolation of each component
-            do dim = 1,di%ndim
-
-               v_over_s_face_quad(dim,:) =  &
-- (ele_val_at_quad(di%modified_relative_permeability(p)%ptr, vele, di%p_cvshape) * absperm_ele(1) / visc_ele(1)) * &
-  (grad_pressure_face_quad(dim,:) - ele_val_at_quad(di%density(p)%ptr, vele, di%p_cvshape) * grav_ele(dim,1))   
-
-            end do
-
             ! obtain the transformed determinant*weight and normals
-            call transform_cvsurf_to_physical(x_ele, di%x_cvshape, detwei, normal, di%cvfaces)
+            if (di%cached_face_value%cached_detwei_normal) then
+               
+               detwei => di%cached_face_value%detwei(:,vele)
+               
+               normal => di%cached_face_value%normal(:,:,vele)
+               
+            else
+
+               ! get the coordinate values for this element for each positions local node
+               x_ele = ele_val(di%positions, vele)         
+
+               ! get the coordinate values for this element for each quadrature point
+               x_face_quad = ele_val_at_quad(di%positions, vele, di%x_cvshape)
+
+               ! The node indices of the positions projected to the pressure mesh
+               x_pmesh_nodes => ele_nodes(di%positions_pressure_mesh, vele)
+            
+               call transform_cvsurf_to_physical(x_ele, di%x_cvshape, detwei, normal, di%cvfaces)
+            
+            end if
 
             ! Initialise array for the quadrature points of this 
             ! element for whether it has already been visited
@@ -2707,62 +2430,62 @@ end if
             ! loop over local nodes within this element
             nodal_loop_i: do iloc = 1, di%pressure_mesh%shape%loc
 
-              ! loop over CV faces internal to this element
-              face_loop: do face = 1, di%cvfaces%faces
+               ! loop over CV faces internal to this element
+               face_loop: do face = 1, di%cvfaces%faces
 
-                ! is this a face neighbouring iloc?
-                is_neigh: if(di%cvfaces%neiloc(iloc, face) /= 0) then
+                  ! is this a face neighbouring iloc?
+                  is_neigh: if(di%cvfaces%neiloc(iloc, face) /= 0) then
 
-                  ! find the opposing local node across the CV face
-                  oloc = di%cvfaces%neiloc(iloc, face)
+                     ! find the opposing local node across the CV face
+                     oloc = di%cvfaces%neiloc(iloc, face)
 
-                  ! loop over gauss points on face
-                  quadrature_loop: do gi = 1, di%cvfaces%shape%ngi
+                     ! loop over gauss points on face
+                     quadrature_loop: do gi = 1, di%cvfaces%shape%ngi
 
-                    ! global gauss pt index for this element
-                    ggi = (face-1)*di%cvfaces%shape%ngi + gi
+                        ! global gauss pt index for this element
+                        ggi = (face-1)*di%cvfaces%shape%ngi + gi
 
-                    ! check if this quadrature point has already been visited
-                    check_visited: if(notvisited(ggi)) then
+                        ! check if this quadrature point has already been visited
+                        check_visited: if(notvisited(ggi)) then
 
-                      notvisited(ggi) = .false.
-                                            
-                      ! correct the orientation of the normal so it points away from iloc
-                      normgi = orientate_cvsurf_normgi(node_val(di%positions_pressure_mesh, x_pmesh_nodes(iloc)), &
-                                                      &x_face_quad(:,ggi), normal(:,ggi))
+                           notvisited(ggi) = .false.
 
-                      ! determine if the flow is in or out of the face at this quadrature
-                      ! with respect to the normal orientation using the latest v_over_s
-                      v_over_s_dot_n = dot_product(v_over_s_face_quad(:,ggi), normgi(:))
+                           if (di%cached_face_value%cached_detwei_normal) then
 
-                      inflow = (v_over_s_dot_n<=0.0)
+                              ! cached normal has correct orientation already
+                              normgi = normal(:,ggi)
 
-                      income = merge(1.0,0.0,inflow)
+                           else
 
-                      ! Evaluate the face value for modrelperm (taking upwind) 
-                      modrelperm_face_value = income*modrelperm_ele(oloc) + (1.0-income)*modrelperm_ele(iloc)
+                              ! correct the orientation of the normal so it points away from iloc
+                              normgi = orientate_cvsurf_normgi(node_val(di%positions_pressure_mesh, x_pmesh_nodes(iloc)), &
+                                                              &x_face_quad(:,ggi), normal(:,ggi))
 
-                      ! Find the density face value (taking upwind) 
-                      den_face_value = income*den_ele(oloc) + (1.0-income)*den_ele(iloc)
+                           end if
 
-                      v_over_s_dot_n_face_value = detwei(ggi) * modrelperm_face_value * absperm_ele(1) * &
-                     &dot_product((grad_pressure_face_quad(:,ggi) - den_face_value * grav_ele(:,1)), normgi)/ visc_ele(1)
+                           v_over_s_dot_n_face_value = &
+detwei(ggi) * di%cached_face_value%modrelperm(ggi,vele,p) * absperm_ele(1) * &
+dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,p) * grav_ele(:,1)), normgi)/ visc_ele(1)
 
-                      cfl_rhs_local(iloc) = cfl_rhs_local(iloc) + &
-                                            abs(v_over_s_dot_n_face_value) * &
-                                            (1.0 - income)
+                           inflow = (v_over_s_dot_n_face_value<=0.0)
 
-                      cfl_rhs_local(oloc) = cfl_rhs_local(oloc) + &
-                                            abs(v_over_s_dot_n_face_value) * &
-                                            income
+                           income = merge(1.0,0.0,inflow)
 
-                    end if check_visited
+                           cfl_rhs_local(iloc) = cfl_rhs_local(iloc) + &
+                                                 abs(v_over_s_dot_n_face_value) * &
+                                                 (1.0 - income)
 
-                  end do quadrature_loop
+                           cfl_rhs_local(oloc) = cfl_rhs_local(oloc) + &
+                                                 abs(v_over_s_dot_n_face_value) * &
+                                                 income
 
-                end if is_neigh
+                        end if check_visited
 
-              end do face_loop
+                     end do quadrature_loop
+
+                  end if is_neigh
+
+               end do face_loop
 
             end do nodal_loop_i
 
@@ -2778,9 +2501,27 @@ end if
                                               di%v_over_s_bc_value, &
                                               di%v_over_s_bc_flag)
          
-         sele_loop: do sele = 1, surface_element_count(di%pressure_mesh)
+         sele_loop: do sele = 1, di%number_sele
             
             if (di%v_over_s_bc_flag(sele) == V_OVER_S_BC_TYPE_NO_NORMAL_FLOW) cycle sele_loop
+
+            p_nodes_bdy = face_global_nodes(di%pressure_mesh, sele)
+
+            ! obtain the transformed determinant*weight and normals
+            if (di%cached_face_value%cached_detwei_normal) then
+
+               detwei_bdy => di%cached_face_value%detwei_bdy(:,sele)
+               
+               normal_bdy => di%cached_face_value%normal_bdy(:,:,sele)
+            
+            else
+
+               x_ele     = ele_val(di%positions, face_ele(di%positions, sele))
+               x_ele_bdy = face_val(di%positions, sele)
+            
+               call transform_cvsurf_facet_to_physical(x_ele, x_ele_bdy, di%x_cvbdyshape, normal_bdy, detwei_bdy)
+            
+            end if
             
             if (di%v_over_s_bc_flag(sele) == V_OVER_S_BC_TYPE_NORMAL_FLOW) then
             
@@ -2804,12 +2545,6 @@ end if
                end do
             
             end if
-            
-            x_ele       = ele_val(di%positions, face_ele(di%positions, sele))
-            x_ele_bdy   = face_val(di%positions, sele)
-            p_nodes_bdy = face_global_nodes(di%pressure_mesh, sele)
-
-            call transform_cvsurf_facet_to_physical(x_ele, x_ele_bdy, di%x_cvbdyshape, normal_bdy, detwei_bdy)
 
             ! Initialise the local rhs to assemble for this element
             cfl_rhs_local_bdy = 0.0
@@ -2975,8 +2710,13 @@ end if
       
       ! deallocate local variables as required
       deallocate(x_ele)
-      deallocate(normal)
-      deallocate(detwei)
+      if (di%cached_face_value%cached_detwei_normal) then
+         nullify(detwei)
+         nullify(normal)      
+      else
+         deallocate(detwei)
+         deallocate(normal)
+      end if
       deallocate(normgi)
       deallocate(notvisited)
       deallocate(cfl_rhs_local)
@@ -2988,8 +2728,13 @@ end if
       deallocate(grav_ele_bdy)
       deallocate(grad_pressure_face_quad_bdy)
       deallocate(v_over_s_face_quad_bdy)
-      deallocate(detwei_bdy)
-      deallocate(normal_bdy)
+      if (di%cached_face_value%cached_detwei_normal) then
+         nullify(detwei_bdy)
+         nullify(normal_bdy)      
+      else
+         deallocate(detwei_bdy)
+         deallocate(normal_bdy)
+      end if
       deallocate(x_ele_bdy)
       deallocate(p_nodes_bdy)
       deallocate(cfl_rhs_local_bdy)
@@ -3102,39 +2847,96 @@ end if
 
 ! ----------------------------------------------------------------------------
    
-   subroutine darcy_impes_initialise_cached_phase_face_value(di)
+   subroutine darcy_impes_initialise_cached_face_value(di)
    
-      !!< Initialise the cached_phase_face_value variable's
+      !!< Initialise the cached_face_value variable's by 
+      !!< allocating and zeroing the values and setting the 
+      !!< detwei, normal and p_dshape components as required.
 
       type(darcy_impes_type), intent(inout) :: di
       
       ! local variable
-      integer :: p, face_value_counter, vele, sele, iloc, face, gi, ggi
-      logical, dimension(:), pointer :: notvisited
+      integer :: vele, sele, iloc, face, gi, ggi
+      real,    dimension(:),   allocatable :: normgi
+      logical, dimension(:),   allocatable :: notvisited
+      real,    dimension(:,:), allocatable :: x_face_quad
+      integer, dimension(:),   pointer     :: x_pmesh_nodes
 
-      ewrite(1,*) 'Allocate cached phase face value types'
-
-      allocate(notvisited(di%x_cvshape%ngi))
+      ewrite(1,*) 'Initialise cached phase face value types'
       
-      allocate(di%cached_phase_face_value_domain(di%number_phase))
-      allocate(di%cached_phase_face_value_boundary(di%number_phase))
+      allocate(di%cached_face_value%sat(di%subcy_opt_sat%number, di%p_cvshape%ngi, di%number_vele, di%number_phase))
+      allocate(di%cached_face_value%sat_bdy(di%subcy_opt_sat%number, di%p_cvbdyshape%ngi, di%number_sele, di%number_phase))
       
-      phase_loop: do p = 1, di%number_phase
+      di%cached_face_value%sat     = 0.0
+      di%cached_face_value%sat_bdy = 0.0
       
-         ! initialise face value counter
-         face_value_counter = 0
+      allocate(di%cached_face_value%modrelperm(di%p_cvshape%ngi, di%number_vele, di%number_phase))
+      allocate(di%cached_face_value%modrelperm_bdy(di%p_cvbdyshape%ngi, di%number_sele, di%number_phase))
+      
+      di%cached_face_value%modrelperm     = 0.0
+      di%cached_face_value%modrelperm_bdy = 0.0
+      
+      allocate(di%cached_face_value%den(di%p_cvshape%ngi, di%number_vele, di%number_phase))
+      allocate(di%cached_face_value%den_bdy(di%p_cvbdyshape%ngi, di%number_sele, di%number_phase))
+      
+      di%cached_face_value%den     = 0.0
+      di%cached_face_value%den_bdy = 0.0
+      
+      if (di%cached_face_value%cached_detwei_normal) then
+      
+         allocate(di%cached_face_value%detwei(di%p_cvshape%ngi, di%number_vele))
+         allocate(di%cached_face_value%detwei_bdy(di%p_cvbdyshape%ngi, di%number_sele))
+     
+         di%cached_face_value%detwei     = 0.0
+         di%cached_face_value%detwei_bdy = 0.0
+      
+         allocate(di%cached_face_value%normal(di%ndim, di%p_cvshape%ngi, di%number_vele))
+         allocate(di%cached_face_value%normal_bdy(di%ndim, di%p_cvbdyshape%ngi, di%number_sele))
 
-         allocate(di%cached_phase_face_value_domain(p)%ele_base(element_count(di%pressure_mesh)))
+         di%cached_face_value%normal     = 0.0
+         di%cached_face_value%normal_bdy = 0.0
+      
+      end if
+      
+      if (di%cached_face_value%cached_p_dshape) then
+      
+         allocate(di%cached_face_value%p_dshape(di%pressure_mesh%shape%loc, di%p_cvshape%ngi, di%ndim, di%number_vele))
+!!!!! *** THIS IS NOT POSSIBLE YET ***
+!!!!!         allocate(di%cached_face_value%p_dshape_bdy(di%pressure_mesh%faces%shape%loc, di%p_cvbdyshape_full%ngi, di%ndim, di%number_sele))
 
-         vele_loop: do vele = 1, element_count(di%pressure_mesh)
+         di%cached_face_value%p_dshape     = 0.0
+!!!!! *** THIS IS NOT POSSIBLE YET ***
+!!!!!         di%cached_face_value%p_dshape_bdy = 0.0
+      
+      end if
 
-            ! Set the ele_base value
-            di%cached_phase_face_value_domain(p)%ele_base(vele) = face_value_counter + 1
+      allocate(normgi(di%ndim))
+      allocate(notvisited(di%p_cvshape%ngi))
+      allocate(x_face_quad(di%ndim, di%p_cvshape%ngi))
+            
+      ! Determine the detwei and normal if required
+      find_cached_detwei_normal: if (di%cached_face_value%cached_detwei_normal) then
+      
+         vele_loop_detwei_normal: do vele = 1, di%number_vele
 
+            call transform_cvsurf_to_physical(ele_val(di%positions, vele), &
+                                              di%x_cvshape, &
+                                              di%cached_face_value%detwei(:,vele), &
+                                              di%cached_face_value%normal(:,:,vele), &
+                                              di%cvfaces)
+            
+            ! Correct the orientation of the normal
+
+            ! get the coordinate values for this element for each quadrature point
+            x_face_quad = ele_val_at_quad(di%positions, vele, di%x_cvshape)
+
+            ! The node indices of the positions projected to the pressure mesh
+            x_pmesh_nodes => ele_nodes(di%positions_pressure_mesh, vele)
+            
             ! Initialise array for the quadrature points of this 
             ! element for whether it has already been visited
             notvisited = .true.
-
+            
             ! loop over local nodes within this element
             nodal_loop_i: do iloc = 1, di%pressure_mesh%shape%loc
 
@@ -3153,10 +2955,445 @@ end if
                     ! check if this quadrature point has already been visited
                     check_visited: if(notvisited(ggi)) then
 
-                      notvisited(ggi) = .false.
+                       notvisited(ggi) = .false.
 
-                      face_value_counter = face_value_counter + 1
+                       ! correct the orientation of the normal so it points away from iloc
+                       normgi = orientate_cvsurf_normgi(node_val(di%positions_pressure_mesh, x_pmesh_nodes(iloc)), &
+                                                        x_face_quad(:,ggi), &
+                                                        di%cached_face_value%normal(:,ggi,vele))
+                       
+                       di%cached_face_value%normal(:,ggi,vele) = normgi
+                       
+                    end if check_visited
 
+                  end do quadrature_loop
+
+                end if is_neigh
+
+              end do face_loop
+
+            end do nodal_loop_i
+            
+         end do vele_loop_detwei_normal
+
+         sele_loop_detwei_normal: do sele = 1, di%number_sele
+
+            call transform_cvsurf_facet_to_physical(ele_val(di%positions, face_ele(di%positions, sele)), &
+                                                    face_val(di%positions, sele), &
+                                                    di%x_cvbdyshape, &
+                                                    di%cached_face_value%normal_bdy(:,:,sele), &
+                                                    di%cached_face_value%detwei_bdy(:,sele))
+
+         end do sele_loop_detwei_normal
+      
+      end if find_cached_detwei_normal
+
+      deallocate(normgi)
+      deallocate(notvisited)
+      deallocate(x_face_quad)
+      
+      ! Determine the p_dshape if required
+      find_cached_p_dshape: if (di%cached_face_value%cached_p_dshape) then
+
+         vele_loop_p_dshape: do vele = 1, di%number_vele
+            
+            call transform_to_physical(di%positions, &
+                                       vele, &
+                                       x_shape = di%x_cvshape_full, &
+                                       shape   = di%p_cvshape_full, &
+                                       dshape  = di%cached_face_value%p_dshape(:,:,:,vele))
+
+         end do vele_loop_p_dshape
+         
+!!!!! *** THIS IS NOT POSSIBLE YET *** 
+!!!!!         sele_loop_p_dshape: do sele = 1, di%number_sele
+            
+!!!!!            call transform_to_physical(di%positions, &
+!!!!!                                       sele, &
+!!!!!                                       x_shape = di%x_cvbdyshape_full, &
+!!!!!                                       shape   = di%p_cvbdyshape_full, &
+!!!!!                                       dshape  = di%cached_face_value%p_dshape_bdy(:,:,:,sele))
+
+!!!!!         end do sele_loop_p_dshape                 
+         
+      end if find_cached_p_dshape
+      
+      ewrite(1,*) 'Finished Initialise cached face value types'
+      
+   end subroutine darcy_impes_initialise_cached_face_value
+
+! ----------------------------------------------------------------------------
+   
+   subroutine darcy_impes_calculate_modrelperm_den_first_sat_face_values(di)
+   
+      !!< Find the latest modrelperm and density CV face values and the 
+      !!< Old saturation face values for all phase and cache.
+            
+      type(darcy_impes_type), intent(inout) :: di
+      
+      ! local variables
+      logical :: inflow
+      integer :: p, vele, sele, iloc, oloc, face, gi, ggi
+      integer :: s_upwind_pos, r_upwind_pos, d_upwind_pos, dim
+      real    :: income, v_over_s_dot_n, old_saturation_face_value, modrelperm_face_value, den_face_value
+      real,    dimension(1)              :: absperm_ele, visc_ele
+      real,    dimension(:),     pointer :: old_saturation_ele
+      real,    dimension(:),     pointer :: modrelperm_ele
+      real,    dimension(:),     pointer :: den_ele
+      real,    dimension(:,:),   pointer :: grav_ele
+      real,    dimension(:),     pointer :: cfl_ele
+      real,    dimension(:,:),   pointer :: grad_pressure_face_quad
+      real,    dimension(:,:),   pointer :: v_over_s_face_quad
+      real,    dimension(:,:),   pointer :: x_ele
+      real,    dimension(:,:,:), pointer :: p_dshape
+      real,    dimension(:,:),   pointer :: normal
+      real,    dimension(:),     pointer :: detwei
+      real,    dimension(:),     pointer :: normgi
+      logical, dimension(:),     pointer :: notvisited
+      real,    dimension(:,:),   pointer :: x_face_quad
+      integer, dimension(:),     pointer :: x_pmesh_nodes
+      integer, dimension(:),     pointer :: p_nodes      
+      integer, dimension(:),     pointer :: s_upwind_nodes
+      integer, dimension(:),     pointer :: r_upwind_nodes
+      integer, dimension(:),     pointer :: d_upwind_nodes
+      real,    dimension(1)              :: absperm_ele_bdy, visc_ele_bdy
+      real,    dimension(:),     pointer :: den_ele_bdy
+      real,    dimension(:),     pointer :: modrelperm_ele_bdy
+      real,    dimension(:,:),   pointer :: grav_ele_bdy
+      real,    dimension(:,:),   pointer :: grad_pressure_face_quad_bdy
+      real,    dimension(:,:),   pointer :: v_over_s_face_quad_bdy
+      real,    dimension(:),     pointer :: bc_sele_val
+      real,    dimension(:),     pointer :: old_saturation_ele_bdy
+      real,    dimension(:),     pointer :: ghost_old_saturation_ele_bdy
+      real,    dimension(:,:),   pointer :: normal_bdy
+      real,    dimension(:),     pointer :: detwei_bdy
+      real,    dimension(:,:),   pointer :: x_ele_bdy
+      integer, parameter :: SATURATION_BC_TYPE_WEAKDIRICHLET = 1
+      integer, parameter :: V_OVER_S_BC_TYPE_NORMAL_FLOW     = 1, V_OVER_S_BC_TYPE_NO_NORMAL_FLOW = 2
+            
+      ! allocate arrays used in assemble process - many assume
+      ! that all elements are the same type.
+      allocate(x_ele(di%ndim, ele_loc(di%positions,1)))      
+      if (.not. di%cached_face_value%cached_p_dshape) then
+         allocate(p_dshape(ele_loc(di%pressure_mesh,1), di%x_cvshape%ngi, mesh_dim(di%pressure_mesh)))
+      end if
+      if (.not. di%cached_face_value%cached_detwei_normal) then
+         allocate(normal(di%ndim,di%x_cvshape%ngi))
+         allocate(detwei(di%x_cvshape%ngi))      
+      end if
+      allocate(normgi(di%ndim))
+      allocate(notvisited(di%x_cvshape%ngi))
+      allocate(x_face_quad(di%ndim, di%x_cvshape%ngi))
+      allocate(old_saturation_ele(ele_loc(di%pressure_mesh,1)))
+      allocate(modrelperm_ele(ele_loc(di%pressure_mesh,1)))
+      allocate(den_ele(ele_loc(di%pressure_mesh,1)))
+      allocate(grav_ele(di%ndim,1))
+      allocate(cfl_ele(ele_loc(di%pressure_mesh,1)))
+      allocate(grad_pressure_face_quad(di%ndim, di%p_cvshape%ngi))
+      allocate(v_over_s_face_quad(di%ndim,di%p_cvshape%ngi))
+
+      allocate(den_ele_bdy(face_loc(di%pressure_mesh,1)))
+      allocate(modrelperm_ele_bdy(face_loc(di%pressure_mesh,1)))
+      allocate(grav_ele_bdy(di%ndim,1))
+      allocate(grad_pressure_face_quad_bdy(di%ndim, di%p_cvbdyshape%ngi))
+      allocate(v_over_s_face_quad_bdy(di%ndim, di%p_cvbdyshape%ngi))
+      allocate(old_saturation_ele_bdy(face_loc(di%pressure_mesh,1)))      
+      allocate(ghost_old_saturation_ele_bdy(face_loc(di%pressure_mesh,1)))
+      allocate(bc_sele_val(face_loc(di%pressure_mesh,1)))
+      if (.not. di%cached_face_value%cached_detwei_normal) then
+         allocate(detwei_bdy(di%x_cvbdyshape%ngi))
+         allocate(normal_bdy(di%ndim, di%x_cvbdyshape%ngi))
+      end if
+      allocate(x_ele_bdy(di%ndim, face_loc(di%positions,1)))      
+      
+      ewrite(1,*) 'Calculate modrelperm, density and first saturation face values'      
+
+      ! Initialise the cached face values
+      di%cached_face_value%sat            = 0.0
+      di%cached_face_value%sat_bdy        = 0.0
+      di%cached_face_value%modrelperm     = 0.0
+      di%cached_face_value%modrelperm_bdy = 0.0
+      di%cached_face_value%den            = 0.0
+      di%cached_face_value%den_bdy        = 0.0
+
+      phase_loop: do p = 1, di%number_phase
+                      
+         ! Determine the upwind saturation values of all node pairs if required for higher order CV face value
+         if(need_upwind_values(di%saturation_cv_options)) then
+
+           ! NOTE only old upwind values are required but this procedure 
+           !      expects latest and old. So pass in old twice - not optimal
+           call find_upwind_values(di%state, &
+                                   di%positions_pressure_mesh, &
+                                   di%old_saturation(p)%ptr, &
+                                   di%old_saturation_upwind, &
+                                   di%old_saturation(p)%ptr, &
+                                   di%old_saturation_upwind, &
+                                   option_path = trim(di%saturation(p)%ptr%option_path))
+
+         else
+
+           call zero(di%old_saturation_upwind)
+
+         end if
+
+         ! Determine the upwind modrelperm values of all node pairs if required for higher order CV face value
+         if(need_upwind_values(di%modrelperm_cv_options)) then
+
+           ! NOTE only new upwind values are required but this procedure 
+           !      expects latest and old. So pass in new twice - not optimal
+           call find_upwind_values(di%state, &
+                                   di%positions_pressure_mesh, &
+                                   di%modified_relative_permeability(p)%ptr, &
+                                   di%modrelperm_upwind, &
+                                   di%modified_relative_permeability(p)%ptr, &
+                                   di%modrelperm_upwind, &
+                                   option_path = trim(di%relative_permeability(p)%ptr%option_path))
+
+         else
+
+           call zero(di%modrelperm_upwind)
+
+         end if
+ 
+         ! Determine the upwind density values of all node pairs if required for higher order CV face value
+         if(need_upwind_values(di%modrelperm_cv_options)) then
+
+           ! NOTE only new upwind values are required but this procedure 
+           !      expects latest and old. So pass in new twice - not optimal
+           call find_upwind_values(di%state, &
+                                   di%positions_pressure_mesh, &
+                                   di%density(p)%ptr, &
+                                   di%density_upwind, &
+                                   di%density(p)%ptr, &
+                                   di%density_upwind, &
+                                   option_path = trim(di%density(p)%ptr%option_path))
+
+         else
+
+           call zero(di%density_upwind)
+
+         end if
+                          
+         ! Initialise optimisation flag used in finding upwind value in high resolution schemes
+         s_upwind_pos = 0
+         r_upwind_pos = 0
+         d_upwind_pos = 0
+            
+         vol_element_loop: do vele = 1, di%number_vele
+            
+            ! The node indices of the pressure mesh
+            p_nodes => ele_nodes(di%pressure_mesh, vele)
+
+            ! The node indices of the positions projected to the pressure mesh
+            x_pmesh_nodes => ele_nodes(di%positions_pressure_mesh, vele)
+            
+            ! Determine the node numbers to use to determine the Saturation upwind values
+            if((di%saturation_cv_options%upwind_scheme == CV_UPWINDVALUE_PROJECT_POINT).or.&
+               (di%saturation_cv_options%upwind_scheme == CV_UPWINDVALUE_PROJECT_GRAD)) then
+
+               s_upwind_nodes => x_pmesh_nodes
+
+            else
+
+               s_upwind_nodes => p_nodes
+
+            end if
+            
+            ! Determine the node numbers to use to determine the modrelperm upwind values
+            if((di%modrelperm_cv_options%upwind_scheme == CV_UPWINDVALUE_PROJECT_POINT).or.&
+               (di%modrelperm_cv_options%upwind_scheme == CV_UPWINDVALUE_PROJECT_GRAD)) then
+
+               r_upwind_nodes => x_pmesh_nodes
+
+            else
+
+               r_upwind_nodes => p_nodes
+
+            end if
+            
+            ! Determine the node numbers to use to determine the density upwind values
+            if((di%density_cv_options%upwind_scheme == CV_UPWINDVALUE_PROJECT_POINT).or.&
+               (di%density_cv_options%upwind_scheme == CV_UPWINDVALUE_PROJECT_GRAD)) then
+
+               d_upwind_nodes => x_pmesh_nodes
+
+            else
+
+               d_upwind_nodes => p_nodes
+
+            end if
+
+            ! get the old saturation ele values for this phase
+            old_saturation_ele = ele_val(di%old_saturation(p)%ptr, vele)
+            
+            ! get the CFL values for this element
+            cfl_ele = ele_val(di%cfl(p)%ptr, vele)
+
+            ! get the modrelperm ele values for this phase
+            modrelperm_ele = ele_val(di%modified_relative_permeability(p)%ptr, vele)
+
+            ! get the density value for this element for this phase
+            den_ele = ele_val(di%density(p)%ptr, vele)
+            
+            ! The gravity values for this element for each direction
+            grav_ele = ele_val(di%gravity, vele) 
+
+            ! get the viscosity value for this element for this phase
+            visc_ele = ele_val(di%viscosity(p)%ptr, vele)
+
+            ! get the absolute permeability value for this element
+            absperm_ele = ele_val(di%absolute_permeability, vele)         
+            
+            ! obtain the transformed determinant*weight and normals
+            if (di%cached_face_value%cached_detwei_normal) then
+               
+               detwei => di%cached_face_value%detwei(:,vele)
+               
+               normal => di%cached_face_value%normal(:,:,vele)
+               
+            else
+
+               ! get the coordinate values for this element for each positions local node
+               x_ele = ele_val(di%positions, vele)         
+
+               ! get the coordinate values for this element for each quadrature point
+               x_face_quad = ele_val_at_quad(di%positions, vele, di%x_cvshape)
+            
+               call transform_cvsurf_to_physical(x_ele, di%x_cvshape, detwei, normal, di%cvfaces)
+            
+            end if
+            
+            ! obtain the derivative of the pressure mesh shape function at the CV face quadrature points
+            if (di%cached_face_value%cached_p_dshape) then
+               
+               p_dshape => di%cached_face_value%p_dshape(:,:,:,vele)
+               
+            else
+            
+               call transform_to_physical(di%positions, vele, x_shape = di%x_cvshape_full, &
+                                          shape = di%p_cvshape_full, dshape = p_dshape)
+            
+            end if
+            
+            ! get the gradient pressure at the cv surface quadrature points for each direction for this phase
+            grad_pressure_face_quad = darcy_impes_ele_grad_at_quad_scalar(di%pressure(p)%ptr, vele, dn = p_dshape)
+                        
+            ! the latest DarcyVelocityOverSaturation at the quadrature points
+            ! determined from FE interpolation of each component, only used to determine upwind.
+            do dim = 1,di%ndim
+
+               v_over_s_face_quad(dim,:) =  &
+- (ele_val_at_quad(di%modified_relative_permeability(p)%ptr, vele, di%p_cvshape) * absperm_ele(1) / visc_ele(1)) * &
+  (grad_pressure_face_quad(dim,:) - ele_val_at_quad(di%density(p)%ptr, vele, di%p_cvshape) * grav_ele(dim,1))
+
+            end do
+            
+            ! Initialise array for the quadrature points of this 
+            ! element for whether it has already been visited
+            notvisited = .true.
+            
+            ! loop over local nodes within this element
+            nodal_loop_i: do iloc = 1, di%pressure_mesh%shape%loc
+
+              ! loop over CV faces internal to this element
+              face_loop: do face = 1, di%cvfaces%faces
+
+                ! is this a face neighbouring iloc?
+                is_neigh: if(di%cvfaces%neiloc(iloc, face) /= 0) then
+
+                  ! find the opposing local node across the CV face
+                  oloc = di%cvfaces%neiloc(iloc, face)
+
+                  ! loop over gauss points on face
+                  quadrature_loop: do gi = 1, di%cvfaces%shape%ngi
+
+                    ! global gauss pt index for this element
+                    ggi = (face-1)*di%cvfaces%shape%ngi + gi
+
+                    ! check if this quadrature point has already been visited
+                    check_visited: if(notvisited(ggi)) then
+
+                       notvisited(ggi) = .false.
+
+                       if (di%cached_face_value%cached_detwei_normal) then
+                          
+                          ! cached normal has correct orientation already
+                          normgi = normal(:,ggi)
+                          
+                       else
+                       
+                          ! correct the orientation of the normal so it points away from iloc
+                          normgi = orientate_cvsurf_normgi(node_val(di%positions_pressure_mesh, x_pmesh_nodes(iloc)), &
+                                                          &x_face_quad(:,ggi), normal(:,ggi))
+                       
+                       end if
+                       
+                       ! determine if the flow is in or out of the face at this quadrature
+                       ! with respect to the normal orientation using the latest v_over_s
+                       v_over_s_dot_n = dot_product(v_over_s_face_quad(:,ggi), normgi)
+
+                       inflow = (v_over_s_dot_n<=0.0)
+
+                       income = merge(1.0,0.0,inflow)
+
+                       ! Evaluate the nonlinear face value for saturation
+                       call evaluate_face_val(old_saturation_face_value, &
+                                              old_saturation_face_value, & 
+                                              iloc, &
+                                              oloc, &
+                                              ggi, &
+                                              s_upwind_nodes, &
+                                              di%p_cvshape, &
+                                              old_saturation_ele, &
+                                              old_saturation_ele, &
+                                              di%old_saturation_upwind, &
+                                              di%old_saturation_upwind, &
+                                              inflow, &
+                                              cfl_ele, &
+                                              di%saturation_cv_options, &
+                                              save_pos = s_upwind_pos)
+
+                       ! Evaluate the face value for modrelperm 
+                       call evaluate_face_val(modrelperm_face_value, &
+                                              modrelperm_face_value, & 
+                                              iloc, &
+                                              oloc, &
+                                              ggi, &
+                                              r_upwind_nodes, &
+                                              di%p_cvshape, &
+                                              modrelperm_ele, &
+                                              modrelperm_ele, &
+                                              di%modrelperm_upwind, &
+                                              di%modrelperm_upwind, &
+                                              inflow, &
+                                              cfl_ele, &
+                                              di%modrelperm_cv_options, &
+                                              save_pos = r_upwind_pos)
+                       
+                       ! Evaluate the density face value 
+                       call evaluate_face_val(den_face_value, &
+                                              den_face_value, & 
+                                              iloc, &
+                                              oloc, &
+                                              ggi, &
+                                              d_upwind_nodes, &
+                                              di%p_cvshape, &
+                                              den_ele, &
+                                              den_ele, &
+                                              di%density_upwind, &
+                                              di%density_upwind, &
+                                              inflow, &
+                                              cfl_ele, &
+                                              di%density_cv_options, &
+                                              save_pos = d_upwind_pos)
+
+                       di%cached_face_value%sat(1,ggi,vele,p) = old_saturation_face_value
+                       
+                       di%cached_face_value%modrelperm(ggi,vele,p) = modrelperm_face_value
+                      
+                       di%cached_face_value%den(ggi,vele,p) = den_face_value
+                                           
                     end if check_visited
 
                   end do quadrature_loop
@@ -3167,20 +3404,90 @@ end if
 
             end do nodal_loop_i
 
-         end do vele_loop
-
-         allocate(di%cached_phase_face_value_domain(p)%value(face_value_counter))
-
-         ! initialise face value counter
-         face_value_counter = 0
-
-         allocate(di%cached_phase_face_value_boundary(p)%ele_base(surface_element_count(di%pressure_mesh)))
-
+         end do vol_element_loop
+                  
+         ! Get this phase v_over_s BC info - only for no_normal_flow and normal_flow which is special as it is a scalar
+         call get_v_over_s_boundary_condition(di%darcy_velocity_over_saturation(p)%ptr, &
+                                              (/"normal_flow   ", &
+                                                "no_normal_flow"/), &
+                                              di%bc_surface_mesh, &
+                                              di%v_over_s_bc_value, &
+                                              di%v_over_s_bc_flag)
+         
+         ! Get this phase satutation BC info - only weak dirichlet
+         call get_entire_saturation_or_pressure_boundary_condition(di%saturation(p)%ptr, &
+                                                                   (/"weakdirichlet"/), &
+                                                                   di%bc_surface_mesh, &
+                                                                   di%saturation_bc_value, &
+                                                                   di%saturation_bc_flag)
+         
          sele_loop: do sele = 1, surface_element_count(di%pressure_mesh)
+            
+            ! A no_normal_flow BC adds nothing to the matrix and rhs so cycle sele loop
+            if (di%v_over_s_bc_flag(sele) == V_OVER_S_BC_TYPE_NO_NORMAL_FLOW) cycle sele_loop
+                        
+            if (di%v_over_s_bc_flag(sele) == V_OVER_S_BC_TYPE_NORMAL_FLOW) then
+                              
+               bc_sele_val = ele_val(di%v_over_s_bc_value, sele)
+                        
+            else
+            
+               ! get the modrelperm sele values for this phase
+               modrelperm_ele_bdy = face_val(di%modified_relative_permeability(p)%ptr, sele)
+            
+               ! get the density sele values for this phase
+               den_ele_bdy = face_val(di%density(p)%ptr, sele)
 
-            ! Set the ele_base value
-            di%cached_phase_face_value_boundary(p)%ele_base(sele) = face_value_counter + 1
+               ! get the viscosity value for this sele for this phase
+               visc_ele_bdy = face_val(di%viscosity(p)%ptr, sele)
 
+               ! get the absolute permeability value for this sele
+               absperm_ele_bdy = face_val(di%absolute_permeability, sele)         
+
+               ! get the latest gradient pressure at the cv surface quadrature points for each direction
+               grad_pressure_face_quad_bdy = face_val_at_quad(di%gradient_pressure(p)%ptr, sele, di%gradp_cvbdyshape)         
+
+               ! The gravity values for this element for each direction
+               grav_ele_bdy = face_val(di%gravity, sele) 
+
+               ! the latest DarcyVelocityOverSaturation at the quadrature points
+               ! determined from FE interpolation of each component, 
+               ! used to determine upwind.
+               do dim = 1,di%ndim
+
+                  v_over_s_face_quad_bdy(dim,:) =  &
+- (face_val_at_quad(di%modified_relative_permeability(p)%ptr, sele, di%p_cvbdyshape) * absperm_ele_bdy(1) / visc_ele_bdy(1)) * &
+  (grad_pressure_face_quad_bdy(dim,:) - face_val_at_quad(di%density(p)%ptr, sele, di%p_cvbdyshape) * grav_ele_bdy(dim,1))
+
+               end do
+               
+            end if 
+
+            ! get the saturation domain and boundary (in case weak) on the boundary
+            old_saturation_ele_bdy = face_val(di%old_saturation(p)%ptr, sele)
+
+            if (di%saturation_bc_flag(sele) == SATURATION_BC_TYPE_WEAKDIRICHLET) then
+               ghost_old_saturation_ele_bdy = ele_val(di%saturation_bc_value, sele)
+            else
+               ghost_old_saturation_ele_bdy = face_val(di%old_saturation(p)%ptr, sele)
+            end if
+               
+            x_ele       = ele_val(di%positions, face_ele(di%positions, sele))
+            x_ele_bdy   = face_val(di%positions, sele)
+
+            ! obtain the transformed determinant*weight and normals
+            if (di%cached_face_value%cached_detwei_normal) then
+
+               detwei_bdy => di%cached_face_value%detwei_bdy(:,sele)
+               
+               normal_bdy => di%cached_face_value%normal_bdy(:,:,sele)
+            
+            else
+            
+               call transform_cvsurf_facet_to_physical(x_ele, x_ele_bdy, di%x_cvbdyshape, normal_bdy, detwei_bdy)
+            
+            end if
+            
             bc_iloc_loop: do iloc = 1, di%pressure_mesh%faces%shape%loc
 
                bc_face_loop: do face = 1, di%cvfaces%sfaces
@@ -3189,8 +3496,50 @@ end if
 
                      bc_quad_loop: do gi = 1, di%cvfaces%shape%ngi
 
-                        face_value_counter = face_value_counter + 1
+                        ggi = (face-1)*di%cvfaces%shape%ngi + gi
+                                                
+                        if (di%v_over_s_bc_flag(sele) == V_OVER_S_BC_TYPE_NORMAL_FLOW) then
+                               
+                           ! Evaluate the saturation boundary values (taking upwind) to use from the sign 
+                           ! of the normal flow BC. If positive, hence outflow, always 
+                           ! use domain value. If negative, hence inflow, use the boundary 
+                           ! value which is the weak BC value if appropriate
 
+                           if (bc_sele_val(iloc) > 0.0) then
+
+                              di%cached_face_value%sat_bdy(1,ggi,sele,p) = old_saturation_ele_bdy(iloc)
+
+                           else
+
+                              di%cached_face_value%sat_bdy(1,ggi,sele,p) = ghost_old_saturation_ele_bdy(iloc)
+
+                           end if
+                           
+                           ! No need to evaluate modrelperm and density for the BC integral
+                                                                                                      
+                        else 
+                                                      
+                           ! determine if the flow is in or out of the face at this quadrature
+                           ! with respect to the normal orientation using the latest v_over_s
+                           v_over_s_dot_n = dot_product(v_over_s_face_quad_bdy(:,ggi), normal_bdy(:,ggi))
+                                                      
+                           ! Evaluate the saturation face value (taking upwind)
+                           inflow = (v_over_s_dot_n<=0.0)
+
+                           income = merge(1.0,0.0,inflow)
+                           
+                           di%cached_face_value%sat_bdy(1,ggi,sele,p) = income*ghost_old_saturation_ele_bdy(iloc) + &
+                                                                       (1.0-income)*old_saturation_ele_bdy(iloc)
+                           
+                           ! Evaluate the modrelperm and density face value via taking the CV value
+                           ! - no other choice currently ...
+                           
+                           di%cached_face_value%modrelperm_bdy(ggi,sele,p) = modrelperm_ele_bdy(iloc)
+
+                           di%cached_face_value%den_bdy(ggi,sele,p) = den_ele_bdy(iloc)
+                           
+                        end if
+                        
                      end do bc_quad_loop
 
                   end if bc_neigh_if
@@ -3199,17 +3548,55 @@ end if
 
             end do bc_iloc_loop
 
-         end do sele_loop
+         end do sele_loop      
 
-         allocate(di%cached_phase_face_value_boundary(p)%value(face_value_counter))
-      
       end do phase_loop
-
-      deallocate(notvisited)
-
-      ewrite(1,*) 'Finished Allocate cached phase face value types'
       
-   end subroutine darcy_impes_initialise_cached_phase_face_value
+      ! deallocate local variables as required
+      deallocate(x_ele)
+      if (di%cached_face_value%cached_p_dshape) then
+         nullify(p_dshape)      
+      else
+         deallocate(p_dshape)
+      end if
+      if (di%cached_face_value%cached_detwei_normal) then
+         nullify(detwei)
+         nullify(normal)      
+      else
+         deallocate(detwei)
+         deallocate(normal)
+      end if
+      deallocate(normgi)
+      deallocate(notvisited)
+      deallocate(x_face_quad)
+      deallocate(old_saturation_ele)
+      deallocate(modrelperm_ele)
+      deallocate(den_ele)
+      deallocate(grav_ele)
+      deallocate(cfl_ele)
+      deallocate(grad_pressure_face_quad)
+      deallocate(v_over_s_face_quad)
+
+      deallocate(den_ele_bdy)
+      deallocate(modrelperm_ele_bdy)
+      deallocate(grav_ele_bdy)
+      deallocate(grad_pressure_face_quad_bdy)
+      deallocate(v_over_s_face_quad_bdy)
+      deallocate(old_saturation_ele_bdy)
+      deallocate(ghost_old_saturation_ele_bdy)
+      deallocate(bc_sele_val)
+      if (di%cached_face_value%cached_detwei_normal) then
+         nullify(detwei_bdy)
+         nullify(normal_bdy)      
+      else
+         deallocate(detwei_bdy)
+         deallocate(normal_bdy)
+      end if
+      deallocate(x_ele_bdy)      
+      
+      ewrite(1,*) 'Finished calculate modrelperm, density and first saturation face values'      
+      
+   end subroutine darcy_impes_calculate_modrelperm_den_first_sat_face_values
 
 ! ----------------------------------------------------------------------------
    

@@ -575,6 +575,9 @@ contains
       di%velocity_mesh             => extract_mesh(di%state(1), "VelocityMesh")
       di%elementwise_mesh          => extract_mesh(di%state(1), "ElementWiseMesh")
       
+      di%number_vele = element_count(di%pressure_mesh)
+      di%number_sele = surface_element_count(di%pressure_mesh)
+      
       di%average_pressure          => extract_scalar_field(di%state(1), "AveragePressure")
       di%porosity                  => extract_scalar_field(di%state(1), "Porosity")
       di%old_porosity              => extract_scalar_field(di%state(1), "OldPorosity")
@@ -604,8 +607,10 @@ contains
       ! Determine the pressure matrix sparsity
       di%sparsity_pmesh_pmesh => get_csr_sparsity_firstorder(di%state(1), di%pressure_mesh, di%pressure_mesh)
       
-      ! Allocate crs matrice used to store the upwind scalar field values in CV assemble
-      call allocate(di%old_sfield_upwind, di%sparsity_pmesh_pmesh) 
+      ! Allocate crs matrices used to store the upwind scalar field values in CV assemble
+      call allocate(di%old_saturation_upwind, di%sparsity_pmesh_pmesh) 
+      call allocate(di%modrelperm_upwind, di%sparsity_pmesh_pmesh) 
+      call allocate(di%density_upwind, di%sparsity_pmesh_pmesh) 
       
       ! Allocate the pressure matrix and lhs and rhs to use for saturations
       call allocate(di%pressure_matrix, di%sparsity_pmesh_pmesh)
@@ -613,26 +618,26 @@ contains
       call allocate(di%rhs, di%pressure_mesh)
       call allocate(di%rhs_adv, di%pressure_mesh)
       call allocate(di%rhs_time, di%pressure_mesh)
-      call allocate(di%old_sfield_subcycle, di%pressure_mesh)
+      call allocate(di%old_saturation_subcycle, di%pressure_mesh)
       call allocate(di%cv_mass_pressure_mesh_with_porosity, di%pressure_mesh)
       call allocate(di%cv_mass_pressure_mesh_with_old_porosity, di%pressure_mesh)
       call allocate(di%cv_mass_pressure_mesh, di%pressure_mesh)
-      
-      ! Allocate the modified_relative_permeability array of fields
-      allocate(di%old_modified_relative_permeability(di%number_phase))
-      allocate(di%modified_relative_permeability(di%number_phase))      
-      do p = 1, di%number_phase         
-         allocate(di%modified_relative_permeability(p)%ptr)
-         allocate(di%old_modified_relative_permeability(p)%ptr)
-         call allocate(di%modified_relative_permeability(p)%ptr, di%pressure_mesh)
-         call allocate(di%old_modified_relative_permeability(p)%ptr, di%pressure_mesh)
-      end do
       
       ! Calculate the latest CV mass on the pressure mesh with porosity
       call compute_cv_mass(di%positions, di%cv_mass_pressure_mesh_with_porosity, di%porosity)      
 
       ! Calculate the latest CV mass on the pressure mesh
       call compute_cv_mass(di%positions, di%cv_mass_pressure_mesh)      
+      
+      ! Allocate the modified_relative_permeability array of fields
+      allocate(di%modified_relative_permeability(di%number_phase))      
+      allocate(di%old_modified_relative_permeability(di%number_phase))
+      do p = 1, di%number_phase         
+         allocate(di%modified_relative_permeability(p)%ptr)
+         allocate(di%old_modified_relative_permeability(p)%ptr)
+         call allocate(di%modified_relative_permeability(p)%ptr, di%pressure_mesh)
+         call allocate(di%old_modified_relative_permeability(p)%ptr, di%pressure_mesh)
+      end do
       
       ! Pull phase dependent fields from state
       allocate(di%pressure(di%number_phase))
@@ -666,6 +671,9 @@ contains
          if (p > 1) then
             di%capilliary_pressure(p)%ptr             => extract_scalar_field(di%state(p), "CapilliaryPressure")
             di%old_capilliary_pressure(p)%ptr         => extract_scalar_field(di%state(p), "OldCapilliaryPressure")
+         else
+            di%capilliary_pressure(p)%ptr             => null()
+            di%old_capilliary_pressure(p)%ptr         => null()
          end if
          di%gradient_pressure(p)%ptr                  => extract_vector_field(di%state(p), "GradientPressure")
          di%old_gradient_pressure(p)%ptr              => extract_vector_field(di%state(p), "OldGradientPressure")
@@ -761,31 +769,30 @@ contains
                                                &di%saturation(1)%ptr%mesh%shape%numbering%family, &
                                                &mesh_dim(di%saturation(1)%ptr))
 
-      ! Determine the saturation advection subcycle options
-      di%subcy_opt_sat%have_max_cfl = have_option(trim(complete_field_path(di%saturation(1)%ptr%option_path))//&
-                                     &'/temporal_discretisation/control_volumes/maximum_courant_number_per_advection_subcycle')
+      ! Get the modified relative permeability cv options from the first phase relative permeability field
+      di%modrelperm_cv_options = get_cv_options(di%relative_permeability(1)%ptr%option_path, &
+                                               &di%relative_permeability(1)%ptr%mesh%shape%numbering%family, &
+                                               &mesh_dim(di%relative_permeability(1)%ptr))
       
-      if (di%subcy_opt_sat%have_max_cfl) then
-      
-         call get_option(trim(complete_field_path(di%saturation(1)%ptr%option_path))//&
-                        &'/temporal_discretisation/control_volumes/maximum_courant_number_per_advection_subcycle', &
-                         di%subcy_opt_sat%max_courant_per_advection_subcycle)
-      
-      end if
+      ! Get the density cv options from the first phase field
+      di%density_cv_options = get_cv_options(di%density(1)%ptr%option_path, &
+                                            &di%density(1)%ptr%mesh%shape%numbering%family, &
+                                            &mesh_dim(di%density(1)%ptr))
 
-      di%subcy_opt_sat%have_number = have_option(trim(complete_field_path(di%saturation(1)%ptr%option_path))//&
-                                    &'/temporal_discretisation/control_volumes/number_advection_subcycle')
+      ! Determine the saturation advection subcycle options
+      di%subcy_opt_sat%have = have_option(trim(complete_field_path(di%saturation(1)%ptr%option_path))//&
+                             &'/temporal_discretisation/control_volumes/number_advection_subcycle')
       
-      if (di%subcy_opt_sat%have_number) then
+      if (di%subcy_opt_sat%have) then
 
          call get_option(trim(complete_field_path(di%saturation(1)%ptr%option_path))//&
                         &'/temporal_discretisation/control_volumes/number_advection_subcycle', &
-                        &di%subcy_opt_sat%number_advection_subcycle)
-
-      end if
+                        &di%subcy_opt_sat%number)
       
-      if (di%subcy_opt_sat%have_max_cfl .and. di%subcy_opt_sat%have_number) then
-         FLAbort('Cannot have max cfl and given number for subcycling')
+      else
+         
+         di%subcy_opt_sat%number = 1
+         
       end if
       
       ! Get the maximum number of non linear iter
@@ -797,14 +804,7 @@ contains
       call get_option('/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt', &
                       di%max_nonlinear_iter_first_timestep_after_adapt, &
                       default = 1)
-      
-      ! Cannot have diagnostic first phase saturation with subcycling with more than 1 non linear iter
-      if ((di%subcy_opt_sat%have_max_cfl .or. di%subcy_opt_sat%have_number) .and. &
-          have_option(trim(di%saturation(1)%ptr%option_path)//'/diagnostic') .and. &
-          ((di%max_nonlinear_iter > 1) .or. (di%max_nonlinear_iter_first_timestep_after_adapt>1))) then
-         FLExit('Cannot have subcycling for saturation if first phase diagnostic with the number of non linear iterations > 1, make first phase saturation prognostic')
-      end if
-      
+            
       ! Determine the adaptive time stepping options
       di%adaptive_dt_options%have = have_option('/timestepping/adaptive_timestep')
       
@@ -847,19 +847,7 @@ contains
             di%eos_options(p)%fluids_linear_reference_density = 0.0
          end if
       end do
-      
-      ! Determine if the Porosity is diagnostic, else it is prescribed
-      di%porosity_is_diagnostic = have_option('/porous_media/scalar_field::Porosity/diagnostic')
-      
-      ! Determine if the AbsolutePermeability is diagnostic, else it is prescribed
-      di%absolute_permeability_is_diagnostic = have_option('/porous_media/scalar_field::AbsolutePermeability/diagnostic')
-      
-      ! Determine if the phase saturation sources are diagnostic, else it is prescribed
-      allocate(di%saturation_source_is_diagnostic(di%number_phase))
-      do p = 1, di%number_phase
-         di%saturation_source_is_diagnostic(p) = have_option(trim(di%saturation_source(p)%ptr%option_path)//'/diagnostic')
-      end do
-      
+            
       ! Determine the CV surface degree to use when integrating functions across them
       call get_option('/geometry/quadrature/controlvolume_surface_degree', &
                       di%cv_surface_quaddegree)
@@ -925,9 +913,12 @@ contains
       ! for the gradient pressure mesh assuming all boundary elements are the same type.
       di%gradp_cvbdyshape = make_cvbdy_element_shape(di%cvfaces, di%gradient_pressure(1)%ptr%mesh%faces%shape)
 
-      ! Initialise the arrays used to cache the phase face values 
-      ! which are perhaps summed over the subcycles.
-      call darcy_impes_initialise_cached_phase_face_value(di)
+      ! Get the cache detwei_normal and p_dshape options
+      di%cached_face_value%cached_detwei_normal =  have_option('/cache_detwei_normal')
+      di%cached_face_value%cached_p_dshape      =  have_option('/cache_p_dshape')
+
+      ! Initialise the arrays used to cache the face values
+      call darcy_impes_initialise_cached_face_value(di)
       
       ! If the first phase saturation is diagnostic then calculate it
       if (di%phase_one_saturation_diagnostic) call darcy_impes_calculate_phase_one_saturation_diagnostic(di)
@@ -944,14 +935,17 @@ contains
       ! Calculate the non first phase pressure's, needs to be after the python fields
       call darcy_impes_calculate_non_first_phase_pressures(di)       
 
+      ! Calculate the density field of each phase
+      call darcy_impes_calculate_densities(di)
+      
+      ! Calculate the modrelperm, density and first saturation face values
+      call darcy_impes_calculate_modrelperm_den_first_sat_face_values(di)
+      
       ! calculate the Velocity, Fractional flow and CFL fields, needs to be after the python fields
       call darcy_impes_calculate_velocity_and_cfl_fields(di)
 
       ! Calculate the sum of the saturations
       call darcy_impes_calculate_sum_saturation(di)
-
-      ! Calculate the density field of each phase
-      call darcy_impes_calculate_densities(di)
 
       ! Copy ALL latest fields to Old and Iterated
       call copy_to_stored_values(di%state,"Old")
@@ -983,6 +977,8 @@ contains
       ewrite(1,*) 'Finalise Darcy IMPES data'
       
       di%dt = 0.0
+
+      di%current_time = 0.0
       
       di%nonlinear_iter = 0
       
@@ -996,6 +992,9 @@ contains
       nullify(di%gradient_pressure_mesh)
       nullify(di%velocity_mesh)
       nullify(di%elementwise_mesh)
+
+      di%number_vele = 0
+      di%number_sele = 0
       
       nullify(di%average_pressure)      
       nullify(di%porosity)
@@ -1016,13 +1015,15 @@ contains
             
       call deallocate(di%positions_pressure_mesh)
       nullify(di%sparsity_pmesh_pmesh)
-      call deallocate(di%old_sfield_upwind)
+      call deallocate(di%old_saturation_upwind)
+      call deallocate(di%modrelperm_upwind)
+      call deallocate(di%density_upwind)
       call deallocate(di%pressure_matrix)
       call deallocate(di%lhs)
       call deallocate(di%rhs)
       call deallocate(di%rhs_adv)
       call deallocate(di%rhs_time)
-      call deallocate(di%old_sfield_subcycle)      
+      call deallocate(di%old_saturation_subcycle)      
       call deallocate(di%cv_mass_pressure_mesh_with_porosity)
       call deallocate(di%cv_mass_pressure_mesh_with_old_porosity)
       call deallocate(di%cv_mass_pressure_mesh)
@@ -1083,10 +1084,12 @@ contains
       
       ! Nothing can be done for di%saturation_cv_options
       
-      di%subcy_opt_sat%have_number                        = .false.
-      di%subcy_opt_sat%have_max_cfl                       = .false.
-      di%subcy_opt_sat%number_advection_subcycle          = 0      
-      di%subcy_opt_sat%max_courant_per_advection_subcycle = 0.0
+      ! Nothing can be done for di%modrelperm_cv_options
+
+      ! Nothing can be done for di%density_cv_options
+      
+      di%subcy_opt_sat%have   = .false.
+      di%subcy_opt_sat%number = 0      
       
       di%max_nonlinear_iter                            = 0
       di%max_nonlinear_iter_first_timestep_after_adapt = 0
@@ -1100,12 +1103,7 @@ contains
       di%adaptive_dt_options%at_first_dt                 = .false.
       
       deallocate(di%eos_options)
-      
-      di%porosity_is_diagnostic              = .false.
-      di%absolute_permeability_is_diagnostic = .false.
-      
-      deallocate(di%saturation_source_is_diagnostic)
-      
+            
       di%cv_surface_quaddegree = 0
       
       call deallocate(di%cvfaces)
@@ -1118,16 +1116,23 @@ contains
       call deallocate(di%x_cvbdyshape)
       call deallocate(di%p_cvbdyshape)
       call deallocate(di%gradp_cvbdyshape)
+
+      di%cached_face_value%cached_detwei_normal = .false.
+      di%cached_face_value%cached_p_dshape      = .false.
       
-      do p = 1,di%number_phase
-         deallocate(di%cached_phase_face_value_domain(p)%value)
-         deallocate(di%cached_phase_face_value_domain(p)%ele_base)      
-         deallocate(di%cached_phase_face_value_boundary(p)%value)
-         deallocate(di%cached_phase_face_value_boundary(p)%ele_base)
-      end do
-      deallocate(di%cached_phase_face_value_domain)
-      deallocate(di%cached_phase_face_value_boundary)
-      
+      deallocate(di%cached_face_value%sat)
+      deallocate(di%cached_face_value%sat_bdy)
+      deallocate(di%cached_face_value%modrelperm)
+      deallocate(di%cached_face_value%modrelperm_bdy)
+      deallocate(di%cached_face_value%den)
+      deallocate(di%cached_face_value%den_bdy)
+      if (associated(di%cached_face_value%detwei))       deallocate(di%cached_face_value%detwei)
+      if (associated(di%cached_face_value%detwei_bdy))   deallocate(di%cached_face_value%detwei_bdy)
+      if (associated(di%cached_face_value%normal))       deallocate(di%cached_face_value%normal)
+      if (associated(di%cached_face_value%normal_bdy))   deallocate(di%cached_face_value%normal_bdy)
+      if (associated(di%cached_face_value%p_dshape))     deallocate(di%cached_face_value%p_dshape)
+      if (associated(di%cached_face_value%p_dshape_bdy)) deallocate(di%cached_face_value%p_dshape_bdy)
+          
       ! This must be last as it is used in loops above
       di%number_phase = 0
       
