@@ -513,7 +513,7 @@
       REAL, intent( in ) :: DT
       INTEGER, DIMENSION( U_NONODS + 1 ), intent( in ) :: FINDC
       INTEGER, DIMENSION( NCOLC ), intent( in ) :: COLC
-      INTEGER, DIMENSION( U_NONODS * NPHASE + 1 ), intent( in ) :: FINDGM_PHA
+      INTEGER, DIMENSION( U_NONODS * NPHASE * NDIM + 1 ), intent( in ) :: FINDGM_PHA
       INTEGER, DIMENSION( NCOLDGM_PHA ), intent( in ) :: COLDGM_PHA
       INTEGER, DIMENSION( U_NONODS * NPHASE ), intent( in ) :: MIDDGM_PHA
 
@@ -1027,7 +1027,7 @@
       INTEGER, DIMENSION( NCOLC ), intent( in ) :: COLC
       REAL, DIMENSION( NCOLCT * NDIM * NPHASE ), intent( inout ) :: C
       REAL, DIMENSION( NCOLDGM_PHA ), intent( inout ) :: DGM_PHA
-      INTEGER, DIMENSION( U_NONODS * NPHASE + 1 ), intent( in ) :: FINDGM_PHA
+      INTEGER, DIMENSION( U_NONODS * NPHASE * NDIM + 1 ), intent( in ) :: FINDGM_PHA
       INTEGER, DIMENSION( NCOLDGM_PHA ), intent( in ) :: COLDGM_PHA
 
 
@@ -1259,7 +1259,7 @@
       INTEGER, DIMENSION( U_NONODS + 1 ), intent( in ) :: FINDC
       INTEGER, DIMENSION( NCOLC ), intent( in ) :: COLC
       REAL, DIMENSION( NCOLDGM_PHA ), intent( inout ) :: DGM_PHA
-      INTEGER, DIMENSION( U_NONODS * NPHASE + 1 ), intent( in ) :: FINDGM_PHA
+      INTEGER, DIMENSION( U_NONODS * NPHASE * NDIM + 1 ), intent( in ) :: FINDGM_PHA
       INTEGER, DIMENSION( NCOLDGM_PHA ), intent( in ) :: COLDGM_PHA
       INTEGER, DIMENSION( TOTELE + 1 ), intent( in ) :: FINELE
       INTEGER, DIMENSION( NCOLELE ), intent( in ) :: COLELE
@@ -1450,7 +1450,7 @@
 
       INTEGER, intent( in ) :: NPHASE, NDIM, U_NONODS, NCOLDGM_PHA, &
            NCOLC, NLENMCY, NCOLMCY
-      INTEGER, DIMENSION( U_NONODS * NPHASE + 1 ), intent( in ) ::  FINDGM_PHA
+      INTEGER, DIMENSION( U_NONODS * NPHASE * NDIM + 1 ), intent( in ) ::  FINDGM_PHA
       REAL, DIMENSION( NCOLDGM_PHA ), intent( in ) ::  DGM_PHA
       INTEGER, DIMENSION( NLENMCY + 1 ), intent( in ) :: FINMCY
       INTEGER, DIMENSION( U_NONODS + 1 ), intent( in ) :: FINDC
@@ -1623,7 +1623,7 @@
       INTEGER, DIMENSION( U_NONODS + 1 ), intent( in ) :: FINDC
       INTEGER, DIMENSION( NCOLC ), intent( in ) :: COLC
       REAL, DIMENSION( NCOLDGM_PHA ), intent( inout ) :: DGM_PHA
-      INTEGER, DIMENSION( U_NONODS * NPHASE + 1 ), intent( in ) :: FINDGM_PHA
+      INTEGER, DIMENSION( U_NONODS * NPHASE * NDIM + 1 ), intent( in ) :: FINDGM_PHA
       INTEGER, DIMENSION( NCOLDGM_PHA ), intent( in ) :: COLDGM_PHA
       INTEGER, DIMENSION( TOTELE + 1 ), intent( in ) :: FINELE
       INTEGER, DIMENSION( NCOLELE ), intent( in ) :: COLELE

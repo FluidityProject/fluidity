@@ -225,7 +225,7 @@ module mp_prototype
 
       if( u_snloc < 0 ) u_snloc = 1 * nlev
       cv_pha_nonods = cv_nonods * nphase
-      u_pha_nonods = u_nonods * nphase
+      u_pha_nonods = u_nonods * nphase * ndim
       ncp_coefs = nphase
       nlenmcy = u_pha_nonods + cv_nonods
 
@@ -315,7 +315,7 @@ module mp_prototype
       allocate( colm( mx_ncolm ) )
 
       call get_spars_pats( &
-           ndim, nphase, totele, u_nonods * nphase, cv_nonods * nphase, &
+           ndim, nphase, totele, u_nonods * nphase * ndim, cv_nonods * nphase, &
            u_nonods, cv_nonods, x_nonods, &
            cv_ele_type, u_ele_type, &
            u_nloc, cv_nloc, x_nloc, xu_nloc, mat_nloc, &
@@ -339,7 +339,7 @@ module mp_prototype
            mx_ncolm, ncolm, findm, colm, midm, mx_nface_p1 )
 
       !call check_sparsity( &
-      !     u_nonods * nphase, cv_nonods * nphase, &
+      !     u_nonods * nphase * ndim, cv_nonods * nphase, &
       !     u_nonods, cv_nonods, totele, &
       !     mx_ncolacv, ncolacv, finacv, colacv, midacv, & ! CV multi-phase eqns (e.g. vol frac, temp)
       !     nlenmcy, mx_ncolmcy, ncolmcy, finmcy, colmcy, midmcy, & ! Force balance plus cty multi-phase eqns

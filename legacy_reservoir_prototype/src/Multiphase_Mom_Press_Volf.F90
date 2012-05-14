@@ -177,7 +177,7 @@ contains
     ! Variables below may change on this subroutine, however this should be changed later
     real, dimension( x_nonods ), intent( inout ) :: x, y, z
     real, dimension( xu_nonods ), intent( inout ) :: xu, yu, zu
-    real, dimension( u_nonods * nphase ), intent( inout ) :: nu, nv, nw, ug, vg, wg
+    real, dimension( u_nonods * nphase * ndim ), intent( inout ) :: nu, nv, nw, ug, vg, wg
     real, dimension( mat_nonods, ndim * nphase, ndim * nphase ), intent( inout ) :: u_abs_stab
     real, intent( in ) :: Mobility
     real, dimension( mat_nonods, ndim * nphase, ndim * nphase ), intent( inout ) :: u_absorb
@@ -361,11 +361,11 @@ contains
              ewrite(1, *) "Passed final timestep"
              
              exit Loop_Time
-             
+
           end if
-          
-       end if              
-              
+
+       end if
+
        UOLD = U
        NU = U
        NUOLD = U

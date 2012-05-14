@@ -519,14 +519,14 @@
     end subroutine exten_sparse_mom_cty
 
     subroutine form_dgm_pha_sparsity( totele, nphase, u_nloc, u_pha_nonods, &
-         mx_ncoldgm_pha, ncoldgm_pha, &
+         ndim, mx_ncoldgm_pha, ncoldgm_pha, &
          coldgm_pha, findgm_pha, middgm_pha, &
-         nele_pha, finele_pha, colele_pha )
+         nele_pha, finele_pha, colele_pha, finele, colele, ncolele )
       ! Form the sparsity of the phase coupled DG discretised matrix 
       ! from the element-wise multi-phase sparsity matrix. 
       implicit none
       integer, intent( in ) :: totele, nphase, u_nloc, u_pha_nonods, &
-           mx_ncoldgm_pha
+           mx_ncoldgm_pha, ndim, ncolele
       integer, intent( inout ) :: ncoldgm_pha
       integer, dimension( mx_ncoldgm_pha ), intent( inout ) :: coldgm_pha
       integer, dimension( u_pha_nonods + 1 ), intent( inout ) :: findgm_pha
@@ -534,29 +534,46 @@
       integer, intent( in ) :: nele_pha
       integer, dimension( nele_pha + 1 ), intent( in ) :: finele_pha
       integer, dimension( nele_pha ), intent( in ) :: colele_pha
+      integer, dimension( totele + 1 ), intent( in ) :: finele
+      integer, dimension( ncolele ), intent( in ) :: colele
+
       ! Local variables
       integer :: count, count2, ele_pha, ele_pha2, iloc, jloc, irow, jrow
+      integer :: ele, ele2, idim, jdim, iphase, jphase, u_nonods
 
-      ewrite(3,*) 'In form_dgm_pha_sparsity subrt. '
+      ewrite(3,*) 'In form_dgm_pha_sparsity subrt.'
+
+      u_nonods = u_pha_nonods / ( nphase * ndim )
 
       count2 = 0
-      Loop_ElementPhase: do ele_pha = 1, totele * nphase
-         Loop_Loc1: do iloc = 1, u_nloc
-            irow = ( ele_pha - 1 ) * u_nloc + iloc
-            findgm_pha( irow ) = count2 + 1
-            Loop_Count: do count = finele_pha( ele_pha ), finele_pha( ele_pha + 1 ) - 1
-               ele_pha2 = colele_pha( count )
-               Loop_Loc2: do jloc = 1, u_nloc
-                  jrow = ( ele_pha2 - 1 ) * u_nloc + jloc
-                  count2 = count2 + 1
-                  coldgm_pha( count2 ) = jrow
-                  if( irow == jrow ) middgm_pha( irow ) = count2
-               end do Loop_Loc2
-            end do Loop_Count
-         end do Loop_Loc1
-      end do Loop_ElementPhase
-      findgm_pha( u_pha_nonods + 1 ) = count2 + 1
-      ncoldgm_pha = count2
+      Loop_Element: do ele = 1, totele 
+         Loop_Phase1: do iphase = 1, nphase
+            Loop_Loc1: do iloc = 1, u_nloc
+               Loop_Dim1: do idim = 1, ndim
+                  irow = ( ele - 1 ) * u_nloc + iloc  + ( idim - 1 ) * u_nonods + (iphase-1)*u_nonods*ndim
+                  !print *, 'irow, ele, u_nloc, iloc, idim, u_nonods, iphase:', &
+                  !     irow, ele, u_nloc, iloc, idim, u_nonods, iphase
+                  findgm_pha( irow ) = count2 + 1
+                  Loop_Count: do count = finele( ele ), finele( ele + 1 ) - 1
+                     ele2 = colele( count )
+                     Loop_Phase2: do jphase = 1, nphase
+                        Loop_Loc2: do jloc = 1, u_nloc
+                           Loop_Dim2: do jdim = 1, ndim
+                              jrow = ( ele2 - 1 ) * u_nloc + jloc  + ( jdim - 1 ) * u_nonods + (jphase-1)*u_nonods*ndim
+                              count2 = count2 + 1
+                              coldgm_pha( count2 ) = jrow
+                              if( irow == jrow ) middgm_pha( irow ) = count2
+                           end do Loop_Dim2
+                        end do Loop_Loc2
+                     end do Loop_Phase2
+                  end do Loop_Count
+               end do Loop_Dim1
+            end do Loop_Loc1
+         end do Loop_Phase1
+         findgm_pha( u_pha_nonods + 1 ) = count2 + 1
+         ncoldgm_pha = count2
+      end do Loop_Element
+
 
       if( ncoldgm_pha > mx_ncoldgm_pha ) &
            FLAbort(" Incorrect number of dimension of sparsity matrix - ncoldgm_pha ")
@@ -1359,9 +1376,9 @@
 
       findgm_pha = 0 ; coldgm_pha = 0 ; middgm_pha = 0
       call form_dgm_pha_sparsity( totele, nphase, u_nloc, u_pha_nonods, &
-           mx_ncoldgm_pha, ncoldgm_pha, &
+           ndim, mx_ncoldgm_pha, ncoldgm_pha, &
            coldgm_pha, findgm_pha, middgm_pha, &
-           mx_ncolele_pha, finele_pha, colele_pha )
+           mx_ncolele_pha, finele_pha, colele_pha, finele, colele, ncolele )
       ewrite(3,*)'findgm_pha: ', findgm_pha( 1 : u_pha_nonods + 1 )
       ewrite(3,*)'coldgm_pha: ', coldgm_pha( 1 : ncoldgm_pha )
       ewrite(3,*)'middgm_pha: ', middgm_pha( 1 : u_pha_nonods )

@@ -75,6 +75,8 @@ contains
     
     rows = size(x)
     
+    print *, size(x)+1, size(findfe)
+
     assert(size(x) == size(b))
     assert(size(a) == size(colfe))
     assert((size(x)+1) == size(findfe))
