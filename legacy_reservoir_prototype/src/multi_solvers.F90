@@ -163,8 +163,6 @@ contains
       
   end subroutine solve_via_copy_to_petsc_csr_matrix
 
-! -----------------------------------------------------------------------------
-
 end module solvers_module
 
 
