@@ -728,7 +728,7 @@
          endif
 
          ewrite(3,*)'b4 pressure solve P_RHS:', P_RHS
-       if(cv_nonods==x_nonods) then ! a continuous pressure: 
+       if( .true.) then   !cv_nonods==x_nonods) then ! a continuous pressure: 
          CALL SOLVER( CMC, DP, P_RHS, &
               FINDCMC, COLCMC, &
               option_path = '/material_phase[0]/scalar_field::Pressure')
@@ -1709,8 +1709,10 @@
       ewrite(3,*) 'FINELE with size,', size( FINELE ), ':', FINELE( 1 :  size( FINELE ) )
       ewrite(3,*) 'COLELE with size,', size( COLELE ), ':', COLELE( 1 :  size( COLELE ) )
 
-      !         print *,'UDEN=',uden
-      !        stop 2921
+      !print *,'UDEN=',uden
+      !print *,'u_absorb=',u_absorb
+      !print *,'u_abs_stab=',u_abs_stab
+      !stop 2921
 
       is_overlapping = .false.
       call get_option( '/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
