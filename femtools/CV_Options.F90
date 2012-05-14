@@ -93,7 +93,8 @@ module cv_options
 
   private
   public :: cv_options_type, get_cv_options, &
-            cv_projection_node, cv_facevalue_integer
+            cv_projection_node, cv_facevalue_integer, &
+            cv_limiter_integer, cv_upwind_scheme
 
 contains
 

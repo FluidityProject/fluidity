@@ -43,9 +43,7 @@ start =
          darcy_impes_porous_media_model, 
          
          darcy_impes_weak_pressure_bc_coeff?,
-         
-         darcy_impes_min_sat_value_for_mod_relperm?,
-         
+                  
          darcy_impes_cache_detwei_normal?,
          
          darcy_impes_cache_p_dshape?
@@ -63,17 +61,6 @@ darcy_impes_weak_pressure_bc_coeff =
          
          real
       }
-   )
-
-
-darcy_impes_min_sat_value_for_mod_relperm = 
-   (
-      ## Define the minimum saturation value used in the 
-      ## denominator of the modified relative permeability.
-      ## If not given then the default value of 1.0e-06 is used.
-      element min_saturation_value_for_modified_relative_permeability {
-         real
-      }?
    )
 
 
@@ -676,17 +663,19 @@ darcy_impes_material_phases =
 
          darcy_impes_gradient_pressure_field,
                   
-         darcy_impes_darcy_velocity_over_saturation_field,
-         
-         darcy_impes_darcy_velocity_over_saturation_CFL_field, 
-         
          darcy_impes_darcy_velocity_field,
+         
+         darcy_impes_darcy_velocity_CFL_field, 
+                  
+         darcy_impes_total_darcy_velocity_field,         
+                  
+         darcy_impes_divergence_total_darcy_velocity_field,
+
+         darcy_impes_mobility_field,
+         
+         darcy_impes_total_mobility_field,
 
          darcy_impes_fractional_flow_field,
-         
-         darcy_impes_total_darcy_velocity_field,         
-         
-         darcy_impes_divergence_total_darcy_velocity_field,
          
          darcy_impes_sum_saturation, 
          
@@ -730,11 +719,11 @@ darcy_impes_other_phase_options =
 
       darcy_impes_gradient_pressure_field,
 
-      darcy_impes_darcy_velocity_over_saturation_field,
+      darcy_impes_darcy_velocity_field,
 
-      darcy_impes_darcy_velocity_over_saturation_CFL_field,
-
-      darcy_impes_darcy_velocity_field,   
+      darcy_impes_darcy_velocity_CFL_field,
+      
+      darcy_impes_mobility_field,
       
       darcy_impes_fractional_flow_field, 
       
@@ -887,8 +876,7 @@ darcy_impes_saturation_field_phase_one =
                   attribute name { "PressureMesh" }      
                },
                darcy_impes_internal_algorithm,
-               darcy_impes_saturation_field_spatial_discretisation,
-               darcy_impes_saturation_field_temporal_discretisation,
+               darcy_impes_saturation_field_subcycling?,
                darcy_impes_saturation_source,
                scalar_convergence_options,
                darcy_impes_diagnostic_scalar_field
@@ -897,8 +885,7 @@ darcy_impes_saturation_field_phase_one =
                element mesh {
                   attribute name { "PressureMesh" }      
                },
-               darcy_impes_saturation_field_spatial_discretisation,
-               darcy_impes_saturation_field_temporal_discretisation,
+               darcy_impes_saturation_field_subcycling?,
                initial_condition_scalar+,
                darcy_impes_bc_saturation_field*,
                darcy_impes_saturation_source,
@@ -932,87 +919,13 @@ darcy_impes_saturation_field =
       }                  
    )
    
-   
-darcy_impes_saturation_field_spatial_discretisation =
+
+darcy_impes_saturation_field_subcycling =
    (
-      element spatial_discretisation {
-         element control_volumes {
-            ## First Order Upwind face value discretisation
-            ##  face_value = donor_value, 
-            ## where
-            ##  donor_value = income*val_1 + (1.-income)*val_2, 
-            ## where val_i is the value on the ith node neighbouring the face and
-            ## income = [0, 1] depending on whether the flow is coming from node 1 or 2
-            ## First order upwinding is monotonic so no limiting is ever required
-            element face_value {
-              attribute name { "FirstOrderUpwind" },
-              empty
-            }|
-            ## Finite Element face value discretisation
-            ##  face_value = finite element interpolation from surrounding nodes
-            ##
-            ## Finite element discretisation may become unbounded so limiting is often necessary.
-            element face_value {
-              attribute name { "FiniteElement" },
-              darcy_impes_saturation_limiter_options
-            }            
-         },
-         darcy_impes_field_conservative_advection
-      }
-   )
-      
-
-darcy_impes_saturation_limiter_options =
-  (
-      (
-        ## Limit the face value to satisfy a boundedness criterion.
-        element limit_face_value{
-          (
-            sweby_limiter|
-            ultimate_limiter
-          )
-        }|
-        ## Do not limit the face value
-        element do_not_limit_face_value{
-          empty
-        }
-      )
-  )
-
-
-darcy_impes_field_conservative_advection =
-   (
-      element conservative_advection {
-         element real_value {
-            attribute rank { "0" },
-            ("1.0")
-         }
-      }   
-   )
-   
-
-darcy_impes_saturation_field_temporal_discretisation =
-   (
-      element temporal_discretisation {
-         element theta {
-            element real_value {
-               attribute rank { "0" },
-               ("0.0")
-            }
-         },
-         element control_volumes {
-            element pivot_theta {
-               element real_value {
-                  attribute rank { "0" },
-                  ("0.0")
-               }
-            },
-            ## Use timestep subcycling to solve the field advection.
-            ## Specify the number of advection subcycls. 
-            element number_advection_subcycle {
-               integer
-            }?
-         }
+      ## Use timestep subcycling to solve the field advection.
+      ## Specify the number of advection subcycls. 
+      element number_advection_subcycle {
+         integer
       }
    )
    
@@ -1053,7 +966,6 @@ darcy_impes_relative_permeability_field =
             },
             darcy_impes_scalar_python_diagnostic_algorithm,
             darcy_impes_relperm_field_spatial_discretisation,
-            darcy_impes_relperm_field_temporal_discretisation,
             darcy_impes_diagnostic_scalar_field
          }
       }
@@ -1083,8 +995,7 @@ darcy_impes_relperm_field_spatial_discretisation =
               attribute name { "FiniteElement" },
               darcy_impes_relperm_limiter_options
             }            
-         },
-         darcy_impes_field_conservative_advection
+         }
       }
    )
       
@@ -1102,19 +1013,6 @@ darcy_impes_relperm_limiter_options =
         }
       )
   )
-   
-
-darcy_impes_relperm_field_temporal_discretisation =
-   (
-      element temporal_discretisation {
-         element theta {
-            element real_value {
-               attribute rank { "0" },
-               ("1.0")
-            }
-         }
-      }
-   )
 
 
 darcy_impes_viscosity_field =
@@ -1145,7 +1043,6 @@ darcy_impes_density_field =
             darcy_impes_internal_algorithm,
             darcy_impes_eos,
             darcy_impes_density_field_spatial_discretisation,
-            darcy_impes_density_field_temporal_discretisation,
             darcy_impes_diagnostic_scalar_field
          }
       }   
@@ -1175,8 +1072,7 @@ darcy_impes_density_field_spatial_discretisation =
               attribute name { "FiniteElement" },
               darcy_impes_density_limiter_options
             }            
-         },
-         darcy_impes_field_conservative_advection
+         }
       }
    )
       
@@ -1194,19 +1090,6 @@ darcy_impes_density_limiter_options =
         }
       )
   )
-   
-
-darcy_impes_density_field_temporal_discretisation =
-   (
-      element temporal_discretisation {
-         element theta {
-            element real_value {
-               attribute rank { "0" },
-               ("1.0")
-            }
-         }
-      }
-   )
 
 
 darcy_impes_eos =
@@ -1241,11 +1124,11 @@ darcy_impes_gradient_pressure_field =
    )
 
 
-darcy_impes_darcy_velocity_over_saturation_field =
+darcy_impes_darcy_velocity_field =
    (
       element vector_field {
          attribute rank { "0" },
-         attribute name { "DarcyVelocityOverSaturation" },
+         attribute name { "DarcyVelocity" },
          element diagnostic {
             element mesh {
                attribute name { "VelocityMesh" }      
@@ -1258,49 +1141,17 @@ darcy_impes_darcy_velocity_over_saturation_field =
    )
 
 
-darcy_impes_darcy_velocity_over_saturation_CFL_field =
+darcy_impes_darcy_velocity_CFL_field =
    (
       element scalar_field {
          attribute rank { "0" },
-         attribute name { "DarcyVelocityOverSaturationCFL" },
+         attribute name { "DarcyVelocityCFL" },
          element diagnostic {
             element mesh {
                attribute name { "PressureMesh" }      
             },
             darcy_impes_internal_algorithm,
             darcy_impes_diagnostic_scalar_field
-         }
-      }
-   )
-
-
-darcy_impes_darcy_velocity_field =
-   (
-      element vector_field {
-         attribute rank { "0" },
-         attribute name { "DarcyVelocity" },
-         element diagnostic {
-            element mesh {
-               attribute name { "VelocityMesh" }      
-            },
-            darcy_impes_internal_algorithm,
-            darcy_impes_diagnostic_vector_field
-         }
-      }
-   )
-
-
-darcy_impes_fractional_flow_field =
-   (
-      element vector_field {
-         attribute rank { "0" },
-         attribute name { "FractionalFlow" },
-         element diagnostic {
-            element mesh {
-               attribute name { "VelocityMesh" }      
-            },
-            darcy_impes_internal_algorithm,
-            darcy_impes_diagnostic_vector_field
          }
       }
    )
@@ -1330,6 +1181,54 @@ darcy_impes_divergence_total_darcy_velocity_field =
          element diagnostic {
             element mesh {
                attribute name { "PressureMesh" }      
+            },
+            darcy_impes_internal_algorithm,
+            darcy_impes_diagnostic_scalar_field
+         }
+      }
+   )
+
+
+darcy_impes_mobility_field =
+   (
+      element scalar_field {
+         attribute rank { "0" },
+         attribute name { "Mobility" },
+         element diagnostic {
+            element mesh {
+               attribute name { "VelocityMesh" }      
+            },
+            darcy_impes_internal_algorithm,
+            darcy_impes_diagnostic_scalar_field
+         }
+      }
+   )
+
+
+darcy_impes_total_mobility_field =
+   (
+      element scalar_field {
+         attribute rank { "0" },
+         attribute name { "TotalMobility" },
+         element diagnostic {
+            element mesh {
+               attribute name { "VelocityMesh" }      
+            },
+            darcy_impes_internal_algorithm,
+            darcy_impes_diagnostic_scalar_field
+         }
+      }
+   )
+
+
+darcy_impes_fractional_flow_field =
+   (
+      element scalar_field {
+         attribute rank { "0" },
+         attribute name { "FractionalFlow" },
+         element diagnostic {
+            element mesh {
+               attribute name { "VelocityMesh" }      
             },
             darcy_impes_internal_algorithm,
             darcy_impes_diagnostic_scalar_field
@@ -1636,17 +1535,6 @@ sweby_limiter =
     upwind_value_options?
   }
 
-ultimate_limiter =
-  ## See "The Ultimate Conservative Difference Scheme Applied
-  ## to Unsteady One-Dimensional Advection", B. P. Leonard,
-  ## 1991, Computer Methods in Applied Mechanics and
-  ## Engineering, 88, 17-74
-  element limiter {
-    attribute name {"Ultimate"},
-    field_based_cfl_number_options,
-    upwind_value_options?
-  }
-
 slope_options =
    (
       ## Control the upper and lower slopes of the NVD limiter
@@ -1783,9 +1671,9 @@ field_based_cfl_number_options =
       ## The Courant Number definition to be used.
       ##
       ## This uses the control volume approximation of the CFL Number 
-      ## and the DarcyVelocityOverSaturation for porous media flow.
+      ## and the DarcyVelocity for porous media flow.
       element courant_number {
-         attribute name { "DarcyVelocityOverSaturationCFL" }
+         attribute name { "DarcyVelocityCFL" }
       }
    )
 
