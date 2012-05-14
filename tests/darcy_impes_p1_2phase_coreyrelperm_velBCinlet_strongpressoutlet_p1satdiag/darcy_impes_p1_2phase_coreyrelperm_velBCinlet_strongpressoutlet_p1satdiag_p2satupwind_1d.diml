@@ -473,9 +473,9 @@ for n in range(field.node_count):
    
    sat_n = sat.node_val(n)
    
-   sat_2_n = 1.0 - sat_n
+   sat_1_n = 1.0 - sat_n
    
-   relperm_n = (1.0 - sat_2_n ** 2.0) * (1.0 - sat_2_n)**2.0
+   relperm_n = (1.0 - sat_1_n ** 2.0) * (1.0 - sat_1_n)**2.0
    
    field.set(n,relperm_n)</string_value>
         </algorithm>
