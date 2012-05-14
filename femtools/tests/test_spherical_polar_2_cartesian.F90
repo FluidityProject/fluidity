@@ -14,7 +14,8 @@ subroutine test_spherical_polar_2_cartesian
   type(vector_field), pointer :: PolarCoordinate
   type(vector_field) :: difference
   integer :: node
-  real, dimension(3) :: X, RTP
+  real, dimension(3) :: X, RTP !Arrays containing a signel node's position vector
+                               ! components in certesian & spherical-polar bases.
   logical :: fail
 
   call vtk_read_state("data/on_sphere_rotations/spherical_shell_withFields.vtu", state)
