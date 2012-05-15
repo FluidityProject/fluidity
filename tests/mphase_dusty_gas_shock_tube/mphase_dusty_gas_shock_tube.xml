@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<testproblem>
+   
+  <name>mphase_dusty_gas_shock_tube</name>
+  <owner userid="ctj10"/>
+  <tags>flml</tags>
+  
+  <problem_definition length="special" nprocs="1">
+    <command_line>make run</command_line>
+  </problem_definition>
+  
+  <variables>
+    <variable name="time" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_dusty_gas_shock_tube.stat")
+time=s["ElapsedTime"]["value"]
+    </variable>
+  </variables>
+    
+  <pass_tests>
+  </pass_tests>
+  
+  <warn_tests>
+  </warn_tests>
+  
+</testproblem>
