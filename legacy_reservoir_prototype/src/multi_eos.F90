@@ -427,7 +427,7 @@
 
       END DO Loop_ELE
 
-      DEALLOCATE( INV_PERM )
+      DEALLOCATE( PERM, INV_PERM )
 
       ewrite(3,*) 'Leaving calculate_absorption2'
 

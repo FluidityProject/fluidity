@@ -177,13 +177,13 @@ contains
     ! Variables below may change on this subroutine, however this should be changed later
     real, dimension( x_nonods ), intent( inout ) :: x, y, z
     real, dimension( xu_nonods ), intent( inout ) :: xu, yu, zu
-    real, dimension( u_nonods * nphase * ndim ), intent( inout ) :: nu, nv, nw, ug, vg, wg
+    real, dimension( u_nonods * nphase ), intent( inout ) :: nu, nv, nw, ug, vg, wg
     real, dimension( mat_nonods, ndim * nphase, ndim * nphase ), intent( inout ) :: u_abs_stab
     real, intent( in ) :: Mobility
     real, dimension( mat_nonods, ndim * nphase, ndim * nphase ), intent( inout ) :: u_absorb
     real, dimension( cv_nonods, nphase, nphase ), intent( inout ) :: v_absorb
     real, dimension( cv_nonods, nphase, nphase ), intent( inout ) :: comp_absorb
-    real, dimension( ndim * u_pha_nonods ), intent( inout ) :: u_source
+    real, dimension( u_pha_nonods ), intent( inout ) :: u_source
     real, dimension( cv_pha_nonods ), intent( inout ) :: v_source, comp_source
     real, dimension( cv_nonods, nphase, nphase ), intent( inout ) :: t_absorb
     real, dimension( cv_pha_nonods ), intent( inout ) :: t_source
@@ -194,19 +194,19 @@ contains
     real, dimension( ncomp, ncomp_diff_coef, nphase ), intent( in ) :: comp_diff_coef
 
     ! Variables initialised before but will change during computational time
-    real, dimension( u_pha_nonods ), intent( inout ) :: u, v, w
+    real, dimension( u_nonods * nphase ), intent( inout ) :: u, v, w
     real, dimension( cv_pha_nonods ), intent( inout ) :: den, satura
     real, dimension( cv_pha_nonods * ncomp ), intent( inout ) :: comp
     real, dimension( cv_pha_nonods ), intent( inout ) :: t
     real, dimension( cv_nonods ), intent( inout ) :: p, cv_p
     real, dimension( totele ), intent( inout ) :: volfra_pore
     real, dimension( totele, ndim, ndim ), intent( inout ) :: perm
-    real, dimension( u_pha_nonods ), intent( inout ) :: uold, vold, wold
+    real, dimension( u_nonods * nphase ), intent( inout ) :: uold, vold, wold
     real, dimension( cv_pha_nonods ), intent( inout ) :: denold, saturaold
     real, dimension( cv_pha_nonods * ncomp ), intent( inout ) :: compold
     real, dimension( cv_pha_nonods ), intent( inout ) :: uden, udenold, deriv, told
     real, dimension( cv_nonods ), intent( inout ) :: pold, cv_pold
-    real, dimension( u_pha_nonods ), intent( inout ) :: nuold, nvold, nwold
+    real, dimension( u_nonods * nphase ), intent( inout ) :: nuold, nvold, nwold
 
     real, dimension( ncomp, nphase, nphase ), intent( inout ) :: K_Comp
     real, intent( inout ) :: alpha_beta

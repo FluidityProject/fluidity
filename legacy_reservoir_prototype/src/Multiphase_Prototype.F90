@@ -230,12 +230,12 @@ module mp_prototype
       nlenmcy = u_pha_nonods + cv_nonods
 
       ! Set up scalar and vector fields for previous time-step
-      allocate( uold( u_pha_nonods ))
-      allocate( vold( u_pha_nonods ))
-      allocate( wold( u_pha_nonods ))
-      allocate( nuold( u_pha_nonods ))
-      allocate( nvold( u_pha_nonods ))
-      allocate( nwold( u_pha_nonods ))
+      allocate( uold( u_nonods * nphase  ))
+      allocate( vold( u_nonods * nphase ))
+      allocate( wold( u_nonods * nphase ))
+      allocate( nuold( u_nonods * nphase ))
+      allocate( nvold( u_nonods * nphase ))
+      allocate( nwold( u_nonods * nphase ))
       allocate( denold( cv_pha_nonods ))
       allocate( uden( cv_pha_nonods ))
       allocate( udenold( cv_pha_nonods ))
