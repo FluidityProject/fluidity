@@ -43,7 +43,8 @@
     implicit none
 
     private
-    public nodalise_bubble_basis, get_lumped_mass_p2b, project_to_p2b_lumped
+    public nodalise_bubble_basis, get_lumped_mass_p2b,&
+         & project_to_p2b_lumped, get_p2b_lumped_mass_quadrature
   contains
 
     subroutine nodalise_bubble_basis(shape)

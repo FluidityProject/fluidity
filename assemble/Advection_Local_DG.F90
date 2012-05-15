@@ -1018,8 +1018,8 @@ module advection_local_DG
     !!< d/dt (D*T) + div(Flux*T) = diffusion terms.
     !!< Done on the vorticity mesh
     type(state_type), intent(inout) :: state
-    type(scalar_field), intent(in) :: D,D_old
-    type(scalar_field), intent(inout) :: T
+    type(scalar_field), intent(in),target :: D,D_old
+    type(scalar_field), intent(inout),target :: T
     type(vector_field), intent(in) :: Flux
     !
     type(csr_sparsity), pointer :: T_sparsity
@@ -1029,12 +1029,29 @@ module advection_local_DG
     integer :: ele
     real :: dt, t_theta
     logical :: lump_mass
-
+    type(element_type), pointer :: T_mass_shape_ptr,D_mass_shape_ptr,&
+         X_mass_shape_ptr
+    type(element_type), target :: T_mass_shape,D_mass_shape,X_mass_shape
+    type(quadrature_type) :: lumped_mass_quad
+    
     if(have_option('/material_phase::Fluid/scalar_field::Vorticity/prognosti&
          &c/vorticity_equation/lump_mass')) then
        lump_mass = .true.
+       call get_p2b_lumped_mass_quadrature(lumped_mass_quad)
+       T_mass_shape = make_element_shape_from_element(T%mesh%shape, &
+            quad=lumped_mass_quad)
+       D_mass_shape = make_element_shape_from_element(D%mesh%shape, &
+            quad=lumped_mass_quad)
+       X_mass_shape = make_element_shape_from_element(X%mesh%shape, &
+            quad=lumped_mass_quad)
+       T_mass_shape_ptr => T_mass_shape
+       D_mass_shape_ptr => D_mass_shape
+       X_mass_shape_ptr => X_mass_shape
     else
        lump_mass = .false.
+       T_mass_shape_ptr => T%mesh%shape
+       D_mass_shape_ptr => D%mesh%shape
+       X_mass_shape_ptr => X%mesh%shape
     end if
 
     !set up matrix and rhs
@@ -1054,62 +1071,64 @@ module advection_local_DG
 
     do ele = 1, ele_count(T)
        call construct_advection_cg_tracer_ele(T_rhs,adv_mat,T,D,D_old,Flux,&
-            & X,dt,t_theta,ele,lump_mass)
+            & X,dt,t_theta,ele,T_mass_shape_ptr,D_mass_shape_ptr,&
+            X_mass_shape_ptr)
     end do
 
     !DEBUGGING
-    ewrite(1,*), maxval(abs(T_rhs%val))
-    call scale(T_rhs,-1.0)
-    call mult_addto(T_rhs,T_lumped_mass_next,T)
-    ewrite(1,*), maxval(abs(T_rhs%val))
-
     !call petsc_solve(T,adv_mat,T_rhs)
 
     !ewrite(1,*) maxval(T%val), minval(T%val)
     stop
 
     !deallocate everything
+    if(lump_mass) then
+       call deallocate(T_mass_shape)
+       call deallocate(D_mass_shape)
+       call deallocate(X_mass_shape)
+       call deallocate(lumped_mass_quad)
+    end if
     call deallocate(adv_mat)
     call deallocate(T_rhs)
 
   end subroutine solve_advection_cg_tracer
   
   subroutine construct_advection_cg_tracer_ele(T_rhs,adv_mat,T,D,D_old,Flux,&
-       & X,dt,t_theta,ele,lump_mass)
+       & X,dt,t_theta,ele,T_mass_shape,D_mass_shape,X_mass_shape)
     type(scalar_field), intent(in) :: D,D_old,T
     type(scalar_field), intent(inout) :: T_rhs
     type(csr_matrix), intent(inout) :: Adv_mat
     type(vector_field), intent(in) :: X, Flux
+    type(element_type), intent(in) :: T_mass_shape,D_mass_shape,X_mass_shape
     integer, intent(in) :: ele
     real, intent(in) :: dt, t_theta
-    logical, intent(in) :: lump_mass
     !
     real, dimension(ele_loc(T,ele),ele_loc(T,ele)) :: l_adv_mat
     real, dimension(ele_loc(T,ele)) :: l_rhs
     real, dimension(Flux%dim,ele_ngi(Flux,ele)) :: Flux_gi
-    real, dimension(ele_ngi(X,ele)) :: detwei, D_gi, T_gi, D_old_gi
+    real, dimension(ele_ngi(X,ele)) :: detwei, T_gi
+    real, dimension(X_mass_shape%ngi) :: detwei_m, D_gi, T_m_gi, D_old_gi
     real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+    real, dimension(mesh_dim(X), X%dim, X_mass_shape%ngi) :: J_m
     type(element_type), pointer :: T_shape
 
     T_shape => ele_shape(T,ele)
-    D_gi = ele_val_at_quad(D,ele)
-    D_old_gi = ele_val_at_quad(D_old,ele)
+    D_gi = matmul(transpose(D_mass_shape%n),ele_val(D,ele))
+    D_old_gi = matmul(transpose(D_mass_shape%n),ele_val(D_old,ele))
     T_gi = ele_val_at_quad(T,ele)
+    T_m_gi = matmul(transpose(T_mass_shape%n),ele_val(T,ele))
     Flux_gi = ele_val_at_quad(Flux,ele)
 
     !Mass terms
-    if(.not.lump_mass) then
     ! Get J and detJ
-       call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), detwei&
-            &=detwei, J=J)
-       l_adv_mat = shape_shape(T_shape,T_shape,D_gi*detwei)
-       l_rhs = shape_rhs(T_shape,T_gi*D_old_gi*detwei)
-    else
-       l_adv_mat = 0.
-       l_rhs = 0.
-    end if
+    call compute_jacobian(ele_val(X,ele), X_mass_shape, detwei&
+         &=detwei_m, J=J_m)
+    l_adv_mat = shape_shape(T_mass_shape,T_mass_shape,D_gi*detwei_m)
+    l_rhs = shape_rhs(T_mass_shape,T_m_gi*D_old_gi*detwei_m)
 
     !Advection terms
+    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), detwei&
+         &=detwei, J=J)
     l_adv_mat = l_adv_mat + t_theta*dshape_dot_vector_shape(&
          T_shape%dn,Flux_gi,T_shape,T_shape%quadrature%weight)
     l_rhs = l_rhs - (1-t_theta)*dshape_dot_vector_rhs(&
