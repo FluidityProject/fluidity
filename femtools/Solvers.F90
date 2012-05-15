@@ -2331,7 +2331,12 @@ function create_null_space_from_options(null_space_option_path, petsc_numbering,
        FLExit("Requested null space removal on specific rotations but have not specified which rotations.")
      end if
    else if(have_option(trim(null_space_option_path)//'/all_rotations')) then
-     rot_mask = .true.
+     rot_mask = .false.
+     if (dim==3) then
+       rot_mask = .true.
+     else if (dim==2) then
+       rot_mask(3) = .true.
+     end if
    else
      rot_mask = .false.
    end if
