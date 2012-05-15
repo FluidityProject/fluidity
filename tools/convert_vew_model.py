@@ -227,7 +227,7 @@ def eval_expr(t):
     out = "((" + eval_expr(t[2]) + ") if (" + eval_expr(t[1]) + ") else (" + eval_expr(t[3]) + "))"
 
   elif t[0] == varietysum:
-    out = eval_expr(t[1])
+    out = "sum(" + eval_expr(t[1]) + ".values())"
 
   elif t[0] == varhist:
     hist_ind = int(float(eval_expr(t[2])))
@@ -304,9 +304,9 @@ def eval_stmt(t):
     ing_threshold = eval_expr(t[2])
     ing_amount = eval_expr(t[3])
     
-    code = "vars['PRequest'] = {}\n" + Indent.line()
+    #code = "vars['P'] = {}\n" + Indent.line()
     Indent.inc()
-    code = code + "for variety in env['P'].keys():\n" + Indent.line()
+    code = "for variety in vars['PRequest'].keys():\n" + Indent.line()
     Indent.dec()
     code = code + "vars['PRequest'][variety] = (dt * " + ing_amount + ") if (" + species_conc + " > " + ing_threshold + ") else 0.0"
     out = code

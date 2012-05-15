@@ -47,7 +47,8 @@ void lebiology_agent_init_c(char *fg, int fglen, char *key, int keylen, double v
  *          return agent
  */
 void lebiology_agent_update_c(char *fg, int fglen, char *key, int keylen, char *food, int foodlen, 
-                              double vars[], int n_vars, double envvals[], int n_envvals, double fvariety[], int n_fvariety, 
+                              double vars[], int n_vars, double envvals[], int n_envvals, 
+                              double fvariety[], double frequest[], double fingest[], int n_fvariety, 
                               double *dt, int *stat);
 
 /* Agent motion interface:

@@ -93,7 +93,7 @@ module lebiology_python
     end subroutine lebiology_agent_init
 
     subroutine lebiology_agent_update(fg, fglen, key, keylen, food, foodlen, &
-           vars, n_vars, envvals, n_envvals, fvariety, n_fvariety, dt, stat) &
+           vars, n_vars, envvals, n_envvals, fvariety, frequest, fingest, n_fvariety, dt, stat) &
            bind(c, name='lebiology_agent_update_c')
       use :: iso_c_binding
       implicit none
@@ -104,7 +104,7 @@ module lebiology_python
       character(kind=c_char), dimension(foodlen), intent(in) :: food
       real(c_double), dimension(n_vars), intent(inout) :: vars
       real(c_double), dimension(n_envvals), intent(inout) :: envvals
-      real(c_double), dimension(n_fvariety), intent(inout) :: fvariety
+      real(c_double), dimension(n_fvariety), intent(inout) :: fvariety, frequest, fingest
       real(c_double), intent(in) :: dt
       integer(c_int), intent(out) :: stat
     end subroutine lebiology_agent_update
@@ -287,7 +287,7 @@ contains
     call lebiology_agent_update(trim(fgroup%name), len_trim(fgroup%name), &
              trim(key), len_trim(key), trim(foodname), len_trim(foodname), &
              agent%biology, size(agent%biology), envfield_vals, size(envfield_vals), &
-             foodfield_vals, size(foodfield_vals), dt, stat)
+             foodfield_vals, agent%food_requests, agent%food_ingests, size(foodfield_vals), dt, stat)
 
     do v=1, size(agent%biology)
        if (ieee_is_nan(agent%biology(v))) then

@@ -1428,79 +1428,81 @@ contains
                    dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
          end do
 
-         ! Allocate food concentrations
-         do f=1, size(fgroup%food_sets)
-            call allocate_and_insert_scalar_field(trim(fgroup%food_sets(f)%conc_field_path), &
-                   state, parent_mesh="BiologyMesh", field_name=trim(fgroup%food_sets(f)%conc_field_name), &
-                   dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
-
-            ! Allocate FoodChemIngested fields
-            do c=1, size(fgroup%food_sets(f)%ingest_chem_inds)
-               chemIng_var => fgroup%variables( fgroup%food_sets(f)%ingest_chem_inds(c) )
-               call allocate_and_insert_scalar_field(trim(chemIng_var%field_path), &
-                   state, parent_mesh="BiologyMesh", field_name=trim(fgroup%name)//trim(fgroup%food_sets(f)%name)//trim(chemIng_var%name), &
-                   dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
-            end do
-         end do
-
          do v=1, size(fgroup%variables)
-            if (fgroup%variables(v)%field_type == BIOFIELD_DIAG .or. &
-                fgroup%variables(v)%field_type == BIOFIELD_UPTAKE .or. &
-                fgroup%variables(v)%field_type == BIOFIELD_RELEASE .or. &
-                fgroup%variables(v)%field_type == BIOFIELD_INGESTED .or. &
-                fgroup%variables(v)%field_type == BIOFIELD_FOOD_REQUEST .or. &
-                fgroup%variables(v)%field_type == BIOFIELD_FOOD_INGEST ) then
-
-               ! Allocate primary diagnostic fields, ie. <FG><Variable><Stage>
-               do i=1, size(fgroup%stage_names%ptr)
-                  call allocate_and_insert_scalar_field(trim(fgroup%variables(v)%field_path), &
-                         state, parent_mesh="BiologyMesh", &
-                         field_name=trim(fgroup%variables(v)%field_name)//trim(fgroup%stage_names%ptr(i)), &
-                         dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
-               end do
-
-               ! Allocate the stage-aggregated diagnostic field, ie. <FG><Variable>
-               if (stage_aggregate(fgroup%variables(v))) then
-                  call allocate_and_insert_scalar_field(trim(fgroup%variables(v)%field_path), &
-                         state, parent_mesh="BiologyMesh", &
-                         field_name=trim(fgroup%variables(v)%field_name), &
-                         dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
-               end if
-            end if
-
-            ! Allocate global aggregated request and depletion fields
-            ! Note: This should technically go above the FG, but works for the moment...
-            if (fgroup%variables(v)%field_type == BIOFIELD_UPTAKE) then
-               call allocate_and_insert_scalar_field(trim(fgroup%variables(v)%field_path), &
-                      state, parent_mesh="BiologyMesh", &
-                      field_name=trim(fgroup%variables(v)%chemfield)//"Request", &
-                      dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
-
-               call allocate_and_insert_scalar_field(trim(fgroup%variables(v)%depletion_field_path), &
-                      state, parent_mesh="BiologyMesh", &
-                      field_name=trim(fgroup%variables(v)%chemfield)//"Depletion", &
-                      dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
-            end if
-
-            ! Allocate global aggregated release field
-            if (fgroup%variables(v)%field_type == BIOFIELD_RELEASE) then
-               call allocate_and_insert_scalar_field(trim(fgroup%variables(v)%field_path), &
-                      state, parent_mesh="BiologyMesh", &
-                      field_name=trim(fgroup%variables(v)%chemfield)//"Release", &
-                      dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
-            end if
-
-            ! Allocate depletion for food requests
-            if (fgroup%variables(v)%field_type == BIOFIELD_FOOD_REQUEST) then
-               call allocate_and_insert_scalar_field(trim(fgroup%variables(v)%depletion_field_path), &
-                      state, parent_mesh="BiologyMesh", &
-                      field_name=trim(fgroup%variables(v)%field_name)//"Depletion", &
-                      dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
-            end if
+            call insert_single_le_biology_field(state, fgroup, fgroup%variables(v))
          end do
+
+         if (size(fgroup%food_sets) > 0) then
+            do v=1, size(fgroup%food_sets(1)%varieties)
+               call insert_single_le_biology_field(state, fgroup, fgroup%food_sets(1)%varieties(v)%vrequest)
+               call insert_single_le_biology_field(state, fgroup, fgroup%food_sets(1)%varieties(v)%vingest)
+            end do
+         end if
+
       end do
 
     end subroutine allocate_and_insert_lagrangian_biology_fields
+
+    subroutine insert_single_le_biology_field(state, fgroup, variable)
+      type(state_type), intent(inout) :: state
+      type(functional_group), pointer, intent(inout) :: fgroup
+      type(le_variable), intent(inout) :: variable
+
+      if (variable%field_type == BIOFIELD_DIAG .or. &
+          variable%field_type == BIOFIELD_UPTAKE .or. &
+          variable%field_type == BIOFIELD_RELEASE .or. &
+          variable%field_type == BIOFIELD_INGESTED .or. &
+          variable%field_type == BIOFIELD_FOOD_REQUEST .or. &
+          variable%field_type == BIOFIELD_FOOD_INGEST ) then
+
+         ! Allocate primary diagnostic fields, ie. <FG><Variable><Stage>
+         do i=1, size(fgroup%stage_names%ptr)
+            call allocate_and_insert_scalar_field(trim(variable%field_path), &
+                   state, parent_mesh="BiologyMesh", &
+                   field_name=trim(variable%field_name)//trim(fgroup%stage_names%ptr(i)), &
+                   dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+         end do
+
+         ! Allocate the stage-aggregated diagnostic field, ie. <FG><Variable>
+         if (stage_aggregate(variable)) then
+            call allocate_and_insert_scalar_field(trim(variable%field_path), &
+                   state, parent_mesh="BiologyMesh", &
+                   field_name=trim(variable%field_name), &
+                   dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+         end if
+      end if
+
+      ! Allocate global aggregated request and depletion fields
+      ! Note: This should technically go above the FG, but works for the moment...
+      if (variable%field_type == BIOFIELD_UPTAKE) then
+         call allocate_and_insert_scalar_field(trim(variable%field_path), &
+                state, parent_mesh="BiologyMesh", &
+                field_name=trim(variable%chemfield)//"Request", &
+                dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+
+         call allocate_and_insert_scalar_field(trim(variable%depletion_field_path), &
+                state, parent_mesh="BiologyMesh", &
+                field_name=trim(variable%chemfield)//"Depletion", &
+                dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+      end if
+
+      ! Allocate global aggregated release field
+      if (variable%field_type == BIOFIELD_RELEASE) then
+         call allocate_and_insert_scalar_field(trim(variable%field_path), &
+                state, parent_mesh="BiologyMesh", &
+                field_name=trim(variable%chemfield)//"Release", &
+                dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+      end if
+
+      ! Allocate depletion for food requests
+      if (variable%field_type == BIOFIELD_FOOD_REQUEST) then
+         call allocate_and_insert_scalar_field(trim(variable%depletion_field_path), &
+                state, parent_mesh="BiologyMesh", &
+                field_name=trim(variable%field_name)//"Depletion", &
+                dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+      end if
+
+    end subroutine insert_single_le_biology_field
 
   end subroutine allocate_and_insert_fields
 

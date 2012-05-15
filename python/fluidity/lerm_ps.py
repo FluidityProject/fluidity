@@ -199,7 +199,7 @@ def update_OW5_Copepod(param, vars, env, dt):
 
   ### Overwintering phase OW5 ###
   R_ow = (R_bas * param['delta'])
-  if (param['d_year'] == 2.0):
+  if (param['d_year'] == 75.0):
     vars['Stage'] = stage_id('Copepod', 'OWA5')
 
   ### Assimilation efficiency ###
@@ -280,7 +280,7 @@ def update_OWA5_Copepod(param, vars, env, dt):
 
   ### Ingestion ###
   V_gut_new = (param['vol_gut'] * L)
-  I_gCells = vars['PIngestedCells']
+  I_gCells = sum(vars['PIngestedCells'].values())
   Clock_new = (((vars['Clock'] + 1.0)) if ((vars['Clock'] < 48.0)) else (0.0))
   Prey_vol = (param['vPrey'] * I_gCells)
   Prey_VolDaily_new = (((vars['Prey_VolDaily'] + Prey_vol)) if ((vars['Clock'] < 48.0)) else (0.0))
@@ -310,8 +310,7 @@ def update_OWA5_Copepod(param, vars, env, dt):
   I_gv = {}
   for variety in env['P'].keys():
     I_gv[variety] = min((((math.pi * math.pow((L * 2.9e-5), 2.0) * 1.0 * env['P'][variety] * 1.0e-6 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7e-8 * env['P'][variety]))))) if ((vars['V_gut'] > 0.0)) else (I_max)), I_max)
-  vars['PRequest'] = {}
-  for variety in env['P'].keys():
+  for variety in vars['PRequest'].keys():
     vars['PRequest'][variety] = (dt * I_gv[variety]) if (env['P'][variety] > param[variety]['P_min']) else 0.0
 
   ### Assimilation efficiency ###
@@ -432,7 +431,7 @@ def update_C5_Copepod(param, vars, env, dt):
   I_t = ((2.0 - vars['Gut_f']) * min((param['S_max'] / S), 1.0))
 
   ### Night-time motion ###
-  Dlocal = env['P'][variety]
+  Dlocal = sum(env['P'].values())
   Kn_calc2 = (0.4 * (2.0 - vars['Gut_f']))
   k_v_night = ((((((-(vars['Direction_1'] * Kn_calc2)) if ((Dlocal < vars['Dlocal_previous'])) else ((vars['Direction_1'] * Kn_calc2)))) if ((vars['z'] < 250.0)) else (-1.0))) if ((vars['z'] > param['MLDepth'])) else (0.0))
   Direction_new = ((1.0) if ((k_v_night > 0.0)) else (-1.0))
@@ -448,7 +447,7 @@ def update_C5_Copepod(param, vars, env, dt):
 
   ### Ingestion ###
   V_gut_new = (param['vol_gut'] * L)
-  I_gCells = vars['PIngestedCells']
+  I_gCells = sum(vars['PIngestedCells'].values())
   Clock_new = (((vars['Clock'] + 1.0)) if ((vars['Clock'] < 48.0)) else (0.0))
   Prey_vol = (param['vPrey'] * I_gCells)
   Prey_VolDaily_new = (((vars['Prey_VolDaily'] + Prey_vol)) if ((vars['Clock'] < 48.0)) else (0.0))
@@ -478,8 +477,7 @@ def update_C5_Copepod(param, vars, env, dt):
   I_gv = {}
   for variety in env['P'].keys():
     I_gv[variety] = min((((math.pi * math.pow((L * 2.9e-5), 2.0) * 1.0 * env['P'][variety] * 1.0e-6 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7e-8 * env['P'][variety]))))) if ((vars['V_gut'] > 0.0)) else (I_max)), I_max)
-  vars['PRequest'] = {}
-  for variety in env['P'].keys():
+  for variety in vars['PRequest'].keys():
     vars['PRequest'][variety] = (dt * I_gv[variety]) if (env['P'][variety] > param[variety]['P_min']) else 0.0
 
   ### Assimilation efficiency ###
@@ -763,8 +761,7 @@ def update_Existance_Basal_predator(param, vars, env, dt):
   I_gv = {}
   for variety in env['P'].keys():
     I_gv[variety] = min(((0.3 + (0.7 * (env['Temperature'] / param['T_ref']))) * ((((env['P'][variety] - param[variety]['P_minv']) * ((env['P'][variety] - param[variety]['P_minv']) / ((env['P'][variety] - param[variety]['P_minv']) + param[variety]['k_Iv'])) * param[variety]['K_p'])) if ((env['P'][variety] > param[variety]['P_minv'])) else (0.0))), (param['I_max40'] / param[variety]['P_size']))
-  vars['PRequest'] = {}
-  for variety in env['P'].keys():
+  for variety in vars['PRequest'].keys():
     vars['PRequest'][variety] = (dt * I_gv[variety]) if (env['P'][variety] > param[variety]['P_minv']) else 0.0
 
   ### Egestion ###

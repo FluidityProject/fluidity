@@ -90,6 +90,7 @@ module detector_data_types
 
      !! Biology variables
      real, dimension(:), allocatable :: biology
+     real, dimension(:), allocatable :: food_requests, food_ingests
 
      !! Counter for internal Random Walk sub-cycling
      integer :: rw_subsubcycles = 1
@@ -122,33 +123,6 @@ module detector_data_types
     character(len=PYTHON_FUNC_LEN) :: python_code
   end type random_walk
 
-  type food_variety
-    ! Name is equivalent to the target's stage name
-    character(len=FIELD_NAME_LEN) :: name
-
-    ! Target agent list
-    type(detector_list_ptr) :: target_list
-    ! Target's concentration field
-    character(len=FIELD_NAME_LEN) :: conc_field
-  end type food_variety
-
-  type food_set
-    character(len=FIELD_NAME_LEN) :: name
-    ! Functional Group of our target
-    character(len=FIELD_NAME_LEN) :: target_fgroup
-
-    ! List of target varieties
-    type(food_variety), dimension(:), allocatable :: varieties
-
-    ! Variable indices of the chemical pools to ingest
-    integer, dimension(:), allocatable :: ingest_chem_inds
-    ! Concentration field
-    character(len=FIELD_NAME_LEN) :: conc_field_name
-    character(len=OPTION_PATH_LEN) :: conc_field_path
-    ! Indices for the associated request/ingest variables
-    integer :: request_ind, ingest_ind
-  end type food_set
-
   ! Type holding meta-information about biology variables of LE agents
   type le_variable
     character(len=FIELD_NAME_LEN) :: name
@@ -172,6 +146,31 @@ module detector_data_types
     ! Flag signalling path integration
     logical :: path_integration = .false.
   end type le_variable
+
+  type food_variety
+    ! Name is equivalent to the target's stage name
+    character(len=FIELD_NAME_LEN) :: name
+
+    ! Target agent list
+    type(detector_list_ptr) :: target_list
+    ! Target's concentration field
+    character(len=FIELD_NAME_LEN) :: conc_field
+
+    ! Indices for the associated request/ingest variables
+    type(le_variable) :: vrequest, vingest
+  end type food_variety
+
+  type food_set
+    character(len=FIELD_NAME_LEN) :: name
+    ! Functional Group of our target
+    character(len=FIELD_NAME_LEN) :: target_fgroup
+
+    ! List of target varieties
+    type(food_variety), dimension(:), allocatable :: varieties
+
+    ! Variable indices of the chemical pools to ingest
+    integer, dimension(:), allocatable :: ingest_chem_inds
+  end type food_set
 
   type detector_linked_list
      !! Doubly linked list implementation
