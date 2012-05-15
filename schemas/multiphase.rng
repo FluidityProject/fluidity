@@ -667,6 +667,18 @@ DEN = DEN_REF * EXP( COMPRES_FACTOR * ( P_oil * P_oil_ref ))
                         </element>
                       </optional>
                     </element>
+                    <element name="linear_in_pressure">
+                      <a:documentation>Linear in Pressure EOS 
+
+DEN = A * P + B
+</a:documentation>
+                      <element name="coefficient_A">
+                        <ref name="real"/>
+                      </element>
+                      <element name="coefficient_B">
+                        <ref name="real"/>
+                      </element>
+                    </element>
                   </choice>
                 </element>
               </choice>

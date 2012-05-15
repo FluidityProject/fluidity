@@ -137,18 +137,16 @@
   </physical_parameters>
   <material_phase name="phase1">
     <equation_of_state>
-      <incompressible>
-        <linear>
-          <specify_all>
-            <number_of_ccefficients>
-              <real_value rank="0">10</real_value>
-            </number_of_ccefficients>
-            <coefficients>
-              <real_value shape="10" rank="1">1 0 0 0 0 0 0 0 0 0</real_value>
-            </coefficients>
-          </specify_all>
-        </linear>
-      </incompressible>
+      <compressible>
+        <linear_in_pressure>
+          <coefficient_A>
+            <real_value rank="0">0.0001</real_value>
+          </coefficient_A>
+          <coefficient_B>
+            <real_value rank="0">0</real_value>
+          </coefficient_B>
+        </linear_in_pressure>
+      </compressible>
     </equation_of_state>
     <scalar_field name="Pressure" rank="0">
       <prognostic>
@@ -474,18 +472,16 @@
   </material_phase>
   <material_phase name="phase2">
     <equation_of_state>
-      <incompressible>
-        <linear>
-          <specify_all>
-            <number_of_ccefficients>
-              <real_value rank="0">10</real_value>
-            </number_of_ccefficients>
-            <coefficients>
-              <real_value shape="10" rank="1">1 0 0 0 0 0 0 0 0 0</real_value>
-            </coefficients>
-          </specify_all>
-        </linear>
-      </incompressible>
+      <compressible>
+        <linear_in_pressure>
+          <coefficient_A>
+            <real_value rank="0">0.0001</real_value>
+          </coefficient_A>
+          <coefficient_B>
+            <real_value rank="0">0</real_value>
+          </coefficient_B>
+        </linear_in_pressure>
+      </compressible>
     </equation_of_state>
     <scalar_field name="Pressure" rank="0">
       <aliased material_phase_name="phase1" field_name="Pressure"/>

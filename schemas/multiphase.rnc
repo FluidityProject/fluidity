@@ -557,7 +557,19 @@ start =
                            element reference_density {
                               real
                            }?
-                        }  
+                        }|
+                        ## Linear in Pressure EOS 
+                        ##
+                        ## DEN = A * P + B
+                        ##
+                        element linear_in_pressure {
+                           element coefficient_A { 
+                              real 
+                           },
+                           element coefficient_B {
+                              real
+                           }
+                        }
                      }
                   )
                )
