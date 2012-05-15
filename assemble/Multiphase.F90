@@ -46,7 +46,7 @@
       private
       public :: get_phase_submaterials, get_nonlinear_volume_fraction, &
                 calculate_diagnostic_phase_volume_fraction, &
-                add_fluid_particle_drag
+                add_fluid_particle_drag, add_heat_transfer
 
    contains
 
@@ -543,4 +543,281 @@
 
       end subroutine add_fluid_particle_drag
 
+      
+      !! Multiphase energy interaction term Q_i
+      !! to be added to the RHS of the internal energy equation.
+      subroutine add_heat_transfer(state, istate, x, internal_energy, matrix, rhs)
+         !!< This computes the inter-phase heat transfer term.
+         !!< Only between fluid and particle phase pairs.
+         
+         type(state_type), dimension(:), intent(inout) :: state     
+         integer, intent(in) :: istate
+         type(vector_field), intent(in) :: x
+         type(scalar_field), intent(in) :: internal_energy         
+         type(csr_matrix), intent(inout) :: matrix
+         type(scalar_field), intent(inout) :: rhs
+         
+         ! Local variables              
+         integer :: ele
+         type(element_type) :: test_function
+         type(element_type), pointer :: internal_energy_shape
+         integer, dimension(:), pointer :: internal_energy_nodes
+         logical :: dg
+             
+         type(vector_field), pointer :: velocity_fluid
+         
+         real :: dt, theta
+         
+         logical :: is_particle_phase
+         logical :: not_found ! Error flag. Have we found the fluid phase?
+         integer :: i, istate_fluid, istate_particle
+         
+         
+         ewrite(1, *) "Entering add_heat_transfer"
+               
+         ! Get the timestepping options
+         call get_option("/timestepping/timestep", dt)
+         call get_option(trim(internal_energy%option_path)//"/prognostic/temporal_discretisation/theta", &
+                        theta)
+
+         ! Are we using a discontinuous Galerkin discretisation?
+         dg = continuity(internal_energy) < 0
+
+         ! Is this phase a particle phase?
+         is_particle_phase = have_option("/material_phase["//int2str(istate-1)//&
+                          &"]/multiphase_properties/particle_diameter")
+              
+         ! Retrieve the index of the fluid phase in the state array.
+         not_found = .true.
+         if(is_particle_phase) then    
+            do i = 1, size(state)
+               if(.not.have_option("/material_phase["//int2str(i-1)//&
+                        &"]/multiphase_properties/particle_diameter")) then
+
+                  velocity_fluid => extract_vector_field(state(i), "Velocity")
+                  ! Aliased material_phases will also not have a particle_diameter,
+                  ! so here we make sure that we don't count these as the fluid phase
+                  if(.not.aliased(velocity_fluid)) then
+                     istate_fluid = i
+                     if(.not.not_found) then
+                        FLExit("Heat transfer term does not currently support more than one fluid phase.")
+                     end if
+                     not_found = .false.
+                  end if
+
+               end if
+            end do
+         else
+            istate_fluid = istate
+            not_found = .false.
+         end if
+
+         if(not_found) then
+            FLExit("No fluid phase found for the heat transfer term.")
+         end if
+
+         ! If we have a fluid-particle pair, then assemble the heat transfer term
+         if(is_particle_phase) then
+            call assemble_heat_transfer(istate_fluid, istate)
+         else
+            state_loop: do i = 1, size(state)
+               if(i /= istate_fluid) then
+                  call assemble_heat_transfer(istate_fluid, i)
+               end if
+            end do state_loop
+         end if
+         
+         ewrite(1, *) "Exiting add_heat_transfer"
+         
+         contains
+
+            subroutine assemble_heat_transfer(istate_fluid, istate_particle)
+
+               integer, intent(in) :: istate_fluid, istate_particle
+
+               type(scalar_field), pointer :: vfrac_fluid, vfrac_particle
+               type(scalar_field), pointer :: density_fluid, density_particle
+               type(vector_field), pointer :: velocity_fluid, velocity_particle
+               type(scalar_field), pointer :: old_internal_energy_fluid, old_internal_energy_particle
+               type(vector_field), pointer :: nu_fluid, nu_particle ! Non-linear approximation to the Velocities
+               type(tensor_field), pointer :: viscosity_fluid
+               type(scalar_field) :: nvfrac_fluid, nvfrac_particle
+               real :: d ! Particle diameter
+               real :: k ! Effective gas conductivity
+               real :: C ! Specific heat of gas
+
+               ! Get the necessary fields to calculate the heat transfer term
+               velocity_fluid => extract_vector_field(state(istate_fluid), "Velocity")
+               velocity_particle => extract_vector_field(state(istate_particle), "Velocity")
+               if(.not.aliased(velocity_particle)) then ! Don't count the aliased material_phases
+                  
+                  vfrac_fluid => extract_scalar_field(state(istate_fluid), "PhaseVolumeFraction")
+                  vfrac_particle => extract_scalar_field(state(istate_particle), "PhaseVolumeFraction")
+                  density_fluid => extract_scalar_field(state(istate_fluid), "Density")
+                  density_particle => extract_scalar_field(state(istate_particle), "Density")
+                  viscosity_fluid => extract_tensor_field(state(istate_fluid), "Viscosity")
+         
+                  call get_option("/material_phase["//int2str(istate_particle-1)//&
+                           &"]/multiphase_properties/particle_diameter", d)
+                           
+                  call get_option("/material_phase["//int2str(istate_fluid-1)//&
+                           &"]/multiphase_properties/effective_conductivity", k)
+                           
+                  call get_option("/material_phase["//int2str(istate_fluid-1)//&
+                           &"]/multiphase_properties/specific_heat", C)
+
+                  ! Calculate the non-linear approximation to the PhaseVolumeFractions
+                  call allocate(nvfrac_fluid, vfrac_fluid%mesh, "NonlinearPhaseVolumeFraction")
+                  call allocate(nvfrac_particle, vfrac_particle%mesh, "NonlinearPhaseVolumeFraction")
+                  call zero(nvfrac_fluid)
+                  call zero(nvfrac_particle)
+                  call get_nonlinear_volume_fraction(state(istate_fluid), nvfrac_fluid)
+                  call get_nonlinear_volume_fraction(state(istate_particle), nvfrac_particle)
+                  
+                  ! Get the non-linear approximation to the Velocities
+                  nu_fluid => extract_vector_field(state(istate_fluid), "NonlinearVelocity")
+                  nu_particle => extract_vector_field(state(istate_particle), "NonlinearVelocity")
+                  
+                  ! Get the old internal energy fields
+                  old_internal_energy_fluid => extract_scalar_field(state(istate_fluid), "OldInternalEnergy")
+                  old_internal_energy_particle => extract_scalar_field(state(istate_particle), "OldInternalEnergy")
+      
+                  ! ----- Volume integrals over elements -------------           
+                  call profiler_tic(internal_energy, "element_loop")
+                  element_loop: do ele = 1, element_count(internal_energy)
+
+                     if(.not.dg .or. (dg .and. element_owned(internal_energy,ele))) then
+                        internal_energy_nodes => ele_nodes(internal_energy, ele)
+                        internal_energy_shape => ele_shape(internal_energy, ele)
+                        test_function = internal_energy_shape                         
+
+                        call add_heat_transfer_element(ele, test_function, internal_energy_shape, &
+                                                      x, internal_energy, matrix, rhs, &
+                                                      nvfrac_fluid, nvfrac_particle, &
+                                                      density_fluid, density_particle, &
+                                                      nu_fluid, nu_particle, &
+                                                      old_internal_energy_fluid, &
+                                                      old_internal_energy_particle, &
+                                                      viscosity_fluid, d, k, C)
+                     end if
+
+                  end do element_loop
+                  call profiler_toc(internal_energy, "element_loop")
+
+                  call deallocate(nvfrac_fluid)
+                  call deallocate(nvfrac_particle)
+               end if
+
+            end subroutine assemble_heat_transfer
+         
+            subroutine add_heat_transfer_element(ele, test_function, internal_energy_shape, &
+                                                x, internal_energy, matrix, rhs, &
+                                                vfrac_fluid, vfrac_particle, &
+                                                density_fluid, density_particle, &
+                                                nu_fluid, nu_particle, &
+                                                old_internal_energy_fluid, &
+                                                old_internal_energy_particle, &
+                                                viscosity_fluid, d, k, C)
+                                                         
+               integer, intent(in) :: ele
+               type(element_type), intent(in) :: test_function
+               type(element_type), intent(in) :: internal_energy_shape
+               type(vector_field), intent(in) :: x
+               type(scalar_field), intent(in) :: internal_energy
+               type(csr_matrix), intent(inout) :: matrix
+               type(scalar_field), intent(inout) :: rhs
+                    
+               type(scalar_field), intent(in) :: vfrac_fluid, vfrac_particle
+               type(scalar_field), intent(in) :: density_fluid, density_particle
+               type(vector_field), intent(in) :: nu_fluid, nu_particle
+               type(scalar_field), intent(in) :: old_internal_energy_fluid, old_internal_energy_particle
+               type(tensor_field), intent(in) :: viscosity_fluid    
+               real, intent(in) :: d, k, C 
+               
+               ! Local variables
+               real, dimension(ele_ngi(x,ele)) :: internal_energy_fluid_gi, internal_energy_particle_gi
+               real, dimension(ele_ngi(x,ele)) :: vfrac_fluid_gi, vfrac_particle_gi
+               real, dimension(ele_ngi(x,ele)) :: density_fluid_gi, density_particle_gi
+               real, dimension(x%dim, ele_ngi(x,ele)) :: nu_fluid_gi, nu_particle_gi
+               real, dimension(x%dim, x%dim, ele_ngi(x,ele)) :: viscosity_fluid_gi
+               
+               real, dimension(ele_loc(internal_energy,ele)) :: old_internal_energy_val
+               
+               real, dimension(ele_ngi(x,ele)) :: detwei
+               real, dimension(ele_ngi(x,ele)) :: coefficient_for_matrix, coefficient_for_rhs
+               real, dimension(ele_loc(internal_energy,ele)) :: rhs_addto
+               real, dimension(ele_loc(internal_energy,ele), ele_loc(internal_energy,ele)) :: matrix_addto
+               
+               real, dimension(ele_ngi(x,ele)) :: particle_re ! Particle Reynolds number
+               real, dimension(ele_ngi(x,ele)) :: particle_pr ! Particle Prandtl number
+               real, dimension(ele_ngi(x,ele)) :: velocity_magnitude ! |v_f - v_p|
+               
+               real, dimension(ele_ngi(x,ele)) :: Q ! heat transfer term = Q*(T_p - T_f)
+               real, dimension(ele_loc(internal_energy,ele), ele_loc(internal_energy,ele)) :: heat_transfer_matrix
+               real, dimension(ele_loc(internal_energy,ele)) :: heat_transfer_rhs
+               
+               integer ::  gi
+               
+               ! Compute detwei
+               call transform_to_physical(x, ele, detwei)
+               
+               ! Get the values of the necessary fields at the Gauss points
+               vfrac_fluid_gi = ele_val_at_quad(vfrac_fluid, ele)
+               vfrac_particle_gi = ele_val_at_quad(vfrac_particle, ele)
+               density_fluid_gi = ele_val_at_quad(density_fluid, ele)
+               density_particle_gi = ele_val_at_quad(density_particle, ele)
+               nu_fluid_gi = ele_val_at_quad(nu_fluid, ele)
+               nu_particle_gi = ele_val_at_quad(nu_particle, ele)
+               viscosity_fluid_gi = ele_val_at_quad(viscosity_fluid, ele)               
+         
+               ! Compute the magnitude of the relative velocity
+               do gi = 1, ele_ngi(x,ele)
+                  velocity_magnitude(gi) = norm2(nu_fluid_gi(:,gi) - nu_particle_gi(:,gi))
+               end do
+
+               ! Compute the particle Reynolds number
+               ! (Assumes isotropic viscosity for now)
+               particle_re = (density_fluid_gi*velocity_magnitude*d) / viscosity_fluid_gi(1,1,:)
+           
+               ! Compute the particle Prandtl number
+               ! (Assumes isotropic viscosity for now)
+               particle_pr = C*viscosity_fluid_gi(1,1,:)/k
+               
+                              
+               
+               
+               
+               if(is_particle_phase) then
+                  coefficient_for_matrix = -Q
+                  coefficient_for_rhs = -Q*(-internal_energy_fluid_gi)
+               else
+                  coefficient_for_matrix = -Q
+                  coefficient_for_rhs = Q*(internal_energy_particle_gi)
+               end if
+               
+               ! Form the element heat transfer matrix and RHS
+               heat_transfer_matrix = shape_shape(test_function, internal_energy_shape, detwei*coefficient_for_matrix)
+               heat_transfer_rhs = shape_rhs(test_function, coefficient_for_rhs*detwei)
+              
+               ! Add contribution  
+               matrix_addto = 0.0            
+               rhs_addto = 0.0
+               if(is_particle_phase) then
+                  old_internal_energy_val = ele_val(old_internal_energy_particle, ele)
+               else
+                  old_internal_energy_val = ele_val(old_internal_energy_fluid, ele)
+               end if
+
+               matrix_addto = matrix_addto - dt*theta*heat_transfer_matrix
+               rhs_addto = rhs_addto + matmul(heat_transfer_matrix, old_internal_energy_val) + heat_transfer_rhs
+               
+               ! Add to the internal energy equation's RHS
+               call addto(rhs, internal_energy_nodes, rhs_addto) 
+               ! Add to the matrix
+               call addto(matrix, internal_energy_nodes, internal_energy_nodes, matrix_addto)
+
+            end subroutine add_heat_transfer_element
+
+      end subroutine add_heat_transfer
+      
    end module multiphase_module
