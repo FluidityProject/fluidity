@@ -183,7 +183,7 @@ contains
     real, dimension( mat_nonods, ndim * nphase, ndim * nphase ), intent( inout ) :: u_absorb
     real, dimension( cv_nonods, nphase, nphase ), intent( inout ) :: v_absorb
     real, dimension( cv_nonods, nphase, nphase ), intent( inout ) :: comp_absorb
-    real, dimension( u_pha_nonods ), intent( inout ) :: u_source
+    real, dimension( u_nonods * nphase * ndim ), intent( inout ) :: u_source
     real, dimension( cv_pha_nonods ), intent( inout ) :: v_source, comp_source
     real, dimension( cv_nonods, nphase, nphase ), intent( inout ) :: t_absorb
     real, dimension( cv_pha_nonods ), intent( inout ) :: t_source

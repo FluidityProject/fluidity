@@ -226,7 +226,7 @@ contains
 
        print *,'FINDCMC_SMALL:',FINDCMC_SMALL
        print *,'COLCMC_SMALL(1:NCMC_SMALL):',COLCMC_SMALL(1:NCMC_SMALL)
-        stop 3292
+!        stop 3292
 
       allocate(cmc_small(ncmc_small))
       allocate(resid_dg(cv_nonods))
@@ -235,6 +235,7 @@ contains
       allocate(nods_sourou(x_nonods))
 
 
+      print *,'***forming cmc_small:'
       CMC_SMALL(1:NCMC_SMALL)=0.0
       DO dg_nod=1,CV_NONODS
          cty_nod=MAP_DG2CTY(dg_nod)
@@ -261,9 +262,11 @@ contains
 
          PRINT *,'GL_ITS=',GL_ITS
          ! SSOR smoother for the multi-grid method...
+         print *,'before solving:',p
          CALL SIMPLE_SOLVER( CMC, P, RHS,  &
               NCOLCMC, CV_NONODS, FINDCMC, COLCMC, MIDCMC,  &
               ERROR, RELAX, RELAX_DIAABS, RELAX_DIA, N_LIN_ITS )
+         print *,'after solving:',p
 
          resid_dg=rhs
          do dg_nod=1,cv_nonods
@@ -337,8 +340,8 @@ contains
       MX_NODS_ROW_SMALL=0
       DO dg_nod=1,CV_NONODS
          cty_nod=MAP_DG2CTY(dg_nod)
-         MX_NODS_ROW_SMALL(cty_nod)=MX_NODS_ROW_SMALL(cty_nod)  &
-                +FINDCMC(DG_NOD+1)-FINDCMC(DG_NOD)
+         MX_NODS_ROW_SMALL(cty_nod)=min( MX_NODS_ROW_SMALL(cty_nod)  &
+                +FINDCMC(DG_NOD+1)-FINDCMC(DG_NOD),   x_nonods)
       END DO
       FINDCMC_small_MX(1)=1
       do cty_nod=2,x_nonods+1
@@ -364,6 +367,9 @@ contains
             if(count2==0) then ! then put coln in as we have not found it in row 
                NODS_ROW_SMALL(cty_nod)=NODS_ROW_SMALL(cty_nod)+1
                COLCMC_SMALL(FINDCMC_small_mx(CTY_NOD)+NODS_ROW_SMALL(cty_nod)-1)=jcolcmc_small
+          if(cty_nod==1) then
+               print *,'dg_nod,cty_nod,jcolcmc_small:',dg_nod,cty_nod,jcolcmc_small
+          endif
             endif             
          END DO
       END DO
@@ -387,7 +393,11 @@ contains
       END DO
 ! Put in assending coln order in each row...
       do cty_nod=1,x_nonods
+         print *,'cty_nod,FINDCMC_small(cty_nod),FINDCMC_small(cty_nod+1)-1:', &
+                  cty_nod,FINDCMC_small(cty_nod),FINDCMC_small(cty_nod+1)-1
          call ibubble2(COLCMC_SMALL(FINDCMC_small(cty_nod):FINDCMC_small(cty_nod+1)-1))
+         print *,'COLCMC_SMALL(FINDCMC_small(cty_nod):FINDCMC_small(cty_nod+1)-1):', &
+                  COLCMC_SMALL(FINDCMC_small(cty_nod):FINDCMC_small(cty_nod+1)-1)
       end do
 ! Calculate MIDCMC_SMALL...
       do cty_nod=1,x_nonods
@@ -410,8 +420,10 @@ contains
 
       nvec = size(ivec)
 
-      do i = 1, nvec - 1
-         do j = 1, nvec
+!        print *,'before ivec:',ivec
+
+      do j = 1, nvec
+         do i = 1, nvec - 1
             if ( ivec( i ) > ivec( i + 1 ) ) then
                itemp = ivec( i + 1 )
                ivec( i + 1 ) = ivec( i )
@@ -419,6 +431,7 @@ contains
             end if
          end do
       end do
+!        print *,'after ivec:',ivec
       return
     end subroutine ibubble2
 

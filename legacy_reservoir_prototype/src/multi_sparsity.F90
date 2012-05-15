@@ -261,8 +261,8 @@
 
       nvec = size(ivec)
 
-      do i = 1, nvec - 1
-         do j = 1, nvec
+      do j = 1, nvec
+         do i = 1, nvec - 1
             if ( ivec( i ) > ivec( i + 1 ) ) then
                itemp = ivec( i + 1 )
                ivec( i + 1 ) = ivec( i )
