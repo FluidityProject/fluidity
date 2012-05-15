@@ -10928,8 +10928,8 @@ EOF
   elif test "$USING_GFORTRAN" = "yes" ; then
     old_fflags="$FFLAGS"
     old_fcflags="$FCFLAGS"
-    FFLAGS="$FFLAGS -finit-integer=-66666 -finit-real=nan -ffpe-trap=invalid,zero"
-    FCFLAGS="$FCFLAGS -finit-integer=-66666 -finit-real=nan -ffpe-trap=invalid,zero"
+    FFLAGS="$FFLAGS -finit-integer=-66666 -finit-real=nan"
+    FCFLAGS="$FCFLAGS -finit-integer=-66666 -finit-real=nan"
     ac_ext=${ac_fc_srcext-f}
 ac_compile='$FC -c $FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
 ac_link='$FC -o conftest$ac_exeext $FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'

@@ -555,8 +555,8 @@ EOF
   elif test "$USING_GFORTRAN" = "yes" ; then
     old_fflags="$FFLAGS"
     old_fcflags="$FCFLAGS"
-    FFLAGS="$FFLAGS -finit-integer=-66666 -finit-real=nan -ffpe-trap=invalid,zero"
-    FCFLAGS="$FCFLAGS -finit-integer=-66666 -finit-real=nan -ffpe-trap=invalid,zero"
+    FFLAGS="$FFLAGS -finit-integer=-66666 -finit-real=nan"
+    FCFLAGS="$FCFLAGS -finit-integer=-66666 -finit-real=nan"
     AC_LANG_PUSH([Fortran])
     AC_COMPILE_IFELSE(
         [AC_LANG_PROGRAM(,[[
