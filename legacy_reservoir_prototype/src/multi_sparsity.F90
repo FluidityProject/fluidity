@@ -451,7 +451,7 @@
       end do Loop_Phase1
 
       finm_pha( nphase * nonods + 1 ) = count2 + 1
-!      ncolm_pha= count2 
+      !ncolm_pha = count2 
        if(count2.ne.ncolm_pha) then
           ewrite(3,*) 'not correct length count2,ncolm_pha:',count2,ncolm_pha
           stop 2821
@@ -547,7 +547,7 @@
     subroutine form_dgm_pha_sparsity( totele, nphase, u_nloc, u_pha_nonods, &
          ndim, mx_ncoldgm_pha, ncoldgm_pha, &
          coldgm_pha, findgm_pha, middgm_pha, &
-         nele_pha, finele_pha, colele_pha, finele, colele, ncolele )
+         finele, colele, ncolele )
       ! Form the sparsity of the phase coupled DG discretised matrix 
       ! from the element-wise multi-phase sparsity matrix. 
       implicit none
@@ -557,9 +557,6 @@
       integer, dimension( mx_ncoldgm_pha ), intent( inout ) :: coldgm_pha
       integer, dimension( u_pha_nonods + 1 ), intent( inout ) :: findgm_pha
       integer, dimension( u_pha_nonods ), intent( inout ) :: middgm_pha
-      integer, intent( in ) :: nele_pha
-      integer, dimension( nele_pha + 1 ), intent( in ) :: finele_pha
-      integer, dimension( nele_pha ), intent( in ) :: colele_pha
       integer, dimension( totele + 1 ), intent( in ) :: finele
       integer, dimension( ncolele ), intent( in ) :: colele
 
@@ -570,8 +567,8 @@
       ewrite(3,*) 'In form_dgm_pha_sparsity subrt.'
 
       u_nonods = u_pha_nonods / ( nphase * ndim )
-      print *,'u_nonods, u_pha_nonods, nphase, ndim:', &
-               u_nonods, u_pha_nonods, nphase, ndim
+      ewrite(3,*)'u_nonods, u_pha_nonods, nphase, ndim:', &
+           u_nonods, u_pha_nonods, nphase, ndim
 
       count2 = 0
       Loop_Phase1: do iphase = 1, nphase
@@ -579,8 +576,8 @@
             Loop_Element: do ele = 1, totele 
                Loop_Loc1: do iloc = 1, u_nloc
                   irow = ( ele - 1 ) * u_nloc + iloc  + ( idim - 1 ) * u_nonods + (iphase-1)*u_nonods*ndim
-                  print *, 'irow, ele, u_nloc, iloc, idim, u_nonods, iphase, count2:', &
-                       irow, ele, u_nloc, iloc, idim, u_nonods, iphase, count2+1
+                  !ewrite(3,*)'irow, ele, u_nloc, iloc, idim, u_nonods, iphase, count2:', &
+                  !     irow, ele, u_nloc, iloc, idim, u_nonods, iphase, count2+1
                   findgm_pha( irow ) = count2 + 1
                   Loop_Phase2: do jphase = 1, nphase
                      Loop_Dim2: do jdim = 1, ndim
@@ -601,19 +598,15 @@
       end do Loop_Phase1
       findgm_pha( u_pha_nonods + 1 ) = count2 + 1
       ncoldgm_pha = count2
-      if(ncoldgm_pha>mx_ncoldgm_pha) then
-          print *,'ncoldgm_pha,mx_ncoldgm_pha:',ncoldgm_pha,mx_ncoldgm_pha
-          stop 2822
-      endif
 
       ! perform a bubble sort to order the row in ioncreasing order
       do irow = 1, u_pha_nonods
          call ibubble( coldgm_pha( findgm_pha( irow ) : findgm_pha( irow + 1 ) - 1 ) )
-         do count = findgm_pha( ele ), findgm_pha( ele + 1 ) - 1
+         do count = findgm_pha( irow ), findgm_pha( irow + 1 ) - 1
+            jrow = coldgm_pha( count )
             if( irow == jrow ) middgm_pha( irow ) = count
          end do
       end do
-
 
       if( ncoldgm_pha > mx_ncoldgm_pha ) &
            FLAbort(" Incorrect number of dimension of sparsity matrix - ncoldgm_pha ")
@@ -1066,9 +1059,6 @@
            cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, .false. )
       allocate( cv_neiloc( cv_nloc, scvngi ) ) 
       allocate( cvfem_neiloc( cv_nloc, scvngi ) ) 
-!!      allocate( cv_neiloc( cv_nloc, scvngi ) ) ; cv_neiloc = 0
-!!      allocate( cvfem_neiloc( cv_nloc, scvngi ) ) ; cvfem_neiloc = 0
-!!!      call volnei( cv_neiloc, cvfem_neiloc, cv_nloc, scvngi, cv_ele_type )
 
       ! Allocating space
       allocate( found( ncolm ) )
@@ -1227,7 +1217,7 @@
        
       RETURN
 
-!      stop 1824
+      !stop 1824
 
       deallocate( cv_neiloc )
       deallocate( cvfem_neiloc )
@@ -1255,8 +1245,6 @@
       deallocate( ufenlx )
       deallocate( ufenly )
       deallocate( ufenlz )
-      deallocate( cv_neiloc )
-      deallocate( cv_on_face )
       deallocate( scvfen )
       deallocate( scvfenslx )
       deallocate( scvfensly )
@@ -1418,7 +1406,7 @@
       call form_dgm_pha_sparsity( totele, nphase, u_nloc, u_pha_nonods, &
            ndim, mx_ncoldgm_pha, ncoldgm_pha, &
            coldgm_pha, findgm_pha, middgm_pha, &
-           mx_ncolele_pha, finele_pha, colele_pha, finele, colele, ncolele )
+           finele, colele, ncolele )
       ewrite(3,*)'findgm_pha: ', findgm_pha( 1 : u_pha_nonods + 1 )
       ewrite(3,*)'coldgm_pha: ', coldgm_pha( 1 : ncoldgm_pha )
       ewrite(3,*)'middgm_pha: ', middgm_pha( 1 : u_pha_nonods )
@@ -1640,7 +1628,7 @@
                end do Loop_CVILOC_5
       end do Loop_Elements_4
 
-!      stop 22
+      !stop 22
 
       ! shrink the sparcity up a little now...
       gcount2 = 0 ! Now reducing the size of the stencil
@@ -1659,8 +1647,8 @@
       ! sort colct in increasing order
       do cv_nodi = 1, cv_nonods
          call ibubble( colct( findct( cv_nodi ) : findct( cv_nodi + 1 ) -1 ) )
-         ewrite(3,*) 'cv_nodi, colct:', &
-              cv_nodi, colct( findct( cv_nodi ) : findct( cv_nodi + 1 ) -1 )
+         !ewrite(3,*) 'cv_nodi, colct:', &
+         !     cv_nodi, colct( findct( cv_nodi ) : findct( cv_nodi + 1 ) -1 )
       end do
 
       return
