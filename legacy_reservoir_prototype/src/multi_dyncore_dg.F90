@@ -729,7 +729,7 @@
 
          ewrite(3,*)'b4 pressure solve P_RHS:', P_RHS
        if( .true.) then   !cv_nonods==x_nonods) then ! a continuous pressure: 
-!       if(cv_nonods==x_nonods) then ! a continuous pressure: 
+       !if(cv_nonods==x_nonods) then ! a continuous pressure: 
          CALL SOLVER( CMC, DP, P_RHS, &
               FINDCMC, COLCMC, &
               option_path = '/material_phase[0]/scalar_field::Pressure')
