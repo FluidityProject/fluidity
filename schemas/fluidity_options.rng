@@ -1976,16 +1976,15 @@ probably equal to the location of the borehole</a:documentation>
               <optional>
                 <element name="effective_conductivity">
                   <a:documentation>If this is the fluid phase, 
-the effective_conductivity is required 
-for inter-phase heat transfer term.</a:documentation>
+the effective conductivity is required 
+for the inter-phase heat transfer term.</a:documentation>
                   <ref name="real"/>
                 </element>
               </optional>
               <optional>
                 <element name="specific_heat">
-                  <a:documentation>If this is the fluid phase, 
-the specific_heat is required 
-for inter-phase heat transfer term.</a:documentation>
+                  <a:documentation>The specific heat (at constant volume) is required 
+for the inter-phase heat transfer term.</a:documentation>
                   <ref name="real"/>
                 </element>
               </optional>

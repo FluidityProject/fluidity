@@ -1498,14 +1498,13 @@ start =
                      real 
                }?,
                ## If this is the fluid phase, 
-               ## the effective_conductivity is required 
-               ## for inter-phase heat transfer term.
+               ## the effective conductivity is required 
+               ## for the inter-phase heat transfer term.
                element effective_conductivity { 
                      real 
                }?,
-               ## If this is the fluid phase, 
-               ## the specific_heat is required 
-               ## for inter-phase heat transfer term.
+               ## The specific heat (at constant volume) is required 
+               ## for the inter-phase heat transfer term.
                element specific_heat { 
                      real
                }?
