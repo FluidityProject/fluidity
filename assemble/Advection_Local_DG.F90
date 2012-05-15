@@ -1052,10 +1052,11 @@ module advection_local_DG
             & weight_field = D_old)
        call mult(T_rhs,T_lumped_mass,T)
        call allocate(T_lumped_mass_next, T_sparsity)
-       call get_lumped_mass_p2b(state,T_lumped_mass,T,&
+       call get_lumped_mass_p2b(state,T_lumped_mass_next,T,&
             & weight_field = D)
        call set(adv_mat,T_lumped_mass_next)
     end if
+    ewrite(1,*) 'T_RHS', maxval(abs(T_rhs%val))
 
     !Other fields and parameters we need
     X=>extract_vector_field(state, "Coordinate")
@@ -1068,7 +1069,16 @@ module advection_local_DG
             & X,dt,t_theta,ele,lump_mass)
     end do
 
-    call petsc_solve(T,adv_mat,T_rhs)
+    !DEBUGGING
+    ewrite(1,*), maxval(abs(T_rhs%val))
+    call scale(T_rhs,-1.0)
+    call mult_addto(T_rhs,T_lumped_mass_next,T)
+    ewrite(1,*), maxval(abs(T_rhs%val))
+
+    !call petsc_solve(T,adv_mat,T_rhs)
+
+    !ewrite(1,*) maxval(T%val), minval(T%val)
+    stop
 
     !deallocate everything
     call deallocate(adv_mat)
@@ -1117,10 +1127,10 @@ module advection_local_DG
     end if
 
     !Advection terms
-    l_adv_mat = l_adv_mat - t_theta*dt*dshape_dot_vector_shape(&
+    l_adv_mat = l_adv_mat + t_theta*dshape_dot_vector_shape(&
          T_shape%dn,Flux_gi,T_shape,T_shape%quadrature%weight)
-    l_rhs = l_rhs + dt*(1-t_theta)*dshape_dot_vector_rhs(&
-         T_shape%dn,Flux_gi,T_shape%quadrature%weight)
+    l_rhs = l_rhs - (1-t_theta)*dshape_dot_vector_rhs(&
+         T_shape%dn,Flux_gi,T_gi*T_shape%quadrature%weight)
 
     !NEEDS UPDATING OF FLUX, PRODUCE RHS BY PROJECTING TO PRESSURE SPACE
     !ELEMENTWISE (CAN DO IN LOCAL COORDINATES) CHECK?!?!?
