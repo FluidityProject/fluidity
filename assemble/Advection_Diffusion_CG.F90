@@ -491,19 +491,6 @@ contains
       if(move_mesh) then
         FLExit("Haven't implemented a moving mesh energy equation yet.")
       end if
-      call get_option(trim(t%option_path)//'/prognostic/equation[0]/density[0]/name', &
-                      density_name)
-      density=>extract_scalar_field(state(istate), trim(density_name))
-      ewrite_minmax(density)
-      
-      olddensity=>extract_scalar_field(state(istate), "Old"//trim(density_name))
-      ewrite_minmax(olddensity)
-      
-      call get_option(trim(density%option_path)//"/prognostic/temporal_discretisation/theta", &
-                      density_theta)
-                      
-      pressure=>extract_scalar_field(state(istate), "Pressure")
-      ewrite_minmax(pressure)
       
       ! PhaseVolumeFraction for multiphase flow simulations
       if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
@@ -518,6 +505,27 @@ contains
          multiphase = .false.
          nullify(vfrac)
       end if
+      
+      ! Get old and current densities
+      call get_option(trim(t%option_path)//'/prognostic/equation[0]/density[0]/name', &
+                      density_name)
+      density=>extract_scalar_field(state(istate), trim(density_name))
+      ewrite_minmax(density)
+      olddensity=>extract_scalar_field(state(istate), "Old"//trim(density_name))
+      ewrite_minmax(olddensity)
+      
+      if(multiphase .and. have_option('/material_phase::'//trim(state(istate)%name)//&
+         &'/equation_of_state/compressible')) then         
+         call get_option(trim(density%option_path)//"/prognostic/temporal_discretisation/theta", &
+                        density_theta)
+      else
+         ! Since the particle phase is always incompressible then its Density
+         ! will not be prognostic. Just use a fixed theta value of 1.0.
+         density_theta = 1.0
+      end if
+                      
+      pressure=>extract_scalar_field(state(istate), "Pressure")
+      ewrite_minmax(pressure)
 
     case default
       FLExit("Unknown field equation type for cg advection diffusion.")
