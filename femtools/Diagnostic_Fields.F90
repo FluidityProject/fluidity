@@ -2611,7 +2611,7 @@ contains
             call allocate(masslump, bed_shear_stress%mesh, 'Masslump')
          end if
 
-         ! generate surface_mesh
+         ! write(*,*) 'grad_U_at_quad, visc_at_quad, abs_normal, transpose(shear_at_quad), normal_shear_at_quad'
          do face = 1, surface_element_count(bed_shear_stress)
             call calculate_bed_shear_stress_ele(bed_shear_stress, masslump, face, X, U,&
                  & visc, density)
@@ -2706,8 +2706,13 @@ contains
         end do
 
         ! Multiply by surface normal (dim,sgi) to obtain shear in direction normal
-        ! to surface
-        normal_shear_at_quad(:,i_gi) = matmul(transpose(shear_at_quad(:,:,i_gi)), abs_normal)
+        ! to surface - transpose because fluidity stores data in row-major order
+        normal_shear_at_quad(:,i_gi) = matmul(transpose(shear_at_quad(:,:,i_gi)),&
+             & abs_normal) 
+
+        ! write(*,*) grad_U_at_quad(:,:,i_gi), ',', visc_at_quad(:,:,i_gi), ',', &
+        !      & abs_normal, ',', transpose(shear_at_quad(:,:,i_gi)), ',', &
+        !      & normal_shear_at_quad(:,i_gi)
      end do  
 
      normal_shear_at_loc = shape_vector_rhs(f_shape, normal_shear_at_quad, density *&
