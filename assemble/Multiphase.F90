@@ -786,7 +786,7 @@
                particle_Pr = C*viscosity_fluid_gi(1,1,:)/k
                
                particle_Nu = (2.0 + 5.0*vfrac_particle_gi**2)*(1.0 + 0.7*(particle_Re**0.2)*(particle_Pr**(1.0/3.0))) + &
-                              (0.13 + 1.2*vfrac_particle_gi**2)**particle_Re**0.7)*(particle_Pr**(1.0/3.0))
+                              (0.13 + 1.2*vfrac_particle_gi**2)*(particle_Re**0.7)*(particle_Pr**(1.0/3.0))
 
                Q = (6.0*k*vfrac_particle_gi*particle_Nu)/(d**2)
                
