@@ -379,7 +379,7 @@
         </initial_condition>
         <timestepping>
           <theta>
-            <real_value rank="0">0.</real_value>
+            <real_value rank="0">0.5</real_value>
           </theta>
         </timestepping>
         <solver>

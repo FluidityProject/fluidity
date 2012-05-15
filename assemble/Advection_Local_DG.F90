@@ -1033,6 +1033,11 @@ module advection_local_DG
          X_mass_shape_ptr
     type(element_type), target :: T_mass_shape,D_mass_shape,X_mass_shape
     type(quadrature_type) :: lumped_mass_quad
+
+    X=>extract_vector_field(state, "Coordinate")
+    call get_option('/timestepping/timestep',dt)
+    call get_option(trim(T%option_path)//&
+         '/prognostic/timestepping/theta',t_theta)
     
     if(have_option('/material_phase::Fluid/scalar_field::Vorticity/prognosti&
          &c/vorticity_equation/lump_mass')) then
@@ -1060,14 +1065,9 @@ module advection_local_DG
     ! pattern.
     call zero(adv_mat)
     call allocate(T_rhs,T%mesh,trim(T%name)//"RHS")
+    call zero(T_rhs)
 
     ewrite(1,*) 'T_RHS', maxval(abs(T_rhs%val))
-
-    !Other fields and parameters we need
-    X=>extract_vector_field(state, "Coordinate")
-    call get_option('/timestepping/timestep',dt)
-    call get_option(trim(T%option_path)//&
-         '/prognostic/timestepping/theta',t_theta)
 
     do ele = 1, ele_count(T)
        call construct_advection_cg_tracer_ele(T_rhs,adv_mat,T,D,D_old,Flux,&
@@ -1075,11 +1075,7 @@ module advection_local_DG
             X_mass_shape_ptr)
     end do
 
-    !DEBUGGING
-    !call petsc_solve(T,adv_mat,T_rhs)
-
-    !ewrite(1,*) maxval(T%val), minval(T%val)
-    stop
+    call petsc_solve(T,adv_mat,T_rhs)
 
     !deallocate everything
     if(lump_mass) then
@@ -1111,6 +1107,7 @@ module advection_local_DG
     real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
     real, dimension(mesh_dim(X), X%dim, X_mass_shape%ngi) :: J_m
     type(element_type), pointer :: T_shape
+    integer :: loc
 
     T_shape => ele_shape(T,ele)
     D_gi = matmul(transpose(D_mass_shape%n),ele_val(D,ele))
@@ -1134,6 +1131,9 @@ module advection_local_DG
     l_rhs = l_rhs - (1-t_theta)*dshape_dot_vector_rhs(&
          T_shape%dn,Flux_gi,T_gi*T_shape%quadrature%weight)
 
+    call addto(T_rhs,ele_nodes(T_rhs,ele),l_rhs)
+    call addto(adv_mat,ele_nodes(T_rhs,ele),ele_nodes(T_rhs,ele),&
+         l_adv_mat)
     !NEEDS UPDATING OF FLUX, PRODUCE RHS BY PROJECTING TO PRESSURE SPACE
     !ELEMENTWISE (CAN DO IN LOCAL COORDINATES) CHECK?!?!?
 
