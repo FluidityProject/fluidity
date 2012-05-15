@@ -183,8 +183,11 @@ contains
       INTEGER, DIMENSION( cv_nloc*totele ), intent( in ) :: cv_ndgln, x_ndgln
       REAL ERROR, RELAX, RELAX_DIAABS, RELAX_DIA
       INTEGER N_LIN_ITS
-      PARAMETER(ERROR=1.E-15, RELAX=1.0, RELAX_DIAABS=2.0)
-      PARAMETER(RELAX_DIA=1.0, N_LIN_ITS=10)
+!      PARAMETER(ERROR=1.E-15, RELAX=0.25, RELAX_DIAABS=2.0)
+      PARAMETER(ERROR=1.E-15, RELAX=0.125, RELAX_DIAABS=2.0)
+      PARAMETER(RELAX_DIA=2.0, N_LIN_ITS=1000)
+!      PARAMETER(ERROR=1.E-15, RELAX=0.125, RELAX_DIAABS=1.0)
+!      PARAMETER(RELAX_DIA=1.0, N_LIN_ITS=1000)
       ! RELAX: overall relaxation coeff; =1 for no relaxation. 
       ! RELAX_DIAABS: relaxation of the absolute values of the sum of the row of the matrix;
       !               - recommend >=2 for hard problems, =0 for easy
@@ -268,6 +271,7 @@ contains
               ERROR, RELAX, RELAX_DIAABS, RELAX_DIA, N_LIN_ITS )
          print *,'after solving:',p
 
+       if(.true.) then
          resid_dg=rhs
          do dg_nod=1,cv_nonods
             DO COUNT=FINDCMC(dg_NOD),FINDCMC(dg_NOD+1)-1
@@ -303,6 +307,8 @@ contains
          END DO
 
          P=P+DP_DG  
+
+        endif
 
       END DO
 
