@@ -27,11 +27,12 @@
 
 #include "fdebug.h"
 
-subroutine fladapt(input_basename, input_basename_len, &
-  & output_basename, output_basename_len)
+subroutine fladapt(input_basename_, input_basename_len, &
+  & output_basename_, output_basename_len)  bind(c)
   !!< Peforms a mesh adapt based on the supplied input options file.
   !!< Outputs the resulting mesh.
-  
+ 
+  use iso_c_binding
   use adapt_state_module
   use diagnostic_fields_wrapper
   use diagnostic_fields_new, only : &
@@ -49,6 +50,9 @@ subroutine fladapt(input_basename, input_basename_len, &
   use vtk_interfaces
   use mesh_files
   use populate_state_module
+
+  implicit none
+  
   interface
     subroutine check_options()
     end subroutine check_options
@@ -59,18 +63,27 @@ subroutine fladapt(input_basename, input_basename_len, &
 #endif
   end interface
   
-  integer :: input_basename_len
-  integer :: output_basename_len
-  
-  character(len = input_basename_len), intent(in) :: input_basename
-  character(len = output_basename_len), intent(in) :: output_basename
-  
+  character(kind=c_char, len=1) :: input_basename_(*)
+  integer(kind=c_size_t), value :: input_basename_len
+  character(kind=c_char, len=1) :: output_basename_(*)
+  integer(kind=c_size_t), value :: output_basename_len
+
+  character(len=input_basename_len):: input_basename
+  character(len=output_basename_len):: output_basename
   integer :: i
   type(mesh_type), pointer :: old_mesh
   type(state_type), dimension(:), pointer :: states
   type(vector_field) :: new_mesh_field
   type(vector_field), pointer :: new_mesh_field_ptr, old_mesh_field
   type(tensor_field) :: metric, t_edge_lengths
+
+  ! now turn into proper fortran strings (is there an easier way to do this?)
+  do i=1, input_basename_len
+    input_basename(i:i)=input_basename_(i)
+  end do
+  do i=1, output_basename_len
+    output_basename(i:i)=output_basename_(i)
+  end do
   
   ewrite(1, *) "In fladapt"
  

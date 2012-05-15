@@ -53,7 +53,7 @@
             <integer_value shape="1" rank="1">8</integer_value>
           </aliased_boundary_ids>
           <coordinate_map>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
   result = list(X)
   result[0]=result[0]-1.0
   return result</string_value>
@@ -67,7 +67,7 @@
             <integer_value shape="1" rank="1">9</integer_value>
           </aliased_boundary_ids>
           <coordinate_map>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
   result = list(X)
   result[1]=result[1]-1.0
   return result</string_value>
@@ -136,7 +136,7 @@
       </vector_field>
     </gravity>
     <coriolis>
-      <string_value type="python" lines="20">def val(X,t):
+      <string_value lines="20" type="code" language="python">def val(X,t):
   return 1.0</string_value>
     </coriolis>
   </physical_parameters>
@@ -171,7 +171,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X, t):
+            <string_value lines="20" type="code" language="python">def val(X, t):
   import constants_func_eval_2d
   return constants_func_eval_2d.u_exact(X, t)</string_value>
           </python>
@@ -180,7 +180,7 @@
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="python">def val(X, t):
+                <string_value lines="20" type="code" language="python">def val(X, t):
   import constants_func_eval_2d
   return constants_func_eval_2d.u_src(X, t)</string_value>
               </python>
@@ -257,7 +257,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X, t):
+            <string_value lines="20" type="code" language="python">def val(X, t):
   import constants_func_eval_2d
   return constants_func_eval_2d.eta_exact(X, t)</string_value>
           </python>
@@ -269,7 +269,7 @@
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="python">def val(X, t):
+                <string_value lines="20" type="code" language="python">def val(X, t):
   import constants_func_eval_2d
   return constants_func_eval_2d.eta_src(X, t)</string_value>
               </python>
@@ -294,7 +294,7 @@
         <mesh name="PressureMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
  import constants_func_eval_2d
  return constants_func_eval_2d.eta_exact(X, t)</string_value>
           </python>
@@ -334,7 +334,7 @@
     <scalar_field name="LayerThicknessSource" rank="0">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="python">import constants_func_eval_2d
+          <string_value lines="20" type="code" language="python">import constants_func_eval_2d
 import numpy, numpy.linalg 
 
 coord  = state.vector_fields["Coordinate"]
@@ -410,7 +410,7 @@ for ele in range(coord.ele_count):
     <scalar_field name="adj_J" rank="0">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="python">import fluidity.state_types
+          <string_value lines="20" type="code" language="python">import fluidity.state_types
 import numpy
 
 eta_src = state.scalar_fields["LayerThicknessSource"]
@@ -455,7 +455,7 @@ field.val[:] = J</string_value>
     <scalar_field name="J" rank="0">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="python">import fluidity.state_types
+          <string_value lines="20" type="code" language="python">import fluidity.state_types
 import numpy
 
 coord = state.vector_fields["Coordinate"]
@@ -492,7 +492,7 @@ field.val[:] = J</string_value>
     <scalar_field name="FunctionalVectorEta" rank="0">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="python">import constants_func_eval_2d
+          <string_value lines="20" type="code" language="python">import constants_func_eval_2d
 import numpy
 coord = state.vector_fields["Coordinate"]
 field.val[:] = 0.0
@@ -525,7 +525,7 @@ for ele in range(field.element_count):
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
  import constants_func_eval_2d
  return constants_func_eval_2d.u_exact(X, t)</string_value>
           </python>
@@ -569,7 +569,7 @@ for ele in range(field.element_count):
     <vector_field name="VelocitySource" rank="1">
       <diagnostic>
         <algorithm name="vector_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="python">import constants_func_eval_2d
+          <string_value lines="20" type="code" language="python">import constants_func_eval_2d
 import numpy, numpy.linalg
 
 coord  = state.vector_fields["Coordinate"]
@@ -615,7 +615,7 @@ for ele in range(coord.ele_count):
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X, t):
+            <string_value lines="20" type="code" language="python">def val(X, t):
   import constants_func_eval_2d
   return constants_func_eval_2d.functional_vector_u(X,t)</string_value>
           </python>
@@ -637,7 +637,7 @@ for ele in range(coord.ele_count):
     <functional name="integral_eta_t1">
       <functional_derivative>
         <algorithm name="functional_derivative">
-          <string_value lines="20" type="python">import numpy
+          <string_value lines="20" type="code" language="python">import numpy
 derivative.val[:] = 0.0
 if derivative.name == "Fluid::LayerThickness":
   functional_vector = states[n]["Fluid"].scalar_fields["FunctionalVectorEta"]
@@ -651,7 +651,7 @@ elif derivative.name == "Fluid::Velocity":
       </functional_derivative>
       <functional_dependencies>
         <algorithm name="functional_dependencies">
-          <string_value lines="20" type="python">def dependencies(times, timestep):
+          <string_value lines="20" type="code" language="python">def dependencies(times, timestep):
   return { "Fluid::LayerThickness": [timestep], "Fluid::FunctionalVectorEta": [timestep], "Fluid::Velocity": [timestep], "Fluid::FunctionalVectorVelocity": [timestep]}</string_value>
         </algorithm>
       </functional_dependencies>

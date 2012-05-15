@@ -27,11 +27,11 @@ scalar_boundary_conditions =
                      empty
                   }?
                }?,
-               input_choice_real
+               input_choice_real_plus_field
             }|
             element type {
                attribute name { "neumann" },
-               input_choice_real
+               input_choice_real_plus_field
             }|
             robin_bc_scalar|
             ## Prevent the field from fluxing out of the boundary.
@@ -75,7 +75,7 @@ scalar_boundary_conditions =
             ## a boundary when solving the advection-diffusion equation.
             element type {
                attribute name { "flux" },
-               input_choice_real
+               input_choice_real_plus_field
             }
          )
       }
@@ -1692,11 +1692,11 @@ prognostic_foam_velocity_potential_field =
                      empty
                   }?
                }?,
-               input_choice_real
+               input_choice_real_plus_field
             }|
             element type {
                attribute name { "neumann" },
-               input_choice_real
+               input_choice_real_plus_field
             }|
             robin_bc_scalar|
             ## Prevent the field from fluxing out of the boundary.
@@ -1867,7 +1867,7 @@ prognostic_free_surface_field =
             element type {
                attribute name { "dirichlet" },
                (
-                  input_choice_real_contents|
+                  input_choice_real_plus_field|
                   element from_file {
                      element tidal {
                         attribute file_name { string },
@@ -1889,7 +1889,7 @@ prognostic_free_surface_field =
             }|
             element type {
                attribute name { "neumann" },
-               input_choice_real
+               input_choice_real_plus_field
             }|
             robin_bc_scalar
          )

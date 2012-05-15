@@ -151,7 +151,7 @@
     <scalar_field name="BR_error" rank="0">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="python">field1=state.scalar_fields["Tracer_BR"]
+          <string_value lines="20" type="code" language="python">field1=state.scalar_fields["Tracer_BR"]
 field2=state.scalar_fields["TemperatureExact"]
 for i in range(field.node_count):
    field.set(i, field1.node_val(i)-field2.node_val(i))</string_value>
@@ -173,7 +173,7 @@ for i in range(field.node_count):
     <scalar_field name="IP_error" rank="0">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="python">field1=state.scalar_fields["Tracer_IP"]
+          <string_value lines="20" type="code" language="python">field1=state.scalar_fields["Tracer_IP"]
 field2=state.scalar_fields["TemperatureExact"]
 for i in range(field.node_count):
    field.set(i, field1.node_val(i)-field2.node_val(i))</string_value>
@@ -197,7 +197,7 @@ for i in range(field.node_count):
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
 	from math import sin,pi,exp
 	x = X[0]
 	y = X[1]
@@ -252,7 +252,7 @@ for i in range(field.node_count):
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
 	from math import pi,sin
 	return sin(2*pi*X[1])</string_value>
           </python>
@@ -264,7 +264,7 @@ for i in range(field.node_count):
           <type name="dirichlet">
             <apply_weakly/>
             <python>
-              <string_value lines="20" type="python">def val(X,t):
+              <string_value lines="20" type="code" language="python">def val(X,t):
 	from math import pi, sin
 	return sin(2*pi*X[1])</string_value>
             </python>
@@ -347,7 +347,7 @@ for i in range(field.node_count):
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
 	from math import sin, pi
 	return sin(2*pi*X[1])</string_value>
           </python>
@@ -359,7 +359,7 @@ for i in range(field.node_count):
           <type name="dirichlet">
             <apply_weakly/>
             <python>
-              <string_value lines="20" type="python">def val(X,t):
+              <string_value lines="20" type="code" language="python">def val(X,t):
 	from math import sin, pi
 	return sin(2*pi*X[1])</string_value>
             </python>
@@ -432,7 +432,7 @@ for i in range(field.node_count):
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
 	from math import sin, pi
 	return sin(2*pi*X[1])</string_value>
           </python>
@@ -444,7 +444,7 @@ for i in range(field.node_count):
           <type name="dirichlet">
             <apply_weakly/>
             <python>
-              <string_value lines="20" type="python">def val(X,t):
+              <string_value lines="20" type="code" language="python">def val(X,t):
 	from math import sin, pi
 	return sin(2*pi*X[1])</string_value>
             </python>
@@ -479,7 +479,7 @@ for i in range(field.node_count):
     <scalar_field name="CDG_error" rank="0">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="python">field1=state.scalar_fields["Tracer_CDG"]
+          <string_value lines="20" type="code" language="python">field1=state.scalar_fields["Tracer_CDG"]
 field2=state.scalar_fields["TemperatureExact"]
 for i in range(field.node_count):
    field.set(i, field1.node_val(i)-field2.node_val(i))</string_value>

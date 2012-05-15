@@ -108,7 +108,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
    from math import exp
    LR = 40000.
    u = [0.0,0.0]
@@ -456,7 +456,7 @@
     <prescribed_adaptivity>
       <adapt_interval>
         <python>
-          <string_value lines="20" type="python">def val(t):
+          <string_value lines="20" type="code" language="python">def val(t):
 	if "timestep_count" in persistent:
 		persistent["timestep_count"] += 1
 	else:
@@ -467,7 +467,7 @@
       <mesh>
         <name>
           <python>
-            <string_value lines="20" type="python">def val(t):
+            <string_value lines="20" type="code" language="python">def val(t):
 	meshes = ["basin", "first_timestep_adapted_mesh"]
 	if "mesh_count" in persistent:
 		persistent["mesh_count"] +=1 

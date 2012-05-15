@@ -92,7 +92,16 @@ contains
     else
       mesh => extract_velocity_mesh(state)
     end if
-
+    
+    ! If the cfl_type is InterstitialVelocity... porous media related 
+    ! then it always needs to have force_calculation = true as the 
+    ! field name may exist in the state as a diagnostic but have 
+    ! different porosity options to that chosen for the adaptive time stepping one.
+    if ((trim(cfl_type) == "InterstitialVelocityCGCourantNumber") .or. &
+      & (trim(cfl_type) == "InterstitialVelocityCVCourantNumber")) then
+          lforce_calculation = .true.
+    end if
+    
     allocate(guess_dt(size(state)))
     guess_dt(:) = dt ! store all our attempts at creating a new dt (then choose the minimum of them)
 
@@ -115,7 +124,8 @@ contains
         if(calculate_cflnumber) then
           allocate(cflnumber_field)
           call allocate(cflnumber_field, mesh, trim(cfl_type))
-          call calculate_diagnostic_variable(state(i), trim(cfl_type), cflnumber_field)
+          call calculate_diagnostic_variable(state(i), trim(cfl_type), cflnumber_field, &
+                                           & option_path = trim(base_path)//"/courant_number[0]")
         end if
 
         guess_dt(i) = cflnumber_field_based_dt(cflnumber_field, dt, max_cfl, min_dt, max_dt, increase_tolerance)
