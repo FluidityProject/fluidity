@@ -833,6 +833,8 @@
             eos_option(i) = 1
          elseif (have_option(trim(option_path)//"/compressible/exponential_oil_gas")) then
             eos_option(i) = 3
+         elseif (have_option(trim(option_path)//"/compressible/linear_in_pressure")) then
+            ! do nothing here
          else
             FLAbort("Unknown EoS option for phase "// int2str(i))
          endif
