@@ -33,8 +33,7 @@
 #endif
 
 extern "C" {
-#define supermesh_difference_fc F77_FUNC(supermesh_difference, SUPERMESH_DIFFERENCE)
-  void supermesh_difference_fc(const char*, int*, const char*, int*, const char*, int*);
+  void supermesh_difference(const char*, size_t, const char*, size_t, const char*, size_t);
 }
 
 #ifdef _AIX
@@ -114,15 +113,15 @@ int main(int argc, char **argv){
   set_global_debug_level_fc(&val);
 
   string vtu1_filename = argv[optind];
-  int vtu1_filename_len = vtu1_filename.length();  
+  size_t vtu1_filename_len = vtu1_filename.size();  
   
   string vtu2_filename = argv[optind + 1];
-  int vtu2_filename_len = vtu2_filename.length();
+  size_t vtu2_filename_len = vtu2_filename.size();
   
   string output_filename = argv[optind + 2];
-  int output_filename_len = output_filename.length();  
+  size_t output_filename_len = output_filename.size();  
 
-  supermesh_difference_fc(vtu1_filename.c_str(), &vtu1_filename_len, vtu2_filename.c_str(), &vtu2_filename_len, output_filename.c_str(), &output_filename_len);
+  supermesh_difference(vtu1_filename.c_str(), vtu1_filename_len, vtu2_filename.c_str(), vtu2_filename_len, output_filename.c_str(), output_filename_len);
     
 #ifdef HAVE_PETSC
   PetscFinalize();

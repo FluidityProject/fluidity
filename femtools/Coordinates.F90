@@ -116,8 +116,8 @@ contains
     lat = deg_to_rad*latitude
     long = deg_to_rad*longitude 
     
-    u = -(r3u*sin(long)) + r3w*cos(long)
-    v = r3u*cos(long)*sin(lat) + r3v*sin(long)*sin(lat) - r3w*cos(lat)
+    u = -(r3u*sin(long)) + r3v*cos(long)
+    v = -r3u*cos(long)*sin(lat) - r3v*sin(long)*sin(lat) + r3w*cos(lat)
 
   end subroutine rotate2ll
 

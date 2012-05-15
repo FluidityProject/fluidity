@@ -11,7 +11,7 @@ preprocess:
 
 run:
 	@echo **********Running simulation for each refinement.
-	@$(foreach layers, 4 8 16 32 64, \
+	@$(foreach layers, 4 8 16, \
 		cd channel-$(layers); \
 		echo **********Running simulation for $(layers) layer mesh.;\
 		echo ../../../bin/fluidity channel.flml; \

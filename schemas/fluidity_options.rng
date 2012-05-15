@@ -3189,17 +3189,17 @@ If off then fluidity computes the tangent.  </a:documentation>
       <element name="align_bc_with_surface">
         <optional>
           <element name="normal_component">
-            <ref name="input_choice_real"/>
+            <ref name="input_choice_real_plus_field"/>
           </element>
         </optional>
         <optional>
           <element name="tangent_component_1">
-            <ref name="input_choice_real"/>
+            <ref name="input_choice_real_plus_field"/>
           </element>
         </optional>
         <optional>
           <element name="tangent_component_2">
-            <ref name="input_choice_real"/>
+            <ref name="input_choice_real_plus_field"/>
           </element>
         </optional>
         <ref name="rotation_matrix_components"/>
