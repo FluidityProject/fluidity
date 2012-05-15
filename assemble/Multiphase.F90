@@ -639,13 +639,16 @@
                type(scalar_field), pointer :: vfrac_fluid, vfrac_particle
                type(scalar_field), pointer :: density_fluid, density_particle
                type(vector_field), pointer :: velocity_fluid, velocity_particle
+               type(scalar_field), pointer :: internal_energy_fluid, internal_energy_particle
                type(scalar_field), pointer :: old_internal_energy_fluid, old_internal_energy_particle
                type(vector_field), pointer :: nu_fluid, nu_particle ! Non-linear approximation to the Velocities
                type(tensor_field), pointer :: viscosity_fluid
                type(scalar_field) :: nvfrac_fluid, nvfrac_particle
                real :: d ! Particle diameter
                real :: k ! Effective gas conductivity
-               real :: C ! Specific heat of gas
+               real :: C_fluid, C_particle ! Specific heat of the fluid and particle phases at constant volume
+               real :: gamma ! Ratio of specific heats for compressible phase
+               integer :: kstat, cstat_fluid, cstat_particle, gstat
 
                ! Get the necessary fields to calculate the heat transfer term
                velocity_fluid => extract_vector_field(state(istate_fluid), "Velocity")
@@ -662,10 +665,26 @@
                            &"]/multiphase_properties/particle_diameter", d)
                            
                   call get_option("/material_phase["//int2str(istate_fluid-1)//&
-                           &"]/multiphase_properties/effective_conductivity", k)
+                           &"]/multiphase_properties/effective_conductivity", k, kstat)
                            
                   call get_option("/material_phase["//int2str(istate_fluid-1)//&
-                           &"]/multiphase_properties/specific_heat", C)
+                           &"]/multiphase_properties/specific_heat", C_fluid, cstat_fluid)
+                  
+                  call get_option("/material_phase["//int2str(istate_particle-1)//&
+                           &"]/multiphase_properties/specific_heat", C_particle, cstat_particle)
+                  
+                  call get_option("/material_phase["//int2str(istate_fluid-1)//&
+                           &"]/equation_of_state/compressible/stiffened_gas/ratio_specific_heats", gamma, gstat)
+                           
+                  if(kstat /= 0) then
+                     FLExit("For inter-phase heat transfer, an effective_conductivity needs to be specified for the fluid phase.")
+                  end if                  
+                  if(cstat_fluid /= 0 .or. cstat_particle /= 0) then
+                     FLExit("For inter-phase heat transfer, a specific_heat needs to be specified for each phase.")
+                  end if
+                  if(gstat /= 0) then
+                     FLExit("For inter-phase heat transfer, ratio_specific_heats needs to be specified for the compressible phase.")
+                  end if
 
                   ! Calculate the non-linear approximation to the PhaseVolumeFractions
                   call allocate(nvfrac_fluid, vfrac_fluid%mesh, "NonlinearPhaseVolumeFraction")
@@ -679,7 +698,9 @@
                   nu_fluid => extract_vector_field(state(istate_fluid), "NonlinearVelocity")
                   nu_particle => extract_vector_field(state(istate_particle), "NonlinearVelocity")
                   
-                  ! Get the old internal energy fields
+                  ! Get the current and old internal energy fields
+                  internal_energy_fluid => extract_scalar_field(state(istate_fluid), "InternalEnergy")
+                  internal_energy_particle => extract_scalar_field(state(istate_particle), "InternalEnergy")
                   old_internal_energy_fluid => extract_scalar_field(state(istate_fluid), "OldInternalEnergy")
                   old_internal_energy_particle => extract_scalar_field(state(istate_particle), "OldInternalEnergy")
       
@@ -697,9 +718,12 @@
                                                       nvfrac_fluid, nvfrac_particle, &
                                                       density_fluid, density_particle, &
                                                       nu_fluid, nu_particle, &
+                                                      internal_energy_fluid, &
+                                                      internal_energy_particle, &
                                                       old_internal_energy_fluid, &
                                                       old_internal_energy_particle, &
-                                                      viscosity_fluid, d, k, C)
+                                                      viscosity_fluid, d, k, C_fluid, &
+                                                      C_particle, gamma)
                      end if
 
                   end do element_loop
@@ -716,9 +740,12 @@
                                                 vfrac_fluid, vfrac_particle, &
                                                 density_fluid, density_particle, &
                                                 nu_fluid, nu_particle, &
+                                                internal_energy_fluid, &
+                                                internal_energy_particle, &
                                                 old_internal_energy_fluid, &
                                                 old_internal_energy_particle, &
-                                                viscosity_fluid, d, k, C)
+                                                viscosity_fluid, d, k, C_fluid, &
+                                                C_particle, gamma)
                                                          
                integer, intent(in) :: ele
                type(element_type), intent(in) :: test_function
@@ -731,9 +758,10 @@
                type(scalar_field), intent(in) :: vfrac_fluid, vfrac_particle
                type(scalar_field), intent(in) :: density_fluid, density_particle
                type(vector_field), intent(in) :: nu_fluid, nu_particle
+               type(scalar_field), intent(in) :: internal_energy_fluid, internal_energy_particle
                type(scalar_field), intent(in) :: old_internal_energy_fluid, old_internal_energy_particle
                type(tensor_field), intent(in) :: viscosity_fluid    
-               real, intent(in) :: d, k, C 
+               real, intent(in) :: d, k, C_fluid, C_particle, gamma
                
                ! Local variables
                real, dimension(ele_ngi(x,ele)) :: internal_energy_fluid_gi, internal_energy_particle_gi
@@ -750,7 +778,7 @@
                real, dimension(ele_loc(internal_energy,ele), ele_loc(internal_energy,ele)) :: matrix_addto
                
                real, dimension(ele_ngi(x,ele)) :: particle_Re ! Particle Reynolds number
-               real, dimension(ele_ngi(x,ele)) :: particle_Pr ! Particle Prandtl number
+               real, dimension(ele_ngi(x,ele)) :: Pr ! Prandtl number
                real, dimension(ele_ngi(x,ele)) :: particle_Nu ! Particle Nusselt number
                real, dimension(ele_ngi(x,ele)) :: velocity_magnitude ! |v_f - v_p|
                
@@ -770,7 +798,9 @@
                density_particle_gi = ele_val_at_quad(density_particle, ele)
                nu_fluid_gi = ele_val_at_quad(nu_fluid, ele)
                nu_particle_gi = ele_val_at_quad(nu_particle, ele)
-               viscosity_fluid_gi = ele_val_at_quad(viscosity_fluid, ele)               
+               viscosity_fluid_gi = ele_val_at_quad(viscosity_fluid, ele)  
+               internal_energy_fluid_gi = ele_val_at_quad(internal_energy_fluid, ele)
+               internal_energy_particle_gi = ele_val_at_quad(internal_energy_particle, ele)
          
                ! Compute the magnitude of the relative velocity
                do gi = 1, ele_ngi(x,ele)
@@ -781,21 +811,25 @@
                ! (Assumes isotropic viscosity for now)
                particle_Re = (density_fluid_gi*velocity_magnitude*d) / viscosity_fluid_gi(1,1,:)
            
-               ! Compute the particle Prandtl number
+               ! Compute the Prandtl number
                ! (Assumes isotropic viscosity for now)
-               particle_Pr = C*viscosity_fluid_gi(1,1,:)/k
+               ! Note: C_fluid (at constant volume) multiplied by gamma = C_fluid at constant pressure
+               Pr = C_fluid*gamma*viscosity_fluid_gi(1,1,:)/k
                
-               particle_Nu = (2.0 + 5.0*vfrac_particle_gi**2)*(1.0 + 0.7*(particle_Re**0.2)*(particle_Pr**(1.0/3.0))) + &
-                              (0.13 + 1.2*vfrac_particle_gi**2)*(particle_Re**0.7)*(particle_Pr**(1.0/3.0))
+               particle_Nu = (7.0 - 10.0*vfrac_fluid_gi + 5.0*vfrac_fluid_gi**2)*(1.0 + 0.7*(particle_Re**0.2)*(Pr**(1.0/3.0))) + &
+                              (1.33 - 2.4*vfrac_fluid_gi + 1.2*vfrac_fluid_gi**2)*(particle_Re**0.7)*(Pr**(1.0/3.0))
 
                Q = (6.0*k*vfrac_particle_gi*particle_Nu)/(d**2)
                
+               ! Note that the transfer term is defined in terms of temperatures (T_fluid and T_particle)
+               ! Let's convert the temperatures to internal energy (E) using E_i = C_i*T_i,
+               ! where C is the specific heat of phase i at constant volume.
                if(is_particle_phase) then
-                  coefficient_for_matrix = -Q
-                  coefficient_for_rhs = -Q*(-internal_energy_fluid_gi)
+                  coefficient_for_matrix = -Q/C_particle
+                  coefficient_for_rhs = -Q*(-internal_energy_fluid_gi/C_fluid)
                else
-                  coefficient_for_matrix = -Q
-                  coefficient_for_rhs = Q*(internal_energy_particle_gi)
+                  coefficient_for_matrix = -Q/C_fluid
+                  coefficient_for_rhs = Q*(internal_energy_particle_gi/C_particle)
                end if
                
                ! Form the element heat transfer matrix and RHS
