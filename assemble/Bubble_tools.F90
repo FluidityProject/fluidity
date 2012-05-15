@@ -110,26 +110,25 @@
       quad%dim = 2
       quad%degree = 3
       quad%weight = 0.5*(/wv,we,wv,we,we,wv,wg/)
-      quad%l(:,1) = (/0.,0.5,1.,0.0,0.5,1.0,1.0/3.0/)
-      quad%l(:,2) = (/0.,0., 0.,0.5,0.5,0.0,1.0/3.0/)
+      quad%l(:,1) = (/1.0,0.5,0.0,0.5,0.0,0.,1./3./)
+      quad%l(:,2) = (/0.0,0.5,1.0,0.0,0.5,0.,1./3./)
+      quad%l(:,3) = (/0.0,0.0,0.0,0.5,0.5,1.,1./3./)
       quad%family = 3!FAMILY_SIMPSONS
 
     end subroutine get_p2b_lumped_mass_quadrature
 
     !! This is special cased because of the special properties of the 
     !! p2b lumped mass (it is still 3rd order, and positive).
-    subroutine get_lumped_mass_p2b(state,mass,p2b_field,weight_field)
+    subroutine get_lumped_mass_p2b(state,mass,p2b_field)
       type(csr_matrix), intent(inout) :: mass
       type(state_type), intent(inout) :: state
       type(scalar_field), intent(in) :: p2b_field
-      type(scalar_field), intent(in), optional :: weight_field
       !
       integer :: ele
       type(vector_field), pointer :: X
       real, dimension(7) :: N_vals
       type(quadrature_type) :: Simpsons_quad
-      type(element_type) :: p2b_lumped_shape, X_lumped_shape,&
-           & weight_lumped_shape
+      type(element_type) :: p2b_lumped_shape, X_lumped_shape
 
       X=>extract_vector_field(state, "Coordinate")
 
@@ -151,7 +150,7 @@
       do ele = 1, ele_count(X)
          call get_lumped_mass_p2b_ele(mass,p2b_field,p2b_lumped_shape,&
               X,X_lumped_shape,&
-              ele,weight_field)
+              ele)
       end do
       
       call deallocate(p2b_lumped_shape)
@@ -161,12 +160,11 @@
     end subroutine get_lumped_mass_p2b
 
     subroutine get_lumped_mass_p2b_ele(mass,p2b_field,p2b_lumped_shape,&
-         X,X_lumped_shape,ele,weight_field)
+         X,X_lumped_shape,ele)
       type(csr_matrix), intent(inout) :: mass
       type(scalar_field), intent(in) :: p2b_field
       type(vector_field), intent(in) :: X
       type(element_type), intent(in) :: p2b_lumped_shape,X_lumped_shape
-      type(scalar_field), intent(in), optional :: weight_field
       integer, intent(in) :: ele
       !
       real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
@@ -175,19 +173,14 @@
       real, dimension(ele_loc(p2b_field,ele),ele_loc(p2b_field,ele))&
            :: l_mass_mat
       real :: Area
+      integer :: loc
       real, dimension(p2b_lumped_shape%ngi) :: weight_vals
       call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J, detwei)
       Area = sum(detwei)
       call compute_jacobian(ele_val(X,ele), X_lumped_shape, J, detwei_l)
       assert(abs(Area-sum(detwei_l))<1.0e-10)
-      assert(size(ele_val(weight_field,ele))==p2b_lumped_shape%ngi)
-      if(present(weight_field)) then
-         weight_vals = ele_val(weight_field,ele)
-      else
-         weight_vals = 1.0
-      end if
       l_mass_mat = shape_shape(p2b_lumped_shape,p2b_lumped_shape,&
-           weight_vals*detwei_l)
+           detwei_l)
       call addto(mass,ele_nodes(p2b_field,ele),&
            ele_nodes(p2b_field,ele),l_mass_mat)
 
@@ -195,18 +188,19 @@
 
     !! This is special cased because of the special properties of the 
     !! p2b lumped mass (it is still 3rd order, and positivity preserving)
-    subroutine project_to_p2b_lumped(state,field,field_projected,p2b_mass)
+    subroutine project_to_p2b_lumped(state,field,field_projected)
       type(state_type), intent(inout) :: state
       type(scalar_field), intent(in) :: field
       type(scalar_field), intent(inout) :: field_projected
-      type(csr_matrix), intent(in) :: p2b_mass
       !
       type(scalar_field) :: rhs
       type(vector_field), pointer :: X
+      type(csr_sparsity), pointer :: mass_sparsity
+      type(csr_matrix) :: lumped_mass
       integer :: ele
       type(quadrature_type) :: Simpsons_quad
       type(element_type) :: X_lumped_shape,&
-           & field_projected_lumped_shape
+           & field_projected_lumped_shape, field_lumped_shape
 
       if(field_projected%mesh%shape%dim.ne.2) then
          FLAbort('Only works for 2d meshes')
@@ -219,32 +213,43 @@
       call get_p2b_lumped_mass_quadrature(Simpsons_quad)
       field_projected_lumped_shape = make_element_shape_from_element( &
            field_projected%mesh%shape,quad=Simpsons_quad)
+      field_lumped_shape = make_element_shape_from_element( &
+           field%mesh%shape,quad=Simpsons_quad)
       X_lumped_shape = make_element_shape_from_element(X%mesh%shape, &
            quad=Simpsons_quad)
 
+      mass_sparsity => get_csr_sparsity_firstorder(state, &
+           field_projected%mesh, field_projected%mesh)
+      call allocate(lumped_mass,mass_sparsity)
+      call zero(lumped_mass)
       call allocate(rhs,field_projected%mesh,"ProjectionRHS")
       call zero(rhs)
 
       do ele = 1, ele_count(X)
-         call project_to_p2b_lumped_ele(rhs,X,X_lumped_shape,&
+         call project_to_p2b_lumped_ele(rhs,lumped_mass,&
+              X,X_lumped_shape,field_lumped_shape,&
               field_projected_lumped_shape,field,ele)
       end do
-      call petsc_solve(field_projected,p2b_mass,rhs)
+      call petsc_solve(field_projected,lumped_mass,rhs)
       ewrite (2,*) maxval(abs(field_projected%val))
       call deallocate(rhs)
-
+      call deallocate(lumped_mass)
     end subroutine project_to_p2b_lumped
 
-    subroutine project_to_p2b_lumped_ele(rhs,X,X_lumped_shape,&
+    subroutine project_to_p2b_lumped_ele(rhs,lumped_mass,&
+         X,X_lumped_shape,field_lumped_shape,&
          field_projected_lumped_shape,field,ele)
       type(vector_field), intent(in) :: X
       type(scalar_field), intent(in) :: field
       type(scalar_field), intent(inout) :: rhs
+      type(csr_matrix), intent(inout) :: lumped_mass
       integer, intent(in) :: ele
       type(element_type), intent(in) :: X_lumped_shape,&
-           field_projected_lumped_shape
+           field_projected_lumped_shape, field_lumped_shape
       !
-      real, dimension(ele_loc(rhs,ele)) :: l_rhs,field_gi
+      real, dimension(ele_loc(rhs,ele)) :: l_rhs,field_gi      
+      real, dimension(ele_loc(rhs,ele),ele_loc(rhs,ele)) :: &
+           & l_mass
       real, dimension(ele_loc(field,ele)) :: field_vals
       integer :: loc
       real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
@@ -255,10 +260,13 @@
       !Values of field at field DOFs
       field_vals = ele_val(field,ele)
       assert(size(field_gi)==size(detwei))
-      field_gi = matmul(transpose(field_projected_lumped_shape%n),field_vals)
+      field_gi = matmul(transpose(field_lumped_shape%n),field_vals)
       l_rhs = shape_rhs(field_projected_lumped_shape,&
            field_gi*detwei)
-      
+      l_mass = shape_shape(field_projected_lumped_shape,&
+           field_projected_lumped_shape,detwei)
       call addto(rhs,ele_nodes(rhs,ele),l_rhs)
+      call addto(lumped_mass,ele_nodes(rhs,ele),&
+           ele_nodes(rhs,ele),l_mass)
     end subroutine project_to_p2b_lumped_ele
   end module bubble_tools

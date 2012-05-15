@@ -253,7 +253,7 @@
       if(have_option('/material_phase::Fluid/scalar_field::Vorticity/prog&
            &nostic/vorticity_equation/lump_mass')) then
          call project_to_p2b_lumped(state,D,&
-              D_projected,vorticity_mass_ptr)
+              D_projected)
       else
          call calculate_scalar_galerkin_projection(state, D_projected)
       end if
@@ -272,8 +272,7 @@
          call solve_advection_dg_subcycle("LayerThickness", state, &
               "NonlinearVelocity",continuity=.true.,Flux=MassFlux)
          if(lump_mass) then
-            call project_to_p2b_lumped(state,D,D_projected&
-                 &,vorticity_mass_ptr)
+            call project_to_p2b_lumped(state,D,D_projected)
          else
             FLAbort('No code here for consistent mass')
          end if

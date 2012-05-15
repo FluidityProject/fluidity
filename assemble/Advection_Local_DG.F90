@@ -1044,18 +1044,6 @@ module advection_local_DG
     call zero(adv_mat)
     call allocate(T_rhs,T%mesh,trim(T%name)//"RHS")
 
-    if(lump_mass) then
-       !set up lumped mass
-       call allocate(T_lumped_mass, T_sparsity)
-       call allocate(T_lumped_mass_next, T_sparsity)
-       call get_lumped_mass_p2b(state,T_lumped_mass,T,&
-            & weight_field = D_old)
-       call mult(T_rhs,T_lumped_mass,T)
-       call allocate(T_lumped_mass_next, T_sparsity)
-       call get_lumped_mass_p2b(state,T_lumped_mass_next,T,&
-            & weight_field = D)
-       call set(adv_mat,T_lumped_mass_next)
-    end if
     ewrite(1,*) 'T_RHS', maxval(abs(T_rhs%val))
 
     !Other fields and parameters we need
@@ -1083,11 +1071,6 @@ module advection_local_DG
     !deallocate everything
     call deallocate(adv_mat)
     call deallocate(T_rhs)
-    if(lump_mass) then
-       !set up lumped mass
-       call allocate(T_lumped_mass, T_sparsity)
-       call allocate(T_lumped_mass_next, T_sparsity)
-    end if
 
   end subroutine solve_advection_cg_tracer
   
