@@ -411,6 +411,14 @@ InternalEnergy needed for a Pressure of 1.013e5 = 205894.308943</comment>
         </steady_state>
       </diagnostic>
     </scalar_field>
+    <multiphase_properties>
+      <effective_conductivity>
+        <real_value rank="0">0.5</real_value>
+      </effective_conductivity>
+      <specific_heat>
+        <real_value rank="0">1406</real_value>
+      </specific_heat>
+    </multiphase_properties>
   </material_phase>
   <material_phase name="Dust">
     <equation_of_state>
@@ -634,10 +642,77 @@ InternalEnergy needed for a Pressure of 1.013e5 = 205894.308943</comment>
         </steady_state>
       </diagnostic>
     </scalar_field>
+    <scalar_field name="InternalEnergy" rank="0">
+      <prognostic>
+        <mesh name="PressureMesh"/>
+        <equation name="InternalEnergy">
+          <density name="Density"/>
+        </equation>
+        <spatial_discretisation>
+          <continuous_galerkin>
+            <stabilisation>
+              <streamline_upwind>
+                <nu_bar_optimal/>
+                <nu_scale name="0.5">
+                  <real_value shape="1" rank="0">0.5</real_value>
+                </nu_scale>
+              </streamline_upwind>
+            </stabilisation>
+            <advection_terms/>
+            <mass_terms/>
+          </continuous_galerkin>
+          <conservative_advection>
+            <real_value rank="0">0.0</real_value>
+          </conservative_advection>
+        </spatial_discretisation>
+        <temporal_discretisation>
+          <theta>
+            <real_value rank="0">1.0</real_value>
+          </theta>
+        </temporal_discretisation>
+        <solver>
+          <iterative_method name="preonly"/>
+          <preconditioner name="lu"/>
+          <relative_error>
+            <real_value rank="0">1.0e-7</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">10000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <initial_condition name="WholeMesh">
+          <constant>
+            <real_value rank="0">205894.308943</real_value>
+            <comment>InternalEnergy from the formula: (3/2)*R*Temperature = (3/2)*287.04*300 K = 203252
+InternalEnergy needed for a Pressure of 1.013e5 = 205894.308943</comment>
+          </constant>
+        </initial_condition>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <consistent_interpolation/>
+      </prognostic>
+    </scalar_field>
     <multiphase_properties>
       <particle_diameter>
         <real_value rank="0">10e-6</real_value>
       </particle_diameter>
+      <specific_heat>
+        <real_value rank="0">1406</real_value>
+        <comment>1406</comment>
+      </specific_heat>
     </multiphase_properties>
   </material_phase>
 </fluidity_options>
