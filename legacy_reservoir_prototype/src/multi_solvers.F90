@@ -224,6 +224,9 @@ contains
               MX_NCMC_SMALL,NCMC_SMALL, CV_NONODS,X_NONODS, MAP_DG2CTY, &
               FINDCMC,COLCMC,NCOLCMC)
 
+       print *,'FINDCMC_SMALL:',FINDCMC_SMALL
+       print *,'COLCMC_SMALL(1:NCMC_SMALL):',COLCMC_SMALL(1:NCMC_SMALL)
+        stop 3292
 
       allocate(cmc_small(ncmc_small))
       allocate(resid_dg(cv_nonods))
@@ -241,6 +244,8 @@ contains
             jcolcmc_small=MAP_DG2CTY(jcolcmc)
             count2=0
             DO COUNT3=FINDCMC_small(cty_NOD),FINDCMC_small(cty_NOD+1)-1
+               print *,'dg_nod,cty_nod,jcolcmc_small,colcmc_small(count3):', &
+                        dg_nod,cty_nod,jcolcmc_small,colcmc_small(count3)
                if(colcmc_small(count3)==jcolcmc_small) count2=count3
             end do
             if(count2==0) then
@@ -339,6 +344,9 @@ contains
       do cty_nod=2,x_nonods+1
          FINDCMC_small_MX(cty_nod)=FINDCMC_small_MX(cty_nod-1)+mx_NODS_ROW_SMALL(cty_nod-1)
       end do
+       print *,'MAP_DG2CTY:',MAP_DG2CTY
+       print *,'mx_NODS_ROW_SMALL:',mx_NODS_ROW_SMALL
+       print *,'FINDCMC_small_MX:',FINDCMC_small_MX
 
       NODS_ROW_SMALL=0
       COLCMC_SMALL=0
@@ -353,12 +361,13 @@ contains
             DO COUNT3=FINDCMC_small_mx(CTY_NOD),FINDCMC_SMALL_mx(CTY_NOD)+NODS_ROW_SMALL(cty_nod)-1
                if(colcmc_small(count3)==jcolcmc_small) count2=count3
             end do
-            if(count2==0) then ! then put coln in
+            if(count2==0) then ! then put coln in as we have not found it in row 
                NODS_ROW_SMALL(cty_nod)=NODS_ROW_SMALL(cty_nod)+1
-               COLCMC_SMALL(FINDCMC(DG_NOD)+NODS_ROW_SMALL(cty_nod)-1)=jcolcmc_small
+               COLCMC_SMALL(FINDCMC_small_mx(CTY_NOD)+NODS_ROW_SMALL(cty_nod)-1)=jcolcmc_small
             endif             
          END DO
       END DO
+      print *,'NODS_ROW_SMALL:',NODS_ROW_SMALL
 
       FINDCMC_small(1)=1
       do cty_nod=2,x_nonods+1
@@ -376,6 +385,11 @@ contains
           ENDIF
         END DO
       END DO
+! Put in assending coln order in each row...
+      do cty_nod=1,x_nonods
+         call ibubble2(COLCMC_SMALL(FINDCMC_small(cty_nod):FINDCMC_small(cty_nod+1)-1))
+      end do
+! Calculate MIDCMC_SMALL...
       do cty_nod=1,x_nonods
         DO COUNT=FINDCMC_small(cty_nod),FINDCMC_small(cty_nod+1)-1
           IF(COLCMC_SMALL(COUNT)==cty_nod) MIDCMC_SMALL(CTY_NOD)=COUNT
@@ -385,6 +399,29 @@ contains
      RETURN
      END SUBROUTINE GET_SPAR_CMC_SMALL
          
+
+
+    subroutine ibubble2(ivec)
+      ! sort ivec in increasing order
+      implicit none
+      integer, dimension( : ), intent( inout ) :: ivec
+      ! Local variables
+      integer :: nvec, i, j, itemp
+
+      nvec = size(ivec)
+
+      do i = 1, nvec - 1
+         do j = 1, nvec
+            if ( ivec( i ) > ivec( i + 1 ) ) then
+               itemp = ivec( i + 1 )
+               ivec( i + 1 ) = ivec( i )
+               ivec( i ) = itemp
+            end if
+         end do
+      end do
+      return
+    end subroutine ibubble2
+
 
 
 
