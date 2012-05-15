@@ -549,6 +549,7 @@
       subroutine add_heat_transfer(state, istate, x, internal_energy, matrix, rhs)
          !!< This computes the inter-phase heat transfer term.
          !!< Only between fluid and particle phase pairs.
+         !!< Uses the empirical correlation by Gunn (1978).
          
          type(state_type), dimension(:), intent(inout) :: state     
          integer, intent(in) :: istate
@@ -748,8 +749,9 @@
                real, dimension(ele_loc(internal_energy,ele)) :: rhs_addto
                real, dimension(ele_loc(internal_energy,ele), ele_loc(internal_energy,ele)) :: matrix_addto
                
-               real, dimension(ele_ngi(x,ele)) :: particle_re ! Particle Reynolds number
-               real, dimension(ele_ngi(x,ele)) :: particle_pr ! Particle Prandtl number
+               real, dimension(ele_ngi(x,ele)) :: particle_Re ! Particle Reynolds number
+               real, dimension(ele_ngi(x,ele)) :: particle_Pr ! Particle Prandtl number
+               real, dimension(ele_ngi(x,ele)) :: particle_Nu ! Particle Nusselt number
                real, dimension(ele_ngi(x,ele)) :: velocity_magnitude ! |v_f - v_p|
                
                real, dimension(ele_ngi(x,ele)) :: Q ! heat transfer term = Q*(T_p - T_f)
@@ -777,15 +779,16 @@
 
                ! Compute the particle Reynolds number
                ! (Assumes isotropic viscosity for now)
-               particle_re = (density_fluid_gi*velocity_magnitude*d) / viscosity_fluid_gi(1,1,:)
+               particle_Re = (density_fluid_gi*velocity_magnitude*d) / viscosity_fluid_gi(1,1,:)
            
                ! Compute the particle Prandtl number
                ! (Assumes isotropic viscosity for now)
-               particle_pr = C*viscosity_fluid_gi(1,1,:)/k
+               particle_Pr = C*viscosity_fluid_gi(1,1,:)/k
                
-                              
-               
-               
+               particle_Nu = (2.0 + 5.0*vfrac_particle_gi**2)*(1.0 + 0.7*(particle_Re**0.2)*(particle_Pr**(1.0/3.0))) + &
+                              (0.13 + 1.2*vfrac_particle_gi**2)**particle_Re**0.7)*(particle_Pr**(1.0/3.0))
+
+               Q = (6.0*k*vfrac_particle_gi*particle_Nu)/(d**2)
                
                if(is_particle_phase) then
                   coefficient_for_matrix = -Q

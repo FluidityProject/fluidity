@@ -1496,6 +1496,18 @@ start =
                comment,
                element particle_diameter { 
                      real 
+               }?,
+               ## If this is the fluid phase, 
+               ## the effective_conductivity is required 
+               ## for inter-phase heat transfer term.
+               element effective_conductivity { 
+                     real 
+               }?,
+               ## If this is the fluid phase, 
+               ## the specific_heat is required 
+               ## for inter-phase heat transfer term.
+               element specific_heat { 
+                     real
                }?
             }?,
             sediment?
