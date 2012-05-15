@@ -698,7 +698,7 @@ contains
                 else if(have_option(trim(field_optionpath_list(it)) // &
                      & "/prognostic/spatial_discretisation/continuous_galerkin")) then
 
-                   call solve_field_equation_cg(field_name_list(it), state(field_state_list(it)), dt)
+                   call solve_field_equation_cg(field_name_list(it), state, field_state_list(it), dt)
                 else
 
                    ewrite(2, *) "Not solving scalar field " // trim(field_name_list(it)) // " in state " // trim(state(field_state_list(it))%name) //" in an advdif-like subroutine."

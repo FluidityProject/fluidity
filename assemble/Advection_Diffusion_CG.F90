@@ -123,13 +123,14 @@ module advection_diffusion_cg
 
 contains
 
-  subroutine solve_field_equation_cg(field_name, state, dt, velocity_name, iterations_taken)
+  subroutine solve_field_equation_cg(field_name, state, istate, dt, velocity_name, iterations_taken)
     !!< Construct and solve the advection-diffusion equation for the given
     !!< field using a continuous Galerkin discretisation. Based on
     !!< Advection_Diffusion_DG and Momentum_CG.
     
     character(len = *), intent(in) :: field_name
-    type(state_type), intent(inout) :: state
+    type(state_type), dimension(:), intent(inout) :: state
+    integer, intent(in) :: istate
     real, intent(in) :: dt
     character(len = *), optional, intent(in) :: velocity_name
     integer, intent(out), optional :: iterations_taken
@@ -141,16 +142,16 @@ contains
     ewrite(1, *) "In solve_field_equation_cg"
     
     ewrite(2, *) "Solving advection-diffusion equation for field " // &
-      & trim(field_name) // " in state " // trim(state%name)
+      & trim(field_name) // " in state(istate) " // trim(state(istate)%name)
 
-    call initialise_advection_diffusion_cg(field_name, t, delta_t, matrix, rhs, state)
+    call initialise_advection_diffusion_cg(field_name, t, delta_t, matrix, rhs, state, istate)
     
     call profiler_tic(t, "assembly")
-    call assemble_advection_diffusion_cg(t, matrix, rhs, state, dt, velocity_name = velocity_name)    
+    call assemble_advection_diffusion_cg(t, matrix, rhs, state, istate, dt, velocity_name = velocity_name)    
     call profiler_toc(t, "assembly")
 
     call profiler_tic(t, "solve_total")
-    call solve_advection_diffusion_cg(t, delta_t, matrix, rhs, state, &
+    call solve_advection_diffusion_cg(t, delta_t, matrix, rhs, state, istate, &
                                       iterations_taken = iterations_taken)
     call profiler_toc(t, "solve_total")
 
@@ -164,31 +165,32 @@ contains
     
   end subroutine solve_field_equation_cg
   
-  subroutine initialise_advection_diffusion_cg(field_name, t, delta_t, matrix, rhs, state)
+  subroutine initialise_advection_diffusion_cg(field_name, t, delta_t, matrix, rhs, state, istate)
     character(len = *), intent(in) :: field_name
     type(scalar_field), pointer :: t
     type(scalar_field), intent(out) :: delta_t
     type(csr_matrix), intent(out) :: matrix
     type(scalar_field), intent(out) :: rhs
-    type(state_type), intent(inout) :: state
+    type(state_type), dimension(:), intent(inout) :: state
+    integer, intent(in) :: istate
     
     integer :: stat
     type(csr_sparsity), pointer :: sparsity
     type(scalar_field), pointer :: t_old
         
-    t => extract_scalar_field(state, field_name)
+    t => extract_scalar_field(state(istate), field_name)
     if(t%mesh%continuity /= 0) then
       FLExit("CG advection-diffusion requires a continuous mesh")
     end if
         
-    t_old => extract_scalar_field(state, "Old" // field_name, stat = stat)
+    t_old => extract_scalar_field(state(istate), "Old" // field_name, stat = stat)
     if(stat == 0) then
       assert(t_old%mesh == t%mesh)
       ! Reset t to value at the beginning of the timestep
       call set(t, t_old)
     end if
     
-    sparsity => get_csr_sparsity_firstorder(state, t%mesh, t%mesh)
+    sparsity => get_csr_sparsity_firstorder(state(istate), t%mesh, t%mesh)
     
     call allocate(matrix, sparsity, name = advdif_cg_m_name)
     call allocate(rhs, t%mesh, name = advdif_cg_rhs_name)
@@ -216,11 +218,12 @@ contains
     
   end subroutine set_advection_diffusion_cg_initial_guess
   
-  subroutine assemble_advection_diffusion_cg(t, matrix, rhs, state, dt, velocity_name)
+  subroutine assemble_advection_diffusion_cg(t, matrix, rhs, state, istate, dt, velocity_name)
     type(scalar_field), intent(inout) :: t
     type(csr_matrix), intent(inout) :: matrix
     type(scalar_field), intent(inout) :: rhs
-    type(state_type), intent(inout) :: state
+    type(state_type), dimension(:), intent(inout) :: state
+    integer, intent(in) :: istate
     real, intent(in) :: dt
     character(len = *), optional, intent(in) :: velocity_name
 
@@ -270,16 +273,16 @@ contains
 #else
     num_threads = 1
 #endif
-    ! Step 1: Pull fields out of state
+    ! Step 1: Pull fields out of state(istate)
     
     ! Coordinate
-    positions => extract_vector_field(state, "Coordinate")
+    positions => extract_vector_field(state(istate), "Coordinate")
     ewrite_minmax(positions)
     assert(positions%dim == mesh_dim(t))
     assert(ele_count(positions) == ele_count(t))
     
     ! Velocity    
-    velocity_ptr => extract_vector_field(state, lvelocity_name, stat = stat)
+    velocity_ptr => extract_vector_field(state(istate), lvelocity_name, stat = stat)
     if(stat == 0) then
       assert(velocity_ptr%dim == mesh_dim(t))
       assert(ele_count(velocity_ptr) == ele_count(t))
@@ -303,7 +306,7 @@ contains
     end if
         
     ! Source
-    source => extract_scalar_field(state, trim(t%name) // "Source", stat = stat)
+    source => extract_scalar_field(state(istate), trim(t%name) // "Source", stat = stat)
     have_source = stat == 0
     if(have_source) then
       assert(mesh_dim(source) == mesh_dim(t))
@@ -324,7 +327,7 @@ contains
     end if
     
     ! Absorption
-    absorption => extract_scalar_field(state, trim(t%name) // "Absorption", stat = stat)
+    absorption => extract_scalar_field(state(istate), trim(t%name) // "Absorption", stat = stat)
     have_absorption = stat == 0
     if(have_absorption) then
       assert(mesh_dim(absorption) == mesh_dim(t))
@@ -336,11 +339,11 @@ contains
     end if
 
     ! Sinking velocity
-    sinking_velocity => extract_scalar_field(state, trim(t%name) // "SinkingVelocity", stat = stat)
+    sinking_velocity => extract_scalar_field(state(istate), trim(t%name) // "SinkingVelocity", stat = stat)
     if(stat == 0) then
       ewrite_minmax(sinking_velocity)
       
-      gravity_direction => extract_vector_field(state, "GravityDirection")
+      gravity_direction => extract_vector_field(state(istate), "GravityDirection")
       ! this may perform a "remap" internally from CoordinateMesh to VelocitMesh
       call addto(velocity, gravity_direction, scale = sinking_velocity)
       ewrite_minmax(velocity)
@@ -349,7 +352,7 @@ contains
     end if
     
     ! Diffusivity
-    diffusivity => extract_tensor_field(state, trim(t%name) // "Diffusivity", stat = stat)
+    diffusivity => extract_tensor_field(state(istate), trim(t%name) // "Diffusivity", stat = stat)
     have_diffusivity = stat == 0
     if(have_diffusivity) then
       assert(all(diffusivity%dim == mesh_dim(t)))
@@ -375,7 +378,7 @@ contains
        include_porosity = .true.
        
        ! get the porosity theta averaged field - this will allocate it
-       call form_porosity_theta(porosity_theta, state, option_path = trim(complete_field_path(t%option_path))//'/porosity')       
+       call form_porosity_theta(porosity_theta, state(istate), option_path = trim(complete_field_path(t%option_path))//'/porosity')       
     else
        include_porosity = .false.
        call allocate(porosity_theta, t%mesh, field_type=FIELD_TYPE_CONSTANT)
@@ -428,13 +431,13 @@ contains
          FLExit('Cannot include porosity in CG advection diffusion of a field with a moving mesh')
       end if
       ewrite(2,*) "Moving the mesh"
-      old_positions => extract_vector_field(state, "OldCoordinate")
+      old_positions => extract_vector_field(state(istate), "OldCoordinate")
       ewrite_minmax(old_positions)
-      new_positions => extract_vector_field(state, "IteratedCoordinate")
+      new_positions => extract_vector_field(state(istate), "IteratedCoordinate")
       ewrite_minmax(new_positions)
       
       ! Grid velocity
-      grid_velocity => extract_vector_field(state, "GridVelocity")
+      grid_velocity => extract_vector_field(state(istate), "GridVelocity")
       assert(grid_velocity%dim == mesh_dim(t))
       assert(ele_count(grid_velocity) == ele_count(t))
       
@@ -490,25 +493,25 @@ contains
       end if
       call get_option(trim(t%option_path)//'/prognostic/equation[0]/density[0]/name', &
                       density_name)
-      density=>extract_scalar_field(state, trim(density_name))
+      density=>extract_scalar_field(state(istate), trim(density_name))
       ewrite_minmax(density)
       
-      olddensity=>extract_scalar_field(state, "Old"//trim(density_name))
+      olddensity=>extract_scalar_field(state(istate), "Old"//trim(density_name))
       ewrite_minmax(olddensity)
       
       call get_option(trim(density%option_path)//"/prognostic/temporal_discretisation/theta", &
                       density_theta)
                       
-      pressure=>extract_scalar_field(state, "Pressure")
+      pressure=>extract_scalar_field(state(istate), "Pressure")
       ewrite_minmax(pressure)
       
       ! PhaseVolumeFraction for multiphase flow simulations
       if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
          multiphase = .true.
-         vfrac => extract_scalar_field(state, "PhaseVolumeFraction")
+         vfrac => extract_scalar_field(state(istate), "PhaseVolumeFraction")
          call allocate(nvfrac, vfrac%mesh, "NonlinearPhaseVolumeFraction")
          call zero(nvfrac)
-         call get_nonlinear_volume_fraction(state, nvfrac)
+         call get_nonlinear_volume_fraction(state(istate), nvfrac)
          
          ewrite_minmax(nvfrac)
       else
@@ -532,7 +535,7 @@ contains
     assert(cache_valid)
 #endif
 
-    call get_mesh_colouring(state, t%mesh, COLOURING_CG1, colours)
+    call get_mesh_colouring(state(istate), t%mesh, COLOURING_CG1, colours)
     call profiler_toc(t, "advection_diffusion_loop_overhead")
 
     call profiler_tic(t, "advection_diffusion_loop")
@@ -1335,15 +1338,16 @@ contains
 
   end subroutine add_diffusivity_face_cg
      
-  subroutine solve_advection_diffusion_cg(t, delta_t, matrix, rhs, state, iterations_taken)
+  subroutine solve_advection_diffusion_cg(t, delta_t, matrix, rhs, state, istate, iterations_taken)
     type(scalar_field), intent(in) :: t
     type(scalar_field), intent(inout) :: delta_t
     type(csr_matrix), intent(in) :: matrix
     type(scalar_field), intent(in) :: rhs
-    type(state_type), intent(in) :: state
+    type(state_type), dimension(:), intent(in) :: state
+    integer, intent(in) :: istate
     integer, intent(out), optional :: iterations_taken
     
-    call petsc_solve(delta_t, matrix, rhs, state, option_path = t%option_path, &
+    call petsc_solve(delta_t, matrix, rhs, state(istate), option_path = t%option_path, &
                      iterations_taken = iterations_taken)
     
     ewrite_minmax(delta_t)
@@ -1468,7 +1472,7 @@ contains
       character(len = *), intent(in) :: field_name
       character(len = *), intent(in) :: msg
       
-      ewrite(0, *) "Warning: For field " // trim(field_name) // " in state " // trim(state_name)
+      ewrite(0, *) "Warning: For field " // trim(field_name) // " in state(istate) " // trim(state_name)
       ewrite(0, *) trim(msg)
     
     end subroutine field_warning
@@ -1478,7 +1482,7 @@ contains
       character(len = *), intent(in) :: field_name
       character(len = *), intent(in) :: msg
       
-      ewrite(-1, *) "For field " // trim(field_name) // " in state " // trim(state_name)
+      ewrite(-1, *) "For field " // trim(field_name) // " in state(istate) " // trim(state_name)
       FLExit(trim(msg))
     
     end subroutine field_error

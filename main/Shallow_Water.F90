@@ -584,7 +584,7 @@
          end if
          !pressure advection
          if(.not.exclude_pressure_advection) then
-            call solve_field_equation_cg("LayerThickness", state, dt, &
+            call solve_field_equation_cg("LayerThickness", (\state\), 1, dt, &
                  "NonlinearVelocity")
          end if
 
