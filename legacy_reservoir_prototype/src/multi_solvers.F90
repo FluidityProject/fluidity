@@ -38,7 +38,7 @@ module solvers_module
     
   private
   
-  public  :: solver
+  public  :: solver, PRES_DG_MULTIGRID
   
   interface solver
      module procedure solve_via_copy_to_petsc_csr_matrix
@@ -162,6 +162,297 @@ contains
     call deallocate(matrix)
       
   end subroutine solve_via_copy_to_petsc_csr_matrix
+
+
+
+
+    SUBROUTINE PRES_DG_MULTIGRID(CMC, P, RHS, &
+         NCOLCMC, cv_NONODS, FINDCMC, COLCMC, MIDCMC, &
+         totele, cv_nloc, x_nonods, cv_ndgln, x_ndgln )
+      !
+      ! Solve CMC * P = RHS for RHS.
+      ! form a discontinuouse pressure mesh for pressure...
+      implicit none
+      INTEGER, intent( in ) ::  NCOLCMC, cv_NONODS, totele, cv_nloc, x_nonods
+      REAL, DIMENSION( NCOLCMC ), intent( in ) ::  CMC
+      REAL, DIMENSION( cv_NONODS ), intent( inout ) ::  P
+      REAL, DIMENSION( cv_NONODS ), intent( in ) :: RHS
+      INTEGER, DIMENSION( cv_NONODS + 1 ), intent( in ) :: FINDCMC
+      INTEGER, DIMENSION( NCOLCMC ), intent( in ) :: COLCMC
+      INTEGER, DIMENSION( cv_NONODS ), intent( in ) :: MIDCMC
+      INTEGER, DIMENSION( cv_nloc*totele ), intent( in ) :: cv_ndgln, x_ndgln
+      REAL ERROR, RELAX, RELAX_DIAABS, RELAX_DIA
+      INTEGER N_LIN_ITS
+      PARAMETER(ERROR=1.E-15, RELAX=1.0, RELAX_DIAABS=2.0)
+      PARAMETER(RELAX_DIA=1.0, N_LIN_ITS=10)
+      ! RELAX: overall relaxation coeff; =1 for no relaxation. 
+      ! RELAX_DIAABS: relaxation of the absolute values of the sum of the row of the matrix;
+      !               - recommend >=2 for hard problems, =0 for easy
+      ! RELAX_DIA: relaxation of diagonal; =1 no relaxation (normally applied). 
+      ! N_LIN_ITS = no of linear iterations
+      ! ERROR= solver tolerence between 2 consecutive iterations
+      ! NGL_ITS = no of global its
+      INTEGER NGL_ITS
+      PARAMETER(NGL_ITS=10)
+      integer, dimension( : ), allocatable :: findcmc_small,colcmc_small,midcmc_small, &
+           MAP_DG2CTY
+      real, dimension( : ), allocatable :: cmc_small, resid_dg, resid_cty, p_cty, &
+           nods_sourou, DP_DG, DP_SMALL
+      integer ele,cv_iloc,dg_nod,cty_nod,jcolcmc,jcolcmc_small
+      integer mx_ncmc_small,ncmc_small,count,count2,count3,GL_ITS
+
+      ! obtain sparcity of a new matrix 
+      mx_ncmc_small=nCOLcmc*4
+      allocate(FINDCmc_small(x_nonods+1))
+      allocate(colcmc_small(mx_ncmc_small))
+      allocate(midcmc_small(x_nonods))
+      allocate(MAP_DG2CTY(cv_nonods))
+
+      PRINT *,'BEFORE pousinmc'
+      ! lump the pressure nodes to take away the discontinuity...
+
+      DO ELE=1,TOTELE
+         DO CV_ILOC=1,CV_NLOC
+            dg_nod=(ele-1)*cv_nloc+cv_iloc
+            cty_nod=x_ndgln((ele-1)*cv_nloc+cv_iloc)
+            MAP_DG2CTY(dg_nod)=cty_nod
+         END DO
+      END DO
+
+
+      CALL GET_SPAR_CMC_SMALL(FINDCMC_SMALL,COLCMC_SMALL,MIDCMC_SMALL, &
+              MX_NCMC_SMALL,NCMC_SMALL, CV_NONODS,X_NONODS, MAP_DG2CTY, &
+              FINDCMC,COLCMC,NCOLCMC)
+
+
+      allocate(cmc_small(ncmc_small))
+      allocate(resid_dg(cv_nonods))
+      allocate(resid_cty(x_nonods))
+      allocate(p_cty(x_nonods))
+      allocate(nods_sourou(x_nonods))
+
+
+      CMC_SMALL(1:NCMC_SMALL)=0.0
+      DO dg_nod=1,CV_NONODS
+         cty_nod=MAP_DG2CTY(dg_nod)
+         ! add row dg_nod to row cty_nod of cty mesh
+         DO COUNT=FINDCMC(DG_NOD),FINDCMC(DG_NOD+1)-1
+            jcolcmc=COLCMC(COUNT)
+            jcolcmc_small=MAP_DG2CTY(jcolcmc)
+            count2=0
+            DO COUNT3=FINDCMC_small(cty_NOD),FINDCMC_small(cty_NOD+1)-1
+               if(colcmc_small(count3)==jcolcmc_small) count2=count3
+            end do
+            if(count2==0) then
+               print *,'could not find coln'
+               stop 3282
+            endif
+            CMC_SMALL(COUNT2)=CMC_SMALL(COUNT2)+CMC(COUNT)              
+         END DO
+      END DO
+
+
+      DO GL_ITS=1,NGL_ITS
+
+         PRINT *,'GL_ITS=',GL_ITS
+         ! SSOR smoother for the multi-grid method...
+         CALL SIMPLE_SOLVER( CMC, P, RHS,  &
+              NCOLCMC, CV_NONODS, FINDCMC, COLCMC, MIDCMC,  &
+              ERROR, RELAX, RELAX_DIAABS, RELAX_DIA, N_LIN_ITS )
+
+         resid_dg=rhs
+         do dg_nod=1,cv_nonods
+            DO COUNT=FINDCMC(dg_NOD),FINDCMC(dg_NOD+1)-1
+               resid_dg(dg_nod)=resid_dg(dg_nod)-cmc(count)*P(COLCMC(COUNT))
+            END DO
+         end do
+
+         ! Map resid_dg to resid_cty as well as the solution:
+         resid_cty=0.0
+         !         p_cty=0.0
+         nods_sourou=0.0
+         do dg_nod=1,cv_nonods
+            cty_nod=MAP_DG2CTY(dg_nod)
+            resid_cty(cty_nod)= resid_cty(cty_nod)+resid_dg(dg_nod)
+            !            p_cty(cty_nod)= p_cty(cty_nod)+p(dg_nod)
+            nods_sourou(cty_nod)= nods_sourou(cty_nod)+1.0
+         end do
+         ! We have added the rows together so no need to normalize residual. 
+         ! resid_cty= resid_cty/nods_sourou
+         ! p_cty    = p_cty    /nods_sourou
+
+         ! Course grid solver...
+         DP_SMALL=0.0
+           PRINT *,'SOLVER'
+         CALL SOLVER( CMC_SMALL(1:NCMC_SMALL), DP_SMALL, resid_cty, &
+              FINDCMC_SMALL, COLCMC_SMALL(1:NCMC_SMALL), &
+              option_path = '/material_phase[0]/scalar_field::Pressure')
+
+         ! Map the corrections DP_SMALL to dg:
+         DO dg_nod=1,cv_nonods
+            cty_nod=MAP_DG2CTY(dg_nod)
+            DP_DG(DG_NOD)=DP_SMALL(CTY_NOD)
+         END DO
+
+         P=P+DP_DG  
+
+      END DO
+
+      RETURN
+    END SUBROUTINE PRES_DG_MULTIGRID
+
+
+
+
+      SUBROUTINE GET_SPAR_CMC_SMALL(FINDCMC_SMALL,COLCMC_SMALL,MIDCMC_SMALL, &
+              MX_NCMC_SMALL,NCMC_SMALL, CV_NONODS,X_NONODS, MAP_DG2CTY, &
+              FINDCMC,COLCMC,NCOLCMC)
+! Form sparcity COLCMC_SMALL, FINDCMC_SMALL 
+! from FINDCMC,COLCMC...
+! It lumps the DG pressure matrix to a continuous pressure matrix...
+      INTEGER, intent( in ) ::  MX_NCMC_SMALL,NCOLCMC, CV_NONODS,X_NONODS
+      INTEGER, intent( inout ) ::  NCMC_SMALL
+      INTEGER, DIMENSION( x_NONODS + 1 ), intent( inout ) :: FINDCMC_SMALL
+      INTEGER, DIMENSION( MX_NCMC_SMALL ), intent( inout ) :: COLCMC_SMALL
+      INTEGER, DIMENSION( x_nonods ), intent( inout ) :: MIDCMC_SMALL
+
+      INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCMC
+      INTEGER, DIMENSION( NCOLCMC ), intent( in ) :: COLCMC
+
+      INTEGER, DIMENSION( CV_nonods ), intent( in ) :: MAP_DG2CTY
+      ! Local variables
+      integer, dimension( : ), allocatable :: MX_NODS_ROW_SMALL, NODS_ROW_SMALL, &
+                   FINDCMC_SMALL_mx
+      INTEGER :: dg_nod,cty_nod,count,jcolcmc,jcolcmc_small,count2,count3
+
+      allocate(MX_NODS_ROW_SMALL(x_nonods))
+      allocate(NODS_ROW_SMALL(x_nonods))
+      allocate(FINDCMC_SMALL_mx(x_nonods+1))
+
+      MX_NODS_ROW_SMALL=0
+      DO dg_nod=1,CV_NONODS
+         cty_nod=MAP_DG2CTY(dg_nod)
+         MX_NODS_ROW_SMALL(cty_nod)=MX_NODS_ROW_SMALL(cty_nod)  &
+                +FINDCMC(DG_NOD+1)-FINDCMC(DG_NOD)
+      END DO
+      FINDCMC_small_MX(1)=1
+      do cty_nod=2,x_nonods+1
+         FINDCMC_small_MX(cty_nod)=FINDCMC_small_MX(cty_nod-1)+mx_NODS_ROW_SMALL(cty_nod-1)
+      end do
+
+      NODS_ROW_SMALL=0
+      COLCMC_SMALL=0
+      DO dg_nod=1,CV_NONODS
+         cty_nod=MAP_DG2CTY(dg_nod)
+         ! add row dg_nod to row cty_nod of cty mesh
+         DO COUNT=FINDCMC(DG_NOD),FINDCMC(DG_NOD+1)-1
+            jcolcmc=COLCMC(COUNT)
+            jcolcmc_small=MAP_DG2CTY(jcolcmc)
+            
+            count2=0
+            DO COUNT3=FINDCMC_small_mx(CTY_NOD),FINDCMC_SMALL_mx(CTY_NOD)+NODS_ROW_SMALL(cty_nod)-1
+               if(colcmc_small(count3)==jcolcmc_small) count2=count3
+            end do
+            if(count2==0) then ! then put coln in
+               NODS_ROW_SMALL(cty_nod)=NODS_ROW_SMALL(cty_nod)+1
+               COLCMC_SMALL(FINDCMC(DG_NOD)+NODS_ROW_SMALL(cty_nod)-1)=jcolcmc_small
+            endif             
+         END DO
+      END DO
+
+      FINDCMC_small(1)=1
+      do cty_nod=2,x_nonods+1
+         FINDCMC_small(cty_nod)=FINDCMC_small(cty_nod-1)+NODS_ROW_SMALL(cty_nod-1)
+      end do
+      NCMC_SMALL=FINDCMC_small(x_nonods+1)-1
+
+! Shrink up the pointer list COLCMC_SMALL: 
+      COUNT=0
+      do cty_nod=1,x_nonods
+        DO COUNT2=FINDCMC_small_MX(cty_nod),FINDCMC_small_MX(cty_nod+1)-1
+          IF(COLCMC_SMALL(COUNT2).NE.0) THEN
+             COUNT=COUNT+1
+             COLCMC_SMALL(COUNT)=COLCMC_SMALL(COUNT2)
+          ENDIF
+        END DO
+      END DO
+      do cty_nod=1,x_nonods
+        DO COUNT=FINDCMC_small(cty_nod),FINDCMC_small(cty_nod+1)-1
+          IF(COLCMC_SMALL(COUNT)==cty_nod) MIDCMC_SMALL(CTY_NOD)=COUNT
+        END DO
+      END DO
+
+     RETURN
+     END SUBROUTINE GET_SPAR_CMC_SMALL
+         
+
+
+
+    SUBROUTINE SIMPLE_SOLVER( CMC, P, RHS,  &
+         NCMC, NONODS, FINCMC, COLCMC, MIDCMC,  &
+         ERROR, RELAX, RELAX_DIAABS, RELAX_DIA, N_LIN_ITS )
+      !
+      ! Solve CMC * P = RHS for RHS.
+      ! RELAX: overall relaxation coeff; =1 for no relaxation. 
+      ! RELAX_DIAABS: relaxation of the absolute values of the sum of the row of the matrix;
+      !               - recommend >=2 for hard problems, =0 for easy
+      ! RELAX_DIA: relaxation of diagonal; =1 no relaxation (normally applied). 
+      ! N_LIN_ITS = no of linear iterations
+      ! ERROR= solver tolerence between 2 consecutive iterations
+      implicit none
+      REAL, intent( in ) :: ERROR, RELAX, RELAX_DIAABS, RELAX_DIA
+      INTEGER, intent( in ) ::  N_LIN_ITS, NCMC, NONODS
+      REAL, DIMENSION( NCMC ), intent( in ) ::  CMC
+      REAL, DIMENSION( NONODS ), intent( inout ) ::  P
+      REAL, DIMENSION( NONODS ), intent( in ) :: RHS
+      INTEGER, DIMENSION( NONODS + 1 ), intent( in ) :: FINCMC
+      INTEGER, DIMENSION( NCMC ), intent( in ) :: COLCMC
+      INTEGER, DIMENSION( NONODS ), intent( in ) :: MIDCMC
+      ! Local variables
+      INTEGER :: ITS, ILOOP, ISTART, IFINI, ISTEP, NOD, COUNT
+      REAL :: R, SABS_DIAG, RTOP, RBOT, POLD, MAX_ERR
+
+      ewrite(3,*) 'In Solver'
+
+      Loop_Non_Linear_Iter: DO ITS = 1, N_LIN_ITS
+
+         MAX_ERR = 0.0
+         Loop_Internal: DO ILOOP = 1, 2
+            IF( ILOOP == 1 ) THEN
+               ISTART = 1
+               IFINI = NONODS
+               ISTEP = 1
+            ELSE
+               ISTART = NONODS
+               IFINI = 1
+               ISTEP = -1
+            ENDIF
+
+            Loop_Nods: DO NOD = ISTART, IFINI, ISTEP
+               R = RELAX_DIA * CMC( MIDCMC( NOD )) * P( NOD ) + RHS( NOD )
+               SABS_DIAG = 0.0
+               DO COUNT = FINCMC( NOD ), FINCMC( NOD + 1 ) - 1
+                  R = R - CMC( COUNT ) * P( COLCMC( COUNT ))
+                  SABS_DIAG = SABS_DIAG + ABS( CMC( COUNT ))
+               END DO
+               RTOP = R + RELAX_DIAABS * SABS_DIAG * P( NOD )
+               RBOT = RELAX_DIAABS * SABS_DIAG + RELAX_DIA * CMC( MIDCMC( NOD ))
+               POLD = P( NOD )
+               P( NOD ) = RELAX * ( RTOP / RBOT ) + ( 1.0 - RELAX ) * P( NOD )
+               MAX_ERR = MAX( MAX_ERR, ABS( POLD - P( NOD )))
+            END DO Loop_Nods
+         END DO Loop_Internal
+
+         IF( MAX_ERR < ERROR ) CYCLE
+
+      END DO Loop_Non_Linear_Iter
+
+      ewrite(3,*) 'Leaving Solver'
+
+      RETURN
+    END SUBROUTINE SIMPLE_SOLVER
+
+
 
 end module solvers_module
 

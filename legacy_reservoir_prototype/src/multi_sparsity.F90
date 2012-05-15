@@ -564,6 +564,7 @@
       integer :: count, count2, ele_pha, ele_pha2, iloc, jloc, irow, jrow
       integer :: ele, ele2, idim, jdim, iphase, jphase, u_nonods
 
+
       ewrite(3,*) 'In form_dgm_pha_sparsity subrt.'
 
       u_nonods = u_pha_nonods / ( nphase * ndim )
@@ -607,6 +608,7 @@
             if( irow == jrow ) middgm_pha( irow ) = count
          end do
       end do
+
 
       if( ncoldgm_pha > mx_ncoldgm_pha ) &
            FLAbort(" Incorrect number of dimension of sparsity matrix - ncoldgm_pha ")
@@ -1553,7 +1555,8 @@
            finacv, colacv, midacv )
       ewrite(3,*)'finacv: ', finacv( 1 : cv_pha_nonods + 1 )
       ewrite(3,*)'colacv: ', colacv( 1 : ncolacv )
-      ewrite(1,*)'midacv: ', midacv( 1 : cv_pha_nonods )
+      ewrite(1,*)'1 midacv: ', midacv( 1 : cv_pha_nonods )
+!      stop 922
 
       !-
       !- Deallocating temporary arrays
