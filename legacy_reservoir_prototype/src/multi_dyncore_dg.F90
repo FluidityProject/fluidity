@@ -1721,7 +1721,7 @@
       if( trim( overlapping_path ) == 'overlapping' ) is_overlapping = .true.
 
       QUAD_OVER_WHOLE_ELE=.FALSE. 
-      !      QUAD_OVER_WHOLE_ELE=.TRUE. ! Do NOT divide element into CV's to form quadrature.
+      !  QUAD_OVER_WHOLE_ELE=is_overlapping ! Do NOT divide element into CV's to form quadrature.
       call retrieve_ngi( ndim, u_ele_type, cv_nloc, u_nloc, &
            cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, QUAD_OVER_WHOLE_ELE )
       if(is_overlapping) then
@@ -3041,6 +3041,14 @@
       !EWRITE(3,*)'-SUF_P_BC:', SUF_P_BC( 1 : STOTEL * P_SNLOC * NPHASE )
       !ewrite(3,*)'pqp'
       !      stop 242
+
+!       do i=1,ncolc
+!       print *,'i,c:',i,c(i)
+!       end do
+!       print *,'U_RHS:',u_rhs
+!       print *,'PIVIT_MAT:', PIVIT_MAT
+!       print *,'JUST_BL_DIAG_MAT:',JUST_BL_DIAG_MAT
+!       stop 27
 
       DEALLOCATE( DETWEI )
       DEALLOCATE( RA )

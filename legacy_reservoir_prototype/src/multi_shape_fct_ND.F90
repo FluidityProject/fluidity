@@ -827,8 +827,8 @@
 ! whole_ele_volume_order & whole_ele_surface_order are the volume and surface 
 ! order of the integration used within each sub-quad/hex for QUAD_OVER_WHOLE_ELE=.true.
 ! -ve or 0 and take on the default value. 
-!      integer, PARAMETER :: whole_ele_volume_order=0
-      integer, PARAMETER :: whole_ele_volume_order=1
+      integer, PARAMETER :: whole_ele_volume_order=0
+!      integer, PARAMETER :: whole_ele_volume_order=1
 !      integer, PARAMETER :: whole_ele_volume_order=2
       integer, PARAMETER :: whole_ele_surface_order=0
 !      integer, PARAMETER :: whole_ele_surface_order=1
@@ -864,6 +864,9 @@
                if (whole_ele_volume_order==1) cv_ngi = 1
                if (whole_ele_surface_order==1) sbcvngi = 1
                if (whole_ele_surface_order==1) scvngi = 1
+               if (whole_ele_volume_order==2) cv_ngi = 3
+               if (whole_ele_surface_order==2) sbcvngi = 2
+               if (whole_ele_surface_order==2) scvngi = 2
             else
                if (volume_order==1) cv_ngi = 3 ! 4x8
                if (volume_order==2) cv_ngi = 3*4 ! 4x8
@@ -1078,6 +1081,10 @@
            overlapping_path )
       if( trim( overlapping_path ) == 'overlapping' ) cv_ngi = cv_ngi * cv_nloc
 
+!         print *,'cv_ele_type,cv_ngicv_ngi_short=', &
+!                  cv_ele_type,cv_ngi,cv_ngi_short
+!         print *,'scvngi,sbcvngi=',scvngi,sbcvngi
+!         stop 393
       return
     end subroutine retrieve_ngi
 
@@ -2849,6 +2856,7 @@
            lowqua, quad_cv_ngi, mloc
       ewrite(3,*) 'dummy_sngi, dummy_snloc, dummy_smloc, quad_cv_ngi:', &
            dummy_sngi, dummy_snloc, dummy_smloc, quad_cv_ngi
+       print *,'scvngi,quad_cv_sngi=',scvngi,quad_cv_sngi
 !        stop 331
 
       ! Work out local coords of the nodes
@@ -3270,6 +3278,7 @@
 
       ewrite(3,*) 'd3, stotel * quad_cv_sngi * totele, cv_sngi_2:', &
            d3, stotel * quad_cv_sngi * totele, cv_sngi_2
+!       stop 83
 
       ! Take out repetition of quadrature points
       cv_sgk = 0 ; cv_neiloc_cells = 0 ; l1 = 0. ; l2 = 0. ; l3 = 0. ; l4=0.
