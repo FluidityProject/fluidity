@@ -145,8 +145,6 @@ subroutine fladapt(input_basename_, input_basename_len, &
   else
     call adapt_mesh(old_mesh_field, metric, new_mesh_field)
   end if
-  old_mesh_field => null()
-  old_mesh => null()
   
   call get_option(trim(old_mesh_field%mesh%option_path)//"/from_file/format/name", mesh_format)
   ! Write the output mesh
