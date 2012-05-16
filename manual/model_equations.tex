@@ -741,7 +741,10 @@ Multi-phase flows are defined by \cite{prosperettiEtAl2007} to be flows in which
 
 Further to the above definition, each phase is classed as either \textit{continuous} or \textit{dispersed}, where a continuous phase is a connected liquid or gas substance in which dispersed phases (comprising a finite number of solid particles, liquid droplets and/or gas bubbles) may be immersed \citep{croweEtAl1998}.
 
-To enable the mixing and inter-penetration of phases, a separate velocity field (and hence a separate momentum equation) is assigned to each one and solved for. Extra terms are then included to account for inter-phase interactions. Furthermore, the model currently assumes no mass transfer between phases, incompressible flow, and a common pressure field $p$ so that only one continuity equation is used. Thus, the continuity equation and momentum equation for phase $i$ (based on the derivation in \cite{ishii1975}, written in non-conservative form) are:
+To enable the mixing and inter-penetration of phases, a separate velocity field (and hence a separate momentum equation) is assigned to each one and solved for. Extra terms are then included to account for inter-phase interactions. Furthermore, the model currently assumes no mass transfer between phases, incompressible flow, and a common pressure field $p$ so that only one continuity equation is used. The form of the governing equations depends on whether we are dealing with incompressible or compressible flow.
+
+\subsubsection{Incompressible flow}
+For an incompressible multi-phase flow, the continuity equation and momentum equation for phase $i$ (based on the derivation in \cite{ishii1975}, written in non-conservative form) are:
 \begin{equation}
 \sum_{i=1}^N\nabla\cdot\left(\alpha_i\mathbf{u}_i\right) = 0,
 \end{equation}
@@ -753,6 +756,19 @@ To enable the mixing and inter-penetration of phases, a separate velocity field 
 \mathbf{F}_i,
 \end{equation}
 where $\mathbf{u}_i$, $\rho_i$, $\mu_i$ and $\alpha_i$ are the velocity, density, isotropic viscosity and volume fraction of phase $i$ respectively, and $\mathbf{F}_i$ represents the forces imposed on phase $i$ by the other $N-1$ phases. Details of momentum transfer terms are given in Chapter \ref{chap:configuration}.
+
+\subsubsection{Compressible flow}
+Fluidity currently only supports the case where the continuous phase is compressible. All other phases (the dispersed phases) are incompressible. The momentum equation is the same as the one given above, but the form of the continuity equation is now:
+\begin{equation}
+\alpha_1\frac{\partial\rho_1}{\partial t} + \nabla\cdot\left(\alpha_1\rho_1\mathbf{u}_1\right) + \rho_1\left(\sum_{i=2}^N\nabla\cdot\left(\alpha_i\mathbf{u}_i\right)\right) = 0,
+\end{equation}
+where the compressible phase has an index of $i=1$ here.
+
+An internal energy equation may also need to be solved depending on the equation of state used for the compressible phase. This is given by:
+\begin{equation}
+\alpha_i\rho_i\frac{\partial e_i}{\partial t} + \alpha_i\rho_i\mathbf{u}_i\cdot\nabla e_i = -p\nabla\cdot\left(\alpha_i\mathbf{u}_i\right) + Q_i
+\end{equation}
+where $e_i$ is the internal energy and $Q_i$ is an inter-phase energy transfer term described in Chapter \ref{chap:configuration}.
 
 \subsection{Porous Media Darcy Flow}
 \label{sec:porous_media_darcy_flow_equations}
