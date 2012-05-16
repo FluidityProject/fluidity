@@ -11,7 +11,10 @@
  point mesh, then compute the various errors and 
  output the results as simple text files that can 
  be plotted with xmgrace. The numerical solution is 
- considered as both FE and CV.
+ considered as both FE and CV. The L2 norm error 
+ is calculated assuming a uniform analytic solution 
+ mesh via a simple approximation = sum(dx*error_node**2)
+ where dx = domain_length / number_node_analytic_mesh.
   
  The x coordinate assoicated with the solution field and 
  the analytic solution be ascending.
@@ -193,9 +196,21 @@ class Compare_Numerical_To_Analytic_1d:
          self.fe_error_val_analytic_mesh.append(abs(self.fe_solution_val_analytic_mesh[node] - self.analytic_val[node]))
          self.cv_error_val_analytic_mesh.append(abs(self.cv_solution_val_analytic_mesh[node] - self.analytic_val[node]))
       
-      self.max_fe_error = max(self.fe_error_val_analytic_mesh)
-      self.max_cv_error = max(self.cv_error_val_analytic_mesh)
+      # Calculate the max error (Linf) for both FE and CV
+      self.linf_fe_error = max(self.fe_error_val_analytic_mesh)
+      self.linf_cv_error = max(self.cv_error_val_analytic_mesh)
+      
+      # Calculate the roungh mesh size per node
+      dx = (self.analytic_x_coord[-1] - self.analytic_x_coord[0]) / float(self.number_analytic_x_coord)
+            
+      self.l2_fe_error = 0.0
+      self.l2_cv_error = 0.0
+      
+      for node in range(self.number_analytic_x_coord):
          
+         self.l2_fe_error = self.l2_fe_error + dx*(self.fe_error_val_analytic_mesh[node]**2.0) 
+         self.l2_cv_error = self.l2_cv_error + dx*(self.cv_error_val_analytic_mesh[node]**2.0) 
+               
    def output_fe_and_cv_solutions_and_errors_on_analytic_mesh(self):
       """ Output the FE and CV solutions on the analytic coordinate mesh """
       
@@ -263,8 +278,10 @@ if __name__ == "__main__":
    # find the fe and cv errors
    CNTA1D.find_fe_and_cv_solution_errors()
    
-   print "FE max error (Linf): ",CNTA1D.max_fe_error
-   print "CV max error (Linf): ",CNTA1D.max_cv_error
+   print "FE Linf error: ",CNTA1D.linf_fe_error
+   print "CV Linf error: ",CNTA1D.linf_cv_error
+   print "FE L2 error: ",CNTA1D.l2_fe_error
+   print "CV L2 error: ",CNTA1D.l2_cv_error
    
    # output the fe and cv solution and error fields on the analytic mesh
    CNTA1D.output_fe_and_cv_solutions_and_errors_on_analytic_mesh()  
