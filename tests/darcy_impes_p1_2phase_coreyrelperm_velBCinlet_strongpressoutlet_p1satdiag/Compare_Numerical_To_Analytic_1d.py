@@ -41,6 +41,7 @@ class Compare_Numerical_To_Analytic_1d:
       self.cv_solution_solution_mesh_txt_output_file = open(output_file_name + "_cv_solution_solution_mesh.txt","w")
       self.fe_error_analytic_mesh_txt_output_file    = open(output_file_name + "_fe_error_analytic_mesh.txt","w")
       self.cv_error_analytic_mesh_txt_output_file    = open(output_file_name + "_cv_error_analytic_mesh.txt","w")
+      self.error_norm_txt_output_file                = open(output_file_name + "_error_norm.txt","w")
       
       # open two input files
       self.solution_vtu_input_file = vtktools.vtu(solution_file_name)    
@@ -238,6 +239,14 @@ class Compare_Numerical_To_Analytic_1d:
             self.cv_solution_solution_mesh_txt_output_file.write(str(cv_surf_x) + " " + str(self.solution_val[node-1]) + "\n")
             self.cv_solution_solution_mesh_txt_output_file.write(str(cv_surf_x) + " " + str(self.solution_val[node]) + "\n")
             self.cv_solution_solution_mesh_txt_output_file.write(str(self.solution_x_coord[node]) + " " + str(self.solution_val[node]) + "\n") 
+   
+   def output_error_norms(self):
+      """ Ouput error norms """
+      
+      self.error_norm_txt_output_file.write("FE Linf error: "+str(CNTA1D.linf_fe_error)+"\n")
+      self.error_norm_txt_output_file.write("FE L2 error: "+str(CNTA1D.l2_fe_error)+"\n")
+      self.error_norm_txt_output_file.write("CV Linf error: "+str(CNTA1D.linf_cv_error)+"\n")
+      self.error_norm_txt_output_file.write("CV L2 error: "+str(CNTA1D.l2_cv_error)+"\n")
          
    def close_files(self):
       """ Close opened files """
@@ -247,7 +256,8 @@ class Compare_Numerical_To_Analytic_1d:
       self.fe_solution_solution_mesh_txt_output_file.close()
       self.cv_solution_solution_mesh_txt_output_file.close()
       self.fe_error_analytic_mesh_txt_output_file.close()
-      self.cv_error_analytic_mesh_txt_output_file.close()
+      self.cv_error_analytic_mesh_txt_output_file.close()      
+      self.error_norm_txt_output_file.close()
       
       self.analytic_txt_input_file.close()
      
@@ -278,10 +288,8 @@ if __name__ == "__main__":
    # find the fe and cv errors
    CNTA1D.find_fe_and_cv_solution_errors()
    
-   print "FE Linf error: ",CNTA1D.linf_fe_error
-   print "CV Linf error: ",CNTA1D.linf_cv_error
-   print "FE L2 error: ",CNTA1D.l2_fe_error
-   print "CV L2 error: ",CNTA1D.l2_cv_error
+   # output the error norms to a file
+   CNTA1D.output_error_norms()   
    
    # output the fe and cv solution and error fields on the analytic mesh
    CNTA1D.output_fe_and_cv_solutions_and_errors_on_analytic_mesh()  
