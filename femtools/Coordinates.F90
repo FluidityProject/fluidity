@@ -536,8 +536,8 @@ contains
       call cartesian_2_spherical_polar(x(1),x(2),x(3),radius,theta,phi)
 
       node_normal=(/sin(theta)*cos(phi),sin(theta)*sin(phi),cos(theta)/)
-      node_tangent1=(/-sin(phi),cos(phi),0.0/)
-      node_tangent2=(/cos(theta)*cos(phi),cos(theta)*sin(phi),-sin(theta)/)
+      node_tangent1=(/cos(theta)*cos(phi),cos(theta)*sin(phi),-sin(theta)/)
+      node_tangent2=(/-sin(phi),cos(phi),0.0/)
 
       call set(sphere_normal, node, node_normal)
       call set(sphere_tangent1, node, node_tangent1)
@@ -556,9 +556,9 @@ contains
       do j=1, size(rowcol)
         rotated_node=rowcol(j)
         ! construct local rotation matrix
-        local_rotation(1,:)=node_val(sphere_tangent1, rotated_node)
-        local_rotation(2,:)=node_val(sphere_tangent2, rotated_node)
-        local_rotation(3,:)=node_val(sphere_normal, rotated_node)
+        local_rotation(1,:)=node_val(sphere_normal, rotated_node)
+        local_rotation(2,:)=node_val(sphere_tangent1, rotated_node)
+        local_rotation(3,:)=node_val(sphere_tangent2, rotated_node)
 
         ! look up ct_m values of row i, column rowcol(j) in xyz orientation
         do k=1, blocks(ct_m,2)
@@ -699,8 +699,8 @@ contains
       call cartesian_2_spherical_polar(x(1),x(2),x(3),radius,theta,phi)
 
       node_normal=(/sin(theta)*cos(phi),sin(theta)*sin(phi),cos(theta)/)
-      node_tangent2=(/-sin(phi),cos(phi),0.0/)
       node_tangent1=(/cos(theta)*cos(phi),cos(theta)*sin(phi),-sin(theta)/)
+      node_tangent2=(/-sin(phi),cos(phi),0.0/)
 
       call set(sphere_normal, node, node_normal)
       call set(sphere_tangent1, node, node_tangent1)
@@ -709,9 +709,9 @@ contains
     end do
 
     do node=1, mynodes
+      local_rotation(:,1)=node_val(sphere_normal, node)
       local_rotation(:,2)=node_val(sphere_tangent1, node)
       local_rotation(:,3)=node_val(sphere_tangent2, node)
-      local_rotation(:,1)=node_val(sphere_normal, node)
 
       call addto(rotation_sphere, node, node, local_rotation)
     end do
