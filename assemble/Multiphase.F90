@@ -268,7 +268,7 @@
          integer :: ele
          type(element_type) :: test_function
          type(element_type), pointer :: u_shape
-         integer, dimension(:), pointer :: u_ele
+         integer, dimension(:), pointer :: u_nodes
          logical :: dg
              
          type(vector_field), pointer :: velocity_fluid
@@ -393,7 +393,7 @@
                   element_loop: do ele = 1, element_count(u)
 
                      if(.not.dg .or. (dg .and. element_owned(u,ele))) then
-                        u_ele=>ele_nodes(u, ele)
+                        u_nodes => ele_nodes(u, ele)
                         u_shape => ele_shape(u, ele)
                         test_function = u_shape                         
 
@@ -447,7 +447,7 @@
                
                real, dimension(ele_loc(u, ele), ele_ngi(u, ele), x%dim) :: du_t
                real, dimension(ele_ngi(u, ele)) :: detwei
-               real, dimension(u%dim, ele_loc(u,ele)) :: interaction_rhs_mat
+               real, dimension(u%dim, ele_loc(u,ele)) :: interaction_rhs
                real, dimension(ele_loc(u, ele), ele_loc(u, ele)) :: interaction_big_m_mat
                real, dimension(u%dim, ele_loc(u,ele)) :: rhs_addto
                real, dimension(u%dim, u%dim, ele_loc(u,ele), ele_loc(u,ele)) :: big_m_tensor_addto
@@ -519,7 +519,7 @@
                
                ! Form the element interaction/drag matrix
                interaction_big_m_mat = shape_shape(test_function, u_shape, detwei*drag_force_big_m)
-               interaction_rhs_mat = shape_vector_rhs(test_function, drag_force_rhs, detwei)
+               interaction_rhs = shape_vector_rhs(test_function, drag_force_rhs, detwei)
               
                ! Add contribution  
                big_m_tensor_addto = 0.0            
@@ -531,13 +531,13 @@
                end if
                do dim = 1, u%dim
                   big_m_tensor_addto(dim, dim, :, :) = big_m_tensor_addto(dim, dim, :, :) - dt*theta*interaction_big_m_mat
-                  rhs_addto(dim,:) = rhs_addto(dim,:) + matmul(interaction_big_m_mat, oldu_val(dim,:)) + interaction_rhs_mat(dim,:)
+                  rhs_addto(dim,:) = rhs_addto(dim,:) + matmul(interaction_big_m_mat, oldu_val(dim,:)) + interaction_rhs(dim,:)
                end do
                
                ! Add the contribution to mom_rhs
-               call addto(mom_rhs, u_ele, rhs_addto) 
+               call addto(mom_rhs, u_nodes, rhs_addto) 
                ! Add to the big_m matrix
-               call addto(big_m, u_ele, u_ele, big_m_tensor_addto, block_mask=block_mask)
+               call addto(big_m, u_nodes, u_nodes, big_m_tensor_addto, block_mask=block_mask)
 
             end subroutine add_fluid_particle_drag_element
 
