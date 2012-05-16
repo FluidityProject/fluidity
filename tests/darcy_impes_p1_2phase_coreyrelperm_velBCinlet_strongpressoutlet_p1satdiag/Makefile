@@ -32,3 +32,4 @@ clean:
 	rm -f first_timestep_adapted_mesh*
 	rm -f *.convergence 
 	rm -f *.pyc
+	rm -f *.txt

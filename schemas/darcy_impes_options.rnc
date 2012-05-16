@@ -655,11 +655,11 @@ darcy_impes_material_phases =
          
          darcy_impes_saturation_field_phase_one,
          
-         darcy_impes_relative_permeability_field,
+         darcy_impes_first_phase_relative_permeability_field,
          
          darcy_impes_viscosity_field,
          
-         darcy_impes_density_field,
+         darcy_impes_first_phase_density_field,
 
          darcy_impes_gradient_pressure_field,
                   
@@ -711,11 +711,11 @@ darcy_impes_other_phase_options =
       
       darcy_impes_saturation_field,
 
-      darcy_impes_relative_permeability_field,
+      darcy_impes_non_first_phase_relative_permeability_field,
 
       darcy_impes_viscosity_field,
       
-      darcy_impes_density_field,
+      darcy_impes_non_first_phase_density_field,
 
       darcy_impes_gradient_pressure_field,
 
@@ -925,7 +925,13 @@ darcy_impes_saturation_field_subcycling =
       ## Use timestep subcycling to solve the field advection.
       ## Specify the number of advection subcycls. 
       element number_advection_subcycle {
-         integer
+         integer,
+         
+         ## Make the global continuity consistent with the
+         ## phase volume fraction subcycles
+         element consistent_global_continuity {
+            empty
+         }?
       }
    )
    
@@ -955,7 +961,7 @@ darcy_impes_saturation_source =
    )
    
 
-darcy_impes_relative_permeability_field =
+darcy_impes_non_first_phase_relative_permeability_field =
    (
       element scalar_field {
          attribute rank { "0" },
@@ -965,38 +971,50 @@ darcy_impes_relative_permeability_field =
                attribute name { "PressureMesh" }      
             },
             darcy_impes_scalar_python_diagnostic_algorithm,
-            darcy_impes_relperm_field_spatial_discretisation,
+            darcy_impes_diagnostic_scalar_field
+         }
+      }
+   )
+   
+
+darcy_impes_first_phase_relative_permeability_field =
+   (
+      element scalar_field {
+         attribute rank { "0" },
+         attribute name { "RelativePermeability" },
+         element diagnostic {
+            element mesh {
+               attribute name { "PressureMesh" }      
+            },
+            darcy_impes_scalar_python_diagnostic_algorithm,
+            darcy_impes_relperm_field_face_value,
             darcy_impes_diagnostic_scalar_field
          }
       }
    )
    
    
-darcy_impes_relperm_field_spatial_discretisation =
+darcy_impes_relperm_field_face_value =
    (
-      element spatial_discretisation {
-         element control_volumes {
-            ## First Order Upwind face value discretisation
-            ##  face_value = donor_value, 
-            ## where
-            ##  donor_value = income*val_1 + (1.-income)*val_2, 
-            ## where val_i is the value on the ith node neighbouring the face and
-            ## income = [0, 1] depending on whether the flow is coming from node 1 or 2
-            ## First order upwinding is monotonic so no limiting is ever required
-            element face_value {
-              attribute name { "FirstOrderUpwind" },
-              empty
-            }|
-            ## Finite Element face value discretisation
-            ##  face_value = finite element interpolation from surrounding nodes
-            ##
-            ## Finite element discretisation may become unbounded so limiting is often necessary.
-            element face_value {
-              attribute name { "FiniteElement" },
-              darcy_impes_relperm_limiter_options
-            }            
-         }
-      }
+         ## First Order Upwind face value discretisation
+         ##  face_value = donor_value, 
+         ## where
+         ##  donor_value = income*val_1 + (1.-income)*val_2, 
+         ## where val_i is the value on the ith node neighbouring the face and
+         ## income = [0, 1] depending on whether the flow is coming from node 1 or 2
+         ## First order upwinding is monotonic so no limiting is ever required
+         element face_value {
+           attribute name { "FirstOrderUpwind" },
+           empty
+         }|
+         ## Finite Element face value discretisation
+         ##  face_value = finite element interpolation from surrounding nodes
+         ##
+         ## Finite element discretisation may become unbounded so limiting is often necessary.
+         element face_value {
+           attribute name { "FiniteElement" },
+           darcy_impes_relperm_limiter_options
+         }            
    )
       
 
@@ -1031,7 +1049,7 @@ darcy_impes_viscosity_field =
    )
 
 
-darcy_impes_density_field =
+darcy_impes_non_first_phase_density_field =
    (
       element scalar_field {
          attribute rank { "0" },
@@ -1042,38 +1060,51 @@ darcy_impes_density_field =
             },
             darcy_impes_internal_algorithm,
             darcy_impes_eos,
-            darcy_impes_density_field_spatial_discretisation,
+            darcy_impes_diagnostic_scalar_field
+         }
+      }   
+   )
+
+
+darcy_impes_first_phase_density_field =
+   (
+      element scalar_field {
+         attribute rank { "0" },
+         attribute name { "Density" },
+         element diagnostic {
+            element mesh {
+               attribute name { "PressureMesh" }      
+            },
+            darcy_impes_internal_algorithm,
+            darcy_impes_eos,
+            darcy_impes_density_field_face_value,
             darcy_impes_diagnostic_scalar_field
          }
       }   
    )
    
    
-darcy_impes_density_field_spatial_discretisation =
+darcy_impes_density_field_face_value =
    (
-      element spatial_discretisation {
-         element control_volumes {
-            ## First Order Upwind face value discretisation
-            ##  face_value = donor_value, 
-            ## where
-            ##  donor_value = income*val_1 + (1.-income)*val_2, 
-            ## where val_i is the value on the ith node neighbouring the face and
-            ## income = [0, 1] depending on whether the flow is coming from node 1 or 2
-            ## First order upwinding is monotonic so no limiting is ever required
-            element face_value {
-              attribute name { "FirstOrderUpwind" },
-              empty
-            }|
-            ## Finite Element face value discretisation
-            ##  face_value = finite element interpolation from surrounding nodes
-            ##
-            ## Finite element discretisation may become unbounded so limiting is often necessary.
-            element face_value {
-              attribute name { "FiniteElement" },
-              darcy_impes_density_limiter_options
-            }            
-         }
-      }
+      ## First Order Upwind face value discretisation
+      ##  face_value = donor_value, 
+      ## where
+      ##  donor_value = income*val_1 + (1.-income)*val_2, 
+      ## where val_i is the value on the ith node neighbouring the face and
+      ## income = [0, 1] depending on whether the flow is coming from node 1 or 2
+      ## First order upwinding is monotonic so no limiting is ever required
+      element face_value {
+        attribute name { "FirstOrderUpwind" },
+        empty
+      }|
+      ## Finite Element face value discretisation
+      ##  face_value = finite element interpolation from surrounding nodes
+      ##
+      ## Finite element discretisation may become unbounded so limiting is often necessary.
+      element face_value {
+        attribute name { "FiniteElement" },
+        darcy_impes_density_limiter_options
+      }            
    )
       
 
@@ -1312,7 +1343,7 @@ darcy_impes_bc_saturation_field =
          element surface_ids {
             integer_vector
          },
-         darcy_impes_dirichlet_bc
+         darcy_impes_strong_dirichlet_bc
       }   
    )
 
@@ -1342,6 +1373,19 @@ darcy_impes_weak_dirichlet_bc =
          attribute name { "dirichlet" },
          ## Apply the dirichlet BC weakly
          element apply_weakly {
+            empty
+         },
+         input_choice_real
+      }   
+   )
+
+
+darcy_impes_strong_dirichlet_bc = 
+   (
+      element type {
+         attribute name { "dirichlet" },
+         ## Apply the dirichlet BC strongly
+         element apply_strongly {
             empty
          },
          input_choice_real
@@ -1507,24 +1551,6 @@ darcy_impes_recalculation_options =
 
 # Nasty options copy
 
-# cv limiter options that 
-# have NO reliance on any CFL field. 
-limiter_options_excluding_cfl =
-  (
-      (
-        ## Limit the face value to satisfy a boundedness criterion.
-        element limit_face_value{
-          (
-            sweby_limiter
-          )
-        }|
-        ## Do not limit the face value
-        element do_not_limit_face_value{
-          empty
-        }
-      )
-  )
-
 sweby_limiter = 
   ## See "High-Resolution Schemes Using Flux Limiters for
   ## Hyperbolic Conservation-Laws", P. K. Sweby, 1984, Siam
@@ -1665,18 +1691,6 @@ upwind_value_options =
          }
       )
    )
-
-field_based_cfl_number_options =
-   (
-      ## The Courant Number definition to be used.
-      ##
-      ## This uses the control volume approximation of the CFL Number 
-      ## and the DarcyVelocity for porous media flow.
-      element courant_number {
-         attribute name { "DarcyVelocityCFL" }
-      }
-   )
-
 
 prescribed_output_options = empty
 prescribed_scalar_stat_options = empty

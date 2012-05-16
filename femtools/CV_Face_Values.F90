@@ -48,7 +48,8 @@ module cv_face_values
   public :: cv_facevalue_integer, &
             evaluate_face_val, &
             theta_val, &
-            couple_face_value
+            couple_face_value, &
+            limit_val
 
 contains
 

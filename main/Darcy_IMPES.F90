@@ -329,6 +329,9 @@ program Darcy_IMPES
       
       ! *** Darcy IMPES set max number non linear iterations for this time step ***
       di%max_nonlinear_iter_this_timestep = nonlinear_iterations
+
+      ! *** Darcy IMPES Calculate the relperm and density first face values ***
+      call darcy_impes_calculate_relperm_den_first_face_values(di)
       
       nonlinear_iteration_loop: do its = 1,nonlinear_iterations
 
@@ -591,7 +594,7 @@ contains
       di%old_absolute_permeability => extract_scalar_field(di%state(1), "OldAbsolutePermeability")
       di%positions                 => extract_vector_field(di%state(1), "Coordinate")
       di%total_darcy_velocity      => extract_vector_field(di%state(1), "TotalDarcyVelocity")
-      di%total_mobility            => extract_vector_field(di%state(1), "TotalMobility")
+      di%total_mobility            => extract_scalar_field(di%state(1), "TotalMobility")
       di%sum_saturation            => extract_scalar_field(di%state(1), "SumSaturation")
       di%div_total_darcy_velocity  => extract_scalar_field(di%state(1), "DivergenceTotalDarcyVelocity")
       di%gravity_direction         => extract_vector_field(di%state(1), "GravityDirection")
@@ -614,7 +617,7 @@ contains
       di%sparsity_pmesh_pmesh => get_csr_sparsity_firstorder(di%state(1), di%pressure_mesh, di%pressure_mesh)
       
       ! Allocate crs matrices used to store the upwind scalar field values in CV assemble
-      call allocate(di%old_relperm_upwind, di%sparsity_pmesh_pmesh) 
+      call allocate(di%relperm_upwind, di%sparsity_pmesh_pmesh) 
       call allocate(di%density_upwind, di%sparsity_pmesh_pmesh) 
       
       ! Allocate the pressure matrix and lhs and rhs to use for saturations
@@ -653,7 +656,7 @@ contains
       allocate(di%old_darcy_velocity(di%number_phase))
       allocate(di%cfl(di%number_phase))
       allocate(di%old_cfl(di%number_phase))
-      allocate(di%mobility(di%number_phase))s
+      allocate(di%mobility(di%number_phase))
       allocate(di%fractional_flow(di%number_phase))
       allocate(di%density(di%number_phase))
       allocate(di%old_density(di%number_phase))
@@ -725,12 +728,6 @@ contains
       
       allocate(di%v_bc_flag(surface_element_count(di%pressure_mesh)))
 
-      call allocate(di%saturation_bc_value, &
-                   &di%bc_surface_mesh, &
-                   &name='SaturationBCValue')         
-      
-      allocate(di%saturation_bc_flag(surface_element_count(di%pressure_mesh)))
-
       call allocate(di%pressure_bc_value, &
                    &di%bc_surface_mesh, &
                    &name='PressureBCValue')         
@@ -769,20 +766,20 @@ contains
          call get_option(trim(complete_field_path(di%saturation(1)%ptr%option_path))//&
                         &'/number_advection_subcycle', &
                         &di%subcy_opt_sat%number)
-      
+         
+         di%subcy_opt_sat%consistent = have_option(trim(complete_field_path(di%saturation(1)%ptr%option_path))//&
+                                                  &'/number_advection_subcycle/consistent_global_continuity') 
+
       else
          
-         di%subcy_opt_sat%number = 1
-         
+         di%subcy_opt_sat%number     = 1
+         di%subcy_opt_sat%consistent = .false.
       end if
       
       ! allocate tmp subcycle fields         
-      allocate(di%old_relperm_subcycle, di%number_phase)
-      allocate(di%old_saturation_subcycle, di%number_phase)         
+      allocate(di%old_saturation_subcycle(di%number_phase))         
       do p = 1, di%number_phase            
-         allocate(di%old_relperm_subcycle(p)%ptr)
          allocate(di%old_saturation_subcycle(p)%ptr)
-         call allocate(di%old_relperm_subcycle(p)%ptr, di%pressure_mesh)
          call allocate(di%old_saturation_subcycle(p)%ptr, di%pressure_mesh)
       end do
             
@@ -927,7 +924,7 @@ contains
       call darcy_impes_calculate_densities(di)
       
       ! Calculate the relperm and density first face values
-      call darcy_impes_calculate_modrelperm_den_first_face_values(di)
+      call darcy_impes_calculate_relperm_den_first_face_values(di)
       
       ! calculate the Darcy IMPES Velocity, Mobilities, Fractional flow and CFL fields, needs to be after the python fields
       call darcy_impes_calculate_vel_mob_ff_and_cfl_fields(di)
@@ -948,38 +945,38 @@ contains
 
    function darcy_impes_get_cv_options(option_path, element_family, dim) result(darcy_impes_cv_options)
       
-      !!< Find the Darcy IMPES CV necessary discretisation options
+      !!< Find the Darcy IMPES CV necessary discretisation options for relperm and density
       
-      character(len=*),                 intent(in)    :: option_path
-      integer,                          intent(in)    :: element_family
-      integer,                          intent(in)    :: dim
-      type(darcy_impescv_options_type), intent(inout) :: darcy_impes_cv_options
+      character(len=*),                  intent(in)    :: option_path
+      integer,                           intent(in)    :: element_family
+      integer,                           intent(in)    :: dim
+      
+      type(darcy_impes_cv_options_type) :: darcy_impes_cv_options
       
       ! local variables
       character(len=FIELD_NAME_LEN) :: tmpstring
-      integer :: stat
 
-      call get_option(trim(complete_cv_field_path(option_path))//'/face_value[0]/name', tmpstring)
+      call get_option(trim(option_path)//'/diagnostic/face_value[0]/name', tmpstring)
 
       darcy_impes_cv_options%facevalue = cv_facevalue_integer(tmpstring)
 
-      darcy_impes_cv_options%limit_facevalue = have_option(trim(complete_cv_field_path(option_path))//&
-                                                           '/face_value[0]/limit_face_value')
+      darcy_impes_cv_options%limit_facevalue = &
+      have_option(trim(option_path)//'/diagnostic/face_value[0]/limit_face_value')
 
-      call get_option(trim(complete_cv_field_path(option_path))//&
-                      '/face_value[0]/limit_face_value/limiter[0]/name', &
+      call get_option(trim(option_path)//&
+                      '/diagnostic/face_value[0]/limit_face_value/limiter[0]/name', &
                       tmpstring, &
                       default = 'None')
 
       darcy_impes_cv_options%limiter = cv_limiter_integer(tmpstring)
 
-      call get_option(trim(complete_cv_field_path(option_path))//&
-                      '/face_value[0]/limit_face_value/limiter[0]/slopes/lower', &
+      call get_option(trim(option_path)//&
+                      '/diagnostic/face_value[0]/limit_face_value/limiter[0]/slopes/lower', &
                       darcy_impes_cv_options%limiter_slopes(1), &
                       default = 1.0)
 
-      call get_option(trim(complete_cv_field_path(option_path))//&
-                      '/face_value[0]/limit_face_value/limiter[0]/slopes/upper', &
+      call get_option(trim(option_path)//&
+                      '/diagnostic/face_value[0]/limit_face_value/limiter[0]/slopes/upper', &
                       darcy_impes_cv_options%limiter_slopes(2), &
                       default = 2.0)
 
@@ -1046,7 +1043,7 @@ contains
             
       call deallocate(di%positions_pressure_mesh)
       nullify(di%sparsity_pmesh_pmesh)
-      call deallocate(di%old_relperm_upwind)
+      call deallocate(di%relperm_upwind)
       call deallocate(di%density_upwind)
       call deallocate(di%pressure_matrix)
       call deallocate(di%lhs)
@@ -1091,8 +1088,6 @@ contains
       call deallocate(di%bc_surface_mesh)      
       call deallocate(di%v_bc_value)
       deallocate(di%v_bc_flag)      
-      call deallocate(di%saturation_bc_value)
-      deallocate(di%saturation_bc_flag)      
       call deallocate(di%pressure_bc_value)
       deallocate(di%pressure_bc_flag)      
       di%weak_pressure_bc_coeff = 0.0
@@ -1112,14 +1107,13 @@ contains
        
       ! Nothing can be done for di%density_cv_options
       
-      di%subcy_opt_sat%have   = .false.
-      di%subcy_opt_sat%number = 0      
-               
+      di%subcy_opt_sat%have       = .false.
+      di%subcy_opt_sat%number     = 0      
+      di%subcy_opt_sat%consistent = .false.      
+              
       do p = 1, di%number_phase            
-         call deallocate(di%old_relperm_subcycle(p)%ptr)
          call deallocate(di%old_saturation_subcycle(p)%ptr)
       end do         
-      deallocate(di%old_relperm_subcycle)
       deallocate(di%old_saturation_subcycle)
             
       di%max_nonlinear_iter                            = 0
@@ -1210,28 +1204,22 @@ contains
       
       ! local variables
       logical :: form_new_subcycle_relperm_face_values
-      logical :: cache_new_subcycle_relperm_face_values
       
       ewrite(1,*) 'Start Darcy IMPES assemble and solve'
                   
       ! Calculate the latest CV mass on the pressure mesh with porosity included
       call compute_cv_mass(di%positions, di%cv_mass_pressure_mesh_with_porosity, di%porosity)      
-
-      ! Calculate the relperm and density first face values
-      call darcy_impes_calculate_relperm_den_sat_face_values(di)
       
-      ! If saturation phase 1 is prognostic, it is the first iteration
-      ! and there is subcycling then solve the saturations 
-      if ((.not. di%phase_one_saturation_diagnostic) .and. &
-          (di%nonlinear_iter == 1) .and. &
-          (di%subcy_opt_sat%number > 1)) then
+      ! If it is the first iteration and there is subcycling (>1)
+      ! and a consistent global continuity then solve the saturations 
+      if ((di%nonlinear_iter == 1) .and. &
+          (di%subcy_opt_sat%number > 1) .and. &
+          (di%subcy_opt_sat%consistent)) then
          
          form_new_subcycle_relperm_face_values  = .true.
-         cache_new_subcycle_relperm_face_values = .true. 
          
          call darcy_impes_assemble_and_solve_phase_saturations(di, &
-                                                               form_new_subcycle_relperm_face_values, &
-                                                               cache_new_subcycle_relperm_face_values)
+                                                               form_new_subcycle_relperm_face_values)
          
       end if
             
@@ -1245,31 +1233,20 @@ contains
       call darcy_impes_calculate_divergence_total_darcy_velocity(di)
       
       ! Assemble and solve the phase saturations
-      
-      if (di%phase_one_saturation_diagnostic) then
-         
-         form_new_subcycle_relperm_face_values  = .true.
-         cache_new_subcycle_relperm_face_values = .false.         
-      
+            
+      if ((di%nonlinear_iter == di%max_nonlinear_iter_this_timestep) .and. &
+          (di%subcy_opt_sat%consistent)) then
+
+         form_new_subcycle_relperm_face_values = .false.
+
       else 
-      
-         if (di%nonlinear_iter == di%max_nonlinear_iter_this_timestep) then
-         
-            form_new_subcycle_relperm_face_values  = .false.
-            cache_new_subcycle_relperm_face_values = .false.         
-         
-         else 
-         
-            form_new_subcycle_relperm_face_values  = .true.
-            cache_new_subcycle_relperm_face_values = .true.         
-         
-         end if 
-      
-      end if
-      
+
+         form_new_subcycle_relperm_face_values = .true.
+
+      end if 
+            
       call darcy_impes_assemble_and_solve_phase_saturations(di, &
-                                                            form_new_subcycle_relperm_face_values, &
-                                                            cache_new_subcycle_relperm_face_values)
+                                                            form_new_subcycle_relperm_face_values)
       
       ! Calculate the sum of the saturations
       call darcy_impes_calculate_sum_saturation(di)
@@ -1284,35 +1261,33 @@ contains
 ! ----------------------------------------------------------------------------
 
    subroutine darcy_impes_assemble_and_solve_phase_saturations(di, &
-                                                               form_new_subcycle_relperm_face_values, &
-                                                               cache_new_subcycle_relperm_face_values)
+                                                               form_new_subcycle_relperm_face_values)
       
       !!< Assemble and solve the saturations for each subcycle.
       !!< If form_new_subcycle_relperm_face_values is true
       !!< and there are subcycles then new relperm face values are 
-      !!< formed and used. If cache_new_subcycle_relperm_face_values is then 
-      !!< also true the new face values are cached. Phase 1 is special
-      !!< as it may be either solved prognostically or calculated 
-      !!< diagnostically from the other phase saturation values that 
-      !!< are solved first (for each subcycle)
+      !!< formed. Phase 1 is special as it may be either solved 
+      !!< prognostically or calculated diagnostically from the 
+      !!< other phase saturation values that are solved first (for each subcycle).
       
       type(darcy_impes_type), intent(inout) :: di
       logical,                intent(in)    :: form_new_subcycle_relperm_face_values
-      logical,                intent(in)    :: cache_new_subcycle_relperm_face_values      
 
       ! local variables
-      integer :: p, isub
+      integer :: p, isub, isub_index
       real    :: alpha_start, alpha_end
 
       ewrite(1,*) 'Assemble and solve the saturations for each phase'
                   
       ! Solve the saturations for each subcycle via:            
-      !  - Form the lhs = cv_mass_sfield_mesh_with_porosity / dt
-      !  - Add the s_source to rhs
-      !  - Form the rhs_time = cv_mass_pressure_mesh_with_old_porosity * old_saturation_field / dt and add to rhs
-      !  - Assemble the rhs_adv contribution and add to rhs 
-      !  - Apply any strong dirichlet BCs
-      !  - solve for latest saturations and copy to start subcycle saturations step
+      !  - Form the relperm face values for each phase if required
+      !  - For each phase:
+      !     - Form the lhs = cv_mass_sfield_mesh_with_porosity / dt
+      !     - Add the s_source to rhs
+      !     - Form the rhs_time = cv_mass_pressure_mesh_with_old_porosity * old_saturation_field / dt and add to rhs
+      !     - Assemble and add the rhs_adv to rhs 
+      !     - Apply any strong dirichlet BCs
+      !     - solve for latest saturations and copy to start subcycle saturations step
       
       ! Note: the porosity at the start and end of a subcycle time step
       ! are linearly interpolated values from the main time step start and end
@@ -1328,33 +1303,42 @@ contains
 
       end if 
 
-      ! Set the initial old saturation and relperm subcycle field
+      ! Set the initial old saturation subcycle field
       do p = 1, di%number_phase
          call set(di%old_saturation_subcycle(p)%ptr, di%old_saturation(p)%ptr)
-         call set(di%old_relperm_subcycle(p)%ptr, di%old_relative_permeability(p)%ptr)      
       end do
             
       sub_loop: do isub = 1, di%subcy_opt_sat%number
+         
+         ewrite(1,*) 'Start subcycle ',isub
          
          ! form the start and end of subcycle dt
          ! porosity linear interpolents
          alpha_start = (isub - 1) / di%subcy_opt_sat%number
          alpha_end   = isub / di%subcy_opt_sat%number
          
+         ! Determine the index for cached face values depending on subcycling
+         if (di%subcy_opt_sat%have .and. di%subcy_opt_sat%consistent) then
+            isub_index = isub
+         else
+            isub_index = 1
+         end if            
+
          ! If this is not the first subcycle then form the relperms 
-         ! for the start of this subcycle from the end of last subcycle 
-         ! saturations and copy to old subcycle array
-         if (isub > 1) then
-            call darcy_impes_calculate_relative_permeability_fields(di)
-            do p = di%number_phase, 1, -1
-               call set(di%old_relperm_subcycle(p)%ptr, di%relative_permeability(p)%ptr)
-            end do
+         ! for the start of this subcycle from the end of last subcycle sat
+         ! and face values if required
+         if (form_new_subcycle_relperm_face_values .and. (isub > 1)) then
+            call darcy_impes_calculate_relperm_fields(di)
+            
+            call darcy_impes_calculate_relperm_isub_face_values(di, isub_index)
          end if
-         
+       
          phase_loop: do p = di%number_phase, 1, -1
             
+            ewrite(1,*) 'Assemble and solve phase ',p
+            
             ! If this is phase 1 and it is diagnostic then calculate it and exit loop
-            if (di%phase_one_saturation_diagnostic) then
+            if ((p == 1) .and. di%phase_one_saturation_diagnostic) then
                
                call darcy_impes_calculate_phase_one_saturation_diagnostic(di)
 
@@ -1368,28 +1352,20 @@ contains
             ! Allocate and get the BC data. If the BC is time dependent then
             ! the end of overall time step values are used for all subcycles. 
 
-            ! Get this phase satutation BC info
-            call get_entire_saturation_or_pressure_boundary_condition(di%saturation(p)%ptr, &
-                                                                      (/"weakdirichlet", &
-                                                                        "dirichlet    "/), &
-                                                                      di%bc_surface_mesh, &
-                                                                      di%saturation_bc_value, &
-                                                                      di%saturation_bc_flag)
-
             ! Get this phase v BC info - only for no_normal_flow and normal_flow which is special as it is a scalar
-            call get_v_boundary_condition(di%darcy_velocity(p)%ptr, &
-                                          (/"normal_flow   ", &
-                                            "no_normal_flow"/), &
-                                          di%bc_surface_mesh, &
-                                          di%v_bc_value, &
-                                          di%v_bc_flag)
+            call darcy_impes_get_v_boundary_condition(di%darcy_velocity(p)%ptr, &
+                                                      (/"normal_flow   ", &
+                                                        "no_normal_flow"/), &
+                                                      di%bc_surface_mesh, &
+                                                      di%v_bc_value, &
+                                                      di%v_bc_flag)
 
             ! Get the pressure BC - required if no v given and weak pressure dirichlet given for extra integrals
-            call get_entire_saturation_or_pressure_boundary_condition(di%pressure(p)%ptr, &
-                                                                      (/"weakdirichlet"/), &
-                                                                      di%bc_surface_mesh, &
-                                                                      di%pressure_bc_value, &
-                                                                      di%pressure_bc_flag)
+            call darcy_impes_get_entire_sfield_boundary_condition(di%pressure(p)%ptr, &
+                                                                  (/"weakdirichlet"/), &
+                                                                  di%bc_surface_mesh, &
+                                                                  di%pressure_bc_value, &
+                                                                  di%pressure_bc_flag)
             
             call set(di%lhs, di%cv_mass_pressure_mesh_with_porosity)
 
@@ -1418,11 +1394,9 @@ contains
             call addto(di%rhs, di%rhs_time)
 
             ! assemble the rhs_adv contribution and add
-            call assemble_rhs_adv(di, &
-                                  p, &
-                                  isub, &
-                                  form_new_subcycle_relperm_face_values, &
-                                  cache_new_subcycle_relperm_face_values)
+            call darcy_impes_assemble_saturation_rhs_adv(di, &
+                                                         p, &
+                                                         isub_index)
 
             call addto(di%rhs, di%rhs_adv)
 
@@ -1448,15 +1422,28 @@ contains
 
 ! ----------------------------------------------------------------------------
 
-   subroutine darcy_impes_calculate_relative_permeability_fields(di)
+   subroutine darcy_impes_calculate_relperm_fields(di)
       
-      !!< 
+      !!< Calculate the latest relperm fields from the latest saturations.
+      !!< This is used in the subcycling to get the start of subcycle timestep
+      !!< relperm values from the end of last subcycle timestep saturations.
       
       type(darcy_impes_type), intent(inout) :: di
       
+      ! local variables
+      integer :: p
       
+      phase_loop: do p = 1, di%number_phase
       
-   end subroutine darcy_impes_calculate_relative_permeability_fields
+         call calculate_scalar_python_diagnostic(di%state, &
+                                                 state_index  = p, &
+                                                 s_field      = di%relative_permeability(p)%ptr, &
+                                                 current_time = di%current_time, &
+                                                 dt           = di%dt)
+                        
+      end do phase_loop
+            
+   end subroutine darcy_impes_calculate_relperm_fields
 
 ! ----------------------------------------------------------------------------
 

@@ -666,9 +666,9 @@ at the first timestep or not.</a:documentation>
       </attribute>
       <ref name="darcy_impes_first_phase_pressure_field"/>
       <ref name="darcy_impes_saturation_field_phase_one"/>
-      <ref name="darcy_impes_relative_permeability_field"/>
+      <ref name="darcy_impes_first_phase_relative_permeability_field"/>
       <ref name="darcy_impes_viscosity_field"/>
-      <ref name="darcy_impes_density_field"/>
+      <ref name="darcy_impes_first_phase_density_field"/>
       <ref name="darcy_impes_gradient_pressure_field"/>
       <ref name="darcy_impes_darcy_velocity_field"/>
       <ref name="darcy_impes_darcy_velocity_CFL_field"/>
@@ -710,9 +710,9 @@ at the first timestep or not.</a:documentation>
     <ref name="darcy_impes_non_first_phase_pressure_field"/>
     <ref name="darcy_impes_capilliary_pressure_field"/>
     <ref name="darcy_impes_saturation_field"/>
-    <ref name="darcy_impes_relative_permeability_field"/>
+    <ref name="darcy_impes_non_first_phase_relative_permeability_field"/>
     <ref name="darcy_impes_viscosity_field"/>
-    <ref name="darcy_impes_density_field"/>
+    <ref name="darcy_impes_non_first_phase_density_field"/>
     <ref name="darcy_impes_gradient_pressure_field"/>
     <ref name="darcy_impes_darcy_velocity_field"/>
     <ref name="darcy_impes_darcy_velocity_CFL_field"/>
@@ -967,6 +967,13 @@ for the latest output to be written.</a:documentation>
       <a:documentation>Use timestep subcycling to solve the field advection.
 Specify the number of advection subcycls. </a:documentation>
       <ref name="integer"/>
+      <optional>
+        <element name="consistent_global_continuity">
+          <a:documentation>Make the global continuity consistent with the
+phase volume fraction subcycles</a:documentation>
+          <empty/>
+        </element>
+      </optional>
     </element>
   </define>
   <define name="darcy_impes_saturation_source">
@@ -999,7 +1006,7 @@ Specify the number of advection subcycls. </a:documentation>
       </choice>
     </element>
   </define>
-  <define name="darcy_impes_relative_permeability_field">
+  <define name="darcy_impes_non_first_phase_relative_permeability_field">
     <element name="scalar_field">
       <attribute name="rank">
         <value>0</value>
@@ -1014,41 +1021,56 @@ Specify the number of advection subcycls. </a:documentation>
           </attribute>
         </element>
         <ref name="darcy_impes_scalar_python_diagnostic_algorithm"/>
-        <ref name="darcy_impes_relperm_field_spatial_discretisation"/>
         <ref name="darcy_impes_diagnostic_scalar_field"/>
       </element>
     </element>
   </define>
-  <define name="darcy_impes_relperm_field_spatial_discretisation">
-    <element name="spatial_discretisation">
-      <element name="control_volumes">
-        <choice>
-          <element name="face_value">
-            <a:documentation>First Order Upwind face value discretisation
+  <define name="darcy_impes_first_phase_relative_permeability_field">
+    <element name="scalar_field">
+      <attribute name="rank">
+        <value>0</value>
+      </attribute>
+      <attribute name="name">
+        <value>RelativePermeability</value>
+      </attribute>
+      <element name="diagnostic">
+        <element name="mesh">
+          <attribute name="name">
+            <value>PressureMesh</value>
+          </attribute>
+        </element>
+        <ref name="darcy_impes_scalar_python_diagnostic_algorithm"/>
+        <ref name="darcy_impes_relperm_field_face_value"/>
+        <ref name="darcy_impes_diagnostic_scalar_field"/>
+      </element>
+    </element>
+  </define>
+  <define name="darcy_impes_relperm_field_face_value">
+    <choice>
+      <element name="face_value">
+        <a:documentation>First Order Upwind face value discretisation
  face_value = donor_value, 
 where
  donor_value = income*val_1 + (1.-income)*val_2, 
 where val_i is the value on the ith node neighbouring the face and
 income = [0, 1] depending on whether the flow is coming from node 1 or 2
 First order upwinding is monotonic so no limiting is ever required</a:documentation>
-            <attribute name="name">
-              <value>FirstOrderUpwind</value>
-            </attribute>
-            <empty/>
-          </element>
-          <element name="face_value">
-            <a:documentation>Finite Element face value discretisation
+        <attribute name="name">
+          <value>FirstOrderUpwind</value>
+        </attribute>
+        <empty/>
+      </element>
+      <element name="face_value">
+        <a:documentation>Finite Element face value discretisation
  face_value = finite element interpolation from surrounding nodes
 
 Finite element discretisation may become unbounded so limiting is often necessary.</a:documentation>
-            <attribute name="name">
-              <value>FiniteElement</value>
-            </attribute>
-            <ref name="darcy_impes_relperm_limiter_options"/>
-          </element>
-        </choice>
+        <attribute name="name">
+          <value>FiniteElement</value>
+        </attribute>
+        <ref name="darcy_impes_relperm_limiter_options"/>
       </element>
-    </element>
+    </choice>
   </define>
   <define name="darcy_impes_relperm_limiter_options">
     <choice>
@@ -1081,7 +1103,7 @@ Finite element discretisation may become unbounded so limiting is often necessar
       </element>
     </element>
   </define>
-  <define name="darcy_impes_density_field">
+  <define name="darcy_impes_non_first_phase_density_field">
     <element name="scalar_field">
       <attribute name="rank">
         <value>0</value>
@@ -1097,41 +1119,57 @@ Finite element discretisation may become unbounded so limiting is often necessar
         </element>
         <ref name="darcy_impes_internal_algorithm"/>
         <ref name="darcy_impes_eos"/>
-        <ref name="darcy_impes_density_field_spatial_discretisation"/>
         <ref name="darcy_impes_diagnostic_scalar_field"/>
       </element>
     </element>
   </define>
-  <define name="darcy_impes_density_field_spatial_discretisation">
-    <element name="spatial_discretisation">
-      <element name="control_volumes">
-        <choice>
-          <element name="face_value">
-            <a:documentation>First Order Upwind face value discretisation
+  <define name="darcy_impes_first_phase_density_field">
+    <element name="scalar_field">
+      <attribute name="rank">
+        <value>0</value>
+      </attribute>
+      <attribute name="name">
+        <value>Density</value>
+      </attribute>
+      <element name="diagnostic">
+        <element name="mesh">
+          <attribute name="name">
+            <value>PressureMesh</value>
+          </attribute>
+        </element>
+        <ref name="darcy_impes_internal_algorithm"/>
+        <ref name="darcy_impes_eos"/>
+        <ref name="darcy_impes_density_field_face_value"/>
+        <ref name="darcy_impes_diagnostic_scalar_field"/>
+      </element>
+    </element>
+  </define>
+  <define name="darcy_impes_density_field_face_value">
+    <choice>
+      <element name="face_value">
+        <a:documentation>First Order Upwind face value discretisation
  face_value = donor_value, 
 where
  donor_value = income*val_1 + (1.-income)*val_2, 
 where val_i is the value on the ith node neighbouring the face and
 income = [0, 1] depending on whether the flow is coming from node 1 or 2
 First order upwinding is monotonic so no limiting is ever required</a:documentation>
-            <attribute name="name">
-              <value>FirstOrderUpwind</value>
-            </attribute>
-            <empty/>
-          </element>
-          <element name="face_value">
-            <a:documentation>Finite Element face value discretisation
+        <attribute name="name">
+          <value>FirstOrderUpwind</value>
+        </attribute>
+        <empty/>
+      </element>
+      <element name="face_value">
+        <a:documentation>Finite Element face value discretisation
  face_value = finite element interpolation from surrounding nodes
 
 Finite element discretisation may become unbounded so limiting is often necessary.</a:documentation>
-            <attribute name="name">
-              <value>FiniteElement</value>
-            </attribute>
-            <ref name="darcy_impes_density_limiter_options"/>
-          </element>
-        </choice>
+        <attribute name="name">
+          <value>FiniteElement</value>
+        </attribute>
+        <ref name="darcy_impes_density_limiter_options"/>
       </element>
-    </element>
+    </choice>
   </define>
   <define name="darcy_impes_density_limiter_options">
     <choice>
@@ -1393,7 +1431,7 @@ Finite element discretisation may become unbounded so limiting is often necessar
         <a:documentation>Surface id</a:documentation>
         <ref name="integer_vector"/>
       </element>
-      <ref name="darcy_impes_dirichlet_bc"/>
+      <ref name="darcy_impes_strong_dirichlet_bc"/>
     </element>
   </define>
   <define name="darcy_impes_dirichlet_bc">
@@ -1421,6 +1459,18 @@ Finite element discretisation may become unbounded so limiting is often necessar
       </attribute>
       <element name="apply_weakly">
         <a:documentation>Apply the dirichlet BC weakly</a:documentation>
+        <empty/>
+      </element>
+      <ref name="input_choice_real"/>
+    </element>
+  </define>
+  <define name="darcy_impes_strong_dirichlet_bc">
+    <element name="type">
+      <attribute name="name">
+        <value>dirichlet</value>
+      </attribute>
+      <element name="apply_strongly">
+        <a:documentation>Apply the dirichlet BC strongly</a:documentation>
         <empty/>
       </element>
       <ref name="input_choice_real"/>
@@ -1598,22 +1648,6 @@ and 'tensor_fields';
     </element>
   </define>
   <!-- Nasty options copy -->
-  <!--
-    cv limiter options that 
-    have NO reliance on any CFL field. 
-  -->
-  <define name="limiter_options_excluding_cfl">
-    <choice>
-      <element name="limit_face_value">
-        <a:documentation>Limit the face value to satisfy a boundedness criterion.</a:documentation>
-        <ref name="sweby_limiter"/>
-      </element>
-      <element name="do_not_limit_face_value">
-        <a:documentation>Do not limit the face value</a:documentation>
-        <empty/>
-      </element>
-    </choice>
-  </define>
   <define name="sweby_limiter">
     <element name="limiter">
       <a:documentation>See "High-Resolution Schemes Using Flux Limiters for
@@ -1774,17 +1808,6 @@ This is available on all meshes.</a:documentation>
         <empty/>
       </element>
     </choice>
-  </define>
-  <define name="field_based_cfl_number_options">
-    <element name="courant_number">
-      <a:documentation>The Courant Number definition to be used.
-
-This uses the control volume approximation of the CFL Number 
-and the DarcyVelocity for porous media flow.</a:documentation>
-      <attribute name="name">
-        <value>DarcyVelocityCFL</value>
-      </attribute>
-    </element>
   </define>
   <define name="prescribed_output_options">
     <empty/>

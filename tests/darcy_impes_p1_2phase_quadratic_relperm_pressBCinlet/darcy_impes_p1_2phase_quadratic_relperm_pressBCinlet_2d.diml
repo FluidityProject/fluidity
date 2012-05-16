@@ -201,24 +201,6 @@
       <diagnostic>
         <mesh name="PressureMesh"/>
         <algorithm name="Internal"/>
-        <spatial_discretisation>
-          <control_volumes>
-            <face_value name="FirstOrderUpwind"/>
-          </control_volumes>
-          <conservative_advection>
-            <real_value rank="0">1.0</real_value>
-          </conservative_advection>
-        </spatial_discretisation>
-        <temporal_discretisation>
-          <theta>
-            <real_value rank="0">0.0</real_value>
-          </theta>
-          <control_volumes>
-            <pivot_theta>
-              <real_value rank="0">0.0</real_value>
-            </pivot_theta>
-          </control_volumes>
-        </temporal_discretisation>
         <scalar_field name="Source" rank="0">
           <prescribed>
             <mesh name="PressureMesh"/>
@@ -255,19 +237,7 @@ for n in range(field.node_count):
    
    field.set(n,relperm_n)</string_value>
         </algorithm>
-        <spatial_discretisation>
-          <control_volumes>
-            <face_value name="FirstOrderUpwind"/>
-          </control_volumes>
-          <conservative_advection>
-            <real_value rank="0">1.0</real_value>
-          </conservative_advection>
-        </spatial_discretisation>
-        <temporal_discretisation>
-          <theta>
-            <real_value rank="0">1.0</real_value>
-          </theta>
-        </temporal_discretisation>
+        <face_value name="FirstOrderUpwind"/>
         <stat>
           <include_cv_stats/>
         </stat>
@@ -296,19 +266,7 @@ for n in range(field.node_count):
             <real_value rank="0">1.0</real_value>
           </reference_density>
         </equation_of_state>
-        <spatial_discretisation>
-          <control_volumes>
-            <face_value name="FirstOrderUpwind"/>
-          </control_volumes>
-          <conservative_advection>
-            <real_value rank="0">1.0</real_value>
-          </conservative_advection>
-        </spatial_discretisation>
-        <temporal_discretisation>
-          <theta>
-            <real_value rank="0">1.0</real_value>
-          </theta>
-        </temporal_discretisation>
+        <face_value name="FirstOrderUpwind"/>
         <stat>
           <include_cv_stats/>
         </stat>
@@ -325,7 +283,7 @@ for n in range(field.node_count):
         <consistent_interpolation/>
       </diagnostic>
     </vector_field>
-    <vector_field name="DarcyVelocityOverSaturation" rank="0">
+    <vector_field name="DarcyVelocity" rank="0">
       <diagnostic>
         <mesh name="VelocityMesh"/>
         <algorithm name="Internal"/>
@@ -341,7 +299,7 @@ for n in range(field.node_count):
         <consistent_interpolation/>
       </diagnostic>
     </vector_field>
-    <scalar_field name="DarcyVelocityOverSaturationCFL" rank="0">
+    <scalar_field name="DarcyVelocityCFL" rank="0">
       <diagnostic>
         <mesh name="PressureMesh"/>
         <algorithm name="Internal"/>
@@ -351,26 +309,6 @@ for n in range(field.node_count):
         <consistent_interpolation/>
       </diagnostic>
     </scalar_field>
-    <vector_field name="DarcyVelocity" rank="0">
-      <diagnostic>
-        <mesh name="VelocityMesh"/>
-        <algorithm name="Internal"/>
-        <stat>
-          <include_cv_stats/>
-        </stat>
-        <consistent_interpolation/>
-      </diagnostic>
-    </vector_field>
-    <vector_field name="FractionalFlow" rank="0">
-      <diagnostic>
-        <mesh name="VelocityMesh"/>
-        <algorithm name="Internal"/>
-        <stat>
-          <include_cv_stats/>
-        </stat>
-        <consistent_interpolation/>
-      </diagnostic>
-    </vector_field>
     <vector_field name="TotalDarcyVelocity" rank="0">
       <diagnostic>
         <mesh name="VelocityMesh"/>
@@ -384,6 +322,36 @@ for n in range(field.node_count):
     <scalar_field name="DivergenceTotalDarcyVelocity" rank="0">
       <diagnostic>
         <mesh name="PressureMesh"/>
+        <algorithm name="Internal"/>
+        <stat>
+          <include_cv_stats/>
+        </stat>
+        <consistent_interpolation/>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="Mobility" rank="0">
+      <diagnostic>
+        <mesh name="VelocityMesh"/>
+        <algorithm name="Internal"/>
+        <stat>
+          <include_cv_stats/>
+        </stat>
+        <consistent_interpolation/>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="TotalMobility" rank="0">
+      <diagnostic>
+        <mesh name="VelocityMesh"/>
+        <algorithm name="Internal"/>
+        <stat>
+          <include_cv_stats/>
+        </stat>
+        <consistent_interpolation/>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="FractionalFlow" rank="0">
+      <diagnostic>
+        <mesh name="VelocityMesh"/>
         <algorithm name="Internal"/>
         <stat>
           <include_cv_stats/>
@@ -450,7 +418,7 @@ for n in range(field.node_count):
             <integer_value shape="1" rank="1">10</integer_value>
           </surface_ids>
           <type name="dirichlet">
-            <apply_weakly/>
+            <apply_strongly/>
             <constant>
               <real_value rank="0">0.2</real_value>
             </constant>
@@ -492,19 +460,6 @@ for n in range(field.node_count):
    
    field.set(n,relperm_n)</string_value>
         </algorithm>
-        <spatial_discretisation>
-          <control_volumes>
-            <face_value name="FirstOrderUpwind"/>
-          </control_volumes>
-          <conservative_advection>
-            <real_value rank="0">1.0</real_value>
-          </conservative_advection>
-        </spatial_discretisation>
-        <temporal_discretisation>
-          <theta>
-            <real_value rank="0">1.0</real_value>
-          </theta>
-        </temporal_discretisation>
         <stat>
           <include_cv_stats/>
         </stat>
@@ -533,19 +488,6 @@ for n in range(field.node_count):
             <real_value rank="0">1.0</real_value>
           </reference_density>
         </equation_of_state>
-        <spatial_discretisation>
-          <control_volumes>
-            <face_value name="FirstOrderUpwind"/>
-          </control_volumes>
-          <conservative_advection>
-            <real_value rank="0">1.0</real_value>
-          </conservative_advection>
-        </spatial_discretisation>
-        <temporal_discretisation>
-          <theta>
-            <real_value rank="0">1.0</real_value>
-          </theta>
-        </temporal_discretisation>
         <stat>
           <include_cv_stats/>
         </stat>
@@ -562,7 +504,7 @@ for n in range(field.node_count):
         <consistent_interpolation/>
       </diagnostic>
     </vector_field>
-    <vector_field name="DarcyVelocityOverSaturation" rank="0">
+    <vector_field name="DarcyVelocity" rank="0">
       <diagnostic>
         <mesh name="VelocityMesh"/>
         <algorithm name="Internal"/>
@@ -578,7 +520,7 @@ for n in range(field.node_count):
         <consistent_interpolation/>
       </diagnostic>
     </vector_field>
-    <scalar_field name="DarcyVelocityOverSaturationCFL" rank="0">
+    <scalar_field name="DarcyVelocityCFL" rank="0">
       <diagnostic>
         <mesh name="PressureMesh"/>
         <algorithm name="Internal"/>
@@ -588,7 +530,7 @@ for n in range(field.node_count):
         <consistent_interpolation/>
       </diagnostic>
     </scalar_field>
-    <vector_field name="DarcyVelocity" rank="0">
+    <scalar_field name="Mobility" rank="0">
       <diagnostic>
         <mesh name="VelocityMesh"/>
         <algorithm name="Internal"/>
@@ -597,8 +539,8 @@ for n in range(field.node_count):
         </stat>
         <consistent_interpolation/>
       </diagnostic>
-    </vector_field>
-    <vector_field name="FractionalFlow" rank="0">
+    </scalar_field>
+    <scalar_field name="FractionalFlow" rank="0">
       <diagnostic>
         <mesh name="VelocityMesh"/>
         <algorithm name="Internal"/>
@@ -607,7 +549,7 @@ for n in range(field.node_count):
         </stat>
         <consistent_interpolation/>
       </diagnostic>
-    </vector_field>
+    </scalar_field>
   </material_phase>
   <porous_media>
     <scalar_field name="Porosity">
