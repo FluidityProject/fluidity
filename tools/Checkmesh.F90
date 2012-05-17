@@ -15,7 +15,7 @@ subroutine checkmesh(filename_, filename_len) bind(c)
   use linked_lists
   use meshdiagnostics
   use metric_tools
-  use mesh_files
+  use read_triangle
   use supermesh_construction
   use tetrahedron_intersection_module
   use iso_c_binding
@@ -38,7 +38,7 @@ subroutine checkmesh(filename_, filename_len) bind(c)
   rformat = real_format()    
 
   print "(a)", "Reading in mesh mesh with base name " // trim(filename)
-  positions = read_mesh_files(filename, quad_degree = 4)    
+  positions = read_triangle_files(filename, quad_degree = 4)    
   if(isparallel()) call read_halos(filename, positions)
   print "(a)", "Read successful"
 
