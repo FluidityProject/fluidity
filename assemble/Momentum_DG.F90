@@ -47,7 +47,8 @@ module momentum_DG
   use boundary_conditions_from_options
   use solvers
   use dgtools
-  use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN
+  use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN, COLOURING_DG2, &
+       COLOURING_DG0
   use coriolis_module
   use halos
   use sparsity_patterns
@@ -61,7 +62,9 @@ module momentum_DG
   use sparsity_patterns_meshes
   use colouring
   use Profiler
+#ifdef _OPENMP
   use omp_lib
+#endif
   use multiphase_module
 
 
@@ -220,7 +223,6 @@ contains
     integer, dimension(:,:), allocatable :: velocity_bc_type
     integer, dimension(:), allocatable :: pressure_bc_type
     
-
     !! Sparsity for inverse mass
     type(csr_sparsity):: mass_sparsity
     
@@ -249,12 +251,10 @@ contains
     real, dimension(u%dim) :: abs_wd_const
 
     !! 
-    type(mesh_type) :: p0_mesh
-    type(csr_sparsity), pointer :: dependency_sparsity
-    type(scalar_field) :: node_colour
-    type(integer_set), dimension(:), allocatable :: clr_sets
-    integer :: clr, nnid, no_colours, len
-    logical :: compact_stencil
+    type(integer_set), dimension(:), pointer :: colours
+    integer :: len, clr, nnid
+    !! Is the transform_to_physical cache we prepopulated valid
+    logical :: cache_valid
     integer :: num_threads
 
     ! Volume fraction fields for multi-phase flow simulation
@@ -617,69 +617,39 @@ contains
       call remap_field(wettingdrying_alpha, alpha_u_field)
     end if
 
-      call profiler_tic(u, "element_loop")
-      
+    call profiler_tic(u, "element_loop-omp_overhead")
 
 #ifdef _OPENMP
-      num_threads = omp_get_max_threads()
+    num_threads = omp_get_max_threads()
 #else 
-      num_threads=1
+    num_threads=1
 #endif
 
-    if(num_threads>1) then
-
-      !! working out the options for different schemes of different terms
-      call set_coriolis_parameters
-      compact_stencil = have_option(trim(u%option_path)//&
-            &"/prognostic/spatial_discretisation"//&
-            &"/discontinuous_galerkin/viscosity_scheme"//&
-            &"/interior_penalty") .or. &
-            &have_option(trim(u%option_path)//&
-            &"/prognostic/spatial_discretisation"//&
-            &"/discontinuous_galerkin/viscosity_scheme"//&
-            &"/compact_discontinuous_galerkin")
-
-      compact_stencil=.false.
-      !! generate the dual graph of the mesh
-      p0_mesh = piecewise_constant_mesh(x%mesh, trim(x%name)//"P0Mesh")
-
-       !! the sparse pattern of the dual graph.
-       if (have_viscosity .and. (.not. compact_stencil)) then
-          dependency_sparsity => get_csr_sparsity_secondorder(state, p0_mesh, p0_mesh)
-       else
-          dependency_sparsity =>get_csr_sparsity_compactdgdouble(state, p0_mesh)
-       end if
-       
-       dependency_sparsity => get_csr_sparsity_secondorder(state, p0_mesh, p0_mesh)
-
-       !! colouring dual graph according the sparsity pattern with greedy
-       !! colouring algorithm
-       !! "colours" is an array of type(integer_set)
-       call colour_sparsity(dependency_sparsity, p0_mesh, node_colour, no_colours)
-
-       if(.not. verify_colour_sparsity(dependency_sparsity, node_colour)) then
-        FLAbort("The neighbours are using same colours, wrong!!.")
-       endif 
-
-       allocate(clr_sets(no_colours))
-       clr_sets=colour_sets(dependency_sparsity, node_colour, no_colours)
-       PRINT *, "colouring passed"
+    if (have_viscosity) then
+       call get_mesh_colouring(state, u%mesh, COLOURING_DG2, colours)
     else
-       no_colours = 1
-       allocate(clr_sets(no_colours))
-       call allocate(clr_sets)
-       do ELE=1,element_count(U)
-          call insert(clr_sets(1), ele)
-       end do
+       call get_mesh_colouring(state, u%mesh, COLOURING_DG0, colours)
     end if
+#ifdef _OPENMP
+    cache_valid = prepopulate_transform_cache(X)
+    assert(cache_valid)
+    if (have_coriolis) then
+       call set_coriolis_parameters
+    end if
+#endif
+    call profiler_toc(u, "element_loop-omp_overhead")
+    
+    call profiler_tic(u, "element_loop")
 
-    colour_loop: do clr = 1, no_colours
-      len = key_count(clr_sets(clr))
-      !$OMP PARALLEL DO DEFAULT(SHARED) &
-      !$OMP SCHEDULE(STATIC) &
-      !$OMP PRIVATE(nnid, ele)
-      element_loop: do nnid = 1, len 
-       ele = fetch(clr_sets(clr), nnid)       
+    !$OMP PARALLEL DEFAULT(SHARED) &
+    !$OMP PRIVATE(clr, nnid, ele, len)
+
+    colour_loop: do clr = 1, size(colours) 
+      len = key_count(colours(clr))
+
+      !$OMP DO SCHEDULE(STATIC)
+      element_loop: do nnid = 1, len
+       ele = fetch(colours(clr), nnid)
        call construct_momentum_element_dg(ele, big_m, rhs, &
             & X, U, advecting_velocity, U_mesh, X_old, X_new, &
             & Source, Buoyancy, gravity, Abs, Viscosity, &
@@ -691,20 +661,12 @@ contains
             & inverse_mass=inverse_mass, &
             & inverse_masslump=inverse_masslump, &
             & mass=mass, subcycle_m=subcycle_m)
-      
       end do element_loop
-      !$OMP END PARALLEL DO
+      !$OMP END DO
 
     end do colour_loop
+    !$OMP END PARALLEL
 
-    call deallocate(clr_sets)
-    deallocate(clr_sets)
-
-    if(num_threads > 1) then
-    call deallocate(node_colour)
-    call deallocate(p0_mesh)
-    endif
-    
     call profiler_toc(u, "element_loop")
 
     if (have_wd_abs) then
@@ -893,9 +855,9 @@ contains
     !Switch to select if we are assembling the primal or dual form
     logical :: primal
 
-    ! In parallel, we only assemble the mass terms for the halo elements. All
-    ! other terms are only assembled on elements we own.
-    logical :: owned_element
+    ! In parallel, we assemble terms on elements we own, and those in
+    ! the L1 element halo
+    logical :: assemble_element
 
     ! If on the sphere evaluate gravity direction at the gauss points
     logical :: on_sphere
@@ -941,8 +903,9 @@ contains
     dg=continuity(U)<0
     p0=(element_degree(u,ele)==0)
     
-    ! In parallel, we only construct the equations on elements we own.
-    owned_element=element_owned(U,ele).or..not.dg
+    ! In parallel, we construct terms on elements we own and those in
+    ! the L1 element halo.
+    assemble_element = .not.dg.or.element_neighbour_owned(U, ele)
 
     primal = .not.dg
     if(viscosity_scheme == CDG) primal = .true.
@@ -1050,11 +1013,11 @@ contains
       deallocate(dnvfrac_t)
     end if
 
-    if ((have_viscosity).and.owned_element) then
+    if ((have_viscosity).and.assemble_element) then
       Viscosity_ele = ele_val(Viscosity,ele)
     end if
    
-    if (owned_element) then
+    if (assemble_element) then
        u_val = ele_val(u, ele)
     end if
 
@@ -1086,7 +1049,7 @@ contains
        ! NOTE: this doesn't deal with mesh movement
        call addto(mass, u_ele, u_ele, Rho_mat)
     else
-      if(have_mass.and.owned_element) then
+      if(have_mass.and.assemble_element) then
         if(lump_mass) then        
           do dim = 1, u%dim
             big_m_diag_addto(dim, :loc) = big_m_diag_addto(dim, :loc) + l_masslump
@@ -1097,7 +1060,7 @@ contains
           end do
         end if
       end if
-      if (move_mesh.and.owned_element) then
+      if (move_mesh.and.assemble_element) then
         ! In the unaccelerated form we solve:
         !  /
         !  |  N^{n+1} u^{n+1}/dt - N^{n} u^n/dt + ... = f
@@ -1122,7 +1085,7 @@ contains
       end if
     end if
     
-    if(have_coriolis.and.(rhs%dim>1).and.owned_element) then
+    if(have_coriolis.and.(rhs%dim>1).and.assemble_element) then
       Coriolis_q=coriolis(ele_val_at_quad(X,ele))
     
       ! Element Coriolis parameter matrix.
@@ -1138,7 +1101,7 @@ contains
       end if
     end if
 
-    if(have_advection.and.(.not.p0).and.owned_element) then
+    if(have_advection.and.(.not.p0).and.assemble_element) then
       ! Advecting velocity at quadrature points.
       U_nl_q=ele_val_at_quad(U_nl,ele)
 
@@ -1254,7 +1217,7 @@ contains
 
     end if
 
-    if(have_source.and.acceleration.and.owned_element) then
+    if(have_source.and.acceleration.and.assemble_element) then
       ! Momentum source matrix.
       Source_mat = shape_shape(U_shape, ele_shape(Source,ele), detwei*Rho_q)
       if(lump_source) then
@@ -1271,7 +1234,7 @@ contains
       end if
     end if
 
-    if(have_gravity.and.acceleration.and.owned_element) then
+    if(have_gravity.and.acceleration.and.assemble_element) then
       ! buoyancy
       if (on_sphere) then
       ! If were on a spherical Earth evaluate the direction of the gravity vector
@@ -1294,7 +1257,8 @@ contains
       end if
     end if
 
-    if((have_absorption.or.have_vertical_stabilization.or.have_wd_abs) .and. (owned_element .or. pressure_corrected_absorption)) then
+    if((have_absorption.or.have_vertical_stabilization.or.have_wd_abs) .and. &
+         (assemble_element .or. pressure_corrected_absorption)) then
 
       absorption_gi=0.0
       tensor_absorption_gi=0.0
@@ -1381,7 +1345,7 @@ contains
         if(lump_abs) then
 
           Abs_lump_sphere = sum(Abs_mat_sphere, 4)
-          if (owned_element) then          
+          if (assemble_element) then
             do dim = 1, U%dim
               do dim2 = 1, U%dim
                 do i = 1, ele_loc(U, ele)
@@ -1415,7 +1379,7 @@ contains
 
         else
 
-          if (owned_element) then
+          if (assemble_element) then
             do dim = 1, u%dim
               do dim2 = 1, u%dim
                 big_m_tensor_addto(dim, dim2, :loc, :loc) = big_m_tensor_addto(dim, dim2, :loc, :loc) + &
@@ -1460,7 +1424,7 @@ contains
         if(lump_abs) then        
           abs_lump = sum(Abs_mat, 3)
           do dim = 1, u%dim
-            if (owned_element) then
+            if (assemble_element) then
               big_m_diag_addto(dim, :loc) = big_m_diag_addto(dim, :loc) + dt*theta*abs_lump(dim,:)
               if(acceleration) then
                 rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - abs_lump(dim,:)*u_val(dim,:)
@@ -1481,7 +1445,7 @@ contains
         else
       
           do dim = 1, u%dim
-            if (owned_element) then
+            if (assemble_element) then
               big_m_tensor_addto(dim, dim, :loc, :loc) = big_m_tensor_addto(dim, dim, :loc, :loc) + &
                 & dt*theta*Abs_mat(dim,:,:)
               if(acceleration) then
@@ -1529,7 +1493,7 @@ contains
     
     ! Viscosity.
     Viscosity_mat=0
-    if(have_viscosity.and.owned_element) then
+    if(have_viscosity.and.assemble_element) then
        if (primal) then
           do dim = 1, u%dim
              if(multiphase) then
@@ -1606,7 +1570,7 @@ contains
        end if
     end if
 
-    if(have_surfacetension.and.(.not.p0).and.owned_element) then
+    if(have_surfacetension.and.(.not.p0).and.assemble_element) then
       if(integrate_surfacetension_by_parts) then
         tension = ele_val_at_quad(surfacetension, ele)
         
@@ -1624,7 +1588,7 @@ contains
     ! Interface integrals
     !-------------------------------------------------------------------
     
-    if(dg.and.(have_viscosity.or.have_advection.or.have_pressure_bc).and.owned_element) then
+    if(dg.and.(have_viscosity.or.have_advection.or.have_pressure_bc).and.assemble_element) then
       neigh=>ele_neigh(U, ele)
       ! x_neigh/=t_neigh only on periodic boundaries.
       x_neigh=>ele_neigh(X, ele)
@@ -1654,9 +1618,9 @@ contains
             ! Internal faces.
             face_2=ele_face(U, ele_2, ele)
         ! Check if face is turbine face (note: get_entire_boundary_condition only returns "applied" boundaries and we reset the apply status in each timestep)
-        elseif (velocity_bc_type(1,face)==4 .or. velocity_bc_type(1,face)==5) then  
-            face_2=face_neigh(turbine_conn_mesh, face)
-            turbine_face=.true.
+        elseif (velocity_bc_type(1,face)==4 .or. velocity_bc_type(1,face)==5) then
+           face_2=face_neigh(turbine_conn_mesh, face)
+           turbine_face=.true.
         else 
            ! External face.
            face_2=face
@@ -1793,10 +1757,9 @@ contains
                         
                             ! Add BC into RHS
                             !
-                            rhs_addto(dim,:) = rhs_addto(dim,:) &
-                                & -matmul(Viscosity_mat(dim,:,start:finish), &
-                                & ele_val(velocity_bc,dim,face))
-                        
+                             rhs_addto(dim,:) = rhs_addto(dim,:) &
+                                  & -matmul(Viscosity_mat(dim,:,start:finish), &
+                                  & ele_val(velocity_bc,dim,face))
                             ! Ensure it is not used again.
                             Viscosity_mat(dim,:,start:finish)=0.0
                             
@@ -1837,7 +1800,7 @@ contains
     ! Perform global assembly.
     !----------------------------------------------------------------------
     
-    if (owned_element) then
+    if (assemble_element) then
 
        ! add lumped terms to the diagonal of the matrix
        call add_diagonal_to_tensor(big_m_diag_addto, big_m_tensor_addto)
@@ -2103,7 +2066,7 @@ contains
     if (boundary) then
        do dim=1,U%dim
           if (velocity_bc_type(dim,face)==1) then
-            dirichlet(dim)=.true.
+             dirichlet(dim)=.true.
           end if
        end do
        ! free surface b.c. is set for the 1st (normal) component
@@ -2235,7 +2198,7 @@ contains
                ! Neumann boundary it's necessary to apply downwinding here
                ! to maintain the surface integral. Fortunately, since
                ! face_2==face for a boundary this is automagic.
-               
+
                if (acceleration) then
                   rhs_addto(dim,u_face_l) = rhs_addto(dim,u_face_l) &
                        ! Outflow boundary integral.
@@ -2245,7 +2208,7 @@ contains
                end if
                
             else
-               
+
                rhs_addto(dim,u_face_l) = rhs_addto(dim,u_face_l) &
                     ! Outflow boundary integral.
                     -matmul(nnAdvection_out,face_val(U,dim,face))&
@@ -2253,7 +2216,7 @@ contains
                     -matmul(nnAdvection_in,ele_val(velocity_bc,dim,face))
             end if
          end if
-       end do
+      end do
         
     end if
 
@@ -3135,8 +3098,7 @@ contains
     
     ! we first work everything out for rows corresponding to the first component
     do ele=1, element_count(u)
-      ! we only have to provide nnz for owned rows
-      ! eventhough we do non-local assembly. The owner
+      ! we only have to provide nnz for owned rows. The owner
       ! therefore needs to specify the correct nnzs including
       ! contributions from others.
       ! NOTE: that the allocate interface assumes a contiguous

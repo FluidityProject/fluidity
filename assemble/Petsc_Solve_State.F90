@@ -80,7 +80,7 @@ contains
     
     call petsc_solve_state_setup(solver_option_path, prolongators, surface_nodes, &
       state, x%mesh, 1, x%option_path, has_solver_cache(matrix), option_path=option_path)
-    
+
     if (associated(prolongators)) then
     
       if (associated(surface_nodes)) then

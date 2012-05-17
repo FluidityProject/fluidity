@@ -57,7 +57,7 @@ subroutine mainfl() bind(C)
   call initialise_signals()
 
   call tictoc_reset()
- 
+
   if(have_option("/model/fluids/pod")) then
      !######################################################
      !       Reduced Fluidity Model
@@ -76,7 +76,6 @@ subroutine mainfl() bind(C)
      ewrite(1, *) "Exited fluids"
      call toc(TICTOC_ID_SIMULATION)
      call tictoc_report(2, TICTOC_ID_SIMULATION)
-     
   end if
 
   if(SIG_INT) then

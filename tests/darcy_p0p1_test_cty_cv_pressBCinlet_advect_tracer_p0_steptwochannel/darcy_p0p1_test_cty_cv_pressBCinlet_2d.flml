@@ -262,7 +262,7 @@ NOTE: Because the velocity and pressure are time independent the simulation is b
           <diagnostic>
             <mesh name="DGP0"/>
             <algorithm name="vector_python_diagnostic" material_phase_support="multiple">
-              <string_value lines="20" type="python"># get the prescribed fields 
+              <string_value lines="20" type="code" language="python"># get the prescribed fields 
 perm = states["fluid"].scalar_fields["Permeability"]
 visc = states["fluid"].scalar_fields["Viscosity"]
 
@@ -352,7 +352,7 @@ also assume that the velocity is dg</comment>
     </scalar_field>
     <scalar_field name="FEDivergence" rank="0">
       <diagnostic>
-        <algorithm material_phase_support="single" source_field_type="vector" source_field_name="Velocity" name="finite_element_divergence">
+        <algorithm source_field_type="vector" material_phase_support="single" name="finite_element_divergence" source_field_name="Velocity">
           <lump_mass/>
         </algorithm>
         <mesh name="VelocityMesh"/>
@@ -372,7 +372,7 @@ also assume that the velocity is dg</comment>
     <vector_field name="InterstitialVelocity" rank="1">
       <diagnostic>
         <algorithm name="vector_python_diagnostic" material_phase_support="multiple">
-          <string_value lines="20" type="python">phi = states["fluid"].scalar_fields["Porosity"]
+          <string_value lines="20" type="code" language="python">phi = states["fluid"].scalar_fields["Porosity"]
 darcy_vel = states["fluid"].vector_fields["Velocity"]
 
 for ele in range(field.element_count):

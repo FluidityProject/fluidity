@@ -1,9 +1,9 @@
 #include "fdebug.h"
 
-subroutine vertical_integration(target_basename, target_basename_len, &
-  & integrated_filename, integrated_filename_len, &
-  & output_basename, output_basename_len, &
-  & top, bottom, sizing, field_b_continuity, field_b_degree)
+subroutine vertical_integration(target_basename_, target_basename_len, &
+  & integrated_filename_, integrated_filename_len, &
+  & output_basename_, output_basename_len, &
+  & top, bottom, sizing, field_b_continuity, field_b_degree) bind(c)
 
   use fields
   use fldebug
@@ -24,23 +24,23 @@ subroutine vertical_integration(target_basename, target_basename_len, &
   use tetrahedron_intersection_module
   use vtk_interfaces
   use write_triangle
+  use iso_c_binding
 
   implicit none
 
-  integer, intent(in) :: target_basename_len
-  integer, intent(in) :: integrated_filename_len
-  integer, intent(in) :: output_basename_len
+  integer(kind=c_size_t), value :: target_basename_len
+  integer(kind=c_size_t), value :: integrated_filename_len
+  integer(kind=c_size_t), value :: output_basename_len
+  real(kind=c_double), value :: top, bottom, sizing
+  integer(kind=c_int), value :: field_b_continuity
+  integer(kind=c_int), value :: field_b_degree
+  character(kind=c_char, len=1) :: target_basename_(*)
+  character(kind=c_char, len=1) :: integrated_filename_(*), output_basename_(*)
 
-  character(len = target_basename_len), intent(in) :: target_basename
-  character(len = integrated_filename_len), intent(in) :: integrated_filename
-  character(len = output_basename_len), intent(in) :: output_basename
 
-  real, intent(in) :: top
-  real, intent(in) :: bottom
-  real, intent(in) :: sizing
-  integer, intent(in) :: field_b_continuity
-  integer, intent(in) :: field_b_degree
-
+  character(len = target_basename_len) :: target_basename
+  character(len = integrated_filename_len) :: integrated_filename
+  character(len = output_basename_len) :: output_basename
   character(len = *), parameter :: solver_path = "/temporary/solver/path"
   character(len = OPTION_PATH_LEN) :: base_path, mesh_path
   integer :: dim, ele_a, ele_b, ele_b_surf, i, index, j, k, nele_as, stat, ntests
@@ -60,9 +60,19 @@ subroutine vertical_integration(target_basename, target_basename_len, &
   type(vector_field), pointer :: positions_a, vfield_a
   type(vector_field), target :: positions_c
 
-  ewrite(1, *) "In vertical_integration"
+  ewrite(-1, *) "In vertical_integration"
 
+  do i=1, target_basename_len
+    target_basename(i:i)=target_basename_(i)
+  end do
+  do i=1, integrated_filename_len
+    integrated_filename(i:i)=integrated_filename_(i)
+  end do
+  do i=1, output_basename_len
+    output_basename(i:i)=output_basename_(i)
+  end do
   ! Step 1: Read in the data
+  write(*,*) target_basename, output_basename, integrated_filename
 
   positions_b_surf = read_triangle_files(target_basename, quad_degree = quad_degree)
   dim = positions_b_surf%dim + 1

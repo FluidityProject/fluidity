@@ -4,11 +4,11 @@
 
 #include "fdebug.h"
 
-subroutine fldiag_add_diag(input_name, input_name_len, &
-                             & output_name, output_name_len, &
-                             & outfield_name, outfield_name_len, &
-                             & meshfield_name, meshfield_name_len, &
-                             & state_name, state_name_len, outfield_rank)
+subroutine fldiag_add_diag(input_name_, input_name_len, &
+                             & output_name_, output_name_len, &
+                             & outfield_name_, outfield_name_len, &
+                             & meshfield_name_, meshfield_name_len, &
+                             & state_name_, state_name_len, outfield_rank) bind(c)
   !!< Read data from the vtu with name input_name, add a specified diagnostic
   !!< field with name outfield_name, and write the new data to a vtu with name
   !!< output_name. See fldiagnostics help for more information.
@@ -20,22 +20,42 @@ subroutine fldiag_add_diag(input_name, input_name_len, &
   use spud
   use state_module
   use vtk_interfaces
+  use iso_c_binding
 
   implicit none
 
-  integer, intent(in) :: input_name_len, output_name_len, outfield_name_len, &
+  integer(kind=c_size_t), value :: input_name_len, output_name_len, outfield_name_len, &
     & meshfield_name_len, state_name_len
+  integer(kind=c_int32_t), value :: outfield_rank
 
-  character(len = input_name_len), intent(in) :: input_name
-  character(len = output_name_len), intent(in) :: output_name
-  character(len = outfield_name_len), intent(in) :: outfield_name
-  character(len = meshfield_name_len), intent(in) :: meshfield_name
-  character(len = state_name_len), intent(in) :: state_name
-  integer, intent(in), optional :: outfield_rank
+  character(kind=c_char, len=1) :: input_name_(*), output_name_(*), outfield_name_(*), & 
+    & meshfield_name_(*), state_name_(*)
+
+  character(len = input_name_len) :: input_name
+  character(len = output_name_len) :: output_name
+  character(len = outfield_name_len) :: outfield_name
+  character(len = meshfield_name_len):: meshfield_name
+  character(len = state_name_len) :: state_name
 
   integer :: i, rank, stat
   type(mesh_type), pointer :: mesh
   type(state_type), dimension(1) :: state
+
+  do i=1, input_name_len
+    input_name(i:i)=input_name_(i)
+  end do
+  do i=1, output_name_len
+    output_name(i:i)=output_name_(i)
+  end do
+  do i=1, outfield_name_len
+    outfield_name(i:i)=outfield_name_(i)
+  end do
+  do i=1, meshfield_name_len
+    meshfield_name(i:i)=meshfield_name_(i)
+  end do
+  do i=1, state_name_len
+    state_name(i:i)=state_name_(i)
+  end do
 
   if(.not. have_option("/simulation_name")) then
     ewrite(0, *) "Warning: No options file supplied to fldiag_add_diag"
@@ -52,7 +72,7 @@ subroutine fldiag_add_diag(input_name, input_name_len, &
 
   rank = field_rank(state(1), outfield_name)
 
-  if(present(outfield_rank)) then
+  if(outfield_rank .ne. 0) then
     if(rank > 0 .and. rank /= outfield_rank) then
       FLExit("Requested diagnostic field rank and rank of existing field in input file do not match")
     end if

@@ -197,6 +197,7 @@ contains
     element%ngi=ngi
     element%dim=dim
 
+
     nullify(element%refcount) ! Hack for gfortran component initialisation
     !                         bug.
     call addref(element)

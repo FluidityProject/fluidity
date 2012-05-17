@@ -1,21 +1,21 @@
-<?xml version="1.0"?>
+<?xml version="1.0" ?>
 <VTKFile type="PUnstructuredGrid" version="0.1" byte_order="LittleEndian" compressor="vtkZLibDataCompressor">
-  <PUnstructuredGrid GhostLevel="1">
-    <PPointData Scalars="Pressure" Vectors="Velocity" Tensors="Viscosity">
-      <PDataArray type="Float64" Name="Pressure"/>
-      <PDataArray type="Float64" Name="CFLNumber"/>
-      <PDataArray type="Float64" Name="Time"/>
-      <PDataArray type="Float64" Name="Velocity" NumberOfComponents="3"/>
-      <PDataArray type="Float64" Name="VelocityInterpolationErrorBound" NumberOfComponents="3"/>
-      <PDataArray type="Float64" Name="Viscosity" NumberOfComponents="9"/>
-    </PPointData>
-    <PCellData Scalars="vtkGhostLevels">
-      <PDataArray type="UInt8" Name="vtkGhostLevels"/>
-    </PCellData>
-    <PPoints>
-      <PDataArray type="Float64" NumberOfComponents="3"/>
-    </PPoints>
-    <Piece Source="backward_facing_step_2d_9_0.vtu"/>
-    <Piece Source="backward_facing_step_2d_9_1.vtu"/>
-  </PUnstructuredGrid>
+    <PUnstructuredGrid GhostLevel="1">
+        <PPointData Scalars="Pressure" Vectors="Velocity" Tensors="Viscosity">
+            <PDataArray type="Float64" Name="Pressure" />
+            <PDataArray type="Float64" Name="CFLNumber" />
+            <PDataArray type="Float64" Name="Time" />
+            <PDataArray type="Float64" Name="Velocity" NumberOfComponents="3" />
+            <PDataArray type="Float64" Name="VelocityInterpolationErrorBound" NumberOfComponents="3" />
+            <PDataArray type="Float64" Name="Viscosity" NumberOfComponents="9" />
+        </PPointData>
+        <PCellData Scalars="vtkGhostLevels">
+            <PDataArray type="UInt8" Name="vtkGhostLevels" />
+        </PCellData>
+        <PPoints>
+            <PDataArray type="Float64" Name="Points" NumberOfComponents="3" />
+        </PPoints>
+        <Piece Source="backward_facing_step_2d_9/backward_facing_step_2d_9_0.vtu" />
+        <Piece Source="backward_facing_step_2d_9/backward_facing_step_2d_9_1.vtu" />
+    </PUnstructuredGrid>
 </VTKFile>

@@ -160,7 +160,7 @@
       </vector_field>
     </gravity>
     <coriolis>
-      <string_value lines="20" type="python">def val(X,t):
+      <string_value lines="20" type="code" language="python">def val(X,t):
   return 0.0</string_value>
     </coriolis>
   </physical_parameters>
@@ -284,7 +284,7 @@
         <mesh name="P2Mesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
   from math import pi,cos
   x = X[0]
   y = X[1]
@@ -306,7 +306,7 @@
         <mesh name="P2Mesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
   from math import pi,cos
   x = X[0]
   y = X[1]

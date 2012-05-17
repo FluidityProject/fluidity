@@ -34,6 +34,7 @@ module fields_data_types
   use spud
   use reference_counting
   use halo_data_types
+  use data_structures, only : integer_set_vector
   implicit none
 
   private
@@ -90,6 +91,7 @@ module fields_data_types
      !! Halo information for parallel simulations.
      type(halo_type), dimension(:), pointer :: halos=>null()
      type(halo_type), dimension(:), pointer :: element_halos=>null()
+     type(integer_set_vector), dimension(:), pointer :: colourings=>null()
      !! A logical indicating if this mesh is periodic or not
      !! (does not tell you how periodic it is... i.e. true if
      !! any surface is periodic)

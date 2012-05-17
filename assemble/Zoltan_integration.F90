@@ -60,7 +60,7 @@ module zoltan_integration
 
     type(state_type), dimension(:), intent(inout), target :: states
     logical, intent(in) :: final_adapt_iteration
-    real, intent(out) :: global_min_quality
+    real, intent(out), optional :: global_min_quality
     ! the metric is the metric we base the quality functions on
     type(tensor_field), intent(inout), optional :: metric
     ! the full_metric is the metric we need to interpolate
@@ -152,23 +152,27 @@ module zoltan_integration
        & p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs, &
        & load_imbalance_tolerance, flredecomp, flredecomp_input_procs, flredecomp_target_procs)
 
-    if (.NOT. final_adapt_iteration) then
 
-       if (.NOT. zoltan_global_calculated_local_min_quality) then
-          FLAbort("Minimum element quality was not calculated during the load balance call.")
+    ! Only calculate the global minimum element quality if additional adapt iterations are being used
+    if (present(global_min_quality)) then
+       if (.NOT. final_adapt_iteration) then
+          
+          if (.NOT. zoltan_global_calculated_local_min_quality) then
+             FLAbort("Minimum element quality was not calculated during the load balance call.")
+          end if
+          
+          ! calculate the global minimum element quality
+          call mpi_allreduce(zoltan_global_local_min_quality, global_min_quality, 1, getPREAL(), &
+               & MPI_MIN, MPI_COMM_FEMTOOLS, ierr)
+          assert(ierr == MPI_SUCCESS)
+          
+          ewrite(1,*) "local minimum element quality = ", zoltan_global_local_min_quality
+          ewrite(1,*) "global minimum element quality = ", global_min_quality
+          
+       else
+          ! On final iteration we do not calculate the minimum element quality
+          global_min_quality = 1.0
        end if
-
-       ! calculate the global minimum element quality
-       call mpi_allreduce(zoltan_global_local_min_quality, global_min_quality, 1, getPREAL(), &
-          & MPI_MIN, MPI_COMM_FEMTOOLS, ierr)
-       assert(ierr == MPI_SUCCESS)
-       
-       ewrite(1,*) "local minimum element quality = ", zoltan_global_local_min_quality
-       ewrite(1,*) "global minimum element quality = ", global_min_quality
-       
-    else
-       ! On final iteration we do not calculate the minimum element quality
-       global_min_quality = 1.0
     end if
 
     if (changes .eqv. .false.) then
@@ -524,6 +528,7 @@ module zoltan_integration
           if (have_option(trim(zoltan_global_base_option_path) // "/partitioner/metis"))  then
              ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
              ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PARMETIS"); assert(ierr == ZOLTAN_OK)
+             ewrite(3,*) "Setting the partitioner to be ParMETIS."
              ! turn off graph checking unless debugging, this was filling the error file with Zoltan warnings
              if (have_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/graph_checking")) then
                 call get_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/graph_checking", graph_checking_level)
@@ -540,9 +545,11 @@ module zoltan_integration
              if (trim(method) == "graph") then
                 ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
                 ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PHG"); assert(ierr == ZOLTAN_OK)
+                ewrite(3,*) "Setting the partitioner to be Zoltan-Graph."
              else if (trim(method) == "hypergraph") then
                 ierr = Zoltan_Set_Param(zz, "LB_METHOD", "HYPERGRAPH"); assert(ierr == ZOLTAN_OK)
                 ierr = Zoltan_Set_Param(zz, "HYPERGRAPH_PACKAGE", "PHG"); assert(ierr == ZOLTAN_OK)
+                ewrite(3,*) "Setting the partitioner to be Zoltan-Hypergraph."
              end if
              
           end if
@@ -550,6 +557,7 @@ module zoltan_integration
           if (have_option(trim(zoltan_global_base_option_path) // "/partitioner/scotch")) then
              ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
              ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "SCOTCH"); assert(ierr == ZOLTAN_OK)
+             ewrite(3,*) "Setting the partitioner to be Scotch."
              ! Probably not going to want graph checking unless debugging
              if (have_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/graph_checking")) then
                 call get_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/graph_checking", graph_checking_level)
@@ -563,6 +571,7 @@ module zoltan_integration
           ! Use the Zoltan graph partitioner by default
           ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
           ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PHG"); assert(ierr == ZOLTAN_OK)
+          ewrite(3,*) "No partitioner option set, defaulting to using Zoltan-Graph."
        end if
 
     else
@@ -572,6 +581,7 @@ module zoltan_integration
           if (have_option(trim(zoltan_global_base_option_path) // "/final_partitioner/metis"))  then
              ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
              ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PARMETIS"); assert(ierr == ZOLTAN_OK)
+             ewrite(3,*) "Setting the final partitioner to be ParMETIS."
              ! turn off graph checking unless debugging, this was filling the error file with Zoltan warnings
              if (have_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/graph_checking")) then
                 call get_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/graph_checking", graph_checking_level)
@@ -588,9 +598,11 @@ module zoltan_integration
              if (trim(method) == "graph") then
                 ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
                 ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PHG"); assert(ierr == ZOLTAN_OK)
+                ewrite(3,*) "Setting the final partitioner to be Zoltan-Graph."
              else if (trim(method) == "hypergraph") then
                 ierr = Zoltan_Set_Param(zz, "LB_METHOD", "HYPERGRAPH"); assert(ierr == ZOLTAN_OK)
                 ierr = Zoltan_Set_Param(zz, "HYPERGRAPH_PACKAGE", "PHG"); assert(ierr == ZOLTAN_OK)
+                ewrite(3,*) "Setting the final partitioner to be Zoltan-Hypergraph."
              end if
              
           end if
@@ -598,6 +610,7 @@ module zoltan_integration
           if (have_option(trim(zoltan_global_base_option_path) // "/final_partitioner/scotch")) then
              ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
              ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "SCOTCH"); assert(ierr == ZOLTAN_OK)
+                ewrite(3,*) "Setting the final partitioner to be Scotch."
              ! Probably not going to want graph checking unless debugging
              if (have_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/graph_checking")) then
                 call get_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/graph_checking", graph_checking_level)
@@ -611,6 +624,7 @@ module zoltan_integration
           ! Use ParMETIS by default on the final adapt iteration
           ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
           ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PARMETIS"); assert(ierr == ZOLTAN_OK)
+          ewrite(3,*) "No final partitioner option set, defaulting to using ParMETIS."
        end if
 
     end if
@@ -620,16 +634,20 @@ module zoltan_integration
     ! iteration to produce a load balanced partitioning
     if (final_adapt_iteration) then
        ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "PARTITION"); assert(ierr == ZOLTAN_OK)
+       ewrite(3,*) "Setting partitioning approach to PARTITION."
        if (have_option(trim(zoltan_global_base_option_path) // "/final_partitioner/metis") .OR. &
           & (.NOT.(have_option(trim(zoltan_global_base_option_path) // "/final_partitioner")))) then
           ! chosen to match what Sam uses
           ierr = Zoltan_Set_Param(zz, "PARMETIS_METHOD", "PartKway"); assert(ierr == ZOLTAN_OK)
+          ewrite(3,*) "Setting ParMETIS method to PartKway."
        end if
     else
        ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "REPARTITION"); assert(ierr == ZOLTAN_OK)
+       ewrite(3,*) "Setting partitioning approach to REPARTITION."
        if (have_option(trim(zoltan_global_base_option_path) // "/partitioner/metis"))  then
           ! chosen to match what Sam uses
           ierr = Zoltan_Set_Param(zz, "PARMETIS_METHOD", "AdaptiveRepart"); assert(ierr == ZOLTAN_OK)
+          ewrite(3,*) "Setting ParMETIS method to AdaptiveRepart."
           ierr = Zoltan_Set_Param(zz, "PARMETIS_ITR", "100000.0"); assert(ierr == ZOLTAN_OK)
        end if
     end if
