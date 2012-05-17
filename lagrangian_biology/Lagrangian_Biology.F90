@@ -1418,7 +1418,7 @@ contains
                          ingest_ind = fgroup%variables( fset%ingest_chem_inds(c) )%ingest_index
                          chem_conc = integral_element(prey_chem_fields(c)%ptr, xfield, agent%element)
                          if (conc > 0.0) then
-                            agent%biology(ingest_ind) = agent%biology(ingest_ind) + ( agent%food_ingests(fv) * (chem_conc / conc) ) / agent%biology(BIOVAR_SIZE)
+                            agent%biology(ingest_ind) = agent%biology(ingest_ind) + ( chem_conc * (agent%food_ingests(fv) / conc) )
                          end if
                       end do
 

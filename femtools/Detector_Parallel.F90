@@ -280,6 +280,22 @@ contains
                 column=column+1
              end if
           end do
+
+          if (size(detector_list%fgroup%food_sets) > 0) then
+             do i=1, size(detector_list%fgroup%food_sets(1)%varieties)
+                if (detector_list%fgroup%food_sets(1)%varieties(i)%vrequest%write_to_file) then
+                   buffer=field_tag(name=trim(detector_list%fgroup%food_sets(1)%varieties(i)%vrequest%name), column=column, statistic="detector")
+                   write(detector_list%output_unit, '(a)') trim(buffer)
+                   column=column+1
+                end if
+
+                if (detector_list%fgroup%food_sets(1)%varieties(i)%vingest%write_to_file) then
+                   buffer=field_tag(name=trim(detector_list%fgroup%food_sets(1)%varieties(i)%vingest%name), column=column, statistic="detector")
+                   write(detector_list%output_unit, '(a)') trim(buffer)
+                   column=column+1
+                end if
+             end do
+          end if
        end if
 
        ! Write ID->Name mapping into the xml header
@@ -371,6 +387,18 @@ contains
              ncolumns = ncolumns + 1
           end if
        end do
+
+       if (size(detector_list%fgroup%food_sets) > 0) then
+          do i=1, size(detector_list%fgroup%food_sets(1)%varieties)
+             if (detector_list%fgroup%food_sets(1)%varieties(i)%vrequest%write_to_file) then
+                ncolumns = ncolumns + 1
+             end if
+
+             if (detector_list%fgroup%food_sets(1)%varieties(i)%vingest%write_to_file) then
+                ncolumns = ncolumns + 1
+             end if
+          end do
+       end if
     end if
 
     ! Find out how many detectors each processor owns
@@ -462,6 +490,18 @@ contains
                 call write_scalar_to_file(detector%biology(i))
              end if
           end do
+
+          if (size(detector_list%fgroup%food_sets) > 0) then
+             do i=1, size(detector_list%fgroup%food_sets(1)%varieties)
+                if (detector_list%fgroup%food_sets(1)%varieties(i)%vrequest%write_to_file) then
+                   call write_scalar_to_file(detector%food_requests(i))
+                end if
+
+                if (detector_list%fgroup%food_sets(1)%varieties(i)%vingest%write_to_file) then
+                   call write_scalar_to_file(detector%food_ingests(i))
+                end if
+             end do
+          end if
        end if
 
        if (.not.detector_list%binary_output) then

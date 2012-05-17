@@ -44,8 +44,8 @@ math_ops = {
   r"\max"   : lambda t: "max(" + t[0] +", " + t[1] + ")",
   r"\min"   : lambda t: "min(" + t[0] +", " + t[1] + ")",
   r"\exp"   : lambda t: "math.exp(" + t[0] + ")", 
-  r"\log10" : lambda t: "math.log10(" + t[0] + ")", 
-  r"\minus" : lambda t: "-" + t[0], 
+  r"\log10" : lambda t: "(math.log10(" + t[0] + ") if (" + t[0] + ") > 0.0 else 0.0)", 
+  r"\minus" : lambda t: "-(" + t[0] + ")", 
   r"\abs"   : lambda t: "abs( " + t[0] + " )", 
   r"\rnd"   : lambda t: "TODO RND(" + t[0] + ")"
 }
@@ -60,8 +60,8 @@ bool_ops = {
   r"\greater"      : lambda t: "(" + t[0] + " > " + t[1] + ")",
   r"\lessequal"    : lambda t: "(" + t[0] + " <= " + t[1] + ")",
   r"\less"         : lambda t: "(" + t[0] + " < " + t[1] + ")",
-  r"\and"          : lambda t: "(" + t[0] + ") and (" + t[1] + ")",
-  r"\or"           : lambda t: "(" + t[0] + ") or (" + t[1] + ")"
+  r"\and"          : lambda t: "(" + t[0] + " and " + t[1] + ")",
+  r"\or"           : lambda t: "(" + t[0] + " or " + t[1] + ")"
 }
 bool_op = Or( map(Literal, bool_ops.keys()) )
 bool_expr << Group( bool_op + lpar + expr + comma + expr + rpar ) 
@@ -78,14 +78,12 @@ system_variables = {
     "Temp" : "env['Temperature']",
     "Vis_Irrad" : "env['Irradiance']",
     "Density" : "env['Density']",
-    "V_m" : "vars['V_m']",
     "S_t" : "vars['S_t']",
     "z" : "vars['z']",
     "IngestedCells" : "vars['PIngestedCells']",
     "MLDepth" : "param['MLDepth']",
     "Max_MLD" : "param['Max_MLD']",
-    "d_year" : "param['d_year']",
-    "P" : "env['P'][variety]"
+    "d_year" : "param['d_year']"
 }
 
 # Variable class for converting names 
@@ -132,6 +130,11 @@ class Variable:
     if self.name in fgroup.variety_local:
       self.rhs = self.name + "[variety]"
       self.lhs = self.name + "[variety]"
+      self.variety = True
+
+    if self.name in fgroup.variety_conc:
+      self.name = "env['" + self.name + "']"
+      self.rhs = self.name + "[variety]"
       self.variety = True
 
     if self.name in fgroup.variety_param:
@@ -224,10 +227,11 @@ def eval_expr(t):
     evt = [ eval_expr(tok) for tok in t[1:] ]
     out = bool_ops[t[0]](evt)
   elif t[0] == cond:
-    out = "((" + eval_expr(t[2]) + ") if (" + eval_expr(t[1]) + ") else (" + eval_expr(t[3]) + "))"
+    out = "((" + eval_expr(t[2]) + ") if " + eval_expr(t[1]) + " else (" + eval_expr(t[3]) + "))"
 
   elif t[0] == varietysum:
-    out = "sum(" + eval_expr(t[1]) + ".values())"
+    v = Variable(t[1])
+    out = "sum(" + v.name + ".values())"
 
   elif t[0] == varhist:
     hist_ind = int(float(eval_expr(t[2])))
@@ -418,6 +422,11 @@ class FGroup:
       varname = vlocal.getElementsByTagName("name")[0].firstChild.data
       self.variety_local.append(varname)
 
+    self.variety_conc = []
+    for vlocal in self.dom.getElementsByTagName("varietyconcentration"):
+      varname = vlocal.getElementsByTagName("name")[0].firstChild.data
+      self.variety_conc.append(varname)
+
     self.stages = {}
     for s in self.dom.getElementsByTagName("stage"):
       sname = s.getElementsByTagName("name")[0].firstChild.data
@@ -451,7 +460,6 @@ class FGroup:
       file.write("}\n")
 
   def write_update_kernel(self, file, stage):
-    global fg_motion_functions
 
     print "  Writing Stage: " + stage.name
     file.write("\ndef update_" + stage.name + "_" + self.name + "(param, vars, env, dt):\n")
@@ -462,9 +470,6 @@ class FGroup:
     self.pool_update_vars = []
     self.initialised_vars = []    
     for fname in stage.functions:
-      if fname in fg_motion_functions[self.name]:
-        continue
-
       #print "  Function: " + fname
       file.write("\n  ### " + fname + " ###\n")
       for equation in stage.function_eqns[fname]:
@@ -498,18 +503,10 @@ class FGroup:
       file.write("  " + eq_code + "\n")
 
 ### Main model parsing ###
-
-fg_motion_functions = {
-  "Diatom" : [ "Motion" ],
-  "Copepod" : [ "Update depth" , "Pellet sinking" ], 
-  "Predator" : [ "Pellet sinking" ],
-  "Basal_predator" : [ "Pellet sinking" ]
-}
-
 fg_write_stages = {
   "Diatom" : [ "Living", "Dead" ],
-  "Copepod" : [ "Dead", "OW5", "OWA5", "C5", "Pellet" ],
-  #"Predator" : [ "Existance", "Pellet" ],
+  "Copepod" : [ "Dead", "OW5", "OWA5", "C5", "C6", "Adult", "Pellet" ],
+  "Predator" : [ "Existance", "Pellet" ],
   "Basal_predator" : [ "Existance", "Pellet" ]
 }
 
