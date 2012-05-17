@@ -153,25 +153,17 @@ module darcy_impes_assemble_module
    type darcy_impes_type
       ! *** Pointers to fields from state that have array length of number of phases ***
       type(vector_field_pointer), dimension(:), pointer :: darcy_velocity
-      type(vector_field_pointer), dimension(:), pointer :: old_darcy_velocity
       type(scalar_field_pointer), dimension(:), pointer :: mobility      
       type(scalar_field_pointer), dimension(:), pointer :: fractional_flow
       type(scalar_field_pointer), dimension(:), pointer :: saturation
       type(scalar_field_pointer), dimension(:), pointer :: old_saturation
       type(scalar_field_pointer), dimension(:), pointer :: saturation_source
-      type(scalar_field_pointer), dimension(:), pointer :: old_saturation_source
       type(scalar_field_pointer), dimension(:), pointer :: relative_permeability
-      type(scalar_field_pointer), dimension(:), pointer :: old_relative_permeability
       type(scalar_field_pointer), dimension(:), pointer :: viscosity
-      type(scalar_field_pointer), dimension(:), pointer :: old_viscosity
       type(scalar_field_pointer), dimension(:), pointer :: cfl
-      type(scalar_field_pointer), dimension(:), pointer :: old_cfl
       type(scalar_field_pointer), dimension(:), pointer :: pressure
-      type(scalar_field_pointer), dimension(:), pointer :: old_pressure
       type(scalar_field_pointer), dimension(:), pointer :: capilliary_pressure
-      type(scalar_field_pointer), dimension(:), pointer :: old_capilliary_pressure
       type(vector_field_pointer), dimension(:), pointer :: gradient_pressure
-      type(vector_field_pointer), dimension(:), pointer :: old_gradient_pressure
       type(vector_field_pointer), dimension(:), pointer :: iterated_gradient_pressure      
       type(scalar_field_pointer), dimension(:), pointer :: density
       type(scalar_field_pointer), dimension(:), pointer :: old_density
@@ -182,9 +174,7 @@ module darcy_impes_assemble_module
       type(mesh_type),    pointer :: elementwise_mesh
       type(scalar_field), pointer :: average_pressure
       type(scalar_field), pointer :: porosity
-      type(scalar_field), pointer :: old_porosity
       type(scalar_field), pointer :: absolute_permeability
-      type(scalar_field), pointer :: old_absolute_permeability
       type(vector_field), pointer :: positions
       type(vector_field), pointer :: total_darcy_velocity
       type(scalar_field), pointer :: total_mobility
@@ -209,6 +199,7 @@ module darcy_impes_assemble_module
       type(scalar_field) :: cv_mass_pressure_mesh_with_porosity   
       type(scalar_field) :: cv_mass_pressure_mesh_with_old_porosity 
       type(scalar_field) :: cv_mass_pressure_mesh
+      type(scalar_field), pointer :: constant_zero_sfield_pmesh
       type(scalar_field_pointer), dimension(:), pointer :: old_saturation_subcycle
       ! *** Data associated with v and pressure BC allocated here ***
       type(mesh_type)                          :: bc_surface_mesh
@@ -238,8 +229,12 @@ module darcy_impes_assemble_module
       type(csr_matrix)                        :: density_upwind
       ! *** Data associate with the relperm correlation options ***
       type(darcy_impes_relperm_corr_options_type) :: relperm_corr_options
+      ! *** Flag for each phase for whether there is capilliary pressure ***
+      logical, dimension(:), pointer :: have_capilliary_pressure
+      ! *** Flag for each phase for whether there is a saturation source ***
+      logical, dimension(:), pointer :: have_saturation_source
       ! *** Flag for whether the first phase saturation is diagnostic, else it is prognostic ***
-      logical                                 :: phase_one_saturation_diagnostic      
+      logical :: phase_one_saturation_diagnostic      
       ! *** Flag for whether the first phase pressure is prognostic, else it is prescribed *** 
       logical :: first_phase_pressure_prognostic
       ! *** The cached face values for all phases ***

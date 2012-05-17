@@ -559,7 +559,7 @@ contains
       real,                                         intent(in)    :: current_time
       
       ! Local variables
-      integer :: p
+      integer :: p, stat
       character(len=OPTION_PATH_LEN) :: tmp_char_option
       
       ewrite(1,*) 'Initialise Darcy IMPES data'
@@ -590,16 +590,14 @@ contains
       di%number_sele       = surface_element_count(di%pressure_mesh)
       di%number_pmesh_node = node_count(di%pressure_mesh)
       
-      di%average_pressure          => extract_scalar_field(di%state(1), "AveragePressure")
-      di%porosity                  => extract_scalar_field(di%state(1), "Porosity")
-      di%old_porosity              => extract_scalar_field(di%state(1), "OldPorosity")
-      di%absolute_permeability     => extract_scalar_field(di%state(1), "AbsolutePermeability")
-      di%old_absolute_permeability => extract_scalar_field(di%state(1), "OldAbsolutePermeability")
-      di%positions                 => extract_vector_field(di%state(1), "Coordinate")
-      di%total_darcy_velocity      => extract_vector_field(di%state(1), "TotalDarcyVelocity")
-      di%total_mobility            => extract_scalar_field(di%state(1), "TotalMobility")
-      di%sum_saturation            => extract_scalar_field(di%state(1), "SumSaturation")
-      di%div_total_darcy_velocity  => extract_scalar_field(di%state(1), "DivergenceTotalDarcyVelocity")
+      di%average_pressure         => extract_scalar_field(di%state(1), "AveragePressure")
+      di%porosity                 => extract_scalar_field(di%state(1), "Porosity")
+      di%absolute_permeability    => extract_scalar_field(di%state(1), "AbsolutePermeability")
+      di%positions                => extract_vector_field(di%state(1), "Coordinate")
+      di%total_darcy_velocity     => extract_vector_field(di%state(1), "TotalDarcyVelocity")
+      di%total_mobility           => extract_scalar_field(di%state(1), "TotalMobility")
+      di%sum_saturation           => extract_scalar_field(di%state(1), "SumSaturation")
+      di%div_total_darcy_velocity => extract_scalar_field(di%state(1), "DivergenceTotalDarcyVelocity")
       
       if (have_option('/physical_parameters/gravity')) then
          
@@ -648,32 +646,36 @@ contains
       call allocate(di%cv_mass_pressure_mesh_with_old_porosity, di%pressure_mesh)
       call allocate(di%cv_mass_pressure_mesh, di%pressure_mesh)
       
+      ! Allocate a field that is always zero on the pressure mesh to be pointed 
+      ! at by capilliary pressure and saturation source if not required.
+      ! NOTE using a FIELD_TYPE_CONSTANT causes issues.
+      allocate(di%constant_zero_sfield_pmesh)
+      call allocate(di%constant_zero_sfield_pmesh, di%pressure_mesh)
+      
+      call zero(di%constant_zero_sfield_pmesh)
+      
       ! Calculate the latest CV mass on the pressure mesh with porosity
       call compute_cv_mass(di%positions, di%cv_mass_pressure_mesh_with_porosity, di%porosity)      
 
       ! Calculate the latest CV mass on the pressure mesh
       call compute_cv_mass(di%positions, di%cv_mass_pressure_mesh)      
       
+      ! Allocate phase flags for special fields
+      allocate(di%have_capilliary_pressure(di%number_phase))
+      allocate(di%have_saturation_source(di%number_phase))
+      
       ! Pull phase dependent fields from state
       allocate(di%pressure(di%number_phase))
-      allocate(di%old_pressure(di%number_phase))
       allocate(di%capilliary_pressure(di%number_phase))
-      allocate(di%old_capilliary_pressure(di%number_phase))
       allocate(di%gradient_pressure(di%number_phase))
-      allocate(di%old_gradient_pressure(di%number_phase))
       allocate(di%iterated_gradient_pressure(di%number_phase))
       allocate(di%saturation(di%number_phase))
       allocate(di%old_saturation(di%number_phase))
       allocate(di%saturation_source(di%number_phase))
-      allocate(di%old_saturation_source(di%number_phase))
       allocate(di%relative_permeability(di%number_phase))
-      allocate(di%old_relative_permeability(di%number_phase))
       allocate(di%viscosity(di%number_phase))      
-      allocate(di%old_viscosity(di%number_phase)) 
       allocate(di%darcy_velocity(di%number_phase))
-      allocate(di%old_darcy_velocity(di%number_phase))
       allocate(di%cfl(di%number_phase))
-      allocate(di%old_cfl(di%number_phase))
       allocate(di%mobility(di%number_phase))
       allocate(di%fractional_flow(di%number_phase))
       allocate(di%density(di%number_phase))
@@ -681,34 +683,43 @@ contains
 
       do p = 1,di%number_phase
 
-         di%pressure(p)%ptr                           => extract_scalar_field(di%state(p), "Pressure")
-         di%old_pressure(p)%ptr                       => extract_scalar_field(di%state(p), "OldPressure")
+         di%pressure(p)%ptr                   => extract_scalar_field(di%state(p), "Pressure")
+         
          if (p > 1) then
-            di%capilliary_pressure(p)%ptr             => extract_scalar_field(di%state(p), "CapilliaryPressure")
-            di%old_capilliary_pressure(p)%ptr         => extract_scalar_field(di%state(p), "OldCapilliaryPressure")
+            di%capilliary_pressure(p)%ptr     => extract_scalar_field(di%state(p), "CapilliaryPressure", stat = stat)            
+            if (stat == 0) then
+               di%have_capilliary_pressure    = .true.
+            else
+               di%have_capilliary_pressure    = .false.
+               di%capilliary_pressure(p)%ptr  => di%constant_zero_sfield_pmesh
+            end if
          else
-            di%capilliary_pressure(p)%ptr             => null()
-            di%old_capilliary_pressure(p)%ptr         => null()
+            ! Cannot have capilliary pressure for phase 1 as it is special
+            di%have_capilliary_pressure       = .false.
+            di%capilliary_pressure(p)%ptr     => di%constant_zero_sfield_pmesh
          end if
-         di%gradient_pressure(p)%ptr                  => extract_vector_field(di%state(p), "GradientPressure")
-         di%old_gradient_pressure(p)%ptr              => extract_vector_field(di%state(p), "OldGradientPressure")
-         di%iterated_gradient_pressure(p)%ptr         => extract_vector_field(di%state(p), "IteratedGradientPressure")
-         di%saturation(p)%ptr                         => extract_scalar_field(di%state(p), "Saturation")
-         di%old_saturation(p)%ptr                     => extract_scalar_field(di%state(p), "OldSaturation")
-         di%saturation_source(p)%ptr                  => extract_scalar_field(di%state(p), "SaturationSource")
-         di%old_saturation_source(p)%ptr              => extract_scalar_field(di%state(p), "OldSaturationSource")
-         di%relative_permeability(p)%ptr              => extract_scalar_field(di%state(p), "RelativePermeability")
-         di%old_relative_permeability(p)%ptr          => extract_scalar_field(di%state(p), "OldRelativePermeability")
-         di%viscosity(p)%ptr                          => extract_scalar_field(di%state(p), "Viscosity")
-         di%old_viscosity(p)%ptr                      => extract_scalar_field(di%state(p), "OldViscosity")
-         di%darcy_velocity(p)%ptr                     => extract_vector_field(di%state(p), "DarcyVelocity")
-         di%old_darcy_velocity(p)%ptr                 => extract_vector_field(di%state(p), "OldDarcyVelocity")
-         di%cfl(p)%ptr                                => extract_scalar_field(di%state(p), "DarcyVelocityCFL")
-         di%old_cfl(p)%ptr                            => extract_scalar_field(di%state(p), "OldDarcyVelocityCFL")
-         di%mobility(p)%ptr                           => extract_scalar_field(di%state(p), "Mobility")
-         di%fractional_flow(p)%ptr                    => extract_scalar_field(di%state(p), "FractionalFlow")
-         di%density(p)%ptr                            => extract_scalar_field(di%state(p), "Density")
-         di%old_density(p)%ptr                        => extract_scalar_field(di%state(p), "OldDensity")
+         
+         di%gradient_pressure(p)%ptr          => extract_vector_field(di%state(p), "GradientPressure")
+         di%iterated_gradient_pressure(p)%ptr => extract_vector_field(di%state(p), "IteratedGradientPressure")
+         di%saturation(p)%ptr                 => extract_scalar_field(di%state(p), "Saturation")
+         di%old_saturation(p)%ptr             => extract_scalar_field(di%state(p), "OldSaturation")
+         
+         di%saturation_source(p)%ptr          => extract_scalar_field(di%state(p), "SaturationSource", stat = stat)
+         if (stat == 0) then
+            di%have_saturation_source         = .true.
+         else
+            di%have_saturation_source         = .false.
+            di%saturation_source(p)%ptr       => di%constant_zero_sfield_pmesh
+         end if
+         
+         di%relative_permeability(p)%ptr      => extract_scalar_field(di%state(p), "RelativePermeability")
+         di%viscosity(p)%ptr                  => extract_scalar_field(di%state(p), "Viscosity")
+         di%darcy_velocity(p)%ptr             => extract_vector_field(di%state(p), "DarcyVelocity")
+         di%cfl(p)%ptr                        => extract_scalar_field(di%state(p), "DarcyVelocityCFL")
+         di%mobility(p)%ptr                   => extract_scalar_field(di%state(p), "Mobility")
+         di%fractional_flow(p)%ptr            => extract_scalar_field(di%state(p), "FractionalFlow")
+         di%density(p)%ptr                    => extract_scalar_field(di%state(p), "Density")
+         di%old_density(p)%ptr                => extract_scalar_field(di%state(p), "OldDensity")
          
       end do
       
@@ -1075,9 +1086,7 @@ contains
       
       nullify(di%average_pressure)      
       nullify(di%porosity)
-      nullify(di%old_porosity)
       nullify(di%absolute_permeability)
-      nullify(di%old_absolute_permeability)
       nullify(di%positions)
       nullify(di%total_darcy_velocity)
       nullify(di%total_mobility)
@@ -1101,26 +1110,24 @@ contains
       call deallocate(di%cv_mass_pressure_mesh_with_porosity)
       call deallocate(di%cv_mass_pressure_mesh_with_old_porosity)
       call deallocate(di%cv_mass_pressure_mesh)
-            
+
+      call deallocate(di%constant_zero_sfield_pmesh)
+      deallocate(di%constant_zero_sfield_pmesh)
+      
+      deallocate(di%have_capilliary_pressure)
+      deallocate(di%have_saturation_source)
+      
       deallocate(di%pressure)
-      deallocate(di%old_pressure)
       deallocate(di%capilliary_pressure)
-      deallocate(di%old_capilliary_pressure)
       deallocate(di%gradient_pressure)
-      deallocate(di%old_gradient_pressure)      
       deallocate(di%iterated_gradient_pressure)
       deallocate(di%saturation)
       deallocate(di%old_saturation)
       deallocate(di%saturation_source)
-      deallocate(di%old_saturation_source)
       deallocate(di%relative_permeability)
-      deallocate(di%old_relative_permeability)
       deallocate(di%viscosity)
-      deallocate(di%old_viscosity)
       deallocate(di%darcy_velocity)
-      deallocate(di%old_darcy_velocity)      
       deallocate(di%cfl)
-      deallocate(di%old_cfl)
       deallocate(di%mobility) 
       deallocate(di%fractional_flow) 
       deallocate(di%density) 

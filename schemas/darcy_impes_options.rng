@@ -710,7 +710,9 @@ at the first timestep or not.</a:documentation>
   </define>
   <define name="darcy_impes_other_phase_options">
     <ref name="darcy_impes_non_first_phase_pressure_field"/>
-    <ref name="darcy_impes_capilliary_pressure_field"/>
+    <optional>
+      <ref name="darcy_impes_capilliary_pressure_field"/>
+    </optional>
     <ref name="darcy_impes_saturation_field"/>
     <ref name="darcy_impes_non_first_phase_relative_permeability_field"/>
     <ref name="darcy_impes_viscosity_field"/>
@@ -908,7 +910,9 @@ for the latest output to be written.</a:documentation>
           <optional>
             <ref name="darcy_impes_saturation_field_subcycling"/>
           </optional>
-          <ref name="darcy_impes_saturation_source"/>
+          <optional>
+            <ref name="darcy_impes_saturation_source"/>
+          </optional>
           <ref name="scalar_convergence_options"/>
           <ref name="darcy_impes_diagnostic_scalar_field"/>
         </element>
@@ -927,7 +931,9 @@ for the latest output to be written.</a:documentation>
           <zeroOrMore>
             <ref name="darcy_impes_bc_saturation_field"/>
           </zeroOrMore>
-          <ref name="darcy_impes_saturation_source"/>
+          <optional>
+            <ref name="darcy_impes_saturation_source"/>
+          </optional>
           <ref name="scalar_convergence_options"/>
           <ref name="darcy_impes_include_cv_stat"/>
           <ref name="adaptivity_options_prognostic_scalar_field"/>
@@ -956,7 +962,9 @@ for the latest output to be written.</a:documentation>
         <zeroOrMore>
           <ref name="darcy_impes_bc_saturation_field"/>
         </zeroOrMore>
-        <ref name="darcy_impes_saturation_source"/>
+        <optional>
+          <ref name="darcy_impes_saturation_source"/>
+        </optional>
         <ref name="scalar_convergence_options"/>
         <ref name="darcy_impes_include_cv_stat"/>
         <ref name="adaptivity_options_prognostic_scalar_field"/>
