@@ -128,23 +128,7 @@
       </requested_cfl>
     </adaptive_timestep>
   </timestepping>
-  <physical_parameters>
-    <gravity>
-      <magnitude>
-        <real_value rank="0">0.0</real_value>
-      </magnitude>
-      <vector_field name="GravityDirection" rank="1">
-        <prescribed>
-          <mesh name="ElementWiseMesh"/>
-          <value name="WholeMesh">
-            <constant>
-              <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
-            </constant>
-          </value>
-        </prescribed>
-      </vector_field>
-    </gravity>
-  </physical_parameters>
+  <physical_parameters/>
   <material_phase name="Phase1">
     <scalar_field name="Pressure" rank="0">
       <prognostic>
@@ -226,17 +210,12 @@
     <scalar_field name="RelativePermeability" rank="0">
       <diagnostic>
         <mesh name="PressureMesh"/>
-        <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">sat = state.scalar_fields["Saturation"]
-
-for n in range(field.node_count):
-   
-   sat_n = sat.node_val(n)
-   
-   relperm_n = sat_n ** 2.0
-   
-   field.set(n,relperm_n)</string_value>
-        </algorithm>
+        <algorithm name="Internal"/>
+        <correlation name="PowerLaw">
+          <exponent>
+            <real_value rank="0">2</real_value>
+          </exponent>
+        </correlation>
         <face_value name="FirstOrderUpwind"/>
         <stat>
           <include_cv_stats/>
@@ -449,17 +428,7 @@ for n in range(field.node_count):
     <scalar_field name="RelativePermeability" rank="0">
       <diagnostic>
         <mesh name="PressureMesh"/>
-        <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">sat = state.scalar_fields["Saturation"]
-
-for n in range(field.node_count):
-   
-   sat_n = sat.node_val(n)
-   
-   relperm_n = sat_n ** 2.0
-   
-   field.set(n,relperm_n)</string_value>
-        </algorithm>
+        <algorithm name="Internal"/>
         <stat>
           <include_cv_stats/>
         </stat>

@@ -236,11 +236,12 @@
     <scalar_field name="RelativePermeability" rank="0">
       <diagnostic>
         <mesh name="PressureMesh"/>
-        <algorithm name="scalar_python_diagnostic" material_phase_support="multiple">
-          <string_value lines="20" type="code" language="python">for n in range(field.node_count):
-   
-   field.set(n,1.0)</string_value>
-        </algorithm>
+        <algorithm name="Internal"/>
+        <correlation name="PowerLaw">
+          <exponent>
+            <real_value rank="0">0</real_value>
+          </exponent>
+        </correlation>
         <face_value name="FirstOrderUpwind"/>
         <stat>
           <include_cv_stats/>
@@ -447,11 +448,7 @@
     <scalar_field name="RelativePermeability" rank="0">
       <diagnostic>
         <mesh name="PressureMesh"/>
-        <algorithm name="scalar_python_diagnostic" material_phase_support="multiple">
-          <string_value lines="20" type="code" language="python">for n in range(field.node_count):
-   
-   field.set(n,1.0)</string_value>
-        </algorithm>
+        <algorithm name="Internal"/>
         <stat>
           <include_cv_stats/>
         </stat>

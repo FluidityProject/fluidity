@@ -621,7 +621,7 @@ darcy_impes_timestepping =
 darcy_impes_physical_parameters =
    (
       element physical_parameters {
-         darcy_impes_gravity_options
+         darcy_impes_gravity_options?
       }   
    )
 
@@ -970,7 +970,7 @@ darcy_impes_non_first_phase_relative_permeability_field =
             element mesh {
                attribute name { "PressureMesh" }      
             },
-            darcy_impes_scalar_python_diagnostic_algorithm,
+            darcy_impes_internal_algorithm,
             darcy_impes_diagnostic_scalar_field
          }
       }
@@ -986,10 +986,33 @@ darcy_impes_first_phase_relative_permeability_field =
             element mesh {
                attribute name { "PressureMesh" }      
             },
-            darcy_impes_scalar_python_diagnostic_algorithm,
+            darcy_impes_internal_algorithm,
+            darcy_impes_relperm_correlation,
             darcy_impes_relperm_field_face_value,
             darcy_impes_diagnostic_scalar_field
          }
+      }
+   )
+
+
+darcy_impes_relperm_correlation = 
+   (
+      ## Use a power law correlation.
+      element correlation {
+         comment,
+         
+         attribute name { "PowerLaw" },
+         
+         ## Specify the exponent.
+         element exponent {
+            real
+         }
+      }|
+      ## Use a Corey 2 phase correlation.
+      element correlation {
+         comment,
+         
+         attribute name { "Corey2Phase" }
       }
    )
    

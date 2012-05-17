@@ -633,7 +633,9 @@ at the first timestep or not.</a:documentation>
   </define>
   <define name="darcy_impes_physical_parameters">
     <element name="physical_parameters">
-      <ref name="darcy_impes_gravity_options"/>
+      <optional>
+        <ref name="darcy_impes_gravity_options"/>
+      </optional>
     </element>
   </define>
   <define name="darcy_impes_gravity_options">
@@ -1020,7 +1022,7 @@ phase volume fraction subcycles</a:documentation>
             <value>PressureMesh</value>
           </attribute>
         </element>
-        <ref name="darcy_impes_scalar_python_diagnostic_algorithm"/>
+        <ref name="darcy_impes_internal_algorithm"/>
         <ref name="darcy_impes_diagnostic_scalar_field"/>
       </element>
     </element>
@@ -1039,11 +1041,34 @@ phase volume fraction subcycles</a:documentation>
             <value>PressureMesh</value>
           </attribute>
         </element>
-        <ref name="darcy_impes_scalar_python_diagnostic_algorithm"/>
+        <ref name="darcy_impes_internal_algorithm"/>
+        <ref name="darcy_impes_relperm_correlation"/>
         <ref name="darcy_impes_relperm_field_face_value"/>
         <ref name="darcy_impes_diagnostic_scalar_field"/>
       </element>
     </element>
+  </define>
+  <define name="darcy_impes_relperm_correlation">
+    <choice>
+      <element name="correlation">
+        <a:documentation>Use a power law correlation.</a:documentation>
+        <ref name="comment"/>
+        <attribute name="name">
+          <value>PowerLaw</value>
+        </attribute>
+        <element name="exponent">
+          <a:documentation>Specify the exponent.</a:documentation>
+          <ref name="real"/>
+        </element>
+      </element>
+      <element name="correlation">
+        <a:documentation>Use a Corey 2 phase correlation.</a:documentation>
+        <ref name="comment"/>
+        <attribute name="name">
+          <value>Corey2Phase</value>
+        </attribute>
+      </element>
+    </choice>
   </define>
   <define name="darcy_impes_relperm_field_face_value">
     <choice>

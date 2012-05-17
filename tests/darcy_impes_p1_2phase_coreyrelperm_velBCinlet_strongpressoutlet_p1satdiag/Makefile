@@ -2,21 +2,16 @@ SHELL = sh
 
 SIM = darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag
 
-# options for 1d mesh interval script
-MESH_SIZE_A = 0.1
-MESH_SIZE_B = 0.05
-MESH_SIZE_C = 0.025
-MESH_SIZE_D = 0.0125
-LEFT_X    = 0.0
-RIGHT_X   = 1.0
-
 input: clean
-	interval --dx=$(MESH_SIZE_A) $(LEFT_X) $(RIGHT_X) line_mesh_1d_A
-	interval --dx=$(MESH_SIZE_B) $(LEFT_X) $(RIGHT_X) line_mesh_1d_B
-	interval --dx=$(MESH_SIZE_C) $(LEFT_X) $(RIGHT_X) line_mesh_1d_C
-	interval --dx=$(MESH_SIZE_D) $(LEFT_X) $(RIGHT_X) line_mesh_1d_D
-	gmsh -2 square.geo -o square.msh
-	gmsh -3 cube.geo -o cube.msh
+	cp mesh_data/line_mesh_1d_A* .
+	cp mesh_data/line_mesh_1d_B* .
+	cp mesh_data/line_mesh_1d_C* .
+	cp mesh_data/line_mesh_1d_D* .
+	cp mesh_data/square_A.msh .
+	cp mesh_data/square_B.msh .
+	cp mesh_data/square_C.msh .
+	cp mesh_data/cube_A.msh .
+	cp mesh_data/cube_B.msh .
 
 clean:
 	rm -f *.ele
