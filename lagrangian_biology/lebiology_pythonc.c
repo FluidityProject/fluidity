@@ -320,11 +320,10 @@ void lebiology_agent_update_c(char *fg, int fglen,
     Py_DECREF(pEnvVal);
   }
 
-  char *food_name;
+  char *food_name = fix_string(food, foodlen);
   PyObject *pVarietyNames;
   if (n_fvariety > 0) {    
     PyObject *pFoodNames = PyDict_GetItemString(pFGFoodNames, fg_key);
-    food_name = fix_string(food, foodlen);
     pVarietyNames = PyDict_GetItemString(pFoodNames, food_name);
 
     PyObject *pFoodDict = PyDict_New();
@@ -336,31 +335,27 @@ void lebiology_agent_update_c(char *fg, int fglen,
     }
     Py_DECREF(pFoodDict);
 
-    char request[strlen(food)];
-    strcpy(request, food_name);
-    strcat(request, "Request");
-
+    PyObject *pRequestName = PyString_FromFormat("%s%s", food_name, "Request");
     PyObject *pRequestDict = PyDict_New();
-    PyDict_SetItemString(pAgent, request, pRequestDict);
+    PyDict_SetItem(pAgent, pRequestName, pRequestDict);
     for (i=0; i<n_fvariety; i++) {
        PyObject *pZeroVal = PyFloat_FromDouble(0.0);
        PyDict_SetItem(pRequestDict, PyList_GET_ITEM(pVarietyNames, i), pZeroVal);
        Py_DECREF(pZeroVal);
     }
     Py_DECREF(pRequestDict);
+    Py_DECREF(pRequestName);
 
-    char ingestedCells[strlen(food)];
-    strcpy(ingestedCells, food_name);
-    strcat(ingestedCells, "IngestedCells");
-
+    PyObject *pIngestedCellsName = PyString_FromFormat("%s%s", food_name, "IngestedCells");
     PyObject *pIngestedDict = PyDict_New();
-    PyDict_SetItemString(pAgent, ingestedCells, pIngestedDict);
+    PyDict_SetItem(pAgent, pIngestedCellsName, pIngestedDict);
     for (i=0; i<n_fvariety; i++) {
        PyObject *pIngestVal = PyFloat_FromDouble(fingest[i]);
        PyDict_SetItem(pIngestedDict, PyList_GET_ITEM(pVarietyNames, i), pIngestVal);
        Py_DECREF(pIngestVal);
     }
     Py_DECREF(pIngestedDict);
+    Py_DECREF(pIngestedCellsName);
   }
 
 
@@ -389,12 +384,9 @@ void lebiology_agent_update_c(char *fg, int fglen,
   }
 
   if (n_fvariety > 0) { 
-    char request[strlen(food)];
-    strcpy(request, food_name);
-    strcat(request, "Request");
-    PyObject *pFoodRequests = PyDict_GetItemString(pResult, request);
+    PyObject *pRequestName = PyString_FromFormat("%s%s", food_name, "Request");
+    PyObject *pFoodRequests = PyDict_GetItem(pResult, pRequestName);
     if (!pFoodRequests) {
-      fflush(stdout);
       for (i=0; i<n_fvariety; i++) {
          frequest[i] = 0.0;
       }
@@ -403,7 +395,7 @@ void lebiology_agent_update_c(char *fg, int fglen,
          frequest[i] = PyFloat_AsDouble( PyDict_GetItem(pFoodRequests, PyList_GET_ITEM(pVarietyNames, i)) );
       }
     }
-    free(food_name);    
+    Py_DECREF(pRequestName); 
   }
 
   // Check for exceptions
@@ -421,11 +413,12 @@ void lebiology_agent_update_c(char *fg, int fglen,
   free(pArgs);
   free(fg_key);
   free(keystr);
+  free(food_name);   
 #endif
 }
 
 // Note: Disbaled until dependencies are sorted out
-/*
+
 void lebiology_agent_move_c(char *fg, int fglen, 
                             char *key, int keylen, 
                             double pos[], int n_pos, 
@@ -515,7 +508,7 @@ void lebiology_agent_move_c(char *fg, int fglen,
   free(keystr);
 #endif
 }
-*/
+
 
 /*****************************************
  * Callbacks via Python module "lebiology"
