@@ -2509,7 +2509,7 @@ visc_ele_bdy(1)
                do iloc = 1, di%velocity_mesh%shape%loc
                
                   v_local(iloc) = - (relperm_ele(iloc) * absperm_ele(1) / visc_ele(1)) * &
-                                  & ( grad_pressure_ele(dim,1) - den_ele(iloc) * grav_ele(dim,1))
+                                  & (grad_pressure_ele(dim,1) - den_ele(iloc) * grav_ele(dim,1))
                                  
                end do
 
