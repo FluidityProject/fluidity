@@ -583,7 +583,7 @@ assert(abs(AB_CV_L2Norm_convergence_phase2_sat_relpermupwind_1d - 0.7) &lt; 0.1)
     <test name="BC_CV_L2Norm_convergence_phase2_sat_relpermupwind_1d: 0.6 gt order lt 0.8" language="python">
 assert(abs(BC_CV_L2Norm_convergence_phase2_sat_relpermupwind_1d - 0.7) &lt; 0.1)
     </test>
-    <test name="CDCV_L2Norm_convergence_phase2_sat_relpermupwind_1d: 0.7 gt order lt 0.9" language="python">
+    <test name="CD_CV_L2Norm_convergence_phase2_sat_relpermupwind_1d: 0.7 gt order lt 0.9" language="python">
 assert(abs(CD_CV_L2Norm_convergence_phase2_sat_relpermupwind_1d - 0.8) &lt; 0.1)
     </test>
 
@@ -695,7 +695,7 @@ assert(abs(AB_CV_L2Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d - 
     <test name="BC_CV_L2Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d: 0.6 gt order lt 0.8" language="python">
 assert(abs(BC_CV_L2Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d - 0.7) &lt; 0.1)
     </test>
-    <test name="CDCV_L2Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d: 0.7 gt order lt 0.9" language="python">
+    <test name="CD_CV_L2Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d: 0.7 gt order lt 0.9" language="python">
 assert(abs(CD_CV_L2Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d - 0.8) &lt; 0.1)
     </test>
 
