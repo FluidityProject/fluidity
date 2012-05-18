@@ -1,7 +1,5 @@
 SHELL = sh
 
-SIM = darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag
-
 input: clean
 	cp mesh_data/line_mesh_1d_A* .
 	cp mesh_data/line_mesh_1d_B* .
@@ -27,8 +25,8 @@ clean:
 	rm -f *.err-0 
 	rm -f *.msh
 	rm -f *.halo
-	rm -f $(SIM)*.err*
-	rm -f $(SIM)*.log*
+	rm -f *.err*
+	rm -f *.log*
 	rm -f matrixdump*
 	rm -f first_timestep_adapted_mesh*
 	rm -f *.convergence 

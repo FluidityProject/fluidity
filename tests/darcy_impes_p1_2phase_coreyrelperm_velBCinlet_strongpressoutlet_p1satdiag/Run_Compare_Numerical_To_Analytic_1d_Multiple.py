@@ -14,7 +14,7 @@
 import Compare_Numerical_To_Analytic_1d
 import os
 
-file_name = "darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_p2satupwind_1d"
+file_name = "darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_1d"
 
 sol_file_name = [file_name+"_A_17.vtu", 
                  file_name+"_B_33.vtu", 
