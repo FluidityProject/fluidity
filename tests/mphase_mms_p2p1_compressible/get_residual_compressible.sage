@@ -68,3 +68,7 @@ print "\n"
 print "SOURCE TERM FOR COMPRESSIBLE MOMENTUM EQUATION (Y COMPONENT):"
 print momentum_y
 print "\n"
+
+print "SOURCE TERM FOR DENSITY (i.e. the compressible continuity equation's residual):"
+print diff(vfrac_c*rho_c*u_c[0], x) + diff(vfrac_c*rho_c*u_c[1], y) + rho_c*diff(vfrac_i*u_i[0], x) + rho_c*diff(vfrac_i*u_i[1], y)
+print "\n"
