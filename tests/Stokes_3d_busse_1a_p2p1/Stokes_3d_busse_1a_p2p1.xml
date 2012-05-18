@@ -12,7 +12,7 @@
 
 <variable name="nu_top" language="python">
 from fluidity_tools import stat_parser as stat
-nu_top = -(stat("Busse_3D_C1.stat")["Mantle"]["Temperature"]["surface_integral%Top"][-1]) / 0.63326357
+nu_top = -(stat("Busse_3D_C1.stat")["Mantle"]["Temperature"]["surface_integral%Top"][-1])
 </variable>
 
 <variable name="rms_vel" language="python">

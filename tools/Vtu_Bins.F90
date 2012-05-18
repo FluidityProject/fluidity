@@ -27,7 +27,8 @@
 
 #include "fdebug.h"
 
-subroutine vtu_bins(input_filename, input_filename_len, input_fieldname, input_fieldname_len, bounds, nbounds)
+subroutine vtu_bins(input_filename_, input_filename_len, input_fieldname_, &
+            & input_fieldname_len, bounds, nbounds) bind(c)
 
   use fields
   use fldebug
@@ -37,17 +38,19 @@ subroutine vtu_bins(input_filename, input_filename_len, input_fieldname, input_f
   use reference_counting
   use state_module
   use vtk_interfaces
+  use iso_c_binding
 
   implicit none
   
-  integer, intent(in) :: input_filename_len
-  integer, intent(in) :: input_fieldname_len
-  integer, intent(in) :: nbounds
+  integer(kind=c_size_t), value :: input_filename_len
+  integer(kind=c_size_t), value :: input_fieldname_len
+  integer(kind=c_size_t), value :: nbounds
+  character(kind=c_char, len=1) :: input_filename_(*)
+  character(kind=c_char, len=1) :: input_fieldname_(*)
+  real(kind=c_double), dimension(nbounds) :: bounds
   
-  character(len = input_filename_len), intent(in) :: input_filename
-  character(len = input_fieldname_len), intent(in) :: input_fieldname
-  real, dimension(nbounds), intent(in) :: bounds
-  
+  character(len = input_filename_len) :: input_filename
+  character(len = input_fieldname_len) :: input_fieldname
   character(len = real_format_len()) :: rformat
   character(len = real_format_len(padding = 1)) :: rformatp
   integer :: i
@@ -61,6 +64,14 @@ subroutine vtu_bins(input_filename, input_filename_len, input_fieldname, input_f
   type(vector_field), pointer :: positions
   
   ewrite(1, *) "In vtu_bins"
+
+  do i=1, input_filename_len
+    input_filename(i:i)=input_filename_(i)
+  end do
+  do i=1, input_fieldname_len
+    input_fieldname(i:i)=input_fieldname_(i)
+  end do
+  
   
   ewrite(2, *) "Input file: ", trim(input_filename)
   ewrite(2, *) "Input field: ", trim(input_fieldname)
