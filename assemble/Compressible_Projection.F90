@@ -429,8 +429,8 @@ module compressible_projection
     integer, dimension(:), pointer :: test_nodes
 
     real, dimension(:), allocatable :: ele_rhs
-    type(element_type), pointer :: test_shape
-    type(element_type), pointer :: test_shape_stabilised
+    type(element_type), pointer :: test_shape_ptr
+    type(element_type) :: test_shape
     real, dimension(:,:,:), allocatable :: dtest_t
     real, dimension(:), allocatable :: detwei
     real, dimension(:,:,:), allocatable :: j_mat
@@ -559,7 +559,7 @@ module compressible_projection
       
         test_nodes=>ele_nodes(test_mesh, ele)
   
-        test_shape => ele_shape(test_mesh, ele)
+        test_shape_ptr => ele_shape(test_mesh, ele)
         
         density_at_quad = ele_val_at_quad(density, ele)
         olddensity_at_quad = ele_val_at_quad(olddensity, ele)
@@ -573,21 +573,21 @@ module compressible_projection
         
         select case(stabilisation_scheme)
           case(STABILISATION_SUPG)
-            call transform_to_physical(coordinate, ele, test_shape, dshape = dtest_t, detwei=detwei, j=j_mat)
-            test_shape_stabilised = make_supg_shape(test_shape, dtest_t, nlvelocity_at_quad, j_mat, &
+            call transform_to_physical(coordinate, ele, test_shape_ptr, dshape = dtest_t, detwei=detwei, j=j_mat)
+            test_shape = make_supg_shape(test_shape_ptr, dtest_t, nlvelocity_at_quad, j_mat, &
               & nu_bar_scheme = nu_bar_scheme, nu_bar_scale = nu_bar_scale)
           case default
             call transform_to_physical(coordinate, ele, detwei=detwei)
-            test_shape_stabilised => test_shape
-            call incref(test_shape_stabilised)
+            test_shape = test_shape_ptr
+            call incref(test_shape)
         end select
         ! Important note: with SUPG the test function derivatives have not been
         ! modified.
   
         if(multiphase) then
-           ele_mat = (1./(dt*dt*theta_divergence*theta_pg))*shape_shape(test_shape_stabilised, test_shape, detwei*ele_val_at_quad(nvfrac, ele)*drhodp_at_quad)
+           ele_mat = (1./(dt*dt*theta_divergence*theta_pg))*shape_shape(test_shape, test_shape_ptr, detwei*ele_val_at_quad(nvfrac, ele)*drhodp_at_quad)
         else
-           ele_mat = (1./(dt*dt*theta_divergence*theta_pg))*shape_shape(test_shape_stabilised, test_shape, detwei*drhodp_at_quad)
+           ele_mat = (1./(dt*dt*theta_divergence*theta_pg))*shape_shape(test_shape, test_shape_ptr, detwei*drhodp_at_quad)
         end if
         !       /
         ! rhs = |test_shape* &
@@ -598,24 +598,24 @@ module compressible_projection
         ! +source)dV
 
         if(multiphase) then
-            ele_rhs = (1./dt)*shape_rhs(test_shape_stabilised, detwei*(ele_val_at_quad(nvfrac, ele))*((drhodp_at_quad*(eosp_at_quad - p_at_quad)) &
+            ele_rhs = (1./dt)*shape_rhs(test_shape, detwei*(ele_val_at_quad(nvfrac, ele))*((drhodp_at_quad*(eosp_at_quad - p_at_quad)) &
                                                        +(olddensity_at_quad - density_at_quad)))
         else
-            ele_rhs = (1./dt)*shape_rhs(test_shape_stabilised, detwei*((drhodp_at_quad*(eosp_at_quad - p_at_quad)) &
+            ele_rhs = (1./dt)*shape_rhs(test_shape, detwei*((drhodp_at_quad*(eosp_at_quad - p_at_quad)) &
                                                        +(olddensity_at_quad - density_at_quad)))
         end if
         
         if(have_source) then
-          ele_rhs = ele_rhs + shape_rhs(test_shape_stabilised, detwei*ele_val_at_quad(source, ele))
+          ele_rhs = ele_rhs + shape_rhs(test_shape, detwei*ele_val_at_quad(source, ele))
         end if
         
         if(have_absorption) then
           abs_at_quad = ele_val_at_quad(absorption, ele)
           ele_mat = ele_mat + &
-                    (theta/(dt*theta_divergence*theta_pg))*shape_shape(test_shape_stabilised, test_shape, &
+                    (theta/(dt*theta_divergence*theta_pg))*shape_shape(test_shape, test_shape_ptr, &
                                                                        detwei*drhodp_at_quad*abs_at_quad)
           ele_rhs = ele_rhs + &
-                    shape_rhs(test_shape_stabilised, detwei*abs_at_quad*(theta*(drhodp_at_quad*(eosp_at_quad - p_at_quad)-density_at_quad) &
+                    shape_rhs(test_shape, detwei*abs_at_quad*(theta*(drhodp_at_quad*(eosp_at_quad - p_at_quad)-density_at_quad) &
                                                              -(1-theta)*olddensity_at_quad))
         end if
         
@@ -623,7 +623,7 @@ module compressible_projection
         
         call addto(rhs, test_nodes, ele_rhs)
         
-        call deallocate(test_shape_stabilised)
+        call deallocate(test_shape)
         
       end do
   
