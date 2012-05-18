@@ -119,8 +119,8 @@ rm -f darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satd
     <variable name="AB_FE_L2Norm_convergence_phase2_sat_relpermupwind_1d" language="python">
 from math import log
 
-A_error_file = open("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_1d_A_17_output_error_norm.txt", "r")
-B_error_file = open("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_1d_B_33_output_error_norm.txt", "r")
+A_error_file = open("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_1d_A_17_output_saturation_error_norm.txt", "r")
+B_error_file = open("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_1d_B_33_output_saturation_error_norm.txt", "r")
 
 A_l2_error = 1.0e+10
 for line in A_error_file:
@@ -146,8 +146,8 @@ AB_FE_L2Norm_convergence_phase2_sat_relpermupwind_1d = log(AB_l2_ratio, 2)
     <variable name="BC_FE_L2Norm_convergence_phase2_sat_relpermupwind_1d" language="python">
 from math import log
 
-B_error_file = open("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_1d_B_33_output_error_norm.txt", "r")
-C_error_file = open("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_1d_C_65_output_error_norm.txt", "r")
+B_error_file = open("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_1d_B_33_output_saturation_error_norm.txt", "r")
+C_error_file = open("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_1d_C_65_output_saturation_error_norm.txt", "r")
 
 B_l2_error = 1.0e+10
 for line in B_error_file:
@@ -173,8 +173,8 @@ BC_FE_L2Norm_convergence_phase2_sat_relpermupwind_1d = log(BC_l2_ratio, 2)
     <variable name="CD_FE_L2Norm_convergence_phase2_sat_relpermupwind_1d" language="python">
 from math import log
 
-C_error_file = open("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_1d_C_65_output_error_norm.txt", "r")
-D_error_file = open("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_1d_D_129_output_error_norm.txt", "r")
+C_error_file = open("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_1d_C_65_output_saturation_error_norm.txt", "r")
+D_error_file = open("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_1d_D_129_output_saturation_error_norm.txt", "r")
 
 C_l2_error = 1.0e+10
 for line in C_error_file:
@@ -196,6 +196,87 @@ for line in D_error_file:
 
 CD_l2_ratio = C_l2_error / D_l2_error
 CD_FE_L2Norm_convergence_phase2_sat_relpermupwind_1d = log(CD_l2_ratio, 2)
+    </variable>
+    <variable name="AB_FE_L2Norm_convergence_phase2_press_relpermupwind_1d" language="python">
+from math import log
+
+A_error_file = open("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_1d_A_17_output_pressure_error_norm.txt", "r")
+B_error_file = open("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_1d_B_33_output_pressure_error_norm.txt", "r")
+
+A_l2_error = 1.0e+10
+for line in A_error_file:
+   
+   line_split = line.split()
+   
+   if line_split[0] == "FE" and line_split[1] == "L2":
+      
+      A_l2_error = float(line_split[3])
+
+B_l2_error = 1.0e+10  
+for line in B_error_file:
+
+   line_split = line.split()
+   
+   if line_split[0] == "FE" and line_split[1] == "L2":
+      
+      B_l2_error = float(line_split[3])
+
+AB_l2_ratio = A_l2_error / B_l2_error
+AB_FE_L2Norm_convergence_phase2_press_relpermupwind_1d = log(AB_l2_ratio, 2)
+    </variable>
+    <variable name="BC_FE_L2Norm_convergence_phase2_press_relpermupwind_1d" language="python">
+from math import log
+
+B_error_file = open("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_1d_B_33_output_pressure_error_norm.txt", "r")
+C_error_file = open("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_1d_C_65_output_pressure_error_norm.txt", "r")
+
+B_l2_error = 1.0e+10
+for line in B_error_file:
+   
+   line_split = line.split()
+   
+   if line_split[0] == "FE" and line_split[1] == "L2":
+      
+      B_l2_error = float(line_split[3])
+
+C_l2_error = 1.0e+10  
+for line in C_error_file:
+
+   line_split = line.split()
+   
+   if line_split[0] == "FE" and line_split[1] == "L2":
+      
+      C_l2_error = float(line_split[3])
+
+BC_l2_ratio = B_l2_error / C_l2_error
+BC_FE_L2Norm_convergence_phase2_press_relpermupwind_1d = log(BC_l2_ratio, 2)
+    </variable>
+    <variable name="CD_FE_L2Norm_convergence_phase2_press_relpermupwind_1d" language="python">
+from math import log
+
+C_error_file = open("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_1d_C_65_output_pressure_error_norm.txt", "r")
+D_error_file = open("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_1d_D_129_output_pressure_error_norm.txt", "r")
+
+C_l2_error = 1.0e+10
+for line in C_error_file:
+   
+   line_split = line.split()
+   
+   if line_split[0] == "FE" and line_split[1] == "L2":
+      
+      C_l2_error = float(line_split[3])
+
+D_l2_error = 1.0e+10  
+for line in D_error_file:
+
+   line_split = line.split()
+   
+   if line_split[0] == "FE" and line_split[1] == "L2":
+      
+      D_l2_error = float(line_split[3])
+
+CD_l2_ratio = C_l2_error / D_l2_error
+CD_FE_L2Norm_convergence_phase2_press_relpermupwind_1d = log(CD_l2_ratio, 2)
     </variable>
 
     <variable name="phase1_sat_relpermupwind_regression_error_max_1d_A" language="python">
@@ -234,6 +315,43 @@ phase1_sat_relpermupwind_regression_error_max_3d_A = stat("darcy_impes_p1_2phase
 from fluidity_tools import stat_parser as stat
 phase1_sat_relpermupwind_regression_error_max_3d_B = stat("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_3d_B.stat")["Phase1"]["RegressionSaturationError"]["max"][-1]
     </variable>
+    <variable name="phase1_press_relpermupwind_regression_error_max_1d_A" language="python">
+from fluidity_tools import stat_parser as stat
+phase1_press_relpermupwind_regression_error_max_1d_A = stat("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_1d_A.stat")["Phase1"]["RegressionPressureError"]["max"][-1]
+    </variable>
+    <variable name="phase1_press_relpermupwind_regression_error_max_1d_B" language="python">
+from fluidity_tools import stat_parser as stat
+phase1_press_relpermupwind_regression_error_max_1d_B = stat("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_1d_B.stat")["Phase1"]["RegressionPressureError"]["max"][-1]
+    </variable>
+    <variable name="phase1_press_relpermupwind_regression_error_max_1d_C" language="python">
+from fluidity_tools import stat_parser as stat
+phase1_press_relpermupwind_regression_error_max_1d_C = stat("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_1d_C.stat")["Phase1"]["RegressionPressureError"]["max"][-1]
+    </variable>
+    <variable name="phase1_press_relpermupwind_regression_error_max_1d_D" language="python">
+from fluidity_tools import stat_parser as stat
+phase1_press_relpermupwind_regression_error_max_1d_D = stat("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_1d_D.stat")["Phase1"]["RegressionPressureError"]["max"][-1]
+    </variable>
+    <variable name="phase1_press_relpermupwind_regression_error_max_2d_A" language="python">
+from fluidity_tools import stat_parser as stat
+phase1_press_relpermupwind_regression_error_max_2d_A = stat("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_2d_A.stat")["Phase1"]["RegressionPressureError"]["max"][-1]
+    </variable>
+    <variable name="phase1_press_relpermupwind_regression_error_max_2d_B" language="python">
+from fluidity_tools import stat_parser as stat
+phase1_press_relpermupwind_regression_error_max_2d_B = stat("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_2d_B.stat")["Phase1"]["RegressionPressureError"]["max"][-1]
+    </variable>
+    <variable name="phase1_press_relpermupwind_regression_error_max_2d_C" language="python">
+from fluidity_tools import stat_parser as stat
+phase1_press_relpermupwind_regression_error_max_2d_C = stat("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_2d_C.stat")["Phase1"]["RegressionPressureError"]["max"][-1]
+    </variable>
+    <variable name="phase1_press_relpermupwind_regression_error_max_3d_A" language="python">
+from fluidity_tools import stat_parser as stat
+phase1_press_relpermupwind_regression_error_max_3d_A = stat("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_3d_A.stat")["Phase1"]["RegressionPressureError"]["max"][-1]
+    </variable>
+    <variable name="phase1_press_relpermupwind_regression_error_max_3d_B" language="python">
+from fluidity_tools import stat_parser as stat
+phase1_press_relpermupwind_regression_error_max_3d_B = stat("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_3d_B.stat")["Phase1"]["RegressionPressureError"]["max"][-1]
+    </variable>
+
 
     <variable name="phase1_sat_relpermupwind_max_1d_A" language="python">
 from fluidity_tools import stat_parser
@@ -346,8 +464,8 @@ sum_sat_relpermupwind_integral_3d_A = s["Phase1"]["SumSaturation"]["integral"][-
     <variable name="AB_FE_L2Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d" language="python">
 from math import log
 
-A_error_file = open("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_1d_A_17_output_error_norm.txt", "r")
-B_error_file = open("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_1d_B_33_output_error_norm.txt", "r")
+A_error_file = open("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_1d_A_17_output_saturation_error_norm.txt", "r")
+B_error_file = open("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_1d_B_33_output_saturation_error_norm.txt", "r")
 
 A_l2_error = 1.0e+10
 for line in A_error_file:
@@ -373,8 +491,8 @@ AB_FE_L2Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d = log(AB_l2_r
     <variable name="BC_FE_L2Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d" language="python">
 from math import log
 
-B_error_file = open("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_1d_B_33_output_error_norm.txt", "r")
-C_error_file = open("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_1d_C_65_output_error_norm.txt", "r")
+B_error_file = open("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_1d_B_33_output_saturation_error_norm.txt", "r")
+C_error_file = open("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_1d_C_65_output_saturation_error_norm.txt", "r")
 
 B_l2_error = 1.0e+10
 for line in B_error_file:
@@ -400,8 +518,8 @@ BC_FE_L2Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d = log(BC_l2_r
     <variable name="CD_FE_L2Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d" language="python">
 from math import log
 
-C_error_file = open("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_1d_C_65_output_error_norm.txt", "r")
-D_error_file = open("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_1d_D_129_output_error_norm.txt", "r")
+C_error_file = open("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_1d_C_65_output_saturation_error_norm.txt", "r")
+D_error_file = open("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_1d_D_129_output_saturation_error_norm.txt", "r")
 
 C_l2_error = 1.0e+10
 for line in C_error_file:
@@ -423,6 +541,87 @@ for line in D_error_file:
 
 CD_l2_ratio = C_l2_error / D_l2_error
 CD_FE_L2Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d = log(CD_l2_ratio, 2)
+    </variable>
+    <variable name="AB_FE_L2Norm_convergence_phase2_press_modrelpermupwind_satfesweby_1d" language="python">
+from math import log
+
+A_error_file = open("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_1d_A_17_output_pressure_error_norm.txt", "r")
+B_error_file = open("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_1d_B_33_output_pressure_error_norm.txt", "r")
+
+A_l2_error = 1.0e+10
+for line in A_error_file:
+   
+   line_split = line.split()
+   
+   if line_split[0] == "FE" and line_split[1] == "L2":
+      
+      A_l2_error = float(line_split[3])
+
+B_l2_error = 1.0e+10  
+for line in B_error_file:
+
+   line_split = line.split()
+   
+   if line_split[0] == "FE" and line_split[1] == "L2":
+      
+      B_l2_error = float(line_split[3])
+
+AB_l2_ratio = A_l2_error / B_l2_error
+AB_FE_L2Norm_convergence_phase2_press_modrelpermupwind_satfesweby_1d = log(AB_l2_ratio, 2)
+    </variable>
+    <variable name="BC_FE_L2Norm_convergence_phase2_press_modrelpermupwind_satfesweby_1d" language="python">
+from math import log
+
+B_error_file = open("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_1d_B_33_output_pressure_error_norm.txt", "r")
+C_error_file = open("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_1d_C_65_output_pressure_error_norm.txt", "r")
+
+B_l2_error = 1.0e+10
+for line in B_error_file:
+   
+   line_split = line.split()
+   
+   if line_split[0] == "FE" and line_split[1] == "L2":
+      
+      B_l2_error = float(line_split[3])
+
+C_l2_error = 1.0e+10  
+for line in C_error_file:
+
+   line_split = line.split()
+   
+   if line_split[0] == "FE" and line_split[1] == "L2":
+      
+      C_l2_error = float(line_split[3])
+
+BC_l2_ratio = B_l2_error / C_l2_error
+BC_FE_L2Norm_convergence_phase2_press_modrelpermupwind_satfesweby_1d = log(BC_l2_ratio, 2)
+    </variable>
+    <variable name="CD_FE_L2Norm_convergence_phase2_press_modrelpermupwind_satfesweby_1d" language="python">
+from math import log
+
+C_error_file = open("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_1d_C_65_output_pressure_error_norm.txt", "r")
+D_error_file = open("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_1d_D_129_output_pressure_error_norm.txt", "r")
+
+C_l2_error = 1.0e+10
+for line in C_error_file:
+   
+   line_split = line.split()
+   
+   if line_split[0] == "FE" and line_split[1] == "L2":
+      
+      C_l2_error = float(line_split[3])
+
+D_l2_error = 1.0e+10  
+for line in D_error_file:
+
+   line_split = line.split()
+   
+   if line_split[0] == "FE" and line_split[1] == "L2":
+      
+      D_l2_error = float(line_split[3])
+
+CD_l2_ratio = C_l2_error / D_l2_error
+CD_FE_L2Norm_convergence_phase2_press_modrelpermupwind_satfesweby_1d = log(CD_l2_ratio, 2)
     </variable>
 
     <variable name="phase1_sat_modrelpermupwind_satfesweby_regression_error_max_1d_A" language="python">
@@ -460,6 +659,42 @@ phase1_sat_modrelpermupwind_satfesweby_regression_error_max_3d_A = stat("darcy_i
     <variable name="phase1_sat_modrelpermupwind_satfesweby_regression_error_max_3d_B" language="python">
 from fluidity_tools import stat_parser as stat
 phase1_sat_modrelpermupwind_satfesweby_regression_error_max_3d_B = stat("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_3d_B.stat")["Phase1"]["RegressionSaturationError"]["max"][-1]
+    </variable>
+    <variable name="phase1_press_modrelpermupwind_satfesweby_regression_error_max_1d_A" language="python">
+from fluidity_tools import stat_parser as stat
+phase1_press_modrelpermupwind_satfesweby_regression_error_max_1d_A = stat("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_1d_A.stat")["Phase1"]["RegressionPressureError"]["max"][-1]
+    </variable>
+    <variable name="phase1_press_modrelpermupwind_satfesweby_regression_error_max_1d_B" language="python">
+from fluidity_tools import stat_parser as stat
+phase1_press_modrelpermupwind_satfesweby_regression_error_max_1d_B = stat("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_1d_B.stat")["Phase1"]["RegressionPressureError"]["max"][-1]
+    </variable>
+    <variable name="phase1_press_modrelpermupwind_satfesweby_regression_error_max_1d_C" language="python">
+from fluidity_tools import stat_parser as stat
+phase1_press_modrelpermupwind_satfesweby_regression_error_max_1d_C = stat("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_1d_C.stat")["Phase1"]["RegressionPressureError"]["max"][-1]
+    </variable>
+    <variable name="phase1_press_modrelpermupwind_satfesweby_regression_error_max_1d_D" language="python">
+from fluidity_tools import stat_parser as stat
+phase1_press_modrelpermupwind_satfesweby_regression_error_max_1d_D = stat("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_1d_D.stat")["Phase1"]["RegressionPressureError"]["max"][-1]
+    </variable>
+    <variable name="phase1_press_modrelpermupwind_satfesweby_regression_error_max_2d_A" language="python">
+from fluidity_tools import stat_parser as stat
+phase1_press_modrelpermupwind_satfesweby_regression_error_max_2d_A = stat("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_2d_A.stat")["Phase1"]["RegressionPressureError"]["max"][-1]
+    </variable>
+    <variable name="phase1_press_modrelpermupwind_satfesweby_regression_error_max_2d_B" language="python">
+from fluidity_tools import stat_parser as stat
+phase1_press_modrelpermupwind_satfesweby_regression_error_max_2d_B = stat("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_2d_B.stat")["Phase1"]["RegressionPressureError"]["max"][-1]
+    </variable>
+    <variable name="phase1_press_modrelpermupwind_satfesweby_regression_error_max_2d_C" language="python">
+from fluidity_tools import stat_parser as stat
+phase1_press_modrelpermupwind_satfesweby_regression_error_max_2d_C = stat("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_2d_C.stat")["Phase1"]["RegressionPressureError"]["max"][-1]
+    </variable>
+    <variable name="phase1_press_modrelpermupwind_satfesweby_regression_error_max_3d_A" language="python">
+from fluidity_tools import stat_parser as stat
+phase1_press_modrelpermupwind_satfesweby_regression_error_max_3d_A = stat("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_3d_A.stat")["Phase1"]["RegressionPressureError"]["max"][-1]
+    </variable>
+    <variable name="phase1_press_modrelpermupwind_satfesweby_regression_error_max_3d_B" language="python">
+from fluidity_tools import stat_parser as stat
+phase1_press_modrelpermupwind_satfesweby_regression_error_max_3d_B = stat("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_3d_B.stat")["Phase1"]["RegressionPressureError"]["max"][-1]
     </variable>
 
     <variable name="phase1_sat_modrelpermupwind_satfesweby_max_1d_A" language="python">
@@ -586,6 +821,15 @@ assert(abs(BC_FE_L2Norm_convergence_phase2_sat_relpermupwind_1d - 0.95) &lt; 0.1
     <test name="CD_FE_L2Norm_convergence_phase2_sat_relpermupwind_1d: 0.85 gt order lt 1.05" language="python">
 assert(abs(CD_FE_L2Norm_convergence_phase2_sat_relpermupwind_1d - 0.95) &lt; 0.1)
     </test>
+    <test name="AB_FE_L2Norm_convergence_phase2_press_relpermupwind_1d: 1.25 gt order lt 1.45" language="python">
+assert(abs(AB_FE_L2Norm_convergence_phase2_press_relpermupwind_1d - 1.35) &lt; 0.1)
+    </test>
+    <test name="BC_FE_L2Norm_convergence_phase2_press_relpermupwind_1d: 1.25 gt order lt 1.45" language="python">
+assert(abs(BC_FE_L2Norm_convergence_phase2_press_relpermupwind_1d - 1.35) &lt; 0.1)
+    </test>
+    <test name="CD_FE_L2Norm_convergence_phase2_press_relpermupwind_1d: 1.25 gt order lt 1.45" language="python">
+assert(abs(CD_FE_L2Norm_convergence_phase2_press_relpermupwind_1d - 1.35) &lt; 0.1)
+    </test>
 
     <test name="Assert max absolute regression error for saturation phase 1 using relpermupwind for 1d on mesh A is less than 1.0e-10" language="python">
 assert(abs(phase1_sat_relpermupwind_regression_error_max_1d_A) &lt; 1.0e-10)
@@ -613,6 +857,33 @@ assert(abs(phase1_sat_relpermupwind_regression_error_max_3d_A) &lt; 1.0e-10)
     </test>
     <test name="Assert max absolute regression error for saturation phase 1 using relpermupwind for 3d on for mesh B is less than 1.0e-10" language="python">
 assert(abs(phase1_sat_relpermupwind_regression_error_max_3d_B) &lt; 1.0e-10)
+    </test>
+    <test name="Assert max absolute regression error for pressure phase 1 using relpermupwind for 1d on mesh A is less than 1.0e-10" language="python">
+assert(abs(phase1_press_relpermupwind_regression_error_max_1d_A) &lt; 1.0e-10)
+    </test>
+    <test name="Assert max absolute regression error for pressure phase 1 using relpermupwind for 1d on for mesh B is less than 1.0e-10" language="python">
+assert(abs(phase1_press_relpermupwind_regression_error_max_1d_B) &lt; 1.0e-10)
+    </test>
+    <test name="Assert max absolute regression error for pressure phase 1 using relpermupwind for 1d on for mesh C is less than 1.0e-10" language="python">
+assert(abs(phase1_press_relpermupwind_regression_error_max_1d_C) &lt; 1.0e-10)
+    </test>
+    <test name="Assert max absolute regression error for pressure phase 1 using relpermupwind for 1d on for mesh D is less than 1.0e-10" language="python">
+assert(abs(phase1_press_relpermupwind_regression_error_max_1d_D) &lt; 1.0e-10)
+    </test>
+    <test name="Assert max absolute regression error for pressure phase 1 using relpermupwind for 2d on mesh A is less than 1.0e-10" language="python">
+assert(abs(phase1_press_relpermupwind_regression_error_max_2d_A) &lt; 1.0e-10)
+    </test>
+    <test name="Assert max absolute regression error for pressure phase 1 using relpermupwind for 2d on for mesh B is less than 1.0e-10" language="python">
+assert(abs(phase1_press_relpermupwind_regression_error_max_2d_B) &lt; 1.0e-10)
+    </test>
+    <test name="Assert max absolute regression error for pressure phase 1 using relpermupwind for 2d on for mesh C is less than 1.0e-10" language="python">
+assert(abs(phase1_press_relpermupwind_regression_error_max_2d_C) &lt; 1.0e-10)
+    </test>
+    <test name="Assert max absolute regression error for pressure phase 1 using relpermupwind for 3d on mesh A is less than 1.0e-10" language="python">
+assert(abs(phase1_press_relpermupwind_regression_error_max_3d_A) &lt; 1.0e-10)
+    </test>
+    <test name="Assert max absolute regression error for pressure phase 1 using relpermupwind for 3d on for mesh B is less than 1.0e-10" language="python">
+assert(abs(phase1_press_relpermupwind_regression_error_max_3d_B) &lt; 1.0e-10)
     </test>
 
     <test name="phase 1 using relpermupwind for 1d for mesh A has max(sat) in [0.0, 1.0] with tolerance 1.0e-08" language="python">
@@ -698,6 +969,15 @@ assert(abs(BC_FE_L2Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d - 
     <test name="CD_FE_L2Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d: 0.7 gt order lt 0.8" language="python">
 assert(abs(CD_FE_L2Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d - 0.75) &lt; 0.05)
     </test>
+    <test name="AB_FE_L2Norm_convergence_phase2_press_modrelpermupwind_satfesweby_1d: 1.6 gt order lt 1.7" language="python">
+assert(abs(AB_FE_L2Norm_convergence_phase2_press_modrelpermupwind_satfesweby_1d - 1.65) &lt; 0.05)
+    </test>
+    <test name="BC_FE_L2Norm_convergence_phase2_press_modrelpermupwind_satfesweby_1d: 1.1 gt order lt 1.2" language="python">
+assert(abs(BC_FE_L2Norm_convergence_phase2_press_modrelpermupwind_satfesweby_1d - 1.15) &lt; 0.05)
+    </test>
+    <test name="CD_FE_L2Norm_convergence_phase2_press_modrelpermupwind_satfesweby_1d: 2.0 gt order lt 2.1" language="python">
+assert(abs(CD_FE_L2Norm_convergence_phase2_press_modrelpermupwind_satfesweby_1d - 2.05) &lt; 0.05)
+    </test>
 
     <test name="Assert max absolute regression error for saturation phase 1 using modrelpermupwind_satfesweby for 1d on mesh A is less than 1.0e-10" language="python">
 assert(abs(phase1_sat_modrelpermupwind_satfesweby_regression_error_max_1d_A) &lt; 1.0e-10)
@@ -725,6 +1005,33 @@ assert(abs(phase1_sat_modrelpermupwind_satfesweby_regression_error_max_3d_A) &lt
     </test>
     <test name="Assert max absolute regression error for saturation phase 1 using modrelpermupwind_satfesweby for 3d on for mesh B is less than 1.0e-10" language="python">
 assert(abs(phase1_sat_modrelpermupwind_satfesweby_regression_error_max_3d_B) &lt; 1.0e-10)
+    </test>
+    <test name="Assert max absolute regression error for pressure phase 1 using modrelpermupwind_satfesweby for 1d on mesh A is less than 1.0e-10" language="python">
+assert(abs(phase1_press_modrelpermupwind_satfesweby_regression_error_max_1d_A) &lt; 1.0e-10)
+    </test>
+    <test name="Assert max absolute regression error for pressure phase 1 using modrelpermupwind_satfesweby for 1d on for mesh B is less than 1.0e-10" language="python">
+assert(abs(phase1_press_modrelpermupwind_satfesweby_regression_error_max_1d_B) &lt; 1.0e-10)
+    </test>
+    <test name="Assert max absolute regression error for pressure phase 1 using modrelpermupwind_satfesweby for 1d on for mesh C is less than 1.0e-10" language="python">
+assert(abs(phase1_press_modrelpermupwind_satfesweby_regression_error_max_1d_C) &lt; 1.0e-10)
+    </test>
+    <test name="Assert max absolute regression error for pressure phase 1 using modrelpermupwind_satfesweby for 1d on for mesh D is less than 1.0e-10" language="python">
+assert(abs(phase1_press_modrelpermupwind_satfesweby_regression_error_max_1d_D) &lt; 1.0e-10)
+    </test>
+    <test name="Assert max absolute regression error for pressure phase 1 using modrelpermupwind_satfesweby for 2d on mesh A is less than 1.0e-10" language="python">
+assert(abs(phase1_press_modrelpermupwind_satfesweby_regression_error_max_2d_A) &lt; 1.0e-10)
+    </test>
+    <test name="Assert max absolute regression error for pressure phase 1 using modrelpermupwind_satfesweby for 2d on for mesh B is less than 1.0e-10" language="python">
+assert(abs(phase1_press_modrelpermupwind_satfesweby_regression_error_max_2d_B) &lt; 1.0e-10)
+    </test>
+    <test name="Assert max absolute regression error for pressure phase 1 using modrelpermupwind_satfesweby for 2d on for mesh C is less than 1.0e-10" language="python">
+assert(abs(phase1_press_modrelpermupwind_satfesweby_regression_error_max_2d_C) &lt; 1.0e-10)
+    </test>
+    <test name="Assert max absolute regression error for pressure phase 1 using modrelpermupwind_satfesweby for 3d on mesh A is less than 1.0e-10" language="python">
+assert(abs(phase1_press_modrelpermupwind_satfesweby_regression_error_max_3d_A) &lt; 1.0e-10)
+    </test>
+    <test name="Assert max absolute regression error for pressure phase 1 using modrelpermupwind_satfesweby for 3d on for mesh B is less than 1.0e-10" language="python">
+assert(abs(phase1_press_modrelpermupwind_satfesweby_regression_error_max_3d_B) &lt; 1.0e-10)
     </test>
 
     <test name="phase 1 using modrelpermupwind_satfesweby for 1d for mesh A has max(sat) in [0.0, 1.0] with tolerance 1.0e-08" language="python">

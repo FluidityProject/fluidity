@@ -4,8 +4,8 @@
 
  Compare_Numerical_To_Analytic_1d.py
  
- This script will read the 1d second phase saturation 
- numerical solution field from a given vtu file and 
+ This script will read a numerical solution field
+ (chosen as a keyword on initialisation) from a given vtu file and 
  also read the analytic solution from another given file, 
  then find the numerical solution on the analytic fine 
  point mesh, then compute the various errors and 
@@ -21,7 +21,7 @@
  
  This is used via:
  
- Compare_Numerical_To_Analytic_1d.py solution_file_name analytic_file_name output_file_name
+ Compare_Numerical_To_Analytic_1d.py solution_file_name analytic_file_name output_file_name vtu_field_name
  
 """
 
@@ -31,8 +31,11 @@ import vtktools
   
 class Compare_Numerical_To_Analytic_1d:
    
-   def __init__(self, solution_file_name, analytic_file_name, output_file_name):
+   def __init__(self, solution_file_name, analytic_file_name, output_file_name, vtu_field_name):
       """ Initialise Compare_Numerical_To_Analytic_1d class """
+      
+      # Set the vtu field name
+      self.vtu_field_name = vtu_field_name
       
       # Open the output files
       self.fe_solution_analytic_mesh_txt_output_file = open(output_file_name + "_fe_solution_analytic_mesh.txt","w")
@@ -89,8 +92,8 @@ class Compare_Numerical_To_Analytic_1d:
       # Deduce number of x coords
       self.number_solution_x_coord = len(self.solution_x_coord)
       
-      # Extract the second phase saturation solution values and set in self
-      self.solution_val = self.solution_vtu_input_file.GetScalarField('Phase2::Saturation')
+      # Extract the solution field values and set in self
+      self.solution_val = self.solution_vtu_input_file.GetScalarField(self.vtu_field_name)
       
    def read_analytic_txt_input_file(self):
       """ Read the analytic txt input file """
@@ -270,17 +273,19 @@ if __name__ == "__main__":
       analytic_file_name = sys.argv[2]
 
       output_file_name   = sys.argv[3]
+
+      vtu_field_name     = sys.argv[4]
             
    except:
     
-     print "Usage: Compare_Numerical_To_Analytic_1d.py solution_file_name analytic_file_name output_file_name"
+     print "Usage: Compare_Numerical_To_Analytic_1d.py solution_file_name analytic_file_name output_file_name vtu_field_name"
      
      sys.exit()
    
-   print "Running Compare_Numerical_To_Analytic_1d.py ",solution_file_name, analytic_file_name, output_file_name
+   print "Running Compare_Numerical_To_Analytic_1d.py ",solution_file_name, analytic_file_name, output_file_name, vtu_field_name
    
    # initialise
-   CNTA1D = Compare_Numerical_To_Analytic_1d(solution_file_name,analytic_file_name,output_file_name)
+   CNTA1D = Compare_Numerical_To_Analytic_1d(solution_file_name,analytic_file_name,output_file_name,vtu_field_name)
       
    # find the fe and cv solution fields on the analytic mesh
    CNTA1D.find_fe_and_cv_solutions_on_analytic_mesh()
