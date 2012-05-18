@@ -678,6 +678,12 @@ DEN = A * P + B
                       <element name="coefficient_B">
                         <ref name="real"/>
                       </element>
+                      <optional>
+                        <element name="include_internal_energy">
+                          <a:documentation>If chosen: DEN = A * P / T + B</a:documentation>
+                          <empty/>
+                        </element>
+                      </optional>
                     </element>
                   </choice>
                 </element>

@@ -683,14 +683,21 @@
 
          CALL ULONG_2_UVW( U, V, W, UP_VEL, U_NONODS, NDIM, NPHASE )
 
+         !ewrite(3,*) 'u::', u
+         !ewrite(3,*) 'v::', v
+         !ewrite(3,*) 'w::', w
+         !ewrite(3,*) 'ct::', ct
+
+
          ! put on rhs the cty eqn; put most recent pressure in RHS of momentum eqn
          ! NB. P_RHS = -CT*U + CT_RHS 
          CALL CT_MULT(P_RHS, U, V, W, CV_NONODS, U_NONODS, NDIM, NPHASE, &
               CT, NCOLCT, FINDCT, COLCT)
 
+         !ewrite(3,*) 'P_RHS1::', p_rhs
+
          P_RHS = -P_RHS + CT_RHS
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! CHRIS BAKER 
 
          ! Matrix vector involving the mass diagonal term
          DO CV_NOD = 1, CV_NONODS
@@ -703,7 +710,7 @@
             END DO
          END DO
 
-         !ewrite(3,*) 'P_RHS::', p_rhs
+         !ewrite(3,*) 'P_RHS2::', p_rhs
          !ewrite(3,*) 'CT_RHS::', ct_rhs
 
          ! solve for pressure correction DP that is solve CMC *DP=P_RHS...
@@ -712,7 +719,7 @@
          DP = 0.0
 
          ! Print cmc
-         if(.true.) then
+         if(.false.) then
             DO CV_NOD = 1, CV_NONODS
                ewrite(3,*) 'cv_nod=',cv_nod, &
                     'findcmc=', FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
@@ -724,7 +731,7 @@
                END DO
                ewrite(3,*) 'off_diag, diag=',rsum,cmc(midcmc(cv_nod)) 
             END DO
-            !stop 1244
+            stop 1244
          endif
 
          ewrite(3,*)'b4 pressure solve P_RHS:', P_RHS
@@ -756,7 +763,7 @@
                   do cv_nod = 1, u_nloc
                      x_nod1 = u_ndgln( ( ele - 1 ) * u_nloc + cv_nod )
                      x_nod2 = ( iphase- 1 ) * ndim * u_nonods + ( count - 1 ) * u_nonods + x_nod1
-                     ewrite(3,*)'idim, iph, ele, nod, cdp:', count, iphase, ele, cv_nod, x_nod2, cdp( x_nod2 )
+                     !ewrite(3,*)'idim, iph, ele, nod, cdp:', count, iphase, ele, cv_nod, x_nod2, cdp( x_nod2 )
                   end do
                end do
             end do
@@ -808,9 +815,7 @@
          !end do
 
       ENDIF
-
       !stop 999
-
 
       ! Calculate control volume averaged pressure CV_P from fem pressure P
       CV_P = 0.0
@@ -851,11 +856,9 @@
          ewrite(3,*)x(cv_nod3),-der3/uabs
       end do
 
-
       !ewrite(3,*) 'VOLFRA_PORE:',VOLFRA_PORE
       !ewrite(3,*) 'den:',den
       !ewrite(3,*) 'denold:',denold
-
 
       IF(.false.) THEN
          DO IPHASE=1,NPHASE

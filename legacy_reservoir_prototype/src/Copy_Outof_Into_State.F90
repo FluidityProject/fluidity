@@ -146,9 +146,7 @@
       character(len=OPTION_PATH_LEN) :: option_path
 
       !! temporary variables only needed for interfacing purposes
-
       type(vector_field), pointer :: positions
-      type(vector_field) :: cv_positions
 
       integer :: i, j, k, l, cv_nonods, p_nonods, mat_nonods, &
            x_nonods, x_nonods_p1, xu_nonods, u_nonods, cv_nod, u_nod, xu_nod, x_nod, mat_nod, &
@@ -159,7 +157,6 @@
       real :: const, dx
       real, dimension(:), allocatable :: const_vec
       real, dimension(:,:), allocatable :: const_array
-
 
       integer, dimension(:), allocatable :: cv_ndgln, u_ndgln, p_ndgln, x_ndgln, x_ndgln_p1, &
            xu_ndgln, mat_ndgln, cv_sndgln, p_sndgln, u_sndgln, u_sndgln2, x_sndgln
@@ -448,6 +445,7 @@
       t_dg_vel_int_opt = 0
       u_dg_vel_int_opt = 4 ! Not used -- it can be deleted
       v_dg_vel_int_opt = 4
+      if (.not.is_overlapping) v_dg_vel_int_opt = 1
       w_dg_vel_int_opt = 0 ! Not used -- it can be deleted
       comp_diffusion_opt = 0
       ncomp_diff_coef = 0
@@ -1539,6 +1537,8 @@
       ! Local variables
       type( mesh_type ), pointer :: pmesh, cmesh
       type(scalar_field), pointer :: pressure, field_source, field_absorption
+      type(scalar_field) :: dummy
+      type(vector_field), pointer :: positions
       integer, dimension(:), allocatable :: sufid_bc
       character( len = option_path_len ) :: option_path, field_name
       integer :: stotel, nobcs, bc_type, i, j, k, kk, sele
@@ -1547,6 +1547,7 @@
       real :: initial_constant
       logical :: have_source, have_absorption
       integer, dimension(:), allocatable :: face_nodes
+      character(len=8192) :: func
 
       field_name = trim( field % name )
 
@@ -1563,6 +1564,8 @@
       pmesh => extract_mesh( state, "PressureMesh" )
       cmesh => extract_mesh( state, "CoordinateMesh" )
 
+      positions => extract_vector_field(state(1), "Coordinate")
+
       stotel = surface_element_count( cmesh )
       nstates = option_count("/material_phase")
       ncomps = 0
@@ -1575,15 +1578,45 @@
 
       option_path = "/material_phase["//int2str(iphase-1)//"]/scalar_field::"//trim(field_name)
 
-      ! only constant initial conditions supported for now (i.e. no python functions)
-      call get_option(trim(option_path)//"/prognostic/initial_condition::WholeMesh/constant", &
-           initial_constant, stat)
-      if (stat==0) then
+
+      if ( have_option( trim(option_path)//"/prognostic/initial_condition::WholeMesh/constant") ) then
+
+         call get_option(trim(option_path)//"/prognostic/initial_condition::WholeMesh/constant", &
+              initial_constant)
          field_prot = initial_constant
+
+      else if ( have_option( trim(option_path)//"/prognostic/initial_condition::WholeMesh/python") ) then
+
+
+         call get_option( trim(option_path)//"/prognostic/initial_condition::WholeMesh/python", func )
+
+         call allocate( dummy, field%mesh, "dummy" )
+
+
+         call get_option("/timestepping/current_time", current_time)
+         call set_from_python_function(dummy, trim(func), positions, current_time)
+         field_prot = dummy%val
+
+         call deallocate(dummy)
+
       else
+
          ewrite(-1, *) "No initial condition for field::", trim(field_name)
          FLAbort("Check initial conditions")
+
       end if
+
+
+
+
+
+
+
+
+
+
+
+
 
       Conditional_Field_BC: if( have_option( trim( option_path ) // &
            "/prognostic/boundary_conditions[0]/type::dirichlet" )) then
@@ -1613,7 +1646,7 @@
 
                   face_nodes = ele_nodes(field_prot_bc, sele)
                   do kk = 1, snloc
-                     suf_bc( ( iphase - 1 ) * stotel*snloc + (j-1)*snloc + kk ) = &
+                     suf_bc( ( iphase - 1 ) * stotel * snloc + ( j - 1 ) * snloc + kk ) = &
                           field_prot_bc%val(face_nodes( 1 ))
                   end do
 

@@ -568,7 +568,11 @@ start =
                            },
                            element coefficient_B {
                               real
-                           }
+                           },
+                           ## If chosen: DEN = A * P / T + B
+                           element include_internal_energy {
+                              empty
+                           }?
                         }
                      }
                   )

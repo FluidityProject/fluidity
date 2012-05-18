@@ -56,7 +56,7 @@
       real :: compressibility_factor, reference_density
       real, dimension( : ), allocatable, save :: reference_pressure
       logical, save :: initialised = .false.
-      logical :: eos_comp_sg, eos_comp_exp, eos_comp_linear, eos_incomp_linear
+      logical :: eos_comp_sg, eos_comp_exp, eos_comp_linear_1, eos_comp_linear_2, eos_incomp_linear
 
       ewrite(3,*) 'In calculate_multiphase_density'
       ewrite(3,*) 'P', P
@@ -82,7 +82,8 @@
 
          eos_comp_sg = .false.
          eos_comp_exp = .false.
-         eos_comp_linear = .false.
+         eos_comp_linear_1 = .false.
+         eos_comp_linear_2 = .false.
          eos_incomp_linear = .false.
 
          if ( have_option("/material_phase[" // int2str(iphase-1) // "]/equation_of_state/compressible") ) then ! Compressible
@@ -95,7 +96,11 @@
                eos_comp_exp = .true.
             elseif ( have_option( trim( option_path ) // '/linear_in_pressure' )) then
                option_path = trim( option_path ) // '/linear_in_pressure'
-               eos_comp_linear = .true.
+               if ( have_option( trim( option_path ) // '/linear_in_pressure/include_internal_energy' )) then
+                  eos_comp_linear_2 = .true.
+               else
+                  eos_comp_linear_1 = .true.
+               end if
             else
                FLAbort('Unrecognised compressible equation of state.')
             endif
@@ -138,7 +143,7 @@
                den_minus = reference_density * exp( compressibility_factor * &
                     ( ( p( cv_nod ) - pert_p )- reference_pressure( cv_nod )))
 
-            elseif ( eos_comp_linear ) then ! Compressible
+            elseif ( eos_comp_linear_1 ) then ! Compressible
 
                ! EOS: DEN = A * P + B
                call get_option(trim(option_path)//"/coefficient_A", eos_coefs(1))
@@ -150,6 +155,19 @@
                p_minus = p( cv_nod ) - pert_p
                den_plus = eos_coefs( 1 ) * p_plus + eos_coefs( 2 )
                den_minus = eos_coefs( 1 ) * p_minus + eos_coefs( 2 )
+
+           elseif ( eos_comp_linear_2 ) then ! Compressible
+
+               ! EOS: DEN = A * P / T + B
+               call get_option(trim(option_path)//"/coefficient_A", eos_coefs(1))
+               call get_option(trim(option_path)//"/coefficient_B", eos_coefs(2))
+
+               den( node ) = eos_coefs( 1 ) * p( cv_nod ) / t( node ) + eos_coefs( 2 )
+               pert_p = 1.
+               p_plus = p( cv_nod ) + pert_p
+               p_minus = p( cv_nod ) - pert_p
+               den_plus = eos_coefs( 1 ) * p_plus / max( toler, t( node ) ) + eos_coefs( 2 )
+               den_minus = eos_coefs( 1 ) * p_minus / max( toler, t( node ) ) + eos_coefs( 2 )
 
             elseif ( eos_incomp_linear ) then ! Incompressible
                if (have_option(trim(option_path)//"/all_equal")) then

@@ -556,8 +556,11 @@
 
          ! Matrix vector involving the mass diagonal term
          DO CV_NOD = 1, CV_NONODS
+            !ewrite(3,*) 'cv_nod=',cv_nod
             DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
                CV_JNOD = COLCMC( COUNT )
+               !ewrite(3,*) 'CV_JNOD, diag:', CV_JNOD, &
+               !     DIAG_SCALE_PRES(CV_NOD)*MASS_MN_PRES(COUNT)*COLOR_VEC(CV_JNOD)
                CMC_COLOR_VEC(CV_NOD) = CMC_COLOR_VEC(CV_NOD) &
                     +  DIAG_SCALE_PRES(CV_NOD)*MASS_MN_PRES(COUNT)*COLOR_VEC(CV_JNOD)
             END DO
@@ -570,13 +573,10 @@
 
          !Put into matrix CMC
          DO CV_NOD = 1, CV_NONODS 
-            !ewrite(3,*)CV_NOD,CMC_COLOR_VEC( CV_NOD )
-
             DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
                CV_JNOD = COLCMC( COUNT )
                CMC( COUNT ) = CMC( COUNT ) + CMC_COLOR_VEC( CV_NOD ) * COLOR_VEC( CV_JNOD )
             END DO
-
          END DO
          !stop 383
 
@@ -626,15 +626,23 @@
       end if
 
       if(.false.) then
-         !print *, 'cdp:', cdp
          DO CV_NOD = 1, CV_NONODS
             ewrite(3,*) 'cv_nod=',cv_nod
             DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
                CV_JNOD = COLCMC( COUNT )
-               ewrite(3,*) 'CV_JNOD,cmc(count):',CV_JNOD,cmc(count)
+               ewrite(3,*) 'CV_JNOD,cmc(count), diag:', CV_JNOD, cmc(count), &
+                    DIAG_SCALE_PRES(CV_NOD)* MASS_MN_PRES(COUNT)
+
             END DO
          END DO
+         !stop 740
       endif
+
+
+      !print *, 'COLOR_GET_CMC_PHA - CMC::'
+      !print *, cmc
+      !print *, 'leaving COLOR_GET_CMC_PHA'
+
 
       DEALLOCATE( NEED_COLOR )
       DEALLOCATE( COLOR_VEC )
