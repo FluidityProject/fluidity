@@ -119,7 +119,7 @@ contains
     call topology_dofs
     ! Transpose dof numbers into the mesh object
     call populate_ndglno
-    
+
     if (have_halos) then
        call create_halos(mesh, topology%halos)
     end if
@@ -241,6 +241,8 @@ contains
       call invert_halos(halos, entity_owner(:vertices), &
            entity_receive_level(:vertices), &
            entity_send_targets(:vertices,:))
+      call record_third_party_sends(entity_owner(:vertices), &
+           entity_send_targets(:vertices,:), edge_list)
 
       entity=0
       do vertex1=1,node_count(uid)
@@ -324,7 +326,7 @@ contains
               entity_owner(entity), &
               entity_receive_level(entity), &
               entity_send_targets(entity,:))
-
+         
          entity_sort_list(entity,0)=entity_owner(entity)
          entity_sort_list(entity,1:ele_loc(topology,ele1))=&
                        sorted(int(ele_val(uid, ele1)))
@@ -615,6 +617,55 @@ contains
 
   end subroutine invert_halos
 
+  subroutine record_third_party_sends(vertex_owner, send_targets, edge_list)
+    !!< In order to correctly calculate send lists for non-vertex entities,
+    !!< we need to work out what the send lists would be for vertices we
+    !!< don't own.
+    integer, dimension(:), intent(out) :: vertex_owner
+    !! Targets to broadcast each node to. Nonods x halos
+    type(integer_set), dimension(:,:), intent(out) :: send_targets
+    type(csr_sparsity), intent(in) :: edge_list
+    
+    integer :: rank, v, i1, n1, i2, n2, owner
+    integer, pointer, dimension(:) :: neigh1, neigh2
+
+    rank=getprocno()
+
+    vertexloop: do v=1, size(vertex_owner)
+       if (vertex_owner(v)==rank) cycle vertexloop
+       owner=vertex_owner(v)
+
+       ! List of level one neighbours.
+       neigh1=>row_m_ptr(edge_list, v)
+       
+       do i1 = 1, size(neigh1)
+          n1 = neigh1(i1)
+
+          call insert(send_targets(n1, 1), owner)
+          
+          ! If we have a second halo...
+          if (size(send_targets,2)>1) then
+
+             call insert(send_targets(n1, 2), owner)
+
+             ! List of level two neighbours.
+             neigh2=>row_m_ptr(edge_list, n1)
+             
+             do i2 = 1, size(neigh2)
+                n2 = neigh2(i2)
+                
+                call insert(send_targets(n2, 2), owner)
+             
+             end do
+
+          end if
+
+       end do
+       
+
+    end do vertexloop
+
+  end subroutine record_third_party_sends
   
   subroutine conduct_halo_voting(vertex_owner, vertex_receive_level, vertex_send_targets,&
        & vertices, entity_owner, entity_receive_level, entity_send_targets) 
@@ -659,8 +710,7 @@ contains
           ! given halo level, the obect does not belong to that halo.
           do halo = 1, size(entity_send_targets) 
              call set_intersection(entity_send_targets(halo),&
-                  vertex_send_targets(vertices, halo), &
-                  mask=(vertex_owner(vertices)==rank))
+                  vertex_send_targets(vertices, halo))
           end do
        end if
 
@@ -677,8 +727,7 @@ contains
 
        do halo = 1, size(entity_send_targets) 
           call set_intersection(entity_send_targets(halo),&
-               vertex_send_targets(vertices, halo), &
-               mask=(vertex_owner(vertices)==rank))
+               vertex_send_targets(vertices, halo))
        end do
 
     end if
