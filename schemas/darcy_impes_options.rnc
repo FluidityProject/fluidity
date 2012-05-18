@@ -1044,9 +1044,10 @@ darcy_impes_relperm_correlation =
          
          attribute name { "PowerLaw" },
          
-         ## Specify the exponent.
-         element exponent {
-            real
+         ## Specify the exponent for each phase in the order they 
+         ## are given as a real input list.
+         element exponents {
+            real_vector
          }
       }|
       ## Use a Corey 2 phase correlation such that:

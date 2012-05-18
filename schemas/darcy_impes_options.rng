@@ -1109,9 +1109,10 @@ relperm = sat**exponent</a:documentation>
         <attribute name="name">
           <value>PowerLaw</value>
         </attribute>
-        <element name="exponent">
-          <a:documentation>Specify the exponent.</a:documentation>
-          <ref name="real"/>
+        <element name="exponents">
+          <a:documentation>Specify the exponent for each phase in the order they 
+are given as a real input list.</a:documentation>
+          <ref name="real_vector"/>
         </element>
       </element>
       <element name="correlation">

@@ -559,8 +559,9 @@ contains
       real,                                         intent(in)    :: current_time
       
       ! Local variables
-      integer :: p, stat
-      character(len=OPTION_PATH_LEN) :: tmp_char_option
+      integer                                     :: p, stat
+      real,                          dimension(2) :: exponents_option_shape
+      character(len=OPTION_PATH_LEN)              :: tmp_char_option
       
       ewrite(1,*) 'Initialise Darcy IMPES data'
       
@@ -777,13 +778,25 @@ contains
                      &'/diagnostic/correlation/name', &
                       tmp_char_option)
       
+      ! Allocate and initialise the relperm exponents for PowerLaw correlation
+      allocate(di%relperm_corr_options%exponents(di%number_phase))
+      di%relperm_corr_options%exponents = 0
+      
       if (trim(tmp_char_option) == 'PowerLaw') then
          
          di%relperm_corr_options%type = RELPERM_CORRELATION_POWER
+                  
+         ! get the number of option exponents to check it is of length number_phase
+         exponents_option_shape = option_shape(trim(di%relative_permeability(1)%ptr%option_path)//&
+                                              &'/diagnostic/correlation/exponents')
+         
+         if (exponents_option_shape(1) /= di%number_phase) then
+            FLExit('To use the relative permeability correlation PowerLaw, a exponent for each phase must be specified')
+         end if
          
          call get_option(trim(di%relative_permeability(1)%ptr%option_path)//&
-                        &'/diagnostic/correlation/exponent', &
-                         di%relperm_corr_options%exponent)         
+                        &'/diagnostic/correlation/exponents', &
+                         di%relperm_corr_options%exponents)         
          
       else if (trim(tmp_char_option) == 'Corey2Phase') then
          
@@ -792,10 +805,7 @@ contains
          ! Check there are 2 phases
          if (di%number_phase /= 2) then
             FLExit('Cannot use the relative permeability correlation Corey2Phase if not a 2 phase simulation')
-         end if
-         
-         ! Zero exponent as it is only used for PowerLaw correlations
-         di%relperm_corr_options%exponent = 0
+         end if                  
 
       else if (trim(tmp_char_option) == 'Corey2PhaseOpposite') then
          
@@ -805,10 +815,7 @@ contains
          if (di%number_phase /= 2) then
             FLExit('Cannot use the relative permeability correlation Corey2PhaseOpposite if not a 2 phase simulation')
          end if
-         
-         ! Zero exponent as it is only used for PowerLaw correlations
-         di%relperm_corr_options%exponent = 0
-         
+                  
       end if
       
       ! Get the relative permeability and density darcy impes cv options
@@ -1234,7 +1241,7 @@ contains
       call deallocate(di%inverse_characteristic_length)
       
       di%relperm_corr_options%type     = 0
-      di%relperm_corr_options%exponent = 0.0
+      deallocate(di%relperm_corr_options%exponents)
 
       if(di%relperm_cv_options%limit_facevalue) then
          call deallocate(di%relperm_upwind)

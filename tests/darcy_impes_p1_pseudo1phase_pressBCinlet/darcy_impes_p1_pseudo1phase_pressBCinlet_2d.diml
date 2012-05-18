@@ -238,9 +238,9 @@
         <mesh name="PressureMesh"/>
         <algorithm name="Internal"/>
         <correlation name="PowerLaw">
-          <exponent>
-            <real_value rank="0">0</real_value>
-          </exponent>
+          <exponents>
+            <real_value shape="2" rank="1">0.0 0.0</real_value>
+          </exponents>
         </correlation>
         <face_value name="FirstOrderUpwind"/>
         <stat>
