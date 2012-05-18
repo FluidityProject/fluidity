@@ -1048,7 +1048,9 @@ darcy_impes_relperm_correlation =
          ## are given as a real input list.
          element exponents {
             real_vector
-         }
+         },
+         
+         darcy_impes_residual_saturations?
       }|
       ## Use a Corey 2 phase correlation such that:
       ## relperm_1 = sat_1**4,
@@ -1056,7 +1058,9 @@ darcy_impes_relperm_correlation =
       element correlation {
          comment,
          
-         attribute name { "Corey2Phase" }
+         attribute name { "Corey2Phase" },
+         
+         darcy_impes_residual_saturations?
       }|
       ## Use the opposite to Corey 2 phase correlation such that:
       ## relperm_1 = (1 - sat_2**2) * (1 - sat_2)**2,
@@ -1064,10 +1068,23 @@ darcy_impes_relperm_correlation =
       element correlation {
          comment,
          
-         attribute name { "Corey2PhaseOpposite" }
+         attribute name { "Corey2PhaseOpposite" },
+         
+         darcy_impes_residual_saturations?
       }
    )
-   
+
+
+darcy_impes_residual_saturations = 
+   (
+     ## Specify the residual saturation for each phase in the 
+     ## order they are given as a real input list. The default 
+     ## values is 0.0 for all phases.
+     element residual_saturations {
+        real_vector
+     }
+   )   
+
    
 darcy_impes_relperm_field_face_value =
    (

@@ -241,6 +241,9 @@
           <exponents>
             <real_value shape="2" rank="1">0.0 0.0</real_value>
           </exponents>
+          <residual_saturations>
+            <real_value shape="2" rank="1">0.0 0.0</real_value>
+          </residual_saturations>
         </correlation>
         <face_value name="FirstOrderUpwind"/>
         <stat>

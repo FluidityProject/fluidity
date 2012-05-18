@@ -1114,6 +1114,9 @@ relperm = sat**exponent</a:documentation>
 are given as a real input list.</a:documentation>
           <ref name="real_vector"/>
         </element>
+        <optional>
+          <ref name="darcy_impes_residual_saturations"/>
+        </optional>
       </element>
       <element name="correlation">
         <a:documentation>Use a Corey 2 phase correlation such that:
@@ -1123,6 +1126,9 @@ relperm_2 = (1 - sat_1**2) * (1 - sat_1)**2</a:documentation>
         <attribute name="name">
           <value>Corey2Phase</value>
         </attribute>
+        <optional>
+          <ref name="darcy_impes_residual_saturations"/>
+        </optional>
       </element>
       <element name="correlation">
         <a:documentation>Use the opposite to Corey 2 phase correlation such that:
@@ -1132,8 +1138,19 @@ relperm_2 = sat_2**4</a:documentation>
         <attribute name="name">
           <value>Corey2PhaseOpposite</value>
         </attribute>
+        <optional>
+          <ref name="darcy_impes_residual_saturations"/>
+        </optional>
       </element>
     </choice>
+  </define>
+  <define name="darcy_impes_residual_saturations">
+    <element name="residual_saturations">
+      <a:documentation>Specify the residual saturation for each phase in the 
+order they are given as a real input list. The default 
+values if not given is 0.0 for all phases.</a:documentation>
+      <ref name="real_vector"/>
+    </element>
   </define>
   <define name="darcy_impes_relperm_field_face_value">
     <choice>

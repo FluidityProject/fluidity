@@ -101,6 +101,8 @@ module darcy_impes_assemble_module
       integer :: type
       ! The exponent for the power law correlation for each phase
       real, dimension(:), pointer :: exponents
+      ! The residual saturation for each phase
+      real, dimension(:), pointer :: residual_saturations
    end type darcy_impes_relperm_corr_options_type
    
    ! Options associated with the CV discretisation for the darcy impes solver
@@ -2685,7 +2687,8 @@ visc_ele_bdy(1)
                                                      sat_node_val_all_phases, &
                                                      p, &
                                                      di%relperm_corr_options%type, &
-                                                     di%relperm_corr_options%exponents)
+                                                     di%relperm_corr_options%exponents, &
+                                                     di%relperm_corr_options%residual_saturations)
             
             call set(di%relative_permeability(p)%ptr, &
                      node, &
@@ -2707,7 +2710,8 @@ visc_ele_bdy(1)
                                                   sat_val_all_phases, &
                                                   p, &
                                                   relperm_corr_type, &
-                                                  relperm_corr_exponents)
+                                                  relperm_corr_exponents, &
+                                                  relperm_corr_residual_sats)
       
       !!< Calculate the latest relperm value for phase p for the 
       !!< given saturation values of all phases using the given options.
@@ -2717,22 +2721,28 @@ visc_ele_bdy(1)
       integer,               intent(in)  :: p
       integer,               intent(in)  :: relperm_corr_type
       real,    dimension(:), intent(in)  :: relperm_corr_exponents
+      real,    dimension(:), intent(in)  :: relperm_corr_residual_sats
+      
+      ! local variables
+      real :: sat_minus_res_sat
       
       select case (relperm_corr_type)
             
       case (RELPERM_CORRELATION_POWER)
 
-         relperm_val = sat_val_all_phases(p) ** relperm_corr_exponents(p)
+         relperm_val = (sat_val_all_phases(p) - relperm_corr_residual_sats(p)) ** relperm_corr_exponents(p)
 
       case (RELPERM_CORRELATION_COREY2PHASE)
-
+         
+         sat_minus_res_sat = sat_val_all_phases(1) - relperm_corr_residual_sats(1)
+         
          if (p == 1) then
 
-            relperm_val = sat_val_all_phases(1) ** 4
+            relperm_val = sat_minus_res_sat ** 4
 
          else if (p == 2) then
 
-            relperm_val = (1.0 - sat_val_all_phases(1) ** 2) * (1.0 - sat_val_all_phases(1)) ** 2
+            relperm_val = (1.0 - sat_minus_res_sat ** 2) * (1.0 - sat_minus_res_sat) ** 2
 
          else 
 
@@ -2743,13 +2753,15 @@ visc_ele_bdy(1)
 
       case (RELPERM_CORRELATION_COREY2PHASEOPPOSITE)
 
+         sat_minus_res_sat = sat_val_all_phases(2) - relperm_corr_residual_sats(2)
+
          if (p == 1) then
 
-            relperm_val = (1.0 - sat_val_all_phases(2) ** 2) * (1.0 - sat_val_all_phases(2)) ** 2
+            relperm_val = (1.0 - sat_minus_res_sat ** 2) * (1.0 - sat_minus_res_sat) ** 2
 
          else if (p == 2) then
 
-            relperm_val = sat_val_all_phases(2) ** 4
+            relperm_val = sat_minus_res_sat ** 4
 
          else 
 
@@ -4141,7 +4153,8 @@ visc_ele_bdy(1)
                                                   sat_face_val_all_phases, &
                                                   p, &
                                                   relperm_corr_options%type, &
-                                                  relperm_corr_options%exponents)
+                                                  relperm_corr_options%exponents, &
+                                                  relperm_corr_options%residual_saturations)
          
          relperm_face_val = relperm_face_val / max(sat_face_val_all_phases(p),min_denom_sat)
          

@@ -560,7 +560,7 @@ contains
       
       ! Local variables
       integer                                     :: p, stat
-      real,                          dimension(2) :: exponents_option_shape
+      real,                          dimension(2) :: tmp_option_shape
       character(len=OPTION_PATH_LEN)              :: tmp_char_option
       
       ewrite(1,*) 'Initialise Darcy IMPES data'
@@ -781,16 +781,40 @@ contains
       ! Allocate and initialise the relperm exponents for PowerLaw correlation
       allocate(di%relperm_corr_options%exponents(di%number_phase))
       di%relperm_corr_options%exponents = 0
+
+      ! Allocate and initialise the relperm residual saturations
+      allocate(di%relperm_corr_options%residual_saturations(di%number_phase))
+      
+      if (have_option(trim(di%relative_permeability(1)%ptr%option_path)//&
+                     &'/diagnostic/correlation/residual_saturations')) then
+      
+         ! get the number of option residual saturations to check it is of length number_phase
+         tmp_option_shape = option_shape(trim(di%relative_permeability(1)%ptr%option_path)//&
+                                        &'/diagnostic/correlation/residual_saturations')
+
+         if (tmp_option_shape(1) /= di%number_phase) then
+            FLExit('To specify the residual saturations a value for each phase must be given')
+         end if
+
+         call get_option(trim(di%relative_permeability(1)%ptr%option_path)//&
+                        &'/diagnostic/correlation/residual_saturations', &
+                         di%relperm_corr_options%residual_saturations)         
+      
+      else
+      
+         di%relperm_corr_options%residual_saturations = 0.0
+      
+      end if
       
       if (trim(tmp_char_option) == 'PowerLaw') then
          
          di%relperm_corr_options%type = RELPERM_CORRELATION_POWER
                   
          ! get the number of option exponents to check it is of length number_phase
-         exponents_option_shape = option_shape(trim(di%relative_permeability(1)%ptr%option_path)//&
-                                              &'/diagnostic/correlation/exponents')
+         tmp_option_shape = option_shape(trim(di%relative_permeability(1)%ptr%option_path)//&
+                                        &'/diagnostic/correlation/exponents')
          
-         if (exponents_option_shape(1) /= di%number_phase) then
+         if (tmp_option_shape(1) /= di%number_phase) then
             FLExit('To use the relative permeability correlation PowerLaw, a exponent for each phase must be specified')
          end if
          
@@ -1242,6 +1266,7 @@ contains
       
       di%relperm_corr_options%type     = 0
       deallocate(di%relperm_corr_options%exponents)
+      deallocate(di%relperm_corr_options%residual_saturations)
 
       if(di%relperm_cv_options%limit_facevalue) then
          call deallocate(di%relperm_upwind)
