@@ -577,7 +577,7 @@ module divergence_matrix_cg
           call transform_to_physical(coordinate, ele, test_shape_ptr, dshape = dtest_t, detwei=detwei)
         end if
         
-        if(.not.integrate_by_parts .or. (integrate_by_parts .and. .not.is_compressible_phase)) then
+        if(.not.integrate_by_parts .or. (multiphase .and. integrate_by_parts .and. .not.is_compressible_phase)) then
           ! transform the field (velocity) derivatives into physical space
           call transform_to_physical(coordinate, ele, field_shape, dshape=dfield_t)
           
