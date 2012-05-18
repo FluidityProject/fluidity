@@ -454,7 +454,8 @@ contains
 
       ! Local variables
       type(vector_field), pointer :: u, x
-      integer :: i, stat
+      integer :: i, stat, ele
+      logical :: dg
 
       type(csr_sparsity) :: divergence_sparsity
       type(block_csr_matrix) :: ct_m
@@ -462,6 +463,12 @@ contains
       type(csr_sparsity) :: mass_sparsity
       type(csr_matrix) :: mass
       type(scalar_field) :: ctfield, ct_rhs, temp
+      
+      type(element_type) :: test_function
+      type(element_type), pointer :: compressible_continuity_shape
+      integer, dimension(:), pointer :: compressible_continuity_nodes
+      real, dimension(:), allocatable :: detwei
+      real, dimension(:), allocatable :: drhodt_addto
       
       real :: dt
 
@@ -475,8 +482,6 @@ contains
       mass_sparsity=make_sparsity(compressible_continuity%mesh, compressible_continuity%mesh, "MassSparsity")
       call allocate(mass, mass_sparsity, name="MassMatrix")
       call zero(mass)
-      
-      call allocate(drhodt, compressible_continuity%mesh, name="drhodt")
       
       call get_option("/timestepping/timestep", dt)
       
@@ -509,23 +514,49 @@ contains
          if(have_option("/material_phase::"//trim(state(i)%name)//"/equation_of_state/compressible")) then
             ! Get the time derivative term for the compressible phase's density, vfrac_c * d(rho_c)/dt
 
+            call allocate(drhodt, compressible_continuity%mesh, name="drhodt")
+                  
             density => extract_scalar_field(state(i), "Density", stat)
             olddensity => extract_scalar_field(state(i), "OldDensity", stat)
             
             ! Assumes Density and OldDensity are on the same mesh as Pressure,
             ! as it should be according to the manual.
             call zero(drhodt)
-            call addto(drhodt, density)
-            call addto(drhodt, olddensity, -1.0)
-            call scale(drhodt, 1.0/dt)
 
             ! Remap PhaseVolumeFraction field in case it is not on the same mesh as the Pressure field.
             vfrac => extract_scalar_field(state(i), "PhaseVolumeFraction")
             call allocate(temp_vfrac, compressible_continuity%mesh, "TempPhaseVolumeFraction")
             call remap_field(vfrac, temp_vfrac)
-            ewrite_minmax(temp_vfrac)
-            call scale(drhodt, temp_vfrac)
+            
+            dg = continuity(compressible_continuity) < 0
+            
+            element_loop: do ele = 1, element_count(compressible_continuity)
+
+               if(.not.dg .or. (dg .and. element_owned(compressible_continuity,ele))) then
+               
+                  allocate(detwei(ele_ngi(compressible_continuity, ele)))
+                  allocate(drhodt_addto(ele_loc(compressible_continuity, ele)))
+               
+                  compressible_continuity_nodes => ele_nodes(compressible_continuity, ele)
+                  compressible_continuity_shape => ele_shape(compressible_continuity, ele)
+                  test_function = compressible_continuity_shape
+                  
+                  call transform_to_physical(x, ele, detwei=detwei)
+                  
+                  drhodt_addto = shape_rhs(test_function, detwei*(ele_val_at_quad(temp_vfrac,ele)*(ele_val_at_quad(density,ele) - ele_val_at_quad(olddensity,ele))/dt))
+                  
+                  call addto(drhodt, compressible_continuity_nodes, drhodt_addto)
+                  
+                  deallocate(detwei)
+                  deallocate(drhodt_addto)
+               end if
+
+            end do element_loop
+            
+            call addto(ctfield, drhodt)    
+            
             call deallocate(temp_vfrac)
+            call deallocate(drhodt)
             
          end if
 
@@ -546,10 +577,6 @@ contains
       ! Solve for compressible_continuity      
       call zero(compressible_continuity)
       call petsc_solve(compressible_continuity, mass, ctfield)
-      
-      ! Add the time derivative on from a separate field
-      call addto(compressible_continuity, drhodt)
-      
       ewrite_minmax(compressible_continuity)
          
       ! Deallocate memory
@@ -557,7 +584,6 @@ contains
       call deallocate(temp)
       call deallocate(mass_sparsity)
       call deallocate(mass)
-      call deallocate(drhodt)
 
       ewrite(1,*) 'Exiting calculate_compressible_continuity'
          
