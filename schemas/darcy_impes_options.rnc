@@ -877,6 +877,7 @@ darcy_impes_saturation_field_phase_one =
                },
                darcy_impes_internal_algorithm,
                darcy_impes_saturation_field_subcycling?,
+               darcy_impes_saturation_field_face_value?,
                darcy_impes_saturation_source?,
                scalar_convergence_options,
                darcy_impes_diagnostic_scalar_field
@@ -886,6 +887,7 @@ darcy_impes_saturation_field_phase_one =
                   attribute name { "PressureMesh" }      
                },
                darcy_impes_saturation_field_subcycling?,
+               darcy_impes_saturation_field_face_value?,
                initial_condition_scalar+,
                darcy_impes_bc_saturation_field*,
                darcy_impes_saturation_source?,
@@ -934,7 +936,45 @@ darcy_impes_saturation_field_subcycling =
          }?
       }
    )
-   
+
+
+darcy_impes_saturation_field_face_value = 
+   (
+      ## Saturation face values are only required if the 
+      ## RelativePermeability face value scheme is  
+      ## RelPermOverSatUpwind, RelPermOverSatFiniteElement 
+      ## or RelPermOverSatCorrelation.
+      ## First Order Upwind face value discretisation.
+      element face_value {
+        attribute name { "FirstOrderUpwind" },
+        empty
+      }|
+      ## Saturation face values are only required if the 
+      ## RelativePermeability face value scheme is  
+      ## RelPermOverSatUpwind, RelPermOverSatFiniteElement 
+      ## or RelPermOverSatCorrelation.
+      ## Finite Element face value discretisation.
+      element face_value {
+        attribute name { "FiniteElement" },
+        darcy_impes_limiter_options
+      }
+   )   
+      
+
+darcy_impes_limiter_options =
+  (
+      (
+        ## Limit the face value to satisfy a boundedness criterion.
+        element limit_face_value{
+          sweby_limiter
+        }|
+        ## Do not limit the face value
+        element do_not_limit_face_value{
+          empty
+        }
+      )
+  )
+
 
 darcy_impes_saturation_source =
    (
@@ -997,7 +1037,8 @@ darcy_impes_first_phase_relative_permeability_field =
 
 darcy_impes_relperm_correlation = 
    (
-      ## Use a power law correlation.
+      ## Use a power law correlation such that for each phase:
+      ## relperm = sat**exponent
       element correlation {
          comment,
          
@@ -1008,52 +1049,80 @@ darcy_impes_relperm_correlation =
             real
          }
       }|
-      ## Use a Corey 2 phase correlation.
+      ## Use a Corey 2 phase correlation such that:
+      ## relperm_1 = sat_1**4,
+      ## relperm_2 = (1 - sat_1**2) * (1 - sat_1)**2
       element correlation {
          comment,
          
          attribute name { "Corey2Phase" }
+      }|
+      ## Use the opposite to Corey 2 phase correlation such that:
+      ## relperm_1 = (1 - sat_2**2) * (1 - sat_2)**2,
+      ## relperm_2 = sat_2**4
+      element correlation {
+         comment,
+         
+         attribute name { "Corey2PhaseOpposite" }
       }
    )
    
    
 darcy_impes_relperm_field_face_value =
    (
-         ## First Order Upwind face value discretisation
-         ##  face_value = donor_value, 
-         ## where
-         ##  donor_value = income*val_1 + (1.-income)*val_2, 
-         ## where val_i is the value on the ith node neighbouring the face and
-         ## income = [0, 1] depending on whether the flow is coming from node 1 or 2
-         ## First order upwinding is monotonic so no limiting is ever required
-         element face_value {
-           attribute name { "FirstOrderUpwind" },
-           empty
-         }|
-         ## Finite Element face value discretisation
-         ##  face_value = finite element interpolation from surrounding nodes
-         ##
-         ## Finite element discretisation may become unbounded so limiting is often necessary.
-         element face_value {
-           attribute name { "FiniteElement" },
-           darcy_impes_relperm_limiter_options
-         }            
+      ## First Order Upwind face value discretisation
+      ##  face_value = donor_value, 
+      ## where
+      ##  donor_value = income*val_1 + (1.-income)*val_2, 
+      ## where val_i is the value on the ith node neighbouring the face and
+      ## income = [0, 1] depending on whether the flow is coming from node 1 or 2
+      ## First order upwinding is monotonic so no limiting is ever required
+      element face_value {
+        attribute name { "FirstOrderUpwind" },
+        empty
+      }|
+      ## Use a modified Relative Permeability via dividing it
+      ## by the phase Saturation, which is then upwinded. Another
+      ## Saturation is then included which requires a face value 
+      ## defined under the Saturation field face_value options.
+      element face_value {
+         attribute name { "RelPermOverSatUpwind" },
+         darcy_impes_min_sat_in_modrelperm?
+      }|
+      ## Use a modified Relative Permeability via dividing it
+      ## by the phase Saturation, which then takes a finite 
+      ## element interpolation for the face value which can then be
+      ## limited. Another Saturation is then included which 
+      ## requires a face value defined under the Saturation field 
+      ## face_value options.
+      element face_value {
+         attribute name { "RelPermOverSatFiniteElement" },
+         darcy_impes_min_sat_in_modrelperm?,
+         darcy_impes_limiter_options
+      }|
+      ## Use a modified Relative Permeability via dividing it
+      ## by the phase Saturation, which then takes the finite 
+      ## element interpolation of saturation to calculate the 
+      ## the face value using the chosen correlation which can then be
+      ## limited. Another Saturation is then included which 
+      ## requires a face value defined under the Saturation field 
+      ## face_value options.
+      element face_value {
+         attribute name { "RelPermOverSatCorrelation" },
+         darcy_impes_min_sat_in_modrelperm?,
+         darcy_impes_limiter_options
+      }
    )
-      
 
-darcy_impes_relperm_limiter_options =
-  (
-      (
-        ## Limit the face value to satisfy a boundedness criterion.
-        element limit_face_value{
-          sweby_limiter
-        }|
-        ## Do not limit the face value
-        element do_not_limit_face_value{
-          empty
-        }
-      )
-  )
+darcy_impes_min_sat_in_modrelperm =
+   (
+      ## The minimum saturation value to use for the denominator
+      ## of the modified relative permeability face value.
+      ## The default value is 1.0e-06.
+      element minimum_denominator_saturation_value {
+         real
+      }
+   )
 
 
 darcy_impes_viscosity_field =
@@ -1126,24 +1195,9 @@ darcy_impes_density_field_face_value =
       ## Finite element discretisation may become unbounded so limiting is often necessary.
       element face_value {
         attribute name { "FiniteElement" },
-        darcy_impes_density_limiter_options
+        darcy_impes_limiter_options
       }            
    )
-      
-
-darcy_impes_density_limiter_options =
-  (
-      (
-        ## Limit the face value to satisfy a boundedness criterion.
-        element limit_face_value{
-          sweby_limiter
-        }|
-        ## Do not limit the face value
-        element do_not_limit_face_value{
-          empty
-        }
-      )
-  )
 
 
 darcy_impes_eos =

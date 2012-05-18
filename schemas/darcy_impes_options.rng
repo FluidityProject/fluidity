@@ -911,6 +911,9 @@ for the latest output to be written.</a:documentation>
             <ref name="darcy_impes_saturation_field_subcycling"/>
           </optional>
           <optional>
+            <ref name="darcy_impes_saturation_field_face_value"/>
+          </optional>
+          <optional>
             <ref name="darcy_impes_saturation_source"/>
           </optional>
           <ref name="scalar_convergence_options"/>
@@ -924,6 +927,9 @@ for the latest output to be written.</a:documentation>
           </element>
           <optional>
             <ref name="darcy_impes_saturation_field_subcycling"/>
+          </optional>
+          <optional>
+            <ref name="darcy_impes_saturation_field_face_value"/>
           </optional>
           <oneOrMore>
             <ref name="initial_condition_scalar"/>
@@ -985,6 +991,44 @@ phase volume fraction subcycles</a:documentation>
         </element>
       </optional>
     </element>
+  </define>
+  <define name="darcy_impes_saturation_field_face_value">
+    <choice>
+      <element name="face_value">
+        <a:documentation>Saturation face values are only required if the 
+RelativePermeability face value scheme is  
+RelPermOverSatUpwind, RelPermOverSatFiniteElement 
+or RelPermOverSatCorrelation.
+First Order Upwind face value discretisation.</a:documentation>
+        <attribute name="name">
+          <value>FirstOrderUpwind</value>
+        </attribute>
+        <empty/>
+      </element>
+      <element name="face_value">
+        <a:documentation>Saturation face values are only required if the 
+RelativePermeability face value scheme is  
+RelPermOverSatUpwind, RelPermOverSatFiniteElement 
+or RelPermOverSatCorrelation.
+Finite Element face value discretisation.</a:documentation>
+        <attribute name="name">
+          <value>FiniteElement</value>
+        </attribute>
+        <ref name="darcy_impes_limiter_options"/>
+      </element>
+    </choice>
+  </define>
+  <define name="darcy_impes_limiter_options">
+    <choice>
+      <element name="limit_face_value">
+        <a:documentation>Limit the face value to satisfy a boundedness criterion.</a:documentation>
+        <ref name="sweby_limiter"/>
+      </element>
+      <element name="do_not_limit_face_value">
+        <a:documentation>Do not limit the face value</a:documentation>
+        <empty/>
+      </element>
+    </choice>
   </define>
   <define name="darcy_impes_saturation_source">
     <element name="scalar_field">
@@ -1059,7 +1103,8 @@ phase volume fraction subcycles</a:documentation>
   <define name="darcy_impes_relperm_correlation">
     <choice>
       <element name="correlation">
-        <a:documentation>Use a power law correlation.</a:documentation>
+        <a:documentation>Use a power law correlation such that for each phase:
+relperm = sat**exponent</a:documentation>
         <ref name="comment"/>
         <attribute name="name">
           <value>PowerLaw</value>
@@ -1070,10 +1115,21 @@ phase volume fraction subcycles</a:documentation>
         </element>
       </element>
       <element name="correlation">
-        <a:documentation>Use a Corey 2 phase correlation.</a:documentation>
+        <a:documentation>Use a Corey 2 phase correlation such that:
+relperm_1 = sat_1**4,
+relperm_2 = (1 - sat_1**2) * (1 - sat_1)**2</a:documentation>
         <ref name="comment"/>
         <attribute name="name">
           <value>Corey2Phase</value>
+        </attribute>
+      </element>
+      <element name="correlation">
+        <a:documentation>Use the opposite to Corey 2 phase correlation such that:
+relperm_1 = (1 - sat_2**2) * (1 - sat_2)**2,
+relperm_2 = sat_2**4</a:documentation>
+        <ref name="comment"/>
+        <attribute name="name">
+          <value>Corey2PhaseOpposite</value>
         </attribute>
       </element>
     </choice>
@@ -1094,28 +1150,57 @@ First order upwinding is monotonic so no limiting is ever required</a:documentat
         <empty/>
       </element>
       <element name="face_value">
-        <a:documentation>Finite Element face value discretisation
- face_value = finite element interpolation from surrounding nodes
-
-Finite element discretisation may become unbounded so limiting is often necessary.</a:documentation>
+        <a:documentation>Use a modified Relative Permeability via dividing it
+by the phase Saturation, which is then upwinded. Another
+Saturation is then included which requires a face value 
+defined under the Saturation field face_value options.</a:documentation>
         <attribute name="name">
-          <value>FiniteElement</value>
+          <value>RelPermOverSatUpwind</value>
         </attribute>
-        <ref name="darcy_impes_relperm_limiter_options"/>
+        <optional>
+          <ref name="darcy_impes_min_sat_in_modrelperm"/>
+        </optional>
+      </element>
+      <element name="face_value">
+        <a:documentation>Use a modified Relative Permeability via dividing it
+by the phase Saturation, which then takes a finite 
+element interpolation for the face value which can then be
+limited. Another Saturation is then included which 
+requires a face value defined under the Saturation field 
+face_value options.</a:documentation>
+        <attribute name="name">
+          <value>RelPermOverSatFiniteElement</value>
+        </attribute>
+        <optional>
+          <ref name="darcy_impes_min_sat_in_modrelperm"/>
+        </optional>
+        <ref name="darcy_impes_limiter_options"/>
+      </element>
+      <element name="face_value">
+        <a:documentation>Use a modified Relative Permeability via dividing it
+by the phase Saturation, which then takes the finite 
+element interpolation of saturation to calculate the 
+the face value using the chosen correlation which can then be
+limited. Another Saturation is then included which 
+requires a face value defined under the Saturation field 
+face_value options.</a:documentation>
+        <attribute name="name">
+          <value>RelPermOverSatCorrelation</value>
+        </attribute>
+        <optional>
+          <ref name="darcy_impes_min_sat_in_modrelperm"/>
+        </optional>
+        <ref name="darcy_impes_limiter_options"/>
       </element>
     </choice>
   </define>
-  <define name="darcy_impes_relperm_limiter_options">
-    <choice>
-      <element name="limit_face_value">
-        <a:documentation>Limit the face value to satisfy a boundedness criterion.</a:documentation>
-        <ref name="sweby_limiter"/>
-      </element>
-      <element name="do_not_limit_face_value">
-        <a:documentation>Do not limit the face value</a:documentation>
-        <empty/>
-      </element>
-    </choice>
+  <define name="darcy_impes_min_sat_in_modrelperm">
+    <element name="minimum_denominator_saturation_value">
+      <a:documentation>The minimum saturation value to use for the denominator
+of the modified relative permeability face value.
+The default value is 1.0e-06.</a:documentation>
+      <ref name="real"/>
+    </element>
   </define>
   <define name="darcy_impes_viscosity_field">
     <element name="scalar_field">
@@ -1200,19 +1285,7 @@ Finite element discretisation may become unbounded so limiting is often necessar
         <attribute name="name">
           <value>FiniteElement</value>
         </attribute>
-        <ref name="darcy_impes_density_limiter_options"/>
-      </element>
-    </choice>
-  </define>
-  <define name="darcy_impes_density_limiter_options">
-    <choice>
-      <element name="limit_face_value">
-        <a:documentation>Limit the face value to satisfy a boundedness criterion.</a:documentation>
-        <ref name="sweby_limiter"/>
-      </element>
-      <element name="do_not_limit_face_value">
-        <a:documentation>Do not limit the face value</a:documentation>
-        <empty/>
+        <ref name="darcy_impes_limiter_options"/>
       </element>
     </choice>
   </define>

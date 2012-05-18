@@ -170,6 +170,7 @@
       <diagnostic>
         <mesh name="PressureMesh"/>
         <algorithm name="Internal"/>
+        <face_value name="FirstOrderUpwind"/>
         <convergence>
           <include_in_convergence/>
         </convergence>

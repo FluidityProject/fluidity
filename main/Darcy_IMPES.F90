@@ -632,10 +632,6 @@ contains
       ! Determine the pressure matrix sparsity
       di%sparsity_pmesh_pmesh => get_csr_sparsity_firstorder(di%state(1), di%pressure_mesh, di%pressure_mesh)
       
-      ! Allocate crs matrices used to store the upwind scalar field values in CV assemble
-      call allocate(di%relperm_upwind, di%sparsity_pmesh_pmesh) 
-      call allocate(di%density_upwind, di%sparsity_pmesh_pmesh) 
-      
       ! Allocate the pressure matrix and lhs and rhs to use for saturations
       call allocate(di%pressure_matrix, di%sparsity_pmesh_pmesh)
       call allocate(di%lhs, di%pressure_mesh)
@@ -800,19 +796,85 @@ contains
          
          ! Zero exponent as it is only used for PowerLaw correlations
          di%relperm_corr_options%exponent = 0
+
+      else if (trim(tmp_char_option) == 'Corey2PhaseOpposite') then
+         
+         di%relperm_corr_options%type = RELPERM_CORRELATION_COREY2PHASEOPPOSITE
+         
+         ! Check there are 2 phases
+         if (di%number_phase /= 2) then
+            FLExit('Cannot use the relative permeability correlation Corey2PhaseOpposite if not a 2 phase simulation')
+         end if
+         
+         ! Zero exponent as it is only used for PowerLaw correlations
+         di%relperm_corr_options%exponent = 0
          
       end if
       
-      ! Get the relative permeability darcy impes cv options from the first phase field
+      ! Get the relative permeability and density darcy impes cv options
       di%relperm_cv_options = darcy_impes_get_cv_options(di%relative_permeability(1)%ptr%option_path, &
                                                         &di%relative_permeability(1)%ptr%mesh%shape%numbering%family, &
                                                         &mesh_dim(di%relative_permeability(1)%ptr))
+      
+      ! If the relperm face value scheme is requires it get the saturation cv options
+      ! Also get the minimum saturation value to use for the denominator of modrelperm
+      ! and set a flag that saturation face values are require to be determined.
+      ! If the relperm is to be limited allocate a field to find the modrelperm.
+      if ((di%relperm_cv_options%facevalue == DARCY_IMPES_CV_FACEVALUE_RELPERMOVERSATUPWIND) .or. &
+          (di%relperm_cv_options%facevalue == DARCY_IMPES_CV_FACEVALUE_RELPERMOVERSATFINITEELEMENT) .or. &
+          (di%relperm_cv_options%facevalue == DARCY_IMPES_CV_FACEVALUE_RELPERMOVERSATCORRELATION) ) then
+         
+         ! Check there are saturation face value options
+         if (.not. have_option(trim(di%saturation(1)%ptr%option_path)//'/diagnostic/face_value')) then
+            FLExit('You are using RelativePermeability face_value options that require Saturation face_value options')
+         end if
+         
+         di%saturation_cv_options = darcy_impes_get_cv_options(di%saturation(1)%ptr%option_path, &
+                                                              &di%saturation(1)%ptr%mesh%shape%numbering%family, &
+                                                              &mesh_dim(di%saturation(1)%ptr))
+
+         call get_option(trim(di%relative_permeability(1)%ptr%option_path)//'/diagnostic/face_value[0]/minimum_denominator_saturation_value', &
+                         di%minimum_denominator_saturation_value, &
+                         default = 1.0e-06)
+         
+         di%determine_saturation_face_values = .true.
+         
+         if(di%relperm_cv_options%limit_facevalue) then
+         
+            call allocate(di%modified_relative_permeability, di%pressure_mesh)
+         
+         end if
+         
+      else
+                  
+         di%determine_saturation_face_values = .false. 
+         
+      end if
       
       ! Get the density darcy impes cv options from the first phase field
       di%density_cv_options = darcy_impes_get_cv_options(di%density(1)%ptr%option_path, &
                                                         &di%density(1)%ptr%mesh%shape%numbering%family, &
                                                         &mesh_dim(di%density(1)%ptr))
+     
+      ! Allocate crs matrices used to store the upwind scalar field values in CV assemble
+      if(di%relperm_cv_options%limit_facevalue) then
+         
+         call allocate(di%relperm_upwind, di%sparsity_pmesh_pmesh) 
 
+      end if
+         
+      if (di%determine_saturation_face_values .and. di%saturation_cv_options%limit_facevalue) then
+               
+         call allocate(di%saturation_upwind, di%sparsity_pmesh_pmesh) 
+            
+      end if
+            
+      if(di%density_cv_options%limit_facevalue) then
+      
+         call allocate(di%density_upwind, di%sparsity_pmesh_pmesh) 
+      
+      end if
+      
       ! Determine the saturation advection subcycle options
       di%subcy_opt_sat%have = have_option(trim(complete_field_path(di%saturation(1)%ptr%option_path))//&
                              &'/number_advection_subcycle')
@@ -830,6 +892,7 @@ contains
          
          di%subcy_opt_sat%number     = 1
          di%subcy_opt_sat%consistent = .false.
+      
       end if
       
       ! allocate tmp subcycle fields         
@@ -1017,7 +1080,7 @@ contains
 
       call get_option(trim(option_path)//'/diagnostic/face_value[0]/name', tmpstring)
 
-      darcy_impes_cv_options%facevalue = cv_facevalue_integer(tmpstring)
+      darcy_impes_cv_options%facevalue = darcy_impes_cv_facevalue_integer(tmpstring)
 
       darcy_impes_cv_options%limit_facevalue = &
       have_option(trim(option_path)//'/diagnostic/face_value[0]/limit_face_value')
@@ -1044,6 +1107,29 @@ contains
   end function darcy_impes_get_cv_options
 
 ! ----------------------------------------------------------------------------
+
+   integer function darcy_impes_cv_facevalue_integer(face_discretisation)
+
+      character(len=*) :: face_discretisation
+
+      select case(trim(face_discretisation))
+      case ("FirstOrderUpwind")
+        darcy_impes_cv_facevalue_integer = DARCY_IMPES_CV_FACEVALUE_FIRSTORDERUPWIND
+      case ("FiniteElement")
+        darcy_impes_cv_facevalue_integer = DARCY_IMPES_CV_FACEVALUE_FINITEELEMENT
+      case ("RelPermOverSatUpwind")
+        darcy_impes_cv_facevalue_integer = DARCY_IMPES_CV_FACEVALUE_RELPERMOVERSATUPWIND
+      case ("RelPermOverSatFiniteElement")
+        darcy_impes_cv_facevalue_integer = DARCY_IMPES_CV_FACEVALUE_RELPERMOVERSATFINITEELEMENT
+      case ("RelPermOverSatCorrelation")
+        darcy_impes_cv_facevalue_integer = DARCY_IMPES_CV_FACEVALUE_RELPERMOVERSATCORRELATION
+      case default
+        FLAbort("Unknown control volume face value scheme.")
+      end select
+
+   end function darcy_impes_cv_facevalue_integer
+
+! ----------------------------------------------------------------------------
    
    subroutine darcy_impes_finalise(di)
       
@@ -1057,6 +1143,7 @@ contains
       !  - variables in darcy_impes_type are zeroed
       
       ! The darcy_impes_type components are finalised in the same order they are initialised
+      ! (almost, apart from _upwind matrices)
       
       ! local variables
       integer :: p
@@ -1100,8 +1187,6 @@ contains
             
       call deallocate(di%positions_pressure_mesh)
       nullify(di%sparsity_pmesh_pmesh)
-      call deallocate(di%relperm_upwind)
-      call deallocate(di%density_upwind)
       call deallocate(di%pressure_matrix)
       call deallocate(di%lhs)
       call deallocate(di%rhs)
@@ -1150,12 +1235,35 @@ contains
       
       di%relperm_corr_options%type     = 0
       di%relperm_corr_options%exponent = 0.0
+
+      if(di%relperm_cv_options%limit_facevalue) then
+         call deallocate(di%relperm_upwind)
+         if (di%determine_saturation_face_values) then
+            call deallocate(di%modified_relative_permeability)
+         end if
+      end if
+      if (di%determine_saturation_face_values .and. di%saturation_cv_options%limit_facevalue) then
+         call deallocate(di%saturation_upwind)
+      end if
+      if(di%density_cv_options%limit_facevalue) then
+         call deallocate(di%density_upwind)
+      end if
+      
+      di%minimum_denominator_saturation_value = 0.0
+      
+      di%determine_saturation_face_values = .false.
       
       di%relperm_cv_options%facevalue       = 0
       di%relperm_cv_options%limit_facevalue = .false.
       di%relperm_cv_options%limiter         = 0
       di%relperm_cv_options%limiter_slopes  = 0.0
       di%relperm_cv_options%upwind_scheme   = 0.0
+
+      di%saturation_cv_options%facevalue       = 0
+      di%saturation_cv_options%limit_facevalue = .false.
+      di%saturation_cv_options%limiter         = 0
+      di%saturation_cv_options%limiter_slopes  = 0.0
+      di%saturation_cv_options%upwind_scheme   = 0.0
             
       di%density_cv_options%facevalue       = 0
       di%density_cv_options%limit_facevalue = .false.
@@ -1210,7 +1318,8 @@ contains
       if (associated(di%cached_face_value%normal))       deallocate(di%cached_face_value%normal)
       if (associated(di%cached_face_value%normal_bdy))   deallocate(di%cached_face_value%normal_bdy)
       if (associated(di%cached_face_value%p_dshape))     deallocate(di%cached_face_value%p_dshape)
-      if (associated(di%cached_face_value%p_dshape_bdy)) deallocate(di%cached_face_value%p_dshape_bdy)
+!!!!! *** THIS IS NOT POSSIBLE YET ***
+!!!!!      if (associated(di%cached_face_value%p_dshape_bdy)) deallocate(di%cached_face_value%p_dshape_bdy)
           
       ! This must be last as it is used in loops above
       di%number_phase = 0

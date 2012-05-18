@@ -84,8 +84,16 @@ module darcy_impes_assemble_module
              darcy_impes_calculate_divergence_total_darcy_velocity
    
    ! Parameters defining Darcy IMPES cached options
-   integer, parameter, public :: RELPERM_CORRELATION_POWER       = 1, &
-                                 RELPERM_CORRELATION_COREY2PHASE = 2
+   integer, parameter, public :: RELPERM_CORRELATION_POWER               = 1, &
+                                 RELPERM_CORRELATION_COREY2PHASE         = 2, &
+                                 RELPERM_CORRELATION_COREY2PHASEOPPOSITE = 3
+   
+   ! Parameters defining Darcy IMPES CV face value schemes
+   integer, parameter, public :: DARCY_IMPES_CV_FACEVALUE_FIRSTORDERUPWIND            = 1, &
+                                 DARCY_IMPES_CV_FACEVALUE_FINITEELEMENT               = 2, &
+                                 DARCY_IMPES_CV_FACEVALUE_RELPERMOVERSATUPWIND        = 3, &
+                                 DARCY_IMPES_CV_FACEVALUE_RELPERMOVERSATFINITEELEMENT = 4, &
+                                 DARCY_IMPES_CV_FACEVALUE_RELPERMOVERSATCORRELATION   = 5
    
    ! Options associated with the relative permeability correlation
    type darcy_impes_relperm_corr_options_type
@@ -145,7 +153,7 @@ module darcy_impes_assemble_module
       real, dimension(:,:,:),   pointer :: normal_bdy   ! ndim, ngi_sele, sele
       real, dimension(:,:,:,:), pointer :: p_dshape     ! nloc, ngi_vele, ndim, vele
 !!!!! *** THIS IS NOT POSSIBLE YET ***
-      real, dimension(:,:,:,:), pointer :: p_dshape_bdy ! nloc, ngi_sele, ndim, sele
+!!!!!      real, dimension(:,:,:,:), pointer :: p_dshape_bdy ! nloc, ngi_sele, ndim, sele
       logical                           :: cached_detwei_normal
       logical                           :: cached_p_dshape
    end type cached_face_value_type
@@ -199,6 +207,7 @@ module darcy_impes_assemble_module
       type(scalar_field) :: cv_mass_pressure_mesh_with_porosity   
       type(scalar_field) :: cv_mass_pressure_mesh_with_old_porosity 
       type(scalar_field) :: cv_mass_pressure_mesh
+      type(scalar_field) :: modified_relative_permeability
       type(scalar_field), pointer :: constant_zero_sfield_pmesh
       type(scalar_field_pointer), dimension(:), pointer :: old_saturation_subcycle
       ! *** Data associated with v and pressure BC allocated here ***
@@ -212,6 +221,7 @@ module darcy_impes_assemble_module
       ! *** The number of phase and the CV surface quadrature degree to use ***
       integer :: number_phase, cv_surface_quaddegree   
       ! *** Data specifically associated with the CV discretisation allocated here ***
+      type(darcy_impes_cv_options_type)       :: saturation_cv_options
       type(darcy_impes_cv_options_type)       :: relperm_cv_options
       type(darcy_impes_cv_options_type)       :: density_cv_options
       type(cv_faces_type)                     :: cvfaces
@@ -227,6 +237,11 @@ module darcy_impes_assemble_module
       type(darcy_impes_subcycle_options_type) :: subcy_opt_sat
       type(csr_matrix)                        :: relperm_upwind
       type(csr_matrix)                        :: density_upwind
+      type(csr_matrix)                        :: saturation_upwind
+      ! *** The minimum value of saturation to use in the denominator of modrelperm face value ***
+      real :: minimum_denominator_saturation_value
+      ! *** A flag for whether saturation face values need to be determined
+      logical :: determine_saturation_face_values
       ! *** Data associate with the relperm correlation options ***
       type(darcy_impes_relperm_corr_options_type) :: relperm_corr_options
       ! *** Flag for each phase for whether there is capilliary pressure ***
@@ -2647,11 +2662,11 @@ visc_ele_bdy(1)
       ! local variables
       integer                     :: p, node
       real                        :: relperm_node_val
-      real, dimension(:), pointer :: sat_node_vals
+      real, dimension(:), pointer :: sat_node_val_all_phases
 
       ewrite(1,*) 'Calculate RelativePermeability field of each phase'
       
-      allocate(sat_node_vals(di%number_phase))
+      allocate(sat_node_val_all_phases(di%number_phase))
       
       ! Calc relperm phase values for each node
       node_loop: do node = 1, di%number_pmesh_node
@@ -2659,7 +2674,7 @@ visc_ele_bdy(1)
          ! Find all the phase saturation node values
          do p = 1, di%number_phase
             
-            sat_node_vals(p) = node_val(di%saturation(p)%ptr, node)
+            sat_node_val_all_phases(p) = node_val(di%saturation(p)%ptr, node)
             
          end do
          
@@ -2667,7 +2682,7 @@ visc_ele_bdy(1)
          do p = 1, di%number_phase
             
             call darcy_impes_calculate_relperm_value(relperm_node_val, &
-                                                     sat_node_vals, &
+                                                     sat_node_val_all_phases, &
                                                      p, &
                                                      di%relperm_corr_options%type, &
                                                      di%relperm_corr_options%exponent)
@@ -2680,7 +2695,7 @@ visc_ele_bdy(1)
          
       end do node_loop
 
-      deallocate(sat_node_vals)
+      deallocate(sat_node_val_all_phases)
       
       ewrite(1,*) 'Finished Calculate RelativePermeability field of each phase'
             
@@ -2689,7 +2704,7 @@ visc_ele_bdy(1)
 ! ----------------------------------------------------------------------------
 
    subroutine darcy_impes_calculate_relperm_value(relperm_val, &
-                                                  sat_vals, &
+                                                  sat_val_all_phases, &
                                                   p, &
                                                   relperm_corr_type, &
                                                   relperm_corr_exponent)
@@ -2697,34 +2712,51 @@ visc_ele_bdy(1)
       !!< Calculate the latest relperm value for phase p for the 
       !!< given saturation values of all phases using the given options.
       
-      real,               intent(out) :: relperm_val
-      real, dimension(:), intent(in)  :: sat_vals
-      integer,            intent(in)  :: p
-      integer,            intent(in)  :: relperm_corr_type
-      real,               intent(in)  :: relperm_corr_exponent
+      real,                  intent(out) :: relperm_val
+      real,    dimension(:), intent(in)  :: sat_val_all_phases
+      integer,               intent(in)  :: p
+      integer,               intent(in)  :: relperm_corr_type
+      real,                  intent(in)  :: relperm_corr_exponent
       
       select case (relperm_corr_type)
-      
-         case (RELPERM_CORRELATION_POWER)
             
-            relperm_val = sat_vals(p) ** relperm_corr_exponent
-         
-         case (RELPERM_CORRELATION_COREY2PHASE)
-         
-            if (p == 1) then
-               
-               relperm_val = sat_vals(1) ** 4
-               
-            else if (p == 2) then
-               
-               relperm_val = (1.0 - sat_vals(1) ** 2) * (1.0 - sat_vals(1)) ** 2
-            
-            else 
-               
-               ! This has already been option checked so should not be here
-               FLAbort('Trying to use Corey2Phase relative permeabiltiy correlation for simulation with more than 2 phases')
-               
-            end if
+      case (RELPERM_CORRELATION_POWER)
+
+         relperm_val = sat_val_all_phases(p) ** relperm_corr_exponent
+
+      case (RELPERM_CORRELATION_COREY2PHASE)
+
+         if (p == 1) then
+
+            relperm_val = sat_val_all_phases(1) ** 4
+
+         else if (p == 2) then
+
+            relperm_val = (1.0 - sat_val_all_phases(1) ** 2) * (1.0 - sat_val_all_phases(1)) ** 2
+
+         else 
+
+            ! This has already been option checked so should not happen
+            FLAbort('Trying to use Corey2Phase relative permeabiltiy correlation for simulation with more than 2 phases')
+
+         end if
+
+      case (RELPERM_CORRELATION_COREY2PHASEOPPOSITE)
+
+         if (p == 1) then
+
+            relperm_val = (1.0 - sat_val_all_phases(2) ** 2) * (1.0 - sat_val_all_phases(2)) ** 2
+
+         else if (p == 2) then
+
+            relperm_val = sat_val_all_phases(2) ** 4
+
+         else 
+
+            ! This has already been option checked so should not happen
+            FLAbort('Trying to use Corey2PhaseOpposite relative permeabiltiy correlation for simulation with more than 2 phases')
+
+         end if
      
      end select
      
@@ -2963,11 +2995,12 @@ visc_ele_bdy(1)
       ! local variables
       logical :: inflow
       integer :: p, vele, sele, iloc, oloc, face, gi, ggi
-      integer :: r_upwind_pos, d_upwind_pos, dim
-      real    :: income, v_over_relperm_dot_n, relperm_face_value, den_face_value
+      integer :: r_upwind_pos, d_upwind_pos, s_upwind_pos, dim, sat_p
+      real    :: income, v_over_relperm_dot_n, relperm_face_value, den_face_value, sat_face_value
       real,    dimension(1)              :: absperm_ele, visc_ele
       real,    dimension(:),     pointer :: relperm_ele
       real,    dimension(:),     pointer :: den_ele
+      real,    dimension(:,:),   pointer :: sat_ele
       real,    dimension(:,:),   pointer :: grav_ele
       real,    dimension(:,:),   pointer :: grad_pressure_face_quad
       real,    dimension(:,:),   pointer :: v_over_relperm_face_quad
@@ -2982,6 +3015,7 @@ visc_ele_bdy(1)
       integer, dimension(:),     pointer :: p_nodes      
       integer, dimension(:),     pointer :: r_upwind_nodes
       integer, dimension(:),     pointer :: d_upwind_nodes
+      integer, dimension(:),     pointer :: s_upwind_nodes
       real,    dimension(:),     pointer :: den_ele_bdy
       real,    dimension(:),     pointer :: relperm_ele_bdy
       integer, parameter :: V_BC_TYPE_NORMAL_FLOW = 1, V_BC_TYPE_NO_NORMAL_FLOW = 2
@@ -3001,6 +3035,7 @@ visc_ele_bdy(1)
       allocate(x_face_quad(di%ndim, di%x_cvshape%ngi))
       allocate(relperm_ele(ele_loc(di%pressure_mesh,1)))
       allocate(den_ele(ele_loc(di%pressure_mesh,1)))
+      allocate(sat_ele(ele_loc(di%pressure_mesh,1), di%number_phase))
       allocate(grav_ele(di%ndim,1))
       allocate(grad_pressure_face_quad(di%ndim, di%p_cvshape%ngi))
       allocate(v_over_relperm_face_quad(di%ndim,di%p_cvshape%ngi))
@@ -3018,24 +3053,56 @@ visc_ele_bdy(1)
 
       phase_loop: do p = 1, di%number_phase
           
-         ! Determine the upwind relperm values of all node pairs if required for higher order CV face value
+         ! Determine the upwind relperm values of all node pairs if required for higher order CV face value.
+         ! If the relperm face value is a RELPERMOVERSAT... scheme then the upwind values 
+         ! of modrelperm are required (= relperm / sat)
          if(di%relperm_cv_options%limit_facevalue) then
+           
+            if (di%determine_saturation_face_values) then
+               
+               call darcy_impes_calculate_modified_relative_permeability(di, p)
+               
+               ! NOTE only new values are required but this procedure 
+               !      expects latest and old. So pass in new twice - not optimal
+               call find_upwind_values(di%state, &
+                                       di%positions_pressure_mesh, &
+                                       di%modified_relative_permeability, &
+                                       di%relperm_upwind, &
+                                       di%modified_relative_permeability, &
+                                       di%relperm_upwind, &
+                                       option_path = trim(di%relative_permeability(p)%ptr%option_path))
+           
+            else 
+           
+               ! NOTE only new values are required but this procedure 
+               !      expects latest and old. So pass in new twice - not optimal
+               call find_upwind_values(di%state, &
+                                       di%positions_pressure_mesh, &
+                                       di%relative_permeability(p)%ptr, &
+                                       di%relperm_upwind, &
+                                       di%relative_permeability(p)%ptr, &
+                                       di%relperm_upwind, &
+                                       option_path = trim(di%relative_permeability(p)%ptr%option_path))
 
-           ! NOTE only new old values are required but this procedure 
-           !      expects latest and old. So pass in old twice - not optimal
-           call find_upwind_values(di%state, &
-                                   di%positions_pressure_mesh, &
-                                   di%relative_permeability(p)%ptr, &
-                                   di%relperm_upwind, &
-                                   di%relative_permeability(p)%ptr, &
-                                   di%relperm_upwind, &
-                                   option_path = trim(di%relative_permeability(p)%ptr%option_path))
-
-         else
-
-           call zero(di%relperm_upwind)
-
+            end if
+            
          end if
+
+         ! If the relperm face value is a RELPERMOVERSAT... scheme then the saturation 
+         ! face values need determining which may require the upwind values. 
+         if (di%determine_saturation_face_values .and. di%saturation_cv_options%limit_facevalue) then
+
+            ! NOTE only new values are required but this procedure       
+            !      expects latest and old. So pass in new twice - not optimal
+            call find_upwind_values(di%state, &
+                                    di%positions_pressure_mesh, &
+                                    di%saturation(p)%ptr, &
+                                    di%saturation_upwind, &
+                                    di%saturation(p)%ptr, &
+                                    di%saturation_upwind, &
+                                    option_path = trim(di%saturation(p)%ptr%option_path))            
+
+         end if 
  
          ! Determine the upwind density values of all node pairs if required for higher order CV face value
          if(di%density_cv_options%limit_facevalue) then
@@ -3050,18 +3117,15 @@ visc_ele_bdy(1)
                                    di%density_upwind, &
                                    option_path = trim(di%density(p)%ptr%option_path))
 
-         else
-
-           call zero(di%density_upwind)
-
          end if
                           
          ! Initialise optimisation flag used in finding upwind value in high resolution schemes
          r_upwind_pos = 0
          d_upwind_pos = 0
+         s_upwind_pos = 0
             
          vol_element_loop: do vele = 1, di%number_vele
-            
+           
             ! The node indices of the pressure mesh
             p_nodes => ele_nodes(di%pressure_mesh, vele)
 
@@ -3090,6 +3154,29 @@ visc_ele_bdy(1)
 
                d_upwind_nodes => p_nodes
 
+            end if
+
+            if (di%determine_saturation_face_values) then
+            
+               ! Determine the node numbers to use to determine the saturation upwind values
+               if((di%saturation_cv_options%upwind_scheme == CV_UPWINDVALUE_PROJECT_POINT).or.&
+                  (di%saturation_cv_options%upwind_scheme == CV_UPWINDVALUE_PROJECT_GRAD)) then
+
+                  s_upwind_nodes => x_pmesh_nodes
+
+               else
+
+                  s_upwind_nodes => p_nodes
+
+               end if
+               
+               do sat_p = 1, di%number_phase
+               
+                  ! get the saturation ele values for this phase
+                  sat_ele(:,sat_p) = ele_val(di%saturation(sat_p)%ptr, vele)
+               
+               end do
+               
             end if
 
             ! get the relperm ele values for this phase
@@ -3199,35 +3286,64 @@ visc_ele_bdy(1)
                        income = merge(1.0,0.0,inflow)
 
                        ! Evaluate the face value for relperm 
-                       call darcy_impes_evaluate_face_val(relperm_face_value, &
-                                                          iloc, &
-                                                          oloc, &
-                                                          ggi, &
-                                                          r_upwind_nodes, &
-                                                          di%p_cvshape, &
-                                                          relperm_ele, &
-                                                          di%relperm_upwind, &
-                                                          inflow, &
-                                                          income, &
-                                                          di%relperm_cv_options, &
-                                                          save_pos = r_upwind_pos)
+                       call darcy_impes_evaluate_relperm_face_val(relperm_face_value, &
+                                                                  iloc, &
+                                                                  oloc, &
+                                                                  ggi, &
+                                                                  r_upwind_nodes, &
+                                                                  di%p_cvshape, &
+                                                                  relperm_ele, &
+                                                                  di%relperm_upwind, &
+                                                                  inflow, &
+                                                                  income, &
+                                                                  sat_ele, &
+                                                                  di%minimum_denominator_saturation_value, &
+                                                                  p, &
+                                                                  di%number_phase, &
+                                                                  di%relperm_corr_options, &
+                                                                  di%relperm_cv_options, &
+                                                                  save_pos = r_upwind_pos)
+
+                       ! Evaluate the face value for saturation if required, else set to 1.0
+                       if (di%determine_saturation_face_values) then
                        
+                          call darcy_impes_evaluate_saturation_face_val(sat_face_value, &
+                                                                        iloc, &
+                                                                        oloc, &
+                                                                        ggi, &
+                                                                        s_upwind_nodes, &
+                                                                        di%p_cvshape, &
+                                                                        sat_ele(:,p), &
+                                                                        di%saturation_upwind, &
+                                                                        inflow, &
+                                                                        income, &
+                                                                        di%saturation_cv_options, &
+                                                                        save_pos = s_upwind_pos)                          
+                       
+                       else
+                       
+                          sat_face_value = 1.0
+                                              
+                       end if
+                                              
                        ! Evaluate the density face value 
-                       call darcy_impes_evaluate_face_val(den_face_value, &
-                                                          iloc, &
-                                                          oloc, &
-                                                          ggi, &
-                                                          d_upwind_nodes, &
-                                                          di%p_cvshape, &
-                                                          den_ele, &
-                                                          di%density_upwind, &
-                                                          inflow, &
-                                                          income, &
-                                                          di%density_cv_options, &
-                                                          save_pos = d_upwind_pos)
+                       call darcy_impes_evaluate_density_face_val(den_face_value, &
+                                                                  iloc, &
+                                                                  oloc, &
+                                                                  ggi, &
+                                                                  d_upwind_nodes, &
+                                                                  di%p_cvshape, &
+                                                                  den_ele, &
+                                                                  di%density_upwind, &
+                                                                  inflow, &
+                                                                  income, &
+                                                                  di%density_cv_options, &
+                                                                  save_pos = d_upwind_pos)
                        
-                       di%cached_face_value%relperm(1,ggi,vele,p) = relperm_face_value
-                      
+                       ! Cache the relperm (or modrelperm*sat) face value
+                       di%cached_face_value%relperm(1,ggi,vele,p) = relperm_face_value * sat_face_value
+                       
+                       ! Cache the density face value
                        di%cached_face_value%den(ggi,vele,p) = den_face_value
                                            
                     end if check_visited
@@ -3274,7 +3390,7 @@ visc_ele_bdy(1)
 
                         ggi = (face-1)*di%cvfaces%shape%ngi + gi
                                                        
-                        ! Evaluate the old_relperm and density face value via taking the CV value
+                        ! Evaluate the relperm and density face value via taking the CV value
                         ! - no other choice currently ...
 
                         di%cached_face_value%relperm_bdy(1,ggi,sele,p) = relperm_ele_bdy(iloc)
@@ -3312,6 +3428,7 @@ visc_ele_bdy(1)
       deallocate(x_face_quad)
       deallocate(relperm_ele)
       deallocate(den_ele)
+      deallocate(sat_ele)
       deallocate(grav_ele)
       deallocate(grad_pressure_face_quad)
       deallocate(v_over_relperm_face_quad)
@@ -3335,10 +3452,11 @@ visc_ele_bdy(1)
       
       ! local variables
       logical :: inflow
-      integer :: p, vele, sele, iloc, oloc, face, gi, ggi, r_upwind_pos, dim
-      real    :: income, v_over_relperm_dot_n, relperm_face_value
+      integer :: p, sat_p, vele, sele, iloc, oloc, face, gi, ggi, r_upwind_pos, s_upwind_pos, dim
+      real    :: income, v_over_relperm_dot_n, relperm_face_value, sat_face_value
       real,    dimension(1)              :: absperm_ele, visc_ele
       real,    dimension(:),     pointer :: relperm_ele
+      real,    dimension(:,:),   pointer :: sat_ele
       real,    dimension(:,:),   pointer :: grav_ele
       real,    dimension(:,:),   pointer :: grad_pressure_face_quad
       real,    dimension(:,:),   pointer :: v_over_relperm_face_quad
@@ -3352,6 +3470,7 @@ visc_ele_bdy(1)
       integer, dimension(:),     pointer :: x_pmesh_nodes
       integer, dimension(:),     pointer :: p_nodes      
       integer, dimension(:),     pointer :: r_upwind_nodes
+      integer, dimension(:),     pointer :: s_upwind_nodes
       real,    dimension(:),     pointer :: relperm_ele_bdy
       integer, parameter :: V_BC_TYPE_NORMAL_FLOW = 1, V_BC_TYPE_NO_NORMAL_FLOW = 2
             
@@ -3369,6 +3488,7 @@ visc_ele_bdy(1)
       allocate(notvisited(di%x_cvshape%ngi))
       allocate(x_face_quad(di%ndim, di%x_cvshape%ngi))
       allocate(relperm_ele(ele_loc(di%pressure_mesh,1)))
+      allocate(sat_ele(ele_loc(di%pressure_mesh,1), di%number_phase))
       allocate(grav_ele(di%ndim,1))
       allocate(grad_pressure_face_quad(di%ndim, di%p_cvshape%ngi))
       allocate(v_over_relperm_face_quad(di%ndim,di%p_cvshape%ngi))
@@ -3380,30 +3500,63 @@ visc_ele_bdy(1)
       ! Initialise the cached face values
       di%cached_face_value%relperm(isub_index,:,:,:)     = 0.0
       di%cached_face_value%relperm_bdy(isub_index,:,:,:) = 0.0
-
+            
       phase_loop: do p = 1, di%number_phase
           
-         ! Determine the upwind relperm values of all node pairs if required for higher order CV face value
+         ! Determine the upwind relperm values of all node pairs if required for higher order CV face value.
+         ! If the relperm face value is a RELPERMOVERSAT... scheme then the upwind values 
+         ! of modrelperm are required (= relperm / sat)
          if(di%relperm_cv_options%limit_facevalue) then
+           
+            if (di%determine_saturation_face_values) then
+               
+               call darcy_impes_calculate_modified_relative_permeability(di, p)
+               
+               ! NOTE only new values are required but this procedure 
+               !      expects latest and old. So pass in new twice - not optimal
+               call find_upwind_values(di%state, &
+                                       di%positions_pressure_mesh, &
+                                       di%modified_relative_permeability, &
+                                       di%relperm_upwind, &
+                                       di%modified_relative_permeability, &
+                                       di%relperm_upwind, &
+                                       option_path = trim(di%relative_permeability(p)%ptr%option_path))
+           
+            else 
+           
+               ! NOTE only new values are required but this procedure 
+               !      expects latest and old. So pass in new twice - not optimal
+               call find_upwind_values(di%state, &
+                                       di%positions_pressure_mesh, &
+                                       di%relative_permeability(p)%ptr, &
+                                       di%relperm_upwind, &
+                                       di%relative_permeability(p)%ptr, &
+                                       di%relperm_upwind, &
+                                       option_path = trim(di%relative_permeability(p)%ptr%option_path))
 
-           ! NOTE only new new values are required but this procedure 
-           !      expects latest and old. So pass in new twice - not optimal
-           call find_upwind_values(di%state, &
-                                   di%positions_pressure_mesh, &
-                                   di%relative_permeability(p)%ptr, &
-                                   di%relperm_upwind, &
-                                   di%relative_permeability(p)%ptr, &
-                                   di%relperm_upwind, &
-                                   option_path = trim(di%relative_permeability(p)%ptr%option_path))
-
-         else
-
-           call zero(di%relperm_upwind)
-
+            end if
+            
          end if
+
+         ! If the relperm face value is a RELPERMOVERSAT... scheme then the saturation 
+         ! face values need determining which may require the upwind values. 
+         if (di%determine_saturation_face_values .and. di%saturation_cv_options%limit_facevalue) then
+
+            ! NOTE only new values are required but this procedure       
+            !      expects latest and old. So pass in new twice - not optimal
+            call find_upwind_values(di%state, &
+                                    di%positions_pressure_mesh, &
+                                    di%saturation(p)%ptr, &
+                                    di%saturation_upwind, &
+                                    di%saturation(p)%ptr, &
+                                    di%saturation_upwind, &
+                                    option_path = trim(di%saturation(p)%ptr%option_path))            
+
+         end if 
                            
-         ! Initialise optimisation flag used in finding upwind value in high resolution schemes
+         ! Initialise optimisation flags used in finding upwind value in high resolution schemes
          r_upwind_pos = 0
+         s_upwind_pos = 0
             
          vol_element_loop: do vele = 1, di%number_vele
             
@@ -3425,6 +3578,29 @@ visc_ele_bdy(1)
 
             end if
             
+            if (di%determine_saturation_face_values) then
+            
+               ! Determine the node numbers to use to determine the saturation upwind values
+               if((di%saturation_cv_options%upwind_scheme == CV_UPWINDVALUE_PROJECT_POINT).or.&
+                  (di%saturation_cv_options%upwind_scheme == CV_UPWINDVALUE_PROJECT_GRAD)) then
+
+                  s_upwind_nodes => x_pmesh_nodes
+
+               else
+
+                  s_upwind_nodes => p_nodes
+
+               end if
+               
+               do sat_p = 1, di%number_phase
+               
+                  ! get the saturation ele values for this phase
+                  sat_ele(:,sat_p) = ele_val(di%saturation(sat_p)%ptr, vele)
+               
+               end do
+               
+            end if
+
             ! get the relperm ele values for this phase
             relperm_ele = ele_val(di%relative_permeability(p)%ptr, vele)
             
@@ -3527,22 +3703,50 @@ visc_ele_bdy(1)
                        inflow = (v_over_relperm_dot_n<=0.0)
 
                        income = merge(1.0,0.0,inflow)
-
+                       
                        ! Evaluate the face value for relperm 
-                       call darcy_impes_evaluate_face_val(relperm_face_value, &
-                                                          iloc, &
-                                                          oloc, &
-                                                          ggi, &
-                                                          r_upwind_nodes, &
-                                                          di%p_cvshape, &
-                                                          relperm_ele, &
-                                                          di%relperm_upwind, &
-                                                          inflow, &
-                                                          income, &
-                                                          di%relperm_cv_options, &
-                                                          save_pos = r_upwind_pos)
+                       call darcy_impes_evaluate_relperm_face_val(relperm_face_value, &
+                                                                  iloc, &
+                                                                  oloc, &
+                                                                  ggi, &
+                                                                  r_upwind_nodes, &
+                                                                  di%p_cvshape, &
+                                                                  relperm_ele, &
+                                                                  di%relperm_upwind, &
+                                                                  inflow, &
+                                                                  income, &
+                                                                  sat_ele, &
+                                                                  di%minimum_denominator_saturation_value, &
+                                                                  p, &
+                                                                  di%number_phase, &
+                                                                  di%relperm_corr_options, &
+                                                                  di%relperm_cv_options, &
+                                                                  save_pos = r_upwind_pos)
+
+                       ! Evaluate the face value for saturation if required, else set to 1.0
+                       if (di%determine_saturation_face_values) then
+                       
+                          call darcy_impes_evaluate_saturation_face_val(sat_face_value, &
+                                                                        iloc, &
+                                                                        oloc, &
+                                                                        ggi, &
+                                                                        s_upwind_nodes, &
+                                                                        di%p_cvshape, &
+                                                                        sat_ele(:,p), &
+                                                                        di%saturation_upwind, &
+                                                                        inflow, &
+                                                                        income, &
+                                                                        di%saturation_cv_options, &
+                                                                        save_pos = s_upwind_pos)                          
+                       
+                       else
+                       
+                          sat_face_value = 1.0
                                               
-                       di%cached_face_value%relperm(isub_index,ggi,vele,p) = relperm_face_value
+                       end if
+                                              
+                       ! Cache the relperm (or modrelperm*sat) face value
+                       di%cached_face_value%relperm(isub_index,ggi,vele,p) = relperm_face_value * sat_face_value
                                                                  
                     end if check_visited
 
@@ -3620,6 +3824,7 @@ visc_ele_bdy(1)
       deallocate(notvisited)
       deallocate(x_face_quad)
       deallocate(relperm_ele)
+      deallocate(sat_ele)
       deallocate(grav_ele)
       deallocate(grad_pressure_face_quad)
       deallocate(v_over_relperm_face_quad)
@@ -3682,33 +3887,33 @@ visc_ele_bdy(1)
 
 ! ----------------------------------------------------------------------------
    
-   subroutine darcy_impes_evaluate_face_val(face_val, &
-                                            iloc, &
-                                            oloc, &
-                                            ggi, &
-                                            upwind_nodes, &
-                                            cvshape, &
-                                            field_ele, &
-                                            upwind_values, &
-                                            inflow, &
-                                            income, &
-                                            darcy_impes_cv_options, &
-                                            save_pos)
+   subroutine darcy_impes_evaluate_saturation_face_val(saturation_face_val, &
+                                                       iloc, &
+                                                       oloc, &
+                                                       ggi, &
+                                                       upwind_nodes, &
+                                                       cvshape, &
+                                                       saturation_ele, &
+                                                       saturation_upwind, &
+                                                       inflow, &
+                                                       income, &
+                                                       saturation_cv_options, &
+                                                       save_pos)
    
-      !!< Evaluate the high resolution CV face value deduced from the 
+      !!< Evaluate the high resolution saturation CV face value deduced from the 
       !!< the cv_options and solution field
             
-      real,                              intent(out) :: face_val
+      real,                              intent(out) :: saturation_face_val
       integer,                           intent(in)  :: iloc
       integer,                           intent(in)  :: oloc
       integer,                           intent(in)  :: ggi
       integer,            dimension(:),  intent(in)  :: upwind_nodes
       type(element_type),                intent(in)  :: cvshape
-      real,               dimension(:),  intent(in)  :: field_ele
-      type(csr_matrix),                  intent(in)  :: upwind_values
+      real,               dimension(:),  intent(in)  :: saturation_ele
+      type(csr_matrix),                  intent(in)  :: saturation_upwind
       logical,                           intent(in)  :: inflow
       real,                              intent(in)  :: income
-      type(darcy_impes_cv_options_type), intent(in)  :: darcy_impes_cv_options 
+      type(darcy_impes_cv_options_type), intent(in)  :: saturation_cv_options 
       integer,                           intent(inout), optional :: save_pos
       
       ! local variables
@@ -3722,34 +3927,35 @@ visc_ele_bdy(1)
         l_save_pos = 0
       end if
 
-      select case(darcy_impes_cv_options%facevalue)
-      case (CV_FACEVALUE_FIRSTORDERUPWIND)
+      select case(saturation_cv_options%facevalue)
 
-         face_val = income*field_ele(oloc) + (1.-income)*field_ele(iloc)
+      case (DARCY_IMPES_CV_FACEVALUE_FIRSTORDERUPWIND)
 
-      case (CV_FACEVALUE_FINITEELEMENT)
+         saturation_face_val = income*saturation_ele(oloc) + (1.-income)*saturation_ele(iloc)
 
-         face_val = dot_product(cvshape%n(:,ggi), field_ele)
+      case (DARCY_IMPES_CV_FACEVALUE_FINITEELEMENT)
 
-         if(darcy_impes_cv_options%limit_facevalue) then
+         saturation_face_val = dot_product(cvshape%n(:,ggi), saturation_ele)
 
-           downwind_val = income*field_ele(iloc) + (1.-income)*field_ele(oloc)
+         if(saturation_cv_options%limit_facevalue) then
 
-           donor_val = income*field_ele(oloc) + (1.-income)*field_ele(iloc)
+           downwind_val = income*saturation_ele(iloc) + (1.-income)*saturation_ele(oloc)
+
+           donor_val = income*saturation_ele(oloc) + (1.-income)*saturation_ele(iloc)
                       
            if(inflow) then
-             upwind_val = val(upwind_values, upwind_nodes(oloc), upwind_nodes(iloc), save_pos=l_save_pos)
+             upwind_val = val(saturation_upwind, upwind_nodes(oloc), upwind_nodes(iloc), save_pos=l_save_pos)
            else
-             upwind_val = val(upwind_values, upwind_nodes(iloc), upwind_nodes(oloc), save_pos=l_save_pos)
+             upwind_val = val(saturation_upwind, upwind_nodes(iloc), upwind_nodes(oloc), save_pos=l_save_pos)
            end if
 
-           face_val = limit_val(upwind_val, &
-                                donor_val, &
-                                downwind_val, &
-                                face_val, &
-                                darcy_impes_cv_options%limiter, &
-                                cfl_donor, &
-                                darcy_impes_cv_options%limiter_slopes)
+           saturation_face_val = limit_val(upwind_val, &
+                                           donor_val, &
+                                           downwind_val, &
+                                           saturation_face_val, &
+                                           saturation_cv_options%limiter, &
+                                           cfl_donor, &
+                                           saturation_cv_options%limiter_slopes)
 
          end if
 
@@ -3757,9 +3963,249 @@ visc_ele_bdy(1)
            save_pos = l_save_pos
          end if
 
+      case default
+
+         FLAbort('Unknown CV facevalue scheme for saturation')
+            
       end select
                   
-   end subroutine darcy_impes_evaluate_face_val
+   end subroutine darcy_impes_evaluate_saturation_face_val
+
+! ----------------------------------------------------------------------------
+   
+   subroutine darcy_impes_evaluate_density_face_val(density_face_val, &
+                                                    iloc, &
+                                                    oloc, &
+                                                    ggi, &
+                                                    upwind_nodes, &
+                                                    cvshape, &
+                                                    density_ele, &
+                                                    density_upwind, &
+                                                    inflow, &
+                                                    income, &
+                                                    density_cv_options, &
+                                                    save_pos)
+   
+      !!< Evaluate the high resolution density CV face value deduced from the 
+      !!< the cv_options and solution field
+            
+      real,                              intent(out) :: density_face_val
+      integer,                           intent(in)  :: iloc
+      integer,                           intent(in)  :: oloc
+      integer,                           intent(in)  :: ggi
+      integer,            dimension(:),  intent(in)  :: upwind_nodes
+      type(element_type),                intent(in)  :: cvshape
+      real,               dimension(:),  intent(in)  :: density_ele
+      type(csr_matrix),                  intent(in)  :: density_upwind
+      logical,                           intent(in)  :: inflow
+      real,                              intent(in)  :: income
+      type(darcy_impes_cv_options_type), intent(in)  :: density_cv_options 
+      integer,                           intent(inout), optional :: save_pos
+      
+      ! local variables
+      real    :: upwind_val, donor_val, downwind_val, cfl_donor
+      integer :: l_save_pos
+      
+      if(present(save_pos)) then
+        ! an attempt at optimising the val calls by saving the matrix position
+        l_save_pos=save_pos 
+      else
+        l_save_pos = 0
+      end if
+
+      select case(density_cv_options%facevalue)
+
+      case (DARCY_IMPES_CV_FACEVALUE_FIRSTORDERUPWIND)
+
+         density_face_val = income*density_ele(oloc) + (1.-income)*density_ele(iloc)
+
+      case (DARCY_IMPES_CV_FACEVALUE_FINITEELEMENT)
+
+         density_face_val = dot_product(cvshape%n(:,ggi), density_ele)
+
+         if(density_cv_options%limit_facevalue) then
+
+           downwind_val = income*density_ele(iloc) + (1.-income)*density_ele(oloc)
+
+           donor_val = income*density_ele(oloc) + (1.-income)*density_ele(iloc)
+                      
+           if(inflow) then
+             upwind_val = val(density_upwind, upwind_nodes(oloc), upwind_nodes(iloc), save_pos=l_save_pos)
+           else
+             upwind_val = val(density_upwind, upwind_nodes(iloc), upwind_nodes(oloc), save_pos=l_save_pos)
+           end if
+
+           density_face_val = limit_val(upwind_val, &
+                                        donor_val, &
+                                        downwind_val, &
+                                        density_face_val, &
+                                        density_cv_options%limiter, &
+                                        cfl_donor, &
+                                        density_cv_options%limiter_slopes)
+
+         end if
+
+         if(present(save_pos)) then
+           save_pos = l_save_pos
+         end if
+
+      case default
+
+         FLAbort('Unknown CV facevalue scheme for density')
+
+      end select
+                  
+   end subroutine darcy_impes_evaluate_density_face_val
+
+! ----------------------------------------------------------------------------
+   
+   subroutine darcy_impes_evaluate_relperm_face_val(relperm_face_val, &
+                                                    iloc, &
+                                                    oloc, &
+                                                    ggi, &
+                                                    upwind_nodes, &
+                                                    cvshape, &
+                                                    relperm_ele, &
+                                                    relperm_upwind, &
+                                                    inflow, &
+                                                    income, &
+                                                    sat_ele_all_phases, &
+                                                    min_denom_sat, &
+                                                    p, &
+                                                    number_phase, &
+                                                    relperm_corr_options, &
+                                                    relperm_cv_options, &
+                                                    save_pos)
+   
+      !!< Evaluate the high resolution relperm CV face value deduced from the 
+      !!< the cv_options, solution field and perhaps the given saturation 
+      !!< face and element values.
+            
+      real,                                                        intent(out) :: relperm_face_val
+      integer,                                                     intent(in)  :: iloc
+      integer,                                                     intent(in)  :: oloc
+      integer,                                                     intent(in)  :: ggi
+      integer,                                     dimension(:),   intent(in)  :: upwind_nodes
+      type(element_type),                                          intent(in)  :: cvshape
+      real,                                        dimension(:),   intent(in)  :: relperm_ele
+      type(csr_matrix),                                            intent(in)  :: relperm_upwind
+      logical,                                                     intent(in)  :: inflow
+      real,                                                        intent(in)  :: income
+      real,                                        dimension(:,:), intent(in)  :: sat_ele_all_phases
+      real,                                                        intent(in)  :: min_denom_sat
+      integer,                                                     intent(in)  :: p
+      integer,                                                     intent(in)  :: number_phase
+      type(darcy_impes_relperm_corr_options_type),                 intent(in)  :: relperm_corr_options
+      type(darcy_impes_cv_options_type),                           intent(in)  :: relperm_cv_options 
+      integer,                                                     intent(inout), optional :: save_pos
+      
+      ! local variables
+      integer :: l_save_pos, sat_p
+      real    :: upwind_val, donor_val, downwind_val, cfl_donor
+      real, dimension(number_phase) :: sat_face_val_all_phases
+      
+      if(present(save_pos)) then
+        ! an attempt at optimising the val calls by saving the matrix position
+        l_save_pos=save_pos 
+      else
+        l_save_pos = 0
+      end if
+
+      select case(relperm_cv_options%facevalue)
+
+      case (DARCY_IMPES_CV_FACEVALUE_FIRSTORDERUPWIND)
+
+         relperm_face_val = income*relperm_ele(oloc) + (1.-income)*relperm_ele(iloc)
+      
+      case (DARCY_IMPES_CV_FACEVALUE_RELPERMOVERSATUPWIND)
+
+         relperm_face_val = income*(relperm_ele(oloc) / max(sat_ele_all_phases(oloc,p),min_denom_sat)) + &
+                           (1.-income)*(relperm_ele(iloc) / max(sat_ele_all_phases(iloc,p),min_denom_sat))
+
+      case (DARCY_IMPES_CV_FACEVALUE_RELPERMOVERSATFINITEELEMENT)
+
+         relperm_face_val = dot_product(cvshape%n(:,ggi), relperm_ele) / &
+                            max(dot_product(cvshape%n(:,ggi), sat_ele_all_phases(:,p)),min_denom_sat)
+
+      case (DARCY_IMPES_CV_FACEVALUE_RELPERMOVERSATCORRELATION)
+         
+         ! Use the FE interpolation of all phases saturations
+         ! to calculate the modified relative permeability face value.
+         do sat_p = 1, number_phase
+         
+            sat_face_val_all_phases(sat_p) = dot_product(cvshape%n(:,ggi), sat_ele_all_phases(:,sat_p))
+         
+         end do
+         
+         call darcy_impes_calculate_relperm_value(relperm_face_val, &
+                                                  sat_face_val_all_phases, &
+                                                  p, &
+                                                  relperm_corr_options%type, &
+                                                  relperm_corr_options%exponent)
+         
+         relperm_face_val = relperm_face_val / max(sat_face_val_all_phases(p),min_denom_sat)
+         
+      case default
+
+         FLAbort('Unknown CV facevalue scheme for relative permeability')
+
+      end select
+
+      if(relperm_cv_options%limit_facevalue) then
+
+        downwind_val = income*relperm_ele(iloc) + (1.-income)*relperm_ele(oloc)
+
+        donor_val = income*relperm_ele(oloc) + (1.-income)*relperm_ele(iloc)
+
+        if(inflow) then
+          upwind_val = val(relperm_upwind, upwind_nodes(oloc), upwind_nodes(iloc), save_pos=l_save_pos)
+        else
+          upwind_val = val(relperm_upwind, upwind_nodes(iloc), upwind_nodes(oloc), save_pos=l_save_pos)
+        end if
+
+        relperm_face_val = limit_val(upwind_val, &
+                                     donor_val, &
+                                     downwind_val, &
+                                     relperm_face_val, &
+                                     relperm_cv_options%limiter, &
+                                     cfl_donor, &
+                                     relperm_cv_options%limiter_slopes)
+
+      end if
+
+      if(present(save_pos)) then
+        save_pos = l_save_pos
+      end if
+                  
+   end subroutine darcy_impes_evaluate_relperm_face_val
+
+! ----------------------------------------------------------------------------
+   
+   subroutine darcy_impes_calculate_modified_relative_permeability(di, p)
+   
+      !!< Calculate the modified relative permeability = relperm / max( S, S_min) for phase p
+            
+      type(darcy_impes_type), intent(inout) :: di 
+      integer,                intent(in)    :: p
+      
+      ! local variable
+      integer :: i
+
+      ewrite(1,*) 'Calculate modified relative permeabilitie for phase ',p
+               
+      node_loop: do i = 1, node_count(di%pressure_mesh)
+
+         di%modified_relative_permeability%val(i) = &
+         di%relative_permeability(p)%ptr%val(i) / &
+         max(di%saturation(p)%ptr%val(i), di%minimum_denominator_saturation_value)
+
+      end do node_loop
+
+      ewrite_minmax(di%modified_relative_permeability)
+      
+      ewrite(1,*) 'Finished Calculate modified relative permeabilitie for phase ',p
+      
+   end subroutine darcy_impes_calculate_modified_relative_permeability
 
 ! ----------------------------------------------------------------------------
 
