@@ -282,7 +282,7 @@
             multiphase = .false.
          end if
          ! Do we have fluid-particle drag (for multi-phase simulations)?
-         have_fp_drag = option_count("/material_phase/multiphase_properties/particle_diameter") > 0
+         have_fp_drag = have_option("/multiphase_interaction/fluid_particle_drag")
 
          ! Get the pressure p^{n}, and get the assembly options for the divergence and CMC matrices
          ! find the first non-aliased pressure
