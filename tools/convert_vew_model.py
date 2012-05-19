@@ -44,7 +44,7 @@ math_ops = {
   r"\max"   : lambda t: "max(" + t[0] +", " + t[1] + ")",
   r"\min"   : lambda t: "min(" + t[0] +", " + t[1] + ")",
   r"\exp"   : lambda t: "math.exp(" + t[0] + ")", 
-  r"\log10" : lambda t: "(math.log10(" + t[0] + ") if (" + t[0] + ") > 0.0 else 0.0)", 
+  r"\log10" : lambda t: "numpy.log10(" + t[0] + ")", 
   r"\minus" : lambda t: "-(" + t[0] + ")", 
   r"\abs"   : lambda t: "abs( " + t[0] + " )", 
   r"\rnd"   : lambda t: "TODO RND(" + t[0] + ")"
@@ -326,8 +326,14 @@ def eval_stmt(t):
     out = c
 
   elif t[0] == pchange:
+    # TODO This does not support multiple pchanges per update yet!!!
     s = str(t[2])
-    out = "#TODO PCHANGE( " + s + ", " + eval_expr(t[3]) + " )" 
+    out = "new_agent_vars = {}\n" + Indent.line()
+    out = out + "new_agent_vars.update(vars)\n" + Indent.line()
+    out = out + "new_agent_vars['Stage'] = stage_id('" + fgroup.name + "', '" + s + "')\n" + Indent.line()
+    out = out + "new_agent_vars['Size'] = vars['Size'] * " + eval_expr(t[3]) + "\n" + Indent.line()
+    out = out + "vars['Size'] = vars['Size'] - new_agent_vars['Size']\n" + Indent.line()
+    out = out + "add_agent('" + fgroup.name + "', new_agent_vars, [-vars['z']])\n" + Indent.line()
 
   else:
     raise Exception("Unkown statement: " + str(t))
@@ -505,7 +511,7 @@ class FGroup:
 ### Main model parsing ###
 fg_write_stages = {
   "Diatom" : [ "Living", "Dead" ],
-  "Copepod" : [ "Dead", "OW5", "OWA5", "C5", "C6", "Adult", "Pellet" ],
+  "Copepod" : [ "Dead", "OW5", "OWA5", "C5", "C6", "Adult", "Pellet", "Mature", "Senescent", "Nauplius", "N3" ],
   "Predator" : [ "Existance", "Pellet" ],
   "Basal_predator" : [ "Existance", "Pellet" ]
 }
@@ -514,6 +520,7 @@ filename = sys.argv[1]
 out_filename = filename.split(".")[0].strip() + '.py'
 f = open(out_filename, "w")
 f.write("import math\n")
+f.write("import numpy\n")
 f.write("from lebiology import stage_id, add_agent\n")
 
 dom = parse(filename)

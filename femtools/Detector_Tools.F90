@@ -138,6 +138,28 @@ contains
        if(allocated(detector%update_vector)) then
           deallocate(detector%update_vector)
        end if
+       if(allocated(detector%biology)) then
+          deallocate(detector%biology)
+       end if
+       if(allocated(detector%food_requests)) then
+          deallocate(detector%food_requests)
+       end if
+       if(allocated(detector%food_ingests)) then
+          deallocate(detector%food_ingests)
+       end if
+       if(allocated(detector%ele_path)) then
+          deallocate(detector%ele_path)
+       end if
+       if(allocated(detector%ele_dist)) then
+          deallocate(detector%ele_dist)
+       end if
+       if(allocated(detector%ray_o)) then
+          deallocate(detector%ray_o)
+       end if
+       if(allocated(detector%ray_d)) then
+          deallocate(detector%ray_d)
+       end if
+
        deallocate(detector)
     end if
     detector => null()

@@ -738,7 +738,7 @@ def val(position, vars, dt):
             <biology>
               <python>
                 <string_value lines="20" type="code" language="python">import fluidity.lerm_ps as lerm
-params = lerm.params_Default_Diatom_Variety
+params = lerm.species_Default_Diatom_Variety
 
 def val(agent, env, dt):
   lerm.update_Living_Diatom(params, agent, env, dt)
@@ -777,7 +777,7 @@ def val(X):
             <biology>
               <python>
                 <string_value lines="20" type="code" language="python">import fluidity.lerm_ps as lerm
-params = lerm.params_Default_Diatom_Variety
+params = lerm.species_Default_Diatom_Variety
 
 def val(biovars, env, dt):
   lerm.update_Dead_Diatom(params, biovars, env, dt)

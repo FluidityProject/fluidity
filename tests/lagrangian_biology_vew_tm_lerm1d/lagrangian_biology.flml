@@ -591,7 +591,6 @@ def val(X,t):
                   </detectors>
                 </diagnostic>
               </scalar_field>
-              <integrate_along_path/>
             </uptake>
             <release>
               <target_field name="DissolvedAmmonium"/>
@@ -606,7 +605,6 @@ def val(X,t):
                 </diagnostic>
                 <stage_aggregate/>
               </scalar_field>
-              <integrate_along_path/>
             </release>
           </chemical_variable>
           <chemical_variable name="Nitrate">
@@ -655,7 +653,6 @@ def val(X,t):
                   </detectors>
                 </diagnostic>
               </scalar_field>
-              <integrate_along_path/>
             </uptake>
           </chemical_variable>
           <chemical_variable name="Silicate">
@@ -704,7 +701,6 @@ def val(X,t):
                   </detectors>
                 </diagnostic>
               </scalar_field>
-              <integrate_along_path/>
             </uptake>
             <release>
               <target_field name="DissolvedSilicate"/>
@@ -719,7 +715,6 @@ def val(X,t):
                 </diagnostic>
                 <stage_aggregate/>
               </scalar_field>
-              <integrate_along_path/>
             </release>
           </chemical_variable>
           <chemical_variable name="Carbon">
@@ -792,7 +787,7 @@ def val(agent):
             <real_value rank="0">1.0e-10</real_value>
           </search_tolerance>
           <reflect_on_boundary/>
-          <geometric_tracking/>
+          <parametric_guided_search/>
           <random_walk name="RandomDisplacement">
             <python>
               <string_value lines="20" type="code" language="python">from __builtin__ import abs, str
@@ -946,6 +941,9 @@ def val(biovars, env, dt):
             <include_in_io/>
           </state_variable>
           <state_variable name="A_r">
+            <include_in_io/>
+          </state_variable>
+          <state_variable name="Nauplius_counter">
             <include_in_io/>
           </state_variable>
           <chemical_variable name="C_N">
@@ -1150,7 +1148,7 @@ def val(agent):
             <real_value rank="0">1.0e-10</real_value>
           </search_tolerance>
           <reflect_on_boundary/>
-          <geometric_tracking/>
+          <parametric_guided_search/>
           <random_walk name="Copepod_rnd_Vm_z">
             <python>
               <string_value lines="20" type="code" language="python">from __builtin__ import abs, str
@@ -1301,6 +1299,78 @@ params['surface_irradiance'] = persistent['physics_irrad_interp'](0.0)
 
 def val(agent, env, dt):
   lerm.update_Adult_Copepod(params, agent, env, dt)
+  return agent</string_value>
+              </python>
+            </biology>
+          </stage>
+          <stage name="Mature">
+            <biology>
+              <python>
+                <string_value lines="20" type="code" language="python">from __builtin__ import str
+import fluidity.lerm_ps as lerm
+import math
+params = {}
+params.update( lerm.species_Default_Copepod_Variety )
+params.update( lerm.foodset_Default_Copepod_Variety_P )
+params['MLDepth'] = persistent['physics_mld']
+params['surface_irradiance'] = persistent['physics_irrad_interp'](0.0)
+
+def val(agent, env, dt):
+  lerm.update_Mature_Copepod(params, agent, env, dt)
+  return agent</string_value>
+              </python>
+            </biology>
+          </stage>
+          <stage name="Senescent">
+            <biology>
+              <python>
+                <string_value lines="20" type="code" language="python">from __builtin__ import str
+import fluidity.lerm_ps as lerm
+import math
+params = {}
+params.update( lerm.species_Default_Copepod_Variety )
+params.update( lerm.foodset_Default_Copepod_Variety_P )
+params['MLDepth'] = persistent['physics_mld']
+params['surface_irradiance'] = persistent['physics_irrad_interp'](0.0)
+
+def val(agent, env, dt):
+  lerm.update_Senescent_Copepod(params, agent, env, dt)
+  return agent</string_value>
+              </python>
+            </biology>
+          </stage>
+          <stage name="Nauplius">
+            <biology>
+              <python>
+                <string_value lines="20" type="code" language="python">from __builtin__ import str
+import fluidity.lerm_ps as lerm
+import math
+params = {}
+params.update( lerm.species_Default_Copepod_Variety )
+params.update( lerm.foodset_Default_Copepod_Variety_P )
+params['MLDepth'] = persistent['physics_mld']
+params['surface_irradiance'] = persistent['physics_irrad_interp'](0.0)
+
+def val(agent, env, dt):
+  lerm.update_Nauplius_Copepod(params, agent, env, dt)
+  return agent</string_value>
+              </python>
+            </biology>
+          </stage>
+          <stage name="N3">
+            <biology>
+              <python>
+                <string_value lines="20" type="code" language="python">from __builtin__ import str
+import fluidity.lerm_ps as lerm
+import math
+params = {}
+params.update( lerm.species_Default_Copepod_Variety )
+params.update( lerm.foodset_Default_Copepod_Variety_P )
+params['MLDepth'] = persistent['physics_mld']
+params['surface_irradiance'] = persistent['physics_irrad_interp'](0.0)
+
+def val(agent, env, dt):
+  lerm.update_N3_Copepod(params, agent, env, dt)
   return agent</string_value>
               </python>
             </biology>
@@ -1642,6 +1712,11 @@ def val(agent, env, dt):
           </scalar_field>
           <food_type name="OWA5"/>
           <food_type name="C5"/>
+          <food_type name="C6"/>
+          <food_type name="Adult"/>
+          <food_type name="Mature"/>
+          <food_type name="Senescent"/>
+          <food_type name="N3"/>
         </food_set>
         <scalar_field name="Agents">
           <diagnostic>
@@ -1942,6 +2017,11 @@ def val(agent, env, dt):
           </scalar_field>
           <food_type name="OWA5"/>
           <food_type name="C5"/>
+          <food_type name="C6"/>
+          <food_type name="Adult"/>
+          <food_type name="Mature"/>
+          <food_type name="Senescent"/>
+          <food_type name="N3"/>
         </food_set>
         <scalar_field name="Agents">
           <diagnostic>

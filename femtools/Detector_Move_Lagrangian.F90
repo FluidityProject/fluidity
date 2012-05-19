@@ -290,8 +290,15 @@ contains
           end if
 
           if (detector_list%tracking_method == GEOMETRIC_TRACKING) then
+             if (allocated(detector%ray_o)) then
+                deallocate(detector%ray_o)
+             end if
              allocate(detector%ray_o(xfield%dim))
              detector%ray_o = detector%position
+
+             if (allocated(detector%ray_d)) then
+                deallocate(detector%ray_d)
+             end if
              allocate(detector%ray_d(xfield%dim))
           end if
 
@@ -417,6 +424,9 @@ contains
           if(allocated(detector%ray_d)) then
              deallocate(detector%ray_d)
           end if
+
+          call flush_list(detector%ele_path_list)
+          call flush_list(detector%ele_dist_list)
        end if
        detector => detector%next
     end do
@@ -641,7 +651,7 @@ contains
 
     subroutine initialise_ray(target_coord, ray_d, ray_o, distance)
       real, dimension(:), intent(inout) :: target_coord, ray_o, ray_d
-      real, intent(out) :: distance
+      real, intent(inout) :: distance
 
       ! Calculate and normalise ray direction
       ray_d = target_coord - ray_o
@@ -755,7 +765,9 @@ contains
        return
     end if
 
-    call insert(ele_path_list, new_element)
+    if (present(ele_path_list)) then
+       call insert(ele_path_list, new_element)
+    end if
 
     search_loop: do 
 
