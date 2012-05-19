@@ -15,6 +15,7 @@ include "temporal_discretisation.rnc"
 include "embedded_models.rnc"
 include "flredecomp.rnc"
 include "porous_media.rnc"
+include "multiphase_interaction.rnc"
 
 start =
    (
@@ -1690,7 +1691,8 @@ start =
          reduced_model?,
          porous_media_model?,
          embedded_models?,
-         flredecomp?
+         flredecomp?,
+         multiphase_interaction?
       }
    )      
 

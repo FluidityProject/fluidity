@@ -16,6 +16,7 @@
   <include href="embedded_models.rng"/>
   <include href="flredecomp.rng"/>
   <include href="porous_media.rng"/>
+  <include href="multiphase_interaction.rng"/>
   <start>
     <element name="fluidity_options">
       <a:documentation>The root node of the options dictionary.</a:documentation>
@@ -2320,6 +2321,9 @@ while a factor of 1 represents a connected domain.</a:documentation>
       </optional>
       <optional>
         <ref name="flredecomp"/>
+      </optional>
+      <optional>
+        <ref name="multiphase_interaction"/>
       </optional>
     </element>
   </start>

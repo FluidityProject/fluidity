@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0">
+  <!-- Phase interaction options for Fluidity's multiphase flow model. -->
+  <define name="multiphase_interaction">
+    <element name="multiphase_interaction">
+      <a:documentation>Phase interaction options for Fluidity's multiphase flow model.</a:documentation>
+      <ref name="comment"/>
+      <optional>
+        <ref name="fluid_particle_drag"/>
+      </optional>
+    </element>
+  </define>
+  <define name="fluid_particle_drag">
+    <element name="fluid_particle_drag">
+      <a:documentation>Fluid-particle drag term.</a:documentation>
+      <ref name="drag_correlation"/>
+    </element>
+  </define>
+  <define name="drag_correlation">
+    <choice>
+      <element name="drag_correlation">
+        <a:documentation>Stokes drag correlation: 24/Re_p
+where Re_p is the particle Reynolds number.</a:documentation>
+        <attribute name="name">
+          <value>stokes</value>
+        </attribute>
+        <ref name="comment"/>
+      </element>
+      <element name="drag_correlation">
+        <a:documentation>Fluid-particle drag term by Wen &amp; Yu (1966).</a:documentation>
+        <attribute name="name">
+          <value>wen_yu</value>
+        </attribute>
+        <ref name="comment"/>
+      </element>
+    </choice>
+  </define>
+</grammar>

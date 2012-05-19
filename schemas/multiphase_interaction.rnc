@@ -1,0 +1,33 @@
+# Phase interaction options for Fluidity's multiphase flow model.
+
+multiphase_interaction = 
+   (
+      ## Phase interaction options for Fluidity's multiphase flow model.
+      element multiphase_interaction {
+         comment,
+         fluid_particle_drag?
+      }
+   ) 
+
+fluid_particle_drag =
+   (
+      ## Fluid-particle drag term.
+      element fluid_particle_drag {
+         drag_correlation
+      }
+   )
+
+drag_correlation =
+   (
+      ## Stokes drag correlation: 24/Re_p
+      ## where Re_p is the particle Reynolds number.
+      element drag_correlation {
+         attribute name { "stokes" },
+         comment
+      }|
+      ## Fluid-particle drag term by Wen & Yu (1966).
+      element drag_correlation {
+         attribute name { "wen_yu" },
+         comment
+      }
+   )
