@@ -450,7 +450,7 @@ contains
       
       type(state_type), dimension(:), intent(inout) :: state
       type(scalar_field), pointer :: compressible_continuity, density, olddensity, vfrac
-      type(scalar_field) :: drhodt, temp_vfrac
+      type(scalar_field) :: drhodt
 
       ! Local variables
       type(vector_field), pointer :: u, x
@@ -518,15 +518,11 @@ contains
                   
             density => extract_scalar_field(state(i), "Density", stat)
             olddensity => extract_scalar_field(state(i), "OldDensity", stat)
+            vfrac => extract_scalar_field(state(i), "PhaseVolumeFraction")
             
             ! Assumes Density and OldDensity are on the same mesh as Pressure,
             ! as it should be according to the manual.
             call zero(drhodt)
-
-            ! Remap PhaseVolumeFraction field in case it is not on the same mesh as the Pressure field.
-            vfrac => extract_scalar_field(state(i), "PhaseVolumeFraction")
-            call allocate(temp_vfrac, compressible_continuity%mesh, "TempPhaseVolumeFraction")
-            call remap_field(vfrac, temp_vfrac)
             
             dg = continuity(compressible_continuity) < 0
             
@@ -543,7 +539,7 @@ contains
                   
                   call transform_to_physical(x, ele, detwei=detwei)
                   
-                  drhodt_addto = shape_rhs(test_function, detwei*(ele_val_at_quad(temp_vfrac,ele)*(ele_val_at_quad(density,ele) - ele_val_at_quad(olddensity,ele))/dt))
+                  drhodt_addto = shape_rhs(test_function, detwei*(ele_val_at_quad(vfrac,ele)*(ele_val_at_quad(density,ele) - ele_val_at_quad(olddensity,ele))/dt))
                   
                   call addto(drhodt, compressible_continuity_nodes, drhodt_addto)
                   
@@ -555,7 +551,6 @@ contains
             
             call addto(ctfield, drhodt)    
             
-            call deallocate(temp_vfrac)
             call deallocate(drhodt)
             
          end if
