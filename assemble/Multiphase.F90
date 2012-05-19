@@ -284,6 +284,11 @@
          
          
          ewrite(1, *) "Entering add_fluid_particle_drag"
+         
+         ! Let's check whether we actually have at least one particle phase.
+         if(option_count("/material_phase/multiphase_properties/particle_diameter") == 0) then
+            FLExit("Fluid-particle drag enabled but no particle_diameter has been specified for the particle phase(s).")
+         end if
                
          ! Get the timestepping options
          call get_option("/timestepping/timestep", dt)
@@ -359,6 +364,7 @@
                type(tensor_field), pointer :: viscosity_fluid
                type(scalar_field) :: nvfrac_fluid, nvfrac_particle
                real :: d ! Particle diameter
+               character(len=OPTION_PATH_LEN) :: drag_correlation
 
                ! Get the necessary fields to calculate the drag force
                velocity_fluid => extract_vector_field(state(istate_fluid), "Velocity")
@@ -387,6 +393,8 @@
                   nu_particle => extract_vector_field(state(istate_particle), "NonlinearVelocity")
                   oldu_fluid => extract_vector_field(state(istate_fluid), "OldVelocity")
                   oldu_particle => extract_vector_field(state(istate_particle), "OldVelocity")
+                  
+                  call get_option("/multiphase_interaction/fluid_particle_drag/drag_correlation/name", drag_correlation)
       
                   ! ----- Volume integrals over elements -------------           
                   call profiler_tic(u, "element_loop")
@@ -403,7 +411,7 @@
                                                             density_fluid, density_particle, &
                                                             nu_fluid, nu_particle, &
                                                             oldu_fluid, oldu_particle, &
-                                                            viscosity_fluid, d)
+                                                            viscosity_fluid, d, drag_correlation)
                      end if
 
                   end do element_loop
@@ -421,7 +429,7 @@
                                                       density_fluid, density_particle, &
                                                       nu_fluid, nu_particle, &
                                                       oldu_fluid, oldu_particle, &
-                                                      viscosity_fluid, d)
+                                                      viscosity_fluid, d, drag_correlation)
                                                          
                integer, intent(in) :: ele
                type(element_type), intent(in) :: test_function
@@ -436,6 +444,7 @@
                type(vector_field), intent(in) :: oldu_fluid, oldu_particle
                type(tensor_field), intent(in) :: viscosity_fluid    
                real, intent(in) :: d ! Particle diameter 
+               character(len=OPTION_PATH_LEN), intent(in) :: drag_correlation
                
                ! Local variables
                real, dimension(ele_ngi(u,ele)) :: vfrac_fluid_gi, vfrac_particle_gi
@@ -452,9 +461,9 @@
                real, dimension(u%dim, ele_loc(u,ele)) :: rhs_addto
                real, dimension(u%dim, u%dim, ele_loc(u,ele), ele_loc(u,ele)) :: big_m_tensor_addto
                
-               real, dimension(ele_ngi(u,ele)) :: particle_re ! Particle Reynolds number
-               real, dimension(ele_ngi(u,ele)) :: drag_coefficient
-               real, dimension(ele_ngi(u,ele)) :: magnitude ! |v_f - v_p|
+               real, dimension(ele_ngi(u,ele)) :: particle_re_gi ! Particle Reynolds number
+               real, dimension(ele_ngi(u,ele)) :: drag_coefficient_gi
+               real, dimension(ele_ngi(u,ele)) :: magnitude_gi ! |v_f - v_p|
                
                real, dimension(ele_ngi(u,ele)) :: K
                real, dimension(ele_ngi(u,ele)) :: drag_force_big_m
@@ -476,34 +485,53 @@
          
                ! Compute the magnitude of the relative velocity
                do gi = 1, ele_ngi(u,ele)
-                  magnitude(gi) = norm2(nu_fluid_gi(:,gi) - nu_particle_gi(:,gi))
+                  magnitude_gi(gi) = norm2(nu_fluid_gi(:,gi) - nu_particle_gi(:,gi))
                end do
 
                ! Compute the particle Reynolds number
                ! (Assumes isotropic viscosity for now)
-               particle_re = (vfrac_fluid_gi*density_fluid_gi*magnitude*d) / viscosity_fluid_gi(1,1,:)
+               particle_re_gi = (vfrac_fluid_gi*density_fluid_gi*magnitude_gi*d) / viscosity_fluid_gi(1,1,:)
            
                ! Compute the drag coefficient
-               do gi = 1, ele_ngi(u,ele)
-                  if(particle_re(gi) < 1000) then
-                     drag_coefficient(gi) = (24.0/particle_re(gi))
-                     ! For the Wen & Yu (1966) drag term, this should be:
-                     ! drag_coefficient(gi) = (24.0/particle_re(gi))*(1.0+0.15*particle_re(gi)**0.687)
-                  else
-                     drag_coefficient(gi) = 0.44
-                  end if
-               end do
+               select case(trim(drag_correlation))
+                  case("stokes")
+                     ! Stokes drag correlation
+                     do gi = 1, ele_ngi(u,ele)
+                        if(particle_re_gi(gi) < 1000) then
+                           drag_coefficient_gi(gi) = (24.0/particle_re_gi(gi))
+                        else
+                           drag_coefficient_gi(gi) = 0.44
+                        end if
+                     end do
+                     
+                  case("wen_yu")
+                     ! Wen & Yu (1966) drag correlation
+                     do gi = 1, ele_ngi(u,ele)
+                        if(particle_re_gi(gi) < 1000) then
+                           drag_coefficient_gi(gi) = (24.0/particle_re_gi(gi))*(1.0+0.15*particle_re_gi(gi)**0.687)
+                        else
+                           drag_coefficient_gi(gi) = 0.44
+                        end if
+                     end do
+                     
+                  case("default")
+                     FLAbort("Unknown correlation for fluid-particle drag")
+               end select
                       
-               ! Don't let the drag_coefficient be NaN
+               ! Don't let the drag_coefficient_gi be NaN
                do gi = 1, ele_ngi(u,ele)
-                  if(particle_re(gi) == 0) then
-                     drag_coefficient(gi) = 1e16
+                  if(particle_re_gi(gi) == 0) then
+                     drag_coefficient_gi(gi) = 1e16
                   end if
                end do
            
-               ! For the Wen & Yu (1966) drag term, this should be:
-               ! K = vfrac_particle_gi*(3.0/4.0)*drag_coefficient*(vfrac_fluid_gi*density_fluid_gi*magnitude)/(d*vfrac_fluid_gi**2.7)
-               K = vfrac_particle_gi*(3.0/4.0)*drag_coefficient*(vfrac_fluid_gi*density_fluid_gi*magnitude)/(d)
+               select case(trim(drag_correlation))
+                  case("stokes")
+                     K = vfrac_particle_gi*(3.0/4.0)*drag_coefficient_gi*(vfrac_fluid_gi*density_fluid_gi*magnitude_gi)/(d)
+                  case("wen_yu")
+                     ! Wen & Yu (1966) drag term
+                     K = vfrac_particle_gi*(3.0/4.0)*drag_coefficient_gi*(vfrac_fluid_gi*density_fluid_gi*magnitude_gi)/(d*vfrac_fluid_gi**2.7)
+               end select               
                
                if(is_particle_phase) then
                   drag_force_big_m = -K
