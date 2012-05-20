@@ -1251,7 +1251,7 @@ contains
     
     ! Advection
     if(have_advection .and. integrate_advection_by_parts) &
-      call add_advection_face_cg(face, bc_type, t, t_bc, velocity, grid_velocity, density, olddensity, detwei, normal, matrix_addto, rhs_addto)
+      call add_advection_face_cg(face, bc_type, t, t_bc, velocity, grid_velocity, density, olddensity, nvfrac, detwei, normal, matrix_addto, rhs_addto)
     
     ! Diffusivity
     if(have_diffusivity) call add_diffusivity_face_cg(face, bc_type, t, t_bc, t_bc_2, detwei, matrix_addto, rhs_addto)
@@ -1264,7 +1264,7 @@ contains
     
   end subroutine assemble_advection_diffusion_face_cg
   
-  subroutine add_advection_face_cg(face, bc_type, t, t_bc, velocity, grid_velocity, density, olddensity, detwei, normal, matrix_addto, rhs_addto)
+  subroutine add_advection_face_cg(face, bc_type, t, t_bc, velocity, grid_velocity, density, olddensity, nvfrac, detwei, normal, matrix_addto, rhs_addto)
     integer, intent(in) :: face
     integer, intent(in) :: bc_type
     type(scalar_field), intent(in) :: t
@@ -1273,6 +1273,7 @@ contains
     type(vector_field), pointer :: grid_velocity
     type(scalar_field), intent(in) :: density
     type(scalar_field), intent(in) :: olddensity
+    type(scalar_field), intent(in) :: nvfrac
     real, dimension(face_ngi(t, face)), intent(in) :: detwei
     real, dimension(mesh_dim(t), face_ngi(t, face)), intent(in) :: normal
     real, dimension(face_loc(t, face), face_loc(t, face)), intent(inout) :: matrix_addto
@@ -1297,8 +1298,12 @@ contains
     case(FIELD_EQUATION_INTERNALENERGY)
       density_at_quad = density_theta*face_val_at_quad(density, face) &
                        +(1.0-density_theta)*face_val_at_quad(olddensity, face)
-
-      advection_mat = shape_shape(t_shape, t_shape, detwei * sum(velocity_at_quad * normal, 1) * density_at_quad)
+                       
+      if(multiphase) then
+         advection_mat = shape_shape(t_shape, t_shape, detwei * sum(velocity_at_quad * normal, 1) * density_at_quad * face_val_at_quad(nvfrac, face))
+      else
+         advection_mat = shape_shape(t_shape, t_shape, detwei * sum(velocity_at_quad * normal, 1) * density_at_quad)
+      end if
     case default
       
       advection_mat = shape_shape(t_shape, t_shape, detwei * sum(velocity_at_quad * normal, 1))
