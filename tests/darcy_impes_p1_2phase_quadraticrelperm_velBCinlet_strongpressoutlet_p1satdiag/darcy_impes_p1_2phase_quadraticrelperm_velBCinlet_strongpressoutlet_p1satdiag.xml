@@ -458,6 +458,16 @@ from fluidity_tools import stat_parser
 s = stat_parser("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_3d_A.stat")
 sum_sat_relpermupwind_integral_3d_A = s["Phase1"]["SumSaturation"]["integral"][-1]
     </variable>
+    <variable name="v_tot_mag_max_relpermupwind_1d_A" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_1d_A.stat")
+v_tot_mag_max_relpermupwind_1d_A = s["Phase1"]["TotalDarcyVelocity%magnitude"]["max"][-1]
+    </variable>    
+    <variable name="v_tot_mag_min_relpermupwind_1d_A" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_1d_A.stat")
+v_tot_mag_min_relpermupwind_1d_A = s["Phase1"]["TotalDarcyVelocity%magnitude"]["min"][-1]
+    </variable>    
 
 
 
@@ -802,6 +812,16 @@ from fluidity_tools import stat_parser
 s = stat_parser("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_3d_A.stat")
 sum_sat_modrelpermupwind_satfesweby_integral_3d_A = s["Phase1"]["SumSaturation"]["integral"][-1]
     </variable>
+    <variable name="v_tot_mag_max_modrelpermupwind_satfesweby_1d_A" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_1d_A.stat")
+v_tot_mag_max_modrelpermupwind_satfesweby_1d_A = s["Phase1"]["TotalDarcyVelocity%magnitude"]["max"][-1]
+    </variable>    
+    <variable name="v_tot_mag_min_modrelpermupwind_satfesweby_1d_A" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_1d_A.stat")
+v_tot_mag_min_modrelpermupwind_satfesweby_1d_A = s["Phase1"]["TotalDarcyVelocity%magnitude"]["min"][-1]
+    </variable>
     <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
@@ -958,6 +978,12 @@ assert abs(sum_sat_relpermupwind_min_3d_A - 1.0) &lt; 1.0e-08
 print 'difference: ',abs(sum_sat_relpermupwind_integral_3d_A - 1.0)
 assert abs(sum_sat_relpermupwind_integral_3d_A - 1.0) &lt; 1.0e-08
     </test>
+    <test name="Check v_tot_mag_max_relpermupwind_1d_A is 1.0 with tolerance 1.0e-08" language="python">
+assert abs(v_tot_mag_max_relpermupwind_1d_A - 1.0) &lt; 1.0e-08
+    </test>
+    <test name="Check v_tot_mag_min_relpermupwind_1d_A is 1.0 with tolerance 1.0e-08" language="python">
+assert abs(v_tot_mag_min_relpermupwind_1d_A - 1.0) &lt; 1.0e-08
+    </test>
 
 
     <test name="AB_FE_L2Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d: 1.2 gt order lt 1.4" language="python">
@@ -1105,6 +1131,12 @@ assert abs(sum_sat_modrelpermupwind_satfesweby_min_3d_A - 1.0) &lt; 1.0e-08
     <test name="Check sum_sat_integral using modrelpermupwind_satfesweby for 3d for mesh A is 1.0 with tolerance 1.0e-08" language="python">
 print 'difference: ',abs(sum_sat_modrelpermupwind_satfesweby_integral_3d_A - 1.0)
 assert abs(sum_sat_modrelpermupwind_satfesweby_integral_3d_A - 1.0) &lt; 1.0e-08
+    </test>
+    <test name="Check v_tot_mag_max_modrelpermupwind_satfesweby_1d_A is 1.0 with tolerance 1.0e-08" language="python">
+assert abs(v_tot_mag_max_modrelpermupwind_satfesweby_1d_A - 1.0) &lt; 1.0e-08
+    </test>
+    <test name="Check v_tot_mag_min_modrelpermupwind_satfesweby_1d_A is 1.0 with tolerance 1.0e-08" language="python">
+assert abs(v_tot_mag_min_modrelpermupwind_satfesweby_1d_A - 1.0) &lt; 1.0e-08
     </test>
   </pass_tests>
   <warn_tests>
