@@ -47,17 +47,6 @@
         </stat>
       </from_mesh>
     </mesh>
-    <mesh name="VelocityMesh">
-      <from_mesh>
-        <mesh name="PressureMesh"/>
-        <mesh_continuity>
-          <string_value>discontinuous</string_value>
-        </mesh_continuity>
-        <stat>
-          <exclude_from_stat/>
-        </stat>
-      </from_mesh>
-    </mesh>
     <mesh name="ElementWiseMesh">
       <from_mesh>
         <mesh name="CoordinateMesh"/>
@@ -69,17 +58,6 @@
             <string_value>lagrangian</string_value>
           </element_type>
         </mesh_shape>
-        <mesh_continuity>
-          <string_value>discontinuous</string_value>
-        </mesh_continuity>
-        <stat>
-          <exclude_from_stat/>
-        </stat>
-      </from_mesh>
-    </mesh>
-    <mesh name="OutputMesh">
-      <from_mesh>
-        <mesh name="PressureMesh"/>
         <mesh_continuity>
           <string_value>discontinuous</string_value>
         </mesh_continuity>
@@ -107,7 +85,7 @@
         <integer_value rank="0">1</integer_value>
       </constant>
     </dump_period_in_timesteps>
-    <output_mesh name="OutputMesh"/>
+    <output_mesh name="PressureMesh"/>
     <stat>
       <output_at_start/>
     </stat>
@@ -231,7 +209,7 @@
     </scalar_field>
     <vector_field name="GradientPressure" rank="0">
       <diagnostic>
-        <mesh name="ElementWiseMesh"/>
+        <mesh name="GradientPressureMesh"/>
         <algorithm name="Internal"/>
         <stat>
           <include_cv_stats/>
@@ -241,7 +219,7 @@
     </vector_field>
     <vector_field name="DarcyVelocity" rank="0">
       <diagnostic>
-        <mesh name="VelocityMesh"/>
+        <mesh name="PressureMesh"/>
         <algorithm name="Internal"/>
         <boundary_conditions name="left">
           <surface_ids>
@@ -273,7 +251,7 @@
     </scalar_field>
     <vector_field name="TotalDarcyVelocity" rank="0">
       <diagnostic>
-        <mesh name="VelocityMesh"/>
+        <mesh name="PressureMesh"/>
         <algorithm name="Internal"/>
         <stat>
           <include_cv_stats/>
@@ -293,7 +271,7 @@
     </scalar_field>
     <scalar_field name="Mobility" rank="0">
       <diagnostic>
-        <mesh name="VelocityMesh"/>
+        <mesh name="PressureMesh"/>
         <algorithm name="Internal"/>
         <stat>
           <include_cv_stats/>
@@ -303,7 +281,7 @@
     </scalar_field>
     <scalar_field name="TotalMobility" rank="0">
       <diagnostic>
-        <mesh name="VelocityMesh"/>
+        <mesh name="PressureMesh"/>
         <algorithm name="Internal"/>
         <stat>
           <include_cv_stats/>
@@ -313,7 +291,7 @@
     </scalar_field>
     <scalar_field name="FractionalFlow" rank="0">
       <diagnostic>
-        <mesh name="VelocityMesh"/>
+        <mesh name="PressureMesh"/>
         <algorithm name="Internal"/>
         <stat>
           <include_cv_stats/>
@@ -341,21 +319,9 @@
         <consistent_interpolation/>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="SaturationOutputMesh">
-      <diagnostic>
-        <mesh name="VelocityMesh"/>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_copy" source_field_name="Saturation">
-          <allow_discontinuous_continuous_remap/>
-        </algorithm>
-        <stat>
-          <include_cv_stats/>
-        </stat>
-        <consistent_interpolation/>
-      </diagnostic>
-    </scalar_field>
     <scalar_field name="RegressionSaturation">
       <prescribed>
-        <mesh name="OutputMesh"/>
+        <mesh name="PressureMesh"/>
         <value name="WholeMesh">
           <from_file file_name="reference_solution/darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_2d_A.vtu">
             <format name="vtu">
@@ -373,21 +339,9 @@
     </scalar_field>
     <scalar_field name="RegressionSaturationError">
       <diagnostic>
-        <mesh name="OutputMesh"/>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="SaturationOutputMesh" source_field_2_name="RegressionSaturation" material_phase_support="single" source_field_1_type="scalar">
+        <mesh name="PressureMesh"/>
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="Saturation" source_field_2_name="RegressionSaturation" material_phase_support="single" source_field_1_type="scalar">
           <absolute_difference/>
-        </algorithm>
-        <stat>
-          <include_cv_stats/>
-        </stat>
-        <consistent_interpolation/>
-      </diagnostic>
-    </scalar_field>
-    <scalar_field name="PressureOutputMesh">
-      <diagnostic>
-        <mesh name="VelocityMesh"/>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_copy" source_field_name="Pressure">
-          <allow_discontinuous_continuous_remap/>
         </algorithm>
         <stat>
           <include_cv_stats/>
@@ -397,7 +351,7 @@
     </scalar_field>
     <scalar_field name="RegressionPressure">
       <prescribed>
-        <mesh name="OutputMesh"/>
+        <mesh name="PressureMesh"/>
         <value name="WholeMesh">
           <from_file file_name="reference_solution/darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_2d_A.vtu">
             <format name="vtu">
@@ -415,8 +369,8 @@
     </scalar_field>
     <scalar_field name="RegressionPressureError">
       <diagnostic>
-        <mesh name="OutputMesh"/>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="PressureOutputMesh" source_field_2_name="RegressionPressure" material_phase_support="single" source_field_1_type="scalar">
+        <mesh name="PressureMesh"/>
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="Pressure" source_field_2_name="RegressionPressure" material_phase_support="single" source_field_1_type="scalar">
           <absolute_difference/>
         </algorithm>
         <stat>
@@ -494,7 +448,7 @@
     </scalar_field>
     <vector_field name="GradientPressure" rank="0">
       <diagnostic>
-        <mesh name="ElementWiseMesh"/>
+        <mesh name="GradientPressureMesh"/>
         <algorithm name="Internal"/>
         <stat>
           <include_cv_stats/>
@@ -504,7 +458,7 @@
     </vector_field>
     <vector_field name="DarcyVelocity" rank="0">
       <diagnostic>
-        <mesh name="VelocityMesh"/>
+        <mesh name="PressureMesh"/>
         <algorithm name="Internal"/>
         <boundary_conditions name="left">
           <surface_ids>
@@ -540,7 +494,7 @@
     </scalar_field>
     <scalar_field name="Mobility" rank="0">
       <diagnostic>
-        <mesh name="VelocityMesh"/>
+        <mesh name="PressureMesh"/>
         <algorithm name="Internal"/>
         <stat>
           <include_cv_stats/>
@@ -550,7 +504,7 @@
     </scalar_field>
     <scalar_field name="FractionalFlow" rank="0">
       <diagnostic>
-        <mesh name="VelocityMesh"/>
+        <mesh name="PressureMesh"/>
         <algorithm name="Internal"/>
         <stat>
           <include_cv_stats/>
