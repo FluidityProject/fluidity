@@ -114,23 +114,11 @@ darcy_impes_geometry =
             attribute name { "GradientPressureMesh" },
             darcy_impes_gradient_pressure_mesh_info
          },
-
-         ## The velocity mesh which is also used 
-         ## for the DarcyVelocityOverSaturation CFL number.
-         element mesh {
-            attribute name { "VelocityMesh" },
-            darcy_impes_velocity_mesh_info
-         },
          ## The element wise mesh used for porosity, 
          ## absolute permeability and phase viscosity.
          element mesh {
             attribute name { "ElementWiseMesh" },
             darcy_impes_element_wise_mesh_info
-         },
-         ## The output mesh for all fields.
-         element mesh {
-            attribute name { "OutputMesh" },
-            darcy_impes_output_mesh_info
          },
          ## Quadrature
          element quadrature {
@@ -261,25 +249,6 @@ darcy_impes_gradient_pressure_mesh_info =
    )
    
    
-darcy_impes_velocity_mesh_info =
-   (
-      ## Make mesh from existing mesh. 
-      element from_mesh {
-         comment,
-         
-         mesh_choice_pressure,
-         
-         element mesh_continuity {
-            element string_value{
-               "discontinuous"
-            }
-         },
-         
-         derived_mesh_stat_options
-      }   
-   )
-   
-   
 darcy_impes_element_wise_mesh_info =
    (
       ## Make mesh from existing mesh. 
@@ -313,25 +282,6 @@ darcy_impes_element_wise_mesh_info =
          derived_mesh_stat_options
       }      
    )
-   
-   
-darcy_impes_output_mesh_info =
-   (
-      ## Make mesh from existing mesh. 
-      element from_mesh {
-         comment,
-         
-         mesh_choice_pressure,
-         
-         element mesh_continuity {
-            element string_value{
-               "discontinuous"
-            }
-         },
-         
-         derived_mesh_stat_options
-      }   
-   )
 
 
 mesh_choice_coordinate = 
@@ -342,26 +292,24 @@ mesh_choice_coordinate =
    )
 
 
-mesh_choice_pressure = 
-   (
-      element mesh {
-         attribute name { "PressureMesh" }
-      }
-   )
-
-
-mesh_choice_output = 
-   (
-      element mesh {
-         attribute name { "OutputMesh" }
-      }
-   )
-
-
 mesh_choice_element_wise = 
    (
       element mesh {
          attribute name { "ElementWiseMesh" }
+      }
+   )
+
+
+darcy_mesh_choice = 
+   (
+      element mesh {
+         attribute name { "PressureMesh" }
+      }|
+      element mesh {
+         attribute name { "ElementWiseMesh" }
+      }|
+      element mesh {
+         attribute name { "CoordinateMesh" }
       }
    )
 
@@ -423,7 +371,7 @@ darcy_impes_io =
          ## The mesh on to which all the fields will be
          ## interpolated for VTK output.
          element output_mesh {
-            attribute name { "OutputMesh" }
+            attribute name { "PressureMesh" }
          },
          ## Options for convergence analysis.
          element convergence {
@@ -1241,7 +1189,7 @@ darcy_impes_gradient_pressure_field =
          attribute name { "GradientPressure" },
          element diagnostic {
             element mesh {
-               attribute name { "ElementWiseMesh" }      
+               attribute name { "GradientPressureMesh" }      
             },
             darcy_impes_internal_algorithm,
             darcy_impes_diagnostic_vector_field
@@ -1257,7 +1205,7 @@ darcy_impes_darcy_velocity_field =
          attribute name { "DarcyVelocity" },
          element diagnostic {
             element mesh {
-               attribute name { "VelocityMesh" }      
+               attribute name { "PressureMesh" }      
             },
             darcy_impes_internal_algorithm,
             darcy_impes_bc_velocity_field*, 
@@ -1290,7 +1238,7 @@ darcy_impes_total_darcy_velocity_field =
          attribute name { "TotalDarcyVelocity" },
          element diagnostic {
             element mesh {
-               attribute name { "VelocityMesh" }      
+               attribute name { "PressureMesh" }      
             },
             darcy_impes_internal_algorithm,
             darcy_impes_diagnostic_vector_field
@@ -1322,7 +1270,7 @@ darcy_impes_mobility_field =
          attribute name { "Mobility" },
          element diagnostic {
             element mesh {
-               attribute name { "VelocityMesh" }      
+               attribute name { "PressureMesh" }      
             },
             darcy_impes_internal_algorithm,
             darcy_impes_diagnostic_scalar_field
@@ -1338,7 +1286,7 @@ darcy_impes_total_mobility_field =
          attribute name { "TotalMobility" },
          element diagnostic {
             element mesh {
-               attribute name { "VelocityMesh" }      
+               attribute name { "PressureMesh" }      
             },
             darcy_impes_internal_algorithm,
             darcy_impes_diagnostic_scalar_field
@@ -1354,7 +1302,7 @@ darcy_impes_fractional_flow_field =
          attribute name { "FractionalFlow" },
          element diagnostic {
             element mesh {
-               attribute name { "VelocityMesh" }      
+               attribute name { "PressureMesh" }      
             },
             darcy_impes_internal_algorithm,
             darcy_impes_diagnostic_scalar_field
@@ -1385,13 +1333,13 @@ darcy_impes_generic_scalar_field =
          attribute name { xsd:string },
          (
             element prescribed {
-               velocity_mesh_choice,
+               darcy_mesh_choice,
                prescribed_scalar_field,
                darcy_impes_include_cv_stat, 
                darcy_impes_recalculation_options?
             }|
             element diagnostic {
-               velocity_mesh_choice,                     
+               darcy_mesh_choice,                     
                scalar_diagnostic_algorithms,                     
                darcy_impes_diagnostic_scalar_field, 
                darcy_impes_recalculation_options?

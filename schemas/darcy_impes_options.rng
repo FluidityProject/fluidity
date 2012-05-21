@@ -111,27 +111,12 @@ for the phase saturation and relative permeability.</a:documentation>
         <ref name="darcy_impes_gradient_pressure_mesh_info"/>
       </element>
       <element name="mesh">
-        <a:documentation>The velocity mesh which is also used 
-for the DarcyVelocityOverSaturation CFL number.</a:documentation>
-        <attribute name="name">
-          <value>VelocityMesh</value>
-        </attribute>
-        <ref name="darcy_impes_velocity_mesh_info"/>
-      </element>
-      <element name="mesh">
         <a:documentation>The element wise mesh used for porosity, 
 absolute permeability and phase viscosity.</a:documentation>
         <attribute name="name">
           <value>ElementWiseMesh</value>
         </attribute>
         <ref name="darcy_impes_element_wise_mesh_info"/>
-      </element>
-      <element name="mesh">
-        <a:documentation>The output mesh for all fields.</a:documentation>
-        <attribute name="name">
-          <value>OutputMesh</value>
-        </attribute>
-        <ref name="darcy_impes_output_mesh_info"/>
       </element>
       <element name="quadrature">
         <a:documentation>Quadrature</a:documentation>
@@ -256,19 +241,6 @@ surface or region IDs.</a:documentation>
       <ref name="derived_mesh_stat_options"/>
     </element>
   </define>
-  <define name="darcy_impes_velocity_mesh_info">
-    <element name="from_mesh">
-      <a:documentation>Make mesh from existing mesh. </a:documentation>
-      <ref name="comment"/>
-      <ref name="mesh_choice_pressure"/>
-      <element name="mesh_continuity">
-        <element name="string_value">
-          <value>discontinuous</value>
-        </element>
-      </element>
-      <ref name="derived_mesh_stat_options"/>
-    </element>
-  </define>
   <define name="darcy_impes_element_wise_mesh_info">
     <element name="from_mesh">
       <a:documentation>Make mesh from existing mesh. </a:documentation>
@@ -297,37 +269,10 @@ surface or region IDs.</a:documentation>
       <ref name="derived_mesh_stat_options"/>
     </element>
   </define>
-  <define name="darcy_impes_output_mesh_info">
-    <element name="from_mesh">
-      <a:documentation>Make mesh from existing mesh. </a:documentation>
-      <ref name="comment"/>
-      <ref name="mesh_choice_pressure"/>
-      <element name="mesh_continuity">
-        <element name="string_value">
-          <value>discontinuous</value>
-        </element>
-      </element>
-      <ref name="derived_mesh_stat_options"/>
-    </element>
-  </define>
   <define name="mesh_choice_coordinate">
     <element name="mesh">
       <attribute name="name">
         <value>CoordinateMesh</value>
-      </attribute>
-    </element>
-  </define>
-  <define name="mesh_choice_pressure">
-    <element name="mesh">
-      <attribute name="name">
-        <value>PressureMesh</value>
-      </attribute>
-    </element>
-  </define>
-  <define name="mesh_choice_output">
-    <element name="mesh">
-      <attribute name="name">
-        <value>OutputMesh</value>
       </attribute>
     </element>
   </define>
@@ -337,6 +282,25 @@ surface or region IDs.</a:documentation>
         <value>ElementWiseMesh</value>
       </attribute>
     </element>
+  </define>
+  <define name="darcy_mesh_choice">
+    <choice>
+      <element name="mesh">
+        <attribute name="name">
+          <value>PressureMesh</value>
+        </attribute>
+      </element>
+      <element name="mesh">
+        <attribute name="name">
+          <value>ElementWiseMesh</value>
+        </attribute>
+      </element>
+      <element name="mesh">
+        <attribute name="name">
+          <value>CoordinateMesh</value>
+        </attribute>
+      </element>
+    </choice>
   </define>
   <define name="darcy_impes_io">
     <element name="io">
@@ -395,7 +359,7 @@ A value of 0 indicates a dump at every timestep.</a:documentation>
         <a:documentation>The mesh on to which all the fields will be
 interpolated for VTK output.</a:documentation>
         <attribute name="name">
-          <value>OutputMesh</value>
+          <value>PressureMesh</value>
         </attribute>
       </element>
       <optional>
@@ -1148,7 +1112,7 @@ relperm_2 = sat_2**4</a:documentation>
     <element name="residual_saturations">
       <a:documentation>Specify the residual saturation for each phase in the 
 order they are given as a real input list. The default 
-values if not given is 0.0 for all phases.</a:documentation>
+values is 0.0 for all phases.</a:documentation>
       <ref name="real_vector"/>
     </element>
   </define>
@@ -1331,7 +1295,7 @@ Finite element discretisation may become unbounded so limiting is often necessar
       <element name="diagnostic">
         <element name="mesh">
           <attribute name="name">
-            <value>ElementWiseMesh</value>
+            <value>GradientPressureMesh</value>
           </attribute>
         </element>
         <ref name="darcy_impes_internal_algorithm"/>
@@ -1350,7 +1314,7 @@ Finite element discretisation may become unbounded so limiting is often necessar
       <element name="diagnostic">
         <element name="mesh">
           <attribute name="name">
-            <value>VelocityMesh</value>
+            <value>PressureMesh</value>
           </attribute>
         </element>
         <ref name="darcy_impes_internal_algorithm"/>
@@ -1391,7 +1355,7 @@ Finite element discretisation may become unbounded so limiting is often necessar
       <element name="diagnostic">
         <element name="mesh">
           <attribute name="name">
-            <value>VelocityMesh</value>
+            <value>PressureMesh</value>
           </attribute>
         </element>
         <ref name="darcy_impes_internal_algorithm"/>
@@ -1429,7 +1393,7 @@ Finite element discretisation may become unbounded so limiting is often necessar
       <element name="diagnostic">
         <element name="mesh">
           <attribute name="name">
-            <value>VelocityMesh</value>
+            <value>PressureMesh</value>
           </attribute>
         </element>
         <ref name="darcy_impes_internal_algorithm"/>
@@ -1448,7 +1412,7 @@ Finite element discretisation may become unbounded so limiting is often necessar
       <element name="diagnostic">
         <element name="mesh">
           <attribute name="name">
-            <value>VelocityMesh</value>
+            <value>PressureMesh</value>
           </attribute>
         </element>
         <ref name="darcy_impes_internal_algorithm"/>
@@ -1467,7 +1431,7 @@ Finite element discretisation may become unbounded so limiting is often necessar
       <element name="diagnostic">
         <element name="mesh">
           <attribute name="name">
-            <value>VelocityMesh</value>
+            <value>PressureMesh</value>
           </attribute>
         </element>
         <ref name="darcy_impes_internal_algorithm"/>
@@ -1501,7 +1465,7 @@ Finite element discretisation may become unbounded so limiting is often necessar
       </attribute>
       <choice>
         <element name="prescribed">
-          <ref name="velocity_mesh_choice"/>
+          <ref name="darcy_mesh_choice"/>
           <ref name="prescribed_scalar_field"/>
           <ref name="darcy_impes_include_cv_stat"/>
           <optional>
@@ -1509,7 +1473,7 @@ Finite element discretisation may become unbounded so limiting is often necessar
           </optional>
         </element>
         <element name="diagnostic">
-          <ref name="velocity_mesh_choice"/>
+          <ref name="darcy_mesh_choice"/>
           <ref name="scalar_diagnostic_algorithms"/>
           <ref name="darcy_impes_diagnostic_scalar_field"/>
           <optional>

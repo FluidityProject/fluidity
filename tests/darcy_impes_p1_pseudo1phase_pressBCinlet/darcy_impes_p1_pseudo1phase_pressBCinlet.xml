@@ -134,6 +134,96 @@ from fluidity_tools import stat_parser
 s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_3d.stat")
 sum_sat_integral_3d = s["Phase1"]["SumSaturation"]["integral"][-1]
     </variable>
+    <variable name="phase1_v_mag_max_1d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_1d.stat")
+phase1_v_mag_max_1d = s["Phase1"]["DarcyVelocity%magnitude"]["max"][-1]
+    </variable>    
+    <variable name="phase2_v_mag_max_1d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_1d.stat")
+phase2_v_mag_max_1d = s["Phase2"]["DarcyVelocity%magnitude"]["max"][-1]
+    </variable>    
+    <variable name="v_tot_mag_max_1d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_1d.stat")
+v_tot_mag_max_1d = s["Phase1"]["TotalDarcyVelocity%magnitude"]["max"][-1]
+    </variable>    
+    <variable name="phase1_v_mag_max_2d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_2d.stat")
+phase1_v_mag_max_2d = s["Phase1"]["DarcyVelocity%magnitude"]["max"][-1]
+    </variable>    
+    <variable name="phase2_v_mag_max_2d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_2d.stat")
+phase2_v_mag_max_2d = s["Phase2"]["DarcyVelocity%magnitude"]["max"][-1]
+    </variable>    
+    <variable name="v_tot_mag_max_2d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_2d.stat")
+v_tot_mag_max_2d = s["Phase1"]["TotalDarcyVelocity%magnitude"]["max"][-1]
+    </variable>    
+    <variable name="phase1_v_mag_max_3d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_3d.stat")
+phase1_v_mag_max_3d = s["Phase1"]["DarcyVelocity%magnitude"]["max"][-1]
+    </variable>    
+    <variable name="phase2_v_mag_max_3d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_3d.stat")
+phase2_v_mag_max_3d = s["Phase2"]["DarcyVelocity%magnitude"]["max"][-1]
+    </variable>    
+    <variable name="v_tot_mag_max_3d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_3d.stat")
+v_tot_mag_max_3d = s["Phase1"]["TotalDarcyVelocity%magnitude"]["max"][-1]
+    </variable>    
+    <variable name="phase1_mob_max_1d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_1d.stat")
+phase1_mob_max_1d = s["Phase1"]["Mobility"]["max"][-1]
+    </variable>    
+    <variable name="phase2_mob_max_1d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_1d.stat")
+phase2_mob_max_1d = s["Phase2"]["Mobility"]["max"][-1]
+    </variable>    
+    <variable name="mob_tot_max_1d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_1d.stat")
+mob_tot_max_1d = s["Phase1"]["TotalMobility"]["max"][-1]
+    </variable>    
+    <variable name="phase1_mob_max_2d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_2d.stat")
+phase1_mob_max_2d = s["Phase1"]["Mobility"]["max"][-1]
+    </variable>    
+    <variable name="phase2_mob_max_2d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_2d.stat")
+phase2_mob_max_2d = s["Phase2"]["Mobility"]["max"][-1]
+    </variable>    
+    <variable name="mob_tot_max_2d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_2d.stat")
+mob_tot_max_2d = s["Phase1"]["TotalMobility"]["max"][-1]
+    </variable>    
+    <variable name="phase1_mob_max_3d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_3d.stat")
+phase1_mob_max_3d = s["Phase1"]["Mobility"]["max"][-1]
+    </variable>    
+    <variable name="phase2_mob_max_3d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_3d.stat")
+phase2_mob_max_3d = s["Phase2"]["Mobility"]["max"][-1]
+    </variable>    
+    <variable name="mob_tot_max_3d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_3d.stat")
+mob_tot_max_3d = s["Phase1"]["TotalMobility"]["max"][-1]
+    </variable>        
     <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
@@ -270,6 +360,61 @@ assert abs(sum_sat_min_3d - 1.0) &lt; 1.0e-08
     <test name="Check sum_sat_integral for 3d is 2.7e+07 with relative tolerance 1.0e-08" language="python">
 print 'difference: ',abs(sum_sat_integral_3d - 2.7e+07)/2.7e+07
 assert abs(sum_sat_integral_3d - 2.7e+07)/2.7e+07 &lt; 1.0e-08
+    </test>
+    <test name="Check phase1_v_mag_max_1d equals 5.0 with tolerance 1.0e-08" language="python">
+assert abs(phase1_v_mag_max_1d - 5.0) &lt; 1.0e-08
+    </test>
+    <test name="Check phase2_v_mag_max_1d equals 5.0 with tolerance 1.0e-08" language="python">
+assert abs(phase2_v_mag_max_1d - 5.0) &lt; 1.0e-08
+    </test>
+    <test name="Check v_tot_mag_max_1d equals 10.0 with tolerance 1.0e-08" language="python">
+assert abs(v_tot_mag_max_1d - 10.0) &lt; 1.0e-08
+    </test>
+    <test name="Check phase1_v_mag_max_2d equals 5.0 with tolerance 1.0e-08" language="python">
+assert abs(phase1_v_mag_max_2d - 5.0) &lt; 1.0e-08
+    </test>
+    <test name="Check phase2_v_mag_max_2d equals 5.0 with tolerance 1.0e-08" language="python">
+assert abs(phase2_v_mag_max_2d - 5.0) &lt; 1.0e-08
+    </test>
+    <test name="Check v_tot_mag_max_2d equals 10.0 with tolerance 1.0e-08" language="python">
+assert abs(v_tot_mag_max_2d - 10.0) &lt; 1.0e-08
+    </test>
+    <test name="Check phase1_v_mag_max_3d equals 5.0 with tolerance 1.0e-08" language="python">
+assert abs(phase1_v_mag_max_3d - 5.0) &lt; 1.0e-08
+    </test>
+    <test name="Check phase2_v_mag_max_3d equals 5.0 with tolerance 1.0e-08" language="python">
+assert abs(phase2_v_mag_max_3d - 5.0) &lt; 1.0e-08
+    </test>
+    <test name="Check v_tot_mag_max_3d equals 10.0 with tolerance 1.0e-08" language="python">
+assert abs(v_tot_mag_max_3d - 10.0) &lt; 1.0e-08
+    </test>
+
+    <test name="Check phase1_mob_max_1d equals 10000.0 with tolerance 1.0e-08" language="python">
+assert abs(phase1_mob_max_1d - 10000.0) &lt; 1.0e-08
+    </test>
+    <test name="Check phase2_mob_max_1d equals 10000.0 with tolerance 1.0e-08" language="python">
+assert abs(phase2_mob_max_1d - 10000.0) &lt; 1.0e-08
+    </test>
+    <test name="Check mob_tot_max_1d equals 20000.0 with tolerance 1.0e-08" language="python">
+assert abs(mob_tot_max_1d - 20000.0) &lt; 1.0e-08
+    </test>
+    <test name="Check phase1_mob_max_2d equals 10000.0 with tolerance 1.0e-08" language="python">
+assert abs(phase1_mob_max_2d - 10000.0) &lt; 1.0e-08
+    </test>
+    <test name="Check phase2_mob_max_2d equals 10000.0 with tolerance 1.0e-08" language="python">
+assert abs(phase2_mob_max_2d - 10000.0) &lt; 1.0e-08
+    </test>
+    <test name="Check mob_tot_max_2d equals 20000.0 with tolerance 1.0e-08" language="python">
+assert abs(mob_tot_max_2d - 20000.0) &lt; 1.0e-08
+    </test>
+    <test name="Check phase1_mob_max_3d equals 10000.0 with tolerance 1.0e-08" language="python">
+assert abs(phase1_mob_max_3d - 10000.0) &lt; 1.0e-08
+    </test>
+    <test name="Check phase2_mob_max_3d equals 10000.0 with tolerance 1.0e-08" language="python">
+assert abs(phase2_mob_max_3d - 10000.0) &lt; 1.0e-08
+    </test>
+    <test name="Check mob_tot_max_3d equals 20000.0 with tolerance 1.0e-08" language="python">
+assert abs(mob_tot_max_3d - 20000.0) &lt; 1.0e-08
     </test>
   </pass_tests>
   <warn_tests>

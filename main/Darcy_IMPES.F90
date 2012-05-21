@@ -582,10 +582,9 @@ contains
       ! deduce the number of phase
       di%number_phase = size(di%state)
       
-      di%pressure_mesh             => extract_mesh(di%state(1), "PressureMesh")
-      di%gradient_pressure_mesh    => extract_mesh(di%state(1), "GradientPressureMesh")
-      di%velocity_mesh             => extract_mesh(di%state(1), "VelocityMesh")
-      di%elementwise_mesh          => extract_mesh(di%state(1), "ElementWiseMesh")
+      di%pressure_mesh          => extract_mesh(di%state(1), "PressureMesh")
+      di%gradient_pressure_mesh => extract_mesh(di%state(1), "GradientPressureMesh")
+      di%elementwise_mesh       => extract_mesh(di%state(1), "ElementWiseMesh")
       
       di%number_vele       = element_count(di%pressure_mesh)
       di%number_sele       = surface_element_count(di%pressure_mesh)
@@ -642,6 +641,7 @@ contains
       call allocate(di%cv_mass_pressure_mesh_with_porosity, di%pressure_mesh)
       call allocate(di%cv_mass_pressure_mesh_with_old_porosity, di%pressure_mesh)
       call allocate(di%cv_mass_pressure_mesh, di%pressure_mesh)
+      call allocate(di%inverse_cv_sa_pressure_mesh, di%pressure_mesh)
       
       ! Allocate a field that is always zero on the pressure mesh to be pointed 
       ! at by capilliary pressure and saturation source if not required.
@@ -725,14 +725,6 @@ contains
                   
       di%phase_one_saturation_diagnostic = have_option(trim(di%saturation(1)%ptr%option_path)//'/diagnostic')
       
-      ! Determine the inverse cv mass matrix of velocity mesh
-      call allocate(di%inverse_cv_mass_velocity_mesh, &
-                    di%velocity_mesh)
-
-      call compute_cv_mass(di%positions, di%inverse_cv_mass_velocity_mesh)
-
-      call invert(di%inverse_cv_mass_velocity_mesh)   
-
       ! Determine the inverse cv mass matrix of pressure mesh
       call allocate(di%inverse_cv_mass_pressure_mesh, &
                     di%pressure_mesh)
@@ -1079,7 +1071,11 @@ contains
       ! Calculate the relperm and density first face values
       call darcy_impes_calculate_relperm_den_first_face_values(di)
       
-      ! calculate the Darcy IMPES Velocity, Mobilities, Fractional flow and CFL fields, needs to be after the python fields
+      ! Calculate the latest inverse of the CV surface area on the pressure mesh
+      call darcy_impes_calculate_inverse_cv_sa(di)
+      
+      ! calculate the Darcy IMPES Velocity, Mobilities, Fractional flow and CFL fields 
+      ! - needs to be after the python fields and calculate the cv sa field
       call darcy_impes_calculate_vel_mob_ff_and_cfl_fields(di)
 
       ! Calculate the sum of the saturations
@@ -1195,7 +1191,6 @@ contains
       
       nullify(di%pressure_mesh)
       nullify(di%gradient_pressure_mesh)
-      nullify(di%velocity_mesh)
       nullify(di%elementwise_mesh)
 
       di%number_vele       = 0
@@ -1226,6 +1221,7 @@ contains
       call deallocate(di%cv_mass_pressure_mesh_with_porosity)
       call deallocate(di%cv_mass_pressure_mesh_with_old_porosity)
       call deallocate(di%cv_mass_pressure_mesh)
+      call deallocate(di%inverse_cv_sa_pressure_mesh)
 
       call deallocate(di%constant_zero_sfield_pmesh)
       deallocate(di%constant_zero_sfield_pmesh)
@@ -1253,7 +1249,6 @@ contains
                   
       di%phase_one_saturation_diagnostic = .false.
             
-      call deallocate(di%inverse_cv_mass_velocity_mesh)
       call deallocate(di%inverse_cv_mass_pressure_mesh)
       
       call deallocate(di%bc_surface_mesh)      
