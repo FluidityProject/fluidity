@@ -745,7 +745,18 @@ def val(X,t):
           </chemical_variable>
           <chemical_variable name="NtoC"/>
           <chemical_variable name="C_fuel"/>
-          <chemical_variable name="Nitrogen"/>
+          <chemical_variable name="Nitrogen">
+            <scalar_field name="Particulate">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
+            </scalar_field>
+          </chemical_variable>
           <chemical_variable name="ChltoC"/>
         </variables>
         <initial_state>
@@ -1047,6 +1058,16 @@ def val(biovars, env, dt):
                 </detectors>
               </diagnostic>
               <stage_aggregate/>
+            </scalar_field>
+            <scalar_field name="Ingested">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
             </scalar_field>
           </chemical_variable>
           <chemical_variable name="Nitrate">
@@ -1371,6 +1392,260 @@ params['surface_irradiance'] = persistent['physics_irrad_interp'](0.0)
 
 def val(agent, env, dt):
   lerm.update_N3_Copepod(params, agent, env, dt)
+  return agent</string_value>
+              </python>
+            </biology>
+          </stage>
+          <stage name="N4">
+            <biology>
+              <python>
+                <string_value lines="20" type="code" language="python">from __builtin__ import str
+import fluidity.lerm_ps as lerm
+import math
+params = {}
+params.update( lerm.species_Default_Copepod_Variety )
+params.update( lerm.foodset_Default_Copepod_Variety_P )
+params['MLDepth'] = persistent['physics_mld']
+params['surface_irradiance'] = persistent['physics_irrad_interp'](0.0)
+
+def val(agent, env, dt):
+  lerm.update_N4_Copepod(params, agent, env, dt)
+  return agent</string_value>
+              </python>
+            </biology>
+          </stage>
+          <stage name="N5">
+            <biology>
+              <python>
+                <string_value lines="20" type="code" language="python">from __builtin__ import str
+import fluidity.lerm_ps as lerm
+import math
+params = {}
+params.update( lerm.species_Default_Copepod_Variety )
+params.update( lerm.foodset_Default_Copepod_Variety_P )
+params['MLDepth'] = persistent['physics_mld']
+params['surface_irradiance'] = persistent['physics_irrad_interp'](0.0)
+
+def val(agent, env, dt):
+  lerm.update_N5_Copepod(params, agent, env, dt)
+  return agent</string_value>
+              </python>
+            </biology>
+          </stage>
+          <stage name="N6">
+            <biology>
+              <python>
+                <string_value lines="20" type="code" language="python">from __builtin__ import str
+import fluidity.lerm_ps as lerm
+import math
+params = {}
+params.update( lerm.species_Default_Copepod_Variety )
+params.update( lerm.foodset_Default_Copepod_Variety_P )
+params['MLDepth'] = persistent['physics_mld']
+params['surface_irradiance'] = persistent['physics_irrad_interp'](0.0)
+
+def val(agent, env, dt):
+  lerm.update_N6_Copepod(params, agent, env, dt)
+  return agent</string_value>
+              </python>
+            </biology>
+          </stage>
+          <stage name="C1">
+            <biology>
+              <python>
+                <string_value lines="20" type="code" language="python">from __builtin__ import str
+import fluidity.lerm_ps as lerm
+import math
+params = {}
+params.update( lerm.species_Default_Copepod_Variety )
+params.update( lerm.foodset_Default_Copepod_Variety_P )
+params['MLDepth'] = persistent['physics_mld']
+params['surface_irradiance'] = persistent['physics_irrad_interp'](0.0)
+
+def val(agent, env, dt):
+  lerm.update_C1_Copepod(params, agent, env, dt)
+  return agent</string_value>
+              </python>
+            </biology>
+          </stage>
+          <stage name="C2">
+            <biology>
+              <python>
+                <string_value lines="20" type="code" language="python">from __builtin__ import str
+import fluidity.lerm_ps as lerm
+import math
+params = {}
+params.update( lerm.species_Default_Copepod_Variety )
+params.update( lerm.foodset_Default_Copepod_Variety_P )
+params['MLDepth'] = persistent['physics_mld']
+params['surface_irradiance'] = persistent['physics_irrad_interp'](0.0)
+
+def val(agent, env, dt):
+  lerm.update_C2_Copepod(params, agent, env, dt)
+  return agent</string_value>
+              </python>
+            </biology>
+          </stage>
+          <stage name="C3">
+            <biology>
+              <python>
+                <string_value lines="20" type="code" language="python">from __builtin__ import str
+import fluidity.lerm_ps as lerm
+import math
+params = {}
+params.update( lerm.species_Default_Copepod_Variety )
+params.update( lerm.foodset_Default_Copepod_Variety_P )
+params['MLDepth'] = persistent['physics_mld']
+params['surface_irradiance'] = persistent['physics_irrad_interp'](0.0)
+params['d_year'] = math.floor((persistent['physics_time'] / (3600. * 24.)) + 1.25)
+
+def val(agent, env, dt):
+  lerm.update_C3_Copepod(params, agent, env, dt)
+  return agent</string_value>
+              </python>
+            </biology>
+          </stage>
+          <stage name="C4">
+            <biology>
+              <python>
+                <string_value lines="20" type="code" language="python">from __builtin__ import str
+import fluidity.lerm_ps as lerm
+import math
+params = {}
+params.update( lerm.species_Default_Copepod_Variety )
+params.update( lerm.foodset_Default_Copepod_Variety_P )
+params['MLDepth'] = persistent['physics_mld']
+params['surface_irradiance'] = persistent['physics_irrad_interp'](0.0)
+
+def val(agent, env, dt):
+  lerm.update_C4_Copepod(params, agent, env, dt)
+  return agent</string_value>
+              </python>
+            </biology>
+          </stage>
+          <stage name="POW4">
+            <biology>
+              <python>
+                <string_value lines="20" type="code" language="python">from __builtin__ import str
+import fluidity.lerm_ps as lerm
+import math
+params = {}
+params.update( lerm.species_Default_Copepod_Variety )
+params.update( lerm.foodset_Default_Copepod_Variety_P )
+params['MLDepth'] = persistent['physics_mld']
+params['surface_irradiance'] = persistent['physics_irrad_interp'](0.0)
+params['d_year'] = math.floor((persistent['physics_time'] / (3600. * 24.)) + 1.25)
+
+def val(agent, env, dt):
+  lerm.update_POW4_Copepod(params, agent, env, dt)
+  return agent</string_value>
+              </python>
+            </biology>
+          </stage>
+          <stage name="OWD4">
+            <biology>
+              <python>
+                <string_value lines="20" type="code" language="python">from __builtin__ import str
+import fluidity.lerm_ps as lerm
+import math
+params = {}
+params.update( lerm.species_Default_Copepod_Variety )
+params.update( lerm.foodset_Default_Copepod_Variety_P )
+params['MLDepth'] = persistent['physics_mld']
+params['surface_irradiance'] = persistent['physics_irrad_interp'](0.0)
+
+def val(agent, env, dt):
+  lerm.update_OWD4_Copepod(params, agent, env, dt)
+  return agent</string_value>
+              </python>
+            </biology>
+          </stage>
+          <stage name="C4OW">
+            <biology>
+              <python>
+                <string_value lines="20" type="code" language="python">from __builtin__ import str
+import fluidity.lerm_ps as lerm
+import math
+params = {}
+params.update( lerm.species_Default_Copepod_Variety )
+params.update( lerm.foodset_Default_Copepod_Variety_P )
+params['MLDepth'] = persistent['physics_mld']
+params['surface_irradiance'] = persistent['physics_irrad_interp'](0.0)
+
+def val(agent, env, dt):
+  lerm.update_C4OW_Copepod(params, agent, env, dt)
+  return agent</string_value>
+              </python>
+            </biology>
+          </stage>
+          <stage name="POW5">
+            <biology>
+              <python>
+                <string_value lines="20" type="code" language="python">from __builtin__ import str
+import fluidity.lerm_ps as lerm
+import math
+params = {}
+params.update( lerm.species_Default_Copepod_Variety )
+params.update( lerm.foodset_Default_Copepod_Variety_P )
+params['MLDepth'] = persistent['physics_mld']
+params['surface_irradiance'] = persistent['physics_irrad_interp'](0.0)
+params['d_year'] = math.floor((persistent['physics_time'] / (3600. * 24.)) + 1.25)
+
+def val(agent, env, dt):
+  lerm.update_POW5_Copepod(params, agent, env, dt)
+  return agent</string_value>
+              </python>
+            </biology>
+          </stage>
+          <stage name="OWD5">
+            <biology>
+              <python>
+                <string_value lines="20" type="code" language="python">from __builtin__ import str
+import fluidity.lerm_ps as lerm
+import math
+params = {}
+params.update( lerm.species_Default_Copepod_Variety )
+params.update( lerm.foodset_Default_Copepod_Variety_P )
+params['MLDepth'] = persistent['physics_mld']
+params['surface_irradiance'] = persistent['physics_irrad_interp'](0.0)
+
+def val(agent, env, dt):
+  lerm.update_OWD5_Copepod(params, agent, env, dt)
+  return agent</string_value>
+              </python>
+            </biology>
+          </stage>
+          <stage name="OW4">
+            <biology>
+              <python>
+                <string_value lines="20" type="code" language="python">from __builtin__ import str
+import fluidity.lerm_ps as lerm
+import math
+params = {}
+params.update( lerm.species_Default_Copepod_Variety )
+params.update( lerm.foodset_Default_Copepod_Variety_P )
+params['MLDepth'] = persistent['physics_mld']
+params['surface_irradiance'] = persistent['physics_irrad_interp'](0.0)
+params['d_year'] = math.floor((persistent['physics_time'] / (3600. * 24.)) + 1.25)
+
+def val(agent, env, dt):
+  lerm.update_OW4_Copepod(params, agent, env, dt)
+  return agent</string_value>
+              </python>
+            </biology>
+          </stage>
+          <stage name="OWA4">
+            <biology>
+              <python>
+                <string_value lines="20" type="code" language="python">from __builtin__ import str
+import fluidity.lerm_ps as lerm
+params = {}
+params.update( lerm.species_Default_Copepod_Variety )
+params.update( lerm.foodset_Default_Copepod_Variety_P )
+params['Max_MLD'] = max(persistent['physics_mld_history'])
+
+def val(agent, env, dt):  
+  lerm.update_OWA4_Copepod(params, agent, env, dt)
   return agent</string_value>
               </python>
             </biology>
@@ -1717,311 +1992,19 @@ def val(agent, env, dt):
           <food_type name="Mature"/>
           <food_type name="Senescent"/>
           <food_type name="N3"/>
-        </food_set>
-        <scalar_field name="Agents">
-          <diagnostic>
-            <algorithm name="Internal" material_phase_support="multiple"/>
-            <output/>
-            <stat/>
-            <detectors>
-              <include_in_detectors/>
-            </detectors>
-          </diagnostic>
-        </scalar_field>
-      </functional_group>
-      <functional_group name="Predator">
-        <variables>
-          <state_variable name="Stage"/>
-          <state_variable name="Size">
-            <scalar_field name="Ensemble">
-              <diagnostic>
-                <algorithm name="Internal" material_phase_support="multiple"/>
-                <output/>
-                <stat/>
-                <detectors>
-                  <include_in_detectors/>
-                </detectors>
-              </diagnostic>
-              <stage_aggregate/>
-            </scalar_field>
-          </state_variable>
-          <state_variable name="z">
-            <include_in_motion/>
-          </state_variable>
-          <state_variable name="S_t">
-            <include_in_io/>
-          </state_variable>
-          <state_variable name="V_m">
-            <include_in_motion/>
-          </state_variable>
-          <chemical_variable name="Ammonium">
-            <scalar_field name="Particulate">
-              <diagnostic>
-                <algorithm name="Internal" material_phase_support="multiple"/>
-                <output/>
-                <stat/>
-                <detectors>
-                  <include_in_detectors/>
-                </detectors>
-              </diagnostic>
-              <stage_aggregate/>
-            </scalar_field>
-            <scalar_field name="Ingested">
-              <diagnostic>
-                <algorithm name="Internal" material_phase_support="multiple"/>
-                <output/>
-                <stat/>
-                <detectors>
-                  <include_in_detectors/>
-                </detectors>
-              </diagnostic>
-              <stage_aggregate/>
-            </scalar_field>
-          </chemical_variable>
-          <chemical_variable name="Nitrate">
-            <scalar_field name="Particulate">
-              <diagnostic>
-                <algorithm name="Internal" material_phase_support="multiple"/>
-                <output/>
-                <stat/>
-                <detectors>
-                  <include_in_detectors/>
-                </detectors>
-              </diagnostic>
-              <stage_aggregate/>
-            </scalar_field>
-            <scalar_field name="Ingested">
-              <diagnostic>
-                <algorithm name="Internal" material_phase_support="multiple"/>
-                <output/>
-                <stat/>
-                <detectors>
-                  <include_in_detectors/>
-                </detectors>
-              </diagnostic>
-              <stage_aggregate/>
-            </scalar_field>
-          </chemical_variable>
-          <chemical_variable name="Silicate">
-            <scalar_field name="Particulate">
-              <diagnostic>
-                <algorithm name="Internal" material_phase_support="multiple"/>
-                <output/>
-                <stat/>
-                <detectors>
-                  <include_in_detectors/>
-                </detectors>
-              </diagnostic>
-              <stage_aggregate/>
-            </scalar_field>
-            <scalar_field name="Ingested">
-              <diagnostic>
-                <algorithm name="Internal" material_phase_support="multiple"/>
-                <output/>
-                <stat/>
-                <detectors>
-                  <include_in_detectors/>
-                </detectors>
-              </diagnostic>
-              <stage_aggregate/>
-            </scalar_field>
-          </chemical_variable>
-          <chemical_variable name="Carbon">
-            <scalar_field name="Particulate">
-              <diagnostic>
-                <algorithm name="Internal" material_phase_support="multiple"/>
-                <output/>
-                <stat/>
-                <detectors>
-                  <include_in_detectors/>
-                </detectors>
-              </diagnostic>
-              <stage_aggregate/>
-            </scalar_field>
-            <scalar_field name="Ingested">
-              <diagnostic>
-                <algorithm name="Internal" material_phase_support="multiple"/>
-                <output/>
-                <stat/>
-                <detectors>
-                  <include_in_detectors/>
-                </detectors>
-              </diagnostic>
-            </scalar_field>
-          </chemical_variable>
-          <chemical_variable name="Nitrogen">
-            <scalar_field name="Particulate">
-              <diagnostic>
-                <algorithm name="Internal" material_phase_support="multiple"/>
-                <output/>
-                <stat/>
-                <detectors>
-                  <include_in_detectors/>
-                </detectors>
-              </diagnostic>
-            </scalar_field>
-            <scalar_field name="Ingested">
-              <diagnostic>
-                <algorithm name="Internal" material_phase_support="multiple"/>
-                <output/>
-                <stat/>
-                <detectors>
-                  <include_in_detectors/>
-                </detectors>
-              </diagnostic>
-            </scalar_field>
-          </chemical_variable>
-        </variables>
-        <initial_state>
-          <number_of_agents>
-            <integer_value rank="0">100</integer_value>
-          </number_of_agents>
-          <position>
-            <string_value lines="20" type="code" language="python">def val(t):
-  from numpy import arange
-  # 100 agents, evenly spaced in [0:100]m
-  positions = arange(-99.5,0.,1.0).reshape(100,1)
-  return positions</string_value>
-          </position>
-          <biology>
-            <string_value lines="20" type="code" language="python">from lebiology import stage_id
-
-def val(agent):
-  agent['Stage'] = stage_id('Predator', 'Existance')
-  agent['Size'] = 1.0
-  return agent</string_value>
-          </biology>
-        </initial_state>
-        <movement>
-          <subcycles>
-            <integer_value rank="0">1</integer_value>
-          </subcycles>
-          <search_tolerance>
-            <real_value rank="0">1.0e-10</real_value>
-          </search_tolerance>
-          <reflect_on_boundary/>
-          <geometric_tracking/>
-          <random_walk name="Copepod_rnd_Vm_z">
-            <python>
-              <string_value lines="20" type="code" language="python">from __builtin__ import abs, str
-from numpy import random
-
-mld = abs(persistent['physics_mld'])
-
-def val(position, vars, dt):
-  z = abs(position[0])
-  v = -vars['V_m']
-  if z &lt;= mld:
-    rnd = random.uniform(0.,mld, 1)
-    v = v - (rnd - z)
-  vars['z'] = abs(position[0] + v)
-  return [ v ]</string_value>
-            </python>
-          </random_walk>
-        </movement>
-        <environment>
-          <field name="Temperature"/>
-          <field name="Irradiance"/>
-        </environment>
-        <stages>
-          <stage name="Existance">
-            <biology>
-              <python>
-                <string_value lines="20" type="code" language="python">from __builtin__ import str
-import fluidity.lerm_ps as lerm
-import math
-params = {}
-params.update( lerm.species_Default_Predator_Variety )
-params.update( lerm.foodset_Default_Predator_Variety_P )
-params['d_year'] = (persistent['physics_time'] / (3600. * 24.)) + 1.
-d_max = 221.
-s_0 = 15.
-p = 0.07
-
-def val(agent, env, dt):
-  agent['S_t'] = (s_0 * math.pow(p + 1., params['d_year']-params['d_0']) ) if (params['d_0'] &lt; params['d_year'] and params['d_year'] &lt; d_max) else 0.0
-  lerm.update_Existance_Predator(params, agent, env, dt)
-  return agent</string_value>
-              </python>
-            </biology>
-          </stage>
-          <stage name="Pellet">
-            <biology>
-              <python>
-                <string_value lines="20" type="code" language="python">from __builtin__ import str
-import fluidity.lerm_ps as lerm
-params = {}
-params.update( lerm.species_Default_Predator_Variety )
-params.update( lerm.foodset_Default_Predator_Variety_P )
-
-def val(agent, env, dt):
-  lerm.update_Pellet_Predator(params, agent, env, dt)
-  return agent</string_value>
-              </python>
-            </biology>
-            <particle_management>
-              <period_in_timesteps>
-                <integer_value rank="0">1</integer_value>
-              </period_in_timesteps>
-              <maximum>
-                <constant>
-                  <real_value rank="0">1.0</real_value>
-                </constant>
-              </maximum>
-            </particle_management>
-          </stage>
-        </stages>
-        <food_set functional_group="Copepod" name="P">
-          <scalar_field name="Concentration">
-            <diagnostic>
-              <algorithm name="Internal" material_phase_support="multiple"/>
-              <output/>
-              <stat/>
-              <detectors>
-                <include_in_detectors/>
-              </detectors>
-            </diagnostic>
-          </scalar_field>
-          <scalar_field name="Request">
-            <diagnostic>
-              <algorithm name="Internal" material_phase_support="multiple"/>
-              <output/>
-              <stat/>
-              <detectors>
-                <include_in_detectors/>
-              </detectors>
-            </diagnostic>
-            <stage_aggregate/>
-            <include_in_io/>
-          </scalar_field>
-          <scalar_field name="Depletion">
-            <diagnostic>
-              <algorithm name="Internal" material_phase_support="multiple"/>
-              <output/>
-              <stat/>
-              <detectors>
-                <include_in_detectors/>
-              </detectors>
-            </diagnostic>
-          </scalar_field>
-          <scalar_field name="IngestedCells">
-            <diagnostic>
-              <algorithm name="Internal" material_phase_support="multiple"/>
-              <output/>
-              <stat/>
-              <detectors>
-                <include_in_detectors/>
-              </detectors>
-            </diagnostic>
-            <include_in_io/>
-          </scalar_field>
-          <food_type name="OWA5"/>
-          <food_type name="C5"/>
-          <food_type name="C6"/>
-          <food_type name="Adult"/>
-          <food_type name="Mature"/>
-          <food_type name="Senescent"/>
-          <food_type name="N3"/>
+          <food_type name="N4"/>
+          <food_type name="N5"/>
+          <food_type name="N6"/>
+          <food_type name="C1"/>
+          <food_type name="C2"/>
+          <food_type name="C3"/>
+          <food_type name="C4"/>
+          <food_type name="OWD4"/>
+          <food_type name="C4OW"/>
+          <food_type name="POW5"/>
+          <food_type name="POW4"/>
+          <food_type name="OWA4"/>
+          <food_type name="OWD5"/>
         </food_set>
         <scalar_field name="Agents">
           <diagnostic>

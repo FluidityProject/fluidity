@@ -509,13 +509,6 @@ class FGroup:
       file.write("  " + eq_code + "\n")
 
 ### Main model parsing ###
-fg_write_stages = {
-  "Diatom" : [ "Living", "Dead" ],
-  "Copepod" : [ "Dead", "OW5", "OWA5", "C5", "C6", "Adult", "Pellet", "Mature", "Senescent", "Nauplius", "N3" ],
-  "Predator" : [ "Existance", "Pellet" ],
-  "Basal_predator" : [ "Existance", "Pellet" ]
-}
-
 filename = sys.argv[1]
 out_filename = filename.split(".")[0].strip() + '.py'
 f = open(out_filename, "w")
@@ -541,9 +534,6 @@ for fsdom in foodsets_dom.getElementsByTagName("foodset"):
 # Now create Functional Groups
 for fg in fgroup_doms:
   fgroup = FGroup(fg)
-  if not fgroup.name in fg_write_stages.keys():
-    print "  ...skipping..."
-    continue
 
   # Add species
   for s in species:
@@ -563,7 +553,6 @@ for fg in fgroup_doms:
 
   sorted_stages = sorted(fgroup.stages.iteritems(), key=lambda stage: stage[1].id)
   for (sname, stage) in sorted_stages:
-    if sname in fg_write_stages[fgroup.name]:
-      fgroup.write_update_kernel(f, stage)
+    fgroup.write_update_kernel(f, stage)
 
 
