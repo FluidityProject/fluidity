@@ -1,0 +1,47 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>spherical patch<comment>Tests gmsh reading and writing on the sphere with 2d horizontal spherical input mesh, checkpointing and flredecomp.</comment></name>
+  <owner userid="skramer"/>
+  <problem_definition length="short" nprocs="1">
+    <command_line>mpirun -np 3 fluidity -v2 -l spherical_segment.flml &amp;&amp;
+mpirun -np 3 ../../bin/flredecomp -v -l -i 3 -o 1 spherical_segment_2_checkpoint serial &amp;&amp;
+fluidity -v2 -l serial.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="volume_before" language="python">from fluidity_tools import stat_parser
+stat=stat_parser('spherical_segment.stat')
+# this only works because we don't move the free surface
+# we actually compute H \int_top \eta, i.e. the volume difference with
+# equilibrium state multiplied by depth H
+volume_before=stat['Fields']['FreeSurface']['integral']</variable>
+    <variable name="volume_after" language="python">from fluidity_tools import stat_parser
+stat=stat_parser('spherical_segment_checkpoint.stat')
+# this only works because we don't move the free surface
+# we actually compute H \int_top \eta, i.e. the volume difference with
+# equilibrium state multiplied by depth H
+volume_after=stat['Fields']['FreeSurface']['integral']</variable>
+    <variable name="solvers_converged" language="python">import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files</variable>
+    <variable name="max_velocity_before" language="python">from fluidity_tools import stat_parser
+stat=stat_parser('spherical_segment.stat')
+max_velocity_before=stat['Fields']['Velocity%magnitude']['max']</variable>
+    <variable name="max_velocity_after" language="python">from fluidity_tools import stat_parser
+stat=stat_parser('spherical_segment_checkpoint.stat')
+max_velocity_after=stat['Fields']['Velocity%magnitude']['max']</variable>
+  </variables>
+  <pass_tests>
+    <test name="volume_conservation_run1" language="python">from fluidity_tools import compare_variable
+compare_variable(volume_before[0], volume_before[-1], 1e-5)</test>
+    <test name="volume_conservation_run12" language="python">from fluidity_tools import compare_variable
+# compares volume at the end of first run with that of end first timestep second run
+compare_variable(volume_before[-1], volume_after[0], 1e-5)</test>
+    <test name="volume_conservation_run2" language="python">from fluidity_tools import compare_variable
+compare_variable(volume_after[0], volume_after[-1], 1e-5)</test>
+    <test name="solvers_converged" language="python">assert solvers_converged</test>
+    <test name="max_velocity_run1" language="python"># make sure we're actually doing something and not blowing up
+assert all(max_velocity_before&gt;0.01) and all(max_velocity_before&lt;0.02)</test>
+    <test name="max_velocity_run2" language="python"># make sure we're actually doing something and not blowing up
+assert all(max_velocity_after&gt;0.01) and all(max_velocity_after&lt;0.02)</test>
+  </pass_tests>
+</testproblem>

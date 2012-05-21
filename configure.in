@@ -371,6 +371,27 @@ if test "$USING_GFORTRAN" = "yes"; then
     cat >> confdefs.h << EOF
 #define USING_GFORTRAN 1
 EOF
+
+  # Check for -frealloc-lhs
+  # This optimisation is avaible from gfortran 4.6.? but it leads
+  # to memory leaks, see http://gcc.gnu.org/bugzilla/show_bug.cgi?id=53389
+  # so we switch it off
+  AC_MSG_CHECKING(["Checking for -fno-realloc-lhs"])
+  OLD_FCFLAGS="$FCFLAGS"
+  FCFLAGS="-fno-realloc-lhs"
+  AC_LANG_PUSH([Fortran])
+  AC_COMPILE_IFELSE(
+      [AC_LANG_PROGRAM(,[[
+                      PRINT*, "hello world"
+                      ]])],
+      [
+          AC_MSG_RESULT([-fno-realloc-lhs works, adding to FCFLAGS])
+          NO_REALLOC_LHS="-fno-realloc-lhs"
+      ])
+  FCFLAGS="$OLD_FCLAGS"
+  AC_LANG_POP()
+  FCFLAGS="$FCFLAGS $NO_REALLOC_LHS"
+  FFLAGS="$FFLAGS $NO_REALLOC_LHS"
 fi
 AC_LANG_POP([C])
 
