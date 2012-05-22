@@ -719,5 +719,8 @@ InternalEnergy needed for a Pressure of 1.013e5 = 205894.308943</comment>
     <fluid_particle_drag>
       <drag_correlation name="wen_yu"/>
     </fluid_particle_drag>
+    <heat_transfer>
+      <heat_transfer_coefficient name="gunn"/>
+    </heat_transfer>
   </multiphase_interaction>
 </fluidity_options>
