@@ -286,7 +286,7 @@ contains
                !   ascending order.
                entity_sort_list(entity,0)=entity_owner(entity)
                entity_sort_list(entity,1:size(cell%entities(d,e)%vertices))&
-                    =sorted(vertices(cell%entities(d,e)%vertices))
+                    =sorted(int(node_val(uid,vertices(cell%entities(d,e)%vertices))))
 
                ! A level 1 halo element has both owned and foreign vertices.
                if (all(entity_owner(vertices)==rank).or. &
@@ -481,7 +481,7 @@ contains
       rank=getprocno()
       local_dofs=0
 
-      if (size(mesh%shape%entity2dofs(cell%dimension-1,1)%dofs)==0) then
+      if (size(mesh%shape%entity2dofs(cell%dimension,1)%dofs)==mesh%shape%ndof) then
          data_type=HALO_TYPE_DG_NODE
       else
          data_type=HALO_TYPE_CG_NODE
