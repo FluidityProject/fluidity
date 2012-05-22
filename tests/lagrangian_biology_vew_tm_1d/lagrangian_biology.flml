@@ -491,7 +491,6 @@ for n in range(field.node_count):
                     <include_in_detectors/>
                   </detectors>
                 </diagnostic>
-                <stage_aggregate/>
               </scalar_field>
               <scalar_field name="Depletion">
                 <diagnostic>
@@ -516,7 +515,6 @@ for n in range(field.node_count):
                     <include_in_detectors/>
                   </detectors>
                 </diagnostic>
-                <stage_aggregate/>
               </scalar_field>
               <include_in_io/>
             </release>
@@ -556,7 +554,6 @@ for n in range(field.node_count):
                     <include_in_detectors/>
                   </detectors>
                 </diagnostic>
-                <stage_aggregate/>
               </scalar_field>
               <scalar_field name="Depletion">
                 <diagnostic>
@@ -607,7 +604,6 @@ for n in range(field.node_count):
                     <include_in_detectors/>
                   </detectors>
                 </diagnostic>
-                <stage_aggregate/>
               </scalar_field>
               <scalar_field name="Depletion">
                 <diagnostic>
@@ -632,7 +628,6 @@ for n in range(field.node_count):
                     <include_in_detectors/>
                   </detectors>
                 </diagnostic>
-                <stage_aggregate/>
               </scalar_field>
               <include_in_io/>
             </release>

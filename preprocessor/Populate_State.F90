@@ -1448,12 +1448,12 @@ contains
       type(functional_group), pointer, intent(inout) :: fgroup
       type(le_variable), intent(inout) :: variable
 
+      if (variable%field_type == BIOFIELD_NONE) then
+         return
+      end if
+
       if (variable%field_type == BIOFIELD_DIAG .or. &
-          variable%field_type == BIOFIELD_UPTAKE .or. &
-          variable%field_type == BIOFIELD_RELEASE .or. &
-          variable%field_type == BIOFIELD_INGESTED .or. &
-          variable%field_type == BIOFIELD_FOOD_REQUEST .or. &
-          variable%field_type == BIOFIELD_FOOD_INGEST ) then
+          variable%field_type == BIOFIELD_INGESTED ) then
 
          ! Allocate primary diagnostic fields, ie. <FG><Variable><Stage>
          do i=1, size(fgroup%stage_names%ptr)
@@ -1470,6 +1470,25 @@ contains
                    field_name=trim(variable%field_name), &
                    dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
          end if
+      end if
+
+      if (variable%field_type == BIOFIELD_FOOD_REQUEST .or. &
+          variable%field_type == BIOFIELD_UPTAKE .or. &
+          variable%field_type == BIOFIELD_RELEASE .or. &
+          variable%field_type == BIOFIELD_FOOD_INGEST ) then
+
+         ! Allocate stage-diagnostic field <FG><Variable><Stage>
+         if (variable%stage_diagnostic) then
+            call allocate_and_insert_scalar_field(trim(variable%field_path), state, &
+                   parent_mesh="BiologyMesh", &
+                   field_name=trim(variable%field_name)//trim(fgroup%stage_names%ptr(i)), &
+                   dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+         end if
+
+         ! Allocate diagnostic field <FG><Variable>
+         call allocate_and_insert_scalar_field(trim(variable%field_path), state, &
+                parent_mesh="BiologyMesh", field_name=trim(variable%field_name), &
+                dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
       end if
 
       ! Allocate global aggregated request and depletion fields

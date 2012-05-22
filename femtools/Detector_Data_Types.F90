@@ -136,6 +136,7 @@ module detector_data_types
     character(len=OPTION_PATH_LEN) :: depletion_field_path
     ! Name of chemical field associated with uptake/release variables
     character(len=FIELD_NAME_LEN) :: chemfield
+    integer :: i_chemfield
 
     ! Flag indicating whether this variables gets written to the output file
     logical :: write_to_file = .false.
@@ -145,6 +146,8 @@ module detector_data_types
     integer :: ingest_index
     ! Flag signalling path integration
     logical :: path_integration = .false.
+
+    logical :: stage_diagnostic = .false.
   end type le_variable
 
   type food_variety
@@ -252,6 +255,8 @@ module detector_data_types
     ! List of environment fields to sample before the agent update
     character(len=FIELD_NAME_LEN), dimension(:), allocatable :: envfield_names
     logical, dimension(:), allocatable :: envfield_integrate
+
+    integer, dimension(:), allocatable :: ivars_uptake, ivars_release
 
     ! Indices of all variables that are exposed to the Python motion functions
     integer, dimension(:), allocatable :: motion_var_inds
