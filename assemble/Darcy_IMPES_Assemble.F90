@@ -64,6 +64,7 @@ module darcy_impes_assemble_module
    public :: darcy_impes_type, &
              darcy_impes_cv_options_type, &
              darcy_impes_copy_to_old, &
+             darcy_impes_copy_to_iterated, &
              darcy_impes_assemble_and_solve, &
              darcy_impes_calculate_gradient_pressures, &
              darcy_impes_calculate_non_first_phase_pressures, &
@@ -174,13 +175,10 @@ module darcy_impes_assemble_module
       type(scalar_field_pointer), dimension(:), pointer :: cfl
       type(scalar_field_pointer), dimension(:), pointer :: pressure
       type(scalar_field_pointer), dimension(:), pointer :: capilliary_pressure
-      type(vector_field_pointer), dimension(:), pointer :: gradient_pressure
-      type(vector_field_pointer), dimension(:), pointer :: iterated_gradient_pressure      
       type(scalar_field_pointer), dimension(:), pointer :: density
       type(scalar_field_pointer), dimension(:), pointer :: old_density
       ! *** Pointers to fields from state that are NOT phase dependent ***
       type(mesh_type),    pointer :: pressure_mesh
-      type(mesh_type),    pointer :: gradient_pressure_mesh
       type(mesh_type),    pointer :: elementwise_mesh
       type(scalar_field), pointer :: average_pressure
       type(scalar_field), pointer :: porosity
@@ -193,6 +191,11 @@ module darcy_impes_assemble_module
       type(vector_field), pointer :: gravity_direction
       ! *** Pointer to the pressure mesh - pressure mesh sparsity, used for pressure matrix and finding CV upwind values ***
       type(csr_sparsity), pointer :: sparsity_pmesh_pmesh
+      ! *** Data associated with GradientPressure fields ***
+      type(element_type)                                :: gradient_pressure_shape
+      type(mesh_type)                                   :: gradient_pressure_mesh
+      type(vector_field_pointer), dimension(:), pointer :: gradient_pressure
+      type(vector_field_pointer), dimension(:), pointer :: iterated_gradient_pressure
       ! *** Data associated with gravity ***
       logical            :: have_gravity
       real               :: gravity_magnitude
@@ -205,6 +208,7 @@ module darcy_impes_assemble_module
       type(scalar_field) :: rhs_adv
       type(scalar_field) :: rhs_time
       type(scalar_field) :: inverse_cv_mass_pressure_mesh
+      type(scalar_field) :: cv_mass_pressure_mesh_with_saturation_source
       type(scalar_field) :: cv_mass_pressure_mesh_with_porosity   
       type(scalar_field) :: cv_mass_pressure_mesh_with_old_porosity 
       type(scalar_field) :: cv_mass_pressure_mesh
@@ -226,6 +230,7 @@ module darcy_impes_assemble_module
       type(darcy_impes_cv_options_type)       :: saturation_cv_options
       type(darcy_impes_cv_options_type)       :: relperm_cv_options
       type(darcy_impes_cv_options_type)       :: density_cv_options
+      type(darcy_impes_cv_options_type)       :: viscosity_cv_options
       type(cv_faces_type)                     :: cvfaces
       type(element_type)                      :: x_cvshape_full
       type(element_type)                      :: p_cvshape_full
@@ -297,6 +302,25 @@ module darcy_impes_assemble_module
       call set(di%cv_mass_pressure_mesh_with_old_porosity, di%cv_mass_pressure_mesh_with_porosity)
       
    end subroutine darcy_impes_copy_to_old
+
+! ----------------------------------------------------------------------------
+  
+   subroutine darcy_impes_copy_to_iterated(di)
+            
+      !!< Copy to iterated darcy impes data not associated with di%state
+
+      type(darcy_impes_type), intent(inout) :: di
+      
+      ! local variables
+      integer :: p
+      
+      do p = 1, di%number_phase
+      
+         call set(di%iterated_gradient_pressure(p)%ptr, di%gradient_pressure(p)%ptr)
+      
+      end do
+      
+   end subroutine darcy_impes_copy_to_iterated
 
 ! ----------------------------------------------------------------------------
 
@@ -476,8 +500,10 @@ module darcy_impes_assemble_module
       ewrite(1,*) 'Add phase sources to global continuity'
       
       src_phase_loop: do p = 1, di%number_phase
-      
-         call addto(di%rhs, di%saturation_source(p)%ptr)
+         
+         call compute_cv_mass(di%positions, di%cv_mass_pressure_mesh_with_saturation_source, di%saturation_source(p)%ptr)
+         
+         call addto(di%rhs, di%cv_mass_pressure_mesh_with_saturation_source)
       
       end do src_phase_loop
       
@@ -594,7 +620,7 @@ module darcy_impes_assemble_module
                                                               &x_face_quad(:,ggi), normal(:,ggi))
 
                            end if
-
+                           
                            ! Form the face value = detwei * (relperm*absperm/visc)
                            if (di%subcy_opt_sat%have .and. di%subcy_opt_sat%consistent) then
                            
@@ -817,7 +843,7 @@ module darcy_impes_assemble_module
                            end if
                            
                         else 
-                                                                                 
+                                                                               
                            ! Form the face value = detwei * (relperm*absperm/visc)
                            if (di%subcy_opt_sat%have .and. di%subcy_opt_sat%consistent) then
                            
@@ -940,7 +966,7 @@ module darcy_impes_assemble_module
       deallocate(x_face_quad)
       deallocate(grav_ele)
       deallocate(grad_cap_pressure_face_quad)
-
+      
       deallocate(grav_ele_bdy)
       deallocate(bc_sele_val)
       deallocate(inv_char_len_ele_bdy)
@@ -1768,7 +1794,9 @@ module darcy_impes_assemble_module
             call scale(di%lhs, 1.0/di%dt_subcycle)
 
             ! Add the saturation_source contribution
-            call set(di%rhs, di%saturation_source(p)%ptr)
+            call compute_cv_mass(di%positions, di%cv_mass_pressure_mesh_with_saturation_source, di%saturation_source(p)%ptr)
+            
+            call set(di%rhs, di%cv_mass_pressure_mesh_with_saturation_source)
 
             call scale(di%rhs, di%cv_mass_pressure_mesh)
 
@@ -3866,98 +3894,98 @@ visc_ele_bdy(1)
             ! loop over local nodes within this element
             nodal_loop_i: do iloc = 1, di%pressure_mesh%shape%loc
 
-              ! loop over CV faces internal to this element
-              face_loop: do face = 1, di%cvfaces%faces
+               ! loop over CV faces internal to this element
+               face_loop: do face = 1, di%cvfaces%faces
 
-                ! is this a face neighbouring iloc?
-                is_neigh: if(di%cvfaces%neiloc(iloc, face) /= 0) then
+                  ! is this a face neighbouring iloc?
+                  is_neigh: if(di%cvfaces%neiloc(iloc, face) /= 0) then
 
-                  ! find the opposing local node across the CV face
-                  oloc = di%cvfaces%neiloc(iloc, face)
+                     ! find the opposing local node across the CV face
+                     oloc = di%cvfaces%neiloc(iloc, face)
 
-                  ! loop over gauss points on face
-                  quadrature_loop: do gi = 1, di%cvfaces%shape%ngi
+                     ! loop over gauss points on face
+                     quadrature_loop: do gi = 1, di%cvfaces%shape%ngi
 
-                    ! global gauss pt index for this element
-                    ggi = (face-1)*di%cvfaces%shape%ngi + gi
+                        ! global gauss pt index for this element
+                        ggi = (face-1)*di%cvfaces%shape%ngi + gi
 
-                    ! check if this quadrature point has already been visited
-                    check_visited: if(notvisited(ggi)) then
+                        ! check if this quadrature point has already been visited
+                        check_visited: if(notvisited(ggi)) then
 
-                       notvisited(ggi) = .false.
+                           notvisited(ggi) = .false.
 
-                       if (di%cached_face_value%cached_detwei_normal) then
-                          
-                          ! cached normal has correct orientation already
-                          normgi = normal(:,ggi)
-                          
-                       else
-                       
-                          ! correct the orientation of the normal so it points away from iloc
-                          normgi = orientate_cvsurf_normgi(node_val(di%positions_pressure_mesh, x_pmesh_nodes(iloc)), &
-                                                          &x_face_quad(:,ggi), normal(:,ggi))
-                       
-                       end if
-                       
-                       ! determine if the flow is in or out of the face at this quadrature
-                       ! with respect to the normal orientation using the latest v_over_relperm
-                       v_over_relperm_dot_n = dot_product(v_over_relperm_face_quad(:,ggi), normgi)
+                           if (di%cached_face_value%cached_detwei_normal) then
 
-                       inflow = (v_over_relperm_dot_n<=0.0)
+                              ! cached normal has correct orientation already
+                              normgi = normal(:,ggi)
 
-                       income = merge(1.0,0.0,inflow)
-                       
-                       ! Evaluate the face value for relperm 
-                       call darcy_impes_evaluate_relperm_face_val(relperm_face_value, &
-                                                                  iloc, &
-                                                                  oloc, &
-                                                                  ggi, &
-                                                                  r_upwind_nodes, &
-                                                                  di%p_cvshape, &
-                                                                  relperm_ele, &
-                                                                  di%relperm_upwind, &
-                                                                  inflow, &
-                                                                  income, &
-                                                                  sat_ele, &
-                                                                  di%minimum_denominator_saturation_value, &
-                                                                  p, &
-                                                                  di%number_phase, &
-                                                                  di%relperm_corr_options, &
-                                                                  di%relperm_cv_options, &
-                                                                  save_pos = r_upwind_pos)
+                           else
 
-                       ! Evaluate the face value for saturation if required, else set to 1.0
-                       if (di%determine_saturation_face_values) then
-                       
-                          call darcy_impes_evaluate_saturation_face_val(sat_face_value, &
-                                                                        iloc, &
-                                                                        oloc, &
-                                                                        ggi, &
-                                                                        s_upwind_nodes, &
-                                                                        di%p_cvshape, &
-                                                                        sat_ele(:,p), &
-                                                                        di%saturation_upwind, &
-                                                                        inflow, &
-                                                                        income, &
-                                                                        di%saturation_cv_options, &
-                                                                        save_pos = s_upwind_pos)                          
-                       
-                       else
-                       
-                          sat_face_value = 1.0
-                                              
-                       end if
-                                              
-                       ! Cache the relperm (or modrelperm*sat) face value
-                       di%cached_face_value%relperm(isub_index,ggi,vele,p) = relperm_face_value * sat_face_value
-                                                                 
-                    end if check_visited
+                              ! correct the orientation of the normal so it points away from iloc
+                              normgi = orientate_cvsurf_normgi(node_val(di%positions_pressure_mesh, x_pmesh_nodes(iloc)), &
+                                                              &x_face_quad(:,ggi), normal(:,ggi))
 
-                  end do quadrature_loop
+                           end if
 
-                end if is_neigh
+                           ! determine if the flow is in or out of the face at this quadrature
+                           ! with respect to the normal orientation using the latest v_over_relperm
+                           v_over_relperm_dot_n = dot_product(v_over_relperm_face_quad(:,ggi), normgi)
 
-              end do face_loop
+                           inflow = (v_over_relperm_dot_n<=0.0)
+
+                           income = merge(1.0,0.0,inflow)
+
+                           ! Evaluate the face value for relperm 
+                           call darcy_impes_evaluate_relperm_face_val(relperm_face_value, &
+                                                                      iloc, &
+                                                                      oloc, &
+                                                                      ggi, &
+                                                                      r_upwind_nodes, &
+                                                                      di%p_cvshape, &
+                                                                      relperm_ele, &
+                                                                      di%relperm_upwind, &
+                                                                      inflow, &
+                                                                      income, &
+                                                                      sat_ele, &
+                                                                      di%minimum_denominator_saturation_value, &
+                                                                      p, &
+                                                                      di%number_phase, &
+                                                                      di%relperm_corr_options, &
+                                                                      di%relperm_cv_options, &
+                                                                      save_pos = r_upwind_pos)
+
+                           ! Evaluate the face value for saturation if required, else set to 1.0
+                           if (di%determine_saturation_face_values) then
+
+                              call darcy_impes_evaluate_saturation_face_val(sat_face_value, &
+                                                                            iloc, &
+                                                                            oloc, &
+                                                                            ggi, &
+                                                                            s_upwind_nodes, &
+                                                                            di%p_cvshape, &
+                                                                            sat_ele(:,p), &
+                                                                            di%saturation_upwind, &
+                                                                            inflow, &
+                                                                            income, &
+                                                                            di%saturation_cv_options, &
+                                                                            save_pos = s_upwind_pos)                          
+
+                           else
+
+                              sat_face_value = 1.0
+
+                           end if
+
+                           ! Cache the relperm (or modrelperm*sat) face value
+                           di%cached_face_value%relperm(isub_index,ggi,vele,p) = relperm_face_value * sat_face_value
+
+                        end if check_visited
+
+                     end do quadrature_loop
+
+                  end if is_neigh
+
+               end do face_loop
 
             end do nodal_loop_i
 

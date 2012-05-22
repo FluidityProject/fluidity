@@ -103,19 +103,12 @@ darcy_impes_geometry =
             attribute name { "CoordinateMesh" },
             darcy_impes_position_mesh_info
          },
-         ## The pressure mesh which is also used 
-         ## for the phase saturation and relative permeability.
+         ## The pressure mesh.
          element mesh {
             attribute name { "PressureMesh" },
             darcy_impes_pressure_mesh_info
          },
-         ## The gradient pressure mesh.
-         element mesh {
-            attribute name { "GradientPressureMesh" },
-            darcy_impes_gradient_pressure_mesh_info
-         },
-         ## The element wise mesh used for porosity, 
-         ## absolute permeability and phase viscosity.
+         ## The element wise mesh.
          element mesh {
             attribute name { "ElementWiseMesh" },
             darcy_impes_element_wise_mesh_info
@@ -125,22 +118,16 @@ darcy_impes_geometry =
             ## Quadrature degree
             ## 
             ## note: this specifies the degree of quadrature,
-            ## not the number of gauss points
+            ## not the number of gauss points.
             element degree {
-               element integer_value {
-                  attribute rank { "0" },
-                  ("1")
-               }
+               integer
             },
             ## Control volume surface quadrature degree
             ## 
             ## note: this specifies the degree of quadrature,
             ## not the number of gauss points
             element controlvolume_surface_degree {
-               element integer_value {
-                  attribute rank { "0" },
-                  ("1")
-               }
+               integer
             }
          },
          ## Disable the Jacobian geometric data cache. 
@@ -196,10 +183,7 @@ darcy_impes_pressure_mesh_info =
          element mesh_shape {
             
             element polynomial_degree {
-               element integer_value {
-                  attribute rank { "0" },
-                  ("1")
-               }
+               integer
             },
             
             element element_type {
@@ -211,41 +195,6 @@ darcy_impes_pressure_mesh_info =
          
          derived_mesh_stat_options
       }   
-   )
-   
-   
-darcy_impes_gradient_pressure_mesh_info =
-   (
-      ## Make mesh from existing mesh. 
-      element from_mesh {
-         comment,
-         
-         mesh_choice_coordinate,
-         
-         element mesh_shape {
-            
-            element polynomial_degree {
-               element integer_value {
-                  attribute rank { "0" },
-                  ("0")
-               }
-            },
-            
-            element element_type {
-              element string_value{
-                 "lagrangian"
-              }
-            }
-         },
-
-         element mesh_continuity {
-            element string_value{
-               "discontinuous"
-            }
-         },
-         
-         derived_mesh_stat_options
-      }      
    )
    
    
@@ -288,6 +237,14 @@ mesh_choice_coordinate =
    (
       element mesh {
          attribute name { "CoordinateMesh" }
+      }
+   )
+
+
+mesh_choice_pressure = 
+   (
+      element mesh {
+         attribute name { "PressureMesh" }
       }
    )
 
@@ -608,8 +565,6 @@ darcy_impes_material_phases =
          darcy_impes_viscosity_field,
          
          darcy_impes_first_phase_density_field,
-
-         darcy_impes_gradient_pressure_field,
                   
          darcy_impes_darcy_velocity_field,
          
@@ -665,8 +620,6 @@ darcy_impes_other_phase_options =
       
       darcy_impes_non_first_phase_density_field,
 
-      darcy_impes_gradient_pressure_field,
-
       darcy_impes_darcy_velocity_field,
 
       darcy_impes_darcy_velocity_CFL_field,
@@ -686,9 +639,7 @@ darcy_impes_first_phase_pressure_field =
          attribute name { "Pressure" },
          (
             element prognostic {
-               element mesh {
-                  attribute name { "PressureMesh" }      
-               },
+               mesh_choice_pressure,
                (
                   element solver {
                      attribute name { "DefaultSolverOptionsGMRESSOR" },
@@ -706,9 +657,7 @@ darcy_impes_first_phase_pressure_field =
                interpolation_algorithm_scalar
             }|
             element prescribed {
-               element mesh {
-                  attribute name { "PressureMesh" }      
-               },
+               mesh_choice_pressure,
                prescribed_scalar_field,
                darcy_impes_include_cv_stat
             }
@@ -770,9 +719,7 @@ darcy_impes_non_first_phase_pressure_field =
          attribute rank { "0" },
          attribute name { "Pressure" },
          element diagnostic {
-            element mesh {
-               attribute name { "PressureMesh" }      
-            },
+            mesh_choice_pressure,
             darcy_impes_internal_algorithm,
             darcy_impes_non_first_phase_bc_pressure_field*,
             darcy_impes_diagnostic_scalar_field
@@ -787,9 +734,7 @@ darcy_impes_capilliary_pressure_field =
          attribute rank { "0" },
          attribute name { "CapilliaryPressure" },
          element diagnostic {
-            element mesh {
-               attribute name { "PressureMesh" }      
-            },
+            mesh_choice_pressure,
             darcy_impes_scalar_python_diagnostic_algorithm,
             darcy_impes_diagnostic_scalar_field
          }
@@ -803,9 +748,7 @@ darcy_impes_average_pressure =
          attribute rank { "0" },
          attribute name { "AveragePressure" },
          element diagnostic {
-            element mesh {
-               attribute name { "PressureMesh" }      
-            },
+            mesh_choice_pressure,
             darcy_impes_internal_algorithm,
             darcy_impes_diagnostic_scalar_field
          }
@@ -820,9 +763,7 @@ darcy_impes_saturation_field_phase_one =
          attribute name { "Saturation" },
          (
             element diagnostic {
-               element mesh {
-                  attribute name { "PressureMesh" }      
-               },
+               mesh_choice_pressure,
                darcy_impes_internal_algorithm,
                darcy_impes_saturation_field_subcycling?,
                darcy_impes_saturation_field_face_value?,
@@ -831,9 +772,7 @@ darcy_impes_saturation_field_phase_one =
                darcy_impes_diagnostic_scalar_field
             }|
             element prognostic {
-               element mesh {
-                  attribute name { "PressureMesh" }      
-               },
+               mesh_choice_pressure,
                darcy_impes_saturation_field_subcycling?,
                darcy_impes_saturation_field_face_value?,
                initial_condition_scalar+,
@@ -855,9 +794,7 @@ darcy_impes_saturation_field =
          attribute rank { "0" },
          attribute name { "Saturation" },
          element prognostic {
-            element mesh {
-               attribute name { "PressureMesh" }      
-            },
+            mesh_choice_pressure,
             initial_condition_scalar+,
             darcy_impes_bc_saturation_field*,
             darcy_impes_saturation_source?,
@@ -931,16 +868,12 @@ darcy_impes_saturation_source =
          attribute name { "Source" },
          (
             element prescribed {
-               element mesh {
-                  attribute name { "PressureMesh" }      
-               },
+               mesh_choice_element_wise,
                prescribed_scalar_field_no_adapt,
                darcy_impes_include_cv_stat
             }|
             element diagnostic {
-               element mesh {
-                  attribute name { "PressureMesh" }      
-               },
+               mesh_choice_element_wise,
                darcy_impes_scalar_python_diagnostic_algorithm,
                darcy_impes_diagnostic_scalar_field
             }
@@ -955,9 +888,7 @@ darcy_impes_non_first_phase_relative_permeability_field =
          attribute rank { "0" },
          attribute name { "RelativePermeability" },
          element diagnostic {
-            element mesh {
-               attribute name { "PressureMesh" }      
-            },
+            mesh_choice_pressure,
             darcy_impes_internal_algorithm,
             darcy_impes_diagnostic_scalar_field
          }
@@ -971,9 +902,7 @@ darcy_impes_first_phase_relative_permeability_field =
          attribute rank { "0" },
          attribute name { "RelativePermeability" },
          element diagnostic {
-            element mesh {
-               attribute name { "PressureMesh" }      
-            },
+            mesh_choice_pressure,
             darcy_impes_internal_algorithm,
             darcy_impes_relperm_correlation,
             darcy_impes_relperm_field_face_value,
@@ -1096,13 +1025,18 @@ darcy_impes_viscosity_field =
       element scalar_field {
          attribute rank { "0" },
          attribute name { "Viscosity" },
-         element prescribed {
-            element mesh {
-               attribute name { "ElementWiseMesh" }      
-            },
-            prescribed_scalar_field_no_adapt,
-            darcy_impes_include_cv_stat
-         }
+         (
+            element prescribed {
+               mesh_choice_element_wise,
+               prescribed_scalar_field_no_adapt,
+               darcy_impes_include_cv_stat
+            }|
+            element diagnostic {
+               mesh_choice_element_wise,
+               darcy_impes_scalar_python_diagnostic_algorithm,
+               darcy_impes_diagnostic_scalar_field
+            }
+         )
       }
    )
 
@@ -1113,9 +1047,7 @@ darcy_impes_non_first_phase_density_field =
          attribute rank { "0" },
          attribute name { "Density" },
          element diagnostic {
-            element mesh {
-               attribute name { "PressureMesh" }      
-            },
+            mesh_choice_pressure,
             darcy_impes_internal_algorithm,
             darcy_impes_eos,
             darcy_impes_diagnostic_scalar_field
@@ -1130,9 +1062,7 @@ darcy_impes_first_phase_density_field =
          attribute rank { "0" },
          attribute name { "Density" },
          element diagnostic {
-            element mesh {
-               attribute name { "PressureMesh" }      
-            },
+            mesh_choice_pressure,
             darcy_impes_internal_algorithm,
             darcy_impes_eos,
             darcy_impes_density_field_face_value,
@@ -1180,22 +1110,6 @@ darcy_impes_eos =
          }
       }
    )
-   
-   
-darcy_impes_gradient_pressure_field =
-   (
-      element vector_field {
-         attribute rank { "0" },
-         attribute name { "GradientPressure" },
-         element diagnostic {
-            element mesh {
-               attribute name { "GradientPressureMesh" }      
-            },
-            darcy_impes_internal_algorithm,
-            darcy_impes_diagnostic_vector_field
-         }
-      }
-   )
 
 
 darcy_impes_darcy_velocity_field =
@@ -1204,9 +1118,7 @@ darcy_impes_darcy_velocity_field =
          attribute rank { "0" },
          attribute name { "DarcyVelocity" },
          element diagnostic {
-            element mesh {
-               attribute name { "PressureMesh" }      
-            },
+            mesh_choice_pressure,
             darcy_impes_internal_algorithm,
             darcy_impes_bc_velocity_field*, 
             darcy_impes_diagnostic_vector_field
@@ -1221,9 +1133,7 @@ darcy_impes_darcy_velocity_CFL_field =
          attribute rank { "0" },
          attribute name { "DarcyVelocityCFL" },
          element diagnostic {
-            element mesh {
-               attribute name { "PressureMesh" }      
-            },
+            mesh_choice_pressure,
             darcy_impes_internal_algorithm,
             darcy_impes_diagnostic_scalar_field
          }
@@ -1237,9 +1147,7 @@ darcy_impes_total_darcy_velocity_field =
          attribute rank { "0" },
          attribute name { "TotalDarcyVelocity" },
          element diagnostic {
-            element mesh {
-               attribute name { "PressureMesh" }      
-            },
+            mesh_choice_pressure,
             darcy_impes_internal_algorithm,
             darcy_impes_diagnostic_vector_field
          }
@@ -1253,9 +1161,7 @@ darcy_impes_divergence_total_darcy_velocity_field =
          attribute rank { "0" },
          attribute name { "DivergenceTotalDarcyVelocity" },
          element diagnostic {
-            element mesh {
-               attribute name { "PressureMesh" }      
-            },
+            mesh_choice_pressure,
             darcy_impes_internal_algorithm,
             darcy_impes_diagnostic_scalar_field
          }
@@ -1269,9 +1175,7 @@ darcy_impes_mobility_field =
          attribute rank { "0" },
          attribute name { "Mobility" },
          element diagnostic {
-            element mesh {
-               attribute name { "PressureMesh" }      
-            },
+            mesh_choice_pressure,
             darcy_impes_internal_algorithm,
             darcy_impes_diagnostic_scalar_field
          }
@@ -1285,9 +1189,7 @@ darcy_impes_total_mobility_field =
          attribute rank { "0" },
          attribute name { "TotalMobility" },
          element diagnostic {
-            element mesh {
-               attribute name { "PressureMesh" }      
-            },
+            mesh_choice_pressure,
             darcy_impes_internal_algorithm,
             darcy_impes_diagnostic_scalar_field
          }
@@ -1301,9 +1203,7 @@ darcy_impes_fractional_flow_field =
          attribute rank { "0" },
          attribute name { "FractionalFlow" },
          element diagnostic {
-            element mesh {
-               attribute name { "PressureMesh" }      
-            },
+            mesh_choice_pressure,
             darcy_impes_internal_algorithm,
             darcy_impes_diagnostic_scalar_field
          }
@@ -1317,9 +1217,7 @@ darcy_impes_sum_saturation =
          attribute rank { "0" },
          attribute name { "SumSaturation" },
          element diagnostic {
-            element mesh {
-               attribute name { "PressureMesh" }      
-            },
+            mesh_choice_pressure,
             darcy_impes_internal_algorithm,
             darcy_impes_diagnostic_scalar_field
          }

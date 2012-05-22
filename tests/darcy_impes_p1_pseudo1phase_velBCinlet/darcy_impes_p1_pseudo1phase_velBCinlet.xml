@@ -2,226 +2,226 @@
 <!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 
 <testproblem>
-  <name>darcy_impes_p1_pseudo1phase_pressBCinlet</name>
+  <name>darcy_impes_p1_pseudo1phase_velBCinlet</name>
   <owner userid="btollit"/>
   <tags>diml</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>
-../../bin/darcy_impes darcy_impes_p1_pseudo1phase_pressBCinlet_1d.diml 
-../../bin/darcy_impes darcy_impes_p1_pseudo1phase_pressBCinlet_2d.diml 
-../../bin/darcy_impes darcy_impes_p1_pseudo1phase_pressBCinlet_3d.diml 
+../../bin/darcy_impes darcy_impes_p1_pseudo1phase_velBCinlet_1d.diml 
+../../bin/darcy_impes darcy_impes_p1_pseudo1phase_velBCinlet_2d.diml 
+../../bin/darcy_impes darcy_impes_p1_pseudo1phase_velBCinlet_3d.diml 
     </command_line>
-    <!-- One/two/three dimensional problem for darcy flow using the IMPES solver with one region and one material using p1 element type testing the pressure gradient as well as pressure min and max against analytic using 2 phases to test a 1 phase problem. This uses a pressure BC at the inlet.-->
+    <!-- One/two/three dimensional problem for darcy flow using the IMPES solver with one region and one material testing the pressure gradient as well as pressure min and max against analytic using 2 phases to test a 1 phase problem. This problem uses a darcy velocity BC at the intlet. -->
   </problem_definition>
   <variables>
     <variable name="pressure_1d" language="python">
 import vtktools
-v = vtktools.vtu("darcy_impes_p1_pseudo1phase_pressBCinlet_1d_1.vtu")
+v = vtktools.vtu("darcy_impes_p1_pseudo1phase_velBCinlet_1d_1.vtu")
 pressure_1d = v.GetScalarRange("Phase1::Pressure")
     </variable>
     <variable name="pressure_2d" language="python">
 import vtktools
-v = vtktools.vtu("darcy_impes_p1_pseudo1phase_pressBCinlet_2d_1.vtu")
+v = vtktools.vtu("darcy_impes_p1_pseudo1phase_velBCinlet_2d_1.vtu")
 pressure_2d = v.GetScalarRange("Phase1::Pressure")
     </variable>
     <variable name="pressure_3d" language="python">
 import vtktools
-v = vtktools.vtu("darcy_impes_p1_pseudo1phase_pressBCinlet_3d_1.vtu")
+v = vtktools.vtu("darcy_impes_p1_pseudo1phase_velBCinlet_3d_1.vtu")
 pressure_3d = v.GetScalarRange("Phase1::Pressure")
     </variable>
     <variable name="phase1_sat_max_1d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_1d.stat")
+s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_1d.stat")
 phase1_sat_max_1d = s["Phase1"]["Saturation"]["max"][-1]
     </variable>    
     <variable name="phase1_sat_min_1d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_1d.stat")
+s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_1d.stat")
 phase1_sat_min_1d = s["Phase1"]["Saturation"]["min"][-1]
     </variable>    
     <variable name="phase2_sat_max_1d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_1d.stat")
+s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_1d.stat")
 phase2_sat_max_1d = s["Phase2"]["Saturation"]["max"][-1]
     </variable>    
     <variable name="phase2_sat_min_1d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_1d.stat")
+s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_1d.stat")
 phase2_sat_min_1d = s["Phase2"]["Saturation"]["min"][-1]
     </variable>    
     <variable name="sum_sat_max_1d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_1d.stat")
+s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_1d.stat")
 sum_sat_max_1d = s["Phase1"]["SumSaturation"]["max"][-1]
     </variable>    
     <variable name="sum_sat_min_1d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_1d.stat")
+s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_1d.stat")
 sum_sat_min_1d = s["Phase1"]["SumSaturation"]["min"][-1]
     </variable>
     <variable name="sum_sat_integral_1d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_1d.stat")
+s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_1d.stat")
 sum_sat_integral_1d = s["Phase1"]["SumSaturation"]["integral"][-1]
     </variable>
     <variable name="phase1_sat_max_2d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_2d.stat")
+s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_2d.stat")
 phase1_sat_max_2d = s["Phase1"]["Saturation"]["max"][-1]
     </variable>    
     <variable name="phase1_sat_min_2d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_2d.stat")
+s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_2d.stat")
 phase1_sat_min_2d = s["Phase1"]["Saturation"]["min"][-1]
     </variable>    
     <variable name="phase2_sat_max_2d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_2d.stat")
+s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_2d.stat")
 phase2_sat_max_2d = s["Phase2"]["Saturation"]["max"][-1]
     </variable>    
     <variable name="phase2_sat_min_2d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_2d.stat")
+s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_2d.stat")
 phase2_sat_min_2d = s["Phase2"]["Saturation"]["min"][-1]
     </variable>    
     <variable name="sum_sat_max_2d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_2d.stat")
+s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_2d.stat")
 sum_sat_max_2d = s["Phase1"]["SumSaturation"]["max"][-1]
     </variable>    
     <variable name="sum_sat_min_2d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_2d.stat")
+s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_2d.stat")
 sum_sat_min_2d = s["Phase1"]["SumSaturation"]["min"][-1]
     </variable>
     <variable name="sum_sat_integral_2d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_2d.stat")
+s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_2d.stat")
 sum_sat_integral_2d = s["Phase1"]["SumSaturation"]["integral"][-1]
     </variable>
     <variable name="phase1_sat_max_3d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_3d.stat")
+s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_3d.stat")
 phase1_sat_max_3d = s["Phase1"]["Saturation"]["max"][-1]
     </variable>    
     <variable name="phase1_sat_min_3d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_3d.stat")
+s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_3d.stat")
 phase1_sat_min_3d = s["Phase1"]["Saturation"]["min"][-1]
     </variable>    
     <variable name="phase2_sat_max_3d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_3d.stat")
+s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_3d.stat")
 phase2_sat_max_3d = s["Phase2"]["Saturation"]["max"][-1]
     </variable>    
     <variable name="phase2_sat_min_3d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_3d.stat")
+s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_3d.stat")
 phase2_sat_min_3d = s["Phase2"]["Saturation"]["min"][-1]
     </variable>    
     <variable name="sum_sat_max_3d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_3d.stat")
+s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_3d.stat")
 sum_sat_max_3d = s["Phase1"]["SumSaturation"]["max"][-1]
     </variable>    
     <variable name="sum_sat_min_3d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_3d.stat")
+s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_3d.stat")
 sum_sat_min_3d = s["Phase1"]["SumSaturation"]["min"][-1]
     </variable>
     <variable name="sum_sat_integral_3d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_3d.stat")
+s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_3d.stat")
 sum_sat_integral_3d = s["Phase1"]["SumSaturation"]["integral"][-1]
     </variable>
     <variable name="phase1_v_mag_max_1d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_1d.stat")
+s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_1d.stat")
 phase1_v_mag_max_1d = s["Phase1"]["DarcyVelocity%magnitude"]["max"][-1]
     </variable>    
     <variable name="phase2_v_mag_max_1d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_1d.stat")
+s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_1d.stat")
 phase2_v_mag_max_1d = s["Phase2"]["DarcyVelocity%magnitude"]["max"][-1]
     </variable>    
     <variable name="v_tot_mag_max_1d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_1d.stat")
+s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_1d.stat")
 v_tot_mag_max_1d = s["Phase1"]["TotalDarcyVelocity%magnitude"]["max"][-1]
     </variable>    
     <variable name="phase1_v_mag_max_2d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_2d.stat")
+s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_2d.stat")
 phase1_v_mag_max_2d = s["Phase1"]["DarcyVelocity%magnitude"]["max"][-1]
     </variable>    
     <variable name="phase2_v_mag_max_2d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_2d.stat")
+s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_2d.stat")
 phase2_v_mag_max_2d = s["Phase2"]["DarcyVelocity%magnitude"]["max"][-1]
     </variable>    
     <variable name="v_tot_mag_max_2d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_2d.stat")
+s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_2d.stat")
 v_tot_mag_max_2d = s["Phase1"]["TotalDarcyVelocity%magnitude"]["max"][-1]
     </variable>    
     <variable name="phase1_v_mag_max_3d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_3d.stat")
+s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_3d.stat")
 phase1_v_mag_max_3d = s["Phase1"]["DarcyVelocity%magnitude"]["max"][-1]
     </variable>    
     <variable name="phase2_v_mag_max_3d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_3d.stat")
+s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_3d.stat")
 phase2_v_mag_max_3d = s["Phase2"]["DarcyVelocity%magnitude"]["max"][-1]
     </variable>    
     <variable name="v_tot_mag_max_3d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_3d.stat")
+s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_3d.stat")
 v_tot_mag_max_3d = s["Phase1"]["TotalDarcyVelocity%magnitude"]["max"][-1]
     </variable>    
     <variable name="phase1_mob_max_1d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_1d.stat")
+s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_1d.stat")
 phase1_mob_max_1d = s["Phase1"]["Mobility"]["max"][-1]
     </variable>    
     <variable name="phase2_mob_max_1d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_1d.stat")
+s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_1d.stat")
 phase2_mob_max_1d = s["Phase2"]["Mobility"]["max"][-1]
     </variable>    
     <variable name="mob_tot_max_1d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_1d.stat")
+s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_1d.stat")
 mob_tot_max_1d = s["Phase1"]["TotalMobility"]["max"][-1]
     </variable>    
     <variable name="phase1_mob_max_2d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_2d.stat")
+s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_2d.stat")
 phase1_mob_max_2d = s["Phase1"]["Mobility"]["max"][-1]
     </variable>    
     <variable name="phase2_mob_max_2d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_2d.stat")
+s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_2d.stat")
 phase2_mob_max_2d = s["Phase2"]["Mobility"]["max"][-1]
     </variable>    
     <variable name="mob_tot_max_2d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_2d.stat")
+s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_2d.stat")
 mob_tot_max_2d = s["Phase1"]["TotalMobility"]["max"][-1]
     </variable>    
     <variable name="phase1_mob_max_3d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_3d.stat")
+s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_3d.stat")
 phase1_mob_max_3d = s["Phase1"]["Mobility"]["max"][-1]
     </variable>    
     <variable name="phase2_mob_max_3d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_3d.stat")
+s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_3d.stat")
 phase2_mob_max_3d = s["Phase2"]["Mobility"]["max"][-1]
     </variable>    
     <variable name="mob_tot_max_3d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_pseudo1phase_pressBCinlet_3d.stat")
+s = stat_parser("darcy_impes_p1_pseudo1phase_velBCinlet_3d.stat")
 mob_tot_max_3d = s["Phase1"]["TotalMobility"]["max"][-1]
     </variable>        
     <variable name="solvers_converged" language="python">

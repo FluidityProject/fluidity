@@ -28,25 +28,6 @@
         </stat>
       </from_mesh>
     </mesh>
-    <mesh name="GradientPressureMesh">
-      <from_mesh>
-        <mesh name="CoordinateMesh"/>
-        <mesh_shape>
-          <polynomial_degree>
-            <integer_value rank="0">0</integer_value>
-          </polynomial_degree>
-          <element_type>
-            <string_value>lagrangian</string_value>
-          </element_type>
-        </mesh_shape>
-        <mesh_continuity>
-          <string_value>discontinuous</string_value>
-        </mesh_continuity>
-        <stat>
-          <exclude_from_stat/>
-        </stat>
-      </from_mesh>
-    </mesh>
     <mesh name="ElementWiseMesh">
       <from_mesh>
         <mesh name="CoordinateMesh"/>
@@ -207,16 +188,6 @@
         <consistent_interpolation/>
       </diagnostic>
     </scalar_field>
-    <vector_field name="GradientPressure" rank="0">
-      <diagnostic>
-        <mesh name="GradientPressureMesh"/>
-        <algorithm name="Internal"/>
-        <stat>
-          <include_cv_stats/>
-        </stat>
-        <consistent_interpolation/>
-      </diagnostic>
-    </vector_field>
     <vector_field name="DarcyVelocity" rank="0">
       <diagnostic>
         <mesh name="PressureMesh"/>
@@ -440,16 +411,6 @@
         <consistent_interpolation/>
       </diagnostic>
     </scalar_field>
-    <vector_field name="GradientPressure" rank="0">
-      <diagnostic>
-        <mesh name="GradientPressureMesh"/>
-        <algorithm name="Internal"/>
-        <stat>
-          <include_cv_stats/>
-        </stat>
-        <consistent_interpolation/>
-      </diagnostic>
-    </vector_field>
     <vector_field name="DarcyVelocity" rank="0">
       <diagnostic>
         <mesh name="PressureMesh"/>

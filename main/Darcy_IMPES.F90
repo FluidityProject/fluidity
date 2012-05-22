@@ -88,7 +88,8 @@ program Darcy_IMPES
    use cv_options
    use FEFields
    use state_module
-   
+   use shape_functions
+     
    ! *** Use Darcy IMPES module ***
    use darcy_impes_assemble_module
       
@@ -330,9 +331,6 @@ program Darcy_IMPES
       
       ! *** Darcy IMPES set max number non linear iterations for this time step ***
       di%max_nonlinear_iter_this_timestep = nonlinear_iterations
-
-      ! *** Darcy IMPES Calculate the relperm and density first face values ***
-      call darcy_impes_calculate_relperm_den_first_face_values(di)
       
       nonlinear_iteration_loop: do its = 1,nonlinear_iterations
 
@@ -342,8 +340,14 @@ program Darcy_IMPES
          
          call copy_to_stored_values(state, "Iterated")
          
+         ! *** Darcy IMPES copy non state data to iterated ***
+         call darcy_impes_copy_to_iterated(di)         
+         
          ! *** Set the Darcy IMPES nonlinear_iter
          di%nonlinear_iter = its
+
+         ! *** Darcy IMPES Calculate the relperm and density first face values ***
+         call darcy_impes_calculate_relperm_den_first_face_values(di)
          
          ! *** Solve the Darcy equations using IMPES ***
          call darcy_impes_assemble_and_solve(di)
@@ -582,10 +586,9 @@ contains
       ! deduce the number of phase
       di%number_phase = size(di%state)
       
-      di%pressure_mesh          => extract_mesh(di%state(1), "PressureMesh")
-      di%gradient_pressure_mesh => extract_mesh(di%state(1), "GradientPressureMesh")
-      di%elementwise_mesh       => extract_mesh(di%state(1), "ElementWiseMesh")
-      
+      di%pressure_mesh    => extract_mesh(di%state(1), "PressureMesh")
+      di%elementwise_mesh => extract_mesh(di%state(1), "ElementWiseMesh")
+            
       di%number_vele       = element_count(di%pressure_mesh)
       di%number_sele       = surface_element_count(di%pressure_mesh)
       di%number_pmesh_node = node_count(di%pressure_mesh)
@@ -598,6 +601,29 @@ contains
       di%total_mobility           => extract_scalar_field(di%state(1), "TotalMobility")
       di%sum_saturation           => extract_scalar_field(di%state(1), "SumSaturation")
       di%div_total_darcy_velocity => extract_scalar_field(di%state(1), "DivergenceTotalDarcyVelocity")
+
+      ! Allocate the gradient pressure data
+      
+      ! make a shape which is one degree less than the pressure mesh
+      di%gradient_pressure_shape = make_element_shape(vertices = ele_loc(di%positions,1), &
+                                                      dim      = di%ndim, &
+                                                      degree   = di%pressure_mesh%shape%degree - 1, &
+                                                      quad     = di%pressure_mesh%shape%quadrature)
+      
+      ! make a mesh using the new shape that is discontinuous
+      di%gradient_pressure_mesh = make_mesh(di%pressure_mesh, &
+                                            di%gradient_pressure_shape, &
+                                            continuity = -1, &
+                                            name       = 'GradientPressureMesh')
+      
+      allocate(di%gradient_pressure(di%number_phase))
+      allocate(di%iterated_gradient_pressure(di%number_phase))
+      do p = 1,di%number_phase
+         allocate(di%gradient_pressure(p)%ptr)
+         allocate(di%iterated_gradient_pressure(p)%ptr)
+         call allocate(di%gradient_pressure(p)%ptr, di%ndim, di%gradient_pressure_mesh)
+         call allocate(di%iterated_gradient_pressure(p)%ptr, di%ndim, di%gradient_pressure_mesh)          
+      end do
       
       if (have_option('/physical_parameters/gravity')) then
          
@@ -638,6 +664,7 @@ contains
       call allocate(di%rhs, di%pressure_mesh)
       call allocate(di%rhs_adv, di%pressure_mesh)
       call allocate(di%rhs_time, di%pressure_mesh)
+      call allocate(di%cv_mass_pressure_mesh_with_saturation_source, di%pressure_mesh)
       call allocate(di%cv_mass_pressure_mesh_with_porosity, di%pressure_mesh)
       call allocate(di%cv_mass_pressure_mesh_with_old_porosity, di%pressure_mesh)
       call allocate(di%cv_mass_pressure_mesh, di%pressure_mesh)
@@ -652,7 +679,7 @@ contains
       call zero(di%constant_zero_sfield_pmesh)
       
       ! Calculate the latest CV mass on the pressure mesh with porosity
-      call compute_cv_mass(di%positions, di%cv_mass_pressure_mesh_with_porosity, di%porosity)      
+      call compute_cv_mass(di%positions, di%cv_mass_pressure_mesh_with_porosity, di%porosity)
 
       ! Calculate the latest CV mass on the pressure mesh
       call compute_cv_mass(di%positions, di%cv_mass_pressure_mesh)      
@@ -664,8 +691,6 @@ contains
       ! Pull phase dependent fields from state
       allocate(di%pressure(di%number_phase))
       allocate(di%capilliary_pressure(di%number_phase))
-      allocate(di%gradient_pressure(di%number_phase))
-      allocate(di%iterated_gradient_pressure(di%number_phase))
       allocate(di%saturation(di%number_phase))
       allocate(di%old_saturation(di%number_phase))
       allocate(di%saturation_source(di%number_phase))
@@ -696,8 +721,6 @@ contains
             di%capilliary_pressure(p)%ptr     => di%constant_zero_sfield_pmesh
          end if
          
-         di%gradient_pressure(p)%ptr          => extract_vector_field(di%state(p), "GradientPressure")
-         di%iterated_gradient_pressure(p)%ptr => extract_vector_field(di%state(p), "IteratedGradientPressure")
          di%saturation(p)%ptr                 => extract_scalar_field(di%state(p), "Saturation")
          di%old_saturation(p)%ptr             => extract_scalar_field(di%state(p), "OldSaturation")
          
@@ -878,7 +901,7 @@ contains
       di%density_cv_options = darcy_impes_get_cv_options(di%density(1)%ptr%option_path, &
                                                         &di%density(1)%ptr%mesh%shape%numbering%family, &
                                                         &mesh_dim(di%density(1)%ptr))
-     
+           
       ! Allocate crs matrices used to store the upwind scalar field values in CV assemble
       if(di%relperm_cv_options%limit_facevalue) then
          
@@ -1058,6 +1081,9 @@ contains
             
       ! Calculate the gradient pressure for each phase
       call darcy_impes_calculate_gradient_pressures(di)
+      
+      ! Copy gradient pressure to iterated field
+      call darcy_impes_copy_to_iterated(di)
 
       ! calculate generic diagnostics - DO NOT ADD 'calculate_diagnostic_variables'
       call calculate_diagnostic_variables_new(di%state)
@@ -1190,9 +1216,8 @@ contains
       ! number_phase is zeroed at end as it is used for looping
       
       nullify(di%pressure_mesh)
-      nullify(di%gradient_pressure_mesh)
       nullify(di%elementwise_mesh)
-
+            
       di%number_vele       = 0
       di%number_sele       = 0
       di%number_pmesh_node = 0
@@ -1206,6 +1231,18 @@ contains
       nullify(di%sum_saturation)
       nullify(di%div_total_darcy_velocity)
       nullify(di%gravity_direction)
+
+      call deallocate(di%gradient_pressure_shape)
+      call deallocate(di%gradient_pressure_mesh)
+      
+      do p = 1,di%number_phase
+         call deallocate(di%gradient_pressure(p)%ptr)
+         call deallocate(di%iterated_gradient_pressure(p)%ptr)          
+         deallocate(di%gradient_pressure(p)%ptr)
+         deallocate(di%iterated_gradient_pressure(p)%ptr)
+      end do
+      deallocate(di%gradient_pressure)
+      deallocate(di%iterated_gradient_pressure)
       
       di%gravity_magnitude = 0.0
       
@@ -1218,6 +1255,7 @@ contains
       call deallocate(di%rhs)
       call deallocate(di%rhs_adv)
       call deallocate(di%rhs_time)
+      call deallocate(di%cv_mass_pressure_mesh_with_saturation_source)
       call deallocate(di%cv_mass_pressure_mesh_with_porosity)
       call deallocate(di%cv_mass_pressure_mesh_with_old_porosity)
       call deallocate(di%cv_mass_pressure_mesh)
@@ -1231,8 +1269,6 @@ contains
       
       deallocate(di%pressure)
       deallocate(di%capilliary_pressure)
-      deallocate(di%gradient_pressure)
-      deallocate(di%iterated_gradient_pressure)
       deallocate(di%saturation)
       deallocate(di%old_saturation)
       deallocate(di%saturation_source)
