@@ -654,20 +654,7 @@ at the first timestep or not.</a:documentation>
       <choice>
         <element name="prognostic">
           <ref name="mesh_choice_pressure"/>
-          <choice>
-            <element name="solver">
-              <attribute name="name">
-                <value>DefaultSolverOptionsGMRESSOR</value>
-              </attribute>
-              <ref name="darcy_impes_pressure_linear_solver_options_asym_default_gmres_sor"/>
-            </element>
-            <element name="solver">
-              <attribute name="name">
-                <value>ChooseSolverOptions</value>
-              </attribute>
-              <ref name="linear_solver_options_asym"/>
-            </element>
-          </choice>
+          <ref name="darcy_impes_asym_solver_options"/>
           <oneOrMore>
             <ref name="initial_condition_scalar"/>
           </oneOrMore>
@@ -686,7 +673,39 @@ at the first timestep or not.</a:documentation>
       </choice>
     </element>
   </define>
+  <define name="darcy_impes_asym_solver_options">
+    <choice>
+      <element name="solver">
+        <attribute name="name">
+          <value>DefaultSolverOptionsGMRESSOR</value>
+        </attribute>
+        <ref name="darcy_impes_pressure_linear_solver_options_asym_default_gmres_sor"/>
+      </element>
+      <element name="solver">
+        <attribute name="name">
+          <value>DefaultSolverOptionsGMRESMG</value>
+        </attribute>
+        <ref name="darcy_impes_pressure_linear_solver_options_asym_default_gmres_mg"/>
+      </element>
+      <element name="solver">
+        <attribute name="name">
+          <value>ChooseSolverOptions</value>
+        </attribute>
+        <ref name="linear_solver_options_asym"/>
+      </element>
+    </choice>
+  </define>
   <define name="darcy_impes_pressure_linear_solver_options_asym_default_gmres_sor">
+    <ref name="darcy_impes_solver_default_gmres"/>
+    <ref name="darcy_impes_solver_default_sor"/>
+    <ref name="darcy_impes_solver_tolerances"/>
+  </define>
+  <define name="darcy_impes_pressure_linear_solver_options_asym_default_gmres_mg">
+    <ref name="darcy_impes_solver_default_gmres"/>
+    <ref name="darcy_impes_solver_default_mg"/>
+    <ref name="darcy_impes_solver_tolerances"/>
+  </define>
+  <define name="darcy_impes_solver_default_gmres">
     <element name="iterative_method">
       <a:documentation>GMRES
 
@@ -704,6 +723,8 @@ Your safest bet for non-symmetric systems.</a:documentation>
         </element>
       </element>
     </element>
+  </define>
+  <define name="darcy_impes_solver_default_sor">
     <element name="preconditioner">
       <a:documentation>Succesive Over-Relaxation
 
@@ -712,6 +733,17 @@ This includes SSOR (symmetric sor)</a:documentation>
         <value>sor</value>
       </attribute>
     </element>
+  </define>
+  <define name="darcy_impes_solver_default_mg">
+    <element name="preconditioner">
+      <a:documentation>Fluidity's own multigrid method.
+Especially suited for ill-conditioned, large aspect ratio problems.</a:documentation>
+      <attribute name="name">
+        <value>mg</value>
+      </attribute>
+    </element>
+  </define>
+  <define name="darcy_impes_solver_tolerances">
     <element name="relative_error">
       <a:documentation>Relative error
 
@@ -923,19 +955,22 @@ Finite Element face value discretisation.</a:documentation>
       <attribute name="name">
         <value>Source</value>
       </attribute>
-      <choice>
-        <element name="prescribed">
-          <ref name="mesh_choice_element_wise"/>
-          <ref name="prescribed_scalar_field_no_adapt"/>
-          <ref name="darcy_impes_include_cv_stat"/>
-        </element>
-        <element name="diagnostic">
-          <ref name="mesh_choice_element_wise"/>
-          <ref name="darcy_impes_scalar_python_diagnostic_algorithm"/>
-          <ref name="darcy_impes_diagnostic_scalar_field"/>
-        </element>
-      </choice>
+      <ref name="darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh"/>
     </element>
+  </define>
+  <define name="darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh">
+    <choice>
+      <element name="prescribed">
+        <ref name="mesh_choice_element_wise"/>
+        <ref name="prescribed_scalar_field_no_adapt"/>
+        <ref name="darcy_impes_include_cv_stat"/>
+      </element>
+      <element name="diagnostic">
+        <ref name="mesh_choice_element_wise"/>
+        <ref name="darcy_impes_scalar_python_diagnostic_algorithm"/>
+        <ref name="darcy_impes_diagnostic_scalar_field_no_adapt"/>
+      </element>
+    </choice>
   </define>
   <define name="darcy_impes_non_first_phase_relative_permeability_field">
     <element name="scalar_field">
@@ -1097,18 +1132,7 @@ The default value is 1.0e-06.</a:documentation>
       <attribute name="name">
         <value>Viscosity</value>
       </attribute>
-      <choice>
-        <element name="prescribed">
-          <ref name="mesh_choice_element_wise"/>
-          <ref name="prescribed_scalar_field_no_adapt"/>
-          <ref name="darcy_impes_include_cv_stat"/>
-        </element>
-        <element name="diagnostic">
-          <ref name="mesh_choice_element_wise"/>
-          <ref name="darcy_impes_scalar_python_diagnostic_algorithm"/>
-          <ref name="darcy_impes_diagnostic_scalar_field"/>
-        </element>
-      </choice>
+      <ref name="darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh"/>
     </element>
   </define>
   <define name="darcy_impes_non_first_phase_density_field">
@@ -1329,7 +1353,97 @@ Finite element discretisation may become unbounded so limiting is often necessar
             <ref name="darcy_impes_recalculation_options"/>
           </optional>
         </element>
+        <element name="prognostic">
+          <ref name="mesh_choice_pressure"/>
+          <ref name="darcy_impes_asym_solver_options"/>
+          <ref name="darcy_impes_generic_scalar_field_face_value"/>
+          <oneOrMore>
+            <ref name="initial_condition_scalar"/>
+          </oneOrMore>
+          <zeroOrMore>
+            <ref name="darcy_impes_generic_scalar_field_bc"/>
+          </zeroOrMore>
+          <optional>
+            <ref name="darcy_impes_generic_scalar_field_diff"/>
+          </optional>
+          <optional>
+            <ref name="darcy_impes_generic_scalar_field_abs"/>
+          </optional>
+          <optional>
+            <ref name="darcy_impes_generic_scalar_field_src"/>
+          </optional>
+          <ref name="darcy_impes_include_cv_stat"/>
+          <ref name="adaptivity_options_prognostic_scalar_field"/>
+          <ref name="interpolation_algorithm_scalar"/>
+        </element>
       </choice>
+    </element>
+  </define>
+  <define name="darcy_impes_generic_scalar_field_face_value">
+    <element name="face_value">
+      <a:documentation>First Order Upwind face value discretisation.</a:documentation>
+      <attribute name="name">
+        <value>FirstOrderUpwind</value>
+      </attribute>
+      <empty/>
+    </element>
+  </define>
+  <define name="darcy_impes_generic_scalar_field_bc">
+    <element name="boundary_conditions">
+      <a:documentation>Boundary conditions</a:documentation>
+      <attribute name="name">
+        <data type="string" datatypeLibrary=""/>
+      </attribute>
+      <element name="surface_ids">
+        <a:documentation>Surface id</a:documentation>
+        <ref name="integer_vector"/>
+      </element>
+      <ref name="darcy_impes_dirichlet_bc"/>
+    </element>
+  </define>
+  <define name="darcy_impes_generic_scalar_field_diff">
+    <element name="tensor_field">
+      <attribute name="rank">
+        <value>2</value>
+      </attribute>
+      <attribute name="name">
+        <value>Diffusivity</value>
+      </attribute>
+      <choice>
+        <element name="prescribed">
+          <ref name="mesh_choice_element_wise"/>
+          <ref name="prescribed_tensor_field_no_adapt"/>
+        </element>
+        <element name="diagnostic">
+          <optional>
+            <ref name="mesh_choice_element_wise"/>
+          </optional>
+          <ref name="tensor_python_diagnostic_algorithm"/>
+          <ref name="darcy_impes_diagnostic_tensor_field_no_adapt"/>
+        </element>
+      </choice>
+    </element>
+  </define>
+  <define name="darcy_impes_generic_scalar_field_abs">
+    <element name="scalar_field">
+      <attribute name="rank">
+        <value>0</value>
+      </attribute>
+      <attribute name="name">
+        <value>Absorption</value>
+      </attribute>
+      <ref name="darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh"/>
+    </element>
+  </define>
+  <define name="darcy_impes_generic_scalar_field_src">
+    <element name="scalar_field">
+      <attribute name="rank">
+        <value>0</value>
+      </attribute>
+      <attribute name="name">
+        <value>Source</value>
+      </attribute>
+      <ref name="darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh"/>
     </element>
   </define>
   <define name="darcy_impes_first_phase_bc_pressure_field">
@@ -1508,18 +1622,7 @@ the first material_phase state then aliased in all others.</a:documentation>
         <attribute name="name">
           <value>Porosity</value>
         </attribute>
-        <choice>
-          <element name="prescribed">
-            <ref name="mesh_choice_element_wise"/>
-            <ref name="prescribed_scalar_field"/>
-            <ref name="darcy_impes_include_cv_stat"/>
-          </element>
-          <element name="diagnostic">
-            <ref name="mesh_choice_element_wise"/>
-            <ref name="darcy_impes_scalar_python_diagnostic_algorithm"/>
-            <ref name="darcy_impes_diagnostic_scalar_field"/>
-          </element>
-        </choice>
+        <ref name="darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh"/>
       </element>
       <element name="scalar_field">
         <a:documentation>Specify field AbsolutePermeability which is inserted into 
@@ -1527,18 +1630,7 @@ the first material_phase state then aliased in all others.</a:documentation>
         <attribute name="name">
           <value>AbsolutePermeability</value>
         </attribute>
-        <choice>
-          <element name="prescribed">
-            <ref name="mesh_choice_element_wise"/>
-            <ref name="prescribed_scalar_field"/>
-            <ref name="darcy_impes_include_cv_stat"/>
-          </element>
-          <element name="diagnostic">
-            <ref name="mesh_choice_element_wise"/>
-            <ref name="darcy_impes_scalar_python_diagnostic_algorithm"/>
-            <ref name="darcy_impes_diagnostic_scalar_field"/>
-          </element>
-        </choice>
+        <ref name="darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh"/>
       </element>
     </element>
   </define>
@@ -1547,10 +1639,27 @@ the first material_phase state then aliased in all others.</a:documentation>
     <ref name="adaptivity_options_scalar_field"/>
     <ref name="interpolation_algorithm_scalar"/>
   </define>
+  <define name="darcy_impes_diagnostic_scalar_field_no_adapt">
+    <ref name="darcy_impes_include_cv_stat"/>
+    <ref name="interpolation_algorithm_scalar"/>
+  </define>
   <define name="darcy_impes_diagnostic_vector_field">
     <ref name="darcy_impes_include_cv_stat"/>
     <ref name="adaptivity_options_vector_field"/>
-    <ref name="interpolation_algorithm_vector"/>
+    <ref name="interpolation_algorithm_scalar"/>
+  </define>
+  <define name="darcy_impes_diagnostic_vector_field_no_adapt">
+    <ref name="darcy_impes_include_cv_stat"/>
+    <ref name="interpolation_algorithm_scalar"/>
+  </define>
+  <define name="darcy_impes_diagnostic_tensor_field">
+    <ref name="darcy_impes_include_cv_stat"/>
+    <ref name="adaptivity_options_tensor_field"/>
+    <ref name="interpolation_algorithm_scalar"/>
+  </define>
+  <define name="darcy_impes_diagnostic_tensor_field_no_adapt">
+    <ref name="darcy_impes_include_cv_stat"/>
+    <ref name="interpolation_algorithm_scalar"/>
   </define>
   <define name="darcy_impes_scalar_python_diagnostic_algorithm">
     <element name="algorithm">
