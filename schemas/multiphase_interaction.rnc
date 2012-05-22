@@ -5,7 +5,8 @@ multiphase_interaction =
       ## Phase interaction options for Fluidity's multiphase flow model.
       element multiphase_interaction {
          comment,
-         fluid_particle_drag?
+         fluid_particle_drag?,
+         heat_transfer?
       }
    ) 
 
@@ -28,6 +29,25 @@ drag_correlation =
       ## Fluid-particle drag term by Wen & Yu (1966).
       element drag_correlation {
          attribute name { "wen_yu" },
+         comment
+      }
+   )
+   
+heat_transfer =
+   (
+      ## Heat transfer term for the 
+      ## multiphase internal energy equation.
+      ## Note: Only for fluid-particle phase pairs.
+      element heat_transfer {
+         heat_transfer_coefficient
+      }
+   )
+
+heat_transfer_coefficient =
+   (
+      ## Heat transfer coefficient by Gunn (1978).
+      element heat_transfer_coefficient {
+         attribute name { "gunn" },
          comment
       }
    )

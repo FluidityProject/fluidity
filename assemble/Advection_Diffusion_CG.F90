@@ -580,9 +580,7 @@ contains
     ! which must be included before dirichlet BC's.
     if (add_src_directly_to_rhs) call addto(rhs, source)
     
-    if(equation_type == FIELD_EQUATION_INTERNALENERGY .and. multiphase &
-       .and. have_option("/material_phase/multiphase_properties/effective_conductivity") &
-       .and. have_option("/material_phase/multiphase_properties/specific_heat")) then
+    if(have_option("/multiphase_interaction/heat_transfer")) then
        call add_heat_transfer(state, istate, positions, t, matrix, rhs)
     end if
     

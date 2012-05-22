@@ -8,6 +8,9 @@
       <optional>
         <ref name="fluid_particle_drag"/>
       </optional>
+      <optional>
+        <ref name="heat_transfer"/>
+      </optional>
     </element>
   </define>
   <define name="fluid_particle_drag">
@@ -34,5 +37,22 @@ where Re_p is the particle Reynolds number.</a:documentation>
         <ref name="comment"/>
       </element>
     </choice>
+  </define>
+  <define name="heat_transfer">
+    <element name="heat_transfer">
+      <a:documentation>Heat transfer term for the 
+multiphase internal energy equation.
+Note: Only for fluid-particle phase pairs.</a:documentation>
+      <ref name="heat_transfer_coefficient"/>
+    </element>
+  </define>
+  <define name="heat_transfer_coefficient">
+    <element name="heat_transfer_coefficient">
+      <a:documentation>Heat transfer coefficient by Gunn (1978).</a:documentation>
+      <attribute name="name">
+        <value>gunn</value>
+      </attribute>
+      <ref name="comment"/>
+    </element>
   </define>
 </grammar>
