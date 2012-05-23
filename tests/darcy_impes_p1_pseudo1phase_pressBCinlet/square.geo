@@ -1,17 +1,19 @@
 // define a layer variable
-lay = 5;
+lay_x = 20;
+lay_y = 5;
 
 // define a len variable
-len = 300.0;
+len_x = 300.0;
+len_y = 300.0;
 
 Point(1) = {0.0, 0.0, 0.0, 1.0};
 
-Extrude {len, 0.0, 0.0} {
-  Point{1}; Layers{lay}; 
+Extrude {len_x, 0.0, 0.0} {
+  Point{1}; Layers{lay_x}; 
 }
 
-Extrude {0.0, len, 0.0} {
-  Line{1}; Layers{lay}; 
+Extrude {0.0, len_y, 0.0} {
+  Line{1}; Layers{lay_y}; 
 }
 
 // left

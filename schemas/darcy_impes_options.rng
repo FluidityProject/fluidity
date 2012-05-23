@@ -1380,12 +1380,42 @@ Finite element discretisation may become unbounded so limiting is often necessar
     </element>
   </define>
   <define name="darcy_impes_generic_scalar_field_face_value">
-    <element name="face_value">
-      <a:documentation>First Order Upwind face value discretisation.</a:documentation>
-      <attribute name="name">
-        <value>FirstOrderUpwind</value>
-      </attribute>
-      <empty/>
+    <choice>
+      <element name="face_value">
+        <a:documentation>First Order Upwind face value discretisation.</a:documentation>
+        <attribute name="name">
+          <value>FirstOrderUpwind</value>
+        </attribute>
+        <empty/>
+      </element>
+      <element name="face_value">
+        <a:documentation>Finite Element face value discretisation
+ face_value = finite element interpolation from surrounding nodes
+
+Finite element discretisation may become unbounded so limiting is often necessary.</a:documentation>
+        <attribute name="name">
+          <value>FiniteElement</value>
+        </attribute>
+        <ref name="darcy_impes_limiter_options"/>
+        <optional>
+          <ref name="darcy_impes_number_face_value_iteration"/>
+        </optional>
+      </element>
+      <element name="face_value">
+        <a:documentation>No face value, hence no advection.</a:documentation>
+        <attribute name="name">
+          <value>None</value>
+        </attribute>
+        <empty/>
+      </element>
+    </choice>
+  </define>
+  <define name="darcy_impes_number_face_value_iteration">
+    <element name="number_face_value_iteration">
+      <a:documentation>The number of face value iterations to do.
+Only useful for implicit formulations. 
+Default value is 1.</a:documentation>
+      <ref name="integer"/>
     </element>
   </define>
   <define name="darcy_impes_generic_scalar_field_bc">

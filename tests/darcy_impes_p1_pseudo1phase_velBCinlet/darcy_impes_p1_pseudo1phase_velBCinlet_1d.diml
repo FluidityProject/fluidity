@@ -76,10 +76,10 @@
       <real_value rank="0">0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">1</real_value>
+      <real_value rank="0">0.3</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">1</real_value>
+      <real_value rank="0">15</real_value>
     </finish_time>
   </timestepping>
   <physical_parameters>
@@ -317,6 +317,54 @@
         </stat>
         <consistent_interpolation/>
       </diagnostic>
+    </scalar_field>
+    <scalar_field name="Tracer">
+      <prognostic>
+        <mesh name="PressureMesh"/>
+        <solver name="DefaultSolverOptionsGMRESSOR">
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">30</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1.0e-10</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">1000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+        </solver>
+        <face_value name="FiniteElement">
+          <limit_face_value>
+            <limiter name="Sweby"/>
+          </limit_face_value>
+          <number_face_value_iteration>
+            <integer_value rank="0">3</integer_value>
+          </number_face_value_iteration>
+        </face_value>
+        <initial_condition name="WholeMesh">
+          <constant>
+            <real_value rank="0">0.0</real_value>
+          </constant>
+        </initial_condition>
+        <boundary_conditions name="left">
+          <surface_ids>
+            <integer_value shape="1" rank="1">1</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <apply_weakly/>
+            <constant>
+              <real_value rank="0">1.0</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
+        <stat>
+          <include_cv_stats/>
+        </stat>
+        <consistent_interpolation/>
+      </prognostic>
     </scalar_field>
   </material_phase>
   <material_phase name="Phase2">

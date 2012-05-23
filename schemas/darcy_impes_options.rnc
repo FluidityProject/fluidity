@@ -1304,7 +1304,32 @@ darcy_impes_generic_scalar_field_face_value =
       element face_value {
         attribute name { "FirstOrderUpwind" },
         empty
-      }   
+      }|
+      ## Finite Element face value discretisation
+      ##  face_value = finite element interpolation from surrounding nodes
+      ##
+      ## Finite element discretisation may become unbounded so limiting is often necessary.
+      element face_value {
+        attribute name { "FiniteElement" },
+        darcy_impes_limiter_options,
+        darcy_impes_number_face_value_iteration? 
+      }|
+      ## No face value, hence no advection.
+      element face_value {
+        attribute name { "None" },
+        empty
+      }
+   )
+
+
+darcy_impes_number_face_value_iteration =
+   (
+      ## The number of face value iterations to do.
+      ## Only useful for implicit formulations. 
+      ## Default value is 1.
+      element number_face_value_iteration {
+         integer
+      }
    )
 
 

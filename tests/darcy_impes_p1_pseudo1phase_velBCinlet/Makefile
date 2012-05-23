@@ -3,7 +3,7 @@ SHELL = sh
 SIM = darcy_impes_p1_pseudo1phase_velBCinlet
 
 # options for 1d mesh interval script
-MESH_SIZE = 100.0
+MESH_SIZE = 15.0
 LEFT_X    = 0.0
 RIGHT_X   = 300.0
 

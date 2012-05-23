@@ -563,7 +563,7 @@ contains
       real,                                         intent(in)    :: current_time
       
       ! Local variables
-      integer                                     :: p, stat
+      integer                                     :: p, stat, f_count, f
       real,                          dimension(2) :: tmp_option_shape
       character(len=OPTION_PATH_LEN)              :: tmp_char_option
       
@@ -658,16 +658,15 @@ contains
       ! Determine the pressure matrix sparsity
       di%sparsity_pmesh_pmesh => get_csr_sparsity_firstorder(di%state(1), di%pressure_mesh, di%pressure_mesh)
       
-      ! Allocate the pressure matrix and lhs and rhs to use for saturations
-      call allocate(di%pressure_matrix, di%sparsity_pmesh_pmesh)
+      ! Allocate the matrix and lhs and rhs to use for saturations
+      call allocate(di%matrix, di%sparsity_pmesh_pmesh)
       call allocate(di%lhs, di%pressure_mesh)
       call allocate(di%rhs, di%pressure_mesh)
-      call allocate(di%rhs_adv, di%pressure_mesh)
-      call allocate(di%rhs_time, di%pressure_mesh)
-      call allocate(di%cv_mass_pressure_mesh_with_saturation_source, di%pressure_mesh)
+      call allocate(di%rhs_full, di%pressure_mesh)
+      call allocate(di%rhs_high_resolution, di%pressure_mesh)
+      call allocate(di%cv_mass_pressure_mesh_with_source, di%pressure_mesh)
       call allocate(di%cv_mass_pressure_mesh_with_porosity, di%pressure_mesh)
       call allocate(di%cv_mass_pressure_mesh_with_old_porosity, di%pressure_mesh)
-      call allocate(di%cv_mass_pressure_mesh, di%pressure_mesh)
       call allocate(di%inverse_cv_sa_pressure_mesh, di%pressure_mesh)
       
       ! Allocate a field that is always zero on the pressure mesh to be pointed 
@@ -680,9 +679,6 @@ contains
       
       ! Calculate the latest CV mass on the pressure mesh with porosity
       call compute_cv_mass(di%positions, di%cv_mass_pressure_mesh_with_porosity, di%porosity)
-
-      ! Calculate the latest CV mass on the pressure mesh
-      call compute_cv_mass(di%positions, di%cv_mass_pressure_mesh)      
       
       ! Allocate phase flags for special fields
       allocate(di%have_capilliary_pressure(di%number_phase))
@@ -787,6 +783,134 @@ contains
                    &name='InverseCharacteristicLength')
       
       call darcy_impes_calculate_inverse_characteristic_length(di)
+
+      ! Get the data associated with generic prognostic scalar fields
+      
+      f_count = 0
+      
+      do p = 1, di%number_phase
+      
+         do f = 1, option_count('/material_phase['//int2str(p-1)//']/scalar_field')
+         
+            if (have_option('/material_phase['//int2str(p-1)//']/scalar_field['//int2str(f-1)//']/prognostic')) then
+            
+               call get_option('/material_phase['//int2str(p-1)//']/scalar_field['//int2str(f-1)//']/name', &
+                               tmp_char_option)
+               
+               if ((trim(tmp_char_option) /= 'Pressure') .and. &
+                   (trim(tmp_char_option) /= 'Saturation')) then
+               
+                  f_count = f_count + 1
+                  
+               end if 
+               
+            end if 
+            
+         end do 
+       
+      end do
+      
+      allocate(di%generic_prog_sfield(f_count))
+      
+      if (size(di%generic_prog_sfield) > 0) then
+      
+         f_count = 0
+
+         do p = 1, di%number_phase
+
+            do f = 1, option_count('/material_phase['//int2str(p-1)//']/scalar_field')
+
+               if (have_option('/material_phase['//int2str(p-1)//']/scalar_field['//int2str(f-1)//']/prognostic')) then
+
+                  call get_option('/material_phase['//int2str(p-1)//']/scalar_field['//int2str(f-1)//']/name', &
+                                  tmp_char_option)
+
+                  if ((trim(tmp_char_option) /= 'Pressure') .and. &
+                      (trim(tmp_char_option) /= 'Saturation')) then
+
+                     f_count = f_count + 1
+
+                     di%generic_prog_sfield(f_count)%phase = p
+
+                     di%generic_prog_sfield(f_count)%sfield => extract_scalar_field(di%state(p), &
+                                                                                    trim(tmp_char_option))
+
+                     di%generic_prog_sfield(f_count)%old_sfield => extract_scalar_field(di%state(p), &
+                                                                                        'Old'//trim(tmp_char_option))
+
+                     di%generic_prog_sfield(f_count)%sfield_diff => extract_tensor_field(di%state(p), &
+                                                                                         trim(tmp_char_option)//'Diffusivity', &
+                                                                                         stat = stat)
+                     if (stat == 0) then
+
+                        di%generic_prog_sfield(f_count)%have_diff = .true.
+
+                     else
+
+                        nullify(di%generic_prog_sfield(f_count)%sfield_diff)
+
+                        di%generic_prog_sfield(f_count)%have_diff = .false.
+
+                     end if
+
+                     di%generic_prog_sfield(f_count)%sfield_abs => extract_scalar_field(di%state(p), &
+                                                                                        trim(tmp_char_option)//'Absorption', &
+                                                                                        stat = stat)
+                     if (stat == 0) then
+
+                        di%generic_prog_sfield(f_count)%have_abs = .true.
+
+                     else
+
+                        nullify(di%generic_prog_sfield(f_count)%sfield_abs)
+
+                        di%generic_prog_sfield(f_count)%have_abs = .false.
+
+                     end if
+
+                     di%generic_prog_sfield(f_count)%sfield_src => extract_scalar_field(di%state(p), &
+                                                                                        trim(tmp_char_option)//'Source', &
+                                                                                        stat = stat)
+                     if (stat == 0) then
+
+                        di%generic_prog_sfield(f_count)%have_src = .true.
+
+                     else
+
+                        nullify(di%generic_prog_sfield(f_count)%sfield_src)
+
+                        di%generic_prog_sfield(f_count)%have_src = .false.
+
+                     end if
+
+                     di%generic_prog_sfield(f_count)%sfield_cv_options = &
+                     darcy_impes_get_cv_options(di%generic_prog_sfield(f_count)%sfield%option_path, &
+                                                di%generic_prog_sfield(f_count)%sfield%mesh%shape%numbering%family, &
+                                                mesh_dim(di%generic_prog_sfield(f_count)%sfield))
+                     
+                     if (di%generic_prog_sfield(f_count)%sfield_cv_options%facevalue == DARCY_IMPES_CV_FACEVALUE_NONE) then
+                        di%generic_prog_sfield(f_count)%have_adv = .false.
+                     else
+                        di%generic_prog_sfield(f_count)%have_adv = .true.
+                     end if
+                     
+                  end if 
+
+               end if 
+
+            end do 
+
+         end do
+
+         call allocate(di%sfield_bc_value, &
+                       &di%bc_surface_mesh, &
+                       &name='GenericPrognosticScalarField'//int2str(f-1)//'BCValue')         
+
+         allocate(di%sfield_bc_flag(surface_element_count(di%pressure_mesh)))
+      
+      end if
+      
+      call allocate(di%sfield_upwind, di%sparsity_pmesh_pmesh) 
       
       ! Get the relperm correlation options from the first phase field
       call get_option(trim(di%relative_permeability(1)%ptr%option_path)//&
@@ -862,9 +986,9 @@ contains
                                                         &di%relative_permeability(1)%ptr%mesh%shape%numbering%family, &
                                                         &mesh_dim(di%relative_permeability(1)%ptr))
       
-      ! If the relperm face value scheme is requires it get the saturation cv options
+      ! If the relperm face value scheme requires it get the saturation cv options
       ! Also get the minimum saturation value to use for the denominator of modrelperm
-      ! and set a flag that saturation face values are require to be determined.
+      ! and set a flag that saturation face values require to be determined.
       ! If the relperm is to be limited allocate a field to find the modrelperm.
       if ((di%relperm_cv_options%facevalue == DARCY_IMPES_CV_FACEVALUE_RELPERMOVERSATUPWIND) .or. &
           (di%relperm_cv_options%facevalue == DARCY_IMPES_CV_FACEVALUE_RELPERMOVERSATFINITEELEMENT) .or. &
@@ -1131,27 +1255,32 @@ contains
       ! local variables
       character(len=FIELD_NAME_LEN) :: tmpstring
 
-      call get_option(trim(option_path)//'/diagnostic/face_value[0]/name', tmpstring)
+      call get_option(trim(complete_field_path(trim(option_path)))//'/face_value[0]/name', tmpstring)
 
       darcy_impes_cv_options%facevalue = darcy_impes_cv_facevalue_integer(tmpstring)
 
-      darcy_impes_cv_options%limit_facevalue = &
-      have_option(trim(option_path)//'/diagnostic/face_value[0]/limit_face_value')
+      call get_option(trim(complete_field_path(trim(option_path)))//&
+                      '/face_value[0]/number_face_value_iteration', &
+                      darcy_impes_cv_options%number_face_value_iteration, &
+                      default = 1)
 
-      call get_option(trim(option_path)//&
-                      '/diagnostic/face_value[0]/limit_face_value/limiter[0]/name', &
+      darcy_impes_cv_options%limit_facevalue = &
+      have_option(trim(complete_field_path(trim(option_path)))//'/face_value[0]/limit_face_value')
+
+      call get_option(trim(complete_field_path(trim(option_path)))//&
+                      '/face_value[0]/limit_face_value/limiter[0]/name', &
                       tmpstring, &
                       default = 'None')
 
       darcy_impes_cv_options%limiter = cv_limiter_integer(tmpstring)
 
-      call get_option(trim(option_path)//&
-                      '/diagnostic/face_value[0]/limit_face_value/limiter[0]/slopes/lower', &
+      call get_option(trim(complete_field_path(trim(option_path)))//&
+                      '/face_value[0]/limit_face_value/limiter[0]/slopes/lower', &
                       darcy_impes_cv_options%limiter_slopes(1), &
                       default = 1.0)
 
-      call get_option(trim(option_path)//&
-                      '/diagnostic/face_value[0]/limit_face_value/limiter[0]/slopes/upper', &
+      call get_option(trim(complete_field_path(trim(option_path)))//&
+                      '/face_value[0]/limit_face_value/limiter[0]/slopes/upper', &
                       darcy_impes_cv_options%limiter_slopes(2), &
                       default = 2.0)
 
@@ -1166,18 +1295,20 @@ contains
       character(len=*) :: face_discretisation
 
       select case(trim(face_discretisation))
+      case ("None")
+         darcy_impes_cv_facevalue_integer = DARCY_IMPES_CV_FACEVALUE_NONE
       case ("FirstOrderUpwind")
-        darcy_impes_cv_facevalue_integer = DARCY_IMPES_CV_FACEVALUE_FIRSTORDERUPWIND
+         darcy_impes_cv_facevalue_integer = DARCY_IMPES_CV_FACEVALUE_FIRSTORDERUPWIND
       case ("FiniteElement")
-        darcy_impes_cv_facevalue_integer = DARCY_IMPES_CV_FACEVALUE_FINITEELEMENT
+         darcy_impes_cv_facevalue_integer = DARCY_IMPES_CV_FACEVALUE_FINITEELEMENT
       case ("RelPermOverSatUpwind")
-        darcy_impes_cv_facevalue_integer = DARCY_IMPES_CV_FACEVALUE_RELPERMOVERSATUPWIND
+         darcy_impes_cv_facevalue_integer = DARCY_IMPES_CV_FACEVALUE_RELPERMOVERSATUPWIND
       case ("RelPermOverSatFiniteElement")
-        darcy_impes_cv_facevalue_integer = DARCY_IMPES_CV_FACEVALUE_RELPERMOVERSATFINITEELEMENT
+         darcy_impes_cv_facevalue_integer = DARCY_IMPES_CV_FACEVALUE_RELPERMOVERSATFINITEELEMENT
       case ("RelPermOverSatCorrelation")
-        darcy_impes_cv_facevalue_integer = DARCY_IMPES_CV_FACEVALUE_RELPERMOVERSATCORRELATION
+         darcy_impes_cv_facevalue_integer = DARCY_IMPES_CV_FACEVALUE_RELPERMOVERSATCORRELATION
       case default
-        FLAbort("Unknown control volume face value scheme.")
+         FLAbort("Unknown control volume face value scheme.")
       end select
 
    end function darcy_impes_cv_facevalue_integer
@@ -1199,7 +1330,7 @@ contains
       ! (almost, apart from _upwind matrices)
       
       ! local variables
-      integer :: p
+      integer :: p, f
       
       ewrite(1,*) 'Finalise Darcy IMPES data'
       
@@ -1250,15 +1381,14 @@ contains
             
       call deallocate(di%positions_pressure_mesh)
       nullify(di%sparsity_pmesh_pmesh)
-      call deallocate(di%pressure_matrix)
+      call deallocate(di%matrix)
       call deallocate(di%lhs)
       call deallocate(di%rhs)
-      call deallocate(di%rhs_adv)
-      call deallocate(di%rhs_time)
-      call deallocate(di%cv_mass_pressure_mesh_with_saturation_source)
+      call deallocate(di%rhs_full)
+      call deallocate(di%rhs_high_resolution)
+      call deallocate(di%cv_mass_pressure_mesh_with_source)
       call deallocate(di%cv_mass_pressure_mesh_with_porosity)
       call deallocate(di%cv_mass_pressure_mesh_with_old_porosity)
-      call deallocate(di%cv_mass_pressure_mesh)
       call deallocate(di%inverse_cv_sa_pressure_mesh)
 
       call deallocate(di%constant_zero_sfield_pmesh)
@@ -1294,6 +1424,35 @@ contains
       deallocate(di%pressure_bc_flag)      
       di%weak_pressure_bc_coeff = 0.0
       call deallocate(di%inverse_characteristic_length)
+
+      if (size(di%generic_prog_sfield) > 0) then
+         call deallocate(di%sfield_bc_value)
+         deallocate(di%sfield_bc_flag)      
+      
+         do f = 1, size(di%generic_prog_sfield)
+            nullify(di%generic_prog_sfield(f)%sfield)
+            nullify(di%generic_prog_sfield(f)%old_sfield)
+            nullify(di%generic_prog_sfield(f)%sfield_diff)
+            nullify(di%generic_prog_sfield(f)%sfield_abs)
+            nullify(di%generic_prog_sfield(f)%sfield_src)
+            
+            di%generic_prog_sfield(f)%have_diff = .false.
+            di%generic_prog_sfield(f)%have_abs  = .false.
+            di%generic_prog_sfield(f)%have_src  = .false.
+            di%generic_prog_sfield(f)%have_adv  = .false.
+            
+            di%generic_prog_sfield(f)%sfield_cv_options%facevalue                   = 0
+            di%generic_prog_sfield(f)%sfield_cv_options%number_face_value_iteration = 0
+            di%generic_prog_sfield(f)%sfield_cv_options%limit_facevalue             = .false.
+            di%generic_prog_sfield(f)%sfield_cv_options%limiter                     = 0
+            di%generic_prog_sfield(f)%sfield_cv_options%limiter_slopes              = 0.0
+            di%generic_prog_sfield(f)%sfield_cv_options%upwind_scheme               = 0.0
+         end do
+
+      end if
+      deallocate(di%generic_prog_sfield)
+      
+      call deallocate(di%sfield_upwind)
       
       di%relperm_corr_options%type     = 0
       deallocate(di%relperm_corr_options%exponents)
@@ -1316,23 +1475,26 @@ contains
       
       di%determine_saturation_face_values = .false.
       
-      di%relperm_cv_options%facevalue       = 0
-      di%relperm_cv_options%limit_facevalue = .false.
-      di%relperm_cv_options%limiter         = 0
-      di%relperm_cv_options%limiter_slopes  = 0.0
-      di%relperm_cv_options%upwind_scheme   = 0.0
+      di%relperm_cv_options%facevalue                   = 0
+      di%relperm_cv_options%number_face_value_iteration = 0
+      di%relperm_cv_options%limit_facevalue             = .false.
+      di%relperm_cv_options%limiter                     = 0
+      di%relperm_cv_options%limiter_slopes              = 0.0
+      di%relperm_cv_options%upwind_scheme               = 0.0
 
-      di%saturation_cv_options%facevalue       = 0
-      di%saturation_cv_options%limit_facevalue = .false.
-      di%saturation_cv_options%limiter         = 0
-      di%saturation_cv_options%limiter_slopes  = 0.0
-      di%saturation_cv_options%upwind_scheme   = 0.0
+      di%saturation_cv_options%facevalue                   = 0
+      di%saturation_cv_options%number_face_value_iteration = 0
+      di%saturation_cv_options%limit_facevalue             = .false.
+      di%saturation_cv_options%limiter                     = 0
+      di%saturation_cv_options%limiter_slopes              = 0.0
+      di%saturation_cv_options%upwind_scheme               = 0.0
             
-      di%density_cv_options%facevalue       = 0
-      di%density_cv_options%limit_facevalue = .false.
-      di%density_cv_options%limiter         = 0
-      di%density_cv_options%limiter_slopes  = 0.0
-      di%density_cv_options%upwind_scheme   = 0.0
+      di%density_cv_options%facevalue                   = 0
+      di%density_cv_options%number_face_value_iteration = 0
+      di%density_cv_options%limit_facevalue             = .false.
+      di%density_cv_options%limiter                     = 0
+      di%density_cv_options%limiter_slopes              = 0.0
+      di%density_cv_options%upwind_scheme               = 0.0
             
       di%subcy_opt_sat%have       = .false.
       di%subcy_opt_sat%number     = 0      
