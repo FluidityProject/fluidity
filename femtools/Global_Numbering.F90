@@ -519,6 +519,9 @@ contains
          end if
       end do
 
+    print *,"finished making mesh ",trim(mesh%name)
+    print "(3i8)", mesh%ndglno
+
       do h=1,size(mesh%halos)
          if (data_type==HALO_TYPE_CG_NODE) then
             hh=h
@@ -543,6 +546,13 @@ contains
          do p=1,size(mesh%halos(h)%receives)
             mesh%halos(h)%receives(p)%ptr=sorted(set2vector(receives(hh,p)))
          end do
+
+    if (have_halos) then
+       print *, local_dofs
+       call print_halo(mesh%halos(2),h)
+    else
+       print *,"no halo"
+    end if
 
          call create_global_to_universal_numbering(mesh%halos(h))
          call create_ownership(mesh%halos(h))
