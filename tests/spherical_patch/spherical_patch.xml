@@ -10,16 +10,10 @@ fluidity -v2 -l serial.flml</command_line>
   <variables>
     <variable name="volume_before" language="python">from fluidity_tools import stat_parser
 stat=stat_parser('spherical_segment.stat')
-# this only works because we don't move the free surface
-# we actually compute H \int_top \eta, i.e. the volume difference with
-# equilibrium state multiplied by depth H
-volume_before=stat['Fields']['FreeSurface']['integral']</variable>
+volume_before=stat['Fields']['Density']['integral']</variable>
     <variable name="volume_after" language="python">from fluidity_tools import stat_parser
 stat=stat_parser('spherical_segment_checkpoint.stat')
-# this only works because we don't move the free surface
-# we actually compute H \int_top \eta, i.e. the volume difference with
-# equilibrium state multiplied by depth H
-volume_after=stat['Fields']['FreeSurface']['integral']</variable>
+volume_after=stat['Fields']['Density']['integral']</variable>
     <variable name="solvers_converged" language="python">import os
 files = os.listdir("./")
 solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files</variable>
