@@ -53,7 +53,7 @@ implicit none
   private
 
   public :: initialise_lagrangian_biology_metamodel, initialise_lagrangian_biology_agents, &
-            lagrangian_biology_cleanup, update_lagrangian_biology, stage_aggregate, &
+            lagrangian_biology_cleanup, update_lagrangian_biology, &
             get_num_functional_groups, get_functional_group
   public :: BIOFIELD_NONE, BIOFIELD_DIAG, BIOFIELD_UPTAKE, BIOFIELD_RELEASE, BIOFIELD_INGESTED, &
             BIOFIELD_FOOD_REQUEST, BIOFIELD_FOOD_INGEST
@@ -297,13 +297,9 @@ contains
 
           call write_detector_header(state, agent_array)
 
-          ! Derive diagnostics from initial state...
-          call derive_primary_diagnostics(state(1), agent_array)
-
        end do  ! Stage
 
-       ! ... and aggregate them
-       call aggregate_diagnostics_by_stage(state(1), fgroup)
+       call derive_primary_diagnostics(state(1), fgroup)
 
     end do  ! FGroup
 
@@ -398,6 +394,10 @@ contains
              call get_option(trim(var_buffer)//"/scalar_field/name", field_name)                   
              fgroup%variables(var_index)%field_name = trim(fgroup%name)//trim(field_name)//trim(biovar_name)
              fgroup%variables(var_index)%field_path = trim(var_buffer)//"/scalar_field"
+
+             if (have_option(trim(var_buffer)//"/scalar_field/stage_diagnostic")) then
+                fgroup%variables(var_index)%stage_diagnostic = .true.
+             end if
           else
              fgroup%variables(var_index)%field_type = BIOFIELD_NONE
           end if
@@ -435,7 +435,11 @@ contains
              fgroup%variables(var_index)%field_type = BIOFIELD_DIAG
              call get_option(trim(var_buffer)//"/scalar_field/name", field_name)
              fgroup%variables(var_index)%field_name = trim(fgroup%name)//trim(field_name)//trim(biovar_name)
-             fgroup%variables(var_index)%field_path = trim(var_buffer)//"/scalar_field"
+             fgroup%variables(var_index)%field_path = trim(var_buffer)//"/scalar_field::Particulate"
+
+             if (have_option(trim(var_buffer)//"/scalar_field::Particulate/stage_diagnostic")) then
+                fgroup%variables(var_index)%stage_diagnostic = .true.
+             end if
           else
              fgroup%variables(var_index)%field_type = BIOFIELD_NONE
           end if
@@ -450,9 +454,11 @@ contains
              fgroup%variables(var_index)%field_path = trim(var_buffer)//"/scalar_field::Ingested"
 
              fgroup%variables(var_index)%pool_index = chemvar_index
-             !fgroup%variables(var_index)%request_index = var_index - 1
              fgroup%variables(chemvar_index)%ingest_index = var_index
 
+             if (have_option(trim(var_buffer)//"/scalar_field::Ingested/stage_diagnostic")) then
+                fgroup%variables(var_index)%stage_diagnostic = .true.
+             end if
              if (have_option(trim(var_buffer)//"/scalar_field::Ingested/include_in_io")) then
                 fgroup%variables(var_index)%write_to_file = .true.
              end if
@@ -669,7 +675,6 @@ contains
     ! Prepare python-state
     ! Note: Currently disabled for performance reasons. 
     ! Actually only needed for Python RW with field sampling
-
     !call profiler_tic("/update_lagrangian_biology::python_reload")
     !call python_reset()
     !call python_add_state(state(1))
@@ -678,11 +683,9 @@ contains
     do fg=1, get_num_functional_groups()
        fgroup => get_functional_group(fg)
 
-       ! Aggregate food concentrations
+       ! Prepare food concentrations
+       ! Note: Assume there is only one FoodSet for now...
        if (size(fgroup%food_sets) > 0) then
-          !call aggregate_food_diagnostics(state(1), fgroup)
-
-          ! Note: Assume there is only one FoodSet for now...
           fset = fgroup%food_sets(1)
           foodname = trim(fset%name)
           allocate(food_fields(size(fset%varieties)))
@@ -693,6 +696,7 @@ contains
           allocate(food_fields(0))
        end if
 
+       ! Prepare envfields
        if (allocated(fgroup%envfield_names)) then
           allocate(env_fields(size(fgroup%envfield_names)))
           do env=1, size(fgroup%envfield_names)
@@ -706,6 +710,7 @@ contains
           end do
        end if
 
+       ! Now loop over all agents in the list
        do stage=1, size(fgroup%agent_arrays)
           agent_array=>fgroup%agent_arrays(stage)
 
@@ -731,8 +736,8 @@ contains
           if (have_option(trim(agent_array%stage_options)//"/biology") .and. agent_array%length > 0 ) then
              ewrite(2,*) "Lagrangian biology: Updating ", trim(agent_array%name)
 
+             ! Compile python function to set bio-variable, and store in the global dictionary
              if (have_option(trim(agent_array%stage_options)//"/biology/python")) then
-                ! Compile python function to set bio-variable, and store in the global dictionary
                 call lebiology_prepare_pyfunc(fgroup, trim(agent_array%stage_name)//"_Update", agent_array%biovar_pycode)
              end if
 
@@ -747,7 +752,6 @@ contains
                       agent%biology(v) = 0.0
                    end if
                 end do
-
                 if (size(fgroup%food_sets) > 0) then
                    do v=1, size(agent%food_requests)
                       agent%food_requests(v) = 0.0
@@ -764,7 +768,6 @@ contains
                       agent%biology(v) = 0.0
                    end if
                 end do
-
                 if (size(fgroup%food_sets) > 0) then
                    do v=1, size(agent%food_ingests)
                       agent%food_ingests(v) = 0.0
@@ -782,7 +785,6 @@ contains
              end do
 
           end if  ! have_biology
-
        end do  ! stages
 
        if (associated(env_fields)) then
@@ -829,6 +831,7 @@ contains
     call chemical_release(state(1))
     call profiler_toc("/update_lagrangian_biology::chemical_exchange")
 
+    ! Ingestion
     call profiler_tic("/update_lagrangian_biology::ingestion")
     call ingestion(state(1))
     call profiler_toc("/update_lagrangian_biology::ingestion")
@@ -839,17 +842,17 @@ contains
        do stage=1, size(fgroup%agent_arrays)
           agent_array => fgroup%agent_arrays(stage)
 
-          ! First remove all agent with zero biomass to avoid div-by-zero errors
+          ! Remove all agent with zero biomass to avoid div-by-zero errors
           call pm_strip_insignificant(agent_array)
-
-          ! Re-derive agent density field
-          call derive_primary_diagnostics(state(1), agent_array)
+          
+          call derive_agent_counts(state(1), agent_array, xfield)
 
           if (have_option(trim(agent_array%stage_options)//"/particle_management") .and. &
               agent_array%length > 0) then
              call get_option(trim(agent_array%stage_options)//"/particle_management/period_in_timesteps", pm_period)
              if (timestep == 1 .or. mod(timestep, pm_period) == 0) then
                 call particle_management(state(1), agent_array)
+                call derive_agent_counts(state(1), agent_array, xfield)
              end if
           end if
 
@@ -857,28 +860,15 @@ contains
           if (timestep == 1 .or. mod(time, agent_array%output_period) == 0) then
              call write_detectors(state, agent_array, time, dt, timestep)
           end if
-
-          ! Re-derive the required agent diagnostic variables...
-          call derive_primary_diagnostics(state(1), agent_array)
        end do
-       ! ... and aggregate them
-       call aggregate_diagnostics_by_stage(state(1), fgroup)
+
+       ! Derive pool, ingested and biomass diagnostics
+       call derive_primary_diagnostics(state(1), fgroup) 
     end do
 
     call profiler_toc("/update_lagrangian_biology")
 
   end subroutine update_lagrangian_biology
-
-  function stage_aggregate(var)
-    type(le_variable), intent(in) :: var
-    logical :: stage_aggregate
-
-    if (have_option(trim(var%field_path)//"/stage_aggregate")) then
-       stage_aggregate = .true.
-    else
-       stage_aggregate = .false.
-    end if
-  end function
 
   subroutine distribute_by_stage(fgroup, agent_list)
     type(functional_group), pointer, intent(inout):: fgroup
@@ -909,106 +899,111 @@ contains
 
   end subroutine distribute_by_stage
 
-  subroutine derive_primary_diagnostics(state, agent_list)
-    ! Set per-stage diagnostic fields from agent variables, 
-    ! including agent counts and chemical request/release fields
+  subroutine derive_agent_counts(state, agent_list, xfield)    
     type(state_type), intent(inout) :: state
     type(detector_linked_list), intent(inout) :: agent_list
+    type(vector_field), pointer, intent(inout) :: xfield
 
-    type(vector_field), pointer :: xfield
-    type(scalar_field_pointer), dimension(size(agent_list%fgroup%variables)) :: diagfields
     type(scalar_field), pointer :: agent_count_field
     type(detector_type), pointer :: agent
-    type(food_variety), pointer :: fvariety
-    integer :: i, ele
-    real :: ele_volume, release_amount
+    real :: ele_volume
 
-    ewrite(2,*) "Lagrangian biology: Deriving primary diagnostic fields for ", (agent_list%name)
-
-    call profiler_tic(trim(agent_list%name)//"::primary_diagnostics")
-
-    xfield=>extract_vector_field(state, "Coordinate")
-
+    ! Note: This has to happen per list for PM to work
     ! Pull and reset agent density field
     agent_count_field=>extract_scalar_field(state, trim(agent_list%fgroup%name)//"Agents"//trim(agent_list%stage_name))
     call zero(agent_count_field)
 
-    ! Pull and reset all per-stage-array diagnostic fields
-    do i=1, size(agent_list%fgroup%variables)
-       if (agent_list%fgroup%variables(i)%field_type == BIOFIELD_DIAG .or. &
-                  agent_list%fgroup%variables(i)%field_type == BIOFIELD_INGESTED ) then
-
-          diagfields(i)%ptr => extract_scalar_field(state, trim(agent_list%fgroup%variables(i)%field_name)//trim(agent_list%stage_name))
-          call zero(diagfields(i)%ptr)
-       end if
-    end do
-
     agent => agent_list%first
     do while (associated(agent))
        ele_volume = element_volume(xfield, agent%element)
-
-       ! Increase agent density field
        call addto(agent_count_field, agent%element, 1.0/ele_volume)
+       agent => agent%next
+    end do
+  end subroutine derive_agent_counts
 
-       ! Add diagnostic quantities to the field for all variables
-       do i=1, size(agent_list%fgroup%variables)
+  subroutine derive_primary_diagnostics(state, fgroup)
+    type(state_type), intent(inout) :: state
+    type(functional_group), pointer, intent(inout):: fgroup
 
-          ! All diagnostic agent quantities get divided by element volume
-          ! and multiplied by the number of individuals an agent represents
-          if (agent_list%fgroup%variables(i)%field_type == BIOFIELD_DIAG) then
+    type(vector_field), pointer :: xfield
+    type(scalar_field_pointer), dimension(size(fgroup%variables)) :: diagfields, stagefields
+    type(detector_type), pointer :: agent
+    type(le_variable), pointer :: var
+    integer :: v, stage, ele
+    real :: conc, ele_volume
 
-             ! Agent size (number of individuals represented) does not get multiplied by itself
-             if (i == BIOVAR_SIZE) then
-                call addto(diagfields(i)%ptr, agent%element, agent%biology(i) / ele_volume)
-             else
-                call addto(diagfields(i)%ptr, agent%element, agent%biology(i)*agent%biology(BIOVAR_SIZE) / ele_volume)
-             end if
+    ewrite(2,*) "Lagrangian biology: Deriving primary diagnostic fields for ", (fgroup%name)
 
-          ! Ingestion, uptake and release requests are total amounts, so don't divide by element volume
-          elseif (agent_list%fgroup%variables(i)%field_type == BIOFIELD_INGESTED ) then
+    xfield=>extract_vector_field(state, "Coordinate")
 
-             if (agent_list%fgroup%variables(i)%path_integration) then
-                call integrate_along_path(diagfields(i)%ptr, xfield, agent, agent%biology(i))
-             else
-                call addto(diagfields(i)%ptr, agent%element, agent%biology(i)*agent%biology(BIOVAR_SIZE) / ele_volume)
+    ! Pull and reset diagnostic fields
+    do v=1, size(fgroup%variables)
+       var => fgroup%variables(v)
+       if (var%field_type == BIOFIELD_DIAG .or. &
+           var%field_type == BIOFIELD_INGESTED ) then
+
+          diagfields(v)%ptr => extract_scalar_field(state, trim(var%field_name))
+          call zero(diagfields(v)%ptr)
+       end if
+    end do
+
+    ! Loop over alla agents in all stages
+    do stage=1, size(fgroup%agent_arrays)
+
+       ! Pull and reset stage-disagnostic fields fields
+       do v=1, size(fgroup%variables)
+          var => fgroup%variables(v)
+          if (var%stage_diagnostic) then
+             if (var%field_type == BIOFIELD_DIAG .or. &
+                 var%field_type == BIOFIELD_INGESTED ) then
+
+                stagefields(v)%ptr => extract_scalar_field(state, trim(var%field_name)//trim(fgroup%stage_names%ptr(stage)))
+                call zero(stagefields(v)%ptr)
              end if
           end if
        end do
 
-       agent => agent%next
-    end do
+       agent => fgroup%agent_arrays(stage)%first
+       do while (associated(agent))
+          ele_volume = element_volume(xfield, agent%element)
 
-    call profiler_toc(trim(agent_list%name)//"::primary_diagnostics")
+          ! Add diagnostic quantities to the field for all variables
+          do v=1, size(fgroup%variables)
+             var => fgroup%variables(v)
+
+             ! Don't multiply EmsembleSize by itself
+             if (v == BIOVAR_SIZE) then
+                conc = agent%biology(BIOVAR_SIZE) / ele_volume
+                call addto(diagfields(v)%ptr, agent%element, conc)
+
+                if (var%stage_diagnostic) then
+                   call addto(stagefields(v)%ptr, agent%element, conc)
+                end if
+             
+             ! All diagnostic agent quantities get divided by element volume
+             ! and multiplied by the number of individuals an agent represents
+             elseif (var%field_type == BIOFIELD_DIAG .or. &
+                     var%field_type == BIOFIELD_INGESTED ) then
+                
+                if (var%path_integration) then
+                   call integrate_along_path(diagfields(v)%ptr, xfield, agent, agent%biology(v))
+
+                else
+                   conc = agent%biology(v) * agent%biology(BIOVAR_SIZE) / ele_volume
+                   call addto(diagfields(v)%ptr, agent%element, conc)
+
+                   if (var%stage_diagnostic) then
+                      call addto(stagefields(v)%ptr, agent%element, conc)
+                   end if
+                end if
+             end if
+          end do
+
+          agent => agent%next
+       end do
+    end do
 
   end subroutine derive_primary_diagnostics
-
-  subroutine aggregate_diagnostics_by_stage(state, fgroup)
-    type(state_type), intent(inout) :: state
-    type(functional_group), pointer, intent(inout):: fgroup
-
-    type(scalar_field), pointer :: diagfield_agg, diagfield_stage
-    type(le_variable), pointer :: var
-    type(food_variety), pointer :: fvariety
-    integer :: v, s
-
-    ewrite(2,*) "Lagrangian biology: Aggregating stage-diagnostics"
-
-    ! Now we derive all aggregated quantities
-    do v=1, size(fgroup%variables)
-       var => fgroup%variables(v)
-
-       ! Aggregate stage-aggregated diagnostic fields
-       if (stage_aggregate(var) .and. var%field_type /= BIOFIELD_NONE) then
-          diagfield_agg=>extract_scalar_field(state, trim(var%field_name))
-          call zero(diagfield_agg)
-
-          do s=1, size(fgroup%stage_names%ptr)
-             diagfield_stage=>extract_scalar_field(state, trim(var%field_name)//trim(fgroup%stage_names%ptr(s)))
-             call addto(diagfield_agg, diagfield_stage)
-          end do
-       end if
-    end do
-  end subroutine aggregate_diagnostics_by_stage
 
   subroutine aggregate_chemical_diagnostics(state)
     type(state_type), intent(inout) :: state
@@ -1504,6 +1499,8 @@ contains
 
     real :: path_total, quantity, ele_path_volume
     integer :: ele
+
+    FLExit("Pth integration temporarily disabled...")
 
     ! Integrate along the path of the agent
     if (allocated(agent%ele_path)) then                   

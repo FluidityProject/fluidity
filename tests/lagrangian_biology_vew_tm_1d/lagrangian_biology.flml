@@ -453,7 +453,7 @@ for n in range(field.node_count):
                   <include_in_detectors/>
                 </detectors>
               </diagnostic>
-              <stage_aggregate/>
+              <stage_diagnostic/>
             </scalar_field>
           </state_variable>
           <chemical_variable name="Ammonium">
@@ -466,7 +466,6 @@ for n in range(field.node_count):
                   <include_in_detectors/>
                 </detectors>
               </diagnostic>
-              <stage_aggregate/>
             </scalar_field>
             <scalar_field name="Ingested">
               <diagnostic>
@@ -477,7 +476,6 @@ for n in range(field.node_count):
                   <include_in_detectors/>
                 </detectors>
               </diagnostic>
-              <stage_aggregate/>
               <include_in_io/>
             </scalar_field>
             <uptake>
@@ -530,7 +528,7 @@ for n in range(field.node_count):
                   <include_in_detectors/>
                 </detectors>
               </diagnostic>
-              <stage_aggregate/>
+              <stage_diagnostic/>
             </scalar_field>
             <scalar_field name="Ingested">
               <diagnostic>
@@ -541,7 +539,6 @@ for n in range(field.node_count):
                   <include_in_detectors/>
                 </detectors>
               </diagnostic>
-              <stage_aggregate/>
             </scalar_field>
             <uptake>
               <source_field name="DissolvedNitrate"/>
@@ -579,7 +576,6 @@ for n in range(field.node_count):
                   <include_in_detectors/>
                 </detectors>
               </diagnostic>
-              <stage_aggregate/>
             </scalar_field>
             <scalar_field name="Ingested">
               <diagnostic>
@@ -590,7 +586,6 @@ for n in range(field.node_count):
                   <include_in_detectors/>
                 </detectors>
               </diagnostic>
-              <stage_aggregate/>
               <include_in_io/>
             </scalar_field>
             <uptake>
@@ -643,7 +638,6 @@ for n in range(field.node_count):
                   <include_in_detectors/>
                 </detectors>
               </diagnostic>
-              <stage_aggregate/>
             </scalar_field>
           </chemical_variable>
           <chemical_variable name="Chlorophyll">
@@ -656,7 +650,6 @@ for n in range(field.node_count):
                   <include_in_detectors/>
                 </detectors>
               </diagnostic>
-              <stage_aggregate/>
             </scalar_field>
           </chemical_variable>
           <chemical_variable name="NtoC"/>

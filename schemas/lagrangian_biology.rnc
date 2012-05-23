@@ -36,10 +36,10 @@ lagrangian_biology =
                            internal_algorithm,
                            diagnostic_scalar_field_no_adapt
                         },
-                        ## Add diagnostic field that represents the total quantity across all stages of the FG.
-                        element stage_aggregate {
+                        ## Add diagnostic fields that represent the particulate concetration of individual stage groups.
+                        element stage_diagnostic {
                            empty
-                        }?
+                        }
                      },
                      element include_in_io {
                         empty
@@ -198,8 +198,8 @@ chemical_variable =
                internal_algorithm,
                diagnostic_scalar_field_no_adapt
             },
-            ## Add diagnostic field that represents the total quantity across all stages of the FG.
-            element stage_aggregate {
+            ## Add diagnostic fields that represent the particulate concetration of individual stage groups.
+            element stage_diagnostic {
                empty
             }?
          }?,
@@ -210,8 +210,8 @@ chemical_variable =
                internal_algorithm,
                diagnostic_scalar_field_no_adapt
             },
-            ## Add diagnostic field that represents the total quantity across all stages of the FG.
-            element stage_aggregate {
+            ## Add diagnostic fields that represent the particulate concetration of individual stage groups.
+            element stage_diagnostic {
                empty
             }?,
             element include_in_io {

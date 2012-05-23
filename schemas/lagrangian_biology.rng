@@ -46,12 +46,10 @@ All internal quantities that are exchanged with the environment get scaled by th
                   <ref name="internal_algorithm"/>
                   <ref name="diagnostic_scalar_field_no_adapt"/>
                 </element>
-                <optional>
-                  <element name="stage_aggregate">
-                    <a:documentation>Add diagnostic field that represents the total quantity across all stages of the FG.</a:documentation>
-                    <empty/>
-                  </element>
-                </optional>
+                <element name="stage_diagnostic">
+                  <a:documentation>Add diagnostic fields that represent the particulate concetration of individual stage groups.</a:documentation>
+                  <empty/>
+                </element>
               </element>
               <optional>
                 <element name="include_in_io">
@@ -238,8 +236,8 @@ This field must be on a discontinuous mesh</a:documentation>
             <ref name="diagnostic_scalar_field_no_adapt"/>
           </element>
           <optional>
-            <element name="stage_aggregate">
-              <a:documentation>Add diagnostic field that represents the total quantity across all stages of the FG.</a:documentation>
+            <element name="stage_diagnostic">
+              <a:documentation>Add diagnostic fields that represent the particulate concetration of individual stage groups.</a:documentation>
               <empty/>
             </element>
           </optional>
@@ -256,8 +254,8 @@ This field must be on a discontinuous mesh</a:documentation>
             <ref name="diagnostic_scalar_field_no_adapt"/>
           </element>
           <optional>
-            <element name="stage_aggregate">
-              <a:documentation>Add diagnostic field that represents the total quantity across all stages of the FG.</a:documentation>
+            <element name="stage_diagnostic">
+              <a:documentation>Add diagnostic fields that represent the particulate concetration of individual stage groups.</a:documentation>
               <empty/>
             </element>
           </optional>

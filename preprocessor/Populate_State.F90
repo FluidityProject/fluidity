@@ -1447,48 +1447,25 @@ contains
       type(state_type), intent(inout) :: state
       type(functional_group), pointer, intent(inout) :: fgroup
       type(le_variable), intent(inout) :: variable
+      integer :: stage
 
       if (variable%field_type == BIOFIELD_NONE) then
          return
       end if
 
-      if (variable%field_type == BIOFIELD_DIAG .or. &
-          variable%field_type == BIOFIELD_INGESTED ) then
+      ! Allocate diagnostic field <FG><Variable>
+      call allocate_and_insert_scalar_field(trim(variable%field_path), state, &
+             parent_mesh="BiologyMesh", field_name=trim(variable%field_name), &
+             dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
 
-         ! Allocate primary diagnostic fields, ie. <FG><Variable><Stage>
-         do i=1, size(fgroup%stage_names%ptr)
-            call allocate_and_insert_scalar_field(trim(variable%field_path), &
-                   state, parent_mesh="BiologyMesh", &
-                   field_name=trim(variable%field_name)//trim(fgroup%stage_names%ptr(i)), &
-                   dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
-         end do
-
-         ! Allocate the stage-aggregated diagnostic field, ie. <FG><Variable>
-         if (stage_aggregate(variable)) then
-            call allocate_and_insert_scalar_field(trim(variable%field_path), &
-                   state, parent_mesh="BiologyMesh", &
-                   field_name=trim(variable%field_name), &
-                   dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
-         end if
-      end if
-
-      if (variable%field_type == BIOFIELD_FOOD_REQUEST .or. &
-          variable%field_type == BIOFIELD_UPTAKE .or. &
-          variable%field_type == BIOFIELD_RELEASE .or. &
-          variable%field_type == BIOFIELD_FOOD_INGEST ) then
-
-         ! Allocate stage-diagnostic field <FG><Variable><Stage>
-         if (variable%stage_diagnostic) then
+      ! Allocate stage-diagnostic field <FG><Variable><Stage>
+      if (variable%stage_diagnostic) then
+         do stage=1, size(fgroup%stage_names%ptr)
             call allocate_and_insert_scalar_field(trim(variable%field_path), state, &
                    parent_mesh="BiologyMesh", &
-                   field_name=trim(variable%field_name)//trim(fgroup%stage_names%ptr(i)), &
+                   field_name=trim(variable%field_name)//trim(fgroup%stage_names%ptr(stage)), &
                    dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
-         end if
-
-         ! Allocate diagnostic field <FG><Variable>
-         call allocate_and_insert_scalar_field(trim(variable%field_path), state, &
-                parent_mesh="BiologyMesh", field_name=trim(variable%field_name), &
-                dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+         end do
       end if
 
       ! Allocate global aggregated request and depletion fields
