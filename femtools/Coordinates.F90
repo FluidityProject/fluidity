@@ -147,7 +147,7 @@ contains
   end subroutine rotate2ll
 
   subroutine spherical_polar_2_cartesian(radius,theta,phi,x,y,z)
-    !Subroutine for calculation of spherical-polar coordinates from cartesian coordinates.
+    !Subroutine for calculation of cartesian coordinates from spherical-polar coordinates.
     implicit none
 
     real, intent(in) :: radius  !Distance from centre of sphere
@@ -215,6 +215,124 @@ contains
     enddo
 
   end subroutine cartesian_2_spherical_Polar_field
+
+  subroutine transformation_matrix_cartesian_2_spherical_polar(xCoord, yCoord, zCoord, R, RT)
+    !Subroutine calculating transformation martix for sperical-polar to/from cartesian
+    ! tensor transformations. The routine also returns the transposed transformation matrix
+    implicit none
+
+    real, intent(in) :: xCoord  !x-component of position vector
+    real, intent(in) :: yCoord  !y-component of position vector
+    real, intent(in) :: zCoord  !z-component of position vector
+    real, dimension(3,3), intent(out) :: R   !Transformation matrix
+    real, dimension(3,3), intent(out) :: RT  !Transposed transformation matrix
+
+    real :: radius        !Distance from centre of sphere
+    real :: theta         !Polar angle, in radians
+    real :: phi           !Azimuthal angle, in radians
+
+    !Calculate position-vector components in spherical-polar basis
+    call cartesian_2_spherical_polar(xCoord, yCoord, zCoord, radius, theta, phi)
+
+    R(1,1)=sin(theta)*cos(phi)
+    R(1,2)=sin(theta)*sin(phi)
+    R(1,3)=cos(theta)
+    R(2,1)=cos(theta)*cos(phi)
+    R(2,2)=cos(theta)*sin(phi)
+    R(2,3)=-sin(theta)
+    R(3,1)=-sin(phi)
+    R(3,2)=cos(phi)
+    R(3,3)=0.0
+
+    RT(1,1) = R(1,1)
+    RT(1,2) = R(2,1)
+    RT(1,3) = R(3,1)
+    RT(2,1) = R(1,2)
+    RT(2,2) = R(2,2)
+    RT(2,3) = R(3,2)
+    RT(3,1) = R(1,3)
+    RT(3,2) = R(2,3)
+    RT(3,3) = R(3,3)
+
+  end subroutine transformation_matrix_cartesian_2_spherical_polar
+
+  subroutine vector_spherical_polar_2_cartesian(radial, polar, azimuthal, &
+                                                radius, theta, phi, &
+                                                xComp, yComp, zComp, &
+                                                xCoord, yCoord, zCoord)
+    !Subroutine for vector change of basis: from spherical-polar to cartesian. The
+    ! coordinates of the position vector are also transformed
+    implicit none
+
+    real, intent(in) :: radial        !Radial component of vector
+    real, intent(in) :: polar         !Polar component of vector
+    real, intent(in) :: azimuthal     !Azimuthal  component of vector
+    real, intent(in) :: radius        !Distance from centre of sphere
+    real, intent(in) :: theta         !Polar angle, in radians
+    real, intent(in) :: phi           !Azimuthal angle, in radians
+    real, intent(out) :: xComp        !1st vector component in cartesian basis
+    real, intent(out) :: yComp        !2nd vector component in cartesian basis
+    real, intent(out) :: zComp        !3rd vector component in cartesian basis
+    real, intent(out) :: xCoord       !1st vector component of position vector in cartesian basis
+    real, intent(out) :: yCoord       !2nd vector component of position vector in cartesian basis
+    real, intent(out) :: zCoord       !3rd vector component of position vector in cartesian basis
+
+    real, dimension(3) :: cartesianComponents
+    real, dimension(3,3) :: R   !Transformation matrix
+    real, dimension(3,3) :: RT  !Transposed transformation matrix
+
+    !Calculate position-vector components in cartesian system
+    call spherical_polar_2_cartesian(radius, theta, phi, xCoord, yCoord, zCoord)
+
+    !Calculate transformation matrix
+    call transformation_matrix_cartesian_2_spherical_polar(xCoord, yCoord, zCoord, R, RT)
+
+    !Evaluate vector components in Cartesian basis
+    cartesianComponents = matmul(RT,(/radial, polar, azimuthal/))
+    xComp = cartesianComponents(1)
+    yComp = cartesianComponents(2)
+    zComp = cartesianComponents(3)
+
+  end subroutine vector_spherical_polar_2_cartesian
+
+  subroutine vector_cartesian_2_spherical_polar(xComp, yComp, zComp, &
+                                                xCoord, yCoord, zCoord, &
+                                                radial, polar, azimuthal, &
+                                                radius, theta, phi)
+    !Subroutine for vector change of basis: from Cartesian to spherical-polar. The
+    ! coordinates of the position vector are also transformed
+    implicit none
+
+    real, intent(in) :: xComp         !1st vector component in cartesian basis
+    real, intent(in) :: yComp         !2nd vector component in cartesian basis
+    real, intent(in) :: zComp         !3rd vector component in cartesian basis
+    real, intent(in) :: xCoord        !1st vector component of position vector in cartesian basis
+    real, intent(in) :: yCoord        !2nd vector component of position vector in cartesian basis
+    real, intent(in) :: zCoord        !3rd vector component of position vector in cartesian basis
+    real, intent(out) :: radial       !Radial component of vector
+    real, intent(out) :: polar        !Polar component of vector
+    real, intent(out) :: azimuthal    !Azimuthal  component of vector
+    real, intent(out) :: radius       !Distance from centre of sphere
+    real, intent(out) :: theta        !Polar angle, in radians
+    real, intent(out) :: phi          !Azimuthal angle, in radians
+
+    real, dimension(3) :: sphericalPolarComponents
+    real, dimension(3,3) :: R   !Transformation matrix
+    real, dimension(3,3) :: RT  !Transposed transformation matrix
+
+    !Calculate position-vector components in spherical-polar system
+    call cartesian_2_spherical_polar(xCoord, yCoord, zCoord, radius, theta, phi)
+
+    !Calculate transformation matrix
+    call transformation_matrix_cartesian_2_spherical_polar(xCoord, yCoord, zCoord, R, RT)
+
+    !Evaluate vector components in spherical-polar basis
+    sphericalPolarComponents = matmul(R,(/xComp, yComp, zComp/))
+    radial = sphericalPolarComponents(1)
+    polar = sphericalPolarComponents(2)
+    azimuthal = sphericalPolarComponents(3)
+
+  end subroutine vector_cartesian_2_spherical_polar
 
   subroutine higher_order_sphere_projection(positions, s_positions)
     !!< Given a P1 'positions' field and a Pn 's_positions' field, bends the 
