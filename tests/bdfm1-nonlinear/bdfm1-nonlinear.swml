@@ -184,7 +184,7 @@
         <spatial_discretisation>
           <discontinuous_galerkin>
             <wave_equation>
-              <just_wave_equation_step/>
+              <fully_coupled/>
             </wave_equation>
           </discontinuous_galerkin>
         </spatial_discretisation>
@@ -343,6 +343,20 @@
     <scalar_field name="PotentialVorticity" rank="0">
       <prognostic>
         <mesh name="VorticityMesh"/>
+        <solver>
+          <iterative_method name="preonly"/>
+          <preconditioner name="lu"/>
+          <relative_error>
+            <real_value rank="0">1.0e-40</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">400</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
         <output/>
         <stat/>
       </prognostic>

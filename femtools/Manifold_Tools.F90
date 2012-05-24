@@ -27,6 +27,7 @@
 #include "fdebug.h"
 module manifold_tools
   use spud
+  use global_parameters, only:current_debug_level, OPTION_PATH_LEN
   use state_module
   use fields
   use fields_base
@@ -608,11 +609,12 @@ module manifold_tools
     
   end subroutine get_weights_ele
 
-  subroutine get_vorticity(state,vorticity,velocity,lumped_mass)
+  subroutine get_vorticity(state,vorticity,velocity,lumped_mass,path)
     type(state_type), intent(inout) :: state
     type(vector_field), intent(inout) :: velocity
     type(scalar_field), intent(inout) :: vorticity
     type(csr_matrix), intent(in), optional :: lumped_mass
+    character(len=OPTION_PATH_LEN), optional :: path
     !
     type(vector_field), pointer :: X, down
     type(csr_matrix) :: vorticity_mass_matrix
@@ -649,9 +651,18 @@ module manifold_tools
 
     ewrite(2,*) maxval(abs(vorticity_rhs%val))
     if(lump_mass) then
-       call petsc_solve(vorticity,lumped_mass,vorticity_rhs)
+       if(present(path)) then
+          call petsc_solve(vorticity,lumped_mass,vorticity_rhs,option_path=path)
+       else
+          call petsc_solve(vorticity,lumped_mass,vorticity_rhs)
+       end if
     else
-       call petsc_solve(vorticity,vorticity_mass_matrix,vorticity_rhs)
+       if(present(path)) then
+          call petsc_solve(vorticity,vorticity_mass_matrix,vorticity_rhs,&
+               option_path=path)
+       else
+          call petsc_solve(vorticity,vorticity_mass_matrix,vorticity_rhs)
+       end if
     end if
     if(.not.lump_mass)then
        call deallocate(vorticity_mass_matrix)

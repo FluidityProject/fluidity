@@ -385,6 +385,10 @@ start =
                   attribute name { "PotentialVorticity" },
                   element prognostic {
                      vorticity_mesh_choice,
+                     ## Solver
+                     element solver {
+                        linear_solver_options_asym
+                     },
                      prognostic_scalar_output_options,
                      prognostic_scalar_stat_options
                   }

@@ -493,6 +493,10 @@ if isn't present as a field in state.</a:documentation>
               </attribute>
               <element name="prognostic">
                 <ref name="vorticity_mesh_choice"/>
+                <element name="solver">
+                  <a:documentation>Solver</a:documentation>
+                  <ref name="linear_solver_options_asym"/>
+                </element>
                 <ref name="prognostic_scalar_output_options"/>
                 <ref name="prognostic_scalar_stat_options"/>
               </element>

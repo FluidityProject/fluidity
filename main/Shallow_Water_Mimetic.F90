@@ -365,7 +365,8 @@
                     newU,newD,PVFlux,state)
 
                ! Check U residual is consistent
-               call get_vorticity(state,vorticityconsistency,newU)
+               call get_vorticity(state,vorticityconsistency,newU,&
+                    path=vorticity%option_path)
                call get_PV(vorticityconsistency,D_projected,&
                     Coriolis,PVconsistency)
                assert(maxval(abs(PV%val-PVconsistency%val))<1.0e-8)
@@ -405,16 +406,17 @@
 
     subroutine setup_fields(state)
       type(state_type), intent(inout) :: state
-      type(vector_field), pointer :: v_field,U,X
+      type(vector_field), pointer :: v_field,U,X,Z
       type(scalar_field), pointer :: s_field,D,f_ptr, D_projected
       type(mesh_type), pointer :: v_mesh
       type(vector_field) :: U_local, advecting_u, old_U
       character(len=PYTHON_FUNC_LEN) :: coriolis
-      type(scalar_field) :: f, old_D
+      type(scalar_field) :: f, new_s_field
       integer :: stat
 
       X=>extract_vector_field(state, "Coordinate")
       U=>extract_vector_field(state, "Velocity")
+      Z=>extract_vector_field(state, "Vorticity",stat)
 
       !SET UP LOCAL VELOCITY
       !This needs an option to switch on as we don't always want to do it.
@@ -441,49 +443,49 @@
 
       !Old layer thickness (used for advection dg)
       D => extract_scalar_field(state, "LayerThickness")
-      call allocate(old_d, D%mesh, "OldLayerThickness")
-      call zero(old_d)
-      call insert(state, old_d, "OldLayerThickness")
-      call deallocate(old_d)
+      call allocate(new_s_field, D%mesh, "OldLayerThickness")
+      call zero(new_s_field)
+      call insert(state, new_s_field, "OldLayerThickness")
+      call deallocate(new_s_field)
 
       !Old projected layer thickness (used for CG advection)
       D_projected => extract_scalar_field(&
            state, "ProjectedLayerThickness",stat)
       if(stat==0) then
-         call allocate(old_d, D_projected%mesh,&
+         call allocate(new_s_field, D_projected%mesh,&
               "OldProjectedLayerThickness")
-         call zero(old_d)
-         call insert(state, old_d, "OldProjectedLayerThickness")
-         call deallocate(old_d)
+         call zero(new_s_field)
+         call insert(state, new_s_field, "OldProjectedLayerThickness")
+         call deallocate(new_s_field)
          s_field => extract_scalar_field(&
            state, "PotentialVorticityTracer",stat)
          if(stat==0) then
-            call allocate(old_d, D_projected%mesh,&
+            call allocate(new_s_field, D_projected%mesh,&
                  "OldPotentialVorticityTracer")
-            call zero(old_d)
-            call insert(state, old_d, "OldPotentialVorticityTracer")
-            call deallocate(old_d)
+            call zero(new_s_field)
+            call insert(state, new_s_field, "OldPotentialVorticityTracer")
+            call deallocate(new_s_field)
          end if
       end if
 
       s_field => extract_scalar_field(&
            state, "PotentialVorticity",stat)
       if(stat==0) then
-         call allocate(old_d, D_projected%mesh,&
+         call allocate(new_s_field, D_projected%mesh,&
               "OldPotentialVorticity")
-         call zero(old_d)
-         call insert(state, old_d, "OldPotentialVorticity")
-         call deallocate(old_d)
-         call allocate(old_d, D_projected%mesh,&
+         call zero(new_s_field)
+         call insert(state, new_s_field, "OldPotentialVorticity")
+         call deallocate(new_s_field)
+         call allocate(new_s_field, D_projected%mesh,&
               "VorticityConsistency")
-         call zero(old_d)
-         call insert(state, old_d, "VorticityConsistency")
-         call deallocate(old_d)
-         call allocate(old_d, D_projected%mesh,&
+         call zero(new_s_field)
+         call insert(state, new_s_field, "VorticityConsistency")
+         call deallocate(new_s_field)
+         call allocate(new_s_field, D_projected%mesh,&
               "PVConsistency")
-         call zero(old_d)
-         call insert(state, old_d, "PVConsistency")
-         call deallocate(old_d)
+         call zero(new_s_field)
+         call insert(state, new_s_field, "PVConsistency")
+         call deallocate(new_s_field)
       end if
       
       !SET UP CORIOLIS FORCE
