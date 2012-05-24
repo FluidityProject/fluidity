@@ -397,7 +397,10 @@ start =
                   element prognostic {
                      element initial_condition {
                         attribute name { "WholeMesh" },
-                        input_choice_initial_condition_real
+                        input_choice_initial_condition_real,
+                        element zero_bubble_component {
+                           empty
+                        }?
                      },
                      element timestepping {
                         element theta {

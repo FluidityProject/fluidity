@@ -1161,7 +1161,7 @@ module advection_local_DG
   end subroutine construct_advection_cg_tracer_ele
 
   subroutine construct_pv_flux_ele(Q,T,T_old,Flux,X,t_theta,ele)
-    type(scalar_field), intent(in) :: T_old,T
+    type(scalar_field), intent(in) :: T,T_old
     type(vector_field), intent(inout) :: Q
     type(vector_field), intent(in) :: X, Flux
     integer, intent(in) :: ele
@@ -1196,14 +1196,15 @@ module advection_local_DG
     !Advection terms
     call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), detwei&
          &=detwei, J=J)
-    Q_rhs = shape_vector_rhs(Q_shape,Flux_gi,t_theta*T_gi + &
-         (1-t_theta)*T_old_gi)
+    !Q_rhs = shape_vector_rhs(Q_shape,Flux_gi,t_theta*T_gi + &
+    !     (1-t_theta)*T_old_gi)
     !! Needs a bit of thought about local coordinates
-    !! And a solve
-    FLAbort('not done')
+
     !Q_perp_rhs(1,:) = Q_rhs(
-    
-    call addto(Q,ele_nodes(Q,ele),Q_rhs)
+
+    !call addto(T_rhs,ele_nodes(T_rhs,ele),l_rhs)
+    !call addto(adv_mat,ele_nodes(T_rhs,ele),ele_nodes(T_rhs,ele),&
+    !     l_adv_mat)
 
   end subroutine construct_pv_flux_ele
   

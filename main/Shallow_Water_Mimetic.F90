@@ -310,7 +310,7 @@
       type(mesh_type), pointer :: v_mesh
       type(vector_field) :: U_local, advecting_u
       character(len=PYTHON_FUNC_LEN) :: coriolis
-      type(scalar_field) :: f, old_D, old_Q
+      type(scalar_field) :: f, old_D
       integer :: stat
 
       X=>extract_vector_field(state, "Coordinate")
@@ -348,18 +348,17 @@
          call zero(old_d)
          call insert(state, old_d, "OldProjectedLayerThickness")
          call deallocate(old_d)
-         !Old PV Tracer field (used for testing CG advection)
-         s_field=> extract_scalar_field(&
-              state, "PotentialVorticityTracer",stat)
+         s_field => extract_scalar_field(&
+           state, "PotentialVorticityTracer",stat)
          if(stat==0) then
-            call allocate(old_q, D_projected%mesh,&
+            call allocate(old_d, D_projected%mesh,&
                  "OldPotentialVorticityTracer")
-            call zero(old_q)
-            call insert(state, old_q, "OldPotentialVorticityTracer")
-            call deallocate(old_q)            
+            call zero(old_d)
+            call insert(state, old_d, "OldPotentialVorticityTracer")
+            call deallocate(old_d)
          end if
       end if
-
+      
       !SET UP CORIOLIS FORCE
       f_ptr => extract_scalar_field(state,"Coriolis",stat=stat)
       if(stat.ne.0) then
@@ -411,8 +410,36 @@
             &"PrescribedLayerDepthFromProjection")
     end if
 
+    if(have_option("/material_phase::Fluid/scalar_field::PotentialVorticityT&
+         &racer/prognostic/initial_condition::WholeMesh/zero_bubble_componen&
+         &t")) then
+       s_field => extract_scalar_field(state,"PotentialVorticityTracer")
+       call remove_bubble_component(s_field)
+    end if
+
     end subroutine setup_fields
     
+    subroutine remove_bubble_component(s_field)
+      type(scalar_field), intent(inout) :: s_field
+      !
+      integer :: ele
+
+      assert(s_field%mesh%shape%numbering%type==ELEMENT_BUBBLE)
+      do ele = 1, ele_count(s_field)
+         call remove_bubble_component_ele(s_field,ele)
+      end do
+    end subroutine remove_bubble_component
+
+    subroutine remove_bubble_component_ele(s_field,ele)
+      type(scalar_field), intent(inout) :: s_field
+      integer, intent(in) :: ele
+      !
+      integer, pointer, dimension(:) :: f_nodes
+
+      f_nodes => ele_nodes(s_field,ele)
+      call set(s_field,f_nodes(size(f_nodes)),0.0)
+    end subroutine remove_bubble_component_ele
+
     subroutine get_PV(vorticity,D_projected,Coriolis,PV)
       type(scalar_field), intent(in) :: vorticity,D_projected, Coriolis
       type(scalar_field), intent(inout) :: PV

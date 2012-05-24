@@ -514,6 +514,11 @@ Only used if wave equation is not solved</a:documentation>
                     <value>WholeMesh</value>
                   </attribute>
                   <ref name="input_choice_initial_condition_real"/>
+                  <optional>
+                    <element name="zero_bubble_component">
+                      <empty/>
+                    </element>
+                  </optional>
                 </element>
                 <element name="timestepping">
                   <element name="theta">
