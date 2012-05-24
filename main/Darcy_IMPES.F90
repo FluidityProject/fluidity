@@ -1436,7 +1436,7 @@ contains
             di%generic_prog_sfield(f)%sfield_cv_options%limit_facevalue             = .false.
             di%generic_prog_sfield(f)%sfield_cv_options%limiter                     = 0
             di%generic_prog_sfield(f)%sfield_cv_options%limiter_slopes              = 0.0
-            di%generic_prog_sfield(f)%sfield_cv_options%upwind_scheme               = 0.0
+            di%generic_prog_sfield(f)%sfield_cv_options%upwind_scheme               = 0
          end do
 
       end if
@@ -1464,21 +1464,21 @@ contains
       di%relperm_cv_options%limit_facevalue             = .false.
       di%relperm_cv_options%limiter                     = 0
       di%relperm_cv_options%limiter_slopes              = 0.0
-      di%relperm_cv_options%upwind_scheme               = 0.0
+      di%relperm_cv_options%upwind_scheme               = 0
 
       di%saturation_cv_options%facevalue                   = 0
       di%saturation_cv_options%number_face_value_iteration = 0
       di%saturation_cv_options%limit_facevalue             = .false.
       di%saturation_cv_options%limiter                     = 0
       di%saturation_cv_options%limiter_slopes              = 0.0
-      di%saturation_cv_options%upwind_scheme               = 0.0
+      di%saturation_cv_options%upwind_scheme               = 0
             
       di%density_cv_options%facevalue                   = 0
       di%density_cv_options%number_face_value_iteration = 0
       di%density_cv_options%limit_facevalue             = .false.
       di%density_cv_options%limiter                     = 0
       di%density_cv_options%limiter_slopes              = 0.0
-      di%density_cv_options%upwind_scheme               = 0.0
+      di%density_cv_options%upwind_scheme               = 0
             
       di%subcy_opt_sat%have       = .false.
       di%subcy_opt_sat%number     = 0      
