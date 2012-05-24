@@ -755,10 +755,20 @@ prognostic_sw_velocity_field =
          element discontinuous_galerkin {
             ## Options for the wave equation solver
             element wave_equation {
-               ## Leave out the wave equation step
-               element no_wave_equation_step {
-                  empty
-               }?
+               (
+                  ## Leave out the wave equation step
+                  element no_wave_equation_step {
+                     empty
+                  }|
+                  ## Only solve the linear equations
+                  element just_wave_equation_step {
+                     empty
+                  }|
+                  ## Solve the fully coupled equations
+                  element fully_coupled {
+                     empty
+                  }                  
+               )
             },
             element advection_scheme {
                (
@@ -779,7 +789,7 @@ prognostic_sw_velocity_field =
                      empty
                   }
                )
-            },
+            }?,
             element slope_limiter {
                ## If present the vertex based slope limiter (the only one that works!) will be used.
                empty
@@ -794,7 +804,7 @@ prognostic_sw_velocity_field =
          ##  0 <= ITHETA <= 1
          element relaxation {
             real
-         },
+         }?,
          element discontinuous_galerkin {
             (
                ## Use timestep subcycling to solve this equation.

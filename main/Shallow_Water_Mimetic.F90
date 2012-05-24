@@ -87,10 +87,9 @@
     type(state_type), dimension(:), pointer :: states
     character(len = OPTION_PATH_LEN) :: simulation_name
 
-    integer :: timestep, nonlinear_iterations
+    integer :: timestep
     integer :: ierr
     integer, save :: dump_no=0
-    integer :: stat
     real :: energy
 
 #ifdef HAVE_MPI
@@ -190,34 +189,45 @@
     subroutine execute_timestep(state)
       type(state_type), intent(inout) :: state
       !
-      type(vector_field), pointer :: U, advecting_u
+      type(vector_field), pointer :: U, advecting_u, U_old
       type(scalar_field), pointer :: D_old, D, vorticity, &
-           & D_projected, Old_D_projected, Coriolis, PV
-      type(vector_field) :: newU, MassFlux, PVFlux
-      type(scalar_field) :: newD
+           & D_projected, Old_D_projected, Coriolis, PV, PV_old
+      type(vector_field) :: newU, MassFlux, PVFlux, UResidual
+      type(scalar_field) :: newD, DResidual
       type(csr_matrix), pointer :: Vorticity_Mass_ptr
       type(csr_matrix) :: Vorticity_Mass
       type(csr_sparsity), pointer :: Vorticity_Mass_sparsity
       type(scalar_field), pointer :: PVtracer
 
       integer :: nonlinear_iterations, nits, stat
-      logical :: have_pv_tracer, lump_mass
+      logical :: have_pv_tracer, lump_mass, have_D_projected=.false.,&
+           & have_old_d_projected=.false., have_vorticity=.false., &
+           & have_PV=.false., have_PV_old=.false.
+      real :: theta
 
       call get_option("/timestepping/nonlinear_iterations"&
            &,nonlinear_iterations)
+      call get_option("/timestepping/theta",theta)
 
       !Set up iterative solutions and provide initial guess
       !From previous timestep
       
       U => extract_vector_field(state, "LocalVelocity")
+      U_old => extract_vector_field(state, "OldLocalVelocity")
       D => extract_scalar_field(state, "LayerThickness")
-      D_projected=>extract_scalar_field(state, "ProjectedLayerThickness")
+      D_projected=>extract_scalar_field(state, "ProjectedLayerThickness",stat)
+      have_d_projected = (stat==0)
       Old_D_projected=>extract_scalar_field(&
-           state, "OldProjectedLayerThickness")
+           state, "OldProjectedLayerThickness",stat)
+      have_old_d_projected = (stat==0)
       D_old => extract_scalar_field(state, "OldLayerThickness")
-      vorticity => extract_scalar_field(state, "Vorticity")
+      vorticity => extract_scalar_field(state, "Vorticity",stat)
+      have_vorticity = (stat==0)
       Coriolis => extract_scalar_field(state, "Coriolis")
-      PV => extract_scalar_field(state, "PotentialVorticity")
+      PV => extract_scalar_field(state, "PotentialVorticity",stat)
+      have_pv = (stat==0)
+      PV_old => extract_scalar_field(state, "OldPotentialVorticity",stat)
+      have_pv_old = (stat==0)
       PVtracer => extract_scalar_field(state, "PotentialVorticityTracer",stat)
       if(stat==0) then
          have_pv_tracer = .true.
@@ -228,40 +238,47 @@
 
       ! Vorticity calculation
       lump_mass = .false.
-      if(have_option('/material_phase::Fluid/scalar_field::Vorticity/prog&
-           &nostic/vorticity_equation/lump_mass')) then
-         lump_mass =.true.
-         vorticity_mass_ptr=>extract_csr_matrix(&
-              state, "LumpedVorticityMassMatrix", stat)
-         if(stat.ne.0) then
-            Vorticity_mass_sparsity=>&
-                 get_csr_sparsity_firstorder(state, vorticity%mesh,&
-                 & vorticity%mesh)
-            call allocate(Vorticity_mass,Vorticity_mass_sparsity)
-            call get_lumped_mass_p2b(state,vorticity_mass,vorticity)
-            call insert(state,vorticity_mass,"LumpedVorticityMassMatrix")
-            call deallocate(vorticity_mass)
+      if(have_vorticity) then
+         if(have_option('/material_phase::Fluid/scalar_field::Vorticity/prog&
+              &nostic/vorticity_equation/lump_mass')) then
+            lump_mass =.true.
             vorticity_mass_ptr=>extract_csr_matrix(&
-                 state, "LumpedVorticityMassMatrix")
+                 state, "LumpedVorticityMassMatrix", stat)
+            if(stat.ne.0) then
+               Vorticity_mass_sparsity=>&
+                    get_csr_sparsity_firstorder(state, vorticity%mesh,&
+                    & vorticity%mesh)
+               call allocate(Vorticity_mass,Vorticity_mass_sparsity)
+               call get_lumped_mass_p2b(state,vorticity_mass,vorticity)
+               call insert(state,vorticity_mass,"LumpedVorticityMassMatrix")
+               call deallocate(vorticity_mass)
+               vorticity_mass_ptr=>extract_csr_matrix(&
+                    state, "LumpedVorticityMassMatrix")
+            end if
+            call get_vorticity(state,vorticity,U,vorticity_mass_ptr)
+         else
+            call get_vorticity(state,vorticity,U)
+            call calculate_scalar_galerkin_projection(state, D_projected)
          end if
-         call get_vorticity(state,vorticity,U,vorticity_mass_ptr)
-      else
-         call get_vorticity(state,vorticity,U)
-         call calculate_scalar_galerkin_projection(state, D_projected)
       end if
 
-      if(have_option('/material_phase::Fluid/scalar_field::Vorticity/prog&
-           &nostic/vorticity_equation/lump_mass')) then
-         call project_to_p2b_lumped(state,D,&
-              D_projected)
-      else
-         call calculate_scalar_galerkin_projection(state, D_projected)
+      if(have_d_projected) then
+         if(have_option('/material_phase::Fluid/scalar_field::Vorticity/prog&
+              &nostic/vorticity_equation/lump_mass')) then
+            call project_to_p2b_lumped(state,D,&
+                 D_projected)
+         else
+            call calculate_scalar_galerkin_projection(state, D_projected)
+         end if
+         call set(D_old,D)
+         call set(Old_D_projected,D_projected)
       end if
-      call set(D_old,D)
-      call set(Old_D_projected,D_projected)
 
       !PV calculation
-      call get_PV(vorticity,D_projected,Coriolis,PV)
+      if(have_pv) then
+         call get_PV(vorticity,D_projected,Coriolis,PV)
+         call set(PV_old,PV)
+      end if
 
       if(have_option('/material_phase::Fluid/vector_field::Velocity/&
            &prognostic/spatial_discretisation/discontinuous_galerkin/wave&
@@ -270,6 +287,8 @@
          call set(advecting_u, u)
          call allocate(MassFlux,mesh_dim(U),u%mesh,'MassFlux')
          call allocate(PVFlux,mesh_dim(U),u%mesh,'PVFlux')
+         call zero(massFlux)
+         call zero(PVFlux)
          call solve_advection_dg_subcycle("LayerThickness", state, &
               "NonlinearVelocity",continuity=.true.,Flux=MassFlux)
          if(lump_mass) then
@@ -289,14 +308,82 @@
          call set(newD,D)
          call set(newU,U)
          
-         do nits = 1, nonlinear_iterations
+         if(have_option('/material_phase::Fluid/vector_field::Velocity/progn&
+              &ostic/spatial_discretisation/discontinuous_galerkin/wave_equa&
+              &tion/just_wave_equation_step')) then
+            !Just solve the linear equations
             call solve_hybridised_timestep_residual(state,newU,newD)
-         end do
+         else
+            !Solve the fully coupled SWE
+
+            !Allocate some temporary fields
+            call allocate(MassFlux,mesh_dim(U),u%mesh,'MassFlux')
+            call allocate(PVFlux,mesh_dim(U),u%mesh,'PVFlux')
+            call zero(MassFlux)
+            call zero(PVFlux)
+            call allocate(UResidual, mesh_dim(U), u%mesh,&
+                 & 'VelocityResidual')
+            call allocate(DResidual, D%mesh, 'LayerThicknessResidual')
+            call zero(UResidual)
+            call zero(DResidual)
+
+            !Start of Newton iteration loop
+            newton_iteration: do nits = 1, nonlinear_iterations
+               !Set up advecting velocity 
+               call set(advecting_u, u)
+               call scale(advecting_u, 1-theta)
+               call addto(advecting_u, newU, theta)
+
+               !Compute D residual
+               call solve_advection_dg_subcycle("LayerThickness", state, &
+                    "NonlinearVelocity",continuity=.true.,Flux=MassFlux)
+               call set(DResidual,D)
+               call addto(DResidual,D_old,-1.0)
+               call apply_dg_mass(DResidual,state)
+
+               !Calculate projected D from next timestep
+               if(lump_mass) then
+                  call project_to_p2b_lumped(state,D,D_projected)
+               else
+                  call calculate_scalar_galerkin_projection(state, D_projected)
+               end if
+
+               !Update PV
+               call set(PV,PV_old)
+               call solve_advection_cg_tracer(PV,D_projected,&
+                    old_d_projected,MassFlux,PVFlux,state)
+
+               ! Compute U residual
+               call compute_U_residual(UResidual,U_old,D_old,&
+                    newU,newD,PVFlux,state)
+
+               !Perform (quasi)Newton iteration
+               call solve_hybridised_timestep_residual(state,newU,newD,&
+                    & UResidual,DResidual)
+            end do newton_iteration
+
+            call deallocate(MassFlux)
+            call deallocate(PVFlux)
+            call deallocate(UResidual)
+            call deallocate(DResidual)
+         end if
+
          ewrite(1,*) 'jump in D', maxval(abs(d%val-newd%val))
          ewrite(1,*) 'jump in U', maxval(abs(U%val-newU%val))
          
          call set(D,newD)
          call set(U,newU)
+
+         !Final PV calculation for output
+         if(have_d_projected) then
+            if(lump_mass) then
+               call project_to_p2b_lumped(state,D,D_projected)
+            else
+               call calculate_scalar_galerkin_projection(state, D_projected)
+            end if
+            call get_PV(vorticity,D_projected,Coriolis,PV)
+         end if
+
          call deallocate(newU)
          call deallocate(newD)
       end if
@@ -308,7 +395,7 @@
       type(vector_field), pointer :: v_field,U,X
       type(scalar_field), pointer :: s_field,D,f_ptr, D_projected
       type(mesh_type), pointer :: v_mesh
-      type(vector_field) :: U_local, advecting_u
+      type(vector_field) :: U_local, advecting_u, old_U
       character(len=PYTHON_FUNC_LEN) :: coriolis
       type(scalar_field) :: f, old_D
       integer :: stat
@@ -331,6 +418,13 @@
       call zero(advecting_u)
       call insert(state, advecting_u, "NonlinearVelocity")
       call deallocate(advecting_u)
+
+      !Old velocity (used for residual calculations)
+      V_field => extract_vector_field(state, "LocalVelocity")
+      call allocate(old_U, v_field%dim, v_field%mesh, "OldLocalVelocity")
+      call zero(old_U)
+      call insert(state, old_U, "OldLocalVelocity")
+      call deallocate(old_U)
 
       !Old layer thickness (used for advection dg)
       D => extract_scalar_field(state, "LayerThickness")
@@ -357,6 +451,16 @@
             call insert(state, old_d, "OldPotentialVorticityTracer")
             call deallocate(old_d)
          end if
+      end if
+
+      s_field => extract_scalar_field(&
+           state, "PotentialVorticity",stat)
+      if(stat==0) then
+         call allocate(old_d, D_projected%mesh,&
+              "OldPotentialVorticity")
+         call zero(old_d)
+         call insert(state, old_d, "OldPotentialVorticity")
+         call deallocate(old_d)
       end if
       
       !SET UP CORIOLIS FORCE
@@ -419,6 +523,35 @@
 
     end subroutine setup_fields
     
+    subroutine apply_dg_mass(s_field,state)
+      type(state_type), intent(inout) :: state
+      type(scalar_field), intent(inout) :: s_field
+      !
+      integer :: ele
+      type(vector_field), pointer :: X
+
+      X=>extract_vector_field(state, "Coordinate")
+      do ele = 1, ele_count(s_field)
+         call apply_dg_mass_ele(s_field,X,ele)
+      end do
+    end subroutine apply_dg_mass
+
+    subroutine apply_dg_mass_ele(s_field,X,ele)
+      type(scalar_field), intent(inout) :: s_field
+      type(vector_field), intent(in) :: X
+      integer, intent(in) :: ele
+      !
+      real, dimension(ele_ngi(s_field,ele)) :: s_gi, detwei
+      real, dimension(ele_loc(s_field,ele)) :: s_rhs
+      real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+
+      call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), detwei=detwei&
+           &,J=J)
+      s_gi = ele_val_at_quad(s_field,ele)
+      s_rhs = shape_rhs(ele_shape(s_field,ele),s_gi*detwei)
+      call set(s_field,ele_nodes(s_field,ele),s_rhs)
+    end subroutine apply_dg_mass_ele
+
     subroutine remove_bubble_component(s_field)
       type(scalar_field), intent(inout) :: s_field
       !
@@ -564,9 +697,10 @@
 ! Mass lumping for P2b -- DONE and TESTED
 ! Visualisation of P2b by mapping back to P2 -- DONE and TESTED
 ! Mass mapping from P1dg to P2b -- DONE and TESTED
-! PV calculation -- 
-! Timestepping for PV
-! Nonlinear residual calculation from PV and DG advection
+! PV calculation -- DONE
+! Timestepping for PV -- DONE, TESTED (advection of 1)
+! Computation of PV flux -- DONE
+! Nonlinear residual calculation from Velocity and DG advection
 ! Check on spherical mesh
 ! stabilisation for PV
 ! discontinuity capturing for PV

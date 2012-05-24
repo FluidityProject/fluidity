@@ -64,7 +64,7 @@ module advection_local_DG
 
   private
   public solve_advection_dg_subcycle, solve_vector_advection_dg_subcycle,&
-       & solve_advection_cg_tracer
+       & solve_advection_cg_tracer, compute_U_residual
 
   !parameters specifying vector upwind options
   integer, parameter :: VECTOR_UPWIND_EDGE=1, VECTOR_UPWIND_SPHERE=2
@@ -1029,7 +1029,7 @@ module advection_local_DG
     type(csr_sparsity), pointer :: T_sparsity
     type(csr_matrix) :: Adv_mat, T_lumped_mass,T_lumped_mass_next
     type(scalar_field) :: T_rhs
-    type(vector_field), pointer :: X
+    type(vector_field), pointer :: X, down
     type(scalar_field), pointer :: T_old
     integer :: ele
     real :: dt, t_theta
@@ -1040,10 +1040,10 @@ module advection_local_DG
     type(quadrature_type) :: lumped_mass_quad
 
     X=>extract_vector_field(state, "Coordinate")
+    down=>extract_vector_field(state, "GravityDirection")
     T_old=>extract_scalar_field(state, "Old"//trim(T%name))
     call get_option('/timestepping/timestep',dt)
-    call get_option(trim(T%option_path)//&
-         '/prognostic/timestepping/theta',t_theta)
+    call get_option('/timestepping/theta',t_theta)
     
     if(have_option('/material_phase::Fluid/scalar_field::Vorticity/prognosti&
          &c/vorticity_equation/lump_mass')) then
@@ -1085,9 +1085,9 @@ module advection_local_DG
     call petsc_solve(T,adv_mat,T_rhs)
 
     !! Compute the PV flux to pass to velocity equation
-    !do ele = 1, ele_count(T)
-    !   call construct_pv_flux_ele(Q,T,T_old,Flux,X,t_theta,ele)
-    !end do
+    do ele = 1, ele_count(T)
+       call construct_pv_flux_ele(Q,T,T_old,Flux,X,down,t_theta,ele)
+    end do
 
     !deallocate everything
     if(lump_mass) then
@@ -1160,25 +1160,28 @@ module advection_local_DG
 
   end subroutine construct_advection_cg_tracer_ele
 
-  subroutine construct_pv_flux_ele(Q,T,T_old,Flux,X,t_theta,ele)
+  subroutine construct_pv_flux_ele(Q,T,T_old,Flux,X,down,t_theta,ele)
     type(scalar_field), intent(in) :: T,T_old
     type(vector_field), intent(inout) :: Q
-    type(vector_field), intent(in) :: X, Flux
+    type(vector_field), intent(in) :: X, Flux, Down
     integer, intent(in) :: ele
     real, intent(in) :: t_theta
     !
-    real, dimension(mesh_dim(X),ele_loc(T,ele)) :: Q_rhs, Q_perp_rhs
+    real, dimension(mesh_dim(X),ele_loc(Q,ele)) :: Q_rhs, Q_perp_rhs
     real, dimension(Flux%dim,ele_ngi(Flux,ele)) :: Flux_gi
-    real, dimension(ele_ngi(X,ele)) :: detwei,T_gi,T_old_gi
-    real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+    real, dimension(ele_ngi(X,ele)) :: T_gi,T_old_gi
+    real, dimension(X%dim, ele_ngi(T, ele)) :: up_gi
     type(element_type), pointer :: T_shape, Q_shape
-    integer :: loc
+    integer :: loc, orientation
 
     T_shape => ele_shape(T,ele)
     Q_shape => ele_shape(Q,ele)
     T_gi = ele_val_at_quad(T,ele)
     T_old_gi = ele_val_at_quad(T_old,ele)
     Flux_gi = ele_val_at_quad(Flux,ele)
+
+    up_gi = -ele_val_at_quad(down,ele)
+    call get_up_gi(X,ele,up_gi,orientation)
 
     !Equations
     ! and a consistent theta-method for T is
@@ -1192,22 +1195,103 @@ module advection_local_DG
     ! taking w = -\nabla^\perp\gamma,
     ! <w,u^{n+1}>=<w,u^n> + <w,F(\theta T^{n+1}^\perp+(1-\theta)T^n)>
     ! We actually store the inner product with test function (Q_rhs)
+    ! (avoids having to do a solve)
+    ! Integration can be done locally using magic exterior calculus
 
-    !Advection terms
-    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), detwei&
-         &=detwei, J=J)
-    !Q_rhs = shape_vector_rhs(Q_shape,Flux_gi,t_theta*T_gi + &
-    !     (1-t_theta)*T_old_gi)
-    !! Needs a bit of thought about local coordinates
+    Q_rhs = shape_vector_rhs(Q_shape,Flux_gi,(t_theta*T_gi + &
+         (1-t_theta)*T_old_gi)*q%mesh%shape%quadrature%weight)
+    Q_perp_rhs(1,:) = -Q_rhs(2,:)*orientation
+    Q_perp_rhs(2,:) =  Q_rhs(1,:)*orientation
 
-    !Q_perp_rhs(1,:) = Q_rhs(
-
-    !call addto(T_rhs,ele_nodes(T_rhs,ele),l_rhs)
-    !call addto(adv_mat,ele_nodes(T_rhs,ele),ele_nodes(T_rhs,ele),&
-    !     l_adv_mat)
+    call set(Q,ele_nodes(Q,ele),Q_perp_rhs)
 
   end subroutine construct_pv_flux_ele
-  
+
+  subroutine compute_U_residual(UResidual,oldU,oldD,newU,newD,PVFlux,state)
+    !!< Compute the residual in the U equation, given PVFlux computed
+    !!< from the PV advection equation. Note that the PVFlux has 
+    !!< already been perped, and multiplied by test functions.
+    !!< Residual will be multiplied by test functions
+    type(vector_field), intent(inout) :: UResidual
+    type(vector_field), intent(in) :: oldU,newU,PVFlux
+    type(scalar_field), intent(in) :: oldD,newD
+    type(state_type), intent(inout) :: state
+    !
+    integer :: ele
+    type(vector_field), pointer :: X
+    real :: dt, theta,g 
+    X=>extract_vector_field(state, "Coordinate")
+    call get_option("/timestepping/timestep", dt)
+    call get_option("/timestepping/theta",theta)
+    call get_option("/physical_parameters/gravity/magnitude", g)
+
+    call zero(UResidual)
+    do ele = 1, ele_count(UResidual)
+       call compute_U_residual_ele(UResidual,oldU,oldD,newU,newD,PVFlux,X,theta&
+            &,dt,g,ele)
+    end do
+
+  end subroutine compute_U_residual
+
+  subroutine compute_U_residual_ele(UResidual,oldU,oldD,newU,newD,PVFlux,X,theta&
+       &,dt,g,ele)
+    type(vector_field), intent(inout) :: UResidual
+    type(vector_field), intent(in) :: oldU,newU,PVFlux,X
+    type(scalar_field), intent(in) :: oldD,newD
+    real, intent(in) :: dt,theta,g
+    integer, intent(in) :: ele
+    !
+    real, dimension(ele_ngi(X,ele)) :: detwei, detJ
+    real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+    real, dimension(mesh_dim(oldU), mesh_dim(oldU)) :: Metric
+    real, dimension(mesh_dim(oldU), ele_ngi(X,ele)) :: U_rhs, newU_rhs
+    real, dimension(ele_ngi(X,ele)) :: D_gi, newD_gi, D_bar_gi, K_bar_gi
+    real, dimension(mesh_dim(X), ele_ngi(X,ele)) :: U_gi,newU_gi
+    real, dimension(X%dim, ele_ngi(X,ele)) :: U_cart_gi,newU_cart_gi
+    real, dimension(mesh_dim(oldU),ele_loc(UResidual,ele)) :: UR_rhs
+    integer :: gi
+    type(element_type), pointer :: U_shape
+
+    !<w,r> = <w,u^{n+1}-u^n> + <w,Q^\perp> - dt*<div w, g\bar{h} + \bar{|u|^2/2}
+
+    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), &
+         detwei=detwei, J=J, detJ=detJ)
+    U_shape=>ele_shape(oldU, ele)
+
+    !Get all the variables at the quadrature points
+    D_gi = ele_val_at_quad(oldD,ele)
+    newD_gi = ele_val_at_quad(newD,ele)
+    U_gi = ele_val_at_quad(oldU,ele)
+    newU_gi = ele_val_at_quad(newU,ele)
+    U_rhs = 0.
+    newU_rhs = 0.
+    do gi=1,ele_ngi(oldU,ele)
+       Metric=matmul(J(:,:,gi), transpose(J(:,:,gi)))/detJ(gi)
+       U_rhs(:,gi) = matmul(Metric,U_gi(:,gi))
+       newU_rhs(:,gi) = matmul(Metric,newU_gi(:,gi))
+    end do
+    U_cart_gi = 0.
+    newU_cart_gi = 0.
+    do gi = 1, ele_ngi(oldU,ele)
+       U_cart_gi(:,gi) = matmul(transpose(J(:,:,gi)),U_gi(:,gi))/detJ(gi)
+       newU_cart_gi(:,gi) = matmul(transpose(J(:,:,gi)),newU_gi(:,gi))/detJ(gi)
+    end do
+
+    !First the PV Flux (perped)
+    UR_rhs = ele_val(PVFlux,ele)
+    !Now the time derivative term
+    UR_rhs = UR_rhs + theta*shape_vector_rhs(U_shape,newU_rhs-U_rhs,&
+         U_shape%quadrature%weight)
+    !Now the gradient terms (done in local coordinates)
+    D_bar_gi = theta*newD_gi + (1-theta)*D_gi
+    K_bar_gi = 0.5*(theta*sum(newU_cart_gi,1)+(1-theta)*sum(U_cart_gi,1))
+
+    UR_rhs = UR_rhs - dt * dshape_rhs(U_shape%dn,g*D_bar_gi + K_bar_gi)
+
+    call set(UResidual,ele_nodes(UResidual,ele),UR_rhs)
+
+  end subroutine compute_U_residual_ele
+
   subroutine solve_vector_advection_dg_subcycle(field_name, state, velocity_name)
     !!< Construct and solve the advection equation for the given
     !!< field using discontinuous elements.

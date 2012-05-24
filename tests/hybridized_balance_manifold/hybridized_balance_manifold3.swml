@@ -35,11 +35,12 @@
             <iterative_method name="preonly"/>
             <preconditioner name="lu"/>
             <relative_error>
-              <real_value rank="0">1.0e-12</real_value>
+              <real_value rank="0">1.0e-16</real_value>
             </relative_error>
             <max_iterations>
               <integer_value rank="0">1000</integer_value>
             </max_iterations>
+            <start_from_zero/>
             <never_ignore_solver_failures/>
             <diagnostics>
               <monitors/>
@@ -63,6 +64,22 @@
         <mesh_continuity>
           <string_value>discontinuous</string_value>
         </mesh_continuity>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="VorticityMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">2</integer_value>
+          </polynomial_degree>
+          <element_type>
+            <string_value>bubble</string_value>
+          </element_type>
+        </mesh_shape>
         <stat>
           <exclude_from_stat/>
         </stat>
@@ -105,7 +122,7 @@
     </mesh>
     <quadrature>
       <degree>
-        <integer_value rank="0">4</integer_value>
+        <integer_value rank="0">6</integer_value>
       </degree>
     </quadrature>
   </geometry>
@@ -135,7 +152,7 @@
       <integer_value rank="0">1</integer_value>
     </nonlinear_iterations>
     <finish_time>
-      <real_value rank="0">200.0</real_value>
+      <real_value rank="0">1.0</real_value>
       <comment>params["finish_time"]=4*2*pi*r0/c</comment>
     </finish_time>
   </timestepping>
@@ -166,8 +183,8 @@
       </vector_field>
     </gravity>
     <coriolis>
-      <string_value lines="20" type="python">def val(X,t):
-  return 10.0</string_value>
+      <string_value lines="20" type="code" language="python">def val(X,t):
+  return 1.0</string_value>
       <comment>1.0313e-4</comment>
     </coriolis>
   </physical_parameters>
@@ -178,9 +195,9 @@
         <equation name="ShallowWater"/>
         <spatial_discretisation>
           <discontinuous_galerkin>
-            <advection_scheme>
-              <none/>
-            </advection_scheme>
+            <wave_equation>
+              <just_wave_equation_step/>
+            </wave_equation>
           </discontinuous_galerkin>
         </spatial_discretisation>
         <temporal_discretisation>
@@ -212,14 +229,15 @@
         <initial_condition name="WholeMesh">
           <balanced>
             <solver>
-              <iterative_method name="preonly"/>
-              <preconditioner name="lu"/>
+              <iterative_method name="cg"/>
+              <preconditioner name="sor"/>
               <relative_error>
                 <real_value rank="0">1.0e-12</real_value>
               </relative_error>
               <max_iterations>
                 <integer_value rank="0">1000</integer_value>
               </max_iterations>
+              <remove_null_space/>
               <never_ignore_solver_failures/>
               <diagnostics>
                 <monitors/>
@@ -286,12 +304,80 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
+    <scalar_field name="Vorticity" rank="0">
+      <prognostic>
+        <mesh name="VorticityMesh"/>
+        <vorticity_equation/>
+        <solver>
+          <iterative_method name="cg"/>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1.0e-8</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">1000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <output/>
+        <stat/>
+        <consistent_interpolation/>
+      </prognostic>
+    </scalar_field>
+    <scalar_field name="ProjectedLayerThickness" rank="0">
+      <diagnostic>
+        <mesh name="VorticityMesh"/>
+        <solver>
+          <iterative_method name="cg"/>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1.0e-7</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">1000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <algorithm name="scalar_galerkin_projection" material_phase_support="single">
+          <source_field_name>LayerThickness</source_field_name>
+          <solver>
+            <iterative_method name="cg"/>
+            <preconditioner name="sor"/>
+            <relative_error>
+              <real_value rank="0">1.0e-7</real_value>
+            </relative_error>
+            <max_iterations>
+              <integer_value rank="0">1000</integer_value>
+            </max_iterations>
+            <never_ignore_solver_failures/>
+            <diagnostics>
+              <monitors/>
+            </diagnostics>
+          </solver>
+        </algorithm>
+        <output/>
+        <stat/>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="PotentialVorticity" rank="0">
+      <prognostic>
+        <mesh name="VorticityMesh"/>
+        <output/>
+        <stat/>
+      </prognostic>
+    </scalar_field>
     <scalar_field name="Streamfunction" rank="0">
       <prescribed>
         <mesh name="P2Mesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
   from math import sin, pi
   return sin(pi*X[0])*sin(pi*X[1])</string_value>
           </python>

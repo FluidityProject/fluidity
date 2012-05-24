@@ -69,6 +69,22 @@
         </stat>
       </from_mesh>
     </mesh>
+    <mesh name="VorticityMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">2</integer_value>
+          </polynomial_degree>
+          <element_type>
+            <string_value>bubble</string_value>
+          </element_type>
+        </mesh_shape>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
     <mesh name="TraceMesh">
       <from_mesh>
         <mesh name="CoordinateMesh"/>
@@ -179,10 +195,9 @@
         <equation name="ShallowWater"/>
         <spatial_discretisation>
           <discontinuous_galerkin>
-            <wave_equation/>
-            <advection_scheme>
-              <none/>
-            </advection_scheme>
+            <wave_equation>
+              <just_wave_equation_step/>
+            </wave_equation>
           </discontinuous_galerkin>
         </spatial_discretisation>
         <temporal_discretisation>

@@ -153,7 +153,7 @@
       <integer_value rank="0">1</integer_value>
     </nonlinear_iterations>
     <finish_time>
-      <real_value rank="0">0.5</real_value>
+      <real_value rank="0">0.05</real_value>
       <comment>24*60*60*10=846000</comment>
     </finish_time>
   </timestepping>
@@ -199,10 +199,6 @@
             <wave_equation>
               <no_wave_equation_step/>
             </wave_equation>
-            <advection_scheme>
-              <edge_coordinates_upwind/>
-            </advection_scheme>
-            <slope_limiter/>
           </discontinuous_galerkin>
         </spatial_discretisation>
         <temporal_discretisation>

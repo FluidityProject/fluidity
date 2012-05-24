@@ -68,6 +68,22 @@
         </stat>
       </from_mesh>
     </mesh>
+    <mesh name="VorticityMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">2</integer_value>
+          </polynomial_degree>
+          <element_type>
+            <string_value>bubble</string_value>
+          </element_type>
+        </mesh_shape>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
     <mesh name="TraceMesh">
       <from_mesh>
         <mesh name="CoordinateMesh"/>
@@ -178,7 +194,9 @@
         <equation name="ShallowWater"/>
         <spatial_discretisation>
           <discontinuous_galerkin>
-            <wave_equation/>
+            <wave_equation>
+              <just_wave_equation_step/>
+            </wave_equation>
             <advection_scheme>
               <none/>
             </advection_scheme>
@@ -285,6 +303,74 @@
         <output/>
         <stat/>
         <consistent_interpolation/>
+      </prognostic>
+    </scalar_field>
+    <scalar_field name="Vorticity" rank="0">
+      <prognostic>
+        <mesh name="VorticityMesh"/>
+        <vorticity_equation/>
+        <solver>
+          <iterative_method name="preonly"/>
+          <preconditioner name="ilu"/>
+          <relative_error>
+            <real_value rank="0">1.0e-7</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">1000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <output/>
+        <stat/>
+        <consistent_interpolation/>
+      </prognostic>
+    </scalar_field>
+    <scalar_field name="ProjectedLayerThickness" rank="0">
+      <diagnostic>
+        <mesh name="VorticityMesh"/>
+        <solver>
+          <iterative_method name="preonly"/>
+          <preconditioner name="ilu"/>
+          <relative_error>
+            <real_value rank="0">1.0e-7</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">1000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <algorithm name="scalar_galerkin_projection" material_phase_support="single">
+          <source_field_name>LayerThickness</source_field_name>
+          <solver>
+            <iterative_method name="preonly"/>
+            <preconditioner name="ilu"/>
+            <relative_error>
+              <real_value rank="0">1.0e-7</real_value>
+            </relative_error>
+            <max_iterations>
+              <integer_value rank="0">1000</integer_value>
+            </max_iterations>
+            <never_ignore_solver_failures/>
+            <diagnostics>
+              <monitors/>
+            </diagnostics>
+          </solver>
+        </algorithm>
+        <output/>
+        <stat/>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="PotentialVorticity" rank="0">
+      <prognostic>
+        <mesh name="VorticityMesh"/>
+        <output/>
+        <stat/>
       </prognostic>
     </scalar_field>
     <scalar_field name="Streamfunction" rank="0">

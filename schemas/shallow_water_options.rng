@@ -948,33 +948,43 @@ An example that returns the three-dimensional identity:
         <a:documentation>Discontinuous galerkin formulation.</a:documentation>
         <element name="wave_equation">
           <a:documentation>Options for the wave equation solver</a:documentation>
-          <optional>
+          <choice>
             <element name="no_wave_equation_step">
               <a:documentation>Leave out the wave equation step</a:documentation>
               <empty/>
             </element>
-          </optional>
-        </element>
-        <element name="advection_scheme">
-          <choice>
-            <element name="edge_coordinates_upwind">
-              <a:documentation>Upwinding using the coordinate system consisting
-of the edge tangential and normal components of
-the nonlinear velocity.</a:documentation>
+            <element name="just_wave_equation_step">
+              <a:documentation>Only solve the linear equations</a:documentation>
               <empty/>
             </element>
-            <element name="sphere_coordinates_upwind">
-              <a:documentation>Upwinding using the sphere coordinate system
-where one tangent vector is orthogonal to the
-(0,0,1) vector.</a:documentation>
-              <empty/>
-            </element>
-            <element name="none">
-              <a:documentation>Disable advection</a:documentation>
+            <element name="fully_coupled">
+              <a:documentation>Solve the fully coupled equations</a:documentation>
               <empty/>
             </element>
           </choice>
         </element>
+        <optional>
+          <element name="advection_scheme">
+            <choice>
+              <element name="edge_coordinates_upwind">
+                <a:documentation>Upwinding using the coordinate system consisting
+of the edge tangential and normal components of
+the nonlinear velocity.</a:documentation>
+                <empty/>
+              </element>
+              <element name="sphere_coordinates_upwind">
+                <a:documentation>Upwinding using the sphere coordinate system
+where one tangent vector is orthogonal to the
+(0,0,1) vector.</a:documentation>
+                <empty/>
+              </element>
+              <element name="none">
+                <a:documentation>Disable advection</a:documentation>
+                <empty/>
+              </element>
+            </choice>
+          </element>
+        </optional>
         <optional>
           <element name="slope_limiter">
             <empty>

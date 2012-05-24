@@ -61,7 +61,8 @@ module hybridized_helmholtz
 
 contains 
 
-  subroutine solve_hybridised_timestep_residual(state,newU,newD)
+  subroutine solve_hybridised_timestep_residual(state,newU,newD,&
+       UResidual, DResidual)
 
     ! Subroutine to apply one Newton iteration to hybridised shallow
     ! water equations
@@ -70,6 +71,8 @@ contains
     type(state_type), intent(inout) :: state
     type(vector_field), intent(inout) :: newU !U at next timestep
     type(scalar_field), intent(inout) :: newD !D at next timestep
+    type(vector_field), intent(in), optional :: UResidual
+    type(scalar_field), intent(in), optional :: DResidual
     !
     type(vector_field), pointer :: X, U, down, U_cart
     type(scalar_field), pointer :: D,f
@@ -159,16 +162,19 @@ contains
        newton_initialised = .true.
     end if
 
-    !Get the residuals
-    !THIS IS WHERE WE WILL INSERT THE NONLINEAR SOLVES
-    !Compute residuals 
-    do ele = 1, ele_count(D)
-       call get_linear_residuals_ele(U_res,D_res,&
-            U,D,newU,newD,&
-            newton_local_solver_cache(ele)%ptr,&
-            newton_local_solver_rhs_cache(ele)%ptr,ele)
-    end do
-
+    if(present(DResidual).and.present(UResidual)) then
+       !Set residuals from nonlinear input
+       call set(U_res,UResidual)
+       call set(D_res,DResidual)
+    else
+       !Compute residuals for linear equation
+       do ele = 1, ele_count(D)
+          call get_linear_residuals_ele(U_res,D_res,&
+               U,D,newU,newD,&
+               newton_local_solver_cache(ele)%ptr,&
+               newton_local_solver_rhs_cache(ele)%ptr,ele)
+       end do
+    end if
     ewrite(2,*) 'D_res', maxval(abs(D_res%val))
 
     do ele = 1, ele_count(D)
@@ -202,6 +208,7 @@ contains
             newton_local_solver_cache(ele)%ptr,ele)
     end do
 
+    !Negative scaling occurs here.
     call scale(U_res,-1.0)
     call scale(D_res,-1.0)
     call addto(newU,U_res)
