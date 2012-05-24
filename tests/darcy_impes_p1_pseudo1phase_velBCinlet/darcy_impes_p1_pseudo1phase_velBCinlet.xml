@@ -11,7 +11,7 @@
 ../../bin/darcy_impes darcy_impes_p1_pseudo1phase_velBCinlet_2d.diml 
 ../../bin/darcy_impes darcy_impes_p1_pseudo1phase_velBCinlet_3d.diml 
     </command_line>
-    <!-- One/two/three dimensional problem for darcy flow using the IMPES solver with one region and one material testing the pressure gradient as well as pressure min and max against analytic using 2 phases to test a 1 phase problem. This problem uses a darcy velocity BC at the intlet. -->
+    <!-- One/two/three dimensional problem for darcy flow using the IMPES solver with one region testing the pressure gradient as well as pressure min and max against analytic using 2 phases to test a 1 phase problem. This problem uses a darcy velocity BC at the intlet. -->
   </problem_definition>
   <variables>
     <variable name="pressure_1d" language="python">

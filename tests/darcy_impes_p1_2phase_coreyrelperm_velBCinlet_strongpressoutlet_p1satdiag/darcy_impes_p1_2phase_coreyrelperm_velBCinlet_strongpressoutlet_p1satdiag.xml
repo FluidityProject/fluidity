@@ -113,7 +113,7 @@ time ../../bin/darcy_impes darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongp
 
 rm -f darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_3d_B.diml
     </command_line>
-    <!-- One/two/three dimensional problem for darcy flow using the IMPES solver with one region and one material with 2 phases using Corey relative permeabilities with a TotalDarcyVelocity BC at the inlet, a strong pressure BC at outlet and the first phase saturation diagnostic. Different CV face value schemes are tested in 1,2 and 3d. The order of convergence is checked. -->
+    <!-- One/two/three dimensional problem for darcy flow using the IMPES solver with one region with 2 phases using Corey relative permeabilities with a TotalDarcyVelocity BC at the inlet, a strong pressure BC at outlet and the first phase saturation diagnostic. Different CV face value schemes are tested in 1,2 and 3d. The order of convergence is checked. -->
   </problem_definition>
   <variables>
     <variable name="AB_CV_L2Norm_convergence_phase2_sat_relpermupwind_1d" language="python">

@@ -113,7 +113,7 @@ time ../../bin/darcy_impes darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_str
 
 rm -f darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_withgravity_updip_modrelpermupwind_satfesweby_3d_B.diml
     </command_line>
-    <!-- One/two/three dimensional problem for darcy flow including gravity (updip) using the IMPES solver with one region and one material with 2 phases using Quadratic relative permeabilities with a TotalDarcyVelocity BC at the inlet, a strong pressure BC at outlet and the first phase saturation diagnostic. Different CV face value schemes are tested in 1,2 and 3d. The order of convergence is checked for both the saturation and pressure. -->
+    <!-- One/two/three dimensional problem for darcy flow including gravity (updip) using the IMPES solver with one region with 2 phases using Quadratic relative permeabilities with a TotalDarcyVelocity BC at the inlet, a strong pressure BC at outlet and the first phase saturation diagnostic. Different CV face value schemes are tested in 1,2 and 3d. The order of convergence is checked for both the saturation and pressure. -->
   </problem_definition>
   <variables>
     <variable name="AB_FE_L2Norm_convergence_phase2_sat_relpermupwind_1d" language="python">
