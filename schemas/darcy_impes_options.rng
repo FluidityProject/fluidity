@@ -535,7 +535,7 @@ Manual suggests 1.E+10</a:documentation>
               <a:documentation>The maximum ratio by which the timestep is allowed
 to increase in a timestep adapt. e.g., a value of
 1.1 indicates that the timestep may be increased by
-at most 10%.</a:documentation>
+at most 10%. Default value is 1.1.</a:documentation>
               <ref name="real"/>
             </element>
           </optional>

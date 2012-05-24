@@ -509,7 +509,7 @@ darcy_impes_timestepping =
             ## The maximum ratio by which the timestep is allowed
             ## to increase in a timestep adapt. e.g., a value of
             ## 1.1 indicates that the timestep may be increased by
-            ## at most 10%.
+            ## at most 10%. Default value is 1.1.
             element increase_tolerance {
                real
             }?,

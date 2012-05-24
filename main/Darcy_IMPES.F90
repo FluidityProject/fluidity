@@ -997,7 +997,7 @@ contains
           (di%relperm_cv_options%facevalue == DARCY_IMPES_CV_FACEVALUE_RELPERMOVERSATCORRELATION) ) then
          
          ! Check there are saturation face value options
-         if (.not. have_option(trim(di%saturation(1)%ptr%option_path)//'/diagnostic/face_value')) then
+         if (.not. have_option(trim(complete_field_path(trim(di%saturation(1)%ptr%option_path)))//'/face_value')) then
             FLExit('You are using RelativePermeability face_value options that require Saturation face_value options')
          end if
          
@@ -1091,7 +1091,7 @@ contains
          
          call get_option('/timestepping/adaptive_timestep/increase_tolerance', &
                         &di%adaptive_dt_options%increase_tolerance, &
-                        &default = huge(0.0) * epsilon(0.0))
+                        &default = 1.1)
             
          di%adaptive_dt_options%min_dt_terminate_if_reached = &
         &have_option('/timestepping/adaptive_timestep/minimum_timestep/terminate_if_reached')
