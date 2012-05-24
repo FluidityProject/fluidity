@@ -701,6 +701,9 @@ module manifold_tools
             matmul(Metric(:,:,gi),velocity_gi(:,gi))
     end do
 
+    ! vorticity = \nabla^\perp\cdot u = v_x - u_y
+    ! < \gamma, vorticity > = <\gamma, v_x - u_y> = <-\gamma_x,v>+<\gamma_y,u>
+    ! = <\nabla \gamma, (-v,u)>
     ! < \nabla \gamma, u^\perp> in local coordinates
     ! requires us to know the orientation of the manifold
 

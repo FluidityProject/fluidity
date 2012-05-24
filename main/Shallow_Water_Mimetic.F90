@@ -191,7 +191,8 @@
       !
       type(vector_field), pointer :: U, advecting_u, U_old
       type(scalar_field), pointer :: D_old, D, vorticity, &
-           & D_projected, Old_D_projected, Coriolis, PV, PV_old
+           & D_projected, Old_D_projected, Coriolis, PV, &
+           & PV_old, PVconsistency, vorticityconsistency
       type(vector_field) :: newU, MassFlux, PVFlux, UResidual
       type(scalar_field) :: newD, DResidual
       type(csr_matrix), pointer :: Vorticity_Mass_ptr
@@ -226,6 +227,12 @@
       Coriolis => extract_scalar_field(state, "Coriolis")
       PV => extract_scalar_field(state, "PotentialVorticity",stat)
       have_pv = (stat==0)
+      if(have_pv) then
+         PVconsistency => extract_scalar_field(&
+              state, "PVConsistency",stat)
+         vorticityconsistency => extract_scalar_field(&
+              state, "VorticityConsistency",stat)
+      end if
       PV_old => extract_scalar_field(state, "OldPotentialVorticity",stat)
       have_pv_old = (stat==0)
       PVtracer => extract_scalar_field(state, "PotentialVorticityTracer",stat)
@@ -357,6 +364,12 @@
                call compute_U_residual(UResidual,U_old,D_old,&
                     newU,newD,PVFlux,state)
 
+               ! Check U residual is consistent
+               call get_vorticity(state,vorticityconsistency,newU)
+               call get_PV(vorticityconsistency,D_projected,&
+                    Coriolis,PVconsistency)
+               assert(maxval(abs(PV%val-PVconsistency%val))<1.0e-8)
+
                !Perform (quasi)Newton iteration
                call solve_hybridised_timestep_residual(state,newU,newD,&
                     & UResidual,DResidual)
@@ -460,6 +473,16 @@
               "OldPotentialVorticity")
          call zero(old_d)
          call insert(state, old_d, "OldPotentialVorticity")
+         call deallocate(old_d)
+         call allocate(old_d, D_projected%mesh,&
+              "VorticityConsistency")
+         call zero(old_d)
+         call insert(state, old_d, "VorticityConsistency")
+         call deallocate(old_d)
+         call allocate(old_d, D_projected%mesh,&
+              "PVConsistency")
+         call zero(old_d)
+         call insert(state, old_d, "PVConsistency")
          call deallocate(old_d)
       end if
       
