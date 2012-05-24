@@ -3,21 +3,19 @@
 # by Miloslav Feistauer, Jiri Felcman and Ivan Straskraba, 2003
 # eqn numbers below refer to this books
 from math import sqrt
-from scipy.optimize import fsolve
+from scipy.optimize import newton
 
 # ratio of specific heats
 gamma=1.4
 
 # left state:
 ul=0.
-#rhol=12.3
-rhol = 10.0
+rhol=10.0
 iel=2.5
 
 # right state:
 ur=0.
-#rhor=1.23
-rhor = 1.0
+rhor=1.0
 ier=2.5
 
 # this eos is assumed in the eqns below (so can't change this):
@@ -36,6 +34,7 @@ al=sqrt(gamma*pl/rhol)
 pr=p_eos(ier,rhor)
 Er=rhor*ier
 ar=sqrt(gamma*pr/rhor)
+
 
 def F1l(p):
   """Function F1l defines difference between us and ul:
@@ -85,7 +84,7 @@ p=(pl+pr)/2.
 
 # solve eqn (3.1.164): F(p*)=0, to find p* the pressure between the u-a and u+a waves
 # (is constant over contact discontinuity at the u wave)
-ps=fsolve(F, p, fprime=Fprime)
+ps=newton(F, p, fprime=Fprime, maxiter=500)
 print "should be zero: F(p*) = ", F(ps)
 print "p* =", ps
 us=ul+F1l(ps)
