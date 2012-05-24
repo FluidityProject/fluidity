@@ -910,6 +910,8 @@ contains
       
       end if
       
+      ! Allocate an upwind value matrix that is used for generic scalar 
+      ! fields, saturations and density if required
       call allocate(di%sfield_upwind, di%sparsity_pmesh_pmesh) 
       
       ! Get the relperm correlation options from the first phase field
@@ -1026,23 +1028,11 @@ contains
                                                         &di%density(1)%ptr%mesh%shape%numbering%family, &
                                                         &mesh_dim(di%density(1)%ptr))
            
-      ! Allocate crs matrices used to store the upwind scalar field values in CV assemble
+      ! Allocate crs matrice used to store the upwind relperm field values in CV assemble
       if(di%relperm_cv_options%limit_facevalue) then
          
          call allocate(di%relperm_upwind, di%sparsity_pmesh_pmesh) 
 
-      end if
-         
-      if (di%determine_saturation_face_values .and. di%saturation_cv_options%limit_facevalue) then
-               
-         call allocate(di%saturation_upwind, di%sparsity_pmesh_pmesh) 
-            
-      end if
-            
-      if(di%density_cv_options%limit_facevalue) then
-      
-         call allocate(di%density_upwind, di%sparsity_pmesh_pmesh) 
-      
       end if
       
       ! Determine the saturation advection subcycle options
@@ -1463,12 +1453,6 @@ contains
          if (di%determine_saturation_face_values) then
             call deallocate(di%modified_relative_permeability)
          end if
-      end if
-      if (di%determine_saturation_face_values .and. di%saturation_cv_options%limit_facevalue) then
-         call deallocate(di%saturation_upwind)
-      end if
-      if(di%density_cv_options%limit_facevalue) then
-         call deallocate(di%density_upwind)
       end if
       
       di%minimum_denominator_saturation_value = 0.0

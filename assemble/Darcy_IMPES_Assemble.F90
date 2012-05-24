@@ -266,8 +266,6 @@ module darcy_impes_assemble_module
       type(element_type)                      :: gradp_cvbdyshape
       type(darcy_impes_subcycle_options_type) :: subcy_opt_sat
       type(csr_matrix)                        :: relperm_upwind
-      type(csr_matrix)                        :: density_upwind
-      type(csr_matrix)                        :: saturation_upwind
       type(csr_matrix)                        :: sfield_upwind
       ! *** The minimum value of saturation to use in the denominator of modrelperm face value ***
       real :: minimum_denominator_saturation_value
@@ -4225,34 +4223,18 @@ visc_ele_bdy(1)
             call find_upwind_values(di%state, &
                                     di%positions_pressure_mesh, &
                                     di%saturation(p)%ptr, &
-                                    di%saturation_upwind, &
+                                    di%sfield_upwind, &
                                     di%saturation(p)%ptr, &
-                                    di%saturation_upwind, &
+                                    di%sfield_upwind, &
                                     option_path = trim(di%saturation(p)%ptr%option_path))            
 
          end if 
- 
-         ! Determine the upwind density values of all node pairs if required for higher order CV face value
-         if(di%density_cv_options%limit_facevalue) then
-
-           ! NOTE only new upwind values are required but this procedure 
-           !      expects latest and old. So pass in new twice - not optimal
-           call find_upwind_values(di%state, &
-                                   di%positions_pressure_mesh, &
-                                   di%density(p)%ptr, &
-                                   di%density_upwind, &
-                                   di%density(p)%ptr, &
-                                   di%density_upwind, &
-                                   option_path = trim(di%density(p)%ptr%option_path))
-
-         end if
                           
          ! Initialise optimisation flag used in finding upwind value in high resolution schemes
          r_upwind_pos = 0
-         d_upwind_pos = 0
          s_upwind_pos = 0
             
-         vol_element_loop: do vele = 1, di%number_vele
+         vol_element_loop_relperm: do vele = 1, di%number_vele
            
             ! The node indices of the pressure mesh
             p_nodes => ele_nodes(di%pressure_mesh, vele)
@@ -4269,18 +4251,6 @@ visc_ele_bdy(1)
             else
 
                r_upwind_nodes => p_nodes
-
-            end if
-            
-            ! Determine the node numbers to use to determine the density upwind values
-            if((di%density_cv_options%upwind_scheme == CV_UPWINDVALUE_PROJECT_POINT).or.&
-               (di%density_cv_options%upwind_scheme == CV_UPWINDVALUE_PROJECT_GRAD)) then
-
-               d_upwind_nodes => x_pmesh_nodes
-
-            else
-
-               d_upwind_nodes => p_nodes
 
             end if
 
@@ -4370,25 +4340,25 @@ visc_ele_bdy(1)
             notvisited = .true.
             
             ! loop over local nodes within this element
-            nodal_loop_i: do iloc = 1, di%pressure_mesh%shape%loc
+            nodal_loop_i_relperm: do iloc = 1, di%pressure_mesh%shape%loc
 
               ! loop over CV faces internal to this element
-              face_loop: do face = 1, di%cvfaces%faces
+              face_loop_relperm: do face = 1, di%cvfaces%faces
 
                 ! is this a face neighbouring iloc?
-                is_neigh: if(di%cvfaces%neiloc(iloc, face) /= 0) then
+                is_neigh_relperm: if(di%cvfaces%neiloc(iloc, face) /= 0) then
 
                   ! find the opposing local node across the CV face
                   oloc = di%cvfaces%neiloc(iloc, face)
 
                   ! loop over gauss points on face
-                  quadrature_loop: do gi = 1, di%cvfaces%shape%ngi
+                  quadrature_loop_relperm: do gi = 1, di%cvfaces%shape%ngi
 
                     ! global gauss pt index for this element
                     ggi = (face-1)*di%cvfaces%shape%ngi + gi
 
                     ! check if this quadrature point has already been visited
-                    check_visited: if(notvisited(ggi)) then
+                    check_visited_relperm: if(notvisited(ggi)) then
 
                        notvisited(ggi) = .false.
 
@@ -4442,7 +4412,7 @@ visc_ele_bdy(1)
                                                                     s_upwind_nodes, &
                                                                     di%p_cvshape, &
                                                                     sat_ele(:,p), &
-                                                                    di%saturation_upwind, &
+                                                                    di%sfield_upwind, &
                                                                     inflow, &
                                                                     income, &
                                                                     di%saturation_cv_options, &
@@ -4454,6 +4424,165 @@ visc_ele_bdy(1)
                                               
                        end if
                                               
+                       ! Cache the relperm (or modrelperm*sat) face value
+                       di%cached_face_value%relperm(1,ggi,vele,p) = relperm_face_value * sat_face_value
+                                           
+                    end if check_visited_relperm
+
+                  end do quadrature_loop_relperm
+
+                end if is_neigh_relperm
+
+              end do face_loop_relperm
+
+            end do nodal_loop_i_relperm
+
+         end do vol_element_loop_relperm
+ 
+         ! Determine the upwind density values of all node pairs if required for higher order CV face value
+         if(di%density_cv_options%limit_facevalue) then
+
+           ! NOTE only new upwind values are required but this procedure 
+           !      expects latest and old. So pass in new twice - not optimal
+           call find_upwind_values(di%state, &
+                                   di%positions_pressure_mesh, &
+                                   di%density(p)%ptr, &
+                                   di%sfield_upwind, &
+                                   di%density(p)%ptr, &
+                                   di%sfield_upwind, &
+                                   option_path = trim(di%density(p)%ptr%option_path))
+
+         end if
+                          
+         ! Initialise optimisation flag used in finding upwind value in high resolution schemes
+         d_upwind_pos = 0
+            
+         vol_element_loop_den: do vele = 1, di%number_vele
+           
+            ! The node indices of the pressure mesh
+            p_nodes => ele_nodes(di%pressure_mesh, vele)
+
+            ! The node indices of the positions projected to the pressure mesh
+            x_pmesh_nodes => ele_nodes(di%positions_pressure_mesh, vele)
+            
+            ! Determine the node numbers to use to determine the density upwind values
+            if((di%density_cv_options%upwind_scheme == CV_UPWINDVALUE_PROJECT_POINT).or.&
+               (di%density_cv_options%upwind_scheme == CV_UPWINDVALUE_PROJECT_GRAD)) then
+
+               d_upwind_nodes => x_pmesh_nodes
+
+            else
+
+               d_upwind_nodes => p_nodes
+
+            end if
+
+            ! get the relperm ele values for this phase
+            relperm_ele = ele_val(di%relative_permeability(p)%ptr, vele)
+
+            ! get the density value for this element for this phase
+            den_ele = ele_val(di%density(p)%ptr, vele)
+            
+            ! The gravity values for this element for each direction
+            grav_ele = ele_val(di%gravity, vele) 
+
+            ! get the viscosity value for this element for this phase
+            visc_ele = ele_val(di%viscosity(p)%ptr, vele)
+
+            ! get the absolute permeability value for this element
+            absperm_ele = ele_val(di%absolute_permeability, vele)         
+            
+            ! obtain the transformed determinant*weight and normals
+            if (di%cached_face_value%cached_detwei_normal) then
+               
+               detwei => di%cached_face_value%detwei(:,vele)
+               
+               normal => di%cached_face_value%normal(:,:,vele)
+               
+            else
+
+               ! get the coordinate values for this element for each positions local node
+               x_ele = ele_val(di%positions, vele)         
+
+               ! get the coordinate values for this element for each quadrature point
+               x_face_quad = ele_val_at_quad(di%positions, vele, di%x_cvshape)
+            
+               call transform_cvsurf_to_physical(x_ele, di%x_cvshape, detwei, normal, di%cvfaces)
+            
+            end if
+            
+            ! obtain the derivative of the pressure mesh shape function at the CV face quadrature points
+            if (di%cached_face_value%cached_p_dshape) then
+               
+               p_dshape => di%cached_face_value%p_dshape(:,:,:,vele)
+               
+            else
+            
+               call transform_to_physical(di%positions, vele, x_shape = di%x_cvshape_full, &
+                                          shape = di%p_cvshape_full, dshape = p_dshape)
+            
+            end if
+            
+            ! get the gradient pressure at the cv surface quadrature points for each direction for this phase
+            grad_pressure_face_quad = darcy_impes_ele_grad_at_quad_scalar(di%pressure(p)%ptr, vele, dn = p_dshape)
+                        
+            ! the latest DarcyVelocity/relperm at the quadrature points
+            ! determined from FE interpolation of each component, only used to determine upwind.
+            do dim = 1,di%ndim
+
+               v_over_relperm_face_quad(dim,:) = - (absperm_ele(1) / visc_ele(1)) * &
+(grad_pressure_face_quad(dim,:) - ele_val_at_quad(di%density(p)%ptr, vele, di%p_cvshape) * grav_ele(dim,1))
+
+            end do
+            
+            ! Initialise array for the quadrature points of this 
+            ! element for whether it has already been visited
+            notvisited = .true.
+            
+            ! loop over local nodes within this element
+            nodal_loop_i_den: do iloc = 1, di%pressure_mesh%shape%loc
+
+              ! loop over CV faces internal to this element
+              face_loop_den: do face = 1, di%cvfaces%faces
+
+                ! is this a face neighbouring iloc?
+                is_neigh_den: if(di%cvfaces%neiloc(iloc, face) /= 0) then
+
+                  ! find the opposing local node across the CV face
+                  oloc = di%cvfaces%neiloc(iloc, face)
+
+                  ! loop over gauss points on face
+                  quadrature_loop_den: do gi = 1, di%cvfaces%shape%ngi
+
+                    ! global gauss pt index for this element
+                    ggi = (face-1)*di%cvfaces%shape%ngi + gi
+
+                    ! check if this quadrature point has already been visited
+                    check_visited_den: if(notvisited(ggi)) then
+
+                       notvisited(ggi) = .false.
+
+                       if (di%cached_face_value%cached_detwei_normal) then
+                          
+                          ! cached normal has correct orientation already
+                          normgi = normal(:,ggi)
+                          
+                       else
+                       
+                          ! correct the orientation of the normal so it points away from iloc
+                          normgi = orientate_cvsurf_normgi(node_val(di%positions_pressure_mesh, x_pmesh_nodes(iloc)), &
+                                                          &x_face_quad(:,ggi), normal(:,ggi))
+                       
+                       end if
+                       
+                       ! determine if the flow is in or out of the face at this quadrature
+                       ! with respect to the normal orientation using the latest v_over_relperm
+                       v_over_relperm_dot_n = dot_product(v_over_relperm_face_quad(:,ggi), normgi)
+
+                       inflow = (v_over_relperm_dot_n<=0.0)
+
+                       income = merge(1.0,0.0,inflow)
+                                              
                        ! Evaluate the density face value 
                        call darcy_impes_evaluate_density_face_val(den_face_value, &
                                                                   iloc, &
@@ -4462,30 +4591,27 @@ visc_ele_bdy(1)
                                                                   d_upwind_nodes, &
                                                                   di%p_cvshape, &
                                                                   den_ele, &
-                                                                  di%density_upwind, &
+                                                                  di%sfield_upwind, &
                                                                   inflow, &
                                                                   income, &
                                                                   di%density_cv_options, &
                                                                   save_pos = d_upwind_pos)
-                       
-                       ! Cache the relperm (or modrelperm*sat) face value
-                       di%cached_face_value%relperm(1,ggi,vele,p) = relperm_face_value * sat_face_value
-                      
+                                             
                        ! Cache the density face value
                        di%cached_face_value%den(ggi,vele,p) = den_face_value
                                            
-                    end if check_visited
+                    end if check_visited_den
 
-                  end do quadrature_loop
+                  end do quadrature_loop_den
 
-                end if is_neigh
+                end if is_neigh_den
 
-              end do face_loop
+              end do face_loop_den
 
-            end do nodal_loop_i
+            end do nodal_loop_i_den
 
-         end do vol_element_loop
-         
+         end do vol_element_loop_den
+                  
          sele_loop: do sele = 1, di%number_sele
             
             ! get the density sele values for this phase
@@ -4660,9 +4786,9 @@ visc_ele_bdy(1)
             call find_upwind_values(di%state, &
                                     di%positions_pressure_mesh, &
                                     di%saturation(p)%ptr, &
-                                    di%saturation_upwind, &
+                                    di%sfield_upwind, &
                                     di%saturation(p)%ptr, &
-                                    di%saturation_upwind, &
+                                    di%sfield_upwind, &
                                     option_path = trim(di%saturation(p)%ptr%option_path))            
 
          end if 
@@ -4846,7 +4972,7 @@ visc_ele_bdy(1)
                                                                         s_upwind_nodes, &
                                                                         di%p_cvshape, &
                                                                         sat_ele(:,p), &
-                                                                        di%saturation_upwind, &
+                                                                        di%sfield_upwind, &
                                                                         inflow, &
                                                                         income, &
                                                                         di%saturation_cv_options, &
