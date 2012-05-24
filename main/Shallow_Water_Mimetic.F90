@@ -498,6 +498,9 @@
             call zero(f)
          end if
          call insert(state, f, "Coriolis")
+         if(f%mesh%shape%numbering%type==ELEMENT_BUBBLE) then
+            call remove_bubble_component(f)
+         end if
          call deallocate(f)
       end if
       v_field => extract_vector_field(state, "LocalVelocity")
@@ -505,6 +508,10 @@
 
     !VARIOUS BALANCED INITIAL OPTIONS
     ! Geostrophic balanced initial condition, if required
+      s_field => extract_scalar_field(state,"Streamfunction")
+      if(s_field%mesh%shape%numbering%type==ELEMENT_BUBBLE) then
+         call remove_bubble_component(s_field)
+      end if
     if(have_option("/material_phase::Fluid/vector_field::Velocity/prognostic&
          &/initial_condition::WholeMesh/balanced")) then
        call set_velocity_from_geostrophic_balance_hybridized(state)
@@ -537,11 +544,11 @@
             &"PrescribedLayerDepthFromProjection")
     end if
 
-    if(have_option("/material_phase::Fluid/scalar_field::PotentialVorticityT&
-         &racer/prognostic/initial_condition::WholeMesh/zero_bubble_componen&
-         &t")) then
-       s_field => extract_scalar_field(state,"PotentialVorticityTracer")
-       call remove_bubble_component(s_field)
+    s_field => extract_scalar_field(state,"PotentialVorticityTracer",stat)
+    if(stat==0) then
+       if(s_field%mesh%shape%numbering%type==ELEMENT_BUBBLE) then
+          call remove_bubble_component(s_field)
+       end if
     end if
 
     end subroutine setup_fields
@@ -574,7 +581,7 @@
       s_rhs = shape_rhs(ele_shape(s_field,ele),s_gi*detwei)
       call set(s_field,ele_nodes(s_field,ele),s_rhs)
     end subroutine apply_dg_mass_ele
-
+      
     subroutine remove_bubble_component(s_field)
       type(scalar_field), intent(inout) :: s_field
       !

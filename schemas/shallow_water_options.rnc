@@ -416,6 +416,22 @@ start =
                      prognostic_scalar_stat_options
                   }
                }?,
+               ## Streamfunction for balanced initialisation
+               element scalar_field {
+                  attribute rank { "0" },
+                  attribute name { "Streamfunction" },
+                  element prescribed {
+                     element value {
+                        attribute name { "WholeMesh" },
+                        input_choice_real
+                     },
+                     element zero_bubble_component {
+                        empty
+                     }?,
+                     vorticity_mesh_choice,
+                     prognostic_scalar_output_options
+                  }
+               }?,
                element scalar_field {
                   attribute rank { "0" },
                   attribute name { "InitialLayerThickness" },

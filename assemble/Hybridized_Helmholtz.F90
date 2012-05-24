@@ -1757,7 +1757,7 @@ contains
     type(vector_field), pointer :: U_local,down,X, U_cart
     type(vector_field) :: Coriolis_term, Balance_eqn, tmpV_field
     integer :: ele,dim1,i1, stat
-    real :: g
+    real :: g, D0
     logical :: elliptic_method, pullback
     real :: u_max, b_val, h_mean, area
     real, dimension(:), allocatable :: weights
@@ -1854,6 +1854,10 @@ contains
     end do
     h_mean = h_mean/area
     D%val = D%val - h_mean
+    !Add back on the correct mean depth
+    call get_option("/material_phase::Fluid/scalar_field::LayerThickness/&
+         &prognostic/mean_layer_thickness",D0)
+    !D%val = D%val + D0
 
     !debugging tests
     call zero(Coriolis_term)
@@ -2099,7 +2103,7 @@ contains
     real, intent(in) :: weight
     !
     real, dimension(ele_loc(psi,ele)) :: psi_loc
-    real, dimension(mesh_dim(psi),ele_ngi(psi,ele)) :: dpsi_gi
+    real, dimension(mesh_dim(psi),ele_ngi(psi,ele)) :: dpsi_gi, Uloc_gi
     real, dimension(ele_ngi(psi,ele)) :: div_gi
     real, dimension(mesh_dim(U_local),ele_loc(U_local,ele)) :: U_loc
     real, dimension(ele_loc(U_local,ele),ele_loc(U_local,ele)) :: &
@@ -2140,6 +2144,13 @@ contains
     do dim1 = 1, U_local%dim
        call solve(l_mass_mat,U_loc(dim1,:))
     end do
+
+    !DEbugging check, did we get the same fields?
+    do dim1= 1, U_local%dim
+       Uloc_gi(dim1,:) = matmul(transpose(U_shape%n),U_loc(dim1,:))
+    end do
+
+    assert(maxval(abs(Uloc_gi-dpsi_gi))<1.0e-8)
 
     !verify divergence-free-ness
     !This is just for debugging

@@ -537,6 +537,32 @@ Only used if wave equation is not solved</a:documentation>
           </optional>
           <optional>
             <element name="scalar_field">
+              <a:documentation>Streamfunction for balanced initialisation</a:documentation>
+              <attribute name="rank">
+                <value>0</value>
+              </attribute>
+              <attribute name="name">
+                <value>Streamfunction</value>
+              </attribute>
+              <element name="prescribed">
+                <element name="value">
+                  <attribute name="name">
+                    <value>WholeMesh</value>
+                  </attribute>
+                  <ref name="input_choice_real"/>
+                </element>
+                <optional>
+                  <element name="zero_bubble_component">
+                    <empty/>
+                  </element>
+                </optional>
+                <ref name="vorticity_mesh_choice"/>
+                <ref name="prognostic_scalar_output_options"/>
+              </element>
+            </element>
+          </optional>
+          <optional>
+            <element name="scalar_field">
               <attribute name="rank">
                 <value>0</value>
               </attribute>
@@ -996,13 +1022,15 @@ where one tangent vector is orthogonal to the
     </element>
     <element name="temporal_discretisation">
       <a:documentation>Temporal discretisation options</a:documentation>
-      <element name="relaxation">
-        <a:documentation>Non-linear relaxation term
+      <optional>
+        <element name="relaxation">
+          <a:documentation>Non-linear relaxation term
  = 0  -- previous timestep velocity solution used in non-linear terms of momentum equations
  = 1  -- previous iteration velocity solution used in non-linear terms of momentum equations
  0 &lt;= ITHETA &lt;= 1</a:documentation>
-        <ref name="real"/>
-      </element>
+          <ref name="real"/>
+        </element>
+      </optional>
       <optional>
         <element name="discontinuous_galerkin">
           <choice>
