@@ -457,6 +457,26 @@ if isn't present as a field in state.</a:documentation>
                 <element name="solver">
                   <ref name="linear_solver_options_sym"/>
                 </element>
+                <optional>
+                  <element name="algorithm">
+                    <a:documentation>Galerkin projects the source field.</a:documentation>
+                    <attribute name="name">
+                      <value>scalar_galerkin_projection</value>
+                    </attribute>
+                    <attribute name="material_phase_support">
+                      <value>single</value>
+                    </attribute>
+                    <element name="source_field_name">
+                      <value>LayerThickness</value>
+                    </element>
+                    <optional>
+                      <element name="solver">
+                        <a:documentation>Solver options. Required if projecting onto a continuous mesh.</a:documentation>
+                        <ref name="linear_solver_options_sym"/>
+                      </element>
+                    </optional>
+                  </element>
+                </optional>
                 <ref name="prognostic_scalar_output_options"/>
                 <ref name="prognostic_scalar_stat_options"/>
               </element>

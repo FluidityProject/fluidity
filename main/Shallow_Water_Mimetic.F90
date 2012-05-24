@@ -193,7 +193,7 @@
       type(vector_field), pointer :: U, advecting_u
       type(scalar_field), pointer :: D_old, D, vorticity, &
            & D_projected, Old_D_projected, Coriolis, PV
-      type(vector_field) :: newU, MassFlux
+      type(vector_field) :: newU, MassFlux, PVFlux
       type(scalar_field) :: newD
       type(csr_matrix), pointer :: Vorticity_Mass_ptr
       type(csr_matrix) :: Vorticity_Mass
@@ -269,18 +269,20 @@
          !   !Just advance the D and PV fields.
          call set(advecting_u, u)
          call allocate(MassFlux,mesh_dim(U),u%mesh,'MassFlux')
+         call allocate(PVFlux,mesh_dim(U),u%mesh,'PVFlux')
          call solve_advection_dg_subcycle("LayerThickness", state, &
               "NonlinearVelocity",continuity=.true.,Flux=MassFlux)
          if(lump_mass) then
             call project_to_p2b_lumped(state,D,D_projected)
          else
-            FLAbort('No code here for consistent mass')
+            call calculate_scalar_galerkin_projection(state, D_projected)
          end if
          if(have_pv_tracer) then
             call solve_advection_cg_tracer(PVtracer,D_projected,&
-                 old_d_projected,MassFlux,state)
+                 old_d_projected,MassFlux,PVFlux,state)
          end if
          call deallocate(MassFlux)
+         call deallocate(PVFlux)
       else
          call allocate(newU,U%dim,U%mesh,"NewLocalVelocity")
          call allocate(newD,D%mesh,"NewLayerThickness")
@@ -308,7 +310,7 @@
       type(mesh_type), pointer :: v_mesh
       type(vector_field) :: U_local, advecting_u
       character(len=PYTHON_FUNC_LEN) :: coriolis
-      type(scalar_field) :: f, old_D
+      type(scalar_field) :: f, old_D, old_Q
       integer :: stat
 
       X=>extract_vector_field(state, "Coordinate")
@@ -346,8 +348,18 @@
          call zero(old_d)
          call insert(state, old_d, "OldProjectedLayerThickness")
          call deallocate(old_d)
+         !Old PV Tracer field (used for testing CG advection)
+         s_field=> extract_scalar_field(&
+              state, "PotentialVorticityTracer",stat)
+         if(stat==0) then
+            call allocate(old_q, D_projected%mesh,&
+                 "OldPotentialVorticityTracer")
+            call zero(old_q)
+            call insert(state, old_q, "OldPotentialVorticityTracer")
+            call deallocate(old_q)            
+         end if
       end if
-      
+
       !SET UP CORIOLIS FORCE
       f_ptr => extract_scalar_field(state,"Coriolis",stat=stat)
       if(stat.ne.0) then

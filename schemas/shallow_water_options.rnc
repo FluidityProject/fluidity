@@ -363,6 +363,18 @@ start =
                      element solver {
                         linear_solver_options_sym
                      },
+                     (
+                        ## Galerkin projects the source field.
+                        element algorithm {
+                           attribute name { "scalar_galerkin_projection" },
+                           attribute material_phase_support { "single" },
+                           element source_field_name { "LayerThickness"},
+                           ## Solver options. Required if projecting onto a continuous mesh.
+                           element solver {
+                              linear_solver_options_sym
+                           }?
+                        }
+                     )?,  
                      prognostic_scalar_output_options,
                      prognostic_scalar_stat_options
                   }

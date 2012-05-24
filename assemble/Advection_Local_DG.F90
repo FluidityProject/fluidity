@@ -1013,19 +1013,24 @@ module advection_local_DG
 
   end subroutine construct_adv_interface_dg  
 
-  subroutine solve_advection_cg_tracer(T,D,D_old,Flux,state)
+  subroutine solve_advection_cg_tracer(T,D,D_old,Flux,Q,state)
     !!< Solve the continuity equation for D*T with Flux
     !!< d/dt (D*T) + div(Flux*T) = diffusion terms.
     !!< Done on the vorticity mesh
+    !!< Return a PV flux Q defined on the velocity mesh
+    !!< which is the projection of Flux*T into the velocity space
+    !!< Note that Flux and Q contain a factor of dt for convenience.
     type(state_type), intent(inout) :: state
     type(scalar_field), intent(in),target :: D,D_old
     type(scalar_field), intent(inout),target :: T
     type(vector_field), intent(in) :: Flux
+    type(vector_field), intent(inout) :: Q
     !
     type(csr_sparsity), pointer :: T_sparsity
     type(csr_matrix) :: Adv_mat, T_lumped_mass,T_lumped_mass_next
     type(scalar_field) :: T_rhs
     type(vector_field), pointer :: X
+    type(scalar_field), pointer :: T_old
     integer :: ele
     real :: dt, t_theta
     logical :: lump_mass
@@ -1035,6 +1040,7 @@ module advection_local_DG
     type(quadrature_type) :: lumped_mass_quad
 
     X=>extract_vector_field(state, "Coordinate")
+    T_old=>extract_scalar_field(state, "Old"//trim(T%name))
     call get_option('/timestepping/timestep',dt)
     call get_option(trim(T%option_path)//&
          '/prognostic/timestepping/theta',t_theta)
@@ -1066,16 +1072,22 @@ module advection_local_DG
     call zero(adv_mat)
     call allocate(T_rhs,T%mesh,trim(T%name)//"RHS")
     call zero(T_rhs)
-
-    ewrite(1,*) 'T_RHS', maxval(abs(T_rhs%val))
+    call zero(Q)
 
     do ele = 1, ele_count(T)
-       call construct_advection_cg_tracer_ele(T_rhs,adv_mat,T,D,D_old,Flux,&
-            & X,dt,t_theta,ele,T_mass_shape_ptr,D_mass_shape_ptr,&
+       call construct_advection_cg_tracer_ele(T_rhs,adv_mat,T,D,D_old,Flux&
+            &,X,dt,t_theta,ele,T_mass_shape_ptr,D_mass_shape_ptr,&
             X_mass_shape_ptr)
     end do
 
+    ewrite(1,*) 'T_RHS', maxval(abs(T_rhs%val))
+
     call petsc_solve(T,adv_mat,T_rhs)
+
+    !! Compute the PV flux to pass to velocity equation
+    !do ele = 1, ele_count(T)
+    !   call construct_pv_flux_ele(Q,T,T_old,Flux,X,t_theta,ele)
+    !end do
 
     !deallocate everything
     if(lump_mass) then
@@ -1123,6 +1135,17 @@ module advection_local_DG
     l_adv_mat = shape_shape(T_mass_shape,T_mass_shape,D_gi*detwei_m)
     l_rhs = shape_rhs(T_mass_shape,T_m_gi*D_old_gi*detwei_m)
 
+    !Equations
+    ! D^{n+1} = D^n + div Flux --- POINTWISE
+    ! Projected D satisfies
+    ! <\gamma, \bar{D}> = <\gamma, D>
+    ! So (integrating by parts)
+    ! <\gamma, \bar{D}^{n+1}> = <\gamma, \bar{D}^n> - <\nabla\gamma, F>
+    ! and a consistent theta-method for T is
+    ! <\gamma, \bar{D}^{n+1}T^{n+1}> = <\gamma, D^nT^n> - 
+    !                                     \theta<\nabla\gamma,FT^{n+1}> 
+    !                                  -(1-\theta)<\nabla\gamma,FT^n>
+
     !Advection terms
     call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), detwei&
          &=detwei, J=J)
@@ -1133,11 +1156,56 @@ module advection_local_DG
 
     call addto(T_rhs,ele_nodes(T_rhs,ele),l_rhs)
     call addto(adv_mat,ele_nodes(T_rhs,ele),ele_nodes(T_rhs,ele),&
-         l_adv_mat)
-    !NEEDS UPDATING OF FLUX, PRODUCE RHS BY PROJECTING TO PRESSURE SPACE
-    !ELEMENTWISE (CAN DO IN LOCAL COORDINATES) CHECK?!?!?
+         l_adv_mat)    
 
   end subroutine construct_advection_cg_tracer_ele
+
+  subroutine construct_pv_flux_ele(Q,T,T_old,Flux,X,t_theta,ele)
+    type(scalar_field), intent(in) :: T_old,T
+    type(vector_field), intent(inout) :: Q
+    type(vector_field), intent(in) :: X, Flux
+    integer, intent(in) :: ele
+    real, intent(in) :: t_theta
+    !
+    real, dimension(mesh_dim(X),ele_loc(T,ele)) :: Q_rhs, Q_perp_rhs
+    real, dimension(Flux%dim,ele_ngi(Flux,ele)) :: Flux_gi
+    real, dimension(ele_ngi(X,ele)) :: detwei,T_gi,T_old_gi
+    real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+    type(element_type), pointer :: T_shape, Q_shape
+    integer :: loc
+
+    T_shape => ele_shape(T,ele)
+    Q_shape => ele_shape(Q,ele)
+    T_gi = ele_val_at_quad(T,ele)
+    T_old_gi = ele_val_at_quad(T_old,ele)
+    Flux_gi = ele_val_at_quad(Flux,ele)
+
+    !Equations
+    ! and a consistent theta-method for T is
+    ! <\gamma, \bar{D}^{n+1}T^{n+1}> = <\gamma, D^nT^n> - 
+    !                                     \theta<\nabla\gamma,FT^{n+1}> 
+    !                                  -(1-\theta)<\nabla\gamma,FT^n>
+    ! So velocity update is 
+    ! <\gamma, \zeta^{n+1}> = <-\nabla^\perp\gamma,u^{n+1}>
+    != <-\nabla^\perp\gamma,u^n> + \theta<-\nabla^\perp\gamma,(FT^{n+1})^\perp>
+    !  +(1-\theta)<-\nabla^\perp\gamma,(FT^n)^\perp>
+    ! taking w = -\nabla^\perp\gamma,
+    ! <w,u^{n+1}>=<w,u^n> + <w,F(\theta T^{n+1}^\perp+(1-\theta)T^n)>
+    ! We actually store the inner product with test function (Q_rhs)
+
+    !Advection terms
+    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), detwei&
+         &=detwei, J=J)
+    Q_rhs = shape_vector_rhs(Q_shape,Flux_gi,t_theta*T_gi + &
+         (1-t_theta)*T_old_gi)
+    !! Needs a bit of thought about local coordinates
+    !! And a solve
+    FLAbort('not done')
+    !Q_perp_rhs(1,:) = Q_rhs(
+    
+    call addto(Q,ele_nodes(Q,ele),Q_rhs)
+
+  end subroutine construct_pv_flux_ele
   
   subroutine solve_vector_advection_dg_subcycle(field_name, state, velocity_name)
     !!< Construct and solve the advection equation for the given

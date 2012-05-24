@@ -320,9 +320,7 @@
     <scalar_field name="Vorticity" rank="0">
       <prognostic>
         <mesh name="VorticityMesh"/>
-        <vorticity_equation>
-          <lump_mass/>
-        </vorticity_equation>
+        <vorticity_equation/>
         <solver>
           <iterative_method name="cg"/>
           <preconditioner name="sor"/>
@@ -359,6 +357,23 @@
             <monitors/>
           </diagnostics>
         </solver>
+        <algorithm name="scalar_galerkin_projection" material_phase_support="single">
+          <source_field_name>LayerThickness</source_field_name>
+          <solver>
+            <iterative_method name="cg"/>
+            <preconditioner name="sor"/>
+            <relative_error>
+              <real_value rank="0">1.0e-8</real_value>
+            </relative_error>
+            <max_iterations>
+              <integer_value rank="0">1000</integer_value>
+            </max_iterations>
+            <never_ignore_solver_failures/>
+            <diagnostics>
+              <monitors/>
+            </diagnostics>
+          </solver>
+        </algorithm>
         <output/>
         <stat/>
       </diagnostic>
@@ -376,6 +391,7 @@
           <constant>
             <real_value rank="0">1.0</real_value>
           </constant>
+          <zero_bubble_component/>
         </initial_condition>
         <timestepping>
           <theta>
