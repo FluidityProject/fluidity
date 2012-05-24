@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>darcy_impes_p1_3phase_layered</name>
+  <owner userid="btollit"/>
+  <tags>diml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>
+../../bin/darcy_impes darcy_impes_p1_3phase_layered_1d.diml 
+../../bin/darcy_impes darcy_impes_p1_3phase_layered_2d.diml 
+../../bin/darcy_impes darcy_impes_p1_3phase_layered_3d.diml 
+    </command_line>
+    <!-- One/two/three dimensional problem for darcy flow using the IMPES solver with one region and three phase using p1 element type. This tests that the sinking and rising of different density phases.-->
+  </problem_definition>
+  <variables>
+    <variable name="phase1_sat_max_1d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_1d.stat")
+phase1_sat_max_1d = s["Phase1"]["Saturation"]["max"][-1]
+    </variable>    
+    <variable name="phase1_sat_min_1d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_1d.stat")
+phase1_sat_min_1d = s["Phase1"]["Saturation"]["min"][-1]
+    </variable>    
+    <variable name="phase2_sat_max_1d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_1d.stat")
+phase2_sat_max_1d = s["Phase2"]["Saturation"]["max"][-1]
+    </variable>    
+    <variable name="phase2_sat_min_1d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_1d.stat")
+phase2_sat_min_1d = s["Phase2"]["Saturation"]["min"][-1]
+    </variable>    
+    <variable name="sum_sat_max_1d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_1d.stat")
+sum_sat_max_1d = s["Phase1"]["SumSaturation"]["max"][-1]
+    </variable>    
+    <variable name="sum_sat_min_1d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_1d.stat")
+sum_sat_min_1d = s["Phase1"]["SumSaturation"]["min"][-1]
+    </variable>
+    <variable name="sum_sat_integral_1d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_1d.stat")
+sum_sat_integral_1d = s["Phase1"]["SumSaturation"]["integral"][-1]
+    </variable>
+    <variable name="phase1_sat_max_2d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_2d.stat")
+phase1_sat_max_2d = s["Phase1"]["Saturation"]["max"][-1]
+    </variable>    
+    <variable name="phase1_sat_min_2d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_2d.stat")
+phase1_sat_min_2d = s["Phase1"]["Saturation"]["min"][-1]
+    </variable>    
+    <variable name="phase2_sat_max_2d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_2d.stat")
+phase2_sat_max_2d = s["Phase2"]["Saturation"]["max"][-1]
+    </variable>    
+    <variable name="phase2_sat_min_2d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_2d.stat")
+phase2_sat_min_2d = s["Phase2"]["Saturation"]["min"][-1]
+    </variable>    
+    <variable name="sum_sat_max_2d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_2d.stat")
+sum_sat_max_2d = s["Phase1"]["SumSaturation"]["max"][-1]
+    </variable>    
+    <variable name="sum_sat_min_2d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_2d.stat")
+sum_sat_min_2d = s["Phase1"]["SumSaturation"]["min"][-1]
+    </variable>
+    <variable name="sum_sat_integral_2d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_2d.stat")
+sum_sat_integral_2d = s["Phase1"]["SumSaturation"]["integral"][-1]
+    </variable>
+    <variable name="phase1_sat_max_3d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_3d.stat")
+phase1_sat_max_3d = s["Phase1"]["Saturation"]["max"][-1]
+    </variable>    
+    <variable name="phase1_sat_min_3d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_3d.stat")
+phase1_sat_min_3d = s["Phase1"]["Saturation"]["min"][-1]
+    </variable>    
+    <variable name="phase2_sat_max_3d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_3d.stat")
+phase2_sat_max_3d = s["Phase2"]["Saturation"]["max"][-1]
+    </variable>    
+    <variable name="phase2_sat_min_3d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_3d.stat")
+phase2_sat_min_3d = s["Phase2"]["Saturation"]["min"][-1]
+    </variable>    
+    <variable name="sum_sat_max_3d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_3d.stat")
+sum_sat_max_3d = s["Phase1"]["SumSaturation"]["max"][-1]
+    </variable>    
+    <variable name="sum_sat_min_3d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_3d.stat")
+sum_sat_min_3d = s["Phase1"]["SumSaturation"]["min"][-1]
+    </variable>
+    <variable name="sum_sat_integral_3d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_3d.stat")
+sum_sat_integral_3d = s["Phase1"]["SumSaturation"]["integral"][-1]
+    </variable>
+    <variable name="v_tot_mag_max_1d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_1d.stat")
+v_tot_mag_max_1d = s["Phase1"]["TotalDarcyVelocity%magnitude"]["max"][-1]
+    </variable>    
+    <variable name="v_tot_mag_max_2d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_2d.stat")
+v_tot_mag_max_2d = s["Phase1"]["TotalDarcyVelocity%magnitude"]["max"][-1]
+    </variable>    
+    <variable name="v_tot_mag_max_3d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_3d.stat")
+v_tot_mag_max_3d = s["Phase1"]["TotalDarcyVelocity%magnitude"]["max"][-1]
+    </variable>    
+    <variable name="positions_x_1d" language="python">
+import vtktools
+file = vtktools.vtu('darcy_impes_p1_3phase_layered_1d_100.vtu')
+file.GetFieldNames()
+p = file.GetLocations()
+positions_x_1d = p[:,0]
+    </variable>
+    <variable name="positions_y_2d" language="python">
+import vtktools
+file = vtktools.vtu('darcy_impes_p1_3phase_layered_2d_100.vtu')
+file.GetFieldNames()
+p = file.GetLocations()
+positions_y_2d = p[:,1]
+    </variable>
+    <variable name="positions_z_3d" language="python">
+import vtktools
+file = vtktools.vtu('darcy_impes_p1_3phase_layered_3d_100.vtu')
+file.GetFieldNames()
+p = file.GetLocations()
+positions_z_3d = p[:,2]
+    </variable>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Solvers converged" language="python">
+assert(solvers_converged)
+    </test>
+    <test name="phase 1 for 1d has max(sat) equals 1.0 with tolerance 1.0e-08" language="python">
+assert abs(phase1_sat_max_1d - 1.0) &lt; 1.0e-08
+    </test>
+    <test name="phase 1 for 1d has min(sat) equals 1.0 with tolerance 1.0e-08" language="python">
+assert abs(phase1_sat_min_1d - 1.0) &lt; 1.0e-08
+    </test>
+    <test name="phase 2 for 1d has max(sat) equals 0.0 with tolerance 1.0e-08" language="python">
+assert abs(phase2_sat_max_1d) &lt; 1.0e-08
+    </test>
+    <test name="phase 2 for 1d has min(sat) equals 0.0 with tolerance 1.0e-08" language="python">
+assert abs(phase2_sat_min_1d) &lt; 1.0e-08
+    </test>
+    <test name="Check sum_sat_max for 1d is 1.0 with tolerance 1.0e-08" language="python">
+print 'difference: ',abs(sum_sat_max_1d - 1.0)
+assert abs(sum_sat_max_1d - 1.0) &lt; 1.0e-08
+    </test>
+    <test name="Check sum_sat_min for 1d is 1.0 with tolerance 1.0e-08" language="python">
+print 'difference: ',abs(sum_sat_min_1d - 1.0)
+assert abs(sum_sat_min_1d - 1.0) &lt; 1.0e-08
+    </test>
+    <test name="Check sum_sat_integral for 1d is 1.0 with relative tolerance 1.0e-08" language="python">
+print 'difference: ',abs(sum_sat_integral_1d - 1.0)
+assert abs(sum_sat_integral_1d - 1.0) &lt; 1.0e-08
+    </test>
+    <test name="phase 1 for 2d has max(sat) equals 1.0 with tolerance 1.0e-08" language="python">
+assert abs(phase1_sat_max_2d - 1.0) &lt; 1.0e-08
+    </test>
+    <test name="phase 1 for 2d has min(sat) equals 1.0 with tolerance 1.0e-08" language="python">
+assert abs(phase1_sat_min_2d - 1.0) &lt; 1.0e-08
+    </test>
+    <test name="phase 2 for 2d has max(sat) equals 0.0 with tolerance 1.0e-08" language="python">
+assert abs(phase2_sat_max_2d) &lt; 1.0e-08
+    </test>
+    <test name="phase 2 for 2d has min(sat) equals 0.0 with tolerance 1.0e-08" language="python">
+assert abs(phase2_sat_min_2d) &lt; 1.0e-08
+    </test>
+    <test name="Check sum_sat_max for 2d is 1.0 with tolerance 1.0e-08" language="python">
+print 'difference: ',abs(sum_sat_max_2d - 1.0)
+assert abs(sum_sat_max_2d - 1.0) &lt; 1.0e-08
+    </test>
+    <test name="Check sum_sat_min for 2d is 1.0 with tolerance 1.0e-08" language="python">
+print 'difference: ',abs(sum_sat_min_2d - 1.0)
+assert abs(sum_sat_min_2d - 1.0) &lt; 1.0e-08
+    </test>
+    <test name="Check sum_sat_integral for 2d is 1.0 with relative tolerance 1.0e-08" language="python">
+print 'difference: ',abs(sum_sat_integral_2d - 1.0)
+assert abs(sum_sat_integral_2d - 1.0) &lt; 1.0e-08
+    </test>
+    <test name="phase 1 for 3d has max(sat) equals 1.0 with tolerance 1.0e-08" language="python">
+assert abs(phase1_sat_max_3d - 1.0) &lt; 1.0e-08
+    </test>
+    <test name="phase 1 for 3d has min(sat) equals 1.0 with tolerance 1.0e-08" language="python">
+assert abs(phase1_sat_min_3d - 1.0) &lt; 1.0e-08
+    </test>
+    <test name="phase 2 for 3d has max(sat) equals 0.0 with tolerance 1.0e-08" language="python">
+assert abs(phase2_sat_max_3d) &lt; 1.0e-08
+    </test>
+    <test name="phase 2 for 3d has min(sat) equals 0.0 with tolerance 1.0e-08" language="python">
+assert abs(phase2_sat_min_3d) &lt; 1.0e-08
+    </test>
+    <test name="Check sum_sat_max for 3d is 1.0 with tolerance 1.0e-08" language="python">
+print 'difference: ',abs(sum_sat_max_3d - 1.0)
+assert abs(sum_sat_max_3d - 1.0) &lt; 1.0e-08
+    </test>
+    <test name="Check sum_sat_min for 3d is 1.0 with tolerance 1.0e-08" language="python">
+print 'difference: ',abs(sum_sat_min_3d - 1.0)
+assert abs(sum_sat_min_3d - 1.0) &lt; 1.0e-08
+    </test>
+    <test name="Check sum_sat_integral for 3d is 1.0 with relative tolerance 1.0e-08" language="python">
+print 'difference: ',abs(sum_sat_integral_3d - 1.0)
+assert abs(sum_sat_integral_3d - 1.0) &lt; 1.0e-08
+    </test>
+    <test name="Check v_tot_mag_max_1d equals 0.0 with tolerance 1.0e-08" language="python">
+assert abs(v_tot_mag_max_1d) &lt; 1.0e-08
+    </test>
+    <test name="Check v_tot_mag_max_2d equals 0.0 with tolerance 1.0e-08" language="python">
+assert abs(v_tot_mag_max_2d) &lt; 1.0e-08
+    </test>
+    <test name="Check v_tot_mag_max_3d equals 0.0 with tolerance 1.0e-07" language="python">
+assert abs(v_tot_mag_max_3d) &lt; 1.0e-07
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
