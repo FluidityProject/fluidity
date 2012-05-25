@@ -833,11 +833,6 @@ contains
     ! meshes are verboten:
     !   tet/hex, tet/quad, triangle/hex and triangle/quad
 
-    print *, "numTriangles = ", numTriangles
-    print *, "numQuads = ", numQuads
-    print *, "numTets = ", numTets
-    print *, "numHexes = ", numHexes
-
     if (numTets .gt. 0) then
        numElements = numTets
        elementType = 4
