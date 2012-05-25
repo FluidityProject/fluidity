@@ -492,7 +492,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="ReynoldsNumber" rank="0">
+    <scalar_field name="ParticleReynoldsNumber" rank="0">
       <diagnostic>
         <algorithm name="particle_reynolds_number" material_phase_support="multiple">
           <depends>
@@ -502,6 +502,54 @@
             <real_value rank="0">1e-3</real_value>
           </particle_diameter>
           <continuous_phase_name>Water</continuous_phase_name>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="DragCoefficient" rank="0">
+      <diagnostic>
+        <algorithm name="scalar_python_diagnostic" material_phase_support="multiple">
+          <string_value type="code" lines="20" language="python">from math import sqrt, pi
+vfrac_tephra = states["Tephra"].scalar_fields["PhaseVolumeFraction"]
+vfrac_water = states["Water"].scalar_fields["PhaseVolumeFraction"]
+
+velocity_tephra = states["Tephra"].vector_fields["Velocity"]
+velocity_water = states["Water"].vector_fields["Velocity"]
+
+density_tephra = states["Tephra"].scalar_fields["Density"]
+density_water = states["Water"].scalar_fields["Density"]
+
+viscosity_water = states["Water"].tensor_fields["Viscosity"]
+
+# Particle diameter
+d = 1e-3
+
+for i in range(field.node_count):
+  # Reynolds number
+  Re = (vfrac_water.node_val(i)*density_water.node_val(i)*sqrt((velocity_water.node_val(i)[0] - velocity_tephra.node_val(i)[0])**2 + (velocity_water.node_val(i)[1] - velocity_tephra.node_val(i)[1])**2)*d)/viscosity_water.node_val(0)[0][0]
+  
+  # Drag coefficient
+  if(Re &lt; 1000):
+    C = (24.0/Re)*(1.0 + 0.15*Re**0.687)
+  else:
+    C = 0.44
+    
+  # Don't let C be NaN
+  if(Re == 0):
+    C = 1e16
+
+  field.set(i, C)</string_value>
         </algorithm>
         <mesh name="VelocityMesh"/>
         <output/>
