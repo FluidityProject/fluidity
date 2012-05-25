@@ -5,152 +5,152 @@
   <name>darcy_impes_p1_3phase_layered</name>
   <owner userid="btollit"/>
   <tags>diml</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="medium" nprocs="1">
     <command_line>
-../../bin/darcy_impes darcy_impes_p1_3phase_layered_1d.diml 
-../../bin/darcy_impes darcy_impes_p1_3phase_layered_2d.diml 
-../../bin/darcy_impes darcy_impes_p1_3phase_layered_3d.diml 
+../../bin/darcy_impes darcy_impes_p1_3phase_layered_relpermupwind_1d.diml 
+../../bin/darcy_impes darcy_impes_p1_3phase_layered_relpermupwind_2d.diml 
+../../bin/darcy_impes darcy_impes_p1_3phase_layered_relpermupwind_3d.diml 
     </command_line>
-    <!-- One/two/three dimensional problem for darcy flow using the IMPES solver with one region and three phase using p1 element type. This tests that the sinking and rising of different density phases.-->
+    <!-- One/two/three dimensional problem for darcy flow using the IMPES solver with one region and three phase using p1 element type. This tests the sinking and rising of different density phases.-->
   </problem_definition>
   <variables>
     <variable name="phase1_sat_max_1d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_3phase_layered_1d.stat")
+s = stat_parser("darcy_impes_p1_3phase_layered_relpermupwind_1d.stat")
 phase1_sat_max_1d = s["Phase1"]["Saturation"]["max"][-1]
     </variable>    
     <variable name="phase1_sat_min_1d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_3phase_layered_1d.stat")
+s = stat_parser("darcy_impes_p1_3phase_layered_relpermupwind_1d.stat")
 phase1_sat_min_1d = s["Phase1"]["Saturation"]["min"][-1]
     </variable>    
     <variable name="phase2_sat_max_1d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_3phase_layered_1d.stat")
+s = stat_parser("darcy_impes_p1_3phase_layered_relpermupwind_1d.stat")
 phase2_sat_max_1d = s["Phase2"]["Saturation"]["max"][-1]
     </variable>    
     <variable name="phase2_sat_min_1d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_3phase_layered_1d.stat")
+s = stat_parser("darcy_impes_p1_3phase_layered_relpermupwind_1d.stat")
 phase2_sat_min_1d = s["Phase2"]["Saturation"]["min"][-1]
     </variable>    
     <variable name="sum_sat_max_1d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_3phase_layered_1d.stat")
+s = stat_parser("darcy_impes_p1_3phase_layered_relpermupwind_1d.stat")
 sum_sat_max_1d = s["Phase1"]["SumSaturation"]["max"][-1]
     </variable>    
     <variable name="sum_sat_min_1d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_3phase_layered_1d.stat")
+s = stat_parser("darcy_impes_p1_3phase_layered_relpermupwind_1d.stat")
 sum_sat_min_1d = s["Phase1"]["SumSaturation"]["min"][-1]
     </variable>
     <variable name="sum_sat_integral_1d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_3phase_layered_1d.stat")
+s = stat_parser("darcy_impes_p1_3phase_layered_relpermupwind_1d.stat")
 sum_sat_integral_1d = s["Phase1"]["SumSaturation"]["integral"][-1]
     </variable>
     <variable name="phase1_sat_max_2d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_3phase_layered_2d.stat")
+s = stat_parser("darcy_impes_p1_3phase_layered_relpermupwind_2d.stat")
 phase1_sat_max_2d = s["Phase1"]["Saturation"]["max"][-1]
     </variable>    
     <variable name="phase1_sat_min_2d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_3phase_layered_2d.stat")
+s = stat_parser("darcy_impes_p1_3phase_layered_relpermupwind_2d.stat")
 phase1_sat_min_2d = s["Phase1"]["Saturation"]["min"][-1]
     </variable>    
     <variable name="phase2_sat_max_2d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_3phase_layered_2d.stat")
+s = stat_parser("darcy_impes_p1_3phase_layered_relpermupwind_2d.stat")
 phase2_sat_max_2d = s["Phase2"]["Saturation"]["max"][-1]
     </variable>    
     <variable name="phase2_sat_min_2d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_3phase_layered_2d.stat")
+s = stat_parser("darcy_impes_p1_3phase_layered_relpermupwind_2d.stat")
 phase2_sat_min_2d = s["Phase2"]["Saturation"]["min"][-1]
     </variable>    
     <variable name="sum_sat_max_2d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_3phase_layered_2d.stat")
+s = stat_parser("darcy_impes_p1_3phase_layered_relpermupwind_2d.stat")
 sum_sat_max_2d = s["Phase1"]["SumSaturation"]["max"][-1]
     </variable>    
     <variable name="sum_sat_min_2d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_3phase_layered_2d.stat")
+s = stat_parser("darcy_impes_p1_3phase_layered_relpermupwind_2d.stat")
 sum_sat_min_2d = s["Phase1"]["SumSaturation"]["min"][-1]
     </variable>
     <variable name="sum_sat_integral_2d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_3phase_layered_2d.stat")
+s = stat_parser("darcy_impes_p1_3phase_layered_relpermupwind_2d.stat")
 sum_sat_integral_2d = s["Phase1"]["SumSaturation"]["integral"][-1]
     </variable>
     <variable name="phase1_sat_max_3d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_3phase_layered_3d.stat")
+s = stat_parser("darcy_impes_p1_3phase_layered_relpermupwind_3d.stat")
 phase1_sat_max_3d = s["Phase1"]["Saturation"]["max"][-1]
     </variable>    
     <variable name="phase1_sat_min_3d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_3phase_layered_3d.stat")
+s = stat_parser("darcy_impes_p1_3phase_layered_relpermupwind_3d.stat")
 phase1_sat_min_3d = s["Phase1"]["Saturation"]["min"][-1]
     </variable>    
     <variable name="phase2_sat_max_3d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_3phase_layered_3d.stat")
+s = stat_parser("darcy_impes_p1_3phase_layered_relpermupwind_3d.stat")
 phase2_sat_max_3d = s["Phase2"]["Saturation"]["max"][-1]
     </variable>    
     <variable name="phase2_sat_min_3d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_3phase_layered_3d.stat")
+s = stat_parser("darcy_impes_p1_3phase_layered_relpermupwind_3d.stat")
 phase2_sat_min_3d = s["Phase2"]["Saturation"]["min"][-1]
     </variable>    
     <variable name="sum_sat_max_3d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_3phase_layered_3d.stat")
+s = stat_parser("darcy_impes_p1_3phase_layered_relpermupwind_3d.stat")
 sum_sat_max_3d = s["Phase1"]["SumSaturation"]["max"][-1]
     </variable>    
     <variable name="sum_sat_min_3d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_3phase_layered_3d.stat")
+s = stat_parser("darcy_impes_p1_3phase_layered_relpermupwind_3d.stat")
 sum_sat_min_3d = s["Phase1"]["SumSaturation"]["min"][-1]
     </variable>
     <variable name="sum_sat_integral_3d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_3phase_layered_3d.stat")
+s = stat_parser("darcy_impes_p1_3phase_layered_relpermupwind_3d.stat")
 sum_sat_integral_3d = s["Phase1"]["SumSaturation"]["integral"][-1]
     </variable>
     <variable name="v_tot_mag_max_1d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_3phase_layered_1d.stat")
+s = stat_parser("darcy_impes_p1_3phase_layered_relpermupwind_1d.stat")
 v_tot_mag_max_1d = s["Phase1"]["TotalDarcyVelocity%magnitude"]["max"][-1]
     </variable>    
     <variable name="v_tot_mag_max_2d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_3phase_layered_2d.stat")
+s = stat_parser("darcy_impes_p1_3phase_layered_relpermupwind_2d.stat")
 v_tot_mag_max_2d = s["Phase1"]["TotalDarcyVelocity%magnitude"]["max"][-1]
     </variable>    
     <variable name="v_tot_mag_max_3d" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_3phase_layered_3d.stat")
+s = stat_parser("darcy_impes_p1_3phase_layered_relpermupwind_3d.stat")
 v_tot_mag_max_3d = s["Phase1"]["TotalDarcyVelocity%magnitude"]["max"][-1]
     </variable>    
     <variable name="positions_x_1d" language="python">
 import vtktools
-file = vtktools.vtu('darcy_impes_p1_3phase_layered_1d_100.vtu')
+file = vtktools.vtu('darcy_impes_p1_3phase_layered_relpermupwind_1d_100.vtu')
 file.GetFieldNames()
 p = file.GetLocations()
 positions_x_1d = p[:,0]
     </variable>
     <variable name="positions_y_2d" language="python">
 import vtktools
-file = vtktools.vtu('darcy_impes_p1_3phase_layered_2d_100.vtu')
+file = vtktools.vtu('darcy_impes_p1_3phase_layered_relpermupwind_2d_100.vtu')
 file.GetFieldNames()
 p = file.GetLocations()
 positions_y_2d = p[:,1]
     </variable>
     <variable name="positions_z_3d" language="python">
 import vtktools
-file = vtktools.vtu('darcy_impes_p1_3phase_layered_3d_100.vtu')
+file = vtktools.vtu('darcy_impes_p1_3phase_layered_relpermupwind_3d_100.vtu')
 file.GetFieldNames()
 p = file.GetLocations()
 positions_z_3d = p[:,2]
