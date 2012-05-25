@@ -1399,7 +1399,7 @@ darcy_impes_first_phase_bc_pressure_field =
          element surface_ids {
             integer_vector
          },
-         darcy_impes_dirichlet_bc            
+         darcy_impes_strong_dirichlet_bc            
       }   
    )
 
@@ -1413,7 +1413,7 @@ darcy_impes_bc_saturation_field =
          element surface_ids {
             integer_vector
          },
-         darcy_impes_dirichlet_bc
+         darcy_impes_strong_dirichlet_bc
       }   
    )
 
@@ -1432,6 +1432,19 @@ darcy_impes_dirichlet_bc =
                empty
             }
          ),
+         input_choice_real
+      }   
+   )
+
+
+darcy_impes_strong_dirichlet_bc = 
+   (
+      element type {
+         attribute name { "dirichlet" },
+         ## Apply the dirichlet BC strongly
+            element apply_strongly {
+               empty
+         },
          input_choice_real
       }   
    )

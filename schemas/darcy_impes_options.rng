@@ -1489,7 +1489,7 @@ Default value is 1.</a:documentation>
         <a:documentation>Surface id</a:documentation>
         <ref name="integer_vector"/>
       </element>
-      <ref name="darcy_impes_dirichlet_bc"/>
+      <ref name="darcy_impes_strong_dirichlet_bc"/>
     </element>
   </define>
   <define name="darcy_impes_bc_saturation_field">
@@ -1502,7 +1502,7 @@ Default value is 1.</a:documentation>
         <a:documentation>Surface id</a:documentation>
         <ref name="integer_vector"/>
       </element>
-      <ref name="darcy_impes_dirichlet_bc"/>
+      <ref name="darcy_impes_strong_dirichlet_bc"/>
     </element>
   </define>
   <define name="darcy_impes_dirichlet_bc">
@@ -1520,6 +1520,18 @@ Default value is 1.</a:documentation>
           <empty/>
         </element>
       </choice>
+      <ref name="input_choice_real"/>
+    </element>
+  </define>
+  <define name="darcy_impes_strong_dirichlet_bc">
+    <element name="type">
+      <attribute name="name">
+        <value>dirichlet</value>
+      </attribute>
+      <element name="apply_strongly">
+        <a:documentation>Apply the dirichlet BC strongly</a:documentation>
+        <empty/>
+      </element>
       <ref name="input_choice_real"/>
     </element>
   </define>
