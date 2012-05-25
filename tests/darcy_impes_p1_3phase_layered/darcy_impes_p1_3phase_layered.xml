@@ -34,6 +34,16 @@ from fluidity_tools import stat_parser
 s = stat_parser("darcy_impes_p1_3phase_layered_relpermupwind_1d.stat")
 phase2_sat_min_1d = s["Phase2"]["Saturation"]["min"][-1]
     </variable>    
+    <variable name="phase3_sat_max_1d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_relpermupwind_1d.stat")
+phase3_sat_max_1d = s["Phase3"]["Saturation"]["max"][-1]
+    </variable>    
+    <variable name="phase3_sat_min_1d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_relpermupwind_1d.stat")
+phase3_sat_min_1d = s["Phase3"]["Saturation"]["min"][-1]
+    </variable>    
     <variable name="sum_sat_max_1d" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("darcy_impes_p1_3phase_layered_relpermupwind_1d.stat")
@@ -69,6 +79,16 @@ from fluidity_tools import stat_parser
 s = stat_parser("darcy_impes_p1_3phase_layered_relpermupwind_2d.stat")
 phase2_sat_min_2d = s["Phase2"]["Saturation"]["min"][-1]
     </variable>    
+    <variable name="phase3_sat_max_2d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_relpermupwind_2d.stat")
+phase3_sat_max_2d = s["Phase3"]["Saturation"]["max"][-1]
+    </variable>    
+    <variable name="phase3_sat_min_2d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_relpermupwind_2d.stat")
+phase3_sat_min_2d = s["Phase3"]["Saturation"]["min"][-1]
+    </variable>
     <variable name="sum_sat_max_2d" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("darcy_impes_p1_3phase_layered_relpermupwind_2d.stat")
@@ -104,6 +124,16 @@ from fluidity_tools import stat_parser
 s = stat_parser("darcy_impes_p1_3phase_layered_relpermupwind_3d.stat")
 phase2_sat_min_3d = s["Phase2"]["Saturation"]["min"][-1]
     </variable>    
+    <variable name="phase3_sat_max_3d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_relpermupwind_3d.stat")
+phase3_sat_max_3d = s["Phase3"]["Saturation"]["max"][-1]
+    </variable>    
+    <variable name="phase3_sat_min_3d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_relpermupwind_3d.stat")
+phase3_sat_min_3d = s["Phase3"]["Saturation"]["min"][-1]
+    </variable>
     <variable name="sum_sat_max_3d" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("darcy_impes_p1_3phase_layered_relpermupwind_3d.stat")
@@ -119,21 +149,7 @@ from fluidity_tools import stat_parser
 s = stat_parser("darcy_impes_p1_3phase_layered_relpermupwind_3d.stat")
 sum_sat_integral_3d = s["Phase1"]["SumSaturation"]["integral"][-1]
     </variable>
-    <variable name="v_tot_mag_max_1d" language="python">
-from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_3phase_layered_relpermupwind_1d.stat")
-v_tot_mag_max_1d = s["Phase1"]["TotalDarcyVelocity%magnitude"]["max"][-1]
-    </variable>    
-    <variable name="v_tot_mag_max_2d" language="python">
-from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_3phase_layered_relpermupwind_2d.stat")
-v_tot_mag_max_2d = s["Phase1"]["TotalDarcyVelocity%magnitude"]["max"][-1]
-    </variable>    
-    <variable name="v_tot_mag_max_3d" language="python">
-from fluidity_tools import stat_parser
-s = stat_parser("darcy_impes_p1_3phase_layered_relpermupwind_3d.stat")
-v_tot_mag_max_3d = s["Phase1"]["TotalDarcyVelocity%magnitude"]["max"][-1]
-    </variable>    
+
     <variable name="positions_x_1d" language="python">
 import vtktools
 file = vtktools.vtu('darcy_impes_p1_3phase_layered_relpermupwind_1d_100.vtu')
@@ -165,17 +181,23 @@ solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     <test name="Solvers converged" language="python">
 assert(solvers_converged)
     </test>
-    <test name="phase 1 for 1d has max(sat) equals 1.0 with tolerance 1.0e-08" language="python">
-assert abs(phase1_sat_max_1d - 1.0) &lt; 1.0e-08
+    <test name="phase 1 for 1d has max(sat) in [0,1] with tolerance 1.0e-08" language="python">
+assert abs(phase1_sat_max_1d - 0.5) &lt; 0.5 + 1.0e-08
     </test>
-    <test name="phase 1 for 1d has min(sat) equals 1.0 with tolerance 1.0e-08" language="python">
-assert abs(phase1_sat_min_1d - 1.0) &lt; 1.0e-08
+    <test name="phase 1 for 1d has min(sat) in [0,1] with tolerance 1.0e-08" language="python">
+assert abs(phase1_sat_min_1d - 0.5) &lt; 0.5 + 1.0e-08
     </test>
-    <test name="phase 2 for 1d has max(sat) equals 0.0 with tolerance 1.0e-08" language="python">
-assert abs(phase2_sat_max_1d) &lt; 1.0e-08
+    <test name="phase 2 for 1d has max(sat) in [0,1] with tolerance 1.0e-08" language="python">
+assert abs(phase2_sat_max_1d - 0.5) &lt; 0.5 + 1.0e-08
     </test>
-    <test name="phase 2 for 1d has min(sat) equals 0.0 with tolerance 1.0e-08" language="python">
-assert abs(phase2_sat_min_1d) &lt; 1.0e-08
+    <test name="phase 2 for 1d has min(sat) in [0,1] with tolerance 1.0e-08" language="python">
+assert abs(phase2_sat_min_1d - 0.5) &lt; 0.5 + 1.0e-08
+    </test>
+    <test name="phase 3 for 1d has max(sat) in [0,1] with tolerance 1.0e-08" language="python">
+assert abs(phase3_sat_max_1d - 0.5) &lt; 0.5 + 1.0e-08
+    </test>
+    <test name="phase 3 for 1d has min(sat) in [0,1] with tolerance 1.0e-08" language="python">
+assert abs(phase3_sat_min_1d - 0.5) &lt; 0.5 + 1.0e-08
     </test>
     <test name="Check sum_sat_max for 1d is 1.0 with tolerance 1.0e-08" language="python">
 print 'difference: ',abs(sum_sat_max_1d - 1.0)
@@ -189,17 +211,23 @@ assert abs(sum_sat_min_1d - 1.0) &lt; 1.0e-08
 print 'difference: ',abs(sum_sat_integral_1d - 1.0)
 assert abs(sum_sat_integral_1d - 1.0) &lt; 1.0e-08
     </test>
-    <test name="phase 1 for 2d has max(sat) equals 1.0 with tolerance 1.0e-08" language="python">
-assert abs(phase1_sat_max_2d - 1.0) &lt; 1.0e-08
+    <test name="phase 1 for 2d has max(sat) in [0,1] with tolerance 1.0e-08" language="python">
+assert abs(phase1_sat_max_2d - 0.5) &lt; 0.5 + 1.0e-08
     </test>
-    <test name="phase 1 for 2d has min(sat) equals 1.0 with tolerance 1.0e-08" language="python">
-assert abs(phase1_sat_min_2d - 1.0) &lt; 1.0e-08
+    <test name="phase 1 for 2d has min(sat) in [0,1] with tolerance 1.0e-08" language="python">
+assert abs(phase1_sat_min_2d - 0.5) &lt; 0.5 + 1.0e-08
     </test>
-    <test name="phase 2 for 2d has max(sat) equals 0.0 with tolerance 1.0e-08" language="python">
-assert abs(phase2_sat_max_2d) &lt; 1.0e-08
+    <test name="phase 2 for 2d has max(sat) in [0,1] with tolerance 1.0e-08" language="python">
+assert abs(phase2_sat_max_2d - 0.5) &lt; 0.5 + 1.0e-08
     </test>
-    <test name="phase 2 for 2d has min(sat) equals 0.0 with tolerance 1.0e-08" language="python">
-assert abs(phase2_sat_min_2d) &lt; 1.0e-08
+    <test name="phase 2 for 2d has min(sat) in [0,1] with tolerance 1.0e-08" language="python">
+assert abs(phase2_sat_min_2d - 0.5) &lt; 0.5 + 1.0e-08
+    </test>
+    <test name="phase 3 for 2d has max(sat) in [0,1] with tolerance 1.0e-08" language="python">
+assert abs(phase3_sat_max_2d - 0.5) &lt; 0.5 + 1.0e-08
+    </test>
+    <test name="phase 3 for 2d has min(sat) in [0,1] with tolerance 1.0e-08" language="python">
+assert abs(phase3_sat_min_2d - 0.5) &lt; 0.5 + 1.0e-08
     </test>
     <test name="Check sum_sat_max for 2d is 1.0 with tolerance 1.0e-08" language="python">
 print 'difference: ',abs(sum_sat_max_2d - 1.0)
@@ -213,17 +241,23 @@ assert abs(sum_sat_min_2d - 1.0) &lt; 1.0e-08
 print 'difference: ',abs(sum_sat_integral_2d - 1.0)
 assert abs(sum_sat_integral_2d - 1.0) &lt; 1.0e-08
     </test>
-    <test name="phase 1 for 3d has max(sat) equals 1.0 with tolerance 1.0e-08" language="python">
-assert abs(phase1_sat_max_3d - 1.0) &lt; 1.0e-08
+    <test name="phase 1 for 3d has max(sat) in [0,1] with tolerance 1.0e-08" language="python">
+assert abs(phase1_sat_max_3d - 0.5) &lt; 0.5 + 1.0e-08
     </test>
-    <test name="phase 1 for 3d has min(sat) equals 1.0 with tolerance 1.0e-08" language="python">
-assert abs(phase1_sat_min_3d - 1.0) &lt; 1.0e-08
+    <test name="phase 1 for 3d has min(sat) in [0,1] with tolerance 1.0e-08" language="python">
+assert abs(phase1_sat_min_3d - 0.5) &lt; 0.5 + 1.0e-08
     </test>
-    <test name="phase 2 for 3d has max(sat) equals 0.0 with tolerance 1.0e-08" language="python">
-assert abs(phase2_sat_max_3d) &lt; 1.0e-08
+    <test name="phase 2 for 3d has max(sat) in [0,1] with tolerance 1.0e-08" language="python">
+assert abs(phase2_sat_max_3d - 0.5) &lt; 0.5 + 1.0e-08
     </test>
-    <test name="phase 2 for 3d has min(sat) equals 0.0 with tolerance 1.0e-08" language="python">
-assert abs(phase2_sat_min_3d) &lt; 1.0e-08
+    <test name="phase 2 for 3d has min(sat) in [0,1] with tolerance 1.0e-08" language="python">
+assert abs(phase2_sat_min_3d - 0.5) &lt; 0.5 + 1.0e-08
+    </test>
+    <test name="phase 3 for 3d has max(sat) in [0,1] with tolerance 1.0e-08" language="python">
+assert abs(phase3_sat_max_3d - 0.5) &lt; 0.5 + 1.0e-08
+    </test>
+    <test name="phase 3 for 3d has min(sat) in [0,1] with tolerance 1.0e-08" language="python">
+assert abs(phase3_sat_min_3d - 0.5) &lt; 0.5 + 1.0e-08
     </test>
     <test name="Check sum_sat_max for 3d is 1.0 with tolerance 1.0e-08" language="python">
 print 'difference: ',abs(sum_sat_max_3d - 1.0)
@@ -236,15 +270,6 @@ assert abs(sum_sat_min_3d - 1.0) &lt; 1.0e-08
     <test name="Check sum_sat_integral for 3d is 1.0 with relative tolerance 1.0e-08" language="python">
 print 'difference: ',abs(sum_sat_integral_3d - 1.0)
 assert abs(sum_sat_integral_3d - 1.0) &lt; 1.0e-08
-    </test>
-    <test name="Check v_tot_mag_max_1d equals 0.0 with tolerance 1.0e-08" language="python">
-assert abs(v_tot_mag_max_1d) &lt; 1.0e-08
-    </test>
-    <test name="Check v_tot_mag_max_2d equals 0.0 with tolerance 1.0e-08" language="python">
-assert abs(v_tot_mag_max_2d) &lt; 1.0e-08
-    </test>
-    <test name="Check v_tot_mag_max_3d equals 0.0 with tolerance 1.0e-07" language="python">
-assert abs(v_tot_mag_max_3d) &lt; 1.0e-07
     </test>
   </pass_tests>
   <warn_tests>
