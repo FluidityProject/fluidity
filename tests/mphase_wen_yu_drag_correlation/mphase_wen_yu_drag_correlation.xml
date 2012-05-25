@@ -25,10 +25,16 @@ s = stat_parser("mphase_wen_yu_drag_correlation.stat")
 tephra_u = s["Tephra"]["Velocity%magnitude"]["max"][-1]
     </variable>
     
-    <variable name="relative_terminal_velocity" language="python">
+    <variable name="relative_terminal_velocity_wen_yu" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("mphase_wen_yu_drag_correlation.stat")
-relative_terminal_velocity = s["Tephra"]["TerminalVelocity%magnitude"]["max"][-1]
+relative_terminal_velocity_wen_yu = s["Tephra"]["TerminalVelocityWenYu%magnitude"]["max"][-1]
+    </variable>
+    
+    <variable name="relative_terminal_velocity_stokes" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_wen_yu_drag_correlation.stat")
+relative_terminal_velocity_stokes = s["Tephra"]["TerminalVelocityStokes%magnitude"]["max"][-1]
     </variable>
     
     <variable name="drag_force" language="python">
@@ -50,8 +56,17 @@ buoyancy_force = s["Tephra"]["BuoyancyForce%magnitude"]["max"][-1]
 assert abs(drag_force - buoyancy_force) &lt; 1e-4
     </test>
     
-    <test name="Terminal velocity is the same as that predicted by balancing the buoyancy force and drag force" language="python">
-assert abs(relative_terminal_velocity - (tephra_u + water_u)) &lt; 1e-4
+    <test name="Terminal velocity (with the wen_yu drag correlation) is the same as that predicted by balancing the buoyancy force and drag force" language="python">
+assert abs(relative_terminal_velocity_wen_yu - (tephra_u + water_u)) &lt; 1e-4
+    </test>
+    
+    <test name="Terminal velocity with the wen_yu drag correlation is around 0.122" language="python">
+assert abs(relative_terminal_velocity_wen_yu - 0.122) &lt; 1e-3
+    </test>
+
+    <!-- The Stokes drag correlation greatly underestimates the drag coefficient, so we should see a much greater particle phase velocity -->
+    <test name="Terminal velocity with the Stokes drag correlation is around 0.693 (i.e. much greater than the one predicted by the wen_yu drag correlation)" language="python">
+assert abs(relative_terminal_velocity_stokes - 0.693) &lt; 1e-3
     </test>
   </pass_tests>
   
