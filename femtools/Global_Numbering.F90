@@ -277,7 +277,8 @@ contains
                     &         vertices(cell%entities(d,e)%vertices))) 
                
                ! The default receive level for foreign entities is 2.
-               if (entity_owner(entity)/=rank) then
+               if (entity_owner(entity)/=rank&
+                    .and.entity_receive_level(entity)==0) then
                   entity_receive_level(entity)=2
                end if
                
@@ -288,9 +289,10 @@ contains
                entity_sort_list(entity,1:size(cell%entities(d,e)%vertices))&
                     =sorted(int(node_val(uid,vertices(cell%entities(d,e)%vertices))))
 
-               ! A level 1 halo element has both owned and foreign vertices.
-               if (all(entity_owner(vertices)==rank).or. &
-                    all(entity_owner(vertices)/=rank)) cycle
+               ! A level 1 halo entity has vertices owned by different
+               !  processors. Note that level1 in this context means level1
+               !   for any processor, not just us.
+               if (all(entity_owner(vertices)==entity_owner(vertices(1)))) cycle
                
                ! This is a level 1 element
                level1(vertices)=.True.
@@ -298,7 +300,7 @@ contains
                ! If the entity is foreign, check if this element causes it
                !  to have a level 1 receive level.
                if (entity_owner(entity)/=rank) then
-                  if (any(entity_owner(vertices)==entity_owner(entity))) &
+                  if (any(entity_owner(vertices)==rank)) &
                      entity_receive_level(entity)=1
                end if
                
@@ -328,7 +330,6 @@ contains
             call insert(entity_send_targets(cell_entity,2), &
                  entity_send_targets(vertices(v),1))
          end do
-         
 
          do d=0, mesh_dim(mesh)-1
             do e=1,cell%entity_counts(d)
@@ -348,6 +349,7 @@ contains
                ! Insert the cell send list into all the other send lists.
                call insert(entity_send_targets(entity,2), &
                     entity_send_targets(cell_entity,2))
+
             end do
          end do
       end do
@@ -519,9 +521,6 @@ contains
          end if
       end do
 
-    print *,"finished making mesh ",trim(mesh%name)
-    print "(3i8)", mesh%ndglno
-
       do h=1,size(mesh%halos)
          if (data_type==HALO_TYPE_CG_NODE) then
             hh=h
@@ -546,13 +545,6 @@ contains
          do p=1,size(mesh%halos(h)%receives)
             mesh%halos(h)%receives(p)%ptr=sorted(set2vector(receives(hh,p)))
          end do
-
-    if (have_halos) then
-       print *, local_dofs
-       call print_halo(mesh%halos(2),h)
-    else
-       print *,"no halo"
-    end if
 
          call create_global_to_universal_numbering(mesh%halos(h))
          call create_ownership(mesh%halos(h))
