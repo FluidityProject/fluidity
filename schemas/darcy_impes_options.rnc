@@ -477,6 +477,10 @@ darcy_impes_timestepping =
             ## This option will work only if the mesh_adaptivity is switched on.
             element nonlinear_iterations_at_adapt {
                integer
+            }?,
+            ## Number of non-linear iterations for the first time step.
+            element nonlinear_iterations_at_first_timestep {
+               integer
             }?
          }?,
          ## Vary the timestep according to the courant number.
@@ -765,7 +769,6 @@ darcy_impes_non_first_phase_pressure_field =
          element diagnostic {
             mesh_choice_pressure,
             darcy_impes_internal_algorithm,
-            darcy_impes_non_first_phase_bc_pressure_field*,
             darcy_impes_diagnostic_scalar_field
          }
       }
@@ -1401,20 +1404,6 @@ darcy_impes_first_phase_bc_pressure_field =
    )
 
 
-darcy_impes_non_first_phase_bc_pressure_field =
-   (
-      ## Boundary conditions
-      element boundary_conditions {
-         attribute name { string },
-         ## Surface id
-         element surface_ids {
-            integer_vector
-         },
-         darcy_impes_weak_dirichlet_bc            
-      }   
-   )
-
-
 darcy_impes_bc_saturation_field =
    (
       ## Boundary conditions
@@ -1424,7 +1413,7 @@ darcy_impes_bc_saturation_field =
          element surface_ids {
             integer_vector
          },
-         darcy_impes_strong_dirichlet_bc
+         darcy_impes_dirichlet_bc
       }   
    )
 
@@ -1454,19 +1443,6 @@ darcy_impes_weak_dirichlet_bc =
          attribute name { "dirichlet" },
          ## Apply the dirichlet BC weakly
          element apply_weakly {
-            empty
-         },
-         input_choice_real
-      }   
-   )
-
-
-darcy_impes_strong_dirichlet_bc = 
-   (
-      element type {
-         attribute name { "dirichlet" },
-         ## Apply the dirichlet BC strongly
-         element apply_strongly {
             empty
          },
          input_choice_real

@@ -148,6 +148,7 @@ program Darcy_IMPES
    
    ! Non linear iteration variables
    integer :: its, nonlinear_iterations, nonlinear_iterations_adapt
+   integer :: nonlinear_iterations_at_first_timestep, nonlinear_iterations_this_timestep
    real :: change, chaold, nonlinear_iteration_tolerance
    
    ! *** Data associated with the Darcy IMPES solver ***  
@@ -205,10 +206,24 @@ program Darcy_IMPES
 
    call get_option("/timestepping/timestep", dt)   
    
-   ! Set non linear iteration data - required before first adapt
+   ! Set non linear iteration data 
    call get_option("/timestepping/nonlinear_iterations", &
                   & nonlinear_iterations, &
                   & default = 1)
+
+
+   ! Get the number of non linear iter for first timestep
+   call get_option('/timestepping/nonlinear_iterations/nonlinear_iterations_at_first_timestep', &
+                   nonlinear_iterations_at_first_timestep, &
+                   default = nonlinear_iterations)
+   
+   ! Get the number of non linear iter after adapt 
+   call get_option('/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt', &
+                   nonlinear_iterations_adapt, &
+                   default = nonlinear_iterations)
+   
+   ! Initialise the non linear iter actual
+   nonlinear_iterations_this_timestep = nonlinear_iterations_at_first_timestep
    
    call get_option("/timestepping/nonlinear_iterations/tolerance", &
                   & nonlinear_iteration_tolerance, &
@@ -270,7 +285,7 @@ program Darcy_IMPES
    ! ******************************
    ! *** Start of timestep loop ***
    ! ******************************
-
+   
    timestep_loop: do
       timestep = timestep + 1
 
@@ -328,14 +343,14 @@ program Darcy_IMPES
          call scale(di%gravity, di%gravity_magnitude)
          ewrite_minmax(di%gravity)
       end if
-      
+            
       ! *** Darcy IMPES set max number non linear iterations for this time step ***
-      di%max_nonlinear_iter_this_timestep = nonlinear_iterations
+      di%max_nonlinear_iter_this_timestep = nonlinear_iterations_this_timestep
       
-      nonlinear_iteration_loop: do its = 1,nonlinear_iterations
+      nonlinear_iteration_loop: do its = 1,nonlinear_iterations_this_timestep
 
          ewrite(1,*)'###################'
-         ewrite(1,*)'Start of another nonlinear iteration; its,nonlinear_iterations=',its,nonlinear_iterations
+         ewrite(1,*)'Start of another nonlinear iteration; its,nonlinear_iterations_this_timestep=',its,nonlinear_iterations_this_timestep
          ewrite(1,*)'###################'         
          
          call copy_to_stored_values(state, "Iterated")
@@ -346,7 +361,7 @@ program Darcy_IMPES
          ! *** Set the Darcy IMPES nonlinear_iter
          di%nonlinear_iter = its
 
-         ! *** Darcy IMPES Calculate the relperm and density first face values ***
+         ! *** Darcy IMPES Calculate the relperm and density first face values (depend on upwind direction) ***
          call darcy_impes_calculate_relperm_den_first_face_values(di)
          
          ! *** Solve the Darcy equations using IMPES ***
@@ -359,7 +374,7 @@ program Darcy_IMPES
          !     needs to be after the python fields ***
          call darcy_impes_calculate_vel_mob_ff_and_cfl_fields(di)
 
-         if(nonlinear_iterations > 1) then
+         if(nonlinear_iterations_this_timestep > 1) then
             
             ! Check for convergence between non linear iteration loops
             call test_and_write_convergence(state, current_time + dt, dt, its, change)
@@ -387,11 +402,8 @@ program Darcy_IMPES
 
       end do nonlinear_iteration_loop
 
-      ! Reset the number of nonlinear iterations in case it was overwritten by nonlinear_iterations_adapt
-      call get_option('/timestepping/nonlinear_iterations', nonlinear_iterations, default=1)
-
       if(have_option("/timestepping/nonlinear_iterations/terminate_if_not_converged")) then
-         if(its >= nonlinear_iterations .and. change >= abs(nonlinear_iteration_tolerance)) then
+         if(its >= nonlinear_iterations_this_timestep .and. change >= abs(nonlinear_iteration_tolerance)) then
             ewrite(0, *) "Nonlinear iteration tolerance not reached - termininating"
             exit timestep_loop
          end if
@@ -429,13 +441,10 @@ program Darcy_IMPES
             call run_diagnostics(state)
 
             call adapt_state(state, metric_tensor)
+                        
+            ! Set the number of non linear iterations to use next time step
+            nonlinear_iterations_this_timestep = nonlinear_iterations_adapt
             
-            ! Overwrite the number of nonlinear iterations if the option is switched on
-            if(have_option("/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt")) then
-               call get_option('/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt',nonlinear_iterations_adapt)
-               nonlinear_iterations = nonlinear_iterations_adapt
-            end if
-
             ! re-allocate the adaptivity metric
             if(have_option("/mesh_adaptivity/hr_adaptivity")) then
                call allocate(metric_tensor, extract_mesh(state(1), topology_mesh_name), "ErrorMetric")
@@ -469,9 +478,19 @@ program Darcy_IMPES
             if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
             
             call run_diagnostics(state)
-                        
+         
+         else
+         
+            ! Set the number of non linear iterations to use next time step
+            nonlinear_iterations_this_timestep = nonlinear_iterations            
+                          
          end if do_adapt_if
-
+      
+      else
+      
+         ! Set the number of non linear iterations to use next time step
+         nonlinear_iterations_this_timestep = nonlinear_iterations       
+      
       end if adapt_if
       
    end do timestep_loop
@@ -691,6 +710,7 @@ contains
       allocate(di%old_saturation(di%number_phase))
       allocate(di%saturation_source(di%number_phase))
       allocate(di%relative_permeability(di%number_phase))
+      allocate(di%old_relative_permeability(di%number_phase))
       allocate(di%viscosity(di%number_phase))      
       allocate(di%darcy_velocity(di%number_phase))
       allocate(di%cfl(di%number_phase))
@@ -729,6 +749,7 @@ contains
          end if
          
          di%relative_permeability(p)%ptr      => extract_scalar_field(di%state(p), "RelativePermeability")
+         di%old_relative_permeability(p)%ptr  => extract_scalar_field(di%state(p), "OldRelativePermeability")
          di%viscosity(p)%ptr                  => extract_scalar_field(di%state(p), "Viscosity")
          di%darcy_velocity(p)%ptr             => extract_vector_field(di%state(p), "DarcyVelocity")
          di%cfl(p)%ptr                        => extract_scalar_field(di%state(p), "DarcyVelocityCFL")
@@ -1062,16 +1083,6 @@ contains
          call allocate(di%old_saturation_subcycle(p)%ptr, di%pressure_mesh)
       end do
             
-      ! Get the maximum number of non linear iter
-      call get_option('/timestepping/nonlinear_iterations', &
-                      di%max_nonlinear_iter, &
-                      default = 1)
-      
-      ! Get the maximum number of non linear iter after adapt
-      call get_option('/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt', &
-                      di%max_nonlinear_iter_first_timestep_after_adapt, &
-                      default = 1)
-            
       ! Determine the adaptive time stepping options
       di%adaptive_dt_options%have = have_option('/timestepping/adaptive_timestep')
       
@@ -1207,6 +1218,9 @@ contains
 
       ! Calculate the density field of each phase
       call darcy_impes_calculate_densities(di)
+      
+      ! Copy field values to Old - required for saturation and relperm to calc start face values
+      call copy_to_stored_values(di%state,"Old")
       
       ! Calculate the relperm and density first face values
       call darcy_impes_calculate_relperm_den_first_face_values(di)
@@ -1393,6 +1407,7 @@ contains
       deallocate(di%old_saturation)
       deallocate(di%saturation_source)
       deallocate(di%relative_permeability)
+      deallocate(di%old_relative_permeability)
       deallocate(di%viscosity)
       deallocate(di%darcy_velocity)
       deallocate(di%cfl)
@@ -1489,8 +1504,8 @@ contains
       end do         
       deallocate(di%old_saturation_subcycle)
             
-      di%max_nonlinear_iter                            = 0
-      di%max_nonlinear_iter_first_timestep_after_adapt = 0
+      di%nonlinear_iter                   = 0
+      di%max_nonlinear_iter_this_timestep = 0
       
       di%adaptive_dt_options%have                        = .false.
       di%adaptive_dt_options%requested_cfl               = 0.0

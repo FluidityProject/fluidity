@@ -79,8 +79,14 @@
       <real_value rank="0">0.01</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">100.0</real_value>
+      <real_value rank="0">10.0</real_value>
     </finish_time>
+    <nonlinear_iterations>
+      <integer_value rank="0">1</integer_value>
+      <nonlinear_iterations_at_first_timestep>
+        <integer_value rank="0">4</integer_value>
+      </nonlinear_iterations_at_first_timestep>
+    </nonlinear_iterations>
     <adaptive_timestep>
       <requested_cfl>
         <real_value rank="0">0.2</real_value>
@@ -151,7 +157,7 @@
    if X[1] &lt;= 0.333333:     
       s = 1.0  
    else:   
-      s = 0.0   
+      s = 0.0
    return s</string_value>
           </python>
         </initial_condition>
@@ -357,7 +363,7 @@ for node in range(sat_1.node_count):
    if X[1] &gt; 0.333333 and X[1] &lt;= 0.666666:     
       s = 1.0  
    else:   
-      s = 0.0   
+      s = 0.0
    return s</string_value>
           </python>
         </initial_condition>
@@ -475,7 +481,7 @@ for node in range(sat_1.node_count):
    if X[1] &gt; 0.666666:     
       s = 1.0  
    else:   
-      s = 0.0   
+      s = 0.0
    return s</string_value>
           </python>
         </initial_condition>

@@ -191,6 +191,7 @@ module darcy_impes_assemble_module
       type(scalar_field_pointer), dimension(:), pointer :: old_saturation
       type(scalar_field_pointer), dimension(:), pointer :: saturation_source
       type(scalar_field_pointer), dimension(:), pointer :: relative_permeability
+      type(scalar_field_pointer), dimension(:), pointer :: old_relative_permeability
       type(scalar_field_pointer), dimension(:), pointer :: viscosity
       type(scalar_field_pointer), dimension(:), pointer :: cfl
       type(scalar_field_pointer), dimension(:), pointer :: pressure
@@ -291,10 +292,6 @@ module darcy_impes_assemble_module
       real :: current_time 
       ! *** Non linear iteration, also stored here for convencience ***
       integer :: nonlinear_iter
-      ! *** Max Non linear iteration, also stored here for convencience ***
-      integer :: max_nonlinear_iter
-      ! *** Max Non linear iteration first timestep after adapt, also stored here for convencience ***
-      integer :: max_nonlinear_iter_first_timestep_after_adapt
       ! *** Max Non linear iteration for this timestep, also stored here for convencience ***
       integer :: max_nonlinear_iter_this_timestep
       ! *** The number of volume, surface elements and nodes, stored here for convenience ***
@@ -729,31 +726,19 @@ module darcy_impes_assemble_module
       ! Add normal v BC integrals for each phase, else include if required 
       ! a weak pressure BC (which if not given is assumed zero).
 
+      ! Get the pressure BC - if no v and weak pressure then extra integrals are added
+      ! - also get strong pressure BC as this implies no need to add any surface integrals
+      call darcy_impes_get_entire_sfield_boundary_condition(di%pressure(1)%ptr, &
+                                                            (/"weakdirichlet", &
+                                                              "dirichlet    "/), &
+                                                            di%bc_surface_mesh, &
+                                                            di%pressure_bc_value, &
+                                                            di%pressure_bc_flag)
+
       phase_loop_bc: do p = 1, di%number_phase
 
          ewrite(1,*) 'Assemble boundary contribution to global continuity from phase ',p
-         
-         ! Get the phase pressure BC - if no v and weak pressure then extra integrals are added
-         ! For phase 1 also get strong pressure BC as this implies no need to add any surface integrals
-         if (p == 1) then
-
-            call darcy_impes_get_entire_sfield_boundary_condition(di%pressure(p)%ptr, &
-                                                                  (/"weakdirichlet", &
-                                                                    "dirichlet    "/), &
-                                                                  di%bc_surface_mesh, &
-                                                                  di%pressure_bc_value, &
-                                                                  di%pressure_bc_flag)
-         
-         else
-         
-            call darcy_impes_get_entire_sfield_boundary_condition(di%pressure(p)%ptr, &
-                                                                  (/"weakdirichlet"/), &
-                                                                  di%bc_surface_mesh, &
-                                                                  di%pressure_bc_value, &
-                                                                  di%pressure_bc_flag)
-         
-         end if
-         
+                           
          ! Get this phase v BC info - only for no_normal_flow and normal_flow which is special as it is a scalar
          call darcy_impes_get_v_boundary_condition(di%darcy_velocity(p)%ptr, &
                                                    (/"normal_flow   ", &
@@ -1354,6 +1339,13 @@ module darcy_impes_assemble_module
 
       call zero(di%div_total_darcy_velocity)
 
+      ! Get the pressure BC - required if no v given and weak pressure dirichlet given for extra integrals
+      call darcy_impes_get_entire_sfield_boundary_condition(di%pressure(1)%ptr, &
+                                                            (/"weakdirichlet"/), &
+                                                            di%bc_surface_mesh, &
+                                                            di%pressure_bc_value, &
+                                                            di%pressure_bc_flag)
+
       phase_loop: do p = 1, di%number_phase
                        
          vele_loop: do vele = 1, di%number_vele
@@ -1485,14 +1477,7 @@ module darcy_impes_assemble_module
                                                    di%bc_surface_mesh, &
                                                    di%v_bc_value, &
                                                    di%v_bc_flag)
-         
-         ! Get the pressure BC - required if no v given and weak pressure dirichlet given for extra integrals
-         call darcy_impes_get_entire_sfield_boundary_condition(di%pressure(p)%ptr, &
-                                                               (/"weakdirichlet"/), &
-                                                               di%bc_surface_mesh, &
-                                                               di%pressure_bc_value, &
-                                                               di%pressure_bc_flag)
-         
+                  
          sele_loop: do sele = 1, di%number_sele
             
             if (di%v_bc_flag(sele) == V_BC_TYPE_NO_NORMAL_FLOW) cycle sele_loop
@@ -1749,7 +1734,14 @@ module darcy_impes_assemble_module
       do p = 1, di%number_phase
          call set(di%old_saturation_subcycle(p)%ptr, di%old_saturation(p)%ptr)
       end do
-            
+
+      ! Get the pressure BC - required if no v given and weak pressure dirichlet given for extra integrals
+      call darcy_impes_get_entire_sfield_boundary_condition(di%pressure(1)%ptr, &
+                                                            (/"weakdirichlet"/), &
+                                                            di%bc_surface_mesh, &
+                                                            di%pressure_bc_value, &
+                                                            di%pressure_bc_flag)
+
       sub_loop: do isub = 1, di%subcy_opt_sat%number
          
          ewrite(1,*) 'Start subcycle ',isub
@@ -1801,13 +1793,6 @@ module darcy_impes_assemble_module
                                                       di%bc_surface_mesh, &
                                                       di%v_bc_value, &
                                                       di%v_bc_flag)
-
-            ! Get this phase pressure BC - required if no v given and weak pressure dirichlet given for extra integrals
-            call darcy_impes_get_entire_sfield_boundary_condition(di%pressure(p)%ptr, &
-                                                                  (/"weakdirichlet"/), &
-                                                                  di%bc_surface_mesh, &
-                                                                  di%pressure_bc_value, &
-                                                                  di%pressure_bc_flag)
             
             call zero(di%lhs)
             call zero(di%rhs)
@@ -2253,8 +2238,8 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
                                                 di%v_bc_value, &
                                                 di%v_bc_flag)
 
-      ! Get this phase pressure BC - required if no v given and weak pressure dirichlet given for extra integrals
-      call darcy_impes_get_entire_sfield_boundary_condition(di%pressure(p)%ptr, &
+      ! Get the pressure BC - required if no v given and weak pressure dirichlet given for extra integrals
+      call darcy_impes_get_entire_sfield_boundary_condition(di%pressure(1)%ptr, &
                                                             (/"weakdirichlet"/), &
                                                             di%bc_surface_mesh, &
                                                             di%pressure_bc_value, &
@@ -4123,11 +4108,11 @@ visc_ele_bdy(1)
       logical :: inflow
       integer :: p, vele, sele, iloc, oloc, face, gi, ggi
       integer :: r_upwind_pos, d_upwind_pos, s_upwind_pos, dim, sat_p
-      real    :: income, v_over_relperm_dot_n, relperm_face_value, den_face_value, sat_face_value
+      real    :: income, v_over_relperm_dot_n, old_relperm_face_value, den_face_value, old_sat_face_value
       real,    dimension(1)              :: absperm_ele, visc_ele
-      real,    dimension(:),     pointer :: relperm_ele
+      real,    dimension(:),     pointer :: old_relperm_ele
       real,    dimension(:),     pointer :: den_ele
-      real,    dimension(:,:),   pointer :: sat_ele
+      real,    dimension(:,:),   pointer :: old_sat_ele
       real,    dimension(:,:),   pointer :: grav_ele
       real,    dimension(:,:),   pointer :: grad_pressure_face_quad
       real,    dimension(:,:),   pointer :: v_over_relperm_face_quad
@@ -4144,7 +4129,7 @@ visc_ele_bdy(1)
       integer, dimension(:),     pointer :: d_upwind_nodes
       integer, dimension(:),     pointer :: s_upwind_nodes
       real,    dimension(:),     pointer :: den_ele_bdy
-      real,    dimension(:),     pointer :: relperm_ele_bdy
+      real,    dimension(:),     pointer :: old_relperm_ele_bdy
             
       ! allocate arrays used in assemble process - many assume
       ! that all elements are the same type.
@@ -4159,15 +4144,15 @@ visc_ele_bdy(1)
       allocate(normgi(di%ndim))
       allocate(notvisited(di%x_cvshape%ngi))
       allocate(x_face_quad(di%ndim, di%x_cvshape%ngi))
-      allocate(relperm_ele(ele_loc(di%pressure_mesh,1)))
+      allocate(old_relperm_ele(ele_loc(di%pressure_mesh,1)))
       allocate(den_ele(ele_loc(di%pressure_mesh,1)))
-      allocate(sat_ele(ele_loc(di%pressure_mesh,1), di%number_phase))
+      allocate(old_sat_ele(ele_loc(di%pressure_mesh,1), di%number_phase))
       allocate(grav_ele(di%ndim,1))
       allocate(grad_pressure_face_quad(di%ndim, di%p_cvshape%ngi))
       allocate(v_over_relperm_face_quad(di%ndim,di%p_cvshape%ngi))
 
       allocate(den_ele_bdy(face_loc(di%pressure_mesh,1)))
-      allocate(relperm_ele_bdy(face_loc(di%pressure_mesh,1)))      
+      allocate(old_relperm_ele_bdy(face_loc(di%pressure_mesh,1)))      
       
       ewrite(1,*) 'Calculate relperm and density and first face values'      
 
@@ -4186,10 +4171,10 @@ visc_ele_bdy(1)
            
             if (di%determine_saturation_face_values) then
                
-               call darcy_impes_calculate_modified_relative_permeability(di, p)
+               call darcy_impes_calculate_old_modified_relative_permeability(di, p)
                
-               ! NOTE only new values are required but this procedure 
-               !      expects latest and old. So pass in new twice - not optimal
+               ! NOTE only old values are required but this procedure 
+               !      expects latest and old. So pass in old twice - not optimal
                call find_upwind_values(di%state, &
                                        di%positions_pressure_mesh, &
                                        di%modified_relative_permeability, &
@@ -4200,13 +4185,13 @@ visc_ele_bdy(1)
            
             else 
            
-               ! NOTE only new values are required but this procedure 
-               !      expects latest and old. So pass in new twice - not optimal
+               ! NOTE only old values are required but this procedure 
+               !      expects latest and old. So pass in old twice - not optimal
                call find_upwind_values(di%state, &
                                        di%positions_pressure_mesh, &
-                                       di%relative_permeability(p)%ptr, &
+                                       di%old_relative_permeability(p)%ptr, &
                                        di%relperm_upwind, &
-                                       di%relative_permeability(p)%ptr, &
+                                       di%old_relative_permeability(p)%ptr, &
                                        di%relperm_upwind, &
                                        option_path = trim(di%relative_permeability(p)%ptr%option_path))
 
@@ -4218,13 +4203,13 @@ visc_ele_bdy(1)
          ! face values need determining which may require the upwind values. 
          if (di%determine_saturation_face_values .and. di%saturation_cv_options%limit_facevalue) then
 
-            ! NOTE only new values are required but this procedure       
-            !      expects latest and old. So pass in new twice - not optimal
+            ! NOTE only old values are required but this procedure       
+            !      expects latest and old. So pass in old twice - not optimal
             call find_upwind_values(di%state, &
                                     di%positions_pressure_mesh, &
-                                    di%saturation(p)%ptr, &
+                                    di%old_saturation(p)%ptr, &
                                     di%sfield_upwind, &
-                                    di%saturation(p)%ptr, &
+                                    di%old_saturation(p)%ptr, &
                                     di%sfield_upwind, &
                                     option_path = trim(di%saturation(p)%ptr%option_path))            
 
@@ -4270,18 +4255,15 @@ visc_ele_bdy(1)
                
                do sat_p = 1, di%number_phase
                
-                  ! get the saturation ele values for this phase
-                  sat_ele(:,sat_p) = ele_val(di%saturation(sat_p)%ptr, vele)
+                  ! get the old saturation ele values for this phase
+                  old_sat_ele(:,sat_p) = ele_val(di%old_saturation(sat_p)%ptr, vele)
                
                end do
                
             end if
 
-            ! get the relperm ele values for this phase
-            relperm_ele = ele_val(di%relative_permeability(p)%ptr, vele)
-
-            ! get the density value for this element for this phase
-            den_ele = ele_val(di%density(p)%ptr, vele)
+            ! get the old_relperm ele values for this phase
+            old_relperm_ele = ele_val(di%old_relative_permeability(p)%ptr, vele)
             
             ! The gravity values for this element for each direction
             grav_ele = ele_val(di%gravity, vele) 
@@ -4384,17 +4366,17 @@ visc_ele_bdy(1)
                        income = merge(1.0,0.0,inflow)
 
                        ! Evaluate the face value for relperm 
-                       call darcy_impes_evaluate_relperm_face_val(relperm_face_value, &
+                       call darcy_impes_evaluate_relperm_face_val(old_relperm_face_value, &
                                                                   iloc, &
                                                                   oloc, &
                                                                   ggi, &
                                                                   r_upwind_nodes, &
                                                                   di%p_cvshape, &
-                                                                  relperm_ele, &
+                                                                  old_relperm_ele, &
                                                                   di%relperm_upwind, &
                                                                   inflow, &
                                                                   income, &
-                                                                  sat_ele, &
+                                                                  old_sat_ele, &
                                                                   di%minimum_denominator_saturation_value, &
                                                                   p, &
                                                                   di%number_phase, &
@@ -4405,13 +4387,13 @@ visc_ele_bdy(1)
                        ! Evaluate the face value for saturation if required, else set to 1.0
                        if (di%determine_saturation_face_values) then
                        
-                          call darcy_impes_evaluate_sfield_face_val(sat_face_value, &
+                          call darcy_impes_evaluate_sfield_face_val(old_sat_face_value, &
                                                                     iloc, &
                                                                     oloc, &
                                                                     ggi, &
                                                                     s_upwind_nodes, &
                                                                     di%p_cvshape, &
-                                                                    sat_ele(:,p), &
+                                                                    old_sat_ele(:,p), &
                                                                     di%sfield_upwind, &
                                                                     inflow, &
                                                                     income, &
@@ -4420,12 +4402,12 @@ visc_ele_bdy(1)
                        
                        else
                        
-                          sat_face_value = 1.0
+                          old_sat_face_value = 1.0
                                               
                        end if
                                               
-                       ! Cache the relperm (or modrelperm*sat) face value
-                       di%cached_face_value%relperm(1,ggi,vele,p) = relperm_face_value * sat_face_value
+                       ! Cache the old relperm (or modrelperm*sat) face value
+                       di%cached_face_value%relperm(1,ggi,vele,p) = old_relperm_face_value * old_sat_face_value
                                            
                     end if check_visited_relperm
 
@@ -4476,9 +4458,6 @@ visc_ele_bdy(1)
                d_upwind_nodes => p_nodes
 
             end if
-
-            ! get the relperm ele values for this phase
-            relperm_ele = ele_val(di%relative_permeability(p)%ptr, vele)
 
             ! get the density value for this element for this phase
             den_ele = ele_val(di%density(p)%ptr, vele)
@@ -4617,8 +4596,8 @@ visc_ele_bdy(1)
             ! get the density sele values for this phase
             den_ele_bdy = face_val(di%density(p)%ptr, sele)
             
-            ! get the relperm domain value
-            relperm_ele_bdy = face_val(di%relative_permeability(p)%ptr, sele)
+            ! get the old relperm domain value
+            old_relperm_ele_bdy = face_val(di%old_relative_permeability(p)%ptr, sele)
                         
             bc_iloc_loop: do iloc = 1, di%pressure_mesh%faces%shape%loc
 
@@ -4633,7 +4612,7 @@ visc_ele_bdy(1)
                         ! Evaluate the relperm and density face value via taking the CV value
                         ! - no other choice currently ...
 
-                        di%cached_face_value%relperm_bdy(1,ggi,sele,p) = relperm_ele_bdy(iloc)
+                        di%cached_face_value%relperm_bdy(1,ggi,sele,p) = old_relperm_ele_bdy(iloc)
 
                         di%cached_face_value%den_bdy(ggi,sele,p) = den_ele_bdy(iloc)
                                                    
@@ -4666,15 +4645,15 @@ visc_ele_bdy(1)
       deallocate(normgi)
       deallocate(notvisited)
       deallocate(x_face_quad)
-      deallocate(relperm_ele)
+      deallocate(old_relperm_ele)
       deallocate(den_ele)
-      deallocate(sat_ele)
+      deallocate(old_sat_ele)
       deallocate(grav_ele)
       deallocate(grad_pressure_face_quad)
       deallocate(v_over_relperm_face_quad)
 
       deallocate(den_ele_bdy)
-      deallocate(relperm_ele_bdy)
+      deallocate(old_relperm_ele_bdy)
       
       ewrite(1,*) 'Finished calculate relperm and density first face values'      
       
@@ -5417,7 +5396,7 @@ visc_ele_bdy(1)
       ! local variable
       integer :: i
 
-      ewrite(1,*) 'Calculate modified relative permeabilitie for phase ',p
+      ewrite(1,*) 'Calculate modified relative permeability for phase ',p
                
       node_loop: do i = 1, node_count(di%pressure_mesh)
 
@@ -5429,9 +5408,37 @@ visc_ele_bdy(1)
 
       ewrite_minmax(di%modified_relative_permeability)
       
-      ewrite(1,*) 'Finished Calculate modified relative permeabilitie for phase ',p
+      ewrite(1,*) 'Finished Calculate modified relative permeability for phase ',p
       
    end subroutine darcy_impes_calculate_modified_relative_permeability
+
+! ----------------------------------------------------------------------------
+   
+   subroutine darcy_impes_calculate_old_modified_relative_permeability(di, p)
+   
+      !!< Calculate the old modified relative permeability = old_relperm / max( old_S, S_min) for phase p
+            
+      type(darcy_impes_type), intent(inout) :: di 
+      integer,                intent(in)    :: p
+      
+      ! local variable
+      integer :: i
+
+      ewrite(1,*) 'Calculate old modified relative permeability for phase ',p
+               
+      node_loop: do i = 1, node_count(di%pressure_mesh)
+
+         di%modified_relative_permeability%val(i) = &
+         di%old_relative_permeability(p)%ptr%val(i) / &
+         max(di%old_saturation(p)%ptr%val(i), di%minimum_denominator_saturation_value)
+
+      end do node_loop
+
+      ewrite_minmax(di%modified_relative_permeability)
+      
+      ewrite(1,*) 'Finished Calculate old modified relative permeability for phase ',p
+      
+   end subroutine darcy_impes_calculate_old_modified_relative_permeability
 
 ! ----------------------------------------------------------------------------
 

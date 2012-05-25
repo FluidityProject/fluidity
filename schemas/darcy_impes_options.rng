@@ -492,6 +492,12 @@ This option will work only if the mesh_adaptivity is switched on.</a:documentati
               <ref name="integer"/>
             </element>
           </optional>
+          <optional>
+            <element name="nonlinear_iterations_at_first_timestep">
+              <a:documentation>Number of non-linear iterations for the first time step.</a:documentation>
+              <ref name="integer"/>
+            </element>
+          </optional>
         </element>
       </optional>
       <optional>
@@ -783,9 +789,6 @@ for the latest output to be written.</a:documentation>
       <element name="diagnostic">
         <ref name="mesh_choice_pressure"/>
         <ref name="darcy_impes_internal_algorithm"/>
-        <zeroOrMore>
-          <ref name="darcy_impes_non_first_phase_bc_pressure_field"/>
-        </zeroOrMore>
         <ref name="darcy_impes_diagnostic_scalar_field"/>
       </element>
     </element>
@@ -1489,19 +1492,6 @@ Default value is 1.</a:documentation>
       <ref name="darcy_impes_dirichlet_bc"/>
     </element>
   </define>
-  <define name="darcy_impes_non_first_phase_bc_pressure_field">
-    <element name="boundary_conditions">
-      <a:documentation>Boundary conditions</a:documentation>
-      <attribute name="name">
-        <data type="string" datatypeLibrary=""/>
-      </attribute>
-      <element name="surface_ids">
-        <a:documentation>Surface id</a:documentation>
-        <ref name="integer_vector"/>
-      </element>
-      <ref name="darcy_impes_weak_dirichlet_bc"/>
-    </element>
-  </define>
   <define name="darcy_impes_bc_saturation_field">
     <element name="boundary_conditions">
       <a:documentation>Boundary conditions</a:documentation>
@@ -1512,7 +1502,7 @@ Default value is 1.</a:documentation>
         <a:documentation>Surface id</a:documentation>
         <ref name="integer_vector"/>
       </element>
-      <ref name="darcy_impes_strong_dirichlet_bc"/>
+      <ref name="darcy_impes_dirichlet_bc"/>
     </element>
   </define>
   <define name="darcy_impes_dirichlet_bc">
@@ -1540,18 +1530,6 @@ Default value is 1.</a:documentation>
       </attribute>
       <element name="apply_weakly">
         <a:documentation>Apply the dirichlet BC weakly</a:documentation>
-        <empty/>
-      </element>
-      <ref name="input_choice_real"/>
-    </element>
-  </define>
-  <define name="darcy_impes_strong_dirichlet_bc">
-    <element name="type">
-      <attribute name="name">
-        <value>dirichlet</value>
-      </attribute>
-      <element name="apply_strongly">
-        <a:documentation>Apply the dirichlet BC strongly</a:documentation>
         <empty/>
       </element>
       <ref name="input_choice_real"/>
