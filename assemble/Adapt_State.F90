@@ -947,6 +947,9 @@ contains
     !! if these fields are initialised from_file (checkpointed).
     logical, optional, intent(in) :: initialise_fields
 
+    ! Temporary for canonical numbering field
+    type(scalar_field), target :: canonical_numbering
+
     character(len = FIELD_NAME_LEN) :: metric_name
     integer :: i, j, k, max_adapt_iteration
     integer :: zoltan_min_adapt_iterations, zoltan_max_adapt_iterations, zoltan_additional_adapt_iterations
@@ -1073,11 +1076,15 @@ contains
 
       ! Insert canonical numbering, then ensure that all uid pointers are
       !  correct.
-      assert(associated(new_positions%mesh%uid))
-      call insert(states, new_positions%mesh%uid, name="CanonicalNumbering")
-      call deallocate(new_positions%mesh%uid)
-      deallocate(new_positions%mesh%uid)
-      new_positions%mesh%uid=>extract_scalar_field(states(1), "CanonicalNumbering")
+      assert(.not.associated(new_positions%mesh%uid))
+      canonical_numbering=universal_number_field(new_positions%mesh)
+      canonical_numbering%mesh%uid=>canonical_numbering
+      call order_elements(canonical_numbering)
+      call insert(states, canonical_numbering, name="CanonicalNumbering")
+      call deallocate(canonical_numbering)
+      new_positions%mesh%uid=>extract_scalar_field(states(1), "CanonicalNumbering")      
+      ! The previous pointer to canonical numbering is unsafe, so fix it.
+      new_positions%mesh%uid%mesh%uid=>extract_scalar_field(states(1), "CanonicalNumbering")      
 
       ! Insert the new mesh field and linear mesh into all states
       call insert(states, new_positions%mesh, name = new_positions%mesh%name)
