@@ -231,7 +231,7 @@
         <consistent_interpolation/>
       </diagnostic>
     </vector_field>
-    <scalar_field name="DarcyVelocityCFL" rank="0">
+    <scalar_field name="DarcyVelocityOverPorosityCFL" rank="0">
       <diagnostic>
         <mesh name="PressureMesh"/>
         <algorithm name="Internal"/>
@@ -430,7 +430,7 @@ for node in range(sat_1.node_count):
         <consistent_interpolation/>
       </diagnostic>
     </vector_field>
-    <scalar_field name="DarcyVelocityCFL" rank="0">
+    <scalar_field name="DarcyVelocityOverPorosityCFL" rank="0">
       <diagnostic>
         <mesh name="PressureMesh"/>
         <algorithm name="Internal"/>
@@ -548,7 +548,7 @@ for node in range(sat_1.node_count):
         <consistent_interpolation/>
       </diagnostic>
     </vector_field>
-    <scalar_field name="DarcyVelocityCFL" rank="0">
+    <scalar_field name="DarcyVelocityOverPorosityCFL" rank="0">
       <diagnostic>
         <mesh name="PressureMesh"/>
         <algorithm name="Internal"/>

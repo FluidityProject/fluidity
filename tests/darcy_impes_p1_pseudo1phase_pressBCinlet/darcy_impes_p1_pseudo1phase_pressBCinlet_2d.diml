@@ -256,7 +256,7 @@
         <consistent_interpolation/>
       </diagnostic>
     </vector_field>
-    <scalar_field name="DarcyVelocityCFL" rank="0">
+    <scalar_field name="DarcyVelocityOverPorosityCFL" rank="0">
       <diagnostic>
         <mesh name="PressureMesh"/>
         <algorithm name="Internal"/>
@@ -457,7 +457,7 @@
         <consistent_interpolation/>
       </diagnostic>
     </vector_field>
-    <scalar_field name="DarcyVelocityCFL" rank="0">
+    <scalar_field name="DarcyVelocityOverPorosityCFL" rank="0">
       <diagnostic>
         <mesh name="PressureMesh"/>
         <algorithm name="Internal"/>

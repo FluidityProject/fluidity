@@ -61,11 +61,11 @@
     <dump_format>
       <string_value>vtk</string_value>
     </dump_format>
-    <dump_period_in_timesteps>
+    <dump_period>
       <constant>
-        <integer_value rank="0">1</integer_value>
+        <real_value rank="0">0.3</real_value>
       </constant>
-    </dump_period_in_timesteps>
+    </dump_period>
     <output_mesh name="PressureMesh"/>
     <stat>
       <output_at_start/>
@@ -204,7 +204,7 @@
         <consistent_interpolation/>
       </diagnostic>
     </vector_field>
-    <scalar_field name="DarcyVelocityCFL" rank="0">
+    <scalar_field name="DarcyVelocityOverPorosityCFL" rank="0">
       <diagnostic>
         <mesh name="PressureMesh"/>
         <algorithm name="Internal"/>
@@ -431,7 +431,7 @@
         <consistent_interpolation/>
       </diagnostic>
     </vector_field>
-    <scalar_field name="DarcyVelocityCFL" rank="0">
+    <scalar_field name="DarcyVelocityOverPorosityCFL" rank="0">
       <diagnostic>
         <mesh name="PressureMesh"/>
         <algorithm name="Internal"/>

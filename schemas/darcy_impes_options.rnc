@@ -572,7 +572,7 @@ darcy_impes_material_phases =
                   
          darcy_impes_darcy_velocity_field,
          
-         darcy_impes_darcy_velocity_CFL_field, 
+         darcy_impes_darcy_velocity_over_porosity_CFL_field, 
                   
          darcy_impes_total_darcy_velocity_field,         
                   
@@ -626,7 +626,7 @@ darcy_impes_other_phase_options =
 
       darcy_impes_darcy_velocity_field,
 
-      darcy_impes_darcy_velocity_CFL_field,
+      darcy_impes_darcy_velocity_over_porosity_CFL_field,
       
       darcy_impes_mobility_field,
       
@@ -1167,11 +1167,11 @@ darcy_impes_darcy_velocity_field =
    )
 
 
-darcy_impes_darcy_velocity_CFL_field =
+darcy_impes_darcy_velocity_over_porosity_CFL_field =
    (
       element scalar_field {
          attribute rank { "0" },
-         attribute name { "DarcyVelocityCFL" },
+         attribute name { "DarcyVelocityOverPorosityCFL" },
          element diagnostic {
             mesh_choice_pressure,
             darcy_impes_internal_algorithm,

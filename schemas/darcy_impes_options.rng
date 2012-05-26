@@ -597,7 +597,7 @@ at the first timestep or not.</a:documentation>
       <ref name="darcy_impes_viscosity_field"/>
       <ref name="darcy_impes_first_phase_density_field"/>
       <ref name="darcy_impes_darcy_velocity_field"/>
-      <ref name="darcy_impes_darcy_velocity_CFL_field"/>
+      <ref name="darcy_impes_darcy_velocity_over_porosity_CFL_field"/>
       <ref name="darcy_impes_total_darcy_velocity_field"/>
       <ref name="darcy_impes_divergence_total_darcy_velocity_field"/>
       <ref name="darcy_impes_mobility_field"/>
@@ -642,7 +642,7 @@ at the first timestep or not.</a:documentation>
     <ref name="darcy_impes_viscosity_field"/>
     <ref name="darcy_impes_non_first_phase_density_field"/>
     <ref name="darcy_impes_darcy_velocity_field"/>
-    <ref name="darcy_impes_darcy_velocity_CFL_field"/>
+    <ref name="darcy_impes_darcy_velocity_over_porosity_CFL_field"/>
     <ref name="darcy_impes_mobility_field"/>
     <ref name="darcy_impes_fractional_flow_field"/>
     <zeroOrMore>
@@ -1229,13 +1229,13 @@ Finite element discretisation may become unbounded so limiting is often necessar
       </element>
     </element>
   </define>
-  <define name="darcy_impes_darcy_velocity_CFL_field">
+  <define name="darcy_impes_darcy_velocity_over_porosity_CFL_field">
     <element name="scalar_field">
       <attribute name="rank">
         <value>0</value>
       </attribute>
       <attribute name="name">
-        <value>DarcyVelocityCFL</value>
+        <value>DarcyVelocityOverPorosityCFL</value>
       </attribute>
       <element name="diagnostic">
         <ref name="mesh_choice_pressure"/>

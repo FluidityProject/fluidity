@@ -3091,7 +3091,7 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
       ! local variables
       logical :: inflow
       integer :: vele, p, dim, iloc, oloc, face, gi, ggi, sele
-      real    :: income, v_over_s_dot_n_face_value
+      real    :: income, v_dot_n
       real,    dimension(1)              :: visc_ele, absperm_ele
       real,    dimension(:,:),   pointer :: grad_pressure_face_quad
       real,    dimension(:,:),   pointer :: v_local
@@ -3243,22 +3243,22 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
 
                            end if
 
-                           v_over_s_dot_n_face_value = &
+                           v_dot_n = &
 - di%cached_face_value%relperm(1,ggi,vele,p) * absperm_ele(1) * &
 dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,p) * grav_ele(:,1)), normgi) / &
 visc_ele(1)
 
-                           inflow = (v_over_s_dot_n_face_value<=0.0)
+                           inflow = (v_dot_n<=0.0)
 
                            income = merge(1.0,0.0,inflow)
 
                            cfl_rhs_local(iloc) = cfl_rhs_local(iloc) + &
-                                                 abs(v_over_s_dot_n_face_value) * &
+                                                 abs(v_dot_n) * &
                                                  detwei(ggi) * &
                                                  (1.0 - income)
 
                            cfl_rhs_local(oloc) = cfl_rhs_local(oloc) + &
-                                                 abs(v_over_s_dot_n_face_value) * &
+                                                 abs(v_dot_n) * &
                                                  detwei(ggi) * &
                                                  income
 
@@ -3364,29 +3364,29 @@ visc_ele(1)
                         
                         if (di%v_bc_flag(sele) == V_BC_TYPE_NO_NORMAL_FLOW) then
                         
-                           v_over_s_dot_n_face_value = 0.0
+                           v_dot_n = 0.0
                         
                         else if (di%v_bc_flag(sele) == V_BC_TYPE_NORMAL_FLOW) then
                         
-                           v_over_s_dot_n_face_value = bc_sele_val(iloc)
+                           v_dot_n = bc_sele_val(iloc)
                                                       
                         else
 
-                           v_over_s_dot_n_face_value = &
+                           v_dot_n = &
 - di%cached_face_value%relperm_bdy(1,ggi,sele,p) * absperm_ele_bdy(1) * &
 dot_product((grad_pressure_face_quad_bdy(:,ggi) - di%cached_face_value%den_bdy(ggi,sele,p) * grav_ele_bdy(:,1)), normal_bdy(:,ggi)) / &
 visc_ele_bdy(1)
                                                                               
                         end if
                         
-                        if (v_over_s_dot_n_face_value > 0.0) then
+                        if (v_dot_n > 0.0) then
                            income = 0.0
                         else
                            income = 1.0
                         end if
                         
                         cfl_rhs_local_bdy(iloc) = cfl_rhs_local_bdy(iloc) + &
-                                                  abs(v_over_s_dot_n_face_value) * &
+                                                  abs(v_dot_n) * &
                                                   detwei_bdy(ggi) * &
                                                   (1.0 - income)                     
 

@@ -424,6 +424,17 @@ program Darcy_IMPES
       ! *** Darcy IMPES adaptive time stepping choice ***
       if(di%adaptive_dt_options%have) call darcy_impes_calculate_cflnumber_field_based_dt(di)
       
+      ! *** Constrain the timestep such that the current time will not overshoot the finish time ***
+      if (di%dt + current_time > finish_time) then
+         
+         ewrite(1,*) 'Constrain timestep size such as to not overshoot the finish time'
+         
+         di%dt = finish_time - current_time + epsilon(0.0)
+         
+         ewrite(1,*) 'Constrained timestep size: ',di%dt
+         
+      end if
+      
       dt = di%dt
       call set_option("/timestepping/timestep", di%dt)
       call set_option("/timestepping/current_time", current_time)            
@@ -752,7 +763,7 @@ contains
          di%old_relative_permeability(p)%ptr  => extract_scalar_field(di%state(p), "OldRelativePermeability")
          di%viscosity(p)%ptr                  => extract_scalar_field(di%state(p), "Viscosity")
          di%darcy_velocity(p)%ptr             => extract_vector_field(di%state(p), "DarcyVelocity")
-         di%cfl(p)%ptr                        => extract_scalar_field(di%state(p), "DarcyVelocityCFL")
+         di%cfl(p)%ptr                        => extract_scalar_field(di%state(p), "DarcyVelocityOverPorosityCFL")
          di%mobility(p)%ptr                   => extract_scalar_field(di%state(p), "Mobility")
          di%fractional_flow(p)%ptr            => extract_scalar_field(di%state(p), "FractionalFlow")
          di%density(p)%ptr                    => extract_scalar_field(di%state(p), "Density")

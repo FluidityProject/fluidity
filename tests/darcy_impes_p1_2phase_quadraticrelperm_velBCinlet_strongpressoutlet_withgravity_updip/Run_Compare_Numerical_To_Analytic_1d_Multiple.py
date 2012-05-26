@@ -17,17 +17,17 @@ import os
 # Compare the phase2 saturation for relpermupwind
 file_name = "darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_withgravity_updip_relpermupwind_1d"
 
-sol_file_name = [file_name+"_A_17.vtu", 
-                 file_name+"_B_33.vtu", 
-                 file_name+"_C_65.vtu", 
-                 file_name+"_D_129.vtu"]
+sol_file_name = [file_name+"_A_1.vtu", 
+                 file_name+"_B_1.vtu", 
+                 file_name+"_C_1.vtu", 
+                 file_name+"_D_1.vtu"]
 
 ana_file_name = "reference_solution/analytic_BL_QuadraticPerm_withgravity_updip_saturation.txt"
 
-out_file_name = [file_name+"_A_17_output_saturation", 
-                 file_name+"_B_33_output_saturation", 
-                 file_name+"_C_65_output_saturation", 
-                 file_name+"_D_129_output_saturation"]
+out_file_name = [file_name+"_A_1_output_saturation", 
+                 file_name+"_B_1_output_saturation", 
+                 file_name+"_C_1_output_saturation", 
+                 file_name+"_D_1_output_saturation"]
 
 for i in range(len(sol_file_name)):
    
@@ -37,17 +37,17 @@ for i in range(len(sol_file_name)):
 # Compare the phase2 saturation for modrelpermupwind_satfesweby
 file_name = "darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_withgravity_updip_modrelpermupwind_satfesweby_1d"
 
-sol_file_name = [file_name+"_A_17.vtu", 
-                 file_name+"_B_33.vtu", 
-                 file_name+"_C_65.vtu", 
-                 file_name+"_D_129.vtu"]
+sol_file_name = [file_name+"_A_1.vtu", 
+                 file_name+"_B_1.vtu", 
+                 file_name+"_C_1.vtu", 
+                 file_name+"_D_1.vtu"]
 
 ana_file_name = "reference_solution/analytic_BL_QuadraticPerm_withgravity_updip_saturation.txt"
 
-out_file_name = [file_name+"_A_17_output_saturation", 
-                 file_name+"_B_33_output_saturation", 
-                 file_name+"_C_65_output_saturation", 
-                 file_name+"_D_129_output_saturation"]
+out_file_name = [file_name+"_A_1_output_saturation", 
+                 file_name+"_B_1_output_saturation", 
+                 file_name+"_C_1_output_saturation", 
+                 file_name+"_D_1_output_saturation"]
 
 for i in range(len(sol_file_name)):
    
@@ -56,17 +56,17 @@ for i in range(len(sol_file_name)):
 # Compare the phase1 pressure for relpermupwind
 file_name = "darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_withgravity_updip_relpermupwind_1d"
 
-sol_file_name = [file_name+"_A_17.vtu", 
-                 file_name+"_B_33.vtu", 
-                 file_name+"_C_65.vtu", 
-                 file_name+"_D_129.vtu"]
+sol_file_name = [file_name+"_A_1.vtu", 
+                 file_name+"_B_1.vtu", 
+                 file_name+"_C_1.vtu", 
+                 file_name+"_D_1.vtu"]
 
 ana_file_name = "reference_solution/analytic_BL_QuadraticPerm_withgravity_updip_pressure.txt"
 
-out_file_name = [file_name+"_A_17_output_pressure", 
-                 file_name+"_B_33_output_pressure", 
-                 file_name+"_C_65_output_pressure", 
-                 file_name+"_D_129_output_pressure"]
+out_file_name = [file_name+"_A_1_output_pressure", 
+                 file_name+"_B_1_output_pressure", 
+                 file_name+"_C_1_output_pressure", 
+                 file_name+"_D_1_output_pressure"]
 
 for i in range(len(sol_file_name)):
    
@@ -76,17 +76,17 @@ for i in range(len(sol_file_name)):
 # Compare the phase1 pressure for modrelpermupwind_satfesweby
 file_name = "darcy_impes_p1_2phase_quadraticrelperm_velBCinlet_strongpressoutlet_withgravity_updip_modrelpermupwind_satfesweby_1d"
 
-sol_file_name = [file_name+"_A_17.vtu", 
-                 file_name+"_B_33.vtu", 
-                 file_name+"_C_65.vtu", 
-                 file_name+"_D_129.vtu"]
+sol_file_name = [file_name+"_A_1.vtu", 
+                 file_name+"_B_1.vtu", 
+                 file_name+"_C_1.vtu", 
+                 file_name+"_D_1.vtu"]
 
 ana_file_name = "reference_solution/analytic_BL_QuadraticPerm_withgravity_updip_pressure.txt"
 
-out_file_name = [file_name+"_A_17_output_pressure", 
-                 file_name+"_B_33_output_pressure", 
-                 file_name+"_C_65_output_pressure", 
-                 file_name+"_D_129_output_pressure"]
+out_file_name = [file_name+"_A_1_output_pressure", 
+                 file_name+"_B_1_output_pressure", 
+                 file_name+"_C_1_output_pressure", 
+                 file_name+"_D_1_output_pressure"]
 
 for i in range(len(sol_file_name)):
    

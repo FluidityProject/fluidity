@@ -217,19 +217,19 @@ sum_sat_cv_integral_relpermupwind_3d = s["Phase1"]["SumSaturation"]["cv_integral
     </variable>
     <variable name="phase1_sat_field_relpermupwind_1d" language="python">
 import vtktools
-file = vtktools.vtu('darcy_impes_p1_3phase_layered_relpermupwind_1d_104.vtu')
+file = vtktools.vtu('darcy_impes_p1_3phase_layered_relpermupwind_1d_1.vtu')
 file.GetFieldNames()
 phase1_sat_field_relpermupwind_1d = file.GetScalarField('Phase1::Saturation')
     </variable>
     <variable name="phase2_sat_field_relpermupwind_1d" language="python">
 import vtktools
-file = vtktools.vtu('darcy_impes_p1_3phase_layered_relpermupwind_1d_104.vtu')
+file = vtktools.vtu('darcy_impes_p1_3phase_layered_relpermupwind_1d_1.vtu')
 file.GetFieldNames()
 phase2_sat_field_relpermupwind_1d = file.GetScalarField('Phase2::Saturation')
     </variable>
     <variable name="phase3_sat_field_relpermupwind_1d" language="python">
 import vtktools
-file = vtktools.vtu('darcy_impes_p1_3phase_layered_relpermupwind_1d_104.vtu')
+file = vtktools.vtu('darcy_impes_p1_3phase_layered_relpermupwind_1d_1.vtu')
 file.GetFieldNames()
 phase3_sat_field_relpermupwind_1d = file.GetScalarField('Phase3::Saturation')
     </variable>
@@ -271,7 +271,7 @@ phase3_sat_field_relpermupwind_3d = file.GetScalarField('Phase3::Saturation')
     </variable>
     <variable name="positions_x_relpermupwind_1d" language="python">
 import vtktools
-file = vtktools.vtu('darcy_impes_p1_3phase_layered_relpermupwind_1d_104.vtu')
+file = vtktools.vtu('darcy_impes_p1_3phase_layered_relpermupwind_1d_1.vtu')
 file.GetFieldNames()
 p = file.GetLocations()
 positions_x_relpermupwind_1d = p[:,0]
