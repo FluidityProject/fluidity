@@ -10,6 +10,9 @@
 time ../../bin/darcy_impes darcy_impes_p1_3phase_layered_relpermupwind_1d.diml 
 time ../../bin/darcy_impes darcy_impes_p1_3phase_layered_relpermupwind_2d.diml 
 time ../../bin/darcy_impes darcy_impes_p1_3phase_layered_relpermupwind_3d.diml 
+time ../../bin/darcy_impes darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_1d.diml 
+time ../../bin/darcy_impes darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_2d.diml 
+time ../../bin/darcy_impes darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_3d.diml 
     </command_line>
     <!-- One/two/three dimensional problem for darcy flow using the IMPES solver with one region and three phase using p1 element type. This tests the sinking and rising of different density phases.-->
   </problem_definition>
@@ -290,6 +293,282 @@ file.GetFieldNames()
 p = file.GetLocations()
 positions_z_relpermupwind_3d = p[:,2]
     </variable>
+    <variable name="pressure_change_modrelpermupwind_satfesweby_1d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_1d.stat")
+pressure_max_1d = s["Phase1"]["Pressure"]["max"][-1]
+pressure_min_1d = s["Phase1"]["Pressure"]["min"][-1]
+pressure_change_modrelpermupwind_satfesweby_1d = pressure_max_1d - pressure_min_1d
+    </variable>    
+    <variable name="phase1_sat_max_modrelpermupwind_satfesweby_1d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_1d.stat")
+phase1_sat_max_modrelpermupwind_satfesweby_1d = s["Phase1"]["Saturation"]["max"][-1]
+    </variable>    
+    <variable name="phase1_sat_min_modrelpermupwind_satfesweby_1d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_1d.stat")
+phase1_sat_min_modrelpermupwind_satfesweby_1d = s["Phase1"]["Saturation"]["min"][-1]
+    </variable>    
+    <variable name="phase1_sat_cv_integral_modrelpermupwind_satfesweby_1d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_1d.stat")
+phase1_sat_cv_integral_modrelpermupwind_satfesweby_1d = s["Phase1"]["Saturation"]["cv_integral"]
+    </variable>    
+    <variable name="phase2_sat_max_modrelpermupwind_satfesweby_1d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_1d.stat")
+phase2_sat_max_modrelpermupwind_satfesweby_1d = s["Phase2"]["Saturation"]["max"][-1]
+    </variable>    
+    <variable name="phase2_sat_min_modrelpermupwind_satfesweby_1d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_1d.stat")
+phase2_sat_min_modrelpermupwind_satfesweby_1d = s["Phase2"]["Saturation"]["min"][-1]
+    </variable>    
+    <variable name="phase2_sat_cv_integral_modrelpermupwind_satfesweby_1d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_1d.stat")
+phase2_sat_cv_integral_modrelpermupwind_satfesweby_1d = s["Phase2"]["Saturation"]["cv_integral"]
+    </variable>    
+    <variable name="phase3_sat_max_modrelpermupwind_satfesweby_1d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_1d.stat")
+phase3_sat_max_modrelpermupwind_satfesweby_1d = s["Phase3"]["Saturation"]["max"][-1]
+    </variable>    
+    <variable name="phase3_sat_min_modrelpermupwind_satfesweby_1d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_1d.stat")
+phase3_sat_min_modrelpermupwind_satfesweby_1d = s["Phase3"]["Saturation"]["min"][-1]
+    </variable>    
+    <variable name="phase3_sat_cv_integral_modrelpermupwind_satfesweby_1d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_1d.stat")
+phase3_sat_cv_integral_modrelpermupwind_satfesweby_1d = s["Phase3"]["Saturation"]["cv_integral"]
+    </variable>    
+    <variable name="sum_sat_max_modrelpermupwind_satfesweby_1d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_1d.stat")
+sum_sat_max_modrelpermupwind_satfesweby_1d = s["Phase1"]["SumSaturation"]["max"][-1]
+    </variable>    
+    <variable name="sum_sat_min_modrelpermupwind_satfesweby_1d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_1d.stat")
+sum_sat_min_modrelpermupwind_satfesweby_1d = s["Phase1"]["SumSaturation"]["min"][-1]
+    </variable>
+    <variable name="sum_sat_cv_integral_modrelpermupwind_satfesweby_1d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_1d.stat")
+sum_sat_cv_integral_modrelpermupwind_satfesweby_1d = s["Phase1"]["SumSaturation"]["cv_integral"][-1]
+    </variable>
+    <variable name="pressure_change_modrelpermupwind_satfesweby_2d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_2d.stat")
+pressure_max_2d = s["Phase1"]["Pressure"]["max"][-1]
+pressure_min_2d = s["Phase1"]["Pressure"]["min"][-1]
+pressure_change_modrelpermupwind_satfesweby_2d = pressure_max_2d - pressure_min_2d
+    </variable>    
+    <variable name="phase1_sat_max_modrelpermupwind_satfesweby_2d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_2d.stat")
+phase1_sat_max_modrelpermupwind_satfesweby_2d = s["Phase1"]["Saturation"]["max"][-1]
+    </variable>    
+    <variable name="phase1_sat_min_modrelpermupwind_satfesweby_2d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_2d.stat")
+phase1_sat_min_modrelpermupwind_satfesweby_2d = s["Phase1"]["Saturation"]["min"][-1]
+    </variable>    
+    <variable name="phase1_sat_cv_integral_modrelpermupwind_satfesweby_2d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_2d.stat")
+phase1_sat_cv_integral_modrelpermupwind_satfesweby_2d = s["Phase1"]["Saturation"]["cv_integral"]
+    </variable>    
+    <variable name="phase2_sat_max_modrelpermupwind_satfesweby_2d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_2d.stat")
+phase2_sat_max_modrelpermupwind_satfesweby_2d = s["Phase2"]["Saturation"]["max"][-1]
+    </variable>    
+    <variable name="phase2_sat_min_modrelpermupwind_satfesweby_2d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_2d.stat")
+phase2_sat_min_modrelpermupwind_satfesweby_2d = s["Phase2"]["Saturation"]["min"][-1]
+    </variable>    
+    <variable name="phase2_sat_cv_integral_modrelpermupwind_satfesweby_2d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_2d.stat")
+phase2_sat_cv_integral_modrelpermupwind_satfesweby_2d = s["Phase2"]["Saturation"]["cv_integral"]
+    </variable>    
+    <variable name="phase3_sat_max_modrelpermupwind_satfesweby_2d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_2d.stat")
+phase3_sat_max_modrelpermupwind_satfesweby_2d = s["Phase3"]["Saturation"]["max"][-1]
+    </variable>    
+    <variable name="phase3_sat_min_modrelpermupwind_satfesweby_2d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_2d.stat")
+phase3_sat_min_modrelpermupwind_satfesweby_2d = s["Phase3"]["Saturation"]["min"][-1]
+    </variable>
+    <variable name="phase3_sat_cv_integral_modrelpermupwind_satfesweby_2d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_2d.stat")
+phase3_sat_cv_integral_modrelpermupwind_satfesweby_2d = s["Phase3"]["Saturation"]["cv_integral"]
+    </variable>    
+    <variable name="sum_sat_max_modrelpermupwind_satfesweby_2d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_2d.stat")
+sum_sat_max_modrelpermupwind_satfesweby_2d = s["Phase1"]["SumSaturation"]["max"][-1]
+    </variable>    
+    <variable name="sum_sat_min_modrelpermupwind_satfesweby_2d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_2d.stat")
+sum_sat_min_modrelpermupwind_satfesweby_2d = s["Phase1"]["SumSaturation"]["min"][-1]
+    </variable>
+    <variable name="sum_sat_cv_integral_modrelpermupwind_satfesweby_2d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_2d.stat")
+sum_sat_cv_integral_modrelpermupwind_satfesweby_2d = s["Phase1"]["SumSaturation"]["cv_integral"][-1]
+    </variable>
+    <variable name="pressure_change_modrelpermupwind_satfesweby_3d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_3d.stat")
+pressure_max_3d = s["Phase1"]["Pressure"]["max"][-1]
+pressure_min_3d = s["Phase1"]["Pressure"]["min"][-1]
+pressure_change_modrelpermupwind_satfesweby_3d = pressure_max_3d - pressure_min_3d
+    </variable>
+    <variable name="phase1_sat_max_modrelpermupwind_satfesweby_3d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_3d.stat")
+phase1_sat_max_modrelpermupwind_satfesweby_3d = s["Phase1"]["Saturation"]["max"][-1]
+    </variable>    
+    <variable name="phase1_sat_min_modrelpermupwind_satfesweby_3d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_3d.stat")
+phase1_sat_min_modrelpermupwind_satfesweby_3d = s["Phase1"]["Saturation"]["min"][-1]
+    </variable>    
+    <variable name="phase1_sat_cv_integral_modrelpermupwind_satfesweby_3d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_3d.stat")
+phase1_sat_cv_integral_modrelpermupwind_satfesweby_3d = s["Phase1"]["Saturation"]["cv_integral"]
+    </variable>    
+    <variable name="phase2_sat_max_modrelpermupwind_satfesweby_3d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_3d.stat")
+phase2_sat_max_modrelpermupwind_satfesweby_3d = s["Phase2"]["Saturation"]["max"][-1]
+    </variable>    
+    <variable name="phase2_sat_min_modrelpermupwind_satfesweby_3d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_3d.stat")
+phase2_sat_min_modrelpermupwind_satfesweby_3d = s["Phase2"]["Saturation"]["min"][-1]
+    </variable>    
+    <variable name="phase2_sat_cv_integral_modrelpermupwind_satfesweby_3d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_3d.stat")
+phase2_sat_cv_integral_modrelpermupwind_satfesweby_3d = s["Phase2"]["Saturation"]["cv_integral"]
+    </variable>    
+    <variable name="phase3_sat_max_modrelpermupwind_satfesweby_3d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_3d.stat")
+phase3_sat_max_modrelpermupwind_satfesweby_3d = s["Phase3"]["Saturation"]["max"][-1]
+    </variable>    
+    <variable name="phase3_sat_min_modrelpermupwind_satfesweby_3d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_3d.stat")
+phase3_sat_min_modrelpermupwind_satfesweby_3d = s["Phase3"]["Saturation"]["min"][-1]
+    </variable>
+    <variable name="phase3_sat_cv_integral_modrelpermupwind_satfesweby_3d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_3d.stat")
+phase3_sat_cv_integral_modrelpermupwind_satfesweby_3d = s["Phase3"]["Saturation"]["cv_integral"]
+    </variable>    
+    <variable name="sum_sat_max_modrelpermupwind_satfesweby_3d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_3d.stat")
+sum_sat_max_modrelpermupwind_satfesweby_3d = s["Phase1"]["SumSaturation"]["max"][-1]
+    </variable>    
+    <variable name="sum_sat_min_modrelpermupwind_satfesweby_3d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_3d.stat")
+sum_sat_min_modrelpermupwind_satfesweby_3d = s["Phase1"]["SumSaturation"]["min"][-1]
+    </variable>
+    <variable name="sum_sat_cv_integral_modrelpermupwind_satfesweby_3d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_3d.stat")
+sum_sat_cv_integral_modrelpermupwind_satfesweby_3d = s["Phase1"]["SumSaturation"]["cv_integral"][-1]
+    </variable>
+    <variable name="phase1_sat_field_modrelpermupwind_satfesweby_1d" language="python">
+import vtktools
+file = vtktools.vtu('darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_1d_1.vtu')
+file.GetFieldNames()
+phase1_sat_field_modrelpermupwind_satfesweby_1d = file.GetScalarField('Phase1::Saturation')
+    </variable>
+    <variable name="phase2_sat_field_modrelpermupwind_satfesweby_1d" language="python">
+import vtktools
+file = vtktools.vtu('darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_1d_1.vtu')
+file.GetFieldNames()
+phase2_sat_field_modrelpermupwind_satfesweby_1d = file.GetScalarField('Phase2::Saturation')
+    </variable>
+    <variable name="phase3_sat_field_modrelpermupwind_satfesweby_1d" language="python">
+import vtktools
+file = vtktools.vtu('darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_1d_1.vtu')
+file.GetFieldNames()
+phase3_sat_field_modrelpermupwind_satfesweby_1d = file.GetScalarField('Phase3::Saturation')
+    </variable>
+    <variable name="phase1_sat_field_modrelpermupwind_satfesweby_2d" language="python">
+import vtktools
+file = vtktools.vtu('darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_2d_1.vtu')
+file.GetFieldNames()
+phase1_sat_field_modrelpermupwind_satfesweby_2d = file.GetScalarField('Phase1::Saturation')
+    </variable>
+    <variable name="phase2_sat_field_modrelpermupwind_satfesweby_2d" language="python">
+import vtktools
+file = vtktools.vtu('darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_2d_1.vtu')
+file.GetFieldNames()
+phase2_sat_field_modrelpermupwind_satfesweby_2d = file.GetScalarField('Phase2::Saturation')
+    </variable>
+    <variable name="phase3_sat_field_modrelpermupwind_satfesweby_2d" language="python">
+import vtktools
+file = vtktools.vtu('darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_2d_1.vtu')
+file.GetFieldNames()
+phase3_sat_field_modrelpermupwind_satfesweby_2d = file.GetScalarField('Phase3::Saturation')
+    </variable>
+    <variable name="phase1_sat_field_modrelpermupwind_satfesweby_3d" language="python">
+import vtktools
+file = vtktools.vtu('darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_3d_1.vtu')
+file.GetFieldNames()
+phase1_sat_field_modrelpermupwind_satfesweby_3d = file.GetScalarField('Phase1::Saturation')
+    </variable>
+    <variable name="phase2_sat_field_modrelpermupwind_satfesweby_3d" language="python">
+import vtktools
+file = vtktools.vtu('darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_3d_1.vtu')
+file.GetFieldNames()
+phase2_sat_field_modrelpermupwind_satfesweby_3d = file.GetScalarField('Phase2::Saturation')
+    </variable>
+    <variable name="phase3_sat_field_modrelpermupwind_satfesweby_3d" language="python">
+import vtktools
+file = vtktools.vtu('darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_3d_1.vtu')
+file.GetFieldNames()
+phase3_sat_field_modrelpermupwind_satfesweby_3d = file.GetScalarField('Phase3::Saturation')
+    </variable>
+    <variable name="positions_x_modrelpermupwind_satfesweby_1d" language="python">
+import vtktools
+file = vtktools.vtu('darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_1d_1.vtu')
+file.GetFieldNames()
+p = file.GetLocations()
+positions_x_modrelpermupwind_satfesweby_1d = p[:,0]
+    </variable>
+    <variable name="positions_y_modrelpermupwind_satfesweby_2d" language="python">
+import vtktools
+file = vtktools.vtu('darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_2d_1.vtu')
+file.GetFieldNames()
+p = file.GetLocations()
+positions_y_modrelpermupwind_satfesweby_2d = p[:,1]
+    </variable>
+    <variable name="positions_z_modrelpermupwind_satfesweby_3d" language="python">
+import vtktools
+file = vtktools.vtu('darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_3d_1.vtu')
+file.GetFieldNames()
+p = file.GetLocations()
+positions_z_modrelpermupwind_satfesweby_3d = p[:,2]
+    </variable>
     <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
@@ -438,69 +717,272 @@ assert abs(sum_sat_min_relpermupwind_3d - 1.0) &lt; 1.0e-06
 print 'difference: ',abs(sum_sat_cv_integral_relpermupwind_3d - 1.0)
 assert abs(sum_sat_cv_integral_relpermupwind_3d - 1.0) &lt; 1.0e-06
     </test>
-    <test name="phase 1 sat_relpermupwind for 1d has value 1.0 in x coordinate range [2/3, 1] part of domain and 0 everywhere else with tolerance 6.5e-02" language="python">
+    <test name="phase 1 sat_relpermupwind for 1d has value 1.0 in x coordinate range [2/3, 1] part of domain and 0 everywhere else with tolerance 7.0e-02" language="python">
 max_diff = 0.0
 for i in range(len(phase1_sat_field_relpermupwind_1d)):
    if(positions_x_relpermupwind_1d[i] &lt; (2.0/3.0)):
       max_diff = max(max_diff,abs(phase1_sat_field_relpermupwind_1d[i]))
-      assert abs(phase1_sat_field_relpermupwind_1d[i]) &lt; 6.5e-02
+      assert abs(phase1_sat_field_relpermupwind_1d[i]) &lt; 7.0e-02
    else:
       max_diff = max(max_diff,abs(phase1_sat_field_relpermupwind_1d[i] - 1.0))
-      assert abs(phase1_sat_field_relpermupwind_1d[i] - 1.0) &lt; 6.5e-02
+      assert abs(phase1_sat_field_relpermupwind_1d[i] - 1.0) &lt; 7.0e-02
 print 'max difference :',max_diff
     </test>
-    <test name="phase 2 sat_relpermupwind for 1d has value 1.0 in x coordinate range [1/3, 2/3] part of domain and 0 everywhere else with tolerance 6.5e-02" language="python">
+    <test name="phase 2 sat_relpermupwind for 1d has value 1.0 in x coordinate range [1/3, 2/3] part of domain and 0 everywhere else with tolerance 7.0e-02" language="python">
 max_diff = 0.0
 for i in range(len(phase2_sat_field_relpermupwind_1d)):
    if positions_x_relpermupwind_1d[i] &gt; (1.0/3.0) and positions_x_relpermupwind_1d[i] &lt; (2.0/3.0):
       max_diff = max(max_diff,abs(phase2_sat_field_relpermupwind_1d[i]-1.0))
-      assert abs(phase2_sat_field_relpermupwind_1d[i]-1.0) &lt; 6.5e-02
+      assert abs(phase2_sat_field_relpermupwind_1d[i]-1.0) &lt; 7.0e-02
    else:
       max_diff = max(max_diff,abs(phase2_sat_field_relpermupwind_1d[i]))
-      assert abs(phase2_sat_field_relpermupwind_1d[i]) &lt; 6.5e-02
+      assert abs(phase2_sat_field_relpermupwind_1d[i]) &lt; 7.0e-02
 print 'max difference :',max_diff
     </test>
-    <test name="phase 3 sat_relpermupwind for 1d has value 1.0 in x coordinate range [0, 1/3] part of domain and 0 everywhere else with tolerance 6.5e-02" language="python">
+    <test name="phase 3 sat_relpermupwind for 1d has value 1.0 in x coordinate range [0, 1/3] part of domain and 0 everywhere else with tolerance 7.0e-02" language="python">
 max_diff = 0.0
 for i in range(len(phase3_sat_field_relpermupwind_1d)):
    if(positions_x_relpermupwind_1d[i] &gt; (1.0/3.0)):
       max_diff = max(max_diff,abs(phase3_sat_field_relpermupwind_1d[i]))
-      assert abs(phase3_sat_field_relpermupwind_1d[i]) &lt; 6.5e-02
+      assert abs(phase3_sat_field_relpermupwind_1d[i]) &lt; 7.0e-02
    else:
       max_diff = max(max_diff,abs(phase3_sat_field_relpermupwind_1d[i]-1.0))
-      assert abs(phase3_sat_field_relpermupwind_1d[i]-1.0) &lt; 6.5e-02
+      assert abs(phase3_sat_field_relpermupwind_1d[i]-1.0) &lt; 7.0e-02
 print 'max difference :',max_diff
     </test>
-    <test name="phase 1 sat_relpermupwind for 2d has value 1.0 in y coordinate range [3/4, 1] part of domain with tolerance 1.2e-02" language="python">
+    <test name="phase 1 sat_relpermupwind for 2d has value 1.0 in y coordinate range [3/4, 1] part of domain with tolerance 1.5e-02" language="python">
 max_diff = 0.0
 for i in range(len(phase1_sat_field_relpermupwind_2d)):
    if(positions_y_relpermupwind_2d[i] &gt; (3.0/4.0)):
       max_diff = max(max_diff,abs(phase1_sat_field_relpermupwind_2d[i]-1.0))
-      assert abs(phase1_sat_field_relpermupwind_2d[i]-1.0) &lt; 1.2e-02
+      assert abs(phase1_sat_field_relpermupwind_2d[i]-1.0) &lt; 1.5e-02
 print 'max difference :',max_diff
     </test>
-    <test name="phase 3 sat_relpermupwind for 2d has value 1.0 in y coordinate range [0, 1/4] part of domain with tolerance 1.2e-02" language="python">
+    <test name="phase 3 sat_relpermupwind for 2d has value 1.0 in y coordinate range [0, 1/4] part of domain with tolerance 1.5e-02" language="python">
 max_diff = 0.0
 for i in range(len(phase3_sat_field_relpermupwind_2d)):
    if(positions_y_relpermupwind_2d[i] &lt; (1.0/4.0)):
       max_diff = max(max_diff,abs(phase3_sat_field_relpermupwind_2d[i]-1.0))
-      assert abs(phase3_sat_field_relpermupwind_2d[i]-1.0) &lt; 1.2e-02
+      assert abs(phase3_sat_field_relpermupwind_2d[i]-1.0) &lt; 1.5e-02
 print 'max difference :',max_diff
     </test>
-    <test name="phase 1 sat_relpermupwind for 3d has value 1.0 in z coordinate range [3/4, 1] part of domain with tolerance 1.2e-02" language="python">
+    <test name="phase 1 sat_relpermupwind for 3d has value 1.0 in z coordinate range [3/4, 1] part of domain with tolerance 1.5e-02" language="python">
 max_diff = 0.0
 for i in range(len(phase1_sat_field_relpermupwind_3d)):
    if(positions_z_relpermupwind_3d[i] &gt; (3.0/4.0)):
       max_diff = max(max_diff,abs(phase1_sat_field_relpermupwind_3d[i]-1.0))
-      assert abs(phase1_sat_field_relpermupwind_3d[i]-1.0) &lt; 1.2e-01
+      assert abs(phase1_sat_field_relpermupwind_3d[i]-1.0) &lt; 1.5e-02
 print 'max difference :',max_diff
     </test>
-    <test name="phase 3 sat_relpermupwind for 3d has value 1.0 in z coordinate range [0, 1/4] part of domain with tolerance 1.22e-02" language="python">
+    <test name="phase 3 sat_relpermupwind for 3d has value 1.0 in z coordinate range [0, 1/4] part of domain with tolerance 1.5e-02" language="python">
 max_diff = 0.0
 for i in range(len(phase3_sat_field_relpermupwind_3d)):
    if(positions_z_relpermupwind_3d[i] &lt; (1.0/4.0)):
       max_diff = max(max_diff,abs(phase3_sat_field_relpermupwind_3d[i]-1.0))
-      assert abs(phase3_sat_field_relpermupwind_3d[i]-1.0) &lt; 1.22e-02
+      assert abs(phase3_sat_field_relpermupwind_3d[i]-1.0) &lt; 1.5e-02
+print 'max difference :',max_diff
+    </test>    
+    <test name="Check pressure_change_modrelpermupwind_satfesweby_1d is 10.0 (hydrostatic) with relative tolerance 1.0e-08" language="python">
+print 'difference: ',abs(pressure_change_modrelpermupwind_satfesweby_1d - 10.0)/10.0
+assert abs(pressure_change_modrelpermupwind_satfesweby_1d - 10.0)/10.0 &lt; 1.0e-08
+    </test>
+    <test name="phase 1 for 1d has max(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-08" language="python">
+assert abs(phase1_sat_max_modrelpermupwind_satfesweby_1d - 0.5) &lt; 0.5 + 1.0e-08
+    </test>
+    <test name="phase 1 for 1d has min(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-08" language="python">
+assert abs(phase1_sat_min_modrelpermupwind_satfesweby_1d - 0.5) &lt; 0.5 + 1.0e-08
+    </test>
+    <test name="phase 1 for 1d check cv_integral(sat_modrelpermupwind_satfesweby) constant with tolerance 1.0e-08" language="python">
+for t in range(len(phase1_sat_cv_integral_modrelpermupwind_satfesweby_1d)):
+   assert abs(phase1_sat_cv_integral_modrelpermupwind_satfesweby_1d[t] - phase1_sat_cv_integral_modrelpermupwind_satfesweby_1d[0]) &lt; 1.0e-08
+    </test>
+    <test name="phase 2 for 1d has max(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-08" language="python">
+assert abs(phase2_sat_max_modrelpermupwind_satfesweby_1d - 0.5) &lt; 0.5 + 1.0e-08
+    </test>
+    <test name="phase 2 for 1d has min(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-08" language="python">
+assert abs(phase2_sat_min_modrelpermupwind_satfesweby_1d - 0.5) &lt; 0.5 + 1.0e-08
+    </test>
+    <test name="phase 2 for 1d check cv_integral(sat_modrelpermupwind_satfesweby) constant with tolerance 1.0e-08" language="python">
+for t in range(len(phase2_sat_cv_integral_modrelpermupwind_satfesweby_1d)):
+   assert abs(phase2_sat_cv_integral_modrelpermupwind_satfesweby_1d[t] - phase2_sat_cv_integral_modrelpermupwind_satfesweby_1d[0]) &lt; 1.0e-08
+    </test>
+    <test name="phase 3 for 1d has max(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-08" language="python">
+assert abs(phase3_sat_max_modrelpermupwind_satfesweby_1d - 0.5) &lt; 0.5 + 1.0e-08
+    </test>
+    <test name="phase 3 for 1d has min(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-08" language="python">
+assert abs(phase3_sat_min_modrelpermupwind_satfesweby_1d - 0.5) &lt; 0.5 + 1.0e-08
+    </test>
+    <test name="phase 3 for 1d check cv_integral(sat_modrelpermupwind_satfesweby) constant with tolerance 1.0e-08" language="python">
+for t in range(len(phase3_sat_cv_integral_modrelpermupwind_satfesweby_1d)):
+   assert abs(phase3_sat_cv_integral_modrelpermupwind_satfesweby_1d[t] - phase3_sat_cv_integral_modrelpermupwind_satfesweby_1d[0]) &lt; 1.0e-08
+    </test>
+    <test name="Check sum_sat_max_modrelpermupwind_satfesweby for 1d is 1.0 with tolerance 1.0e-06" language="python">
+print 'difference: ',abs(sum_sat_max_modrelpermupwind_satfesweby_1d - 1.0)
+assert abs(sum_sat_max_modrelpermupwind_satfesweby_1d - 1.0) &lt; 1.0e-06
+    </test>
+    <test name="Check sum_sat_min_modrelpermupwind_satfesweby for 1d is 1.0 with tolerance 1.0e-06" language="python">
+print 'difference: ',abs(sum_sat_min_modrelpermupwind_satfesweby_1d - 1.0)
+assert abs(sum_sat_min_modrelpermupwind_satfesweby_1d - 1.0) &lt; 1.0e-06
+    </test>
+    <test name="Check sum_sat_cv_integral_modrelpermupwind_satfesweby for 1d is 1.0 with relative tolerance 1.0e-06" language="python">
+print 'difference: ',abs(sum_sat_cv_integral_modrelpermupwind_satfesweby_1d - 1.0)
+assert abs(sum_sat_cv_integral_modrelpermupwind_satfesweby_1d - 1.0) &lt; 1.0e-06
+    </test>
+    <test name="Check pressure_change_modrelpermupwind_satfesweby_2d is 10.0 (hydrostatic) with relative tolerance 3.0e-03" language="python">
+print 'difference: ',abs(pressure_change_modrelpermupwind_satfesweby_2d - 10.0)/10.0
+assert abs(pressure_change_modrelpermupwind_satfesweby_2d - 10.0)/10.0 &lt; 3.0e-03
+    </test>
+    <test name="phase 1 for 2d has max(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-08" language="python">
+assert abs(phase1_sat_max_modrelpermupwind_satfesweby_2d - 0.5) &lt; 0.5 + 1.0e-08
+    </test>
+    <test name="phase 1 for 2d has min(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-08" language="python">
+assert abs(phase1_sat_min_modrelpermupwind_satfesweby_2d - 0.5) &lt; 0.5 + 1.0e-08
+    </test>
+    <test name="phase 1 for 2d check cv_integral(sat_modrelpermupwind_satfesweby) constant with tolerance 1.0e-08" language="python">
+for t in range(len(phase1_sat_cv_integral_modrelpermupwind_satfesweby_2d)):
+   assert abs(phase1_sat_cv_integral_modrelpermupwind_satfesweby_2d[t] - phase1_sat_cv_integral_modrelpermupwind_satfesweby_2d[0]) &lt; 1.0e-08
+    </test>
+    <test name="phase 2 for 2d has max(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-08" language="python">
+assert abs(phase2_sat_max_modrelpermupwind_satfesweby_2d - 0.5) &lt; 0.5 + 1.0e-08
+    </test>
+    <test name="phase 2 for 2d has min(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-08" language="python">
+assert abs(phase2_sat_min_modrelpermupwind_satfesweby_2d - 0.5) &lt; 0.5 + 1.0e-08
+    </test>
+    <test name="phase 2 for 2d check cv_integral(sat_modrelpermupwind_satfesweby) constant with tolerance 1.0e-08" language="python">
+for t in range(len(phase2_sat_cv_integral_modrelpermupwind_satfesweby_2d)):
+   assert abs(phase2_sat_cv_integral_modrelpermupwind_satfesweby_2d[t] - phase2_sat_cv_integral_modrelpermupwind_satfesweby_2d[0]) &lt; 1.0e-08
+    </test>
+    <test name="phase 3 for 2d has max(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-08" language="python">
+assert abs(phase3_sat_max_modrelpermupwind_satfesweby_2d - 0.5) &lt; 0.5 + 1.0e-08
+    </test>
+    <test name="phase 3 for 2d has min(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-08" language="python">
+assert abs(phase3_sat_min_modrelpermupwind_satfesweby_2d - 0.5) &lt; 0.5 + 1.0e-08
+    </test>
+    <test name="phase 3 for 2d check cv_integral(sat_modrelpermupwind_satfesweby) constant with tolerance 1.0e-08" language="python">
+for t in range(len(phase3_sat_cv_integral_modrelpermupwind_satfesweby_2d)):
+   assert abs(phase3_sat_cv_integral_modrelpermupwind_satfesweby_2d[t] - phase3_sat_cv_integral_modrelpermupwind_satfesweby_2d[0]) &lt; 1.0e-08
+    </test>
+    <test name="Check sum_sat_max_modrelpermupwind_satfesweby for 2d is 1.0 with tolerance 1.0e-06" language="python">
+print 'difference: ',abs(sum_sat_max_modrelpermupwind_satfesweby_2d - 1.0)
+assert abs(sum_sat_max_modrelpermupwind_satfesweby_2d - 1.0) &lt; 1.0e-06
+    </test>
+    <test name="Check sum_sat_min_modrelpermupwind_satfesweby for 2d is 1.0 with tolerance 1.0e-06" language="python">
+print 'difference: ',abs(sum_sat_min_modrelpermupwind_satfesweby_2d - 1.0)
+assert abs(sum_sat_min_modrelpermupwind_satfesweby_2d - 1.0) &lt; 1.0e-06
+    </test>
+    <test name="Check sum_sat_cv_integral_modrelpermupwind_satfesweby for 2d is 1.0 with relative tolerance 1.0e-06" language="python">
+print 'difference: ',abs(sum_sat_cv_integral_modrelpermupwind_satfesweby_2d - 1.0)
+assert abs(sum_sat_cv_integral_modrelpermupwind_satfesweby_2d - 1.0) &lt; 1.0e-06
+    </test>
+    <test name="Check pressure_change_modrelpermupwind_satfesweby_3d is 10.0 (hydrostatic) with relative tolerance 3.0e-03" language="python">
+print 'difference: ',abs(pressure_change_modrelpermupwind_satfesweby_3d - 10.0)/10.0
+assert abs(pressure_change_modrelpermupwind_satfesweby_3d - 10.0)/10.0 &lt; 3.0e-03
+    </test>
+    <test name="phase 1 for 3d has max(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-08" language="python">
+assert abs(phase1_sat_max_modrelpermupwind_satfesweby_3d - 0.5) &lt; 0.5 + 1.0e-08
+    </test>
+    <test name="phase 1 for 3d has min(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-08" language="python">
+assert abs(phase1_sat_min_modrelpermupwind_satfesweby_3d - 0.5) &lt; 0.5 + 1.0e-08
+    </test>
+    <test name="phase 1 for 3d check cv_integral(sat_modrelpermupwind_satfesweby) constant with tolerance 1.0e-08" language="python">
+for t in range(len(phase1_sat_cv_integral_modrelpermupwind_satfesweby_3d)):
+   assert abs(phase1_sat_cv_integral_modrelpermupwind_satfesweby_3d[t] - phase1_sat_cv_integral_modrelpermupwind_satfesweby_3d[0]) &lt; 1.0e-08
+    </test>
+    <test name="phase 2 for 3d has max(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-08" language="python">
+assert abs(phase2_sat_max_modrelpermupwind_satfesweby_3d - 0.5) &lt; 0.5 + 1.0e-08
+    </test>
+    <test name="phase 2 for 3d has min(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-08" language="python">
+assert abs(phase2_sat_min_modrelpermupwind_satfesweby_3d - 0.5) &lt; 0.5 + 1.0e-08
+    </test>
+    <test name="phase 2 for 3d check cv_integral(sat_modrelpermupwind_satfesweby) constant with tolerance 1.0e-08" language="python">
+for t in range(len(phase2_sat_cv_integral_modrelpermupwind_satfesweby_3d)):
+   assert abs(phase2_sat_cv_integral_modrelpermupwind_satfesweby_3d[t] - phase2_sat_cv_integral_modrelpermupwind_satfesweby_3d[0]) &lt; 1.0e-08
+    </test>
+    <test name="phase 3 for 3d has max(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-08" language="python">
+assert abs(phase3_sat_max_modrelpermupwind_satfesweby_3d - 0.5) &lt; 0.5 + 1.0e-08
+    </test>
+    <test name="phase 3 for 3d has min(sat_modrelpermupwind_satfesweby) in [0,1] with tolerance 1.0e-08" language="python">
+assert abs(phase3_sat_min_modrelpermupwind_satfesweby_3d - 0.5) &lt; 0.5 + 1.0e-08
+    </test>
+    <test name="phase 3 for 3d check cv_integral(sat_modrelpermupwind_satfesweby) constant with tolerance 1.0e-08" language="python">
+for t in range(len(phase3_sat_cv_integral_modrelpermupwind_satfesweby_3d)):
+   assert abs(phase3_sat_cv_integral_modrelpermupwind_satfesweby_3d[t] - phase3_sat_cv_integral_modrelpermupwind_satfesweby_3d[0]) &lt; 1.0e-08
+    </test>
+    <test name="Check sum_sat_max_modrelpermupwind_satfesweby for 3d is 1.0 with tolerance 1.0e-06" language="python">
+print 'difference: ',abs(sum_sat_max_modrelpermupwind_satfesweby_3d - 1.0)
+assert abs(sum_sat_max_modrelpermupwind_satfesweby_3d - 1.0) &lt; 1.0e-06
+    </test>
+    <test name="Check sum_sat_min_modrelpermupwind_satfesweby for 3d is 1.0 with tolerance 1.0e-06" language="python">
+print 'difference: ',abs(sum_sat_min_modrelpermupwind_satfesweby_3d - 1.0)
+assert abs(sum_sat_min_modrelpermupwind_satfesweby_3d - 1.0) &lt; 1.0e-06
+    </test>
+    <test name="Check sum_sat_cv_integral_modrelpermupwind_satfesweby for 3d is 1.0 with relative tolerance 1.0e-06" language="python">
+print 'difference: ',abs(sum_sat_cv_integral_modrelpermupwind_satfesweby_3d - 1.0)
+assert abs(sum_sat_cv_integral_modrelpermupwind_satfesweby_3d - 1.0) &lt; 1.0e-06
+    </test>
+    <test name="phase 1 sat_modrelpermupwind_satfesweby for 1d has value 1.0 in x coordinate range [2/3, 1] part of domain and 0 everywhere else with tolerance 6.5e-02" language="python">
+max_diff = 0.0
+for i in range(len(phase1_sat_field_modrelpermupwind_satfesweby_1d)):
+   if(positions_x_modrelpermupwind_satfesweby_1d[i] &lt; (2.0/3.0)):
+      max_diff = max(max_diff,abs(phase1_sat_field_modrelpermupwind_satfesweby_1d[i]))
+      assert abs(phase1_sat_field_modrelpermupwind_satfesweby_1d[i]) &lt; 6.5e-02
+   else:
+      max_diff = max(max_diff,abs(phase1_sat_field_modrelpermupwind_satfesweby_1d[i] - 1.0))
+      assert abs(phase1_sat_field_modrelpermupwind_satfesweby_1d[i] - 1.0) &lt; 6.5e-02
+print 'max difference :',max_diff
+    </test>
+    <test name="phase 2 sat_modrelpermupwind_satfesweby for 1d has value 1.0 in x coordinate range [1/3, 2/3] part of domain and 0 everywhere else with tolerance 6.5e-02" language="python">
+max_diff = 0.0
+for i in range(len(phase2_sat_field_modrelpermupwind_satfesweby_1d)):
+   if positions_x_modrelpermupwind_satfesweby_1d[i] &gt; (1.0/3.0) and positions_x_modrelpermupwind_satfesweby_1d[i] &lt; (2.0/3.0):
+      max_diff = max(max_diff,abs(phase2_sat_field_modrelpermupwind_satfesweby_1d[i]-1.0))
+      assert abs(phase2_sat_field_modrelpermupwind_satfesweby_1d[i]-1.0) &lt; 6.5e-02
+   else:
+      max_diff = max(max_diff,abs(phase2_sat_field_modrelpermupwind_satfesweby_1d[i]))
+      assert abs(phase2_sat_field_modrelpermupwind_satfesweby_1d[i]) &lt; 6.5e-02
+print 'max difference :',max_diff
+    </test>
+    <test name="phase 3 sat_modrelpermupwind_satfesweby for 1d has value 1.0 in x coordinate range [0, 1/3] part of domain and 0 everywhere else with tolerance 6.5e-02" language="python">
+max_diff = 0.0
+for i in range(len(phase3_sat_field_modrelpermupwind_satfesweby_1d)):
+   if(positions_x_modrelpermupwind_satfesweby_1d[i] &gt; (1.0/3.0)):
+      max_diff = max(max_diff,abs(phase3_sat_field_modrelpermupwind_satfesweby_1d[i]))
+      assert abs(phase3_sat_field_modrelpermupwind_satfesweby_1d[i]) &lt; 6.5e-02
+   else:
+      max_diff = max(max_diff,abs(phase3_sat_field_modrelpermupwind_satfesweby_1d[i]-1.0))
+      assert abs(phase3_sat_field_modrelpermupwind_satfesweby_1d[i]-1.0) &lt; 6.5e-02
+print 'max difference :',max_diff
+    </test>
+    <test name="phase 1 sat_modrelpermupwind_satfesweby for 2d has value 1.0 in y coordinate range [3/4, 1] part of domain with tolerance 1.2e-02" language="python">
+max_diff = 0.0
+for i in range(len(phase1_sat_field_modrelpermupwind_satfesweby_2d)):
+   if(positions_y_modrelpermupwind_satfesweby_2d[i] &gt; (3.0/4.0)):
+      max_diff = max(max_diff,abs(phase1_sat_field_modrelpermupwind_satfesweby_2d[i]-1.0))
+      assert abs(phase1_sat_field_modrelpermupwind_satfesweby_2d[i]-1.0) &lt; 1.2e-02
+print 'max difference :',max_diff
+    </test>
+    <test name="phase 3 sat_modrelpermupwind_satfesweby for 2d has value 1.0 in y coordinate range [0, 1/4] part of domain with tolerance 1.2e-02" language="python">
+max_diff = 0.0
+for i in range(len(phase3_sat_field_modrelpermupwind_satfesweby_2d)):
+   if(positions_y_modrelpermupwind_satfesweby_2d[i] &lt; (1.0/4.0)):
+      max_diff = max(max_diff,abs(phase3_sat_field_modrelpermupwind_satfesweby_2d[i]-1.0))
+      assert abs(phase3_sat_field_modrelpermupwind_satfesweby_2d[i]-1.0) &lt; 1.2e-02
+print 'max difference :',max_diff
+    </test>
+    <test name="phase 1 sat_modrelpermupwind_satfesweby for 3d has value 1.0 in z coordinate range [3/4, 1] part of domain with tolerance 1.2e-02" language="python">
+max_diff = 0.0
+for i in range(len(phase1_sat_field_modrelpermupwind_satfesweby_3d)):
+   if(positions_z_modrelpermupwind_satfesweby_3d[i] &gt; (3.0/4.0)):
+      max_diff = max(max_diff,abs(phase1_sat_field_modrelpermupwind_satfesweby_3d[i]-1.0))
+      assert abs(phase1_sat_field_modrelpermupwind_satfesweby_3d[i]-1.0) &lt; 1.2e-01
+print 'max difference :',max_diff
+    </test>
+    <test name="phase 3 sat_modrelpermupwind_satfesweby for 3d has value 1.0 in z coordinate range [0, 1/4] part of domain with tolerance 1.22e-02" language="python">
+max_diff = 0.0
+for i in range(len(phase3_sat_field_modrelpermupwind_satfesweby_3d)):
+   if(positions_z_modrelpermupwind_satfesweby_3d[i] &lt; (1.0/4.0)):
+      max_diff = max(max_diff,abs(phase3_sat_field_modrelpermupwind_satfesweby_3d[i]-1.0))
+      assert abs(phase3_sat_field_modrelpermupwind_satfesweby_3d[i]-1.0) &lt; 1.22e-02
 print 'max difference :',max_diff
     </test>
   </pass_tests>
