@@ -459,15 +459,15 @@ max_diff = 0.0
 for i in range(len(phase1_sat_field_3d)):
    if(positions_z_3d[i] &gt; (3.0/4.0)):
       max_diff = max(max_diff,abs(phase1_sat_field_3d[i]-1.0))
-      assert abs(phase1_sat_field_3d[i]-1.0) &lt; 1.2e-02
+      assert abs(phase1_sat_field_3d[i]-1.0) &lt; 1.2e-01
 print 'max difference :',max_diff
     </test>
-    <test name="phase 3 for 3d has value 1.0 in z coordinate range [0, 1/4] part of domain with tolerance 1.2e-02" language="python">
+    <test name="phase 3 for 3d has value 1.0 in z coordinate range [0, 1/4] part of domain with tolerance 1.22e-02" language="python">
 max_diff = 0.0
 for i in range(len(phase3_sat_field_3d)):
    if(positions_z_3d[i] &lt; (1.0/4.0)):
       max_diff = max(max_diff,abs(phase3_sat_field_3d[i]-1.0))
-      assert abs(phase3_sat_field_3d[i]-1.0) &lt; 1.2e-02
+      assert abs(phase3_sat_field_3d[i]-1.0) &lt; 1.22e-02
 print 'max difference :',max_diff
     </test>
   </pass_tests>
