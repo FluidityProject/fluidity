@@ -6,7 +6,7 @@
   <owner userid="ctj10"/>
   <tags>flml</tags>
   
-  <problem_definition length="special" nprocs="1">
+  <problem_definition length="medium" nprocs="1">
     <command_line>make run</command_line>
   </problem_definition>
   
@@ -16,9 +16,135 @@ from fluidity_tools import stat_parser
 s = stat_parser("mphase_dusty_gas_shock_tube.stat")
 time=s["ElapsedTime"]["value"]
     </variable>
+    
+    <variable name="positions" language="python">
+import vtktools
+
+file = vtktools.vtu('mphase_dusty_gas_shock_tube_378.vtu')
+file.GetFieldNames()
+p = file.GetLocations()
+positions = p[:,1]
+    </variable>
+    
+    <variable name="air_velocity" language="python">
+import vtktools
+
+file = vtktools.vtu('mphase_dusty_gas_shock_tube_378.vtu')
+file.GetFieldNames()
+air_velocity = file.GetVectorField('Air::Velocity')
+    </variable>
+    
+    <variable name="dust_vfrac" language="python">
+import vtktools
+
+file = vtktools.vtu('mphase_dusty_gas_shock_tube_378.vtu')
+file.GetFieldNames()
+dust_vfrac = file.GetScalarField('Dust::PhaseVolumeFraction')
+    </variable>
+    
+    <variable name="pressure" language="python">
+import vtktools
+
+file = vtktools.vtu('mphase_dusty_gas_shock_tube_378.vtu')
+file.GetFieldNames()
+pressure = file.GetScalarField('Air::Pressure')
+    </variable>
+    
+    <variable name="max_dust_density" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_dusty_gas_shock_tube.stat")
+max_dust_density=s["Dust"]["Density"]["max"][-1]
+    </variable>
+    
+    <variable name="min_dust_density" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_dusty_gas_shock_tube.stat")
+min_dust_density=s["Dust"]["Density"]["min"][-1]
+    </variable>
   </variables>
     
   <pass_tests>
+    <test name="Solvers have converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+assert solvers_converged
+    </test>
+    
+    <test name="Finish time is 3.77e-4 seconds" language="python">
+assert (time[-1] &gt;= 3.77e-4)
+assert (time[-1] &lt; (3.77e-4 + 0.000002))
+    </test>    
+    
+    <test name="Normalised Gas::Velocity is 0 for normalised x in [-50, -10]" language="python">
+nnodes = len(air_velocity)
+
+vals = []
+for i in range(nnodes):
+   if(positions[i]/0.0271002710027 &lt; -10.0):
+      assert abs(air_velocity[i,0]/286.980353992) &lt; 1.0e-12
+    </test>
+    
+    <test name="Normalised Gas::Velocity is in [0, 0.9] for normalised x in [-10, 10]" language="python">
+nnodes = len(air_velocity)
+
+vals = []
+for i in range(nnodes):
+   if( (positions[i]/0.0271002710027 &gt; -10.0) and (positions[i]/0.0271002710027 &lt; 10.0) ):
+      assert abs(air_velocity[i,0]/286.980353992) &lt; 0.9
+      <!-- -1.0e-9 is needed to deal with small under-shoots -->
+      assert abs(air_velocity[i,0]/286.980353992) &gt; -1.0e-12
+    </test>
+    
+    <test name="Normalised Gas::Velocity is 0 for normalised x in [10, 50]" language="python">
+nnodes = len(air_velocity)
+
+vals = []
+for i in range(nnodes):
+   if(positions[i]/0.0271002710027 &gt; 10.0):
+      assert abs(air_velocity[i,0]/286.980353992) &lt; 1.0e-12
+    </test>
+    
+    <test name="Normalised Pressure is 10.0 for normalised x in [-50, -10]" language="python">
+nnodes = len(pressure)
+
+vals = []
+for i in range(nnodes):
+   if(positions[i]/0.0271002710027 &lt; -10.0):
+      assert abs(pressure[i]/1.013e5 - 10.0) &lt; 1.0e-6
+    </test>
+    
+    <test name="Normalised Pressure is in [1.0, 10.0] for normalised x in [-10, 10]" language="python">
+nnodes = len(pressure)
+<!-- Note: values of 0.9 and 10.1 have been used instead of 1.0 and 10.0 because of small over-shoots/under-shoots -->
+vals = []
+for i in range(nnodes):
+   if( (positions[i]/0.0271002710027 &gt; -10.0) and (positions[i]/0.0271002710027 &lt; 10.0) ):
+      assert abs(pressure[i]/1.013e5) &lt; 10.1
+      assert abs(pressure[i]/1.013e5) &gt; 0.9
+    </test>
+    
+    <test name="Normalised Pressure is 1.0 for normalised x in [10, 50]" language="python">
+nnodes = len(air_velocity)
+
+vals = []
+for i in range(nnodes):
+   if(positions[i]/0.0271002710027 &gt; 10.0):
+      assert abs(pressure[i]/1.013e5) &gt;= 1.0
+    </test>
+    
+    <test name="Mass concentration of Dust is between 0 and 2.5" language="python">
+nnodes = len(air_velocity)
+
+vals = []
+for i in range(nnodes):
+   assert abs(dust_vfrac[i]*2500.0/1.23) &lt; 2.5
+   assert abs(dust_vfrac[i]*2500.0/1.23) &gt; 0
+    </test>
+    
+    <test name="Dust density stays constant" language="python">
+assert abs(max_dust_density - min_dust_density) &lt; 1.0e-16
+    </test>
   </pass_tests>
   
   <warn_tests>
