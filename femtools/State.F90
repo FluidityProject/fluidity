@@ -26,6 +26,15 @@
 !    USA
 #include "fdebug.h"
 
+module scalar_field_dictionary
+    use fields, only: DICT_DATA => scalar_field_pointer, &
+                      DICT_KEY_LENGTH => FIELD_NAME_LEN, &
+                      DICT_NULL => SCALAR_FIELD_PTR_NULL
+    implicit none
+
+    include "../flibs/dictionary.f90"
+end module scalar_field_dictionary
+
 module state_module
   !!< This module provides a wrapper object which allows related groups of
   !!< fields to be passed around together.
@@ -41,6 +50,14 @@ module state_module
   use futils, only: int2str
   use linked_lists
   use sparse_tools_petsc
+
+  use scalar_field_dictionary, only: scalar_dict => dict_struct, &
+                                     scalar_dict_create => dict_create, &
+                                     scalar_dict_add_key => dict_add_key, &
+                                     scalar_dict_has_key => dict_has_key, &
+                                     scalar_dict_get_key => dict_get_key, &
+                                     scalar_dict_delete_key => dict_delete_key, &
+                                     scalar_dict_destroy => dict_destroy
   implicit none
 
   private
@@ -75,6 +92,8 @@ module state_module
      type(csr_matrix_pointer), dimension(:), pointer :: csr_matrices=>null()
      type(block_csr_matrix_pointer), dimension(:), pointer :: block_csr_matrices=>null()
      type(petsc_csr_matrix_pointer), dimension(:), pointer :: petsc_csr_matrices=>null()
+
+     type(scalar_dict), pointer :: scalar_field_dict => null()
   end type state_type
 
   interface deallocate
@@ -207,6 +226,9 @@ contains
     if (associated(state%scalar_names)) then
        deallocate(state%scalar_names)
     end if
+    if (associated(state%scalar_field_dict)) then
+       call scalar_dict_destroy( state%scalar_field_dict )
+    end if
     if (associated(state%mesh_names)) then
        deallocate(state%mesh_names)
     end if
@@ -323,6 +345,7 @@ contains
 
     state%vector_names=>null()
     state%scalar_names=>null()
+    state%scalar_field_dict=>null()
     state%mesh_names=>null()
     state%halo_names=>null()
     state%tensor_names=>null()
@@ -526,6 +549,7 @@ contains
     type(scalar_field_pointer), dimension(:), pointer :: tmp_fields
     character(len=FIELD_NAME_LEN), dimension(:), pointer :: tmp_names
 
+    type(scalar_field_pointer) :: field_ptr
     integer :: i
     integer :: old_size
 
@@ -540,18 +564,18 @@ contains
        
        call incref(field)
 
+       call scalar_dict_create(state%scalar_field_dict, name, state%scalar_fields(1))
+
     else
        
        ! Check if the name is already present.
-       do i=1,size(state%scalar_fields)
-          if (trim(name)==trim(state%scalar_names(i))) then
-             ! The name is present!
-             call incref(field)
-             call deallocate(state%scalar_fields(i)%ptr)
-             state%scalar_fields(i)%ptr = field
-             return
-          end if
-       end do
+       if (scalar_dict_has_key(state%scalar_field_dict, name)) then
+          call incref(field)
+          field_ptr = scalar_dict_get_key(state%scalar_field_dict, name)
+          call deallocate(field_ptr%ptr)
+          field_ptr%ptr = field
+          return
+       end if
 
        ! If we get to here then this is a new field.
        tmp_fields=>state%scalar_fields
@@ -575,6 +599,8 @@ contains
 
        deallocate(tmp_fields)
        deallocate(tmp_names)
+
+       call scalar_dict_add_key(state%scalar_field_dict, name, state%scalar_fields(old_size+1))
 
     end if
 
@@ -1239,6 +1265,8 @@ contains
   deallocate(tmp_fields)
   deallocate(tmp_names)
 
+  call scalar_dict_delete_key(state%scalar_field_dict, name)
+
   end subroutine remove_scalar_field
 
   subroutine remove_csr_sparsity(state, name, stat)
@@ -1568,6 +1596,7 @@ contains
     logical, intent(out), optional :: allocated
     type(vector_field), pointer :: vfield
     
+    type(scalar_field_pointer) :: field_ptr
     integer :: i, lstat, idx, dim
 
     if (present(stat)) stat=0
@@ -1603,15 +1632,12 @@ contains
       end if
     end if
 
-    if (associated(state%scalar_fields)) then
-       do i=1,size(state%scalar_fields)
-          if (trim(name)==trim(state%scalar_names(i))) then
-             ! Found the right field
-             
-             field=>state%scalar_fields(i)%ptr
-             return
-          end if
-       end do
+    if (associated(state%scalar_field_dict)) then
+       field_ptr = scalar_dict_get_key(state%scalar_field_dict, name)
+       if (associated(field_ptr%ptr)) then
+          field => field_ptr%ptr
+          return
+       end if
     end if
 
     ! We didn't find name!
@@ -1638,6 +1664,7 @@ contains
     logical, intent(out), optional :: allocated
     type(vector_field), pointer :: vfield
     
+    type(scalar_field_pointer) :: field_ptr
     integer :: i, j, lstat, idx, dim
 
     if (present(stat)) stat=0
@@ -1676,15 +1703,12 @@ contains
     end if
 
     do i = 1, size(state)
-      if (associated(state(i)%scalar_fields)) then
-        do j=1,size(state(i)%scalar_fields)
-            if (trim(name)==trim(state(i)%scalar_names(j))) then
-              ! Found the right field
-              
-              field=>state(i)%scalar_fields(j)%ptr
-              return
-            end if
-        end do
+      if (associated(state(i)%scalar_field_dict)) then
+         field_ptr = scalar_dict_get_key(state(i)%scalar_field_dict, name)
+         if (associated(field_ptr%ptr)) then
+            field => field_ptr%ptr
+            return
+         end if
       end if
     end do
 
@@ -2275,8 +2299,8 @@ contains
     type(state_type), intent(in) :: state
     character(len=*), intent(in) :: name
     
-    if (associated(state%scalar_names)) then
-      present=any(trim(name)==state%scalar_names)
+    if (associated(state%scalar_field_dict)) then
+      present = scalar_dict_has_key(state%scalar_field_dict, name)
     else
       present=.false.
     end if

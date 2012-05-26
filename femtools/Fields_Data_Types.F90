@@ -43,6 +43,9 @@ module fields_data_types
      scalar_boundary_condition, vector_boundary_condition, &
      scalar_boundary_conditions_ptr, vector_boundary_conditions_ptr
 
+  ! Null pointer parameters for Flib dictionaries
+  public SCALAR_FIELD_PTR_NULL
+
   !! Types of different halo associated with a field:
   integer, public, parameter :: HALO_TYPES=2
   !! Available sources of data for fields:
@@ -230,6 +233,9 @@ module fields_data_types
      !!< Dummy type to allow for arrays of pointers to tensor fields
      type(tensor_field), pointer :: ptr => null()
   end type tensor_field_pointer
+
+  ! Null parameter for dictionary implementation
+  type(scalar_field_pointer), parameter :: SCALAR_FIELD_PTR_NULL = scalar_field_pointer( null() )
 
   type scalar_boundary_condition
      !!< Type to hold boundary condition information for a scalar field
