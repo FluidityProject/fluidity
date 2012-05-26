@@ -4,8 +4,8 @@ preprocess:
 
 run:
 	@echo **********Running simulation
-	../../bin/fluidity mphase_dusty_gas_shock_tube.flml
-	../../bin/fluidity single_phase_frozen_flow_test.flml
+	../../bin/fluidity -v2 -l mphase_dusty_gas_shock_tube.flml
+	../../bin/fluidity -v2 -l single_phase_frozen_flow_test.flml
 
 input: clean preprocess
 
