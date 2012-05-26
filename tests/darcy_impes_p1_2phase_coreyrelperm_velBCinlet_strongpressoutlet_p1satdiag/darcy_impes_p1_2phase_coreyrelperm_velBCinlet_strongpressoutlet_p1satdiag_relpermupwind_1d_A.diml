@@ -279,7 +279,7 @@
       <prescribed>
         <mesh name="PressureMesh"/>
         <value name="WholeMesh">
-          <from_file file_name="reference_solution/darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_1d_A.vtu">
+          <from_file file_name="reference_solution/darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_1d_A_1.vtu">
             <format name="vtu">
               <field_name>
                 <string_value lines="1">Phase1::Saturation</string_value>
