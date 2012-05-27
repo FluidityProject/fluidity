@@ -110,7 +110,7 @@ module geostrophic_pressure
     !! Mass option path
     character(len = OPTION_PATH_LEN) :: mass_option_path
     !! Divergence matrix
-    type(block_csr_matrix) :: ct_m
+    type(block_csr_matrix), pointer :: ct_m
     !! RHS terms from integrating the divergence operator by parts
     type(scalar_field) :: ct_rhs
     !! Mass matrix. Only used when not lumping mass for continuous u_mesh.
@@ -785,6 +785,7 @@ contains
     ewrite(2, *) "Boundary conditions field: ", trim(lbcfield%name)
     
     ct_sparsity => get_csr_sparsity_firstorder(state, matrices%p_mesh, matrices%u_mesh)
+    allocate(matrices%ct_m)
     call allocate(matrices%ct_m, ct_sparsity, blocks = (/1, dim/), name = "CT")
     call allocate(matrices%ct_rhs, matrices%p_mesh, "CTRHS")
     
@@ -1197,6 +1198,7 @@ contains
       end select
     end if
     call deallocate(matrices%ct_m)
+    deallocate(matrices%ct_m)
     call deallocate(matrices%ct_rhs)
     
     if(matrices%have_cmc_m) then
@@ -1434,7 +1436,7 @@ contains
     !!< Compute the divergence of a field
   
     type(vector_field), intent(in) :: field
-    type(block_csr_matrix), intent(in) :: ct_m
+    type(block_csr_matrix), pointer :: ct_m
     type(csr_matrix), intent(in) :: mass
     type(scalar_field), intent(inout) :: div
     
