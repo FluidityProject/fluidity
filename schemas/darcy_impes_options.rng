@@ -975,6 +975,20 @@ Finite Element face value discretisation.</a:documentation>
       </element>
     </choice>
   </define>
+  <define name="darcy_impes_scalar_field_prescribed_or_python_diagnostic_pressure_mesh">
+    <choice>
+      <element name="prescribed">
+        <ref name="mesh_choice_pressure"/>
+        <ref name="prescribed_scalar_field_no_adapt"/>
+        <ref name="darcy_impes_include_cv_stat"/>
+      </element>
+      <element name="diagnostic">
+        <ref name="mesh_choice_element_wise"/>
+        <ref name="darcy_impes_scalar_python_diagnostic_algorithm"/>
+        <ref name="darcy_impes_diagnostic_scalar_field_no_adapt"/>
+      </element>
+    </choice>
+  </define>
   <define name="darcy_impes_non_first_phase_relative_permeability_field">
     <element name="scalar_field">
       <attribute name="rank">
@@ -1465,7 +1479,7 @@ Default value is 1.</a:documentation>
       <attribute name="name">
         <value>Absorption</value>
       </attribute>
-      <ref name="darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh"/>
+      <ref name="darcy_impes_scalar_field_prescribed_or_python_diagnostic_pressure_mesh"/>
     </element>
   </define>
   <define name="darcy_impes_generic_scalar_field_src">
