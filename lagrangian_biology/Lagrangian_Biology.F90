@@ -806,12 +806,15 @@ contains
              FLAbort("Error establishing parametric coordinates for new agent")
           end if
 
+          ! Create ingest/request variables
           if (size(fgroup%food_sets) > 0) then
              if (.not.allocated(agent%food_requests)) then
                 allocate(agent%food_requests(size(fgroup%food_sets(1)%varieties)))
+                agent%food_requests = 0.0
              end if
              if (.not.allocated(agent%food_ingests)) then
                 allocate(agent%food_ingests(size(fgroup%food_sets(1)%varieties)))
+                agent%food_ingests = 0.0
              end if
           end if
 

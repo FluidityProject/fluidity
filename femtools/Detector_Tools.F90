@@ -322,11 +322,13 @@ contains
     integer :: buffer_size
 
     ! Basics: Position(ndims) + element + id + type 
-    buffer_size = ndims+4
+    buffer_size = ndims+3
 
     if (present(nstages)) then
        ! RK advection: k(nstages) + update_vector
        buffer_size = buffer_size + (nstages+1)*ndims
+    else
+       buffer_size = buffer_size + 1
     end if
 
     if (present_and_true(have_ray)) then

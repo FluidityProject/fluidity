@@ -295,6 +295,15 @@ contains
        end if
     end do
 
+    do f=1, size(foodfields)
+       if (ieee_is_nan(agent%food_requests(f))) then
+          FLExit('NaN agent food request detected in '//trim(fgroup%name)//"::"//trim(key))
+       end if
+       if (ieee_is_nan(agent%food_ingests(f))) then
+          FLExit('NaN agent food ingest detected in '//trim(fgroup%name)//"::"//trim(key))
+       end if
+    end do
+
     if (stat < 0) then
        ewrite(-1, *) "Error updating agent "//int2str(agent%id_number)//" for FG::"//trim(fgroup%name)
        FLExit("Python error in LE-Biology")
