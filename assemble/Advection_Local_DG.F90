@@ -1028,17 +1028,12 @@ module advection_local_DG
     type(vector_field), intent(inout) :: Q
     !
     type(csr_sparsity), pointer :: T_sparsity
-    type(csr_matrix) :: Adv_mat, T_lumped_mass,T_lumped_mass_next
+    type(csr_matrix) :: Adv_mat
     type(scalar_field) :: T_rhs
     type(vector_field), pointer :: X, down
     type(scalar_field), pointer :: T_old
     integer :: ele
     real :: dt, t_theta
-    logical :: lump_mass
-    type(element_type), pointer :: T_mass_shape_ptr,D_mass_shape_ptr,&
-         X_mass_shape_ptr
-    type(element_type), target :: T_mass_shape,D_mass_shape,X_mass_shape
-    type(quadrature_type) :: lumped_mass_quad
 
     X=>extract_vector_field(state, "Coordinate")
     down=>extract_vector_field(state, "GravityDirection")
@@ -1046,26 +1041,6 @@ module advection_local_DG
     call get_option('/timestepping/timestep',dt)
     call get_option('/timestepping/theta',t_theta)
     
-    if(have_option('/material_phase::Fluid/scalar_field::Vorticity/prognosti&
-         &c/vorticity_equation/lump_mass')) then
-       lump_mass = .true.
-       call get_p2b_lumped_mass_quadrature(lumped_mass_quad)
-       T_mass_shape = make_element_shape_from_element(T%mesh%shape, &
-            quad=lumped_mass_quad)
-       D_mass_shape = make_element_shape_from_element(D%mesh%shape, &
-            quad=lumped_mass_quad)
-       X_mass_shape = make_element_shape_from_element(X%mesh%shape, &
-            quad=lumped_mass_quad)
-       T_mass_shape_ptr => T_mass_shape
-       D_mass_shape_ptr => D_mass_shape
-       X_mass_shape_ptr => X_mass_shape
-    else
-       lump_mass = .false.
-       T_mass_shape_ptr => T%mesh%shape
-       D_mass_shape_ptr => D%mesh%shape
-       X_mass_shape_ptr => X%mesh%shape
-    end if
-
     !set up matrix and rhs
     T_sparsity => get_csr_sparsity_firstorder(state, T%mesh, T%mesh)
     call allocate(adv_mat, T_sparsity) ! Add data space to the sparsity
@@ -1077,8 +1052,7 @@ module advection_local_DG
 
     do ele = 1, ele_count(T)
        call construct_advection_cg_tracer_ele(T_rhs,adv_mat,T,D,D_old,Flux&
-            &,X,dt,t_theta,ele,T_mass_shape_ptr,D_mass_shape_ptr,&
-            X_mass_shape_ptr)
+            &,X,dt,t_theta,ele)
     end do
 
     ewrite(1,*) 'T_RHS', maxval(abs(T_rhs%val))
@@ -1090,121 +1064,111 @@ module advection_local_DG
        call construct_pv_flux_ele(Q,T,T_old,Flux,X,down,t_theta,ele)
     end do
 
-    !deallocate everything
-    if(lump_mass) then
-       call deallocate(T_mass_shape)
-       call deallocate(D_mass_shape)
-       call deallocate(X_mass_shape)
-       call deallocate(lumped_mass_quad)
-    end if
     call deallocate(adv_mat)
     call deallocate(T_rhs)
 
   end subroutine solve_advection_cg_tracer
   
-  subroutine construct_advection_cg_tracer_ele(T_rhs,adv_mat,T,D,D_old,Flux,&
-       & X,dt,t_theta,ele,T_mass_shape,D_mass_shape,X_mass_shape)
-    type(scalar_field), intent(in) :: D,D_old,T
-    type(scalar_field), intent(inout) :: T_rhs
+  subroutine construct_advection_cg_tracer_ele(Q_rhs,adv_mat,Q,D,D_old,Flux,&
+       & X,dt,t_theta,ele)
+    type(scalar_field), intent(in) :: D,D_old,Q
+    type(scalar_field), intent(inout) :: Q_rhs
     type(csr_matrix), intent(inout) :: Adv_mat
     type(vector_field), intent(in) :: X, Flux
-    type(element_type), intent(in) :: T_mass_shape,D_mass_shape,X_mass_shape
     integer, intent(in) :: ele
     real, intent(in) :: dt, t_theta
     !
-    real, dimension(ele_loc(T,ele),ele_loc(T,ele)) :: l_adv_mat
-    real, dimension(ele_loc(T,ele)) :: l_rhs
+    real, dimension(ele_loc(Q,ele),ele_loc(Q,ele)) :: l_adv_mat
+    real, dimension(ele_loc(Q,ele)) :: l_rhs
     real, dimension(Flux%dim,ele_ngi(Flux,ele)) :: Flux_gi
-    real, dimension(ele_ngi(X,ele)) :: detwei, T_gi
-    real, dimension(X_mass_shape%ngi) :: detwei_m, D_gi, T_m_gi, D_old_gi
+    real, dimension(ele_ngi(X,ele)) :: detwei, Q_gi, D_gi, D_old_gi
     real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
-    real, dimension(mesh_dim(X), X%dim, X_mass_shape%ngi) :: J_m
-    type(element_type), pointer :: T_shape
+    type(element_type), pointer :: Q_shape
     integer :: loc
 
-    T_shape => ele_shape(T,ele)
-    D_gi = matmul(transpose(D_mass_shape%n),ele_val(D,ele))
-    D_old_gi = matmul(transpose(D_mass_shape%n),ele_val(D_old,ele))
-    T_gi = ele_val_at_quad(T,ele)
-    T_m_gi = matmul(transpose(T_mass_shape%n),ele_val(T,ele))
+    Q_shape => ele_shape(Q,ele)
+    D_gi = ele_val_at_quad(D,ele)
+    D_old_gi = ele_val_at_quad(D_old,ele)
+    Q_gi = ele_val_at_quad(Q,ele)
     Flux_gi = ele_val_at_quad(Flux,ele)
-
-    !Mass terms
-    ! Get J and detJ
-    call compute_jacobian(ele_val(X,ele), X_mass_shape, detwei&
-         &=detwei_m, J=J_m)
-    l_adv_mat = shape_shape(T_mass_shape,T_mass_shape,D_gi*detwei_m)
-    l_rhs = shape_rhs(T_mass_shape,T_m_gi*D_old_gi*detwei_m)
 
     !Equations
     ! D^{n+1} = D^n + div Flux --- POINTWISE
-    ! Projected D satisfies
-    ! <\gamma, \bar{D}> = <\gamma, D>
     ! So (integrating by parts)
-    ! <\gamma, \bar{D}^{n+1}> = <\gamma, \bar{D}^n> - <\nabla\gamma, F>
-    ! and a consistent theta-method for T is
-    ! <\gamma, \bar{D}^{n+1}T^{n+1}> = <\gamma, D^nT^n> - 
-    !                                     \theta<\nabla\gamma,FT^{n+1}> 
-    !                                  -(1-\theta)<\nabla\gamma,FT^n>
+    ! <\gamma, D^{n+1}> = <\gamma, D^n> - <\nabla\gamma, F>
+    ! and a consistent theta-method for Q is
+    ! <\gamma, D^{n+1}Q^{n+1}> = <\gamma, D^nQ^n> - 
+    !                                     \theta<\nabla\gamma,FQ^{n+1}> 
+    !                                  -(1-\theta)<\nabla\gamma,FQ^n>
 
-    !Advection terms
+
+    ! Get J and detwei
     call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), detwei&
          &=detwei, J=J)
+    !Mass terms
+    l_adv_mat = shape_shape(ele_shape(Q,ele),ele_shape(Q,ele),D_gi*detwei)
+    l_rhs = shape_rhs(ele_shape(Q,ele),Q_gi*D_old_gi*detwei)
+    !Advection terms
     l_adv_mat = l_adv_mat + t_theta*dshape_dot_vector_shape(&
-         T_shape%dn,Flux_gi,T_shape,T_shape%quadrature%weight)
+         Q_shape%dn,Flux_gi,Q_shape,Q_shape%quadrature%weight)
     l_rhs = l_rhs - (1-t_theta)*dshape_dot_vector_rhs(&
-         T_shape%dn,Flux_gi,T_gi*T_shape%quadrature%weight)
+         Q_shape%dn,Flux_gi,Q_gi*Q_shape%quadrature%weight)
 
-    call addto(T_rhs,ele_nodes(T_rhs,ele),l_rhs)
-    call addto(adv_mat,ele_nodes(T_rhs,ele),ele_nodes(T_rhs,ele),&
+    call addto(Q_rhs,ele_nodes(Q_rhs,ele),l_rhs)
+    call addto(adv_mat,ele_nodes(Q_rhs,ele),ele_nodes(Q_rhs,ele),&
          l_adv_mat)    
 
   end subroutine construct_advection_cg_tracer_ele
 
-  subroutine construct_pv_flux_ele(Q,T,T_old,Flux,X,down,t_theta,ele)
-    type(scalar_field), intent(in) :: T,T_old
-    type(vector_field), intent(inout) :: Q
+  subroutine construct_pv_flux_ele(FQ,Q,Q_old,Flux,X,down,t_theta,ele)
+    type(scalar_field), intent(in) :: Q,Q_old
+    type(vector_field), intent(inout) :: FQ
     type(vector_field), intent(in) :: X, Flux, Down
     integer, intent(in) :: ele
     real, intent(in) :: t_theta
     !
-    real, dimension(mesh_dim(X),ele_loc(Q,ele)) :: Q_rhs, Q_perp_rhs
+    real, dimension(mesh_dim(X),ele_loc(FQ,ele)) :: FQ_rhs, FQ_perp_rhs
     real, dimension(Flux%dim,ele_ngi(Flux,ele)) :: Flux_gi
-    real, dimension(ele_ngi(X,ele)) :: T_gi,T_old_gi
-    real, dimension(X%dim, ele_ngi(T, ele)) :: up_gi
-    type(element_type), pointer :: T_shape, Q_shape
+    real, dimension(ele_ngi(X,ele)) :: Q_gi,Q_old_gi
+    real, dimension(X%dim, ele_ngi(Q, ele)) :: up_gi
+    type(element_type), pointer :: Q_shape, FQ_shape
     integer :: loc, orientation
 
-    T_shape => ele_shape(T,ele)
     Q_shape => ele_shape(Q,ele)
-    T_gi = ele_val_at_quad(T,ele)
-    T_old_gi = ele_val_at_quad(T_old,ele)
+    FQ_shape => ele_shape(FQ,ele)
+    Q_gi = ele_val_at_quad(Q,ele)
+    Q_old_gi = ele_val_at_quad(Q_old,ele)
     Flux_gi = ele_val_at_quad(Flux,ele)
 
     up_gi = -ele_val_at_quad(down,ele)
     call get_up_gi(X,ele,up_gi,orientation)
 
     !Equations
-    ! and a consistent theta-method for T is
-    ! <\gamma, \bar{D}^{n+1}T^{n+1}> = <\gamma, D^nT^n> - 
-    !                                     \theta<\nabla\gamma,FT^{n+1}> 
-    !                                  -(1-\theta)<\nabla\gamma,FT^n>
+    ! <\nabla \gamma, (-v,u)> = <(\gamma_x, \gamma_y),(-v,u)>
+    !                         = <(\gamma_y,-\gamma_x),( u,v)>
+    !                         = <-\nabla^\perp\gamma,(u,v)>
+
+    ! and a consistent theta-method for Q is
+    ! <\gamma, D^{n+1}Q^{n+1}> = <\gamma, D^nQ^n> - 
+    !                                     \theta<\nabla\gamma,FQ^{n+1}> 
+    !                                  -(1-\theta)<\nabla\gamma,FQ^n>
     ! So velocity update is 
     ! <\gamma, \zeta^{n+1}> = <-\nabla^\perp\gamma,u^{n+1}>
-    != <-\nabla^\perp\gamma,u^n> + \theta<-\nabla^\perp\gamma,(FT^{n+1})^\perp>
-    !  +(1-\theta)<-\nabla^\perp\gamma,(FT^n)^\perp>
+    != <-\nabla^\perp\gamma,u^n> 
+    !  +\theta<-\nabla^\perp\gamma,(FQ^{n+1})^\perp>
+    !  +(1-\theta)<-\nabla^\perp\gamma,(FQ^n)^\perp>
     ! taking w = -\nabla^\perp\gamma,
-    ! <w,u^{n+1}>=<w,u^n> + <w,F(\theta T^{n+1}^\perp+(1-\theta)T^n)>
-    ! We actually store the inner product with test function (Q_rhs)
+    ! <w,u^{n+1}>=<w,u^n> + <w,F(\theta Q^{n+1}+(1-\theta)Q^n)^\perp>
+    ! We actually store the inner product with test function (FQ_rhs)
     ! (avoids having to do a solve)
     ! Integration can be done locally using magic exterior calculus
 
-    Q_rhs = shape_vector_rhs(Q_shape,Flux_gi,(t_theta*T_gi + &
-         (1-t_theta)*T_old_gi)*q%mesh%shape%quadrature%weight)
-    Q_perp_rhs(1,:) = -Q_rhs(2,:)*orientation
-    Q_perp_rhs(2,:) =  Q_rhs(1,:)*orientation
+    FQ_rhs = shape_vector_rhs(FQ_shape,Flux_gi,(t_theta*Q_gi + &
+         (1-t_theta)*Q_old_gi)*q%mesh%shape%quadrature%weight)
+    FQ_perp_rhs(1,:) = -FQ_rhs(2,:)*orientation
+    FQ_perp_rhs(2,:) =  FQ_rhs(1,:)*orientation
 
-    call set(Q,ele_nodes(Q,ele),Q_perp_rhs)
+    call set(FQ,ele_nodes(FQ,ele),FQ_perp_rhs)
     
   end subroutine construct_pv_flux_ele
 
@@ -1363,7 +1327,8 @@ module advection_local_DG
     integer :: gi
     type(element_type), pointer :: U_shape
 
-    !<w,r> = <w,u^{n+1}-u^n> + <w,Q^\perp> - dt*<div w, g\bar{h} + \bar{|u|^2/2}
+    !<w,r> = <w,u^{n+1}-u^n> + <w,FQ^\perp> 
+    !           - dt*<div w, g\bar{h} + \bar{|u|^2/2}
 
     call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), &
          detwei=detwei, J=J, detJ=detJ)
