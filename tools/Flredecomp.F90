@@ -76,7 +76,6 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
 #ifdef HAVE_ZOLTAN
   real(zoltan_float) :: ver
   integer(zoltan_int) :: ierr
-  real :: global_min_quality
 
   ierr = Zoltan_Initialize(ver)  
   assert(ierr == ZOLTAN_OK)
@@ -170,7 +169,7 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
   no_active_processes = target_nprocs
   
 #ifdef HAVE_ZOLTAN
-  call zoltan_drive(state, .true., global_min_quality, initialise_fields=.true., ignore_extrusion=skip_initial_extrusion, &
+  call zoltan_drive(state, .true., initialise_fields=.true., ignore_extrusion=skip_initial_extrusion, &
      & flredecomping=.true., input_procs = input_nprocs, target_procs = target_nprocs)
 #else
   call strip_level_2_halo(state, initialise_fields=.true.)

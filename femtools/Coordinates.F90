@@ -43,14 +43,13 @@ module Coordinates
   private
   
   logical::initialised=.false.
-  real, parameter:: earth_radius = 6378000
   real, parameter:: rad_to_deg = 180.0/pi
   real, parameter:: deg_to_rad = pi/180.0
   
   public:: &
        LongitudeLatitude,  &
-       cart2spher, spher2cart, ll2r3_rotate, rotate2ll, &
-       earth_radius, higher_order_sphere_projection, &
+       ll2r3_rotate, rotate2ll, &
+       higher_order_sphere_projection, &
        sphere_inward_normal_at_quad_ele, sphere_inward_normal_at_quad_face, &
        rotate_diagonal_to_sphere_gi, rotate_diagonal_to_sphere_face, &
        rotate_ct_m_sphere, rotate_momentum_to_sphere, &
@@ -63,10 +62,9 @@ module Coordinates
 
 contains
     
-  subroutine LongitudeLatitude_single(xyz, longitude, latitude, height)
+  subroutine LongitudeLatitude_single(xyz, longitude, latitude)
     real, dimension(:), intent(in):: xyz
     real, intent(out):: longitude, latitude
-    real, intent(out), optional:: height
     real r
     
     assert( size(xyz)==3 )
@@ -78,33 +76,22 @@ contains
        FLAbort("Coordinate doesn't appear to be on the Earth's surface")
     end if
 
-    if(present(height)) then
-       height = r - earth_radius
-    end if
     longitude = rad_to_deg*atan2(xyz(2), xyz(1))
     latitude = 90.0 - rad_to_deg*acos(xyz(3)/r)
     
   end subroutine LongitudeLatitude_single
   
-  subroutine LongitudeLatitude_multiple(xyz, longitude, latitude, height)
+  subroutine LongitudeLatitude_multiple(xyz, longitude, latitude)
     real, dimension(:,:), intent(in):: xyz
     real, dimension(:), intent(out):: longitude, latitude
-    real, dimension(:), intent(out), optional::height
     
     integer i
     
-    if (present(height)) then
-       do i=1, size(xyz,2)
-          call LongitudeLatitude_single( xyz(:,i), &
-              longitude(i), latitude(i), height(i))
-       end do
-    else
-       do i=1, size(xyz,2)
-          call LongitudeLatitude_single( xyz(:,i), &
-              longitude(i), latitude(i))
-       end do
-    end if
-    
+     do i=1, size(xyz,2)
+        call LongitudeLatitude_single( xyz(:,i), &
+            longitude(i), latitude(i))
+     end do
+  
   end subroutine LongitudeLatitude_multiple
     
   elemental subroutine ll2r3_rotate(longitude, latitude, u, v, r3u, r3v, r3w)
@@ -129,53 +116,11 @@ contains
     lat = deg_to_rad*latitude
     long = deg_to_rad*longitude 
     
-    u = -(r3u*sin(long)) + r3w*cos(long)
-    v = r3u*cos(long)*sin(lat) + r3v*sin(long)*sin(lat) - r3w*cos(lat)
+    u = -(r3u*sin(long)) + r3v*cos(long)
+    v = -r3u*cos(long)*sin(lat) - r3v*sin(long)*sin(lat) + r3w*cos(lat)
 
   end subroutine rotate2ll
 
-  subroutine spher2cart(x,y,lat,long,prime_meridian,horiz_rescale)
-    real, intent(in)::lat,long,prime_meridian,horiz_rescale
-    real, intent(out)::x,y
-    
-    !  lat/long in degrees assumed at the moment            
-    x = earth_radius*cos(lat/rad_to_deg)*(long - prime_meridian)
-    y = earth_radius*lat      
-    
-    ! scale from real units to something that model is using      
-    x = x/horiz_rescale
-    y = y/horiz_rescale
-    
-  end subroutine spher2cart
-  
-  pure subroutine cart2spher(x,y,lat,long,prime_meridian,horiz_rescale,rad)
-    real, intent(in)::x,y,prime_meridian,horiz_rescale
-    logical, intent(in)::rad
-    real, intent(out)::lat,long
-    
-    real xtmp,ytmp
-
-    xtmp = x*horiz_rescale
-    ytmp = y*horiz_rescale
-
-    !     ewrite(3,*) horiz_rescale,x,y
-
-    lat  = ytmp/earth_radius
-    long = xtmp/(earth_radius*cos(lat))
-
-
-    if(rad) then
-       long = long + prime_meridian/rad_to_deg
-       if(long.lt.0.0) long = 2*pi + long
-    else
-       ! convert to degrees
-       lat  = lat*rad_to_deg
-       long = long*rad_to_deg + prime_meridian
-       if(long.lt.0.0) long = 360.0 + long
-    endif
-
-  end subroutine cart2spher
-  
   subroutine higher_order_sphere_projection(positions, s_positions)
     !!< Given a P1 'positions' field and a Pn 's_positions' field, bends the 
     !!< elements of the 's_positions' field onto the sphere

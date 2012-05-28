@@ -32,6 +32,7 @@ module transform_elements
   use quadrature
   use elements
   use vector_tools
+  use parallel_tools, only: abort_if_in_parallel_region
   use fields_base
   use cv_faces, only: cv_faces_type
   use eventcounter
@@ -62,7 +63,8 @@ module transform_elements
             transform_cvsurf_to_physical, transform_cvsurf_facet_to_physical, &
             transform_superconvergent_to_physical, transform_horizontal_to_physical, &
             compute_jacobian, compute_inverse_jacobian, element_volume,&
-            cache_transform_elements, deallocate_transform_cache
+            cache_transform_elements, deallocate_transform_cache, &
+            prepopulate_transform_cache
   
   integer, parameter :: cyc3(1:5)=(/ 1, 2, 3, 1, 2 /)  
 
@@ -167,6 +169,51 @@ contains
     
   end function retrieve_cached_transform_det
 
+  function prepopulate_transform_cache(X) result(cache_valid)
+    !!< Prepopulate the caches for transform_to_physical and
+    !!< transform_face_to_physical
+    !!
+    !!< If you're going to call transform_to_physical on a coordinate
+    !!< field inside a threaded region, you need to call this on the
+    !!< same field before entering the region.
+    type(vector_field), intent(in) :: X
+    logical :: cache_valid
+    logical :: face_cache_valid
+    cache_valid=.true.
+    face_cache_valid=.true.
+    ! Although the caches are thread safe, the code that assembles the
+    ! caches is not so we want a simple way to construct them if
+    ! appropriate before entering a threaded region.
+    if (X%refcount%id /= position_id) then
+       cache_valid=.false.
+       if (X%name/="Coordinate") then
+          !!< If Someone is not calling this on the main Coordinate field
+          !!< then we're screwed anyway.
+          return
+       end if
+    else if (eventcount(EVENT_MESH_MOVEMENT) /= last_mesh_movement) then
+       cache_valid=.false.
+    end if
+
+    if (X%refcount%id /= face_position_id) then
+       face_cache_valid=.false.
+    else if (eventcount(EVENT_MESH_MOVEMENT) /= face_last_mesh_movement) then
+       face_cache_valid = .false.
+    end if
+
+    if (.not.cache_valid) then
+       call construct_cache(X)
+       cache_valid=.true.
+    end if
+
+    if (.not.face_cache_valid) then
+       call construct_face_cache(X)
+       face_cache_valid=.true.
+    end if
+
+    cache_valid = cache_valid .and. face_cache_valid
+
+  end function prepopulate_transform_cache
 
   subroutine construct_cache(X)
     !!< The cache is invalid so make a new one.
@@ -178,6 +225,8 @@ contains
     type(element_type), pointer :: X_shape
 
 !    ewrite(1,*) "Reconstructing element geometry cache."
+
+    call abort_if_in_parallel_region
 
     position_id=X%refcount%id
     last_mesh_movement=eventcount(EVENT_MESH_MOVEMENT)
@@ -304,6 +353,8 @@ contains
     integer, dimension(:), pointer :: neigh
     
 !    ewrite(1,*) "Reconstructing element geometry cache."
+
+    call abort_if_in_parallel_region
 
     face_position_id=X%refcount%id
     face_last_mesh_movement=eventcount(EVENT_MESH_MOVEMENT)

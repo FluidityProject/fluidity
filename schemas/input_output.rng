@@ -6,7 +6,7 @@
   </define>
   <define name="input_choice_real_plus_boundary_forcing">
     <choice>
-      <ref name="input_choice_real_contents"/>
+      <ref name="input_choice_real_plus_field"/>
       <element name="from_file">
         <oneOrMore>
           <element name="tidal">
@@ -128,6 +128,25 @@ the domain. Please input the number of layers you
 wish below.</a:documentation>
           <ref name="integer"/>
         </element>
+      </element>
+    </choice>
+  </define>
+  <define name="input_choice_real_plus_field">
+    <choice>
+      <ref name="input_choice_real_contents"/>
+      <element name="from_field">
+        <a:documentation>The parent field contains the boundary values that you want to apply as a boundary condition to this field.
+
+Note 1: Only works with a parent field in the same material_phase.
+
+Note 2: If the parent field is time-dependent, then the boundary values being used will be 1 timestep out since the parent field is only re-computed after BCs are set at the beginning of each timestep.
+
+Note 3: The parent field must be remappable to this field (e.g. remapping from a discontinuous to a continuous field, or from a higher order to a lower order field, is not allowed).
+
+Note 4: The j-th component of a vector field BC can be set from either a scalar parent field or a vector parent field. In the latter case, the BC data will be obtained from j-th component of the parent field. A scalar field BC can only be set from a scalar parent field.</a:documentation>
+        <attribute name="parent_field_name">
+          <data type="string"/>
+        </attribute>
       </element>
     </choice>
   </define>
@@ -584,7 +603,7 @@ Currently only works with triangle files created by gmsh2triangle.</a:documentat
   </define>
   <define name="input_choice_real_bc_component">
     <choice>
-      <ref name="input_choice_real"/>
+      <ref name="input_choice_real_plus_field"/>
       <element name="synthetic_eddy_method">
         <element name="number_of_eddies">
           <a:documentation>use a large number to ensure Gaussian 
