@@ -233,11 +233,6 @@
       !Set up old values
       call set(U_old,U)
       call set(D_old,D)
-      !PV calculation
-      if(have_pv) then
-         call get_PV(state,PV,U_old,D_old)
-         call set(PV_old,PV)
-      end if
 
       if(have_option('/material_phase::Fluid/vector_field::Velocity/&
            &prognostic/spatial_discretisation/discontinuous_galerkin/wave&
@@ -281,6 +276,12 @@
             call zero(UResidual)
             call zero(DResidual)
 
+            !PV calculation
+            if(have_pv) then
+               call get_PV(state,PV,U_old,D_old)
+               call set(PV_old,PV)
+            end if
+
             !Start of Newton iteration loop
             newton_iteration: do nits = 1, nonlinear_iterations
                !Set up advecting velocity 
@@ -313,10 +314,14 @@
                     & UResidual,DResidual)
             end do newton_iteration
 
+            !Final PV calculation for output
+            call get_PV(state,PV,newU,newD)         
+
             call deallocate(MassFlux)
             call deallocate(PVFlux)
             call deallocate(UResidual)
             call deallocate(DResidual)
+            
          end if
 
          ewrite(1,*) 'jump in D', maxval(abs(d%val-newd%val))
@@ -325,8 +330,6 @@
          call set(D,newD)
          call set(U,newU)
 
-         !Final PV calculation for output
-         call get_PV(state,PV,newU,newD)         
          call deallocate(newU)
          call deallocate(newD)
       end if
@@ -336,7 +339,7 @@
     subroutine setup_fields(state)
       type(state_type), intent(inout) :: state
       type(vector_field), pointer :: v_field,U,X,Z
-      type(scalar_field), pointer :: s_field,D,f_ptr, D_projected
+      type(scalar_field), pointer :: s_field,D,f_ptr
       type(mesh_type), pointer :: v_mesh
       type(vector_field) :: U_local, advecting_u, old_U
       character(len=PYTHON_FUNC_LEN) :: coriolis
@@ -390,12 +393,12 @@
       s_field => extract_scalar_field(&
            state, "PotentialVorticity",stat)
       if(stat==0) then
-         call allocate(new_s_field, D_projected%mesh,&
+         call allocate(new_s_field, s_field%mesh,&
               "OldPotentialVorticity")
          call zero(new_s_field)
          call insert(state, new_s_field, "OldPotentialVorticity")
          call deallocate(new_s_field)
-         call allocate(new_s_field, D_projected%mesh,&
+         call allocate(new_s_field, s_field%mesh,&
               "PVConsistency")
          call zero(new_s_field)
          call insert(state, new_s_field, "PVConsistency")
@@ -422,13 +425,15 @@
       v_field => extract_vector_field(state, "LocalVelocity")
       call project_to_constrained_space(state,v_field)
 
-    !VARIOUS BALANCED INITIAL OPTIONS
-    ! Geostrophic balanced initial condition, if required
-      s_field => extract_scalar_field(state,"Streamfunction")
-      if(s_field%mesh%shape%numbering%type==ELEMENT_BUBBLE) then
-         call remove_bubble_component(s_field)
+      !VARIOUS BALANCED INITIAL OPTIONS
+      ! Geostrophic balanced initial condition, if required
+      s_field => extract_scalar_field(state,"Streamfunction",stat)
+      if(stat==0) then
+         if(s_field%mesh%shape%numbering%type==ELEMENT_BUBBLE) then
+            call remove_bubble_component(s_field)
+         end if
       end if
-    if(have_option("/material_phase::Fluid/vector_field::Velocity/prognostic&
+      if(have_option("/material_phase::Fluid/vector_field::Velocity/prognostic&
          &/initial_condition::WholeMesh/balanced")) then
        call set_velocity_from_geostrophic_balance_hybridized(state)
     end if

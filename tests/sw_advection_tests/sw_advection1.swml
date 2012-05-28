@@ -374,13 +374,6 @@
         <stat/>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="PotentialVorticity" rank="0">
-      <prognostic>
-        <mesh name="VorticityMesh"/>
-        <output/>
-        <stat/>
-      </prognostic>
-    </scalar_field>
     <scalar_field name="PotentialVorticityTracer" rank="0">
       <prognostic>
         <initial_condition name="WholeMesh">
