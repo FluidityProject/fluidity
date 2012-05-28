@@ -11735,12 +11735,12 @@ if test "${enable_sam+set}" = set; then :
 fi
 
 if test "$enable_sam" = "yes"; then
-    HAVE_ZOLTAN=no
+  HAVE_ZOLTAN=no
 else
-    if test "$with_zoltan" = no; then
-        HAVE_ZOLTAN=no
-        echo "Warning: zoltan disabled, using libsam instead"
-    fi
+  if test "$with_zoltan" = no; then
+    HAVE_ZOLTAN=no
+    echo "Warning: zoltan disabled, using libsam instead"
+  else
     HAVE_ZOLTAN=yes
     zoltan=yes
 
@@ -11858,8 +11858,8 @@ ZOLTAN="yes"
 
 echo $LIBS
 
+  fi
 fi
-
 
 
 
