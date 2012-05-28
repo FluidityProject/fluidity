@@ -430,6 +430,11 @@ if isn't present as a field in state.</a:documentation>
                 </element>
                 <ref name="prognostic_scalar_output_options"/>
                 <ref name="prognostic_scalar_stat_options"/>
+                <optional>
+                  <element name="debug">
+                    <empty/>
+                  </element>
+                </optional>
               </element>
             </element>
           </optional>

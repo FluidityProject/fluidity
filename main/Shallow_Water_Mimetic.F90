@@ -305,9 +305,10 @@
                call compute_U_residual(UResidual,U_old,D_old,&
                     newU,newD,PVFlux,state)
 
-               ! Check U residual is consistent
-               call get_PV(state,PVconsistency,newU,newD,PV%option_path)
-               assert(maxval(abs(PV_Old%val - PV%val-PVconsistency%val))<1.0e-8)
+               !NOTES ON CHECKING RESIDUAL
+               !Requires to solve mass matrix (with metric) 
+               !on UResidual, with constraints and projection,
+               !to compute the corresponding vorticity
 
                !Perform (quasi)Newton iteration
                call solve_hybridised_timestep_residual(state,newU,newD,&

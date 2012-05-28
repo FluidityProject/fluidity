@@ -1014,58 +1014,58 @@ module advection_local_DG
 
   end subroutine construct_adv_interface_dg  
 
-  subroutine solve_advection_cg_tracer(T,D,D_old,Flux,Q,state)
-    !!< Solve the continuity equation for D*T with Flux
-    !!< d/dt (D*T) + div(Flux*T) = diffusion terms.
+  subroutine solve_advection_cg_tracer(Q,D,D_old,Flux,QF,state)
+    !!< Solve the continuity equation for D*Q with Flux
+    !!< d/dt (D*Q) + div(Flux*Q) = diffusion terms.
     !!< Done on the vorticity mesh
     !!< Return a PV flux Q defined on the velocity mesh
-    !!< which is the projection of Flux*T into the velocity space
+    !!< which is the projection of Flux*Q into the velocity space
     !!< Note that Flux and Q contain a factor of dt for convenience.
     type(state_type), intent(inout) :: state
     type(scalar_field), intent(in),target :: D,D_old
-    type(scalar_field), intent(inout),target :: T
+    type(scalar_field), intent(inout),target :: Q
     type(vector_field), intent(in) :: Flux
-    type(vector_field), intent(inout) :: Q
+    type(vector_field), intent(inout) :: QF
     !
-    type(csr_sparsity), pointer :: T_sparsity
+    type(csr_sparsity), pointer :: Q_sparsity
     type(csr_matrix) :: Adv_mat
-    type(scalar_field) :: T_rhs
+    type(scalar_field) :: Q_rhs
     type(vector_field), pointer :: X, down
-    type(scalar_field), pointer :: T_old
+    type(scalar_field), pointer :: Q_old
     integer :: ele
     real :: dt, t_theta
 
     X=>extract_vector_field(state, "Coordinate")
     down=>extract_vector_field(state, "GravityDirection")
-    T_old=>extract_scalar_field(state, "Old"//trim(T%name))
+    Q_old=>extract_scalar_field(state, "Old"//trim(Q%name))
     call get_option('/timestepping/timestep',dt)
     call get_option('/timestepping/theta',t_theta)
     
     !set up matrix and rhs
-    T_sparsity => get_csr_sparsity_firstorder(state, T%mesh, T%mesh)
-    call allocate(adv_mat, T_sparsity) ! Add data space to the sparsity
+    Q_sparsity => get_csr_sparsity_firstorder(state, Q%mesh, Q%mesh)
+    call allocate(adv_mat, Q_sparsity) ! Add data space to the sparsity
     ! pattern.
     call zero(adv_mat)
-    call allocate(T_rhs,T%mesh,trim(T%name)//"RHS")
-    call zero(T_rhs)
-    call zero(Q)
+    call allocate(Q_rhs,Q%mesh,trim(Q%name)//"RHS")
+    call zero(Q_rhs)
+    call zero(QF)
 
-    do ele = 1, ele_count(T)
-       call construct_advection_cg_tracer_ele(T_rhs,adv_mat,T,D,D_old,Flux&
+    do ele = 1, ele_count(Q)
+       call construct_advection_cg_tracer_ele(Q_rhs,adv_mat,Q,D,D_old,Flux&
             &,X,dt,t_theta,ele)
     end do
 
-    ewrite(1,*) 'T_RHS', maxval(abs(T_rhs%val))
+    ewrite(1,*) 'Q_RHS', maxval(abs(Q_rhs%val))
 
-    call petsc_solve(T,adv_mat,T_rhs)
+    call petsc_solve(Q,adv_mat,Q_rhs)
 
     !! Compute the PV flux to pass to velocity equation
-    do ele = 1, ele_count(T)
-       call construct_pv_flux_ele(Q,T,T_old,Flux,X,down,t_theta,ele)
+    do ele = 1, ele_count(Q)
+       call construct_pv_flux_ele(QF,Q,Q_old,Flux,X,down,t_theta,ele)
     end do
 
     call deallocate(adv_mat)
-    call deallocate(T_rhs)
+    call deallocate(Q_rhs)
 
   end subroutine solve_advection_cg_tracer
   
@@ -1120,22 +1120,23 @@ module advection_local_DG
 
   end subroutine construct_advection_cg_tracer_ele
 
-  subroutine construct_pv_flux_ele(FQ,Q,Q_old,Flux,X,down,t_theta,ele)
+  subroutine construct_pv_flux_ele(QFlux,Q,Q_old,Flux,X,down,t_theta,ele)
     type(scalar_field), intent(in) :: Q,Q_old
-    type(vector_field), intent(inout) :: FQ
+    type(vector_field), intent(inout) :: QFlux
     type(vector_field), intent(in) :: X, Flux, Down
     integer, intent(in) :: ele
     real, intent(in) :: t_theta
     !
-    real, dimension(mesh_dim(X),ele_loc(FQ,ele)) :: FQ_rhs, FQ_perp_rhs
+    real, dimension(mesh_dim(X),ele_loc(QFlux,ele)) :: QFlux_rhs, QFlux_perp_rhs
     real, dimension(Flux%dim,ele_ngi(Flux,ele)) :: Flux_gi
-    real, dimension(ele_ngi(X,ele)) :: Q_gi,Q_old_gi
+    real, dimension(ele_ngi(X,ele)) :: Q_gi,Q_old_gi,D_gi,D_old_gi
+    real, dimension(ele_loc(Q,ele)) :: Q_test1,Q_test2
     real, dimension(X%dim, ele_ngi(Q, ele)) :: up_gi
-    type(element_type), pointer :: Q_shape, FQ_shape
-    integer :: loc, orientation
+    type(element_type), pointer :: Q_shape, QFlux_shape
+    integer :: loc, orientation,gi
 
     Q_shape => ele_shape(Q,ele)
-    FQ_shape => ele_shape(FQ,ele)
+    QFlux_shape => ele_shape(QFlux,ele)
     Q_gi = ele_val_at_quad(Q,ele)
     Q_old_gi = ele_val_at_quad(Q_old,ele)
     Flux_gi = ele_val_at_quad(Flux,ele)
@@ -1162,14 +1163,15 @@ module advection_local_DG
     ! We actually store the inner product with test function (FQ_rhs)
     ! (avoids having to do a solve)
     ! Integration can be done locally using magic exterior calculus
+    ! CAN IT THOUGH??????
 
-    FQ_rhs = shape_vector_rhs(FQ_shape,Flux_gi,(t_theta*Q_gi + &
+    QFlux_rhs = shape_vector_rhs(QFlux_shape,Flux_gi,(t_theta*Q_gi + &
          (1-t_theta)*Q_old_gi)*q%mesh%shape%quadrature%weight)
-    FQ_perp_rhs(1,:) = -FQ_rhs(2,:)*orientation
-    FQ_perp_rhs(2,:) =  FQ_rhs(1,:)*orientation
+    QFlux_perp_rhs(1,:) = -QFlux_rhs(2,:)*orientation
+    QFlux_perp_rhs(2,:) =  QFlux_rhs(1,:)*orientation
 
-    call set(FQ,ele_nodes(FQ,ele),FQ_perp_rhs)
-    
+    call set(QFlux,ele_nodes(QFlux,ele),QFlux_perp_rhs)
+
   end subroutine construct_pv_flux_ele
 
   subroutine get_PV(state,PV,velocity,D,path)
@@ -1185,7 +1187,7 @@ module advection_local_DG
     type(csr_sparsity), pointer :: pv_mass_sparsity, curl_sparsity
     type(scalar_field) :: pv_rhs
     integer :: ele
-    
+
     ewrite(1,*) 'subroutine get_pv'
 
     pv_mass_sparsity => &
@@ -1327,8 +1329,8 @@ module advection_local_DG
     integer :: gi
     type(element_type), pointer :: U_shape
 
-    !<w,r> = <w,u^{n+1}-u^n> + <w,FQ^\perp> 
-    !           - dt*<div w, g\bar{h} + \bar{|u|^2/2}
+    !r[w] = <w,u^{n+1}-u^n> + <w,FQ^\perp> 
+    !           - dt*<div w, g\bar{h} + \bar{|u|^2/2}>
 
     call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), &
          detwei=detwei, J=J, detJ=detJ)
@@ -1356,13 +1358,14 @@ module advection_local_DG
     !First the PV Flux (perped)
     UR_rhs = ele_val(PVFlux,ele)
     !Now the time derivative term
-    UR_rhs = UR_rhs + theta*shape_vector_rhs(U_shape,newU_rhs-U_rhs,&
+    UR_rhs = UR_rhs + shape_vector_rhs(U_shape,newU_rhs-U_rhs,&
          U_shape%quadrature%weight)
     !Now the gradient terms (done in local coordinates)
     D_bar_gi = theta*newD_gi + (1-theta)*D_gi
     K_bar_gi = 0.5*(theta*sum(newU_cart_gi,1)+(1-theta)*sum(U_cart_gi,1))
 
-    UR_rhs = UR_rhs - dt * dshape_rhs(U_shape%dn,g*D_bar_gi + K_bar_gi)
+    UR_rhs = UR_rhs - dt * dshape_rhs(U_shape%dn,&
+         (g*D_bar_gi + K_bar_gi)*U_shape%quadrature%weight)
 
     call set(UResidual,ele_nodes(UResidual,ele),UR_rhs)
 
