@@ -671,7 +671,7 @@ contains
        bcast_rounds = maxval(ndets_being_bcast)
        call allmax(bcast_rounds)
        do round=1, bcast_rounds
-          ndata_per_det = detector_buffer_size(xfield%dim)
+          ndata_per_det = detector_buffer_size(xfield%dim,fgroup=detector_list%fgroup)
 
           ! Broadcast detectors whose new owner we can't identify
           do i=1,getnprocs()
@@ -683,7 +683,7 @@ contains
 
                    ! Pack the first detector from the bcast_list
                    detector=>detector_bcast_list%first
-                   call pack_detector(detector, send_buff(1:ndata_per_det), xfield%dim)
+                   call pack_detector(detector, send_buff(1:ndata_per_det), xfield%dim,fgroup=detector_list%fgroup)
                    call delete(detector, detector_bcast_list)
 
                    ! Broadcast the detectors you want to send
@@ -704,7 +704,7 @@ contains
                       shape=>ele_shape(xfield,1)
                       detector=>null()
                       call allocate(detector, xfield%dim, local_coord_count(shape))
-                      call unpack_detector(detector, send_buff(1:ndata_per_det), xfield%dim)
+                      call unpack_detector(detector, send_buff(1:ndata_per_det), xfield%dim,fgroup=detector_list%fgroup)
                       call insert(detector, lost_detectors_list)
                    end if
 
@@ -722,7 +722,7 @@ contains
                    shape=>ele_shape(xfield,1)
                    detector=>null()
                    call allocate(detector, xfield%dim, local_coord_count(shape))
-                   call unpack_detector(detector, recv_buff(1:ndata_per_det), xfield%dim)
+                   call unpack_detector(detector, recv_buff(1:ndata_per_det), xfield%dim,fgroup=detector_list%fgroup)
 
                    ! Try to find the detector position locally
                    call picker_inquire(xfield, detector%position, detector%element, detector%local_coords, global=.false.)
@@ -792,9 +792,9 @@ contains
 
     ! Get buffer size, depending on whether RK-GS parameters are still allocated
     if(present_and_true(have_rk)) then
-       det_size=detector_buffer_size(dim,nstages=detector_list%n_stages,have_ray=have_ray)
+       det_size=detector_buffer_size(dim,nstages=detector_list%n_stages,have_ray=have_ray,fgroup=detector_list%fgroup)
     else
-       det_size=detector_buffer_size(dim)
+       det_size=detector_buffer_size(dim,fgroup=detector_list%fgroup)
     end if
     
     ! Send to all procs
@@ -816,9 +816,9 @@ contains
              detector%element = halo_universal_number(ele_halo, detector%element)
 
              if (present_and_true(have_rk)) then
-                call pack_detector(detector, detector_buffer(j,1:det_size), dim,nstages=detector_list%n_stages,have_ray=have_ray)
+                call pack_detector(detector, detector_buffer(j,1:det_size), dim,nstages=detector_list%n_stages,have_ray=have_ray,fgroup=detector_list%fgroup)
              else
-                call pack_detector(detector, detector_buffer(j,1:det_size), dim)
+                call pack_detector(detector, detector_buffer(j,1:det_size), dim,fgroup=detector_list%fgroup)
              end if
 
              ! delete also advances detector
@@ -864,10 +864,10 @@ contains
           ! back to local detector element
           if (present_and_true(have_rk)) then
              call unpack_detector(detector_received,detector_buffer(j,1:det_size),dim,&
-                    global_to_local=ele_numbering_inverse,coordinates=xfield,nstages=detector_list%n_stages,have_ray=have_ray)
+                    global_to_local=ele_numbering_inverse,coordinates=xfield,nstages=detector_list%n_stages,have_ray=have_ray,fgroup=detector_list%fgroup)
           else
              call unpack_detector(detector_received,detector_buffer(j,1:det_size),dim,&
-                    global_to_local=ele_numbering_inverse,coordinates=xfield)
+                    global_to_local=ele_numbering_inverse,coordinates=xfield,fgroup=detector_list%fgroup)
           end if
 
           ! If there is a list of detector names, use it, otherwise set ID as name

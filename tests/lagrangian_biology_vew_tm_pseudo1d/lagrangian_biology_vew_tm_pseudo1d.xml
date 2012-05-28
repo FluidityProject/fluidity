@@ -7,7 +7,7 @@
   <tags>flml lagrangian_biology</tags>
   <problem_definition length="medium" nprocs="1">
     <command_line>
-../../bin/fluidity -v2 -l -p lagrangian_biology.flml
+mpiexec -n 3 ../../bin/fluidity -v2 -l -p lagrangian_biology.flml
     </command_line>
   </problem_definition>
   <variables>

@@ -313,11 +313,12 @@ contains
 
   end subroutine delete_all_detectors
 
-  function detector_buffer_size(ndims, nstages, have_ray) result(buffer_size)
+  function detector_buffer_size(ndims, nstages, have_ray, fgroup) result(buffer_size)
     ! Returns the number of reals we need to pack a detector
     integer, intent(in) :: ndims
     integer, intent(in), optional :: nstages
     logical, intent(in), optional :: have_ray
+    type(functional_group), pointer, optional :: fgroup
     integer :: buffer_size
 
     ! Basics: Position(ndims) + element + id + type 
@@ -333,9 +334,19 @@ contains
        buffer_size = buffer_size + 2*ndims + 2
     end if
 
+    if (present(fgroup)) then
+       if (associated(fgroup)) then
+          buffer_size = buffer_size + size(fgroup%variables)
+
+          if (size(fgroup%food_sets) > 0) then
+             buffer_size = buffer_size + 2 * size(fgroup%food_sets(1)%varieties)
+          end if
+       end if
+    end if
+
   end function detector_buffer_size
 
-  subroutine pack_detector(detector,buff,ndims,nstages,have_ray)
+  subroutine pack_detector(detector,buff,ndims,nstages,have_ray,fgroup)
     ! Packs (serialises) detector into buff
     ! Basic fields are: element, position, id_number and type
     ! If nstages is given, the detector is still moving
@@ -345,8 +356,9 @@ contains
     integer, intent(in) :: ndims
     integer, intent(in), optional :: nstages
     logical, intent(in), optional :: have_ray
+    type(functional_group), pointer, optional :: fgroup
 
-    integer :: index
+    integer :: index, nvars
 
     assert(size(detector%position)==ndims)
     assert(size(buff)>=ndims+3)
@@ -383,10 +395,26 @@ contains
        buff(index:index+ndims-1) = detector%ray_d
        index = index + ndims
     end if
+
+    if (present(fgroup)) then
+       if (associated(fgroup)) then
+          nvars = size(fgroup%variables)
+          buff(index:index+nvars-1) = detector%biology
+          index = index + nvars
+
+          if (size(fgroup%food_sets) > 0) then
+             nvars = size(fgroup%food_sets(1)%varieties)
+             buff(index:index+nvars-1) = detector%food_requests
+             index = index + nvars
+             buff(index:index+nvars-1) = detector%food_ingests
+             index = index + nvars
+          end if
+       end if
+    end if
     
   end subroutine pack_detector
 
-  subroutine unpack_detector(detector,buff,ndims,global_to_local,coordinates,nstages,have_ray)
+  subroutine unpack_detector(detector,buff,ndims,global_to_local,coordinates,nstages,have_ray,fgroup)
     ! Unpacks the detector from buff and fills in the blanks
     type(detector_type), pointer :: detector
     real, dimension(:), intent(in) :: buff
@@ -395,8 +423,9 @@ contains
     type(vector_field), intent(in), optional :: coordinates
     integer, intent(in), optional :: nstages  
     logical, intent(in), optional :: have_ray 
+    type(functional_group), pointer, optional :: fgroup
 
-    integer :: index
+    integer :: index, nvars
 
     assert(size(buff)>=ndims+3)
 
@@ -429,16 +458,12 @@ contains
     if (present(nstages)) then
 
        ! update_vector, dimension(ndim)
-       if (.not. allocated(detector%update_vector)) then
-          allocate(detector%update_vector(ndims))
-       end if       
+       if (.not. allocated(detector%update_vector)) allocate(detector%update_vector(ndims))  
        detector%update_vector = reshape(buff(index:index+ndims-1),(/ndims/))
        index = index + ndims
 
        ! k, dimension(nstages:ndim)
-       if (.not. allocated(detector%k)) then
-          allocate(detector%k(nstages,ndims))
-       end if  
+       if (.not. allocated(detector%k)) allocate(detector%k(nstages,ndims))
        detector%k = reshape(buff(index:index+nstages*ndims-1),(/nstages,ndims/))
        index = index + nstages*ndims
     else
@@ -452,16 +477,35 @@ contains
        index = index+1
        detector%current_t = buff(index)
        index = index+1
-       if (.not. allocated(detector%ray_o)) then
-          allocate(detector%ray_o(ndims))
-       end if   
+
+       if (.not.allocated(detector%ray_o)) allocate(detector%ray_o(ndims))
        detector%ray_o = buff(index:index+ndims-1)
        index = index + ndims
-       if (.not. allocated(detector%ray_d)) then
-          allocate(detector%ray_d(ndims))
-       end if   
+
+       if (.not. allocated(detector%ray_d)) allocate(detector%ray_d(ndims))
        detector%ray_d = buff(index:index+ndims-1)
        index = index + ndims
+    end if
+
+    if (present(fgroup)) then
+       if (associated(fgroup)) then
+          nvars = size(fgroup%variables)
+          if (.not.allocated(detector%biology)) allocate(detector%biology(nvars))
+          detector%biology = buff(index:index+nvars-1)
+          index = index + nvars
+
+          if (size(fgroup%food_sets) > 0) then
+             nvars = size(fgroup%food_sets(1)%varieties)
+
+             if (.not.allocated(detector%food_requests)) allocate(detector%food_requests(nvars))
+             detector%food_requests = buff(index:index+nvars-1)
+             index = index + nvars
+
+             if (.not.allocated(detector%food_ingests)) allocate(detector%food_ingests(nvars))
+             detector%food_ingests = buff(index:index+nvars-1)
+             index = index + nvars
+          end if
+       end if
     end if
    
   end subroutine unpack_detector

@@ -11,38 +11,12 @@
       <integer_value rank="0">3</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_mesh>
-        <mesh name="2DMesh"/>
-        <extrude>
-          <regions name="WholeMesh">
-            <bottom_depth>
-              <constant>
-                <real_value rank="0">300</real_value>
-              </constant>
-            </bottom_depth>
-            <sizing_function>
-              <python>
-                <string_value lines="20" type="code" language="python">def val(X, t):
-  if abs(X[2]) &lt; 50.:
-    return 1.
-  if abs(X[2]) &lt; 150.:
-    return 2.
-  else:
-    return 10.</string_value>
-              </python>
-            </sizing_function>
-            <top_surface_id>
-              <integer_value rank="0">1</integer_value>
-            </top_surface_id>
-            <bottom_surface_id>
-              <integer_value rank="0">2</integer_value>
-            </bottom_surface_id>
-          </regions>
-        </extrude>
+      <from_file file_name="column">
+        <format name="triangle"/>
         <stat>
-          <exclude_from_stat/>
+          <include_in_stat/>
         </stat>
-      </from_mesh>
+      </from_file>
     </mesh>
     <mesh name="VelocityMesh">
       <from_mesh>
@@ -51,14 +25,6 @@
           <exclude_from_stat/>
         </stat>
       </from_mesh>
-    </mesh>
-    <mesh name="2DMesh">
-      <from_file file_name="surface">
-        <format name="gmsh"/>
-        <stat>
-          <include_in_stat/>
-        </stat>
-      </from_file>
     </mesh>
     <mesh name="DGMesh">
       <from_mesh>
@@ -486,7 +452,7 @@ for n in range(field.node_count):
                   <include_in_detectors/>
                 </detectors>
               </diagnostic>
-              <stage_aggregate/>
+              <stage_diagnostic/>
             </scalar_field>
           </state_variable>
           <chemical_variable name="Ammonium">
@@ -498,8 +464,8 @@ for n in range(field.node_count):
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <do_not_recalculate/>
               </diagnostic>
-              <stage_aggregate/>
             </scalar_field>
             <scalar_field name="Ingested">
               <diagnostic>
@@ -509,8 +475,8 @@ for n in range(field.node_count):
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <do_not_recalculate/>
               </diagnostic>
-              <stage_aggregate/>
               <include_in_io/>
             </scalar_field>
             <uptake>
@@ -524,7 +490,6 @@ for n in range(field.node_count):
                     <include_in_detectors/>
                   </detectors>
                 </diagnostic>
-                <stage_aggregate/>
               </scalar_field>
               <scalar_field name="Depletion">
                 <diagnostic>
@@ -549,7 +514,6 @@ for n in range(field.node_count):
                     <include_in_detectors/>
                   </detectors>
                 </diagnostic>
-                <stage_aggregate/>
               </scalar_field>
               <include_in_io/>
             </release>
@@ -564,8 +528,8 @@ for n in range(field.node_count):
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <do_not_recalculate/>
               </diagnostic>
-              <stage_aggregate/>
             </scalar_field>
             <scalar_field name="Ingested">
               <diagnostic>
@@ -575,8 +539,8 @@ for n in range(field.node_count):
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <do_not_recalculate/>
               </diagnostic>
-              <stage_aggregate/>
             </scalar_field>
             <uptake>
               <source_field name="DissolvedNitrate"/>
@@ -589,7 +553,6 @@ for n in range(field.node_count):
                     <include_in_detectors/>
                   </detectors>
                 </diagnostic>
-                <stage_aggregate/>
               </scalar_field>
               <scalar_field name="Depletion">
                 <diagnostic>
@@ -612,8 +575,8 @@ for n in range(field.node_count):
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <do_not_recalculate/>
               </diagnostic>
-              <stage_aggregate/>
             </scalar_field>
             <scalar_field name="Ingested">
               <diagnostic>
@@ -623,8 +586,8 @@ for n in range(field.node_count):
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <do_not_recalculate/>
               </diagnostic>
-              <stage_aggregate/>
             </scalar_field>
             <uptake>
               <source_field name="DissolvedSilicate"/>
@@ -637,7 +600,6 @@ for n in range(field.node_count):
                     <include_in_detectors/>
                   </detectors>
                 </diagnostic>
-                <stage_aggregate/>
               </scalar_field>
               <scalar_field name="Depletion">
                 <diagnostic>
@@ -661,7 +623,6 @@ for n in range(field.node_count):
                     <include_in_detectors/>
                   </detectors>
                 </diagnostic>
-                <stage_aggregate/>
               </scalar_field>
             </release>
           </chemical_variable>
@@ -674,8 +635,8 @@ for n in range(field.node_count):
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <do_not_recalculate/>
               </diagnostic>
-              <stage_aggregate/>
             </scalar_field>
           </chemical_variable>
           <chemical_variable name="Chlorophyll">
@@ -687,8 +648,8 @@ for n in range(field.node_count):
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <do_not_recalculate/>
               </diagnostic>
-              <stage_aggregate/>
             </scalar_field>
           </chemical_variable>
           <chemical_variable name="NtoC"/>
@@ -704,8 +665,8 @@ for n in range(field.node_count):
             <string_value lines="20" type="code" language="python">def val(t):
   from numpy import arange, concatenate, reshape, random
   # 4000 agents, evenly spaced in [0:200]m
-  x = random.uniform(0.,1., 4000)
-  y = random.uniform(0.,1., 4000)
+  x = random.uniform(0.,10., 4000)
+  y = random.uniform(0.,10., 4000)
   z = arange(-199.975,0.,0.05)
   positions = reshape(concatenate((x,y,z)),(3,4000)).T
   return positions</string_value>
@@ -716,7 +677,7 @@ from lebiology import stage_id
 
 def val(agent):
   agent['Stage'] = stage_id('Diatom', 'Living')
-  agent['Size'] = 50000.0
+  agent['Size'] = 5000000.0
   agent['Ammonium'] = 2.2e-9
   agent['Carbon'] = 1.5e-8
   agent['Chlorophyll'] = 2.7e-9
@@ -746,11 +707,11 @@ from numpy import random
 
 mld = abs(persistent['physics_mld'])
 
-def val(position, vars, dt):
-  z = abs(position[2])
+def val(pos, vars, dt):
+  z = abs(pos[2])
   v = [0.0, 0.0, -0.000011111 * dt]
-  v[0] = random.uniform(0.,1., 1)
-  v[1] = random.uniform(0.,1., 1)
+  v[0] = random.uniform(0.,10., 1) - pos[0]
+  v[1] = random.uniform(0.,10., 1) - pos[1]
   if z &lt;= mld:
     rnd = random.uniform(0.,mld, 1)
     v[2] =  v[2] - (rnd - z)
@@ -769,7 +730,8 @@ def val(position, vars, dt):
           <stage name="Living">
             <biology>
               <python>
-                <string_value lines="20" type="code" language="python">import fluidity.lerm_ps as lerm
+                <string_value lines="20" type="code" language="python">from __builtin__ import str
+import fluidity.lerm_ps as lerm
 params = lerm.species_Default_Diatom_Variety
 
 def val(agent, env, dt):
@@ -787,17 +749,17 @@ def val(agent, env, dt):
 mld = persistent['physics_mld']
 
 def val(X):
-  minimum = 20.0
+  minimum = 0.2
   
   # Outside the prescribed "MLD" we merge down to 1
   if abs(X[2]) &gt; mld:
-    minimum = 1.0
+    minimum = 0.01
   return minimum</string_value>
                 </python>
               </minimum>
               <maximum>
                 <constant>
-                  <real_value rank="0">40.0</real_value>
+                  <real_value rank="0">0.4</real_value>
                   <comment>20.0</comment>
                 </constant>
               </maximum>
