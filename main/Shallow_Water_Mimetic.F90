@@ -306,8 +306,8 @@
                     newU,newD,PVFlux,state)
 
                ! Check U residual is consistent
-               call get_PV(state,PVconsistency,newU,newD)
-               assert(maxval(abs(PV%val-PVconsistency%val))<1.0e-8)
+               call get_PV(state,PVconsistency,newU,newD,PV%option_path)
+               assert(maxval(abs(PV_Old%val - PV%val-PVconsistency%val))<1.0e-8)
 
                !Perform (quasi)Newton iteration
                call solve_hybridised_timestep_residual(state,newU,newD,&
