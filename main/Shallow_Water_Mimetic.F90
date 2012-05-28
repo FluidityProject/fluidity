@@ -190,19 +190,15 @@
       type(state_type), intent(inout) :: state
       !
       type(vector_field), pointer :: U, advecting_u, U_old
-      type(scalar_field), pointer :: D_old, D, vorticity, &
-           & D_projected, Old_D_projected, Coriolis, PV, &
-           & PV_old, PVconsistency, vorticityconsistency
+      type(scalar_field), pointer :: D_old, D, &
+           & Coriolis, PV, &
+           & PV_old, PVconsistency
       type(vector_field) :: newU, MassFlux, PVFlux, UResidual
       type(scalar_field) :: newD, DResidual
-      type(csr_matrix), pointer :: Vorticity_Mass_ptr
-      type(csr_matrix) :: Vorticity_Mass
-      type(csr_sparsity), pointer :: Vorticity_Mass_sparsity
       type(scalar_field), pointer :: PVtracer
 
       integer :: nonlinear_iterations, nits, stat
-      logical :: have_pv_tracer, lump_mass, have_D_projected=.false.,&
-           & have_old_d_projected=.false., have_vorticity=.false., &
+      logical :: have_pv_tracer, &
            & have_PV=.false., have_PV_old=.false.
       real :: theta
 
@@ -216,22 +212,13 @@
       U => extract_vector_field(state, "LocalVelocity")
       U_old => extract_vector_field(state, "OldLocalVelocity")
       D => extract_scalar_field(state, "LayerThickness")
-      D_projected=>extract_scalar_field(state, "ProjectedLayerThickness",stat)
-      have_d_projected = (stat==0)
-      Old_D_projected=>extract_scalar_field(&
-           state, "OldProjectedLayerThickness",stat)
-      have_old_d_projected = (stat==0)
       D_old => extract_scalar_field(state, "OldLayerThickness")
-      vorticity => extract_scalar_field(state, "Vorticity",stat)
-      have_vorticity = (stat==0)
       Coriolis => extract_scalar_field(state, "Coriolis")
       PV => extract_scalar_field(state, "PotentialVorticity",stat)
       have_pv = (stat==0)
       if(have_pv) then
          PVconsistency => extract_scalar_field(&
               state, "PVConsistency",stat)
-         vorticityconsistency => extract_scalar_field(&
-              state, "VorticityConsistency",stat)
       end if
       PV_old => extract_scalar_field(state, "OldPotentialVorticity",stat)
       have_pv_old = (stat==0)
@@ -243,47 +230,12 @@
       end if
       advecting_u=>extract_vector_field(state, "NonlinearVelocity")
 
-      ! Vorticity calculation
-      lump_mass = .false.
-      if(have_vorticity) then
-         if(have_option('/material_phase::Fluid/scalar_field::Vorticity/prog&
-              &nostic/vorticity_equation/lump_mass')) then
-            lump_mass =.true.
-            vorticity_mass_ptr=>extract_csr_matrix(&
-                 state, "LumpedVorticityMassMatrix", stat)
-            if(stat.ne.0) then
-               Vorticity_mass_sparsity=>&
-                    get_csr_sparsity_firstorder(state, vorticity%mesh,&
-                    & vorticity%mesh)
-               call allocate(Vorticity_mass,Vorticity_mass_sparsity)
-               call get_lumped_mass_p2b(state,vorticity_mass,vorticity)
-               call insert(state,vorticity_mass,"LumpedVorticityMassMatrix")
-               call deallocate(vorticity_mass)
-               vorticity_mass_ptr=>extract_csr_matrix(&
-                    state, "LumpedVorticityMassMatrix")
-            end if
-            call get_vorticity(state,vorticity,U,vorticity_mass_ptr)
-         else
-            call get_vorticity(state,vorticity,U)
-            call calculate_scalar_galerkin_projection(state, D_projected)
-         end if
-      end if
-
-      if(have_d_projected) then
-         if(have_option('/material_phase::Fluid/scalar_field::Vorticity/prog&
-              &nostic/vorticity_equation/lump_mass')) then
-            call project_to_p2b_lumped(state,D,&
-                 D_projected)
-         else
-            call calculate_scalar_galerkin_projection(state, D_projected)
-         end if
-         call set(D_old,D)
-         call set(Old_D_projected,D_projected)
-      end if
-
+      !Set up old values
+      call set(U_old,U)
+      call set(D_old,D)
       !PV calculation
       if(have_pv) then
-         call get_PV(vorticity,D_projected,Coriolis,PV)
+         call get_PV(state,PV,U_old,D_old)
          call set(PV_old,PV)
       end if
 
@@ -298,14 +250,9 @@
          call zero(PVFlux)
          call solve_advection_dg_subcycle("LayerThickness", state, &
               "NonlinearVelocity",continuity=.true.,Flux=MassFlux)
-         if(lump_mass) then
-            call project_to_p2b_lumped(state,D,D_projected)
-         else
-            call calculate_scalar_galerkin_projection(state, D_projected)
-         end if
          if(have_pv_tracer) then
-            call solve_advection_cg_tracer(PVtracer,D_projected,&
-                 old_d_projected,MassFlux,PVFlux,state)
+            call solve_advection_cg_tracer(PVtracer,D,&
+                 d_old,MassFlux,PVFlux,state)
          end if
          call deallocate(MassFlux)
          call deallocate(PVFlux)
@@ -348,27 +295,17 @@
                call addto(DResidual,D_old,-1.0)
                call apply_dg_mass(DResidual,state)
 
-               !Calculate projected D from next timestep
-               if(lump_mass) then
-                  call project_to_p2b_lumped(state,D,D_projected)
-               else
-                  call calculate_scalar_galerkin_projection(state, D_projected)
-               end if
-
                !Update PV
                call set(PV,PV_old)
-               call solve_advection_cg_tracer(PV,D_projected,&
-                    old_d_projected,MassFlux,PVFlux,state)
+               call solve_advection_cg_tracer(PV,D,D_old,&
+                    MassFlux,PVFlux,state)
 
                ! Compute U residual
                call compute_U_residual(UResidual,U_old,D_old,&
                     newU,newD,PVFlux,state)
 
                ! Check U residual is consistent
-               call get_vorticity(state,vorticityconsistency,newU,&
-                    path=vorticity%option_path)
-               call get_PV(vorticityconsistency,D_projected,&
-                    Coriolis,PVconsistency)
+               call get_PV(state,PVconsistency,newU,newD)
                assert(maxval(abs(PV%val-PVconsistency%val))<1.0e-8)
 
                !Perform (quasi)Newton iteration
@@ -389,15 +326,7 @@
          call set(U,newU)
 
          !Final PV calculation for output
-         if(have_d_projected) then
-            if(lump_mass) then
-               call project_to_p2b_lumped(state,D,D_projected)
-            else
-               call calculate_scalar_galerkin_projection(state, D_projected)
-            end if
-            call get_PV(vorticity,D_projected,Coriolis,PV)
-         end if
-
+         call get_PV(state,PV,newU,newD)         
          call deallocate(newU)
          call deallocate(newD)
       end if
@@ -448,24 +377,14 @@
       call insert(state, new_s_field, "OldLayerThickness")
       call deallocate(new_s_field)
 
-      !Old projected layer thickness (used for CG advection)
-      D_projected => extract_scalar_field(&
-           state, "ProjectedLayerThickness",stat)
-      if(stat==0) then
-         call allocate(new_s_field, D_projected%mesh,&
-              "OldProjectedLayerThickness")
-         call zero(new_s_field)
-         call insert(state, new_s_field, "OldProjectedLayerThickness")
-         call deallocate(new_s_field)
-         s_field => extract_scalar_field(&
+      s_field => extract_scalar_field(&
            state, "PotentialVorticityTracer",stat)
-         if(stat==0) then
-            call allocate(new_s_field, D_projected%mesh,&
-                 "OldPotentialVorticityTracer")
-            call zero(new_s_field)
-            call insert(state, new_s_field, "OldPotentialVorticityTracer")
-            call deallocate(new_s_field)
-         end if
+      if(stat==0) then
+         call allocate(new_s_field, s_field%mesh,&
+              "OldPotentialVorticityTracer")
+         call zero(new_s_field)
+         call insert(state, new_s_field, "OldPotentialVorticityTracer")
+         call deallocate(new_s_field)
       end if
 
       s_field => extract_scalar_field(&
@@ -475,11 +394,6 @@
               "OldPotentialVorticity")
          call zero(new_s_field)
          call insert(state, new_s_field, "OldPotentialVorticity")
-         call deallocate(new_s_field)
-         call allocate(new_s_field, D_projected%mesh,&
-              "VorticityConsistency")
-         call zero(new_s_field)
-         call insert(state, new_s_field, "VorticityConsistency")
          call deallocate(new_s_field)
          call allocate(new_s_field, D_projected%mesh,&
               "PVConsistency")
@@ -604,18 +518,6 @@
       f_nodes => ele_nodes(s_field,ele)
       call set(s_field,f_nodes(size(f_nodes)),0.0)
     end subroutine remove_bubble_component_ele
-
-    subroutine get_PV(vorticity,D_projected,Coriolis,PV)
-      type(scalar_field), intent(in) :: vorticity,D_projected, Coriolis
-      type(scalar_field), intent(inout) :: PV
-      !
-      assert(mesh_compatible(PV%mesh, vorticity%mesh))
-      assert(mesh_compatible(PV%mesh, D_projected%mesh))
-      assert(mesh_compatible(PV%mesh, Coriolis%mesh))
-
-      PV%val = (vorticity%val + Coriolis%val)/D_projected%val
-
-    end subroutine get_PV
 
     subroutine advance_current_time(current_time, dt)
       implicit none

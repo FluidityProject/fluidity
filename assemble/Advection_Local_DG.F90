@@ -31,6 +31,7 @@ module advection_local_DG
   !!< equation when vector fields are represented in the local coordinates
   !!< from the Piola transformation.
   use elements
+  use global_parameters, only:current_debug_level, OPTION_PATH_LEN
   use sparse_tools
   use fetools
   use dgtools
@@ -64,7 +65,7 @@ module advection_local_DG
 
   private
   public solve_advection_dg_subcycle, solve_vector_advection_dg_subcycle,&
-       & solve_advection_cg_tracer, compute_U_residual
+       & solve_advection_cg_tracer, compute_U_residual, get_pv
 
   !parameters specifying vector upwind options
   integer, parameter :: VECTOR_UPWIND_EDGE=1, VECTOR_UPWIND_SPHERE=2
@@ -1204,8 +1205,118 @@ module advection_local_DG
     Q_perp_rhs(2,:) =  Q_rhs(1,:)*orientation
 
     call set(Q,ele_nodes(Q,ele),Q_perp_rhs)
-
+    
   end subroutine construct_pv_flux_ele
+
+  subroutine get_PV(state,PV,velocity,D,path)
+    type(state_type), intent(inout) :: state
+    type(vector_field), intent(in) :: velocity
+    type(scalar_field), intent(inout) :: PV
+    type(scalar_field), intent(in) :: D
+    character(len=OPTION_PATH_LEN), optional :: path
+    !
+    type(vector_field), pointer :: X, down
+    type(scalar_field), pointer :: Coriolis
+    type(csr_matrix) :: pv_mass_matrix
+    type(csr_sparsity), pointer :: pv_mass_sparsity, curl_sparsity
+    type(scalar_field) :: pv_rhs
+    integer :: ele
+    
+    ewrite(1,*) 'subroutine get_pv'
+
+    pv_mass_sparsity => &
+         get_csr_sparsity_firstorder(state, pv%mesh, pv%mesh)
+    call allocate(pv_mass_matrix,pv_mass_sparsity)
+    call zero(pv_mass_matrix)
+
+    X=>extract_vector_field(state, "Coordinate")
+    down=>extract_vector_field(state, "GravityDirection")
+    Coriolis=>extract_scalar_field(state, "Coriolis")
+
+    call allocate(pv_rhs, pv%mesh, 'PvRHS')
+    call zero(pv_rhs)
+    
+    do ele = 1, ele_count(pv)
+       call assemble_pv_ele(pv_mass_matrix,pv_rhs,velocity,D,Coriolis,X&
+            &,down,ele)
+    end do
+
+    if(present(path)) then
+       call petsc_solve(pv,pv_mass_matrix,pv_rhs,option_path=path)
+    else
+       call petsc_solve(pv,pv_mass_matrix,pv_rhs)
+    end if
+
+    call deallocate(pv_mass_matrix)
+    call deallocate(pv_rhs)
+
+  end subroutine get_pv
+
+  subroutine assemble_PV_ele(pv_mass_matrix,pv_rhs,velocity,D,Coriolis,X&
+       &,down,ele)
+    !!Subroutine to compute the pv from a *local velocity* field
+    type(vector_field), intent(in) :: X, down, velocity
+    type(scalar_field), intent(inout) :: pv_rhs
+    type(scalar_field), intent(in) :: D, Coriolis
+    type(csr_matrix), intent(inout) :: pv_mass_matrix
+    integer, intent(in) :: ele
+    !
+    real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+    real, dimension(ele_ngi(X,ele)) :: detwei, detJ, l_f, l_d
+    real, dimension(ele_loc(pv_rhs,ele),ele_loc(pv_rhs,ele))&
+         :: l_mass_mat
+    real, dimension(ele_loc(pv_rhs,ele))&
+         :: l_rhs
+    real, dimension(mesh_dim(velocity),ele_ngi(velocity,ele)) :: velocity_gi,&
+         contravariant_velocity_gi, velocity_perp_gi
+    real, dimension(X%dim, ele_ngi(X,ele)) :: up_gi
+    integer :: orientation, gi
+    real, dimension(mesh_dim(X), mesh_dim(X), ele_ngi(X,ele)) :: Metric
+    !
+
+    up_gi = -ele_val_at_quad(down,ele)
+    call get_up_gi(X,ele,up_gi,orientation)
+
+    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J, detwei, detJ)    
+    l_d = ele_val_at_quad(D,ele)
+    l_mass_mat = shape_shape(ele_shape(pv_rhs,ele),&
+         ele_shape(pv_rhs,ele),detwei*l_d)
+
+    velocity_gi = ele_val_at_quad(velocity,ele)
+    do gi=1,ele_ngi(X,ele)
+       Metric(:,:,gi)=matmul(J(:,:,gi), transpose(J(:,:,gi)))/detJ(gi)
+       contravariant_velocity_gi(:,gi) = &
+            matmul(Metric(:,:,gi),velocity_gi(:,gi))
+    end do
+
+    !Relative vorticity
+
+    ! pv = \nabla^\perp\cdot u = v_x - u_y
+    ! < \gamma, pv > = <\gamma, v_x - u_y> = <-\gamma_x,v>+<\gamma_y,u>
+    ! = <\nabla \gamma, (-v,u)>
+    ! < \nabla \gamma, u^\perp> in local coordinates
+    ! requires us to know the orientation of the manifold
+
+    select case(mesh_dim(X))
+    case (2)
+       velocity_perp_gi(1,:) = -contravariant_velocity_gi(2,:)
+       velocity_perp_gi(2,:) =  contravariant_velocity_gi(1,:)
+       l_rhs = dshape_dot_vector_rhs(pv_rhs%mesh%shape%dn, &
+            velocity_perp_gi,X%mesh%shape%quadrature%weight)
+       l_rhs = l_rhs*orientation
+    case default
+       FLAbort('Exterior derivative not implemented for given mesh dimension')
+    end select
+
+    ! Coriolis term
+    l_f = ele_val_at_quad(Coriolis,ele)
+    l_rhs = l_rhs + shape_rhs(ele_shape(pv_rhs,ele),l_f*detwei)
+
+    call addto(pv_mass_matrix,ele_nodes(pv_rhs,ele),&
+         ele_nodes(pv_rhs,ele),l_mass_mat)
+    call addto(pv_rhs,ele_nodes(pv_rhs,ele),l_rhs)
+
+  end subroutine assemble_pv_ele
 
   subroutine compute_U_residual(UResidual,oldU,oldD,newU,newD,PVFlux,state)
     !!< Compute the residual in the U equation, given PVFlux computed
