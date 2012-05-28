@@ -234,6 +234,9 @@ This field must be on a discontinuous mesh</a:documentation>
           <element name="diagnostic">
             <ref name="internal_algorithm"/>
             <ref name="diagnostic_scalar_field_no_adapt"/>
+            <element name="do_not_recalculate">
+              <empty/>
+            </element>
           </element>
           <optional>
             <element name="stage_diagnostic">
@@ -252,6 +255,9 @@ This field must be on a discontinuous mesh</a:documentation>
           <element name="diagnostic">
             <ref name="internal_algorithm"/>
             <ref name="diagnostic_scalar_field_no_adapt"/>
+            <element name="do_not_recalculate">
+              <empty/>
+            </element>
           </element>
           <optional>
             <element name="stage_diagnostic">

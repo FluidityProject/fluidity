@@ -465,6 +465,7 @@ for n in range(field.node_count):
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <do_not_recalculate/>
               </diagnostic>
             </scalar_field>
             <scalar_field name="Ingested">
@@ -475,6 +476,7 @@ for n in range(field.node_count):
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <do_not_recalculate/>
               </diagnostic>
               <include_in_io/>
             </scalar_field>
@@ -527,6 +529,7 @@ for n in range(field.node_count):
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <do_not_recalculate/>
               </diagnostic>
               <stage_diagnostic/>
             </scalar_field>
@@ -538,6 +541,7 @@ for n in range(field.node_count):
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <do_not_recalculate/>
               </diagnostic>
             </scalar_field>
             <uptake>
@@ -575,6 +579,7 @@ for n in range(field.node_count):
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <do_not_recalculate/>
               </diagnostic>
             </scalar_field>
             <scalar_field name="Ingested">
@@ -585,6 +590,7 @@ for n in range(field.node_count):
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <do_not_recalculate/>
               </diagnostic>
               <include_in_io/>
             </scalar_field>
@@ -637,6 +643,7 @@ for n in range(field.node_count):
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <do_not_recalculate/>
               </diagnostic>
             </scalar_field>
           </chemical_variable>
@@ -649,6 +656,7 @@ for n in range(field.node_count):
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <do_not_recalculate/>
               </diagnostic>
             </scalar_field>
           </chemical_variable>

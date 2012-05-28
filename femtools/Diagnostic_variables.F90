@@ -496,7 +496,7 @@ contains
 
     integer :: column, i, j, k, phase, stat
     integer, dimension(2) :: shape_option
-    integer :: no_mixing_bins
+    integer :: no_mixing_bins, n_stat_fields
     real, dimension(:), pointer :: mixing_bin_bounds
     real :: current_time
     character(len = 254) :: buffer, material_phase_name, prefix
@@ -528,8 +528,18 @@ contains
     allocate (default_stat%sfield_list(size(state)))
     do phase=1, size(state)
        if (associated(state(phase)%scalar_names)) then
-          allocate(default_stat%sfield_list(phase)%ptr(size(state(phase)%scalar_names)))
-          default_stat%sfield_list(phase)%ptr=state(phase)%scalar_names
+          n_stat_fields = 0
+          do i=1, size(state(phase)%scalar_names)
+             if (stat_field(state(phase)%scalar_fields(i)%ptr, state(phase))) then
+                n_stat_fields = n_stat_fields + 1
+             end if
+          end do
+          allocate(default_stat%sfield_list(phase)%ptr(n_stat_fields))
+          do i=1, size(state(phase)%scalar_names)
+             if (stat_field(state(phase)%scalar_fields(i)%ptr, state(phase))) then
+                default_stat%sfield_list(phase)%ptr(i) = state(phase)%scalar_names(i)
+             end if
+          end do
        else
           allocate(default_stat%sfield_list(phase)%ptr(0))
        end if
@@ -623,20 +633,18 @@ contains
             sfield => extract_scalar_field(state(phase), default_stat%sfield_list(phase)%ptr(i))
 
             ! Standard scalar field stats
-            if(stat_field(sfield, state(phase))) then
-              column=column+1
-              buffer=field_tag(name=sfield%name, column=column, statistic="min", material_phase_name=material_phase_name)
-              write(default_stat%diag_unit, '(a)') trim(buffer)
-              column=column+1
-              buffer=field_tag(name=sfield%name, column=column, statistic="max", material_phase_name=material_phase_name)
-              write(default_stat%diag_unit, '(a)') trim(buffer)
-              column=column+1
-              buffer=field_tag(name=sfield%name, column=column, statistic="l2norm", material_phase_name=material_phase_name)
-              write(default_stat%diag_unit, '(a)') trim(buffer)
-              column=column+1
-              buffer=field_tag(name=sfield%name, column=column, statistic="integral", material_phase_name=material_phase_name)
-              write(default_stat%diag_unit, '(a)') trim(buffer)
-            end if
+            column=column+1
+            buffer=field_tag(name=sfield%name, column=column, statistic="min", material_phase_name=material_phase_name)
+            write(default_stat%diag_unit, '(a)') trim(buffer)
+            column=column+1
+            buffer=field_tag(name=sfield%name, column=column, statistic="max", material_phase_name=material_phase_name)
+            write(default_stat%diag_unit, '(a)') trim(buffer)
+            column=column+1
+            buffer=field_tag(name=sfield%name, column=column, statistic="l2norm", material_phase_name=material_phase_name)
+            write(default_stat%diag_unit, '(a)') trim(buffer)
+            column=column+1
+            buffer=field_tag(name=sfield%name, column=column, statistic="integral", material_phase_name=material_phase_name)
+            write(default_stat%diag_unit, '(a)') trim(buffer)
             
             ! Control volume stats
             if(have_option(trim(complete_field_path(sfield%option_path, stat=stat)) // "/stat/include_cv_stats")) then
@@ -1733,15 +1741,11 @@ contains
 
           xfield=get_diagnostic_coordinate_field(state(phase), sfield%mesh)
 
-          ! Standard scalar field stats
-          if(stat_field(sfield, state(phase))) then
-          
-            call field_stats(sfield, Xfield, fmin, fmax, fnorm2, fintegral)
-            if(getprocno() == 1) then
-              write(default_stat%diag_unit, trim(format4), advance="no") fmin, fmax, fnorm2,&
-                   & fintegral
-            end if
-            
+          ! Standard scalar field stats          
+          call field_stats(sfield, Xfield, fmin, fmax, fnorm2, fintegral)
+          if(getprocno() == 1) then
+            write(default_stat%diag_unit, trim(format4), advance="no") fmin, fmax, fnorm2,&
+                 & fintegral
           end if
 
           ! Control volume stats

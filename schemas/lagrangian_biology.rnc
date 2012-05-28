@@ -196,7 +196,10 @@ chemical_variable =
             attribute name { 'Particulate' },
             element diagnostic {
                internal_algorithm,
-               diagnostic_scalar_field_no_adapt
+               diagnostic_scalar_field_no_adapt,
+               element do_not_recalculate {
+                 empty
+               }
             },
             ## Add diagnostic fields that represent the particulate concetration of individual stage groups.
             element stage_diagnostic {
@@ -208,7 +211,10 @@ chemical_variable =
             attribute name { "Ingested" },
             element diagnostic {
                internal_algorithm,
-               diagnostic_scalar_field_no_adapt
+               diagnostic_scalar_field_no_adapt,
+               element do_not_recalculate {
+                 empty
+               }
             },
             ## Add diagnostic fields that represent the particulate concetration of individual stage groups.
             element stage_diagnostic {

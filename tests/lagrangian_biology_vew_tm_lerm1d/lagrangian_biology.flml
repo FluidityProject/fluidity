@@ -554,6 +554,7 @@ def val(X,t):
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <do_not_recalculate/>
               </diagnostic>
               <stage_diagnostic/>
             </scalar_field>
@@ -565,6 +566,7 @@ def val(X,t):
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <do_not_recalculate/>
               </diagnostic>
             </scalar_field>
             <uptake>
@@ -613,6 +615,7 @@ def val(X,t):
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <do_not_recalculate/>
               </diagnostic>
               <stage_diagnostic/>
             </scalar_field>
@@ -624,6 +627,7 @@ def val(X,t):
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <do_not_recalculate/>
               </diagnostic>
             </scalar_field>
             <uptake>
@@ -659,6 +663,7 @@ def val(X,t):
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <do_not_recalculate/>
               </diagnostic>
               <stage_diagnostic/>
             </scalar_field>
@@ -670,6 +675,7 @@ def val(X,t):
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <do_not_recalculate/>
               </diagnostic>
             </scalar_field>
             <uptake>
@@ -718,6 +724,7 @@ def val(X,t):
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <do_not_recalculate/>
               </diagnostic>
               <stage_diagnostic/>
             </scalar_field>
@@ -731,6 +738,7 @@ def val(X,t):
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <do_not_recalculate/>
               </diagnostic>
             </scalar_field>
           </chemical_variable>
@@ -745,6 +753,7 @@ def val(X,t):
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <do_not_recalculate/>
               </diagnostic>
               <stage_diagnostic/>
             </scalar_field>
@@ -959,6 +968,7 @@ def val(biovars, env, dt):
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <do_not_recalculate/>
               </diagnostic>
             </scalar_field>
             <include_in_io/>
@@ -972,11 +982,24 @@ def val(biovars, env, dt):
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <do_not_recalculate/>
               </diagnostic>
             </scalar_field>
             <include_in_io/>
           </chemical_variable>
           <chemical_variable name="Ammonium">
+            <scalar_field name="Particulate">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+                <do_not_recalculate/>
+              </diagnostic>
+              <stage_diagnostic/>
+            </scalar_field>
             <scalar_field name="Ingested">
               <diagnostic>
                 <algorithm name="Internal" material_phase_support="multiple"/>
@@ -985,6 +1008,7 @@ def val(biovars, env, dt):
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <do_not_recalculate/>
               </diagnostic>
             </scalar_field>
             <release>
@@ -1010,6 +1034,7 @@ def val(biovars, env, dt):
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <do_not_recalculate/>
               </diagnostic>
               <stage_diagnostic/>
             </scalar_field>
@@ -1021,12 +1046,26 @@ def val(biovars, env, dt):
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <do_not_recalculate/>
               </diagnostic>
+              <stage_diagnostic/>
               <include_in_io/>
             </scalar_field>
             <include_in_io/>
           </chemical_variable>
           <chemical_variable name="Nitrogen">
+            <scalar_field name="Particulate">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+                <do_not_recalculate/>
+              </diagnostic>
+              <stage_diagnostic/>
+            </scalar_field>
             <scalar_field name="Ingested">
               <diagnostic>
                 <algorithm name="Internal" material_phase_support="multiple"/>
@@ -1035,10 +1074,23 @@ def val(biovars, env, dt):
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <do_not_recalculate/>
               </diagnostic>
             </scalar_field>
           </chemical_variable>
           <chemical_variable name="Nitrate">
+            <scalar_field name="Particulate">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+                <do_not_recalculate/>
+              </diagnostic>
+              <stage_diagnostic/>
+            </scalar_field>
             <scalar_field name="Ingested">
               <diagnostic>
                 <algorithm name="Internal" material_phase_support="multiple"/>
@@ -1047,10 +1099,23 @@ def val(biovars, env, dt):
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <do_not_recalculate/>
               </diagnostic>
             </scalar_field>
           </chemical_variable>
           <chemical_variable name="Silicate">
+            <scalar_field name="Particulate">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+                <do_not_recalculate/>
+              </diagnostic>
+              <stage_diagnostic/>
+            </scalar_field>
             <scalar_field name="Ingested">
               <diagnostic>
                 <algorithm name="Internal" material_phase_support="multiple"/>
@@ -1059,6 +1124,7 @@ def val(biovars, env, dt):
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <do_not_recalculate/>
               </diagnostic>
             </scalar_field>
             <release>
@@ -1640,6 +1706,316 @@ def val(agent, env, dt):
             <include_in_io/>
           </scalar_field>
           <food_type name="Living"/>
+        </food_set>
+        <scalar_field name="Agents">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <output/>
+            <stat/>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+          </diagnostic>
+        </scalar_field>
+      </functional_group>
+      <functional_group name="Basal_predator">
+        <variables>
+          <state_variable name="Stage"/>
+          <state_variable name="Size">
+            <scalar_field name="Ensemble">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
+              <stage_diagnostic/>
+            </scalar_field>
+          </state_variable>
+          <state_variable name="z">
+            <include_in_motion/>
+          </state_variable>
+          <state_variable name="V_m">
+            <include_in_motion/>
+          </state_variable>
+          <chemical_variable name="Ammonium">
+            <scalar_field name="Particulate">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+                <do_not_recalculate/>
+              </diagnostic>
+            </scalar_field>
+            <scalar_field name="Ingested">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+                <do_not_recalculate/>
+              </diagnostic>
+            </scalar_field>
+          </chemical_variable>
+          <chemical_variable name="Nitrate">
+            <scalar_field name="Particulate">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+                <do_not_recalculate/>
+              </diagnostic>
+            </scalar_field>
+            <scalar_field name="Ingested">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+                <do_not_recalculate/>
+              </diagnostic>
+            </scalar_field>
+          </chemical_variable>
+          <chemical_variable name="Silicate">
+            <scalar_field name="Particulate">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+                <do_not_recalculate/>
+              </diagnostic>
+            </scalar_field>
+            <scalar_field name="Ingested">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+                <do_not_recalculate/>
+              </diagnostic>
+            </scalar_field>
+          </chemical_variable>
+          <chemical_variable name="Carbon">
+            <scalar_field name="Particulate">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+                <do_not_recalculate/>
+              </diagnostic>
+            </scalar_field>
+            <scalar_field name="Ingested">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+                <do_not_recalculate/>
+              </diagnostic>
+            </scalar_field>
+          </chemical_variable>
+          <chemical_variable name="Nitrogen">
+            <scalar_field name="Particulate">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+                <do_not_recalculate/>
+              </diagnostic>
+            </scalar_field>
+            <scalar_field name="Ingested">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+                <do_not_recalculate/>
+              </diagnostic>
+            </scalar_field>
+          </chemical_variable>
+        </variables>
+        <initial_state>
+          <number_of_agents>
+            <integer_value rank="0">100</integer_value>
+          </number_of_agents>
+          <position>
+            <string_value lines="20" type="code" language="python">def val(t):
+  from numpy import arange
+  # 100 agents, evenly spaced in [0:100]m
+  positions = arange(-99.5,0.,1.0).reshape(100,1)
+  return positions</string_value>
+          </position>
+          <biology>
+            <string_value lines="20" type="code" language="python">from lebiology import stage_id
+
+def val(agent):
+  agent['Stage'] = stage_id('Basal_predator', 'Existance')
+  agent['Size'] = 1.0
+  return agent</string_value>
+          </biology>
+        </initial_state>
+        <movement>
+          <subcycles>
+            <integer_value rank="0">1</integer_value>
+          </subcycles>
+          <search_tolerance>
+            <real_value rank="0">1.0e-10</real_value>
+          </search_tolerance>
+          <reflect_on_boundary/>
+          <parametric_guided_search/>
+          <random_walk name="Copepod_rnd_Vm_z">
+            <python>
+              <string_value lines="20" type="code" language="python">from __builtin__ import abs, str
+from numpy import random
+
+mld = abs(persistent['physics_mld'])
+
+def val(position, vars, dt):
+  z = abs(position[0])
+  v = -vars['V_m']
+  if z &lt;= mld:
+    rnd = random.uniform(0.,mld, 1)
+    v = v - (rnd - z)
+  vars['z'] = abs(position[0] + v)
+  return [ v ]</string_value>
+            </python>
+          </random_walk>
+        </movement>
+        <environment>
+          <field name="Temperature"/>
+        </environment>
+        <stages>
+          <stage name="Existance">
+            <biology>
+              <python>
+                <string_value lines="20" type="code" language="python">from __builtin__ import str
+import fluidity.lerm_ps as lerm
+params = {}
+params.update( lerm.species_Default_Basal_Predator_Variety )
+params.update( lerm.foodset_Default_Basal_Predator_Variety_P )
+
+def val(agent, env, dt):
+  lerm.update_Existance_Basal_predator(params, agent, env, dt)
+  return agent</string_value>
+              </python>
+            </biology>
+          </stage>
+          <stage name="Pellet">
+            <biology>
+              <python>
+                <string_value lines="20" type="code" language="python">from __builtin__ import str
+import fluidity.lerm_ps as lerm
+params = {}
+params.update( lerm.species_Default_Basal_Predator_Variety )
+params.update( lerm.foodset_Default_Basal_Predator_Variety_P )
+
+def val(agent, env, dt):
+  lerm.update_Pellet_Basal_predator(params, agent, env, dt)
+  return agent</string_value>
+              </python>
+            </biology>
+            <particle_management>
+              <period_in_timesteps>
+                <integer_value rank="0">1</integer_value>
+              </period_in_timesteps>
+              <maximum>
+                <constant>
+                  <real_value rank="0">1.0</real_value>
+                </constant>
+              </maximum>
+            </particle_management>
+          </stage>
+        </stages>
+        <food_set functional_group="Copepod" name="P">
+          <scalar_field name="Concentration">
+            <diagnostic>
+              <algorithm name="Internal" material_phase_support="multiple"/>
+              <output/>
+              <stat/>
+              <detectors>
+                <include_in_detectors/>
+              </detectors>
+            </diagnostic>
+          </scalar_field>
+          <scalar_field name="Request">
+            <diagnostic>
+              <algorithm name="Internal" material_phase_support="multiple"/>
+              <output/>
+              <stat/>
+              <detectors>
+                <include_in_detectors/>
+              </detectors>
+            </diagnostic>
+            <include_in_io/>
+          </scalar_field>
+          <scalar_field name="Depletion">
+            <diagnostic>
+              <algorithm name="Internal" material_phase_support="multiple"/>
+              <output/>
+              <stat/>
+              <detectors>
+                <include_in_detectors/>
+              </detectors>
+            </diagnostic>
+          </scalar_field>
+          <scalar_field name="IngestedCells">
+            <diagnostic>
+              <algorithm name="Internal" material_phase_support="multiple"/>
+              <output/>
+              <stat/>
+              <detectors>
+                <include_in_detectors/>
+              </detectors>
+            </diagnostic>
+            <include_in_io/>
+          </scalar_field>
+          <food_type name="OWA5"/>
+          <food_type name="C5"/>
+          <food_type name="C6"/>
+          <food_type name="Adult"/>
+          <food_type name="Mature"/>
+          <food_type name="Senescent"/>
+          <food_type name="N3"/>
+          <food_type name="N4"/>
+          <food_type name="N5"/>
+          <food_type name="N6"/>
+          <food_type name="C1"/>
+          <food_type name="C2"/>
+          <food_type name="C3"/>
+          <food_type name="C4"/>
+          <food_type name="OWD4"/>
+          <food_type name="C4OW"/>
+          <food_type name="POW5"/>
+          <food_type name="POW4"/>
+          <food_type name="OWA4"/>
+          <food_type name="OWD5"/>
         </food_set>
         <scalar_field name="Agents">
           <diagnostic>
