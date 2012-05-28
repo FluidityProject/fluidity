@@ -2674,7 +2674,7 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
                         else normal_flow                          
 
                            v_dot_n = - di%cached_face_value%relperm_bdy(1,ggi,sele,p) * absperm_ele_bdy(1) * &
-   dot_product((grad_pressure_face_quad_bdy(:,ggi) - di%cached_face_value%den_bdy(ggi,sele,p) * grav_ele_bdy(:,1)), normgi)/ visc_ele_bdy(1)
+dot_product((grad_pressure_face_quad_bdy(:,ggi) - di%cached_face_value%den_bdy(ggi,sele,p) * grav_ele_bdy(:,1)), normal_bdy(:,ggi))/ visc_ele_bdy(1)
 
                            if (v_dot_n <= 0) then
 
