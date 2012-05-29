@@ -33,11 +33,14 @@ module parallel_tools
   use mpi_interfaces
   use global_parameters, only: is_active_process, no_active_processes
   use iso_c_binding
+#ifdef _OPENMP
+  use omp_lib
+#endif
   implicit none
 
   private
 
-  public :: halgetnb, halgetnb_simple
+  public :: halgetnb, halgetnb_simple, abort_if_in_parallel_region
   public :: allor, alland, allmax, allmin, allsum, allmean, allfequals,&
        get_active_nparts, getnprocs, getpinteger, getpreal, getprocno, getrank, &
        isparallel, parallel_filename, parallel_filename_len, &
@@ -297,6 +300,21 @@ contains
 #endif
 
   end function usingmpi
+
+  ! Abort run if we're in an OMP parallel region
+  ! Call this routine at the start of functions that are known not to
+  ! be thread safe (for example, populating caches) and should
+  ! therefore never be called in a parallel region due to race
+  ! conditions.
+  subroutine abort_if_in_parallel_region()
+#ifdef _OPENMP
+    if (omp_in_parallel()) then
+       FLAbort("Calling non-thread-safe code in OMP parallel region")
+    endif
+#else
+    return
+#endif
+  end subroutine abort_if_in_parallel_region
 
   ! Array - points to the begining of the real array that stores the field values
   ! blockLen - the number of field values continiously stored per node

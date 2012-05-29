@@ -751,6 +751,7 @@ enable_mba3d
 enable_algencan
 enable_memory_stats
 enable_hyperlight
+with_libnuma
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1441,6 +1442,8 @@ Optional Packages:
   --with-x                use the X Window System
   --with-arpack-lib[=<lib>]
                           specify arpack library
+  --with-libnuma[=libnuma_library]
+                          specify the path to libnuma, e.g. -L/usr/lib -lnuma
 
 Some influential environment variables:
   F77         Fortran 77 compiler command
@@ -10377,6 +10380,44 @@ if test "$USING_GFORTRAN" = "yes"; then
     cat >> confdefs.h << EOF
 #define USING_GFORTRAN 1
 EOF
+
+  # Check for -frealloc-lhs
+  # This optimisation is avaible from gfortran 4.6.? but it leads
+  # to memory leaks, see http://gcc.gnu.org/bugzilla/show_bug.cgi?id=53389
+  # so we switch it off
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking \"Checking for -fno-realloc-lhs\"" >&5
+$as_echo_n "checking \"Checking for -fno-realloc-lhs\"... " >&6; }
+  OLD_FCFLAGS="$FCFLAGS"
+  FCFLAGS="-fno-realloc-lhs"
+  ac_ext=${ac_fc_srcext-f}
+ac_compile='$FC -c $FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
+ac_link='$FC -o conftest$ac_exeext $FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_fc_compiler_gnu
+
+  cat > conftest.$ac_ext <<_ACEOF
+      program main
+
+                      PRINT*, "hello world"
+
+      end
+_ACEOF
+if ac_fn_fc_try_compile "$LINENO"; then :
+
+          { $as_echo "$as_me:${as_lineno-$LINENO}: result: -fno-realloc-lhs works, adding to FCFLAGS" >&5
+$as_echo "-fno-realloc-lhs works, adding to FCFLAGS" >&6; }
+          NO_REALLOC_LHS="-fno-realloc-lhs"
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+  FCFLAGS="$OLD_FCLAGS"
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+  FCFLAGS="$FCFLAGS $NO_REALLOC_LHS"
+  FFLAGS="$FFLAGS $NO_REALLOC_LHS"
 fi
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
@@ -11694,12 +11735,12 @@ if test "${enable_sam+set}" = set; then :
 fi
 
 if test "$enable_sam" = "yes"; then
-    HAVE_ZOLTAN=no
+  HAVE_ZOLTAN=no
 else
-    if test "$with_zoltan" = no; then
-        HAVE_ZOLTAN=no
-        echo "Warning: zoltan disabled, using libsam instead"
-    fi
+  if test "$with_zoltan" = no; then
+    HAVE_ZOLTAN=no
+    echo "Warning: zoltan disabled, using libsam instead"
+  else
     HAVE_ZOLTAN=yes
     zoltan=yes
 
@@ -11817,8 +11858,8 @@ ZOLTAN="yes"
 
 echo $LIBS
 
+  fi
 fi
-
 
 
 
@@ -14866,6 +14907,22 @@ else
 fi
 
 fi
+
+#***** LIBNUMA *****
+
+# Check whether --with-libnuma was given.
+if test "${with_libnuma+set}" = set; then :
+  withval=$with_libnuma;
+fi
+
+if test -n "$with_libnuma"; then
+   { $as_echo "$as_me:${as_lineno-$LINENO}: Linking against $with-libnuma" >&5
+$as_echo "$as_me: Linking against $with-libnuma" >&6;}
+   LIBS="$with_libnuma $LIBS"
+   CPPFLAGS="-DHAVE_LIBNUMA $CPPFLAGS"
+fi
+
+#*******************
 
 ac_config_files="$ac_config_files Makefile debug/Makefile bathymetry/Makefile ocean_forcing/Makefile ocean_forcing/tests/Makefile sediments/Makefile hyperlight/Makefile femtools/Makefile femtools/tests/Makefile forward_interfaces/Makefile horizontal_adaptivity/Makefile horizontal_adaptivity/tests/Makefile preprocessor/Makefile error_measures/Makefile error_measures/tests/Makefile parameterisation/Makefile parameterisation/tests/Makefile fldecomp/Makefile assemble/Makefile assemble/tests/Makefile diagnostics/Makefile main/Makefile tools/Makefile python/setup.py adjoint/Makefile adjoint/tests/Makefile climatology/Makefile libmba2d/Makefile libmba3d/Makefile libjudy/Makefile libjudy/src/Makefile libjudy/src/JudyCommon/Makefile libjudy/src/Judy1/Makefile libjudy/src/JudyL/Makefile libjudy/src/JudySL/Makefile libjudy/src/JudyHS/Makefile libalgencan/Makefile libwm/Makefile libvtkfortran/Makefile schemas/flml reduced_modelling/Makefile"
 
