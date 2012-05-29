@@ -1127,19 +1127,33 @@ module advection_local_DG
     integer, intent(in) :: ele
     real, intent(in) :: t_theta
     !
-    real, dimension(mesh_dim(X),ele_loc(QFlux,ele)) :: QFlux_rhs, QFlux_perp_rhs
-    real, dimension(Flux%dim,ele_ngi(Flux,ele)) :: Flux_gi
+    real, dimension(mesh_dim(X),ele_loc(QFlux,ele)) :: QFlux_perp_rhs
+    real, dimension(Flux%dim,ele_ngi(Flux,ele)) :: Flux_gi, Flux_perp_gi
     real, dimension(ele_ngi(X,ele)) :: Q_gi,Q_old_gi,D_gi,D_old_gi
-    real, dimension(ele_loc(Q,ele)) :: Q_test1,Q_test2
     real, dimension(X%dim, ele_ngi(Q, ele)) :: up_gi
+    real, dimension(mesh_dim(QFlux), mesh_dim(QFlux), ele_ngi(QFlux,ele)) &
+         :: Metric, Metricf
+    real, dimension(mesh_dim(QFlux),mesh_dim(QFlux),ele_loc(QFlux,ele)&
+         &,ele_loc(QFlux,ele)) :: l_u_mat
+    real, dimension(mesh_dim(QFlux)*ele_loc(QFlux,ele),mesh_dim(QFlux)&
+         &*ele_loc(QFlux,ele)) :: solve_mat
+    real, dimension(ele_loc(Q,ele)) :: Q_test1_rhs, Q_test2_rhs
+    real, dimension(mesh_dim(Qflux)*ele_loc(QFlux,ele)) :: solve_rhs
+    real, dimension(mesh_dim(Qflux),ele_ngi(Qflux,ele)) :: &
+         contravariant_velocity_gi, velocity_perp_gi
     type(element_type), pointer :: Q_shape, QFlux_shape
-    integer :: loc, orientation,gi
+    integer :: loc, orientation,gi, dim1, dim2
+    real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+    real, dimension(ele_ngi(X,ele)) :: detwei, detJ
+    real, dimension(X%dim, X%dim, ele_ngi(X,ele)) :: rot
 
     Q_shape => ele_shape(Q,ele)
     QFlux_shape => ele_shape(QFlux,ele)
     Q_gi = ele_val_at_quad(Q,ele)
     Q_old_gi = ele_val_at_quad(Q_old,ele)
     Flux_gi = ele_val_at_quad(Flux,ele)
+
+    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J, detwei, detJ)
 
     up_gi = -ele_val_at_quad(down,ele)
     call get_up_gi(X,ele,up_gi,orientation)
@@ -1162,15 +1176,74 @@ module advection_local_DG
     ! <w,u^{n+1}>=<w,u^n> + <w,F(\theta Q^{n+1}+(1-\theta)Q^n)^\perp>
     ! We actually store the inner product with test function (FQ_rhs)
     ! (avoids having to do a solve)
-    ! Integration can be done locally using magic exterior calculus
-    ! CAN IT THOUGH??????
 
-    QFlux_rhs = shape_vector_rhs(QFlux_shape,Flux_gi,(t_theta*Q_gi + &
-         (1-t_theta)*Q_old_gi)*q%mesh%shape%quadrature%weight)
-    QFlux_perp_rhs(1,:) = -QFlux_rhs(2,:)*orientation
-    QFlux_perp_rhs(2,:) =  QFlux_rhs(1,:)*orientation
+    do gi  = 1, ele_ngi(QFlux,ele)
+       Flux_gi(:,gi) = Flux_gi(:,gi)*(t_theta*Q_gi + &
+         (1-t_theta)*Q_old_gi)
+    end do
 
+    do gi=1, ele_ngi(QFlux,ele)
+       rot(1,:,gi)=(/0.,-up_gi(3,gi),up_gi(2,gi)/)
+       rot(2,:,gi)=(/up_gi(3,gi),0.,-up_gi(1,gi)/)
+       rot(3,:,gi)=(/-up_gi(2,gi),up_gi(1,gi),0./)
+    end do
+    do gi=1,ele_ngi(QFlux,ele)
+       Metric(:,:,gi)=matmul(J(:,:,gi), transpose(J(:,:,gi)))/detJ(gi)
+       Metricf(:,:,gi)=matmul(J(:,:,gi), &
+            matmul(rot(:,:,gi), transpose(J(:,:,gi))))/detJ(gi)
+    end do
+
+    do gi = 1, ele_ngi(QFlux,ele)
+       Flux_perp_gi(:,gi) = matmul(Metricf(:,:,gi),Flux_gi(:,gi))
+    end do
+    
+    QFlux_perp_rhs = shape_vector_rhs(QFlux_shape,Flux_perp_gi,&
+         & QFlux_shape%quadrature%weight)
     call set(QFlux,ele_nodes(QFlux,ele),QFlux_perp_rhs)
+
+    if(have_option('/material_phase::Fluid/scalar_field::PotentialVorticity/&
+         &prognostic/debug')) then
+       !Do a debugging check
+       !First solve for actual nonlinear Coriolis term
+       l_u_mat = shape_shape_tensor(qflux_shape, qflux_shape, &
+            qflux_shape%quadrature%weight,Metric)
+       solve_mat = 0.
+       solve_rhs = 0.
+       do dim1 = 1, mesh_dim(qflux)
+          do dim2 = 1, mesh_dim(qflux)
+             solve_mat( (dim1-1)*ele_loc(qflux,ele)+1:dim1*ele_loc(qflux,ele),&
+                  (dim2-1)*ele_loc(qflux,ele)+1:dim2*ele_loc(qflux,ele)) = &
+                  l_u_mat(dim1,dim2,:,:)
+          end do
+          solve_rhs( (dim1-1)*ele_loc(qflux,ele)+1:dim1*ele_loc(qflux,ele))&
+               = QFlux_perp_rhs(dim1,:)
+       end do
+       call solve(solve_mat,solve_rhs)
+       flux_perp_gi(:,gi) = matmul(transpose(QFlux_shape%n),solve_rhs)
+       !Now compute vorticity
+       do gi=1,ele_ngi(X,ele)
+          Metric(:,:,gi)=matmul(J(:,:,gi), transpose(J(:,:,gi)))/detJ(gi)
+          contravariant_velocity_gi(:,gi) = &
+               matmul(Metric(:,:,gi),Flux_perp_gi(:,gi))
+       end do
+
+       select case(mesh_dim(X))
+       case (2)
+          velocity_perp_gi(1,:) = -contravariant_velocity_gi(2,:)
+          velocity_perp_gi(2,:) =  contravariant_velocity_gi(1,:)
+          Q_test1_rhs = dshape_dot_vector_rhs(Q%mesh%shape%dn, &
+               velocity_perp_gi,Q%mesh%shape%quadrature%weight)
+          Q_test1_rhs = q_test1_rhs*orientation
+       case default
+          FLAbort('Exterior derivative not implemented for given mesh dimension')
+       end select
+
+       Q_test2_rhs = shape_rhs(ele_shape(Q,ele),(Q_gi*D_gi-Q_old_gi&
+            &*D_old_gi)*detwei)
+       ewrite(1,*) 'curl of Q^\perp', Q_test1_rhs
+       assert(maxval(abs(Q_test1_rhs-Q_test2_rhs))<1.0e-8)
+       
+    end if
 
   end subroutine construct_pv_flux_ele
 
