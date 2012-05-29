@@ -4,7 +4,7 @@
   <name>bed_shear_from_grad_u_CG</name>
   <owner userid="sp911"/>
   <tags>flml bed_shear_stress test</tags>
-  <problem_definition length="medium" nprocs="1">
+  <problem_definition length="short" nprocs="1">
     <command_line>fluidity bed_shear_from_grad_u_CG.flml</command_line>
     <!-- check bed shear stress is as expected for very simple set up -->
 </problem_definition>

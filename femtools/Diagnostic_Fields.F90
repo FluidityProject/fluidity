@@ -3159,8 +3159,8 @@ contains
          ! In the CG case we need to calculate a global lumped mass
          if(continuity(bed_shear_stress)>=0) then
             call allocate(masslump, bed_shear_stress%mesh, 'Masslump')
+            call zero(masslump)
          end if
-         call zero(masslump)
 
          ! write(*,*) 'grad_U_at_quad, visc_at_quad, abs_normal, transpose(shear_at_quad), normal_shear_at_quad'
          do face = 1, surface_element_count(bed_shear_stress)
