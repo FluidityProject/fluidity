@@ -23,19 +23,33 @@ max_velocity_before=stat['Fields']['Velocity%magnitude']['max']</variable>
     <variable name="max_velocity_after" language="python">from fluidity_tools import stat_parser
 stat=stat_parser('spherical_segment_checkpoint.stat')
 max_velocity_after=stat['Fields']['Velocity%magnitude']['max']</variable>
+    <variable name="fs_integral_before" language="python">from fluidity_tools import stat_parser
+stat=stat_parser('spherical_segment.stat')
+fs_integral_before=stat['Fields']['FreeSurface']['surface_integral%Bottom']</variable>
+    <variable name="fs_integral_after" language="python">from fluidity_tools import stat_parser
+stat=stat_parser('spherical_segment_checkpoint.stat')
+fs_integral_after=stat['Fields']['FreeSurface']['surface_integral%Bottom']</variable>
   </variables>
   <pass_tests>
     <test name="volume_conservation_run1" language="python">from fluidity_tools import compare_variable
-compare_variable(volume_before[0], volume_before[-1], 1e-5)</test>
+compare_variable(volume_before[0], volume_before[-1], 1e-10)</test>
     <test name="volume_conservation_run12" language="python">from fluidity_tools import compare_variable
 # compares volume at the end of first run with that of end first timestep second run
-compare_variable(volume_before[-1], volume_after[0], 1e-5)</test>
+compare_variable(volume_before[-1], volume_after[0], 1e-10)</test>
     <test name="volume_conservation_run2" language="python">from fluidity_tools import compare_variable
-compare_variable(volume_after[0], volume_after[-1], 1e-5)</test>
+compare_variable(volume_after[0], volume_after[-1], 1e-10)</test>
     <test name="solvers_converged" language="python">assert solvers_converged</test>
     <test name="max_velocity_run1" language="python"># make sure we're actually doing something and not blowing up
 assert all(max_velocity_before&gt;0.01) and all(max_velocity_before&lt;0.02)</test>
     <test name="max_velocity_run2" language="python"># make sure we're actually doing something and not blowing up
 assert all(max_velocity_after&gt;0.01) and all(max_velocity_after&lt;0.02)</test>
+    <test name="fs_integral_run1" language="python">from fluidity_tools import compare_variable
+compare_variable(fs_integral_before[0], fs_integral_before[-1], 1e-5)</test>
+    <test name="fs_integral_run2" language="python">from fluidity_tools import compare_variable
+compare_variable(fs_integral_after[0], fs_integral_after[-1], 1e-5)</test>
+    <test name="fs_integral_run12" language="python">from fluidity_tools import compare_variable
+# compares freesurface integral at the end of first run with that of end first timestep second run
+compare_variable(fs_integral_before[-1], fs_integral_after[0], 1e-5)
+</test>
   </pass_tests>
 </testproblem>

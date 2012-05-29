@@ -101,14 +101,14 @@
     </mesh>
     <quadrature>
       <degree>
-        <integer_value rank="0">4</integer_value>
+        <integer_value rank="0">6</integer_value>
       </degree>
       <surface_degree>
-        <integer_value rank="0">3</integer_value>
+        <integer_value rank="0">6</integer_value>
       </surface_degree>
     </quadrature>
     <spherical_earth>
-      <superparametric_mapping/>
+      <linear_mapping/>
     </spherical_earth>
     <ocean_boundaries>
       <top_surface_ids>
@@ -188,7 +188,7 @@
       <integer_value rank="0">2</integer_value>
     </final_timestep>
     <nonlinear_iterations>
-      <integer_value rank="0">20</integer_value>
+      <integer_value rank="0">2</integer_value>
     </nonlinear_iterations>
   </timestepping>
   <physical_parameters>
@@ -365,7 +365,7 @@
             <real_value rank="0">1.0e-8</real_value>
           </relative_error>
           <max_iterations>
-            <integer_value rank="0">10000</integer_value>
+            <integer_value rank="0">1000</integer_value>
           </max_iterations>
           <never_ignore_solver_failures/>
           <diagnostics>
