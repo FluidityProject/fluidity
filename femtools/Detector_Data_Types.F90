@@ -173,6 +173,8 @@ module detector_data_types
 
     ! Variable indices of the chemical pools to ingest
     integer, dimension(:), allocatable :: ingest_chem_inds
+
+    logical :: path_integrate = .false.
   end type food_set
 
   type detector_linked_list
@@ -254,7 +256,6 @@ module detector_data_types
 
     ! List of environment fields to sample before the agent update
     character(len=FIELD_NAME_LEN), dimension(:), allocatable :: envfield_names
-    logical, dimension(:), allocatable :: envfield_integrate
 
     integer, dimension(:), allocatable :: ivars_uptake, ivars_release
 

@@ -247,40 +247,39 @@ contains
 
     real, dimension(size(envfields)) :: envfield_vals
     real, dimension(size(foodfields)) :: foodfield_vals
-    real, dimension(:), allocatable :: envval_ele
-    real, dimension(1) :: val
+    real, dimension(:), allocatable :: foodval_ele
     real :: path_total
     integer :: f, v, e, stat
 
     ! Sample environment fields
     do f=1, size(envfields)
-       if (fgroup%envfield_integrate(f) .and. size(agent%ele_path) > 0) then
-
-          ! Integrate along the path of the agent
-          allocate(envval_ele(size(agent%ele_path)))
-          do e=1, size(agent%ele_path)
-             val = ele_val(envfields(f)%ptr, agent%ele_path(e))
-             envval_ele(e) = agent%ele_dist(e) * val(1)
-          end do
-
-          envfield_vals(f) = sum(envval_ele)
-          path_total = sum(agent%ele_dist)
-          if (path_total > 0.0) then
-             envfield_vals(f) = envfield_vals(f) / path_total
-          else
-             envfield_vals(f) = eval_field(agent%element, envfields(f)%ptr, agent%local_coords)
-          end if
-          deallocate(envval_ele)
-
-       else
-          ! Evaluate at detector position
-          envfield_vals(f) = eval_field(agent%element, envfields(f)%ptr, agent%local_coords)
-       end if
+       ! Evaluate at detector position
+       envfield_vals(f) = eval_field(agent%element, envfields(f)%ptr, agent%local_coords)
     end do
 
     ! Add food concentrations
     do f=1, size(foodfields)
-       foodfield_vals(f) = integral_element(foodfields(f)%ptr, xfield, agent%element)
+
+       if (fgroup%food_sets(1)%path_integrate .and. allocated(agent%ele_path)) then
+
+          ! Integrate along the path of the agent
+          allocate(foodval_ele(size(agent%ele_path)))
+          do e=1, size(agent%ele_path)
+             foodval_ele(e) = agent%ele_dist(e) * integral_element(foodfields(f)%ptr, xfield, agent%ele_path(e))
+          end do
+
+          foodfield_vals(f) = sum(foodval_ele)
+          path_total = sum(agent%ele_dist)
+          if (path_total > 0.0) then
+             foodfield_vals(f) = foodfield_vals(f) / path_total
+          else
+             foodfield_vals(f) = integral_element(foodfields(f)%ptr, xfield, agent%element)
+          end if
+          deallocate(foodval_ele)
+
+       else
+          foodfield_vals(f) = integral_element(foodfields(f)%ptr, xfield, agent%element)
+       end if
     end do
 
     stat=0

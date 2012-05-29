@@ -297,7 +297,10 @@ food_set =
             element diagnostic {
                internal_algorithm,
                diagnostic_scalar_field_no_adapt
-            }
+            },
+            element integrate_along_path {
+               empty
+            }?
          },
          element scalar_field {
             attribute name { "Request" },

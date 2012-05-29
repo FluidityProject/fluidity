@@ -851,7 +851,7 @@ def val(biovars, env, dt):
 mld = persistent['physics_mld']
 
 def val(X):
-  minimum = 6.0
+  minimum = 20.0
   
   # Outside the prescribed "MLD" we merge down to 1
   if abs(X[0]) &gt; mld:
@@ -861,7 +861,7 @@ def val(X):
               </minimum>
               <maximum>
                 <constant>
-                  <real_value rank="0">12.0</real_value>
+                  <real_value rank="0">40.0</real_value>
                 </constant>
               </maximum>
             </particle_management>
@@ -1675,6 +1675,7 @@ def val(agent, env, dt):
                 <include_in_detectors/>
               </detectors>
             </diagnostic>
+            <integrate_along_path/>
           </scalar_field>
           <scalar_field name="Request">
             <diagnostic>

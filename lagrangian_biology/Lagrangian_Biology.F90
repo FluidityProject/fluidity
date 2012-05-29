@@ -137,16 +137,9 @@ contains
        if (have_option(trim(fg_buffer)//"/environment")) then
           n_env_fields = option_count(trim(fg_buffer)//"/environment/field")
           allocate(fgroup%envfield_names(n_env_fields))
-          allocate(fgroup%envfield_integrate(n_env_fields))
           do j=1, n_env_fields
              write(env_field_buffer, "(a,i0,a)") trim(fg_buffer)//"/environment/field[",j-1,"]"
              call get_option(trim(env_field_buffer)//"/name", fgroup%envfield_names(j))
-
-             if (have_option(trim(env_field_buffer)//"/integrate_along_path")) then
-                fgroup%envfield_integrate(j) = .true.
-             else
-                fgroup%envfield_integrate(j) = .false.
-             end if
           end do
 
           ! Add field names to the Python module
@@ -538,6 +531,10 @@ contains
        fgroup%food_sets(i)%name = trim(food_name)
        call get_option(trim(food_buffer)//"/functional_group", fgroup%food_sets(i)%target_fgroup)
 
+       if (have_option(trim(food_buffer)//"/scalar_field::Concentration/integrate_along_path")) then
+          fgroup%food_sets(i)%path_integrate = .true.
+       end if
+
        n_food_types = option_count(trim(food_buffer)//"/food_type")
        allocate(fgroup%food_sets(i)%varieties(n_food_types))
        do f=1, n_food_types
@@ -704,12 +701,6 @@ contains
           allocate(env_fields(size(fgroup%envfield_names)))
           do env=1, size(fgroup%envfield_names)
              env_fields(env)%ptr => extract_scalar_field(state(1), fgroup%envfield_names(env))
-
-             ! If we want to integrate along the agent path we need to check that field is P0
-             if (fgroup%envfield_integrate(env) .and. &
-                 element_degree(env_fields(env)%ptr, 1) /= 0) then
-                FLExit("Path integration only available for P0 environment fields")
-             end if
           end do
        end if
 
@@ -826,6 +817,7 @@ contains
        call distribute_by_stage(fgroup, new_agent_list)
 
        ! Handle stage changes within FG
+       ewrite(2,*) "Lagrangian biology: Dealing with stage changes"
        call distribute_by_stage(fgroup, stage_change_list)
 
     end do  ! FGroup

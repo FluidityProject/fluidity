@@ -375,6 +375,11 @@ The scaled release quantity will then get added to the according source field of
             <ref name="internal_algorithm"/>
             <ref name="diagnostic_scalar_field_no_adapt"/>
           </element>
+          <optional>
+            <element name="integrate_along_path">
+              <empty/>
+            </element>
+          </optional>
         </element>
         <element name="scalar_field">
           <attribute name="name">
