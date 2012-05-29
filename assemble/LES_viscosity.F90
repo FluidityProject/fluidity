@@ -360,6 +360,8 @@ contains
           call set(nu_f1, nu)
         case ("explicit")
           call anisotropic_smooth_vector(nu, positions, nu_f1, alpha, lpath)
+        case default
+          call set(nu_f1, nu)
       end select
       call anisotropic_smooth_vector(nu_f1, positions, nu_f2, gamma, lpath)
     else
@@ -368,6 +370,8 @@ contains
           call set(nu_f1, nu)
         case ("explicit")
           call smooth_vector(nu, positions, nu_f1, alpha, lpath)
+        case default
+          call set(nu_f1, nu)
       end select
       call smooth_vector(nu_f1, positions, nu_f2, gamma, lpath)
     end if

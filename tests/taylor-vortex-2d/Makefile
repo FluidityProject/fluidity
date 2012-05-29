@@ -1,7 +1,7 @@
 input: clean
-	../../bin/create_aligned_mesh cube_0_2pi_12 6.283185307179586 6.283185307179586 6.283185307179586 12 12 12
-	../../bin/create_aligned_mesh cube_0_2pi_24 6.283185307179586 6.283185307179586 6.283185307179586 24 24 24
-	../../bin/create_aligned_mesh cube_0_2pi_48 6.283185307179586 6.283185307179586 6.283185307179586 48 48 48
+	gmsh -2 -o square-periodic-12.msh src/square-periodic_12.geo
+	gmsh -2 -o square-periodic-24.msh src/square-periodic_24.geo
+	gmsh -2 -o square-periodic-48.msh src/square-periodic_48.geo
 
 clean:
-	rm -f *.ele *.face *.node
+	rm -f *.msh

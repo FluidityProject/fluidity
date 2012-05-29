@@ -34,51 +34,65 @@ dtkep48 = stat("taylor-green-vortex-2d-periodic_48.stat")["fluid"]["TKEDiff"]["l
 timelp12 = stat("taylor-green-vortex-2d-les-periodic_12.stat")["ElapsedTime"]["value"]
 tkelp12 = stat("taylor-green-vortex-2d-les-periodic_12.stat")["fluid"]["TKE"]["l2norm"]
 dtkelp12 = stat("taylor-green-vortex-2d-les-periodic_12.stat")["fluid"]["TKEDiff"]["l2norm"]
+devlp12 = stat("taylor-green-vortex-2d-les-periodic_12.stat")["fluid"]["EddyViscosityDiff%magnitude"]["l2norm"]
 timelp24 = stat("taylor-green-vortex-2d-les-periodic_24.stat")["ElapsedTime"]["value"]
 tkelp24 = stat("taylor-green-vortex-2d-les-periodic_24.stat")["fluid"]["TKE"]["l2norm"]
 dtkelp24 = stat("taylor-green-vortex-2d-les-periodic_24.stat")["fluid"]["TKEDiff"]["l2norm"]
+devlp24 = stat("taylor-green-vortex-2d-les-periodic_24.stat")["fluid"]["EddyViscosityDiff%magnitude"]["l2norm"]
 timelp48 = stat("taylor-green-vortex-2d-les-periodic_48.stat")["ElapsedTime"]["value"]
 tkelp48 = stat("taylor-green-vortex-2d-les-periodic_48.stat")["fluid"]["TKE"]["l2norm"]
 dtkelp48 = stat("taylor-green-vortex-2d-les-periodic_48.stat")["fluid"]["TKEDiff"]["l2norm"]
+devlp48 = stat("taylor-green-vortex-2d-les-periodic_48.stat")["fluid"]["EddyViscosityDiff%magnitude"]["l2norm"]
 
 timelap12 = stat("taylor-green-vortex-2d-les-aniso-periodic_12.stat")["ElapsedTime"]["value"]
 tkelap12 = stat("taylor-green-vortex-2d-les-aniso-periodic_12.stat")["fluid"]["TKE"]["l2norm"]
 dtkelap12 = stat("taylor-green-vortex-2d-les-aniso-periodic_12.stat")["fluid"]["TKEDiff"]["l2norm"]
+devlap12 = stat("taylor-green-vortex-2d-les-aniso-periodic_12.stat")["fluid"]["EddyViscosityDiff%magnitude"]["l2norm"]
 timelap24 = stat("taylor-green-vortex-2d-les-aniso-periodic_24.stat")["ElapsedTime"]["value"]
 tkelap24 = stat("taylor-green-vortex-2d-les-aniso-periodic_24.stat")["fluid"]["TKE"]["l2norm"]
 dtkelap24 = stat("taylor-green-vortex-2d-les-aniso-periodic_24.stat")["fluid"]["TKEDiff"]["l2norm"]
+devlap24 = stat("taylor-green-vortex-2d-les-aniso-periodic_24.stat")["fluid"]["EddyViscosityDiff%magnitude"]["l2norm"]
 timelap48 = stat("taylor-green-vortex-2d-les-aniso-periodic_48.stat")["ElapsedTime"]["value"]
 tkelap48 = stat("taylor-green-vortex-2d-les-aniso-periodic_48.stat")["fluid"]["TKE"]["l2norm"]
 dtkelap48 = stat("taylor-green-vortex-2d-les-aniso-periodic_48.stat")["fluid"]["TKEDiff"]["l2norm"]
+devlap48 = stat("taylor-green-vortex-2d-les-aniso-periodic_48.stat")["fluid"]["EddyViscosityDiff%magnitude"]["l2norm"]
 
 #dynamic LES
 timedlp12 = stat("taylor-green-vortex-2d-dynles-periodic_12.stat")["ElapsedTime"]["value"]
 tkedlp12 = stat("taylor-green-vortex-2d-dynles-periodic_12.stat")["fluid"]["TKE"]["l2norm"]
 dtkedlp12 = stat("taylor-green-vortex-2d-dynles-periodic_12.stat")["fluid"]["TKEDiff"]["l2norm"]
+devdlp12 = stat("taylor-green-vortex-2d-dynles-periodic_12.stat")["fluid"]["EddyViscosityDiff%magnitude"]["l2norm"]
 timedlp24 = stat("taylor-green-vortex-2d-dynles-periodic_24.stat")["ElapsedTime"]["value"]
 tkedlp24 = stat("taylor-green-vortex-2d-dynles-periodic_24.stat")["fluid"]["TKE"]["l2norm"]
 dtkedlp24 = stat("taylor-green-vortex-2d-dynles-periodic_24.stat")["fluid"]["TKEDiff"]["l2norm"]
+devdlp24 = stat("taylor-green-vortex-2d-dynles-periodic_24.stat")["fluid"]["EddyViscosityDiff%magnitude"]["l2norm"]
 timedlp48 = stat("taylor-green-vortex-2d-dynles-periodic_48.stat")["ElapsedTime"]["value"]
 tkedlp48 = stat("taylor-green-vortex-2d-dynles-periodic_48.stat")["fluid"]["TKE"]["l2norm"]
 dtkedlp48 = stat("taylor-green-vortex-2d-dynles-periodic_48.stat")["fluid"]["TKEDiff"]["l2norm"]
+devdlp48 = stat("taylor-green-vortex-2d-dynles-periodic_48.stat")["fluid"]["EddyViscosityDiff%magnitude"]["l2norm"]
 
 timedlap12 = stat("taylor-green-vortex-2d-dynles-aniso-periodic_12.stat")["ElapsedTime"]["value"]
 tkedlap12 = stat("taylor-green-vortex-2d-dynles-aniso-periodic_12.stat")["fluid"]["TKE"]["l2norm"]
 dtkedlap12 = stat("taylor-green-vortex-2d-dynles-aniso-periodic_12.stat")["fluid"]["TKEDiff"]["l2norm"]
+
 timedlap24 = stat("taylor-green-vortex-2d-dynles-aniso-periodic_24.stat")["ElapsedTime"]["value"]
 tkedlap24 = stat("taylor-green-vortex-2d-dynles-aniso-periodic_24.stat")["fluid"]["TKE"]["l2norm"]
 dtkedlap24 = stat("taylor-green-vortex-2d-dynles-aniso-periodic_24.stat")["fluid"]["TKEDiff"]["l2norm"]
+
 timedlap48 = stat("taylor-green-vortex-2d-dynles-aniso-periodic_48.stat")["ElapsedTime"]["value"]
 tkedlap48 = stat("taylor-green-vortex-2d-dynles-aniso-periodic_48.stat")["fluid"]["TKE"]["l2norm"]
 dtkedlap48 = stat("taylor-green-vortex-2d-dynles-aniso-periodic_48.stat")["fluid"]["TKEDiff"]["l2norm"]
+
 
 # Analytical solution
 exact = stat("taylor-green-vortex-2d-periodic_48.stat")["fluid"]["ExactTKE"]["l2norm"]
 texact = timep48
 
-times=(timep12,timep24,timep48,timelp12,timelp24,timelap12,timelap24,timedlp12,timedlp24,timedlp48,timedlap12,timedlap24,timedlap48,texact)
-tke=(tkep12,tkep24,tkep48,tkelp12,tkelp24,tkelap12,tkelap24,tkedlp12,tkedlp24,tkedlp48,tkedlap12,tkedlap24,tkedlap48,exact)
-error=(dtkep12,dtkep24,dtkep48,dtkelp12,dtkelp24,dtkelap12,dtkelap24,dtkedlp12,dtkedlp24,dtkedlp48,dtkedlap12,dtkedlap24,dtkedlap48)
+times=(timep12,timep24,timep48,timelp12,timelp24,timelp48,timelap12,timelap24,timelap48,timedlp12,timedlp24,timedlp48,timedlap12,timedlap24,timedlap48,texact)
+tke=(tkep12,tkep24,tkep48,tkelp12,tkelp24,tkelp48,tkelap12,tkelap24,tkelap48,tkedlp12,tkedlp24,tkedlp48,tkedlap12,tkedlap24,tkedlap48,exact)
+error=(dtkep12,dtkep24,dtkep48,dtkelp12,dtkelp24,dtkelp48,dtkelap12,dtkelap24,dtkelap48,dtkedlp12,dtkedlp24,dtkedlp48,dtkedlap12,dtkedlap24,dtkedlap48)
+evtimes=(timelp12,timelp24,timelp48,timelap12,timelap24,timelap48,timedlp12,timedlp24,timedlp48)
+everror=(devlp12,devlp24,devlp48,devlap12,devlap24,devlap48,devdlp12,devdlp24,devdlp48)
 
 # Time derivative of TKE
 dissiprates = vt.differentiate(times,tke)
@@ -90,6 +104,8 @@ vt.plot_tke(times,error)
 # Integrals over time
 integrals = vt.integrate(times,error)
 print 'integrals ', integrals
+evintegrals = vt.integrate(evtimes,everror)
+print 'ev error integrals ', evintegrals
 
 # IS THIS THE CORRECT WAY TO MEASURE CONVERGENCE?
 conv1224 = abs(integrals[0]/integrals[1])
@@ -107,6 +123,13 @@ convdlp2448 = abs(integrals[10]/integrals[11])
 convdlap1224 = abs(integrals[12]/integrals[13])
 convdlap2448 = abs(integrals[13]/integrals[14])
 
+convlpev1224 = abs(evintegrals[0]/evintegrals[1])
+convlpev2448 = abs(evintegrals[1]/evintegrals[2])
+convlapev1224 = abs(evintegrals[3]/evintegrals[4])
+convlapev2448 = abs(evintegrals[4]/evintegrals[5])
+convdlpev1224 = abs(evintegrals[6]/evintegrals[7])
+convdlpev2448 = abs(evintegrals[7]/evintegrals[8])
+
 # Write convergence stats to file
 output=open('output.log','w')
 output.write('convergence_periodic_12_24 '+str(log(conv1224,2))+'\n')
@@ -119,9 +142,15 @@ output.write('convergence_dynles_periodic_12_24 '+str(log(convdlp1224,2))+'\n')
 output.write('convergence_dynles_periodic_24_48 '+str(log(convdlp2448,2))+'\n')
 output.write('convergence_dynles_aniso_periodic_12_24 '+str(log(convdlap1224,2))+'\n')
 output.write('convergence_dynles_aniso_periodic_24_48 '+str(log(convdlap2448,2))+'\n')
+output.write('convergence_ev_les_periodic_12_24 '+str(log(convlpev1224,2))+'\n')
+output.write('convergence_ev_les_periodic_24_48 '+str(log(convlpev2448,2))+'\n')
+output.write('convergence_ev_les_aniso_periodic_12_24 '+str(log(convlapev1224,2))+'\n')
+output.write('convergence_ev_les_aniso_periodic_24_48 '+str(log(convlapev2448,2))+'\n')
+output.write('convergence_ev_dynles_periodic_12_24 '+str(log(convdlpev1224,2))+'\n')
+output.write('convergence_ev_dynles_periodic_24_48 '+str(log(convdlpev2448,2))+'\n')
 output.close()
 
-dissipation_error = [log(conv1224,2),log(conv2448,2),log(convdlp1224,2),log(convdlp2448,2),log(convdlap1224,2),log(convdlap2448,2)]
+dissipation_error = [log(conv1224,2),log(conv2448,2),log(convlp1224,2),log(convlp2448,2),log(convlap1224,2),log(convlap2448,2),log(convdlp1224,2),log(convdlp2448,2),log(convdlap1224,2),log(convdlap2448,2)]
     </variable>
   </variables>
   <pass_tests>
@@ -131,11 +160,29 @@ assert(dissipation_error[0]>1.9)
     <test name="convergence-DNS-24-48" language="python">
 assert(dissipation_error[1]>1.9)
     </test>
-    <test name="convergence-dynles-12-24" language="python">
+    <test name="convergence-les-12-24" language="python">
 assert(dissipation_error[2]>1.9)
     </test>
-    <test name="convergence-dynles-24-48" language="python">
+    <test name="convergence-les-24-48" language="python">
 assert(dissipation_error[3]>1.9)
+    </test>
+    <test name="convergence-les-aniso-12-24" language="python">
+assert(dissipation_error[4]>1.9)
+    </test>
+    <test name="convergence-les-aniso-24-48" language="python">
+assert(dissipation_error[5]>1.9)
+    </test>
+    <test name="convergence-dynles-12-24" language="python">
+assert(dissipation_error[6]>1.9)
+    </test>
+    <test name="convergence-dynles-24-48" language="python">
+assert(dissipation_error[7]>1.9)
+    </test>
+    <test name="convergence-dynles-aniso-12-24" language="python">
+assert(dissipation_error[8]>1.9)
+    </test>
+    <test name="convergence-dynles-aniso-24-48" language="python">
+assert(dissipation_error[9]>1.9)
     </test>
   </pass_tests>
   <warn_tests>

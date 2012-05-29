@@ -1578,6 +1578,20 @@ This will appear in the stat file.</a:documentation>
                       <ref name="diagnostic_scalar_field"/>
                     </element>
                   </element>
+                  <element name="scalar_field">
+                    <a:documentation>VLES Filter function (diagnostic).</a:documentation>
+                    <attribute name="rank">
+                      <value>0</value>
+                    </attribute>
+                    <attribute name="name">
+                      <value>Filter</value>
+                    </attribute>
+                    <element name="diagnostic">
+                      <ref name="internal_algorithm"/>
+                      <ref name="velocity_mesh_choice"/>
+                      <ref name="diagnostic_scalar_field"/>
+                    </element>
+                  </element>
                   <element name="source_absorption">
                     <a:documentation>Select whether source and absorption terms for k and epsilon
 are implicit or explicit.</a:documentation>
@@ -1588,6 +1602,13 @@ are implicit or explicit.</a:documentation>
                       </choice>
                     </element>
                   </element>
+                  <optional>
+                    <element name="vles">
+                      <a:documentation>Select whether this is a VLES or not,
+if so then apply LES filtering to the equations.</a:documentation>
+                      <empty/>
+                    </element>
+                  </optional>
                   <element name="lengthscale_limit">
                     <a:documentation>Limit the turbulence lengthscale to within physical bounds (e.g. inlet min dimension).
 This helps to prevent instabilities during simulation spin-up.</a:documentation>

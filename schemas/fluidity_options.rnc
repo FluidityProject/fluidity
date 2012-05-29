@@ -1245,6 +1245,18 @@ start =
                         }
                      )
                   },
+                  ## VLES Filter function (diagnostic).
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "Filter" },
+                     (
+                        element diagnostic {
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_scalar_field
+                        }
+                     )
+                  },
                   ## Select whether source and absorption terms for k and epsilon
                   ## are implicit or explicit.
                   element source_absorption {
@@ -1252,6 +1264,11 @@ start =
                      "explicit"|"implicit"
                      }
                   },
+                  ## Select whether this is a VLES or not,
+                  ## if so then apply LES filtering to the equations.
+                  element vles {
+                     empty
+                  }?,
                   ## Limit the turbulence lengthscale to within physical bounds (e.g. inlet min dimension).
                   ## This helps to prevent instabilities during simulation spin-up.
                   element lengthscale_limit {real},

@@ -540,7 +540,7 @@ C = 0.1
 assert(s.node_count == field.node_count)
 for i in range(field.node_count):
   #filter width is constant on structured mesh
-  w=(pi/12.)**2.
+  w=(pi/24.)**2.
   f=[[5.*w, -1.*w],[-1.*w, 5.*w]]
   ev=f
   ev[0][0]=f[0][0]*C**2.*s.node_val(i)

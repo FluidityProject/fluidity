@@ -210,7 +210,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
    import helmholtz_tools as k
    return k.velocity(X)</string_value>
           </python>
@@ -223,14 +223,14 @@
             <align_bc_with_cartesian>
               <x_component>
                 <python>
-                  <string_value lines="20" type="python">def val(X,t):
+                  <string_value lines="20" type="code" language="python">def val(X,t):
    import helmholtz_tools as k
    return k.velocity(X)[0]</string_value>
                 </python>
               </x_component>
               <y_component>
                 <python>
-                  <string_value lines="20" type="python">def val(X,t):
+                  <string_value lines="20" type="code" language="python">def val(X,t):
    import helmholtz_tools as k
    return k.velocity(X)[1]</string_value>
                 </python>
@@ -406,7 +406,7 @@
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
    import helmholtz_tools as k
    return k.velocity(X)</string_value>
           </python>

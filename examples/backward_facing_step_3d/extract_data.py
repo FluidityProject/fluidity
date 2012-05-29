@@ -12,10 +12,10 @@ mydir=pwd.split('backward_facing_step_3d')[0]+'backward_facing_step_3d'
 print mydir
 
 def restresseslemoin():
-
+  off=0.05
   # get profiles from Le&Moin graphs. x=4
   Le_uu4 = open(str(mydir)+'/Le-profiles/Le-profile1-uu-x4.dat', 'r').readlines()
-  rs_uu4 = [float(line.split()[0]) for line in Le_uu4]
+  rs_uu4 = [off+float(line.split()[0]) for line in Le_uu4]
   y_uu4 = [float(line.split()[1]) for line in Le_uu4]
   Le_vv4 = open(str(mydir)+'/Le-profiles/Le-profile1-vv-x4.dat', 'r').readlines()
   rs_vv4 = [float(line.split()[0]) for line in Le_vv4]
@@ -26,7 +26,7 @@ def restresseslemoin():
 
   # get profiles from Le&Moin graphs. x=6
   Le_uu6 = open(str(mydir)+'/Le-profiles/Le-profile1-uu-x6.dat', 'r').readlines()
-  rs_uu6 = [float(line.split()[0]) for line in Le_uu6]
+  rs_uu6 = [off+float(line.split()[0]) for line in Le_uu6]
   y_uu6 = [float(line.split()[1]) for line in Le_uu6]
   Le_vv6 = open(str(mydir)+'/Le-profiles/Le-profile1-vv-x6.dat', 'r').readlines()
   rs_vv6 = [float(line.split()[0]) for line in Le_vv6]
@@ -37,7 +37,7 @@ def restresseslemoin():
 
   # get profiles from Le&Moin graphs. x=10
   Le_uu10 = open(str(mydir)+'/Le-profiles/Le-profile1-uu-x10.dat', 'r').readlines()
-  rs_uu10 = [float(line.split()[0]) for line in Le_uu10]
+  rs_uu10 = [off+float(line.split()[0]) for line in Le_uu10]
   y_uu10 = [float(line.split()[1]) for line in Le_uu10]
   Le_vv10 = open(str(mydir)+'/Le-profiles/Le-profile1-vv-x10.dat', 'r').readlines()
   rs_vv10 = [float(line.split()[0]) for line in Le_vv10]
@@ -48,7 +48,7 @@ def restresseslemoin():
 
   # get profiles from Le&Moin graphs. x=19
   Le_uu19 = open(str(mydir)+'/Le-profiles/Le-profile1-uu-x19.dat', 'r').readlines()
-  rs_uu19 = [float(line.split()[0]) for line in Le_uu19]
+  rs_uu19 = [off+float(line.split()[0]) for line in Le_uu19]
   y_uu19 = [float(line.split()[1]) for line in Le_uu19]
   Le_vv19 = open(str(mydir)+'/Le-profiles/Le-profile1-vv-x19.dat', 'r').readlines()
   rs_vv19 = [float(line.split()[0]) for line in Le_vv19]
@@ -125,18 +125,21 @@ def ercoftacrestressprofiles():
   return y,U,uu,vv,uv
 
 def panjwaniprofiles(variable):
+
+  off=0.05 if variable=='uu' else 0.0
+  inv=-1.0 if variable=='uv' else 1.0
   # get data from relevant files
   pj = open(str(mydir)+'/panjwani-profiles/panjwani-dynles-'+str(variable)+'-4.8.dat', 'r').readlines()
-  pj_u1 = [float(line.split()[0]) for line in pj]
+  pj_u1 = [off+inv*float(line.split()[0]) for line in pj]
   pj_y1 = [float(line.split()[1]) for line in pj]
   pj = open(str(mydir)+'/panjwani-profiles/panjwani-dynles-'+str(variable)+'-7.3.dat', 'r').readlines()
-  pj_u2 = [float(line.split()[0]) for line in pj]
+  pj_u2 = [off+inv*float(line.split()[0]) for line in pj]
   pj_y2 = [float(line.split()[1]) for line in pj]
   pj = open(str(mydir)+'/panjwani-profiles/panjwani-dynles-'+str(variable)+'-12.2.dat', 'r').readlines()
-  pj_u3 = [float(line.split()[0]) for line in pj]
+  pj_u3 = [off+inv*float(line.split()[0]) for line in pj]
   pj_y3 = [float(line.split()[1]) for line in pj]
   pj = open(str(mydir)+'/panjwani-profiles/panjwani-dynles-'+str(variable)+'-18.2.dat', 'r').readlines()
-  pj_u4 = [float(line.split()[0]) for line in pj]
+  pj_u4 = [off+inv*float(line.split()[0]) for line in pj]
   pj_y4 = [float(line.split()[1]) for line in pj]
 
   return pj_u1,pj_y1,pj_u2,pj_y2,pj_u3,pj_y3,pj_u4,pj_y4

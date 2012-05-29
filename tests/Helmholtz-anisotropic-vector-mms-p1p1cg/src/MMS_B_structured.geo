@@ -1,9 +1,9 @@
 Point(1) = {0.0,0.0,0};
 Extrude {3.1415926535897931, 0, 0} {
-  Point{1}; Layers{20};
+  Point{1}; Layers{12};
 }
 Extrude {0, 3.1415926535897931, 0} {
-  Line{1}; Layers{20};
+  Line{1}; Layers{12};
 }
 Physical Line(7) = {1};
 Physical Line(8) = {4};

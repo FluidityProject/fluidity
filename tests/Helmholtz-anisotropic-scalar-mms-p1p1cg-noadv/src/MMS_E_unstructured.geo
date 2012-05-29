@@ -1,6 +1,6 @@
 Point(1) = {-1.,-1.,0,2};
-Point(2) = {2.,-1.,0,2};
-Point(3) = {2.,1.,0,2};
+Point(2) = {1.,-1.,0,2};
+Point(3) = {1.,1.,0,2};
 Point(4) = {-1.,1.,0,2};
 Line(1) = {4,3};
 Line(2) = {3,2};
@@ -15,5 +15,5 @@ Physical Line(10) = {4};
 Physical Surface(12) = {6};
 Field[1] = MathEval;
 Background Field = 1;
-Field[1].F = "1./16";
+Field[1].F = "1./64";
 

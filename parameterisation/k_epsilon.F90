@@ -41,6 +41,7 @@ module k_epsilon
   use fetools
   use vector_tools
   use sparsity_patterns_meshes
+  use smoothing_module
   use FLDebug
 
 implicit none
@@ -52,6 +53,7 @@ implicit none
   real, save                          :: c_mu, c_eps_1, c_eps_2, sigma_eps, sigma_k, lmax
   real, save                          :: fields_min = 1.e-10
   character(len=FIELD_NAME_LEN), save :: src_abs
+  logical, save                       :: vles
 
   public :: keps_init, keps_cleanup, keps_tke, keps_eps, keps_eddyvisc, keps_bcs, keps_adapt_mesh, keps_check_options
 
@@ -97,8 +99,15 @@ subroutine keps_init(state)
     call get_option(trim(keps_path)//'/sigma_k', sigma_k, default = 1.0)
     call get_option(trim(keps_path)//'sigma_eps', sigma_eps, default = 1.3)
 
+    ! Check if this is a VLES or RANS
+    vles = have_option(trim(keps_path)//'/vles')
+
     ! initialise lengthscale
     Field => extract_scalar_field(state, "LengthScale")
+    call zero(Field)
+
+    ! Initialise VLES filter function
+    Field => extract_scalar_field(state, "Filter")
     call zero(Field)
 
     ! initialise scalar eddy viscosity
@@ -114,6 +123,7 @@ subroutine keps_init(state)
     ewrite(2,*) "fields_min: ",fields_min
     ewrite(2,*) "implicit/explicit source/absorption terms: ",   trim(src_abs)
     ewrite(2,*) "max turbulence lengthscale: ",     lmax
+    ewrite(2,*) "VLES simulation: ", vles
     ewrite(2,*) "--------------------------------------------"
 
 end subroutine keps_init
@@ -425,23 +435,28 @@ subroutine keps_eddyvisc(state)
 
     type(state_type), intent(inout)  :: state
     type(tensor_field), pointer      :: eddy_visc, viscosity, bg_visc
-    type(vector_field), pointer      :: positions
-    type(scalar_field), pointer      :: kk, eps, EV, ll, lumped_mass
-    type(scalar_field)               :: ev_rhs
+    type(vector_field), pointer      :: positions, u
+    type(scalar_field), pointer      :: kk, eps, EV, ll, lumped_mass, filter
+    type(scalar_field)               :: ev_rhs, filter_rhs
     type(element_type), pointer      :: shape_ev
+    type(patch_type)                 :: patch
     integer                          :: i, ele
     integer, pointer, dimension(:)   :: nodes_ev
-    real, allocatable, dimension(:)  :: detwei, rhs_addto
+    real, allocatable, dimension(:)  :: detwei, rhs_addto, uele
+    ! VLES parameters
+    real                             :: delta, dt, f, dx
 
     ewrite(1,*) "In keps_eddyvisc"
     kk         => extract_scalar_field(state, "TurbulentKineticEnergy")
     eps        => extract_scalar_field(state, "TurbulentDissipation")
     positions  => extract_vector_field(state, "Coordinate")
+    u          => extract_vector_field(state, "Velocity")
     eddy_visc  => extract_tensor_field(state, "EddyViscosity")
     viscosity  => extract_tensor_field(state, "Viscosity")
     bg_visc    => extract_tensor_field(state, "BackgroundViscosity")
     EV         => extract_scalar_field(state, "ScalarEddyViscosity")
     ll         => extract_scalar_field(state, "LengthScale")
+    filter     => extract_scalar_field(state, "Filter")
 
     ewrite_minmax(kk)
     ewrite_minmax(eps)
@@ -449,6 +464,9 @@ subroutine keps_eddyvisc(state)
 
     call allocate(ev_rhs, EV%mesh, name="EVRHS")
     call zero(ev_rhs)
+    call allocate(filter_rhs, EV%mesh, name="FilterRHS")
+    call zero(filter_rhs)
+    call zero(filter)
 
     ! Initialise viscosity to background value
     call set(viscosity, bg_visc)
@@ -461,6 +479,8 @@ subroutine keps_eddyvisc(state)
       call set(ll, i, min(node_val(kk,i)**1.5 / node_val(eps,i), lmax))
     end do
 
+    call get_option("/timestepping/timestep", dt)
+
     ! Calculate scalar eddy viscosity by integration over element
     do ele = 1, ele_count(EV)
       nodes_ev => ele_nodes(EV, ele)
@@ -468,6 +488,35 @@ subroutine keps_eddyvisc(state)
       allocate(detwei (ele_ngi(EV, ele)))
       allocate(rhs_addto (ele_loc(EV, ele)))
       call transform_to_physical(positions, ele, detwei=detwei)
+
+      ! VLES modification: filter eddy viscosity
+      if(vles) then
+        allocate(uele (ele_loc(EV, ele)))
+        ! Hard-coded to isotropic filter with alpha=2 for now.
+        delta = 4*length_scale(positions, ele)
+        uele = norm2(ele_val(u, ele))
+        ! lengthscale is max(delta, |u|dt)
+        dx = max(delta, sum(uele)/size(nodes_ev)*dt)
+        rhs_addto = delta/ele_val(ll, ele)
+        do i=1, size(nodes_ev)
+          patch = get_patch_ele(EV%mesh, nodes_ev(i))
+          ! Make filter values sum correctly
+          rhs_addto(i) = rhs_addto(i)**(2./3.)/patch%count
+          deallocate(patch%elements)
+        end do
+        ewrite(2,*) "L ", ele_val(ll, ele)
+        ewrite(2,*) "rhs ", rhs_addto
+        deallocate(uele)
+      else
+        rhs_addto = 1.
+        do i=1, size(nodes_ev)
+          patch = get_patch_ele(EV%mesh, nodes_ev(i))
+          rhs_addto(i) = rhs_addto(i)/patch%count
+          deallocate(patch%elements)
+        end do
+      end if
+
+      call addto(filter_rhs, nodes_ev, rhs_addto)
       rhs_addto = shape_rhs(shape_ev, detwei*C_mu*ele_val_at_quad(kk,ele)**0.5*ele_val_at_quad(ll,ele))
       call addto(ev_rhs, nodes_ev, rhs_addto)
       deallocate(detwei, rhs_addto)
@@ -477,10 +526,12 @@ subroutine keps_eddyvisc(state)
 
     ! Set eddy viscosity
     do i = 1, node_count(EV)
-      call set(EV, i, node_val(ev_rhs,i)/node_val(lumped_mass,i))
+      f = node_val(filter_rhs, i)
+      call set(filter, i, min(1.0, f))
+      call set(EV, i, f*node_val(ev_rhs,i)/node_val(lumped_mass,i))
     end do
 
-    call deallocate(ev_rhs)
+    call deallocate(ev_rhs); call deallocate(filter_rhs)
 
     ewrite(2,*) "Setting k-epsilon eddy-viscosity tensor"
     call zero(eddy_visc)

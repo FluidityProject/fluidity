@@ -191,9 +191,6 @@
                 <gamma>
                   <real_value rank="0">2.</real_value>
                 </gamma>
-                <limit_coefficient>
-                  <real_value rank="0">0.04</real_value>
-                </limit_coefficient>
                 <solver>
                   <iterative_method name="cg"/>
                   <preconditioner name="sor"/>
@@ -226,6 +223,59 @@
                     </steady_state>
                   </diagnostic>
                 </scalar_field>
+                <scalar_field name="ScalarFirstFilterWidth" rank="1">
+                  <diagnostic>
+                    <algorithm name="Internal" material_phase_support="multiple"/>
+                    <mesh name="VelocityMesh"/>
+                    <output/>
+                    <stat/>
+                    <convergence>
+                      <include_in_convergence/>
+                    </convergence>
+                    <detectors>
+                      <include_in_detectors/>
+                    </detectors>
+                    <steady_state>
+                      <include_in_steady_state/>
+                    </steady_state>
+                  </diagnostic>
+                </scalar_field>
+                <scalar_field name="ScalarSecondFilterWidth" rank="1">
+                  <diagnostic>
+                    <algorithm name="Internal" material_phase_support="multiple"/>
+                    <mesh name="VelocityMesh"/>
+                    <output/>
+                    <stat/>
+                    <convergence>
+                      <include_in_convergence/>
+                    </convergence>
+                    <detectors>
+                      <include_in_detectors/>
+                    </detectors>
+                    <steady_state>
+                      <include_in_steady_state/>
+                    </steady_state>
+                  </diagnostic>
+                </scalar_field>
+                <vector_field name="FirstFilteredVelocity" rank="2">
+                  <diagnostic>
+                    <algorithm name="Internal" material_phase_support="multiple"/>
+                    <mesh name="VelocityMesh"/>
+                    <output/>
+                    <stat>
+                      <include_in_stat/>
+                    </stat>
+                    <convergence>
+                      <include_in_convergence/>
+                    </convergence>
+                    <detectors>
+                      <include_in_detectors/>
+                    </detectors>
+                    <steady_state>
+                      <include_in_steady_state/>
+                    </steady_state>
+                  </diagnostic>
+                </vector_field>
                 <vector_field name="SecondFilteredVelocity" rank="2">
                   <diagnostic>
                     <algorithm name="Internal" material_phase_support="multiple"/>
@@ -449,7 +499,7 @@ for i in range(field.node_count):
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
           <string_value lines="20" type="code" language="python">from math import sqrt, pi
-g = state.tensor_fields["Grad"]
+g = state.tensor_fields["GradFFV"]
 assert(g.node_count == field.node_count)
 for i in range(field.node_count):
   g11=g.node_val(i)[0][0]
@@ -462,7 +512,7 @@ for i in range(field.node_count):
   s22=g22**2
   s = sqrt(2.*(s11+s12+s21+s22))
   field.set(i, s)</string_value>
-          <comment>Horrid expression for strain rate magnitude</comment>
+          <comment>Horrid expression for strain rate magnitude of first filtered velocity</comment>
         </algorithm>
         <mesh name="VelocityMesh"/>
         <output/>
@@ -485,7 +535,16 @@ for i in range(field.node_count):
           <python>
             <string_value lines="20" type="code" language="python">def val(X,t):
   import vortex_tools as vt
-  return vt.strainmagnitude(X,t)</string_value>
+  from math import pi
+  w=2.*(pi/6.)**2.
+  f=[[5.*w, -1.*w],[-1.*w, 5.*w]]
+  ev=f
+  ev[0][0]=f[0][0]*C**2.*s.node_val(i)
+  ev[0][1]=f[0][1]*C**2.*s.node_val(i)
+  ev[1][0]=f[1][0]*C**2.*s.node_val(i)
+  ev[1][1]=f[1][1]*C**2.*s.node_val(i)
+  return vt.strainmagnitude(X,t)*(1.-w/24.+w/576.)</string_value>
+            <comment>How do I use a tensor filter in the expression for strain magnitude?</comment>
           </python>
         </value>
         <output/>
@@ -550,9 +609,105 @@ for i in range(field.node_count):
         </steady_state>
       </diagnostic>
     </vector_field>
-    <tensor_field name="Grad" rank="2">
+    <vector_field name="ExactFirstFilteredVelocity" rank="1">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="code" language="python">def val(X,t):
+  import vortex_tools as vt
+  from math import pi
+  # first filter width
+  w=2.*(pi/6.)**2.
+  vel = vt.velocity(X,t)
+  vel[0]=vel[0]*(1.-w/24.+w/576.)
+  vel[1]=vel[1]*(1.-w/24.+w/576.)
+  return vel</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </vector_field>
+    <vector_field name="ExactSecondFilteredVelocity" rank="1">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="code" language="python">def val(X,t):
+  import vortex_tools as vt
+  from math import pi
+  # first filter width
+  w1=2.*(pi/6.)**2.
+  # second filter width
+  w2=8.*(pi/6.)**2.
+  vel = vt.velocity(X,t)
+  vel[0]=vel[0]*(1.-w1/24.+w1/576.)*(1.-w2/24.+w2/576.)
+  vel[1]=vel[1]*(1.-w1/24.+w1/576.)*(1.-w2/24.+w2/576.)
+  return vel</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </vector_field>
+    <vector_field name="FirstFilteredVelocityDiff" rank="1">
       <diagnostic>
-        <algorithm source_field_type="vector" material_phase_support="single " name="grad_vector" source_field_name="Velocity"/>
+        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="ExactFirstFilteredVelocity" source_field_2_name="FFV" material_phase_support="single" source_field_1_type="vector"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </vector_field>
+    <vector_field name="SecondFilteredVelocityDiff" rank="1">
+      <diagnostic>
+        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="ExactSecondFilteredVelocity" source_field_2_name="SFV" material_phase_support="single" source_field_1_type="vector"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </vector_field>
+    <vector_field name="FFV" rank="1">
+      <aliased material_phase_name="fluid" field_name="FirstFilteredVelocity"/>
+    </vector_field>
+    <vector_field name="SFV" rank="1">
+      <aliased material_phase_name="fluid" field_name="SecondFilteredVelocity"/>
+    </vector_field>
+    <tensor_field name="GradFFV" rank="2">
+      <diagnostic>
+        <algorithm source_field_type="vector" material_phase_support="single " name="grad_vector" source_field_name="FFV"/>
         <mesh name="VelocityMesh"/>
         <output/>
         <stat>
@@ -565,17 +720,16 @@ for i in range(field.node_count):
         <algorithm name="tensor_python_diagnostic" material_phase_support="single">
           <string_value lines="20" type="code" language="python">from math import sqrt, pi
 s = state.scalar_fields["ExactStrainMag"]
-C = 0.1
+C = 0.01
 assert(s.node_count == field.node_count)
 for i in range(field.node_count):
   #filter width is constant on structured mesh
-  w=(pi/12.)**2.
-  f=[[5.*w, -1.*w],[-1.*w, 5.*w]]
-  ev=f
-  ev[0][0]=f[0][0]*C**2.*s.node_val(i)
-  ev[0][1]=f[0][1]*C**2.*s.node_val(i)
-  ev[1][0]=f[1][0]*C**2.*s.node_val(i)
-  ev[1][1]=f[1][1]*C**2.*s.node_val(i)
+  w=2.*(pi/6.)**2.
+  ev=[[0, 0],[0, 0]]
+  ev[0][0]=w*C*s.node_val(i)
+  ev[0][1]=w*C**2.*s.node_val(i)
+  ev[1][0]=w*C**2.*s.node_val(i)
+  ev[1][1]=w*C**2.*s.node_val(i)
   field.set(i, ev)</string_value>
         </algorithm>
         <mesh name="VelocityMesh"/>

@@ -77,3 +77,4 @@ def forcing_mom(XX):
    Su = mass*rho*u_t + adv*rho*(u*u_x+v*u_y) + p_x - nu*(u_xx+u_yy)
    Sv = mass*rho*u_t + adv*rho*(u*v_x+v*v_y) + p_y - nu*(v_xx+v_yy)
    return (Su, Sv)
+
