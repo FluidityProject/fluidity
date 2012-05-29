@@ -379,7 +379,7 @@ contains
       type(vector_field) :: positions_mapped_to_pressure_space
       logical, dimension(11) :: which_tide
       integer :: node, stat
-      real :: eqtide, long, lat, height, love_number, current_time, gravity_magnitude
+      real :: eqtide, long, lat, love_number, current_time, gravity_magnitude
       type(scalar_field) :: equilibrium_pressure
 
       p_mesh => p_theta%mesh
@@ -451,7 +451,7 @@ contains
            if (have_option('/geometry/spherical_earth/')) then
              do node=1,node_count(positions_mapped_to_pressure_space)
                 call LongitudeLatitude(node_val(positions_mapped_to_pressure_space,node), long,&
-                     & lat, height)
+                     & lat)
                 eqtide=equilibrium_tide(which_tide,lat*acos(-1.0)/180.0&
                      &,long*acos(-1.0)/180.0,current_time,1.0)
                 eqtide=love_number*eqtide

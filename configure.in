@@ -371,6 +371,27 @@ if test "$USING_GFORTRAN" = "yes"; then
     cat >> confdefs.h << EOF
 #define USING_GFORTRAN 1
 EOF
+
+  # Check for -frealloc-lhs
+  # This optimisation is avaible from gfortran 4.6.? but it leads
+  # to memory leaks, see http://gcc.gnu.org/bugzilla/show_bug.cgi?id=53389
+  # so we switch it off
+  AC_MSG_CHECKING(["Checking for -fno-realloc-lhs"])
+  OLD_FCFLAGS="$FCFLAGS"
+  FCFLAGS="-fno-realloc-lhs"
+  AC_LANG_PUSH([Fortran])
+  AC_COMPILE_IFELSE(
+      [AC_LANG_PROGRAM(,[[
+                      PRINT*, "hello world"
+                      ]])],
+      [
+          AC_MSG_RESULT([-fno-realloc-lhs works, adding to FCFLAGS])
+          NO_REALLOC_LHS="-fno-realloc-lhs"
+      ])
+  FCFLAGS="$OLD_FCLAGS"
+  AC_LANG_POP()
+  FCFLAGS="$FCFLAGS $NO_REALLOC_LHS"
+  FFLAGS="$FFLAGS $NO_REALLOC_LHS"
 fi
 AC_LANG_POP([C])
 
@@ -801,21 +822,21 @@ fi
 ACX_ParMetis([AC_MSG_NOTICE(["ParMetis found"])], [AC_MSG_WARN(["ParMetis not found"])])
 
 AC_ARG_ENABLE(sam,
-    [AC_HELP_STRING([--enable-sam],
-	    [use sam rather than zoltan for adaptive load rebalancing])])
+              [AC_HELP_STRING([--enable-sam],
+                              [use sam rather than zoltan for adaptive load rebalancing])])
 if test "$enable_sam" = "yes"; then
-    HAVE_ZOLTAN=no
+  HAVE_ZOLTAN=no
 else
-    if test "$with_zoltan" = no; then
-        HAVE_ZOLTAN=no
-        echo "Warning: zoltan disabled, using libsam instead"
-    fi
+  if test "$with_zoltan" = no; then
+    HAVE_ZOLTAN=no
+    echo "Warning: zoltan disabled, using libsam instead"
+  else
     HAVE_ZOLTAN=yes
     zoltan=yes
     ACX_zoltan([AC_MSG_NOTICE(["Zoltan found"])], [AC_MSG_WARN(["Zoltan not found"])])
+  fi
 fi
 AC_SUBST(HAVE_ZOLTAN)
-
 
 
 HAVE_ADJOINT=no
@@ -1505,6 +1526,18 @@ if test "$enable_hyperlight" = "yes"; then
     exit -1
   ])
 fi
+
+#***** LIBNUMA *****
+AC_ARG_WITH(libnuma,
+[AC_HELP_STRING([--with-libnuma@<:@=libnuma_library@:>@],
+		[specify the path to libnuma, e.g. -L/usr/lib -lnuma])])
+if test -n "$with_libnuma"; then
+   AC_MSG_NOTICE([Linking against $with-libnuma])
+   LIBS="$with_libnuma $LIBS"
+   CPPFLAGS="-DHAVE_LIBNUMA $CPPFLAGS"
+fi
+
+#*******************
 
 AC_OUTPUT(Makefile
           debug/Makefile

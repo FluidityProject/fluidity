@@ -11,6 +11,7 @@ subroutine test_empty_populate_state
   logical :: fail
 
   is_active_process = .false.
+  no_active_processes = 0
   call load_options("data/empty-mesh.flml")
   call populate_state(states)
 

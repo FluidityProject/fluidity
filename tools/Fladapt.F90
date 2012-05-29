@@ -76,6 +76,7 @@ subroutine fladapt(input_basename_, input_basename_len, &
   type(vector_field) :: new_mesh_field
   type(vector_field), pointer :: new_mesh_field_ptr, old_mesh_field
   type(tensor_field) :: metric, t_edge_lengths
+  character(len=FIELD_NAME_LEN) :: mesh_format
 
   ! now turn into proper fortran strings (is there an easier way to do this?)
   do i=1, input_basename_len
@@ -144,11 +145,10 @@ subroutine fladapt(input_basename_, input_basename_len, &
   else
     call adapt_mesh(old_mesh_field, metric, new_mesh_field)
   end if
-  old_mesh_field => null()
-  old_mesh => null()
   
+  call get_option(trim(old_mesh_field%mesh%option_path)//"/from_file/format/name", mesh_format)
   ! Write the output mesh
-  call write_mesh_files(output_basename, new_mesh_field)
+  call write_mesh_files(output_basename, mesh_format, new_mesh_field)
   
   ! Deallocate
   do i = 1, size(states)
@@ -183,7 +183,7 @@ contains
       FLAbort("External mesh field " // trim(mesh_field_name) // " not found in the system state")
     end if
       
-    mesh_field => extract_vector_field(state, mesh_field_name)    
+    mesh_field => extract_vector_field(state, mesh_field_name)
     
   end subroutine find_mesh_field_to_adapt
   
