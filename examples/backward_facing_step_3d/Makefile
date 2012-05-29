@@ -1,7 +1,7 @@
 BIN=../../../bin
 RE=5100
 JOB=dynles-lilly-a1-sem-adapt
-NN=fine
+NN=0.125
 preprocess:
 	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi;
 	@$(foreach NN,0.125 , \
@@ -68,13 +68,14 @@ postprocess:
 
 postprocess-les:
 	@echo **********Calling the LES velocity data extraction and plotting python script:
-	@$(foreach JOB,dynles-lilly-sem-periodic dynles-lilly-aniso-sem-periodic dynles-lilly-a1-sem-periodic dynles-lilly-nolimc-sem-periodic dynles-lilly-aniso-nolimc-sem-periodic dynles-lilly-ex-sem-periodic dynles-lilly-ex-aniso-sem-periodic, \
+	@$(foreach JOB, dynles-lilly-sem-adapt dynles-lilly-a1-sem-adapt dynles-lilly-aniso-sem-adapt dynles-lilly-aniso-a1-sem-adapt dynles-lilly-a1b1-sem-adapt dynles-lilly-aniso-a1b1-sem-adapt dynles-lilly-nolimc-sem-adapt dynles-lilly-aniso-nolimc-sem-adapt dynles-lilly-nolimc-a1-sem-adapt dynles-lilly-aniso-nolimc-a1-sem-adapt dynles-lilly-ex-sem-adapt dynles-lilly-ex-aniso-sem-adapt dynles-lilly-ex-a1-sem-adapt dynles-lilly-ex-aniso-a1-sem-adapt dynles-lilly-aniso-sem-adaptfine , \
 		cd $(RE)-$(JOB)-$(NN); \
 		ln -s ../postprocessor_3d_les.py .; \
 		./postprocessor_3d_les.py $(RE) $(JOB) $(NN); \
 		cd ..; \
 	)
-#dynles-lilly-sem-adapt dynles-lilly-a1-sem-adapt dynles-lilly-aniso-sem-adapt dynles-lilly-aniso-a1-sem-adapt dynles-lilly-a1b1-sem-adapt dynles-lilly-aniso-a1b1-sem-adapt dynles-lilly-nolimc-sem-adapt dynles-lilly-aniso-nolimc-sem-adapt dynles-lilly-nolimc-a1-sem-adapt dynles-lilly-aniso-nolimc-a1-sem-adapt dynles-lilly-ex-sem-adapt dynles-lilly-ex-aniso-sem-adapt dynles-lilly-ex-a1-sem-adapt dynles-lilly-ex-aniso-a1-sem-adapt dynles-lilly-aniso-sem-adaptfine 
+#dynles-lilly-sem-periodic dynles-lilly-aniso-sem-periodic dynles-lilly-a1-sem-periodic dynles-lilly-nolimc-sem-periodic dynles-lilly-aniso-nolimc-sem-periodic dynles-lilly-ex-sem-periodic dynles-lilly-ex-aniso-sem-periodic
+#
 post-postprocess:
 	./post_postprocessor_3d_les.py
 

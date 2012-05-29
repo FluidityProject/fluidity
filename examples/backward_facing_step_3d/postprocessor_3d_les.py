@@ -556,7 +556,7 @@ def plot_reynolds_stresses2(Re,type,mesh,rprofiles,xarray,zarray,yarray):
   pylab.suptitle("Time-averaged Reynolds stress profiles: Re="+str(Re)+", "+str(type)+", "+str(mesh)+" mesh", fontsize=20)
 
   # get profiles from Le&Moin graphs.
-  y_uu4,rs_uu4,y_vv4,rs_vv4,y_uv4,rs_uv4,y_uu6,rs_uu6,y_vv6,rs_vv6,y_uv6,rs_uv6,y_uu10,rs_uu10,y_vv10,rs_vv10,y_uv10,rs_uv10,y_uu19,rs_uu19,y_vv19,rs_vv19,y_uv19,rs_uv19 = extract_data.restresseslemoin()
+  y_uu4,rs_uu4,y_vv4,rs_vv4,y_uv4,rs_uv4,y_uu6,rs_uu6,y_vv6,rs_vv6,y_uv6,rs_uv6,y_uu10,rs_uu10,y_vv10,rs_vv10,y_uv10,rs_uv10,y_uu19,rs_uu19,y_vv19,rs_vv19,y_uv19,rs_uv19 = extract_data.restresseslemoin(0.0)
 
   size = 15
   ax = pylab.subplot(141)
@@ -614,10 +614,10 @@ def plot_reynolds_stresses2(Re,type,mesh,rprofiles,xarray,zarray,yarray):
   pylab.setp(dx.get_yticklabels(), visible=False)
 
   pylab.axis([-0.1, 0.19, 0., 3.])
-  bx.set_xlabel('Normalised Reynolds stresses2 vs. Le&Moin data (divided by 2)', fontsize=20)
+  bx.set_xlabel('Normalised Reynolds stresses vs. Le&Moin data', fontsize=20)
   ax.set_ylabel('y/h', fontsize=24)
 
-  pylab.savefig("../reynolds_stress2_profiles_3d"+str(Re)+"_"+str(type)+"_"+str(mesh)+".pdf")
+  pylab.savefig("../reynolds_stress_profiles_3d"+str(Re)+"_"+str(type)+"_"+str(mesh)+".pdf")
   return
 
 #########################################################################
@@ -647,19 +647,26 @@ def main():
     # Find time-averaged reattachment length
     npy, rl_av = avrl.moving_average('../numpy_data/'+str(name)+'.npy')
     numpy.save('../numpy_data/av_'+str(name), [rl_av,npy[:,-1]])
-    print 'time-averaged RL', rl_av
 
     # Use it to calculate normalised coords for extracting velo profiles
     RL = rl_av[-1]
+    print 'av of av', RL
     xnarray = numpy.array([RL*2./3., RL, RL*5./3., RL*2.497])
+    xnarray = numpy.array([round(i,2) for i in xnarray])
+    print 'normalised locations', xnarray
+
+    RL = npy[-1,1]
+    print 'av', RL
+    xnarray = numpy.array([RL*2./3., RL, RL*5./3., RL*2.497])
+    xnarray = numpy.array([round(i,2) for i in xnarray])
     print 'normalised locations', xnarray
 
     ##### Call meanvelo function
-    #zarray = numpy.array([2.0])
-    vprofiles = meanvelo(filelist, xnarray, zarray, yarray)
-    numpy.save("../numpy_data/mean_velo_"+str(Re)+"_"+str(type)+"_"+str(mesh), vprofiles)
-    print "Showing plot of velocity profiles."
-    plot_meanvelo(Re,type,mesh,vprofiles,xnarray,yarray)
+    zarray = numpy.array([2.0])
+    #vprofiles = meanvelo(filelist, xnarray, zarray, yarray)
+    #numpy.save("../numpy_data/mean_velo_"+str(Re)+"_"+str(type)+"_"+str(mesh), vprofiles)
+    #print "Showing plot of velocity profiles."
+    #plot_meanvelo(Re,type,mesh,vprofiles,xnarray,yarray)
 
     # points used by Le & Moin in U+ plot:
     #xarray=numpy.array([10.0,12.5,15.0,17.5,19.0])
@@ -670,9 +677,9 @@ def main():
     #plot_plusvelo(Re,type,mesh,uplus,yplus,xarray)
 
     ##### Call Reynolds stress2 function
-    #rprofiles2 = reynolds_stresses2(filelist, xarray, zarray, yarray)
-    #numpy.save("../numpy_data/re_stress_"+str(Re)+"_"+str(type)+"_"+str(mesh), rprofiles2)
-    #plot_reynolds_stresses2(Re,type,mesh,rprofiles2,xarray,zarray,yarray)
+    rprofiles2 = reynolds_stresses2(filelist, xnarray, zarray, yarray)
+    numpy.save("../numpy_data/re_stress_"+str(Re)+"_"+str(type)+"_"+str(mesh), rprofiles2)
+    plot_reynolds_stresses2(Re,type,mesh,rprofiles2,xnarray,zarray,yarray)
 
     ##### Plot inlet region
     #xarray = numpy.array([-10.0, -7.0, -3.0, 0.0])

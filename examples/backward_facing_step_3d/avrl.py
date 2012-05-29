@@ -14,6 +14,7 @@ def moving_average(name):
     a = (t-init-dt)/(t-init)
     b = dt/(t-init)
     # av = a*old_av + b*new_val
+    # npy[:,1] is the reattachment length of AverageVelocity
     rl = av[i-1]*a + npy[i,1]*b
     av[i] = rl
 

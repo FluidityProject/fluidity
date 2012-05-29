@@ -11,8 +11,9 @@ print pwd
 mydir=pwd.split('backward_facing_step_3d')[0]+'backward_facing_step_3d'
 print mydir
 
-def restresseslemoin():
-  off=0.05
+def restresseslemoin(off):
+  # off is the plot offset
+
   # get profiles from Le&Moin graphs. x=4
   Le_uu4 = open(str(mydir)+'/Le-profiles/Le-profile1-uu-x4.dat', 'r').readlines()
   rs_uu4 = [off+float(line.split()[0]) for line in Le_uu4]
