@@ -422,6 +422,7 @@ contains
       end if
       tokens(i) = string(start_index:end_index)
       start_index = end_index + len(delimiter) + 1
+      tokens(i) = adjustl(tokens(i))
     end do
     assert(start_index == len(string) + 1 + len(delimiter))
     

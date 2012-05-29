@@ -36,13 +36,13 @@ want this.</a:documentation>
               </optional>
             </element>
           </optional>
-          <ref name="input_choice_real"/>
+          <ref name="input_choice_real_plus_field"/>
         </element>
         <element name="type">
           <attribute name="name">
             <value>neumann</value>
           </attribute>
-          <ref name="input_choice_real"/>
+          <ref name="input_choice_real_plus_field"/>
         </element>
         <ref name="robin_bc_scalar"/>
         <element name="type">
@@ -99,7 +99,7 @@ a boundary when solving the advection-diffusion equation.</a:documentation>
           <attribute name="name">
             <value>flux</value>
           </attribute>
-          <ref name="input_choice_real"/>
+          <ref name="input_choice_real_plus_field"/>
         </element>
       </choice>
     </element>
@@ -368,6 +368,9 @@ floats or swims upwards, this field should be negative.</a:documentation>
           </element>
         </choice>
       </element>
+    </optional>
+    <optional>
+      <ref name="porosity_include"/>
     </optional>
     <ref name="prognostic_scalar_output_options"/>
     <ref name="prognostic_scalar_stat_options"/>
@@ -2014,13 +2017,13 @@ want this.</a:documentation>
                 </optional>
               </element>
             </optional>
-            <ref name="input_choice_real"/>
+            <ref name="input_choice_real_plus_field"/>
           </element>
           <element name="type">
             <attribute name="name">
               <value>neumann</value>
             </attribute>
-            <ref name="input_choice_real"/>
+            <ref name="input_choice_real_plus_field"/>
           </element>
           <ref name="robin_bc_scalar"/>
           <element name="type">
@@ -2243,7 +2246,7 @@ requires a distinct name for the options dictionary.</a:documentation>
               <value>dirichlet</value>
             </attribute>
             <choice>
-              <ref name="input_choice_real_contents"/>
+              <ref name="input_choice_real_plus_field"/>
               <element name="from_file">
                 <oneOrMore>
                   <element name="tidal">
@@ -2291,7 +2294,7 @@ Set the name of the prescribed NEMO pressure scalar field below.</a:documentatio
             <attribute name="name">
               <value>neumann</value>
             </attribute>
-            <ref name="input_choice_real"/>
+            <ref name="input_choice_real_plus_field"/>
           </element>
           <ref name="robin_bc_scalar"/>
         </choice>

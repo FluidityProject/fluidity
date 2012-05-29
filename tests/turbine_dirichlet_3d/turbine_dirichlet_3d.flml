@@ -183,7 +183,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X, t):
+            <string_value lines="20" type="code" language="python">def val(X, t):
    if X[0]&lt;=0.1:
        return  0.5
    else:
@@ -196,7 +196,7 @@
           </surface_ids>
           <type name="dirichlet">
             <python>
-              <string_value lines="20" type="python">def val(X, t):
+              <string_value lines="20" type="code" language="python">def val(X, t):
    from math import cos
    return  cos(3.1415*t)*0.05</string_value>
             </python>
@@ -450,7 +450,7 @@
           <real_value shape="3" dim1="dim" rank="1">0.2001 0.5 0.5</real_value>
         </free_surface_point_2>
         <head_flux>
-          <string_value lines="20" type="python">def val(h):
+          <string_value lines="20" type="code" language="python">def val(h):
         if abs(h)&lt;0.02:
                 return 0.0
         return h*10</string_value>

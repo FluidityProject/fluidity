@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<testproblem>
+  <name>column-parallel</name>
+  <owner userid="jhill1"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>mpiexec -n 2 ../../bin/fluidity -v1 -l column-parallel.flml </command_line>
+  </problem_definition>
+  <variables>
+    <variable name="final_time" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("column-parallel.stat")
+final_time = s["ElapsedTime"]["value"][-1]
+    </variable>
+    <variable name="warning_present" language="python">
+warning_present = False
+for line in file("fluidity.err-0", "r"):
+   if line.startswith(" Warning: You have a field called DistanceToTop"):
+      warning_present = True
+      break
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="assert no crash" language="python">
+assert abs(final_time-45) &lt; 0.0001
+    </test>
+    <test name="Warning present" language="python">
+        assert(warning_present)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

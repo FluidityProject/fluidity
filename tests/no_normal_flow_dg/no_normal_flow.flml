@@ -53,7 +53,7 @@
             <integer_value shape="1" rank="1">2</integer_value>
           </aliased_boundary_ids>
           <coordinate_map>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
 	result = list(X)
 	result[0]=result[0]-1
 	result[1]=result[1]-1
@@ -238,7 +238,7 @@
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="python">def val(X,t):
+                <string_value lines="20" type="code" language="python">def val(X,t):
   from numpy import array,dot,sqrt
   lX=array(X)
   baseline=array([-1./sqrt(2.),1/sqrt(2.)])
@@ -262,7 +262,7 @@
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="python">def val(X,t):
+                <string_value lines="20" type="code" language="python">def val(X,t):
   from numpy import array,dot,sqrt
   lX=array(X)
   baseline=array([-1./sqrt(2.),1/sqrt(2.)])
@@ -308,7 +308,7 @@
     <scalar_field name="VelocityCrossStream" rank="0">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="python">U=state.vector_fields["Velocity"]
+          <string_value lines="20" type="code" language="python">U=state.vector_fields["Velocity"]
 from numpy import dot,array
 
 for i in range(field.node_count):
