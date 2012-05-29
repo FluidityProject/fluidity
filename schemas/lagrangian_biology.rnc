@@ -308,6 +308,9 @@ food_set =
             element stage_diagnostic {
                empty
             }?,
+            element integrate_along_path {
+               empty
+            }?,
             element include_in_io {
                empty
             }?

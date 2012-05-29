@@ -11,8 +11,8 @@ def readstat():
             padding = '0'
             if(n<10):
                 padding ='00'
-        last_locations_error[0,i] = s['Steve_'+padding+str(n)]['position'][0][-1]
-        last_locations_error[1,i] = s['Steve_'+padding+str(n)]['position'][1][-1]
+        last_locations_error[0,i] = s['position']['Steve_'+padding+str(n)][0][-1]
+        last_locations_error[1,i] = s['position']['Steve_'+padding+str(n)][1][-1]
     X = fromfile('Xvals.txt',sep=' ')
     Y = fromfile('Yvals.txt',sep=' ')
     last_locations_error[0,:] = last_locations_error[0,:] - X

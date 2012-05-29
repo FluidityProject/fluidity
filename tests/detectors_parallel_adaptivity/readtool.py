@@ -12,8 +12,8 @@ def readstat(file_name):
             if(n<10):
                 padding ='00'
         # +0.5 due to domain change from the lagrangian_detectors setup
-        last_locations_error[0,i] = s['Steve_'+padding+str(n)]['position'][0][-1]+0.5
-        last_locations_error[1,i] = s['Steve_'+padding+str(n)]['position'][1][-1]+0.5
+        last_locations_error[0,i] = s['position']['Steve_'+padding+str(n)][0][-1]+0.5
+        last_locations_error[1,i] = s['position']['Steve_'+padding+str(n)][1][-1]+0.5
     X = fromfile('Xvals.txt',sep=' ')
     Y = fromfile('Yvals.txt',sep=' ')
     last_locations_error[0,:] = last_locations_error[0,:] - X

@@ -290,16 +290,15 @@ contains
           end if
 
           if (detector_list%tracking_method == GEOMETRIC_TRACKING) then
-             if (allocated(detector%ray_o)) then
-                deallocate(detector%ray_o)
-             end if
+             if (allocated(detector%ray_o)) deallocate(detector%ray_o)
              allocate(detector%ray_o(xfield%dim))
              detector%ray_o = detector%position
 
-             if (allocated(detector%ray_d)) then
-                deallocate(detector%ray_d)
-             end if
+             if (allocated(detector%ray_d)) deallocate(detector%ray_d)
              allocate(detector%ray_d(xfield%dim))
+
+             call flush_list(detector%ele_path_list)
+             call flush_list(detector%ele_dist_list)
           end if
 
        end if
@@ -503,7 +502,7 @@ contains
     type(detector_linked_list), dimension(:), allocatable :: send_list_array
     real :: search_tolerance
     integer :: k, nprocs, new_owner, all_send_lists_empty
-    logical :: outside_domain, any_lagrangian, have_ray
+    logical :: outside_domain, any_lagrangian
 
     ewrite(2,*) "In track_detectors"
 
@@ -516,22 +515,21 @@ contains
     search_tolerance=detector_list%search_tolerance
 
     if (detector_list%tracking_method == GEOMETRIC_TRACKING) then
-       have_ray = .true.
-
        detector => detector_list%first
        do while (associated(detector))
+
+           !Only initialise Lagrangian detectors
+           if (.not. detector%type==LAGRANGIAN_DETECTOR) then
+              detector => detector%next
+              cycle
+           end if
 
           ! Calcualte and normalise ray direction
           call initialise_ray(detector%update_vector, detector%ray_d, detector%ray_o, detector%target_distance)
           detector%current_t = 0.0
 
-          call flush_list(detector%ele_path_list)
-          call flush_list(detector%ele_dist_list)
-
           detector => detector%next
        end do
-    else
-       have_ray = .false.
     end if
 
     ! This loop continues until all detectors have completed their
@@ -563,15 +561,11 @@ contains
                         detector%ele_path_list, detector%ele_dist_list)
                 detector%local_coords = local_coords(xfield,detector%element,detector%update_vector)
 
-                if (allocated(detector%ele_path)) then
-                   deallocate(detector%ele_path)
-                end if
+                if (allocated(detector%ele_path)) deallocate(detector%ele_path)
                 allocate(detector%ele_path(detector%ele_path_list%length))
                 detector%ele_path = list2vector(detector%ele_path_list)
 
-                if (allocated(detector%ele_dist)) then
-                   deallocate(detector%ele_dist)
-                end if
+                if (allocated(detector%ele_dist)) deallocate(detector%ele_dist)
                 allocate(detector%ele_dist(detector%ele_dist_list%length))
                 detector%ele_dist = list2vector(detector%ele_dist_list)
 
@@ -628,7 +622,7 @@ contains
 
           !This call serialises send_list_array, sends it, 
           !receives serialised receive_list_array, and unserialises that.
-          call exchange_detectors(detector_list,xfield,send_list_array,have_rk=.true.,have_ray=have_ray)
+          call exchange_detectors(detector_list,xfield,send_list_array,tracking=.true.)
        else
           ! If we run out of lagrangian detectors for some reason, exit the loop
           exit
@@ -640,6 +634,13 @@ contains
     if (detector_list%tracking_method == GEOMETRIC_TRACKING) then
        detector => detector_list%first
        do while (associated(detector))
+
+          !Only update Lagrangian detectors
+          if (.not. detector%type==LAGRANGIAN_DETECTOR) then
+             detector => detector%next
+             cycle
+          end if
+
           detector%ray_o = detector%update_vector
           detector => detector%next
        end do
@@ -790,11 +791,11 @@ contains
           ! Record our next t and the distance covered
           if (present(ele_dist_list)) then
              call insert(ele_dist_list, ele_t - current_t)
-          end if
-          current_t = ele_t
+          end if          
 
           if (neigh_face /= next_face) then
              ! Recurse on the next element
+             current_t = ele_t
              new_element = face_ele(xfield, neigh_face)
 
              ! Record the elements along the path travelled
