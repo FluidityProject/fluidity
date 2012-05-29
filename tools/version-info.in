@@ -1,0 +1,16 @@
+#!/bin/bash
+if [ "@FLUIDITY_VERSION@" = "" ]; then
+    PACKAGE_VERSION=`bzr version-info --custom --template='{branch_nick}.{revno}'`
+else
+    PACKAGE_VERSION="@FLUIDITY_VERSION@"
+fi
+if [ x"$@" = x"" ]; then
+    echo $PACKAGE_VERSION
+else
+    grep "\"${PACKAGE_VERSION}\"" $@ >/dev/null 2>&1 ||
+    (printf "#ifndef _FLUIDITY_VERSION_H\n\
+#define _FLUIDITY_VERSION_H\n\
+#define __FLUIDITY_VERSION__ \"${PACKAGE_VERSION}\"\n\
+#endif /* _FLUIDITY_VERSION_H */\n" > $@ &&
+    echo "DEFINE __FLUIDITY_VERSION__")
+fi
