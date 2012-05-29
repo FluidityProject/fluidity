@@ -21,7 +21,7 @@
             <integer_value shape="1" rank="1">25</integer_value>
           </aliased_boundary_ids>
           <coordinate_map>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
    return X</string_value>
           </coordinate_map>
           <remove_periodicity/>
@@ -96,7 +96,7 @@
         </number_of_detectors>
         <static/>
         <python>
-          <string_value lines="20" type="python">def val(t):
+          <string_value lines="20" type="code" language="python">def val(t):
  import math
  ret=[]
  for j in range(2,11):
@@ -181,7 +181,7 @@
             <align_bc_with_cartesian>
               <x_component>
                 <python>
-                  <string_value lines="20" type="python">def val(X, t):
+                  <string_value lines="20" type="code" language="python">def val(X, t):
     # Function code
     return X[1]*0.01</string_value>
                 </python>
@@ -289,7 +289,7 @@
       <flux>
         <dg>
           <factor>
-            <string_value lines="20" type="python">def val(h):
+            <string_value lines="20" type="code" language="python">def val(h):
   return 1.0</string_value>
           </factor>
         </dg>

@@ -15,7 +15,7 @@ mms_u_passed = convergence_rate.test_convergence_rates(1.7, "wave_[A-C].stat", [
     <variable name="mms_eta_passed" language="python">
 import adjoint_controls_convergence_rate_2d as convergence_rate
 convergence_rate.print_convergence_rates("wave_[A-C].stat", ["LayerThicknessError"])
-mms_eta_passed = convergence_rate.test_convergence_rates(1.88, "wave_[A-C].stat", ["LayerThicknessError"])
+mms_eta_passed = convergence_rate.test_convergence_rates(1.87, "wave_[A-C].stat", ["LayerThicknessError"])
     </variable>
     <variable name="functional_convergence" language="python">
 import numpy

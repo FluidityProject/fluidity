@@ -621,7 +621,7 @@ tmpLIBS=$LIBS
 tmpCPPFLAGS=$CPPFLAGS
 AC_LANG_SAVE
 AC_LANG_C
-LIBS="$tmpLIBS -L$ParMetis_LIBS_PATH -lparmetis -lmetis -lm"
+LIBS="$tmpLIBS -L$ParMetis_LIBS_PATH -lparmetis -lmetis -lm $ZOLTAN_DEPS"
 AC_CHECK_LIB(
 	[parmetis],
 	[ParMETIS_V3_AdaptiveRepart],

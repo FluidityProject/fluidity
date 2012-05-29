@@ -222,15 +222,16 @@ void ParseArguments(int argc, char** argv){
   int optionIndex = 0;
   int verbosity = 0;
   int c;
+  const char *shortopts = "hlpv::V";
 
   // set opterr to nonzero to make getopt print error messages 
   opterr=1;
 
   while (true){
 #ifndef _AIX
-    c = getopt_long(argc, argv, "hlpv::V", longOptions, &optionIndex);
+    c = getopt_long(argc, argv, shortopts, longOptions, &optionIndex);
 #else
-    c = getopt(argc, argv, "hlpv::V");
+    c = getopt(argc, argv, shortopts);
 #endif
     if (c == -1) break;
 
@@ -281,7 +282,7 @@ void ParseArguments(int argc, char** argv){
     print_version();
     exit(0);
   }
-  
+
   // Verbose?
   {    
     int MyRank = 0;
@@ -302,13 +303,6 @@ void ParseArguments(int argc, char** argv){
     }
   }
   
-  // Pseudo2d?
-  if(fl_command_line_options.count("pseudo2d")){
-  int val;
-  val = atoi(fl_command_line_options["pseudo2d"].c_str());
-  set_pseudo2d_domain_fc(&val);
-  }
-
   // What to do with stdout/stderr?
   if(fl_command_line_options.count("log")){
     ostringstream debug_file, err_file;
