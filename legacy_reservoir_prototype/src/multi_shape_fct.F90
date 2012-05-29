@@ -1956,13 +1956,13 @@
          endif
       end if Conditional_OverlappingMethod3
 
-         if(.not.QUAD_OVER_WHOLE_ELE) then ! not integrate over whole element 
-      ! Define the gauss points that lie on the surface of the
-      ! control volume surrounding a given local node (iloc)
-      ! that is FINDGPTS, COLGPTS, NCOLGPTS
-      call gaussiloc( findgpts, colgpts, ncolgpts, &
-           cv_neiloc, cv_nloc, scvngi )  
-         endif
+      if(.not.QUAD_OVER_WHOLE_ELE) then ! not integrate over whole element 
+         ! Define the gauss points that lie on the surface of the
+         ! control volume surrounding a given local node (iloc)
+         ! that is FINDGPTS, COLGPTS, NCOLGPTS
+         call gaussiloc( findgpts, colgpts, ncolgpts, &
+              cv_neiloc, cv_nloc, scvngi )  
+      endif
 
       if( is_overlapping ) then
          deallocate( ufen2 )
@@ -1985,7 +1985,6 @@
          deallocate( u_sloclist2 )
       end if
 
-
       ! Set to zero anything that should be zero in case it was not pre-defined
       if( ndim < 2 ) then
          cvfenly = 0.0 ; cvfenly_short = 0.0 ; ufenly = 0.0 ; scvfenslx = 0.0 ; & 
@@ -1999,7 +1998,6 @@
 
       end if
 
-
       ewrite(3,*) 'cv_on_face: ', cv_on_face
       ewrite(3,*) 'u_on_face: ', u_on_face
       ewrite(3,*) 'cv_sloclist: ', cv_sloclist
@@ -2007,35 +2005,33 @@
       ewrite(3,*) 'leaving cv_fem_shape_funs subrt, ncolgpts', ncolgpts
       ewrite(3,*) '----sum(cvweight):',sum(cvweight)
 
-!         if(QUAD_OVER_WHOLE_ELE) then
-         if(.false.) then
-      print *,'ndim, cv_ele_type,cv_ngi, cv_nloc, u_nloc:', &
-               ndim, cv_ele_type,cv_ngi, cv_nloc, u_nloc
-      print *,'cvweight:',cvweight
-      print *,'cvfen:',cvfen
-      print *,'cvfenlx:',cvfenlx
-      print *,'cvfenly:',cvfenly
-      print *,'cvfenlz:',cvfenlz 
-      print *,'ufen:',ufen
-      print *,'ufenlx:',ufenlx
-      print *,'ufenly:',ufenly
-      print *,'ufenlz:',ufenlz
-      print *,'sbcvngi=',sbcvngi
-      print *,'sbcvfen:',sbcvfen
-      print *,'sbcvfenslx:',sbcvfenslx
-      print *,'sbcvfensly:',sbcvfensly
-      print *,'sbcvfeweigh:',sbcvfeweigh
-                 
-      print *,'sbufen:',sbufen
-      print *,'sbufenslx:',sbufenslx
-      print *,'sbufensly:',sbufensly
-
-      print *,'nface:',nface
-      print *,'cv_sloclist:', cv_sloclist
-      print *,'u_sloclist:',u_sloclist
-      print *,'cv_snloc, u_snloc:',cv_snloc, u_snloc
-      stop 45
-         endif
+      !if(QUAD_OVER_WHOLE_ELE) then
+      if(.false.) then
+         print *,'ndim, cv_ele_type,cv_ngi, cv_nloc, u_nloc:', &
+              ndim, cv_ele_type,cv_ngi, cv_nloc, u_nloc
+         print *,'cvweight:',cvweight
+         print *,'cvfen:',cvfen
+         print *,'cvfenlx:',cvfenlx
+         print *,'cvfenly:',cvfenly
+         print *,'cvfenlz:',cvfenlz 
+         print *,'ufen:',ufen
+         print *,'ufenlx:',ufenlx
+         print *,'ufenly:',ufenly
+         print *,'ufenlz:',ufenlz
+         print *,'sbcvngi=',sbcvngi
+         print *,'sbcvfen:',sbcvfen
+         print *,'sbcvfenslx:',sbcvfenslx
+         print *,'sbcvfensly:',sbcvfensly
+         print *,'sbcvfeweigh:',sbcvfeweigh
+         print *,'sbufen:',sbufen
+         print *,'sbufenslx:',sbufenslx
+         print *,'sbufensly:',sbufensly
+         print *,'nface:',nface
+         print *,'cv_sloclist:', cv_sloclist
+         print *,'u_sloclist:',u_sloclist
+         print *,'cv_snloc, u_snloc:',cv_snloc, u_snloc
+         stop 45
+      endif
 
       return
     end subroutine cv_fem_shape_funs
@@ -7713,7 +7709,7 @@
 
          TWOPIE = 1.0 
          IF( DCYL ) TWOPIE = 2. * PIE
-         !         rsum=0.0
+         !rsum=0.0
 
          Loop_GI2: DO GI = 1, NGI
 
@@ -7841,7 +7837,7 @@
                KGI = KGI + NLZ( L, GI ) * Z( IGLX )
             END DO
 
-            DETJ = AGI * ( EGI * KGI - FGI * HGI )  &
+            DETJ = AGI * ( EGI * KGI - FGI * HGI ) &
                  - BGI * ( DGI * KGI - FGI * GGI ) &
                  + CGI * ( DGI * HGI - EGI * GGI )
             DETWEI( GI ) = ABS( DETJ ) * WEIGHT( GI )

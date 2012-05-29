@@ -91,7 +91,7 @@
          NOIT_DIM, &
          NITS_FLUX_LIM, &
          MEAN_PORE_CV, &
-         option_path )
+         option_path, thermal)
 
       ! Solve for internal energy using a control volume method.
 
@@ -103,7 +103,7 @@
            NOPT_VEL_UPWIND_COEFS, &
            IGOT_T2, IGOT_THETA_FLUX, SCVNGI_THETA, IN_ELE_UPWIND, DG_ELE_UPWIND, &
            NITS_FLUX_LIM
-      LOGICAL, intent( in ) :: GET_THETA_FLUX, USE_THETA_FLUX
+      LOGICAL, intent( in ) :: GET_THETA_FLUX, USE_THETA_FLUX, THERMAL
       INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in ) :: CV_NDGLN
       INTEGER, DIMENSION( TOTELE * X_NLOC ), intent( in ) ::  X_NDGLN
       INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ) :: U_NDGLN 
@@ -197,7 +197,7 @@
               SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
               NOIT_DIM, &
               MEAN_PORE_CV, &
-              FINACV, COLACV, NCOLACV, ACV)
+              FINACV, COLACV, NCOLACV, ACV, THERMAL )
 
          Conditional_Lumping: IF(LUMP_EQNS) THEN
             ! Lump the multi-phase flow eqns together
@@ -234,11 +234,11 @@
                  FINACV, COLACV, &
                  trim(option_path))
 
-            ewrite(3,*)'cv_rhs:', cv_rhs
-            ewrite(3,*)'SUF_T_BC:',SUF_T_BC
-            ewrite(3,*)'ACV:',  (acv(i),i= FINACV(1), FINACV(2)-1)
-            ewrite(3,*)'T_ABSORB:',((T_ABSORB(1,i,j), i=1,nphase),j=1,nphase)
-            ewrite(3,*)
+            !ewrite(3,*)'cv_rhs:', cv_rhs
+            !ewrite(3,*)'SUF_T_BC:',SUF_T_BC
+            !ewrite(3,*)'ACV:',  (acv(i),i= FINACV(1), FINACV(2)-1)
+            !ewrite(3,*)'T_ABSORB:',((T_ABSORB(1,i,j), i=1,nphase),j=1,nphase)
+            !ewrite(3,*)
 
          END IF Conditional_Lumping
 
@@ -335,7 +335,7 @@
       character(len=*), intent(in), optional :: option_path
 
       ! Local Variables
-      LOGICAL, PARAMETER :: GETCV_DISC = .TRUE., GETCT= .FALSE.
+      LOGICAL, PARAMETER :: GETCV_DISC = .TRUE., GETCT= .FALSE., THERMAL= .false.
       INTEGER :: ITS_FLUX_LIM,IGOT_T2
       REAL, DIMENSION( : ), allocatable :: ACV, CV_RHS, CT, DIAG_SCALE_PRES, CT_RHS, SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2
       REAL, DIMENSION( :,:,:,: ), allocatable :: TDIFFUSION
@@ -403,7 +403,7 @@
               SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
               NOIT_DIM, &
               MEAN_PORE_CV, &
-              FINACV, COLACV, NCOLACV, ACV)
+              FINACV, COLACV, NCOLACV, ACV, THERMAL )
 
          CALL SOLVER( ACV, SATURA, CV_RHS, &
               FINACV, COLACV, &
@@ -629,7 +629,7 @@
            NOIT_DIM, &
            IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD )
 
-      ewrite(3,*) 'global_solve, just_bl_diag_mat', global_solve, just_bl_diag_mat
+      !ewrite(3,*) 'global_solve, just_bl_diag_mat', global_solve, just_bl_diag_mat
 
 
       IF( GLOBAL_SOLVE ) THEN 
@@ -735,18 +735,18 @@
          endif
 
          ewrite(3,*)'b4 pressure solve P_RHS:', P_RHS
-       if( .true.) then   !cv_nonods==x_nonods) then ! a continuous pressure: 
-       !if(cv_nonods==x_nonods) then ! a continuous pressure: 
-         CALL SOLVER( CMC, DP, P_RHS, &
-              FINDCMC, COLCMC, &
-              option_path = '/material_phase[0]/scalar_field::Pressure')
-       else ! a discontinuous pressure multi-grid solver:
-         CALL PRES_DG_MULTIGRID(CMC, DP, P_RHS,     &
-              NCOLCMC, cv_NONODS, FINDCMC, COLCMC, MIDCMC,      &
-              totele, cv_nloc, x_nonods, cv_ndgln, x_ndgln )
-       endif
+         if( .true.) then   !cv_nonods==x_nonods) then ! a continuous pressure: 
+            !if(cv_nonods==x_nonods) then ! a continuous pressure: 
+            CALL SOLVER( CMC, DP, P_RHS, &
+                 FINDCMC, COLCMC, &
+                 option_path = '/material_phase[0]/scalar_field::Pressure')
+         else ! a discontinuous pressure multi-grid solver:
+            CALL PRES_DG_MULTIGRID(CMC, DP, P_RHS,     &
+                 NCOLCMC, cv_NONODS, FINDCMC, COLCMC, MIDCMC,      &
+                 totele, cv_nloc, x_nonods, cv_ndgln, x_ndgln )
+         endif
 
-         ewrite(3,*)'after pressure solve DP:',DP
+         !ewrite(3,*)'after pressure solve DP:',DP
          !stop 1245
 
          P = P + DP
@@ -829,32 +829,27 @@
       CV_P = CV_P / MASS_CV
       !ewrite(3,*)'also CV_P=',CV_P
 
-      ewrite(3,*) 'MASS_MN_PRES:',MASS_MN_PRES
-      ewrite(3,*) 'DIAG_SCALE_PRES:',DIAG_SCALE_PRES
+      !ewrite(3,*) 'MASS_MN_PRES:',MASS_MN_PRES
+      !ewrite(3,*) 'DIAG_SCALE_PRES:',DIAG_SCALE_PRES
 
-      ewrite(3,*)'the velocity should be:'
-      do ele=1,-totele
-         x_nod1=x_ndgln((ele-1)*x_nloc + 1)
-         x_nod2=x_ndgln((ele-1)*x_nloc + 2)
-         x_nod3=x_ndgln((ele-1)*x_nloc + 3)
-
-         cv_nod1=cv_ndgln((ele-1)*cv_nloc + 1)
-         cv_nod2=cv_ndgln((ele-1)*cv_nloc + 2)
-         cv_nod3=cv_ndgln((ele-1)*cv_nloc + 3)
-
-         mat_nod1=mat_ndgln((ele-1)*x_nloc + 1)
-
-         der1=10.*(-3.*p(cv_nod1)+4.*p(cv_nod2)-1.*p(cv_nod3))
-         der2=10.*(-1.*p(cv_nod1)+0.*p(cv_nod2)+1.*p(cv_nod3))
-         der3=10.*(+1.*p(cv_nod1)-4.*p(cv_nod2)+3.*p(cv_nod3))
-
-         uabs=U_ABSORB(mat_nod1,1,1)
-         uabs=1.
-
-         ewrite(3,*)x(cv_nod1),-der1/uabs
-         ewrite(3,*)x(cv_nod2),-der2/uabs
-         ewrite(3,*)x(cv_nod3),-der3/uabs
-      end do
+      !ewrite(3,*)'the velocity should be:'
+      !do ele=1,-totele
+      !   x_nod1=x_ndgln((ele-1)*x_nloc + 1)
+      !   x_nod2=x_ndgln((ele-1)*x_nloc + 2)
+      !   x_nod3=x_ndgln((ele-1)*x_nloc + 3)
+      !   cv_nod1=cv_ndgln((ele-1)*cv_nloc + 1)
+      !   cv_nod2=cv_ndgln((ele-1)*cv_nloc + 2)
+      !   cv_nod3=cv_ndgln((ele-1)*cv_nloc + 3)
+      !   mat_nod1=mat_ndgln((ele-1)*x_nloc + 1)
+      !   der1=10.*(-3.*p(cv_nod1)+4.*p(cv_nod2)-1.*p(cv_nod3))
+      !   der2=10.*(-1.*p(cv_nod1)+0.*p(cv_nod2)+1.*p(cv_nod3))
+      !   der3=10.*(+1.*p(cv_nod1)-4.*p(cv_nod2)+3.*p(cv_nod3))
+      !   uabs=U_ABSORB(mat_nod1,1,1)
+      !   uabs=1.
+      !   ewrite(3,*)x(cv_nod1),-der1/uabs
+      !   ewrite(3,*)x(cv_nod2),-der2/uabs
+      !   ewrite(3,*)x(cv_nod3),-der3/uabs
+      !end do
 
       !ewrite(3,*) 'VOLFRA_PORE:',VOLFRA_PORE
       !ewrite(3,*) 'den:',den
@@ -1315,7 +1310,7 @@
 
       ! Local variables
       REAL, PARAMETER :: V_BETA = 1.0
-      LOGICAL, PARAMETER :: GETCV_DISC = .FALSE., GETCT= .TRUE.
+      LOGICAL, PARAMETER :: GETCV_DISC = .FALSE., GETCT= .TRUE., THERMAL= .FALSE.
       REAL, DIMENSION( : ), allocatable :: ACV, CV_RHS, SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2, &
            SAT_FEMT, DEN_FEMT
       REAL, DIMENSION( :,:,:,: ), allocatable :: TDIFFUSION
@@ -1413,7 +1408,7 @@
            SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
            NOIT_DIM, &
            MEAN_PORE_CV, &
-           FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES )
+           FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, THERMAL )
 
       ewrite(3,*)'Back from cv_assemb'
 
@@ -1705,15 +1700,16 @@
       logical :: is_overlapping   
 
       ewrite(3,*) 'In ASSEMB_FORCE_CTY'
-      ewrite(3,*) 'Just double-checking sparsity patterns memory allocation:'
-      ewrite(3,*) 'FINDC with size,', size( FINDC ), ':', FINDC( 1 :  size( FINDC ) )
-      ewrite(3,*) 'COLC with size,', size( COLC ), ':', COLC( 1 :  size( COLC ) )
-      ewrite(3,*) 'FINDGM_PHA with size,', size( FINDGM_PHA ), ':', FINDGM_PHA( 1 :  size( FINDGM_PHA ) )
-      ewrite(3,*) 'COLDGM_PHA with size,', size( COLDGM_PHA ), ':', COLDGM_PHA( 1 :  size( COLDGM_PHA ) )
-      ewrite(3,*) 'FINELE with size,', size( FINELE ), ':', FINELE( 1 :  size( FINELE ) )
-      ewrite(3,*) 'COLELE with size,', size( COLELE ), ':', COLELE( 1 :  size( COLELE ) )
+      !ewrite(3,*) 'Just double-checking sparsity patterns memory allocation:'
+      !ewrite(3,*) 'FINDC with size,', size( FINDC ), ':', FINDC( 1 :  size( FINDC ) )
+      !ewrite(3,*) 'COLC with size,', size( COLC ), ':', COLC( 1 :  size( COLC ) )
+      !ewrite(3,*) 'FINDGM_PHA with size,', size( FINDGM_PHA ), ':', FINDGM_PHA( 1 :  size( FINDGM_PHA ) )
+      !ewrite(3,*) 'COLDGM_PHA with size,', size( COLDGM_PHA ), ':', COLDGM_PHA( 1 :  size( COLDGM_PHA ) )
+      !ewrite(3,*) 'FINELE with size,', size( FINELE ), ':', FINELE( 1 :  size( FINELE ) )
+      !ewrite(3,*) 'COLELE with size,', size( COLELE ), ':', COLELE( 1 :  size( COLELE ) )
 
       !print *,'UDEN=',uden
+      !print *,'UDENOLD=',udenold
       !print *,'u_absorb=',u_absorb
       !print *,'u_abs_stab=',u_abs_stab
       !stop 2921
@@ -1724,7 +1720,7 @@
       if( trim( overlapping_path ) == 'overlapping' ) is_overlapping = .true.
 
       QUAD_OVER_WHOLE_ELE=.FALSE. 
-      !  QUAD_OVER_WHOLE_ELE=is_overlapping ! Do NOT divide element into CV's to form quadrature.
+      ! QUAD_OVER_WHOLE_ELE=is_overlapping ! Do NOT divide element into CV's to form quadrature.
       call retrieve_ngi( ndim, u_ele_type, cv_nloc, u_nloc, &
            cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, QUAD_OVER_WHOLE_ELE )
       if(is_overlapping) then
@@ -1913,7 +1909,6 @@
 
       PIVIT_MAT = 0.0
 
-
       !======= DEFINE THE SUB-CONTROL VOLUME SHAPE FUNCTIONS, ETC ========
 
       ! Shape functions associated with volume integration using both CV basis 
@@ -1944,9 +1939,10 @@
                                 ! Define the gauss points that lie on the surface of the CV...
            FINDGPTS, COLGPTS, NCOLGPTS, &
            SELE_OVERLAP_SCALE, QUAD_OVER_WHOLE_ELE ) 
-      !       print *,'cvn:',cvn
-      !       print *,'cvn_short:',cvn_short
-      !       stop 768
+
+      !print *,'cvn:',cvn
+      !print *,'cvn_short:',cvn_short
+      !stop 768
 
 
       ALLOCATE( FACE_ELE( NFACE, TOTELE ))
@@ -1955,7 +1951,7 @@
            NCOLELE, FINELE, COLELE, CV_NLOC, CV_SNLOC, CV_NONODS, CV_NDGLN, CV_SNDGLN, &
            CV_SLOCLIST, X_NLOC, X_NDGLN )
 
-      !ewrite(3,*) 'got_diffus:', got_diffus
+      ewrite(3,*) 'got_diffus:', got_diffus
 
       IF( GOT_DIFFUS ) THEN
          ! Calculate all the 1st order derivatives for the diffusion term.
@@ -1983,8 +1979,8 @@
          VOLUME=VOLUME/REAL(NLEV)
          MASS_ELE(ELE)=VOLUME
          ewrite(3,*) 'Leaving detnlxr_plus_u'
-         !        print *,'volume=',volume
-         !         stop 2892
+         print *,'volume=',volume
+         !stop 2892
 
          UD = 0.0
          VD = 0.0
@@ -2184,7 +2180,6 @@
 
                   END DO Loop_Gauss2
 
-
                   DO IDIM = 1, NDIM
                      DO IPHASE = 1, NPHASE
                         U_RHS( GLOBI + (IDIM-1)*U_NONODS + ( IPHASE - 1 ) * NDIM*U_NONODS ) =   &
@@ -2209,42 +2204,37 @@
 
                               IF(.NOT.JUST_BL_DIAG_MAT) THEN
 
-                                 !print *, 'aa', u_iloc, u_jloc, u_nloc, u_nloc2, ele, globi, globj
-                                 !print *, 'bb', iphase, jphase, idim, jdim
-                                 !print *, 'xx', U_INOD_IDIM_IPHA, U_JNOD_JDIM_JPHA, U_NONODS , NPHASE , NDIM, NCOLDGM_PHA, nlev
-                                 !print *, 'yy', FINDGM_PHA
-                                 !print *, 'zz', COLDGM_PHA
-
                                  CALL POSINMAT( COUNT, U_INOD_IDIM_IPHA, U_JNOD_JDIM_JPHA, &
                                       U_NONODS * NPHASE * NDIM, FINDGM_PHA, COLDGM_PHA, NCOLDGM_PHA )
 
                                  DGM_PHA( COUNT ) =  DGM_PHA( COUNT ) &
                                       + NN_SIGMAGI( IPHA_IDIM, JPHA_JDIM ) + NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM ) &
                                       + NN_MASS( IPHA_IDIM, JPHA_JDIM )/DT
+
                               ENDIF
                               PIVIT_MAT(ELE, I, J) =  PIVIT_MAT(ELE, I, J) &
                                    + NN_SIGMAGI( IPHA_IDIM, JPHA_JDIM ) + NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM ) &
                                    + NN_MASS( IPHA_IDIM, JPHA_JDIM )/DT
                               IF(MOM_CONSERV) THEN
                                  IF(JDIM==1) U_RHS(U_INOD_IDIM_IPHA)=U_RHS(U_INOD_IDIM_IPHA) &
-                                      - NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM )*U(GLOBJ+(JPHASE-1)*U_NONODS) &
-                                      + (NN_MASSOLD( IPHA_IDIM, JPHA_JDIM )/DT)*U(GLOBJ+(JPHASE-1)*U_NONODS)
+                                      - NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM )*UOLD(GLOBJ+(JPHASE-1)*U_NONODS) &
+                                      + (NN_MASSOLD( IPHA_IDIM, JPHA_JDIM )/DT)*UOLD(GLOBJ+(JPHASE-1)*U_NONODS)
                                  IF(JDIM==2) U_RHS(U_INOD_IDIM_IPHA)=U_RHS(U_INOD_IDIM_IPHA) &
-                                      - NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM )*V(GLOBJ+(JPHASE-1)*U_NONODS) &
-                                      + (NN_MASSOLD( IPHA_IDIM, JPHA_JDIM )/DT)*V(GLOBJ+(JPHASE-1)*U_NONODS)
+                                      - NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM )*VOLD(GLOBJ+(JPHASE-1)*U_NONODS) &
+                                      + (NN_MASSOLD( IPHA_IDIM, JPHA_JDIM )/DT)*VOLD(GLOBJ+(JPHASE-1)*U_NONODS)
                                  IF(JDIM==3) U_RHS(U_INOD_IDIM_IPHA)=U_RHS(U_INOD_IDIM_IPHA) &
-                                      - NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM )*W(GLOBJ+(JPHASE-1)*U_NONODS) &
-                                      + (NN_MASSOLD( IPHA_IDIM, JPHA_JDIM )/DT)*W(GLOBJ+(JPHASE-1)*U_NONODS)
+                                      - NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM )*WOLD(GLOBJ+(JPHASE-1)*U_NONODS) &
+                                      + (NN_MASSOLD( IPHA_IDIM, JPHA_JDIM )/DT)*WOLD(GLOBJ+(JPHASE-1)*U_NONODS)
                               ELSE
                                  IF(JDIM==1) U_RHS(U_INOD_IDIM_IPHA)=U_RHS(U_INOD_IDIM_IPHA) &
-                                      - NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM )*U(GLOBJ+(JPHASE-1)*U_NONODS) &
-                                      + (NN_MASS( IPHA_IDIM, JPHA_JDIM )/DT)*U(GLOBJ+(JPHASE-1)*U_NONODS)
+                                      - NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM )*UOLD(GLOBJ+(JPHASE-1)*U_NONODS) &
+                                      + (NN_MASS( IPHA_IDIM, JPHA_JDIM )/DT)*UOLD(GLOBJ+(JPHASE-1)*U_NONODS)
                                  IF(JDIM==2) U_RHS(U_INOD_IDIM_IPHA)=U_RHS(U_INOD_IDIM_IPHA) &
-                                      - NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM )*V(GLOBJ+(JPHASE-1)*U_NONODS) &
-                                      + (NN_MASS( IPHA_IDIM, JPHA_JDIM )/DT)*V(GLOBJ+(JPHASE-1)*U_NONODS)
+                                      - NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM )*VOLD(GLOBJ+(JPHASE-1)*U_NONODS) &
+                                      + (NN_MASS( IPHA_IDIM, JPHA_JDIM )/DT)*VOLD(GLOBJ+(JPHASE-1)*U_NONODS)
                                  IF(JDIM==3) U_RHS(U_INOD_IDIM_IPHA)=U_RHS(U_INOD_IDIM_IPHA) &
-                                      - NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM )*W(GLOBJ+(JPHASE-1)*U_NONODS) &
-                                      + (NN_MASS( IPHA_IDIM, JPHA_JDIM )/DT)*W(GLOBJ+(JPHASE-1)*U_NONODS)
+                                      - NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM )*WOLD(GLOBJ+(JPHASE-1)*U_NONODS) &
+                                      + (NN_MASS( IPHA_IDIM, JPHA_JDIM )/DT)*WOLD(GLOBJ+(JPHASE-1)*U_NONODS)
                               ENDIF
 
                            END DO
@@ -2267,6 +2257,7 @@
 
                            DGM_PHA( COUNT ) =  DGM_PHA( COUNT ) + VLK( IPHASE ) + VLN( IPHASE )
                            PIVIT_MAT(ELE, I, J) =  PIVIT_MAT(ELE, I, J) + VLK( IPHASE )
+
                         END DO
                      END DO
                   ENDIF
@@ -2302,7 +2293,7 @@
                   GRAD_SOU_GI_NMY = 0.0 
                   GRAD_SOU_GI_NMZ = 0.0  
                   Loop_GaussPoints1: DO GI = 1 +(ILEV-1)*CV_NGI_SHORT, ILEV*CV_NGI_SHORT
-                     !               Loop_GaussPoints1: DO GI = 1, CV_NGI
+                     !Loop_GaussPoints1: DO GI = 1, CV_NGI
                      !ewrite(3,*) 'P_JLOC, GI, CVFENX( P_JLOC, GI ):',P_JLOC, GI, CVFENX( P_JLOC, GI )
                      !ewrite(3,*) 'U_ILOC, GI, UFEN( U_ILOC, GI ):',U_ILOC, GI, UFEN( U_ILOC, GI )
                      !ewrite(3,*) 'detwei:', detwei( gi )
@@ -2337,7 +2328,7 @@
                   CALL POSINMAT( COUNT, IU_NOD, JCV_NOD,&
                        U_NONODS, FINDC, COLC, NCOLC )
 
-                  !ewrite(3,*)'ELE,U_ILOC,P_JLOC,NMX,NMY,NMZ:', ELE,U_ILOC, P_JLOC, NMX, NMY, NMZ
+                  !ewrite(3,*)'ELE,U_ILOC,P_JLOC,NMX,NMY,NMZ, AREA:', ELE, U_ILOC, P_JLOC, NMX, NMY, NMZ, SUM( DETWEI )
                   !ewrite(3,*)'IU_NOD, JCV_NOD, COUNT:', IU_NOD, JCV_NOD, COUNT
 
                   Loop_Phase1: DO IPHASE = 1, NPHASE
@@ -2379,7 +2370,7 @@
       !ewrite(3,*) 'c=',c
       !ewrite(3,*) 'here1 u_rhs:',u_rhs
       !ewrite(3,*) 'disc_pres',  (CV_NONODS == TOTELE * CV_NLOC )
-
+      
       !! *************************loop over surfaces*********************************************
 
       DISC_PRES = ( CV_NONODS == TOTELE * CV_NLOC )
@@ -3039,19 +3030,24 @@
       END DO Loop_Elements2
 
 
+
+      !do i=1, ndim*nphase*u_nonods
+      !   print *, i, sum(DGM_PHA(FINDGM_PHA(i):FINDGM_PHA(i+1)-1))
+      !end do
+
       !EWRITE(3,*)'-STOTEL, U_SNLOC, P_SNLOC:', STOTEL, U_SNLOC, P_SNLOC
       !EWRITE(3,*)'-WIC_P_BC:', WIC_P_BC( 1 : STOTEL * NPHASE )
       !EWRITE(3,*)'-SUF_P_BC:', SUF_P_BC( 1 : STOTEL * P_SNLOC * NPHASE )
       !ewrite(3,*)'pqp'
-      !      stop 242
+      !stop 242
 
-!       do i=1,ncolc
-!       print *,'i,c:',i,c(i)
-!       end do
-!       print *,'U_RHS:',u_rhs
-!       print *,'PIVIT_MAT:', PIVIT_MAT
-!       print *,'JUST_BL_DIAG_MAT:',JUST_BL_DIAG_MAT
-!       stop 27
+      !do i=1,ncolc
+      !  print *,'i,c:',i,c(i)
+      !end do
+      !print *,'U_RHS:',u_rhs
+      !print *,'PIVIT_MAT:', PIVIT_MAT
+      !print *,'JUST_BL_DIAG_MAT:',JUST_BL_DIAG_MAT
+      !stop 27
 
       DEALLOCATE( DETWEI )
       DEALLOCATE( RA )

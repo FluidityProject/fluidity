@@ -240,7 +240,6 @@ contains
     integer, intent ( in ) :: mx_ncolm, ncolm
     integer, dimension( cv_nonods + 1 ), intent (in ) :: findm
     integer, dimension( mx_ncolm ), intent (in ) :: colm
-    ! integer, dimension( ncolm ), intent (in ) :: colm
     integer, dimension( cv_nonods ), intent (in ) :: midm
     
     logical, intent(in) :: have_temperature_fields
@@ -310,9 +309,7 @@ contains
        igot_t2 = 1 
        igot_theta_flux = 1
     end if
-    
-    
-   
+
     call retrieve_ngi( ndim, cv_ele_type, cv_nloc, u_nloc, &
          cv_ngi, cv_ngi_short, scvngi_theta, sbcvngi, nface, .false. )
 
@@ -343,6 +340,7 @@ contains
        itime = itime + 1
        
        ACCTIM = ACCTIM + DT
+       call set_option("/timestepping/current_time", acctim)
        
        if ( ACCTIM > finish_time ) then 
           
@@ -385,12 +383,17 @@ contains
        ! Non linear its:
        Loop_ITS: DO ITS = 1, NITS
        ewrite(1,*)' New Non-Linear Iteration:', its
-          
-          ! solve temperature fields if found in input and prognostic
-          solve_temp: if (have_temperature_fields .and. &
-                          have_option('/material_phase[0]/scalar_field::Temperature/prognostic')) then
-             
-             call INTENERGE_ASSEM_SOLVE(  &
+
+       CALL calculate_multiphase_density( state, CV_NONODS, CV_PHA_NONODS, DEN, DERIV, &
+            T, CV_P )
+
+       if ( its == 1 ) DENOLD = DEN
+
+       ! solve temperature fields if found in input and prognostic
+       solve_temp: if (have_temperature_fields .and. &
+            have_option('/material_phase[0]/scalar_field::Temperature/prognostic')) then
+
+          call INTENERGE_ASSEM_SOLVE(  &
                NCOLACV, FINACV, COLACV, MIDACV, & 
                NCOLCT, FINDCT, COLCT, &
                CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
@@ -402,35 +405,35 @@ contains
                X, Y, Z, &
                NU, NV, NW, NUOLD, NVOLD, NWOLD, UG, VG, WG, &
                T, TOLD, &
-               CV_ONE, CV_ONE,  &
+               DEN, DENOLD, &
                MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
                T_DISOPT, T_DG_VEL_INT_OPT, DT, T_THETA, T_BETA, &
                SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, &
                SUF_T_BC_ROB1, SUF_T_BC_ROB2,  &
                WIC_T_BC, WIC_D_BC, WIC_U_BC, &
-               DERIV, P, &
+               DERIV, CV_P, &
                T_SOURCE, T_ABSORB, VOLFRA_PORE, &
                NDIM,  &
                NCOLM, FINDM, COLM, MIDM, &
                XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, LUMP_EQNS, &
-               OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, T_FEMT, CV_ONE, &
+               OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, T_FEMT, DEN_FEMT, &
                IGOT_T2,T,TOLD, IGOT_THETA_FLUX, SCVNGI_THETA, T_GET_THETA_FLUX, T_USE_THETA_FLUX, &
                T, T, T, &
                SUF_T_BC, SUF_T_BC_ROB1, SUF_T_BC_ROB2, WIC_T_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
                NOIT_DIM, &
                nits_flux_lim_t, &
                MEAN_PORE_CV, &
-               option_path = '/material_phase[0]/scalar_field::Temperature' )
-               
-               if (SIG_INT) exit Loop_ITS
-                  
-          end if solve_temp
-          
+               option_path = '/material_phase[0]/scalar_field::Temperature', thermal=.true. )                  
+
           CALL calculate_multiphase_density( state, CV_NONODS, CV_PHA_NONODS, DEN, DERIV, &
                T, CV_P )
-          
+
           if (SIG_INT) exit Loop_ITS
-          
+
+       end if solve_temp
+    
+          if (SIG_INT) exit Loop_ITS
+    
           ! Calculate absorption for momentum eqns    
           CALL calculate_absorption( MAT_NONODS, CV_NONODS, NPHASE, NDIM, SATURA, TOTELE, CV_NLOC, MAT_NLOC, &
                CV_NDGLN, MAT_NDGLN, &
@@ -447,8 +450,8 @@ contains
 
           ewrite(3,*)'ITIME,ITS,NITS:',ITIME,ITS,NITS
 
-          ewrite(3,*)'satura:',satura
-          ewrite(3,*)'saturaold:',saturaold
+          !ewrite(3,*)'satura:',satura
+          !ewrite(3,*)'saturaold:',saturaold
 
           IF( NCOMP <= 1 ) THEN
              VOLFRA_USE_THETA_FLUX = .false.
@@ -457,10 +460,8 @@ contains
           END IF
           
           if(.not. have_option("/material_phase[0]/multiphase_properties/relperm_type")) then
-           
             uden = den
             udenold = denold
-          
           end if
 
           CALL FORCE_BAL_CTY_ASSEM_SOLVE( &
@@ -641,7 +642,8 @@ contains
                      NOIT_DIM, &
                      NITS_FLUX_LIM_COMP, &
                      MEAN_PORE_CV, &
-                     option_path = '/material_phase[0]/scalar_field::PhaseVolumeFraction')
+                     option_path = '/material_phase[0]/scalar_field::PhaseVolumeFraction', thermal=.false.) ! the false means that we don't add an extra source term
+                                                                                                            ! at the cv_rhs needed for the internal energy equation
 
                 do iphase = 1, nphase
                    ewrite(3,*) 'comp:', icomp, iphase, comp(( ICOMP - 1 ) * NPHASE * CV_NONODS + (iphase - 1) * cv_nonods + 1 )

@@ -438,11 +438,11 @@
 
       ! IN/DG_ELE_UPWIND are options for optimisation of upwinding across faces in the overlapping
       ! formulation. The data structure and options for this formulation need to be added later. 
-      in_ele_upwind = 3
-      dg_ele_upwind = 3
+      in_ele_upwind = 1
+      dg_ele_upwind = 1
 
       ! Variables *ENTIRELY HARD-WIRED* that *MUST BE REPLACED* in the future
-      t_dg_vel_int_opt = 0
+      t_dg_vel_int_opt = 1
       u_dg_vel_int_opt = 4 ! Not used -- it can be deleted
       v_dg_vel_int_opt = 4
       if (.not.is_overlapping) v_dg_vel_int_opt = 1
@@ -1998,7 +1998,7 @@
       t_disopt = 1
       if (have_option('/material_phase[0]/scalar_field::Temperature/prognostic/' // &
            'spatial_discretisation/control_volumes/face_value::FiniteElement/' // &
-           'limit_face_value') ) t_disopt = 8
+           'limit_face_value') ) t_disopt = 5
       !! disopt options: going to need to change the schema I think
       !       =0      1st order in space          Theta=specified    UNIVERSAL
       !       =1      1st order in space          Theta=non-linear   UNIVERSAL
@@ -2011,7 +2011,6 @@
       !       =7      Finite elements in space    Theta=non-linear   NONE
       !       =8      Finite elements in space    Theta=specified    DOWNWIND+
       !       =9      Finite elements in space    Theta=non-linear   DOWNWIND+
-
 
       ! Add this variables into spud and replace them in cv_assemb and multi_dyncore
       if (have_option('/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
@@ -2027,6 +2026,8 @@
            'spatial_discretisation/control_volumes/face_value::FiniteElement/limit_face_value')) then
          v_disopt = 8 !! Unless all the other options, but need to be able to get 8 here
       endif
+
+      v_disopt = 5
 
       call get_option('/material_phase[0]/scalar_field::Temperature/prognostic/' // &
            'spatial_discretisation/conservative_advection', t_beta, default=0.0)

@@ -31,10 +31,12 @@
 
     use fldebug
     use state_module
-    use global_parameters, only: OPTION_PATH_LEN
+    use fields
+    use global_parameters, only: OPTION_PATH_LEN, PYTHON_FUNC_LEN
     use spud
     use futils, only: int2str
     use vector_tools
+    use python_state
 
   contains
 
@@ -47,7 +49,7 @@
       REAL, DIMENSION( cv_pha_nonods ), intent( in ) :: t
       REAL, DIMENSION( cv_nonods ), intent( in ) :: p
       ! Local
-      integer :: nstates, nphases, ncomps, &!ncomp2, &
+      integer :: nstates, nphases, ncomps, &
            iphase, cv_nod, node, i
       real, parameter :: toler = 1.0E-10
       real :: den_plus, den_minus, pert_p, p_plus, p_minus, tval, pval
@@ -56,11 +58,20 @@
       real :: compressibility_factor, reference_density
       real, dimension( : ), allocatable, save :: reference_pressure
       logical, save :: initialised = .false.
-      logical :: eos_comp_sg, eos_comp_exp, eos_comp_linear_1, eos_comp_linear_2, eos_incomp_linear
+      logical :: eos_comp_sg, eos_comp_exp, eos_comp_linear_1, eos_comp_linear_2, &
+           eos_incomp_linear, eos_comp_python, eos_incomp_python
+
+      ! python eos stuff
+      character(len = PYTHON_FUNC_LEN) :: pycode
+      character(len = 30) :: buffer
+      type(scalar_field), pointer :: pressure, temperature, density
+      real :: dt, current_time
+      real, dimension( cv_nonods ) :: den_plus_python, den_minus_python
+
 
       ewrite(3,*) 'In calculate_multiphase_density'
-      ewrite(3,*) 'P', P
-      ewrite(3,*) 'T', T
+      !ewrite(3,*) 'P', P
+      !ewrite(3,*) 'T', T
       deriv = 0.
 
       nstates = option_count("/material_phase")
@@ -84,7 +95,9 @@
          eos_comp_exp = .false.
          eos_comp_linear_1 = .false.
          eos_comp_linear_2 = .false.
+         eos_comp_python = .false.
          eos_incomp_linear = .false.
+         eos_incomp_python = .false.
 
          if ( have_option("/material_phase[" // int2str(iphase-1) // "]/equation_of_state/compressible") ) then ! Compressible
             option_path = "/material_phase[" // int2str(iphase-1) // "]/equation_of_state/compressible"
@@ -96,18 +109,42 @@
                eos_comp_exp = .true.
             elseif ( have_option( trim( option_path ) // '/linear_in_pressure' )) then
                option_path = trim( option_path ) // '/linear_in_pressure'
-               if ( have_option( trim( option_path ) // '/linear_in_pressure/include_internal_energy' )) then
+               if ( have_option( trim( option_path ) // '/include_internal_energy' )) then
                   eos_comp_linear_2 = .true.
                else
                   eos_comp_linear_1 = .true.
                end if
+            elseif ( have_option( trim( option_path ) // '/python_state' )) then
+               option_path = trim( option_path ) // '/python_state'
+               eos_comp_python = .true.
+
+#ifdef HAVE_NUMPY
+               ewrite(3,*) 'Have both NumPy and a python eos...'
+#else
+               FLAbort("Python EOS requires NumPy, which cannot be located.")
+#endif
+
             else
                FLAbort('Unrecognised compressible equation of state.')
             endif
+         elseif ( have_option("/material_phase[" // int2str(iphase-1) // "]/equation_of_state/incompressible") ) then ! Incompressible
+            option_path = "/material_phase[" // int2str(iphase-1) // "]/equation_of_state/incompressible"
+            if ( have_option( trim( option_path ) // '/linear' )) then
+               option_path = trim( option_path ) // '/linear'
+               eos_incomp_linear = .true.
+            elseif ( have_option( trim( option_path ) // '/python_state' )) then
+               option_path = trim( option_path ) // '/python_state'
+               eos_incomp_python = .true.
 
-         elseif ( have_option("/material_phase[" // int2str(iphase-1) // "]/equation_of_state/incompressible/linear") ) then ! Incompressible
-            option_path = "/material_phase[" // int2str(iphase-1) // "]/equation_of_state/incompressible/linear"
-            eos_incomp_linear = .true.
+#ifdef HAVE_NUMPY
+               ewrite(3,*) 'Have both NumPy and a python eos...'
+#else
+               FLAbort("Python EOS requires NumPy, which cannot be located.")
+#endif
+
+            else
+               FLAbort('Unrecognised incompressible equation of state.')
+            endif
          else
             FLAbort('Unrecognised equation of state.')
          endif
@@ -156,14 +193,14 @@
                den_plus = eos_coefs( 1 ) * p_plus + eos_coefs( 2 )
                den_minus = eos_coefs( 1 ) * p_minus + eos_coefs( 2 )
 
-           elseif ( eos_comp_linear_2 ) then ! Compressible
+            elseif ( eos_comp_linear_2 ) then ! Compressible
 
                ! EOS: DEN = A * P / T + B
                call get_option(trim(option_path)//"/coefficient_A", eos_coefs(1))
                call get_option(trim(option_path)//"/coefficient_B", eos_coefs(2))
 
                den( node ) = eos_coefs( 1 ) * p( cv_nod ) / t( node ) + eos_coefs( 2 )
-               pert_p = 1.
+               pert_p = 1. !max( toler, 0.001 * abs( p ( cv_nod ) ) )
                p_plus = p( cv_nod ) + pert_p
                p_minus = p( cv_nod ) - pert_p
                den_plus = eos_coefs( 1 ) * p_plus / max( toler, t( node ) ) + eos_coefs( 2 )
@@ -200,12 +237,96 @@
                     + eos_coefs( 5 ) * ( p_minus**2 )        + eos_coefs( 6 ) * ( tval**2 )           &
                     + eos_coefs( 7 ) * ( p_minus**2 ) * tval + eos_coefs( 8 ) * p_minus * ( tval**2 ) &
                     + eos_coefs( 9 ) * (( p_minus * tval )**2 )
+
             endif
 
             ! Calculating d(den) / dP
             deriv( node ) = ( den_plus - den_minus ) / ( 2. * pert_p )
 
          end do Loop_CV
+
+         if ( eos_comp_python .or. eos_incomp_python ) then
+
+            ! Extract fields from state
+            pressure    => extract_scalar_field( state(iphase), "Pressure" )
+            temperature => extract_scalar_field( state(iphase), "Temperature" )
+            density     => extract_scalar_field( state(iphase), "Density" )
+
+            temperature % val = t( ( iphase - 1 ) * cv_nonods + 1 : iphase * cv_nonods )
+
+            ! Get the code
+            call get_option(trim(density%option_path)//"/diagnostic/algorithm", pycode)
+
+            pressure % val = p( ( iphase - 1 ) * cv_nonods + 1 : iphase * cv_nonods )
+            call zero( density )
+
+            call python_reset()
+            call python_add_state( state( iphase ) )
+
+            call python_run_string("field = state.scalar_fields[Density]")
+
+            call get_option("/timestepping/current_time", current_time)
+            write(buffer,*) current_time
+            call python_run_string("time="//trim(buffer))
+            call get_option("/timestepping/timestep", dt)
+            write(buffer,*) dt
+            call python_run_string("dt="//trim(buffer))  
+
+            call python_run_string(trim(pycode))
+            den( ( iphase - 1 ) * cv_nonods + 1 : iphase * cv_nonods ) = density % val
+
+            call python_reset()
+
+            ! Calculating d(den) / dP
+            ! redefine p as p+pert and p-pert and then run python state again to get the d(den) / d P...
+            pert_p = 1.
+
+            pressure % val = p( ( iphase - 1 ) * cv_nonods + 1 : iphase * cv_nonods ) + pert_p
+            call zero( density )
+
+            call python_reset()
+            call python_add_state( state( iphase ) )
+
+            call python_run_string("field = state.scalar_fields[Density]")
+
+            call get_option("/timestepping/current_time", current_time)
+            write(buffer,*) current_time
+            call python_run_string("time="//trim(buffer))
+            call get_option("/timestepping/timestep", dt)
+            write(buffer,*) dt
+            call python_run_string("dt="//trim(buffer))  
+
+            call python_run_string(trim(pycode))
+            den_plus_python = density % val
+
+            call python_reset()
+
+            pressure % val = p( ( iphase - 1 ) * cv_nonods + 1 : iphase * cv_nonods ) - pert_p
+            call zero( density )
+
+            call python_reset()
+            call python_add_state( state( iphase ) )
+
+            call python_run_string("field = state.scalar_fields[Density]")
+
+            call get_option("/timestepping/current_time", current_time)
+            write(buffer,*) current_time
+            call python_run_string("time="//trim(buffer))
+            call get_option("/timestepping/timestep", dt)
+            write(buffer,*) dt
+            call python_run_string("dt="//trim(buffer))
+
+            call python_run_string(trim(pycode))
+            den_minus_python = density % val
+
+            call python_reset()
+
+            ! derivative
+            deriv( ( iphase - 1 ) * cv_nonods + 1 : iphase * cv_nonods ) = ( den_plus_python - den_minus_python ) / ( 2. * pert_p )
+
+            FLAbort('I have to test this code...')
+
+         end if
 
          ewrite(3,*) 'deriv', deriv
 
@@ -215,7 +336,6 @@
 
       return
     end subroutine calculate_multiphase_density
-
 
     SUBROUTINE CAL_CPDEN( NPHASE, CV_NONODS, CV_PHA_NONODS, CPDEN, DEN, NCP_COEFS, CP_COEFS, CP_OPTION, STOTEL, CV_SNLOC, SUF_CPD_BCU, SUF_D_BCU ) 
 

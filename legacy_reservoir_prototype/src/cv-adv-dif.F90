@@ -66,7 +66,7 @@
          SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
          NOIT_DIM, &
          MEAN_PORE_CV, &
-         FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES )
+         FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, THERMAL )
 
       !  =====================================================================
       !     In this subroutine the advection terms in the advection-diffusion
@@ -241,7 +241,7 @@
       REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: SOURCT
       REAL, DIMENSION( CV_NONODS, NPHASE, NPHASE ), intent( in ) :: ABSORBT
       REAL, DIMENSION( TOTELE ), intent( in ) :: VOLFRA_PORE 
-      LOGICAL, intent( in ) :: GETCV_DISC, GETCT, GET_THETA_FLUX, USE_THETA_FLUX
+      LOGICAL, intent( in ) :: GETCV_DISC, GETCT, GET_THETA_FLUX, USE_THETA_FLUX, THERMAL
       INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDM
       INTEGER, DIMENSION( NCOLM ), intent( in ) :: COLM
       INTEGER, DIMENSION( CV_NONODS ), intent( in ) :: MIDM
@@ -318,7 +318,7 @@
            TMID, TOLDMID, &
            DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX, BCZERO, ROBIN1, ROBIN2, &
            SUM, &
-           SUM_LIMT, SUM_LIMTOLD, FTHETA_T2, ONE_M_FTHETA_T2OLD
+           SUM_LIMT, SUM_LIMTOLD, FTHETA_T2, ONE_M_FTHETA_T2OLD, THERM_FTHETA
       integer :: x_nod1,x_nod2,x_nod3,cv_inod_ipha, IGETCT
       real :: x_mean,y_mean
       ! Functions...
@@ -333,9 +333,9 @@
       ewrite(3,*)'CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA', &
            CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA
 
-      ewrite(3,*) 'CV_P', CV_P
-      ewrite(3,*) 'DEN', DEN
-      ewrite(3,*) 'DENOLD', DENOLD
+      !ewrite(3,*) 'CV_P', CV_P
+      !ewrite(3,*) 'DEN', DEN
+      !ewrite(3,*) 'DENOLD', DENOLD
 
       ndotq = 0. ; ndotqold = 0.
 
@@ -402,7 +402,7 @@
       ALLOCATE( SUFENLY( U_NLOC, SCVNGI ))
       ALLOCATE( SUFENLZ( U_NLOC, SCVNGI ))
 
-      ALLOCATE( SCVDETWEI( SCVNGI ))
+      ALLOCATE( SCVDETWEI( SCVNGI )) ; SCVDETWEI = 0.
       ALLOCATE( SRA( SCVNGI ))
       ALLOCATE( LOG_ON_BOUND(CV_NONODS))
 
@@ -605,8 +605,8 @@
       !DO ELE = 1, TOTELE
       !   sum=sum+mass_ele(ele)
       !end do
-      !   print *,'sum(mass_ele):',sum
-      !   stop 221
+      !print *,'sum(mass_ele):',sum
+      !stop 221
 
 
       ! For each node, find the largest and smallest value of T and 
@@ -632,11 +632,11 @@
 
       IF( GOT_DIFFUS ) THEN
 
-         !       femt(:)=-(x(:)-0.5)*(x(:)-0.5)
-         !       femt(:)=x(:)
+         !femt(:)=-(x(:)-0.5)*(x(:)-0.5)
+         !femt(:)=x(:)
          CALL DG_DERIVS( FEMT, FEMTOLD, &
               NDIM, NPHASE, CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
-                                !            NGI2, CV_NLOC, N2, WEIGHT2, N2, NLX2, NLY2, NLY2, &
+              !NGI2, CV_NLOC, N2, WEIGHT2, N2, NLX2, NLY2, NLY2, &
               CV_NGI_SHORT, CV_NLOC, CVWEIGHT_SHORT, CVFEN_SHORT, &
               CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, &
               X_NONODS, X, Y, Z,  &
@@ -658,9 +658,6 @@
          CT_RHS = 0.0
          CT = 0.0
       ENDIF
-
-
-      print *, '777ct:', ct
 
       IF(GETCV_DISC) THEN ! Obtain the CV discretised advection/diffusion eqns
          CV_RHS = 0.0
@@ -714,15 +711,15 @@
                        CV_SNLOC, CVFEM_ON_FACE, SCVNGI, GI, X_SHARE, X_NONODS, ELE, ELE2,  &
                        FINELE, COLELE, NCOLELE )
                 
-                  ewrite(3,*)'================================================================================= '
-                  ewrite(3,*)' ele, cv_iloc, cv_nodi, gi, cv_jloc: ', ele, cv_iloc, cv_nodi, gi, cv_jloc
-                  ewrite(3,*)' ele2, integrat_at_gi:', ele2, integrat_at_gi
-                  ewrite(3,*)'================================================================================= '
-                  ewrite(3,*)'cv_other_loc:', cv_other_loc( 1 : cv_nloc )
-                  ewrite(3,*)'u_other_loc:', u_other_loc( 1 : u_nloc )
-                  ewrite(3,*)'mat_other_loc:', mat_other_loc( 1 : mat_nloc )
-                  ewrite(3,*)'INTEGRAT_AT_GI=', INTEGRAT_AT_GI
-                  ewrite(3,*)'================================================================================= '
+                  !ewrite(3,*)'================================================================================= '
+                  !ewrite(3,*)' ele, cv_iloc, cv_nodi, gi, cv_jloc: ', ele, cv_iloc, cv_nodi, gi, cv_jloc
+                  !ewrite(3,*)' ele2, integrat_at_gi:', ele2, integrat_at_gi
+                  !ewrite(3,*)'================================================================================= '
+                  !ewrite(3,*)'cv_other_loc:', cv_other_loc( 1 : cv_nloc )
+                  !ewrite(3,*)'u_other_loc:', u_other_loc( 1 : u_nloc )
+                  !ewrite(3,*)'mat_other_loc:', mat_other_loc( 1 : mat_nloc )
+                  !ewrite(3,*)'INTEGRAT_AT_GI=', INTEGRAT_AT_GI
+                  !ewrite(3,*)'================================================================================= '
 
                   IF(INTEGRAT_AT_GI) THEN
                      CV_JLOC = CV_OTHER_LOC( CV_ILOC )
@@ -735,7 +732,7 @@
                              FACE_ELE, TOTELE, NFACE, CVFEM_ON_FACE, GI, &
                              CV_NONODS, LOG_ON_BOUND, CV_NLOC, U_NLOC, CV_SNLOC, U_SNLOC, STOTEL, &
                              CV_NDGLN, U_NDGLN, CV_SNDGLN, U_SNDGLN ) 
-                        EWRITE(3,*)'*****AFTER CALC_SELE SELE,CV_SILOC,CV_SNLOC:',SELE,CV_SILOC,CV_SNLOC
+                        !EWRITE(3,*)'*****AFTER CALC_SELE SELE,CV_SILOC,CV_SNLOC:',SELE,CV_SILOC,CV_SNLOC
                      ENDIF
                      INTEGRAT_AT_GI=.NOT.((ELE==ELE2).AND.(SELE==0))
                   ENDIF
@@ -770,14 +767,11 @@
                   X_NODI = X_NDGLN(( ELE - 1 ) * X_NLOC  + CV_ILOC )
 
                   Conditional_GETCT1: IF( GETCT ) THEN ! Obtain the CV discretised CT equations plus RHS
-                     ewrite(3,*)'==================================================================='
-                     ewrite(3,*)'CV_NODI, CV_NODJ, ELE, ELE2:', CV_NODI, CV_NODJ, ELE, ELE2
-                     ewrite(3,*)'findct:',FINDCT( CV_NODI ), FINDCT( CV_NODI + 1 ) - 1
-                     ewrite(3,*)'colct:',colct( FINDCT( CV_NODI ) : FINDCT( CV_NODI + 1 ) - 1 )
-                     ewrite(3,*)'SCVDETWEI:', SCVDETWEI 
-                     ewrite(3,*)'nx:', CVNORMX
-                     ewrite(3,*)'ny:', CVNORMY
-                     ewrite(3,*)'nz:', CVNORMZ
+                     !ewrite(3,*)'==================================================================='
+                     !ewrite(3,*)'CV_NODI, CV_NODJ, ELE, ELE2, GI:', CV_NODI, CV_NODJ, ELE, ELE2, GI
+                     !ewrite(3,*)'findct:',FINDCT( CV_NODI ), FINDCT( CV_NODI + 1 ) - 1
+                     !ewrite(3,*)'colct:',colct( FINDCT( CV_NODI ) : FINDCT( CV_NODI + 1 ) - 1 )
+                     !ewrite(3,*)'SCVDETWEI:', SCVDETWEI(GI)
 
                      DO U_KLOC = 1, U_NLOC
                         U_NODK = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC )
@@ -786,7 +780,7 @@
                            IF(COLCT( COUNT ) == U_NODK) JCOUNT = COUNT
                         END DO
                         JCOUNT_KLOC( U_KLOC ) = JCOUNT
-                        ewrite(3,*)' u_nodk, jcount1:', u_nodk, jcount
+                        !ewrite(3,*)' u_nodk, jcount1:', u_nodk, jcount
                      END DO
 
                      IF( ( ELE2 /= 0 ) .AND. ( ELE2 /= ELE ) ) THEN
@@ -797,7 +791,7 @@
                               IF(COLCT( COUNT ) == U_NODK) JCOUNT = COUNT
                            END DO
                            JCOUNT_KLOC2( U_KLOC ) = JCOUNT
-                           ewrite(3,*)' u_nodk, jcount2:', u_nodk, jcount
+                           !ewrite(3,*)' u_nodk, jcount2:', u_nodk, jcount
                         END DO
 
                      ENDIF
@@ -902,13 +896,6 @@
                         DIFF_COEF_DIVDX    = 0.0
                         DIFF_COEFOLD_DIVDX = 0.0
                      END IF If_GOT_DIFFUS
-
-
-print *, 'IGOT_T2', IGOT_T2
-print *, 'XXX1', ugi_coef_ele
-print *, 'XXX2', ugi_coef_ele2
-
-
 
                      NFACE_ITS=1
                      !IF((CV_ELE_TYPE==2).AND.(CV_NONODS==TOTELE*CV_NLOC)) NFACE_ITS=2
@@ -1077,10 +1064,10 @@ print *, 'XXX2', ugi_coef_ele2
 
                            IMID_IPHA = MIDACV( CV_NODI_IPHA )
 
-                           if( imid_ipha < 1 ) then
-                              ewrite(1,*)'midacv:', midacv( 1 : cv_nonods * nphase )
-                              ewrite(1,*)' cv_nodi_ipha, IMID_IPHA :', cv_nodi_ipha, IMID_IPHA
-                           endif
+                           !if( imid_ipha < 1 ) then
+                           !   ewrite(1,*)'midacv:', midacv( 1 : cv_nonods * nphase )
+                           !   ewrite(1,*)' cv_nodi_ipha, IMID_IPHA :', cv_nodi_ipha, IMID_IPHA
+                           !endif
 
                            ACV( IMID_IPHA ) =  ACV( IMID_IPHA ) &
                                 +  FTHETA_T2 * SCVDETWEI( GI ) * NDOTQ * ( 1. - INCOME ) * LIMD   & ! advection
@@ -1136,6 +1123,25 @@ print *, 'XXX2', ugi_coef_ele2
                         ENDIF
 
 
+                        ! this is for the internal energy equation source term..
+                        ! - p \div u
+                        IF( THERMAL ) THEN
+                           THERM_FTHETA = 1.
+
+                           if( igot_t2 /= 0 ) then
+                              CV_RHS( CV_NODI_IPHA ) = CV_RHS( CV_NODI_IPHA ) &
+                                   - CV_P( CV_NODI ) * SCVDETWEI( GI ) * ( &
+                                   THERM_FTHETA * NDOTQ * LIMT2 & 
+                                   + ( 1. - THERM_FTHETA ) * NDOTQOLD * LIMT2OLD )
+                           else
+                              CV_RHS( CV_NODI_IPHA ) = CV_RHS( CV_NODI_IPHA ) &
+                                   - CV_P( CV_NODI ) * SCVDETWEI( GI ) * ( &
+                                   THERM_FTHETA * NDOTQ & 
+                                   + ( 1. - THERM_FTHETA ) * NDOTQOLD )
+                           end if
+
+                        END IF
+
                      ENDIF Conditional_GETCV_DISC
 
                   END DO Loop_IPHASE
@@ -1144,13 +1150,9 @@ print *, 'XXX2', ugi_coef_ele2
 
             END DO Loop_GCOUNT
 
-            !IF(CV_ILOC.EQ.3) stop 39831
-            !IF((CV_ILOC.EQ.1).and.(ELE.EQ.2)) stop 39831
          END DO Loop_CV_ILOC
 
-
       END DO Loop_Elements
-
       !stop 123
 
       IF(GET_GTHETA) THEN
@@ -1165,10 +1167,10 @@ print *, 'XXX2', ugi_coef_ele2
 
       Conditional_GETCV_DISC2: IF( GETCV_DISC ) THEN ! Obtain the CV discretised advection/diffusion equations
 
-         ewrite(3,*)'before adding extra bits*****DEN:',DEN
-         ewrite(3,*)'before adding extra bits*****DENOLD:',DENOLD
-         ewrite(3,*)'before adding extra bits*****TOLD:',TOLD
-         ewrite(3,*)'before adding extra bits*****MEAN_PORE_CV:',MEAN_PORE_CV
+         !ewrite(3,*)'before adding extra bits*****DEN:',DEN
+         !ewrite(3,*)'before adding extra bits*****DENOLD:',DENOLD
+         !ewrite(3,*)'before adding extra bits*****TOLD:',TOLD
+         !ewrite(3,*)'before adding extra bits*****MEAN_PORE_CV:',MEAN_PORE_CV
 
          !sourct2( 1 : cv_nonods ) = -.0 !-981. * ( 1.05 - .71 )
          !sourct2( cv_nonods + 1 : cv_nonods * nphase ) = -0.!-10.0e-1 !-981. * ( 1.05 - .71 )
@@ -1178,8 +1180,8 @@ print *, 'XXX2', ugi_coef_ele2
             Loop_IPHASE2: DO IPHASE = 1, NPHASE    
                CV_NODI_IPHA = CV_NODI + ( IPHASE - 1 ) * CV_NONODS
                ! For the gravity term
-!!!! SOURCT2( CV_NODI_IPHA ) = SOURCT( CV_NODI_IPHA ) * DEN( CV_NODI_IPHA ) 
-!!!! SOURCT2( CV_NODI_IPHA ) = SOURCT2( CV_NODI_IPHA ) * DEN( CV_NODI_IPHA ) 
+               !SOURCT2( CV_NODI_IPHA ) = SOURCT( CV_NODI_IPHA ) * DEN( CV_NODI_IPHA ) 
+               !SOURCT2( CV_NODI_IPHA ) = SOURCT2( CV_NODI_IPHA ) * DEN( CV_NODI_IPHA ) 
                IMID_IPHA = MIDACV( CV_NODI_IPHA )
 
                IF(IGOT_T2==1) THEN
@@ -1463,7 +1465,7 @@ print *, 'XXX2', ugi_coef_ele2
       INTEGER :: X_KLOC, X_NODK, X_NODK2, COUNT, ELE3, SUF_COUNT, CV_KLOC, CV_KLOC2, &
            U_KLOC, U_KLOC2, CV_NODK, XU_NODK, XU_NODK2, ILEV, JLEV
 
-      ewrite(3,*) 'In FIND_OTHER_SIDE'
+      !ewrite(3,*) 'In FIND_OTHER_SIDE'
 
       DO X_KLOC = 1, X_NLOC
          X_NODK = X_NDGLN(( ELE - 1) * X_NLOC + X_KLOC )
@@ -1481,7 +1483,7 @@ print *, 'XXX2', ugi_coef_ele2
             END DO
          ENDIF
          IF( SUF_COUNT == CV_SNLOC ) ELE3 = ELE2
-         ewrite(3,*)'suf_count:', ele, ele2, suf_count, cv_snloc
+         !ewrite(3,*)'suf_count:', ele, ele2, suf_count, cv_snloc
       END DO
 
       DO X_KLOC = 1, X_NLOC
@@ -1495,7 +1497,7 @@ print *, 'XXX2', ugi_coef_ele2
          ! the middle of a CV. 
          DO CV_KLOC = 1, CV_NLOC
             CV_NODK = CV_NDGLN(( ELE2 - 1 ) * CV_NLOC + CV_KLOC )
-            ewrite(3,*)'cv_nodi, cv_nodk:', cv_nodi, cv_nodk, ele, ele2
+            !ewrite(3,*)'cv_nodi, cv_nodk:', cv_nodi, cv_nodk, ele, ele2
             IF( CV_NODK == CV_NODI ) INTEGRAT_AT_GI = .FALSE.
          END DO
       ENDIF
@@ -2926,7 +2928,7 @@ print *, 'XXX2', ugi_coef_ele2
       REAL :: POSVGIX, POSVGIY, POSVGIZ
       REAL :: RGI
 
-      ewrite(3,*)' In SCVDETNX'
+      !ewrite(3,*)' In SCVDETNX'
 
       Conditional_Dimension: IF( D3 ) THEN
 
@@ -3039,7 +3041,6 @@ print *, 'XXX2', ugi_coef_ele2
 
          DETJ = SQRT( DXDLX**2 + DYDLX**2 )
          CVDETWEI(GI)  = TWOPI*RGI*DETJ*SVWEIGH(GI)
-
          !
          !     - Calculate the normal at the Gauss pts
          !     - TANX1 = DXDLX, TANY1 = DYDLX, TANZ1 = DZDLX,    
@@ -3051,10 +3052,10 @@ print *, 'XXX2', ugi_coef_ele2
               DXDLY,       DYDLY,       DZDLY,&
               POSVGIX,     POSVGIY,     POSVGIZ )
 
-         ewrite(3,*) 'CVNORMX(GI), CVNORMY(GI), CVNORMZ(GI):',CVNORMX(GI), CVNORMY(GI), CVNORMZ(GI)
-         ewrite(3,*) 'DXDLX,       DYDLX,       DZDLX:',DXDLX,       DYDLX,       DZDLX
-         ewrite(3,*) 'DXDLY,       DYDLY,       DZDLY:',DXDLY,       DYDLY,       DZDLY
-         ewrite(3,*) 'POSVGIX,     POSVGIY,     POSVGIZ:',POSVGIX,     POSVGIY,     POSVGIZ
+         !ewrite(3,*) 'CVNORMX(GI), CVNORMY(GI), CVNORMZ(GI):',CVNORMX(GI), CVNORMY(GI), CVNORMZ(GI)
+         !ewrite(3,*) 'DXDLX,       DYDLX,       DZDLX:',DXDLX,       DYDLX,       DZDLX
+         !ewrite(3,*) 'DXDLY,       DYDLY,       DZDLY:',DXDLY,       DYDLY,       DZDLY
+         !ewrite(3,*) 'POSVGIX,     POSVGIY,     POSVGIZ:',POSVGIX,     POSVGIY,     POSVGIZ
          !     
          !     - End of GI loop
 
@@ -3730,9 +3731,6 @@ print *, 'XXX2', ugi_coef_ele2
               IN_ELE_UPWIND, DG_ELE_UPWIND, &
               TMIN_2ND_MC, TOLDMIN_2ND_MC, TMAX_2ND_MC, TOLDMAX_2ND_MC,  LIMIT_USE_2ND)
       ELSE
-
-print *, 'edw1'
-
          CALL GET_INT_VEL_ORIG( NPHASE, NDOTQ, INCOME, NDOTQOLD, INCOMEOLD, &
               HDC, GI, IPHASE, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
               T, TOLD, FEMT, FEMTOLD, DEN, DENOLD, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
@@ -3747,10 +3745,6 @@ print *, 'edw1'
               TMIN, TMAX, TOLDMIN, TOLDMAX, TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, TOLDMAX_NOD, &
               IN_ELE_UPWIND, DG_ELE_UPWIND, &
               TMIN_2ND_MC, TOLDMIN_2ND_MC, TMAX_2ND_MC, TOLDMAX_2ND_MC,  LIMIT_USE_2ND)
-
-print *, 'edw2'
-
-
       ENDIF
       RETURN
     END SUBROUTINE GET_INT_VEL
@@ -5881,7 +5875,7 @@ print *, 'edw2'
 
          DO IPHASE = 1,NPHASE
              CV_NODI_IPHA = CV_NODI + ( IPHASE - 1 ) * CV_NONODS
-!             print *,'CV_NODI, IPHASE, CV_NODI_IPHA=',CV_NODI, IPHASE, CV_NODI_IPHA
+             !print *,'CV_NODI, IPHASE, CV_NODI_IPHA=',CV_NODI, IPHASE, CV_NODI_IPHA
              TMAX_2ND_MC(CV_NODI_IPHA)  =-1.E+10
              TMIN_2ND_MC( CV_NODI_IPHA )=+1.E+10
              TOLDMAX_2ND_MC( CV_NODI_IPHA )=-1.E+10
@@ -6018,11 +6012,11 @@ print *, 'edw2'
            U_KLOC, U_SKLOC, U_SKNOD, CV_SKLOC, ngi, igi
       LOGICAL :: FOUND
 
-      ewrite(3,*)'In Calc_Sele'
+      !ewrite(3,*)'In Calc_Sele'
 
       DO CV_JLOC = 1, CV_NLOC  
          CV_JNOD = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_JLOC )
-         ewrite(3,*)'cv_jloc, gi, cvfem_on_face:', cv_jloc, gi, cvfem_on_face( cv_jloc, gi )
+         !ewrite(3,*)'cv_jloc, gi, cvfem_on_face:', cv_jloc, gi, cvfem_on_face( cv_jloc, gi )
          LOG_ON_BOUND( CV_JNOD ) = CVFEM_ON_FACE( CV_JLOC, GI )
       END DO
 
@@ -6031,13 +6025,13 @@ print *, 'edw2'
       DO IFACE = 1, NFACE
          ELE2 = FACE_ELE( IFACE, ELE )
          SELE2 = MAX( 0, - ELE2 )
-         !!       SELE = SELE2
+         !!SELE = SELE2
          ELE2 = MAX( 0, + ELE2 )
          IF( SELE2 /= 0 ) THEN
             FOUND = .TRUE.
             DO CV_SKLOC = 1, CV_SNLOC 
                CV_SKNOD = CV_SNDGLN(( SELE2 - 1 ) * CV_SNLOC + CV_SKLOC )
-               ewrite(3,*)'CV_SKNOD, LOG_ON_BOUND:',CV_SKNOD, LOG_ON_BOUND(CV_SKNOD)
+               !ewrite(3,*)'CV_SKNOD, LOG_ON_BOUND:',CV_SKNOD, LOG_ON_BOUND(CV_SKNOD)
                IF( .NOT. LOG_ON_BOUND( CV_SKNOD )) FOUND=.FALSE.
             END DO
             IF( FOUND ) SELE = SELE2
@@ -6055,7 +6049,7 @@ print *, 'edw2'
             CV_SLOC2LOC( CV_SKLOC ) = CV_KLOC
             IF( CV_KLOC == CV_ILOC ) CV_SILOC = CV_SKLOC
          END DO
-         ewrite(3,*) 'cv_sloc2loc: ', cv_sloc2loc
+         !ewrite(3,*) 'cv_sloc2loc: ', cv_sloc2loc
 
          ! Calculate U_SLOC2LOC 
          DO U_SKLOC = 1, U_SNLOC  
@@ -6165,10 +6159,10 @@ print *, 'edw2'
            U_KLOC_LEV, U_NLOC_LEV
       REAL :: RCON,UDGI_IMP,VDGI_IMP,WDGI_IMP,NDOTQ_IMP
 
-      ewrite(3,*)' In PUT_IN_CT_RHS CVNORMX/Y/Z:',CVNORMX( GI ),CVNORMY( GI ),CVNORMZ( GI )
-      ewrite(3,*)' SCVDETWEI( GI ):',SCVDETWEI( GI )
-      ewrite(3,*)' SUFEN( :, GI ):',SUFEN( :, GI )
-      ewrite(3,*)' jcount_kloc:', jcount_kloc
+      !ewrite(3,*)' In PUT_IN_CT_RHS CVNORMX/Y/Z:',CVNORMX( GI ),CVNORMY( GI ),CVNORMZ( GI )
+      !ewrite(3,*)' SCVDETWEI( GI ):',SCVDETWEI( GI )
+      !ewrite(3,*)' SUFEN( :, GI ):',SUFEN( :, GI )
+      !ewrite(3,*)' jcount_kloc:', jcount_kloc
 
       !ewrite(3,*)' ugi_coef_ele:', ugi_coef_ele
       !ewrite(3,*)' vgi_coef_ele:', vgi_coef_ele
@@ -6287,7 +6281,7 @@ print *, 'edw2'
       INTEGER :: ELE, CV_ILOC, IPHASE
       REAL :: x_coord
 
-      ewrite(3,*)'satura :',satura
+      !ewrite(3,*)'satura :',satura
 
       do iphase=1,nphase
          ewrite(3,*)'cv REPRESENTATION OF iphase:',iphase
@@ -6559,23 +6553,23 @@ print *, 'edw2'
                CALL ABS3P(ABSC, 1.0, SATC, IPHASE)
                CALL ABS3P(ABS_CV_NODI, 1.0, SAT_CV_NODI, IPHASE)
                CALL ABS3P(ABS_CV_NODJ, 1.0, SAT_CV_NODJ, IPHASE)
-               ewrite(3,*)'ABS_CV_NODJ, SAT_CV_NODJ, IPHASE:',ABS_CV_NODJ, SAT_CV_NODJ, IPHASE
+               !ewrite(3,*)'ABS_CV_NODJ, SAT_CV_NODJ, IPHASE:',ABS_CV_NODJ, SAT_CV_NODJ, IPHASE
                B=(ABS_CV_NODJ-ABSC)/(SAT_CV_NODJ-SATC)
                A=ABS_CV_NODJ - B*SAT_CV_NODJ
 
                ABSC=a+b*0.5*(SAT_CV_NODJ+SAT_CV_NODI)
-               ewrite(3,*)'guessed valueS ABSC,ABS_CV_NODJ=',ABSC,ABS_CV_NODJ
-               ewrite(3,*)'SAT_CV_NODI,SAT_CV_NODj:',SAT_CV_NODI,SAT_CV_NODj
-               ewrite(3,*)'SAT_CV_NODI_ipha,SAT_CV_NODj_ipha:',SAT_CV_NODI_ipha,SAT_CV_NODj_ipha
+               !ewrite(3,*)'guessed valueS ABSC,ABS_CV_NODJ=',ABSC,ABS_CV_NODJ
+               !ewrite(3,*)'SAT_CV_NODI,SAT_CV_NODj:',SAT_CV_NODI,SAT_CV_NODj
+               !ewrite(3,*)'SAT_CV_NODI_ipha,SAT_CV_NODj_ipha:',SAT_CV_NODI_ipha,SAT_CV_NODj_ipha
                W=(ABS_CV_NODI-ABSC)/tolfun(ABS_CV_NODI-ABS_CV_NODJ)
                SATC=W*SAT_CV_NODJ + (1.-W)*SAT_CV_NODI
                W=(SATC - SAT_CV_NODI)/(SAT_CV_NODJ - SAT_CV_NODI)
-               !       ewrite(3,*)'1w=',w
-               !       w=max(w,1.0-w) ! make any non-linear variation subject to upwinding
-               !       w=1.-w ! this is correct
+               !ewrite(3,*)'1w=',w
+               !w=max(w,1.0-w) ! make any non-linear variation subject to upwinding
+               !w=1.-w ! this is correct
                w=0.5 + (w-0.5)*2.
                W=max(w,0.5)
-               !       W=max(w,0.0)
+               !W=max(w,0.0)
                W=min(w,1.0)
                INCOME= W
             endif
@@ -6601,7 +6595,7 @@ print *, 'edw2'
                !       W=max(w,0.0)
                W=min(w,1.0)
                INCOME= W
-               ewrite(3,*)'w,income:',w,income
+               !ewrite(3,*)'w,income:',w,income
             endif
          ELSE
 
