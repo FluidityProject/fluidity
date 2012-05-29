@@ -907,15 +907,15 @@ subroutine gls_diffusivity(state)
     velocity => extract_vector_field(state, "Velocity")
 
     call allocate(tke, tke_state%mesh, name="MyLocalTKE")
-    if (gls_n > 0) then
+    !if (gls_n > 0) then
         ! set the TKE to use below to the unaltered TKE
         ! with no chnages tothe upper/lower surfaces
         ! Applies to k-kl model only
-        call set (tke, local_tke)
-    else
+    !    call set (tke, local_tke)
+    !else
         ! Use the altered TKE to get the surface diffusivity correct
         call set (tke, tke_state)
-    end if
+    !end if
 
     ! call the bc code, but specify we want dirichlet
     !if (gls_n < 0) then
@@ -960,12 +960,12 @@ subroutine gls_diffusivity(state)
 
         ! compute dissipative scale
         call set(ll,i,cde*sqrt(tke_cur**3.)/node_val(eps,i))
-        if (gls_n > 0) then
-            if (node_val(NN2,i) > 0) then
-                limit = sqrt(0.56 * tke_cur / node_val(NN2,i))
-                call set(ll,i,min(limit,node_val(ll,i)))
-            end if
-        end if
+        !if (gls_n > 0) then
+        !    if (node_val(NN2,i) > 0) then
+        !        limit = sqrt(0.56 * tke_cur / node_val(NN2,i))
+        !        call set(ll,i,min(limit,node_val(ll,i)))
+        !    end if
+        !end if
 
     end do
 
