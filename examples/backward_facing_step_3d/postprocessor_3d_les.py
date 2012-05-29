@@ -8,6 +8,7 @@ import numpy
 import pylab
 import re
 import extract_data
+import avrl
 from math import log
 
 def get_filelist(sample, start):
@@ -355,7 +356,7 @@ def plot_inlet(Re,type,mesh,vprofiles,rprofiles,xarray,zarray,yarray):
   ##### Plot velocity profiles at different points in inlet region
 
   # get profiles from ERCOFTAC data
-  y,U,uu,vv,uv = extract_data.ercoftacuplusprofiles()
+  y,U,uu,vv,uv = extract_data.ercoftacrestressprofiles()
 
   plot1 = pylab.figure(figsize = (16.5, 8.5))
   pylab.suptitle("Velocity and Reynolds stresses in inflow region: Re="+str(Re)+", "+str(type)+", "+str(mesh)+" mesh", fontsize=20)
@@ -629,45 +630,58 @@ def main():
     print "Re, bc type, mesh: ", Re, type, mesh
 
     ##### Only process every nth file by taking integer multiples of n:
-    filelist = get_filelist(sample=1, start=1)
-
+    filelist = get_filelist(sample=1, start=10)
+    print filelist
     ##### Points to generate profiles:
     xarray = numpy.array([4.0, 6.0, 10.0, 19.0])
-    zarray = numpy.linspace(0.1,3.9,39)
+    zarray = numpy.linspace(0.0,4.0,41)
     yarray = numpy.array([0.01,0.02,0.03,0.04,0.05,0.06,0.07,0.08,0.09,0.1,0.11,0.12,0.13,0.14,0.15,0.16,0.17,0.18,0.19,0.2,0.21,0.22,0.23,0.24,0.25, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0,3.1,3.2,3.3,3.4,3.5,3.6,3.7,3.8,3.9,4.0,4.1,4.2,4.3,4.4,4.5,4.6,4.7,4.8,4.9,5.0])
 
     ##### Call reattachment_length function
-    reattachment_length = numpy.array(reatt_length(filelist, zarray))
-    numpy.save("../numpy_data/reatt_len_"+str(Re)+"_"+str(type)+"_"+str(mesh), reattachment_length)
-    plot_length(Re,type,mesh,reattachment_length)
-    #return
+    zarray = numpy.linspace(0.0,4.0,41)
+    #reattachment_length = numpy.array(reatt_length(filelist, zarray))
+    name = "reatt_len_"+str(Re)+"_"+str(type)+"_"+str(mesh)
+    #numpy.save('../numpy_data/'+str(name), reattachment_length)
+    #plot_length(Re,type,mesh,reattachment_length)
+
+    # Find time-averaged reattachment length
+    npy, rl_av = avrl.moving_average('../numpy_data/'+str(name)+'.npy')
+    numpy.save('../numpy_data/av_'+str(name), [rl_av,npy[:,-1]])
+    print 'time-averaged RL', rl_av
+
+    # Use it to calculate normalised coords for extracting velo profiles
+    RL = rl_av[-1]
+    xnarray = numpy.array([RL*2./3., RL, RL*5./3., RL*2.497])
+    print 'normalised locations', xnarray
+
     ##### Call meanvelo function
-    vprofiles = meanvelo(filelist, xarray, zarray, yarray)
+    #zarray = numpy.array([2.0])
+    vprofiles = meanvelo(filelist, xnarray, zarray, yarray)
     numpy.save("../numpy_data/mean_velo_"+str(Re)+"_"+str(type)+"_"+str(mesh), vprofiles)
     print "Showing plot of velocity profiles."
-    zarray = numpy.array([2.0])
-    plot_meanvelo(Re,type,mesh,vprofiles,xarray,yarray)
+    plot_meanvelo(Re,type,mesh,vprofiles,xnarray,yarray)
+
     # points used by Le & Moin in U+ plot:
-    xarray=numpy.array([10.0,12.5,15.0,17.5,19.0])
-    vprofiles = meanvelo(filelist, xarray, zarray, yarray)
-    yplus, uplus = plusvelo(filelist,vprofiles, yarray)
-    numpy.save('../numpy_data/yplus_'+str(Re)+"_"+str(type)+"_"+str(mesh), yplus)
-    numpy.save('../numpy_data/uplus_'+str(Re)+"_"+str(type)+"_"+str(mesh), uplus)
-    plot_plusvelo(Re,type,mesh,uplus,yplus,xarray)
+    #xarray=numpy.array([10.0,12.5,15.0,17.5,19.0])
+    #vprofiles = meanvelo(filelist, xarray, zarray, yarray)
+    #yplus, uplus = plusvelo(filelist,vprofiles, yarray)
+    #numpy.save('../numpy_data/yplus_'+str(Re)+"_"+str(type)+"_"+str(mesh), yplus)
+    #numpy.save('../numpy_data/uplus_'+str(Re)+"_"+str(type)+"_"+str(mesh), uplus)
+    #plot_plusvelo(Re,type,mesh,uplus,yplus,xarray)
 
     ##### Call Reynolds stress2 function
-    rprofiles2 = reynolds_stresses2(filelist, xarray, zarray, yarray)
-    numpy.save("../numpy_data/re_stress_"+str(Re)+"_"+str(type)+"_"+str(mesh), rprofiles2)
-    plot_reynolds_stresses2(Re,type,mesh,rprofiles2,xarray,zarray,yarray)
+    #rprofiles2 = reynolds_stresses2(filelist, xarray, zarray, yarray)
+    #numpy.save("../numpy_data/re_stress_"+str(Re)+"_"+str(type)+"_"+str(mesh), rprofiles2)
+    #plot_reynolds_stresses2(Re,type,mesh,rprofiles2,xarray,zarray,yarray)
 
     ##### Plot inlet region
-    xarray = numpy.array([-10.0, -7.0, -3.0, 0.0])
-    yarray = numpy.array([1.0,1.01,1.02,1.03,1.04,1.05,1.06,1.07,1.08,1.09,1.1,1.11,1.12,1.13,1.14,1.15,1.16,1.17,1.18,1.19,1.2,1.21,1.22,1.23,1.24,1.25,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4,2.5,2.6,2.7,2.8,2.9,3.0,3.1,3.2,3.3,3.4,3.5,3.6,3.7,3.8,3.9,4.0,4.1,4.2,4.3,4.5,4.6,4.7,4.8,4.9,5.0,5.1,5.2,5.3,5.4,5.5,5.6,5.7,5.8,5.9,6.0])
-    rprofiles = reynolds_stresses2(filelist, xarray, zarray, yarray)
-    vprofiles = meanvelo(filelist, xarray, zarray, yarray)
-    numpy.save("../numpy_data/inlet_profiles_"+str(Re)+"_"+str(type)+"_"+str(mesh), vprofiles)
-    print "Showing plot of inlet profiles."
-    plot_inlet(Re,type,mesh,vprofiles,rprofiles,xarray,zarray,yarray)
+    #xarray = numpy.array([-10.0, -7.0, -3.0, 0.0])
+    #yarray = numpy.array([1.0,1.01,1.02,1.03,1.04,1.05,1.06,1.07,1.08,1.09,1.1,1.11,1.12,1.13,1.14,1.15,1.16,1.17,1.18,1.19,1.2,1.21,1.22,1.23,1.24,1.25,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4,2.5,2.6,2.7,2.8,2.9,3.0,3.1,3.2,3.3,3.4,3.5,3.6,3.7,3.8,3.9,4.0,4.1,4.2,4.3,4.5,4.6,4.7,4.8,4.9,5.0,5.1,5.2,5.3,5.4,5.5,5.6,5.7,5.8,5.9,6.0])
+    #rprofiles = reynolds_stresses2(filelist, xarray, zarray, yarray)
+    #vprofiles = meanvelo(filelist, xarray, zarray, yarray)
+    #numpy.save("../numpy_data/inlet_profiles_"+str(Re)+"_"+str(type)+"_"+str(mesh), vprofiles)
+    #print "Showing plot of inlet profiles."
+    #plot_inlet(Re,type,mesh,vprofiles,rprofiles,xarray,zarray,yarray)
     #pylab.show()
 
     print "\nAll done.\n"

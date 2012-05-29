@@ -1,18 +1,18 @@
 BIN=../../../bin
 RE=5100
-JOB=dynles-lilly
-NN=coarse
+JOB=dynles-lilly-a1-sem-adapt
+NN=fine
 preprocess:
 	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi;
-	@$(foreach NN,coarse , \
+	@$(foreach NN,0.125 , \
 		echo **********Installing directory $(RE)-$(JOB)-$(NN):; \
 		install -d $(RE)-$(JOB)-$(NN); \
 		cd $(RE)-$(JOB)-$(NN); \
 		pwd; \
-		echo **********copying flml: _facing_step_3d-$(RE)-$(JOB)-$(NN).flml:; \
 		echo **********Generating mesh...; \
 		gmsh -3 -o step3d-$(NN).msh ../src/step3d-$(NN).geo; \
 		$(BIN)/gmsh2triangle step3d-$(NN).msh; \
+		echo **********copying flml: _facing_step_3d-$(RE)-$(JOB)-$(NN).flml:; \
 		ln -s ../flmls/backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml .; \
 		echo **********Decomposing the mesh into $(NPROCS) parts for parallel run:; \
 		$(BIN)/fldecomp -n $(NPROCS) -f step3d-$(NN); \
@@ -39,7 +39,7 @@ preprocess-periodic:
 
 run:
 	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi;
-	@$(foreach NN,coarse, \
+	@$(foreach NN,coarse , \
 		echo Running $(NN) case; \
 		cd $(RE)-$(JOB)-$(NN); \
 		echo **********Running simulation $(RE)-$(JOB)-$(NN); \
@@ -59,7 +59,7 @@ run-periodic:
 
 postprocess:
 	@echo **********Calling the velocity data extraction and plotting python script:
-	@$(foreach NN, coarse med fine, \
+	@$(foreach NN, 0.125, \
 		cd $(RE)-$(JOB)-$(NN); \
 		ln -s ../postprocessor_3d.py .; \
 		./postprocessor_3d.py $(RE) $(JOB) $(NN); \
@@ -68,13 +68,13 @@ postprocess:
 
 postprocess-les:
 	@echo **********Calling the LES velocity data extraction and plotting python script:
-	@$(foreach NN,coarse, \
+	@$(foreach JOB,dynles-lilly-sem-periodic dynles-lilly-aniso-sem-periodic dynles-lilly-a1-sem-periodic dynles-lilly-nolimc-sem-periodic dynles-lilly-aniso-nolimc-sem-periodic dynles-lilly-ex-sem-periodic dynles-lilly-ex-aniso-sem-periodic, \
 		cd $(RE)-$(JOB)-$(NN); \
 		ln -s ../postprocessor_3d_les.py .; \
 		./postprocessor_3d_les.py $(RE) $(JOB) $(NN); \
 		cd ..; \
 	)
-
+#dynles-lilly-sem-adapt dynles-lilly-a1-sem-adapt dynles-lilly-aniso-sem-adapt dynles-lilly-aniso-a1-sem-adapt dynles-lilly-a1b1-sem-adapt dynles-lilly-aniso-a1b1-sem-adapt dynles-lilly-nolimc-sem-adapt dynles-lilly-aniso-nolimc-sem-adapt dynles-lilly-nolimc-a1-sem-adapt dynles-lilly-aniso-nolimc-a1-sem-adapt dynles-lilly-ex-sem-adapt dynles-lilly-ex-aniso-sem-adapt dynles-lilly-ex-a1-sem-adapt dynles-lilly-ex-aniso-a1-sem-adapt dynles-lilly-aniso-sem-adaptfine 
 post-postprocess:
 	./post_postprocessor_3d_les.py
 
@@ -88,6 +88,6 @@ clean:
 space:
 	@$(foreach N,1 2 3 4 5 6 7 8 9, \
 		rm -r $(RE)-$(JOB)-$(NN)/backward_facing_step_3d*_*$(N); \
-		rm 5100-*/backward_facing_step_3d*_*$(N).pvtu; \
+		rm $(RE)-$(JOB)-$(NN)/backward_facing_step_3d*_*$(N).pvtu; \
 	)
 

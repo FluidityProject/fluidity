@@ -374,9 +374,9 @@ def main():
     zarray = numpy.array([2.0])
     vprofiles = velo(filelist, xarray, zarray, yarray)
     numpy.save("../numpy_data/velo_"+str(Re)+"_"+str(type)+"_"+str(mesh), vprofiles)
-    print "Showing plot of velocity profiles."
+    print "Generating plot of velocity profiles."
     plot_velo(Re,type,mesh,vprofiles,xarray,yarray)
-    pylab.show()
+    #pylab.show()
 
     print "\nAll done.\n"
 
