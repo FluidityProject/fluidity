@@ -177,9 +177,9 @@ ifeq (@FEMDEM@,yes)
 	@cd @FLFEMDEM_PATH@;$(MAKE)
 endif
 
-include/libspud.h: lib/libspud.a
+include/spud.h: lib/libspud.a
 
-main.o: include/version.h include/libspud.h
+main.o: include/version.h include/spud.h
 
 include/version.h: version-info
 	@bin/version-info $@
