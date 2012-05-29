@@ -140,11 +140,13 @@ contains
     type(scalar_field) :: ctfield, ct_rhs
     type(scalar_field), pointer :: masslump
     type(vector_field), pointer :: positions, source_field
+    logical :: using_divergence_matrix_cache
     
     source_field => vector_source_field(state, s_field)
     path = trim(complete_field_path(s_field%option_path)) // "/algorithm"
     
-    if(use_divergence_matrix_cache(state)) then
+    using_divergence_matrix_cache = use_divergence_matrix_cache(state)
+    if(using_divergence_matrix_cache) then
       ct_m => extract_block_csr_matrix(state, trim(s_field%name) // "DivergenceMatrix")
       call incref(ct_m)
       ct_rhs = extract_scalar_field(state, trim(s_field%name) // "DivergenceRHS")
@@ -178,7 +180,7 @@ contains
     end if
 
     call deallocate(ct_m)
-    if(.not.use_divergence_matrix_cache(state)) then
+    if(.not.using_divergence_matrix_cache)then
       deallocate(ct_m)
     end if
     call deallocate(ctfield)
