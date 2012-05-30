@@ -4,7 +4,7 @@
   <owner userid="asc"/>
   <tags>flml netcdf</tags>
   <problem_definition length="medium" nprocs="1">
-    <command_line>for name in valid missing{data,dimension,variable} incorrect{dimension,variable}; do echo "Running case ${name}"; ../../bin/fluidity "${name}.flml" 1>/dev/null 2>"${name}.err"; done</command_line>
+    <command_line>for name in valid missingdata missingdimension missingvariable incorrectdimension incorrectvariable ; do echo "Running case ${name}"; ../../bin/fluidity "${name}.flml" 1>/dev/null 2>"${name}.err"; done</command_line>
   </problem_definition>
   <variables>
     <variable name="valid_err_filesize" language="python">
