@@ -142,27 +142,23 @@ This option is generally only useful for testing. </a:documentation>
                       <ref name="integer"/>
                     </element>
                     <optional>
-                      <element name="minimum">
-                        <choice>
-                          <element name="constant">
-                            <ref name="real"/>
-                          </element>
-                          <element name="python">
-                            <ref name="python_code"/>
-                          </element>
-                        </choice>
+                      <element name="scalar_field">
+                        <attribute name="name">
+                          <value>AgentsMin</value>
+                        </attribute>
+                        <element name="prescribed">
+                          <ref name="prescribed_scalar_field_no_adapt"/>
+                        </element>
                       </element>
                     </optional>
                     <optional>
-                      <element name="maximum">
-                        <choice>
-                          <element name="constant">
-                            <ref name="real"/>
-                          </element>
-                          <element name="python">
-                            <ref name="python_code"/>
-                          </element>
-                        </choice>
+                      <element name="scalar_field">
+                        <attribute name="name">
+                          <value>AgentsMax</value>
+                        </attribute>
+                        <element name="prescribed">
+                          <ref name="prescribed_scalar_field_no_adapt"/>
+                        </element>
                       </element>
                     </optional>
                   </element>

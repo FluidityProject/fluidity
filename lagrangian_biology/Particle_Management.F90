@@ -35,7 +35,6 @@ module lagrangian_biology_pm
   use detector_data_types
   use detector_tools
   use detector_parallel, only: get_next_detector_id
-  use detector_python
   use integer_hash_table_module
   use Profiler
 
@@ -54,17 +53,15 @@ contains
     type(detector_linked_list), intent(inout) :: agent_list
 
     type(detector_type), pointer :: agent, agent_to_move, merge_target, agent_to_merge
-    type(scalar_field), pointer :: agent_density_field
+    type(scalar_field), pointer :: agent_density_field, agent_minimum_field, agent_maximum_field
     type(vector_field), pointer :: xfield
-    character(len=PYTHON_FUNC_LEN) :: pm_pycode
     type(ilist) :: elements_split_list, elements_merge_list
     type(integer_hash_table) :: split_index_mapping, merge_index_mapping, element_minima, element_maxima
     type(detector_linked_list), dimension(:), allocatable :: split_lists, merge_lists
     integer, dimension(:), allocatable :: elements_split, elements_merge, xbiggest_ids, xsmallest_ids
     real, dimension(:), allocatable :: xbiggest_sizes, xsmallest_sizes
     integer :: i, ele, index, splits_wanted, merges_wanted, found_agent, element_minimum, element_maximum
-    real :: agent_density, ele_volume, minimum_density, maximum_density
-    logical :: do_min_python, do_max_python
+    real :: agent_total, agent_minimum, agent_maximum
 
     call profiler_tic(trim(agent_list%name)//"::particle_management")
 
@@ -74,32 +71,16 @@ contains
     agent_density_field=>extract_scalar_field(state, trim(agent_list%fgroup%name)//"Agents"//trim(agent_list%stage_name))
 
     ! Initialise the Python functions to determine PM limits
-    if (have_option(trim(agent_list%stage_options)//"/particle_management/minimum")) then
-       if (have_option(trim(agent_list%stage_options)//"/particle_management/minimum/python")) then
-          call get_option(trim(agent_list%stage_options)//"/particle_management/minimum/python", pm_pycode)
-          call python_run_detector_string(trim(pm_pycode), trim(agent_list%name), trim("pm_minimum"))
-          do_min_python = .true.
-       else
-          call get_option(trim(agent_list%stage_options)//"/particle_management/minimum/constant", minimum_density)
-          do_min_python = .false.
-       end if
+    if (have_option(trim(agent_list%stage_options)//"/particle_management/scalar_field::AgentsMin")) then
+       agent_minimum_field=>extract_scalar_field(state, trim(agent_list%fgroup%name)//"AgentsMin"//trim(agent_list%stage_name))
     else
-       do_min_python = .false.
-       minimum_density = 0.0
+       agent_minimum_field=>null()
     end if
 
-    if (have_option(trim(agent_list%stage_options)//"/particle_management/maximum")) then
-       if (have_option(trim(agent_list%stage_options)//"/particle_management/maximum/python")) then
-          call get_option(trim(agent_list%stage_options)//"/particle_management/maximum/python", pm_pycode)
-          call python_run_detector_string(trim(pm_pycode), trim(agent_list%name), trim("pm_maximum"))
-          do_max_python = .true.
-       else
-          do_max_python = .false.
-          call get_option(trim(agent_list%stage_options)//"/particle_management/maximum/constant", maximum_density)
-       end if
+    if (have_option(trim(agent_list%stage_options)//"/particle_management/scalar_field::AgentsMax")) then
+       agent_maximum_field=>extract_scalar_field(state, trim(agent_list%fgroup%name)//"AgentsMax"//trim(agent_list%stage_name))
     else
-       do_max_python = .false.
-       maximum_density = huge(1.0)
+       agent_maximum_field=>null()
     end if
 
     ! First establish in which elements we need to split/merge
@@ -108,28 +89,23 @@ contains
     call allocate(element_minima)
     call allocate(element_maxima)
     do ele=1, ele_count(agent_density_field)
-       agent_density = node_val(agent_density_field, ele)
-       ele_volume = element_volume(xfield, ele)
-
-       ! Here we either use the global minima/maxima from the options,
-       ! or run Python code to determine the minimum/maximum for each element
-       if (do_min_python) then
-          call python_get_element_limit(ele, xfield, trim(agent_list%name), trim("pm_minimum"), minimum_density)
-       end if
-
-       if (do_max_python) then
-          call python_get_element_limit(ele, xfield, trim(agent_list%name), trim("pm_maximum"), maximum_density)
-       end if
+       agent_total = integral_element(agent_density_field, xfield, ele)
 
        ! Store element numbers and minima/maxima for split and merge
-       if (agent_density < minimum_density .and. agent_density > 0) then
-          call insert(elements_split_list, ele)
-          call insert(element_minima, ele, nint(minimum_density * ele_volume))
+       if (associated(agent_minimum_field)) then
+          agent_minimum = integral_element(agent_minimum_field, xfield, ele)
+          if (agent_total < agent_minimum .and. agent_total > 0.0) then
+             call insert(elements_split_list, ele)
+             call insert(element_minima, ele, nint(agent_minimum))
+          end if
        end if
 
-       if (agent_density > maximum_density .and. agent_density > 0) then
-          call insert(elements_merge_list, ele)
-          call insert(element_maxima, ele, nint(maximum_density * ele_volume))
+       if (associated(agent_maximum_field)) then
+          agent_maximum = integral_element(agent_maximum_field, xfield, ele)
+          if (agent_total > agent_maximum .and. agent_total > 0.0) then
+             call insert(elements_merge_list, ele)
+             call insert(element_maxima, ele, nint(agent_maximum))
+          end if
        end if
     end do
 

@@ -1431,10 +1431,11 @@ contains
       ! Allocate diagnostic fields to represent agent variables
       type(state_type), intent(inout) :: state
 
+      character(len=OPTION_PATH_LEN) :: stage_options
       type(mesh_type) :: parent_mesh, biology_mesh
       type(functional_group), pointer :: fgroup
       type(le_variable), pointer :: chemIng_var
-      integer :: i, fg, v, f, c
+      integer :: i, fg, v, f, c, stage
 
       ! First we allocate a piecewise constant mesh
       parent_mesh = extract_mesh(state, topology_mesh_name)
@@ -1451,6 +1452,23 @@ contains
                    state, parent_mesh="BiologyMesh", &
                    field_name=trim(fgroup%name)//"Agents"//trim(fgroup%stage_names%ptr(i)), &
                    dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+         end do
+
+         do stage=1, size(fgroup%agent_arrays)
+            stage_options = fgroup%agent_arrays(stage)%stage_options
+            if (have_option(trim(stage_options)//"/particle_management/scalar_field::AgentsMin")) then
+               call allocate_and_insert_scalar_field(trim(stage_options)//"/particle_management/scalar_field::AgentsMin", &
+                      state, parent_mesh="BiologyMesh", &
+                      field_name=trim(fgroup%name)//"AgentsMin"//trim(fgroup%stage_names%ptr(stage)), &
+                      dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+            end if
+
+            if (have_option(trim(stage_options)//"/particle_management/scalar_field::AgentsMax")) then
+               call allocate_and_insert_scalar_field(trim(stage_options)//"/particle_management/scalar_field::AgentsMax", &
+                      state, parent_mesh="BiologyMesh", &
+                      field_name=trim(fgroup%name)//"AgentsMax"//trim(fgroup%stage_names%ptr(stage)), &
+                      dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+            end if
          end do
 
          do v=1, size(fgroup%variables)

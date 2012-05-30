@@ -124,25 +124,17 @@ lagrangian_biology =
                      element period_in_timesteps {
                         integer
                      },
-                     element minimum {
-                        (
-                           element constant {
-                              real
-                           }|
-                           element python {
-                              python_code
-                           }
-                        )
+                     element scalar_field {
+                        attribute name { "AgentsMin" },
+                        element prescribed {
+                           prescribed_scalar_field_no_adapt
+                        }
                      }?,
-                     element maximum {
-                        (
-                           element constant {
-                              real
-                           }|
-                           element python {
-                              python_code
-                           }
-                        )
+                     element scalar_field {
+                        attribute name { "AgentsMax" },
+                        element prescribed {
+                           prescribed_scalar_field_no_adapt
+                        }
                      }?
                   }?,
                   element io_period {

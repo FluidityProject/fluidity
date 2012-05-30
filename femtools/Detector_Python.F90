@@ -14,7 +14,6 @@ module detector_python
   private
   
   public :: python_run_detector_string, python_run_random_walk
-  public :: python_get_element_limit
 
   interface
 
@@ -135,35 +134,5 @@ contains
     end if
     
   end subroutine python_run_random_walk
-
-  subroutine python_get_element_limit(element, xfield, dict, key, result, stat)
-    !!< Wrapper function for python_get_element_integer
-    integer, intent(in) :: element
-    type(vector_field), pointer, intent(in) :: xfield
-    character(len = *), intent(in) :: dict, key
-    real, intent(out) :: result
-    integer, optional, intent(out) :: stat
-
-    real, dimension(xfield%dim) :: coords_centre
-    real, dimension(xfield%dim+1) :: local_coords
-    integer :: lstat
-
-    if(present(stat)) stat = 0
-
-    local_coords = 1. / (xfield%dim + 1)
-    coords_centre = eval_field(element, xfield, local_coords)
-
-    call python_get_element_integer(xfield%dim, coords_centre, trim(dict), &
-           len_trim(dict), trim(key),len_trim(key), result, lstat)
-
-    if(lstat /= 0) then
-      if(present(stat)) then
-        stat = -1
-      else
-        ewrite(-1, *) "Python error while determining particle management limits"
-        FLExit("Dying")
-      end if
-    end if    
-  end subroutine python_get_element_limit
 
 end module detector_python
