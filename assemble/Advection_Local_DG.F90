@@ -1052,7 +1052,7 @@ module advection_local_DG
 
     do ele = 1, ele_count(Q)
        call construct_advection_cg_tracer_ele(Q_rhs,adv_mat,Q,D,D_old,Flux&
-            &,X,dt,t_theta,ele)
+            &,X,down,dt,t_theta,ele)
     end do
 
     ewrite(1,*) 'Q_RHS', maxval(abs(Q_rhs%val))
@@ -1070,11 +1070,11 @@ module advection_local_DG
   end subroutine solve_advection_cg_tracer
   
   subroutine construct_advection_cg_tracer_ele(Q_rhs,adv_mat,Q,D,D_old,Flux,&
-       & X,dt,t_theta,ele)
+       & X,down,dt,t_theta,ele)
     type(scalar_field), intent(in) :: D,D_old,Q
     type(scalar_field), intent(inout) :: Q_rhs
     type(csr_matrix), intent(inout) :: Adv_mat
-    type(vector_field), intent(in) :: X, Flux
+    type(vector_field), intent(in) :: X, Flux, down
     integer, intent(in) :: ele
     real, intent(in) :: dt, t_theta
     !
@@ -1105,14 +1105,15 @@ module advection_local_DG
     ! Get J and detwei
     call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), detwei&
          &=detwei, J=J)
-    !Mass terms
-    l_adv_mat = shape_shape(ele_shape(Q,ele),ele_shape(Q,ele),D_gi*detwei)
-    l_rhs = shape_rhs(ele_shape(Q,ele),Q_gi*D_old_gi*detwei)
     !Advection terms
-    l_adv_mat = l_adv_mat + t_theta*dshape_dot_vector_shape(&
+    l_adv_mat = t_theta*dshape_dot_vector_shape(&
          Q_shape%dn,Flux_gi,Q_shape,Q_shape%quadrature%weight)
-    l_rhs = l_rhs - (1-t_theta)*dshape_dot_vector_rhs(&
+    l_rhs = - (1-t_theta)*dshape_dot_vector_rhs(&
          Q_shape%dn,Flux_gi,Q_gi*Q_shape%quadrature%weight)
+    !Mass terms
+    l_adv_mat = l_adv_mat + &
+         shape_shape(ele_shape(Q,ele),ele_shape(Q,ele),D_gi*detwei)
+    l_rhs = l_rhs + shape_rhs(ele_shape(Q,ele),Q_gi*D_old_gi*detwei)
 
     call addto(Q_rhs,ele_nodes(Q_rhs,ele),l_rhs)
     call addto(adv_mat,ele_nodes(Q_rhs,ele),ele_nodes(Q_rhs,ele),&
@@ -1207,6 +1208,7 @@ module advection_local_DG
     if(have_option('/material_phase::Fluid/scalar_field::PotentialVorticity/&
          &prognostic/debug')) then
        !Do a debugging check
+       ! This actually needs doing outside element loop
        !First solve for actual nonlinear Coriolis term
        l_u_mat = shape_shape_tensor(qflux_shape, qflux_shape, &
             qflux_shape%quadrature%weight,Metric)
@@ -1222,11 +1224,14 @@ module advection_local_DG
                = QFlux_perp_rhs(dim1,:)
        end do
        call solve(solve_mat,solve_rhs)
+       !Don't need to include constraints since u eqn is
+       ! <w,Q^\perp> + <<[w],\lambda>> + \sum_i C_i\cdot w \Gamma_i = RHS
+       ! but if w=-\nabla^\perp\gamma then [w]=0 and C_i\cdot w=0.
+
        do dim1 = 1, mesh_dim(qflux)
           flux_perp_gi(dim1,:) = matmul(transpose(QFlux_shape%n),&
                solve_rhs((dim1-1)*ele_loc(qflux,ele)+1:dim1*ele_loc(qflux&
                &,ele)))
-
        end do
        !Now compute vorticity
        do gi=1,ele_ngi(X,ele)
@@ -1243,7 +1248,7 @@ module advection_local_DG
                velocity_perp_gi,Q%mesh%shape%quadrature%weight)
           Q_test1_rhs = q_test1_rhs*orientation
        case default
-          FLAbort('Exterior derivative not implemented for given mesh dimension')
+          FLAbort('Exterior derivative not implemented for given mesh dimension' )
        end select
 
        Q_test2_rhs = shape_rhs(ele_shape(Q,ele),(Q_gi*D_gi-Q_old_gi&
