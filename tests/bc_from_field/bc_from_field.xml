@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<testproblem>
+   
+  <name>bc_from_field</name>
+  <owner userid="ctj10"/>
+  <tags>flml</tags>
+  
+  <problem_definition length="short" nprocs="1">
+    <command_line>make run</command_line>
+    <!-- This tests Fluidity's capability of enforcing boundary conditions using values from another field -->
+  </problem_definition>
+  
+  <variables>
+    <variable name="time_scalar" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("scalar_field_bc_from_field.stat")
+time_scalar=s["ElapsedTime"]["value"]
+    </variable>
+    
+    <variable name="time_vector" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("vector_field_bc_from_field.stat")
+time_vector=s["ElapsedTime"]["value"]
+    </variable>
+    
+    <variable name="temperature" language="python">
+import vtktools
+
+file = vtktools.vtu('scalar_field_bc_from_field_5.vtu')
+file.GetFieldNames()
+temperature = file.GetScalarField('Temperature')
+    </variable>
+    
+    <variable name="velocity" language="python">
+import vtktools
+
+file = vtktools.vtu('vector_field_bc_from_field_5.vtu')
+file.GetFieldNames()
+velocity = file.GetVectorField('Velocity')
+    </variable>
+    
+    <variable name="positions_scalar" language="python">
+import vtktools
+
+file = vtktools.vtu('scalar_field_bc_from_field_5.vtu')
+file.GetFieldNames()
+positions_scalar = file.GetLocations()
+    </variable>
+    
+    <variable name="positions_vector" language="python">
+import vtktools
+
+file = vtktools.vtu('vector_field_bc_from_field_5.vtu')
+file.GetFieldNames()
+positions_vector = file.GetLocations()
+    </variable>
+    
+  </variables>
+    
+  <pass_tests>
+    <test name="Final time is 0.05 seconds for scalar_field_bc_from_field" language="python">
+import fluidity_tools
+fluidity_tools.compare_variable(abs(time_scalar[-1]), 0.05, 1.0e-14)
+    </test>
+    
+    <test name="Final time is 0.05 seconds for vector_field_bc_from_field" language="python">
+import fluidity_tools
+fluidity_tools.compare_variable(abs(time_vector[-1]), 0.05, 1.0e-14)
+    </test>
+    
+    <test name="Temperature is assigned the correct boundary values" language="python">
+import fluidity_tools
+from math import sin
+
+nnodes = len(temperature)
+for i in range(nnodes):
+   if( (positions_scalar[i][1] &gt; 0.99) or (positions_scalar[i][1] &lt; 0.01) or (positions_scalar[i][0] &lt; 0.01) or (positions_scalar[i][0] &gt; 0.99)):
+      # If we have a boundary node, check it's value against sin(y) (i.e. the boundary value in src/boundary_data.vtu)
+      fluidity_tools.compare_variable(temperature[i], sin(positions_scalar[i][1]), 1.0e-14)
+   else:
+      # The Temperature field should be 5.0 elsewhere.
+      fluidity_tools.compare_variable(temperature[i], 5.0, 1.0e-14)
+    </test>
+  
+    <test name="i-th and j-th component of Velocity BC are assigned correctly" language="python">
+import fluidity_tools
+from math import sin
+
+nnodes = len(temperature)
+for i in range(nnodes):
+   if( (positions_vector[i][1] &gt; 0.99) or (positions_vector[i][1] &lt; 0.01) or (positions_vector[i][0] &lt; 0.01) or (positions_vector[i][0] &gt; 0.99)):
+      # If we have a boundary node, check it's value against 0.1 for the x component, and sin(y) (i.e. the boundary value in src/boundary_data.vtu) for the y component
+      fluidity_tools.compare_variable(velocity[i][0], 0.1, 1.0e-14)
+      fluidity_tools.compare_variable(velocity[i][1], sin(positions_vector[i][1]), 1.0e-14)
+    </test>
+  </pass_tests>
+  
+  <warn_tests>
+  </warn_tests>
+  
+</testproblem>

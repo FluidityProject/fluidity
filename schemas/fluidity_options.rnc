@@ -2402,13 +2402,13 @@ velocity_components_choice =
          }|
          element align_bc_with_surface {
             element normal_component {
-               input_choice_real
+               input_choice_real_plus_field
             }?,
             element tangent_component_1 {
-               input_choice_real
+               input_choice_real_plus_field
             }?,
             element tangent_component_2 {
-               input_choice_real
+               input_choice_real_plus_field
             }?,
             rotation_matrix_components,
             ## this will calculate the determinant of the

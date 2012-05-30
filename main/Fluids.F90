@@ -102,6 +102,7 @@ module fluids_module
   use multiphase_module
   use detector_parallel, only: sync_detector_coordinates, deallocate_detector_list_array
 
+
   implicit none
 
   private
@@ -314,17 +315,18 @@ contains
     !        Currently only needed for free surface
     if (has_scalar_field(state(1), "DistanceToTop")) then
        if (.not. have_option('/geometry/ocean_boundaries')) then
-          ewrite(-1,*) "There are no top and bottom boundary markers."
-          FLExit("Switch on /geometry/ocean_boundaries or remove your DistanceToTop field.")
-       end if
-       call CalculateTopBottomDistance(state(1))
-       ! Initialise the OriginalDistanceToBottom field used for wetting and drying
-       if (have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")) then
-          call insert_original_distance_to_bottom(state(1))
-          ! Wetting and drying only works with no poisson guess ... lets check that
-          call get_option("/material_phase::water/scalar_field::Pressure/prognostic/scheme/poisson_pressure_solution", option_buffer)
-          if (.not. trim(option_buffer) == "never") then 
-            FLExit("Please choose 'never' under /material_phase::water/scalar_field::Pressure/prognostic/scheme/poisson_pressure_solution when using wetting and drying")
+          ewrite(-1,*) "Warning: You have a field called DistanceToTop"
+          ewrite(-1,*) "but you don't have ocean_boundaries switched on."
+       else
+          call CalculateTopBottomDistance(state(1))
+          ! Initialise the OriginalDistanceToBottom field used for wetting and drying
+          if (have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")) then
+             call insert_original_distance_to_bottom(state(1))
+             ! Wetting and drying only works with no poisson guess ... lets check that
+             call get_option("/material_phase::water/scalar_field::Pressure/prognostic/scheme/poisson_pressure_solution", option_buffer)
+             if (.not. trim(option_buffer) == "never") then 
+               FLExit("Please choose 'never' under /material_phase::water/scalar_field::Pressure/prognostic/scheme/poisson_pressure_solution when using wetting and drying")
+             end if
           end if
        end if
     end if
@@ -967,7 +969,7 @@ contains
           call deallocate(pod_state(i))
        end do
     end if
-
+    
     ! deallocate the pointer to the array of states and sub-state:
     deallocate(state)
     if(use_sub_state()) deallocate(sub_state)
