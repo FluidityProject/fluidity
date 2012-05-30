@@ -5,8 +5,9 @@ import vtktools
 import scipy as sp
 import rotation
 
-#Assiming the ASCII gmsh  file exists, it is converted into triagle fromat and then
+#Generate mesh from Gmsh .geo file, convert into triangle fromat and then
 # into vtu format.
+os.system('gmsh -3 spherical_shell.geo')
 os.system('../../../bin/gmsh2triangle spherical_shell.msh')
 os.system('../../../bin/triangle2vtu spherical_shell')
 #Open file containing mesh and extract vertex coordinates
@@ -67,3 +68,6 @@ file.AddVectorField('UnitPolarVector_inPolar', sp.array(unitPolarVector_inPolar)
 file.AddVectorField('UnitAzimuthalVector_inPolar', sp.array(unitAzimuthalVector_inPolar))
 
 file.Write('spherical_shell_withFields.vtu')
+
+#Clean-up, delete unwanted files
+os.system('rm -f *.ele *.face *.node *.msh *.pyc spherical_shell.vtu')
