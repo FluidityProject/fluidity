@@ -475,7 +475,7 @@ dg_mass_terms =
          }?
       }?   
    )
-   
+
 pure_cv_options = 
    (
       ## Use a pure control volume discretisations.

@@ -20,7 +20,7 @@ program periodise
   integer :: status
   type(state_type), dimension(:), pointer :: states
   integer :: ierr
-  character(len=FIELD_NAME_LEN) :: external_name, periodic_name
+  character(len=FIELD_NAME_LEN) :: external_name, periodic_name, mesh_format
   type(mesh_type), pointer :: periodic_mesh, external_mesh
   type(vector_field) :: periodic_positions, external_positions
   integer :: stat, i, nstates
@@ -83,7 +83,8 @@ program periodise
 
   ! Dump out the periodic mesh to disk:
   new_external_filename = trim(external_filename) // '_periodic'
-  call write_mesh_files(new_external_filename, periodic_positions)
+  call get_option(trim(external_mesh%option_path)//"/from_file/format/name", mesh_format)
+  call write_mesh_files(new_external_filename, mesh_format, periodic_positions)
 
   ! OK! Now we need to do some setting of options.
   call manipulate_options(external_mesh, trim(external_mesh%option_path), periodic_mesh, trim(periodic_mesh%option_path), new_external_filename)

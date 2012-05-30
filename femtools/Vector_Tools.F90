@@ -161,7 +161,7 @@ contains
 #endif
 
     if (.not. present(stat)) then
-      ASSERT(info==0)
+      !ASSERT(info==0)
     else
       stat = info
     end if

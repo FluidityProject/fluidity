@@ -235,13 +235,11 @@ contains
         matrix%column_numbering, ldiagonal, use_inodes=use_inodes)
       
     else
-    
-      if (associated(sparsity%row_halo)) then
+
+       if (associated(sparsity%row_halo)) then
         if (sparsity%row_halo%data_type==HALO_TYPE_CG_NODE) then
-          ! Mask out non-local rows, as the assembled bits in those
-          ! will be incomplete and need to be thrown out. In the case
-          ! of DG assembly however the local bits are proper contributions
-          ! and need to be added in the global matrix
+          ! Mask out non-local rows.  FIXME: with local assembly this
+          ! shouldn't be needed
           nprows=matrix%row_numbering%nprivatenodes
           matrix%row_numbering%gnn2unn(nprows+1:,:)=-1
         end if
@@ -257,6 +255,9 @@ contains
     ! that try to add zeros outside the provided sparsity; if we go outside
     ! the provided n/o nonzeros the assembly will become very slow!!!
     call MatSetOption(matrix%M, MAT_IGNORE_ZERO_ENTRIES, PETSC_TRUE, ierr)
+
+    ! Necessary for local assembly: we don't want to communicate non-local dofs
+    call MatSetOption(matrix%M, MAT_IGNORE_OFF_PROC_ENTRIES, PETSC_TRUE, ierr)
 
     ! to make sure we're not underestimating the number of nonzeros ever, make
     ! petsc fail if new allocations are necessary. If uncommenting the setting of this
@@ -387,15 +388,13 @@ contains
       npcols=matrix%column_numbering%nprivatenodes
       if (associated(lrow_halo)) then
         if (lrow_halo%data_type==HALO_TYPE_CG_NODE) then
-          ! Mask out non-local rows, as the assembled bits in those
-          ! will be incomplete and need to be thrown out. In the case
-          ! of DG assembly however the local bits are proper contributions
-          ! and need to be added in the global matrix
+          ! Mask out non-local rows.  FIXME: with local assembly this
+          ! shouldn't be needed
           matrix%row_numbering%gnn2unn(nprows+1:,:)=-1
         end if
       end if
     end if
-    
+
     if (use_element_blocks .and. .not. IsParallel()) then
       
       assert( size(dnnz)==urows/element_size )
@@ -440,6 +439,9 @@ contains
       ! the provided n/o nonzeros the assembly will become very slow!!!
       call MatSetOption(matrix%M, MAT_IGNORE_ZERO_ENTRIES, PETSC_TRUE, ierr)
     end if
+
+    ! Necessary for local assembly: we don't want to communicate non-local dofs
+    call MatSetOption(matrix%M, MAT_IGNORE_OFF_PROC_ENTRIES, PETSC_TRUE, ierr)
 
     ! to make sure we're not underestimating the number of nonzeros ever, make
     ! petsc fail if new allocations are necessary. If uncommenting the setting of this
@@ -520,6 +522,9 @@ contains
     ! that try to add zeros outside the provided sparsity; if we go outside
     ! the provided n/o nonzeros the assembly will become very slow!!!
     call MatSetOption(matrix%M, MAT_IGNORE_ZERO_ENTRIES, PETSC_TRUE, ierr)
+
+    ! Necessary for local assembly: we don't want to communicate non-local dofs
+    call MatSetOption(matrix%M, MAT_IGNORE_OFF_PROC_ENTRIES, PETSC_TRUE, ierr)
 
     ! to make sure we're not underestimating the number of nonzeros ever, make
     ! petsc fail if new allocations are necessary. If uncommenting the setting of this
