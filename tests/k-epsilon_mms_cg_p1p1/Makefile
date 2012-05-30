@@ -1,8 +1,8 @@
 input:	clean
-	../../bin/gmsh2triangle --2d src/MMS_A.msh
-	../../bin/gmsh2triangle --2d src/MMS_B.msh
-	../../bin/gmsh2triangle --2d src/MMS_C.msh
-	../../bin/gmsh2triangle --2d src/MMS_D.msh
+	gmsh -2 -bin src/MMS_A.geo
+	gmsh -2 -bin src/MMS_B.geo
+	gmsh -2 -bin src/MMS_C.geo
+	gmsh -2 -bin src/MMS_D.geo
 
 clean:
-	rm -rf *.log* *.err* *.vtu *.stat *.node *.ele *.edge *checkpoint*
+	rm -rf *.log* *.err* *.vtu *.stat *.node *.ele *.edge *checkpoint* src/*.msh

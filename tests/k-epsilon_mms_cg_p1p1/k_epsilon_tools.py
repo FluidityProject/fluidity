@@ -13,6 +13,11 @@ def pressure(XX):
    x = XX[0]; y = XX[1]
    return cos(x)*cos(y)-1.0
 
+def rho(XX):
+   '''Density'''
+   x = XX[0]; y = XX[1]
+   return cos(x)*cos(y)-1.0
+
 def tke(XX):
    '''Turbulent kinetic energy'''
    x = XX[0]; y = XX[1]
@@ -45,6 +50,13 @@ def grad_v(XX):
 
 def grad_p(XX):
    '''grad pressure'''
+   x = XX[0]; y = XX[1]
+   p_x=-1.0*sin(x)*cos(y)
+   p_y=-1.0*cos(x)*sin(y)
+   return [p_x, p_y]
+
+def grad_rho(XX):
+   '''grad density'''
    x = XX[0]; y = XX[1]
    p_x=-1.0*sin(x)*cos(y)
    p_y=-1.0*cos(x)*sin(y)
@@ -99,12 +111,13 @@ def grad2_eps(XX):
 def forcing_mom(XX):
    '''Forcing function: momentum: correct expansion?'''
    x = XX[0]; y = XX[1]
-   adv = 1.0; beta = 0.0; mass = 0.0; rho = 1.0
+   adv = 1.0; beta = 0.0; mass = 1.0;
    nu = 0.7
 
    u = velocity(XX)[0]
    v = velocity(XX)[1]
    p = pressure(XX)
+   rho = rho(XX)
 
    p_x = grad_p(XX)[0]
    p_y = grad_p(XX)[1]
@@ -198,12 +211,13 @@ def forcing_eps(XX):
 def forcing_mom_noturb(XX):
    '''Forcing function: momentum'''
    x = XX[0]; y = XX[1]
-   adv = 1.0; beta = 0.0; mass = 0.0; rho = 1.0
+   adv = 1.0; beta = 0.0; mass = 1.0
    nu = 0.7
 
    u = velocity(XX)[0]
    v = velocity(XX)[1]
    p = pressure(XX)
+   rho = rho(XX)
 
    p_x = grad_p(XX)[0]
    p_y = grad_p(XX)[1]

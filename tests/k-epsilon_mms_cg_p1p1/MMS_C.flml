@@ -35,8 +35,8 @@
       </from_mesh>
     </mesh>
     <mesh name="InputMesh">
-      <from_file file_name="MMS_C">
-        <format name="triangle"/>
+      <from_file file_name="src/MMS_C">
+        <format name="gmsh"/>
         <stat>
           <include_in_stat/>
         </stat>
@@ -54,7 +54,7 @@
     </dump_format>
     <dump_period>
       <constant>
-        <real_value rank="0">25</real_value>
+        <real_value rank="0">250</real_value>
       </constant>
     </dump_period>
     <output_mesh name="VelocityMesh"/>
@@ -68,7 +68,7 @@
       <real_value rank="0">0.01</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">20.0</real_value>
+      <real_value rank="0">200</real_value>
     </finish_time>
     <nonlinear_iterations>
       <integer_value rank="0">1</integer_value>
@@ -80,10 +80,11 @@
       <courant_number name="CFLNumber">
         <mesh name="VelocityMesh"/>
       </courant_number>
+      <at_first_timestep/>
     </adaptive_timestep>
     <steady_state>
       <tolerance>
-        <real_value rank="0">1.e-6</real_value>
+        <real_value rank="0">1.e-3</real_value>
         <infinity_norm/>
       </tolerance>
     </steady_state>
@@ -364,7 +365,7 @@
               <include_in_detectors/>
             </detectors>
             <steady_state>
-              <include_in_steady_state/>
+              <exclude_from_steady_state/>
             </steady_state>
           </diagnostic>
         </scalar_field>
@@ -381,7 +382,7 @@
               <include_in_detectors/>
             </detectors>
             <steady_state>
-              <include_in_steady_state/>
+              <exclude_from_steady_state/>
             </steady_state>
           </diagnostic>
         </scalar_field>
@@ -398,7 +399,7 @@
               <include_in_detectors/>
             </detectors>
             <steady_state>
-              <include_in_steady_state/>
+              <exclude_from_steady_state/>
             </steady_state>
           </diagnostic>
         </scalar_field>
@@ -415,7 +416,7 @@
               <include_in_detectors/>
             </detectors>
             <steady_state>
-              <include_in_steady_state/>
+              <exclude_from_steady_state/>
             </steady_state>
           </diagnostic>
         </scalar_field>
@@ -636,7 +637,7 @@
           <include_in_detectors/>
         </detectors>
         <steady_state>
-          <include_in_steady_state/>
+          <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>

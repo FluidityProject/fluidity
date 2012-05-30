@@ -1,15 +1,18 @@
-Point(1) = {0.0,0.0,0,0.1};
-Point(2) = {3.1415926535897931,0.0,0,0.1};
-Point(3) = {3.1415926535897931,3.1415926535897931,0,0.1};
-Point(4) = {0.0,3.1415926535897931,0,0.1};
-Line(1) = {4,3};
-Line(2) = {3,2};
-Line(3) = {2,1};
-Line(4) = {1,4};
-Line Loop(5) = {1,2,3,4};
-Plane Surface(6) = {5};
-Physical Line(7) = {3};
-Physical Line(8) = {2};
-Physical Line(9) = {1};
-Physical Line(10) = {4};
-Physical Surface(12) = {6};
+pi = 3.1415926535897931;
+e = 40;
+
+Point(1) = {0.0, 0.0, 0.0, 1};
+
+Extrude {pi, 0.0, 0.0} {
+  Point{1}; Layers{e};
+}
+
+Extrude {0.0, pi, 0.0} {
+  Line{1}; Layers{e};
+}
+
+Physical Line(7) = {1};  //reentrainment
+Physical Line(9) = {2};  //lid
+Physical Line(10) = {3};  //in
+Physical Line(8) = {4};  //out
+Physical Surface(12) = {5};
