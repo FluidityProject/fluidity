@@ -432,7 +432,6 @@ contains
        call write_scalar_to_file(dt)
 
        ! Output detector coordinates
-       assert(size(detector%position) == vfield%dim)
        call write_vector_to_file(detector%position)
 
        allocate(vvalue(dim))
@@ -762,11 +761,11 @@ contains
     type(detector_linked_list), dimension(:), intent(inout) :: send_list_array
     logical, intent(in) :: tracking  ! Do we need to send tracking information?
 
-    real, dimension(:,:), allocatable :: detector_buffer
+    type(detector_buffer), dimension(:), allocatable :: send_buffer, recv_buffer
     type(detector_type), pointer :: detector, detector_received
     type(halo_type), pointer :: ele_halo
     type(integer_hash_table) :: ele_numbering_inverse
-    integer :: j, dim, count, target_proc, receive_proc, &
+    integer :: j, dim, count, p, &
                det_size, ndet_to_send, ndet_received, &
                halo_level, nprocs, IERROR
     integer, parameter ::TAG=12
@@ -794,15 +793,16 @@ contains
     det_size=detector_buffer_size(dim, list=detector_list, tracking=tracking)
     
     ! Send to all procs
-    do target_proc=1, nprocs
-       ndet_to_send=send_list_array(target_proc)%length
-       allocate(detector_buffer(ndet_to_send,det_size))
+    allocate(send_buffer(nprocs))
+    do p=1, nprocs
+       ndet_to_send=send_list_array(p)%length
+       allocate(send_buffer(p)%ptr(ndet_to_send,det_size))
 
        if (ndet_to_send>0) then
-          ewrite(2,*) " Sending", ndet_to_send, "detectors to process", target_proc
+          ewrite(2,*) " Sending", ndet_to_send, "detectors to process", p
        end if
 
-       detector => send_list_array(target_proc)%first
+       detector => send_list_array(p)%first
        if (ndet_to_send>0) then
           j=1
           do while (associated(detector))
@@ -811,42 +811,41 @@ contains
              assert(detector%element>0)
              detector%element = halo_universal_number(ele_halo, detector%element)
 
-             call pack_detector(detector, detector_buffer(j,1:det_size), dim, list=detector_list, tracking=tracking)
+             call pack_detector(detector, send_buffer(p)%ptr(j,1:det_size), dim, &
+                     list=detector_list, tracking=tracking)
 
              ! delete also advances detector
-             call delete(detector, send_list_array(target_proc))
+             call delete(detector, send_list_array(p))
              j = j+1
           end do
        end if
 
        ! getprocno() returns the rank of the processor + 1, hence target_proc-1
-       call MPI_ISEND(detector_buffer,size(detector_buffer), &
-            & getpreal(), target_proc-1, TAG, MPI_COMM_FEMTOOLS, sendRequest(target_proc), IERROR)
+       call MPI_ISEND(send_buffer(p)%ptr,size(send_buffer(p)%ptr), &
+            & getpreal(), p-1, TAG, MPI_COMM_FEMTOOLS, sendRequest(p), IERROR)
        assert(ierror == MPI_SUCCESS)
-
-       ! deallocate buffer after sending
-       deallocate(detector_buffer)
     end do
 
     allocate( status(MPI_STATUS_SIZE) )
     call get_universal_numbering_inverse(ele_halo, ele_numbering_inverse)
 
     ! Receive from all procs
-    do receive_proc=1, nprocs
-       call MPI_PROBE(receive_proc-1, TAG, MPI_COMM_FEMTOOLS, status(:), IERROR) 
+    allocate(recv_buffer(nprocs))
+    do p=1, nprocs
+       call MPI_PROBE(p-1, TAG, MPI_COMM_FEMTOOLS, status(:), IERROR) 
        assert(ierror == MPI_SUCCESS)
 
        call MPI_GET_COUNT(status(:), getpreal(), count, IERROR) 
        assert(ierror == MPI_SUCCESS)
 
        ndet_received=count/det_size
-       allocate(detector_buffer(ndet_received,det_size))
+       allocate(recv_buffer(p)%ptr(ndet_received,det_size))
 
        if (ndet_received>0) then
-          ewrite(2,*) " Receiving", ndet_received, "detectors from process", receive_proc
+          ewrite(2,*) " Receiving", ndet_received, "detectors from process", p
        end if
 
-       call MPI_Recv(detector_buffer,count, getpreal(), status(MPI_SOURCE), TAG, MPI_COMM_FEMTOOLS, MPI_STATUS_IGNORE, IERROR)
+       call MPI_Recv(recv_buffer(p)%ptr,count, getpreal(), status(MPI_SOURCE), TAG, MPI_COMM_FEMTOOLS, MPI_STATUS_IGNORE, IERROR)
        assert(ierror == MPI_SUCCESS)
 
        do j=1, ndet_received
@@ -854,7 +853,7 @@ contains
 
           ! Unpack routine uses ele_numbering_inverse to translate universal element 
           ! back to local detector element
-          call unpack_detector(detector_received,detector_buffer(j,1:det_size),dim,&
+          call unpack_detector(detector_received,recv_buffer(p)%ptr(j,1:det_size),dim,&
                     global_to_local=ele_numbering_inverse,coordinates=xfield,list=detector_list, tracking=tracking)
 
           ! If there is a list of detector names, use it, otherwise set ID as name
@@ -866,11 +865,18 @@ contains
 
           call insert(detector_received, detector_list)           
        end do
-       deallocate(detector_buffer)
     end do    
 
     call MPI_WAITALL(nprocs, sendRequest, MPI_STATUSES_IGNORE, IERROR)
     assert(ierror == MPI_SUCCESS)
+
+    ! After everything is done deallocate buffers
+    do p=1, nprocs
+       deallocate(send_buffer(p)%ptr)
+       deallocate(recv_buffer(p)%ptr)
+    end do
+    deallocate(send_buffer)
+    deallocate(recv_buffer)
 
     call deallocate(ele_numbering_inverse)
 

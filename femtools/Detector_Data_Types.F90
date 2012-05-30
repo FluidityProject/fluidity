@@ -37,7 +37,7 @@ module detector_data_types
   
   private
   
-  public :: detector_type, detector_linked_list, detector_list_ptr, stringlist, &
+  public :: detector_type, detector_linked_list, detector_list_ptr, stringlist, detector_buffer, &
             random_walk, le_variable, functional_group, food_set, food_variety, &
             STATIC_DETECTOR, LAGRANGIAN_DETECTOR, &
             GUIDED_SEARCH_TRACKING, GEOMETRIC_TRACKING
@@ -54,6 +54,10 @@ module detector_data_types
      ! Container type for detector_linked_list
      type(detector_linked_list), pointer :: ptr
   end type detector_list_ptr
+
+  type detector_buffer
+    real, dimension(:,:), pointer :: ptr
+  end type detector_buffer
 
   !! Type for caching detector position and search information.
   type detector_type
