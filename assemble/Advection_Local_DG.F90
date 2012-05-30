@@ -1061,7 +1061,7 @@ module advection_local_DG
 
     !! Compute the PV flux to pass to velocity equation
     do ele = 1, ele_count(Q)
-       call construct_pv_flux_ele(QF,Q,Q_old,Flux,X,down,t_theta,ele)
+       call construct_pv_flux_ele(QF,Q,Q_old,D,D_old,Flux,X,down,t_theta,ele)
     end do
 
     call deallocate(adv_mat)
@@ -1120,8 +1120,9 @@ module advection_local_DG
 
   end subroutine construct_advection_cg_tracer_ele
 
-  subroutine construct_pv_flux_ele(QFlux,Q,Q_old,Flux,X,down,t_theta,ele)
-    type(scalar_field), intent(in) :: Q,Q_old
+  subroutine construct_pv_flux_ele(QFlux,Q,Q_old,D,D_old,&
+       Flux,X,down,t_theta,ele)
+    type(scalar_field), intent(in) :: Q,Q_old,D,D_old
     type(vector_field), intent(inout) :: QFlux
     type(vector_field), intent(in) :: X, Flux, Down
     integer, intent(in) :: ele
@@ -1151,6 +1152,8 @@ module advection_local_DG
     QFlux_shape => ele_shape(QFlux,ele)
     Q_gi = ele_val_at_quad(Q,ele)
     Q_old_gi = ele_val_at_quad(Q_old,ele)
+    D_gi = ele_val_at_quad(D,ele)
+    D_old_gi = ele_val_at_quad(D_old,ele)
     Flux_gi = ele_val_at_quad(Flux,ele)
 
     call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J, detwei, detJ)
@@ -1178,8 +1181,8 @@ module advection_local_DG
     ! (avoids having to do a solve)
 
     do gi  = 1, ele_ngi(QFlux,ele)
-       Flux_gi(:,gi) = Flux_gi(:,gi)*(t_theta*Q_gi + &
-         (1-t_theta)*Q_old_gi)
+       Flux_gi(:,gi) = Flux_gi(:,gi)*(t_theta*Q_gi(gi) + &
+         (1-t_theta)*Q_old_gi(gi))
     end do
 
     do gi=1, ele_ngi(QFlux,ele)
@@ -1219,7 +1222,12 @@ module advection_local_DG
                = QFlux_perp_rhs(dim1,:)
        end do
        call solve(solve_mat,solve_rhs)
-       flux_perp_gi(:,gi) = matmul(transpose(QFlux_shape%n),solve_rhs)
+       do dim1 = 1, mesh_dim(qflux)
+          flux_perp_gi(dim1,:) = matmul(transpose(QFlux_shape%n),&
+               solve_rhs((dim1-1)*ele_loc(qflux,ele)+1:dim1*ele_loc(qflux&
+               &,ele)))
+
+       end do
        !Now compute vorticity
        do gi=1,ele_ngi(X,ele)
           Metric(:,:,gi)=matmul(J(:,:,gi), transpose(J(:,:,gi)))/detJ(gi)
@@ -1240,7 +1248,8 @@ module advection_local_DG
 
        Q_test2_rhs = shape_rhs(ele_shape(Q,ele),(Q_gi*D_gi-Q_old_gi&
             &*D_old_gi)*detwei)
-       ewrite(1,*) 'curl of Q^\perp', Q_test1_rhs
+       ewrite(1,*) 'rot of Q^\perp', Q_test1_rhs
+       ewrite(1,*) 'change in vorticity', Q_test2_rhs
        assert(maxval(abs(Q_test1_rhs-Q_test2_rhs))<1.0e-8)
        
     end if
