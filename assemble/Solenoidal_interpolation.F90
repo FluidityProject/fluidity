@@ -94,7 +94,7 @@ module solenoidal_interpolation_module
     integer :: dim, j
     real :: dt
     
-    type(block_csr_matrix), target :: ct_m
+    type(block_csr_matrix), pointer :: ct_m
     type(block_csr_matrix), pointer :: ctp_m
     type(scalar_field) :: ct_rhs, kmk_rhs
     type(csr_sparsity) :: ct_m_sparsity, cmc_m_sparsity
@@ -160,6 +160,7 @@ module solenoidal_interpolation_module
           & .not. div_cv)
 
     ct_m_sparsity = make_sparsity(lagrange_mesh, v_field%mesh, "DivergenceSparsity")
+    allocate(ct_m)
     call allocate(ct_m, ct_m_sparsity, blocks=(/1, dim/), name="DivergenceMatrix")
     call zero(ct_m)
     
@@ -331,6 +332,7 @@ module solenoidal_interpolation_module
     
     call deallocate(ct_m_sparsity)
     call deallocate(ct_m)
+    deallocate(ct_m)
     call deallocate(ct_rhs)
     call deallocate(cmc_m_sparsity)
     call deallocate(cmc_m)
