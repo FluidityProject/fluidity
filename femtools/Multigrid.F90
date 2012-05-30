@@ -693,13 +693,17 @@ integer, intent(in):: iterations
   PC:: pc
   PetscErrorCode:: ierr
   
+#if  PETSC_VERSION_RELEASE==0
+  call KSPSetType(ksp, KSPCHEBYSHEV, ierr)
+#else
   call KSPSetType(ksp, KSPCHEBYCHEV, ierr)
+#endif
   call KSPSetOperators(ksp, matrix, matrix, SAME_PRECONDITIONER, ierr)
   call KSPSetTolerances(ksp, PETSC_DEFAULT_DOUBLE_PRECISION, &
     PETSC_DEFAULT_DOUBLE_PRECISION, PETSC_DEFAULT_DOUBLE_PRECISION, &
     iterations, ierr)
-#ifdef DOUBLEP
-  call KSPChebychevSetEigenvalues(ksp, emax, emin, ierr)
+#if  PETSC_VERSION_RELEASE==0
+  call KSPChebyshevSetEigenvalues(ksp, emax, emin, ierr)
 #else
   call KSPChebychevSetEigenvalues(ksp, emax, emin, ierr)
 #endif
