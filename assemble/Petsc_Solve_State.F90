@@ -177,8 +177,7 @@ contains
     !! override x%option_path if provided:
     character(len=*), optional, intent(in):: option_path
     
-    type(vector_field), pointer :: coordinates
-    type(vector_field) :: mesh_coordinates
+    type(vector_field), pointer :: mesh_positions
     integer, dimension(:), pointer:: surface_nodes
     type(petsc_csr_matrix), dimension(:), pointer:: prolongators
     character(len=OPTION_PATH_LEN):: solver_option_path
@@ -186,40 +185,48 @@ contains
     
     ! no solver cache for petsc_csr_matrices at the mo'
     call petsc_solve_state_setup(solver_option_path, prolongators, surface_nodes, &
-      state, x%mesh, x%dim, x%option_path, .false., option_path=option_path)
-
-    coordinates => extract_vector_field(state, "Coordinate")
-    call allocate(mesh_coordinates, coordinates%dim, x%mesh, "MeshCoordinates")
-    call remap_field(coordinates, mesh_coordinates)
-
+      state, x%mesh, x%dim, x%option_path, .false., option_path=option_path, &
+      mesh_positions=mesh_positions)
     
-    if (associated(prolongators)) then
-    
+    if (associated(prolongators) .and. associated(mesh_positions)) then 
       call petsc_solve(x, matrix, rhs, &
-           prolongators=prolongators, option_path=option_path, positions=mesh_coordinates)
-      
+           prolongators=prolongators, option_path=option_path, positions=mesh_positions)
+    else if (associated(prolongators)) then
+      call petsc_solve(x, matrix, rhs, &
+           prolongators=prolongators, option_path=option_path)
+    else if (associated(mesh_positions)) then
+      call petsc_solve(x, matrix, rhs, option_path=option_path, positions=mesh_positions)
+    else
+      call petsc_solve(x, matrix, rhs, option_path=option_path)
+    end if
+
+    if (associated(mesh_positions)) then
+      call deallocate(mesh_positions)
+      deallocate(mesh_positions)
+    end if
+
+    if (associated(prolongators)) then
       do i=1, size(prolongators)
         call deallocate(prolongators(i))
       end do
       deallocate(prolongators)
-    
-    else
-    
-      call petsc_solve(x, matrix, rhs, option_path=option_path, positions=mesh_coordinates)
-      
     end if
 
-    call deallocate(coordinates)
-    
   end subroutine petsc_solve_vector_state_petsc_csr
     
   subroutine petsc_solve_state_setup(solver_option_path, prolongators, surface_nodes, &
-    state, mesh, field_dim, field_option_path, matrix_has_solver_cache, option_path)
+    state, mesh, field_dim, field_option_path, matrix_has_solver_cache, option_path, &
+    mesh_positions)
     ! sets up monitors and returns solver_option_path,
     ! and prolongators and surface_nodes to be used in "mg" preconditioner
     character(len=*), intent(out):: solver_option_path
+    ! if associated on return, this array of prolongators should be passed into petsc_solve
     type(petsc_csr_matrix), dimension(:), pointer:: prolongators
+    ! if associated on return, this array of surface_nodes should be passed into petsc_solve
     integer, dimension(:), pointer:: surface_nodes
+    ! if associated on return, this mesh_positions field should be passed into petsc_solve
+    ! currently only for vector solves
+    type(vector_field), pointer, optional:: mesh_positions
     !
     type(state_type), intent(in):: state
     type(mesh_type), intent(in):: mesh ! mesh we're solving on
@@ -288,6 +295,19 @@ contains
           surface_nodes => free_surface_nodes(state, mesh)
         end if
       end if
+    end if
+
+    if (have_option(trim(solver_option_path)//"/multigrid_near_null_space")) then
+      if (.not. present(mesh_positions)) then
+        ! currently this option only exists for vector solves, if it occurs in other places
+        ! mesh_positions should be passed down
+        FLAbort("mesh_positions should have been present")
+      end if
+      allocate(mesh_positions)
+      ! get the positions of the nodes - for periodic this gives the aliased positions, is that right? who knows...
+      mesh_positions = get_nodal_coordinate_field(state, mesh)
+    else if (present(mesh_positions)) then
+      nullify(mesh_positions)
     end if
 
   end subroutine petsc_solve_state_setup
