@@ -423,7 +423,7 @@ endif
 	@cd adjoint; $(MAKE) clean
 	@echo "    CLEAN main"
 	@cd main; $(MAKE) clean
-	@rm -fr bin/* lib
+	@rm -fr bin lib
 
 clean: clean-light clean-test python_clean clean-debian
 	@echo "    CLEAN libvtkfortran"
