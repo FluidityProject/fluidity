@@ -2217,23 +2217,23 @@
                                    + NN_MASS( IPHA_IDIM, JPHA_JDIM )/DT
                               IF(MOM_CONSERV) THEN
                                  IF(JDIM==1) U_RHS(U_INOD_IDIM_IPHA)=U_RHS(U_INOD_IDIM_IPHA) &
-                                      - NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM )*UOLD(GLOBJ+(JPHASE-1)*U_NONODS) &
+                                      + NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM )*U(GLOBJ+(JPHASE-1)*U_NONODS) &
                                       + (NN_MASSOLD( IPHA_IDIM, JPHA_JDIM )/DT)*UOLD(GLOBJ+(JPHASE-1)*U_NONODS)
                                  IF(JDIM==2) U_RHS(U_INOD_IDIM_IPHA)=U_RHS(U_INOD_IDIM_IPHA) &
-                                      - NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM )*VOLD(GLOBJ+(JPHASE-1)*U_NONODS) &
+                                      + NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM )*V(GLOBJ+(JPHASE-1)*U_NONODS) &
                                       + (NN_MASSOLD( IPHA_IDIM, JPHA_JDIM )/DT)*VOLD(GLOBJ+(JPHASE-1)*U_NONODS)
                                  IF(JDIM==3) U_RHS(U_INOD_IDIM_IPHA)=U_RHS(U_INOD_IDIM_IPHA) &
-                                      - NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM )*WOLD(GLOBJ+(JPHASE-1)*U_NONODS) &
+                                      + NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM )*W(GLOBJ+(JPHASE-1)*U_NONODS) &
                                       + (NN_MASSOLD( IPHA_IDIM, JPHA_JDIM )/DT)*WOLD(GLOBJ+(JPHASE-1)*U_NONODS)
                               ELSE
                                  IF(JDIM==1) U_RHS(U_INOD_IDIM_IPHA)=U_RHS(U_INOD_IDIM_IPHA) &
-                                      - NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM )*UOLD(GLOBJ+(JPHASE-1)*U_NONODS) &
+                                      + NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM )*U(GLOBJ+(JPHASE-1)*U_NONODS) &
                                       + (NN_MASS( IPHA_IDIM, JPHA_JDIM )/DT)*UOLD(GLOBJ+(JPHASE-1)*U_NONODS)
                                  IF(JDIM==2) U_RHS(U_INOD_IDIM_IPHA)=U_RHS(U_INOD_IDIM_IPHA) &
-                                      - NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM )*VOLD(GLOBJ+(JPHASE-1)*U_NONODS) &
+                                      + NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM )*V(GLOBJ+(JPHASE-1)*U_NONODS) &
                                       + (NN_MASS( IPHA_IDIM, JPHA_JDIM )/DT)*VOLD(GLOBJ+(JPHASE-1)*U_NONODS)
                                  IF(JDIM==3) U_RHS(U_INOD_IDIM_IPHA)=U_RHS(U_INOD_IDIM_IPHA) &
-                                      - NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM )*WOLD(GLOBJ+(JPHASE-1)*U_NONODS) &
+                                      + NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM )*W(GLOBJ+(JPHASE-1)*U_NONODS) &
                                       + (NN_MASS( IPHA_IDIM, JPHA_JDIM )/DT)*WOLD(GLOBJ+(JPHASE-1)*U_NONODS)
                               ENDIF
 
@@ -2913,40 +2913,40 @@
 
                               IF(MOM_CONSERV) THEN
                                  IF(IDIM == 1) THEN
-                                    U_RHS( IU_NOD_DIM_PHA ) =  U_RHS( IU_NOD_DIM_PHA ) -(- VLM_OLD +NN_SNDOTQOLD_OUT)  & 
+                                    U_RHS( IU_NOD_DIM_PHA ) =  U_RHS( IU_NOD_DIM_PHA ) -(+ VLM_OLD +NN_SNDOTQOLD_OUT)  & 
                                          * UOLD( JU_NOD_PHA )
-                                    U_RHS( IU_NOD_DIM_PHA ) =  U_RHS( IU_NOD_DIM_PHA ) -(+ VLM_OLD +NN_SNDOTQOLD_IN) &
+                                    U_RHS( IU_NOD_DIM_PHA ) =  U_RHS( IU_NOD_DIM_PHA ) -(- VLM_OLD +NN_SNDOTQOLD_IN) &
                                          * UOLD( JU_NOD2_PHA )
                                  ENDIF
                                  IF(IDIM == 2) THEN
-                                    U_RHS( IU_NOD_DIM_PHA ) =  U_RHS( IU_NOD_DIM_PHA ) -(- VLM_OLD +NN_SNDOTQOLD_OUT) & 
+                                    U_RHS( IU_NOD_DIM_PHA ) =  U_RHS( IU_NOD_DIM_PHA ) -(+ VLM_OLD +NN_SNDOTQOLD_OUT) & 
                                          * VOLD( JU_NOD_PHA )
-                                    U_RHS( IU_NOD_DIM_PHA ) =  U_RHS( IU_NOD_DIM_PHA ) -(+ VLM_OLD +NN_SNDOTQOLD_IN) &
+                                    U_RHS( IU_NOD_DIM_PHA ) =  U_RHS( IU_NOD_DIM_PHA ) -(- VLM_OLD +NN_SNDOTQOLD_IN) &
                                          * VOLD( JU_NOD2_PHA )
                                  ENDIF
                                  IF(IDIM == 3) THEN
-                                    U_RHS( IU_NOD_DIM_PHA ) =  U_RHS( IU_NOD_DIM_PHA ) -(- VLM_OLD +NN_SNDOTQOLD_OUT) & 
+                                    U_RHS( IU_NOD_DIM_PHA ) =  U_RHS( IU_NOD_DIM_PHA ) -(+ VLM_OLD +NN_SNDOTQOLD_OUT) & 
                                          * WOLD( JU_NOD_PHA )
-                                    U_RHS( IU_NOD_DIM_PHA ) =  U_RHS( IU_NOD_DIM_PHA ) -(+ VLM_OLD +NN_SNDOTQOLD_IN) &
+                                    U_RHS( IU_NOD_DIM_PHA ) =  U_RHS( IU_NOD_DIM_PHA ) -(- VLM_OLD +NN_SNDOTQOLD_IN) &
                                          * WOLD( JU_NOD2_PHA )
                                  ENDIF
                               ELSE
                                  IF(IDIM == 1) THEN
-                                    U_RHS( IU_NOD_DIM_PHA ) =  U_RHS( IU_NOD_DIM_PHA ) -(- VLM_OLD -NN_SNDOTQOLD_IN)  & 
+                                    U_RHS( IU_NOD_DIM_PHA ) =  U_RHS( IU_NOD_DIM_PHA ) -(+ VLM_OLD -NN_SNDOTQOLD_IN)  & 
                                          * UOLD( JU_NOD_PHA )
-                                    U_RHS( IU_NOD_DIM_PHA ) =  U_RHS( IU_NOD_DIM_PHA ) -(+ VLM_OLD +NN_SNDOTQOLD_IN) &
+                                    U_RHS( IU_NOD_DIM_PHA ) =  U_RHS( IU_NOD_DIM_PHA ) -(- VLM_OLD +NN_SNDOTQOLD_IN) &
                                          * UOLD( JU_NOD2_PHA )
                                  ENDIF
                                  IF(IDIM == 2) THEN
-                                    U_RHS( IU_NOD_DIM_PHA ) =  U_RHS( IU_NOD_DIM_PHA ) -(- VLM_OLD -NN_SNDOTQOLD_IN) & 
+                                    U_RHS( IU_NOD_DIM_PHA ) =  U_RHS( IU_NOD_DIM_PHA ) -(+ VLM_OLD -NN_SNDOTQOLD_IN) & 
                                          * VOLD( JU_NOD_PHA )
-                                    U_RHS( IU_NOD_DIM_PHA ) =  U_RHS( IU_NOD_DIM_PHA ) -(+ VLM_OLD +NN_SNDOTQOLD_IN) &
+                                    U_RHS( IU_NOD_DIM_PHA ) =  U_RHS( IU_NOD_DIM_PHA ) -(- VLM_OLD +NN_SNDOTQOLD_IN) &
                                          * VOLD( JU_NOD2_PHA )
                                  ENDIF
                                  IF(IDIM == 3) THEN
-                                    U_RHS( IU_NOD_DIM_PHA ) =  U_RHS( IU_NOD_DIM_PHA ) -(- VLM_OLD -NN_SNDOTQOLD_IN) & 
+                                    U_RHS( IU_NOD_DIM_PHA ) =  U_RHS( IU_NOD_DIM_PHA ) -(+ VLM_OLD -NN_SNDOTQOLD_IN) & 
                                          * WOLD( JU_NOD_PHA )
-                                    U_RHS( IU_NOD_DIM_PHA ) =  U_RHS( IU_NOD_DIM_PHA ) -(+ VLM_OLD +NN_SNDOTQOLD_IN) &
+                                    U_RHS( IU_NOD_DIM_PHA ) =  U_RHS( IU_NOD_DIM_PHA ) -(- VLM_OLD +NN_SNDOTQOLD_IN) &
                                          * WOLD( JU_NOD2_PHA )
                                  ENDIF
                               ENDIF
@@ -2968,7 +2968,7 @@
                                  ENDIF
                                  IF(IDIM == 3) THEN
                                     DGM_PHA( COUNT ) =  DGM_PHA( COUNT ) + VLM * SUF_W_BC_ROB1( SUF_U_SJ2_IPHA )
-                                    U_RHS( IU_NOD_DIM_PHA ) =  U_RHS( IU_NOD_DIM_PHA ) - VLM * SUF_V_BC_ROB2( SUF_U_SJ2_IPHA )
+                                    U_RHS( IU_NOD_DIM_PHA ) =  U_RHS( IU_NOD_DIM_PHA ) - VLM * SUF_W_BC_ROB2( SUF_U_SJ2_IPHA )
                                  ENDIF
 
                               ENDIF
