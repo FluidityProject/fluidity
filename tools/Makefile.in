@@ -114,6 +114,7 @@ scripts:
 	for i in *.sh ; do cp $$i ../bin/`basename $$i .sh` ; done
 
 install-version-info: version-info
+	@mkdir -p ../bin
 	@chmod +x $<
 	@cp $< ../bin/$<
 
