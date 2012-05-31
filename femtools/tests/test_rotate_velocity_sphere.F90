@@ -19,6 +19,7 @@ subroutine test_rotate_velocity_sphere
   type(vector_field) :: difference
   logical :: fail
 
+  !Extract vector fields from file.
   call vtk_read_state("data/on_sphere_rotations/spherical_shell_withFields.vtu", state)
   mesh => extract_mesh(state, "Mesh")
   CartesianCoordinate => extract_vector_field(state, "CartesianCoordinate")
