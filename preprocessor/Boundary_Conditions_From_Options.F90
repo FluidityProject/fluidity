@@ -1397,7 +1397,7 @@ contains
     type(mesh_type) :: ocean_mesh, input_mesh
     ! output from the get_fluxes call on the ocean_mesh
     type(scalar_field) :: salinity_flux, heat_flux, solar_flux
-    type(vector_field) :: stress_flux
+    !TBD IS THIS NEEDED?:type(vector_field) :: stress_flux
     ! the current state to be put on the ocean_mesh - input to the fluxes call
     type(scalar_field) :: temperature, salinity
     type(vector_field) :: velocity, position, position_remapped
@@ -1461,9 +1461,9 @@ contains
 
 
     ! allocate field on ocean mesh to store output of get_fluxes
-    if (force_velocity .ge. 0) then
-      call allocate(stress_flux, 2, ocean_mesh, name="stress_flux")
-    end if
+    !TBD IS THIS NEEDED?:if (force_velocity .ge. 0) then
+    !TBD IS THIS NEEDED?:  call allocate(stress_flux, 2, ocean_mesh, name="stress_flux")
+    !TBD IS THIS NEEDED?:end if
     if (force_temperature .ge. 0) then
         call allocate(heat_flux, ocean_mesh, name="heat_flux")
     end if
@@ -1576,17 +1576,17 @@ contains
     ! the continuity of the two fields does not match, in which case we project
 
     if (force_velocity .ge. 0) then
-        do i=1,NNodes
-            temp_vector_2D(1) = Tau_u(i)
-            temp_vector_2D(2) = Tau_v(i)
-            call set(stress_flux,i,temp_vector_2D)
-        end do
+        !TBD IS THIS NEEDED?:do i=1,NNodes
+        !TBD IS THIS NEEDED?:    temp_vector_2D(1) = Tau_u(i)
+        !TBD IS THIS NEEDED?:    temp_vector_2D(2) = Tau_v(i)
+        !TBD IS THIS NEEDED?:    call set(stress_flux,i,temp_vector_2D)
+        !TBD IS THIS NEEDED?:end do
         vector_source_field => extract_vector_field(state, 'Velocity')
         vector_surface => extract_surface_field(vector_source_field, force_velocity , "WindSurfaceField")
 
         ! Fluxes are calculated on the velocity mesh, so we will only ever need
         ! to remap, never project as we may have to do on the other fields
-        call remap_field(stress_flux, vector_surface)
+        !TBD IS THIS NEEDED?:call remap_field(stress_flux, vector_surface)
 
         if (have_option("/ocean_forcing/bulk_formulae/output_fluxes_diagnostics/vector_field::MomentumFlux")) then
             vector_source_field => extract_vector_field(state, 'MomentumFlux')
@@ -1605,7 +1605,7 @@ contains
                 call set(vfield,vector_source_field)
             end if
         end if
-        call deallocate(stress_flux)                            
+        !TBD IS THIS NEEDED?:call deallocate(stress_flux)                            
     end if
     if (force_temperature .ge. 0) then
         do i=1,NNodes
