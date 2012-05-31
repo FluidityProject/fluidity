@@ -204,8 +204,33 @@ contains
 
   end subroutine cartesian_2_spherical_polar_field
 
-  subroutine lon_lat_height_2_cartesian(longitude, latitude, height, x, y, z, &
-                                        referenceRadius)
+  subroutine lon_lat_height_2_cartesian(longitude, latitude, height, referenceRadius, &
+                                        x, y, z)
+    !Subroutine for convertion of cartesian coordinates into longitude-latitude-height
+    ! If referenceRadius is specified, height is measures as the radial distance relative
+    ! to that radius.
+    real, intent(in) :: longitude !in degrees
+    real, intent(in) :: latitude  !in degrees
+    real, intent(in) :: height
+    real, intent(in) :: referenceRadius
+    real, intent(out) :: x,y,z   !cartesian coordinates
+    real :: radius !Distance from centre of sphere
+    real :: theta  !Polar angle, in radians
+    real :: phi    !Azimuthal angle, in radians
+    real :: pi
+
+    pi=4*atan(1.0)
+
+    !Convert longitude to azimuthal angle and latitude in polar angle; in radians.
+    phi = longitude*pi/180.
+    theta = (90.- latitude)*pi/180.
+
+    !Convert height to distance from origin
+    radius = height + referenceRadius
+
+    !convert spherical-polar coordinates to Cartesian
+    call sperical_polar_2_cartesian(radius,theta,phi,x,y,z)
+
   end subroutine lon_lat_height_2_cartesian
 
   subroutine cartesian_2_lon_lat_height(x, y, z, longitude, latitude, height, &
@@ -226,7 +251,7 @@ contains
     pi=4*atan(1.0)
 
     !convert cartesian coordinates to spherical-polar
-    cartesian_2_spherical_polar(x,y,z,radius,theta,phi)
+    call cartesian_2_spherical_polar(x,y,z,radius,theta,phi)
 
     !Convert polar angle into latitude and azimuthal angle into longitude; in radians.
     longitude = phi*180.0/pi
@@ -359,7 +384,7 @@ contains
 
   end subroutine vector_cartesian_2_spherical_polar
 
-  subroutine vector_spherical_2_cartesian_polar_field(spherical_polar_vector_field, &
+  subroutine vector_spherical_polar_2_cartesian_field(spherical_polar_vector_field, &
                                                       spherical_polar_coordinate_field, &
                                                       cartesian_vector_field, &
                                                       cartesian_coordinate_field)
@@ -391,7 +416,7 @@ contains
       call set(cartesian_coordinate_field, node, XYZ)
       call set(cartesian_vector_field, node, cartesianComponents)
     enddo
-  end subroutine vector_spherical_2_cartesian_polar_field
+  end subroutine vector_spherical_polar_2_cartesian_field
 
   subroutine vector_cartesian_2_spherical_polar_field(cartesian_vector_field, &
                                                       cartesian_coordinate_field, &
