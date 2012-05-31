@@ -149,7 +149,7 @@ contains
     
   end subroutine spherical_polar_2_cartesian
   
-  subroutine cartesian_2_spherical_Polar(x,y,z,radius,theta,phi)
+  subroutine cartesian_2_spherical_polar(x,y,z,radius,theta,phi)
     !Subroutine for calculation of cartesian coordinates from spherical-polar coordinates.
     implicit none
 
@@ -173,18 +173,18 @@ contains
     type(vector_field) :: spherical_polar_coordinate_field
     type(vector_field) :: cartesian_coordinate_field
     integer :: node
-    real, dimension(3) :: X, RTP !arrays containing a signel node's position vector components
-                                 ! in cartesian & spherical-polar bases 
+    real, dimension(3) :: XYZ, RTP !arrays containing a signel node's position vector
+                                   ! in cartesian & spherical-polar bases 
 
     do node=1,node_count(spherical_polar_coordinate_field)
       RTP = node_val(spherical_polar_coordinate_field, node)
-      call spherical_polar_2_cartesian(RTP(1), RTP(2), RTP(3), X(1), X(2), X(3))
-      call set(cartesian_coordinate_field, node, X)
+      call spherical_polar_2_cartesian(RTP(1), RTP(2), RTP(3), XYZ(1), XYZ(2), XYZ(3))
+      call set(cartesian_coordinate_field, node, XYZ)
     enddo
 
   end subroutine spherical_polar_2_cartesian_field
 
-  subroutine cartesian_2_spherical_Polar_field(cartesian_coordinate_field, &
+  subroutine cartesian_2_spherical_polar_field(cartesian_coordinate_field, &
                                                spherical_polar_coordinate_field)
     !Subroutine for convertion of a cartesian coordinate field into a spherical-polar
     ! coordinate field.
@@ -193,16 +193,53 @@ contains
     type(vector_field) :: cartesian_coordinate_field
     type(vector_field) :: spherical_polar_coordinate_field
     integer :: node
-    real, dimension(3) :: X, RTP !arrays containing a signel node's position vector components
-                                 ! in cartesian & spherical-polar bases 
+    real, dimension(3) :: XYZ, RTP !arrays containing a signel node's position vector
+                                   ! components in cartesian & spherical-polar bases 
 
     do node=1,node_count(cartesian_coordinate_field)
-      X = node_val(cartesian_coordinate_field, node)
-      call cartesian_2_spherical_polar(X(1), X(2), X(3), RTP(1), RTP(2), RTP(3))
+      XYZ = node_val(cartesian_coordinate_field, node)
+      call cartesian_2_spherical_polar(XYZ(1), XYZ(2), XYZ(3), RTP(1), RTP(2), RTP(3))
       call set(spherical_polar_coordinate_field, node, RTP)
     enddo
 
-  end subroutine cartesian_2_spherical_Polar_field
+  end subroutine cartesian_2_spherical_polar_field
+
+  subroutine lon_lat_height_2_cartesian(longitude, latitude, height, x, y, z, &
+                                        referenceRadius)
+  end subroutine lon_lat_height_2_cartesian
+
+  subroutine cartesian_2_lon_lat_height(x, y, z, longitude, latitude, height, &
+                                        referenceRadius)
+    !Subroutine for convertion of cartesian coordinates into longitude-latitude-height
+    ! If referenceRadius is specified, height is measures as the radial distance relative
+    ! to that radius.
+    real, intent(in) :: x,y,z   !cartesian coordinates
+    real, intent(out) :: longitude !in degrees
+    real, intent(out) :: latitude  !in degrees
+    real, intent(out) :: height
+    real, intent(in), optional :: referenceRadius
+    real :: radius !Distance from centre of sphere
+    real :: theta  !Polar angle, in radians
+    real :: phi    !Azimuthal angle, in radians
+    real :: pi
+
+    pi=4*atan(1.0)
+
+    !convert cartesian coordinates to spherical-polar
+    cartesian_2_spherical_polar(x,y,z,radius,theta,phi)
+
+    !Convert polar angle into latitude and azimuthal angle into longitude; in radians.
+    longitude = phi*180.0/pi
+    latitude = (pi/2 - theta)*180.0/pi
+
+    !If referenceRadius is present, subtract it from the radial distance
+    if(present(referenceRadius)) then
+      height = radius - referenceRadius
+    else
+      height = radius
+    endif
+
+  end subroutine cartesian_2_lon_lat_height
 
   subroutine transformation_matrix_cartesian_2_spherical_polar(xCoord, yCoord, zCoord, R, RT)
     !Subroutine calculating transformation martix for sperical-polar to/from cartesian
@@ -321,6 +358,74 @@ contains
     azimuthal = sphericalPolarComponents(3)
 
   end subroutine vector_cartesian_2_spherical_polar
+
+  subroutine vector_spherical_2_cartesian_polar_field(spherical_polar_vector_field, &
+                                                      spherical_polar_coordinate_field, &
+                                                      cartesian_vector_field, &
+                                                      cartesian_coordinate_field)
+    !Subroutine for change of basis of a cartesian vector field into a spherical-polar
+    ! vector field. This routine also converts and returns the position vector component
+    ! fields
+    implicit none
+
+    type(vector_field), intent(in) :: spherical_polar_vector_field
+    type(vector_field), intent(in) :: spherical_polar_coordinate_field
+    type(vector_field), intent(out) :: cartesian_vector_field
+    type(vector_field), intent(out) :: cartesian_coordinate_field
+    integer :: node
+    real, dimension(3) :: XYZ, RTP !arrays containing a signel node's position vector
+                                   ! in cartesian & spherical-polar bases 
+    real, dimension(3) :: cartesianComponents, sphericalPolarComponents
+
+    do node=1,node_count(spherical_polar_coordinate_field)
+      RTP = node_val(spherical_polar_coordinate_field, node)
+      sphericalPolarComponents = node_val(spherical_polar_vector_field, node)
+      call vector_spherical_polar_2_cartesian(sphericalPolarComponents(1), &
+                                              sphericalPolarComponents(2), &
+                                              sphericalPolarComponents(3), &
+                                              RTP(1), RTP(2), RTP(3), &
+                                              cartesianComponents(1), &
+                                              cartesianComponents(2), &
+                                              cartesianComponents(3), &
+                                              XYZ(1), XYZ(2), XYZ(3))
+      call set(cartesian_coordinate_field, node, XYZ)
+      call set(cartesian_vector_field, node, cartesianComponents)
+    enddo
+  end subroutine vector_spherical_2_cartesian_polar_field
+
+  subroutine vector_cartesian_2_spherical_polar_field(cartesian_vector_field, &
+                                                      cartesian_coordinate_field, &
+                                                      spherical_polar_vector_field, &
+                                                      spherical_polar_coordinate_field)
+    !Subroutine for change of basis of a cartesian vector field into a spherical-polar
+    ! vector field. This routine also converts and returns the position vector component
+    ! fields
+    implicit none
+
+    type(vector_field), intent(in) :: cartesian_vector_field
+    type(vector_field), intent(in) :: cartesian_coordinate_field
+    type(vector_field), intent(out) :: spherical_polar_vector_field
+    type(vector_field), intent(out) :: spherical_polar_coordinate_field
+    integer :: node
+    real, dimension(3) :: XYZ, RTP !arrays containing a signel node's position vector
+                                   ! in cartesian & spherical-polar bases 
+    real, dimension(3) :: cartesianComponents, sphericalPolarComponents
+
+    do node=1,node_count(spherical_polar_coordinate_field)
+      XYZ = node_val(cartesian_coordinate_field, node)
+      cartesianComponents = node_val(cartesian_vector_field, node)
+      call vector_cartesian_2_spherical_polar(cartesianComponents(1), &
+                                              cartesianComponents(2), &
+                                              cartesianComponents(3), &
+                                              XYZ(1), XYZ(2), XYZ(3), & 
+                                              sphericalPolarComponents(1), &
+                                              sphericalPolarComponents(2), &
+                                              sphericalPolarComponents(3), &
+                                              RTP(1), RTP(2), RTP(3))
+      call set(spherical_polar_coordinate_field, node, RTP)
+      call set(spherical_polar_vector_field, node, sphericalPolarComponents)
+    enddo
+  end subroutine vector_cartesian_2_spherical_polar_field
 
   subroutine higher_order_sphere_projection(positions, s_positions)
     !!< Given a P1 'positions' field and a Pn 's_positions' field, bends the 
