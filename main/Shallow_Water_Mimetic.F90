@@ -220,9 +220,9 @@
       if(have_pv) then
          PVconsistency => extract_scalar_field(&
               state, "PVConsistency",stat)
+         PV_old => extract_scalar_field(state, "OldPotentialVorticity",stat)
+         have_pv_old = (stat==0)
       end if
-      PV_old => extract_scalar_field(state, "OldPotentialVorticity",stat)
-      have_pv_old = (stat==0)
       PVtracer => extract_scalar_field(state, "PotentialVorticityTracer",stat)
       if(stat==0) then
          have_pv_tracer = .true.
@@ -244,12 +244,15 @@
          call allocate(PVFlux,mesh_dim(U),u%mesh,'PVFlux')
          call zero(massFlux)
          call zero(PVFlux)
+         ewrite(2,*) 'LayerThickness before dg solve', maxval(abs(D%val))
          call solve_advection_dg_subcycle("LayerThickness", state, &
               "NonlinearVelocity",continuity=.true.,Flux=MassFlux)
+         ewrite(2,*) 'LayerThickness after dg solve', maxval(abs(D%val))
          if(have_pv_tracer) then
             call solve_advection_cg_tracer(PVtracer,D,&
                  d_old,MassFlux,PVFlux,state)
          end if
+         ewrite(2,*) 'LayerThickness after cg solve', maxval(abs(D%val))
          call deallocate(MassFlux)
          call deallocate(PVFlux)
       else
