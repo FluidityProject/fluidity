@@ -685,6 +685,18 @@ DEN = A * P + B
                         </element>
                       </optional>
                     </element>
+                    <element name="exponential_in_pressure">
+                      <a:documentation>Exponential in Pressure EOS 
+
+DEN = A * P ^ B
+</a:documentation>
+                      <element name="coefficient_A">
+                        <ref name="real"/>
+                      </element>
+                      <element name="coefficient_B">
+                        <ref name="real"/>
+                      </element>
+                    </element>
                   </choice>
                 </element>
               </choice>

@@ -573,6 +573,18 @@ start =
                            element include_internal_energy {
                               empty
                            }?
+                        }|
+                        ## Exponential in Pressure EOS 
+                        ##
+                        ## DEN = A * P ^ B
+                        ##
+                        element exponential_in_pressure {
+                           element coefficient_A { 
+                              real 
+                           },
+                           element coefficient_B {
+                              real
+                           }
                         }
                      }
                   )
