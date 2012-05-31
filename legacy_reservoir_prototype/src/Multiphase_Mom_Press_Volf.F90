@@ -416,7 +416,8 @@ contains
                NDIM,  &
                NCOLM, FINDM, COLM, MIDM, &
                XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, LUMP_EQNS, &
-               OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, T_FEMT, DEN_FEMT, &
+               OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
+               T_FEMT, CV_ONE, &
                IGOT_T2,T,TOLD, IGOT_THETA_FLUX, SCVNGI_THETA, T_GET_THETA_FLUX, T_USE_THETA_FLUX, &
                T, T, T, &
                SUF_T_BC, SUF_T_BC_ROB1, SUF_T_BC_ROB2, WIC_T_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &

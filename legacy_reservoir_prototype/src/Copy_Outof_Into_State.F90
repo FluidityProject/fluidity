@@ -276,6 +276,7 @@
       call Get_Ndgln( x_ndgln_p1, positions )
       ewrite(3,*) '   '
 
+
       ! Allocating Volume-based Global Node Numbers:
       ! Positions/Coordinates
       ! NB This is a continuous version of the Pressure mesh
@@ -658,29 +659,43 @@
 !!!
 !!! Components
 !!!
-      ewrite(3,*) "components..."
+      ewrite(3,*) "Allocating Components:"
 
-      allocate(comp(cv_nonods*nphases*ncomps)) ; comp = 0.
-      allocate(comp_source(cv_nonods*nphases)) ; comp_source = 0.
+      allocate( comp( cv_nonods * nphases * ncomps )) ; comp = 0.
+      allocate( comp_source( cv_nonods * nphases )) ; comp_source = 0.
       allocate( wic_comp_bc( stotel * nphases )) ; wic_comp_bc = 0
       allocate( suf_comp_bc( stotel * cv_snloc * nphases * ncomps )) ; suf_comp_bc = 0.
 
-      Loop_Component: do i = nphases, nphases+ncomps-1 ! Component loop
+      Loop_Component: do i = nphases + 1, nphases + ncomps - 1 ! Component loop
          do j = 1, nphases ! Phase loop
 
-            field => extract_scalar_field(state(i), "ComponentMassFractionPhase" // int2str(j))
-            k = ( i - 1 ) * nphases *  node_count(field) + ( j - 1 ) * node_count(field)
-            call Get_ScalarFields_Outof_State( state, i, field, &
-                 comp( k + 1 : k + node_count( field )), wic_comp_bc, suf_comp_bc, &
+            field => extract_scalar_field( state( i ), &
+                 "ComponentMassFractionPhase" // int2str( j ) )
+            !  k = ( i - 1 ) * nphases *  node_count( field ) + ( j - 1 ) * node_count( field )
+
+            k = ( i - ( nphases + 1 ) ) * node_count( field ) + ( j - 1 ) * node_count( field )
+
+            ewrite(3,*)' i, j, node_count(field):', i, j, node_count(field)
+            call Get_CompositionFields_Outof_State( state, nphases, i, j, field, &
+                 comp( k + 1 : k + node_count( field ) ), wic_comp_bc, suf_comp_bc, &
                  field_prot_source=comp_source( k + 1 : k + node_count( field )))
+
+            !call Get_ScalarFields_Outof_State( state, i, j, field, &
+            !     comp( k + 1 : k + node_count( field ) ), wic_comp_bc, suf_comp_bc, !&
+            !     field_prot_source=comp_source( k + 1 : k + node_count( field )))
 
          end do
 
       end do Loop_Component
 
+ewrite(3,*)'comp:', comp
+ewrite(3,*)'wic_comp_bc:', wic_comp_bc
+ewrite(3,*)'suf_comp_bc:', suf_comp_bc
+ewrite(3,*)'comp_source:', comp_source
+
 !!!  Density
 !!!
-      ewrite(3,*) "density..."
+      ewrite(3,*) "Densities"
 
       Loop_Density: do i = 1, nphases
          field => extract_scalar_field( state( i ), "Density")
@@ -696,7 +711,6 @@
          k = ( i - 1 ) * node_count( field )
          call Get_ScalarFields_Outof_State( state, i, field, &
               den(  k + 1 : k + node_count( field ) ), wic_d_bc, suf_d_bc )
-
       end do Loop_Density
 
 !!!
@@ -1382,8 +1396,8 @@
       xu_nonods = max(( xu_nloc - 1 ) * totele + 1, totele )
 
       ! Take care of overlapping elements
-      if( is_overlapping ) u_nonods = u_nonods * cv_nloc
-      if( is_overlapping ) u_nloc = u_nloc * cv_nloc
+      if( ( is_overlapping ) .and. ( ndim > 1 ) ) u_nonods = u_nonods * cv_nloc
+      if( ( is_overlapping ) .and. ( ndim > 1 ) ) u_nloc = u_nloc * cv_nloc
       if( is_overlapping ) u_snloc = u_snloc * cv_nloc
 
       ! Used just for 1D:
@@ -1422,13 +1436,15 @@
       integer, dimension( : ), intent( inout ) :: ndgln
       ! Local variables
       integer, dimension( : ), pointer :: nloc
-      integer :: ele, iloc, count, cv_nloc2
+      integer :: ele, iloc, count, cv_nloc2, ndim
       logical :: is_overlapping2
 
+      
+      call get_option( "/geometry/dimension", ndim )
       is_overlapping2 = .false.
       if ( present( is_overlapping ) ) is_overlapping2 = is_overlapping
       cv_nloc2 = 1
-      if ( is_overlapping2 ) cv_nloc2 = cv_nloc
+      if ( ( is_overlapping2 ) .and. ( ndim > 1 ) ) cv_nloc2 = cv_nloc
 
       count = 0
       do ele = 1, ele_count( field )
@@ -1522,6 +1538,128 @@
       return
     end subroutine Get_Vector_SNdgln
 
+    subroutine Get_CompositionFields_Outof_State( state, nphases, icomp, iphase, field, &
+         field_prot, wic_bc, suf_bc, field_prot_source, field_prot_absorption )
+      implicit none
+      type( state_type ), dimension( : ), intent( inout ) :: state
+      integer, intent( in ) :: nphases, icomp, iphase
+      type( scalar_field ), pointer :: field, field_prot_bc
+      real, dimension( : ), intent( inout ) :: field_prot
+      real, dimension( : ), intent( inout ), optional :: field_prot_source, field_prot_absorption
+      integer, dimension( : ), intent( inout ) :: wic_bc
+      real, dimension( : ), intent( inout ) :: suf_bc
+      ! Local variables
+      type( mesh_type ), pointer :: pmesh, cmesh
+      type(scalar_field), pointer :: pressure, field_source, field_absorption
+      type( scalar_field ) :: dummy
+      type( vector_field ), pointer :: positions
+      integer, dimension( : ), allocatable :: sufid_bc, face_nodes
+      integer :: shape_option( 2 )
+      character( len = option_path_len ) :: option_path, field_name
+      logical :: have_source, have_absorption
+      integer :: nstates, stotel, nobcs, bc_type, i, j, k, kk, sele, stat, snloc
+      real :: initial_constant
+      character( len = 8192 ) :: func
+
+      field_name = trim( field % name )
+      positions => extract_vector_field( state( 1 ), "Coordinate" )
+      pressure => extract_scalar_field( state( 1 ), "Pressure" )
+      pmesh => extract_mesh( state, "PressureMesh" )
+      cmesh => extract_mesh( state, "CoordinateMesh" )
+
+      field_source => extract_scalar_field( state( iphase ), field_name // "Source", stat )
+      have_source = ( stat == 0 )
+      field_absorption => extract_scalar_field( state( iphase ), field_name // "Absorption", stat )
+      have_absorption = ( stat == 0 )
+
+      snloc = face_loc( pressure, 1 )
+      nstates = option_count("/material_phase")
+      stotel = surface_element_count( cmesh )
+
+      option_path = "/material_phase[" // int2str( icomp - 1 ) // &
+           "]/scalar_field::ComponentMassFractionPhase" // &
+           int2str( iphase )
+
+      Conditional_Composition_MassFraction: if ( have_option( trim( option_path ) // &
+           "/prognostic/initial_condition::WholeMesh/constant" ) ) then
+
+         call get_option( trim( option_path ) // &
+              "/prognostic/initial_condition::WholeMesh/constant", initial_constant )
+         field_prot = initial_constant
+
+      elseif( have_option( trim( option_path ) // &
+           "/prognostic/initial_condition::WholeMesh/python") ) then
+
+         call get_option( trim( option_path ) // &
+              "/prognostic/initial_condition::WholeMesh/python", func )
+
+         call allocate( dummy, field % mesh, "dummy" )
+         call get_option( "/timestepping/current_time", current_time )
+         call set_from_python_function( dummy, trim( func ), positions, current_time )
+         field_prot = dummy % val
+         call deallocate( dummy )
+
+      else
+         ewrite(-1,*) "No initial condition for field::", trim( field_name )
+         FLAbort( " Check initial conditions " )
+
+      end if Conditional_Composition_MassFraction
+
+
+      Conditional_Composition_BC: if ( have_option( trim( option_path ) // &
+           "/prognostic/boundary_conditions[0]/type::dirichlet" )) then
+
+         bc_type = 1
+         nobcs = get_boundary_condition_count( field )
+
+         Loop_Over_BC: do k = 1, nobcs
+            field_prot_bc => extract_surface_field( field, k, "value" )
+            shape_option = option_shape( trim( option_path ) // &
+                 "/prognostic/boundary_conditions[" // &
+                 int2str( k - 1 ) // "]/surface_ids" )
+
+            allocate( sufid_bc( 1 : shape_option( 1 ) ) )
+            call get_option( trim( option_path ) // &
+                 "/prognostic/boundary_conditions[" // &
+                 int2str( k - 1 ) // "]/surface_ids", sufid_bc )
+            allocate( face_nodes( face_loc( field, 1 ) ) )
+            sele = 1
+            do j = 1, stotel
+               if( any ( sufid_bc == pmesh % faces % boundary_ids( j ) ) ) then
+                  wic_bc( j + ( iphase - 1 ) * stotel ) = bc_type
+                  face_nodes = ele_nodes( field_prot_bc, sele )
+                  do kk = 1, snloc
+                     suf_bc( ( iphase - 1 ) * stotel * snloc + ( j - 1 ) * snloc + kk ) = &
+                          field_prot_bc % val( face_nodes( 1 ) )
+                  end do
+                  sele = sele + 1
+               end if
+            end do
+
+            deallocate( face_nodes )
+            deallocate( sufid_bc )
+
+         end do Loop_Over_BC ! End of BC loop
+
+      end if Conditional_Composition_BC
+
+
+      if ( have_source )  then
+         do j = 1, node_count( field_source )
+            field_prot_source( ( iphase - 1 ) * node_count( field_source ) + j ) = &
+                 field_source % val( j )
+         end do
+      end if
+
+      if ( have_absorption ) then
+         do j = 1, node_count( field_absorption )
+            field_prot_absorption( ( iphase - 1 ) * node_count( field_absorption ) + j ) = &
+                 field_absorption % val( j )
+         end do
+      end if
+
+      return
+    end subroutine Get_CompositionFields_Outof_State
 
     subroutine Get_ScalarFields_Outof_State( state, iphase, field, &
          field_prot, wic_bc, suf_bc, field_prot_source, field_prot_absorption )
@@ -1547,7 +1685,7 @@
       real :: initial_constant
       logical :: have_source, have_absorption
       integer, dimension(:), allocatable :: face_nodes
-      character(len=8192) :: func
+      character( len = 8192 ) :: func
 
       field_name = trim( field % name )
 
@@ -1578,7 +1716,6 @@
 
       option_path = "/material_phase["//int2str(iphase-1)//"]/scalar_field::"//trim(field_name)
 
-
       if ( have_option( trim(option_path)//"/prognostic/initial_condition::WholeMesh/constant") ) then
 
          call get_option(trim(option_path)//"/prognostic/initial_condition::WholeMesh/constant", &
@@ -1605,16 +1742,6 @@
          FLAbort("Check initial conditions")
 
       end if
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -2077,14 +2204,36 @@
       elseif( ndim == 3 ) then
          iloclist_p2 = (/ 1, 5, 2, 6, 7, 3, 8, 9, 10, 4 /)
       else
-         FLAbort( "Still need to be done" )
+         iloclist_p2 = (/ 1, 3, 2 /)           
+         !         FLAbort( "Still need to be done" )
       end if
 
       Conditional_Pn: if ( x_nloc_p2 == 3 .or. x_nloc_p2 == 4 ) then
 
-         x = positions % val( 1, : )
-         if( ndim > 1 ) y = positions % val( 2, : )
-         if( ndim > 2 ) z = positions % val( 3, : )
+         if( ( x_nloc_p2 == 3 ) .and. ( ndim == 1 ) ) then ! 1D quadratic
+            x_p1 = positions % val( 1, : )
+            do ele = 1, totele
+               x2 = 0.
+               do iloc = 1, x_nloc_p1
+                  x2( iloc ) = x_p1( x_ndgln_p1( ( ele - 1 ) * x_nloc_p1 + iloc )) 
+               end do
+               do iloc = 1, x_nloc_p1 - 1
+                  xnod1 = x2( iloc )
+                  xnod2 = x2( iloc + 1 )
+                  x2( x_nloc_p1 + iloc ) = 0.5 * (  xnod1  +  xnod2  )              
+               end do
+               do iloc = 1, x_nloc_p2
+                  inod = x_ndgln_p2( ( ele - 1 ) * x_nloc_p2 + iloc )
+                  x( inod ) = x2( iloclist_p2( iloc ) )
+               end do
+            end do
+
+         else
+
+            x = positions % val( 1, : )
+            if( ndim > 1 ) y = positions % val( 2, : )
+            if( ndim > 2 ) z = positions % val( 3, : )
+         end if
 
       else if ( x_nloc_p2 == 6 .or. x_nloc_p2 == 10 ) then
 
