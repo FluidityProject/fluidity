@@ -59,7 +59,7 @@
       real, dimension( : ), allocatable, save :: reference_pressure
       logical, save :: initialised = .false.
       logical :: eos_comp_sg, eos_comp_exp, eos_comp_linear_1, eos_comp_linear_2, &
-           eos_incomp_linear, eos_comp_python, eos_incomp_python
+           eos_incomp_linear, eos_comp_python, eos_incomp_python, eos_comp_exp_2
 
       ! python eos stuff
       character(len = PYTHON_FUNC_LEN) :: pycode
@@ -98,6 +98,7 @@
          eos_comp_python = .false.
          eos_incomp_linear = .false.
          eos_incomp_python = .false.
+         eos_comp_exp_2 = .false.
 
          if ( have_option("/material_phase[" // int2str(iphase-1) // "]/equation_of_state/compressible") ) then ! Compressible
             option_path = "/material_phase[" // int2str(iphase-1) // "]/equation_of_state/compressible"
@@ -114,6 +115,9 @@
                else
                   eos_comp_linear_1 = .true.
                end if
+            elseif ( have_option( trim( option_path ) // '/exponential_in_pressure' )) then
+               option_path = trim( option_path ) // '/exponential_in_pressure'
+               eos_comp_exp_2 = .true.
             elseif ( have_option( trim( option_path ) // '/python_state' )) then
                option_path = trim( option_path ) // '/python_state'
                eos_comp_python = .true.
@@ -205,6 +209,19 @@
                p_minus = p( cv_nod ) - pert_p
                den_plus = eos_coefs( 1 ) * p_plus / max( toler, t( node ) ) + eos_coefs( 2 )
                den_minus = eos_coefs( 1 ) * p_minus / max( toler, t( node ) ) + eos_coefs( 2 )
+
+            elseif ( eos_comp_exp_2 ) then ! Compressible
+
+               ! EOS: DEN = A * P ** B
+               call get_option(trim(option_path)//"/coefficient_A", eos_coefs(1))
+               call get_option(trim(option_path)//"/coefficient_B", eos_coefs(2))
+
+               den( node ) = eos_coefs( 1 ) * p( cv_nod ) ** eos_coefs( 2 )
+               pert_p = 1. !max( toler, 0.001 * abs( p ( cv_nod ) ) )
+               p_plus = p( cv_nod ) + pert_p
+               p_minus = p( cv_nod ) - pert_p
+               den_plus = eos_coefs( 1 ) * p_plus ** eos_coefs( 2 )
+               den_minus = eos_coefs( 1 ) * p_minus ** eos_coefs( 2 )
 
             elseif ( eos_incomp_linear ) then ! Incompressible
                if (have_option(trim(option_path)//"/all_equal")) then

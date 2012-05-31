@@ -847,6 +847,8 @@ ewrite(3,*)'comp_source:', comp_source
             eos_option(i) = 3
          elseif (have_option(trim(option_path)//"/compressible/linear_in_pressure")) then
             ! do nothing here
+         elseif (have_option(trim(option_path)//"/compressible/exponential_in_pressure")) then
+            ! do nothing here
          else
             FLAbort("Unknown EoS option for phase "// int2str(i))
          endif
