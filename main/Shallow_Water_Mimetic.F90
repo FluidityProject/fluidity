@@ -148,6 +148,10 @@
        call calculate_diagnostic_variables_new(states,&
             & exclude_nonrecalculated = .true.)
 
+       call set_prescribed_field_values(states, &
+            exclude_interpolated=.true., &
+            exclude_nonreprescribed=.true., time=current_time+dt)
+
        call advance_current_time(current_time, dt)
        if (simulation_completed(current_time, timestep)) exit timestep_loop
 
@@ -244,15 +248,12 @@
          call allocate(PVFlux,mesh_dim(U),u%mesh,'PVFlux')
          call zero(massFlux)
          call zero(PVFlux)
-         ewrite(2,*) 'LayerThickness before dg solve', maxval(abs(D%val))
          call solve_advection_dg_subcycle("LayerThickness", state, &
               "NonlinearVelocity",continuity=.true.,Flux=MassFlux)
-         ewrite(2,*) 'LayerThickness after dg solve', maxval(abs(D%val))
          if(have_pv_tracer) then
             call solve_advection_cg_tracer(PVtracer,D,&
                  d_old,MassFlux,PVFlux,state)
          end if
-         ewrite(2,*) 'LayerThickness after cg solve', maxval(abs(D%val))
          call deallocate(MassFlux)
          call deallocate(PVFlux)
       else

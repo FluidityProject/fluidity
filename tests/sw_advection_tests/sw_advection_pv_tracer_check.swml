@@ -144,7 +144,7 @@
       <real_value rank="0">0.0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">0.01</real_value>
+      <real_value rank="0">0.005</real_value>
     </timestep>
     <theta>
       <real_value rank="0">0.5</real_value>
@@ -153,7 +153,7 @@
       <integer_value rank="0">1</integer_value>
     </nonlinear_iterations>
     <finish_time>
-      <real_value rank="0">0.05</real_value>
+      <real_value rank="0">0.1</real_value>
       <comment>24*60*60*10=846000</comment>
     </finish_time>
   </timestepping>
@@ -288,7 +288,7 @@
   y = X[1]
   z = X[2]
   
-  return 1.0+sin(pi*x)*sin(pi*y)</string_value>
+  return 1.0+0.1*sin(2*pi*x)*sin(2*pi*y)</string_value>
           </python>
         </initial_condition>
         <mean_layer_thickness>
@@ -302,9 +302,11 @@
     <scalar_field name="PotentialVorticityTracer" rank="0">
       <prognostic>
         <initial_condition name="WholeMesh">
-          <constant>
-            <real_value rank="0">1.0</real_value>
-          </constant>
+          <python>
+            <string_value type="code" lines="20" language="python">def val(X,t):
+  from math import exp, cos, pi
+  return exp(-4*(cos(2*pi*X[0])+1)**2)</string_value>
+          </python>
           <zero_bubble_component/>
         </initial_condition>
         <timestepping>
@@ -338,6 +340,91 @@
     <scalar_field name="DG_CourantNumber" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="ExactPVTracerSolution" rank="0">
+      <prescribed>
+        <mesh name="VorticityMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value type="code" lines="20" language="python">def val(X,t):
+  from math import exp, cos, pi
+  t = 0.1
+  return exp(-4*(cos(2*pi*(X[0]-t))+1)**2)</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="PVTracerError" rank="0">
+      <diagnostic>
+        <algorithm name="scalar_difference" source_field_1_name="PotentialVorticityTracer" source_field_2_name="ExactPVTracerSolution" source_field_2_type="scalar" material_phase_support="single" source_field_1_type="scalar"/>
+        <mesh name="VorticityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="ExactLayerThickness" rank="0">
+      <prescribed>
+        <mesh name="PressureMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value type="code" lines="20" language="python">def val(X,t):
+  from math import sin, pi, cos
+  x = X[0]
+  y = X[1]
+  z = X[2]
+  
+  return 1.0+0.1*sin(2*pi*(x-t))*sin(2*pi*y)</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="LayerThicknessError" rank="0">
+      <diagnostic>
+        <algorithm name="scalar_difference" source_field_1_name="LayerThickness" source_field_2_name="ExactLayerThickness" source_field_2_type="scalar" material_phase_support="single" source_field_1_type="scalar"/>
         <mesh name="PressureMesh"/>
         <output/>
         <stat/>

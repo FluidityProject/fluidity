@@ -1973,6 +1973,13 @@ pressure_mesh_choice =
       )
    )
 
+vorticity_spatial_discretisation =
+   element spatial_discretisation {
+      element laplacian_diffusion {
+         
+      }?
+   }
+
 vorticity_mesh_choice =
    (
       (

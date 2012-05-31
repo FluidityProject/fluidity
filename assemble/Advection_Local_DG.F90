@@ -1522,7 +1522,7 @@ module advection_local_DG
     end do
 
     !First the PV Flux (perped)
-    UR_rhs = ele_val(PVFlux,ele)
+    UR_rhs = -ele_val(PVFlux,ele)
     !Now the time derivative term
     UR_rhs = UR_rhs + shape_vector_rhs(U_shape,newU_rhs-U_rhs,&
          U_shape%quadrature%weight)
