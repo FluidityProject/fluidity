@@ -484,21 +484,25 @@ Only used if wave equation is not solved</a:documentation>
               <attribute name="name">
                 <value>Streamfunction</value>
               </attribute>
-              <element name="prescribed">
-                <element name="value">
-                  <attribute name="name">
-                    <value>WholeMesh</value>
-                  </attribute>
-                  <ref name="input_choice_real"/>
-                </element>
-                <optional>
-                  <element name="zero_bubble_component">
-                    <empty/>
+              <choice>
+                <element name="prescribed">
+                  <element name="value">
+                    <ref name="input_choice_real"/>
                   </element>
-                </optional>
-                <ref name="vorticity_mesh_choice"/>
-                <ref name="prognostic_scalar_output_options"/>
-              </element>
+                  <optional>
+                    <element name="zero_bubble_component">
+                      <empty/>
+                    </element>
+                  </optional>
+                  <ref name="vorticity_mesh_choice"/>
+                  <ref name="prognostic_scalar_output_options"/>
+                </element>
+                <element name="diagnostic">
+                  <ref name="scalar_diagnostic_algorithms"/>
+                  <ref name="vorticity_mesh_choice"/>
+                  <ref name="diagnostic_scalar_field"/>
+                </element>
+              </choice>
             </element>
           </optional>
           <optional>

@@ -128,6 +128,7 @@
 
     call calculate_diagnostic_variables(states)
     call calculate_diagnostic_variables_new(states)
+    call setup_pv(states(1))
     call get_option("/timestepping/timestep", dt)
     call write_diagnostics(states, current_time, dt, timestep)
 
@@ -409,7 +410,7 @@
       !SET UP CORIOLIS FORCE
       f_ptr => extract_scalar_field(state,"Coriolis",stat=stat)
       if(stat.ne.0) then
-         v_mesh => extract_mesh(state,"VorticityMesh")
+         v_mesh => extract_mesh(state,"VelocityMesh")
          call allocate(f, v_mesh, "Coriolis")
          call get_option("/physical_parameters/coriolis", coriolis, stat)
          if(stat==0) then
@@ -473,7 +474,48 @@
        end if
     end if
 
+    call fix_layerdepth_mean(state)
+
     end subroutine setup_fields
+
+    subroutine fix_layerdepth_mean(state)
+      type(state_type), intent(inout) :: state
+      real :: D0, h_mean, area
+      integer :: ele
+      type(vector_field), pointer  :: X
+      type(scalar_field), pointer :: D
+
+      X=>extract_vector_field(state,"Coordinate")
+      D=>extract_scalar_field(state,"LayerThickness")
+      
+      h_mean = 0.
+      area = 0.
+      do ele = 1, element_count(D)
+         call assemble_mean_ele(D,X,h_mean,area,ele)
+      end do
+      h_mean = h_mean/area
+      D%val = D%val - h_mean
+      !Add back on the correct mean depth
+      call get_option("/material_phase::Fluid/scalar_field::LayerThickness/&
+           &prognostic/mean_layer_thickness",D0)
+      D%val = D%val + D0
+
+  end subroutine fix_layerdepth_mean
+
+  subroutine setup_pv(state)
+      type(state_type), intent(inout) :: state
+      !
+      type(vector_field), pointer :: U
+      type(scalar_field), pointer :: D,Q
+      integer :: stat
+      !
+      Q => extract_scalar_field(state,"PotentialVorticity",stat)
+      if(stat==0) then
+         U => extract_vector_field(state,"LocalVelocity")
+         D => extract_scalar_field(state,"LayerThickness")
+         call get_PV(state,Q,U,D)
+      end if
+    end subroutine setup_pv
     
     subroutine apply_dg_mass(s_field,state)
       type(state_type), intent(inout) :: state

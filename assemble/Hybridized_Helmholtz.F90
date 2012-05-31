@@ -24,7 +24,6 @@
   !    License along with this library; if not, write to the Free Software
   !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
   !    USA
-  
 
 #include "fdebug.h"
 
@@ -1857,7 +1856,7 @@ contains
     !Add back on the correct mean depth
     call get_option("/material_phase::Fluid/scalar_field::LayerThickness/&
          &prognostic/mean_layer_thickness",D0)
-    !D%val = D%val + D0
+    D%val = D%val + D0
 
     !debugging tests
     call zero(Coriolis_term)
