@@ -43,7 +43,6 @@ module Coordinates
   private
   
   logical::initialised=.false.
-  real, parameter:: earth_radius = 6378000
   real, parameter:: rad_to_deg = 180.0/pi
   real, parameter:: deg_to_rad = pi/180.0
   
@@ -52,7 +51,7 @@ module Coordinates
        spherical_polar_2_cartesian, cartesian_2_spherical_polar, &
        ll2r3_rotate, rotate2ll, &
        vector_spherical_polar_2_cartesian, vector_cartesian_2_spherical_polar, &
-       earth_radius, higher_order_sphere_projection, &
+       higher_order_sphere_projection, &
        sphere_inward_normal_at_quad_ele, sphere_inward_normal_at_quad_face, &
        rotate_diagonal_to_cartesian_gi, rotate_diagonal_to_cartesian_face, &
        rotate_diagonal_to_sphere_gi, rotate_diagonal_to_sphere_face, &
@@ -76,10 +75,9 @@ module Coordinates
 
 contains
     
-  subroutine LongitudeLatitude_single(xyz, longitude, latitude, height)
+  subroutine LongitudeLatitude_single(xyz, longitude, latitude)
     real, dimension(:), intent(in):: xyz
     real, intent(out):: longitude, latitude
-    real, intent(out), optional:: height
     real r
     
     assert( size(xyz)==3 )
@@ -91,33 +89,22 @@ contains
        FLAbort("Coordinate doesn't appear to be on the Earth's surface")
     end if
 
-    if(present(height)) then
-       height = r - earth_radius
-    end if
     longitude = rad_to_deg*atan2(xyz(2), xyz(1))
     latitude = 90.0 - rad_to_deg*acos(xyz(3)/r)
     
   end subroutine LongitudeLatitude_single
   
-  subroutine LongitudeLatitude_multiple(xyz, longitude, latitude, height)
+  subroutine LongitudeLatitude_multiple(xyz, longitude, latitude)
     real, dimension(:,:), intent(in):: xyz
     real, dimension(:), intent(out):: longitude, latitude
-    real, dimension(:), intent(out), optional::height
     
     integer i
     
-    if (present(height)) then
-       do i=1, size(xyz,2)
-          call LongitudeLatitude_single( xyz(:,i), &
-              longitude(i), latitude(i), height(i))
-       end do
-    else
-       do i=1, size(xyz,2)
-          call LongitudeLatitude_single( xyz(:,i), &
-              longitude(i), latitude(i))
-       end do
-    end if
-    
+     do i=1, size(xyz,2)
+        call LongitudeLatitude_single( xyz(:,i), &
+            longitude(i), latitude(i))
+     end do
+  
   end subroutine LongitudeLatitude_multiple
     
   elemental subroutine ll2r3_rotate(longitude, latitude, u, v, r3u, r3v, r3w)
