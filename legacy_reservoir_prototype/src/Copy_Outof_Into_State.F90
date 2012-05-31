@@ -1745,8 +1745,6 @@ ewrite(3,*)'comp_source:', comp_source
 
       end if
 
-
-
       Conditional_Field_BC: if( have_option( trim( option_path ) // &
            "/prognostic/boundary_conditions[0]/type::dirichlet" )) then
 
@@ -1824,16 +1822,21 @@ ewrite(3,*)'comp_source:', comp_source
 
       ! Local variables
       type( mesh_type ), pointer :: pmesh, cmesh
+      type(vector_field) :: dummy
+      type(vector_field), pointer :: positions
       type(scalar_field), pointer :: pressure, field_source, field_absorption
       integer, dimension(:), allocatable :: sufid_bc, face_nodes
       character( len = option_path_len ) :: option_path, field_name
       integer :: ndim, stotel, snloc, snloc2, nonods, nobcs, bc_type, j, k, kk, l, &
            shape_option( 2 ), count
-      real, dimension( : ), allocatable :: initial_constant_field
+      real, dimension( : ), allocatable :: initial_constant
       logical :: have_source, have_absorption
+      character(len=8192) :: func
 
       pmesh => extract_mesh(state, "PressureMesh" )
       cmesh => extract_mesh(state, "CoordinateMesh" )
+
+      positions => extract_vector_field(state(1), "Coordinate")
 
       ndim = field % dim
       stotel = surface_element_count( cmesh )
@@ -1842,26 +1845,49 @@ ewrite(3,*)'comp_source:', comp_source
       if ( is_overlapping ) snloc = snloc2 * ele_loc(pmesh, 1)
 
       nonods = node_count( field )
-
       field_name = trim( field % name )
 
-      option_path = "/material_phase["//int2str(iphase-1)//"]/vector_field::" // &
-           trim(field_name)
+      option_path = "/material_phase["//int2str(iphase-1)//"]/vector_field::"//trim(field_name)
+      if ( have_option( trim(option_path)//"/prognostic/initial_condition::WholeMesh/constant") ) then
 
-      ! facility to initialise velocity field with the initial value from diamond
-      ! as long as it's a constant value
-      allocate(initial_constant_field(ndim)) ; initial_constant_field=0.
-      call get_option(trim(option_path)//"/prognostic/initial_condition::WholeMesh/constant", &
-           initial_constant_field)
+         allocate(initial_constant(ndim)) ; initial_constant=0.
+         call get_option(trim(option_path)//"/prognostic/initial_condition::WholeMesh/constant", &
+              initial_constant)
 
-      field_u_prot((iphase-1) * nonods+1 : iphase * nonods)=initial_constant_field(1)
-      if (ndim>1) field_v_prot((iphase-1) * nonods+1 : iphase * nonods)=initial_constant_field(2)
-      if (ndim>2) field_w_prot((iphase-1) * nonods+1 : iphase * nonods)=initial_constant_field(3)
+         field_u_prot((iphase-1) * nonods+1 : iphase * nonods)=initial_constant(1)
+         if (ndim>1) field_v_prot((iphase-1) * nonods+1 : iphase * nonods)=initial_constant(2)
+         if (ndim>2) field_w_prot((iphase-1) * nonods+1 : iphase * nonods)=initial_constant(3)
+
+         deallocate( initial_constant )
+
+      else if ( have_option( trim(option_path)//"/prognostic/initial_condition::WholeMesh/python") ) then
+
+         call get_option( trim(option_path)//"/prognostic/initial_condition::WholeMesh/python", func )
+
+         call allocate( dummy, field%dim, field%mesh, "dummy" )
+         call get_option("/timestepping/current_time", current_time)
+         call set_from_python_function(dummy, trim(func), positions, current_time)
+
+         field_u_prot((iphase-1) * nonods+1 : iphase * nonods)=dummy%val(1,:)
+         if (ndim>1) field_v_prot((iphase-1) * nonods+1 : iphase * nonods)=dummy%val(2,:)
+         if (ndim>2) field_w_prot((iphase-1) * nonods+1 : iphase * nonods)=dummy%val(3,:)
+
+         call deallocate(dummy)
+
+      else
+
+         ewrite(-1, *) "No initial condition for field::", trim(field_name)
+         FLAbort("Check initial conditions")
+
+      end if
 
       ! set nu to u
-      field_nu_prot((iphase-1) * nonods+1 : iphase * nonods) = initial_constant_field(1)
-      if (ndim>1) field_nv_prot((iphase-1) * nonods+1 : iphase * nonods) = initial_constant_field(2)
-      if (ndim>2) field_nw_prot((iphase-1) * nonods+1 : iphase * nonods) = initial_constant_field(3)
+      field_nu_prot((iphase-1) * nonods+1 : iphase * nonods) = &
+           &      field_u_prot((iphase-1) * nonods+1 : iphase * nonods)            
+      if (ndim>1) field_nv_prot((iphase-1) * nonods+1 : iphase * nonods) = &
+           &      field_v_prot((iphase-1) * nonods+1 : iphase * nonods)
+      if (ndim>2) field_nw_prot((iphase-1) * nonods+1 : iphase * nonods) = &
+           &      field_w_prot((iphase-1) * nonods+1 : iphase * nonods)
 
       Conditional_Field_BC: if( have_option( '/material_phase[' // int2str(iphase-1) // &
            ']/vector_field::' // trim(field_name) // ' /prognostic/' // &
@@ -1917,8 +1943,6 @@ ewrite(3,*)'comp_source:', comp_source
          end do ! End of BC Loop 
 
       endif Conditional_Field_BC
-
-      deallocate( initial_constant_field ) 
 
       return
     end subroutine Get_VectorFields_Outof_State

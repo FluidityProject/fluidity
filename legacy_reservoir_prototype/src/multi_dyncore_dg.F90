@@ -564,17 +564,17 @@
 
       ewrite(3,*) 'In FORCE_BAL_CTY_ASSEM_SOLVE'
 
-      ALLOCATE( ACV( NCOLACV )) 
-      ALLOCATE( CT( NCOLCT * NDIM * NPHASE )); CT=0.
-      ALLOCATE( CT_RHS( CV_NONODS ));CT_RHS=0.
-      ALLOCATE( DIAG_SCALE_PRES( CV_NONODS ))
+      ALLOCATE( ACV( NCOLACV )) ; ACV=0.
+      ALLOCATE( CT( NCOLCT * NDIM * NPHASE )) ; CT=0.
+      ALLOCATE( CT_RHS( CV_NONODS )) ; CT_RHS=0.
+      ALLOCATE( DIAG_SCALE_PRES( CV_NONODS )) ; DIAG_SCALE_PRES=0.
       ALLOCATE( U_RHS( U_NONODS * NDIM * NPHASE )); U_RHS=0.
-      ALLOCATE( MCY_RHS( U_NONODS * NDIM * NPHASE + CV_NONODS ))
-      ALLOCATE( C( NCOLC * NDIM * NPHASE )); C=0.
-      ALLOCATE( MCY( NCOLMCY ))
-      ALLOCATE( CMC( NCOLCMC ))
-      ALLOCATE( MASS_MN_PRES( NCOLCMC ))
-      ALLOCATE( MASS_CV( CV_NONODS ))
+      ALLOCATE( MCY_RHS( U_NONODS * NDIM * NPHASE + CV_NONODS )) ; MCY_RHS=0.
+      ALLOCATE( C( NCOLC * NDIM * NPHASE )) ; C=0.
+      ALLOCATE( MCY( NCOLMCY )) ; MCY=0.
+      ALLOCATE( CMC( NCOLCMC )) ; CMC=0.
+      ALLOCATE( MASS_MN_PRES( NCOLCMC )) ;MASS_MN_PRES=0.
+      ALLOCATE( MASS_CV( CV_NONODS )) ; MASS_CV=0.
       ALLOCATE( P_RHS( CV_NONODS )) ; P_RHS=0.
       ALLOCATE( UP( NLENMCY )) ; UP=0.
       ALLOCATE( U_RHS_CDP( U_NONODS * NDIM * NPHASE )) ; U_RHS_CDP=0.
@@ -585,11 +585,9 @@
       ALLOCATE( DU( U_NONODS * NPHASE )) ; DU = 0.
       ALLOCATE( DV( U_NONODS * NPHASE )) ; DV = 0.
       ALLOCATE( DW( U_NONODS * NPHASE )) ; DW = 0.
-      ALLOCATE( PIVIT_MAT( TOTELE, U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM ))
-      ALLOCATE( INV_PIVIT_MAT( TOTELE, U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM ))
-      ALLOCATE( DGM_PHA( NCOLDGM_PHA ))
-
-      PIVIT_MAT=0.; INV_PIVIT_MAT=0.
+      ALLOCATE( PIVIT_MAT( TOTELE, U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM )) ; PIVIT_MAT=0.
+      ALLOCATE( INV_PIVIT_MAT( TOTELE, U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM )) ; INV_PIVIT_MAT=0.
+      ALLOCATE( DGM_PHA( NCOLDGM_PHA )) ; DGM_PHA=0.
 
       CALL CV_ASSEMB_FORCE_CTY_PRES(  &
            NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
@@ -638,7 +636,7 @@
             EWRITE(3,*)'OPTION NOT READY YET WITH A GLOBAL SOLVE'
             STOP 8331
          ENDIF
-         UP=0.0
+         UP=0.
          CALL SOLVER( MCY, UP, MCY_RHS, &
               FINMCY, COLMCY, &
               option_path = '/material_phase[0]/vector_field::Velocity')
@@ -688,16 +686,12 @@
          !ewrite(3,*) 'w::', w
          !ewrite(3,*) 'ct::', ct
 
-
          ! put on rhs the cty eqn; put most recent pressure in RHS of momentum eqn
          ! NB. P_RHS = -CT*U + CT_RHS 
          CALL CT_MULT(P_RHS, U, V, W, CV_NONODS, U_NONODS, NDIM, NPHASE, &
               CT, NCOLCT, FINDCT, COLCT)
 
-         !ewrite(3,*) 'P_RHS1::', p_rhs
-
          P_RHS = -P_RHS + CT_RHS
-
 
          ! Matrix vector involving the mass diagonal term
          DO CV_NOD = 1, CV_NONODS
@@ -716,8 +710,6 @@
          ! solve for pressure correction DP that is solve CMC *DP=P_RHS...
          ewrite(3,*)'about to solve for pressure'
 
-         DP = 0.0
-
          ! Print cmc
          if(.false.) then
             DO CV_NOD = 1, CV_NONODS
@@ -735,14 +727,15 @@
          endif
 
          ewrite(3,*)'b4 pressure solve P_RHS:', P_RHS
-         if( .true.) then   !cv_nonods==x_nonods) then ! a continuous pressure: 
+         DP = 0.
+         if( .true.) then !cv_nonods==x_nonods) then ! a continuous pressure: 
             !if(cv_nonods==x_nonods) then ! a continuous pressure: 
             CALL SOLVER( CMC, DP, P_RHS, &
                  FINDCMC, COLCMC, &
-                 option_path = '/material_phase[0]/scalar_field::Pressure')
+                 option_path = '/material_phase[0]/scalar_field::Pressure' )
          else ! a discontinuous pressure multi-grid solver:
-            CALL PRES_DG_MULTIGRID(CMC, DP, P_RHS,     &
-                 NCOLCMC, cv_NONODS, FINDCMC, COLCMC, MIDCMC,      &
+            CALL PRES_DG_MULTIGRID(CMC, DP, P_RHS, &
+                 NCOLCMC, cv_NONODS, FINDCMC, COLCMC, MIDCMC, &
                  totele, cv_nloc, x_nonods, cv_ndgln, x_ndgln )
          endif
 
@@ -753,25 +746,23 @@
 
          ! Use a projection method
          ! CDP = C * DP
-
          CALL C_MULT( CDP, DP, CV_NONODS, U_NONODS, NDIM, NPHASE, &
               C, NCOLC, FINDC, COLC)
 
-         do count = 1, ndim
-            do iphase = 1, nphase
-               do ele = 1, totele
-                  do cv_nod = 1, u_nloc
-                     x_nod1 = u_ndgln( ( ele - 1 ) * u_nloc + cv_nod )
-                     x_nod2 = ( iphase- 1 ) * ndim * u_nonods + ( count - 1 ) * u_nonods + x_nod1
-                     !ewrite(3,*)'idim, iph, ele, nod, cdp:', count, iphase, ele, cv_nod, x_nod2, cdp( x_nod2 )
-                  end do
-               end do
-            end do
-         end do
+         !do count = 1, ndim
+         !   do iphase = 1, nphase
+         !      do ele = 1, totele
+         !         do cv_nod = 1, u_nloc
+         !            x_nod1 = u_ndgln( ( ele - 1 ) * u_nloc + cv_nod )
+         !            x_nod2 = ( iphase- 1 ) * ndim * u_nonods + ( count - 1 ) * u_nonods + x_nod1
+         !            ewrite(3,*)'idim, iph, ele, nod, cdp:', count, iphase, ele, cv_nod, x_nod2, cdp( x_nod2 )
+         !         end do
+         !      end do
+         !   end do
+         !end do
 
          ! correct velocity...
          ! DU = BLOCK_MAT * CDP 
-
          CALL PHA_BLOCK_MAT_VEC( DU_VEL, INV_PIVIT_MAT, CDP, U_NONODS, NDIM, NPHASE, &
               TOTELE, U_NLOC, U_NDGLN )
 
@@ -782,8 +773,8 @@
          !ewrite(3,*)'DW', DW
 
          U = U + DU
-         IF( NDIM >= 2) V = V + DV
-         IF( NDIM >= 3) W = W + DW
+         IF( NDIM >= 2 ) V = V + DV
+         IF( NDIM >= 3 ) W = W + DW
 
          !ewrite(3,*)'x,p:'
          !DO CV_NOD = 1, CV_NONODS
@@ -2088,7 +2079,6 @@
 
                Loop_DGNods2: DO U_JLOC = 1 +(ILEV-1)*U_NLOC2, ILEV*U_NLOC2
                   !Loop_DGNods2: DO U_JLOC = 1, U_NLOC
-
                   GLOBJ = U_NDGLN(( ELE - 1 ) * U_NLOC + U_JLOC )
 
                   NN = 0.0 
@@ -2141,13 +2131,13 @@
 
                            VLN( IPHASE ) = VLN( IPHASE ) + &
                                 UFEN( U_ILOC, GI ) * DENGI(GI, IPHASE)*( UD( GI, IPHASE ) * UFENX( U_JLOC, GI ) + &
-                                VD( GI, IPHASE ) * UFENY( U_JLOC, GI ) +WD( GI, IPHASE ) * UFENZ( U_JLOC, GI ) ) &
-                                * DETWEI( GI ) *WITH_NONLIN
+                                VD( GI, IPHASE ) * UFENY( U_JLOC, GI ) + WD( GI, IPHASE ) * UFENZ( U_JLOC, GI ) ) &
+                                * DETWEI( GI ) * WITH_NONLIN
 
                            VLN_OLD( IPHASE ) = VLN_OLD( IPHASE ) + &
                                 UFEN( U_ILOC, GI ) * DENGI(GI, IPHASE)*( UDOLD( GI, IPHASE ) * UFENX( U_JLOC, GI ) + &
-                                VDOLD( GI, IPHASE ) * UFENY( U_JLOC, GI ) +WDOLD( GI, IPHASE ) * UFENZ( U_JLOC, GI ) ) &
-                                * DETWEI( GI ) *WITH_NONLIN
+                                VDOLD( GI, IPHASE ) * UFENY( U_JLOC, GI ) + WDOLD( GI, IPHASE ) * UFENZ( U_JLOC, GI ) ) &
+                                * DETWEI( GI ) * WITH_NONLIN
 
                         ENDIF
 
@@ -2236,7 +2226,6 @@
                                       + NN_SIGMAGI_STAB( IPHA_IDIM, JPHA_JDIM )*W(GLOBJ+(JPHASE-1)*U_NONODS) &
                                       + (NN_MASS( IPHA_IDIM, JPHA_JDIM )/DT)*WOLD(GLOBJ+(JPHASE-1)*U_NONODS)
                               ENDIF
-
                            END DO
                         END DO
                      END DO
@@ -2252,11 +2241,11 @@
                                 U_NONODS * NPHASE * NDIM, FINDGM_PHA, COLDGM_PHA, NCOLDGM_PHA )
 
                            ! Adding diffusion and momentum terms to the global matrix
-                           I=U_ILOC+ (IDIM-1)*U_NLOC+ (IPHASE-1)*NDIM*U_NLOC
-                           J=U_JLOC+ (IDIM-1)*U_NLOC+ (IPHASE-1)*NDIM*U_NLOC
+                           I = U_ILOC + (IDIM-1) * U_NLOC + (IPHASE-1) * NDIM * U_NLOC
+                           J = U_JLOC + (IDIM-1) * U_NLOC + (IPHASE-1) * NDIM * U_NLOC
 
-                           DGM_PHA( COUNT ) =  DGM_PHA( COUNT ) + VLK( IPHASE ) + VLN( IPHASE )
-                           PIVIT_MAT(ELE, I, J) =  PIVIT_MAT(ELE, I, J) + VLK( IPHASE )
+                           DGM_PHA( COUNT ) = DGM_PHA( COUNT ) + VLK( IPHASE ) + VLN( IPHASE )
+                           PIVIT_MAT(ELE, I, J) = PIVIT_MAT(ELE, I, J) + VLK( IPHASE )
 
                         END DO
                      END DO
@@ -2638,19 +2627,19 @@
                               C( COUNT_PHA ) = C( COUNT_PHA ) + VNMX * SELE_OVERLAP_SCALE(P_JLOC) &
                                    *MASSE/(MASSE+MASSE2) 
                               IF( NDIM >= 2 ) C( COUNT_PHA + NCOLC )     &
-                                   = C( COUNT_PHA + NCOLC ) + VNMY* SELE_OVERLAP_SCALE(P_JLOC) &
+                                   = C( COUNT_PHA + NCOLC ) + VNMY * SELE_OVERLAP_SCALE(P_JLOC) &
                                    *MASSE/(MASSE+MASSE2) 
                               IF( NDIM >= 3 ) C( COUNT_PHA + 2 * NCOLC ) &
-                                   = C( COUNT_PHA + 2 * NCOLC ) + VNMZ* SELE_OVERLAP_SCALE(P_JLOC) &
+                                   = C( COUNT_PHA + 2 * NCOLC ) + VNMZ * SELE_OVERLAP_SCALE(P_JLOC) &
                                    *MASSE/(MASSE+MASSE2) 
 
-                              C( COUNT_PHA2 ) = C( COUNT_PHA2 ) - VNMX* SELE_OVERLAP_SCALE(P_JLOC) &
+                              C( COUNT_PHA2 ) = C( COUNT_PHA2 ) - VNMX * SELE_OVERLAP_SCALE(P_JLOC) &
                                    *MASSE/(MASSE+MASSE2) 
                               IF( NDIM >= 2 ) C( COUNT_PHA2 + NCOLC )     &
-                                   = C( COUNT_PHA2 + NCOLC ) - VNMY* SELE_OVERLAP_SCALE(P_JLOC) &
+                                   = C( COUNT_PHA2 + NCOLC ) - VNMY * SELE_OVERLAP_SCALE(P_JLOC) &
                                    *MASSE/(MASSE+MASSE2) 
                               IF( NDIM >= 3 ) C( COUNT_PHA2 + 2 * NCOLC ) &
-                                   = C( COUNT_PHA2 + 2 * NCOLC ) - VNMZ* SELE_OVERLAP_SCALE(P_JLOC) &
+                                   = C( COUNT_PHA2 + 2 * NCOLC ) - VNMZ * SELE_OVERLAP_SCALE(P_JLOC) &
                                    *MASSE/(MASSE+MASSE2) 
 
                            END DO Loop_Phase5
@@ -2746,7 +2735,7 @@
                                  SUD(SGI,IPHASE)=0.5*(SUD(SGI,IPHASE)+SUD2(SGI,IPHASE))
                                  SVD(SGI,IPHASE)=0.5*(SVD(SGI,IPHASE)+SVD2(SGI,IPHASE))
                                  SWD(SGI,IPHASE)=0.5*(SWD(SGI,IPHASE)+SWD2(SGI,IPHASE))
-                                 !                       SUD(SGI,IPHASE)=SUD2(SGI,IPHASE)
+                                 !                 SUD(SGI,IPHASE)=SUD2(SGI,IPHASE)
                                  !                 SVD(SGI,IPHASE)=SVD2(SGI,IPHASE)
                                  !                 SWD(SGI,IPHASE)=SWD2(SGI,IPHASE)
                               ENDIF
@@ -3029,8 +3018,6 @@
 
       END DO Loop_Elements2
 
-
-
       !do i=1, ndim*nphase*u_nonods
       !   print *, i, sum(DGM_PHA(FINDGM_PHA(i):FINDGM_PHA(i+1)-1))
       !end do
@@ -3191,27 +3178,23 @@
       DEALLOCATE( YSL )
       DEALLOCATE( ZSL )
 
-      ewrite(3,*)'pqp2-'
       DEALLOCATE( SELE_OVERLAP_SCALE )
-      ewrite(3,*)'pqp2'
 
       DEALLOCATE( DUX_ELE )
       DEALLOCATE( DVY_ELE )
       DEALLOCATE( DWZ_ELE )
-      ewrite(3,*)'pqp1'
+
       DEALLOCATE( DUOLDX_ELE )
       DEALLOCATE( DVOLDY_ELE )
       DEALLOCATE( DWOLDZ_ELE )
-      ewrite(3,*)'pqp4'
 
       DEALLOCATE( GRAD_SOU_GI_NMX )
       DEALLOCATE( GRAD_SOU_GI_NMY )
       DEALLOCATE( GRAD_SOU_GI_NMZ )
-      ewrite(3,*)'pqp3'
 
       DEALLOCATE( MASS_ELE )
       DEALLOCATE( FACE_ELE )
-      !      CALL MATMASSINV( MASINV, MMAT, U_NONODS, U_NLOC, TOTELE)
+      !CALL MATMASSINV( MASINV, MMAT, U_NONODS, U_NLOC, TOTELE)
 
       ewrite(3,*)'Leaving assemb_force_cty'
       !stop 98123

@@ -367,6 +367,15 @@ contains
        UOLD = U
        NU = U
        NUOLD = U
+
+       VOLD = V
+       NV = V
+       NVOLD = V
+
+       WOLD = W
+       NW = W
+       NWOLD = W
+
        DENOLD = DEN
        POLD = P
        CV_POLD = CV_P
