@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from pylab import *
-from math import atan2
+from math import atan2, pi
 import argparse
 import vtktools
 
@@ -34,6 +34,7 @@ else:
             radius = sqrt( x**2 + y**2 + z**2 )
             theta = arccos(z/radius) 
             phi = atan2(y,x) 
+            phi = pi/2.0 - phi
             new_x=phi*stretch_factor
             new_y=theta*stretch_factor
             new_z=radius
