@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">MMS_A</string_value>
+    <string_value lines="1">MMS_C</string_value>
   </simulation_name>
   <problem_type>
     <string_value lines="1">fluids</string_value>
@@ -35,7 +35,7 @@
       </from_mesh>
     </mesh>
     <mesh name="InputMesh">
-      <from_file file_name="src/MMS_A">
+      <from_file file_name="src/MMS_C">
         <format name="gmsh"/>
         <stat>
           <include_in_stat/>
@@ -75,7 +75,7 @@
     </nonlinear_iterations>
     <adaptive_timestep>
       <requested_cfl>
-        <real_value rank="0">2.0</real_value>
+        <real_value rank="0">0.1</real_value>
       </requested_cfl>
       <courant_number name="CFLNumber">
         <mesh name="VelocityMesh"/>
@@ -89,7 +89,49 @@
       </tolerance>
     </steady_state>
   </timestepping>
+  <physical_parameters>
+    <gravity>
+      <magnitude>
+        <real_value rank="0">1.0</real_value>
+      </magnitude>
+      <vector_field name="GravityDirection" rank="1">
+        <prescribed>
+          <mesh name="CoordinateMesh"/>
+          <value name="WholeMesh">
+            <constant>
+              <real_value shape="2" dim1="dim" rank="1">0 -1</real_value>
+            </constant>
+          </value>
+          <output/>
+          <stat>
+            <include_in_stat/>
+          </stat>
+          <detectors>
+            <exclude_from_detectors/>
+          </detectors>
+        </prescribed>
+      </vector_field>
+    </gravity>
+  </physical_parameters>
   <material_phase name="NS">
+    <equation_of_state>
+      <fluids>
+        <linear>
+          <reference_density>
+            <real_value rank="0">1.0</real_value>
+          </reference_density>
+          <temperature_dependency>
+            <reference_temperature>
+              <real_value rank="0">0.0</real_value>
+            </reference_temperature>
+            <thermal_expansion_coefficient>
+              <real_value rank="0">-1.0</real_value>
+            </thermal_expansion_coefficient>
+          </temperature_dependency>
+          <subtract_out_hydrostatic_level/>
+        </linear>
+      </fluids>
+    </equation_of_state>
     <subgridscale_parameterisations>
       <k-epsilon>
         <scalar_field name="TurbulentKineticEnergy" rank="0">
@@ -97,13 +139,14 @@
             <mesh name="VelocityMesh"/>
             <equation name="AdvectionDiffusion"/>
             <spatial_discretisation>
-              <continuous_galerkin>
-                <stabilisation>
-                  <no_stabilisation/>
-                </stabilisation>
-                <advection_terms/>
-                <mass_terms/>
-              </continuous_galerkin>
+              <control_volumes>
+                <face_value name="FiniteElement">
+                  <limit_face_value>
+                    <limiter name="Sweby"/>
+                  </limit_face_value>
+                </face_value>
+                <diffusion_scheme name="ElementGradient"/>
+              </control_volumes>
               <conservative_advection>
                 <real_value rank="0">0</real_value>
               </conservative_advection>
@@ -133,7 +176,7 @@
             </solver>
             <initial_condition name="WholeMesh">
               <constant>
-                <real_value rank="0">0.0001</real_value>
+                <real_value rank="0">0.001</real_value>
               </constant>
             </initial_condition>
             <boundary_conditions name="all_sides">
@@ -205,13 +248,14 @@
             <mesh name="VelocityMesh"/>
             <equation name="AdvectionDiffusion"/>
             <spatial_discretisation>
-              <continuous_galerkin>
-                <stabilisation>
-                  <no_stabilisation/>
-                </stabilisation>
-                <advection_terms/>
-                <mass_terms/>
-              </continuous_galerkin>
+              <control_volumes>
+                <face_value name="FiniteElement">
+                  <limit_face_value>
+                    <limiter name="Sweby"/>
+                  </limit_face_value>
+                </face_value>
+                <diffusion_scheme name="ElementGradient"/>
+              </control_volumes>
               <conservative_advection>
                 <real_value rank="0">0</real_value>
               </conservative_advection>
@@ -241,7 +285,7 @@
             </solver>
             <initial_condition name="WholeMesh">
               <constant>
-                <real_value rank="0">0.000001</real_value>
+                <real_value rank="0">0.001</real_value>
               </constant>
             </initial_condition>
             <boundary_conditions name="all_sides">
@@ -314,13 +358,26 @@
             <value name="WholeMesh">
               <isotropic>
                 <constant>
-                  <real_value rank="0">0.7</real_value>
+                  <real_value rank="0">1.0</real_value>
                 </constant>
               </isotropic>
             </value>
             <output>
               <exclude_from_vtu/>
             </output>
+          </prescribed>
+        </tensor_field>
+        <tensor_field name="BackgroundDiffusivity" rank="2">
+          <prescribed>
+            <mesh name="VelocityMesh"/>
+            <value name="WholeMesh">
+              <isotropic>
+                <constant>
+                  <real_value rank="0">0.0</real_value>
+                </constant>
+              </isotropic>
+            </value>
+            <output/>
           </prescribed>
         </tensor_field>
         <tensor_field name="EddyViscosity" rank="2">
@@ -496,6 +553,23 @@
         <no_interpolation/>
       </prognostic>
     </scalar_field>
+    <scalar_field name="Density" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
     <vector_field name="Velocity" rank="1">
       <prognostic>
         <mesh name="VelocityMesh"/>
@@ -641,7 +715,7 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="PressureAnalytical" rank="0">
+    <scalar_field name="Pressure_Analytical" rank="0">
       <prescribed>
         <mesh name="PressureMesh"/>
         <value name="WholeMesh">
@@ -658,20 +732,9 @@
         </detectors>
       </prescribed>
     </scalar_field>
-    <scalar_field name="PressureDifference" rank="0">
+    <scalar_field name="Pressure_Difference" rank="0">
       <diagnostic>
-        <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="code" language="python">E=state.scalar_fields["Pressure"]
-S=state.scalar_fields["PressureAnalytical"]
-
-for n in range(field.node_count):
-	E_n=E.node_val(n)
-	S_n=S.node_val(n)
-	field.set(n,E_n-S_n)</string_value>
-          <depends>
-            <string_value lines="1">Pressure</string_value>
-          </depends>
-        </algorithm>
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="Pressure_Analytical" source_field_2_name="Pressure" material_phase_support="single" source_field_1_type="scalar"/>
         <mesh name="PressureMesh"/>
         <output/>
         <stat/>
@@ -686,7 +749,7 @@ for n in range(field.node_count):
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="EddyViscosityAnalytical" rank="0">
+    <scalar_field name="ScalarEddyViscosity_Analytical" rank="0">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
@@ -704,11 +767,11 @@ for n in range(field.node_count):
         </detectors>
       </prescribed>
     </scalar_field>
-    <scalar_field name="EddyViscosityDifference" rank="0">
+    <scalar_field name="ScalarEddyViscosity_Difference" rank="0">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
           <string_value lines="20" type="code" language="python">E=state.scalar_fields["ScalarEddyViscosity"]
-S=state.scalar_fields["EddyViscosityAnalytical"]
+S=state.scalar_fields["ScalarEddyViscosity_Analytical"]
 
 for n in range(field.node_count):
 	E_n=E.node_val(n)
@@ -729,7 +792,7 @@ for n in range(field.node_count):
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="TKEAnalytical" rank="0">
+    <scalar_field name="TurbulentKineticEnergy_Analytical" rank="0">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
@@ -747,11 +810,11 @@ for n in range(field.node_count):
         </detectors>
       </prescribed>
     </scalar_field>
-    <scalar_field name="TKEDifference" rank="0">
+    <scalar_field name="TurbulentKineticEnergy_Difference" rank="0">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
           <string_value lines="20" type="code" language="python">E=state.scalar_fields["TurbulentKineticEnergy"]
-S=state.scalar_fields["TKEAnalytical"]
+S=state.scalar_fields["TurbulentKineticEnergy_Analytical"]
 
 for n in range(field.node_count):
 	E_n=E.node_val(n)
@@ -772,7 +835,7 @@ for n in range(field.node_count):
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="EpsilonAnalytical" rank="0">
+    <scalar_field name="TurbulentDissipation_Analytical" rank="0">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
@@ -790,11 +853,11 @@ for n in range(field.node_count):
         </detectors>
       </prescribed>
     </scalar_field>
-    <scalar_field name="EpsilonDifference" rank="0">
+    <scalar_field name="TurbulentDissipation_Difference" rank="0">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
           <string_value lines="20" type="code" language="python">E=state.scalar_fields["TurbulentDissipation"]
-S=state.scalar_fields["EpsilonAnalytical"]
+S=state.scalar_fields["TurbulentDissipation_Analytical"]
 
 for n in range(field.node_count):
 	E_n=E.node_val(n)
@@ -815,7 +878,157 @@ for n in range(field.node_count):
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="VelocityAnalytical" rank="1">
+    <scalar_field name="Temperature" rank="0">
+      <prognostic>
+        <mesh name="VelocityMesh"/>
+        <equation name="AdvectionDiffusion"/>
+        <spatial_discretisation>
+          <control_volumes>
+            <face_value name="FiniteElement">
+              <limit_face_value>
+                <limiter name="Sweby"/>
+              </limit_face_value>
+            </face_value>
+            <diffusion_scheme name="ElementGradient"/>
+          </control_volumes>
+          <conservative_advection>
+            <real_value rank="0">0</real_value>
+          </conservative_advection>
+        </spatial_discretisation>
+        <temporal_discretisation>
+          <theta>
+            <real_value rank="0">0.5</real_value>
+          </theta>
+        </temporal_discretisation>
+        <solver>
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">30</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1.e-8</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">10000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <initial_condition name="WholeMesh">
+          <python>
+            <string_value lines="20" type="code" language="python">def val(X,t):
+        import k_epsilon_tools as k
+        rho_p=k.rho_p(X)
+        return rho_p</string_value>
+          </python>
+        </initial_condition>
+        <boundary_conditions name="all_sides">
+          <surface_ids>
+            <integer_value shape="4" rank="1">7 8 9 10</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <python>
+              <string_value lines="20" type="code" language="python">def val(X,t):
+        import k_epsilon_tools as k
+        rho_p=k.rho_p(X)
+        return rho_p</string_value>
+            </python>
+          </type>
+        </boundary_conditions>
+        <subgridscale_parameterisation name="k-epsilon">
+          <prandtl_schmidt_number>
+            <real_value rank="0">1.0</real_value>
+          </prandtl_schmidt_number>
+          <background_diffusivity>
+            <real_value rank="0">0.0</real_value>
+          </background_diffusivity>
+          <buoyancy_effects>
+            <beta>
+              <real_value rank="0">1.0</real_value>
+            </beta>
+          </buoyancy_effects>
+        </subgridscale_parameterisation>
+        <tensor_field name="Diffusivity" rank="2">
+          <diagnostic>
+            <algorithm name="k_epsilon_diffusivity" material_phase_support="single"/>
+            <output/>
+            <stat>
+              <exclude_from_stat/>
+            </stat>
+          </diagnostic>
+        </tensor_field>
+        <scalar_field name="Source" rank="0">
+          <prescribed>
+            <value name="WholeMesh">
+              <python>
+                <string_value lines="20" type="code" language="python">def val(X,t):
+        import k_epsilon_tools as k
+        return k.forcing_density(X)</string_value>
+              </python>
+            </value>
+            <output/>
+            <stat/>
+            <detectors>
+              <exclude_from_detectors/>
+            </detectors>
+          </prescribed>
+        </scalar_field>
+        <output>
+          <include_previous_time_step/>
+        </output>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <exclude_from_steady_state/>
+        </steady_state>
+        <consistent_interpolation/>
+      </prognostic>
+    </scalar_field>
+    <scalar_field name="Temperature_Analytical" rank="0">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="code" language="python">def val(X,t):
+        import k_epsilon_tools as k
+        rho_p=k.rho_p(X)
+        return rho_p</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="Temperature_Difference" rank="0">
+      <diagnostic>
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="Temperature" source_field_2_name="Temperature_Analytical" material_phase_support="single" source_field_1_type="scalar"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <vector_field name="Velocity_Analytical" rank="1">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
@@ -834,9 +1047,9 @@ for n in range(field.node_count):
         </detectors>
       </prescribed>
     </vector_field>
-    <vector_field name="VelocityDifference" rank="1">
+    <vector_field name="Velocity_Difference" rank="1">
       <diagnostic>
-        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="Velocity" source_field_2_name="VelocityAnalytical" material_phase_support="single" source_field_1_type="vector"/>
+        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="Velocity" source_field_2_name="Velocity_Analytical" material_phase_support="single" source_field_1_type="vector"/>
         <mesh name="VelocityMesh"/>
         <output/>
         <stat>
