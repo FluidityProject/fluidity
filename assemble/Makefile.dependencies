@@ -31,14 +31,14 @@ Adapt_State.o ../include/adapt_state_module.mod: Adapt_State.F90 \
    ../include/interpolation_module.mod \
    ../include/intersection_finder_module.mod ../include/mba2d_integration.mod \
    ../include/mba3d_integration.mod ../include/mba_adapt_module.mod \
-   ../include/mesh_files.mod ../include/metric_assemble.mod \
-   ../include/mpi_interfaces.mod ../include/parallel_tools.mod \
-   ../include/pickers.mod ../include/populate_state_module.mod \
+   ../include/metric_assemble.mod ../include/mpi_interfaces.mod \
+   ../include/parallel_tools.mod ../include/pickers.mod \
+   ../include/populate_state_module.mod \
    ../include/project_metric_to_surface_module.mod ../include/quadrature.mod \
    ../include/reserve_state_module.mod ../include/sam_integration.mod \
    ../include/sparse_tools.mod ../include/state_module.mod \
    ../include/tictoc.mod ../include/timeloop_utilities.mod \
-   ../include/zoltan_integration.mod
+   ../include/write_gmsh.mod ../include/zoltan_integration.mod
 
 ../include/adapt_state_prescribed_module.mod: Adapt_State_Prescribed.o
 	@true
@@ -831,13 +831,12 @@ Vertical_Balance_Pressure.o ../include/vertical_balance_pressure.mod: \
 
 Vertical_Extrapolation.o ../include/vertical_extrapolation_module.mod: \
    Vertical_Extrapolation.F90 ../include/boundary_conditions.mod \
-   ../include/coordinates.mod ../include/dynamic_bin_sort_module.mod \
-   ../include/elements.mod ../include/fdebug.h ../include/fields.mod \
-   ../include/fldebug.mod ../include/global_parameters.mod \
-   ../include/integer_set_module.mod ../include/parallel_tools.mod \
-   ../include/pickers.mod ../include/sparse_tools.mod ../include/spud.mod \
-   ../include/state_module.mod ../include/transform_elements.mod \
-   ../include/vtk_interfaces.mod
+   ../include/dynamic_bin_sort_module.mod ../include/elements.mod \
+   ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
+   ../include/global_parameters.mod ../include/integer_set_module.mod \
+   ../include/parallel_tools.mod ../include/pickers.mod \
+   ../include/sparse_tools.mod ../include/spud.mod ../include/state_module.mod \
+   ../include/transform_elements.mod ../include/vtk_interfaces.mod
 
 ../include/vorticity_diagnostics.mod: Vorticity_Diagnostics.o
 	@true
