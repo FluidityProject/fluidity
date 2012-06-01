@@ -204,19 +204,22 @@ contains
 
   end subroutine cartesian_2_spherical_polar_field
 
-  subroutine lon_lat_height_2_cartesian(longitude, latitude, height, referenceRadius, &
-                                        x, y, z)
-    !Subroutine for convertion of cartesian coordinates into longitude-latitude-height
-    ! If referenceRadius is specified, height is measures as the radial distance relative
-    ! to that radius.
+  subroutine lon_lat_height_2_spherical_polar(longitude, latitude, height, &
+                                              referenceRadius, &
+                                              radius, theta, phi)
+    !Subroutine for conversion of longitude-latitude-height coordinates on a 
+    !  sphere to spherical-polar coordinates. Longitude and latitude must be
+    !  in degrees, polar coordinates are returned into radians
+    implicit none
+
     real, intent(in) :: longitude !in degrees
     real, intent(in) :: latitude  !in degrees
     real, intent(in) :: height
-    real, intent(in) :: referenceRadius
-    real, intent(out) :: x,y,z   !cartesian coordinates
-    real :: radius !Distance from centre of sphere
-    real :: theta  !Polar angle, in radians
-    real :: phi    !Azimuthal angle, in radians
+    real, intent(in) :: referenceRadius !distance form the centre of
+                                        ! the sphere to its surface
+    real, intent(out) :: radius !Distance from centre of sphere
+    real, intent(out) :: theta  !Polar angle, in radians
+    real, intent(out) :: phi    !Azimuthal angle, in radians
     real :: pi
 
     pi=4*atan(1.0)
@@ -228,6 +231,67 @@ contains
     !Convert height to distance from origin
     radius = height + referenceRadius
 
+  end subroutine lon_lat_height_2_spherical_polar
+
+  subroutine spherical_polar_2 lon_lat_height(radius, theta, phi, &
+                                              longitude, latitude, height, &
+                                              referenceRadius)
+    !Subroutine for conversion of sperical-polar coordinates to
+    !  longitude-latitude-height coordinates. The polar coordinates must
+    !  be given in radians. Longitude and latitude are returned in
+    !  degrees. If referenceRadius is specified, height is measured as the as the
+    !  radial distance relative to that radius, ie it is the distance relative to the
+    !  surface of the sphere. if referenceRadius is absent height is the distance
+    !  from the center of the sphere.
+    implicit none
+
+    real, intent(in) :: radius !Distance from centre of sphere
+    real, intent(in) :: theta  !Polar angle, in radians
+    real, intent(in) :: phi    !Azimuthal angle, in radians
+    real, intent(out) :: longitude !in degrees
+    real, intent(out) :: latitude  !in degrees
+    real, intent(out) :: height
+    real, intent(in), optional :: referenceRadius !distance form the centre of
+                                                  ! the sphere to its surface
+    real :: pi
+
+    pi=4*atan(1.0)
+
+    longitude = phi*180.0/pi
+    latitude = (pi/2 - theta)*180.0/pi
+
+    !If referenceRadius is present, subtract it from the radial distance
+    if(present(referenceRadius)) then
+      height = radius - referenceRadius
+    else
+      height = radius
+    endif
+
+  end subroutine spherical_polar_2 lon_lat_height
+
+  subroutine lon_lat_height_2_cartesian(longitude, latitude, height, referenceRadius, &
+                                        x, y, z)
+    !Subroutine for convertion of cartesian coordinates into longitude-latitude-height
+    ! If referenceRadius is specified, height is measured as the radial distance relative
+    ! to that radius, ie it is the distance relative to the surface of the sphere.
+    ! if referenceRadius is absent height is the distance from the center of the sphere.
+    implicit none
+
+    real, intent(in) :: longitude !in degrees
+    real, intent(in) :: latitude  !in degrees
+    real, intent(in) :: height
+    real, intent(in) :: referenceRadius
+    real, intent(out) :: x,y,z   !cartesian coordinates
+    real :: radius !Distance from centre of sphere
+    real :: theta  !Polar angle, in radians
+    real :: phi    !Azimuthal angle, in radians
+
+
+    !Convert longitude-latitude-height into spherical-polar coordinates
+    call lon_lat_height_2_spherical_polar(longitude, latitude, height, &
+                                          referenceRadius, &
+                                          radius, theta, phi)
+
     !convert spherical-polar coordinates to Cartesian
     call sperical_polar_2_cartesian(radius,theta,phi,x,y,z)
 
@@ -238,6 +302,8 @@ contains
     !Subroutine for convertion of cartesian coordinates into longitude-latitude-height
     ! If referenceRadius is specified, height is measures as the radial distance relative
     ! to that radius.
+    implicit none
+
     real, intent(in) :: x,y,z   !cartesian coordinates
     real, intent(out) :: longitude !in degrees
     real, intent(out) :: latitude  !in degrees
@@ -246,22 +312,18 @@ contains
     real :: radius !Distance from centre of sphere
     real :: theta  !Polar angle, in radians
     real :: phi    !Azimuthal angle, in radians
-    real :: pi
-
-    pi=4*atan(1.0)
 
     !convert cartesian coordinates to spherical-polar
     call cartesian_2_spherical_polar(x,y,z,radius,theta,phi)
 
     !Convert polar angle into latitude and azimuthal angle into longitude; in radians.
-    longitude = phi*180.0/pi
-    latitude = (pi/2 - theta)*180.0/pi
-
-    !If referenceRadius is present, subtract it from the radial distance
     if(present(referenceRadius)) then
-      height = radius - referenceRadius
+      call spherical_polar_2 lon_lat_height(radius, theta, phi, &
+                                            longitude, latitude, height, &
+                                            referenceRadius)
     else
-      height = radius
+      call spherical_polar_2 lon_lat_height(radius, theta, phi, &
+                                            longitude, latitude, height)
     endif
 
   end subroutine cartesian_2_lon_lat_height
@@ -423,7 +485,8 @@ contains
     polar = -meridionalComponent
     radial = verticalComponent
     !convert longitude-latitude-height to spherical-polar.
-    call
+    call lon_lat_height_2_spherical_polar(longitude, latitude, height, referenceRadius, &
+                                          radius, theta, phi)
     !convert spherical-polar components to cartesian.
     call vector_spherical_polar_2_cartesian(radial, polar, azimuthal, &
                                             radius, theta, phi, &
