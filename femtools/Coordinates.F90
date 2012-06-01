@@ -384,6 +384,109 @@ contains
 
   end subroutine vector_cartesian_2_spherical_polar
 
+  subroutine vector_lon_lat_height_2_cartesian(zonalComponent,&
+                                               meridionalComponent,&
+                                               verticalComponent, &
+                                               longitude, &
+                                               latitude, &
+                                               height,
+                                               referenceRadius, &
+                                               xComp, yComp, zComp, &
+                                               xCoord, yCoord, zCoord)
+    !Subroutine for change of basis of a vector from meridional-zonal-vertical
+    !  components to cartesian components.
+    implicit none
+
+    real, intent(in) :: zonalComponent      !Vector component tangential to parallel
+    real, intent(in) :: meridionalComponent !Vector component tangential to meridian
+    real, intent(in) :: verticalComponent   !Vecor component in the vertical (radial)
+    real, intent(in) :: longitude 
+    real, intent(in) :: latitude
+    real, intent(in) :: height
+    real, intent(in) :: referenceRadius
+    real, intent(out) :: xComp          !1st vector component in cartesian basis
+    real, intent(out) :: yComp          !2nd vector component in cartesian basis
+    real, intent(out) :: zComp          !3rd vector component in cartesian basis
+    real, intent(out) :: xCoord         !1st vector component of position vector in cartesian basis
+    real, intent(out) :: yCoord         !2nd vector component of position vector in cartesian basis
+    real, intent(out) :: zCoord         !3rd vector component of position vector in cartesian basis
+    real, intent(out) :: radial        !Radial component of vector
+    real :: radial       !Radial component of vector
+    real :: polar        !Polar component of vector
+    real :: azimuthal    !Azimuthal  component of vector
+    real :: radius       !Distance from centre of sphere
+    real :: theta        !Polar angle, in radians
+    real :: phi          !Azimuthal angle, in radians
+
+    !Convert zonal-meridional-vertical components to spherical-polar
+    azimuthal = zonalComponent
+    polar = -meridionalComponent
+    radial = verticalComponent
+    !convert longitude-latitude-height to spherical-polar.
+    call
+    !convert spherical-polar components to cartesian.
+    call vector_spherical_polar_2_cartesian(radial, polar, azimuthal, &
+                                            radius, theta, phi, &
+                                            xComp, yComp, zComp, &
+                                            xCoord, yCoord, zCoord
+
+  end subroutine vector_lon_lat_height_2_cartesian
+
+  subroutine vector_cartesian_2_lon_lat_height(xComp, yComp, zComp, &
+                                               xCoord, yCoord, zCoord, &
+                                               zonalComponent,&
+                                               meridionalComponent,&
+                                               verticalComponent, &
+                                               longitude, &
+                                               latitude, &
+                                               height,
+                                               referenceRadius)
+    !Subroutine for change of basis of a vector from cartesian to
+    !  meridional-zonal-vertical.
+    implicit none
+
+    real, intent(in) :: xComp          !1st vector component in cartesian basis
+    real, intent(in) :: yComp          !2nd vector component in cartesian basis
+    real, intent(in) :: zComp          !3rd vector component in cartesian basis
+    real, intent(in) :: xCoord         !1st vector component of position vector in cartesian basis
+    real, intent(in) :: yCoord         !2nd vector component of position vector in cartesian basis
+    real, intent(in) :: zCoord         !3rd vector component of position vector in cartesian basis
+    real, intent(in) :: radial        !Radial component of vector
+    real, intent(out) :: zonalComponent      !Vector component tangential to parallel
+    real, intent(out) :: meridionalComponent !Vector component tangential to meridian
+    real, intent(out) :: verticalComponent   !Vecor component in the vertical (radial)
+    real, intent(out) :: longitude 
+    real, intent(out) :: latitude
+    real, intent(out) :: height
+    real, intent(in), optional :: referenceRadius
+    real :: radial       !Radial component of vector
+    real :: polar        !Polar component of vector
+    real :: azimuthal    !Azimuthal  component of vector
+    real :: radius       !Distance from centre of sphere
+    real :: theta        !Polar angle, in radians
+    real :: phi          !Azimuthal angle, in radians
+
+    !Convert cartesian components to spherical-polar
+    call vector_cartesian_2_sperical_polar(xComp, yComp, zComp, &
+                                           xCoord, yCoord, zCoord, &
+                                           radius, theta, phi, &
+                                           radial, polar, azimuthal)
+    !Convert cartesian coordinates to longitude-latitude-radius
+    if(present(referenceRadius)) then
+      call cartesian_2_lon_lat_height(xCoord, yCoord, zCoord, &
+                                      longitude, latitude, height, &
+                                      referenceRadius)
+    else
+      call cartesian_2_lon_lat_height(xCoord, yCoord, zCoord, &
+                                      longitude, latitude, height)
+    endif
+    !Convert spherical-polar components to zonal-meridional-vertical
+    zonalComponent = azimuthal
+    meridionalComponent = -polar
+    verticalComponent = radial
+
+  end subroutine vector_cartesian_2_lon_lat_height
+
   subroutine vector_spherical_polar_2_cartesian_field(spherical_polar_vector_field, &
                                                       spherical_polar_coordinate_field, &
                                                       cartesian_vector_field, &
