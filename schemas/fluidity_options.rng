@@ -1667,16 +1667,6 @@ Required for low_Re boundaries.</a:documentation>
                       </element>
                     </element>
                   </optional>
-                  <element name="source_absorption">
-                    <a:documentation>Select whether source and absorption terms for k and epsilon
-are implicit or explicit.</a:documentation>
-                    <element name="string_value">
-                      <choice>
-                        <value>explicit</value>
-                        <value>implicit</value>
-                      </choice>
-                    </element>
-                  </element>
                   <element name="lengthscale_limit">
                     <a:documentation>Limit the turbulence lengthscale to within physical bounds (e.g. inlet min dimension).
 This helps to prevent instabilities during simulation spin-up.</a:documentation>
@@ -1708,6 +1698,20 @@ Recommended value (default): 1.0.</a:documentation>
 Recommended value (default): 1.3.</a:documentation>
                     <ref name="real"/>
                   </element>
+                  <optional>
+                    <element name="implicit_source">
+                      <a:documentation>Implicit source terms - essentially lump source terms into absorbtion term which
+is calculated implicitly.</a:documentation>
+                      <empty/>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="explicit_absorbtion">
+                      <a:documentation>Explicit absorbtion terms - essentially lump absorbtion terms into source term which
+is calculated explicitly</a:documentation>
+                      <empty/>
+                    </element>
+                  </optional>
                   <optional>
                     <element name="debugging_mode">
                       <a:documentation>produce vtu output of individual kk and eps source terms</a:documentation>

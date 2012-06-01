@@ -1310,13 +1310,6 @@ start =
                         prescribed_scalar_field
                      }
                   }?,
-                  ## Select whether source and absorption terms for k and epsilon
-                  ## are implicit or explicit.
-                  element source_absorption {
-                     element string_value {
-                     "explicit"|"implicit"
-                     }
-                  },
                   ## Limit the turbulence lengthscale to within physical bounds (e.g. inlet min dimension).
                   ## This helps to prevent instabilities during simulation spin-up.
                   element lengthscale_limit {real},
@@ -1336,6 +1329,12 @@ start =
                   ## Turbulent Schmidt number (eddy-viscosity coefficient from epsilon equation).
                   ## Recommended value (default): 1.3.
                   element sigma_eps {real},
+                  ## Implicit source terms - essentially lump source terms into absorbtion term which
+                  ## is calculated implicitly.
+                  element implicit_source { empty }?,
+                  ## Explicit absorbtion terms - essentially lump absorbtion terms into source term which
+                  ## is calculated explicitly
+                  element explicit_absorbtion { empty }?,
                   ## produce vtu output of individual kk and eps source terms
                   element debugging_mode{
                      ## output is created every timestep unless a period (in seconds) is provided here

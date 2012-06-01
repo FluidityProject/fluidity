@@ -56,7 +56,6 @@ implicit none
   real, save                          :: last_dump_time_k = -INFINITY
   real, save                          :: last_dump_time_eps = -INFINITY
   real, save                          :: fields_min = 1.e-10
-  character(len=FIELD_NAME_LEN), save :: src_abs
 
   public :: keps_init, keps_cleanup, keps_tke, keps_eps, keps_eddyvisc, keps_bcs, keps_adapt_mesh, k_epsilon_check_options
 
@@ -90,9 +89,6 @@ subroutine keps_init(state)
     ! Allocate the temporary, module-level variables
     call keps_allocate_fields(state)
 
-    ! Are source and absorption terms implicit/explicit?
-    call get_option(trim(keps_path)//'/source_absorption', src_abs)
-
     ! What is the maximum physical lengthscale in the domain?
     call get_option(trim(keps_path)//'/lengthscale_limit', lmax)
 
@@ -122,7 +118,6 @@ subroutine keps_init(state)
     ewrite(2,*) "sigma_k: ", sigma_k
     ewrite(2,*) "sigma_eps: ", sigma_eps
     ewrite(2,*) "fields_min: ", fields_min
-    ewrite(2,*) "implicit/explicit source/absorption terms: ", trim(src_abs)
     ewrite(2,*) "max turbulence lengthscale: ", lmax
     ewrite(2,*) "--------------------------------------------"
 
@@ -135,7 +130,7 @@ subroutine keps_tke(state)
     type(state_type), intent(inout)    :: state
     type(scalar_field), pointer        :: src_kk, abs_kk, kk, eps, EV, lumped_mass
     type(scalar_field_pointer), allocatable, dimension(:) :: buoyant_fields
-    type(scalar_field)                 :: prescribed_src_kk, prescribed_abs_kk
+    type(scalar_field)                 :: prescribed_src_kk, prescribed_abs_kk, src_to_abs
     type(vector_field), pointer        :: positions, nu, u, g
     type(tensor_field), pointer        :: kk_diff
     real, allocatable, dimension(:)    :: beta, delta_t
@@ -174,7 +169,7 @@ subroutine keps_tke(state)
     prescribed_abs=.false.
     call allocate(src_abs_terms(1), kk%mesh, name="KK_P_EV_SRC")
     call allocate(src_abs_terms(2), kk%mesh, name="KK_EPS_ABS")
-    call allocate(src_abs_terms(3), kk%mesh, name="KK_BUOY_ABS")
+    call allocate(src_abs_terms(3), kk%mesh, name="KK_BUOY_SRC")
     call zero(src_abs_terms(1)); call zero(src_abs_terms(2)); call zero(src_abs_terms(3))
     
     ! Assembly loop
@@ -229,25 +224,32 @@ subroutine keps_tke(state)
        ewrite_minmax(prescribed_abs_kk)
        call zero(abs_kk)
     end if
-
+    
     ewrite(2,*) "Calculating k source and absorption"
-    select case (src_abs)
-    case ("explicit")
-       call zero(src_kk)
-       call zero(abs_kk)
+    call zero(src_kk)
+    call zero(abs_kk)
+    ! Set source term
+    if(have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/implicit_source")) then
+       call allocate(src_to_abs, kk%mesh, name='SourceToAbsorbtion')
+       call set(src_to_abs, kk)
+       where (src_to_abs%val/=0.0)
+          src_to_abs%val=1./src_to_abs%val
+       end where
+       call scale(src_abs_terms(1), src_to_abs)
+       call scale(src_abs_terms(3), src_to_abs)
+       call addto(abs_kk, src_abs_terms(1), -1.0)
+       call addto(abs_kk, src_abs_terms(3), -1.0)
+       call deallocate(src_to_abs)
+    else
        call addto(src_kk, src_abs_terms(1))
+       call addto(src_kk, src_abs_terms(3))
+    end if
+    if(have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/explicit_absorbtion")) then
+       call scale(src_abs_terms(2), kk)
+       call addto(src_kk, src_abs_terms(2), -1.0)
+    else
        call addto(abs_kk, src_abs_terms(2))
-       call addto(abs_kk, src_abs_terms(3))
-    case ("implicit") ! does this work???
-       do i = 1, node_count(kk)
-          residual = (- node_val(src_abs_terms(1),i) + node_val(src_abs_terms(2),i) +&
-               & node_val(src_abs_terms(3),i))/node_val(lumped_mass,i)
-          call set(src_kk, i, -min(0.0, residual) )
-          call set(abs_kk, i, max(0.0, residual) )
-       end do
-    case default
-       FLAbort("Invalid implicitness option for k")
-    end select
+    end if
 
     ! Set copy of old kk for eps solve
     call set(tke_src_old, src_kk)
@@ -331,7 +333,7 @@ subroutine assemble_keps_tke_ele(src_abs_terms, kk, eps, EV, u, buoyant_fields, 
   end where
   rhs_addto(2,:) = shape_rhs(shape_kk, detwei*ele_val_at_quad(eps,ele)*inv_k)
 
-  ! Buoyancy term - As absorbtion:
+  ! Buoyancy term:
   ! zero buoyancy addto array
   do i_loc = 1, ele_loc(kk, ele)
      rhs_addto(3,i_loc) = 0.0
@@ -388,14 +390,7 @@ subroutine calculate_buoyancy_term_kk(rhs_addto, kk, EV, u, buoyant_field, beta,
   ! calculate scalar and vector components of the source term
   vector = ele_val_at_quad(g, ele)*ele_grad_at_quad(buoyant_field,&
        & ele, dshape_s)
-  inv_k = ele_val_at_quad(kk,ele)
-  where (inv_k /= 0.0)
-     inv_k = 1.0 / inv_k
-  elsewhere
-     inv_k = 0.0
-  end where
-  scalar = inv_k*beta*g_magnitude*ele_val_at_quad(EV,&
-       & ele)/delta_t
+  scalar = -1.0*beta*g_magnitude*ele_val_at_quad(EV, ele)/delta_t
 
   ! multiply vector component by scalar and sum across dimensions - note that the
   ! vector part has been multiplied by the gravitational direction so the it is
@@ -416,7 +411,7 @@ subroutine keps_eps(state)
     type(state_type), intent(inout)    :: state
     type(scalar_field), pointer        :: src_eps, src_kk, abs_eps, eps, EV, lumped_mass, f_1, f_2
     type(scalar_field_pointer), allocatable, dimension(:) :: buoyant_fields
-    type(scalar_field)                 :: prescribed_src_eps, prescribed_abs_eps 
+    type(scalar_field)                 :: prescribed_src_eps, prescribed_abs_eps, src_to_abs
     type(vector_field), pointer        :: positions, u, g
     type(tensor_field), pointer        :: eps_diff
     type(element_type), pointer        :: shape_eps, shape_s
@@ -454,7 +449,7 @@ subroutine keps_eps(state)
 
     call allocate(src_abs_terms(1), eps%mesh, name="EPS_P_EV_SRC")
     call allocate(src_abs_terms(2), eps%mesh, name="EPS_EPS_ABS")
-    call allocate(src_abs_terms(3), eps%mesh, name="EPS_BUOY_ABS")
+    call allocate(src_abs_terms(3), eps%mesh, name="EPS_BUOY_SRC")
     call zero(src_abs_terms(1)); call zero(src_abs_terms(2)); call zero(src_abs_terms(3))
 
     ! Assembly loop
@@ -509,30 +504,35 @@ subroutine keps_eps(state)
       ewrite_minmax(prescribed_abs_eps)
       call zero(abs_eps)
     end if
-
+    
     ewrite(2,*) "Calculating k source and absorption"
-    select case (src_abs)
-    case ("explicit")
-       call zero(src_eps)
-       call zero(abs_eps)
+    call zero(src_eps)
+    call zero(abs_eps)
+    ! Set source term
+    if(have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/implicit_source")) then
+       call allocate(src_to_abs, eps%mesh, name='SourceToAbsorbtion')
+       call set(src_to_abs, eps)
+       where (src_to_abs%val/=0.0)
+          src_to_abs%val=1./src_to_abs%val
+       end where
+       call scale(src_abs_terms(1), src_to_abs)
+       call scale(src_abs_terms(3), src_to_abs)
+       call addto(abs_eps, src_abs_terms(1), -1.0)
+       call addto(abs_eps, src_abs_terms(3), -1.0)
+       call deallocate(src_to_abs)
+    else
        call addto(src_eps, src_abs_terms(1))
+       call addto(src_eps, src_abs_terms(3))
+    end if
+    if(have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/explicit_absorbtion")) then
+       call scale(src_abs_terms(2), eps)
+       call addto(src_eps, src_abs_terms(2), -1.0)
+    else
        call addto(abs_eps, src_abs_terms(2))
-       call addto(abs_eps, src_abs_terms(3))
-    case ("implicit") ! does this work???
-       do i = 1, node_count(eps)
-          residual = (- node_val(src_abs_terms(1),i) + node_val(src_abs_terms(2),i) +&
-               & node_val(src_abs_terms(3),i))/node_val(lumped_mass,i)
-          call set(src_eps, i, -min(0.0, residual) )
-          call set(abs_eps, i, max(0.0, residual) )
-       end do
-    case default
-       FLAbort("Invalid implicitness option for epsilon")
-    end select
+    end if
 
     if(prescribed_src) then
       ewrite_minmax(src_eps)
-      ! Set copy of old eps for eps solve
-      call set(tke_src_old, src_eps)
       call addto(src_eps, prescribed_src_eps)
       ewrite_minmax(src_eps)
       call deallocate(prescribed_src_eps)
@@ -584,7 +584,6 @@ subroutine assemble_keps_eps_ele(src_abs_terms, tke_old, tke_src_old, eps, EV, u
   real, dimension(3, ele_loc(eps, ele)) :: rhs_addto
   integer, dimension(ele_loc(eps, ele)) :: nodes_eps
   real, dimension(ele_loc(eps, ele), ele_loc(eps, ele)) :: invmass
-  real, dimension(u%dim, ele_ngi(u, ele)) :: u_z, u_xy
   real, dimension(ele_ngi(u, ele)) :: c_eps_3
   type(element_type), pointer :: shape_eps
   real :: u_min = 1e-10
@@ -609,32 +608,18 @@ subroutine assemble_keps_eps_ele(src_abs_terms, tke_old, tke_src_old, eps, EV, u
   rhs_addto(2,:) = shape_rhs(shape_eps, detwei*c_eps_2*ele_val_at_quad(f_2,ele)* &
        & ele_val_at_quad(eps,ele)*inv_tke_old)
 
-  ! Buoyancy term - As absorbtion:
+  ! Buoyancy term:
   ! zero buoyancy addto array
   do i_loc = 1, ele_loc(eps, ele)
      rhs_addto(3,i_loc) = 0.0
   end do
   ! check buoyant fields are possible and present
   if (have_buoyant_fields .and. gravity) then 
-     ! get components of velocity in direction of gravity and in other directions
-     u_z = abs(ele_val_at_quad(g, ele)) * ele_val_at_quad(u, ele)
-     u_xy = ele_val_at_quad(u, ele) - u_z
-     ! calculate c_eps_3 = tanh(v/u)
-     do i_gi = 1, ele_ngi(u, ele)
-        do i_dim = 1, u%dim
-           u_xy(i_dim, i_gi) = max(abs(u_xy(i_dim, i_gi)), u_min)
-        end do
-        if (norm2(u_xy(:, i_gi)) /= 0.0) then
-           c_eps_3(i_gi) = tanh(norm2(u_z(:, i_gi))/norm2(u_xy(:, i_gi))) 
-        else
-           c_eps_3(i_gi) = 1.0
-        end if
-     end do
      ! loop through buoyant fields, calculate source term and add to addto array
      do i_field = 1, size(buoyant_fields, 1)
         call calculate_buoyancy_term_eps(rhs_addto, tke_old, EV, u, buoyant_fields(i_field)%ptr, &
              & beta(i_field), delta_t(i_field), g, g_magnitude, positions, ele, detwei,&
-             & shape_eps, c_eps_3, f_1)
+             & shape_eps, f_1)
      end do
   end if
 
@@ -656,18 +641,18 @@ end subroutine
 ! calculate the buoyancy source term for each buoyant scalar field             !
 !------------------------------------------------------------------------------!
 subroutine calculate_buoyancy_term_eps(rhs_addto, tke_old, EV, u, buoyant_field, beta,&
-     & delta_t, g, g_magnitude, positions, ele, detwei, shape_eps, c_eps_3, f_1)
+     & delta_t, g, g_magnitude, positions, ele, detwei, shape_eps, f_1)
 
   real, intent(inout), dimension(:,:) :: rhs_addto
   type(scalar_field), intent(in) :: tke_old, EV,buoyant_field, f_1 
   type(vector_field), intent(in) :: positions, u, g
-  real, intent(in), dimension(:) :: detwei, c_eps_3
+  real, intent(in), dimension(:) :: detwei
   real, intent(in) :: g_magnitude, beta, delta_t
   type(element_type), intent(in), pointer :: shape_eps
   integer, intent(in) :: ele
 
-  real, dimension(u%dim, ele_ngi(u, ele))  :: vector
-  real, dimension(ele_ngi(u, ele)) :: scalar, inv_tke_old
+  real, dimension(u%dim, ele_ngi(u, ele))  :: vector, u_z, u_xy
+  real, dimension(ele_ngi(u, ele)) :: scalar, inv_tke_old, c_eps_3
   real, dimension(ele_loc(buoyant_field, ele),ele_ngi(buoyant_field, ele),positions%dim) :: dshape_s
   type(element_type), pointer :: shape_s
 
@@ -675,18 +660,24 @@ subroutine calculate_buoyancy_term_eps(rhs_addto, tke_old, EV, u, buoyant_field,
 
   ! get dshape for scalar field so that we can obtain gradients 
   shape_s => ele_shape(buoyant_field, ele)
-  call transform_to_physical( positions, ele, shape_s, dshape=dshape_s )       
+  call transform_to_physical( positions, ele, shape_s, dshape=dshape_s ) 
+  
+  ! get components of velocity in direction of gravity and in other directions
+  u_z = abs(ele_val_at_quad(g, ele)) * ele_val_at_quad(u, ele)
+  u_xy = ele_val_at_quad(u, ele) - u_z
+  ! calculate c_eps_3 = tanh(v/u)
+  do i_gi = 1, ele_ngi(u, ele)
+     if (norm2(u_xy(:, i_gi)) /= 0.0) then
+        c_eps_3(i_gi) = tanh(norm2(u_z(:, i_gi))/norm2(u_xy(:, i_gi))) 
+     else
+        c_eps_3(i_gi) = 1.0
+     end if
+  end do
 
   ! calculate scalar and vector components of the source term
   vector = ele_val_at_quad(g, ele)*ele_grad_at_quad(buoyant_field, &
        & ele, dshape_s)
-  inv_tke_old = ele_val_at_quad(tke_old,ele)
-  where (inv_tke_old /= 0.0)
-     inv_tke_old = 1.0/inv_tke_old
-  elsewhere
-     inv_tke_old = 0.0
-  end where  
-  scalar = c_eps_1*ele_val_at_quad(f_1,ele)*c_eps_3*1*inv_tke_old&
+  scalar = -1.0*c_eps_1*ele_val_at_quad(f_1,ele)*c_eps_3*&
        &*beta*g_magnitude*ele_val_at_quad(EV, ele)/delta_t
 
   ! multiply vector component by scalar and sum across dimensions - note that the
