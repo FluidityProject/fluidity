@@ -67,6 +67,7 @@ namespace Fluidity {
       void SetInput(const double*& positions, const int& nnodes, const int& dim,
                     const int*& enlist, const int& nelements, const int& loc);
       void SetTestPoint(const double*& position, const int& dim);
+      void SetTestRegion(const double*& pLow, const double*& pHigh, const int& dim);
       void QueryOutput(int& nelms) const;
       void GetOutput(int& id, const int& index) const;
     protected:

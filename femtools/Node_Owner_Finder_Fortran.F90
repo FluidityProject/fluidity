@@ -45,6 +45,7 @@ module node_owner_finder
   public :: node_owner_finder_set_input, node_owner_finder_find
   public :: out_of_bounds_tolerance, rtree_tolerance
   public :: ownership_predicate
+  public :: node_owner_finder_find_single_region, cnode_owner_finder_find_region
     
   !! If a test node is more than this distance (in ideal space) outside of a
   !! test element in ownership tests, then the test element cannot own the test
@@ -91,6 +92,16 @@ module node_owner_finder
       real(kind = real_8), dimension(dim), intent(in) :: position
     end subroutine cnode_owner_finder_find
   end interface cnode_owner_finder_find
+
+  interface 
+    subroutine cnode_owner_finder_find_region(id, pLow, pHigh, dim) &
+          bind(c, name='cNodeOwnerFinderFindRegion')
+      use :: iso_c_binding
+      implicit none
+      integer(c_int) :: id, dim
+      real(c_double), dimension(dim), intent(in) :: pLow, pHigh
+    end subroutine cnode_owner_finder_find_region
+  end interface 
   
   interface node_owner_finder_find
     module procedure node_owner_finder_find_single_position, &
@@ -533,5 +544,23 @@ contains
       & miss = miss, l_coords = l_coords)
     
   end function ownership_predicate_node
+
+  subroutine node_owner_finder_find_single_region(id, dim, coord_low, coord_high, ele_ids)
+    integer, intent(in) :: id, dim
+    real, dimension(dim), intent(in) :: coord_low, coord_high
+    integer, dimension(:), pointer, intent(out) :: ele_ids
+
+    integer :: i, nele_ids
+
+    call cnode_owner_finder_find_region(id, coord_low, coord_high, dim)
+    call cnode_owner_finder_query_output(id, nele_ids)
+    allocate(ele_ids(nele_ids))
+
+    call cnode_owner_finder_query_output(id, nele_ids)
+    do i=1, nele_ids
+       call cnode_owner_finder_get_output(id, ele_ids(i), i)
+    end do    
+    
+  end subroutine node_owner_finder_find_single_region
 
 end module node_owner_finder

@@ -81,7 +81,7 @@ Note: For 2-year runs with VEW data use: 63070200</comment>
                 <python>
                   <string_value lines="20" type="code" language="python">from __builtin__ import str
 from toymodel import read_physics_toy as read_physics
-global calc_mu, visser_curve, quadratic_mu
+global calc_mu, visser_curve, quadratic_mu, cubic_mu
 
 if not persistent.has_key('physics_fh'):
   read_physics(persistent)
@@ -109,8 +109,13 @@ def sloped_mu(z, layer):
   return mu_Z
   
 def quadratic_mu(z, mld):
-  z = - z / mld
-  K_z = - z - pow(z,2)
+  z = z / mld
+  K_z = z - pow(z,2)
+  return K_z
+  
+def cubic_mu(z, mld):
+  z = z / mld
+  K_z = z * pow( (1-z), 2 ) 
   return K_z
   
 def val(X,t):
@@ -122,7 +127,8 @@ def val(X,t):
   layer = persistent['physics_mld']
   if abs(X[0]) &lt;= layer:
     #mu = 0.3 
-    mu = quadratic_mu(abs(X[0]), layer)
+    #mu = quadratic_mu(abs(X[0]), layer)
+    mu = cubic_mu(abs(X[0]), layer)
     #mu = sloped_mu(abs(X[0]), layer)
     #mu = visser_curve(abs(X[0]) * 40. / layer) * 8.
   return [[mu]]</string_value>

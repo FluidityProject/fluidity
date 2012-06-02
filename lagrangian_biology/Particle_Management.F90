@@ -410,7 +410,10 @@ contains
           agent => agent%next
        end if
     end do 
-    ewrite(2,*) "Lagrangian biology: Stripped", kill_count, " insignificant agents"
+
+    if (kill_count > 0) then
+       ewrite(2,*) "Lagrangian biology: Stripped", kill_count, " insignificant agents"
+    end if
   end subroutine pm_strip_insignificant
 
 end module lagrangian_biology_pm

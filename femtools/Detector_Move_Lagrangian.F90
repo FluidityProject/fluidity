@@ -930,14 +930,17 @@ contains
     ! Setup our detector work list
     subcycle_detector_list%search_tolerance = detector_list%search_tolerance
     subcycle_detector_list%reflect_on_boundary = detector_list%reflect_on_boundary
+    subcycle_detector_list%tracking_method = detector_list%tracking_method
     subcycle_detector_list%name = detector_list%name
 
     ! Create a list of auto-subcycle numbers per element
     allocate(auto_subcycle_per_ele(element_count(xfield)))
+    call profiler_tic(trim(detector_list%name)//"::movement::subcycling")
     do ele=1, element_count(xfield)
        call element_rw_subcycling(ele, sub_dt, xfield, diff_field, grad_field, &
                grad2_field, scale_factor, auto_subcycle_per_ele(ele))
-       end do
+    end do
+    call profiler_toc(trim(detector_list%name)//"::movement::subcycling")
 
     ! First pass establishes how many sub-sub-cycles are required
     detector => detector_list%first
@@ -1014,15 +1017,15 @@ contains
     real, intent(in) :: dt, scale_factor
     integer, intent(out) :: subcycles
 
-    type(ilist) :: neigh_ele_list, ele_in_range
-    type(integer_hash_table) :: visited_eles
-    type(inode), pointer :: ele
-    integer :: i, current_ele, local_subcycling, key, value
-    real :: k0, d_z, min_z, max_z, ele_min_z, ele_max_z, neigh_min_z, neigh_max_z, min_dt
-    integer, dimension(:), pointer :: neighbours
+    integer :: i, local_subcycling
+    real :: k0, d_z, min_z, max_z, min_dt
     real, dimension(xfield%mesh%shape%loc) :: coords
     real, dimension(grad_field%mesh%shape%loc) :: k_grad
     real, dimension(grad2_field%mesh%shape%loc) :: k_grad2
+
+    real, dimension(xfield%dim) :: low_coord, high_coord
+    integer, dimension(:), pointer :: picked_elements
+    integer :: dim
 
     ! Calculate the vertical range for the criteria
     k0 = maxval(abs(ele_val(diff_field, element)))
@@ -1033,50 +1036,30 @@ contains
     min_z = minval(coords) - d_z
     max_z = maxval(coords) + d_z
 
-    call insert(neigh_ele_list, element)
-    call allocate(visited_eles)
-
-    ! Now unfold neighbours into neigh_ele_list until we are out of range
-    do while (neigh_ele_list%length >= 1)
-       current_ele = ipop(neigh_ele_list)
-
-       if (has_key(visited_eles, current_ele)) cycle
-
-       call insert(visited_eles, current_ele, 0)
-
-       coords = ele_val(xfield, xfield%dim, current_ele)
-       ele_min_z = minval(coords)
-       ele_max_z = maxval(coords)
-
-       ! if one of the two z coordinates is in the range add the neighbours to our search space
-       if ((ele_min_z>min_z .and. ele_min_z<max_z).or.(ele_max_z<max_z .and. ele_max_z>min_z)) then
-          call insert(ele_in_range, current_ele)
-
-          ! add neighbours to search space
-          neighbours => ele_neigh(xfield, current_ele)
-          do i=1, size(neighbours)
-             if (neighbours(i)>0) then
-                call insert(neigh_ele_list, neighbours(i))
-             end if
-          end do
-       end if       
+    dim = xfield%dim
+    do i=1, dim-1
+       low_coord(i) = minval(ele_val(xfield, i, element))
+       high_coord(i) = maxval(ele_val(xfield, i, element))
     end do
+    low_coord(dim) = min_z
+    high_coord(dim) = max_z
+
+    ! Query the picker for all elements in this region
+    call picker_inquire_region(xfield, low_coord, high_coord, picked_elements)
 
     ! Now we have all elements in our range and we can find the maximum sub-cycle number
     subcycles = 1
-    ele => ele_in_range%firstnode
-    do while(associated(ele))
-       k_grad2 = ele_val(grad2_field, grad2_field%dim, ele%value)
+    do i=1, size(picked_elements)
+       k_grad2 = ele_val(grad2_field, dim, picked_elements(i))
        k_grad2 = 1.0 / abs(k_grad2)
        min_dt = minval(k_grad2) / scale_factor
        local_subcycling = ceiling(dt/min_dt)
        if (local_subcycling > subcycles) then
           subcycles = local_subcycling
        end if
-       ele => ele%next
     end do
-    call flush_list(ele_in_range)
-    call deallocate(visited_eles)
+
+    deallocate(picked_elements)
 
   end subroutine element_rw_subcycling
 

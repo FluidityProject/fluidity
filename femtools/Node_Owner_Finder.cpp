@@ -145,6 +145,21 @@ void NodeOwnerFinder::SetTestPoint(const double*& position, const int& dim)
   return;
 }
 
+void NodeOwnerFinder::SetTestRegion(const double*& pLow, const double*& pHigh, const int& dim)
+{
+  assert(pLow);
+  assert(pHigh);
+  assert(dim == this->dim);
+
+  visitor.clear();
+
+  SpatialIndex::Region* region = new SpatialIndex::Region(pLow, pHigh, dim);
+  rTree->intersectsWithQuery(*region, visitor);
+  delete region;
+
+  return;
+}
+
 void NodeOwnerFinder::QueryOutput(int& nelms) const
 {
   nelms = visitor.size();
@@ -276,6 +291,17 @@ extern "C" {
     assert(*dim >= 0);
     
     nodeOwnerFinder[*id]->SetTestPoint(position, *dim);
+    
+    return;
+  }
+
+  void cNodeOwnerFinderFindRegion(const int* id, const double* pLow, const double* pHigh, const int* dim)
+  {
+    assert(nodeOwnerFinder.count(*id) > 0);
+    assert(nodeOwnerFinder[*id]);
+    assert(*dim >= 0);
+    
+    nodeOwnerFinder[*id]->SetTestRegion(pLow, pHigh, *dim);
     
     return;
   }

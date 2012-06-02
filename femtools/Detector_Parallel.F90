@@ -523,13 +523,13 @@ contains
     ! Sanity checks
     ndets_global=detector_list%length
     call allsum(ndets_global)
-    ewrite(2,*) "Found", detector_list%length, "local and", ndets_global, "global detectors"
+    !ewrite(2,*) "Found", detector_list%length, "local and", ndets_global, "global detectors"
 
-    if (ndets_global/=detector_list%total_num_det) then
-       ewrite(2,*) "Warning: Duplicated or lost detectors in list: ", trim(detector_list%name)
-       ewrite(2,*) "ndets_global", ndets_global
-       ewrite(2,*) "detector_list%total_num_det", detector_list%total_num_det
-    end if
+    !if (ndets_global/=detector_list%total_num_det) then
+    !   ewrite(2,*) "Warning: Duplicated or lost detectors in list: ", trim(detector_list%name)
+    !   ewrite(2,*) "ndets_global", ndets_global
+    !   ewrite(2,*) "detector_list%total_num_det", detector_list%total_num_det
+    !end if
 
   contains 
 

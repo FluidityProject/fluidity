@@ -98,7 +98,7 @@ contains
     allocate(rnd_seed(rnd_dim))
     call get_option("/embedded_models/lagrangian_ensemble_biology/random_seed", rnd_seed_int)
     do i=1, rnd_dim
-       rnd_seed(i) = rnd_seed_int + i
+       rnd_seed(i) = rnd_seed_int + i + getprocno()
     end do
     call random_seed(put=rnd_seed(1:rnd_dim))
     call python_run_string("numpy.random.seed("//trim(int2str(rnd_seed_int))//")")
@@ -287,6 +287,8 @@ contains
              agent%list_id=agent_array%id
              agent=>agent%next
           end do
+
+          call derive_agent_counts(state(1), agent_array, xfield)
 
           call write_detector_header(state, agent_array)
 
@@ -1015,6 +1017,9 @@ contains
     type(le_variable), pointer :: var
     real :: ele_volume
     integer :: f, v, fg, stage, ivar
+
+    ! Exit if there are no uptake/release fields
+    if (.not.associated(uptake_field_names) .and. .not.associated(release_field_names)) return
 
     ewrite(2,*) "Lagrangian biology: Aggregating chemical request/release fields"
 

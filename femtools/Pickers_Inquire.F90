@@ -42,7 +42,7 @@ module pickers_inquire
   
   private
   
-  public :: picker_inquire, search_for_detectors
+  public :: picker_inquire, picker_inquire_region, search_for_detectors
 
   interface picker_inquire
     module procedure picker_inquire_single_position, &
@@ -53,6 +53,10 @@ module pickers_inquire
       & picker_inquire_nodes, picker_inquire_node_tolerance, &
       & picker_inquire_nodes_tolerance
   end interface picker_inquire
+
+  interface picker_inquire_region
+    module procedure picker_inquire_single_region
+  end interface picker_inquire_region
 
   real, parameter, public :: max_picker_ownership_tolerance = rtree_tolerance
 
@@ -322,6 +326,16 @@ contains
     deallocate(lpositions)
 
   end subroutine picker_inquire_nodes_tolerance
+
+  subroutine picker_inquire_single_region(positions, low_coord, high_coord, elements)
+    type(vector_field), intent(inout) :: positions
+    real, dimension(*), intent(in) :: low_coord, high_coord
+    integer, dimension(:), pointer, intent(out) :: elements
+
+    call initialise_picker(positions)
+    call node_owner_finder_find_single_region(positions%picker%ptr%picker_id, positions%dim, low_coord, high_coord, elements)
+
+  end subroutine picker_inquire_single_region
   
   subroutine search_for_detectors(detectors, positions)
     !!< This subroutine establishes on which processor, in which element and at
