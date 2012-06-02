@@ -209,11 +209,15 @@ class Compare_Numerical_To_Analytic_1d:
             
       self.l2_fe_error = 0.0
       self.l2_cv_error = 0.0
+      self.l1_fe_error = 0.0
+      self.l1_cv_error = 0.0
       
       for node in range(self.number_analytic_x_coord):
          
          self.l2_fe_error = self.l2_fe_error + dx*(self.fe_error_val_analytic_mesh[node]**2.0) 
          self.l2_cv_error = self.l2_cv_error + dx*(self.cv_error_val_analytic_mesh[node]**2.0) 
+         self.l1_fe_error = self.l1_fe_error + dx*(self.fe_error_val_analytic_mesh[node]) 
+         self.l1_cv_error = self.l1_cv_error + dx*(self.cv_error_val_analytic_mesh[node]) 
                
    def output_fe_and_cv_solutions_and_errors_on_analytic_mesh(self):
       """ Output the FE and CV solutions on the analytic coordinate mesh """
@@ -248,8 +252,10 @@ class Compare_Numerical_To_Analytic_1d:
       
       self.error_norm_txt_output_file.write("FE Linf error: "+str(CNTA1D.linf_fe_error)+"\n")
       self.error_norm_txt_output_file.write("FE L2 error: "+str(CNTA1D.l2_fe_error)+"\n")
+      self.error_norm_txt_output_file.write("FE L1 error: "+str(CNTA1D.l1_fe_error)+"\n")
       self.error_norm_txt_output_file.write("CV Linf error: "+str(CNTA1D.linf_cv_error)+"\n")
       self.error_norm_txt_output_file.write("CV L2 error: "+str(CNTA1D.l2_cv_error)+"\n")
+      self.error_norm_txt_output_file.write("CV L1 error: "+str(CNTA1D.l1_cv_error)+"\n")
          
    def close_files(self):
       """ Close opened files """

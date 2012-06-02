@@ -197,6 +197,87 @@ for line in D_error_file:
 CD_l2_ratio = C_l2_error / D_l2_error
 CD_CV_L2Norm_convergence_phase2_sat_relpermupwind_1d = log(CD_l2_ratio, 2)
     </variable>
+    <variable name="AB_CV_L1Norm_convergence_phase2_sat_relpermupwind_1d" language="python">
+from math import log
+
+A_error_file = open("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_1d_A_1_output_saturation_error_norm.txt", "r")
+B_error_file = open("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_1d_B_1_output_saturation_error_norm.txt", "r")
+
+A_l1_error = 1.0e+10
+for line in A_error_file:
+   
+   line_split = line.split()
+   
+   if line_split[0] == "CV" and line_split[1] == "L1":
+      
+      A_l1_error = float(line_split[3])
+
+B_l1_error = 1.0e+10  
+for line in B_error_file:
+
+   line_split = line.split()
+   
+   if line_split[0] == "CV" and line_split[1] == "L1":
+      
+      B_l1_error = float(line_split[3])
+
+AB_l1_ratio = A_l1_error / B_l1_error
+AB_CV_L1Norm_convergence_phase2_sat_relpermupwind_1d = log(AB_l1_ratio, 2)
+    </variable>
+    <variable name="BC_CV_L1Norm_convergence_phase2_sat_relpermupwind_1d" language="python">
+from math import log
+
+B_error_file = open("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_1d_B_1_output_saturation_error_norm.txt", "r")
+C_error_file = open("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_1d_C_1_output_saturation_error_norm.txt", "r")
+
+B_l1_error = 1.0e+10
+for line in B_error_file:
+   
+   line_split = line.split()
+   
+   if line_split[0] == "CV" and line_split[1] == "L1":
+      
+      B_l1_error = float(line_split[3])
+
+C_l1_error = 1.0e+10  
+for line in C_error_file:
+
+   line_split = line.split()
+   
+   if line_split[0] == "CV" and line_split[1] == "L1":
+      
+      C_l1_error = float(line_split[3])
+
+BC_l1_ratio = B_l1_error / C_l1_error
+BC_CV_L1Norm_convergence_phase2_sat_relpermupwind_1d = log(BC_l1_ratio, 2)
+    </variable>
+    <variable name="CD_CV_L1Norm_convergence_phase2_sat_relpermupwind_1d" language="python">
+from math import log
+
+C_error_file = open("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_1d_C_1_output_saturation_error_norm.txt", "r")
+D_error_file = open("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_relpermupwind_1d_D_1_output_saturation_error_norm.txt", "r")
+
+C_l1_error = 1.0e+10
+for line in C_error_file:
+   
+   line_split = line.split()
+   
+   if line_split[0] == "CV" and line_split[1] == "L1":
+      
+      C_l1_error = float(line_split[3])
+
+D_l1_error = 1.0e+10  
+for line in D_error_file:
+
+   line_split = line.split()
+   
+   if line_split[0] == "CV" and line_split[1] == "L1":
+      
+      D_l1_error = float(line_split[3])
+
+CD_l1_ratio = C_l1_error / D_l1_error
+CD_CV_L1Norm_convergence_phase2_sat_relpermupwind_1d = log(CD_l1_ratio, 2)
+    </variable>
 
     <variable name="phase1_sat_relpermupwind_regression_error_max_1d_A" language="python">
 from fluidity_tools import stat_parser as stat
@@ -432,6 +513,87 @@ for line in D_error_file:
 CD_l2_ratio = C_l2_error / D_l2_error
 CD_CV_L2Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d = log(CD_l2_ratio, 2)
     </variable>
+    <variable name="AB_CV_L1Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d" language="python">
+from math import log
+
+A_error_file = open("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_1d_A_1_output_saturation_error_norm.txt", "r")
+B_error_file = open("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_1d_B_1_output_saturation_error_norm.txt", "r")
+
+A_l1_error = 1.0e+10
+for line in A_error_file:
+   
+   line_split = line.split()
+   
+   if line_split[0] == "CV" and line_split[1] == "L1":
+      
+      A_l1_error = float(line_split[3])
+
+B_l1_error = 1.0e+10  
+for line in B_error_file:
+
+   line_split = line.split()
+   
+   if line_split[0] == "CV" and line_split[1] == "L1":
+      
+      B_l1_error = float(line_split[3])
+
+AB_l1_ratio = A_l1_error / B_l1_error
+AB_CV_L1Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d = log(AB_l1_ratio, 2)
+    </variable>
+    <variable name="BC_CV_L1Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d" language="python">
+from math import log
+
+B_error_file = open("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_1d_B_1_output_saturation_error_norm.txt", "r")
+C_error_file = open("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_1d_C_1_output_saturation_error_norm.txt", "r")
+
+B_l1_error = 1.0e+10
+for line in B_error_file:
+   
+   line_split = line.split()
+   
+   if line_split[0] == "CV" and line_split[1] == "L1":
+      
+      B_l1_error = float(line_split[3])
+
+C_l1_error = 1.0e+10  
+for line in C_error_file:
+
+   line_split = line.split()
+   
+   if line_split[0] == "CV" and line_split[1] == "L1":
+      
+      C_l1_error = float(line_split[3])
+
+BC_l1_ratio = B_l1_error / C_l1_error
+BC_CV_L1Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d = log(BC_l1_ratio, 2)
+    </variable>
+    <variable name="CD_CV_L1Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d" language="python">
+from math import log
+
+C_error_file = open("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_1d_C_1_output_saturation_error_norm.txt", "r")
+D_error_file = open("darcy_impes_p1_2phase_coreyrelperm_velBCinlet_strongpressoutlet_p1satdiag_modrelpermupwind_satfesweby_1d_D_1_output_saturation_error_norm.txt", "r")
+
+C_l1_error = 1.0e+10
+for line in C_error_file:
+   
+   line_split = line.split()
+   
+   if line_split[0] == "CV" and line_split[1] == "L1":
+      
+      C_l1_error = float(line_split[3])
+
+D_l1_error = 1.0e+10  
+for line in D_error_file:
+
+   line_split = line.split()
+   
+   if line_split[0] == "CV" and line_split[1] == "L1":
+      
+      D_l1_error = float(line_split[3])
+
+CD_l1_ratio = C_l1_error / D_l1_error
+CD_CV_L1Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d = log(CD_l1_ratio, 2)
+    </variable>
 
     <variable name="phase1_sat_modrelpermupwind_satfesweby_regression_error_max_1d_A" language="python">
 from fluidity_tools import stat_parser as stat
@@ -604,6 +766,15 @@ assert(abs(BC_CV_L2Norm_convergence_phase2_sat_relpermupwind_1d - 0.7) &lt; 0.15
     <test name="CD_CV_L2Norm_convergence_phase2_sat_relpermupwind_1d: 0.6 gt order lt 0.9" language="python">
 assert(abs(CD_CV_L2Norm_convergence_phase2_sat_relpermupwind_1d - 0.7) &lt; 0.15)
     </test>
+    <test name="AB_CV_L1Norm_convergence_phase2_sat_relpermupwind_1d: 0.45 gt order lt 0.55" language="python">
+assert(abs(AB_CV_L1Norm_convergence_phase2_sat_relpermupwind_1d - 0.5) &lt; 0.05)
+    </test>
+    <test name="BC_CV_L1Norm_convergence_phase2_sat_relpermupwind_1d: 0.45 gt order lt 0.55" language="python">
+assert(abs(BC_CV_L1Norm_convergence_phase2_sat_relpermupwind_1d - 0.5) &lt; 0.05)
+    </test>
+    <test name="CD_CV_L1Norm_convergence_phase2_sat_relpermupwind_1d: 0.45 gt order lt 0.55" language="python">
+assert(abs(CD_CV_L1Norm_convergence_phase2_sat_relpermupwind_1d - 0.5) &lt; 0.05)
+    </test>
 
     <test name="Assert max absolute regression error for saturation phase 1 using relpermupwind for 1d on mesh A is less than 1.0e-10" language="python">
 assert(abs(phase1_sat_relpermupwind_regression_error_max_1d_A) &lt; 1.0e-10)
@@ -720,6 +891,15 @@ assert(abs(BC_CV_L2Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d - 
     </test>
     <test name="CD_CV_L2Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d: 0.6 gt order lt 0.9" language="python">
 assert(abs(CD_CV_L2Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d - 0.75) &lt; 0.15)
+    </test>
+    <test name="AB_CV_L1Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d: 0.45 gt order lt 0.55" language="python">
+assert(abs(AB_CV_L1Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d - 0.5) &lt; 0.05)
+    </test>
+    <test name="BC_CV_L1Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d: 0.45 gt order lt 0.55" language="python">
+assert(abs(BC_CV_L1Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d - 0.5) &lt; 0.05)
+    </test>
+    <test name="CD_CV_L1Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d: 0.45 gt order lt 0.55" language="python">
+assert(abs(CD_CV_L1Norm_convergence_phase2_sat_modrelpermupwind_satfesweby_1d - 0.5) &lt; 0.05)
     </test>
 
     <test name="Assert max absolute regression error for saturation phase 1 using modrelpermupwind_satfesweby for 1d on mesh A is less than 1.0e-10" language="python">
