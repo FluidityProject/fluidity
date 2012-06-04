@@ -1811,17 +1811,15 @@ contains
                   ! u.n
                   if(move_mesh) then
                     divudotn = dot_product(u_bdy_f(:,ggi), normal_bdy(:,ggi))
-                    if((tfield_bc_type(sele)==BC_TYPE_ZEROFLUX .or. tfield_bc_type(sele)==BC_TYPE_FLUX) .or. &
-                        (tfield_bc_type(sele)==BC_TYPE_ROBIN) .or. (tfield_bc_type(sele)==BC_TYPE_NEUMANN)) then
-                      ! If we have zero flux, or a flux BC, or a diffusive neumann or robin BC set u.n = 0
+                    if((tfield_bc_type(sele)==BC_TYPE_ZEROFLUX .or. tfield_bc_type(sele)==BC_TYPE_FLUX)) then
+                      ! If we have zero flux, or a flux BC, set u.n = 0
                       udotn = 0.0
                     else
                       udotn = dot_product((u_bdy_f(:,ggi)-ug_bdy_f(:,ggi)), normal_bdy(:,ggi))
                     end if
                   else
                     divudotn = dot_product(u_bdy_f(:,ggi), normal_bdy(:,ggi))
-                    if((tfield_bc_type(sele)==BC_TYPE_ZEROFLUX .or. tfield_bc_type(sele)==BC_TYPE_FLUX) .or. &
-                       (tfield_bc_type(sele)==BC_TYPE_ROBIN) .or. (tfield_bc_type(sele)==BC_TYPE_NEUMANN)) then
+                    if((tfield_bc_type(sele)==BC_TYPE_ZEROFLUX .or. tfield_bc_type(sele)==BC_TYPE_FLUX)) then
                       udotn = 0.0
                     else
                       udotn = divudotn
@@ -1945,7 +1943,7 @@ contains
                                                          robin_bc_val2_ele_bdy(iloc)
                     
                     else
-                    
+
                       ! because transform to physical doesn't give the full gradient at a face
                       ! yet this can't be done so we're going to have to assume zero neumann
                       ! at outflow faces
