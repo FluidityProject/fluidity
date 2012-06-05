@@ -517,7 +517,7 @@ contains
     real, intent(in) :: radial        !Radial component of vector
     real, intent(out) :: zonalComponent      !Vector component tangential to parallel
     real, intent(out) :: meridionalComponent !Vector component tangential to meridian
-    real, intent(out) :: verticalComponent   !Vecor component in the vertical (radial)
+    real, intent(out) :: verticalComponent   !Vector component in the vertical (radial)
     real, intent(out) :: longitude 
     real, intent(out) :: latitude
     real, intent(out) :: height
