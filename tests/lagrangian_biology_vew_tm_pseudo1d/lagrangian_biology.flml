@@ -80,7 +80,7 @@ Note: For 2-year runs with VEW data use: 63070200</comment>
                 <python>
                   <string_value lines="20" type="code" language="python">from __builtin__ import str
 from toymodel import read_physics_toy as read_physics
-global calc_mu, visser_curve, quadratic_mu
+global calc_mu, visser_curve, quadratic_mu, cubic_mu
 
 if not persistent.has_key('physics_fh'):
   read_physics(persistent)
@@ -108,8 +108,13 @@ def sloped_mu(z, layer):
   return mu_Z
   
 def quadratic_mu(z, mld):
-  z = - z / mld
-  K_z = - z - pow(z,2)
+  z = z / mld
+  K_z = z - pow(z,2)
+  return K_z
+  
+def cubic_mu(z, mld):
+  z = z / mld
+  K_z = z * pow( (1-z), 2 ) 
   return K_z
   
 def val(X,t):
@@ -121,7 +126,8 @@ def val(X,t):
   layer = persistent['physics_mld']
   if abs(X[2]) &lt;= layer:
     #mu = 0.3 
-    mu = quadratic_mu(abs(X[2]), layer)
+    #mu = quadratic_mu(abs(X[2]), layer)
+    mu = cubic_mu(abs(X[2]), layer)
     #mu = sloped_mu(abs(X[0]), layer)
     #mu = visser_curve(abs(X[0]) * 40. / layer) * 8.
   return [[1.e-6,0.,0.],[0.,1.e-6,0.],[0.,0.,mu]]</string_value>
@@ -257,6 +263,16 @@ def val(X,t):
   return interp( abs(X[2]) )</string_value>
           </python>
         </initial_condition>
+        <boundary_conditions name="NoFlux">
+          <surface_ids>
+            <integer_value shape="2" rank="1">38 39</integer_value>
+          </surface_ids>
+          <type name="neumann">
+            <constant>
+              <real_value rank="0">0</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
         <subgridscale_parameterisation name="prescribed_diffusivity"/>
         <output/>
         <stat/>
@@ -327,6 +343,16 @@ def val(X,t):
   return interp( abs(X[2]) )</string_value>
           </python>
         </initial_condition>
+        <boundary_conditions name="NoFlux">
+          <surface_ids>
+            <integer_value shape="2" rank="1">38 39</integer_value>
+          </surface_ids>
+          <type name="neumann">
+            <constant>
+              <real_value rank="0">0</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
         <subgridscale_parameterisation name="prescribed_diffusivity"/>
         <output/>
         <stat/>
@@ -397,6 +423,16 @@ def val(X,t):
   return interp( abs(X[2]) )</string_value>
           </python>
         </initial_condition>
+        <boundary_conditions name="NoFlux">
+          <surface_ids>
+            <integer_value shape="2" rank="1">38 39</integer_value>
+          </surface_ids>
+          <type name="neumann">
+            <constant>
+              <real_value rank="0">0</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
         <subgridscale_parameterisation name="prescribed_diffusivity"/>
         <output/>
         <stat/>
@@ -501,6 +537,7 @@ for n in range(field.node_count):
                   </detectors>
                 </diagnostic>
               </scalar_field>
+              <integrate_along_path/>
               <include_in_io/>
             </uptake>
             <release>
@@ -515,6 +552,7 @@ for n in range(field.node_count):
                   </detectors>
                 </diagnostic>
               </scalar_field>
+              <integrate_along_path/>
               <include_in_io/>
             </release>
             <include_in_io/>
@@ -564,6 +602,7 @@ for n in range(field.node_count):
                   </detectors>
                 </diagnostic>
               </scalar_field>
+              <integrate_along_path/>
             </uptake>
           </chemical_variable>
           <chemical_variable name="Silicate">
@@ -611,6 +650,7 @@ for n in range(field.node_count):
                   </detectors>
                 </diagnostic>
               </scalar_field>
+              <integrate_along_path/>
             </uptake>
             <release>
               <target_field name="DissolvedSilicate"/>
@@ -624,6 +664,7 @@ for n in range(field.node_count):
                   </detectors>
                 </diagnostic>
               </scalar_field>
+              <integrate_along_path/>
             </release>
           </chemical_variable>
           <chemical_variable name="Carbon">
@@ -665,8 +706,8 @@ for n in range(field.node_count):
             <string_value lines="20" type="code" language="python">def val(t):
   from numpy import arange, concatenate, reshape, random
   # 4000 agents, evenly spaced in [0:200]m
-  x = random.uniform(0.,10., 4000)
-  y = random.uniform(0.,10., 4000)
+  x = random.uniform(0.,1., 4000)
+  y = random.uniform(0.,1., 4000)
   z = arange(-199.975,0.,0.05)
   positions = reshape(concatenate((x,y,z)),(3,4000)).T
   return positions</string_value>
@@ -677,7 +718,7 @@ from lebiology import stage_id
 
 def val(agent):
   agent['Stage'] = stage_id('Diatom', 'Living')
-  agent['Size'] = 5000000.0
+  agent['Size'] = 50000.0
   agent['Ammonium'] = 2.2e-9
   agent['Carbon'] = 1.5e-8
   agent['Chlorophyll'] = 2.7e-9
@@ -699,7 +740,7 @@ def val(agent):
             <real_value rank="0">1.0e-10</real_value>
           </search_tolerance>
           <reflect_on_boundary/>
-          <parametric_guided_search/>
+          <geometric_tracking/>
           <random_walk name="RandomDisplacement">
             <python>
               <string_value lines="20" type="code" language="python">from __builtin__ import abs, str
@@ -710,8 +751,8 @@ mld = abs(persistent['physics_mld'])
 def val(pos, vars, dt):
   z = abs(pos[2])
   v = [0.0, 0.0, -0.000011111 * dt]
-  v[0] = random.uniform(0.,10., 1) - pos[0]
-  v[1] = random.uniform(0.,10., 1) - pos[1]
+  v[0] = random.uniform(0.,1., 1) - pos[0]
+  v[1] = random.uniform(0.,1., 1) - pos[1]
   if z &lt;= mld:
     rnd = random.uniform(0.,mld, 1)
     v[2] =  v[2] - (rnd - z)
@@ -747,16 +788,16 @@ def val(agent, env, dt):
                 <prescribed>
                   <value name="WholeMesh">
                     <python>
-                      <string_value type="code" lines="20" language="python">from __builtin__ import abs
+                      <string_value lines="20" type="code" language="python">from __builtin__ import abs
 mld = persistent['physics_mld']
 
 def val(X,t):
   global mld
-  minimum = 0.2
+  minimum = 20.
   
   # Outside the prescribed "MLD" we merge down to 1
   if abs(X[2]) &gt; mld:
-    minimum = 0.01
+    minimum = 1.0
   return minimum</string_value>
                     </python>
                   </value>
@@ -771,7 +812,7 @@ def val(X,t):
                 <prescribed>
                   <value name="WholeMesh">
                     <constant>
-                      <real_value rank="0">0.4</real_value>
+                      <real_value rank="0">40.</real_value>
                     </constant>
                   </value>
                   <output/>
@@ -805,7 +846,7 @@ def val(biovars, env, dt):
                 <prescribed>
                   <value name="WholeMesh">
                     <constant>
-                      <real_value rank="0">0.01</real_value>
+                      <real_value rank="0">1.0</real_value>
                     </constant>
                   </value>
                   <output/>

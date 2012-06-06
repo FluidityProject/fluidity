@@ -300,10 +300,7 @@ food_set =
             element diagnostic {
                internal_algorithm,
                diagnostic_scalar_field_no_adapt
-            },
-            element integrate_along_path {
-               empty
-            }?
+            }
          },
          element scalar_field {
             attribute name { "Request" },
@@ -312,9 +309,6 @@ food_set =
                diagnostic_scalar_field_no_adapt
             },
             element stage_diagnostic {
-               empty
-            }?,
-            element integrate_along_path {
                empty
             }?,
             element include_in_io {
@@ -342,6 +336,9 @@ food_set =
                empty
             }?
          },
+         element integrate_along_path {
+            empty
+         }?,
          ## Individual food type for this set
          element food_type {
             attribute name { xsd:string }

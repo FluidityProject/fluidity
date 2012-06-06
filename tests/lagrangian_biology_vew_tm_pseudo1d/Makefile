@@ -4,5 +4,5 @@ input: clean
 	../../bin/fldecomp -n 3 column
 
 clean: 
-	rm -rf *.halo *.vtu *.pvtu *.log* *.err* *.stat *.detectors *.dat *.ele *.node *.bound
+	rm -rf *.halo *.vtu *.pvtu *.log* *.err* *.stat *.detectors *.dat *.ele *.node *.bound *.face
 	rm -rf vew_toymodel_*

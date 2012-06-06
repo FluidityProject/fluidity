@@ -533,7 +533,7 @@ contains
        fgroup%food_sets(i)%name = trim(food_name)
        call get_option(trim(food_buffer)//"/functional_group", fgroup%food_sets(i)%target_fgroup)
 
-       if (have_option(trim(food_buffer)//"/scalar_field::Concentration/integrate_along_path")) then
+       if (have_option(trim(food_buffer)//"/integrate_along_path")) then
           fgroup%food_sets(i)%path_integrate = .true.
        end if
 
@@ -553,7 +553,7 @@ contains
           if (have_option(trim(food_buffer)//"/scalar_field::Request/stage_diagnostic")) then
              fvariety%vrequest%stage_diagnostic = .true.
           end if
-          if (have_option(trim(food_buffer)//"/scalar_field::Request/integrate_along_path")) then
+          if (have_option(trim(food_buffer)//"/integrate_along_path")) then
              fvariety%vrequest%path_integration = .true.
           end if
           if (have_option(trim(food_buffer)//"/scalar_field::Request/include_in_io")) then
@@ -759,9 +759,7 @@ contains
                    end if
                 end do
                 if (size(fgroup%food_sets) > 0) then
-                   do v=1, size(agent%food_requests)
-                      agent%food_requests(v) = 0.0
-                   end do
+                   agent%food_requests = 0.0
                 end if
 
                 ! Update agent via the Python module
@@ -1341,15 +1339,15 @@ contains
 
                          agent%food_ingests(fv) = 0.0
                          do ele=1, size(agent%ele_path)
-                            depletion = ele_val(depletion_field, ele)
+                            depletion = ele_val(depletion_field, agent%ele_path(ele))
                             ele_ingest_cells = depletion(1) * (agent%ele_dist(ele) / path_total) * agent%food_requests(fv)
                             agent%food_ingests(fv) = agent%food_ingests(fv) + ele_ingest_cells
 
                             ! Set ChemIngested pools
-                            conc = integral_element(conc_field, xfield, ele)
+                            conc = integral_element(conc_field, xfield, agent%ele_path(ele))
                             do c=1, size(fset%ingest_chem_inds)
                                ingest_ind = fgroup%variables( fset%ingest_chem_inds(c) )%ingest_index
-                               chem_conc = integral_element(prey_chem_fields(c)%ptr, xfield, ele)
+                               chem_conc = integral_element(prey_chem_fields(c)%ptr, xfield, agent%ele_path(ele))
                                if (conc > 0.0) then
                                   agent%biology(ingest_ind) = agent%biology(ingest_ind) + ( chem_conc * (ele_ingest_cells / conc) )
                                end if

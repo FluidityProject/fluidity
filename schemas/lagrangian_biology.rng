@@ -386,11 +386,6 @@ The scaled release quantity will then get added to the according source field of
             <ref name="internal_algorithm"/>
             <ref name="diagnostic_scalar_field_no_adapt"/>
           </element>
-          <optional>
-            <element name="integrate_along_path">
-              <empty/>
-            </element>
-          </optional>
         </element>
         <element name="scalar_field">
           <attribute name="name">
@@ -402,11 +397,6 @@ The scaled release quantity will then get added to the according source field of
           </element>
           <optional>
             <element name="stage_diagnostic">
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="integrate_along_path">
               <empty/>
             </element>
           </optional>
@@ -445,6 +435,11 @@ The scaled release quantity will then get added to the according source field of
             </element>
           </optional>
         </element>
+        <optional>
+          <element name="integrate_along_path">
+            <empty/>
+          </element>
+        </optional>
         <zeroOrMore>
           <element name="food_type">
             <a:documentation>Individual food type for this set</a:documentation>

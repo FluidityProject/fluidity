@@ -85,7 +85,7 @@ Note: For 2-year runs with VEW data use: 63070200</comment>
                 <python>
                   <string_value lines="20" type="code" language="python">from __builtin__ import str
 from toymodel import read_physics_toy as read_physics
-global calc_mu, visser_curve, quadratic_mu
+global calc_mu, visser_curve, quadratic_mu, cubic_mu
 
 if not persistent.has_key('physics_fh'):
   read_physics(persistent)
@@ -113,8 +113,13 @@ def sloped_mu(z, layer):
   return mu_Z
   
 def quadratic_mu(z, mld):
-  z = - z / mld
-  K_z = - z - pow(z,2)
+  z = z / mld
+  K_z = z - pow(z,2)
+  return K_z
+  
+def cubic_mu(z, mld):
+  z = z / mld
+  K_z = z * pow( (1-z), 2 ) 
   return K_z
   
 def val(X,t):
@@ -126,7 +131,8 @@ def val(X,t):
   layer = persistent['physics_mld']
   if abs(X[0]) &lt;= layer:
     #mu = 0.3 
-    mu = quadratic_mu(abs(X[0]), layer)
+    #mu = quadratic_mu(abs(X[0]), layer)
+    mu = cubic_mu(abs(X[0]), layer)
     #mu = sloped_mu(abs(X[0]), layer)
     #mu = visser_curve(abs(X[0]) * 40. / layer) * 8.
   return [[mu]]</string_value>
@@ -1081,7 +1087,6 @@ def val(biovars, env, dt):
                 </detectors>
                 <do_not_recalculate/>
               </diagnostic>
-              <stage_diagnostic/>
               <include_in_io/>
             </scalar_field>
             <include_in_io/>
@@ -1220,12 +1225,11 @@ from numpy import random
 mld = abs(persistent['physics_mld'])
 
 def val(position, vars, dt):
-  z = abs(position[0])
+  vars['z'] = abs(position[0])
   v = -vars['V_m']
-  if z &lt;= mld:
+  if vars['z'] &lt;= mld:
     rnd = random.uniform(0.,mld, 1)
-    v = v - (rnd - z)
-  vars['z'] = abs(position[0] + v)
+    v = v - (rnd - vars['z'])
   return [ v ]</string_value>
             </python>
           </random_walk>
@@ -1721,7 +1725,6 @@ def val(agent, env, dt):
                 <include_in_detectors/>
               </detectors>
             </diagnostic>
-            <integrate_along_path/>
           </scalar_field>
           <scalar_field name="Request">
             <diagnostic>
@@ -1732,7 +1735,6 @@ def val(agent, env, dt):
                 <include_in_detectors/>
               </detectors>
             </diagnostic>
-            <integrate_along_path/>
             <include_in_io/>
           </scalar_field>
           <scalar_field name="Depletion">
@@ -1756,6 +1758,7 @@ def val(agent, env, dt):
             </diagnostic>
             <include_in_io/>
           </scalar_field>
+          <integrate_along_path/>
           <food_type name="Living"/>
         </food_set>
         <scalar_field name="Agents">
