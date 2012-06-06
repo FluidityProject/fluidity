@@ -116,11 +116,9 @@ module detector_data_types
 
     !! Field names for internal Diffusive Random Walk scheme
     character(len=FIELD_NAME_LEN) :: diffusivity_field, diffusivity_grad
-    character(len=FIELD_NAME_LEN) :: diffusivity_2nd_grad
 
     !! Auto-subcycling (for internal Diffusive Random Walk)
     logical :: auto_subcycle = .false.
-    real :: subcycle_scale_factor = 1.0
 
     !! Python Random Walk function
     logical :: python_random_walk = .false.

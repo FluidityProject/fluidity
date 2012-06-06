@@ -1431,7 +1431,7 @@ contains
       ! Allocate diagnostic fields to represent agent variables
       type(state_type), intent(inout) :: state
 
-      character(len=OPTION_PATH_LEN) :: stage_options
+      character(len=OPTION_PATH_LEN) :: stage_options, rw_subcycle_options
       type(mesh_type) :: parent_mesh, biology_mesh
       type(functional_group), pointer :: fgroup
       type(le_variable), pointer :: chemIng_var
@@ -1441,6 +1441,13 @@ contains
       parent_mesh = extract_mesh(state, topology_mesh_name)
       biology_mesh = piecewise_constant_mesh(parent_mesh, "BiologyMesh")
       call insert(state, biology_mesh, "BiologyMesh")
+
+      rw_subcycle_options = trim("/embedded_models/lagrangian_ensemble_biology/scalar_field::RandomWalkSubcycling")
+      if (have_option(rw_subcycle_options)) then
+         call allocate_and_insert_scalar_field(trim(rw_subcycle_options), &
+                state, parent_mesh="BiologyMesh", field_name="RandomWalkSubcycling", &
+                dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+      end if
 
       ! Then we allocate diagnostic fields for all Functional Groups
       do fg=1, get_num_functional_groups()

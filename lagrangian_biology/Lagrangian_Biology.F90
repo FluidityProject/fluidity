@@ -666,6 +666,7 @@ contains
     type(vector_field), pointer :: xfield
     type(scalar_field_pointer), dimension(:), pointer :: env_fields, food_fields
     character(len=FIELD_NAME_LEN) :: foodname
+    character(len=OPTION_PATH_LEN) :: le_options
     type(food_set) :: fset
     integer :: i, j, f, v, env, pm_period, hvar, hvar_ind, hvar_src_ind, fg, stage
 
@@ -674,6 +675,8 @@ contains
 
     xfield=>extract_vector_field(state(1), "Coordinate")
 
+    le_options = trim("/embedded_models/lagrangian_ensemble_biology")
+
     ! Prepare python-state
     ! Note: Currently disabled for performance reasons. 
     ! Actually only needed for Python RW with field sampling
@@ -681,6 +684,13 @@ contains
     !call python_reset()
     !call python_add_state(state(1))
     !call profiler_toc("/update_lagrangian_biology::python_reload")
+
+    ! Derive the number of subcycles per agent in each element
+    if (have_option(trim(le_options)//"/scalar_field::RandomWalkSubcycling")) then
+       call profiler_tic("lagrangian_biology::random_walk_subcycling")
+       call initialise_rw_subcycling(state(1), xfield, le_options, dt)
+       call profiler_toc("lagrangian_biology::random_walk_subcycling")
+    end if
 
     do fg=1, get_num_functional_groups()
        fgroup => get_functional_group(fg)
@@ -1258,45 +1268,6 @@ contains
     end do
 
   end subroutine chemical_release
-
-  subroutine aggregate_food_diagnostics(state, fgroup)
-    type(state_type), intent(inout) :: state
-    type(functional_group), intent(inout) :: fgroup
-
-    type(scalar_field), pointer :: concentration
-    type(scalar_field), pointer :: source_field
-    type(scalar_field), pointer :: chem_field
-    type(food_set) :: food
-    type(le_variable) :: chem_var
-    integer :: c, f, s
-
-    ewrite(2,*) "Lagrangian biology: Aggregating food sets for FG::", fgroup%name
-
-    do f=1, size(fgroup%food_sets)
-       food = fgroup%food_sets(f)
-
-       !concentration => extract_scalar_field(state, trim(food%conc_field_name))
-       call zero(concentration)
-
-       do s=1, size(food%varieties)
-          source_field => extract_scalar_field(state, trim(food%varieties(s)%conc_field))
-          call addto(concentration, source_field)
-       end do
-
-       ! Add the chemical concentrations across all target stages
-       do c=1, size(food%ingest_chem_inds)
-          chem_var = fgroup%variables( food%ingest_chem_inds(c) )
-          chem_field => extract_scalar_field(state, trim(fgroup%name)//trim(food%name)//trim(chem_var%name) )
-          call zero(chem_field)
-
-          do s=1, size(food%varieties)
-             source_field => extract_scalar_field(state, trim(food%target_fgroup)//"Particulate"//trim(chem_var%name)//trim(food%varieties(s)%name) )
-             call addto(chem_field, source_field)
-          end do
-       end do
-    end do
-
-  end subroutine aggregate_food_diagnostics
 
   subroutine ingestion(state)
     type(state_type), intent(inout) :: state

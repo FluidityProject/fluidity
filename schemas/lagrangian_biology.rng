@@ -7,6 +7,21 @@
         <a:documentation>Seed used for the random number generator. </a:documentation>
         <ref name="integer"/>
       </element>
+      <optional>
+        <element name="scalar_field">
+          <a:documentation>Diagnostic field for calculating the required number of sub-timesteps for automated Random Walk subcycling.</a:documentation>
+          <attribute name="name">
+            <value>RandomWalkSubcycling</value>
+          </attribute>
+          <element name="scale_factor">
+            <ref name="real"/>
+          </element>
+          <element name="diagnostic">
+            <ref name="internal_algorithm"/>
+            <ref name="diagnostic_scalar_field_no_adapt"/>
+          </element>
+        </element>
+      </optional>
       <zeroOrMore>
         <element name="functional_group">
           <a:documentation>A Functional Group (FG) is an abstraction to define the characteristic behaviour of one or more species of plankton agents. 
@@ -556,12 +571,7 @@ Requires name of diffusivity field and according gradient field.</a:documentatio
             </attribute>
             <optional>
               <element name="auto_subcycle">
-                <attribute name="diffusivity_2nd_gradient">
-                  <data type="string"/>
-                </attribute>
-                <element name="scale_factor">
-                  <ref name="real"/>
-                </element>
+                <empty/>
               </element>
             </optional>
           </element>

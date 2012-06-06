@@ -53,7 +53,7 @@ module detector_move_lagrangian
   private
 
   public :: move_lagrangian_detectors, read_detector_move_options, check_any_lagrangian, &
-            read_random_walk_options
+            read_random_walk_options, initialise_rw_subcycling
 
   character(len=OPTION_PATH_LEN), parameter :: rk_gs_path="/explicit_runge_kutta_guided_search"
 
@@ -205,10 +205,6 @@ contains
           ! Flag if we want automatic subcycling
           if (have_option(trim(options_buffer)//"/auto_subcycle")) then 
              detector_list%random_walks(i)%auto_subcycle = .true.
-             call get_option(trim(options_buffer)//"/auto_subcycle/diffusivity_2nd_gradient", &
-                      detector_list%random_walks(i)%diffusivity_2nd_grad)
-             call get_option(trim(options_buffer)//"/auto_subcycle/scale_factor", &
-                      detector_list%random_walks(i)%subcycle_scale_factor)
           end if
        end if
     end do
@@ -229,8 +225,8 @@ contains
 
     ! Random Walk velocity source
     real, dimension(:), allocatable :: rw_displacement
-    type(scalar_field), pointer :: diffusivity_field
-    type(vector_field), pointer :: diffusivity_grad, diffusivity_2nd_grad
+    type(scalar_field), pointer :: diffusivity_field, subcycle_field
+    type(vector_field), pointer :: diffusivity_grad
 
     call profiler_tic(trim(detector_list%name)//"::movement")
 
@@ -261,10 +257,6 @@ contains
           if (detector_list%random_walks(rw)%diffusive_random_walk) then
              diffusivity_field=>extract_scalar_field(state(1), trim(detector_list%random_walks(rw)%diffusivity_field))
              diffusivity_grad=>extract_vector_field(state(1), trim(detector_list%random_walks(rw)%diffusivity_grad))
-
-             if (detector_list%random_walks(rw)%auto_subcycle) then
-                diffusivity_2nd_grad=>extract_vector_field(state(1), trim(detector_list%random_walks(rw)%diffusivity_2nd_grad))
-             end if
           end if
        end do
     end if
@@ -378,8 +370,9 @@ contains
              elseif (detector_list%random_walks(rw)%diffusive_random_walk &
                          .and. detector_list%random_walks(rw)%auto_subcycle) then
 
-                call auto_subcycle_random_walk(detector_list,sub_dt,detector_list%random_walks(rw)%subcycle_scale_factor,&
-                          xfield,diffusivity_field,diffusivity_grad,diffusivity_2nd_grad)
+                subcycle_field => extract_scalar_field(state(1), "RandomWalkSubcycling")
+                call auto_subcycle_random_walk(detector_list,dt,&
+                          xfield,diffusivity_field,diffusivity_grad,subcycle_field)
 
              else
                 FLExit("Auto-subcycling can only be used with internal diffusive Random Walk.")
@@ -910,22 +903,21 @@ contains
 
   end subroutine reflect_on_boundary
 
-  subroutine auto_subcycle_random_walk(detector_list,sub_dt,scale_factor,xfield,diff_field,grad_field,grad2_field)
+  subroutine auto_subcycle_random_walk(detector_list,dt,xfield,diff_field,grad_field,subcycle_field)
     type(detector_linked_list), intent(inout) :: detector_list
-    real, intent(in) :: sub_dt, scale_factor
-    type(scalar_field), pointer, intent(in) :: diff_field
-    type(vector_field), pointer, intent(in) :: xfield, grad_field, grad2_field
+    real, intent(in) :: dt
+    type(scalar_field), pointer, intent(in) :: diff_field, subcycle_field
+    type(vector_field), pointer, intent(in) :: xfield, grad_field
 
     type(detector_linked_list) :: subcycle_detector_list
     type(detector_type), pointer :: detector, move_detector
-    real, dimension(:), allocatable :: rw_displacement
-    integer, dimension(:), allocatable :: auto_subcycle_per_ele
+    real, dimension(xfield%dim) :: rw_displacement
     real :: total_subsubcycle
-    integer :: ele, subsubcycle, max_subsubcycle
+    integer :: ele, subsubcycle, max_subsubcycle 
+    integer, dimension(1) :: subc
 
     max_subsubcycle = 1
     total_subsubcycle = 0
-    allocate(rw_displacement(xfield%dim))
 
     ! Setup our detector work list
     subcycle_detector_list%search_tolerance = detector_list%search_tolerance
@@ -933,28 +925,20 @@ contains
     subcycle_detector_list%tracking_method = detector_list%tracking_method
     subcycle_detector_list%name = detector_list%name
 
-    ! Create a list of auto-subcycle numbers per element
-    allocate(auto_subcycle_per_ele(element_count(xfield)))
-    call profiler_tic(trim(detector_list%name)//"::movement::subcycling")
-    do ele=1, element_count(xfield)
-       call element_rw_subcycling(ele, sub_dt, xfield, diff_field, grad_field, &
-               grad2_field, scale_factor, auto_subcycle_per_ele(ele))
-    end do
-    call profiler_toc(trim(detector_list%name)//"::movement::subcycling")
-
     ! First pass establishes how many sub-sub-cycles are required
     detector => detector_list%first
     do while (associated(detector))
        if (detector%type==LAGRANGIAN_DETECTOR) then
 
           ! Establish how many subcycles are needed
-          detector%rw_subsubcycles = auto_subcycle_per_ele(detector%element)
+          subc = ele_val(subcycle_field, detector%element)
+          detector%rw_subsubcycles = subc(1)
           total_subsubcycle = total_subsubcycle + detector%rw_subsubcycles
           if (detector%rw_subsubcycles > max_subsubcycle) then
              max_subsubcycle = detector%rw_subsubcycles
           end if
 
-          call diffusive_random_walk(detector, sub_dt/detector%rw_subsubcycles, &
+          call diffusive_random_walk(detector, dt/detector%rw_subsubcycles, &
                    xfield, diff_field, grad_field, rw_displacement)
           detector%update_vector=detector%update_vector + rw_displacement
 
@@ -971,8 +955,6 @@ contains
        end if
     end do
 
-    deallocate(auto_subcycle_per_ele)
-
     ! Update elements in the subcycle list
     if (subcycle_detector_list%length > 0) then
        call track_detectors(subcycle_detector_list,xfield)
@@ -983,7 +965,7 @@ contains
     do while (subcycle_detector_list%length > 0)
        detector => subcycle_detector_list%first
        do while (associated(detector))
-          call diffusive_random_walk(detector, sub_dt/detector%rw_subsubcycles, &
+          call diffusive_random_walk(detector, dt/detector%rw_subsubcycles, &
                    xfield, diff_field, grad_field, rw_displacement)
           detector%update_vector=detector%update_vector + rw_displacement
 
@@ -1006,62 +988,96 @@ contains
     ewrite(2,*) "Auto-subcycling: max. subcycles:", max_subsubcycle
     ewrite(2,*) "Auto-subcycling: avg. subcycles:", total_subsubcycle / detector_list%length
 
-    deallocate(rw_displacement)
-
   end subroutine auto_subcycle_random_walk
 
-  subroutine element_rw_subcycling(element,dt,xfield,diff_field,grad_field,grad2_field,scale_factor,subcycles)
-    integer, intent(in) :: element
-    type(scalar_field), pointer, intent(in) :: diff_field
-    type(vector_field), pointer, intent(in) :: xfield, grad_field, grad2_field
-    real, intent(in) :: dt, scale_factor
-    integer, intent(out) :: subcycles
+  subroutine initialise_rw_subcycling(state, xfield, option_path, dt)
+    type(state_type), intent(inout) :: state
+    type(vector_field), pointer, intent(in) :: xfield
+    character(len=OPTION_PATH_LEN), intent(in) :: option_path
+    real, intent(in) :: dt
 
-    integer :: i, local_subcycling
-    real :: k0, d_z, min_z, max_z, min_dt
-    real, dimension(xfield%mesh%shape%loc) :: coords
-    real, dimension(grad_field%mesh%shape%loc) :: k_grad
-    real, dimension(grad2_field%mesh%shape%loc) :: k_grad2
+    type(scalar_field), pointer :: diffusivity, subcycle_field
+    type(vector_field), pointer :: diffusivity_grad
+    type(tensor_field), pointer :: diffusivity_hessian
+    integer :: n, ele
+    integer, dimension(:), pointer :: nodes
+    real :: subcycling_factor, max_dt
 
-    real, dimension(xfield%dim) :: low_coord, high_coord
-    integer, dimension(:), pointer :: picked_elements
-    integer :: dim
+    ewrite(2,*) "In initialise_rw_subcycling"
 
-    ! Calculate the vertical range for the criteria
-    k0 = maxval(abs(ele_val(diff_field, element)))
-    k_grad = ele_val(grad_field, grad_field%dim, element)
-    d_z = sqrt(6 * K0 * dt) + maxval(abs(k_grad)) * dt
+    call get_option(trim(option_path)//"/scalar_field::RandomWalkSubcycling/scale_factor", subcycling_factor)
+    subcycle_field => extract_scalar_field(state, "RandomWalkSubcycling")
+    call zero(subcycle_field)
 
-    coords = ele_val(xfield, xfield%dim, element)
-    min_z = minval(coords) - d_z
-    max_z = maxval(coords) + d_z
+    diffusivity => extract_scalar_field(state, "ScalarDiffusivity")
+    diffusivity_grad => extract_vector_field(state, "DiffusivityGradient")
+    diffusivity_hessian => extract_tensor_field(state, "DiffusivityHessian")
 
-    dim = xfield%dim
-    do i=1, dim-1
-       low_coord(i) = minval(ele_val(xfield, i, element))
-       high_coord(i) = maxval(ele_val(xfield, i, element))
-    end do
-    low_coord(dim) = min_z
-    high_coord(dim) = max_z
-
-    ! Query the picker for all elements in this region
-    call picker_inquire_region(xfield, low_coord, high_coord, picked_elements)
-
-    ! Now we have all elements in our range and we can find the maximum sub-cycle number
-    subcycles = 1
-    do i=1, size(picked_elements)
-       k_grad2 = ele_val(grad2_field, dim, picked_elements(i))
-       k_grad2 = 1.0 / abs(k_grad2)
-       min_dt = minval(k_grad2) / scale_factor
-       local_subcycling = ceiling(dt/min_dt)
-       if (local_subcycling > subcycles) then
-          subcycles = local_subcycling
-       end if
+    do ele=1, element_count(subcycle_field)
+       call element_rw_subcycling(ele, dt, xfield, diffusivity, diffusivity_grad, &
+               diffusivity_hessian, subcycling_factor, max_dt)
+       nodes => ele_nodes(subcycle_field, ele)
+       call addto(subcycle_field, ele, max_dt)
     end do
 
-    deallocate(picked_elements)
+  contains
 
-  end subroutine element_rw_subcycling
+    subroutine element_rw_subcycling(element,dt,xfield,diff_field,grad_field,hessian_field,scale_factor,subcycling)
+      integer, intent(in) :: element
+      type(scalar_field), pointer, intent(in) :: diff_field
+      type(vector_field), pointer, intent(in) :: xfield, grad_field
+      type(tensor_field), pointer, intent(in) :: hessian_field
+      real, intent(in) :: dt, scale_factor
+      real, intent(out) :: subcycling
+
+      integer :: i, subc, local_subcycling
+      real :: k0, d_z, min_z, max_z, min_dt
+      real, dimension(xfield%mesh%shape%loc) :: coords
+      real, dimension(grad_field%mesh%shape%loc) :: k_grad
+      real, dimension(hessian_field%mesh%shape%loc) :: k_grad2
+
+      real, dimension(xfield%dim) :: low_coord, high_coord
+      integer, dimension(:), pointer :: picked_elements
+      integer :: dim
+
+      ! Calculate the vertical range for the criteria
+      k0 = maxval(abs(ele_val(diff_field, element)))
+      k_grad = ele_val(grad_field, grad_field%dim, element)
+      d_z = sqrt(6 * K0 * dt) + maxval(abs(k_grad)) * dt
+
+      coords = ele_val(xfield, xfield%dim, element)
+      min_z = minval(coords) - d_z
+      max_z = maxval(coords) + d_z
+
+      dim = xfield%dim
+      do i=1, dim-1
+         low_coord(i) = minval(ele_val(xfield, i, element))
+         high_coord(i) = maxval(ele_val(xfield, i, element))
+      end do
+      low_coord(dim) = min_z
+      high_coord(dim) = max_z
+
+      ! Query the picker for all elements in this region
+      call picker_inquire_region(xfield, low_coord, high_coord, picked_elements)
+
+      ! Now we have all elements in our range and we can find the maximum sub-cycle number
+      subc = 1
+      do i=1, size(picked_elements)
+         k_grad2 = ele_val(hessian_field, dim, dim, picked_elements(i))
+         k_grad2 = 1.0 / abs(k_grad2)
+         min_dt = minval(k_grad2) / scale_factor
+         local_subcycling = ceiling(dt/min_dt)
+         if (local_subcycling > subc) then
+            subc = local_subcycling
+         end if
+      end do
+
+      deallocate(picked_elements)
+      subcycling = real(subc)
+
+    end subroutine element_rw_subcycling
+
+  end subroutine initialise_rw_subcycling
 
   subroutine diffusive_random_walk(detector, dt, xfield, diff_field, grad_field, displacement)
     type(detector_type), pointer, intent(in) :: detector

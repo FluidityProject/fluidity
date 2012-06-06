@@ -6,6 +6,17 @@ lagrangian_biology =
          element random_seed{
             integer
          },
+         ## Diagnostic field for calculating the required number of sub-timesteps for automated Random Walk subcycling.
+         element scalar_field {
+            attribute name { 'RandomWalkSubcycling' },
+            element scale_factor { 
+               real
+            },
+            element diagnostic {
+               internal_algorithm,
+               diagnostic_scalar_field_no_adapt
+            }
+         }?,
          ## A Functional Group (FG) is an abstraction to define the characteristic behaviour of one or more species of plankton agents. 
          ## The Functional Group defines the internal variables an agent will store and the environment fields an agent needs to sample. 
          ## The concrete behaviour of an agent, however, is defined by the stage the agent is in. Stage changes are only permitted within Functional Groups. 
@@ -442,10 +453,7 @@ agent_movement =
                attribute diffusivity_field { xsd:string },
                attribute diffusivity_gradient { xsd:string },
                element auto_subcycle {
-                  attribute diffusivity_2nd_gradient { xsd:string },
-                  element scale_factor { 
-                     real
-                  }
+                  empty
                }?
             }|
             ## Hardcoded Naive Random Walk scheme for verifying the RNG
