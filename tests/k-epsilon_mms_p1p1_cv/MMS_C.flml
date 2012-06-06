@@ -54,7 +54,7 @@
     </dump_format>
     <dump_period>
       <constant>
-        <real_value rank="0">250</real_value>
+        <real_value rank="0">0</real_value>
       </constant>
     </dump_period>
     <output_mesh name="VelocityMesh"/>
@@ -640,6 +640,18 @@
             <real_value rank="0">0.0</real_value>
           </constant>
         </initial_condition>
+        <boundary_conditions name="all_sides">
+          <surface_ids>
+            <integer_value shape="4" rank="1">7 8 9 10</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <python>
+              <string_value type="code" lines="20" language="python">def val(X,t):
+   import k_epsilon_tools as k
+   return k.pressure(X)</string_value>
+            </python>
+          </type>
+        </boundary_conditions>
         <output>
           <include_previous_time_step/>
         </output>
@@ -1094,7 +1106,7 @@ for n in range(field.node_count):
   from math import sin, cos
 
   x = X[0]; y = X[1]
-  return 0.0400000000000000*(y + 1.00000000000000)*cos(x)**2*cos(y)**2</string_value>
+  return 0.0266666666666667*(y + 1.00000000000000)*cos(x)**2*cos(y)**2</string_value>
           </python>
         </value>
         <output/>
@@ -1116,7 +1128,7 @@ for n in range(field.node_count):
 #    Ce3 = 1.0
 #  else:
 #    Ce3 = tanh(abs(-sin(y)*cos(x))/abs((sin(x)*cos(y))))
-  return (-0.100000000000000*(y + 1.00000000000000)*sin(y)*cos(x))</string_value>
+  return -0.100000000000000*(y + 1.00000000000000)*sin(y)*cos(x)</string_value>
           </python>
         </value>
         <output/>
@@ -1227,7 +1239,7 @@ for n in range(field.node_count):
   from math import sin, cos
 
   x = X[0]; y = X[1]
-  return (0.0400000000000000*(y + 1.00000000000000)*cos(x)**2*cos(y)**2)</string_value>
+  return 0.0266666666666667*(y + 1.00000000000000)*cos(x)**2*cos(y)**2</string_value>
           </python>
         </value>
         <output/>
@@ -1249,7 +1261,7 @@ for n in range(field.node_count):
     Ce3 = 1.0
   else:
     Ce3 = tanh(abs(-sin(y)*cos(x))/abs((sin(x)*cos(y))))
-  return Ce3*(-0.100000000000000*(y + 1.00000000000000)*sin(y)*cos(x))</string_value>
+  return Ce3*-0.100000000000000*(y + 1.00000000000000)*sin(y)*cos(x)</string_value>
           </python>
         </value>
         <output/>

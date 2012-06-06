@@ -308,6 +308,7 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, buoyant_fields, &
   real, dimension(3, ele_loc(k, ele)) :: rhs_addto
   integer, dimension(ele_loc(k, ele)) :: nodes
   real, dimension(ele_loc(k, ele), ele_loc(k, ele)) :: invmass
+  real, dimension(u%dim, u%dim, ele_ngi(k, ele)) :: rhs_tensor
   type(element_type), pointer :: shape
   integer :: i_loc, i_field, term
 
@@ -324,11 +325,12 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, buoyant_fields, &
      inv_k = 0.0
   end where
 
-  ! Calculate TKE production at ngi using strain rate (double_dot_product) function
-  strain_ngi = double_dot_product(dshape, ele_val(u, ele))
+  ! ! Calculate TKE production at ngi using strain rate (double_dot_product) function
+  ! strain_ngi = double_dot_product(dshape, ele_val(u, ele))
 
   ! Pk:
-  rhs = strain_ngi*ele_val_at_quad(EV, ele)
+  rhs_tensor = reynolds_stresses(u, EV, k, dshape, ele)
+  rhs = frobenius_inner_product(rhs_tensor, ele_grad_at_quad(u, ele, dshape))
   if (field_id==2) then
      rhs = rhs*c_eps_1*ele_val_at_quad(f_1,ele)*ele_val_at_quad(eps,ele)*inv_k
   end if
@@ -369,6 +371,53 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, buoyant_fields, &
   end do
 
 end subroutine assemble_rhs_ele
+
+!------------------------------------------------------------------------------!
+! calculate reynolds stresses                                                  !
+!------------------------------------------------------------------------------!
+function reynolds_stresses(u, EV, k, dshape, ele)
+
+  type(vector_field), intent(in) :: u
+  type(scalar_field), intent(in) :: EV, k
+  integer, intent(in) :: ele
+  real, dimension(:, :, :), intent(in) :: dshape
+  
+  real, dimension(u%dim, u%dim, ele_ngi(u, ele)) :: reynolds_stresses
+  real, dimension(u%dim, u%dim, ele_ngi(u, ele)) :: grad_u
+  real, dimension(ele_ngi(u, ele)) :: EV_ele, k_ele
+  integer :: dim, ngi, gi, i
+
+  grad_u = ele_grad_at_quad(u, ele, dshape)
+  EV_ele = ele_val_at_quad(EV, ele)
+  k_ele = ele_val_at_quad(k, ele)
+  
+  do gi = 1, ngi
+     reynolds_stresses(:,:,gi) = grad_u(:,:,gi) + transpose(grad_u(:,:,gi))
+     do i = 1, dim
+        reynolds_stresses(i,i,gi) = EV_ele(gi)*(reynolds_stresses(i,i,gi) - &
+             (2./3.)*grad_u(i,i,gi)) - (2./3.)*k_ele(gi)
+     end do
+  end do
+
+end function reynolds_stresses
+
+!------------------------------------------------------------------------------!
+! calculate frobenius inner product                                            !
+!------------------------------------------------------------------------------!
+function frobenius_inner_product(A, B)
+
+  real, dimension(:,:,:), intent(in) :: A, B
+  
+  real, dimension(size(A,1), size(A,2), size(A,3)) :: C
+  real, dimension(size(A,3)) :: frobenius_inner_product
+  integer :: i
+  
+  C = A*B
+  do i = 1, size(A,3)
+     frobenius_inner_product(i) = sum(C(:,:,i))
+  end do
+
+end function frobenius_inner_product
     
 !------------------------------------------------------------------------------!
 ! calculate the buoyancy source term for each buoyant scalar field             !
@@ -1077,32 +1126,34 @@ end subroutine deallocate_scalar_field_buoyancy_data
 !------------------------------------------------------------------------------------------!
 ! Computes the strain rate for the LES model. Double-dot product results in a scalar:      !
 ! t:s = [ t11s11 + t12s21 + t13s31 + t21s12 + t22s22 + t23s32 + t31s13 + t32s23 + t33s33 ] !
-!------------------------------------------------------------------------------------------!
+!----------------------------------------------------------------------------------------
+!--!
+! Notused !
 
-function double_dot_product(du_t, nu)
+! function double_dot_product(du_t, nu)
 
-  real, dimension(:,:,:), intent(in)         :: du_t   ! derivative of velocity shape function
-  real, dimension(:,:), intent(in)           :: nu     ! nonlinear velocity
-  real, dimension( size(du_t,2) )            :: double_dot_product
-  real, dimension(size(du_t,3),size(du_t,3)) :: S, T
-  integer                                    :: dim, ngi, gi, i, j
+!   real, dimension(:,:,:), intent(in)         :: du_t   ! derivative of velocity shape function
+!   real, dimension(:,:), intent(in)           :: nu     ! nonlinear velocity
+!   real, dimension( size(du_t,2) )            :: double_dot_product
+!   real, dimension(size(du_t,3),size(du_t,3)) :: S, T
+!   integer                                    :: dim, ngi, gi, i, j
 
-  ngi  = size(du_t,2)
-  dim  = size(du_t,3)
+!   ngi  = size(du_t,2)
+!   dim  = size(du_t,3)
 
-  do gi=1, ngi
-     S = matmul( nu, du_t(:,gi,:) )
-     T = S
-     S = S + transpose(S)
-     double_dot_product(gi) = 0.
+!   do gi=1, ngi
+!      S = matmul( nu, du_t(:,gi,:) )
+!      T = S
+!      S = S + transpose(S)
+!      double_dot_product(gi) = 0.
 
-     do i = 1, dim
-        do j = 1, dim
-           double_dot_product(gi) = double_dot_product(gi) + T(i,j) * S(j,i)
-        end do
-     end do
-  end do
+!      do i = 1, dim
+!         do j = 1, dim
+!            double_dot_product(gi) = double_dot_product(gi) + T(i,j) * S(j,i)
+!         end do
+!      end do
+!   end do
 
-end function double_dot_product
+! end function double_dot_product
 
 end module k_epsilon
