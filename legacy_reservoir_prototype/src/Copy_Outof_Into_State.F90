@@ -666,35 +666,27 @@
       allocate( wic_comp_bc( stotel * nphases )) ; wic_comp_bc = 0
       allocate( suf_comp_bc( stotel * cv_snloc * nphases * ncomps )) ; suf_comp_bc = 0.
 
-      Loop_Component: do i = nphases + 1, nphases + ncomps ! Component loop
-         do j = 1, nphases ! Phase loop
+      Loop_Components: do i = nphases + 1, nphases + ncomps ! Component loop
+         Loop_Phases_Components: do j = 1, nphases ! Phase loop
 
             field => extract_scalar_field( state( i ), &
                  "ComponentMassFractionPhase" // int2str( j ) )
-            !  k = ( i - 1 ) * nphases *  node_count( field ) + ( j - 1 ) * node_count( field )
 
             k = ( i - ( nphases + 1 ) ) * nphases * node_count( field ) + &
                  ( j - 1 ) * node_count( field )
+            kk = ( i - ( nphases + 1 ) ) * nphases * stotel * cv_snloc + &
+                 ( j - 1 ) * stotel * cv_snloc
 
-
-            ewrite(3,*)' i, j, node_count(field):', i, j, node_count(field)
-            ewrite(3,*)'length:', k + 1, k + node_count( field )
             call Get_CompositionFields_Outof_State( state, nphases, i, j, field, &
-                 comp( k + 1 : k + node_count( field ) ), wic_comp_bc, suf_comp_bc, &
+                 comp( k + 1 : k + node_count( field ) ), wic_comp_bc, &
+                 kk + 1, kk + stotel * cv_snloc, &
+                 suf_comp_bc( kk + 1 : kk + stotel * cv_snloc ), &
                  field_prot_source = &
                  comp_source( ( j - 1 ) * node_count( field ) + 1 : &
                  ( j - 1 ) * node_count( field ) + node_count( field ) ) )
 
-            ewrite(3,*)'iphase, icomp, comp:', j, i - nphases, &
-                 comp( k + 1 :  k + node_count( field ) )
-
-            !call Get_ScalarFields_Outof_State( state, i, j, field, &
-            !     comp( k + 1 : k + node_count( field ) ), wic_comp_bc, suf_comp_bc, !&
-            !     field_prot_source=comp_source( k + 1 : k + node_count( field )))
-
-         end do
-
-      end do Loop_Component
+         end do Loop_Phases_Components
+      end do Loop_Components
       ewrite(3,*)'comp:', comp
       ewrite(3,*)'wic_comp_bc:', wic_comp_bc
       ewrite(3,*)'suf_comp_bc:', suf_comp_bc
@@ -1548,7 +1540,10 @@
     end subroutine Get_Vector_SNdgln
 
     subroutine Get_CompositionFields_Outof_State( state, nphases, icomp, iphase, field, &
-         field_prot, wic_bc, suf_bc, field_prot_source, field_prot_absorption )
+         field_prot, wic_bc, &
+         kprime, kprime2, &
+         suf_bc, &
+         field_prot_source, field_prot_absorption )
       implicit none
       type( state_type ), dimension( : ), intent( inout ) :: state
       integer, intent( in ) :: nphases, icomp, iphase
@@ -1556,7 +1551,8 @@
       real, dimension( : ), intent( inout ) :: field_prot
       real, dimension( : ), intent( inout ), optional :: field_prot_source, field_prot_absorption
       integer, dimension( : ), intent( inout ) :: wic_bc
-      real, dimension( : ), intent( inout ) :: suf_bc
+      integer, intent( in ) :: kprime, kprime2
+      real, dimension( kprime : kprime2 ), intent( inout ) :: suf_bc
       ! Local variables
       type( mesh_type ), pointer :: pmesh, cmesh
       type(scalar_field), pointer :: pressure, field_source, field_absorption
@@ -1626,11 +1622,12 @@
             shape_option = option_shape( trim( option_path ) // &
                  "/prognostic/boundary_conditions[" // &
                  int2str( k - 1 ) // "]/surface_ids" )
-
             allocate( sufid_bc( 1 : shape_option( 1 ) ) )
+
             call get_option( trim( option_path ) // &
                  "/prognostic/boundary_conditions[" // &
                  int2str( k - 1 ) // "]/surface_ids", sufid_bc )
+
             allocate( face_nodes( face_loc( field, 1 ) ) )
             sele = 1
             do j = 1, stotel
@@ -1638,7 +1635,8 @@
                   wic_bc( j + ( iphase - 1 ) * stotel ) = bc_type
                   face_nodes = ele_nodes( field_prot_bc, sele )
                   do kk = 1, snloc
-                     suf_bc( ( iphase - 1 ) * stotel * snloc + ( j - 1 ) * snloc + kk ) = &
+                    suf_bc( ( icomp - ( nphases + 1 ) ) * nphases * stotel * snloc + &
+                       ( iphase - 1 ) * stotel * snloc + ( j - 1 ) * snloc + kk ) = &
                           field_prot_bc % val( face_nodes( 1 ) )
                   end do
                   sele = sele + 1
