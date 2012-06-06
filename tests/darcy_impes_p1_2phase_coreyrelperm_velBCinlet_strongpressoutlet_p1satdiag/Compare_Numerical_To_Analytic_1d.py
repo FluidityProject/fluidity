@@ -13,11 +13,12 @@
  be plotted with xmgrace. The numerical solution is 
  considered as both FE and CV. The L2 norm error 
  is calculated assuming a uniform analytic solution 
- mesh via a simple approximation = sum(dx*error_node**2)
- where dx = domain_length / number_node_analytic_mesh.
+ mesh via = sum(dx*error_node**2) where
+ dx = domain_length / (number_node_analytic_mesh -1) 
+ and dx/2 is used for the left and right boundary nodes.
   
  The x coordinate assoicated with the solution field and 
- the analytic solution be ascending.
+ the analytic solution must be ascending.
  
  This is used via:
  
@@ -205,7 +206,7 @@ class Compare_Numerical_To_Analytic_1d:
       self.linf_cv_error = max(self.cv_error_val_analytic_mesh)
       
       # Calculate the roungh mesh size per node
-      dx = (self.analytic_x_coord[-1] - self.analytic_x_coord[0]) / float(self.number_analytic_x_coord)
+      dx = (self.analytic_x_coord[-1] - self.analytic_x_coord[0]) / float(self.number_analytic_x_coord - 1)
             
       self.l2_fe_error = 0.0
       self.l2_cv_error = 0.0
@@ -213,12 +214,24 @@ class Compare_Numerical_To_Analytic_1d:
       self.l1_cv_error = 0.0
       
       for node in range(self.number_analytic_x_coord):
+
+         if node == 0 or node == (self.number_analytic_x_coord - 1):
+
+            self.l2_fe_error = self.l2_fe_error + (dx/2.0)*(self.fe_error_val_analytic_mesh[node]**2.0) 
+            self.l2_cv_error = self.l2_cv_error + (dx/2.0)*(self.cv_error_val_analytic_mesh[node]**2.0) 
+            self.l1_fe_error = self.l1_fe_error + (dx/2.0)*(self.fe_error_val_analytic_mesh[node]) 
+            self.l1_cv_error = self.l1_cv_error + (dx/2.0)*(self.cv_error_val_analytic_mesh[node]) 
          
-         self.l2_fe_error = self.l2_fe_error + dx*(self.fe_error_val_analytic_mesh[node]**2.0) 
-         self.l2_cv_error = self.l2_cv_error + dx*(self.cv_error_val_analytic_mesh[node]**2.0) 
-         self.l1_fe_error = self.l1_fe_error + dx*(self.fe_error_val_analytic_mesh[node]) 
-         self.l1_cv_error = self.l1_cv_error + dx*(self.cv_error_val_analytic_mesh[node]) 
-               
+         else:
+         
+            self.l2_fe_error = self.l2_fe_error + dx*(self.fe_error_val_analytic_mesh[node]**2.0) 
+            self.l2_cv_error = self.l2_cv_error + dx*(self.cv_error_val_analytic_mesh[node]**2.0) 
+            self.l1_fe_error = self.l1_fe_error + dx*(self.fe_error_val_analytic_mesh[node]) 
+            self.l1_cv_error = self.l1_cv_error + dx*(self.cv_error_val_analytic_mesh[node]) 
+      
+      self.l2_fe_error = self.l2_fe_error ** (0.5)
+      self.l2_cv_error = self.l2_cv_error ** (0.5)
+      
    def output_fe_and_cv_solutions_and_errors_on_analytic_mesh(self):
       """ Output the FE and CV solutions on the analytic coordinate mesh """
       
