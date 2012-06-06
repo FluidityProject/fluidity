@@ -9,7 +9,7 @@ def velocity(XX):
 
 def pressure(XX):
    x = XX[0]; y = XX[1]
-   return cos(x)*cos(y)-1.0
+   return 1.0-cos(x)*cos(y)
 
 def rho_p(XX):
    '''Density perturbation'''

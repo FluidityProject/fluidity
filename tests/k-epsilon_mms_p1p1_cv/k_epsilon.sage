@@ -1,15 +1,15 @@
-y = var('y')
+sy = var('y')
 u = 0.1*sin(x)*cos(y)
 v = -0.1*cos(x)*sin(y)
-p = cos(x)*cos(y)-1.0
+p = 1.0-cos(x)*cos(y)
 rho_p = 0.1*cos(x)*cos(y)
 ke = y+1.0
 eps = y+1.0
 
 nuT = ke^2/eps
 
-Su = u*diff(u,x) + v*diff(u,y) + diff(p,x) - (1.0+nuT)*(diff(u, x, x) + diff(u, y, y)) - diff(u, x)*diff(nuT, x) - diff(u, y)*diff(nuT, y)
-Sy = u*diff(v,x) + v*diff(v,y) + diff(p,y) - (1.0+nuT)*(diff(v, x, x) + diff(v, y, y)) - diff(v, x)*diff(nuT, x) - diff(v, y)*diff(nuT, y) - rho_p*-1.0 
+Su = u*diff(u,x) + v*diff(u,y) - diff(p,x) - (1.0+nuT)*(diff(u, x, x) + diff(u, y, y)) - diff(u, x)*diff(nuT, x) - diff(u, y)*diff(nuT, y)
+Sy = u*diff(v,x) + v*diff(v,y) - diff(p,y) - (1.0+nuT)*(diff(v, x, x) + diff(v, y, y)) - diff(v, x)*diff(nuT, x) - diff(v, y)*diff(nuT, y) - rho_p*-1.0 
 
 Srho_p = u*diff(rho_p,x) + v*diff(rho_p,y) - nuT*(diff(rho_p, x, x) + diff(rho_p, y, y)) - diff(nuT, x)*diff(rho_p, x) -  diff(nuT, y)*diff(rho_p, y)
 
@@ -34,3 +34,6 @@ print str(Seps).replace('e^', 'exp').replace('^', '**')
 print str(Pke).replace('e^', 'exp').replace('^', '**')
 print str(Gke).replace('e^', 'exp').replace('^', '**')
 print str(Ake).replace('e^', 'exp').replace('^', '**')
+print str(Peps).replace('e^', 'exp').replace('^', '**')
+print str(Geps).replace('e^', 'exp').replace('^', '**')
+print str(Aeps).replace('e^', 'exp').replace('^', '**')

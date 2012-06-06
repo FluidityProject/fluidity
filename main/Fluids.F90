@@ -637,21 +637,16 @@ contains
              end if
 
              ! do we have the k-epsilon 2 equation turbulence model?
-             if(have_k_epsilon .and. have_option(trim(keps_option_path)//"/scalar_field::"//trim(field_name_list(it)//"/prognostic"))) then
-                if( (trim(field_name_list(it))=="TurbulentKineticEnergy")) then
-                    call keps_tke(state(1))
-                else if( (trim(field_name_list(it))=="TurbulentDissipation")) then
-                    call keps_eps(state(1))
-                endif
+             if(have_k_epsilon .and. trim(field_name_list(it))=="TurbulentKineticEnergy") then
+                call keps_calculate_rhs(state(1))
              end if
 
-            ! Calculate the meltrate
-            if(have_option("/ocean_forcing/iceshelf_meltrate/Holland08/") ) then
+             ! Calculate the meltrate
+             if(have_option("/ocean_forcing/iceshelf_meltrate/Holland08/") ) then
                 if( (trim(field_name_list(it))=="MeltRate")) then
-                    call melt_surf_calc(state(1))
+                   call melt_surf_calc(state(1))
                 endif
-            end if
-
+             end if
 
              call get_option(trim(field_optionpath_list(it))//&
                   '/prognostic/equation[0]/name', &
@@ -928,11 +923,6 @@ contains
         call gls_cleanup()
     end if
 
-    ! cleanup k_epsilon
-    if (have_k_epsilon) then
-        call keps_cleanup()
-    end if
-
     if (have_option("/material_phase[0]/sediment")) then
         call sediment_cleanup()
     end if
@@ -1012,12 +1002,6 @@ contains
     ! management system complains
     if (have_option("/material_phase[0]/subgridscale_parameterisations/GLS/")) then
         call gls_cleanup() ! deallocate everything
-    end if
-
-    ! k_epsilon - we need to deallocate all module-level fields or the memory
-    ! management system complains
-    if (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/")) then
-        call keps_cleanup() ! deallocate everything
     end if
 
     ! deallocate sub-state

@@ -84,7 +84,7 @@ module populate_state_module
   !! A list of locations in which additional scalar/vector/tensor fields
   !! are to be found. It is assumed that all additional fields are
   !! in state 1.
-  character(len=OPTION_PATH_LEN), dimension(11) :: field_locations=&
+  character(len=OPTION_PATH_LEN), dimension(12) :: field_locations=&
        (/ &
        "/ocean_biology/pznd                                                                                                   ", &
        "/ocean_biology/six_component                                                                                          ", &
@@ -92,6 +92,7 @@ module populate_state_module
        "/material_phase[0]/subgridscale_parameterisations/prescribed_diffusivity                                              ", &
        "/material_phase[0]/subgridscale_parameterisations/GLS                                                                 ", &
        "/material_phase[0]/subgridscale_parameterisations/k-epsilon                                                           ", &
+       "/material_phase[0]/subgridscale_parameterisations/k-epsilon/debugging_fields                                          ", &
        "/ocean_forcing/iceshelf_meltrate/Holland08                                                                            ", &
        "/ocean_forcing/bulk_formulae/output_fluxes_diagnostics                                                                ", &
        "/porous_media                                                                                                         ", &
