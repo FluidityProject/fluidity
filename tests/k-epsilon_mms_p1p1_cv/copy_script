@@ -1,0 +1,9 @@
+cp MMS_A.flml MMS_B.flml 
+sed s/MMS_A/MMS_B/ MMS_B.flml > MMS_B.flml.cp
+mv MMS_B.flml.cp MMS_B.flml
+cp MMS_A.flml MMS_C.flml 
+sed s/MMS_A/MMS_C/ MMS_C.flml > MMS_C.flml.cp
+mv MMS_C.flml.cp MMS_C.flml
+cp MMS_A.flml MMS_D.flml 
+sed s/MMS_A/MMS_D/ MMS_D.flml > MMS_D.flml.cp
+mv MMS_D.flml.cp MMS_D.flml

@@ -392,15 +392,6 @@ contains
        ewrite(-1,*) "You must specify a dump format and it must be vtk."
        FLExit("Rejig your FLML: /io/dump_format")
     end if
- 
-    ! Initialise k_epsilon before other diagnostic fields are calculated so that
-    !  diffusivity fields are calculated correctly
-    have_k_epsilon = .false.
-    keps_option_path="/material_phase[0]/subgridscale_parameterisations/k-epsilon/"
-    if (have_option(trim(keps_option_path))) then
-        have_k_epsilon = .true.
-        call keps_init(state(1))
-    end if
 
     ! initialise the multimaterial fields
     call initialise_diagnostic_material_properties(state)
@@ -636,11 +627,6 @@ contains
                 end if
              end if
 
-             ! do we have the k-epsilon 2 equation turbulence model?
-             if(have_k_epsilon .and. trim(field_name_list(it))=="TurbulentKineticEnergy") then
-                call keps_calculate_rhs(state(1))
-             end if
-
              ! Calculate the meltrate
              if(have_option("/ocean_forcing/iceshelf_meltrate/Holland08/") ) then
                 if( (trim(field_name_list(it))=="MeltRate")) then
@@ -713,11 +699,8 @@ contains
             call gls_diffusivity(state(1))
           end if
 
-          ! k_epsilon after the solve on Epsilon has finished
-          if(have_k_epsilon .and. have_option(trim(keps_option_path)//"/scalar_field::ScalarEddyViscosity/diagnostic")) then
-            ! Update the diffusivity, at each iteration.
-            call keps_eddyvisc(state(1))
-          end if
+          ! Update eddy viscosity after each iteration - single phase only!
+          call keps_eddyvisc(state(1))
           
           !BC for ice melt
           if (have_option('/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries')) then

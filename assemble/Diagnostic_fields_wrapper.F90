@@ -54,6 +54,7 @@ module diagnostic_fields_wrapper
   use momentum_diagnostic_fields
   use spontaneous_potentials, only: calculate_formation_conductivity
   use sediment_diagnostics
+  use k_epsilon
   use geostrophic_pressure
   use multiphase_module
   
@@ -82,6 +83,9 @@ contains
     ewrite(1, *) "In calculate_diagnostic_variables"
  
     do i = 1, size(state)
+
+       ! k-epsilon diagnostics
+       call keps_diagnostics(state(i))
 
        ! start of fields that can be called through the generic calculate_diagnostic_variable
        ! interface, i.e. - those that only require things available in f90modules
