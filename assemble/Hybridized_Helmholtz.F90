@@ -162,6 +162,16 @@ contains
     end if
 
     if(present(DResidual).and.present(UResidual)) then
+       !Compute residuals for linear equation
+       do ele = 1, ele_count(D)
+          call get_linear_residuals_ele(U_res,D_res,&
+               U,D,newU,newD,&
+               newton_local_solver_cache(ele)%ptr,&
+               newton_local_solver_rhs_cache(ele)%ptr,ele)
+       end do
+       !Check difference between linear and nonlinear residuals
+       ewrite(2,*) 'U RES DIFF', maxval(abs(U_res%val-UResidual%val)),maxval(abs(U_res%val))
+       ewrite(2,*) 'D RES DIFF', maxval(abs(D_res%val-DResidual%val)),maxval(abs(D_res%val))
        !Set residuals from nonlinear input
        call set(U_res,UResidual)
        call set(D_res,DResidual)
@@ -210,6 +220,10 @@ contains
     !Negative scaling occurs here.
     call scale(U_res,-1.0)
     call scale(D_res,-1.0)
+
+    ewrite(2,*) 'Delta U', maxval(abs(U_res%val))
+    ewrite(2,*) 'Delta D', maxval(abs(D_res%val))
+    
     call addto(newU,U_res)
     call addto(newD,D_res)
 

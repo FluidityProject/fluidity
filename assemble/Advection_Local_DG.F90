@@ -1521,8 +1521,10 @@ module advection_local_DG
        newU_cart_gi(:,gi) = matmul(transpose(J(:,:,gi)),newU_gi(:,gi))/detJ(gi)
     end do
 
+    !!Residual is
+    !! U_new - (U_old - dt*Q^\perp - dt grad(g\bar{D} + \bar{K}))
     !First the PV Flux (perped)
-    UR_rhs = -ele_val(PVFlux,ele)
+    UR_rhs = +ele_val(PVFlux,ele)
     !Now the time derivative term
     UR_rhs = UR_rhs + shape_vector_rhs(U_shape,newU_rhs-U_rhs,&
          U_shape%quadrature%weight)

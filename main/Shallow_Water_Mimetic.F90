@@ -163,6 +163,7 @@
        call compute_energy_hybridized(states(1),energy)
        call write_diagnostics(states,current_time, dt, timestep)
 
+       ewrite(1,*) 'END OF TIMESTEP   TIME=', current_time
     end do timestep_loop
 
     call compute_energy_hybridized(states(1),energy)
@@ -289,6 +290,7 @@
 
             !Start of Newton iteration loop
             newton_iteration: do nits = 1, nonlinear_iterations
+               ewrite(1,*) 'NONLINEAR ITERATION', nits
                !Set up advecting velocity 
                call set(advecting_u, u)
                call scale(advecting_u, 1-theta)
@@ -297,14 +299,17 @@
                !Compute D residual
                call solve_advection_dg_subcycle("LayerThickness", state, &
                     "NonlinearVelocity",continuity=.true.,Flux=MassFlux)
-               call set(DResidual,D)
-               call addto(DResidual,D_old,-1.0)
+               !Should be newD-D
+               call set(DResidual,newD)
+               call addto(DResidual,D,-1.0)
                call apply_dg_mass(DResidual,state)
 
                !Update PV
                call set(PV,PV_old)
                call solve_advection_cg_tracer(PV,D,D_old,&
                     MassFlux,PVFlux,state)
+
+               ewrite(1,*) 'PVFlux', maxval(abs(PVFlux%val))
 
                ! Compute U residual
                call compute_U_residual(UResidual,U_old,D_old,&
@@ -338,6 +343,7 @@
 
          call deallocate(newU)
          call deallocate(newD)
+
       end if
 
     end subroutine execute_timestep
