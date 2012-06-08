@@ -1556,6 +1556,7 @@ AC_OUTPUT(Makefile
           diagnostics/Makefile
           main/Makefile
           tools/Makefile
+          tools/version-info
           python/setup.py
           adjoint/Makefile
           adjoint/tests/Makefile

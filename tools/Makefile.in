@@ -112,6 +112,12 @@ scripts:
 	for i in *.py ; do cp $$i ../bin/`basename $$i .py` ; done
 	for i in *.sh ; do cp $$i ../bin/`basename $$i .sh` ; done
 
+install-version-info: version-info
+	@chmod +x $<
+	@cp $< ../bin/$<
+
+.PHONY: install-version-info
+
 .PHONY: install_python
 
 install_python:
