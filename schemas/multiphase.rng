@@ -880,6 +880,12 @@ Pc = c * S_w ** a</a:documentation>
                   <ref name="real"/>
                 </element>
               </optional>
+              <optional>
+                <element name="scale_momentum_by_volume_fraction">
+                  <a:documentation>Scale the momentum equation by the volume fraction for when some problems are not well poised.</a:documentation>
+                  <empty/>
+                </element>
+              </optional>
             </element>
           </optional>
         </element>

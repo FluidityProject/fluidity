@@ -706,7 +706,9 @@ start =
                   }
                }?,
                ## Immobile volume of fluid phase
-               element immobile_fraction {real}?
+               element immobile_fraction {real}?,
+               ## Scale the momentum equation by the volume fraction for when some problems are not well poised.
+               element scale_momentum_by_volume_fraction {empty}?
             }?
          }+,
          mesh_adaptivity_options?,
