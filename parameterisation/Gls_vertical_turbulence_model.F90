@@ -384,10 +384,8 @@ subroutine gls_tke(state)
     tke_diff => extract_tensor_field(state, "GLSTurbulentKineticEnergyDiffusivity")
     positions => extract_vector_field(state, "Coordinate")
 
-    ! swap state tke for our local one - the state tke has had the upper and
-    ! lower boundaries ammended with the Dirichlet condition as in Warner et al
-    ! 2005. The local TKE is the non-amended version. This ensures a
-    ! non-ill-posed problem.
+    ! Create a local_tke in which we can mess about with the surface values
+    ! for creating some of the diagnostic values later
     call set(tke,local_tke)
     ! Assembly loop
     call zero(P)
@@ -415,11 +413,6 @@ subroutine gls_tke(state)
     call scale(source,inverse_lumped_mass)
     call scale(absorption,inverse_lumped_mass)
     call deallocate(inverse_lumped_mass)
-
-    !do i=1,NNodes_sur
-    !    call set(source,top_surface_nodes(i),0.0)
-    !    call set(absorption, top_surface_nodes(i),0.0)
-    !end do
 
     ! set diffusivity for tke
     call zero(tke_diff)
@@ -506,24 +499,19 @@ subroutine gls_tke(state)
         shape_kk => ele_shape(kk, ele)
         call transform_to_physical( positions, ele, shape_kk, dshape=dshape_kk, detwei=detwei )
 
-        ! if we can hide the absorption term in the source, then do. Done in
-        ! ROMS and GOTM too
-        !where (ele_val_at_quad(P,ele) + ele_val_at_quad(B,ele) .gt. 0)
-        !    rhs_addto_src = shape_rhs(shape_kk, detwei * (&
-        !                            ele_val_at_quad(P,ele) + ele_val_at_quad(B,ele)))
-        !    rhs_addto_disip = shape_rhs(shape_kk, detwei*ele_val_at_quad(eps,ele)/ele_val_at_quad(tke,ele))
-       ! 
-       ! elsewhere
-            rhs_addto_src = shape_rhs(shape_kk, detwei * (&
+        ! ROMS and GOTM hide the absorption term in the source if the
+        ! total is > 0. Kinda hard to do that over an element (*what* should
+        ! be > 0?). So we don't pull this trick. Doesn't seem to make a
+        ! difference to anything.
+        rhs_addto_src = shape_rhs(shape_kk, detwei * (&
                                  (ele_val_at_quad(P,ele))) &
                                  )
-            rhs_addto_disip = shape_rhs(shape_kk, detwei * ( &
+        rhs_addto_disip = shape_rhs(shape_kk, detwei * ( &
                                  (ele_val_at_quad(eps,ele) - &
                                  ele_val_at_quad(B,ele)) / &
                                  ele_val_at_quad(tke,ele)) &
                                  )
            
-        !end where
         call addto(source, nodes_kk, rhs_addto_src)
         call addto(absorption, nodes_kk, rhs_addto_disip)
 
@@ -578,20 +566,8 @@ subroutine gls_psi(state)
     ! store the tke in an internal field and then
     ! add the dirichlet conditions to the upper and lower surfaces. This
     ! helps stabilise the diffusivity (e.g. rapid heating cooling of the surface
-    ! can destabilise the run) but also is then done for output so we match
-    ! other models which also play this trick, c.f. Warner et al 2005.
+    ! can destabilise the run)
     call set(local_tke,tke)
-    ! Call the bc code, but specify we want dirichlet
-    !call gls_tke_bc(state, 'dirichlet')
-    ! copy the values onto the mesh using the global node id
-    !do i=1,NNodes_sur
-    !    call set(tke,top_surface_nodes(i),node_val(top_surface_values,i))
-    !    call set(tke_old,top_surface_nodes(i),node_val(top_surface_values,i))   
-    !end do   
-    !do i=1,NNodes_bot
-    !    call set(tke,bottom_surface_nodes(i),node_val(bottom_surface_values,i))
-    !    call set(tke_old,bottom_surface_nodes(i),node_val(bottom_surface_values,i))
-    !end do   
 
     ! clip at k_min
     do i=1,nNodes
@@ -643,16 +619,10 @@ subroutine gls_psi(state)
 
     end if
 
-    ! re-construct psi at "old" timestep
-    !call zero(psi)
-    !do ele=1,ele_count(psi)
-    !    call reconstruct_psi(ele, psi, mesh_dim(psi))
-    !end do
     call allocate(inverse_lumped_mass, psi%mesh, "InverseLumpedMass")
     lumped_mass => get_lumped_mass(state, psi%mesh)
     call invert(lumped_mass, inverse_lumped_mass)
-    ! source and absorption terms are set, apart from the / by lumped mass
-    !call scale(psi,inverse_lumped_mass)
+    ! Set Psi from previous timestep
     do i=1,nNodes
         call set(psi,i, cm0**gls_p * node_val(tke_old,i)**gls_m * node_val(ll,i)**gls_n)
         call set(psi,i,max(node_val(psi,i),psi_min))
@@ -676,11 +646,6 @@ subroutine gls_psi(state)
     call scale(absorption,inverse_lumped_mass)
     call deallocate(inverse_lumped_mass)
     
-    !do i=1,NNodes_sur
-    !    call set(source,top_surface_nodes(i),0.0)
-    !    call set(absorption, top_surface_nodes(i),0.0)
-    !end do
-
     ewrite(2,*) "In gls_psi: setting diffusivity"
     ! Set diffusivity for Psi
     call zero(psi_diff)
@@ -909,24 +874,12 @@ subroutine gls_diffusivity(state)
     call allocate(tke, tke_state%mesh, name="MyLocalTKE")
     !if (gls_n > 0) then
         ! set the TKE to use below to the unaltered TKE
-        ! with no chnages tothe upper/lower surfaces
+        ! with no changes to the upper/lower surfaces
         ! Applies to k-kl model only
     !    call set (tke, local_tke)
     !else
         ! Use the altered TKE to get the surface diffusivity correct
         call set (tke, tke_state)
-    !end if
-
-    ! call the bc code, but specify we want dirichlet
-    !if (gls_n < 0) then
-    !    call gls_psi_bc(state, 'dirichlet')
-    !    ! copy the values onto the mesh using the global node id
-    !    do i=1,NNodes_sur
-    !        call set(psi,top_surface_nodes(i),node_val(top_surface_values,i))
-    !    end do
-    !    do i=1,NNodes_bot
-    !        call set(psi,bottom_surface_nodes(i),node_val(bottom_surface_values,i))
-    !    end do
     !end if
 
     exp1 = 3.0 + gls_p/gls_n
@@ -981,15 +934,6 @@ subroutine gls_diffusivity(state)
         ! tracer
         call set(K_H,i, relaxation*node_val(K_H,i) + (1-relaxation)*node_val(S_H,i)*x)
     end do
-
-    !do i=1,NNodes_sur
-    !    call set(K_M,top_surface_nodes(i),0.0)
-    !    call set(K_H,top_surface_nodes(i),0.0)
-    !end do
-    !do i=1,NNodes_bot
-    !    call set(K_M,bottom_surface_nodes(i),0.0)
-    !    call set(K_H,bottom_surface_nodes(i),0.0)
-    !end do
 
     ! put KM onto surface fields for Psi_bc
     if (calculate_bcs) then
@@ -1742,7 +1686,7 @@ subroutine gls_psi_bc(state, bc_type)
             ! GOTM Boundary
             value = -(gls_n*(cm0**(gls_p+1.))*(kappa**(gls_n+1.)))/sigma_psi     &
                      *node_val(top_surface_tke_values,i)**(gls_m+0.5)*(z0s(i))**gls_n  
-            ! Warner 2005
+            ! Warner 2005 - left here for posterity and debugging
             !value = -gls_n*(cm0**(gls_p))*(node_val(top_surface_tke_values,i)**gls_m)* &
             !         (kappa**gls_n)*(z0s(i)**(gls_n-1))*((node_val(top_surface_km_values,i)/sigma_psi))
             call set(top_surface_values,i,value)
@@ -1754,7 +1698,7 @@ subroutine gls_psi_bc(state, bc_type)
                 ! GOTM Boundary
                 value = - gls_n*cm0**(gls_p+1.)*(kappa**(gls_n+1.)/sigma_psi)      &
                            *node_val(bottom_surface_tke_values,i)**(gls_m+0.5)*(z0b(i))**gls_n
-                ! Warner 2005
+                ! Warner 2005 - as above
                 !value = gls_n*cm0**(gls_p)*node_val(bottom_surface_tke_values,i)**(gls_m)* &
                 !         kappa**gls_n*(z0b(i)**(gls_n-1))*(node_val(bottom_surface_km_values,i)/sigma_psi)
             end if
