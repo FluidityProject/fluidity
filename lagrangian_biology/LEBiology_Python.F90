@@ -93,7 +93,7 @@ module lebiology_python
     end subroutine lebiology_agent_init
 
     subroutine lebiology_agent_update(fg, fglen, key, keylen, food, foodlen, &
-           vars, n_vars, envvals, n_envvals, fvariety, frequest, fingest, n_fvariety, dt, stat) &
+           vars, n_vars, envvals, n_envvals, fvariety, frequest, fthreshold, fingest, n_fvariety, dt, stat) &
            bind(c, name='lebiology_agent_update_c')
       use :: iso_c_binding
       implicit none
@@ -104,7 +104,7 @@ module lebiology_python
       character(kind=c_char), dimension(foodlen), intent(in) :: food
       real(c_double), dimension(n_vars), intent(inout) :: vars
       real(c_double), dimension(n_envvals), intent(inout) :: envvals
-      real(c_double), dimension(n_fvariety), intent(inout) :: fvariety, frequest, fingest
+      real(c_double), dimension(n_fvariety), intent(inout) :: fvariety, frequest, fingest, fthreshold
       real(c_double), intent(in) :: dt
       integer(c_int), intent(out) :: stat
     end subroutine lebiology_agent_update
@@ -249,7 +249,10 @@ contains
     real, dimension(size(foodfields)) :: foodfield_vals
     real, dimension(:), allocatable :: foodval_ele
     real :: path_total
+    real, dimension(size(agent%biology)) :: agent_state_copy
     integer :: f, v, e, stat
+
+    agent_state_copy = agent%biology
 
     ! Sample environment fields
     do f=1, size(envfields)
@@ -265,7 +268,7 @@ contains
           ! Integrate along the path of the agent
           allocate(foodval_ele(size(agent%ele_path)))
           do e=1, size(agent%ele_path)
-             foodval_ele(e) = agent%ele_dist(e) * integral_element(foodfields(f)%ptr, xfield, agent%ele_path(e))
+             foodval_ele(e) = agent%ele_dist(e) * integral_element(foodfields(f)%ptr, xfield, agent%ele_path(e)) / element_volume(xfield, agent%ele_path(e))
           end do
 
           foodfield_vals(f) = sum(foodval_ele)
@@ -273,12 +276,12 @@ contains
           if (path_total > 0.0) then
              foodfield_vals(f) = foodfield_vals(f) / path_total
           else
-             foodfield_vals(f) = integral_element(foodfields(f)%ptr, xfield, agent%element)
+             foodfield_vals(f) = integral_element(foodfields(f)%ptr, xfield, agent%element) / element_volume(xfield, agent%element)
           end if
           deallocate(foodval_ele)
 
        else
-          foodfield_vals(f) = integral_element(foodfields(f)%ptr, xfield, agent%element)
+          foodfield_vals(f) = integral_element(foodfields(f)%ptr, xfield, agent%element) / element_volume(xfield, agent%element)
        end if
     end do
 
@@ -286,10 +289,15 @@ contains
     call lebiology_agent_update(trim(fgroup%name), len_trim(fgroup%name), &
              trim(key), len_trim(key), trim(foodname), len_trim(foodname), &
              agent%biology, size(agent%biology), envfield_vals, size(envfield_vals), &
-             foodfield_vals, agent%food_requests, agent%food_ingests, size(foodfield_vals), dt, stat)
+             foodfield_vals, agent%food_requests, agent%food_thresholds, agent%food_ingests, &
+             size(foodfield_vals), dt, stat)
 
     do v=1, size(agent%biology)
        if (ieee_is_nan(agent%biology(v))) then
+          ewrite(-1,*) "Error updating agent ", agent%id_number, ", agent state was:"
+          do f=1, size(agent_state_copy)
+             ewrite(-1,*) trim(fgroup%variables(f)%name), " --> ", agent_state_copy(f)
+          end do
           FLExit('NaN agent variable detected in '//trim(fgroup%name)//"::"//trim(key))
        end if
     end do
@@ -297,6 +305,9 @@ contains
     do f=1, size(foodfields)
        if (ieee_is_nan(agent%food_requests(f))) then
           FLExit('NaN agent food request detected in '//trim(fgroup%name)//"::"//trim(key))
+       end if
+       if (ieee_is_nan(agent%food_thresholds(f))) then
+          FLExit('NaN agent food thresholds detected in '//trim(fgroup%name)//"::"//trim(key))
        end if
        if (ieee_is_nan(agent%food_ingests(f))) then
           FLExit('NaN agent food ingest detected in '//trim(fgroup%name)//"::"//trim(key))

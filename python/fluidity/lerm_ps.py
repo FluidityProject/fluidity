@@ -250,7 +250,9 @@ def update_N3_Copepod(param, vars, env, dt):
   for variety in env['P'].keys():
     I_gv[variety] = min((((math.pi * math.pow((L * 2.9e-5), 2.0) * 1.0 * env['P'][variety] * 1.0e-6 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7e-8 * env['P'][variety]))))) if (vars['V_gut'] > 0.0) else (I_max)), I_max)
   for variety in vars['PRequest'].keys():
-    vars['PRequest'][variety] = (dt * I_gv[variety]) if (env['P'][variety] > param[variety]['P_min']) else 0.0
+    vars['PRequest'][variety] = dt * I_gv[variety]
+    vars['PThreshold'][variety] = param[variety]['P_min']
+    
 
   ### Assimilation efficiency ###
   k_N = (1.0 - math.exp(-((param['a'] * Gut_time))))
@@ -428,7 +430,9 @@ def update_N4_Copepod(param, vars, env, dt):
   for variety in env['P'].keys():
     I_gv[variety] = min((((math.pi * math.pow((L * 2.9e-5), 2.0) * 1.0 * env['P'][variety] * 1.0e-6 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7e-8 * env['P'][variety]))))) if (vars['V_gut'] > 0.0) else (I_max)), I_max)
   for variety in vars['PRequest'].keys():
-    vars['PRequest'][variety] = (dt * I_gv[variety]) if (env['P'][variety] > param[variety]['P_min']) else 0.0
+    vars['PRequest'][variety] = dt * I_gv[variety]
+    vars['PThreshold'][variety] = param[variety]['P_min']
+    
 
   ### Assimilation efficiency ###
   k_N = (1.0 - math.exp(-((param['a'] * Gut_time))))
@@ -606,7 +610,9 @@ def update_N5_Copepod(param, vars, env, dt):
   for variety in env['P'].keys():
     I_gv[variety] = min((((math.pi * math.pow((L * 2.9e-5), 2.0) * 1.0 * env['P'][variety] * 1.0e-6 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7e-8 * env['P'][variety]))))) if (vars['V_gut'] > 0.0) else (I_max)), I_max)
   for variety in vars['PRequest'].keys():
-    vars['PRequest'][variety] = (dt * I_gv[variety]) if (env['P'][variety] > param[variety]['P_min']) else 0.0
+    vars['PRequest'][variety] = dt * I_gv[variety]
+    vars['PThreshold'][variety] = param[variety]['P_min']
+    
 
   ### Assimilation efficiency ###
   k_N = (1.0 - math.exp(-((param['a'] * Gut_time))))
@@ -784,7 +790,9 @@ def update_N6_Copepod(param, vars, env, dt):
   for variety in env['P'].keys():
     I_gv[variety] = min((((math.pi * math.pow((L * 2.9e-5), 2.0) * 1.0 * env['P'][variety] * 1.0e-6 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7e-8 * env['P'][variety]))))) if (vars['V_gut'] > 0.0) else (I_max)), I_max)
   for variety in vars['PRequest'].keys():
-    vars['PRequest'][variety] = (dt * I_gv[variety]) if (env['P'][variety] > param[variety]['P_min']) else 0.0
+    vars['PRequest'][variety] = dt * I_gv[variety]
+    vars['PThreshold'][variety] = param[variety]['P_min']
+    
 
   ### Assimilation efficiency ###
   k_N = (1.0 - math.exp(-((param['a'] * Gut_time))))
@@ -962,7 +970,9 @@ def update_C1_Copepod(param, vars, env, dt):
   for variety in env['P'].keys():
     I_gv[variety] = min((((math.pi * math.pow((L * 2.9e-5), 2.0) * 1.0 * env['P'][variety] * 1.0e-6 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7e-8 * env['P'][variety]))))) if (vars['V_gut'] > 0.0) else (I_max)), I_max)
   for variety in vars['PRequest'].keys():
-    vars['PRequest'][variety] = (dt * I_gv[variety]) if (env['P'][variety] > param[variety]['P_min']) else 0.0
+    vars['PRequest'][variety] = dt * I_gv[variety]
+    vars['PThreshold'][variety] = param[variety]['P_min']
+    
 
   ### Assimilation efficiency ###
   k_N = (1.0 - math.exp(-((param['a'] * Gut_time))))
@@ -1140,7 +1150,9 @@ def update_C2_Copepod(param, vars, env, dt):
   for variety in env['P'].keys():
     I_gv[variety] = min((((math.pi * math.pow((L * 2.9e-5), 2.0) * 1.0 * env['P'][variety] * 1.0e-6 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7e-8 * env['P'][variety]))))) if (vars['V_gut'] > 0.0) else (I_max)), I_max)
   for variety in vars['PRequest'].keys():
-    vars['PRequest'][variety] = (dt * I_gv[variety]) if (env['P'][variety] > param[variety]['P_min']) else 0.0
+    vars['PRequest'][variety] = dt * I_gv[variety]
+    vars['PThreshold'][variety] = param[variety]['P_min']
+    
 
   ### Assimilation efficiency ###
   k_N = (1.0 - math.exp(-((param['a'] * Gut_time))))
@@ -1330,7 +1342,9 @@ def update_C3_Copepod(param, vars, env, dt):
   for variety in env['P'].keys():
     I_gv[variety] = min((((math.pi * math.pow((L * 2.9e-5), 2.0) * 1.0 * env['P'][variety] * 1.0e-6 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7e-8 * env['P'][variety]))))) if (vars['V_gut'] > 0.0) else (I_max)), I_max)
   for variety in vars['PRequest'].keys():
-    vars['PRequest'][variety] = (dt * I_gv[variety]) if (env['P'][variety] > param[variety]['P_min']) else 0.0
+    vars['PRequest'][variety] = dt * I_gv[variety]
+    vars['PThreshold'][variety] = param[variety]['P_min']
+    
 
   ### Assimilation efficiency ###
   k_N = (1.0 - math.exp(-((param['a'] * Gut_time))))
@@ -1508,7 +1522,9 @@ def update_POW4_Copepod(param, vars, env, dt):
   for variety in env['P'].keys():
     I_gv[variety] = min((((math.pi * math.pow((L * 2.9e-5), 2.0) * 1.0 * env['P'][variety] * 1.0e-6 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7e-8 * env['P'][variety]))))) if (vars['V_gut'] > 0.0) else (I_max)), I_max)
   for variety in vars['PRequest'].keys():
-    vars['PRequest'][variety] = (dt * I_gv[variety]) if (env['P'][variety] > param[variety]['P_min']) else 0.0
+    vars['PRequest'][variety] = dt * I_gv[variety]
+    vars['PThreshold'][variety] = param[variety]['P_min']
+    
 
   ### Assimilation efficiency ###
   k_N = (1.0 - math.exp(-((param['a'] * Gut_time))))
@@ -1690,7 +1706,9 @@ def update_POW5_Copepod(param, vars, env, dt):
   for variety in env['P'].keys():
     I_gv[variety] = min((((math.pi * math.pow((L * 2.9e-5), 2.0) * 1.0 * env['P'][variety] * 1.0e-6 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7e-8 * env['P'][variety]))))) if (vars['V_gut'] > 0.0) else (I_max)), I_max)
   for variety in vars['PRequest'].keys():
-    vars['PRequest'][variety] = (dt * I_gv[variety]) if (env['P'][variety] > param[variety]['P_min']) else 0.0
+    vars['PRequest'][variety] = dt * I_gv[variety]
+    vars['PThreshold'][variety] = param[variety]['P_min']
+    
 
   ### Assimilation efficiency ###
   k_N = (1.0 - math.exp(-((param['a'] * Gut_time))))
@@ -1852,7 +1870,9 @@ def update_OWD4_Copepod(param, vars, env, dt):
   for variety in env['P'].keys():
     I_gv[variety] = min((((math.pi * math.pow((L * 2.9e-5), 2.0) * 1.0 * env['P'][variety] * 1.0e-6 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7e-8 * env['P'][variety]))))) if (vars['V_gut'] > 0.0) else (I_max)), I_max)
   for variety in vars['PRequest'].keys():
-    vars['PRequest'][variety] = (dt * I_gv[variety]) if (env['P'][variety] > param[variety]['P_min']) else 0.0
+    vars['PRequest'][variety] = dt * I_gv[variety]
+    vars['PThreshold'][variety] = param[variety]['P_min']
+    
 
   ### Assimilation efficiency ###
   k_N = (1.0 - math.exp(-((param['a'] * Gut_time))))
@@ -2004,7 +2024,9 @@ def update_OWD5_Copepod(param, vars, env, dt):
   for variety in env['P'].keys():
     I_gv[variety] = min((((math.pi * math.pow((L * 2.9e-5), 2.0) * 1.0 * env['P'][variety] * 1.0e-6 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7e-8 * env['P'][variety]))))) if (vars['V_gut'] > 0.0) else (I_max)), I_max)
   for variety in vars['PRequest'].keys():
-    vars['PRequest'][variety] = (dt * I_gv[variety]) if (env['P'][variety] > param[variety]['P_min']) else 0.0
+    vars['PRequest'][variety] = dt * I_gv[variety]
+    vars['PThreshold'][variety] = param[variety]['P_min']
+    
 
   ### Assimilation efficiency ###
   k_N = (1.0 - math.exp(-((param['a'] * Gut_time))))
@@ -2311,7 +2333,9 @@ def update_OWA4_Copepod(param, vars, env, dt):
   for variety in env['P'].keys():
     I_gv[variety] = min((((math.pi * math.pow((L * 2.9e-5), 2.0) * 1.0 * env['P'][variety] * 1.0e-6 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7e-8 * env['P'][variety]))))) if (vars['V_gut'] > 0.0) else (I_max)), I_max)
   for variety in vars['PRequest'].keys():
-    vars['PRequest'][variety] = (dt * I_gv[variety]) if (env['P'][variety] > param[variety]['P_min']) else 0.0
+    vars['PRequest'][variety] = dt * I_gv[variety]
+    vars['PThreshold'][variety] = param[variety]['P_min']
+    
 
   ### Assimilation efficiency ###
   k_N = (1.0 - math.exp(-((param['a'] * Gut_time))))
@@ -2466,7 +2490,9 @@ def update_OWA5_Copepod(param, vars, env, dt):
   for variety in env['P'].keys():
     I_gv[variety] = min((((math.pi * math.pow((L * 2.9e-5), 2.0) * 1.0 * env['P'][variety] * 1.0e-6 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7e-8 * env['P'][variety]))))) if (vars['V_gut'] > 0.0) else (I_max)), I_max)
   for variety in vars['PRequest'].keys():
-    vars['PRequest'][variety] = (dt * I_gv[variety]) if (env['P'][variety] > param[variety]['P_min']) else 0.0
+    vars['PRequest'][variety] = dt * I_gv[variety]
+    vars['PThreshold'][variety] = param[variety]['P_min']
+    
 
   ### Assimilation efficiency ###
   k_N = (1.0 - math.exp(-((param['a'] * Gut_time))))
@@ -2646,7 +2672,9 @@ def update_C4_Copepod(param, vars, env, dt):
   for variety in env['P'].keys():
     I_gv[variety] = min((((math.pi * math.pow((L * 2.9e-5), 2.0) * 1.0 * env['P'][variety] * 1.0e-6 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7e-8 * env['P'][variety]))))) if (vars['V_gut'] > 0.0) else (I_max)), I_max)
   for variety in vars['PRequest'].keys():
-    vars['PRequest'][variety] = (dt * I_gv[variety]) if (env['P'][variety] > param[variety]['P_min']) else 0.0
+    vars['PRequest'][variety] = dt * I_gv[variety]
+    vars['PThreshold'][variety] = param[variety]['P_min']
+    
 
   ### Assimilation efficiency ###
   k_N = (1.0 - math.exp(-((param['a'] * Gut_time))))
@@ -2824,7 +2852,9 @@ def update_C4OW_Copepod(param, vars, env, dt):
   for variety in env['P'].keys():
     I_gv[variety] = min((((math.pi * math.pow((L * 2.9e-5), 2.0) * 1.0 * env['P'][variety] * 1.0e-6 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7e-8 * env['P'][variety]))))) if (vars['V_gut'] > 0.0) else (I_max)), I_max)
   for variety in vars['PRequest'].keys():
-    vars['PRequest'][variety] = (dt * I_gv[variety]) if (env['P'][variety] > param[variety]['P_min']) else 0.0
+    vars['PRequest'][variety] = dt * I_gv[variety]
+    vars['PThreshold'][variety] = param[variety]['P_min']
+    
 
   ### Assimilation efficiency ###
   k_N = (1.0 - math.exp(-((param['a'] * Gut_time))))
@@ -2998,7 +3028,9 @@ def update_C5_Copepod(param, vars, env, dt):
   for variety in env['P'].keys():
     I_gv[variety] = min((((math.pi * math.pow((L * 2.9e-5), 2.0) * 1.0 * env['P'][variety] * 1.0e-6 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7e-8 * env['P'][variety]))))) if (vars['V_gut'] > 0.0) else (I_max)), I_max)
   for variety in vars['PRequest'].keys():
-    vars['PRequest'][variety] = (dt * I_gv[variety]) if (env['P'][variety] > param[variety]['P_min']) else 0.0
+    vars['PRequest'][variety] = dt * I_gv[variety]
+    vars['PThreshold'][variety] = param[variety]['P_min']
+    
 
   ### Assimilation efficiency ###
   k_N = (1.0 - math.exp(-((param['a'] * Gut_time))))
@@ -3176,7 +3208,9 @@ def update_C6_Copepod(param, vars, env, dt):
   for variety in env['P'].keys():
     I_gv[variety] = min((((math.pi * math.pow((L * 2.9e-5), 2.0) * 1.0 * env['P'][variety] * 1.0e-6 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7e-8 * env['P'][variety]))))) if (vars['V_gut'] > 0.0) else (I_max)), I_max)
   for variety in vars['PRequest'].keys():
-    vars['PRequest'][variety] = (dt * I_gv[variety]) if (env['P'][variety] > param[variety]['P_min']) else 0.0
+    vars['PRequest'][variety] = dt * I_gv[variety]
+    vars['PThreshold'][variety] = param[variety]['P_min']
+    
 
   ### Assimilation efficiency ###
   k_N = (1.0 - math.exp(-((param['a'] * Gut_time))))
@@ -3354,7 +3388,9 @@ def update_Adult_Copepod(param, vars, env, dt):
   for variety in env['P'].keys():
     I_gv[variety] = min((((math.pi * math.pow((L * 2.9e-5), 2.0) * 1.0 * env['P'][variety] * 1.0e-6 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7e-8 * env['P'][variety]))))) if (vars['V_gut'] > 0.0) else (I_max)), I_max)
   for variety in vars['PRequest'].keys():
-    vars['PRequest'][variety] = (dt * I_gv[variety]) if (env['P'][variety] > param[variety]['P_min']) else 0.0
+    vars['PRequest'][variety] = dt * I_gv[variety]
+    vars['PThreshold'][variety] = param[variety]['P_min']
+    
 
   ### Assimilation efficiency ###
   k_N = (1.0 - math.exp(-((param['a'] * Gut_time))))
@@ -3558,7 +3594,9 @@ def update_Mature_Copepod(param, vars, env, dt):
   for variety in env['P'].keys():
     I_gv[variety] = min((((math.pi * math.pow((L * 2.9e-5), 2.0) * 1.0 * env['P'][variety] * 1.0e-6 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7e-8 * env['P'][variety]))))) if (vars['V_gut'] > 0.0) else (I_max)), I_max)
   for variety in vars['PRequest'].keys():
-    vars['PRequest'][variety] = (dt * I_gv[variety]) if (env['P'][variety] > param[variety]['P_min']) else 0.0
+    vars['PRequest'][variety] = dt * I_gv[variety]
+    vars['PThreshold'][variety] = param[variety]['P_min']
+    
 
   ### Assimilation efficiency ###
   k_N = (1.0 - math.exp(-((param['a'] * Gut_time))))
@@ -3623,7 +3661,6 @@ def update_Mature_Copepod(param, vars, env, dt):
 
   ### Reproduction ###
   A_r_new = (vars['A_r'] + dt_in_hours)
-  Reproduce = 0.0
   if ((vars['A_r'] >= param['A_rep']) and (vars['C_N'] >= param['G_max'])):
     Reproduce = 1.0
   Nauplii = (((((((vars['C_N'] - param['G_max']) / param['G_min']) * 2.0)) if (vars['C_NN'] > (vars['C_N'] - param['G_max'])) else ((2.0 * (vars['C_NN'] / param['G_min']))))) if (Reproduce == 1.0) else (0.0))
@@ -3749,7 +3786,9 @@ def update_Senescent_Copepod(param, vars, env, dt):
   for variety in env['P'].keys():
     I_gv[variety] = min((((math.pi * math.pow((L * 2.9e-5), 2.0) * 1.0 * env['P'][variety] * 1.0e-6 * (1.0 - math.pow((Gut_contTemp / (0.67 * vars['V_gut'])), 2.0)) * (1.0 - math.exp((-1.7e-8 * env['P'][variety]))))) if (vars['V_gut'] > 0.0) else (I_max)), I_max)
   for variety in vars['PRequest'].keys():
-    vars['PRequest'][variety] = (dt * I_gv[variety]) if (env['P'][variety] > param[variety]['P_min']) else 0.0
+    vars['PRequest'][variety] = dt * I_gv[variety]
+    vars['PThreshold'][variety] = param[variety]['P_min']
+    
 
   ### Assimilation efficiency ###
   k_N = (1.0 - math.exp(-((param['a'] * Gut_time))))
@@ -4084,13 +4123,21 @@ def update_Existance_Predator(param, vars, env, dt):
   dt_in_hours = dt / 3600.0
 
   ### Ingestion ###
-  G = (((2.37 * numpy.log10(vars['S_t'])) - 1.22) / 12.0)
-  W_tg = ((0.3 + (0.7 * (env['Temperature'] / param['T_ref']))) * ((1.0) if (vars['S_t'] >= param['S_max']) else ((vars['S_t'] / param['S_max']))))
+  # ml805: Prevent log10(0.0)
+  W_tg = ((0.3 + (0.7 * (env['Temperature'] / param['T_ref']))) * ((1.0) if (param['S_t'] >= param['S_max']) else ((param['S_t'] / param['S_max']))))
   I_gv = {}
-  for variety in env['P'].keys():
-    I_gv[variety] = min((W_tg * (((param[variety]['K_p'] * (param[variety]['S_a'] / 1.3e-07) * (env['Irradiance'] / 1.0) * (math.pow((env['P'][variety] - param[variety]['P_minv']), 2.0) / ((env['P'][variety] - param[variety]['P_minv']) + param[variety]['k_Iv'])) * (45.0 / param[variety]['P_speed']))) if (env['P'][variety] > param[variety]['P_minv']) else (0.0))), ((G * 0.6156 * math.exp(-((0.0321 * (param['d_year'] - param['d_0']))))) / (86400.0 * param[variety]['P_size'])))
+  if (param['S_t']>0.):
+    G = (((2.37 * numpy.log10(param['S_t'])) - 1.22) / 12.0)
+    for variety in env['P'].keys():
+      I_gv[variety] = min((W_tg * (((param[variety]['K_p'] * (param[variety]['S_a'] / 1.3e-07) * (env['Irradiance'] / 1.0) * (math.pow((env['P'][variety] - param[variety]['P_minv']), 2.0) / ((env['P'][variety] - param[variety]['P_minv']) + param[variety]['k_Iv'])) * (45.0 / param[variety]['P_speed']))) if (env['P'][variety] > param[variety]['P_minv']) else (0.0))), ((G * 0.6156 * math.exp(-((0.0321 * (param['d_year'] - param['d_0']))))) / (86400.0 * param[variety]['P_size'])))
+  else:
+    for variety in env['P'].keys():
+      I_gv[variety] = (W_tg * (((param[variety]['K_p'] * (param[variety]['S_a'] / 1.3e-07) * (env['Irradiance'] / 1.0) * (math.pow((env['P'][variety] - param[variety]['P_minv']), 2.0) / ((env['P'][variety] - param[variety]['P_minv']) + param[variety]['k_Iv'])) * (45.0 / param[variety]['P_speed']))) if (env['P'][variety] > param[variety]['P_minv']) else (0.0)))
+
   for variety in vars['PRequest'].keys():
-    vars['PRequest'][variety] = (dt * I_gv[variety]) if (env['P'][variety] > param[variety]['P_minv']) else 0.0
+    vars['PRequest'][variety] = dt * I_gv[variety]
+    vars['PThreshold'][variety] = param[variety]['P_minv']
+    
 
   ### Egestion ###
   new_agent_vars = {}
@@ -4250,7 +4297,9 @@ def update_Existance_Basal_predator(param, vars, env, dt):
   for variety in env['P'].keys():
     I_gv[variety] = min(((0.3 + (0.7 * (env['Temperature'] / param['T_ref']))) * ((((env['P'][variety] - param[variety]['P_minv']) * ((env['P'][variety] - param[variety]['P_minv']) / ((env['P'][variety] - param[variety]['P_minv']) + param[variety]['k_Iv'])) * param[variety]['K_p'])) if (env['P'][variety] > param[variety]['P_minv']) else (0.0))), (param['I_max40'] / param[variety]['P_size']))
   for variety in vars['PRequest'].keys():
-    vars['PRequest'][variety] = (dt * I_gv[variety]) if (env['P'][variety] > param[variety]['P_minv']) else 0.0
+    vars['PRequest'][variety] = dt * I_gv[variety]
+    vars['PThreshold'][variety] = param[variety]['P_minv']
+    
 
   ### Egestion ###
   new_agent_vars = {}

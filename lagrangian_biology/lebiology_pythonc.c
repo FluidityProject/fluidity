@@ -287,7 +287,7 @@ void lebiology_agent_update_c(char *fg, int fglen,
                               char *food, int foodlen, 
                               double vars[], int n_vars, 
                               double envvals[], int n_envvals, 
-                              double fvariety[], double frequest[], double fingest[], int n_fvariety, 
+                              double fvariety[], double frequest[], double fthreshold[], double fingest[], int n_fvariety, 
                               double *dt, int *stat)
 {
 #ifdef HAVE_PYTHON
@@ -335,6 +335,7 @@ void lebiology_agent_update_c(char *fg, int fglen,
     }
     Py_DECREF(pFoodDict);
 
+    // Add FoodRequest dictionary
     PyObject *pRequestName = PyString_FromFormat("%s%s", food_name, "Request");
     PyObject *pRequestDict = PyDict_New();
     PyDict_SetItem(pAgent, pRequestName, pRequestDict);
@@ -346,6 +347,19 @@ void lebiology_agent_update_c(char *fg, int fglen,
     Py_DECREF(pRequestDict);
     Py_DECREF(pRequestName);
 
+    // Add FoodThreshold dictionary
+    PyObject *pThresholdName = PyString_FromFormat("%s%s", food_name, "Threshold");
+    PyObject *pThresholdDict = PyDict_New();
+    PyDict_SetItem(pAgent, pThresholdName, pThresholdDict);
+    for (i=0; i<n_fvariety; i++) {
+       PyObject *pZeroVal = PyFloat_FromDouble(0.0);
+       PyDict_SetItem(pThresholdDict, PyList_GET_ITEM(pVarietyNames, i), pZeroVal);
+       Py_DECREF(pZeroVal);
+    }
+    Py_DECREF(pThresholdDict);
+    Py_DECREF(pThresholdName);
+
+    // Add IngestedCells dictionary
     PyObject *pIngestedCellsName = PyString_FromFormat("%s%s", food_name, "IngestedCells");
     PyObject *pIngestedDict = PyDict_New();
     PyDict_SetItem(pAgent, pIngestedCellsName, pIngestedDict);
@@ -384,6 +398,7 @@ void lebiology_agent_update_c(char *fg, int fglen,
   }
 
   if (n_fvariety > 0) { 
+    // Convert FoodRequest dictionary
     PyObject *pRequestName = PyString_FromFormat("%s%s", food_name, "Request");
     PyObject *pFoodRequests = PyDict_GetItem(pResult, pRequestName);
     if (!pFoodRequests) {
@@ -396,6 +411,20 @@ void lebiology_agent_update_c(char *fg, int fglen,
       }
     }
     Py_DECREF(pRequestName); 
+
+    // Convert FoodThreshold dictionary
+    PyObject *pThresholdName = PyString_FromFormat("%s%s", food_name, "Threshold");
+    PyObject *pThresholdDict = PyDict_GetItem(pResult, pThresholdName);
+    if (!pThresholdDict) {
+      for (i=0; i<n_fvariety; i++) {
+         fthreshold[i] = 0.0;
+      }
+    } else {
+      for (i=0; i<n_fvariety; i++) {
+         fthreshold[i] = PyFloat_AsDouble( PyDict_GetItem(pThresholdDict, PyList_GET_ITEM(pVarietyNames, i)) );
+      }
+    }
+    Py_DECREF(pThresholdName); 
   }
 
   // Check for exceptions

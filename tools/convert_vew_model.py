@@ -311,8 +311,11 @@ def eval_stmt(t):
     #code = "vars['P'] = {}\n" + Indent.line()
     Indent.inc()
     code = "for variety in vars['PRequest'].keys():\n" + Indent.line()
+
+    #code = code + "vars['PRequest'][variety] = (dt * " + ing_amount + ") if (" + species_conc + " > " + ing_threshold + ") else 0.0"
+    code = code + "vars['PRequest'][variety] = dt * " + ing_amount + "\n" + Indent.line()
+    code = code + "vars['PThreshold'][variety] = " + ing_threshold + "\n" + Indent.line()
     Indent.dec()
-    code = code + "vars['PRequest'][variety] = (dt * " + ing_amount + ") if (" + species_conc + " > " + ing_threshold + ") else 0.0"
     out = code
 
   elif t[0] == create:

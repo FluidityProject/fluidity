@@ -253,9 +253,9 @@ def val(agent):
               <string_value lines="20" type="code" language="python">from numpy import random
 
 def val(position, vars, dt):
-  v = random.uniform(-0.5,0.5, 2)
-  #v = random.uniform(0.,1., 2)
-  #v = (v - position)
+  #v = random.uniform(-0.5,0.5, 2)
+  v = random.uniform(0.,1., 2)
+  v = (v - position)
   return v</string_value>
             </python>
           </random_walk>
@@ -268,10 +268,9 @@ def val(position, vars, dt):
                 <string_value lines="20" type="code" language="python">from __builtin__ import str
 
 def val(agent, env, dt):
-  #print "ml805 Pred env: " + str(env)
-  #print "ml805 Pred agent b4: " + str(agent)
   agent['Carbon'] = agent['Carbon'] + agent['CarbonIngested']
   agent['FoodRequest']['Inactive'] = 100. * dt
+  agent['FoodThreshold']['Inactive'] = 200000.
   return agent</string_value>
               </python>
             </biology>

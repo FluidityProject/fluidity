@@ -94,7 +94,7 @@ module detector_data_types
 
      !! Biology variables
      real, dimension(:), allocatable :: biology
-     real, dimension(:), allocatable :: food_requests, food_ingests
+     real, dimension(:), allocatable :: food_requests, food_ingests, food_thresholds
 
      !! Counter for internal Random Walk sub-cycling
      integer :: rw_subsubcycles = 1
