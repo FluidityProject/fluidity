@@ -918,6 +918,20 @@ diagnostic. If disabled, computes over the whole surface.</a:documentation>
       </optional>
     </element>
   </define>
+  <define name="boundary_distance_normal_algorithm">
+    <element name="algorithm">
+      <a:documentation>
+Distance of boundary-adjacent nodes to boundary
+
+This only works for CG at present (?)</a:documentation>
+      <attribute name="name">
+        <value>boundary_distance_normal</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+    </element>
+  </define>
   <!-- Momentum diagnostics -->
   <define name="buoyancy_algorithm">
     <element name="algorithm">
@@ -1937,6 +1951,9 @@ This field needs to be interpolated between adapts.</a:documentation>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="grad_normal_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="boundary_distance_normal_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="finite_element_divergence_algorithm"/>

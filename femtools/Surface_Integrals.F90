@@ -38,13 +38,15 @@ module surface_integrals
   use parallel_fields
   use spud
   use state_module
+  use smoothing_module
 
   implicit none
   
   private
   
   public :: calculate_surface_integral, gradient_normal_surface_integral, &
-    & normal_surface_integral, surface_integral, surface_gradient_normal
+    & normal_surface_integral, surface_integral, surface_gradient_normal, &
+    & surface_normal_distance_sele
   public :: diagnostic_body_drag
   
   interface integrate_over_surface_element
@@ -405,6 +407,58 @@ contains
     
   end subroutine surface_gradient_normal
   
+  subroutine surface_normal_distance_sele(positions, output, sele, ele)
+    ! calculate wall-normal element size
+    type(vector_field), intent(in) :: positions
+    type(scalar_field), intent(inout) :: output
+    integer, intent(in)               :: ele, sele
+    type(element_type), pointer       :: shape
+    integer                                    :: i, j, dim
+    integer, dimension(:), allocatable         :: nodes_bdy
+    real, dimension(:), allocatable            :: rhs
+    real, dimension(1,1)                                 :: h
+    real, dimension(ele_ngi(positions,ele))                 :: detwei
+    real, dimension(face_ngi(positions,sele))               :: detwei_bdy
+    real, dimension(positions%dim,1)                     :: n
+    real, dimension(positions%dim,positions%dim)         :: G
+    real, dimension(positions%dim,face_ngi(positions,sele)) :: normal_bdy
+    real, dimension(positions%dim,positions%dim,ele_ngi(positions,ele))       :: invJ, T
+    real, dimension(ele_loc(positions,ele),ele_ngi(positions,ele),positions%dim)  :: dshape
+
+    allocate(rhs(face_loc(positions, sele)))
+    allocate(nodes_bdy(face_loc(positions, sele)))
+
+    nodes_bdy = face_global_nodes(positions, sele)
+    shape    => ele_shape(positions, ele)
+    dim = positions%dim
+
+    call compute_inverse_jacobian( ele_val(positions, ele), shape, invJ )
+    call transform_facet_to_physical( positions, sele, detwei_f=detwei_bdy, normal=normal_bdy )
+    ewrite(2,*) 'sele, ele, nodes',sele,ele, nodes_bdy
+    ewrite(2,*) 'invJ',invJ(:,:,1)
+    G = matmul(transpose(invJ(:,:,1)), invJ(:,:,1))
+    ewrite(2,*) 'G, area',G, sum(detwei_bdy)
+    n(:,1) = normal_bdy(:,1)
+    ewrite(2,*) 'normal', n
+    h = 1. / sqrt( matmul(matmul(transpose(n), G), n) )
+    ewrite(2,*) 'h',h
+    ! Divide by dim (the no. of elements sharing the surface node - only for tetrahedra)
+    rhs = spread(h(1,1), 1, size(nodes_bdy))
+
+    !call transform_to_physical( positions, ele, shape, dshape=dshape, detwei=detwei)
+    !T = length_scale_tensor(dshape, shape)
+    !ewrite(2,*) 'T',T(:,:,1)
+    !h = sqrt( matmul(matmul(transpose(n), T(:,:,1)), n) )
+    !ewrite(2,*) 'h',h
+    ! Divide by dim (the no. of elements sharing the surface node - only for tetrahedra)
+    !rhs = spread(h(1,1)/dim, 1, size(nodes_bdy))
+
+    ! DG only
+    call set(output, ele, h(1,1))      
+    deallocate(rhs); deallocate(nodes_bdy)
+
+  end subroutine surface_normal_distance_sele
+
   function integrate_over_surface_element_mesh(mesh, face_number, surface_ids) result(integrate_over_element)
     !!< Return whether the given surface element should be integrated over when
     !!< performing a surface integral

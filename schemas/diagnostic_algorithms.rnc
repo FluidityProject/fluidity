@@ -682,6 +682,17 @@ grad_normal_algorithm =
          }?
       }
    )
+boundary_distance_normal_algorithm =
+   (
+      ## 
+      ## Distance of boundary-adjacent nodes to boundary
+      ##
+      ## This only works for CG at present (?)
+      element algorithm {
+         attribute name { "boundary_distance_normal" },
+         attribute material_phase_support { "single" }
+      }
+   )
 
 # Momentum diagnostics
 buoyancy_algorithm =
@@ -1416,6 +1427,7 @@ scalar_diagnostic_algorithms |= l2norm_algorithm
 scalar_diagnostic_algorithms |= helmholtz_smoothed_scalar_algorithm
 scalar_diagnostic_algorithms |= helmholtz_anisotropic_smoothed_scalar_algorithm
 scalar_diagnostic_algorithms |= grad_normal_algorithm
+scalar_diagnostic_algorithms |= boundary_distance_normal_algorithm
 scalar_diagnostic_algorithms |= finite_element_divergence_algorithm
 scalar_diagnostic_algorithms |= extract_scalar_component_algorithm
 scalar_diagnostic_algorithms |= element_universal_numbering_algorithm

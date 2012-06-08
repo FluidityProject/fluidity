@@ -40,7 +40,7 @@
       </from_mesh>
     </mesh>
     <mesh name="InputMesh">
-      <from_file file_name="MMS_A_unstructured">
+      <from_file file_name="MMS_A_unstructuredtest">
         <format name="gmsh"/>
         <stat>
           <include_in_stat/>
@@ -295,6 +295,23 @@
     <scalar_field name="MLFilterDifference" rank="0">
       <diagnostic>
         <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="Tracer" source_field_2_name="MLFilteredTracer" material_phase_support="single" source_field_1_type="scalar"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="WallDistance" rank="0">
+      <diagnostic>
+        <algorithm name="boundary_distance_normal" material_phase_support="single"/>
         <mesh name="VelocityMesh"/>
         <output/>
         <stat/>
