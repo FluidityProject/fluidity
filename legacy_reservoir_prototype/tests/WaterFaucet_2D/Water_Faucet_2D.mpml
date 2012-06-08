@@ -733,11 +733,6 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <multiphase_properties>
-      <relperm_type>
-        <Corey/>
-      </relperm_type>
-    </multiphase_properties>
   </material_phase>
   <porous_media>
     <scalar_field name="Porosity">

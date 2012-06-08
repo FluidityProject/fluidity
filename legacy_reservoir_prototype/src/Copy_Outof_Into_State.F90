@@ -109,7 +109,7 @@
          cv_one, Viscosity, & 
                                 ! cv_one corresponds to density in single-phase advection problem
          uabs_coefs, &
-         eos_coefs, cp_coefs, &
+         eos_coefs, cp_coefs,scale_momentum_by_volume_fraction, &
          comp_diff_coef, capil_pres_coef, &
          u_abs_stab, u_absorb, comp_absorb, &
          t_absorb, v_absorb, &
@@ -121,7 +121,7 @@
 
       type(state_type), dimension(:), intent(inout) :: state
 
-      logical, intent(inout) :: have_temperature_fields
+      logical, intent(inout) :: have_temperature_fields, scale_momentum_by_volume_fraction 
 
       ! coordinate, velocity and pressure meshes
       type(mesh_type), pointer :: cmesh => null()
@@ -242,7 +242,7 @@
       character(len=option_path_len) :: vel_element_type
       integer, dimension( : ), allocatable :: index
       real, dimension( : ), allocatable :: x_temp
-      logical :: is_overlapping   
+      logical :: is_overlapping
 
       real :: val
 
@@ -852,6 +852,8 @@
             FLAbort("Unknown EoS option for phase "// int2str(i))
          endif
          cp_option(i) = 1
+         option_path = "/material_phase[" // int2str(i-1) // "]/scale_momentum_by_volume_fraction"
+         if(have_option(trim(option_path))) scale_momentum_by_volume_fraction = .true.
       enddo
 
 

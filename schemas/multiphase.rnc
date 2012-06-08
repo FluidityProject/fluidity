@@ -444,6 +444,8 @@ start =
                   element Comp_Sum2One { comment }?
                )
             }?,
+            ## Scale the momentum equation by the volume fraction for when some problems are not well poised.
+            element scale_momentum_by_volume_fraction {empty}?,
             ## The equation of state
             element equation_of_state {
                (
@@ -706,9 +708,7 @@ start =
                   }
                }?,
                ## Immobile volume of fluid phase
-               element immobile_fraction {real}?,
-               ## Scale the momentum equation by the volume fraction for when some problems are not well poised.
-               element scale_momentum_by_volume_fraction {empty}?
+               element immobile_fraction {real}?
             }?
          }+,
          mesh_adaptivity_options?,

@@ -120,7 +120,8 @@ contains
        mx_nc, ncolc, findc, colc, & ! C sparsity operating on pressure in force balance
        mx_ncolcmc, ncolcmc, findcmc, colcmc, midcmc, & ! pressure matrix for projection method
        mx_ncolm, ncolm, findm, colm, midm, & ! CV-FEM matrix
-       have_temperature_fields, cv_one, nits_flux_lim_t, t_use_theta_flux, t_get_theta_flux )
+       have_temperature_fields, scale_momentum_by_volume_fraction ,cv_one, nits_flux_lim_t, t_use_theta_flux, &
+       t_get_theta_flux )
        
     implicit none
     
@@ -242,7 +243,7 @@ contains
     integer, dimension( mx_ncolm ), intent (in ) :: colm
     integer, dimension( cv_nonods ), intent (in ) :: midm
     
-    logical, intent(in) :: have_temperature_fields
+    logical, intent(in) :: have_temperature_fields, scale_momentum_by_volume_fraction 
     real, dimension( cv_nonods * nphase ), intent( inout ) :: cv_one
     integer, intent(in) :: nits_flux_lim_t
     

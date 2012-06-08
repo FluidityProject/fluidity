@@ -138,7 +138,7 @@ module mp_prototype
 
       integer, parameter :: new_unit_debug = 304
 
-      logical :: have_temperature_fields
+      logical :: have_temperature_fields, scale_momentum_by_volume_fraction = .false.
 
       open( new_unit_debug, file = 'mirror_new.dat', status = 'unknown' )
 
@@ -183,7 +183,7 @@ module mp_prototype
            den, satura, volfra, comp, t, p, cv_p, volfra_pore, &
            cv_one, Viscosity, &
            uabs_coefs, &
-           eos_coefs, cp_coefs, &
+           eos_coefs, cp_coefs, scale_momentum_by_volume_fraction,  &
            comp_diff_coef, capil_pres_coef, &
            u_abs_stab, u_absorb, comp_absorb, &
            t_absorb, v_absorb, &
@@ -414,7 +414,8 @@ module mp_prototype
            mx_nc, ncolc, findc, colc, & ! C sparsity operating on pressure in force balance
            mx_ncolcmc, ncolcmc, findcmc, colcmc, midcmc, & ! pressure matrix for projection method
            mx_ncolm, ncolm, findm, colm, midm, & ! CV-FEM matrix
-           have_temperature_fields, cv_one, nits_flux_lim_t, t_use_theta_flux, t_get_theta_flux) 
+           have_temperature_fields, scale_momentum_by_volume_fraction, cv_one, nits_flux_lim_t, t_use_theta_flux, &
+           t_get_theta_flux) 
 
       ewrite(3,*) 'Leaving multiphase_prototype'
 

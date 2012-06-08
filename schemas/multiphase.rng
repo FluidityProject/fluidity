@@ -529,6 +529,12 @@ to sum to 1. Oddly set to false (ie not set) in the test cases</a:documentation>
             </element>
           </optional>
           <optional>
+            <element name="scale_momentum_by_volume_fraction">
+              <a:documentation>Scale the momentum equation by the volume fraction for when some problems are not well poised.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
             <element name="equation_of_state">
               <a:documentation>The equation of state</a:documentation>
               <choice>
@@ -878,12 +884,6 @@ Pc = c * S_w ** a</a:documentation>
                 <element name="immobile_fraction">
                   <a:documentation>Immobile volume of fluid phase</a:documentation>
                   <ref name="real"/>
-                </element>
-              </optional>
-              <optional>
-                <element name="scale_momentum_by_volume_fraction">
-                  <a:documentation>Scale the momentum equation by the volume fraction for when some problems are not well poised.</a:documentation>
-                  <empty/>
                 </element>
               </optional>
             </element>
