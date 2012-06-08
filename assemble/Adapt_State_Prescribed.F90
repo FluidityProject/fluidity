@@ -109,8 +109,8 @@ contains
     if(have_option(base_path // "/mesh/from_file")) then
       call get_option(base_path // "/mesh/from_file/format/name", format)
       call get_option("/geometry/quadrature/degree", quad_degree)
-          
-      new_positions = read_mesh_files(mesh_name, quad_degree = quad_degree)
+
+      new_positions = read_mesh_files(mesh_name, quad_degree = quad_degree, format = format)
     else
       ewrite(2, *) "Extracting new mesh from state"
     

@@ -30,7 +30,8 @@
 
 using namespace std;
 
-Profiler::Profiler(){}
+Profiler::Profiler(){
+}
 
 Profiler::~Profiler(){}
 
@@ -83,7 +84,50 @@ void Profiler::zero(const std::string &key){
   timings[key].second = 0.0;
 }
 
-// Opaque instance of profiler.
+int Profiler::minorpagefaults(){
+  int faults = -99;
+#ifdef HAVE_LIBNUMA
+  getrusage(RUSAGE_SELF, &flprofiler.usage);
+  faults = flprofiler.usage.ru_minflt;
+#endif
+  return faults;
+}
+
+int Profiler::majorpagefaults(){
+  int faults = -99;
+#ifdef HAVE_LIBNUMA
+  getrusage(RUSAGE_SELF, &flprofiler.usage);
+  faults = flprofiler.usage.ru_majflt;
+#endif
+  return faults;
+}
+
+
+int Profiler::getresidence(void *ptr){
+  int residence=-99;
+#ifdef HAVE_LIBNUMA
+  int mode;
+  size_t page_size = getpagesize();
+  size_t page_id = (size_t)ptr/page_size;
+  /* round memory address down to start of page */
+  void *start_of_page =  (void *)(page_id*page_size);
+
+  /* If flags  specifies  both MPOL_F_NODE and MPOL_F_ADDR, 
+   * get_mempolicy() will return the node ID of the node on 
+   * which the address of the start of the page is allocated 
+   * into the location pointed to by mode 
+   */
+  unsigned long flags = MPOL_F_NODE|MPOL_F_ADDR;
+
+  // if(get_mempolicy(&mode, NULL, 0, start_of_page, flags)){
+  //   perror("get_mempolicy()");
+  // }
+  // residence = mode;  
+#endif
+  return residence;
+}
+
+// Opaque instances of profiler.
 Profiler flprofiler;
 
 // Fortran interface
@@ -106,5 +150,20 @@ extern "C" {
 #define cprofiler_zero_fc F77_FUNC(cprofiler_zero, CPROFILER_ZERO)
   void cprofiler_zero_fc(){
     flprofiler.zero();
+  }
+
+#define cprofiler_minorpagefaults_fc F77_FUNC(cprofiler_minorpagefaults, CPROFILER_MINORPAGEFAULTS)
+  void cprofiler_minorpagefaults_fc(int *faults){
+    *faults = flprofiler.minorpagefaults();
+  }
+
+#define cprofiler_majorpagefaults_fc F77_FUNC(cprofiler_majorpagefaults, CPROFILER_MAJORPAGEFAULTS)
+  void cprofiler_majorpagefaults_fc(int *faults){
+    *faults = flprofiler.majorpagefaults();
+  }
+
+#define cprofiler_getresidence_fc F77_FUNC(cprofiler_getresidence, CPROFILER_GETRESIDENCE)
+  void cprofiler_getresidence_fc(void *ptr, int *residence){
+    *residence = flprofiler.getresidence(ptr);
   }
 }
