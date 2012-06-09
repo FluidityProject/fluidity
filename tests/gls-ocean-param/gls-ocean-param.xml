@@ -15,7 +15,7 @@
 import vtktools
 import sys
 sys.path.append("gls-ocean-param")
-from mld_util import get_1d_indices
+from gls_ocean_param import get_1d_indices
 u=vtktools.vtu("gls-StationPapa-orig_1.vtu")
 pos = u.GetLocations()
 ind = get_1d_indices(pos)
@@ -25,7 +25,7 @@ depths = vtktools.arr([-pos[i,2] for i in ind])
 import vtktools
 import sys
 sys.path.append("gls-ocean-param")
-from mld_util import get_1d_indices
+from gls_ocean_param import get_1d_indices
 u=vtktools.vtu("gls-StationPapa-orig_1.vtu")
 pos = u.GetLocations()
 ind = get_1d_indices(pos)
@@ -36,7 +36,7 @@ TKE_orig = vtktools.arr( [k[i] for i in ind] )
 import vtktools
 import sys
 sys.path.append("gls-ocean-param")
-from mld_util import get_1d_indices
+from gls_ocean_param import get_1d_indices
 u=vtktools.vtu("gls-StationPapa-param_1.vtu")
 pos = u.GetLocations()
 ind = get_1d_indices(pos)
