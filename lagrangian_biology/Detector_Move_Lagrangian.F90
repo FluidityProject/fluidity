@@ -38,7 +38,6 @@ module detector_move_lagrangian
   use detector_data_types
   use detector_tools
   use detector_parallel
-  use detector_python
   use iso_c_binding
   use transform_elements
   use Profiler
@@ -47,127 +46,15 @@ module detector_move_lagrangian
   use pickers
   use parallel_fields, only: element_owner
   use ieee_arithmetic, only: ieee_is_nan
+  use lebiology_python
 
   implicit none
   
   private
 
-  public :: move_lagrangian_detectors, read_detector_move_options, check_any_lagrangian, &
-            read_random_walk_options, initialise_rw_subcycling
-
-  character(len=OPTION_PATH_LEN), parameter :: rk_gs_path="/explicit_runge_kutta_guided_search"
+  public :: move_lagrangian_detectors, read_random_walk_options, initialise_rw_subcycling
 
 contains
-
-  subroutine read_detector_move_options(detector_list, options_path)
-    ! Subroutine to allocate the detector parameters, 
-    ! including RK stages and update vector
-    type(detector_linked_list), intent(inout) :: detector_list
-    character(len=*), intent(in) :: options_path
-
-    integer :: i, j, k
-    real, allocatable, dimension(:) :: stage_weights
-    integer, dimension(2) :: option_rank
-
-    if (have_option(trim(options_path))) then
-
-       call get_option(trim(options_path)//"/subcycles",detector_list%n_subcycles)
-       call get_option(trim(options_path)//"/search_tolerance",detector_list%search_tolerance)
-
-       ! Forward Euler options
-       if (have_option(trim(options_path)//"/forward_euler_guided_search")) then
-          detector_list%velocity_advection = .true.
-          detector_list%n_stages = 1
-          allocate(detector_list%timestep_weights(detector_list%n_stages))
-          detector_list%timestep_weights = 1.0
-       end if
-
-       ! Parameters for classical Runge-Kutta
-       if (have_option(trim(options_path)//"/rk4_guided_search")) then
-          detector_list%velocity_advection = .true.
-          detector_list%n_stages = 4
-          allocate(stage_weights(detector_list%n_stages*(detector_list%n_stages-1)/2))
-          stage_weights = (/0.5, 0., 0.5, 0., 0., 1./)
-          allocate(detector_list%stage_matrix(detector_list%n_stages,detector_list%n_stages))
-          detector_list%stage_matrix = 0.
-          k = 0
-          do i = 1, detector_list%n_stages
-             do j = 1, detector_list%n_stages
-                if(i>j) then
-                   k = k + 1
-                   detector_list%stage_matrix(i,j) = stage_weights(k)
-                end if
-             end do
-          end do
-          allocate(detector_list%timestep_weights(detector_list%n_stages))
-          detector_list%timestep_weights = (/ 1./6., 1./3., 1./3., 1./6. /)
-       end if
-
-       ! Generic Runge-Kutta options
-       if (have_option(trim(options_path)//trim(rk_gs_path))) then
-          detector_list%velocity_advection = .true.
-          call get_option(trim(options_path)//trim(rk_gs_path)//"/n_stages",detector_list%n_stages)
-
-          ! Allocate and read stage_matrix from options
-          allocate(stage_weights(detector_list%n_stages*(detector_list%n_stages-1)/2))
-          option_rank = option_shape(trim(options_path)//trim(rk_gs_path)//"/stage_weights")
-          if (option_rank(2).ne.-1) then
-             FLExit('Stage Array wrong rank')
-          end if
-          if (option_rank(1).ne.size(stage_weights)) then
-             ewrite(-1,*) 'size expected was', size(stage_weights)
-             ewrite(-1,*) 'size actually was', option_rank(1)
-             FLExit('Stage Array wrong size')
-          end if
-          call get_option(trim(options_path)//trim(rk_gs_path)//"/stage_weights",stage_weights)
-          allocate(detector_list%stage_matrix(detector_list%n_stages,detector_list%n_stages))
-          detector_list%stage_matrix = 0.
-          k = 0
-          do i = 1, detector_list%n_stages
-             do j = 1, detector_list%n_stages
-                if(i>j) then
-                   k = k + 1
-                   detector_list%stage_matrix(i,j) = stage_weights(k)
-                end if
-             end do
-          end do
-
-          ! Allocate and read timestep_weights from options
-          allocate(detector_list%timestep_weights(detector_list%n_stages))
-          option_rank = option_shape(trim(options_path)//trim(rk_gs_path)//"/timestep_weights")
-          if (option_rank(2).ne.-1) then
-             FLExit('Timestep Array wrong rank')
-          end if
-          if (option_rank(1).ne.size(detector_list%timestep_weights)) then
-             FLExit('Timestep Array wrong size')
-          end if
-          call get_option(trim(options_path)//trim(rk_gs_path)//"/timestep_weights",detector_list%timestep_weights)
-       end if
-
-       ! Boundary reflection
-       if (have_option(trim(options_path)//trim("/reflect_on_boundary"))) then
-          detector_list%reflect_on_boundary=.true.
-       end if
-
-       if (have_option(trim(options_path)//trim("/parametric_guided_search"))) then
-          detector_list%tracking_method = GUIDED_SEARCH_TRACKING
-       elseif (have_option(trim(options_path)//trim("/geometric_tracking"))) then
-          detector_list%tracking_method = GEOMETRIC_TRACKING
-       else
-          if (check_any_lagrangian(detector_list)) then
-             ewrite(-1,*) "Found lagrangian detectors, but no tracking options"
-             FLExit('No lagrangian particle tracking method specified')
-          end if
-       end if
-
-    else
-       if (check_any_lagrangian(detector_list)) then
-          ewrite(-1,*) "Found lagrangian detectors, but no timstepping options"
-          FLExit('No lagrangian timestepping specified')
-       end if
-    end if
-
-  end subroutine read_detector_move_options
 
   subroutine read_random_walk_options(detector_list, options_path)
     ! Subroutine to set the meta-parameters concerning random walks
@@ -228,6 +115,8 @@ contains
     type(scalar_field), pointer :: diffusivity_field, subcycle_field
     type(vector_field), pointer :: diffusivity_grad
 
+    if (.not. check_any_lagrangian(detector_list)) return
+
     call profiler_tic(trim(detector_list%name)//"::movement")
 
     ewrite(1,*) "In move_lagrangian_detectors for detectors list: ", detector_list%name
@@ -245,8 +134,10 @@ contains
 
           ! For Python Random Walk run the user code that pulls fields from state
           if (detector_list%random_walks(rw)%python_random_walk) then
-             call python_run_detector_string(trim(detector_list%random_walks(rw)%python_code), &
-                      trim(detector_list%name), trim(detector_list%random_walks(rw)%name))
+             !call python_run_detector_string(trim(detector_list%random_walks(rw)%python_code), &
+             !         trim(detector_list%name), trim(detector_list%random_walks(rw)%name))
+             call lebiology_prepare_pyfunc(detector_list%fgroup, trim(detector_list%random_walks(rw)%name), &
+                       trim(detector_list%random_walks(rw)%python_code) )
           end if
 
           ! For hardcoded Random Walks pull the relevant fields from state
@@ -355,8 +246,10 @@ contains
 
                       ! Python
                       elseif (detector_list%random_walks(rw)%python_random_walk) then
-                         call python_run_random_walk(detector,detector_list%fgroup,sub_dt, trim(detector_list%name), &
-                                  trim(detector_list%random_walks(rw)%name),rw_displacement)
+                         !call python_run_random_walk(detector,detector_list%fgroup,sub_dt, trim(detector_list%name), &
+                         !         trim(detector_list%random_walks(rw)%name),rw_displacement)
+                         call lebiology_move_agent(detector_list%fgroup, trim(detector_list%random_walks(rw)%name), &
+                                   detector, sub_dt, rw_displacement)
                       end if
 
                       detector%update_vector=detector%update_vector + rw_displacement
@@ -1142,30 +1035,5 @@ contains
     displacement(xfield%dim)=rnd(1)*sqrt(6*K*dt)
 
   end subroutine naive_random_walk
-
-
-  function check_any_lagrangian(detector_list)
-    ! Check if there are any lagrangian detectors in the given list
-    ! across all processors
-    logical :: check_any_lagrangian
-    type(detector_linked_list), intent(inout) :: detector_list
-
-    type(detector_type), pointer :: detector
-    integer :: checkint 
-      
-    checkint = 0
-    detector => detector_list%first
-    do while (associated(detector))       
-       if (detector%type==LAGRANGIAN_DETECTOR) then
-          checkint = 1
-          exit
-       end if
-       detector => detector%next
-    end do
-    call allmax(checkint)
-    check_any_lagrangian = .false.
-    if(checkint>0) check_any_lagrangian = .true.
-
-  end function check_any_lagrangian
 
 end module detector_move_lagrangian

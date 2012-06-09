@@ -57,6 +57,7 @@ module sam_integration
   use pickers
   use ieee_arithmetic
   use detector_tools  
+  use detector_parallel
 
   implicit none
   

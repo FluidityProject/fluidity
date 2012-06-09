@@ -36,11 +36,11 @@ module lagrangian_biology
   use parallel_tools
   use mpi_interfaces
   use pickers_inquire
+  use detectors
   use detector_data_types
   use detector_tools
   use detector_move_lagrangian
   use detector_parallel
-  use detector_python
   use python_state
   use diagnostic_fields
   use Profiler

@@ -44,7 +44,8 @@ ARFLAGS = @ARFLAGS@
 
 LIB = ../lib/lib$(FLUIDITY).a
 
-OBJS = Lagrangian_Biology.o Particle_Management.o LEBiology_Python.o lebiology_pythonc.o\
+OBJS = Lagrangian_Biology.o Particle_Management.o LEBiology_Python.o lebiology_pythonc.o \
+   Detector_Move_Lagrangian.o \
 
 .SUFFIXES: .f90 .F90 .c .o .a
 

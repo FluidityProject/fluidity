@@ -102,7 +102,9 @@ module fluids_module
 #endif
   use multiphase_module
   use lagrangian_biology
-  use detector_parallel, only: sync_detector_coordinates, deallocate_detector_list_array
+  use detectors
+  use detector_parallel
+  use detector_move_lagrangian
 
 
   implicit none
@@ -146,8 +148,6 @@ contains
     REAL :: CHANGE,CHAOLD
 
     integer :: i, it, its
-
-    logical :: not_to_move_det_yet = .false.
 
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
@@ -417,6 +417,8 @@ contains
 
     call initialise_diagnostics(filename, state)
 
+    call initialise_detectors(filename, state)
+
     ! Initialise ice_meltrate, read constatns, allocate surface, and calculate melt rate
     if (have_option("/ocean_forcing/iceshelf_meltrate/Holland08")) then
         call melt_surf_init(state(1))
@@ -445,9 +447,7 @@ contains
     call initialise_steady_state(filename, state)
     call initialise_advection_convergence(state)
 
-    if(have_option("/io/stat/output_at_start")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
-
-    not_to_move_det_yet=.false.
+    if(have_option("/io/stat/output_at_start")) call write_diagnostics(state, current_time, dt, timestep)
 
     ! Initialise GLS
     if (have_option("/material_phase[0]/subgridscale_parameterisations/GLS/option")) then
@@ -855,6 +855,15 @@ contains
           
        ! Call the modern and significantly less satanic version of study
        call write_diagnostics(state, current_time, dt, timestep)
+
+       ! Move lagrangian detectors
+       if (timestep/=0) then
+          call move_lagrangian_detectors(state, default_stat%detector_list, dt, timestep)
+       end if
+
+       ! Now output detectors
+       call write_detectors(state, default_stat%detector_list, current_time, dt, timestep)
+
        ! Work out the domain volume by integrating the water depth function over the surface if using wetting and drying
        if (have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")) then
           ewrite(1, *) "Domain volume (\int_{fs} (\eta.-b)n.n_z)): ", calculate_volume_by_surface_integral(state(1))
@@ -894,14 +903,14 @@ contains
              call pre_adapt_tasks(sub_state)
 
              call qmesh(state, metric_tensor)
-             if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
+             if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt, timestep)
              call run_diagnostics(state)
 
              call adapt_state(state, metric_tensor)
 
              call update_state_post_adapt(state, metric_tensor, dt, sub_state, nonlinear_iterations, nonlinear_iterations_adapt)
 
-             if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
+             if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, timestep)
              call run_diagnostics(state)
  
           end if
@@ -910,18 +919,16 @@ contains
 
              call pre_adapt_tasks(sub_state)
 
-             if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
+             if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt, timestep)
              call run_diagnostics(state)
 
              call adapt_state_prescribed(state, current_time)
              call update_state_post_adapt(state, metric_tensor, dt, sub_state, nonlinear_iterations, nonlinear_iterations_adapt)
 
-             if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
+             if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, timestep)
              call run_diagnostics(state)
 
           end if
-
-       not_to_move_det_yet=.false.
 
        end if
 

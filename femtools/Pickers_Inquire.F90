@@ -30,7 +30,6 @@
 module pickers_inquire
 
   use data_structures
-  use detector_data_types
   use fields
   use fldebug
   use node_owner_finder
@@ -42,7 +41,7 @@ module pickers_inquire
   
   private
   
-  public :: picker_inquire, picker_inquire_region, search_for_detectors
+  public :: picker_inquire, picker_inquire_region
 
   interface picker_inquire
     module procedure picker_inquire_single_position, &
@@ -336,93 +335,5 @@ contains
     call node_owner_finder_find_single_region(positions%picker%ptr%picker_id, positions%dim, low_coord, high_coord, elements)
 
   end subroutine picker_inquire_single_region
-  
-  subroutine search_for_detectors(detectors, positions)
-    !!< This subroutine establishes on which processor, in which element and at
-    !!< which local coordinates each detector is to be found. A negative element
-    !!< value indicates that no element could be found for that node.
-    !!< Detectors are assumed to be local.
-    
-    type(vector_field), intent(inout) :: positions
-    
-    type(detector_linked_list), intent(inout) :: detectors
-    type(detector_type), pointer :: node
-
-    integer :: i, nglobal_dets
-    real, dimension(:, :), allocatable :: local_coords, local_l_coords
-    real, dimension(:, :), allocatable :: global_coords, global_l_coords
-    integer, dimension(:), allocatable :: local_ele, global_ele
-       
-    call initialise_picker(positions)
-    assert(ele_numbering_family(positions, 1) == FAMILY_SIMPLEX)
-
-    allocate(local_coords(positions%dim, detectors%length))
-    allocate(local_l_coords(positions%dim+1, detectors%length))
-    allocate(local_ele(detectors%length))
-        
-    node => detectors%first
-    do i = 1, detectors%length
-      local_coords(:, i) = node%position
-      node => node%next
-    end do
-
-    ! First check locally
-    if (detectors%length > 0) then
-       call picker_inquire(positions, local_coords(:,:), local_ele(:), local_coords = local_l_coords(:,:), global = .false.)
-    end if
-
-    nglobal_dets = 0
-    node => detectors%first
-    do i = 1, detectors%length
-      node%local_coords = local_l_coords(:, i)
-      node%element = local_ele(i)
-      if (node%element < 0) then
-         nglobal_dets = nglobal_dets + 1
-      end if
-      node => node%next
-    end do
-
-    deallocate(local_coords)
-    deallocate(local_l_coords)
-    deallocate(local_ele)
-
-    call allmax(nglobal_dets)
-    if (nglobal_dets==0) then
-       return
-    end if
-
-    ! If any detectors could not be found locally try again globally
-    allocate(global_coords(positions%dim, nglobal_dets))
-    allocate(global_l_coords(positions%dim+1, nglobal_dets))
-    allocate(global_ele(nglobal_dets))
-
-    nglobal_dets = 0
-    node => detectors%first
-    do i = 1, detectors%length
-      if (node%element < 0) then
-         nglobal_dets = nglobal_dets + 1
-         global_coords(:, nglobal_dets) = node%position
-      end if
-      node => node%next
-    end do
-
-    call picker_inquire(positions, global_coords(:,:), global_ele(:), local_coords = global_l_coords(:,:), global = .true.)
-
-    nglobal_dets = 0
-    node => detectors%first
-    do i = 1, detectors%length
-      if (node%element < 0) then
-         nglobal_dets = nglobal_dets + 1
-         node%local_coords = global_l_coords(:, nglobal_dets)
-         node%element = global_ele(nglobal_dets)
-      end if
-      node => node%next
-    end do
-
-    deallocate(global_coords)
-    deallocate(global_l_coords)
-    deallocate(global_ele)
-    
-  end subroutine search_for_detectors
 
 end module pickers_inquire

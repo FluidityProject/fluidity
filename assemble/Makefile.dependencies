@@ -695,9 +695,10 @@ Sam_integration.o ../include/sam_integration.mod: Sam_integration.F90 \
    ../include/boundary_conditions.mod \
    ../include/boundary_conditions_from_options.mod \
    ../include/data_structures.mod ../include/detector_data_types.mod \
-   ../include/detector_tools.mod ../include/diagnostic_variables.mod \
-   ../include/elements.mod ../include/fdebug.h ../include/field_options.mod \
-   ../include/fields.mod ../include/global_parameters.mod ../include/halos.mod \
+   ../include/detector_parallel.mod ../include/detector_tools.mod \
+   ../include/diagnostic_variables.mod ../include/elements.mod \
+   ../include/fdebug.h ../include/field_options.mod ../include/fields.mod \
+   ../include/global_parameters.mod ../include/halos.mod \
    ../include/ieee_arithmetic.mod ../include/memory_diagnostics.mod \
    ../include/metric_tools.mod ../include/mpi_interfaces.mod \
    ../include/node_boundary.mod ../include/parallel_tools.mod \

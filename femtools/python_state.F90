@@ -29,7 +29,6 @@ module python_state
   use global_parameters, only:FIELD_NAME_LEN, current_debug_level, OPTION_PATH_LEN, PYTHON_FUNC_LEN
   use state_module 
   use iso_c_binding
-  use detector_data_types
    
   implicit none
   
