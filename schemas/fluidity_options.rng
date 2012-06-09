@@ -2289,6 +2289,9 @@ while a factor of 1 represents a connected domain.</a:documentation>
         </element>
       </optional>
       <optional>
+        <ref name="biology"/>
+      </optional>
+      <optional>
         <ref name="forcing"/>
       </optional>
       <optional>
@@ -8072,6 +8075,189 @@ These &lt;b&gt;must&lt;/b&gt; be on the velocity mesh</a:documentation>
         </element>
       </optional>
     </element>
+  </define>
+  <define name="biology">
+    <element name="ocean_biology">
+      <a:documentation>Model of biological processes in the ocean.</a:documentation>
+      <choice>
+        <element name="pznd">
+          <a:documentation>A simple model of phytoplankton, zooplankton, general nutrient and detritus. </a:documentation>
+          <choice>
+            <element name="source_and_sink_algorithm">
+              <a:documentation>Python code specifying the source and sink relationships 
+between the biological tracers. This is usually achieved by 
+importing fluidity.ocean_biology and calling a scheme from there. </a:documentation>
+              <ref name="python_code"/>
+            </element>
+            <element name="disable_sources_and_sinks">
+              <a:documentation>Do not calculate sources and sinks. 
+This option is generally only useful for testing. </a:documentation>
+              <empty/>
+            </element>
+          </choice>
+          <element name="scalar_field">
+            <a:documentation>Photosynthetically Active Radiation (PAR)</a:documentation>
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="name">
+              <value>PhotosyntheticRadiation</value>
+            </attribute>
+            <choice>
+              <element name="prognostic">
+                <ref name="velocity_mesh_choice"/>
+                <ref name="prognostic_photosynthetic_radiation"/>
+              </element>
+              <element name="prescribed">
+                <ref name="velocity_mesh_choice"/>
+                <ref name="prescribed_scalar_field"/>
+              </element>
+            </choice>
+          </element>
+        </element>
+        <element name="six_component">
+          <a:documentation>6 component biology model, which models Nitrates, Ammonium, 
+Phytoplankton, Zooplankton, Detritus and Chlorophyll.
+
+These fields must be enabled in the material phase
+
+Based on the equations in
+Popova, E. E.; Coward, A. C.; Nurser, G. A.; de Cuevas, B.; Fasham, M. J. R. &amp; Anderson, T. R. 
+Mechanisms controlling primary and new production in a global ecosystem model - Part I: 
+Validation of the biological simulation Ocean Science, 2006, 2, 249-266. 
+DOI: 10.5194/os-2-249-2006</a:documentation>
+          <choice>
+            <element name="source_and_sink_algorithm">
+              <a:documentation>Python code specifying the biology model. This takes
+in velocity and light and outputs Phytoplankton, if
+those fields exist.</a:documentation>
+              <ref name="python_code"/>
+            </element>
+            <element name="disable_sources_and_sinks">
+              <a:documentation>Do not calculate biology
+This option is generally only useful for testing. </a:documentation>
+              <empty/>
+            </element>
+          </choice>
+          <optional>
+            <element name="scalar_field">
+              <a:documentation>Photosynthetically Active Radiation (PAR)</a:documentation>
+              <attribute name="rank">
+                <value>0</value>
+              </attribute>
+              <attribute name="name">
+                <value>PhotosyntheticRadiation</value>
+              </attribute>
+              <choice>
+                <element name="prognostic">
+                  <ref name="velocity_mesh_choice"/>
+                  <ref name="prognostic_photosynthetic_radiation"/>
+                </element>
+                <element name="prescribed">
+                  <ref name="velocity_mesh_choice"/>
+                  <ref name="prescribed_scalar_field"/>
+                </element>
+              </choice>
+            </element>
+          </optional>
+        </element>
+      </choice>
+    </element>
+  </define>
+  <define name="prognostic_photosynthetic_radiation">
+    <element name="equation">
+      <a:documentation>PAR equation.</a:documentation>
+      <attribute name="name">
+        <value>PhotosyntheticRadiation</value>
+      </attribute>
+    </element>
+    <element name="spatial_discretisation">
+      <a:documentation>Spatial discretisation options</a:documentation>
+      <element name="discontinuous_galerkin">
+        <a:documentation>Discontinuous galerkin formulation. You can also use this
+formulation with a continuous field in which case a simple
+galerkin formulation will result. </a:documentation>
+        <empty/>
+      </element>
+    </element>
+    <element name="solver">
+      <a:documentation>Solver</a:documentation>
+      <ref name="linear_solver_options_asym"/>
+    </element>
+    <!-- Alas, no initial_condition either, so we'd better not checkpoint it... -->
+    <element name="exclude_from_checkpointing">
+      <a:documentation>Disables checkpointing of this field</a:documentation>
+      <ref name="comment"/>
+    </element>
+    <element name="absorption_coefficients">
+      <a:documentation>Coefficients of absorption of photosynthetically active
+radiation for water and phytoplankton.</a:documentation>
+      <element name="water">
+        <a:documentation>Photosynthetically active radiation absorption coefficient for water.</a:documentation>
+        <ref name="real"/>
+      </element>
+      <element name="phytoplankton">
+        <a:documentation>Photosynthetically active radiation absorption coefficient for water.</a:documentation>
+        <ref name="real"/>
+      </element>
+    </element>
+    <optional>
+      <element name="boundary_conditions">
+        <a:documentation>Boundary conditions</a:documentation>
+        <attribute name="name">
+          <data type="string" datatypeLibrary=""/>
+        </attribute>
+        <element name="surface_ids">
+          <a:documentation>Surface id:</a:documentation>
+          <ref name="integer_vector"/>
+        </element>
+        <choice>
+          <a:documentation>Type</a:documentation>
+          <element name="type">
+            <attribute name="name">
+              <value>dirichlet</value>
+            </attribute>
+            <element name="apply_weakly">
+              <a:documentation>Apply the dirichlet bc weakly.  Only available with
+discontinuous_galerkin and control_volume
+spatial_discretisations.
+
+If not selected boundary conditions are applied strongly.</a:documentation>
+              <empty/>
+            </element>
+            <ref name="input_choice_real"/>
+          </element>
+          <element name="type">
+            <attribute name="name">
+              <value>bulk_formulae</value>
+            </attribute>
+            <empty/>
+          </element>
+          <element name="type">
+            <attribute name="name">
+              <value>neumann</value>
+            </attribute>
+            <ref name="input_choice_real"/>
+          </element>
+        </choice>
+      </element>
+    </optional>
+    <ref name="prognostic_scalar_output_options"/>
+    <ref name="prognostic_scalar_stat_options"/>
+    <ref name="scalar_convergence_options"/>
+    <ref name="prognostic_detector_options"/>
+    <ref name="scalar_steady_state_options"/>
+    <ref name="adaptivity_options_scalar_field"/>
+    <optional>
+      <element name="priority">
+        <a:documentation>Set the priority of this field
+This determines the order in which scalar_fields are solved for:
+ - higher numbers have the highest priority
+ - lower numbers (including negative) have the lowest priority
+ - default if not set is 0</a:documentation>
+        <ref name="integer"/>
+      </element>
+    </optional>
   </define>
   <define name="recalculation_options">
     <element name="do_not_recalculate">
