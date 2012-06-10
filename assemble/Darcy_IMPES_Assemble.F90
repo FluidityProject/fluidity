@@ -522,6 +522,7 @@ module darcy_impes_assemble_module
       
       src_phase_loop: do p = 1, di%number_phase
          
+         ! Should this take account of subcycling?!?!
          call compute_cv_mass(di%positions, di%cv_mass_pressure_mesh_with_source, di%saturation_source(p)%ptr)
          
          ! Should this include porosity ?!?!
@@ -642,7 +643,7 @@ module darcy_impes_assemble_module
                            
                            ! Form the face value = detwei * (relperm*absperm/visc)
                            if (di%subcy_opt_sat%have .and. di%subcy_opt_sat%consistent) then
-                           
+
                               face_value = detwei(ggi) * &
                                            sum(di%cached_face_value%relperm(:,ggi,vele,p)) * &
                                            absperm_ele(1) / &
@@ -4157,10 +4158,10 @@ visc_ele_bdy(1)
       ewrite(1,*) 'Calculate relperm and density and first face values'      
 
       ! Initialise the cached face values
-      di%cached_face_value%relperm     = 0.0
-      di%cached_face_value%relperm_bdy = 0.0
-      di%cached_face_value%den         = 0.0
-      di%cached_face_value%den_bdy     = 0.0
+      di%cached_face_value%relperm(1,:,:,:)     = 0.0
+      di%cached_face_value%relperm_bdy(1,:,:,:) = 0.0
+      di%cached_face_value%den                  = 0.0
+      di%cached_face_value%den_bdy              = 0.0
 
       phase_loop: do p = 1, di%number_phase
           
