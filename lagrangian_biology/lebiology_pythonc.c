@@ -500,7 +500,15 @@ void lebiology_agent_move_c(char *fg, int fglen,
  
   // Check for Python errors
   *stat=0;
-  if(!pResult){
+  if(!pResult) {
+    PyErr_Print();
+    *stat=-1;
+    return;
+  }
+
+  if(!PySequence_Check(pResult)){
+    PyErr_SetString(PyExc_TypeError, "LEBiology motion kernel expects sequence object");
+    Py_INCREF(PyExc_KeyError);
     PyErr_Print();
     *stat=-1;
     return;

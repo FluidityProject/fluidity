@@ -134,8 +134,6 @@ contains
 
           ! For Python Random Walk run the user code that pulls fields from state
           if (detector_list%random_walks(rw)%python_random_walk) then
-             !call python_run_detector_string(trim(detector_list%random_walks(rw)%python_code), &
-             !         trim(detector_list%name), trim(detector_list%random_walks(rw)%name))
              call lebiology_prepare_pyfunc(detector_list%fgroup, trim(detector_list%random_walks(rw)%name), &
                        trim(detector_list%random_walks(rw)%python_code) )
           end if
@@ -246,8 +244,6 @@ contains
 
                       ! Python
                       elseif (detector_list%random_walks(rw)%python_random_walk) then
-                         !call python_run_random_walk(detector,detector_list%fgroup,sub_dt, trim(detector_list%name), &
-                         !         trim(detector_list%random_walks(rw)%name),rw_displacement)
                          call lebiology_move_agent(detector_list%fgroup, trim(detector_list%random_walks(rw)%name), &
                                    detector, sub_dt, rw_displacement)
                       end if
@@ -389,8 +385,6 @@ contains
     real :: search_tolerance
     integer :: k, nprocs, new_owner, all_send_lists_empty
     logical :: outside_domain, any_lagrangian
-
-    ewrite(2,*) "In track_detectors"
 
     call profiler_tic(trim(detector_list%name)//"::movement::tracking")
 
@@ -806,7 +800,7 @@ contains
     type(detector_type), pointer :: detector, move_detector
     real, dimension(xfield%dim) :: rw_displacement
     real :: total_subsubcycle
-    integer :: ele, subsubcycle, max_subsubcycle 
+    integer :: ele, subsubcycle, max_subsubcycle , remaining_detectors
     integer, dimension(1) :: subc
 
     max_subsubcycle = 1
@@ -853,9 +847,12 @@ contains
        call track_detectors(subcycle_detector_list,xfield)
     end if
 
+
     ! Remaining subcycle passes until subcycle list is empty
     subsubcycle = 2
-    do while (subcycle_detector_list%length > 0)
+    remaining_detectors = subcycle_detector_list%length
+    call allmax(remaining_detectors)
+    do while (remaining_detectors > 0)
        detector => subcycle_detector_list%first
        do while (associated(detector))
           call diffusive_random_walk(detector, dt/detector%rw_subsubcycles, &
@@ -872,6 +869,10 @@ contains
           end if
        end do
        call track_detectors(subcycle_detector_list,xfield)
+
+       remaining_detectors = subcycle_detector_list%length
+       call allmax(remaining_detectors)
+
        subsubcycle = subsubcycle + 1
     end do
 

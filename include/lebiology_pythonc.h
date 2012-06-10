@@ -57,7 +57,7 @@ void lebiology_agent_update_c(char *fg, int fglen, char *key, int keylen, char *
  *          return vector
  */
 // Note: Disabled until dependencies are sorted
-//void lebiology_agent_move_c(char *fg, int fglen, char *key, int keylen, double pos[], int n_pos, double vars[], int n_vars, int var_inds[], double *dt, double vector[], int *stat);
+void lebiology_agent_move_c(char *fg, int fglen, char *key, int keylen, double pos[], int n_pos, double vars[], int n_vars, int var_inds[], double *dt, double vector[], int *stat);
 
 /* Callback function to add new agents to the system from inside the embedded Python biology update */
 static PyObject *lebiology_add_agent(PyObject *self, PyObject *args);
