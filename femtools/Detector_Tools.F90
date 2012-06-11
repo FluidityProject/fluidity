@@ -345,7 +345,7 @@ contains
           buffer_size = buffer_size + size(list%fgroup%variables)
 
           if (size(list%fgroup%food_sets) > 0) then
-             buffer_size = buffer_size + 2 * size(list%fgroup%food_sets(1)%varieties)
+             buffer_size = buffer_size + 3 * size(list%fgroup%food_sets(1)%varieties)
           end if
        end if
 
@@ -417,6 +417,8 @@ contains
              buff(index:index+nvars-1) = detector%food_requests
              index = index + nvars
              buff(index:index+nvars-1) = detector%food_ingests
+             index = index + nvars
+             buff(index:index+nvars-1) = detector%food_thresholds
              index = index + nvars
           end if
        end if
@@ -516,6 +518,10 @@ contains
 
              if (.not.allocated(detector%food_ingests)) allocate(detector%food_ingests(nvars))
              detector%food_ingests = buff(index:index+nvars-1)
+             index = index + nvars
+
+             if (.not.allocated(detector%food_thresholds)) allocate(detector%food_thresholds(nvars))
+             detector%food_thresholds = buff(index:index+nvars-1)
              index = index + nvars
           end if
        end if
