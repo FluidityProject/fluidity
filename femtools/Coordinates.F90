@@ -135,7 +135,8 @@ contains
   end subroutine rotate2ll
 
   subroutine spherical_polar_2_cartesian(radius,theta,phi,x,y,z)
-    !Subroutine for calculation of cartesian coordinates from spherical-polar coordinates.
+    !Subroutine for calculation of cartesian coordinates from spherical-polar
+    ! coordinates.
     implicit none
 
     real, intent(in) :: radius  !Distance from centre of sphere
@@ -149,6 +150,34 @@ contains
     
   end subroutine spherical_polar_2_cartesian
   
+  subroutine spherical_polar_2_cartesian_C(radius,theta,phi,x,y,z) bind(c)
+    !C-inoperable subroutine for calculation of cartesian coordinates
+    ! from spherical-polar coordinates.
+    use iso_c_binding
+    implicit none
+    
+    real(kind=c_double) :: radius  !Distance from centre of sphere
+    real(kind=c_double) :: theta   !Polar angle, in radians
+    real(kind=c_double) :: phi     !Azimuthal angle, in radians
+    real(kind=c_double) :: x,y,z   !cartesian coordinates
+
+    real :: radius_f
+    real :: theta_f
+    real :: phi_f
+    real :: x_f,y_f,z_f
+
+    !Cast input variables to fortran intrinsic types.
+    radius_f = real(radius)
+    theta_f = real(theta)
+    phi_f = real(phi)
+    x_f = real(x)
+    y_f = real(y)
+    z_f = real(z)
+
+    call spherical_polar_2_cartesian(radius_f,theta_f,phi_f,x_f,y_f,z_f)
+
+  end subroutine spherical_polar_2_cartesian_C
+
   subroutine cartesian_2_spherical_polar(x,y,z,radius,theta,phi)
     !Subroutine for calculation of cartesian coordinates from spherical-polar coordinates.
     implicit none
@@ -233,10 +262,10 @@ contains
 
   end subroutine lon_lat_height_2_spherical_polar
 
-  subroutine spherical_polar_2 lon_lat_height(radius, theta, phi, &
+  subroutine spherical_polar_2_lon_lat_height(radius, theta, phi, &
                                               longitude, latitude, height, &
                                               referenceRadius)
-    !Subroutine for conversion of sperical-polar coordinates to
+    !Subroutine for conversion of spherical-polar coordinates to
     !  longitude-latitude-height coordinates. The polar coordinates must
     !  be given in radians. Longitude and latitude are returned in
     !  degrees. If referenceRadius is specified, height is measured as the as the
@@ -267,7 +296,7 @@ contains
       height = radius
     endif
 
-  end subroutine spherical_polar_2 lon_lat_height
+  end subroutine spherical_polar_2_lon_lat_height
 
   subroutine lon_lat_height_2_cartesian(longitude, latitude, height, referenceRadius, &
                                         x, y, z)
@@ -293,7 +322,7 @@ contains
                                           radius, theta, phi)
 
     !convert spherical-polar coordinates to Cartesian
-    call sperical_polar_2_cartesian(radius,theta,phi,x,y,z)
+    call spherical_polar_2_cartesian(radius,theta,phi,x,y,z)
 
   end subroutine lon_lat_height_2_cartesian
 
@@ -318,18 +347,18 @@ contains
 
     !Convert polar angle into latitude and azimuthal angle into longitude; in radians.
     if(present(referenceRadius)) then
-      call spherical_polar_2 lon_lat_height(radius, theta, phi, &
+      call spherical_polar_2_lon_lat_height(radius, theta, phi, &
                                             longitude, latitude, height, &
                                             referenceRadius)
     else
-      call spherical_polar_2 lon_lat_height(radius, theta, phi, &
+      call spherical_polar_2_lon_lat_height(radius, theta, phi, &
                                             longitude, latitude, height)
     endif
 
   end subroutine cartesian_2_lon_lat_height
 
   subroutine transformation_matrix_cartesian_2_spherical_polar(xCoord, yCoord, zCoord, R, RT)
-    !Subroutine calculating transformation martix for sperical-polar to/from cartesian
+    !Subroutine calculating transformation martix for spherical-polar to/from cartesian
     ! tensor transformations. The routine also returns the transposed transformation matrix
     implicit none
 
@@ -451,7 +480,7 @@ contains
                                                verticalComponent, &
                                                longitude, &
                                                latitude, &
-                                               height,
+                                               height, &
                                                referenceRadius, &
                                                xComp, yComp, zComp, &
                                                xCoord, yCoord, zCoord)
@@ -472,7 +501,6 @@ contains
     real, intent(out) :: xCoord         !1st vector component of position vector in cartesian basis
     real, intent(out) :: yCoord         !2nd vector component of position vector in cartesian basis
     real, intent(out) :: zCoord         !3rd vector component of position vector in cartesian basis
-    real, intent(out) :: radial        !Radial component of vector
     real :: radial       !Radial component of vector
     real :: polar        !Polar component of vector
     real :: azimuthal    !Azimuthal  component of vector
@@ -491,7 +519,7 @@ contains
     call vector_spherical_polar_2_cartesian(radial, polar, azimuthal, &
                                             radius, theta, phi, &
                                             xComp, yComp, zComp, &
-                                            xCoord, yCoord, zCoord
+                                            xCoord, yCoord, zCoord)
 
   end subroutine vector_lon_lat_height_2_cartesian
 
@@ -502,7 +530,7 @@ contains
                                                verticalComponent, &
                                                longitude, &
                                                latitude, &
-                                               height,
+                                               height, &
                                                referenceRadius)
     !Subroutine for change of basis of a vector from cartesian to
     !  meridional-zonal-vertical.
@@ -514,7 +542,6 @@ contains
     real, intent(in) :: xCoord         !1st vector component of position vector in cartesian basis
     real, intent(in) :: yCoord         !2nd vector component of position vector in cartesian basis
     real, intent(in) :: zCoord         !3rd vector component of position vector in cartesian basis
-    real, intent(in) :: radial        !Radial component of vector
     real, intent(out) :: zonalComponent      !Vector component tangential to parallel
     real, intent(out) :: meridionalComponent !Vector component tangential to meridian
     real, intent(out) :: verticalComponent   !Vector component in the vertical (radial)
@@ -530,7 +557,7 @@ contains
     real :: phi          !Azimuthal angle, in radians
 
     !Convert cartesian components to spherical-polar
-    call vector_cartesian_2_sperical_polar(xComp, yComp, zComp, &
+    call vector_cartesian_2_spherical_polar(xComp, yComp, zComp, &
                                            xCoord, yCoord, zCoord, &
                                            radius, theta, phi, &
                                            radial, polar, azimuthal)
@@ -788,10 +815,10 @@ contains
   end function rotate_diagonal_to_cartesian_face
 
   function rotate_diagonal_to_sphere_gi(positions, ele_number, diagonal) result(quad_val)
-    ! Given the diagonal of a tensor in cartesian coordinates, this function transforms the
-    ! tensor components to a spherical-polar basis. This result is given by R(diagonal)R^T
-    ! where R is the matrix of Eigen vectors of the sperical-polar basis, expressed in the
-    ! cartesian basis.
+    ! Given the diagonal of a tensor in cartesian coordinates, this function
+    ! transforms the tensor components to a spherical-polar basis. This result
+    ! is given by R(diagonal)R^T where R is the matrix of Eigen vectors of the
+    ! spherical-polar basis, expressed in the cartesian basis.
     type(vector_field), intent(in) :: positions
     integer, intent(in) :: ele_number
     real, dimension(positions%dim,ele_ngi(positions,ele_number)), intent(in) :: diagonal
@@ -841,10 +868,10 @@ contains
   end function rotate_diagonal_to_sphere_gi
 
   function rotate_diagonal_to_sphere_face(positions, face_number, diagonal) result(quad_val)
-    ! Given the diagonal of a tensor in cartesian coordinates, this function transforms the
-    ! tensor components to a spherical-polar basis. This result is given by R(diagonal)R^T
-    ! where R is the matrix of Eigen vectors of the sperical-polar basis, expressed in the
-    ! cartesian basis.
+    ! Given the diagonal of a tensor in cartesian coordinates, this function
+    ! transforms the tensor components to a spherical-polar basis. This result
+    ! is given by R(diagonal)R^T ! where R is the matrix of Eigen vectors of the
+    ! spherical-polar basis, expressed in the cartesian basis.
     type(vector_field), intent(in) :: positions
     integer, intent(in) :: face_number
     real, dimension(positions%dim,face_ngi(positions,face_number)), intent(in) :: diagonal
