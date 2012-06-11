@@ -425,11 +425,6 @@ contains
     J = transpose(matmul(ele_val(positions, ele) , shape%dn(:, 1, :)))
     h = maxval((/( abs(dot_product(normal_bdy(:, 1), J(i, :))), i=1, dim)/))
 
-    ewrite(3,*) "sele, ele", sele, ele
-    ewrite(3,*) "J", J
-    ewrite(3,*) "normal", normal_bdy(:, 1)
-    ewrite(3,*) "h", h
-
   end function surface_normal_distance_sele
 
   function integrate_over_surface_element_mesh(mesh, face_number, surface_ids) result(integrate_over_element)
