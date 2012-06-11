@@ -73,8 +73,8 @@ contains
     type(vector_field), intent(in), optional :: UResidual
     type(scalar_field), intent(in), optional :: DResidual
     !
-    type(vector_field), pointer :: X, U, down, U_cart
-    type(scalar_field), pointer :: D,f
+    type(vector_field), pointer :: X, U, down, U_cart, U_old
+    type(scalar_field), pointer :: D,f, D_old
     type(scalar_field) :: lambda, D_res, D_res2
     type(vector_field) :: U_res, U_res2
     type(scalar_field), target :: lambda_rhs, u_cpt
@@ -104,6 +104,8 @@ contains
     X=>extract_vector_field(state, "Coordinate")
     down=>extract_vector_field(state, "GravityDirection")
     U_cart => extract_vector_field(state, "Velocity")
+    U_old => extract_vector_field(state, "OldLocalVelocity")
+    D_old => extract_scalar_field(state, "OldLayerThickness")
 
     !Allocate local field variables
     lambda_mesh=>extract_mesh(state, "VelocityMeshTrace")
@@ -165,26 +167,29 @@ contains
        !Compute residuals for linear equation
        do ele = 1, ele_count(D)
           call get_linear_residuals_ele(U_res,D_res,&
-               U,D,newU,newD,&
+               U_old,D_old,newU,newD,&
                newton_local_solver_cache(ele)%ptr,&
                newton_local_solver_rhs_cache(ele)%ptr,ele)
        end do
        !Check difference between linear and nonlinear residuals
-       ewrite(2,*) 'U RES DIFF', maxval(abs(U_res%val-UResidual%val)),maxval(abs(U_res%val))
-       ewrite(2,*) 'D RES DIFF', maxval(abs(D_res%val-DResidual%val)),maxval(abs(D_res%val))
+       ewrite(2,*) 'cjc U_res calc', sum(newU%val), maxval(abs(U_res%val))
+       ewrite(2,*) 'cjc D_res calc', sum(newD%val), maxval(abs(D_res%val))
+       ewrite(2,*) 'cjc U RES DIFF', maxval(abs(U_res%val-UResidual%val)),maxval(abs(U_res%val))
+       ewrite(2,*) 'cjc D RES DIFF', maxval(abs(D_res%val-DResidual%val)),maxval(abs(D_res%val))
        !Set residuals from nonlinear input
-       call set(U_res,UResidual)
-       call set(D_res,DResidual)
+       !call set(U_res,UResidual)
+       !call set(D_res,DResidual)
     else
        !Compute residuals for linear equation
        do ele = 1, ele_count(D)
           call get_linear_residuals_ele(U_res,D_res,&
-               U,D,newU,newD,&
+               U_old,D_old,newU,newD,&
                newton_local_solver_cache(ele)%ptr,&
                newton_local_solver_rhs_cache(ele)%ptr,ele)
        end do
+       ewrite(2,*) 'cjc U_res calc', sum(newU%val), maxval(abs(U_res%val))
+       ewrite(2,*) 'cjc D_res calc', sum(newD%val), maxval(abs(D_res%val))
     end if
-    ewrite(2,*) 'D_res', maxval(abs(D_res%val))
 
     do ele = 1, ele_count(D)
        call local_solve_residuals_ele(U_res,D_res,&
@@ -204,12 +209,14 @@ contains
 
     !Update new U and new D from lambda
     !Compute residuals 
-    do ele = 1, ele_count(D)
-       call get_linear_residuals_ele(U_res,D_res,&
-            U,D,newU,newD,&
-            newton_local_solver_cache(ele)%ptr,&
-            newton_local_solver_rhs_cache(ele)%ptr,ele)
-    end do
+    if(present(DResidual).and.present(UResidual)) then       
+       do ele = 1, ele_count(D)
+          call get_linear_residuals_ele(U_res,D_res,&
+               U_old,D_old,newU,newD,&
+               newton_local_solver_cache(ele)%ptr,&
+               newton_local_solver_rhs_cache(ele)%ptr,ele)
+       end do
+       
     call mult(U_res2,Newton_continuity_mat,lambda)
     call addto(U_res,U_res2)
     do ele = 1, ele_count(U)

@@ -262,11 +262,13 @@
          call allocate(newD,D%mesh,"NewLayerThickness")
          call set(newD,D)
          call set(newU,U)
+
          
          if(have_option('/material_phase::Fluid/vector_field::Velocity/progn&
               &ostic/spatial_discretisation/discontinuous_galerkin/wave_equa&
               &tion/just_wave_equation_step')) then
             !Just solve the linear equations
+            ewrite(2,*) 'CJC newU newD', maxval(abs(newU%val)), maxval(abs(newD%val))
             call solve_hybridised_timestep_residual(state,newU,newD)
          else
             !Solve the fully coupled SWE
@@ -283,10 +285,11 @@
             call zero(DResidual)
 
             !PV calculation
-            if(have_pv) then
-               call get_PV(state,PV,U_old,D_old)
-               call set(PV_old,PV)
+            if(.not.have_pv) then
+               FLExit('Need PV field')
             end if
+            call get_PV(state,PV,U_old,D_old)
+            call set(PV_old,PV)
 
             !Start of Newton iteration loop
             newton_iteration: do nits = 1, nonlinear_iterations
@@ -321,6 +324,7 @@
                !to compute the corresponding vorticity
 
                !Perform (quasi)Newton iteration
+               ewrite(2,*) 'CJC newU newD', maxval(abs(newU%val)), maxval(abs(newD%val))
                call solve_hybridised_timestep_residual(state,newU,newD,&
                     & UResidual,DResidual)
             end do newton_iteration
