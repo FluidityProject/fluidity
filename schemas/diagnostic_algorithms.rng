@@ -921,9 +921,10 @@ diagnostic. If disabled, computes over the whole surface.</a:documentation>
   <define name="boundary_distance_normal_algorithm">
     <element name="algorithm">
       <a:documentation>
-Distance of boundary-adjacent nodes to boundary
+Wall-normal size of boundary-adjacent elements
 
-This only works for CG at present (?)</a:documentation>
+This only works on P0 (DG) meshes.
+</a:documentation>
       <attribute name="name">
         <value>boundary_distance_normal</value>
       </attribute>

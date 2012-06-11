@@ -685,9 +685,10 @@ grad_normal_algorithm =
 boundary_distance_normal_algorithm =
    (
       ## 
-      ## Distance of boundary-adjacent nodes to boundary
+      ## Wall-normal size of boundary-adjacent elements
       ##
-      ## This only works for CG at present (?)
+      ## This only works on P0 (DG) meshes.
+      ##
       element algorithm {
          attribute name { "boundary_distance_normal" },
          attribute material_phase_support { "single" }

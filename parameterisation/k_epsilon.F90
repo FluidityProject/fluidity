@@ -492,23 +492,21 @@ subroutine keps_eddyvisc(state)
       ! VLES modification: filter eddy viscosity
       if(vles) then
         allocate(uele (ele_loc(EV, ele)))
-        ! Hard-coded to isotropic filter with alpha=2 for now.
-        delta = 4*length_scale(positions, ele)
+        ! isotropic filter size
+        delta = length_scale(positions, ele)
         uele = norm2(ele_val(u, ele))
         ! lengthscale is max(delta, |u|dt)
         dx = max(delta, sum(uele)/size(nodes_ev)*dt)
-        rhs_addto = delta/ele_val(ll, ele)
+        rhs_addto = (dx/ele_val(ll, ele))**(2./3.)
         do i=1, size(nodes_ev)
           patch = get_patch_ele(EV%mesh, nodes_ev(i))
           ! Make filter values sum correctly
-          rhs_addto(i) = rhs_addto(i)**(2./3.)/patch%count
+          rhs_addto(i) = rhs_addto(i)/patch%count
           deallocate(patch%elements)
         end do
-        ewrite(2,*) "L ", ele_val(ll, ele)
-        ewrite(2,*) "rhs ", rhs_addto
         deallocate(uele)
       else
-        rhs_addto = 1.
+        rhs_addto = 1.0
         do i=1, size(nodes_ev)
           patch = get_patch_ele(EV%mesh, nodes_ev(i))
           rhs_addto(i) = rhs_addto(i)/patch%count
@@ -528,7 +526,7 @@ subroutine keps_eddyvisc(state)
     do i = 1, node_count(EV)
       f = node_val(filter_rhs, i)
       call set(filter, i, min(1.0, f))
-      call set(EV, i, f*node_val(ev_rhs,i)/node_val(lumped_mass,i))
+      call set(EV, i, node_val(filter,i)*node_val(ev_rhs,i)/node_val(lumped_mass,i))
     end do
 
     call deallocate(ev_rhs); call deallocate(filter_rhs)
@@ -839,7 +837,6 @@ subroutine keps_wall_function(field1,field2,positions,u,bg_visc,EV,ele,sele,inde
     type(element_type), pointer                          :: shape, fshape
     integer                                              :: i, j, gi, sgi, sloc
     real                                                 :: kappa, h, cmu
-    real, dimension(1,1)                                 :: hb
     real, dimension(ele_ngi(field1,ele))                 :: detwei
     real, dimension(face_ngi(field1,sele))               :: detwei_bdy, ustar, q_sgin, visc_sgi
     real, dimension(face_loc(field1,sele))               :: lumpedfmass
@@ -853,7 +850,7 @@ subroutine keps_wall_function(field1,field2,positions,u,bg_visc,EV,ele,sele,inde
     real, dimension(face_loc(field1,ele),face_loc(field1,ele))   :: fmass
     real, dimension(ele_loc(field1,ele),ele_loc(field1,ele))     :: invmass
     real, dimension(positions%dim,positions%dim,ele_loc(field1,sele))       :: qq
-    real, dimension(positions%dim,positions%dim,ele_ngi(field1,sele))       :: grad_u, invJ
+    real, dimension(positions%dim,positions%dim,ele_ngi(field1,sele))       :: grad_u
     real, dimension(positions%dim,positions%dim,face_loc(field1,sele))      :: qq_s
     real, dimension(positions%dim,positions%dim,face_ngi(field1,sele))      :: bg_visc_sgi, qq_sgi
     real, dimension(ele_loc(field1,ele),ele_ngi(field1,ele),positions%dim)  :: dshape
@@ -865,7 +862,7 @@ subroutine keps_wall_function(field1,field2,positions,u,bg_visc,EV,ele,sele,inde
     fshape   => face_shape(field1, sele)  ! scalar field shape functions in surface element
 
     ! Get shape fn gradients, element/face quadrature weights, and surface normal
-    call transform_to_physical( positions, ele, shape, dshape=dshape, detwei=detwei, invJ=invJ )
+    call transform_to_physical( positions, ele, shape, dshape=dshape, detwei=detwei )
     call transform_facet_to_physical( positions, sele, detwei_f=detwei_bdy, normal=normal_bdy )
 
     invmass = shape_shape(shape, shape, detwei)
@@ -944,10 +941,7 @@ subroutine keps_wall_function(field1,field2,positions,u,bg_visc,EV,ele,sele,inde
           rhs = rhs/lumpedfmass
        else if (index==2) then
           ! calculate wall-normal element size
-          G = matmul(transpose(invJ(:,:,1)), invJ(:,:,1))
-          n(:,1) = normal_bdy(:,1)
-          hb = 1. / sqrt( matmul(matmul(transpose(n), G), n) )
-          h  = hb(1,1)
+          h = surface_normal_distance_sele(positions, sele, ele)
           ! Von Karman's constant
           kappa = 0.43
 
@@ -961,7 +955,7 @@ subroutine keps_wall_function(field1,field2,positions,u,bg_visc,EV,ele,sele,inde
 end subroutine keps_wall_function
 
 !------------------------------------------------------------------------------------------!
-! Computes the strain rate for the LES model. Double-dot product results in a scalar:      !
+! Computes the strain term. Double-dot product results in a scalar:                        !
 ! t:s = [ t11s11 + t12s21 + t13s31 + t21s12 + t22s22 + t23s32 + t31s13 + t32s23 + t33s33 ] !
 !------------------------------------------------------------------------------------------!
 

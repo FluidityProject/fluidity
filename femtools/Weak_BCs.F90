@@ -40,6 +40,7 @@
     use boundary_conditions
     use elements
     use sparse_tools_petsc
+    use surface_integrals
 
     implicit none
 
@@ -240,7 +241,6 @@
       real, dimension(x%dim,x%dim)  :: G
       real, dimension(x%dim,1)      :: n
       real, dimension(x%dim)        :: normal, n_face
-      real, dimension(1,1)          :: hb
 
       real                          :: h, tau, r, drdt, dtau, Id, Cb
       real                          :: v, uh, u_p, y_p, q
@@ -266,10 +266,7 @@
       call transform_facet_to_physical( x, sele, detwei_f=detwei_bdy, normal=normal_bdy )
 
       ! calculate wall-normal element mesh size
-      G = matmul(transpose(invJ(:,:,1)), invJ(:,:,1))
-      n(:,1) = normal_bdy(:,1)
-      hb = 1. / sqrt( matmul(matmul(transpose(n), G), n) )
-      h  = hb(1, 1)
+      h = surface_normal_distance_sele(x, sele, ele)
 
       if (bc_type=="near_wall_treatment") then ! Hughes' approach
 

@@ -407,15 +407,13 @@ contains
     
   end subroutine surface_gradient_normal
   
-  subroutine surface_normal_distance_sele(positions, output, sele, ele)
+  function surface_normal_distance_sele(positions, sele, ele) result(h)
     ! calculate wall-normal element size
     type(vector_field), intent(in) :: positions
-    type(scalar_field), intent(inout) :: output
     integer, intent(in) :: ele, sele
-
+    real :: h
     type(element_type), pointer :: shape
     integer :: i, dim
-    real :: h
     real, dimension(face_ngi(positions,sele)) :: detwei_bdy
     real, dimension(positions%dim,positions%dim) :: J
     real, dimension(positions%dim,face_ngi(positions,sele)) :: normal_bdy
@@ -432,10 +430,7 @@ contains
     ewrite(3,*) "normal", normal_bdy(:, 1)
     ewrite(3,*) "h", h
 
-    ! P0 only
-    call set(output, ele, h)      
-
-  end subroutine surface_normal_distance_sele
+  end function surface_normal_distance_sele
 
   function integrate_over_surface_element_mesh(mesh, face_number, surface_ids) result(integrate_over_element)
     !!< Return whether the given surface element should be integrated over when
