@@ -2430,7 +2430,8 @@
          ewrite(3,*)'just after Loop_U_ILOC1'
       RESID_BASED_STAB_DIF=0
       U_NONLIN_SHOCK_COEF=0.25
-      RNO_P_IN_A_DOT=1.0
+!      RNO_P_IN_A_DOT=1.0
+      RNO_P_IN_A_DOT=0.0
          IF(RESID_BASED_STAB_DIF.NE.0) THEN
       !! *************************INNER ELEMENT STABILIZATION****************************************
       !! *************************INNER ELEMENT STABILIZATION****************************************
@@ -3425,6 +3426,7 @@
 !      END DO Loop_Elements
       END DO Loop_Elements2
 
+      print *,'p=',p
       print *,'U_RHS:',U_RHS
 !      stop 222
       !do i=1, ndim*nphase*u_nonods
