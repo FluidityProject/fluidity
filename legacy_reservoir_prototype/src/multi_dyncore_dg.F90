@@ -2428,7 +2428,7 @@
          END DO Loop_ILEV1
 
          ewrite(3,*)'just after Loop_U_ILOC1'
-      RESID_BASED_STAB_DIF=0
+      RESID_BASED_STAB_DIF=3
       U_NONLIN_SHOCK_COEF=0.25
       RNO_P_IN_A_DOT=1.0
          IF(RESID_BASED_STAB_DIF.NE.0) THEN
@@ -2583,7 +2583,7 @@
                                    + WD( GI, IPHASE ) * U_DZ( GI, IPHASE ) ) &
                   *WITH_NONLIN &
                   +DENGI(GI, IPHASE)* U_DT( GI, IPHASE )   &
-                  -SOUGI_X(GI, IPHASE) - DIFFGI_U( GI, IPHASE )
+                  -SOUGI_X(GI, IPHASE) - DIFFGI_U( GI, IPHASE ) + P_DX(GI)
 
             IF(NDIM.GE.2) THEN
                RESID_V(GI, IPHASE)=RESID_V(GI, IPHASE)+ &
@@ -2592,7 +2592,7 @@
                                    + WD( GI, IPHASE ) * V_DZ( GI, IPHASE ) ) &
                   *WITH_NONLIN &
                   +DENGI(GI, IPHASE)* V_DT( GI, IPHASE )   &
-                  -SOUGI_Y(GI, IPHASE) - DIFFGI_V( GI, IPHASE )
+                  -SOUGI_Y(GI, IPHASE) - DIFFGI_V( GI, IPHASE ) + P_DY(GI)
             ENDIF 
             IF(NDIM.GE.3) THEN
                RESID_W(GI, IPHASE)=RESID_W(GI, IPHASE)+ &
@@ -2601,7 +2601,7 @@
                                    + WD( GI, IPHASE ) * W_DZ( GI, IPHASE ) ) &
                    *WITH_NONLIN &
                   +DENGI(GI, IPHASE)* W_DT( GI, IPHASE )  &
-                  -SOUGI_Z(GI, IPHASE) - DIFFGI_W( GI, IPHASE )
+                  -SOUGI_Z(GI, IPHASE) - DIFFGI_W( GI, IPHASE ) + P_DZ(GI)
             ENDIF 
 
             U_GRAD_NORM2( GI, IPHASE )= U_DT( GI, IPHASE )**2 + U_DX( GI, IPHASE )**2 + U_DY( GI, IPHASE )**2 + U_DZ( GI, IPHASE )**2 
