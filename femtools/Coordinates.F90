@@ -37,6 +37,7 @@ module Coordinates
   use halos_base
   use sparse_tools_petsc
   use state_module
+  use iso_c_binding
 
   implicit none
   
@@ -49,6 +50,7 @@ module Coordinates
   public:: &
        LongitudeLatitude,  &
        spherical_polar_2_cartesian, cartesian_2_spherical_polar, &
+       spherical_polar_2_cartesian_c, &
        ll2r3_rotate, rotate2ll, &
        vector_spherical_polar_2_cartesian, vector_cartesian_2_spherical_polar, &
        higher_order_sphere_projection, &
@@ -150,10 +152,9 @@ contains
     
   end subroutine spherical_polar_2_cartesian
   
-  subroutine spherical_polar_2_cartesian_C(radius,theta,phi,x,y,z) bind(c)
+  subroutine spherical_polar_2_cartesian_c(radius,theta,phi,x,y,z) bind(c)
     !C-inoperable subroutine for calculation of cartesian coordinates
     ! from spherical-polar coordinates.
-    use iso_c_binding
     implicit none
     
     real(kind=c_double) :: radius  !Distance from centre of sphere
@@ -176,7 +177,7 @@ contains
 
     call spherical_polar_2_cartesian(radius_f,theta_f,phi_f,x_f,y_f,z_f)
 
-  end subroutine spherical_polar_2_cartesian_C
+  end subroutine spherical_polar_2_cartesian_c
 
   subroutine cartesian_2_spherical_polar(x,y,z,radius,theta,phi)
     !Subroutine for calculation of cartesian coordinates from spherical-polar coordinates.
@@ -644,6 +645,43 @@ contains
       call set(spherical_polar_vector_field, node, sphericalPolarComponents)
     enddo
   end subroutine vector_cartesian_2_spherical_polar_field
+
+  subroutine tensor_spherical_polar_2_cartesian(sphericalPolarComponents, &
+                                                radius, theta, phi, &
+                                                cartesianComponents, &
+                                                xCoord, yCoord, zCoord)
+    !Subroutine for tensor change of basis: from spherical-polar to cartesian. The
+    ! coordinates of the position vector are also transformed. The tensor must
+    ! be a 3x3 tensor.
+    implicit none
+
+    real, intent(in), dimension(3,3) :: sphericalPolarComponents   !Tensor 
+                                      ! components in spherical-polar basis
+    real, intent(in) :: radius        !Distance from centre of sphere
+    real, intent(in) :: theta         !Polar angle, in radians
+    real, intent(in) :: phi           !Azimuthal angle, in radians
+    real, intent(out), dimension(3,3) :: cartesianComponents       !Tensor
+                                      ! components in Cartesian bisis
+    real, intent(out) :: xCoord       !1st vector component of position vector
+                                      ! in cartesian basis
+    real, intent(out) :: yCoord       !2nd vector component of position vector
+                                      ! in cartesian basis
+    real, intent(out) :: zCoord       !3rd vector component of position vector
+                                      ! in cartesian basis
+
+    real, dimension(3,3) :: R   !Transformation matrix
+    real, dimension(3,3) :: RT  !Transposed transformation matrix
+
+    !Calculate position-vector components in cartesian system
+    call spherical_polar_2_cartesian(radius, theta, phi, xCoord, yCoord, zCoord)
+
+    !Calculate transformation matrix
+    call transformation_matrix_cartesian_2_spherical_polar(xCoord, yCoord, zCoord, R, RT)
+
+    !Evaluate vector components in Cartesian basis
+    cartesianComponents = matmul(matmul(RT, sphericalPolarComponents), R)
+
+  end subroutine tensor_spherical_polar_2_cartesian
 
   subroutine higher_order_sphere_projection(positions, s_positions)
     !!< Given a P1 'positions' field and a Pn 's_positions' field, bends the 
