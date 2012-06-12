@@ -2429,7 +2429,7 @@
 
          ewrite(3,*)'just after Loop_U_ILOC1'
 
-!      END DO Loop_Elements
+      END DO Loop_Elements
 
       !ewrite(3,*) 'c=',c
       !ewrite(3,*) 'here1 u_rhs:',u_rhs
@@ -2439,7 +2439,7 @@
 
       DISC_PRES = ( CV_NONODS == TOTELE * CV_NLOC )
 
-!      Loop_Elements2: DO ELE=1,TOTELE
+      Loop_Elements2: DO ELE=1,TOTELE
 
          Between_Elements_And_Boundary: DO IFACE = 1, NFACE
             ELE2  = FACE_ELE( IFACE, ELE )
@@ -3422,8 +3422,11 @@
 ! endof IF(RESID_BASED_STAB_DIF.NE.0) THEN
          ENDIF
 
-      END DO Loop_Elements
+!      END DO Loop_Elements
+      END DO Loop_Elements2
 
+      print *,'U_RHS:',U_RHS
+!      stop 222
       !do i=1, ndim*nphase*u_nonods
       !   print *, i, sum(DGM_PHA(FINDGM_PHA(i):FINDGM_PHA(i+1)-1))
       !end do
