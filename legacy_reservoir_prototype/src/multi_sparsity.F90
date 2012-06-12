@@ -568,8 +568,6 @@
       ewrite(3,*) 'In form_dgm_pha_sparsity subrt.'
 
       u_nonods = u_pha_nonods / ( nphase * ndim )
-      ewrite(3,*)'u_nonods, u_pha_nonods, nphase, ndim:', &
-           u_nonods, u_pha_nonods, nphase, ndim
 
       count2 = 0
       Loop_Phase1: do iphase = 1, nphase
@@ -1368,7 +1366,7 @@
       ! Local variables 
       integer :: mx_ncolele_pha, nacv_loc, nacv_loc2, ele, iloc1, iloc2, globi, globj
       integer :: mx_ncolacv_loc,count,cv_inod
-      logical :: presym
+      logical :: presym, is_overlapping
       integer, dimension( : ), allocatable :: colele_pha, finele_pha, midele_pha, &
            centct, dummyvec, midacv_loc, finacv_loc, colacv_loc
 
@@ -1404,11 +1402,21 @@
       ewrite(3,*)'colele_pha: ', colele_pha( 1 : mx_ncolele_pha )
       ewrite(3,*)'midele_pha: ', midele_pha( 1 : totele * nphase )
 
-      findgm_pha = 0 ; coldgm_pha = 0 ; middgm_pha = 0
-      call form_dgm_pha_sparsity( totele, nphase, u_nloc, u_pha_nonods, &
-           ndim, mx_ncoldgm_pha, ncoldgm_pha, &
-           coldgm_pha, findgm_pha, middgm_pha, &
-           finele, colele, ncolele )
+      is_overlapping = .false.
+      if (have_option( &
+           '/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type/overlapping')) &
+           is_overlapping = .true.
+
+      if (.not.is_overlapping) then
+         findgm_pha = 0 ; coldgm_pha = 0 ; middgm_pha = 0
+         call form_dgm_pha_sparsity( totele, nphase, u_nloc, u_pha_nonods, &
+              ndim, mx_ncoldgm_pha, ncoldgm_pha, &
+              coldgm_pha, findgm_pha, middgm_pha, &
+              finele, colele, ncolele )
+      else
+         ncoldgm_pha=0
+      end if
+
       ewrite(3,*)'findgm_pha: ', findgm_pha( 1 : u_pha_nonods + 1 )
       ewrite(3,*)'coldgm_pha: ', coldgm_pha( 1 : ncoldgm_pha )
       ewrite(3,*)'middgm_pha: ', middgm_pha( 1 : u_pha_nonods )
