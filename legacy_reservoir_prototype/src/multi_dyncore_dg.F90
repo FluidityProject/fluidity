@@ -2428,7 +2428,7 @@
          END DO Loop_ILEV1
 
          ewrite(3,*)'just after Loop_U_ILOC1'
-      RESID_BASED_STAB_DIF=3
+      RESID_BASED_STAB_DIF=0
       U_NONLIN_SHOCK_COEF=0.25
       RNO_P_IN_A_DOT=1.0
          IF(RESID_BASED_STAB_DIF.NE.0) THEN
