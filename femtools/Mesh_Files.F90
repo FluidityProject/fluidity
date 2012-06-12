@@ -295,6 +295,11 @@ contains
     case("gmsh")
        call write_gmsh_file(filename, state, mesh )
 
+    ! ExodusII write routines are not implemented at this point. 
+    ! Mesh is dumped as gmsh format for now.
+    ! check subroutine 'insert_external_mesh' in Populate_State.F90,
+    ! right after reading in external mesh files
+
        ! Additional mesh format subroutines go here
 
     case default
@@ -329,6 +334,11 @@ contains
 
     case("gmsh")
        call write_gmsh_file( trim(filename), positions)
+
+    ! ExodusII write routines are not implemented at this point. 
+    ! Mesh is dumped as gmsh format for now.
+    ! check subroutine 'insert_external_mesh' in Populate_State.F90,
+    ! right after reading in external mesh files
 
        ! Additional mesh format subroutines go here
 

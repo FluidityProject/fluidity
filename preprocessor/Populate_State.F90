@@ -270,6 +270,13 @@ contains
                     quad_family=quad_family, &
                     format=mesh_file_format)
             end if
+            ! After successfully reading in an ExodusII mesh, change the option
+            ! mesh file format to "gmsh", as the write routines for ExodusII are currently
+            ! not implemented. Thus, checkpoints etc are dumped as gmsh mesh files
+            if (trim(mesh_file_format)=="exodusii") then
+               mesh_file_format = "gmsh"
+               call set_option_attribute(trim(from_file_path)//"/format/name", trim(mesh_file_format), stat=stat)
+            end if
             mesh=position%mesh
          else if(trim(mesh_file_format) == "vtu") then
             position_ptr => vtk_cache_read_positions_field(mesh_file_name)
