@@ -22,7 +22,10 @@ mesh_info =
                attribute name { "gmsh" },
                comment
             }|
-            ## ExodusII mesh format. Note that this is still experimental.
+            ## ExodusII mesh format.
+            ##
+            ##<b>Note: Only works for serial mesh files and 
+            ## Checkpoints are dumped in the GMSH file format.</b>
             element format {
                attribute name { "exodusii" },
                comment
