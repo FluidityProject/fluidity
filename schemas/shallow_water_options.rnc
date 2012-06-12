@@ -731,27 +731,30 @@ input_choice_real_dim_tensor =
 prognostic_sw_velocity_field =
    (
       velocity_equation_choice,
+      element wave_equation {
+         (
+            ## Only solve the linear equations
+            element just_wave_equation_step {
+               empty
+            }|
+            ## Leave out the wave equation step
+            element no_wave_equation_step {
+               empty
+            }|
+            ## Solve the fully coupled equations
+            element fully_coupled {
+               ## Use the linear residuals anyway
+               element linear_debug {
+                  empty
+               }?
+            }                  
+         )
+      },
       ## Spatial discretisation options
       element spatial_discretisation {
          ## Discontinuous galerkin formulation.
          element discontinuous_galerkin {
             ## Options for the wave equation solver
-            element wave_equation {
-               (
-                  ## Leave out the wave equation step
-                  element no_wave_equation_step {
-                     empty
-                  }|
-                  ## Only solve the linear equations
-                  element just_wave_equation_step {
-                     empty
-                  }|
-                  ## Solve the fully coupled equations
-                  element fully_coupled {
-                     empty
-                  }                  
-               )
-            },
             element advection_scheme {
                (
                   ## Upwinding using the coordinate system consisting
@@ -1972,13 +1975,6 @@ pressure_mesh_choice =
          }
       )
    )
-
-vorticity_spatial_discretisation =
-   element spatial_discretisation {
-      element laplacian_diffusion {
-         
-      }?
-   }
 
 vorticity_mesh_choice =
    (

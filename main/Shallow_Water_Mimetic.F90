@@ -239,10 +239,11 @@
       !Set up old values
       call set(U_old,U)
       call set(D_old,D)
-
-      if(have_option('/material_phase::Fluid/vector_field::Velocity/&
-           &prognostic/spatial_discretisation/discontinuous_galerkin/wave&
-           &_equation/no_wave_equation_step')) then
+      if(.not.have_option('/material_phase::Fluid/vector_field::Velocity/pro&
+           &gnostic/wave_equation/')) then
+         FLExit('Need wave equation option')
+      end if
+      if(have_option('/material_phase::Fluid/vector_field::Velocity/prognostic/wave_equation/no_wave_equation_step')) then
          !   !Just advance the D and PV fields.
          call set(advecting_u, u)
          call allocate(MassFlux,mesh_dim(U),u%mesh,'MassFlux')
@@ -264,9 +265,7 @@
          call set(newU,U)
 
          
-         if(have_option('/material_phase::Fluid/vector_field::Velocity/progn&
-              &ostic/spatial_discretisation/discontinuous_galerkin/wave_equa&
-              &tion/just_wave_equation_step')) then
+         if(have_option('/material_phase::Fluid/vector_field::Velocity/prognostic/wave_equation/just_wave_equation_step')) then
             !Just solve the linear equations
             ewrite(2,*) 'CJC newU newD', maxval(abs(newU%val)), maxval(abs(newD%val))
             call solve_hybridised_timestep_residual(state,newU,newD)

@@ -163,22 +163,11 @@ contains
        newton_initialised = .true.
     end if
 
-    if(present(DResidual).and.present(UResidual)) then
-       !Compute residuals for linear equation
-       do ele = 1, ele_count(D)
-          call get_linear_residuals_ele(U_res,D_res,&
-               U_old,D_old,newU,newD,&
-               newton_local_solver_cache(ele)%ptr,&
-               newton_local_solver_rhs_cache(ele)%ptr,ele)
-       end do
-       !Check difference between linear and nonlinear residuals
-       ewrite(2,*) 'cjc U_res calc', sum(newU%val), maxval(abs(U_res%val))
-       ewrite(2,*) 'cjc D_res calc', sum(newD%val), maxval(abs(D_res%val))
-       ewrite(2,*) 'cjc U RES DIFF', maxval(abs(U_res%val-UResidual%val)),maxval(abs(U_res%val))
-       ewrite(2,*) 'cjc D RES DIFF', maxval(abs(D_res%val-DResidual%val)),maxval(abs(D_res%val))
+    if(present(DResidual).and.present(UResidual).and..not.&
+         have_option('/material_phase::Fluid/vector_field::Velocity/prognostic/wave_equation/fully_coupled/linear_debug')) then
        !Set residuals from nonlinear input
-       !call set(U_res,UResidual)
-       !call set(D_res,DResidual)
+       call set(U_res,UResidual)
+       call set(D_res,DResidual)
     else
        !Compute residuals for linear equation
        do ele = 1, ele_count(D)
@@ -209,13 +198,20 @@ contains
 
     !Update new U and new D from lambda
     !Compute residuals 
-    if(present(DResidual).and.present(UResidual)) then       
+    if(present(DResidual).and.present(UResidual).and..not.&
+         have_option('/material_phase::Fluid/vector_field::Velocity/prognostic/wave_equation/fully_coupled/linear_debug')) then
+       call set(U_res,UResidual)
+       call set(D_res,DResidual)
+    else
        do ele = 1, ele_count(D)
           call get_linear_residuals_ele(U_res,D_res,&
                U_old,D_old,newU,newD,&
                newton_local_solver_cache(ele)%ptr,&
                newton_local_solver_rhs_cache(ele)%ptr,ele)
        end do
+    end if
+    ewrite(2,*) 'cjc U_res recalc', sum(newU%val), maxval(abs(U_res%val))
+    ewrite(2,*) 'cjc D_res recalc', sum(newD%val), maxval(abs(D_res%val))
        
     call mult(U_res2,Newton_continuity_mat,lambda)
     call addto(U_res,U_res2)

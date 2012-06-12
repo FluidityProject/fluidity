@@ -912,29 +912,34 @@ An example that returns the three-dimensional identity:
   </define>
   <define name="prognostic_sw_velocity_field">
     <ref name="velocity_equation_choice"/>
+    <element name="wave_equation">
+      <choice>
+        <element name="just_wave_equation_step">
+          <a:documentation>Only solve the linear equations</a:documentation>
+          <empty/>
+        </element>
+        <element name="no_wave_equation_step">
+          <a:documentation>Leave out the wave equation step</a:documentation>
+          <empty/>
+        </element>
+        <element name="fully_coupled">
+          <a:documentation>Solve the fully coupled equations</a:documentation>
+          <optional>
+            <element name="linear_debug">
+              <a:documentation>Use the linear residuals anyway</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+        </element>
+      </choice>
+    </element>
     <element name="spatial_discretisation">
       <a:documentation>Spatial discretisation options</a:documentation>
       <element name="discontinuous_galerkin">
         <a:documentation>Discontinuous galerkin formulation.</a:documentation>
-        <element name="wave_equation">
-          <a:documentation>Options for the wave equation solver</a:documentation>
-          <choice>
-            <element name="no_wave_equation_step">
-              <a:documentation>Leave out the wave equation step</a:documentation>
-              <empty/>
-            </element>
-            <element name="just_wave_equation_step">
-              <a:documentation>Only solve the linear equations</a:documentation>
-              <empty/>
-            </element>
-            <element name="fully_coupled">
-              <a:documentation>Solve the fully coupled equations</a:documentation>
-              <empty/>
-            </element>
-          </choice>
-        </element>
         <optional>
           <element name="advection_scheme">
+            <a:documentation>Options for the wave equation solver</a:documentation>
             <choice>
               <element name="edge_coordinates_upwind">
                 <a:documentation>Upwinding using the coordinate system consisting
