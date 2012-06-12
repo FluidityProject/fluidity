@@ -795,12 +795,13 @@ contains
     deallocate(coord_x); deallocate(coord_y); deallocate(coord_z)
     deallocate(node_map); deallocate(elem_num_map); deallocate(elem_order_map); 
     deallocate(block_ids); deallocate(num_elem_in_block); deallocate(num_nodes_per_elem);
-    deallocate(elem_type); deallocate(num_attr); deallocate(num_sides_in_set); deallocate(side_set_ids);
+    deallocate(elem_type); deallocate(num_attr); 
     deallocate(elem_connectivity); 
 
     ! Deallocate other arrays:
     deallocate(node_coord); deallocate(total_elem_node_list)
     if (haveBoundaries) then
+       deallocate(num_sides_in_set); deallocate(side_set_ids);
        deallocate(total_side_sets_elem_list); deallocate(total_side_sets_node_list)
        deallocate(total_side_sets_node_cnt_list); deallocate(num_elem_in_set)
     end if

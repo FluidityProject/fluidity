@@ -918,7 +918,7 @@ Read_Exodusii.o ../include/read_exodusii.mod: Read_Exodusii.F90 \
    ../include/exodusii_f_interface.mod ../include/fdebug.h \
    ../include/fields.mod ../include/futils.mod \
    ../include/global_parameters.mod ../include/spud.mod \
-   ../include/state_module.mod
+   ../include/state_module.mod ../include/vtk_interfaces.mod
 
 ../include/read_gmsh.mod: Read_GMSH.o
 	@true
