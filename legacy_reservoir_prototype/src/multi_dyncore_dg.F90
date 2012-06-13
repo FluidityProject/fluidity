@@ -1712,6 +1712,7 @@
       REAL :: U_R2_COEF,V_R2_COEF,W_R2_COEF
       REAL :: VLKNN
       INTEGER :: P_INOD, U_INOD_IPHA, U_JNOD
+      logical firstst
       character( len = 100 ) :: name
 
       character( len = option_path_len ) :: overlapping_path 
@@ -1751,6 +1752,11 @@
       endif
 
       GOT_DIFFUS = .FALSE.
+
+! is this the 1st iteration of the time step. 
+      firstst=(sum((u(:)-uold(:))**2).lt.1.e-10)
+      if(ndim.ge.2) firstst=firstst.and.(sum((v(:)-vold(:))**2).lt.1.e-10)
+      if(ndim.ge.3) firstst=firstst.and.(sum((w(:)-wold(:))**2).lt.1.e-10)
 
       ALLOCATE( DETWEI( CV_NGI ))
       ALLOCATE( RA( CV_NGI ))
@@ -2428,11 +2434,16 @@
          END DO Loop_ILEV1
 
          ewrite(3,*)'just after Loop_U_ILOC1'
+! RESID_BASED_STAB_DIF=2 is recommended.
+!      RESID_BASED_STAB_DIF=0
+!      RESID_BASED_STAB_DIF=2
       RESID_BASED_STAB_DIF=0
-      U_NONLIN_SHOCK_COEF=0.25
-!      RNO_P_IN_A_DOT=1.0
-      RNO_P_IN_A_DOT=0.0
-         IF(RESID_BASED_STAB_DIF.NE.0) THEN
+!      U_NONLIN_SHOCK_COEF=0.25
+      U_NONLIN_SHOCK_COEF=1.0
+      RNO_P_IN_A_DOT=1.0
+!      RNO_P_IN_A_DOT=0.0
+         IF((.not.firstst).and.(RESID_BASED_STAB_DIF.NE.0)) THEN
+!         IF(RESID_BASED_STAB_DIF.NE.0) THEN
       !! *************************INNER ELEMENT STABILIZATION****************************************
       !! *************************INNER ELEMENT STABILIZATION****************************************
 
