@@ -236,8 +236,8 @@ contains
   end subroutine cartesian_2_spherical_polar_field
 
   subroutine lon_lat_height_2_spherical_polar(longitude, latitude, height, &
-                                              referenceRadius, &
-                                              radius, theta, phi)
+                                              radius, theta, phi, &
+                                              referenceRadius)
     !Subroutine for conversion of longitude-latitude-height coordinates on a 
     !  sphere to spherical-polar coordinates. Longitude and latitude must be
     !  in degrees, polar coordinates are returned into radians
@@ -246,11 +246,11 @@ contains
     real, intent(in) :: longitude !in degrees
     real, intent(in) :: latitude  !in degrees
     real, intent(in) :: height
-    real, intent(in) :: referenceRadius !distance form the centre of
-                                        ! the sphere to its surface
     real, intent(out) :: radius !Distance from centre of sphere
     real, intent(out) :: theta  !Polar angle, in radians
     real, intent(out) :: phi    !Azimuthal angle, in radians
+    real, intent(in), optional :: referenceRadius !Distance form the centre of
+                                                  ! the sphere to its surface
     real :: pi
 
     pi=4*atan(1.0)
@@ -260,7 +260,13 @@ contains
     theta = (90.- latitude)*pi/180.
 
     !Convert height to distance from origin
-    radius = height + referenceRadius
+    ! Check if referenceRadius is present. If not use default value
+    ! of surface radius, available in global_parameters module
+    if(present(referenceRadius)) then
+      radius = height + referenceRadius
+    else
+      radius = height + surface_radius
+    endif
 
   end subroutine lon_lat_height_2_spherical_polar
 
@@ -302,7 +308,7 @@ contains
 
   subroutine lon_lat_height_2_cartesian(longitude, latitude, height, &
                                         x, y, z, &
-                                        referenceRadius,)
+                                        referenceRadius)
     !Subroutine for convertion of cartesian coordinates into longitude-latitude-height
     ! If referenceRadius is specified, height is measured as the radial distance relative
     ! to that radius, ie it is the distance relative to the surface of the sphere.
@@ -323,12 +329,12 @@ contains
     ! of surface radius, available in global_parameters module
     if(present(referenceRadius)) then
       call lon_lat_height_2_spherical_polar(longitude, latitude, height, &
-                                            referenceRadius, &
-                                            radius, theta, phi)
+                                            radius, theta, phi, &
+                                            referenceRadius)
     else
       call lon_lat_height_2_spherical_polar(longitude, latitude, height, &
-                                            surface_radius, &
-                                            radius, theta, phi)
+                                            radius, theta, phi, &
+                                            surface_radius)
     endif
 
 
