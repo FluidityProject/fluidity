@@ -24,9 +24,9 @@
 !    License along with this library; if not, write to the Free Software
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
-subroutine test_spherical_polar_2_cartesian
-  !Subroutine/unit-test of correct transformation of point coordinates from a
-  ! spherical-polar system to a Cartesian system.
+subroutine test_lon_lat_height_2_spherical_polar
+  !Subroutine for testing correct conversion of point coordinates from longitude-
+  ! latitude-height into spherical-polar coordinates.
   use fields
   use vtk_interfaces
   use state_module
@@ -36,34 +36,34 @@ subroutine test_spherical_polar_2_cartesian
 
   type(state_type) :: state
   type(mesh_type), pointer :: mesh
-  type(vector_field), pointer :: CartesianCoordinate
+  type(vector_field), pointer :: LonLatHeightCoordinate
   type(vector_field), pointer :: PolarCoordinate
   type(vector_field) :: difference
   integer :: node
-  real, dimension(3) :: XYZ, RTP !Arrays containing a signel node's position vector
-                                 ! components in Cartesian & spherical-polar bases.
+  real, dimension(3) :: LLH, RTP !Arrays containing a signel node's position vector
+                                 ! components in lon-lat-height & spherical-polar bases.
   logical :: fail
 
-  !Extract the vector fields of position in vtu file in polar coordinates and 
-  ! cartesian coordiantes
   call vtk_read_state("data/on_sphere_rotations/spherical_shell_withFields.vtu", state)
   mesh => extract_mesh(state, "Mesh")
-  CartesianCoordinate => extract_vector_field(state, "CartesianCoordinate")
+  LonLatHeightCoordinate => extract_vector_field(state, "lonlatradius")
   PolarCoordinate => extract_vector_field(state, "PolarCoordinate")
 
-  !Apply transformation to spherical-polar components and compare with components of
-  ! cartesian position-vector.
+  !Extract the components of points in vtu file in lon-lat-radius, apply transformation and 
+  ! compare with position-vector is spherical-polar coordinates.
   call allocate(difference, 3 , mesh, 'difference')
-  do node=1,node_count(PolarCoordinate)
-    RTP = node_val(PolarCoordinate, node)
-    call spherical_polar_2_cartesian(RTP(1), RTP(2), RTP(3), XYZ(1), XYZ(2), XYZ(3))
-    call set(difference, node, XYZ)
+  do node=1,node_count(LonLatHeightCoordinate)
+    LLH = node_val(LonLatHeightCoordinate, node)
+    call lon_lat_height_2_spherical_polar(LLH(1), LLH(2), LLH(3), &
+                                          RTP(1), RTP(2), RTP(3), &
+                                          0.0)
+    call set(difference, node, RTP)
   enddo
-  call addto(difference, CartesianCoordinate, -1.0)
-  call vtk_write_fields("data/test_spherical_polar_2_cartesian_out", 0, &
+  call addto(difference, PolarCoordinate, -1.0)
+  call vtk_write_fields("data/test_lon_lat_height_2_spherical_polar_out", 0, &
                         difference, mesh, vfields=(/difference/))
   fail = any(difference%val > 1e-8)
-  call report_test("[Coordinate change: Spherical-polar to Cartesian.]", &
+  call report_test("[Coordinate change: lon-lat-height to Spherical-polar.]", &
                    fail, .false., "Position vector components not transformed correctly.")
   
   call deallocate(difference)
