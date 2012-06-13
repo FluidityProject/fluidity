@@ -38,19 +38,22 @@ tensor_inPolar=[]
 unitRadialVector_inPolar=[]
 unitPolarVector_inPolar=[]
 unitAzimuthalVector_inPolar=[]
+lon_lat_radius_coordinate=[]
 for point in vertices:
-   #Extract cartesian coordinates from the mesh, calculate sperical-polar coorrd and
+   #Extract Cartesian coordinates from the mesh, calculate spherical-polar coord and
    # append to appropriate lists.
    point_sphericalPolar = rotation.cartesian_2_sphericalPolar(point)
-   polarCoordinate.append(point_sphericalPolar)
+   point_lon_lat_radius = rotation.cartesian_2_lonlatradius(point)
    cartesianCoordinate.append(point)
-   #Calculate the vector and tensor componets in a cartesian basis and append to
+   polarCoordinate.append(point_sphericalPolar)
+   lon_lat_radius_coordinate.append(point_lon_lat_radius)
+   #Calculate the vector and tensor components in a Cartesian basis and append to
    # appropriate lists.
    tensor_inCartesian.append(rotation.transform_tensor_sphericalPolar_2_cartesian(point_sphericalPolar, TensorComponents_sphericalPolar))
    unitRadialVector_inCartesian.append(rotation.transform_vector_sphericalPolar_2_cartesian(point_sphericalPolar, VectorComponents_unitRadial))
    unitPolarVector_inCartesian.append(rotation.transform_vector_sphericalPolar_2_cartesian(point_sphericalPolar, VectorComponents_unitPolar))
    unitAzimuthalVector_inCartesian.append(rotation.transform_vector_sphericalPolar_2_cartesian(point_sphericalPolar, VectorComponents_unitAzimuthal))
-   #Append to appropriate lists the tensor and vector components in sperical-polar basis.
+   #Append to appropriate lists the tensor and vector components in spherical-polar basis.
    tensor_inPolar.append(TensorComponents_sphericalPolar)
    unitRadialVector_inPolar.append(VectorComponents_unitRadial)
    unitPolarVector_inPolar.append(VectorComponents_unitPolar)
@@ -58,6 +61,7 @@ for point in vertices:
 
 file.AddVectorField('CartesianCoordinate', sp.array(cartesianCoordinate))
 file.AddVectorField('PolarCoordinate', sp.array(polarCoordinate))
+file.AddVectorField('lonlatradius',sp.array(lon_lat_radius_coordinate))
 file.AddField('Tensor_inCartesian', sp.array(tensor_inCartesian))
 file.AddVectorField('UnitRadialVector_inCartesian', sp.array(unitRadialVector_inCartesian))
 file.AddVectorField('UnitPolarVector_inCartesian', sp.array(unitPolarVector_inCartesian))

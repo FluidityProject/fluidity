@@ -22,8 +22,8 @@ def cartesian_2_lonlatradius(positionVectorCartesian):
     #Calculate azimuthal (phi), polar (theta) angles and distance from origin.
     [radius, theta, phi] = cartesian_2_sphericalPolar(positionVectorCartesian)
     #Claculate longitude and latitude
-    lon = phi
-    lat = pi/2 - theta
+    lon = phi*180.0/pi
+    lat = (pi/2 - theta)*180.0/pi
     
     positionVectorLonlat = [lon, lat, radius]
     return positionVectorLonlat
