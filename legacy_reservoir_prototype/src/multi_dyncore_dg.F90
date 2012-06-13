@@ -2507,7 +2507,25 @@
          END DO Loop_ILEV1
 
          ewrite(3,*)'just after Loop_U_ILOC1'
-! RESID_BASED_STAB_DIF=2 is recommended.
+! This applies a non-linear shock capturing scheme which 
+! may be used to reduce oscillations in velocity or 
+! perform implicit LES modelling of turbulence. 
+! In all residual approaches do not apply Petrov-Galerkin 
+! dissipation on the 1st non-linear iteration within a 
+! time step as there is no good guess of the (U^{n+1}-U^n)/DT.
+! RESID_BASED_STAB_DIF decides what type of Petrov-Galerkin 
+! method to use. 
+! =1 is the residual squared approach. 
+! =2 is max(0, A . grad U * residual ). 
+! =3 is the max of 1 and 2 (the most dissipative). 
+! U_NONLIN_SHOCK_COEF \in [0,1] is the magnitude of the non-linear 
+! dissipation 
+! =0.25 is small
+! =1.0 is large
+! RNO_P_IN_A_DOT \in [0,1] decides if we include the pressure term in 
+! A . grad soln if 
+! =0.0 dont include pressure term.
+! =1.0 include the pressure term. 
 !      RESID_BASED_STAB_DIF=0
 !      RESID_BASED_STAB_DIF=2
       RESID_BASED_STAB_DIF=0

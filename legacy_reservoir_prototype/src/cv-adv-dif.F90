@@ -254,8 +254,8 @@
 
       ! Local variables 
       LOGICAL, PARAMETER :: INCLUDE_PORE_VOL_IN_DERIV = .FALSE.
-      LOGICAL, PARAMETER :: LIMIT_USE_2ND = .FALSE. ! Limiter uses 2nd largest and smallest values.
-!      LOGICAL, PARAMETER :: LIMIT_USE_2ND = .true. ! Limiter uses 2nd largest and smallest values.
+      LOGICAL, PARAMETER :: LIMIT_USE_2ND = .FALSE. !  Limiter uses 2nd largest and smallest values.
+!      LOGICAL, PARAMETER :: LIMIT_USE_2ND = .true. !  Limiter uses 2nd largest and smallest values.
       INTEGER, PARAMETER :: WIC_T_BC_DIRICHLET = 1, WIC_T_BC_ROBIN = 2, &
            WIC_T_BC_DIRI_ADV_AND_ROBIN = 3, WIC_D_BC_DIRICHLET = 1, &
            WIC_U_BC_DIRICHLET = 1
