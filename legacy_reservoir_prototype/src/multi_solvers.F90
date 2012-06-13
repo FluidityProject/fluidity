@@ -442,8 +442,6 @@ contains
     end subroutine ibubble2
 
 
-
-
     SUBROUTINE SIMPLE_SOLVER( CMC, P, RHS,  &
          NCMC, NONODS, FINCMC, COLCMC, MIDCMC,  &
          ERROR, RELAX, RELAX_DIAABS, RELAX_DIA, N_LIN_ITS )

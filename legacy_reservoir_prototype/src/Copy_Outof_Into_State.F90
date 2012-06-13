@@ -687,10 +687,30 @@
 
          end do Loop_Phases_Components
       end do Loop_Components
-      ewrite(3,*)'comp:', comp
-      ewrite(3,*)'wic_comp_bc:', wic_comp_bc
-      ewrite(3,*)'suf_comp_bc:', suf_comp_bc
-      ewrite(3,*)'comp_source:', comp_source
+      !  ewrite(3,*)'comp:', comp
+      !  ewrite(3,*)'wic_comp_bc:', wic_comp_bc
+      !  ewrite(3,*)'suf_comp_bc:', suf_comp_bc
+      !  ewrite(3,*)'comp_source:', comp_source
+
+
+      ewrite(3,*)'comp:', cv_nonods, nphases, ncomps
+      do i = 1, ncomps
+         do j = 1, nphases
+            ewrite(3,*) i, j, comp( ( i - 1 ) * nphases * cv_nonods + ( j - 1 ) * cv_nonods + 1 : &
+                 ( i - 1 ) * nphases * cv_nonods + ( j - 1 ) * cv_nonods + cv_nonods )
+         end do
+      end do
+
+      ewrite(3,*)'suf_comp_bc:', stotel, cv_snloc
+      do i = 1, ncomps
+         do j = 1, nphases
+            ewrite(3,*) i, j, suf_comp_bc( ( i - 1 ) * nphases * stotel * cv_snloc + &
+                 ( j - 1 ) * stotel * cv_snloc + 1 : &
+                 ( i - 1 ) * nphases * stotel * cv_snloc + &
+                 ( j - 1 ) * stotel * cv_snloc + stotel * cv_snloc )
+            ewrite(3,*)' '
+         end do
+      end do
 
 !!!  Density
 !!!

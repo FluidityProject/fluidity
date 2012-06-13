@@ -125,7 +125,7 @@
       REAL, DIMENSION( CV_NONODS * NPHASE), intent( in ) :: DEN, DENOLD
       REAL, DIMENSION( CV_NONODS * NPHASE * IGOT_T2 ), intent( in ) :: T2, T2OLD
       REAL, DIMENSION( CV_NONODS * NPHASE * IGOT_T2 ), intent( inout ) :: THETA_GDIFF
-      REAL, DIMENSION( TOTELE*IGOT_THETA_FLUX, CV_NLOC, SCVNGI_THETA, NPHASE ), &
+      REAL, DIMENSION( TOTELE * IGOT_THETA_FLUX, CV_NLOC, SCVNGI_THETA, NPHASE ), &
            intent( inout ) :: THETA_FLUX, ONE_M_THETA_FLUX
       REAL, DIMENSION( MAT_NONODS, NDIM, NDIM, NPHASE ), intent( in ) :: TDIFFUSION
       INTEGER, intent( in ) :: T_DISOPT, T_DG_VEL_INT_OPT
@@ -199,6 +199,8 @@
               MEAN_PORE_CV, &
               FINACV, COLACV, NCOLACV, ACV, THERMAL )
 
+         ewrite(3,*)'comp:', t
+
          Conditional_Lumping: IF(LUMP_EQNS) THEN
             ! Lump the multi-phase flow eqns together
             ALLOCATE( CV_RHS_SUB( CV_NONODS ))
@@ -230,10 +232,15 @@
 
          ELSE
 
-            CALL SOLVER( ACV, T, CV_RHS, &
-                 FINACV, COLACV, &
-                 trim(option_path))
-
+            IF( IGOT_T2 == 1 ) THEN
+               CALL SIMPLE_SOLVER( ACV, T, CV_RHS,  &
+                    NCOLACV, nphase * CV_NONODS, FINACV, COLACV, MIDACV,  &
+                    1.E-10, 1., 0., 1., 400 )
+            ELSE
+               CALL SOLVER( ACV, T, CV_RHS, &
+                    FINACV, COLACV, &
+                    trim(option_path))
+            END IF
             !ewrite(3,*)'cv_rhs:', cv_rhs
             !ewrite(3,*)'SUF_T_BC:',SUF_T_BC
             !ewrite(3,*)'ACV:',  (acv(i),i= FINACV(1), FINACV(2)-1)
@@ -250,10 +257,76 @@
       DEALLOCATE( CT_RHS )
       DEALLOCATE( CT )
 
+      ewrite(3,*)'t:', t
+      ewrite(3,*)'told:', told
+
       ewrite(3,*) 'Leaving INTENERGE_ASSEM_SOLVE'
 
     END SUBROUTINE INTENERGE_ASSEM_SOLVE
 
+    SUBROUTINE SIMPLE_SOLVER( CMC, P, RHS,  &
+         NCMC, NONODS, FINCMC, COLCMC, MIDCMC,  &
+         ERROR, RELAX, RELAX_DIAABS, RELAX_DIA, N_LIN_ITS )
+      !
+      ! Solve CMC * P = RHS for RHS.
+      ! RELAX: overall relaxation coeff; =1 for no relaxation. 
+      ! RELAX_DIAABS: relaxation of the absolute values of the sum of the row of the matrix;
+      !               - recommend >=2 for hard problems, =0 for easy
+      ! RELAX_DIA: relaxation of diagonal; =1 no relaxation (normally applied). 
+      ! N_LIN_ITS = no of linear iterations
+      ! ERROR= solver tolerence between 2 consecutive iterations
+      implicit none
+      REAL, intent( in ) :: ERROR, RELAX, RELAX_DIAABS, RELAX_DIA
+      INTEGER, intent( in ) ::  N_LIN_ITS, NCMC, NONODS
+      REAL, DIMENSION( NCMC ), intent( in ) ::  CMC
+      REAL, DIMENSION( NONODS ), intent( inout ) ::  P
+      REAL, DIMENSION( NONODS ), intent( in ) :: RHS
+      INTEGER, DIMENSION( NONODS + 1 ), intent( in ) :: FINCMC
+      INTEGER, DIMENSION( NCMC ), intent( in ) :: COLCMC
+      INTEGER, DIMENSION( NONODS ), intent( in ) :: MIDCMC
+      ! Local variables
+      INTEGER :: ITS, ILOOP, ISTART, IFINI, ISTEP, NOD, COUNT
+      REAL :: R, SABS_DIAG, RTOP, RBOT, POLD, MAX_ERR
+
+      ewrite(3,*) 'In Solver'
+
+      Loop_Non_Linear_Iter: DO ITS = 1, N_LIN_ITS
+
+         MAX_ERR = 0.0
+         Loop_Internal: DO ILOOP = 1, 2
+            IF( ILOOP == 1 ) THEN
+               ISTART = 1
+               IFINI = NONODS
+               ISTEP = 1
+            ELSE
+               ISTART = NONODS
+               IFINI = 1
+               ISTEP = -1
+            ENDIF
+
+            Loop_Nods: DO NOD = ISTART, IFINI, ISTEP
+               R = RELAX_DIA * CMC( MIDCMC( NOD )) * P( NOD ) + RHS( NOD )
+               SABS_DIAG = 0.0
+               DO COUNT = FINCMC( NOD ), FINCMC( NOD + 1 ) - 1
+                  R = R - CMC( COUNT ) * P( COLCMC( COUNT ))
+                  SABS_DIAG = SABS_DIAG + ABS( CMC( COUNT ))
+               END DO
+               RTOP = R + RELAX_DIAABS * SABS_DIAG * P( NOD )
+               RBOT = RELAX_DIAABS * SABS_DIAG + RELAX_DIA * CMC( MIDCMC( NOD ))
+               POLD = P( NOD )
+               P( NOD ) = RELAX * ( RTOP / RBOT ) + ( 1.0 - RELAX ) * P( NOD )
+               MAX_ERR = MAX( MAX_ERR, ABS( POLD - P( NOD )))
+            END DO Loop_Nods
+         END DO Loop_Internal
+
+         IF( MAX_ERR < ERROR ) CYCLE
+
+      END DO Loop_Non_Linear_Iter
+
+      ewrite(3,*) 'Leaving Solver'
+
+      RETURN
+    END SUBROUTINE SIMPLE_SOLVER
 
 
 
@@ -711,7 +784,7 @@
          ewrite(3,*)'about to solve for pressure'
 
          ! Print cmc
-         if(.false.) then
+         if( .true. ) then
             DO CV_NOD = 1, CV_NONODS
                ewrite(3,*) 'cv_nod=',cv_nod, &
                     'findcmc=', FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
@@ -723,7 +796,7 @@
                END DO
                ewrite(3,*) 'off_diag, diag=',rsum,cmc(midcmc(cv_nod)) 
             END DO
-            stop 1244
+            !stop 1244
          endif
 
          ewrite(3,*)'b4 pressure solve P_RHS:', P_RHS
