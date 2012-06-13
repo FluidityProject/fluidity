@@ -424,6 +424,30 @@ if isn't present as a field in state.</a:documentation>
               </attribute>
               <element name="prognostic">
                 <ref name="vorticity_mesh_choice"/>
+                <element name="spatial_discretisation">
+                  <element name="continuous_galerkin">
+                    <optional>
+                      <element name="laplacian_filter">
+                        <empty/>
+                      </element>
+                    </optional>
+                    <optional>
+                      <element name="streamline_upwinding">
+                        <empty/>
+                      </element>
+                    </optional>
+                    <optional>
+                      <element name="local_projection">
+                        <empty/>
+                      </element>
+                    </optional>
+                    <optional>
+                      <element name="discontinuity_capturing">
+                        <empty/>
+                      </element>
+                    </optional>
+                  </element>
+                </element>
                 <element name="solver">
                   <a:documentation>Solver</a:documentation>
                   <ref name="linear_solver_options_asym"/>

@@ -338,6 +338,24 @@ start =
                   attribute name { "PotentialVorticity" },
                   element prognostic {
                      vorticity_mesh_choice,
+                     element spatial_discretisation {
+                        element continuous_galerkin {
+                           element laplacian_filter {
+                              element diffusivity {
+                                 real
+                              }
+                           }?,
+                           element streamline_upwinding {
+                              empty
+                           }?,
+                           element local_projection {
+                              empty
+                           }?,
+                           element discontinuity_capturing {
+                              empty
+                           }?
+                        }
+                     },
                      ## Solver
                      element solver {
                         linear_solver_options_asym

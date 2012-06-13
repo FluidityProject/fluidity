@@ -1136,6 +1136,27 @@ module advection_local_DG
          shape_shape(ele_shape(Q,ele),ele_shape(Q,ele),D_gi*detwei)
     l_rhs = l_rhs + shape_rhs(ele_shape(Q,ele),Q_gi*D_old_gi*detwei)
 
+    !Laplacian filter options
+    if(have_option(trim(Q%option_path)//'/prognostic/spatial_discretisation/&
+         &continuous_galerkin/laplacian_filter')) then
+       FLExit('Laplacian filter not coded yet.')
+    end if
+    !Streamline upwinding options
+    if(have_option(trim(Q%option_path)//'/prognostic/spatial_discretisation/&
+         &continuous_galerkin/streamline_upwinding')) then
+       FLExit('Streamline upwinding not coded yet.')
+    end if
+    !Local projection options
+    if(have_option(trim(Q%option_path)//'/prognostic/spatial_discretisation/&
+         &continuous_galerkin/local_projection')) then
+       FLExit('Local projection not coded yet.')
+    end if    
+    !Discontinuity capturing options
+    if(have_option(trim(Q%option_path)//'/prognostic/spatial_discretisation/&
+         &continuous_galerkin/discontinuity_capturing')) then
+       FLExit('Discontinuity capturing not coded yet.')
+    end if
+
     call addto(Q_rhs,ele_nodes(Q_rhs,ele),l_rhs)
     call addto(adv_mat,ele_nodes(Q_rhs,ele),ele_nodes(Q_rhs,ele),&
          l_adv_mat)    
@@ -1192,13 +1213,14 @@ module advection_local_DG
     ! <\gamma, D^{n+1}Q^{n+1}> = <\gamma, D^nQ^n> - 
     !                                     \theta<\nabla\gamma,FQ^{n+1}> 
     !                                  -(1-\theta)<\nabla\gamma,FQ^n>
-    ! So velocity update is 
+    ! So vorticity update is 
     ! <\gamma, \zeta^{n+1}> = <-\nabla^\perp\gamma,u^{n+1}>
     != <-\nabla^\perp\gamma,u^n> 
     !  +\theta<-\nabla^\perp\gamma,(FQ^{n+1})^\perp>
     !  +(1-\theta)<-\nabla^\perp\gamma,(FQ^n)^\perp>
     ! taking w = -\nabla^\perp\gamma,
     ! <w,u^{n+1}>=<w,u^n> + <w,F(\theta Q^{n+1}+(1-\theta)Q^n)^\perp>
+    ! <w,u^{n+1}>=<w,u^n> + <w,\bar{Q}^\perp>
     ! We actually store the inner product with test function (FQ_rhs)
     ! (avoids having to do a solve)
 
@@ -1206,6 +1228,27 @@ module advection_local_DG
        Flux_gi(:,gi) = Flux_gi(:,gi)*(t_theta*Q_gi(gi) + &
          (1-t_theta)*Q_old_gi(gi))
     end do
+
+    !Laplacian filter options
+    if(have_option(trim(Q%option_path)//'/prognostic/spatial_discretisation/&
+         &continuous_galerkin/laplacian_filter')) then
+       FLExit('Laplacian filter not coded yet.')
+    end if
+    !Streamline upwinding options
+    if(have_option(trim(Q%option_path)//'/prognostic/spatial_discretisation/&
+         &continuous_galerkin/streamline_upwinding')) then
+       FLExit('Streamline upwinding not coded yet.')
+    end if
+    !Local projection options
+    if(have_option(trim(Q%option_path)//'/prognostic/spatial_discretisation/&
+         &continuous_galerkin/local_projection')) then
+       FLExit('Local projection not coded yet.')
+    end if    
+    !Discontinuity capturing options
+    if(have_option(trim(Q%option_path)//'/prognostic/spatial_discretisation/&
+         &continuous_galerkin/discontinuity_capturing')) then
+       FLExit('Discontinuity capturing not coded yet.')
+    end if
 
     do gi=1, ele_ngi(QFlux,ele)
        rot(1,:,gi)=(/0.,-up_gi(3,gi),up_gi(2,gi)/)
@@ -1522,16 +1565,16 @@ module advection_local_DG
     end do
 
     !!Residual is
-    !! U_new - (U_old - dt*Q^\perp - dt grad(g\bar{D} + \bar{K}))
+    !! U_new - (U_old + dt*Q^\perp - dt grad(g\bar{D} + \bar{K}))
     !First the PV Flux (perped)
-    UR_rhs = +ele_val(PVFlux,ele)
+    UR_rhs = -ele_val(PVFlux,ele)
     !Now the time derivative term
     UR_rhs = UR_rhs + shape_vector_rhs(U_shape,newU_rhs-U_rhs,&
          U_shape%quadrature%weight)
     !Now the gradient terms (done in local coordinates)
     D_bar_gi = theta*newD_gi + (1-theta)*D_gi
     K_bar_gi = 0.5*(theta*sum(newU_cart_gi,1)+(1-theta)*sum(U_cart_gi,1))
-
+    !integration by parts, so minus sign
     UR_rhs = UR_rhs - dt * dshape_rhs(U_shape%dn,&
          (g*D_bar_gi + K_bar_gi)*U_shape%quadrature%weight)
 
