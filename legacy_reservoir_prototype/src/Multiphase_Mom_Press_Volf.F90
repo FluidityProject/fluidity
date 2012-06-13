@@ -535,7 +535,9 @@ contains
                CV_NDGLN, X_NDGLN, U_NDGLN, &
                CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
                X, Y, Z, &
-               NU, NV, NW, NUOLD, NVOLD, NWOLD, SATURA, SATURAOLD, DEN, DENOLD, &
+               NU, NV, NW, NUOLD, NVOLD, NWOLD, &
+               SATURA, SATURAOLD, &
+               DEN, DENOLD, &
                MAT_NLOC,MAT_NDGLN,MAT_NONODS, &
                V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, V_BETA, &
                SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, &
@@ -571,7 +573,7 @@ contains
 
           Loop_COMPONENTS: DO ICOMP = 1, NCOMP2
 
-             !             COMP_SOURCE = 0.0
+             !COMP_SOURCE = 0.0
 
              ! Use values from the previous time step DENOLD,SATURAOLD so its easier to converge
              ! ALPHA_BETA is an order 1 scaling coefficient set up in the input file
@@ -586,18 +588,18 @@ contains
              IF( have_option("/material_phase[" // int2str(nstates-ncomp) // &
                   "]/is_multiphase_component/KComp_Sigmoid" )) THEN
                 DO CV_NODI = 1, CV_NONODS
-                   !                   IF( SATURAOLD( CV_NODI ) > 0.8 ) THEN
-                   !                      COMP_ABSORB( CV_NODI, 1, 2 ) = COMP_ABSORB( CV_NODI, 1, 2 ) * &
-                   !                           max( 0.01, 5. * ( 1.0 - SATURAOLD( CV_NODI )))
-                   !                      COMP_ABSORB( CV_NODI, 2, 2 ) = COMP_ABSORB( CV_NODI, 2, 2 ) * &
-                   !                           max( 0.01, 5. * ( 1.0 - SATURAOLD( CV_NODI )))
-                   !                   ENDIF
-                   !                   IF( SATURAOLD( CV_NODI ) > 0.9 ) THEN
-                   !                      COMP_ABSORB( CV_NODI, 1, 2 ) = COMP_ABSORB( CV_NODI, 1, 2 ) * &
-                   !                           max( 0.01, 10. * ( 1.0 - SATURAOLD( CV_NODI )))
-                   !                      COMP_ABSORB( CV_NODI, 2, 2 ) = COMP_ABSORB( CV_NODI, 2, 2 ) * &
-                   !                           max( 0.01, 10. * ( 1.0 - SATURAOLD( CV_NODI )))
-                   !                   ENDIF
+                   !IF( SATURAOLD( CV_NODI ) > 0.8 ) THEN
+                   !   COMP_ABSORB( CV_NODI, 1, 2 ) = COMP_ABSORB( CV_NODI, 1, 2 ) * &
+                   !        max( 0.01, 5. * ( 1.0 - SATURAOLD( CV_NODI )))
+                   !   COMP_ABSORB( CV_NODI, 2, 2 ) = COMP_ABSORB( CV_NODI, 2, 2 ) * &
+                   !        max( 0.01, 5. * ( 1.0 - SATURAOLD( CV_NODI )))
+                   !ENDIF
+                   !IF( SATURAOLD( CV_NODI ) > 0.9 ) THEN
+                   !   COMP_ABSORB( CV_NODI, 1, 2 ) = COMP_ABSORB( CV_NODI, 1, 2 ) * &
+                   !        max( 0.01, 10. * ( 1.0 - SATURAOLD( CV_NODI )))
+                   !   COMP_ABSORB( CV_NODI, 2, 2 ) = COMP_ABSORB( CV_NODI, 2, 2 ) * &
+                   !        max( 0.01, 10. * ( 1.0 - SATURAOLD( CV_NODI )))
+                   !ENDIF
                    IF( SATURAOLD( CV_NODI ) > 0.95 ) THEN
                       COMP_ABSORB( CV_NODI, 1, 2 ) = COMP_ABSORB( CV_NODI, 1, 2 ) * &
                            max( 0.01, 20. * ( 1.0 - SATURAOLD( CV_NODI )))
@@ -634,13 +636,13 @@ contains
                      X, Y, Z, &
                      NU, NV, NW, NUOLD, NVOLD, NWOLD, &
                      UG, VG, WG, &
-                     COMP(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 ), &
-                     COMPOLD(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 ), &
+                     COMP(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 : ICOMP * NPHASE * CV_NONODS ), &
+                     &        COMPOLD(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 : ICOMP * NPHASE * CV_NONODS ), &
                      DEN, DENOLD,  &
                      MAT_NLOC, MAT_NDGLN, MAT_NONODS, COMP_DIFFUSION, &
                      V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, V_BETA, &
-                     SUF_COMP_BC( 1 + STOTEL * CV_SNLOC * NPHASE * ( ICOMP - 1 ) ), &
-                     SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, &
+                     SUF_COMP_BC( 1 + STOTEL * CV_SNLOC * NPHASE *( ICOMP - 1 ) : STOTEL * CV_SNLOC * NPHASE * ICOMP ), &
+                     &        SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, &
                      SUF_COMP_BC_ROB1, SUF_COMP_BC_ROB2,  &
                      WIC_COMP_BC, WIC_D_BC, WIC_U_BC, &
                      DERIV, P, &
@@ -648,6 +650,7 @@ contains
                      NDIM,  &
                      NCOLM, FINDM, COLM, MIDM, &
                      XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, LUMP_EQNS, &
+                     !OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, Comp_FEMT(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 ), Den_FEMT, & 
                      OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
                      Comp_FEMT(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 : &
                      ICOMP * NPHASE * CV_NONODS ), Den_FEMT, & 
@@ -658,8 +661,7 @@ contains
                      NITS_FLUX_LIM_COMP, &
                      MEAN_PORE_CV, &
                      option_path = '/material_phase[0]/scalar_field::PhaseVolumeFraction', thermal=.false.) ! the false means that we don't add an extra source term
-                ! at the cv_rhs needed for the internal energy equation
-
+                                                                                                            ! at the cv_rhs needed for the internal energy equation
                 do iphase = 1, nphase
                    ewrite(3,*) 'icomp, iphase, comp:', icomp, iphase, &
                         comp( ( icomp - 1 ) * nphase * cv_nonods + ( iphase - 1 ) * cv_nonods + 1 : &
