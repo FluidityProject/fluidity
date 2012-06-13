@@ -3204,6 +3204,14 @@ contains
     domain_volume = vol
     ewrite(2,*) "domain_volume =", domain_volume
 
+    if (have_option("if on spher")) then
+      radius = magnitude(positions)
+
+      earth_radius = maxval(radius)
+      call allmax(earth_radius)
+    end if
+
+
   end subroutine compute_domain_statistics
   
   subroutine populate_state_module_check_options
