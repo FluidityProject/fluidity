@@ -37,6 +37,7 @@ module Coordinates
   use halos_base
   use sparse_tools_petsc
   use state_module
+  use use global_parameters, only: surface_radius
   use iso_c_binding
 
   implicit none
@@ -299,28 +300,37 @@ contains
 
   end subroutine spherical_polar_2_lon_lat_height
 
-  subroutine lon_lat_height_2_cartesian(longitude, latitude, height, referenceRadius, &
-                                        x, y, z)
+  subroutine lon_lat_height_2_cartesian(longitude, latitude, height, &
+                                        x, y, z, &
+                                        referenceRadius,)
     !Subroutine for convertion of cartesian coordinates into longitude-latitude-height
     ! If referenceRadius is specified, height is measured as the radial distance relative
     ! to that radius, ie it is the distance relative to the surface of the sphere.
-    ! if referenceRadius is absent height is the distance from the center of the sphere.
     implicit none
 
     real, intent(in) :: longitude !in degrees
     real, intent(in) :: latitude  !in degrees
     real, intent(in) :: height
-    real, intent(in) :: referenceRadius
     real, intent(out) :: x,y,z   !cartesian coordinates
+    real, intent(in), optional :: referenceRadius
+
     real :: radius !Distance from centre of sphere
     real :: theta  !Polar angle, in radians
     real :: phi    !Azimuthal angle, in radians
 
+    !Convert longitude-latitude-height into spherical-polar coordinates.
+    ! Check if referenceRadius is present. If not use default value
+    ! of surface radius, available in global_parameters module
+    if(present(referenceRadius)) then
+      call lon_lat_height_2_spherical_polar(longitude, latitude, height, &
+                                            referenceRadius, &
+                                            radius, theta, phi)
+    else
+      call lon_lat_height_2_spherical_polar(longitude, latitude, height, &
+                                            surface_radius, &
+                                            radius, theta, phi)
+    endif
 
-    !Convert longitude-latitude-height into spherical-polar coordinates
-    call lon_lat_height_2_spherical_polar(longitude, latitude, height, &
-                                          referenceRadius, &
-                                          radius, theta, phi)
 
     !convert spherical-polar coordinates to Cartesian
     call spherical_polar_2_cartesian(radius,theta,phi,x,y,z)
@@ -650,7 +660,7 @@ contains
                                                 radius, theta, phi, &
                                                 cartesianComponents, &
                                                 xCoord, yCoord, zCoord)
-    !Subroutine for tensor change of basis: from spherical-polar to cartesian. The
+    !Subroutine for tensor change of basis: From spherical-polar to cartesian. The
     ! coordinates of the position vector are also transformed. The tensor must
     ! be a 3x3 tensor.
     implicit none
