@@ -3097,7 +3097,8 @@ limiter_options =
         element limit_face_value{
           (
             sweby_limiter|
-            ultimate_limiter
+            ultimate_limiter|
+	    extrema_limiter
           )
         }|
         ## Do not limit the face value
@@ -3126,6 +3127,11 @@ ultimate_limiter =
     attribute name {"Ultimate"},
     field_based_cfl_number_options,
     upwind_value_options?
+  }
+
+extrema_limiter = 
+  element limiter {
+    attribute name {"Extrema"}
   }
 
 slope_options =

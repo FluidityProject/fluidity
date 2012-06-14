@@ -294,6 +294,17 @@
                 <twice/>
               </integrate_advection_by_parts>
             </advection_scheme>
+            <stabilisation>
+              <method>
+                <integer_value rank="0">3</integer_value>
+              </method>
+              <nonlinear_velocity_coefficient>
+                <real_value rank="0">1.</real_value>
+              </nonlinear_velocity_coefficient>
+              <include_pressure>
+                <real_value rank="0">1.</real_value>
+              </include_pressure>
+            </stabilisation>
           </discontinuous_galerkin>
           <conservative_advection>
             <real_value rank="0">1.0</real_value>

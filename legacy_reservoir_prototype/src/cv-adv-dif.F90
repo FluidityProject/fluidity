@@ -254,8 +254,6 @@
 
       ! Local variables 
       LOGICAL, PARAMETER :: INCLUDE_PORE_VOL_IN_DERIV = .FALSE.
-      LOGICAL, PARAMETER :: LIMIT_USE_2ND = .FALSE. !  Limiter uses 2nd largest and smallest values.
-!      LOGICAL, PARAMETER :: LIMIT_USE_2ND = .true. !  Limiter uses 2nd largest and smallest values.
       INTEGER, PARAMETER :: WIC_T_BC_DIRICHLET = 1, WIC_T_BC_ROBIN = 2, &
            WIC_T_BC_DIRI_ADV_AND_ROBIN = 3, WIC_D_BC_DIRICHLET = 1, &
            WIC_U_BC_DIRICHLET = 1
@@ -325,9 +323,11 @@
       ! Functions...
       !REAL :: R2NORM,FACE_THETA  
       !        ===>  LOGICALS  <===
-      LOGICAL :: GETMAT, &
+      LOGICAL :: GETMAT, LIMIT_USE_2ND, &
            D1, D3, DCYL, GOT_DIFFUS, INTEGRAT_AT_GI, &
            NORMALISE, SUM2ONE, GET_GTHETA, QUAD_OVER_WHOLE_ELE
+
+      CHARACTER(LEN=OPTION_PATH_LEN) :: OPTION_PATH
 
       ewrite(3,*) 'In CV_ASSEMB'
       ewrite(3,*)'ENTERING CONSTRUCT_ADVECTION_DIFFUSION_CV()'
@@ -337,6 +337,13 @@
       !ewrite(3,*) 'CV_P', CV_P
       !ewrite(3,*) 'DEN', DEN
       !ewrite(3,*) 'DENOLD', DENOLD
+
+
+      option_path='/material_phase[0]/scalar_field::PhaseVolumeFraction/' // &
+           'prognostic/spatial_discretisation/control_volumes/face_value/' // &
+           'limit_face_value/limiter::Extrema'
+      LIMIT_USE_2ND=.FALSE.
+      if ( have_option( option_path ) ) LIMIT_USE_2ND=.TRUE.
 
       ndotq = 0. ; ndotqold = 0.
 

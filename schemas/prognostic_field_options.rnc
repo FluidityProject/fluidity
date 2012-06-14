@@ -825,6 +825,32 @@ prognostic_velocity_field =
                   element smagorinsky_coefficient {
                      real
                   }
+               }?,
+               ## This applies a non-linear shock capturing scheme which 
+               ## may be used to reduce oscillations in velocity or
+               ## perform implicit LES modelling of turbulence.
+               element stabilisation {
+                  ## What type of Petrov-Galerkin method to use:
+                  ## =1 is the residual squared approach, 
+                  ## =2 is max(0, A . grad U * residual ),
+                  ## =3 is the max of 1 and 2 (the most dissipative). 
+                  element method {
+                     integer
+                  },
+                  ## [0,1] is the magnitude of the non-linear dissipation. 
+                  ## =0.25 is small,
+                  ## =1.0 is large.
+                  ## Defaults to 1.
+                  element nonlinear_velocity_coefficient {
+                     real
+                  }?,
+                  ## [0,1] decides if we include the pressure term in A . grad soln if 
+                  ## =0.0 don't include pressure term,
+                  ## =1.0 include the pressure term.
+                  ## Defaults to 1.
+                  element  include_pressure{
+                     real
+                  }?
                }?
             }
          ),

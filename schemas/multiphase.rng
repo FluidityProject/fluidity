@@ -3802,6 +3802,7 @@ Defaults to -huge(0.0)*epsilon(0.0) if not set.</a:documentation>
         <choice>
           <ref name="sweby_limiter"/>
           <ref name="ultimate_limiter"/>
+          <ref name="extrema_limiter"/>
         </choice>
       </element>
       <element name="do_not_limit_face_value">
@@ -3839,6 +3840,13 @@ Engineering, 88, 17-74</a:documentation>
       <optional>
         <ref name="upwind_value_options"/>
       </optional>
+    </element>
+  </define>
+  <define name="extrema_limiter">
+    <element name="limiter">
+      <attribute name="name">
+        <value>Extrema</value>
+      </attribute>
     </element>
   </define>
   <define name="slope_options">

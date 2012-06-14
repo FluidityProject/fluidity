@@ -969,6 +969,38 @@ suggested value 0.1</a:documentation>
               </element>
             </element>
           </optional>
+          <optional>
+            <element name="stabilisation">
+              <a:documentation>This applies a non-linear shock capturing scheme which 
+may be used to reduce oscillations in velocity or
+perform implicit LES modelling of turbulence.</a:documentation>
+              <element name="method">
+                <a:documentation>What type of Petrov-Galerkin method to use:
+=1 is the residual squared approach, 
+=2 is max(0, A . grad U * residual ),
+=3 is the max of 1 and 2 (the most dissipative). </a:documentation>
+                <ref name="integer"/>
+              </element>
+              <optional>
+                <element name="nonlinear_velocity_coefficient">
+                  <a:documentation>[0,1] is the magnitude of the non-linear dissipation. 
+=0.25 is small,
+=1.0 is large.
+Defaults to 1.</a:documentation>
+                  <ref name="real"/>
+                </element>
+              </optional>
+              <optional>
+                <element name="include_pressure">
+                  <a:documentation>[0,1] decides if we include the pressure term in A . grad soln if 
+=0.0 don't include pressure term,
+=1.0 include the pressure term.
+Defaults to 1.</a:documentation>
+                  <ref name="real"/>
+                </element>
+              </optional>
+            </element>
+          </optional>
         </element>
       </choice>
       <element name="conservative_advection">

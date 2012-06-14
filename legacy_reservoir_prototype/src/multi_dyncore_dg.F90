@@ -1709,7 +1709,7 @@
       ! This is for decifering WIC_U_BC & WIC_P_BC
       INTEGER, PARAMETER :: WIC_U_BC_DIRICHLET = 1, WIC_U_BC_ROBIN = 2, WIC_U_BC_DIRI_ADV_AND_ROBIN = 3
       INTEGER, PARAMETER :: WIC_P_BC_DIRICHLET = 1
-      LOGICAL, PARAMETER :: MOM_CONSERV = .FALSE., VOL_ELE_INT_PRES = .TRUE. 
+      LOGICAL, PARAMETER :: VOL_ELE_INT_PRES = .TRUE. 
       REAL, PARAMETER :: WITH_NONLIN = 1.0, TOLER = 1.E-10
 
       INTEGER, DIMENSION( :, : ), allocatable :: CV_SLOCLIST, U_SLOCLIST, CV_NEILOC, FACE_ELE
@@ -1789,7 +1789,8 @@
       character( len = 100 ) :: name
 
       character( len = option_path_len ) :: overlapping_path 
-      logical :: is_overlapping   
+      logical :: is_overlapping, mom_conserv
+      real :: beta
 
       ewrite(3,*) 'In ASSEMB_FORCE_CTY'
       !ewrite(3,*) 'Just double-checking sparsity patterns memory allocation:'
@@ -1806,11 +1807,17 @@
       !print *,'u_abs_stab=',u_abs_stab
       !stop 2921
 
-
       is_overlapping = .false.
       call get_option( '/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
            overlapping_path )
       if( trim( overlapping_path ) == 'overlapping' ) is_overlapping = .true.
+
+      mom_conserv=.false.
+      call get_option( &
+           '/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/conservative_advection', &
+           beta )
+      if (beta==1.) mom_conserv=.true.
+      ewrite(3,*) 'mom_conserv:', mom_conserv
 
       QUAD_OVER_WHOLE_ELE=.FALSE. 
       ! QUAD_OVER_WHOLE_ELE=is_overlapping ! Do NOT divide element into CV's to form quadrature.
@@ -2525,16 +2532,24 @@
 ! RNO_P_IN_A_DOT \in [0,1] decides if we include the pressure term in 
 ! A . grad soln if 
 ! =0.0 dont include pressure term.
-! =1.0 include the pressure term. 
-!      RESID_BASED_STAB_DIF=0
-!      RESID_BASED_STAB_DIF=2
-      RESID_BASED_STAB_DIF=0
-!      U_NONLIN_SHOCK_COEF=0.25
-      U_NONLIN_SHOCK_COEF=1.0
-      RNO_P_IN_A_DOT=1.0
-!      RNO_P_IN_A_DOT=0.0
+! =1.0 include the pressure term.
+
+      call get_option('/material_phase[0]/vector_field::Velocity/prognostic/' // &
+           'spatial_discretisation/discontinuous_galerkin/stabilisation/method', &
+           RESID_BASED_STAB_DIF, default=0)
+
+      call get_option('/material_phase[0]/vector_field::Velocity/prognostic/' // &
+           'spatial_discretisation/discontinuous_galerkin/stabilisation/nonlinear_velocity_coefficient', &
+           U_NONLIN_SHOCK_COEF, default=1.)
+
+      call get_option('/material_phase[0]/vector_field::Velocity/prognostic/' // &
+           'spatial_discretisation/discontinuous_galerkin/stabilisation/include_pressure', &
+           RNO_P_IN_A_DOT, default=1.)
+
+      ewrite(3,*) 'RESID_BASED_STAB_DIF, U_NONLIN_SHOCK_COEF, RNO_P_IN_A_DOT:', &
+           RESID_BASED_STAB_DIF, U_NONLIN_SHOCK_COEF, RNO_P_IN_A_DOT
+
          IF((.not.firstst).and.(RESID_BASED_STAB_DIF.NE.0)) THEN
-!         IF(RESID_BASED_STAB_DIF.NE.0) THEN
       !! *************************INNER ELEMENT STABILIZATION****************************************
       !! *************************INNER ELEMENT STABILIZATION****************************************
 
