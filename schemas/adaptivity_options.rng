@@ -591,7 +591,7 @@ rather than always lagging behind.</a:documentation>
           <element name="spatial_discretisation">
             <a:documentation>Spatial discretisation options</a:documentation>
             <element name="control_volumes">
-              <ref name="standard_control_volume_options"/>
+              <ref name="standard_control_volume_options_excluding_cfl"/>
             </element>
             <element name="conservative_advection">
               <a:documentation>Conservative discretisation of field advection equation

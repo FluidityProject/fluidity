@@ -44,160 +44,46 @@ module read_gmsh
   private
 
   interface read_gmsh_file
-     module procedure read_gmsh_file_to_field, read_gmsh_simple, &
-          read_gmsh_file_to_state
+     module procedure read_gmsh_simple
   end interface
 
-  public :: read_gmsh_file, identify_gmsh_file
+  public :: read_gmsh_file
+
+  integer, parameter:: GMSH_LINE=1, GMSH_TRIANGLE=2, GMSH_QUAD=3, GMSH_TET=4, GMSH_HEX=5, GMSH_NODE=15
 
 contains
 
   ! -----------------------------------------------------------------
-  ! GMSH version of triangle equivalent.
-
-  subroutine identify_gmsh_file(filename, numDimenOut, locOut, &
-       numNodesOut, numElementsOut, &
-       nodeAttributesOut, selementsOut, boundaryFlagOut)
-    ! Discover the dimension and size of the GMSH mesh.
-    ! Filename is the base name of the file without .msh.
-    ! In parallel, filename must *include* the process number.
-
-    character(len=*), intent(in) :: filename
-    character(len=option_path_len) :: lfilename
-
-    !! Number of vertices of elements.
-    integer, intent(out), optional :: numDimenOut, locOut, numNodesOut
-    integer, intent(out), optional :: numElementsOut, nodeAttributesOut
-    integer, intent(out), optional :: selementsOut, boundaryFlagOut
-
-
-    logical :: fileExists
-
-    integer :: fd, gmshFormat
-    type(GMSHnode), pointer :: nodes(:)
-    type(GMSHelement), pointer :: elements(:), faces(:)
-    integer :: numElements, boundaryFlag, numNodes, numDimen
-    integer :: loc, effDimen, nodeAttributes
-    integer :: i
-
-    logical :: haveBounds, haveInternalBounds
-
-
-    lfilename = trim(filename) // ".msh"
-
-    ! Read node file header
-    inquire(file = trim(lfilename), exist = fileExists)
-    if(.not. fileExists) then
-       FLExit("gmsh file " // trim(lfilename) // " not found")
-    end if
-
-    ewrite(2, *) "Opening " // trim(lfilename) // " for reading."
-    fd = free_unit()
-    open(unit = fd, file = trim(lfilename), &
-         err=42, action="read", access="stream", form="formatted" )
-
-    call read_header(fd, lfilename, gmshFormat)
-
-    ! Read in the nodes
-    call read_nodes_coords( fd, lfilename, gmshFormat, nodes )
-
-    numDimen = mesh_dimensions( nodes )
-    numNodes = size(nodes)
-
-    ! Read in elements
-    call read_faces_and_elements( fd, lfilename, gmshFormat, &
-         elements, faces )
-
-
-    ! Try reading in node column ID data (if there is any)
-    call read_node_column_IDs( fd, lfilename, gmshFormat, nodes)
-
-    close( fd )
-
-    ! We're assuming all elements have the same number of vertices/nodes
-    loc = size(elements(1)%nodeIDs)
-
-    do i=1, numNodes
-       if( nodes(i)%columnID>0 ) nodeAttributes=1
-    end do
-
-    ! NOTE:  'boundaries' variable
-    ! (see Read_Triangle.F90) is a flag which indicates whether
-    ! faces have boundaries (physical IDs). Values:
-    ! =0  : no boundaries
-    ! =1  : boundaries, normal
-    ! =2 : boundaries, periodic mesh (internal boundary)
-
-    haveBounds=.false.
-    haveInternalBounds=.false.
-
-    do i=1, size(faces)
-       if(faces(i)%numTags > 0) then
-          ! We have boundaries,
-          haveBounds=.true.
-
-          ! We have internal boundaries (at the join of a period mesh)
-          if(faces(i)%numTags >= 4) then
-             if (faces(i)%tags(4) > 0) then
-                haveInternalBounds=.true.
-             end if
-          end if
-       end if
-    end do
-
-    if(haveInternalBounds) then
-       boundaryFlag=2
-    elseif(haveBounds) then
-       boundaryFlag=1
-    else
-       boundaryFlag=0
-    end if
-
-    if( numDimen.eq.2 .and. have_option("/geometry/spherical_earth/") ) then
-       effDimen = numDimen+1
-    else
-       effDimen = numDimen
-    end if
-
-
-    ! Return optional variables requested
-
-    if(present(nodeAttributesOut)) nodeAttributesOut=nodeAttributes
-    if(present(numDimenOut)) numDimenOut=effDimen
-    if(present(numElementsOut)) numElementsOut=numElements
-    if(present(locOut)) locOut=loc
-    if(present(boundaryFlagOut)) boundaryFlagOut=boundaryFlag
-
-    deallocate(nodes)
-
-    return
-
-42  FLExit("Unable to open "//trim(lfilename))
-
-  end subroutine identify_gmsh_file
-
-
-
-  ! -----------------------------------------------------------------
   ! The main function for reading GMSH files
 
-  function read_gmsh_file_to_field(filename, shape) result (field)
-    ! Filename is the base name of the GMSH file without .msh 
-    ! In parallel the filename must *not* include the process number.
+  function read_gmsh_simple( filename, quad_degree, &
+       quad_ngi, quad_family ) &
+       result (field)
+    !!< Read a GMSH file into a coordinate field.
+    !!< In parallel the filename must *not* include the process number.
 
     character(len=*), intent(in) :: filename
-    type(element_type), intent(in), target :: shape
-    type(vector_field)  :: field
+    !! The degree of the quadrature.
+    integer, intent(in), optional, target :: quad_degree
+    !! The degree of the quadrature.
+    integer, intent(in), optional, target :: quad_ngi
+    !! What quadrature family to use
+    integer, intent(in), optional :: quad_family
+    !! result: a coordinate field
+    type(vector_field) :: field
+
+    type(quadrature_type):: quad
+    type(element_type):: shape
+    type(mesh_type):: mesh
 
     integer :: fd
     integer,  pointer, dimension(:) :: sndglno, boundaryIDs, faceOwner
 
     character(len = parallel_filename_len(filename)) :: lfilename
     integer :: loc, sloc
-    type(mesh_type) :: mesh
     integer :: numNodes, numElements, numFaces
     logical :: haveBounds, haveElementOwners, haveRegionIDs
-    integer :: numDimen, effDimen
+    integer :: dim, coordinate_dim
     integer :: gmshFormat
     integer :: n, d, e, f, nodeID
 
@@ -225,11 +111,9 @@ contains
     ! Read in the nodes
     call read_nodes_coords( fd, lfilename, gmshFormat, nodes )
 
-    numDimen = mesh_dimensions( nodes )
-
     ! Read in elements
     call read_faces_and_elements( fd, lfilename, gmshFormat, &
-         elements, faces )
+         elements, faces, dim)
 
     call read_node_column_IDs( fd, lfilename, gmshFormat, nodes )
 
@@ -285,23 +169,13 @@ contains
     
     end if
     
-    if( numDimen.eq.2 .and. have_option("/geometry/spherical_earth/") ) then
-       effDimen = numDimen+1
+    if(have_option("/geometry/spherical_earth/") ) then
+      ! on the sphere the input mesh may be 2d (extrusion), or 3d but
+      ! Coordinate is always 3-dimensional
+      coordinate_dim  = 3
     else
-       effDimen = numDimen
+      coordinate_dim  = dim
     end if
-
-
-    call allocate(mesh, numNodes, numElements, shape, name="CoordinateMesh")
-    call allocate( field, effDimen, mesh, name="Coordinate")
-    call deallocate( mesh )
-
-    ! Now construct within Fluidity data structures
-
-    if (haveRegionIDs) then
-      allocate( field%mesh%region_ids(numElements) )
-    end if
-    if(nodes(1)%columnID.ge.0)  allocate(field%mesh%columns(1:numNodes))
 
     loc = size( elements(1)%nodeIDs )
     if (numFaces>0) then
@@ -310,14 +184,36 @@ contains
       sloc = 0
     end if
 
-    assert(loc==shape%loc)
+    ! Now construct within Fluidity data structures
+
+    if (present(quad_degree)) then
+       quad = make_quadrature(loc, dim, degree=quad_degree, family=quad_family)
+    else if (present(quad_ngi)) then
+       quad = make_quadrature(loc, dim, ngi=quad_ngi, family=quad_family)
+    else
+       FLAbort("Need to specify either quadrature degree or ngi")
+    end if
+    shape=make_element_shape(loc, dim, 1, quad)
+    call allocate(mesh, numNodes, numElements, shape, name="CoordinateMesh")
+    call allocate( field, coordinate_dim, mesh, name="Coordinate")
+
+    ! deallocate our references of mesh, shape and quadrature:
+    call deallocate(mesh)
+    call deallocate(shape)
+    call deallocate(quad)
+
+
+    if (haveRegionIDs) then
+      allocate( field%mesh%region_ids(numElements) )
+    end if
+    if(nodes(1)%columnID>=0)  allocate(field%mesh%columns(1:numNodes))
 
     ! Loop round nodes copying across coords and column IDs to field mesh,
     ! if they exist
     do n=1, numNodes
 
        nodeID = nodes(n)%nodeID
-       forall (d = 1:effDimen)
+       forall (d = 1:field%dim)
           field%val(d,nodeID) = nodes(n)%x(d)
        end forall
 
@@ -380,85 +276,7 @@ contains
 
 43  FLExit("Unable to open "//trim(lfilename))
 
-  end function read_gmsh_file_to_field
-
-
-
-
-
-
-  ! -----------------------------------------------------------------
-  ! Simplified interface to reading GMSH files
-  function read_gmsh_simple( filename, quad_degree, &
-       quad_ngi, no_faces, quad_family ) &
-       result (field)
-    !!< A simpler mechanism for reading a GMSH file into a field.
-    !!< In parallel the filename must *not* include the process number.
-
-    character(len=*), intent(in) :: filename
-    !! The degree of the quadrature.
-    integer, intent(in), optional, target :: quad_degree
-    !! The degree of the quadrature.
-    integer, intent(in), optional, target :: quad_ngi
-    !! Whether to add_faces on the resulting mesh.
-    logical, intent(in), optional :: no_faces
-    !! What quadrature family to use
-    integer, intent(in), optional :: quad_family
-
-    type(vector_field) :: field
-    type(quadrature_type) :: quad
-    type(element_type) :: shape
-
-    integer :: dim, loc
-
-
-    if(isparallel()) then
-       call identify_gmsh_file(parallel_filename(filename), dim, loc)
-    else
-       call identify_gmsh_file(filename, dim, loc)
-    end if
-
-
-    if (present(quad_degree)) then
-       quad = make_quadrature(loc, dim, degree=quad_degree, family=quad_family)
-    else if (present(quad_ngi)) then
-       quad = make_quadrature(loc, dim, ngi=quad_ngi, family=quad_family)
-    else
-       FLAbort("Need to specify either quadrature degree or ngi")
-    end if
-
-
-    shape=make_element_shape(loc, dim, 1, quad)
-
-    field=read_gmsh_file(filename, shape)
-
-    ! deallocate our references of shape and quadrature:
-    call deallocate_element(shape)
-    call deallocate(quad)
-
   end function read_gmsh_simple
-
-
-
-
-  ! -----------------------------------------------------------------
-  ! Read GMSH file to state object.
-
-  function read_gmsh_file_to_state(filename, shape,shape_type,n_states) &
-       result (result_state)
-    ! Filename is the base name of the GMSH file without .node or .ele.
-    ! In parallel the filename must *not* include the process number.
-
-    character(len=*), intent(in) :: filename
-    type(element_type), intent(in), target :: shape
-    logical , intent(in):: shape_type
-    integer, intent(in), optional :: n_states
-    type(state_type)  :: result_state
-
-    FLAbort("read_gmsh_file_to_state() not implemented yet")
-
-  end function read_gmsh_file_to_state
-
 
   ! -----------------------------------------------------------------
   ! Read through the head to decide whether binary or ASCII, and decide
@@ -666,37 +484,17 @@ contains
 
 
   ! -----------------------------------------------------------------
-  ! Guesstimate mesh dimensions. If any node z-coords are non-zero, then
-  ! it's a 3D mesh; otherwise 2D. Not pretty, but there seems no other
-  ! way to do this.
-
-  integer function mesh_dimensions( nodes )
-    type(GMSHnode), pointer :: nodes(:)
-    real, pointer :: absZ(:)
-
-    mesh_dimensions = 3
-
-    allocate ( absZ(size(nodes)) )
-    absZ(:) = nodes(:)%x(3)
-
-    if( all( absZ > -verySmall .and. absZ < verySmall) ) mesh_dimensions=2
-
-    deallocate(absZ)
-  end function mesh_dimensions
-
-
-
-
-  ! -----------------------------------------------------------------
-  ! Read in element header data
+  ! Read in element header data and establish topological dimension
 
   subroutine read_faces_and_elements( fd, filename, gmshFormat, &
-       elements, faces )
+       elements, faces, dim)
 
-    integer :: fd, gmshFormat
-    character(len=*) :: filename
+    integer, intent(in) :: fd, gmshFormat
+    character(len=*), intent(in) :: filename
+    type(GMSHelement), pointer :: elements(:), faces(:)
+    integer, intent(out) :: dim
 
-    type(GMSHelement), pointer :: allElements(:), elements(:), faces(:)
+    type(GMSHelement), pointer :: allElements(:)
 
     integer :: numAllElements
     character(len=longStringLen) :: charBuf
@@ -708,14 +506,14 @@ contains
 
 
     read(fd,*) charBuf
-    if( trim(charBuf) .ne. "$Elements" ) then
+    if( trim(charBuf)/="$Elements" ) then
        FLExit("Error: cannot find '$Elements' in GMSH mesh file")
     end if
 
     read(fd,*) numAllElements
 
     ! Sanity check.
-    if(numAllElements .lt. 1) then
+    if(numAllElements<1) then
        FLExit("Error: number of elements in GMSH file < 1")
     end if
 
@@ -799,23 +597,21 @@ contains
             allElements(e)%type )
 
        select case ( allElements(e)%type )
-          ! A line
-       case (1)
+       case (GMSH_LINE)
           numEdges = numEdges+1
-          ! A triangle
-       case (2)
+       case (GMSH_TRIANGLE)
           numTriangles = numTriangles+1
-          ! A quad
-       case (3)
+       case (GMSH_QUAD)
           numQuads = numQuads+1
-       case (4)
+       case (GMSH_TET)
           numTets = numTets+1
-       case (5)
+       case (GMSH_HEX)
           numHexes = numHexes+1
-       case (15)
+       case (GMSH_NODE)
           ! Do nothing
        case default
-          FLExit("read_faces_and_elements(): unsupported element type")
+          ewrite(0,*) "element id,type: ", allElements(e)%elementID, allElements(e)%type
+          FLExit("Unsupported element type in gmsh .msh file")
        end select
 
     end do
@@ -833,29 +629,40 @@ contains
     ! meshes are verboten:
     !   tet/hex, tet/quad, triangle/hex and triangle/quad
 
-    if (numTets .gt. 0) then
+    if (numTets>0) then
        numElements = numTets
-       elementType = 4
+       elementType = GMSH_TET
        numFaces = numTriangles
-       faceType = 2
+       faceType = GMSH_TRIANGLE
+       dim = 3
+       if (numQuads>0 .or. numHexes>0) then
+         FLExit("Cannot combine hexes or quads with tetrahedrals in one gmsh .msh file")
+       end if
 
-    elseif (numTriangles .gt. 0) then
+    elseif (numTriangles>0) then
        numElements = numTriangles
-       elementType = 2
+       elementType = GMSH_TRIANGLE
        numFaces = numEdges
-       faceType = 1
+       faceType = GMSH_LINE
+       dim = 2
+       if (numQuads>0 .or. numHexes>0) then
+         FLExit("Cannot combine hexes or quads with triangles in one gmsh .msh file")
+       end if
 
     elseif (numHexes .gt. 0) then
        numElements = numHexes
-       elementType = 5
+       elementType = GMSH_HEX
        numFaces = numQuads
-       faceType = 3
+       faceType = GMSH_QUAD
+       dim = 3
 
     elseif (numQuads .gt. 0) then
        numElements = numQuads
-       elementType = 3
+       elementType = GMSH_QUAD
        numFaces = numEdges
-       faceType = 1
+       faceType = GMSH_LINE
+       dim = 2
+
     else
        FLExit("Unsupported mixture of face/element types")
     end if

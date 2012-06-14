@@ -12,4 +12,4 @@ input:	clean
 	../../bin/gmsh2triangle --2d MMS_E.msh
 
 clean:
-	rm -rf *.vtu *.stat *.node *.ele *.edge *checkpoint*
+	rm -rf *.vtu *.stat *.node *.ele *.edge *checkpoint* *.msh *.log-* *.err-* *.log

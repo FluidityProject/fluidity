@@ -208,7 +208,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X, t):
+            <string_value lines="20" type="code" language="python">def val(X, t):
    from math import cos
    g=1.00
    return  ((g*0.01*cos(3.1415926536*X[0])))</string_value>
@@ -435,7 +435,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
    from math import exp, sqrt
    amp = 1.0
    x0 = 0.5
@@ -522,7 +522,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
    from math import exp, sqrt
    amp = 1.0
    x0 = 0.5
@@ -609,7 +609,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
    from math import exp, sqrt
    amp = 1.0
    x0 = 0.5
@@ -698,7 +698,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
    from math import exp, sqrt
    amp = 1.0
    x0 = 0.5
@@ -787,7 +787,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
    from math import exp, sqrt
    amp = 1.0
    x0 = 0.5
@@ -877,7 +877,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
    from math import exp, sqrt
    amp = 1.0
    x0 = 0.5
@@ -967,7 +967,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
    from math import exp, sqrt
    amp = 1.0
    x0 = 0.5
@@ -1063,7 +1063,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
    from math import exp, sqrt
    amp = 1.0
    x0 = 0.5
@@ -1148,7 +1148,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
    from math import exp, sqrt
    amp = 1.0
    x0 = 0.5
@@ -1235,7 +1235,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
    from math import exp, sqrt
    amp = 1.0
    x0 = 0.5
@@ -1322,7 +1322,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
    from math import exp, sqrt
    amp = 1.0
    x0 = 0.5
@@ -1411,7 +1411,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
    from math import exp, sqrt
    amp = 1.0
    x0 = 0.5
@@ -1500,7 +1500,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
    from math import exp, sqrt
    amp = 1.0
    x0 = 0.5
@@ -1590,7 +1590,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
    from math import exp, sqrt
    amp = 1.0
    x0 = 0.5
@@ -1680,7 +1680,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
    from math import exp, sqrt
    amp = 1.0
    x0 = 0.5
@@ -1776,7 +1776,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
    from math import exp, sqrt
    amp = 1.0
    x0 = 0.5
@@ -1856,7 +1856,7 @@
         <explicit/>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
    from math import exp, sqrt
    amp = 1.0
    x0 = 0.5
@@ -1921,7 +1921,7 @@
     <vector_field name="VelocityDifference" rank="1">
       <diagnostic>
         <algorithm name="vector_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="python">field1=state.vector_fields["Velocity"]
+          <string_value lines="20" type="code" language="python">field1=state.vector_fields["Velocity"]
 field2=state.vector_fields["GridVelocity"]
 for i in range(field.node_count):
    field.set(i, field1.node_val(i)-field2.node_val(i))</string_value>
@@ -1965,7 +1965,7 @@ for i in range(field.node_count):
     <vector_field name="VelocityDifferenceIterated" rank="1">
       <diagnostic>
         <algorithm name="vector_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="python">field1=state.vector_fields["NonlinearVelocity"]
+          <string_value lines="20" type="code" language="python">field1=state.vector_fields["NonlinearVelocity"]
 field2=state.vector_fields["GridVelocity"]
 for i in range(field.node_count):
    field.set(i, field1.node_val(i)-field2.node_val(i))</string_value>

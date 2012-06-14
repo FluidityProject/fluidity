@@ -147,7 +147,7 @@
     <scalar_field name="ElementVolume" rank="0">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="multiple">
-          <string_value lines="20" type="python">coord = states["fluid"].vector_fields["Coordinate"]
+          <string_value lines="20" type="code" language="python">coord = states["fluid"].vector_fields["Coordinate"]
 
 for ele in range(field.element_count):
    
@@ -174,7 +174,7 @@ for ele in range(field.element_count):
     <scalar_field name="SumCVMassMatrix" rank="0">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="multiple">
-          <string_value lines="20" type="python">cvmass = states["fluid"].scalar_fields["CVMassMatrix"]
+          <string_value lines="20" type="code" language="python">cvmass = states["fluid"].scalar_fields["CVMassMatrix"]
 
 sum_cvmass = sum(cvmass.val)
 
@@ -199,7 +199,7 @@ for ele in range(field.element_count):
     <scalar_field name="SumFELumpedMassMatrix" rank="0">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="multiple">
-          <string_value lines="20" type="python">felmass = states["fluid"].scalar_fields["FELumpedMassMatrix"]
+          <string_value lines="20" type="code" language="python">felmass = states["fluid"].scalar_fields["FELumpedMassMatrix"]
 
 sum_felmass = sum(felmass.val)
 

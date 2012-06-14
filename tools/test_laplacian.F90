@@ -9,7 +9,7 @@ program test_laplacian
   ! 1x1x1 cube with the boundary conditions 1 and 2 applied on the
   ! sides of the first coordinates direction (e.g. test_laplacian.poly
   ! - create a mesh with 'triangle -a0.01 -e test_laplacian.poly' )
-  use mesh_files
+  use read_triangle
   use fields
   use FEtools
   use elements
@@ -70,7 +70,7 @@ program test_laplacian
 
   call read_command_line(filename, degree, quad_degree)
 
-  positions=read_mesh_files(filename, quad_degree=quad_degree)
+  positions=read_triangle_files(filename, quad_degree=quad_degree)
 
   call insert(state, positions, "Coordinate")
 

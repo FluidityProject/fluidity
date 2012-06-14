@@ -118,8 +118,6 @@ endif
 
 .SUFFIXES: .F90 .cpp .c .o .a
 
-.PHONY: ../include/version.h
-
 # cancel implicit rule that tries to make .o from .mod with m2c:
 %.o: %.mod
 
@@ -147,8 +145,12 @@ libfemtools: $(F90LIB)
 clean:
 	rm -f *.o *.d *.mod Reference_count_*.F90 $(F90LIB)
 
-../include/version.h:
-	@$(MAKE) -C ../ include/version.h
+../include/version.h: version-info
+
+version-info: 
+	@$(MAKE) -C .. include/version.h
+
+.PHONY: version-info
 
 Reference_count_%.F90: Reference_count_interface_%.F90
 	@true

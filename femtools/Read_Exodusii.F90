@@ -58,15 +58,13 @@ module read_exodusii
 contains
 
   function read_exodusii_simple(filename, quad_degree, &
-       quad_ngi, no_faces, quad_family ) result (field)
+       quad_ngi, quad_family ) result (field)
     !!< A simpler mechanism for reading an ExodusII file into a field.
     character(len=*), intent(in) :: filename
     !! The degree of the quadrature.
     integer, intent(in), optional, target :: quad_degree
     !! The degree of the quadrature.
     integer, intent(in), optional, target :: quad_ngi
-    !! Whether to add_faces on the resulting mesh.
-    logical, intent(in), optional :: no_faces
     !! What quadrature family to use
     integer, intent(in), optional :: quad_family
     type(vector_field) :: field

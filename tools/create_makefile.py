@@ -173,7 +173,7 @@ def generate_dependencies(fortran):
                 #split_module_dependency(
                 #    strip_absolute_paths(this_deps))+["\n"]
                 discards.add(f)
-            os.system("rm "+obj+"_dependencies 2>\\dev\\null || true")
+            os.system("rm "+obj+"_dependencies 2>/dev/null || true")
         fortran.difference_update(discards)
             
 
