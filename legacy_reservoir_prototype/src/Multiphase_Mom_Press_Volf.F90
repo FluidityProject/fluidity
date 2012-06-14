@@ -508,7 +508,7 @@ contains
                SUM_THETA_FLUX, SUM_ONE_M_THETA_FLUX, &
                IN_ELE_UPWIND, DG_ELE_UPWIND, &
                NOIT_DIM, &
-               IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD ) 
+               IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD,scale_momentum_by_volume_fraction ) 
 
           if (SIG_INT) exit Loop_ITS
 

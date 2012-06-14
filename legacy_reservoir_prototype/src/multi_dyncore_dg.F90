@@ -544,7 +544,7 @@
          THETA_FLUX, ONE_M_THETA_FLUX, &
          IN_ELE_UPWIND, DG_ELE_UPWIND, &
          NOIT_DIM, &
-         IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD )
+         IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD,scale_momentum_by_volume_fraction )
 
       IMPLICIT NONE
       INTEGER, intent( in ) :: NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, &
@@ -556,7 +556,7 @@
            CV_ELE_TYPE, V_DISOPT, V_DG_VEL_INT_OPT, NCOLM, XU_NLOC, &
            NOPT_VEL_UPWIND_COEFS, IGOT_THETA_FLUX, SCVNGI_THETA, IN_ELE_UPWIND, DG_ELE_UPWIND, &
            IPLIKE_GRAD_SOU
-      LOGICAL, intent( in ) :: USE_THETA_FLUX
+      LOGICAL, intent( in ) :: USE_THETA_FLUX,scale_momentum_by_volume_fraction
       INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ) :: U_NDGLN 
       INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in ) :: P_NDGLN
       INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in ) :: CV_NDGLN
@@ -630,8 +630,8 @@
            CDP, DU_VEL, UP_VEL, DU, DV, DW, DGM_PHA
       ! this is the pivit matrix to use in the projection method...
       REAL, DIMENSION( :, :, : ), allocatable :: PIVIT_MAT, INV_PIVIT_MAT
-      INTEGER :: CV_NOD, COUNT, CV_JNOD, IPHASE, ele, x_nod1, x_nod2, x_nod3, &
-           cv_nod1, cv_nod2, cv_nod3, mat_nod1, u_iloc
+      INTEGER :: CV_NOD, COUNT, CV_JNOD, IPHASE, ele, x_nod1, x_nod2, x_nod3, cv_iloc,&
+           cv_nod1, cv_nod2, cv_nod3, mat_nod1, u_iloc, u_nod, u_nod_pha, u_nloc_lev, n_nloc_lev
       REAL :: der1, der2, der3, uabs, rsum
       LOGICAL :: JUST_BL_DIAG_MAT
 
@@ -661,6 +661,8 @@
       ALLOCATE( PIVIT_MAT( TOTELE, U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM )) ; PIVIT_MAT=0.
       ALLOCATE( INV_PIVIT_MAT( TOTELE, U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM )) ; INV_PIVIT_MAT=0.
       ALLOCATE( DGM_PHA( NCOLDGM_PHA )) ; DGM_PHA=0.
+      
+      n_nloc_lev = u_nloc / cv_nloc
 
       CALL CV_ASSEMB_FORCE_CTY_PRES(  &
            NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
@@ -698,9 +700,33 @@
            THETA_FLUX, ONE_M_THETA_FLUX, &
            IN_ELE_UPWIND, DG_ELE_UPWIND, &
            NOIT_DIM, &
-           IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD )
+           IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD,scale_momentum_by_volume_fraction )
 
       !ewrite(3,*) 'global_solve, just_bl_diag_mat', global_solve, just_bl_diag_mat
+
+      if(scale_momentum_by_volume_fraction) then
+          ! add in the entries to petsc matrix
+          do ele = 1, totele
+           do cv_iloc = 1, cv_nloc
+            cv_nod = (ele - 1)*cv_nloc + cv_iloc
+            do u_nloc_lev = 1, n_nloc_lev
+             do iphase = 1, nphase
+              u_iloc =(cv_iloc-1)*n_nloc_lev + u_nloc_lev
+              u_nod = u_ndgln(( ele - 1 ) * u_nloc + u_iloc )
+              u_nod_pha=u_nod +(iphase-1)*u_nonods
+              
+              mcy_rhs(u_nod_pha) = mcy_rhs(u_nod_pha) / satura(cv_nod)
+              
+              do count = finmcy(u_nod), finmcy(u_nod+1) - 1
+                mcy(count) = mcy(count) / satura(cv_nod)
+              end do ! End of count loop through sparisit
+             end do ! End of phase loop
+            end do ! End of overlapping level loop
+           end do ! End of dg local element loop
+          end do  ! End of element loop    
+       end if
+
+
 
 
       IF( GLOBAL_SOLVE ) THEN 
@@ -1051,7 +1077,7 @@
          THETA_FLUX, ONE_M_THETA_FLUX, &
          IN_ELE_UPWIND, DG_ELE_UPWIND, &
          NOIT_DIM, &
-         IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD )
+         IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD,scale_momentum_by_volume_fraction )
       implicit none
 
       ! Assembly the force balance, cty and if .not.GLOBAL_SOLVE pressure eqn. 
@@ -1065,7 +1091,7 @@
            CV_ELE_TYPE, V_DISOPT, V_DG_VEL_INT_OPT, NCOLM, XU_NLOC, &
            NOPT_VEL_UPWIND_COEFS, IGOT_THETA_FLUX, SCVNGI_THETA,IN_ELE_UPWIND, DG_ELE_UPWIND, & 
            IPLIKE_GRAD_SOU
-      LOGICAL, intent( in ) :: GLOBAL_SOLVE, USE_THETA_FLUX
+      LOGICAL, intent( in ) :: GLOBAL_SOLVE, USE_THETA_FLUX,scale_momentum_by_volume_fraction
       INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ) :: U_NDGLN 
       INTEGER, DIMENSION( TOTELE * P_NLOC ), intent( in ) :: P_NDGLN
       INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in ) :: CV_NDGLN
@@ -1183,7 +1209,7 @@
            THETA_FLUX, ONE_M_THETA_FLUX, &
            IN_ELE_UPWIND, DG_ELE_UPWIND, &
            NOIT_DIM, &
-           IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD )
+           IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD,scale_momentum_by_volume_fraction )
 
       IF(.NOT.GLOBAL_SOLVE) THEN
          ! form pres eqn. 
@@ -1289,7 +1315,7 @@
          THETA_FLUX, ONE_M_THETA_FLUX, &
          IN_ELE_UPWIND, DG_ELE_UPWIND, &
          NOIT_DIM, &
-         IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD )
+         IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD ,scale_momentum_by_volume_fraction)
       use printout
       implicit none
 
@@ -1304,7 +1330,7 @@
            CV_ELE_TYPE, V_DISOPT, V_DG_VEL_INT_OPT, NCOLM, XU_NLOC, &
            NLENMCY, NCOLMCY, NOPT_VEL_UPWIND_COEFS, IGOT_THETA_FLUX, SCVNGI_THETA, &
            IN_ELE_UPWIND, DG_ELE_UPWIND, IPLIKE_GRAD_SOU
-      LOGICAL, intent( in ) :: USE_THETA_FLUX
+      LOGICAL, intent( in ) :: USE_THETA_FLUX,scale_momentum_by_volume_fraction
       INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ) :: U_NDGLN 
       INTEGER, DIMENSION( TOTELE * P_NLOC ), intent( in ) :: P_NDGLN
       INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in ) :: CV_NDGLN
@@ -1430,9 +1456,9 @@
            XU_NLOC, XU_NDGLN, &
            PIVIT_MAT, JUST_BL_DIAG_MAT, &
            UDIFFUSION, IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, &
-           P )
-
-
+           P,scale_momentum_by_volume_fraction )
+           
+      ! scale the momentum equations by the volume fraction / saturation for the matrix and rhs     
 
       IF(GLOBAL_SOLVE) THEN
          ! put momentum and C matrices into global matrix MCY...
@@ -1659,7 +1685,7 @@
          XU_NLOC, XU_NDGLN, &
          PIVIT_MAT, JUST_BL_DIAG_MAT,  &
          UDIFFUSION, IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, &
-         P )
+         P,scale_momentum_by_volume_fraction )
       use shape_functions_NDim
       implicit none
 
@@ -1704,6 +1730,7 @@
       REAL, DIMENSION( IPLIKE_GRAD_SOU * CV_NONODS * NPHASE ), intent( in ) :: PLIKE_GRAD_SOU_COEF, &
            PLIKE_GRAD_SOU_GRAD
       REAL, DIMENSION( CV_NONODS ), intent( in ) :: P
+      LOGICAL, INTENT(IN) :: scale_momentum_by_volume_fraction
 
       ! Local Variables
       ! This is for decifering WIC_U_BC & WIC_P_BC
