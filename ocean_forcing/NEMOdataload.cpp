@@ -27,6 +27,7 @@
 */
 #include "confdefs.h"
 #include "NEMOReader.h"
+#include "global_parameters.h"
 
 using namespace std;
 
@@ -69,7 +70,7 @@ void get_nemo_variables_fc(double *time, const double *X, const double *Y, const
         x[i] = X[i];
         y[i] = Y[i];
         z[i] = Z[i];
-//         depth[i]=6371010.0-sqrt(X[i]*X[i]+Y[i]*Y[i]+Z[i]*Z[i]);
+//         depth[i] = get_surface_radius() - sqrt(X[i]*X[i]+Y[i]*Y[i]+Z[i]*Z[i]);
         depth[i] = DEPTH[i];
     }    
 
