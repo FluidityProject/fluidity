@@ -1,4 +1,4 @@
-!    Copyright (C) 2006 Imperial College London and others.
+!    Copyrigh (C) 2006 Imperial College London and others.
 !
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
@@ -164,9 +164,9 @@ contains
       & total_dete_lag
     type(vector_field), pointer :: vfield
 
-    integer(KIND=MPI_OFFSET_KIND) :: location_to_write, offset, offset_to_read
+    integer(KIND=MPI_OFFSET_KIND) :: location_to_write, offset
     integer, ALLOCATABLE, DIMENSION(:) :: status
-    integer :: nints, count, realsize, dimen, total_num_det, number_total_columns
+    integer :: nints, realsize, dimen, total_num_det, number_total_columns
     real, dimension(:), allocatable :: buffer
 
     ewrite(1, *) "Checkpointing detectors"
@@ -432,14 +432,12 @@ contains
     logical, optional, intent(in) :: keep_initial_data
 
     type(vector_field), pointer:: position
-    character(len = FIELD_NAME_LEN) :: mesh_name
+    character(len = FIELD_NAME_LEN) :: mesh_name, mesh_format
     character(len = OPTION_PATH_LEN) :: mesh_path, mesh_filename
     integer :: i, n_meshes, stat1, stat2
-    type(mesh_type), pointer :: mesh
+    type(mesh_type), pointer :: mesh, external_mesh
     logical :: from_file, extruded
     
-    character(len = OPTION_PATH_LEN) :: currentMeshFormat
-
     assert(len_trim(prefix) > 0)
 
     n_meshes = option_count("/geometry/mesh")
@@ -467,12 +465,14 @@ contains
         ! Update the options tree (required for options tree checkpointing)
         if (from_file) then
           call set_option_attribute(trim(mesh_path) // "/from_file/file_name", trim(mesh_filename))
+          call get_option(trim(mesh_path) // "/from_file/format/name", mesh_format)
         else if (extruded) then
 
-          ! Lunge forth with a wild stab at what the current mesh format is
-          call guess_external_mesh_format(currentMeshFormat)
+          ! the mesh format is determined from the external mesh
+          external_mesh => get_external_mesh(state)
+          call get_option(trim(external_mesh%option_path) // "/from_file/format/name", mesh_format)
 
-          call set_option_attribute(trim(mesh_path) // "/from_mesh/extrude/checkpoint_from_file/format/name", trim(currentMeshFormat), stat=stat1)
+          call set_option_attribute(trim(mesh_path) // "/from_mesh/extrude/checkpoint_from_file/format/name", trim(mesh_format), stat=stat1)
           call set_option_attribute(trim(mesh_path) // "/from_mesh/extrude/checkpoint_from_file/file_name", trim(mesh_filename), stat=stat2)
           if ((stat1/=SPUD_NO_ERROR .and. stat1/=SPUD_NEW_KEY_WARNING) .or. &
              & (stat2/=SPUD_NO_ERROR .and. stat2/=SPUD_NEW_KEY_WARNING)) then
@@ -487,13 +487,13 @@ contains
           else
             position => extract_vector_field(state(1), trim(mesh%name)//"Coordinate")
           end if
-          call write_mesh_files(parallel_filename(mesh_filename), position)
+          call write_mesh_files(parallel_filename(mesh_filename), mesh_format, position)
           ! Write out the halos
           ewrite(2, *) "Checkpointing halos"
           call write_halos(mesh_filename, mesh)
         else
           ! Write out the mesh
-          call write_mesh_files(mesh_filename, state(1), mesh)
+          call write_mesh_files(mesh_filename, mesh_format, state(1), mesh)
         end if
      end if
    end do

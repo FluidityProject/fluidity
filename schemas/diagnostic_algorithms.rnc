@@ -1436,6 +1436,7 @@ scalar_diagnostic_algorithms |= column_id_algorithm
 scalar_diagnostic_algorithms |= finite_element_lumped_mass_matrix
 scalar_diagnostic_algorithms |= control_volume_mass_matrix
 scalar_diagnostic_algorithms |= scalar_python_diagnostic_algorithm
+scalar_diagnostic_algorithms |= internal_algorithm
 
 vector_diagnostic_algorithms = vector_time_averaged_algorithm
 vector_diagnostic_algorithms |= vector_sum_algorithm

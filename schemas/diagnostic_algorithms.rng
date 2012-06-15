@@ -1983,6 +1983,9 @@ This field needs to be interpolated between adapts.</a:documentation>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="scalar_python_diagnostic_algorithm"/>
   </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="internal_algorithm"/>
+  </define>
   <define name="vector_diagnostic_algorithms">
     <ref name="vector_time_averaged_algorithm"/>
   </define>
