@@ -750,9 +750,11 @@
         <density>
           <real_value rank="0">1023.0</real_value>
         </density>
-        <drag_coefficient>
-          <real_value rank="0">0.0025</real_value>
-        </drag_coefficient>
+        <calculation_method>
+          <drag_coefficient>
+            <real_value rank="0">0.0025</real_value>
+          </drag_coefficient>
+        </calculation_method>
         <output/>
         <stat>
           <include_in_stat/>
