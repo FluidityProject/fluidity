@@ -1800,7 +1800,7 @@ sediment =
                   real
                }?,
                ## Set porosity to use. Default is 0.3. 1.0 is a sold material.
-               element porosity {
+               element bed_porosity {
                   real
                }?,
                ## Erodability of the sediment grain. A value of one means that only the

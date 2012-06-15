@@ -2456,7 +2456,7 @@ Diameter must be specified here or under each sediment class.</a:documentation>
               </element>
             </optional>
             <optional>
-              <element name="porosity">
+              <element name="bed_porosity">
                 <a:documentation>Set porosity to use. Default is 0.3. 1.0 is a sold material.</a:documentation>
                 <ref name="real"/>
               </element>

@@ -462,7 +462,7 @@ contains
     !
     ! loop over nodes in bottom surface
     call get_sediment_item(state, i_field, 'erodability', erod, default=1.0)
-    call get_sediment_item(state, i_field, 'porosity', poro, default=0.3)
+    call get_sediment_item(state, i_field, 'bed_porosity', poro, default=0.3)
     
     ele => ele_nodes(reentrainment, i_ele)
     shape => ele_shape(reentrainment, i_ele) 
