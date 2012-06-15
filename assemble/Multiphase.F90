@@ -514,6 +514,8 @@
                         end if
                      end do
                      
+                  case("ergun")
+                     
                   case("default")
                      FLAbort("Unknown correlation for fluid-particle drag")
                end select
@@ -531,6 +533,8 @@
                   case("wen_yu")
                      ! Wen & Yu (1966) drag term
                      K = vfrac_particle_gi*(3.0/4.0)*drag_coefficient_gi*(vfrac_fluid_gi*density_fluid_gi*magnitude_gi)/(d*vfrac_fluid_gi**2.7)
+                  case("ergun")
+                     K = 150.0*((vfrac_particle_gi**2)*viscosity_fluid_gi(1,1,:))/(vfrac_fluid_gi*(d**2)) + 1.75*(vfrac_particle_gi*density_fluid_gi*magnitude_gi/d)
                end select               
                
                if(is_particle_phase) then

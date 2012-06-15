@@ -36,6 +36,13 @@ where Re_p is the particle Reynolds number.</a:documentation>
         </attribute>
         <ref name="comment"/>
       </element>
+      <element name="drag_correlation">
+        <a:documentation>Fluid-particle drag term by Ergun (1952).</a:documentation>
+        <attribute name="name">
+          <value>ergun</value>
+        </attribute>
+        <ref name="comment"/>
+      </element>
     </choice>
   </define>
   <define name="heat_transfer">

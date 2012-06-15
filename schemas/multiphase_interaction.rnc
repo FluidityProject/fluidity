@@ -30,6 +30,11 @@ drag_correlation =
       element drag_correlation {
          attribute name { "wen_yu" },
          comment
+      }|
+      ## Fluid-particle drag term by Ergun (1952).
+      element drag_correlation {
+         attribute name { "ergun" },
+         comment
       }
    )
    
