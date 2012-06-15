@@ -89,7 +89,8 @@ module darcy_impes_assemble_module
    ! Parameters defining Darcy IMPES cached options
    integer, parameter, public :: RELPERM_CORRELATION_POWER               = 1, &
                                  RELPERM_CORRELATION_COREY2PHASE         = 2, &
-                                 RELPERM_CORRELATION_COREY2PHASEOPPOSITE = 3
+                                 RELPERM_CORRELATION_COREY2PHASEOPPOSITE = 3, &
+                                 RELPERM_CORRELATION_MINERAL             = 4
    
    ! Parameters defining Darcy IMPES CV face value schemes
    integer, parameter, public :: DARCY_IMPES_CV_FACEVALUE_NONE                        = 0, &
@@ -107,6 +108,8 @@ module darcy_impes_assemble_module
       real, dimension(:), pointer :: exponents
       ! The residual saturation for each phase
       real, dimension(:), pointer :: residual_saturations
+      ! The cut off value for saturation when calculating relperm
+      real, dimension(:), pointer :: cutoff_saturations
    end type darcy_impes_relperm_corr_options_type
    
    ! Options associated with the CV discretisation for the darcy impes solver
@@ -3789,7 +3792,8 @@ visc_ele_bdy(1)
                                                      p, &
                                                      di%relperm_corr_options%type, &
                                                      di%relperm_corr_options%exponents, &
-                                                     di%relperm_corr_options%residual_saturations)
+                                                     di%relperm_corr_options%residual_saturations, &
+                                                     di%relperm_corr_options%cutoff_saturations)
             
             call set(di%relative_permeability(p)%ptr, &
                      node, &
@@ -3812,7 +3816,8 @@ visc_ele_bdy(1)
                                                   p, &
                                                   relperm_corr_type, &
                                                   relperm_corr_exponents, &
-                                                  relperm_corr_residual_sats)
+                                                  relperm_corr_residual_sats, &
+                                                  relperm_corr_cutoff_sats)
       
       !!< Calculate the latest relperm value for phase p for the 
       !!< given saturation values of all phases using the given options.
@@ -3823,12 +3828,17 @@ visc_ele_bdy(1)
       integer,               intent(in)  :: relperm_corr_type
       real,    dimension(:), intent(in)  :: relperm_corr_exponents
       real,    dimension(:), intent(in)  :: relperm_corr_residual_sats
-      
+      real,    dimension(:), intent(in)  :: relperm_corr_cutoff_sats
+    
       ! local variables
       real :: sat_minus_res_sat
-      
+         
       select case (relperm_corr_type)
-            
+      case (RELPERM_CORRELATION_MINERAL)        
+         
+         relperm_val = ((max(relperm_corr_cutoff_sats(p), sat_val_all_phases(p)) - relperm_corr_residual_sats(p)) **&
+         & relperm_corr_exponents(p)) /  ((1- relperm_corr_residual_sats(p)) ** relperm_corr_exponents(p))
+           
       case (RELPERM_CORRELATION_POWER)
 
          relperm_val = (sat_val_all_phases(p) - relperm_corr_residual_sats(p)) ** relperm_corr_exponents(p)
@@ -3872,7 +3882,7 @@ visc_ele_bdy(1)
          end if
      
      end select
-     
+          
    end subroutine darcy_impes_calculate_relperm_value
 
 ! ----------------------------------------------------------------------------
@@ -5347,7 +5357,8 @@ visc_ele_bdy(1)
                                                   p, &
                                                   relperm_corr_options%type, &
                                                   relperm_corr_options%exponents, &
-                                                  relperm_corr_options%residual_saturations)
+                                                  relperm_corr_options%residual_saturations, &
+                                                  relperm_corr_options%cutoff_saturations)
          
          relperm_face_val = relperm_face_val / max(sat_face_val_all_phases(p),min_denom_sat)
          

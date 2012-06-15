@@ -1030,11 +1030,7 @@ relperm = sat**exponent</a:documentation>
         <attribute name="name">
           <value>PowerLaw</value>
         </attribute>
-        <element name="exponents">
-          <a:documentation>Specify the exponent for each phase in the order they 
-are given as a real input list.</a:documentation>
-          <ref name="real_vector"/>
-        </element>
+        <ref name="darcy_impes_relperm_exponents"/>
         <optional>
           <ref name="darcy_impes_residual_saturations"/>
         </optional>
@@ -1063,7 +1059,39 @@ relperm_2 = sat_2**4</a:documentation>
           <ref name="darcy_impes_residual_saturations"/>
         </optional>
       </element>
+      <element name="correlation">
+        <a:documentation>Use the Mineral correlation given by:
+</a:documentation>
+        <ref name="comment"/>
+        <attribute name="name">
+          <value>Mineral</value>
+        </attribute>
+        <ref name="darcy_impes_relperm_exponents"/>
+        <optional>
+          <ref name="darcy_impes_cutoff_saturations"/>
+        </optional>
+        <optional>
+          <ref name="darcy_impes_residual_saturations"/>
+        </optional>
+      </element>
     </choice>
+  </define>
+  <define name="darcy_impes_relperm_exponents">
+    <element name="exponents">
+      <a:documentation>Specify the exponent for each phase in the order they 
+are given as a real input list.</a:documentation>
+      <ref name="real_vector"/>
+    </element>
+  </define>
+  <define name="darcy_impes_cutoff_saturations">
+    <optional>
+      <element name="cutoff_saturations">
+        <a:documentation>Specify the cut off saturation for each phase in the order they 
+are given as a real input list. The default 
+values is residual saturations for all phases.</a:documentation>
+        <ref name="real_vector"/>
+      </element>
+    </optional>
   </define>
   <define name="darcy_impes_residual_saturations">
     <element name="residual_saturations">

@@ -987,11 +987,7 @@ darcy_impes_relperm_correlation =
          
          attribute name { "PowerLaw" },
          
-         ## Specify the exponent for each phase in the order they 
-         ## are given as a real input list.
-         element exponents {
-            real_vector
-         },
+         darcy_impes_relperm_exponents,
          
          darcy_impes_residual_saturations?
       }|
@@ -1014,8 +1010,44 @@ darcy_impes_relperm_correlation =
          attribute name { "Corey2PhaseOpposite" },
          
          darcy_impes_residual_saturations?
+      }|
+      ## Use the Mineral correlation given by:
+      ## 
+      element correlation {
+         comment, 
+         
+         attribute name { "Mineral" }, 
+         
+         darcy_impes_relperm_exponents,
+        
+         darcy_impes_cutoff_saturations?,
+         
+         darcy_impes_residual_saturations?
+        
+    
       }
    )
+
+
+darcy_impes_relperm_exponents =
+   (
+      ## Specify the exponent for each phase in the order they 
+      ## are given as a real input list.
+      element exponents {
+         real_vector
+      }   
+   )
+   
+
+darcy_impes_cutoff_saturations =
+  (
+      ## Specify the cut off saturation for each phase in the order they 
+      ## are given as a real input list. The default 
+      ## values is residual saturations for all phases.
+      element cutoff_saturations {
+         real_vector
+      }?       
+  )
 
 
 darcy_impes_residual_saturations = 

@@ -1012,7 +1012,44 @@ contains
          if (di%number_phase /= 2) then
             FLExit('Cannot use the relative permeability correlation Corey2PhaseOpposite if not a 2 phase simulation')
          end if
-                  
+      
+      else if (trim(tmp_char_option) == 'Mineral') then
+ 
+         di%relperm_corr_options%type = RELPERM_CORRELATION_MINERAL
+
+         ! get the number of option exponents to check it is of length number_phase
+         tmp_option_shape = option_shape(trim(di%relative_permeability(1)%ptr%option_path)//&
+                                        &'/diagnostic/correlation/exponents')
+         
+         if (tmp_option_shape(1) /= di%number_phase) then
+            FLExit('To use the relative permeability correlation Mineral, a exponent for each phase must be specified')
+         end if
+         
+         call get_option(trim(di%relative_permeability(1)%ptr%option_path)//&
+                        &'/diagnostic/correlation/exponents', &
+                         di%relperm_corr_options%exponents) 
+
+         if (have_option(trim(di%relative_permeability(1)%ptr%option_path)//&
+                        &'/diagnostic/correlation/cutoff_saturations')) then
+                        
+            ! get the number of option cutt off saturations to check it is of length number_phase
+            tmp_option_shape = option_shape(trim(di%relative_permeability(1)%ptr%option_path)//&
+                                           &'/diagnostic/correlation/cutoff_saturations')
+         
+            if (tmp_option_shape(1) /= di%number_phase) then
+               FLExit('To use the relative permeability correlation Mineral, a cut off saturation for each phase must be specified')
+            end if
+         
+            call get_option(trim(di%relative_permeability(1)%ptr%option_path)//&
+                           &'/diagnostic/correlation/cutoff_saturations', &
+                            di%relperm_corr_options%cutoff_saturations)
+         
+         else
+            
+            di%relperm_corr_options%cutoff_saturations = di%relperm_corr_options%residual_saturations
+            
+         end if
+                 
       end if
       
       ! Get the relative permeability and density darcy impes cv options
@@ -1473,6 +1510,7 @@ contains
       di%relperm_corr_options%type     = 0
       deallocate(di%relperm_corr_options%exponents)
       deallocate(di%relperm_corr_options%residual_saturations)
+      deallocate(di%relperm_corr_options%cutoff_saturations)
 
       if(di%relperm_cv_options%limit_facevalue) then
          call deallocate(di%relperm_upwind)
