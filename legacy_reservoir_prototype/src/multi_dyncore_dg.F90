@@ -1846,6 +1846,43 @@
       if (beta==1.) mom_conserv=.true.
       ewrite(3,*) 'mom_conserv:', mom_conserv
 
+
+! This applies a non-linear shock capturing scheme which 
+! may be used to reduce oscillations in velocity or 
+! perform implicit LES modelling of turbulence. 
+! In all residual approaches do not apply Petrov-Galerkin 
+! dissipation on the 1st non-linear iteration within a 
+! time step as there is no good guess of the (U^{n+1}-U^n)/DT.
+! RESID_BASED_STAB_DIF decides what type of Petrov-Galerkin 
+! method to use. 
+! =1 is the residual squared approach. 
+! =2 is max(0, A . grad U * residual ). 
+! =3 is the max of 1 and 2 (the most dissipative). 
+! U_NONLIN_SHOCK_COEF \in [0,1] is the magnitude of the non-linear 
+! dissipation 
+! =0.25 is small
+! =1.0 is large
+! RNO_P_IN_A_DOT \in [0,1] decides if we include the pressure term in 
+! A . grad soln if 
+! =0.0 dont include pressure term.
+! =1.0 include the pressure term.
+
+      call get_option('/material_phase[0]/vector_field::Velocity/prognostic/' // &
+           'spatial_discretisation/discontinuous_galerkin/stabilisation/method', &
+           RESID_BASED_STAB_DIF, default=0)
+
+      call get_option('/material_phase[0]/vector_field::Velocity/prognostic/' // &
+           'spatial_discretisation/discontinuous_galerkin/stabilisation/nonlinear_velocity_coefficient', &
+           U_NONLIN_SHOCK_COEF, default=1.)
+
+      call get_option('/material_phase[0]/vector_field::Velocity/prognostic/' // &
+           'spatial_discretisation/discontinuous_galerkin/stabilisation/include_pressure', &
+           RNO_P_IN_A_DOT, default=1.)
+
+      ewrite(3,*) 'RESID_BASED_STAB_DIF, U_NONLIN_SHOCK_COEF, RNO_P_IN_A_DOT:', &
+           RESID_BASED_STAB_DIF, U_NONLIN_SHOCK_COEF, RNO_P_IN_A_DOT
+
+
       QUAD_OVER_WHOLE_ELE=.FALSE. 
       ! QUAD_OVER_WHOLE_ELE=is_overlapping ! Do NOT divide element into CV's to form quadrature.
       call retrieve_ngi( ndim, u_ele_type, cv_nloc, u_nloc, &
@@ -2541,40 +2578,6 @@
          END DO Loop_ILEV1
 
          ewrite(3,*)'just after Loop_U_ILOC1'
-! This applies a non-linear shock capturing scheme which 
-! may be used to reduce oscillations in velocity or 
-! perform implicit LES modelling of turbulence. 
-! In all residual approaches do not apply Petrov-Galerkin 
-! dissipation on the 1st non-linear iteration within a 
-! time step as there is no good guess of the (U^{n+1}-U^n)/DT.
-! RESID_BASED_STAB_DIF decides what type of Petrov-Galerkin 
-! method to use. 
-! =1 is the residual squared approach. 
-! =2 is max(0, A . grad U * residual ). 
-! =3 is the max of 1 and 2 (the most dissipative). 
-! U_NONLIN_SHOCK_COEF \in [0,1] is the magnitude of the non-linear 
-! dissipation 
-! =0.25 is small
-! =1.0 is large
-! RNO_P_IN_A_DOT \in [0,1] decides if we include the pressure term in 
-! A . grad soln if 
-! =0.0 dont include pressure term.
-! =1.0 include the pressure term.
-
-      call get_option('/material_phase[0]/vector_field::Velocity/prognostic/' // &
-           'spatial_discretisation/discontinuous_galerkin/stabilisation/method', &
-           RESID_BASED_STAB_DIF, default=0)
-
-      call get_option('/material_phase[0]/vector_field::Velocity/prognostic/' // &
-           'spatial_discretisation/discontinuous_galerkin/stabilisation/nonlinear_velocity_coefficient', &
-           U_NONLIN_SHOCK_COEF, default=1.)
-
-      call get_option('/material_phase[0]/vector_field::Velocity/prognostic/' // &
-           'spatial_discretisation/discontinuous_galerkin/stabilisation/include_pressure', &
-           RNO_P_IN_A_DOT, default=1.)
-
-      ewrite(3,*) 'RESID_BASED_STAB_DIF, U_NONLIN_SHOCK_COEF, RNO_P_IN_A_DOT:', &
-           RESID_BASED_STAB_DIF, U_NONLIN_SHOCK_COEF, RNO_P_IN_A_DOT
 
          IF((.not.firstst).and.(RESID_BASED_STAB_DIF.NE.0)) THEN
       !! *************************INNER ELEMENT STABILIZATION****************************************
