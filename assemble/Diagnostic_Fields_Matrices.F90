@@ -465,7 +465,7 @@ contains
       logical :: dg
 
       type(csr_sparsity) :: divergence_sparsity
-      type(block_csr_matrix) :: ct_m
+      type(block_csr_matrix), pointer :: ct_m
 
       type(csr_sparsity) :: mass_sparsity
       type(csr_matrix) :: mass
@@ -508,6 +508,7 @@ contains
 
          ! Allocate sparsity patterns, C^T matrix and C^T RHS for current state
          divergence_sparsity=make_sparsity(compressible_continuity%mesh, u%mesh, "DivergenceSparsity")
+         allocate(ct_m)
          call allocate(ct_m, divergence_sparsity, (/1, u%dim/), name="DivergenceMatrix")
          call allocate(ct_rhs, compressible_continuity%mesh, name="CTRHS")
 
@@ -571,6 +572,7 @@ contains
          call addto(ctfield, temp)
 
          call deallocate(ct_m)
+         deallocate(ct_m)
          call deallocate(ct_rhs)
          call deallocate(divergence_sparsity)
 
