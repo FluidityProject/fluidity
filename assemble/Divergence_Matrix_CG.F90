@@ -74,7 +74,7 @@ module divergence_matrix_cg
       type(state_type), intent(inout) :: state
 
       ! the velocity divergence gradient matrices
-      type(block_csr_matrix), intent(inout) :: CT_m
+      type(block_csr_matrix), pointer :: CT_m
 
       type(scalar_field), intent(inout), optional :: ct_rhs
 
@@ -364,7 +364,7 @@ module divergence_matrix_cg
       type(state_type), dimension(:), intent(inout) :: state
       integer, intent(in) :: istate
       ! the compressible divergence matrix
-      type(block_csr_matrix), intent(inout) :: ctp_m
+      type(block_csr_matrix), pointer :: ctp_m
 
       type(scalar_field), intent(inout), optional :: ct_rhs
 
@@ -400,7 +400,7 @@ module divergence_matrix_cg
       integer, intent(in) :: istate
 
       ! the compressible divergence matrix
-      type(block_csr_matrix), intent(inout) :: ctp_m
+      type(block_csr_matrix), pointer :: ctp_m
 
       type(scalar_field), intent(inout), optional :: ct_rhs
 

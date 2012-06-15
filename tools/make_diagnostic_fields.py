@@ -3,6 +3,7 @@
 import glob
 import re
 import sys
+import sha
 
 def Error(msg):
   sys.stderr.write("Diagnostics error: " + str(msg) + "\n")
@@ -15,6 +16,18 @@ disabledDiags = ["Diagnostic_Source_Fields.F90", \
 
 inputFilename = baseName + ".F90.in"
 outputFilename = baseName + ".F90"
+
+# get sha1 digest of existing generated file.  Can't use 'rw' here
+# because it updates the modtime of the file, which we're trying to
+# avoid doing.
+orig=sha.new()
+try:
+    f=open(outputFilename, 'r')
+    orig.update(f.read())
+except IOError:
+    pass
+else:
+    f.close()
 
 # Valid arguments
 diagnosticArguments = ["states", "state", "s_field", "v_field", "t_field", \
@@ -149,7 +162,16 @@ outputCode = outputCode.replace("SINGLE_STATE_TENSOR_DIAGNOSTICS", singleStateTe
 outputCode = outputCode.replace("MULTIPLE_STATE_TENSOR_DIAGNOSTICS", multipleStateTensorDiagnosticsCode)
 
 # Write the output
-fileHandle = open(outputFilename, "w")
-fileHandle.write(outputCode)
-fileHandle.flush()
-fileHandle.close()
+new=sha.new()
+new.update(outputCode)
+
+# Only write file if sha1sums differ
+if new.digest() != orig.digest():
+    try:
+        f=open(outputFilename, 'w')
+        f.write(outputCode)
+    except IOError:
+        # Fixme, this should fail better
+        pass
+    else:
+        f.close()
