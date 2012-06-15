@@ -3834,10 +3834,6 @@ visc_ele_bdy(1)
       real :: sat_minus_res_sat
          
       select case (relperm_corr_type)
-      case (RELPERM_CORRELATION_MINERAL)        
-         
-         relperm_val = ((max(relperm_corr_cutoff_sats(p), sat_val_all_phases(p)) - relperm_corr_residual_sats(p)) **&
-         & relperm_corr_exponents(p)) /  ((1- relperm_corr_residual_sats(p)) ** relperm_corr_exponents(p))
            
       case (RELPERM_CORRELATION_POWER)
 
@@ -3880,6 +3876,11 @@ visc_ele_bdy(1)
             FLAbort('Trying to use Corey2PhaseOpposite relative permeabiltiy correlation for simulation with more than 2 phases')
 
          end if
+
+      case (RELPERM_CORRELATION_MINERAL)        
+         
+         relperm_val = ((max(relperm_corr_cutoff_sats(p), sat_val_all_phases(p)) - relperm_corr_residual_sats(p)) **&
+                      &relperm_corr_exponents(p)) /  ((1.0 - relperm_corr_residual_sats(p)) ** relperm_corr_exponents(p))
      
      end select
           

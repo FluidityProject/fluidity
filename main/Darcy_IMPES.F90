@@ -957,6 +957,32 @@ contains
 
       ! Allocate and initialise the relperm residual saturations
       allocate(di%relperm_corr_options%residual_saturations(di%number_phase))
+      di%relperm_corr_options%residual_saturations = 0.0
+      
+      ! Allocate and initialise the relperm cut off saturations
+      allocate(di%relperm_corr_options%cutoff_saturations(di%number_phase))
+      di%relperm_corr_options%cutoff_saturations = 0.0
+
+      if (have_option(trim(di%relative_permeability(1)%ptr%option_path)//&
+                     &'/diagnostic/correlation/exponents')) then
+
+         ! get the number of option exponents to check it is of length number_phase
+         tmp_option_shape = option_shape(trim(di%relative_permeability(1)%ptr%option_path)//&
+                                        &'/diagnostic/correlation/exponents')
+
+         if (tmp_option_shape(1) /= di%number_phase) then
+            FLExit('To specify the relperm exponents a value for each phase must be specified')
+         end if
+
+         call get_option(trim(di%relative_permeability(1)%ptr%option_path)//&
+                        &'/diagnostic/correlation/exponents', &
+                         di%relperm_corr_options%exponents)
+
+      else
+
+         di%relperm_corr_options%exponents = 0.0
+
+      end if
       
       if (have_option(trim(di%relative_permeability(1)%ptr%option_path)//&
                      &'/diagnostic/correlation/residual_saturations')) then
@@ -978,23 +1004,32 @@ contains
          di%relperm_corr_options%residual_saturations = 0.0
       
       end if
+
+      if (have_option(trim(di%relative_permeability(1)%ptr%option_path)//&
+                     &'/diagnostic/correlation/cutoff_saturations')) then
+
+         ! get the number of option cut off saturations to check it is of length number_phase
+         tmp_option_shape = option_shape(trim(di%relative_permeability(1)%ptr%option_path)//&
+                                        &'/diagnostic/correlation/cutoff_saturations')
+
+         if (tmp_option_shape(1) /= di%number_phase) then
+            FLExit('To specify the cut off saturation a value for each phase must be specified')
+         end if
+
+         call get_option(trim(di%relative_permeability(1)%ptr%option_path)//&
+                        &'/diagnostic/correlation/cutoff_saturations', &
+                         di%relperm_corr_options%cutoff_saturations)
+
+      else
+
+         di%relperm_corr_options%cutoff_saturations = di%relperm_corr_options%residual_saturations
+
+      end if
       
       if (trim(tmp_char_option) == 'PowerLaw') then
          
          di%relperm_corr_options%type = RELPERM_CORRELATION_POWER
                   
-         ! get the number of option exponents to check it is of length number_phase
-         tmp_option_shape = option_shape(trim(di%relative_permeability(1)%ptr%option_path)//&
-                                        &'/diagnostic/correlation/exponents')
-         
-         if (tmp_option_shape(1) /= di%number_phase) then
-            FLExit('To use the relative permeability correlation PowerLaw, a exponent for each phase must be specified')
-         end if
-         
-         call get_option(trim(di%relative_permeability(1)%ptr%option_path)//&
-                        &'/diagnostic/correlation/exponents', &
-                         di%relperm_corr_options%exponents)         
-         
       else if (trim(tmp_char_option) == 'Corey2Phase') then
          
          di%relperm_corr_options%type = RELPERM_CORRELATION_COREY2PHASE
@@ -1016,40 +1051,7 @@ contains
       else if (trim(tmp_char_option) == 'Mineral') then
  
          di%relperm_corr_options%type = RELPERM_CORRELATION_MINERAL
-
-         ! get the number of option exponents to check it is of length number_phase
-         tmp_option_shape = option_shape(trim(di%relative_permeability(1)%ptr%option_path)//&
-                                        &'/diagnostic/correlation/exponents')
-         
-         if (tmp_option_shape(1) /= di%number_phase) then
-            FLExit('To use the relative permeability correlation Mineral, a exponent for each phase must be specified')
-         end if
-         
-         call get_option(trim(di%relative_permeability(1)%ptr%option_path)//&
-                        &'/diagnostic/correlation/exponents', &
-                         di%relperm_corr_options%exponents) 
-
-         if (have_option(trim(di%relative_permeability(1)%ptr%option_path)//&
-                        &'/diagnostic/correlation/cutoff_saturations')) then
-                        
-            ! get the number of option cutt off saturations to check it is of length number_phase
-            tmp_option_shape = option_shape(trim(di%relative_permeability(1)%ptr%option_path)//&
-                                           &'/diagnostic/correlation/cutoff_saturations')
-         
-            if (tmp_option_shape(1) /= di%number_phase) then
-               FLExit('To use the relative permeability correlation Mineral, a cut off saturation for each phase must be specified')
-            end if
-         
-            call get_option(trim(di%relative_permeability(1)%ptr%option_path)//&
-                           &'/diagnostic/correlation/cutoff_saturations', &
-                            di%relperm_corr_options%cutoff_saturations)
-         
-         else
-            
-            di%relperm_corr_options%cutoff_saturations = di%relperm_corr_options%residual_saturations
-            
-         end if
-                 
+                       
       end if
       
       ! Get the relative permeability and density darcy impes cv options
