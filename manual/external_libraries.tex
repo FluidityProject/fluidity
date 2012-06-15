@@ -144,7 +144,8 @@ The \fluidity build process requires working Fortran 90 and C++ compilers.
 \fluidity has been tested with gfortran $\geq$ 4.4 and Intel 11.1 for versions
 $\geq$ 11.1.073. It is not supported for gfortran $\leq$ 4.3 or Intel $\leq$
 11.1.073, and if using gfortran some features are not available except for
-gfortran $\geq$ 4.5.
+gfortran $\geq$ 4.5. Current testing is with gfortran 4.6, so whilst it is
+expected that 4.4 and 4.5 will function correctly, this is not guaranteed.
 
 Unsupported compilers generally have incorrect Fortran 90 implementations for
 which bug reports have been submitted and implemented in later versions where
@@ -158,11 +159,11 @@ If you do not already have compilers suitable for building \fluidity, GCC is
 freely available and is possible to build from source with sufficient disk
 space and time.
 
-\subsubsection{GMP and MPFR}
-\label{sec:required_libraries_compilers_gmp_mpfr}
+\subsubsection{GMP, MPFR, and MPC}
+\label{sec:required_libraries_compilers_gmp_mpfr_mpc}
 
-GMP (tested for \fluidity with gmp-5.0.2) and MPFR (tested for \fluidity with
-mpfr-2.4.2) are needed for the GCC 4.x build if you do not already have them.
+GMP (tested for \fluidity with gmp-5.0.5) and MPFR (tested for \fluidity with
+mpfr-3.1.0) are needed for the GCC 4.6 build if you do not already have them.
 Download GMP from \url{http://gmplib.org/} and build it in the source
 directory, appending \lstinline[language=bash]+--enable-cxx+ to the standard
 configure, then running the standard make and install.
@@ -172,20 +173,28 @@ Once GMP has been installed, download MPFR from
 appending \lstinline[language=bash]+--with-gmp=\$WORKING/fluidity+ to the
 standard configure, then running the standard make and install.
 
-If you have no compilers at all, you may need to download GMP and MPFR as
+Once MPFR has been installed, download MPC from 
+\url{http://www.multiprecision.org/index.php?prog=mpc&page=download} and build
+it in the source directory, appending
+\lstinline[language=bash]+--with-gmp=$WORKING/fluidity --with-mpfr=$WORKING/fluidity+ 
+to the standard configure, then running the standard make and install.
+
+If you have no compilers at all, you may need to download GMP, MPFR, and MPC as
 pre-built binaries. If you have any compilers, even if not ones which support
-building \fluidity, you should be able to build GMP and MPFR, and then go on to
-build GCC.
+building \fluidity, you should be able to build GMP, MPFR, and MPC and then go
+on to build GCC. Finding a binary compiler distribution from the start will
+make matters a great deal simpler for you if that option is available.
+
 
 \subsubsection{GCC}
 \label{sec:required_libraries_compilers_gcc}
 
-GCC (tested for \fluidity with gcc-4.4.1, known-working with Ubuntu builds of
-4.5 and 4.6) can be downloaded from the UK mirror at
-\url{http://gcc-uk.internet.bs/} Before the build, make sure that the GMP and
-MPFR libraries are on LD{\textunderscore}LIBRARY{\textunderscore}PATH or the
-stage 1 configure will fail even if
-\lstinline[language=bash]+--with-[gmp|mpfr]+ is supplied.
+GCC (tested for \fluidity with gcc-4.6.x Ubuntu-built compilers, assumed
+working with most 4.4.x and 4.5.x, not known yet to work with 4.7.x) can be
+downloaded from the UK mirror at \url{http://gcc-uk.internet.bs/} Before the
+build, make sure that the GMP, MPFR, and MPC libraries are on
+LD{\textunderscore}LIBRARY{\textunderscore}PATH or the stage 1 configure will
+fail even if \lstinline[language=bash]+--with-[gmp|mpfr|mpc]+ is supplied.
 
 Also note that the build needs to be in a target build directory, NOT in the
 source directory, or again the build will fail with definition conflicts
@@ -200,7 +209,7 @@ with the following configure:
 \begin{lstlisting}[language=bash]
 /path/to/gcc/source/configure --prefix=$WORKING/fluidity 
 --with-gmp=$WORKING/fluidity --with-mpfr=$WORKING/fluidity 
---enable-languages=c,c++,fortran
+--with-mpc=$WORKING/fluidity --enable-languages=c,c++,fortran
 \end{lstlisting}
 
 followed by the standard make and install.
@@ -240,7 +249,7 @@ If you do not have a working version of Python it can be built from source.
 \subsubsection{Readline}
 \label{sec:required_libraries_python_readline}
 
-Readline (tested version 6.0) is not strictly needed for Python to build but is
+Readline (tested version 6.2) is not strictly needed for Python to build but is
 very handy if you want to make use of things like Python command history.
 Download readline from \url{http://ftp.gnu.org/pub/gnu/readline/} and then add
 -fPIC to CFLAGS and FFLAGS for the duration of this build with:
@@ -261,7 +270,7 @@ running the standard make and install.
 \subsubsection{Python}
 \label{sec:required_libraries_python_python}
 
-Python (tested version 2.6) can be downloaded from
+Python (tested version 2.7) can be downloaded from
 \url{http://www.python.org/download/} and built in the source directory with
 the standard configure, make, and install, adding
 \lstinline[language=bash]+--enable-shared+ to the configure flags.
@@ -377,7 +386,13 @@ alternative partitioner which is free to use for commercial partners.
 \label{sec:required_libraries_numerical_petsc}\index{PETSc}
 
 PETSc (currently tested for \fluidity with version 3.1p8) is required for
-efficient solver methods within \fluidity. PETSc can be downloaded from
+efficient solver methods within \fluidity. Some work has been carried out
+to ensure that Fluidity builds correctly with PETSc 3.2 but this has not
+been extensively tested, so іs used at your own risk. Work is ongoing to
+support the latest development branch of PETSc but this is not currently
+supported as an option.
+
+PETSc can be downloaded from
 \url{http://www.mcs.anl.gov/petsc/petsc-2/download/index.html} and built in the
 source directory. First, set PETSC{\textunderscore}DIR in the source directory:
 
@@ -422,7 +437,7 @@ built with the standard configure, make, and install, Cmake first in its source
 directory, then Tcl followed by Tk in each package's respective unix/
 subdirectory of their main source directory.
 
-VTK (tested version 5.6.1) can be download from
+VTK (tested version 5.8 from the Ubuntu build) can be download from
 \url{http://www.vtk.org/VTK/resources/software.html}
 
 The following build is for a non-graphical install of \fluidity - ie, one for a
@@ -520,6 +535,8 @@ the standard configure.
 
 NetCDF can be downloaded from \url{http://www.unidata.ucar.edu/downloads/netcdf/}
 
+Experimental NetCDF 5 is not yet tested for use with Fluidity.
+
 \subsubsection{UDUnits}
 \label{sec:required_libraries_supporting_udunits}\index{UDUnits}
 
@@ -540,6 +557,9 @@ should be sufficient for a GCC-based build on Linux.
 
 UDUnits can be downloaded from \url{http://www.unidata.ucar.edu/downloads/udunits/index.jsp}
 
+Legacy support should be present for UDUnits 1.x but this is no longer tested 
+hence is used at your own risk.
+
 \subsubsection{Trang}
 \label{sec:required_libraries_supporting_trang}\index{Trang}
 
@@ -551,7 +571,7 @@ from \url{http://www.thaiopensource.com/relaxng/trang.html}
 \label{sec:required_libraries_supporting_bzr}\index{bzr!installing}
 
 Bazaar is recommended as a general tool for accessing the \fluidity code
-repository, and tested to version 2.4.0. Bazaar can be
+repository, and tested to version 2.5.0. Bazaar can be
 downloaded from \url{https://launchpad.net/bzr/+download}
 
 \subsubsection{CGNS}
