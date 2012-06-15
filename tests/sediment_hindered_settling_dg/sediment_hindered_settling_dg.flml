@@ -237,6 +237,9 @@
           <submerged_specific_gravity>
             <real_value rank="0">2.0</real_value>
           </submerged_specific_gravity>
+          <diameter>
+            <real_value rank="0">1e-5</real_value>
+          </diameter>
         </prognostic>
       </scalar_field>
       <scalar_field name="Hindered" rank="0">
@@ -377,6 +380,9 @@
           <submerged_specific_gravity>
             <real_value rank="0">2.0</real_value>
           </submerged_specific_gravity>
+          <diameter>
+            <real_value rank="0">1e-5</real_value>
+          </diameter>
         </prognostic>
       </scalar_field>
       <scalar_field name="SedimentBedActiveLayerD50" rank="0">
