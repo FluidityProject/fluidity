@@ -37,7 +37,7 @@ module Coordinates
   use halos_base
   use sparse_tools_petsc
   use state_module
-  use use global_parameters, only: surface_radius
+  use global_parameters, only: surface_radius
   use iso_c_binding
 
   implicit none
@@ -530,8 +530,9 @@ contains
     polar = -meridionalComponent
     radial = verticalComponent
     !convert longitude-latitude-height to spherical-polar.
-    call lon_lat_height_2_spherical_polar(longitude, latitude, height, referenceRadius, &
-                                          radius, theta, phi)
+    call lon_lat_height_2_spherical_polar(longitude, latitude, height, &
+                                          radius, theta, phi, &
+                                          referenceRadius)
     !convert spherical-polar components to cartesian.
     call vector_spherical_polar_2_cartesian(radial, polar, azimuthal, &
                                             radius, theta, phi, &
