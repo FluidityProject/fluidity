@@ -91,7 +91,9 @@
          NOIT_DIM, &
          NITS_FLUX_LIM, &
          MEAN_PORE_CV, &
-         option_path, thermal)
+         option_path, &
+         mass_ele_transp, &
+         thermal )
 
       ! Solve for internal energy using a control volume method.
 
@@ -151,6 +153,7 @@
       INTEGER, INTENT( IN ) :: NOIT_DIM
       REAL, DIMENSION( CV_NONODS ), intent( inout ) :: MEAN_PORE_CV
       character(len=*), intent(in), optional :: option_path
+      real, dimension( totele ), intent( inout ) :: mass_ele_transp
 
       ! Local variables
       LOGICAL, PARAMETER :: GETCV_DISC = .TRUE., GETCT= .FALSE.
@@ -197,7 +200,8 @@
               SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
               NOIT_DIM, &
               MEAN_PORE_CV, &
-              FINACV, COLACV, NCOLACV, ACV, THERMAL )
+              FINACV, COLACV, NCOLACV, ACV, THERMAL, &
+              mass_ele_transp )
 
          ewrite(3,*)'comp:', t
 
@@ -357,7 +361,8 @@
          IN_ELE_UPWIND, DG_ELE_UPWIND, &
          NOIT_DIM, &
          NITS_FLUX_LIM, &
-         option_path )
+         option_path, &
+         mass_ele_transp )
 
       implicit none
       INTEGER, intent( in ) :: NCOLACV, NCOLCT, &
@@ -406,6 +411,7 @@
       REAL, DIMENSION( NOPT_VEL_UPWIND_COEFS ), intent( in ) :: OPT_VEL_UPWIND_COEFS
       INTEGER, INTENT( IN ) :: NOIT_DIM
       character(len=*), intent(in), optional :: option_path
+      real, dimension( totele ), intent( inout ) :: mass_ele_transp
 
       ! Local Variables
       LOGICAL, PARAMETER :: GETCV_DISC = .TRUE., GETCT= .FALSE., THERMAL= .false.
@@ -476,7 +482,8 @@
               SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
               NOIT_DIM, &
               MEAN_PORE_CV, &
-              FINACV, COLACV, NCOLACV, ACV, THERMAL )
+              FINACV, COLACV, NCOLACV, ACV, THERMAL, &
+              mass_ele_transp )
 
          CALL SOLVER( ACV, SATURA, CV_RHS, &
               FINACV, COLACV, &
@@ -1402,7 +1409,7 @@
       REAL, PARAMETER :: V_BETA = 1.0
       LOGICAL, PARAMETER :: GETCV_DISC = .FALSE., GETCT= .TRUE., THERMAL= .FALSE.
       REAL, DIMENSION( : ), allocatable :: ACV, CV_RHS, SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2, &
-           SAT_FEMT, DEN_FEMT
+           SAT_FEMT, DEN_FEMT, dummy_transp
       REAL, DIMENSION( :,:,:,: ), allocatable :: TDIFFUSION
       REAL, DIMENSION( : ), allocatable :: SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, SUF_T2_BC
       INTEGER, DIMENSION( : ), allocatable :: WIC_T2_BC
@@ -1430,6 +1437,7 @@
       ALLOCATE( MEAN_PORE_CV( CV_NONODS ))
       ALLOCATE( SAT_FEMT( NPHASE * CV_NONODS ) )
       ALLOCATE( DEN_FEMT( NPHASE * CV_NONODS ) )
+      allocate( dummy_transp( totele ) )
 
       TDIFFUSION = 0.0
 
@@ -1499,7 +1507,8 @@
            SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
            NOIT_DIM, &
            MEAN_PORE_CV, &
-           FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, THERMAL )
+           FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, THERMAL, &
+           dummy_transp )
 
       ewrite(3,*)'Back from cv_assemb'
 

@@ -241,7 +241,7 @@ contains
     integer, dimension( cv_nonods + 1 ), intent (in ) :: findm
     integer, dimension( mx_ncolm ), intent (in ) :: colm
     integer, dimension( cv_nonods ), intent (in ) :: midm
-    
+
     logical, intent(in) :: have_temperature_fields, scale_momentum_by_volume_fraction 
     real, dimension( cv_nonods * nphase ), intent( inout ) :: cv_one
     integer, intent(in) :: nits_flux_lim_t
@@ -271,7 +271,7 @@ contains
     integer :: igot_t2, igot_theta_flux
     integer :: scvngi_theta, cv_ngi, cv_ngi_short, sbcvngi, nface, cv_nodi, IPLIKE_GRAD_SOU
 
-    real, dimension( : ), allocatable :: T_FEMT
+    real, dimension( : ), allocatable :: T_FEMT, mass_ele, dummy_ele
 
     real :: finish_time
     integer :: dump_period_in_timesteps
@@ -301,6 +301,8 @@ contains
     allocate( V_SOURCE_COMP( cv_nonods * nphase )) ; V_SOURCE_COMP = 0.0
 
     allocate( PLIKE_GRAD_SOU_GRAD( cv_nonods * nphase ))
+    allocate( mass_ele( totele ) ) ; mass_ele = 0.
+    allocate( dummy_ele( totele ) ) ; dummy_ele = 0.
 
     ! Determine scvngi_theta:
     igot_t2 = 0
@@ -325,6 +327,24 @@ contains
     compold = comp
 
     DX = DOMAIN_LENGTH / REAL(TOTELE)
+
+
+    ewrite(3,*) 'suf_u_bc:'
+    do iphase = 1, nphase
+       ewrite(3,*) suf_u_bc( ( iphase - 1 ) * stotel * u_snloc  + 1 : &
+            iphase * stotel * u_snloc  )
+    end do
+
+    ewrite(3,*)'suf_comp_bc:', stotel, cv_snloc
+    do icomp = 1, ncomp
+       do iphase = 1, nphase
+          ewrite(3,*) icomp, iphase, suf_comp_bc( ( icomp - 1 ) * nphase * stotel * cv_snloc + &
+               ( iphase - 1 ) * stotel * cv_snloc + 1 : &
+               ( icomp - 1 ) * nphase * stotel * cv_snloc + &
+               ( iphase - 1 ) * stotel * cv_snloc + stotel * cv_snloc )
+          ewrite(3,*)' '
+       end do
+    end do
 
     call get_option("/timestepping/current_time", acctim)
     call get_option("/timestepping/timestep", dt)
@@ -433,7 +453,9 @@ contains
                   NOIT_DIM, &
                   nits_flux_lim_t, &
                   MEAN_PORE_CV, &
-                  option_path = '/material_phase[0]/scalar_field::Temperature', thermal=.true. )                  
+                  option_path = '/material_phase[0]/scalar_field::Temperature', &
+                  mass_ele_transp = dummy_ele, &
+                  thermal = .true. )                  
 
              CALL calculate_multiphase_density( state, CV_NONODS, CV_PHA_NONODS, DEN, DERIV, &
                   T, CV_P )
@@ -456,11 +478,20 @@ contains
              CALL calculate_capillary_pressure( state, CV_NONODS, NPHASE, PLIKE_GRAD_SOU_GRAD, SATURA )
           ENDIF
 
-          V_SOURCE_STORE = V_SOURCE + V_SOURCE_COMP 
+          ewrite(3,*)'v_source_store b4:', r2norm( v_source_store, cv_nonods * nphase )
+
+
+          V_SOURCE_STORE = V_SOURCE + V_SOURCE_COMP
+
+
+
+          ewrite(3,*)'v_source_store after:', r2norm( v_source_store, cv_nonods * nphase )
+          ewrite(3,*)'vel b4:', r2norm( u, u_nonods * nphase )
 
           ewrite(3,*)'ITIME,ITS,NITS:',ITIME,ITS,NITS
 
-          !ewrite(3,*)'satura:',satura
+          ewrite(3,*)'vel b4 forcebalance at', its, itime, r2norm(u, nphase * u_nonods), &
+               r2norm( cv_p, cv_nonods )
           !ewrite(3,*)'saturaold:',saturaold
 
           IF( NCOMP <= 1 ) THEN
@@ -473,6 +504,35 @@ contains
              uden = den
              udenold = denold
           end if
+
+          !ewrite(3,*)'time and iter:', itime, its
+          !ewrite(3,*)'fck1:', NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
+          !     U_ELE_TYPE, P_ELE_TYPE, &
+          !     U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
+          !     U_SNLOC, P_SNLOC, CV_SNLOC, CV_ELE_TYPE, V_DISOPT, V_DG_VEL_INT_OPT, V_THETA, &
+          !     XU_NLOC, NDPSET
+
+          !ewrite(3,*)'fck2:', r2norm( x, x_nonods ), r2norm( u_abs_stab, mat_nonods * ndim * &
+          !     nphase * ndim * nphase ), r2norm( u, u_nonods * nphase ), r2norm( uold, &
+          !     u_nonods * nphase ), r2norm( cv_p, cv_nonods ), r2norm( den, cv_nonods * nphase ), &
+          !     r2norm( satura, cv_nonods * nphase ), dt
+
+          !ewrite(3,*)'fck3:', r2norm( nu, u_nonods * nphase ), r2norm( suf_vol_bc, &
+          !    stotel * cv_snloc * nphase ), r2norm( suf_d_bc, stotel * cv_snloc * nphase ), &
+          !    r2norm( suf_u_bc, stotel * u_snloc * nphase ), r2norm( v_source_store, &
+          !    cv_nonods * nphase ), r2norm( v_absorb, cv_nonods*nphase*nphase ), &
+          !    r2norm(volfra_pore, totele )
+
+          !ewrite(3,*)'fck4:', NOPT_VEL_UPWIND_COEFS, r2norm(OPT_VEL_UPWIND_COEFS, &
+          !    NOPT_VEL_UPWIND_COEFS), IGOT_THETA_FLUX, SCVNGI_THETA, VOLFRA_USE_THETA_FLUX, &
+          !    r2norm(SUM_THETA_FLUX, totele * igot_theta_flux * cv_nloc * scvngi_theta * &
+          !    nphase), r2norm(SUM_ONE_M_THETA_FLUX, totele * igot_theta_flux * cv_nloc * &
+          !    scvngi_theta * nphase ), r2norm( theta_gdiff, cv_nonods * nphase )
+
+          !          ewrite(3,*)'fck5:', 
+
+          !          ewrite(3,*)'fck6:', 
+
 
           CALL FORCE_BAL_CTY_ASSEM_SOLVE( &
                NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
@@ -509,6 +569,9 @@ contains
                IN_ELE_UPWIND, DG_ELE_UPWIND, &
                NOIT_DIM, &
                IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD,scale_momentum_by_volume_fraction ) 
+
+          ewrite(3,*)'vel after force_bal:', r2norm( u, u_nonods * nphase ), &
+               r2norm( cv_p, cv_nonods )
 
           if (SIG_INT) exit Loop_ITS
 
@@ -554,7 +617,8 @@ contains
                IN_ELE_UPWIND, DG_ELE_UPWIND, &
                NOIT_DIM, &
                NITS_FLUX_LIM_VOLFRA, &
-               option_path = '/material_phase[0]/scalar_field::PhaseVolumeFraction')
+               option_path = '/material_phase[0]/scalar_field::PhaseVolumeFraction', &
+               mass_ele_transp = mass_ele )
 
           if (SIG_INT) exit Loop_ITS
 
@@ -583,7 +647,10 @@ contains
                   .false., K_COMP, &
                   DENOLD, SATURAOLD, &
                   VOLFRA_PORE, COMP_ABSORB, &
-                  TOTELE, CV_NLOC, CV_NDGLN )
+                  TOTELE, CV_NLOC, CV_NDGLN, mass_ele )
+
+             ewrite(3,*) 'absorb, source b4:', r2norm( comp_absorb, cv_nonods * nphase * nphase ), &
+                  r2norm(V_SOURCE_COMP, cv_nonods * nphase)
 
              IF( have_option("/material_phase[" // int2str(nstates-ncomp) // &
                   "]/is_multiphase_component/KComp_Sigmoid" )) THEN
@@ -608,6 +675,9 @@ contains
                    ENDIF
                 END DO
              END IF
+
+             ewrite(3,*) 'absorb, source after1:', r2norm( comp_absorb, cv_nonods * nphase &
+                  * nphase ), r2norm(V_SOURCE_COMP, cv_nonods * nphase)
 
              ! Calculate the diffusion COMP_DIFFUSION...        
              CALL CALC_COMP_DIF( NDIM, NPHASE, COMP_DIFFUSION_OPT, MAT_NONODS, &
@@ -637,12 +707,13 @@ contains
                      NU, NV, NW, NUOLD, NVOLD, NWOLD, &
                      UG, VG, WG, &
                      COMP(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 : ICOMP * NPHASE * CV_NONODS ), &
-                     &        COMPOLD(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 : ICOMP * NPHASE * CV_NONODS ), &
+                     COMPOLD(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 : ICOMP * NPHASE * CV_NONODS ), &
                      DEN, DENOLD,  &
                      MAT_NLOC, MAT_NDGLN, MAT_NONODS, COMP_DIFFUSION, &
-                     V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, V_BETA, &
+                     0, V_DG_VEL_INT_OPT, DT, V_THETA, V_BETA, &
+                     !V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, V_BETA, &
                      SUF_COMP_BC( 1 + STOTEL * CV_SNLOC * NPHASE *( ICOMP - 1 ) : STOTEL * CV_SNLOC * NPHASE * ICOMP ), &
-                     &        SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, &
+                     SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, &
                      SUF_COMP_BC_ROB1, SUF_COMP_BC_ROB2,  &
                      WIC_COMP_BC, WIC_D_BC, WIC_U_BC, &
                      DERIV, P, &
@@ -650,7 +721,6 @@ contains
                      NDIM,  &
                      NCOLM, FINDM, COLM, MIDM, &
                      XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, LUMP_EQNS, &
-                     !OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, Comp_FEMT(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 ), Den_FEMT, & 
                      OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
                      Comp_FEMT(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 : &
                      ICOMP * NPHASE * CV_NONODS ), Den_FEMT, & 
@@ -660,8 +730,9 @@ contains
                      NOIT_DIM, &
                      NITS_FLUX_LIM_COMP, &
                      MEAN_PORE_CV, &
-                     option_path = '/material_phase[0]/scalar_field::PhaseVolumeFraction', thermal=.false.) ! the false means that we don't add an extra source term
-                                                                                                            ! at the cv_rhs needed for the internal energy equation
+                     option_path = '/material_phase[0]/scalar_field::PhaseVolumeFraction', &
+                     mass_ele_transp = dummy_ele, &
+                     thermal=.false. )! the false means that we don't add an extra source term
                 do iphase = 1, nphase
                    ewrite(3,*) 'icomp, iphase, comp:', icomp, iphase, &
                         comp( ( icomp - 1 ) * nphase * cv_nonods + ( iphase - 1 ) * cv_nonods + 1 : &
@@ -679,7 +750,8 @@ contains
                    DO CV_NODI = 1, CV_NONODS
                       V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) = &
                            V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) - &
-                           COMP_ABSORB( CV_NODI, IPHASE, JPHASE ) * &
+                                !COMP_ABSORB( CV_NODI, IPHASE, JPHASE ) * &
+                           .0 * COMP_ABSORB( CV_NODI, IPHASE, JPHASE ) * &
                            COMP( CV_NODI + ( JPHASE - 1 ) * CV_NONODS + &
                            ( ICOMP - 1 ) * NPHASE * CV_NONODS )
                    END DO
@@ -688,7 +760,12 @@ contains
 
              if (SIG_INT) exit Loop_COMPONENTS
 
+             ewrite(3,*) 'absorb, source b4-2:', r2norm( comp_absorb, cv_nonods * nphase * &
+                  nphase ), r2norm(V_SOURCE_COMP, cv_nonods * nphase)
+
           END DO Loop_COMPONENTS
+
+          ewrite(3,*)'V_SOURCE_COMP b4:', r2norm(V_SOURCE_COMP, cv_nonods * nphase)
 
           IF( have_option("/material_phase[" // int2str(nstates-ncomp) // &
                "]/is_multiphase_component/Comp_Sum2One") .AND. ( NCOMP2 > 1 ) ) THEN
@@ -696,6 +773,8 @@ contains
              CALL CAL_COMP_SUM2ONE_SOU( V_SOURCE_COMP, CV_NONODS, NPHASE, NCOMP2, DT, ITS, NITS,  &  
                   MEAN_PORE_CV, SATURA, SATURAOLD, DEN, DENOLD, COMP, COMPOLD ) 
           ENDIF
+
+          ewrite(3,*)'V_SOURCE_COMP after:', r2norm(V_SOURCE_COMP, cv_nonods * nphase)
 
           ewrite(3,*)'Finished VOLFRA_ASSEM_SOLVE ITS,nits,ITIME:',ITS,nits,ITIME
 
@@ -734,7 +813,7 @@ contains
           if (SIG_INT) exit Loop_ITS
 
        END DO Loop_ITS
-!if( itime > 3 ) stop 12
+       !if( itime > 3 ) stop 12
        call set_option("/timestepping/current_time", ACCTIM)
        call set_option("/timestepping/timestep", dt)
 

@@ -41,7 +41,7 @@
          KCOMP_SIGMOID, K_COMP2, &
          DENOLD, SATURAOLD, &
          VOLFRA_PORE, COMP_ABSORB, &
-         TOTELE, CV_NLOC, CV_NDGLN )
+         TOTELE, CV_NLOC, CV_NDGLN, mass_ele )
 
       ! Calculate compositional model linkage between the phase expressed in COMP_ABSORB. 
       ! Use values from the previous time step so its easier to converge. 
@@ -56,6 +56,7 @@
       REAL, DIMENSION( TOTELE ), intent( in ) :: VOLFRA_PORE
       REAL, DIMENSION( CV_NONODS, NPHASE, NPHASE  ), intent( inout ) :: COMP_ABSORB
       INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in ) :: CV_NDGLN
+      real, dimension( totele ), intent( in ) :: mass_ele
 
       ! Local Variables
       INTEGER :: IPHASE, JPHASE, ELE, CV_ILOC, CV_NOD, JCOMP
@@ -74,8 +75,8 @@
       DO ELE = 1, TOTELE
          DO CV_ILOC = 1, CV_NLOC
             CV_NOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_ILOC ) 
-            SUM_NOD( CV_NOD ) = SUM_NOD( CV_NOD ) + 1.0
-            VOLFRA_PORE_NOD( CV_NOD ) = VOLFRA_PORE_NOD( CV_NOD ) + VOLFRA_PORE( ELE )
+            SUM_NOD( CV_NOD ) = SUM_NOD( CV_NOD ) + mass_ele( ele ) !1.0
+            VOLFRA_PORE_NOD( CV_NOD ) = VOLFRA_PORE_NOD( CV_NOD ) + VOLFRA_PORE( ELE ) * mass_ele( ele )
          END DO
       END DO
       VOLFRA_PORE_NOD = VOLFRA_PORE_NOD / SUM_NOD
@@ -130,12 +131,15 @@
 
             END DO
          END DO
+
+ewrite(3,*)'cv_nod, alpha:', cv_nod, alpha( cv_nod )
       END DO
 
-
-      ewrite(3,*)'comp_ABSORB:',&
-           ( ( comp_ABSORB( 1, iphase, jphase ), iphase = 1, nphase ), &
-           jphase = 1, nphase )
+      do cv_nod = 1, cv_nonods
+         ewrite(3,*)'comp_ABSORB:',&
+              ( ( comp_ABSORB( cv_nod, iphase, jphase ), iphase = 1, nphase ), &
+              jphase = 1, nphase )
+      end do
 
       DEALLOCATE( ALPHA )
       DEALLOCATE( SUM_NOD )
@@ -739,7 +743,7 @@
       ! =0 is no adjustment. 
       ! Local variables...
       !    REAL, PARAMETER :: SUM2ONE_RELAX = 0.25
-      REAL, PARAMETER :: SUM2ONE_RELAX = 0.1
+      REAL, PARAMETER :: SUM2ONE_RELAX = 1.e-5  !0.1
       !REAL, PARAMETER :: SUM2ONE_RELAX = 0.99
       INTEGER :: IPHASE, CV_NODI, ICOMP
       REAL :: RSUM
@@ -765,7 +769,7 @@
                   RSUM=RSUM+COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS &
                        + ( ICOMP - 1 ) * NPHASE * CV_NONODS )
                END DO
-               !          ewrite(3,*)'IPHASE,CV_NODI,S,COMP_SUM:',IPHASE,CV_NODI,SATURA( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ),RSUM
+               ewrite(3,*)'IPHASE,CV_NODI,S,COMP_SUM:',IPHASE,CV_NODI,SATURA( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ),RSUM
 
             ELSE
 

@@ -66,7 +66,8 @@
          SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
          NOIT_DIM, &
          MEAN_PORE_CV, &
-         FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, THERMAL )
+         FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, THERMAL, &
+         MASS_ELE_TRANSP )
 
       !  =====================================================================
       !     In this subroutine the advection terms in the advection-diffusion
@@ -251,6 +252,7 @@
       REAL, DIMENSION( NOPT_VEL_UPWIND_COEFS ), intent( in ) :: OPT_VEL_UPWIND_COEFS
       INTEGER, INTENT( IN ) :: NOIT_DIM
       REAL, DIMENSION( CV_NONODS ), intent( inout ) :: MEAN_PORE_CV
+      REAL, DIMENSION( TOTELE ), intent( inout ) :: MASS_ELE_TRANSP
 
       ! Local variables 
       LOGICAL, PARAMETER :: INCLUDE_PORE_VOL_IN_DERIV = .FALSE.
@@ -448,7 +450,7 @@
          ! solve for actual velocity
          ONE_PORE = VOLFRA_PORE
       ELSE
-         ! solve for vel=porcity*actual velocity
+         ! solve for vel=porosity*actual velocity
          ONE_PORE = 1.0
       ENDIF
 
@@ -539,6 +541,14 @@
            SELE_OVERLAP_SCALE, QUAD_OVER_WHOLE_ELE )  
 
       ewrite(3,*)'back in cv-adv-dif'
+      do iphase = 1, nphase
+         ewrite(3,*) 'Phase', iphase, ',', 'suf_t_bc:', &
+              suf_t_bc( ( iphase - 1 ) * cv_snloc * stotel + 1 : iphase * cv_snloc * stotel )
+         ewrite(3,*)''
+         ewrite(3,*)' Now suf_u_bc:', &
+              suf_u_bc( ( iphase - 1 ) * u_snloc * stotel + 1 : iphase * u_snloc * stotel ) 
+         ewrite(3,*)''
+      end do
       !do cv_iloc = 1, cv_nloc
       !ewrite(3,*)'iloc, cv_on_face:', cv_iloc, &
       !( cv_on_face( cv_iloc, gi ), gi = 1, scvngi )
@@ -580,6 +590,8 @@
            CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, &
            X_NONODS, X, Y, Z, NCOLM, FINDM, COLM, MIDM, &
            IGETCT, MASS_MN_PRES, FINDCMC, COLCMC, NCOLCMC )
+
+      MASS_ELE_TRANSP = MASS_ELE
 
       NORMALISE = .false.
       IF( NORMALISE ) THEN
@@ -623,9 +635,9 @@
       ! the node value and all its surrounding nodes including Dirichlet b.c's.
       CALL SURRO_CV_MINMAX( TMAX, TMIN, TOLDMAX, TOLDMIN, DENMAX, DENMIN, DENOLDMAX, DENOLDMIN, &
            T2MAX, T2MIN, T2OLDMAX, T2OLDMIN, &
-         TMAX_2ND_MC, TMIN_2ND_MC, TOLDMAX_2ND_MC, TOLDMIN_2ND_MC, DENMAX_2ND_MC, DENMIN_2ND_MC, DENOLDMAX_2ND_MC, DENOLDMIN_2ND_MC, &
-         T2MAX_2ND_MC, T2MIN_2ND_MC, T2OLDMAX_2ND_MC, T2OLDMIN_2ND_MC, &
-         LIMIT_USE_2ND, &
+           TMAX_2ND_MC, TMIN_2ND_MC, TOLDMAX_2ND_MC, TOLDMIN_2ND_MC, DENMAX_2ND_MC, DENMIN_2ND_MC, DENOLDMAX_2ND_MC, DENOLDMIN_2ND_MC, &
+           T2MAX_2ND_MC, T2MIN_2ND_MC, T2OLDMAX_2ND_MC, T2OLDMIN_2ND_MC, &
+           LIMIT_USE_2ND, &
            T, TOLD, T2, T2OLD, DEN, DENOLD, IGOT_T2, NPHASE, CV_NONODS, NCOLACV, FINACV, COLACV, &
            STOTEL, CV_SNLOC, CV_SNDGLN, SUF_T_BC, SUF_T2_BC, SUF_D_BC, WIC_T_BC, WIC_T2_BC, WIC_D_BC, &
            WIC_T_BC_DIRICHLET, WIC_T_BC_DIRI_ADV_AND_ROBIN, &
@@ -645,7 +657,7 @@
          !femt(:)=x(:)
          CALL DG_DERIVS( FEMT, FEMTOLD, &
               NDIM, NPHASE, CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
-              !NGI2, CV_NLOC, N2, WEIGHT2, N2, NLX2, NLY2, NLY2, &
+                                !NGI2, CV_NLOC, N2, WEIGHT2, N2, NLX2, NLY2, NLY2, &
               CV_NGI_SHORT, CV_NLOC, CVWEIGHT_SHORT, CVFEN_SHORT, &
               CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, &
               X_NONODS, X, Y, Z,  &
@@ -719,7 +731,7 @@
                        TOTELE, X_NLOC, XU_NLOC, X_NDGLN, CV_NDGLN, XU_NDGLN, &
                        CV_SNLOC, CVFEM_ON_FACE, SCVNGI, GI, X_SHARE, X_NONODS, ELE, ELE2,  &
                        FINELE, COLELE, NCOLELE )
-                
+
                   !ewrite(3,*)'================================================================================= '
                   !ewrite(3,*)' ele, cv_iloc, cv_nodi, gi, cv_jloc: ', ele, cv_iloc, cv_nodi, gi, cv_jloc
                   !ewrite(3,*)' ele2, integrat_at_gi:', ele2, integrat_at_gi
@@ -878,8 +890,8 @@
                              MASS_CV, TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, TOLDMAX_NOD, &
                              DENMIN_NOD, DENMAX_NOD, DENOLDMIN_NOD, DENOLDMAX_NOD, &
                              T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD, IGOT_T2, &
-         TMIN_2ND_MC, TOLDMIN_2ND_MC, T2MIN_2ND_MC, T2OLDMIN_2ND_MC, DENMIN_2ND_MC, DENOLDMIN_2ND_MC, &
-         TMAX_2ND_MC, TOLDMAX_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, DENMAX_2ND_MC, DENOLDMAX_2ND_MC, LIMIT_USE_2ND)
+                             TMIN_2ND_MC, TOLDMIN_2ND_MC, T2MIN_2ND_MC, T2OLDMIN_2ND_MC, DENMIN_2ND_MC, DENOLDMIN_2ND_MC, &
+                             TMAX_2ND_MC, TOLDMAX_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, DENMAX_2ND_MC, DENOLDMAX_2ND_MC, LIMIT_USE_2ND)
 
                         SUM_LIMT    = SUM_LIMT    + LIMT
                         SUM_LIMTOLD = SUM_LIMTOLD + LIMTOLD
@@ -958,8 +970,8 @@
                              MASS_CV, TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, TOLDMAX_NOD, &
                              DENMIN_NOD, DENMAX_NOD, DENOLDMIN_NOD, DENOLDMAX_NOD, &
                              T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD, IGOT_T2, &
-         TMIN_2ND_MC, TOLDMIN_2ND_MC, T2MIN_2ND_MC, T2OLDMIN_2ND_MC, DENMIN_2ND_MC, DENOLDMIN_2ND_MC, &
-         TMAX_2ND_MC, TOLDMAX_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, DENMAX_2ND_MC, DENOLDMAX_2ND_MC, LIMIT_USE_2ND)
+                             TMIN_2ND_MC, TOLDMIN_2ND_MC, T2MIN_2ND_MC, T2OLDMIN_2ND_MC, DENMIN_2ND_MC, DENOLDMIN_2ND_MC, &
+                             TMAX_2ND_MC, TOLDMAX_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, DENMAX_2ND_MC, DENOLDMAX_2ND_MC, LIMIT_USE_2ND)
 
                      END DO
 
@@ -1059,16 +1071,16 @@
                                       +  FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX *T(CV_NODJ_IPHA) !Diffusion contribution
                               ENDIF
                            ELSE IF(SELE/=0) THEN
-                             IF(WIC_T_BC(SELE+(IPHASE-1)*STOTEL) == WIC_T_BC_DIRICHLET) THEN
-                              CV_RHS( CV_NODI_IPHA ) =  CV_RHS( CV_NODI_IPHA )  &
-                                   + FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX  &
-                                   *SUF_T_BC(CV_SILOC+(SELE-1)*CV_SNLOC + (IPHASE-1)*STOTEL*CV_SNLOC)
-                              IF(GET_GTHETA) THEN
-                                 THETA_GDIFF( CV_NODI_IPHA ) =  THETA_GDIFF( CV_NODI_IPHA ) &
+                              IF(WIC_T_BC(SELE+(IPHASE-1)*STOTEL) == WIC_T_BC_DIRICHLET) THEN
+                                 CV_RHS( CV_NODI_IPHA ) =  CV_RHS( CV_NODI_IPHA )  &
                                       + FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX  &
                                       *SUF_T_BC(CV_SILOC+(SELE-1)*CV_SNLOC + (IPHASE-1)*STOTEL*CV_SNLOC)
+                                 IF(GET_GTHETA) THEN
+                                    THETA_GDIFF( CV_NODI_IPHA ) =  THETA_GDIFF( CV_NODI_IPHA ) &
+                                         + FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX  &
+                                         *SUF_T_BC(CV_SILOC+(SELE-1)*CV_SNLOC + (IPHASE-1)*STOTEL*CV_SNLOC)
+                                 ENDIF
                               ENDIF
-                             ENDIF
                            ENDIF
 
                            IMID_IPHA = MIDACV( CV_NODI_IPHA )
@@ -1318,20 +1330,20 @@
       !ewrite(3,*) '----------sub cv_assemb--------'
       !ewrite(3,*) 'cv_rhs:', cv_rhs
       !ewrite(3,*) 'ct_rhs:', ct_rhs
-    if( .false. .and. (getct)) then
-       print *,'ct(1:ncolct);',ct(1:ncolct)
-       print *,'ct(1+ncolct:2*ncolct);',ct(1+ncolct:2*ncolct)
-       stop 838
-    endif
-     ! if( (thermal) .and. (.not.getct)) then
+      if( .false. .and. (getct)) then
+         print *,'ct(1:ncolct);',ct(1:ncolct)
+         print *,'ct(1+ncolct:2*ncolct);',ct(1+ncolct:2*ncolct)
+         stop 838
+      endif
+      ! if( (thermal) .and. (.not.getct)) then
 
       if (.false.) then
-        print *,'cv_rhs:',cv_rhs
-        stop 3737
+         print *,'cv_rhs:',cv_rhs
+         stop 3737
       endif
       !ewrite(3,*) '----------sub cv_assemb--------'
 
-    !  if (getct .and. .true.) then
+      !  if (getct .and. .true.) then
       if (.false.) then
          allocate(du(u_nonods*nphase));du=0.
          allocate(dv(u_nonods*nphase));dv=0.

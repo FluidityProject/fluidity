@@ -842,7 +842,7 @@
               u, v, w, nu, nv, nw, &
               wic_u_bc, suf_u_bc, suf_v_bc, suf_w_bc, u_source, vel_absorb, is_overlapping )
 
-      end do Loop_Velocity
+      end do Loop_Velocity    
 
       allocate( comp_absorb( cv_nonods, nphases, nphases ) ) 
       allocate( t_absorb( cv_nonods, nphases, nphases ) ) 
@@ -2204,10 +2204,14 @@
          v_disopt = 6 ! Unless theta=non_linear ???
       elseif (have_option('/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
            'spatial_discretisation/control_volumes/face_value::FiniteElement/limit_face_value')) then
-         v_disopt = 8 !! Unless all the other options, but need to be able to get 8 here
-      endif
-
-      v_disopt = 5
+         if( have_option( '/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
+              'spatial_discretisation/control_volumes/face_value::FiniteElement/' // &
+              'limit_face_value/limiter::Sweby' ) ) then
+            v_disopt = 5 !! Unless all the other options, but need to be able to get 8 here
+         else
+            v_disopt = 8
+         end if
+      endif 
 
       call get_option('/material_phase[0]/scalar_field::Temperature/prognostic/' // &
            'spatial_discretisation/conservative_advection', t_beta, default=0.0)
