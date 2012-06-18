@@ -1254,7 +1254,7 @@
             !
             DETJ= AGI*DGI-BGI*CGI 
             RA(GI)=RGI
-            DETWEI(GI)=TWOPIE*RGI*DETJ*WEIGHT(GI)
+            DETWEI(GI)=TWOPIE*RGI*ABS(DETJ)*WEIGHT(GI)
             VOLUME=VOLUME+DETWEI(GI)
             !
             do L=1,NLOC
@@ -1277,7 +1277,7 @@
             end do
             !
             DETJ = AGI 
-            DETWEI( GI ) = DETJ * WEIGHT( GI )
+            DETWEI( GI ) = ABS(DETJ) * WEIGHT( GI )
             VOLUME = VOLUME + DETWEI( GI )
             !
             do L = 1, NLOC

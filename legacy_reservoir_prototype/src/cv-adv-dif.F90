@@ -602,20 +602,21 @@
       DO ELE = 1, TOTELE
          DO CV_ILOC = 1, CV_NLOC
             CV_INOD = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_ILOC )
-            SUM_CV( CV_INOD )      = SUM_CV( CV_INOD ) + MASS_ELE( ELE )
+            SUM_CV( CV_INOD ) = SUM_CV( CV_INOD ) + MASS_ELE( ELE )
             MEAN_PORE_CV( CV_INOD ) = MEAN_PORE_CV( CV_INOD ) + & 
                  MASS_ELE( ELE ) * VOLFRA_PORE( ELE )
          END DO
       END DO
+
       MEAN_PORE_CV = MEAN_PORE_CV / SUM_CV
 
       !sum=0.0
       !DO ELE = 1, TOTELE
+      !   print *, ele, mass_ele(ele)
       !   sum=sum+mass_ele(ele)
       !end do
       !print *,'sum(mass_ele):',sum
       !stop 221
-
 
       ! For each node, find the largest and smallest value of T and 
       ! DENSITY for both the current and previous timestep, out of 
@@ -1252,7 +1253,6 @@
 
       IF(GETCT) THEN! Form the rhs of the discretised equations
          ! Determine CV pressure CV_P
-
          DIAG_SCALE_PRES = 0.0 ! Obtain the CV discretised CT eqations plus RHS
 
          DO IPHASE = 1, NPHASE

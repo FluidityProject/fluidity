@@ -7732,7 +7732,7 @@
 
             DETJ = AGI * DGI - BGI * CGI 
             RA( GI ) = RGI
-            DETWEI( GI ) = TWOPIE * RGI * DETJ * WEIGHT( GI )
+            DETWEI( GI ) = TWOPIE * RGI * ABS(DETJ) * WEIGHT( GI )
             VOLUME = VOLUME + DETWEI( GI )
 
             Loop_L5: DO L = 1, X_NLOC
@@ -7765,7 +7765,7 @@
 
             DETJ = AGI 
             RA( GI ) = 1.0
-            DETWEI( GI ) = DETJ * WEIGHT( GI )
+            DETWEI( GI ) = ABS(DETJ) * WEIGHT( GI )
             VOLUME = VOLUME + DETWEI( GI )
 
             Loop_L16: DO L = 1, X_NLOC
@@ -7870,7 +7870,7 @@
             IF(.NOT.DCYL) RGI = 1.0
 
             DETJ =  AGI * DGI - BGI * CGI 
-            DETWEI( GI ) = TWOPIE * RGI * DETJ * WEIGHT( GI )
+            DETWEI( GI ) = TWOPIE * RGI * ABS(DETJ) * WEIGHT( GI )
             VOLUME = VOLUME + DETWEI( GI )
          END DO
 

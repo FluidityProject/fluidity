@@ -631,18 +631,12 @@
             DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
                CV_JNOD = COLCMC( COUNT )
                ewrite(3,*) 'CV_JNOD,cmc(count), diag:', CV_JNOD, cmc(count), &
-                    DIAG_SCALE_PRES(CV_NOD)* MASS_MN_PRES(COUNT)
+                    DIAG_SCALE_PRES(CV_NOD), MASS_MN_PRES(COUNT)
 
             END DO
          END DO
          !stop 740
       endif
-
-
-      !print *, 'COLOR_GET_CMC_PHA - CMC::'
-      !print *, cmc
-      !print *, 'leaving COLOR_GET_CMC_PHA'
-
 
       DEALLOCATE( NEED_COLOR )
       DEALLOCATE( COLOR_VEC )

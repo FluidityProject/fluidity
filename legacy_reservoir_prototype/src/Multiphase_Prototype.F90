@@ -300,7 +300,7 @@ module mp_prototype
       ! Assume the DG representation requires the most stroage...
       mx_ncolcmc = mx_nface_p1**3 * cv_nloc * cv_nloc * totele  
 
-      mx_ncoldgm_pha = (mxnele + totele) * ( u_nloc * ndim *nphase)**2  
+      mx_ncoldgm_pha = ( mxnele + totele ) * ( u_nloc * ndim * nphase)**2
       mx_ncolmcy = mx_ncoldgm_pha + mx_nct + mx_nc + mx_ncolcmc
       mx_ncolacv = 3 * mx_nface_p1 * cv_nonods * nphase + cv_nonods * ( nphase - 1 ) * nphase
       mx_ncolm = mxnele * cv_nloc * cv_nloc * nphase
