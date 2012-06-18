@@ -54,6 +54,9 @@ module Coordinates
        spherical_polar_2_cartesian_c, &
        ll2r3_rotate, rotate2ll, &
        vector_spherical_polar_2_cartesian, vector_cartesian_2_spherical_polar, &
+       lon_lat_height_2_spherical_polar, spherical_polar_2_lon_lat_height, &
+       lon_lat_height_2_cartesian, cartesian_2_lon_lat_height, &
+       tensor_spherical_polar_2_cartesian, &
        higher_order_sphere_projection, &
        sphere_inward_normal_at_quad_ele, sphere_inward_normal_at_quad_face, &
        rotate_diagonal_to_cartesian_gi, rotate_diagonal_to_cartesian_face, &
