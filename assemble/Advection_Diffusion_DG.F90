@@ -2982,7 +2982,7 @@ contains
     implicit none
 
     type(vector_field), intent(in) :: X
-    type(scalar_field), pointer :: T
+    type(scalar_field), intent(in) :: T
     type(scalar_field), intent(in) :: buoyancy
     integer :: ele    !Element index
     real, intent(in) :: mixing_diffusion_amplitude
