@@ -1077,10 +1077,7 @@ contains
          
    end subroutine lumped_mass_galerkin_projection_scalar
 
-
-
-
-  subroutine construct_adv_diff_element_dg(ele, big_m, rhs, big_m_diff,&
+   subroutine construct_adv_diff_element_dg(ele, big_m, rhs, big_m_diff,&
        & rhs_diff, &
        & X, X_old, X_new, T, U_nl, U_mesh, Source, Absorption, Diffusivity,&
        & bc_value, bc_type, &
@@ -1258,9 +1255,10 @@ contains
     if(diffusion_scheme == CDG) primal = .true.
     if(diffusion_scheme == IP) primal =.true.
 
-    ! In parallel, we only construct the equations on elements we own.
+    ! In parallel, we only construct the equations on elements we own, or
+    ! those in the L1 halo.
     if (dg) then
-       if (.not.element_owned(T,ele)) then
+       if (.not.(element_owned(T, ele).or.element_neighbour_owned(T, ele))) then
           return
        end if
     end if
@@ -1716,18 +1714,18 @@ contains
                     finish=start+face_loc(T, face)-1
                     
                     if (i==1) then
-                      ! Wipe out boundary condition's coupling to itself.
-                      Diffusivity_mat(start:finish,:)=0.0
+                       ! Wipe out boundary condition's coupling to itself.
+                       Diffusivity_mat(start:finish,:)=0.0
                     else
                       
-                      ! Add BC into RHS
-                      !
-                      call addto(RHS_diff, local_glno, &
-                           & -matmul(Diffusivity_mat(:,start:finish), &
-                           & ele_val( bc_value, face )))
-                      
-                      ! Ensure it is not used again.
-                      Diffusivity_mat(:,start:finish)=0.0
+                       ! Add BC into RHS
+                       !
+                       call addto(RHS_diff, local_glno, &
+                            & -matmul(Diffusivity_mat(:,start:finish), &
+                            & ele_val( bc_value, face )))
+
+                       ! Ensure it is not used again.
+                       Diffusivity_mat(:,start:finish)=0.0
                       
                     end if
                   
@@ -1753,7 +1751,7 @@ contains
     if (include_diffusion.or.have_buoyancy_adjustment_by_vertical_diffusion) then
        call addto(Big_m_diff, local_glno, local_glno,&
             & Diffusivity_mat*theta*dt)
-       
+
        if (.not.semi_discrete) then
           call addto(RHS_diff, local_glno, &
                & -matmul(Diffusivity_mat, node_val(T, local_glno)))
@@ -2504,13 +2502,13 @@ contains
        end if
 
        ! Insert advection in RHS.
-       
+
        if (.not.dirichlet) then
           ! For interior interfaces this is the upwinding term. For a Neumann
           ! boundary it's necessary to apply downwinding here to maintain the
           ! surface integral. Fortunately, since face_2==face for a boundary
           ! this is automagic.
-          
+
           if (.not.semi_discrete) then
              call addto(RHS, T_face, &
                   ! Outflow boundary integral.
@@ -2525,7 +2523,7 @@ contains
           call addto(RHS, T_face, &
                -matmul(nnAdvection_in,&
                ele_val(bc_value, face)))
-          
+
           if(.not.semi_discrete) then
              ! The interior integral is still interior!
              call addto(RHS, T_face, &
@@ -2533,7 +2531,7 @@ contains
           end if
 
        end if
-       
+
     end if
 
   contains
