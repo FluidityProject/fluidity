@@ -2981,7 +2981,7 @@ contains
 
     implicit none
 
-    type(vector_field), pointer :: X
+    type(vector_field), intent(in) :: X
     type(scalar_field), pointer :: T
     type(scalar_field), intent(in) :: buoyancy
     integer :: ele    !Element index
