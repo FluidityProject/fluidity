@@ -2983,24 +2983,35 @@ contains
 
     implicit none
 
+    type(vector_field), pointer :: X
+    type(scalar_field), pointer :: T
+    type(scalar_field), intent(in) :: buoyancy
+    integer :: ele    !Element index
     real, intent(in) :: mixing_diffusion_amplitude
     real, dimension(mesh_dim(T), mesh_dim(T), T%mesh%shape%ngi) :: mixing_diffusion
     type(vector_field), intent(in) :: gravity_direction
     real, intent(in) :: gravity_magnitude
+    real, dimension(X%dim, X%dim, ele_loc(T, ele)) :: mixing_diffusion_rhs, &
+                                                      mixing_diffusion_loc
 
     real, dimension(ele_loc(T,ele), ele_ngi(T,ele), mesh_dim(T)) :: dt_rho
     real, dimension(mesh_dim(T), ele_ngi(T,ele)) :: density_grad_at_quad
-    real, dimension(mesh_dim(T),ele_ngi(T,ele)) :: gravityVector_at_quad
     real, dimension(mesh_dim(T),ele_ngi(T,ele)) :: positionVector_at_quad
+    real, dimension(mesh_dim(T),ele_ngi(T,ele)) :: gravityVector_at_quad
+    real, dimension(mesh_dim(T),ele_ngi(T,ele)) :: unitVector_at_quad
     real, dimension(X%dim) :: pos, unitVector_at_node
     real, dimension(ele_loc(T, ele), ele_loc(T, ele)) :: t_mass 
     real, dimension(ele_ngi(T, ele)) :: detwei_rho
     integer, dimension(:), pointer :: enodes
     real, dimension(ele_loc(X,ele)) :: rad
     real :: dr
-    integer :: i, j, inode
+    integer :: i, j
     real, dimension(ele_ngi(T,ele)) :: vertical_density_grad_at_quad
     real, dimension(mesh_dim(T), mesh_dim(T), ele_ngi(T,ele)) :: mixing_diffusion_localCoords
+    real, dimension(3) :: XYZ, & !x, y and z coordinates of position
+                          RTP    !radius, theta (polar angle) and phi
+                                 !(azimuthal angle): spherical-polar
+                                 !coordinates of position.
 
     assert(ele_ngi(T, ele) == ele_ngi(buoyancy, ele))
     call transform_to_physical(X, ele, ele_shape(buoyancy,ele), &
@@ -3050,10 +3061,15 @@ contains
     ! must be transformed to a Cartesian basis. If not on-the-sphere, the gravity
     ! vector is assumed to point in the negative z-direction.
     if (on_sphere) then
-      do j = 1, ele_ngi(ele)
+      do j = 1, ele_ngi(T, ele)
+        XYZ(1) = positionVector_at_quad(1,j)
+        XYZ(2) = positionVector_at_quad(2,j)
+        XYZ(3) = positionVector_at_quad(3,j)
+        call cartesian_2_spherical_polar(XYZ(1), XYZ(2), XYZ(3), &
+                                         RTP(1), RTP(2), RTP(3))
         call tensor_spherical_polar_2_cartesian(mixing_diffusion_localCoords(:,:,j), &
                                                 RTP(1), RTP(2), RTP(3), &
-                                                mixing_diffusion, &
+                                                mixing_diffusion(:,:,j), &
                                                 XYZ(1), XYZ(2), XYZ(3))
       enddo
     else
