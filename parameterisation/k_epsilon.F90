@@ -56,6 +56,7 @@ implicit none
   logical, save                       :: vles
 
   public :: keps_init, keps_cleanup, keps_tke, keps_eps, keps_eddyvisc, keps_bcs, keps_adapt_mesh, keps_check_options
+  public :: double_dot_product
 
   ! Outline:
   !  - Init in populate_state.
@@ -943,7 +944,7 @@ subroutine keps_wall_function(field1,field2,positions,u,bg_visc,EV,ele,sele,inde
           ! calculate wall-normal element size
           h = surface_normal_distance_sele(positions, sele, ele)
           ! Von Karman's constant
-          kappa = 0.43
+          kappa = 0.4
 
           rhs = shape_rhs(fshape, detwei_bdy*ustar**1.5/kappa/h)
           rhs = rhs/lumpedfmass

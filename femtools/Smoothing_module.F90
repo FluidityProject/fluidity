@@ -17,7 +17,7 @@ module smoothing_module
   
   public :: smooth_scalar, smooth_vector, smooth_tensor
   public :: anisotropic_smooth_scalar, anisotropic_smooth_vector
-  public :: anisotropic_smooth_tensor, length_scale, length_scale_tensor
+  public :: anisotropic_smooth_tensor, length_scale, average_length_scale, length_scale_tensor
 
 contains
 
@@ -346,7 +346,7 @@ contains
 
     ! Calculate filter width (using Deardorff's proposal?)
     ! width = (volume)^(1/3)
-    w = length_scale(positions, ele)
+    w = average_length_scale(positions, ele)
     alpha_quad=0.
     !value of tensor at quads
     forall(i=1:ele_ngi(positions,ele))
@@ -698,7 +698,7 @@ contains
   end subroutine assemble_anisotropic_smooth_tensor
 
   function length_scale(positions, ele) result(s)
-    ! Computes a length scale scalar for LES models
+    ! Computes a scalar length scale for LES models
     ! Preserves element volume. (units are in length^2)
     type(vector_field), intent(in) :: positions
     real :: s
@@ -711,6 +711,35 @@ contains
     s=s**(2./dim)
 
   end function length_scale
+
+  function average_length_scale(positions, ele) result(s)
+    ! Computes a scalar length scale for LES models
+    ! Preserves element volume. (units are in length^2)
+    ! Averages over neighbouring elements to reduce anisotropy
+    type(vector_field), intent(in) :: positions
+    real :: s
+    integer, intent(in) :: ele
+    integer :: dim, i, ele2
+    integer, dimension(:), pointer :: patch
+
+    dim=positions%dim
+    s=element_volume(positions, ele)**(2./dim)
+    ewrite(2,*) 's', s
+    patch => ele_neigh(positions, ele)
+    ewrite(2,*) 'patch', patch
+    do i=1, size(patch)
+      ele2=patch(i)
+      if (ele2>0) then
+        ewrite(2,*) 'ele2', ele2
+        s=s+element_volume(positions, ele2)**(2./dim)
+        ewrite(2,*) 's2', s
+      end if
+    end do
+    
+    s=s/size(patch)
+    ewrite(2,*) 's3', s
+
+  end function average_length_scale
 
   function length_scale_tensor(du_t, shape) result(t)
     !! Computes a length scale tensor to be used in LES (units are in length^2)

@@ -28,9 +28,9 @@ def pressure(XX,t):
    return rho/4.*(cos(2.*x)+cos(2.*y))*(decay(t))**2.
 
 def exactfilter(field,width):
-   print field, width, field[:]*(1.-width/24.+width/576.)
+   print field, width, field[:]*(1.-width/24.+width**2./576.)
    # 4th order accurate Taylor expansion of Helmholtz filter
-   return field[:]*(1.-w/24.+w/576.)
+   return field[:]*(1.-w/24.+w**2./576.)
 
 def exactstrain(XX,t):
    x = XX[0]; y = XX[1]

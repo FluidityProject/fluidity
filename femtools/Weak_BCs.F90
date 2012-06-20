@@ -120,6 +120,7 @@
          bc_path_i = &
               trim(velocity%option_path)//"/prognostic/boundary_conditions"//"["//int2str(i-1)//"]"
 
+         ! This type does not exist in the schema
          if (bc_type=="outflow") then
 
             allocate(out_ele(size(surface_element_list)))
@@ -142,6 +143,8 @@
               trim(velocity%option_path)//"/prognostic/boundary_conditions"//"["//int2str(i-1)//"]"
 
          tolerance=0.; Cb=0.; have_Cb=.false.; Cf=0.
+         normal_nodes => extract_surface_field(velocity, i, "normal")
+
          if (bc_type=="near_wall_treatment") then
 
             call get_option( &
@@ -153,16 +156,6 @@
                  Cb, stat)
 
             have_Cb = stat == 0
-
-            normal_nodes => extract_surface_field(velocity, i, "normal")
-
-         else if (bc_type=="log_law_of_wall") then
-
-            call get_option( &
-                 trim(bc_path_i)//"/type::"//trim(bc_type)//"/surface_roughness", &
-                 Cf)
-
-            normal_nodes => extract_surface_field(velocity, i, "normal")
 
          end if
 
@@ -445,7 +438,6 @@
       else if (bc_type=="log_law_of_wall") then ! log law of the wall
 
          q = ( chi / (log ( (h / 2.) * Cf ) - 1.) )**2
-
 
          ! velocity parallel to the wall
          uh=0.

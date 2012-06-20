@@ -17,124 +17,103 @@ import numpy
 # background viscosity
 nu=0.01
 
+# time
+timep_12 = stat("stats/taylor-green-vortex-3d-periodic-12.stat")["ElapsedTime"]["value"]
+timep_24 = stat("stats/taylor-green-vortex-3d-periodic-24.stat")["ElapsedTime"]["value"]
+timep_48 = stat("stats/taylor-green-vortex-3d-periodic-48.stat")["ElapsedTime"]["value"]
+timep_64 = stat("stats/taylor-green-vortex-3d-periodic-64.stat")["ElapsedTime"]["value"]
+timedynlesp_12 = stat("stats/taylor-green-vortex-3d-dynles-periodic-12.stat")["ElapsedTime"]["value"]
+timedynlesp_24 = stat("stats/taylor-green-vortex-3d-dynles-periodic-24.stat")["ElapsedTime"]["value"]
+timedynlesp_48 = stat("stats/taylor-green-vortex-3d-dynles-periodic-48.stat")["ElapsedTime"]["value"]
+timedynlesp_64 = stat("stats/taylor-green-vortex-3d-dynles-periodic-64.stat")["ElapsedTime"]["value"]
+timedynlesap_12 = stat("stats/taylor-green-vortex-3d-dynles-aniso-periodic-12.stat")["ElapsedTime"]["value"]
+timedynlesap_24 = stat("stats/taylor-green-vortex-3d-dynles-aniso-periodic-24.stat")["ElapsedTime"]["value"]
+timean_12 = stat("stats/taylor-green-vortex-3d-analytical-periodic-12.stat")["ElapsedTime"]["value"]
+
 # vorticity L2 norm = sqrt(vort_x**2+vort_y**2+vort_z**2)
 # volume-average dissipation rate = nu*(vort_x**2+vort_y**2+vort_z**2)/volume
-
-time_12 = stat("taylor-green-vortex-3d-12.stat")["ElapsedTime"]["value"]
-#DNS
-vort_12 = stat("taylor-green-vortex-3d-12.stat")["Fluid"]["DissipationRate"]["l2norm"]
-vort_24 = stat("taylor-green-vortex-3d-24.stat")["Fluid"]["DissipationRate"]["l2norm"]
-vort_48 = stat("taylor-green-vortex-3d-48.stat")["Fluid"]["DissipationRate"]["l2norm"]
-#LES
-vort_les_12 = stat("taylor-green-vortex-3d-les-12.stat")["Fluid"]["DissipationRate"]["l2norm"]
-vort_les_24 = stat("taylor-green-vortex-3d-les-24.stat")["Fluid"]["DissipationRate"]["l2norm"]
-vort_les_48 = (stat("taylor-green-vortex-3d-les-48.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"])**2.*nu/(2.*pi)**3
-#dynles 12
-vort_dynles_12 = stat("taylor-green-vortex-3d-dynles-12.stat")["Fluid"]["DissipationRate"]["l2norm"]
-vort_dynlesa_12 = stat("taylor-green-vortex-3d-dynles-aniso-12-done.stat")["Fluid"]["DissipationRate"]["l2norm"]
-vort_dynlesa1_12 = stat("taylor-green-vortex-3d-dynles-a1-12.stat")["Fluid"]["DissipationRate"]["l2norm"]
-vort_dynlesa1a_12 = stat("taylor-green-vortex-3d-dynles-aniso-a1-12.stat")["Fluid"]["DissipationRate"]["l2norm"]
-vort_dynlesa1b1_12 = stat("taylor-green-vortex-3d-dynles-a1b1-12.stat")["Fluid"]["DissipationRate"]["l2norm"]
-vort_dynlesn_12 = stat("taylor-green-vortex-3d-dynles-nolimc-12.stat")["Fluid"]["DissipationRate"]["l2norm"]
-vort_dynlesau_12 = stat("taylor-green-vortex-3d-dynles-aniso-uns-12.stat")["Fluid"]["DissipationRate"]["l2norm"]
-#dynles 24
-vort_dynles_24 = stat("taylor-green-vortex-3d-dynles-24.stat")["Fluid"]["DissipationRate"]["l2norm"]
-vort_dynlesa_24 = stat("taylor-green-vortex-3d-dynles-aniso-24.stat")["Fluid"]["DissipationRate"]["l2norm"]
-vort_dynlesa1_24 = stat("taylor-green-vortex-3d-dynles-a1-24.stat")["Fluid"]["DissipationRate"]["l2norm"]
-vort_dynlesa1b1_24 = stat("taylor-green-vortex-3d-dynles-a1b1-24.stat")["Fluid"]["DissipationRate"]["l2norm"]
-vort_dynlesa1a_24 = stat("taylor-green-vortex-3d-dynles-aniso-a1-24.stat")["Fluid"]["DissipationRate"]["l2norm"]
-vort_dynlesn_24 = stat("taylor-green-vortex-3d-dynles-nolimc-24.stat")["Fluid"]["DissipationRate"]["l2norm"]
-vort_dynlesau_24 = stat("taylor-green-vortex-3d-dynles-aniso-uns-24.stat")["Fluid"]["DissipationRate"]["l2norm"]
-#dynles 48
-vort_dynles_48 = (stat("taylor-green-vortex-3d-dynles-48.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"])**2.*nu/(2.*pi)**3
-vort_dynlesa_48 = stat("taylor-green-vortex-3d-dynles-aniso-48.stat")["Fluid"]["DissipationRate"]["l2norm"]
-vort_dynlesa1a_48 = stat("taylor-green-vortex-3d-dynles-aniso-a1-48.stat")["Fluid"]["DissipationRate"]["l2norm"]
-vort_dynlesan_48 = (stat("taylor-green-vortex-3d-dynles-aniso-nolimc-48.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"])**2.*nu/(2.*pi)**3
-vort_dynlesana1_48 = (stat("taylor-green-vortex-3d-dynles-aniso-nolimc-a1-48.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"])**2.*nu/(2.*pi)**3
+vort_p_12 = stat("stats/taylor-green-vortex-3d-periodic-12.stat")["Fluid"]["DissipationRate"]["l2norm"]
+vort_p_24 = stat("stats/taylor-green-vortex-3d-periodic-24.stat")["Fluid"]["DissipationRate"]["l2norm"]
+vort_p_48 = stat("stats/taylor-green-vortex-3d-periodic-48.stat")["Fluid"]["DissipationRate"]["l2norm"]
+vort_p_64 = stat("stats/taylor-green-vortex-3d-periodic-64.stat")["Fluid"]["DissipationRate"]["l2norm"]
+vort_dynlesp_12 = stat("stats/taylor-green-vortex-3d-dynles-periodic-12.stat")["Fluid"]["DissipationRate"]["l2norm"]
+vort_dynlesp_24 = stat("stats/taylor-green-vortex-3d-dynles-periodic-24.stat")["Fluid"]["DissipationRate"]["l2norm"]
+vort_dynlesp_48 = stat("stats/taylor-green-vortex-3d-dynles-periodic-48.stat")["Fluid"]["DissipationRate"]["l2norm"]
+vort_dynlesp_64 = stat("stats/taylor-green-vortex-3d-dynles-periodic-64.stat")["Fluid"]["DissipationRate"]["l2norm"]
+vort_dynlesap_12 = stat("stats/taylor-green-vortex-3d-dynles-aniso-periodic-12.stat")["Fluid"]["DissipationRate"]["l2norm"]
+vort_dynlesap_24 = stat("stats/taylor-green-vortex-3d-dynles-aniso-periodic-24.stat")["Fluid"]["DissipationRate"]["l2norm"]
+#vort_dynlesap_48 = stat("stats/taylor-green-vortex-3d-dynles-aniso-periodic-48.stat")["Fluid"]["DissipationRate"]["l2norm"]
+#vort_dynlesap_64 = stat("stats/taylor-green-vortex-3d-dynles-aniso-periodic-64.stat")["Fluid"]["DissipationRate"]["l2norm"]
 
 # Analytical solution
-vort_an_12 = stat("taylor-green-vortex-3d-analytical-12.stat")["Fluid"]["DissipationRate"]["l2norm"]
+vort_an_12 = stat("stats/taylor-green-vortex-3d-analytical-periodic-12.stat")["Fluid"]["DissipationRate"]["l2norm"]
 
-# Approximate solution
-vort_gold = vt.dissipation_goldstein(time_12,1./75.)
-# beware of difference between goldstein and normalised goldstein:
-# these will give different convergence rates.
-# normalised is for plotting, absolute is for convergence.
-arrays=(vort_12,vort_24,vort_48,
-vort_les_12,vort_les_24,vort_les_48,
-vort_dynles_12,vort_dynles_24,vort_dynles_48,
-vort_dynlesa_12,vort_dynlesa_24,vort_dynlesa_48,
-vort_dynlesa1_12,vort_dynlesa1_24,
-vort_dynlesa1a_12,vort_dynlesa1a_24,
-vort_dynlesa1b1_12,vort_dynlesa1b1_24,
-vort_dynlesn_12,vort_an_12,vort_gold)
+tarrays=(timep_12,timep_24,timep_48,timep_64,
+timedynlesp_12,timedynlesp_24,timedynlesp_48,timedynlesp_64,
+timedynlesap_12,timedynlesap_24,
+timean_12)
+
+varrays=(vort_p_12,vort_p_24,vort_p_48,vort_p_64,
+vort_dynlesp_12,vort_dynlesp_24,vort_dynlesp_48,vort_dynlesp_64,
+vort_dynlesap_12,vort_dynlesap_24,
+vort_an_12)
 
 # Integrals over time
-integrals = vt.integrate(time_12,arrays)
+integrals = vt.integrate(tarrays,varrays)
 print 'integrals ', integrals
 print 'integral of Goldstein approximation ', integrals[-1]
 # Convergence
 #convrates = vt.convergence_rate(integrals,int_gold)
 # IS THIS THE CORRECT WAY TO MEASURE CONVERGENCE?
-conv_12_24 = abs((integrals[0]-integrals[-1])/(integrals[1]-integrals[-1]))
-print 'conv_12_24 ', conv_12_24
-conv_24_48 = abs((integrals[1]-integrals[-1])/(integrals[2]-integrals[-1]))
-print 'conv_24_48 ', conv_24_48
-
-conv_les_12_24 = abs((integrals[3]-integrals[-1])/(integrals[4]-integrals[-1]))
-print 'conv_12_24 ', conv_12_24
-conv_les_24_48 = abs((integrals[4]-integrals[-1])/(integrals[5]-integrals[-1]))
-print 'conv_24_48 ', conv_24_48
-
-conv_dynles_12_24 = abs((integrals[6]-integrals[-1])/(integrals[7]-integrals[-1]))
-print 'conv_dynles_12_24 ', conv_dynles_12_24
-conv_dynles_24_48 = abs((integrals[7]-integrals[-1])/(integrals[8]-integrals[-1]))
-print 'conv_dynles_24_48 ', conv_dynles_24_48
-
-conv_dynlesa_12_24 = abs((integrals[9]-integrals[-1])/(integrals[10]-integrals[-1]))
-print 'conv_dynlesa_12_24 ', conv_dynlesa_12_24
-conv_dynlesa_24_48 = abs((integrals[10]-integrals[-1])/(integrals[11]-integrals[-1]))
-print 'conv_dynlesa_24_48 ', conv_dynlesa_24_48
-
-#conv_dynlesa1_12_24 = abs((integrals[12]-integrals[-1])/(integrals[13]-integrals[-1]))
-#print 'conv_dynlesa1_12_24 ', conv_dynlesa1_12_24
-#conv_dynlesa1_24_48 = abs((integrals[13]-integrals[-1])/(integrals[14]-integrals[-1]))
-#print 'conv_dynlesa1_24_48 ', conv_dynlesa1_24_48
+conv_p_12_24 = abs((integrals[0]-integrals[-1])/(integrals[1]-integrals[-1]))
+conv_p_24_48 = abs((integrals[1]-integrals[-1])/(integrals[2]-integrals[-1]))
+conv_p_48_64 = abs((integrals[2]-integrals[-1])/(integrals[3]-integrals[-1]))
+conv_dynlesp_12_24 = abs((integrals[4]-integrals[-1])/(integrals[5]-integrals[-1]))
+conv_dynlesp_24_48 = abs((integrals[5]-integrals[-1])/(integrals[6]-integrals[-1]))
+conv_dynlesp_48_64 = abs((integrals[6]-integrals[-1])/(integrals[7]-integrals[-1]))
+conv_dynlesap_12_24 = abs((integrals[8]-integrals[-1])/(integrals[9]-integrals[-1]))
+conv_dynlesap_24_48 = abs((integrals[9]-integrals[-1])/(integrals[10]-integrals[-1]))
+print 'conv_p_12_24 ', conv_p_12_24
+print 'conv_dynlesp_12_24 ', conv_dynlesp_12_24
+print 'conv_dynlesap_12_24 ', conv_dynlesap_12_24
 
 # Finally, plot the normalised dissipation rates vs. theory:
-vt.print_dims(arrays)
-vt.normalise(arrays)
-vt.plot_dissipation(time_12,arrays)
+vt.print_dims(varrays)
+vt.normalise(varrays)
+vt.plot_dissipation(tarrays,varrays)
 pt=([1,1,1])
 time=numpy.linspace(0.,100.,100)
 vt.plot_velo(pt,time)
 
-int_vort_12 = sum(vort_12*time_12)
-int_vort_24 = sum(vort_24*time_12)
-int_vort_48 = sum(vort_48*time_12)
-int_vort_dynles_12 = sum(vort_dynles_12*time_12)
-int_vort_dynles_24 = sum(vort_dynles_24*time_12)
-int_vort_dynles_48 = sum(vort_dynles_48*time_12)
-int_vort_dynlesa_12 = sum(vort_dynlesa_12*time_12)
-int_vort_dynlesa_24 = sum(vort_dynlesa_24*time_12)
-int_vort_dynlesa_48 = sum(vort_dynlesa_48*time_12)
-#int_vort_dynlesa1_12 = sum(vort_dynlesa1_12*time_12)
-#int_vort_dynlesa1_24 = sum(vort_dynlesa1_24*time_12)
-#int_vort_dynlesa1_48 = sum(vort_dynlesa1_48*time_12)
-print 'integrals of simulated dissipation rates ', int_vort_12,int_vort_24,int_vort_48,int_vort_dynles_12,int_vort_dynles_24,int_vort_dynles_48,int_vort_dynlesa_12,int_vort_dynlesa_24,int_vort_dynlesa_48
+int_vort_p_12 = sum(vort_p_12*timep_12)
+int_vort_p_24 = sum(vort_p_24*timep_24)
+int_vort_p_48 = sum(vort_p_48*timep_48)
+int_vort_p_64 = sum(vort_p_64*timep_64)
+int_vort_dynlesp_12 = sum(vort_dynlesp_12*timedynlesp_12)
+int_vort_dynlesp_24 = sum(vort_dynlesp_24*timedynlesp_24)
+int_vort_dynlesp_48 = sum(vort_dynlesp_48*timedynlesp_48)
+int_vort_dynlesp_64 = sum(vort_dynlesp_64*timedynlesp_64)
+int_vort_dynlesap_12 = sum(vort_dynlesap_12*timedynlesap_12)
+int_vort_dynlesap_24 = sum(vort_dynlesap_24*timedynlesap_24)
 
+print 'integrals of simulated dissipation rates ',
+int_vort_p_12,int_vort_p_24,int_vort_p_48,int_vort_p_64,
+int_vort_dynlesp_12,int_vort_dynlesp_24,int_vort_dynlesp_48,int_vort_dynlesp_64,
+int_vort_dynlesap_12,int_vort_dynlesap_24
 
 # Write convergence stats to file
 output=open('output.log','w')
-output.write('convergence_12_24 '+str(log(conv_12_24,2))+'\n')
-output.write('convergence_24_48 '+str(log(conv_24_48,2))+'\n')
-output.write('convergence_dynles_12_24 '+str(log(conv_dynles_12_24,2))+'\n')
-output.write('convergence_dynles_24_48 '+str(log(conv_dynles_24_48,2))+'\n')
-output.write('convergence_dynlesa_12_24 '+str(log(conv_dynlesa_12_24,2))+'\n')
-output.write('convergence_dynlesa_24_48 '+str(log(conv_dynlesa_24_48,2))+'\n')
+output.write('convergence_p_12_24 '+str(log(conv_p_12_24,2))+'\n')
+output.write('convergence_p_24_48 '+str(log(conv_p_24_48,2))+'\n')
+output.write('convergence_p_48_64 '+str(log(conv_p_12_24,2))+'\n')
+output.write('convergence_dynlesp_12_24 '+str(log(conv_dynlesp_12_24,2))+'\n')
+output.write('convergence_dynlesp_24_48 '+str(log(conv_dynlesp_24_48,2))+'\n')
+output.write('convergence_dynlesp_48_64 '+str(log(conv_dynlesp_48_64,2))+'\n')
+output.write('convergence_dynlesap_12_24 '+str(log(conv_dynlesap_12_24,2))+'\n')
+output.write('convergence_dynlesap_24_48 '+str(log(conv_dynlesap_24_48,2))+'\n')
 output.close()
 
-dissipation_error = [log(conv_12_24,2),log(conv_24_48,2),log(conv_dynles_12_24,2),log(conv_dynles_24_48,2),log(conv_dynlesa_12_24,2),log(conv_dynlesa_24_48,2)]
+dissipation_error = [log(conv_p_12_24,2),log(conv_p_24_48,2),log(conv_dynlesp_12_24,2),log(conv_dynlesp_24_48,2),log(conv_dynlesap_12_24,2)]
     </variable>
   </variables>
   <pass_tests>
@@ -144,17 +123,14 @@ assert(dissipation_error[0]>2.)
     <test name="convergence-DNS-24-48" language="python">
 assert(dissipation_error[1]>2.)
     </test>
-    <test name="convergence-dynles-12-24" language="python">
+    <test name="convergence-DNS-p-12-24" language="python">
 assert(dissipation_error[2]>2.)
     </test>
-    <test name="convergence-dynles-24-48" language="python">
+    <test name="convergence-dynlesp-12-24" language="python">
 assert(dissipation_error[3]>2.)
     </test>
-    <test name="convergence-dynlesa-12-24" language="python">
+    <test name="convergence-dynlesap-12-24" language="python">
 assert(dissipation_error[4]>2.)
-    </test>
-    <test name="convergence-dynlesa-24-48" language="python">
-assert(dissipation_error[5]>2.)
     </test>
   </pass_tests>
   <warn_tests>

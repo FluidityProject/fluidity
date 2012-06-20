@@ -40,7 +40,7 @@
       </from_mesh>
     </mesh>
     <mesh name="InputMesh">
-      <from_file file_name="MMS_A_structuredtest">
+      <from_file file_name="MMS_A_structured">
         <format name="gmsh"/>
         <stat>
           <include_in_stat/>

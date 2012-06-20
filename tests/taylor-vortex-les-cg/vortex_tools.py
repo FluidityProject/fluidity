@@ -85,7 +85,7 @@ def plot_velo(XX,t):
   pylab.xlabel('Time (s)')
   pylab.ylabel('u')
   pylab.plot(t, u)
-  pylab.savefig("analytical_velocity.pdf")
+  pylab.savefig('analytical_velocity.pdf')
   return
 
 def dissipation_taylor(t,nu):
@@ -97,6 +97,10 @@ def dissipation_taylor(t,nu):
       omega_t[i] = nu*0.75*(1.-6.*t[i]*nu + (5./48.+18.*nu**2.)*t[i]**2. - (5./3.+36.*nu**2.)*nu*t[i]**3.)/omega_0
       #omega_t[i] = nu*0.75*(1.-6.*t[i]*nu + (5./48.+18.*nu**2.)*t[i]**2. - (5./3.+36.*nu**2.)*nu*t[i]**3. + (50./99.64+1835./9.16*nu**2.+54.*nu**4.)*t[i]**4. - (361./44.32+761./12.*nu**2.+324./5.*nu**4.)*nu*t[i]**5.)/omega_0
    return omega_t
+
+# beware of difference between goldstein and normalised goldstein:
+# these will give different convergence rates.
+# normalised is for plotting, absolute is for convergence.
 
 def dissipation_goldstein(t,nu):
    # See Orszag et al, 1976
@@ -130,7 +134,7 @@ def plot_velo(XX,t):
   pylab.plot(t, vel[:,0])
   pylab.plot(t, vel[:,1])
   pylab.plot(t, vel[:,2])
-  pylab.savefig("analytical_velocity.pdf")
+  pylab.savefig('analytical_velocity.pdf')
   return
 
 def print_dims(arrays):
@@ -141,15 +145,13 @@ def print_dims(arrays):
 def normalise(arrays):
   for i in arrays:
     norm=i[0]
-    #print 'norm ', norm
     i[:]=i[:]/norm
   return
 
-def integrate(time,arrays):
+def integrate(tarrays,arrays):
   print 'performing numerical time-integration'
   integrals=[]
-  dt=time[1]-time[0]
-  print 'constant timestep ', dt
+
   print type(arrays)
   temp=arrays if type(arrays)==tuple else tuple(arrays)
 
@@ -157,6 +159,7 @@ def integrate(time,arrays):
     temp=0.0
     result=numpy.array(arrays[i])
     for j in range(len(result)-1):
+      dt=tarrays[i][j+1]-tarrays[i][j]
       # trapezium rule of numerical integration
       temp += (result[j+1]+result[j])*dt/2.0
     integrals.append(temp)
@@ -170,7 +173,7 @@ def convergence_rate(integrals,benchmark):
     convrates.append(conv)
   return convrates
 
-def plot_dissipation(time,arrays):
+def plot_dissipation(tarrays,varrays):
 
   ##### Plot time series of turbulent kinetic energy dissipation rate (epsilon)
   plot1 = pylab.figure(figsize = (12, 10))
@@ -180,52 +183,38 @@ def plot_dissipation(time,arrays):
   ax.set_xlabel('Time (s)')
   ax.set_ylabel('turbulent kinetic energy dissipation rate')
 
-  ax.plot(time, arrays[0], linestyle="dashdot",color='blue') # dns-12
-  ax.plot(time, arrays[1], linestyle="dashed",color='blue') # dns-24
-  ax.plot(time, arrays[2], linestyle="solid",color='blue') # dns-48
-  ax.plot(time, arrays[3], linestyle="dashdot",color='green') # les-12
-  ax.plot(time, arrays[4], linestyle="dashed",color='green') # les-24
-  ax.plot(time, arrays[5], linestyle="solid",color='green') # les-48
-  ax.plot(time, arrays[6], linestyle="dashdot",color='red') # dynles-12
-  ax.plot(time, arrays[7], linestyle="dashed",color='red') # dynles-24
-  ax.plot(time, arrays[8], linestyle="solid",color='red') # dynles-48
-  ax.plot(time, arrays[9], linestyle="dashdot",color='purple') # dynlesa-12
-  ax.plot(time, arrays[10], linestyle="dashed",color='purple') # dynlesa-24
-  ax.plot(time, arrays[11], linestyle="solid",color='purple') # dynlesa-48
-  ax.plot(time, arrays[12], linestyle="dashdot",color='brown') # dynlesa1-12
-  #ax.plot(time, arrays[13], linestyle="dashed",color='brown') # dynlesa1-24
-  ax.plot(time, arrays[14], linestyle="dashdot",color='magenta') # dynlesa1a-12
-  ax.plot(time, arrays[15], linestyle="dashed",color='magenta') # dynlesa1a-24
-  ax.plot(time, arrays[16], linestyle="dashdot",color='turquoise') # dynlesa1b1-12
-  #ax.plot(time, arrays[17], linestyle="dashed",color='turquoise') # dynlesa1b1-24
-  ax.plot(time, arrays[18], linestyle="dashdot",color='yellow') # dynlesn-12
+  ax.plot(tarrays[0], varrays[0], linestyle='dotted',color='blue') # dns-periodic-12
+  ax.plot(tarrays[1], varrays[1], linestyle='dashdot',color='blue') # dns-periodic-24
+  ax.plot(tarrays[2], varrays[2], linestyle='dashed',color='blue') # dns-periodic-48
+  ax.plot(tarrays[3], varrays[3], linestyle='solid',color='blue') # dns-periodic-64
+  ax.plot(tarrays[4], varrays[4], linestyle='dotted',color='green') # dynles-periodic-12
+  ax.plot(tarrays[5], varrays[5], linestyle='dashdot',color='green') # dynles-periodic-24
+  ax.plot(tarrays[6], varrays[6], linestyle='dashed',color='green') # dynles-periodic-48
+  ax.plot(tarrays[7], varrays[7], linestyle='solid',color='green') # dynles-periodic-64
+  ax.plot(tarrays[8], varrays[8], linestyle='dotted',color='red') # dynles-aniso-periodic-12
+  ax.plot(tarrays[9], varrays[9], linestyle='dashdot',color='red') # dynles-aniso-periodic-24
+  ax.plot(tarrays[10], varrays[10], linestyle='solid',color='purple') # analytical-12
 
-  ax.plot(time, arrays[19], linestyle="solid",color='pink') # analytical-12
+  ax.plot(tarrays[0], dissipation_goldstein_norm(tarrays[0],0.005), linestyle='none',color='black',marker='s',markerfacecolor='none') # Goldstein-0.005
+  ax.plot(tarrays[0], dissipation_goldstein_norm(tarrays[0],0.01), linestyle='none',color='black',marker='x') # Goldstein-0.01
+  ax.plot(tarrays[0], dissipation_goldstein_norm(tarrays[0],0.01333), linestyle='none',color='black',marker='o',markerfacecolor='none') # Goldstein-0.01333
+  ax.plot(tarrays[0], dissipation_goldstein_norm(tarrays[0],0.015), linestyle='none',color='black',marker='+') # Goldstein-0.015
+  #ax.plot(tarrays[], dissipation_taylor(tarrays[],1./50.), linestyle='dashdot',color='cyan')
 
-  ax.plot(time, dissipation_goldstein_norm(time,1./50.), linestyle="solid",color='black')
-  ax.plot(time, dissipation_goldstein_norm(time,1./75.), linestyle="solid",color='black')
-  ax.plot(time, dissipation_goldstein_norm(time,1./100.), linestyle="solid",color='black')
-  ax.plot(time, dissipation_goldstein_norm(time,1./105.), linestyle="solid",color='black')
-  ax.plot(time, dissipation_goldstein_norm(time,1./150.), linestyle="dashed",color='black')
-  #ax.plot(time, dissipation_taylor(time,1./50.), linestyle="dashdot",color='cyan')
-  #ax.plot(time, dissipation_taylor(time,1./75.), linestyle="dashed",color='cyan')
-  #ax.plot(time, dissipation_taylor(time,1./100.), linestyle="solid",color='cyan')
+  pylab.legend(('vort_p_12','vort_p_24','vort_p_48','vort_p_64',
+'vort_dynlesp_12','vort_dynlesp_24','vort_dynlesp_48','vort_dynlesp_64',
+'vort_dynlesap_12','vort_dynlesap_24',
+'vort_analytp_12','vort_gold_0.005','vort_gold_0.01','vort_gold_0.0133','vort_gold_0.015'),loc='best')
 
-  pylab.legend(('dns_12','dns_24','dns_48','vort_les_12','vort_les_24','vort_les_48',
-'dynles-12','dynles-24','dynles-48','dynles-aniso-12','dynles-aniso-24','dynles-aniso-48',
-'dynles-a1-12','dynles-aniso-a1-12','dynles-aniso-a1-24',
-'dynles-a1b1-12','dynles-nolimc-12','analytical-12',
-'goldstein-0.02','goldstein-0.0133','goldstein-0.01','goldstein-0.008','goldstein-0.0067'),loc='best')
-  #,'taylor-0.1','taylor-0.05','taylor-0.01'
   ltext = pylab.gca().get_legend().get_texts()
   pylab.setp(ltext, fontsize = 10, color = 'b')
-  pylab.axis([0,30,0,6])
-  #pylab.axis([0.0,time[-1],0.0,max(dissipation_goldstein(time)[-1],vort_48[-1],vort_les48[-1],vort_dynles48[-1])])
+  pylab.axis([0,20,0,6])
+
   for tick in ax.xaxis.get_major_ticks():
     tick.label1.set_fontsize(size)
   for tick in ax.yaxis.get_major_ticks():
     tick.label1.set_fontsize(size)
 
-  pylab.savefig("vortex_dissipation.pdf")
+  pylab.savefig('vortex_dissipation.pdf')
   return
 

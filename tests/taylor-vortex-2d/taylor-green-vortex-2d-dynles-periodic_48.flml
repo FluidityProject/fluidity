@@ -80,7 +80,7 @@
     </dump_format>
     <dump_period>
       <constant>
-        <real_value rank="0">1</real_value>
+        <real_value rank="0">0.1</real_value>
       </constant>
     </dump_period>
     <output_mesh name="CoordinateMesh"/>
@@ -94,7 +94,7 @@
       <real_value rank="0">0.1</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">1000</real_value>
+      <real_value rank="0">0.3</real_value>
     </finish_time>
   </timestepping>
   <material_phase name="fluid">
@@ -154,7 +154,9 @@
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
-        <output/>
+        <output>
+          <exclude_from_vtu/>
+        </output>
         <stat/>
         <convergence>
           <include_in_convergence/>
@@ -208,41 +210,8 @@
                     <monitors/>
                   </diagnostics>
                 </solver>
+                <first_filter_type>implicit</first_filter_type>
                 <scalar_field name="SmagorinskyCoefficient" rank="1">
-                  <diagnostic>
-                    <algorithm name="Internal" material_phase_support="multiple"/>
-                    <mesh name="VelocityMesh"/>
-                    <output/>
-                    <stat/>
-                    <convergence>
-                      <include_in_convergence/>
-                    </convergence>
-                    <detectors>
-                      <include_in_detectors/>
-                    </detectors>
-                    <steady_state>
-                      <include_in_steady_state/>
-                    </steady_state>
-                  </diagnostic>
-                </scalar_field>
-                <scalar_field name="ScalarFirstFilterWidth" rank="1">
-                  <diagnostic>
-                    <algorithm name="Internal" material_phase_support="multiple"/>
-                    <mesh name="VelocityMesh"/>
-                    <output/>
-                    <stat/>
-                    <convergence>
-                      <include_in_convergence/>
-                    </convergence>
-                    <detectors>
-                      <include_in_detectors/>
-                    </detectors>
-                    <steady_state>
-                      <include_in_steady_state/>
-                    </steady_state>
-                  </diagnostic>
-                </scalar_field>
-                <scalar_field name="ScalarSecondFilterWidth" rank="1">
                   <diagnostic>
                     <algorithm name="Internal" material_phase_support="multiple"/>
                     <mesh name="VelocityMesh"/>
@@ -297,6 +266,46 @@
                     </steady_state>
                   </diagnostic>
                 </vector_field>
+                <tensor_field name="TensorFirstFilterWidth" rank="2">
+                  <diagnostic>
+                    <algorithm name="Internal" material_phase_support="multiple"/>
+                    <mesh name="VelocityMesh"/>
+                    <output/>
+                    <stat>
+                      <include_in_stat/>
+                    </stat>
+                  </diagnostic>
+                </tensor_field>
+                <tensor_field name="TensorSecondFilterWidth" rank="2">
+                  <diagnostic>
+                    <algorithm name="Internal" material_phase_support="multiple"/>
+                    <mesh name="VelocityMesh"/>
+                    <output/>
+                    <stat>
+                      <include_in_stat/>
+                    </stat>
+                  </diagnostic>
+                </tensor_field>
+                <tensor_field name="FirstFilteredStrainRate" rank="2">
+                  <diagnostic>
+                    <algorithm name="Internal" material_phase_support="multiple"/>
+                    <mesh name="VelocityMesh"/>
+                    <output/>
+                    <stat>
+                      <include_in_stat/>
+                    </stat>
+                  </diagnostic>
+                </tensor_field>
+                <tensor_field name="SecondFilteredStrainRate" rank="2">
+                  <diagnostic>
+                    <algorithm name="Internal" material_phase_support="multiple"/>
+                    <mesh name="VelocityMesh"/>
+                    <output/>
+                    <stat>
+                      <include_in_stat/>
+                    </stat>
+                  </diagnostic>
+                </tensor_field>
                 <tensor_field name="EddyViscosity" rank="2">
                   <diagnostic>
                     <algorithm name="Internal" material_phase_support="multiple"/>
@@ -356,7 +365,9 @@
                 </constant>
               </isotropic>
             </value>
-            <output/>
+            <output>
+              <exclude_from_vtu/>
+            </output>
           </prescribed>
         </tensor_field>
         <output/>
@@ -443,7 +454,9 @@ for i in range(field.node_count):
   field.set(i, tke)</string_value>
         </algorithm>
         <mesh name="VelocityMesh"/>
-        <output/>
+        <output>
+          <exclude_from_vtu/>
+        </output>
         <stat/>
         <convergence>
           <include_in_convergence/>
@@ -467,7 +480,9 @@ for i in range(field.node_count):
   field.set(i, tke)</string_value>
         </algorithm>
         <mesh name="VelocityMesh"/>
-        <output/>
+        <output>
+          <exclude_from_vtu/>
+        </output>
         <stat/>
         <convergence>
           <include_in_convergence/>
@@ -484,7 +499,9 @@ for i in range(field.node_count):
       <diagnostic>
         <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="ExactTKE" source_field_2_name="TKE" material_phase_support="single" source_field_1_type="scalar"/>
         <mesh name="VelocityMesh"/>
-        <output/>
+        <output>
+          <exclude_from_vtu/>
+        </output>
         <stat/>
         <convergence>
           <include_in_convergence/>
@@ -537,8 +554,9 @@ for i in range(field.node_count):
           <python>
             <string_value lines="20" type="code" language="python">def val(X,t):
   import vortex_tools as vt
+  from math import pi
+  w1=2.*(pi/24.)**2.
   return vt.strainmagnitude(X,t)</string_value>
-            <comment>Taylor expansion of filtered variable to 4th order</comment>
           </python>
         </value>
         <output/>
@@ -573,6 +591,8 @@ ffv = state.vector_fields["ExactFirstFilteredVelocity"]
 sfv = state.vector_fields["ExactSecondFilteredVelocity"]
 st = state.tensor_fields["ExactStrain"]
 stm = state.scalar_fields["ExactStrainMag"]
+lnd = state.tensor_fields["L"]
+tns = state.tensor_fields["ExactM"]
 assert(ffv.node_count == field.node_count)
 assert(sfv.node_count == field.node_count)
 assert(st.node_count == field.node_count)
@@ -581,30 +601,14 @@ assert(stm.node_count == field.node_count)
 w1=2.*(pi/24.)**2.
 w2=8.*(pi/24.)**2.
 for i in range(field.node_count):
-  fu = ffv.node_val(i)[0]
-  fv = ffv.node_val(i)[1]
-  su = sfv.node_val(i)[0]
-  sv = sfv.node_val(i)[1]
-  # filtered strain
-  st1 = st.node_val(i)[:]
-  st1 = st1*stm.node_val(i)*(1.-w2/24.+w2/576.)
-  st2 = st1*(1.-w2/24.+w2/576.)
-  #print 'st1, st2 ', st1, st2
-  # Leonard tensor L_ij
-  fuiuj = [[fu**2., fu*fv],[fu*fv, fv**2.]]
-  suiuj = [[su**2., su*sv],[su*sv, sv**2.]]
-  #print 'fuiuj, suiuj ', fuiuj, suiuj
-  L=[[0,0],[0,0]]
-  L[0][0] = fuiuj[0][0]*(1.-w2/24.+w2/576.) - suiuj[0][0]
-  L[0][1] = fuiuj[0][1]*(1.-w2/24.+w2/576.) - suiuj[0][1]
-  L[1][0] = fuiuj[1][0]*(1.-w2/24.+w2/576.) - suiuj[1][0]
-  L[1][1] = fuiuj[1][1]*(1.-w2/24.+w2/576.) - suiuj[1][1]
-  #print 'Lij ', L
-  # M_ij
-  M = w2*st2 - w1*st1
-  #print 'Mij ', M
+  L = lnd.node_val(i)
+  M = tns.node_val(i)
   print 'L*M ', L*M, sum(sum(L*M))
   print 'M*M ', M*M, sum(sum(M*M))
+  print 'test ', abs(sum(sum(st.node_val(i))))
+  #if (abs(sum(sum(st.node_val(i)))) &lt; 1.e-8):
+  #  C=0.
+  #else:
   C = -0.5*sum(sum(L*M))/sum(sum(M*M))
   print 'C ', C
   C=max(min(C,0.1),0.0)
@@ -692,11 +696,11 @@ for i in range(field.node_count):
   import vortex_tools as vt
   from math import pi
   # first filter width
-  w=2.*(pi/24.)**2.
+  w1=2.*(pi/24.)**2.
   vel = vt.velocity(X,t)
   #vel = vt.exactfilter(vel,w)
-  #vel[0]=vel[0]*(1.-w/24.+w/576.)
-  #vel[1]=vel[1]*(1.-w/24.+w/576.)
+  #vel[0]=vel[0]*(1.-w1/24.)
+  #vel[1]=vel[1]*(1.-w1/24.)
   return vel</string_value>
           </python>
         </value>
@@ -724,8 +728,10 @@ for i in range(field.node_count):
   vel = vt.velocity(X,t)
   #ffvel = vt.exactfilter(vel,w1)
   #sfvel = vt.exactfilter(ffvel,w2)
-  vel[0]=vel[0]*(1.-w2/24.+w2/576.)
-  vel[1]=vel[1]*(1.-w2/24.+w2/576.)
+  #vel[0]=vel[0]*(1.-w1/24.)*(1.-w2/24.)
+  #vel[1]=vel[1]*(1.-w1/24.)*(1.-w2/24.)
+  vel[0]=vel[0]*(1.-w2/24.)
+  vel[1]=vel[1]*(1.-w2/24.)
   return vel</string_value>
           </python>
         </value>
@@ -801,12 +807,12 @@ C = state.scalar_fields["ExactCoeff"]
 assert(s.node_count == field.node_count)
 for i in range(field.node_count):
   #filter width is constant on structured mesh
-  w=2.*(pi/24.)**2.
+  w1=2.*(pi/24.)**2.
   ev=[[0, 0],[0, 0]]
-  ev[0][0]=w*C.node_val(i)*s.node_val(i)
-  ev[0][1]=w*C.node_val(i)*s.node_val(i)
-  ev[1][0]=w*C.node_val(i)*s.node_val(i)
-  ev[1][1]=w*C.node_val(i)*s.node_val(i)
+  ev[0][0]=w1*C.node_val(i)*s.node_val(i)
+  ev[0][1]=w1*C.node_val(i)*s.node_val(i)
+  ev[1][0]=w1*C.node_val(i)*s.node_val(i)
+  ev[1][1]=w1*C.node_val(i)*s.node_val(i)
   field.set(i, ev)</string_value>
         </algorithm>
         <mesh name="VelocityMesh"/>
@@ -848,6 +854,105 @@ for i in range(field.node_count):
         </value>
         <output/>
       </prescribed>
+    </tensor_field>
+    <tensor_field name="ExactLeonard" rank="2">
+      <diagnostic>
+        <algorithm name="tensor_python_diagnostic" material_phase_support="single">
+          <string_value lines="20" type="code" language="python">from math import sqrt, pi
+ffv = state.vector_fields["ExactFirstFilteredVelocity"]
+sfv = state.vector_fields["ExactSecondFilteredVelocity"]
+assert(ffv.node_count == field.node_count)
+assert(sfv.node_count == field.node_count)
+# filter widths
+w1=2.*(pi/24.)**2.
+w2=8.*(pi/24.)**2.
+for i in range(field.node_count):
+  fu = ffv.node_val(i)[0]
+  fv = ffv.node_val(i)[1]
+  su = sfv.node_val(i)[0]
+  sv = sfv.node_val(i)[1]
+  # Leonard tensor L_ij
+  fuiuj = [[fu**2., fu*fv],[fu*fv, fv**2.]]
+  suiuj = [[su**2., su*sv],[su*sv, sv**2.]]
+  #print 'fuiuj, suiuj ', fuiuj, suiuj
+  L=[[0,0],[0,0]]
+  L[0][0] = fuiuj[0][0]*(1.-w2/24.) - suiuj[0][0]
+  L[0][1] = fuiuj[0][1]*(1.-w2/24.) - suiuj[0][1]
+  L[1][0] = fuiuj[1][0]*(1.-w2/24.) - suiuj[1][0]
+  L[1][1] = fuiuj[1][1]*(1.-w2/24.) - suiuj[1][1]
+  field.set(i, L)</string_value>
+          <comment>*(1.-w2/24.)</comment>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </diagnostic>
+    </tensor_field>
+    <tensor_field name="ExactM" rank="2">
+      <diagnostic>
+        <algorithm name="tensor_python_diagnostic" material_phase_support="single">
+          <string_value lines="20" type="code" language="python">from math import sqrt, pi
+st = state.tensor_fields["ExactStrain"]
+stm = state.scalar_fields["ExactStrainMag"]
+assert(st.node_count == field.node_count)
+assert(stm.node_count == field.node_count)
+# filter widths
+w1=2.*(pi/24.)**2.
+w2=8.*(pi/24.)**2.
+for i in range(field.node_count):
+  st1 = st.node_val(i)*stm.node_val(i)*(1.-w2/24.)
+  st2 = st1*(1.-w2/24.)
+  #print 'st1, st2 ', st1, st2
+  M = w2*st2 - w1*st1
+  #print 'Mij ', M
+  field.set(i, M)</string_value>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </diagnostic>
+    </tensor_field>
+    <tensor_field name="uiuj" rank="2">
+      <diagnostic>
+        <algorithm name="tensor_python_diagnostic" material_phase_support="single">
+          <string_value lines="20" type="code" language="python">from math import pi
+ffv = state.vector_fields["FFV"]
+sfv = state.vector_fields["SFV"]
+assert(ffv.node_count == field.node_count)
+assert(sfv.node_count == field.node_count)
+# filter widths
+w1=2.*(pi/24.)**2.
+w2=8.*(pi/24.)**2.
+for i in range(field.node_count):
+  fu = ffv.node_val(i)[0]
+  fv = ffv.node_val(i)[1]
+  su = sfv.node_val(i)[0]
+  sv = sfv.node_val(i)[1]
+  # Leonard tensor L_ij
+  fuiuj = [[fu**2., fu*fv],[fu*fv, fv**2.]]
+  suiuj = [[su**2., su*sv],[su*sv, sv**2.]]
+  #print 'fuiuj, suiuj ', fuiuj, suiuj
+  L=[[0,0],[0,0]]
+  L[0][0] = fuiuj[0][0]*(1.-w2/24.)
+  L[0][1] = fuiuj[0][1]*(1.-w2/24.)
+  L[1][0] = fuiuj[1][0]*(1.-w2/24.)
+  L[1][1] = fuiuj[1][1]*(1.-w2/24.)
+  #print 'Lij ', L
+  field.set(i, L)</string_value>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </diagnostic>
+    </tensor_field>
+    <tensor_field name="L" rank="2">
+      <aliased material_phase_name="fluid" field_name="TensorFirstFilterWidth"/>
     </tensor_field>
   </material_phase>
 </fluidity_options>

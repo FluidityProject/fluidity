@@ -965,11 +965,11 @@ Signals.o ../include/signals.mod: Signals.F90 ../include/signal_vars.mod
 	@true
 
 Smoothing_module.o ../include/smoothing_module.mod: Smoothing_module.F90 \
-   ../include/boundary_conditions.mod ../include/fdebug.h \
-   ../include/fields.mod ../include/global_parameters.mod \
+   ../include/boundary_conditions.mod ../include/elements.mod \
+   ../include/fdebug.h ../include/fields.mod ../include/global_parameters.mod \
    ../include/metric_tools.mod ../include/solvers.mod \
    ../include/sparse_tools.mod ../include/sparsity_patterns.mod \
-   ../include/state_module.mod
+   ../include/state_module.mod ../include/transform_elements.mod
 
 ../include/solvers.mod: Solvers.o
 	@true
@@ -1201,7 +1201,8 @@ Weak_BCs.o ../include/weak_bcs.mod: Weak_BCs.F90 \
    ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
    ../include/global_parameters.mod ../include/parallel_tools.mod \
    ../include/sparse_tools_petsc.mod ../include/spud.mod \
-   ../include/state_module.mod ../include/transform_elements.mod
+   ../include/state_module.mod ../include/surface_integrals.mod \
+   ../include/transform_elements.mod
 
 ../include/write_gmsh.mod: Write_GMSH.o
 	@true

@@ -237,7 +237,7 @@ output.close()
 
 de_convergence_mlf = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
     </variable>
-    <variable name="ab_convergence_comm" language="python">
+    <variable name="ab_convergence_isocomm" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
 output1=open('commconv_unstructured.log','w')
@@ -252,14 +252,14 @@ b_error_inf = stat("MMS_B_unstructured.stat")["NS"]["IsoCommError%magnitude"]["m
 ab_ratio = a_error / b_error
 ab_ratio_inf = a_error_inf / b_error_inf
 
-output1.write('AB_convergence_comm '+str(log(ab_ratio, 2))+' '+str(log(ab_ratio_inf, 2))+'\n')
-output2.write('A_commerror '+str(a_error)+' '+str(a_error_inf)+'\n')
+output1.write('AB_convergence_isocomm '+str(log(ab_ratio, 2))+' '+str(log(ab_ratio_inf, 2))+'\n')
+output2.write('A_isocommerror '+str(a_error)+' '+str(a_error_inf)+'\n')
 output1.close()
 output2.close()
 
-ab_convergence_comm = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
+ab_convergence_isocomm = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
     </variable>
-    <variable name="ab_convergence_icomm" language="python">
+    <variable name="ab_convergence_anisocomm" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
 output1=open('commconv_unstructured.log','a')
@@ -274,12 +274,12 @@ b_error_inf = stat("MMS_B_unstructured.stat")["NS"]["AnisoCommError%magnitude"][
 ab_ratio = a_error / b_error
 ab_ratio_inf = a_error_inf / b_error_inf
 
-output1.write('AB_convergence_icomm '+str(log(ab_ratio, 2))+' '+str(log(ab_ratio_inf, 2))+'\n')
-output2.write('A_icommerror '+str(a_error)+' '+str(a_error_inf)+'\n')
+output1.write('AB_convergence_anisocomm '+str(log(ab_ratio, 2))+' '+str(log(ab_ratio_inf, 2))+'\n')
+output2.write('A_anisocommerror '+str(a_error)+' '+str(a_error_inf)+'\n')
 output1.close()
 output2.close()
 
-ab_convergence_icomm = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
+ab_convergence_anisocomm = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
     </variable>
     <variable name="ab_convergence_mlcomm" language="python">
 from fluidity_tools import stat_parser as stat
@@ -303,7 +303,7 @@ output2.close()
 
 ab_convergence_mlcomm = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
     </variable>
-    <variable name="bc_convergence_comm" language="python">
+    <variable name="bc_convergence_isocomm" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
 output1=open('commconv_unstructured.log','a')
@@ -318,14 +318,14 @@ b_error_inf = stat("MMS_C_unstructured.stat")["NS"]["IsoCommError%magnitude"]["m
 ab_ratio = a_error / b_error
 ab_ratio_inf = a_error_inf / b_error_inf
 
-output1.write('BC_convergence_comm '+str(log(ab_ratio, 2))+' '+str(log(ab_ratio_inf, 2))+'\n')
-output2.write('B_commerror '+str(a_error)+' '+str(a_error_inf)+'\n')
+output1.write('BC_convergence_isocomm '+str(log(ab_ratio, 2))+' '+str(log(ab_ratio_inf, 2))+'\n')
+output2.write('B_isocommerror '+str(a_error)+' '+str(a_error_inf)+'\n')
 output1.close()
 output2.close()
 
-bc_convergence_comm = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
+bc_convergence_isocomm = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
     </variable>
-    <variable name="bc_convergence_icomm" language="python">
+    <variable name="bc_convergence_anisocomm" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
 output1=open('commconv_unstructured.log','a')
@@ -340,12 +340,12 @@ b_error_inf = stat("MMS_C_unstructured.stat")["NS"]["AnisoCommError%magnitude"][
 ab_ratio = a_error / b_error
 ab_ratio_inf = a_error_inf / b_error_inf
 
-output1.write('BC_convergence_icomm '+str(log(ab_ratio, 2))+' '+str(log(ab_ratio_inf, 2))+'\n')
-output2.write('B_icommerror '+str(a_error)+' '+str(a_error_inf)+'\n')
+output1.write('BC_convergence_anisocomm '+str(log(ab_ratio, 2))+' '+str(log(ab_ratio_inf, 2))+'\n')
+output2.write('B_anisocommerror '+str(a_error)+' '+str(a_error_inf)+'\n')
 output1.close()
 output2.close()
 
-bc_convergence_icomm = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
+bc_convergence_anisocomm = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
     </variable>
     <variable name="bc_convergence_mlcomm" language="python">
 from fluidity_tools import stat_parser as stat
@@ -369,7 +369,7 @@ output2.close()
 
 bc_convergence_mlcomm = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
     </variable>
-    <variable name="cd_convergence_comm" language="python">
+    <variable name="cd_convergence_isocomm" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
 output1=open('commconv_unstructured.log','a')
@@ -384,14 +384,14 @@ b_error_inf = stat("MMS_D_unstructured.stat")["NS"]["IsoCommError%magnitude"]["m
 ab_ratio = a_error / b_error
 ab_ratio_inf = a_error_inf / b_error_inf
 
-output1.write('CD_convergence_comm '+str(log(ab_ratio, 2))+' '+str(log(ab_ratio_inf, 2))+'\n')
-output2.write('C_commerror '+str(a_error)+' '+str(a_error_inf)+'\n')
+output1.write('CD_convergence_isocomm '+str(log(ab_ratio, 2))+' '+str(log(ab_ratio_inf, 2))+'\n')
+output2.write('C_isocommerror '+str(a_error)+' '+str(a_error_inf)+'\n')
 output1.close()
 output2.close()
 
-cd_convergence_comm = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
+cd_convergence_isocomm = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
     </variable>
-    <variable name="cd_convergence_icomm" language="python">
+    <variable name="cd_convergence_anisocomm" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
 output1=open('commconv_unstructured.log','a')
@@ -406,12 +406,12 @@ b_error_inf = stat("MMS_D_unstructured.stat")["NS"]["AnisoCommError%magnitude"][
 ab_ratio = a_error / b_error
 ab_ratio_inf = a_error_inf / b_error_inf
 
-output1.write('CD_convergence_icomm '+str(log(ab_ratio, 2))+' '+str(log(ab_ratio_inf, 2))+'\n')
-output2.write('C_icommerror '+str(a_error)+' '+str(a_error_inf)+'\n')
+output1.write('CD_convergence_anisocomm '+str(log(ab_ratio, 2))+' '+str(log(ab_ratio_inf, 2))+'\n')
+output2.write('C_anisocommerror '+str(a_error)+' '+str(a_error_inf)+'\n')
 output1.close()
 output2.close()
 
-cd_convergence_icomm = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
+cd_convergence_anisocomm = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
     </variable>
     <variable name="cd_convergence_mlcomm" language="python">
 from fluidity_tools import stat_parser as stat
@@ -435,7 +435,7 @@ output2.close()
 
 cd_convergence_mlcomm = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
     </variable>
-    <variable name="de_convergence_comm" language="python">
+    <variable name="de_convergence_isocomm" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
 output1=open('commconv_unstructured.log','a')
@@ -450,14 +450,14 @@ b_error_inf = stat("MMS_E_unstructured.stat")["NS"]["IsoCommError%magnitude"]["m
 ab_ratio = a_error / b_error
 ab_ratio_inf = a_error_inf / b_error_inf
 
-output1.write('DE_convergence_comm '+str(log(ab_ratio, 2))+' '+str(log(ab_ratio_inf, 2))+'\n')
-output2.write('D_commerror '+str(a_error)+' '+str(a_error_inf)+'\n')
+output1.write('DE_convergence_isocomm '+str(log(ab_ratio, 2))+' '+str(log(ab_ratio_inf, 2))+'\n')
+output2.write('D_isocommerror '+str(a_error)+' '+str(a_error_inf)+'\n')
 output1.close()
 output2.close()
 
-de_convergence_comm = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
+de_convergence_isocomm = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
     </variable>
-    <variable name="de_convergence_icomm" language="python">
+    <variable name="de_convergence_anisocomm" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
 output1=open('commconv_unstructured.log','a')
@@ -472,12 +472,12 @@ b_error_inf = stat("MMS_E_unstructured.stat")["NS"]["AnisoCommError%magnitude"][
 ab_ratio = a_error / b_error
 ab_ratio_inf = a_error_inf / b_error_inf
 
-output1.write('DE_convergence_icomm '+str(log(ab_ratio, 2))+' '+str(log(ab_ratio_inf, 2))+'\n')
-output2.write('D_icommerror '+str(a_error)+' '+str(a_error_inf)+'\n')
+output1.write('DE_convergence_anisocomm '+str(log(ab_ratio, 2))+' '+str(log(ab_ratio_inf, 2))+'\n')
+output2.write('D_anisocommerror '+str(a_error)+' '+str(a_error_inf)+'\n')
 output1.close()
 output2.close()
 
-de_convergence_icomm = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
+de_convergence_anisocomm = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
     </variable>
     <variable name="de_convergence_mlcomm" language="python">
 from fluidity_tools import stat_parser as stat
@@ -500,8 +500,8 @@ ab_ratio_inf = a_error_inf / b_error_inf
 
 output1.write('DE_convergence_mlcomm '+str(log(ab_ratio, 2))+' '+str(log(ab_ratio_inf, 2))+'\n')
 output2.write('D_mlcommerror '+str(a_error)+' '+str(a_error_inf)+'\n')
-output2.write('E_commerror '+str(b2_error)+' '+str(b2_error_inf)+'\n')
-output2.write('E_icommerror '+str(b3_error)+' '+str(b3_error_inf)+'\n')
+output2.write('E_isocommerror '+str(b3_error)+' '+str(b3_error_inf)+'\n')
+output2.write('E_anisocommerror '+str(b2_error)+' '+str(b2_error_inf)+'\n')
 output2.write('E_mlcommerror '+str(b_error)+' '+str(b_error_inf)+'\n')
 output1.close()
 output2.close()
@@ -546,29 +546,29 @@ assert(cd_convergence_mlf[0] &gt; 1.7)
     <test name="de_convergence_mlf: L2 order > 1.7" language="python">
 assert(de_convergence_mlf[0] &gt; 1.7)
     </test>
-    <test name="ab_convergence_comm: L2 order > 1.5" language="python">
-assert(ab_convergence_comm[0] &gt; 1.5)
+    <test name="ab_convergence_isocomm: L2 order > 1.5" language="python">
+assert(ab_convergence_isocomm[0] &gt; 1.5)
     </test>
-    <test name="bc_convergence_comm: L2 order > 1.5" language="python">
-assert(bc_convergence_comm[0] &gt; 1.5)
+    <test name="bc_convergence_isocomm: L2 order > 1.5" language="python">
+assert(bc_convergence_isocomm[0] &gt; 1.5)
     </test>
-    <test name="cd_convergence_comm: L2 order > 1.5" language="python">
-assert(cd_convergence_comm[0] &gt; 1.5)
+    <test name="cd_convergence_isocomm: L2 order > 1.5" language="python">
+assert(cd_convergence_isocomm[0] &gt; 1.5)
     </test>
-    <test name="de_convergence_comm: L2 order > 1.5" language="python">
-assert(de_convergence_comm[0] &gt; 1.5)
+    <test name="de_convergence_isocomm: L2 order > 1.5" language="python">
+assert(de_convergence_isocomm[0] &gt; 1.5)
     </test>
-    <test name="ab_convergence_icomm: L2 order > 1.5" language="python">
-assert(ab_convergence_icomm[0] &gt; 1.5)
+    <test name="ab_convergence_anisocomm: L2 order > 1.5" language="python">
+assert(ab_convergence_anisocomm[0] &gt; 1.5)
     </test>
-    <test name="bc_convergence_icomm: L2 order > 1.5" language="python">
-assert(bc_convergence_icomm[0] &gt; 1.5)
+    <test name="bc_convergence_anisocomm: L2 order > 1.5" language="python">
+assert(bc_convergence_anisocomm[0] &gt; 1.5)
     </test>
-    <test name="cd_convergence_icomm: L2 order > 1.5" language="python">
-assert(cd_convergence_icomm[0] &gt; 1.5)
+    <test name="cd_convergence_anisocomm: L2 order > 1.5" language="python">
+assert(cd_convergence_anisocomm[0] &gt; 1.5)
     </test>
-    <test name="de_convergence_icomm: L2 order > 1.5" language="python">
-assert(de_convergence_icomm[0] &gt; 1.5)
+    <test name="de_convergence_anisocomm: L2 order > 1.5" language="python">
+assert(de_convergence_anisocomm[0] &gt; 1.5)
     </test>
     <test name="ab_convergence_mlcomm: L2 order > 1.5" language="python">
 assert(ab_convergence_mlcomm[0] &gt; 1.5)

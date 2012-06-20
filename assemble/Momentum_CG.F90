@@ -50,6 +50,7 @@
     use fetools
     use upwind_stabilisation
     use les_viscosity_module
+    use subgrid_kinetic_energy
     use smoothing_module
     use metric_tools
     use field_derivatives
@@ -110,6 +111,7 @@
     logical :: have_geostrophic_pressure
     logical :: have_temperature_dependent_viscosity
     logical :: have_les
+    logical :: have_sgs_tke
     logical :: have_surface_fs_stabilisation
     logical :: les_second_order, les_fourth_order, wale, dynamic_les
     logical :: on_sphere
@@ -355,6 +357,7 @@
       have_coriolis = have_option("/physical_parameters/coriolis")
       have_les = have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
          &"/continuous_galerkin/les_model")
+      have_sgs_tke = have_option(trim(state%option_path)//"/subgridscale_parameterisations/subgrid_tke")
       have_anisotropy=.false.
 
       ! Large Eddy Simulation options
@@ -407,6 +410,12 @@
            ! Calculate test-filtered velocity, Leonard tensor and filtered strain product fields.
            ewrite(2,*) "Calculating test-filtered velocity, Leonard tensor and strain product"
            call dynamic_les_filtered_fields(state, u, nu, x, nu_f1, nu_f2, lnd, stp, alpha, gamma, les_option_path, have_anisotropy)
+
+           ! Compute SGS TKE if required
+           if(have_sgs_tke) then
+              call compute_subgrid_tke(state, alpha, have_anisotropy)
+           end if
+
          end if
       else
          les_second_order=.false.; les_fourth_order=.false.; wale=.false.; dynamic_les=.false.
@@ -2045,11 +2054,11 @@
             strain1_mod = les_viscosity_strength(du_t, nu_f1_ele)
             ! strain modulus |S2| for second-filtered velocity (ngi)
             strain2_mod = les_viscosity_strength(du_t, nu_f2_ele)
-            ! If sum of strain components = 0, don't use dynamic LES model
 
-            if(abs(sum(strain1_gi(:,:,:))) < epsilon(0.0)) then
-              les_tensor_gi = 0.0
-            else
+            ! If sum of strain components = 0, don't use dynamic LES model
+            !if(abs(sum(strain1_gi(:,:,:))) < epsilon(0.0)) then
+            !  les_tensor_gi = 0.0
+            !else
               ! Isotropic filter/viscosity case
               if(.not. have_anisotropy) then
                 ! First filter width G1=alpha^2*mesh size (units length^2)
@@ -2104,12 +2113,12 @@
                   les_tensor_gi(:,:,gi) = 2*alpha**2*les_coef_gi(gi)*strain1_mod(gi)*f1_gi(:,:,gi)
                 end do
               end if
-            end if
+            !end if
 
             ! Set diagnostic fields
             call les_set_diagnostic_fields(state, nu, density, ele, detwei, eddy_visc_gi=les_tensor_gi, &
                  visc_gi=viscosity_gi, strain1_gi=strain1_gi, strain2_gi=strain2_gi, les_coef_gi=les_coef_gi, &
-                 t1_width_gi=f1_gi, s1_width_gi=f1_mod, t2_width_gi=f2_gi, s2_width_gi=f2_mod)
+                 t1_width_gi=leonard_gi, s1_width_gi=f1_mod, t2_width_gi=tensor_gi, s2_width_gi=f2_mod)
 
          else
             FLAbort("Unknown LES model")

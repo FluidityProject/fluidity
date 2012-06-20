@@ -441,10 +441,10 @@ Interpolation_manager.o ../include/interpolation_manager.mod: \
 	@true
 
 LES_viscosity.o ../include/les_viscosity_module.mod: LES_viscosity.F90 \
-   ../include/fdebug.h ../include/fetools.mod ../include/field_options.mod \
-   ../include/fields.mod ../include/global_parameters.mod \
-   ../include/smoothing_module.mod ../include/spud.mod \
-   ../include/state_module.mod ../include/vector_tools.mod
+   ../include/elements.mod ../include/fdebug.h ../include/fetools.mod \
+   ../include/field_options.mod ../include/fields.mod \
+   ../include/global_parameters.mod ../include/smoothing_module.mod \
+   ../include/spud.mod ../include/state_module.mod ../include/vector_tools.mod
 
 ../include/linear_shallow_water.mod: Linear_Shallow_Water.o
 	@true
@@ -524,8 +524,9 @@ Momentum_CG.o ../include/momentum_cg.mod: Momentum_CG.F90 \
    ../include/sparse_tools.mod ../include/sparse_tools_petsc.mod \
    ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
    ../include/state_fields_module.mod ../include/state_matrices_module.mod \
-   ../include/state_module.mod ../include/transform_elements.mod \
-   ../include/upwind_stabilisation.mod ../include/vector_tools.mod
+   ../include/state_module.mod ../include/subgrid_kinetic_energy.mod \
+   ../include/transform_elements.mod ../include/upwind_stabilisation.mod \
+   ../include/vector_tools.mod
 
 ../include/momentum_dg.mod: Momentum_DG.o
 	@true
