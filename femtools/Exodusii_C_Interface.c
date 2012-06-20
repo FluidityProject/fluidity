@@ -129,8 +129,6 @@ int c_ex_get_side_set_ids(int *exoid, int *side_set_ids)
 int c_ex_get_side_set_param(int *exoid, int *side_set_id, int *num_sides_in_set, int *num_df_in_set)
 {
    int error;
-   // Get side set parameters:
-   //printf("side_set_id: %d\n", *side_set_id);
    error = ex_get_side_set_param(*exoid, *side_set_id, num_sides_in_set, num_df_in_set);
    return (error);
 }
