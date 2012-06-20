@@ -15,7 +15,7 @@ numerical_p_upstream = []
 numerical_p_downstream = []
 
 for fileindex in range(1, 920, 1):
-   filename='mphase_rogue_shock_tube_dense_bed_2cm_' + str(fileindex) + '.pvtu'
+   filename='mphase_rogue_shock_tube_dense_bed_glass_' + str(fileindex) + '.pvtu'
    vt=vtktools.vtu(filename)
 
    # Time and coordinates
@@ -67,4 +67,4 @@ pylab.ylabel("Pressure at gauge (Pa)")
 pylab.grid("on")
 
 #pylab.show()
-pylab.savefig('mphase_rogue_shock_tube_dense_bed_2cm.png')
+pylab.savefig('mphase_rogue_shock_tube_dense_bed_glass.png')
