@@ -53,7 +53,8 @@ implicit none
   ! locally allocatad fields
   real, save                          :: fields_min = 1.e-10
 
-  public :: keps_diagnostics, keps_eddyvisc, keps_bcs, keps_adapt_mesh, k_epsilon_check_options
+  public :: keps_diagnostics, keps_eddyvisc, keps_bcs, keps_adapt_mesh,&
+       & k_epsilon_check_options, keps_momentum_source
 
   ! Outline:
   !  - call diagnostics to obtain source terms and calculate eddy viscosity
@@ -295,7 +296,7 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, buoyant_fields, &
 
   ! Pk:
   rhs_tensor = reynolds_stresses(u, EV, dshape, ele)
-  rhs = frobenius_inner_product(rhs_tensor, ele_grad_at_quad(u, ele, dshape))
+  rhs = tensor_inner_product(rhs_tensor, ele_grad_at_quad(u, ele, dshape))
   if (field_id==2) then
      rhs = rhs*c_eps_1*ele_val_at_quad(f_1,ele)*ele_val_at_quad(eps,ele)*inv_k
   end if
@@ -338,7 +339,7 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, buoyant_fields, &
 end subroutine assemble_rhs_ele
 
 !------------------------------------------------------------------------------!
-! calculate reynolds stresses                                                  !
+! calculate reynolds stresses   = EV*symmetric gradient                        !
 !------------------------------------------------------------------------------!
 function reynolds_stresses(u, EV, dshape, ele)
 
@@ -365,22 +366,22 @@ function reynolds_stresses(u, EV, dshape, ele)
 end function reynolds_stresses
 
 !------------------------------------------------------------------------------!
-! calculate frobenius inner product for 2xN matrices dim,dim,N                 !
+! calculate inner product for 2xN matrices dim,dim,N                           !
 !------------------------------------------------------------------------------!
-function frobenius_inner_product(A, B)
+function tensor_inner_product(A, B)
 
   real, dimension(:,:,:), intent(in) :: A, B
   
   real, dimension(size(A,1), size(A,2), size(A,3)) :: C
-  real, dimension(size(A,3)) :: frobenius_inner_product
+  real, dimension(size(A,3)) :: tensor_inner_product
   integer :: i
   
   C = A*B
   do i = 1, size(A,3)
-     frobenius_inner_product(i) = sum(C(:,:,i))
+     tensor_inner_product(i) = sum(C(:,:,i))
   end do
 
-end function frobenius_inner_product
+end function tensor_inner_product
     
 !------------------------------------------------------------------------------!
 ! calculate the buoyancy source term for each buoyant scalar field             !
@@ -548,6 +549,79 @@ subroutine keps_eddyvisc(state)
   ewrite_minmax(ll)
 
 end subroutine keps_eddyvisc
+
+!--------------------------------------------------------------------------------!
+! calculates the reynolds stress tensor correction term 
+! - grad(2/3 k delta(ij)) 
+! this is added to prescribed momentum source fields or sets diagnostic source 
+! fields 
+!--------------------------------------------------------------------------------!
+subroutine keps_momentum_source(state)
+
+  type(state_type), intent(inout)  :: state
+  
+  type(scalar_field), pointer :: k, lumped_mass
+  type(vector_field), pointer :: source, x
+  integer :: i
+  logical :: prescribed
+
+  k         => extract_scalar_field(state, "TurbulentKineticEnergy")
+  source    => extract_vector_field(state, "VelocitySource")
+  x         => extract_vector_field(state, "Coordinates")
+
+  ! Allow for prescribed momentum source
+  prescribed = (have_option(trim(source%option_path)//'/prescribed/'))
+  if(.not. prescribed) then
+     call zero(source)
+  end if
+
+  ! Calculate scalar eddy viscosity by integration over element
+  do i = 1, ele_count(k)
+     call keps_momentum_source_ele()
+  end do
+
+  ! For non-DG we apply inverse mass globally
+  if(continuity(k)>=0) then
+     lumped_mass => get_lumped_mass(state, source%mesh)
+     do i = 1, node_count(k)
+        call set(source, i, node_val(source,i)/node_val(lumped_mass,i))
+     end do
+  end if
+
+contains
+    
+  subroutine keps_momentum_source_ele()
+      
+    real, dimension(ele_loc(k, i), ele_ngi(k, i), x%dim) :: dshape
+    real, dimension(ele_ngi(k, i)) :: detwei
+    integer, dimension(ele_loc(k, i)) :: nodes
+    real, dimension(ele_loc(k, i), ele_loc(k, i)) :: invmass
+    type(element_type), pointer :: shape
+    real, dimension(ele_ngi(source, i)) :: rhs
+    real, dimension(x%dim, ele_ngi(k, i)) :: grad_k
+    integer :: j
+
+    shape => ele_shape(k, i)
+    nodes = ele_nodes(source, i)
+
+    call transform_to_physical( x, i, shape, dshape=dshape, detwei=detwei )
+
+    grad_k = ele_grad_at_quad(k, i, dshape)
+    do j = 1, x%dim
+       rhs = shape_rhs(shape, -(2./3.)*detwei*grad_k(j,:))
+       
+       ! In the DG case we apply the inverse mass locally.
+       if(continuity(k)<0) then
+          invmass = inverse(shape_shape(shape, shape, detwei))
+          rhs = matmul(rhs, invmass)
+       end if
+
+       call addto(source, j, nodes, rhs)  
+    end do
+
+  end subroutine keps_momentum_source_ele
+
+end subroutine keps_momentum_source
 
 !--------------------------------------------------------------------------------!
 ! This gets and applies locally defined boundary conditions (wall functions)     !
@@ -996,6 +1070,11 @@ subroutine k_epsilon_check_options
   if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic"//&
        &"/tensor_field::Viscosity/diagnostic/")) then
      FLExit("You need to switch the viscosity field under Velocity to diagnostic/internal")
+  end if
+  ! check that the user has an active Velocity/source field
+  if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic"//&
+       &"/vector_field::Source/")) then
+     FLExit("A velocity source field is required for the reynolds stress adjustment (-2/3 k delta(ij))")
   end if
 
 end subroutine k_epsilon_check_options

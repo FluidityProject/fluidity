@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testproblem>
+  <name>p1p1 cv k-epsilon spatial convergence test</name>
+  <owner userid="sp911"/>
+  <tags>flml</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>fluidity MMS_A.flml &amp;&amp; fluidity MMS_B.flml &amp;&amp; fluidity MMS_C.flml &amp;&amp; fluidity MMS_D.flml </command_line>
+  </problem_definition>
+  <variables>
+    <variable name="vector_convergence" language="python">
+from fluidity_tools import stat_parser as stat
+
+meshes = [['A','B'], ['B','C'], ['C','D']]
+vector_convergence = []
+
+for i, mesh in enumerate(meshes):
+
+    a_error_x = stat("MMS_"+str(mesh[0])+".stat")["NS"]["Velocity_Difference%1"]["l2norm"][-1]
+    b_error_x = stat("MMS_"+str(mesh[1])+".stat")["NS"]["Velocity_Difference%1"]["l2norm"][-1]
+    a_error_y = stat("MMS_"+str(mesh[0])+".stat")["NS"]["Velocity_Difference%2"]["l2norm"][-1]
+    b_error_y = stat("MMS_"+str(mesh[1])+".stat")["NS"]["Velocity_Difference%2"]["l2norm"][-1]
+
+    ratio_x = a_error_x / b_error_x
+    ratio_y = a_error_y / b_error_y
+
+    vector_convergence.append([log(ratio_x, 2), log(ratio_y, 2)])
+    </variable>
+    <variable name="scalar_convergence" language="python">
+from fluidity_tools import stat_parser as stat
+
+meshes = [['A','B'], ['B','C'], ['C','D']]
+fields = ['Pressure_Difference','Temperature_Difference','TurbulentKineticEnergy_Difference',
+          'TurbulentDissipation_Difference']
+scalar_convergence = [[0,0,0],[0,0,0],[0,0,0],[0,0,0]]
+
+for i, field in enumerate(fields):
+    for i, mesh in enumerate(meshes):
+        a_error = stat("MMS_"+str(mesh[0])+".stat")["NS"][field]["l2norm"][-1]
+        b_error = stat("MMS_"+str(mesh[1])+".stat")["NS"][field]["l2norm"][-1]
+        
+        ratio = a_error / b_error
+        
+        scalar_convergence[i][j] = log(ratio, 2)
+    </variable>
+    <variable name="t_end" language="python">
+from fluidity_tools import stat_parser as stat
+meshes = [['A'], ['B'], ['C'],['D']]
+t_end = []
+
+for i, mesh in enumerate(meshes):
+    t_end.append(stat("MMS_"+str(mesh[0])+".stat")["Time"][-1])
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="check steady state was reached for all tests" language="python">
+assert(max(t_end)) &lt; 200.0)
+    </test>
+    <test name="pressure convergence should be at least 1st order" language="python">
+assert(abs(min(scalar_convergence[0])) &gt; 1.0)
+    </test>
+    <test name="velocity convergence should be 2nd order" language="python">
+assert(abs(min(vector_convergence)) &gt; 2.0)
+    </test>
+    <test name="scalar field convergence should be a approximately 2nd order" language="python">
+assert(abs(min(scalar_convergence[1:])) &gt; 1.4)
+    </test>
+  </pass_tests>  
+</testproblem>
+
