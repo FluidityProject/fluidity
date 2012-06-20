@@ -181,22 +181,6 @@ subroutine keps_calculate_rhs(state)
         end if
      end if
      !-----------------------------------------------------------------------------------
-
-     ! This allows user-specified source and absorption terms, so that an MMS test can be
-     ! set up. ONLY WITH 1 NON LINEAR ITERATION
-
-     prescribed = (have_option(trim(option_path)//'scalar_field::'//trim(field_names(i))// &
-          '/prognostic/scalar_field::Source/prescribed'))
-     if(.not. prescribed) then
-        call zero(src)
-     end if
-
-     prescribed = (have_option(trim(option_path)//'scalar_field::'//trim(field_names(i))// &
-          '/prognostic/scalar_field::Absorption/prescribed'))
-     if(.not. prescribed) then
-        call zero(abs)
-     end if
-     !-----------------------------------------------------------------------------------
      
      ! This allows user-specified implicit/explicit rhs terms
 
@@ -231,6 +215,16 @@ subroutine keps_calculate_rhs(state)
         call addto(src, src_abs_terms(2), -1.0)
      else
         call addto(abs, src_abs_terms(2))
+     end if
+     !-----------------------------------------------------------------------------------
+
+     ! This allows user-specified source and absorption terms, so that an MMS test can be
+     ! set up. 
+
+     debug => extract_scalar_field(state, &
+             trim(field_names(i))//"PrescribedSource", stat)
+     if (stat == 0) then
+        call addto(src, debug)
      end if
      !-----------------------------------------------------------------------------------
 
@@ -567,7 +561,7 @@ subroutine keps_momentum_source(state)
 
   k         => extract_scalar_field(state, "TurbulentKineticEnergy")
   source    => extract_vector_field(state, "VelocitySource")
-  x         => extract_vector_field(state, "Coordinates")
+  x         => extract_vector_field(state, "Coordinate")
 
   ! Allow for prescribed momentum source
   prescribed = (have_option(trim(source%option_path)//'/prescribed/'))
@@ -1021,11 +1015,8 @@ subroutine k_epsilon_check_options
   end if
   if (.not. have_option(trim(option_path)//&
        &"/scalar_field::TurbulentKineticEnergy/prognostic"//&
-       &"/scalar_field::Source/diagnostic/algorithm::Internal")&
-       .and. .not. have_option(trim(option_path)//&
-       &"/scalar_field::TurbulentKineticEnergy/prognostic"//&
-       &"/scalar_field::Source/prescribed")) then
-     FLExit("You need TurbulentKineticEnergy Source field set to diagnostic/internal or prescribed")
+       &"/scalar_field::Source/diagnostic/algorithm::Internal")) then
+     FLExit("You need TurbulentKineticEnergy Source field set to diagnostic/internal")
   end if
   if (.not.have_option(trim(option_path)//&
        &"/scalar_field::TurbulentDissipation/prognostic"//&
@@ -1034,11 +1025,8 @@ subroutine k_epsilon_check_options
   end if
   if (.not. have_option(trim(option_path)//&
        &"/scalar_field::TurbulentDissipation/prognostic"//&
-       &"/scalar_field::Source/diagnostic/algorithm::Internal")&
-       .and. .not. have_option(trim(option_path)//&
-       &"/scalar_field::TurbulentDissipation/prognostic"//&
-       &"/scalar_field::Source/prescribed")) then
-     FLExit("You need TurbulentDissipation Source field set to diagnostic/internal or prescribed")
+       &"/scalar_field::Source/diagnostic/algorithm::Internal")) then
+     FLExit("You need TurbulentDissipation Source field set to diagnostic/internal")
   end if
   ! absorption terms
   if (.not.have_option(trim(option_path)//&

@@ -1338,7 +1338,8 @@ start =
                   ## Explicit absorbtion term - lump absorbtion term into source so that it is calculated 
                   ## explicitly
                   element explicit_absorbtion { empty }?,
-                  ## produce vtu output of individual kk and eps source terms
+                  ## produce vtu output of individual kk and eps source terms and set prescribed source terms
+                  ## for k and epsilon fields (for mms tests)
                   element debugging_fields{
                      element scalar_field {
                         attribute rank { "0" },
@@ -1392,6 +1393,22 @@ start =
                            internal_algorithm,
                            velocity_mesh_choice,
                            diagnostic_scalar_field                        
+                        }
+                     }?,
+                     element scalar_field {
+                        attribute rank { "0" },
+                        attribute name { "TurbulentKineticEnergyPrescribedSource" },
+                        element prescribed {
+                           velocity_mesh_choice,
+                           prescribed_scalar_field                        
+                        }
+                     }?,
+                     element scalar_field {
+                        attribute rank { "0" },
+                        attribute name { "TurbulentDissipationPrescribedSource" },
+                        element prescribed {
+                           velocity_mesh_choice,
+                           prescribed_scalar_field                        
                         }
                      }?
                   }?
