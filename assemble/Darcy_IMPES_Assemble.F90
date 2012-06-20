@@ -213,6 +213,7 @@ module darcy_impes_assemble_module
       type(scalar_field), pointer :: sum_saturation
       type(scalar_field), pointer :: div_total_darcy_velocity
       type(vector_field), pointer :: gravity_direction
+      type(vector_field), pointer :: bulk_darcy_velocity
       ! *** Pointer to the pressure mesh - pressure mesh sparsity, used for pressure matrix and finding CV upwind values ***
       type(csr_sparsity), pointer :: sparsity_pmesh_pmesh
       ! *** Data associated with generic prognostic scalar fields, some of which points to fields in state ***
@@ -3093,6 +3094,7 @@ dot_product((grad_pressure_face_quad(:,ggi) - di%cached_face_value%den(ggi,vele,
       type(darcy_impes_type), intent(inout) :: di
       
       ! local variables
+      type(vector_field) :: aux_vfield
       logical :: inflow
       integer :: vele, p, dim, iloc, oloc, face, gi, ggi, sele
       real    :: income, v_dot_n
@@ -3453,7 +3455,27 @@ visc_ele_bdy(1)
       end do
 
       ewrite_minmax(di%total_darcy_velocity)
-            
+      ewrite_minmax(di%total_mobility)
+      
+      ewrite(1,*) 'Calculate BulkDarcyVelocity'
+      
+      call allocate(aux_vfield, di%ndim, di%pressure_mesh)
+      
+      call zero(di%bulk_darcy_velocity)
+      
+      do p = 1, di%number_phase
+      
+         call set(aux_vfield, di%darcy_velocity(p)%ptr)
+         call scale(aux_vfield, di%saturation(p)%ptr)
+         
+         call addto(di%bulk_darcy_velocity, aux_vfield)
+         
+      end do
+      
+      call deallocate(aux_vfield)
+      
+      ewrite_minmax(di%bulk_darcy_velocity)
+      
       ! calculate the fractional flow for each phase
       do p = 1, di%number_phase
          

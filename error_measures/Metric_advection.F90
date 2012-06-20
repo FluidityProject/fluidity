@@ -159,6 +159,9 @@ contains
     real :: max_sub_cfl
     ! construct the matrices
     logical :: getmat
+
+    ! the advecting velocity field name
+    character(len=FIELD_NAME_LEN) :: adv_vel_field_name
     
     logical :: output_subcycle_vtus, output_final_vtus
     type(scalar_field) :: edgelen
@@ -177,8 +180,13 @@ contains
     output_subcycle_vtus = have_option(trim(option_path)//"/output/output_subcycle_vtus")
     output_final_vtus = have_option(trim(option_path)//"/output/output_final_vtus")
     
+    ! Get the advecting velocity field name which is defaulted to NonlinearVelocity
+    call get_option(trim(option_path)//'/advecting_velocity_field_name', &
+                    adv_vel_field_name, &
+                    default = "NonlinearVelocity")
+
     ! extract fields from state
-    nu=>extract_vector_field(state, "NonlinearVelocity")
+    nu=>extract_vector_field(state, trim(adv_vel_field_name))
     ug=>extract_vector_field(state, "GridVelocity")
     x=>extract_vector_field(state, "Coordinate")
     x_tfield = get_coordinate_field(state, tfield%mesh)

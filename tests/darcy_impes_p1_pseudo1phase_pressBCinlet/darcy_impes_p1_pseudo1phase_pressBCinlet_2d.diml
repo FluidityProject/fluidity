@@ -336,6 +336,16 @@
         <consistent_interpolation/>
       </diagnostic>
     </scalar_field>
+    <vector_field name="BulkDarcyVelocity" rank="1">
+      <diagnostic>
+        <mesh name="PressureMesh"/>
+        <algorithm name="Internal"/>
+        <stat>
+          <include_cv_stats/>
+        </stat>
+        <consistent_interpolation/>
+      </diagnostic>
+    </vector_field>
   </material_phase>
   <material_phase name="Phase2">
     <scalar_field name="Pressure" rank="0">

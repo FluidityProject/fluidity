@@ -285,6 +285,16 @@
         <consistent_interpolation/>
       </diagnostic>
     </scalar_field>
+    <vector_field name="BulkDarcyVelocity" rank="1">
+      <diagnostic>
+        <mesh name="PressureMesh"/>
+        <algorithm name="Internal"/>
+        <stat>
+          <include_cv_stats/>
+        </stat>
+        <consistent_interpolation/>
+      </diagnostic>
+    </vector_field>
     <scalar_field name="RegressionSaturation">
       <prescribed>
         <mesh name="PressureMesh"/>

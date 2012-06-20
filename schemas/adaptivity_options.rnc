@@ -640,6 +640,7 @@ metric_advection =
                empty
            }
          ),
+         metric_advection_velocity_name?,
          porosity_include?,
          ## Debugging output options
          element output {
@@ -652,6 +653,16 @@ metric_advection =
              empty
            }?
          }
+      }
+   )
+
+metric_advection_velocity_name = 
+   (
+      ## The name of the field used to advect the metric
+      ## that must exist in the first material_phase.
+      ## If not given then the NonlinearVelocity is used.
+      element advecting_velocity_field_name {
+         xsd:string
       }
    )
    

@@ -732,6 +732,9 @@ and divides the rhs by this.</a:documentation>
         </element>
       </choice>
       <optional>
+        <ref name="metric_advection_velocity_name"/>
+      </optional>
+      <optional>
         <ref name="porosity_include"/>
       </optional>
       <element name="output">
@@ -749,6 +752,14 @@ and divides the rhs by this.</a:documentation>
           </element>
         </optional>
       </element>
+    </element>
+  </define>
+  <define name="metric_advection_velocity_name">
+    <element name="advecting_velocity_field_name">
+      <a:documentation>The name of the field used to advect the metric
+that must exist in the first material_phase.
+If not given then the NonlinearVelocity is used.</a:documentation>
+      <data type="string"/>
     </element>
   </define>
   <define name="geometric_constraints">

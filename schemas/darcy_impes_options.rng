@@ -605,6 +605,7 @@ at the first timestep or not.</a:documentation>
       <ref name="darcy_impes_fractional_flow_field"/>
       <ref name="darcy_impes_sum_saturation"/>
       <ref name="darcy_impes_average_pressure"/>
+      <ref name="darcy_impes_bulk_darcy_velocity"/>
       <zeroOrMore>
         <ref name="darcy_impes_generic_scalar_field"/>
       </zeroOrMore>
@@ -820,6 +821,21 @@ for the latest output to be written.</a:documentation>
         <ref name="mesh_choice_pressure"/>
         <ref name="darcy_impes_internal_algorithm"/>
         <ref name="darcy_impes_diagnostic_scalar_field"/>
+      </element>
+    </element>
+  </define>
+  <define name="darcy_impes_bulk_darcy_velocity">
+    <element name="vector_field">
+      <attribute name="rank">
+        <value>1</value>
+      </attribute>
+      <attribute name="name">
+        <value>BulkDarcyVelocity</value>
+      </attribute>
+      <element name="diagnostic">
+        <ref name="mesh_choice_pressure"/>
+        <ref name="darcy_impes_internal_algorithm"/>
+        <ref name="darcy_impes_diagnostic_vector_field"/>
       </element>
     </element>
   </define>
@@ -1645,10 +1661,9 @@ Default value is 1.</a:documentation>
       </optional>
       <ref name="gradation_options_full"/>
       <optional>
-        <!--
-          metric advection disabled, for now ...
-          metric_advection?,
-        -->
+        <ref name="darcy_impes_metric_advection"/>
+      </optional>
+      <optional>
         <ref name="geometric_constraints"/>
       </optional>
       <optional>
@@ -1674,6 +1689,146 @@ Default value is 1.</a:documentation>
         <ref name="hr_adaptivity_debug"/>
       </optional>
     </element>
+  </define>
+  <define name="darcy_impes_metric_advection">
+    <element name="metric_advection">
+      <a:documentation>Metric advection algorithm.
+By advecting the metric with the flow velocity,
+we can push mesh resolution ahead of the flow dynamics,
+rather than always lagging behind.</a:documentation>
+      <element name="spatial_discretisation">
+        <a:documentation>Spatial discretisation options</a:documentation>
+        <element name="control_volumes">
+          <ref name="darcy_impes_metric_field_face_value"/>
+        </element>
+        <element name="conservative_advection">
+          <a:documentation>Conservative discretisation of field advection equation
+ TBETA=1. -- conservative (divergence form)
+ TBETA=0. -- non-conservative
+ 0. &lt; TBETA &lt; 1.</a:documentation>
+          <ref name="real"/>
+        </element>
+      </element>
+      <element name="temporal_discretisation">
+        <element name="theta">
+          <a:documentation>Implicit/explicit control (TTHETA)
+ =0.  -- explicit
+ =0.5 -- Crank-Nicolson
+ =1.  -- implicit</a:documentation>
+          <ref name="real"/>
+        </element>
+        <element name="number_advection_subcycles">
+          <a:documentation>Use subcycling to advect the metric.
+
+Specify the number of subcycles.</a:documentation>
+          <ref name="integer"/>
+        </element>
+        <optional>
+          <element name="scale_advection_time">
+            <a:documentation>Scale the time period over which the metric is
+advected by this factor.
+
+Default is 1.1</a:documentation>
+            <ref name="real"/>
+          </element>
+        </optional>
+        <element name="control_volumes">
+          <a:documentation>Temporal discretisation options for the control volume discretisation</a:documentation>
+          <optional>
+            <element name="number_advection_iterations">
+              <a:documentation>Number of iterations within an advection solve.
+This increases the accuracy of the face values and ensures that
+the pivoted solution is cancelled out.
+Defaults to 1 if unselected.</a:documentation>
+              <ref name="integer"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="limit_theta">
+              <a:documentation>If not active then the theta specified above will be used.
+Otherwise use variable limited theta on individual faces.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="pivot_theta">
+              <a:documentation>Time discretisation of upwind discretisation off which the
+higher order solution is pivotted.
+ - pivot_theta = 1 - implicit pivot (default if not set and 
+                     best choice if not intentionally modifying
+                     scheme to be explicit)
+ - pivot_theta = 0 - explicit pivot</a:documentation>
+              <ref name="real"/>
+            </element>
+          </optional>
+        </element>
+      </element>
+      <choice>
+        <element name="solver">
+          <a:documentation>Solver</a:documentation>
+          <ref name="linear_solver_options_asym"/>
+        </element>
+        <element name="explicit">
+          <a:documentation>Assume this field is being solved explicitly and skip the solver.
+
+Assumes lhs matrix only has diagonal lumped mass
+and divides the rhs by this.</a:documentation>
+          <empty/>
+        </element>
+      </choice>
+      <ref name="darcy_impes_metric_advection_velocity_name"/>
+      <ref name="porosity_include"/>
+      <element name="output">
+        <a:documentation>Debugging output options</a:documentation>
+        <optional>
+          <element name="output_subcycle_vtus">
+            <a:documentation>Output vtus of the advected metric and edge lengths at every subcycle</a:documentation>
+            <empty/>
+          </element>
+        </optional>
+        <optional>
+          <element name="output_final_vtus">
+            <a:documentation>Output vtus of the final metric merged over all the subcycles</a:documentation>
+            <empty/>
+          </element>
+        </optional>
+      </element>
+    </element>
+  </define>
+  <define name="darcy_impes_metric_advection_velocity_name">
+    <element name="advecting_velocity_field_name">
+      <a:documentation>The name of the field used to advect the metric
+that must exist in the first material_phase.
+If not given then the NonlinearVelocity is used.</a:documentation>
+      <value>BulkDarcyVelocity</value>
+    </element>
+  </define>
+  <define name="darcy_impes_metric_field_face_value">
+    <choice>
+      <element name="face_value">
+        <a:documentation>First Order Upwind face value discretisation
+ face_value = donor_value, 
+where
+ donor_value = income*val_1 + (1.-income)*val_2, 
+where val_i is the value on the ith node neighbouring the face and
+income = [0, 1] depending on whether the flow is coming from node 1 or 2
+First order upwinding is monotonic so no limiting is ever required</a:documentation>
+        <attribute name="name">
+          <value>FirstOrderUpwind</value>
+        </attribute>
+        <empty/>
+      </element>
+      <element name="face_value">
+        <a:documentation>Finite Element face value discretisation
+ face_value = finite element interpolation from surrounding nodes
+
+Finite element discretisation may become unbounded so limiting is often necessary.</a:documentation>
+        <attribute name="name">
+          <value>FiniteElement</value>
+        </attribute>
+        <ref name="darcy_impes_limiter_options"/>
+      </element>
+    </choice>
   </define>
   <define name="darcy_impes_porous_media_model">
     <element name="porous_media">

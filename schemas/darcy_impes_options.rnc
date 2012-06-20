@@ -587,6 +587,8 @@ darcy_impes_material_phases =
          darcy_impes_sum_saturation, 
          
          darcy_impes_average_pressure, 
+
+         darcy_impes_bulk_darcy_velocity, 
          
          darcy_impes_generic_scalar_field*
       },
@@ -798,6 +800,20 @@ darcy_impes_average_pressure =
             mesh_choice_pressure,
             darcy_impes_internal_algorithm,
             darcy_impes_diagnostic_scalar_field
+         }
+      }
+   )
+
+
+darcy_impes_bulk_darcy_velocity =
+   (
+      element vector_field {
+         attribute rank { "1" },
+         attribute name { "BulkDarcyVelocity" },
+         element diagnostic {
+            mesh_choice_pressure,
+            darcy_impes_internal_algorithm,
+            darcy_impes_diagnostic_vector_field
          }
       }
    )
@@ -1560,8 +1576,7 @@ darcy_impes_hr_adaptivity =
          node_locking?,
          functional_tolerance?,
          gradation_options_full,
-         # metric advection disabled, for now ...
-         #metric_advection?,
+         darcy_impes_metric_advection?,
          geometric_constraints?,
          bounding_box_factor?,
          min_and_max_edge_and_reference_mesh_bound_and_aspect_ratio_bound,
@@ -1573,7 +1588,143 @@ darcy_impes_hr_adaptivity =
          hr_adaptivity_debug?
       }   
    )
+
+
+darcy_impes_metric_advection = 
+   (
+      ## Metric advection algorithm.
+      ## By advecting the metric with the flow velocity,
+      ## we can push mesh resolution ahead of the flow dynamics,
+      ## rather than always lagging behind.
+      element metric_advection {
+         ## Spatial discretisation options
+         element spatial_discretisation {
+           (
+               element control_volumes {
+                 darcy_impes_metric_field_face_value
+               }
+           ),
+           ## Conservative discretisation of field advection equation
+           ##  TBETA=1. -- conservative (divergence form)
+           ##  TBETA=0. -- non-conservative
+           ##  0. < TBETA < 1.
+           element conservative_advection {
+               real
+           }
+         },
+         element temporal_discretisation {
+           ## Implicit/explicit control (TTHETA)
+           ##  =0.  -- explicit
+           ##  =0.5 -- Crank-Nicolson
+           ##  =1.  -- implicit
+           element theta {
+             real
+           },
+           (
+               ## Use subcycling to advect the metric.
+               ## 
+               ## Specify the number of subcycles.
+               element number_advection_subcycles {
+                 integer
+               }
+           ),
+           ## Scale the time period over which the metric is
+           ## advected by this factor.
+           ##
+           ## Default is 1.1
+           element scale_advection_time {
+               real
+           }?,
+           ## Temporal discretisation options for the control volume discretisation
+           element control_volumes {
+             ## Number of iterations within an advection solve.
+             ## This increases the accuracy of the face values and ensures that
+             ## the pivoted solution is cancelled out.
+             ## Defaults to 1 if unselected.
+             element number_advection_iterations {
+                 integer
+             }?,
+             ## If not active then the theta specified above will be used.
+             ## Otherwise use variable limited theta on individual faces.
+             element limit_theta {
+                 empty
+             }?,
+             ## Time discretisation of upwind discretisation off which the
+             ## higher order solution is pivotted.
+             ##  - pivot_theta = 1 - implicit pivot (default if not set and 
+             ##                      best choice if not intentionally modifying
+             ##                      scheme to be explicit)
+             ##  - pivot_theta = 0 - explicit pivot
+             element pivot_theta {
+                 real
+             }?
+           }
+         },
+         (
+           ## Solver
+           element solver {
+               linear_solver_options_asym
+           }|
+           ## Assume this field is being solved explicitly and skip the solver.
+           ##
+           ## Assumes lhs matrix only has diagonal lumped mass
+           ## and divides the rhs by this.
+           element explicit {
+               empty
+           }
+         ),
+         darcy_impes_metric_advection_velocity_name,
+         porosity_include,
+         ## Debugging output options
+         element output {
+           ## Output vtus of the advected metric and edge lengths at every subcycle
+           element output_subcycle_vtus {
+             empty
+           }?,
+           ## Output vtus of the final metric merged over all the subcycles
+           element output_final_vtus {
+             empty
+           }?
+         }
+      }   
+   )   
+
+
+darcy_impes_metric_advection_velocity_name = 
+   (
+      ## The name of the field used to advect the metric
+      ## that must exist in the first material_phase.
+      ## If not given then the NonlinearVelocity is used.
+      element advecting_velocity_field_name {
+         "BulkDarcyVelocity"
+      }
+   )
+
+ 
    
+darcy_impes_metric_field_face_value =
+   (
+      ## First Order Upwind face value discretisation
+      ##  face_value = donor_value, 
+      ## where
+      ##  donor_value = income*val_1 + (1.-income)*val_2, 
+      ## where val_i is the value on the ith node neighbouring the face and
+      ## income = [0, 1] depending on whether the flow is coming from node 1 or 2
+      ## First order upwinding is monotonic so no limiting is ever required
+      element face_value {
+        attribute name { "FirstOrderUpwind" },
+        empty
+      }|
+      ## Finite Element face value discretisation
+      ##  face_value = finite element interpolation from surrounding nodes
+      ##
+      ## Finite element discretisation may become unbounded so limiting is often necessary.
+      element face_value {
+        attribute name { "FiniteElement" },
+        darcy_impes_limiter_options
+      }            
+   )
+
 
 darcy_impes_porous_media_model =
    (

@@ -631,7 +631,8 @@ contains
       di%total_mobility           => extract_scalar_field(di%state(1), "TotalMobility")
       di%sum_saturation           => extract_scalar_field(di%state(1), "SumSaturation")
       di%div_total_darcy_velocity => extract_scalar_field(di%state(1), "DivergenceTotalDarcyVelocity")
-
+      di%bulk_darcy_velocity      => extract_vector_field(di%state(1), "BulkDarcyVelocity")
+      
       ! Allocate the gradient pressure data
       
       ! make a shape which is one degree less than the pressure mesh
@@ -1415,6 +1416,7 @@ contains
       nullify(di%total_mobility)
       nullify(di%sum_saturation)
       nullify(di%div_total_darcy_velocity)
+      nullify(di%bulk_darcy_velocity)
       nullify(di%gravity_direction)
 
       call deallocate(di%gradient_pressure_shape)
