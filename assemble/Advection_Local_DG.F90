@@ -1076,8 +1076,8 @@ module advection_local_DG
           call test_pv_flux_ele(Qtest1,Qtest2,QF,Q,Q_old,D,D_old,&
                Flux,X,down,t_theta,ele)
        end do
-       ewrite(2,*) 'Error = ', maxval(abs(Qtest1%val-Qtest2%val))
-       assert(maxval(abs(Qtest1%val-Qtest2%val))<1.0e-10)
+       ewrite(2,*) 'Error = ', maxval(abs(Qtest1%val-Qtest2%val)), maxval(Qtest1%val)
+       assert(maxval(abs(Qtest1%val-Qtest2%val))<1.0e-8)
        ewrite(2,*) 'test passed'
        call deallocate(Qtest1)
        call deallocate(Qtest2)
@@ -1573,7 +1573,7 @@ module advection_local_DG
          U_shape%quadrature%weight)
     !Now the gradient terms (done in local coordinates)
     D_bar_gi = theta*newD_gi + (1-theta)*D_gi
-    K_bar_gi = 0.5*(theta*sum(newU_cart_gi,1)+(1-theta)*sum(U_cart_gi,1))
+    K_bar_gi = 0.5*(theta*sum(newU_cart_gi**2,1)+(1-theta)*sum(U_cart_gi**2,1))
     !integration by parts, so minus sign
     UR_rhs = UR_rhs - dt * dshape_rhs(U_shape%dn,&
          (g*D_bar_gi + K_bar_gi)*U_shape%quadrature%weight)

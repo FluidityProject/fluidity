@@ -403,8 +403,11 @@ start =
                         element value {
                            input_choice_real                        
                         },
-                        element zero_bubble_component {
+                        element initialise_from_quadrature_points {
                            empty
+                        }?,
+                        element solver {
+                           linear_solver_options_sym
                         }?,
                         vorticity_mesh_choice,
                         prognostic_scalar_output_options

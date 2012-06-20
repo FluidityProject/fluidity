@@ -444,8 +444,9 @@
       ! Geostrophic balanced initial condition, if required
       s_field => extract_scalar_field(state,"Streamfunction",stat)
       if(stat==0) then
-         if(s_field%mesh%shape%numbering%type==ELEMENT_BUBBLE) then
-            call remove_bubble_component(s_field)
+         if(have_option('/material_phase::Fluid/scalar_field::Streamfunction&
+              &/prescribed/initialise_from_quadrature_points')) then
+            call initialise_from_quadrature_points(state,s_field)
          end if
       end if
       if(have_option("/material_phase::Fluid/vector_field::Velocity/prognostic&
@@ -579,6 +580,73 @@
       f_nodes => ele_nodes(s_field,ele)
       call set(s_field,f_nodes(size(f_nodes)),0.0)
     end subroutine remove_bubble_component_ele
+    
+    subroutine initialise_from_quadrature_points(state,T)
+      type(scalar_field), intent(inout) :: T
+      type(state_type), intent(inout) :: state
+      !
+      integer :: ele
+      type(csr_sparsity), pointer :: sparsity
+      type(csr_matrix) :: init_mat
+      type(scalar_field) :: T_rhs
+      type(vector_field), pointer :: X      
+      character(len=PYTHON_FUNC_LEN) :: Python_Function
+
+      sparsity => get_csr_sparsity_firstorder(state, T%mesh, T%mesh)
+      call allocate(init_mat,sparsity)
+      call zero(init_mat)
+      call allocate(T_rhs,T%mesh,'T_rhs')
+      call zero(T_rhs)
+      X=>extract_vector_field(state, "Coordinate")
+
+       call get_option(&
+            trim(T%option_path)//"/prescribed/value/python",Python_Function)
+      
+      do ele = 1, ele_count(T)
+         call initialise_from_quadrature_points_ele(&
+              T_rhs,init_mat,X,Python_Function,ele)
+      end do
+
+      call petsc_solve(T,init_mat,T_rhs,option_path=trim(T%option_path)//"/prescribed/")
+      call deallocate(T_rhs)
+      call deallocate(sparsity)
+    end subroutine initialise_from_quadrature_points
+    
+    subroutine initialise_from_quadrature_points_ele(T_rhs,init_mat,X,&
+         Python_Function,ele)
+      type(scalar_field), intent(inout) :: T_rhs
+      type(csr_matrix), intent(inout) :: init_mat
+      integer, intent(in) :: ele
+      character(len=PYTHON_FUNC_LEN), intent(in) :: Python_Function
+      type(vector_field), intent(in) :: X
+      !
+      real, dimension(X%dim, ele_ngi(X, ele)) :: X_quad
+      real, dimension(ele_ngi(X, ele)) :: T_quad, detwei
+      real, dimension(ele_loc(T_rhs, ele)) :: l_t_rhs
+      real, dimension(ele_loc(T_rhs, ele), ele_loc(T_rhs,ele)) :: l_mat
+      real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+      integer :: stat
+      X_quad = ele_val_at_quad(X,ele)
+
+      call set_scalar_field_from_python(python_function, len(python_function),&
+           & dim=3,nodes=ele_ngi(X,ele),x=X_quad(1,:),y=X_quad(2,:)&
+           &,z=x_quad(3,:),t=0.0,&
+           & result=T_quad,&
+           & stat=stat)
+      if(stat /= 0) then
+         FLAbort('Failed to set face values from Python.')
+      end if
+
+      call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
+           detwei=detwei)
+      
+      l_mat = shape_shape(Ele_shape(T_rhs,Ele),Ele_shape(T_rhs,Ele),detwei)
+      l_t_rhs = shape_rhs(Ele_shape(T_rhs,Ele),detwei*T_quad)
+
+      call addto(init_mat,ele_nodes(T_rhs,ele),ele_nodes(T_rhs,ele),l_mat)
+      call addto(T_rhs,ele_nodes(T_rhs,ele),l_t_rhs)
+      
+    end subroutine initialise_from_quadrature_points_ele
 
     subroutine advance_current_time(current_time, dt)
       implicit none

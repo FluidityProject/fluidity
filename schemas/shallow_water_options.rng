@@ -428,7 +428,9 @@ if isn't present as a field in state.</a:documentation>
                   <element name="continuous_galerkin">
                     <optional>
                       <element name="laplacian_filter">
-                        <empty/>
+                        <element name="diffusivity">
+                          <ref name="real"/>
+                        </element>
                       </element>
                     </optional>
                     <optional>
@@ -514,8 +516,13 @@ Only used if wave equation is not solved</a:documentation>
                     <ref name="input_choice_real"/>
                   </element>
                   <optional>
-                    <element name="zero_bubble_component">
+                    <element name="initialise_from_quadrature_points">
                       <empty/>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="solver">
+                      <ref name="linear_solver_options_sym"/>
                     </element>
                   </optional>
                   <ref name="vorticity_mesh_choice"/>
