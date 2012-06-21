@@ -2165,8 +2165,7 @@ contains
     do dim1= 1, U_local%dim
        Uloc_gi(dim1,:) = matmul(transpose(U_shape%n),U_loc(dim1,:))
     end do
-
-    assert(maxval(abs(Uloc_gi-dpsi_gi))<1.0e-8)
+    assert(maxval(abs(Uloc_gi-dpsi_gi))/max(1.0,maxval(abs(Uloc_gi)))<1.0e-8)
 
     !verify divergence-free-ness
     !This is just for debugging
@@ -2942,8 +2941,15 @@ contains
     m_normal(1,:) = xm/(xm**2+ym**2+zm**2)**0.5
     m_normal(2,:) = ym/(xm**2+ym**2+zm**2)**0.5
     m_normal(3,:) = zm/(xm**2+ym**2+zm**2)**0.5
-    assert(maxval(abs(sum(Us_quad*m_normal,1)))<1.0e-7)
     assert(maxval(abs(sum(m_normal**2,1)-1.0))<1.0e-8)
+    if(maxval(abs(sum(Us_quad*m_normal,1)))>1.0e-7) then
+       do gi = 1, ele_ngi(X,ele)
+          ewrite(2,*) 'Us',Us_quad(:,gi)
+          ewrite(2,*) 'normal', m_normal(:,gi)
+          ewrite(2,*) 'dot prod', sum(Us_quad(:,gi)*m_normal(:,gi))
+       end do
+       FLExit('Velocity field not tangential to sphere')
+    end if
     e_normal(1,:) = xe/(xe**2+ye**2+ze**2)**0.5
     e_normal(2,:) = ye/(xe**2+ye**2+ze**2)**0.5
     e_normal(3,:) = ze/(xe**2+ye**2+ze**2)**0.5

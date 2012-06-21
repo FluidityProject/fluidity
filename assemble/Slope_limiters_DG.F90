@@ -1454,6 +1454,9 @@ contains
        call set(delta_t, T)
        call scale(delta_t, -1.0)
        call addto(delta_t, T_limit)
+       do ele = 1, ele_count(T)
+          assert(abs(sum(ele_val(delta_t,ele)))<1.0e-8)
+       end do
     end if
     call set(T, T_limit)
     call halo_update(T)

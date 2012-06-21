@@ -437,8 +437,6 @@
          end if
          call deallocate(f)
       end if
-      v_field => extract_vector_field(state, "LocalVelocity")
-      call project_to_constrained_space(state,v_field)
 
       !VARIOUS BALANCED INITIAL OPTIONS
       ! Geostrophic balanced initial condition, if required
@@ -470,6 +468,9 @@
          &ic/initial_condition::WholeMesh/from_sphere_pullback")) then
        call set_velocity_from_sphere_pullback(state)
     end if
+
+    v_field => extract_vector_field(state, "LocalVelocity")
+    call project_to_constrained_space(state,v_field)
     
     if(have_option("/material_phase::Fluid/scalar_field::LayerThickness/pr&
          &ognostic/initial_condition::ProjectionFromPython")) then
@@ -513,6 +514,14 @@
       call get_option("/material_phase::Fluid/scalar_field::LayerThickness/&
            &prognostic/mean_layer_thickness",D0)
       D%val = D%val + D0
+
+      h_mean = 0.
+      area = 0.
+      do ele = 1, element_count(D)
+         call assemble_mean_ele(D,X,h_mean,area,ele)
+      end do
+      ewrite(2,*) 'H mean',h_mean/area,D0
+      assert(abs(h_mean/area-D0)/D0<1.0e-8)
 
   end subroutine fix_layerdepth_mean
 
