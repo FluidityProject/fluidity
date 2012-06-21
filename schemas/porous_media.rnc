@@ -118,15 +118,14 @@ porosity_include =
 
 porosity_include_cv_cfl = 
    (
-      ## Include the porosity in the calculation of 
-      ## the CV Courant number. This is required if 
-      ## the Velocity field has embedded in it the 
-      ## porosity and the CFL number is used to 
-      ## determine the CV face value in an 
-      ## advection scheme (such as HyperC) or 
-      ## a sub cycled advection scheme is used 
-      ## that dependends on this Courant number.
+      ## Specify the name of the field 
+      ## to use for porosity. This field must 
+      ## exist in the state of the associated 
+      ## material_phase.
       ## 
+      ## If not specified the field name 
+      ## Porosity is used by default.
+      ##
       ## The porosity must be associated 
       ## with a mesh that has shape functions that 
       ## are order zero (element wise) or the 
@@ -135,44 +134,24 @@ porosity_include_cv_cfl =
       ## the porosity is assumed to be represented 
       ## with the control volumes or the sub 
       ## control volumes for a discontinuous mesh.
-      element porosity {
-         comment,
-
-         ## Specify the name of the field 
-         ## to use for porosity. This field must 
-         ## exist in the state of the associated 
-         ## material_phase.
-         ## 
-         ## If not specified the field name 
-         ## Porosity is used by default.
-         element porosity_field_name { xsd:string }?,
+      element porosity_field_name { xsd:string }?,
          
-         porosity_include_temporal_discretisation?
-      }
+      porosity_include_temporal_discretisation?
    )
 
 
-porosity_include_dg_cfl = 
+porosity_include_dg_and_cg_cfl = 
    (
-      ## Include the porosity in the calculation of 
-      ## the DG Courant number. This is required if 
-      ## the Velocity field has embedded in it the 
-      ## porosity and a sub cycled advection scheme 
-      ## is used that dependends on this Courant number.
-      element porosity {
-         comment,
-
-         ## Specify the name of the field 
-         ## to use for porosity. This field must 
-         ## exist in the state of the associated 
-         ## material_phase.
-         ## 
-         ## If not specified the field name 
-         ## Porosity is used by default.
-         element porosity_field_name { xsd:string }?,
+      ## Specify the name of the field 
+      ## to use for porosity. This field must 
+      ## exist in the state of the associated 
+      ## material_phase.
+      ## 
+      ## If not specified the field name 
+      ## Porosity is used by default.
+      element porosity_field_name { xsd:string }?,
          
-         porosity_include_temporal_discretisation?
-      }
+      porosity_include_temporal_discretisation?
    )
 
 
@@ -183,9 +162,7 @@ porosity_include_temporal_discretisation =
       ## 
       ## If not included then a theta value of 
       ## 0.0 is used by default.
-      element temporal_discretisation {
-         element theta {
+      element porosity_temporal_theta {
             real
-         }
       }
    )

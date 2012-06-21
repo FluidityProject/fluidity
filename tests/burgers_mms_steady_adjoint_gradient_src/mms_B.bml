@@ -84,7 +84,7 @@
         <remove_advection_term/>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X, t):
+            <string_value lines="20" type="code" language="python">def val(X, t):
   from math import sin, cos
   x = X[0]
   return sin(x) + cos(x)</string_value>
@@ -96,7 +96,7 @@
           </surface_ids>
           <type name="dirichlet">
             <python>
-              <string_value lines="20" type="python">def val(X, t):
+              <string_value lines="20" type="code" language="python">def val(X, t):
   from math import sin, cos
   x = X[0]
   return sin(x) + cos(x)</string_value>
@@ -114,7 +114,7 @@
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="python">def val(X, t):
+                <string_value lines="20" type="code" language="python">def val(X, t):
   from math import sin, cos
   x = X[0]
   y = sin(x) + cos(x)
@@ -130,7 +130,7 @@
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X, t):
+            <string_value lines="20" type="code" language="python">def val(X, t):
   from math import sin, cos
   x = X[0]
   return sin(x) + cos(x)</string_value>
@@ -145,7 +145,7 @@
       <diagnostic>
         <mesh name="VelocityMesh"/>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="python">soln = state.scalar_fields["Velocity"]
+          <string_value lines="20" type="code" language="python">soln = state.scalar_fields["Velocity"]
 exact = state.scalar_fields["AnalyticalSolution"]
 
 for i in range(field.node_count):
@@ -161,7 +161,7 @@ for i in range(field.node_count):
       <diagnostic>
         <mesh name="VelocityMesh"/>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="python">field.val[:] = 0.0
+          <string_value lines="20" type="code" language="python">field.val[:] = 0.0
 if time == 1.0:
   coord = state.vector_fields['Coordinate']
   adj_u = state.scalar_fields['AdjointVelocity']
@@ -185,7 +185,7 @@ if time == 1.0:
     <functional name="time_integral_ad">
       <functional_value>
         <algorithm name="functional_value">
-          <string_value lines="20" type="python">import numpy
+          <string_value lines="20" type="code" language="python">import numpy
 
 J = 0.0
 
@@ -214,7 +214,7 @@ if time == 0.0:
       </functional_value>
       <functional_dependencies>
         <algorithm name="functional_dependencies">
-          <string_value lines="20" type="python">def dependencies(times, timestep):
+          <string_value lines="20" type="code" language="python">def dependencies(times, timestep):
   if times[0] &lt;= 1.0 &lt;= times[1]:
     return {"Fluid::Coordinate": [1],
             "Fluid::Velocity": [1]}

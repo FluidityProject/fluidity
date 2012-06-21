@@ -22,8 +22,7 @@ to get a darcy equation the time, stress and advection terms are not included in
 
 the absorption term is included in the pressure correction (being a necessity as it is the only term in the matrix equation) 
 
-the geometry is 2d (although this is a 1d problem) and one time step is done (as nothing depends on time)
-</comment>
+the geometry is 2d (although this is a 1d problem) and one time step is done (as nothing depends on time)</comment>
   </simulation_name>
   <problem_type>
     <string_value lines="1">fluids</string_value>
@@ -248,7 +247,7 @@ the geometry is 2d (although this is a 1d problem) and one time step is done (as
           <diagnostic>
             <mesh name="PressureMesh"/>
             <algorithm name="vector_python_diagnostic" material_phase_support="multiple">
-              <string_value lines="20" type="python"># get the prescribed fields 
+              <string_value lines="20" type="code" language="python"># get the prescribed fields 
 perm = states["fluid"].scalar_fields["Permeability"]
 visc = states["fluid"].scalar_fields["Viscosity"]
 volf_f = states["fluid"].scalar_fields["PhaseVolumeFraction"]

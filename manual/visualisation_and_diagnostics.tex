@@ -70,6 +70,9 @@ Limitations: Requires the diagnostic \option{scalar\_field::IsopycnalCoordinate}
 \item[ControlVolumeDivergence:]Divergence of the velocity field where the divergence operator is defined using the control volume $\mathrm{C}^\mathrm{T}$ matrix. This assumes that the test space is discontinuous control volumes.
 \item[CVMaterialDensityCFLNumber:]Courant Number as defined on a control volume mesh and incorporating the MaterialDensity. Requires a MaterialDensity field!
 \item[DG\_CourantNumber:]CFLNumber as defined on a DG mesh. It is calculated as $\triangle t \frac{1}{V} \int _{element} \vec{u}$ where $\triangle t$ is the timestep and $\vec{u}$ the velocity. The integral is taken over the faces of the element $V$ is the volume of the element.
+\item[InterstitialVelocityCGCourantNumber:]CFLNumber as defined on the CG mesh using the interstitial velocity for porous media flow. It is calculated as $\frac{\triangle t \vec{u}_{\phi}} {\mat{J} \phi}$ where $\triangle t$ is the timestep, $\vec{u}_{\phi}$ the velocity with embedded porosity that was solved for, $\mat{J}$ the Jacobian and $\phi$ is the porosity. 
+\item[InterstitialVelocityCVCourantNumber:]CFL Number as defined on a control volume mesh using the interstitial velocity for porous media flow. It is calculated as $\triangle t \frac{1}{V} \int _{cv_{face}} \frac{\vec{u}_{\phi}}{\phi}$ where $\triangle t$ is the timestep, $\vec{u}_{\phi}$ the velocity with embedded porosity that was solved for and $\phi$ is the porosity. The integral is taken over the faces of the control volume and $V$ is the volume of the control volume.
+\item[InterstitialVelocityDGCourantNumber:]CFLNumber as defined on a DG mesh using the interstitial velocity for porous media flow. It is calculated as $\triangle t \frac{1}{V} \int _{element} \frac{\vec{u}_{\phi}}{\phi}$ where $\triangle t$ is the timestep, $\vec{u}_{\phi}$ the velocity with embedded porosity that was solved for and $\phi$ is the porosity. The integral is taken over the faces of the element $V$ is the volume of the element.
 \item[DiffusiveDissipation:]The rate at which internal energy is converted to potential energy: $-g\ppx[y]{\rho}$, where $\rho$ is the Density. Note the actual diffusive dissipation is $-2g\tensor{\kappa} \ppx[y]{\rho}$ (2 subject to definition) where $\ppt[t]{\rho} + \vec{u}\cdot \nabla \rho = \tensor{\kappa} \nabla^2 \rho$. This should be taken into account when post-processing. It also assumes kappa is isotropic and constant, cf. \cite{winters1995}.
 \item[DiscontinuityDetector:]This field detects the discontinuities in a discontinuous Galerkin field, the larger the discontinuity, the larger the value it takes. The discontinuity field is used by the HWENO slope limiter, \ref{sec:ND_hermite_weno_limiter}.
 \item[FiniteElementDivergence:]Divergence of the velocity field where the divergence operator is defined using the finite element $\mathrm{C}^\mathrm{T}$ matrix.
@@ -485,6 +488,7 @@ the \fluidity\ trunk. The programs generated can then be found in the
 	project\_to\_continuous			& \ref{sec:project_to_continuous} 	\\
 	project\_vtu				& \ref{sec:project_vtu} 		\\
 	pvtu2vtu				& \ref{sec:pvtu2vtu}			\\
+        radial\_scale                           & \ref{sec:radscal}                     \\
 	rename\_checkpoint			& \ref{sec:rename_checkpoint}		\\
 	runut           			& \ref{sec:runut}		        \\
 	stat2csv				& \ref{sec:stat2csv}			\\
@@ -1093,6 +1097,27 @@ pvtu2vtu combines pvtus into vtus. It is run from the command line:
 pvtu2vtu [OPTIONS] PROJECT FIRSTID [LASTID]
 \end{lstlisting} 
 with \lstinline[language = Bash]+PROJECT+ the basename of the pvtus and \lstinline[language = Bash]+FIRSTID+ and \lstinline[language = Bash]+LASTID+ the first and last id numbers respectively of the pvtus to be included. \lstinline[language = Bash]+LASTID+ is optional and defaults to \lstinline[language = Bash]+FIRSTID+. Running with the option \lstinline[language = Bash]+-h+ will give further information on the other options available. Note, this may not always work with vtus from adaptive runs.
+
+%%%%%%%%%%%%%%%%%%%%%% RADIAL SCALE %%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{radial\_scale}
+\label{sec:radscal}
+radial\_scale takes in a list of vtu files and scales them in the radial direction. The script works given the input vtu(s) have the 'DistanceToTop' field (activated in diamond using the ocean boundaries option under geometry) and are on the surface of the sphere.
+
+It is run from the command line with:
+\begin{lstlisting}
+usage: radial_scale.py [-h] [-p OUTPUT_PREFIX] [-s SCALE_FACTOR]
+                       input_vtu [input_vtu ...]
+
+positional arguments:
+  input_vtu         The .vtu file(s) to be scaled.
+
+optional arguments:
+  -h, --help        show this help message and exit
+  -o OUTPUT_PREFIX  The prefix of the output vtu (default behaviour replaces
+                    the input vtu)
+  -s SCALE_FACTOR   The scale factor (default: 10)
+\end{lstlisting}
 
 %%%%%%%%%%%%%%%%%%%%%% RENAME CHECKPOINT %%%%%%%%%%%%%%%%%%%%%%%%%%
 

@@ -49,7 +49,7 @@
           <regions name="WholeMesh">
             <bottom_depth>
               <python>
-                <string_value lines="20" type="python">def val(X, t):
+                <string_value lines="20" type="code" language="python">def val(X, t):
     d0=0.01
     if X[0]&lt;=3600 or X[0]&gt;6000:
       return X[0]/2760+d0
@@ -61,7 +61,7 @@
             </bottom_depth>
             <sizing_function>
               <python>
-                <string_value lines="20" type="python">def val(X, t):
+                <string_value lines="20" type="code" language="python">def val(X, t):
   return 2.50*X[0]/13800+0.02+5000</string_value>
               </python>
             </sizing_function>
@@ -144,7 +144,7 @@
         </number_of_detectors>
         <static/>
         <python>
-          <string_value lines="20" type="python">def val(t):
+          <string_value lines="20" type="code" language="python">def val(t):
  import math
  ret=[]
  for i in range(0,1001):
@@ -254,7 +254,7 @@
           <type name="dirichlet">
             <apply_weakly/>
             <python>
-              <string_value lines="20" type="python">def val(X, t):
+              <string_value lines="20" type="code" language="python">def val(X, t):
     from math import pi, sin
     g=9.81
     if (t&gt;=43200/4):

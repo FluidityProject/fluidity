@@ -268,7 +268,8 @@ contains
                       max_sub_cfl)
       call get_option(trim(option_path)//"/temporal_discretisation/maximum_courant_number_per_subcycle/courant_number[0]/name", cfl_type)
       call allocate(cfl_no, tfield%mesh, "CourantNumber")
-      call calculate_diagnostic_variable(state, trim(cfl_type), cfl_no, dt=adapt_dt)
+      call calculate_diagnostic_variable(state, trim(cfl_type), cfl_no, dt=adapt_dt, &
+         & option_path=trim(option_path)//"/temporal_discretisation/maximum_courant_number_per_subcycle/courant_number[0]")
       max_cfl = maxval(cfl_no%val)
       call allmax(max_cfl)
       ewrite(2,*) "max_cfl = ", max_cfl

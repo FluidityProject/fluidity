@@ -63,10 +63,10 @@ analytic_vel = 12.5
 print 'Solution relative error: ',abs((min_inter_vel_2d - analytic_vel)/analytic_vel)
 assert abs((min_inter_vel_2d - analytic_vel)/analytic_vel) &lt; 5.0e-08
     </test>
-    <test name="CV Integral of tracer_cons_exp_weakbc_hyperc for 2d such that both channel tracer 75% way through domain with tolerance 6.0e-04" language="python">
+    <test name="CV Integral of tracer_cons_exp_weakbc_hyperc for 2d such that both channel tracer 75% way through domain with tolerance 7.0e-04" language="python">
 analytic_int = 67500
 print 'Solution relative error: ',abs((cv_integral_tracer_cons_exp_weakbc_hyperc_2d - analytic_int)/analytic_int)
-assert abs((cv_integral_tracer_cons_exp_weakbc_hyperc_2d - analytic_int)/analytic_int) &lt; 6.0e-04
+assert abs((cv_integral_tracer_cons_exp_weakbc_hyperc_2d - analytic_int)/analytic_int) &lt; 7.0e-04
     </test>
     <test name="Max of tracer_cons_exp_weakbc_hyperc for 2d should be 1.0, check with tolerance 1.5e-07" language="python">
 analytic_int = 1.0

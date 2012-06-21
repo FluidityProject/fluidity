@@ -84,7 +84,7 @@ module populate_state_module
   !! A list of locations in which additional scalar/vector/tensor fields
   !! are to be found. It is assumed that all additional fields are
   !! in state 1.
-  character(len=OPTION_PATH_LEN), dimension(13) :: field_locations=&
+  character(len=OPTION_PATH_LEN), dimension(14) :: field_locations=&
        (/ &
        "/ocean_biology/pznd                                                                                                   ", &
        "/ocean_biology/six_component                                                                                          ", &
@@ -92,6 +92,7 @@ module populate_state_module
        "/material_phase[0]/subgridscale_parameterisations/prescribed_diffusivity                                              ", &
        "/material_phase[0]/subgridscale_parameterisations/GLS                                                                 ", &
        "/material_phase[0]/subgridscale_parameterisations/k-epsilon                                                           ", &
+       "/material_phase[0]/subgridscale_parameterisations/subgrid_tke                                                         ", &
        "/ocean_forcing/iceshelf_meltrate/Holland08                                                                            ", &
        "/ocean_forcing/bulk_formulae/output_fluxes_diagnostics                                                                ", &
        "/porous_media                                                                                                         ", &
@@ -176,6 +177,7 @@ contains
     character(len=OPTION_PATH_LEN) :: mesh_path, mesh_file_name,&
          & mesh_file_format, from_file_path
     integer, dimension(:), pointer :: coplanar_ids
+    integer, dimension(3) :: mesh_dims
     integer :: i, j, nmeshes, nstates, quad_degree, stat
     type(element_type), pointer :: shape
     type(quadrature_type), pointer :: quad
@@ -221,22 +223,96 @@ contains
           call get_option("/geometry/quadrature/degree", quad_degree)
           quad_family = get_quad_family()
 
+
+          if (is_active_process) then
+            select case (mesh_file_format)
+            case ("triangle", "gmsh")
+              ! Get mesh dimension if present
+              call get_option(trim(mesh_path)//"/from_file/dimension", mdim, stat)
+              ! Read mesh
+              if(stat==0) then
+                 position=read_mesh_files(trim(mesh_file_name), &
+                      quad_degree=quad_degree, &
+                      quad_family=quad_family, mdim=mdim, &
+                      format=mesh_file_format)
+              else
+                 position=read_mesh_files(trim(mesh_file_name), &
+                      quad_degree=quad_degree, &
+                      quad_family=quad_family, &
+                      format=mesh_file_format)
+              end if
+              mesh=position%mesh
+            case ("vtu")
+              position_ptr => vtk_cache_read_positions_field(mesh_file_name)
+              ! No hybrid mesh support here
+              assert(ele_count(position_ptr) > 0)
+              dim = position_ptr%dim
+              loc = ele_loc(position_ptr, 1)
+
+              ! Generate a copy, and swap the quadrature degree
+              ! Note: Even if positions_ptr has the correct quadrature degree, it
+              ! won't have any faces and hence a copy is still required (as
+              ! add_faces is a construction routine only)
+              allocate(quad)
+              allocate(shape)
+              quad = make_quadrature(loc, dim, degree = quad_degree, family=quad_family)
+              shape = make_element_shape(loc, dim, 1, quad)
+              call allocate(mesh, nodes = node_count(position_ptr), elements = ele_count(position_ptr), shape = shape, name = position_ptr%mesh%name)
+              do j = 1, ele_count(mesh)
+                 call set_ele_nodes(mesh, j, ele_nodes(position_ptr%mesh, j))
+              end do
+              call add_faces(mesh)
+              call allocate(position, dim, mesh, position_ptr%name)
+              call set(position, position_ptr)
+              call deallocate(mesh)
+              call deallocate(shape)
+              call deallocate(quad)
+              deallocate(quad)
+              deallocate(shape)
+
+              mesh = position%mesh
+            case default
+              ewrite(-1,*) trim(mesh_file_format), " is not a valid format for a mesh file"
+              FLAbort("Invalid format for mesh file")
+            end select
+         end if
+
+          if (no_active_processes /= getnprocs()) then
+            ! not all processes are active, they need to be told the mesh dimensions
+
+            ! receive the mesh dimension from rank 0
+            if (getrank()==0) then
+              if (is_active_process) then
+                ! normally rank 0 should always be active, so it knows the dimensions
+                mesh_dims(1)=mesh_dim(mesh)
+                mesh_dims(2)=ele_loc(mesh,1)
+                if (associated(mesh%columns)) then
+                  mesh_dims(3)=1
+                else
+                  mesh_dims(3)=0
+                end if
+              else
+                ! this is a special case for a unit test with 1 inactive process
+                call get_option('/geometry/dimension', mesh_dims(1))
+                mesh_dims(2)=mesh_dims(1)+1
+                mesh_dims(3)=0
+              end if
+            end if
+            call MPI_bcast(mesh_dims, 3, getpinteger(), 0, MPI_COMM_FEMTOOLS, stat)
+          end if
+
+          
           if (.not. is_active_process) then
             ! is_active_process records whether we have data on disk or not
             ! see the comment in Global_Parameters. In this block, 
             ! we want to allocate an empty mesh and positions.
 
+            dim=mesh_dims(1)
+            loc=mesh_dims(2)
+            column_ids=mesh_dims(3)
+
             allocate(quad)
             allocate(shape)
-            if (no_active_processes == 1) then
-              call identify_mesh_file(trim(mesh_file_name), dim, loc, &
-                node_attributes=column_ids, &
-                format=mesh_file_format )
-            else
-              call identify_mesh_file(trim(mesh_file_name) // "_0", dim, loc, &
-                node_attributes=column_ids, &
-                format=mesh_file_format )
-            end if
             quad = make_quadrature(loc, dim, degree=quad_degree, family=quad_family)
             shape=make_element_shape(loc, dim, 1, quad)
             call allocate(mesh, nodes=0, elements=0, shape=shape, name="EmptyMesh")
@@ -254,58 +330,8 @@ contains
             
             deallocate(quad)
             deallocate(shape)
+          end if
 
-         else if(trim(mesh_file_format)=="triangle" &
-              .or. trim(mesh_file_format)=="gmsh") then
-            ! Get mesh dimension if present
-            call get_option(trim(mesh_path)//"/from_file/dimension", mdim, stat)
-            ! Read mesh
-            if(stat==0) then
-               position=read_mesh_files(trim(mesh_file_name), &
-                    quad_degree=quad_degree, &
-                    quad_family=quad_family, mdim=mdim, &
-                    format=mesh_file_format)
-            else
-               position=read_mesh_files(trim(mesh_file_name), &
-                    quad_degree=quad_degree, &
-                    quad_family=quad_family, &
-                    format=mesh_file_format)
-            end if
-            mesh=position%mesh
-         else if(trim(mesh_file_format) == "vtu") then
-            position_ptr => vtk_cache_read_positions_field(mesh_file_name)
-            ! No hybrid mesh support here
-            assert(ele_count(position_ptr) > 0)
-            dim = position_ptr%dim
-            loc = ele_loc(position_ptr, 1)
-
-            ! Generate a copy, and swap the quadrature degree
-            ! Note: Even if positions_ptr has the correct quadrature degree, it
-            ! won't have any faces and hence a copy is still required (as
-            ! add_faces is a construction routine only)
-            allocate(quad)
-            allocate(shape)
-            quad = make_quadrature(loc, dim, degree = quad_degree, family=quad_family)
-            shape = make_element_shape(loc, dim, 1, quad)
-            call allocate(mesh, nodes = node_count(position_ptr), elements = ele_count(position_ptr), shape = shape, name = position_ptr%mesh%name)
-            do j = 1, ele_count(mesh)
-               call set_ele_nodes(mesh, j, ele_nodes(position_ptr%mesh, j))
-            end do
-            call add_faces(mesh)
-            call allocate(position, dim, mesh, position_ptr%name)
-            call set(position, position_ptr)
-            call deallocate(mesh)
-            call deallocate(shape)
-            call deallocate(quad)
-            deallocate(quad)
-            deallocate(shape)
-
-            mesh = position%mesh
-         else
-            ewrite(-1,*) trim(mesh_file_format), " is not a valid format for a mesh file"
-            FLAbort("Invalid format for mesh file")
-         end if
-          
           ! if there is a derived mesh which specifies periodic bcs 
           ! to be *removed*, we assume the external mesh is periodic
           mesh%periodic = option_count("/geometry/mesh/from_mesh/&

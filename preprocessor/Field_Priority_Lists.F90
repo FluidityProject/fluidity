@@ -193,6 +193,20 @@ contains
                   tmpint, default=nsol)
              priority(nsol) = -tmpint*100
           end if
+          ! Check for subgrid-scale kinetic energy equation
+          ! - we need to make sure these fields are solved *after*
+          ! everything else, so set to a big negative value.
+          if (have_option('/material_phase[' &
+               //int2str(p)//']/subgridscale_parameterisations/subgrid_tke/scalar_field::SubgridKineticEnergy/prognostic')) then
+             nsol=nsol+1
+             temp_field_name_list(nsol) = "SubgridKineticEnergy"
+             temp_field_optionpath_list(nsol)='/material_phase['//int2str(p)// &
+                  ']/subgridscale_parameterisations/subgrid_tke/scalar_field::SubgridKineticEnergy'
+             temp_field_state_list(nsol) = p+1
+             call get_option(trim(temp_field_optionpath_list(nsol))//'/prognostic/priority', &
+                  tmpint, default=nsol)
+             priority(nsol) = -tmpint*100
+          end if
 !!! Melt rate should be the last thing to calculate, Sb
           if (have_option('/ocean_forcing/iceshelf_meltrate/Holland08/scalar_field::Sb/diagnostic')) then
              nsol=nsol+1
@@ -308,6 +322,11 @@ contains
        end if
        if (have_option('/material_phase[' &
             //int2str(p)//']/subgridscale_parameterisations/k-epsilon/scalar_field::TurbulentDissipation/prognostic')) then
+          ntsol=ntsol + 1
+       end if
+       ! prognostic scalar fields for subgrid-scale kinetic energy model:
+       if (have_option('/material_phase[' &
+            //int2str(p)//']/subgridscale_parameterisations/subgrid_tke/scalar_field::SubgridKineticEnergy/prognostic')) then
           ntsol=ntsol + 1
        end if
        !Melting

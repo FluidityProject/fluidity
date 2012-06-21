@@ -42,7 +42,8 @@
     use sparse_matrices_fields
     use field_options
     use halos
-    use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN, timestep
+    use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN, timestep, &
+         COLOURING_CG1
     use elements
     use transform_elements, only: transform_to_physical
     use coriolis_module
@@ -50,7 +51,6 @@
     use fetools
     use upwind_stabilisation
     use les_viscosity_module
-    use subgrid_kinetic_energy
     use smoothing_module
     use metric_tools
     use field_derivatives
@@ -62,6 +62,11 @@
     use Coordinates
     use multiphase_module
     use edge_length_module
+    use colouring
+    use Profiler
+#ifdef _OPENMP
+    use omp_lib
+#endif
 
     implicit none
 
@@ -111,7 +116,6 @@
     logical :: have_geostrophic_pressure
     logical :: have_temperature_dependent_viscosity
     logical :: have_les
-    logical :: have_sgs_tke
     logical :: have_surface_fs_stabilisation
     logical :: les_second_order, les_fourth_order, wale, dynamic_les
     logical :: on_sphere
@@ -260,6 +264,16 @@
       type(scalar_field), pointer :: vfrac
       type(scalar_field) :: nvfrac ! Non-linear version
 
+      !! Coloring  data structures for OpenMP parallization
+      type(integer_set), dimension(:), pointer :: colours
+      integer :: clr, nnid, len, i
+      integer :: num_threads, thread_num
+      !! Did we successfully prepopulate the transform_to_physical_cache?
+      logical :: cache_valid
+
+
+      type(element_type), dimension(:), allocatable :: supg_element
+
       ewrite(1,*) 'Entering construct_momentum_cg'
     
       assert(continuity(u)>=0)
@@ -357,7 +371,6 @@
       have_coriolis = have_option("/physical_parameters/coriolis")
       have_les = have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
          &"/continuous_galerkin/les_model")
-      have_sgs_tke = have_option(trim(state%option_path)//"/subgridscale_parameterisations/subgrid_tke")
       have_anisotropy=.false.
 
       ! Large Eddy Simulation options
@@ -411,11 +424,6 @@
            ewrite(2,*) "Calculating test-filtered velocity, Leonard tensor and strain product"
            call dynamic_les_filtered_fields(state, u, nu, x, nu_f1, nu_f2, lnd, stp, alpha, gamma, les_option_path, have_anisotropy)
 
-           ! Compute SGS TKE if required
-           if(have_sgs_tke) then
-              call compute_subgrid_tke(state, alpha, have_anisotropy)
-           end if
-
          end if
       else
          les_second_order=.false.; les_fourth_order=.false.; wale=.false.; dynamic_les=.false.
@@ -447,6 +455,14 @@
       end if
 
       on_sphere = have_option('/geometry/spherical_earth/')
+
+#ifdef _OPENMP
+    num_threads = omp_get_max_threads()
+#else
+    num_threads = 1
+#endif
+
+      allocate(supg_element(num_threads))
 
       call get_option("/timestepping/timestep", dt)
       call get_option(trim(u%option_path)//"/prognostic/temporal_discretisation/theta", &
@@ -535,6 +551,10 @@
         stabilisation_scheme = STABILISATION_SUPG
         call get_upwind_options(trim(u%option_path) // "/prognostic/spatial_discretisation/continuous_galerkin/stabilisation/streamline_upwind_petrov_galerkin", &
           & nu_bar_scheme, nu_bar_scale)
+       !!    we need 1 supg_element per thread
+        do i = 1, num_threads
+           supg_element(i)=make_supg_element(ele_shape(u,1))
+        enddo
       else
         stabilisation_scheme = STABILISATION_NONE
       end if
@@ -609,10 +629,29 @@
         call allocate( visc_inverse_masslump, u%dim, u%mesh, "ViscousInverseLumpedMass")
         call zero(visc_inverse_masslump)
       end if
-      
+
+      call get_mesh_colouring(state, u%mesh, COLOURING_CG1, colours)
       ! ----- Volume integrals over elements -------------
       
-      element_loop: do ele=1, element_count(u)
+#ifdef _OPENMP
+    cache_valid = prepopulate_transform_cache(x)
+    assert(cache_valid)
+    if (have_coriolis) then
+       call set_coriolis_parameters
+    end if
+#endif
+
+    !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(clr, len, nnid, ele, thread_num)
+#ifdef _OPENMP
+    thread_num = omp_get_thread_num()
+#else
+    thread_num = 0
+#endif
+    colour_loop: do clr = 1, size(colours)
+      len = key_count(colours(clr))
+      !$OMP DO SCHEDULE(STATIC)
+      element_loop: do nnid = 1, len
+         ele = fetch(colours(clr), nnid)
          call construct_momentum_element_cg(state, ele, big_m, rhs, ct_m, mass, inverse_masslump, visc_inverse_masslump, &
               x, x_old, x_new, u, oldu, nu, ug, &
               density, p, &
@@ -621,8 +660,13 @@
               nu_f1, nu_f2, lnd, stp, alpha, gamma, &
               gp, surfacetension, &
               assemble_ct_matrix_here, on_sphere, depth, &
-              alpha_u_field, abs_wd, temperature, nvfrac)
+              alpha_u_field, abs_wd, temperature, nvfrac, &
+              supg_element(thread_num+1))
       end do element_loop
+      !$OMP END DO
+
+    end do colour_loop
+    !$OMP END PARALLEL
 
       if (have_wd_abs) then
         ! the remapped field is not needed anymore.
@@ -807,6 +851,13 @@
       if(multiphase) then
          call deallocate(nvfrac)
       end if
+
+      if (stabilisation_scheme == STABILISATION_SUPG) then
+         do i = 1, num_threads
+            call deallocate(supg_element(i))
+         end do
+      end if
+      deallocate(supg_element)
 
       contains 
 
@@ -1068,7 +1119,7 @@
                                             nu_f1, nu_f2, lnd, stp, alpha, gamma, &
                                             gp, surfacetension, &
                                             assemble_ct_matrix_here, on_sphere, depth, &
-                                            alpha_u_field, abs_wd, temperature, nvfrac)
+                                            alpha_u_field, abs_wd, temperature, nvfrac, supg_shape)
 
       !!< Assembles the local element matrix contributions and places them in big_m
       !!< and rhs for the continuous galerkin momentum equations
@@ -1120,11 +1171,13 @@
       ! Derivative of shape function for nvfrac field
       real, dimension(:, :, :), allocatable :: dnvfrac_t
 
+      type(element_type), intent(inout) :: supg_shape
+
       integer, dimension(:), pointer :: u_ele, p_ele
       real, dimension(u%dim, ele_loc(u, ele)) :: oldu_val
       type(element_type), pointer :: u_shape, p_shape
       real, dimension(ele_ngi(u, ele)) :: detwei, detwei_old, detwei_new
-      real, dimension(u%dim, u%dim, ele_ngi(u,ele)) :: J_mat, invJ_mat
+      real, dimension(u%dim, u%dim, ele_ngi(u,ele)) :: J_mat
       real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim) :: du_t
       real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim) :: dug_t
       real, dimension(ele_loc(p, ele), ele_ngi(p, ele), u%dim) :: dp_t
@@ -1179,7 +1232,7 @@
       !  J_mat = 0.0
       else
         call transform_to_physical(x, ele, &
-                                  u_shape, dshape=du_t, detwei=detwei, J=J_mat, invJ=invJ_mat)
+                                  u_shape, dshape=du_t, detwei=detwei, J=J_mat)
       end if
 
       if(assemble_ct_matrix_here .and.integrate_continuity_by_parts) then
@@ -1212,15 +1265,15 @@
             relu_gi = relu_gi - ele_val_at_quad(ug, ele)
           end if
           if(have_viscosity) then
-            test_function = make_supg_shape(u_shape, du_t, relu_gi, j_mat, diff_q = ele_val_at_quad(viscosity, ele), &
-              & nu_bar_scheme = nu_bar_scheme, nu_bar_scale = nu_bar_scale)
+          call supg_test_function(supg_shape, u_shape, du_t, relu_gi, j_mat, diff_q = ele_val_at_quad(viscosity, ele), &
+            & nu_bar_scheme = nu_bar_scheme, nu_bar_scale = nu_bar_scale)
           else
-            test_function = make_supg_shape(u_shape, du_t, relu_gi, j_mat, &
-              & nu_bar_scheme = nu_bar_scheme, nu_bar_scale = nu_bar_scale)
+          call supg_test_function(supg_shape, u_shape, du_t, relu_gi, j_mat, &
+            & nu_bar_scheme = nu_bar_scheme, nu_bar_scale = nu_bar_scale)
           end if
+          test_function = supg_shape
         case default
           test_function = u_shape
-          call incref(test_function)
       end select
       ! Important note: the test function derivatives have not been modified -
       ! i.e. du_t is currently used everywhere. This is fine for P1, but is not
@@ -1327,8 +1380,6 @@
         call addto(ct_m, p_ele, u_ele, spread(grad_p_u_mat, 1, 1))
       end if
       
-      call deallocate(test_function)
-
       if(multiphase) then
          deallocate(dnvfrac_t)
       end if
@@ -2118,7 +2169,7 @@
             ! Set diagnostic fields
             call les_set_diagnostic_fields(state, nu, density, ele, detwei, eddy_visc_gi=les_tensor_gi, &
                  visc_gi=viscosity_gi, strain1_gi=strain1_gi, strain2_gi=strain2_gi, les_coef_gi=les_coef_gi, &
-                 t1_width_gi=leonard_gi, s1_width_gi=f1_mod, t2_width_gi=tensor_gi, s2_width_gi=f2_mod)
+                 t1_width_gi=f1_gi, s1_width_gi=f1_mod, t2_width_gi=f2_gi, s2_width_gi=f2_mod)
 
          else
             FLAbort("Unknown LES model")

@@ -39,13 +39,19 @@ module advection_diffusion_cg
   use boundary_conditions_from_options
   use field_options
   use fldebug
-  use global_parameters, only : FIELD_NAME_LEN, OPTION_PATH_LEN
+  use global_parameters, only : FIELD_NAME_LEN, OPTION_PATH_LEN, COLOURING_CG1
   use profiler
   use spud
   use petsc_solve_state_module
   use state_module
   use upwind_stabilisation
   use sparsity_patterns_meshes
+  use porous_media
+  use sparse_tools_petsc
+  use colouring
+#ifdef _OPENMP
+  use omp_lib
+#endif
   
   implicit none
   
@@ -211,7 +217,7 @@ contains
     type(scalar_field), intent(inout) :: t
     type(csr_matrix), intent(inout) :: matrix
     type(scalar_field), intent(inout) :: rhs
-    type(state_type), intent(in) :: state
+    type(state_type), intent(inout) :: state
     real, intent(in) :: dt
     character(len = *), optional, intent(in) :: velocity_name
 
@@ -228,14 +234,17 @@ contains
     type(scalar_field), pointer :: density, olddensity
     character(len = FIELD_NAME_LEN) :: density_name
     type(scalar_field), pointer :: pressure
-      
-    type(element_type) :: supg_element
-    
-    ! Porosity fields, field name, theta value
-    type(scalar_field), pointer :: porosity_old, porosity_new
-    type(scalar_field) :: porosity_theta 
-    character(len=OPTION_PATH_LEN) :: porosity_name
-    real :: porosity_theta_value
+    ! Porosity field
+    type(scalar_field) :: porosity_theta
+        
+    !! Coloring  data structures for OpenMP parallization
+    type(integer_set), dimension(:), pointer :: colours
+    integer :: clr, nnid, len, ele
+    integer :: num_threads, thread_num
+    !! Did we successfully prepopulate the transform_to_physical_cache?
+    logical :: cache_valid
+
+    type(element_type), dimension(:), allocatable :: supg_element
   
     ewrite(1, *) "In assemble_advection_diffusion_cg"
     
@@ -247,7 +256,12 @@ contains
     else
       lvelocity_name = "NonlinearVelocity"
     end if
-    
+
+#ifdef _OPENMP
+    num_threads = omp_get_max_threads()
+#else
+    num_threads = 1
+#endif
     ! Step 1: Pull fields out of state
     
     ! Coordinate
@@ -351,34 +365,9 @@ contains
     ! Porosity
     if (have_option(trim(complete_field_path(t%option_path))//'/porosity')) then
        include_porosity = .true.
-         
-       ! get the name of the field to use as porosity
-       call get_option(trim(complete_field_path(t%option_path))//'/porosity/porosity_field_name', &
-                       porosity_name, &
-                       default = 'Porosity')
-         
-       ! get the porosity theta value
-       call get_option(trim(complete_field_path(t%option_path))//'/porosity/temporal_discretisation/theta', &
-                       porosity_theta_value, &
-                       default = 0.0)
-         
-       porosity_new => extract_scalar_field(state, trim(porosity_name), stat = stat)                  
-
-       if (stat /=0) then
-          FLExit('Including porosity in Advection_Diffusion_CG but failed to extract Porosity from state')
-       end if
        
-       porosity_old => extract_scalar_field(state, "Old"//trim(porosity_name), stat = stat)
-
-       if (stat /=0) then
-          FLExit('Including porosity in Advection_Diffusion_CG but failed to extract Porosity from state')
-       end if
-       
-       call allocate(porosity_theta, porosity_new%mesh)
-         
-       call set(porosity_theta, porosity_new, porosity_old, porosity_theta_value)
-         
-       ewrite_minmax(porosity_theta)         
+       ! get the porosity theta averaged field - this will allocate it
+       call form_porosity_theta(porosity_theta, state, option_path = trim(complete_field_path(t%option_path))//'/porosity')       
     else
        include_porosity = .false.
        call allocate(porosity_theta, t%mesh, field_type=FIELD_TYPE_CONSTANT)
@@ -446,6 +435,7 @@ contains
       ewrite(2,*) "Not moving the mesh"
     end if
     
+    allocate(supg_element(num_threads))
     if(have_option(trim(t%option_path) // "/prognostic/spatial_discretisation/continuous_galerkin/stabilisation/streamline_upwind")) then
       ewrite(2, *) "Streamline upwind stabilisation"
       stabilisation_scheme = STABILISATION_STREAMLINE_UPWIND
@@ -460,8 +450,10 @@ contains
       call get_upwind_options(trim(t%option_path) // "/prognostic/spatial_discretisation/continuous_galerkin/stabilisation/streamline_upwind_petrov_galerkin", &
           & nu_bar_scheme, nu_bar_scale)
       ! Note this is not mixed mesh safe (but then nothing really is)
-      ! You actually need 1 supg_element per thread.
-      supg_element=make_supg_element(ele_shape(t,1)) 
+      ! You need 1 supg_element per thread.
+      do i = 1, num_threads
+         supg_element(i)=make_supg_element(ele_shape(t,1))
+      end do
       if(move_mesh) then
         FLExit("Haven't thought about how mesh movement works with stabilisation yet.")
       end if
@@ -509,14 +501,45 @@ contains
     call zero(matrix)
     call zero(rhs)
     
-    do i = 1, ele_count(t)
-      call assemble_advection_diffusion_element_cg(i, t, matrix, rhs, &
-                                        positions, old_positions, new_positions, &
-                                        velocity, grid_velocity, &
-                                        source, absorption, diffusivity, &
-                                        density, olddensity, pressure, porosity_theta, &
-                                        supg_element)
-    end do
+    call profiler_tic(t, "advection_diffusion_loop_overhead")
+
+#ifdef _OPENMP
+    cache_valid = prepopulate_transform_cache(positions)
+    assert(cache_valid)
+#endif
+
+    call get_mesh_colouring(state, t%mesh, COLOURING_CG1, colours)
+    call profiler_toc(t, "advection_diffusion_loop_overhead")
+
+    call profiler_tic(t, "advection_diffusion_loop")
+
+    !$OMP PARALLEL DEFAULT(SHARED) &
+    !$OMP PRIVATE(clr, len, nnid, ele, thread_num)
+
+#ifdef _OPENMP    
+    thread_num = omp_get_thread_num()
+#else
+    thread_num=0
+#endif
+    colour_loop: do clr = 1, size(colours)
+
+      len = key_count(colours(clr))
+      !$OMP DO SCHEDULE(STATIC)
+      element_loop: do nnid = 1, len
+         ele = fetch(colours(clr), nnid)
+         call assemble_advection_diffusion_element_cg(ele, t, matrix, rhs, &
+              positions, old_positions, new_positions, &
+              velocity, grid_velocity, &
+              source, absorption, diffusivity, &
+              density, olddensity, pressure, porosity_theta, &
+              supg_element(thread_num+1))
+      end do element_loop
+      !$OMP END DO
+
+    end do colour_loop
+    !$OMP END PARALLEL
+
+    call profiler_toc(t, "advection_diffusion_loop")
 
     ! Add the source directly to the rhs if required 
     ! which must be included before dirichlet BC's.
@@ -564,8 +587,13 @@ contains
     
     call deallocate(velocity)
     call deallocate(dummydensity)
-    if (stabilisation_scheme == STABILISATION_SUPG) &
-         call deallocate(supg_element)
+    if (stabilisation_scheme == STABILISATION_SUPG) then
+       do i = 1, num_threads
+          call deallocate(supg_element(i))
+       end do
+    end if
+    deallocate(supg_element)
+
     call deallocate(porosity_theta)
     
     ewrite(1, *) "Exiting assemble_advection_diffusion_cg"
@@ -720,7 +748,6 @@ contains
         if(have_diffusivity) then
           call supg_test_function(supg_shape, t_shape, dt_t, ele_val_at_quad(velocity, ele), j_mat, diff_q = ele_val_at_quad(diffusivity, ele), &
             & nu_bar_scheme = nu_bar_scheme, nu_bar_scale = nu_bar_scale)
-          test_function = supg_shape
         else
           call supg_test_function(supg_shape, t_shape, dt_t, ele_val_at_quad(velocity, ele), j_mat, &
             & nu_bar_scheme = nu_bar_scheme, nu_bar_scale = nu_bar_scale)
@@ -1314,6 +1341,7 @@ contains
             if(option_count(trim(path) // "/boundary_conditions/type::neumann") > 0 &
               & .and. .not. (have_option(trim(path) // "/tensor_field::Diffusivity") &
               & .or. have_option(trim(path) // "/subgridscale_parameterisation::k-epsilon") &
+              & .or. have_option(trim(path) // "/subgridscale_parameterisation::subgrid_tke") &
               & .or. have_option(trim(path) // "/subgridscale_parameterisation::GLS"))) then
                 call field_warning(state_name, field_name, &
                 & "Neumann boundary condition set, but have no diffusivity - boundary condition will not be applied")

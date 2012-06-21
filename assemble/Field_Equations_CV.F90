@@ -55,6 +55,7 @@ module field_equations_cv
   use halos
   use field_options
   use state_fields_module
+  use porous_media
 
   implicit none
 
@@ -138,12 +139,9 @@ contains
       ! Diffusion contribution to rhs
       type(scalar_field) :: diff_rhs
       
-      ! Porosity fields, cv mass with porosity included, field name, theta value and include flag
-      type(scalar_field), pointer :: porosity_old, porosity_new
+      ! Porosity field
       type(scalar_field) :: porosity_theta 
       type(scalar_field), target :: t_cvmass_with_porosity
-      character(len=OPTION_PATH_LEN) :: porosity_name
-      real :: porosity_theta_value
       logical :: include_porosity
               
       ! local copy of option_path for solution field
@@ -506,35 +504,11 @@ contains
       ! are we including a porosity coefficient on the time term?
       if (have_option(trim(complete_field_path(tfield%option_path))//'/porosity')) then
          include_porosity = .true.
-         
-         ! get the name of the field to use as porosity
-         call get_option(trim(complete_field_path(tfield%option_path))//'/porosity/porosity_field_name', &
-                         porosity_name, &
-                         default = 'Porosity')
-         
-         ! get the porosity theta value
-         call get_option(trim(complete_field_path(tfield%option_path))//'/porosity/temporal_discretisation/theta', &
-                         porosity_theta_value, &
-                         default = 0.0)
-         
-         porosity_new => extract_scalar_field(state(1), trim(porosity_name), stat=stat)                  
 
-         if (stat /=0) then
-            FLExit('Including porosity in Field_Equations_CV but failed to extract Porosity from state')
-         end if
-         
-         porosity_old => extract_scalar_field(state(1), "Old"//trim(porosity_name), stat=stat)
-         
-         if (stat /=0) then
-            FLExit('Including porosity in Field_Equations_CV but failed to extract OldPorosity from state')
-         end if
-         
-         call allocate(porosity_theta, porosity_new%mesh)
-         
-         call set(porosity_theta, porosity_new, porosity_old, porosity_theta_value)
-         
-         ewrite_minmax(porosity_theta)
-         
+         ! get the porosity theta averaged field - this will allocate it
+         call form_porosity_theta(porosity_theta, state(1), &
+             &option_path = trim(complete_field_path(tfield%option_path))//'/porosity')       
+                  
          call allocate(t_cvmass_with_porosity, tfield%mesh, name="CVMassWithPorosity")
          call compute_cv_mass(x, t_cvmass_with_porosity, porosity_theta)
          ewrite_minmax(t_cvmass_with_porosity)
@@ -2196,12 +2170,9 @@ contains
       type(scalar_field_pointer), dimension(nfields) :: t_cvmass
       type(scalar_field) :: t_cvmass_old, t_cvmass_new
       
-      ! Porosity fields, cv mass with porosity included, field name, theta value and include flag
-      type(scalar_field), pointer :: porosity_old, porosity_new
+      ! Porosity field
       type(scalar_field) :: porosity_theta 
       type(scalar_field), dimension(nfields), target :: t_cvmass_with_porosity
-      character(len=OPTION_PATH_LEN) :: porosity_name, check_porosity_name
-      real :: porosity_theta_value
       logical, dimension(nfields) :: include_porosity
 
       ! local copy of option_path for solution field
@@ -2457,35 +2428,11 @@ contains
       do f = 1,nfields                  
          if (have_option(trim(complete_field_path(tfield(f)%ptr%option_path))//'/porosity')) then            
             include_porosity(f) = .true.
-            
-            ! get the name of the field to use as porosity
-            call get_option(trim(complete_field_path(tfield(f)%ptr%option_path))//'/porosity/porosity_field_name', &
-                            porosity_name, &
-                            default = 'Porosity')
-         
-            ! get the porosity theta value
-            call get_option(trim(complete_field_path(tfield(f)%ptr%option_path))//'/porosity/temporal_discretisation/theta', &
-                            porosity_theta_value, &
-                            default = 0.0)
-         
-            porosity_new => extract_scalar_field(state(state_indices(f)), trim(porosity_name), stat=stat)                  
-       
-            if (stat /=0) then
-               FLExit('Including porosity in Coupled CV but failed to extract Porosity from state')
-            end if
 
-            porosity_old => extract_scalar_field(state(state_indices(f)), "Old"//trim(porosity_name), stat=stat)
-       
-            if (stat /=0) then
-               FLExit('Including porosity in Coupled CV but failed to extract OldPorosity from state')
-            end if
-         
-            call allocate(porosity_theta, porosity_new%mesh)
-         
-            call set(porosity_theta, porosity_new, porosity_old, porosity_theta_value)
-         
-            ewrite_minmax(porosity_theta)
-         
+            ! get the porosity theta averaged field - this will allocate it
+            call form_porosity_theta(porosity_theta, state(state_indices(f)), &
+                &option_path = trim(complete_field_path(tfield(f)%ptr%option_path))//'/porosity')       
+                     
             call allocate(t_cvmass_with_porosity(f), tfield(f)%ptr%mesh, name="CVMassWithPorosity")
             call compute_cv_mass(x, t_cvmass_with_porosity(f), porosity_theta)
             

@@ -84,6 +84,7 @@ module fluids_module
   use discrete_properties_module
   use gls
   use k_epsilon
+  use Subgrid_kinetic_energy
   use iceshelf_meltrate_surf_normal
   use halos
   use memory_diagnostics
@@ -102,6 +103,7 @@ module fluids_module
 #endif
   use multiphase_module
   use detector_parallel, only: sync_detector_coordinates, deallocate_detector_list_array
+
 
   implicit none
 
@@ -306,7 +308,6 @@ contains
     ! Calculate the number of scalar fields to solve for and their correct
     ! solve order taking into account dependencies.
     call get_ntsol(ntsol)
-
     call initialise_field_lists_from_options(state, ntsol)
 
     call check_old_code_path()
@@ -315,17 +316,18 @@ contains
     !        Currently only needed for free surface
     if (has_scalar_field(state(1), "DistanceToTop")) then
        if (.not. have_option('/geometry/ocean_boundaries')) then
-          ewrite(-1,*) "There are no top and bottom boundary markers."
-          FLExit("Switch on /geometry/ocean_boundaries or remove your DistanceToTop field.")
-       end if
-       call CalculateTopBottomDistance(state(1))
-       ! Initialise the OriginalDistanceToBottom field used for wetting and drying
-       if (have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")) then
-          call insert_original_distance_to_bottom(state(1))
-          ! Wetting and drying only works with no poisson guess ... lets check that
-          call get_option("/material_phase::water/scalar_field::Pressure/prognostic/scheme/poisson_pressure_solution", option_buffer)
-          if (.not. trim(option_buffer) == "never") then 
-            FLExit("Please choose 'never' under /material_phase::water/scalar_field::Pressure/prognostic/scheme/poisson_pressure_solution when using wetting and drying")
+          ewrite(-1,*) "Warning: You have a field called DistanceToTop"
+          ewrite(-1,*) "but you don't have ocean_boundaries switched on."
+       else
+          call CalculateTopBottomDistance(state(1))
+          ! Initialise the OriginalDistanceToBottom field used for wetting and drying
+          if (have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")) then
+             call insert_original_distance_to_bottom(state(1))
+             ! Wetting and drying only works with no poisson guess ... lets check that
+             call get_option("/material_phase::water/scalar_field::Pressure/prognostic/scheme/poisson_pressure_solution", option_buffer)
+             if (.not. trim(option_buffer) == "never") then 
+               FLExit("Please choose 'never' under /material_phase::water/scalar_field::Pressure/prognostic/scheme/poisson_pressure_solution when using wetting and drying")
+             end if
           end if
        end if
     end if
@@ -642,12 +644,19 @@ contains
                 endif
              end if
 
-            ! Calculate the meltrate
-            if(have_option("/ocean_forcing/iceshelf_meltrate/Holland08/") ) then
+             ! do we have the subgrid-scale kinetic energy equation?
+             if(have_option("/material_phase[0]/subgridscale_parameterisations/subgrid_tke/")) then
+                if( (trim(field_name_list(it))=="SubgridKineticEnergy")) then
+                   call compute_subgrid_tke(state(1))
+                end if
+             end if
+
+             ! Calculate the meltrate
+             if(have_option("/ocean_forcing/iceshelf_meltrate/Holland08/") ) then
                 if( (trim(field_name_list(it))=="MeltRate")) then
-                    call melt_surf_calc(state(1))
+                   call melt_surf_calc(state(1))
                 endif
-            end if
+             end if
 
 
              call get_option(trim(field_optionpath_list(it))//&
@@ -964,7 +973,7 @@ contains
           call deallocate(pod_state(i))
        end do
     end if
-
+    
     ! deallocate the pointer to the array of states and sub-state:
     deallocate(state)
     if(use_sub_state()) deallocate(sub_state)

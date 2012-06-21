@@ -198,11 +198,17 @@ contains
     if (timestep==0) then 
       last_output_time = 0.0
       n_times_added = 0
-      call allocate(cumulative_value, s_field%mesh, "_AveCumulativeValue")
-      call zero(cumulative_value)
-      call insert(state, cumulative_value, cumulative_value%name)
-      call deallocate(cumulative_value)
-      call initialise_diagnostic_from_checkpoint(s_field)
+      running_tot => extract_scalar_field(state,"AveCumulativeValue",stat)
+      if (stat .ne. 0) then
+          ewrite(-1,*) "You haven't set up a field call AveCumulativeValue for the time-averaged scalar diagnostic to use."
+          ewrite(-1,*) "I'm going to make one for you, but this will *not* work with adaptivity and checkpointing"
+          ewrite(-1,*) "If you need these features, stop the run and add a scalar field called AveCumulativeValue as a diagnostic, set via internal function"
+          call allocate(cumulative_value, s_field%mesh, "AveCumulativeValue")
+          call zero(cumulative_value)
+          call insert(state, cumulative_value, cumulative_value%name)
+          call deallocate(cumulative_value)
+          call initialise_diagnostic_from_checkpoint(s_field)
+      end if
       return
     end if
 
@@ -210,7 +216,7 @@ contains
     call get_option(trim(s_field%option_path)//"/diagnostic/algorithm/averaging_period",averaging_period)
 
     source_field => scalar_source_field(state, s_field)
-    running_tot => extract_scalar_field(state,"_AveCumulativeValue")
+    running_tot => extract_scalar_field(state,"AveCumulativeValue")
     if (current_time < averaging_period*(floor(last_output_time / averaging_period)+1.)) then
         call addto(running_tot,source_field)
         n_times_added = n_times_added+1

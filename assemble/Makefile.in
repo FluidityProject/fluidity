@@ -76,7 +76,8 @@ OBJS    = Momentum_Diagnostic_Fields.o \
 	Linear_Shallow_Water.o \
 	Zoltan_global_variables.o Zoltan_integration.o Zoltan_callbacks.o Zoltan_detectors.o \
         Diagnostic_Children.o Reduced_Model_Runtime.o Turbine.o Implicit_Solids.o \
-				Manifold_Projections.o Hybridized_Helmholtz.o Burgers_Assembly.o Pressure_Dirichlet_BCS_CV.o
+				Manifold_Projections.o Hybridized_Helmholtz.o Burgers_Assembly.o Pressure_Dirichlet_BCS_CV.o \
+            Porous_Media.o
 
 .SUFFIXES: .F90 .c .cpp .o .a
 
