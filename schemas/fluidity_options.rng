@@ -1719,6 +1719,20 @@ explicitly</a:documentation>
                       <empty/>
                     </element>
                   </optional>
+                  <element name="mass_lumping_in_diagnostics">
+                    <a:documentation>Explicit absorbtion term - lump absorbtion term into source so that it is calculated 
+explicitly</a:documentation>
+                    <choice>
+                      <element name="lump_mass">
+                        <empty/>
+                      </element>
+                      <element name="solve_using_mass_matrix">
+                        <element name="solver">
+                          <ref name="linear_solver_options_asym"/>
+                        </element>
+                      </element>
+                    </choice>
+                  </element>
                   <optional>
                     <element name="debugging_fields">
                       <a:documentation>produce vtu output of individual kk and eps source terms and set prescribed source terms

@@ -1338,6 +1338,19 @@ start =
                   ## Explicit absorbtion term - lump absorbtion term into source so that it is calculated 
                   ## explicitly
                   element explicit_absorbtion { empty }?,
+                  ## Explicit absorbtion term - lump absorbtion term into source so that it is calculated 
+                  ## explicitly
+                  element mass_lumping_in_diagnostics {  
+                     (
+                        element lump_mass { empty }
+                        |
+                        element solve_using_mass_matrix { 
+                           element solver {
+                              linear_solver_options_asym
+                           }
+                        }                     
+                     )
+                  },
                   ## produce vtu output of individual kk and eps source terms and set prescribed source terms
                   ## for k and epsilon fields (for mms tests)
                   element debugging_fields{

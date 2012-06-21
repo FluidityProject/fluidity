@@ -45,6 +45,7 @@ module k_epsilon
   use sparsity_patterns_meshes
   use FLDebug
   use vtk_interfaces
+  use solvers
 
 implicit none
 
@@ -68,8 +69,8 @@ subroutine keps_diagnostics(state)
 
   type(state_type), intent(inout) :: state
 
-  call keps_calculate_rhs(state)
   call keps_eddyvisc(state)
+  call keps_calculate_rhs(state)
 
 end subroutine keps_diagnostics
 
@@ -79,7 +80,7 @@ subroutine keps_calculate_rhs(state)
 
   type(scalar_field), dimension(3) :: src_abs_terms
   type(scalar_field_pointer), dimension(2) :: fields
-  type(scalar_field), pointer :: src, abs, EV, lumped_mass, f_1, f_2, debug
+  type(scalar_field), pointer :: src, abs, EV, f_1, f_2, debug
   type(scalar_field_pointer), allocatable, dimension(:) :: buoyant_fields
   type(scalar_field) :: src_to_abs
   type(vector_field), pointer :: positions, u, g
@@ -87,7 +88,7 @@ subroutine keps_calculate_rhs(state)
   integer :: i, node, ele, term, stat
   real :: g_magnitude, c_eps_1, c_eps_2, sigma_eps, sigma_k
   real, allocatable, dimension(:) :: beta, delta_t
-  logical :: prescribed, gravity = .true., have_buoyant_fields =.false.
+  logical :: prescribed, gravity = .true., have_buoyant_fields =.false., lump_mass
   character(len=OPTION_PATH_LEN) :: option_path 
   character(len=FIELD_NAME_LEN), dimension(2) :: field_names
 
@@ -138,6 +139,7 @@ subroutine keps_calculate_rhs(state)
      call allocate(src_abs_terms(2), fields(1)%ptr%mesh, name="Destruction")
      call allocate(src_abs_terms(3), fields(1)%ptr%mesh, name="Buoyancy")
      call zero(src_abs_terms(1)); call zero(src_abs_terms(2)); call zero(src_abs_terms(3))
+     call zero(src); call zero(abs)
      !-----------------------------------------------------------------------------------
 
      ! Assembly loop
@@ -150,12 +152,9 @@ subroutine keps_calculate_rhs(state)
 
      ! For non-DG we apply inverse mass globally
      if(continuity(fields(1)%ptr)>=0) then
-        lumped_mass => get_lumped_mass(state, fields(1)%ptr%mesh)
-        do node = 1, node_count(fields(1)%ptr)
-           do term = 1, 3
-              call set(src_abs_terms(term), node, node_val(src_abs_terms(term),node)&
-                   &/node_val(lumped_mass,node))
-           end do
+        lump_mass = have_option(trim(option_path)//'mass_lumping_in_diagnostics/lump_mass')
+        do term = 1, 3
+           call solve_cg_inv_mass(state, src_abs_terms(term), lump_mass, option_path)           
         end do
      end if
      !-----------------------------------------------------------------------------------
@@ -189,8 +188,10 @@ subroutine keps_calculate_rhs(state)
      if(have_option(trim(option_path)//'implicit_source')) then
         call allocate(src_to_abs, fields(1)%ptr%mesh, name='SourceToAbsorbtion')
         call set(src_to_abs, fields(1)%ptr)
-        where (src_to_abs%val/=0.0)
+        where (src_to_abs%val >= fields_min)
            src_to_abs%val=1./src_to_abs%val
+        elsewhere
+           src_to_abs%val=1./fields_min
         end where
         call scale(src_abs_terms(1), src_to_abs)
         call addto(abs, src_abs_terms(1), -1.0)
@@ -201,8 +202,10 @@ subroutine keps_calculate_rhs(state)
      if(have_option(trim(option_path)//'implicit_buoyancy')) then
         call allocate(src_to_abs, fields(1)%ptr%mesh, name='SourceToAbsorbtion')
         call set(src_to_abs, fields(1)%ptr)
-        where (src_to_abs%val/=0.0)
-           src_to_abs%val=1./src_to_abs%val
+        where (src_to_abs%val >= fields_min)
+           src_to_abs%val = 1./src_to_abs%val
+        elsewhere
+           src_to_abs%val = 1./fields_min
         end where
         call scale(src_abs_terms(3), src_to_abs)
         call addto(abs, src_abs_terms(3), -1.0)
@@ -282,10 +285,10 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, buoyant_fields, &
 
   ! require inverse of k field for some terms
   inv_k = ele_val_at_quad(k,ele)
-  where (inv_k /= 0.0)
+  where (inv_k >= fields_min)
      inv_k = 1.0/inv_k
   elsewhere
-     inv_k = 0.0
+     inv_k = 1.0/fields_min
   end where
 
   ! Pk:
@@ -444,7 +447,7 @@ subroutine keps_eddyvisc(state)
   type(state_type), intent(inout)  :: state
   type(tensor_field), pointer      :: eddy_visc, viscosity, bg_visc
   type(vector_field), pointer      :: positions
-  type(scalar_field), pointer      :: kk, eps, EV, ll, lumped_mass, f_mu
+  type(scalar_field), pointer      :: kk, eps, EV, ll, f_mu
   type(scalar_field)               :: ev_rhs
   type(element_type), pointer      :: shape_ev
   integer                          :: i, ele
@@ -453,6 +456,7 @@ subroutine keps_eddyvisc(state)
   real, allocatable, dimension(:,:):: invmass
   real                             :: c_mu, lmax
   character(len=OPTION_PATH_LEN)   :: option_path
+  logical                          :: lump_mass
 
   option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/'
 
@@ -515,10 +519,8 @@ subroutine keps_eddyvisc(state)
 
   ! For non-DG we apply inverse mass globally
   if(continuity(EV)>=0) then
-     lumped_mass => get_lumped_mass(state, EV%mesh)
-     do i = 1, node_count(EV)
-        call set(ev_rhs, i, node_val(ev_rhs,i)/node_val(lumped_mass,i))
-     end do
+     lump_mass = have_option(trim(option_path)//'mass_lumping_in_diagnostics/lump_mass')
+     call solve_cg_inv_mass(state, ev_rhs, lump_mass, option_path)  
   end if
 
   call set(EV, ev_rhs)
@@ -557,7 +559,14 @@ subroutine keps_momentum_source(state)
   type(scalar_field), pointer :: k, lumped_mass
   type(vector_field), pointer :: source, x
   integer :: i
-  logical :: prescribed
+  logical :: prescribed, lump_mass
+  character(len=OPTION_PATH_LEN) :: option_path 
+
+  option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/'
+
+  if (.not. have_option(trim(option_path))) then 
+     return
+  end if
 
   k         => extract_scalar_field(state, "TurbulentKineticEnergy")
   source    => extract_vector_field(state, "VelocitySource")
@@ -576,10 +585,9 @@ subroutine keps_momentum_source(state)
 
   ! For non-DG we apply inverse mass globally
   if(continuity(k)>=0) then
-     lumped_mass => get_lumped_mass(state, source%mesh)
-     do i = 1, node_count(k)
-        call set(source, i, node_val(source,i)/node_val(lumped_mass,i))
-     end do
+     lump_mass = have_option(trim(option_path)//&
+          'mass_lumping_in_diagnostics/lump_mass')
+     call solve_cg_inv_mass_vector(state, source, lump_mass, option_path)  
   end if
 
 contains
@@ -616,6 +624,65 @@ contains
   end subroutine keps_momentum_source_ele
 
 end subroutine keps_momentum_source
+
+subroutine solve_cg_inv_mass(state, A, lump, option_path)
+  
+  type(state_type), intent(inout) :: state
+  type(scalar_field), intent(inout) :: A
+  logical, intent(in) :: lump
+  character(len=OPTION_PATH_LEN), intent(in) :: option_path 
+
+  type(scalar_field), pointer :: lumped_mass
+  type(csr_matrix), pointer :: mass_matrix
+  type(scalar_field) :: inv_lumped_mass, x
+  
+  if (lump) then
+     call allocate(inv_lumped_mass, A%mesh)
+     lumped_mass => get_lumped_mass(state, A%mesh)
+     call invert(lumped_mass, inv_lumped_mass)
+     call scale(A, inv_lumped_mass)
+     call deallocate(inv_lumped_mass)
+  else
+     call allocate(x, A%mesh)
+     mass_matrix => get_mass_matrix(state, A%mesh)
+     call petsc_solve(x, mass_matrix, A, &
+          trim(option_path)//&
+          'mass_lumping_in_diagnostics/solve_using_mass_matrix/')
+     call set(A, x)
+     call deallocate(x)
+  end if
+
+end subroutine solve_cg_inv_mass
+
+subroutine solve_cg_inv_mass_vector(state, A, lump, option_path)
+  
+  type(state_type), intent(inout) :: state
+  type(vector_field), intent(inout) :: A
+  logical, intent(in) :: lump
+  character(len=OPTION_PATH_LEN), intent(in) :: option_path 
+
+  type(scalar_field), pointer :: lumped_mass
+  type(csr_matrix), pointer :: mass_matrix
+  type(scalar_field) :: inv_lumped_mass
+  type(vector_field) :: x
+  
+  if (lump) then
+     call allocate(inv_lumped_mass, A%mesh)
+     lumped_mass => get_lumped_mass(state, A%mesh)
+     call invert(lumped_mass, inv_lumped_mass)
+     call scale(A, inv_lumped_mass)
+     call deallocate(inv_lumped_mass)
+  else
+     call allocate(x, A%dim, A%mesh)
+     mass_matrix => get_mass_matrix(state, A%mesh)
+     call petsc_solve(x, mass_matrix, A, &
+          trim(option_path)//&
+          'mass_lumping_in_diagnostics/solve_using_mass_matrix/')
+     call set(A, x)
+     call deallocate(x)
+  end if
+
+end subroutine solve_cg_inv_mass_vector
 
 !--------------------------------------------------------------------------------!
 ! This gets and applies locally defined boundary conditions (wall functions)     !
