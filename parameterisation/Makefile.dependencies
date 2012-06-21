@@ -26,7 +26,8 @@ Gls_vertical_turbulence_model.o ../include/gls.mod: \
 Subgrid_kinetic_energy.o ../include/subgrid_kinetic_energy.mod: \
    Subgrid_kinetic_energy.F90 ../include/elements.mod ../include/fdebug.h \
    ../include/fetools.mod ../include/field_options.mod ../include/fields.mod \
-   ../include/fldebug.mod ../include/k_epsilon.mod ../include/quadrature.mod \
+   ../include/fldebug.mod ../include/global_parameters.mod \
+   ../include/k_epsilon.mod ../include/quadrature.mod \
    ../include/smoothing_module.mod ../include/sparsity_patterns_meshes.mod \
    ../include/spud.mod ../include/state_fields_module.mod \
    ../include/state_module.mod ../include/vector_tools.mod

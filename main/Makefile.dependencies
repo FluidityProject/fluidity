@@ -57,10 +57,10 @@ Fluids.o ../include/fluids_module.mod: Fluids.F90 \
    ../include/sediment.mod ../include/signal_vars.mod \
    ../include/solidconfiguration.mod ../include/sparse_tools.mod \
    ../include/spontaneous_potentials.mod ../include/spud.mod \
-   ../include/synthetic_bc.mod ../include/timeloop_utilities.mod \
-   ../include/timers.mod ../include/vertical_extrapolation_module.mod \
-   ../include/vtk_interfaces.mod ../include/write_state_module.mod \
-   ../include/write_triangle.mod
+   ../include/subgrid_kinetic_energy.mod ../include/synthetic_bc.mod \
+   ../include/timeloop_utilities.mod ../include/timers.mod \
+   ../include/vertical_extrapolation_module.mod ../include/vtk_interfaces.mod \
+   ../include/write_state_module.mod ../include/write_triangle.mod
 
 Hybridized_Helmholtz_Solver.o : Hybridized_Helmholtz_Solver.F90 \
    ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \

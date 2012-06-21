@@ -92,14 +92,14 @@ module populate_state_module
        "/material_phase[0]/subgridscale_parameterisations/prescribed_diffusivity                                              ", &
        "/material_phase[0]/subgridscale_parameterisations/GLS                                                                 ", &
        "/material_phase[0]/subgridscale_parameterisations/k-epsilon                                                           ", &
-       "/material_phase[0]/subgridscale_parameterisations/subgrid_tke                                                         ", &
        "/ocean_forcing/iceshelf_meltrate/Holland08                                                                            ", &
        "/ocean_forcing/bulk_formulae/output_fluxes_diagnostics                                                                ", &
        "/porous_media                                                                                                         ", &
-       "/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/dynamic_les ", &
+       "/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin                       ", &
        "/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/second_order", &
        "/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/fourth_order", &
-       "/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/wale        " &
+       "/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/wale        ", &
+       "/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/dynamic_les " &
        /)
 
   !! Relative paths under a field that are searched for grandchildren
@@ -1294,7 +1294,6 @@ contains
          call get_option(trim(path)//"/name", field_name)
          ! Reset path to have field name rather than index
          path=trim(state_path)//"/scalar_field::"//trim(field_name)
-
          ! If field is not aliased call allocate_and_insert_scalar_field
          is_aliased=have_option(trim(path)//"/aliased")
          if(.not.is_aliased) then

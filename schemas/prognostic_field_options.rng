@@ -602,6 +602,22 @@ where N_a and N_b are shape functions of the ath and bth node respectively and m
 suggested value 0.1</a:documentation>
                     <ref name="real"/>
                   </element>
+                  <element name="tensor_field">
+                    <a:documentation>eddy viscosity (turbulent diffusion of velocity).
+This is an anisotropic symmetric viscosity, added to normal viscosity field, that
+carries the influence of turbulence onto the velocity field.</a:documentation>
+                    <attribute name="rank">
+                      <value>2</value>
+                    </attribute>
+                    <attribute name="name">
+                      <value>EddyViscosity</value>
+                    </attribute>
+                    <element name="diagnostic">
+                      <ref name="internal_algorithm"/>
+                      <ref name="velocity_mesh_choice"/>
+                      <ref name="diagnostic_tensor_field"/>
+                    </element>
+                  </element>
                   <optional>
                     <element name="anisotropic_viscosity">
                       <a:documentation>Use Bentham's anisotropic viscosity SGS model in the dynamic framework (see manual).
@@ -645,24 +661,6 @@ Both definitions preserve the volume of the tetrahedral element.
                       </element>
                     </element>
                   </optional>
-                  <optional>
-                    <element name="tensor_field">
-                      <a:documentation>eddy viscosity (turbulent diffusion of velocity).
-This is an anisotropic symmetric viscosity, added to normal viscosity field, that
-carries the influence of turbulence onto the velocity field.</a:documentation>
-                      <attribute name="rank">
-                        <value>2</value>
-                      </attribute>
-                      <attribute name="name">
-                        <value>EddyViscosity</value>
-                      </attribute>
-                      <element name="diagnostic">
-                        <ref name="internal_algorithm"/>
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="diagnostic_tensor_field"/>
-                      </element>
-                    </element>
-                  </optional>
                 </element>
                 <element name="fourth_order">
                   <a:documentation>this adds a fourth order operator to tackle the
@@ -677,24 +675,22 @@ requires a fine mesh to perform well</a:documentation>
 suggested value 0.1</a:documentation>
                     <ref name="real"/>
                   </element>
-                  <optional>
-                    <element name="tensor_field">
-                      <a:documentation>eddy viscosity (turbulent diffusion of velocity).
+                  <element name="tensor_field">
+                    <a:documentation>eddy viscosity (turbulent diffusion of velocity).
 This is an anisotropic symmetric viscosity, added to normal viscosity field, that
 carries the influence of turbulence onto the velocity field.</a:documentation>
-                      <attribute name="rank">
-                        <value>2</value>
-                      </attribute>
-                      <attribute name="name">
-                        <value>EddyViscosity</value>
-                      </attribute>
-                      <element name="diagnostic">
-                        <ref name="internal_algorithm"/>
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="diagnostic_tensor_field"/>
-                      </element>
+                    <attribute name="rank">
+                      <value>2</value>
+                    </attribute>
+                    <attribute name="name">
+                      <value>EddyViscosity</value>
+                    </attribute>
+                    <element name="diagnostic">
+                      <ref name="internal_algorithm"/>
+                      <ref name="velocity_mesh_choice"/>
+                      <ref name="diagnostic_tensor_field"/>
                     </element>
-                  </optional>
+                  </element>
                 </element>
                 <element name="wale">
                   <a:documentation>similar to the original WALE model</a:documentation>
@@ -704,24 +700,22 @@ carries the influence of turbulence onto the velocity field.</a:documentation>
 suggested value 0.1</a:documentation>
                     <ref name="real"/>
                   </element>
-                  <optional>
-                    <element name="tensor_field">
-                      <a:documentation>eddy viscosity (turbulent diffusion of velocity).
+                  <element name="tensor_field">
+                    <a:documentation>eddy viscosity (turbulent diffusion of velocity).
 This is an anisotropic symmetric viscosity, added to normal viscosity field, that
 carries the influence of turbulence onto the velocity field.</a:documentation>
-                      <attribute name="rank">
-                        <value>2</value>
-                      </attribute>
-                      <attribute name="name">
-                        <value>EddyViscosity</value>
-                      </attribute>
-                      <element name="diagnostic">
-                        <ref name="internal_algorithm"/>
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="diagnostic_tensor_field"/>
-                      </element>
+                    <attribute name="rank">
+                      <value>2</value>
+                    </attribute>
+                    <attribute name="name">
+                      <value>EddyViscosity</value>
+                    </attribute>
+                    <element name="diagnostic">
+                      <ref name="internal_algorithm"/>
+                      <ref name="velocity_mesh_choice"/>
+                      <ref name="diagnostic_tensor_field"/>
                     </element>
-                  </optional>
+                  </element>
                 </element>
                 <element name="dynamic_les">
                   <a:documentation>[UNDER DEVELOPMENT] The Germano dynamic method (See Germano 1991, Lilly 1991, Pope)
@@ -778,6 +772,22 @@ or explicitly filtered (i.e. perform an inverse Helmholtz filtering on the simul
                       <value>implicit</value>
                       <value>explicit</value>
                     </choice>
+                  </element>
+                  <element name="tensor_field">
+                    <a:documentation>Dynamic eddy viscosity (turbulent diffusion of velocity).
+This is an anisotropic viscosity, added to normal viscosity field, that
+carries the influence of turbulence onto the velocity field.</a:documentation>
+                    <attribute name="rank">
+                      <value>2</value>
+                    </attribute>
+                    <attribute name="name">
+                      <value>EddyViscosity</value>
+                    </attribute>
+                    <element name="diagnostic">
+                      <ref name="internal_algorithm"/>
+                      <ref name="velocity_mesh_choice"/>
+                      <ref name="diagnostic_tensor_field"/>
+                    </element>
                   </element>
                   <optional>
                     <element name="scalar_field">
@@ -927,24 +937,38 @@ with the first and then the second filter - see manual.</a:documentation>
                       </element>
                     </element>
                   </optional>
-                  <optional>
-                    <element name="tensor_field">
-                      <a:documentation>Dynamic eddy viscosity (turbulent diffusion of velocity).
-This is an anisotropic viscosity, added to normal viscosity field, that
-carries the influence of turbulence onto the velocity field.</a:documentation>
-                      <attribute name="rank">
-                        <value>2</value>
-                      </attribute>
-                      <attribute name="name">
-                        <value>EddyViscosity</value>
-                      </attribute>
-                      <element name="diagnostic">
-                        <ref name="internal_algorithm"/>
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="diagnostic_tensor_field"/>
-                      </element>
-                    </element>
-                  </optional>
+                </element>
+              </choice>
+            </element>
+          </optional>
+          <optional>
+            <element name="scalar_field">
+              <a:documentation>A diagnostic field for all LES models
+which calculates the amount of subgrid-scale kinetic energy
+supplied by the model by solving an evolution equation.
+Will be used in goal-based adaptivity to determine correct resolution for LES.
+
+Experimental.
+
+Requires tensor eddy viscosity field to be switched on
+(hard coded for all turbulence models).
+
+Turn on diffusivity, source and absorption fields
+and set to diagnostic/internal.</a:documentation>
+              <attribute name="rank">
+                <value>0</value>
+              </attribute>
+              <attribute name="name">
+                <value>SubgridKineticEnergy</value>
+              </attribute>
+              <choice>
+                <element name="prognostic">
+                  <ref name="velocity_mesh_choice"/>
+                  <ref name="prognostic_scalar_field"/>
+                </element>
+                <element name="prescribed">
+                  <ref name="velocity_mesh_choice"/>
+                  <ref name="prescribed_scalar_field"/>
                 </element>
               </choice>
             </element>

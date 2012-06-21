@@ -506,6 +506,20 @@ prognostic_velocity_field =
                      element smagorinsky_coefficient {
                         real
                      },
+                     ## eddy viscosity (turbulent diffusion of velocity).
+                     ## This is an anisotropic symmetric viscosity, added to normal viscosity field, that
+                     ## carries the influence of turbulence onto the velocity field.
+                     element tensor_field {
+                        attribute rank { "2" },
+                        attribute name { "EddyViscosity" },
+                        (
+                           element diagnostic {
+                              internal_algorithm,
+                              velocity_mesh_choice,
+                              diagnostic_tensor_field
+                           }
+                        )
+                     },
                      ## Use Bentham's anisotropic viscosity SGS model in the dynamic framework (see manual).
                      ## The anisotropy is derived from using a tensorial filter width definition.
                      ## If isotropic, a scalar filter width definition is used
@@ -531,20 +545,6 @@ prognostic_velocity_field =
                      element tensor_field {
                         attribute rank { "2" },
                         attribute name { "TensorFirstFilterWidth" },
-                        (
-                           element diagnostic {
-                              internal_algorithm,
-                              velocity_mesh_choice,
-                              diagnostic_tensor_field
-                           }
-                        )
-                     }?,
-                     ## eddy viscosity (turbulent diffusion of velocity).
-                     ## This is an anisotropic symmetric viscosity, added to normal viscosity field, that
-                     ## carries the influence of turbulence onto the velocity field.
-                     element tensor_field {
-                        attribute rank { "2" },
-                        attribute name { "EddyViscosity" },
                         (
                            element diagnostic {
                               internal_algorithm,
@@ -581,7 +581,7 @@ prognostic_velocity_field =
                               diagnostic_tensor_field
                            }
                         )
-                     }?
+                     }
                   }
                |
                   ## similar to the original WALE model
@@ -605,7 +605,7 @@ prognostic_velocity_field =
                               diagnostic_tensor_field
                            }
                         )
-                     }?
+                     }
                   }
                |
                   ## [UNDER DEVELOPMENT] The Germano dynamic method (See Germano 1991, Lilly 1991, Pope)
@@ -656,6 +656,20 @@ prognostic_velocity_field =
                      ##
                      element first_filter_type {
                      "implicit"|"explicit"
+                     },
+                     ## Dynamic eddy viscosity (turbulent diffusion of velocity).
+                     ## This is an anisotropic viscosity, added to normal viscosity field, that
+                     ## carries the influence of turbulence onto the velocity field.
+                     element tensor_field {
+                        attribute rank { "2" },
+                        attribute name { "EddyViscosity" },
+                        (
+                           element diagnostic {
+                              internal_algorithm,
+                              velocity_mesh_choice,
+                              diagnostic_tensor_field
+                           }
+                        )
                      },
                      ## Spatially varying Smagorinsky coefficient.
                      ## As diagnostic quantities are computed elementwise,
@@ -768,22 +782,34 @@ prognostic_velocity_field =
                               diagnostic_tensor_field
                            }
                         )
-                     }?,
-                     ## Dynamic eddy viscosity (turbulent diffusion of velocity).
-                     ## This is an anisotropic viscosity, added to normal viscosity field, that
-                     ## carries the influence of turbulence onto the velocity field.
-                     element tensor_field {
-                        attribute rank { "2" },
-                        attribute name { "EddyViscosity" },
-                        (
-                           element diagnostic {
-                              internal_algorithm,
-                              velocity_mesh_choice,
-                              diagnostic_tensor_field
-                           }
-                        )
                      }?
                   }
+               }?,
+               ## A diagnostic field for all LES models
+               ## which calculates the amount of subgrid-scale kinetic energy
+               ## supplied by the model by solving an evolution equation.
+               ## Will be used in goal-based adaptivity to determine correct resolution for LES.
+               ##
+               ## Experimental.
+               ##
+               ## Requires tensor eddy viscosity field to be switched on
+               ## (hard coded for all turbulence models).
+               ##
+               ## Turn on diffusivity, source and absorption fields
+               ## and set to diagnostic/internal.
+               element scalar_field {
+                  attribute rank { "0" },
+                  attribute name { "SubgridKineticEnergy" },
+                  (
+                     element prognostic {
+                        velocity_mesh_choice,
+                        prognostic_scalar_field
+                     }|
+                     element prescribed {
+                        velocity_mesh_choice,
+                        prescribed_scalar_field
+                     }
+                  )
                }?,
                ## A gauss point viscosity, calculated in such a way that it depends
                ## upon temperature. This is only valid when you have a temperature field.

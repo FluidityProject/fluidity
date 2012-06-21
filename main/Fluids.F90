@@ -644,13 +644,6 @@ contains
                 endif
              end if
 
-             ! do we have the subgrid-scale kinetic energy equation?
-             if(have_option("/material_phase[0]/subgridscale_parameterisations/subgrid_tke/")) then
-                if( (trim(field_name_list(it))=="SubgridKineticEnergy")) then
-                   call compute_subgrid_tke(state(1))
-                end if
-             end if
-
              ! Calculate the meltrate
              if(have_option("/ocean_forcing/iceshelf_meltrate/Holland08/") ) then
                 if( (trim(field_name_list(it))=="MeltRate")) then
@@ -839,6 +832,13 @@ contains
 !       if(have_option("/ocean_forcing/iceshelf_meltrate/Holland08/") ) then
 !          call melt_surf_calc(state(1))
 !       end if
+       ! do we have the subgrid-scale kinetic energy equation?
+       ! IS THIS THE RIGHT PLACE TO SOLVE IT? NEED CURRENT EDDY VISCOSITY & VELOCITY
+       if(have_option("/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/&
+                      continuous_galerkin/scalar_field::SubgridKineticEnergy")) then
+          call compute_subgrid_tke(state(1))
+       end if
+
        ! calculate and write diagnostics before the timestep gets changed
        call calculate_diagnostic_variables(State, exclude_nonrecalculated=.true.)
        call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
