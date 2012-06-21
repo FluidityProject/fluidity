@@ -1028,7 +1028,7 @@ module advection_local_DG
 
   end subroutine construct_adv_interface_dg  
 
-  subroutine solve_advection_cg_tracer(Q,D,D_old,Flux,QF,state)
+  subroutine solve_advection_cg_tracer(Q,D,D_old,Flux,U_nl,QF,state)
     !!< Solve the continuity equation for D*Q with Flux
     !!< d/dt (D*Q) + div(Flux*Q) = diffusion terms.
     !!< Done on the vorticity mesh
@@ -1038,7 +1038,7 @@ module advection_local_DG
     type(state_type), intent(inout) :: state
     type(scalar_field), intent(in),target :: D,D_old
     type(scalar_field), intent(inout),target :: Q
-    type(vector_field), intent(in) :: Flux
+    type(vector_field), intent(in) :: Flux,U_nl
     type(vector_field), intent(inout) :: QF
     !
     type(csr_sparsity), pointer :: Q_sparsity
@@ -1077,7 +1077,8 @@ module advection_local_DG
 
     !! Compute the PV flux to pass to velocity equation
     do ele = 1, ele_count(Q)
-       call construct_pv_flux_ele(QF,Q,Q_old,D,D_old,Flux,X,down,t_theta,ele)
+       call construct_pv_flux_ele(QF,Q,Q_old,D,D_old,Flux,&
+            X,down,U_nl,t_theta,ele)
     end do
 
     if(have_option('/material_phase::Fluid/scalar_field::PotentialVorticity/&
@@ -1108,28 +1109,43 @@ module advection_local_DG
   end subroutine solve_advection_cg_tracer
   
   subroutine construct_advection_cg_tracer_ele(Q_rhs,adv_mat,Q,D,D_old,Flux,&
-       & X,down,dt,t_theta,ele)
+       & X,down,U_nl,dt,t_theta,ele)
     type(scalar_field), intent(in) :: D,D_old,Q
     type(scalar_field), intent(inout) :: Q_rhs
     type(csr_matrix), intent(inout) :: Adv_mat
-    type(vector_field), intent(in) :: X, Flux, down
+    type(vector_field), intent(in) :: X, Flux, down,U_nl
     integer, intent(in) :: ele
     real, intent(in) :: dt, t_theta
     !
     real, dimension(ele_loc(Q,ele),ele_loc(Q,ele)) :: l_adv_mat
     real, dimension(ele_loc(Q,ele)) :: l_rhs
+    real, dimension(U_nl%dim,ele_ngi(U_nl,ele)) :: U_nl_gi
     real, dimension(Flux%dim,ele_ngi(Flux,ele)) :: Flux_gi
-    real, dimension(ele_ngi(X,ele)) :: detwei, Q_gi, D_gi, D_old_gi
-    real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
-    type(element_type), pointer :: Q_shape
-    integer :: loc
+    real, dimension(Flux%dim,FLux%dim,ele_ngi(Flux,ele)) :: Grad_Flux_gi,&
+         & tensor_gi
+    real, dimension(ele_ngi(X,ele)) :: detwei, Q_gi, D_gi, &
+         & D_old_gi,div_flux_gi, detwei_l
+    real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J, detJ
+    type(element_type), pointer :: Q_shape, Flux_shape
+    integer :: loc,dim1,dim2
+    real :: tau, alpha, tol
 
     Q_shape => ele_shape(Q,ele)
+    Flux_shape => ele_shape(Flux,ele)
     D_gi = ele_val_at_quad(D,ele)
     D_old_gi = ele_val_at_quad(D_old,ele)
     Q_gi = ele_val_at_quad(Q,ele)
     Flux_gi = ele_val_at_quad(Flux,ele)
-
+    U_nl_gi = ele_val_at_quad(U_nl,ele)
+    Grad_flux_gi = ele_grad_at_quad(Flux,ele,Flux_shape%dn)
+    div_flux_gi = 0.
+    tensor_gi = 0.
+    do dim1 = 1, Flux%dim
+       div_flux_gi = div_flux_gi + grad_flux_gi(dim1,dim1,:)
+       do dim2 = 1, Flux%dim
+          tensor_gi(dim1,dim2,:) = U_nl_gi(dim1,:)*Flux_gi(dim2,gi)
+       end do
+    end do
     !Equations
     ! D^{n+1} = D^n + div Flux --- POINTWISE
     ! So (integrating by parts)
@@ -1142,7 +1158,8 @@ module advection_local_DG
 
     ! Get J and detwei
     call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), detwei&
-         &=detwei, J=J)
+         &=detwei, J=J, detJ=detJ)
+    detwei_l = Q_shape%quadrature%weight
     !Advection terms
     l_adv_mat = t_theta*dshape_dot_vector_shape(&
          Q_shape%dn,Flux_gi,Q_shape,Q_shape%quadrature%weight)
@@ -1161,7 +1178,22 @@ module advection_local_DG
     !Streamline upwinding options
     if(have_option(trim(Q%option_path)//'/prognostic/spatial_discretisation/&
          &continuous_galerkin/streamline_upwinding')) then
-       FLExit('Streamline upwinding not coded yet.')
+       !! Replace test function \gamma with \gamma + \tau u\cdot\nabla\gamma
+       call get_option(trim(Q%option_path)//'/prognostic/spatial_discretisat&
+            &ion/continuous_galerkin/streamline_upwinding/',alpha)
+       call get_option(trim(Q%option_path)//'/prognostic/spatial_discretisat&
+            &ion/continuous_galerkin/streamline_upwinding/',tol)
+       FLAbort('Need to calculate tau')
+       !! Mass terms
+       l_adv_mat = l_adv_mat + tau*dshape_dot_vector_shape(&
+            Q_shape%dn,U_nl_gi,D_gi*detwei_l)
+       l_rhs = l_rhs + tau*dshape_dot_vector_rhs(&
+            Q_shape%dn,U_nl_gi*D_old_gi*Q_gi*detwei_l)
+       !! Advection terms
+       l_adv_mat = l_adv_mat - tau*dshape_dot_vector_shape(&
+            Q_shape%dn,U_nl_gi,div_flux_gi*detwei_l/detJ) &
+            - tau*dshape_tensor_dshape(&
+            Q_shape%dn,tensor_gi,Q_shape%dn,detwei_l/detJ)
     end if
     !Local projection options
     if(have_option(trim(Q%option_path)//'/prognostic/spatial_discretisation/&

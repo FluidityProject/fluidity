@@ -346,7 +346,9 @@ start =
                               }
                            }?,
                            element streamline_upwinding {
-                              empty
+                              element tau {
+                                 real
+                              }
                            }?,
                            element local_projection {
                               empty

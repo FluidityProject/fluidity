@@ -254,7 +254,7 @@
               "NonlinearVelocity",continuity=.true.,Flux=MassFlux)
          if(have_pv_tracer) then
             call solve_advection_cg_tracer(PVtracer,D,&
-                 d_old,MassFlux,PVFlux,state)
+                 d_old,MassFlux,advecting_u,PVFlux,state)
          end if
          call deallocate(MassFlux)
          call deallocate(PVFlux)
