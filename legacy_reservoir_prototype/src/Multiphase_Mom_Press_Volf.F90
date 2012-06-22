@@ -711,7 +711,7 @@ contains
                      DEN, DENOLD,  &
                      MAT_NLOC, MAT_NDGLN, MAT_NONODS, COMP_DIFFUSION, &
                      0, V_DG_VEL_INT_OPT, DT, V_THETA, V_BETA, &
-                     !V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, V_BETA, &
+                                !V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, V_BETA, &
                      SUF_COMP_BC( 1 + STOTEL * CV_SNLOC * NPHASE *( ICOMP - 1 ) : STOTEL * CV_SNLOC * NPHASE * ICOMP ), &
                      SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, &
                      SUF_COMP_BC_ROB1, SUF_COMP_BC_ROB2,  &
@@ -819,179 +819,178 @@ contains
 
        Conditional_TIMDUMP: if( ( mod( itime, dump_period_in_timesteps ) == 0 ) .or. ( itime == 1 ) ) then
 
-          ! calculate the quadratic DG representation of the overlapping CVFEM velocity fields
-          call overlapping_to_quadratic_dg( &
-               cv_nonods, x_nonods,u_nonods,  totele, &
-               cv_ele_type,   nphase,  cv_nloc, u_nloc, x_nloc, &
-               cv_ndgln,  u_ndgln, x_ndgln, cv_snloc, u_snloc, stotel, cv_sndgln, u_sndgln, &
-               x, y, z,  u, v, w, uold, vold, wold,velocity_dg,ndim,p_ele_type )
+          ! Write the *.d.* files?
+          if (.false.) then
 
-          ! output the saturation, density and velocity for each phase
-          Phase_output_loop: do iphase = 1,nphase
+             ! calculate the quadratic DG representation of the overlapping CVFEM velocity fields
+             call overlapping_to_quadratic_dg( &
+                  cv_nonods, x_nonods,u_nonods,  totele, &
+                  cv_ele_type,   nphase,  cv_nloc, u_nloc, x_nloc, &
+                  cv_ndgln,  u_ndgln, x_ndgln, cv_snloc, u_snloc, stotel, cv_sndgln, u_sndgln, &
+                  x, y, z,  u, v, w, uold, vold, wold,velocity_dg,ndim,p_ele_type )
 
-             ! form string for phase number
-             call write_integer_to_string(iphase,dummy_string_phase,len(dummy_string_phase))  
-
-             ! form string for dump number
-             call write_integer_to_string(itime,dummy_string_dump,len(dummy_string_dump))  
-
-             ! form the output file name for saturation --------------------------
-             dump_name = 'saturation_FEM_phase_'//trim(dummy_string_phase)//'.d.'//trim(dummy_string_dump)
-
-             ! open the output file for saturation   
-             output_channel = 1
-             file_format = 'formatted'
-             call open_output_file(output_channel,dump_name,len(dump_name),file_format)
-
-             ! output the fem interpolation of the CV solution for saturation of this phase
-             call output_fem_sol_of_cv(output_channel,totele,cv_nonods,x_nonods,nphase,cv_nloc,x_nloc,cv_ndgln, &
-                  x_ndgln,x,Sat_FEMT( ((iphase-1)*cv_nonods+1):((iphase-1)*cv_nonods+cv_nonods) ))
-
-             ! close the file for saturation   
-             close(output_channel)  
-
-
-             ! form the output file name for density --------------------------
-             dump_name = 'density_FEM_phase_'//trim(dummy_string_phase)//'.d.'//trim(dummy_string_dump)
-
-             ! open the output file for density   
-             output_channel = 1
-             file_format = 'formatted'
-             call open_output_file(output_channel,dump_name,len(dump_name),file_format)
-
-             ! output the fem interpolation of the CV solution for density of this phase
-             call output_fem_sol_of_cv(output_channel,totele,cv_nonods,x_nonods,nphase,cv_nloc,x_nloc,cv_ndgln, &
-                  x_ndgln,x,DEN_FEMT( ((iphase-1)*cv_nonods+1):((iphase-1)*cv_nonods+cv_nonods) ))
-
-             ! close the file for density   
-             close(output_channel)  
-
-             ! form the output file name for velocity --------------------------
-             dump_name = 'velocity_phase_'//trim(dummy_string_phase)//'.d.'//trim(dummy_string_dump)
-
-             ! open the output file for velocity   
-             output_channel = 1
-             file_format = 'formatted'
-             call open_output_file(output_channel,dump_name,len(dump_name),file_format)
-
-             ! output the fem velocity
-             call printing_veloc_field( output_channel, totele, xu_nonods, xu_nloc, xu_ndgln, u_nloc, u_ndgln, &
-                  xu, u_nonods, u_nonods * nphase, u, iphase )
-
-             ! close the file for velocity   
-             close(output_channel)
-
-             dump_name = 'velocity_phase_proj'//trim(dummy_string_phase)//'.d.'//trim(dummy_string_dump)
-
-             ! open the output file for velocity   
-             output_channel = 1
-             file_format = 'formatted'
-             call open_output_file(output_channel,dump_name,len(dump_name),file_format)
-
-             ! output the fem velocity
-             call printing_veloc_field( output_channel, totele, xu_nonods, xu_nloc, xu_ndgln, u_nloc, u_ndgln, &
-                  xu, u_nonods, u_nonods * nphase, u, iphase )
-
-
-             call printing_field_array_veloc(output_channel, totele,   cv_nonods, x_nonods, x_nloc, x_ndgln, cv_nloc, cv_ndgln, &
-                  x, velocity_dg(:,iphase,1))
-             ! close the file for velocity   
-             close(output_channel)
-
-          end do Phase_output_loop
-
-
-          Loop_Comp_Print: do icomp = 1, ncomp
-
-             Loop_Phase_Print: do iphase = 1, nphase
+             ! output the saturation, density and velocity for each phase
+             Phase_output_loop: do iphase = 1,nphase
 
                 ! form string for phase number
-                call write_integer_to_string( iphase, dummy_string_phase, len( dummy_string_phase )) 
+                call write_integer_to_string(iphase,dummy_string_phase,len(dummy_string_phase))  
+
+                ! form string for dump number
+                call write_integer_to_string(itime,dummy_string_dump,len(dummy_string_dump))  
+
+                ! form the output file name for saturation --------------------------
+                dump_name = 'saturation_FEM_phase_'//trim(dummy_string_phase)//'.d.'//trim(dummy_string_dump)
+
+                ! open the output file for saturation   
+                output_channel = 1
+                file_format = 'formatted'
+                call open_output_file(output_channel,dump_name,len(dump_name),file_format)
+
+                ! output the fem interpolation of the CV solution for saturation of this phase
+                call output_fem_sol_of_cv(output_channel,totele,cv_nonods,x_nonods,nphase,cv_nloc,x_nloc,cv_ndgln, &
+                     x_ndgln,x,Sat_FEMT( ((iphase-1)*cv_nonods+1):((iphase-1)*cv_nonods+cv_nonods) ))
+
+                ! close the file for saturation   
+                close(output_channel)  
+
+                ! form the output file name for density --------------------------
+                dump_name = 'density_FEM_phase_'//trim(dummy_string_phase)//'.d.'//trim(dummy_string_dump)
+
+                ! open the output file for density   
+                output_channel = 1
+                file_format = 'formatted'
+                call open_output_file(output_channel,dump_name,len(dump_name),file_format)
+
+                ! output the fem interpolation of the CV solution for density of this phase
+                call output_fem_sol_of_cv(output_channel,totele,cv_nonods,x_nonods,nphase,cv_nloc,x_nloc,cv_ndgln, &
+                     x_ndgln,x,DEN_FEMT( ((iphase-1)*cv_nonods+1):((iphase-1)*cv_nonods+cv_nonods) ))
+
+                ! close the file for density   
+                close(output_channel)  
+
+                ! form the output file name for velocity --------------------------
+                dump_name = 'velocity_phase_'//trim(dummy_string_phase)//'.d.'//trim(dummy_string_dump)
+
+                ! open the output file for velocity   
+                output_channel = 1
+                file_format = 'formatted'
+                call open_output_file(output_channel,dump_name,len(dump_name),file_format)
+
+                ! output the fem velocity
+                call printing_veloc_field( output_channel, totele, xu_nonods, xu_nloc, xu_ndgln, u_nloc, u_ndgln, &
+                     xu, u_nonods, u_nonods * nphase, u, iphase )
+
+                ! close the file for velocity   
+                close(output_channel)
+
+                dump_name = 'velocity_phase_proj'//trim(dummy_string_phase)//'.d.'//trim(dummy_string_dump)
+
+                ! open the output file for velocity   
+                output_channel = 1
+                file_format = 'formatted'
+                call open_output_file(output_channel,dump_name,len(dump_name),file_format)
+
+                ! output the fem velocity
+                call printing_veloc_field( output_channel, totele, xu_nonods, xu_nloc, xu_ndgln, u_nloc, u_ndgln, &
+                     xu, u_nonods, u_nonods * nphase, u, iphase )
+
+                call printing_field_array_veloc(output_channel, totele,   cv_nonods, x_nonods, x_nloc, x_ndgln, cv_nloc, cv_ndgln, &
+                     x, velocity_dg(:,iphase,1))
+                ! close the file for velocity   
+                close(output_channel)
+
+             end do Phase_output_loop
+
+             Loop_Comp_Print: do icomp = 1, ncomp
+
+                Loop_Phase_Print: do iphase = 1, nphase
+
+                   ! form string for phase number
+                   call write_integer_to_string( iphase, dummy_string_phase, len( dummy_string_phase )) 
+
+                   ! form string for component number
+                   call write_integer_to_string( icomp, dummy_string_comp, len( dummy_string_comp ))  
+
+                   ! form string for dump number
+                   call write_integer_to_string( itime, dummy_string_dump, len( dummy_string_dump ))  
+
+                   ! form the output file name for saturation --------------------------
+                   dump_name = 'MassFraction_FEM_Phase_'//trim( dummy_string_phase )// '_Comp_' // &
+                        trim( dummy_string_comp ) // '.d.' // trim( dummy_string_dump )
+
+                   ! open the output file for Mass/Molar Fraction   
+                   output_channel = 1
+                   file_format = 'formatted'
+                   call open_output_file( output_channel, dump_name, len( dump_name ), file_format )
+
+                   ! output the fem interpolation of the CV solution for Mass Fraction of this phase and this component
+                   call output_fem_sol_of_cv( output_channel, totele, cv_nonods, x_nonods, nphase, cv_nloc, x_nloc, cv_ndgln, &
+                        x_ndgln, x, Comp_FEMT(( icomp - 1 ) * nphase * cv_nonods + ( iphase - 1 ) * cv_nonods + 1 : &
+                        ( icomp - 1 ) * nphase * cv_nonods + iphase * cv_nonods ))
+
+                   ! close the file   
+                   close( output_channel )  
+
+                end do Loop_Phase_Print
+
+             end do Loop_Comp_Print
+
+             Loop_Comp_Print2: do icomp = 1, ncomp
 
                 ! form string for component number
-                call write_integer_to_string( icomp, dummy_string_comp, len( dummy_string_comp ))  
+                call write_integer_to_string( icomp, dummy_string_comp, len( dummy_string_comp )) 
 
                 ! form string for dump number
                 call write_integer_to_string( itime, dummy_string_dump, len( dummy_string_dump ))  
 
                 ! form the output file name for saturation --------------------------
-                dump_name = 'MassFraction_FEM_Phase_'//trim( dummy_string_phase )// '_Comp_' // &
-                     trim( dummy_string_comp ) // '.d.' // trim( dummy_string_dump )
+                dump_name = 'Conc_FEM_Comp_' // trim( dummy_string_comp ) // '.d.' // trim( dummy_string_dump )
 
                 ! open the output file for Mass/Molar Fraction   
                 output_channel = 1
                 file_format = 'formatted'
                 call open_output_file( output_channel, dump_name, len( dump_name ), file_format )
 
+                SumConc_FEMT = 0.
+
+                Loop_Phase_Print2: do iphase = 1, nphase
+
+                   SumConc_FEMT( ( icomp - 1 ) * cv_nonods + 1 : ( icomp - 1 ) * cv_nonods + cv_nonods ) = &
+                        SumConc_FEMT( ( icomp - 1 ) * cv_nonods + 1 : ( icomp - 1 ) * cv_nonods + cv_nonods ) + &
+                        Comp_FEMT(( icomp - 1 ) * nphase * cv_nonods + ( iphase - 1 ) * cv_nonods + 1 : &
+                        ( icomp - 1 ) * nphase * cv_nonods + iphase * cv_nonods )  * &
+                        Sat_FEMT(( ( iphase - 1 ) * cv_nonods + 1 ) : (( iphase - 1 ) * cv_nonods + cv_nonods ))
+
+                end do Loop_Phase_Print2
+
                 ! output the fem interpolation of the CV solution for Mass Fraction of this phase and this component
-                call output_fem_sol_of_cv( output_channel, totele, cv_nonods, x_nonods, nphase, cv_nloc, x_nloc, cv_ndgln, &
-                     x_ndgln, x, Comp_FEMT(( icomp - 1 ) * nphase * cv_nonods + ( iphase - 1 ) * cv_nonods + 1 : &
-                     ( icomp - 1 ) * nphase * cv_nonods + iphase * cv_nonods ))
+                call output_fem_sol_of_cv( output_channel, totele, cv_nonods, x_nonods, ncomp, cv_nloc, x_nloc, cv_ndgln, &
+                     x_ndgln, x, SumConc_FEMT(( ( icomp - 1 ) * cv_nonods + 1 ) : (( icomp - 1 ) * cv_nonods + cv_nonods )))
 
                 ! close the file   
                 close( output_channel )  
 
-             end do Loop_Phase_Print
+             end do Loop_Comp_Print2
 
-          end do Loop_Comp_Print
+             ! output the global pressure --------------------------
+             dump_name = 'pressure'//'.d.'//trim(dummy_string_dump)
 
-
-
-          Loop_Comp_Print2: do icomp = 1, ncomp
-
-             ! form string for component number
-             call write_integer_to_string( icomp, dummy_string_comp, len( dummy_string_comp )) 
-
-             ! form string for dump number
-             call write_integer_to_string( itime, dummy_string_dump, len( dummy_string_dump ))  
-
-             ! form the output file name for saturation --------------------------
-             dump_name = 'Conc_FEM_Comp_' // trim( dummy_string_comp ) // '.d.' // trim( dummy_string_dump )
-
-             ! open the output file for Mass/Molar Fraction   
+             ! open the output file for pressure   
              output_channel = 1
              file_format = 'formatted'
-             call open_output_file( output_channel, dump_name, len( dump_name ), file_format )
+             call open_output_file(output_channel,dump_name,len(dump_name),file_format) 
 
-             SumConc_FEMT = 0.
+             ! output the pressure      
+             call printing_field_array( output_channel, totele, cv_nonods, x_nonods, x_nloc, x_ndgln, cv_nloc, cv_ndgln, &
+                  x, cv_nonods, cv_p, 1 )
 
-             Loop_Phase_Print2: do iphase = 1, nphase
+             ! close the file for pressure   
+             close(output_channel)
 
-                SumConc_FEMT( ( icomp - 1 ) * cv_nonods + 1 : ( icomp - 1 ) * cv_nonods + cv_nonods ) = &
-                     SumConc_FEMT( ( icomp - 1 ) * cv_nonods + 1 : ( icomp - 1 ) * cv_nonods + cv_nonods ) + &
-                     Comp_FEMT(( icomp - 1 ) * nphase * cv_nonods + ( iphase - 1 ) * cv_nonods + 1 : &
-                     ( icomp - 1 ) * nphase * cv_nonods + iphase * cv_nonods )  * &
-                     Sat_FEMT(( ( iphase - 1 ) * cv_nonods + 1 ) : (( iphase - 1 ) * cv_nonods + cv_nonods ))
+          end if ! write *.d.* files
 
-             end do Loop_Phase_Print2
-
-             ! output the fem interpolation of the CV solution for Mass Fraction of this phase and this component
-             call output_fem_sol_of_cv( output_channel, totele, cv_nonods, x_nonods, ncomp, cv_nloc, x_nloc, cv_ndgln, &
-                  x_ndgln, x, SumConc_FEMT(( ( icomp - 1 ) * cv_nonods + 1 ) : (( icomp - 1 ) * cv_nonods + cv_nonods )))
-
-             ! close the file   
-             close( output_channel )  
-
-          end do Loop_Comp_Print2
-
-
-          ! output the global pressure --------------------------
-          dump_name = 'pressure'//'.d.'//trim(dummy_string_dump)
-
-          ! open the output file for pressure   
-          output_channel = 1
-          file_format = 'formatted'
-          call open_output_file(output_channel,dump_name,len(dump_name),file_format) 
-
-          ! output the pressure      
-          call printing_field_array( output_channel, totele, cv_nonods, x_nonods, x_nloc, x_ndgln, cv_nloc, cv_ndgln, &
-               x, cv_nonods, cv_p, 1 )
-
-          ! close the file for pressure   
-          close(output_channel)
-
-          !! Output vtus from state
-          ! Start by copying the interesting files back into state:
+          ! Output vtus from state
+          ! Start by copying the interesting fields back into state:
           call copy_into_state(state, &
                satura, &
                t, &
@@ -1032,8 +1031,6 @@ contains
 
     ewrite(3,*) 'Leaving solve_multiphase_mom_press_volf'
 
-
-
     deallocate( sigma )
     deallocate( rhs )
     deallocate( rhs_cv )
@@ -1046,6 +1043,5 @@ contains
     deallocate( Comp_FEMT )
 
   end subroutine solve_multiphase_mom_press_volf
-
 
 end module multiphase_mom_press_volf
