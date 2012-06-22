@@ -87,7 +87,7 @@ contains
     type(detector_linked_list), pointer :: agent_array
     integer, dimension(:), allocatable :: rnd_seed
     integer :: i, rnd_seed_int, rnd_dim
-    integer :: j, fg, stage, n_fgroups, n_stages, n_env_fields, array
+    integer :: j, fg, stage, n_fgroups, n_ext_fgroups, n_stages, n_env_fields, array
 
     if (.not.have_option("/embedded_models/lagrangian_ensemble_biology")) return
 
@@ -106,12 +106,12 @@ contains
     ewrite(2,*) "Lagrangian biology: Initialised RNG"
 
     n_fgroups = option_count("/embedded_models/lagrangian_ensemble_biology/functional_group")
-    allocate(functional_groups(n_fgroups))
+    n_ext_fgroups = option_count("/embedded_models/lagrangian_ensemble_biology/external_fgroup")
+    allocate(functional_groups(n_fgroups + n_ext_fgroups))
     ewrite(2,*) "Lagrangian biology: Allocated ", n_fgroups, " functional groups"
-
-    ! Create a persistent dictionary of FG variable and environment name mappings
-    call python_run_string("persistent['fg_var_names'] = dict()")
-    call python_run_string("persistent['fg_env_names'] = dict()")
+    if (n_ext_fgroups > 0) then
+       ewrite(2,*) "Lagrangian biology: Allocated ", n_ext_fgroups, " external fgroups"
+    end if
 
     ! Initialise Python module 'lebiology'
     call lebiology_init_module()
@@ -179,12 +179,6 @@ contains
           ! Get options for Random Walk
           call read_random_walk_options(agent_array, trim(fg_buffer)//"/movement")
 
-          ! Now we know the variable names for the FG, so we record them in Python
-          call python_run_string("persistent['fg_var_names']['"//trim(agent_array%name)//"'] = []")
-          do j=1, size(functional_groups(fg)%variables)
-             call python_run_string("persistent['fg_var_names']['"//trim(agent_array%name)//"'].append('"//trim(functional_groups(fg)%variables(j)%name)//"')")
-          end do
-
           ! Store the python update code
           if (have_option(trim(stage_buffer)//"/biology/python")) then
              call get_option(trim(stage_buffer)//"/biology/python", agent_array%biovar_pycode)
@@ -198,6 +192,16 @@ contains
 
           array = array + 1
        end do 
+    end do
+
+    ! Now add the 'fake' external FGroups
+    do fg=1, n_ext_fgroups
+       fgroup => functional_groups(n_fgroups + fg)
+       write(fg_buffer, "(a,i0,a)") "/embedded_models/lagrangian_ensemble_biology/external_fgroup[",fg-1,"]"
+       
+       call read_functional_group(fgroup, trim(fg_buffer))
+       allocate(fgroup%agent_arrays(0))
+       fgroup%is_external = .true.
     end do
 
     ewrite(1,*) "Lagrangian biology: Initialised metamodel"
@@ -233,6 +237,8 @@ contains
     ! We create an agent array for each stage of each Functional Group
     do fg=1, get_num_functional_groups()
        fgroup => get_functional_group(fg)
+
+       if (fgroup%is_external) cycle
 
        ! Create agents and insert into list
        call get_option(trim(fgroup%init_options)//"/number_of_agents", n_agents)
@@ -321,19 +327,15 @@ contains
 
     ! Record all associated stage names
     stage_count = option_count(trim(fg_path)//"/stages/stage")
-    if (stage_count>0) then
-       allocate(fgroup%stage_names%ptr(stage_count))
-       do i=1, stage_count
-          write(stage_buffer, "(a,i0,a)") trim(fg_path)//"/stages/stage[",i-1,"]"
-          call get_option(trim(stage_buffer)//"/name", fgroup%stage_names%ptr(i))
-       end do
-    end if
+    allocate(fgroup%stage_names%ptr(stage_count))
+    do i=1, stage_count
+       write(stage_buffer, "(a,i0,a)") trim(fg_path)//"/stages/stage[",i-1,"]"
+       call get_option(trim(stage_buffer)//"/name", fgroup%stage_names%ptr(i))
+    end do
 
     ! Record the agent count field path
     if (have_option(trim(fg_path)//"/scalar_field::Agents")) then
        fgroup%agents_field_path = trim(fg_path)//"/scalar_field::Agents"
-    else
-       FLExit("No Agents field specified for functional group "//trim(fgroup%name))
     end if
 
     ! Determine number of variables    
@@ -365,160 +367,158 @@ contains
     end do
     vars_total = vars_state + vars_hist + vars_chem + vars_ingest + vars_uptake + vars_release
 
-    if (vars_total > 0) then
+    ! Allocate variable arrays
+    allocate(fgroup%variables(vars_total))
 
-       ! Allocate variable arrays
-       allocate(fgroup%variables(vars_total))
+    ! Add internal state variables
+    var_index = 1
+    do i=1, vars_state
+       write(var_buffer, "(a,i0,a)") trim(fg_path)//"/variables/state_variable[",i-1,"]"
+       call get_option(trim(var_buffer)//"/name", biovar_name)
+       fgroup%variables(var_index)%name=trim(biovar_name)
+       if (have_option(trim(var_buffer)//"/include_in_io")) then
+          fgroup%variables(var_index)%write_to_file=.true.
+       end if
 
-       ! Add internal state variables
-       var_index = 1
-       do i=1, vars_state
-          write(var_buffer, "(a,i0,a)") trim(fg_path)//"/variables/state_variable[",i-1,"]"
-          call get_option(trim(var_buffer)//"/name", biovar_name)
-          fgroup%variables(var_index)%name=trim(biovar_name)
-          if (have_option(trim(var_buffer)//"/include_in_io")) then
-             fgroup%variables(var_index)%write_to_file=.true.
+       ! Record indices of motion variables
+       if (have_option(trim(var_buffer)//"/include_in_motion")) then
+          call insert(motion_variables, var_index)
+       end if
+
+       ! Record according diagnostic field
+       if (have_option(trim(var_buffer)//"/scalar_field")) then
+          fgroup%variables(var_index)%field_type = BIOFIELD_DIAG
+          call get_option(trim(var_buffer)//"/scalar_field/name", field_name)                   
+          fgroup%variables(var_index)%field_name = trim(fgroup%name)//trim(field_name)//trim(biovar_name)
+          fgroup%variables(var_index)%field_path = trim(var_buffer)//"/scalar_field"
+
+          if (have_option(trim(var_buffer)//"/scalar_field/stage_diagnostic")) then
+             fgroup%variables(var_index)%stage_diagnostic = .true.
           end if
+       else
+          fgroup%variables(var_index)%field_type = BIOFIELD_NONE
+       end if
+       var_index = var_index+1
 
-          ! Record indices of motion variables
-          if (have_option(trim(var_buffer)//"/include_in_motion")) then
-             call insert(motion_variables, var_index)
-          end if
-
-          ! Record according diagnostic field
-          if (have_option(trim(var_buffer)//"/scalar_field")) then
-             fgroup%variables(var_index)%field_type = BIOFIELD_DIAG
-             call get_option(trim(var_buffer)//"/scalar_field/name", field_name)                   
-             fgroup%variables(var_index)%field_name = trim(fgroup%name)//trim(field_name)//trim(biovar_name)
-             fgroup%variables(var_index)%field_path = trim(var_buffer)//"/scalar_field"
-
-             if (have_option(trim(var_buffer)//"/scalar_field/stage_diagnostic")) then
-                fgroup%variables(var_index)%stage_diagnostic = .true.
-             end if
-          else
+       if (have_option(trim(var_buffer)//"/history")) then
+          call get_option(trim(var_buffer)//"/history", history_depth)
+          do hist = 2, history_depth
+             fgroup%variables(var_index)%name=trim(biovar_name)//"_"//int2str(hist - 1)
              fgroup%variables(var_index)%field_type = BIOFIELD_NONE
+             fgroup%variables(var_index)%pool_index = var_index - 1
+             call insert(history_variables, var_index)
+             var_index = var_index+1
+          end do
+       end if
+    end do
+
+    allocate(fgroup%history_var_inds(history_variables%length))
+    fgroup%history_var_inds = list2vector(history_variables)
+
+    allocate(fgroup%motion_var_inds(motion_variables%length))
+    fgroup%motion_var_inds = list2vector(motion_variables)
+
+    ! Add chemical variables
+    do i=1, vars_chem
+       write(var_buffer, "(a,i0,a)") trim(fg_path)//"/variables/chemical_variable[",i-1,"]"
+       call get_option(trim(var_buffer)//"/name", biovar_name)
+       if (have_option(trim(var_buffer)//"/include_in_io")) then
+          fgroup%variables(var_index)%write_to_file = .true.
+       end if
+
+       ! Chemical pool variable and according diagnostic fields
+       fgroup%variables(var_index)%name = trim(biovar_name)
+       if (have_option(trim(var_buffer)//"/scalar_field::Particulate")) then
+          fgroup%variables(var_index)%field_type = BIOFIELD_DIAG
+          call get_option(trim(var_buffer)//"/scalar_field/name", field_name)
+          fgroup%variables(var_index)%field_name = trim(fgroup%name)//trim(field_name)//trim(biovar_name)
+          fgroup%variables(var_index)%field_path = trim(var_buffer)//"/scalar_field::Particulate"
+
+          if (have_option(trim(var_buffer)//"/scalar_field::Particulate/stage_diagnostic")) then
+             fgroup%variables(var_index)%stage_diagnostic = .true.
           end if
-          var_index = var_index+1
+       else
+          fgroup%variables(var_index)%field_type = BIOFIELD_NONE
+       end if
+       chemvar_index = var_index
+       var_index = var_index+1
 
-          if (have_option(trim(var_buffer)//"/history")) then
-             call get_option(trim(var_buffer)//"/history", history_depth)
-             do hist = 2, history_depth
-                fgroup%variables(var_index)%name=trim(biovar_name)//"_"//int2str(hist - 1)
-                fgroup%variables(var_index)%field_type = BIOFIELD_NONE
-                fgroup%variables(var_index)%pool_index = var_index - 1
-                call insert(history_variables, var_index)
-                var_index = var_index+1
-             end do
+       ! Create a 'ChemIngested' variable
+       if (have_option(trim(var_buffer)//"/scalar_field::Ingested")) then
+          fgroup%variables(var_index)%name = trim(biovar_name)//"Ingested"
+          fgroup%variables(var_index)%field_type = BIOFIELD_INGESTED
+          fgroup%variables(var_index)%field_name = trim(fgroup%name)//"Ingested"//trim(biovar_name)
+          fgroup%variables(var_index)%field_path = trim(var_buffer)//"/scalar_field::Ingested"
+
+          fgroup%variables(var_index)%pool_index = chemvar_index
+          fgroup%variables(chemvar_index)%ingest_index = var_index
+
+          if (have_option(trim(var_buffer)//"/scalar_field::Ingested/stage_diagnostic")) then
+             fgroup%variables(var_index)%stage_diagnostic = .true.
           end if
-       end do
-
-       allocate(fgroup%history_var_inds(history_variables%length))
-       fgroup%history_var_inds = list2vector(history_variables)
-
-       allocate(fgroup%motion_var_inds(motion_variables%length))
-       fgroup%motion_var_inds = list2vector(motion_variables)
-
-       ! Add chemical variables
-       do i=1, vars_chem
-          write(var_buffer, "(a,i0,a)") trim(fg_path)//"/variables/chemical_variable[",i-1,"]"
-          call get_option(trim(var_buffer)//"/name", biovar_name)
-          if (have_option(trim(var_buffer)//"/include_in_io")) then
+          if (have_option(trim(var_buffer)//"/scalar_field::Ingested/include_in_io")) then
              fgroup%variables(var_index)%write_to_file = .true.
           end if
 
-          ! Chemical pool variable and according diagnostic fields
-          fgroup%variables(var_index)%name = trim(biovar_name)
-          if (have_option(trim(var_buffer)//"/scalar_field::Particulate")) then
-             fgroup%variables(var_index)%field_type = BIOFIELD_DIAG
-             call get_option(trim(var_buffer)//"/scalar_field/name", field_name)
-             fgroup%variables(var_index)%field_name = trim(fgroup%name)//trim(field_name)//trim(biovar_name)
-             fgroup%variables(var_index)%field_path = trim(var_buffer)//"/scalar_field::Particulate"
-
-             if (have_option(trim(var_buffer)//"/scalar_field::Particulate/stage_diagnostic")) then
-                fgroup%variables(var_index)%stage_diagnostic = .true.
-             end if
-          else
-             fgroup%variables(var_index)%field_type = BIOFIELD_NONE
-          end if
-          chemvar_index = var_index
           var_index = var_index+1
+       end if
 
-          ! Create a 'ChemIngested' variable
-          if (have_option(trim(var_buffer)//"/scalar_field::Ingested")) then
-             fgroup%variables(var_index)%name = trim(biovar_name)//"Ingested"
-             fgroup%variables(var_index)%field_type = BIOFIELD_INGESTED
-             fgroup%variables(var_index)%field_name = trim(fgroup%name)//"Ingested"//trim(biovar_name)
-             fgroup%variables(var_index)%field_path = trim(var_buffer)//"/scalar_field::Ingested"
+       ! Chemical uptake
+       ! Note check for existence of Request and Depletion field, and record Depletion field
+       if (have_option(trim(var_buffer)//"/uptake")) then
+          fgroup%variables(var_index)%name = trim(biovar_name)//"Uptake"
+          fgroup%variables(var_index)%field_type = BIOFIELD_UPTAKE
+          fgroup%variables(var_index)%field_name = trim(fgroup%name)//"Request"//trim(biovar_name)
+          fgroup%variables(var_index)%field_path = trim(var_buffer)//"/uptake/scalar_field::Request"
+          fgroup%variables(var_index)%depletion_field_path = trim(var_buffer)//"/uptake/scalar_field::Depletion"
 
-             fgroup%variables(var_index)%pool_index = chemvar_index
-             fgroup%variables(chemvar_index)%ingest_index = var_index
+          call get_option(trim(var_buffer)//"/uptake/source_field/name", fgroup%variables(var_index)%chemfield)
+          fgroup%variables(var_index)%i_chemfield = insert_global_uptake_field(fgroup%variables(var_index)%chemfield)
 
-             if (have_option(trim(var_buffer)//"/scalar_field::Ingested/stage_diagnostic")) then
-                fgroup%variables(var_index)%stage_diagnostic = .true.
-             end if
-             if (have_option(trim(var_buffer)//"/scalar_field::Ingested/include_in_io")) then
-                fgroup%variables(var_index)%write_to_file = .true.
-             end if
-
-             var_index = var_index+1
+          if (have_option(trim(var_buffer)//"/uptake/integrate_along_path")) then
+             fgroup%variables(var_index)%path_integration = .true.
           end if
 
-          ! Chemical uptake
-          ! Note check for existence of Request and Depletion field, and record Depletion field
-          if (have_option(trim(var_buffer)//"/uptake")) then
-             fgroup%variables(var_index)%name = trim(biovar_name)//"Uptake"
-             fgroup%variables(var_index)%field_type = BIOFIELD_UPTAKE
-             fgroup%variables(var_index)%field_name = trim(fgroup%name)//"Request"//trim(biovar_name)
-             fgroup%variables(var_index)%field_path = trim(var_buffer)//"/uptake/scalar_field::Request"
-             fgroup%variables(var_index)%depletion_field_path = trim(var_buffer)//"/uptake/scalar_field::Depletion"
-
-             call get_option(trim(var_buffer)//"/uptake/source_field/name", fgroup%variables(var_index)%chemfield)
-             fgroup%variables(var_index)%i_chemfield = insert_global_uptake_field(fgroup%variables(var_index)%chemfield)
-
-             if (have_option(trim(var_buffer)//"/uptake/integrate_along_path")) then
-                fgroup%variables(var_index)%path_integration = .true.
-             end if
-
-             if (have_option(trim(var_buffer)//"/uptake/include_in_io")) then
-                fgroup%variables(var_index)%write_to_file = .true.
-             end if
-
-             fgroup%variables(var_index)%pool_index = chemvar_index
-             call insert(uptake_vars, var_index)
-             var_index = var_index+1
+          if (have_option(trim(var_buffer)//"/uptake/include_in_io")) then
+             fgroup%variables(var_index)%write_to_file = .true.
           end if
 
-          ! Chemical release
-          if (have_option(trim(var_buffer)//"/release")) then
-             fgroup%variables(var_index)%name = trim(biovar_name)//"Release"
-             fgroup%variables(var_index)%field_type = BIOFIELD_RELEASE
-             fgroup%variables(var_index)%field_name = trim(fgroup%name)//"Release"//trim(biovar_name)
-             fgroup%variables(var_index)%field_path = trim(var_buffer)//"/release/scalar_field::Release"
-             call get_option(trim(var_buffer)//"/release/target_field/name", fgroup%variables(var_index)%chemfield)
-             fgroup%variables(var_index)%i_chemfield = insert_global_release_field(fgroup%variables(var_index)%chemfield)
+          fgroup%variables(var_index)%pool_index = chemvar_index
+          call insert(uptake_vars, var_index)
+          var_index = var_index+1
+       end if
 
-             if (have_option(trim(var_buffer)//"/release/integrate_along_path")) then
-                fgroup%variables(var_index)%path_integration = .true.
-             end if
+       ! Chemical release
+       if (have_option(trim(var_buffer)//"/release")) then
+          fgroup%variables(var_index)%name = trim(biovar_name)//"Release"
+          fgroup%variables(var_index)%field_type = BIOFIELD_RELEASE
+          fgroup%variables(var_index)%field_name = trim(fgroup%name)//"Release"//trim(biovar_name)
+          fgroup%variables(var_index)%field_path = trim(var_buffer)//"/release/scalar_field::Release"
+          call get_option(trim(var_buffer)//"/release/target_field/name", fgroup%variables(var_index)%chemfield)
+          fgroup%variables(var_index)%i_chemfield = insert_global_release_field(fgroup%variables(var_index)%chemfield)
 
-             if (have_option(trim(var_buffer)//"/release/include_in_io")) then
-                fgroup%variables(var_index)%write_to_file = .true.
-             end if
-
-             fgroup%variables(var_index)%pool_index = chemvar_index
-             call insert(release_vars, var_index)
-             var_index = var_index+1
+          if (have_option(trim(var_buffer)//"/release/integrate_along_path")) then
+             fgroup%variables(var_index)%path_integration = .true.
           end if
-       end do
 
-       allocate(fgroup%ivars_uptake(uptake_vars%length))
-       fgroup%ivars_uptake = list2vector(uptake_vars)
+          if (have_option(trim(var_buffer)//"/release/include_in_io")) then
+             fgroup%variables(var_index)%write_to_file = .true.
+          end if
 
-       allocate(fgroup%ivars_release(release_vars%length))
-       fgroup%ivars_release = list2vector(release_vars)
+          fgroup%variables(var_index)%pool_index = chemvar_index
+          call insert(release_vars, var_index)
+          var_index = var_index+1
+       end if
+    end do
 
-    end if ! vars > 0
+    allocate(fgroup%ivars_uptake(uptake_vars%length))
+    fgroup%ivars_uptake = list2vector(uptake_vars)
 
+    allocate(fgroup%ivars_release(release_vars%length))
+    fgroup%ivars_release = list2vector(release_vars)
+
+
+    ! Now allocate food sets
     n_food_sets = option_count(trim(fg_path)//"/food_set")
     n_fvarieties = 0
     do i=1, n_food_sets
@@ -1302,7 +1302,7 @@ contains
        if (allocated(fgroup%food_sets)) then
 
           ! Derive the required Request fields
-          if (size(fgroup%food_sets) > 0) then
+          if (size(fgroup%food_sets) > 0 .and. .not.fgroup%is_external) then
              call ingestion_derive_requests(state, fgroup)
           end if
 
@@ -1403,6 +1403,8 @@ contains
                          ! Proportion of food ingested
                          prop = old_size / conc
                          agent%biology(BIOVAR_SIZE) = old_size - (prop * request * depletion(1))
+
+                         !ewrite(2,*) "ml805 old_size: ", old_size, "new size: ", agent%biology(BIOVAR_SIZE)
                       end if
                    end if
 
@@ -1413,7 +1415,7 @@ contains
           end do  ! FoodSet
 
           ! Derive the resulting Ingested fields
-          if (size(fgroup%food_sets) > 0) then
+          if (size(fgroup%food_sets) > 0 .and. .not.fgroup%is_external) then
              call ingestion_set_ingests(state, fgroup)
           end if
 

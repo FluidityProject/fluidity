@@ -270,6 +270,9 @@ module detector_data_types
     character(len=OPTION_PATH_LEN) :: init_options
     ! Option path for the Agents diagnostic field
     character(len=OPTION_PATH_LEN) :: agents_field_path
+
+    ! Flag indicating external FGroups
+    logical :: is_external = .false.
   end type functional_group
 
 end module detector_data_types

@@ -17,152 +17,158 @@ lagrangian_biology =
                diagnostic_scalar_field_no_adapt
             }
          }?,
-         ## A Functional Group (FG) is an abstraction to define the characteristic behaviour of one or more species of plankton agents. 
-         ## The Functional Group defines the internal variables an agent will store and the environment fields an agent needs to sample. 
-         ## The concrete behaviour of an agent, however, is defined by the stage the agent is in. Stage changes are only permitted within Functional Groups. 
-         element functional_group {
-            attribute name { xsd:string },
-            (
-               ## The variables of an agent define its individual internal state. 
-               ## Several types of variables are available: 
-               ## state_variable defines an arbitrary internal property; 
-               ## chemical_variable defines an internal pool of chemicals that can be exchanged with the environment. 
-               element variables {
+         (
+            ## A Functional Group (FG) is an abstraction to define the characteristic behaviour of one or more species of plankton agents. 
+            ## The Functional Group defines the internal variables an agent will store and the environment fields an agent needs to sample. 
+            ## The concrete behaviour of an agent, however, is defined by the stage the agent is in. Stage changes are only permitted within Functional Groups. 
+            element functional_group {
+               attribute name { xsd:string },
+               (
+                  ## The variables of an agent define its individual internal state. 
+                  ## Several types of variables are available: 
+                  ## state_variable defines an arbitrary internal property; 
+                  ## chemical_variable defines an internal pool of chemicals that can be exchanged with the environment. 
+                  element variables {
 
-                  ## An agent's stage determines the update function to apply at each timestep.
-                  element state_variable {
-                     attribute name { 'Stage' },
-                     element include_in_io {
-                        empty
-                     }?
-                  },
-                  ## Dynamic size of the ensemble the agent represents. 
-                  ## All internal quantities that are exchanged with the environment get scaled by this factor.
-                  element state_variable {
-                     attribute name { 'Size' },
-                     ## Biology agent field
-                     element scalar_field {
-                        attribute name { 'Ensemble' },
-                        element diagnostic {
-                           internal_algorithm,
-                           diagnostic_scalar_field_no_adapt
+                     ## An agent's stage determines the update function to apply at each timestep.
+                     element state_variable {
+                        attribute name { 'Stage' },
+                        element include_in_io {
+                           empty
+                        }?
+                     },
+                     ## Dynamic size of the ensemble the agent represents. 
+                     ## All internal quantities that are exchanged with the environment get scaled by this factor.
+                     element state_variable {
+                        attribute name { 'Size' },
+                        ## Biology agent field
+                        element scalar_field {
+                           attribute name { 'Ensemble' },
+                           element diagnostic {
+                              internal_algorithm,
+                              diagnostic_scalar_field_no_adapt
+                           },
+                           ## Add diagnostic fields that represent the particulate concetration of individual stage groups.
+                           element stage_diagnostic {
+                              empty
+                           }
                         },
-                        ## Add diagnostic fields that represent the particulate concetration of individual stage groups.
-                        element stage_diagnostic {
+                        element include_in_io {
+                           empty
+                        }?
+                     },
+                     (
+                        state_variable |
+                        chemical_variable
+                     )*
+                  }
+               ),
+               element initial_state {
+                  ## The number of detectors prescribed by the python function.
+                  element number_of_agents {
+                     integer
+                  },                     
+                  ## Python function prescribing dimensional vector input. Functions should be of the form:
+                  ##
+                  ##  def val(t):
+                  ##     # Function code
+                  ##     return # Return value
+                  ##
+                  ## The return value must have length number_of_detectors.
+                  ##
+                  ## *** IMPORTANT NOTE ***
+                  ##
+                  ## The t argument is for future use only - currently detector locations are only set at simulation start.
+                  element position {
+                     python_code
+                  },
+                  (
+                     ## Python function to set the initial state of the agent. 
+                     ## A dictionary mapping variable name to value gets passed to the function, where the stage ID is already set,
+                     ## which needs to be returned with the appropriate initial variable values, eg.:
+                     ##
+                     ##  def val(biovars):
+                     ##     biovars['VarName'] = 1.0
+                     ##     return biovars
+                     element biology {
+                        python_code
+                     }
+                  )
+               },
+               agent_movement,
+               (
+                  ## This option holds a list of fields that define the ambient environment for agents of this Functional Group. 
+                  ## The local values of fields listed here will be presented in a dictionary 'environment' to the agent update function.
+                  element environment {
+                     ## Environment field whose ambient value will be presented to the update code in the 'environment' dictionary.
+                     element field {
+                        attribute name { xsd:string },
+                        element integrate_along_path {
+                           empty
+                        }?
+                     }*
+                  }
+               ),
+               ##
+               element stages {
+                  ## Detectors with their locations specified via a python function or from a file. Allows detector arrays to be added.
+                  element stage {
+                     comment,
+                     attribute name { xsd:string },
+                     (
+                        ## Biology model for this type of agent.
+                        element biology {
+                           (
+                              ## Python code specifying the biology model.
+                              element python {
+                                 python_code
+                              }
+                           )
+                        }|
+                        ## Do not calculate biology
+                        ## This option is generally only useful for testing. 
+                        element disable_biology {
                            empty
                         }
-                     },
-                     element include_in_io {
-                        empty
-                     }?
-                  },
-                  (
-                     state_variable |
-                     chemical_variable
-                  )*
-               }
-            ),
-            element initial_state {
-               ## The number of detectors prescribed by the python function.
-               element number_of_agents {
-                  integer
-               },                     
-               ## Python function prescribing dimensional vector input. Functions should be of the form:
-               ##
-               ##  def val(t):
-               ##     # Function code
-               ##     return # Return value
-               ##
-               ## The return value must have length number_of_detectors.
-               ##
-               ## *** IMPORTANT NOTE ***
-               ##
-               ## The t argument is for future use only - currently detector locations are only set at simulation start.
-               element position {
-                  python_code
-               },
-               (
-                  ## Python function to set the initial state of the agent. 
-                  ## A dictionary mapping variable name to value gets passed to the function, where the stage ID is already set,
-                  ## which needs to be returned with the appropriate initial variable values, eg.:
-                  ##
-                  ##  def val(biovars):
-                  ##     biovars['VarName'] = 1.0
-                  ##     return biovars
-                  element biology {
-                     python_code
-                  }
-               )
-            },
-            agent_movement,
-            (
-               ## This option holds a list of fields that define the ambient environment for agents of this Functional Group. 
-               ## The local values of fields listed here will be presented in a dictionary 'environment' to the agent update function.
-               element environment {
-                  ## Environment field whose ambient value will be presented to the update code in the 'environment' dictionary.
-                  element field {
-                     attribute name { xsd:string },
-                     element integrate_along_path {
-                        empty
+                     ),
+                     ## Particle Management rules
+                     element particle_management {
+                        element period_in_timesteps {
+                           integer
+                        },
+                        element scalar_field {
+                           attribute name { "AgentsMin" },
+                           element prescribed {
+                              prescribed_scalar_field_no_adapt
+                           }
+                        }?,
+                        element scalar_field {
+                           attribute name { "AgentsMax" },
+                           element prescribed {
+                              prescribed_scalar_field_no_adapt
+                           }
+                        }?
+                     }?,
+                     element io_period {
+                        real
                      }?
                   }*
+               },
+               food_set,
+               ## Number of agents
+               element scalar_field {
+                  attribute name { 'Agents' },
+                  element diagnostic {
+                     internal_algorithm,
+                     diagnostic_scalar_field_no_adapt
+                  }
                }
-            ),
-            ##
-            element stages {
-               ## Detectors with their locations specified via a python function or from a file. Allows detector arrays to be added.
-               element stage {
-                  comment,
-                  attribute name { xsd:string },
-                  (
-                     ## Biology model for this type of agent.
-                     element biology {
-                        (
-                           ## Python code specifying the biology model.
-                           element python {
-                              python_code
-                           }
-                        )
-                     }|
-                     ## Do not calculate biology
-                     ## This option is generally only useful for testing. 
-                     element disable_biology {
-                        empty
-                     }
-                  ),
-                  ## Particle Management rules
-                  element particle_management {
-                     element period_in_timesteps {
-                        integer
-                     },
-                     element scalar_field {
-                        attribute name { "AgentsMin" },
-                        element prescribed {
-                           prescribed_scalar_field_no_adapt
-                        }
-                     }?,
-                     element scalar_field {
-                        attribute name { "AgentsMax" },
-                        element prescribed {
-                           prescribed_scalar_field_no_adapt
-                        }
-                     }?
-                  }?,
-                  element io_period {
-                     real
-                  }?
-               }*
-            },
-            food_set,
-            ## Number of agents
-            element scalar_field {
-               attribute name { 'Agents' },
-               element diagnostic {
-                  internal_algorithm,
-                  diagnostic_scalar_field_no_adapt
-               }
+            }|
+            element external_fgroup {
+               attribute name { xsd:string },
+               food_set
             }
-         }*
+         )*
       }
    )
 
@@ -305,7 +311,10 @@ food_set =
          element scalar_field {
             attribute name { "Request" },
             element diagnostic {
-               internal_algorithm,
+               (
+                  internal_algorithm
+                  | scalar_galerkin_projection_algorithm
+               ),
                diagnostic_scalar_field_no_adapt
             },
             element stage_diagnostic {

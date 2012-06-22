@@ -23,69 +23,70 @@
         </element>
       </optional>
       <zeroOrMore>
-        <element name="functional_group">
-          <a:documentation>A Functional Group (FG) is an abstraction to define the characteristic behaviour of one or more species of plankton agents. 
+        <choice>
+          <element name="functional_group">
+            <a:documentation>A Functional Group (FG) is an abstraction to define the characteristic behaviour of one or more species of plankton agents. 
 The Functional Group defines the internal variables an agent will store and the environment fields an agent needs to sample. 
 The concrete behaviour of an agent, however, is defined by the stage the agent is in. Stage changes are only permitted within Functional Groups. </a:documentation>
-          <attribute name="name">
-            <data type="string"/>
-          </attribute>
-          <element name="variables">
-            <a:documentation>The variables of an agent define its individual internal state. 
+            <attribute name="name">
+              <data type="string"/>
+            </attribute>
+            <element name="variables">
+              <a:documentation>The variables of an agent define its individual internal state. 
 Several types of variables are available: 
 state_variable defines an arbitrary internal property; 
 chemical_variable defines an internal pool of chemicals that can be exchanged with the environment. </a:documentation>
-            <element name="state_variable">
-              <a:documentation>An agent's stage determines the update function to apply at each timestep.</a:documentation>
-              <attribute name="name">
-                <value>Stage</value>
-              </attribute>
-              <optional>
-                <element name="include_in_io">
-                  <empty/>
-                </element>
-              </optional>
-            </element>
-            <element name="state_variable">
-              <a:documentation>Dynamic size of the ensemble the agent represents. 
-All internal quantities that are exchanged with the environment get scaled by this factor.</a:documentation>
-              <attribute name="name">
-                <value>Size</value>
-              </attribute>
-              <element name="scalar_field">
-                <a:documentation>Biology agent field</a:documentation>
+              <element name="state_variable">
+                <a:documentation>An agent's stage determines the update function to apply at each timestep.</a:documentation>
                 <attribute name="name">
-                  <value>Ensemble</value>
+                  <value>Stage</value>
                 </attribute>
-                <element name="diagnostic">
-                  <ref name="internal_algorithm"/>
-                  <ref name="diagnostic_scalar_field_no_adapt"/>
-                </element>
-                <element name="stage_diagnostic">
-                  <a:documentation>Add diagnostic fields that represent the particulate concetration of individual stage groups.</a:documentation>
-                  <empty/>
-                </element>
+                <optional>
+                  <element name="include_in_io">
+                    <empty/>
+                  </element>
+                </optional>
               </element>
-              <optional>
-                <element name="include_in_io">
-                  <empty/>
+              <element name="state_variable">
+                <a:documentation>Dynamic size of the ensemble the agent represents. 
+All internal quantities that are exchanged with the environment get scaled by this factor.</a:documentation>
+                <attribute name="name">
+                  <value>Size</value>
+                </attribute>
+                <element name="scalar_field">
+                  <a:documentation>Biology agent field</a:documentation>
+                  <attribute name="name">
+                    <value>Ensemble</value>
+                  </attribute>
+                  <element name="diagnostic">
+                    <ref name="internal_algorithm"/>
+                    <ref name="diagnostic_scalar_field_no_adapt"/>
+                  </element>
+                  <element name="stage_diagnostic">
+                    <a:documentation>Add diagnostic fields that represent the particulate concetration of individual stage groups.</a:documentation>
+                    <empty/>
+                  </element>
                 </element>
-              </optional>
+                <optional>
+                  <element name="include_in_io">
+                    <empty/>
+                  </element>
+                </optional>
+              </element>
+              <zeroOrMore>
+                <choice>
+                  <ref name="state_variable"/>
+                  <ref name="chemical_variable"/>
+                </choice>
+              </zeroOrMore>
             </element>
-            <zeroOrMore>
-              <choice>
-                <ref name="state_variable"/>
-                <ref name="chemical_variable"/>
-              </choice>
-            </zeroOrMore>
-          </element>
-          <element name="initial_state">
-            <element name="number_of_agents">
-              <a:documentation>The number of detectors prescribed by the python function.</a:documentation>
-              <ref name="integer"/>
-            </element>
-            <element name="position">
-              <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
+            <element name="initial_state">
+              <element name="number_of_agents">
+                <a:documentation>The number of detectors prescribed by the python function.</a:documentation>
+                <ref name="integer"/>
+              </element>
+              <element name="position">
+                <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
 
  def val(t):
     # Function code
@@ -96,108 +97,115 @@ The return value must have length number_of_detectors.
 *** IMPORTANT NOTE ***
 
 The t argument is for future use only - currently detector locations are only set at simulation start.</a:documentation>
-              <ref name="python_code"/>
-            </element>
-            <element name="biology">
-              <a:documentation>Python function to set the initial state of the agent. 
+                <ref name="python_code"/>
+              </element>
+              <element name="biology">
+                <a:documentation>Python function to set the initial state of the agent. 
 A dictionary mapping variable name to value gets passed to the function, where the stage ID is already set,
 which needs to be returned with the appropriate initial variable values, eg.:
 
  def val(biovars):
     biovars['VarName'] = 1.0
     return biovars</a:documentation>
-              <ref name="python_code"/>
+                <ref name="python_code"/>
+              </element>
             </element>
-          </element>
-          <ref name="agent_movement"/>
-          <element name="environment">
-            <a:documentation>This option holds a list of fields that define the ambient environment for agents of this Functional Group. 
+            <ref name="agent_movement"/>
+            <element name="environment">
+              <a:documentation>This option holds a list of fields that define the ambient environment for agents of this Functional Group. 
 The local values of fields listed here will be presented in a dictionary 'environment' to the agent update function.</a:documentation>
-            <zeroOrMore>
-              <element name="field">
-                <a:documentation>Environment field whose ambient value will be presented to the update code in the 'environment' dictionary.</a:documentation>
-                <attribute name="name">
-                  <data type="string"/>
-                </attribute>
-                <optional>
-                  <element name="integrate_along_path">
-                    <empty/>
-                  </element>
-                </optional>
-              </element>
-            </zeroOrMore>
-          </element>
-          <element name="stages">
-            <a:documentation/>
-            <zeroOrMore>
-              <element name="stage">
-                <a:documentation>Detectors with their locations specified via a python function or from a file. Allows detector arrays to be added.</a:documentation>
-                <ref name="comment"/>
-                <attribute name="name">
-                  <data type="string"/>
-                </attribute>
-                <choice>
-                  <element name="biology">
-                    <a:documentation>Biology model for this type of agent.</a:documentation>
-                    <element name="python">
-                      <a:documentation>Python code specifying the biology model.</a:documentation>
-                      <ref name="python_code"/>
+              <zeroOrMore>
+                <element name="field">
+                  <a:documentation>Environment field whose ambient value will be presented to the update code in the 'environment' dictionary.</a:documentation>
+                  <attribute name="name">
+                    <data type="string"/>
+                  </attribute>
+                  <optional>
+                    <element name="integrate_along_path">
+                      <empty/>
                     </element>
-                  </element>
-                  <element name="disable_biology">
-                    <a:documentation>Do not calculate biology
+                  </optional>
+                </element>
+              </zeroOrMore>
+            </element>
+            <element name="stages">
+              <a:documentation/>
+              <zeroOrMore>
+                <element name="stage">
+                  <a:documentation>Detectors with their locations specified via a python function or from a file. Allows detector arrays to be added.</a:documentation>
+                  <ref name="comment"/>
+                  <attribute name="name">
+                    <data type="string"/>
+                  </attribute>
+                  <choice>
+                    <element name="biology">
+                      <a:documentation>Biology model for this type of agent.</a:documentation>
+                      <element name="python">
+                        <a:documentation>Python code specifying the biology model.</a:documentation>
+                        <ref name="python_code"/>
+                      </element>
+                    </element>
+                    <element name="disable_biology">
+                      <a:documentation>Do not calculate biology
 This option is generally only useful for testing. </a:documentation>
-                    <empty/>
-                  </element>
-                </choice>
-                <optional>
-                  <element name="particle_management">
-                    <a:documentation>Particle Management rules</a:documentation>
-                    <element name="period_in_timesteps">
-                      <ref name="integer"/>
+                      <empty/>
                     </element>
-                    <optional>
-                      <element name="scalar_field">
-                        <attribute name="name">
-                          <value>AgentsMin</value>
-                        </attribute>
-                        <element name="prescribed">
-                          <ref name="prescribed_scalar_field_no_adapt"/>
-                        </element>
+                  </choice>
+                  <optional>
+                    <element name="particle_management">
+                      <a:documentation>Particle Management rules</a:documentation>
+                      <element name="period_in_timesteps">
+                        <ref name="integer"/>
                       </element>
-                    </optional>
-                    <optional>
-                      <element name="scalar_field">
-                        <attribute name="name">
-                          <value>AgentsMax</value>
-                        </attribute>
-                        <element name="prescribed">
-                          <ref name="prescribed_scalar_field_no_adapt"/>
+                      <optional>
+                        <element name="scalar_field">
+                          <attribute name="name">
+                            <value>AgentsMin</value>
+                          </attribute>
+                          <element name="prescribed">
+                            <ref name="prescribed_scalar_field_no_adapt"/>
+                          </element>
                         </element>
-                      </element>
-                    </optional>
-                  </element>
-                </optional>
-                <optional>
-                  <element name="io_period">
-                    <ref name="real"/>
-                  </element>
-                </optional>
+                      </optional>
+                      <optional>
+                        <element name="scalar_field">
+                          <attribute name="name">
+                            <value>AgentsMax</value>
+                          </attribute>
+                          <element name="prescribed">
+                            <ref name="prescribed_scalar_field_no_adapt"/>
+                          </element>
+                        </element>
+                      </optional>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="io_period">
+                      <ref name="real"/>
+                    </element>
+                  </optional>
+                </element>
+              </zeroOrMore>
+            </element>
+            <ref name="food_set"/>
+            <element name="scalar_field">
+              <a:documentation>Number of agents</a:documentation>
+              <attribute name="name">
+                <value>Agents</value>
+              </attribute>
+              <element name="diagnostic">
+                <ref name="internal_algorithm"/>
+                <ref name="diagnostic_scalar_field_no_adapt"/>
               </element>
-            </zeroOrMore>
-          </element>
-          <ref name="food_set"/>
-          <element name="scalar_field">
-            <a:documentation>Number of agents</a:documentation>
-            <attribute name="name">
-              <value>Agents</value>
-            </attribute>
-            <element name="diagnostic">
-              <ref name="internal_algorithm"/>
-              <ref name="diagnostic_scalar_field_no_adapt"/>
             </element>
           </element>
-        </element>
+          <element name="external_fgroup">
+            <attribute name="name">
+              <data type="string"/>
+            </attribute>
+            <ref name="food_set"/>
+          </element>
+        </choice>
       </zeroOrMore>
     </element>
   </define>
@@ -392,7 +400,10 @@ The scaled release quantity will then get added to the according source field of
             <value>Request</value>
           </attribute>
           <element name="diagnostic">
-            <ref name="internal_algorithm"/>
+            <choice>
+              <ref name="internal_algorithm"/>
+              <ref name="scalar_galerkin_projection_algorithm"/>
+            </choice>
             <ref name="diagnostic_scalar_field_no_adapt"/>
           </element>
           <optional>
