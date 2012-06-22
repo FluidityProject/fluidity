@@ -1128,7 +1128,7 @@ module advection_local_DG
     real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
     type(element_type), pointer :: Q_shape, Flux_shape
     integer :: loc,dim1,dim2
-    real :: tau, alpha, tol
+    real :: tau, alpha, tol, area, h
 
     Q_shape => ele_shape(Q,ele)
     Flux_shape => ele_shape(Flux,ele)
@@ -1180,10 +1180,17 @@ module advection_local_DG
          &continuous_galerkin/streamline_upwinding')) then
        !! Replace test function \gamma with \gamma + \tau u\cdot\nabla\gamma
        call get_option(trim(Q%option_path)//'/prognostic/spatial_discretisat&
-            &ion/continuous_galerkin/streamline_upwinding/',alpha)
+            &ion/continuous_galerkin/streamline_upwinding/alpha',alpha)
        call get_option(trim(Q%option_path)//'/prognostic/spatial_discretisat&
-            &ion/continuous_galerkin/streamline_upwinding/',tol)
-       FLAbort('Need to calculate tau')
+            &ion/continuous_galerkin/streamline_upwinding/tolerance',tol)
+
+       if(maxval(sqrt(sum(U_nl_gi**2,1)))<tol) then
+          tau = 0.
+       else
+          area = sum(detwei)
+          h = sqrt(4*area/sqrt(3.))
+          tau = maxval(sqrt(sum(U_nl_gi**2,1)))*h*alpha
+       end if
        !! Mass terms
        l_adv_mat = l_adv_mat + tau*dshape_dot_vector_shape(&
             Q_shape%dn,U_nl_gi,Q_shape,D_gi*detwei_l)
