@@ -6,7 +6,9 @@
 #endif
 
 /* Initialisation function for the 'lebiology' module */
-PyMODINIT_FUNC initlebiology(void);
+PyMODINIT_FUNC initlebiology(int dim);
+
+static int lebiology_dim;
 
 /* Static dictionaries that hold meta-data for access at runtime.
  * The first index is always the FGroup name, eg. pFGVarNames['FGroup'] 

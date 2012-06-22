@@ -1,11 +1,12 @@
 #include "lebiology_pythonc.h"
 
 /**** Initialisation function for the module 'lebiology' ****/
-PyMODINIT_FUNC initlebiology(void)
+PyMODINIT_FUNC initlebiology(int dim)
 {
 #ifdef HAVE_PYTHON
   // Define methods
   (void) Py_InitModule("lebiology", LEBiologyMethods);
+  lebiology_dim = dim;
 
   // Create static dicts for variable names, 
   // stage IDs and local namespaces
@@ -628,13 +629,22 @@ static PyObject *lebiology_add_agent(PyObject *self, PyObject *args)
   //Convert the position list
   int *n_pos = malloc(sizeof(int));
   *n_pos = PyList_Size(pPositionList);
-  double *pos = malloc(*n_pos * sizeof(double));
-  for (i=0; i<*n_pos; i++) {
-    pos[i] = PyFloat_AsDouble( PyList_GET_ITEM(pPositionList, i) );
+  assert(*n_pos <= lebiology_dim);
+  double *pos = malloc(lebiology_dim * sizeof(double));
+  if (*n_pos == lebiology_dim) {     
+     for (i=0; i<*n_pos; i++) {
+       pos[i] = PyFloat_AsDouble( PyList_GET_ITEM(pPositionList, i) );
+     }   
+  } else {
+     // If len(pos) < dim, only translate z
+     for (i=0; i<lebiology_dim; i++) {
+       pos[i] = 0.1;
+     }
+     pos[lebiology_dim-1] = PyFloat_AsDouble( PyList_GET_ITEM(pPositionList, *n_pos-1) );
   }
 
   // Pass the new agent on to the Fortran
-  fl_add_agent_c(vars, n_vars, pos, n_pos);
+  fl_add_agent_c(vars, n_vars, pos, &lebiology_dim);
 
   free(vars);
   free(n_vars);

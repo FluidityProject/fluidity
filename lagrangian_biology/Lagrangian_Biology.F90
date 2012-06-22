@@ -87,7 +87,7 @@ contains
     type(detector_linked_list), pointer :: agent_array
     integer, dimension(:), allocatable :: rnd_seed
     integer :: i, rnd_seed_int, rnd_dim
-    integer :: j, fg, stage, n_fgroups, n_ext_fgroups, n_stages, n_env_fields, array
+    integer :: j, dim, fg, stage, n_fgroups, n_ext_fgroups, n_stages, n_env_fields, array
 
     if (.not.have_option("/embedded_models/lagrangian_ensemble_biology")) return
 
@@ -114,7 +114,8 @@ contains
     end if
 
     ! Initialise Python module 'lebiology'
-    call lebiology_init_module()
+    call get_option("/geometry/dimension", dim)
+    call lebiology_init_module(dim)
 
     ! We create an agent array for each stage of each Functional Group
     array=1

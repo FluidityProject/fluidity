@@ -4515,6 +4515,11 @@ Requires a continuous mesh.</a:documentation>
             <ref name="velocity_mesh_choice"/>
             <ref name="prescribed_scalar_field"/>
           </element>
+          <element name="diagnostic">
+            <ref name="scalar_galerkin_projection_algorithm"/>
+            <ref name="velocity_mesh_choice"/>
+            <ref name="diagnostic_scalar_field"/>
+          </element>
         </choice>
       </element>
       <element name="scalar_field">

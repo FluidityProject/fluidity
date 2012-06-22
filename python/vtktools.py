@@ -341,6 +341,12 @@ class vtu:
     self.ugrid.GetCellPoints(id, idlist)
     return arr([idlist.GetId(i) for i in range(idlist.GetNumberOfIds())])
 
+  def GetCellBounds(self, id):
+    """Returns an array containing the bounds of the cell."""
+    bounds = [0.]*6
+    self.ugrid.GetCellBounds(id, bounds)
+    return arr( bounds )
+
   def GetFieldNames(self):
     """Returns the names of the available fields."""
     vtkdata=self.ugrid.GetPointData()

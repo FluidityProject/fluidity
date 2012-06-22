@@ -3661,6 +3661,7 @@ def update_Mature_Copepod(param, vars, env, dt):
 
   ### Reproduction ###
   A_r_new = (vars['A_r'] + dt_in_hours)
+  Reproduce = 0.0
   if ((vars['A_r'] >= param['A_rep']) and (vars['C_N'] >= param['G_max'])):
     Reproduce = 1.0
   Nauplii = (((((((vars['C_N'] - param['G_max']) / param['G_min']) * 2.0)) if (vars['C_NN'] > (vars['C_N'] - param['G_max'])) else ((2.0 * (vars['C_NN'] / param['G_min']))))) if (Reproduce == 1.0) else (0.0))

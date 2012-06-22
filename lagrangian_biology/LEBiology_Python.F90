@@ -22,10 +22,10 @@ module lebiology_python
 
   interface
 
-    subroutine lebiology_init_module() bind(c, name='initlebiology')
+    subroutine lebiology_init_module(dim) bind(c, name='initlebiology')
       use :: iso_c_binding
       implicit none
-
+      integer(c_int), intent(in), value :: dim
     end subroutine lebiology_init_module
 
     subroutine lebiology_add_fg_varname(fg, fglen, var, varlen, stat) &
