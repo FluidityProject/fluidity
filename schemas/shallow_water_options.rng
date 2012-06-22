@@ -435,7 +435,17 @@ if isn't present as a field in state.</a:documentation>
                     </optional>
                     <optional>
                       <element name="streamline_upwinding">
-                        <empty/>
+                        <element name="alpha">
+                          <a:documentation>Scaling parameter for upwinding
+parameter tau, 1 = first-order upwind,
+magic value for 1D = 1.0/sqrt(15)</a:documentation>
+                          <ref name="real"/>
+                        </element>
+                        <element name="tol">
+                          <a:documentation>For velocities below this tolerance, 
+does not apply any upwinding</a:documentation>
+                          <ref name="real"/>
+                        </element>
                       </element>
                     </optional>
                     <optional>

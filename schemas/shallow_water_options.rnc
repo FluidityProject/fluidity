@@ -346,7 +346,15 @@ start =
                               }
                            }?,
                            element streamline_upwinding {
-                              element tau {
+                              ## Scaling parameter for upwinding
+                              ## parameter tau, 1 = first-order upwind,
+                              ## magic value for 1D = 1.0/sqrt(15)
+                              element alpha {
+                                 real
+                              },
+                              ## For velocities below this tolerance, 
+                              ## does not apply any upwinding
+                              element tol {
                                  real
                               }
                            }?,

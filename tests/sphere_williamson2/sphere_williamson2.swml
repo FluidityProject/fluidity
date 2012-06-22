@@ -8,7 +8,7 @@
       <integer_value rank="0">3</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_file file_name="sphere_ico3">
+      <from_file file_name="sphere_ico5">
         <format name="triangle"/>
         <dimension>
           <integer_value rank="0">2</integer_value>
@@ -118,9 +118,8 @@
       <integer_value rank="0">1</integer_value>
     </nonlinear_iterations>
     <finish_time>
-      <real_value rank="0">72000.0</real_value>
-      <comment>Williamson 2 runs for 5 days
-Initially run for 20 hours</comment>
+      <real_value rank="0">432000.0</real_value>
+      <comment>Williamson 2 runs for 5 days</comment>
     </finish_time>
   </timestepping>
   <physical_parameters>
@@ -133,7 +132,7 @@ Initially run for 20 hours</comment>
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <python>
-              <string_value lines="20" type="code" language="python">def val(X,t):
+              <string_value lines="20" type="python">def val(X,t):
   x=X[0]
   y=X[1]
   z=X[2]
@@ -155,7 +154,7 @@ Initially run for 20 hours</comment>
       </vector_field>
     </gravity>
     <coriolis>
-      <string_value lines="20" type="code" language="python">def val(X,t):
+      <string_value lines="20" type="python">def val(X,t):
   Omega = 7.292e-5
   z = X[2]
   R0 = 6.37122e6
@@ -192,7 +191,7 @@ Initially run for 20 hours</comment>
         <initial_condition name="WholeMesh">
           <from_sphere_pullback>
             <python>
-              <string_value lines="20" type="code" language="python">def val(X,t):
+              <string_value lines="20" type="python">def val(X,t):
   from math import sin, pi, cos
   x = X[0]
   y = X[1]
@@ -266,7 +265,7 @@ e_zonal = (-x,y,0)/sqrt(x**2+y**2)</comment>
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value lines="20" type="python">def val(X,t):
   from math import sin, pi, cos
   x = X[0]
   y = X[1]
@@ -295,7 +294,17 @@ g = 9.80616
       <prognostic>
         <mesh name="VorticityMesh"/>
         <spatial_discretisation>
-          <continuous_galerkin/>
+          <continuous_galerkin>
+            <streamline_upwinding>
+              <alpha>
+                <real_value rank="0">0.25819888974716115</real_value>
+                <comment>Magic upwinded parameter</comment>
+              </alpha>
+              <tol>
+                <real_value rank="0">1.0e-12</real_value>
+              </tol>
+            </streamline_upwinding>
+          </continuous_galerkin>
         </spatial_discretisation>
         <solver>
           <iterative_method name="preonly"/>

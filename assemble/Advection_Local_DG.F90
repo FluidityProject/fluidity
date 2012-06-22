@@ -1117,18 +1117,21 @@ module advection_local_DG
     integer, intent(in) :: ele
     real, intent(in) :: dt, t_theta
     !
-    real, dimension(ele_loc(Q,ele),ele_loc(Q,ele)) :: l_adv_mat
+    real, dimension(ele_loc(Q,ele),ele_loc(Q,ele)) :: l_adv_mat,tmp_mat
     real, dimension(ele_loc(Q,ele)) :: l_rhs
     real, dimension(U_nl%dim,ele_ngi(U_nl,ele)) :: U_nl_gi
+    real, dimension(X%dim, ele_ngi(U_nl,ele)) :: U_cart_gi
     real, dimension(Flux%dim,ele_ngi(Flux,ele)) :: Flux_gi
     real, dimension(Flux%dim,FLux%dim,ele_ngi(Flux,ele)) :: Grad_Flux_gi,&
          & tensor_gi
     real, dimension(ele_ngi(X,ele)) :: detwei, Q_gi, D_gi, &
          & D_old_gi,div_flux_gi, detwei_l, detJ
+    real, dimension(ele_loc(Q,ele)) :: Q_val
     real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
     type(element_type), pointer :: Q_shape, Flux_shape
-    integer :: loc,dim1,dim2
+    integer :: loc,dim1,dim2,gi
     real :: tau, alpha, tol, area, h
+    real, dimension(ele_ngi(X,ele),ele_ngi(X,ele)) :: Metric
 
     Q_shape => ele_shape(Q,ele)
     Flux_shape => ele_shape(Flux,ele)
@@ -1137,15 +1140,8 @@ module advection_local_DG
     Q_gi = ele_val_at_quad(Q,ele)
     Flux_gi = ele_val_at_quad(Flux,ele)
     U_nl_gi = ele_val_at_quad(U_nl,ele)
-    Grad_flux_gi = ele_grad_at_quad(Flux,ele,Flux_shape%dn)
-    div_flux_gi = 0.
-    tensor_gi = 0.
-    do dim1 = 1, Flux%dim
-       div_flux_gi = div_flux_gi + grad_flux_gi(dim1,dim1,:)
-       do dim2 = 1, Flux%dim
-          tensor_gi(dim1,dim2,:) = U_nl_gi(dim1,:)*Flux_gi(dim2,:)
-       end do
-    end do
+    Q_val = ele_val(Q,ele)
+
     !Equations
     ! D^{n+1} = D^n + div Flux --- POINTWISE
     ! So (integrating by parts)
@@ -1161,14 +1157,20 @@ module advection_local_DG
          &=detwei, J=J, detJ=detJ)
     detwei_l = Q_shape%quadrature%weight
     !Advection terms
-    l_adv_mat = t_theta*dshape_dot_vector_shape(&
+    !! <-grad gamma, FQ >
+    !! Can be evaluated locally using pullback
+    tmp_mat = dshape_dot_vector_shape(&
          Q_shape%dn,Flux_gi,Q_shape,Q_shape%quadrature%weight)
-    l_rhs = - (1-t_theta)*dshape_dot_vector_rhs(&
-         Q_shape%dn,Flux_gi,Q_gi*Q_shape%quadrature%weight)
+    l_adv_mat = t_theta*tmp_mat
+    l_rhs = -(1-t_theta)*matmul(tmp_mat,Q_val)
+
     !Mass terms
-    l_adv_mat = l_adv_mat + &
-         shape_shape(ele_shape(Q,ele),ele_shape(Q,ele),D_gi*detwei)
-    l_rhs = l_rhs + shape_rhs(ele_shape(Q,ele),Q_gi*D_old_gi*detwei)
+    !! <gamma, QD>
+    !! Requires transformed integral
+    tmp_mat = shape_shape(ele_shape(Q,ele),ele_shape(Q,ele),D_gi*detwei)
+    l_adv_mat = l_adv_mat + tmp_mat
+    tmp_mat = shape_shape(ele_shape(Q,ele),ele_shape(Q,ele),D_old_gi*detwei)
+    l_rhs = l_rhs + matmul(tmp_mat,Q_val)
 
     !Laplacian filter options
     if(have_option(trim(Q%option_path)//'/prognostic/spatial_discretisation/&
@@ -1182,31 +1184,52 @@ module advection_local_DG
        call get_option(trim(Q%option_path)//'/prognostic/spatial_discretisat&
             &ion/continuous_galerkin/streamline_upwinding/alpha',alpha)
        call get_option(trim(Q%option_path)//'/prognostic/spatial_discretisat&
-            &ion/continuous_galerkin/streamline_upwinding/tolerance',tol)
+            &ion/continuous_galerkin/streamline_upwinding/tol',tol)
 
-       if(maxval(sqrt(sum(U_nl_gi**2,1)))<tol) then
+       !Gradients of fluxes
+       Grad_flux_gi = ele_grad_at_quad(Flux,ele,Flux_shape%dn)
+       div_flux_gi = 0.
+       tensor_gi = 0.
+       do dim1 = 1, Flux%dim
+          div_flux_gi = div_flux_gi + grad_flux_gi(dim1,dim1,:)
+          do dim2 = 1, Flux%dim
+             tensor_gi(dim1,dim2,:) = U_nl_gi(dim1,:)*Flux_gi(dim2,:)
+          end do
+       end do
+       !real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+       do gi = 1, ele_ngi(X,ele)
+          U_cart_gi(:,gi) = matmul(transpose(J(:,:,gi)),U_nl_gi(:,gi))/detJ(gi)
+       end do
+
+       if(maxval(sqrt(sum(U_cart_gi**2,1)))<tol) then
           tau = 0.
        else
           area = sum(detwei)
           h = sqrt(4*area/sqrt(3.))
-          tau = maxval(sqrt(sum(U_nl_gi**2,1)))*h*alpha
+          tau = h*alpha/maxval(sqrt(sum(U_cart_gi**2,1)))
        end if
        !! Mass terms
-       l_adv_mat = l_adv_mat + tau*dshape_dot_vector_shape(&
+       !! tau < u . grad gamma, QD>
+       !! = tau < grad gamma, u QD>
+       !! can do locally because of pullback formula
+       tmp_mat = dshape_dot_vector_shape(&
             Q_shape%dn,U_nl_gi,Q_shape,D_gi*detwei_l)
-       l_rhs = l_rhs + tau*dshape_dot_vector_rhs(&
-            Q_shape%dn,U_nl_gi,D_old_gi*Q_gi*detwei_l)
+       l_adv_mat = l_adv_mat + tau*tmp_mat
+       tmp_mat = dshape_dot_vector_shape(&
+            Q_shape%dn,U_nl_gi,Q_shape,D_old_gi*detwei_l)
+       l_rhs = l_rhs + tau*matmul(tmp_mat,Q_val)
        !! Advection terms
-       l_adv_mat = l_adv_mat - tau*dshape_dot_vector_shape(&
+       !! tau < u. grad gamma, div (F Q)>
+       !! = tau <grad gamma, u (F.grad Q + Q div F)>
+       !! can do locally because of pullback formula
+       !! tensor = u outer F (F already contains factor of dt)
+       tmp_mat = dshape_dot_vector_shape(&
             Q_shape%dn,U_nl_gi,Q_shape,div_flux_gi*detwei_l/detJ) &
-            - tau*dshape_tensor_dshape(&
+            + dshape_tensor_dshape(&
             Q_shape%dn,tensor_gi,Q_shape%dn,detwei_l/detJ)
+       l_adv_mat = l_adv_mat - tau*t_theta*tmp_mat
+       l_rhs = l_rhs + tau*(1-t_theta)*matmul(tmp_mat,Q_val)
     end if
-    !Local projection options
-    if(have_option(trim(Q%option_path)//'/prognostic/spatial_discretisation/&
-         &continuous_galerkin/local_projection')) then
-       FLExit('Local projection not coded yet.')
-    end if    
     !Discontinuity capturing options
     if(have_option(trim(Q%option_path)//'/prognostic/spatial_discretisation/&
          &continuous_galerkin/discontinuity_capturing')) then
@@ -1228,11 +1251,10 @@ module advection_local_DG
     real, intent(in) :: t_theta
     !
     real, dimension(mesh_dim(X),ele_loc(QFlux,ele)) :: QFlux_perp_rhs
-    real, dimension(Flux%dim,ele_ngi(Flux,ele)) :: Flux_gi, Flux_perp_gi
-    real, dimension(ele_ngi(X,ele)) :: Q_gi,Q_old_gi,D_gi,D_old_gi
+    real, dimension(Flux%dim,ele_ngi(Flux,ele)) :: Flux_gi, Flux_perp_gi,&
+         QFlux_gi
+    real, dimension(ele_ngi(X,ele)) :: Q_gi,Q_old_gi,D_gi,D_old_gi,Qbar_gi
     real, dimension(X%dim, ele_ngi(Q, ele)) :: up_gi
-    real, dimension(mesh_dim(QFlux), mesh_dim(QFlux), ele_ngi(QFlux,ele)) &
-         :: Metric, Metricf
     real, dimension(mesh_dim(QFlux),mesh_dim(QFlux),ele_loc(QFlux,ele)&
          &,ele_loc(QFlux,ele)) :: l_u_mat
     real, dimension(mesh_dim(QFlux)*ele_loc(QFlux,ele),mesh_dim(QFlux)&
@@ -1241,23 +1263,31 @@ module advection_local_DG
     real, dimension(mesh_dim(Qflux)*ele_loc(QFlux,ele)) :: solve_rhs
     real, dimension(mesh_dim(Qflux),ele_ngi(Qflux,ele)) :: &
          contravariant_velocity_gi, velocity_perp_gi
-    type(element_type), pointer :: Q_shape, QFlux_shape
+    type(element_type), pointer :: Q_shape, QFlux_shape, Flux_shape
     integer :: loc, orientation,gi, dim1, dim2
     real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
-    real, dimension(ele_ngi(X,ele)) :: detwei, detJ
-    real, dimension(X%dim, X%dim, ele_ngi(X,ele)) :: rot
+    real, dimension(ele_ngi(X,ele)) :: detwei, detJ, detwei_l, div_flux_gi
+    real, dimension(mesh_dim(Q),ele_ngi(Q,ele)) :: gradQ_gi
+    real, dimension(Flux%dim,FLux%dim,ele_ngi(Flux,ele)) :: Grad_Flux_gi
+    real, dimension(U_nl%dim,ele_ngi(U_nl,ele)) :: U_nl_gi
+    real, dimension(X%dim,ele_ngi(U_nl,ele)) :: U_cart_gi
+    real :: residual, alpha, tol, tau, area, h
 
     Q_shape => ele_shape(Q,ele)
+    Flux_shape => ele_shape(Flux,ele)
     QFlux_shape => ele_shape(QFlux,ele)
     Q_gi = ele_val_at_quad(Q,ele)
     Q_old_gi = ele_val_at_quad(Q_old,ele)
+    Qbar_gi = t_theta*Q_gi + (1-t_theta)*Q_old_gi
     D_gi = ele_val_at_quad(D,ele)
     D_old_gi = ele_val_at_quad(D_old,ele)
     Flux_gi = ele_val_at_quad(Flux,ele)
+    U_nl_gi = ele_val_at_quad(U_nl,ele)
 
     call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J, detwei, detJ)
-
+    detwei_l = Q_shape%quadrature%weight
     up_gi = -ele_val_at_quad(down,ele)
+
     call get_up_gi(X,ele,up_gi,orientation)
 
     !Equations
@@ -1279,11 +1309,15 @@ module advection_local_DG
     ! <w,u^{n+1}>=<w,u^n> + <w,\bar{Q}^\perp>
     ! We actually store the inner product with test function (FQ_rhs)
     ! (avoids having to do a solve)
-
+    
     do gi  = 1, ele_ngi(QFlux,ele)
-       Flux_gi(:,gi) = Flux_gi(:,gi)*(t_theta*Q_gi(gi) + &
-         (1-t_theta)*Q_old_gi(gi))
+       QFlux_gi(:,gi) = Flux_gi(:,gi)*Qbar_gi(gi)
     end do
+
+    !! Additional dissipative terms.
+    !! They all take the form
+    !! <\nabla gamma, G> 
+    !! Which can be evaluated in local coordinates due to pullback magic
 
     !Laplacian filter options
     if(have_option(trim(Q%option_path)//'/prognostic/spatial_discretisation/&
@@ -1293,36 +1327,71 @@ module advection_local_DG
     !Streamline upwinding options
     if(have_option(trim(Q%option_path)//'/prognostic/spatial_discretisation/&
          &continuous_galerkin/streamline_upwinding')) then
-       FLExit('Streamline upwinding not coded yet.')
+       !! Replace test function \gamma with \gamma + \tau u\cdot\nabla\gamma
+       call get_option(trim(Q%option_path)//'/prognostic/spatial_discretisat&
+            &ion/continuous_galerkin/streamline_upwinding/alpha',alpha)
+       call get_option(trim(Q%option_path)//'/prognostic/spatial_discretisat&
+            &ion/continuous_galerkin/streamline_upwinding/tol',tol)
+
+       !Gradients of fluxes
+       Grad_flux_gi = ele_grad_at_quad(Flux,ele,Flux_shape%dn)
+       div_flux_gi = 0.
+       do dim1 = 1, Flux%dim
+          div_flux_gi = div_flux_gi + grad_flux_gi(dim1,dim1,:)
+       end do
+       !real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+       do gi = 1, ele_ngi(X,ele)
+          U_cart_gi(:,gi) = matmul(transpose(J(:,:,gi)),U_nl_gi(:,gi))/detJ(gi)
+       end do
+
+       if(maxval(sqrt(sum(U_cart_gi**2,1)))<tol) then
+          tau = 0.
+       else
+          area = sum(detwei)
+          h = sqrt(4*area/sqrt(3.))
+          tau = h*alpha/maxval(sqrt(sum(U_cart_gi**2,1)))
+       end if
+       !! Mass terms
+       !! tau < u . grad gamma, -(QD)^{n+1}+(QD)^n>
+       !! = tau < grad gamma, u(-(QD)^{n+1}+(QD)^n)>
+       !! can do locally because of pullback formula
+       !! Extra flux is tau u\Delta(QD)
+       !! minus sign from definition of vorticity
+       !! tau
+       do gi = 1, ele_ngi(Q,ele)
+          QFLux_gi(:,gi) = QFlux_gi(:,gi) + &
+               & tau*U_nl_gi(:,gi)*(Q_gi(gi)*D_gi(gi)-Q_old_gi(gi)*D_old_gi(gi))
+       end do
+       !! Advection terms
+       !! tau < u. grad gamma, div (F\bar{Q})>
+       !! can do locally because of pullback formula
+       !! = <grad gamma, tau u (F.grad\bar{Q} + \bar{Q} div F)/det J>_{Ehat}
+       !! minus sign because of definition of vorticity
+
+       GradQ_gi = t_theta*ele_grad_at_quad(Q,ele,Q_shape%dn) + &
+            (1-t_theta)*ele_grad_at_quad(Q_old,ele,Q_shape%dn)
+
+       do gi = 1, ele_ngi(Q,ele)
+          QFlux_gi(:,gi) = QFlux_gi(:,gi) - tau*u_nl_gi(:,gi)*(&
+               & sum(Flux_gi(:,gi)*gradQ_gi(:,gi)) + &
+               & div_flux_gi(gi)*Qbar_gi(gi))/detJ(gi)
+       end do
     end if
-    !Local projection options
-    if(have_option(trim(Q%option_path)//'/prognostic/spatial_discretisation/&
-         &continuous_galerkin/local_projection')) then
-       FLExit('Local projection not coded yet.')
-    end if    
     !Discontinuity capturing options
     if(have_option(trim(Q%option_path)//'/prognostic/spatial_discretisation/&
          &continuous_galerkin/discontinuity_capturing')) then
        FLExit('Discontinuity capturing not coded yet.')
     end if
 
-    do gi=1, ele_ngi(QFlux,ele)
-       rot(1,:,gi)=(/0.,-up_gi(3,gi),up_gi(2,gi)/)
-       rot(2,:,gi)=(/up_gi(3,gi),0.,-up_gi(1,gi)/)
-       rot(3,:,gi)=(/-up_gi(2,gi),up_gi(1,gi),0./)
-    end do
-    do gi=1,ele_ngi(QFlux,ele)
-       Metric(:,:,gi)=matmul(J(:,:,gi), transpose(J(:,:,gi)))/detJ(gi)
-       Metricf(:,:,gi)=matmul(J(:,:,gi), &
-            matmul(rot(:,:,gi), transpose(J(:,:,gi))))/detJ(gi)
-    end do
+    !! Evaluate 
+    !! < w, F^\perp > in local coordinates
 
-    do gi = 1, ele_ngi(QFlux,ele)
-       Flux_perp_gi(:,gi) = matmul(Metricf(:,:,gi),Flux_gi(:,gi))
-    end do
-    
+    Flux_perp_gi(1,:) = -orientation*QFlux_gi(2,:)
+    Flux_perp_gi(2,:) =  orientation*QFlux_gi(1,:)
+
     QFlux_perp_rhs = shape_vector_rhs(QFlux_shape,Flux_perp_gi,&
          & QFlux_shape%quadrature%weight)
+
     call set(QFlux,ele_nodes(QFlux,ele),QFlux_perp_rhs)
 
   end subroutine construct_pv_flux_ele
@@ -1622,7 +1691,7 @@ module advection_local_DG
 
     !!Residual is
     !! U_new - (U_old + dt*Q^\perp - dt grad(g\bar{D} + \bar{K}))
-    !First the PV Flux (perped)
+    !First the PV Flux (perped, contains factor of dt)
     UR_rhs = -ele_val(PVFlux,ele)
     !Now the time derivative term
     UR_rhs = UR_rhs + shape_vector_rhs(U_shape,newU_rhs-U_rhs,&
