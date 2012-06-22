@@ -309,7 +309,7 @@
                !Update PV
                call set(PV,PV_old)
                call solve_advection_cg_tracer(PV,D,D_old,&
-                    MassFlux,PVFlux,state)
+                    MassFlux,advecting_u,PVFlux,state)
 
                ewrite(1,*) 'PVFlux', maxval(abs(PVFlux%val))
 

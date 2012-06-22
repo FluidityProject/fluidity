@@ -1068,7 +1068,7 @@ module advection_local_DG
 
     do ele = 1, ele_count(Q)
        call construct_advection_cg_tracer_ele(Q_rhs,adv_mat,Q,D,D_old,Flux&
-            &,X,down,dt,t_theta,ele)
+            &,X,down,U_nl,dt,t_theta,ele)
     end do
 
     ewrite(2,*) 'Q_RHS', maxval(abs(Q_rhs%val))
@@ -1124,8 +1124,8 @@ module advection_local_DG
     real, dimension(Flux%dim,FLux%dim,ele_ngi(Flux,ele)) :: Grad_Flux_gi,&
          & tensor_gi
     real, dimension(ele_ngi(X,ele)) :: detwei, Q_gi, D_gi, &
-         & D_old_gi,div_flux_gi, detwei_l
-    real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J, detJ
+         & D_old_gi,div_flux_gi, detwei_l, detJ
+    real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
     type(element_type), pointer :: Q_shape, Flux_shape
     integer :: loc,dim1,dim2
     real :: tau, alpha, tol
@@ -1143,7 +1143,7 @@ module advection_local_DG
     do dim1 = 1, Flux%dim
        div_flux_gi = div_flux_gi + grad_flux_gi(dim1,dim1,:)
        do dim2 = 1, Flux%dim
-          tensor_gi(dim1,dim2,:) = U_nl_gi(dim1,:)*Flux_gi(dim2,gi)
+          tensor_gi(dim1,dim2,:) = U_nl_gi(dim1,:)*Flux_gi(dim2,:)
        end do
     end do
     !Equations
@@ -1186,12 +1186,12 @@ module advection_local_DG
        FLAbort('Need to calculate tau')
        !! Mass terms
        l_adv_mat = l_adv_mat + tau*dshape_dot_vector_shape(&
-            Q_shape%dn,U_nl_gi,D_gi*detwei_l)
+            Q_shape%dn,U_nl_gi,Q_shape,D_gi*detwei_l)
        l_rhs = l_rhs + tau*dshape_dot_vector_rhs(&
-            Q_shape%dn,U_nl_gi*D_old_gi*Q_gi*detwei_l)
+            Q_shape%dn,U_nl_gi,D_old_gi*Q_gi*detwei_l)
        !! Advection terms
        l_adv_mat = l_adv_mat - tau*dshape_dot_vector_shape(&
-            Q_shape%dn,U_nl_gi,div_flux_gi*detwei_l/detJ) &
+            Q_shape%dn,U_nl_gi,Q_shape,div_flux_gi*detwei_l/detJ) &
             - tau*dshape_tensor_dshape(&
             Q_shape%dn,tensor_gi,Q_shape%dn,detwei_l/detJ)
     end if
@@ -1213,10 +1213,10 @@ module advection_local_DG
   end subroutine construct_advection_cg_tracer_ele
 
   subroutine construct_pv_flux_ele(QFlux,Q,Q_old,D,D_old,&
-       Flux,X,down,t_theta,ele)
+       Flux,X,down,U_nl,t_theta,ele)
     type(scalar_field), intent(in) :: Q,Q_old,D,D_old
     type(vector_field), intent(inout) :: QFlux
-    type(vector_field), intent(in) :: X, Flux, Down
+    type(vector_field), intent(in) :: X, Flux, Down, U_nl
     integer, intent(in) :: ele
     real, intent(in) :: t_theta
     !
