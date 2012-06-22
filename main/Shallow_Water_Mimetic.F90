@@ -438,15 +438,21 @@
          call deallocate(f)
       end if
 
-      !VARIOUS BALANCED INITIAL OPTIONS
-      ! Geostrophic balanced initial condition, if required
+      !sort out streamfunction in bubble space
       s_field => extract_scalar_field(state,"Streamfunction",stat)
       if(stat==0) then
          if(have_option('/material_phase::Fluid/scalar_field::Streamfunction&
               &/prescribed/initialise_from_quadrature_points')) then
             call initialise_from_quadrature_points(state,s_field)
+         else
+            if(s_field%mesh%shape%numbering%type==ELEMENT_BUBBLE) then
+               call remove_bubble_component(s_field)
+            end if
          end if
       end if
+
+      !VARIOUS BALANCED INITIAL OPTIONS
+      ! Geostrophic balanced initial condition, if required
       if(have_option("/material_phase::Fluid/vector_field::Velocity/prognostic&
          &/initial_condition::WholeMesh/balanced")) then
        call set_velocity_from_geostrophic_balance_hybridized(state)
@@ -467,6 +473,12 @@
     if(have_option("/material_phase::Fluid/vector_field::Velocity/prognost&
          &ic/initial_condition::WholeMesh/from_sphere_pullback")) then
        call set_velocity_from_sphere_pullback(state)
+    end if
+
+    !Set velocity from streamfunction
+    if(have_option("/material_phase::Fluid/vector_field::Velocity/prognost&
+         &ic/initial_condition::WholeMesh/from_sphere_pullback")) then
+       call set_velocity_from_streamfunction(state)
     end if
 
     v_field => extract_vector_field(state, "LocalVelocity")
@@ -540,11 +552,79 @@
       end if
     end subroutine setup_pv
     
+    subroutine set_velocity_from_streamfunction(state)
+      type(state_type), intent(inout) :: state
+      !
+      type(vector_field), pointer :: U, down, X
+      type(scalar_field), pointer :: psi
+      integer :: ele
+
+      X => extract_vector_field(state,"Coordinate")
+      psi => extract_scalar_field(state,"Streamfunction")
+      u => extract_vector_field(state,"LocalVelocity")
+      down=>extract_vector_field(state, "GravityDirection")
+
+      do ele = 1, ele_count(u)
+         call set_velocity_from_streamfunction_ele(U,psi,down,X,ele)
+      end do
+
+    end subroutine set_velocity_from_streamfunction
+
+    subroutine set_velocity_from_streamfunction_ele(U,psi,down,X,ele)
+      type(vector_field), intent(inout) :: U
+      type(vector_field), intent(in) :: down,X
+      type(scalar_field), intent(in) :: psi
+      integer, intent(in) :: ele
+      !
+      real, dimension(ele_loc(U,ele),ele_loc(U,ele)) :: &
+           & l_mass_mat
+      type(element_type) :: u_shape, psi_shape
+      real, dimension(down%dim, ele_ngi(down,ele)) :: up_gi
+      integer :: orientation, gi, dim1
+      real, dimension(ele_loc(psi,ele)) :: psi_loc
+      real, dimension(mesh_dim(psi),ele_ngi(psi,ele)) :: dpsi_gi
+      real, dimension(mesh_dim(U),ele_loc(U,ele)) :: U_loc
+
+      !Set U = grad perp psi
+      !Can do in local coordinates
+      !Need to evaluate at U DOFS, easiest to do by
+      !doing L2 projection which is equivalent to identity
+
+      u_shape = ele_shape(U,ele)
+      l_mass_mat = shape_shape(u_shape,u_shape,U_shape%quadrature%weight)
+
+      psi_shape = ele_shape(psi,ele)
+      up_gi = -ele_val_at_quad(down,ele)
+      call get_up_gi(X,ele,up_gi,orientation)
+
+      !Streamfunction at node values
+      psi_loc = ele_val(psi,ele)
+      !Skew gradient of streamfunction at quadrature points
+      select case(mesh_dim(psi))
+      case (2)
+         forall(gi=1:ele_ngi(psi,ele))
+            dpsi_gi(1,gi) = -sum(psi_loc*psi_shape%dn(:,gi,2))
+            dpsi_gi(2,gi) =  sum(psi_loc*psi_shape%dn(:,gi,1))
+         end forall
+      case default
+         FLAbort('Exterior derivative not implemented for given mesh dimension')
+      end select
+      dpsi_gi = orientation*dpsi_gi
+      U_loc = shape_vector_rhs(u_shape,dpsi_gi,U_shape%quadrature%weight)
+      
+      do dim1 = 1, U%dim
+         call solve(l_mass_mat,U_loc(dim1,:))
+      end do
+
+      call set(U,ele_nodes(U,ele),U_loc)
+
+    end subroutine set_velocity_from_streamfunction_ele
+
     subroutine apply_dg_mass(s_field,state)
       type(state_type), intent(inout) :: state
       type(scalar_field), intent(inout) :: s_field
       !
-      integer :: ele
+      integer :: ele      
       type(vector_field), pointer :: X
 
       X=>extract_vector_field(state, "Coordinate")

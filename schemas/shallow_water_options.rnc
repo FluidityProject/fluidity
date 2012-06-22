@@ -694,6 +694,10 @@ input_choice_initial_condition_vector =
             empty
          }?
       }|
+      ## Set velocity from streamfunction
+      element from_streamfunction {
+         empty
+      }|
       ## Evaluate velocity by pulling back from sphere
       ## using transformation
       ## z -> z, (x,y) --> R(x,y) where R=(R_0^2-z^2)^0.5
