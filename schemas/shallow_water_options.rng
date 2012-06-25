@@ -882,6 +882,10 @@ sphere normal to element normal</a:documentation>
           </element>
         </optional>
       </element>
+      <element name="from_streamfunction">
+        <a:documentation>Set velocity from streamfunction</a:documentation>
+        <empty/>
+      </element>
       <element name="from_sphere_pullback">
         <a:documentation>Evaluate velocity by pulling back from sphere
 using transformation

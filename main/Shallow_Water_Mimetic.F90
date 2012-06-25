@@ -477,7 +477,7 @@
 
     !Set velocity from streamfunction
     if(have_option("/material_phase::Fluid/vector_field::Velocity/prognost&
-         &ic/initial_condition::WholeMesh/from_sphere_pullback")) then
+         &ic/initial_condition::WholeMesh/from_streamfunction")) then
        call set_velocity_from_streamfunction(state)
     end if
 

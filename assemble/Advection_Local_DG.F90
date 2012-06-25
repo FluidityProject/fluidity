@@ -1516,6 +1516,9 @@ module advection_local_DG
     type(csr_sparsity), pointer :: pv_mass_sparsity, curl_sparsity
     type(scalar_field) :: pv_rhs
     integer :: ele
+    !!DEbugging
+    integer ::dim1
+    real, dimension(3,3) :: X_val
 
     ewrite(1,*) 'subroutine get_pv'
 
@@ -1541,6 +1544,11 @@ module advection_local_DG
     else
        call petsc_solve(pv,pv_mass_matrix,pv_rhs)
     end if
+
+    !do ele = 1, ele_count(pv)
+    !ewrite(1,*) ele_val(pv,ele)-sum(ele_val(pv,ele))/7
+    !end do
+    !stop
 
     call deallocate(pv_mass_matrix)
     call deallocate(pv_rhs)
