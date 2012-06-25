@@ -393,11 +393,7 @@
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>
-            <face_value name="FiniteElement">
-              <limit_face_value>
-                <limiter name="Sweby"/>
-              </limit_face_value>
-            </face_value>
+            <face_value name="FirstOrderUpwind"/>
             <diffusion_scheme name="ElementGradient"/>
           </control_volumes>
           <conservative_advection>
