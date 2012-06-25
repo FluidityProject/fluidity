@@ -51,7 +51,7 @@ module Coordinates
   public:: &
        LongitudeLatitude,  &
        spherical_polar_2_cartesian, cartesian_2_spherical_polar, &
-       spherical_polar_2_cartesian_c, &
+       spherical_polar_2_cartesian_c, cartesian_2_spherical_polar_c, &
        ll2r3_rotate, rotate2ll, &
        vector_spherical_polar_2_cartesian, vector_cartesian_2_spherical_polar, &
        lon_lat_height_2_spherical_polar, spherical_polar_2_lon_lat_height, &
@@ -175,11 +175,14 @@ contains
     radius_f = real(radius)
     theta_f = real(theta)
     phi_f = real(phi)
-    x_f = real(x)
-    y_f = real(y)
-    z_f = real(z)
 
+    !Convert coordinates
     call spherical_polar_2_cartesian(radius_f,theta_f,phi_f,x_f,y_f,z_f)
+
+    !Cast output variables to C-inoperable types.
+    x = real(x_f, kind=c_double)
+    y = real(y_f, kind=c_double)
+    z = real(z_f, kind=c_double)
 
   end subroutine spherical_polar_2_cartesian_c
 
@@ -197,6 +200,36 @@ contains
     phi = atan2(y,x)
 
   end subroutine cartesian_2_spherical_polar
+
+  subroutine cartesian_2_spherical_polar_c(x, y, z, radius, theta, phi) bind(c)
+    !C-inoperable subroutine for calculation of spherical-polar coordinates
+    ! from Cartesian coordinates.
+    implicit none
+    
+    real(kind=c_double) :: x,y,z   !cartesian coordinates
+    real(kind=c_double) :: radius  !Distance from centre of sphere
+    real(kind=c_double) :: theta   !Polar angle, in radians
+    real(kind=c_double) :: phi     !Azimuthal angle, in radians
+
+    real :: x_f,y_f,z_f
+    real :: radius_f
+    real :: theta_f
+    real :: phi_f
+
+    !Cast input variables to fortran intrinsic types.
+    x_f = real(x)
+    y_f = real(y)
+    z_f = real(z)
+
+    !Convert coordinates
+    call cartesian_2_spherical_polar(x_f, y_f, z_f, radius_f, theta_f, phi_f)
+
+    !Cast output variables to C-inoperable types.
+    radius = real(radius_f, kind=c_double)
+    theta = real(theta_f, kind=c_double)
+    phi = real(phi_f, kind=c_double)
+
+  end subroutine cartesian_2_spherical_polar_c
   
   subroutine spherical_polar_2_cartesian_field(spherical_polar_coordinate_field, &
                                                cartesian_coordinate_field)
