@@ -466,6 +466,7 @@ contains
 
                       call initialise_ray(detector%update_vector, detector%ray_d, detector%ray_o, detector%target_distance)
                       detector%current_t = 0.0
+                      
                    end if
                 else
                    ! Turn detector static inside the domain
@@ -511,20 +512,27 @@ contains
 
     deallocate(send_list_array)
 
-    if (detector_list%tracking_method == GEOMETRIC_TRACKING) then
-       detector => detector_list%first
-       do while (associated(detector))
+    detector => detector_list%first
+    do while (associated(detector))
 
-          !Only update Lagrangian detectors
-          if (.not. detector%type==LAGRANGIAN_DETECTOR) then
-             detector => detector%next
-             cycle
-          end if
-
-          detector%ray_o = detector%update_vector
+       !Only update Lagrangian detectors
+       if (.not. detector%type==LAGRANGIAN_DETECTOR) then
           detector => detector%next
-       end do
-    end if
+          cycle
+       end if
+
+       if (minval(detector%local_coords) < 0.0) then
+          ewrite(-1,*) "Detector", detector%id_number, ", in element", detector%element, &
+                       " has local coordinates: ", detector%local_coords
+          FLAbort("Negative local coordinate for lagrangian detector after tracking!")
+       end if
+
+		 if (detector_list%tracking_method == GEOMETRIC_TRACKING) then
+		    detector%ray_o = detector%update_vector
+		 end if
+
+       detector => detector%next
+    end do
 
     call profiler_toc(trim(detector_list%name)//"::movement::tracking")
 
@@ -659,7 +667,7 @@ contains
        do i=1, size(face_list)
           call ray_intersetion_distance(face_list(i), face_t)
 
-          if (face_t < ele_t .and. current_t < face_t) then
+          if (face_t < ele_t .and. current_t + search_tolerance < face_t) then
              ele_t = face_t
              next_face = face_list(i)
           end if
@@ -671,11 +679,11 @@ contains
           ! Record our next t and the distance covered
           if (present(ele_dist_list)) then
              call insert(ele_dist_list, ele_t - current_t)
-          end if          
+          end if
+          current_t = ele_t
 
           if (neigh_face /= next_face) then
              ! Recurse on the next element
-             current_t = ele_t
              new_element = face_ele(xfield, neigh_face)
 
              ! Record the elements along the path travelled
@@ -754,9 +762,9 @@ contains
     real, dimension(xfield%dim) :: face_node_val, face_normal
     real :: offset, p, D
 
-    arrival_local_coords=local_coords(xfield,element,coordinate)
-    neigh = minval(minloc(arrival_local_coords))
+    ! At least one face has no neighbour (-ve value in neigh_list)
     neigh_list=>ele_neigh(xfield,element)
+    neigh = minval(minloc(neigh_list))
 
     ! First get the face we went through and the coordinates of one node on it
     neigh_face = ele_face(xfield, element, neigh_list(neigh))

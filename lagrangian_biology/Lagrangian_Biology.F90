@@ -1045,15 +1045,19 @@ contains
     xfield=>extract_vector_field(state, "Coordinate")
 
     ! Pull and reset global fields
-    do f=1, size(uptake_field_names)
-       uptake_fields(f)%ptr => extract_scalar_field(state, trim(uptake_field_names(f))//"Request")
-       call zero(uptake_fields(f)%ptr)
-    end do
+    if (associated(uptake_field_names)) then
+       do f=1, size(uptake_field_names)
+          uptake_fields(f)%ptr => extract_scalar_field(state, trim(uptake_field_names(f))//"Request")
+          call zero(uptake_fields(f)%ptr)
+       end do
+    end if
 
-    do f=1, size(release_field_names)
-       release_fields(f)%ptr => extract_scalar_field(state, trim(release_field_names(f))//"Release")
-       call zero(release_fields(f)%ptr)
-    end do
+    if (associated(release_field_names)) then
+       do f=1, size(release_field_names)
+          release_fields(f)%ptr => extract_scalar_field(state, trim(release_field_names(f))//"Release")
+          call zero(release_fields(f)%ptr)
+       end do
+    end if
 
     do fg=1, get_num_functional_groups()
        fgroup => get_functional_group(fg)
@@ -1404,8 +1408,6 @@ contains
                          ! Proportion of food ingested
                          prop = old_size / conc
                          agent%biology(BIOVAR_SIZE) = old_size - (prop * request * depletion(1))
-
-                         !ewrite(2,*) "ml805 old_size: ", old_size, "new size: ", agent%biology(BIOVAR_SIZE)
                       end if
                    end if
 
