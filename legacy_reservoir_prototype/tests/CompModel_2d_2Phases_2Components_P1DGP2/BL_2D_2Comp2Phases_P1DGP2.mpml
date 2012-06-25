@@ -388,7 +388,8 @@
         <mesh name="PressureMesh"/>
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
-            <face_value name="FirstOrderUpwind"/>
+          <control_volumes>
+            <face_value name="FirstOrderDownwind"/>
             <diffusion_scheme name="ElementGradient"/>
           </control_volumes>
           <conservative_advection>
