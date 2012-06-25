@@ -39,7 +39,7 @@
         <mesh name="CoordinateMesh"/>
         <mesh_shape>
           <polynomial_degree>
-            <integer_value rank="0">2</integer_value>
+            <integer_value rank="0">1</integer_value>
           </polynomial_degree>
         </mesh_shape>
         <mesh_continuity>
@@ -87,7 +87,7 @@
         <mesh name="CoordinateMesh"/>
         <mesh_shape>
           <polynomial_degree>
-            <integer_value rank="0">2</integer_value>
+            <integer_value rank="0">1</integer_value>
           </polynomial_degree>
         </mesh_shape>
         <mesh_continuity>
@@ -122,6 +122,7 @@
     </current_time>
     <timestep>
       <real_value rank="0">0.001</real_value>
+      <comment>0.001</comment>
     </timestep>
     <finish_time>
       <real_value rank="0">0.5</real_value>
@@ -130,11 +131,6 @@
       <integer_value rank="0">3</integer_value>
     </nonlinear_iterations>
   </timestepping>
-  <physical_parameters>
-    <mobility>
-      <real_value rank="0">10.</real_value>
-    </mobility>
-  </physical_parameters>
   <material_phase name="phase1">
     <equation_of_state>
       <incompressible>
@@ -392,7 +388,6 @@
         <mesh name="PressureMesh"/>
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
-          <control_volumes>
             <face_value name="FirstOrderUpwind"/>
             <diffusion_scheme name="ElementGradient"/>
           </control_volumes>
@@ -657,11 +652,7 @@
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>
-            <face_value name="FiniteElement">
-              <limit_face_value>
-                <limiter name="Sweby"/>
-              </limit_face_value>
-            </face_value>
+            <face_value name="FirstOrderDownwind"/>
             <diffusion_scheme name="ElementGradient"/>
           </control_volumes>
           <conservative_advection>
@@ -730,7 +721,7 @@
   <material_phase name="Component1">
     <is_multiphase_component>
       <alpha_beta>
-        <real_value rank="0">1.</real_value>
+        <real_value rank="0">10.</real_value>
       </alpha_beta>
       <KComp_Sigmoid>
         <k_comp>
@@ -794,7 +785,7 @@
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">1.</real_value>
+              <real_value rank="0">0.8372</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -859,7 +850,7 @@
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">0.</real_value>
+              <real_value rank="0">0.16279</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -881,7 +872,7 @@
   <material_phase name="Component2">
     <is_multiphase_component>
       <alpha_beta>
-        <real_value rank="0">1.</real_value>
+        <real_value rank="0">10.</real_value>
       </alpha_beta>
       <KComp_Sigmoid>
         <k_comp>
@@ -940,7 +931,7 @@
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">0.</real_value>
+              <real_value rank="0">0.16279</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -1005,7 +996,7 @@
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">0.</real_value>
+              <real_value rank="0">0.81395</real_value>
             </constant>
           </type>
         </boundary_conditions>
