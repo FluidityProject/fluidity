@@ -1376,7 +1376,7 @@
       !- Computing sparsity for element connectivity
       !-
       finele = 0 ; colele = 0 ; midele = 0
-      Conditional_Dimensional_1: if ( ndim == 1 ) then 
+      Conditional_Dimensional_1: if ( ( ndim == 1 ) .and. .false. ) then 
          call def_spar( 1, totele, mxnele, ncolele, &
               midele, finele, colele )
       else
@@ -1427,7 +1427,7 @@
       !-
       allocate( centct( cv_nonods ) )
       findct = 0 ; colct = 0 ; centct = 0
-      Conditional_Dimensional_2: if ( ndim == 1 ) then 
+      Conditional_Dimensional_2: if ( ( ndim == 1 ) .and. .false. ) then 
          call def_spar_ct_dg( cv_nonods, mx_nct, nct, findct, colct, &
               totele, cv_nloc, u_nloc, u_ndgln, u_ele_type, cv_ndgln )
       else
@@ -1464,7 +1464,7 @@
       !-
       !- Computing sparsity for pressure matrix of projection method
       !-
-      Conditional_Dimensional_3: if ( ndim == 1 ) then 
+      Conditional_Dimensional_3: if ( ( ndim == 1 ) .and. .false. ) then 
          Conditional_ContinuousPressure_3: if ( cv_nonods /= totele * cv_nloc ) then
             call def_spar( cv_nloc - 1, cv_nonods, mx_ncolcmc, ncolcmc, &
                  midcmc, findcmc, colcmc )
@@ -1503,7 +1503,7 @@
       !- Computing sparsity CV-FEM
       !-
       findm = 0 ; colm = 0 ; midm = 0
-      Conditional_Dimensional_4: if ( ndim == 1 ) then 
+      Conditional_Dimensional_4: if ( ( ndim == 1 ) .and. .false. ) then 
          call def_spar( cv_nloc - 1, cv_nonods, mx_ncolm, ncolm, &
               midm, findm, colm )
       else
@@ -1537,7 +1537,7 @@
       allocate( finacv_loc( cv_nonods + 1 ) )
       allocate( colacv_loc( mx_ncolacv_loc ) )
       midacv_loc = 0 ; finacv_loc = 0 ; colacv_loc = 0
-      Conditional_Dimensional_5: if ( ndim == 1 ) then 
+      Conditional_Dimensional_5: if ( ( ndim == 1 ) .and. .false. ) then 
          call def_spar( 1, cv_nonods, 3 * cv_nonods, nacv_loc, &
               midacv_loc, finacv_loc, colacv_loc )
       else

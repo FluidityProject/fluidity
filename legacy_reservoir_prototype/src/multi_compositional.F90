@@ -123,6 +123,7 @@
                     max(0.0,SATURAOLD( ( JPHASE - 1) * CV_NONODS + CV_NOD ) * &
                     DENOLD( ( JPHASE - 1) * CV_NONODS + CV_NOD )) / &
                     K_COMP( ICOMP, CV_NOD, JPHASE, IPHASE )) / DT
+
                COMP_ABSORB( CV_NOD, IPHASE, IPHASE ) = &
                     COMP_ABSORB( CV_NOD, IPHASE, IPHASE ) + ALPHA( CV_NOD )
 
@@ -743,7 +744,7 @@ ewrite(3,*)'cv_nod, alpha:', cv_nod, alpha( cv_nod )
       ! =0 is no adjustment. 
       ! Local variables...
       !    REAL, PARAMETER :: SUM2ONE_RELAX = 0.25
-      REAL, PARAMETER :: SUM2ONE_RELAX = 1.e-5  !0.1
+      REAL, PARAMETER :: SUM2ONE_RELAX = 0.1
       !REAL, PARAMETER :: SUM2ONE_RELAX = 0.99
       INTEGER :: IPHASE, CV_NODI, ICOMP
       REAL :: RSUM

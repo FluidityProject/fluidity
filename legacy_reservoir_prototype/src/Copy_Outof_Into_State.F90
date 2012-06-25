@@ -672,18 +672,22 @@
             field => extract_scalar_field( state( i ), &
                  "ComponentMassFractionPhase" // int2str( j ) )
 
-            k = ( i - ( nphases + 1 ) ) * nphases * node_count( field ) + &
-                 ( j - 1 ) * node_count( field )
+            k = ( i - ( nphases + 1 ) ) * nphases * cv_nonods + &
+                 ( j - 1 ) * cv_nonods
             kk = ( i - ( nphases + 1 ) ) * nphases * stotel * cv_snloc + &
                  ( j - 1 ) * stotel * cv_snloc
 
+
+ewrite(3,*)'@@:', node_count( field )
+ewrite(3,*)'-->:',k + 1, k + node_count( field ), kk + 1, kk + stotel * cv_snloc
+
             call Get_CompositionFields_Outof_State( state, nphases, i, j, field, &
-                 comp( k + 1 : k + node_count( field ) ), wic_comp_bc, &
+                 comp( k + 1 : k + cv_nonods ), wic_comp_bc, &
                  kk + 1, kk + stotel * cv_snloc, &
                  suf_comp_bc( kk + 1 : kk + stotel * cv_snloc ), &
                  field_prot_source = &
-                 comp_source( ( j - 1 ) * node_count( field ) + 1 : &
-                 ( j - 1 ) * node_count( field ) + node_count( field ) ) )
+                 comp_source( ( j - 1 ) * cv_nonods + 1 : &
+                 ( j - 1 ) * cv_nonods + cv_nonods ) )
 
          end do Loop_Phases_Components
       end do Loop_Components
@@ -2212,6 +2216,9 @@
             v_disopt = 8
          end if
       endif 
+
+v_disopt = 0
+
 
       call get_option('/material_phase[0]/scalar_field::Temperature/prognostic/' // &
            'spatial_discretisation/conservative_advection', t_beta, default=0.0)

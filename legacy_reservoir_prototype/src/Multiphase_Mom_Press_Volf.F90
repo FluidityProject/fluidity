@@ -481,9 +481,10 @@ contains
           ewrite(3,*)'v_source_store b4:', r2norm( v_source_store, cv_nonods * nphase )
 
 
+!!!!
+!!!! HERE ... ZEROED V_SOURCE_COMP
+!!!!
           V_SOURCE_STORE = V_SOURCE + V_SOURCE_COMP
-
-
 
           ewrite(3,*)'v_source_store after:', r2norm( v_source_store, cv_nonods * nphase )
           ewrite(3,*)'vel b4:', r2norm( u, u_nonods * nphase )
@@ -649,8 +650,10 @@ contains
                   VOLFRA_PORE, COMP_ABSORB, &
                   TOTELE, CV_NLOC, CV_NDGLN, mass_ele )
 
+
              ewrite(3,*) 'absorb, source b4:', r2norm( comp_absorb, cv_nonods * nphase * nphase ), &
                   r2norm(V_SOURCE_COMP, cv_nonods * nphase)
+
 
              IF( have_option("/material_phase[" // int2str(nstates-ncomp) // &
                   "]/is_multiphase_component/KComp_Sigmoid" )) THEN
@@ -679,6 +682,17 @@ contains
              ewrite(3,*) 'absorb, source after1:', r2norm( comp_absorb, cv_nonods * nphase &
                   * nphase ), r2norm(V_SOURCE_COMP, cv_nonods * nphase)
 
+             do cv_nodi = 1, cv_nonods
+                ewrite(3,*)'icomp, kcomp 1st:', icomp, k_comp( icomp, 1 : nphase, 1 : nphase )
+                ewrite(3,*)'CV, sat1, den1, sat2, den2:', cv_nodi, satura( cv_nodi ), &
+               den( cv_nodi ), satura( cv_nonods + cv_nodi ), den( cv_nonods + cv_nodi )
+                ewrite(3,*)'absorp_comp:', comp_absorb( cv_nodi, 1, 1 ), &
+                                           comp_absorb( cv_nodi, 1, 2 ), & 
+                                           comp_absorb( cv_nodi, 2, 1 ), & 
+                                           comp_absorb( cv_nodi, 2, 2 ) 
+                ewrite(3,*)' '  
+             end do
+
              ! Calculate the diffusion COMP_DIFFUSION...        
              CALL CALC_COMP_DIF( NDIM, NPHASE, COMP_DIFFUSION_OPT, MAT_NONODS, &
                   TOTELE, MAT_NLOC, CV_NLOC, U_NLOC, X_NLOC, CV_SNLOC, U_SNLOC, &
@@ -692,7 +706,16 @@ contains
              Loop_ITS2: DO ITS2 = 1, nits_internal
 
                 COMP_GET_THETA_FLUX = .TRUE. ! This will be set up in the input file
-                COMP_USE_THETA_FLUX = .FALSE.               
+                COMP_USE_THETA_FLUX = .FALSE.       
+
+                ewrite(3,*)'suf_comp_bc:',  SUF_COMP_BC( 1 + STOTEL * CV_SNLOC * NPHASE *( ICOMP - 1 ) : STOTEL * CV_SNLOC * NPHASE * ICOMP )
+                ewrite(3,*)'SUF_D_BC:', SUF_D_BC
+                ewrite(3,*)'SUF_U_BC:', SUF_U_BC
+                ewrite(3,*)'SUF_V_BC:', SUF_V_BC
+                ewrite(3,*)'SUF_COMP_BC_ROB1:',SUF_COMP_BC_ROB1
+                ewrite(3,*)'SUF_COMP_BC_ROB2:',SUF_COMP_BC_ROB2
+                ewrite(3,*)'COMP_SOURCE:', COMP_SOURCE
+                ewrite(3,*)'COMP_ABSORB:', COMP_ABSORB
 
                 CALL INTENERGE_ASSEM_SOLVE(  &
                      NCOLACV, FINACV, COLACV, MIDACV, & ! CV sparsity pattern matrix
@@ -733,39 +756,67 @@ contains
                      option_path = '/material_phase[0]/scalar_field::PhaseVolumeFraction', &
                      mass_ele_transp = dummy_ele, &
                      thermal=.false. )! the false means that we don't add an extra source term
+
+ do cv_nodi = 1, cv_nonods
+                ewrite(3,*)'icomp, kcomp 2nd:', icomp, k_comp( icomp, 1 : nphase, 1 : nphase )
+                ewrite(3,*)'CV, sat1, den1, sat2, den2:', cv_nodi, satura( cv_nodi ), &
+               den( cv_nodi ), satura( cv_nonods + cv_nodi ), den( cv_nonods + cv_nodi )
+                ewrite(3,*)'absorp_comp:', comp_absorb( cv_nodi, 1, 1 ), &
+                                           comp_absorb( cv_nodi, 1, 2 ), & 
+                                           comp_absorb( cv_nodi, 2, 1 ), & 
+                                           comp_absorb( cv_nodi, 2, 2 ) 
+                ewrite(3,*)' '  
+             end do
+!!xsstop 1092
                 do iphase = 1, nphase
                    ewrite(3,*) 'icomp, iphase, comp:', icomp, iphase, &
                         comp( ( icomp - 1 ) * nphase * cv_nonods + ( iphase - 1 ) * cv_nonods + 1 : &
                         ( icomp - 1 ) * nphase * cv_nonods + iphase * cv_nonods )
                 end do
 
+
+
              END DO Loop_ITS2
 
              SUM_THETA_FLUX = SUM_THETA_FLUX + THETA_FLUX
              SUM_ONE_M_THETA_FLUX = SUM_ONE_M_THETA_FLUX + ONE_M_THETA_FLUX
 
+
+!!!!
+!!!! AND HERE ZEROED THE COMP_ABSORB TERM WITHIN THE V_SOURCE_COMP
+!!!!
              V_SOURCE_COMP = V_SOURCE_COMP + THETA_GDIFF
              DO IPHASE = 1, NPHASE
                 DO JPHASE = 1, NPHASE
                    DO CV_NODI = 1, CV_NONODS
                       V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) = &
                            V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) - &
-                                !COMP_ABSORB( CV_NODI, IPHASE, JPHASE ) * &
-                           .0 * COMP_ABSORB( CV_NODI, IPHASE, JPHASE ) * &
+                           COMP_ABSORB( CV_NODI, IPHASE, JPHASE ) * &
+                           !.0 * COMP_ABSORB( CV_NODI, IPHASE, JPHASE ) * &
                            COMP( CV_NODI + ( JPHASE - 1 ) * CV_NONODS + &
                            ( ICOMP - 1 ) * NPHASE * CV_NONODS )
                    END DO
                 END DO
              END DO
 
+ do cv_nodi = 1, cv_nonods
+                ewrite(3,*)'icomp, kcomp 3rd:', icomp, k_comp( icomp, 1 : nphase, 1 : nphase )
+                ewrite(3,*)'CV, sat1, den1, sat2, den2:', cv_nodi, satura( cv_nodi ), &
+               den( cv_nodi ), satura( cv_nonods + cv_nodi ), den( cv_nonods + cv_nodi )
+                ewrite(3,*)'absorp_comp:', comp_absorb( cv_nodi, 1, 1 ), &
+                                           comp_absorb( cv_nodi, 1, 2 ), & 
+                                           comp_absorb( cv_nodi, 2, 1 ), & 
+                                           comp_absorb( cv_nodi, 2, 2 ) 
+                ewrite(3,*)' '  
+             end do
              if (SIG_INT) exit Loop_COMPONENTS
 
-             ewrite(3,*) 'absorb, source b4-2:', r2norm( comp_absorb, cv_nonods * nphase * &
-                  nphase ), r2norm(V_SOURCE_COMP, cv_nonods * nphase)
+             !ewrite(3,*) 'absorb, source b4-2:', r2norm( comp_absorb, cv_nonods * nphase * &
+             !     nphase ), r2norm(V_SOURCE_COMP, cv_nonods * nphase)
 
           END DO Loop_COMPONENTS
 
-          ewrite(3,*)'V_SOURCE_COMP b4:', r2norm(V_SOURCE_COMP, cv_nonods * nphase)
+          !ewrite(3,*)'V_SOURCE_COMP b4:', r2norm(V_SOURCE_COMP, cv_nonods * nphase)
 
           IF( have_option("/material_phase[" // int2str(nstates-ncomp) // &
                "]/is_multiphase_component/Comp_Sum2One") .AND. ( NCOMP2 > 1 ) ) THEN
@@ -774,7 +825,18 @@ contains
                   MEAN_PORE_CV, SATURA, SATURAOLD, DEN, DENOLD, COMP, COMPOLD ) 
           ENDIF
 
-          ewrite(3,*)'V_SOURCE_COMP after:', r2norm(V_SOURCE_COMP, cv_nonods * nphase)
+          do cv_nodi = 1, cv_nonods
+                ewrite(3,*)'icomp, kcomp 4th:', icomp, k_comp( icomp, 1 : nphase, 1 : nphase )
+                ewrite(3,*)'CV, sat1, den1, sat2, den2:', cv_nodi, satura( cv_nodi ), &
+               den( cv_nodi ), satura( cv_nonods + cv_nodi ), den( cv_nonods + cv_nodi )
+                ewrite(3,*)'absorp_comp:', comp_absorb( cv_nodi, 1, 1 ), &
+                                           comp_absorb( cv_nodi, 1, 2 ), & 
+                                           comp_absorb( cv_nodi, 2, 1 ), & 
+                                           comp_absorb( cv_nodi, 2, 2 ) 
+                ewrite(3,*)' '  
+             end do
+
+          !ewrite(3,*)'V_SOURCE_COMP after:', r2norm(V_SOURCE_COMP, cv_nonods * nphase)
 
           ewrite(3,*)'Finished VOLFRA_ASSEM_SOLVE ITS,nits,ITIME:',ITS,nits,ITIME
 
@@ -785,34 +847,65 @@ contains
                   cv_nodi = 1, cv_nonods )
           end do
 
-          ewrite(3,*)''
-          ewrite(3,*)'composition:'
-          do iphase = 1, nphase
-             do icomp2 = 1, ncomp2
-                ewrite(3,*) iphase, icomp2, ( comp( ( icomp2 - 1 ) * nphase * cv_nonods + &
-                     ( iphase - 1 ) * cv_nonods + cv_nodi ), cv_nodi = 1, cv_nonods )
+          do cv_nodi = 1, cv_nonods
+                ewrite(3,*)'icomp, kcomp 5th:', icomp, k_comp( icomp, 1 : nphase, 1 : nphase )
+                ewrite(3,*)'CV, sat1, den1, sat2, den2:', cv_nodi, satura( cv_nodi ), &
+               den( cv_nodi ), satura( cv_nonods + cv_nodi ), den( cv_nonods + cv_nodi )
+                ewrite(3,*)'absorp_comp:', comp_absorb( cv_nodi, 1, 1 ), &
+                                           comp_absorb( cv_nodi, 1, 2 ), & 
+                                           comp_absorb( cv_nodi, 2, 1 ), & 
+                                           comp_absorb( cv_nodi, 2, 2 ) 
+                ewrite(3,*)' '  
              end do
-          end do
 
 
-          ewrite(3,*)''
-          ewrite(3,*)'composition FEMT:'
-          do iphase = 1, nphase
-             do icomp2 = 1, ncomp2
-                ewrite(3,*) iphase, icomp2, ( comp_femt( ( icomp2 - 1 ) * nphase * cv_nonods + &
-                     ( iphase - 1 ) * cv_nonods + cv_nodi ), cv_nodi = 1, cv_nonods )
-             end do
-          end do
-
-          norm_satura2 = r2norm( satura, nphase * cv_nonods )  
-          ewrite(3,*)'norm_satura b4 new ITS:', norm_satura2
+          !ewrite(3,*)''
+          !ewrite(3,*)'composition:'
+          !do iphase = 1, nphase
+          !   do icomp2 = 1, ncomp2
+          !      ewrite(3,*) iphase, icomp2, ( comp( ( icomp2 - 1 ) * nphase * cv_nonods + &
+          !           ( iphase - 1 ) * cv_nonods + cv_nodi ), cv_nodi = 1, cv_nonods )
+          !   end do
+          !end do
 
 
-          if( abs( norm_satura1 - norm_satura2 ) >= 1.e-7 ) stop 9786
+          !ewrite(3,*)''
+          !ewrite(3,*)'composition FEMT:'
+          !do iphase = 1, nphase
+          !   do icomp2 = 1, ncomp2
+          !      ewrite(3,*) iphase, icomp2, ( comp_femt( ( icomp2 - 1 ) * nphase * cv_nonods + &
+          !           ( iphase - 1 ) * cv_nonods + cv_nodi ), cv_nodi = 1, cv_nonods )
+          !   end do
+          !end do
 
-          if (SIG_INT) exit Loop_ITS
+         ! norm_satura2 = r2norm( satura, nphase * cv_nonods )  
+         ! ewrite(3,*)'norm_satura b4 new ITS:', norm_satura2
+
+
+          !if( abs( norm_satura1 - norm_satura2 ) >= 1.e-7 ) stop 9786
+
+          !if (SIG_INT) exit Loop_ITS
 
        END DO Loop_ITS
+
+
+          do cv_nodi = 1, cv_nonods
+                ewrite(3,*)'icomp, kcomp 6th:', icomp, k_comp( icomp, 1 : nphase, 1 : nphase )
+                ewrite(3,*)'CV, sat1, den1, sat2, den2:', cv_nodi, satura( cv_nodi ), &
+               den( cv_nodi ), satura( cv_nonods + cv_nodi ), den( cv_nonods + cv_nodi )
+                ewrite(3,*)'absorp_comp:', comp_absorb( cv_nodi, 1, 1 ), &
+                                           comp_absorb( cv_nodi, 1, 2 ), & 
+                                           comp_absorb( cv_nodi, 2, 1 ), & 
+                                           comp_absorb( cv_nodi, 2, 2 ) 
+                ewrite(3,*)' '  
+             end do
+
+       ewrite(3,*)'just after -satura:', satura( 1 : cv_nonods )
+
+if( itime >1 )stop 675
+
+
+
        !if( itime > 3 ) stop 12
        call set_option("/timestepping/current_time", ACCTIM)
        call set_option("/timestepping/timestep", dt)

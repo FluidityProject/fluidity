@@ -1372,6 +1372,13 @@
       CALL PRINT_CV_DIST(CV_NONODS,X_NONODS,TOTELE,CV_NLOC,X_NLOC,NPHASE, &
            T, X_NDGLN, CV_NDGLN, X) 
       ewrite(3,*) 'just print out - in cv_assemb'
+
+if ( igot_t2 == 1 ) then 
+      ewrite(3,*)'CV_RHS:', CV_RHS
+end if
+
+
+
       ! Deallocating temporary working arrays
       DEALLOCATE( JCOUNT_KLOC )
       DEALLOCATE( CVNORMX )
