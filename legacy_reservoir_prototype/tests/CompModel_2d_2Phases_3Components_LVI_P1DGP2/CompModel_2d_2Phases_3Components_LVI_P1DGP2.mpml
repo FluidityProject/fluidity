@@ -393,11 +393,7 @@
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>
-            <face_value name="FiniteElement">
-              <limit_face_value>
-                <limiter name="Sweby"/>
-              </limit_face_value>
-            </face_value>
+            <face_value name="FirstOrderDownwind"/>
             <diffusion_scheme name="ElementGradient"/>
           </control_volumes>
           <conservative_advection>
@@ -456,72 +452,6 @@
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
-    </scalar_field>
-    <scalar_field name="GalerkinProjection" rank="0">
-      <diagnostic>
-        <algorithm legacy="true" name="Internal" material_phase_support="multiple"/>
-        <source_field_name>PhaseVolumeFraction</source_field_name>
-        <mesh name="CoordinateMesh"/>
-        <solver>
-          <iterative_method name="cg"/>
-          <preconditioner name="sor"/>
-          <relative_error>
-            <real_value rank="0">1.0e-7</real_value>
-          </relative_error>
-          <max_iterations>
-            <integer_value rank="0">500</integer_value>
-          </max_iterations>
-          <never_ignore_solver_failures/>
-          <diagnostics>
-            <monitors/>
-          </diagnostics>
-        </solver>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </scalar_field>
-    <scalar_field name="PhaseVolumeFractionFEInterpolation" rank="0">
-      <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="PressureMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </scalar_field>
-    <scalar_field name="DensityFEInterpolation" rank="0">
-      <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="PressureMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
     </scalar_field>
     <multiphase_properties>
       <relperm_type>
@@ -727,11 +657,7 @@
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>
-            <face_value name="FiniteElement">
-              <limit_face_value>
-                <limiter name="Sweby"/>
-              </limit_face_value>
-            </face_value>
+            <face_value name="FirstOrderDownwind"/>
             <diffusion_scheme name="ElementGradient"/>
           </control_volumes>
           <conservative_advection>
@@ -791,72 +717,6 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="GalerkinProjection" rank="0">
-      <diagnostic>
-        <algorithm legacy="true" name="Internal" material_phase_support="multiple"/>
-        <source_field_name>PhaseVolumeFraction</source_field_name>
-        <mesh name="CoordinateMesh"/>
-        <solver>
-          <iterative_method name="cg"/>
-          <preconditioner name="sor"/>
-          <relative_error>
-            <real_value rank="0">1.0e-7</real_value>
-          </relative_error>
-          <max_iterations>
-            <integer_value rank="0">500</integer_value>
-          </max_iterations>
-          <never_ignore_solver_failures/>
-          <diagnostics>
-            <monitors/>
-          </diagnostics>
-        </solver>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </scalar_field>
-    <scalar_field name="PhaseVolumeFractionFEInterpolation" rank="0">
-      <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="PressureMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </scalar_field>
-    <scalar_field name="DensityFEInterpolation" rank="0">
-      <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="PressureMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </scalar_field>
     <multiphase_properties>
       <relperm_type>
         <Corey/>
@@ -866,7 +726,7 @@
   <material_phase name="Component1">
     <is_multiphase_component>
       <alpha_beta>
-        <real_value rank="0">1.</real_value>
+        <real_value rank="0">50.</real_value>
       </alpha_beta>
       <KComp_Sigmoid>
         <k_comp>
@@ -907,7 +767,7 @@
               <integer_value rank="0">30</integer_value>
             </restart>
           </iterative_method>
-          <preconditioner name="sor"/>
+          <preconditioner name="prometheus"/>
           <relative_error>
             <real_value rank="0">1.e-7</real_value>
           </relative_error>
@@ -930,7 +790,7 @@
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">0.787</real_value>
+              <real_value rank="0">0.061935</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -972,7 +832,7 @@
               <integer_value rank="0">30</integer_value>
             </restart>
           </iterative_method>
-          <preconditioner name="sor"/>
+          <preconditioner name="prometheus"/>
           <relative_error>
             <real_value rank="0">1.e-7</real_value>
           </relative_error>
@@ -986,7 +846,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value rank="0">0.1</real_value>
+            <real_value rank="0">0.10</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="inlet">
@@ -995,7 +855,7 @@
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">0.</real_value>
+              <real_value rank="0">1.9354838e-2</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -1013,66 +873,15 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field material_phase_name="phase1" name="ComponentMassFractionFEInterpolationPhase1" rank="0">
-      <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="PressureMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </scalar_field>
-    <scalar_field material_phase_name="phase2" name="ComponentMassFractionFEInterpolationPhase2" rank="0">
-      <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="PressureMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </scalar_field>
-    <scalar_field name="ComponentSumConcentrationFEInterpolation" rank="0">
-      <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="PressureMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </scalar_field>
   </material_phase>
   <material_phase name="Component2">
     <is_multiphase_component>
       <alpha_beta>
-        <real_value rank="0">1.</real_value>
+        <real_value rank="0">50.</real_value>
       </alpha_beta>
       <KComp_Sigmoid>
         <k_comp>
-          <real_value rank="0">0.5</real_value>
+          <real_value rank="0">1.5</real_value>
         </k_comp>
       </KComp_Sigmoid>
       <Comp_Sum2One/>
@@ -1104,7 +913,7 @@
               <integer_value rank="0">30</integer_value>
             </restart>
           </iterative_method>
-          <preconditioner name="sor"/>
+          <preconditioner name="prometheus"/>
           <relative_error>
             <real_value rank="0">1.e-7</real_value>
           </relative_error>
@@ -1127,7 +936,7 @@
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">0.213</real_value>
+              <real_value rank="0">0.25</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -1169,7 +978,7 @@
               <integer_value rank="0">30</integer_value>
             </restart>
           </iterative_method>
-          <preconditioner name="sor"/>
+          <preconditioner name="prometheus"/>
           <relative_error>
             <real_value rank="0">1.e-7</real_value>
           </relative_error>
@@ -1192,7 +1001,7 @@
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">0.</real_value>
+              <real_value rank="0">0.6</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -1210,62 +1019,11 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field material_phase_name="phase1" name="ComponentMassFractionFEInterpolationPhase1" rank="0">
-      <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="PressureMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </scalar_field>
-    <scalar_field material_phase_name="phase2" name="ComponentMassFractionFEInterpolationPhase2" rank="0">
-      <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="PressureMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </scalar_field>
-    <scalar_field name="ComponentSumConcentrationFEInterpolation" rank="0">
-      <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="PressureMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </scalar_field>
   </material_phase>
   <material_phase name="Component3">
     <is_multiphase_component>
       <alpha_beta>
-        <real_value rank="0">1.</real_value>
+        <real_value rank="0">50.</real_value>
       </alpha_beta>
       <KComp_Sigmoid>
         <k_comp>
@@ -1306,7 +1064,7 @@
               <integer_value rank="0">30</integer_value>
             </restart>
           </iterative_method>
-          <preconditioner name="sor"/>
+          <preconditioner name="prometheus"/>
           <relative_error>
             <real_value rank="0">1.e-7</real_value>
           </relative_error>
@@ -1329,7 +1087,7 @@
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">0.</real_value>
+              <real_value rank="0">0.0380645</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -1371,7 +1129,7 @@
               <integer_value rank="0">30</integer_value>
             </restart>
           </iterative_method>
-          <preconditioner name="sor"/>
+          <preconditioner name="prometheus"/>
           <relative_error>
             <real_value rank="0">1.e-7</real_value>
           </relative_error>
@@ -1385,7 +1143,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value rank="0">0.9</real_value>
+            <real_value rank="0">0.65</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="Inlet_Comp3Ph2">
@@ -1394,7 +1152,7 @@
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">0.</real_value>
+              <real_value rank="0">0.380645</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -1411,57 +1169,6 @@
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
-    </scalar_field>
-    <scalar_field material_phase_name="phase1" name="ComponentMassFractionFEInterpolationPhase1" rank="0">
-      <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="PressureMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </scalar_field>
-    <scalar_field material_phase_name="phase2" name="ComponentMassFractionFEInterpolationPhase2" rank="0">
-      <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="PressureMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </scalar_field>
-    <scalar_field name="ComponentSumConcentrationFEInterpolation" rank="0">
-      <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="PressureMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
     </scalar_field>
   </material_phase>
   <porous_media>
