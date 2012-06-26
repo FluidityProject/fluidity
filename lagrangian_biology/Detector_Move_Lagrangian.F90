@@ -566,7 +566,7 @@ contains
           cycle
        end if
 
-       if (minval(detector%local_coords) < 0.0) then
+       if (minval(detector%local_coords) < -detector_list%search_tolerance) then
           ewrite(-1,*) "Detector", detector%id_number, ", in element", detector%element, &
                        " has local coordinates: ", detector%local_coords
           FLAbort("Negative local coordinate for lagrangian detector after tracking!")
@@ -718,7 +718,15 @@ contains
           end if
        end do
 
-       if (ele_t < detector%target_distance) then
+       ! This is an extreme corner case, where we ended the last timestep 
+       ! exactly on a domain boundary, which is not periodic.
+       ! In this case no next_face will be found and we can only exit the loop with -1
+       if (ele_t == huge(1.0)) then
+          new_owner=-1
+          exit search_loop
+       end if
+
+       if (ele_t < detector%target_distance + search_tolerance) then
           neigh_face = face_neigh(xfield, next_face)
 
           ! Record our next t and the distance covered
