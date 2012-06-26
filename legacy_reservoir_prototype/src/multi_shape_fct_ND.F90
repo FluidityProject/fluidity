@@ -1081,9 +1081,9 @@
            overlapping_path )
       if( trim( overlapping_path ) == 'overlapping' ) cv_ngi = cv_ngi * cv_nloc
 
-!         print *,'cv_ele_type,cv_ngicv_ngi_short=', &
+!         ewrite(3,*)'cv_ele_type,cv_ngicv_ngi_short=', &
 !                  cv_ele_type,cv_ngi,cv_ngi_short
-!         print *,'scvngi,sbcvngi=',scvngi,sbcvngi
+!         ewrite(3,*)'scvngi,sbcvngi=',scvngi,sbcvngi
 !         stop 393
       return
     end subroutine retrieve_ngi
@@ -1976,7 +1976,7 @@
       end do
       !stop 2922
       if(cv_nloc==10) then
-        print *,'cv_nloc=',cv_nloc
+        ewrite(3,*)'cv_nloc=',cv_nloc
          totele_sub=8
          !call test_quad_tet( cv_nloc, cv_ngi, cvn, n, nlx, nly, nlz, &
          call test_quad_tet( cv_nloc, cv_ngi, cvn, n, nlx, nly, nlz, &
@@ -2053,30 +2053,30 @@
          CALL DETNLXR( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, CV_NLOC, CV_NGI, &
               N, NLX, NLY, NLZ, CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
               NX, NY, NZ ) 
-         PRINT *,'ele, VOLUME=',ele, VOLUME
-         print *,'detwei:',detwei
-         PRINT *,'sum of detwei:',sum(detwei)
-         print *,'nx=',nx
-         print *,'nlx=',nlx
+         EWRITE(3,*)'ele, VOLUME=',ele, VOLUME
+         ewrite(3,*)'detwei:',detwei
+         EWRITE(3,*)'sum of detwei:',sum(detwei)
+         ewrite(3,*)'nx=',nx
+         ewrite(3,*)'nlx=',nlx
          RSUM=RSUM+VOLUME
          
          do cv_iloc=1,cv_nloc
             rsum2=0.0
             do cv_gi=1,cv_ngi
                rsum2=rsum2+cvn(cv_iloc,cv_gi)*detwei(cv_gi)
-               print *,'cv_gi,cvn(cv_iloc,cv_gi),detwei(cv_gi),CVWEIGHT(cv_gi):', &
+               ewrite(3,*)'cv_gi,cvn(cv_iloc,cv_gi),detwei(cv_gi),CVWEIGHT(cv_gi):', &
                         cv_gi,cvn(cv_iloc,cv_gi),detwei(cv_gi),CVWEIGHT(cv_gi)
             end do
-            print *,'cv_iloc,its vol:',cv_iloc,rsum2
+            ewrite(3,*)'cv_iloc,its vol:',cv_iloc,rsum2
          end do
       END DO Loop_Elements
 
          do cv_iloc=1,cv_nloc
-            print *,'cv_iloc,nod,X, Y, Z:',cv_iloc,X_NDGLN(cv_iloc), &
+            ewrite(3,*)'cv_iloc,nod,X, Y, Z:',cv_iloc,X_NDGLN(cv_iloc), &
                     X(X_NDGLN(cv_iloc)), Y(X_NDGLN(cv_iloc)), Z(X_NDGLN(cv_iloc))
          end do
 
-      PRINT *,'VOLUME OF THE DOMAIN(SHOULD BE 1):',RSUM
+      EWRITE(3,*)'VOLUME OF THE DOMAIN(SHOULD BE 1):',RSUM
     
       !STOP 2992
 
@@ -2856,7 +2856,7 @@
            lowqua, quad_cv_ngi, mloc
       ewrite(3,*) 'dummy_sngi, dummy_snloc, dummy_smloc, quad_cv_ngi:', &
            dummy_sngi, dummy_snloc, dummy_smloc, quad_cv_ngi
-       print *,'scvngi,quad_cv_sngi=',scvngi,quad_cv_sngi
+       ewrite(3,*)'scvngi,quad_cv_sngi=',scvngi,quad_cv_sngi
 !        stop 331
 
       ! Work out local coords of the nodes
@@ -2933,7 +2933,7 @@
             xnod = x_ndgln( ( ele - 1 ) * quad_cv_nloc + quad_cv_iloc )
             if( fem_nod( xnod ) /= 0 ) cv_iloc_belong = xnod
 
-            print *, ele, quad_cv_iloc, &
+            ewrite(3,*) ele, quad_cv_iloc, &
                  ( ele - 1 ) * quad_cv_nloc + quad_cv_iloc, &
                  xnod, fem_nod(xnod), &
                  x(xnod), y(xnod),z(xnod)
@@ -3191,8 +3191,8 @@
          endif
       end do
 
-      print *,'stotel, quad_cv_sngi, totele:',stotel, quad_cv_sngi, totele
-      print *,'stotel * quad_cv_sngi * totele:',stotel * quad_cv_sngi * totele
+      ewrite(3,*)'stotel, quad_cv_sngi, totele:',stotel, quad_cv_sngi, totele
+      ewrite(3,*)'stotel * quad_cv_sngi * totele:',stotel * quad_cv_sngi * totele
 
       allocate( sn_2( cv_nloc, stotel * quad_cv_sngi * totele ) ) ; sn_2 = 0.
       allocate( suf_snlx_2( cv_nloc, stotel * quad_cv_sngi * totele ) ) ; suf_snlx_2 = 0.
@@ -3437,7 +3437,7 @@
 
       end do Loop_SurfaceQuadrature
 
-      print *,'icount::',icount
+      ewrite(3,*)'icount::',icount
 
       do quad_cv_siloc = 1, cv_nloc
          do cv_sgi = 1, scvngi
@@ -3767,7 +3767,7 @@
 
       ! Consistency check:
       if( cv_ngi /= totele * quad_cv_ngi ) then
-         print *,'cv_ngi, totele, quad_cv_ngi,totele * quad_cv_ngi:', &
+         ewrite(3,*)'cv_ngi, totele, quad_cv_ngi,totele * quad_cv_ngi:', &
                   cv_ngi, totele, quad_cv_ngi,totele * quad_cv_ngi
          FLExit( "Wrong number for CV_NGI" )
       end if
@@ -3806,31 +3806,31 @@
            rdummy, rdummy, rdummy, rdummy, rdummy, rdummy, rdummy, &
            nwicel, d3 )   
 
-      print *,'quad_n:',quad_n
-      print *,'quad_nlx:',quad_nlx
-      print *,'quad_nly:',quad_nly
-      print *,'quad_nlz:',quad_nlz
+      ewrite(3,*)'quad_n:',quad_n
+      ewrite(3,*)'quad_nlx:',quad_nlx
+      ewrite(3,*)'quad_nly:',quad_nly
+      ewrite(3,*)'quad_nlz:',quad_nlz
 
       !        stop 2921
 
       if(.false.) then
          xnod = x_ndgln( 1 )
-         print *,'node1, x,y,z:',xnod,x(xnod),y(xnod),z(xnod)
+         ewrite(3,*)'node1, x,y,z:',xnod,x(xnod),y(xnod),z(xnod)
          xnod = x_ndgln( 3 )
-         print *,'node3, x,y,z:',xnod,x(xnod),y(xnod),z(xnod)
+         ewrite(3,*)'node3, x,y,z:',xnod,x(xnod),y(xnod),z(xnod)
          xnod = x_ndgln( 7 )
-         print *,'node7, x,y,z:',xnod,x(xnod),y(xnod),z(xnod)
+         ewrite(3,*)'node7, x,y,z:',xnod,x(xnod),y(xnod),z(xnod)
          xnod = x_ndgln( 9 )
-         print *,'node9, x,y,z:',xnod,x(xnod),y(xnod),z(xnod)
+         ewrite(3,*)'node9, x,y,z:',xnod,x(xnod),y(xnod),z(xnod)
 
          xnod = x_ndgln( 19 )
-         print *,'node19, x,y,z:',xnod,x(xnod),y(xnod),z(xnod)
+         ewrite(3,*)'node19, x,y,z:',xnod,x(xnod),y(xnod),z(xnod)
          xnod = x_ndgln( 21 )
-         print *,'node21, x,y,z:',xnod,x(xnod),y(xnod),z(xnod)
+         ewrite(3,*)'node21, x,y,z:',xnod,x(xnod),y(xnod),z(xnod)
          xnod = x_ndgln( 25 )
-         print *,'node25, x,y,z:',xnod,x(xnod),y(xnod),z(xnod)
+         ewrite(3,*)'node25, x,y,z:',xnod,x(xnod),y(xnod),z(xnod)
          xnod = x_ndgln( 27 )
-         print *,'node27, x,y,z:',xnod,x(xnod),y(xnod),z(xnod)
+         ewrite(3,*)'node27, x,y,z:',xnod,x(xnod),y(xnod),z(xnod)
          stop 3923
       endif
 
@@ -3990,7 +3990,7 @@
             end do
 
 
-            print *,'d1, d3, dcyl:',d1, d3, dcyl
+            ewrite(3,*)'d1, d3, dcyl:',d1, d3, dcyl
             !         call detnlxr( ele, x, y, z, x_ndgln, totele, x_nonods, quad_cv_nloc, quad_cv_ngi, &
             call detnlxr( ele, x_temp, y_temp, z_temp, x_ndgln_temp, 1, x_nonods, quad_cv_nloc, quad_cv_ngi, &
                  quad_n, quad_nlx, quad_nly, quad_nlz, quad_cvweight, &
@@ -4072,15 +4072,15 @@
                     z(nod7), z(nod3), z(nod2), z(nod8) )
             endif
 
-            print *,'rsum1,rsum2,rsum3,rsum4,rsum5,rsum6:', &
+            ewrite(3,*)'rsum1,rsum2,rsum3,rsum4,rsum5,rsum6:', &
                  rsum1,rsum2,rsum3,rsum4,rsum5,rsum6
 
-            print *, 'should be 1/32=', 1./32.
-            print *,'rsum1+rsum2+rsum3+rsum4+rsum5+rsum6:', &
+            ewrite(3,*) 'should be 1/32=', 1./32.
+            ewrite(3,*)'rsum1+rsum2+rsum3+rsum4+rsum5+rsum6:', &
                  abs(rsum1) + abs(rsum2) + abs(rsum3) + &
                  abs(rsum4) + abs(rsum5) + abs(rsum6)
 
-            print *,'detwei, volume:',detwei, volume
+            ewrite(3,*)'detwei, volume:',detwei, volume
 
             !stop 2921
 
@@ -4093,7 +4093,7 @@
               detwei, ra, volume, d1, d3, dcyl, &       
               quad_nx, quad_ny, quad_nz )
          
-         print *,'quad_cv_ngi=',quad_cv_ngi
+         ewrite(3,*)'quad_cv_ngi=',quad_cv_ngi
          ewrite(3,*)'detwei for ele=:', ele, detwei
 ! adjust the volume so that we get the volume correct: 
          if(d3.and.(quad_cv_ngi==1)) detwei=detwei*(2.0310311939315246**3/8.0)
@@ -4114,7 +4114,7 @@
             ewrite(3,*)'detwei:', ( detwei( quad_cv_gi ), quad_cv_gi = 1, quad_cv_ngi )
          end do
 
-         print *, 'vol:', sum(detwei)
+         ewrite(3,*) 'vol:', sum(detwei)
 
 !         stop 3838
 
@@ -4163,19 +4163,19 @@
            cv_nloc, cv_ngi, n, nlx, nly, nlz, &
            .true. )
       ewrite(3,*)'cvweigh:',cvweigh
-      print *,'nlx(1,:):',nlx(1,:)
+      ewrite(3,*)'nlx(1,:):',nlx(1,:)
       rsum=-1.e+5
       do cv_gi = 1, cv_ngi
          rsum = max(rsum,nlx(1,cv_gi))
       end do
-      print *,'max(nlx(1,:)):',rsum
+      ewrite(3,*)'max(nlx(1,:)):',rsum
       rsum=+1.e+5
       do cv_gi = 1, cv_ngi
          rsum = min(rsum,nlx(1,cv_gi))
       end do
-      print *,'min(nlx(1,:)):',rsum
+      ewrite(3,*)'min(nlx(1,:)):',rsum
 
-      print *,'sum(nlx(1,:)):',sum(nlx(1,:))
+      ewrite(3,*)'sum(nlx(1,:)):',sum(nlx(1,:))
       rsum = 0.0
       do cv_gi = 1, cv_ngi
          rsum = rsum + cvweigh( cv_gi )
@@ -4395,7 +4395,7 @@
             u_nloc_dummy = nloc
             cv_ele_type_dummy = 2
             ndim = 3 
-            print *,'going into SHATRIold'
+            ewrite(3,*)'going into SHATRIold'
             call SHATRIold(L1, L2, L3, L4, cvweigh_dummy, (ndim==3), &
      &               NLOC,NGI,  &
      &               N,NLX,NLY,NLZ)
@@ -6395,7 +6395,7 @@
       logical :: LOWQUA,d3
       REAL :: RUB(1000)
 
-      print *,'just inside SHAPE_one_ele' 
+      ewrite(3,*)'just inside SHAPE_one_ele' 
 !      stop 7299
 
       LOWQUA=.false.
@@ -6495,31 +6495,31 @@
          sbufenslx=0.0
       ENDIF
 
-      print *,'ndim, cv_ele_type,cv_ngi, cv_nloc, u_nloc:', &
+      ewrite(3,*)'ndim, cv_ele_type,cv_ngi, cv_nloc, u_nloc:', &
                ndim, cv_ele_type,cv_ngi, cv_nloc, u_nloc
-      print *,'cvweight:',cvweight
-      print *,'cvfen:',cvfen
-      print *,'cvfenlx:',cvfenlx
-      print *,'cvfenly:',cvfenly
-      print *,'cvfenlz:',cvfenlz 
-      print *,'ufen:',ufen
-      print *,'ufenlx:',ufenlx
-      print *,'ufenly:',ufenly
-      print *,'ufenlz:',ufenlz
-      print *,'sbcvngi=',sbcvngi
-      print *,'sbcvfen:',sbcvfen
-      print *,'sbcvfenslx:',sbcvfenslx
-      print *,'sbcvfensly:',sbcvfensly
-      print *,'sbcvfeweigh:',sbcvfeweigh
+      ewrite(3,*)'cvweight:',cvweight
+      ewrite(3,*)'cvfen:',cvfen
+      ewrite(3,*)'cvfenlx:',cvfenlx
+      ewrite(3,*)'cvfenly:',cvfenly
+      ewrite(3,*)'cvfenlz:',cvfenlz 
+      ewrite(3,*)'ufen:',ufen
+      ewrite(3,*)'ufenlx:',ufenlx
+      ewrite(3,*)'ufenly:',ufenly
+      ewrite(3,*)'ufenlz:',ufenlz
+      ewrite(3,*)'sbcvngi=',sbcvngi
+      ewrite(3,*)'sbcvfen:',sbcvfen
+      ewrite(3,*)'sbcvfenslx:',sbcvfenslx
+      ewrite(3,*)'sbcvfensly:',sbcvfensly
+      ewrite(3,*)'sbcvfeweigh:',sbcvfeweigh
                  
-      print *,'sbufen:',sbufen
-      print *,'sbufenslx:',sbufenslx
-      print *,'sbufensly:',sbufensly
+      ewrite(3,*)'sbufen:',sbufen
+      ewrite(3,*)'sbufenslx:',sbufenslx
+      ewrite(3,*)'sbufensly:',sbufensly
 
-      print *,'nface:',nface
-      print *,'cv_sloclist:', cv_sloclist
-      print *,'u_sloclist:',u_sloclist
-      print *,'cv_snloc, u_snloc:',cv_snloc, u_snloc
+      ewrite(3,*)'nface:',nface
+      ewrite(3,*)'cv_sloclist:', cv_sloclist
+      ewrite(3,*)'u_sloclist:',u_sloclist
+      ewrite(3,*)'cv_snloc, u_snloc:',cv_snloc, u_snloc
 !      stop 145
 
       END SUBROUTINE SHAPE_one_ele2
@@ -6544,9 +6544,9 @@
      
      INTEGER IPOLY,IQADRA,gi,gj,ggi,i,j,ii
      
-     print *,'inside shape LOWQUA,NGI,NLOC,MLOC, SNGI,SNLOC,SMLOC:', &
+     ewrite(3,*)'inside shape LOWQUA,NGI,NLOC,MLOC, SNGI,SNLOC,SMLOC:', &
                            LOWQUA,NGI,NLOC,MLOC, SNGI,SNLOC,SMLOC
-     print *,'NWICEL,d3:',NWICEL,d3
+     ewrite(3,*)'NWICEL,d3:',NWICEL,d3
      IF(NWICEL.EQ.1) THEN
         IF(.NOT.D3) THEN
            CALL RE2DN4(LOWQUA,NGI,0,NLOC,MLOC, &
@@ -6562,7 +6562,7 @@
      ENDIF
      
      IF(NWICEL.EQ.2) THEN
-        print *,'option not avaialble'
+        ewrite(3,*)'option not avaialble'
         stop 3832
 !        IF(.NOT.D3) THEN
 !           CALL RE2DN8(LOWQUA,NGI,NLOC,MLOC, &
@@ -6614,7 +6614,7 @@
                 SNGI,SNLOC,SWEIGH,SN,SNLX,SNLY, &
                 SMLOC,                          &
                 SM,SMLX,SMLY,D3)
-!       print *,'weight:',weight
+!       ewrite(3,*)'weight:',weight
 !      STOP 3321
      ENDIF
      
@@ -6653,8 +6653,8 @@
       LOGICAL DD3
 ! NB LXP(I) AND LYP(I) ARE THE LOCAL X AND Y COORDS OF NODAL POINT I
        
-      print *, 'HERE 1 MLOC,NLOC,NGI=',MLOC,NLOC,NGI
-      print *, 'HERE 2'
+      ewrite(3,*) 'HERE 1 MLOC,NLOC,NGI=',MLOC,NLOC,NGI
+      ewrite(3,*) 'HERE 2'
 !
 ! Get the quadrature positions and weights for TRIANGLES...
      DD3=.FALSE.
@@ -6670,17 +6670,17 @@
 
 
       IF(SNGI.GT.0) THEN
-        print *,'for surfaces SNGI,SNLOC,smloc:',SNGI,SNLOC,smloc
+        ewrite(3,*)'for surfaces SNGI,SNLOC,smloc:',SNGI,SNLOC,smloc
 ! IQADRA=1 corresponds to Gaussian quadrature.
          IQADRA=1
 ! IPOLY=1 is for Lagrange polynomials.
          IPOLY=1
 
-          print *,'for sn:'
+          ewrite(3,*)'for sn:'
          CALL SPECTR(SNGI,SNLOC,0,&
      &   RUB,SWEIGH,SN,SNLX,SNLX,SNLX,.FALSE.,.FALSE., IPOLY,IQADRA)
 
-          print *,'for sm:'
+          ewrite(3,*)'for sm:'
          CALL SPECTR(SNGI,SMLOC,0,&
      &   RUB,SWEIGH,SM,SMLX,SMLX,SMLX,.FALSE.,.FALSE., IPOLY,IQADRA)
       ENDIF
@@ -6719,11 +6719,11 @@
 ! Get the quadrature positions and weights for TRIANGLES or TETS...
       DD3=D3
       CALL TRIQUAold(L1, L2, L3, L4, WEIGHT, DD3,NGI)
-       print *,'l1:',l1(1:ngi)
-       print *,'l2:',l2(1:ngi)
-       print *,'l3:',l3(1:ngi)
-       if(d3) print *,'l4:',l4(1:ngi)
-       print *,'weight:',weight
+       ewrite(3,*)'l1:',l1(1:ngi)
+       ewrite(3,*)'l2:',l2(1:ngi)
+       ewrite(3,*)'l3:',l3(1:ngi)
+       if(d3) ewrite(3,*)'l4:',l4(1:ngi)
+       ewrite(3,*)'weight:',weight
 !       stop 2821
 !
 
@@ -6754,9 +6754,9 @@
             endif
           endif
         endif 
-       print *,'n::',n
-       print *,'nlx::',nlx
-       print *,'nly::',nly
+       ewrite(3,*)'n::',n
+       ewrite(3,*)'nlx::',nlx
+       ewrite(3,*)'nly::',nly
       CALL SHATRIold(L1, L2, L3, L4, WEIGHT, DD3,&
      &              MLOC,NGI,&
      &              M,MLX,MLY,MLZ) 
@@ -6784,20 +6784,20 @@
      &              SMLOC,NGI,&
      &              SM,SMLX,SMLY,RUB) 
         ELSE
-        print *,'for surfaces SNGI,SNLOC,smloc:',SNGI,SNLOC,smloc
+        ewrite(3,*)'for surfaces SNGI,SNLOC,smloc:',SNGI,SNLOC,smloc
 ! IQADRA=1 corresponds to Gaussian quadrature.
          IQADRA=1
 ! IPOLY=1 is for Lagrange polynomials.
          IPOLY=1
 
-          print *,'for sn IPOLY,IQADRA,SNGI,SNLOC:', &
+          ewrite(3,*)'for sn IPOLY,IQADRA,SNGI,SNLOC:', &
                           IPOLY,IQADRA,SNGI,SNLOC
          CALL SPECTR(SNGI,SNLOC,0,&
      &   RUB,SWEIGH,SN,SNLX,RUB,RUB,.FALSE.,.FALSE., IPOLY,IQADRA)
-          print *,'+++for sn SWEIGH:',SWEIGH
+          ewrite(3,*)'+++for sn SWEIGH:',SWEIGH
 
        if(.false.) then
-          print *,'for sm:'
+          ewrite(3,*)'for sm:'
          CALL SPECTR(SNGI,SMLOC,0,&
      &   RUB,SWEIGH,SM,SMLX,RUB,RUB,.FALSE.,.FALSE., IPOLY,IQADRA)
        endif
@@ -6836,11 +6836,11 @@
       INTEGER I
 ! NB LXP(I) AND LYP(I) ARE THE LOCAL X AND Y COORDS OF NODAL POINT I
        
-      print *, 'HERE 1 MLOC,NLOC,NGI=',MLOC,NLOC,NGI
-      print *, 'HERE 2'
+      ewrite(3,*) 'HERE 1 MLOC,NLOC,NGI=',MLOC,NLOC,NGI
+      ewrite(3,*) 'HERE 2'
 
       IF((NLOC.NE.3).OR.(NGI.NE.3)) THEN
-          print *,'PROBLEM IN TR2D NLOC,NGI:',NLOC,NGI
+          ewrite(3,*)'PROBLEM IN TR2D NLOC,NGI:',NLOC,NGI
           stop 282
       ENDIF
 
@@ -6932,11 +6932,11 @@
       INTEGER I
 ! NB LXP(I) AND LYP(I) ARE THE LOCAL X AND Y COORDS OF NODAL POINT I
        
-      print *, 'HERE 1 MLOC,NLOC,NGI=',MLOC,NLOC,NGI
-      print *, 'HERE 2'
+      ewrite(3,*) 'HERE 1 MLOC,NLOC,NGI=',MLOC,NLOC,NGI
+      ewrite(3,*) 'HERE 2'
 
       IF((NLOC.NE.4).OR.(NGI.NE.4)) THEN
-         print *, 'PROBLEM IN TR3D'
+         ewrite(3,*) 'PROBLEM IN TR3D'
          STOP 201
       ENDIF
 
@@ -7085,13 +7085,13 @@
 ! This is for 5 point quadrature. 
         IF((NLOC.EQ.10).OR.(NLOC.EQ.11)) THEN
         DO 40 GI=1,NGI
-!         print *,'gi,L1(GI),L2(GI),L3(GI),L4(GI):',gi,L1(GI),L2(GI),L3(GI),L4(GI)
+!         ewrite(3,*)'gi,L1(GI),L2(GI),L3(GI),L4(GI):',gi,L1(GI),L2(GI),L3(GI),L4(GI)
          N(1,GI)=(2.*L1(GI)-1.)*L1(GI)
          N(3,GI)=(2.*L2(GI)-1.)*L2(GI)
          N(5,GI)=(2.*L3(GI)-1.)*L3(GI)
          N(10,GI)=(2.*L4(GI)-1.)*L4(GI)
 
-      if(L1(GI).gt.-1.93) print *,'gi,L1(GI), L2(GI), L3(GI), L4(GI),N(1,GI):', &
+      if(L1(GI).gt.-1.93) ewrite(3,*)'gi,L1(GI), L2(GI), L3(GI), L4(GI),N(1,GI):', &
                                   gi,L1(GI), L2(GI), L3(GI), L4(GI),N(1,GI)
 !
 !
@@ -7108,7 +7108,7 @@
          NLX(3,GI)=0.
          NLX(5,GI)=0.
          NLX(10,GI)=-4.*(1.-L2(GI)-L3(GI))+4.*L1(GI) + 1.
-      if(L1(GI).gt.-1.93) print *,'Nlx(1,GI):', &
+      if(L1(GI).gt.-1.93) ewrite(3,*)'Nlx(1,GI):', &
                                   Nlx(1,GI)
 !
          NLX(2,GI)=4.*L2(GI)
@@ -7421,7 +7421,7 @@
 ! 7 8
 ! 5 6
        
-         print *,'inside SPECTR IPOLY,IQADRA', IPOLY,IQADRA
+         ewrite(3,*)'inside SPECTR IPOLY,IQADRA', IPOLY,IQADRA
 !
          DIFF=.TRUE.
          NDIFF=.FALSE.
@@ -7432,9 +7432,9 @@
 !
 ! Find the roots of the quadrature points and nodes
 ! also get the weights. 
-       print *,'about to go into inside GTROOT IPOLY,IQADRA',IPOLY,IQADRA
+       ewrite(3,*)'about to go into inside GTROOT IPOLY,IQADRA',IPOLY,IQADRA
         CALL GTROOT(IPOLY,IQADRA,WEIT,NODPOS,QUAPOS,NDGI,NDNOD)
-       print *,'outside GTROOT'
+       ewrite(3,*)'outside GTROOT'
       do  IGR=1,NDGI! Was loop 101
       do  IGQ=1,NDGI! Was loop 101
       do  IGP=1,NDGI! Was loop 101
@@ -7486,9 +7486,9 @@
 !
 ! Find the roots of the quadrature points and nodes
 ! also get the weights. 
-       print *,'2about to go into inside GTROOT IPOLY,IQADRA',IPOLY,IQADRA
+       ewrite(3,*)'2about to go into inside GTROOT IPOLY,IQADRA',IPOLY,IQADRA
         CALL GTROOT(IPOLY,IQADRA,WEIT,NODPOS,QUAPOS,NDGI,NMDNOD)
-       print *,'2out of GTROOT'
+       ewrite(3,*)'2out of GTROOT'
       do  IGR=1,NDGI! Was loop 102
       do  IGQ=1,NDGI! Was loop 102
       do  IGP=1,NDGI! Was loop 102
@@ -7588,10 +7588,10 @@
 ! Find the roots of the quadrature points and nodes
 ! also get the weights. 
         CALL GTROOT(IPOLY,IQADRA,WEIT,NODPOS,QUAPOS,NDGI,NDNOD)
-        print *,'NDGI,NDNOD,NLOC:',NDGI,NDNOD,NLOC
-        print *,'WEIT(1:ndgi):',WEIT(1:ndgi)
-        print *,'NODPOS(1:ndnod):',NODPOS(1:ndnod)
-        print *,'QUAPOS(1:ndgi):',QUAPOS(1:ndgi)
+        ewrite(3,*)'NDGI,NDNOD,NLOC:',NDGI,NDNOD,NLOC
+        ewrite(3,*)'WEIT(1:ndgi):',WEIT(1:ndgi)
+        ewrite(3,*)'NODPOS(1:ndnod):',NODPOS(1:ndnod)
+        ewrite(3,*)'QUAPOS(1:ndgi):',QUAPOS(1:ndgi)
       do  IGP=1,NDGI! Was loop 1000
          GPOI=IGP 
 !
@@ -7609,16 +7609,16 @@
 !
              NLX(ILOC,GPOI)&
      &        =SPECFU(DIFF, LXGP,INOD,NDNOD,IPOLY,NODPOS)
-         print *,'ILOC,GPOI,N(ILOC,GPOI),NLX(ILOC,GPOI):', &
+         ewrite(3,*)'ILOC,GPOI,N(ILOC,GPOI),NLX(ILOC,GPOI):', &
                   ILOC,GPOI,N(ILOC,GPOI),NLX(ILOC,GPOI)
 !
       end do ! Was loop 12000
       end do ! Was loop 1000
-         print *,'n WEIGHT:',WEIGHT
+         ewrite(3,*)'n WEIGHT:',WEIGHT
 !
 ! Find the roots of the quadrature points and nodes
 ! also get the weights. 
-       print *,'this is for m which we dont care about:'
+       ewrite(3,*)'this is for m which we dont care about:'
         CALL GTROOT(IPOLY,IQADRA,WEIT,NODPOS,QUAPOS,NDGI,NMDNOD)
       do  IGP=1,NDGI! Was loop 1100
          GPOI=IGP 
@@ -7632,7 +7632,7 @@
       end do ! Was loop 13000
 !
       end do ! Was loop 1100
-       print *,'...finished this is for m which we dont care about:'
+       ewrite(3,*)'...finished this is for m which we dont care about:'
          ENDIF
          END SUBROUTINE SPECTR
 

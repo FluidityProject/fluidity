@@ -1624,7 +1624,7 @@
          do FACE_COUNT = FINELE( ELE ), FINELE( ELE + 1 ) - 1
 
             ele2 = COLELE( FACE_COUNT )
-!            print *,'ele,ele2:',ele,ele2
+!            ewrite(3,*)'ele,ele2:',ele,ele2
             if( ele2 > 0 ) then
                   Loop_CVILOC_6: do u_jloc = 1, u_nloc ! Loop over nodes of the elements
                      u_nodj = u_ndgln( ( ele2 - 1 ) * u_nloc + u_jloc )

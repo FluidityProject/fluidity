@@ -75,7 +75,7 @@ contains
     
     rows = size(x)
     
-    print *, size(x)+1, size(findfe)
+    ewrite(3,*) size(x)+1, size(findfe)
 
     assert(size(x) == size(b))
     assert(size(a) == size(colfe))
@@ -211,7 +211,7 @@ contains
       allocate(midcmc_small(x_nonods))
       allocate(MAP_DG2CTY(cv_nonods))
 
-      PRINT *,'BEFORE pousinmc'
+      EWRITE(3,*)'BEFORE pousinmc'
       ! lump the pressure nodes to take away the discontinuity...
 
       DO ELE=1,TOTELE
@@ -227,8 +227,8 @@ contains
               MX_NCMC_SMALL,NCMC_SMALL, CV_NONODS,X_NONODS, MAP_DG2CTY, &
               FINDCMC,COLCMC,NCOLCMC)
 
-       print *,'FINDCMC_SMALL:',FINDCMC_SMALL
-       print *,'COLCMC_SMALL(1:NCMC_SMALL):',COLCMC_SMALL(1:NCMC_SMALL)
+       ewrite(3,*)'FINDCMC_SMALL:',FINDCMC_SMALL
+       ewrite(3,*)'COLCMC_SMALL(1:NCMC_SMALL):',COLCMC_SMALL(1:NCMC_SMALL)
 !        stop 3292
 
       allocate(cmc_small(ncmc_small))
@@ -238,7 +238,7 @@ contains
       allocate(nods_sourou(x_nonods))
 
 
-      print *,'***forming cmc_small:'
+      ewrite(3,*)'***forming cmc_small:'
       CMC_SMALL(1:NCMC_SMALL)=0.0
       DO dg_nod=1,CV_NONODS
          cty_nod=MAP_DG2CTY(dg_nod)
@@ -248,12 +248,12 @@ contains
             jcolcmc_small=MAP_DG2CTY(jcolcmc)
             count2=0
             DO COUNT3=FINDCMC_small(cty_NOD),FINDCMC_small(cty_NOD+1)-1
-               print *,'dg_nod,cty_nod,jcolcmc_small,colcmc_small(count3):', &
+               ewrite(3,*)'dg_nod,cty_nod,jcolcmc_small,colcmc_small(count3):', &
                         dg_nod,cty_nod,jcolcmc_small,colcmc_small(count3)
                if(colcmc_small(count3)==jcolcmc_small) count2=count3
             end do
             if(count2==0) then
-               print *,'could not find coln'
+               ewrite(3,*)'could not find coln'
                stop 3282
             endif
             CMC_SMALL(COUNT2)=CMC_SMALL(COUNT2)+CMC(COUNT)              
@@ -263,13 +263,13 @@ contains
 
       DO GL_ITS=1,NGL_ITS
 
-         PRINT *,'GL_ITS=',GL_ITS
+         EWRITE(3,*)'GL_ITS=',GL_ITS
          ! SSOR smoother for the multi-grid method...
-         print *,'before solving:',p
+         ewrite(3,*)'before solving:',p
          CALL SIMPLE_SOLVER( CMC, P, RHS,  &
               NCOLCMC, CV_NONODS, FINDCMC, COLCMC, MIDCMC,  &
               ERROR, RELAX, RELAX_DIAABS, RELAX_DIA, N_LIN_ITS )
-         print *,'after solving:',p
+         ewrite(3,*)'after solving:',p
 
        if(.true.) then
          resid_dg=rhs
@@ -295,7 +295,7 @@ contains
 
          ! Course grid solver...
          DP_SMALL=0.0
-           PRINT *,'SOLVER'
+           EWRITE(3,*)'SOLVER'
          CALL SOLVER( CMC_SMALL(1:NCMC_SMALL), DP_SMALL, resid_cty, &
               FINDCMC_SMALL, COLCMC_SMALL(1:NCMC_SMALL), &
               option_path = '/material_phase[0]/scalar_field::Pressure')
@@ -353,9 +353,9 @@ contains
       do cty_nod=2,x_nonods+1
          FINDCMC_small_MX(cty_nod)=FINDCMC_small_MX(cty_nod-1)+mx_NODS_ROW_SMALL(cty_nod-1)
       end do
-       print *,'MAP_DG2CTY:',MAP_DG2CTY
-       print *,'mx_NODS_ROW_SMALL:',mx_NODS_ROW_SMALL
-       print *,'FINDCMC_small_MX:',FINDCMC_small_MX
+       ewrite(3,*)'MAP_DG2CTY:',MAP_DG2CTY
+       ewrite(3,*)'mx_NODS_ROW_SMALL:',mx_NODS_ROW_SMALL
+       ewrite(3,*)'FINDCMC_small_MX:',FINDCMC_small_MX
 
       NODS_ROW_SMALL=0
       COLCMC_SMALL=0
@@ -374,12 +374,12 @@ contains
                NODS_ROW_SMALL(cty_nod)=NODS_ROW_SMALL(cty_nod)+1
                COLCMC_SMALL(FINDCMC_small_mx(CTY_NOD)+NODS_ROW_SMALL(cty_nod)-1)=jcolcmc_small
           if(cty_nod==1) then
-               print *,'dg_nod,cty_nod,jcolcmc_small:',dg_nod,cty_nod,jcolcmc_small
+               ewrite(3,*)'dg_nod,cty_nod,jcolcmc_small:',dg_nod,cty_nod,jcolcmc_small
           endif
             endif             
          END DO
       END DO
-      print *,'NODS_ROW_SMALL:',NODS_ROW_SMALL
+      ewrite(3,*)'NODS_ROW_SMALL:',NODS_ROW_SMALL
 
       FINDCMC_small(1)=1
       do cty_nod=2,x_nonods+1
@@ -399,10 +399,10 @@ contains
       END DO
 ! Put in assending coln order in each row...
       do cty_nod=1,x_nonods
-         print *,'cty_nod,FINDCMC_small(cty_nod),FINDCMC_small(cty_nod+1)-1:', &
+         ewrite(3,*)'cty_nod,FINDCMC_small(cty_nod),FINDCMC_small(cty_nod+1)-1:', &
                   cty_nod,FINDCMC_small(cty_nod),FINDCMC_small(cty_nod+1)-1
          call ibubble2(COLCMC_SMALL(FINDCMC_small(cty_nod):FINDCMC_small(cty_nod+1)-1))
-         print *,'COLCMC_SMALL(FINDCMC_small(cty_nod):FINDCMC_small(cty_nod+1)-1):', &
+         ewrite(3,*)'COLCMC_SMALL(FINDCMC_small(cty_nod):FINDCMC_small(cty_nod+1)-1):', &
                   COLCMC_SMALL(FINDCMC_small(cty_nod):FINDCMC_small(cty_nod+1)-1)
       end do
 ! Calculate MIDCMC_SMALL...
@@ -426,7 +426,7 @@ contains
 
       nvec = size(ivec)
 
-!        print *,'before ivec:',ivec
+!        ewrite(3,*)'before ivec:',ivec
 
       do j = 1, nvec
          do i = 1, nvec - 1
@@ -437,7 +437,7 @@ contains
             end if
          end do
       end do
-!        print *,'after ivec:',ivec
+!        ewrite(3,*)'after ivec:',ivec
       return
     end subroutine ibubble2
 

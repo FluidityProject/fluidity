@@ -2007,29 +2007,29 @@
 
       !if(QUAD_OVER_WHOLE_ELE) then
       if(.false.) then
-         print *,'ndim, cv_ele_type,cv_ngi, cv_nloc, u_nloc:', &
+         ewrite(3,*)'ndim, cv_ele_type,cv_ngi, cv_nloc, u_nloc:', &
               ndim, cv_ele_type,cv_ngi, cv_nloc, u_nloc
-         print *,'cvweight:',cvweight
-         print *,'cvfen:',cvfen
-         print *,'cvfenlx:',cvfenlx
-         print *,'cvfenly:',cvfenly
-         print *,'cvfenlz:',cvfenlz 
-         print *,'ufen:',ufen
-         print *,'ufenlx:',ufenlx
-         print *,'ufenly:',ufenly
-         print *,'ufenlz:',ufenlz
-         print *,'sbcvngi=',sbcvngi
-         print *,'sbcvfen:',sbcvfen
-         print *,'sbcvfenslx:',sbcvfenslx
-         print *,'sbcvfensly:',sbcvfensly
-         print *,'sbcvfeweigh:',sbcvfeweigh
-         print *,'sbufen:',sbufen
-         print *,'sbufenslx:',sbufenslx
-         print *,'sbufensly:',sbufensly
-         print *,'nface:',nface
-         print *,'cv_sloclist:', cv_sloclist
-         print *,'u_sloclist:',u_sloclist
-         print *,'cv_snloc, u_snloc:',cv_snloc, u_snloc
+         ewrite(3,*)'cvweight:',cvweight
+         ewrite(3,*)'cvfen:',cvfen
+         ewrite(3,*)'cvfenlx:',cvfenlx
+         ewrite(3,*)'cvfenly:',cvfenly
+         ewrite(3,*)'cvfenlz:',cvfenlz 
+         ewrite(3,*)'ufen:',ufen
+         ewrite(3,*)'ufenlx:',ufenlx
+         ewrite(3,*)'ufenly:',ufenly
+         ewrite(3,*)'ufenlz:',ufenlz
+         ewrite(3,*)'sbcvngi=',sbcvngi
+         ewrite(3,*)'sbcvfen:',sbcvfen
+         ewrite(3,*)'sbcvfenslx:',sbcvfenslx
+         ewrite(3,*)'sbcvfensly:',sbcvfensly
+         ewrite(3,*)'sbcvfeweigh:',sbcvfeweigh
+         ewrite(3,*)'sbufen:',sbufen
+         ewrite(3,*)'sbufenslx:',sbufenslx
+         ewrite(3,*)'sbufensly:',sbufensly
+         ewrite(3,*)'nface:',nface
+         ewrite(3,*)'cv_sloclist:', cv_sloclist
+         ewrite(3,*)'u_sloclist:',u_sloclist
+         ewrite(3,*)'cv_snloc, u_snloc:',cv_snloc, u_snloc
          stop 45
       endif
 

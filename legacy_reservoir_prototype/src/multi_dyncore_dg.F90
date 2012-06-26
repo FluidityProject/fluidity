@@ -1837,10 +1837,10 @@
       !ewrite(3,*) 'FINELE with size,', size( FINELE ), ':', FINELE( 1 :  size( FINELE ) )
       !ewrite(3,*) 'COLELE with size,', size( COLELE ), ':', COLELE( 1 :  size( COLELE ) )
 
-      !print *,'UDEN=',uden
-      !print *,'UDENOLD=',udenold
-      !print *,'u_absorb=',u_absorb
-      !print *,'u_abs_stab=',u_abs_stab
+      !ewrite(3,*)'UDEN=',uden
+      !ewrite(3,*)'UDENOLD=',udenold
+      !ewrite(3,*)'u_absorb=',u_absorb
+      !ewrite(3,*)'u_abs_stab=',u_abs_stab
       !stop 2921
 
       is_overlapping = .false.
@@ -2157,8 +2157,8 @@
            FINDGPTS, COLGPTS, NCOLGPTS, &
            SELE_OVERLAP_SCALE, QUAD_OVER_WHOLE_ELE ) 
 
-      !print *,'cvn:',cvn
-      !print *,'cvn_short:',cvn_short
+      !ewrite(3,*)'cvn:',cvn
+      !ewrite(3,*)'cvn_short:',cvn_short
       !stop 768
 
 
@@ -2196,7 +2196,7 @@
          VOLUME=VOLUME/REAL(NLEV)
          MASS_ELE(ELE)=VOLUME
          ewrite(3,*) 'Leaving detnlxr_plus_u'
-         print *,'volume=',volume
+         ewrite(3,*)'volume=',volume
          !stop 2892
 
          UD = 0.0
@@ -2922,7 +2922,7 @@
                XSL(CV_SILOC)=X(X_INOD)
                YSL(CV_SILOC)=Y(X_INOD)
                ZSL(CV_SILOC)=Z(X_INOD)
-               !print *,'CV_SILOC,x,y,z:',CV_SILOC,XSL(CV_SILOC),ySL(CV_SILOC),zSL(CV_SILOC)
+               !ewrite(3,*)'CV_SILOC,x,y,z:',CV_SILOC,XSL(CV_SILOC),ySL(CV_SILOC),zSL(CV_SILOC)
             END DO
             CALL DGSDETNXLOC2(CV_SNLOC,SBCVNGI, &
                  XSL,YSL,ZSL, &
@@ -2930,7 +2930,7 @@
                  (NDIM==1), (NDIM==3), (NDIM==-2), &
                  SNORMXN,SNORMYN,SNORMZN, &
                  NORMX,NORMY,NORMZ)
-            !print *,'sarea=',sarea
+            !ewrite(3,*)'sarea=',sarea
             !stop 8821
 
             If_on_boundary_domain: IF(SELE /= 0) THEN
@@ -3582,11 +3582,11 @@
 !      END DO Loop_Elements
       END DO Loop_Elements2
 
-      print *,'p=',p
-      print *,'U_RHS:',U_RHS
+      ewrite(3,*)'p=',p
+      ewrite(3,*)'U_RHS:',U_RHS
 !      stop 222
       !do i=1, ndim*nphase*u_nonods
-      !   print *, i, sum(DGM_PHA(FINDGM_PHA(i):FINDGM_PHA(i+1)-1))
+      !   ewrite(3,*) i, sum(DGM_PHA(FINDGM_PHA(i):FINDGM_PHA(i+1)-1))
       !end do
 
       !EWRITE(3,*)'-STOTEL, U_SNLOC, P_SNLOC:', STOTEL, U_SNLOC, P_SNLOC
@@ -3596,11 +3596,11 @@
       !stop 242
 
       !do i=1,ncolc
-      !  print *,'i,c:',i,c(i)
+      !  ewrite(3,*)'i,c:',i,c(i)
       !end do
-      !print *,'U_RHS:',u_rhs
-      !print *,'PIVIT_MAT:', PIVIT_MAT
-      !print *,'JUST_BL_DIAG_MAT:',JUST_BL_DIAG_MAT
+      !ewrite(3,*)'U_RHS:',u_rhs
+      !ewrite(3,*)'PIVIT_MAT:', PIVIT_MAT
+      !ewrite(3,*)'JUST_BL_DIAG_MAT:',JUST_BL_DIAG_MAT
       !stop 27
 
       DEALLOCATE( DETWEI )

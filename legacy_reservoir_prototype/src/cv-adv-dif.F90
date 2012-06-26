@@ -624,10 +624,10 @@
 
       !sum=0.0
       !DO ELE = 1, TOTELE
-      !   print *, ele, mass_ele(ele)
+      !   ewrite(3,*) ele, mass_ele(ele)
       !   sum=sum+mass_ele(ele)
       !end do
-      !print *,'sum(mass_ele):',sum
+      !ewrite(3,*)'sum(mass_ele):',sum
       !stop 221
 
       ! For each node, find the largest and smallest value of T and 
@@ -1331,14 +1331,14 @@
       !ewrite(3,*) 'cv_rhs:', cv_rhs
       !ewrite(3,*) 'ct_rhs:', ct_rhs
       if( .false. .and. (getct)) then
-         print *,'ct(1:ncolct);',ct(1:ncolct)
-         print *,'ct(1+ncolct:2*ncolct);',ct(1+ncolct:2*ncolct)
+         ewrite(3,*)'ct(1:ncolct);',ct(1:ncolct)
+         ewrite(3,*)'ct(1+ncolct:2*ncolct);',ct(1+ncolct:2*ncolct)
          stop 838
       endif
       ! if( (thermal) .and. (.not.getct)) then
 
       if (.false.) then
-         print *,'cv_rhs:',cv_rhs
+         ewrite(3,*)'cv_rhs:',cv_rhs
          stop 3737
       endif
       !ewrite(3,*) '----------sub cv_assemb--------'
@@ -1360,9 +1360,9 @@
          END DO
          CALL CT_MULT(CT_RHS, DU, DV, DW, CV_NONODS, U_NONODS, NDIM, NPHASE, &
               CT, NCOLCT, FINDCT, COLCT)
-         print *,'ct_rhs:',ct_rhs
-         !print *, 'du:', du
-         !print *, 'dv:', dv
+         ewrite(3,*)'ct_rhs:',ct_rhs
+         !ewrite(3,*) 'du:', du
+         !ewrite(3,*) 'dv:', dv
 
          deallocate(du,dv,dw)
          stop 666
@@ -5887,7 +5887,7 @@ end if
                         T2OLDMIN( CV_INOD_IPHA ) = SUF_T2_BC( SUF_CV_SI_IPHA )
                         T2OLDMIN_NOD( CV_INOD_IPHA ) =  CV_INOD_IPHA
                      ENDIF
-                     !print*, 'T2:',TMAX( CV_INOD_IPHA ), T2MIN( CV_INOD_IPHA ), T2OLDMAX( CV_INOD_IPHA ) , T2OLDMIN( CV_INOD_IPHA )
+                     !ewrite(3,*) 'T2:',TMAX( CV_INOD_IPHA ), T2MIN( CV_INOD_IPHA ), T2OLDMAX( CV_INOD_IPHA ) , T2OLDMIN( CV_INOD_IPHA )
                   ENDIF
                ENDIF
                ! DEN: 
@@ -5911,7 +5911,7 @@ end if
                      DENOLDMIN( CV_INOD_IPHA ) = SUF_D_BC( SUF_CV_SI_IPHA )
                      DENOLDMIN_NOD( CV_INOD_IPHA ) =  CV_INOD_IPHA
                   ENDIF
-                  !print*, 'Dens:',DENMAX( CV_INOD_IPHA ), DENMIN( CV_INOD_IPHA ), DENOLDMAX( CV_INOD_IPHA ),DENOLDMIN( CV_INOD_IPHA )
+                  !ewrite(3,*) 'Dens:',DENMAX( CV_INOD_IPHA ), DENMIN( CV_INOD_IPHA ), DENOLDMAX( CV_INOD_IPHA ),DENOLDMIN( CV_INOD_IPHA )
                ENDIF
             END DO
 
@@ -5925,7 +5925,7 @@ end if
 
          DO IPHASE = 1,NPHASE
              CV_NODI_IPHA = CV_NODI + ( IPHASE - 1 ) * CV_NONODS
-             !print *,'CV_NODI, IPHASE, CV_NODI_IPHA=',CV_NODI, IPHASE, CV_NODI_IPHA
+             !ewrite(3,*)'CV_NODI, IPHASE, CV_NODI_IPHA=',CV_NODI, IPHASE, CV_NODI_IPHA
              TMAX_2ND_MC(CV_NODI_IPHA)  =-1.E+10
              TMIN_2ND_MC( CV_NODI_IPHA )=+1.E+10
              TOLDMAX_2ND_MC( CV_NODI_IPHA )=-1.E+10
