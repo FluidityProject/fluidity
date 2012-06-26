@@ -6690,136 +6690,135 @@
 
 
    SUBROUTINE TR2or3DQU(NGI,NLOC,MLOC,&
-     &     M,MLX,MLY,MLZ,&
-     &     WEIGHT,N,NLX,NLY,NLZ,&
-     &     SNGI,SNLOC,SWEIGH,SN,SNLX,SNLY,&
-     &     SMLOC,&
-     &     SM,SMLX,SMLY,D3)
-!     This subroutine defines the shape functions M and N and their
-!     derivatives at the Gauss points for quadratic elements. 
-!     For 3-D FLOW. 
-      INTEGER SNGI,SNLOC,SMLOC,NLOC,MLOC,NGI
-      REAL SWEIGH(SNGI)
-      REAL SN(SNLOC,SNGI),SNLX(SNLOC,SNGI),SNLY(SNLOC,SNGI)
-      REAL SM(SMLOC,SNGI),SMLX(SMLOC,SNGI),SMLY(SMLOC,SNGI)
-      REAL M(MLOC,NGI),MLX(MLOC,NGI),MLY(MLOC,NGI),MLZ(MLOC,NGI)
-      REAL WEIGHT(NGI)
-      REAL N(NLOC,NGI),NLX(NLOC,NGI),NLY(NLOC,NGI),NLZ(NLOC,NGI)
-      LOGICAL D3
-! Local variables...
-      REAL RUB(500)
-      LOGICAL DD3,base_order
-      REAL L1(50),L2(50),L3(50),L4(50)
-      integer IQADRA,IPOLY
-! NB LXP(I) AND LYP(I) ARE THE LOCAL X AND Y COORDS OF NODAL POINT I
-        
-      ewrite(3,*) 'HERE 1 MLOC,NLOC,NGI=',MLOC,NLOC,NGI
-      ewrite(3,*) 'HERE 2'
+        &     M,MLX,MLY,MLZ,&
+        &     WEIGHT,N,NLX,NLY,NLZ,&
+        &     SNGI,SNLOC,SWEIGH,SN,SNLX,SNLY,&
+        &     SMLOC,&
+        &     SM,SMLX,SMLY,D3)
+     !     This subroutine defines the shape functions M and N and their
+     !     derivatives at the Gauss points for quadratic elements. 
+     !     For 3-D FLOW. 
+     INTEGER SNGI,SNLOC,SMLOC,NLOC,MLOC,NGI
+     REAL SWEIGH(SNGI)
+     REAL SN(SNLOC,SNGI),SNLX(SNLOC,SNGI),SNLY(SNLOC,SNGI)
+     REAL SM(SMLOC,SNGI),SMLX(SMLOC,SNGI),SMLY(SMLOC,SNGI)
+     REAL M(MLOC,NGI),MLX(MLOC,NGI),MLY(MLOC,NGI),MLZ(MLOC,NGI)
+     REAL WEIGHT(NGI)
+     REAL N(NLOC,NGI),NLX(NLOC,NGI),NLY(NLOC,NGI),NLZ(NLOC,NGI)
+     LOGICAL D3
+     ! Local variables...
+     REAL RUB(500)
+     LOGICAL DD3,base_order
+     REAL L1(50),L2(50),L3(50),L4(50)
+     integer IQADRA,IPOLY
+     ! NB LXP(I) AND LYP(I) ARE THE LOCAL X AND Y COORDS OF NODAL POINT I
 
-! Get the quadrature positions and weights for TRIANGLES or TETS...
-      DD3=D3
-      CALL TRIQUAold(L1, L2, L3, L4, WEIGHT, DD3,NGI)
-       ewrite(3,*)'l1:',l1(1:ngi)
-       ewrite(3,*)'l2:',l2(1:ngi)
-       ewrite(3,*)'l3:',l3(1:ngi)
-       if(d3) ewrite(3,*)'l4:',l4(1:ngi)
-       ewrite(3,*)'weight:',weight
-!       stop 2821
-!
+     ewrite(3,*) 'HERE 1 MLOC,NLOC,NGI=',MLOC,NLOC,NGI
+     ewrite(3,*) 'HERE 2'
 
-! Work out the shape functions and there derivatives...
-      CALL SHATRIold(L1, L2, L3, L4, WEIGHT, DD3,&
-     &              NLOC,NGI,&
-     &              N,NLX,NLY,NLZ)
-! re-arrange ordering for quadratic elements...
-        if(d3) then
-         if(nloc==10) then
-            base_order=.true.
-            if(base_order) then
-               ! order so that the 1st nodes are on the base...
+     ! Get the quadrature positions and weights for TRIANGLES or TETS...
+     DD3=D3
+     CALL TRIQUAold(L1, L2, L3, L4, WEIGHT, DD3,NGI)
+     !ewrite(3,*)'l1:',l1(1:ngi)
+     !ewrite(3,*)'l2:',l2(1:ngi)
+     !ewrite(3,*)'l3:',l3(1:ngi)
+     !if(d3) ewrite(3,*)'l4:',l4(1:ngi)
+     !ewrite(3,*)'weight:',weight
+     !stop 2821
+
+     ! Work out the shape functions and there derivatives...
+     CALL SHATRIold(L1, L2, L3, L4, WEIGHT, DD3,&
+          &              NLOC,NGI,&
+          &              N,NLX,NLY,NLZ)
+     ! re-arrange ordering for quadratic elements...
+     if(d3) then
+        if(nloc==10) then
+           base_order=.true.
+           if(base_order) then
+              ! order so that the 1st nodes are on the base...
               call base_order_tet(n,nloc,ngi)
               call base_order_tet(nlx,nloc,ngi)
               call base_order_tet(nly,nloc,ngi)
               call base_order_tet(nlz,nloc,ngi)
-            endif 
-          endif
-        else
-         if(nloc==6) then
-            base_order=.true.
-            if(base_order) then
-               ! order so that the 1st nodes are on the base...
+           endif
+        endif
+     else
+        if(nloc==6) then
+           base_order=.true.
+           if(base_order) then
+              ! order so that the 1st nodes are on the base...
               call base_order_tri(n,nloc,ngi)
               call base_order_tri(nlx,nloc,ngi)
               call base_order_tri(nly,nloc,ngi)
-            endif
-          endif
-        endif 
-       ewrite(3,*)'n::',n
-       ewrite(3,*)'nlx::',nlx
-       ewrite(3,*)'nly::',nly
-      CALL SHATRIold(L1, L2, L3, L4, WEIGHT, DD3,&
-     &              MLOC,NGI,&
-     &              M,MLX,MLY,MLZ) 
+           endif
+        endif
+     endif
+     ewrite(3,*)'n::',n
+     ewrite(3,*)'nlx::',nlx
+     ewrite(3,*)'nly::',nly
+     CALL SHATRIold(L1, L2, L3, L4, WEIGHT, DD3,&
+          MLOC,NGI,&
+          M,MLX,MLY,MLZ) 
 
-      IF(SNGI.GT.0) THEN
+     IF(SNGI.GT.0) THEN
 
         IF(D3) THEN
-      DD3=.FALSE.
-      CALL TRIQUAold(L1, L2, L3, L4, SWEIGH, DD3,SNGI)
+           DD3=.FALSE.
+           CALL TRIQUAold(L1, L2, L3, L4, SWEIGH, DD3,SNGI)
 
-! Work out the shape functions and there derivatives...
-      CALL SHATRIold(L1, L2, L3, L4, SWEIGH, DD3,&
-     &              SNLOC,SNGI,&
-     &              SN,SNLX,SNLY,RUB) 
-       if(snloc==6) then
-            base_order=.true.
-            if(base_order) then
-               ! order so that the 1st nodes are on the base...
-              call base_order_tri(sn,snloc,sngi)
-              call base_order_tri(snlx,snloc,sngi)
-              call base_order_tri(snly,snloc,sngi)
-            endif
-       endif
-      CALL SHATRIold(L1, L2, L3, L4, SWEIGH, DD3,&
-     &              SMLOC,NGI,&
-     &              SM,SMLX,SMLY,RUB) 
+           ! Work out the shape functions and there derivatives...
+           CALL SHATRIold(L1, L2, L3, L4, SWEIGH, DD3,&
+                              SNLOC,SNGI,&
+                              SN,SNLX,SNLY,RUB) 
+           if(snloc==6) then
+              base_order=.true.
+              if(base_order) then
+                 ! order so that the 1st nodes are on the base...
+                 call base_order_tri(sn,snloc,sngi)
+                 call base_order_tri(snlx,snloc,sngi)
+                 call base_order_tri(snly,snloc,sngi)
+              endif
+           endif
+           CALL SHATRIold(L1, L2, L3, L4, SWEIGH, DD3,&
+                              SMLOC,NGI,&
+                              SM,SMLX,SMLY,RUB) 
         ELSE
-        ewrite(3,*)'for surfaces SNGI,SNLOC,smloc:',SNGI,SNLOC,smloc
-! IQADRA=1 corresponds to Gaussian quadrature.
-         IQADRA=1
-! IPOLY=1 is for Lagrange polynomials.
-         IPOLY=1
+           ewrite(3,*)'for surfaces SNGI,SNLOC,smloc:',SNGI,SNLOC,smloc
+           ! IQADRA=1 corresponds to Gaussian quadrature.
+           IQADRA=1
+           ! IPOLY=1 is for Lagrange polynomials.
+           IPOLY=1
 
-          ewrite(3,*)'for sn IPOLY,IQADRA,SNGI,SNLOC:', &
-                          IPOLY,IQADRA,SNGI,SNLOC
-         CALL SPECTR(SNGI,SNLOC,0,&
-     &   RUB,SWEIGH,SN,SNLX,RUB,RUB,.FALSE.,.FALSE., IPOLY,IQADRA)
-          ewrite(3,*)'+++for sn SWEIGH:',SWEIGH
+           ewrite(3,*)'for sn IPOLY,IQADRA,SNGI,SNLOC:', &
+                IPOLY,IQADRA,SNGI,SNLOC
+           CALL SPECTR(SNGI,SNLOC,0,&
+                   RUB,SWEIGH,SN,SNLX,RUB,RUB,.FALSE.,.FALSE., IPOLY,IQADRA)
+           ewrite(3,*)'+++for sn SWEIGH:',SWEIGH
 
-       if(.false.) then
-          ewrite(3,*)'for sm:'
-         CALL SPECTR(SNGI,SMLOC,0,&
-     &   RUB,SWEIGH,SM,SMLX,RUB,RUB,.FALSE.,.FALSE., IPOLY,IQADRA)
-       endif
+           if(.false.) then
+              ewrite(3,*)'for sm:'
+              CALL SPECTR(SNGI,SMLOC,0,&
+                      RUB,SWEIGH,SM,SMLX,RUB,RUB,.FALSE.,.FALSE., IPOLY,IQADRA)
+           endif
         ENDIF
 
-      ENDIF
-! the weights need to sum to 0.5 in 2D triangles and 1./6. in 3D
-      IF(D3) THEN
-!        WEIGHT=(1./6.)*WEIGHT
+     ENDIF
+     ! the weights need to sum to 0.5 in 2D triangles and 1./6. in 3D
+     IF(D3) THEN
+        !        WEIGHT=(1./6.)*WEIGHT
         WEIGHT=1.*WEIGHT
         SWEIGH=0.5*SWEIGH
-      ELSE ! 2d...
+     ELSE ! 2d...
         WEIGHT=0.5*WEIGHT
-      ENDIF
+     ENDIF
 
    end subroutine tr2or3dqu
 
 
       
    SUBROUTINE TR2D(LOWQUA,NGI,NLOC,MLOC,&
-     &     M,WEIGHT,N,NLX,NLY, &
-     &     SNGI,SNLOC,SWEIGH,SN,SNLX )
+         M,WEIGHT,N,NLX,NLY, &
+          SNGI,SNLOC,SWEIGH,SN,SNLX )
 !     This subroutine defines the shape functions M and N and their
 !     derivatives at the Gauss points
 !     For 3-D FLOW. 
@@ -6913,8 +6912,8 @@
 
 
    SUBROUTINE TR3D(LOWQUA,NGI,NLOC,MLOC,&
-     &     M,WEIGHT,N,NLX,NLY,NLZ,&
-     &     SNGI,SNLOC,SWEIGH,SN,SNLX,SNLY)
+          M,WEIGHT,N,NLX,NLY,NLZ,&
+          SNGI,SNLOC,SWEIGH,SN,SNLX,SNLY)
 !     This subroutine defines the shape functions M and N and their
 !     derivatives at the Gauss points
 !     For 3-D FLOW.
@@ -6976,8 +6975,8 @@
 
       IF(SNGI.GT.0) THEN
          CALL TR2D(.FALSE.,SNGI,SNLOC,SNLOC,&
-     &      RUB,SWEIGH,SN,SNLX,SNLY, &
-     &      0,0,RUB,RUB,RUB )
+           RUB,SWEIGH,SN,SNLX,SNLY, &
+           0,0,RUB,RUB,RUB )
       ENDIF 
 
       do I=1,NGI
@@ -6992,217 +6991,217 @@
 
 !
 !
-        SUBROUTINE SHATRIold(L1, L2, L3, L4, WEIGHT, D3, &
-     &               NLOC,NGI,  &
-     &               N,NLX,NLY,NLZ) 
-! Work out the shape functions and there derivatives...
-        IMPLICIT NONE
-        INTEGER NLOC,NGI
-        LOGICAL D3
-        REAL L1(NGI), L2(NGI), L3(NGI), L4(NGI)
-        REAL WEIGHT(NGI)
-        REAL N(NLOC,NGI),NLX(NLOC,NGI),NLY(NLOC,NGI),NLZ(NLOC,NGI)
-! Local variables...
-        INTEGER GI
-!
-        IF(.NOT.D3) THEN
-! Assume a triangle...
-          IF((NLOC.EQ.6).OR.(NLOC.EQ.7)) THEN
-        DO 10 GI=1,NGI
-         N(1,GI)=(2.*L1(GI)-1.)*L1(GI)
-         N(2,GI)=(2.*L2(GI)-1.)*L2(GI)
-         N(3,GI)=(2.*L3(GI)-1.)*L3(GI)
-!
-         N(4,GI)=4.*L1(GI)*L2(GI)
-         N(5,GI)=4.*L2(GI)*L3(GI)
-         N(6,GI)=4.*L1(GI)*L3(GI)
+   SUBROUTINE SHATRIold(L1, L2, L3, L4, WEIGHT, D3, &
+        NLOC,NGI,  &
+        N,NLX,NLY,NLZ) 
+     ! Work out the shape functions and there derivatives...
+     IMPLICIT NONE
+     INTEGER NLOC,NGI
+     LOGICAL D3
+     REAL L1(NGI), L2(NGI), L3(NGI), L4(NGI)
+     REAL WEIGHT(NGI)
+     REAL N(NLOC,NGI),NLX(NLOC,NGI),NLY(NLOC,NGI),NLZ(NLOC,NGI)
+     ! Local variables...
+     INTEGER GI
+     !
+     IF(.NOT.D3) THEN
+        ! Assume a triangle...
+        IF((NLOC.EQ.6).OR.(NLOC.EQ.7)) THEN
+           DO 10 GI=1,NGI
+              N(1,GI)=(2.*L1(GI)-1.)*L1(GI)
+              N(2,GI)=(2.*L2(GI)-1.)*L2(GI)
+              N(3,GI)=(2.*L3(GI)-1.)*L3(GI)
+              !
+              N(4,GI)=4.*L1(GI)*L2(GI)
+              N(5,GI)=4.*L2(GI)*L3(GI)
+              N(6,GI)=4.*L1(GI)*L3(GI)
 
-!
-! nb L1+L2+L3+L4=1
-! x-derivative...
-         NLX(1,GI)=4.*L1(GI)-1.
-         NLX(2,GI)=0.
-         NLX(3,GI)=-4.*(1.-L2(GI))+4.*L1(GI) + 1.
-!
-         NLX(4,GI)=4.*L2(GI)
-         NLX(5,GI)=-4.*L2(GI)
-         NLX(6,GI)=4.*(1.-L2(GI))-8.*L1(GI)
-!
-! y-derivative...
-         NLY(1,GI)=0.
-         NLY(2,GI)=4.*L2(GI)-1.0
-         NLY(3,GI)=-4.*(1.-L1(GI))+4.*L2(GI) + 1.
-!
-         NLY(4,GI)=4.*L1(GI)
-         NLY(5,GI)=4.*(1.-L1(GI))-8.*L2(GI)
-         NLY(6,GI)=-4.*L1(GI)
-           IF(NLOC.EQ.7) THEN
-! Bubble function...
-         N(7,GI)  =L1(GI)*L2(GI)*L3(GI)
-         NLX(7,GI)=L2(GI)*(1.-L2(GI))-2.*L1(GI)*L2(GI)
-         NLY(7,GI)=L1(GI)*(1.-L1(GI))-2.*L1(GI)*L2(GI)
+              !
+              ! nb L1+L2+L3+L4=1
+              ! x-derivative...
+              NLX(1,GI)=4.*L1(GI)-1.
+              NLX(2,GI)=0.
+              NLX(3,GI)=-4.*(1.-L2(GI))+4.*L1(GI) + 1.
+              !
+              NLX(4,GI)=4.*L2(GI)
+              NLX(5,GI)=-4.*L2(GI)
+              NLX(6,GI)=4.*(1.-L2(GI))-8.*L1(GI)
+              !
+              ! y-derivative...
+              NLY(1,GI)=0.
+              NLY(2,GI)=4.*L2(GI)-1.0
+              NLY(3,GI)=-4.*(1.-L1(GI))+4.*L2(GI) + 1.
+              !
+              NLY(4,GI)=4.*L1(GI)
+              NLY(5,GI)=4.*(1.-L1(GI))-8.*L2(GI)
+              NLY(6,GI)=-4.*L1(GI)
+              IF(NLOC.EQ.7) THEN
+                 ! Bubble function...
+                 N(7,GI)  =L1(GI)*L2(GI)*L3(GI)
+                 NLX(7,GI)=L2(GI)*(1.-L2(GI))-2.*L1(GI)*L2(GI)
+                 NLY(7,GI)=L1(GI)*(1.-L1(GI))-2.*L1(GI)*L2(GI)
+              ENDIF
+10            CONTINUE
+              ! ENDOF IF(NLOC.EQ.6) THEN...
            ENDIF
-10     CONTINUE
-! ENDOF IF(NLOC.EQ.6) THEN...
-        ENDIF
-!
-         IF((NLOC.EQ.3).OR.(NLOC.EQ.4)) THEN
-           DO 20 GI=1,NGI
-             N(1,GI)=L1(GI)
-             N(2,GI)=L2(GI)
-             N(3,GI)=L3(GI)
-!
-             NLX(1,GI)=1.0
-             NLX(2,GI)=0.0
-             NLX(3,GI)=-1.0
-!
-             NLY(1,GI)=0.0
-             NLY(2,GI)=1.0
-             NLY(3,GI)=-1.0
-           IF(NLOC.EQ.4) THEN
-! Bubble function...
-             N(4,GI)  =L1(GI)*L2(GI)*L3(GI)
-             NLX(4,GI)=L2(GI)*(1.-L2(GI))-2.*L1(GI)*L2(GI)
-             NLY(4,GI)=L1(GI)*(1.-L1(GI))-2.*L1(GI)*L2(GI)
-           ENDIF
-20         CONTINUE
-         ENDIF
-!
-         IF(NLOC.EQ.1) THEN
-           DO 30 GI=1,NGI
-             N(1,GI)=1.0
-             NLX(1,GI)=0.0
-             NLY(1,GI)=0.0
-30         CONTINUE
-         ENDIF
-!
-! ENDOF IF(.NOT.D3) THEN
-       ENDIF
-!
-!
-       IF(D3) THEN
-! Assume a tet...
-! This is for 5 point quadrature. 
-        IF((NLOC.EQ.10).OR.(NLOC.EQ.11)) THEN
-        DO 40 GI=1,NGI
-!         ewrite(3,*)'gi,L1(GI),L2(GI),L3(GI),L4(GI):',gi,L1(GI),L2(GI),L3(GI),L4(GI)
-         N(1,GI)=(2.*L1(GI)-1.)*L1(GI)
-         N(3,GI)=(2.*L2(GI)-1.)*L2(GI)
-         N(5,GI)=(2.*L3(GI)-1.)*L3(GI)
-         N(10,GI)=(2.*L4(GI)-1.)*L4(GI)
+           !
+           IF((NLOC.EQ.3).OR.(NLOC.EQ.4)) THEN
+              DO 20 GI=1,NGI
+                 N(1,GI)=L1(GI)
+                 N(2,GI)=L2(GI)
+                 N(3,GI)=L3(GI)
+                 !
+                 NLX(1,GI)=1.0
+                 NLX(2,GI)=0.0
+                 NLX(3,GI)=-1.0
+                 !
+                 NLY(1,GI)=0.0
+                 NLY(2,GI)=1.0
+                 NLY(3,GI)=-1.0
+                 IF(NLOC.EQ.4) THEN
+                    ! Bubble function...
+                    N(4,GI)  =L1(GI)*L2(GI)*L3(GI)
+                    NLX(4,GI)=L2(GI)*(1.-L2(GI))-2.*L1(GI)*L2(GI)
+                    NLY(4,GI)=L1(GI)*(1.-L1(GI))-2.*L1(GI)*L2(GI)
+                 ENDIF
+20               CONTINUE
+              ENDIF
+              !
+              IF(NLOC.EQ.1) THEN
+                 DO 30 GI=1,NGI
+                    N(1,GI)=1.0
+                    NLX(1,GI)=0.0
+                    NLY(1,GI)=0.0
+30                  CONTINUE
+                 ENDIF
+                 !
+                 ! ENDOF IF(.NOT.D3) THEN
+              ENDIF
+              !
+              !
+              IF(D3) THEN
+                 ! Assume a tet...
+                 ! This is for 5 point quadrature. 
+                 IF((NLOC.EQ.10).OR.(NLOC.EQ.11)) THEN
+                    DO 40 GI=1,NGI
+                       !         ewrite(3,*)'gi,L1(GI),L2(GI),L3(GI),L4(GI):',gi,L1(GI),L2(GI),L3(GI),L4(GI)
+                       N(1,GI)=(2.*L1(GI)-1.)*L1(GI)
+                       N(3,GI)=(2.*L2(GI)-1.)*L2(GI)
+                       N(5,GI)=(2.*L3(GI)-1.)*L3(GI)
+                       N(10,GI)=(2.*L4(GI)-1.)*L4(GI)
 
-      if(L1(GI).gt.-1.93) ewrite(3,*)'gi,L1(GI), L2(GI), L3(GI), L4(GI),N(1,GI):', &
-                                  gi,L1(GI), L2(GI), L3(GI), L4(GI),N(1,GI)
-!
-!
-         N(2,GI)=4.*L1(GI)*L2(GI)
-         N(6,GI)=4.*L1(GI)*L3(GI)
-         N(7,GI)=4.*L1(GI)*L4(GI)
-!
-         N(4,GI) =4.*L2(GI)*L3(GI)
-         N(9,GI) =4.*L3(GI)*L4(GI)
-         N(8,GI)=4.*L2(GI)*L4(GI)
-! nb L1+L2+L3+L4=1
-! x-derivative...
-         NLX(1,GI)=4.*L1(GI)-1.
-         NLX(3,GI)=0.
-         NLX(5,GI)=0.
-         NLX(10,GI)=-4.*(1.-L2(GI)-L3(GI))+4.*L1(GI) + 1.
-      if(L1(GI).gt.-1.93) ewrite(3,*)'Nlx(1,GI):', &
-                                  Nlx(1,GI)
-!
-         NLX(2,GI)=4.*L2(GI)
-         NLX(6,GI)=4.*L3(GI)
-         NLX(7,GI)=4.*(L4(GI)-L1(GI))
-!
-         NLX(4,GI) =0.
-         NLX(9,GI) =-4.*L3(GI)
-         NLX(8,GI)=-4.*L2(GI)
-!
-! y-derivative...
-         NLY(1,GI)=0.
-         NLY(3,GI)=4.*L2(GI)-1.0
-         NLY(5,GI)=0.
-         NLY(10,GI)=-4.*(1.-L1(GI)-L3(GI))+4.*L2(GI) + 1.
-!
-         NLY(2,GI)=4.*L1(GI)
-         NLY(6,GI)=0.
-         NLY(7,GI)=-4.*L1(GI)
-!
-         NLY(4,GI) =4.*L3(GI)
-         NLY(9,GI) =-4.*L3(GI)
-         NLY(8,GI)=4.*(1-L1(GI)-L3(GI))-8.*L2(GI)
-!
-! z-derivative...
-         NLZ(1,GI)=0.
-         NLZ(3,GI)=0.
-         NLZ(5,GI)=4.*L3(GI)-1.
-         NLZ(10,GI)=-4.*(1.-L1(GI)-L2(GI))+4.*L3(GI) + 1.
-!
-         NLZ(2,GI)=0.
-         NLZ(6,GI)=4.*L1(GI)
-         NLZ(7,GI)=-4.*L1(GI)
-!
-         NLZ(4,GI) =4.*L2(GI)
-         NLZ(9,GI) =4.*(1.-L1(GI)-L2(GI))-8.*L3(GI)
-         NLZ(8,GI)=-4.*L2(GI)
-           IF(NLOC.EQ.11) THEN
-! Bubble function...
-             N(11,GI)  =L1(GI)*L2(GI)*L3(GI)*L4(GI)
-             NLX(11,GI)=L2(GI)*L3(GI)*(1.-L2(GI)-L3(GI))-2.*L1(GI)*L2(GI)*L3(GI)
-             NLY(11,GI)=L1(GI)*L3(GI)*(1.-L1(GI)-L3(GI))-2.*L1(GI)*L2(GI)*L3(GI)
-             NLZ(11,GI)=L1(GI)*L2(GI)*(1.-L1(GI)-L2(GI))-2.*L1(GI)*L2(GI)*L3(GI)
-           ENDIF
-!
-40     CONTINUE
-! ENDOF IF(NLOC.EQ.10) THEN...
-       ENDIF 
-!
-       IF((NLOC.EQ.4).OR.(NLOC.EQ.5)) THEN
-         DO 50 GI=1,NGI
-           N(1,GI)=L1(GI)
-           N(2,GI)=L2(GI)
-           N(3,GI)=L3(GI)
-           N(4,GI)=L4(GI)
-!
-           NLX(1,GI)=1.0
-           NLX(2,GI)=0
-           NLX(3,GI)=0
-           NLX(4,GI)=-1.0
-!
-           NLY(1,GI)=0.0
-           NLY(2,GI)=1.0
-           NLY(3,GI)=0.0
-           NLY(4,GI)=-1.0
-!
-           NLZ(1,GI)=0.0
-           NLZ(2,GI)=0.0
-           NLZ(3,GI)=1.0
-           NLZ(4,GI)=-1.0
-           IF(NLOC.EQ.5) THEN
-! Bubble function...
-             N(5,GI)  =L1(GI)*L2(GI)*L3(GI)*L4(GI)
-             NLX(5,GI)=L2(GI)*L3(GI)*(1.-L2(GI)-L3(GI))-2.*L1(GI)*L2(GI)*L3(GI)
-             NLY(5,GI)=L1(GI)*L3(GI)*(1.-L1(GI)-L3(GI))-2.*L1(GI)*L2(GI)*L3(GI)
-             NLZ(5,GI)=L1(GI)*L2(GI)*(1.-L1(GI)-L2(GI))-2.*L1(GI)*L2(GI)*L3(GI)
-           ENDIF
-50       CONTINUE 
-       ENDIF
-!
-       IF(NLOC.EQ.1) THEN
-         DO 60 GI=1,NGI
-           N(1,GI)=1.0
-           NLX(1,GI)=0.0
-           NLY(1,GI)=0.0
-           NLZ(1,GI)=0.0
-60       CONTINUE 
-       ENDIF
-!
-! ENDOF IF(D3) THEN...
-       ENDIF
-!
-       RETURN
-       END SUBROUTINE SHATRIold
+                       !if(L1(GI).gt.-1.93) ewrite(3,*)'gi,L1(GI), L2(GI), L3(GI), L4(GI),N(1,GI):', &
+                       !                            gi,L1(GI), L2(GI), L3(GI), L4(GI),N(1,GI)
+                       !
+                       !
+                       N(2,GI)=4.*L1(GI)*L2(GI)
+                       N(6,GI)=4.*L1(GI)*L3(GI)
+                       N(7,GI)=4.*L1(GI)*L4(GI)
+                       !
+                       N(4,GI) =4.*L2(GI)*L3(GI)
+                       N(9,GI) =4.*L3(GI)*L4(GI)
+                       N(8,GI)=4.*L2(GI)*L4(GI)
+                       ! nb L1+L2+L3+L4=1
+                       ! x-derivative...
+                       NLX(1,GI)=4.*L1(GI)-1.
+                       NLX(3,GI)=0.
+                       NLX(5,GI)=0.
+                       NLX(10,GI)=-4.*(1.-L2(GI)-L3(GI))+4.*L1(GI) + 1.
+                       !if(L1(GI).gt.-1.93) ewrite(3,*)'Nlx(1,GI):', &
+                       !     Nlx(1,GI)
+                       !
+                       NLX(2,GI)=4.*L2(GI)
+                       NLX(6,GI)=4.*L3(GI)
+                       NLX(7,GI)=4.*(L4(GI)-L1(GI))
+                       !
+                       NLX(4,GI) =0.
+                       NLX(9,GI) =-4.*L3(GI)
+                       NLX(8,GI)=-4.*L2(GI)
+                       !
+                       ! y-derivative...
+                       NLY(1,GI)=0.
+                       NLY(3,GI)=4.*L2(GI)-1.0
+                       NLY(5,GI)=0.
+                       NLY(10,GI)=-4.*(1.-L1(GI)-L3(GI))+4.*L2(GI) + 1.
+                       !
+                       NLY(2,GI)=4.*L1(GI)
+                       NLY(6,GI)=0.
+                       NLY(7,GI)=-4.*L1(GI)
+                       !
+                       NLY(4,GI) =4.*L3(GI)
+                       NLY(9,GI) =-4.*L3(GI)
+                       NLY(8,GI)=4.*(1-L1(GI)-L3(GI))-8.*L2(GI)
+                       !
+                       ! z-derivative...
+                       NLZ(1,GI)=0.
+                       NLZ(3,GI)=0.
+                       NLZ(5,GI)=4.*L3(GI)-1.
+                       NLZ(10,GI)=-4.*(1.-L1(GI)-L2(GI))+4.*L3(GI) + 1.
+                       !
+                       NLZ(2,GI)=0.
+                       NLZ(6,GI)=4.*L1(GI)
+                       NLZ(7,GI)=-4.*L1(GI)
+                       !
+                       NLZ(4,GI) =4.*L2(GI)
+                       NLZ(9,GI) =4.*(1.-L1(GI)-L2(GI))-8.*L3(GI)
+                       NLZ(8,GI)=-4.*L2(GI)
+                       IF(NLOC.EQ.11) THEN
+                          ! Bubble function...
+                          N(11,GI)  =L1(GI)*L2(GI)*L3(GI)*L4(GI)
+                          NLX(11,GI)=L2(GI)*L3(GI)*(1.-L2(GI)-L3(GI))-2.*L1(GI)*L2(GI)*L3(GI)
+                          NLY(11,GI)=L1(GI)*L3(GI)*(1.-L1(GI)-L3(GI))-2.*L1(GI)*L2(GI)*L3(GI)
+                          NLZ(11,GI)=L1(GI)*L2(GI)*(1.-L1(GI)-L2(GI))-2.*L1(GI)*L2(GI)*L3(GI)
+                       ENDIF
+                       !
+40                     CONTINUE
+                       ! ENDOF IF(NLOC.EQ.10) THEN...
+                    ENDIF 
+                    !
+                    IF((NLOC.EQ.4).OR.(NLOC.EQ.5)) THEN
+                       DO 50 GI=1,NGI
+                          N(1,GI)=L1(GI)
+                          N(2,GI)=L2(GI)
+                          N(3,GI)=L3(GI)
+                          N(4,GI)=L4(GI)
+                          !
+                          NLX(1,GI)=1.0
+                          NLX(2,GI)=0
+                          NLX(3,GI)=0
+                          NLX(4,GI)=-1.0
+                          !
+                          NLY(1,GI)=0.0
+                          NLY(2,GI)=1.0
+                          NLY(3,GI)=0.0
+                          NLY(4,GI)=-1.0
+                          !
+                          NLZ(1,GI)=0.0
+                          NLZ(2,GI)=0.0
+                          NLZ(3,GI)=1.0
+                          NLZ(4,GI)=-1.0
+                          IF(NLOC.EQ.5) THEN
+                             ! Bubble function...
+                             N(5,GI)  =L1(GI)*L2(GI)*L3(GI)*L4(GI)
+                             NLX(5,GI)=L2(GI)*L3(GI)*(1.-L2(GI)-L3(GI))-2.*L1(GI)*L2(GI)*L3(GI)
+                             NLY(5,GI)=L1(GI)*L3(GI)*(1.-L1(GI)-L3(GI))-2.*L1(GI)*L2(GI)*L3(GI)
+                             NLZ(5,GI)=L1(GI)*L2(GI)*(1.-L1(GI)-L2(GI))-2.*L1(GI)*L2(GI)*L3(GI)
+                          ENDIF
+50                        CONTINUE 
+                       ENDIF
+                       !
+                       IF(NLOC.EQ.1) THEN
+                          DO 60 GI=1,NGI
+                             N(1,GI)=1.0
+                             NLX(1,GI)=0.0
+                             NLY(1,GI)=0.0
+                             NLZ(1,GI)=0.0
+60                           CONTINUE 
+                          ENDIF
+                          !
+                          ! ENDOF IF(D3) THEN...
+                       ENDIF
+                       !
+                       RETURN
+                     END SUBROUTINE SHATRIold
 !
 !
 !
