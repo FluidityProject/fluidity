@@ -25,7 +25,7 @@
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
 subroutine test_tensor_spherical_polar_2_cartesian
-  !Subroutine/unit-test of correct transformation of point coordinates from a
+  !Subroutine/unit-test of correct transformation of tensor components from a
   ! spherical-polar system to a Cartesian system.
   use fields
   use vtk_interfaces
@@ -45,9 +45,11 @@ subroutine test_tensor_spherical_polar_2_cartesian
   real, dimension(3) :: XYZ, RTP !Arrays containing a signel node's position vector
                                  ! components in Cartesian & spherical-polar bases.
   real, dimension(3,3) :: sphericalPolarComponents !Array containing the tensor
-                                 !components in a spherical-polar basis, at a sinlge point.
+                                 ! components in a spherical-polar basis, at
+                                 ! a sinlge point.
   real, dimension(3,3) :: cartesianComponents      !Array containing the tensor
-                                 !components in a spherical-polar basis, at a sinlge point.
+                                 ! components in a spherical-polar basis, at
+                                 ! a sinlge point.
   logical :: fail
 
   !Extract the vector fields of position in vtu file in polar coordinates and 
@@ -75,8 +77,8 @@ subroutine test_tensor_spherical_polar_2_cartesian
   call vtk_write_fields("data/test_tensor_spherical_polar_2_cartesian_out", 0, &
                         CartesianCoordinate, mesh, tfields=(/difference/))
   fail = any(difference%val > 1e-8)
-  call report_test("[Coordinate change: Spherical-polar to Cartesian.]", &
-                   fail, .false., "Position vector components not transformed correctly.")
+  call report_test("[Tensor change of basis: Spherical-polar to Cartesian.]", &
+                   fail, .false., "Tensor components not transformed correctly.")
   
   call deallocate(difference)
 
