@@ -405,8 +405,7 @@ contains
            end if
 
           ! Calcualte and normalise ray direction
-          call initialise_ray(detector%update_vector, detector%ray_d, detector%ray_o, detector%target_distance)
-          detector%current_t = 0.0
+          call initialise_ray(detector, detector%update_vector)
 
           detector => detector%next
        end do
@@ -436,8 +435,7 @@ contains
                         search_tolerance,new_owner,detector%local_coords)
 
              elseif (detector_list%tracking_method == GEOMETRIC_TRACKING) then
-                call geometric_ray_tracing(xfield,detector%ray_o,detector%ray_d,detector%target_distance,&
-                        detector%element,new_owner,detector%current_t,search_tolerance, &
+                call geometric_ray_tracing(xfield,detector,new_owner,search_tolerance, &
                         detector%ele_path_list, detector%ele_dist_list)
                 detector%local_coords = local_coords(xfield,detector%element,detector%update_vector)
 
@@ -463,10 +461,7 @@ contains
                       ! We move our origin to the last known point on our ray (ele_t), 
                       ! and calculate a new direction
                       detector%ray_o = detector%ray_o + (detector%current_t * detector%ray_d)
-
-                      call initialise_ray(detector%update_vector, detector%ray_d, detector%ray_o, detector%target_distance)
-                      detector%current_t = 0.0
-                      
+                      call initialise_ray(detector, detector%update_vector)                      
                    end if
                 else
                    ! Turn detector static inside the domain
@@ -535,24 +530,6 @@ contains
     end do
 
     call profiler_toc(trim(detector_list%name)//"::movement::tracking")
-
-  contains
-
-    subroutine initialise_ray(target_coord, ray_d, ray_o, distance)
-      real, dimension(:), intent(inout) :: target_coord, ray_o, ray_d
-      real, intent(inout) :: distance
-
-      ! Calculate and normalise ray direction
-      ray_d = target_coord - ray_o
-      distance = sum(ray_d**2)
-      if (distance > 0.0) then
-         distance = sqrt(distance)
-         ray_d = ray_d / distance
-      else
-         distance = 0.0
-         ray_d = 0.0
-      end if
-    end subroutine initialise_ray
 
   end subroutine track_detectors
 
@@ -632,15 +609,34 @@ contains
 
   end subroutine local_guided_search
 
-  subroutine geometric_ray_tracing(xfield,r_o,r_d,target_distance,new_element,new_owner,current_t,search_tolerance,ele_path_list,ele_dist_list)
+  subroutine initialise_ray(detector, target_coord, origin)
+    type(detector_type), pointer, intent(inout) :: detector
+    real, dimension(:), intent(in) :: target_coord
+    real, dimension(:), intent(in), optional :: origin
+
+    if (present(origin)) detector%ray_o = origin
+
+    ! Calculate and normalise ray direction
+    detector%ray_d = target_coord - detector%ray_o
+    detector%target_distance = sum(detector%ray_d**2)
+    if (detector%target_distance > 0.0) then
+       detector%target_distance = sqrt(detector%target_distance)
+       detector%ray_d = detector%ray_d / detector%target_distance
+    else
+       detector%target_distance = 0.0
+       detector%ray_d = 0.0
+    end if
+    detector%current_t = 0.0
+
+  end subroutine initialise_ray
+
+  subroutine geometric_ray_tracing(xfield,detector,new_owner,search_tolerance,ele_path_list,ele_dist_list)
     ! This tracking method is based on a standard Ray-tracing algorithm using planes and half-spaces.
     ! Reference: 
     type(vector_field), pointer, intent(in) :: xfield
-    real, dimension(mesh_dim(xfield)), intent(in) :: r_d, r_o
-    integer, intent(inout) :: new_element
+    type(detector_type), pointer, intent(inout) :: detector
     integer, intent(out) :: new_owner
-    real, intent(in) :: target_distance, search_tolerance
-    real, intent(inout) :: current_t
+    real, intent(in) :: search_tolerance
     type(ilist), intent(inout), optional :: ele_path_list
     type(rlist), intent(inout), optional :: ele_dist_list
 
@@ -649,13 +645,13 @@ contains
     integer, dimension(:), pointer :: face_list
 
     ! Exit if r_d is zero
-    if (target_distance < search_tolerance) then
+    if (detector%target_distance < search_tolerance) then
        new_owner=getprocno()
        return
     end if
 
     if (present(ele_path_list)) then
-       call insert(ele_path_list, new_element)
+       call insert(ele_path_list, detector%element)
     end if
 
     search_loop: do 
@@ -663,49 +659,49 @@ contains
        ! Go through all faces of the element and look for the smallest t in the ray's direction
        next_face = -1
        ele_t = huge(1.0)
-       face_list=>ele_faces(xfield,new_element)
+       face_list=>ele_faces(xfield,detector%element)
        do i=1, size(face_list)
           call ray_intersetion_distance(face_list(i), face_t)
 
-          if (face_t < ele_t .and. current_t + search_tolerance < face_t) then
+          if (face_t < ele_t .and. detector%current_t + search_tolerance < face_t) then
              ele_t = face_t
              next_face = face_list(i)
           end if
        end do
 
-       if (ele_t < target_distance) then
+       if (ele_t < detector%target_distance) then
           neigh_face = face_neigh(xfield, next_face)
 
           ! Record our next t and the distance covered
           if (present(ele_dist_list)) then
-             call insert(ele_dist_list, ele_t - current_t)
+             call insert(ele_dist_list, ele_t - detector%current_t)
           end if
-          current_t = ele_t
+          detector%current_t = ele_t
 
           if (neigh_face /= next_face) then
              ! Recurse on the next element
-             new_element = face_ele(xfield, neigh_face)
+             detector%element = face_ele(xfield, neigh_face)
 
              ! Record the elements along the path travelled
              ! and the distance travelled within them
              if (present(ele_path_list)) then
-                call insert(ele_path_list, new_element)
+                call insert(ele_path_list, detector%element)
              end if
           else
-             if (element_owned(xfield,new_element)) then
+             if (element_owned(xfield,detector%element)) then
                 ! Detector is going outside domain
                 new_owner=-1
                 exit search_loop
              else
                 ! The current element is on a Halo, we need to send it to the owner.
-                new_owner=element_owner(xfield%mesh,new_element)
+                new_owner=element_owner(xfield%mesh,detector%element)
                 exit search_loop
              end if
           end if
        else
           ! The arrival point is in this element, we're done
           if (present(ele_dist_list)) then
-             call insert(ele_dist_list, target_distance - current_t)
+             call insert(ele_dist_list, detector%target_distance - detector%current_t)
           end if
 
           new_owner=getprocno()
@@ -738,8 +734,8 @@ contains
       d = - sum(face_normal * face_node_val)
 
       ! Calculate t, the distance along the ray to the face intersection
-      v_n = dot_product(face_normal, r_o) + d
-      v_d = dot_product(face_normal, r_d)
+      v_n = dot_product(face_normal, detector%ray_o) + d
+      v_d = dot_product(face_normal, detector%ray_d)
       t = - v_n / v_d
 
     end subroutine ray_intersetion_distance
