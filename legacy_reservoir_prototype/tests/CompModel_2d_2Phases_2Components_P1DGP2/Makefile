@@ -1,6 +1,6 @@
 SHELL = sh
 
-SIM = BL_2D_2Comp2Phases_P1DGP2
+SIM = CompModel_2d_2Phases_2Components_P1DGP2.mpml
 
 input: clean
 
