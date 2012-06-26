@@ -157,7 +157,7 @@ contains
   end subroutine spherical_polar_2_cartesian
   
   subroutine spherical_polar_2_cartesian_c(radius,theta,phi,x,y,z) bind(c)
-    !C-inoperable subroutine for calculation of cartesian coordinates
+    !C-inter-operable subroutine for calculation of cartesian coordinates
     ! from spherical-polar coordinates.
     implicit none
     
@@ -179,7 +179,7 @@ contains
     !Convert coordinates
     call spherical_polar_2_cartesian(radius_f,theta_f,phi_f,x_f,y_f,z_f)
 
-    !Cast output variables to C-inoperable types.
+    !Cast output variables to C-inter-operable types.
     x = real(x_f, kind=c_double)
     y = real(y_f, kind=c_double)
     z = real(z_f, kind=c_double)
@@ -202,7 +202,7 @@ contains
   end subroutine cartesian_2_spherical_polar
 
   subroutine cartesian_2_spherical_polar_c(x, y, z, radius, theta, phi) bind(c)
-    !C-inoperable subroutine for calculation of spherical-polar coordinates
+    !C-inter-operable subroutine for calculation of spherical-polar coordinates
     ! from Cartesian coordinates.
     implicit none
     
@@ -224,7 +224,7 @@ contains
     !Convert coordinates
     call cartesian_2_spherical_polar(x_f, y_f, z_f, radius_f, theta_f, phi_f)
 
-    !Cast output variables to C-inoperable types.
+    !Cast output variables to C-inter-operable types.
     radius = real(radius_f, kind=c_double)
     theta = real(theta_f, kind=c_double)
     phi = real(phi_f, kind=c_double)
@@ -534,9 +534,9 @@ contains
                                                longitude, &
                                                latitude, &
                                                height, &
-                                               referenceRadius, &
                                                xComp, yComp, zComp, &
-                                               xCoord, yCoord, zCoord)
+                                               xCoord, yCoord, zCoord, &
+                                               referenceRadius)
     !Subroutine for change of basis of a vector from meridional-zonal-vertical
     !  components to cartesian components.
     implicit none
@@ -547,13 +547,16 @@ contains
     real, intent(in) :: longitude 
     real, intent(in) :: latitude
     real, intent(in) :: height
-    real, intent(in) :: referenceRadius
     real, intent(out) :: xComp          !1st vector component in cartesian basis
     real, intent(out) :: yComp          !2nd vector component in cartesian basis
     real, intent(out) :: zComp          !3rd vector component in cartesian basis
-    real, intent(out) :: xCoord         !1st vector component of position vector in cartesian basis
-    real, intent(out) :: yCoord         !2nd vector component of position vector in cartesian basis
-    real, intent(out) :: zCoord         !3rd vector component of position vector in cartesian basis
+    real, intent(out) :: xCoord         !1st vector component of position vector
+                                        ! in Cartesian basis
+    real, intent(out) :: yCoord         !2nd vector component of position vector
+                                        ! in Cartesian basis
+    real, intent(out) :: zCoord         !3rd vector component of position vector
+                                        ! in Cartesian basis
+    real, intent(in), optional :: referenceRadius
     real :: radial       !Radial component of vector
     real :: polar        !Polar component of vector
     real :: azimuthal    !Azimuthal  component of vector
@@ -565,10 +568,19 @@ contains
     azimuthal = zonalComponent
     polar = -meridionalComponent
     radial = verticalComponent
-    !convert longitude-latitude-height to spherical-polar.
-    call lon_lat_height_2_spherical_polar(longitude, latitude, height, &
-                                          radius, theta, phi, &
-                                          referenceRadius)
+    !Convert longitude-latitude-height to spherical-polar.
+    ! If referenceRadius is present then pass that to coordinate conversion routine,
+    ! height then is the radial distance of a point from the sphere with radius=
+    ! referenceRadius. Otherwise height is simply the distance from the Cartesian
+    ! coordinate origin.
+    if(present(referenceRadius)) then
+      call lon_lat_height_2_spherical_polar(longitude, latitude, height, &
+                                            radius, theta, phi, &
+                                            referenceRadius)
+    else
+      call lon_lat_height_2_spherical_polar(longitude, latitude, height, &
+                                            radius, theta, phi)
+    endif
     !convert spherical-polar components to cartesian.
     call vector_spherical_polar_2_cartesian(radial, polar, azimuthal, &
                                             radius, theta, phi, &
@@ -593,9 +605,12 @@ contains
     real, intent(in) :: xComp          !1st vector component in cartesian basis
     real, intent(in) :: yComp          !2nd vector component in cartesian basis
     real, intent(in) :: zComp          !3rd vector component in cartesian basis
-    real, intent(in) :: xCoord         !1st vector component of position vector in cartesian basis
-    real, intent(in) :: yCoord         !2nd vector component of position vector in cartesian basis
-    real, intent(in) :: zCoord         !3rd vector component of position vector in cartesian basis
+    real, intent(in) :: xCoord         !1st vector component of position vector
+                                       ! in Cartesian basis
+    real, intent(in) :: yCoord         !2nd vector component of position vector
+                                       ! in Cartesian basis
+    real, intent(in) :: zCoord         !3rd vector component of position vector
+                                       ! in Cartesian basis
     real, intent(out) :: zonalComponent      !Vector component tangential to parallel
     real, intent(out) :: meridionalComponent !Vector component tangential to meridian
     real, intent(out) :: verticalComponent   !Vector component in the vertical (radial)
@@ -630,6 +645,173 @@ contains
     verticalComponent = radial
 
   end subroutine vector_cartesian_2_lon_lat_height
+
+  subroutine vector_lon_lat_height_2_cartesian_c(zonalComponent,&
+                                                 meridionalComponent,&
+                                                 verticalComponent, &
+                                                 longitude, &
+                                                 latitude, &
+                                                 height, &
+                                                 xComp, yComp, zComp, &
+                                                 xCoord, yCoord, zCoord, &
+                                                 referenceRadius) bind(c)
+    !C-interoperable subroutine for change of basis of a vector from
+    !  meridional-zonal-vertical components to cartesian components. Note that
+    !  unlike the FORTRAN version of the present routine, referenceRadius is
+    !  a mandatory argument.
+    implicit none
+
+    real(kind=c_double), intent(in) :: zonalComponent      !Vector component tangential
+                                                           ! to parallel
+    real(kind=c_double), intent(in) :: meridionalComponent !Vector component tangential
+                                                           ! to meridian
+    real(kind=c_double), intent(in) :: verticalComponent   !Vecor component in the
+                                                           ! vertical (radial)
+    real(kind=c_double), intent(in) :: longitude 
+    real(kind=c_double), intent(in) :: latitude
+    real(kind=c_double), intent(in) :: height
+    real(kind=c_double), intent(out) :: xComp      !1st vector component in
+                                                   ! cartesian basis
+    real(kind=c_double), intent(out) :: yComp      !2nd vector component in
+                                                   ! cartesian basis
+    real(kind=c_double), intent(out) :: zComp      !3rd vector component in
+                                                   ! cartesian basis
+    real(kind=c_double), intent(out) :: xCoord     !1st vector component of
+                                                   ! position vector in cartesian basis
+    real(kind=c_double), intent(out) :: yCoord     !2nd vector component of
+                                                   ! position vector in cartesian basis
+    real(kind=c_double), intent(out) :: zCoord     !3rd vector component of
+                                                   ! position vector in cartesian basis
+    real(kind=c_double), intent(in) :: referenceRadius
+
+    real :: zonalComponent_f      !Vector component tangential to parallel
+    real :: meridionalComponent_f !Vector component tangential to meridian
+    real :: verticalComponent_f   !Vecor component in the vertical (radial)
+    real :: longitude_f 
+    real :: latitude_f
+    real :: height_f
+    real :: xComp_f          !1st vector component in cartesian basis
+    real :: yComp_f          !2nd vector component in cartesian basis
+    real :: zComp_f          !3rd vector component in cartesian basis
+    real :: xCoord_f         !1st vector component of position vector in cartesian basis
+    real :: yCoord_f         !2nd vector component of position vector in cartesian basis
+    real :: zCoord_f         !3rd vector component of position vector in cartesian basis
+    real :: referenceRadius_f
+
+    !Convert C-types in to FORTRAN intrinsic types.
+    zonalComponent_f = real(zonalComponent)
+    meridionalComponent_f = real(meridionalComponent)
+    verticalComponent_f = real(verticalComponent)
+    longitude_f = real(longitude)
+    latitude_f = real(latitude)
+    height_f = real(height)
+    referenceRadius_f = real(referenceRadius)
+
+    !Convert coordinates and components.
+    call vector_lon_lat_height_2_cartesian(zonalComponent_f,&
+                                           meridionalComponent_f,&
+                                           verticalComponent_f, &
+                                           longitude_f, &
+                                           latitude_f, &
+                                           height_f, &
+                                           xComp_f, yComp_f, zComp_f, &
+                                           xCoord_f, yCoord_f, zCoord_f, &
+                                           referenceRadius_f)
+
+    !Convert FORTRAN intrinsic types to C-types.
+    xComp = real(xComp_f, kind=c_double)
+    yComp = real(yComp_f, kind=c_double)
+    zComp = real(zComp_f, kind=c_double)
+    xCoord = real(xCoord_f, kind=c_double)
+    yCoord = real(yCoord_f, kind=c_double)
+    zCoord = real(zCoord_f, kind=c_double)
+
+  end subroutine vector_lon_lat_height_2_cartesian_c
+
+  subroutine vector_cartesian_2_lon_lat_height_c(xComp, yComp, zComp, &
+                                                 xCoord, yCoord, zCoord, &
+                                                 zonalComponent,&
+                                                 meridionalComponent,&
+                                                 verticalComponent, &
+                                                 longitude, &
+                                                 latitude, &
+                                                 height, &
+                                                 referenceRadius) bind (c)
+    !C inter-operable subroutine for change of basis of a vector from Cartesian to
+    !  meridional-zonal-vertical. Note that
+    !  unlike the FORTRAN version of the present routine, referenceRadius is
+    !  a mandatory argument.
+    implicit none
+
+    real(kind=c_double), intent(in) :: xComp          !1st vector component in
+                                                      ! cartesian basis
+    real(kind=c_double), intent(in) :: yComp          !2nd vector component in
+                                                      ! cartesian basis
+    real(kind=c_double), intent(in) :: zComp          !3rd vector component in
+                                                      ! cartesian basis
+    real(kind=c_double), intent(in) :: xCoord         !1st vector component of position
+                                                      ! vector in Cartesian basis
+    real(kind=c_double), intent(in) :: yCoord         !2nd vector component of position
+                                                      ! vector in Cartesian basis
+    real(kind=c_double), intent(in) :: zCoord         !3rd vector component of position
+                                                      ! vector in Cartesian basis
+    real(kind=c_double), intent(out) :: zonalComponent      !Vector component tangential
+                                                            ! to parallel
+    real(kind=c_double), intent(out) :: meridionalComponent !Vector component tangential
+                                                            ! to meridian
+    real(kind=c_double), intent(out) :: verticalComponent   !Vector component in the
+                                                            ! vertical (radial)
+    real(kind=c_double), intent(out) :: longitude
+    real(kind=c_double), intent(out) :: latitude
+    real(kind=c_double), intent(out) :: height
+    real(kind=c_double), intent(in) :: referenceRadius
+
+    real :: xComp_f          !1st vector component in cartesian basis
+    real :: yComp_f          !2nd vector component in cartesian basis
+    real :: zComp_f          !3rd vector component in cartesian basis
+    real :: xCoord_f         !1st vector component of position vector
+                                         ! in Cartesian basis
+    real :: yCoord_f         !2nd vector component of position vector
+                                         ! in Cartesian basis
+    real :: zCoord_f         !3rd vector component of position vector
+                                         ! in Cartesian basis
+    real :: zonalComponent_f      !Vector component tangential to parallel
+    real :: meridionalComponent_f !Vector component tangential to meridian
+    real :: verticalComponent_f   !Vector component in the vertical (radial)
+    real :: longitude_f
+    real :: latitude_f
+    real :: height_f
+    real :: referenceRadius_f
+
+    !Convert C-types in to FORTRAN intrinsic types.
+    xComp_f = real(xComp)
+    yComp_f = real(yComp)
+    zComp_f = real(zComp)
+    xCoord_f = real(xCoord)
+    yCoord_f = real(yCoord)
+    zCoord_f = real(zCoord)
+    referenceRadius_f = real(referenceRadius)
+
+    !Convert coordinates and components.
+    call vector_cartesian_2_lon_lat_height(xComp_f, yComp_f, zComp_f, &
+                                           xCoord_f, yCoord_f, zCoord_f, &
+                                           zonalComponent_f, &
+                                           meridionalComponent_f, &
+                                           verticalComponent_f, &
+                                           longitude_f, &
+                                           latitude_f, &
+                                           height_f, &
+                                           referenceRadius_f)
+
+    !Convert FORTRAN intrinsic types to C-types.
+    zonalComponent = real(zonalComponent_f, kind=c_double)
+    meridionalComponent = real(meridionalComponent_f, kind=c_double)
+    verticalComponent = real(verticalComponent_f, kind=c_double)
+    longitude = real(longitude_f, kind=c_double)
+    latitude = real(latitude_f, kind=c_double)
+    height = real(height_f, kind=c_double)
+
+  end subroutine vector_cartesian_2_lon_lat_height_c
 
   subroutine vector_spherical_polar_2_cartesian_field(spherical_polar_vector_field, &
                                                       spherical_polar_coordinate_field, &
