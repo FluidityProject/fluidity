@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <multiphase_options>
   <simulation_name>
-    <string_value lines="1">CompModel_2d_2Phases_2Components_P1DGP2</string_value>
+    <string_value lines="1">CompModel_2d_2Phases_3Components_P1DGP2_LVI</string_value>
   </simulation_name>
   <geometry>
     <dimension>
@@ -726,7 +726,7 @@
   <material_phase name="Component1">
     <is_multiphase_component>
       <alpha_beta>
-        <real_value rank="0">50.</real_value>
+        <real_value rank="0">10.</real_value>
       </alpha_beta>
       <KComp_Sigmoid>
         <k_comp>
@@ -790,7 +790,7 @@
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">0.061935</real_value>
+              <real_value rank="0">1.</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -855,7 +855,7 @@
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">1.9354838e-2</real_value>
+              <real_value rank="0">0.3125</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -877,7 +877,7 @@
   <material_phase name="Component2">
     <is_multiphase_component>
       <alpha_beta>
-        <real_value rank="0">50.</real_value>
+        <real_value rank="0">10.</real_value>
       </alpha_beta>
       <KComp_Sigmoid>
         <k_comp>
@@ -936,7 +936,7 @@
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">0.25</real_value>
+              <real_value rank="0">0.</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -992,7 +992,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value rank="0">0.</real_value>
+            <real_value rank="0">0.25</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="inlet_C2P2">
@@ -1001,7 +1001,7 @@
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">0.6</real_value>
+              <real_value rank="0">0.</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -1023,7 +1023,7 @@
   <material_phase name="Component3">
     <is_multiphase_component>
       <alpha_beta>
-        <real_value rank="0">50.</real_value>
+        <real_value rank="0">10.</real_value>
       </alpha_beta>
       <KComp_Sigmoid>
         <k_comp>
@@ -1087,7 +1087,7 @@
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">0.0380645</real_value>
+              <real_value rank="0">0.</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -1152,7 +1152,7 @@
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">0.380645</real_value>
+              <real_value rank="0">0.</real_value>
             </constant>
           </type>
         </boundary_conditions>
