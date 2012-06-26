@@ -125,14 +125,16 @@
     call initialise_diagnostics(trim(simulation_name),states)
     
     call setup_fields(states(1))
+    call setup_pv(states(1))
 
     call calculate_diagnostic_variables(states)
     call calculate_diagnostic_variables_new(states)
-    call setup_pv(states(1))
+
     call get_option("/timestepping/timestep", dt)
     call write_diagnostics(states, current_time, dt, timestep)
 
     ! Always output the initial conditions.
+    
     call output_state(states)
     call compute_energy_hybridized(states(1),energy)
 
@@ -549,6 +551,7 @@
          U => extract_vector_field(state,"LocalVelocity")
          D => extract_scalar_field(state,"LayerThickness")
          call get_PV(state,Q,U,D)
+         ewrite(2,*) 'CJC Qmax', maxval(abs(Q%val))
       end if
     end subroutine setup_pv
     
