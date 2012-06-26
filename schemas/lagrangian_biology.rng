@@ -487,7 +487,11 @@ element. Recommended value 1.0e-10</a:documentation>
           <empty/>
         </element>
         <element name="geometric_tracking">
-          <empty/>
+          <optional>
+            <element name="periodic_mesh">
+              <ref name="mesh_choice"/>
+            </element>
+          </optional>
         </element>
       </choice>
       <optional>

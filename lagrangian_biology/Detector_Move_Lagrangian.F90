@@ -115,6 +115,12 @@ contains
     type(scalar_field), pointer :: diffusivity_field, subcycle_field
     type(vector_field), pointer :: diffusivity_grad
 
+    ! Periodic tracking
+    type(mesh_type), pointer :: periodic_mesh
+    integer, dimension(:), allocatable :: boundary_ids
+    integer, dimension(2) :: shape_option
+    integer :: bc, bid, n_periodic_bcs, boundary_id, mapping_count
+
     if (.not. check_any_lagrangian(detector_list)) return
 
     call profiler_tic(trim(detector_list%name)//"::movement")
@@ -127,6 +133,46 @@ contains
     xfield=>extract_vector_field(state(1), "Coordinate")
     vfield=>extract_vector_field(state(1), "Velocity")
     allocate(rw_displacement(xfield%dim))
+
+    ! Prepare for tracking in periodic domains by storing 
+    ! boundary_ids and corresponding Python mapping functions (only do this once...)
+    ! and extracting the periodic mesh
+    if (detector_list%track_periodic) then
+       periodic_mesh => extract_mesh(state, trim(detector_list%periodic_tracking_mesh))
+
+       ! Note: The following should be done during initialisation really...
+       if (.not. allocated(detector_list%boundary_mappings)) then
+          mapping_count = 1
+          n_periodic_bcs = option_count(trim(periodic_mesh%option_path)//"/from_mesh/periodic_boundary_conditions")
+          allocate( detector_list%boundary_mappings(n_periodic_bcs*2) )
+          do bc=0, n_periodic_bcs-1
+             ! Aliased BID uses coordinate_map
+             shape_option = option_shape(trim(periodic_mesh%option_path)//"/from_mesh/periodic_boundary_conditions["//int2str(bc)//"]/aliased_boundary_ids")
+             allocate( boundary_ids(shape_option(1)) )
+             call get_option(trim(periodic_mesh%option_path)//"/from_mesh/periodic_boundary_conditions["//int2str(bc)//"]/aliased_boundary_ids",boundary_ids)
+             do bid=1, size(boundary_ids)
+                call insert(detector_list%bid_to_boundary_mapping, boundary_ids(bid), mapping_count)
+             end do
+             deallocate(boundary_ids)
+             call get_option(trim(periodic_mesh%option_path)//"/from_mesh/periodic_boundary_conditions["//int2str(bc)//"]/coordinate_map", detector_list%boundary_mappings(mapping_count))
+             mapping_count = mapping_count + 1
+
+             ! Physical BIDs uses inverse_coordinate_map
+             shape_option = option_shape(trim(periodic_mesh%option_path)//"/from_mesh/periodic_boundary_conditions["//int2str(bc)//"]/physical_boundary_ids")
+             allocate( boundary_ids(shape_option(1)) )
+             call get_option(trim(periodic_mesh%option_path)//"/from_mesh/periodic_boundary_conditions["//int2str(bc)//"]/physical_boundary_ids",boundary_ids)
+             do bid=1, size(boundary_ids)
+                call insert(detector_list%bid_to_boundary_mapping, boundary_ids(bid), mapping_count)
+             end do
+             deallocate(boundary_ids)
+             call get_option(trim(periodic_mesh%option_path)//"/from_mesh/periodic_boundary_conditions["//int2str(bc)//"]/inverse_coordinate_map", detector_list%boundary_mappings(mapping_count))
+             mapping_count = mapping_count + 1
+          end do
+
+       end if
+    else
+       periodic_mesh => null()
+    end if
 
     ! Setup for Random Walk schemes
     if (allocated(detector_list%random_walks)) then
@@ -216,7 +262,7 @@ contains
              ! Move update parametric detector coordinates according to update_vector
              ! If this takes a detector across parallel domain boundaries
              ! the routine will also send the detector
-             call track_detectors(detector_list,xfield)
+             call track_detectors(detector_list,xfield,periodic_mesh)
 
           end do RKstages_loop
           call profiler_toc(trim(detector_list%name)//"::movement::Runge-Kutta-"//trim(int2str(detector_list%n_stages)))
@@ -253,7 +299,7 @@ contains
                    detector => detector%next
                 end do
 
-                call track_detectors(detector_list,xfield)
+                call track_detectors(detector_list,xfield,periodic_mesh)
 
              ! Internal Diffusive Random Walk with automated sub-cycling
              elseif (detector_list%random_walks(rw)%diffusive_random_walk &
@@ -261,7 +307,7 @@ contains
 
                 subcycle_field => extract_scalar_field(state(1), "RandomWalkSubcycling")
                 call auto_subcycle_random_walk(detector_list,dt,&
-                          xfield,diffusivity_field,diffusivity_grad,subcycle_field)
+                          xfield,diffusivity_field,diffusivity_grad,subcycle_field,periodic_mesh)
 
              else
                 FLExit("Auto-subcycling can only be used with internal diffusive Random Walk.")
@@ -367,7 +413,7 @@ contains
     end do
   end subroutine set_stage
 
-  subroutine track_detectors(detector_list,xfield)
+  subroutine track_detectors(detector_list,xfield,periodic_mesh)
     !Subroutine to find the element containing the update vector:
     ! - Detectors leaving the computational domain are set to STATIC
     ! - Detectors leaving the processor domain are added to the list 
@@ -379,6 +425,7 @@ contains
     !   and moving to the element through that face.
     type(detector_linked_list), intent(inout) :: detector_list
     type(vector_field), pointer, intent(in) :: xfield
+    type(mesh_type), pointer, intent(in) :: periodic_mesh
 
     type(detector_type), pointer :: detector, send_detector
     type(detector_linked_list), dimension(:), allocatable :: send_list_array
@@ -435,8 +482,11 @@ contains
                         search_tolerance,new_owner,detector%local_coords)
 
              elseif (detector_list%tracking_method == GEOMETRIC_TRACKING) then
-                call geometric_ray_tracing(xfield,detector,new_owner,search_tolerance, &
-                        detector%ele_path_list, detector%ele_dist_list)
+                if (associated(periodic_mesh)) then
+                   call geometric_ray_tracing(xfield,detector,detector_list,new_owner,search_tolerance,periodic_mesh=periodic_mesh)
+                else
+                   call geometric_ray_tracing(xfield,detector,detector_list,new_owner,search_tolerance)
+                end if
                 detector%local_coords = local_coords(xfield,detector%element,detector%update_vector)
 
                 if (allocated(detector%ele_path)) deallocate(detector%ele_path)
@@ -630,19 +680,20 @@ contains
 
   end subroutine initialise_ray
 
-  subroutine geometric_ray_tracing(xfield,detector,new_owner,search_tolerance,ele_path_list,ele_dist_list)
+  subroutine geometric_ray_tracing(xfield,detector,detector_list,new_owner,search_tolerance,periodic_mesh)
     ! This tracking method is based on a standard Ray-tracing algorithm using planes and half-spaces.
     ! Reference: 
     type(vector_field), pointer, intent(in) :: xfield
     type(detector_type), pointer, intent(inout) :: detector
+    type(detector_linked_list), intent(inout) :: detector_list
     integer, intent(out) :: new_owner
     real, intent(in) :: search_tolerance
-    type(ilist), intent(inout), optional :: ele_path_list
-    type(rlist), intent(inout), optional :: ele_dist_list
+    type(mesh_type), pointer, intent(in), optional :: periodic_mesh
 
     real :: face_t, ele_t
-    integer :: i, neigh_face, next_face
+    integer :: i, neigh_face, next_face, boundary_id, py_map_index
     integer, dimension(:), pointer :: face_list
+    real, dimension(xfield%dim,1):: old_position, new_position
 
     ! Exit if r_d is zero
     if (detector%target_distance < search_tolerance) then
@@ -650,9 +701,7 @@ contains
        return
     end if
 
-    if (present(ele_path_list)) then
-       call insert(ele_path_list, detector%element)
-    end if
+    call insert(detector%ele_path_list, detector%element)
 
     search_loop: do 
 
@@ -673,9 +722,7 @@ contains
           neigh_face = face_neigh(xfield, next_face)
 
           ! Record our next t and the distance covered
-          if (present(ele_dist_list)) then
-             call insert(ele_dist_list, ele_t - detector%current_t)
-          end if
+          call insert(detector%ele_dist_list, ele_t - detector%current_t)
           detector%current_t = ele_t
 
           if (neigh_face /= next_face) then
@@ -684,10 +731,44 @@ contains
 
              ! Record the elements along the path travelled
              ! and the distance travelled within them
-             if (present(ele_path_list)) then
-                call insert(ele_path_list, detector%element)
-             end if
+             call insert(detector%ele_path_list, detector%element)
           else
+             ! If we're tracking on a periodic mesh...
+             !  * we find out which boundary we have hit
+             !  * translate our udpate_vector via the python function
+             !  * and keep tracking on the periodic (connected mesh).
+             !    Since we don't use the update vector once the ray parameters are established,
+             !    this is legitimate and should give the right result
+             !    Note: This assumes that the Python mapping function works universally!
+             if (present(periodic_mesh)) then
+                boundary_id = surface_element_id(xfield, next_face)
+                py_map_index = fetch(detector_list%bid_to_boundary_mapping, boundary_id)
+
+                ! Apply the python map
+                old_position(:,1) = detector%update_vector
+                call set_from_python_function(new_position, trim(detector_list%boundary_mappings(py_map_index)), old_position, time=0.0)
+                detector%update_vector = new_position(:,1)
+
+                ! New update_vector is the target, and the origin has changed
+                old_position(:,1) = detector%ray_o + detector%ray_d * detector%current_t
+                call set_from_python_function(new_position, trim(detector_list%boundary_mappings(py_map_index)), old_position, time=0.0)
+                detector%ray_o = new_position(:,1)
+                call initialise_ray(detector,detector%update_vector)
+
+                neigh_face = face_neigh(periodic_mesh, next_face)
+                if (neigh_face /= next_face) then
+
+                   ! Recurse on the next element
+                   detector%element = face_ele(xfield, neigh_face)
+
+                   ! Record the elements along the path travelled
+                   ! and the distance travelled within them
+                   call insert(detector%ele_path_list, detector%element)
+
+                   cycle search_loop
+                end if
+             end if
+
              if (element_owned(xfield,detector%element)) then
                 ! Detector is going outside domain
                 new_owner=-1
@@ -700,9 +781,7 @@ contains
           end if
        else
           ! The arrival point is in this element, we're done
-          if (present(ele_dist_list)) then
-             call insert(ele_dist_list, detector%target_distance - detector%current_t)
-          end if
+          call insert(detector%ele_dist_list, detector%target_distance - detector%current_t)
 
           new_owner=getprocno()
           exit search_loop
@@ -794,11 +873,12 @@ contains
 
   end subroutine reflect_on_boundary
 
-  subroutine auto_subcycle_random_walk(detector_list,dt,xfield,diff_field,grad_field,subcycle_field)
+  subroutine auto_subcycle_random_walk(detector_list,dt,xfield,diff_field,grad_field,subcycle_field,periodic_mesh)
     type(detector_linked_list), intent(inout) :: detector_list
     real, intent(in) :: dt
     type(scalar_field), pointer, intent(in) :: diff_field, subcycle_field
     type(vector_field), pointer, intent(in) :: xfield, grad_field
+    type(mesh_type), pointer, intent(in) :: periodic_mesh
 
     type(detector_linked_list) :: subcycle_detector_list
     type(detector_type), pointer :: detector, move_detector
@@ -848,7 +928,7 @@ contains
 
     ! Update elements in the subcycle list
     if (subcycle_detector_list%length > 0) then
-       call track_detectors(subcycle_detector_list,xfield)
+       call track_detectors(subcycle_detector_list,xfield,periodic_mesh)
     end if
 
 
@@ -872,7 +952,7 @@ contains
              detector => detector%next
           end if
        end do
-       call track_detectors(subcycle_detector_list,xfield)
+       call track_detectors(subcycle_detector_list,xfield,periodic_mesh)
 
        remaining_detectors = subcycle_detector_list%length
        call allmax(remaining_detectors)
@@ -881,7 +961,7 @@ contains
     end do
 
     ! Update detectors after the final move
-    call track_detectors(detector_list,xfield)
+    call track_detectors(detector_list,xfield,periodic_mesh)
 
     ewrite(2,*) "Auto-subcycling: max. subcycles:", max_subsubcycle
     ewrite(2,*) "Auto-subcycling: avg. subcycles:", total_subsubcycle / detector_list%length

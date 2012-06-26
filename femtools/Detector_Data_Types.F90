@@ -32,6 +32,7 @@ module detector_data_types
   use fldebug
   use global_parameters, only : FIELD_NAME_LEN, OPTION_PATH_LEN, PYTHON_FUNC_LEN
   use linked_lists
+  use integer_hash_table_module
   
   implicit none
   
@@ -215,6 +216,14 @@ module detector_data_types
 
      integer :: tracking_method
      real :: search_tolerance = 1.0e-10
+
+     ! Periodic tracking
+     logical :: track_periodic = .false.
+     character(len=FIELD_NAME_LEN) :: periodic_tracking_mesh
+     ! Map of boundary ID to the Python mapping function
+     ! Note: This should not be here, but somewhere on the mesh_type...
+     type(integer_hash_table) :: bid_to_boundary_mapping
+     character(len=PYTHON_FUNC_LEN), dimension(:), allocatable :: boundary_mappings
 
      ! List of random walk schemes to apply
      type(random_walk), dimension(:), allocatable :: random_walks

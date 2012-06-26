@@ -381,7 +381,9 @@ agent_movement =
                empty
             }|
             element geometric_tracking{
-               empty
+               element periodic_mesh {
+                  mesh_choice
+               }?
             }
          ),
          (

@@ -180,6 +180,10 @@ contains
           detector_list%tracking_method = GUIDED_SEARCH_TRACKING
        elseif (have_option(trim(options_path)//trim("/geometric_tracking"))) then
           detector_list%tracking_method = GEOMETRIC_TRACKING
+          if (have_option(trim(options_path)//"/geometric_tracking/periodic_mesh")) then
+             detector_list%track_periodic = .true.
+             call get_option(trim(options_path)//"/geometric_tracking/periodic_mesh/mesh/name", detector_list%periodic_tracking_mesh)
+          end if
        else
           if (check_any_lagrangian(detector_list)) then
              ewrite(-1,*) "Found lagrangian detectors, but no tracking options"
