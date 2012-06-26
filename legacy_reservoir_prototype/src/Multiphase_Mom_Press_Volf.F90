@@ -902,7 +902,6 @@ contains
 
        ewrite(3,*)'just after -satura:', satura( 1 : cv_nonods )
 
-if( itime >1 )stop 675
 
 
 
