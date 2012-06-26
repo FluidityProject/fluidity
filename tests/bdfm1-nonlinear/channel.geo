@@ -1,10 +1,10 @@
-
+Ls=50;
 Point(1) = {0, 0, 0, 0.1};
 Extrude {6.283185307179586, 0, 0} {
-  Point{1};Layers{40};
+  Point{1};Layers{Ls};
 }
 Extrude {0., 6.283185307179586, 0} {
-  Line{1}; Layers{40};
+  Line{1}; Layers{Ls};
 }
 Physical Line(1) = {3};
 Physical Line(2) = {4};

@@ -97,7 +97,7 @@
             <integer_value shape="1" rank="1">2</integer_value>
           </aliased_boundary_ids>
           <coordinate_map>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
 	result = list(X)
 	result[0]=result[0]-6.283185307179586
 	return result</string_value>
@@ -111,7 +111,7 @@
             <integer_value shape="1" rank="1">4</integer_value>
           </aliased_boundary_ids>
           <coordinate_map>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
 	result = list(X)
 	result[1]=result[1]-5.4413980927026531
 	result[0]=result[0]+3.141592653589793
@@ -156,6 +156,9 @@
     <finish_time>
       <real_value rank="0">0.003</real_value>
     </finish_time>
+    <final_timestep>
+      <integer_value rank="0">0</integer_value>
+    </final_timestep>
   </timestepping>
   <physical_parameters>
     <gravity>
@@ -185,7 +188,7 @@
       </vector_field>
     </gravity>
     <coriolis>
-      <string_value lines="20" type="python">def val(X,t):
+      <string_value lines="20" type="code" language="python">def val(X,t):
   from math import pi
   return 0.</string_value>
       <comment>2*pi</comment>
@@ -227,7 +230,13 @@
           </diagnostics>
         </solver>
         <initial_condition name="WholeMesh">
-          <from_streamfunction/>
+          <python>
+            <string_value lines="20" type="code" language="python">def val(X,t):
+  from math import sin
+  x = X[0]
+  y = X[1]
+  return [sin(4*y),0.,0.]</string_value>
+          </python>
         </initial_condition>
         <output/>
         <convergence>
@@ -278,15 +287,16 @@
           </diagnostics>
         </solver>
         <initial_condition name="WholeMesh">
-          <python>
-            <string_value lines="20" type="python">def val(X,t):
+          <constant>
+            <real_value rank="0">0.0</real_value>
+            <comment>def val(X,t):
   from math import pi,sin
   x = X[0]
   y = X[1]
   Rx = 2*pi
   Ry = 2*pi*(3./4.)**0.5
-  return 0.05*sin(2*pi*x/Rx)*sin(3*pi*y/Ry)</string_value>
-          </python>
+  return 0.05*sin(2*pi*x/Rx)*sin(3*pi*y/Ry)</comment>
+          </constant>
         </initial_condition>
         <mean_layer_thickness>
           <real_value rank="0">1.0</real_value>
@@ -321,7 +331,9 @@
             <monitors/>
           </diagnostics>
         </solver>
-        <output/>
+        <output>
+          <exclude_from_vtu/>
+        </output>
         <stat/>
       </prognostic>
     </scalar_field>
@@ -329,16 +341,15 @@
       <prescribed>
         <value>
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
   from math import pi,sin
   x = X[0]
   y = X[1]
   Rx = 2*pi
   Ry = 2*pi*(3./4.)**0.5
-  return sin(2*pi*x/Rx)*sin(3*pi*y/Ry)</string_value>
+  return sin(8*pi*y/Ry)</string_value>
           </python>
         </value>
-        <initialise_from_quadrature_points/>
         <solver>
           <iterative_method name="preonly"/>
           <preconditioner name="lu"/>
