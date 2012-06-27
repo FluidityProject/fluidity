@@ -43,6 +43,7 @@ module global_parameters
   ! Debug specific paramaters are contained in fldebug_parameters
   ! (to resolve build dependencies)
   use fldebug_parameters
+  use iso_c_binding
   
   implicit none
         
@@ -153,11 +154,28 @@ module global_parameters
   real :: domain_volume
   logical :: running_adjoint = .false.
 
+  !! When on-the-sphere, the planet radius is needed.
+  ! The variable is initiliased as unity, to avoid garbage
+  ! being passed around.
+  real :: surface_radius = 1.0
+
   ! Colouring "enum".  These can't be in the colouring module due to circular dependencies
   integer, parameter :: COLOURING_CG1 = 1
   integer, parameter :: COLOURING_DG0 = 2
   integer, parameter :: COLOURING_DG1 = 3
   integer, parameter :: COLOURING_DG2 = 4
   integer, parameter :: NUM_COLOURINGS = 4
+
+  contains
+
+  function get_surface_radius() bind(c)
+    !C-inter-operable subroutine for making the value of surface_radius availabe
+    ! to C functions.
+    implicit none
+
+    real(kind=c_double) :: get_surface_radius
+
+    get_surface_radius = real(surface_radius, kind=c_double)
+  end function get_surface_radius
 
 end module global_parameters
