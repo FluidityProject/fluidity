@@ -26,8 +26,7 @@
 !    USA
 subroutine test_vector_spherical_polar_2_cartesian
   !Subroutine/unit-test of correct vector basis change from a
-  ! spherical-polar system to a Cartesian system, for a whole femtools
-  ! vector field.
+  ! spherical-polar system to a Cartesian system.
 
   use fields
   use vtk_interfaces
@@ -76,8 +75,8 @@ subroutine test_vector_spherical_polar_2_cartesian
   call allocate(polarVectorDifference, 3 , mesh, 'polarVectorDifference')
   call allocate(azimuthalVectorDifference, 3 , mesh, 'azimuthalVectorDifference')
 
-  !Apply transformation to Cartesian basis. Then compare with vector already
-  ! in Cartesian basis, obtained from vtu.
+  !Convert unit-radial vector components into to Cartesian basis. Then compare
+  ! with vector already in Cartesian basis, obtained from vtu.
   do node=1,node_count(PolarCoordinate)
     RTP = node_val(PolarCoordinate, node)
     sphericalPolarVectorComponents = node_val(UnitRadialVector_inPolar, node)
@@ -101,8 +100,8 @@ subroutine test_vector_spherical_polar_2_cartesian
       "[Vector basis change: Spherical-polar to Cartesian of unit-radial vector.]", &
       fail, .false., "Radial unit vector components not transformed correctly.")
 
-  !Apply transformation to Cartesian basis. Then compare with vector already
-  ! in Cartesian basis, obtained from vtu.
+  !Convert unit-polar vector components into Cartesian basis. Then compare
+  ! with vector already in Cartesian basis, obtained from vtu.
   do node=1,node_count(PolarCoordinate)
     RTP = node_val(PolarCoordinate, node)
     sphericalPolarVectorComponents = node_val(UnitPolarVector_inPolar, node)
@@ -126,9 +125,8 @@ subroutine test_vector_spherical_polar_2_cartesian
        "[Vector basis change: Spherical-polar to Cartesian of unit-polar vector.]", &
        fail, .false., "Polar unit vector components not transformed correctly.")
 
-  !Set the components difference-vector equal to the unit-azimuthal vector, and apply
-  ! transformation to Cartesian basis. Then compare with vector already in Cartesian
-  ! basis, obtained from vtu.
+  !Convert unit-azimuthal vector components into Cartesian basis. Then compare
+  ! with vector already in Cartesian basis, obtained from vtu.
   do node=1,node_count(PolarCoordinate)
     RTP = node_val(PolarCoordinate, node)
     sphericalPolarVectorComponents = node_val(UnitAzimuthalVector_inPolar, node)
