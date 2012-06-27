@@ -24,11 +24,10 @@
 !    License along with this library; if not, write to the Free Software
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
-subroutine test_vector_spherical_polar_2_cartesian
+subroutine test_vector_spherical_polar_2_cartesian_field
   !Subroutine/unit-test of correct vector basis change from a
   ! spherical-polar system to a Cartesian system, for a whole femtools
   ! vector field.
-
   use fields
   use vtk_interfaces
   use state_module
@@ -38,27 +37,19 @@ subroutine test_vector_spherical_polar_2_cartesian
 
   type(state_type) :: state
   type(mesh_type), pointer :: mesh
-  type(vector_field), pointer :: CartesianCoordinate, PolarCoordinate
+  type(vector_field), pointer :: CartesianCoordinate
   type(vector_field), pointer :: UnitRadialVector_inCartesian
   type(vector_field), pointer :: UnitPolarVector_inCartesian
   type(vector_field), pointer :: UnitAzimuthalVector_inCartesian
   type(vector_field), pointer :: UnitRadialVector_inPolar
   type(vector_field), pointer :: UnitPolarVector_inPolar
   type(vector_field), pointer :: UnitAzimuthalVector_inPolar
-  type(vector_field) :: radialVectorDifference, &
-                        polarVectorDifference, &
-                        azimuthalVectorDifference
-  real, dimension(3) :: sphericalPolarVectorComponents, &
-                        cartesianVectorComponents
-  real, dimension(3) :: XYZ, RTP !Arrays containing a signel node's position vector
-                                 ! components in Cartesian & spherical-polar bases.
-  integer :: node
+  type(vector_field) :: difference
   logical :: fail
 
   call vtk_read_state("data/on_sphere_rotations/spherical_shell_withFields.vtu", state)
   mesh => extract_mesh(state, "Mesh")
   CartesianCoordinate => extract_vector_field(state, "CartesianCoordinate")
-  PolarCoordinate => extract_vector_field(state, "PolarCoordinate")
   UnitRadialVector_inCartesian => extract_vector_field(state, &
                                                  "UnitRadialVector_inCartesian")
   UnitPolarVector_inCartesian => extract_vector_field(state, &
@@ -76,50 +67,22 @@ subroutine test_vector_spherical_polar_2_cartesian
   call allocate(polarVectorDifference, 3 , mesh, 'polarVectorDifference')
   call allocate(azimuthalVectorDifference, 3 , mesh, 'azimuthalVectorDifference')
 
-  !Apply transformation to Cartesian basis. Then compare with vector already
-  ! in Cartesian basis, obtained from vtu.
-  do node=1,node_count(PolarCoordinate)
-    RTP = node_val(PolarCoordinate, node)
-    sphericalPolarVectorComponents = node_val(UnitRadialVector_inPolar, node)
-    call vector_spherical_polar_2_cartesian(sphericalPolarVectorComponents(1), &
-                                            sphericalPolarVectorComponents(2), &
-                                            sphericalPolarVectorComponents(3), &
-                                            RTP(1), &
-                                            RTP(2), &
-                                            RTP(3), &
-                                            cartesianVectorComponents(1), &
-                                            cartesianVectorComponents(2), &
-                                            cartesianVectorComponents(3), &
-                                            XYZ(1), &
-                                            XYZ(2), &
-                                            XYZ(3))
-    call set(radialVectorDifference, node, cartesianVectorComponents)
-  enddo
+  !Set the components difference-vector equal to the unit radial vector, and apply
+  ! transformation to Cartesian basis. Then compare with vector already in Cartesian
+  ! basis, obtained from vtu.
+  call set(radialVectorDifference, UnitRadialVector_inPolar)
+  call vector_spherical_polar_2_cartesian(radialVectorDifference, state)
   call addto(radialVectorDifference, UnitRadialVector_inCartesian, -1.0)
   fail = any(radialVectorDifference%val > 1e-12)
   call report_test( &
       "[Vector basis change: Spherical-polar to Cartesian of unit-radial vector.]", &
       fail, .false., "Radial unit vector components not transformed correctly.")
 
-  !Apply transformation to Cartesian basis. Then compare with vector already
-  ! in Cartesian basis, obtained from vtu.
-  do node=1,node_count(PolarCoordinate)
-    RTP = node_val(PolarCoordinate, node)
-    sphericalPolarVectorComponents = node_val(UnitPolarVector_inPolar, node)
-    call vector_spherical_polar_2_cartesian(sphericalPolarVectorComponents(1), &
-                                            sphericalPolarVectorComponents(2), &
-                                            sphericalPolarVectorComponents(3), &
-                                            RTP(1), &
-                                            RTP(2), &
-                                            RTP(3), &
-                                            cartesianVectorComponents(1), &
-                                            cartesianVectorComponents(2), &
-                                            cartesianVectorComponents(3), &
-                                            XYZ(1), &
-                                            XYZ(2), &
-                                            XYZ(3))
-    call set(polarVectorDifference, node, cartesianVectorComponents)
-  enddo
+  !Set the components difference-vector equal to the unit-polar vector, and apply
+  ! transformation to Cartesian basis. Then compare with vector already in Cartesian
+  ! basis, obtained from vtu.
+  call set(polarVectorDifference, UnitPolarVector_inPolar)
+  call vector_spherical_polar_2_cartesian(polarVectorDifference, state)
   call addto(polarVectorDifference, UnitPolarVector_inCartesian, -1.0)
   fail = any(polarVectorDifference%val > 1e-12)
   call report_test( &
@@ -129,23 +92,8 @@ subroutine test_vector_spherical_polar_2_cartesian
   !Set the components difference-vector equal to the unit-azimuthal vector, and apply
   ! transformation to Cartesian basis. Then compare with vector already in Cartesian
   ! basis, obtained from vtu.
-  do node=1,node_count(PolarCoordinate)
-    RTP = node_val(PolarCoordinate, node)
-    sphericalPolarVectorComponents = node_val(UnitAzimuthalVector_inPolar, node)
-    call vector_spherical_polar_2_cartesian(sphericalPolarVectorComponents(1), &
-                                            sphericalPolarVectorComponents(2), &
-                                            sphericalPolarVectorComponents(3), &
-                                            RTP(1), &
-                                            RTP(2), &
-                                            RTP(3), &
-                                            cartesianVectorComponents(1), &
-                                            cartesianVectorComponents(2), &
-                                            cartesianVectorComponents(3), &
-                                            XYZ(1), &
-                                            XYZ(2), &
-                                            XYZ(3))
-    call set(azimuthalVectorDifference, node, cartesianVectorComponents)
-  enddo
+  call set(azimuthalVectorDifference, UnitAzimuthalVector_inPolar)
+  call vector_spherical_polar_2_cartesian(azimuthalVectorDifference, state)
   call addto(azimuthalVectorDifference, UnitAzimuthalVector_inCartesian, -1.0)
   fail = any(azimuthalVectorDifference%val > 1e-12)
   call report_test( &
