@@ -504,14 +504,17 @@ contains
              if (new_owner==-1) then
                 if (detector_list%reflect_on_boundary) then
                    ! We reflect the detector path at the face we just went through
-                   call reflect_on_boundary(xfield,detector%update_vector,detector%element)
 
                    if (detector_list%tracking_method == GEOMETRIC_TRACKING) then
+                      call reflect_on_boundary(xfield,detector%update_vector,detector%element, face=detector%current_face)
+
                       ! After reflection our geometry changes:
                       ! We move our origin to the last known point on our ray (ele_t), 
                       ! and calculate a new direction
                       detector%ray_o = detector%ray_o + (detector%current_t * detector%ray_d)
-                      call initialise_ray(detector, detector%update_vector)                      
+                      call initialise_ray(detector, detector%update_vector)
+                   else
+                      call reflect_on_boundary(xfield,detector%update_vector,detector%element)
                    end if
                 else
                    ! Turn detector static inside the domain
@@ -729,6 +732,9 @@ contains
        if (ele_t < detector%target_distance + search_tolerance) then
           neigh_face = face_neigh(xfield, next_face)
 
+          ! Store current face, in case we need it for reflection
+          detector%current_face = next_face
+
           ! Record our next t and the distance covered
           call insert(detector%ele_dist_list, ele_t - detector%current_t)
           detector%current_t = ele_t
@@ -829,12 +835,13 @@ contains
 
   end subroutine geometric_ray_tracing
 
-  subroutine reflect_on_boundary(xfield, coordinate, element)
+  subroutine reflect_on_boundary(xfield, coordinate, element, face)
     ! Reflect the coordinate in the according boundary face of the element.
     ! This uses simple reflection equations and assumes the face to be flat.
     type(vector_field), pointer, intent(in) :: xfield
     real, dimension(mesh_dim(xfield)), intent(inout) :: coordinate
     integer, intent(in) :: element
+    integer, intent(in), optional :: face
 
     real, dimension(mesh_dim(xfield)+1) :: arrival_local_coords
     integer :: i, neigh, neigh_face
@@ -843,14 +850,19 @@ contains
     integer, dimension(:), pointer :: neigh_list
     integer, dimension(:), allocatable :: face_nodes 
     real, dimension(xfield%dim) :: face_node_val, face_normal
-    real :: offset, p, D
+    real :: offset, p, D, arrival_lcoord
 
-    ! At least one face has no neighbour (-ve value in neigh_list)
-    neigh_list=>ele_neigh(xfield,element)
-    neigh = minval(minloc(neigh_list))
+    ! First, if its not given, get the face we went through
+    if (present(face)) then
+       neigh_face = face
+    else
+       neigh_list=>ele_neigh(xfield,element)
+       arrival_local_coords=local_coords(xfield,element,coordinate)
+       neigh = minval(minloc(arrival_local_coords))
+       neigh_face = ele_face(xfield, element, neigh_list(neigh))
+    end if
 
-    ! First get the face we went through and the coordinates of one node on it
-    neigh_face = ele_face(xfield, element, neigh_list(neigh))
+    ! Now get the coordinates of one node on the face we went through
     allocate(face_nodes(face_loc(xfield, neigh_face)))
     face_nodes = face_global_nodes(xfield, neigh_face)    
     face_node_val=node_val(xfield,face_nodes(1))

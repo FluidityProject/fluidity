@@ -86,6 +86,8 @@ module detector_data_types
      real, dimension(:), allocatable :: ray_o, ray_d
      ! Distance to the target coordinate
      real :: target_distance, current_t
+     ! We record face numbers for use with reflection
+     integer :: current_face
 
      ! Element list and distances for path integration
      type(ilist) :: ele_path_list
