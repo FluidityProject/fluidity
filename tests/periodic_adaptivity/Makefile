@@ -3,4 +3,5 @@ input:
 	../../bin/gmsh2triangle --2d MMS_B.msh
 
 clean:
-	rm -f *.vtu *.log-? *.err-? *.msh *.edge *.ele *.node periodic_adaptivity.stat periodic_adaptivity_periodised.flml
+	rm -f *.vtu *.log-? *.err-? *.msh *.edge *.ele *.node periodic_adaptivity.stat periodic_adaptivity_periodised.flml \
+	matrixdump matrixdump.info

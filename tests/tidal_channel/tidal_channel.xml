@@ -8,6 +8,11 @@
     <command_line>fluidity -v3 -l  channel.flml</command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="l2norm_error" language="python">
 # l2-norm error with analytical solution
 import fluidity_tools
@@ -23,6 +28,9 @@ infnorm_error=s['water']['ScalarAbsoluteDifference']['max'][-100:].max()
     </variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="l2norm_error smaller than 1e-3" language="python">
 assert(l2norm_error &lt; 1e-3)
     </test>

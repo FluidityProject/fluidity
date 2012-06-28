@@ -12,6 +12,11 @@
     <!-- The simulation ends when it has converged to a steady state -->
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="difference_vtus" language="python">
 import glob
 import numpy
@@ -38,6 +43,9 @@ grid_peclet_number = numpy.average(vtktools.vtu(filelist[-1]).GetScalarField('Gr
     </variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="the simulation has converged" language="python">
 for value in difference_vtus:
     assert value &lt; 1.0e-7

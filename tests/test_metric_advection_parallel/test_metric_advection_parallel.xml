@@ -8,6 +8,11 @@
     </command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name = "end_times" language = "python">
     
 from lxml import etree
@@ -51,6 +56,9 @@ end_times.append(float(Getflmlvalue('test_metric_advection_parallel.flml','/flui
     </variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name = "check run completed" language = "python">
     assert end_times[1]-end_times[0] &lt; 1.E-6
     </test>
