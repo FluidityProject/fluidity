@@ -143,8 +143,6 @@
               trim(velocity%option_path)//"/prognostic/boundary_conditions"//"["//int2str(i-1)//"]"
 
          tolerance=0.; Cb=0.; have_Cb=.false.; Cf=0.
-         normal_nodes => extract_surface_field(velocity, i, "normal")
-
          if (bc_type=="near_wall_treatment") then
 
             call get_option( &
@@ -156,6 +154,16 @@
                  Cb, stat)
 
             have_Cb = stat == 0
+
+            normal_nodes => extract_surface_field(velocity, i, "normal")
+
+         else if (bc_type=="log_law_of_wall") then
+
+            call get_option( &
+                 trim(bc_path_i)//"/type::"//trim(bc_type)//"/surface_roughness", &
+                 Cf)
+
+            normal_nodes => extract_surface_field(velocity, i, "normal")
 
          end if
 

@@ -73,12 +73,15 @@ subroutine compute_subgrid_tke(state)
     src_k           => extract_scalar_field(state, "SubgridKineticEnergySource",stat)
     if(stat/=0) then
       FLExit('You have to have a SubgridKineticEnergy Source field set to diagnostic/internal.')
+    end if
     abs_k           => extract_scalar_field(state, "SubgridKineticEnergyAbsorption",stat)
     if(stat/=0) then
       FLExit('You have to have a SubgridKineticEnergy Absorption field set to diagnostic/internal.')
+    end if
     diff_k          => extract_tensor_field(state, "SubgridKineticEnergyDiffusivity",stat)
     if(stat/=0) then
       FLExit('You have to have a SubgridKineticEnergyDiffusivity field set to diagnostic/internal.')
+    end if
     visc            => extract_tensor_field(state, "Viscosity",stat)
     if(stat/=0) then
       FLExit('You have to have a Viscosity field supplied by one of the turbulence models for this field to be calculated.')
