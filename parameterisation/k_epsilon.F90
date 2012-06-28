@@ -525,7 +525,7 @@ subroutine keps_eddyvisc(state)
 
     ! Set eddy viscosity
     do i = 1, node_count(EV)
-      f = node_val(filter_rhs, i)
+      f = max(node_val(filter_rhs, i), 0.)
       call set(filter, i, min(1.0, f))
       call set(EV, i, node_val(filter,i)*node_val(ev_rhs,i)/node_val(lumped_mass,i))
     end do
