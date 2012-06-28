@@ -31,15 +31,15 @@ PACKAGE_NAME = @PACKAGE_NAME@
 FLUIDITY = $(PACKAGE_NAME)
 
 FC      = @FC@
-FCFLAGS = -I../include @MOD_FLAG@../include @CPPFLAGS@ @FCFLAGS@  -I../libwm -I/usr/local/include -I./ -I../libexodusiifortran/include
+FCFLAGS = -I../include @MOD_FLAG@../include @CPPFLAGS@ @FCFLAGS@  -I../libwm -I/usr/local/include -I./
 
 MPIF90  = @MPIF90@
 
 CC      = @CC@
-CFLAGS  = @CPPFLAGS@ @CFLAGS@ -I../include -I../libwm -I../libexodusiifortran/include -I/usr/local/include
+CFLAGS  = @CPPFLAGS@ @CFLAGS@ -I../include -I../libwm -I/usr/local/include
 
 CXX     = @CXX@
-CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I../include -I../libwm  -I../libvtkfortran/include -I../libexodusiifortran/include -I/usr/local/include
+CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I../include -I../libwm  -I../libvtkfortran/include -I/usr/local/include
 
 LINKER  = @LINKER@ @LDFLAGS@
 
@@ -54,7 +54,7 @@ LIB = ../lib/lib$(FLUIDITY).a
 
 F90LIB = libfemtools.a
 
-LIBS    = -L../libexodusiifortran/lib/libexodus.a -L/usr/lib/ -lnetcdf -L../lib -l$(FLUIDITY) @LIBS@ @BLAS_LIBS@
+LIBS    = -L/usr/lib/ -lnetcdf -L../lib -l$(FLUIDITY) @LIBS@ @BLAS_LIBS@
 
 TESTLIBS = $(shell echo @LIBS@ | sed 's@./lib/lib\([a-z]*\)\.a@-l\1@g')
 
