@@ -67,6 +67,13 @@ enforcing continuity by Lagrange multipliers).</a:documentation>
                     <value>trace</value>
                   </choice>
                 </element>
+                <optional>
+                  <element name="nodalise_basis">
+                    <a:documentation>Make the basis nodal. Useful for bubble spaces, 
+breaks interpolation.</a:documentation>
+                    <empty/>
+                  </element>
+                </optional>
               </element>
             </optional>
           </element>

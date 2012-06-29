@@ -903,6 +903,10 @@ contains
       shape=make_element_shape(loc, dim, poly_degree, quad,&
            &type=new_shape_type,constraint_type_choice=constraint_choice)
       call deallocate(quad) ! Really just drop a reference.
+      if(have_option(trim(mesh_path)//"/from_mesh/mesh_shape/element_type/no&
+           &dalise_basis")) then
+         call nodalise_basis(shape)
+      end if
     else
       shape=from_mesh%shape
       call incref(shape)

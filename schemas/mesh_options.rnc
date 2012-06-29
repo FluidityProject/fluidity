@@ -46,7 +46,12 @@ mesh_info =
                ## enforcing continuity by Lagrange multipliers).
               element string_value{
                  "lagrangian" | "bubble" | "trace"
-              }
+              },
+              ## Make the basis nodal. Useful for bubble spaces, 
+              ## breaks interpolation.
+              element nodalise_basis{
+                 empty
+              }?
             }?
          }?,
          element mesh_continuity {
