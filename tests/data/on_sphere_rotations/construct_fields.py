@@ -39,6 +39,10 @@ unitRadialVector_inPolar=[]
 unitPolarVector_inPolar=[]
 unitAzimuthalVector_inPolar=[]
 lon_lat_radius_coordinate=[]
+tensor_inZMV=[]   #Tensor components in zonal-meridional-vertical.
+unitRadialVector_inZMV=[]
+unitPolarVector_inZMV=[]
+unitAzimuthalVector_inZMV=[]
 for point in vertices:
    #Extract Cartesian coordinates from the mesh, calculate spherical-polar coord and
    # append to appropriate lists.
@@ -53,6 +57,12 @@ for point in vertices:
    unitRadialVector_inCartesian.append(rotation.transform_vector_sphericalPolar_2_cartesian(point_sphericalPolar, VectorComponents_unitRadial))
    unitPolarVector_inCartesian.append(rotation.transform_vector_sphericalPolar_2_cartesian(point_sphericalPolar, VectorComponents_unitPolar))
    unitAzimuthalVector_inCartesian.append(rotation.transform_vector_sphericalPolar_2_cartesian(point_sphericalPolar, VectorComponents_unitAzimuthal))
+   #Calculate the vector and tensor components in a zonal-meridional-vertical basis
+   # and append to appropriate lists.
+   tensor_inZMV.append(rotation.transform_tensor_sphericalPolar_2_lon_lat_rad(TensorComponents_sphericalPolar))
+   unitRadialVector_inZMV.append(rotation.transform_vector_sphericalPolar_2_lon_lat_rad(VectorComponents_unitRadial))
+   unitPolarVector_inZMV.append(rotation.transform_vector_sphericalPolar_2_lon_lat_rad(VectorComponents_unitPolar))
+   unitAzimuthalVector_inZMV.append(rotation.transform_vector_sphericalPolar_2_lon_lat_rad(VectorComponents_unitAzimuthal))
    #Append to appropriate lists the tensor and vector components in spherical-polar basis.
    tensor_inPolar.append(TensorComponents_sphericalPolar)
    unitRadialVector_inPolar.append(VectorComponents_unitRadial)
@@ -60,16 +70,20 @@ for point in vertices:
    unitAzimuthalVector_inPolar.append(VectorComponents_unitAzimuthal)
 
 file.AddVectorField('CartesianCoordinate', sp.array(cartesianCoordinate))
-file.AddVectorField('PolarCoordinate', sp.array(polarCoordinate))
-file.AddVectorField('lonlatradius',sp.array(lon_lat_radius_coordinate))
 file.AddField('Tensor_inCartesian', sp.array(tensor_inCartesian))
 file.AddVectorField('UnitRadialVector_inCartesian', sp.array(unitRadialVector_inCartesian))
 file.AddVectorField('UnitPolarVector_inCartesian', sp.array(unitPolarVector_inCartesian))
 file.AddVectorField('UnitAzimuthalVector_inCartesian', sp.array(unitAzimuthalVector_inCartesian))
+file.AddVectorField('PolarCoordinate', sp.array(polarCoordinate))
 file.AddField('Tensor_inPolar', sp.array(tensor_inPolar))
 file.AddVectorField('UnitRadialVector_inPolar', sp.array(unitRadialVector_inPolar))
 file.AddVectorField('UnitPolarVector_inPolar', sp.array(unitPolarVector_inPolar))
 file.AddVectorField('UnitAzimuthalVector_inPolar', sp.array(unitAzimuthalVector_inPolar))
+file.AddVectorField('lonlatradius',sp.array(lon_lat_radius_coordinate))
+file.AddField('Tensor_inZonalMeridionalRadial', sp.array(tensor_inZMV))
+file.AddVectorField('UnitRadialVector_inZonalMeridionalRadial', sp.array(unitRadialVector_inZMV))
+file.AddVectorField('UnitPolarVector_inZonalMeridionalRadial', sp.array(unitPolarVector_inZMV))
+file.AddVectorField('UnitAzimuthalVector_inZonalMeridionalRadial', sp.array(unitAzimuthalVector_inZMV))
 
 file.Write('spherical_shell_withFields.vtu')
 
