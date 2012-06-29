@@ -52,15 +52,12 @@ contains
     type(state_type), intent(inout) :: state
     type(detector_linked_list), intent(inout) :: agent_list
 
-    type(detector_type), pointer :: agent, agent_to_move, merge_target, agent_to_merge
     type(scalar_field), pointer :: agent_density_field, agent_minimum_field, agent_maximum_field
     type(vector_field), pointer :: xfield
     type(ilist) :: elements_split_list, elements_merge_list
-    type(integer_hash_table) :: split_index_mapping, merge_index_mapping, element_minima, element_maxima
-    type(detector_linked_list), dimension(:), allocatable :: split_lists, merge_lists
-    integer, dimension(:), allocatable :: elements_split, elements_merge, xbiggest_ids, xsmallest_ids
-    real, dimension(:), allocatable :: xbiggest_sizes, xsmallest_sizes
-    integer :: i, ele, index, splits_wanted, merges_wanted, found_agent, element_minimum, element_maximum
+    type(integer_hash_table) :: element_minima, element_maxima
+    integer, dimension(:), allocatable :: elements_split, elements_merge
+    integer :: i, ele
     real :: agent_total, agent_minimum, agent_maximum
 
     call profiler_tic(trim(agent_list%name)//"::particle_management")
@@ -115,41 +112,59 @@ contains
     allocate(elements_merge(elements_merge_list%length))
     elements_merge = list2vector(elements_merge_list)
 
+    ! Do the split/merge by element
+    call pm_split_by_element(agent_list, elements_split, element_minima)
+
+    call pm_merge_by_element(xfield, agent_list, elements_merge, element_maxima)
+
+    ! Deallocate everything split related
+    deallocate(elements_split)
+    call flush_list(elements_split_list)
+    call deallocate(element_minima)
+
+    ! Deallocate eveything merge related
+    deallocate(elements_merge)
+    call flush_list(elements_merge_list)
+    call deallocate(element_maxima)
+
+    call profiler_toc(trim(agent_list%name)//"::particle_management")
+
+  end subroutine particle_management
+
+  subroutine pm_split_by_element(agent_list, elements_split, element_minima)
+    type(detector_linked_list), intent(inout) :: agent_list
+    integer, dimension(:), allocatable :: elements_split
+    type(integer_hash_table), intent(inout) :: element_minima
+
+    type(detector_type), pointer :: agent, agent_to_move
+    type(detector_linked_list), dimension(:), allocatable :: split_lists
+    type(integer_hash_table) :: split_index_mapping
+    integer, dimension(:), allocatable :: xbiggest_ids
+    real, dimension(:), allocatable :: xbiggest_sizes
+    integer :: i, index, splits_wanted, element_minimum
+
     ! Create a hashtable from element -> index into split_lists
     call allocate(split_index_mapping)
     do i=1, size(elements_split)
        call insert(split_index_mapping, elements_split(i), i)
     end do
 
-    ! Create a hashtable from element -> index into merge_lists
-    call allocate(merge_index_mapping)
-    do i=1, size(elements_merge)
-       call insert(merge_index_mapping, elements_merge(i), i)
-    end do
-
     ! Put agents into temporary agent lists for each element to split/merge
-    ewrite(2,*) "Particle Management: Moving agents to split/merge into temporary lists"
-    allocate(split_lists(elements_split_list%length))
-    allocate(merge_lists(elements_merge_list%length))
+    ewrite(2,*) "Particle Management: Moving agents to split into temporary lists"
+    allocate(split_lists(size(elements_split)))
     agent=>agent_list%first
     do while(associated(agent))
-       ! 
+       ! Move agent to split list
        if (has_key(split_index_mapping, agent%element)) then
           index = fetch(split_index_mapping,agent%element)
           agent_to_move=>agent
           agent=>agent%next
           call move(agent_to_move, agent_list, split_lists(index))
-       ! 
-       elseif (has_key(merge_index_mapping, agent%element)) then
-          index = fetch(merge_index_mapping,agent%element)
-          agent_to_move=>agent
-          agent=>agent%next
-          call move(agent_to_move, agent_list, merge_lists(index))
-
        else
           agent=>agent%next
        end if
     end do 
+
 
     ! Perform splits over the temporary agent arrays
     ! Each array now represents all agents in one element
@@ -158,7 +173,6 @@ contains
     do i=1, size(split_lists)
        element_minimum = fetch(element_minima, elements_split(i))
 
-       !!!!!!!!!!!!!!!!!!!!!
        ! Original VEW split algorithm:
        do while(split_lists(i)%length < element_minimum)
           ! 1) Find x, the number of splits we want
@@ -194,16 +208,6 @@ contains
           deallocate(xbiggest_ids)
           deallocate(xbiggest_sizes)
        end do
-       !!!!!!!!!!!!!!!!!!!!!
-
-       !!!!!!!!!!!!!!!!!!!!!
-       ! Simple algorithm: always split first agent in the list
-       !do while(agent_density < element_minimum)
-       !   call pm_split(split_lists(i)%first, split_lists(i))
-       !   agent_density = split_lists(i)%length / ele_volume
-       !end do
-       !!!!!!!!!!!!!!!!!!!!!
-
     end do
 
     ! Copy all agents back to the original list
@@ -211,19 +215,52 @@ contains
        call move_all(split_lists(i), agent_list)
     end do
 
-    ! Deallocate everythin split related
-    deallocate(split_lists)
-    deallocate(elements_split)
-    call flush_list(elements_split_list)
     call deallocate(split_index_mapping)
-    call deallocate(element_minima)
+    deallocate(split_lists)
+
+  end subroutine pm_split_by_element
+
+  subroutine pm_merge_by_element(xfield, agent_list, elements_merge, element_maxima)
+    type(vector_field), pointer, intent(in) :: xfield
+    type(detector_linked_list), intent(inout) :: agent_list
+    integer, dimension(:), allocatable :: elements_merge
+    type(integer_hash_table), intent(inout) :: element_maxima
+
+    type(detector_type), pointer :: agent, agent_to_move, merge_target, agent_to_merge
+    type(detector_linked_list), dimension(:), allocatable :: merge_lists
+    type(integer_hash_table) :: merge_index_mapping
+    integer, dimension(:), allocatable :: xsmallest_ids
+    real, dimension(:), allocatable :: xsmallest_sizes
+    integer :: i, index, merges_wanted, found_agent, element_maximum
+
+    ! Create a hashtable from element -> index into merge_lists
+    call allocate(merge_index_mapping)
+    do i=1, size(elements_merge)
+       call insert(merge_index_mapping, elements_merge(i), i)
+    end do
+
+    ! Put agents into temporary agent lists for each element to split/merge
+    ewrite(2,*) "Particle Management: Moving agents to merge into temporary lists"
+    allocate(merge_lists(size(elements_merge)))
+    agent=>agent_list%first
+    do while(associated(agent))
+       ! Move agent to merge list
+       if (has_key(merge_index_mapping, agent%element)) then
+          index = fetch(merge_index_mapping,agent%element)
+          agent_to_move=>agent
+          agent=>agent%next
+          call move(agent_to_move, agent_list, merge_lists(index))
+
+       else
+          agent=>agent%next
+       end if
+    end do 
 
     ! Perform merges over the temporary agent arrays
     ewrite(2,*) "Particle Management: Merging agents per element"
     do i=1, size(merge_lists)
        element_maximum = fetch(element_maxima, elements_merge(i))
 
-       !!!!!!!!!!!!!!!!!!!!!
        ! Original VEW merge algorithm:
        do while(merge_lists(i)%length > element_maximum .and. merge_lists(i)%length > 1)
           ! 1) Find x, the number of merges we want
@@ -272,16 +309,6 @@ contains
           deallocate(xsmallest_ids)
           deallocate(xsmallest_sizes)
        end do
-       !!!!!!!!!!!!!!!!!!!!!
-
-       !!!!!!!!!!!!!!!!!!!!!
-       ! Simple algorithm: always merge the first two agents in the list
-       !do while(agent_density > agent_list%pm_max)
-       !   call pm_merge(merge_lists(i)%first, merge_lists(i)%first%next, merge_lists(i))
-       !   agent_density = merge_lists(i)%length / ele_volume
-       !end do
-       !!!!!!!!!!!!!!!!!!!!!
-
     end do
 
     ! Copy all agents back to the original list
@@ -289,33 +316,10 @@ contains
        call move_all(merge_lists(i), agent_list)
     end do
 
-    ! Deallocate eveything merge related
-    deallocate(merge_lists)
-    deallocate(elements_merge)
-    call flush_list(elements_merge_list)
     call deallocate(merge_index_mapping)
-    call deallocate(element_maxima)
+    deallocate(merge_lists)
 
-    call profiler_toc(trim(agent_list%name)//"::particle_management")
-
-  contains
-
-    function find(array, val) result(loc)
-      !!< Find the first instance of val in array.
-      integer, intent(in), dimension(:) :: array
-      integer, intent(in) :: val
-      integer :: i, loc
-
-      loc = -1
-      do i=1,size(array)
-        if (array(i) == val) then
-          loc = i
-          return
-        end if
-      end do
-    end function find
-
-  end subroutine particle_management
+  end subroutine pm_merge_by_element
 
   subroutine pm_split(agent, agent_list)
     type(detector_type), pointer, intent(inout) :: agent
@@ -415,5 +419,20 @@ contains
        ewrite(2,*) "Lagrangian biology: Stripped", kill_count, " insignificant agents"
     end if
   end subroutine pm_strip_insignificant
+
+  function find(array, val) result(loc)
+    !!< Find the first instance of val in array.
+    integer, intent(in), dimension(:) :: array
+    integer, intent(in) :: val
+    integer :: i, loc
+
+    loc = -1
+    do i=1,size(array)
+      if (array(i) == val) then
+        loc = i
+        return
+      end if
+    end do
+  end function find
 
 end module lagrangian_biology_pm
