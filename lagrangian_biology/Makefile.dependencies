@@ -44,5 +44,6 @@ Particle_Management.o ../include/lagrangian_biology_pm.mod: \
    ../include/detector_parallel.mod ../include/detector_tools.mod \
    ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
    ../include/global_parameters.mod ../include/integer_hash_table_module.mod \
-   ../include/profiler.mod ../include/spud.mod ../include/state_module.mod
+   ../include/pickers.mod ../include/profiler.mod ../include/spud.mod \
+   ../include/state_module.mod
 

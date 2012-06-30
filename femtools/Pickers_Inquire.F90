@@ -326,13 +326,13 @@ contains
 
   end subroutine picker_inquire_nodes_tolerance
 
-  subroutine picker_inquire_single_region(positions, low_coord, high_coord, elements)
+  subroutine picker_inquire_single_region(positions, low, high, eles)
     type(vector_field), intent(inout) :: positions
-    real, dimension(*), intent(in) :: low_coord, high_coord
-    integer, dimension(:), pointer, intent(out) :: elements
+    real, dimension(*), intent(in) :: low, high
+    integer, dimension(:), pointer, intent(out) :: eles
 
     call initialise_picker(positions)
-    call node_owner_finder_find_single_region(positions%picker%ptr%picker_id, positions%dim, low_coord, high_coord, elements)
+    call node_owner_finder_find_single_region(positions%picker%ptr%picker_id, positions%dim, low, high, eles)
 
   end subroutine picker_inquire_single_region
 

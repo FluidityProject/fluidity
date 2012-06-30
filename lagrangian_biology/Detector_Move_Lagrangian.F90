@@ -570,14 +570,13 @@ contains
        end if
 
        if (minval(detector%local_coords) < -detector_list%search_tolerance) then
-          ewrite(-1,*) "Detector", detector%id_number, ", in element", detector%element, &
-                       " has local coordinates: ", detector%local_coords
+          ewrite(-1,*) "Detector", detector%id_number, ", in element", detector%element, " has local coordinates: ", detector%local_coords
           FLAbort("Negative local coordinate for lagrangian detector after tracking!")
        end if
 
-		 if (detector_list%tracking_method == GEOMETRIC_TRACKING) then
-		    detector%ray_o = detector%update_vector
-		 end if
+       if (detector_list%tracking_method == GEOMETRIC_TRACKING) then
+          detector%ray_o = detector%update_vector
+       end if
 
        detector => detector%next
     end do
@@ -990,7 +989,7 @@ contains
 
   subroutine initialise_rw_subcycling(state, xfield, option_path, dt)
     type(state_type), intent(inout) :: state
-    type(vector_field), pointer, intent(in) :: xfield
+    type(vector_field), pointer, intent(inout) :: xfield
     character(len=OPTION_PATH_LEN), intent(in) :: option_path
     real, intent(in) :: dt
 
@@ -1022,9 +1021,9 @@ contains
 
     subroutine element_rw_subcycling(element,dt,xfield,diff_field,grad_field,hessian_field,scale_factor,subcycling)
       integer, intent(in) :: element
-      type(scalar_field), pointer, intent(in) :: diff_field
-      type(vector_field), pointer, intent(in) :: xfield, grad_field
-      type(tensor_field), pointer, intent(in) :: hessian_field
+      type(scalar_field), pointer, intent(inout) :: diff_field
+      type(vector_field), pointer, intent(inout) :: xfield, grad_field
+      type(tensor_field), pointer, intent(inout) :: hessian_field
       real, intent(in) :: dt, scale_factor
       real, intent(out) :: subcycling
 
