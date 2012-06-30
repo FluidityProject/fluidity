@@ -177,6 +177,13 @@ This option is generally only useful for testing. </a:documentation>
                           </element>
                         </element>
                       </optional>
+                      <optional>
+                        <element name="local_maximum">
+                          <a:documentation>Local maximum number of agents in this list.
+Arbitrary agent pairs will be merged to enforce this limit.</a:documentation>
+                          <ref name="integer"/>
+                        </element>
+                      </optional>
                     </element>
                   </optional>
                   <optional>

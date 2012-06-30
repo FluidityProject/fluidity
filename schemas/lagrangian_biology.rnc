@@ -147,6 +147,11 @@ lagrangian_biology =
                            element prescribed {
                               prescribed_scalar_field_no_adapt
                            }
+                        }?,
+                        ## Local maximum number of agents in this list.
+                        ## Arbitrary agent pairs will be merged to enforce this limit.
+                        element local_maximum {
+                           integer
                         }?
                      }?,
                      element io_period {

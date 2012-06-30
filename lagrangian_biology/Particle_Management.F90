@@ -36,6 +36,7 @@ module lagrangian_biology_pm
   use detector_tools
   use detector_parallel, only: get_next_detector_id
   use integer_hash_table_module
+  use pickers
   use Profiler
 
 implicit none
@@ -52,96 +53,77 @@ contains
     type(state_type), intent(inout) :: state
     type(detector_linked_list), intent(inout) :: agent_list
 
-    type(scalar_field), pointer :: agent_density_field, agent_minimum_field, agent_maximum_field
+    type(scalar_field), pointer :: agent_field, agent_min_field, agent_max_field
     type(vector_field), pointer :: xfield
-    type(ilist) :: elements_split_list, elements_merge_list
-    type(integer_hash_table) :: element_minima, element_maxima
-    integer, dimension(:), allocatable :: elements_split, elements_merge
-    integer :: i, ele
-    real :: agent_total, agent_minimum, agent_maximum
+    integer :: local_maximum
 
     call profiler_tic(trim(agent_list%name)//"::particle_management")
 
     ewrite(2,*) "Performing Particle Management for list: ", trim(agent_list%name)
 
     xfield=>extract_vector_field(state, "Coordinate")
-    agent_density_field=>extract_scalar_field(state, trim(agent_list%fgroup%name)//"Agents"//trim(agent_list%stage_name))
+    agent_field=>extract_scalar_field(state, trim(agent_list%fgroup%name)//"Agents"//trim(agent_list%stage_name))
 
-    ! Initialise the Python functions to determine PM limits
+    ! Split agents per element until the prescribed minimum is achieved
     if (have_option(trim(agent_list%stage_options)//"/particle_management/scalar_field::AgentsMin")) then
-       agent_minimum_field=>extract_scalar_field(state, trim(agent_list%fgroup%name)//"AgentsMin"//trim(agent_list%stage_name))
-    else
-       agent_minimum_field=>null()
+       agent_min_field=>extract_scalar_field(state, trim(agent_list%fgroup%name)//"AgentsMin"//trim(agent_list%stage_name))
+
+       call pm_split_by_element(xfield, agent_field, agent_min_field, agent_list)
     end if
 
+    ! Merge agents per element until the prescribed maximum is achieved
     if (have_option(trim(agent_list%stage_options)//"/particle_management/scalar_field::AgentsMax")) then
-       agent_maximum_field=>extract_scalar_field(state, trim(agent_list%fgroup%name)//"AgentsMax"//trim(agent_list%stage_name))
-    else
-       agent_maximum_field=>null()
+       agent_max_field=>extract_scalar_field(state, trim(agent_list%fgroup%name)//"AgentsMax"//trim(agent_list%stage_name))
+
+       call pm_merge_by_element(xfield, agent_field, agent_max_field, agent_list)
     end if
+
+    ! After the element-wise split/merges are done,
+    ! we check for global agent maxima and enforce them
+    if (have_option(trim(agent_list%stage_options)//"/particle_management/local_maximum")) then
+       ewrite(2,*) "Particle Management: Enforcing local maximum"
+       call get_option(trim(agent_list%stage_options)//"/particle_management/local_maximum", local_maximum)
+
+       ! For now we are simply enforcing a local maximum here
+       ! Ideally we would enforce one global maximum across all procs
+       call pm_merge_list(xfield, agent_list, local_maximum)
+    end if
+
+    call profiler_toc(trim(agent_list%name)//"::particle_management")
+
+  end subroutine particle_management
+
+  subroutine pm_split_by_element(xfield, agent_field, agent_min_field, agent_list)
+    type(vector_field), pointer, intent(inout) :: xfield
+    type(scalar_field), pointer, intent(inout) :: agent_field, agent_min_field
+    type(detector_linked_list), intent(inout) :: agent_list
+
+    type(detector_type), pointer :: agent, agent_to_move
+    type(detector_linked_list), dimension(:), allocatable :: split_lists
+    type(integer_hash_table) :: split_index_mapping, element_minima
+    type(ilist) :: elements_split_list
+    integer, dimension(:), allocatable :: elements_split
+    integer :: i, ele, index, element_minimum
+    real :: agent_minimum, agent_total
+
+    ewrite(2,*) "Particle Management: Splitting agents per element"
 
     ! First establish in which elements we need to split/merge
     ! We skip elements with no agents...
-    ewrite(2,*) "Particle Management: Establishing elements to split/merge in"
     call allocate(element_minima)
-    call allocate(element_maxima)
-    do ele=1, ele_count(agent_density_field)
-       agent_total = integral_element(agent_density_field, xfield, ele)
+    do ele=1, ele_count(agent_field)
+       agent_total = integral_element(agent_field, xfield, ele)
+       agent_minimum = integral_element(agent_min_field, xfield, ele)
 
-       ! Store element numbers and minima/maxima for split and merge
-       if (associated(agent_minimum_field)) then
-          agent_minimum = integral_element(agent_minimum_field, xfield, ele)
-          if (agent_total < agent_minimum .and. agent_total > 0.0) then
-             call insert(elements_split_list, ele)
-             call insert(element_minima, ele, nint(agent_minimum))
-          end if
-       end if
-
-       if (associated(agent_maximum_field)) then
-          agent_maximum = integral_element(agent_maximum_field, xfield, ele)
-          if (agent_total > agent_maximum .and. agent_total > 0.0) then
-             call insert(elements_merge_list, ele)
-             call insert(element_maxima, ele, nint(agent_maximum))
-          end if
+       if (agent_total < agent_minimum .and. agent_total > 0.0) then
+          call insert(elements_split_list, ele)
+          call insert(element_minima, ele, nint(agent_minimum))
        end if
     end do
 
     ! Convert linked lists of elements to split/merge to vectors
     allocate(elements_split(elements_split_list%length))
     elements_split = list2vector(elements_split_list)
-    allocate(elements_merge(elements_merge_list%length))
-    elements_merge = list2vector(elements_merge_list)
-
-    ! Do the split/merge by element
-    call pm_split_by_element(agent_list, elements_split, element_minima)
-
-    call pm_merge_by_element(xfield, agent_list, elements_merge, element_maxima)
-
-    ! Deallocate everything split related
-    deallocate(elements_split)
-    call flush_list(elements_split_list)
-    call deallocate(element_minima)
-
-    ! Deallocate eveything merge related
-    deallocate(elements_merge)
-    call flush_list(elements_merge_list)
-    call deallocate(element_maxima)
-
-    call profiler_toc(trim(agent_list%name)//"::particle_management")
-
-  end subroutine particle_management
-
-  subroutine pm_split_by_element(agent_list, elements_split, element_minima)
-    type(detector_linked_list), intent(inout) :: agent_list
-    integer, dimension(:), allocatable :: elements_split
-    type(integer_hash_table), intent(inout) :: element_minima
-
-    type(detector_type), pointer :: agent, agent_to_move
-    type(detector_linked_list), dimension(:), allocatable :: split_lists
-    type(integer_hash_table) :: split_index_mapping
-    integer, dimension(:), allocatable :: xbiggest_ids
-    real, dimension(:), allocatable :: xbiggest_sizes
-    integer :: i, index, splits_wanted, element_minimum
 
     ! Create a hashtable from element -> index into split_lists
     call allocate(split_index_mapping)
@@ -150,7 +132,6 @@ contains
     end do
 
     ! Put agents into temporary agent lists for each element to split/merge
-    ewrite(2,*) "Particle Management: Moving agents to split into temporary lists"
     allocate(split_lists(size(elements_split)))
     agent=>agent_list%first
     do while(associated(agent))
@@ -165,49 +146,13 @@ contains
        end if
     end do 
 
-
     ! Perform splits over the temporary agent arrays
     ! Each array now represents all agents in one element
     ! the according element number is stored in elements_split(i)
-    ewrite(2,*) "Particle Management: Splitting agents per element"
     do i=1, size(split_lists)
        element_minimum = fetch(element_minima, elements_split(i))
 
-       ! Original VEW split algorithm:
-       do while(split_lists(i)%length < element_minimum)
-          ! 1) Find x, the number of splits we want
-          splits_wanted = element_minimum - split_lists(i)%length
-          splits_wanted = min(splits_wanted, split_lists(i)%length)
-
-          ! 2) Get the x biggest agents
-          allocate(xbiggest_ids(splits_wanted))
-          allocate(xbiggest_sizes(splits_wanted))
-          xbiggest_sizes = 0.0
-
-          agent=>split_lists(i)%first
-          do while(associated(agent))
-             if (minval(xbiggest_sizes) <= agent%biology(BIOVAR_SIZE)) then
-                index = minval(minloc(xbiggest_sizes))
-                xbiggest_ids(index) = agent%id_number 
-                xbiggest_sizes(index) = agent%biology(BIOVAR_SIZE)
-             end if
-
-             agent=>agent%next
-          end do
-
-          ! 3) Split each of the x agents...
-          agent=>split_lists(i)%first
-          do while(associated(agent))
-             if (find(xbiggest_ids, agent%id_number) > 0) then
-                call pm_split(agent, split_lists(i))
-             end if
-             agent=>agent%next
-          end do
-
-          ! ...and recurse
-          deallocate(xbiggest_ids)
-          deallocate(xbiggest_sizes)
-       end do
+       call pm_split_list(split_lists(i), element_minimum)
     end do
 
     ! Copy all agents back to the original list
@@ -217,21 +162,88 @@ contains
 
     call deallocate(split_index_mapping)
     deallocate(split_lists)
+    deallocate(elements_split)
+    call flush_list(elements_split_list)
+    call deallocate(element_minima)
 
   end subroutine pm_split_by_element
 
-  subroutine pm_merge_by_element(xfield, agent_list, elements_merge, element_maxima)
-    type(vector_field), pointer, intent(in) :: xfield
+  subroutine pm_split_list(agent_list, minimum)
     type(detector_linked_list), intent(inout) :: agent_list
-    integer, dimension(:), allocatable :: elements_merge
-    type(integer_hash_table), intent(inout) :: element_maxima
+    integer, intent(in) :: minimum
+
+    type(detector_type), pointer :: agent
+    integer, dimension(:), allocatable :: xbiggest_ids
+    real, dimension(:), allocatable :: xbiggest_sizes
+    integer :: index, splits_wanted
+
+    ! Original VEW split-x-biggest algorithm
+    do while(agent_list%length < minimum)
+       ! 1) Find x, the number of splits we want
+       splits_wanted = minimum - agent_list%length
+       splits_wanted = min(splits_wanted, agent_list%length)
+
+       ! 2) Get the x biggest agents
+       allocate(xbiggest_ids(splits_wanted))
+       allocate(xbiggest_sizes(splits_wanted))
+       xbiggest_sizes = 0.0
+
+       agent=>agent_list%first
+       do while(associated(agent))
+          if (minval(xbiggest_sizes) <= agent%biology(BIOVAR_SIZE)) then
+             index = minval(minloc(xbiggest_sizes))
+             xbiggest_ids(index) = agent%id_number 
+             xbiggest_sizes(index) = agent%biology(BIOVAR_SIZE)
+          end if
+
+          agent=>agent%next
+       end do
+
+       ! 3) Split each of the x agents...
+       agent=>agent_list%first
+       do while(associated(agent))
+          if (find(xbiggest_ids, agent%id_number) > 0) then
+             call pm_split(agent, agent_list)
+          end if
+          agent=>agent%next
+       end do
+
+       ! ...and recurse
+       deallocate(xbiggest_ids)
+       deallocate(xbiggest_sizes)
+    end do
+  end subroutine pm_split_list
+
+  subroutine pm_merge_by_element(xfield, agent_field, agent_max_field, agent_list)
+    type(vector_field), pointer, intent(inout) :: xfield
+    type(scalar_field), pointer, intent(inout) :: agent_field, agent_max_field
+    type(detector_linked_list), intent(inout) :: agent_list
 
     type(detector_type), pointer :: agent, agent_to_move, merge_target, agent_to_merge
     type(detector_linked_list), dimension(:), allocatable :: merge_lists
-    type(integer_hash_table) :: merge_index_mapping
-    integer, dimension(:), allocatable :: xsmallest_ids
-    real, dimension(:), allocatable :: xsmallest_sizes
-    integer :: i, index, merges_wanted, found_agent, element_maximum
+    type(integer_hash_table) :: element_maxima, merge_index_mapping
+    type(ilist) :: elements_split_list, elements_merge_list
+    integer, dimension(:), allocatable :: elements_merge
+    integer :: i, ele, index, element_maximum
+    real :: agent_maximum, agent_total
+
+    ewrite(2,*) "Particle Management: Merging agents per element"
+
+    ! First establish in which elements we need to split/merge
+    ! We skip elements with no agents...
+    call allocate(element_maxima)
+    do ele=1, ele_count(agent_field)
+       agent_total = integral_element(agent_field, xfield, ele)
+       agent_maximum = integral_element(agent_max_field, xfield, ele)
+
+       if (agent_total > agent_maximum .and. agent_total > 0.0) then
+          call insert(elements_merge_list, ele)
+          call insert(element_maxima, ele, nint(agent_maximum))
+       end if
+    end do
+
+    allocate(elements_merge(elements_merge_list%length))
+    elements_merge = list2vector(elements_merge_list)
 
     ! Create a hashtable from element -> index into merge_lists
     call allocate(merge_index_mapping)
@@ -240,7 +252,6 @@ contains
     end do
 
     ! Put agents into temporary agent lists for each element to split/merge
-    ewrite(2,*) "Particle Management: Moving agents to merge into temporary lists"
     allocate(merge_lists(size(elements_merge)))
     agent=>agent_list%first
     do while(associated(agent))
@@ -250,65 +261,16 @@ contains
           agent_to_move=>agent
           agent=>agent%next
           call move(agent_to_move, agent_list, merge_lists(index))
-
        else
           agent=>agent%next
        end if
     end do 
 
     ! Perform merges over the temporary agent arrays
-    ewrite(2,*) "Particle Management: Merging agents per element"
     do i=1, size(merge_lists)
        element_maximum = fetch(element_maxima, elements_merge(i))
 
-       ! Original VEW merge algorithm:
-       do while(merge_lists(i)%length > element_maximum .and. merge_lists(i)%length > 1)
-          ! 1) Find x, the number of merges we want
-          merges_wanted = merge_lists(i)%length - element_maximum
-          ! We need to make sure we don't have more merge requests than agent pairs
-          merges_wanted = floor(min(real(merges_wanted), real(merge_lists(i)%length) / 2.0))
-
-          ! 2) Get the 2*x smallest agents (x pairs)
-          allocate(xsmallest_ids(2*merges_wanted))
-          allocate(xsmallest_sizes(2*merges_wanted))
-          xsmallest_sizes = huge(1.0)
-
-          agent=>merge_lists(i)%first
-          do while(associated(agent))
-             if (maxval(xsmallest_sizes) >= agent%biology(BIOVAR_SIZE)) then
-                index = minval(maxloc(xsmallest_sizes))
-                xsmallest_ids(index) = agent%id_number 
-                xsmallest_sizes(index) = agent%biology(BIOVAR_SIZE)
-             end if
-
-             agent=>agent%next
-          end do
-
-          ! 3) Merge pairwise...
-          ! Note: We don't sort, but select merge pairs as we find them
-          merge_target=>null()
-          agent=>merge_lists(i)%first
-          do while(associated(agent))
-             found_agent = find(xsmallest_ids, agent%id_number)
-             ! First hit is the target...
-             if (found_agent > 0 .and. .not.associated(merge_target)) then
-                merge_target=>agent
-                agent=>agent%next
-             ! ... second hit; we merge and reset the target
-             elseif (found_agent > 0 .and. associated(merge_target)) then
-                agent_to_merge=>agent
-                agent=>agent%next
-                call pm_merge(xfield, merge_target, agent_to_merge, merge_lists(i))
-                merge_target=>null()
-             else
-                agent=>agent%next
-             end if
-          end do
-
-          ! ...and recurse
-          deallocate(xsmallest_ids)
-          deallocate(xsmallest_sizes)
-       end do
+       call pm_merge_list(xfield, merge_lists(i), element_maximum)
     end do
 
     ! Copy all agents back to the original list
@@ -318,8 +280,72 @@ contains
 
     call deallocate(merge_index_mapping)
     deallocate(merge_lists)
+    deallocate(elements_merge)
+    call flush_list(elements_merge_list)
+    call deallocate(element_maxima)
 
   end subroutine pm_merge_by_element
+
+  subroutine pm_merge_list(xfield, agent_list, maximum)
+    type(vector_field), pointer, intent(in) :: xfield
+    type(detector_linked_list), intent(inout) :: agent_list
+    integer, intent(in) :: maximum
+
+    type(detector_type), pointer :: agent, merge_target, agent_to_merge
+    integer, dimension(:), allocatable :: xsmallest_ids
+    real, dimension(:), allocatable :: xsmallest_sizes
+    integer :: index, merges_wanted, found_agent
+
+    ! Original VEW merge-x-smallest algorithm
+    do while(agent_list%length > maximum .and. agent_list%length > 1)
+       ! 1) Find x, the number of merges we want
+       merges_wanted = agent_list%length - maximum
+       ! We need to make sure we don't have more merge requests than agent pairs
+       merges_wanted = floor(min(real(merges_wanted), real(agent_list%length) / 2.0))
+
+       ! 2) Get the 2*x smallest agents (x pairs)
+       allocate(xsmallest_ids(2*merges_wanted))
+       allocate(xsmallest_sizes(2*merges_wanted))
+       xsmallest_sizes = huge(1.0)
+
+       agent=>agent_list%first
+       do while(associated(agent))
+          if (maxval(xsmallest_sizes) >= agent%biology(BIOVAR_SIZE)) then
+             index = minval(maxloc(xsmallest_sizes))
+             xsmallest_ids(index) = agent%id_number 
+             xsmallest_sizes(index) = agent%biology(BIOVAR_SIZE)
+          end if
+
+          agent=>agent%next
+       end do
+
+       ! 3) Merge pairwise...
+       ! Note: We don't sort, but select merge pairs as we find them
+       merge_target=>null()
+       agent=>agent_list%first
+       do while(associated(agent))
+          found_agent = find(xsmallest_ids, agent%id_number)
+          ! First hit is the target...
+          if (found_agent > 0 .and. .not.associated(merge_target)) then
+             merge_target=>agent
+             agent=>agent%next
+          ! ... second hit; we merge and reset the target
+          elseif (found_agent > 0 .and. associated(merge_target)) then
+             agent_to_merge=>agent
+             agent=>agent%next
+             call pm_merge(xfield, merge_target, agent_to_merge, agent_list)
+             merge_target=>null()
+          else
+             agent=>agent%next
+          end if
+       end do
+
+       ! ...and recurse
+       deallocate(xsmallest_ids)
+       deallocate(xsmallest_sizes)
+    end do
+
+  end subroutine pm_merge_list
 
   subroutine pm_split(agent, agent_list)
     type(detector_type), pointer, intent(inout) :: agent
@@ -364,12 +390,15 @@ contains
 
     integer :: i
 
-    ! Both agents are in the same element, 
-    ! so we weight-average each physical coordinate
+    ! Weight-average each physical coordinate,
+    ! re-establish element with the picker if the agents do not share an element,
     ! and re-set the local coordinates
     do i=1, size(agent1%position)
        agent1%position(i)=wtavg(agent1%position(i),agent1%biology(BIOVAR_SIZE),agent2%position(i),agent2%biology(BIOVAR_SIZE))
     end do
+    if (agent1%element /= agent2%element) then
+       call picker_inquire(xfield, agent1%position, agent1%element, local_coord=agent1%local_coords, global=.false.)
+    end if
     agent1%local_coords=local_coords(xfield,agent1%element,agent1%position)
 
     ! Weight-average the biology variables
