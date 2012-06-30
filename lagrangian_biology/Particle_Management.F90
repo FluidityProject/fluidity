@@ -287,7 +287,7 @@ contains
   end subroutine pm_merge_by_element
 
   subroutine pm_merge_list(xfield, agent_list, maximum)
-    type(vector_field), pointer, intent(in) :: xfield
+    type(vector_field), pointer, intent(inout) :: xfield
     type(detector_linked_list), intent(inout) :: agent_list
     integer, intent(in) :: maximum
 
@@ -384,7 +384,7 @@ contains
   end subroutine pm_split
 
   subroutine pm_merge(xfield, agent1, agent2, agent_list)
-    type(vector_field), pointer, intent(in) :: xfield
+    type(vector_field), pointer, intent(inout) :: xfield
     type(detector_type), pointer, intent(inout) :: agent1, agent2
     type(detector_linked_list), intent(inout) :: agent_list
 
