@@ -40,7 +40,6 @@ module hybridized_helmholtz
     use sparsity_patterns_meshes
     use sparse_matrices_fields
     use solvers
-    use diagnostic_variables
     use diagnostic_fields_wrapper
     use assemble_cmc
     use FUtils, only : real_vector, real_matrix

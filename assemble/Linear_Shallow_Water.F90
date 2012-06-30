@@ -40,7 +40,7 @@ module linear_shallow_water
     use sparsity_patterns_meshes
     use sparse_matrices_fields
     use solvers
-    use diagnostic_variables
+    use diagnostic_variables, only: register_diagnostic, set_diagnostic
     use diagnostic_fields_wrapper
     use assemble_cmc
     use global_parameters, only: option_path_len, running_adjoint
