@@ -14,6 +14,9 @@ lagrangian_biology =
             },
             element diagnostic {
                internal_algorithm,
+               element mesh {
+                  attribute name { "LEBiologyMesh" }
+               },
                diagnostic_scalar_field_no_adapt
             }
          }?,
@@ -46,6 +49,9 @@ lagrangian_biology =
                            attribute name { 'Ensemble' },
                            element diagnostic {
                               internal_algorithm,
+                              element mesh {
+                                 attribute name { "LEBiologyMesh" }
+                              },
                               diagnostic_scalar_field_no_adapt
                            },
                            ## Add diagnostic fields that represent the particulate concetration of individual stage groups.
@@ -139,12 +145,18 @@ lagrangian_biology =
                         element scalar_field {
                            attribute name { "AgentsMin" },
                            element prescribed {
+                              element mesh {
+                                 attribute name { "LEBiologyMesh" }
+                              },
                               prescribed_scalar_field_no_adapt
                            }
                         }?,
                         element scalar_field {
                            attribute name { "AgentsMax" },
                            element prescribed {
+                              element mesh {
+                                 attribute name { "LEBiologyMesh" }
+                              },
                               prescribed_scalar_field_no_adapt
                            }
                         }?,
@@ -165,6 +177,9 @@ lagrangian_biology =
                   attribute name { 'Agents' },
                   element diagnostic {
                      internal_algorithm,
+                     element mesh {
+                        attribute name { "LEBiologyMesh" }
+                     },
                      diagnostic_scalar_field_no_adapt
                   }
                }
@@ -210,6 +225,9 @@ chemical_variable =
             attribute name { 'Particulate' },
             element diagnostic {
                internal_algorithm,
+               element mesh {
+                  attribute name { "LEBiologyMesh" }
+               },
                diagnostic_scalar_field_no_adapt,
                element do_not_recalculate {
                  empty
@@ -225,6 +243,9 @@ chemical_variable =
             attribute name { "Ingested" },
             element diagnostic {
                internal_algorithm,
+               element mesh {
+                  attribute name { "LEBiologyMesh" }
+               },
                diagnostic_scalar_field_no_adapt,
                element do_not_recalculate {
                  empty
@@ -253,6 +274,9 @@ chemical_variable =
                attribute name { "Request" },
                element diagnostic {
                   internal_algorithm,
+                  element mesh {
+                     attribute name { "LEBiologyMesh" }
+                  },
                   diagnostic_scalar_field_no_adapt
                }
             },
@@ -261,6 +285,9 @@ chemical_variable =
                attribute name { "Depletion" },
                element diagnostic {
                   internal_algorithm,
+                  element mesh {
+                     attribute name { "LEBiologyMesh" }
+                  },
                   diagnostic_scalar_field_no_adapt
                }
             },
@@ -284,6 +311,9 @@ chemical_variable =
                attribute name { "Release" },
                element diagnostic {
                   internal_algorithm,
+                  element mesh {
+                     attribute name { "LEBiologyMesh" }
+                  },
                   diagnostic_scalar_field_no_adapt
                }
             },
@@ -310,6 +340,9 @@ food_set =
             attribute name { "Concentration" },
             element diagnostic {
                internal_algorithm,
+               element mesh {
+                  attribute name { "LEBiologyMesh" }
+               },
                diagnostic_scalar_field_no_adapt
             }
          },
@@ -320,6 +353,9 @@ food_set =
                   internal_algorithm
                   | scalar_galerkin_projection_algorithm
                ),
+               element mesh {
+                  attribute name { "LEBiologyMesh" }
+               },
                diagnostic_scalar_field_no_adapt
             },
             element stage_diagnostic {
@@ -334,6 +370,9 @@ food_set =
             attribute name { "Depletion" },
             element diagnostic {
                internal_algorithm,
+               element mesh {
+                  attribute name { "LEBiologyMesh" }
+               },
                diagnostic_scalar_field_no_adapt
             }
          },
@@ -341,6 +380,9 @@ food_set =
             attribute name { "IngestedCells" },
             element diagnostic {
                internal_algorithm,
+               element mesh {
+                  attribute name { "LEBiologyMesh" }
+               },
                diagnostic_scalar_field_no_adapt
             },
             element stage_diagnostic {

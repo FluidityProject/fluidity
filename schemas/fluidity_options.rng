@@ -2725,6 +2725,15 @@ This determines the order in which scalar_fields are solved for:
           <ref name="mesh_info"/>
         </element>
       </optional>
+      <optional>
+        <element name="mesh">
+          <a:documentation>A special P0 mesh for Lagrangian Ensemble biology simulations</a:documentation>
+          <attribute name="name">
+            <value>LEBiologyMesh</value>
+          </attribute>
+          <ref name="mesh_info"/>
+        </element>
+      </optional>
       <zeroOrMore>
         <element name="mesh">
           <attribute name="name">

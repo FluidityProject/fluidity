@@ -213,6 +213,7 @@ contains
     type(state_type), dimension(:), intent(inout) :: state
 
     type(functional_group), pointer :: fgroup
+    type(mesh_type), pointer :: lebiology_mesh => null()
     type(detector_linked_list), pointer :: agent_array
     type(detector_linked_list) :: init_array
     type(detector_type), pointer :: agent
@@ -224,6 +225,17 @@ contains
     integer :: ag, fg, stage, dim, n_agents
 
     if (.not.have_option("/embedded_models/lagrangian_ensemble_biology")) return
+
+    ! Check LEBiologyMesh
+    lebiology_mesh => extract_mesh(state, "LEBiologyMesh")
+    if (.not.associated(lebiology_mesh)) then
+       ewrite(-1,*) "No LEBiologyMesh found! Please add this mesh to your geometry options."
+       FLExit("Lagrangian Ensemble biology requires LEBiologyMesh")
+    end if
+    if (lebiology_mesh%shape%degree /= 0) then
+       ewrite(-1,*) "LEBiologyMesh has wrong polynomial degree."
+       FLExit("Lagrangian Ensemble biology requires a P0 mesh")
+    end if
 
     ewrite(1,*) "Lagrangian biology: Initialising agents..."
 
@@ -645,9 +657,6 @@ contains
           end if
        end do
     end do
-
-    biology_mesh = extract_mesh(state, "BiologyMesh")
-    call deallocate(biology_mesh)
 
     if (associated(uptake_field_names)) then
        deallocate(uptake_field_names)

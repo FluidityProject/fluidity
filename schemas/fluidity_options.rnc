@@ -1994,6 +1994,11 @@ geometry =
             attribute name { "PressureMesh" },
             mesh_info
          }?,
+         ## A special P0 mesh for Lagrangian Ensemble biology simulations
+         element mesh {
+            attribute name { "LEBiologyMesh" },
+            mesh_info
+         }?,
          element mesh {
             attribute name { xsd:string },
             mesh_info,

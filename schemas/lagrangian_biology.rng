@@ -18,6 +18,11 @@
           </element>
           <element name="diagnostic">
             <ref name="internal_algorithm"/>
+            <element name="mesh">
+              <attribute name="name">
+                <value>LEBiologyMesh</value>
+              </attribute>
+            </element>
             <ref name="diagnostic_scalar_field_no_adapt"/>
           </element>
         </element>
@@ -60,6 +65,11 @@ All internal quantities that are exchanged with the environment get scaled by th
                   </attribute>
                   <element name="diagnostic">
                     <ref name="internal_algorithm"/>
+                    <element name="mesh">
+                      <attribute name="name">
+                        <value>LEBiologyMesh</value>
+                      </attribute>
+                    </element>
                     <ref name="diagnostic_scalar_field_no_adapt"/>
                   </element>
                   <element name="stage_diagnostic">
@@ -163,6 +173,11 @@ This option is generally only useful for testing. </a:documentation>
                             <value>AgentsMin</value>
                           </attribute>
                           <element name="prescribed">
+                            <element name="mesh">
+                              <attribute name="name">
+                                <value>LEBiologyMesh</value>
+                              </attribute>
+                            </element>
                             <ref name="prescribed_scalar_field_no_adapt"/>
                           </element>
                         </element>
@@ -173,6 +188,11 @@ This option is generally only useful for testing. </a:documentation>
                             <value>AgentsMax</value>
                           </attribute>
                           <element name="prescribed">
+                            <element name="mesh">
+                              <attribute name="name">
+                                <value>LEBiologyMesh</value>
+                              </attribute>
+                            </element>
                             <ref name="prescribed_scalar_field_no_adapt"/>
                           </element>
                         </element>
@@ -202,6 +222,11 @@ Arbitrary agent pairs will be merged to enforce this limit.</a:documentation>
               </attribute>
               <element name="diagnostic">
                 <ref name="internal_algorithm"/>
+                <element name="mesh">
+                  <attribute name="name">
+                    <value>LEBiologyMesh</value>
+                  </attribute>
+                </element>
                 <ref name="diagnostic_scalar_field_no_adapt"/>
               </element>
             </element>
@@ -259,6 +284,11 @@ This field must be on a discontinuous mesh</a:documentation>
           </attribute>
           <element name="diagnostic">
             <ref name="internal_algorithm"/>
+            <element name="mesh">
+              <attribute name="name">
+                <value>LEBiologyMesh</value>
+              </attribute>
+            </element>
             <ref name="diagnostic_scalar_field_no_adapt"/>
             <element name="do_not_recalculate">
               <empty/>
@@ -280,6 +310,11 @@ This field must be on a discontinuous mesh</a:documentation>
           </attribute>
           <element name="diagnostic">
             <ref name="internal_algorithm"/>
+            <element name="mesh">
+              <attribute name="name">
+                <value>LEBiologyMesh</value>
+              </attribute>
+            </element>
             <ref name="diagnostic_scalar_field_no_adapt"/>
             <element name="do_not_recalculate">
               <empty/>
@@ -318,6 +353,11 @@ The scaled request quantity will then get added to the according absorption fiel
             </attribute>
             <element name="diagnostic">
               <ref name="internal_algorithm"/>
+              <element name="mesh">
+                <attribute name="name">
+                  <value>LEBiologyMesh</value>
+                </attribute>
+              </element>
               <ref name="diagnostic_scalar_field_no_adapt"/>
             </element>
           </element>
@@ -328,6 +368,11 @@ The scaled request quantity will then get added to the according absorption fiel
             </attribute>
             <element name="diagnostic">
               <ref name="internal_algorithm"/>
+              <element name="mesh">
+                <attribute name="name">
+                  <value>LEBiologyMesh</value>
+                </attribute>
+              </element>
               <ref name="diagnostic_scalar_field_no_adapt"/>
             </element>
           </element>
@@ -361,6 +406,11 @@ The scaled release quantity will then get added to the according source field of
             </attribute>
             <element name="diagnostic">
               <ref name="internal_algorithm"/>
+              <element name="mesh">
+                <attribute name="name">
+                  <value>LEBiologyMesh</value>
+                </attribute>
+              </element>
               <ref name="diagnostic_scalar_field_no_adapt"/>
             </element>
           </element>
@@ -399,6 +449,11 @@ The scaled release quantity will then get added to the according source field of
           </attribute>
           <element name="diagnostic">
             <ref name="internal_algorithm"/>
+            <element name="mesh">
+              <attribute name="name">
+                <value>LEBiologyMesh</value>
+              </attribute>
+            </element>
             <ref name="diagnostic_scalar_field_no_adapt"/>
           </element>
         </element>
@@ -411,6 +466,11 @@ The scaled release quantity will then get added to the according source field of
               <ref name="internal_algorithm"/>
               <ref name="scalar_galerkin_projection_algorithm"/>
             </choice>
+            <element name="mesh">
+              <attribute name="name">
+                <value>LEBiologyMesh</value>
+              </attribute>
+            </element>
             <ref name="diagnostic_scalar_field_no_adapt"/>
           </element>
           <optional>
@@ -431,6 +491,11 @@ The scaled release quantity will then get added to the according source field of
           </attribute>
           <element name="diagnostic">
             <ref name="internal_algorithm"/>
+            <element name="mesh">
+              <attribute name="name">
+                <value>LEBiologyMesh</value>
+              </attribute>
+            </element>
             <ref name="diagnostic_scalar_field_no_adapt"/>
           </element>
         </element>
@@ -440,6 +505,11 @@ The scaled release quantity will then get added to the according source field of
           </attribute>
           <element name="diagnostic">
             <ref name="internal_algorithm"/>
+            <element name="mesh">
+              <attribute name="name">
+                <value>LEBiologyMesh</value>
+              </attribute>
+            </element>
             <ref name="diagnostic_scalar_field_no_adapt"/>
           </element>
           <optional>
