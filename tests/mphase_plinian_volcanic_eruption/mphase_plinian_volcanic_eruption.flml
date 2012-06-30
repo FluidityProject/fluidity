@@ -69,7 +69,7 @@
     </dump_format>
     <dump_period>
       <constant>
-        <real_value rank="0">0</real_value>
+        <real_value rank="0">0.1</real_value>
       </constant>
     </dump_period>
     <output_mesh name="VelocityMesh"/>
@@ -85,7 +85,7 @@
       <real_value rank="0">0.001</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">500.0</real_value>
+      <real_value rank="0">600.0</real_value>
     </finish_time>
     <nonlinear_iterations>
       <integer_value rank="0">2</integer_value>
@@ -101,6 +101,9 @@
       <courant_number name="CFLNumber">
         <mesh name="VelocityMesh"/>
       </courant_number>
+      <minimum_timestep>
+        <real_value rank="0">1.0e-4</real_value>
+      </minimum_timestep>
       <increase_tolerance>
         <real_value rank="0">2</real_value>
       </increase_tolerance>
@@ -525,6 +528,23 @@
         </solver>
       </diagnostic>
     </scalar_field>
+    <scalar_field name="CFLNumber" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
     <multiphase_properties>
       <effective_conductivity>
         <real_value rank="0">0.5</real_value>
@@ -798,6 +818,27 @@
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
+        <adaptivity_options>
+          <absolute_measure>
+            <scalar_field name="InterpolationErrorBound" rank="0">
+              <prescribed>
+                <value name="WholeMesh">
+                  <constant>
+                    <real_value rank="0">2.0e-4</real_value>
+                  </constant>
+                </value>
+                <output/>
+                <stat/>
+                <detectors>
+                  <exclude_from_detectors/>
+                </detectors>
+              </prescribed>
+            </scalar_field>
+            <p_norm>
+              <integer_value rank="0">2</integer_value>
+            </p_norm>
+          </absolute_measure>
+        </adaptivity_options>
         <consistent_interpolation/>
         <cap_values>
           <upper_cap>
@@ -884,6 +925,23 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
+    <scalar_field name="CFLNumber" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
     <multiphase_properties>
       <particle_diameter>
         <real_value rank="0">48e-6</real_value>
@@ -893,6 +951,41 @@
       </specific_heat>
     </multiphase_properties>
   </material_phase>
+  <mesh_adaptivity>
+    <hr_adaptivity>
+      <period>
+        <real_value rank="0">0.5</real_value>
+      </period>
+      <adaptive_timestep_at_adapt/>
+      <maximum_number_of_nodes>
+        <integer_value rank="0">100000</integer_value>
+      </maximum_number_of_nodes>
+      <enable_gradation>
+        <gradation_parameter>
+          <real_value rank="0">1.15</real_value>
+        </gradation_parameter>
+      </enable_gradation>
+      <tensor_field name="MinimumEdgeLengths">
+        <anisotropic_symmetric>
+          <constant>
+            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">20.0 0.0 0.0 20.0</real_value>
+          </constant>
+        </anisotropic_symmetric>
+      </tensor_field>
+      <tensor_field name="MaximumEdgeLengths">
+        <anisotropic_symmetric>
+          <constant>
+            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">10000.0 0.0 0.0 10000.0</real_value>
+          </constant>
+        </anisotropic_symmetric>
+      </tensor_field>
+      <adapt_at_first_timestep>
+        <number_of_adapts>
+          <integer_value rank="0">4</integer_value>
+        </number_of_adapts>
+      </adapt_at_first_timestep>
+    </hr_adaptivity>
+  </mesh_adaptivity>
   <multiphase_interaction>
     <fluid_particle_drag>
       <drag_correlation name="wen_yu"/>
