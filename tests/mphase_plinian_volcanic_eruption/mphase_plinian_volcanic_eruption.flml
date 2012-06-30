@@ -307,6 +307,11 @@
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
+              <x_component>
+                <constant>
+                  <real_value rank="0">0.0</real_value>
+                </constant>
+              </x_component>
               <y_component>
                 <constant>
                   <real_value rank="0">144.0</real_value>
@@ -363,6 +368,11 @@
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
+              <x_component>
+                <constant>
+                  <real_value rank="0">0.0</real_value>
+                </constant>
+              </x_component>
               <y_component>
                 <constant>
                   <real_value rank="0">0</real_value>
@@ -650,6 +660,11 @@
           <type name="dirichlet">
             <apply_weakly/>
             <align_bc_with_cartesian>
+              <x_component>
+                <constant>
+                  <real_value rank="0">0.0</real_value>
+                </constant>
+              </x_component>
               <y_component>
                 <constant>
                   <real_value rank="0">144.0</real_value>
@@ -710,6 +725,11 @@
           <type name="dirichlet">
             <apply_weakly/>
             <align_bc_with_cartesian>
+              <x_component>
+                <constant>
+                  <real_value rank="0">0.0</real_value>
+                </constant>
+              </x_component>
               <y_component>
                 <constant>
                   <real_value rank="0">0.0</real_value>
