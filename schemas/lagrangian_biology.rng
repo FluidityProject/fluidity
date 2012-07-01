@@ -18,12 +18,7 @@
           </element>
           <element name="diagnostic">
             <ref name="internal_algorithm"/>
-            <element name="mesh">
-              <attribute name="name">
-                <value>LEBiologyMesh</value>
-              </attribute>
-            </element>
-            <ref name="diagnostic_scalar_field_no_adapt"/>
+            <ref name="diagnostic_scalar_field_lebiology"/>
           </element>
         </element>
       </optional>
@@ -65,12 +60,7 @@ All internal quantities that are exchanged with the environment get scaled by th
                   </attribute>
                   <element name="diagnostic">
                     <ref name="internal_algorithm"/>
-                    <element name="mesh">
-                      <attribute name="name">
-                        <value>LEBiologyMesh</value>
-                      </attribute>
-                    </element>
-                    <ref name="diagnostic_scalar_field_no_adapt"/>
+                    <ref name="diagnostic_scalar_field_lebiology"/>
                   </element>
                   <element name="stage_diagnostic">
                     <a:documentation>Add diagnostic fields that represent the particulate concetration of individual stage groups.</a:documentation>
@@ -222,12 +212,7 @@ Arbitrary agent pairs will be merged to enforce this limit.</a:documentation>
               </attribute>
               <element name="diagnostic">
                 <ref name="internal_algorithm"/>
-                <element name="mesh">
-                  <attribute name="name">
-                    <value>LEBiologyMesh</value>
-                  </attribute>
-                </element>
-                <ref name="diagnostic_scalar_field_no_adapt"/>
+                <ref name="diagnostic_scalar_field_lebiology"/>
               </element>
             </element>
           </element>
@@ -284,15 +269,7 @@ This field must be on a discontinuous mesh</a:documentation>
           </attribute>
           <element name="diagnostic">
             <ref name="internal_algorithm"/>
-            <element name="mesh">
-              <attribute name="name">
-                <value>LEBiologyMesh</value>
-              </attribute>
-            </element>
-            <ref name="diagnostic_scalar_field_no_adapt"/>
-            <element name="do_not_recalculate">
-              <empty/>
-            </element>
+            <ref name="diagnostic_scalar_field_lebiology"/>
           </element>
           <optional>
             <element name="stage_diagnostic">
@@ -310,15 +287,7 @@ This field must be on a discontinuous mesh</a:documentation>
           </attribute>
           <element name="diagnostic">
             <ref name="internal_algorithm"/>
-            <element name="mesh">
-              <attribute name="name">
-                <value>LEBiologyMesh</value>
-              </attribute>
-            </element>
-            <ref name="diagnostic_scalar_field_no_adapt"/>
-            <element name="do_not_recalculate">
-              <empty/>
-            </element>
+            <ref name="diagnostic_scalar_field_lebiology"/>
           </element>
           <optional>
             <element name="stage_diagnostic">
@@ -353,12 +322,7 @@ The scaled request quantity will then get added to the according absorption fiel
             </attribute>
             <element name="diagnostic">
               <ref name="internal_algorithm"/>
-              <element name="mesh">
-                <attribute name="name">
-                  <value>LEBiologyMesh</value>
-                </attribute>
-              </element>
-              <ref name="diagnostic_scalar_field_no_adapt"/>
+              <ref name="diagnostic_scalar_field_lebiology"/>
             </element>
           </element>
           <element name="scalar_field">
@@ -368,12 +332,7 @@ The scaled request quantity will then get added to the according absorption fiel
             </attribute>
             <element name="diagnostic">
               <ref name="internal_algorithm"/>
-              <element name="mesh">
-                <attribute name="name">
-                  <value>LEBiologyMesh</value>
-                </attribute>
-              </element>
-              <ref name="diagnostic_scalar_field_no_adapt"/>
+              <ref name="diagnostic_scalar_field_lebiology"/>
             </element>
           </element>
           <optional>
@@ -406,12 +365,7 @@ The scaled release quantity will then get added to the according source field of
             </attribute>
             <element name="diagnostic">
               <ref name="internal_algorithm"/>
-              <element name="mesh">
-                <attribute name="name">
-                  <value>LEBiologyMesh</value>
-                </attribute>
-              </element>
-              <ref name="diagnostic_scalar_field_no_adapt"/>
+              <ref name="diagnostic_scalar_field_lebiology"/>
             </element>
           </element>
           <optional>
@@ -454,7 +408,17 @@ The scaled release quantity will then get added to the according source field of
                 <value>LEBiologyMesh</value>
               </attribute>
             </element>
-            <ref name="diagnostic_scalar_field_no_adapt"/>
+            <ref name="diagnostic_output_options"/>
+            <ref name="diagnostic_scalar_stat_options"/>
+            <ref name="adaptivity_options_scalar_field"/>
+            <element name="do_not_recalculate">
+              <empty/>
+            </element>
+            <element name="galerkin_projection">
+              <element name="discontinuous">
+                <empty/>
+              </element>
+            </element>
           </element>
         </element>
         <element name="scalar_field">
@@ -466,12 +430,7 @@ The scaled release quantity will then get added to the according source field of
               <ref name="internal_algorithm"/>
               <ref name="scalar_galerkin_projection_algorithm"/>
             </choice>
-            <element name="mesh">
-              <attribute name="name">
-                <value>LEBiologyMesh</value>
-              </attribute>
-            </element>
-            <ref name="diagnostic_scalar_field_no_adapt"/>
+            <ref name="diagnostic_scalar_field_lebiology"/>
           </element>
           <optional>
             <element name="stage_diagnostic">
@@ -491,12 +450,7 @@ The scaled release quantity will then get added to the according source field of
           </attribute>
           <element name="diagnostic">
             <ref name="internal_algorithm"/>
-            <element name="mesh">
-              <attribute name="name">
-                <value>LEBiologyMesh</value>
-              </attribute>
-            </element>
-            <ref name="diagnostic_scalar_field_no_adapt"/>
+            <ref name="diagnostic_scalar_field_lebiology"/>
           </element>
         </element>
         <element name="scalar_field">
@@ -505,12 +459,7 @@ The scaled release quantity will then get added to the according source field of
           </attribute>
           <element name="diagnostic">
             <ref name="internal_algorithm"/>
-            <element name="mesh">
-              <attribute name="name">
-                <value>LEBiologyMesh</value>
-              </attribute>
-            </element>
-            <ref name="diagnostic_scalar_field_no_adapt"/>
+            <ref name="diagnostic_scalar_field_lebiology"/>
           </element>
           <optional>
             <element name="stage_diagnostic">
@@ -673,6 +622,24 @@ Requires name of diffusivity field and according gradient field.</a:documentatio
           </element>
         </choice>
       </zeroOrMore>
+    </element>
+  </define>
+  <define name="diagnostic_scalar_field_lebiology">
+    <element name="mesh">
+      <attribute name="name">
+        <value>LEBiologyMesh</value>
+      </attribute>
+    </element>
+    <ref name="diagnostic_output_options"/>
+    <ref name="diagnostic_scalar_stat_options"/>
+    <ref name="adaptivity_options_scalar_field"/>
+    <element name="do_not_recalculate">
+      <empty/>
+    </element>
+    <element name="galerkin_projection">
+      <element name="discontinuous">
+        <empty/>
+      </element>
     </element>
   </define>
   <define name="hyperlight">

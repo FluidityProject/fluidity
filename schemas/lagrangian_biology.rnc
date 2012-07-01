@@ -14,10 +14,7 @@ lagrangian_biology =
             },
             element diagnostic {
                internal_algorithm,
-               element mesh {
-                  attribute name { "LEBiologyMesh" }
-               },
-               diagnostic_scalar_field_no_adapt
+               diagnostic_scalar_field_lebiology
             }
          }?,
          (
@@ -49,10 +46,7 @@ lagrangian_biology =
                            attribute name { 'Ensemble' },
                            element diagnostic {
                               internal_algorithm,
-                              element mesh {
-                                 attribute name { "LEBiologyMesh" }
-                              },
-                              diagnostic_scalar_field_no_adapt
+                              diagnostic_scalar_field_lebiology
                            },
                            ## Add diagnostic fields that represent the particulate concetration of individual stage groups.
                            element stage_diagnostic {
@@ -177,10 +171,7 @@ lagrangian_biology =
                   attribute name { 'Agents' },
                   element diagnostic {
                      internal_algorithm,
-                     element mesh {
-                        attribute name { "LEBiologyMesh" }
-                     },
-                     diagnostic_scalar_field_no_adapt
+                     diagnostic_scalar_field_lebiology
                   }
                }
             }|
@@ -225,13 +216,7 @@ chemical_variable =
             attribute name { 'Particulate' },
             element diagnostic {
                internal_algorithm,
-               element mesh {
-                  attribute name { "LEBiologyMesh" }
-               },
-               diagnostic_scalar_field_no_adapt,
-               element do_not_recalculate {
-                 empty
-               }
+               diagnostic_scalar_field_lebiology
             },
             ## Add diagnostic fields that represent the particulate concetration of individual stage groups.
             element stage_diagnostic {
@@ -243,13 +228,7 @@ chemical_variable =
             attribute name { "Ingested" },
             element diagnostic {
                internal_algorithm,
-               element mesh {
-                  attribute name { "LEBiologyMesh" }
-               },
-               diagnostic_scalar_field_no_adapt,
-               element do_not_recalculate {
-                 empty
-               }
+               diagnostic_scalar_field_lebiology
             },
             ## Add diagnostic fields that represent the particulate concetration of individual stage groups.
             element stage_diagnostic {
@@ -274,10 +253,7 @@ chemical_variable =
                attribute name { "Request" },
                element diagnostic {
                   internal_algorithm,
-                  element mesh {
-                     attribute name { "LEBiologyMesh" }
-                  },
-                  diagnostic_scalar_field_no_adapt
+                  diagnostic_scalar_field_lebiology
                }
             },
             ## Depletion factor
@@ -285,10 +261,7 @@ chemical_variable =
                attribute name { "Depletion" },
                element diagnostic {
                   internal_algorithm,
-                  element mesh {
-                     attribute name { "LEBiologyMesh" }
-                  },
-                  diagnostic_scalar_field_no_adapt
+                  diagnostic_scalar_field_lebiology
                }
             },
             element integrate_along_path {
@@ -311,10 +284,7 @@ chemical_variable =
                attribute name { "Release" },
                element diagnostic {
                   internal_algorithm,
-                  element mesh {
-                     attribute name { "LEBiologyMesh" }
-                  },
-                  diagnostic_scalar_field_no_adapt
+                  diagnostic_scalar_field_lebiology
                }
             },
             element integrate_along_path {
@@ -343,7 +313,17 @@ food_set =
                element mesh {
                   attribute name { "LEBiologyMesh" }
                },
-               diagnostic_scalar_field_no_adapt
+               diagnostic_output_options,
+               diagnostic_scalar_stat_options,
+               adaptivity_options_scalar_field,
+               element do_not_recalculate {
+                  empty
+               },
+               element galerkin_projection {
+                  element discontinuous {
+                    empty
+                  }
+               }
             }
          },
          element scalar_field {
@@ -353,10 +333,7 @@ food_set =
                   internal_algorithm
                   | scalar_galerkin_projection_algorithm
                ),
-               element mesh {
-                  attribute name { "LEBiologyMesh" }
-               },
-               diagnostic_scalar_field_no_adapt
+               diagnostic_scalar_field_lebiology
             },
             element stage_diagnostic {
                empty
@@ -370,20 +347,14 @@ food_set =
             attribute name { "Depletion" },
             element diagnostic {
                internal_algorithm,
-               element mesh {
-                  attribute name { "LEBiologyMesh" }
-               },
-               diagnostic_scalar_field_no_adapt
+               diagnostic_scalar_field_lebiology
             }
          },
          element scalar_field {
             attribute name { "IngestedCells" },
             element diagnostic {
                internal_algorithm,
-               element mesh {
-                  attribute name { "LEBiologyMesh" }
-               },
-               diagnostic_scalar_field_no_adapt
+               diagnostic_scalar_field_lebiology
             },
             element stage_diagnostic {
                empty
@@ -517,6 +488,24 @@ agent_movement =
                attribute diffusivity_field { xsd:string }
             }
          )*
+      }
+   )
+
+diagnostic_scalar_field_lebiology = 
+   (
+      element mesh {
+         attribute name { "LEBiologyMesh" }
+      },
+      diagnostic_output_options,
+      diagnostic_scalar_stat_options,
+      adaptivity_options_scalar_field,
+      element do_not_recalculate {
+         empty
+      },
+      element galerkin_projection {
+         element discontinuous {
+           empty
+         }
       }
    )
 
