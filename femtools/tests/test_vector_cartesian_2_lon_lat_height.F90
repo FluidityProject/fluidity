@@ -26,7 +26,7 @@
 !    USA
 subroutine test_vector_cartesian_2_lon_lat_height
   !Subroutine/unit-test of correct vector basis change from a
-  ! meridional-zonal-vertical system to a Cartesian system.
+  ! Cartesian system to a meridional-zonal-vertical system.
 
   use fields
   use vtk_interfaces

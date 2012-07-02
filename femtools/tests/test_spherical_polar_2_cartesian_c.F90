@@ -27,7 +27,7 @@
 subroutine test_spherical_polar_2_cartesian_C
   !Subroutine/unit-test of correct transformation of point coordinates from a
   ! spherical-polar system to a Cartesian system. This subroutine will test
-  ! the C-inoperable version of the conversion.
+  ! the C-inter-operable version of the conversion.
   use fields
   use vtk_interfaces
   use state_module
