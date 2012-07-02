@@ -97,18 +97,18 @@ subroutine test_vector_lon_lat_height_2_cartesian_c
     LLH_c = real(LLH, kind=c_double)
     meridionalZonalVerticalVectorComponents_c = &
                    real(meridionalZonalVerticalVectorComponents, kind=c_double)
-    call vector_lon_lat_height_2_cartesian(meridionalZonalVerticalVectorComponents_c(1), &
-                                           meridionalZonalVerticalVectorComponents_c(2), &
-                                           meridionalZonalVerticalVectorComponents_c(3), &
-                                           LLH_c(1), &
-                                           LLH_c(2), &
-                                           LLH_c(3), &
-                                           cartesianVectorComponents_c(1), &
-                                           cartesianVectorComponents_c(2), &
-                                           cartesianVectorComponents_c(3), &
-                                           XYZ_c(1), &
-                                           XYZ_c(2), &
-                                           XYZ_c(3))
+    call vector_lon_lat_height_2_cartesian_c(meridionalZonalVerticalVectorComponents_c(1), &
+                                             meridionalZonalVerticalVectorComponents_c(2), &
+                                             meridionalZonalVerticalVectorComponents_c(3), &
+                                             LLH_c(1), &
+                                             LLH_c(2), &
+                                             LLH_c(3), &
+                                             cartesianVectorComponents_c(1), &
+                                             cartesianVectorComponents_c(2), &
+                                             cartesianVectorComponents_c(3), &
+                                             XYZ_c(1), &
+                                             XYZ_c(2), &
+                                             XYZ_c(3), 0.0)
     cartesianVectorComponents = real(cartesianVectorComponents_c)
     XYZ = real(XYZ_c)
     call set(radialVectorDifference, node, cartesianVectorComponents)
@@ -128,18 +128,18 @@ subroutine test_vector_lon_lat_height_2_cartesian_c
     LLH_c = real(LLH, kind=c_double)
     meridionalZonalVerticalVectorComponents_c = &
                    real(meridionalZonalVerticalVectorComponents, kind=c_double)
-    call vector_lon_lat_height_2_cartesian(meridionalZonalVerticalVectorComponents_c(1), &
-                                           meridionalZonalVerticalVectorComponents_c(2), &
-                                           meridionalZonalVerticalVectorComponents_c(3), &
-                                           LLH_c(1), &
-                                           LLH_c(2), &
-                                           LLH_c(3), &
-                                           cartesianVectorComponents_c(1), &
-                                           cartesianVectorComponents_c(2), &
-                                           cartesianVectorComponents_c(3), &
-                                           XYZ_c(1), &
-                                           XYZ_c(2), &
-                                           XYZ_c(3))
+    call vector_lon_lat_height_2_cartesian_c(meridionalZonalVerticalVectorComponents_c(1), &
+                                             meridionalZonalVerticalVectorComponents_c(2), &
+                                             meridionalZonalVerticalVectorComponents_c(3), &
+                                             LLH_c(1), &
+                                             LLH_c(2), &
+                                             LLH_c(3), &
+                                             cartesianVectorComponents_c(1), &
+                                             cartesianVectorComponents_c(2), &
+                                             cartesianVectorComponents_c(3), &
+                                             XYZ_c(1), &
+                                             XYZ_c(2), &
+                                             XYZ_c(3), 0.0)
     cartesianVectorComponents = real(cartesianVectorComponents_c)
     XYZ = real(XYZ_c)
     call set(polarVectorDifference, node, cartesianVectorComponents)
@@ -159,18 +159,18 @@ subroutine test_vector_lon_lat_height_2_cartesian_c
     LLH_c = real(LLH, kind=c_double)
     meridionalZonalVerticalVectorComponents_c = &
                    real(meridionalZonalVerticalVectorComponents, kind=c_double)
-    call vector_lon_lat_height_2_cartesian(meridionalZonalVerticalVectorComponents_c(1), &
-                                           meridionalZonalVerticalVectorComponents_c(2), &
-                                           meridionalZonalVerticalVectorComponents_c(3), &
-                                           LLH_c(1), &
-                                           LLH_c(2), &
-                                           LLH_c(3), &
-                                           cartesianVectorComponents_c(1), &
-                                           cartesianVectorComponents_c(2), &
-                                           cartesianVectorComponents_c(3), &
-                                           XYZ_c(1), &
-                                           XYZ_c(2), &
-                                           XYZ_c(3))
+    call vector_lon_lat_height_2_cartesian_c(meridionalZonalVerticalVectorComponents_c(1), &
+                                             meridionalZonalVerticalVectorComponents_c(2), &
+                                             meridionalZonalVerticalVectorComponents_c(3), &
+                                             LLH_c(1), &
+                                             LLH_c(2), &
+                                             LLH_c(3), &
+                                             cartesianVectorComponents_c(1), &
+                                             cartesianVectorComponents_c(2), &
+                                             cartesianVectorComponents_c(3), &
+                                             XYZ_c(1), &
+                                             XYZ_c(2), &
+                                             XYZ_c(3), 0.0)
     cartesianVectorComponents = real(cartesianVectorComponents_c)
     XYZ = real(XYZ_c)
     call set(azimuthalVectorDifference, node, cartesianVectorComponents)

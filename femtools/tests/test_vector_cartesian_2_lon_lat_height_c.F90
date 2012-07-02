@@ -24,15 +24,17 @@
 !    License along with this library; if not, write to the Free Software
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
-subroutine test_vector_cartesian_2_lon_lat_height
+subroutine test_vector_cartesian_2_lon_lat_height_c
   !Subroutine/unit-test of correct vector basis change from a
   ! Cartesian system to a meridional-zonal-vertical system.
+  ! This subroutine will test the C-inter-operable version of the conversion.
 
   use fields
   use vtk_interfaces
   use state_module
   use Coordinates
   use unittest_tools
+  use iso_c_binding
   implicit none
 
   type(state_type) :: state
@@ -47,6 +49,15 @@ subroutine test_vector_cartesian_2_lon_lat_height
   type(vector_field) :: radialVectorDifference, &
                         polarVectorDifference, &
                         azimuthalVectorDifference
+  real(kind=c_double), dimension(3) ::  &
+                        meridionalZonalVerticalVectorComponents_c, &
+                        cartesianVectorComponents_c !C-inter-operable arrays containing
+                                                    ! the vector components in Cartesian
+                                                    ! & lon-lat-height bases.
+  real(kind=c_double), dimension(3) :: &
+                        XYZ_c, LLH_c !C-inter-operable arrays containing a signle
+                                     ! node's position vector components in Cartesian
+                                     ! & lon-lat-height bases.
   real, dimension(3) :: meridionalZonalVerticalVectorComponents, &
                         cartesianVectorComponents
   real, dimension(3) :: XYZ, LLH !Arrays containing a signle node's position vector
@@ -75,30 +86,34 @@ subroutine test_vector_cartesian_2_lon_lat_height
   call allocate(polarVectorDifference, 3 , mesh, 'polarVectorDifference')
   call allocate(azimuthalVectorDifference, 3 , mesh, 'azimuthalVectorDifference')
 
-  !Convert unit-radial vector components into zonal-meridional-vertical basis.
+  !Convert unit-radial vector components into to zonal-meridional-vertical basis.
   ! Then compare with vector already in that basis, obtained from vtu.
   do node=1,node_count(CartesianCoordinate)
     XYZ = node_val(CartesianCoordinate, node)
     cartesianVectorComponents = &
                    node_val(UnitRadialVector_inCartesian, node)
-    call vector_cartesian_2_lon_lat_height(cartesianVectorComponents(1), &
-                                           cartesianVectorComponents(2), &
-                                           cartesianVectorComponents(3), &
-                                           XYZ(1), &
-                                           XYZ(2), &
-                                           XYZ(3), &
-                                           meridionalZonalVerticalVectorComponents(1), &
-                                           meridionalZonalVerticalVectorComponents(2), &
-                                           meridionalZonalVerticalVectorComponents(3), &
-                                           LLH(1), &
-                                           LLH(2), &
-                                           LLH(3))
+    XYZ_c = real(XYZ, kind=c_double)
+    cartesianVectorComponents_c = real(cartesianVectorComponents, kind=c_double)
+    call vector_cartesian_2_lon_lat_height_c(cartesianVectorComponents_c(1), &
+                                             cartesianVectorComponents_c(2), &
+                                             cartesianVectorComponents_c(3), &
+                                             XYZ_c(1), &
+                                             XYZ_c(2), &
+                                             XYZ_c(3), &
+                                             meridionalZonalVerticalVectorComponents_c(1), &
+                                             meridionalZonalVerticalVectorComponents_c(2), &
+                                             meridionalZonalVerticalVectorComponents_c(3), &
+                                             LLH_c(1), &
+                                             LLH_c(2), &
+                                             LLH_c(3), 0.0)
+    meridionalZonalVerticalVectorComponents = real(meridionalZonalVerticalVectorComponents_c)
+    LLH = real(LLH_c)
     call set(radialVectorDifference, node, meridionalZonalVerticalVectorComponents)
   enddo
   call addto(radialVectorDifference, UnitRadialVector_inZonalMeridionalRadial, -1.0)
   fail = any(radialVectorDifference%val > 1e-12)
   call report_test( &
-   "[Vector basis change: Cartesian to Zonal-Meridional-Vertical of unit-radial vector.]", &
+   "[Vector basis change: Cartesian to Zonal-Meridional-Vertical of unit-radial vector (C-types).]", &
    fail, .false., "Radial unit vector components not transformed correctly.")
 
   !Convert unit-polar vector components into zonal-meridional-vertical basis.
@@ -107,50 +122,58 @@ subroutine test_vector_cartesian_2_lon_lat_height
     XYZ = node_val(CartesianCoordinate, node)
     cartesianVectorComponents = &
                    node_val(UnitPolarVector_inCartesian, node)
-    call vector_cartesian_2_lon_lat_height(cartesianVectorComponents(1), &
-                                           cartesianVectorComponents(2), &
-                                           cartesianVectorComponents(3), &
-                                           XYZ(1), &
-                                           XYZ(2), &
-                                           XYZ(3), &
-                                           meridionalZonalVerticalVectorComponents(1), &
-                                           meridionalZonalVerticalVectorComponents(2), &
-                                           meridionalZonalVerticalVectorComponents(3), &
-                                           LLH(1), &
-                                           LLH(2), &
-                                           LLH(3))
+    XYZ_c = real(XYZ, kind=c_double)
+    cartesianVectorComponents_c = real(cartesianVectorComponents, kind=c_double)
+    call vector_cartesian_2_lon_lat_height_c(cartesianVectorComponents_c(1), &
+                                             cartesianVectorComponents_c(2), &
+                                             cartesianVectorComponents_c(3), &
+                                             XYZ_c(1), &
+                                             XYZ_c(2), &
+                                             XYZ_c(3), &
+                                             meridionalZonalVerticalVectorComponents_c(1), &
+                                             meridionalZonalVerticalVectorComponents_c(2), &
+                                             meridionalZonalVerticalVectorComponents_c(3), &
+                                             LLH_c(1), &
+                                             LLH_c(2), &
+                                             LLH_c(3), 0.0)
+    meridionalZonalVerticalVectorComponents = real(meridionalZonalVerticalVectorComponents_c)
+    LLH = real(LLH_c)
     call set(polarVectorDifference, node, meridionalZonalVerticalVectorComponents)
   enddo
   call addto(polarVectorDifference, UnitPolarVector_inZonalMeridionalRadial, -1.0)
   fail = any(polarVectorDifference%val > 1e-12)
   call report_test( &
-   "[Vector basis change: Cartesian to Zonal-Meridional-Vertical of unit-polar vector.]", &
+   "[Vector basis change: Cartesian to Zonal-Meridional-Vertical of unit-polar vector (C-types).]", &
    fail, .false., "Polar unit vector components not transformed correctly.")
 
-  !Convert unit-azimuthal vector components into zonal-meridional-vertical basis.
-  ! Then compare with vector already in that basis, obtained from vtu.
+  !Convert unit-azimuthal vector components into Cartesian basis. Then compare
+  ! with vector already in Cartesian basis, obtained from vtu.
   do node=1,node_count(CartesianCoordinate)
     XYZ = node_val(CartesianCoordinate, node)
     cartesianVectorComponents = &
                    node_val(UnitAzimuthalVector_inCartesian, node)
-    call vector_cartesian_2_lon_lat_height(cartesianVectorComponents(1), &
-                                           cartesianVectorComponents(2), &
-                                           cartesianVectorComponents(3), &
-                                           XYZ(1), &
-                                           XYZ(2), &
-                                           XYZ(3), &
-                                           meridionalZonalVerticalVectorComponents(1), &
-                                           meridionalZonalVerticalVectorComponents(2), &
-                                           meridionalZonalVerticalVectorComponents(3), &
-                                           LLH(1), &
-                                           LLH(2), &
-                                           LLH(3))
+    XYZ_c = real(XYZ, kind=c_double)
+    cartesianVectorComponents_c = real(cartesianVectorComponents, kind=c_double)
+    call vector_cartesian_2_lon_lat_height_c(cartesianVectorComponents_c(1), &
+                                             cartesianVectorComponents_c(2), &
+                                             cartesianVectorComponents_c(3), &
+                                             XYZ_c(1), &
+                                             XYZ_c(2), &
+                                             XYZ_c(3), &
+                                             meridionalZonalVerticalVectorComponents_c(1), &
+                                             meridionalZonalVerticalVectorComponents_c(2), &
+                                             meridionalZonalVerticalVectorComponents_c(3), &
+                                             LLH_c(1), &
+                                             LLH_c(2), &
+                                             LLH_c(3), 0.0)
+    meridionalZonalVerticalVectorComponents = real(meridionalZonalVerticalVectorComponents_c)
+    LLH = real(LLH_c)
     call set(azimuthalVectorDifference, node, meridionalZonalVerticalVectorComponents)
   enddo
   call addto(azimuthalVectorDifference, UnitAzimuthalVector_inZonalMeridionalRadial, -1.0)
   fail = any(azimuthalVectorDifference%val > 1e-12)
   call report_test( &
-   "[Vector basis change: Cartesian to Zonal-Meridional-Vertical of unit-azimuthal vector.]", &
+   "[Vector basis change: Cartesian to Zonal-Meridional-Vertical of unit-azimuthal vector (C-types).]", &
    fail, .false., "Azimuthal unit vector components not transformed correctly.")
 
   call deallocate(radialVectorDifference)
