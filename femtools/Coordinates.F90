@@ -56,7 +56,7 @@ module Coordinates
        lon_lat_height_2_spherical_polar, spherical_polar_2_lon_lat_height, &
        lon_lat_height_2_cartesian, cartesian_2_lon_lat_height, &
        vector_spherical_polar_2_cartesian, vector_cartesian_2_spherical_polar, &
-       vector_lon_lat_height_2_cartesian, &
+       vector_lon_lat_height_2_cartesian, vector_cartesian_2_lon_lat_height, &
        tensor_spherical_polar_2_cartesian, &
        higher_order_sphere_projection, &
        sphere_inward_normal_at_quad_ele, sphere_inward_normal_at_quad_face, &
@@ -628,9 +628,9 @@ contains
 
     !Convert cartesian components to spherical-polar
     call vector_cartesian_2_spherical_polar(xComp, yComp, zComp, &
-                                           xCoord, yCoord, zCoord, &
-                                           radius, theta, phi, &
-                                           radial, polar, azimuthal)
+                                            xCoord, yCoord, zCoord, &
+                                            radial, polar, azimuthal, &
+                                            radius, theta, phi)
     !Convert cartesian coordinates to longitude-latitude-radius
     if(present(referenceRadius)) then
       call cartesian_2_lon_lat_height(xCoord, yCoord, zCoord, &
