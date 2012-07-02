@@ -76,7 +76,8 @@
          DO CV_ILOC = 1, CV_NLOC
             CV_NOD = CV_NDGLN( ( ELE - 1 ) * CV_NLOC + CV_ILOC ) 
             SUM_NOD( CV_NOD ) = SUM_NOD( CV_NOD ) + mass_ele( ele ) !1.0
-            VOLFRA_PORE_NOD( CV_NOD ) = VOLFRA_PORE_NOD( CV_NOD ) + VOLFRA_PORE( ELE ) * mass_ele( ele )
+            VOLFRA_PORE_NOD( CV_NOD ) = VOLFRA_PORE_NOD( CV_NOD ) + &
+                 VOLFRA_PORE( ELE ) * mass_ele( ele )
          END DO
       END DO
       VOLFRA_PORE_NOD = VOLFRA_PORE_NOD / SUM_NOD
@@ -133,7 +134,7 @@
             END DO
          END DO
 
-ewrite(3,*)'cv_nod, alpha:', cv_nod, alpha( cv_nod )
+         ewrite(3,*)'cv_nod, alpha:', cv_nod, alpha( cv_nod )
       END DO
 
       do cv_nod = 1, cv_nonods
@@ -744,7 +745,8 @@ ewrite(3,*)'cv_nod, alpha:', cv_nod, alpha( cv_nod )
       ! =0 is no adjustment. 
       ! Local variables...
       !    REAL, PARAMETER :: SUM2ONE_RELAX = 0.25
-      REAL, PARAMETER :: SUM2ONE_RELAX = 0.1
+      REAL, PARAMETER :: SUM2ONE_RELAX = 0.99
+      !!!!!!!!REAL, PARAMETER :: SUM2ONE_RELAX = 0.1
       !REAL, PARAMETER :: SUM2ONE_RELAX = 0.99
       INTEGER :: IPHASE, CV_NODI, ICOMP
       REAL :: RSUM

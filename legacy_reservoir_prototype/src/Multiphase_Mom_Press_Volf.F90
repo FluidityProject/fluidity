@@ -410,7 +410,7 @@ contains
             exclude_nonreprescribed=.true., time=ACCTIM)
 
        ! Non linear its:
-       Loop_ITS: DO ITS = 1, NITS
+       Loop_ITS: DO ITS = 1, 2!NITS
           ewrite(1,*)' New Non-Linear Iteration:', its
 
           CALL calculate_multiphase_density( state, CV_NONODS, CV_PHA_NONODS, DEN, DERIV, &
@@ -478,22 +478,7 @@ contains
              CALL calculate_capillary_pressure( state, CV_NONODS, NPHASE, PLIKE_GRAD_SOU_GRAD, SATURA )
           ENDIF
 
-          ewrite(3,*)'v_source_store b4:', r2norm( v_source_store, cv_nonods * nphase )
-
-
-!!!!
-!!!! HERE ... ZEROED V_SOURCE_COMP
-!!!!
           V_SOURCE_STORE = V_SOURCE + V_SOURCE_COMP
-
-          ewrite(3,*)'v_source_store after:', r2norm( v_source_store, cv_nonods * nphase )
-          ewrite(3,*)'vel b4:', r2norm( u, u_nonods * nphase )
-
-          ewrite(3,*)'ITIME,ITS,NITS:',ITIME,ITS,NITS
-
-          ewrite(3,*)'vel b4 forcebalance at', its, itime, r2norm(u, nphase * u_nonods), &
-               r2norm( cv_p, cv_nonods )
-          !ewrite(3,*)'saturaold:',saturaold
 
           IF( NCOMP <= 1 ) THEN
              VOLFRA_USE_THETA_FLUX = .false.
@@ -506,34 +491,11 @@ contains
              udenold = denold
           end if
 
-          !ewrite(3,*)'time and iter:', itime, its
-          !ewrite(3,*)'fck1:', NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
-          !     U_ELE_TYPE, P_ELE_TYPE, &
-          !     U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
-          !     U_SNLOC, P_SNLOC, CV_SNLOC, CV_ELE_TYPE, V_DISOPT, V_DG_VEL_INT_OPT, V_THETA, &
-          !     XU_NLOC, NDPSET
-
-          !ewrite(3,*)'fck2:', r2norm( x, x_nonods ), r2norm( u_abs_stab, mat_nonods * ndim * &
-          !     nphase * ndim * nphase ), r2norm( u, u_nonods * nphase ), r2norm( uold, &
-          !     u_nonods * nphase ), r2norm( cv_p, cv_nonods ), r2norm( den, cv_nonods * nphase ), &
-          !     r2norm( satura, cv_nonods * nphase ), dt
-
-          !ewrite(3,*)'fck3:', r2norm( nu, u_nonods * nphase ), r2norm( suf_vol_bc, &
-          !    stotel * cv_snloc * nphase ), r2norm( suf_d_bc, stotel * cv_snloc * nphase ), &
-          !    r2norm( suf_u_bc, stotel * u_snloc * nphase ), r2norm( v_source_store, &
-          !    cv_nonods * nphase ), r2norm( v_absorb, cv_nonods*nphase*nphase ), &
-          !    r2norm(volfra_pore, totele )
-
-          !ewrite(3,*)'fck4:', NOPT_VEL_UPWIND_COEFS, r2norm(OPT_VEL_UPWIND_COEFS, &
-          !    NOPT_VEL_UPWIND_COEFS), IGOT_THETA_FLUX, SCVNGI_THETA, VOLFRA_USE_THETA_FLUX, &
-          !    r2norm(SUM_THETA_FLUX, totele * igot_theta_flux * cv_nloc * scvngi_theta * &
-          !    nphase), r2norm(SUM_ONE_M_THETA_FLUX, totele * igot_theta_flux * cv_nloc * &
-          !    scvngi_theta * nphase ), r2norm( theta_gdiff, cv_nonods * nphase )
-
-          !          ewrite(3,*)'fck5:', 
-
-          !          ewrite(3,*)'fck6:', 
-
+       do cv_nodi = 1, cv_nonods
+          ewrite(3,*)'CV, sat1, sat2 b4Force:', cv_nodi, satura( cv_nodi ), &
+              satura( cv_nonods + cv_nodi )
+          ewrite(3,*)' '  
+       end do
 
           CALL FORCE_BAL_CTY_ASSEM_SOLVE( &
                NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
@@ -571,10 +533,16 @@ contains
                NOIT_DIM, &
                IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD,scale_momentum_by_volume_fraction ) 
 
-          ewrite(3,*)'vel after force_bal:', r2norm( u, u_nonods * nphase ), &
-               r2norm( cv_p, cv_nonods )
-
           if (SIG_INT) exit Loop_ITS
+
+
+
+       do cv_nodi = 1, cv_nonods
+          ewrite(3,*)'CV, sat1, sat2 afterForce:', cv_nodi, satura( cv_nodi ), &
+              satura( cv_nonods + cv_nodi )
+          ewrite(3,*)' '  
+       end do
+
 
           CALL calculate_multiphase_density( state, CV_NONODS, CV_PHA_NONODS, DEN, DERIV, &
                T, CV_P )
@@ -623,7 +591,8 @@ contains
 
           if (SIG_INT) exit Loop_ITS
 
-          SUM_THETA_FLUX = 0.0
+          SUM_THETA_FLUX = 1.0
+         !!!!!!!!!!!!!!!!!!!!!!!! SUM_THETA_FLUX = 0.0
           SUM_ONE_M_THETA_FLUX = 0.0
           V_SOURCE_COMP = 0.0
           IF( NCOMP <= 1 ) THEN
@@ -631,10 +600,13 @@ contains
           ELSE 
              NCOMP2 = NCOMP
           END IF
-          ewrite(3,*)'itime, its, comp: ', ITIME, ITS, COMP
 
-          norm_satura1 = r2norm( satura, nphase * cv_nonods )  
-          ewrite(3,*)'norm_satura:', norm_satura1
+
+       do cv_nodi = 1, cv_nonods
+          ewrite(3,*)'CV, sat1, sat2 0th:', cv_nodi, satura( cv_nodi ), &
+              satura( cv_nonods + cv_nodi )
+          ewrite(3,*)' '  
+       end do
 
           Loop_COMPONENTS: DO ICOMP = 1, NCOMP2
 
@@ -649,11 +621,6 @@ contains
                   DENOLD, SATURAOLD, &
                   VOLFRA_PORE, COMP_ABSORB, &
                   TOTELE, CV_NLOC, CV_NDGLN, mass_ele )
-
-
-             ewrite(3,*) 'absorb, source b4:', r2norm( comp_absorb, cv_nonods * nphase * nphase ), &
-                  r2norm(V_SOURCE_COMP, cv_nonods * nphase)
-
 
              IF( have_option("/material_phase[" // int2str(nstates-ncomp) // &
                   "]/is_multiphase_component/KComp_Sigmoid" )) THEN
@@ -679,17 +646,14 @@ contains
                 END DO
              END IF
 
-             ewrite(3,*) 'absorb, source after1:', r2norm( comp_absorb, cv_nonods * nphase &
-                  * nphase ), r2norm(V_SOURCE_COMP, cv_nonods * nphase)
-
              do cv_nodi = 1, cv_nonods
                 ewrite(3,*)'icomp, kcomp 1st:', icomp, k_comp( icomp, 1 : nphase, 1 : nphase )
                 ewrite(3,*)'CV, sat1, den1, sat2, den2:', cv_nodi, satura( cv_nodi ), &
-               den( cv_nodi ), satura( cv_nonods + cv_nodi ), den( cv_nonods + cv_nodi )
+                     den( cv_nodi ), satura( cv_nonods + cv_nodi ), den( cv_nonods + cv_nodi )
                 ewrite(3,*)'absorp_comp:', comp_absorb( cv_nodi, 1, 1 ), &
-                                           comp_absorb( cv_nodi, 1, 2 ), & 
-                                           comp_absorb( cv_nodi, 2, 1 ), & 
-                                           comp_absorb( cv_nodi, 2, 2 ) 
+                     comp_absorb( cv_nodi, 1, 2 ), & 
+                     comp_absorb( cv_nodi, 2, 1 ), & 
+                     comp_absorb( cv_nodi, 2, 2 ) 
                 ewrite(3,*)' '  
              end do
 
@@ -703,7 +667,7 @@ contains
 
 
              ! bear in mind there are 3 internal iterations
-             Loop_ITS2: DO ITS2 = 1, nits_internal
+             Loop_ITS2: DO ITS2 = 1, 3 !nits_internal
 
                 COMP_GET_THETA_FLUX = .TRUE. ! This will be set up in the input file
                 COMP_USE_THETA_FLUX = .FALSE.       
@@ -733,8 +697,8 @@ contains
                      COMPOLD(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 : ICOMP * NPHASE * CV_NONODS ), &
                      DEN, DENOLD,  &
                      MAT_NLOC, MAT_NDGLN, MAT_NONODS, COMP_DIFFUSION, &
-                     0, V_DG_VEL_INT_OPT, DT, V_THETA, V_BETA, &
-                                !V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, V_BETA, &
+                     !0, V_DG_VEL_INT_OPT, DT, V_THETA, V_BETA, &
+                     V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, V_BETA, &
                      SUF_COMP_BC( 1 + STOTEL * CV_SNLOC * NPHASE *( ICOMP - 1 ) : STOTEL * CV_SNLOC * NPHASE * ICOMP ), &
                      SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, &
                      SUF_COMP_BC_ROB1, SUF_COMP_BC_ROB2,  &
@@ -757,17 +721,17 @@ contains
                      mass_ele_transp = dummy_ele, &
                      thermal=.false. )! the false means that we don't add an extra source term
 
- do cv_nodi = 1, cv_nonods
-                ewrite(3,*)'icomp, kcomp 2nd:', icomp, k_comp( icomp, 1 : nphase, 1 : nphase )
-                ewrite(3,*)'CV, sat1, den1, sat2, den2:', cv_nodi, satura( cv_nodi ), &
-               den( cv_nodi ), satura( cv_nonods + cv_nodi ), den( cv_nonods + cv_nodi )
-                ewrite(3,*)'absorp_comp:', comp_absorb( cv_nodi, 1, 1 ), &
-                                           comp_absorb( cv_nodi, 1, 2 ), & 
-                                           comp_absorb( cv_nodi, 2, 1 ), & 
-                                           comp_absorb( cv_nodi, 2, 2 ) 
-                ewrite(3,*)' '  
-             end do
-!!xsstop 1092
+                do cv_nodi = 1, cv_nonods
+                   ewrite(3,*)'icomp, kcomp 2nd:', icomp, k_comp( icomp, 1 : nphase, 1 : nphase )
+                   ewrite(3,*)'CV, sat1, den1, sat2, den2:', cv_nodi, satura( cv_nodi ), &
+                        den( cv_nodi ), satura( cv_nonods + cv_nodi ), den( cv_nonods + cv_nodi )
+                   ewrite(3,*)'absorp_comp:', comp_absorb( cv_nodi, 1, 1 ), &
+                        comp_absorb( cv_nodi, 1, 2 ), & 
+                        comp_absorb( cv_nodi, 2, 1 ), & 
+                        comp_absorb( cv_nodi, 2, 2 ) 
+                   ewrite(3,*)' '  
+                end do
+                !!xsstop 1092
                 do iphase = 1, nphase
                    ewrite(3,*) 'icomp, iphase, comp:', icomp, iphase, &
                         comp( ( icomp - 1 ) * nphase * cv_nonods + ( iphase - 1 ) * cv_nonods + 1 : &
@@ -781,7 +745,6 @@ contains
              SUM_THETA_FLUX = SUM_THETA_FLUX + THETA_FLUX
              SUM_ONE_M_THETA_FLUX = SUM_ONE_M_THETA_FLUX + ONE_M_THETA_FLUX
 
-
 !!!!
 !!!! AND HERE ZEROED THE COMP_ABSORB TERM WITHIN THE V_SOURCE_COMP
 !!!!
@@ -792,21 +755,21 @@ contains
                       V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) = &
                            V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) - &
                            COMP_ABSORB( CV_NODI, IPHASE, JPHASE ) * &
-                           !.0 * COMP_ABSORB( CV_NODI, IPHASE, JPHASE ) * &
+                                !.0 * COMP_ABSORB( CV_NODI, IPHASE, JPHASE ) * &
                            COMP( CV_NODI + ( JPHASE - 1 ) * CV_NONODS + &
                            ( ICOMP - 1 ) * NPHASE * CV_NONODS )
                    END DO
                 END DO
              END DO
 
- do cv_nodi = 1, cv_nonods
+             do cv_nodi = 1, cv_nonods
                 ewrite(3,*)'icomp, kcomp 3rd:', icomp, k_comp( icomp, 1 : nphase, 1 : nphase )
                 ewrite(3,*)'CV, sat1, den1, sat2, den2:', cv_nodi, satura( cv_nodi ), &
-               den( cv_nodi ), satura( cv_nonods + cv_nodi ), den( cv_nonods + cv_nodi )
+                     den( cv_nodi ), satura( cv_nonods + cv_nodi ), den( cv_nonods + cv_nodi )
                 ewrite(3,*)'absorp_comp:', comp_absorb( cv_nodi, 1, 1 ), &
-                                           comp_absorb( cv_nodi, 1, 2 ), & 
-                                           comp_absorb( cv_nodi, 2, 1 ), & 
-                                           comp_absorb( cv_nodi, 2, 2 ) 
+                     comp_absorb( cv_nodi, 1, 2 ), & 
+                     comp_absorb( cv_nodi, 2, 1 ), & 
+                     comp_absorb( cv_nodi, 2, 2 ) 
                 ewrite(3,*)' '  
              end do
              if (SIG_INT) exit Loop_COMPONENTS
@@ -826,15 +789,15 @@ contains
           ENDIF
 
           do cv_nodi = 1, cv_nonods
-                ewrite(3,*)'icomp, kcomp 4th:', icomp, k_comp( icomp, 1 : nphase, 1 : nphase )
-                ewrite(3,*)'CV, sat1, den1, sat2, den2:', cv_nodi, satura( cv_nodi ), &
-               den( cv_nodi ), satura( cv_nonods + cv_nodi ), den( cv_nonods + cv_nodi )
-                ewrite(3,*)'absorp_comp:', comp_absorb( cv_nodi, 1, 1 ), &
-                                           comp_absorb( cv_nodi, 1, 2 ), & 
-                                           comp_absorb( cv_nodi, 2, 1 ), & 
-                                           comp_absorb( cv_nodi, 2, 2 ) 
-                ewrite(3,*)' '  
-             end do
+             ewrite(3,*)'icomp, kcomp 4th:', icomp, k_comp( icomp, 1 : nphase, 1 : nphase )
+             ewrite(3,*)'CV, sat1, den1, sat2, den2:', cv_nodi, satura( cv_nodi ), &
+                  den( cv_nodi ), satura( cv_nonods + cv_nodi ), den( cv_nonods + cv_nodi )
+             ewrite(3,*)'absorp_comp:', comp_absorb( cv_nodi, 1, 1 ), &
+                  comp_absorb( cv_nodi, 1, 2 ), & 
+                  comp_absorb( cv_nodi, 2, 1 ), & 
+                  comp_absorb( cv_nodi, 2, 2 ) 
+             ewrite(3,*)' '  
+          end do
 
           !ewrite(3,*)'V_SOURCE_COMP after:', r2norm(V_SOURCE_COMP, cv_nonods * nphase)
 
@@ -848,15 +811,15 @@ contains
           end do
 
           do cv_nodi = 1, cv_nonods
-                ewrite(3,*)'icomp, kcomp 5th:', icomp, k_comp( icomp, 1 : nphase, 1 : nphase )
-                ewrite(3,*)'CV, sat1, den1, sat2, den2:', cv_nodi, satura( cv_nodi ), &
-               den( cv_nodi ), satura( cv_nonods + cv_nodi ), den( cv_nonods + cv_nodi )
-                ewrite(3,*)'absorp_comp:', comp_absorb( cv_nodi, 1, 1 ), &
-                                           comp_absorb( cv_nodi, 1, 2 ), & 
-                                           comp_absorb( cv_nodi, 2, 1 ), & 
-                                           comp_absorb( cv_nodi, 2, 2 ) 
-                ewrite(3,*)' '  
-             end do
+             ewrite(3,*)'icomp, kcomp 5th:', icomp, k_comp( icomp, 1 : nphase, 1 : nphase )
+             ewrite(3,*)'CV, sat1, den1, sat2, den2:', cv_nodi, satura( cv_nodi ), &
+                  den( cv_nodi ), satura( cv_nonods + cv_nodi ), den( cv_nonods + cv_nodi )
+             ewrite(3,*)'absorp_comp:', comp_absorb( cv_nodi, 1, 1 ), &
+                  comp_absorb( cv_nodi, 1, 2 ), & 
+                  comp_absorb( cv_nodi, 2, 1 ), & 
+                  comp_absorb( cv_nodi, 2, 2 ) 
+             ewrite(3,*)' '  
+          end do
 
 
           !ewrite(3,*)''
@@ -878,8 +841,8 @@ contains
           !   end do
           !end do
 
-         ! norm_satura2 = r2norm( satura, nphase * cv_nonods )  
-         ! ewrite(3,*)'norm_satura b4 new ITS:', norm_satura2
+          ! norm_satura2 = r2norm( satura, nphase * cv_nonods )  
+          ! ewrite(3,*)'norm_satura b4 new ITS:', norm_satura2
 
 
           !if( abs( norm_satura1 - norm_satura2 ) >= 1.e-7 ) stop 9786
@@ -889,200 +852,197 @@ contains
        END DO Loop_ITS
 
 
-          do cv_nodi = 1, cv_nonods
-                ewrite(3,*)'icomp, kcomp 6th:', icomp, k_comp( icomp, 1 : nphase, 1 : nphase )
-                ewrite(3,*)'CV, sat1, den1, sat2, den2:', cv_nodi, satura( cv_nodi ), &
+       do cv_nodi = 1, cv_nonods
+          ewrite(3,*)'icomp, kcomp 6th:', icomp, k_comp( icomp, 1 : nphase, 1 : nphase )
+          ewrite(3,*)'CV, sat1, den1, sat2, den2:', cv_nodi, satura( cv_nodi ), &
                den( cv_nodi ), satura( cv_nonods + cv_nodi ), den( cv_nonods + cv_nodi )
-                ewrite(3,*)'absorp_comp:', comp_absorb( cv_nodi, 1, 1 ), &
-                                           comp_absorb( cv_nodi, 1, 2 ), & 
-                                           comp_absorb( cv_nodi, 2, 1 ), & 
-                                           comp_absorb( cv_nodi, 2, 2 ) 
-                ewrite(3,*)' '  
-             end do
+          ewrite(3,*)'absorp_comp:', comp_absorb( cv_nodi, 1, 1 ), &
+               comp_absorb( cv_nodi, 1, 2 ), & 
+               comp_absorb( cv_nodi, 2, 1 ), & 
+               comp_absorb( cv_nodi, 2, 2 ) 
+          ewrite(3,*)' '  
+       end do
 
        ewrite(3,*)'just after -satura:', satura( 1 : cv_nonods )
 
-
-
-
-       !if( itime > 3 ) stop 12
        call set_option("/timestepping/current_time", ACCTIM)
        call set_option("/timestepping/timestep", dt)
 
        Conditional_TIMDUMP: if( ( mod( itime, dump_period_in_timesteps ) == 0 ) .or. ( itime == 1 ) ) then
 
-          ! Write the *.d.* files?
-          if (.false.) then
+          ! calculate the quadratic DG representation of the overlapping CVFEM velocity fields
+          call overlapping_to_quadratic_dg( &
+               cv_nonods, x_nonods,u_nonods,  totele, &
+               cv_ele_type,   nphase,  cv_nloc, u_nloc, x_nloc, &
+               cv_ndgln,  u_ndgln, x_ndgln, cv_snloc, u_snloc, stotel, cv_sndgln, u_sndgln, &
+               x, y, z,  u, v, w, uold, vold, wold,velocity_dg,ndim,p_ele_type )
 
-             ! calculate the quadratic DG representation of the overlapping CVFEM velocity fields
-             call overlapping_to_quadratic_dg( &
-                  cv_nonods, x_nonods,u_nonods,  totele, &
-                  cv_ele_type,   nphase,  cv_nloc, u_nloc, x_nloc, &
-                  cv_ndgln,  u_ndgln, x_ndgln, cv_snloc, u_snloc, stotel, cv_sndgln, u_sndgln, &
-                  x, y, z,  u, v, w, uold, vold, wold,velocity_dg,ndim,p_ele_type )
+          ! output the saturation, density and velocity for each phase
+          Phase_output_loop: do iphase = 1,nphase
 
-             ! output the saturation, density and velocity for each phase
-             Phase_output_loop: do iphase = 1,nphase
+             ! form string for phase number
+             call write_integer_to_string(iphase,dummy_string_phase,len(dummy_string_phase))  
+
+             ! form string for dump number
+             call write_integer_to_string(itime,dummy_string_dump,len(dummy_string_dump))  
+
+             ! form the output file name for saturation --------------------------
+             dump_name = 'saturation_FEM_phase_'//trim(dummy_string_phase)//'.d.'//trim(dummy_string_dump)
+
+             ! open the output file for saturation   
+             output_channel = 1
+             file_format = 'formatted'
+             call open_output_file(output_channel,dump_name,len(dump_name),file_format)
+
+             ! output the fem interpolation of the CV solution for saturation of this phase
+             call output_fem_sol_of_cv(output_channel,totele,cv_nonods,x_nonods,nphase,cv_nloc,x_nloc,cv_ndgln, &
+                  x_ndgln,x,Sat_FEMT( ((iphase-1)*cv_nonods+1):((iphase-1)*cv_nonods+cv_nonods) ))
+
+             ! close the file for saturation   
+             close(output_channel)  
+
+
+             ! form the output file name for density --------------------------
+             dump_name = 'density_FEM_phase_'//trim(dummy_string_phase)//'.d.'//trim(dummy_string_dump)
+
+             ! open the output file for density   
+             output_channel = 1
+             file_format = 'formatted'
+             call open_output_file(output_channel,dump_name,len(dump_name),file_format)
+
+             ! output the fem interpolation of the CV solution for density of this phase
+             call output_fem_sol_of_cv(output_channel,totele,cv_nonods,x_nonods,nphase,cv_nloc,x_nloc,cv_ndgln, &
+                  x_ndgln,x,DEN_FEMT( ((iphase-1)*cv_nonods+1):((iphase-1)*cv_nonods+cv_nonods) ))
+
+             ! close the file for density   
+             close(output_channel)  
+
+             ! form the output file name for velocity --------------------------
+             dump_name = 'velocity_phase_'//trim(dummy_string_phase)//'.d.'//trim(dummy_string_dump)
+
+             ! open the output file for velocity   
+             output_channel = 1
+             file_format = 'formatted'
+             call open_output_file(output_channel,dump_name,len(dump_name),file_format)
+
+             ! output the fem velocity
+             call printing_veloc_field( output_channel, totele, xu_nonods, xu_nloc, xu_ndgln, u_nloc, u_ndgln, &
+                  xu, u_nonods, u_nonods * nphase, u, iphase )
+
+             ! close the file for velocity   
+             close(output_channel)
+
+             dump_name = 'velocity_phase_proj'//trim(dummy_string_phase)//'.d.'//trim(dummy_string_dump)
+
+             ! open the output file for velocity   
+             output_channel = 1
+             file_format = 'formatted'
+             call open_output_file(output_channel,dump_name,len(dump_name),file_format)
+
+             ! output the fem velocity
+             call printing_veloc_field( output_channel, totele, xu_nonods, xu_nloc, xu_ndgln, u_nloc, u_ndgln, &
+                  xu, u_nonods, u_nonods * nphase, u, iphase )
+
+
+             call printing_field_array_veloc(output_channel, totele,   cv_nonods, x_nonods, x_nloc, x_ndgln, cv_nloc, cv_ndgln, &
+                  x, velocity_dg(:,iphase,1))
+             ! close the file for velocity   
+             close(output_channel)
+
+          end do Phase_output_loop
+
+
+          Loop_Comp_Print: do icomp = 1, ncomp
+
+             Loop_Phase_Print: do iphase = 1, nphase
 
                 ! form string for phase number
-                call write_integer_to_string(iphase,dummy_string_phase,len(dummy_string_phase))  
-
-                ! form string for dump number
-                call write_integer_to_string(itime,dummy_string_dump,len(dummy_string_dump))  
-
-                ! form the output file name for saturation --------------------------
-                dump_name = 'saturation_FEM_phase_'//trim(dummy_string_phase)//'.d.'//trim(dummy_string_dump)
-
-                ! open the output file for saturation   
-                output_channel = 1
-                file_format = 'formatted'
-                call open_output_file(output_channel,dump_name,len(dump_name),file_format)
-
-                ! output the fem interpolation of the CV solution for saturation of this phase
-                call output_fem_sol_of_cv(output_channel,totele,cv_nonods,x_nonods,nphase,cv_nloc,x_nloc,cv_ndgln, &
-                     x_ndgln,x,Sat_FEMT( ((iphase-1)*cv_nonods+1):((iphase-1)*cv_nonods+cv_nonods) ))
-
-                ! close the file for saturation   
-                close(output_channel)  
-
-                ! form the output file name for density --------------------------
-                dump_name = 'density_FEM_phase_'//trim(dummy_string_phase)//'.d.'//trim(dummy_string_dump)
-
-                ! open the output file for density   
-                output_channel = 1
-                file_format = 'formatted'
-                call open_output_file(output_channel,dump_name,len(dump_name),file_format)
-
-                ! output the fem interpolation of the CV solution for density of this phase
-                call output_fem_sol_of_cv(output_channel,totele,cv_nonods,x_nonods,nphase,cv_nloc,x_nloc,cv_ndgln, &
-                     x_ndgln,x,DEN_FEMT( ((iphase-1)*cv_nonods+1):((iphase-1)*cv_nonods+cv_nonods) ))
-
-                ! close the file for density   
-                close(output_channel)  
-
-                ! form the output file name for velocity --------------------------
-                dump_name = 'velocity_phase_'//trim(dummy_string_phase)//'.d.'//trim(dummy_string_dump)
-
-                ! open the output file for velocity   
-                output_channel = 1
-                file_format = 'formatted'
-                call open_output_file(output_channel,dump_name,len(dump_name),file_format)
-
-                ! output the fem velocity
-                call printing_veloc_field( output_channel, totele, xu_nonods, xu_nloc, xu_ndgln, u_nloc, u_ndgln, &
-                     xu, u_nonods, u_nonods * nphase, u, iphase )
-
-                ! close the file for velocity   
-                close(output_channel)
-
-                dump_name = 'velocity_phase_proj'//trim(dummy_string_phase)//'.d.'//trim(dummy_string_dump)
-
-                ! open the output file for velocity   
-                output_channel = 1
-                file_format = 'formatted'
-                call open_output_file(output_channel,dump_name,len(dump_name),file_format)
-
-                ! output the fem velocity
-                call printing_veloc_field( output_channel, totele, xu_nonods, xu_nloc, xu_ndgln, u_nloc, u_ndgln, &
-                     xu, u_nonods, u_nonods * nphase, u, iphase )
-
-                call printing_field_array_veloc(output_channel, totele,   cv_nonods, x_nonods, x_nloc, x_ndgln, cv_nloc, cv_ndgln, &
-                     x, velocity_dg(:,iphase,1))
-                ! close the file for velocity   
-                close(output_channel)
-
-             end do Phase_output_loop
-
-             Loop_Comp_Print: do icomp = 1, ncomp
-
-                Loop_Phase_Print: do iphase = 1, nphase
-
-                   ! form string for phase number
-                   call write_integer_to_string( iphase, dummy_string_phase, len( dummy_string_phase )) 
-
-                   ! form string for component number
-                   call write_integer_to_string( icomp, dummy_string_comp, len( dummy_string_comp ))  
-
-                   ! form string for dump number
-                   call write_integer_to_string( itime, dummy_string_dump, len( dummy_string_dump ))  
-
-                   ! form the output file name for saturation --------------------------
-                   dump_name = 'MassFraction_FEM_Phase_'//trim( dummy_string_phase )// '_Comp_' // &
-                        trim( dummy_string_comp ) // '.d.' // trim( dummy_string_dump )
-
-                   ! open the output file for Mass/Molar Fraction   
-                   output_channel = 1
-                   file_format = 'formatted'
-                   call open_output_file( output_channel, dump_name, len( dump_name ), file_format )
-
-                   ! output the fem interpolation of the CV solution for Mass Fraction of this phase and this component
-                   call output_fem_sol_of_cv( output_channel, totele, cv_nonods, x_nonods, nphase, cv_nloc, x_nloc, cv_ndgln, &
-                        x_ndgln, x, Comp_FEMT(( icomp - 1 ) * nphase * cv_nonods + ( iphase - 1 ) * cv_nonods + 1 : &
-                        ( icomp - 1 ) * nphase * cv_nonods + iphase * cv_nonods ))
-
-                   ! close the file   
-                   close( output_channel )  
-
-                end do Loop_Phase_Print
-
-             end do Loop_Comp_Print
-
-             Loop_Comp_Print2: do icomp = 1, ncomp
+                call write_integer_to_string( iphase, dummy_string_phase, len( dummy_string_phase )) 
 
                 ! form string for component number
-                call write_integer_to_string( icomp, dummy_string_comp, len( dummy_string_comp )) 
+                call write_integer_to_string( icomp, dummy_string_comp, len( dummy_string_comp ))  
 
                 ! form string for dump number
                 call write_integer_to_string( itime, dummy_string_dump, len( dummy_string_dump ))  
 
                 ! form the output file name for saturation --------------------------
-                dump_name = 'Conc_FEM_Comp_' // trim( dummy_string_comp ) // '.d.' // trim( dummy_string_dump )
+                dump_name = 'MassFraction_FEM_Phase_'//trim( dummy_string_phase )// '_Comp_' // &
+                     trim( dummy_string_comp ) // '.d.' // trim( dummy_string_dump )
 
                 ! open the output file for Mass/Molar Fraction   
                 output_channel = 1
                 file_format = 'formatted'
                 call open_output_file( output_channel, dump_name, len( dump_name ), file_format )
 
-                SumConc_FEMT = 0.
-
-                Loop_Phase_Print2: do iphase = 1, nphase
-
-                   SumConc_FEMT( ( icomp - 1 ) * cv_nonods + 1 : ( icomp - 1 ) * cv_nonods + cv_nonods ) = &
-                        SumConc_FEMT( ( icomp - 1 ) * cv_nonods + 1 : ( icomp - 1 ) * cv_nonods + cv_nonods ) + &
-                        Comp_FEMT(( icomp - 1 ) * nphase * cv_nonods + ( iphase - 1 ) * cv_nonods + 1 : &
-                        ( icomp - 1 ) * nphase * cv_nonods + iphase * cv_nonods )  * &
-                        Sat_FEMT(( ( iphase - 1 ) * cv_nonods + 1 ) : (( iphase - 1 ) * cv_nonods + cv_nonods ))
-
-                end do Loop_Phase_Print2
-
                 ! output the fem interpolation of the CV solution for Mass Fraction of this phase and this component
-                call output_fem_sol_of_cv( output_channel, totele, cv_nonods, x_nonods, ncomp, cv_nloc, x_nloc, cv_ndgln, &
-                     x_ndgln, x, SumConc_FEMT(( ( icomp - 1 ) * cv_nonods + 1 ) : (( icomp - 1 ) * cv_nonods + cv_nonods )))
+                call output_fem_sol_of_cv( output_channel, totele, cv_nonods, x_nonods, nphase, cv_nloc, x_nloc, cv_ndgln, &
+                     x_ndgln, x, Comp_FEMT(( icomp - 1 ) * nphase * cv_nonods + ( iphase - 1 ) * cv_nonods + 1 : &
+                     ( icomp - 1 ) * nphase * cv_nonods + iphase * cv_nonods ))
 
                 ! close the file   
                 close( output_channel )  
 
-             end do Loop_Comp_Print2
+             end do Loop_Phase_Print
 
-             ! output the global pressure --------------------------
-             dump_name = 'pressure'//'.d.'//trim(dummy_string_dump)
+          end do Loop_Comp_Print
 
-             ! open the output file for pressure   
+
+
+          Loop_Comp_Print2: do icomp = 1, ncomp
+
+             ! form string for component number
+             call write_integer_to_string( icomp, dummy_string_comp, len( dummy_string_comp )) 
+
+             ! form string for dump number
+             call write_integer_to_string( itime, dummy_string_dump, len( dummy_string_dump ))  
+
+             ! form the output file name for saturation --------------------------
+             dump_name = 'Conc_FEM_Comp_' // trim( dummy_string_comp ) // '.d.' // trim( dummy_string_dump )
+
+             ! open the output file for Mass/Molar Fraction   
              output_channel = 1
              file_format = 'formatted'
-             call open_output_file(output_channel,dump_name,len(dump_name),file_format) 
+             call open_output_file( output_channel, dump_name, len( dump_name ), file_format )
 
-             ! output the pressure      
-             call printing_field_array( output_channel, totele, cv_nonods, x_nonods, x_nloc, x_ndgln, cv_nloc, cv_ndgln, &
-                  x, cv_nonods, cv_p, 1 )
+             SumConc_FEMT = 0.
 
-             ! close the file for pressure   
-             close(output_channel)
+             Loop_Phase_Print2: do iphase = 1, nphase
 
-          end if ! write *.d.* files
+                SumConc_FEMT( ( icomp - 1 ) * cv_nonods + 1 : ( icomp - 1 ) * cv_nonods + cv_nonods ) = &
+                     SumConc_FEMT( ( icomp - 1 ) * cv_nonods + 1 : ( icomp - 1 ) * cv_nonods + cv_nonods ) + &
+                     Comp_FEMT(( icomp - 1 ) * nphase * cv_nonods + ( iphase - 1 ) * cv_nonods + 1 : &
+                     ( icomp - 1 ) * nphase * cv_nonods + iphase * cv_nonods )  * &
+                     Sat_FEMT(( ( iphase - 1 ) * cv_nonods + 1 ) : (( iphase - 1 ) * cv_nonods + cv_nonods ))
 
-          ! Output vtus from state
-          ! Start by copying the interesting fields back into state:
+             end do Loop_Phase_Print2
+
+             ! output the fem interpolation of the CV solution for Mass Fraction of this phase and this component
+             call output_fem_sol_of_cv( output_channel, totele, cv_nonods, x_nonods, ncomp, cv_nloc, x_nloc, cv_ndgln, &
+                  x_ndgln, x, SumConc_FEMT(( ( icomp - 1 ) * cv_nonods + 1 ) : (( icomp - 1 ) * cv_nonods + cv_nonods )))
+
+             ! close the file   
+             close( output_channel )  
+
+          end do Loop_Comp_Print2
+
+
+          ! output the global pressure --------------------------
+          dump_name = 'pressure'//'.d.'//trim(dummy_string_dump)
+
+          ! open the output file for pressure   
+          output_channel = 1
+          file_format = 'formatted'
+          call open_output_file(output_channel,dump_name,len(dump_name),file_format) 
+
+          ! output the pressure      
+          call printing_field_array( output_channel, totele, cv_nonods, x_nonods, x_nloc, x_ndgln, cv_nloc, cv_ndgln, &
+               x, cv_nonods, cv_p, 1 )
+
+          ! close the file for pressure   
+          close(output_channel)
+
+          !! Output vtus from state
+          ! Start by copying the interesting files back into state:
           call copy_into_state(state, &
                satura, &
                t, &
@@ -1123,6 +1083,8 @@ contains
 
     ewrite(3,*) 'Leaving solve_multiphase_mom_press_volf'
 
+
+
     deallocate( sigma )
     deallocate( rhs )
     deallocate( rhs_cv )
@@ -1135,5 +1097,6 @@ contains
     deallocate( Comp_FEMT )
 
   end subroutine solve_multiphase_mom_press_volf
+
 
 end module multiphase_mom_press_volf
