@@ -382,6 +382,10 @@
       have_les = have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
          &"/continuous_galerkin/les_model")
       if (have_les) then
+         ! Set everything to false initially, then set to true if present
+         have_lilly=.false.; have_eddy_visc=.false.; backscatter=.false.
+         have_strain=.false.; have_filtered_strain=.false.; have_filter_width=.false.
+
          les_option_path=(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
                  &"/continuous_galerkin/les_model")
          les_second_order=have_option(trim(les_option_path)//"/second_order")
@@ -398,8 +402,6 @@
                ! you can't have 2 different types of LES model for the same material phase.
                call les_init_diagnostic_tensor_fields(state, have_eddy_visc, .false., .false., .false.)
             end if
-         else
-            have_eddy_visc=.false.
          end if
          if (les_fourth_order) then
             call get_option(trim(les_option_path)//"/fourth_order/smagorinsky_coefficient", &
@@ -446,9 +448,6 @@
            call leonard_tensor(nu, x, tnu, leonard, alpha, les_option_path)
 
            ewrite_minmax(leonard)
-         else
-           have_lilly=.false.; have_eddy_visc=.false.; backscatter=.false.
-           have_strain=.false.; have_filtered_strain=.false.; have_filter_width=.false.
          end if
       else
          les_second_order=.false.; les_fourth_order=.false.; wale=.false.; dynamic_les=.false.
