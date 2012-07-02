@@ -410,7 +410,7 @@ contains
             exclude_nonreprescribed=.true., time=ACCTIM)
 
        ! Non linear its:
-       Loop_ITS: DO ITS = 1, 2!NITS
+       Loop_ITS: DO ITS = 1, NITS
           ewrite(1,*)' New Non-Linear Iteration:', its
 
           CALL calculate_multiphase_density( state, CV_NONODS, CV_PHA_NONODS, DEN, DERIV, &
@@ -667,7 +667,7 @@ contains
 
 
              ! bear in mind there are 3 internal iterations
-             Loop_ITS2: DO ITS2 = 1, 3 !nits_internal
+             Loop_ITS2: DO ITS2 = 1, nits_internal
 
                 COMP_GET_THETA_FLUX = .TRUE. ! This will be set up in the input file
                 COMP_USE_THETA_FLUX = .FALSE.       
