@@ -29,6 +29,8 @@
 #include "BulkForcing.h"
 #include "FluxesReader.h"
 #include "spud"
+#include "global_parameters.h"
+#include "coordinates.h"
 
 using namespace std;
 using namespace Spud;
@@ -111,6 +113,11 @@ void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const d
     */
 
     // loop over nodes
+    double surface_radius = get_surface_radius();
+    double height = 0.0;
+    double u_rot = 0.0;
+    double v_rot = 0.0;
+    double w_rot = 0.0;
     for (int i=0; i<NNodes; i++) {
         
         double latitude = y[i]; 
@@ -123,10 +130,20 @@ void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const d
         // See above
 
         // rotate wind to cartesian grid
-        double u_rot = Vx[i];
-        double v_rot = Vy[i];
+        // or rotate ocean velocity to zonal-meridional-vertical?
+        double u_cart = Vx[i];
+        double v_cart = Vy[i];
+        double w_cart = Vz[i];
+        double x_cart = X[i];
+        double y_cart = Y[i];
+        double z_cart = Z[i];
         if (rotate) {
           rotate_wind_fc(&longitude, &latitude, &Vx[i], &Vy[i], &Vz[i], &u_rot, &v_rot);
+          //vector_cartesian_2_lon_lat_height_c(&u_cart, &v_cart, &w_cart, 
+          //                                    &x_cart, &y_cart, &z_cart,
+          //                                    &u_rot, &v_rot, &w_rot,
+          //                                    &longitude, &latitude, &height,
+          //                                    &surface_radius);
         }
         // DelU - the difference between wind and water currents
         delU_u[i] = values[0] - u_rot;
