@@ -258,7 +258,6 @@ module darcy_impes_assemble_module
       type(darcy_impes_cv_options_type)       :: saturation_cv_options
       type(darcy_impes_cv_options_type)       :: relperm_cv_options
       type(darcy_impes_cv_options_type)       :: density_cv_options
-      type(darcy_impes_cv_options_type)       :: viscosity_cv_options
       type(cv_faces_type)                     :: cvfaces
       type(element_type)                      :: x_cvshape_full
       type(element_type)                      :: p_cvshape_full
