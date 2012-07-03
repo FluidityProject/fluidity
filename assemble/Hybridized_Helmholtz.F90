@@ -445,8 +445,7 @@ contains
        end if
     end if
 
-    if(have_option('/geometry/mesh::VelocityMesh/from_mesh/constraint_type/c&
-         &heck_continuity')) then       
+    if(have_option('/geometry/mesh::VelocityMesh/check_continuity')) then       
        U_cart => extract_vector_field(state, "Velocity")
        if(present(U_out)) then
           call project_local_to_cartesian(X,U_out,U_cart,weights=weights)
