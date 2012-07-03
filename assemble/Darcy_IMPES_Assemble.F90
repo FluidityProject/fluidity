@@ -757,7 +757,7 @@ module darcy_impes_assemble_module
             if (di%v_bc_flag(sele) == V_BC_TYPE_NO_NORMAL_FLOW) cycle sele_loop
             
             ! If phase 1 and strong pressure BC then no need to add integrals so cycle sele loop
-            if ((p == 1) .and. (di%pressure_bc_flag(sele) == PRESSURE_BC_TYPE_DIRICHLET)) cycle sele_loop 
+            if (di%pressure_bc_flag(sele) == PRESSURE_BC_TYPE_DIRICHLET) cycle sele_loop 
             
             p_nodes_bdy = face_global_nodes(di%pressure_mesh, sele)
 
