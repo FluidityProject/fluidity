@@ -138,12 +138,12 @@ void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const d
         double y_cart = Y[i];
         double z_cart = Z[i];
         if (rotate) {
-          rotate_wind_fc(&longitude, &latitude, &Vx[i], &Vy[i], &Vz[i], &u_rot, &v_rot);
-          //vector_cartesian_2_lon_lat_height_c(&u_cart, &v_cart, &w_cart, 
-          //                                    &x_cart, &y_cart, &z_cart,
-          //                                    &u_rot, &v_rot, &w_rot,
-          //                                    &longitude, &latitude, &height,
-          //                                    &surface_radius);
+          //rotate_wind_fc(&longitude, &latitude, &Vx[i], &Vy[i], &Vz[i], &u_rot, &v_rot);
+          vector_cartesian_2_lon_lat_height_c(&u_cart, &v_cart, &w_cart, 
+                                              &x_cart, &y_cart, &z_cart,
+                                              &u_rot, &v_rot, &w_rot,
+                                              &longitude, &latitude, &height,
+                                              &surface_radius);
         }
         // DelU - the difference between wind and water currents
         delU_u[i] = values[0] - u_rot;
