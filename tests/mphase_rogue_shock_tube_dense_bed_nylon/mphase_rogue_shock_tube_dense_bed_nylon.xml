@@ -30,7 +30,7 @@ for i in range(0, len(time)):
     <variable name="positions" language="python">
 import vtktools
 
-file = vtktools.vtu('mphase_rogue_shock_tube_dense_bed_nylon_1001.pvtu')
+file = vtktools.vtu('mphase_rogue_shock_tube_dense_bed_nylon_1.vtu')
 file.GetFieldNames()
 p = file.GetLocations()
 positions = p[:,1]
@@ -48,9 +48,9 @@ assert solvers_converged
     
     <!-- Remember to offset the times in this pass_test. Here we want to check that the -->
     <!-- simulation time is 0.01, not the time after the shock wave hits the particle bed. -->
-    <test name="Finish time is 0.01 seconds" language="python">
-assert (time[-1] + 0.0008 &gt;= 0.01)
-assert (time[-1] + 0.0008 &lt; (0.01 + 7.5e-6))
+    <test name="Finish time is 0.002 seconds" language="python">
+assert (time[-1] + 0.0008 &gt;= 0.002)
+assert (time[-1] + 0.0008 &lt; (0.002 + 7.5e-6))
     </test>    
 
     <!-- Remember to exclude t = 0 for this pass_test, because the Pressure will be zero initially. -->
@@ -60,7 +60,7 @@ import vtktools
 import numpy
 
 for i in range(1, len(time), 2):
-   filename='mphase_rogue_shock_tube_dense_bed_nylon_' + str(i) + '.pvtu'
+   filename='mphase_rogue_shock_tube_dense_bed_nylon_' + str(i) + '.vtu'
    vt=vtktools.vtu(filename)
    
    if(time[i] &lt; -0.0005):
@@ -75,7 +75,7 @@ import vtktools
 import numpy
 
 for i in range(1, len(time), 2):
-   filename='mphase_rogue_shock_tube_dense_bed_nylon_' + str(i) + '.pvtu'
+   filename='mphase_rogue_shock_tube_dense_bed_nylon_' + str(i) + '.vtu'
    vt=vtktools.vtu(filename)
    
    if(time[i] &gt; -0.0005 and time[i] &lt; 0.0001):
@@ -92,7 +92,7 @@ import vtktools
 import numpy
 
 for i in range(1, len(time), 10):
-   filename='mphase_rogue_shock_tube_dense_bed_nylon_' + str(i) + '.pvtu'
+   filename='mphase_rogue_shock_tube_dense_bed_nylon_' + str(i) + '.vtu'
    vt=vtktools.vtu(filename)
    
    if(time[i] &gt; 0.0005 and time[i] &lt; 0.008):
