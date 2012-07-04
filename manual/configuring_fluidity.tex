@@ -1267,11 +1267,11 @@ where density is a function of temperature and salinity.
 
 \subsubsection{Linear fluid EOS}
 \index{equation of state!linear}
-The density is a linear function of temperature and salinity:
+The density is a linear function of temperature, salinity and any number of generic scalar fields:
 \begin{equation}
-  \rho=\rho_0 \left(1-\alpha(T-T_0)+\beta (S-S_0)\right),
+  \rho=\rho_0 \left(1-\alpha(T-T_0)+\beta (S-S_0) - \gamma (F - F_0) \right),
 \end{equation}
-where $\rho_0, \alpha, T_0, \beta$ and $S_0$ are set by the following 
+where $\rho_0, \alpha, T_0, \beta, S_0, \gamma$ and $F_0$ are set by the following 
 options:
 \begin{description}
 \item \option{\ldots/linear/reference\_density} sets $\rho_0$
@@ -1279,6 +1279,8 @@ options:
 \item \option{\ldots/linear/temperature\_dependency/reference\_temperature} sets $T_0$
 \item \option{\ldots/linear/salinity\_dependency/salinity\_contraction\_coefficient} sets $\beta$
 \item \option{\ldots/linear/salinity\_dependency/reference\_salinity} sets $S_0$
+\item \option{\ldots/linear/generic\_scalar\_field\_dependency/expansion\_coefficient} sets $\gamma$
+\item \option{\ldots/linear/generic\_scalar\_field\_dependency/reference\_value} sets $T_0$
 \end{description}
 Note that for Boussinesq the reference density does not 
 influence any of the terms in the 

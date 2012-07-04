@@ -16,6 +16,7 @@ include "embedded_models.rnc"
 include "flredecomp.rnc"
 include "porous_media.rnc"
 include "multiphase_interaction.rnc"
+include "equation_of_state.rnc"
 
 start =
    (
@@ -524,129 +525,7 @@ start =
          ## The material or phase options
          element material_phase {
             attribute name { xsd:string },
-            ## The equation of state
-            element equation_of_state {
-               (
-                  (
-                     ## Equations of state for ocean (and simple fluid) applications
-                     element fluids {
-                        (
-                           ## Incompressible linear equation of state
-                           ## 
-                           ## (e.g. density=denini*(1.0-dengam*(temperature-temini)+dengam_sal*(salinity-S0)))
-                           element linear {
-                              ## The reference or background density
-                              element reference_density {
-                                 real
-                              },
-                              ## Enable to add temperature dependency
-                              ## to the equation of state.
-                              element temperature_dependency {
-                                 ## The reference or background
-                                 ## temperature (actual temperature =
-                                 ## calculated temperature plus this
-                                 ## value).
-                                 element reference_temperature {
-                                    real
-                                 },
-                                 ## The thermal expansion coefficient
-                                 element thermal_expansion_coefficient {
-                                    real
-                                 }
-                              }?,
-                              ## Enable to add salinity dependency to
-                              ## the equation of state.
-                              element salinity_dependency {
-                                 ## The reference or background
-                                 ## salinity (actual salinity =
-                                 ## calculated salinity plus this
-                                 ## value).
-                                 element reference_salinity {
-                                    real
-                                 },
-                                 ## The haline contraction coefficient
-                                 element saline_contraction_coefficient {
-                                    real
-                                 }
-                              }?,
-                              ## Enable this option to subtract out
-                              ## the hydrostatic level
-                              element subtract_out_hydrostatic_level {
-                                 empty
-                              }?
-                           }|
-                           ## 2002 McDougall, Jackett, Wright and
-                           ## Feistel equation of state using Pade
-                           ## approximation
-                           element ocean_pade_approximation {
-                              element include_depth_below_surface {
-                                 empty
-                              }?
-                           }
-                        )
-                     }|
-                     ## Equations of state for compressible applications
-                     element compressible {
-                        ## Stiffened Gas EoS
-                        ##
-                        ## Used with compressible simulations
-                        element stiffened_gas {
-                           ## reference uncompressed density
-                           ##
-                           ## if activated then either Liquid EoS or
-                           ## full Stiffened Gas EoS
-                           element reference_density {
-                              real
-                           }?,
-                           ## Ratio of specific heats at constant
-                           ## pressure to that at constant volume
-                           ##
-                           ## Requires an energy field.
-                           ## If activated then a full Stiffened Gas EoS 
-                           element ratio_specific_heats {
-                              real
-                           }?,
-                           ## bulk_sound_speed_squared = isothermal_bulk_modulus/reference_density
-                           ##
-                           ## if activated then either full or partial Liquid EoS or full
-                           ## Stiffened Gas EoS
-                           element bulk_sound_speed_squared {
-                              real
-                           }?
-                        }|
-                        ## Giraldo et. al. 2008, J. Comp. Phys.
-                        ##
-                        ## Used with compressible simulations
-                        element giraldo {
-                           ## reference pressure
-                           ##
-                           ## The pressure at which potential temperature
-                           ## equals actual temperature. Normally taken to
-                           ## be the surface pressure, 1.0e05.
-                           element reference_pressure {
-                              real
-                           },
-                           ## Heat capacity at constant pressure
-                           element C_P {
-                              real
-                           },
-                           ## Heat capacity at constant volume
-                           element C_V {
-                              real
-                           }
-                        }|
-                        ## Foam EoS
-                        ## Used with compressible simulations of liquid drainage in foams.
-                        ## It describes the liquid content in the foam as the product of the 
-                        ## Plateau border cross sectional area and the local Plateau 
-                        ## border length per unit volume (lambda). 
-                        element foam {
-                           empty
-                        }  
-                     }
-                  )
-               )
-            }?,
+            equation_of_state_options?,
             ## Subgridscale parameterisations
             element subgridscale_parameterisations {
                ## Lagrangian-averaged Navier-Stokes equations 
