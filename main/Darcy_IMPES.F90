@@ -1052,6 +1052,10 @@ contains
       else if (trim(tmp_char_option) == 'Mineral') then
  
          di%relperm_corr_options%type = RELPERM_CORRELATION_MINERAL
+
+      else if (trim(tmp_char_option) == 'VanGenuchten') then
+ 
+         di%relperm_corr_options%type = RELPERM_CORRELATION_VANGENUCHTEN
                        
       end if
       

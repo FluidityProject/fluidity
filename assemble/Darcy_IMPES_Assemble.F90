@@ -90,7 +90,8 @@ module darcy_impes_assemble_module
    integer, parameter, public :: RELPERM_CORRELATION_POWER               = 1, &
                                  RELPERM_CORRELATION_COREY2PHASE         = 2, &
                                  RELPERM_CORRELATION_COREY2PHASEOPPOSITE = 3, &
-                                 RELPERM_CORRELATION_MINERAL             = 4
+                                 RELPERM_CORRELATION_MINERAL             = 4, &
+                                 RELPERM_CORRELATION_VANGENUCHTEN         = 5
    
    ! Parameters defining Darcy IMPES CV face value schemes
    integer, parameter, public :: DARCY_IMPES_CV_FACEVALUE_NONE                        = 0, &
@@ -3853,6 +3854,8 @@ visc_ele_bdy(1)
     
       ! local variables
       real :: sat_minus_res_sat
+      real :: sat_effective
+
          
       select case (relperm_corr_type)
            
@@ -3902,6 +3905,27 @@ visc_ele_bdy(1)
          
          relperm_val = ((max(relperm_corr_cutoff_sats(p), sat_val_all_phases(p)) - relperm_corr_residual_sats(p)) **&
                       &relperm_corr_exponents(p)) /  ((1.0 - relperm_corr_residual_sats(p)) ** relperm_corr_exponents(p))
+
+      case (RELPERM_CORRELATION_VANGENUCHTEN)     
+
+	 sat_effective = (sat_val_all_phases(2) - relperm_corr_residual_sats(2) ) / ( 1.0 - relperm_corr_residual_sats(1) - &
+                         &relperm_corr_residual_sats(2))
+         
+         if (p == 1) then
+
+            relperm_val = ( 1.0 - sat_effective )**(1.0/3.0) * (1.0 - sat_effective ** ( 1.0/ relperm_corr_exponents(p)) ) ** (2* relperm_corr_exponents(p))
+
+         else if (p == 2) then
+
+            relperm_val =  sat_effective ** (1.0/2.0) * ( 1.0 - ( 1.0 - sat_effective ** ( 1.0 / relperm_corr_exponents(p))) ** relperm_corr_exponents(p))**2.0
+
+         else 
+
+            ! This has already been option checked so should not happen
+            FLAbort('Trying to use Corey2Phase relative permeabiltiy correlation for simulation with more than 2 phases')
+
+         end if   
+         
      
      end select
           

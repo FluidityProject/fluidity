@@ -614,12 +614,6 @@ at the first timestep or not.</a:documentation>
       <choice>
         <element name="material_phase">
           <attribute name="name">
-            <data type="string"/>
-          </attribute>
-          <ref name="darcy_impes_other_phase_options"/>
-        </element>
-        <element name="material_phase">
-          <attribute name="name">
             <value>Phase2</value>
           </attribute>
           <ref name="darcy_impes_other_phase_options"/>
@@ -627,6 +621,12 @@ at the first timestep or not.</a:documentation>
         <element name="material_phase">
           <attribute name="name">
             <value>Phase3</value>
+          </attribute>
+          <ref name="darcy_impes_other_phase_options"/>
+        </element>
+        <element name="material_phase">
+          <attribute name="name">
+            <value>Phase4</value>
           </attribute>
           <ref name="darcy_impes_other_phase_options"/>
         </element>
@@ -1077,7 +1077,7 @@ relperm_2 = sat_2**4</a:documentation>
       </element>
       <element name="correlation">
         <a:documentation>Use the Mineral correlation given by:
-</a:documentation>
+((max(cutoff_sat, sat) - residual_sat(p)) **exponents(p)) /((1.0 -residual_sat(p)) ** exponents(p))</a:documentation>
         <ref name="comment"/>
         <attribute name="name">
           <value>Mineral</value>
@@ -1086,6 +1086,20 @@ relperm_2 = sat_2**4</a:documentation>
         <optional>
           <ref name="darcy_impes_cutoff_saturations"/>
         </optional>
+        <optional>
+          <ref name="darcy_impes_residual_saturations"/>
+        </optional>
+      </element>
+      <element name="correlation">
+        <a:documentation>Use the VanGenuchten correlation given by:
+sat_effective = (sat_phases(2) - residual_sat(2) ) / ( 1.0 - residual_sats(1) - residual_sat(2))
+relperm1= ( 1.0 - sat_effective )**(1.0/3.0) * (1.0 - sat_effective ** ( 1.0/ exponents(1)) ) ** (2*exponents(1))
+relperm_val =  sat_effective ** (1.0/2.0) * ( 1.0 - ( 1.0 - sat_effective ** ( 1.0 / exponents(2))) ** exponents(2))**2.0</a:documentation>
+        <ref name="comment"/>
+        <attribute name="name">
+          <value>VanGenuchten</value>
+        </attribute>
+        <ref name="darcy_impes_relperm_exponents"/>
         <optional>
           <ref name="darcy_impes_residual_saturations"/>
         </optional>

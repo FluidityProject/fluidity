@@ -593,11 +593,7 @@ darcy_impes_material_phases =
          darcy_impes_generic_scalar_field*
       },
       (
-         element material_phase {
-            attribute name { xsd:string },
-                  
-            darcy_impes_other_phase_options
-         }|
+
          element material_phase {
             attribute name { "Phase2" },
                   
@@ -605,6 +601,11 @@ darcy_impes_material_phases =
          }|
          element material_phase {
             attribute name { "Phase3" },
+                  
+            darcy_impes_other_phase_options
+         }|
+         element material_phase {
+            attribute name { "Phase4" },
                   
             darcy_impes_other_phase_options
          }
@@ -1028,7 +1029,7 @@ darcy_impes_relperm_correlation =
          darcy_impes_residual_saturations?
       }|
       ## Use the Mineral correlation given by:
-      ## 
+      ## ((max(cutoff_sat, sat) - residual_sat(p)) **exponents(p)) /((1.0 -residual_sat(p)) ** exponents(p))
       element correlation {
          comment, 
          
@@ -1037,6 +1038,21 @@ darcy_impes_relperm_correlation =
          darcy_impes_relperm_exponents,
         
          darcy_impes_cutoff_saturations?,
+         
+         darcy_impes_residual_saturations?
+        
+    
+      }|
+      ## Use the VanGenuchten correlation given by:
+      ## sat_effective = (sat_phases(2) - residual_sat(2) ) / ( 1.0 - residual_sats(1) - residual_sat(2))
+      ## relperm1= ( 1.0 - sat_effective )**(1.0/3.0) * (1.0 - sat_effective ** ( 1.0/ exponents(1)) ) ** (2*exponents(1))
+      ## relperm_val =  sat_effective ** (1.0/2.0) * ( 1.0 - ( 1.0 - sat_effective ** ( 1.0 / exponents(2))) ** exponents(2))**2.0
+      element correlation {
+         comment, 
+         
+         attribute name { "VanGenuchten" }, 
+         
+         darcy_impes_relperm_exponents,
          
          darcy_impes_residual_saturations?
         
