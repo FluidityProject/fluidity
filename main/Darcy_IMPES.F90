@@ -1056,6 +1056,11 @@ contains
       else if (trim(tmp_char_option) == 'VanGenuchten') then
  
          di%relperm_corr_options%type = RELPERM_CORRELATION_VANGENUCHTEN
+         
+         ! Check there are 2 phases
+         if (di%number_phase /= 2) then
+            FLExit('Cannot use the relative permeability correlation VanGenuchten if not a 2 phase simulation')
+         end if
                        
       end if
       

@@ -91,7 +91,7 @@ module darcy_impes_assemble_module
                                  RELPERM_CORRELATION_COREY2PHASE         = 2, &
                                  RELPERM_CORRELATION_COREY2PHASEOPPOSITE = 3, &
                                  RELPERM_CORRELATION_MINERAL             = 4, &
-                                 RELPERM_CORRELATION_VANGENUCHTEN         = 5
+                                 RELPERM_CORRELATION_VANGENUCHTEN        = 5
    
    ! Parameters defining Darcy IMPES CV face value schemes
    integer, parameter, public :: DARCY_IMPES_CV_FACEVALUE_NONE                        = 0, &
@@ -3922,7 +3922,7 @@ visc_ele_bdy(1)
          else 
 
             ! This has already been option checked so should not happen
-            FLAbort('Trying to use Corey2Phase relative permeabiltiy correlation for simulation with more than 2 phases')
+            FLAbort('Trying to use VanGenuchten relative permeabiltiy correlation for simulation with more than 2 phases')
 
          end if   
          
