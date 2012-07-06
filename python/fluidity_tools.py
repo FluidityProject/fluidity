@@ -474,18 +474,13 @@ for example:
           id_number=int(mapping.getAttribute("id_number"))
           detector_names[id_number] = name
 
-        min_t = int(columns[field_column_map['timestep']].min())
-        max_t = int(columns[field_column_map['timestep']].max())
-
-        # If t=0 was dumped we need to add one more entry
-        if min_t == 0:  
-          max_t = max_t + 1
+        timesteps = sorted(set(columns[field_column_map['timestep']]))
+        t_ind = {}
+        for t in timesteps:
+          t_ind[t] = numpy.where( timesteps == t )
 
         for row in columns.T:
-          t = int(row[field_column_map['timestep']])
-
-          if min_t > 0:
-            t = t - 1   # timesteps are counted from 1
+          t = t_ind[ row[field_column_map['timestep']] ]
 
           # Get detector ID and name
           detector = int(row[field_column_map['id_number']])
@@ -512,18 +507,21 @@ for example:
 
             # Initialise data arrays with NaNs
             if not current_dict.has_key(statistic):
-              if field_component_map.has_key(field):
-                current_dict[statistic] = numpy.empty((field_component_map[field],max_t))
-              else:
-                current_dict[statistic] = numpy.empty(max_t)
-              current_dict[statistic].fill(float('NaN'))
+              current_dict[statistic] = []
 
             # Copy row data
             if field_component_map.has_key(field):
-              for c in range(0,field_component_map[field]):              
-                current_dict[statistic][c,t] = row[field_column_map[field]+c]
+              comps = field_component_map[field]
+              values = numpy.empty( comps )
+              for c in range(comps):
+                values[c] = row[field_column_map[field]+c]
+              current_dict[statistic].append( values )
             else:
-              current_dict[statistic][t] = row[field_column_map[field]]
+              current_dict[statistic].append( row[field_column_map[field]] )
+
+        for field in field_column_map.keys():
+          for d in self[field].keys():
+            self[field][d] = numpy.array( self[field][d] )
 
 def test_steady(vals, error, test_count = 1):
   """

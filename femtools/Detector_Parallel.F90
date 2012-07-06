@@ -255,12 +255,12 @@ contains
        column=column+1
 
        ! Write ElapsedTime
-       buffer=field_tag(name="ElapsedTime", column=column, statistic="value")
+       buffer=field_tag(name="ElapsedTime", column=column, statistic="detector")
        write(detector_list%output_unit, '(a)') trim(buffer)
        column=column+1
 
        ! Write dt
-       buffer=field_tag(name="dt", column=column, statistic="value")
+       buffer=field_tag(name="dt", column=column, statistic="detector")
        write(detector_list%output_unit, '(a)') trim(buffer)
        column=column+1
 
