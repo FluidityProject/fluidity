@@ -14,7 +14,7 @@ numerical_t = []
 numerical_p_upstream = []
 numerical_p_downstream = []
 
-for fileindex in range(1, 920, 1):
+for fileindex in range(1, 600, 10):
    filename='mphase_rogue_shock_tube_dense_bed_glass_' + str(fileindex) + '.pvtu'
    vt=vtktools.vtu(filename)
 
@@ -29,13 +29,13 @@ for fileindex in range(1, 920, 1):
 
    # Solution fields
    p=vt.GetScalarField('Gas::Pressure')
-   probedpressure_upstream = vtktools.vtu.ProbeData(vt, numpy.array([[0.065, 1.5 - 0.11, 0]]), 'Gas::Pressure')
-   probedpressure_downstream = vtktools.vtu.ProbeData(vt, numpy.array([[0.065, 1.5 + 0.718, 0]]), 'Gas::Pressure')
+   probedpressure_upstream = vtktools.vtu.ProbeData(vt, numpy.array([[0.0125, 1.35 - 0.11, 0]]), 'Gas::Pressure')
+   probedpressure_downstream = vtktools.vtu.ProbeData(vt, numpy.array([[0.0125, 1.37 + 0.718, 0]]), 'Gas::Pressure')
 
    if(probedpressure_upstream == 0.0 or probedpressure_downstream == 0.0):
       continue
 
-   numerical_t.append(t - 0.0011)
+   numerical_t.append(t - 0.0008)
    numerical_p_upstream.append(probedpressure_upstream[0])
    numerical_p_downstream.append(probedpressure_downstream[0])
 
