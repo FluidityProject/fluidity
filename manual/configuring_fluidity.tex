@@ -2373,7 +2373,7 @@ To include this term, switch on the \option{/multiphase\_interaction/heat\_trans
  \item The stress term must be in tensor form, and only works with an isotropic viscosity.
  \item \option{bassi\_rebay} and \option{compact\_discontinuous\_galerkin} are currently the only DG viscosity schemes available for multiphase flow simulations.
  \item Discontinuous \option{PhaseVolumeFraction} fields are not yet supported.
- \item The Pressure field only supports \option{continuous\_galerkin} and \option{control\_volume} discretisations.
+ \item For compressible multiphase flow simulations, the Pressure field only supports a \option{continuous\_galerkin} discretisation.
  \item Prescribed velocity fields cannot yet be used in multiphase simulations.
  \item Fluid-particle drag can currently only support one continuous (i.e. fluid) phase.
 \end{itemize}
