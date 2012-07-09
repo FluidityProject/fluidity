@@ -29,8 +29,9 @@ rho = rho_i
 csq = var('csq') # Bulk sound speed squared, c^2
 gamma = var('gamma') # Ratio of specific heats
 rho0 = var('rho0') # Reference density
-e = 1.25*x*y + cos(x + y) # Internal energy
-p = csq*(rho_c - rho0) + (gamma - 1)*rho_c*e
+e_c = 1.25*x*y + cos(x + y) # Internal energy
+e_i = sin(x*y)
+p = csq*(rho_c - rho0) + (gamma - 1)*rho_c*e_c
 
 # For compressible MMS tests, we also provide a source term to the Density field
 # so that the continuity equation is satisfied.
@@ -70,5 +71,5 @@ print momentum_y
 print "\n"
 
 print "SOURCE TERM FOR INTERNAL ENERGY EQUATION:"
-print vfrac_c*rho_c*u_c[0]*diff(e, x) + vfrac_c*rho_c*u_c[1]*diff(e, y) + p*diff(vfrac_c*u_c[0], x) + p*diff(vfrac_c*u_c[1], y)
+print vfrac_i*rho_i*u_i[0]*diff(e_i, x) + vfrac_i*rho_i*u_i[1]*diff(e_i, y) + p*diff(vfrac_i*u_i[0], x) + p*diff(vfrac_i*u_i[1], y)
 print "\n"
