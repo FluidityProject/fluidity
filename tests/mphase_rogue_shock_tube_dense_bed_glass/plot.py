@@ -14,7 +14,7 @@ numerical_t = []
 numerical_p_upstream = []
 numerical_p_downstream = []
 
-for fileindex in range(1, 600, 10):
+for fileindex in range(1, 1334, 5):
    filename='mphase_rogue_shock_tube_dense_bed_glass_' + str(fileindex) + '.pvtu'
    vt=vtktools.vtu(filename)
 
