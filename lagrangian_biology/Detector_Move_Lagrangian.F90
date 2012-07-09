@@ -714,7 +714,7 @@ contains
        do i=1, size(face_list)
           call ray_intersetion_distance(face_list(i), face_t)
 
-          if (face_t < ele_t .and. detector%current_t + search_tolerance < face_t) then
+          if (face_t < ele_t .and. detector%current_t < face_t .and. search_tolerance < face_t) then
              ele_t = face_t
              next_face = face_list(i)
           end if
