@@ -3,14 +3,12 @@ preprocess:
 	../../bin/gmsh2triangle --2d src/MMS_A.msh
 	../../bin/gmsh2triangle --2d src/MMS_B.msh
 	../../bin/gmsh2triangle --2d src/MMS_C.msh
-	../../bin/gmsh2triangle --2d src/MMS_D.msh
 
 run:
 	@echo **********Running simulations
 	mpiexec ../../bin/fluidity MMS_A.flml
 	mpiexec ../../bin/fluidity MMS_B.flml
 	mpiexec ../../bin/fluidity MMS_C.flml
-	mpiexec ../../bin/fluidity MMS_D.flml
 
 input: clean preprocess
 
