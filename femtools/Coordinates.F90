@@ -52,7 +52,7 @@ module Coordinates
        LongitudeLatitude,  &
        spherical_polar_2_cartesian, cartesian_2_spherical_polar, &
        spherical_polar_2_cartesian_c, cartesian_2_spherical_polar_c, &
-       ll2r3_rotate, rotate2ll, &
+       ll2r3_rotate, &
        lon_lat_height_2_spherical_polar, spherical_polar_2_lon_lat_height, &
        lon_lat_height_2_cartesian, cartesian_2_lon_lat_height, &
        vector_spherical_polar_2_cartesian, vector_cartesian_2_spherical_polar, &
@@ -127,20 +127,6 @@ contains
     r3u = -(u*sin(deg_to_rad*longitude) + t*cos(deg_to_rad*longitude))
     
   end subroutine ll2r3_rotate
-
-  ! rotates vector in cartesian to align with lat/long
-  elemental subroutine rotate2ll(longitude, latitude, r3u, r3v, r3w, u, v)
-    real, intent(in)  :: longitude, latitude, r3u, r3v, r3w
-    real, intent(out) :: u, v
-    real lat
-    real long
-    lat = deg_to_rad*latitude
-    long = deg_to_rad*longitude 
-    
-    u = -(r3u*sin(long)) + r3v*cos(long)
-    v = -r3u*cos(long)*sin(lat) - r3v*sin(long)*sin(lat) + r3w*cos(lat)
-
-  end subroutine rotate2ll
 
   subroutine spherical_polar_2_cartesian(radius,theta,phi,x,y,z)
     !Subroutine for calculation of cartesian coordinates from spherical-polar
