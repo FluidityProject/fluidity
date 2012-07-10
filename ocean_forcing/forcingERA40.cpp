@@ -129,8 +129,7 @@ void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const d
         // values contains the values above in the order we registered them
         // See above
 
-        // rotate wind to cartesian grid
-        // or rotate ocean velocity to zonal-meridional-vertical?
+        // Rotate ocean surface velocity to zonal-meridional-vertical.
         double u_cart = Vx[i];
         double v_cart = Vy[i];
         double w_cart = Vz[i];
@@ -138,7 +137,6 @@ void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const d
         double y_cart = Y[i];
         double z_cart = Z[i];
         if (rotate) {
-          //rotate_wind_fc(&longitude, &latitude, &Vx[i], &Vy[i], &Vz[i], &u_rot, &v_rot);
           vector_cartesian_2_lon_lat_height_c(&u_cart, &v_cart, &w_cart, 
                                               &x_cart, &y_cart, &z_cart,
                                               &u_rot, &v_rot, &w_rot,
