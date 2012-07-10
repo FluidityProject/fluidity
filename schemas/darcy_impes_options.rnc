@@ -1854,19 +1854,20 @@ darcy_impes_dual_porous_media_model=
       ## Porous Media_dual:
       ## Porosity and Permeability for the dual permeability model
       element porous_media_dual {
-         ## Specify scalar field Porosity which is inserted into 
+         ## Specify scalar field PorosityDual which is inserted into 
          ## the first material_phase state then aliased in all others.
          element scalar_field {
-            attribute name { "Porosity" },
+            attribute name { "PorosityDual" },
             darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh
          },
-         ## Specify field AbsolutePermeability which is inserted into 
+         ## Specify field AbsolutePermeabilityDual which is inserted into 
          ## the first material_phase state then aliased in all others.
          element scalar_field {
-            attribute name { "AbsolutePermeability" },
+            attribute name { "AbsolutePermeabilityDual" },
             darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh
          },
-         ## Specify the exchange between Porous Media and Dual Porous Media
+         ## Specify the exchange between Porous Media and Dual Porous Media which is inserted into 
+         ## the first material_phase state then aliased in all others.
          element scalar_field {
             attribute name { "TransmissibilityLambda" },
             darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh

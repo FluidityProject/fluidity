@@ -202,7 +202,6 @@ module darcy_impes_assemble_module
       type(scalar_field_pointer), dimension(:), pointer :: capilliary_pressure
       type(scalar_field_pointer), dimension(:), pointer :: density
       type(scalar_field_pointer), dimension(:), pointer :: old_density
-
       ! *** Pointers to fields from state that are NOT phase dependent ***
       type(mesh_type),    pointer :: pressure_mesh
       type(mesh_type),    pointer :: elementwise_mesh
@@ -216,13 +215,10 @@ module darcy_impes_assemble_module
       type(scalar_field), pointer :: div_total_darcy_velocity
       type(vector_field), pointer :: gravity_direction
       type(vector_field), pointer :: bulk_darcy_velocity
-
       ! *** Pointer to the pressure mesh - pressure mesh sparsity, used for pressure matrix and finding CV upwind values ***
       type(csr_sparsity), pointer :: sparsity_pmesh_pmesh
       ! *** Data associated with generic prognostic scalar fields, some of which points to fields in state ***
       type(darcy_impes_generic_prog_sfield_type), dimension(:), pointer :: generic_prog_sfield
-
-
       ! *** Data associated with GradientPressure fields ***
       type(element_type)                                :: gradient_pressure_shape
       type(mesh_type)                                   :: gradient_pressure_mesh
