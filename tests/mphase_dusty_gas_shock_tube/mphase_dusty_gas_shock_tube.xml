@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
 <testproblem>
+
+  <!-- A 1D gas-solid shock tube problem. The setup is the same as the one given in the paper by Miura & Glass (1982).  -->
+  <!-- This test uses results at approximately t = 3.77e-4 seconds (normalised time of tau = 4 in the paper by Miura & Glass (1982)). -->
    
   <name>mphase_dusty_gas_shock_tube</name>
   <owner userid="ctj10"/>
