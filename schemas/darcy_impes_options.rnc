@@ -594,11 +594,7 @@ darcy_impes_material_phases =
 	 
       },
       
-      element material_phase {
-         attribute name { "Phase1_dual" },
-         
-         darcy_impes_dual_Phase1
-      }?,
+      
       (
 
          element material_phase {
@@ -621,6 +617,12 @@ darcy_impes_material_phases =
          }
 
       )+,  
+      
+      element material_phase {
+         attribute name { "Phase1_dual" },
+         
+         darcy_impes_dual_Phase1
+      }?,
       (
          element material_phase {
          attribute name { "Phase2_dual" },
@@ -1953,6 +1955,11 @@ darcy_impes_dual_porous_media_model=
          ## the first material_phase state then aliased in all others.
          element scalar_field {
             attribute name { "AbsolutePermeability" },
+            darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh
+         },
+         ## Specify the exchange between Porous Media and Dual Porous Media
+         element scalar_field {
+            attribute name { "TransmissibilityLambda" },
             darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh
          }
       }   
