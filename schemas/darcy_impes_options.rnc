@@ -591,13 +591,23 @@ darcy_impes_material_phases =
          darcy_impes_bulk_darcy_velocity, 
          
          darcy_impes_generic_scalar_field*
+	 
       },
+      
+      element material_phase {
+         attribute name { "Phase1_dual" },
+         
+         darcy_impes_dual_Phase1
+      }?,
       (
 
          element material_phase {
             attribute name { "Phase2" },
                   
             darcy_impes_other_phase_options
+	    
+
+	
          }|
          element material_phase {
             attribute name { "Phase3" },
@@ -609,8 +619,63 @@ darcy_impes_material_phases =
                   
             darcy_impes_other_phase_options
          }
-      )+       
+
+      )+,  
+      (
+         element material_phase {
+         attribute name { "Phase2_dual" },
+         
+         darcy_impes_dual_Phase2
+	
+         }|
+         element material_phase {
+            attribute name { "Phase3_dual" },
+                  
+            darcy_impes_dual_Phase2
+         }|
+         element material_phase {
+            attribute name { "Phase4_dual" },
+                  
+            darcy_impes_dual_Phase2
+         }
+      )*
    )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 darcy_impes_other_phase_options = 
@@ -636,6 +701,7 @@ darcy_impes_other_phase_options =
       darcy_impes_fractional_flow_field, 
       
       darcy_impes_generic_scalar_field*
+      
    )
 
 
@@ -1342,8 +1408,113 @@ darcy_impes_sum_saturation =
          }
       }
    )
+darcy_impes_dual_Phase1 = 
+   (
+         
+         darcy_impes_first_phase_pressure_field,
+         
+         darcy_impes_saturation_field_phase_one,
+         
+         darcy_impes_first_phase_relative_permeability_field,
+                     
+         darcy_impes_darcy_velocity_field,
+         
+         darcy_impes_darcy_velocity_over_porosity_CFL_field, 
+                  
+         darcy_impes_total_darcy_velocity_field,         
+                  
+         darcy_impes_divergence_total_darcy_velocity_field,
+
+         darcy_impes_mobility_field,
+         
+         darcy_impes_total_mobility_field,
+
+         darcy_impes_fractional_flow_field,
+         
+         darcy_impes_sum_saturation, 
+         
+         darcy_impes_average_pressure, 
+
+         darcy_impes_bulk_darcy_velocity
+
+	 
+   )
 
 
+
+
+
+
+darcy_impes_dual_Phase2= 
+   (  
+         darcy_impes_non_first_phase_pressure_field, 
+      
+         darcy_impes_capilliary_pressure_field?, 
+      
+         darcy_impes_saturation_field,
+
+         darcy_impes_non_first_phase_relative_permeability_field,
+
+         darcy_impes_darcy_velocity_field,
+
+         darcy_impes_darcy_velocity_over_porosity_CFL_field,
+      
+         darcy_impes_mobility_field,
+      
+         darcy_impes_fractional_flow_field, 
+      
+         darcy_impes_generic_scalar_field*
+      
+   )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   
 darcy_impes_generic_scalar_field = 
    (
       element scalar_field {
@@ -1468,6 +1639,7 @@ darcy_impes_generic_scalar_field_src =
       }   
    )
       
+
 
 darcy_impes_first_phase_bc_pressure_field =
    (
@@ -1760,8 +1932,77 @@ darcy_impes_porous_media_model =
                darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh
             }
          )
+      },   
+      darcy_impes_dual_porous_media_model?   
+
+
+   )
+
+darcy_impes_dual_porous_media_model=
+   (
+      ## Porous Media_dual:
+      ## Porosity and Permeability for the dual permeability model
+      element porous_media_dual {
+         ## Specify scalar field Porosity which is inserted into 
+         ## the first material_phase state then aliased in all others.
+         element scalar_field {
+            attribute name { "Porosity" },
+            darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh
+         },
+         ## Specify field AbsolutePermeability which is inserted into 
+         ## the first material_phase state then aliased in all others.
+         element scalar_field {
+            attribute name { "AbsolutePermeability" },
+            darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh
+         }
       }   
    )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 darcy_impes_diagnostic_scalar_field =
