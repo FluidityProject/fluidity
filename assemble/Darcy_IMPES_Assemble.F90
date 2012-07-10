@@ -203,25 +203,6 @@ module darcy_impes_assemble_module
       type(scalar_field_pointer), dimension(:), pointer :: density
       type(scalar_field_pointer), dimension(:), pointer :: old_density
 
-      ! *** Pointers to DUAL fields from state that have array length of number of phases ***
-      type(vector_field_pointer), dimension(:), pointer :: darcy_velocity_dual
-      type(scalar_field_pointer), dimension(:), pointer :: mobility_dual      
-      type(scalar_field_pointer), dimension(:), pointer :: fractional_flow_dual
-      type(scalar_field_pointer), dimension(:), pointer :: saturation_dual
-      type(scalar_field_pointer), dimension(:), pointer :: old_saturation_dual
-      type(scalar_field_pointer), dimension(:), pointer :: saturation_source_dual
-      type(scalar_field_pointer), dimension(:), pointer :: relative_permeability_dual
-      type(scalar_field_pointer), dimension(:), pointer :: old_relative_permeability_dual
-
-
-      type(scalar_field_pointer), dimension(:), pointer :: pressure_dual
-      type(scalar_field_pointer), dimension(:), pointer :: capilliary_pressure_dual
-
-
-
-
-
-
       ! *** Pointers to fields from state that are NOT phase dependent ***
       type(mesh_type),    pointer :: pressure_mesh
       type(mesh_type),    pointer :: elementwise_mesh
@@ -236,26 +217,11 @@ module darcy_impes_assemble_module
       type(vector_field), pointer :: gravity_direction
       type(vector_field), pointer :: bulk_darcy_velocity
 
-
-      ! *** Pointers to DUAL fields from state that are NOT phase dependent ***
-      type(scalar_field), pointer :: average_pressure_dual
-      type(scalar_field), pointer :: transmissibility_lambda_dual      
-      type(scalar_field), pointer :: porosity_dual
-      type(scalar_field), pointer :: absolute_permeability_dual
-      type(vector_field), pointer :: total_darcy_velocity_dual
-      type(scalar_field), pointer :: total_mobility_dual
-      type(scalar_field), pointer :: sum_saturation_dual
-      type(scalar_field), pointer :: div_total_darcy_velocity_dual
-      type(vector_field), pointer :: bulk_darcy_velocity_dual
-
-
       ! *** Pointer to the pressure mesh - pressure mesh sparsity, used for pressure matrix and finding CV upwind values ***
       type(csr_sparsity), pointer :: sparsity_pmesh_pmesh
       ! *** Data associated with generic prognostic scalar fields, some of which points to fields in state ***
       type(darcy_impes_generic_prog_sfield_type), dimension(:), pointer :: generic_prog_sfield
 
-      ! *** Data associated with generic prognostic DUAL scalar fields, some of which points to fields in state ***
-      type(darcy_impes_generic_prog_sfield_type), dimension(:), pointer :: generic_prog_sfield_dual
 
       ! *** Data associated with GradientPressure fields ***
       type(element_type)                                :: gradient_pressure_shape
