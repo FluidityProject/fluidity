@@ -42,7 +42,7 @@ subroutine test_tensor_spherical_polar_2_cartesian
   type(tensor_field), pointer :: tensor_sphericalPolar
   type(tensor_field) :: difference
   integer :: node
-  real, dimension(3) :: XYZ, RTP !Arrays containing a signel node's position vector
+  real, dimension(3) :: XYZ, RTP !Arrays containing a signle node's position vector
                                  ! components in Cartesian & spherical-polar bases.
   real, dimension(3,3) :: sphericalPolarComponents !Array containing the tensor
                                  ! components in a spherical-polar basis, at
