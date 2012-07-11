@@ -134,18 +134,20 @@ contains
     type(scalar_field), intent(inout) :: s_field
     
     character(len = OPTION_PATH_LEN) :: path
-    type(block_csr_matrix) :: ct_m
+    type(block_csr_matrix), pointer :: ct_m
     type(csr_sparsity), pointer :: divergence_sparsity
     type(csr_matrix), pointer :: mass
     type(scalar_field) :: ctfield, ct_rhs
     type(scalar_field), pointer :: masslump
     type(vector_field), pointer :: positions, source_field
+    logical :: using_divergence_matrix_cache
     
     source_field => vector_source_field(state, s_field)
     path = trim(complete_field_path(s_field%option_path)) // "/algorithm"
     
-    if(use_divergence_matrix_cache(state)) then
-      ct_m = extract_block_csr_matrix(state, trim(s_field%name) // "DivergenceMatrix")
+    using_divergence_matrix_cache = use_divergence_matrix_cache(state)
+    if(using_divergence_matrix_cache) then
+      ct_m => extract_block_csr_matrix(state, trim(s_field%name) // "DivergenceMatrix")
       call incref(ct_m)
       ct_rhs = extract_scalar_field(state, trim(s_field%name) // "DivergenceRHS")
       call incref(ct_rhs)
@@ -153,6 +155,7 @@ contains
       positions => extract_vector_field(state, "Coordinate")
     
       divergence_sparsity => get_csr_sparsity_firstorder(state, s_field%mesh, source_field%mesh)
+      allocate(ct_m)
       call allocate(ct_m, divergence_sparsity, (/1, source_field%dim/), name = "DivergenceMatrix" )
       call allocate(ct_rhs, s_field%mesh, name = "CTRHS")
     
@@ -177,6 +180,9 @@ contains
     end if
 
     call deallocate(ct_m)
+    if(.not.using_divergence_matrix_cache)then
+      deallocate(ct_m)
+    end if
     call deallocate(ctfield)
 
   contains

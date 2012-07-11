@@ -243,12 +243,25 @@ program Darcy_IMPES
          FLExit("Dual permeability model is only available for two phase for each porous media" )
       end if
       state_prime => state(1:2)   
-      state_dual => state(3:4)   
-      call darcy_impes_initialise(di, state_prime, dt, current_time, this_is_dual = .false.)
-      call darcy_impes_initialise(di_dual, state_dual, dt, current_time, this_is_dual = .true.)
+      state_dual  => state(3:4)   
+      call darcy_impes_initialise(di, &
+                                  state_prime, &
+                                  dt, &
+                                  current_time, &
+                                  this_is_dual = .false.)
+
+      call darcy_impes_initialise(di_dual, &
+                                  state_dual, &
+                                  dt, &
+                                  current_time, &
+                                  this_is_dual = .true.)
    else
       ! *** Initialise data used in IMPES solver *** 
-      call darcy_impes_initialise(di, state, dt, current_time)
+      call darcy_impes_initialise(di, &
+                                  state, &
+                                  dt, &
+                                  current_time, &
+                                  this_is_dual = .false.)
    end if
    
    ! Set Time field
@@ -258,7 +271,7 @@ program Darcy_IMPES
    ! Adapt time at first time step - required before first adapt
    if(di%adaptive_dt_options%have .and. di%adaptive_dt_options%at_first_dt) then
       call darcy_impes_calculate_cflnumber_field_based_dt(di)
-      if ( have_dual ) then
+      if (have_dual) then
          call darcy_impes_calculate_cflnumber_field_based_dt(di_dual)
          dt = min(di%dt, di_dual%dt)
       else   
@@ -348,11 +361,8 @@ program Darcy_IMPES
       call copy_to_stored_values(state,"Old")      
       
       ! *** Darcy IMPES copy non state data to old ***
-      call darcy_impes_copy_to_old(di)
-      
-      if ( have_dual ) then
-         call darcy_impes_copy_to_old(di_dual)
-      end if
+      call darcy_impes_copy_to_old(di)      
+      if (have_dual) call darcy_impes_copy_to_old(di_dual)
       
       ! this may already have been done in populate_state, but now
       ! we evaluate at the correct "shifted" time level:
@@ -369,7 +379,7 @@ program Darcy_IMPES
          ewrite_minmax(di%gravity)
       end if
       
-      if (di_dual%have_gravity .and. have_dual ) then
+      if (di_dual%have_gravity .and. have_dual) then
          call set(di_dual%gravity, di_dual%gravity_direction)
          call scale(di_dual%gravity, di_dual%gravity_magnitude)
          ewrite_minmax(di_dual%gravity)
@@ -388,18 +398,15 @@ program Darcy_IMPES
          call copy_to_stored_values(state, "Iterated")
          
          ! *** Darcy IMPES copy non state data to iterated ***
-         call darcy_impes_copy_to_iterated(di)    
-              
-         if ( have_dual ) then
-            call darcy_impes_copy_to_iterated(di_dual)         
-         end if         
+         call darcy_impes_copy_to_iterated(di)                  
+         if (have_dual) call darcy_impes_copy_to_iterated(di_dual)         
          
          ! *** Set the Darcy IMPES nonlinear_iter
          di%nonlinear_iter = its
          di_dual%nonlinear_iter = its
          
          ! ***** Point other porous media pressures as required, only used in assemble *****
-         if (have_dual)
+         if (have_dual) then
             di%pressure_other_porous_media      => di_dual%pressure
             di_dual%pressure_other_porous_media => di%pressure
          end if
@@ -468,7 +475,7 @@ program Darcy_IMPES
       ! *** Darcy IMPES adaptive time stepping choice ***
       if(di%adaptive_dt_options%have) then
          call darcy_impes_calculate_cflnumber_field_based_dt(di)
-         if ( have_dual ) then
+         if (have_dual) then
             call darcy_impes_calculate_cflnumber_field_based_dt(di_dual)
             dt = min(di%dt, di_dual%dt)  
          else 
@@ -485,7 +492,7 @@ program Darcy_IMPES
       end if      
       
       ! *** setting di time step ***
-      if ( have_dual ) then     
+      if (have_dual) then     
          di_dual%dt = dt
       end if
       di%dt = dt
@@ -552,7 +559,7 @@ program Darcy_IMPES
                ! Timestep adapt
                if(di%adaptive_dt_options%have) then
                   call darcy_impes_calculate_cflnumber_field_based_dt(di)
-                  if ( have_dual) then
+                  if (have_dual) then
                      call darcy_impes_calculate_cflnumber_field_based_dt(di_dual)
                      dt = min(di%dt, di_dual%dt)               
                   else 
