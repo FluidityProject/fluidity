@@ -707,8 +707,8 @@ contains
       
       di%average_pressure         => extract_scalar_field(di%state(1), "AveragePressure")
       if (this_is_dual) then 
-         di%porosity              => extract_scalar_field(di%state(1), "PorosityDual")
-         di%absolute_permeability => extract_scalar_field(di%state(1), "AbsolutePermeabilityDual")
+         di%porosity                     => extract_scalar_field(di%state(1), "PorosityDual")
+         di%absolute_permeability        => extract_scalar_field(di%state(1), "AbsolutePermeabilityDual")
          di%transmissibility_lambda_dual => extract_scalar_field(di%state(1), "TransmissibilityLambdaDual")
       else
          di%porosity              => extract_scalar_field(di%state(1), "Porosity")
