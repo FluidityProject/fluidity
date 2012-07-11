@@ -85,7 +85,7 @@
             <integer_value rank="0">2</integer_value>
           </polynomial_degree>
           <element_type>
-            <string_value>lagrangian</string_value>
+            <string_value>bubble</string_value>
           </element_type>
         </mesh_shape>
         <mesh_continuity>
@@ -107,7 +107,7 @@
             <integer_value shape="1" rank="1">2</integer_value>
           </aliased_boundary_ids>
           <coordinate_map>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
 	result = list(X)
 	result[0]=result[0]-6.283185307179586
 	return result</string_value>
@@ -121,7 +121,7 @@
             <integer_value shape="1" rank="1">4</integer_value>
           </aliased_boundary_ids>
           <coordinate_map>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
 	result = list(X)
 	result[1]=result[1]-6.283185307179586
 	return result</string_value>
@@ -197,7 +197,7 @@
       </vector_field>
     </gravity>
     <coriolis>
-      <string_value lines="20" type="python">def val(X,t):
+      <string_value lines="20" type="code" language="python">def val(X,t):
   from math import pi
   return 0.</string_value>
       <comment>2*pi</comment>
@@ -239,19 +239,7 @@
           </diagnostics>
         </solver>
         <initial_condition name="WholeMesh">
-          <python>
-            <string_value type="python" lines="20">def val(X,t):
-  x=X[0]
-  y=X[1]
-  z=X[2]
-  from math import sin,cos,exp
-  ee = 0.5
-  theta = 0.5*(1+cos(y)+ee*cos(x))
-  thetax = -0.5*ee*sin(x)
-  thetay = -0.5*sin(y)
-  sig = 0.05
-  return [2.0*theta*thetay*exp(-theta**2/sig**2),-2.0*theta*thetax*exp(-theta**2/sig**2),0.]</string_value>
-          </python>
+          <from_streamfunction/>
         </initial_condition>
         <output/>
         <convergence>
@@ -356,11 +344,17 @@
       <prescribed>
         <value>
           <python>
-            <string_value lines="20" type="python">def val(X,t):
-  from math import pi,sin
-  x = X[0]
-  y = X[1]
-  return sin(4*y)</string_value>
+            <string_value lines="20" type="code" language="python">def val(X,t):
+  x=X[0]
+  y=X[1]
+  z=X[2]
+  from math import sin,cos,exp
+  ee = 0.0
+  theta = 0.5*(1+cos(y)+ee*cos(x))
+  thetax = -0.5*ee*sin(x)
+  thetay = -0.5*sin(y)
+  sig = 0.5
+  return sig**2*exp(-theta**2/sig**2)</string_value>
           </python>
         </value>
         <solver>
@@ -377,7 +371,7 @@
             <monitors/>
           </diagnostics>
         </solver>
-        <mesh name="VelocityMesh"/>
+        <mesh name="VorticityMesh"/>
         <output/>
       </prescribed>
     </scalar_field>

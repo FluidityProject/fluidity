@@ -383,6 +383,34 @@ start =
                   attribute rank { "0" },
                   attribute name { "PotentialVorticityTracer" },
                   element prognostic {
+                     element spatial_discretisation {
+                        element continuous_galerkin {
+                           element laplacian_filter {
+                              element diffusivity {
+                                 real
+                              }
+                           }?,
+                           element streamline_upwinding {
+                              ## Scaling parameter for upwinding
+                              ## parameter tau, 1 = first-order upwind,
+                              ## magic value for 1D = 1.0/sqrt(15)
+                              element alpha {
+                                 real
+                              },
+                              ## For velocities below this tolerance, 
+                              ## does not apply any upwinding
+                              element tol {
+                                 real
+                              }
+                           }?,
+                           element local_projection {
+                              empty
+                           }?,
+                           element discontinuity_capturing {
+                              empty
+                           }?
+                        }
+                     },
                      element initial_condition {
                         attribute name { "WholeMesh" },
                         input_choice_initial_condition_real,

@@ -550,8 +550,7 @@
       if(stat==0) then
          U => extract_vector_field(state,"LocalVelocity")
          D => extract_scalar_field(state,"LayerThickness")
-         call get_PV(state,Q,U,D)
-         ewrite(2,*) 'CJC Qmax', maxval(abs(Q%val))
+         call get_PV(state,Q,U,D)         
       end if
     end subroutine setup_pv
     
@@ -774,10 +773,29 @@
     subroutine output_state(state)
       implicit none
       type(state_type), dimension(:), intent(inout) :: state
-
+      !
+      type(mesh_type), pointer :: zeta_mesh
+      type(scalar_field), pointer :: PV, streamfunction
+      integer :: stat
       ! project the local velocity to cartesian coordinates
       call project_local_to_cartesian(state(1))
       ! Now we're ready to call write_state
+      zeta_mesh => extract_mesh(state(1),"VorticityMesh",stat)
+      if(stat==0) then
+         if(zeta_mesh%shape%numbering%type==ELEMENT_BUBBLE) then
+            PV => extract_scalar_field(state(1),"PotentialVorticity",stat)
+            if(stat==0) then
+               streamfunction => extract_scalar_field(state(1),&
+                    "Streamfunction",stat)
+               if(stat==0) then               
+                  call bubble_field_to_vtk(state(1),(/PV,streamfunction/),&
+                       "PV",dump_no)
+               else
+                  call bubble_field_to_vtk(state(1),(/PV/),"PV",dump_no)
+               end if
+            end if
+         end if
+      end if
       call write_state(dump_no, state)
     end subroutine output_state
 

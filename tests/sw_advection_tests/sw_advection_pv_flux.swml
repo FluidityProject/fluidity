@@ -194,11 +194,11 @@
       <prognostic>
         <mesh name="VelocityMesh"/>
         <equation name="ShallowWater"/>
+        <wave_equation>
+          <no_wave_equation_step/>
+        </wave_equation>
         <spatial_discretisation>
           <discontinuous_galerkin>
-            <wave_equation>
-              <fully_coupled/>
-            </wave_equation>
             <advection_scheme>
               <edge_coordinates_upwind/>
             </advection_scheme>
@@ -230,7 +230,15 @@
           </diagnostics>
         </solver>
         <initial_condition name="WholeMesh">
-          <balanced/>
+          <python>
+            <string_value type="code" lines="20" language="python">def val(X,t):
+  from math import sin,cos,pi
+  x = X[0]
+  y = X[1]
+  u = -sin(2*pi*x)*cos(2*pi*y)
+  v =  cos(2*pi*x)*sin(2*pi*y)
+  return [u,v,0.]</string_value>
+          </python>
         </initial_condition>
         <output/>
         <convergence>
@@ -305,6 +313,9 @@
     <scalar_field name="PotentialVorticity" rank="0">
       <prognostic>
         <mesh name="VorticityMesh"/>
+        <spatial_discretisation>
+          <continuous_galerkin/>
+        </spatial_discretisation>
         <solver>
           <iterative_method name="gmres">
             <restart>

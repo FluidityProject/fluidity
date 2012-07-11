@@ -485,6 +485,42 @@ Only used if wave equation is not solved</a:documentation>
                 <value>PotentialVorticityTracer</value>
               </attribute>
               <element name="prognostic">
+                <element name="spatial_discretisation">
+                  <element name="continuous_galerkin">
+                    <optional>
+                      <element name="laplacian_filter">
+                        <element name="diffusivity">
+                          <ref name="real"/>
+                        </element>
+                      </element>
+                    </optional>
+                    <optional>
+                      <element name="streamline_upwinding">
+                        <element name="alpha">
+                          <a:documentation>Scaling parameter for upwinding
+parameter tau, 1 = first-order upwind,
+magic value for 1D = 1.0/sqrt(15)</a:documentation>
+                          <ref name="real"/>
+                        </element>
+                        <element name="tol">
+                          <a:documentation>For velocities below this tolerance, 
+does not apply any upwinding</a:documentation>
+                          <ref name="real"/>
+                        </element>
+                      </element>
+                    </optional>
+                    <optional>
+                      <element name="local_projection">
+                        <empty/>
+                      </element>
+                    </optional>
+                    <optional>
+                      <element name="discontinuity_capturing">
+                        <empty/>
+                      </element>
+                    </optional>
+                  </element>
+                </element>
                 <element name="initial_condition">
                   <attribute name="name">
                     <value>WholeMesh</value>
