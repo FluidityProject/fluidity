@@ -202,6 +202,10 @@ module darcy_impes_assemble_module
       type(scalar_field_pointer), dimension(:), pointer :: capilliary_pressure
       type(scalar_field_pointer), dimension(:), pointer :: density
       type(scalar_field_pointer), dimension(:), pointer :: old_density
+
+      ! ***** Pointers to DUAL fields from state that have array length of number of phases *****
+      type(scalar_field_pointer), dimension(:), pointer :: pressure_other_porous_media
+
       ! *** Pointers to fields from state that are NOT phase dependent ***
       type(mesh_type),    pointer :: pressure_mesh
       type(mesh_type),    pointer :: elementwise_mesh

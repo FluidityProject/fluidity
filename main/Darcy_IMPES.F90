@@ -153,6 +153,9 @@ program Darcy_IMPES
    
    ! *** Data associated with the Darcy IMPES solver ***  
    type(darcy_impes_type) :: di
+   type(darcy_impes_type) :: di_dual
+   type(state_type) , dimension(:), pointer :: state_prime, state_dual
+   logical :: have_dual
    integer :: darcy_debug_log_unit, darcy_debug_err_unit   
    
 #ifdef HAVE_ZOLTAN
@@ -232,9 +235,23 @@ program Darcy_IMPES
    call get_option("/timestepping/current_time", current_time)
    call get_option("/timestepping/finish_time", finish_time)
 
-   ! *** Initialise data used in IMPES solver *** 
-   call darcy_impes_initialise(di, state, dt, current_time)
 
+   ! ***** setting up dual *****
+   have_dual =  have_option("/porous_media_dual")
+   if (have_dual) then
+      ! this is set up for two phases in each porous media
+      if ( option_count("/material_phase") /= 4 ) then
+         FLExit("Dual permeability model is only available for two phase for each poroue media" )
+      end if
+      state_prime => state(1:2)   
+      state_dual => state(3:4)   
+      call darcy_impes_initialise(di, state_prime, dt, current_time)
+      call darcy_impes_initialise(di_dual, state_dual, dt, current_time)
+   else
+      ! *** Initialise data used in IMPES solver *** 
+      call darcy_impes_initialise(di, state, dt, current_time)
+   end if
+   
    ! Set Time field
    time_field => extract_scalar_field(state(1), 'Time')
    call set(time_field, current_time)
@@ -242,8 +259,13 @@ program Darcy_IMPES
    ! Adapt time at first time step - required before first adapt
    if(di%adaptive_dt_options%have .and. di%adaptive_dt_options%at_first_dt) then
       call darcy_impes_calculate_cflnumber_field_based_dt(di)
-      call set_option("/timestepping/timestep", di%dt)
-      dt = di%dt
+      if ( have_dual ) then
+         call darcy_impes_calculate_cflnumber_field_based_dt(di_dual)
+         dt = min(di%dt, di_dual%dt)
+      else   
+         dt = di%dt
+      end if
+      call set_option("/timestepping/timestep", dt)
    end if
    
    ! Initial diagnostics output via ewrite
@@ -329,6 +351,10 @@ program Darcy_IMPES
       ! *** Darcy IMPES copy non state data to old ***
       call darcy_impes_copy_to_old(di)
       
+      if ( have_dual ) then
+         call darcy_impes_copy_to_old(di_dual)
+      end if
+      
       ! this may already have been done in populate_state, but now
       ! we evaluate at the correct "shifted" time level:
       call set_boundary_conditions_values(state, shift_time=.true.)
@@ -343,9 +369,16 @@ program Darcy_IMPES
          call scale(di%gravity, di%gravity_magnitude)
          ewrite_minmax(di%gravity)
       end if
-            
+      
+      if (di_dual%have_gravity .and. have_dual ) then
+         call set(di_dual%gravity, di_dual%gravity_direction)
+         call scale(di_dual%gravity, di_dual%gravity_magnitude)
+         ewrite_minmax(di_dual%gravity)
+      end if  
+               
       ! *** Darcy IMPES set max number non linear iterations for this time step ***
       di%max_nonlinear_iter_this_timestep = nonlinear_iterations_this_timestep
+      di_dual%max_nonlinear_iter_this_timestep = nonlinear_iterations_this_timestep     
       
       nonlinear_iteration_loop: do its = 1,nonlinear_iterations_this_timestep
 
@@ -356,11 +389,16 @@ program Darcy_IMPES
          call copy_to_stored_values(state, "Iterated")
          
          ! *** Darcy IMPES copy non state data to iterated ***
-         call darcy_impes_copy_to_iterated(di)         
+         call darcy_impes_copy_to_iterated(di)    
+              
+         if ( have_dual ) then
+            call darcy_impes_copy_to_iterated(di_dual)         
+         end if         
          
          ! *** Set the Darcy IMPES nonlinear_iter
          di%nonlinear_iter = its
-
+         di_dual%nonlinear_iter = its
+         
          ! *** Darcy IMPES Calculate the relperm and density first face values (depend on upwind direction) ***
          call darcy_impes_calculate_relperm_den_first_face_values(di)
          
@@ -413,6 +451,7 @@ program Darcy_IMPES
 
       ! *** Update DarcyIMPES current_time ***
       di%current_time = current_time
+      di_dual%current_time = current_time     
       
       ! Set Time field
       time_field => extract_scalar_field(state(1), 'Time')
@@ -422,20 +461,42 @@ program Darcy_IMPES
       call write_diagnostics(state, current_time, dt, timestep)
       
       ! *** Darcy IMPES adaptive time stepping choice ***
-      if(di%adaptive_dt_options%have) call darcy_impes_calculate_cflnumber_field_based_dt(di)
-      
+      if(di%adaptive_dt_options%have) then
+         call darcy_impes_calculate_cflnumber_field_based_dt(di)
+         if ( have_dual ) then
+            call darcy_impes_calculate_cflnumber_field_based_dt(di_dual)
+            dt = min(di%dt, di_dual%dt)  
+         else 
+            dt = di%dt  
+         end if
+         call set_option("/timestepping/timestep", dt)
+      end if
       ! *** Constrain the timestep such that the current time will not overshoot the finish time ***
-      if (di%dt + current_time > finish_time) then
-         
-         ewrite(1,*) 'Constrain timestep size such as to not overshoot the finish time'
-         
-         di%dt = finish_time - current_time + epsilon(0.0)
-         
-         ewrite(1,*) 'Constrained timestep size: ',di%dt
-         
+      
+      if ( have_dual ) then
+         if (di%dt + current_time > finish_time  .or. di_dual%dt + current_time > finish_time  ) then
+            ewrite(1,*) 'Constrain timestep size such as to not overshoot the finish time'
+            di%dt = finish_time - current_time + epsilon(0.0)
+            di_dual%dt = finish_time - current_time + epsilon(0.0)
+            ewrite(1,*) 'Constrained timestep size: ',di%dt
+         end if
+      
+      else
+         if (di%dt + current_time > finish_time  ) then
+            ewrite(1,*) 'Constrain timestep size such as to not overshoot the finish time'
+            di%dt = finish_time - current_time + epsilon(0.0)
+            ewrite(1,*) 'Constrained timestep size: ',di%dt
+         end if
+      
+      end if 
+      
+      
+      if ( have_dual ) then     
+         dt = min(di%dt, di_dual%dt)  
+      else 
+         dt = di%dt  
       end if
       
-      dt = di%dt
       call set_option("/timestepping/timestep", di%dt)
       call set_option("/timestepping/current_time", current_time)            
          
@@ -461,18 +522,31 @@ program Darcy_IMPES
                call allocate(metric_tensor, extract_mesh(state(1), topology_mesh_name), "ErrorMetric")
             end if
             
-            ! *** Update Darcy IMPES post spatial adapt ***
-            call darcy_impes_update_post_spatial_adapt(di, &
+            if (have_dual) then
+               ! ***** Update DUAL Darcy IMPES post spatial adapt *****
+               call darcy_impes_update_post_spatial_adapt(di, &
+                                                       state_prime, &
+                                                       dt, &
+                                                       current_time)
+               call darcy_impes_update_post_spatial_adapt(di_dual, &
+                                                       state_dual, &
+                                                       dt, &
+                                                       current_time)
+            else                                                                 
+               ! *** Update Darcy IMPES post spatial adapt ***
+               call darcy_impes_update_post_spatial_adapt(di, &
                                                        state, &
                                                        dt, &
                                                        current_time)
-
+            end if  
+                                                                            
             if (have_option("/mesh_adaptivity/hr_adaptivity/adaptive_timestep_at_adapt")) then
                if (have_option("/timestepping/adaptive_timestep/minimum_timestep")) then
                   call get_option("/timestepping/adaptive_timestep/minimum_timestep", dt)
                   call set_option("/timestepping/timestep", dt)
                   ! *** Set Darcy IMPES dt
                   di%dt = dt
+                  di_dual%dt = dt
                else
                   ewrite(-1,*) "Warning: you have adaptive timestep adjustment after &&
                                 && adapt, but have not set a minimum timestep"
@@ -481,8 +555,13 @@ program Darcy_IMPES
                ! Timestep adapt
                if(di%adaptive_dt_options%have) then
                   call darcy_impes_calculate_cflnumber_field_based_dt(di)
-                  call set_option("/timestepping/timestep", di%dt)
-                  dt = di%dt
+                  if ( have_dual) then
+                     call darcy_impes_calculate_cflnumber_field_based_dt(di_dual)
+                     dt = min(di%dt, di_dual%dt)               
+                  else 
+                     dt = di%dt                 
+                  end if
+                  call set_option("/timestepping/timestep", dt)
                end if
             end if
                         
@@ -531,6 +610,10 @@ program Darcy_IMPES
    ! Deallocate the metric tensor
    if(have_option("/mesh_adaptivity/hr_adaptivity")) call deallocate(metric_tensor)
    
+   ! ***** Finalise dual permeability model *****
+   if (have_dual) then
+      call darcy_impes_finalise(di_dual)
+   end if
    ! *** Finalise darcy impes variables ***
    call darcy_impes_finalise(di)
     

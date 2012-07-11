@@ -1440,6 +1440,8 @@ Finite element discretisation may become unbounded so limiting is often necessar
     <ref name="darcy_impes_first_phase_pressure_field"/>
     <ref name="darcy_impes_saturation_field_phase_one"/>
     <ref name="darcy_impes_first_phase_relative_permeability_field"/>
+    <ref name="darcy_impes_viscosity_field"/>
+    <ref name="darcy_impes_first_phase_density_field"/>
     <ref name="darcy_impes_darcy_velocity_field"/>
     <ref name="darcy_impes_darcy_velocity_over_porosity_CFL_field"/>
     <ref name="darcy_impes_total_darcy_velocity_field"/>
@@ -1450,6 +1452,9 @@ Finite element discretisation may become unbounded so limiting is often necessar
     <ref name="darcy_impes_sum_saturation"/>
     <ref name="darcy_impes_average_pressure"/>
     <ref name="darcy_impes_bulk_darcy_velocity"/>
+    <zeroOrMore>
+      <ref name="darcy_impes_generic_scalar_field"/>
+    </zeroOrMore>
   </define>
   <define name="darcy_impes_dual_Phase2">
     <ref name="darcy_impes_non_first_phase_pressure_field"/>
@@ -1458,6 +1463,8 @@ Finite element discretisation may become unbounded so limiting is often necessar
     </optional>
     <ref name="darcy_impes_saturation_field"/>
     <ref name="darcy_impes_non_first_phase_relative_permeability_field"/>
+    <ref name="darcy_impes_viscosity_field"/>
+    <ref name="darcy_impes_non_first_phase_density_field"/>
     <ref name="darcy_impes_darcy_velocity_field"/>
     <ref name="darcy_impes_darcy_velocity_over_porosity_CFL_field"/>
     <ref name="darcy_impes_mobility_field"/>
