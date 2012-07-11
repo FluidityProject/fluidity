@@ -235,13 +235,12 @@ program Darcy_IMPES
    call get_option("/timestepping/current_time", current_time)
    call get_option("/timestepping/finish_time", finish_time)
 
-
    ! ***** setting up dual *****
    have_dual =  have_option("/porous_media_dual")
    if (have_dual) then
       ! this is set up for two phases in each porous media
       if ( option_count("/material_phase") /= 4 ) then
-         FLExit("Dual permeability model is only available for two phase for each poroue media" )
+         FLExit("Dual permeability model is only available for two phase for each porous media" )
       end if
       state_prime => state(1:2)   
       state_dual => state(3:4)   
@@ -710,7 +709,7 @@ contains
       if (this_is_dual) then 
          di%porosity              => extract_scalar_field(di%state(1), "PorosityDual")
          di%absolute_permeability => extract_scalar_field(di%state(1), "AbsolutePermeabilityDual")
-         di%transmissibility_lambda_dual => extract_scalar_field(di%state(1), "TransmissibilityLamdaDual")
+         di%transmissibility_lambda_dual => extract_scalar_field(di%state(1), "TransmissibilityLambdaDual")
       else
          di%porosity              => extract_scalar_field(di%state(1), "Porosity")
          di%absolute_permeability => extract_scalar_field(di%state(1), "AbsolutePermeability")
