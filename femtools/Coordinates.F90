@@ -815,10 +815,10 @@ contains
     ! fields
     implicit none
 
-    type(vector_field), pointer :: spherical_polar_vector_field
-    type(vector_field), pointer :: spherical_polar_coordinate_field
-    type(vector_field), pointer :: cartesian_vector_field
-    type(vector_field), pointer :: cartesian_coordinate_field
+    type(vector_field) :: spherical_polar_vector_field
+    type(vector_field) :: spherical_polar_coordinate_field
+    type(vector_field) :: cartesian_vector_field
+    type(vector_field) :: cartesian_coordinate_field
     integer :: node
     real, dimension(3) :: XYZ, RTP !arrays containing a signel node's position vector
                                    ! in cartesian & spherical-polar bases 

@@ -50,11 +50,6 @@ subroutine test_vector_spherical_polar_2_cartesian_field
                        polarVectorDifference, &   ! Cartesian basis, as well as the
                        azimuthalVectorDifference  ! difference between calculated
                                                   ! and expected values.
-
-  type(vector_field), pointer :: &                  !Pointers to above fields.
-                       radialVectorDifference_p, &
-                       polarVectorDifference_p, &
-                       azimuthalVectorDifference_p
   logical :: fail
 
   call vtk_read_state("data/on_sphere_rotations/spherical_shell_withFields.vtu", state)
@@ -76,20 +71,17 @@ subroutine test_vector_spherical_polar_2_cartesian_field
 
   call allocate(radialVectorDifference, 3, mesh, 'radialVectorDifference')
   call zero(radialVectorDifference)
-  radialVectorDifference_p => radialVectorDifference
   call allocate(polarVectorDifference, 3, mesh, 'polarVectorDifference')
   call zero(polarVectorDifference)
-  polarVectorDifference_p => polarVectorDifference
   call allocate(azimuthalVectorDifference, 3, mesh, 'azimuthalVectorDifference')
   call zero(azimuthalVectorDifference)
-  azimuthalVectorDifference_p => azimuthalVectorDifference
 
   !Set the components difference-vector equal to the unit radial vector, and apply
   ! transformation to Cartesian basis. Then compare with vector already in Cartesian
   ! basis, obtained from vtu.
   call vector_spherical_polar_2_cartesian(UnitRadialVector_inPolar, &
                                           PolarCoordinate, &
-                                          radialVectorDifference_p, &
+                                          radialVectorDifference, &
                                           CartesianCoordinate)
   call addto(radialVectorDifference, UnitRadialVector_inCartesian, -1.0)
   fail = any(radialVectorDifference%val > 1e-12)
@@ -102,7 +94,7 @@ subroutine test_vector_spherical_polar_2_cartesian_field
   ! basis, obtained from vtu.
   call vector_spherical_polar_2_cartesian(UnitPolarVector_inPolar, &
                                           PolarCoordinate, &
-                                          polarVectorDifference_p, &
+                                          polarVectorDifference, &
                                           CartesianCoordinate)
   call addto(polarVectorDifference, UnitPolarVector_inCartesian, -1.0)
   fail = any(polarVectorDifference%val > 1e-12)
@@ -115,7 +107,7 @@ subroutine test_vector_spherical_polar_2_cartesian_field
   ! basis, obtained from vtu.
   call vector_spherical_polar_2_cartesian(UnitAzimuthalVector_inPolar, &
                                           PolarCoordinate, &
-                                          azimuthalVectorDifference_p, &
+                                          azimuthalVectorDifference, &
                                           CartesianCoordinate)
   call addto(azimuthalVectorDifference, UnitAzimuthalVector_inCartesian, -1.0)
   fail = any(azimuthalVectorDifference%val > 1e-12)
