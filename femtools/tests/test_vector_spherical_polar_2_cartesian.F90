@@ -72,8 +72,11 @@ subroutine test_vector_spherical_polar_2_cartesian
   !Test the change of basis from spherical-polar to Cartesian.
 
   call allocate(radialVectorDifference, 3 , mesh, 'radialVectorDifference')
+  call zero(radialVectorDifference)
   call allocate(polarVectorDifference, 3 , mesh, 'polarVectorDifference')
+  call zero(polarVectorDifference)
   call allocate(azimuthalVectorDifference, 3 , mesh, 'azimuthalVectorDifference')
+  call zero(azimuthalVectorDifference)
 
   !Convert unit-radial vector components into to Cartesian basis. Then compare
   ! with vector already in Cartesian basis, obtained from vtu.
