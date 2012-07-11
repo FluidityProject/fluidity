@@ -81,6 +81,11 @@ module Coordinates
                       cartesian_2_spherical_polar_field
   end interface
 
+  interface vector_spherical_polar_2_cartesian
+     module procedure vector_spherical_polar_2_cartesian, &
+                      vector_spherical_polar_2_cartesian_field
+  end interface
+
 contains
     
   subroutine LongitudeLatitude_single(xyz, longitude, latitude)
@@ -810,10 +815,10 @@ contains
     ! fields
     implicit none
 
-    type(vector_field), intent(in) :: spherical_polar_vector_field
-    type(vector_field), intent(in) :: spherical_polar_coordinate_field
-    type(vector_field), intent(out) :: cartesian_vector_field
-    type(vector_field), intent(out) :: cartesian_coordinate_field
+    type(vector_field), pointer :: spherical_polar_vector_field
+    type(vector_field), pointer :: spherical_polar_coordinate_field
+    type(vector_field), pointer :: cartesian_vector_field
+    type(vector_field), pointer :: cartesian_coordinate_field
     integer :: node
     real, dimension(3) :: XYZ, RTP !arrays containing a signel node's position vector
                                    ! in cartesian & spherical-polar bases 
@@ -844,10 +849,10 @@ contains
     ! fields
     implicit none
 
-    type(vector_field), intent(in) :: cartesian_vector_field
-    type(vector_field), intent(in) :: cartesian_coordinate_field
-    type(vector_field), intent(out) :: spherical_polar_vector_field
-    type(vector_field), intent(out) :: spherical_polar_coordinate_field
+    type(vector_field), pointer :: cartesian_vector_field
+    type(vector_field), pointer :: cartesian_coordinate_field
+    type(vector_field), pointer :: spherical_polar_vector_field
+    type(vector_field), pointer :: spherical_polar_coordinate_field
     integer :: node
     real, dimension(3) :: XYZ, RTP !arrays containing a signel node's position vector
                                    ! in cartesian & spherical-polar bases 
