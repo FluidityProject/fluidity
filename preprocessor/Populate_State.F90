@@ -1609,11 +1609,11 @@ contains
           call insert(states(i+1), sfield, 'AbsolutePermeabilityDual')
        end do       
        
-       ! alias the TransmissibilityLambda field
-       sfield=extract_scalar_field(states(1), 'TransmissibilityLambda')
+       ! alias the TransmissibilityLambdaDual field
+       sfield=extract_scalar_field(states(1), 'TransmissibilityLambdaDual')
        sfield%aliased = .true.
        do i = 1,nstates-1
-          call insert(states(i+1), sfield, 'TransmissibilityLambda')
+          call insert(states(i+1), sfield, 'TransmissibilityLambdaDual')
        end do
     
     end if have_porous_media_dual
@@ -3129,12 +3129,12 @@ contains
           call insert(states(p+1), aux_sfield, 'OldAbsolutePermeabilityDual')
        end do       
        
-       ! alias the OldTransmissibilityLambda field
-       aux_sfield=extract_scalar_field(states(1), 'OldTransmissibilityLambda')
+       ! alias the OldTransmissibilityLambdaDual field
+       aux_sfield=extract_scalar_field(states(1), 'OldTransmissibilityLambdaDual')
        aux_sfield%aliased = .true.
        aux_sfield%option_path = ""
        do p = 1,size(states)-1
-          call insert(states(p+1), aux_sfield, 'OldTransmissibilityLambda')
+          call insert(states(p+1), aux_sfield, 'OldTransmissibilityLambdaDual')
        end do
 
        ! alias the IteratedPorosityDual field
@@ -3153,12 +3153,12 @@ contains
           call insert(states(p+1), aux_sfield, 'IteratedAbsolutePermeabilityDual')
        end do       
 
-       ! alias the IteratedransmissibilityLambda field
-       aux_sfield=extract_scalar_field(states(1), 'IteratedransmissibilityLambda')
+       ! alias the IteratedTransmissibilityLambdaDual field
+       aux_sfield=extract_scalar_field(states(1), 'IteratedTransmissibilityLambdaDual')
        aux_sfield%aliased = .true.
        aux_sfield%option_path = ""
        do p = 1,size(states)-1
-          call insert(states(p+1), aux_sfield, 'IteratedransmissibilityLambda')
+          call insert(states(p+1), aux_sfield, 'IteratedTransmissibilityLambdaDual')
        end do
     
     end if have_porous_media_dual
