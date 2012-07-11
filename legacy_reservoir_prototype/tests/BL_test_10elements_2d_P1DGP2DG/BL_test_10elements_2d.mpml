@@ -158,27 +158,12 @@
           <use_projection_method/>
         </scheme>
         <solver>
-          <iterative_method name="fgmres"/>
-          <preconditioner name="ksp">
-            <solver>
-              <iterative_method name="gmres">
-                <restart>
-                  <integer_value rank="0">20</integer_value>
-                </restart>
-              </iterative_method>
-              <preconditioner name="none"/>
-              <relative_error>
-                <real_value rank="0">1.e-15</real_value>
-              </relative_error>
-              <max_iterations>
-                <integer_value rank="0">5</integer_value>
-              </max_iterations>
-              <never_ignore_solver_failures/>
-              <diagnostics>
-                <monitors/>
-              </diagnostics>
-            </solver>
-          </preconditioner>
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">60</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="sor"/>
           <relative_error>
             <real_value rank="0">1.e-7</real_value>
           </relative_error>
@@ -186,7 +171,7 @@
             <real_value rank="0">1.e-10</real_value>
           </absolute_error>
           <max_iterations>
-            <integer_value rank="0">10000</integer_value>
+            <integer_value rank="0">1000</integer_value>
           </max_iterations>
           <ignore_all_solver_failures/>
           <diagnostics>
