@@ -592,7 +592,6 @@ contains
           if (SIG_INT) exit Loop_ITS
 
           SUM_THETA_FLUX = 1.0
-         !!!!!!!!!!!!!!!!!!!!!!!! SUM_THETA_FLUX = 0.0
           SUM_ONE_M_THETA_FLUX = 0.0
           V_SOURCE_COMP = 0.0
           IF( NCOMP <= 1 ) THEN
@@ -624,6 +623,9 @@ contains
 
              IF( have_option("/material_phase[" // int2str(nstates-ncomp) // &
                   "]/is_multiphase_component/KComp_Sigmoid" )) THEN
+
+                ewrite(3,*) "+++++++++KComp_Sigmoid"
+
                 DO CV_NODI = 1, CV_NONODS
                    !IF( SATURAOLD( CV_NODI ) > 0.8 ) THEN
                    !   COMP_ABSORB( CV_NODI, 1, 2 ) = COMP_ABSORB( CV_NODI, 1, 2 ) * &
@@ -665,9 +667,8 @@ contains
                   MAT_NDGLN, U_NDGLN, X_NDGLN, &
                   U_ELE_TYPE, P_ELE_TYPE )
 
-
-             ! bear in mind there are 3 internal iterations
-             Loop_ITS2: DO ITS2 = 1, nits_internal
+             ! nits_internal=1 check Copy_Outof_Into_State.F90 for more
+             Loop_ITS2: DO ITS2 = 1, 3 !nits_internal
 
                 COMP_GET_THETA_FLUX = .TRUE. ! This will be set up in the input file
                 COMP_USE_THETA_FLUX = .FALSE.       
@@ -680,6 +681,7 @@ contains
                 ewrite(3,*)'SUF_COMP_BC_ROB2:',SUF_COMP_BC_ROB2
                 ewrite(3,*)'COMP_SOURCE:', COMP_SOURCE
                 ewrite(3,*)'COMP_ABSORB:', COMP_ABSORB
+                !ewrite(3,*)'COMP_DIFFUSION:', COMP_DIFFUSION
 
                 CALL INTENERGE_ASSEM_SOLVE(  &
                      NCOLACV, FINACV, COLACV, MIDACV, & ! CV sparsity pattern matrix
@@ -697,9 +699,8 @@ contains
                      COMPOLD(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 : ICOMP * NPHASE * CV_NONODS ), &
                      DEN, DENOLD,  &
                      MAT_NLOC, MAT_NDGLN, MAT_NONODS, COMP_DIFFUSION, &
-                     !0, V_DG_VEL_INT_OPT, DT, V_THETA, V_BETA, &
                      V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, V_BETA, &
-                     SUF_COMP_BC( 1 + STOTEL * CV_SNLOC * NPHASE *( ICOMP - 1 ) : STOTEL * CV_SNLOC * NPHASE * ICOMP ), &
+                     SUF_COMP_BC( 1 + STOTEL * CV_SNLOC * NPHASE * ( ICOMP - 1 ) : STOTEL * CV_SNLOC * NPHASE * ICOMP ), &
                      SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, &
                      SUF_COMP_BC_ROB1, SUF_COMP_BC_ROB2,  &
                      WIC_COMP_BC, WIC_D_BC, WIC_U_BC, &
@@ -719,7 +720,7 @@ contains
                      MEAN_PORE_CV, &
                      option_path = '/material_phase[0]/scalar_field::PhaseVolumeFraction', &
                      mass_ele_transp = dummy_ele, &
-                     thermal=.false. )! the false means that we don't add an extra source term
+                     thermal=.false. ) ! the false means that we don't add an extra source term
 
                 do cv_nodi = 1, cv_nonods
                    ewrite(3,*)'icomp, kcomp 2nd:', icomp, k_comp( icomp, 1 : nphase, 1 : nphase )
@@ -731,14 +732,11 @@ contains
                         comp_absorb( cv_nodi, 2, 2 ) 
                    ewrite(3,*)' '  
                 end do
-                !!xsstop 1092
                 do iphase = 1, nphase
                    ewrite(3,*) 'icomp, iphase, comp:', icomp, iphase, &
                         comp( ( icomp - 1 ) * nphase * cv_nonods + ( iphase - 1 ) * cv_nonods + 1 : &
                         ( icomp - 1 ) * nphase * cv_nonods + iphase * cv_nonods )
                 end do
-
-
 
              END DO Loop_ITS2
 
@@ -755,7 +753,6 @@ contains
                       V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) = &
                            V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) - &
                            COMP_ABSORB( CV_NODI, IPHASE, JPHASE ) * &
-                                !.0 * COMP_ABSORB( CV_NODI, IPHASE, JPHASE ) * &
                            COMP( CV_NODI + ( JPHASE - 1 ) * CV_NONODS + &
                            ( ICOMP - 1 ) * NPHASE * CV_NONODS )
                    END DO
@@ -785,6 +782,7 @@ contains
                "]/is_multiphase_component/Comp_Sum2One") .AND. ( NCOMP2 > 1 ) ) THEN
              ! make sure the composition sums to 1.0 by putting constraint into V_SOURCE_COMP.
              CALL CAL_COMP_SUM2ONE_SOU( V_SOURCE_COMP, CV_NONODS, NPHASE, NCOMP2, DT, ITS, NITS,  &  
+
                   MEAN_PORE_CV, SATURA, SATURAOLD, DEN, DENOLD, COMP, COMPOLD ) 
           ENDIF
 
