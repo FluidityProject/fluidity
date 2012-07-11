@@ -245,8 +245,8 @@ program Darcy_IMPES
       end if
       state_prime => state(1:2)   
       state_dual => state(3:4)   
-      call darcy_impes_initialise(di, state_prime, dt, current_time)
-      call darcy_impes_initialise(di_dual, state_dual, dt, current_time)
+      call darcy_impes_initialise(di, state_prime, dt, current_time, this_is_dual = .false.)
+      call darcy_impes_initialise(di_dual, state_dual, dt, current_time, this_is_dual = .true.)
    else
       ! *** Initialise data used in IMPES solver *** 
       call darcy_impes_initialise(di, state, dt, current_time)
@@ -399,6 +399,12 @@ program Darcy_IMPES
          di%nonlinear_iter = its
          di_dual%nonlinear_iter = its
          
+         ! ***** Point other porous media pressures as required, only used in assemble *****
+         if (have_dual)
+            di%pressure_other_porous_media      => di_dual%pressure
+            di_dual%pressure_other_porous_media => di%pressure
+         end if
+         
          ! *** Darcy IMPES Calculate the relperm and density first face values (depend on upwind direction) ***
          call darcy_impes_calculate_relperm_den_first_face_values(di)
          
@@ -471,33 +477,21 @@ program Darcy_IMPES
          end if
          call set_option("/timestepping/timestep", dt)
       end if
-      ! *** Constrain the timestep such that the current time will not overshoot the finish time ***
       
-      if ( have_dual ) then
-         if (di%dt + current_time > finish_time  .or. di_dual%dt + current_time > finish_time  ) then
-            ewrite(1,*) 'Constrain timestep size such as to not overshoot the finish time'
-            di%dt = finish_time - current_time + epsilon(0.0)
-            di_dual%dt = finish_time - current_time + epsilon(0.0)
-            ewrite(1,*) 'Constrained timestep size: ',di%dt
-         end if
+      ! *** Constrain the timestep such that the current time will not overshoot the finish time ***     
+      if (dt + current_time > finish_time ) then
+         ewrite(1,*) 'Constrain timestep size such as to not overshoot the finish time'
+         dt = finish_time - current_time + epsilon(0.0)
+         ewrite(1,*) 'Constrained timestep size: ',dt
+      end if      
       
-      else
-         if (di%dt + current_time > finish_time  ) then
-            ewrite(1,*) 'Constrain timestep size such as to not overshoot the finish time'
-            di%dt = finish_time - current_time + epsilon(0.0)
-            ewrite(1,*) 'Constrained timestep size: ',di%dt
-         end if
-      
-      end if 
-      
-      
+      ! *** setting di time step ***
       if ( have_dual ) then     
-         dt = min(di%dt, di_dual%dt)  
-      else 
-         dt = di%dt  
+         di_dual%dt = dt
       end if
+      di%dt = dt
       
-      call set_option("/timestepping/timestep", di%dt)
+      call set_option("/timestepping/timestep", dt)
       call set_option("/timestepping/current_time", current_time)            
          
       ! ******************
@@ -527,17 +521,21 @@ program Darcy_IMPES
                call darcy_impes_update_post_spatial_adapt(di, &
                                                        state_prime, &
                                                        dt, &
-                                                       current_time)
+                                                       current_time, &
+                                                       this_is_dual = .false.)
+                                                       
                call darcy_impes_update_post_spatial_adapt(di_dual, &
                                                        state_dual, &
                                                        dt, &
-                                                       current_time)
+                                                       current_time, &
+                                                       this_is_dual = .true.)
             else                                                                 
                ! *** Update Darcy IMPES post spatial adapt ***
                call darcy_impes_update_post_spatial_adapt(di, &
                                                        state, &
                                                        dt, &
-                                                       current_time)
+                                                       current_time, &
+                                                       this_is_dual = .false.)
             end if  
                                                                             
             if (have_option("/mesh_adaptivity/hr_adaptivity/adaptive_timestep_at_adapt")) then
@@ -666,7 +664,8 @@ contains
    subroutine darcy_impes_initialise(di, &
                                      state, &
                                      dt, &
-                                     current_time)
+                                     current_time, &
+                                     this_is_dual)
       
       !!< Initialise the Darcy IMPES type from options and state
       
@@ -674,6 +673,7 @@ contains
       type(state_type),       dimension(:), target, intent(inout) :: state
       real,                                         intent(in)    :: dt
       real,                                         intent(in)    :: current_time
+      logical ,                                     intent(in)    :: this_is_dual
       
       ! Local variables
       integer                                     :: p, stat, f_count, f
@@ -707,8 +707,15 @@ contains
       di%number_pmesh_node = node_count(di%pressure_mesh)
       
       di%average_pressure         => extract_scalar_field(di%state(1), "AveragePressure")
-      di%porosity                 => extract_scalar_field(di%state(1), "Porosity")
-      di%absolute_permeability    => extract_scalar_field(di%state(1), "AbsolutePermeability")
+      if (this_is_dual) then 
+         di%porosity              => extract_scalar_field(di%state(1), "PorosityDual")
+         di%absolute_permeability => extract_scalar_field(di%state(1), "AbsolutePermeabilityDual")
+         di%transmissibility_lambda_dual => extract_scalar_field(di%state(1), "TransmissibilityLamdaDual")
+      else
+         di%porosity              => extract_scalar_field(di%state(1), "Porosity")
+         di%absolute_permeability => extract_scalar_field(di%state(1), "AbsolutePermeability")
+         nullify(di%transmissibility_lambda_dual)
+      end if            
       di%positions                => extract_vector_field(di%state(1), "Coordinate")
       di%total_darcy_velocity     => extract_vector_field(di%state(1), "TotalDarcyVelocity")
       di%total_mobility           => extract_scalar_field(di%state(1), "TotalMobility")
@@ -1503,6 +1510,7 @@ contains
       nullify(di%average_pressure)      
       nullify(di%porosity)
       nullify(di%absolute_permeability)
+      nullify(di%transmissibility_lambda_dual)
       nullify(di%positions)
       nullify(di%total_darcy_velocity)
       nullify(di%total_mobility)
@@ -1702,7 +1710,8 @@ contains
    subroutine darcy_impes_update_post_spatial_adapt(di, &
                                                     state, &
                                                     dt, &
-                                                    current_time)
+                                                    current_time, &
+                                                    this_is_dual)
       
       !!< Update the Darcy IMPES data post spatial adapt
       
@@ -1710,7 +1719,8 @@ contains
       type(state_type),       dimension(:), target, intent(inout) :: state
       real,                                         intent(in)    :: dt
       real,                                         intent(in)    :: current_time
-      
+      logical,                                      intent(in)    :: this_is_dual  
+        
       ewrite(1,*) 'Update Darcy IMPES data post spatial adapt'
       
       ! ALL THE IMPORTANT SOLUTION DATA IS IN STATE
@@ -1721,7 +1731,8 @@ contains
       call darcy_impes_initialise(di, &
                                   state, &
                                   dt, &
-                                  current_time)
+                                  current_time, &
+                                  this_is_dual)
       
       ewrite(1,*) 'Finished updating Darcy IMPES data post spatial adapt'
       

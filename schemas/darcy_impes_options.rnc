@@ -1879,7 +1879,7 @@ darcy_impes_dual_porous_media_model=
          ## Specify the exchange between Porous Media and Dual Porous Media which is inserted into 
          ## the first material_phase state then aliased in all others.
          element scalar_field {
-            attribute name { "TransmissibilityLambda" },
+            attribute name { "TransmissibilityLambdaDual" },
             darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh
          }
       }   
