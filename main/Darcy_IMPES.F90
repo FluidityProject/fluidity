@@ -414,16 +414,24 @@ program Darcy_IMPES
          
          ! *** Darcy IMPES Calculate the relperm and density first face values (depend on upwind direction) ***
          call darcy_impes_calculate_relperm_den_first_face_values(di)
+         if (have_dual) call darcy_impes_calculate_relperm_den_first_face_values(di_dual)
          
-         ! *** Solve the Darcy equations using IMPES ***
-         call darcy_impes_assemble_and_solve(di, di_dual, have_dual)
+         ! *** Solve the Darcy equations using IMPES in three parts ***
+         call darcy_impes_assemble_and_solve_part_one(di, have_dual)
+         if (have_dual) call darcy_impes_assemble_and_solve_part_one(di_dual, have_dual)
+         
+         call darcy_impes_assemble_and_solve_part_two(di, di_dual, have_dual)
+
+         call darcy_impes_assemble_and_solve_part_three(di, have_dual)
+         if (have_dual) call darcy_impes_assemble_and_solve_part_three(di_dual, have_dual)
           
          ! calculate generic diagnostics - DO NOT ADD 'calculate_diagnostic_variables'
-         call calculate_diagnostic_variables_new(di%state, exclude_nonrecalculated = .true.)
+         call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
          
          ! *** Calculate the Darcy IMPES Velocity, Mobilities, Fractional flow and CFL fields
          !     needs to be after the python fields ***
          call darcy_impes_calculate_vel_mob_ff_and_cfl_fields(di)
+         if (have_dual) call darcy_impes_calculate_vel_mob_ff_and_cfl_fields(di_dual)
 
          if(nonlinear_iterations_this_timestep > 1) then
             

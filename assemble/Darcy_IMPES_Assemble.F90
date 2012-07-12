@@ -66,7 +66,9 @@ module darcy_impes_assemble_module
              darcy_impes_cv_options_type, &
              darcy_impes_copy_to_old, &
              darcy_impes_copy_to_iterated, &
-             darcy_impes_assemble_and_solve, &
+             darcy_impes_assemble_and_solve_part_one, &
+             darcy_impes_assemble_and_solve_part_two, &
+             darcy_impes_assemble_and_solve_part_three, &             
              darcy_impes_calculate_gradient_pressures, &
              darcy_impes_calculate_non_first_phase_pressures, &
              darcy_impes_calculate_phase_one_saturation_diagnostic, &
@@ -353,19 +355,19 @@ module darcy_impes_assemble_module
 
 ! ----------------------------------------------------------------------------
 
-   subroutine darcy_impes_assemble_and_solve(di, di_dual, have_dual)
+   subroutine darcy_impes_assemble_and_solve_part_one(di, have_dual)
       
       !!< Assemble and solve the Darcy equations using an CIMPESS algorithm
       !!< which is a modification of the IMPES to include consistent subcycling.
+      !!< Part one: form cv mass and initial saturation solve for subcycling
       
       type(darcy_impes_type), intent(inout) :: di
-      type(darcy_impes_type), intent(inout) :: di_dual
       logical ,               intent(in)    :: have_dual      
       
       ! local variables
       logical :: form_new_subcycle_relperm_face_values
       
-      ewrite(1,*) 'Start Darcy IMPES assemble and solve'
+      ewrite(1,*) 'Start Darcy IMPES assemble and solve part one'
                   
       ! Calculate the latest CV mass on the pressure mesh with porosity included
       call compute_cv_mass(di%positions, di%cv_mass_pressure_mesh_with_porosity, di%porosity)      
@@ -382,10 +384,49 @@ module darcy_impes_assemble_module
                                                                form_new_subcycle_relperm_face_values)
          
       end if
+                        
+      ewrite(1,*) 'Finished Darcy IMPES assemble and solve part one'
+           
+   end subroutine darcy_impes_assemble_and_solve_part_one
+
+! ----------------------------------------------------------------------------
+
+   subroutine darcy_impes_assemble_and_solve_part_two(di, di_dual, have_dual)
+      
+      !!< Assemble and solve the Darcy equations using an CIMPESS algorithm
+      !!< which is a modification of the IMPES to include consistent subcycling.
+      !!< Part two: solve for the pressure
+      
+      type(darcy_impes_type), intent(inout) :: di
+      type(darcy_impes_type), intent(inout) :: di_dual
+      logical ,               intent(in)    :: have_dual      
             
+      ewrite(1,*) 'Start Darcy IMPES assemble and solve part two'
+                  
       ! Assemble and solve the phase pressures
       call darcy_impes_assemble_and_solve_phase_pressures(di, di_dual, have_dual)
-            
+                  
+      ewrite(1,*) 'Finished Darcy IMPES assemble and solve part two'
+           
+   end subroutine darcy_impes_assemble_and_solve_part_two
+
+! ----------------------------------------------------------------------------
+
+   subroutine darcy_impes_assemble_and_solve_part_three(di, have_dual)
+      
+      !!< Assemble and solve the Darcy equations using an CIMPESS algorithm
+      !!< which is a modification of the IMPES to include consistent subcycling.
+      !!< Part three: find pressure gradients, calc div.u, solve for saturation
+      !!<             and generic scalar fields, calc sum S, calc density, calc relperm.
+      
+      type(darcy_impes_type), intent(inout) :: di
+      logical ,               intent(in)    :: have_dual      
+      
+      ! local variables
+      logical :: form_new_subcycle_relperm_face_values
+      
+      ewrite(1,*) 'Start Darcy IMPES assemble and solve part three'
+                  
       ! Calculate the gradient pressures 
       call darcy_impes_calculate_gradient_pressures(di)
 
@@ -419,9 +460,9 @@ module darcy_impes_assemble_module
       ! Calculate the relative permeabilities of each phase
       call darcy_impes_calculate_relperm_fields(di)
             
-      ewrite(1,*) 'Finished Darcy IMPES assemble and solve'
+      ewrite(1,*) 'Finished Darcy IMPES assemble and solve part three'
            
-   end subroutine darcy_impes_assemble_and_solve
+   end subroutine darcy_impes_assemble_and_solve_part_three
 
 ! ----------------------------------------------------------------------------
 
