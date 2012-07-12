@@ -714,13 +714,15 @@ contains
       
       di%average_pressure         => extract_scalar_field(di%state(1), "AveragePressure")
       if (this_is_dual) then 
-         di%porosity                     => extract_scalar_field(di%state(1), "PorosityDual")
-         di%absolute_permeability        => extract_scalar_field(di%state(1), "AbsolutePermeabilityDual")
-         di%transmissibility_lambda_dual => extract_scalar_field(di%state(1), "TransmissibilityLambdaDual")
+         di%porosity                          => extract_scalar_field(di%state(1), "PorosityDual")
+         di%absolute_permeability             => extract_scalar_field(di%state(1), "AbsolutePermeabilityDual")
+         di%transmissibility_lambda_dual      => extract_scalar_field(di%state(1), "TransmissibilityLambdaDual")
+         di_dual%transmissibility_lambda_dual => di%transmissibility_lambda_dual
       else
          di%porosity              => extract_scalar_field(di%state(1), "Porosity")
          di%absolute_permeability => extract_scalar_field(di%state(1), "AbsolutePermeability")
          nullify(di%transmissibility_lambda_dual)
+         nullify(di_dual%transmissibility_lambda_dual)
       end if            
       di%positions                => extract_vector_field(di%state(1), "Coordinate")
       di%total_darcy_velocity     => extract_vector_field(di%state(1), "TotalDarcyVelocity")
@@ -1522,6 +1524,7 @@ contains
       nullify(di%porosity)
       nullify(di%absolute_permeability)
       nullify(di%transmissibility_lambda_dual)
+      nullify(di_dual%transmissibility_lambda_dual)
       nullify(di%positions)
       nullify(di%total_darcy_velocity)
       nullify(di%total_mobility)
