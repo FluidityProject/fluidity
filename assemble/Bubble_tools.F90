@@ -438,7 +438,7 @@
           do ele = 1, ele_count(sfield)
              s_vals = ele_val(sfield,ele)
              assert(size(s_vals)==7)
-             s_vals(7) = s_vals(7)/N_vals(7)
+             s_vals(7) = s_vals(7)*N_vals(7)
              s_vals(7) = s_vals(7) + sum(s_vals(1:6)*N_vals(1:6))
              !! Quadrilateral #1
              QS_vals(:) = &

@@ -134,7 +134,7 @@
     </mesh>
     <quadrature>
       <degree>
-        <integer_value rank="0">8</integer_value>
+        <integer_value rank="0">6</integer_value>
       </degree>
     </quadrature>
   </geometry>
@@ -239,7 +239,20 @@
           </diagnostics>
         </solver>
         <initial_condition name="WholeMesh">
-          <from_streamfunction/>
+          <python>
+            <string_value type="code" lines="20" language="python">def val(X,t):
+  x=X[0]
+  y=X[1]
+  z=X[2]
+  from math import sin,cos,exp
+  ee = 0.25
+  theta = 0.5*(1+cos(y)+ee*cos(x))
+  thetax = -0.5*ee*sin(x)
+  thetay = -0.5*sin(y)
+  sig = 0.5
+  u0=-2*theta*exp(-theta**2/sig**2)
+  return [-u0*thetay,u0*thetax,0.0]</string_value>
+          </python>
         </initial_condition>
         <output/>
         <convergence>
@@ -355,8 +368,22 @@
   thetay = -0.5*sin(y)
   sig = 0.5
   return sig**2*exp(-theta**2/sig**2)</string_value>
+            <comment>VElocity function is
+def val(X,t):
+  x=X[0]
+  y=X[1]
+  z=X[2]
+  from math import sin,cos,exp
+  ee = 0.1
+  theta = 0.5*(1+cos(y)+ee*cos(x))
+  thetax = -0.5*ee*sin(x)
+  thetay = -0.5*sin(y)
+  sig = 0.5
+  u0=-2*theta*exp(-theta**2/sig**2)
+  return [-u0*thetay,u0*thetax,0.0]</comment>
           </python>
         </value>
+        <initialise_from_quadrature_points/>
         <solver>
           <iterative_method name="preonly"/>
           <preconditioner name="lu"/>

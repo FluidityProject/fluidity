@@ -1545,11 +1545,6 @@ module advection_local_DG
        call petsc_solve(pv,pv_mass_matrix,pv_rhs)
     end if
 
-    !do ele = 1, ele_count(pv)
-    !ewrite(1,*) ele_val(pv,ele)-sum(ele_val(pv,ele))/7
-    !end do
-    !stop
-
     call deallocate(pv_mass_matrix)
     call deallocate(pv_rhs)
 

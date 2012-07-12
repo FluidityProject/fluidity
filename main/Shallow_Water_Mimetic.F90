@@ -435,7 +435,7 @@
          end if
          call insert(state, f, "Coriolis")
          if(f%mesh%shape%numbering%type==ELEMENT_BUBBLE) then
-            call remove_bubble_component(f)
+            call fix_bubble_component(f)
          end if
          call deallocate(f)
       end if
@@ -448,7 +448,7 @@
             call initialise_from_quadrature_points(state,s_field)
          else
             if(s_field%mesh%shape%numbering%type==ELEMENT_BUBBLE) then
-               call remove_bubble_component(s_field)
+               call fix_bubble_component(s_field)
             end if
          end if
       end if
@@ -499,7 +499,7 @@
     s_field => extract_scalar_field(state,"PotentialVorticityTracer",stat)
     if(stat==0) then
        if(s_field%mesh%shape%numbering%type==ELEMENT_BUBBLE) then
-          call remove_bubble_component(s_field)
+          call fix_bubble_component(s_field)
        end if
     end if
 
@@ -584,7 +584,7 @@
       real, dimension(down%dim, ele_ngi(down,ele)) :: up_gi
       integer :: orientation, gi, dim1
       real, dimension(ele_loc(psi,ele)) :: psi_loc
-      real, dimension(mesh_dim(psi),ele_ngi(psi,ele)) :: dpsi_gi
+      real, dimension(mesh_dim(psi),ele_ngi(psi,ele)) :: dpsi_gi, grad_psi_gi
       real, dimension(mesh_dim(U),ele_loc(U,ele)) :: U_loc
 
       !Set U = grad perp psi
@@ -604,10 +604,9 @@
       !Skew gradient of streamfunction at quadrature points
       select case(mesh_dim(psi))
       case (2)
-         forall(gi=1:ele_ngi(psi,ele))
-            dpsi_gi(1,gi) = -sum(psi_loc*psi_shape%dn(:,gi,2))
-            dpsi_gi(2,gi) =  sum(psi_loc*psi_shape%dn(:,gi,1))
-         end forall
+         grad_psi_gi = ele_grad_at_quad(psi,ele,psi_shape%dn)
+         dpsi_gi(1,:) = -grad_psi_gi(2,:)
+         dpsi_gi(2,:) = grad_psi_gi(1,:)
       case default
          FLAbort('Exterior derivative not implemented for given mesh dimension')
       end select
@@ -651,26 +650,67 @@
       call set(s_field,ele_nodes(s_field,ele),s_rhs)
     end subroutine apply_dg_mass_ele
       
-    subroutine remove_bubble_component(s_field)
+    subroutine fix_bubble_component(s_field)
       type(scalar_field), intent(inout) :: s_field
       !
       integer :: ele
+      real, dimension(7) :: N_vals
+      !!Debugging
+      real, dimension(7,7) :: lmat
+      real, dimension(2,2,7,7) :: ldmat
+      type(element_type), pointer :: sshape
+      integer :: i,dim1,dim2
+
+      sshape => ele_shape(s_field,1)
+
+      lmat = shape_shape(sshape,sshape,sshape%quadrature%weight)
+      ldmat = dshape_outer_dshape(sshape%dn,sshape%dn,sshape%quadrature%weight)
+      ewrite(1,*) 'mass'
+      do i = 1, 7
+         print *,'[',lmat(i,1),',',lmat(i,2),',',lmat(i,3),',',lmat(i,4),'&
+              &,',lmat(i,5),',',lmat(i,6),',',lmat(i,7),']'
+      end do
+      ewrite(1,*) 'laplace'
+      do dim1 = 1, 2
+         do dim2 = 1,2 
+            ewrite(1,*), 'dim', dim1, dim2
+            do i = 1, 7
+               print *, '[',ldmat(dim1,dim2,i,1),',',ldmat(dim1,dim2,i,1),','&
+                    &,ldmat(dim1,dim2,i,3),',',ldmat(dim1,dim2,i,4),',',&
+                    &ldmat(dim1,dim2,i,5),',',ldmat(dim1,dim2,i,6),','&
+                    &,ldmat(dim1,dim2,i,7),']'
+            end do
+         end do
+      end do
+
+      !Basis functions evaluated at bubble node.
+      N_vals = eval_shape(ele_shape(s_field,1), (/1.0/3.0,1.0/3.0,1.0/3.0/))
+
+      
 
       assert(s_field%mesh%shape%numbering%type==ELEMENT_BUBBLE)
+      ewrite(1,*) 'CJC FIXING', s_field%name
       do ele = 1, ele_count(s_field)
-         call remove_bubble_component_ele(s_field,ele)
+         call fix_bubble_component_ele(s_field,N_vals,ele)
       end do
-    end subroutine remove_bubble_component
+    end subroutine fix_bubble_component
 
-    subroutine remove_bubble_component_ele(s_field,ele)
+    subroutine fix_bubble_component_ele(s_field,N_vals,ele)
       type(scalar_field), intent(inout) :: s_field
+      real, dimension(:), intent(in) :: N_vals
       integer, intent(in) :: ele
       !
       integer, pointer, dimension(:) :: f_nodes
+      real, dimension(ele_loc(s_field,ele)) :: f_vals
 
       f_nodes => ele_nodes(s_field,ele)
-      call set(s_field,f_nodes(size(f_nodes)),0.0)
-    end subroutine remove_bubble_component_ele
+      f_vals = ele_val(s_field,ele)
+      f_vals(7) = f_vals(7)-sum(f_vals(1:6)*N_vals(1:6))
+      f_vals(7) = f_vals(7)/N_vals(7)
+      
+      call set(s_field,f_nodes(7),f_vals(7))
+
+    end subroutine fix_bubble_component_ele
     
     subroutine initialise_from_quadrature_points(state,T)
       type(scalar_field), intent(inout) :: T
@@ -697,10 +737,10 @@
          call initialise_from_quadrature_points_ele(&
               T_rhs,init_mat,X,Python_Function,ele)
       end do
-
+      ewrite(1,*) maxval(abs(T_rhs%val)), 'T_rhs'
       call petsc_solve(T,init_mat,T_rhs,option_path=trim(T%option_path)//"/prescribed/")
       call deallocate(T_rhs)
-      call deallocate(sparsity)
+      call deallocate(init_mat)
     end subroutine initialise_from_quadrature_points
     
     subroutine initialise_from_quadrature_points_ele(T_rhs,init_mat,X,&
