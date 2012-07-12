@@ -405,10 +405,11 @@ program Darcy_IMPES
          di%nonlinear_iter = its
          di_dual%nonlinear_iter = its
          
-         ! ***** Point other porous media pressures as required, only used in assemble *****
+         ! ***** Point other porous media pressures and transmissibility_lambda as required, only used in assemble *****
          if (have_dual) then
             di%pressure_other_porous_media      => di_dual%pressure
             di_dual%pressure_other_porous_media => di%pressure
+            di%transmissibility_lambda_dual     => di_dual%transmissibility_lambda_dual
          end if
          
          ! *** Darcy IMPES Calculate the relperm and density first face values (depend on upwind direction) ***
@@ -714,15 +715,13 @@ contains
       
       di%average_pressure         => extract_scalar_field(di%state(1), "AveragePressure")
       if (this_is_dual) then 
-         di%porosity                          => extract_scalar_field(di%state(1), "PorosityDual")
-         di%absolute_permeability             => extract_scalar_field(di%state(1), "AbsolutePermeabilityDual")
-         di%transmissibility_lambda_dual      => extract_scalar_field(di%state(1), "TransmissibilityLambdaDual")
-         di_dual%transmissibility_lambda_dual => di%transmissibility_lambda_dual
+         di%porosity                     => extract_scalar_field(di%state(1), "PorosityDual")
+         di%absolute_permeability        => extract_scalar_field(di%state(1), "AbsolutePermeabilityDual")
+         di%transmissibility_lambda_dual => extract_scalar_field(di%state(1), "TransmissibilityLambdaDual")
       else
          di%porosity              => extract_scalar_field(di%state(1), "Porosity")
          di%absolute_permeability => extract_scalar_field(di%state(1), "AbsolutePermeability")
          nullify(di%transmissibility_lambda_dual)
-         nullify(di_dual%transmissibility_lambda_dual)
       end if            
       di%positions                => extract_vector_field(di%state(1), "Coordinate")
       di%total_darcy_velocity     => extract_vector_field(di%state(1), "TotalDarcyVelocity")
