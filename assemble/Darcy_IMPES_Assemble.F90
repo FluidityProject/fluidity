@@ -564,181 +564,19 @@ module darcy_impes_assemble_module
             
          ! Loop volume elements assembling local contributions     
          vol_element_loop: do vele = 1, di%number_vele
-
-            ! The node indices of the pressure mesh
-            p_nodes => ele_nodes(di%pressure_mesh, vele)
+                       
+            call pressure_volume_element_local_assemble(di, p_mat_local, p_rhs_local, vele) 
             
-            ! The gravity values for this element for each direction
-            grav_ele = ele_val(di%gravity, vele) 
-
-            ! get the viscosity value for this element for this phase
-            visc_ele = ele_val(di%viscosity(p)%ptr, vele)
-
-            ! get the absolute permeability value for this element
-            absperm_ele = ele_val(di%absolute_permeability, vele)         
-            
-            ! obtain the transformed determinant*weight and normals
-            if (di%cached_face_value%cached_detwei_normal) then
-               
-               detwei => di%cached_face_value%detwei(:,vele)
-               
-               normal => di%cached_face_value%normal(:,:,vele)
-               
-            else
-
-               ! get the coordinate values for this element for each positions local node
-               x_ele = ele_val(di%positions, vele)         
-
-               ! get the coordinate values for this element for each quadrature point
-               x_face_quad = ele_val_at_quad(di%positions, vele, di%x_cvshape)
-
-               ! The node indices of the positions projected to the pressure mesh
-               x_pmesh_nodes => ele_nodes(di%positions_pressure_mesh, vele)
-            
-               call transform_cvsurf_to_physical(x_ele, di%x_cvshape, detwei, normal, di%cvfaces)
-            
-            end if
-            
-            ! obtain the derivative of the pressure mesh shape function at the CV face quadrature points
-            if (di%cached_face_value%cached_p_dshape) then
-               
-               p_dshape => di%cached_face_value%p_dshape(:,:,:,vele)
-               
-            else
-            
-               call transform_to_physical(di%positions, vele, x_shape = di%x_cvshape_full, &
-                                          shape = di%p_cvshape_full, dshape = p_dshape)
-            
-            end if
-            
-            ! get the gradient capilliary pressure at the cv surface quadrature points for each direction 
-            if (p > 1) then
-               grad_cap_pressure_face_quad = &
-              &darcy_impes_ele_grad_at_quad_scalar(di%capilliary_pressure(p)%ptr, vele, dn = p_dshape)
-            end if
-            
-            ! Initialise array for the quadrature points of this 
-            ! element for whether it has already been visited
-            notvisited = .true.
-
-            ! Initialise the local p matrix and rhs to assemble for this element
-            p_mat_local = 0.0
-            p_rhs_local = 0.0
-            
-            ! loop over local nodes within this element
-            nodal_loop_i: do iloc = 1, di%pressure_mesh%shape%loc
-
-               ! loop over CV faces internal to this element
-               face_loop: do face = 1, di%cvfaces%faces
-
-                  ! is this a face neighbouring iloc?
-                  is_neigh: if(di%cvfaces%neiloc(iloc, face) /= 0) then
-
-                     ! find the opposing local node across the CV face
-                     oloc = di%cvfaces%neiloc(iloc, face)
-
-                     ! loop over gauss points on face
-                     quadrature_loop: do gi = 1, di%cvfaces%shape%ngi
-
-                        ! global gauss pt index for this element
-                        ggi = (face-1)*di%cvfaces%shape%ngi + gi
-
-                        ! check if this quadrature point has already been visited
-                        check_visited: if(notvisited(ggi)) then
-
-                           notvisited(ggi) = .false.
-
-                           if (di%cached_face_value%cached_detwei_normal) then
-
-                              ! cached normal has correct orientation already
-                              normgi = normal(:,ggi)
-
-                           else
-
-                              ! correct the orientation of the normal so it points away from iloc
-                              normgi = orientate_cvsurf_normgi(node_val(di%positions_pressure_mesh, x_pmesh_nodes(iloc)), &
-                                                              &x_face_quad(:,ggi), normal(:,ggi))
-
-                           end if
-                           
-                           ! Form the face value = detwei * (relperm*absperm/visc)
-                           if (di%subcy_opt_sat%have .and. di%subcy_opt_sat%consistent) then
-
-                              face_value = detwei(ggi) * &
-                                           sum(di%cached_face_value%relperm(:,ggi,vele,p)) * &
-                                           absperm_ele(1) / &
-                                           visc_ele(1)
-                           
-                           else 
-                           
-                              face_value = detwei(ggi) * &
-                                           di%cached_face_value%relperm(1,ggi,vele,p) * &
-                                           absperm_ele(1) / &
-                                           visc_ele(1)
-                           
-                           end if
-                           
-                           ! Form the local matrix given by - n_i . sum_{phase} ( relperm*absperm/visc ) dP_1/dx_j
-                           do jloc = 1,di%pressure_mesh%shape%loc
-                              
-                              p_mat_local(iloc,jloc) = p_mat_local(iloc,jloc) - &
-                                                       sum(p_dshape(jloc, ggi, :)*normgi, 1) * &
-                                                       face_value
-
-                              p_mat_local(oloc,jloc) = p_mat_local(oloc,jloc) - &
-                                                       sum(p_dshape(jloc, ggi, :)*(-normgi), 1) * &
-                                                       face_value
-
-                           end do
-
-                           ! Add gravity term to rhs = - n_i . sum_{phase} ( relperm*absperm/visc ) * den*grav
-
-                           ! Find g dot n
-                           g_dot_n = dot_product(grav_ele(:,1), normgi)
-
-                           p_rhs_local(iloc)  = p_rhs_local(iloc) - &
-                                                face_value * &
-                                                di%cached_face_value%den(ggi,vele,p) * &
-                                                g_dot_n
-                           
-                           ! Add opposite node value with change of sign due to opposite normal direction
-                           p_rhs_local(oloc)  = p_rhs_local(oloc) + &
-                                                face_value * &
-                                                di%cached_face_value%den(ggi,vele,p) * &
-                                                g_dot_n
-
-                           ! Add capilliary pressure term to rhs = n_i . sum_{phase} ( relperm*absperm/visc ) dP_c/dx_j
-                           ! only for phase > 1
-                           if (p > 1) then
-
-                              ! Find grad_P_c dot n
-                              grad_cap_p_dot_n  = dot_product(grad_cap_pressure_face_quad(:,ggi), normgi)
-
-                              p_rhs_local(iloc) = p_rhs_local(iloc) + &
-                                                  face_value * &
-                                                  grad_cap_p_dot_n
-
-                              ! Add opposite node value with change of sign due to opposite normal direction
-                              p_rhs_local(oloc) = p_rhs_local(oloc) - &
-                                                  face_value * &
-                                                  grad_cap_p_dot_n
-
-                           end if
-
-                        end if check_visited
-
-                     end do quadrature_loop
-
-                  end if is_neigh
-
-               end do face_loop
-
-            end do nodal_loop_i
-
             ! Add volume element contribution to global pressure matrix and rhs
             call addto(di%matrix, p_nodes, p_nodes, p_mat_local)
             
             call addto(di%rhs, p_nodes, p_rhs_local)
+            
+            if (have_dual) then 
+               call pressure_volume_element_local_assemble(di_dual, p_mat_local, p_rhs_local, vele) 
+               call addto(di%matrix, p_nodes, p_nodes, p_mat_local)
+               call addto(di%rhs, p_nodes, p_rhs_local)
+            end if
 
          end do vol_element_loop
          
@@ -1017,6 +855,189 @@ module darcy_impes_assemble_module
       ewrite(1,*) 'Finished solve first phase Pressure'
       
       ewrite_minmax(di%pressure(1)%ptr)
+      
+      contains
+      
+         subroutine pressure_volume_element_local_assemble( di, p_mat_local, p_rhs_local, vele) 
+         
+         type(darcy_impes_type), intent(inout) ::di
+         real, dimension(:,:),   intent(inout) :: p_mat_local
+         real, dimension(:),     intent(inout) :: p_rhs_local
+         integer,                intent(in) :: vele
+            
+            !!< assemble local volume element pressure matrix and rhs
+            
+            ! The node indices of the pressure mesh
+            p_nodes => ele_nodes(di%pressure_mesh, vele)
+            
+            ! The gravity values for this element for each direction
+            grav_ele = ele_val(di%gravity, vele) 
+
+            ! get the viscosity value for this element for this phase
+            visc_ele = ele_val(di%viscosity(p)%ptr, vele)
+
+            ! get the absolute permeability value for this element
+            absperm_ele = ele_val(di%absolute_permeability, vele)         
+            
+            ! obtain the transformed determinant*weight and normals
+            if (di%cached_face_value%cached_detwei_normal) then
+               
+               detwei => di%cached_face_value%detwei(:,vele)
+               
+               normal => di%cached_face_value%normal(:,:,vele)
+               
+            else
+
+               ! get the coordinate values for this element for each positions local node
+               x_ele = ele_val(di%positions, vele)         
+
+               ! get the coordinate values for this element for each quadrature point
+               x_face_quad = ele_val_at_quad(di%positions, vele, di%x_cvshape)
+
+               ! The node indices of the positions projected to the pressure mesh
+               x_pmesh_nodes => ele_nodes(di%positions_pressure_mesh, vele)
+            
+               call transform_cvsurf_to_physical(x_ele, di%x_cvshape, detwei, normal, di%cvfaces)
+            
+            end if
+            
+            ! obtain the derivative of the pressure mesh shape function at the CV face quadrature points
+            if (di%cached_face_value%cached_p_dshape) then
+               
+               p_dshape => di%cached_face_value%p_dshape(:,:,:,vele)
+               
+            else
+            
+               call transform_to_physical(di%positions, vele, x_shape = di%x_cvshape_full, &
+                                          shape = di%p_cvshape_full, dshape = p_dshape)
+            
+            end if
+            
+            ! get the gradient capilliary pressure at the cv surface quadrature points for each direction 
+            if (p > 1) then
+               grad_cap_pressure_face_quad = &
+              &darcy_impes_ele_grad_at_quad_scalar(di%capilliary_pressure(p)%ptr, vele, dn = p_dshape)
+            end if
+            
+            ! Initialise array for the quadrature points of this 
+            ! element for whether it has already been visited
+            notvisited = .true.
+
+            ! Initialise the local p matrix and rhs to assemble for this element
+            p_mat_local = 0.0
+            p_rhs_local = 0.0
+            
+            ! loop over local nodes within this element
+            nodal_loop_i: do iloc = 1, di%pressure_mesh%shape%loc
+
+               ! loop over CV faces internal to this element
+               face_loop: do face = 1, di%cvfaces%faces
+
+                  ! is this a face neighbouring iloc?
+                  is_neigh: if(di%cvfaces%neiloc(iloc, face) /= 0) then
+
+                     ! find the opposing local node across the CV face
+                     oloc = di%cvfaces%neiloc(iloc, face)
+
+                     ! loop over gauss points on face
+                     quadrature_loop: do gi = 1, di%cvfaces%shape%ngi
+
+                        ! global gauss pt index for this element
+                        ggi = (face-1)*di%cvfaces%shape%ngi + gi
+
+                        ! check if this quadrature point has already been visited
+                        check_visited: if(notvisited(ggi)) then
+
+                           notvisited(ggi) = .false.
+
+                           if (di%cached_face_value%cached_detwei_normal) then
+
+                              ! cached normal has correct orientation already
+                              normgi = normal(:,ggi)
+
+                           else
+
+                              ! correct the orientation of the normal so it points away from iloc
+                              normgi = orientate_cvsurf_normgi(node_val(di%positions_pressure_mesh, x_pmesh_nodes(iloc)), &
+                                                              &x_face_quad(:,ggi), normal(:,ggi))
+
+                           end if
+                           
+                           ! Form the face value = detwei * (relperm*absperm/visc)
+                           if (di%subcy_opt_sat%have .and. di%subcy_opt_sat%consistent) then
+
+                              face_value = detwei(ggi) * &
+                                           sum(di%cached_face_value%relperm(:,ggi,vele,p)) * &
+                                           absperm_ele(1) / &
+                                           visc_ele(1)
+                           
+                           else 
+                           
+                              face_value = detwei(ggi) * &
+                                           di%cached_face_value%relperm(1,ggi,vele,p) * &
+                                           absperm_ele(1) / &
+                                           visc_ele(1)
+                           
+                           end if
+                           
+                           ! Form the local matrix given by - n_i . sum_{phase} ( relperm*absperm/visc ) dP_1/dx_j
+                           do jloc = 1,di%pressure_mesh%shape%loc
+                              
+                              p_mat_local(iloc,jloc) = p_mat_local(iloc,jloc) - &
+                                                       sum(p_dshape(jloc, ggi, :)*normgi, 1) * &
+                                                       face_value
+
+                              p_mat_local(oloc,jloc) = p_mat_local(oloc,jloc) - &
+                                                       sum(p_dshape(jloc, ggi, :)*(-normgi), 1) * &
+                                                       face_value
+
+                           end do
+
+                           ! Add gravity term to rhs = - n_i . sum_{phase} ( relperm*absperm/visc ) * den*grav
+
+                           ! Find g dot n
+                           g_dot_n = dot_product(grav_ele(:,1), normgi)
+
+                           p_rhs_local(iloc)  = p_rhs_local(iloc) - &
+                                                face_value * &
+                                                di%cached_face_value%den(ggi,vele,p) * &
+                                                g_dot_n
+                           
+                           ! Add opposite node value with change of sign due to opposite normal direction
+                           p_rhs_local(oloc)  = p_rhs_local(oloc) + &
+                                                face_value * &
+                                                di%cached_face_value%den(ggi,vele,p) * &
+                                                g_dot_n
+
+                           ! Add capilliary pressure term to rhs = n_i . sum_{phase} ( relperm*absperm/visc ) dP_c/dx_j
+                           ! only for phase > 1
+                           if (p > 1) then
+
+                              ! Find grad_P_c dot n
+                              grad_cap_p_dot_n  = dot_product(grad_cap_pressure_face_quad(:,ggi), normgi)
+
+                              p_rhs_local(iloc) = p_rhs_local(iloc) + &
+                                                  face_value * &
+                                                  grad_cap_p_dot_n
+
+                              ! Add opposite node value with change of sign due to opposite normal direction
+                              p_rhs_local(oloc) = p_rhs_local(oloc) - &
+                                                  face_value * &
+                                                  grad_cap_p_dot_n
+
+                           end if
+
+                        end if check_visited
+
+                     end do quadrature_loop
+
+                  end if is_neigh
+
+               end do face_loop
+
+            end do nodal_loop_i
+            
+         end subroutine pressure_volume_element_local_assemble 
       
    end subroutine darcy_impes_assemble_and_solve_first_phase_pressure
 
