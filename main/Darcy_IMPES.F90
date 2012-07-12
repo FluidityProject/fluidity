@@ -42,6 +42,7 @@ program Darcy_IMPES
    use adapt_state_module
    use FLDebug
    use sparse_tools
+   use sparse_tools_petsc
    use elements
    use fields
    use field_options
@@ -248,12 +249,14 @@ program Darcy_IMPES
                                   state_prime, &
                                   dt, &
                                   current_time, &
+                                  have_dual, &
                                   this_is_dual = .false.)
 
       call darcy_impes_initialise(di_dual, &
                                   state_dual, &
                                   dt, &
                                   current_time, &
+                                  have_dual, &
                                   this_is_dual = .true.)
    else
       ! *** Initialise data used in IMPES solver *** 
@@ -261,6 +264,7 @@ program Darcy_IMPES
                                   state, &
                                   dt, &
                                   current_time, &
+                                  have_dual, &
                                   this_is_dual = .false.)
    end if
    
@@ -537,12 +541,14 @@ program Darcy_IMPES
                                                        state_prime, &
                                                        dt, &
                                                        current_time, &
+                                                       have_dual, &
                                                        this_is_dual = .false.)
                                                        
                call darcy_impes_update_post_spatial_adapt(di_dual, &
                                                        state_dual, &
                                                        dt, &
                                                        current_time, &
+                                                       have_dual, &
                                                        this_is_dual = .true.)
             else                                                                 
                ! *** Update Darcy IMPES post spatial adapt ***
@@ -550,6 +556,7 @@ program Darcy_IMPES
                                                        state, &
                                                        dt, &
                                                        current_time, &
+                                                       have_dual, &
                                                        this_is_dual = .false.)
             end if  
                                                                             
@@ -680,6 +687,7 @@ contains
                                      state, &
                                      dt, &
                                      current_time, &
+                                     have_dual, &
                                      this_is_dual)
       
       !!< Initialise the Darcy IMPES type from options and state
@@ -688,6 +696,7 @@ contains
       type(state_type),       dimension(:), target, intent(inout) :: state
       real,                                         intent(in)    :: dt
       real,                                         intent(in)    :: current_time
+      logical ,                                     intent(in)    :: have_dual
       logical ,                                     intent(in)    :: this_is_dual
       
       ! Local variables
@@ -794,8 +803,16 @@ contains
       ! Determine the pressure matrix sparsity
       di%sparsity_pmesh_pmesh => get_csr_sparsity_firstorder(di%state(1), di%pressure_mesh, di%pressure_mesh)
       
-      ! Allocate the matrix and lhs and rhs to use for saturations
+      ! Allocate the matrix and lhs and rhs to use for pressure, saturations and generic coupled fields
       call allocate(di%matrix, di%sparsity_pmesh_pmesh)
+      ! Only allocate the pressure matrix for the prime di call here
+      if (.not. this_is_dual) then
+         if (have_dual) then
+            call allocate(di%pressure_matrix, di%sparsity_pmesh_pmesh, blocks=(/2,2/), name ='PressureMatrix')
+         else
+            call allocate(di%pressure_matrix, di%sparsity_pmesh_pmesh, blocks=(/1,1/), name ='PressureMatrix')      
+         end if
+      end if
       call allocate(di%lhs, di%pressure_mesh)
       call allocate(di%rhs, di%pressure_mesh)
       call allocate(di%rhs_full, di%pressure_mesh)
@@ -1559,6 +1576,7 @@ contains
       call deallocate(di%positions_pressure_mesh)
       nullify(di%sparsity_pmesh_pmesh)
       call deallocate(di%matrix)
+      call deallocate(di%pressure_matrix)
       call deallocate(di%lhs)
       call deallocate(di%rhs)
       call deallocate(di%rhs_full)
@@ -1736,6 +1754,7 @@ contains
                                                     state, &
                                                     dt, &
                                                     current_time, &
+                                                    have_dual, &
                                                     this_is_dual)
       
       !!< Update the Darcy IMPES data post spatial adapt
@@ -1744,6 +1763,7 @@ contains
       type(state_type),       dimension(:), target, intent(inout) :: state
       real,                                         intent(in)    :: dt
       real,                                         intent(in)    :: current_time
+      logical,                                      intent(in)    :: have_dual  
       logical,                                      intent(in)    :: this_is_dual  
         
       ewrite(1,*) 'Update Darcy IMPES data post spatial adapt'
@@ -1757,7 +1777,8 @@ contains
                                   state, &
                                   dt, &
                                   current_time, &
-                                  this_is_dual)
+                                  this_is_dual, &
+                                  have_dual)
       
       ewrite(1,*) 'Finished updating Darcy IMPES data post spatial adapt'
       

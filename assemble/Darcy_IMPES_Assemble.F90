@@ -34,6 +34,7 @@ module darcy_impes_assemble_module
    use elements
    use sparse_tools
    use fields
+   use sparse_tools_petsc
    !
    use field_derivatives
    use cv_shape_functions
@@ -235,21 +236,22 @@ module darcy_impes_assemble_module
       real               :: gravity_magnitude
       type(vector_field) :: gravity
       ! *** Fields allocated here used in assemble algorithm ***
-      type(vector_field) :: positions_pressure_mesh
-      type(csr_matrix)   :: matrix
-      type(scalar_field) :: lhs
-      type(scalar_field) :: rhs
-      type(scalar_field) :: rhs_full
-      type(scalar_field) :: rhs_high_resolution
-      type(scalar_field) :: inverse_cv_mass_pressure_mesh
-      type(scalar_field) :: cv_mass_pressure_mesh_with_source
-      type(scalar_field) :: cv_mass_pressure_mesh_with_porosity   
-      type(scalar_field) :: cv_mass_pressure_mesh_with_old_porosity 
-      type(scalar_field) :: inverse_cv_sa_pressure_mesh
-      type(scalar_field) :: modified_relative_permeability
+      type(vector_field)     :: positions_pressure_mesh
+      type(csr_matrix)       :: matrix
+      type(petsc_csr_matrix) :: pressure_matrix
+      type(scalar_field)     :: lhs
+      type(scalar_field)     :: rhs
+      type(scalar_field)     :: rhs_full
+      type(scalar_field)     :: rhs_high_resolution
+      type(scalar_field)     :: inverse_cv_mass_pressure_mesh
+      type(scalar_field)     :: cv_mass_pressure_mesh_with_source
+      type(scalar_field)     :: cv_mass_pressure_mesh_with_porosity   
+      type(scalar_field)     :: cv_mass_pressure_mesh_with_old_porosity 
+      type(scalar_field)     :: inverse_cv_sa_pressure_mesh
+      type(scalar_field)     :: modified_relative_permeability
       type(scalar_field), pointer :: constant_zero_sfield_pmesh
       type(scalar_field_pointer), dimension(:), pointer :: old_saturation_subcycle
-      
+      ! ***** coupling field associated with DUAL model *****
       type(scalar_field) :: cv_mass_pressure_mesh_with_lambda_dual
       ! *** Data associated with v, pressure and sfield BC allocated here ***
       type(mesh_type)                          :: bc_surface_mesh

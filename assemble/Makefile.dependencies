@@ -182,8 +182,8 @@ Darcy_IMPES_Assemble.o ../include/darcy_impes_assemble_module.mod: \
    ../include/petsc_solve_state_module.mod ../include/porous_media.mod \
    ../include/quadrature.mod ../include/signal_vars.mod \
    ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
-   ../include/spud.mod ../include/state_module.mod \
-   ../include/transform_elements.mod
+   ../include/sparse_tools_petsc.mod ../include/spud.mod \
+   ../include/state_module.mod ../include/transform_elements.mod
 
 ../include/diagnostic_children.mod: Diagnostic_Children.o
 	@true
