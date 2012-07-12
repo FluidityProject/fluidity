@@ -116,6 +116,17 @@ def transform_vector_sphericalPolar_2_lon_lat_rad(vector):
     transformed_Vector = sp.dot(transformationMatrix, sp.array(vector))
     return transformed_Vector
 
+def transform_vector_lon_lat_rad_2_sphericalPolar(vector):
+    '''Function transforming the components of a vector from a zonal-meridional-radial basis to a spherical-polar basis.'''
+    import scipy as sp
+    #The requested transformation is just a reflection followed by a change in the order
+    # of the components in order to get a right-handed system.
+    transformationMatrix = sp.array([[ 0.0, 0.0, 1.0 ],\
+                                     [ 0.0,-1.0, 0.0 ],\
+                                     [ 1.0, 0.0, 0.0 ]])
+    transformed_Vector = sp.dot(transformationMatrix, sp.array(vector))
+    return transformed_Vector
+
 def transform_tensor_sphericalPolar_2_lon_lat_rad(tensor):
     '''Function transforming the components of a tensor from a spherical-polar basis to a zonal-meridional-radial basis.'''
     import scipy as sp
@@ -124,5 +135,16 @@ def transform_tensor_sphericalPolar_2_lon_lat_rad(tensor):
     transformationMatrix = sp.array([[ 0.0, 0.0, 1.0 ],\
                                      [ 0.0,-1.0, 0.0 ],\
                                      [ 1.0, 0.0, 0.0 ]])
-    transformed_Vector = sp.dot(sp.dot(transformationMatrix, sp.array(tensor)), transformationMatrix)
-    return transformed_Vector
+    transformed_Tensor = sp.dot(sp.dot(transformationMatrix, sp.array(tensor)), transformationMatrix)
+    return transformed_Tensor
+
+def transform_tensor_lon_lat_rad_2_sphericalPolar(tensor):
+    '''Function transforming the components of a tensor from a zonal-meridional-radial basis to a spherical-polar basis.'''
+    import scipy as sp
+    #The requested transformation is just a reflection followed by a change in the order
+    # of the components in order to get a right-handed system.
+    transformationMatrix = sp.array([[ 0.0, 0.0, 1.0 ],\
+                                     [ 0.0,-1.0, 0.0 ],\
+                                     [ 1.0, 0.0, 0.0 ]])
+    transformed_Tensor = sp.dot(sp.dot(transformationMatrix, sp.array(tensor)), transformationMatrix)
+    return transformed_Tensor
