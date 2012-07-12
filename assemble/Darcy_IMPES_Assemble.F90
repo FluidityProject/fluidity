@@ -247,6 +247,8 @@ module darcy_impes_assemble_module
       type(scalar_field) :: modified_relative_permeability
       type(scalar_field), pointer :: constant_zero_sfield_pmesh
       type(scalar_field_pointer), dimension(:), pointer :: old_saturation_subcycle
+      
+      type(scalar_field) :: cv_mass_pressure_mesh_with_lambda_dual
       ! *** Data associated with v, pressure and sfield BC allocated here ***
       type(mesh_type)                          :: bc_surface_mesh
       type(scalar_field)                       :: v_bc_value
@@ -351,12 +353,14 @@ module darcy_impes_assemble_module
 
 ! ----------------------------------------------------------------------------
 
-   subroutine darcy_impes_assemble_and_solve(di)
+   subroutine darcy_impes_assemble_and_solve(di, di_dual, have_dual)
       
       !!< Assemble and solve the Darcy equations using an CIMPESS algorithm
       !!< which is a modification of the IMPES to include consistent subcycling.
       
       type(darcy_impes_type), intent(inout) :: di
+      type(darcy_impes_type), intent(inout) :: di_dual
+      logical ,               intent(in)    :: have_dual      
       
       ! local variables
       logical :: form_new_subcycle_relperm_face_values
@@ -380,7 +384,7 @@ module darcy_impes_assemble_module
       end if
             
       ! Assemble and solve the phase pressures
-      call darcy_impes_assemble_and_solve_phase_pressures(di)
+      call darcy_impes_assemble_and_solve_phase_pressures(di, di_dual, have_dual)
             
       ! Calculate the gradient pressures 
       call darcy_impes_calculate_gradient_pressures(di)
@@ -421,7 +425,7 @@ module darcy_impes_assemble_module
 
 ! ----------------------------------------------------------------------------
 
-   subroutine darcy_impes_assemble_and_solve_phase_pressures(di)
+   subroutine darcy_impes_assemble_and_solve_phase_pressures(di, di_dual, have_dual)
       
       !!< Assemble and solve the phase pressures. The first phase pressure 
       !!< is solved via a matrix equation (if prognostic) and the other
@@ -429,9 +433,11 @@ module darcy_impes_assemble_module
       !!< and their own capilliary pressures
       
       type(darcy_impes_type), intent(inout) :: di
+      type(darcy_impes_type), intent(inout) :: di_dual
+      logical ,               intent(in)    :: have_dual  
       
       ! Assemble and solve the first phase pressure if it is prognostic
-      if (di%first_phase_pressure_prognostic) call darcy_impes_assemble_and_solve_first_phase_pressure(di)
+      if (di%first_phase_pressure_prognostic) call darcy_impes_assemble_and_solve_first_phase_pressure(di, di_dual, have_dual)
       
       ! Calculate the non first phase pressure's
       call darcy_impes_calculate_non_first_phase_pressures(di)       
@@ -443,7 +449,7 @@ module darcy_impes_assemble_module
 
 ! ----------------------------------------------------------------------------
 
-   subroutine darcy_impes_assemble_and_solve_first_phase_pressure(di)
+   subroutine darcy_impes_assemble_and_solve_first_phase_pressure(di, di_dual, have_dual)
       
       !!< Assemble and solve the first phase pressure. A source is included 
       !!< due to the capilliary pressures of non first phases as well as gravity 
@@ -451,6 +457,8 @@ module darcy_impes_assemble_module
       !!< Face values for relative permeability and density have already been evaluated.
       
       type(darcy_impes_type), intent(inout) :: di
+      type(darcy_impes_type), intent(inout) :: di_dual
+      logical ,               intent(in)    :: have_dual  
       
       ! local variables
       integer :: p, vele, sele, iloc, oloc, jloc, face, gi, ggi
@@ -537,6 +545,10 @@ module darcy_impes_assemble_module
          call addto(di%rhs, di%cv_mass_pressure_mesh_with_source)
       
       end do src_phase_loop
+      
+      if (have_dual) then
+         call compute_cv_mass(di_dual%positions, di_dual%cv_mass_pressure_mesh_with_lambda_dual, di_dual%transmissibility_lambda_dual)
+      end if
                   
       ewrite(1,*) 'Add rate of change of porosity to global continuity equation'
       

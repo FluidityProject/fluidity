@@ -415,8 +415,8 @@ program Darcy_IMPES
          call darcy_impes_calculate_relperm_den_first_face_values(di)
          
          ! *** Solve the Darcy equations using IMPES ***
-         call darcy_impes_assemble_and_solve(di)
-
+         call darcy_impes_assemble_and_solve(di, di_dual, have_dual)
+          
          ! calculate generic diagnostics - DO NOT ADD 'calculate_diagnostic_variables'
          call calculate_diagnostic_variables_new(di%state, exclude_nonrecalculated = .true.)
          
@@ -616,10 +616,10 @@ program Darcy_IMPES
    
    ! ***** Finalise dual permeability model *****
    if (have_dual) then
-      call darcy_impes_finalise(di_dual)
+      call darcy_impes_finalise(di_dual, this_is_dual = .true.)
    end if
    ! *** Finalise darcy impes variables ***
-   call darcy_impes_finalise(di)
+   call darcy_impes_finalise(di, this_is_dual = .false.)
     
    ! Deallocate state
    do i = 1, size(state)
@@ -795,6 +795,10 @@ contains
       call allocate(di%cv_mass_pressure_mesh_with_porosity, di%pressure_mesh)
       call allocate(di%cv_mass_pressure_mesh_with_old_porosity, di%pressure_mesh)
       call allocate(di%inverse_cv_sa_pressure_mesh, di%pressure_mesh)
+      
+      if (this_is_dual) then
+         call allocate(di%cv_mass_pressure_mesh_with_lambda_dual, di%pressure_mesh)
+      end if
       
       ! Allocate a field that is always zero on the pressure mesh to be pointed 
       ! at by capilliary pressure and saturation source if not required.
@@ -1475,12 +1479,13 @@ contains
 
 ! ----------------------------------------------------------------------------
    
-   subroutine darcy_impes_finalise(di)
+   subroutine darcy_impes_finalise(di, this_is_dual)
       
       !!< Finalise (ie deallocate) the Darcy IMPES data
       
       type(darcy_impes_type), intent(inout) :: di
-      
+      logical,                intent(in)    :: this_is_dual
+            
       ! Deallocate, nullify or zero Darcy IMPES data
       !  - pointers to data in state are nullified
       !  - objects with memory only in darcy_impes_type are deallocated
@@ -1548,10 +1553,14 @@ contains
       call deallocate(di%rhs)
       call deallocate(di%rhs_full)
       call deallocate(di%rhs_high_resolution)
-      call deallocate(di%cv_mass_pressure_mesh_with_source)
+      call deallocate(di%cv_mass_pressure_mesh_with_source)     
       call deallocate(di%cv_mass_pressure_mesh_with_porosity)
       call deallocate(di%cv_mass_pressure_mesh_with_old_porosity)
       call deallocate(di%inverse_cv_sa_pressure_mesh)
+      
+      if (this_is_dual) then
+         call deallocate(di%cv_mass_pressure_mesh_with_lambda_dual)
+      end if
 
       call deallocate(di%constant_zero_sfield_pmesh)
       deallocate(di%constant_zero_sfield_pmesh)
@@ -1732,7 +1741,7 @@ contains
       ! ALL THE IMPORTANT SOLUTION DATA IS IN STATE
       ! WHICH IS NOT DEALLOCATED IN THE FOLLOWING PROCEDURE
       
-      call darcy_impes_finalise(di)
+      call darcy_impes_finalise(di, this_is_dual)
             
       call darcy_impes_initialise(di, &
                                   state, &
