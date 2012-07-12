@@ -155,7 +155,9 @@ module global_parameters
   logical :: running_adjoint = .false.
 
   !! When on-the-sphere, the planet radius is needed.
-  real :: surface_radius
+  ! The variable is initiliased as unity, to avoid garbage
+  ! being passed around.
+  real :: surface_radius = 1.0
 
   ! Colouring "enum".  These can't be in the colouring module due to circular dependencies
   integer, parameter :: COLOURING_CG1 = 1
