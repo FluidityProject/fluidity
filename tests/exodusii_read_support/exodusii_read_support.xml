@@ -1,0 +1,54 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>Read support for exodusii</name>
+  <owner userid="ffm10"/>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity exodus_support_test_2d_with_sideset.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name = "solvers_converged" language = "python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files 
+    </variable>
+    <variable name="ElapsedTime_ExodusII_2D_with_sideset" language="python">from fluidity_tools import stat_parser
+s = stat_parser("exodus_support_test_2d_with_sideset.stat")
+ElapsedTime_ExodusII_2D_with_sideset=s["ElapsedTime"]["value"]
+    </variable>
+    <variable name="NumberNodes_ExodusII_2D_with_sideset" language="python">from fluidity_tools import stat_parser
+s = stat_parser("exodus_support_test_2d_with_sideset.stat")
+NumberNodes_ExodusII_2D_with_sideset=s["CoordinateMesh"]["nodes"]
+    </variable>
+    <variable name="NumberElements_ExodusII_2D_with_sideset" language="python">from fluidity_tools import stat_parser
+s = stat_parser("exodus_support_test_2d_with_sideset.stat")
+NumberElements_ExodusII_2D_with_sideset=s["CoordinateMesh"]["elements"]
+    </variable>
+    <variable name="NumberSurfaceElements_ExodusII_2D_with_sideset" language="python">from fluidity_tools import stat_parser
+s = stat_parser("exodus_support_test_2d_with_sideset.stat")
+NumberSurfaceElements_ExodusII_2D_with_sideset=s["CoordinateMesh"]["surface_elements"]
+    </variable>
+    <variable name="BoundaryCondition_ExodusII_2D_with_sideset" language="python">from fluidity_tools import stat_parser
+s = stat_parser("exodus_support_test_2d_with_sideset.stat")
+BoundaryCondition_ExodusII_2D_with_sideset=s["Fluid"]["Velocity%magnitude"]["max"][0]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name = "Solvers converged" language = "python">
+assert(solvers_converged)
+    </test>
+    <test name = "2D/With sideset: Simulation completed" language = "python">
+import fluidity_tools
+fluidity_tools.compare_variable(ElapsedTime_ExodusII_2D_with_sideset[-1], 0.01, 1.0e-6)
+    </test>
+    <test name = "2D/With sideset: Nodes, elements, surface elements" language = "python">
+import fluidity_tools
+fluidity_tools.compare_variable(NumberNodes_ExodusII_2D_with_sideset[-1], 23, 1.0e-6)
+fluidity_tools.compare_variable(NumberElements_ExodusII_2D_with_sideset[-1], 30, 1.0e-6)
+fluidity_tools.compare_variable(NumberSurfaceElements_ExodusII_2D_with_sideset[-1], 14, 1.0e-6)
+    </test>
+    <test name = "2D/With sideset: Boundary condition" language = "python">
+import fluidity_tools
+fluidity_tools.compare_variable(BoundaryCondition_ExodusII_2D_with_sideset, 1, 1.0e-6)
+    </test>
+  </pass_tests>
+</testproblem>
