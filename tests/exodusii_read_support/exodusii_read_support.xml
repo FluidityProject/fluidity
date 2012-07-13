@@ -4,7 +4,9 @@
   <owner userid="ffm10"/>
   <problem_definition length="short" nprocs="1">
     <command_line>fluidity exodusii_read_support_2d_with_sideset.flml; 
-    fluidity exodusii_read_support_2d_without_sideset.flml</command_line>
+    fluidity exodusii_read_support_2d_without_sideset.flml;
+    fluidity exodusii_read_support_3d.flml;
+    </command_line>
   </problem_definition>
   <variables>
     <variable name = "solvers_converged" language = "python">
@@ -42,6 +44,15 @@ ElapsedTime_ExodusII_2D_without_sideset=s["ElapsedTime"]["value"]
 s = stat_parser("exodus_support_test_2d_without_sideset.stat")
 NumberNodes_ExodusII_2D_without_sideset=s["CoordinateMesh"]["nodes"]
     </variable>
+    <!-- Finally variables for a 3D mesh -->
+    <variable name="ElapsedTime_ExodusII_3D" language="python">from fluidity_tools import stat_parser
+s = stat_parser("exodus_support_test_3d.stat")
+ElapsedTime_ExodusII_3D=s["ElapsedTime"]["value"]
+    </variable>
+    <variable name="NumberNodes_ExodusII_3D" language="python">from fluidity_tools import stat_parser
+s = stat_parser("exodus_support_test_3d.stat")
+NumberNodes_ExodusII_3D=s["CoordinateMesh"]["nodes"]
+    </variable>
   </variables>
   <pass_tests>
     <test name = "Solvers converged" language = "python">
@@ -68,6 +79,14 @@ fluidity_tools.compare_variable(ElapsedTime_ExodusII_2D_without_sideset[-1], 0.0
     <test name = "2D/WithOUT sideset: Nodes" language = "python">
 import fluidity_tools
 fluidity_tools.compare_variable(NumberNodes_ExodusII_2D_without_sideset[-1], 47, 1.0e-6)
+    </test>
+    <test name = "3D: Simulation completed" language = "python">
+import fluidity_tools
+fluidity_tools.compare_variable(ElapsedTime_ExodusII_3D[-1], 0.01, 1.0e-6)
+    </test>
+    <test name = "3D: Nodes" language = "python">
+import fluidity_tools
+fluidity_tools.compare_variable(NumberNodes_ExodusII_3D[-1], 146, 1.0e-6)
     </test>
   </pass_tests>
 </testproblem>
