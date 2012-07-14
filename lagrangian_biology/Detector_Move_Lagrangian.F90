@@ -487,16 +487,6 @@ contains
                 else
                    call geometric_ray_tracing(xfield,detector,detector_list,new_owner,search_tolerance)
                 end if
-                detector%local_coords = local_coords(xfield,detector%element,detector%update_vector)
-
-                if (allocated(detector%ele_path)) deallocate(detector%ele_path)
-                allocate(detector%ele_path(detector%ele_path_list%length))
-                detector%ele_path = list2vector(detector%ele_path_list)
-
-                if (allocated(detector%ele_dist)) deallocate(detector%ele_dist)
-                allocate(detector%ele_dist(detector%ele_dist_list%length))
-                detector%ele_dist = list2vector(detector%ele_dist_list)
-
              else
                 FLExit('No lagrangian particle tracking method specified')
              end if
@@ -569,13 +559,27 @@ contains
           cycle
        end if
 
+
+       if (detector_list%tracking_method == GEOMETRIC_TRACKING) then
+          call profiler_tic(trim(detector_list%name)//"::movement::post-rt-lists")
+          if (allocated(detector%ele_path)) deallocate(detector%ele_path)
+          allocate(detector%ele_path(detector%ele_path_list%length))
+          detector%ele_path = list2vector(detector%ele_path_list)
+
+          if (allocated(detector%ele_dist)) deallocate(detector%ele_dist)
+          allocate(detector%ele_dist(detector%ele_dist_list%length))
+          detector%ele_dist = list2vector(detector%ele_dist_list)
+          call profiler_toc(trim(detector_list%name)//"::movement::post-rt-lists")
+
+          detector%ray_o = detector%update_vector
+
+          detector%local_coords = local_coords(xfield,detector%element,detector%update_vector)
+       end if
+
+
        if (minval(detector%local_coords) < -detector_list%search_tolerance) then
           ewrite(-1,*) "Detector", detector%id_number, ", in element", detector%element, " has local coordinates: ", detector%local_coords
           FLAbort("Negative local coordinate for lagrangian detector after tracking!")
-       end if
-
-       if (detector_list%tracking_method == GEOMETRIC_TRACKING) then
-          detector%ray_o = detector%update_vector
        end if
 
        detector => detector%next
@@ -724,8 +728,9 @@ contains
        ! exactly on a domain boundary, which is not periodic.
        ! In this case no next_face will be found and we can only exit the loop with -1
        if (ele_t == huge(1.0)) then
-          new_owner=-1
-          exit search_loop
+          ewrite(-1,*) "No new element found in RT tracking routine, update_vector:", detector%update_vector
+          ewrite(-1,*) "Most likely an agent ended its last timestep on a domain boundary!"
+          FLAbort("Could not determine next element in RT tracking!")
        end if
 
        if (ele_t < detector%target_distance + search_tolerance) then
@@ -994,53 +999,45 @@ contains
     real, intent(in) :: dt
 
     type(scalar_field), pointer :: diffusivity, subcycle_field
-    type(vector_field), pointer :: diffusivity_grad
     type(tensor_field), pointer :: diffusivity_hessian
     integer :: n, ele
     integer, dimension(:), pointer :: nodes
-    real :: subcycling_factor, max_dt
+    real :: scale_factor, subcycles
 
     ewrite(2,*) "In initialise_rw_subcycling"
 
-    call get_option(trim(option_path)//"/scalar_field::RandomWalkSubcycling/scale_factor", subcycling_factor)
+    call get_option(trim(option_path)//"/scalar_field::RandomWalkSubcycling/scale_factor", scale_factor)
     subcycle_field => extract_scalar_field(state, "RandomWalkSubcycling")
     call zero(subcycle_field)
 
     diffusivity => extract_scalar_field(state, "ScalarDiffusivity")
-    diffusivity_grad => extract_vector_field(state, "DiffusivityGradient")
     diffusivity_hessian => extract_tensor_field(state, "DiffusivityHessian")
 
     do ele=1, element_count(subcycle_field)
-       call element_rw_subcycling(ele, dt, xfield, diffusivity, diffusivity_grad, &
-               diffusivity_hessian, subcycling_factor, max_dt)
+       call element_rw_subcycling(ele, dt, scale_factor, subcycles)
        nodes => ele_nodes(subcycle_field, ele)
-       call addto(subcycle_field, ele, max_dt)
+       call addto(subcycle_field, ele, subcycles)
     end do
 
   contains
 
-    subroutine element_rw_subcycling(element,dt,xfield,diff_field,grad_field,hessian_field,scale_factor,subcycling)
+    subroutine element_rw_subcycling(element, dt, scale_factor, subcycles)
       integer, intent(in) :: element
-      type(scalar_field), pointer, intent(inout) :: diff_field
-      type(vector_field), pointer, intent(inout) :: xfield, grad_field
-      type(tensor_field), pointer, intent(inout) :: hessian_field
       real, intent(in) :: dt, scale_factor
-      real, intent(out) :: subcycling
+      real, intent(out) :: subcycles
 
       integer :: i, subc, local_subcycling
       real :: k0, d_z, min_z, max_z, min_dt
       real, dimension(xfield%mesh%shape%loc) :: coords
-      real, dimension(grad_field%mesh%shape%loc) :: k_grad
-      real, dimension(hessian_field%mesh%shape%loc) :: k_grad2
+      real, dimension(diffusivity_hessian%mesh%shape%loc) :: k_grad2
 
       real, dimension(xfield%dim) :: low_coord, high_coord
       integer, dimension(:), pointer :: picked_elements
       integer :: dim
 
       ! Calculate the vertical range for the criteria
-      k0 = maxval(abs(ele_val(diff_field, element)))
-      k_grad = ele_val(grad_field, grad_field%dim, element)
-      d_z = sqrt(6 * K0 * dt) + maxval(abs(k_grad)) * dt
+      k0 = maxval(abs(ele_val(diffusivity, element)))
+      d_z = sqrt(2 * k0 * dt)
 
       coords = ele_val(xfield, xfield%dim, element)
       min_z = minval(coords) - d_z
@@ -1060,7 +1057,7 @@ contains
       ! Now we have all elements in our range and we can find the maximum sub-cycle number
       subc = 1
       do i=1, size(picked_elements)
-         k_grad2 = ele_val(hessian_field, dim, dim, picked_elements(i))
+         k_grad2 = ele_val(diffusivity_hessian, dim, dim, picked_elements(i))
          k_grad2 = 1.0 / abs(k_grad2)
          min_dt = minval(k_grad2) / scale_factor
          local_subcycling = ceiling(dt/min_dt)
@@ -1070,7 +1067,7 @@ contains
       end do
 
       deallocate(picked_elements)
-      subcycling = real(subc)
+      subcycles = real(subc)
 
     end subroutine element_rw_subcycling
 
