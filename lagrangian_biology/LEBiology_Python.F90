@@ -7,6 +7,8 @@ module lebiology_python
   use detector_tools
   use detector_parallel
   use ieee_arithmetic, only: ieee_is_nan
+  use element_path_list, only: elepath_list => linked_list, &
+                               elepath_list_next => list_next
 
   implicit none
   
@@ -283,9 +285,9 @@ contains
 
     real, dimension(size(envfields)) :: envfield_vals
     real, dimension(size(foodfields)) :: foodfield_vals
-    real, dimension(:), allocatable :: foodval_ele
-    real :: path_total
+    real :: path_total, ele_integral, ele_volume
     real, dimension(size(agent%biology)) :: agent_state_copy
+    type(elepath_list), pointer :: path_ele
     integer :: f, v, e, stat
 
     agent_state_copy = agent%biology
@@ -299,23 +301,24 @@ contains
     ! Add food concentrations
     do f=1, size(foodfields)
 
-       if (fgroup%food_sets(1)%path_integrate .and. allocated(agent%ele_path)) then
+       if (fgroup%food_sets(1)%path_integrate .and. associated(agent%path_elements)) then
+          foodfield_vals(f) = 0.0
+          path_total = 0.0
+          path_ele => agent%path_elements
+          do while( associated(path_ele) )
+              ele_integral = integral_element(foodfields(f)%ptr, xfield, path_ele%data%ele)
+              ele_volume = element_volume(xfield, path_ele%data%ele)
+              foodfield_vals(f) = foodfield_vals(f) + path_ele%data%dist * ele_integral / ele_volume
+              path_total = path_total + path_ele%data%dist
 
-          ! Integrate along the path of the agent
-          allocate(foodval_ele(size(agent%ele_path)))
-          do e=1, size(agent%ele_path)
-             foodval_ele(e) = agent%ele_dist(e) * integral_element(foodfields(f)%ptr, xfield, agent%ele_path(e)) / element_volume(xfield, agent%ele_path(e))
+              path_ele => elepath_list_next(path_ele)
           end do
 
-          foodfield_vals(f) = sum(foodval_ele)
-          path_total = sum(agent%ele_dist)
           if (path_total > 0.0) then
              foodfield_vals(f) = foodfield_vals(f) / path_total
           else
              foodfield_vals(f) = integral_element(foodfields(f)%ptr, xfield, agent%element) / element_volume(xfield, agent%element)
           end if
-          deallocate(foodval_ele)
-
        else
           foodfield_vals(f) = integral_element(foodfields(f)%ptr, xfield, agent%element) / element_volume(xfield, agent%element)
        end if

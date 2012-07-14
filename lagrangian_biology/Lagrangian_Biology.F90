@@ -47,6 +47,8 @@ module lagrangian_biology
   use integer_hash_table_module
   use lagrangian_biology_pm
   use lebiology_python
+  use element_path_list, only: elepath_list => linked_list, &
+                               elepath_list_next => list_next
 
 implicit none
 
@@ -1093,7 +1095,7 @@ contains
 
              do v=1, size(fgroup%ivars_uptake)
                 ivar = fgroup%ivars_uptake(v)
-                if (fgroup%variables(ivar)%path_integration .and. allocated(agent%ele_path)) then
+                if (fgroup%variables(ivar)%path_integration .and. associated(agent%path_elements)) then
                    call integrate_along_path(uptake_diagfields(v)%ptr, xfield, agent, agent%biology(ivar) )
                 else
                    ele_volume = element_volume(xfield, agent%element)
@@ -1103,7 +1105,7 @@ contains
 
              do v=1, size(fgroup%ivars_release)
                 ivar = fgroup%ivars_release(v)
-                if (fgroup%variables(ivar)%path_integration .and. allocated(agent%ele_path)) then
+                if (fgroup%variables(ivar)%path_integration .and. associated(agent%path_elements)) then
                    call integrate_along_path(release_diagfields(v)%ptr, xfield, agent, agent%biology(ivar) )
                 else
                    ele_volume = element_volume(xfield, agent%element)
@@ -1144,6 +1146,7 @@ contains
     integer, dimension(:), pointer :: element_nodes
     real :: chemval, chemval_new, chem_integral, path_total, ele_volume, request
     real, dimension(1) :: depletion
+    type(elepath_list), pointer :: path_ele
 
     ! Exit if there are no uptake fields
     if (.not.associated(uptake_field_names)) return
@@ -1212,11 +1215,23 @@ contains
                       ingest_ind = fgroup%variables( fgroup%variables(j)%pool_index )%ingest_index
 
                       if (fgroup%variables(j)%path_integration) then
-                         path_total = sum(agent%ele_dist)
-                         do ele=1, size(agent%ele_path)
-                            depletion = ele_val(depletion_field, agent%ele_path(ele))
-                            agent%biology(ingest_ind) = agent%biology(ingest_ind) + depletion(1) * agent%biology(j) * agent%ele_dist(ele) / path_total
+                         ! First we need the total path length
+                         path_total = 0.0
+                         path_ele => agent%path_elements
+                         do while( associated(path_ele) )
+                            path_total = path_total + path_ele%data%dist
+
+                            path_ele => elepath_list_next(path_ele)
                          end do
+
+                         path_ele => agent%path_elements
+                         do while( associated(path_ele) )
+                            depletion = ele_val(depletion_field, path_ele%data%ele)
+                            agent%biology(ingest_ind) = agent%biology(ingest_ind) + depletion(1) * agent%biology(j) * path_ele%data%dist / path_total
+
+                            path_ele => elepath_list_next(path_ele)
+                         end do
+
                       else
                          depletion = ele_val(depletion_field, agent%element)
                          agent%biology(ingest_ind) = agent%biology(ingest_ind) + depletion(1) * agent%biology(j)
@@ -1305,6 +1320,7 @@ contains
     type(detector_type), pointer :: agent
     real :: conc, request, chem_conc, prop, old_size, path_total, ele_ingest_cells
     real, dimension(1) :: depletion
+    type(elepath_list), pointer :: path_ele
     integer :: i, c, fs, fg, fv, t, ele, ingest_ind, stage
 
     ewrite(2,*) "Lagrangian_biology: Handling ingestion"
@@ -1358,27 +1374,36 @@ contains
                    do while (associated(agent))
 
                       ! Integrate along the path of the agent
-                      if (fvariety%vrequest%path_integration .and. allocated(agent%ele_path)) then                
-                         path_total = sum(agent%ele_dist)
+                      if (fvariety%vrequest%path_integration .and. associated(agent%path_elements)) then                
+                         ! First we need the total path length
+                         path_total = 0.0
+                         path_ele => agent%path_elements
+                         do while( associated(path_ele) )
+                            path_total = path_total + path_ele%data%dist
+                            path_ele => elepath_list_next(path_ele)
+                         end do
 
                          agent%food_ingests(fv) = 0.0
-                         do ele=1, size(agent%ele_path)
-                            depletion = ele_val(depletion_field, agent%ele_path(ele))
-                            conc = integral_element(conc_field, xfield, agent%ele_path(ele)) 
+                         path_ele => agent%path_elements
+                         do while( associated(path_ele) )
+                            depletion = ele_val(depletion_field, path_ele%data%ele)
+                            conc = integral_element(conc_field, xfield, path_ele%data%ele) 
 
-                            if (conc / element_volume(xfield, agent%ele_path(ele)) >= agent%food_thresholds(fv)) then
-                               ele_ingest_cells = depletion(1) * (agent%ele_dist(ele) / path_total) * agent%food_requests(fv)
+                            if (conc / element_volume(xfield, path_ele%data%ele) >= agent%food_thresholds(fv)) then
+                               ele_ingest_cells = depletion(1) * (path_ele%data%dist / path_total) * agent%food_requests(fv)
                                agent%food_ingests(fv) = agent%food_ingests(fv) + ele_ingest_cells
 
                                ! Set ChemIngested pools
                                do c=1, size(fset%ingest_chem_inds)
                                   ingest_ind = fgroup%variables( fset%ingest_chem_inds(c) )%ingest_index
-                                  chem_conc = integral_element(prey_chem_fields(c)%ptr, xfield, agent%ele_path(ele))
+                                  chem_conc = integral_element(prey_chem_fields(c)%ptr, xfield, path_ele%data%ele)
                                   if (conc > 0.0) then
                                      agent%biology(ingest_ind) = agent%biology(ingest_ind) + ( chem_conc * (ele_ingest_cells / conc) )
                                   end if
                                end do
                             end if
+
+                            path_ele => elepath_list_next(path_ele)
                          end do
 
                       else
@@ -1465,7 +1490,7 @@ contains
           do v=1, vsize
              variety => fgroup%food_sets(1)%varieties(v)
 
-             if (variety%vrequest%path_integration .and. allocated(agent%ele_path)) then
+             if (variety%vrequest%path_integration .and. associated(agent%path_elements)) then
                 call integrate_along_path(frequest_fields(v)%ptr, xfield, agent, agent%food_requests(v), agent%food_thresholds(v), fthreshold_fields(v)%ptr)
              else
                 ele_volume = element_volume(xfield, agent%element)
@@ -1505,7 +1530,7 @@ contains
           do v=1, vsize
              variety => fgroup%food_sets(1)%varieties(v)
 
-             if (variety%vingest%path_integration .and. allocated(agent%ele_path)) then
+             if (variety%vingest%path_integration .and. associated(agent%path_elements)) then
                 call integrate_along_path(fingest_fields(v)%ptr, xfield, agent, agent%food_ingests(v))
              else
                 ele_volume = element_volume(xfield, agent%element)
@@ -1526,20 +1551,33 @@ contains
     type(scalar_field), pointer, intent(inout), optional :: concfield
 
     real :: path_total, quantity, ele_path_volume, ele_conc
-    integer :: ele
+    type(elepath_list), pointer :: path_ele
 
     ! Integrate along the path of the agent
-    if (allocated(agent%ele_path)) then                   
-       path_total = sum(agent%ele_dist)
+    if (associated(agent%path_elements)) then                   
+       ! First we need the total path length
+       path_total = 0.0
+       path_ele => agent%path_elements
+       do while( associated(path_ele) )
+          path_total = path_total + path_ele%data%dist
+
+          path_ele => elepath_list_next(path_ele)
+       end do
        quantity = agent_variable * agent%biology(BIOVAR_SIZE)
 
-       path_loop: do ele=1, size(agent%ele_path)
-          ele_path_volume = element_volume(xfield, agent%ele_path(ele))
+       path_ele => agent%path_elements       
+       path_loop: do while( associated(path_ele) )
+          ele_path_volume = element_volume(xfield, path_ele%data%ele)
           if (present(concfield) .and. present(threshold)) then
-             ele_conc = integral_element(concfield, xfield, agent%ele_path(ele)) / ele_path_volume
-             if (.not. ele_conc >= threshold) cycle path_loop
+             ele_conc = integral_element(concfield, xfield, path_ele%data%ele) / ele_path_volume
+             if (.not. ele_conc >= threshold) then
+                path_ele => elepath_list_next(path_ele)
+                cycle path_loop
+             end if
           end if
-          call addto(diagfield, agent%ele_path(ele), (agent%ele_dist(ele) / path_total) * (quantity / ele_path_volume))
+          call addto(diagfield, path_ele%data%ele, (path_ele%data%dist / path_total) * (quantity / ele_path_volume))
+
+          path_ele => elepath_list_next(path_ele)
        end do path_loop
     else
        FLAbort("Cannot integrate along path without a recorded path!")

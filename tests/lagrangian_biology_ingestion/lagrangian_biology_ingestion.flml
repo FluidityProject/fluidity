@@ -18,6 +18,22 @@
         </stat>
       </from_file>
     </mesh>
+    <mesh name="LEBiologyMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">0</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
+        <mesh_continuity>
+          <string_value>discontinuous</string_value>
+        </mesh_continuity>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
     <mesh name="DGMesh">
       <from_mesh>
         <mesh name="CoordinateMesh"/>
@@ -96,11 +112,13 @@
             <scalar_field name="Ensemble">
               <diagnostic>
                 <algorithm name="Internal" material_phase_support="multiple"/>
+                <mesh name="LEBiologyMesh"/>
                 <output/>
                 <stat/>
-                <detectors>
-                  <include_in_detectors/>
-                </detectors>
+                <do_not_recalculate/>
+                <galerkin_projection>
+                  <discontinuous/>
+                </galerkin_projection>
               </diagnostic>
               <stage_diagnostic/>
             </scalar_field>
@@ -109,12 +127,13 @@
             <scalar_field name="Particulate">
               <diagnostic>
                 <algorithm name="Internal" material_phase_support="multiple"/>
+                <mesh name="LEBiologyMesh"/>
                 <output/>
                 <stat/>
-                <detectors>
-                  <include_in_detectors/>
-                </detectors>
                 <do_not_recalculate/>
+                <galerkin_projection>
+                  <discontinuous/>
+                </galerkin_projection>
               </diagnostic>
               <stage_diagnostic/>
             </scalar_field>
@@ -167,11 +186,13 @@ def val(agent):
         <scalar_field name="Agents">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="LEBiologyMesh"/>
             <output/>
             <stat/>
-            <detectors>
-              <include_in_detectors/>
-            </detectors>
+            <do_not_recalculate/>
+            <galerkin_projection>
+              <discontinuous/>
+            </galerkin_projection>
           </diagnostic>
         </scalar_field>
       </functional_group>
@@ -182,11 +203,13 @@ def val(agent):
             <scalar_field name="Ensemble">
               <diagnostic>
                 <algorithm name="Internal" material_phase_support="multiple"/>
+                <mesh name="LEBiologyMesh"/>
                 <output/>
                 <stat/>
-                <detectors>
-                  <include_in_detectors/>
-                </detectors>
+                <do_not_recalculate/>
+                <galerkin_projection>
+                  <discontinuous/>
+                </galerkin_projection>
               </diagnostic>
               <stage_diagnostic/>
             </scalar_field>
@@ -195,23 +218,25 @@ def val(agent):
             <scalar_field name="Particulate">
               <diagnostic>
                 <algorithm name="Internal" material_phase_support="multiple"/>
+                <mesh name="LEBiologyMesh"/>
                 <output/>
                 <stat/>
-                <detectors>
-                  <include_in_detectors/>
-                </detectors>
                 <do_not_recalculate/>
+                <galerkin_projection>
+                  <discontinuous/>
+                </galerkin_projection>
               </diagnostic>
             </scalar_field>
             <scalar_field name="Ingested">
               <diagnostic>
                 <algorithm name="Internal" material_phase_support="multiple"/>
+                <mesh name="LEBiologyMesh"/>
                 <output/>
                 <stat/>
-                <detectors>
-                  <include_in_detectors/>
-                </detectors>
                 <do_not_recalculate/>
+                <galerkin_projection>
+                  <discontinuous/>
+                </galerkin_projection>
               </diagnostic>
             </scalar_field>
             <include_in_io/>
@@ -280,21 +305,25 @@ def val(agent, env, dt):
           <scalar_field name="Concentration">
             <diagnostic>
               <algorithm name="Internal" material_phase_support="multiple"/>
+              <mesh name="LEBiologyMesh"/>
               <output/>
               <stat/>
-              <detectors>
-                <include_in_detectors/>
-              </detectors>
+              <do_not_recalculate/>
+              <galerkin_projection>
+                <discontinuous/>
+              </galerkin_projection>
             </diagnostic>
           </scalar_field>
           <scalar_field name="Request">
             <diagnostic>
               <algorithm name="Internal" material_phase_support="multiple"/>
+              <mesh name="LEBiologyMesh"/>
               <output/>
               <stat/>
-              <detectors>
-                <include_in_detectors/>
-              </detectors>
+              <do_not_recalculate/>
+              <galerkin_projection>
+                <discontinuous/>
+              </galerkin_projection>
             </diagnostic>
             <stage_diagnostic/>
             <include_in_io/>
@@ -302,21 +331,25 @@ def val(agent, env, dt):
           <scalar_field name="Depletion">
             <diagnostic>
               <algorithm name="Internal" material_phase_support="multiple"/>
+              <mesh name="LEBiologyMesh"/>
               <output/>
               <stat/>
-              <detectors>
-                <include_in_detectors/>
-              </detectors>
+              <do_not_recalculate/>
+              <galerkin_projection>
+                <discontinuous/>
+              </galerkin_projection>
             </diagnostic>
           </scalar_field>
           <scalar_field name="IngestedCells">
             <diagnostic>
               <algorithm name="Internal" material_phase_support="multiple"/>
+              <mesh name="LEBiologyMesh"/>
               <output/>
               <stat/>
-              <detectors>
-                <include_in_detectors/>
-              </detectors>
+              <do_not_recalculate/>
+              <galerkin_projection>
+                <discontinuous/>
+              </galerkin_projection>
             </diagnostic>
             <include_in_io/>
           </scalar_field>
@@ -326,11 +359,13 @@ def val(agent, env, dt):
         <scalar_field name="Agents">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="LEBiologyMesh"/>
             <output/>
             <stat/>
-            <detectors>
-              <include_in_detectors/>
-            </detectors>
+            <do_not_recalculate/>
+            <galerkin_projection>
+              <discontinuous/>
+            </galerkin_projection>
           </diagnostic>
         </scalar_field>
       </functional_group>

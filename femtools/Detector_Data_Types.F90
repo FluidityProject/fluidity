@@ -27,12 +27,25 @@
 
 #include "fdebug.h"
 
-module detector_data_types
+module path_element_module
+  type path_element
+     integer :: ele
+     real :: dist
+  end type path_element
+end module path_element_module
 
+module element_path_list
+  use path_element_module, LIST_DATA => path_element
+
+  include "../flibs/linkedlist.f90"
+end module element_path_list
+
+module detector_data_types
   use fldebug
   use global_parameters, only : FIELD_NAME_LEN, OPTION_PATH_LEN, PYTHON_FUNC_LEN
   use linked_lists
   use integer_hash_table_module
+  use element_path_list, only: ele_path_list => linked_list
   
   implicit none
   
@@ -90,10 +103,7 @@ module detector_data_types
      integer :: current_face
 
      ! Element list and distances for path integration
-     type(ilist) :: ele_path_list
-     integer, dimension(:), allocatable :: ele_path
-     type(rlist) :: ele_dist_list
-     real, dimension(:), allocatable :: ele_dist
+     type(ele_path_list), pointer :: path_elements
 
      !! Biology variables
      real, dimension(:), allocatable :: biology

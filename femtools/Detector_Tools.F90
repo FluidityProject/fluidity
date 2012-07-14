@@ -33,7 +33,7 @@ module detector_tools
   use detector_data_types
   use fields
   use integer_hash_table_module
-  
+  use element_path_list, only: elepath_list_destroy => list_destroy
   implicit none
   
   private
@@ -105,6 +105,8 @@ contains
     allocate(new_detector%local_coords(local_coord_count))
       
     assert(associated(new_detector))
+
+    new_detector%path_elements => null()
       
   end subroutine detector_allocate_from_params
     
@@ -147,17 +149,14 @@ contains
        if(allocated(detector%food_ingests)) then
           deallocate(detector%food_ingests)
        end if
-       if(allocated(detector%ele_path)) then
-          deallocate(detector%ele_path)
-       end if
-       if(allocated(detector%ele_dist)) then
-          deallocate(detector%ele_dist)
-       end if
        if(allocated(detector%ray_o)) then
           deallocate(detector%ray_o)
        end if
        if(allocated(detector%ray_d)) then
           deallocate(detector%ray_d)
+       end if
+       if (associated(detector%path_elements)) then
+          call elepath_list_destroy(detector%path_elements)
        end if
 
        deallocate(detector)

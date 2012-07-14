@@ -221,6 +221,8 @@ contains
        detector%name=trim(int2str(detector%id_number))
     end if
 
+    detector%path_elements => null()
+
   end subroutine create_single_detector
 
   subroutine write_detector_header(state, detector_list)

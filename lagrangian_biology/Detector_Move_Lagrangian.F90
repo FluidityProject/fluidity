@@ -47,6 +47,10 @@ module detector_move_lagrangian
   use parallel_fields, only: element_owner
   use ieee_arithmetic, only: ieee_is_nan
   use lebiology_python
+  use path_element_module
+  use element_path_list, only: elepath_list_insert => list_insert, &
+                               elepath_list_create => list_create, &
+                               elepath_list_destroy => list_destroy
 
   implicit none
   
@@ -224,8 +228,10 @@ contains
              if (allocated(detector%ray_d)) deallocate(detector%ray_d)
              allocate(detector%ray_d(xfield%dim))
 
-             call flush_list(detector%ele_path_list)
-             call flush_list(detector%ele_dist_list)
+             if (associated(detector%path_elements)) then
+                call elepath_list_destroy(detector%path_elements)
+                detector%path_elements => null()
+             end if
           end if
 
        end if
@@ -351,9 +357,6 @@ contains
           if(allocated(detector%ray_d)) then
              deallocate(detector%ray_d)
           end if
-
-          call flush_list(detector%ele_path_list)
-          call flush_list(detector%ele_dist_list)
        end if
        detector => detector%next
     end do
@@ -494,7 +497,6 @@ contains
              if (new_owner==-1) then
                 if (detector_list%reflect_on_boundary) then
                    ! We reflect the detector path at the face we just went through
-
                    if (detector_list%tracking_method == GEOMETRIC_TRACKING) then
                       call reflect_on_boundary(xfield,detector%update_vector,detector%element, face=detector%current_face)
 
@@ -559,23 +561,11 @@ contains
           cycle
        end if
 
-
        if (detector_list%tracking_method == GEOMETRIC_TRACKING) then
-          call profiler_tic(trim(detector_list%name)//"::movement::post-rt-lists")
-          if (allocated(detector%ele_path)) deallocate(detector%ele_path)
-          allocate(detector%ele_path(detector%ele_path_list%length))
-          detector%ele_path = list2vector(detector%ele_path_list)
-
-          if (allocated(detector%ele_dist)) deallocate(detector%ele_dist)
-          allocate(detector%ele_dist(detector%ele_dist_list%length))
-          detector%ele_dist = list2vector(detector%ele_dist_list)
-          call profiler_toc(trim(detector_list%name)//"::movement::post-rt-lists")
-
           detector%ray_o = detector%update_vector
 
           detector%local_coords = local_coords(xfield,detector%element,detector%update_vector)
        end if
-
 
        if (minval(detector%local_coords) < -detector_list%search_tolerance) then
           ewrite(-1,*) "Detector", detector%id_number, ", in element", detector%element, " has local coordinates: ", detector%local_coords
@@ -700,14 +690,13 @@ contains
     integer :: i, neigh_face, next_face, boundary_id, py_map_index
     integer, dimension(:), pointer :: face_list
     real, dimension(xfield%dim,1):: old_position, new_position
+    type(path_element) :: path_ele
 
     ! Exit if r_d is zero
     if (detector%target_distance < search_tolerance) then
        new_owner=getprocno()
        return
     end if
-
-    call insert(detector%ele_path_list, detector%element)
 
     search_loop: do 
 
@@ -739,17 +728,21 @@ contains
           ! Store current face, in case we need it for reflection
           detector%current_face = next_face
 
-          ! Record our next t and the distance covered
-          call insert(detector%ele_dist_list, ele_t - detector%current_t)
+          ! Record the elements along the path travelled
+          ! and the distance travelled within them
+          path_ele%ele = detector%element
+          path_ele%dist = ele_t - detector%current_t
+          if (associated(detector%path_elements)) then
+             call elepath_list_insert( detector%path_elements, path_ele )
+          else
+             call elepath_list_create( detector%path_elements, path_ele )
+          end if
           detector%current_t = ele_t
 
           if (neigh_face /= next_face) then
              ! Recurse on the next element
              detector%element = face_ele(xfield, neigh_face)
 
-             ! Record the elements along the path travelled
-             ! and the distance travelled within them
-             call insert(detector%ele_path_list, detector%element)
           else
              ! If we're tracking on a periodic mesh...
              !  * we find out which boundary we have hit
@@ -775,14 +768,8 @@ contains
 
                 neigh_face = face_neigh(periodic_mesh, next_face)
                 if (neigh_face /= next_face) then
-
                    ! Recurse on the next element
                    detector%element = face_ele(xfield, neigh_face)
-
-                   ! Record the elements along the path travelled
-                   ! and the distance travelled within them
-                   call insert(detector%ele_path_list, detector%element)
-
                    cycle search_loop
                 end if
              end if
@@ -799,7 +786,13 @@ contains
           end if
        else
           ! The arrival point is in this element, we're done
-          call insert(detector%ele_dist_list, detector%target_distance - detector%current_t)
+          path_ele%ele = detector%element
+          path_ele%dist = detector%target_distance - detector%current_t
+          if (associated(detector%path_elements)) then
+             call elepath_list_insert( detector%path_elements, path_ele )
+          else
+             call elepath_list_create( detector%path_elements, path_ele )
+          end if
 
           new_owner=getprocno()
           exit search_loop
