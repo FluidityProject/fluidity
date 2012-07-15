@@ -811,11 +811,10 @@ contains
       real :: d, v_n, v_d
       integer, dimension(face_loc(xfield, face)) :: face_nodes
       real, dimension(xfield%dim,xfield%mesh%faces%shape%ngi) :: facet_normals
-      real, dimension(xfield%mesh%faces%shape%ngi) :: detwei_f
       real, dimension(xfield%dim) :: face_normal, face_node_val
 
       ! Get face normal
-      call transform_facet_to_physical(xfield, face, detwei_f, facet_normals)
+      call transform_facet_to_physical(xfield, face, normal=facet_normals)
       face_normal = facet_normals(:,1)
 
       ! Establish d using a point on the plane
@@ -843,7 +842,6 @@ contains
     real, dimension(mesh_dim(xfield)+1) :: arrival_local_coords
     integer :: i, neigh, neigh_face
     real, dimension(xfield%dim,xfield%mesh%faces%shape%ngi) :: facet_normals
-    real, dimension(xfield%mesh%faces%shape%ngi) :: detwei_f
     integer, dimension(:), pointer :: neigh_list
     integer, dimension(:), allocatable :: face_nodes 
     real, dimension(xfield%dim) :: face_node_val, face_normal
@@ -865,7 +863,7 @@ contains
     face_node_val=node_val(xfield,face_nodes(1))
 
     ! Now we get the face normal from the transform (detwei_f is a dummy)
-    call transform_facet_to_physical(xfield, neigh_face, detwei_f, facet_normals)
+    call transform_facet_to_physical(xfield, neigh_face, normal=facet_normals)
     face_normal = facet_normals(:,1)
 
     ! p = - n . x_f / sqrt(a**2 + b**2 + c**2), where x_f is a point of the face
