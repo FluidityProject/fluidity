@@ -411,15 +411,16 @@
           <control_volumes/>
         </temporal_discretisation>
         <solver>
-          <iterative_method name="gmres">
-            <restart>
-              <integer_value rank="0">30</integer_value>
-            </restart>
-          </iterative_method>
-          <preconditioner name="sor"/>
+          <iterative_method name="cg"/>
+          <preconditioner name="hypre">
+            <hypre_type name="boomeramg"/>
+          </preconditioner>
           <relative_error>
-            <real_value rank="0">1.0e-7</real_value>
+            <real_value rank="0">1.0e-8</real_value>
           </relative_error>
+          <absolute_error>
+            <real_value rank="0">1.0e-10</real_value>
+          </absolute_error>
           <max_iterations>
             <integer_value rank="0">500</integer_value>
           </max_iterations>
@@ -430,7 +431,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value rank="0">0.0</real_value>
+            <real_value rank="0">0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="inlet">
@@ -439,7 +440,7 @@
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">1.0</real_value>
+              <real_value rank="0">1</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -456,38 +457,6 @@
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
-    </scalar_field>
-    <scalar_field name="GalerkinProjection" rank="0">
-      <diagnostic>
-        <algorithm legacy="true" name="Internal" material_phase_support="multiple"/>
-        <source_field_name>PhaseVolumeFraction</source_field_name>
-        <mesh name="CoordinateMesh"/>
-        <solver>
-          <iterative_method name="cg"/>
-          <preconditioner name="sor"/>
-          <relative_error>
-            <real_value rank="0">1.0e-7</real_value>
-          </relative_error>
-          <max_iterations>
-            <integer_value rank="0">500</integer_value>
-          </max_iterations>
-          <never_ignore_solver_failures/>
-          <diagnostics>
-            <monitors/>
-          </diagnostics>
-        </solver>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
     </scalar_field>
     <multiphase_properties>
       <relperm_type>
@@ -711,15 +680,16 @@
           <control_volumes/>
         </temporal_discretisation>
         <solver>
-          <iterative_method name="gmres">
-            <restart>
-              <integer_value rank="0">30</integer_value>
-            </restart>
-          </iterative_method>
-          <preconditioner name="sor"/>
+          <iterative_method name="cg"/>
+          <preconditioner name="hypre">
+            <hypre_type name="boomeramg"/>
+          </preconditioner>
           <relative_error>
-            <real_value rank="0">1.0e-7</real_value>
+            <real_value rank="0">1.0e-8</real_value>
           </relative_error>
+          <absolute_error>
+            <real_value rank="0">1.0e-10</real_value>
+          </absolute_error>
           <max_iterations>
             <integer_value rank="0">500</integer_value>
           </max_iterations>
@@ -730,7 +700,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value rank="0">1.0</real_value>
+            <real_value rank="0">1</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="inlet">

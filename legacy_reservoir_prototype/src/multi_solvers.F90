@@ -185,9 +185,9 @@ contains
     REAL ERROR, RELAX, RELAX_DIAABS, RELAX_DIA
     INTEGER N_LIN_ITS, NGL_ITS
 
-    PARAMETER(ERROR=1.E-15, RELAX=0.1, RELAX_DIAABS=100.0)
-    PARAMETER(RELAX_DIA=100.0, N_LIN_ITS=1000)
-    PARAMETER(NGL_ITS=30)
+    PARAMETER(ERROR=1.E-15, RELAX=0.01, RELAX_DIAABS=1000.0)
+    PARAMETER(RELAX_DIA=1000.0, N_LIN_ITS=1000)
+    PARAMETER(NGL_ITS=10)
 
     ! RELAX: overall relaxation coeff; =1 for no relaxation. 
     ! RELAX_DIAABS: relaxation of the absolute values of the sum of the row of the matrix;
@@ -213,12 +213,11 @@ contains
 
     EWRITE(3,*)'BEFORE pousinmc'
     ! lump the pressure nodes to take away the discontinuity...
-
-    DO ELE=1,TOTELE
-       DO CV_ILOC=1,CV_NLOC
-          dg_nod=(ele-1)*cv_nloc+cv_iloc
-          cty_nod=x_ndgln((ele-1)*cv_nloc+cv_iloc)
-          MAP_DG2CTY(dg_nod)=cty_nod
+    DO ELE = 1, TOTELE
+       DO CV_ILOC = 1, CV_NLOC
+          dg_nod = (ele-1) * cv_nloc + cv_iloc
+          cty_nod = x_ndgln( (ele-1) * cv_nloc + cv_iloc)
+          MAP_DG2CTY(dg_nod) = cty_nod
        END DO
     END DO
 
@@ -305,7 +304,7 @@ contains
           if (GL_ITS>5) then
              P = P + DP_DG
           else
-             P = P + 1.e-5*DP_DG
+             P = P + 1.e-10*DP_DG
           end if
 
        end if

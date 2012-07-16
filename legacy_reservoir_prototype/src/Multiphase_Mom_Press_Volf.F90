@@ -169,10 +169,10 @@ contains
     real, dimension( stotel * cv_snloc * nphase ), intent( in ) :: suf_t_bc
     real, dimension( stotel * u_snloc * nphase ), intent( in ) :: suf_u_bc, suf_v_bc, suf_w_bc
     real, dimension( stotel * cv_snloc * nphase * ncomp ), intent( in ) :: suf_comp_bc
-    real, dimension( stotel * u_snloc * nphase ), intent( in ) :: suf_u_bc_rob1, suf_u_bc_rob2, suf_v_bc_rob1, suf_v_bc_rob2, &
-         suf_w_bc_rob1, suf_w_bc_rob2
-    real, dimension( stotel * cv_snloc * nphase ), intent( in ) :: suf_comp_bc_rob1, suf_comp_bc_rob2, suf_t_bc_rob1, suf_t_bc_rob2, &
-         suf_vol_bc_rob1, suf_vol_bc_rob2
+    real, dimension( stotel * u_snloc * nphase ), intent( in ) :: suf_u_bc_rob1, suf_u_bc_rob2,&
+         suf_v_bc_rob1, suf_v_bc_rob2, suf_w_bc_rob1, suf_w_bc_rob2
+    real, dimension( stotel * cv_snloc * nphase ), intent( in ) :: suf_comp_bc_rob1, &
+         suf_comp_bc_rob2, suf_t_bc_rob1, suf_t_bc_rob2, suf_vol_bc_rob1, suf_vol_bc_rob2
 
     ! Variables below may change on this subroutine, however this should be changed later
     real, dimension( x_nonods ), intent( inout ) :: x, y, z
@@ -260,7 +260,8 @@ contains
     real, dimension( : ), allocatable :: rhs, rhs_cv, diag_pres, femt_print, femt_dummy
 
     ! For output:
-    real, dimension( : ), allocatable :: Sat_FEMT, Den_FEMT, Comp_FEMT, SumConc_FEMT, MEAN_PORE_CV
+    real, dimension( : ), allocatable :: Sat_FEMT, Den_FEMT, Comp_FEMT, &
+         SumConc_FEMT, MEAN_PORE_CV
     ! For capillary pressure:
     real, dimension( : ), allocatable :: PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD
 
@@ -278,7 +279,8 @@ contains
     integer :: final_timestep
     integer :: stat
 
-    character( len = 500 ) :: dummy_string_phase, dummy_string_dump, dummy_string_comp, dump_name, file_format
+    character( len = 500 ) :: dummy_string_phase, dummy_string_dump, &
+         dummy_string_comp, dump_name, file_format
     integer :: output_channel
     real :: norm_satura1, norm_satura2
 
@@ -327,7 +329,6 @@ contains
     compold = comp
 
     DX = DOMAIN_LENGTH / REAL(TOTELE)
-
 
     ewrite(3,*) 'suf_u_bc:'
     do iphase = 1, nphase
@@ -467,7 +468,8 @@ contains
           if (SIG_INT) exit Loop_ITS
 
           ! Calculate absorption for momentum eqns    
-          CALL calculate_absorption( MAT_NONODS, CV_NONODS, NPHASE, NDIM, SATURA, TOTELE, CV_NLOC, MAT_NLOC, &
+          CALL calculate_absorption( MAT_NONODS, CV_NONODS, NPHASE, NDIM, &
+               SATURA, TOTELE, CV_NLOC, MAT_NLOC, &
                CV_NDGLN, MAT_NDGLN, &
                U_ABSORB, PERM, MOBILITY, &
                OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS )
@@ -482,7 +484,7 @@ contains
 
           IF( NCOMP <= 1 ) THEN
              VOLFRA_USE_THETA_FLUX = .false.
-          else 
+          ELSE 
              VOLFRA_USE_THETA_FLUX = .true.
           END IF
 
@@ -531,18 +533,16 @@ contains
                SUM_THETA_FLUX, SUM_ONE_M_THETA_FLUX, &
                IN_ELE_UPWIND, DG_ELE_UPWIND, &
                NOIT_DIM, &
-               IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD,scale_momentum_by_volume_fraction ) 
+               IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, &
+               scale_momentum_by_volume_fraction ) 
 
           if (SIG_INT) exit Loop_ITS
-
-
 
           do cv_nodi = 1, cv_nonods
              ewrite(3,*)'CV, sat1, sat2 afterForce:', cv_nodi, satura( cv_nodi ), &
                   satura( cv_nonods + cv_nodi )
              ewrite(3,*)' '  
           end do
-
 
           CALL calculate_multiphase_density( state, CV_NONODS, CV_PHA_NONODS, DEN, DERIV, &
                T, CV_P )
@@ -591,9 +591,9 @@ contains
 
           if (SIG_INT) exit Loop_ITS
 
-          SUM_THETA_FLUX = 1.0
-          SUM_ONE_M_THETA_FLUX = 0.0
-          V_SOURCE_COMP = 0.0
+          SUM_THETA_FLUX = 1.
+          SUM_ONE_M_THETA_FLUX = 0.
+          V_SOURCE_COMP = 0.
           IF( NCOMP <= 1 ) THEN
              NCOMP2 = 0
           ELSE 
@@ -672,7 +672,8 @@ contains
                 COMP_GET_THETA_FLUX = .TRUE. ! This will be set up in the input file
                 COMP_USE_THETA_FLUX = .FALSE.       
 
-                ewrite(3,*)'suf_comp_bc:',  SUF_COMP_BC( 1 + STOTEL * CV_SNLOC * NPHASE *( ICOMP - 1 ) : STOTEL * CV_SNLOC * NPHASE * ICOMP )
+                ewrite(3,*)'suf_comp_bc:',  SUF_COMP_BC( 1 + STOTEL * CV_SNLOC * NPHASE *( ICOMP - 1 ) : &
+                     &                                                            STOTEL * CV_SNLOC * NPHASE * ICOMP )
                 ewrite(3,*)'SUF_D_BC:', SUF_D_BC
                 ewrite(3,*)'SUF_U_BC:', SUF_U_BC
                 ewrite(3,*)'SUF_V_BC:', SUF_V_BC

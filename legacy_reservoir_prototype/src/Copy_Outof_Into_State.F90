@@ -440,7 +440,7 @@
       ! IN/DG_ELE_UPWIND are options for optimisation of upwinding across faces in the overlapping
       ! formulation. The data structure and options for this formulation need to be added later. 
       in_ele_upwind = 3
-      dg_ele_upwind = 1
+      dg_ele_upwind = 3
 
       ! Variables *ENTIRELY HARD-WIRED* that *MUST BE REPLACED* in the future
       t_dg_vel_int_opt = 1

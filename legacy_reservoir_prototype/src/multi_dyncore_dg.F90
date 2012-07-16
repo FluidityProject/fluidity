@@ -436,12 +436,12 @@
 
       ewrite(3,*) 'In VOLFRA_ASSEM_SOLVE'
 
-      ALLOCATE( ACV( NCOLACV ))
-      ALLOCATE( CV_RHS( CV_NONODS * NPHASE ))
-      ALLOCATE( CT( NCOLCT * NDIM * NPHASE ))
-      ALLOCATE( DIAG_SCALE_PRES( CV_NONODS ))
-      ALLOCATE( CT_RHS( CV_NONODS ))
-      ALLOCATE( TDIFFUSION( MAT_NONODS,NDIM,NDIM,NPHASE ))
+      ALLOCATE( ACV( NCOLACV ) )
+      ALLOCATE( CV_RHS( CV_NONODS * NPHASE ) )
+      ALLOCATE( CT( NCOLCT * NDIM * NPHASE ) )
+      ALLOCATE( DIAG_SCALE_PRES( CV_NONODS ) )
+      ALLOCATE( CT_RHS( CV_NONODS ) )
+      ALLOCATE( TDIFFUSION( MAT_NONODS, NDIM, NDIM, NPHASE ) )
       ALLOCATE( SUF_VOL_BC_ROB1(STOTEL * CV_SNLOC * NPHASE ) )
       ALLOCATE( SUF_VOL_BC_ROB2(STOTEL * CV_SNLOC * NPHASE ) )
       ALLOCATE( MEAN_PORE_CV( CV_NONODS ) )
@@ -453,6 +453,8 @@
       V_BETA = 1.0
 
       Loop_NonLinearFlux: DO ITS_FLUX_LIM = 1, NITS_FLUX_LIM
+
+print *, 'NEW ITS', ITS_FLUX_LIM, 'XXXXXXXXXXXXXXXXXXXXXXXXXX'
 
          CALL CV_ASSEMB( CV_RHS, &
               NCOLACV, ACV, FINACV, COLACV, MIDACV, &
@@ -488,6 +490,10 @@
          CALL SOLVER( ACV, SATURA, CV_RHS, &
               FINACV, COLACV, &
               trim(option_path))
+
+         print *, satura(1:cv_nonods)
+         print *, '----------'
+         print *, satura(1+cv_nonods:2*cv_nonods)
 
 
       END DO Loop_NonLinearFlux
