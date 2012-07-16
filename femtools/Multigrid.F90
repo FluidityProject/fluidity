@@ -40,10 +40,10 @@ implicit none
 #include "finclude/petscsys.h"
 #endif
 #endif
-#if PETSC_VERSION_MINOR==2
+#if PETSC_VERSION_MINOR>=2
 #define KSP_NORM_NO KSP_NORM_NONE
 #endif
-#if  PETSC_VERSION_RELEASE==0
+#if PETSC_VERSION_RELEASE==0
 #define MatCreateSeqAIJ myMatCreateSeqAIJ
 #define MatCreateMPIAIJ myMatCreateMPIAIJ
 #define MatCreateSeqBAIJ myMatCreateSeqBAIJ
@@ -693,7 +693,7 @@ integer, intent(in):: iterations
   PC:: pc
   PetscErrorCode:: ierr
   
-#if  PETSC_VERSION_RELEASE==0
+#if PETSC_VERSION_MINOR>=3
   call KSPSetType(ksp, KSPCHEBYSHEV, ierr)
 #else
   call KSPSetType(ksp, KSPCHEBYCHEV, ierr)
@@ -720,7 +720,7 @@ PetscReal, intent(out):: epsilon, epsilon_decay, omega
 integer, intent(out):: maxlevels, coarsesize
 integer, intent(out):: nosmd, nosmu, clustersize
 
-#if PETSC_VERSION_MINOR==2
+#if PETSC_VERSION_MINOR>=2
   PetscBool flag
 #else
   PetscTruth flag
@@ -821,7 +821,7 @@ integer, optional, dimension(:), intent(out):: cluster
   
   !
   call VecCopy(diag, sqrt_diag, ierr)
-#if PETSC_VERSION_MINOR==2
+#if PETSC_VERSION_RELEASE==0
   call VecSqrtAbs(sqrt_diag, ierr)
 #else
   call VecSqrt(sqrt_diag, ierr)
