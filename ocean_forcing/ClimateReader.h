@@ -69,7 +69,7 @@ class ClimateReader{
   int Spherical2Grid(double longitude, double latitude, double depth, int &ilong, int &ilat, int &ilevel);
   double Uncompress(short svar);
 
-  double earth_radius, pi, rad_to_deg, deg_to_rad;
+  double pi, rad_to_deg, deg_to_rad;
   int idim0, jdim0;
   double space;
   std::vector<float> levels, months, seasons;
