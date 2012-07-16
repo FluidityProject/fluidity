@@ -119,6 +119,7 @@ implicit none
   interface apply_dirichlet_conditions
      module procedure apply_dirichlet_conditions_scalar, &
                       apply_dirichlet_conditions_scalar_lumped, &
+                      apply_dirichlet_conditions_scalars_petsc_csr, &
                       apply_dirichlet_conditions_vector, &
                       apply_dirichlet_conditions_vector_petsc_csr, &
                       apply_dirichlet_conditions_vector_component, &
@@ -1923,6 +1924,79 @@ contains
     end do bcloop
     
   end subroutine apply_dirichlet_conditions_scalar_lumped
+
+  subroutine apply_dirichlet_conditions_scalars_petsc_csr(matrix, rhs, sfields, dt)
+    
+    !!< Apply dirichlet boundary conditions for each field to the problem
+    !!< defined by the block petsc matrix and rhs. The number of blocks must equal
+    !!< the number of scalar fields and are assumed in the same order.
+    !!<
+    !!< This assumes that boundary conditions are applied in rate of change
+    !!< form if dt is present.
+    
+    type(petsc_csr_matrix),                   intent(inout)           :: matrix
+    type(scalar_field_pointer), dimension(:), intent(inout), optional :: rhs
+    type(scalar_field_pointer), dimension(:), intent(in)              :: sfields
+    real,                                     intent(in),    optional :: dt
+    
+    ! local variables
+    character(len=FIELD_NAME_LEN):: bctype
+    type(scalar_field), pointer:: surface_field
+    integer, dimension(:), pointer:: surface_node_list
+    integer :: i,j,f
+    
+    field_loop: do f = 1,size(sfields)
+    
+       bcloop: do i = 1, get_boundary_condition_count(sfields(f)%ptr)
+
+          call get_boundary_condition(sfields(f)%ptr, &
+                                      i, &
+                                      type = bctype, &
+                                      surface_node_list = surface_node_list)
+
+          if (bctype /= "dirichlet") cycle bcloop
+
+          surface_field => extract_surface_field(sfields(f)%ptr, i, "value")
+
+          snode_loop: do j = 1,size(surface_node_list)
+
+             rhs_present: if(present(rhs)) then
+
+                dt_present: if(present(dt)) then
+                  ! this is an addto because petsc_csr matrices can only
+                  ! addto at the moment... hence with time varying bc we
+                  ! end up with an average of the bcs at any node with two
+                  ! (or more) set (i.e. corner nodes with inconsistent bc
+                  ! on the sides)
+                  call addto(rhs(f)%ptr, &
+                             surface_node_list(j), &
+                             ((node_val(surface_field,j)&
+                               -node_val(sfields(f)%ptr, surface_node_list(j)) &
+                               ) /dt)*INFINITY)
+                else
+                  ! this is an addto because petsc_csr matrices can only
+                  ! addto at the moment... hence with time varying bc we
+                  ! end up with an average of the bcs at any node with two
+                  ! (or more) set (i.e. corner nodes with inconsistent bc
+                  ! on the sides)
+                  call addto(rhs(f)%ptr, &
+                             surface_node_list(j), &
+                             node_val(surface_field,j)*INFINITY)
+
+                end if dt_present
+
+             end if rhs_present
+
+             call addto(matrix, f, f, surface_node_list(j), &
+                        surface_node_list(j), INFINITY)
+
+          end do snode_loop
+
+       end do bcloop
+     
+     end do field_loop
+
+  end subroutine apply_dirichlet_conditions_scalars_petsc_csr
 
   subroutine apply_dirichlet_conditions_vector(matrix, rhs, field, dt)
     !!< Apply dirichlet boundary conditions from field to the problem

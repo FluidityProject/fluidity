@@ -120,11 +120,11 @@ module Petsc_Tools
   end interface
     
   interface field2petsc
-    module procedure VectorFields2Petsc, ScalarFields2Petsc, VectorField2Petsc, ScalarField2Petsc
+    module procedure VectorFields2Petsc, ScalarFields2Petsc, VectorField2Petsc, ScalarField2Petsc, ScalarFieldPtrs2Petsc
   end interface
     
   interface petsc2field
-    module procedure Petsc2VectorFields, Petsc2ScalarFields, Petsc2VectorField, Petsc2ScalarField
+    module procedure Petsc2VectorFields, Petsc2ScalarFields, Petsc2VectorField, Petsc2ScalarField, Petsc2ScalarFieldPtrs
   end interface
     
 #include "Reference_count_interface_petsc_numbering_type.F90"
@@ -544,6 +544,50 @@ contains
     call ScalarFields2Petsc( (/ field /), petsc_numbering, vec)
   
   end subroutine ScalarField2Petsc
+
+  subroutine ScalarFieldPtrs2Petsc(fields, petsc_numbering, vec)
+    !!< Assembles contiguous petsc array using the specified numbering from the given field pointers.
+    type(scalar_field_pointer), dimension(:), intent(in):: fields
+    type(petsc_numbering_type), intent(in):: petsc_numbering
+    Vec, intent(inout) :: vec
+  
+    integer ierr, nnodp, b, nfields, nnodes
+
+    ! number of nodes owned by this process:
+    nnodp=petsc_numbering%nprivatenodes
+    
+    ! number of nodes on this process, including halo/ghost nodes
+    nnodes=size(petsc_numbering%gnn2unn, 1)
+    
+    ! number of fields:
+    nfields=size(petsc_numbering%gnn2unn, 2)
+    assert(nfields==size(fields))
+
+    if (associated(petsc_numbering%halo)) then
+       if (.not. ((petsc_numbering%halo%data_type .eq. HALO_TYPE_CG_NODE) &
+            .or. (petsc_numbering%halo%data_type .eq. HALO_TYPE_DG_NODE))) then
+          FLAbort("Matrices can only be assembled on the basis of node halos")
+       end if
+    end if
+
+    do b=1, nfields
+      
+#ifdef DOUBLEP
+       call VecSetValues(vec, nnodp, &
+            petsc_numbering%gnn2unn( 1:nnodp, b ), &
+            fields(b)%ptr%val( 1:nnodp ), INSERT_VALUES, ierr)
+#else
+       call VecSetValues(vec, nnodp, &
+            petsc_numbering%gnn2unn( 1:nnodp, b ), &
+            real(fields(b)%ptr%val( 1:nnodp ), kind = PetscScalar_kind), INSERT_VALUES, ierr)
+#endif
+            
+    end do
+    
+    call VecAssemblyBegin(vec, ierr)
+    call VecAssemblyEnd(vec, ierr)
+
+  end subroutine ScalarFieldPtrs2Petsc
   
   function PetscNumberingCreateVec(petsc_numbering) result (vec)
     !!< Creates a petsc array with size corresponding to petsc_numbering.
@@ -826,7 +870,68 @@ contains
       call Petsc2VectorFields(vec, petsc_numbering, fields)
     
   end subroutine Petsc2VectorField
+
+  subroutine Petsc2ScalarFieldPtrs(vec, petsc_numbering, fields)
+    !!< Copies the values of a PETSc Vec into scalar fields. The PETSc Vec
+    !!< must have been assembled using the same petsc_numbering.
+    Vec, intent(in):: vec
+    type(petsc_numbering_type), intent(in):: petsc_numbering
+    type(scalar_field_pointer), dimension(:), intent(inout) :: fields
     
+    integer ierr, nnodp, b, nfields, nnodes
+#ifndef DOUBLEP
+    PetscScalar, dimension(:), allocatable :: vals
+#endif
+    
+    ! number of nodes owned by this process:
+    nnodp=petsc_numbering%nprivatenodes
+    
+    ! number of nodes on this process, including halo/ghost nodes
+    nnodes=size(petsc_numbering%gnn2unn, 1)
+    
+    ! number of fields:
+    nfields=size(petsc_numbering%gnn2unn, 2)
+    
+#ifdef DOUBLEP
+    do b=1, nfields
+      
+      call profiler_tic(fields(b)%ptr, "petsc2field")
+      call VecGetValues(vec, nnodp, &
+        petsc_numbering%gnn2unn( 1:nnodp, b ), &
+        fields(b)%ptr%val( 1:nnodp ), ierr)
+      call profiler_toc(fields(b)%ptr, "petsc2field")
+        
+    end do
+#else
+    allocate(vals(nnodp))
+    do b=1, nfields
+      
+      call profiler_tic(fields(b)%ptr, "petsc2field")
+      call VecGetValues(vec, nnodp, &
+        petsc_numbering%gnn2unn( 1:nnodp, b ), &
+        vals, ierr)
+      fields(b)%ptr%val( 1:nnodp ) = vals
+      call profiler_toc(fields(b)%ptr, "petsc2field")
+        
+    end do
+    deallocate(vals)
+#endif            
+
+    if (associated(petsc_numbering%halo)) then
+       if (size(fields)>1) then
+          ewrite(2, *) 'Updating of halo of multiple scalar field pointers needs to be improved.'
+       end if
+       do b=1, size(fields)
+          call profiler_tic(fields(b)%ptr, "petsc2field")
+          ! Always update on the level 2 halo to ensure that the whole
+          ! field is well defined.
+          call halo_update(fields(b)%ptr, 2)
+          call profiler_toc(fields(b)%ptr, "petsc2field")
+       end do
+    end if
+
+  end subroutine Petsc2ScalarFieldPtrs
+      
   function csr2petsc(A, petsc_numbering, column_petsc_numbering, &
        use_inodes) result(M)
   !!< Converts a csr_matrix from Sparse_Tools into a PETSc matrix.

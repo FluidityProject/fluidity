@@ -50,7 +50,8 @@ implicit none
 interface petsc_solve
    module procedure petsc_solve_scalar_state, &
        petsc_solve_scalar_state_petsc_csr, &
-       petsc_solve_vector_state_petsc_csr
+       petsc_solve_vector_state_petsc_csr, &
+       petsc_solve_scalar_ptrs_state_petsc_csr
 end interface
   
 private
@@ -164,6 +165,57 @@ contains
     end if
     
   end subroutine petsc_solve_scalar_state_petsc_csr
+
+  subroutine petsc_solve_scalar_ptrs_state_petsc_csr(x, matrix, rhs, state, &
+    option_path)
+    !!< Solve a linear system the nice way.
+    !!< This version uses state to pull geometric information from
+    !!< if required for the specified options.
+    type(scalar_field_pointer), dimension(:), intent(inout) :: x
+    type(scalar_field_pointer), dimension(:), intent(in) :: rhs
+    type(petsc_csr_matrix), intent(inout) :: matrix
+    type(state_type), intent(in):: state
+    !! override x%option_path if provided:
+    character(len=*), optional, intent(in):: option_path
+    
+    integer, dimension(:), pointer:: surface_nodes
+    type(petsc_csr_matrix), dimension(:), pointer:: prolongators
+    character(len=OPTION_PATH_LEN):: solver_option_path
+    integer:: i
+    
+    ! no solver cache for petsc_csr_matrices at the mo'
+    call petsc_solve_state_setup(solver_option_path, prolongators, surface_nodes, &
+      state, x(1)%ptr%mesh, 1, x(1)%ptr%option_path, .false., option_path=option_path)
+    
+    if (associated(prolongators)) then
+    
+      if (associated(surface_nodes)) then
+        
+        call petsc_solve(x, matrix, rhs, &
+           prolongators=prolongators, &
+           surface_node_list=surface_nodes, option_path=option_path)
+           
+        deallocate(surface_nodes)
+        
+      else
+      
+        call petsc_solve(x, matrix, rhs, &
+           prolongators=prolongators, option_path=option_path)
+        
+      end if
+      
+      do i=1, size(prolongators)
+        call deallocate(prolongators(i))
+      end do
+      deallocate(prolongators)
+    
+    else
+    
+      call petsc_solve(x, matrix, rhs, option_path=option_path)
+      
+    end if
+    
+  end subroutine petsc_solve_scalar_ptrs_state_petsc_csr
   
   subroutine petsc_solve_vector_state_petsc_csr(x, matrix, rhs, state, &
     option_path)

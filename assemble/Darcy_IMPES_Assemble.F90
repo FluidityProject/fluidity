@@ -239,6 +239,7 @@ module darcy_impes_assemble_module
       type(vector_field)     :: positions_pressure_mesh
       type(csr_matrix)       :: matrix
       type(petsc_csr_matrix) :: pressure_matrix
+      type(scalar_field), pointer :: pressure_rhs
       type(scalar_field)     :: lhs
       type(scalar_field)     :: rhs
       type(scalar_field)     :: rhs_full
@@ -504,6 +505,8 @@ module darcy_impes_assemble_module
       logical ,               intent(in)    :: have_dual  
       
       ! local variables
+      type(scalar_field_pointer), dimension(:), pointer :: all_pressure
+      type(scalar_field_pointer), dimension(:), pointer :: all_rhs
       integer :: p, vele, sele, iloc, oloc, jloc, face, gi, ggi
       real    :: face_value, grad_cap_p_dot_n, g_dot_n
       real,    dimension(1)              :: absperm_ele, visc_ele
@@ -573,9 +576,25 @@ module darcy_impes_assemble_module
       
       ewrite(1,*) 'Solve first phase Pressure'
       
-      ! Initialise the matrix and rhs
-      call zero(di%matrix)
-      call zero(di%rhs)
+      ! Initialise the matrix and rhs and solution pointer
+      call zero(di%pressure_matrix)
+      call zero(di%pressure_rhs)      
+      
+      if (have_dual) then
+         call zero(di_dual%pressure_rhs)
+         
+         allocate(all_pressure(2))
+         allocate(all_rhs(2))
+         all_pressure(1)%ptr => di%pressure(1)%ptr
+         all_pressure(2)%ptr => di_dual%pressure(1)%ptr
+         all_rhs(1)%ptr => di%pressure_rhs
+         all_rhs(2)%ptr => di_dual%pressure_rhs         
+      else
+         allocate(all_pressure(1))
+         allocate(all_rhs(1)) 
+         all_pressure(1)%ptr => di%pressure(1)%ptr
+         all_rhs(1)%ptr => di%pressure_rhs                 
+      end if
 
       ewrite(1,*) 'Add phase sources to global continuity'
       
@@ -585,9 +604,23 @@ module darcy_impes_assemble_module
          call compute_cv_mass(di%positions, di%cv_mass_pressure_mesh_with_source, di%saturation_source(p)%ptr)
          
          ! Should this include porosity ?!?!
-         call addto(di%rhs, di%cv_mass_pressure_mesh_with_source)
+         call addto(di%pressure_rhs, di%cv_mass_pressure_mesh_with_source)
       
       end do src_phase_loop
+      
+      if (have_dual) then
+      
+         dual_src_phase_loop: do p = 1, di_dual%number_phase
+
+            ! Should this take account of subcycling?!?!
+            call compute_cv_mass(di_dual%positions, di_dual%cv_mass_pressure_mesh_with_source, di_dual%saturation_source(p)%ptr)
+
+            ! Should this include porosity ?!?!
+            call addto(di_dual%pressure_rhs, di_dual%cv_mass_pressure_mesh_with_source)
+
+         end do dual_src_phase_loop
+      
+      end if
       
       if (have_dual) then
          call compute_cv_mass(di_dual%positions, di_dual%cv_mass_pressure_mesh_with_lambda_dual, di_dual%transmissibility_lambda_dual)
@@ -596,9 +629,17 @@ module darcy_impes_assemble_module
       ewrite(1,*) 'Add rate of change of porosity to global continuity equation'
       
       ! Add rate of change of porosity to rhs    
-      call addto(di%rhs, di%cv_mass_pressure_mesh_with_old_porosity, scale = 1.0/di%dt)
+      call addto(di%pressure_rhs, di%cv_mass_pressure_mesh_with_old_porosity, scale = 1.0/di%dt)
                   
-      call addto(di%rhs, di%cv_mass_pressure_mesh_with_porosity, scale = -1.0/di%dt)
+      call addto(di%pressure_rhs, di%cv_mass_pressure_mesh_with_porosity, scale = -1.0/di%dt)
+      
+      if (have_dual) then
+      
+         call addto(di_dual%pressure_rhs, di_dual%cv_mass_pressure_mesh_with_old_porosity, scale = 1.0/di%dt)
+                  
+         call addto(di_dual%pressure_rhs, di_dual%cv_mass_pressure_mesh_with_porosity, scale = -1.0/di%dt)
+      
+      end if
       
       ! Assemble a contribution from each phase to form a global continuity equation to solve for first phase pressure
       phase_loop: do p = 1, di%number_phase
@@ -611,16 +652,16 @@ module darcy_impes_assemble_module
             call pressure_volume_element_local_assemble(di) 
             
             ! Add volume element contribution to global pressure matrix and rhs
-            call addto(di%matrix, p_nodes, p_nodes, p_mat_local)
+            call addto(di%pressure_matrix, 1, 1, p_nodes, p_nodes, p_mat_local)
             
-            call addto(di%rhs, p_nodes, p_rhs_local)
+            call addto(di%pressure_rhs, p_nodes, p_rhs_local)
             
             if (have_dual) then 
                call pressure_volume_element_local_assemble(di_dual) 
                
-               call addto(di%matrix, p_nodes, p_nodes, p_mat_local)
+               call addto(di%pressure_matrix, 2, 2, p_nodes, p_nodes, p_mat_local)
                
-               call addto(di%rhs, p_nodes, p_rhs_local)
+               call addto(di%pressure_rhs, p_nodes, p_rhs_local)
             end if
 
          end do vol_element_loop
@@ -673,16 +714,16 @@ module darcy_impes_assemble_module
             
             call pressure_surface_element_local_assemble(di) 
                        
-            call addto(di%matrix, p_nodes_bdy, p_nodes_bdy, p_matrix_local_bdy)
+            call addto(di%pressure_matrix, 1, 1, p_nodes_bdy, p_nodes_bdy, p_matrix_local_bdy)
 
-            call addto(di%rhs, p_nodes_bdy, p_rhs_local_bdy)
+            call addto(di%pressure_rhs, p_nodes_bdy, p_rhs_local_bdy)
             
             if (have_dual) then            
                call pressure_surface_element_local_assemble(di_dual) 
                        
-               call addto(di%matrix, p_nodes_bdy, p_nodes_bdy, p_matrix_local_bdy)
+               call addto(di%pressure_matrix, 2, 2, p_nodes_bdy, p_nodes_bdy, p_matrix_local_bdy)
 
-               call addto(di%rhs, p_nodes_bdy, p_rhs_local_bdy)            
+               call addto(di%pressure_rhs, p_nodes_bdy, p_rhs_local_bdy)            
             end if
 
          end do sele_loop      
@@ -690,13 +731,20 @@ module darcy_impes_assemble_module
       end do phase_loop_bc
             
       ! Apply any strong dirichlet BC's - that can only be applied to the first phase pressure
-      call apply_dirichlet_conditions(di%matrix, di%rhs, di%pressure(1)%ptr)
+      ! of both the prime and dual porous media
+      call apply_dirichlet_conditions(di%pressure_matrix, all_rhs, all_pressure)
    
-      ! Solve the pressure
-      call petsc_solve(di%pressure(1)%ptr, di%matrix, di%rhs, di%state(1))
+      ! Solve the pressure(s)
+      call petsc_solve(all_pressure, di%pressure_matrix, all_rhs, di%state(1))
 
       ! Set the strong BC nodes to the values to be consistent
       call set_dirichlet_consistent(di%pressure(1)%ptr) 
+      
+      if (have_dual) then
+      
+         call set_dirichlet_consistent(di_dual%pressure(1)%ptr) 
+      
+      end if
           
       ! deallocate local variables as required
       deallocate(x_ele)
@@ -736,10 +784,17 @@ module darcy_impes_assemble_module
       deallocate(p_nodes_bdy)
 !!!!! *** THIS IS NOT POSSIBLE YET ***
 !!!!!      deallocate(grad_cap_pressure_face_quad_bdy)
+
+      deallocate(all_pressure)
+      deallocate(all_rhs)
       
       ewrite(1,*) 'Finished solve first phase Pressure'
       
       ewrite_minmax(di%pressure(1)%ptr)
+      
+      if (have_dual) then
+         ewrite_minmax(di_dual%pressure(1)%ptr)
+      end if
       
       contains
       
@@ -4029,7 +4084,7 @@ visc_ele_bdy(1)
 
       case (RELPERM_CORRELATION_VANGENUCHTEN)     
 
-	 sat_effective = (sat_val_all_phases(2) - relperm_corr_residual_sats(2) ) / ( 1.0 - relperm_corr_residual_sats(1) - &
+         sat_effective = (sat_val_all_phases(2) - relperm_corr_residual_sats(2) ) / ( 1.0 - relperm_corr_residual_sats(1) - &
                          &relperm_corr_residual_sats(2))
          
          if (p == 1) then
@@ -4045,8 +4100,7 @@ visc_ele_bdy(1)
             ! This has already been option checked so should not happen
             FLAbort('Trying to use VanGenuchten relative permeabiltiy correlation for simulation with more than 2 phases')
 
-         end if   
-         
+         end if         
      
      end select
           

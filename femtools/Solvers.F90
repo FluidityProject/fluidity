@@ -111,7 +111,8 @@ interface petsc_solve
      petsc_solve_scalar_multiple, &
      petsc_solve_vector_components, &
      petsc_solve_tensor_components, &
-     petsc_solve_scalar_petsc_csr, petsc_solve_vector_petsc_csr
+     petsc_solve_scalar_petsc_csr, petsc_solve_vector_petsc_csr, &
+     petsc_solve_scalar_ptrs_petsc_csr
 end interface
   
 interface set_solver_options
@@ -473,6 +474,63 @@ subroutine petsc_solve_scalar_petsc_csr(x, matrix, rhs, option_path, &
   call petsc_solve_destroy_petsc_csr(y, b, ksp, solver_option_path)
   
 end subroutine petsc_solve_scalar_petsc_csr
+
+subroutine petsc_solve_scalar_ptrs_petsc_csr(x, matrix, rhs, option_path, &
+  prolongators, surface_node_list)
+  !!< Solve a linear system the nice way. Options for this
+  !!< come via the options mechanism. 
+  type(scalar_field_pointer), dimension(:), intent(inout) :: x
+  type(scalar_field_pointer), dimension(:), intent(in) :: rhs
+  type(petsc_csr_matrix), intent(inout) :: matrix
+  character(len=*), optional, intent(in) :: option_path
+  !! prolongators to be used at the first levels of 'mg'
+  type(petsc_csr_matrix), dimension(:), optional, intent(in) :: prolongators
+  !! surface_node_list for internal smoothing
+  integer, dimension(:), optional, intent(in) :: surface_node_list
+
+  KSP ksp
+  Vec y, b
+
+  character(len=OPTION_PATH_LEN) solver_option_path
+  integer i, total_size_x, total_size_rhs
+  integer literations
+  logical lstartfromzero
+
+  assert(size(x)==size(rhs))
+  total_size_x = 0
+  total_size_rhs = 0
+  do i=1, size(x)
+    assert(size(x(i)%ptr%val)==size(rhs(i)%ptr%val))
+    total_size_x = total_size_x + size(x(i)%ptr%val)
+    total_size_rhs = total_size_rhs + size(rhs(i)%ptr%val)
+  end do
+  assert(total_size_x==size(matrix,2))
+  assert(total_size_rhs==size(matrix,1))
+  
+  ! setup PETSc object and petsc_numbering from options and 
+  call petsc_solve_setup_petsc_csr(y, b, ksp, &
+        solver_option_path, lstartfromzero, &
+        matrix, &
+        sfields=x, &
+        option_path=option_path, &
+        prolongators=prolongators, surface_node_list=surface_node_list)
+        
+  ! copy array into PETSc vecs
+  call petsc_solve_copy_vectors_from_scalar_fields_arrays(y, b, x, rhs=rhs, &
+     petsc_numbering=matrix%row_numbering, startfromzero=lstartfromzero)
+    
+  ! the solve and convergence check
+  call petsc_solve_core(y, matrix%M, b, ksp, matrix%row_numbering, &
+          solver_option_path, lstartfromzero, literations, &
+          sfield_ptrs=x, sfield_ptrs_x0=x)
+        
+  ! Copy back the result using the petsc numbering:
+  call petsc2field(y, matrix%column_numbering, x)
+  
+  ! destroy all PETSc objects and the petsc_numbering
+  call petsc_solve_destroy_petsc_csr(y, b, ksp, solver_option_path)
+  
+end subroutine petsc_solve_scalar_ptrs_petsc_csr
 
 subroutine petsc_solve_vector_petsc_csr(x, matrix, rhs, option_path, &
   prolongators)
@@ -940,7 +998,7 @@ end subroutine petsc_solve_setup
   
 subroutine petsc_solve_setup_petsc_csr(y, b, ksp, &
   solver_option_path, startfromzero, &
-  matrix, sfield, vfield, tfield, &
+  matrix, sfield, vfield, tfield, sfields, &
   option_path, startfromzero_in, &
   prolongators,surface_node_list)
 !!< sets up things needed to call petsc_solve_core
@@ -961,12 +1019,15 @@ logical, intent(out):: startfromzero
 !! 
 !! provide either a matrix or block_matrix to be solved
 type(petsc_csr_matrix), intent(inout):: matrix
-!! provide either a scalar field or vector field to be solved for
+!! provide either a scalar field, a vector field 
+!! a tensor field or a array of scalar fields to be solved for
 type(scalar_field), optional, intent(in):: sfield
 type(vector_field), optional, intent(in):: vfield
 type(tensor_field), optional, intent(in):: tfield
+type(scalar_field_pointer), dimension(:), optional, intent(in) :: sfields
 
-!! overrides sfield%option_path or vfield%option_path
+!! overrides sfield%option_path, vfield%option_path
+!! tfield%option_path or sfields(1)%ptr%option_path
 character(len=*), intent(in), optional:: option_path
 !! whether to start with zero initial guess (as passed in)
 logical, optional, intent(in):: startfromzero_in
@@ -1000,8 +1061,14 @@ integer, dimension(:), optional, intent(in) :: surface_node_list
     else
       solver_option_path=complete_solver_option_path(tfield%option_path)
     end if
+  else if (present(sfields)) then
+    if (present(option_path)) then
+      solver_option_path=complete_solver_option_path(option_path)
+    else
+      solver_option_path=complete_solver_option_path(sfields(1)%ptr%option_path)
+    end if
   else
-    FLAbort("Need to provide either sfield or vfield to petsc_solve_setup.")
+    FLAbort("Need to provide either sfield, vfield, tfield or sfields to petsc_solve_setup.")
   end if
 
   timing=(debug_level()>=2)
@@ -1144,11 +1211,39 @@ logical, intent(in):: startfromzero
   
 end subroutine petsc_solve_copy_vectors_from_vector_fields
 
+subroutine petsc_solve_copy_vectors_from_scalar_fields_arrays(y, b,  x, rhs,  petsc_numbering, startfromzero)
+Vec, intent(inout):: y, b
+type(scalar_field_pointer), dimension(:), intent(in):: x, rhs
+type(petsc_numbering_type), intent(in):: petsc_numbering
+logical, intent(in):: startfromzero
+
+  call profiler_tic(x(1)%ptr, "field2petsc")
+  ewrite(1, *) 'Assembling RHS.'
+  
+  ! create PETSc vec for rhs using above numbering:
+  call field2petsc(rhs, petsc_numbering, b)
+  
+  ewrite(1, *) 'RHS assembly completed.'
+
+  if (.not. startfromzero) then
+    
+    ewrite(1, *) 'Assembling initial guess.'
+
+    ! create PETSc vec for initial guess and result using above numbering:
+    call field2petsc(x, petsc_numbering, y)
+
+    ewrite(1, *) 'Initial guess assembly completed.'
+    
+  end if
+  call profiler_toc(x(1)%ptr, "field2petsc")
+  
+end subroutine petsc_solve_copy_vectors_from_scalar_fields_arrays
+
 subroutine petsc_solve_core(y, A, b, ksp, petsc_numbering, &
   solver_option_path, startfromzero, &
   iterations, &
-  sfield, vfield, tfield, &
-  x0, vector_x0, checkconvergence, nomatrixdump)
+  sfield, vfield, tfield, sfield_ptrs, &
+  x0, vector_x0, sfield_ptrs_x0, checkconvergence, nomatrixdump)
 !!< inner core of matrix solve, called by all versions of petsc_solve
 !! IN: inital guess, OUT: solution
 Vec, intent(inout):: y
@@ -1166,15 +1261,18 @@ character(len=*), intent(in):: solver_option_path
 logical, intent(in):: startfromzero
 !! returns number of performed iterations
 integer, intent(out):: iterations
-!! provide either a scalar field or vector field to be solved for
+!! provide either a scalar field, vector field, tensor field or scalar field pointers to be solved for
 !! (only for logging/timing purposes)
 type(scalar_field), optional, intent(in):: sfield
 type(vector_field), optional, intent(in):: vfield
 type(tensor_field), optional, intent(in):: tfield
+type(scalar_field_pointer), dimension(:), optional, intent(in) :: sfield_ptrs
 !! initial guess (written out in matrixdump after failed solve)
 real, dimension(:), optional, intent(in):: x0
 !! initial guess (written out in matrixdump after failed solve) in vector_field form
 type(vector_field), optional, intent(in):: vector_x0
+!! initial guess (written out in matrixdump after failed solve) in scalar field pointers form
+type(scalar_field_pointer), dimension(:), optional, intent(in):: sfield_ptrs_x0
 !! whether to check convergence (optional legacy argument to be passed straight on)
 logical, optional, intent(in):: checkconvergence
 !! logical to prevent dump of matrix equation (full projection solve eqn cannot be dumped):
@@ -1198,6 +1296,9 @@ logical, optional, intent(in):: nomatrixdump
   else if(present(tfield)) then
     name=tfield%name
     call profiler_tic(tfield, "solve")
+  else if(present(sfield_ptrs)) then
+    name=sfield_ptrs(1)%ptr%name
+    call profiler_tic(sfield_ptrs(1)%ptr, "solve")
   end if
   
   timing=( debug_level()>=2 )
@@ -1248,7 +1349,7 @@ logical, optional, intent(in):: nomatrixdump
     else
       call dump_matrix_option(solver_option_path, startfromzero, A, b, &
                               petsc_numbering, &
-                              x0=x0, vector_x0=vector_x0)
+                              x0=x0, vector_x0=vector_x0, sfield_ptrs_x0=sfield_ptrs_x0)
     end if
   end if
   
@@ -1257,7 +1358,7 @@ logical, optional, intent(in):: nomatrixdump
   ! x still contains the initial guess to be used in the matrixdump.
   call ConvergenceCheck(reason, iterations, name, solver_option_path, &
        startfromzero, A, b, petsc_numbering, &
-       x0=x0, vector_x0=vector_x0, &
+       x0=x0, vector_x0=vector_x0, sfield_ptrs_x0=sfield_ptrs_x0, &
        checkconvergence=checkconvergence,nomatrixdump=nomatrixdump)
 
   ewrite(2, "(A, ' PETSc reason of convergence: ', I0)") trim(name), reason
@@ -1276,6 +1377,8 @@ logical, optional, intent(in):: nomatrixdump
     call profiler_toc(vfield, "solve")
   else if(present(tfield)) then
     call profiler_toc(tfield, "solve")
+  else if(present(sfield_ptrs)) then
+    call profiler_toc(sfield_ptrs(1)%ptr, "solve")
   end if
   
 end subroutine petsc_solve_core
@@ -1355,7 +1458,7 @@ character(len=*), intent(in):: solver_option_path
 end subroutine petsc_solve_destroy_petsc_csr
 
 subroutine ConvergenceCheck(reason, iterations, name, solver_option_path, &
-  startfromzero, A, b, petsc_numbering, x0, vector_x0, checkconvergence, nomatrixdump)
+  startfromzero, A, b, petsc_numbering, x0, vector_x0, sfield_ptrs_x0, checkconvergence, nomatrixdump)
   !!< Checks reason of convergence. If negative (not converged)
   !!< writes out a scary warning and dumps matrix (if first time), 
   !!< and if reason<0 but reason/=-3
@@ -1375,6 +1478,7 @@ subroutine ConvergenceCheck(reason, iterations, name, solver_option_path, &
   ! initial guess to be written in matrixdump (if startfromzero==.false.)
   real, optional, dimension(:), intent(in):: x0
   type(vector_field), optional, intent(in):: vector_x0
+  type(scalar_field_pointer), dimension(:), optional, intent(in):: sfield_ptrs_x0
   !! if present and .false. do not check, otherwise do check
   logical, optional, intent(in):: checkconvergence
   !! if present do not dump matrix equation:
@@ -1452,6 +1556,8 @@ subroutine ConvergenceCheck(reason, iterations, name, solver_option_path, &
            call array2petsc(x0, petsc_numbering, y0)
         else if (present(vector_x0)) then
            call field2petsc(vector_x0, petsc_numbering, y0)
+        else if (present(sfield_ptrs_x0)) then
+           call field2petsc(sfield_ptrs_x0, petsc_numbering, y0)
         else
            ewrite(0,*) 'Initial guess not provided in ConvergenceCheck'
            ewrite(0,*) 'This is a bug!!!'
@@ -1468,7 +1574,7 @@ end subroutine ConvergenceCheck
   
 subroutine dump_matrix_option(solver_option_path, startfromzero, A, b, &
                               petsc_numbering, &
-                              x0, vector_x0)
+                              x0, vector_x0, sfield_ptrs_x0)
                               
   !! for new options path to solver options
   character(len=*), intent(in):: solver_option_path  
@@ -1480,6 +1586,7 @@ subroutine dump_matrix_option(solver_option_path, startfromzero, A, b, &
   ! initial guess to be written in matrixdump (if startfromzero==.false.)
   real, optional, dimension(:), intent(in):: x0
   type(vector_field), optional, intent(in):: vector_x0
+  type(scalar_field_pointer), dimension(:), optional, intent(in):: sfield_ptrs_x0
   
   character(len=FIELD_NAME_LEN) :: filename
   PetscErrorCode ierr
@@ -1498,6 +1605,8 @@ subroutine dump_matrix_option(solver_option_path, startfromzero, A, b, &
      call array2petsc(x0, petsc_numbering, y0)
   else if (present(vector_x0)) then
      call field2petsc(vector_x0, petsc_numbering, y0)
+  else if (present(sfield_ptrs_x0)) then
+     call field2petsc(sfield_ptrs_x0, petsc_numbering, y0)
   else
      ewrite(0,*) 'Initial guess not provided in dump_matrix_option'
      ewrite(0,*) 'This is a bug!!!'

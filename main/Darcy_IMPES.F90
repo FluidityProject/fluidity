@@ -813,6 +813,8 @@ contains
             call allocate(di%pressure_matrix, di%sparsity_pmesh_pmesh, blocks=(/1,1/), name ='PressureMatrix')      
          end if
       end if
+      allocate(di%pressure_rhs)
+      call allocate(di%pressure_rhs, di%pressure_mesh)      
       call allocate(di%lhs, di%pressure_mesh)
       call allocate(di%rhs, di%pressure_mesh)
       call allocate(di%rhs_full, di%pressure_mesh)
@@ -1577,6 +1579,8 @@ contains
       nullify(di%sparsity_pmesh_pmesh)
       call deallocate(di%matrix)
       call deallocate(di%pressure_matrix)
+      call deallocate(di%pressure_rhs)
+      deallocate(di%pressure_rhs)
       call deallocate(di%lhs)
       call deallocate(di%rhs)
       call deallocate(di%rhs_full)
