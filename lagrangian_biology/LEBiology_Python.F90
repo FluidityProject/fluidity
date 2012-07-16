@@ -381,6 +381,8 @@ contains
     agent%position = pos
     agent%biology = vars
 
+    agent%path_elements => null()
+
     call insert(agent, new_agent_list)
   end subroutine fl_add_agent
 

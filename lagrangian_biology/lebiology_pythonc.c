@@ -629,18 +629,10 @@ static PyObject *lebiology_add_agent(PyObject *self, PyObject *args)
   //Convert the position list
   int *n_pos = malloc(sizeof(int));
   *n_pos = PyList_Size(pPositionList);
-  assert(*n_pos <= lebiology_dim);
-  double *pos = malloc(lebiology_dim * sizeof(double));
-  if (*n_pos == lebiology_dim) {     
-     for (i=0; i<*n_pos; i++) {
-       pos[i] = PyFloat_AsDouble( PyList_GET_ITEM(pPositionList, i) );
-     }   
-  } else {
-     // If len(pos) < dim, only translate z
-     for (i=0; i<lebiology_dim; i++) {
-       pos[i] = 0.1;
-     }
-     pos[lebiology_dim-1] = PyFloat_AsDouble( PyList_GET_ITEM(pPositionList, *n_pos-1) );
+  assert(*n_pos == lebiology_dim);
+  double *pos = malloc(lebiology_dim * sizeof(double));   
+  for (i=0; i<*n_pos; i++) {
+    pos[i] = PyFloat_AsDouble( PyList_GET_ITEM(pPositionList, i) );
   }
 
   // Pass the new agent on to the Fortran

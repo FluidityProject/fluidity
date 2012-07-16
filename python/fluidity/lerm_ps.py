@@ -274,7 +274,7 @@ def update_N3_Copepod(param, vars, env, dt):
     new_agent_vars['Ammonium'] = ((vars['P_amm'] + E_N))
     new_agent_vars['PV'] = (vars['PV'] + (E * dt_in_hours))
     new_agent_vars['Carbon'] = (vars['Pc'] + E_C)
-    add_agent('Copepod', new_agent_vars, [-vars['z']])
+    add_agent('Copepod', new_agent_vars, [vars['x'], vars['y'], -vars['z']])
   vars['SilicateRelease'] = E_Si
 
   ### Assimilation ###
@@ -454,7 +454,7 @@ def update_N4_Copepod(param, vars, env, dt):
     new_agent_vars['Ammonium'] = ((vars['P_amm'] + E_N))
     new_agent_vars['PV'] = (vars['PV'] + (E * dt_in_hours))
     new_agent_vars['Carbon'] = (vars['Pc'] + E_C)
-    add_agent('Copepod', new_agent_vars, [-vars['z']])
+    add_agent('Copepod', new_agent_vars, [vars['x'], vars['y'], -vars['z']])
   vars['SilicateRelease'] = E_Si
 
   ### Assimilation ###
@@ -634,7 +634,7 @@ def update_N5_Copepod(param, vars, env, dt):
     new_agent_vars['Ammonium'] = ((vars['P_amm'] + E_N))
     new_agent_vars['PV'] = (vars['PV'] + (E * dt_in_hours))
     new_agent_vars['Carbon'] = (vars['Pc'] + E_C)
-    add_agent('Copepod', new_agent_vars, [-vars['z']])
+    add_agent('Copepod', new_agent_vars, [vars['x'], vars['y'], -vars['z']])
   vars['SilicateRelease'] = E_Si
 
   ### Assimilation ###
@@ -814,7 +814,7 @@ def update_N6_Copepod(param, vars, env, dt):
     new_agent_vars['Ammonium'] = ((vars['P_amm'] + E_N))
     new_agent_vars['PV'] = (vars['PV'] + (E * dt_in_hours))
     new_agent_vars['Carbon'] = (vars['Pc'] + E_C)
-    add_agent('Copepod', new_agent_vars, [-vars['z']])
+    add_agent('Copepod', new_agent_vars, [vars['x'], vars['y'], -vars['z']])
   vars['SilicateRelease'] = E_Si
 
   ### Assimilation ###
@@ -994,7 +994,7 @@ def update_C1_Copepod(param, vars, env, dt):
     new_agent_vars['Ammonium'] = ((vars['P_amm'] + E_N))
     new_agent_vars['PV'] = (vars['PV'] + (E * dt_in_hours))
     new_agent_vars['Carbon'] = (vars['Pc'] + E_C)
-    add_agent('Copepod', new_agent_vars, [-vars['z']])
+    add_agent('Copepod', new_agent_vars, [vars['x'], vars['y'], -vars['z']])
   vars['SilicateRelease'] = E_Si
 
   ### Assimilation ###
@@ -1174,7 +1174,7 @@ def update_C2_Copepod(param, vars, env, dt):
     new_agent_vars['Ammonium'] = ((vars['P_amm'] + E_N))
     new_agent_vars['PV'] = (vars['PV'] + (E * dt_in_hours))
     new_agent_vars['Carbon'] = (vars['Pc'] + E_C)
-    add_agent('Copepod', new_agent_vars, [-vars['z']])
+    add_agent('Copepod', new_agent_vars, [vars['x'], vars['y'], -vars['z']])
   vars['SilicateRelease'] = E_Si
 
   ### Assimilation ###
@@ -1320,7 +1320,7 @@ def update_C3_Copepod(param, vars, env, dt):
     new_agent_vars['Stage'] = stage_id('Copepod', 'POW4')
     new_agent_vars['Size'] = vars['Size'] * ((0.3) if (param['d_year'] <= 210.0) else (0.5))
     vars['Size'] = vars['Size'] - new_agent_vars['Size']
-    add_agent('Copepod', new_agent_vars, [-vars['z']])
+    add_agent('Copepod', new_agent_vars, [vars['x'], vars['y'], -vars['z']])
     
   if (vars['C_N'] >= param['C4_min']):
     vars['Stage'] = stage_id('Copepod', 'C4')
@@ -1366,7 +1366,7 @@ def update_C3_Copepod(param, vars, env, dt):
     new_agent_vars['Ammonium'] = ((vars['P_amm'] + E_N))
     new_agent_vars['PV'] = (vars['PV'] + (E * dt_in_hours))
     new_agent_vars['Carbon'] = (vars['Pc'] + E_C)
-    add_agent('Copepod', new_agent_vars, [-vars['z']])
+    add_agent('Copepod', new_agent_vars, [vars['x'], vars['y'], -vars['z']])
   vars['SilicateRelease'] = E_Si
 
   ### Assimilation ###
@@ -1546,7 +1546,7 @@ def update_POW4_Copepod(param, vars, env, dt):
     new_agent_vars['Ammonium'] = ((vars['P_amm'] + E_N))
     new_agent_vars['PV'] = (vars['PV'] + (E * dt_in_hours))
     new_agent_vars['Carbon'] = (vars['Pc'] + E_C)
-    add_agent('Copepod', new_agent_vars, [-vars['z']])
+    add_agent('Copepod', new_agent_vars, [vars['x'], vars['y'], -vars['z']])
   vars['SilicateRelease'] = E_Si
 
   ### Assimilation ###
@@ -1730,7 +1730,7 @@ def update_POW5_Copepod(param, vars, env, dt):
     new_agent_vars['Ammonium'] = ((vars['P_amm'] + E_N))
     new_agent_vars['PV'] = (vars['PV'] + (E * dt_in_hours))
     new_agent_vars['Carbon'] = (vars['Pc'] + E_C)
-    add_agent('Copepod', new_agent_vars, [-vars['z']])
+    add_agent('Copepod', new_agent_vars, [vars['x'], vars['y'], -vars['z']])
   vars['SilicateRelease'] = E_Si
 
   ### Assimilation ###
@@ -1894,7 +1894,7 @@ def update_OWD4_Copepod(param, vars, env, dt):
     new_agent_vars['Ammonium'] = ((vars['P_amm'] + E_N))
     new_agent_vars['PV'] = (vars['PV'] + (E * dt_in_hours))
     new_agent_vars['Carbon'] = (vars['Pc'] + E_C)
-    add_agent('Copepod', new_agent_vars, [-vars['z']])
+    add_agent('Copepod', new_agent_vars, [vars['x'], vars['y'], -vars['z']])
   vars['SilicateRelease'] = E_Si
 
   ### Assimilation ###
@@ -2048,7 +2048,7 @@ def update_OWD5_Copepod(param, vars, env, dt):
     new_agent_vars['Ammonium'] = ((vars['P_amm'] + E_N))
     new_agent_vars['PV'] = (vars['PV'] + (E * dt_in_hours))
     new_agent_vars['Carbon'] = (vars['Pc'] + E_C)
-    add_agent('Copepod', new_agent_vars, [-vars['z']])
+    add_agent('Copepod', new_agent_vars, [vars['x'], vars['y'], -vars['z']])
   vars['SilicateRelease'] = E_Si
 
   ### Assimilation ###
@@ -2357,7 +2357,7 @@ def update_OWA4_Copepod(param, vars, env, dt):
     new_agent_vars['Ammonium'] = ((vars['P_amm'] + E_N))
     new_agent_vars['PV'] = (vars['PV'] + (E * dt_in_hours))
     new_agent_vars['Carbon'] = (vars['Pc'] + E_C)
-    add_agent('Copepod', new_agent_vars, [-vars['z']])
+    add_agent('Copepod', new_agent_vars, [vars['x'], vars['y'], -vars['z']])
   vars['SilicateRelease'] = E_Si
 
   ### Assimilation ###
@@ -2514,7 +2514,7 @@ def update_OWA5_Copepod(param, vars, env, dt):
     new_agent_vars['Ammonium'] = ((vars['P_amm'] + E_N))
     new_agent_vars['PV'] = (vars['PV'] + (E * dt_in_hours))
     new_agent_vars['Carbon'] = (vars['Pc'] + E_C)
-    add_agent('Copepod', new_agent_vars, [-vars['z']])
+    add_agent('Copepod', new_agent_vars, [vars['x'], vars['y'], -vars['z']])
   vars['SilicateRelease'] = E_Si
 
   ### Assimilation ###
@@ -2650,7 +2650,7 @@ def update_C4_Copepod(param, vars, env, dt):
     new_agent_vars['Stage'] = stage_id('Copepod', 'POW5')
     new_agent_vars['Size'] = vars['Size'] * ((0.3) if (param['d_year'] <= 210.0) else (0.5))
     vars['Size'] = vars['Size'] - new_agent_vars['Size']
-    add_agent('Copepod', new_agent_vars, [-vars['z']])
+    add_agent('Copepod', new_agent_vars, [vars['x'], vars['y'], -vars['z']])
     
   if (vars['C_N'] >= param['C5_min']):
     vars['Stage'] = stage_id('Copepod', 'C5')
@@ -2696,7 +2696,7 @@ def update_C4_Copepod(param, vars, env, dt):
     new_agent_vars['Ammonium'] = ((vars['P_amm'] + E_N))
     new_agent_vars['PV'] = (vars['PV'] + (E * dt_in_hours))
     new_agent_vars['Carbon'] = (vars['Pc'] + E_C)
-    add_agent('Copepod', new_agent_vars, [-vars['z']])
+    add_agent('Copepod', new_agent_vars, [vars['x'], vars['y'], -vars['z']])
   vars['SilicateRelease'] = E_Si
 
   ### Assimilation ###
@@ -2876,7 +2876,7 @@ def update_C4OW_Copepod(param, vars, env, dt):
     new_agent_vars['Ammonium'] = ((vars['P_amm'] + E_N))
     new_agent_vars['PV'] = (vars['PV'] + (E * dt_in_hours))
     new_agent_vars['Carbon'] = (vars['Pc'] + E_C)
-    add_agent('Copepod', new_agent_vars, [-vars['z']])
+    add_agent('Copepod', new_agent_vars, [vars['x'], vars['y'], -vars['z']])
   vars['SilicateRelease'] = E_Si
 
   ### Assimilation ###
@@ -3052,7 +3052,7 @@ def update_C5_Copepod(param, vars, env, dt):
     new_agent_vars['Ammonium'] = ((vars['P_amm'] + E_N))
     new_agent_vars['PV'] = (vars['PV'] + (E * dt_in_hours))
     new_agent_vars['Carbon'] = (vars['Pc'] + E_C)
-    add_agent('Copepod', new_agent_vars, [-vars['z']])
+    add_agent('Copepod', new_agent_vars, [vars['x'], vars['y'], -vars['z']])
   vars['SilicateRelease'] = E_Si
 
   ### Assimilation ###
@@ -3232,7 +3232,7 @@ def update_C6_Copepod(param, vars, env, dt):
     new_agent_vars['Ammonium'] = ((vars['P_amm'] + E_N))
     new_agent_vars['PV'] = (vars['PV'] + (E * dt_in_hours))
     new_agent_vars['Carbon'] = (vars['Pc'] + E_C)
-    add_agent('Copepod', new_agent_vars, [-vars['z']])
+    add_agent('Copepod', new_agent_vars, [vars['x'], vars['y'], -vars['z']])
   vars['SilicateRelease'] = E_Si
 
   ### Assimilation ###
@@ -3412,7 +3412,7 @@ def update_Adult_Copepod(param, vars, env, dt):
     new_agent_vars['Ammonium'] = ((vars['P_amm'] + E_N))
     new_agent_vars['PV'] = (vars['PV'] + (E * dt_in_hours))
     new_agent_vars['Carbon'] = (vars['Pc'] + E_C)
-    add_agent('Copepod', new_agent_vars, [-vars['z']])
+    add_agent('Copepod', new_agent_vars, [vars['x'], vars['y'], -vars['z']])
   vars['SilicateRelease'] = E_Si
 
   ### Assimilation ###
@@ -3519,7 +3519,7 @@ def update_Nauplius_Copepod(param, vars, env, dt):
     new_agent_vars['Stage'] = stage_id('Copepod', 'Dead')
     new_agent_vars['Size'] = vars['Size'] * param['N_mp']
     vars['Size'] = vars['Size'] - new_agent_vars['Size']
-    add_agent('Copepod', new_agent_vars, [-vars['z']])
+    add_agent('Copepod', new_agent_vars, [vars['x'], vars['y'], -vars['z']])
     
   if (vars['Nauplius_counter'] >= 1.0):
     vars['Stage'] = stage_id('Copepod', 'N3')
@@ -3618,7 +3618,7 @@ def update_Mature_Copepod(param, vars, env, dt):
     new_agent_vars['Ammonium'] = ((vars['P_amm'] + E_N))
     new_agent_vars['PV'] = (vars['PV'] + (E * dt_in_hours))
     new_agent_vars['Carbon'] = (vars['Pc'] + E_C)
-    add_agent('Copepod', new_agent_vars, [-vars['z']])
+    add_agent('Copepod', new_agent_vars, [vars['x'], vars['y'], -vars['z']])
   vars['SilicateRelease'] = E_Si
 
   ### Assimilation ###
@@ -3680,7 +3680,7 @@ def update_Mature_Copepod(param, vars, env, dt):
     new_agent_vars['C_shell'] = (param['G_min'] * 0.05)
     new_agent_vars['C_pmax'] = ((param['G_min'] * (1.0 - 0.05)) / 2.0)
     new_agent_vars['V_gut'] = 4.0e-6
-    add_agent('Copepod', new_agent_vars, [-vars['z']])
+    add_agent('Copepod', new_agent_vars, [vars['x'], vars['y'], -vars['z']])
   if (Reproduce == 1.0):
     vars['Stage'] = stage_id('Copepod', 'Senescent')
 
@@ -3811,7 +3811,7 @@ def update_Senescent_Copepod(param, vars, env, dt):
     new_agent_vars['Ammonium'] = ((vars['P_amm'] + E_N))
     new_agent_vars['PV'] = (vars['PV'] + (E * dt_in_hours))
     new_agent_vars['Carbon'] = (vars['Pc'] + E_C)
-    add_agent('Copepod', new_agent_vars, [-vars['z']])
+    add_agent('Copepod', new_agent_vars, [vars['x'], vars['y'], -vars['z']])
   vars['SilicateRelease'] = E_Si
 
   ### Assimilation ###
@@ -3877,7 +3877,7 @@ def update_Senescent_Copepod(param, vars, env, dt):
   new_agent_vars['Stage'] = stage_id('Copepod', 'Dead')
   new_agent_vars['Size'] = vars['Size'] * (((1.0 / (param['A_rmax'] - vars['A_r']))) if (vars['A_r'] < param['A_rmax']) else (1.0))
   vars['Size'] = vars['Size'] - new_agent_vars['Size']
-  add_agent('Copepod', new_agent_vars, [-vars['z']])
+  add_agent('Copepod', new_agent_vars, [vars['x'], vars['y'], -vars['z']])
   
 
   ### Excretion ###
@@ -4145,7 +4145,7 @@ def update_Existance_Predator(param, vars, env, dt):
   new_agent_vars['Stage'] = stage_id('Predator', 'Pellet')
   new_agent_vars['Size'] = 1.0
   new_agent_vars['Ammonium'] = (vars['AmmoniumIngested'] + vars['NitrateIngested'])
-  add_agent('Predator', new_agent_vars, [-vars['z']])
+  add_agent('Predator', new_agent_vars, [vars['x'], vars['y'], -vars['z']])
 
   ### Silicon Pool ###
   Silicate_new = 0.0
@@ -4307,7 +4307,7 @@ def update_Existance_Basal_predator(param, vars, env, dt):
   new_agent_vars['Stage'] = stage_id('Basal_predator', 'Pellet')
   new_agent_vars['Size'] = 1.0
   new_agent_vars['Ammonium'] = (vars['AmmoniumIngested'] + vars['NitrateIngested'])
-  add_agent('Basal_predator', new_agent_vars, [-vars['z']])
+  add_agent('Basal_predator', new_agent_vars, [vars['x'], vars['y'], -vars['z']])
 
   ### Silicon Pool ###
   Silicate_new = 0.0
