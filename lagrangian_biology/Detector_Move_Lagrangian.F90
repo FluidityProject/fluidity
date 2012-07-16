@@ -48,7 +48,7 @@ module detector_move_lagrangian
   use ieee_arithmetic, only: ieee_is_nan
   use lebiology_python
   use path_element_module
-  use element_path_list, only: elepath_list_insert => list_insert, &
+  use element_path_list, only: elepath_list_insert => list_insert_head, &
                                elepath_list_create => list_create, &
                                elepath_list_destroy => list_destroy
 
@@ -230,7 +230,6 @@ contains
 
              if (associated(detector%path_elements)) then
                 call elepath_list_destroy(detector%path_elements)
-                detector%path_elements => null()
              end if
           end if
 

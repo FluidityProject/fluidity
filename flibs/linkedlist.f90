@@ -117,14 +117,21 @@ end subroutine list_create
 subroutine list_destroy( list )
     type(LINKED_LIST), pointer  :: list
 
-    type(LINKED_LIST), pointer  :: current
+!    type(LINKED_LIST), pointer  :: current
     type(LINKED_LIST), pointer  :: next
 
-    current => list
-    do while ( associated(current%next) )
-        next => current%next
-        deallocate( current )
-        current => next
+!    current => list
+!    do while ( associated(current%next) )
+!        next => current%next
+!        deallocate( current )
+!        current => next
+!    enddo
+
+!   Bugfix by M. Lange that avoids memory leak
+    do while ( associated(list) )
+        next => list%next
+        deallocate( list )
+        list => next
     enddo
 end subroutine list_destroy
 
