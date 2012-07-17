@@ -84,7 +84,7 @@ module populate_state_module
   !! A list of locations in which additional scalar/vector/tensor fields
   !! are to be found. It is assumed that all additional fields are
   !! in state 1.
-  character(len=OPTION_PATH_LEN), dimension(12) :: field_locations=&
+  character(len=OPTION_PATH_LEN), dimension(13) :: field_locations=&
        (/ &
        "/ocean_biology/pznd                                                                                                   ", &
        "/ocean_biology/six_component                                                                                          ", &

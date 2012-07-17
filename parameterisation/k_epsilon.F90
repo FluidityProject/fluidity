@@ -289,7 +289,7 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, buoyant_fields, &
      inv_k = 1.0/fields_min
   end where
 
-  ! Pk:
+  ! P:
   rhs_tensor = reynolds_stresses(u, EV, dshape, ele)
   rhs = tensor_inner_product(rhs_tensor, ele_grad_at_quad(u, ele, dshape))
   if (field_id==2) then
@@ -297,7 +297,7 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, buoyant_fields, &
   end if
   rhs_addto(1,:) = shape_rhs(shape, detwei*rhs)
 
-  ! Ak:
+  ! A:
   rhs = ele_val_at_quad(eps,ele)*inv_k
   if (field_id==2) then
      rhs = rhs*c_eps_2*ele_val_at_quad(f_2,ele)
@@ -574,8 +574,8 @@ subroutine keps_momentum_source(state)
 
   option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/'
 
-  if (.not. have_option(trim(option_path)) .or. &
-      have_option(trim(option_path)//'debugging_options/zero_reynolds_stress_tensor') .or.
+  if (.not.have_option(trim(option_path)) .or. &
+      have_option(trim(option_path)//'debugging_options/zero_reynolds_stress_tensor') .or. &
       have_option("/material_phase[0]/vector_field::Velocity/prescribed")) then 
      return
   end if
@@ -599,7 +599,7 @@ subroutine keps_momentum_source(state)
   ! Allow for prescribed momentum source
   prescribed = (have_option(trim(source%option_path)//'/prescribed/'))
   if(prescribed) then
-     call allocate(prescribed_source, source%mesh, 'PrescribedSource')
+     call allocate(prescribed_source, source%dim, source%mesh, name='PrescribedSource')
      call initialise_field_over_regions(prescribed_source, &
           trim(source%option_path)//'/prescribed/value', &
           x)
@@ -1136,7 +1136,7 @@ subroutine k_epsilon_check_options
   ! check there's a viscosity somewhere if velocity field is not prescribed
   if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic"//&
        "/tensor_field::Viscosity/") .and. &
-       .not.have_option("/material_phase[0]/vector_field::Velocity/prescribed") then
+       .not.have_option("/material_phase[0]/vector_field::Velocity/prescribed")) then
      FLExit("Need viscosity switched on under the Velocity field for k-epsilon.") 
      ! check that the user has switched Velocity/viscosity to diagnostic
      if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic"//&
@@ -1146,13 +1146,8 @@ subroutine k_epsilon_check_options
      ! check that the user has enabled a Velocity Source field
      if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic"//&
           &"/vector_field::Source/")) then
-        FLExit("You need to a velocity source field")
+        FLExit("A velocity source field is required for the reynolds stress adjustment (-2/3 k delta(ij))")
      end if
-  end if
-  ! check that the user has an active Velocity/source field
-  if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic"//&
-       &"/vector_field::Source/")) then
-     FLExit("A velocity source field is required for the reynolds stress adjustment (-2/3 k delta(ij))")
   end if
 
 end subroutine k_epsilon_check_options
