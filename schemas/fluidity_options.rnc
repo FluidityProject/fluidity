@@ -1410,7 +1410,7 @@ start =
                               velocity_mesh_choice,
                               diagnostic_scalar_field                        
                            }
-                        }?,
+                        }?
                      },
                      ## Enable to apply prescribed source terms into the k and epsilon equations.
                      ## This is useful for MMS tests
@@ -1437,7 +1437,7 @@ start =
                      ## diffusivities will remain at the relevant BackgroundDiffusivity.
                      ## 
                      ## ScalarEddyViscosity is still calculated as normal.
-                     element zero_eddy_viscosity{ empty }?,
+                     element zero_eddy_viscosity{ empty }?
                   }?
                }?
             }?,

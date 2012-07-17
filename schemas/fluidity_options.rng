@@ -1734,125 +1734,143 @@ explicitly</a:documentation>
                     </choice>
                   </element>
                   <optional>
-                    <element name="debugging_fields">
+                    <element name="debugging_options">
                       <a:documentation>produce vtu output of individual kk and eps source terms and set prescribed source terms
 for k and epsilon fields (for mms tests)</a:documentation>
-                      <optional>
-                        <element name="scalar_field">
-                          <attribute name="rank">
-                            <value>0</value>
-                          </attribute>
-                          <attribute name="name">
-                            <value>TurbulentKineticEnergyProduction</value>
-                          </attribute>
-                          <element name="diagnostic">
-                            <ref name="internal_algorithm"/>
-                            <ref name="velocity_mesh_choice"/>
-                            <ref name="diagnostic_scalar_field"/>
+                      <element name="source_term_output_fields">
+                        <a:documentation>output fields for each of the source and absorbtion terms in the k-epsilon 
+model</a:documentation>
+                        <optional>
+                          <element name="scalar_field">
+                            <attribute name="rank">
+                              <value>0</value>
+                            </attribute>
+                            <attribute name="name">
+                              <value>TurbulentKineticEnergyProduction</value>
+                            </attribute>
+                            <element name="diagnostic">
+                              <ref name="internal_algorithm"/>
+                              <ref name="velocity_mesh_choice"/>
+                              <ref name="diagnostic_scalar_field"/>
+                            </element>
                           </element>
-                        </element>
-                      </optional>
-                      <optional>
-                        <element name="scalar_field">
-                          <attribute name="rank">
-                            <value>0</value>
-                          </attribute>
-                          <attribute name="name">
-                            <value>TurbulentKineticEnergyBuoyancyTerm</value>
-                          </attribute>
-                          <element name="diagnostic">
-                            <ref name="internal_algorithm"/>
-                            <ref name="velocity_mesh_choice"/>
-                            <ref name="diagnostic_scalar_field"/>
+                        </optional>
+                        <optional>
+                          <element name="scalar_field">
+                            <attribute name="rank">
+                              <value>0</value>
+                            </attribute>
+                            <attribute name="name">
+                              <value>TurbulentKineticEnergyBuoyancyTerm</value>
+                            </attribute>
+                            <element name="diagnostic">
+                              <ref name="internal_algorithm"/>
+                              <ref name="velocity_mesh_choice"/>
+                              <ref name="diagnostic_scalar_field"/>
+                            </element>
                           </element>
-                        </element>
-                      </optional>
-                      <optional>
-                        <element name="scalar_field">
-                          <attribute name="rank">
-                            <value>0</value>
-                          </attribute>
-                          <attribute name="name">
-                            <value>TurbulentKineticEnergyDestruction</value>
-                          </attribute>
-                          <element name="diagnostic">
-                            <ref name="internal_algorithm"/>
-                            <ref name="velocity_mesh_choice"/>
-                            <ref name="diagnostic_scalar_field"/>
+                        </optional>
+                        <optional>
+                          <element name="scalar_field">
+                            <attribute name="rank">
+                              <value>0</value>
+                            </attribute>
+                            <attribute name="name">
+                              <value>TurbulentKineticEnergyDestruction</value>
+                            </attribute>
+                            <element name="diagnostic">
+                              <ref name="internal_algorithm"/>
+                              <ref name="velocity_mesh_choice"/>
+                              <ref name="diagnostic_scalar_field"/>
+                            </element>
                           </element>
-                        </element>
-                      </optional>
-                      <optional>
-                        <element name="scalar_field">
-                          <attribute name="rank">
-                            <value>0</value>
-                          </attribute>
-                          <attribute name="name">
-                            <value>TurbulentDissipationProduction</value>
-                          </attribute>
-                          <element name="diagnostic">
-                            <ref name="internal_algorithm"/>
-                            <ref name="velocity_mesh_choice"/>
-                            <ref name="diagnostic_scalar_field"/>
+                        </optional>
+                        <optional>
+                          <element name="scalar_field">
+                            <attribute name="rank">
+                              <value>0</value>
+                            </attribute>
+                            <attribute name="name">
+                              <value>TurbulentDissipationProduction</value>
+                            </attribute>
+                            <element name="diagnostic">
+                              <ref name="internal_algorithm"/>
+                              <ref name="velocity_mesh_choice"/>
+                              <ref name="diagnostic_scalar_field"/>
+                            </element>
                           </element>
-                        </element>
-                      </optional>
-                      <optional>
-                        <element name="scalar_field">
-                          <attribute name="rank">
-                            <value>0</value>
-                          </attribute>
-                          <attribute name="name">
-                            <value>TurbulentDissipationBuoyancyTerm</value>
-                          </attribute>
-                          <element name="diagnostic">
-                            <ref name="internal_algorithm"/>
-                            <ref name="velocity_mesh_choice"/>
-                            <ref name="diagnostic_scalar_field"/>
+                        </optional>
+                        <optional>
+                          <element name="scalar_field">
+                            <attribute name="rank">
+                              <value>0</value>
+                            </attribute>
+                            <attribute name="name">
+                              <value>TurbulentDissipationBuoyancyTerm</value>
+                            </attribute>
+                            <element name="diagnostic">
+                              <ref name="internal_algorithm"/>
+                              <ref name="velocity_mesh_choice"/>
+                              <ref name="diagnostic_scalar_field"/>
+                            </element>
                           </element>
-                        </element>
-                      </optional>
-                      <optional>
-                        <element name="scalar_field">
-                          <attribute name="rank">
-                            <value>0</value>
-                          </attribute>
-                          <attribute name="name">
-                            <value>TurbulentDissipationDestruction</value>
-                          </attribute>
-                          <element name="diagnostic">
-                            <ref name="internal_algorithm"/>
-                            <ref name="velocity_mesh_choice"/>
-                            <ref name="diagnostic_scalar_field"/>
+                        </optional>
+                        <optional>
+                          <element name="scalar_field">
+                            <attribute name="rank">
+                              <value>0</value>
+                            </attribute>
+                            <attribute name="name">
+                              <value>TurbulentDissipationDestruction</value>
+                            </attribute>
+                            <element name="diagnostic">
+                              <ref name="internal_algorithm"/>
+                              <ref name="velocity_mesh_choice"/>
+                              <ref name="diagnostic_scalar_field"/>
+                            </element>
                           </element>
-                        </element>
-                      </optional>
-                      <optional>
-                        <element name="scalar_field">
-                          <attribute name="rank">
-                            <value>0</value>
-                          </attribute>
-                          <attribute name="name">
-                            <value>TurbulentKineticEnergyPrescribedSource</value>
-                          </attribute>
-                          <element name="prescribed">
-                            <ref name="velocity_mesh_choice"/>
-                            <ref name="prescribed_scalar_field"/>
+                        </optional>
+                      </element>
+                      <element name="prescribed_source_terms">
+                        <a:documentation>Enable to apply prescribed source terms into the k and epsilon equations.
+This is useful for MMS tests</a:documentation>
+                        <optional>
+                          <element name="scalar_field">
+                            <attribute name="rank">
+                              <value>0</value>
+                            </attribute>
+                            <attribute name="name">
+                              <value>TurbulentKineticEnergyPrescribedSource</value>
+                            </attribute>
+                            <element name="prescribed">
+                              <ref name="velocity_mesh_choice"/>
+                              <ref name="prescribed_scalar_field"/>
+                            </element>
                           </element>
-                        </element>
-                      </optional>
-                      <optional>
-                        <element name="scalar_field">
-                          <attribute name="rank">
-                            <value>0</value>
-                          </attribute>
-                          <attribute name="name">
-                            <value>TurbulentDissipationPrescribedSource</value>
-                          </attribute>
-                          <element name="prescribed">
-                            <ref name="velocity_mesh_choice"/>
-                            <ref name="prescribed_scalar_field"/>
+                        </optional>
+                        <optional>
+                          <element name="scalar_field">
+                            <attribute name="rank">
+                              <value>0</value>
+                            </attribute>
+                            <attribute name="name">
+                              <value>TurbulentDissipationPrescribedSource</value>
+                            </attribute>
+                            <element name="prescribed">
+                              <ref name="velocity_mesh_choice"/>
+                              <ref name="prescribed_scalar_field"/>
+                            </element>
                           </element>
+                        </optional>
+                      </element>
+                      <optional>
+                        <element name="zero_eddy_viscosity">
+                          <a:documentation>Enabling this option disables feedback from the k-epsilon model back into 
+the rest of the model. Viscosity will always stay as the BackgroundViscosity,
+diffusivities will remain at the relevant BackgroundDiffusivity.
+
+ScalarEddyViscosity is still calculated as normal.</a:documentation>
+                          <empty/>
                         </element>
                       </optional>
                     </element>
