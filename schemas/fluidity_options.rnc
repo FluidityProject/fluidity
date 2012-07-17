@@ -1433,11 +1433,14 @@ start =
                         }?
                      },
                      ## Enabling this option disables feedback from the k-epsilon model back into 
-                     ## the rest of the model. Viscosity will always stay as the BackgroundViscosity,
-                     ## diffusivities will remain at the relevant BackgroundDiffusivity.
+                     ## the rest of the model. Reynolds stress tensor is set to zero by zeroing 
+                     ## EddyViscosity and the added source term, based on k, in the momentum equation.
+                     ## Hence, Viscosity will always stay as the BackgroundViscosity,
+                     ## diffusivities will remain at the relevant BackgroundDiffusivity, and the 
+                     ## momentum equation will be as if there were no turbulence model present. 
                      ## 
                      ## ScalarEddyViscosity is still calculated as normal.
-                     element zero_eddy_viscosity{ empty }?
+                     element zero_reynolds_stress_tensor{ empty }?
                   }?
                }?
             }?,

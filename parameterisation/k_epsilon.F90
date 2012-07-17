@@ -46,6 +46,7 @@ module k_epsilon
   use FLDebug
   use vtk_interfaces
   use solvers
+  use initialise_fields_module
 
 implicit none
 
@@ -534,7 +535,7 @@ subroutine keps_eddyvisc(state)
   ! eddy viscosity tensor is isotropic
   ! this is skipped if zero_eddy_viscosity is set - this is the easiest way to
   ! disable feedback from the k-epsilon model back into the rest of the model
-  if (.not. have_option(trim(option_path)//'debugging_options/zero_eddy_viscosity')) then
+  if (.not. have_option(trim(option_path)//'debugging_options/zero_reynolds_stress_tensor')) then
      do i = 1, eddy_visc%dim(1)
         call set(eddy_visc, i, i, EV)
      end do
@@ -566,13 +567,16 @@ subroutine keps_momentum_source(state)
   
   type(scalar_field), pointer :: k, lumped_mass
   type(vector_field), pointer :: source, x
+  type(vector_field) :: prescribed_source
   integer :: i
   logical :: prescribed, lump_mass
   character(len=OPTION_PATH_LEN) :: option_path 
 
   option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/'
 
-  if (.not. have_option(trim(option_path))) then 
+  if (.not. have_option(trim(option_path)) .or. &
+      have_option(trim(option_path)//'debugging_options/zero_reynolds_stress_tensor') .or.
+      have_option("/material_phase[0]/vector_field::Velocity/prescribed")) then 
      return
   end if
 
@@ -580,13 +584,7 @@ subroutine keps_momentum_source(state)
   source    => extract_vector_field(state, "VelocitySource")
   x         => extract_vector_field(state, "Coordinate")
 
-  ! Allow for prescribed momentum source
-  prescribed = (have_option(trim(source%option_path)//'/prescribed/'))
-  if(.not. prescribed) then
-     call zero(source)
-  end if
-
-  ! Calculate scalar eddy viscosity by integration over element
+  call zero(source)
   do i = 1, ele_count(k)
      call keps_momentum_source_ele()
   end do
@@ -596,6 +594,17 @@ subroutine keps_momentum_source(state)
      lump_mass = have_option(trim(option_path)//&
           'mass_lumping_in_diagnostics/lump_mass')
      call solve_cg_inv_mass_vector(state, source, lump_mass, option_path)  
+  end if
+
+  ! Allow for prescribed momentum source
+  prescribed = (have_option(trim(source%option_path)//'/prescribed/'))
+  if(prescribed) then
+     call allocate(prescribed_source, source%mesh, 'PrescribedSource')
+     call initialise_field_over_regions(prescribed_source, &
+          trim(source%option_path)//'/prescribed/value', &
+          x)
+     call addto(source, prescribed_source)
+     call deallocate(prescribed_source)
   end if
 
 contains
@@ -1127,12 +1136,17 @@ subroutine k_epsilon_check_options
   ! check there's a viscosity somewhere if velocity field is not prescribed
   if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic"//&
        "/tensor_field::Viscosity/") .and. &
-       .not.have_option("/material_phase[0]/vector_field::Velocity/prescribed) then
+       .not.have_option("/material_phase[0]/vector_field::Velocity/prescribed") then
      FLExit("Need viscosity switched on under the Velocity field for k-epsilon.") 
      ! check that the user has switched Velocity/viscosity to diagnostic
      if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic"//&
           &"/tensor_field::Viscosity/diagnostic/")) then
         FLExit("You need to switch the viscosity field under Velocity to diagnostic/internal")
+     end if
+     ! check that the user has enabled a Velocity Source field
+     if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic"//&
+          &"/vector_field::Source/")) then
+        FLExit("You need to a velocity source field")
      end if
   end if
   ! check that the user has an active Velocity/source field
