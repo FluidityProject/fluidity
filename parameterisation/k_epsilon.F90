@@ -1041,7 +1041,7 @@ subroutine k_epsilon_check_options
   
   character(len=OPTION_PATH_LEN) :: option_path
   character(len=FIELD_NAME_LEN)  :: kmsh, emsh, vmsh
-  integer                        :: dimension
+  integer                        :: dimension, stat
 
   ewrite(1,*) "In keps_check_options"
   option_path = "/material_phase[0]/subgridscale_parameterisations/k-epsilon"
@@ -1067,7 +1067,15 @@ subroutine k_epsilon_check_options
        &"/scalar_field::TurbulentKineticEnergy/prognostic/mesh/name", kmsh)
   call get_option(trim(option_path)//&
        &"/scalar_field::TurbulentDissipation/prognostic/mesh/name", emsh)
-  call get_option("/material_phase[0]/vector_field::Velocity/prognostic/mesh/name", vmsh)
+  call get_option("/material_phase[0]/vector_field::Velocity/prognostic/mesh/name", vmsh,&
+       & stat)
+  if (stat /= 0) then
+     call get_option("/material_phase[0]/vector_field::Velocity/prescribed/mesh/name", vmsh,&
+       & stat)
+     if (stat /= 0) then
+        FLExit("You must use a prognostic or prescribed Velocity field")
+     end if
+  end if
   if(.not. kmsh==emsh .or. .not. kmsh==vmsh .or. .not. emsh==vmsh) then
      FLExit("You must use the Velocity mesh for TurbulentKineticEnergy and TurbulentDissipation fields")
   end if
@@ -1133,7 +1141,7 @@ subroutine k_epsilon_check_options
        &"/scalar_field::Absorption/diagnostic/algorithm::Internal")) then
      FLExit("You need TurbulentDissipation Absorption field set to diagnostic/internal")
   end if
-  ! check there's a viscosity somewhere if velocity field is not prescribed
+  ! Velocity field options
   if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic"//&
        "/tensor_field::Viscosity/") .and. &
        .not.have_option("/material_phase[0]/vector_field::Velocity/prescribed")) then
