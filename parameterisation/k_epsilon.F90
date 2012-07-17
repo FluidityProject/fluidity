@@ -161,23 +161,20 @@ subroutine keps_calculate_rhs(state)
 
      ! Produce debugging output
 
-     if (have_option(trim(state%option_path)//&
-          &"/subgridscale_parameterisations/k-epsilon/debugging_fields")) then
-        debug => extract_scalar_field(state, &
-             trim(field_names(i))//"Production", stat)
-        if (stat == 0) then
-           call set(debug, src_abs_terms(1))
-        end if
-        debug => extract_scalar_field(state, &
-             trim(field_names(i))//"Destruction", stat)
-        if (stat == 0) then
-           call set(debug, src_abs_terms(2))
-        end if
-        debug => extract_scalar_field(state, &
-             trim(field_names(i))//"BuoyancyTerm", stat)
-        if (stat == 0) then
-           call set(debug, src_abs_terms(3))
-        end if
+     debug => extract_scalar_field(state, &
+          trim(field_names(i))//"Production", stat)
+     if (stat == 0) then
+        call set(debug, src_abs_terms(1))
+     end if
+     debug => extract_scalar_field(state, &
+          trim(field_names(i))//"Destruction", stat)
+     if (stat == 0) then
+        call set(debug, src_abs_terms(2))
+     end if
+     debug => extract_scalar_field(state, &
+          trim(field_names(i))//"BuoyancyTerm", stat)
+     if (stat == 0) then
+        call set(debug, src_abs_terms(3))
      end if
      !-----------------------------------------------------------------------------------
      
@@ -450,13 +447,13 @@ subroutine keps_eddyvisc(state)
   type(scalar_field), pointer      :: kk, eps, EV, ll, f_mu
   type(scalar_field)               :: ev_rhs
   type(element_type), pointer      :: shape_ev
-  integer                          :: i, ele
+  integer                          :: i, ele, stat
   integer, pointer, dimension(:)   :: nodes_ev
   real, allocatable, dimension(:)  :: detwei, rhs_addto
   real, allocatable, dimension(:,:):: invmass
   real                             :: c_mu, lmax
   character(len=OPTION_PATH_LEN)   :: option_path
-  logical                          :: lump_mass
+  logical                          :: lump_mass, have_visc = .true.
 
   option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/'
 
@@ -475,11 +472,14 @@ subroutine keps_eddyvisc(state)
   eps        => extract_scalar_field(state, "TurbulentDissipation")
   positions  => extract_vector_field(state, "Coordinate")
   eddy_visc  => extract_tensor_field(state, "EddyViscosity")
-  viscosity  => extract_tensor_field(state, "Viscosity")
   f_mu       => extract_scalar_field(state, "f_mu")
   bg_visc    => extract_tensor_field(state, "BackgroundViscosity")
   EV         => extract_scalar_field(state, "ScalarEddyViscosity")
   ll         => extract_scalar_field(state, "LengthScale")
+  viscosity  => extract_tensor_field(state, "Viscosity", stat)
+  if (stat /= 0) then
+     have_visc = .false.
+  end if
 
   ewrite_minmax(kk)
   ewrite_minmax(eps)
@@ -489,7 +489,9 @@ subroutine keps_eddyvisc(state)
   call zero(ev_rhs)
 
   ! Initialise viscosity to background value
-  call set(viscosity, bg_visc)
+  if (have_visc) then
+     call set(viscosity, bg_visc)
+  end if
 
   !Clip fields: can't allow negative/zero epsilon or k
   do i = 1, node_count(EV)
@@ -530,12 +532,18 @@ subroutine keps_eddyvisc(state)
   call zero(eddy_visc)
 
   ! eddy viscosity tensor is isotropic
-  do i = 1, eddy_visc%dim(1)
-     call set(eddy_visc, i, i, EV)
-  end do
+  ! this is skipped if zero_eddy_viscosity is set - this is the easiest way to
+  ! disable feedback from the k-epsilon model back into the rest of the model
+  if (.not. have_option(trim(option_path)//'debugging_options/zero_eddy_viscosity')) then
+     do i = 1, eddy_visc%dim(1)
+        call set(eddy_visc, i, i, EV)
+     end do
+  end if
 
   ! Add turbulence model contribution to viscosity field
-  call addto(viscosity, eddy_visc)
+  if (have_visc) then
+     call addto(viscosity, eddy_visc)
+  end if
 
   ewrite_minmax(eddy_visc)
   ewrite_minmax(viscosity)
@@ -1116,15 +1124,16 @@ subroutine k_epsilon_check_options
        &"/scalar_field::Absorption/diagnostic/algorithm::Internal")) then
      FLExit("You need TurbulentDissipation Absorption field set to diagnostic/internal")
   end if
-  ! check there's a viscosity somewhere
+  ! check there's a viscosity somewhere if velocity field is not prescribed
   if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic"//&
-       &"/tensor_field::Viscosity/")) then
+       "/tensor_field::Viscosity/") .and. &
+       .not.have_option("/material_phase[0]/vector_field::Velocity/prescribed) then
      FLExit("Need viscosity switched on under the Velocity field for k-epsilon.") 
-  end if
-  ! check that the user has switched Velocity/viscosity to diagnostic
-  if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic"//&
-       &"/tensor_field::Viscosity/diagnostic/")) then
-     FLExit("You need to switch the viscosity field under Velocity to diagnostic/internal")
+     ! check that the user has switched Velocity/viscosity to diagnostic
+     if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic"//&
+          &"/tensor_field::Viscosity/diagnostic/")) then
+        FLExit("You need to switch the viscosity field under Velocity to diagnostic/internal")
+     end if
   end if
   ! check that the user has an active Velocity/source field
   if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic"//&

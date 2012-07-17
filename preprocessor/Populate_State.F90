@@ -92,7 +92,8 @@ module populate_state_module
        "/material_phase[0]/subgridscale_parameterisations/prescribed_diffusivity                                              ", &
        "/material_phase[0]/subgridscale_parameterisations/GLS                                                                 ", &
        "/material_phase[0]/subgridscale_parameterisations/k-epsilon                                                           ", &
-       "/material_phase[0]/subgridscale_parameterisations/k-epsilon/debugging_fields                                          ", &
+       "/material_phase[0]/subgridscale_parameterisations/k-epsilon/debugging_options/source_term_output_fields               ", &
+       "/material_phase[0]/subgridscale_parameterisations/k-epsilon/debugging_options/prescribed_source_terms                 ", &
        "/ocean_forcing/iceshelf_meltrate/Holland08                                                                            ", &
        "/ocean_forcing/bulk_formulae/output_fluxes_diagnostics                                                                ", &
        "/porous_media                                                                                                         ", &
