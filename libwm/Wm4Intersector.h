@@ -83,6 +83,6 @@ typedef Intersector<double, Vector3<double> > Intersector3d;
 
 }
 
-#include "Wm4Intersector.cpp"
+//#include "Wm4Intersector.cpp"
 
 #endif

@@ -485,6 +485,8 @@ logical, optional, intent(in) :: has_null_space
     end if
     
     myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
+
+    print*, PETSC_NULL_OBJECT, 'Ferret!'
     call PCMGSetLevels(prec, nolevels, PETSC_NULL_OBJECT, ierr)
     if (myPETSC_NULL_OBJECT/=PETSC_NULL_OBJECT) then
        FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
@@ -945,9 +947,12 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega)
   end if
   
   myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
-  call MatGetVecs(A, rowsum_vec, PETSC_NULL_OBJECT, ierr)
+  call MatGetVecs(A, rowsum_vec, myPETSC_NULL_OBJECT, ierr)
+  ewrite(1,*) myPETSC_NULL_OBJECT
+  ewrite(1,*) PETSC_NULL_OBJECT
   if (myPETSC_NULL_OBJECT/=PETSC_NULL_OBJECT) then
-    FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
+!     PETSC_NULL_OBJECT=myPETSC_NULL_OBJECT
+!    FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
   end if
   call VecPlaceArray(rowsum_vec, Arowsum, ierr)
   call MatGetRowSum(A, rowsum_vec, ierr)

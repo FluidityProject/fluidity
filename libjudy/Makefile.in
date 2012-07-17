@@ -6,6 +6,8 @@ default:
 clean:
 	cd src; $(MAKE) clean
 
+.PHONY: install
+
 install:
 	cp src/libjudy.a ../lib
 	cp src/Judy.h ../include

@@ -61,6 +61,6 @@ typedef IntrQuad2Quad2<double> IntrQuad2Quad2d;
 
 }
 
-#include "Wm4IntrQuad2Quad2.cpp"
+//#include "Wm4IntrQuad2Quad2.cpp"
 
 #endif
