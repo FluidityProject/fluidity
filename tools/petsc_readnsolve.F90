@@ -70,7 +70,7 @@ implicit none
 #endif
 #endif
 ! hack around PetscTruth->PetscBool change in petsc 3.2
-#if PETSC_VERSION_MINOR==2
+#if PETSC_VERSION_MINOR>=2
 #define PetscTruth PetscBool
 #endif
   ! options read from command-line (-prns_... options)
@@ -93,7 +93,7 @@ implicit none
   ! read in the matrix equation and init. guess:
   call PetscViewerBinaryOpen(MPI_COMM_FEMTOOLS, trim(filename), &
      FILE_MODE_READ, viewer, ierr)
-#if PETSC_VERSION_MINOR==2
+#if PETSC_VERSION_MINOR>=2
   ! in petsc 3.2 MatLoad and VecLoad do no longer create a new vector
   call MatCreate(MPI_COMM_FEMTOOLS, matrix, ierr)
   call VecCreate(MPI_COMM_FEMTOOLS, rhs, ierr)
