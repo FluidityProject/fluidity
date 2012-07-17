@@ -7,6 +7,11 @@
     <command_line>fluidity  MMS_A_cv.flml &gt; MMS_A.log; fluidity  MMS_B_cv.flml &gt; MMS_B.log; fluidity  MMS_C_cv.flml &gt; MMS_C.log; fluidity  MMS_D_cv.flml &gt; MMS_D.log</command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="ab_convergence_gal_stat" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
@@ -113,6 +118,9 @@ d_final_change = max(abs(vtu.GetScalarField("NumericalSolution")-vtu.GetScalarFi
     </variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="ab_convergence_stat: L2 order in [0.5,0.9]" language="python">
 assert(abs(ab_convergence_gal_stat[0]-0.7) &lt; 0.2)
     </test>

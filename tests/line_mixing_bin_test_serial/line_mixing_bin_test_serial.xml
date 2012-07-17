@@ -7,11 +7,19 @@
     <command_line>make clean-run-debug; fluidity -l line_mixing_bin_test_serial.flml</command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="stat" language="python">import fluidity_tools
 
 stat = fluidity_tools.stat_parser("line_mixing_bin_test_serial.stat")</variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="Phi0Integrals" language="python">import fluidity_tools
 
 integrals = stat["Fluid"]["Phi0"]["mixing_bins%Bins"][:, -1]

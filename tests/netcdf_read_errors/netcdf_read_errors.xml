@@ -7,6 +7,11 @@
     <command_line>for name in valid missingdata missingdimension missingvariable incorrectdimension incorrectvariable ; do echo "Running case ${name}"; ../../bin/fluidity "${name}.flml" 1>/dev/null 2>"${name}.err"; done</command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="valid_err_filesize" language="python">
 import os
 valid_err_filesize = os.stat('valid.err').st_size
@@ -90,6 +95,9 @@ incorrectvariable_err = ( line == correct )
     </variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="Checking the valid case has reported no errors" language="python">
 assert ( valid_err_filesize == 0 )
     </test>

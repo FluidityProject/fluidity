@@ -6,4 +6,5 @@ input:
 
 
 clean:
-	rm -f *.node *.ele *.edge *.msh *.vtu *.log* *.err* *.stat *dump*
+	rm -f *.node *.ele *.edge *.msh *.vtu *.log* *.err* *.stat *dump* \
+	matrixdump matrixdump.info
