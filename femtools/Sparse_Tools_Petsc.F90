@@ -135,7 +135,7 @@ module sparse_tools_petsc
   end interface
 
   interface addto_diag
-     module procedure petsc_csr_addto_diag, petsc_csr_vaddto_diag
+     module procedure petsc_csr_addto_diag, petsc_csr_vaddto_diag, petsc_csr_sfield_addto_diag
   end interface
 
   interface scale
@@ -933,6 +933,29 @@ contains
     matrix%is_assembled=.false.
 
   end subroutine petsc_csr_vaddto_diag
+
+  subroutine petsc_csr_sfield_addto_diag(matrix, blocki, blockj, sfield, scale)
+    !!< Add val to matrix(i,i)
+    type(petsc_csr_matrix), intent(inout)        :: matrix
+    integer,                intent(in)           :: blocki, blockj
+    type(scalar_field),     intent(in)           :: sfield
+    real,                   intent(in), optional :: scale
+    
+    ! local variables
+    integer:: k
+    
+    if (present(scale)) then
+       do k=1, size(sfield%val)
+         call addto(matrix, blocki, blockj, k, k, sfield%val(k)*scale)
+       end do
+    else
+       do k=1, size(sfield%val)
+         call addto(matrix, blocki, blockj, k, k, sfield%val(k))
+       end do    
+    end if
+    matrix%is_assembled=.false.
+
+  end subroutine petsc_csr_sfield_addto_diag
 
   subroutine petsc_csr_extract_diagonal(matrix,diagonal)
     !!< Extracts diagonal components of a block_csr matrix.

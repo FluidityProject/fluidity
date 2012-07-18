@@ -414,6 +414,9 @@ program Darcy_IMPES
             di%pressure_other_porous_media      => di_dual%pressure
             di_dual%pressure_other_porous_media => di%pressure
             di%transmissibility_lambda_dual     => di_dual%transmissibility_lambda_dual
+
+            call compute_cv_mass(di_dual%positions, di_dual%cv_mass_pressure_mesh_with_lambda_dual, di_dual%transmissibility_lambda_dual)
+            call set(di%cv_mass_pressure_mesh_with_lambda_dual, di_dual%cv_mass_pressure_mesh_with_lambda_dual)
          end if
          
          ! *** Darcy IMPES Calculate the relperm and density first face values (depend on upwind direction) ***
@@ -632,10 +635,10 @@ program Darcy_IMPES
    
    ! ***** Finalise dual permeability model *****
    if (have_dual) then
-      call darcy_impes_finalise(di_dual, this_is_dual = .true.)
+      call darcy_impes_finalise(di_dual, have_dual)
    end if
    ! *** Finalise darcy impes variables ***
-   call darcy_impes_finalise(di, this_is_dual = .false.)
+   call darcy_impes_finalise(di, have_dual)
     
    ! Deallocate state
    do i = 1, size(state)
@@ -824,8 +827,9 @@ contains
       call allocate(di%cv_mass_pressure_mesh_with_old_porosity, di%pressure_mesh)
       call allocate(di%inverse_cv_sa_pressure_mesh, di%pressure_mesh)
       
-      if (this_is_dual) then
+      if (have_dual) then
          call allocate(di%cv_mass_pressure_mesh_with_lambda_dual, di%pressure_mesh)
+         call allocate(di%rhs_dual, di%pressure_mesh)
       end if
       
       ! Allocate a field that is always zero on the pressure mesh to be pointed 
@@ -1507,12 +1511,12 @@ contains
 
 ! ----------------------------------------------------------------------------
    
-   subroutine darcy_impes_finalise(di, this_is_dual)
+   subroutine darcy_impes_finalise(di, have_dual)
       
       !!< Finalise (ie deallocate) the Darcy IMPES data
       
       type(darcy_impes_type), intent(inout) :: di
-      logical,                intent(in)    :: this_is_dual
+      logical,                intent(in)    :: have_dual
             
       ! Deallocate, nullify or zero Darcy IMPES data
       !  - pointers to data in state are nullified
@@ -1590,8 +1594,9 @@ contains
       call deallocate(di%cv_mass_pressure_mesh_with_old_porosity)
       call deallocate(di%inverse_cv_sa_pressure_mesh)
       
-      if (this_is_dual) then
+      if (have_dual) then
          call deallocate(di%cv_mass_pressure_mesh_with_lambda_dual)
+         call deallocate(di%rhs_dual)
       end if
 
       call deallocate(di%constant_zero_sfield_pmesh)
@@ -1775,7 +1780,7 @@ contains
       ! ALL THE IMPORTANT SOLUTION DATA IS IN STATE
       ! WHICH IS NOT DEALLOCATED IN THE FOLLOWING PROCEDURE
       
-      call darcy_impes_finalise(di, this_is_dual)
+      call darcy_impes_finalise(di, have_dual)
             
       call darcy_impes_initialise(di, &
                                   state, &

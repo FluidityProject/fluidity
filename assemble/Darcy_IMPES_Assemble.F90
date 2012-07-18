@@ -254,6 +254,8 @@ module darcy_impes_assemble_module
       type(scalar_field_pointer), dimension(:), pointer :: old_saturation_subcycle
       ! ***** coupling field associated with DUAL model *****
       type(scalar_field) :: cv_mass_pressure_mesh_with_lambda_dual
+      ! ***** rhs src field associated with DUAL model *****
+      type(scalar_field) :: rhs_dual
       ! *** Data associated with v, pressure and sfield BC allocated here ***
       type(mesh_type)                          :: bc_surface_mesh
       type(scalar_field)                       :: v_bc_value
@@ -384,7 +386,8 @@ module darcy_impes_assemble_module
          form_new_subcycle_relperm_face_values  = .true.
          
          call darcy_impes_assemble_and_solve_phase_saturations(di, &
-                                                               form_new_subcycle_relperm_face_values)
+                                                               form_new_subcycle_relperm_face_values, &
+                                                               have_dual)
          
       end if
                         
@@ -450,7 +453,8 @@ module darcy_impes_assemble_module
       end if 
             
       call darcy_impes_assemble_and_solve_phase_saturations(di, &
-                                                            form_new_subcycle_relperm_face_values)
+                                                            form_new_subcycle_relperm_face_values, &
+                                                            have_dual)
       
       call darcy_impes_assemble_and_solve_generic_prog_sfields(di)
       
@@ -621,9 +625,13 @@ module darcy_impes_assemble_module
          end do dual_src_phase_loop
       
       end if
-      
-      if (have_dual) then
-         call compute_cv_mass(di_dual%positions, di_dual%cv_mass_pressure_mesh_with_lambda_dual, di_dual%transmissibility_lambda_dual)
+
+      ! Add the transmissibility lambda dual to each block diagonal      
+      if (have_dual) then         
+         call addto_diag(di%pressure_matrix, 1, 1, di_dual%cv_mass_pressure_mesh_with_lambda_dual, scale =  1.0)
+         call addto_diag(di%pressure_matrix, 1, 2, di_dual%cv_mass_pressure_mesh_with_lambda_dual, scale = -1.0)
+         call addto_diag(di%pressure_matrix, 2, 1, di_dual%cv_mass_pressure_mesh_with_lambda_dual, scale = -1.0)
+         call addto_diag(di%pressure_matrix, 2, 2, di_dual%cv_mass_pressure_mesh_with_lambda_dual, scale =  1.0)
       end if
                   
       ewrite(1,*) 'Add rate of change of porosity to global continuity equation'
@@ -1869,7 +1877,8 @@ module darcy_impes_assemble_module
 ! ----------------------------------------------------------------------------
 
    subroutine darcy_impes_assemble_and_solve_phase_saturations(di, &
-                                                               form_new_subcycle_relperm_face_values)
+                                                               form_new_subcycle_relperm_face_values, &
+                                                               have_dual)
       
       !!< Assemble and solve the saturations for each subcycle.
       !!< If form_new_subcycle_relperm_face_values is true
@@ -1880,6 +1889,7 @@ module darcy_impes_assemble_module
       
       type(darcy_impes_type), intent(inout) :: di
       logical,                intent(in)    :: form_new_subcycle_relperm_face_values
+      logical,                intent(in)    :: have_dual      
 
       ! local variables
       integer :: p, isub, isub_index
@@ -1892,7 +1902,7 @@ module darcy_impes_assemble_module
       !  - For each phase:
       !     - Form the lhs = cv_mass_sfield_mesh_with_porosity / dt
       !     - Form the rhs time = cv_mass_pressure_mesh_with_old_porosity * old_saturation_field / dt and add to rhs
-      !     - Add the s_source to rhs
+      !     - Add the s_source to rhs, which may include the dual perm transmissibility term
       !     - Assemble and add the rhs adv to rhs 
       !     - Apply any strong dirichlet BCs
       !     - solve for latest saturations and copy to start subcycle saturations step
@@ -1978,22 +1988,14 @@ module darcy_impes_assemble_module
             call zero(di%lhs)
             call zero(di%rhs)
             
-            call addto(di%lhs, di%cv_mass_pressure_mesh_with_porosity)
+            call addto(di%lhs, di%cv_mass_pressure_mesh_with_porosity, scale = alpha_end / di%dt_subcycle)
 
-            call scale(di%lhs, alpha_end)
-
-            call addto(di%lhs, di%cv_mass_pressure_mesh_with_old_porosity, scale = (1.0 - alpha_end))
-
-            call scale(di%lhs, 1.0/di%dt_subcycle)
+            call addto(di%lhs, di%cv_mass_pressure_mesh_with_old_porosity, scale = (1.0 - alpha_end) / di%dt_subcycle)
 
             ! form the rhs time contribution and add
-            call addto(di%rhs, di%cv_mass_pressure_mesh_with_porosity)
+            call addto(di%rhs, di%cv_mass_pressure_mesh_with_porosity, scale = alpha_start / di%dt_subcycle)
 
-            call scale(di%rhs, alpha_start)
-
-            call addto(di%rhs, di%cv_mass_pressure_mesh_with_old_porosity, scale = (1.0 - alpha_start))
-
-            call scale(di%rhs, 1.0/di%dt_subcycle)
+            call addto(di%rhs, di%cv_mass_pressure_mesh_with_old_porosity, scale = (1.0 - alpha_start) / di%dt_subcycle)
 
             call scale(di%rhs, di%old_saturation_subcycle(p)%ptr)
 
@@ -2002,7 +2004,16 @@ module darcy_impes_assemble_module
             
             ! Should this include porosity ?!?!
             call addto(di%rhs, di%cv_mass_pressure_mesh_with_source)
-
+            
+            ! Add the dual source term
+            if (have_dual) then               
+               call set(di%rhs_dual, di%pressure_other_porous_media(p)%ptr)
+               call addto(di%rhs_dual, di%pressure(p)%ptr, scale = -1.0)            
+               call scale(di%rhs_dual, di%cv_mass_pressure_mesh_with_lambda_dual)
+               
+               call addto(di%rhs, di%rhs_dual)
+            end if
+            
             ! assemble the rhs adv contribution and add
             call darcy_impes_assemble_saturation_rhs_adv(di, &
                                                          p, &
