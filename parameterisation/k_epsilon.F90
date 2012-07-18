@@ -46,7 +46,6 @@ module k_epsilon
   use FLDebug
   use vtk_interfaces
   use solvers
-  use initialise_fields_module
 
 implicit none
 
@@ -584,7 +583,12 @@ subroutine keps_momentum_source(state)
   source    => extract_vector_field(state, "VelocitySource")
   x         => extract_vector_field(state, "Coordinate")
 
-  call zero(source)
+  ! Allow for prescribed momentum source
+  prescribed = (have_option(trim(source%option_path)//'/prescribed/'))
+  if(.not.prescribed) then
+     call zero(source)
+  end if
+
   do i = 1, ele_count(k)
      call keps_momentum_source_ele()
   end do
@@ -596,16 +600,18 @@ subroutine keps_momentum_source(state)
      call solve_cg_inv_mass_vector(state, source, lump_mass, option_path)  
   end if
 
-  ! Allow for prescribed momentum source
-  prescribed = (have_option(trim(source%option_path)//'/prescribed/'))
-  if(prescribed) then
-     call allocate(prescribed_source, source%dim, source%mesh, name='PrescribedSource')
-     call initialise_field_over_regions(prescribed_source, &
-          trim(source%option_path)//'/prescribed/value', &
-          x)
-     call addto(source, prescribed_source)
-     call deallocate(prescribed_source)
-  end if
+  ! This code isn't needed because the adjustment to the field is done before the non
+  ! -linear iteration loop
+  ! ! Allow for prescribed momentum source
+  ! prescribed = (have_option(trim(source%option_path)//'/prescribed/'))
+  ! if(prescribed) then
+  !    call allocate(prescribed_source, source%dim, source%mesh, name='PrescribedSource')
+  !    call initialise_field_over_regions(prescribed_source, &
+  !         trim(source%option_path)//'/prescribed/value', &
+  !         x)
+  !    call addto(source, prescribed_source)
+  !    call deallocate(prescribed_source)
+  ! end if
 
 contains
     
