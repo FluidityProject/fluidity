@@ -313,7 +313,7 @@ if test "x$enable_openmp" == "xyes" ; then
     # Assume same flag for FC
     FCFLAGS="$FCFLAGS $OPENMP_CXXFLAGS"
 fi
-LIBS="$LAPACK_LIBS $BLAS_LIBS $LIBS $FCLIBS $FLIBS"
+LIBS="$LAPACK_LIBS $LIBS $FCLIBS $FLIBS"
 
 AC_SUBST(LAPACK_LIBS)
 AC_SUBST(BLAS_LIBS)
