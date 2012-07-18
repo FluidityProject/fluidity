@@ -1154,7 +1154,7 @@ start =
                ## carries the influence of turbulence onto the velocity field. See the manual for details.
                element k-epsilon {
                   ## Turbulent kinetic energy (k).
-                  ## 1. 'k_epsilon'-type boundary conditions are recommended for this field.
+                  ## 1. 'k_esilon'-type boundary conditions are recommended for this field.
                   ## 2. Turn on diffusivity, source and absorption diagnostic fields.
                   ## 3. Use the same mesh as Velocity.
                   element scalar_field {
@@ -1432,6 +1432,12 @@ start =
                            }
                         }?
                      },
+                     ## enabling this option disables the production term in the k and epsilon equations
+                     element disable_production{ empty }?,
+                     ## enabling this option disables the destruction term in the k and epsilon equation
+                     element disable_destruction{ empty }?,
+                     ## enabling this option disables the bouyancy term in the k and epsilon equation
+                     element disable_buoyancy{ empty }?,
                      ## Enabling this option disables feedback from the k-epsilon model back into 
                      ## the rest of the model. Reynolds stress tensor is set to zero by zeroing 
                      ## EddyViscosity and the added source term, based on k, in the momentum equation.

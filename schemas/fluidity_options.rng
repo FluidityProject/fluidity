@@ -1864,6 +1864,24 @@ This is useful for MMS tests</a:documentation>
                         </optional>
                       </element>
                       <optional>
+                        <element name="disable_production">
+                          <a:documentation>enabling this option disables the production term in the k and epsilon equations</a:documentation>
+                          <empty/>
+                        </element>
+                      </optional>
+                      <optional>
+                        <element name="disable_destruction">
+                          <a:documentation>enabling this option disables the destruction term in the k and epsilon equation</a:documentation>
+                          <empty/>
+                        </element>
+                      </optional>
+                      <optional>
+                        <element name="disable_buoyancy">
+                          <a:documentation>enabling this option disables the bouyancy term in the k and epsilon equation</a:documentation>
+                          <empty/>
+                        </element>
+                      </optional>
+                      <optional>
                         <element name="zero_reynolds_stress_tensor">
                           <a:documentation>Enabling this option disables feedback from the k-epsilon model back into 
 the rest of the model. Reynolds stress tensor is set to zero by zeroing 

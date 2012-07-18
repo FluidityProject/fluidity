@@ -159,6 +159,18 @@ subroutine keps_calculate_rhs(state)
      end if
      !-----------------------------------------------------------------------------------
 
+     ! Source disabling for debugging purposes
+     if(have_option(trim(option_path)//'debugging_options/disable_production')) then
+        call zero(src_abs_terms(1))
+     end if
+     if(have_option(trim(option_path)//'debugging_options/disable_destruction')) then
+        call zero(src_abs_terms(2))
+     end if
+     if(have_option(trim(option_path)//'debugging_options/disable_buoyancy')) then
+        call zero(src_abs_terms(3))
+     end if     
+     !-----------------------------------------------------------------------------------
+
      ! Produce debugging output
 
      debug => extract_scalar_field(state, &
@@ -289,7 +301,7 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, buoyant_fields, &
   end where
 
   ! P:
-  rhs_tensor = reynolds_stresses(u, EV, dshape, ele)
+  rhs_tensor = reynolds_stresses(u, k, EV, dshape, ele)
   rhs = tensor_inner_product(rhs_tensor, ele_grad_at_quad(u, ele, dshape))
   if (field_id==2) then
      rhs = rhs*c_eps_1*ele_val_at_quad(f_1,ele)*ele_val_at_quad(eps,ele)*inv_k
@@ -335,26 +347,30 @@ end subroutine assemble_rhs_ele
 !------------------------------------------------------------------------------!
 ! calculate reynolds stresses   = EV*symmetric gradient                        !
 !------------------------------------------------------------------------------!
-function reynolds_stresses(u, EV, dshape, ele)
+function reynolds_stresses(u, k, EV, dshape, ele)
 
   type(vector_field), intent(in) :: u
-  type(scalar_field), intent(in) :: EV
+  type(scalar_field), intent(in) :: EV, k
   integer, intent(in) :: ele
   real, dimension(:, :, :), intent(in) :: dshape
   
   real, dimension(u%dim, u%dim, ele_ngi(u, ele)) :: reynolds_stresses
   real, dimension(u%dim, u%dim, ele_ngi(u, ele)) :: grad_u
-  real, dimension(ele_ngi(u, ele)) :: EV_ele
+  real, dimension(ele_ngi(u, ele)) :: EV_ele, k_ele
   integer :: ngi, dim, gi, i
 
   grad_u = ele_grad_at_quad(u, ele, dshape)
   EV_ele = ele_val_at_quad(EV, ele)
+  k_ele = ele_val_at_quad(k, ele)
   
   ngi = ele_ngi(u, ele)
   dim = u%dim
 
   do gi = 1, ngi
      reynolds_stresses(:,:,gi) = EV_ele(gi)*(grad_u(:,:,gi) + transpose(grad_u(:,:,gi)))
+  end do
+  do i = 1, dim
+     reynolds_stresses(i,i,:) = reynolds_stresses(i,i,:) - (2./3.)*k_ele
   end do
 
 end function reynolds_stresses
@@ -509,7 +525,10 @@ subroutine keps_eddyvisc(state)
      allocate(rhs_addto (ele_loc(EV, ele)))
      allocate(invmass (ele_loc(EV, ele), ele_loc(EV, ele)))
      call transform_to_physical(positions, ele, detwei=detwei)
-     rhs_addto = shape_rhs(shape_ev, detwei*C_mu*ele_val_at_quad(f_mu,ele)*ele_val_at_quad(kk,ele)**0.5*ele_val_at_quad(ll,ele))
+     rhs_addto = shape_rhs(shape_ev, detwei*C_mu*ele_val_at_quad(f_mu,ele)
+     *ele_val_at_quad(kk,ele)**0.5*ele_val_at_quad(ll,ele))
+     ! rhs_addto = shape_rhs(shape_ev, detwei*C_mu*ele_val_at_quad(f_mu,ele)* &
+     !      ele_val_at_quad(kk,ele)**2.0/ele_val_at_quad(eps,ele))
      ! In the DG case we will apply the inverse mass locally.
      if(continuity(EV)<0) then
         invmass = inverse(shape_shape(shape_ev, shape_ev, detwei))
@@ -524,8 +543,12 @@ subroutine keps_eddyvisc(state)
      lump_mass = have_option(trim(option_path)//'mass_lumping_in_diagnostics/lump_mass')
      call solve_cg_inv_mass(state, ev_rhs, lump_mass, option_path)  
   end if
+  
+  ! Allow for prescribed eddy-viscosity
+  if (.not. have_option(trim(option_path)//'/scalar_field::ScalarEddyViscosity/prescribed')) then
+     call set(EV, ev_rhs)
+  end if
 
-  call set(EV, ev_rhs)
   call deallocate(ev_rhs)
 
   ewrite(2,*) "Setting k-epsilon eddy-viscosity tensor"
@@ -1162,6 +1185,10 @@ subroutine k_epsilon_check_options
           &"/vector_field::Source/")) then
         FLExit("A velocity source field is required for the reynolds stress adjustment (-2/3 k delta(ij))")
      end if
+  end if
+  ! Check ScalarEddyViscosity is diagnostic
+  if (have_option(trim(option_path)//'/scalar_field::ScalarEddyViscosity/prescribed')) then
+     ewrite(0,*) "WARNING: ScalarEddyViscosity field is prescribed"
   end if
 
 end subroutine k_epsilon_check_options
