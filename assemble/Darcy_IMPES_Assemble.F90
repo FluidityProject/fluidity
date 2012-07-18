@@ -56,6 +56,7 @@ module darcy_impes_assemble_module
    use porous_media
    use parallel_tools
    use adaptive_timestepping
+   use halos
    use signal_vars, only : SIG_INT
    use global_parameters, only : FIELD_NAME_LEN, OPTION_PATH_LEN
 
@@ -2028,7 +2029,10 @@ module darcy_impes_assemble_module
 
             ! Solve for the saturation
             di%saturation(p)%ptr%val = di%rhs%val / di%lhs%val
-
+            
+            ! Update the halos
+            call halo_update(di%saturation(p)%ptr)
+            
             ! Set the strong BC nodes to the values to be consistent
             call set_dirichlet_consistent(di%saturation(p)%ptr) 
 
