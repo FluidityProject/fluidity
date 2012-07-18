@@ -471,7 +471,6 @@
 
       endif
 
-
       CMC = 0.0
 
       NEED_COLOR = 1.0
@@ -509,7 +508,7 @@
          !       COLOR_VEC=0
          !       COLOR_VEC(NCOLOR)=1. 
 
-         NEED_COLOR = NEED_COLOR -  COLOR_VEC
+         NEED_COLOR = NEED_COLOR - COLOR_VEC
 
          !       EWRITE(3,*)'NEED_COLOR:',NEED_COLOR
          !       EWRITE(3,*)'COLOR_VEC:',COLOR_VEC
@@ -560,15 +559,15 @@
             DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
                CV_JNOD = COLCMC( COUNT )
                !ewrite(3,*) 'CV_JNOD, diag:', CV_JNOD, &
-               !     DIAG_SCALE_PRES(CV_NOD)*MASS_MN_PRES(COUNT)*COLOR_VEC(CV_JNOD)
+               !     DIAG_SCALE_PRES(CV_NOD), MASS_MN_PRES(COUNT), COLOR_VEC(CV_JNOD)
                CMC_COLOR_VEC(CV_NOD) = CMC_COLOR_VEC(CV_NOD) &
-                    +  DIAG_SCALE_PRES(CV_NOD)*MASS_MN_PRES(COUNT)*COLOR_VEC(CV_JNOD)
+                    +  DIAG_SCALE_PRES(CV_NOD) * MASS_MN_PRES(COUNT) * COLOR_VEC(CV_JNOD)
             END DO
          END DO
          IF(NDPSET /= 0) THEN
             CV_NOD=NDPSET
             CMC_COLOR_VEC(CV_NOD) = CMC_COLOR_VEC(CV_NOD) &
-                 +  INFINY*COLOR_VEC(CV_JNOD)
+                 +  INFINY * COLOR_VEC(CV_JNOD)
          ENDIF
 
          !Put into matrix CMC
@@ -576,6 +575,7 @@
             DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
                CV_JNOD = COLCMC( COUNT )
                CMC( COUNT ) = CMC( COUNT ) + CMC_COLOR_VEC( CV_NOD ) * COLOR_VEC( CV_JNOD )
+               !ewrite(3,*) cv_nod, count, CV_JNOD, CMC_COLOR_VEC( CV_NOD ), COLOR_VEC( CV_JNOD )
             END DO
          END DO
          !stop 383
@@ -635,7 +635,7 @@
 
             END DO
          END DO
-         !stop 740
+         stop 740
       endif
 
       DEALLOCATE( NEED_COLOR )

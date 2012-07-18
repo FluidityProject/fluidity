@@ -439,13 +439,13 @@
 
       ! IN/DG_ELE_UPWIND are options for optimisation of upwinding across faces in the overlapping
       ! formulation. The data structure and options for this formulation need to be added later. 
-      in_ele_upwind = 3
-      dg_ele_upwind = 3
+      in_ele_upwind = 2 !3
+      dg_ele_upwind = 1 !3
 
       ! Variables *ENTIRELY HARD-WIRED* that *MUST BE REPLACED* in the future
       t_dg_vel_int_opt = 1
       u_dg_vel_int_opt = 4 ! Not used -- it can be deleted
-      v_dg_vel_int_opt = 4
+      v_dg_vel_int_opt = 1 !4
       if (.not.is_overlapping) v_dg_vel_int_opt = 1
       w_dg_vel_int_opt = 0 ! Not used -- it can be deleted
       comp_diffusion_opt = 0
@@ -2223,7 +2223,7 @@ ewrite(3,*)'-->:',k + 1, k + node_count( field ), kk + 1, kk + stotel * cv_snloc
            'spatial_discretisation/conservative_advection', v_beta )
 
       call get_option('/material_phase[0]/scalar_field::Temperature/prognostic/' // &
-           'temporal_discretisation/theta', t_theta, default=1. )
+           'temporal_discretisation/theta', t_theta, default=1.)
       call get_option('/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
            'temporal_discretisation/theta', v_theta)
       call get_option('/material_phase[0]/vector_field::Velocity/prognostic/' // &

@@ -436,8 +436,8 @@
 
       ewrite(3,*) 'In VOLFRA_ASSEM_SOLVE'
 
-      ALLOCATE( ACV( NCOLACV ) )
-      ALLOCATE( CV_RHS( CV_NONODS * NPHASE ) )
+      ALLOCATE( ACV( NCOLACV ) ) ; ACV = 0.
+      ALLOCATE( CV_RHS( CV_NONODS * NPHASE ) ) ; CV_RHS = 0.
       ALLOCATE( CT( NCOLCT * NDIM * NPHASE ) )
       ALLOCATE( DIAG_SCALE_PRES( CV_NONODS ) )
       ALLOCATE( CT_RHS( CV_NONODS ) )
@@ -466,8 +466,9 @@ print *, 'NEW ITS', ITS_FLUX_LIM, 'XXXXXXXXXXXXXXXXXXXXXXXXXX'
               CV_NDGLN, X_NDGLN, U_NDGLN, &
               CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
               X, Y, Z, &
-              NU, NV, NW, NUOLD, NVOLD, NWOLD, SATURA, SATURAOLD, DEN, DENOLD, &
-              MAT_NLOC,MAT_NDGLN,MAT_NONODS,TDIFFUSION, &
+              NU, NV, NW, NUOLD, NVOLD, NWOLD, & 
+              SATURA, SATURAOLD, DEN, DENOLD, &
+              MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
               V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, V_BETA, &
               SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, &
               SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2,  &
@@ -491,9 +492,14 @@ print *, 'NEW ITS', ITS_FLUX_LIM, 'XXXXXXXXXXXXXXXXXXXXXXXXXX'
               FINACV, COLACV, &
               trim(option_path))
 
+          !satura(1+cv_nonods : 2*cv_nonods) = 1. - satura(1:cv_nonods)
+
+
          print *, satura(1:cv_nonods)
          print *, '----------'
          print *, satura(1+cv_nonods:2*cv_nonods)
+         print *, '----------'
+
 
 
       END DO Loop_NonLinearFlux
@@ -771,7 +777,7 @@ print *, 'NEW ITS', ITS_FLUX_LIM, 'XXXXXXXXXXXXXXXXXXXXXXXXXX'
          !ewrite(3,*) 'U_RHS:',U_RHS
          !ewrite(3,*) 'CDP:',CDP
          !ewrite(3,*) 'P:',P
-         !ewrite(3,*) 'C:',C
+         ewrite(3,*) 'C:',C
 
          U_RHS_CDP = U_RHS + CDP
 
@@ -796,7 +802,7 @@ print *, 'NEW ITS', ITS_FLUX_LIM, 'XXXXXXXXXXXXXXXXXXXXXXXXXX'
          !ewrite(3,*) 'u::', u
          !ewrite(3,*) 'v::', v
          !ewrite(3,*) 'w::', w
-         !ewrite(3,*) 'ct::', ct
+         ewrite(3,*) 'ct::', ct
 
          ! put on rhs the cty eqn; put most recent pressure in RHS of momentum eqn
          ! NB. P_RHS = -CT*U + CT_RHS 
@@ -850,7 +856,7 @@ print *, 'NEW ITS', ITS_FLUX_LIM, 'XXXXXXXXXXXXXXXXXXXXXXXXXX'
                  totele, cv_nloc, x_nonods, cv_ndgln, x_ndgln )
          end if
 
-         !ewrite(3,*)'after pressure solve DP:',DP
+         ewrite(3,*)'after pressure solve DP:',DP
          !stop 1245
 
          P = P + DP
@@ -886,6 +892,14 @@ print *, 'NEW ITS', ITS_FLUX_LIM, 'XXXXXXXXXXXXXXXXXXXXXXXXXX'
          U = U + DU
          IF( NDIM >= 2 ) V = V + DV
          IF( NDIM >= 3 ) W = W + DW
+
+         ! check continuity
+         !p_rhs=0.
+         !CALL CT_MULT(P_RHS, U, V, W, CV_NONODS, U_NONODS, NDIM, NPHASE, &
+         !     CT, NCOLCT, FINDCT, COLCT)
+         !print *, ''
+         !print *, 'p_rhs', -p_rhs+ct_rhs
+         !stop 66
 
          !ewrite(3,*)'x,p:'
          !DO CV_NOD = 1, CV_NONODS

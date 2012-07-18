@@ -33,6 +33,8 @@ module solvers_module
   use sparse_tools_petsc
   use solvers
   use fields
+  use global_parameters, only: OPTION_PATH_LEN
+  use spud
 
   implicit none
     
@@ -82,43 +84,21 @@ contains
     assert((size(x)+1) == size(findfe))
     
     ! find the number of non zeros per row
-    allocate(dnnz(rows))
-    
-    dnnz = 0
-    
+    allocate(dnnz(rows)) ; dnnz = 0
     do i = 1,rows
-       
        dnnz(i) = findfe(i+1) - findfe(i)
-       
     end do
     
     ! allocate the petsc_csr_matrix using nnz (pass dnnz also for onnz) 
-    call allocate(matrix, &
-                  rows, &
-                  rows, &
-                  dnnz, &
-                  dnnz, &
-                  (/1,1/), &
-                  name = 'dummy')
-    
+    call allocate(matrix, rows, rows, dnnz, dnnz, (/1,1/), name = 'dummy')
     call zero(matrix)
     
     ! add in the entries to petsc matrix
     do i = 1, rows
-    
       do j = findfe(i), findfe(i+1) - 1
-
           k = colfe(j)
-          
-          call addto(matrix, &
-                     blocki = 1, &
-                     blockj = 1, &
-                     i = i, &
-                     j = k, &
-                     val = a(j))
-       
-       end do 
-    
+          call addto(matrix, blocki = 1, blockj = 1, i = i, j = k, val = a(j))
+       end do
     end do 
 
     call assemble(matrix)    
@@ -128,15 +108,8 @@ contains
     allocate(solution%val(rows))
         
     do i = 1,rows
-    
-       call set(rhs, &
-                i, &
-                b(i))
-                
-       call set(solution, &
-                i, &
-                x(i))
-    
+       call set(rhs, i, b(i))
+       call set(solution, i,  x(i))
     end do
         
     ! solve matrix
@@ -147,18 +120,13 @@ contains
     
     ! copy solution back    
     do i = 1,rows
-                
-       x(i) =  node_val(solution, &
-                        i)
-    
+       x(i) =  node_val(solution, i)
     end do
     
     ! deallocate as needed
-    
     deallocate(dnnz)    
     deallocate(rhs%val)
     deallocate(solution%val)
-    
     call deallocate(matrix)
       
   end subroutine solve_via_copy_to_petsc_csr_matrix
@@ -187,7 +155,11 @@ contains
 
     PARAMETER(ERROR=1.E-15, RELAX=0.01, RELAX_DIAABS=1000.0)
     PARAMETER(RELAX_DIA=1000.0, N_LIN_ITS=1000)
-    PARAMETER(NGL_ITS=10)
+    PARAMETER(NGL_ITS=50)
+
+    !  PARAMETER(ERROR=1.E-15, RELAX=0.05, RELAX_DIAABS=0.0)
+    !  PARAMETER(RELAX_DIA=2.0, N_LIN_ITS=2)
+    !  PARAMETER(NGL_ITS=2000)
 
     ! RELAX: overall relaxation coeff; =1 for no relaxation. 
     ! RELAX_DIAABS: relaxation of the absolute values of the sum of the row of the matrix;
@@ -203,6 +175,9 @@ contains
          nods_sourou, DP_DG, DP_SMALL
     integer :: ele,cv_iloc, dg_nod, cty_nod, jcolcmc, jcolcmc_small
     integer :: mx_ncmc_small, ncmc_small, count, count2, count3, GL_ITS
+
+    character(len=OPTION_PATH_LEN) :: path = "/tmp/pressure"
+    integer :: stat
 
     ! obtain sparcity of a new matrix 
     mx_ncmc_small = ncolcmc * 4
@@ -263,14 +238,46 @@ contains
        EWRITE(3,*)'GL_ITS=', GL_ITS
        ! SSOR smoother for the multi-grid method...
        ewrite(3,*)'before solving:',p
-       CALL SIMPLE_SOLVER( CMC, P, RHS,  &
-            NCOLCMC, CV_NONODS, FINDCMC, COLCMC, MIDCMC,  &
-            ERROR, RELAX, RELAX_DIAABS, RELAX_DIA, N_LIN_ITS )
-       ewrite(3,*)'after solving:',p
+
+       if (gl_its>2) then
+
+          if (.true.) then
+             call set_solver_options(path, &
+                  ksptype = "gmres", &
+                  pctype = "none", &
+                  !pctype = "jacobi", &
+                  rtol = 1.e-10, &
+                  atol = 1.e-15, &
+                  max_its = 100)
+             ! ignore solver failures...
+             call add_option( &
+                  trim(path)//"/solver/ignore_all_solver_failures", stat)
+             call set_option( &
+                  trim(path)//"/solver/ignore_all_solver_failures", 1)
+             CALL SOLVER( CMC, P, RHS, &
+                  FINDCMC, COLCMC, &
+                  option_path = path )
+          end if
+
+          if (.false.) then
+             CALL SIMPLE_SOLVER( CMC, P, RHS,  &
+                  NCOLCMC, CV_NONODS, FINDCMC, COLCMC, MIDCMC,  &
+                  ERROR, RELAX, RELAX_DIAABS, RELAX_DIA, N_LIN_ITS )
+             ewrite(3,*)'after solving:',p
+          end if
+
+          if (.false.) then
+             CALL SOLVER( CMC, P, RHS, &
+                  FINDCMC, COLCMC, &
+                  option_path = '/material_phase[0]/scalar_field::Pressure' )
+          end if
+
+       end if
 
        if(.true.) then
-          resid_dg=rhs
-          do dg_nod=1,cv_nonods
+
+          resid_dg = rhs
+          do dg_nod = 1, cv_nonods
              DO COUNT = FINDCMC(dg_NOD), FINDCMC(dg_NOD+1) - 1
                 resid_dg(dg_nod) = resid_dg(dg_nod) - cmc(count) * P(COLCMC(COUNT))
              END DO
@@ -304,18 +311,18 @@ contains
           if (GL_ITS>5) then
              P = P + DP_DG
           else
-             P = P + 1.e-10*DP_DG
+             P = P + 1. * DP_DG
           end if
 
        end if
 
     END DO
 
-    deallocate( FINDCmc_small, &
+    deallocate( FINDcmc_small, &
          colcmc_small, &
          midcmc_small, &
          MAP_DG2CTY )
- 
+
     deallocate( cmc_small, &
          resid_dg, &
          resid_cty, &
@@ -474,8 +481,28 @@ contains
       ! Local variables
       INTEGER :: ITS, ILOOP, ISTART, IFINI, ISTEP, NOD, COUNT
       REAL :: R, SABS_DIAG, RTOP, RBOT, POLD, MAX_ERR
+      LOGICAL :: jacobi
 
       ewrite(3,*) 'In Solver'
+
+      jacobi = .false. !.true.
+
+      if(jacobi) then
+
+      Loop_Non_Linear_Iter1: DO ITS = 1, N_LIN_ITS
+
+            Loop_Nods1: DO NOD = 1,NONODS
+               R =  CMC( MIDCMC( NOD ))*P(NOD)+ RHS( NOD )
+               DO COUNT = FINCMC( NOD ), FINCMC( NOD + 1 ) - 1
+                  R = R - CMC( COUNT ) * P( COLCMC( COUNT ))
+               END DO
+               RTOP = R 
+               RBOT = CMC( MIDCMC( NOD ))
+               P( NOD ) = RELAX * ( RTOP / RBOT ) + ( 1.0 - RELAX ) * P( NOD )
+            END DO Loop_Nods1
+
+         END DO Loop_Non_Linear_Iter1
+     else
 
       Loop_Non_Linear_Iter: DO ITS = 1, N_LIN_ITS
 
@@ -509,6 +536,7 @@ contains
          IF( MAX_ERR < ERROR ) CYCLE
 
       END DO Loop_Non_Linear_Iter
+        endif
 
       ewrite(3,*) 'Leaving Solver'
 
