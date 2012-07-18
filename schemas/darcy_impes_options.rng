@@ -1160,7 +1160,7 @@ relperm_2 = sat_2**4</a:documentation>
         </optional>
       </element>
       <element name="correlation">
-        <a:documentation>Use the VanGenuchten correlation given by:
+        <a:documentation>Use the 2 phase VanGenuchten correlation given by:
 sat_effective = (sat_phases(2) - residual_sat(2) ) / ( 1.0 - residual_sats(1) - residual_sat(2))
 relperm1= ( 1.0 - sat_effective )**(1.0/3.0) * (1.0 - sat_effective ** ( 1.0/ exponents(1)) ) ** (2*exponents(1))
 relperm_val =  sat_effective ** (1.0/2.0) * ( 1.0 - ( 1.0 - sat_effective ** ( 1.0 / exponents(2))) ** exponents(2))**2.0</a:documentation>
@@ -1173,11 +1173,42 @@ relperm_val =  sat_effective ** (1.0/2.0) * ( 1.0 - ( 1.0 - sat_effective ** ( 1
           <ref name="darcy_impes_residual_saturations"/>
         </optional>
       </element>
+      <element name="correlation">
+        <a:documentation>Use a Jackson 2 phase correlation such that:
+relperm_1 = m*(1.0-sat_norm_1)**n,
+relperm_2 = m*sat_norm_1**n</a:documentation>
+        <ref name="comment"/>
+        <attribute name="name">
+          <value>Jackson2Phase</value>
+        </attribute>
+        <ref name="darcy_impes_relperm_exponents"/>
+        <ref name="darcy_impes_relperm_scaling_coefficients"/>
+        <ref name="darcy_impes_residual_saturations"/>
+      </element>
+      <element name="correlation">
+        <a:documentation>Use the opposite to Jackson 2 phase correlation such that:
+relperm_1 = m*sat_norm_2**n,
+relperm_2 = m*(1.0-sat_norm_2)**n</a:documentation>
+        <ref name="comment"/>
+        <attribute name="name">
+          <value>Jackson2PhaseOpposite</value>
+        </attribute>
+        <ref name="darcy_impes_relperm_exponents"/>
+        <ref name="darcy_impes_relperm_scaling_coefficients"/>
+        <ref name="darcy_impes_residual_saturations"/>
+      </element>
     </choice>
   </define>
   <define name="darcy_impes_relperm_exponents">
     <element name="exponents">
       <a:documentation>Specify the exponent for each phase in the order they 
+are given as a real input list.</a:documentation>
+      <ref name="real_vector"/>
+    </element>
+  </define>
+  <define name="darcy_impes_relperm_scaling_coefficients">
+    <element name="scaling_coefficients">
+      <a:documentation>Specify the scaling coefficient for each phase in the order they 
 are given as a real input list.</a:documentation>
       <ref name="real_vector"/>
     </element>

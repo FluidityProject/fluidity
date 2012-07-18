@@ -1096,6 +1096,10 @@ contains
       allocate(di%relperm_corr_options%cutoff_saturations(di%number_phase))
       di%relperm_corr_options%cutoff_saturations = 0.0
 
+      ! Allocate and initialise the relperm scaling_coefficients
+      allocate(di%relperm_corr_options%scaling_coefficients(di%number_phase))
+      di%relperm_corr_options%scaling_coefficients = 0.0
+
       if (have_option(trim(di%relative_permeability(1)%ptr%option_path)//&
                      &'/diagnostic/correlation/exponents')) then
 
@@ -1158,6 +1162,27 @@ contains
          di%relperm_corr_options%cutoff_saturations = di%relperm_corr_options%residual_saturations
 
       end if
+
+      if (have_option(trim(di%relative_permeability(1)%ptr%option_path)//&
+                     &'/diagnostic/correlation/scaling_coefficients')) then
+
+         ! get the number of option scaling_coefficients to check it is of length number_phase
+         tmp_option_shape = option_shape(trim(di%relative_permeability(1)%ptr%option_path)//&
+                                        &'/diagnostic/correlation/scaling_coefficients')
+
+         if (tmp_option_shape(1) /= di%number_phase) then
+            FLExit('To specify the scaling_coefficients a value for each phase must be specified')
+         end if
+
+         call get_option(trim(di%relative_permeability(1)%ptr%option_path)//&
+                        &'/diagnostic/correlation/scaling_coefficients', &
+                         di%relperm_corr_options%scaling_coefficients)
+
+      else
+
+         di%relperm_corr_options%scaling_coefficients = 1.0
+
+      end if
       
       if (trim(tmp_char_option) == 'PowerLaw') then
          
@@ -1192,6 +1217,24 @@ contains
          ! Check there are 2 phases
          if (di%number_phase /= 2) then
             FLExit('Cannot use the relative permeability correlation VanGenuchten if not a 2 phase simulation')
+         end if
+
+      else if (trim(tmp_char_option) == 'Jackson2Phase') then
+         
+         di%relperm_corr_options%type = RELPERM_CORRELATION_JACKSON2PHASE
+         
+         ! Check there are 2 phases
+         if (di%number_phase /= 2) then
+            FLExit('Cannot use the relative permeability correlation Jackson2Phase if not a 2 phase simulation')
+         end if                  
+
+      else if (trim(tmp_char_option) == 'Jackson2PhaseOpposite') then
+         
+         di%relperm_corr_options%type = RELPERM_CORRELATION_JACKSON2PHASEOPPOSITE
+         
+         ! Check there are 2 phases
+         if (di%number_phase /= 2) then
+            FLExit('Cannot use the relative permeability correlation Jackson2PhaseOpposite if not a 2 phase simulation')
          end if
                        
       end if
@@ -1667,6 +1710,7 @@ contains
       deallocate(di%relperm_corr_options%exponents)
       deallocate(di%relperm_corr_options%residual_saturations)
       deallocate(di%relperm_corr_options%cutoff_saturations)
+      deallocate(di%relperm_corr_options%scaling_coefficients)
 
       if(di%relperm_cv_options%limit_facevalue) then
          call deallocate(di%relperm_upwind)

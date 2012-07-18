@@ -90,11 +90,13 @@ module darcy_impes_assemble_module
              darcy_impes_calculate_inverse_cv_sa
    
    ! Parameters defining Darcy IMPES cached options
-   integer, parameter, public :: RELPERM_CORRELATION_POWER               = 1, &
-                                 RELPERM_CORRELATION_COREY2PHASE         = 2, &
-                                 RELPERM_CORRELATION_COREY2PHASEOPPOSITE = 3, &
-                                 RELPERM_CORRELATION_MINERAL             = 4, &
-                                 RELPERM_CORRELATION_VANGENUCHTEN        = 5
+   integer, parameter, public :: RELPERM_CORRELATION_POWER                 = 1, &
+                                 RELPERM_CORRELATION_COREY2PHASE           = 2, &
+                                 RELPERM_CORRELATION_COREY2PHASEOPPOSITE   = 3, &
+                                 RELPERM_CORRELATION_MINERAL               = 4, &
+                                 RELPERM_CORRELATION_VANGENUCHTEN          = 5, &
+                                 RELPERM_CORRELATION_JACKSON2PHASE         = 6, &
+                                 RELPERM_CORRELATION_JACKSON2PHASEOPPOSITE = 7
    
    ! Parameters defining Darcy IMPES CV face value schemes
    integer, parameter, public :: DARCY_IMPES_CV_FACEVALUE_NONE                        = 0, &
@@ -114,6 +116,8 @@ module darcy_impes_assemble_module
       real, dimension(:), pointer :: residual_saturations
       ! The cut off value for saturation when calculating relperm
       real, dimension(:), pointer :: cutoff_saturations
+      ! The scaling_coefficients when calculating relperm
+      real, dimension(:), pointer :: scaling_coefficients      
    end type darcy_impes_relperm_corr_options_type
    
    ! Options associated with the CV discretisation for the darcy impes solver
@@ -4002,7 +4006,8 @@ visc_ele_bdy(1)
                                                      di%relperm_corr_options%type, &
                                                      di%relperm_corr_options%exponents, &
                                                      di%relperm_corr_options%residual_saturations, &
-                                                     di%relperm_corr_options%cutoff_saturations)
+                                                     di%relperm_corr_options%cutoff_saturations, &
+                                                     di%relperm_corr_options%scaling_coefficients)
             
             call set(di%relative_permeability(p)%ptr, &
                      node, &
@@ -4026,7 +4031,8 @@ visc_ele_bdy(1)
                                                   relperm_corr_type, &
                                                   relperm_corr_exponents, &
                                                   relperm_corr_residual_sats, &
-                                                  relperm_corr_cutoff_sats)
+                                                  relperm_corr_cutoff_sats, &
+                                                  relperm_corr_scaling_coefficients)
       
       !!< Calculate the latest relperm value for phase p for the 
       !!< given saturation values of all phases using the given options.
@@ -4038,11 +4044,11 @@ visc_ele_bdy(1)
       real,    dimension(:), intent(in)  :: relperm_corr_exponents
       real,    dimension(:), intent(in)  :: relperm_corr_residual_sats
       real,    dimension(:), intent(in)  :: relperm_corr_cutoff_sats
+      real,    dimension(:), intent(in)  :: relperm_corr_scaling_coefficients
     
       ! local variables
       real :: sat_minus_res_sat
       real :: sat_effective
-
          
       select case (relperm_corr_type)
            
@@ -4112,6 +4118,46 @@ visc_ele_bdy(1)
             FLAbort('Trying to use VanGenuchten relative permeabiltiy correlation for simulation with more than 2 phases')
 
          end if         
+
+      case (RELPERM_CORRELATION_JACKSON2PHASE)
+         
+         sat_effective = (sat_val_all_phases(2) - relperm_corr_residual_sats(2)) / &
+                         (1.0 - relperm_corr_residual_sats(1) - relperm_corr_residual_sats(2))
+         
+         if (p == 1) then
+
+            relperm_val = relperm_corr_scaling_coefficients(1) * (1.0 - sat_effective) ** relperm_corr_exponents(1)
+
+         else if (p == 2) then
+
+            relperm_val = relperm_corr_scaling_coefficients(2) * sat_effective ** relperm_corr_exponents(2)
+
+         else 
+
+            ! This has already been option checked so should not happen
+            FLAbort('Trying to use Jackson2Phase relative permeabiltiy correlation for simulation with more than 2 phases')
+
+         end if
+
+      case (RELPERM_CORRELATION_JACKSON2PHASEOPPOSITE)
+
+         sat_effective = (sat_val_all_phases(1) - relperm_corr_residual_sats(1)) / &
+                         (1.0 - relperm_corr_residual_sats(1) - relperm_corr_residual_sats(2))
+         
+         if (p == 1) then
+
+            relperm_val = relperm_corr_scaling_coefficients(1) * sat_effective ** relperm_corr_exponents(1)
+
+         else if (p == 2) then
+
+            relperm_val = relperm_corr_scaling_coefficients(2) * (1.0 - sat_effective) ** relperm_corr_exponents(2)
+
+         else 
+
+            ! This has already been option checked so should not happen
+            FLAbort('Trying to use Jackson2PhaseOpposite relative permeabiltiy correlation for simulation with more than 2 phases')
+
+         end if
      
      end select
           
@@ -5590,7 +5636,8 @@ visc_ele_bdy(1)
                                                   relperm_corr_options%type, &
                                                   relperm_corr_options%exponents, &
                                                   relperm_corr_options%residual_saturations, &
-                                                  relperm_corr_options%cutoff_saturations)
+                                                  relperm_corr_options%cutoff_saturations, &
+                                                  relperm_corr_options%scaling_coefficients)
          
          relperm_face_val = relperm_face_val / max(sat_face_val_all_phases(p),min_denom_sat)
          
