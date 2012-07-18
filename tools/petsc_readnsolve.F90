@@ -753,7 +753,7 @@ contains
     ncomponents=size(petsc_numbering%gnn2unn, 2)
     allocate(unns(1:n*ncomponents))
     unns=reshape( petsc_numbering%gnn2unn(1:n,:), (/ n*ncomponents /))
-#if PETSC_VERSION_MINOR==2
+#if PETSC_VERSION_MINOR>=2
     ! for petsc 3.2 we have an extra PetscCopyMode argument
     call ISCreateGeneral(MPI_COMM_FEMTOOLS, &
        size(unns), unns, PETSC_COPY_VALUES, row_indexset, ierr)
