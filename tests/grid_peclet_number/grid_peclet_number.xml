@@ -2,7 +2,7 @@
 
 <testproblem>
   <name>tracer_inflow_1d_dg</name>
-  <owner userid="hhiester"/>
+  <owner userid="asc"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>fluidity grid_peclet_number.flml -v3 -l</command_line>
