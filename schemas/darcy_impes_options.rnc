@@ -1947,6 +1947,12 @@ darcy_impes_dual_porous_media_model=
       ## Porous Media_dual:
       ## Porosity and Permeability for the dual permeability model
       element porous_media_dual {
+         ## Have a dual pressure such that a block matrix is solved for each phase 1. 
+         ## Else the dual pressure phase 1 has the same values as the prime pressure
+         ## phase 1. WARNING: THIS CAUSES PETSC ERRORS IN 2D.
+         element have_dual_pressure {
+            empty
+         }?,
          ## Specify scalar field PorosityDual which is inserted into 
          ## the first material_phase state then aliased in all others.
          element scalar_field {

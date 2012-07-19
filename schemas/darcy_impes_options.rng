@@ -1175,8 +1175,8 @@ relperm_val =  sat_effective ** (1.0/2.0) * ( 1.0 - ( 1.0 - sat_effective ** ( 1
       </element>
       <element name="correlation">
         <a:documentation>Use a Jackson 2 phase correlation such that:
-relperm_1 = m*(1.0-sat_norm_1)**n,
-relperm_2 = m*sat_norm_1**n</a:documentation>
+relperm_1 = m_1*(1.0-sat_norm_2)**n_1,
+relperm_2 = m_2*sat_norm_2**n_2</a:documentation>
         <ref name="comment"/>
         <attribute name="name">
           <value>Jackson2Phase</value>
@@ -1187,8 +1187,8 @@ relperm_2 = m*sat_norm_1**n</a:documentation>
       </element>
       <element name="correlation">
         <a:documentation>Use the opposite to Jackson 2 phase correlation such that:
-relperm_1 = m*sat_norm_2**n,
-relperm_2 = m*(1.0-sat_norm_2)**n</a:documentation>
+relperm_1 = m_1*sat_norm_1**n_1,
+relperm_2 = m_2*(1.0-sat_norm_1)**n_2</a:documentation>
         <ref name="comment"/>
         <attribute name="name">
           <value>Jackson2PhaseOpposite</value>
@@ -2009,6 +2009,14 @@ the first material_phase state then aliased in all others.</a:documentation>
     <element name="porous_media_dual">
       <a:documentation>Porous Media_dual:
 Porosity and Permeability for the dual permeability model</a:documentation>
+      <optional>
+        <element name="have_dual_pressure">
+          <a:documentation>Have a dual pressure such that a block matrix is solved for each phase 1. 
+Else the dual pressure phase 1 has the same values as the prime pressure
+phase 1. WARNING: THIS CAUSES PETSC ERRORS IN 2D.</a:documentation>
+          <empty/>
+        </element>
+      </optional>
       <element name="scalar_field">
         <a:documentation>Specify scalar field PorosityDual which is inserted into 
 the first material_phase state then aliased in all others.</a:documentation>
