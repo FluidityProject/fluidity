@@ -1108,7 +1108,8 @@ subroutine k_epsilon_check_options
           &"/scalar_field::Absorption/diagnostic/algorithm::Internal")) then
         FLExit("You need TurbulentKineticEnergy Absorption field set to diagnostic/internal")
      end if
-  else if (have_option(trim(option_path)//"/scalar_field::TurbulentKineticEnergy/prescribed"))
+  else if (have_option(trim(option_path)// &
+       "/scalar_field::TurbulentKineticEnergy/prescribed")) then
      ewrite(0,*) "WARNING: TurbulentKineticEnergy field is prescribed"
   else
      FLExit("You need prognostic/prescribed TurbulentKineticEnergy field for k-epsilon")
@@ -1146,7 +1147,8 @@ subroutine k_epsilon_check_options
           &"/scalar_field::Absorption/diagnostic/algorithm::Internal")) then
         FLExit("You need TurbulentDissipation Absorption field set to diagnostic/internal")
      end if
-  else if (have_option(trim(option_path)//"/scalar_field::TurbulentDissipation/prescribed"))
+  else if (have_option(trim(option_path)// &
+       "/scalar_field::TurbulentDissipation/prescribed")) then
      ewrite(0,*) "WARNING: TurbulentDissipation field is prescribed"
   else
      FLExit("You need prognostic/prescribed TurbulentDissipation field for k-epsilon")
