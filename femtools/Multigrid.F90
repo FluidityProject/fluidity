@@ -367,6 +367,7 @@ subroutine SetupSmoothedAggregation(prec, matrix, ierror, &
 !!< This subroutine sets up the preconditioner for using the smoothed
 !!< aggregation method (as described in Vanek et al. 
 !!< Computing 56, 179-196 (1996).
+
 PC, intent(inout):: prec
 Mat, intent(in):: matrix
 !! ierror=0 upon succesful return, otherwise ierror=1 and everything 
@@ -458,8 +459,10 @@ logical, optional, intent(in) :: has_null_space
         end do
         deallocate(matrices, prolongators, contexts)
         ! Need to set n/o levels (to 1) otherwise PCDestroy will fail:
+
         myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
-        call PCMGSetLevels(prec, 1, PETSC_NULL_OBJECT, ierr)
+!        call PCMGSetLevels(prec, 1, PETSC_NULL_OBJECT, ierr)
+        call PCMGSetLevels(prec, 1, PETSC_COMM_WORLD, ierr)
         if (myPETSC_NULL_OBJECT/=PETSC_NULL_OBJECT) then
            FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
         end if
@@ -487,7 +490,9 @@ logical, optional, intent(in) :: has_null_space
     myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
 
     print*, PETSC_NULL_OBJECT, 'Ferret!'
+
     call PCMGSetLevels(prec, nolevels, PETSC_NULL_OBJECT, ierr)
+!    call PCMGSetLevels(prec, nolevels, PETSC_COMM_WORLD, ierr)
     if (myPETSC_NULL_OBJECT/=PETSC_NULL_OBJECT) then
        FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
     end if
@@ -947,12 +952,11 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega)
   end if
   
   myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
-  call MatGetVecs(A, rowsum_vec, myPETSC_NULL_OBJECT, ierr)
+  call MatGetVecs(A, rowsum_vec, PETSC_NULL_OBJECT, ierr)
   ewrite(1,*) myPETSC_NULL_OBJECT
   ewrite(1,*) PETSC_NULL_OBJECT
   if (myPETSC_NULL_OBJECT/=PETSC_NULL_OBJECT) then
-!     PETSC_NULL_OBJECT=myPETSC_NULL_OBJECT
-!    FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
+    FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
   end if
   call VecPlaceArray(rowsum_vec, Arowsum, ierr)
   call MatGetRowSum(A, rowsum_vec, ierr)

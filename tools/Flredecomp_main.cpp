@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "confdefs.h"
+#include <unistd.h>
 
 #include "c++debug.h"
 
