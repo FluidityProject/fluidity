@@ -525,8 +525,8 @@ subroutine keps_eddyvisc(state)
      allocate(rhs_addto (ele_loc(EV, ele)))
      allocate(invmass (ele_loc(EV, ele), ele_loc(EV, ele)))
      call transform_to_physical(positions, ele, detwei=detwei)
-     rhs_addto = shape_rhs(shape_ev, detwei*C_mu*ele_val_at_quad(f_mu,ele)
-     *ele_val_at_quad(kk,ele)**0.5*ele_val_at_quad(ll,ele))
+     rhs_addto = shape_rhs(shape_ev, detwei*C_mu*ele_val_at_quad(f_mu,ele)* &
+     ele_val_at_quad(kk,ele)**0.5*ele_val_at_quad(ll,ele))
      ! rhs_addto = shape_rhs(shape_ev, detwei*C_mu*ele_val_at_quad(f_mu,ele)* &
      !      ele_val_at_quad(kk,ele)**2.0/ele_val_at_quad(eps,ele))
      ! In the DG case we will apply the inverse mass locally.
