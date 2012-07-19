@@ -279,13 +279,13 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, buoyant_fields, &
   integer, intent(in) :: ele, field_id
 
   real, dimension(ele_loc(k, ele), ele_ngi(k, ele), positions%dim) :: dshape
-  real, dimension(ele_ngi(k, ele)) :: detwei, strain_ngi, inv_k, rhs
+  real, dimension(ele_ngi(k, ele)) :: detwei, strain_ngi, inv_k, rhs, EV_ele, k_ele
   real, dimension(3, ele_loc(k, ele)) :: rhs_addto
   integer, dimension(ele_loc(k, ele)) :: nodes
   real, dimension(ele_loc(k, ele), ele_loc(k, ele)) :: invmass
-  real, dimension(u%dim, u%dim, ele_ngi(k, ele)) :: rhs_tensor
+  real, dimension(u%dim, u%dim, ele_ngi(k, ele)) :: reynolds_stress, grad_u
   type(element_type), pointer :: shape
-  integer :: i_loc, i_field, term
+  integer :: i_loc, i_field, term, ngi, dim, gi, i
 
   shape => ele_shape(k, ele)
   nodes = ele_nodes(k, ele)
@@ -300,9 +300,20 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, buoyant_fields, &
      inv_k = 1.0/fields_min
   end where
 
-  ! P:
-  rhs_tensor = reynolds_stresses(u, k, EV, dshape, ele)
-  rhs = tensor_inner_product(rhs_tensor, ele_grad_at_quad(u, ele, dshape))
+  ! Compute reynolds stress
+  grad_u = ele_grad_at_quad(u, ele, dshape)
+  EV_ele = ele_val_at_quad(EV, ele)
+  k_ele = ele_val_at_quad(k, ele)
+  ngi = ele_ngi(u, ele)
+  dim = u%dim
+  do gi = 1, ngi
+     reynolds_stress(:,:,gi) = EV_ele(gi)*(grad_u(:,:,gi) + transpose(grad_u(:,:,gi)))
+  end do
+  do i = 1, dim
+     reynolds_stress(i,i,:) = reynolds_stress(i,i,:) - (2./3.)*k_ele
+  end do
+  ! Compute P
+  rhs = tensor_inner_product(reynolds_stress, grad_u)
   if (field_id==2) then
      rhs = rhs*c_eps_1*ele_val_at_quad(f_1,ele)*ele_val_at_quad(eps,ele)*inv_k
   end if
@@ -326,7 +337,7 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, buoyant_fields, &
      do i_field = 1, size(buoyant_fields, 1)
         call calculate_buoyancy_term(rhs_addto, EV, u, buoyant_fields(i_field)%ptr, &
              & beta(i_field), delta_t(i_field), g, g_magnitude, positions, ele, detwei,&
-             & shape, field_id, c_eps_1, f_1)
+             & shape, field_id, c_eps_1, f_1, inv_k, eps)
      end do
   end if
 
@@ -343,37 +354,6 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, buoyant_fields, &
   end do
 
 end subroutine assemble_rhs_ele
-
-!------------------------------------------------------------------------------!
-! calculate reynolds stresses   = EV*symmetric gradient                        !
-!------------------------------------------------------------------------------!
-function reynolds_stresses(u, k, EV, dshape, ele)
-
-  type(vector_field), intent(in) :: u
-  type(scalar_field), intent(in) :: EV, k
-  integer, intent(in) :: ele
-  real, dimension(:, :, :), intent(in) :: dshape
-  
-  real, dimension(u%dim, u%dim, ele_ngi(u, ele)) :: reynolds_stresses
-  real, dimension(u%dim, u%dim, ele_ngi(u, ele)) :: grad_u
-  real, dimension(ele_ngi(u, ele)) :: EV_ele, k_ele
-  integer :: ngi, dim, gi, i
-
-  grad_u = ele_grad_at_quad(u, ele, dshape)
-  EV_ele = ele_val_at_quad(EV, ele)
-  k_ele = ele_val_at_quad(k, ele)
-  
-  ngi = ele_ngi(u, ele)
-  dim = u%dim
-
-  do gi = 1, ngi
-     reynolds_stresses(:,:,gi) = EV_ele(gi)*(grad_u(:,:,gi) + transpose(grad_u(:,:,gi)))
-  end do
-  do i = 1, dim
-     reynolds_stresses(i,i,:) = reynolds_stresses(i,i,:) - (2./3.)*k_ele
-  end do
-
-end function reynolds_stresses
 
 !------------------------------------------------------------------------------!
 ! calculate inner product for 2xN matrices dim,dim,N                           !
@@ -397,12 +377,13 @@ end function tensor_inner_product
 ! calculate the buoyancy source term for each buoyant scalar field             !
 !------------------------------------------------------------------------------!
 subroutine calculate_buoyancy_term(rhs_addto, EV, u, buoyant_field, beta,&
-     & delta_t, g, g_magnitude, positions, ele, detwei, shape, field_id, c_eps_1, f_1)
+     & delta_t, g, g_magnitude, positions, ele, detwei, shape, field_id, c_eps_1, f_1,&
+     & inv_k, eps)
 
   real, intent(inout), dimension(:,:) :: rhs_addto
-  type(scalar_field), intent(in) :: EV, buoyant_field, f_1 
+  type(scalar_field), intent(in) :: EV, buoyant_field, f_1, eps 
   type(vector_field), intent(in) :: positions, u, g
-  real, intent(in), dimension(:) :: detwei
+  real, intent(in), dimension(:) :: detwei, inv_k
   real, intent(in) :: g_magnitude, c_eps_1, beta, delta_t
   type(element_type), intent(in), pointer :: shape
   integer, intent(in) :: ele, field_id
@@ -436,13 +417,14 @@ subroutine calculate_buoyancy_term(rhs_addto, EV, u, buoyant_field, beta,&
      u_xy = ele_val_at_quad(u, ele) - u_z
      ! calculate c_eps_3 = tanh(v/u)
      do i_gi = 1, ele_ngi(u, ele)
-        if (norm2(u_xy(:, i_gi)) /= 0.0) then
+        if (norm2(u_xy(:, i_gi)) > fields_min) then
            c_eps_3(i_gi) = tanh(norm2(u_z(:, i_gi))/norm2(u_xy(:, i_gi))) 
         else
            c_eps_3(i_gi) = 1.0
         end if
-     end do
-     scalar = scalar*c_eps_1*ele_val_at_quad(f_1,ele)*c_eps_3
+     end do     
+     scalar = scalar*c_eps_1*ele_val_at_quad(f_1,ele)*c_eps_3* &
+          ele_val_at_quad(eps,ele)*inv_k
   end if
 
   ! multiply by determinate weights, integrate and add to rhs
