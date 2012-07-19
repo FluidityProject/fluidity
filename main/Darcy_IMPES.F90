@@ -235,6 +235,10 @@ program Darcy_IMPES
    
    call get_option("/timestepping/current_time", current_time)
    call get_option("/timestepping/finish_time", finish_time)
+      
+   ! Auxilliary fields.
+   call allocate_and_insert_auxilliary_fields(state, &
+                                              force_prescribed_diagnositc_allocate_old_iterated = .true.)
 
    ! ***** setting up dual *****
    have_dual =  have_option("/porous_media_dual")
@@ -542,33 +546,36 @@ program Darcy_IMPES
             if(have_option("/mesh_adaptivity/hr_adaptivity")) then
                call allocate(metric_tensor, extract_mesh(state(1), topology_mesh_name), "ErrorMetric")
             end if
+          
+            call allocate_and_insert_auxilliary_fields(state, &
+                                                       force_prescribed_diagnositc_allocate_old_iterated = .true.)
             
             if (have_dual) then
                ! ***** Update DUAL Darcy IMPES post spatial adapt *****
                call darcy_impes_update_post_spatial_adapt(di, &
-                                                       state_prime, &
-                                                       dt, &
-                                                       current_time, &
-                                                       have_dual, &
-                                                       have_dual_pressure, &
-                                                       this_is_dual = .false.)
+                                                          state_prime, &
+                                                          dt, &
+                                                          current_time, &
+                                                          have_dual, &
+                                                          have_dual_pressure, &
+                                                          this_is_dual = .false.)
                                                        
                call darcy_impes_update_post_spatial_adapt(di_dual, &
-                                                       state_dual, &
-                                                       dt, &
-                                                       current_time, &
-                                                       have_dual, &
-                                                       have_dual_pressure, &
-                                                       this_is_dual = .true.)
+                                                          state_dual, &
+                                                          dt, &
+                                                          current_time, &
+                                                          have_dual, &
+                                                          have_dual_pressure, &
+                                                          this_is_dual = .true.)
             else                                                                 
                ! *** Update Darcy IMPES post spatial adapt ***
                call darcy_impes_update_post_spatial_adapt(di, &
-                                                       state, &
-                                                       dt, &
-                                                       current_time, &
-                                                       have_dual, &
-                                                       have_dual_pressure, &
-                                                       this_is_dual = .false.)
+                                                          state, &
+                                                          dt, &
+                                                          current_time, &
+                                                          have_dual, &
+                                                          have_dual_pressure, &
+                                                          this_is_dual = .false.)
             end if  
                                                                             
             if (have_option("/mesh_adaptivity/hr_adaptivity/adaptive_timestep_at_adapt")) then
@@ -718,10 +725,6 @@ contains
       character(len=OPTION_PATH_LEN)              :: tmp_char_option
       
       ewrite(1,*) 'Initialise Darcy IMPES data'
-      
-      ! Auxilliary fields.
-      call allocate_and_insert_auxilliary_fields(state, &
-                                                 force_prescribed_diagnositc_allocate_old_iterated = .true.)
       
       di%dt = dt
 
