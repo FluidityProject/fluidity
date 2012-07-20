@@ -388,7 +388,7 @@ EOF
           AC_MSG_RESULT([-fno-realloc-lhs works, adding to FCFLAGS])
           NO_REALLOC_LHS="-fno-realloc-lhs"
       ])
-  FCFLAGS="$OLD_FCLAGS"
+  FCFLAGS="$OLD_FCFLAGS"
   AC_LANG_POP()
   FCFLAGS="$FCFLAGS $NO_REALLOC_LHS"
   FFLAGS="$FFLAGS $NO_REALLOC_LHS"

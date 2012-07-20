@@ -10234,25 +10234,25 @@ fi
 
 if test "x$enable_openmp" == "xyes" ; then
     ac_ext=cpp
-    ac_cpp='$CXXCPP $CPPFLAGS'
-    ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-    ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-    ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
 
 
-    OPENMP_CXXFLAGS=
+  OPENMP_CXXFLAGS=
   # Check whether --enable-openmp was given.
-    if test "${enable_openmp+set}" = set; then :
-        enableval=$enable_openmp;
-    fi
+if test "${enable_openmp+set}" = set; then :
+  enableval=$enable_openmp;
+fi
 
-    if test "$enable_openmp" != no; then
-        { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $CXX option to support OpenMP" >&5
-            $as_echo_n "checking for $CXX option to support OpenMP... " >&6; }
-        if ${ac_cv_prog_cxx_openmp+:} false; then :
-            $as_echo_n "(cached) " >&6
-        else
-            cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+  if test "$enable_openmp" != no; then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $CXX option to support OpenMP" >&5
+$as_echo_n "checking for $CXX option to support OpenMP... " >&6; }
+if ${ac_cv_prog_cxx_openmp+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
 #ifndef _OPENMP
@@ -10262,14 +10262,14 @@ if test "x$enable_openmp" == "xyes" ; then
 int main () { return omp_get_num_threads (); }
 
 _ACEOF
-            if ac_fn_cxx_try_link "$LINENO"; then :
-                ac_cv_prog_cxx_openmp='none needed'
-            else
-                ac_cv_prog_cxx_openmp='unsupported'
-	  	for ac_option in -fopenmp -xopenmp -openmp -mp -omp -qsmp=omp; do
-	            ac_save_CXXFLAGS=$CXXFLAGS
-	            CXXFLAGS="$CXXFLAGS $ac_option"
-	            cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_prog_cxx_openmp='none needed'
+else
+  ac_cv_prog_cxx_openmp='unsupported'
+	  	  	  	  	  	  	  	  	  	  	  	  	  for ac_option in -fopenmp -xopenmp -openmp -mp -omp -qsmp=omp; do
+	    ac_save_CXXFLAGS=$CXXFLAGS
+	    CXXFLAGS="$CXXFLAGS $ac_option"
+	    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
 #ifndef _OPENMP
@@ -10279,44 +10279,45 @@ _ACEOF
 int main () { return omp_get_num_threads (); }
 
 _ACEOF
-                    if ac_fn_cxx_try_link "$LINENO"; then :
-                        ac_cv_prog_cxx_openmp=$ac_option
-                    fi
-                    rm -f core conftest.err conftest.$ac_objext \
-                        conftest$ac_exeext conftest.$ac_ext
-	            CXXFLAGS=$ac_save_CXXFLAGS
-	            if test "$ac_cv_prog_cxx_openmp" != unsupported; then
-	                break
-	            fi
-	        done
-            fi
-            rm -f core conftest.err conftest.$ac_objext \
-                conftest$ac_exeext conftest.$ac_ext
-        fi
-        { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_prog_cxx_openmp" >&5
-            $as_echo "$ac_cv_prog_cxx_openmp" >&6; }
-        case $ac_cv_prog_cxx_openmp in #(
-            "none needed" | unsupported)
-	        ;; #(
-            *)
-	        OPENMP_CXXFLAGS=$ac_cv_prog_cxx_openmp ;;
-        esac
-    fi
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_prog_cxx_openmp=$ac_option
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+	    CXXFLAGS=$ac_save_CXXFLAGS
+	    if test "$ac_cv_prog_cxx_openmp" != unsupported; then
+	      break
+	    fi
+	  done
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_prog_cxx_openmp" >&5
+$as_echo "$ac_cv_prog_cxx_openmp" >&6; }
+    case $ac_cv_prog_cxx_openmp in #(
+      "none needed" | unsupported)
+	;; #(
+      *)
+	OPENMP_CXXFLAGS=$ac_cv_prog_cxx_openmp ;;
+    esac
+  fi
 
 
     CXXFLAGS="$CXXFLAGS $OPENMP_CXXFLAGS"
     LDFLAGS="$LDFLAGS $OPENMP_CXXFLAGS"
     ac_ext=c
-    ac_cpp='$CPP $CPPFLAGS'
-    ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-    ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-    ac_compiler_gnu=$ac_cv_c_compiler_gnu
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
     # Assume same flag for FC
     FCFLAGS="$FCFLAGS $OPENMP_CXXFLAGS"
 fi
 LIBS="$LAPACK_LIBS $LIBS $FCLIBS $FLIBS"
+
 
 
 
@@ -10421,7 +10422,7 @@ $as_echo "-fno-realloc-lhs works, adding to FCFLAGS" >&6; }
 
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-  FCFLAGS="$OLD_FCLAGS"
+  FCFLAGS="$OLD_FCFLAGS"
   ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
