@@ -9,6 +9,11 @@
     <!-- Check that the sediment deposition rate is correct -->
 </problem_definition>
   <variables>   
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="sediment_flux_1_end" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("Sediment_Deposition.stat")
@@ -62,6 +67,9 @@ sediment_flux_10_end = s["Fluid"]["SedimentFluxSed10mm"]["max"][-1]
 
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
       <!-- In a 10 second run, with 1% sediment concentration, 1mm settling velocity should give us 
            0.0001m of sediment; 2mm will be 0.0002mm, etc
            One small complication is that the diagnostic algorithm is called at time zero, add another timestep

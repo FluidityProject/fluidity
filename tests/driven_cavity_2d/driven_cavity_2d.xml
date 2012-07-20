@@ -9,6 +9,11 @@
     <!-- Two dimensional wind driven cavity. -->
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="erturk_u_norm" language="python">
 import vtktools
 import math
@@ -276,6 +281,9 @@ print streamfunction_min,streamfunction_min_error
     </variable>   
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="L2 norm of u velocity along centre line (cf. Erturk)" language="python">
 assert erturk_u_norm &lt; 0.0035
     </test>
