@@ -10425,7 +10425,7 @@ $as_echo "-fno-realloc-lhs works, adding to FCFLAGS" >&6; }
 
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-  FCFLAGS="$OLD_FCLAGS"
+  FCFLAGS="$OLD_FCFLAGS"
   ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
