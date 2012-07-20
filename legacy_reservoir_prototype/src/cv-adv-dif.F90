@@ -4518,6 +4518,7 @@
                DTOLD_I = 1.0 - INCOMEOLD
                DTOLD_J = 1.0 - DTOLD_I
             ENDIF
+
             ! Amend weighting for porosity only across elements...
             IF((ABS(CV_DG_VEL_INT_OPT ) == 2).OR.(ABS(CV_DG_VEL_INT_OPT ) == 3)) THEN 
                IF(ELE /= ELE2) THEN 

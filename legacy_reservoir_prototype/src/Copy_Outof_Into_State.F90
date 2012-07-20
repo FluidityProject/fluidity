@@ -439,13 +439,16 @@
 
       ! IN/DG_ELE_UPWIND are options for optimisation of upwinding across faces in the overlapping
       ! formulation. The data structure and options for this formulation need to be added later. 
-      in_ele_upwind = 2 !3
-      dg_ele_upwind = 1 !3
+      in_ele_upwind = 3
+      dg_ele_upwind = 3
+
+      ! if the pressure is discontinuous use this
+      if (cv_nonods == totele * cv_nloc)  in_ele_upwind = 2
 
       ! Variables *ENTIRELY HARD-WIRED* that *MUST BE REPLACED* in the future
       t_dg_vel_int_opt = 1
       u_dg_vel_int_opt = 4 ! Not used -- it can be deleted
-      v_dg_vel_int_opt = 1 !4
+      v_dg_vel_int_opt = 4 !4
       if (.not.is_overlapping) v_dg_vel_int_opt = 1
       w_dg_vel_int_opt = 0 ! Not used -- it can be deleted
       comp_diffusion_opt = 0

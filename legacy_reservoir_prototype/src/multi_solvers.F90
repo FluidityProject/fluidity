@@ -155,7 +155,7 @@ contains
 
     PARAMETER(ERROR=1.E-15, RELAX=0.01, RELAX_DIAABS=1000.0)
     PARAMETER(RELAX_DIA=1000.0, N_LIN_ITS=1000)
-    PARAMETER(NGL_ITS=50)
+    PARAMETER(NGL_ITS=30 ) ! maybe we need to increase this...
 
     !  PARAMETER(ERROR=1.E-15, RELAX=0.05, RELAX_DIAABS=0.0)
     !  PARAMETER(RELAX_DIA=2.0, N_LIN_ITS=2)
@@ -244,16 +244,14 @@ contains
           if (.true.) then
              call set_solver_options(path, &
                   ksptype = "gmres", &
-                  pctype = "none", &
-                  !pctype = "jacobi", &
+                  !pctype = "jacobi", & ! use this for P1DGP1DG
+                  pctype = "none", &   ! use this for P1DGP2DG
                   rtol = 1.e-10, &
                   atol = 1.e-15, &
-                  max_its = 100)
+                  max_its = 20)
              ! ignore solver failures...
              call add_option( &
                   trim(path)//"/solver/ignore_all_solver_failures", stat)
-             call set_option( &
-                  trim(path)//"/solver/ignore_all_solver_failures", 1)
              CALL SOLVER( CMC, P, RHS, &
                   FINDCMC, COLCMC, &
                   option_path = path )
@@ -274,47 +272,39 @@ contains
 
        end if
 
-       if(.true.) then
-
-          resid_dg = rhs
-          do dg_nod = 1, cv_nonods
-             DO COUNT = FINDCMC(dg_NOD), FINDCMC(dg_NOD+1) - 1
-                resid_dg(dg_nod) = resid_dg(dg_nod) - cmc(count) * P(COLCMC(COUNT))
-             END DO
-          end do
-
-          ! Map resid_dg to resid_cty as well as the solution:
-          resid_cty=0.
-          nods_sourou=0.
-          do dg_nod = 1, cv_nonods
-             cty_nod = MAP_DG2CTY(dg_nod)
-             resid_cty(cty_nod) = resid_cty(cty_nod)+resid_dg(dg_nod)
-             nods_sourou(cty_nod) = nods_sourou(cty_nod)+1.
-          end do
-          ! We have added the rows together so no need to normalize residual. 
-          resid_cty= resid_cty/nods_sourou
-
-          ! Course grid solver...
-          DP_SMALL=0.
-          EWRITE(3,*)'SOLVER'
-          CALL SOLVER( CMC_SMALL(1:NCMC_SMALL), DP_SMALL, resid_cty, &
-               FINDCMC_SMALL, COLCMC_SMALL(1:NCMC_SMALL), &
-               option_path = '/material_phase[0]/scalar_field::Pressure')
-          EWRITE(3,*)'OUT OF SOLVER'
-
-          ! Map the corrections DP_SMALL to dg:
-          DO dg_nod = 1, cv_nonods
-             cty_nod = MAP_DG2CTY(dg_nod)
-             DP_DG(DG_NOD) = DP_SMALL(CTY_NOD)
+       resid_dg = rhs
+       do dg_nod = 1, cv_nonods
+          DO COUNT = FINDCMC(dg_NOD), FINDCMC(dg_NOD+1) - 1
+             resid_dg(dg_nod) = resid_dg(dg_nod) - cmc(count) * P(COLCMC(COUNT))
           END DO
+       end do
 
-          if (GL_ITS>5) then
-             P = P + DP_DG
-          else
-             P = P + 1. * DP_DG
-          end if
+       ! Map resid_dg to resid_cty as well as the solution:
+       resid_cty=0.
+       nods_sourou=0.
+       do dg_nod = 1, cv_nonods
+          cty_nod = MAP_DG2CTY(dg_nod)
+          resid_cty(cty_nod) = resid_cty(cty_nod)+resid_dg(dg_nod)
+          nods_sourou(cty_nod) = nods_sourou(cty_nod)+1.
+       end do
+       ! We have added the rows together so no need to normalize residual. 
+       resid_cty= resid_cty/nods_sourou
 
-       end if
+       ! Course grid solver...
+       DP_SMALL = 0.
+       EWRITE(3,*)'SOLVER'
+       CALL SOLVER( CMC_SMALL(1:NCMC_SMALL), DP_SMALL, resid_cty, &
+            FINDCMC_SMALL, COLCMC_SMALL(1:NCMC_SMALL), &
+            option_path = '/material_phase[0]/scalar_field::Pressure')
+       EWRITE(3,*)'OUT OF SOLVER'
+
+       ! Map the corrections DP_SMALL to dg:
+       DO dg_nod = 1, cv_nonods
+          cty_nod = MAP_DG2CTY(dg_nod)
+          DP_DG(DG_NOD) = DP_SMALL(CTY_NOD)
+       END DO
+
+       P = P + DP_DG
 
     END DO
 
