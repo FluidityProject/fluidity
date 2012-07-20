@@ -139,7 +139,7 @@ module Petsc_Tools
   public addup_global_assembly
   ! for petsc_numbering:
   public incref, decref, addref
-#if  PETSC_VERSION_RELEASE==0
+#if PETSC_VERSION_MINOR>=3
 #define MatCreateSeqAIJ myMatCreateSeqAIJ
 #define MatCreateMPIAIJ myMatCreateMPIAIJ
 #define MatCreateSeqBAIJ myMatCreateSeqBAIJ
@@ -1474,9 +1474,9 @@ contains
     call PetscInitialize(PETSC_NULL_CHARACTER, ierr); CHKERRQ(ierr);
   end subroutine Initialize_Petsc
 
-! in petsc-dev the MatCreate[B]{Seq|MPI}() routines have changed to MatCreate[B]Aij
+! In petsc-3.3 the MatCreate[B]{Seq|MPI}() routines have changed to MatCreate[B]Aij
 ! and MatSetup always needs to be called
-#if PETSC_VERSION_RELEASE==0
+#if PETSC_VERSION_MINOR>=3
   subroutine MatCreateSeqAIJ(MPI_Comm, nrows, ncols, &
       nz, nnz, M, ierr)
     integer, intent(in):: MPI_Comm

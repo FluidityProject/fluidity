@@ -73,7 +73,7 @@ module sparse_tools_petsc
 #include "finclude/petscis.h"
 #endif
 #endif
-#if  PETSC_VERSION_RELEASE==0
+#if PETSC_VERSION_MINOR>=3
 #define MatCreateSeqAIJ myMatCreateSeqAIJ
 #define MatCreateMPIAIJ myMatCreateMPIAIJ
 #define MatCreateSeqBAIJ myMatCreateSeqBAIJ

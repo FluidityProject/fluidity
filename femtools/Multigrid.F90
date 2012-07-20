@@ -43,7 +43,7 @@ implicit none
 #if PETSC_VERSION_MINOR>=2
 #define KSP_NORM_NO KSP_NORM_NONE
 #endif
-#if PETSC_VERSION_RELEASE==0
+#if PETSC_VERSION_MINOR>=3
 #define MatCreateSeqAIJ myMatCreateSeqAIJ
 #define MatCreateMPIAIJ myMatCreateMPIAIJ
 #define MatCreateSeqBAIJ myMatCreateSeqBAIJ
@@ -702,7 +702,7 @@ integer, intent(in):: iterations
   call KSPSetTolerances(ksp, PETSC_DEFAULT_DOUBLE_PRECISION, &
     PETSC_DEFAULT_DOUBLE_PRECISION, PETSC_DEFAULT_DOUBLE_PRECISION, &
     iterations, ierr)
-#if  PETSC_VERSION_RELEASE==0
+#if PETSC_VERSION_MINOR>=3
   call KSPChebyshevSetEigenvalues(ksp, emax, emin, ierr)
 #else
   call KSPChebychevSetEigenvalues(ksp, emax, emin, ierr)
@@ -821,7 +821,7 @@ integer, optional, dimension(:), intent(out):: cluster
   
   !
   call VecCopy(diag, sqrt_diag, ierr)
-#if PETSC_VERSION_RELEASE==0
+#if PETSC_VERSION_MINOR>=3
   call VecSqrtAbs(sqrt_diag, ierr)
 #else
   call VecSqrt(sqrt_diag, ierr)
