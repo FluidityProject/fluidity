@@ -181,7 +181,7 @@ contains
     output_final_vtus = have_option(trim(option_path)//"/output/output_final_vtus")
     
     ! Get the advecting velocity field name which is defaulted to NonlinearVelocity
-    call get_option(trim(option_path)//'/advecting_velocity_field_name', &
+    call get_option(trim(option_path)//'/advecting_velocity_field/name', &
                     adv_vel_field_name, &
                     default = "NonlinearVelocity")
 

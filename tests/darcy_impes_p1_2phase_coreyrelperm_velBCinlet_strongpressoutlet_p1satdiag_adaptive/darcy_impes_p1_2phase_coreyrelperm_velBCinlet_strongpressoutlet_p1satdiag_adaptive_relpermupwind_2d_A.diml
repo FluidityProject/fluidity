@@ -553,7 +553,7 @@
             <monitors/>
           </diagnostics>
         </solver>
-        <advecting_velocity_field_name>BulkDarcyVelocity</advecting_velocity_field_name>
+        <advecting_velocity_field name="BulkDarcyVelocity"/>
         <porosity/>
         <output/>
       </metric_advection>
