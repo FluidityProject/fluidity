@@ -7,12 +7,12 @@
   <tags>diml</tags>
   <problem_definition length="medium" nprocs="1">
     <command_line>
-time ../../bin/darcy_impes darcy_impes_p1_3phase_layered_relpermupwind_1d.diml 
-time ../../bin/darcy_impes darcy_impes_p1_3phase_layered_relpermupwind_2d.diml 
-time ../../bin/darcy_impes darcy_impes_p1_3phase_layered_relpermupwind_3d.diml 
-time ../../bin/darcy_impes darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_1d.diml 
-time ../../bin/darcy_impes darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_2d.diml 
-time ../../bin/darcy_impes darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_3d.diml 
+../../bin/darcy_impes darcy_impes_p1_3phase_layered_relpermupwind_1d.diml 
+../../bin/darcy_impes darcy_impes_p1_3phase_layered_relpermupwind_2d.diml 
+../../bin/darcy_impes darcy_impes_p1_3phase_layered_relpermupwind_3d.diml 
+../../bin/darcy_impes darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_1d.diml 
+../../bin/darcy_impes darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_2d.diml 
+../../bin/darcy_impes darcy_impes_p1_3phase_layered_modrelpermupwind_satfesweby_3d.diml 
     </command_line>
     <!-- One/two/three dimensional problem for darcy flow using the IMPES solver with one region and three phase using p1 element type. This tests the sinking and rising of different density phases.-->
   </problem_definition>
