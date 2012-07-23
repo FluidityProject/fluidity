@@ -110,13 +110,14 @@ def main():
     input_filename = None
 
   logofile = None
-  for possible_logofile in [os.path.join(diamond_path, "gui", "diamond.svg"), "/usr/share/diamond/gui/diamond.svg"]:
-    try:
-      os.stat(possible_logofile)
-      logofile = possible_logofile
-      break
-    except OSError:
-      pass
+  # On magny0 SVG files aren't recognized even though librsvg is there
+  #for possible_logofile in [os.path.join(diamond_path, "gui", "diamond.svg"), "/usr/share/diamond/gui/diamond.svg"]:
+  #  try:
+  #    os.stat(possible_logofile)
+  #    logofile = possible_logofile
+  #    break
+  #  except OSError:
+  #    pass
 
 
   # Let's find a schema.
