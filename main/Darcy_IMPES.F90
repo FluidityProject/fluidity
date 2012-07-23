@@ -161,7 +161,7 @@ program Darcy_IMPES
    type(state_type) , dimension(:), pointer :: state_prime, state_dual
    logical :: have_dual, have_dual_pressure
    integer :: darcy_debug_log_unit, darcy_debug_err_unit
-   integer :: number_phase_prime, number_phase_dual, number_of_first_adapts 
+   integer :: number_phase_prime, number_phase_dual, number_of_first_adapts, p 
    character(len=OPTION_PATH_LEN) :: phase_name
    
    type(vector_field), pointer :: output_positions
@@ -283,6 +283,7 @@ program Darcy_IMPES
             
       call darcy_impes_initialise(di, &
                                   state_prime, &
+                                  state, &
                                   dt, &
                                   current_time, &
                                   have_dual, &
@@ -291,6 +292,7 @@ program Darcy_IMPES
 
       call darcy_impes_initialise(di_dual, &
                                   state_dual, &
+                                  state, &
                                   dt, &
                                   current_time, &
                                   have_dual, &
@@ -299,6 +301,7 @@ program Darcy_IMPES
    else
       ! *** Initialise data used in IMPES solver *** 
       call darcy_impes_initialise(di, &
+                                  state, &
                                   state, &
                                   dt, &
                                   current_time, &
@@ -557,6 +560,7 @@ contains
 
    subroutine darcy_impes_initialise(di, &
                                      state, &
+                                     all_state, &
                                      dt, &
                                      current_time, &
                                      have_dual, &
@@ -567,6 +571,7 @@ contains
       
       type(darcy_impes_type),                       intent(inout) :: di
       type(state_type),       dimension(:), target, intent(inout) :: state
+      type(state_type),       dimension(:), target, intent(inout) :: all_state    
       real,                                         intent(in)    :: dt
       real,                                         intent(in)    :: current_time
       logical ,                                     intent(in)    :: have_dual
@@ -604,11 +609,9 @@ contains
       if (this_is_dual) then 
          di%porosity                     => extract_scalar_field(di%state(1), "PorosityDual")
          di%absolute_permeability        => extract_scalar_field(di%state(1), "AbsolutePermeabilityDual")
-         di%transmissibility_lambda_dual => extract_scalar_field(di%state(1), "TransmissibilityLambdaDual")
       else
          di%porosity              => extract_scalar_field(di%state(1), "Porosity")
          di%absolute_permeability => extract_scalar_field(di%state(1), "AbsolutePermeability")
-         nullify(di%transmissibility_lambda_dual)
       end if            
       di%positions                => extract_vector_field(di%state(1), "Coordinate")
       di%total_darcy_velocity     => extract_vector_field(di%state(1), "TotalDarcyVelocity")
@@ -729,7 +732,11 @@ contains
       allocate(di%fractional_flow(di%number_phase))
       allocate(di%density(di%number_phase))
       allocate(di%old_density(di%number_phase))
-
+      
+      if (have_dual) then
+         allocate(di%transmissibility_lambda_dual(di%number_phase))
+      end if
+      
       do p = 1,di%number_phase
 
          di%pressure(p)%ptr                   => extract_scalar_field(di%state(p), "Pressure")
@@ -768,6 +775,10 @@ contains
          di%fractional_flow(p)%ptr            => extract_scalar_field(di%state(p), "FractionalFlow")
          di%density(p)%ptr                    => extract_scalar_field(di%state(p), "Density")
          di%old_density(p)%ptr                => extract_scalar_field(di%state(p), "OldDensity")
+         
+         if (have_dual .and. this_is_dual) then
+            di%transmissibility_lambda_dual(p)%ptr => extract_scalar_field(di%state(p), "TransmissibilityLambdaDual")        
+         end if 
          
       end do
       
@@ -1313,7 +1324,7 @@ contains
       call darcy_impes_copy_to_iterated(di)
 
       ! calculate generic diagnostics - DO NOT ADD 'calculate_diagnostic_variables'
-      call calculate_diagnostic_variables_new(di%state)
+      call calculate_diagnostic_variables_new(all_state)
       
       ! Calculate the non first phase pressure's, needs to be after the python fields
       call darcy_impes_calculate_non_first_phase_pressures(di)       
@@ -1465,8 +1476,6 @@ contains
       nullify(di%average_pressure)      
       nullify(di%porosity)
       nullify(di%absolute_permeability)
-      nullify(di%transmissibility_lambda_dual)
-      nullify(di_dual%transmissibility_lambda_dual)
       nullify(di%positions)
       nullify(di%total_darcy_velocity)
       nullify(di%total_mobility)
@@ -1537,6 +1546,10 @@ contains
       deallocate(di%fractional_flow) 
       deallocate(di%density) 
       deallocate(di%old_density) 
+      
+      if (have_dual .and. this_is_dual) then
+         deallocate(di%transmissibility_lambda_dual)
+      end if
       
       di%first_phase_pressure_prognostic = .false.
                   
@@ -1680,6 +1693,7 @@ contains
    
    subroutine darcy_impes_update_post_spatial_adapt(di, &
                                                     state, &
+                                                    all_state, &
                                                     dt, &
                                                     current_time, &
                                                     have_dual, &
@@ -1690,6 +1704,7 @@ contains
       
       type(darcy_impes_type),                       intent(inout) :: di
       type(state_type),       dimension(:), target, intent(inout) :: state
+      type(state_type),       dimension(:), target, intent(inout) :: all_state
       real,                                         intent(in)    :: dt
       real,                                         intent(in)    :: current_time
       logical,                                      intent(in)    :: have_dual  
@@ -1705,6 +1720,7 @@ contains
             
       call darcy_impes_initialise(di, &
                                   state, &
+                                  all_state, &
                                   dt, &
                                   current_time, &
                                   have_dual, &
@@ -1750,6 +1766,7 @@ contains
          state_dual  => state(number_phase_prime+1:)
          call darcy_impes_update_post_spatial_adapt(di, &
                                                     state_prime, &
+                                                    state, &
                                                     dt, &
                                                     current_time, &
                                                     have_dual, &
@@ -1758,6 +1775,7 @@ contains
 
          call darcy_impes_update_post_spatial_adapt(di_dual, &
                                                     state_dual, &
+                                                    state, &
                                                     dt, &
                                                     current_time, &
                                                     have_dual, &
@@ -1766,6 +1784,7 @@ contains
       else                                                                 
          ! *** Update Darcy IMPES post spatial adapt ***
          call darcy_impes_update_post_spatial_adapt(di, &
+                                                    state, &
                                                     state, &
                                                     dt, &
                                                     current_time, &
@@ -1873,10 +1892,10 @@ contains
          if (have_dual) then
             di%pressure_other_porous_media      => di_dual%pressure
             di_dual%pressure_other_porous_media => di%pressure
-            di%transmissibility_lambda_dual     => di_dual%transmissibility_lambda_dual
-
-            call compute_cv_mass(di_dual%positions, di_dual%cv_mass_pressure_mesh_with_lambda_dual, di_dual%transmissibility_lambda_dual)
-            call set(di%cv_mass_pressure_mesh_with_lambda_dual, di_dual%cv_mass_pressure_mesh_with_lambda_dual)
+            
+            do p = 1,di%number_phase
+               di%transmissibility_lambda_dual(p)%ptr => di_dual%transmissibility_lambda_dual(p)%ptr
+            end do
          end if
          
          ! *** Darcy IMPES Calculate the relperm and density first face values (depend on upwind direction) ***

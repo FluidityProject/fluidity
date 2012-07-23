@@ -225,8 +225,7 @@ module darcy_impes_assemble_module
       type(vector_field), pointer :: bulk_darcy_velocity
       ! ***** Pointers to DUAL fields from state that have array length of number of phases *****
       type(scalar_field_pointer), dimension(:), pointer :: pressure_other_porous_media
-      ! *** Pointers to DUAL fields from state that are NOT phase dependent ***
-      type(scalar_field), pointer :: transmissibility_lambda_dual
+      type(scalar_field_pointer), dimension(:), pointer :: transmissibility_lambda_dual
       ! *** Pointer to the pressure mesh - pressure mesh sparsity, used for pressure matrix and finding CV upwind values ***
       type(csr_sparsity), pointer :: sparsity_pmesh_pmesh
       ! *** Data associated with generic prognostic scalar fields, some of which points to fields in state ***
@@ -646,10 +645,29 @@ module darcy_impes_assemble_module
 
       ! Add the transmissibility lambda dual to each block diagonal      
       if (have_dual .and. have_dual_pressure) then         
-         call addto_diag(di%dual_block_pressure_matrix, 1, 1, di_dual%cv_mass_pressure_mesh_with_lambda_dual, scale =  1.0)
-         call addto_diag(di%dual_block_pressure_matrix, 1, 2, di_dual%cv_mass_pressure_mesh_with_lambda_dual, scale = -1.0)
-         call addto_diag(di%dual_block_pressure_matrix, 2, 1, di_dual%cv_mass_pressure_mesh_with_lambda_dual, scale = -1.0)
-         call addto_diag(di%dual_block_pressure_matrix, 2, 2, di_dual%cv_mass_pressure_mesh_with_lambda_dual, scale =  1.0)
+         transmiss_phase_loop: do p = 1, di_dual%number_phase
+            call compute_cv_mass(di_dual%positions, di_dual%cv_mass_pressure_mesh_with_lambda_dual, di_dual%transmissibility_lambda_dual(p)%ptr)
+
+            call addto_diag(di%dual_block_pressure_matrix, 1, 1, di_dual%cv_mass_pressure_mesh_with_lambda_dual, scale =  1.0)
+            call addto_diag(di%dual_block_pressure_matrix, 1, 2, di_dual%cv_mass_pressure_mesh_with_lambda_dual, scale = -1.0)
+            call addto_diag(di%dual_block_pressure_matrix, 2, 1, di_dual%cv_mass_pressure_mesh_with_lambda_dual, scale = -1.0)
+            call addto_diag(di%dual_block_pressure_matrix, 2, 2, di_dual%cv_mass_pressure_mesh_with_lambda_dual, scale =  1.0)
+            
+            if (p > 1) then
+               ! Add lambda*(PC_dual - PC_prime) to prime rhs
+               call set(di%rhs, di_dual%capilliary_pressure(p)%ptr)
+               call addto(di%rhs, di%capilliary_pressure(p)%ptr, scale = -1.0)
+               call scale(di%rhs, di_dual%cv_mass_pressure_mesh_with_lambda_dual)               
+               call addto(di%pressure_rhs, di%rhs)
+
+               ! Add lambda*(PC_prime- PC_dual) to dual rhs
+               call set(di%rhs, di%capilliary_pressure(p)%ptr)
+               call addto(di%rhs, di_dual%capilliary_pressure(p)%ptr, scale = -1.0)
+               call scale(di%rhs, di_dual%cv_mass_pressure_mesh_with_lambda_dual)
+               
+               call addto(di_dual%pressure_rhs, di%rhs)               
+            end if
+         end do transmiss_phase_loop
       end if
                   
       ewrite(1,*) 'Add rate of change of porosity to global continuity equation'
@@ -2056,6 +2074,8 @@ module darcy_impes_assemble_module
             
             ! Add the dual source term
             if (have_dual) then               
+               call compute_cv_mass(di%positions, di%cv_mass_pressure_mesh_with_lambda_dual, di%transmissibility_lambda_dual(p)%ptr)
+
                call set(di%rhs_dual, di%pressure_other_porous_media(p)%ptr)
                call addto(di%rhs_dual, di%pressure(p)%ptr, scale = -1.0)            
                call scale(di%rhs_dual, di%cv_mass_pressure_mesh_with_lambda_dual)
