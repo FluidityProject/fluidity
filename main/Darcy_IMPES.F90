@@ -321,7 +321,7 @@ program Darcy_IMPES
       call allocate(metric_tensor, extract_mesh(state(1), topology_mesh_name), "ErrorMetric")
    end if
    
-   ! *** Darcy impes adapt at first time via iterating between solving and adapting ***
+   ! *** Darcy impes adapt at first time ***
    first_adapt_if: if (have_option("/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep")) then
       
       call get_option("/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep/number_of_adapts", number_of_first_adapts)
