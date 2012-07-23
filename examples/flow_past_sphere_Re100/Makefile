@@ -43,6 +43,6 @@ input: clean
 
 clean:
 	@echo **********Cleaning the output from previous fluidity runs:
-	rm -f *.ele *.edge *.face *.node *.halo *.poly *vtu *.stat *.log-? *.err-? matrixdump* 
+	rm -f *.ele *.edge *.face *.node *.halo *.poly *vtu *.stat *.log-* *.err-* matrixdump* 
 	rm -rf flow_past_sphere_Re100_? flow_past_sphere_Re100_?? 
 	rm -f Sphere_drag.pdf

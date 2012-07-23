@@ -44,5 +44,5 @@ input: clean
 
 clean:
 	@echo **********Cleaning the output from previous fluidity runs:
-	rm -f *.ele *.edge *.face *.node *.halo *.poly *.vtu *.pvtu *.stat *.log-0 *.err-0 */matrixdump*
+	rm -f *.geo *.msh *.ele *.edge *.face *.node *.halo *.poly *.vtu *.pvtu *.stat *.log-* *.err-* */matrixdump*
 	rm -rf restratification_after_oodc_? restratification_after_oodc_??
