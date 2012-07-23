@@ -24,7 +24,8 @@ solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     </variable>
     <variable name = "final_vtus" language = "python">
 import vtktools
-final_vtus = [vtktools.vtu("cube_2_0.vtu"), vtktools.vtu("cube_2_1.vtu")]
+# parallel, so pvtu
+final_vtus = [vtktools.vtu("cube_2.pvtu")]
     </variable>
   </variables>
  <pass_tests>
@@ -36,15 +37,16 @@ assert(timesteps == 2)
     <test name = "Solvers converged" language = "python">
 assert(solvers_converged)
     </test>
-    <test name = "Correct velocity" language = "python">
+    <test name = "Correct velocity within 3.0e-3" language = "python">
 for vtu in final_vtus:
   print "Testing vtu " + vtu.filename
   velocity = vtu.GetVectorField("Velocity")
   for vel in velocity:
     assert(len(vel) == 3)
-    assert(abs(vel[0] - 1.0) &lt; 1.0e6)
-    assert(abs(vel[1]) &lt; 1.0e-6)
-    assert(abs(vel[2]) &lt; 1.0e-6)
+    # tolerance loosened from 1.0e-6 to 3.0e-3
+    assert(abs(vel[0] - 1.0) &lt; 3.0e-3)
+    assert(abs(vel[1]) &lt; 3.0e-3)
+    assert(abs(vel[2]) &lt; 3.0e-3)
     </test>
   </pass_tests>
   <warn_tests>
