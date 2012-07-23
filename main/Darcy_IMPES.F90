@@ -90,6 +90,7 @@ program Darcy_IMPES
    use FEFields
    use state_module
    use shape_functions
+   use write_gmsh
      
    ! *** Use Darcy IMPES module ***
    use darcy_impes_assemble_module
@@ -150,14 +151,20 @@ program Darcy_IMPES
    ! Non linear iteration variables
    integer :: its, nonlinear_iterations, nonlinear_iterations_adapt
    integer :: nonlinear_iterations_at_first_timestep, nonlinear_iterations_this_timestep
-   real :: change, chaold, nonlinear_iteration_tolerance
+   real    :: change, chaold, nonlinear_iteration_tolerance
+   integer :: number_adapts_first_timestep
+   logical :: adapt_first_timestep
    
    ! *** Data associated with the Darcy IMPES solver ***  
    type(darcy_impes_type) :: di
    type(darcy_impes_type) :: di_dual
    type(state_type) , dimension(:), pointer :: state_prime, state_dual
    logical :: have_dual, have_dual_pressure
-   integer :: darcy_debug_log_unit, darcy_debug_err_unit   
+   integer :: darcy_debug_log_unit, darcy_debug_err_unit
+   integer :: number_phase_prime, number_phase_dual, number_of_first_adapts 
+   character(len=OPTION_PATH_LEN) :: phase_name
+   
+   type(vector_field), pointer :: output_positions
    
 #ifdef HAVE_ZOLTAN
    real(zoltan_float) :: ver
@@ -208,6 +215,13 @@ program Darcy_IMPES
    
    default_stat%zoltan_drive_call=.false.
 
+   ! Determine the output format.
+   call get_option('/io/dump_format', option_buffer)
+   if(trim(option_buffer) /= "vtk") then
+      ewrite(-1,*) "You must specify a dump format and it must be vtk."
+      FLExit("Rejig your: /io/dump_format")
+   end if
+
    call get_option("/timestepping/timestep", dt)   
    
    ! Set non linear iteration data 
@@ -225,10 +239,7 @@ program Darcy_IMPES
    call get_option('/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt', &
                    nonlinear_iterations_adapt, &
                    default = nonlinear_iterations)
-   
-   ! Initialise the non linear iter actual
-   nonlinear_iterations_this_timestep = nonlinear_iterations_at_first_timestep
-   
+      
    call get_option("/timestepping/nonlinear_iterations/tolerance", &
                   & nonlinear_iteration_tolerance, &
                   & default = 0.0)
@@ -239,17 +250,37 @@ program Darcy_IMPES
    ! Auxilliary fields.
    call allocate_and_insert_auxilliary_fields(state, &
                                               force_prescribed_diagnositc_allocate_old_iterated = .true.)
+   
+   ! Set Time field manually as we dont call old general diagnostics routines
+   time_field => extract_scalar_field(state(1), 'Time')
+   call set(time_field, current_time)
 
    ! ***** setting up dual *****
    have_dual =  have_option("/porous_media_dual")
    have_dual_pressure =  have_option("/porous_media_dual/have_dual_pressure")   
    if (have_dual) then
-      ! this is set up for two phases in each porous media
-      if ( option_count("/material_phase") /= 4 ) then
-         FLExit("Dual permeability model is only available for two phase for each porous media" )
+      ! check there are the same number of prime and dual phases
+      ! - NOTE: due to the options schemas all prime phases come first
+      number_phase_prime = 0
+      number_phase_dual  = 0
+      do i = 1, option_count("/material_phase")
+         call get_option("/material_phase["//int2str(i-1)//"]/name", phase_name)
+         if (phase_name(len_trim(phase_name)-3:len_trim(phase_name)) == "dual") then
+            number_phase_dual  = number_phase_dual  + 1
+         else
+            number_phase_prime = number_phase_prime + 1
+         end if
+      end do
+      
+      if (number_phase_prime /= number_phase_dual) then
+         ewrite(-1,*) "Number of prime phases: ",number_phase_prime
+         ewrite(-1,*) "Number of dual phases: ",number_phase_dual
+         FLExit("The dual model must have the same number of prime and dual phases")
       end if
-      state_prime => state(1:2)   
-      state_dual  => state(3:4)   
+         
+      state_prime => state(:number_phase_prime)   
+      state_dual  => state(number_phase_prime+1:)
+            
       call darcy_impes_initialise(di, &
                                   state_prime, &
                                   dt, &
@@ -276,38 +307,48 @@ program Darcy_IMPES
                                   this_is_dual = .false.)
    end if
    
-   ! Set Time field
-   time_field => extract_scalar_field(state(1), 'Time')
-   call set(time_field, current_time)
-   
-   ! Adapt time at first time step - required before first adapt
+   ! *** Darcy impes Adapt time at first time step ***
    if(di%adaptive_dt_options%have .and. di%adaptive_dt_options%at_first_dt) then
-      call darcy_impes_calculate_cflnumber_field_based_dt(di)
-      if (have_dual) then
-         call darcy_impes_calculate_cflnumber_field_based_dt(di_dual)
-         dt = min(di%dt, di_dual%dt)
-      else   
-         dt = di%dt
-      end if
-      call set_option("/timestepping/timestep", dt)
+      call darcy_impes_adaptive_timestep()
    end if
    
-   ! Initial diagnostics output via ewrite
-   call run_diagnostics(state)
+   ! initialise the stat files
+   call initialise_diagnostics(filename, state)
+   call initialise_convergence(filename, state)
+   call initialise_steady_state(filename, state)
 
    if (have_option("/mesh_adaptivity/hr_adaptivity")) then
       call allocate(metric_tensor, extract_mesh(state(1), topology_mesh_name), "ErrorMetric")
    end if
-
-   ! Determine the output format.
-   call get_option('/io/dump_format', option_buffer)
-   if(trim(option_buffer) /= "vtk") then
-      ewrite(-1,*) "You must specify a dump format and it must be vtk."
-      FLExit("Rejig your: /io/dump_format")
-   end if
    
-   call initialise_diagnostics(filename, state)
-    
+   ! *** Darcy impes adapt at first time via iterating between solving and adapting ***
+   first_adapt_if: if (have_option("/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep")) then
+      
+      call get_option("/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep/number_of_adapts", number_of_first_adapts)
+      
+      first_adapt_iter: do i = 1, number_of_first_adapts
+                  
+         call darcy_impes_adapt_and_update(initialise_fields = .true.)
+         
+      end do first_adapt_iter
+
+      if(have_option("/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep/output_adapted_mesh")) then
+         output_positions => extract_vector_field(state(1), "Coordinate")
+         if(isparallel()) then
+           call write_gmsh_file(parallel_filename("first_timestep_adapted_mesh"), output_positions)
+           call write_halos("first_timestep_adapted_mesh", output_positions%mesh)
+         else
+           call write_gmsh_file("first_timestep_adapted_mesh", output_positions)
+         end if
+      end if
+      
+   else
+   
+      ! write to screen useful problem diagnostics
+      call run_diagnostics(state)
+   
+   end if first_adapt_if
+   
    ! Checkpoint at start
    if(do_checkpoint_simulation(dump_no)) call checkpoint_simulation(state, cp_no = dump_no)
    ! Dump at start
@@ -320,10 +361,8 @@ program Darcy_IMPES
        & ) then
        call write_state(dump_no, state)
    end if
-
-   call initialise_convergence(filename, state)
-   call initialise_steady_state(filename, state)
-
+   
+   ! write initial stat file diagnostics
    if(have_option("/io/stat/output_at_start")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
 
    not_to_move_det_yet=.false.
@@ -331,6 +370,9 @@ program Darcy_IMPES
    ! ******************************
    ! *** Start of timestep loop ***
    ! ******************************
+
+   ! Initialise the non linear iter actual
+   nonlinear_iterations_this_timestep = nonlinear_iterations_at_first_timestep
    
    timestep_loop: do
       timestep = timestep + 1
@@ -376,241 +418,50 @@ program Darcy_IMPES
       call darcy_impes_copy_to_old(di)      
       if (have_dual) call darcy_impes_copy_to_old(di_dual)
       
-      ! this may already have been done in populate_state, but now
-      ! we evaluate at the correct "shifted" time level:
-      call set_boundary_conditions_values(state, shift_time=.true.)
+      ! *** Darcy IMPES evaluate pre solve system fields - BCs, prescribed fields and gravity ***
+      call darcy_impes_evaluate_pre_solve_fields()
+                     
+      ! Solve the system of equations with a non linear iteration
+      call darcy_impes_solve_system_of_equations_with_non_linear_iteration()
       
-      ! evaluate prescribed fields at time = current_time+dt
-      call set_prescribed_field_values(state, exclude_interpolated=.true., &
-           exclude_nonreprescribed=.true., time=current_time+dt)
-      
-      ! *** Darcy IMPES calculate latest gravity field - direction field could be defined by python function ***
-      if (di%have_gravity) then
-         call set(di%gravity, di%gravity_direction)
-         call scale(di%gravity, di%gravity_magnitude)
-         ewrite_minmax(di%gravity)
-      end if
-      
-      if (di_dual%have_gravity .and. have_dual) then
-         call set(di_dual%gravity, di_dual%gravity_direction)
-         call scale(di_dual%gravity, di_dual%gravity_magnitude)
-         ewrite_minmax(di_dual%gravity)
-      end if  
-               
-      ! *** Darcy IMPES set max number non linear iterations for this time step ***
-      di%max_nonlinear_iter_this_timestep = nonlinear_iterations_this_timestep
-      di_dual%max_nonlinear_iter_this_timestep = nonlinear_iterations_this_timestep     
-      
-      nonlinear_iteration_loop: do its = 1,nonlinear_iterations_this_timestep
-
-         ewrite(1,*)'###################'
-         ewrite(1,*)'Start of another nonlinear iteration; its,nonlinear_iterations_this_timestep=',its,nonlinear_iterations_this_timestep
-         ewrite(1,*)'###################'         
-         
-         call copy_to_stored_values(state, "Iterated")
-         
-         ! *** Darcy IMPES copy non state data to iterated ***
-         call darcy_impes_copy_to_iterated(di)                  
-         if (have_dual) call darcy_impes_copy_to_iterated(di_dual)         
-         
-         ! *** Set the Darcy IMPES nonlinear_iter
-         di%nonlinear_iter = its
-         di_dual%nonlinear_iter = its
-         
-         ! ***** Point other porous media pressures and transmissibility_lambda as required, only used in assemble *****
-         if (have_dual) then
-            di%pressure_other_porous_media      => di_dual%pressure
-            di_dual%pressure_other_porous_media => di%pressure
-            di%transmissibility_lambda_dual     => di_dual%transmissibility_lambda_dual
-
-            call compute_cv_mass(di_dual%positions, di_dual%cv_mass_pressure_mesh_with_lambda_dual, di_dual%transmissibility_lambda_dual)
-            call set(di%cv_mass_pressure_mesh_with_lambda_dual, di_dual%cv_mass_pressure_mesh_with_lambda_dual)
-         end if
-         
-         ! *** Darcy IMPES Calculate the relperm and density first face values (depend on upwind direction) ***
-         call darcy_impes_calculate_relperm_den_first_face_values(di)
-         if (have_dual) call darcy_impes_calculate_relperm_den_first_face_values(di_dual)
-         
-         ! *** Solve the Darcy equations using IMPES in three parts ***
-         call darcy_impes_assemble_and_solve_part_one(di, have_dual)
-         if (have_dual) call darcy_impes_assemble_and_solve_part_one(di_dual, have_dual)
-         
-         ! This one solves for the pressure phase 1
-         call darcy_impes_assemble_and_solve_part_two(di, di_dual, have_dual, have_dual_pressure)
-
-         call darcy_impes_assemble_and_solve_part_three(di, have_dual)
-         if (have_dual) call darcy_impes_assemble_and_solve_part_three(di_dual, have_dual)
-          
-         ! calculate generic diagnostics - DO NOT ADD 'calculate_diagnostic_variables'
-         call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
-         
-         ! *** Calculate the Darcy IMPES Velocity, Mobilities, Fractional flow and CFL fields
-         !     needs to be after the python fields ***
-         call darcy_impes_calculate_vel_mob_ff_and_cfl_fields(di)
-         if (have_dual) call darcy_impes_calculate_vel_mob_ff_and_cfl_fields(di_dual)
-
-         if(nonlinear_iterations_this_timestep > 1) then
-            
-            ! Check for convergence between non linear iteration loops
-            call test_and_write_convergence(state, current_time + dt, dt, its, change)
-            
-            ewrite(1,*) 'Nonlinear iteration, change: ',its, change
-            
-            if(its == 1) chaold = change
-
-            if (have_option("/timestepping/nonlinear_iterations/tolerance")) then
-              
-              ewrite(2, *) "Nonlinear iteration change = ", change
-              ewrite(2, *) "Nonlinear iteration tolerance = ", nonlinear_iteration_tolerance
-
-              if(change < abs(nonlinear_iteration_tolerance)) then
-                 ewrite(1, *) "Nonlinear iteration tolerance has been reached"
-                 ewrite(1, "(a,i0,a)") "Exiting nonlinear iteration loop after ", its, " iterations"
-                 exit nonlinear_iteration_loop
-              endif
-            
-            end if
-         
-         end if
-         
-         if (SIG_INT) exit nonlinear_iteration_loop
-
-      end do nonlinear_iteration_loop
-
+      ! exit timestep loop if non linear iteration has not converged if required
       if(have_option("/timestepping/nonlinear_iterations/terminate_if_not_converged")) then
          if(its >= nonlinear_iterations_this_timestep .and. change >= abs(nonlinear_iteration_tolerance)) then
             ewrite(0, *) "Nonlinear iteration tolerance not reached - termininating"
             exit timestep_loop
          end if
       end if
-            
+      
+      ! Update the current_time variable
       current_time = current_time + DT
 
       ! *** Update DarcyIMPES current_time ***
-      di%current_time = current_time
+      di%current_time      = current_time
       di_dual%current_time = current_time     
+      call set_option("/timestepping/current_time", current_time)            
       
-      ! Set Time field
+      ! Set Time field manually as we dont call old general diagnostics routines
       time_field => extract_scalar_field(state(1), 'Time')
       call set(time_field, current_time)
        
       ! Call the modern and significantly less satanic version of study
       call write_diagnostics(state, current_time, dt, timestep)
-      
-      ! *** Darcy IMPES adaptive time stepping choice ***
-      if(di%adaptive_dt_options%have) then
-         call darcy_impes_calculate_cflnumber_field_based_dt(di)
-         if (have_dual) then
-            call darcy_impes_calculate_cflnumber_field_based_dt(di_dual)
-            dt = min(di%dt, di_dual%dt)  
-         else 
-            dt = di%dt  
-         end if
-         call set_option("/timestepping/timestep", dt)
-      end if
-      
-      ! *** Constrain the timestep such that the current time will not overshoot the finish time ***     
-      if (dt + current_time > finish_time ) then
-         ewrite(1,*) 'Constrain timestep size such as to not overshoot the finish time'
-         dt = finish_time - current_time + epsilon(0.0)
-         ewrite(1,*) 'Constrained timestep size: ',dt
-      end if      
-      
-      ! *** setting di time step ***
-      if (have_dual) then     
-         di_dual%dt = dt
-      end if
-      di%dt = dt
-      
-      call set_option("/timestepping/timestep", dt)
-      call set_option("/timestepping/current_time", current_time)            
-         
-      ! ******************
-      ! *** Mesh adapt ***
-      ! ******************
-
+               
+      ! hr Mesh adapt if required
       adapt_if: if(have_option("/mesh_adaptivity/hr_adaptivity")) then
 
          do_adapt_if: if(do_adapt_mesh(current_time, timestep)) then
-
-            call qmesh(state, metric_tensor)
-            if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
-            call run_diagnostics(state)
-
-            call adapt_state(state, metric_tensor)
-                        
-            ! Set the number of non linear iterations to use next time step
-            nonlinear_iterations_this_timestep = nonlinear_iterations_adapt
             
-            ! re-allocate the adaptivity metric
-            if(have_option("/mesh_adaptivity/hr_adaptivity")) then
-               call allocate(metric_tensor, extract_mesh(state(1), topology_mesh_name), "ErrorMetric")
-            end if
-          
-            call allocate_and_insert_auxilliary_fields(state, &
-                                                       force_prescribed_diagnositc_allocate_old_iterated = .true.)
-            
-            if (have_dual) then
-               ! ***** Update DUAL Darcy IMPES post spatial adapt *****
-               call darcy_impes_update_post_spatial_adapt(di, &
-                                                          state_prime, &
-                                                          dt, &
-                                                          current_time, &
-                                                          have_dual, &
-                                                          have_dual_pressure, &
-                                                          this_is_dual = .false.)
-                                                       
-               call darcy_impes_update_post_spatial_adapt(di_dual, &
-                                                          state_dual, &
-                                                          dt, &
-                                                          current_time, &
-                                                          have_dual, &
-                                                          have_dual_pressure, &
-                                                          this_is_dual = .true.)
-            else                                                                 
-               ! *** Update Darcy IMPES post spatial adapt ***
-               call darcy_impes_update_post_spatial_adapt(di, &
-                                                          state, &
-                                                          dt, &
-                                                          current_time, &
-                                                          have_dual, &
-                                                          have_dual_pressure, &
-                                                          this_is_dual = .false.)
-            end if  
-                                                                            
-            if (have_option("/mesh_adaptivity/hr_adaptivity/adaptive_timestep_at_adapt")) then
-               if (have_option("/timestepping/adaptive_timestep/minimum_timestep")) then
-                  call get_option("/timestepping/adaptive_timestep/minimum_timestep", dt)
-                  call set_option("/timestepping/timestep", dt)
-                  ! *** Set Darcy IMPES dt
-                  di%dt = dt
-                  di_dual%dt = dt
-               else
-                  ewrite(-1,*) "Warning: you have adaptive timestep adjustment after &&
-                                && adapt, but have not set a minimum timestep"
-               end if
-            else
-               ! Timestep adapt
-               if(di%adaptive_dt_options%have) then
-                  call darcy_impes_calculate_cflnumber_field_based_dt(di)
-                  if (have_dual) then
-                     call darcy_impes_calculate_cflnumber_field_based_dt(di_dual)
-                     dt = min(di%dt, di_dual%dt)               
-                  else 
-                     dt = di%dt                 
-                  end if
-                  call set_option("/timestepping/timestep", dt)
-               end if
-            end if
-                        
-            if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
-            
-            call run_diagnostics(state)
-         
+            ! *** Darcy impes adapt mesh and update
+            call darcy_impes_adapt_and_update(initialise_fields = .false.)
+                     
          else
          
             ! Set the number of non linear iterations to use next time step
             nonlinear_iterations_this_timestep = nonlinear_iterations            
+
+            ! *** Darcy IMPES adaptive time stepping choice ***
+            call darcy_impes_adaptive_timestep()
                           
          end if do_adapt_if
       
@@ -618,6 +469,9 @@ program Darcy_IMPES
       
          ! Set the number of non linear iterations to use next time step
          nonlinear_iterations_this_timestep = nonlinear_iterations       
+
+         ! *** Darcy IMPES adaptive time stepping choice ***
+         call darcy_impes_adaptive_timestep()
       
       end if adapt_if
       
@@ -1860,6 +1714,222 @@ contains
       ewrite(1,*) 'Finished updating Darcy IMPES data post spatial adapt'
       
    end subroutine darcy_impes_update_post_spatial_adapt
+
+! --------------------------------------------------------------------------------
+
+   subroutine darcy_impes_adapt_and_update(initialise_fields)
+      
+      !!< Adapt the dary impes model and update as required
+      
+      logical, intent(in) :: initialise_fields
+
+      ! Form metric to adapt mesh to
+      call qmesh(state, metric_tensor)
+
+      ! write to screen useful problem diagnostics
+      call run_diagnostics(state)
+
+      ! adapt state including mesh to mesh interpolation
+      call adapt_state(state, metric_tensor, initialise_fields = initialise_fields)
+
+      ! Set the number of non linear iterations to use next time step
+      nonlinear_iterations_this_timestep = nonlinear_iterations_adapt
+
+      ! re-allocate the adaptivity metric
+      if(have_option("/mesh_adaptivity/hr_adaptivity")) then
+         call allocate(metric_tensor, extract_mesh(state(1), topology_mesh_name), "ErrorMetric")
+      end if
+
+      ! re allocate and insert Old and Iterated fields (plus a few specials)
+      call allocate_and_insert_auxilliary_fields(state, &
+                                                 force_prescribed_diagnositc_allocate_old_iterated = .true.)
+
+      if (have_dual) then
+         ! ***** Update DUAL Darcy IMPES post spatial adapt *****
+         state_prime => state(:number_phase_prime)   
+         state_dual  => state(number_phase_prime+1:)
+         call darcy_impes_update_post_spatial_adapt(di, &
+                                                    state_prime, &
+                                                    dt, &
+                                                    current_time, &
+                                                    have_dual, &
+                                                    have_dual_pressure, &
+                                                    this_is_dual = .false.)
+
+         call darcy_impes_update_post_spatial_adapt(di_dual, &
+                                                    state_dual, &
+                                                    dt, &
+                                                    current_time, &
+                                                    have_dual, &
+                                                    have_dual_pressure, &
+                                                    this_is_dual = .true.)
+      else                                                                 
+         ! *** Update Darcy IMPES post spatial adapt ***
+         call darcy_impes_update_post_spatial_adapt(di, &
+                                                    state, &
+                                                    dt, &
+                                                    current_time, &
+                                                    have_dual, &
+                                                    have_dual_pressure, &
+                                                    this_is_dual = .false.)
+      end if  
+
+      ! *** Darcy IMPES adaptive time stepping choice ***
+      call darcy_impes_adaptive_timestep()
+
+      ! write to screen useful problem diagnostics          
+      call run_diagnostics(state)      
+      
+   end subroutine darcy_impes_adapt_and_update
+
+! --------------------------------------------------------------------------------
+   
+   subroutine darcy_impes_adaptive_timestep()
+      
+      !!< Adapt the timestep and make sure all variables are synced
+
+      if(di%adaptive_dt_options%have) then
+         call darcy_impes_calculate_cflnumber_field_based_dt(di)
+         if (have_dual) then
+            call darcy_impes_calculate_cflnumber_field_based_dt(di_dual)
+            dt = min(di%dt, di_dual%dt)  
+         else 
+            dt = di%dt  
+         end if
+         call set_option("/timestepping/timestep", dt)
+      end if
+      
+      ! *** Constrain the timestep such that the current time will not overshoot the finish time ***     
+      if (dt + current_time > finish_time ) then
+         ewrite(1,*) 'Constrain timestep size such as to not overshoot the finish time'
+         dt = finish_time - current_time + epsilon(0.0)
+         ewrite(1,*) 'Constrained timestep size: ',dt
+      end if      
+      
+      ! *** setting di time step ***
+      if (have_dual) then     
+         di_dual%dt = dt
+      end if
+      di%dt = dt
+      
+      call set_option("/timestepping/timestep", dt)
+      
+   end subroutine darcy_impes_adaptive_timestep
+
+! --------------------------------------------------------------------------------
+   
+   subroutine darcy_impes_evaluate_pre_solve_fields()
+      
+      !!< Evaluate pre system solve fields - BCs, prescribed fields and gravity 
+
+      ! evaluate BC fields at shifted time level
+      call set_boundary_conditions_values(state, shift_time=.true.)
+      
+      ! evaluate prescribed fields at time = current_time+dt
+      call set_prescribed_field_values(state, exclude_interpolated=.true., &
+                                       exclude_nonreprescribed=.true., time=current_time+dt)
+      
+      ! *** Darcy IMPES calculate latest gravity field - direction field could be defined by python function ***
+      if (di%have_gravity) then
+         call set(di%gravity, di%gravity_direction)
+         call scale(di%gravity, di%gravity_magnitude)
+         ewrite_minmax(di%gravity)
+      end if      
+      if (di_dual%have_gravity .and. have_dual) then
+         call set(di_dual%gravity, di_dual%gravity_direction)
+         call scale(di_dual%gravity, di_dual%gravity_magnitude)
+         ewrite_minmax(di_dual%gravity)
+      end if  
+            
+   end subroutine darcy_impes_evaluate_pre_solve_fields
+
+! --------------------------------------------------------------------------------
+
+   subroutine darcy_impes_solve_system_of_equations_with_non_linear_iteration()
+      
+      !!< Solve the system of equations with a non linear iteration
+
+      ! *** Darcy IMPES set max number non linear iterations for this time step ***
+      di%max_nonlinear_iter_this_timestep = nonlinear_iterations_this_timestep
+      di_dual%max_nonlinear_iter_this_timestep = nonlinear_iterations_this_timestep     
+      
+      nonlinear_iteration_loop: do its = 1,nonlinear_iterations_this_timestep
+
+         ewrite(1,*)'###################'
+         ewrite(1,*)'Start of another nonlinear iteration; its,nonlinear_iterations_this_timestep=',its,nonlinear_iterations_this_timestep
+         ewrite(1,*)'###################'         
+         
+         call copy_to_stored_values(state, "Iterated")
+         
+         ! *** Darcy IMPES copy non state data to iterated ***
+         call darcy_impes_copy_to_iterated(di)                  
+         if (have_dual) call darcy_impes_copy_to_iterated(di_dual)         
+         
+         ! *** Set the Darcy IMPES nonlinear_iter
+         di%nonlinear_iter      = its
+         di_dual%nonlinear_iter = its
+         
+         ! ***** Point other porous media pressures and transmissibility_lambda as required, only used in assemble *****
+         if (have_dual) then
+            di%pressure_other_porous_media      => di_dual%pressure
+            di_dual%pressure_other_porous_media => di%pressure
+            di%transmissibility_lambda_dual     => di_dual%transmissibility_lambda_dual
+
+            call compute_cv_mass(di_dual%positions, di_dual%cv_mass_pressure_mesh_with_lambda_dual, di_dual%transmissibility_lambda_dual)
+            call set(di%cv_mass_pressure_mesh_with_lambda_dual, di_dual%cv_mass_pressure_mesh_with_lambda_dual)
+         end if
+         
+         ! *** Darcy IMPES Calculate the relperm and density first face values (depend on upwind direction) ***
+         call darcy_impes_calculate_relperm_den_first_face_values(di)
+         if (have_dual) call darcy_impes_calculate_relperm_den_first_face_values(di_dual)
+         
+         ! *** Solve the Darcy equations using IMPES in three parts ***
+         call darcy_impes_assemble_and_solve_part_one(di, have_dual)
+         if (have_dual) call darcy_impes_assemble_and_solve_part_one(di_dual, have_dual)
+         
+         ! This one solves for the pressure phase 1
+         call darcy_impes_assemble_and_solve_part_two(di, di_dual, have_dual, have_dual_pressure)
+
+         call darcy_impes_assemble_and_solve_part_three(di, have_dual)
+         if (have_dual) call darcy_impes_assemble_and_solve_part_three(di_dual, have_dual)
+          
+         ! calculate generic diagnostics - DO NOT ADD 'calculate_diagnostic_variables'
+         call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
+         
+         ! *** Calculate the Darcy IMPES Velocity, Mobilities, Fractional flow and CFL fields
+         !     needs to be after the python fields ***
+         call darcy_impes_calculate_vel_mob_ff_and_cfl_fields(di)
+         if (have_dual) call darcy_impes_calculate_vel_mob_ff_and_cfl_fields(di_dual)
+
+         if(nonlinear_iterations_this_timestep > 1) then
+            
+            ! Check for convergence between non linear iteration loops
+            call test_and_write_convergence(state, current_time + dt, dt, its, change)
+            
+            ewrite(1,*) 'Nonlinear iteration, change: ',its, change
+            
+            if(its == 1) chaold = change
+
+            if (have_option("/timestepping/nonlinear_iterations/tolerance")) then
+              
+              ewrite(2, *) "Nonlinear iteration change = ", change
+              ewrite(2, *) "Nonlinear iteration tolerance = ", nonlinear_iteration_tolerance
+
+              if(change < abs(nonlinear_iteration_tolerance)) then
+                 ewrite(1, *) "Nonlinear iteration tolerance has been reached"
+                 ewrite(1, "(a,i0,a)") "Exiting nonlinear iteration loop after ", its, " iterations"
+                 exit nonlinear_iteration_loop
+              endif
+            
+            end if
+         
+         end if
+         
+         if (SIG_INT) exit nonlinear_iteration_loop
+
+      end do nonlinear_iteration_loop
+      
+   end subroutine darcy_impes_solve_system_of_equations_with_non_linear_iteration
 
 ! --------------------------------------------------------------------------------
 

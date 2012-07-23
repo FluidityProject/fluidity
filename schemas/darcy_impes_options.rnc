@@ -1761,7 +1761,6 @@ darcy_impes_hr_adaptivity =
       ## Anisotropic mesh hr-adaptivity
       element hr_adaptivity {
          hr_adaptivity_period,
-         adaptive_timestep_at_adapt?,
          minimum_number_of_nodes?,
          max_nodes_and_max_node_increase,
          node_locking?,
@@ -1771,6 +1770,7 @@ darcy_impes_hr_adaptivity =
          geometric_constraints?,
          bounding_box_factor?,
          min_and_max_edge_and_reference_mesh_bound_and_aspect_ratio_bound,
+         adapt_at_first_timestep?,
          preserve_mesh_regions?,
          vertically_structured_adaptivity?,
          zoltan_options?,

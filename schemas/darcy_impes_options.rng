@@ -1798,9 +1798,6 @@ Default value is 1.</a:documentation>
       <a:documentation>Anisotropic mesh hr-adaptivity</a:documentation>
       <ref name="hr_adaptivity_period"/>
       <optional>
-        <ref name="adaptive_timestep_at_adapt"/>
-      </optional>
-      <optional>
         <ref name="minimum_number_of_nodes"/>
       </optional>
       <ref name="max_nodes_and_max_node_increase"/>
@@ -1821,6 +1818,9 @@ Default value is 1.</a:documentation>
         <ref name="bounding_box_factor"/>
       </optional>
       <ref name="min_and_max_edge_and_reference_mesh_bound_and_aspect_ratio_bound"/>
+      <optional>
+        <ref name="adapt_at_first_timestep"/>
+      </optional>
       <optional>
         <ref name="preserve_mesh_regions"/>
       </optional>
