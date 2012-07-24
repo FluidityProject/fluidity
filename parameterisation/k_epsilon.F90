@@ -454,7 +454,7 @@ subroutine keps_eddyvisc(state)
   type(scalar_field), pointer      :: kk, eps, EV, ll, f_mu
   type(scalar_field)               :: ev_rhs
   type(element_type), pointer      :: shape_ev
-  integer                          :: i, ele, stat
+  integer                          :: i, j, ele, stat
   integer, pointer, dimension(:)   :: nodes_ev
   real, allocatable, dimension(:)  :: detwei, rhs_addto
   real, allocatable, dimension(:,:):: invmass
@@ -516,10 +516,10 @@ subroutine keps_eddyvisc(state)
      allocate(rhs_addto (ele_loc(EV, ele)))
      allocate(invmass (ele_loc(EV, ele), ele_loc(EV, ele)))
      call transform_to_physical(positions, ele, detwei=detwei)
+!      rhs_addto = shape_rhs(shape_ev, detwei*C_mu*ele_val_at_quad(f_mu,ele)* &
+!      ele_val_at_quad(kk,ele)**0.5*ele_val_at_quad(ll,ele))
      rhs_addto = shape_rhs(shape_ev, detwei*C_mu*ele_val_at_quad(f_mu,ele)* &
-     ele_val_at_quad(kk,ele)**0.5*ele_val_at_quad(ll,ele))
-     ! rhs_addto = shape_rhs(shape_ev, detwei*C_mu*ele_val_at_quad(f_mu,ele)* &
-     !      ele_val_at_quad(kk,ele)**2.0/ele_val_at_quad(eps,ele))
+          ele_val_at_quad(kk,ele)**2.0/ele_val_at_quad(eps,ele))
      ! In the DG case we will apply the inverse mass locally.
      if(continuity(EV)<0) then
         invmass = inverse(shape_shape(shape_ev, shape_ev, detwei))
@@ -545,12 +545,13 @@ subroutine keps_eddyvisc(state)
   ewrite(2,*) "Setting k-epsilon eddy-viscosity tensor"
   call zero(eddy_visc)
 
-  ! eddy viscosity tensor is isotropic
   ! this is skipped if zero_eddy_viscosity is set - this is the easiest way to
   ! disable feedback from the k-epsilon model back into the rest of the model
   if (.not. have_option(trim(option_path)//'debugging_options/zero_reynolds_stress_tensor')) then
      do i = 1, eddy_visc%dim(1)
-        call set(eddy_visc, i, i, EV)
+        do j = 1, eddy_visc%dim(1)
+           call set(eddy_visc, i, j, EV)
+        end do
      end do
   end if
 
@@ -580,6 +581,7 @@ subroutine keps_momentum_source(state)
   
   type(scalar_field), pointer :: k, lumped_mass
   type(vector_field), pointer :: source, x
+  type(vector_field) :: rhs
   type(vector_field) :: prescribed_source
   integer :: i
   logical :: prescribed, lump_mass
@@ -603,6 +605,8 @@ subroutine keps_momentum_source(state)
      call zero(source)
   end if
 
+  call allocate(rhs, source%dim, source%mesh, name='TempSource')
+  call zero(rhs)
   do i = 1, ele_count(k)
      call keps_momentum_source_ele()
   end do
@@ -611,8 +615,11 @@ subroutine keps_momentum_source(state)
   if(continuity(k)>=0) then
      lump_mass = have_option(trim(option_path)//&
           'mass_lumping_in_diagnostics/lump_mass')
-     call solve_cg_inv_mass_vector(state, source, lump_mass, option_path)  
+     call solve_cg_inv_mass_vector(state, rhs, lump_mass, option_path)  
+     call addto(source, rhs)
   end if
+  
+  call deallocate(rhs)
 
   ! This code isn't needed because the adjustment to the field is done before the non
   ! -linear iteration loop
@@ -627,7 +634,7 @@ subroutine keps_momentum_source(state)
   !    call deallocate(prescribed_source)
   ! end if
 
-contains
+ contains
     
   subroutine keps_momentum_source_ele()
       
@@ -636,9 +643,8 @@ contains
     integer, dimension(ele_loc(k, i)) :: nodes
     real, dimension(ele_loc(k, i), ele_loc(k, i)) :: invmass
     type(element_type), pointer :: shape
-    real, dimension(ele_ngi(source, i)) :: rhs
+    real, dimension(x%dim, ele_loc(k, i)) :: rhs_addto
     real, dimension(x%dim, ele_ngi(k, i)) :: grad_k
-    integer :: j
 
     shape => ele_shape(k, i)
     nodes = ele_nodes(source, i)
@@ -646,17 +652,16 @@ contains
     call transform_to_physical( x, i, shape, dshape=dshape, detwei=detwei )
 
     grad_k = ele_grad_at_quad(k, i, dshape)
-    do j = 1, x%dim
-       rhs = shape_rhs(shape, -(2./3.)*detwei*grad_k(j,:))
-       
-       ! In the DG case we apply the inverse mass locally.
-       if(continuity(k)<0) then
-          invmass = inverse(shape_shape(shape, shape, detwei))
-          rhs = matmul(rhs, invmass)
-       end if
-
-       call addto(source, j, nodes, rhs)  
-    end do
+    rhs_addto = shape_vector_rhs(shape, -(2./3.)*grad_k, detwei)
+      
+    ! In the DG case we apply the inverse mass locally.
+    if(continuity(k)<0) then
+       invmass = inverse(shape_shape(shape, shape, detwei))
+       rhs_addto = matmul(rhs_addto, invmass)
+       call addto(source, nodes, rhs_addto)  
+    else
+       call addto(rhs, nodes, rhs_addto) 
+    end if
 
   end subroutine keps_momentum_source_ele
 
