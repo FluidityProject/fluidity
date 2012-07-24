@@ -1126,17 +1126,23 @@ module advection_local_DG
          & tensor_gi
     real, dimension(ele_ngi(X,ele)) :: detwei, Q_gi, D_gi, &
          & D_old_gi,div_flux_gi, detwei_l, detJ
+    real, dimension(ele_loc(D,ele)) :: D_val
     real, dimension(ele_loc(Q,ele)) :: Q_val
     real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
     type(element_type), pointer :: Q_shape, Flux_shape
     integer :: loc,dim1,dim2,gi
     real :: tau, alpha, tol, area, h
     real, dimension(ele_ngi(X,ele),ele_ngi(X,ele)) :: Metric
+    type(element_type), pointer :: D_shape
+    !
 
+    D_shape => ele_shape(D,ele)
     Q_shape => ele_shape(Q,ele)
     Flux_shape => ele_shape(Flux,ele)
-    D_gi = ele_val_at_quad(D,ele)
-    D_old_gi = ele_val_at_quad(D_old,ele)
+    D_val = invert_pi_ele(ele_val(D,ele),D_shape,detwei)
+    D_gi = matmul(transpose(D_shape%n),D_val)
+    D_val = invert_pi_ele(ele_val(D_old,ele),D_shape,detwei)
+    D_old_gi = matmul(transpose(D_shape%n),D_val)
     Q_gi = ele_val_at_quad(Q,ele)
     Flux_gi = ele_val_at_quad(Flux,ele)
     U_nl_gi = ele_val_at_quad(U_nl,ele)
@@ -1254,6 +1260,7 @@ module advection_local_DG
     real, dimension(Flux%dim,ele_ngi(Flux,ele)) :: Flux_gi, Flux_perp_gi,&
          QFlux_gi
     real, dimension(ele_ngi(X,ele)) :: Q_gi,Q_old_gi,D_gi,D_old_gi,Qbar_gi
+    real, dimension(ele_loc(D,ele)) :: D_val
     real, dimension(X%dim, ele_ngi(Q, ele)) :: up_gi
     real, dimension(mesh_dim(QFlux),mesh_dim(QFlux),ele_loc(QFlux,ele)&
          &,ele_loc(QFlux,ele)) :: l_u_mat
@@ -1272,15 +1279,20 @@ module advection_local_DG
     real, dimension(U_nl%dim,ele_ngi(U_nl,ele)) :: U_nl_gi
     real, dimension(X%dim,ele_ngi(U_nl,ele)) :: U_cart_gi
     real :: residual, alpha, tol, tau, area, h
+    type(element_type), pointer :: D_shape
+    !
 
+    D_shape => ele_shape(D,ele)
     Q_shape => ele_shape(Q,ele)
     Flux_shape => ele_shape(Flux,ele)
     QFlux_shape => ele_shape(QFlux,ele)
     Q_gi = ele_val_at_quad(Q,ele)
     Q_old_gi = ele_val_at_quad(Q_old,ele)
     Qbar_gi = t_theta*Q_gi + (1-t_theta)*Q_old_gi
-    D_gi = ele_val_at_quad(D,ele)
-    D_old_gi = ele_val_at_quad(D_old,ele)
+    D_val = invert_pi_ele(ele_val(D,ele),D_shape,detwei)
+    D_gi = matmul(transpose(D_shape%n),D_val)
+    D_val = invert_pi_ele(ele_val(D_old,ele),D_shape,detwei)
+    D_old_gi = matmul(transpose(D_shape%n),D_val)
     Flux_gi = ele_val_at_quad(Flux,ele)
     U_nl_gi = ele_val_at_quad(U_nl,ele)
 
@@ -1561,6 +1573,7 @@ module advection_local_DG
     !
     real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
     real, dimension(ele_ngi(X,ele)) :: detwei, detJ, l_f, l_d
+    real, dimension(ele_loc(D,ele)) :: D_val
     real, dimension(ele_loc(pv_rhs,ele),ele_loc(pv_rhs,ele))&
          :: l_mass_mat
     real, dimension(ele_loc(pv_rhs,ele))&
@@ -1570,13 +1583,19 @@ module advection_local_DG
     real, dimension(X%dim, ele_ngi(X,ele)) :: up_gi
     integer :: orientation, gi
     real, dimension(mesh_dim(X), mesh_dim(X), ele_ngi(X,ele)) :: Metric
+    type(element_type), pointer :: D_shape
     !
+
+    D_shape => ele_shape(D,ele)
 
     up_gi = -ele_val_at_quad(down,ele)
     call get_up_gi(X,ele,up_gi,orientation)
 
     call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J, detwei, detJ)    
-    l_d = ele_val_at_quad(D,ele)
+    D_val = ele_val(D,ele)
+    D_val = invert_pi_ele(D_val,D_shape,detwei)
+    l_d = matmul(transpose(D_shape%n),D_val)
+
     l_mass_mat = shape_shape(ele_shape(pv_rhs,ele),&
          ele_shape(pv_rhs,ele),detwei*l_d)
 
@@ -1615,6 +1634,22 @@ module advection_local_DG
     call addto(pv_rhs,ele_nodes(pv_rhs,ele),l_rhs)
 
   end subroutine assemble_pv_ele
+
+  function invert_pi_ele(D_val_in,D_shape,detwei) result (D_val_out)
+    real, intent(in), dimension(:) :: D_val_in
+    type(element_type), intent(in) :: D_shape
+    real, intent(in), dimension(:) :: detwei
+    real, dimension(size(D_val_in)) :: D_val_out !The result
+    !
+    real, dimension(size(D_val_in),size(D_val_in)) :: proj_mat, &
+         & mass_mat
+
+    proj_mat = shape_shape(D_shape,D_shape,D_shape%quadrature%weight)
+    mass_mat = shape_shape(D_shape,D_shape,detwei)
+    D_val_out = matmul(mass_mat,D_val_in)
+    call solve(mass_mat,D_val_out)
+
+  end function invert_pi_ele
 
   subroutine compute_U_residual(UResidual,oldU,oldD,newU,newD,PVFlux,state)
     !!< Compute the residual in the U equation, given PVFlux computed
