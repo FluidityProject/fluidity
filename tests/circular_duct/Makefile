@@ -4,4 +4,5 @@ default: clean
 
 clean: 
 	rm -f *.msh *.node *.ele *.face *.edge *.vtu *.log *.stat
-	rm -f *.err-? *.log-?
+	rm -f *.err-? *.log-? \
+	matrixdump matrixdump.info

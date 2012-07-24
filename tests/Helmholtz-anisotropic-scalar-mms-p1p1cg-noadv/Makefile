@@ -11,4 +11,5 @@ input:	clean
 	../../bin/gmsh2triangle --2d MMS_E.msh
 
 clean:
-	rm -rf *.vtu *.stat *.node *.ele *.edge *checkpoint* *msh *.err-* *.log-* *log
+	rm -rf *.vtu *.stat *.node *.ele *.edge *checkpoint* *msh *.err-* *.log-* *log \
+	matrixdump matrixdump.info
