@@ -1224,23 +1224,10 @@ contains
 
     integer :: i, j
     ! Variables for buoyancy adjustment by vertical diffusion
-    real, dimension(ele_loc(T,ele), ele_ngi(T,ele), mesh_dim(T)) :: dt_rho
-    real, dimension(mesh_dim(T), ele_ngi(T,ele)) :: grad_rho
-    real, dimension(mesh_dim(T),ele_ngi(T,ele)) :: grav_at_quads
-    real, dimension(ele_ngi(T,ele)) :: buoyancysample 
-    real, dimension(ele_ngi(T,ele)) :: drho_dz
     real, dimension(mesh_dim(T), mesh_dim(T), T%mesh%shape%ngi) :: mixing_diffusion
-    real, dimension(mesh_dim(T), T%mesh%shape%ngi) :: mixing_diffusion_diag
-    integer, dimension(:), pointer :: enodes
-    real, dimension(X%dim) :: pos, gravity_at_node
-    real, dimension(ele_loc(X,ele)) :: rad
-    real :: dr
-
     real, intent(in) :: mixing_diffusion_amplitude
-
-    real, dimension(X%dim, X%dim, ele_loc(T, ele)) :: mixing_diffusion_rhs, mixing_diffusion_loc
-    real, dimension(ele_loc(T, ele), ele_loc(T, ele)) :: t_mass 
-    real, dimension(ele_ngi(T, ele)) :: detwei_rho
+    real, dimension(X%dim, X%dim, ele_loc(T, ele)) :: mixing_diffusion_rhs, &
+                                                      mixing_diffusion_loc
 
     ! element centre and neighbour centre
     ! for IP parameters
@@ -1337,71 +1324,10 @@ contains
     ! k = 1/2 {\Delta t} g ( {\Delta r} )^2 max (d\rho / dr, 0 )
     ! k = 1/2 dt g dr^2 max(drho/dr, 0 )
     if (have_buoyancy_adjustment_by_vertical_diffusion) then
-       mixing_diffusion_diag = 0.0
-       assert(ele_ngi(T, ele) == ele_ngi(buoyancy, ele))
-       buoyancysample = ele_val_at_quad(buoyancy, ele)
-       call transform_to_physical(X, ele, ele_shape(buoyancy,ele), dshape=dt_rho, detwei=detwei_rho)
-
-       grad_rho = ele_grad_at_quad(buoyancy, ele, dt_rho)
-
-       ! Calculate the gradient in the direction of gravity
-       ! TODO: Build on_sphere into ele_val_at_quad?
-       !if (on_sphere) then
-       !   grav_at_quads = sphere_inward_normal_at_quad_ele(X, ele)
-       !else
-          grav_at_quads = ele_val_at_quad(gravity, ele)
-       !end if
-       ! Calculate element length parallel to the direction of mixing defined above
-       enodes => ele_nodes(X, ele)
-       do i = 1,size(enodes)
-         pos = node_val(X, enodes(i))
-         gravity_at_node = node_val(gravity, enodes(i))
-         !rad(i) = pos(mesh_dim(T))
-         rad(i) = dot_product(pos, gravity_at_node)
-       end do
-       dr = maxval(rad) - minval(rad)
-       do i = 1, ele_ngi(T,ele)
-          drho_dz(i) = dot_product(grad_rho(:,i), grav_at_quads(:,i))
-          ! Note test to limit mixing to adverse changes in density wrt gravity
-          if (drho_dz(i) > 0.0) drho_dz(i) = 0.0
-          ! Form the coefficient of diffusion to deliver the required mixing
-       end do
-       ! TODO: Calculate dr - per element?  or per Guass point?
-       ! dimension in which gravity lies parallel to
-       !if (on_sphere) then
-       !  mixing_diffusion_diag(mesh_dim(X),:) = mixing_diffusion_amplitude * dt&
-       !        &* gravity_magnitude * dr**2 * abs(drho_dz(:))
-       !  mixing_diffusion=rotate_diagonal_to_cartesian_gi(X, ele, mixing_diffusion_diag)
-       !else
-         do i = 1, mesh_dim(X)
-           mixing_diffusion(i,i,:) = mixing_diffusion_amplitude * dt&
-                 &* gravity_magnitude * dr**2 * gravity_at_node(i) * drho_dz(:)
-         end do
-       !end if
-       if (on_sphere) then
-         do i = 1, mesh_dim(X)
-           mixing_diffusion_diag(i,:) = mixing_diffusion(i,i,:)
-         end do
-         mixing_diffusion=rotate_diagonal_to_cartesian_gi(X, ele, mixing_diffusion_diag)
-       end if
-       
-       print *,'***'
-       ewrite(3,*) "mixing_grad_rho", minval(grad_rho(:,:)), maxval(grad_rho(:,:))
-       ewrite(3,*) "mixing_drho_dz", minval(drho_dz(:)), maxval(drho_dz(:))
-       ewrite(3,*) "mixing_coeffs amp dt g dr", mixing_diffusion_amplitude, dt, gravity_magnitude, dr**2
-       if (on_sphere) then
-         ewrite(3,*) "mixing_diffusion_diag", minval(mixing_diffusion_diag), maxval(mixing_diffusion_diag)
-       end if
-       ewrite(3,*) "mixing_diffusion", minval(mixing_diffusion), maxval(mixing_diffusion)
-
-       mixing_diffusion_rhs=shape_tensor_rhs(T%mesh%shape, mixing_diffusion, detwei_rho)
-       t_mass=shape_shape(T%mesh%shape, T%mesh%shape, detwei_rho)
-       call invert(t_mass)
-       do i=1,X%dim
-         do j=1,X%dim
-           mixing_diffusion_loc(i,j,:) = matmul(t_mass,mixing_diffusion_rhs(i,j,:))
-         end do
-       end do
+       call calculate_vertical_diffusion(X, T, ele, buoyancy, &
+                                         gravity, gravity_magnitude,&
+                                         mixing_diffusion_amplitude, &
+                                         mixing_diffusion, mixing_diffusion_loc)
     end if
 
     !----------------------------------------------------------------------
@@ -3046,5 +2972,129 @@ contains
     end subroutine initialise_aijxy
      
   end function masslumped_rt0_aij
+
+  subroutine calculate_vertical_diffusion(X, T, ele, buoyancy, &
+                                          gravity_direction, gravity_magnitude, &
+                                          mixing_diffusion_amplitude, &
+                                          mixing_diffusion, mixing_diffusion_loc)
+  ! Subroutine for calculation of additional diffusivity on the vertical direction
+  ! in the case of denser fluid on top of lighter fluid.
+  ! TODO: Add option to generate optimal coefficient
+  ! k = 1/2 {\Delta t} g ( {\Delta r} )^2 max (d\rho / dr, 0 )
+  ! k = 1/2 dt g dr^2 max(drho/dr, 0 )
+
+    implicit none
+
+    type(vector_field), intent(in) :: X
+    type(scalar_field), intent(in) :: T
+    type(scalar_field), intent(in) :: buoyancy
+    integer :: ele    !Element index
+    real, intent(in) :: mixing_diffusion_amplitude
+    real, dimension(mesh_dim(T), mesh_dim(T), T%mesh%shape%ngi) :: mixing_diffusion
+    type(vector_field), intent(in) :: gravity_direction
+    real, intent(in) :: gravity_magnitude
+    real, dimension(X%dim, X%dim, ele_loc(T, ele)) :: mixing_diffusion_rhs, &
+                                                      mixing_diffusion_loc
+
+    real, dimension(ele_loc(T,ele), ele_ngi(T,ele), mesh_dim(T)) :: dt_rho
+    real, dimension(mesh_dim(T), ele_ngi(T,ele)) :: density_grad_at_quad
+    real, dimension(mesh_dim(T),ele_ngi(T,ele)) :: positionVector_at_quad
+    real, dimension(mesh_dim(T),ele_ngi(T,ele)) :: gravityVector_at_quad
+    real, dimension(mesh_dim(T),ele_ngi(T,ele)) :: unitVector_at_quad
+    real, dimension(X%dim) :: pos, unitVector_at_node
+    real, dimension(ele_loc(T, ele), ele_loc(T, ele)) :: t_mass 
+    real, dimension(ele_ngi(T, ele)) :: detwei_rho
+    integer, dimension(:), pointer :: enodes
+    real, dimension(ele_loc(X,ele)) :: rad
+    real :: dr
+    integer :: i, j
+    real, dimension(ele_ngi(T,ele)) :: vertical_density_grad_at_quad
+    real, dimension(mesh_dim(T), mesh_dim(T), ele_ngi(T,ele)) :: mixing_diffusion_localCoords
+    real, dimension(3) :: XYZ, & !x, y and z coordinates of position
+                          RTP    !radius, theta (polar angle) and phi
+                                 !(azimuthal angle): spherical-polar
+                                 !coordinates of position.
+
+    assert(ele_ngi(T, ele) == ele_ngi(buoyancy, ele))
+    call transform_to_physical(X, ele, ele_shape(buoyancy,ele), &
+                               dshape=dt_rho, detwei=detwei_rho)
+
+    positionVector_at_quad = ele_val_at_quad(X, ele)
+
+    !Calculate density gradient at quadrature points
+    density_grad_at_quad = ele_grad_at_quad(buoyancy, ele, dt_rho)
+
+    !Calculate the gravity vector at the quadrature points of the element
+    gravityVector_at_quad = ele_val_at_quad(gravity_direction, ele)*gravity_magnitude
+
+    !Calculate a unit vector parallel to the gravity vector at the
+    ! quadrature points of the element. The gravity_direction vector field
+    ! should be so.
+    unitVector_at_quad = ele_val_at_quad(gravity_direction, ele)
+
+    ! Calculate element length in the vertical direction.
+    enodes => ele_nodes(X, ele)
+    do i = 1,size(enodes)
+      pos = node_val(X, enodes(i))
+      unitVector_at_node = node_val(gravity_direction, enodes(i))
+      rad(i) = dot_product(pos, unitVector_at_node)
+    end do
+    dr = maxval(rad) - minval(rad)
+
+    ! Calculate the density gradient in the direction of gravity
+    do i = 1, ele_ngi(T,ele)
+      vertical_density_grad_at_quad(i) = dot_product(density_grad_at_quad(:,i), &
+                                                      unitVector_at_quad(:,i))
+      ! Limit mixing to unstable stratifications only.
+      if (vertical_density_grad_at_quad(i) > 0.0) vertical_density_grad_at_quad(i) = 0.0
+    end do
+
+    mixing_diffusion_localCoords = 0.0
+    do i = 1, mesh_dim(X)
+      mixing_diffusion_localCoords(i,i,:) = mixing_diffusion_amplitude * &
+                                            dt * &
+                                            gravity_magnitude * &
+                                            dr**2 * &
+                                            gravityVector_at_quad(i, :) * &
+                                            vertical_density_grad_at_quad(:)
+    end do
+    !If the calculation is done on-the-sphere, then the diffusivity tensor
+    ! was effectivelly calculated in a spherical-polar basis and its components
+    ! must be transformed to a Cartesian basis. If not on-the-sphere, the gravity
+    ! vector is assumed to point in the negative z-direction.
+    if (on_sphere) then
+      do j = 1, ele_ngi(T, ele)
+        XYZ(1) = positionVector_at_quad(1,j)
+        XYZ(2) = positionVector_at_quad(2,j)
+        XYZ(3) = positionVector_at_quad(3,j)
+        call cartesian_2_spherical_polar(XYZ(1), XYZ(2), XYZ(3), &
+                                         RTP(1), RTP(2), RTP(3))
+        call tensor_spherical_polar_2_cartesian(mixing_diffusion_localCoords(:,:,j), &
+                                                RTP(1), RTP(2), RTP(3), &
+                                                mixing_diffusion(:,:,j), &
+                                                XYZ(1), XYZ(2), XYZ(3))
+      enddo
+    else
+      mixing_diffusion = mixing_diffusion_localCoords
+    end if
+       
+    print *,'***'
+    ewrite(3,*) "mixing_grad_rho", minval(density_grad_at_quad(:,:)), maxval(density_grad_at_quad(:,:))
+    ewrite(3,*) "mixing_drho_dz", minval(vertical_density_grad_at_quad(:)), maxval(vertical_density_grad_at_quad(:))
+    ewrite(3,*) "mixing_coeffs amp dt g dr", mixing_diffusion_amplitude, dt, gravity_magnitude, dr**2
+    if (on_sphere) then
+    end if
+    ewrite(3,*) "mixing_diffusion", minval(mixing_diffusion), maxval(mixing_diffusion)
+
+    mixing_diffusion_rhs=shape_tensor_rhs(T%mesh%shape, mixing_diffusion, detwei_rho)
+    t_mass=shape_shape(T%mesh%shape, T%mesh%shape, detwei_rho)
+    call invert(t_mass)
+    do i=1,X%dim
+      do j=1,X%dim
+        mixing_diffusion_loc(i,j,:) = matmul(t_mass,mixing_diffusion_rhs(i,j,:))
+      end do
+    end do
+
+  end subroutine calculate_vertical_diffusion
 
 end module advection_diffusion_DG
