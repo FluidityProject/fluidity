@@ -256,6 +256,7 @@ module darcy_impes_assemble_module
       type(scalar_field)     :: inverse_cv_sa_pressure_mesh
       type(scalar_field)     :: modified_relative_permeability
       type(scalar_field), pointer :: constant_zero_sfield_pmesh
+      type(scalar_field), pointer :: constant_zero_sfield_elementwisemesh
       type(scalar_field_pointer), dimension(:), pointer :: old_saturation_subcycle
       ! ***** coupling field associated with DUAL model *****
       type(scalar_field) :: cv_mass_pressure_mesh_with_lambda_dual
@@ -402,7 +403,7 @@ module darcy_impes_assemble_module
 
 ! ----------------------------------------------------------------------------
 
-   subroutine darcy_impes_assemble_and_solve_part_two(di, di_dual, have_dual, have_dual_pressure)
+   subroutine darcy_impes_assemble_and_solve_part_two(di, di_dual, have_dual, have_dual_perm)
       
       !!< Assemble and solve the Darcy equations using an CIMPESS algorithm
       !!< which is a modification of the IMPES to include consistent subcycling.
@@ -411,12 +412,12 @@ module darcy_impes_assemble_module
       type(darcy_impes_type), intent(inout) :: di
       type(darcy_impes_type), intent(inout) :: di_dual
       logical ,               intent(in)    :: have_dual      
-      logical ,               intent(in)    :: have_dual_pressure
+      logical ,               intent(in)    :: have_dual_perm
             
       ewrite(1,*) 'Start Darcy IMPES assemble and solve part two'
                   
       ! Assemble and solve the phase pressures
-      call darcy_impes_assemble_and_solve_phase_pressures(di, di_dual, have_dual, have_dual_pressure)
+      call darcy_impes_assemble_and_solve_phase_pressures(di, di_dual, have_dual, have_dual_perm)
                   
       ewrite(1,*) 'Finished Darcy IMPES assemble and solve part two'
            
@@ -479,7 +480,7 @@ module darcy_impes_assemble_module
 
 ! ----------------------------------------------------------------------------
 
-   subroutine darcy_impes_assemble_and_solve_phase_pressures(di, di_dual, have_dual, have_dual_pressure)
+   subroutine darcy_impes_assemble_and_solve_phase_pressures(di, di_dual, have_dual, have_dual_perm)
       
       !!< Assemble and solve the phase pressures. The first phase pressure 
       !!< is solved via a matrix equation (if prognostic) and the other
@@ -489,10 +490,10 @@ module darcy_impes_assemble_module
       type(darcy_impes_type), intent(inout) :: di
       type(darcy_impes_type), intent(inout) :: di_dual
       logical ,               intent(in)    :: have_dual  
-      logical ,               intent(in)    :: have_dual_pressure
+      logical ,               intent(in)    :: have_dual_perm
       
       ! Assemble and solve the first phase pressure if it is prognostic
-      if (di%first_phase_pressure_prognostic) call darcy_impes_assemble_and_solve_first_phase_pressure(di, di_dual, have_dual, have_dual_pressure)
+      if (di%first_phase_pressure_prognostic) call darcy_impes_assemble_and_solve_first_phase_pressure(di, di_dual, have_dual, have_dual_perm)
       
       ! Calculate the non first phase pressure's
       call darcy_impes_calculate_non_first_phase_pressures(di) 
@@ -506,15 +507,15 @@ module darcy_impes_assemble_module
 
 ! ----------------------------------------------------------------------------
 
-   subroutine darcy_impes_assemble_and_solve_first_phase_pressure(di, di_dual, have_dual, have_dual_pressure)
+   subroutine darcy_impes_assemble_and_solve_first_phase_pressure(di, di_dual, have_dual, have_dual_perm)
       
       !!< Assemble and solve the first phase pressure. A source is included 
       !!< due to the capilliary pressures of non first phases as well as gravity 
       !!< and the rate of change of porosity and the individual phase sources.
       !!< Face values for relative permeability and density have already been evaluated.
-      !!< If have_dual and have_dual_pressure are both true then a block matrix using 
+      !!< If have_dual and have_dual_perm are both true then a block matrix using 
       !!< di%dual_block_pressure_matrix is solved for. If have_dual is true but 
-      !!< have_dual_pressure is false then a single matrix using di%pressure_matrix 
+      !!< have_dual_perm is false then a single matrix using di%pressure_matrix 
       !!< is solved for the prime pressure phase 1 then the dual pressure phase 1 
       !!< is set to this. If have_dual is false then di%pressure_matrix is used.
       !!< (This is because an error is occuring for petsc_csr_matrix in 2d)
@@ -522,7 +523,7 @@ module darcy_impes_assemble_module
       type(darcy_impes_type), intent(inout) :: di
       type(darcy_impes_type), intent(inout) :: di_dual
       logical ,               intent(in)    :: have_dual  
-      logical ,               intent(in)    :: have_dual_pressure
+      logical ,               intent(in)    :: have_dual_perm
       
       ! local variables
       type(scalar_field_pointer), dimension(:), pointer :: all_pressure
@@ -599,7 +600,7 @@ module darcy_impes_assemble_module
       ! Initialise the matrix and rhs and solution pointer
       call zero(di%pressure_rhs)      
       
-      if (have_dual .and. have_dual_pressure) then
+      if (have_dual .and. have_dual_perm) then
          call zero(di%dual_block_pressure_matrix)
          call zero(di_dual%pressure_rhs)
          
@@ -629,7 +630,7 @@ module darcy_impes_assemble_module
       
       end do src_phase_loop
       
-      if (have_dual .and. have_dual_pressure) then
+      if (have_dual .and. have_dual_perm) then
       
          dual_src_phase_loop: do p = 1, di_dual%number_phase
 
@@ -644,7 +645,7 @@ module darcy_impes_assemble_module
       end if
 
       ! Add the transmissibility lambda dual to each block diagonal      
-      if (have_dual .and. have_dual_pressure) then         
+      if (have_dual .and. have_dual_perm) then         
          transmiss_phase_loop: do p = 1, di_dual%number_phase
             call compute_cv_mass(di_dual%positions, di_dual%cv_mass_pressure_mesh_with_lambda_dual, di_dual%transmissibility_lambda_dual(p)%ptr)
 
@@ -677,7 +678,7 @@ module darcy_impes_assemble_module
                   
       call addto(di%pressure_rhs, di%cv_mass_pressure_mesh_with_porosity, scale = -1.0/di%dt)
       
-      if (have_dual .and. have_dual_pressure) then
+      if (have_dual .and. have_dual_perm) then
       
          call addto(di_dual%pressure_rhs, di_dual%cv_mass_pressure_mesh_with_old_porosity, scale = 1.0/di%dt)
                   
@@ -696,7 +697,7 @@ module darcy_impes_assemble_module
             call pressure_volume_element_local_assemble(di) 
             
             ! Add volume element contribution to global pressure matrix and rhs            
-            if (have_dual .and. have_dual_pressure) then 
+            if (have_dual .and. have_dual_perm) then 
                call addto(di%dual_block_pressure_matrix, 1, 1, p_nodes, p_nodes, p_mat_local)
             
                call addto(di%pressure_rhs, p_nodes, p_rhs_local)
@@ -731,7 +732,7 @@ module darcy_impes_assemble_module
                                                             di%pressure_bc_value, &
                                                             di%pressure_bc_flag)
       
-      if (have_dual .and. have_dual_pressure) then
+      if (have_dual .and. have_dual_perm) then
          call darcy_impes_get_entire_sfield_boundary_condition(di_dual%pressure(1)%ptr, &
                                                                (/"weakdirichlet", &
                                                                  "dirichlet    "/), &
@@ -752,7 +753,7 @@ module darcy_impes_assemble_module
                                                    di%v_bc_value, &
                                                    di%v_bc_flag)
          
-         if (have_dual .and. have_dual_pressure) then         
+         if (have_dual .and. have_dual_perm) then         
             call darcy_impes_get_v_boundary_condition(di_dual%darcy_velocity(p)%ptr, &
                                                       (/"normal_flow   ", &
                                                         "no_normal_flow"/), &
@@ -765,7 +766,7 @@ module darcy_impes_assemble_module
             
             call pressure_surface_element_local_assemble(di)
             
-            if (have_dual .and. have_dual_pressure) then            
+            if (have_dual .and. have_dual_perm) then            
 
                call addto(di%dual_block_pressure_matrix, 1, 1, p_nodes_bdy, p_nodes_bdy, p_matrix_local_bdy)
 
@@ -791,14 +792,14 @@ module darcy_impes_assemble_module
             
       ! Apply any strong dirichlet BC's - that can only be applied to the first phase pressure
       ! of both the prime and dual porous media
-      if (have_dual .and. have_dual_pressure) then
+      if (have_dual .and. have_dual_perm) then
          call apply_dirichlet_conditions(di%dual_block_pressure_matrix, all_rhs, all_pressure)
       else
          call apply_dirichlet_conditions(di%pressure_matrix, all_rhs(1)%ptr, all_pressure(1)%ptr)      
       end if
       
       ! Solve the pressure(s)
-      if (have_dual .and. have_dual_pressure) then
+      if (have_dual .and. have_dual_perm) then
          call petsc_solve(all_pressure, di%dual_block_pressure_matrix, all_rhs, di%state(1))
       else
          call petsc_solve(all_pressure(1)%ptr, di%pressure_matrix, all_rhs(1)%ptr, di%state(1))      
@@ -809,7 +810,7 @@ module darcy_impes_assemble_module
       
       if (have_dual) then
          
-         if (have_dual_pressure) then
+         if (have_dual_perm) then
          
             call set_dirichlet_consistent(di_dual%pressure(1)%ptr) 
          

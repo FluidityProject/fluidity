@@ -159,7 +159,7 @@ program Darcy_IMPES
    type(darcy_impes_type) :: di
    type(darcy_impes_type) :: di_dual
    type(state_type) , dimension(:), pointer :: state_prime, state_dual
-   logical :: have_dual, have_dual_pressure
+   logical :: have_dual, have_dual_perm
    integer :: darcy_debug_log_unit, darcy_debug_err_unit
    integer :: number_phase_prime, number_phase_dual, number_of_first_adapts, p 
    character(len=OPTION_PATH_LEN) :: phase_name
@@ -256,8 +256,8 @@ program Darcy_IMPES
    call set(time_field, current_time)
 
    ! ***** setting up dual *****
-   have_dual =  have_option("/porous_media_dual")
-   have_dual_pressure =  have_option("/porous_media_dual/have_dual_pressure")   
+   have_dual      =  have_option("/porous_media_dual")
+   have_dual_perm =  have_option("/porous_media_dual/scalar_field::AbsolutePermeabilityDual")   
    if (have_dual) then
       ! check there are the same number of prime and dual phases
       ! - NOTE: due to the options schemas all prime phases come first
@@ -287,7 +287,7 @@ program Darcy_IMPES
                                   dt, &
                                   current_time, &
                                   have_dual, &
-                                  have_dual_pressure, &
+                                  have_dual_perm, &
                                   this_is_dual = .false.)
 
       call darcy_impes_initialise(di_dual, &
@@ -296,7 +296,7 @@ program Darcy_IMPES
                                   dt, &
                                   current_time, &
                                   have_dual, &
-                                  have_dual_pressure, &
+                                  have_dual_perm, &
                                   this_is_dual = .true.)
    else
       ! *** Initialise data used in IMPES solver *** 
@@ -306,7 +306,7 @@ program Darcy_IMPES
                                   dt, &
                                   current_time, &
                                   have_dual, &
-                                  have_dual_pressure, &
+                                  have_dual_perm, &
                                   this_is_dual = .false.)
    end if
    
@@ -507,10 +507,10 @@ program Darcy_IMPES
    
    ! ***** Finalise dual permeability model *****
    if (have_dual) then
-      call darcy_impes_finalise(di_dual, have_dual, have_dual_pressure, this_is_dual = .true.)
+      call darcy_impes_finalise(di_dual, have_dual, have_dual_perm, this_is_dual = .true.)
    end if
    ! *** Finalise darcy impes variables ***
-   call darcy_impes_finalise(di, have_dual, have_dual_pressure, this_is_dual = .false.)
+   call darcy_impes_finalise(di, have_dual, have_dual_perm, this_is_dual = .false.)
     
    ! Deallocate state
    do i = 1, size(state)
@@ -564,7 +564,7 @@ contains
                                      dt, &
                                      current_time, &
                                      have_dual, &
-                                     have_dual_pressure, &
+                                     have_dual_perm, &
                                      this_is_dual)
       
       !!< Initialise the Darcy IMPES type from options and state
@@ -575,7 +575,7 @@ contains
       real,                                         intent(in)    :: dt
       real,                                         intent(in)    :: current_time
       logical ,                                     intent(in)    :: have_dual
-      logical,                                      intent(in)    :: have_dual_pressure
+      logical,                                      intent(in)    :: have_dual_perm
       logical ,                                     intent(in)    :: this_is_dual
       
       ! Local variables
@@ -605,10 +605,22 @@ contains
       di%number_sele       = surface_element_count(di%pressure_mesh)
       di%number_pmesh_node = node_count(di%pressure_mesh)
       
+      ! Allocate a field that is always zero on the element wise mesh to be pointed 
+      ! at by capilliary pressure and saturation source if not required.
+      ! NOTE using a FIELD_TYPE_CONSTANT causes issues.
+      allocate(di%constant_zero_sfield_elementwisemesh)
+      call allocate(di%constant_zero_sfield_elementwisemesh, di%elementwise_mesh)
+      
+      call zero(di%constant_zero_sfield_elementwisemesh)
+      
       di%average_pressure         => extract_scalar_field(di%state(1), "AveragePressure")
-      if (this_is_dual) then 
-         di%porosity                     => extract_scalar_field(di%state(1), "PorosityDual")
-         di%absolute_permeability        => extract_scalar_field(di%state(1), "AbsolutePermeabilityDual")
+      if (have_dual .and. this_is_dual) then 
+         di%porosity              => extract_scalar_field(di%state(1), "PorosityDual")
+         if (have_dual_perm) then
+            di%absolute_permeability => extract_scalar_field(di%state(1), "AbsolutePermeabilityDual")
+         else
+            di%absolute_permeability => di%constant_zero_sfield_elementwisemesh
+         end if
       else
          di%porosity              => extract_scalar_field(di%state(1), "Porosity")
          di%absolute_permeability => extract_scalar_field(di%state(1), "AbsolutePermeability")
@@ -680,7 +692,7 @@ contains
       call allocate(di%matrix, di%sparsity_pmesh_pmesh)
       ! Only allocate the pressure matrix for the prime di call here
       if (.not. this_is_dual) then
-         if (have_dual .and. have_dual_pressure) then
+         if (have_dual .and. have_dual_perm) then
             call allocate(di%dual_block_pressure_matrix, di%sparsity_pmesh_pmesh, blocks=(/2,2/), name ='DualBlockPressureMatrix')
          else
             call allocate(di%pressure_matrix, di%sparsity_pmesh_pmesh, name ='PressureMatrix')      
@@ -1432,13 +1444,13 @@ contains
 
 ! ----------------------------------------------------------------------------
    
-   subroutine darcy_impes_finalise(di, have_dual, have_dual_pressure, this_is_dual)
+   subroutine darcy_impes_finalise(di, have_dual, have_dual_perm, this_is_dual)
       
       !!< Finalise (ie deallocate) the Darcy IMPES data
       
       type(darcy_impes_type), intent(inout) :: di
       logical,                intent(in)    :: have_dual
-      logical,                intent(in)    :: have_dual_pressure
+      logical,                intent(in)    :: have_dual_perm
       logical,                intent(in)    :: this_is_dual
           
       ! Deallocate, nullify or zero Darcy IMPES data
@@ -1473,6 +1485,9 @@ contains
       di%number_sele       = 0
       di%number_pmesh_node = 0
       
+      call deallocate(di%constant_zero_sfield_elementwisemesh)
+      deallocate(di%constant_zero_sfield_elementwisemesh)
+      
       nullify(di%average_pressure)      
       nullify(di%porosity)
       nullify(di%absolute_permeability)
@@ -1504,7 +1519,7 @@ contains
       nullify(di%sparsity_pmesh_pmesh)
       call deallocate(di%matrix)
       if (.not. this_is_dual) then 
-         if (have_dual .and. have_dual_pressure) then
+         if (have_dual .and. have_dual_perm) then
             call deallocate(di%dual_block_pressure_matrix)
          else
             call deallocate(di%pressure_matrix)     
@@ -1697,7 +1712,7 @@ contains
                                                     dt, &
                                                     current_time, &
                                                     have_dual, &
-                                                    have_dual_pressure, &
+                                                    have_dual_perm, &
                                                     this_is_dual)
       
       !!< Update the Darcy IMPES data post spatial adapt
@@ -1708,7 +1723,7 @@ contains
       real,                                         intent(in)    :: dt
       real,                                         intent(in)    :: current_time
       logical,                                      intent(in)    :: have_dual  
-      logical,                                      intent(in)    :: have_dual_pressure
+      logical,                                      intent(in)    :: have_dual_perm
       logical,                                      intent(in)    :: this_is_dual  
         
       ewrite(1,*) 'Update Darcy IMPES data post spatial adapt'
@@ -1716,7 +1731,7 @@ contains
       ! ALL THE IMPORTANT SOLUTION DATA IS IN STATE
       ! WHICH IS NOT DEALLOCATED IN THE FOLLOWING PROCEDURE
       
-      call darcy_impes_finalise(di, have_dual, have_dual_pressure, this_is_dual)
+      call darcy_impes_finalise(di, have_dual, have_dual_perm, this_is_dual)
             
       call darcy_impes_initialise(di, &
                                   state, &
@@ -1724,7 +1739,7 @@ contains
                                   dt, &
                                   current_time, &
                                   have_dual, &
-                                  have_dual_pressure, &
+                                  have_dual_perm, &
                                   this_is_dual)
       
       ewrite(1,*) 'Finished updating Darcy IMPES data post spatial adapt'
@@ -1770,7 +1785,7 @@ contains
                                                     dt, &
                                                     current_time, &
                                                     have_dual, &
-                                                    have_dual_pressure, &
+                                                    have_dual_perm, &
                                                     this_is_dual = .false.)
 
          call darcy_impes_update_post_spatial_adapt(di_dual, &
@@ -1779,7 +1794,7 @@ contains
                                                     dt, &
                                                     current_time, &
                                                     have_dual, &
-                                                    have_dual_pressure, &
+                                                    have_dual_perm, &
                                                     this_is_dual = .true.)
       else                                                                 
          ! *** Update Darcy IMPES post spatial adapt ***
@@ -1789,7 +1804,7 @@ contains
                                                     dt, &
                                                     current_time, &
                                                     have_dual, &
-                                                    have_dual_pressure, &
+                                                    have_dual_perm, &
                                                     this_is_dual = .false.)
       end if  
 
@@ -1907,7 +1922,7 @@ contains
          if (have_dual) call darcy_impes_assemble_and_solve_part_one(di_dual, have_dual)
          
          ! This one solves for the pressure phase 1
-         call darcy_impes_assemble_and_solve_part_two(di, di_dual, have_dual, have_dual_pressure)
+         call darcy_impes_assemble_and_solve_part_two(di, di_dual, have_dual, have_dual_perm)
 
          call darcy_impes_assemble_and_solve_part_three(di, have_dual)
          if (have_dual) call darcy_impes_assemble_and_solve_part_three(di_dual, have_dual)

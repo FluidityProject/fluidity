@@ -1627,13 +1627,15 @@ contains
           call insert(states(i+1), sfield, 'PorosityDual')
        end do
        
-       ! alias the AbsolutePermeabilityDual field 
-       sfield=extract_scalar_field(states(1), 'AbsolutePermeabilityDual')
-       sfield%aliased = .true.
-       do i = 1,nstates-1
-          call insert(states(i+1), sfield, 'AbsolutePermeabilityDual')
-       end do       
-    
+       ! alias the AbsolutePermeabilityDual field if present
+       sfield=extract_scalar_field(states(1), 'AbsolutePermeabilityDual', stat=stat)
+       if (stat == 0) then
+          sfield%aliased = .true.
+          do i = 1,nstates-1
+             call insert(states(i+1), sfield, 'AbsolutePermeabilityDual')
+          end do       
+       end if
+       
     end if have_porous_media_dual
 
   end subroutine alias_fields
@@ -3160,14 +3162,16 @@ contains
           call insert(states(p+1), aux_sfield, 'OldPorosityDual')
        end do
        
-       ! alias the OldAbsolutePermeabilityDual field
-       aux_sfield=extract_scalar_field(states(1), 'OldAbsolutePermeabilityDual')
-       aux_sfield%aliased = .true.
-       aux_sfield%option_path = ""
-       do p = 1,size(states)-1
-          call insert(states(p+1), aux_sfield, 'OldAbsolutePermeabilityDual')
-       end do       
-
+       ! alias the OldAbsolutePermeabilityDual field if present
+       aux_sfield=extract_scalar_field(states(1), 'OldAbsolutePermeabilityDual', stat=stat)
+       if (stat == 0) then
+          aux_sfield%aliased = .true.
+          aux_sfield%option_path = ""
+          do p = 1,size(states)-1
+             call insert(states(p+1), aux_sfield, 'OldAbsolutePermeabilityDual')
+          end do       
+       end if
+       
        ! alias the IteratedPorosityDual field
        aux_sfield=extract_scalar_field(states(1), 'IteratedPorosityDual')
        aux_sfield%aliased = .true.
@@ -3176,14 +3180,16 @@ contains
           call insert(states(p+1), aux_sfield, 'IteratedPorosityDual')
        end do
        
-       ! alias the IteratedAbsolutePermeabilityDual field 
-       aux_sfield=extract_scalar_field(states(1), 'IteratedAbsolutePermeabilityDual')
-       aux_sfield%aliased = .true.
-       aux_sfield%option_path = ""
-       do p = 1,size(states)-1
-          call insert(states(p+1), aux_sfield, 'IteratedAbsolutePermeabilityDual')
-       end do       
-    
+       ! alias the IteratedAbsolutePermeabilityDual field if present
+       aux_sfield=extract_scalar_field(states(1), 'IteratedAbsolutePermeabilityDual', stat=stat)
+       if (stat == 0) then
+          aux_sfield%aliased = .true.
+          aux_sfield%option_path = ""
+          do p = 1,size(states)-1
+             call insert(states(p+1), aux_sfield, 'IteratedAbsolutePermeabilityDual')
+          end do       
+       end if
+       
     end if have_porous_media_dual
     
   end subroutine allocate_and_insert_auxilliary_fields

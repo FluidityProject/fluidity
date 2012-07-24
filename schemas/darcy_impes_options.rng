@@ -727,19 +727,19 @@ at the first timestep or not.</a:documentation>
           <attribute name="name">
             <value>Phase2_dual</value>
           </attribute>
-          <ref name="darcy_impes_dual_Phase2"/>
+          <ref name="darcy_impes_dual_other_phase_options"/>
         </element>
         <element name="material_phase">
           <attribute name="name">
             <value>Phase3_dual</value>
           </attribute>
-          <ref name="darcy_impes_dual_Phase2"/>
+          <ref name="darcy_impes_dual_other_phase_options"/>
         </element>
         <element name="material_phase">
           <attribute name="name">
             <value>Phase4_dual</value>
           </attribute>
-          <ref name="darcy_impes_dual_Phase2"/>
+          <ref name="darcy_impes_dual_other_phase_options"/>
         </element>
       </choice>
     </zeroOrMore>
@@ -791,6 +791,28 @@ at the first timestep or not.</a:documentation>
       </choice>
     </element>
   </define>
+  <define name="darcy_impes_dual_first_phase_pressure_field">
+    <element name="scalar_field">
+      <attribute name="rank">
+        <value>0</value>
+      </attribute>
+      <attribute name="name">
+        <value>Pressure</value>
+      </attribute>
+      <element name="prognostic">
+        <ref name="mesh_choice_pressure"/>
+        <oneOrMore>
+          <ref name="initial_condition_scalar"/>
+        </oneOrMore>
+        <zeroOrMore>
+          <ref name="darcy_impes_first_phase_bc_pressure_field"/>
+        </zeroOrMore>
+        <ref name="darcy_impes_include_cv_stat"/>
+        <ref name="adaptivity_options_prognostic_scalar_field"/>
+        <ref name="interpolation_algorithm_scalar"/>
+      </element>
+    </element>
+  </define>
   <define name="darcy_impes_asym_solver_options">
     <choice>
       <element name="solver">
@@ -804,6 +826,12 @@ at the first timestep or not.</a:documentation>
           <value>DefaultSolverOptionsGMRESMG</value>
         </attribute>
         <ref name="darcy_impes_pressure_linear_solver_options_asym_default_gmres_mg"/>
+      </element>
+      <element name="solver">
+        <attribute name="name">
+          <value>DefaultSolverOptionsGMRESHYPRE</value>
+        </attribute>
+        <ref name="darcy_impes_pressure_linear_solver_options_asym_default_gmres_hypre"/>
       </element>
       <element name="solver">
         <attribute name="name">
@@ -821,6 +849,11 @@ at the first timestep or not.</a:documentation>
   <define name="darcy_impes_pressure_linear_solver_options_asym_default_gmres_mg">
     <ref name="darcy_impes_solver_default_gmres"/>
     <ref name="darcy_impes_solver_default_mg"/>
+    <ref name="darcy_impes_solver_tolerances"/>
+  </define>
+  <define name="darcy_impes_pressure_linear_solver_options_asym_default_gmres_hypre">
+    <ref name="darcy_impes_solver_default_gmres"/>
+    <ref name="darcy_impes_solver_default_hypre"/>
     <ref name="darcy_impes_solver_tolerances"/>
   </define>
   <define name="darcy_impes_solver_default_gmres">
@@ -859,6 +892,28 @@ Especially suited for ill-conditioned, large aspect ratio problems.</a:documenta
       <attribute name="name">
         <value>mg</value>
       </attribute>
+    </element>
+  </define>
+  <define name="darcy_impes_solver_default_hypre">
+    <element name="preconditioner">
+      <a:documentation>Hypre preconditioners (includes boomeramg)</a:documentation>
+      <attribute name="name">
+        <value>hypre</value>
+      </attribute>
+      <choice>
+        <element name="hypre_type">
+          <a:documentation>BoomerAMG multigrid method</a:documentation>
+          <attribute name="name">
+            <value>boomeramg</value>
+          </attribute>
+        </element>
+        <element name="hypre_type">
+          <a:documentation>Other Hypre preconditioners</a:documentation>
+          <attribute name="name">
+            <data type="string"/>
+          </attribute>
+        </element>
+      </choice>
     </element>
   </define>
   <define name="darcy_impes_solver_tolerances">
@@ -1576,7 +1631,7 @@ Finite element discretisation may become unbounded so limiting is often necessar
   </define>
   <define name="darcy_impes_dual_Phase1">
     <ref name="darcy_impes_transmissibility_lambda"/>
-    <ref name="darcy_impes_first_phase_pressure_field"/>
+    <ref name="darcy_impes_dual_first_phase_pressure_field"/>
     <ref name="darcy_impes_saturation_field_phase_one"/>
     <ref name="darcy_impes_first_phase_relative_permeability_field"/>
     <ref name="darcy_impes_viscosity_field"/>
@@ -1595,7 +1650,7 @@ Finite element discretisation may become unbounded so limiting is often necessar
       <ref name="darcy_impes_generic_scalar_field"/>
     </zeroOrMore>
   </define>
-  <define name="darcy_impes_dual_Phase2">
+  <define name="darcy_impes_dual_other_phase_options">
     <ref name="darcy_impes_transmissibility_lambda"/>
     <ref name="darcy_impes_non_first_phase_pressure_field"/>
     <optional>
@@ -2099,14 +2154,6 @@ the first material_phase state then aliased in all others.</a:documentation>
     <element name="porous_media_dual">
       <a:documentation>Porous Media_dual:
 Porosity and Permeability for the dual permeability model</a:documentation>
-      <optional>
-        <element name="have_dual_pressure">
-          <a:documentation>Have a dual pressure such that a block matrix is solved for each phase 1. 
-Else the dual pressure phase 1 has the same values as the prime pressure
-phase 1. WARNING: THIS CAUSES PETSC ERRORS IN 2D.</a:documentation>
-          <empty/>
-        </element>
-      </optional>
       <element name="scalar_field">
         <a:documentation>Specify scalar field PorosityDual which is inserted into 
 the first material_phase state then aliased in all others.</a:documentation>
@@ -2115,14 +2162,17 @@ the first material_phase state then aliased in all others.</a:documentation>
         </attribute>
         <ref name="darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh"/>
       </element>
-      <element name="scalar_field">
-        <a:documentation>Specify field AbsolutePermeabilityDual which is inserted into 
-the first material_phase state then aliased in all others.</a:documentation>
-        <attribute name="name">
-          <value>AbsolutePermeabilityDual</value>
-        </attribute>
-        <ref name="darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh"/>
-      </element>
+      <optional>
+        <element name="scalar_field">
+          <a:documentation>Specify field AbsolutePermeabilityDual which is inserted into 
+the first material_phase state then aliased in all others.
+WARNING: THIS CAUSES PETSC ERRORS SOMETIMES IN 2D</a:documentation>
+          <attribute name="name">
+            <value>AbsolutePermeabilityDual</value>
+          </attribute>
+          <ref name="darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh"/>
+        </element>
+      </optional>
     </element>
   </define>
   <define name="darcy_impes_diagnostic_scalar_field">
