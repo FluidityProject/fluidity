@@ -367,6 +367,12 @@
       U=>extract_vector_field(state, "Velocity")
       Z=>extract_vector_field(state, "Vorticity",stat)
 
+      if(have_option('/geometry/mesh::CoordinateMesh/recompute_coordinate_f&
+           &ield/python')) then
+         call recompute_coordinate_field(state)
+      end if
+
+
       !SET UP LOCAL VELOCITY
       !This needs an option to switch on as we don't always want to do it.
       !   !project velocity into div-conforming space
@@ -506,6 +512,48 @@
     call fix_layerdepth_mean(state)
 
     end subroutine setup_fields
+
+    subroutine recompute_coordinate_field(state)
+      type(state_type), intent(inout) :: state
+      !
+      type(vector_field), pointer :: X
+      integer :: ele
+      character(len=PYTHON_FUNC_LEN) :: Python_Function
+      
+      X => extract_vector_field(state,"Coordinate")
+      call get_option('/geometry/mesh::CoordinateMesh/recompute_coordinate_f&
+           &ield/python',Python_Function)
+
+      ewrite(2,*) trim(Python_Function)
+      do ele = 1, ele_count(X)
+         call recompute_coordinate_field_ele(X,Python_Function,ele)
+      end do
+    end subroutine recompute_coordinate_field
+
+    subroutine recompute_coordinate_field_ele(X,Python_Function,ele)
+      type(vector_field), intent(inout) :: X
+      character(len=PYTHON_FUNC_LEN), intent(in) :: Python_Function
+      integer, intent(in) :: ele
+      !
+      real, dimension(X%dim,ele_loc(X,ele)) :: X_ele_val,X_ele_val_2
+      integer :: stat, nod
+
+      X_ele_val = ele_val(X,ele)
+
+      call set_vector_field_from_python(python_function, len(python_function),&
+           & dim=3,nodes=ele_loc(X,ele),x=X_ele_val(1,:),y=X_ele_val(2,:)&
+           &,z=x_ele_val(3,:),t=0.0,result_dim=3,&
+           & result_x=X_ele_val_2(1,:),&
+           & result_y=X_ele_val_2(2,:),&
+           & result_z=X_ele_val_2(3,:),&
+           & stat=stat)
+    if(stat /= 0) then
+       FLAbort('Failed to set new coordinate values from Python.')
+    end if
+
+    call set(X,ele_nodes(X,ele),X_ele_val_2)
+
+    end subroutine recompute_coordinate_field_ele
 
     subroutine fix_layerdepth_mean(state)
       type(state_type), intent(inout) :: state

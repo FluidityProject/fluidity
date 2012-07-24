@@ -1663,8 +1663,7 @@
       real, dimension(X%dim,ele_loc(X,ele)) :: X_ele_val,X_ele_val_2
       
       X_ele_val = ele_val(X,ele)
-      ewrite(1,*) X_ele_val
-      ewrite(1,*) 'Rs', sqrt(sum(X_ele_val**2,1))
+
       call set_vector_field_from_python(python_function, len(python_function),&
            & dim=3,nodes=face_loc(X,ele),x=X_ele_val(1,:),y=X_ele_val(2,:)&
            &,z=x_ele_val(3,:),t=0.0,result_dim=3,&
