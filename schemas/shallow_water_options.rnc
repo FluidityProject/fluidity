@@ -726,6 +726,18 @@ input_choice_initial_condition_vector =
       element from_streamfunction {
          empty
       }|
+      ## Set velocity from galerkin projection
+      element galerkin_projection {
+         ## Vector field to be evaluated at quadrature points
+         ## Python function prescribing dimensional vector input. Functions should be of the form:
+         ##
+         ##  def val(X, t):
+         ##     # Function code
+         ##     return # Return value
+         element python {
+            python_code
+         }
+      }|
       ## Evaluate velocity by pulling back from sphere
       ## using transformation
       ## z -> z, (x,y) --> R(x,y) where R=(R_0^2-z^2)^0.5
