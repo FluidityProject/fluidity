@@ -3,7 +3,8 @@
   <name>Monai Valley</name>
   <owner userid="sf1409"/>
   <problem_definition length="special" nprocs="4">
-    <command_line>fluidity MonaiValley_C.flml</command_line>
+    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 4 -v -l MonaiValley_C_p1p1_nu0.01_kmkstab_drag0.002_butcircularoundisland0.2 MonaiValley_C_p1p1_nu0.01_kmkstab_drag0.002_butcircularoundisland0.2_flredecomp &amp;&amp;
+mpiexec ../../bin/fluidity -v2 -l MonaiValley_C_p1p1_nu0.01_kmkstab_drag0.002_butcircularoundisland0.2_flredecomp.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="gage_integral_error" language="python">import tools

@@ -7,7 +7,8 @@
   <owner userid="fpm08"/>
   <tags>flml </tags>
     <problem_definition length="long" nprocs="32">
-    <command_line>mpiexec fluidity -v2 -l restratification_after_oodc.flml </command_line>
+    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 32 -v -l restratification_after_oodc restratification_after_oodc_flredecomp &amp;&amp;
+mpiexec fluidity -v2 -l restratification_after_oodc_flredecomp.flml </command_line>
   </problem_definition>  
    <variables>
     <variable name="final_time" language="python">

@@ -6,7 +6,8 @@
   <tags>flml 3dadapt</tags>
   <!-- uses flml - uses 3d adaptivity -->
   <problem_definition length="long" nprocs="8">
-    <command_line>mpiexec fluidity -v2 -l backward_facing_step_3d.flml</command_line>
+    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 8 -v -l backward_facing_step_3d backward_facing_step_3d_flredecomp &amp;&amp;
+mpiexec fluidity -v2 -l backward_facing_step_3d_flredecomp.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="finishtime" language="python">from fluidity_tools import stat_parser as stat

@@ -5,8 +5,10 @@ preprocess:
 	cd mesh; ./makemesh.sh
 
 run:
+	@echo **********Calling flredecomp in parallel with verbose log output enabled:
+	mpiexec -n 4 ../../bin/flredecomp -i 1 -o 4 -v -l MonaiValley_C_p1p1_nu0.01_kmkstab_drag0.002_butcircularoundisland0.2 MonaiValley_C_p1p1_nu0.01_kmkstab_drag0.002_butcircularoundisland0.2_flredecomp
 	@echo **********Calling fluidity with verbose log output enabled:
-	mpirun -n 4 ../../bin/fluidity -v2 -l MonaiValley_C_p1p1_nu0.01_kmkstab_drag0.002_butcircularoundisland0.2.flml
+	mpirun -n 4 ../../bin/fluidity -v2 -l MonaiValley_C_p1p1_nu0.01_kmkstab_drag0.002_butcircularoundisland0.2_flredecomp.flml
 
 postprocess:
 	@echo **********Calling the data extraction and plotting python script:
@@ -20,4 +22,4 @@ clean:
 	cd mesh; rm -f  *.ele *.edge *.node *.poly *.vtu *.s *.d.1 *.stat *.msh *.detectors matrixdump* *.halo
 	@echo **********Cleaning the output from previous python runs:
 	rm -rf *.pyc
-
+	rm -rf *flredecomp*
