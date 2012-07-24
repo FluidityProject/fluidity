@@ -459,18 +459,20 @@ clean-test:
 	@cd tests/data; $(MAKE) clean
 
 clean-all-tests: clean-test     
-	@echo "    CLEAN special/long tests"
+	@echo "    CLEAN parallel tests"
+	@PYTHONPATH=python tools/testharness.py --parallelism=parallel --clean >/dev/null
 	@PYTHONPATH=python tools/testharness.py --length=special --clean >/dev/null
 	@PYTHONPATH=python tools/testharness.py --length=special --parallelism=parallel --clean >/dev/null
 	@PYTHONPATH=python tools/testharness.py --length=long --clean >/dev/null
 	@PYTHONPATH=python tools/testharness.py --length=long --parallelism=parallel --clean >/dev/null
-	@echo "    CLEAN all flredecomp tests"
-	@PYTHONPATH=python tools/testharness.py --flredecomp --clean >/dev/null
-	@PYTHONPATH=python tools/testharness.py --flredecomp --length=special --clean >/dev/null
-	@PYTHONPATH=python tools/testharness.py --flredecomp --length=special --parallelism=parallel --clean >/dev/null
-	@PYTHONPATH=python tools/testharness.py --flredecomp --length=long --clean >/dev/null
-	@PYTHONPATH=python tools/testharness.py --flredecomp --length=long --parallelism=parallel --clean >/dev/null
-	@cd tests_flredecomp/data; $(MAKE) clean
+	@echo "    CLEAN all fldecomp tests"
+	@PYTHONPATH=python tools/testharness.py --fldecomp --clean >/dev/null
+	@PYTHONPATH=python tools/testharness.py --fldecomp --parallelism=parallel --clean >/dev/null
+	@PYTHONPATH=python tools/testharness.py --fldecomp --length=special --clean >/dev/null
+	@PYTHONPATH=python tools/testharness.py --fldecomp --length=special --parallelism=parallel --clean >/dev/null
+	@PYTHONPATH=python tools/testharness.py --fldecomp --length=long --clean >/dev/null
+	@PYTHONPATH=python tools/testharness.py --fldecomp --length=long --parallelism=parallel --clean >/dev/null
+	@cd tests_fldecomp/data; $(MAKE) clean
 
 distclean: clean
 	@echo "    DISTCLEAN"
@@ -512,17 +514,19 @@ distclean: clean
 
 test: fltools bin/$(FLUIDITY) bin/shallow_water serialtest bin/burgers_equation
 
-test-flredecomp: fltools bin/$(FLUIDITY)
-	@cd tests_flredecomp; ../bin/testharness --flredecomp -l short -p serial $(EXCLUDE_TAGS) -n $(THREADS)
+test-fldecomp: fltools bin/$(FLUIDITY) bin/shallow_water serialtest-fldecomp bin/burgers_equation
 
 serialtest: fltools bin/$(FLUIDITY) bin/shallow_water
 	@cd tests; ../bin/testharness -l short -p serial $(EXCLUDE_TAGS) -n $(THREADS)
 
+serialtest-fldecomp: fltools bin/$(FLUIDITY) bin/shallow_water
+	@cd tests_fldecomp; ../bin/testharness --fldecomp -l short -p serial $(EXCLUDE_TAGS) -n $(THREADS)
+
 mediumtest: fltools bin/$(FLUIDITY) manual bin/burgers_equation bin/shallow_water spudtools
 	@cd tests; ../bin/testharness -l medium $(EXCLUDE_TAGS) -n $(THREADS)
 
-mediumtest-flredecomp: fltools bin/$(FLUIDITY) spudtools
-	@cd tests_flredecomp; ../bin/testharness --flredecomp -l medium $(EXCLUDE_TAGS) -n $(THREADS)
+mediumtest-fldecomp: fltools bin/$(FLUIDITY) manual bin/burgers_equation bin/shallow_water spudtools
+	@cd tests_fldecomp; ../bin/testharness --fldecomp -l medium $(EXCLUDE_TAGS) -n $(THREADS)
 
 .PHONY: spudtools
 

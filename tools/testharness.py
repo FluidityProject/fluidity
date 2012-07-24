@@ -19,7 +19,7 @@ except ImportError:
 
 class TestHarness:
     def __init__(self, length="any", parallel=False, exclude_tags=None, tags=None, file="", verbose=True, justtest=False,
-        valgrind=False, flredecomp=False):
+        valgrind=False, fldecomp=False):
         self.tests = []
         self.verbose = verbose
         self.length = length
@@ -31,7 +31,7 @@ class TestHarness:
         self.completed_tests = []
         self.justtest = justtest
         self.valgrind = valgrind
-        self.flredecomp = flredecomp
+        self.fldecomp = fldecomp
 
         fluidity_command = self.decide_fluidity_command()
 
@@ -50,8 +50,8 @@ class TestHarness:
         xml_files = []
         rootdir = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), os.pardir))
         dirnames = []
-        if self.flredecomp:
-          testpaths = ["examples_flredecomp", "tests_flredecomp", "longtests_flredecomp"]
+        if self.fldecomp:
+          testpaths = ["examples_fldecomp", "tests_fldecomp", "longtests_fldecomp"]
         else:
           testpaths = ["examples", "tests", "longtests"]
         for directory in testpaths:
@@ -338,7 +338,7 @@ if __name__ == "__main__":
     parser.add_option("-c", "--clean", action="store_true", dest="clean", default = False)
     parser.add_option("--just-test", action="store_true", dest="justtest")
     parser.add_option("--just-list", action="store_true", dest="justlist")
-    parser.add_option("--flredecomp", action="store_true", dest="flredecomp", help="use the flredecomp test directories (tests_flredecomp, etc.)")
+    parser.add_option("--fldecomp", action="store_true", dest="fldecomp", help="use the fldecomp test directories (tests_fldecomp, etc.)")
     (options, args) = parser.parse_args()
 
     if len(args) > 0: parser.error("Too many arguments.")
@@ -374,7 +374,7 @@ if __name__ == "__main__":
 
     testharness = TestHarness(length=options.length, parallel=para, exclude_tags=exclude_tags, tags=tags, file=options.file, verbose=True,
         justtest=options.justtest, valgrind=options.valgrind,
-        flredecomp=options.flredecomp)
+        fldecomp=options.fldecomp)
 
     if options.justlist:
       testharness.list()
