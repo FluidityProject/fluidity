@@ -5,57 +5,15 @@
  In populate_state
  Using the new makeeelist
  In read_halos_mesh
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Creating universal numbering for a trailing receives halo
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
- Checking nodes in halo CoordinateMeshLevel2Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Creating universal numbering for a trailing receives halo
- Checking nodes in halo CoordinateMeshLevel2Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
- Checking nodes in halo CoordinateMeshLevel2Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
- Checking nodes in halo CoordinateMeshLevel2Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  In derive_maximal_element_halo
- Checking nodes in halo CoordinateMeshLevel2Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
- Checking nodes in halo CoordinateMeshMaximalElementHalo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Creating universal numbering for a trailing receives halo
- Checking nodes in halo CoordinateMeshMaximalElementHalo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
- Checking nodes in halo CoordinateMeshMaximalElementHalo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
- Checking nodes in halo CoordinateMeshMaximalElementHalo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Exiting derive_maximal_element_halo
  Exiting read_halos_mesh
- Creating universal numbering for a trailing receives halo
- Checking nodes in halo CoordinateMeshMaximalElementHaloDG for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
- Checking nodes in halo CoordinateMeshMaximalElementHaloDG for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
- Checking nodes in halo CoordinateMeshMaximalElementHaloDG for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
- Creating universal numbering for a trailing receives halo
- Checking nodes in halo CoordinateMeshMaximalElementHaloDG for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
- Checking nodes in halo CoordinateMeshMaximalElementHaloDG for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
- Checking nodes in halo CoordinateMeshMaximalElementHaloDG for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Using the new makeeelist
  In merge_surface_ids
  In derive_maximal_surface_element_halo
- Checking nodes in halo CoordinateMeshMaximalElementHalo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Exiting derive_maximal_surface_element_halo
  Exiting merge_surface_ids
  In allocate_and_insert_scalar_field, field is: Density
@@ -259,9 +217,9 @@
  The end time (LTIME) is set to:                           45.000000000000000     
  This corresponds to this many time steps in simulation:   3.0000000000000000     
  -
- The maximum volume of element in the mesh is:   15000.000000000187     
+ The maximum volume of element in the mesh is:   15000.000000000186     
  The minimum volume of element in the mesh is:   14999.999999999809     
- The ratio of max to min volumes is:             1.0000000000000253     
+ The ratio of max to min volumes is:             1.0000000000000251     
  The following material phases and their contents are in existence
 State: Fluid
 Meshes: 
@@ -383,6 +341,24 @@ Tensor fields:
  +GLSEddyDiffusivityKH (GLSEddyDiffusivityKH)  on VelocityMesh
  +TemperatureDiffusivity (TemperatureDiffusivity)  on VelocityMesh
  +SalinityDiffusivity (SalinityDiffusivity)  on VelocityMesh
+ +OldViscosity (OldViscosity)  on VelocityMesh
+ +IteratedViscosity (IteratedViscosity)  on VelocityMesh
+ +OldGLSTurbulentKineticEnergyDiffusivity (OldGLSTurbulentKineticEnergyDiffusivity)  on VelocityMesh
+ +IteratedGLSTurbulentKineticEnergyDiffusivity (IteratedGLSTurbulentKineticEnergyDiffusivity)  on VelocityMesh
+ +OldGLSGenericSecondQuantityDiffusivity (OldGLSGenericSecondQuantityDiffusivity)  on VelocityMesh
+ +IteratedGLSGenericSecondQuantityDiffusivity (IteratedGLSGenericSecondQuantityDiffusivity)  on VelocityMesh
+ +OldGLSBackgroundViscosity (OldGLSBackgroundViscosity)  on VelocityMesh
+ +IteratedGLSBackgroundViscosity (IteratedGLSBackgroundViscosity)  on VelocityMesh
+ +OldGLSBackgroundDiffusivity (OldGLSBackgroundDiffusivity)  on VelocityMesh
+ +IteratedGLSBackgroundDiffusivity (IteratedGLSBackgroundDiffusivity)  on VelocityMesh
+ +OldGLSEddyViscosityKM (OldGLSEddyViscosityKM)  on VelocityMesh
+ +IteratedGLSEddyViscosityKM (IteratedGLSEddyViscosityKM)  on VelocityMesh
+ +OldGLSEddyDiffusivityKH (OldGLSEddyDiffusivityKH)  on VelocityMesh
+ +IteratedGLSEddyDiffusivityKH (IteratedGLSEddyDiffusivityKH)  on VelocityMesh
+ +OldTemperatureDiffusivity (OldTemperatureDiffusivity)  on VelocityMesh
+ +IteratedTemperatureDiffusivity (IteratedTemperatureDiffusivity)  on VelocityMesh
+ +OldSalinityDiffusivity (OldSalinityDiffusivity)  on VelocityMesh
+ +IteratedSalinityDiffusivity (IteratedSalinityDiffusivity)  on VelocityMesh
 CSR sparsities: 
  none
 CSR Matrices: 
@@ -405,7 +381,7 @@ Block CSR Matrices:
  GLS Parameters
  --------------------------------------------
  cm0:   0.52646469697902409     
- kappa:   0.36474544142360915     
+ kappa:   0.36474544142360921     
  p:    3.0000000000000000     
  m:    1.5000000000000000     
  n:   -1.0000000000000000     
@@ -441,8 +417,6 @@ Block CSR Matrices:
  In assemble_advection_diffusion_cg
  Exiting assemble_advection_diffusion_cg
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -458,8 +432,6 @@ Block CSR Matrices:
  In assemble_advection_diffusion_cg
  Exiting assemble_advection_diffusion_cg
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -482,6 +454,7 @@ Block CSR Matrices:
  In gls_tke
  Calculating GLS stability functions
  Calculating BCs
+ In compute_cv_mass
  In assemble_advectiondiffusion_m_cv
  In find_upwind_values
  In calculate_all_upwind_project
@@ -491,8 +464,6 @@ Block CSR Matrices:
  In assemble_field_eqn_cv
  Exiting assemble_field_eqn_cv
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -510,8 +481,6 @@ Block CSR Matrices:
  In assemble_field_eqn_cv
  Exiting assemble_field_eqn_cv
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -529,8 +498,6 @@ Block CSR Matrices:
  In assemble_field_eqn_cv
  Exiting assemble_field_eqn_cv
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -551,8 +518,6 @@ Block CSR Matrices:
  In assemble_field_eqn_cv
  Exiting assemble_field_eqn_cv
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -570,8 +535,6 @@ Block CSR Matrices:
  In assemble_field_eqn_cv
  Exiting assemble_field_eqn_cv
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -589,8 +552,6 @@ Block CSR Matrices:
  In assemble_field_eqn_cv
  Exiting assemble_field_eqn_cv
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -612,10 +573,6 @@ Block CSR Matrices:
  In calculate_perturbation_density
  Exiting calculate_momentum_diagnostics
  Entering get_velocity_options
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Entering construct_momentum_cg
  Initialising Coriolis
  Inside wind_forcing
@@ -638,8 +595,6 @@ Block CSR Matrices:
  In assemble_advection_diffusion_cg
  Exiting assemble_advection_diffusion_cg
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -655,8 +610,6 @@ Block CSR Matrices:
  In assemble_advection_diffusion_cg
  Exiting assemble_advection_diffusion_cg
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -688,8 +641,6 @@ Block CSR Matrices:
  In assemble_field_eqn_cv
  Exiting assemble_field_eqn_cv
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -707,8 +658,6 @@ Block CSR Matrices:
  In assemble_field_eqn_cv
  Exiting assemble_field_eqn_cv
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -726,8 +675,6 @@ Block CSR Matrices:
  In assemble_field_eqn_cv
  Exiting assemble_field_eqn_cv
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -748,8 +695,6 @@ Block CSR Matrices:
  In assemble_field_eqn_cv
  Exiting assemble_field_eqn_cv
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -767,8 +712,6 @@ Block CSR Matrices:
  In assemble_field_eqn_cv
  Exiting assemble_field_eqn_cv
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -786,8 +729,6 @@ Block CSR Matrices:
  In assemble_field_eqn_cv
  Exiting assemble_field_eqn_cv
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -809,10 +750,6 @@ Block CSR Matrices:
  In calculate_perturbation_density
  Exiting calculate_momentum_diagnostics
  Entering get_velocity_options
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Entering construct_momentum_cg
  Inside wind_forcing
  Entering advance_velocity
@@ -854,8 +791,6 @@ Block CSR Matrices:
  In assemble_advection_diffusion_cg
  Exiting assemble_advection_diffusion_cg
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -871,8 +806,6 @@ Block CSR Matrices:
  In assemble_advection_diffusion_cg
  Exiting assemble_advection_diffusion_cg
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -904,8 +837,6 @@ Block CSR Matrices:
  In assemble_field_eqn_cv
  Exiting assemble_field_eqn_cv
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -923,8 +854,6 @@ Block CSR Matrices:
  In assemble_field_eqn_cv
  Exiting assemble_field_eqn_cv
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -942,8 +871,6 @@ Block CSR Matrices:
  In assemble_field_eqn_cv
  Exiting assemble_field_eqn_cv
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -964,8 +891,6 @@ Block CSR Matrices:
  In assemble_field_eqn_cv
  Exiting assemble_field_eqn_cv
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -983,8 +908,6 @@ Block CSR Matrices:
  In assemble_field_eqn_cv
  Exiting assemble_field_eqn_cv
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -1002,8 +925,6 @@ Block CSR Matrices:
  In assemble_field_eqn_cv
  Exiting assemble_field_eqn_cv
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -1025,10 +946,6 @@ Block CSR Matrices:
  In calculate_perturbation_density
  Exiting calculate_momentum_diagnostics
  Entering get_velocity_options
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Entering construct_momentum_cg
  Inside wind_forcing
  Entering advance_velocity
@@ -1050,8 +967,6 @@ Block CSR Matrices:
  In assemble_advection_diffusion_cg
  Exiting assemble_advection_diffusion_cg
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -1067,8 +982,6 @@ Block CSR Matrices:
  In assemble_advection_diffusion_cg
  Exiting assemble_advection_diffusion_cg
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -1100,8 +1013,6 @@ Block CSR Matrices:
  In assemble_field_eqn_cv
  Exiting assemble_field_eqn_cv
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -1119,8 +1030,6 @@ Block CSR Matrices:
  In assemble_field_eqn_cv
  Exiting assemble_field_eqn_cv
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -1138,8 +1047,6 @@ Block CSR Matrices:
  In assemble_field_eqn_cv
  Exiting assemble_field_eqn_cv
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -1160,8 +1067,6 @@ Block CSR Matrices:
  In assemble_field_eqn_cv
  Exiting assemble_field_eqn_cv
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -1179,8 +1084,6 @@ Block CSR Matrices:
  In assemble_field_eqn_cv
  Exiting assemble_field_eqn_cv
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -1198,8 +1101,6 @@ Block CSR Matrices:
  In assemble_field_eqn_cv
  Exiting assemble_field_eqn_cv
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -1221,10 +1122,6 @@ Block CSR Matrices:
  In calculate_perturbation_density
  Exiting calculate_momentum_diagnostics
  Entering get_velocity_options
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Entering construct_momentum_cg
  Inside wind_forcing
  Entering advance_velocity
@@ -1266,8 +1163,6 @@ Block CSR Matrices:
  In assemble_advection_diffusion_cg
  Exiting assemble_advection_diffusion_cg
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -1283,8 +1178,6 @@ Block CSR Matrices:
  In assemble_advection_diffusion_cg
  Exiting assemble_advection_diffusion_cg
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -1316,8 +1209,6 @@ Block CSR Matrices:
  In assemble_field_eqn_cv
  Exiting assemble_field_eqn_cv
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -1335,8 +1226,6 @@ Block CSR Matrices:
  In assemble_field_eqn_cv
  Exiting assemble_field_eqn_cv
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -1354,8 +1243,6 @@ Block CSR Matrices:
  In assemble_field_eqn_cv
  Exiting assemble_field_eqn_cv
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -1376,8 +1263,6 @@ Block CSR Matrices:
  In assemble_field_eqn_cv
  Exiting assemble_field_eqn_cv
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -1395,8 +1280,6 @@ Block CSR Matrices:
  In assemble_field_eqn_cv
  Exiting assemble_field_eqn_cv
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -1414,8 +1297,6 @@ Block CSR Matrices:
  In assemble_field_eqn_cv
  Exiting assemble_field_eqn_cv
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -1437,10 +1318,6 @@ Block CSR Matrices:
  In calculate_perturbation_density
  Exiting calculate_momentum_diagnostics
  Entering get_velocity_options
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Entering construct_momentum_cg
  Inside wind_forcing
  Entering advance_velocity
@@ -1462,8 +1339,6 @@ Block CSR Matrices:
  In assemble_advection_diffusion_cg
  Exiting assemble_advection_diffusion_cg
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -1479,8 +1354,6 @@ Block CSR Matrices:
  In assemble_advection_diffusion_cg
  Exiting assemble_advection_diffusion_cg
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -1512,8 +1385,6 @@ Block CSR Matrices:
  In assemble_field_eqn_cv
  Exiting assemble_field_eqn_cv
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -1531,8 +1402,6 @@ Block CSR Matrices:
  In assemble_field_eqn_cv
  Exiting assemble_field_eqn_cv
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -1550,8 +1419,6 @@ Block CSR Matrices:
  In assemble_field_eqn_cv
  Exiting assemble_field_eqn_cv
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -1572,8 +1439,6 @@ Block CSR Matrices:
  In assemble_field_eqn_cv
  Exiting assemble_field_eqn_cv
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -1591,8 +1456,6 @@ Block CSR Matrices:
  In assemble_field_eqn_cv
  Exiting assemble_field_eqn_cv
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -1610,8 +1473,6 @@ Block CSR Matrices:
  In assemble_field_eqn_cv
  Exiting assemble_field_eqn_cv
  Assembling matrix.
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Matrix assembly completed.
  Inside setup_ksp_from_options
  Assembling RHS.
@@ -1633,10 +1494,6 @@ Block CSR Matrices:
  In calculate_perturbation_density
  Exiting calculate_momentum_diagnostics
  Entering get_velocity_options
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
- Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
- Halo nodes are consistent with trailing receive ordering
  Entering construct_momentum_cg
  Inside wind_forcing
  Entering advance_velocity
@@ -1668,8 +1525,10 @@ Block CSR Matrices:
  Finished gls_cleanup
  Printing references before final deallocation
  Printing out all currently allocated references:
+ scalar_field VelocityMeshCVMass has reference count 1
+ and id 150
  mesh_type VelocityMeshDGSurfaceMesh has reference count 1
- and id 22
+ and id 20
  csr_sparsity VelocityMeshVelocityMeshSparsity has reference count 1
  and id 5
  scalar_field VelocityMeshLumpedMass has reference count 1
@@ -1677,15 +1536,15 @@ Block CSR Matrices:
  scalar_field Time has reference count 1
  and id 94
  vector_field GridVelocity has reference count 1
- and id 24
+ and id 23
  scalar_field VelocityBuoyancyDensity has reference count 1
  and id 93
  vector_field NonlinearVelocity has reference count 1
- and id 23
- vector_field IteratedVelocity has reference count 1
  and id 22
- vector_field OldVelocity has reference count 1
+ vector_field IteratedVelocity has reference count 1
  and id 21
+ vector_field OldVelocity has reference count 1
+ and id 20
  scalar_field IteratedGLSVerticalDiffusivity has reference count 1
  and id 92
  scalar_field OldGLSVerticalDiffusivity has reference count 1
@@ -1787,44 +1646,44 @@ Block CSR Matrices:
  scalar_field value has reference count 1
  and id 39
  mesh_type psi_bottom_boundaryMesh has reference count 2
- and id 13
+ and id 11
  mesh_type tke_bottom_boundaryMesh has reference count 2
- and id 12
+ and id 10
  scalar_field value has reference count 1
  and id 38
  scalar_field value has reference count 1
  and id 37
  mesh_type psi_top_boundaryMesh has reference count 2
- and id 11
- mesh_type tke_top_boundaryMesh has reference count 2
- and id 10
- vector_field WindSurfaceField has reference count 1
- and id 15
- mesh_type BulkForcingVelocityMesh has reference count 2
  and id 9
- vector_field value has reference count 1
- and id 13
- mesh_type topbottomMesh has reference count 2
+ mesh_type tke_top_boundaryMesh has reference count 2
  and id 8
- vector_field value has reference count 1
- and id 11
- mesh_type lateralMesh has reference count 2
+ vector_field WindSurfaceField has reference count 1
+ and id 14
+ mesh_type BulkForcingVelocityMesh has reference count 2
  and id 7
+ vector_field value has reference count 1
+ and id 12
+ mesh_type topbottomMesh has reference count 2
+ and id 6
+ vector_field value has reference count 1
+ and id 10
+ mesh_type lateralMesh has reference count 2
+ and id 5
  scalar_field value has reference count 1
  and id 36
  mesh_type BulkForcingSalinityMesh has reference count 2
- and id 6
+ and id 4
  scalar_field value has reference count 1
  and id 35
  mesh_type BulkForcingTemperatureMesh has reference count 2
- and id 5
- tensor_field GLSEddyDiffusivityKH has reference count 3
+ and id 3
+ tensor_field GLSEddyDiffusivityKH has reference count 9
  and id 7
- tensor_field GLSEddyViscosityKM has reference count 1
+ tensor_field GLSEddyViscosityKM has reference count 3
  and id 6
- tensor_field GLSBackgroundDiffusivity has reference count 1
+ tensor_field GLSBackgroundDiffusivity has reference count 3
  and id 5
- tensor_field GLSBackgroundViscosity has reference count 1
+ tensor_field GLSBackgroundViscosity has reference count 3
  and id 4
  scalar_field GLSVerticalDiffusivity has reference count 1
  and id 28
@@ -1856,7 +1715,7 @@ Block CSR Matrices:
  and id 15
  scalar_field GLSLengthScale has reference count 1
  and id 14
- tensor_field GLSGenericSecondQuantityDiffusivity has reference count 1
+ tensor_field GLSGenericSecondQuantityDiffusivity has reference count 3
  and id 3
  scalar_field GLSGenericSecondQuantityAbsorption has reference count 2
  and id 13
@@ -1864,7 +1723,7 @@ Block CSR Matrices:
  and id 12
  scalar_field GLSGenericSecondQuantity has reference count 1
  and id 11
- tensor_field GLSTurbulentKineticEnergyDiffusivity has reference count 1
+ tensor_field GLSTurbulentKineticEnergyDiffusivity has reference count 3
  and id 2
  scalar_field GLSTurbulentKineticEnergyAbsorption has reference count 2
  and id 10
@@ -1873,13 +1732,13 @@ Block CSR Matrices:
  scalar_field GLSTurbulentKineticEnergy has reference count 1
  and id 8
  vector_field GravityDirection has reference count 3
- and id 5
- tensor_field Viscosity has reference count 1
+ and id 4
+ tensor_field Viscosity has reference count 3
  and id 1
  vector_field VelocityAbsorption has reference count 3
- and id 4
- vector_field Velocity has reference count 1
  and id 3
+ vector_field Velocity has reference count 1
+ and id 2
  scalar_field DistanceToBottom has reference count 3
  and id 7
  scalar_field DistanceToTop has reference count 3
@@ -1918,7 +1777,7 @@ Block CSR Matrices:
  and id 1
  vector_field Coordinate has reference count 4
  and id 1
- mesh_type CoordinateMesh has reference count 97
+ mesh_type CoordinateMesh has reference count 98
  and id 1
  element_type  has reference count 1
  and id 1
@@ -1927,5 +1786,4 @@ Block CSR Matrices:
  Printing references after final deallocation
  Printing out all currently allocated references:
  There are no references left.
- No registered memory in use.
  Exited fluids

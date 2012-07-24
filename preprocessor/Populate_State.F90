@@ -2807,6 +2807,27 @@ contains
 
           end if
 
+          if( ((prognostic.or.diagnostic) .and. &
+                l_force_prescribed_diagnositc_allocate_old_iterated) .or. &
+              (prescribed .and. l_force_prescribed_diagnositc_allocate_old_iterated) ) then
+
+            call allocate(aux_tfield, tfield%mesh, "Iterated"//trim(tfield%name))
+            call zero(aux_tfield)
+            call insert(states(p), aux_tfield, trim(aux_tfield%name))
+            call deallocate(aux_tfield)
+
+          else
+
+            aux_tfield = extract_tensor_field(states(p), trim(tfield%name))
+            aux_tfield%name = "Iterated"//trim(tfield%name)
+            aux_tfield%option_path=""  ! blank the option path so that it 
+                                       ! doesn't get picked up in the next 
+                                       ! aliased field loop
+            aux_tfield%aliased=.true.
+            call insert(states(p), aux_tfield, trim(aux_tfield%name))
+
+          end if
+
         end if
 
       end do 
