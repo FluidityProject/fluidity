@@ -28,6 +28,7 @@
   
   module bubble_tools
     use fields
+    use field_options
     use fields_allocates
     use vector_tools
     use sparse_matrices_fields
@@ -238,6 +239,7 @@
       type(scalar_field), dimension(size(sfields)) :: QuadSF
       type(vector_field), pointer :: X
       integer :: stat, i
+      type(mesh_type), pointer :: vertex_mesh
 
       ewrite(1,*) 'subroutine bubble_field_to_vtk(state,sfield,filename,dump_num)'
       do i = 1, size(sfields)
@@ -246,11 +248,12 @@
          end if
       end do
       X => extract_vector_field(state,"Coordinate")
+      call find_linear_parent_mesh(state, X%mesh, vertex_mesh)
 
       !Construct a quadrilateral mesh from the triangular one.
       lQuadMesh => extract_mesh(state,"QuadMesh",stat)
       if(stat/=0) then
-         call quadmesh_from_trimesh(QuadMesh,X%mesh,state)
+         call quadmesh_from_trimesh(QuadMesh,vertex_mesh,state)
          lQuadMesh => QuadMesh
       end if
       !Construct a coordinate field on the quadrilateral mesh
@@ -387,34 +390,52 @@
           real, dimension(X%dim,ele_loc(X,1)) :: X_vals
           real, dimension(X%dim,ele_loc(QuadX,1)) :: QX_vals
           integer :: qele,dim1,ele
+          
+          real, dimension(X%dim,3) :: X_lin
 
           do ele = 1, ele_count(X)
              X_vals = ele_val(X,ele)
 
+             !!Need to evaluate X at bubble node locations
+             select case(ele_loc(X,1))
+                case(3)
+                   X_lin = X_vals
+                case(6)
+                   X_lin(:,1) = X_vals(:,1)
+                   X_lin(:,2) = X_vals(:,3)
+                   X_lin(:,3) = X_vals(:,6)
+                case(10)
+                   X_lin(:,1) = X_vals(:,1)
+                   X_lin(:,2) = X_vals(:,4)
+                   X_lin(:,3) = X_vals(:,10)
+                case default
+                   FLExit('Dont know how to handle coordinate mesh')
+             end select
+
              !! Quadrilateral #1
              do dim1 = 1, X%dim
                 QX_vals(dim1,:) = &
-                     &(/X_vals(dim1,1),0.5*(X_vals(dim1,1)+X_vals(dim1,2)),&
-                     &0.5*(X_vals(dim1,1)+X_vals(dim1,3)),&
-                     &sum(X_vals(dim1,:))/3/)
+                     &(/X_lin(dim1,1),0.5*(X_lin(dim1,1)+X_lin(dim1,2)),&
+                     &0.5*(X_lin(dim1,1)+X_lin(dim1,3)),&
+                     &sum(X_lin(dim1,:))/3/)
              end do
              qele = (ele-1)*3+1
              call set(QuadX,ele_nodes(QuadX,qele),QX_vals)
              !! Quadrilateral #2
              do dim1 = 1, X%dim
                 QX_vals(dim1,:) = &
-                     &(/X_vals(dim1,2),0.5*(X_vals(dim1,2)+X_vals(dim1,3)),&
-                     &0.5*(X_vals(dim1,1)+X_vals(dim1,2)),&
-                     &sum(X_vals(dim1,:))/3/)
+                     &(/X_lin(dim1,2),0.5*(X_lin(dim1,2)+X_lin(dim1,3)),&
+                     &0.5*(X_lin(dim1,1)+X_lin(dim1,2)),&
+                     &sum(X_lin(dim1,:))/3/)
              end do
              qele = (ele-1)*3+2
              call set(QuadX,ele_nodes(QuadX,qele),QX_vals)                
              !! Quadrilateral #3
              do dim1 = 1, X%dim
                 QX_vals(dim1,:) = &
-                     &(/X_vals(dim1,3),0.5*(X_vals(dim1,3)+X_vals(dim1,1)),&
-                     &0.5*(X_vals(dim1,2)+X_vals(dim1,3)),&
-                     &sum(X_vals(dim1,:))/3/)
+                     &(/X_lin(dim1,3),0.5*(X_lin(dim1,3)+X_lin(dim1,1)),&
+                     &0.5*(X_lin(dim1,2)+X_lin(dim1,3)),&
+                     &sum(X_lin(dim1,:))/3/)
              end do
              qele = (ele-1)*3+3
              call set(QuadX,ele_nodes(QuadX,qele),QX_vals)                
