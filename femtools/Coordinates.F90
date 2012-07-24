@@ -1425,7 +1425,6 @@ contains
     type(vector_field), intent(inout):: vfield
     type(state_type), intent(inout):: state
     
-    !type(vector_field), pointer:: u
     type(vector_field):: result
     type(petsc_csr_matrix), pointer:: rotation_sphere
     integer :: stat
@@ -1433,7 +1432,6 @@ contains
     rotation_sphere => extract_petsc_csr_matrix(state, "RotationMatrixSphere", stat=stat)
     if (stat/=0) then
       allocate(rotation_sphere)
-      !u => extract_vector_field(state, "Velocity")
       call create_rotation_matrix_sphere(rotation_sphere, vfield, state)
       call insert(state, rotation_sphere, "RotationMatrixSphere")
     end if
@@ -1461,7 +1459,6 @@ contains
     rotation_sphere => extract_petsc_csr_matrix(state, "RotationMatrixSphere", stat=stat)
     if (stat/=0) then
       allocate(rotation_sphere)
-      !u => extract_vector_field(state, "Velocity")
       call create_rotation_matrix_sphere(rotation_sphere, vfield, state)
       call insert(state, rotation_sphere, "RotationMatrixSphere")
     end if
