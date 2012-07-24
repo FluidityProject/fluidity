@@ -2,7 +2,7 @@ default: input
 
 input: clean
 	../../bin/gmsh2triangle --2d src/square.msh
-	../../bin/fldecomp -n 2 -v square
+	mpiexec -n 2 ../../bin/flredecomp -i 1 -o 2 -v -l detectors detectors_flredecomp
 
 clean: clean-mesh clean-run
 clean-mesh:
@@ -12,3 +12,4 @@ clean-run:
 	rm -f matrixdump matrixdump.info
 	rm -f fluidity.err-* fluidity.log-*
 	rm -rf detectors_?
+	rm -rf *flredecomp*

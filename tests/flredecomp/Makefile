@@ -8,4 +8,5 @@ clean-mesh:
 	rm -f cube.ele cube.face cube.node
 clean-run:
 	rm -f cube_?*.ele cube_?*.face cube_?*.halo cube_?*.node
-	rm -f fldecomp.log
+	rm -f *.log* *.err* test_flredecomp.flml
+	rm -f test_flredecomp_CoordinateMesh_*

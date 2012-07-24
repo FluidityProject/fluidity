@@ -4,16 +4,19 @@
   <owner userid="skramer"/>
   <tags> parallel </tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>( mpiexec -n 3 fluidity -v2 -l standing_wave_failing_velocity.flml 2&gt;&amp;1 ) &gt; /dev/null;
+    <command_line>mpiexec -n 3 ../../bin/flredecomp -i 1 -o 3 -v -l standing_wave_failing_velocity standing_wave_failing_velocity_flredecomp;
+( mpiexec -n 3 fluidity -v2 -l standing_wave_failing_velocity_flredecomp.flml 2&gt;&amp;1 ) &gt; /dev/null;
 mv matrixdump velocity_matrixdump;
 mkdir -p velocity_logs;
 mv fluidity.log* fluidity.err* velocity_logs/;
-( mpiexec -n 3 fluidity -v2 -l standing_wave_failing_pressure.flml 2&gt;&amp;1 ) &gt; /dev/null;
+mpiexec -n 3 ../../bin/flredecomp -i 1 -o 3 -v -l standing_wave_failing_pressure standing_wave_failing_pressure_flredecomp;
+( mpiexec -n 3 fluidity -v2 -l standing_wave_failing_pressure_flredecomp.flml 2&gt;&amp;1 ) &gt; /dev/null;
 mv matrixdump pressure_matrixdump;
 rm matrixdump.info;
-mpiexec -n 3 petsc_readnsolve -v -l -prns_filename velocity_matrixdump  standing_wave.flml Velocity;
+mpiexec -n 3 ../../bin/flredecomp -i 1 -o 3 -v -l standing_wave standing_wave_flredecomp;
+mpiexec -n 3 petsc_readnsolve -v -l -prns_filename velocity_matrixdump  standing_wave_flredecomp.flml Velocity;
 mv petsc_readnsolve.err* petsc_readnsolve.log* velocity_logs/;
-mpiexec -n 3 petsc_readnsolve -v -l -prns_filename pressure_matrixdump  standing_wave.flml Pressure;
+mpiexec -n 3 petsc_readnsolve -v -l -prns_filename pressure_matrixdump  standing_wave_flredecomp.flml Pressure;
 rm -rf fluidity.err-*<comment>Note we use ; and no &amp;&amp; as most of these commands will actually fail (on purpose). Also removing fluidity.err-* from "failing solve runs" to prevent noise in testharness output. For same reason redirecting mpiexec output of failing fluidity runs to the bin.</comment></command_line>
     <comment>This is a lie: we're actually using nprocs=3.</comment>
   </problem_definition>

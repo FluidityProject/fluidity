@@ -8,4 +8,5 @@ clean-mesh:
 	rm -f line.bound line.ele line.node
 clean-run:
 	rm -f line_?*.bound line_?*.ele line_?*.halo line_?*.node
-	rm -f *.log *.err *.log-* *.err-*
+	rm -f *.log* *.err* test_flredecomp.flml
+	rm -f test_flredecomp_CoordinateMesh_*

@@ -1,16 +1,16 @@
 <?xml version = "1.0" encoding = "UTF-8" ?>
 <testproblem>
-  <name>fldecomp</name>
+  <name>flredecomp</name>
   <owner userid="ggorman"/>
   <problem_definition length = "short" nprocs = "1">
-    <command_line>rm -f fldecomp.log; make clean-run; fldecomp -n 4 -k -v line > fldecomp.log</command_line>
+    <command_line>make clean-run; mpiexec -n 4 ../../bin/flredecomp -i 1 -o 4 -v -l test test_flredecomp</command_line>
   </problem_definition>
   <variables>
     <variable name = "partitions" language = "python">
 import fluidity.diagnostics.triangletools as triangletools
 partitions = []
 for i in range(4):
-  partitions.append(triangletools.ReadTriangle("line_" + str(i)))
+  partitions.append(triangletools.ReadTriangle("test_flredecomp_CoordinateMesh_" + str(i)))
     </variable>
   </variables>
   <pass_tests>
