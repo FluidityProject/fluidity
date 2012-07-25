@@ -269,28 +269,28 @@ The model is based on the unsteady Reynolds-averaged Navier-Stokes (RANS) equati
 
 \begin{equation}\label{RANS}
 \rho\frac{\partial \mathbf{u}}{\partial t} + \rho\mathbf{u}\cdot\nabla\mathbf{u} =
--\nabla p + \rho\mathbf{g} + \nabla\cdot\left(\mu(\nabla\mathbf{u} + (\nabla\mathbf{u})^{\mathrm{T}})\right) - \nabla\left(\rho\mathbf{u}'\cdot\mathbf{u}'\right),
+-\nabla p + \rho\mathbf{g} + \nabla\cdot\left(\nu(\nabla\mathbf{u} + (\nabla\mathbf{u})^{\mathrm{T}})\right) - \nabla\left(\rho\mathbf{u}'\cdot\mathbf{u}'\right),
 \end{equation}
 where $\mathbf{u}$ is the steady velocity, $\mathbf{u}'$ is the fluctuating velocity, and $p$ is the steady pressure.
 The third term on the right, containing the Reynolds stress tensor $\rho\mathbf{u}'\cdot\mathbf{u}'$, represents the effect of turbulent fluctuations on the steady flow and is modelled as:
 
 \begin{equation}\label{retens}
- \rho\mathbf{u}'\cdot\mathbf{u}' = - \frac{2}{3} k + \mu_T \left(\nabla\mathbf{u} + (\nabla\mathbf{u})^{\mathrm{T}}\right),
+ \rho\mathbf{u}'\cdot\mathbf{u}' = - \frac{2}{3} k + \nu_T \left(\nabla\mathbf{u} + (\nabla\mathbf{u})^{\mathrm{T}}\right),
 \end{equation}
-where $k=(\mathbf{u}'\cdot\mathbf{u}')/2$ is the turbulent kinetic energy and $\mu_T(\mathbf{x},t)$ is the eddy viscosity.
+where $k=(\mathbf{u}'\cdot\mathbf{u}')/2$ is the turbulent kinetic energy and $\nu_T(\mathbf{x},t)$ is the eddy viscosity.
 The equations are closed by solving transport equations for $k$ and the turbulent energy dissipation $\epsilon$:
 
 \begin{equation}\label{k}
-\rho\frac{\partial k}{\partial t} + \rho\mathbf{u}\cdot\nabla k = \Pi - \epsilon + \nabla\cdot\left(\frac{\mu_T}{\sigma_k} \nabla k \right) + \frac{\mu_T}{\sigma_T} \beta \mathbf{g}\cdot\nabla c,
+\rho\frac{\partial k}{\partial t} + \rho\mathbf{u}\cdot\nabla k = \Pi - \epsilon + \nabla\cdot\left(\frac{\nu_T}{\sigma_k} \nabla k \right) + \frac{\nu_T}{\sigma_T} \beta \mathbf{g}\cdot\nabla c,
 \end{equation}
 
 \begin{equation}\label{eps}
-\rho\frac{\partial \epsilon}{\partial t} + \rho\mathbf{u}\cdot\nabla \epsilon = C_{\epsilon1} \frac{\epsilon}{k} \Pi - C_{\epsilon2} \frac{\epsilon^2}{k} + \nabla\cdot\left(\frac{\mu_T}{\sigma_\epsilon} \nabla{\epsilon} \right) + C_{\epsilon1}C_{\epsilon3} \frac{\epsilon}{k} \beta \frac{\mu_T}{\sigma_T} \mathbf{g}\cdot\nabla c,
+\rho\frac{\partial \epsilon}{\partial t} + \rho\mathbf{u}\cdot\nabla \epsilon = C_{\epsilon1} \frac{\epsilon}{k} \Pi - C_{\epsilon2} \frac{\epsilon^2}{k} + \nabla\cdot\left(\frac{\nu_T}{\sigma_\epsilon} \nabla{\epsilon} \right) + C_{\epsilon1}C_{\epsilon3} \frac{\epsilon}{k} \beta \frac{\nu_T}{\sigma_T} \mathbf{g}\cdot\nabla c,
 \end{equation}
-where $\mu_T$ is the tensor eddy viscosity, $\Pi$ is the turbulent kinetic energy production, $\beta$ is a coefficient that transforms a scalar field gradient, $\nabla c$, into a density gradient, $\mathbf{g}$ is the gravitational vector and $\sigma_T$ is the Prandtl or Schmidt number for the associated scalar field. The first terms in both equations are production (source), the second terms are absorption, the third is diffusion, and the last is a buoyancy term. A buoyancy term is added for each buoyant scalar field in the model. $\mu_T$ and $\Pi$ are approximated by the eddy viscosity hypothesis as:
+where $\nu_T$ is the tensor eddy viscosity, $\Pi$ is the turbulent kinetic energy production, $\beta$ is a coefficient that transforms a scalar field gradient, $\nabla c$, into a density gradient, $\mathbf{g}$ is the gravitational vector and $\sigma_T$ is the Prandtl or Schmidt number for the associated scalar field. The first terms in both equations are production (source), the second terms are absorption, the third is diffusion, and the last is a buoyancy term. A buoyancy term is added for each buoyant scalar field in the model. $\nu_T$ and $\Pi$ are approximated by the eddy viscosity hypothesis as:
 
 \begin{equation}\label{nut}
- \mu_T = \rho C_\mu \frac{k^2}{\epsilon},
+ \nu_T = \rho C_\mu \frac{k^2}{\epsilon},
 \end{equation}
 
 \begin{equation}\label{Pi2}
