@@ -223,7 +223,7 @@ Note that, provided the fields (\eg density and pressure) vary smoothly, that is
 
 Closure of the conservation equations requires an additional equation describing how the stress tensor is related to density, temperature and any other state variables of relevance. In general, this relationship is dependent of the physical and chemical properties of the material in the domain; hence, this relationship is known as the material model (note that in multi-material simulations a different material model can and must be specified for each material).
 
-It is convenient to separate the full stress tensor $\sigtens$ into an isotropic (hydrostatic) part, the pressure $p$, and a deviatoric part $\tautens$.  With the convention that compressive stress is negative, the stress tensor is given by $\sigtens =-p \bmI + \tautens$, where $\bmI$ is the identity matrix. If the stress tensor is separated in this way, the material model comprises two parts: an equation of state\footnote{Equation of state settings in \fluidity\ are described in section~\ref{sec:ConfigEOS}} $f(p,\rho,T,\ldots)=0$ relating density to pressure, temperature, etc., and a constitutive relationship\footnote{constitutive relationship settings in \fluidity\ are described in section (to be written)} $g(\tautens,\bmu)=0$.
+It is convenient to separate the full stress tensor $\sigtens$ into an isotropic part, the pressure $p$, and a deviatoric part $\tautens$.  With the convention that compressive stress is negative, the stress tensor is given by $\sigtens =-p \bmI + \tautens$, where $\bmI$ is the identity matrix. If the stress tensor is separated in this way, the material model comprises two parts: an equation of state\footnote{Equation of state settings in \fluidity\ are described in section~\ref{sec:ConfigEOS}} $f(p,\rho,T,\ldots)=0$ relating density to pressure, temperature, etc., and a constitutive relationship\footnote{constitutive relationship settings in \fluidity\ are described in section (to be written)} $g(\tautens,\bmu)=0$.
 
 \subsubsection{Newtonian fluids}
 \index{stress}
@@ -356,9 +356,10 @@ The free-stress condition is the case where we take $\bmT\equiv\vec{0}$.
 \index{momentum equation}
 In this case the normal component of velocity can be prescribed (\eg inflow or
 no-flow ($g=0$) through the boundary)
-\begin{equation*}
+\begin{equation}
 \bmu\cdot\bmn = g,\quad \textrm{on}\quad \partial\Omega.
-\end{equation*}
+\label{normal_flow_condition}
+\end{equation}
 The remaining two degrees of freedom are imposed by taking the
 tangential component of \eqref{StressBC} and specifying the tangential component
 of the force $\bmT_{\tau}$, \ie
@@ -373,20 +374,39 @@ where the tangential components of stress are set to zero.
 
 \subsubsection{Free surface boundary condition}\label{sec:FS}
 \index{free surface}
-The free surface height $\eta\equiv\eta(x,y,t)$ measured from the initial state of the ocean
-may be modelled either via the integrated continuity equation,
-or for simplicity here by the kinematic boundary condition which simply states
-that particles on the free surface remain on it, \ie
-\begin{equation}\label{freesurf2}
-\frac{\partial \eta}{\partial t}=-\left.{\bmu}_H\right|_{z=\eta}\cdot\nabla_H \eta +\left.w\right|_{z=\eta} \quad \textrm{on}\quad \Omega_{FS},
-\end{equation}
-where $\Omega_{FS}\subset \partial \Omega$ is the free surface boundary, $\nabla_H\equiv(\partial/\partial x,\partial/\partial y)^T$, and
-$\bmu_H$ is the horizontal component of $\bmu$. Using the fact that the normal vector $\vec n$ at the free surface is $\frac{(-\frac{\partial \eta}{\partial x},-\frac{\partial \eta}{\partial y}, 1)^T}{||(-\frac{\partial \eta}{\partial x},-\frac{\partial \eta}{\partial y}, 1)^T||}$, equation \eqref{freesurf2} can be reformulated to
+\index{kinematic boundary condition}
+In the case of a free surface, the normal component of the velocity is related
+to the movement of the free surface through the \emph{kinematic boundary
+condition}. The free surface height $\eta\equiv\eta(x,y,t)$ is measured from 
+the initial state of the fluid. The kinematic boundary condition is derived by
+stating that a fluid particle following the flow at the free surface, should
+remain at the free surface. In other words, its trajectory is described by
+$t\mapsto (x(t), y(t),\eta(x(t),y(t),t))$. Its vertical velocity, $w$, should
+therefore satisfy:
+\begin{equation*}
+  \frac{D\eta}{Dt}=\bmu_H \cdot\nabla_H \eta +
+  \frac{\partial\eta}{\partial t} = w \quad \textrm{on}\quad \Omega
+\end{equation*}
+where $\nabla_H\equiv(\partial/\partial x,\partial/\partial y)^T$, and
+$\bmu_H$ is the horizontal component of $\bmu$.
+Using the fact that the normal vector $\vec n$ at the free surface is
+$(-\frac{\partial \eta}{\partial x},-\frac{\partial \eta}{\partial y}, 1)^T/
+\|(-\frac{\partial \eta}{\partial x},-\frac{\partial \eta}{\partial y}, 1)\|$,
+this can be reformulated to
 \begin{equation}\label{freesurf3}
 \frac{\partial \eta}{\partial t}=\frac{\bmu \cdot \vec n}{\vec n \cdot \vec k},
 \end{equation}
-where $\vec k=(0,0,1)$ is the vertical standard basis vector. Note that in spherical geometries $\vec k$ is replaced with
-$\vec r=(\sin\theta\cos\phi,\sin\theta\sin\phi,\cos\theta)$ where $\phi$ and $\theta$ are the azimuthal and co-latitudinal angles respectively. 
+where $\vec k=(0,0,1)$ is the vertical normal vector. Note that in spherical
+geometries $\vec k$ is the radial unit vector. Since this condition does not
+restrict the normal velocity, it simply
+prescribes what the free surface movement is, we still need a stress condition
+in all directions, similar to equation $\eqref{StressBC}$. The tangential
+components can be either free, $\bmT_\tau=0$, or given by a wind stress. For the
+normal component, we get:
+\begin{equation*}
+  \bmn\cdot(\tautens\cdot\bmn - p\bmn) = \bmn\cdot\tautens\cdot\bmn - p =
+  -\patm \quad \textrm{on}\quad \partial\Omega.
+\end{equation*}
 
 \subsubsection{Wetting and drying}\label{sec:WD}
 \index{free surface!Wetting and drying}
@@ -523,50 +543,6 @@ Applying this law to a control volume\footnote{The concept of a control volume a
 \end{equation}
 where $V$ is the control volume, $S$ is the surface of the control volume and $\vec n$ is the unit normal to the surface of the control volume and $\vec F$ is a volume force per unit mass. Physically, \ref{LinMom} states that the sum of all forces applied on the control volume is equal to the sum of the rate of change of momentum inside the control volume and the net flux of momentum through the control surface. More details regarding the derivation and properties of this equation can be found in \citet{batchelor1967}.
 
-\subsection{Buoyancy and Hydrostacy}\label{sec:hydrostacy}
-\index{density}
-\index{buoyancy}
-\index{pressure!hydrostatic}
-
-For fluids upon which gravity is acting the buoyancy force should be considered
-when a free surface is present or when the fluid contains variations in density. The buoyancy force is given by $\vec{b}=-\rho\bmg$
-and, in the absence of viscosity, a simple form of the vertical momentum equation can be written as
-\begin{equation}\label{eq:vertmom}
-\DDt[t]{w} = -\ppx[z]{p} + b,
-\end{equation}
-where $b=\rho g$ is the magnitude of the buoyancy force.
-
-\index{density!reference}
-\index{pressure!perturbation}
-
-If the fluid is in a state of rest, the left hand side of \eqref{eq:vertmom} is zero giving
-\begin{equation}\label{eq:hydrostatic_balance}
-\ppx[z]{p} = b.
-\end{equation}
-This is known as hydrostatic balance. It states that the pressure at point
-is equal to the weight of water above that point, plus any pressure loading on the surface of the
-domain (\eg atmospheric pressure or ice load which is here termed $p_a$):
-\begin{equation*}
-p(\bmx) = p_a + \int_z b.
-\end{equation*}
-If vertical accelerations are negligible then \eqref{eq:hydrostatic_balance} is
-often a good approximation to \eqref{eq:vertmom}. Under this assumption it is natural
-to define pressure in terms of a background pressure that is
-only dependent on depth and a perturbation to this:
-\begin{equation*}
-p=p_0(z,t)+p'(\bmx,t),
-\end{equation*}
-where $p_0(z,t)$ balances the constant $\rho_0$ part of buoyancy and may be written
-\begin{equation*}
-p_0(z,t) = \int_z^\eta \rho_0 g = \rho_0 g(\eta - z),
-\end{equation*}
-where $\eta\equiv\eta(\vec x)$ is the free surface height. If a free surface is present an
-additional term of the form
-\begin{equation*}
--\rho_0g\nabla\eta,
-\end{equation*}
-must therefore be included in the horizontal momentum equations.
-
 \subsection{The Boussinesq approximation} \label{sec:boussinesq_approximation}
 \index{density!reference}
 \index{Boussinesq!approximation}
@@ -579,7 +555,22 @@ where $\rho'\ll\rho_0$. Such an approximation, namely, the Boussinesq approximat
 \begin{equation}
 \rho_0\DDt{\bmu} -\nabla\cdot\sigtens = \rho \bmg + \rho_0\bmF,
 \end{equation}
-where buoyancy has explicitly been removed from the forcing term $\bmF$ and $\bmg$ is the gravitational vector (e.g. $\bmg = -g\bmk$ in planar problems when gravity points in the negative $z$ direction and $\bmg = -g\vec r$ on the sphere).
+where the gravity term has been separated explicitly from the forcing term $\bmF$ and $\bmg$ is the gravitational vector (e.g. $\bmg = -g\bmk$ in planar problems when gravity points in the negative $z$ direction and $\bmg = -g\vec r$ on the sphere).
+
+\subsubsection{Buoyancy and hydrostacy}
+\index{density!reference}
+\index{pressure!perturbation}
+In absence of viscosity the vertical momentum equation can be written as:
+\begin{equation}\label{eq:vertmom}
+\DDt[t]{w} = -\ppx[z]{p} + \rho g.
+\end{equation}
+If the fluid is in a state of rest, the left hand-side is zero, giving:
+\begin{equation}\label{eq:hydrostatic_balance}
+\ppx[z]{p} = \rho g
+\end{equation}
+This is known as hydrostatic balance. If $\rho$ is constant
+
+
 
 \subsubsection{The non-hydrostatic Boussinesq equations}\label{sec:typical_ICOM_equations}
 \index{Boussinesq!equations}
