@@ -403,10 +403,14 @@ prescribes what the free surface movement is, we still need a stress condition
 in all directions, similar to equation $\eqref{StressBC}$. The tangential
 components can be either free, $\bmT_\tau=0$, or given by a wind stress. For the
 normal component, we get:
-\begin{equation*}
+\begin{equation}
   \bmn\cdot(\tautens\cdot\bmn - p\bmn) = \bmn\cdot\tautens\cdot\bmn - p =
   -\patm \quad \textrm{on}\quad \partial\Omega.
-\end{equation*}
+  \label{NormalStressBC}
+\end{equation}
+In ocean applications, the deviatoric part of the normal stress condition is
+usually neglected and a simple Dirichlet pressure boundary condition $p=\patm$
+is applied instead.
 
 \subsubsection{Wetting and drying}\label{sec:WD}
 \index{free surface!Wetting and drying}
@@ -551,7 +555,12 @@ Under certain conditions, one is able to assume that density does not vary great
 \begin{equation}
 \rho(\bmx,t) = \rho_0 + \rho'(\bmx,t),
 \end{equation}
-where $\rho'\ll\rho_0$. Such an approximation, namely, the Boussinesq approximation, involves two steps. The first makes use of \eqref{eq:divfree} --- mass conservation thus becomes volume conservation and sound waves are filtered. The second part of the Boussinesq approximation follows by replacing $\rho$ by $\rho_0$ in all terms of \eqref{viscous_fluids_1}, except where density is multiplied by gravity (i.e. in the buoyancy term where full density must be retained --- these are the density variations that drive natural convection). This yields
+where $\rho'\ll\rho_0$. Such an approximation, namely, the Boussinesq
+approximation, involves two steps. The first makes use of \eqref{eq:divfree} ---
+mass conservation thus becomes volume conservation and sound waves are filtered.
+The second part of the Boussinesq approximation follows by replacing $\rho$ by
+$\rho_0$ in all terms of \eqref{viscous_fluids_1}, except where density is
+multiplied by gravity (\ie in the buoyancy term where full density must be retained --- these are the density variations that drive natural convection). This yields
 \begin{equation}
 \rho_0\DDt{\bmu} -\nabla\cdot\sigtens = \rho \bmg + \rho_0\bmF,
 \end{equation}
@@ -566,11 +575,66 @@ In absence of viscosity the vertical momentum equation can be written as:
 \end{equation}
 If the fluid is in a state of rest, the left hand-side is zero, giving:
 \begin{equation}\label{eq:hydrostatic_balance}
-\ppx[z]{p} = \rho g
+\ppx[z]{p} = -\rho g
 \end{equation}
-This is known as hydrostatic balance. If $\rho$ is constant
+This is known as hydrostatic balance. If the pressure $p_{\text{top}}$ at the top of the domain
+is given, e.g., an atmospheric pressure or a given ice load, 
+the hydrostatic pressure can be computed as
+\begin{equation}
+  p(x,y,z) = p_{\text{top}}(x,y) + \int_{z=z}^{\eta(x,y)} \rho g dz,
+\end{equation}
+where $z=\eta(x,y)$ denotes the location of the top of the domain, e.g. a free
+surface. Here, we assume a coordinate system with $x$ and $y$ in the horizontal
+and $z$ in the vertical direction. The integral represents the weight of the
+water above a point at a given height $z$. For a constant density this simplifies to:
+\begin{equation}
+  p(x,y,z) = p_{\text{top}}(x,y) + \rho g \left(\eta(x,y)-z\right).
+\end{equation}
 
+If we consider the general case, that is not in hydrostatic balance and where
+the density is not constant, but we have a small perturbation density 
+$\rho'$, we may still write:
+\begin{equation}
+  p(x,y,z) = p_0(z) + p'(x,y,z) = -\rho_0 g z + p'(x,y,z).
+\end{equation}
+Here, we have separated the pressure $p_0$, due to the weight of a fluid of reference density $\rho_0$ below a reference level at $z=0$ near the top, from a perturbation pressure $p'$. This
+perturbation pressure still contains the hydrostatic pressure due to the
+perturbation density, but also any external pressure applied at the top, the
+additional weight of $\rho g\eta$ in places where the top of the domain $\eta$
+does not coincide with $z=0$ (e.g. in the case of a free surface), and any
+non-hydrostatic parts of the pressure.
 
+By construction, the pressure gradient of $p_0$ exactly balances $\rho_0\bmg$,
+the reference density part of the gravity term
+\begin{equation}
+  \rho\bmg=\rho_0\bmg+\rho'\bmg
+\end{equation}
+We can therefore simply replace $p$ by $p'$ in the pressure gradient term, if we
+subtract $\rho_0\bmg$ from the gravity term, to obtain a buoyancy term
+$\rho'\bmg$. Note, that this step does not require any assumptions about what
+sort of boundary condition is applied at the top.
+
+In many models with a free surface, the $\rho_0 g\eta$ part of pressure (known
+in ocean models as barotropic pressure), is subtracted from the pressure as
+well, 
+and treated separately. Since this part still depends on the horizontal
+coordinates, its gradient does not simply balance with the buoyancy, and a
+horizontal gradient $\rho_0g\nabla_{\text{H}}\eta$ remains. In \fluidity{}
+however, we keep this part in the perturbation pressure and it is therefore
+solved for in conjunction with the non-hydrostatic parts of pressure. 
+
+In this approach, care has to be taken when applying boundary conditions. If a
+pressure boundary condition of $p=\patm$ is enforced at $z=\eta$, then the
+boundary condition for the perturbation changes to:
+\begin{equation}
+  p'=p+\rho_0 z=\patm+\rho_0 g\eta
+  \quad \textrm{on}\quad \partial\Omega.
+\end{equation}
+If a normal stress condition is applied, see \eqref{NormalStressBC}, we similarly get:
+\begin{equation*}
+  -\bmn\cdot\tautens\cdot\bmn + p' = \patm + \rho_0 g\eta
+  \quad \textrm{on}\quad \partial\Omega.
+\end{equation*}
 
 \subsubsection{The non-hydrostatic Boussinesq equations}\label{sec:typical_ICOM_equations}
 \index{Boussinesq!equations}
