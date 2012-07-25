@@ -8,6 +8,11 @@
     <command_line>fluidity -v2 -l water_collapse.flml</command_line>
   </problem_definition>  
   <variables>  
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="mindivergence" language="python">
 from fluidity_tools import stat_parser as stat
 mindivergence= max(abs(stat("water_collapse.stat")["Dense"]["ControlVolumeDivergence"]["min"]))
@@ -168,6 +173,9 @@ insidecolumn= min(stat("water_collapse.detectors")["Dense"]["MaterialVolumeFract
     </variable>
   </variables>    
   <pass_tests> 
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="check water was conserved" language="python">
 print 'mass loss = ', abs(vfracintend-vfracintstart)
 assert abs(vfracintend-vfracintstart) &lt; max(maxdivergence, mindivergence)

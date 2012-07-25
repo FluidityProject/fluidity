@@ -15,4 +15,5 @@ clean:
 	rm -f *_periodised.flml
 	rm -f *_flredecomp.flml
 	rm -f *.halo
-	rm -rf channel_parallel_[0-4]*
+	rm -rf channel_parallel_[0-4]* \
+	matrixdump matrixdump.info

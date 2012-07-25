@@ -6,4 +6,5 @@ default: clean
 	../../bin/gmsh2triangle --2d slice_unstructured_2.msh
 
 clean: 
-	rm -f *.msh *.node *.ele *.face *.edge *.vtu *.log *.stat
+	rm -f *.msh *.node *.ele *.face *.edge *.vtu *.log *.sta \
+	matrixdump matrixdump.info
