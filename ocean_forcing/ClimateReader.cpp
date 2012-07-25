@@ -331,6 +331,24 @@ ClimateReader ClimateReader_global;
 
 // Fortran interface
 extern "C" {
+#define climatology_setsimulationtimeunits_fc F77_FUNC_(climatology_setsimulationtimeunits_c, CLIMATOLOGY_SETSIMULATIONTIMEUNITS_C)
+  void climatology_setsimulationtimeunits_fc(char *_units, int len){
+    char *units = new char[len+1]();
+    strncpy(units, _units, len);
+    units[len] = '\0';
+    ClimateReader_global.SetSimulationTimeUnits(string(units));  
+    return;
+  }
+  
+#define climatology_setclimatology_fc F77_FUNC_(climatology_setclimatology_c, CLIMATOLOGY_SETCLIMATOLOGY_C)
+  void climatology_setclimatology_fc(char *_filename, int len){
+    char *filename = new char[len+1]();
+    strncpy(filename, _filename, len);
+    filename[len] = '\0';
+    ClimateReader_global.SetClimatology(string(filename));  
+    return;
+  }
+  
 #define climatology_settimeseconds_fc F77_FUNC_(climatology_settimeseconds_c, CLIMATOLOGY_SET_TIME_SECONDS_C)
   void climatology_settimeseconds_fc(const double *_time){
     ClimateReader_global.SetTimeSeconds(*_time);  
@@ -348,4 +366,5 @@ extern "C" {
     *value = ClimateReader_global.GetValue(string(name, *len), *x, *y, *z, 0);
     return;
   }
+
 }

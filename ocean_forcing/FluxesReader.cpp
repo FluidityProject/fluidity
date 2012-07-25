@@ -803,6 +803,7 @@ void FluxesReader::VerboseOn(){
 
 //
 // FORTRAN interface
+// Wrap a proper interface round these like ClimateReader_interface.F90
 //
 
 FluxesReader FluxesReader_global;

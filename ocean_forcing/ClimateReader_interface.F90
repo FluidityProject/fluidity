@@ -30,6 +30,16 @@ module climatology
   implicit none
 contains
   
+  subroutine climatology_SetSimulationTimeunits(units)
+    character(len=*), intent(in)::units
+    call climatology_SetSimulationTimeunits_c(units)
+  end subroutine climatology_SetSimulationTimeunits
+  
+  subroutine climatology_SetClimatology(filename)
+    character(len=*), intent(in)::filename
+    call climatology_SetClimatology_c(filename)
+  end subroutine climatology_SetClimatology
+
   subroutine climatology_SetTimeSeconds(time)
     real, intent(in)::time
     call climatology_SetTimeSeconds_c(time)
