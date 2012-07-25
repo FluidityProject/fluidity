@@ -2152,8 +2152,8 @@ the first material_phase state then aliased in all others.</a:documentation>
   </define>
   <define name="darcy_impes_dual_porous_media_model">
     <element name="porous_media_dual">
-      <a:documentation>Porous Media_dual:
-Porosity and Permeability for the dual permeability model</a:documentation>
+      <a:documentation>Enable the dual porous media model. If one enables the AbsolutePermeabilityDual
+then this becomes a dual permeability model.</a:documentation>
       <element name="scalar_field">
         <a:documentation>Specify scalar field PorosityDual which is inserted into 
 the first material_phase state then aliased in all others.</a:documentation>
@@ -2170,6 +2170,16 @@ WARNING: THIS CAUSES PETSC ERRORS SOMETIMES IN 2D</a:documentation>
           <attribute name="name">
             <value>AbsolutePermeabilityDual</value>
           </attribute>
+          <optional>
+            <element name="do_not_solve_for_dual_first_phase_pressure">
+              <a:documentation>Do not solve for the Dual media first phase pressure, instead 
+assign it the prime media first phase pressure. WARNING: THIS
+WILL IMPLY THE DUAL MEDIA SATURATIONS ARE ADVECTED WITH AN 
+EFFECTIVE VELOCITY THAT IS NOT DIVERGENCE FREE SO YOU SHOULD 
+NOT EXPECT THE RESULTS TO BE BOUNDED</a:documentation>
+              <empty/>
+            </element>
+          </optional>
           <ref name="darcy_impes_scalar_field_prescribed_or_python_diagnostic_element_wise_mesh"/>
         </element>
       </optional>
