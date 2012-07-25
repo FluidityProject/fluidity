@@ -275,7 +275,7 @@ where $\mathbf{u}$ is the steady velocity, $\mathbf{u}'$ is the fluctuating velo
 The third term on the right, containing the Reynolds stress tensor $\rho\mathbf{u}'\cdot\mathbf{u}'$, represents the effect of turbulent fluctuations on the steady flow and is modelled as:
 
 \begin{equation}\label{retens}
- \rho\mathbf{u}'\cdot\mathbf{u}' = - \frac{2}{3} k + \nu_T \left(\nabla\mathbf{u} + (\nabla\mathbf{u})^{\mathrm{T}}\right),
+ -\rho\mathbf{u}'\cdot\mathbf{u}' = \nu_T \left(\nabla\mathbf{u} + (\nabla\mathbf{u})^{\mathrm{T}}\right) - \frac{2}{3} k,
 \end{equation}
 where $k=(\mathbf{u}'\cdot\mathbf{u}')/2$ is the turbulent kinetic energy and $\nu_T(\mathbf{x},t)$ is the eddy viscosity.
 The equations are closed by solving transport equations for $k$ and the turbulent energy dissipation $\epsilon$:
