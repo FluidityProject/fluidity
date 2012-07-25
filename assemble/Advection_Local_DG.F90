@@ -1136,6 +1136,10 @@ module advection_local_DG
     type(element_type), pointer :: D_shape
     !
 
+    ! Get J and detwei
+    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), detwei&
+         &=detwei, J=J, detJ=detJ)
+
     D_shape => ele_shape(D,ele)
     Q_shape => ele_shape(Q,ele)
     Flux_shape => ele_shape(Flux,ele)
@@ -1149,24 +1153,33 @@ module advection_local_DG
     Q_val = ele_val(Q,ele)
 
     !Equations
-    ! D^{n+1} = D^n + div Flux --- POINTWISE
+    ! D^{n+1} = D^n + \pi div Flux 
+    ! If define \int_K\phi\hat{D}/J J dS = \int_K\phi D J dS, then
+    ! <\phi,\pi(\hat{D}/J)> = <\phi, D> for all \phi,
+    ! => \pi \hat{D} = D
+    ! \hat{D}^{n+1}/J = \hat{D}^n/J + div Flux
+
+    FLExit('Verify this!')
+
     ! So (integrating by parts)
-    ! <\gamma, D^{n+1}> = <\gamma, D^n> - <\nabla\gamma, F>
+    ! <\gamma, \hat{D}^{n+1}/J> = 
+    !             <\gamma, D^n/J> - <\nabla\gamma, F>
+
+    FLExit('Or Verify this!')
+
     ! and a consistent theta-method for Q is
-    ! <\gamma, D^{n+1}Q^{n+1}> = <\gamma, D^nQ^n> - 
+    ! <\gamma,\hat{D}^{n+1}Q^{n+1}/J> = 
+    !                  <\gamma, \hat{D}^nQ^n/J> - 
     !                                     \theta<\nabla\gamma,FQ^{n+1}> 
     !                                  -(1-\theta)<\nabla\gamma,FQ^n>
 
 
-    ! Get J and detwei
-    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), detwei&
-         &=detwei, J=J, detJ=detJ)
     detwei_l = Q_shape%quadrature%weight
     !Advection terms
     !! <-grad gamma, FQ >
     !! Can be evaluated locally using pullback
     tmp_mat = dshape_dot_vector_shape(&
-         Q_shape%dn,Flux_gi,Q_shape,Q_shape%quadrature%weight)
+         Q_shape%dn,Flux_gi,Q_shape,detwei_l)
     l_adv_mat = t_theta*tmp_mat
     l_rhs = -(1-t_theta)*matmul(tmp_mat,Q_val)
 
@@ -1281,6 +1294,9 @@ module advection_local_DG
     !
 
     D_shape => ele_shape(D,ele)
+
+    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J, detwei, detJ)
+
     Q_shape => ele_shape(Q,ele)
     Flux_shape => ele_shape(Flux,ele)
     QFlux_shape => ele_shape(QFlux,ele)
@@ -1294,7 +1310,6 @@ module advection_local_DG
     Flux_gi = ele_val_at_quad(Flux,ele)
     U_nl_gi = ele_val_at_quad(U_nl,ele)
 
-    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J, detwei, detJ)
     detwei_l = Q_shape%quadrature%weight
     up_gi = -ele_val_at_quad(down,ele)
 
@@ -1641,6 +1656,8 @@ module advection_local_DG
     !
     real, dimension(size(D_val_in),size(D_val_in)) :: proj_mat, &
          & mass_mat
+
+    !! \sum_i \phi_i \hat{D}_i w_i = \sum_i \phi_i D_i J_i w_i.
 
     proj_mat = shape_shape(D_shape,D_shape,D_shape%quadrature%weight)
     mass_mat = shape_shape(D_shape,D_shape,detwei)

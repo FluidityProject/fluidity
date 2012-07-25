@@ -313,6 +313,9 @@
     </scalar_field>
     <scalar_field name="PotentialVorticityTracer" rank="0">
       <prognostic>
+        <spatial_discretisation>
+          <continuous_galerkin/>
+        </spatial_discretisation>
         <initial_condition name="WholeMesh">
           <constant>
             <real_value rank="0">1.0</real_value>
@@ -345,6 +348,7 @@
         <mesh name="VorticityMesh"/>
         <output/>
         <stat/>
+        <debug/>
       </prognostic>
     </scalar_field>
     <scalar_field name="DG_CourantNumber" rank="0">

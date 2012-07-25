@@ -429,7 +429,10 @@ start =
                      },
                      vorticity_mesh_choice,
                      prognostic_scalar_output_options,
-                     prognostic_scalar_stat_options
+                     prognostic_scalar_stat_options,
+                     element debug {
+                        empty
+                     }?
                   }
                }?,
                ## Streamfunction for balanced initialisation

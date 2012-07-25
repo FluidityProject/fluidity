@@ -544,6 +544,11 @@ does not apply any upwinding</a:documentation>
                 <ref name="vorticity_mesh_choice"/>
                 <ref name="prognostic_scalar_output_options"/>
                 <ref name="prognostic_scalar_stat_options"/>
+                <optional>
+                  <element name="debug">
+                    <empty/>
+                  </element>
+                </optional>
               </element>
             </element>
           </optional>
@@ -922,7 +927,37 @@ sphere normal to element normal</a:documentation>
         <a:documentation>Set velocity from streamfunction</a:documentation>
         <empty/>
       </element>
+      <element name="galerkin_projection">
+        <a:documentation>Set velocity from galerkin projection</a:documentation>
+        <element name="python">
+          <a:documentation>Vector field to be evaluated at quadrature points
+Python function prescribing dimensional vector input. Functions should be of the form:
+
+ def val(X, t):
+    # Function code
+    return # Return value</a:documentation>
+          <ref name="python_code"/>
+        </element>
+      </element>
       <element name="from_sphere_pullback">
+        <a:documentation>Evaluate velocity by pulling back from sphere
+using transformation
+z -&gt; z, (x,y) --&gt; R(x,y) where R=(R_0^2-z^2)^0.5</a:documentation>
+        <element name="python">
+          <a:documentation>Vector field on the sphere to be pulled back to mesh.
+Python function prescribing dimensional vector input. Functions should be of the form:
+
+ def val(X, t):
+    # Function code
+    return # Return value</a:documentation>
+          <ref name="python_code"/>
+        </element>
+        <element name="sphere_radius">
+          <a:documentation>Radius of sphere</a:documentation>
+          <ref name="real"/>
+        </element>
+      </element>
+      <element name="from_sphere_tangents">
         <a:documentation>Evaluate velocity by pulling back from sphere
 using transformation
 z -&gt; z, (x,y) --&gt; R(x,y) where R=(R_0^2-z^2)^0.5</a:documentation>
