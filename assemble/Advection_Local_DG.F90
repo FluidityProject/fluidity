@@ -1173,9 +1173,9 @@ module advection_local_DG
     !Mass terms
     !! <gamma, QD>
     !! Requires transformed integral
-    tmp_mat = shape_shape(ele_shape(Q,ele),ele_shape(Q,ele),D_gi*detwei)
+    tmp_mat = shape_shape(ele_shape(Q,ele),ele_shape(Q,ele),D_gi*detwei_l)
     l_adv_mat = l_adv_mat + tmp_mat
-    tmp_mat = shape_shape(ele_shape(Q,ele),ele_shape(Q,ele),D_old_gi*detwei)
+    tmp_mat = shape_shape(ele_shape(Q,ele),ele_shape(Q,ele),D_old_gi*detwei_l)
     l_rhs = l_rhs + matmul(tmp_mat,Q_val)
 
     !Laplacian filter options
@@ -1219,10 +1219,8 @@ module advection_local_DG
        !! = tau < grad gamma, u QD>
        !! can do locally because of pullback formula
        tmp_mat = dshape_dot_vector_shape(&
-            Q_shape%dn,U_nl_gi,Q_shape,D_gi*detwei_l)
+            Q_shape%dn,U_nl_gi,Q_shape,D_gi*detwei_l/detJ)
        l_adv_mat = l_adv_mat + tau*tmp_mat
-       tmp_mat = dshape_dot_vector_shape(&
-            Q_shape%dn,U_nl_gi,Q_shape,D_old_gi*detwei_l)
        l_rhs = l_rhs + tau*matmul(tmp_mat,Q_val)
        !! Advection terms
        !! tau < u. grad gamma, div (F Q)>
@@ -1597,7 +1595,7 @@ module advection_local_DG
     l_d = matmul(transpose(D_shape%n),D_val)
 
     l_mass_mat = shape_shape(ele_shape(pv_rhs,ele),&
-         ele_shape(pv_rhs,ele),detwei*l_d)
+         ele_shape(pv_rhs,ele),l_d*d_shape%quadrature%weight)
 
     velocity_gi = ele_val_at_quad(velocity,ele)
     do gi=1,ele_ngi(X,ele)
