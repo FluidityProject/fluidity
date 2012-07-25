@@ -91,6 +91,8 @@ program Darcy_IMPES
    use state_module
    use shape_functions
    use write_gmsh
+   use merge_tensors, only: merge_tensor_fields
+   use form_metric_field, only: bound_metric
      
    ! *** Use Darcy IMPES module ***
    use darcy_impes_assemble_module
@@ -163,6 +165,7 @@ program Darcy_IMPES
    integer :: darcy_debug_log_unit, darcy_debug_err_unit
    integer :: number_phase_prime, number_phase_dual, number_of_first_adapts, p 
    character(len=OPTION_PATH_LEN) :: phase_name
+   type(tensor_field) :: metric_tensor_dual
    
    type(vector_field), pointer :: output_positions
    
@@ -328,9 +331,13 @@ program Darcy_IMPES
    call initialise_diagnostics(filename, state)
    call initialise_convergence(filename, state)
    call initialise_steady_state(filename, state)
-
+   
+   ! Allocate the metrics for prime and dual
    if (have_option("/mesh_adaptivity/hr_adaptivity")) then
       call allocate(metric_tensor, extract_mesh(state(1), topology_mesh_name), "ErrorMetric")
+      if (have_dual) then
+         call allocate(metric_tensor_dual, extract_mesh(state_dual(1), topology_mesh_name), "ErrorMetric")      
+      end if
    end if
    
    ! *** Darcy impes adapt at first time ***
@@ -512,7 +519,12 @@ program Darcy_IMPES
    call print_references(1)
 
    ! Deallocate the metric tensor
-   if(have_option("/mesh_adaptivity/hr_adaptivity")) call deallocate(metric_tensor)
+   if(have_option("/mesh_adaptivity/hr_adaptivity")) then
+      call deallocate(metric_tensor)
+      if (have_dual) then
+         call deallocate(metric_tensor_dual)
+      end if
+   end if
    
    ! ***** Finalise dual permeability model *****
    if (have_dual) then
@@ -522,6 +534,7 @@ program Darcy_IMPES
                                 solve_dual_pressure, &
                                 this_is_dual = .true.)
    end if
+   
    ! *** Finalise darcy impes variables ***
    call darcy_impes_finalise(di, &
                              have_dual, &
@@ -1785,9 +1798,16 @@ contains
       
       logical, intent(in) :: initialise_fields
 
-      ! Form metric to adapt mesh to
-      call qmesh(state, metric_tensor)
-
+      ! Form metric to adapt mesh to for prime and dual      
+      if (have_dual) then
+         call qmesh(state_prime, metric_tensor)
+         call qmesh(state_dual, metric_tensor_dual)
+         call merge_tensor_fields(metric_tensor, metric_tensor_dual)
+         call bound_metric(metric_tensor, state(1))
+      else
+         call qmesh(state, metric_tensor)
+      end if
+      
       ! write to screen useful problem diagnostics
       call run_diagnostics(state)
 
