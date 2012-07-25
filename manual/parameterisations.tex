@@ -269,10 +269,10 @@ The model is based on the unsteady Reynolds-averaged Navier-Stokes (RANS) equati
 
 \begin{equation}\label{RANS}
 \rho\frac{\partial \mathbf{u}}{\partial t} + \rho\mathbf{u}\cdot\nabla\mathbf{u} =
--\nabla p + \rho\mathbf{g} + \nabla\cdot\left(\nu(\nabla\mathbf{u} + (\nabla\mathbf{u})^{\mathrm{T}})\right) - \nabla\left(\rho\mathbf{u}'\cdot\mathbf{u}'\right),
+-\nabla p + \rho\mathbf{g} + \nabla\cdot\left(\nu(\nabla\mathbf{u} + (\nabla\mathbf{u})^{\mathrm{T}})\right) + \nabla\left(-\rho\mathbf{u}'\cdot\mathbf{u}'\right),
 \end{equation}
 where $\mathbf{u}$ is the steady velocity, $\mathbf{u}'$ is the fluctuating velocity, and $p$ is the steady pressure.
-The third term on the right, containing the Reynolds stress tensor $\rho\mathbf{u}'\cdot\mathbf{u}'$, represents the effect of turbulent fluctuations on the steady flow and is modelled as:
+The fourth term on the right, containing the Reynolds stress tensor $-\rho\mathbf{u}'\cdot\mathbf{u}'$, represents the effect of turbulent fluctuations on the steady flow and is modelled as:
 
 \begin{equation}\label{retens}
  -\rho\mathbf{u}'\cdot\mathbf{u}' = \nu_T \left(\nabla\mathbf{u} + (\nabla\mathbf{u})^{\mathrm{T}}\right) - \frac{2}{3} k,
