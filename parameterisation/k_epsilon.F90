@@ -262,7 +262,7 @@ subroutine keps_calculate_rhs(state)
         call set(diff, i, i, EV, scale=1. / sigma_k)
      end do
   end if
-  diff => extract_tensor_field(state, trim(field_names(2))//"Diffusivity")
+  diff => extract_tensor_field(state, trim(field_names(2))//"Diffusivity", stat)
   if (stat == 0) then
      do i = 1, diff%dim(1)
         call set(diff, i, i, EV, scale=1. / sigma_eps)
@@ -1162,9 +1162,19 @@ subroutine k_epsilon_check_options
   ! Check that TurbulentKineticEnergy and TurbulentDissipation fields are on the same
   !  mesh as the velocity
   call get_option(trim(option_path)//&
-       &"/scalar_field::TurbulentKineticEnergy/prognostic/mesh/name", kmsh)
+       &"/scalar_field::TurbulentKineticEnergy/prognostic/mesh/name", kmsh, stat)
+  if (stat /= 0) then
+     call get_option(trim(option_path)//&
+       &"/scalar_field::TurbulentKineticEnergy/prescribed/mesh/name", kmsh,&
+       & stat)
+  end if
   call get_option(trim(option_path)//&
-       &"/scalar_field::TurbulentDissipation/prognostic/mesh/name", emsh)
+       &"/scalar_field::TurbulentDissipation/prognostic/mesh/name", emsh, stat)
+  if (stat /= 0) then
+     call get_option(trim(option_path)//&
+       &"/scalar_field::TurbulentDissipation/prescribed/mesh/name", emsh,&
+       & stat)
+  end if
   call get_option("/material_phase[0]/vector_field::Velocity/prognostic/mesh/name", vmsh,&
        & stat)
   if (stat /= 0) then

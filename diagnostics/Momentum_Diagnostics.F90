@@ -83,7 +83,8 @@ contains
     integer                           :: slash_location, i, stat
     real                              :: prandtl_schmidt, local_background_diffusivity
     type(scalar_field)                :: local_background_diffusivity_field
-    type(tensor_field), pointer       :: global_background_diffusivity, eddy_viscosity
+    type(scalar_field), pointer       :: scalar_eddy_viscosity
+    type(tensor_field), pointer       :: global_background_diffusivity
     type(tensor_field)                :: background_diffusivity
 
     ewrite(1,*) 'In calculate_k_epsilon_diffusivity'
@@ -130,14 +131,16 @@ contains
     end if
 
     ! get eddy viscosity
-    eddy_viscosity => extract_tensor_field(state, 'EddyViscosity', stat)
+    scalar_eddy_viscosity => extract_scalar_field(state, 'ScalarEddyViscosity', stat)
     if (stat /= 0) then 
-       FLExit("No EddyViscosity field was found. Check the k-epsilon model is turned on and you have a valid flml input file.")
+       FLExit("No ScalarEddyViscosity field was found. Check the k-epsilon model is turned on and you have a valid flml input file.")
     end if
 
     call zero(t_field)
     call addto(t_field, background_diffusivity)
-    call addto(t_field, eddy_viscosity, 1.0/prandtl_schmidt) 
+    do i = 1, t_field%dim(1)
+       call addto(t_field, i, i, scalar_eddy_viscosity, 1.0/prandtl_schmidt)
+    end do
 
     call deallocate(background_diffusivity)
     call deallocate(local_background_diffusivity_field)
