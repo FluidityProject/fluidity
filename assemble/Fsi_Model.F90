@@ -113,24 +113,25 @@ module fsi_model
         end if
 
         ! Check if alpha needs to be recomputed (at this timestep):
-        recompute_alpha = fsi_recompute_alpha(solid_moved=solid_moved)
+        recompute_alpha = fsi_recompute_alpha(its, solid_moved=solid_moved)
 
         ! For future use:
         ! 1-WAY COUPLING (prescribed solid velocity)
         ! First check if prescribed solid movement is enabled,
         ! and if so, move the solid mesh
-        !if (have_prescribed_solid_movement) then
-        !   call move_solid_mesh(state)
-        !   ! Check if solid actually moved:
-        !
-        !   ! If solid moved, store new coordinates in state:
-        !   solid_moved = .true.
-        !   ! ... And recalculate the volume fraction:
-        !   
-        !else
-        !   solid_moved = .false.
-        !
-        !end if
+        if (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed") &
+            & .and. its == 1) then
+           call fsi_move_solid_mesh(state)
+           ! Check if solid actually moved:
+        
+           ! If solid moved, store new coordinates in state:
+           solid_moved = .true.
+           ! ... And recalculate the volume fraction:
+           
+        else
+           solid_moved = .false.
+        
+        end if
 
         ! Do we need to compute the new alpha field(s)?
         if (recompute_alpha) then
@@ -145,7 +146,7 @@ module fsi_model
 
         ! Set absorption term /sigma
         call compute_fluid_absorption(state)
-        
+
         ! the variable name might be misleading when reading it as 
         ! holding the value at the end of the timestep, but when 
         ! reading it at the beginning of the next timestep, the name makes sense:
@@ -161,28 +162,32 @@ module fsi_model
 
     !----------------------------------------------------------------------------
 
-    function fsi_recompute_alpha(solid_moved) result(recompute)
+    function fsi_recompute_alpha(its, solid_moved) result(recompute)
     !! Function to set a logical that determines whether alpha is recomputed or not 
     !! at the next timestep
+        integer, intent(in) :: its
         logical, optional, intent(in) :: solid_moved
         logical :: recompute
 
         recompute = .false.
 
-        ! For future use:
-        if (.not. present(solid_moved)) then
-!            solid_moved = .true.
-            if (adapt_at_previous_dt) then
-                recompute = .true.
+        if (its == 1) then
+            if (.not. present(solid_moved)) then
+!                solid_moved = .true.
+                if (adapt_at_previous_dt) then
+                    recompute = .true.
+                else
+                    recompute = .false.
+                end if
             else
-                recompute = .false.
+                if (solid_moved .or. adapt_at_previous_dt) then
+                    recompute = .true.
+                else
+                    recompute = .false.
+                end if
             end if
-        else
-            if (solid_moved .and. adapt_at_previous_dt) then
-                recompute = .true.
-            else
-                recompute = .false.
-            end if
+        else ! its /= 1
+            recompute = .false.
         end if
 
     end function fsi_recompute_alpha
@@ -402,41 +407,48 @@ module fsi_model
     subroutine fsi_move_solid_mesh(state)
     !! Moving a solid mesh
       type(state_type), intent(in) :: state
-      type(vector_field), pointer :: solid_position
+      type(vector_field), pointer :: initial_solid_position, solid_position
       type(vector_field) :: solid_movement
+      integer :: i, num_pre_solid_vel, num_solid_mesh
+      character(len=PYTHON_FUNC_LEN) :: func
+      character(len=OPTION_PATH_LEN) :: mesh_name
 
       ewrite(2,*) "inside move_solid_mesh"
 
-      ! Get solid coordinate vector field from state:
-      solid_position => extract_vector_field(state, "SolidCoordinate")
-      ewrite(2,*) "Dimension of solid_position: ", solid_position%dim
-      ewrite(2,*) "solid_position, node_count: ", node_count(solid_position)
-      ewrite(2,*) "solid_position, ele_count: ", ele_count(solid_position)
+      ! Get number of solid meshes that have a prescribed velocity:
+      num_pre_solid_vel = option_count('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed/mesh')
 
-      ewrite(2,*) "solid coordinates:", solid_position%val
-      !ewrite(2,*) solid_position
+         ! Loop over number of solid meshes that have a prescribed velocity and set their new coordinates:
+         pre_solid_vel_loop: do i=0, num_pre_solid_vel-1
 
-      ! Allocate dummy vector field for new solid coordinates:
-      call allocate(solid_movement, solid_position%dim, solid_position%mesh, name="SolidMovement")
-      call zero(solid_movement)
+            ! 1st get mesh name:
+            call get_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed/mesh['//int2str(i)//']/name', mesh_name)
 
-    !  call vtk_write_fields("solid_mesh_test", index=1, position=solid_position, model=solid_position%mesh, vfields=(/solid_movement/))
+            ! 2nd get (initial) coordinate field of this solid mesh:
+            initial_solid_position => extract_vector_field(state, "Initial"//trim(mesh_name)//"SolidCoordinate")
 
-      ! Get python function:
-    !  call get_option("/embedded_models/fsi_model/one_way_coupling/prescribed_solid_movement", func)
-      ! Get new solid_position
-!      call set_from_python_function(new_solid_position, func, solid_position, current_time)
-!      call set_from_python_function(solid_movement, func, solid_position, current_time)
-  !    call calculate_vector_python_diagnostic(state, 0, v_field, current_time, dt)
+            ! 3nd get the python function for this solid mesh:
+            call get_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed/mesh['//int2str(i)//']/python', func)
 
+            ! 4 set the field based on the python function:
+            call allocate(solid_movement, initial_solid_position%dim, initial_solid_position%mesh, name=trim(mesh_name)//"SolidMovement")
+            call zero(solid_movement)
+
+            call set_from_python_function(solid_movement, func, initial_solid_position, current_time)
+            
+            ! 5 set solid position field:
+            solid_position => extract_vector_field(state, trim(mesh_name)//"SolidCoordinate")
+            ! From solid_movement, subtract the initial coordinates:
+            call addto(solid_movement, initial_solid_position, -1.0)
+            ! And add the solid_movement to it:
+            call addto(solid_position, solid_movement)
+
+            ! 6 Deallocate dummy vector field:
+            call deallocate(solid_movement)
+
+         end do pre_solid_vel_loop
 
   !    call vtk_write_fields("solid_mesh_test", index=2, position=solid_position, model=solid_position%mesh, vfields=(/solid_movement/))
-
-      ! Setting solid coordinates to new coordinates (moving solid mesh):
-      !call set(solid_position, new_solid_position)
-
-      ! Deallocate dummy vector field, coz not needed anymore:
-      call deallocate(solid_movement)
 
       ewrite(2,*) 'end of move_solid_mesh'
 
@@ -741,7 +753,7 @@ module fsi_model
             allocate(pre_solid_vel(fluid_coord%dim))
 
                ! Get mesh name:
-               call get_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed/mesh'//int2str(i)//']/name', mesh_name)
+               call get_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed/mesh['//int2str(i)//']/name', mesh_name)
                ! Resetting force:
                pre_solid_vel = 0.0
                ! Get min/max values of x/y/z component of solid velocity
@@ -839,6 +851,9 @@ module fsi_model
          ! Insert solid_mesh and solid_position into state:
          call insert(state, solid_mesh, trim(solid_mesh%name))
          call insert(state, solid_position, trim(solid_position%name))
+         ! Also insert the solid coordinate into state as the initial state of the solid position, 
+         ! which is needed for prescribed movement of a solid:
+         call insert(state, solid_position, trim('Initial'//solid_position%name))
 
          ! Also set-up solidvolumefraction field for all solids:
          call allocate(alpha_solidmesh, fluid_position%mesh, trim(solid_mesh%name)//"SolidConcentration")
