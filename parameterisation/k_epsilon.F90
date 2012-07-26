@@ -55,7 +55,7 @@ implicit none
   real, save                          :: fields_min = 1.e-10
 
   public :: keps_diagnostics, keps_eddyvisc, keps_bcs, keps_adapt_mesh,&
-       & k_epsilon_check_options, keps_momentum_source
+       & k_epsilon_check_options, keps_momentum_source, tensor_inner_product
 
   ! Outline:
   !  - call diagnostics to obtain source terms and calculate eddy viscosity
