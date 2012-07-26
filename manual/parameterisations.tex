@@ -325,6 +325,13 @@ $\sigma_k$ & 1.0 \\ \hline
 \label{tab:kepsco}
 \end{table}
 
+\par{\textbf{Important notes on applying the model in Fluidity}}
+\begin{itemize}
+\item The background viscosity must be set as an \option{anisotropic\_symmetric} tensor, with all values set equal to the isotropic viscosity.
+\item The velocity stress terms should be in partial-stress form, which is set under \option{../vector\_field::Velocity/prognostic/spatial\_discretisation/../stress\_terms/}.
+\item If using a P2 mesh mass-lumping does not work when calculating the source and absorbtion terms for the model. \option{../k-epsilon/mass\_lumping\_in\_diagnostics/solve\_using\_mass\_matrix} must be selected.
+\end{itemize}
+
 \par{\textbf{Low Reynolds number model}\\}
 When simulating low Reynolds numbers ($Re<10^4$) it is recommended that the low-Re k-epsilon model is used. \option{\ldots/boundary\_conditions/type::k\_epsilon/Low\_Re/} boundary conditions should be selected for both the $k$ and $\epsilon$ fields, for all solid boundaries, and the \option{DistanceToWall} field must be set. The distance to the closest solid boundary is a prescribed field and can be described using a python function for simple geometries. For more complex geometries where this is not possible an estimate of the distance to the closest wall can be generated using a Poisson's, or Eikonal, equation, as described in \citet{Tucker2011}. 
 
