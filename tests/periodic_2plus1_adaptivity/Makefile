@@ -4,4 +4,5 @@ input: clean
 
 clean:
 	rm -f *.vtu *.log-? *.err-? *.msh *.ele *.node *.edge
-	rm -f *.stat *_periodised.flml
+	rm -f *.stat *_periodised.flml \
+	matrixdump matrixdump.info

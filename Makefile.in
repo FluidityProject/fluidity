@@ -28,16 +28,6 @@ SHELL = @SHELL@
 
 PACKAGE_NAME = @PACKAGE_NAME@
 
-# Ignore package version from autoconf. Instead, for packages
-# FLUIDITY_VERSION is passed into ./configure and used here. If it is not
-# set we obtain version information from bzr. Again, this is not done in
-# configure to ensure the info is up-to-date after a "bzr up" without reconfiguring
-ifeq ("@FLUIDITY_VERSION@","")
-PACKAGE_VERSION = `bzr version-info --custom --template='{branch_nick}.{revno}'`
-else
-PACKAGE_VERSION = "@FLUIDITY_VERSION@"
-endif
-
 FLUIDITY = $(PACKAGE_NAME)
 
 PROGRAM	 = ./bin/$(FLUIDITY)
@@ -74,9 +64,9 @@ LINKER  = @LINKER@ @LDFLAGS@
 
 FLLINKER = @FLLINKER@ @LDFLAGS@ $(FCFLAGS)
 
-LIBS    = -L./lib -l$(FLUIDITY) @BLAS_LIBS@ @LIB_FEMDEM@ ./lib/libadaptivity.a \
+LIBS    = -L./lib -l$(FLUIDITY) @LIB_FEMDEM@ ./lib/libadaptivity.a \
            ./lib/libvtkfortran.a ./lib/libspatialindex.a ./lib/libspud.a ./lib/libjudy.a \
-           @LIBS@
+           @LIBS@ @BLAS_LIBS@
 
 OBJS = $(shell find . -mindepth 2 -maxdepth 2 -name '*.c' -o -name '*.cpp' -o -name '*.[fF]' -o -name '*.F90' | grep -v ^./lib | xargs)
 MAKE = @MAKE@ -s
@@ -177,19 +167,17 @@ ifeq (@FEMDEM@,yes)
 	@cd @FLFEMDEM_PATH@;$(MAKE)
 endif
 
-include/libspud.h: lib/libspud.a
+include/spud.h: lib/libspud.a
 
-main.o: include/version.h include/libspud.h
+main.o: include/version.h include/spud.h
 
-include/version.h:
-	@echo "DEFINE __FLUIDITY_VERSION__"
-	@grep "$(PACKAGE_VERSION)" include/version.h >/dev/null 2>&1 || \
-	printf "#ifndef _FLUIDITY_VERSION_H\n\
-	#define _FLUIDITY_VERSION_H\n\
-	#define __FLUIDITY_VERSION__ \"$(PACKAGE_VERSION)\"\n\
-	#endif /* _FLUIDITY_VERSION_H */\n" > include/version.h
+include/version.h: version-info
+	@bin/version-info $@
 
-.PHONY: include/version.h
+version-info:
+	@$(MAKE) -C tools install-version-info
+
+.PHONY: version-info
 
 bin/$(FLUIDITY): main.o lib/lib$(FLUIDITY).a
 	@echo "BUILD fluidity"
@@ -630,7 +618,7 @@ install: default fltools bin/shallow_water bin/burgers_equation
 	cp -r examples/ $(DESTDIR)$(docdir)/fluidity
 	find $(DESTDIR)$(docdir)/fluidity/examples -type f -exec sed -i "s/\.\.\/\.\.\/\.\.\/bin\///" '{}' \;
 	find $(DESTDIR)$(docdir)/fluidity/examples -type f -exec sed -i "s/\.\.\/\.\.\/bin\///" '{}' \;
-	tar -czvf $(DESTDIR)$(docdir)/fluidity/examples.tar.gz $(DESTDIR)$(docdir)/fluidity/examples/
+	cd $(DESTDIR)$(docdir)/fluidity ; tar -czvf $(DESTDIR)$(docdir)/fluidity/examples.tar.gz examples/
 	rm -rf $(DESTDIR)$(docdir)/fluidity/examples/
 
 install-diamond: 

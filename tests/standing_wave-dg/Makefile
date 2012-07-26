@@ -8,4 +8,5 @@ clean:
 	rm -f $(PROJECT).s $(PROJECT).stat
 	rm -f *.vtu *.detectors
 	rm -f fluidity.err-0 fluidity.log-0
-	rm -f *.ele *.face *.node *.msh
+	rm -f *.ele *.face *.node *.msh \
+	matrixdump matrixdump.info
