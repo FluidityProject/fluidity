@@ -329,7 +329,7 @@ $\sigma_k$ & 1.0 \\ \hline
 \begin{itemize}
 \item The background viscosity must be set as an \option{anisotropic\_symmetric} tensor, with all values set equal to the isotropic viscosity.
 \item The velocity stress terms should be in partial-stress form, which is set under \option{../vector\_field::Velocity/prognostic/spatial\_discretisation/../stress\_terms/}.
-\item If using a P2 mesh mass-lumping does not work when calculating the source and absorbtion terms for the model. \option{../k-epsilon/mass\_lumping\_in\_diagnostics/solve\_using\_mass\_matrix} must be selected.
+\item If using anything other than a P1 Velocity mesh, mass-lumping does not work when calculating the source and absorbtion terms for the model. \option{../k-epsilon/mass\_lumping\_in\_diagnostics/solve\_using\_mass\_matrix} must be selected.
 \end{itemize}
 
 \par{\textbf{Low Reynolds number model}\\}
