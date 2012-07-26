@@ -247,7 +247,7 @@ module advection_local_DG
 
     if (limit_slope) then
        ! Filter wiggles from T
-       call limit_slope_dg(T, U_nl, X, state, limiter, delta_T)
+       call limit_vb_manifold(state,T,delta_T)
        if(present(flux)) then
           call zero(upwindflux)
           do ele = 1, ele_count(T)
@@ -286,7 +286,7 @@ module advection_local_DG
 
        if (limit_slope) then
           ! Filter wiggles from T
-          call limit_slope_dg(T, U_nl, X, state, limiter, delta_T)
+          call limit_vb_manifold(state,T,delta_T)
           if(present(flux)) then
              call mult(delta_t_total, mass, delta_t)
              call zero(UpwindFlux)
@@ -447,7 +447,10 @@ module advection_local_DG
     end do
     residual = abs(total_flux-sum(ele_val(Delta_T,ele)))&
          &/max(1.0,maxval(ele_val(Delta_T,ele)))/area
-    assert(residual<1.0e-10)
+    if(residual>1.0e-10) then
+       ewrite(0,*) 'Residual = ', residual
+       FLExit('Bad residual')
+    end if
 
     Flux_rhs = 0.
     Flux_mat = 0.
@@ -1159,13 +1162,9 @@ module advection_local_DG
     ! => \pi \hat{D} = D
     ! \hat{D}^{n+1}/J = \hat{D}^n/J + div Flux
 
-    FLExit('Verify this!')
-
     ! So (integrating by parts)
     ! <\gamma, \hat{D}^{n+1}/J> = 
     !             <\gamma, D^n/J> - <\nabla\gamma, F>
-
-    FLExit('Or Verify this!')
 
     ! and a consistent theta-method for Q is
     ! <\gamma,\hat{D}^{n+1}Q^{n+1}/J> = 
@@ -1234,6 +1233,8 @@ module advection_local_DG
        tmp_mat = dshape_dot_vector_shape(&
             Q_shape%dn,U_nl_gi,Q_shape,D_gi*detwei_l/detJ)
        l_adv_mat = l_adv_mat + tau*tmp_mat
+       tmp_mat = dshape_dot_vector_shape(&
+            Q_shape%dn,U_nl_gi,Q_shape,D_old_gi*detwei_l/detJ)
        l_rhs = l_rhs + tau*matmul(tmp_mat,Q_val)
        !! Advection terms
        !! tau < u. grad gamma, div (F Q)>
@@ -1662,7 +1663,7 @@ module advection_local_DG
     proj_mat = shape_shape(D_shape,D_shape,D_shape%quadrature%weight)
     mass_mat = shape_shape(D_shape,D_shape,detwei)
     D_val_out = matmul(mass_mat,D_val_in)
-    call solve(mass_mat,D_val_out)
+    call solve(proj_mat,D_val_out)
 
   end function invert_pi_ele
 

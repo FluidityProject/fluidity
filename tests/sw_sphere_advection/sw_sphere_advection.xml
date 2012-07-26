@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+<testproblem>
+  <name>sw_sphere_advection</name>
+  <owner userid="cjc"/>
+  <tags>swml</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>shallow_water_mimetic sphere_advection_curved_elements.swml
+</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="minmax" language="python">
+import vtktools
+v = vtktools.vtu("curved_elements_1.vtu")
+minmax = v.GetScalarRange("PotentialVorticityTracer")
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Min Field is 1" language="python">
+assert(abs(minmax[0]-1.0) &lt; 1.0e-8)
+    </test>
+    <test name="Max Field is 1" language="python">
+assert(abs(minmax[1]-1.0) &lt; 1.0e-8)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
+

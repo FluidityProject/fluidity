@@ -42,7 +42,7 @@ use vector_tools
 implicit none
 
 private
-public limit_slope_dg, limit_fpn, limit_vb, limit_hull
+public limit_slope_dg, limit_fpn, limit_vb, limit_vb_manifold,limit_hull
 
 interface limit_slope_dg
    module procedure limit_slope_dg_scalar
@@ -1467,6 +1467,133 @@ contains
     call deallocate(T_min)
 
   end subroutine limit_vb
+
+  subroutine limit_vb_manifold(state, t, delta_t)
+    !Vertex-based (not Victoria Bitter) limiter from
+    !Kuzmin, J. Comp. Appl. Math., 2010
+    ! doi:10.1016/j.cam.2009.05.028
+    ! This is a version for solving on embedded 2D surfaces in 3D
+    type(state_type), intent(inout) :: state
+    type(scalar_field), intent(inout) :: t
+    type(scalar_field), intent(inout), optional :: delta_t
+    !
+    ! This is the limited version of the field, we have to make a copy
+    type(scalar_field) :: T_limit, T_max, T_min
+    type(mesh_type), pointer :: vertex_mesh
+    ! counters
+    integer :: ele, node
+    ! local numbers
+    integer, dimension(:), pointer :: T_ele
+    ! gradient scaling factor
+    real :: alpha
+    ! local field values
+    real, dimension(ele_loc(T,1)) :: T_val, T_val_slope, T_val_min,T_val_max
+    real :: Tbar
+    ! Coordinate field to compute Jacobian for element means
+    type(vector_field), pointer :: X
+
+    X=>extract_vector_field(state, "Coordinate")
+
+    if (.not. element_degree(T%mesh, 1)==1 .or. continuity(T%mesh)>=0) then
+       FLExit("The vertex based slope limiter only works for P1DG fields.")
+    end if
+    
+    ! Allocate copy of field
+    call allocate(T_limit, T%mesh,trim(T%name)//"Limited")
+    call set(T_limit, T)
+    
+    ! returns linear version of T%mesh (if T%mesh is periodic, so is vertex_mesh)
+    call find_linear_parent_mesh(state, T%mesh, vertex_mesh)
+
+    call allocate(T_max, vertex_mesh, trim(T%name)//"LimitMax")
+    call allocate(T_min, vertex_mesh, trim(T%name)//"LimitMin")
+ 
+    call set(T_max, -huge(0.0))
+    call set(T_min, huge(0.0))
+
+    ! for each vertex in the mesh store the min and max values of the P1DG
+    !  nodes directly surrounding it
+    do ele = 1, ele_count(T)
+       T_ele => ele_nodes(T,ele)
+       T_val = ele_val(T,ele)
+       Tbar = element_mean(T,X,ele)
+       ! we assume here T is P1DG and vertex_mesh is linear
+       assert( size(T_ele)==ele_loc(vertex_mesh,ele) )
+       
+       ! do maxes
+       T_val_max = ele_val(T_max,ele)
+       do node = 1, size(T_val)
+          T_val_max(node) = max(T_val_max(node), Tbar)
+       end do
+       call set(T_max, ele_nodes(T_max, ele), T_val_max)
+       
+       ! do mins
+       T_val_min = ele_val(T_min,ele)
+       do node = 1, size(T_val)
+          T_val_min(node) = min(T_val_min(node), Tbar)
+       end do
+       call set(T_min, ele_nodes(T_min,ele), T_val_min)
+    end do
+
+    ! now for each P1DG node make sure the field value is between the recorded vertex min and max
+    ! this is done without changing the element average (Tbar)
+    do ele = 1, ele_count(T)
+       !Set slope factor to 1
+       alpha = 1.
+       !Get local node lists
+       T_ele=>ele_nodes(T,ele)
+       
+       T_val = ele_val(T,ele)
+       Tbar = element_mean(T,X,ele)
+       T_val_slope = T_val - Tbar
+       T_val_max = ele_val(T_max,ele)
+       T_val_min = ele_val(T_min,ele)
+
+       !loop over nodes, adjust alpha
+       do node = 1, size(T_val)
+          if(T_val(node)>Tbar*(1.0+sign(1.0e-12,Tbar))) then
+             alpha = min(alpha,(T_val_max(node)-Tbar)/(T_val(node)-Tbar))
+          else if(T_val(node)<Tbar*(1.0-sign(1.0e-12,Tbar))) then
+             alpha = min(alpha,(T_val_min(node)-Tbar)/(T_val(node)-Tbar))
+          end if
+       end do
+
+       call set(T_limit, T_ele, Tbar + alpha*T_val_slope)
+    end do
+
+    !Update fields
+    if(present(delta_t)) then
+       call set(delta_t, T)
+       call scale(delta_t, -1.0)
+       call addto(delta_t, T_limit)
+    end if
+    call set(T, T_limit)
+    call halo_update(T)
+
+    !Deallocate copy of field
+    call deallocate(T_limit)
+    call deallocate(T_max)
+    call deallocate(T_min)    
+
+  end subroutine limit_vb_manifold
+
+  function element_mean(T,X,ele) result (Tbar)
+    type(scalar_field), intent(in) :: T
+    type(vector_field), intent(in) :: X
+    integer, intent(in) :: ele
+    real :: Tbar
+    !
+    real, dimension(ele_ngi(T,ele)) :: T_quad, detwei
+    real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+
+    ! Get J and detwei
+    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), detwei&
+         &=detwei, J=J)
+
+    T_quad = ele_val_at_quad(T,ele)
+    Tbar = sum(T_quad*detwei)/sum(detwei)
+
+  end function element_mean
 
   function rotate_ele2vertex(V_normal,E_normal,V_tangent1,V_tangent2,Vbar)
     real, dimension(3), intent(in) :: V_normal, E_normal, V_tangent1&

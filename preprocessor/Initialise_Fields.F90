@@ -377,6 +377,11 @@ contains
        !This will get reset in shallow_water after populate_state
        const = 0.0
        call set(field,const)
+    elseif(have_option(trim(path)//"/galerkin_projection")) then
+       !This option exists in shallow_water schema
+       !This will get reset in shallow_water after populate_state
+       const = 0.0
+       call set(field,const)
     else if (have_option(trim(path)//"/no_initial_condition")) then
       continue
     else

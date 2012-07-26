@@ -489,6 +489,12 @@
        call set_velocity_from_streamfunction(state)
     end if
 
+    !Set velocity from Galerkin projection
+    if(have_option("/material_phase::Fluid/vector_field::Velocity/prognost&
+         &ic/initial_condition::WholeMesh/galerkin_projection")) then
+       call set_velocity_galerkin_projection(state)
+    end if    
+
     v_field => extract_vector_field(state, "LocalVelocity")
     call project_to_constrained_space(state,v_field)
     
@@ -524,7 +530,6 @@
       call get_option('/geometry/mesh::CoordinateMesh/recompute_coordinate_f&
            &ield/python',Python_Function)
 
-      ewrite(2,*) trim(Python_Function)
       do ele = 1, ele_count(X)
          call recompute_coordinate_field_ele(X,Python_Function,ele)
       end do
@@ -536,9 +541,12 @@
       integer, intent(in) :: ele
       !
       real, dimension(X%dim,ele_loc(X,ele)) :: X_ele_val,X_ele_val_2
-      integer :: stat, nod
+      integer :: stat
 
       X_ele_val = ele_val(X,ele)
+      if(X%dim.ne.3) then
+         FLExit('Option only available for 3 dimensional coordinates.')
+      end if
 
       call set_vector_field_from_python(python_function, len(python_function),&
            & dim=3,nodes=ele_loc(X,ele),x=X_ele_val(1,:),y=X_ele_val(2,:)&
@@ -554,6 +562,99 @@
     call set(X,ele_nodes(X,ele),X_ele_val_2)
 
     end subroutine recompute_coordinate_field_ele
+
+    subroutine set_velocity_galerkin_projection(state)
+      type(state_type), intent(in) :: state
+      !
+      type(vector_field), pointer  :: X, U
+      integer :: ele
+      character(len=PYTHON_FUNC_LEN) :: Python_Function
+
+      X=>extract_vector_field(state,"Coordinate")
+      U=>extract_vector_field(state,"LocalVelocity")
+      call get_option('/material_phase::Fluid/vector_field::Velocity/prognos&
+           &tic/initial_condition::WholeMesh/galerkin_projection/python'&
+           &,Python_Function)
+
+      do ele = 1, ele_count(X)
+         call set_velocity_galerkin_projection_ele(U,Python_Function,X,ele)
+      end do
+    end subroutine set_velocity_galerkin_projection
+
+    subroutine set_velocity_galerkin_projection_ele(U,Python_Function,X,ele)
+      !! Subroutine to 
+      type(vector_field), intent(in) :: X
+      character(len=PYTHON_FUNC_LEN), intent(in) :: Python_Function
+      type(vector_field), intent(inout) :: U
+      integer, intent(in) :: ele
+      !
+      real, dimension(ele_ngi(X,ele)) :: detwei, detJ
+      real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+      real, dimension(mesh_dim(U),ele_loc(U,ele)) :: U_val
+      real, dimension(X%dim,ele_ngi(X,ele)) :: X_quad, U_quad
+      real, dimension(mesh_dim(U),ele_ngi(X,ele)) :: Ul_quad
+      real, dimension(mesh_dim(U)*ele_loc(U,ele)) :: U_rhs
+      real, dimension(mesh_dim(U)*ele_loc(U,ele),&
+           mesh_dim(U)*ele_loc(U,ele)) :: U_mat
+      real, dimension(mesh_dim(U), mesh_dim(U), ele_ngi(U,ele)) :: Metric
+      integer :: dim1, dim2, stat, gi
+      real, dimension(mesh_dim(U),mesh_dim(U),&
+           & ele_loc(U,ele),ele_loc(U,ele)) :: l_u_mat
+      type(element_type), pointer :: u_shape
+      integer, dimension(mesh_dim(U)) :: U_start, U_end
+
+      if(X%dim.ne.3) then
+         FLExit('Option only available for 3 dimensional coordinates.')
+      end if
+      u_shape => ele_shape(U,ele)
+      X_quad = ele_val_at_quad(X,ele)
+
+      call set_vector_field_from_python(python_function, len(python_function),&
+           & dim=3,nodes=ele_ngi(X,ele),x=X_quad(1,:),y=X_quad(2,:)&
+           &,z=x_quad(3,:),t=0.0,result_dim=3,&
+           & result_x=U_quad(1,:),&
+           & result_y=U_quad(2,:),&
+           & result_z=U_quad(3,:),&
+           & stat=stat)
+
+      call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), detwei=detwei&
+           &,J=J, detJ=detJ)
+
+      do gi=1,ele_ngi(U,ele)
+         Metric(:,:,gi)=matmul(J(:,:,gi), transpose(J(:,:,gi)))/detJ(gi)
+         ul_quad(:,gi) = matmul(J(:,:,gi),U_quad(:,gi))
+      end do
+
+      !velocity mass matrix (done in local coordinates)
+      l_u_mat = shape_shape_tensor(u_shape, u_shape, &
+           u_shape%quadrature%weight, Metric)
+      !test function times ul_quad (stored temporarily in u_val)
+      u_val = shape_vector_rhs(u_shape,ul_quad,u_shape%quadrature%weight)
+
+      !indices
+      do dim1 = 1, mesh_dim(U)
+         u_start(dim1) = ele_loc(U,ele)*(dim1-1)+1
+         u_end(dim1) = ele_loc(U,ele)*dim1
+      end do
+      
+      do dim1 = 1, mesh_dim(U)
+         u_rhs(u_start(dim1):u_end(dim1)) = u_val(dim1,:)
+         do dim2 = 1, mesh_dim(U)
+            u_mat(u_start(dim1):u_end(dim1),&
+                 u_start(dim2):u_end(dim2))=&
+                 & l_u_mat(dim1,dim2,:,:)
+         end do
+      end do
+
+      call solve(u_mat,u_rhs)
+
+      do dim1 = 1, mesh_dim(U)
+         u_val(dim1,:) = u_rhs(u_start(dim1):u_end(dim1))
+      end do
+
+      call set(u,ele_nodes(u,ele),u_val)
+      
+    end subroutine set_velocity_galerkin_projection_ele
 
     subroutine fix_layerdepth_mean(state)
       type(state_type), intent(inout) :: state
@@ -630,7 +731,7 @@
            & l_mass_mat
       type(element_type) :: u_shape, psi_shape
       real, dimension(down%dim, ele_ngi(down,ele)) :: up_gi
-      integer :: orientation, gi, dim1
+      integer :: orientation, dim1
       real, dimension(ele_loc(psi,ele)) :: psi_loc
       real, dimension(mesh_dim(psi),ele_ngi(psi,ele)) :: dpsi_gi, grad_psi_gi
       real, dimension(mesh_dim(U),ele_loc(U,ele)) :: U_loc
@@ -707,37 +808,16 @@
       real, dimension(7,7) :: lmat
       real, dimension(2,2,7,7) :: ldmat
       type(element_type), pointer :: sshape
-      integer :: i,dim1,dim2
 
       sshape => ele_shape(s_field,1)
 
       lmat = shape_shape(sshape,sshape,sshape%quadrature%weight)
       ldmat = dshape_outer_dshape(sshape%dn,sshape%dn,sshape%quadrature%weight)
-      ewrite(1,*) 'mass'
-      do i = 1, 7
-         print *,'[',lmat(i,1),',',lmat(i,2),',',lmat(i,3),',',lmat(i,4),'&
-              &,',lmat(i,5),',',lmat(i,6),',',lmat(i,7),']'
-      end do
-      ewrite(1,*) 'laplace'
-      do dim1 = 1, 2
-         do dim2 = 1,2 
-            ewrite(1,*), 'dim', dim1, dim2
-            do i = 1, 7
-               print *, '[',ldmat(dim1,dim2,i,1),',',ldmat(dim1,dim2,i,1),','&
-                    &,ldmat(dim1,dim2,i,3),',',ldmat(dim1,dim2,i,4),',',&
-                    &ldmat(dim1,dim2,i,5),',',ldmat(dim1,dim2,i,6),','&
-                    &,ldmat(dim1,dim2,i,7),']'
-            end do
-         end do
-      end do
-
       !Basis functions evaluated at bubble node.
       N_vals = eval_shape(ele_shape(s_field,1), (/1.0/3.0,1.0/3.0,1.0/3.0/))
 
-      
-
       assert(s_field%mesh%shape%numbering%type==ELEMENT_BUBBLE)
-      ewrite(1,*) 'CJC FIXING', s_field%name
+      ewrite(2,*) 'CJC FIXING', s_field%name
       do ele = 1, ele_count(s_field)
          call fix_bubble_component_ele(s_field,N_vals,ele)
       end do
