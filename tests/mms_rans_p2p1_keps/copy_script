@@ -1,0 +1,19 @@
+PI=3.141592653589793
+n=8
+t=0.125
+for F in A B C D
+do
+	dx=$(echo $PI/$n|bc -l)
+
+	echo creating set $F with timestep=$t n_ele=$n	
+
+	cp MMS_X.flml MMS_$F.flml 
+	sed s/MMS_X/MMS_$F/ MMS_$F.flml > MMS_$F.flml.cp
+	sed s/999.9/$t/ MMS_$F.flml.cp > MMS_$F.flml
+	rm MMS_$F.flml.cp
+
+	sed s/XX/$n/ src/MMS_X.geo > src/MMS_$F.geo	
+
+	t=$(echo $t/2|bc -l)
+	n=$((n*2))
+done
