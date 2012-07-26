@@ -407,7 +407,7 @@ module fsi_model
     subroutine fsi_move_solid_mesh(state)
     !! Moving a solid mesh
       type(state_type), intent(in) :: state
-      type(vector_field), pointer :: initial_solid_position, solid_position
+      type(vector_field), pointer :: solid_position
       type(vector_field) :: solid_movement
       integer :: i, num_pre_solid_vel, num_solid_mesh
       character(len=PYTHON_FUNC_LEN) :: func
@@ -424,24 +424,21 @@ module fsi_model
             ! 1st get mesh name:
             call get_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed/mesh['//int2str(i)//']/name', mesh_name)
 
-            ! 2nd get (initial) coordinate field of this solid mesh:
-            initial_solid_position => extract_vector_field(state, "Initial"//trim(mesh_name)//"SolidCoordinate")
+            ! 2nd get coordinate field of this solid mesh:
+            solid_position => extract_vector_field(state, trim(mesh_name)//"SolidCoordinate")
 
             ! 3nd get the python function for this solid mesh:
             call get_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed/mesh['//int2str(i)//']/python', func)
 
             ! 4 set the field based on the python function:
-            call allocate(solid_movement, initial_solid_position%dim, initial_solid_position%mesh, name=trim(mesh_name)//"SolidMovement")
+            call allocate(solid_movement, solid_position%dim, solid_position%mesh, name=trim(mesh_name)//"SolidMovement")
             call zero(solid_movement)
 
-            call set_from_python_function(solid_movement, func, initial_solid_position, current_time)
+            call set_from_python_function(solid_movement, func, solid_position, current_time)
             
             ! 5 set solid position field:
             solid_position => extract_vector_field(state, trim(mesh_name)//"SolidCoordinate")
-            ! From solid_movement, subtract the initial coordinates:
-            call addto(solid_movement, initial_solid_position, -1.0)
-            ! And add the solid_movement to it:
-            call addto(solid_position, solid_movement)
+            call addto(solid_position, solid_movement, dt)
 
             ! 6 Deallocate dummy vector field:
             call deallocate(solid_movement)
@@ -851,9 +848,6 @@ module fsi_model
          ! Insert solid_mesh and solid_position into state:
          call insert(state, solid_mesh, trim(solid_mesh%name))
          call insert(state, solid_position, trim(solid_position%name))
-         ! Also insert the solid coordinate into state as the initial state of the solid position, 
-         ! which is needed for prescribed movement of a solid:
-         call insert(state, solid_position, trim('Initial'//solid_position%name))
 
          ! Also set-up solidvolumefraction field for all solids:
          call allocate(alpha_solidmesh, fluid_position%mesh, trim(solid_mesh%name)//"SolidConcentration")
