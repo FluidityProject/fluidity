@@ -113,8 +113,13 @@ contains
             quad_family=quad_family)
 
     case("exodusii")
+#ifdef HAVE_LIBEXOIIV2C
        field = read_exodusii_file(filename, quad_degree=quad_degree, quad_ngi=quad_ngi, &
             quad_family=quad_family)
+#else
+  FLExit("Fluidity was not configured with exodusII, reconfigure with '--with-exodusII'!")
+#endif
+
 
        ! Additional mesh format subroutines go here
 
