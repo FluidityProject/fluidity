@@ -2554,6 +2554,14 @@ electrokinetic, electrochemical or electrothermal sources </a:documentation>
           <value>ElectricalPotential</value>
         </attribute>
       </element>
+      <element name="equation">
+        <a:documentation>Select the equation used to solve for this field.
+k-epsilon model equation.
+ONLY WORKS FOR CONTINUOUS GALERKIN DISCRETISATIONS</a:documentation>
+        <attribute name="name">
+          <value>KEpsilon</value>
+        </attribute>
+      </element>
     </choice>
   </define>
   <define name="equation_coefficients">

@@ -84,6 +84,7 @@ subroutine keps_calculate_rhs(state)
   type(scalar_field_pointer), allocatable, dimension(:) :: buoyant_fields
   type(scalar_field) :: src_to_abs
   type(vector_field), pointer :: positions, u, g
+  type(scalar_field), pointer :: dummydensity, density
   type(tensor_field), pointer :: diff
   integer :: i, node, ele, term, stat
   real :: g_magnitude, c_eps_1, c_eps_2, sigma_eps, sigma_k
@@ -91,6 +92,7 @@ subroutine keps_calculate_rhs(state)
   logical :: prescribed, gravity = .true., have_buoyant_fields =.false., lump_mass
   character(len=OPTION_PATH_LEN) :: option_path 
   character(len=FIELD_NAME_LEN), dimension(2) :: field_names
+  character(len=FIELD_NAME_LEN) :: equation_type
 
   option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/'
 
@@ -121,6 +123,25 @@ subroutine keps_calculate_rhs(state)
   if (allocated(buoyant_fields)) then
      have_buoyant_fields = .true.
   end if
+  
+  allocate(dummydensity)
+  call allocate(dummydensity, positions%mesh, "DummyDensity", field_type=FIELD_TYPE_CONSTANT)
+  call set(dummydensity, 1.0)
+  dummydensity%option_path = ""
+  
+  ! Depending on the equation type, extract the density or set it to some dummy field allocated above
+  call get_option(trim(u%option_path)//"/prognostic/equation[0]/name", equation_type)
+  select case(equation_type)
+     case("LinearMomentum")
+        density=>extract_scalar_field(state, "Density")
+     case("Boussinesq")
+        density=>dummydensity
+     case("Drainage")
+        density=>dummydensity
+     case default
+        ! developer error... out of sync options input and code
+        FLAbort("Unknown equation type for velocity")
+  end select
 
   field_names(1) = 'TurbulentKineticEnergy'
   field_names(2) = 'TurbulentDissipation'
@@ -150,8 +171,8 @@ subroutine keps_calculate_rhs(state)
      ! Assembly loop
      
      do ele = 1, ele_count(fields(1)%ptr)
-        call assemble_rhs_ele(src_abs_terms, fields(i)%ptr, fields(3-i)%ptr, EV, u, buoyant_fields, &
-             & have_buoyant_fields, beta, delta_t, g, g_magnitude, gravity, positions,&
+        call assemble_rhs_ele(src_abs_terms, fields(i)%ptr, fields(3-i)%ptr, EV, u, equation_type, &
+             & density, buoyant_fields, have_buoyant_fields, beta, delta_t, g, g_magnitude, gravity, positions, &
              & c_eps_1, c_eps_2, sigma_k, sigma_eps, f_1, f_2, ele, i)
      end do
 
@@ -254,6 +275,9 @@ subroutine keps_calculate_rhs(state)
   end do field_loop
 
   call deallocate_scalar_field_buoyancy_data(buoyant_fields, beta, delta_t)
+  
+  call deallocate(dummydensity)
+  deallocate(dummydensity)
 
   ! Set diffusivity
   diff => extract_tensor_field(state, trim(field_names(1))//"Diffusivity", stat)
@@ -274,21 +298,23 @@ end subroutine keps_calculate_rhs
 !------------------------------------------------------------------------------!
 ! calculate the source and absorbtion terms                                    !
 !------------------------------------------------------------------------------!
-subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, buoyant_fields, &
-     have_buoyant_fields, beta, delta_t, g, g_magnitude, gravity, positions, &
-     c_eps_1, c_eps_2, sigma_k, sigma_eps, f_1, f_2, ele, field_id)
+subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, equation_type, density, &
+     buoyant_fields, have_buoyant_fields, beta, delta_t, g, g_magnitude, gravity, &
+     positions, c_eps_1, c_eps_2, sigma_k, sigma_eps, f_1, f_2, ele, field_id)
 
   type(scalar_field), dimension(3), intent(inout) :: src_abs_terms
   type(scalar_field), intent(in) :: k, eps, EV, f_1, f_2
   type(scalar_field_pointer), dimension(:) :: buoyant_fields
   type(vector_field), intent(in) :: positions, u, g
+  character(len=FIELD_NAME_LEN), intent(in) :: equation_type
+  type(scalar_field), intent(in) :: density
   real, dimension(:) :: beta, delta_t
   real, intent(in) :: g_magnitude, c_eps_1, c_eps_2, sigma_k, sigma_eps
   logical, intent(in) :: gravity, have_buoyant_fields
   integer, intent(in) :: ele, field_id
 
   real, dimension(ele_loc(k, ele), ele_ngi(k, ele), positions%dim) :: dshape
-  real, dimension(ele_ngi(k, ele)) :: detwei, strain_ngi, inv_k, rhs, EV_ele, k_ele
+  real, dimension(ele_ngi(k, ele)) :: detwei, strain_ngi, inv_k, rhs, EV_ele, k_ele, density_ele
   real, dimension(3, ele_loc(k, ele)) :: rhs_addto
   integer, dimension(ele_loc(k, ele)) :: nodes
   real, dimension(ele_loc(k, ele), ele_loc(k, ele)) :: invmass
@@ -313,13 +339,14 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, buoyant_fields, &
   grad_u = ele_grad_at_quad(u, ele, dshape)
   EV_ele = ele_val_at_quad(EV, ele)
   k_ele = ele_val_at_quad(k, ele)
+  density_ele = ele_val_at_quad(density, ele)
   ngi = ele_ngi(u, ele)
   dim = u%dim
   do gi = 1, ngi
      reynolds_stress(:,:,gi) = EV_ele(gi)*(grad_u(:,:,gi) + transpose(grad_u(:,:,gi)))
   end do
   do i = 1, dim
-     reynolds_stress(i,i,:) = reynolds_stress(i,i,:) - (2./3.)*k_ele
+     reynolds_stress(i,i,:) = reynolds_stress(i,i,:) - (2./3.)*k_ele*density_ele
   end do
   ! Compute P
   rhs = tensor_inner_product(reynolds_stress, grad_u)
@@ -329,7 +356,7 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, buoyant_fields, &
   rhs_addto(1,:) = shape_rhs(shape, detwei*rhs)
 
   ! A:
-  rhs = ele_val_at_quad(eps,ele)*inv_k
+  rhs = ele_val_at_quad(eps,ele)*inv_k*density_ele
   if (field_id==2) then
      rhs = rhs*c_eps_2*ele_val_at_quad(f_2,ele)
   end if
@@ -344,9 +371,10 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, buoyant_fields, &
   if (have_buoyant_fields .and. gravity) then 
      ! loop through buoyant fields, calculate source term and add to addto array
      do i_field = 1, size(buoyant_fields, 1)
-        call calculate_buoyancy_term(rhs_addto, EV, u, buoyant_fields(i_field)%ptr, &
-             & beta(i_field), delta_t(i_field), g, g_magnitude, positions, ele, detwei,&
-             & shape, field_id, c_eps_1, f_1, inv_k, eps)
+        call calculate_buoyancy_term(rhs_addto, EV, u, equation_type, density, &
+             & buoyant_fields(i_field)%ptr, beta(i_field), delta_t(i_field), g, &
+             & g_magnitude, positions, ele, detwei, shape, field_id, c_eps_1, &
+             & f_1, inv_k, eps)
      end do
   end if
 
@@ -385,13 +413,14 @@ end function tensor_inner_product
 !------------------------------------------------------------------------------!
 ! calculate the buoyancy source term for each buoyant scalar field             !
 !------------------------------------------------------------------------------!
-subroutine calculate_buoyancy_term(rhs_addto, EV, u, buoyant_field, beta,&
+subroutine calculate_buoyancy_term(rhs_addto, EV, u, equation_type, density, buoyant_field, beta,&
      & delta_t, g, g_magnitude, positions, ele, detwei, shape, field_id, c_eps_1, f_1,&
      & inv_k, eps)
 
   real, intent(inout), dimension(:,:) :: rhs_addto
-  type(scalar_field), intent(in) :: EV, buoyant_field, f_1, eps 
+  type(scalar_field), intent(in) :: EV, buoyant_field, f_1, eps, density
   type(vector_field), intent(in) :: positions, u, g
+  character(len=FIELD_NAME_LEN), intent(in) :: equation_type
   real, intent(in), dimension(:) :: detwei, inv_k
   real, intent(in) :: g_magnitude, c_eps_1, beta, delta_t
   type(element_type), intent(in), pointer :: shape
@@ -400,7 +429,8 @@ subroutine calculate_buoyancy_term(rhs_addto, EV, u, buoyant_field, beta,&
   real, dimension(u%dim, ele_ngi(u, ele))  :: vector, u_z, u_xy
   real, dimension(ele_ngi(u, ele)) :: scalar, c_eps_3
   real, dimension(ele_loc(buoyant_field, ele),ele_ngi(buoyant_field, ele),positions%dim) :: dshape_s
-  type(element_type), pointer :: shape_s
+  real, dimension(ele_loc(density, ele),ele_ngi(density, ele),positions%dim) :: dshape_density
+  type(element_type), pointer :: shape_s, shape_density
 
   integer :: i_gi, i_loc, i_field
 
@@ -408,10 +438,21 @@ subroutine calculate_buoyancy_term(rhs_addto, EV, u, buoyant_field, beta,&
   shape_s => ele_shape(buoyant_field, ele)
   call transform_to_physical( positions, ele, shape_s, dshape=dshape_s )        
 
-  ! calculate scalar and vector components of the source term
-  vector = ele_val_at_quad(g, ele)*ele_grad_at_quad(buoyant_field,&
-       & ele, dshape_s)
-  scalar = -1.0*beta*g_magnitude*ele_val_at_quad(EV, ele)/delta_t
+  ! calculate scalar and vector components of the source term    
+  if(equation_type == "LinearMomentum") then
+     if(.not.(density%mesh == buoyant_field%mesh)) then
+        shape_density => ele_shape(density, ele)
+        call transform_to_physical( positions, ele, shape_density, dshape=dshape_density ) 
+     else
+        dshape_density = dshape_s
+     end if
+     
+     scalar = g_magnitude*ele_val_at_quad(EV, ele)/(delta_t*ele_val_at_quad(density,ele))
+     vector = ele_val_at_quad(g, ele)*ele_grad_at_quad(density, ele, dshape_density)
+  else
+     scalar = -1.0*beta*g_magnitude*ele_val_at_quad(EV, ele)/delta_t
+     vector = ele_val_at_quad(g, ele)*ele_grad_at_quad(buoyant_field, ele, dshape_s)
+  end if
 
   ! multiply vector component by scalar and sum across dimensions - note that the
   ! vector part has been multiplied by the gravitational direction so the it is
@@ -450,8 +491,8 @@ subroutine keps_eddyvisc(state)
 
   type(state_type), intent(inout)  :: state
   type(tensor_field), pointer      :: eddy_visc, viscosity, bg_visc
-  type(vector_field), pointer      :: positions
-  type(scalar_field), pointer      :: kk, eps, EV, ll, f_mu
+  type(vector_field), pointer      :: positions, u
+  type(scalar_field), pointer      :: kk, eps, EV, ll, f_mu, density, dummydensity
   type(scalar_field)               :: ev_rhs
   type(element_type), pointer      :: shape_ev
   integer                          :: i, j, ele, stat
@@ -461,6 +502,7 @@ subroutine keps_eddyvisc(state)
   real                             :: c_mu, lmax
   character(len=OPTION_PATH_LEN)   :: option_path
   logical                          :: lump_mass, have_visc = .true.
+  character(len=FIELD_NAME_LEN)    :: equation_type
 
   option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/'
 
@@ -478,6 +520,7 @@ subroutine keps_eddyvisc(state)
   kk         => extract_scalar_field(state, "TurbulentKineticEnergy")
   eps        => extract_scalar_field(state, "TurbulentDissipation")
   positions  => extract_vector_field(state, "Coordinate")
+  u          => extract_vector_field(state, "Velocity")
   eddy_visc  => extract_tensor_field(state, "EddyViscosity")
   f_mu       => extract_scalar_field(state, "f_mu")
   bg_visc    => extract_tensor_field(state, "BackgroundViscosity")
@@ -491,6 +534,25 @@ subroutine keps_eddyvisc(state)
   ewrite_minmax(kk)
   ewrite_minmax(eps)
   ewrite_minmax(EV)
+  
+  allocate(dummydensity)
+  call allocate(dummydensity, positions%mesh, "DummyDensity", field_type=FIELD_TYPE_CONSTANT)
+  call set(dummydensity, 1.0)
+  dummydensity%option_path = ""
+  
+  ! Depending on the equation type, extract the density or set it to some dummy field allocated above
+  call get_option(trim(u%option_path)//"/prognostic/equation[0]/name", equation_type)
+  select case(equation_type)
+     case("LinearMomentum")
+        density=>extract_scalar_field(state, "Density")
+     case("Boussinesq")
+        density=>dummydensity
+     case("Drainage")
+        density=>dummydensity
+     case default
+        ! developer error... out of sync options input and code
+        FLAbort("Unknown equation type for velocity")
+  end select
 
   call allocate(ev_rhs, EV%mesh, name="EVRHS")
   call zero(ev_rhs)
@@ -500,7 +562,7 @@ subroutine keps_eddyvisc(state)
      call set(viscosity, bg_visc)
   end if
 
-  !Clip fields: can't allow negative/zero epsilon or k
+  ! Clip fields: can't allow negative/zero epsilon or k
   do i = 1, node_count(EV)
      call set(kk, i, max(node_val(kk,i), fields_min))
      call set(eps, i, max(node_val(eps,i), fields_min))
@@ -518,8 +580,8 @@ subroutine keps_eddyvisc(state)
      call transform_to_physical(positions, ele, detwei=detwei)
 !      rhs_addto = shape_rhs(shape_ev, detwei*C_mu*ele_val_at_quad(f_mu,ele)* &
 !      ele_val_at_quad(kk,ele)**0.5*ele_val_at_quad(ll,ele))
-     rhs_addto = shape_rhs(shape_ev, detwei*C_mu*ele_val_at_quad(f_mu,ele)* &
-          ele_val_at_quad(kk,ele)**2.0/ele_val_at_quad(eps,ele))
+     rhs_addto = shape_rhs(shape_ev, detwei*C_mu*ele_val_at_quad(density,ele)*&
+          ele_val_at_quad(f_mu,ele)*ele_val_at_quad(kk,ele)**2.0/ele_val_at_quad(eps,ele))
      ! In the DG case we will apply the inverse mass locally.
      if(continuity(EV)<0) then
         invmass = inverse(shape_shape(shape_ev, shape_ev, detwei))
@@ -541,6 +603,9 @@ subroutine keps_eddyvisc(state)
   end if
 
   call deallocate(ev_rhs)
+  
+  call deallocate(dummydensity)
+  deallocate(dummydensity)
 
   ewrite(2,*) "Setting k-epsilon eddy-viscosity tensor"
   call zero(eddy_visc)
@@ -571,7 +636,7 @@ end subroutine keps_eddyvisc
 
 !--------------------------------------------------------------------------------!
 ! calculates the reynolds stress tensor correction term 
-! - grad(2/3 k delta(ij)) 
+! - grad(2/3 k rho delta(ij)) 
 ! this is added to prescribed momentum source fields or sets diagnostic source 
 ! fields 
 !--------------------------------------------------------------------------------!
@@ -579,13 +644,14 @@ subroutine keps_momentum_source(state)
 
   type(state_type), intent(inout)  :: state
   
-  type(scalar_field), pointer :: k, lumped_mass
-  type(vector_field), pointer :: source, x
+  type(scalar_field), pointer :: k, lumped_mass, dummydensity, density
+  type(vector_field), pointer :: source, x, u
   type(vector_field) :: rhs
   type(vector_field) :: prescribed_source
   integer :: i
   logical :: prescribed, lump_mass
   character(len=OPTION_PATH_LEN) :: option_path 
+  character(len=FIELD_NAME_LEN)    :: equation_type
 
   option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/'
 
@@ -598,6 +664,26 @@ subroutine keps_momentum_source(state)
   k         => extract_scalar_field(state, "TurbulentKineticEnergy")
   source    => extract_vector_field(state, "VelocitySource")
   x         => extract_vector_field(state, "Coordinate")
+  u         => extract_vector_field(state, "Velocity")
+  
+  allocate(dummydensity)
+  call allocate(dummydensity, x%mesh, "DummyDensity", field_type=FIELD_TYPE_CONSTANT)
+  call set(dummydensity, 1.0)
+  dummydensity%option_path = ""
+  
+  ! Depending on the equation type, extract the density or set it to some dummy field allocated above
+  call get_option(trim(u%option_path)//"/prognostic/equation[0]/name", equation_type)
+  select case(equation_type)
+     case("LinearMomentum")
+        density=>extract_scalar_field(state, "Density")
+     case("Boussinesq")
+        density=>dummydensity
+     case("Drainage")
+        density=>dummydensity
+     case default
+        ! developer error... out of sync options input and code
+        FLAbort("Unknown equation type for velocity")
+  end select
 
   ! Allow for prescribed momentum source
   prescribed = (have_option(trim(source%option_path)//'/prescribed/'))
@@ -620,6 +706,9 @@ subroutine keps_momentum_source(state)
   end if
   
   call deallocate(rhs)
+  
+  call deallocate(dummydensity)
+  deallocate(dummydensity)
 
   ! This code isn't needed because the adjustment to the field is done before the non
   ! -linear iteration loop
@@ -652,7 +741,7 @@ subroutine keps_momentum_source(state)
     call transform_to_physical( x, i, shape, dshape=dshape, detwei=detwei )
 
     grad_k = ele_grad_at_quad(k, i, dshape)
-    rhs_addto = shape_vector_rhs(shape, -(2./3.)*grad_k, detwei)
+    rhs_addto = shape_vector_rhs(shape, -(2./3.)*grad_k, detwei*ele_val_at_quad(density,i))
       
     ! In the DG case we apply the inverse mass locally.
     if(continuity(k)<0) then

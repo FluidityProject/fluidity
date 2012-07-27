@@ -2074,6 +2074,12 @@ scalar_equation_choice =
          ## electrokinetic, electrochemical or electrothermal sources 
          element equation { 
             attribute name { "ElectricalPotential" }
+         }|
+         ## Select the equation used to solve for this field.
+         ## k-epsilon model equation.
+         ## ONLY WORKS FOR CONTINUOUS GALERKIN DISCRETISATIONS
+         element equation {
+            attribute name { "KEpsilon" }
          }
       )
    )

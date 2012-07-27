@@ -145,7 +145,7 @@
         <scalar_field name="TurbulentKineticEnergy" rank="0">
           <prognostic>
             <mesh name="VelocityMesh"/>
-            <equation name="AdvectionDiffusion"/>
+            <equation name="KEpsilon"/>
             <spatial_discretisation>
               <continuous_galerkin>
                 <stabilisation>
@@ -249,7 +249,7 @@
         <scalar_field name="TurbulentDissipation" rank="0">
           <prognostic>
             <mesh name="VelocityMesh"/>
-            <equation name="AdvectionDiffusion"/>
+            <equation name="KEpsilon"/>
             <spatial_discretisation>
               <continuous_galerkin>
                 <stabilisation>
