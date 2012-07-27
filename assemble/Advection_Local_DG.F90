@@ -1444,18 +1444,25 @@ module advection_local_DG
     real, dimension(mesh_dim(Qflux)*ele_loc(QFlux,ele)) :: solve_rhs
     real, dimension(mesh_dim(Qflux),ele_ngi(Qflux,ele)) :: &
          contravariant_velocity_gi, velocity_perp_gi
-    type(element_type), pointer :: Q_shape, QFlux_shape
+    type(element_type), pointer :: Q_shape, QFlux_shape,D_shape
     integer :: loc, orientation,gi, dim1, dim2
     real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
     real, dimension(ele_ngi(X,ele)) :: detwei, detJ
     real, dimension(X%dim, X%dim, ele_ngi(X,ele)) :: rot
+    real, dimension(ele_loc(D,ele)) :: D_val
 
+    D_shape => ele_shape(D,ele)
     Q_shape => ele_shape(Q,ele)
     QFlux_shape => ele_shape(QFlux,ele)
     Q_gi = ele_val_at_quad(Q,ele)
     Q_old_gi = ele_val_at_quad(Q_old,ele)
-    D_gi = ele_val_at_quad(D,ele)
-    D_old_gi = ele_val_at_quad(D_old,ele)
+
+    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J, detwei, detJ)
+    D_val = invert_pi_ele(ele_val(D,ele),D_shape,detwei)
+    D_gi = matmul(transpose(D_shape%n),D_val)
+    D_val = invert_pi_ele(ele_val(D_old,ele),D_shape,detwei)
+    D_old_gi = matmul(transpose(D_shape%n),D_val)
+
     Flux_gi = ele_val_at_quad(Flux,ele)
     Qflux_perp_rhs = ele_val(Qflux,ele)
 
@@ -1463,8 +1470,6 @@ module advection_local_DG
        Flux_gi(:,gi) = Flux_gi(:,gi)*(t_theta*Q_gi(gi) + &
          (1-t_theta)*Q_old_gi(gi))
     end do
-
-    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J, detwei, detJ)
 
     up_gi = -ele_val_at_quad(down,ele)
     call get_up_gi(X,ele,up_gi,orientation)
@@ -1522,7 +1527,7 @@ module advection_local_DG
     end select
 
     Q_test2_rhs = shape_rhs(ele_shape(Q,ele),(Q_gi*D_gi-Q_old_gi&
-         &*D_old_gi)*detwei)
+         &*D_old_gi)*Q_shape%quadrature%weight)
 
     call addto(Qtest1,ele_nodes(Q,ele),Q_test1_rhs)
     call addto(Qtest2,ele_nodes(Q,ele),Q_test2_rhs)

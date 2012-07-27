@@ -200,7 +200,7 @@
       type(vector_field), pointer :: U, advecting_u, U_old
       type(scalar_field), pointer :: D_old, D, &
            & Coriolis, PV, &
-           & PV_old, PVconsistency
+           & PV_old
       type(vector_field) :: newU, MassFlux, PVFlux, UResidual
       type(scalar_field) :: newD, DResidual
       type(scalar_field), pointer :: PVtracer
@@ -225,8 +225,6 @@
       PV => extract_scalar_field(state, "PotentialVorticity",stat)
       have_pv = (stat==0)
       if(have_pv) then
-         PVconsistency => extract_scalar_field(&
-              state, "PVConsistency",stat)
          PV_old => extract_scalar_field(state, "OldPotentialVorticity",stat)
          have_pv_old = (stat==0)
       end if
@@ -421,17 +419,12 @@
          call zero(new_s_field)
          call insert(state, new_s_field, "OldPotentialVorticity")
          call deallocate(new_s_field)
-         call allocate(new_s_field, s_field%mesh,&
-              "PVConsistency")
-         call zero(new_s_field)
-         call insert(state, new_s_field, "PVConsistency")
-         call deallocate(new_s_field)
       end if
       
       !SET UP CORIOLIS FORCE
       f_ptr => extract_scalar_field(state,"Coriolis",stat=stat)
       if(stat.ne.0) then
-         v_mesh => extract_mesh(state,"VelocityMesh")
+         v_mesh => extract_mesh(state,"CoordinateMesh")
          call allocate(f, v_mesh, "Coriolis")
          call get_option("/physical_parameters/coriolis", coriolis, stat)
          if(stat==0) then
@@ -672,12 +665,21 @@
          call assemble_mean_ele(D,X,h_mean,area,ele)
       end do
       h_mean = h_mean/area
-      D%val = D%val - h_mean
-      !Add back on the correct mean depth
-      call get_option("/material_phase::Fluid/scalar_field::LayerThickness/&
-           &prognostic/mean_layer_thickness",D0)
-      D%val = D%val + D0
-
+      
+      if(have_option('/material_phase::Fluid/scalar_field::LayerThickness/pr&
+           &ognostic/mean_layer_thickness/reset_this_value')) then
+         ewrite(2,*) 'Setting D0 to mean value computed from field',h_mean
+         call set_option('/material_phase::Fluid/scalar_field::LayerThicknes&
+              &s/prognostic/mean_layer_thickness',h_mean)
+         D0 = h_mean
+      else
+         D%val = D%val - h_mean
+         ewrite(2,*) 'Setting field mean value to D0',D0
+         !Add back on the correct mean depth
+         call get_option("/material_phase::Fluid/scalar_field::LayerThickness/&
+              &prognostic/mean_layer_thickness",D0)
+         D%val = D%val + D0
+      end if
       h_mean = 0.
       area = 0.
       do ele = 1, element_count(D)
@@ -943,25 +945,36 @@
       type(state_type), dimension(:), intent(inout) :: state
       !
       type(mesh_type), pointer :: zeta_mesh
-      type(scalar_field), pointer :: PV, streamfunction
-      integer :: stat
+      type(scalar_field), pointer :: sfield
+      type(scalar_field), dimension(:), allocatable :: BubbleFields
+      integer :: stat, n_bubble_fields, n_scalar_fields,i
       ! project the local velocity to cartesian coordinates
       call project_local_to_cartesian(state(1))
       ! Now we're ready to call write_state
       zeta_mesh => extract_mesh(state(1),"VorticityMesh",stat)
       if(stat==0) then
          if(zeta_mesh%shape%numbering%type==ELEMENT_BUBBLE) then
-            PV => extract_scalar_field(state(1),"PotentialVorticity",stat)
-            if(stat==0) then
-               streamfunction => extract_scalar_field(state(1),&
-                    "Streamfunction",stat)
-               if(stat==0) then               
-                  call bubble_field_to_vtk(state(1),(/PV,streamfunction/),&
-                       "PV",dump_no)
-               else
-                  call bubble_field_to_vtk(state(1),(/PV/),"PV",dump_no)
+            n_scalar_fields = scalar_field_count(state(1))
+            n_bubble_fields = 0
+            do i = 1, n_scalar_fields
+               sfield => extract_scalar_field(state(1),i)
+               if(sfield%mesh==zeta_mesh) then
+                  n_bubble_fields = n_bubble_fields+1
                end if
+            end do
+            allocate(BubbleFields(n_bubble_fields))
+            n_bubble_fields = 0
+            do i = 1, n_scalar_fields
+               sfield => extract_scalar_field(state(1),i)
+               if(sfield%mesh==zeta_mesh) then
+                  n_bubble_fields = n_bubble_fields+1
+                  BubbleFields(n_bubble_fields) = sfield
+               end if
+            end do
+            if(stat==0) then
+               call bubble_field_to_vtk(state(1),BubbleFields,"Bubble",dump_no)
             end if
+            deallocate(BubbleFields)
          end if
       end if
       call write_state(dump_no, state)

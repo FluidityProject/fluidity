@@ -1078,7 +1078,19 @@ prognostic_layerthickness_field =
       ## Mean value of thickness to use in wave equation solver
       ## Will be replaced by a field in due course
       element mean_layer_thickness {
-         real
+         real,
+         (
+            ## Add constant to layer field so that
+            ## it has mean equal to this value
+            element reset_field_mean {
+               empty
+            }|
+            ## Reset this value to mean calculated
+            ## from layer field
+            element reset_this_value {
+               empty
+            }
+         )
       },
       ## Source
       element scalar_field {

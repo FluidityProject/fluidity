@@ -1335,6 +1335,18 @@ where X and the return value are tuples of length geometry dimension.</a:documen
       <a:documentation>Mean value of thickness to use in wave equation solver
 Will be replaced by a field in due course</a:documentation>
       <ref name="real"/>
+      <choice>
+        <element name="reset_field_mean">
+          <a:documentation>Add constant to layer field so that
+it has mean equal to this value</a:documentation>
+          <empty/>
+        </element>
+        <element name="reset_this_value">
+          <a:documentation>Reset this value to mean calculated
+from layer field</a:documentation>
+          <empty/>
+        </element>
+      </choice>
     </element>
     <optional>
       <element name="scalar_field">

@@ -350,6 +350,24 @@ g = 9.80616
         <debug/>
       </prognostic>
     </scalar_field>
+    <scalar_field name="Streamfunction" rank="0">
+      <prescribed>
+        <value>
+          <python>
+            <string_value type="code" lines="20" language="python">def val(X,t): 
+  from math import pi
+  x = X[0]
+  y = X[1]
+  z = X[2]
+  R0 = 6.37122e6
+  u0 = 2*pi*R0/(12.*60.*60.*24)
+  return -u0*z</string_value>
+          </python>
+        </value>
+        <mesh name="VorticityMesh"/>
+        <output/>
+      </prescribed>
+    </scalar_field>
     <scalar_field name="DG_CourantNumber" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
