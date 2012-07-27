@@ -455,8 +455,8 @@ subroutine calculate_buoyancy_term(rhs_addto, EV, u, equation_type, density, buo
   end if
 
   ! multiply vector component by scalar and sum across dimensions - note that the
-  ! vector part has been multiplied by the gravitational direction so the it is
-  ! zero everywhere apart from in this direction
+  ! vector part has been multiplied by the gravitational direction so that it is
+  ! zero everywhere apart from in this direction.
   do i_gi = 1, ele_ngi(u, ele)
      scalar(i_gi) = sum(scalar(i_gi) * vector(:, i_gi))
   end do
@@ -684,7 +684,7 @@ subroutine keps_momentum_source(state)
         ! developer error... out of sync options input and code
         FLAbort("Unknown equation type for velocity")
   end select
-
+  
   ! Allow for prescribed momentum source
   prescribed = (have_option(trim(source%option_path)//'/prescribed/'))
   if(.not.prescribed) then
