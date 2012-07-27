@@ -1317,12 +1317,9 @@ contains
       end if
     end if
 
+    ! Vertical mixing by diffusion
     mixing_diffusion = 0.0
     mixing_diffusion_loc = 0.0
-    ! Vertical mixing by diffusion
-    ! TODO: Add option to generate optimal coefficient
-    ! k = 1/2 {\Delta t} g ( {\Delta r} )^2 max (d\rho / dr, 0 )
-    ! k = 1/2 dt g dr^2 max(drho/dr, 0 )
     if (have_buoyancy_adjustment_by_vertical_diffusion) then
        call calculate_vertical_diffusion(X, T, ele, buoyancy, &
                                          gravity, gravity_magnitude,&
@@ -3078,14 +3075,6 @@ contains
       mixing_diffusion = mixing_diffusion_localCoords
     end if
        
-    print *,'***'
-    ewrite(3,*) "mixing_grad_rho", minval(density_grad_at_quad(:,:)), maxval(density_grad_at_quad(:,:))
-    ewrite(3,*) "mixing_drho_dz", minval(vertical_density_grad_at_quad(:)), maxval(vertical_density_grad_at_quad(:))
-    ewrite(3,*) "mixing_coeffs amp dt g dr", mixing_diffusion_amplitude, dt, gravity_magnitude, dr**2
-    if (on_sphere) then
-    end if
-    ewrite(3,*) "mixing_diffusion", minval(mixing_diffusion), maxval(mixing_diffusion)
-
     mixing_diffusion_rhs=shape_tensor_rhs(T%mesh%shape, mixing_diffusion, detwei_rho)
     t_mass=shape_shape(T%mesh%shape, T%mesh%shape, detwei_rho)
     call invert(t_mass)
