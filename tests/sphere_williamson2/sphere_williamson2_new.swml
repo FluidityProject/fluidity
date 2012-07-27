@@ -125,7 +125,7 @@
     </dump_format>
     <dump_period_in_timesteps>
       <constant>
-        <integer_value rank="0">1</integer_value>
+        <integer_value rank="0">5</integer_value>
       </constant>
     </dump_period_in_timesteps>
     <output_mesh name="VelocityMesh"/>
@@ -219,9 +219,9 @@
           </diagnostics>
         </solver>
         <initial_condition name="WholeMesh">
-          <galerkin_projection>
+          <commuting_projection>
             <python>
-              <string_value lines="20" type="code" language="python">def val(X,t):
+              <string_value type="code" lines="20" language="python">def val(X,t):
   from math import pi
   x = X[0]
   y = X[1]
@@ -234,7 +234,7 @@
   u0 = 2*pi*R0/(12.*60.*60.*24)
   return [-u0*y/R0,u0*x/R0,0.]</string_value>
             </python>
-          </galerkin_projection>
+          </commuting_projection>
         </initial_condition>
         <output/>
         <convergence>
@@ -285,9 +285,9 @@
             <monitors/>
           </diagnostics>
         </solver>
-        <initial_condition name="WholeMesh">
+        <initial_condition name="ProjectionFromPython">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t): 
+            <string_value type="code" lines="20" language="python">def val(X,t): 
   from math import pi
   x = X[0]
   y = X[1]
@@ -300,7 +300,6 @@
   Omega = 7.292e-5
   sinsqtheta = (z/R)**2
   return (gh0-(R0*Omega*u0 + u0**2/2)*sinsqtheta)/g</string_value>
-            <comment>g*h0 =</comment>
           </python>
         </initial_condition>
         <mean_layer_thickness>
@@ -362,24 +361,95 @@ g = 9.80616
         </adjoint_storage>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="PVOut" rank="0">
+    <scalar_field name="PVError" rank="0">
       <diagnostic>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="PotentialVorticity">
-          <solver>
-            <iterative_method name="preonly"/>
-            <preconditioner name="lu"/>
-            <relative_error>
-              <real_value rank="0">1.0e-8</real_value>
-            </relative_error>
-            <max_iterations>
-              <integer_value rank="0">1000</integer_value>
-            </max_iterations>
-            <never_ignore_solver_failures/>
-            <diagnostics>
-              <monitors/>
-            </diagnostics>
-          </solver>
-        </algorithm>
+        <algorithm name="scalar_difference" source_field_1_name="InitialPV" source_field_2_name="PotentialVorticity" source_field_2_type="scalar" material_phase_support="single" source_field_1_type="scalar"/>
+        <mesh name="VorticityMesh"/>
+        <output>
+          <exclude_from_vtu/>
+        </output>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="InitialD" rank="0">
+      <diagnostic>
+        <algorithm material_phase_support="single" source_field_type="scalar" source_field_name="LayerThickness" name="scalar_copy"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <do_not_recalculate/>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="DError" rank="0">
+      <diagnostic>
+        <algorithm name="scalar_difference" source_field_1_name="InitialD" source_field_2_name="LayerThickness" source_field_2_type="scalar" material_phase_support="single" source_field_1_type="scalar"/>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="InitialPV" rank="0">
+      <diagnostic>
+        <algorithm material_phase_support="single" source_field_type="scalar" source_field_name="PotentialVorticity" name="scalar_copy"/>
+        <mesh name="VorticityMesh"/>
+        <output>
+          <exclude_from_vtu/>
+        </output>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <do_not_recalculate/>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="PVErrorP2DG" rank="0">
+      <diagnostic>
+        <algorithm material_phase_support="single" source_field_type="scalar" source_field_name="PVError" name="scalar_galerkin_projection"/>
         <mesh name="VelocityMesh"/>
         <output/>
         <stat/>
@@ -397,40 +467,51 @@ g = 9.80616
         </adjoint_storage>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="PVExact" rank="0">
-      <prescribed>
-        <mesh name="VorticityMesh"/>
-        <value name="WholeMesh">
-          <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
-  from math import pi
-  x = X[0]
-  y = X[1]
-  z = X[2]
-  R = (x**2+y**2+z**2)**0.5
-  R0 = 6.37122e6
-  sintheta = (1.-(z/R)**2)**0.5
-  u0 = 2*pi*R0/(12.*60.*60.*24)
-  g = 9.80616
-  gh0 = 2.94e4
-  Omega = 7.292e-5
-  D = (gh0-(R0*Omega*u0 + u0**2/2)*sintheta**2)/g
-  zeta = (2*u0/R0+2*Omega)*sintheta
-  f = 2*Omega*sintheta
-  q = (zeta+f)/D
-  return q</string_value>
-          </python>
-        </value>
+    <vector_field name="InitialVelocity" rank="1">
+      <diagnostic>
+        <algorithm material_phase_support="single" source_field_type="vector" source_field_name="Velocity" name="vector_copy"/>
+        <mesh name="VelocityMesh"/>
         <output/>
-        <stat/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
         <detectors>
-          <exclude_from_detectors/>
+          <include_in_detectors/>
         </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <do_not_recalculate/>
         <adjoint_storage>
           <exists_in_forward/>
         </adjoint_storage>
-      </prescribed>
-    </scalar_field>
+      </diagnostic>
+    </vector_field>
+    <vector_field name="UError" rank="1">
+      <diagnostic>
+        <algorithm name="vector_difference" source_field_1_name="Velocity" source_field_2_name="InitialVelocity" source_field_2_type="vector" material_phase_support="single" source_field_1_type="vector"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
+      </diagnostic>
+    </vector_field>
   </material_phase>
   <debug>
     <check_inverse_coriolis_matrix/>

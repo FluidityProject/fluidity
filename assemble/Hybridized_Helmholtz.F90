@@ -2705,15 +2705,6 @@ contains
        call set_layerthickness_projection_ele(D,X,Python_Function,ele)
     end do
 
-    !Subtract off the mean part
-    h_mean = 0.
-    area = 0.
-    do ele = 1, element_count(D)
-       call assemble_mean_ele(D,X,h_mean,area,ele)
-    end do
-    h_mean = h_mean/area
-    D%val = D%val - h_mean
-
   end subroutine set_layerthickness_projection
 
   subroutine set_layerthickness_projection_ele(D,X,Python_Function,ele)
