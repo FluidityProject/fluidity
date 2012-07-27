@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include "confdefs.h"
 #ifdef HAVE_NETCDF
 #include "netcdf.h"
 #endif
