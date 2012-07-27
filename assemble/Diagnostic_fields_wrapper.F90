@@ -84,9 +84,6 @@ contains
  
     do i = 1, size(state)
 
-       ! k-epsilon diagnostics
-       call keps_diagnostics(state(i))
-
        ! start of fields that can be called through the generic calculate_diagnostic_variable
        ! interface, i.e. - those that only require things available in f90modules
 
@@ -623,6 +620,12 @@ contains
            call calculate_diagnostic_variable(state(i), "AbsoluteDifference", v_field)  
          end if
        end if
+       
+       ! k-epsilon diagnostics
+       ! Note: only call this after all other diagnostic fields
+       ! have been computed, so that we know that the Density field
+       ! has been calculated first.
+       call keps_diagnostics(state(i))
 
     end do
     
