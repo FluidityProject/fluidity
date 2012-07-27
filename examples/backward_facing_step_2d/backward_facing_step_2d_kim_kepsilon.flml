@@ -322,12 +322,11 @@
           <prescribed>
             <mesh name="VelocityMesh"/>
             <value name="WholeMesh">
-              <isotropic>
+              <anisotropic_symmetric>
                 <constant>
-                  <real_value rank="0">1.74e-5</real_value>
-                  <comment>corresponds to Re=132000 with Umax=2.3, same as Kim 1978, Lacasse 2004 &amp; Speziale 1988</comment>
+                  <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">1.74e-5 1.74e-5 1.74e-5 1.74e-5</real_value>
                 </constant>
-              </isotropic>
+              </anisotropic_symmetric>
             </value>
             <output/>
           </prescribed>
@@ -376,9 +375,60 @@
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <source_absorption>
-          <string_value>explicit</string_value>
-        </source_absorption>
+        <scalar_field name="f_1" rank="0">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
+        <scalar_field name="f_2" rank="0">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
+        <scalar_field name="f_mu" rank="0">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
+        <max_damping_value>
+          <real_value rank="0">10.0</real_value>
+        </max_damping_value>
         <lengthscale_limit>
           <real_value rank="0">0.94</real_value>
         </lengthscale_limit>
@@ -397,6 +447,9 @@
         <sigma_eps>
           <real_value rank="0">1.3</real_value>
         </sigma_eps>
+        <mass_lumping_in_diagnostics>
+          <lump_mass/>
+        </mass_lumping_in_diagnostics>
       </k-epsilon>
     </subgridscale_parameterisations>
     <scalar_field name="Pressure" rank="0">
@@ -455,7 +508,7 @@
             </mass_terms>
             <advection_terms/>
             <stress_terms>
-              <tensor_form/>
+              <partial_stress_form/>
             </stress_terms>
           </continuous_galerkin>
           <conservative_advection>
