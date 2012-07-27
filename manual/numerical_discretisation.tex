@@ -9,11 +9,12 @@ In this chapter we define the domain we are solving over as $\Omega$. The bounda
 $\Omega$ is defined as $\dOmega$
 %(NB. $\Gamma$ is another common symbol for a boundary) 
 and can be split into different sections, e.g.
-$\partial\Omega = \dOmega^{N}\cup \dOmega^{D}$
+$\partial\Omega = \dOmega^{N}\cup \dOmega^{R}\cup \dOmega^{D}$
 where $\dOmega^{N}$ is that part of the boundary over
-which Neumann conditions are applied and $\dOmega^{D}$ is that part of the boundary over
+which Neumann conditions are applied, $\dOmega^{R}$ is the part of the 
+boundary over which Robin conditions are applied and $\dOmega^{D}$ is that part of the boundary over
 which Dirichlet conditions are applied. For clarity a subscript showing the field in question will
-be given on the $N$ and $D$ characters.
+be given on the $N$, $R$ and $D$ characters.
 
 The unit vector \vec{n} is always assumed to be the
 outward facing normal vector to the domain.
@@ -30,10 +31,11 @@ is given in conservative form by
 \end{equation}
 
 We now define a partition of the boundary such that
-$\partial\Omega = \dOmega^{N}\cup \dOmega^{D}$, and impose boundary conditions on $c$:
+$\partial\Omega = \dOmega^{N}\cup \dOmega^{R}\cup \dOmega^{D}$, and impose boundary conditions on $c$:
 \begin{gather}
   \label{eq:cboundary}
   \vec{n}\cdot\tensor{\kappa}\cdot\grad c=g_{N_c} \quad\textrm{on}\quad \dOmega^{N_c},\\
+  -\vec{n}\cdot\tensor{\kappa}\cdot\grad c=h(c-c_{a})\quad\textrm{on}\quad \dOmega^{R_c},\\
   c=g_{D_c} \quad\textrm{on}\quad \dOmega^{D_c}.
 \end{gather}
 
@@ -369,7 +371,7 @@ and the \emph{doubly-asymptotic} approximation \citep{DoneaBook}:
 
 The SUPG implementation in \fluidity\ does not modify the test function derivatives
 or the face test functions. Hence the SUPG implementation is only consistent
-for degree one elements with no non-zero Neumann or weak Dirichlet boundary
+for degree one elements with no non-zero Neumann, Robin or weak Dirichlet boundary
 conditions.
 
 SUPG is considered ready for production use for scalar advection-diffusion
@@ -432,6 +434,25 @@ weakly. This is done in the same way as the weak form of the advection-diffusion
 Thus \eqref{eq:weak_neumann} can be used to replace the missing
 boundary term \eqref{eq:missing_boundary_term} with an integral of $\phi~g_N$
 over the boundary.
+
+The Robin boundary condition
+\begin{equation*}
+  -\vec{n}\cdot\tensor{\kappa}\cdot\grad c=h(c-c_{a}),
+\end{equation*}
+where $h$ and $c_{a}$ can be any prescribed function on the boundary $\partial\Omega$, is also imposed 
+weakly. As for the Neumann boundary condition, weighting the Robin boundary condition with a test function 
+and integrating over the relevant domain boundary gives the weak form:
+\begin{equation}\label{eq:weak_robin}
+  - \int_{\partial\Omega} \phi~\vec{n}\cdot\tensor{\kappa}\cdot\grad c=
+    \int_{\partial\Omega} \phi~h(c-c_{a}), \quad \text{for all }\phi.
+\end{equation}
+Thus \eqref{eq:weak_robin} can be used to replace the missing
+boundary term \eqref{eq:missing_boundary_term} with an integral of $\phi~h(c-c_{a})$
+over the relevant part of the boundary. The two terms within the integral can be treated slightly differently. 
+The term $\phi~hc_{a}$ is always included in the right hand side of the linear system. 
+The term $\phi~hc$ is effectively a surface absorption term where any implicit contributions 
+are included in the left had side matrix, while any explicit contributions are included into the 
+right hand side of the linear system.
 
 \index{boundary conditions!Dirichlet!weakly imposed}
 In a similar way, a weakly imposed Dirichlet boundary condition can be related to an
