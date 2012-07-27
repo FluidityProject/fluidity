@@ -135,7 +135,7 @@
       <real_value rank="0">0.0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">600.0</real_value>
+      <real_value rank="0">3600.0</real_value>
       <comment>1 hour</comment>
     </timestep>
     <theta>
@@ -145,7 +145,7 @@
       <integer_value rank="0">4</integer_value>
     </nonlinear_iterations>
     <finish_time>
-      <real_value rank="0">60000.0</real_value>
+      <real_value rank="0">432000.0</real_value>
       <comment>Williamson 2 runs for 5 days = 60*60*24*5 = 432000.0s</comment>
     </finish_time>
   </timestepping>
