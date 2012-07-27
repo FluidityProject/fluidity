@@ -9,4 +9,5 @@ clean:
 	rm -f fluidity.*
 	# parallel
 	rm -rf biology_conservation_parallel_*
-	rm -rf *.halo
+	rm -rf *.halo \
+	matrixdump matrixdump.info

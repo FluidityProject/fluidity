@@ -7,11 +7,19 @@
     <command_line>make clean-run; fluidity test_vorticity_2d.flml</command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="vtu" language="python">import vtktools
 
 vtu = vtktools.vtu("test_vorticity_2d_0.vtu")</variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="Vorticity" language="python">import fluidity_tools
 
 for fieldName in ["P1", "P1Lumped", "P1DG", "P2", "P2DG"]:

@@ -7,6 +7,11 @@
     <command_line>../../bin/periodise saltfinger_adapt_periodic.flml ;fluidity  saltfinger_adapt_periodic_periodised.flml </command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="final_time" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("saltfinger_periodic_adaptive.stat")
@@ -14,6 +19,9 @@ final_time = s["ElapsedTime"]["value"][-1]
     </variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="assert no crash" language="python">
 assert abs(final_time-0.00015) &lt; 0.00001
     </test>
