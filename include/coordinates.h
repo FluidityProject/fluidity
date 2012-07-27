@@ -35,17 +35,32 @@
 
 extern "C" {
             void vector_cartesian_2_lon_lat_height_c(double *xComp,
-                                                double *yComp,
-                                                double *zComp,
-                                                double *xCoord,
-                                                double *yCoord,
-                                                double *zCoord,
-                                                double *zonalComponent,
-                                                double *meridionalComponent,
-                                                double *verticalComponent,
-                                                double *longitude,
-                                                double *latitude,
-                                                double *height,
-                                                double *referenceRadius);
+                                                     double *yComp,
+                                                     double *zComp,
+                                                     double *xCoord,
+                                                     double *yCoord,
+                                                     double *zCoord,
+                                                     double *zonalComponent,
+                                                     double *meridionalComponent,
+                                                     double *verticalComponent,
+                                                     double *longitude,
+                                                     double *latitude,
+                                                     double *height,
+                                                     double *referenceRadius);
+
+            void vector_lon_lat_height_2_cartesian_c(double *zonalComponent,
+                                                     double *meridionalComponent,
+                                                     double *verticalComponent,
+                                                     double *longitude,
+                                                     double *latitude,
+                                                     double *height,
+                                                     double *xComp,
+                                                     double *yComp,
+                                                     double *zComp,
+                                                     double *xCoord,
+                                                     double *yCoord,
+                                                     double *zCoord,
+                                                     double *referenceRadius);
+
 }
  #endif
