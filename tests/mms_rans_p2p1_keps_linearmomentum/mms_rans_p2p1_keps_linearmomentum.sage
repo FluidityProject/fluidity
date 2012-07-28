@@ -28,7 +28,7 @@ eps = function(8.2, -3.8, 4.3, 1.7,
              0.7, 0.8, 0.6)
 v = integral(-diff(u,x),y)  # divergence free
 
-rho = temperature + 10.0
+rho = 10.0*temperature + 10.0
 nu_T = rho*(ke^2)/eps
 nu = 0.7
 
@@ -56,7 +56,7 @@ B = nu_T*(g_x*diff(rho,x) + g_y*diff(rho,y))/rho
 
 pr = 1
 ab = 1
-bo = 1
+bo = 0
 
 Ske = rho*u*diff(ke,x) + rho*v*diff(ke,y) - nu_T*(diff(ke, x, x) + diff(ke, y, y)) - diff(nu_T, x)*diff(ke, x) -  diff(nu_T, y)*diff(ke, y) - pr*P + ab*rho*eps - bo*B
 Seps = rho*u*diff(eps,x) + rho*v*diff(eps,y) - nu_T*(diff(eps, x, x) + diff(eps, y, y)) - diff(nu_T, x)*diff(eps, x) -  diff(nu_T, y)*diff(eps, y) - pr*(eps/ke)*P + ab*rho*(eps^2/ke) - bo*C3*(eps/ke)*B

@@ -1,6 +1,6 @@
 PI=3.141592653589793
-n=16
-t=0.125
+n=8
+t=0.06
 for F in A B C D
 do
 	dx=$(echo $PI/$n|bc -l)
