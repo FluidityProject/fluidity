@@ -103,7 +103,7 @@ print 'def P_eps(X):'
 print '    return', str((eps/ke)*P).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
 print ''
 print 'def A(X):'
-print '    return', str(eps/ke).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
+print '    return', str(rho*eps/ke).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
 print ''
 print 'def B(X):'
 print '    return', str(B).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
