@@ -314,7 +314,7 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, equation_type, density
   integer, intent(in) :: ele, field_id
 
   real, dimension(ele_loc(k, ele), ele_ngi(k, ele), positions%dim) :: dshape
-  real, dimension(ele_ngi(k, ele)) :: detwei, strain_ngi, inv_k, rhs, EV_ele, k_ele, density_ele
+  real, dimension(ele_ngi(k, ele)) :: detwei, strain_ngi, inv_k, rhs, EV_ele, k_ele
   real, dimension(3, ele_loc(k, ele)) :: rhs_addto
   integer, dimension(ele_loc(k, ele)) :: nodes
   real, dimension(ele_loc(k, ele), ele_loc(k, ele)) :: invmass
@@ -339,14 +339,13 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, equation_type, density
   grad_u = ele_grad_at_quad(u, ele, dshape)
   EV_ele = ele_val_at_quad(EV, ele)
   k_ele = ele_val_at_quad(k, ele)
-  density_ele = ele_val_at_quad(density, ele)
   ngi = ele_ngi(u, ele)
   dim = u%dim
   do gi = 1, ngi
      reynolds_stress(:,:,gi) = EV_ele(gi)*(grad_u(:,:,gi) + transpose(grad_u(:,:,gi)))
   end do
   do i = 1, dim
-     reynolds_stress(i,i,:) = reynolds_stress(i,i,:) - (2./3.)*k_ele*density_ele
+     reynolds_stress(i,i,:) = reynolds_stress(i,i,:) - (2./3.)*k_ele*ele_val_at_quad(density, ele)
   end do
   ! Compute P
   rhs = tensor_inner_product(reynolds_stress, grad_u)
@@ -356,7 +355,7 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, equation_type, density
   rhs_addto(1,:) = shape_rhs(shape, detwei*rhs)
 
   ! A:
-  rhs = ele_val_at_quad(eps,ele)*inv_k*density_ele
+  rhs = ele_val_at_quad(eps,ele)*ele_val_at_quad(density, ele)*inv_k
   if (field_id==2) then
      rhs = rhs*c_eps_2*ele_val_at_quad(f_2,ele)
   end if
@@ -727,25 +726,36 @@ subroutine keps_momentum_source(state)
     
   subroutine keps_momentum_source_ele()
       
-    real, dimension(ele_loc(k, i), ele_ngi(k, i), x%dim) :: dshape
+    real, dimension(ele_loc(k, i), ele_ngi(k, i), x%dim) :: dshape_k
+    real, dimension(ele_loc(density, i), ele_ngi(density, i), x%dim) :: dshape_density
     real, dimension(ele_ngi(k, i)) :: detwei
     integer, dimension(ele_loc(k, i)) :: nodes
     real, dimension(ele_loc(k, i), ele_loc(k, i)) :: invmass
-    type(element_type), pointer :: shape
+    type(element_type), pointer :: shape_k, shape_density
     real, dimension(x%dim, ele_loc(k, i)) :: rhs_addto
     real, dimension(x%dim, ele_ngi(k, i)) :: grad_k
+    real, dimension(x%dim, ele_ngi(density, i)) :: grad_density
 
-    shape => ele_shape(k, i)
+    shape_k => ele_shape(k, i)
     nodes = ele_nodes(source, i)
 
-    call transform_to_physical( x, i, shape, dshape=dshape, detwei=detwei )
+    call transform_to_physical( x, i, shape_k, dshape=dshape_k, detwei=detwei )
 
-    grad_k = ele_grad_at_quad(k, i, dshape)
-    rhs_addto = shape_vector_rhs(shape, -(2./3.)*grad_k, detwei*ele_val_at_quad(density,i))
+    if(.not.(density%mesh == k%mesh)) then
+       shape_density => ele_shape(density, i)
+       call transform_to_physical( x, i, shape_density, dshape=dshape_density ) 
+    else
+       dshape_density = dshape_k
+    end if
+     
+    grad_k = ele_grad_at_quad(k, i, dshape_k)
+    grad_density = ele_grad_at_quad(density, i, dshape_density)
+    rhs_addto = shape_vector_rhs(shape_k, -(2./3.)*grad_k, detwei*ele_val_at_quad(density,i)) + &
+                shape_vector_rhs(shape_k, -(2./3.)*grad_density, detwei*ele_val_at_quad(k,i)) 
       
     ! In the DG case we apply the inverse mass locally.
     if(continuity(k)<0) then
-       invmass = inverse(shape_shape(shape, shape, detwei))
+       invmass = inverse(shape_shape(shape_k, shape_k, detwei))
        rhs_addto = matmul(rhs_addto, invmass)
        call addto(source, nodes, rhs_addto)  
     else
