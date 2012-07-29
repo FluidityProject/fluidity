@@ -474,6 +474,21 @@ contains
       stabilisation_scheme = STABILISATION_NONE
     end if
     
+    ! PhaseVolumeFraction for multiphase flow simulations
+    if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
+       multiphase = .true.
+       vfrac => extract_scalar_field(state(istate), "PhaseVolumeFraction")
+       call allocate(nvfrac, vfrac%mesh, "NonlinearPhaseVolumeFraction")
+       call zero(nvfrac)
+       call get_nonlinear_volume_fraction(state(istate), nvfrac)
+      
+       ewrite_minmax(nvfrac)
+    else
+       multiphase = .false.
+       call allocate(nvfrac, t%mesh, "DummyNonlinearPhaseVolumeFraction", field_type=FIELD_TYPE_CONSTANT)
+       call set(nvfrac, 1.0)
+    end if
+      
     call allocate(dummydensity, t%mesh, "DummyDensity", field_type=FIELD_TYPE_CONSTANT)
     call set(dummydensity, 1.0)
     ! find out equation type and hence if density is needed or not
@@ -492,20 +507,6 @@ contains
         FLExit("Haven't implemented a moving mesh energy equation yet.")
       end if
       
-      ! PhaseVolumeFraction for multiphase flow simulations
-      if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
-         multiphase = .true.
-         vfrac => extract_scalar_field(state(istate), "PhaseVolumeFraction")
-         call allocate(nvfrac, vfrac%mesh, "NonlinearPhaseVolumeFraction")
-         call zero(nvfrac)
-         call get_nonlinear_volume_fraction(state(istate), nvfrac)
-         
-         ewrite_minmax(nvfrac)
-      else
-         multiphase = .false.
-         nullify(vfrac)
-      end if
-      
       ! Get old and current densities
       call get_option(trim(t%option_path)//'/prognostic/equation[0]/density[0]/name', &
                       density_name)
@@ -514,7 +515,7 @@ contains
       olddensity=>extract_scalar_field(state(istate), "Old"//trim(density_name))
       ewrite_minmax(olddensity)
       
-      if(multiphase .and. have_option('/material_phase::'//trim(state(istate)%name)//&
+      if(.not.multiphase .or. have_option('/material_phase::'//trim(state(istate)%name)//&
          &'/equation_of_state/compressible')) then         
          call get_option(trim(density%option_path)//"/prognostic/temporal_discretisation/theta", &
                         density_theta)
@@ -625,9 +626,7 @@ contains
     ewrite_minmax(rhs)
     
     call deallocate(velocity)
-    if(equation_type == FIELD_EQUATION_INTERNALENERGY .and. multiphase) then
-       call deallocate(nvfrac)
-    end if
+    call deallocate(nvfrac)
     call deallocate(dummydensity)
     if (stabilisation_scheme == STABILISATION_SUPG) then
        do i = 1, num_threads
@@ -713,7 +712,7 @@ contains
     real, dimension(ele_loc(velocity, ele), ele_ngi(velocity, ele), mesh_dim(t)) :: du_t 
     real, dimension(ele_loc(positions, ele), ele_ngi(velocity, ele), mesh_dim(t)) :: dug_t 
     ! Derivative of shape function for nvfrac field
-    real, dimension(:, :, :), allocatable :: dnvfrac_t
+    real, dimension(ele_loc(nvfrac, ele), ele_ngi(nvfrac, ele), mesh_dim(nvfrac)) :: dnvfrac_t
     
     real, dimension(mesh_dim(t), mesh_dim(t), ele_ngi(t, ele)) :: j_mat 
     type(element_type) :: test_function
@@ -789,10 +788,7 @@ contains
     
     if(have_advection .and. multiphase .and. (equation_type==FIELD_EQUATION_INTERNALENERGY)) then
       ! If the field and nvfrac meshes are different, then we need to
-      ! compute the derivatives of the nvfrac shape functions.
-     
-      allocate(dnvfrac_t(ele_loc(nvfrac, ele), ele_ngi(nvfrac, ele), velocity%dim))      
-
+      ! compute the derivatives of the nvfrac shape functions.    
       if(ele_shape(nvfrac, ele) == t_shape) then
          dnvfrac_t = dt_t
       else
@@ -851,10 +847,6 @@ contains
     element_nodes => ele_nodes(t, ele)
     call addto(matrix, element_nodes, element_nodes, matrix_addto)
     call addto(rhs, element_nodes, rhs_addto)
-    
-    if(have_advection .and. multiphase .and. (equation_type==FIELD_EQUATION_INTERNALENERGY)) then
-       deallocate(dnvfrac_t)
-    end if
 
   end subroutine assemble_advection_diffusion_element_cg
   
@@ -1489,7 +1481,7 @@ contains
       character(len = *), intent(in) :: field_name
       character(len = *), intent(in) :: msg
       
-      ewrite(0, *) "Warning: For field " // trim(field_name) // " in state(istate) " // trim(state_name)
+      ewrite(0, *) "Warning: For field " // trim(field_name) // " in state " // trim(state_name)
       ewrite(0, *) trim(msg)
     
     end subroutine field_warning
@@ -1499,7 +1491,7 @@ contains
       character(len = *), intent(in) :: field_name
       character(len = *), intent(in) :: msg
       
-      ewrite(-1, *) "For field " // trim(field_name) // " in state(istate) " // trim(state_name)
+      ewrite(-1, *) "For field " // trim(field_name) // " in state " // trim(state_name)
       FLExit(trim(msg))
     
     end subroutine field_error
