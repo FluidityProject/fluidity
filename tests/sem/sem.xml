@@ -10,6 +10,11 @@
     <command_line>fluidity -v3  sem.flml &gt; sem.log 2&gt;&amp;1</command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="mxdiff" language="python">
 import vtktools
 from numpy import zeros, ones, array, concatenate
@@ -38,6 +43,9 @@ mxdiff = diff.max()
   </variables>
 
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
   <test name="Inlet Condition Test" language="python">
 assert mxdiff &lt; 0.5
  </test>

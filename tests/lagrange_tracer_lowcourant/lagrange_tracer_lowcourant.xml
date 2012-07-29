@@ -6,6 +6,11 @@
     <command_line>fluidity -v2 -l lagrange_tracer.flml</command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="detector_locx_0" language="python">from fluidity_tools import stat_parser as stat
 detector_locx_0 = stat("lagrange_tracer.detectors")["DummyArray_1"]["position"][0][-1]</variable>
     <variable name="detector_locy_0" language="python">from fluidity_tools import stat_parser as stat
@@ -14,6 +19,9 @@ detector_locy_0 = stat("lagrange_tracer.detectors")["DummyArray_1"]["position"][
 detected_field_value = stat("lagrange_tracer.detectors")["Dummy"]["Field"]["DummyArray_1"][-1]</variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="correct_x" language="python">print "detector should be at "+str(2./3.-0.1/3.)+", actually at "+str(detector_locx_0)
 assert(abs(detector_locx_0-(2./3.-0.1/3.)) &lt; 1.e-9)</test>
     <test name="correct_y" language="python">print "detector should be at "+str(1./3.+0.1/3.)+", actually at "+str(detector_locy_0)

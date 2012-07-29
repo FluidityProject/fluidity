@@ -5,4 +5,5 @@ input:	clean
 	cp src/MMS_D.msh .
 
 clean:
-	rm -f *.vtu *.stat *.log *.node *.ele *.edge *.msh *checkpoint* fluidity*log* fluidity*err* *.steady_state
+	rm -f *.vtu *.stat *.log *.node *.ele *.edge *.msh *checkpoint* fluidity*log* fluidity*err* *.steady_state \
+	matrixdump matrixdump.info

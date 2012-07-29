@@ -7,6 +7,11 @@
     <command_line>mpiexec -n 2 ../../bin/fluidity -v2 -l detectors.flml</command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="ElapsedTime" language="python">from fluidity_tools import stat_parser
 s= stat_parser("detectors.stat")
 ElapsedTime=s["ElapsedTime"]["value"]
@@ -17,6 +22,9 @@ last_locations_error = readstat("detectors.detectors")
     </variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="Finished" language="python">
 assert ElapsedTime[-1] &gt; 7.9999
     </test>
