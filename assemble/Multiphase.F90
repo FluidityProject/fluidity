@@ -578,14 +578,13 @@
       
       !! Multiphase energy interaction term Q_i
       !! to be added to the RHS of the internal energy equation.
-      subroutine add_heat_transfer(state, istate, x, internal_energy, matrix, rhs)
+      subroutine add_heat_transfer(state, istate, internal_energy, matrix, rhs)
          !!< This computes the inter-phase heat transfer term.
          !!< Only between fluid and particle phase pairs.
          !!< Uses the empirical correlation by Gunn (1978).
          
          type(state_type), dimension(:), intent(inout) :: state     
          integer, intent(in) :: istate
-         type(vector_field), intent(in) :: x
          type(scalar_field), intent(in) :: internal_energy         
          type(csr_matrix), intent(inout) :: matrix
          type(scalar_field), intent(inout) :: rhs
@@ -597,7 +596,7 @@
          integer, dimension(:), pointer :: internal_energy_nodes
          logical :: dg
              
-         type(vector_field), pointer :: velocity_fluid
+         type(vector_field), pointer :: x, velocity_fluid
          
          real :: dt, theta
          
@@ -612,6 +611,12 @@
          call get_option("/timestepping/timestep", dt)
          call get_option(trim(internal_energy%option_path)//"/prognostic/temporal_discretisation/theta", &
                         theta)
+         
+         ! Get the coordinate field from state(istate)
+         x => extract_vector_field(state(istate), "Coordinate")
+         ewrite_minmax(x)
+         assert(x%dim == mesh_dim(t))
+         assert(ele_count(x) == ele_count(t))
 
          ! Are we using a discontinuous Galerkin discretisation?
          dg = continuity(internal_energy) < 0
