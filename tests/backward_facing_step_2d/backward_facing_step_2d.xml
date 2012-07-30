@@ -8,6 +8,11 @@
     <command_line>fluidity -v3 -l backward_facing_step_2d.flml</command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="FinalTime" language="python">
 import fluidity_tools
 FinalTime = fluidity_tools.stat_parser("backward_facing_step_2d.stat")['ElapsedTime']['value'][-1]
@@ -30,6 +35,9 @@ FinalNodeCount = fluidity_tools.stat_parser("backward_facing_step_2d.stat")['Coo
     </variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="Final time greater than 1.0" language="python">
 assert FinalTime &gt; 1.0
     </test>

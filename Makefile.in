@@ -64,9 +64,9 @@ LINKER  = @LINKER@ @LDFLAGS@
 
 FLLINKER = @FLLINKER@ @LDFLAGS@ $(FCFLAGS)
 
-LIBS    = -L./lib -l$(FLUIDITY) @BLAS_LIBS@ @LIB_FEMDEM@ ./lib/libadaptivity.a \
+LIBS    = -L./lib -l$(FLUIDITY) @LIB_FEMDEM@ ./lib/libadaptivity.a \
            ./lib/libvtkfortran.a ./lib/libspatialindex.a ./lib/libspud.a ./lib/libjudy.a \
-           @LIBS@
+           @LIBS@ @BLAS_LIBS@
 
 OBJS = $(shell find . -mindepth 2 -maxdepth 2 -name '*.c' -o -name '*.cpp' -o -name '*.[fF]' -o -name '*.F90' | grep -v ^./lib | xargs)
 MAKE = @MAKE@ -s
@@ -618,7 +618,7 @@ install: default fltools bin/shallow_water bin/burgers_equation
 	cp -r examples/ $(DESTDIR)$(docdir)/fluidity
 	find $(DESTDIR)$(docdir)/fluidity/examples -type f -exec sed -i "s/\.\.\/\.\.\/\.\.\/bin\///" '{}' \;
 	find $(DESTDIR)$(docdir)/fluidity/examples -type f -exec sed -i "s/\.\.\/\.\.\/bin\///" '{}' \;
-	tar -czvf $(DESTDIR)$(docdir)/fluidity/examples.tar.gz $(DESTDIR)$(docdir)/fluidity/examples/
+	cd $(DESTDIR)$(docdir)/fluidity ; tar -czvf $(DESTDIR)$(docdir)/fluidity/examples.tar.gz examples/
 	rm -rf $(DESTDIR)$(docdir)/fluidity/examples/
 
 install-diamond: 
