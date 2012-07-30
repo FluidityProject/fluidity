@@ -64,14 +64,22 @@
     real, dimension(:), allocatable :: meanD, meanS
     integer :: global_ndim, local_ndim
     integer :: nvar
+    type(vector_field), pointer :: velocity
+    type(scalar_field), pointer :: pressure
+    type(scalar_field), pointer :: free_surface
+    type(scalar_field), pointer :: temperature
+    type(scalar_field), pointer :: salinity
+    integer :: u_nodes, p_nodes, fs_nodes, t_nodes, s_nodes
+    integer :: i, j, dump_no
+    character(len = OPTION_PATH_LEN) :: simulation_name
 
     call python_init()
     call read_command_line()
     !!state includes the fields i.c., b.c.and mesh info in flml file
     call populate_state(state)
 
-    nrens=2
-
+    nrens=10
+    
     !!call get_option("/enkf/assimilation_variable",format)
     format='FreeSurfaceHeight'
 
@@ -95,6 +103,8 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
      call construct_HA(state, ensemble_state, measurement_state, nrens, nobs, D, S, meanS, meanD, format)
+     !!using probe.py to get the data file *_detectors.dat
+ 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! Compute global analysis or local analysis
@@ -104,18 +114,44 @@
    
    l_global_analysis=.true.   
 
+   print*,A(1:20,1)
    if (l_global_analysis) then
       print *,'EnKF: Computing global analysis'
       !##print*,'EnKF: Size A',size(A)
       !call analysis(A, D, E, S, global_ndim, nrens, nrobs, .false.)
       !call analysis6(A, E, S, meanD, global_ndim, nrens, nrobs, .false.)
      !## call analysis6c(A, E, S, meanD, global_ndim, nrens, nrobs, .true.)
-     call analysis6(A, E, S, meanD, global_ndim, nrens, nobs, .false.)
+print*,nobs
+     call analysis6(A, 0.001*E, S, meanD, global_ndim, nrens, nobs, .false.)
    else
       print* , 'EnKF: Computing local analysis'
       call local_analysis(nrens,nobs,global_ndim,nvar,A,state,measurement_state,meanD,E,S)
       !call local_analysis(nrens,nrobs,A,obs,modlon,modlat,depths,D,E,S,local_ndim)
    endif
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! output as vtu files
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   print*,A(1:20,1)
+  
+   call get_option('/simulation_name',simulation_name)
+   velocity=>extract_vector_field(state, 'Velocity')
+   pressure=>extract_scalar_field(state, 'Pressure')
+   free_surface=>extract_scalar_field(state, 'FreeSurface')
+   u_nodes=node_count(velocity)
+   p_nodes=node_count(pressure)
+   fs_nodes=node_count(free_surface)
+   do i=1,nrens
+      dump_no=i
+      do j=1,velocity%dim
+         velocity%val(:,j)=A((j-1)*u_nodes+1:j*u_nodes,i)
+      enddo
+      pressure%val(:)=A(velocity%dim*u_nodes+1:velocity%dim*u_nodes+p_nodes,i)
+      free_surface%val(:)=A(velocity%dim*u_nodes+p_nodes+1:velocity%dim*u_nodes+p_nodes+fs_nodes,i)
+      call vtk_write_state(filename=trim(simulation_name)//"_analysis", index=dump_no, state=state)
+   enddo
+
+
 
 
 contains
@@ -137,9 +173,10 @@ contains
    integer :: quadrature_degree
    integer :: i, j, k, d
    integer, intent(out) :: nvar
-   integer :: u_nodes, p_nodes, t_nodes, s_nodes
+   integer :: u_nodes, p_nodes, fs_nodes, t_nodes, s_nodes
    character(len = OPTION_PATH_LEN) :: simulation_name
 
+   print*,'In construct_ensemble_matrix'
    call get_option('/simulation_name',simulation_name)
    call get_option('/geometry/quadrature/degree', quadrature_degree)
    allocate(ensemble_state(nrens))
@@ -164,7 +201,7 @@ contains
 !      real pb(nx,ny)                           ! 2-D barotropic pressure
 
 !!FLUIDITY
-!!u,v,w,p,t,s: 3-D data
+!!u,v,w,p,fs,t,s: 3-D data
 
    nvar=0
    u_nodes=0
@@ -179,10 +216,12 @@ contains
    p_nodes=node_count(pressure)
    nvar=nvar+1
 
-   global_ndim=u_nodes*velocity%dim+p_nodes  
-
    !!Diagnostic field FreeSurface in ensemble vtus. Can it be on the surface mesh?
-   !!free_surface => extract_scalar_field(ensemble_state(1), "FreeSurface")
+   free_surface => extract_scalar_field(ensemble_state(1), "FreeSurface")
+   fs_nodes=node_count(free_surface)
+   nvar=nvar+1
+
+   global_ndim=u_nodes*velocity%dim+p_nodes+fs_nodes
 
    if(have_option("/material_phase[0]/scalar_field::Temperature/prognostic"))then
       temperature => extract_scalar_field(ensemble_state(1), "Temperature")
@@ -199,6 +238,7 @@ contains
 
    print*,'u_nodes=',u_nodes
    print*,'p_nodes=',p_nodes
+   print*,'fs_nodes=',fs_nodes
    print*,'t_nodes=',t_nodes
    print*,'s_nodes=',s_nodes
    print*,'global_ndim=',global_ndim
@@ -220,6 +260,11 @@ contains
       !!pressure%val=field_val(pressure)
       A(i:j,k)=pressure%val
 
+      free_surface => extract_scalar_field(ensemble_state(1), "FreeSurface")
+      i=j+1
+      j=j+fs_nodes
+      A(i:j,k)=free_surface%val
+
       if(have_option("/material_phase[0]/scalar_field::Temperature/prognostic"))then
          temperature => extract_scalar_field(ensemble_state(k), "Temperature")
          i=j+1
@@ -235,7 +280,7 @@ contains
       endif
    enddo
 
-  stop
+  !stop
   end subroutine construct_ensemble_matrix
 
    subroutine construct_measurement_matrix(state, measurement_state, nrens, nobs, D, E, format)
@@ -249,11 +294,13 @@ contains
     integer, intent(in) ::nrens
     integer, intent(out) :: nobs
     !!measurement matrix 
+    real, dimension(:), allocatable :: obs
     real, dimension(:,:), allocatable, intent(out) :: D
     real, dimension(:,:), allocatable, intent(out) :: E
     character(len=FIELD_NAME_LEN), intent(in) :: format
     type(mesh_type) :: measurement_mesh
- 
+
+    print*,'In construct_measurement_matrix' 
     no_measurement_scalar_fields=1
 
     do k=1, no_measurement_scalar_fields
@@ -264,10 +311,12 @@ contains
  
        select case (format)
        case ("FreeSurfaceHeight")
+          goto 20
           !!Surface data
           SSH = extract_scalar_field(state,"MeasurementSSH")
           nobs = node_count(SSH)  !!How about the four vertex?
           allocate(D(nobs, nrens))
+          allocate(E(nobs, nrens))
           !d(:) = field_val(SSH)
           !!Generate observation perturbation matrix E
           call randn(nobs*nrens, E)
@@ -287,6 +336,21 @@ contains
              call insert(measurement_state(i), perturb_SSH, name="PerturbedMeasurement")
              call deallocate(perturb_SSH)
           enddo
+          !!reading observation data
+20        nobs=7
+          allocate(obs(nobs))
+          open(20,file='obs.dat')
+          read(20,*)obs
+          close(20)
+          !obs(:)=(-0.012462608359172147,0.006281770372309347,0.019493943092273976,0.0213375024168786,0.011891879675802512,-0.003866361663057322,-0.01757216090470086)
+          allocate(D(nobs, nrens))
+          allocate(E(nobs, nrens))
+          call randn(nobs*nrens, E)
+          do i=1, nrens
+             D(:,i)=0.001*E(:,i)+obs(:)
+          enddo
+          !print*,D
+          !stop
 
        case ("SeaSurfaceTemperature")
           SST = extract_scalar_field(state,"MeasurementSST")
@@ -315,11 +379,14 @@ contains
      integer :: quad_degree
      integer :: i, j
 
+     print*,'In construct_HA'
      allocate(S(nobs, nrens))
      allocate(meanS(nobs))
+     allocate(meanD(nobs))
 
      select case (format)
      case("FreeSurfaceHeight")
+     goto 30
      !!Both are surface meshes for surface obs(SSH, SST).
      !measurement_mesh = extract_mesh(state, "MeasurementMesh")
      !input_mesh = extract_mesh(state, "InputMesh")
@@ -343,6 +410,13 @@ contains
         call linear_interpolation(SSH, old_position, measurement, new_position)
         S(:,i)=measurement%val
      enddo     
+30   print*,'before reading detectors.dat'
+     open(30,file='detectors.dat')
+     do i=1,nrens
+        read(30,*)S(:,i)    
+     enddo
+     print*,S(:,1)
+     close(30)
 
      case("SeaSurfaceTemperature")
      !!Both are surface meshes for surface obs(SSH, SST).
@@ -356,6 +430,7 @@ contains
 
      end select
 
+     !print*,D(:,1)
      !!Compute innovation D'=D-HA=D-S             ==> return in D
      D=D-S 
      !!Compute mean(HA) 
@@ -376,6 +451,7 @@ contains
      enddo
      meanD=(1.0/float(nrens))*meanD
 
+     !stop
   end subroutine construct_HA
 
   subroutine read_command_line()

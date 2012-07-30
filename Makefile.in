@@ -251,6 +251,22 @@ bin/form_pod_basis: fluidity_library reduced_modelling/Form_Pod_Basis_Main.F90
 	@echo "    LD Form_Pod_Basis"
 	@$(EVAL) $(LINKER) -o bin/form_pod_basis reduced_modelling/Form_Pod_Basis_Main.o $(LIBS)
 
+bin/initial_ensemble: fluidity_library enkf/perturb_initial.F90
+	@cd enkf; $(MAKE) perturb_initial.o
+	@echo "BUILD Initial_Ensemble"
+	@echo "    MKDIR bin"
+	@mkdir -p bin
+	@echo "    LD Initial_Ensemble"
+	@$(EVAL) $(LINKER) -o bin/initial_ensemble enkf/perturb_initial.o $(LIBS)
+
+bin/enkf: fluidity_library enkf/EnKF.F90
+	@cd enkf; $(MAKE) EnKF.o
+	@echo "BUILD EnKF"
+	@echo "    MKDIR bin"
+	@mkdir -p bin
+	@echo "    LD EnKF"
+	@$(EVAL) $(LINKER) -o bin/enkf enkf/EnKF.o $(LIBS)
+
 
 static: fluidity_library
 
@@ -334,6 +350,8 @@ endif
 	@cd diagnostics;   	$(MAKE)
 	@echo "    MAKE reduced_modelling"
 	@cd reduced_modelling;   	$(MAKE)
+	@echo "    MAKE enkf"
+	@cd enkf;          $(MAKE)
 	@echo "    MAKE adjoint"
 	@cd adjoint; $(MAKE)
 	@echo "    MAKE main"
@@ -360,6 +378,7 @@ error_measures/*.o \
 assemble/*.o \
 diagnostics/*.o \
 reduced_modelling/*.o \
+enkf/*.o \
 adjoint/*.o \
 main/*.o
 ifeq (@HYPERLIGHT@,yes)
@@ -431,6 +450,8 @@ endif
 	@echo "    CLEAN climatology"
 	@echo "    CLEAN reduced_modelling"
 	@cd reduced_modelling; $(MAKE) clean
+	@echo "    CLEAN enkf"
+	@cd enkf; $(MAKE) clean
 	@echo "    CLEAN adjoint"
 	@cd adjoint; $(MAKE) clean
 	@echo "    CLEAN main"
@@ -609,6 +630,8 @@ endif
 	Diagnostic_Fields_New.o 
 	@echo "    Generating reduced_modelling dependencies"
 	@cd reduced_modelling;   	../bin/create_makefile $(TESTOPTS)
+	@echo "    Generating enkf dependencies"
+	@cd enkf; ../bin/create_makefile $(TESTOPTS)
 	@echo "    Generating adjoint dependencies"
 	@cd adjoint; ../bin/create_makefile $(TESTOPTS)
 	@echo "    Generating main dependencies"
