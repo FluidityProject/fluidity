@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <shallow_water_options>
   <simulation_name>
-    <string_value lines="1">sphere_williamson2</string_value>
+    <string_value lines="1">sphere_williamson2_advection</string_value>
   </simulation_name>
   <geometry>
     <dimension>
@@ -199,7 +199,7 @@
         <mesh name="VelocityMesh"/>
         <equation name="ShallowWater"/>
         <wave_equation>
-          <fully_coupled/>
+          <no_wave_equation_step/>
         </wave_equation>
         <spatial_discretisation>
           <discontinuous_galerkin/>

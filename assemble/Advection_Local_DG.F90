@@ -1094,6 +1094,7 @@ module advection_local_DG
           call test_pv_flux_ele(Qtest1,Qtest2,QF,Q,Q_old,D,D_old,&
                Flux,X,down,t_theta,ele)
        end do
+       ewrite(2,*) 'Error = ', maxval(abs(Qtest2%val)), maxval(abs(Qtest1%val))
        ewrite(2,*) 'Error = ', maxval(abs(Qtest1%val-Qtest2%val)), maxval(Qtest1%val)
        residual = maxval(abs(Qtest1%val-Qtest2%val))/max(1.0&
             &,maxval(abs(Qtest1%val)))
@@ -1386,7 +1387,9 @@ module advection_local_DG
        !! tau
        do gi = 1, ele_ngi(Q,ele)
           QFLux_gi(:,gi) = QFlux_gi(:,gi) + &
-               & tau*U_nl_gi(:,gi)*(Q_gi(gi)*D_gi(gi)-Q_old_gi(gi)*D_old_gi(gi))
+               & tau*U_nl_gi(:,gi)*(Q_gi(gi)*D_gi(gi)-Q_old_gi(gi)&
+               &*D_old_gi(gi))/detJ(gi)
+
        end do
        !! Advection terms
        !! tau < u. grad gamma, div (F\bar{Q})>
@@ -1682,9 +1685,12 @@ module advection_local_DG
     type(scalar_field), intent(in) :: oldD,newD
     type(state_type), intent(inout) :: state
     !
-    integer :: ele
+    integer :: ele, stat
     type(vector_field), pointer :: X
+    type(scalar_field), pointer :: Orography
     real :: dt, theta,g 
+    type(scalar_field) :: l_orography
+    logical :: have_orography
 
     ewrite(1,*) '  subroutine compute_U_residual('
 
@@ -1692,6 +1698,13 @@ module advection_local_DG
     call get_option("/timestepping/timestep", dt)
     call get_option("/timestepping/theta",theta)
     call get_option("/physical_parameters/gravity/magnitude", g)
+
+    Orography=>extract_scalar_field(state, "Orography", stat)
+    have_orography = (stat==0)
+    if(.not.have_orography) then
+       call allocate(l_orography,X%mesh,"L_Orography")
+       orography => l_orography
+    end if
 
     call zero(UResidual)
     do ele = 1, ele_count(UResidual)
