@@ -55,8 +55,6 @@ OBJS = Fluids.o Usage.o mainfl.o
 
 .SUFFIXES: .F90 .c .cpp .o .a
 
-.PHONY: ../include/version.h
-
 .F90.o:
 	@echo "        FC $<"
 	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< 
@@ -80,7 +78,11 @@ Usage.o: ../include/Usage.h ../include/version.h
 clean:
 	rm -f *.o *.d *.mod
 
-../include/version.h:
-	@$(MAKE) -C ../ include/version.h
+../include/version.h: version-info
+
+version-info:
+	@$(MAKE) -C .. include/version.h
+
+.PHONY: version-info
 
 include Makefile.dependencies

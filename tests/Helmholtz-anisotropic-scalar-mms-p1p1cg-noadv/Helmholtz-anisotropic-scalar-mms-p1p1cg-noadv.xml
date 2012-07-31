@@ -8,6 +8,11 @@
     <command_line>fluidity -v2 -l MMS_A.flml &amp;&amp; fluidity MMS_B.flml &amp;&amp; fluidity MMS_C.flml &amp;&amp; fluidity MMS_D.flml &amp;&amp; fluidity MMS_E.flml</command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="ab_convergence" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
@@ -106,6 +111,9 @@ de_convergence = [log(de_ratio, 2), log(de_ratio_inf, 2)]
     </variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="ab_convergence: L2 order > 1.7" language="python">
 assert(ab_convergence[0] &gt; 1.7)
     </test>

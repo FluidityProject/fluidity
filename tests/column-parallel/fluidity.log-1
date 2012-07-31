@@ -1,0 +1,1931 @@
+ Calling fluids from mainfl
+ Checking momentum discretisation options
+ Finished checking momentum discretisation options
+ Options sanity check successful
+ In populate_state
+ Using the new makeeelist
+ In read_halos_mesh
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Creating universal numbering for a trailing receives halo
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Checking nodes in halo CoordinateMeshLevel2Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Creating universal numbering for a trailing receives halo
+ Checking nodes in halo CoordinateMeshLevel2Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Checking nodes in halo CoordinateMeshLevel2Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Checking nodes in halo CoordinateMeshLevel2Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ In derive_maximal_element_halo
+ Checking nodes in halo CoordinateMeshLevel2Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Checking nodes in halo CoordinateMeshMaximalElementHalo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Creating universal numbering for a trailing receives halo
+ Checking nodes in halo CoordinateMeshMaximalElementHalo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Checking nodes in halo CoordinateMeshMaximalElementHalo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Checking nodes in halo CoordinateMeshMaximalElementHalo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Exiting derive_maximal_element_halo
+ Exiting read_halos_mesh
+ Creating universal numbering for a trailing receives halo
+ Checking nodes in halo CoordinateMeshMaximalElementHaloDG for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Checking nodes in halo CoordinateMeshMaximalElementHaloDG for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Checking nodes in halo CoordinateMeshMaximalElementHaloDG for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Creating universal numbering for a trailing receives halo
+ Checking nodes in halo CoordinateMeshMaximalElementHaloDG for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Checking nodes in halo CoordinateMeshMaximalElementHaloDG for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Checking nodes in halo CoordinateMeshMaximalElementHaloDG for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Using the new makeeelist
+ In merge_surface_ids
+ In derive_maximal_surface_element_halo
+ Checking nodes in halo CoordinateMeshMaximalElementHalo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Exiting derive_maximal_surface_element_halo
+ Exiting merge_surface_ids
+ In allocate_and_insert_scalar_field, field is: Density
+ Is field prognostic?  F
+ Is field prescribed?  F
+ Is field constant?  F
+ Is field diagnostic?  T
+ In allocate_and_insert_scalar_field, field is: Temperature
+ Is field prognostic?  T
+ Is field prescribed?  F
+ Is field constant?  F
+ Is field diagnostic?  F
+ In allocate_and_insert_scalar_field, field is: Salinity
+ Is field prognostic?  T
+ Is field prescribed?  F
+ Is field constant?  F
+ Is field diagnostic?  F
+ In allocate_and_insert_scalar_field, field is: PerturbationDensity
+ Is field prognostic?  F
+ Is field prescribed?  F
+ Is field constant?  F
+ Is field diagnostic?  T
+ In allocate_and_insert_scalar_field, field is: CFLNumber
+ Is field prognostic?  F
+ Is field prescribed?  F
+ Is field constant?  F
+ Is field diagnostic?  T
+ In allocate_and_insert_scalar_field, field is: DistanceToTop
+ Is field prognostic?  F
+ Is field prescribed?  T
+ Is field constant?  F
+ Is field diagnostic?  F
+ In allocate_and_insert_scalar_field, field is: DistanceToBottom
+ Is field prognostic?  F
+ Is field prescribed?  T
+ Is field constant?  F
+ Is field diagnostic?  F
+ In allocate_and_insert_vector_field, field is: Velocity
+ Is field prognostic?  T
+ Is field prescribed?  F
+ Is field constant?  F
+ Is field diagnostic?  F
+ In allocate_and_insert_vector_field, field is: VelocityAbsorption
+ Is field prognostic?  F
+ Is field prescribed?  T
+ Is field constant?  T
+ Is field diagnostic?  F
+ In allocate_and_insert_tensor_field, field is: Viscosity
+ Is field prescribed?  F
+ Is field diagnostic?  T
+ Is field constant?  F
+ In allocate_and_insert_vector_field, field is: GravityDirection
+ Is field prognostic?  F
+ Is field prescribed?  T
+ Is field constant?  T
+ Is field diagnostic?  F
+ In allocate_and_insert_scalar_field, field is: GLSTurbulentKineticEnergy
+ Is field prognostic?  T
+ Is field prescribed?  F
+ Is field constant?  F
+ Is field diagnostic?  F
+ In allocate_and_insert_scalar_field, field is: GLSTurbulentKineticEnergySource
+ Is field prognostic?  F
+ Is field prescribed?  F
+ Is field constant?  F
+ Is field diagnostic?  T
+ In allocate_and_insert_scalar_field, field is: GLSTurbulentKineticEnergyAbsorption
+ Is field prognostic?  F
+ Is field prescribed?  F
+ Is field constant?  F
+ Is field diagnostic?  T
+ In allocate_and_insert_tensor_field, field is: GLSTurbulentKineticEnergyDiffusivity
+ Is field prescribed?  F
+ Is field diagnostic?  T
+ Is field constant?  F
+ In allocate_and_insert_scalar_field, field is: GLSGenericSecondQuantity
+ Is field prognostic?  T
+ Is field prescribed?  F
+ Is field constant?  F
+ Is field diagnostic?  F
+ In allocate_and_insert_scalar_field, field is: GLSGenericSecondQuantitySource
+ Is field prognostic?  F
+ Is field prescribed?  F
+ Is field constant?  F
+ Is field diagnostic?  T
+ In allocate_and_insert_scalar_field, field is: GLSGenericSecondQuantityAbsorption
+ Is field prognostic?  F
+ Is field prescribed?  F
+ Is field constant?  F
+ Is field diagnostic?  T
+ In allocate_and_insert_tensor_field, field is: GLSGenericSecondQuantityDiffusivity
+ Is field prescribed?  F
+ Is field diagnostic?  T
+ Is field constant?  F
+ In allocate_and_insert_scalar_field, field is: GLSLengthScale
+ Is field prognostic?  F
+ Is field prescribed?  F
+ Is field constant?  F
+ Is field diagnostic?  T
+ In allocate_and_insert_scalar_field, field is: GLSBuoyancyFrequency
+ Is field prognostic?  F
+ Is field prescribed?  F
+ Is field constant?  F
+ Is field diagnostic?  T
+ In allocate_and_insert_scalar_field, field is: GLSVelocityShear
+ Is field prognostic?  F
+ Is field prescribed?  F
+ Is field constant?  F
+ Is field diagnostic?  T
+ In allocate_and_insert_scalar_field, field is: GLSShearProduction
+ Is field prognostic?  F
+ Is field prescribed?  F
+ Is field constant?  F
+ Is field diagnostic?  T
+ In allocate_and_insert_scalar_field, field is: GLSBuoyancyProduction
+ Is field prognostic?  F
+ Is field prescribed?  F
+ Is field constant?  F
+ Is field diagnostic?  T
+ In allocate_and_insert_scalar_field, field is: GLSDissipationEpsilon
+ Is field prognostic?  F
+ Is field prescribed?  F
+ Is field constant?  F
+ Is field diagnostic?  T
+ In allocate_and_insert_scalar_field, field is: GLSStabilityFunctionSM
+ Is field prognostic?  F
+ Is field prescribed?  F
+ Is field constant?  F
+ Is field diagnostic?  T
+ In allocate_and_insert_scalar_field, field is: GLSStabilityFunctionSH
+ Is field prognostic?  F
+ Is field prescribed?  F
+ Is field constant?  F
+ Is field diagnostic?  T
+ In allocate_and_insert_scalar_field, field is: GLSSource1
+ Is field prognostic?  F
+ Is field prescribed?  F
+ Is field constant?  F
+ Is field diagnostic?  T
+ In allocate_and_insert_scalar_field, field is: GLSSource2
+ Is field prognostic?  F
+ Is field prescribed?  F
+ Is field constant?  F
+ Is field diagnostic?  T
+ In allocate_and_insert_scalar_field, field is: GLSAbsorption1
+ Is field prognostic?  F
+ Is field prescribed?  F
+ Is field constant?  F
+ Is field diagnostic?  T
+ In allocate_and_insert_scalar_field, field is: GLSAbsorption2
+ Is field prognostic?  F
+ Is field prescribed?  F
+ Is field constant?  F
+ Is field diagnostic?  T
+ In allocate_and_insert_scalar_field, field is: GLSWallFunction
+ Is field prognostic?  F
+ Is field prescribed?  F
+ Is field constant?  F
+ Is field diagnostic?  T
+ In allocate_and_insert_scalar_field, field is: GLSVerticalViscosity
+ Is field prognostic?  F
+ Is field prescribed?  F
+ Is field constant?  F
+ Is field diagnostic?  T
+ In allocate_and_insert_scalar_field, field is: GLSVerticalDiffusivity
+ Is field prognostic?  F
+ Is field prescribed?  F
+ Is field constant?  F
+ Is field diagnostic?  T
+ In allocate_and_insert_tensor_field, field is: GLSBackgroundViscosity
+ Is field prescribed?  T
+ Is field diagnostic?  F
+ Is field constant?  F
+ In allocate_and_insert_tensor_field, field is: GLSBackgroundDiffusivity
+ Is field prescribed?  T
+ Is field diagnostic?  F
+ Is field constant?  F
+ In allocate_and_insert_tensor_field, field is: GLSEddyViscosityKM
+ Is field prescribed?  F
+ Is field diagnostic?  T
+ Is field constant?  F
+ In allocate_and_insert_tensor_field, field is: GLSEddyDiffusivityKH
+ Is field prescribed?  F
+ Is field diagnostic?  T
+ Is field constant?  F
+ In initialise_prognostic_fields
+ In set_prescribed_field_values
+ In populate_boundary_conditions
+ Initialising GLS stable boundaries
+ In set_boundary_conditions
+ In set_dirichlet_consistent
+ Exiting populate_state
+ In allocate_and_insert_auxilliary_fields
+ In enforce_discrete_properties
+ Exiting enforce_discrete_properties
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ % Some quantities associated with the initial set-up of this problem. %
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ -
+ The time step (DT) is:                                    15.000000000000000     
+ The end time (LTIME) is set to:                           45.000000000000000     
+ This corresponds to this many time steps in simulation:   3.0000000000000000     
+ -
+ The maximum volume of element in the mesh is:   15000.000000000187     
+ The minimum volume of element in the mesh is:   14999.999999999809     
+ The ratio of max to min volumes is:             1.0000000000000253     
+ The following material phases and their contents are in existence
+State: Fluid
+Meshes: 
+ +CoordinateMesh
+ +VelocityMesh
+ +PressureMesh
+Halos: 
+ none
+Scalar fields: 
+ +Density (Density)  on VelocityMesh
+ +Temperature (Temperature)  on VelocityMesh
+ +Salinity (Salinity)  on VelocityMesh
+ +PerturbationDensity (PerturbationDensity)  on VelocityMesh
+ +CFLNumber (CFLNumber)  on VelocityMesh
+ +DistanceToTop (DistanceToTop)  on VelocityMesh
+ +DistanceToBottom (DistanceToBottom)  on VelocityMesh
+ +GLSTurbulentKineticEnergy (GLSTurbulentKineticEnergy)  on VelocityMesh
+ +GLSTurbulentKineticEnergySource (GLSTurbulentKineticEnergySource)  on VelocityMesh
+ +GLSTurbulentKineticEnergyAbsorption (GLSTurbulentKineticEnergyAbsorption)  on VelocityMesh
+ +GLSGenericSecondQuantity (GLSGenericSecondQuantity)  on VelocityMesh
+ +GLSGenericSecondQuantitySource (GLSGenericSecondQuantitySource)  on VelocityMesh
+ +GLSGenericSecondQuantityAbsorption (GLSGenericSecondQuantityAbsorption)  on VelocityMesh
+ +GLSLengthScale (GLSLengthScale)  on VelocityMesh
+ +GLSBuoyancyFrequency (GLSBuoyancyFrequency)  on VelocityMesh
+ +GLSVelocityShear (GLSVelocityShear)  on VelocityMesh
+ +GLSShearProduction (GLSShearProduction)  on VelocityMesh
+ +GLSBuoyancyProduction (GLSBuoyancyProduction)  on VelocityMesh
+ +GLSDissipationEpsilon (GLSDissipationEpsilon)  on VelocityMesh
+ +GLSStabilityFunctionSM (GLSStabilityFunctionSM)  on VelocityMesh
+ +GLSStabilityFunctionSH (GLSStabilityFunctionSH)  on VelocityMesh
+ +GLSSource1 (GLSSource1)  on VelocityMesh
+ +GLSSource2 (GLSSource2)  on VelocityMesh
+ +GLSAbsorption1 (GLSAbsorption1)  on VelocityMesh
+ +GLSAbsorption2 (GLSAbsorption2)  on VelocityMesh
+ +GLSWallFunction (GLSWallFunction)  on VelocityMesh
+ +GLSVerticalViscosity (GLSVerticalViscosity)  on VelocityMesh
+ +GLSVerticalDiffusivity (GLSVerticalDiffusivity)  on VelocityMesh
+ +OldDensity (OldDensity)  on VelocityMesh
+ +IteratedDensity (IteratedDensity)  on VelocityMesh
+ +OldTemperature (OldTemperature)  on VelocityMesh
+ +IteratedTemperature (IteratedTemperature)  on VelocityMesh
+ +OldSalinity (OldSalinity)  on VelocityMesh
+ +IteratedSalinity (IteratedSalinity)  on VelocityMesh
+ +OldPerturbationDensity (OldPerturbationDensity)  on VelocityMesh
+ +IteratedPerturbationDensity (IteratedPerturbationDensity)  on VelocityMesh
+ +OldCFLNumber (OldCFLNumber)  on VelocityMesh
+ +IteratedCFLNumber (IteratedCFLNumber)  on VelocityMesh
+ +OldDistanceToTop (OldDistanceToTop)  on VelocityMesh
+ +IteratedDistanceToTop (IteratedDistanceToTop)  on VelocityMesh
+ +OldDistanceToBottom (OldDistanceToBottom)  on VelocityMesh
+ +IteratedDistanceToBottom (IteratedDistanceToBottom)  on VelocityMesh
+ +OldGLSTurbulentKineticEnergy (OldGLSTurbulentKineticEnergy)  on VelocityMesh
+ +IteratedGLSTurbulentKineticEnergy (IteratedGLSTurbulentKineticEnergy)  on VelocityMesh
+ +OldGLSTurbulentKineticEnergySource (OldGLSTurbulentKineticEnergySource)  on VelocityMesh
+ +IteratedGLSTurbulentKineticEnergySource (IteratedGLSTurbulentKineticEnergySource)  on VelocityMesh
+ +OldGLSTurbulentKineticEnergyAbsorption (OldGLSTurbulentKineticEnergyAbsorption)  on VelocityMesh
+ +IteratedGLSTurbulentKineticEnergyAbsorption (IteratedGLSTurbulentKineticEnergyAbsorption)  on VelocityMesh
+ +OldGLSGenericSecondQuantity (OldGLSGenericSecondQuantity)  on VelocityMesh
+ +IteratedGLSGenericSecondQuantity (IteratedGLSGenericSecondQuantity)  on VelocityMesh
+ +OldGLSGenericSecondQuantitySource (OldGLSGenericSecondQuantitySource)  on VelocityMesh
+ +IteratedGLSGenericSecondQuantitySource (IteratedGLSGenericSecondQuantitySource)  on VelocityMesh
+ +OldGLSGenericSecondQuantityAbsorption (OldGLSGenericSecondQuantityAbsorption)  on VelocityMesh
+ +IteratedGLSGenericSecondQuantityAbsorption (IteratedGLSGenericSecondQuantityAbsorption)  on VelocityMesh
+ +OldGLSLengthScale (OldGLSLengthScale)  on VelocityMesh
+ +IteratedGLSLengthScale (IteratedGLSLengthScale)  on VelocityMesh
+ +OldGLSBuoyancyFrequency (OldGLSBuoyancyFrequency)  on VelocityMesh
+ +IteratedGLSBuoyancyFrequency (IteratedGLSBuoyancyFrequency)  on VelocityMesh
+ +OldGLSVelocityShear (OldGLSVelocityShear)  on VelocityMesh
+ +IteratedGLSVelocityShear (IteratedGLSVelocityShear)  on VelocityMesh
+ +OldGLSShearProduction (OldGLSShearProduction)  on VelocityMesh
+ +IteratedGLSShearProduction (IteratedGLSShearProduction)  on VelocityMesh
+ +OldGLSBuoyancyProduction (OldGLSBuoyancyProduction)  on VelocityMesh
+ +IteratedGLSBuoyancyProduction (IteratedGLSBuoyancyProduction)  on VelocityMesh
+ +OldGLSDissipationEpsilon (OldGLSDissipationEpsilon)  on VelocityMesh
+ +IteratedGLSDissipationEpsilon (IteratedGLSDissipationEpsilon)  on VelocityMesh
+ +OldGLSStabilityFunctionSM (OldGLSStabilityFunctionSM)  on VelocityMesh
+ +IteratedGLSStabilityFunctionSM (IteratedGLSStabilityFunctionSM)  on VelocityMesh
+ +OldGLSStabilityFunctionSH (OldGLSStabilityFunctionSH)  on VelocityMesh
+ +IteratedGLSStabilityFunctionSH (IteratedGLSStabilityFunctionSH)  on VelocityMesh
+ +OldGLSSource1 (OldGLSSource1)  on VelocityMesh
+ +IteratedGLSSource1 (IteratedGLSSource1)  on VelocityMesh
+ +OldGLSSource2 (OldGLSSource2)  on VelocityMesh
+ +IteratedGLSSource2 (IteratedGLSSource2)  on VelocityMesh
+ +OldGLSAbsorption1 (OldGLSAbsorption1)  on VelocityMesh
+ +IteratedGLSAbsorption1 (IteratedGLSAbsorption1)  on VelocityMesh
+ +OldGLSAbsorption2 (OldGLSAbsorption2)  on VelocityMesh
+ +IteratedGLSAbsorption2 (IteratedGLSAbsorption2)  on VelocityMesh
+ +OldGLSWallFunction (OldGLSWallFunction)  on VelocityMesh
+ +IteratedGLSWallFunction (IteratedGLSWallFunction)  on VelocityMesh
+ +OldGLSVerticalViscosity (OldGLSVerticalViscosity)  on VelocityMesh
+ +IteratedGLSVerticalViscosity (IteratedGLSVerticalViscosity)  on VelocityMesh
+ +OldGLSVerticalDiffusivity (OldGLSVerticalDiffusivity)  on VelocityMesh
+ +IteratedGLSVerticalDiffusivity (IteratedGLSVerticalDiffusivity)  on VelocityMesh
+ +VelocityBuoyancyDensity (VelocityBuoyancyDensity)  on VelocityMesh
+ +Time (Time)  on CoordinateMesh
+Vector fields: 
+ +Coordinate (Coordinate)  on CoordinateMesh
+ +Velocity (Velocity)  on VelocityMesh
+ +VelocityAbsorption (VelocityAbsorption)  on VelocityMesh
+ +GravityDirection (GravityDirection)  on CoordinateMesh
+ +OldVelocity (OldVelocity)  on VelocityMesh
+ +IteratedVelocity (IteratedVelocity)  on VelocityMesh
+ +NonlinearVelocity (NonlinearVelocity)  on VelocityMesh
+ +OldVelocityAbsorption (OldVelocityAbsorption)  on VelocityMesh
+ +IteratedVelocityAbsorption (IteratedVelocityAbsorption)  on VelocityMesh
+ +OldGravityDirection (OldGravityDirection)  on CoordinateMesh
+ +IteratedGravityDirection (IteratedGravityDirection)  on CoordinateMesh
+ +OriginalCoordinate (OriginalCoordinate)  on CoordinateMesh
+ +OldCoordinate (OldCoordinate)  on CoordinateMesh
+ +IteratedCoordinate (IteratedCoordinate)  on CoordinateMesh
+ +GridVelocity (GridVelocity)  on CoordinateMesh
+Tensor fields: 
+ +Viscosity (Viscosity)  on VelocityMesh
+ +GLSTurbulentKineticEnergyDiffusivity (GLSTurbulentKineticEnergyDiffusivity)  on VelocityMesh
+ +GLSGenericSecondQuantityDiffusivity (GLSGenericSecondQuantityDiffusivity)  on VelocityMesh
+ +GLSBackgroundViscosity (GLSBackgroundViscosity)  on VelocityMesh
+ +GLSBackgroundDiffusivity (GLSBackgroundDiffusivity)  on VelocityMesh
+ +GLSEddyViscosityKM (GLSEddyViscosityKM)  on VelocityMesh
+ +GLSEddyDiffusivityKH (GLSEddyDiffusivityKH)  on VelocityMesh
+ +TemperatureDiffusivity (TemperatureDiffusivity)  on VelocityMesh
+ +SalinityDiffusivity (SalinityDiffusivity)  on VelocityMesh
+CSR sparsities: 
+ none
+CSR Matrices: 
+ none
+Block CSR Matrices: 
+ none
+ In calculate_diagnostic_variables
+ In calculate_perturbation_density
+ In calculate_perturbation_density
+ Exiting calculate_diagnostic_variables
+ In calculate_diagnostic_variables
+ Exiting calculate_diagnostic_variables
+ In initialise_diagnostics
+ Exiting initialise_diagnostics
+ do_checkpoint returning .false.
+ In write_state
+ In vtk_write_state_new_options
+ Exiting vtk_write_state_new_options
+ Exiting write_state
+ GLS Parameters
+ --------------------------------------------
+ cm0:   0.52646469697902409     
+ kappa:   0.36474544142360915     
+ p:    3.0000000000000000     
+ m:    1.5000000000000000     
+ n:   -1.0000000000000000     
+ sigma_k:    1.3000000000000000     
+ sigma_psi:    1.0000000000000000     
+ Calculating BCs:  T
+ Using wall function: none                                                                                                 
+ Smoothing NN2:  F
+ Smoothing MM2:  F
+ --------------------------------------------
+ Initialising the GLS surfaces required for BCs
+ In compute_lumped_mass
+ In gls_diffusivity
+ Calculating GLS stability functions
+ In gls_diffusivity
+ ********************
+ *** NEW TIMESTEP ***
+ ********************
+ Current simulation time:    0.0000000000000000     
+ Timestep number:            1
+ Timestep size (dt):    15.000000000000000     
+ In set_boundary_conditions
+ In set_prescribed_field_values
+ In enforce_discrete_properties
+ Exiting enforce_discrete_properties
+ ###################
+ Start of another nonlinear iteration; ITS,nonlinear_iterations=           1           2
+ ###################
+ Considering scalar field Density in state Fluid
+ Finished field Density in state Fluid
+ Considering scalar field Temperature in state Fluid
+ In solve_field_equation_cg
+ In assemble_advection_diffusion_cg
+ Exiting assemble_advection_diffusion_cg
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ Exiting solve_field_equation_cg
+ Finished field Temperature in state Fluid
+ Considering scalar field Salinity in state Fluid
+ In solve_field_equation_cg
+ In assemble_advection_diffusion_cg
+ Exiting assemble_advection_diffusion_cg
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ Exiting solve_field_equation_cg
+ Finished field Salinity in state Fluid
+ Considering scalar field PerturbationDensity in state Fluid
+ Finished field PerturbationDensity in state Fluid
+ Considering scalar field CFLNumber in state Fluid
+ Finished field CFLNumber in state Fluid
+ Considering scalar field DistanceToTop in state Fluid
+ Finished field DistanceToTop in state Fluid
+ Considering scalar field DistanceToBottom in state Fluid
+ Finished field DistanceToBottom in state Fluid
+ Considering scalar field GLSTurbulentKineticEnergy in state Fluid
+ In gls_tke
+ Calculating GLS stability functions
+ Calculating BCs
+ In assemble_advectiondiffusion_m_cv
+ In find_upwind_values
+ In calculate_all_upwind_project
+ Exiting calculate_all_upwind_project
+ Exiting find_upwind_values
+ Exiting assemble_advectiondiffusion_m_cv
+ In assemble_field_eqn_cv
+ Exiting assemble_field_eqn_cv
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ In assemble_advectiondiffusion_m_cv
+ In find_upwind_values
+ In calculate_all_upwind_project
+ Exiting calculate_all_upwind_project
+ Exiting find_upwind_values
+ Exiting assemble_advectiondiffusion_m_cv
+ In assemble_field_eqn_cv
+ Exiting assemble_field_eqn_cv
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ In assemble_advectiondiffusion_m_cv
+ In find_upwind_values
+ In calculate_all_upwind_project
+ Exiting calculate_all_upwind_project
+ Exiting find_upwind_values
+ Exiting assemble_advectiondiffusion_m_cv
+ In assemble_field_eqn_cv
+ Exiting assemble_field_eqn_cv
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ Finished field GLSTurbulentKineticEnergy in state Fluid
+ Considering scalar field GLSGenericSecondQuantity in state Fluid
+ In gls_psi
+ In assemble_advectiondiffusion_m_cv
+ In find_upwind_values
+ In calculate_all_upwind_project
+ Exiting calculate_all_upwind_project
+ Exiting find_upwind_values
+ Exiting assemble_advectiondiffusion_m_cv
+ In assemble_field_eqn_cv
+ Exiting assemble_field_eqn_cv
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ In assemble_advectiondiffusion_m_cv
+ In find_upwind_values
+ In calculate_all_upwind_project
+ Exiting calculate_all_upwind_project
+ Exiting find_upwind_values
+ Exiting assemble_advectiondiffusion_m_cv
+ In assemble_field_eqn_cv
+ Exiting assemble_field_eqn_cv
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ In assemble_advectiondiffusion_m_cv
+ In find_upwind_values
+ In calculate_all_upwind_project
+ Exiting calculate_all_upwind_project
+ Exiting find_upwind_values
+ Exiting assemble_advectiondiffusion_m_cv
+ In assemble_field_eqn_cv
+ Exiting assemble_field_eqn_cv
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ Finished field GLSGenericSecondQuantity in state Fluid
+ In gls_diffusivity
+ Entering solve_momentum
+ Entering get_pressure_options
+ Entering get_phase_submaterials
+ Number of sub-materials =            1
+ Exiting get_phase_submaterials
+ Entering calculate_momentum_diagnostics
+ Entering calculate_diagnostic_phase_volume_fraction
+ Exiting calculate_diagnostic_phase_volume_fraction
+ In calculate_perturbation_density
+ Exiting calculate_momentum_diagnostics
+ Entering get_velocity_options
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Entering construct_momentum_cg
+ Initialising Coriolis
+ Inside wind_forcing
+ Entering advance_velocity
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ Entering finalise_state
+ ###################
+ Start of another nonlinear iteration; ITS,nonlinear_iterations=           2           2
+ ###################
+ Considering scalar field Density in state Fluid
+ Finished field Density in state Fluid
+ Considering scalar field Temperature in state Fluid
+ In solve_field_equation_cg
+ In assemble_advection_diffusion_cg
+ Exiting assemble_advection_diffusion_cg
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ Exiting solve_field_equation_cg
+ Finished field Temperature in state Fluid
+ Considering scalar field Salinity in state Fluid
+ In solve_field_equation_cg
+ In assemble_advection_diffusion_cg
+ Exiting assemble_advection_diffusion_cg
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ Exiting solve_field_equation_cg
+ Finished field Salinity in state Fluid
+ Considering scalar field PerturbationDensity in state Fluid
+ Finished field PerturbationDensity in state Fluid
+ Considering scalar field CFLNumber in state Fluid
+ Finished field CFLNumber in state Fluid
+ Considering scalar field DistanceToTop in state Fluid
+ Finished field DistanceToTop in state Fluid
+ Considering scalar field DistanceToBottom in state Fluid
+ Finished field DistanceToBottom in state Fluid
+ Considering scalar field GLSTurbulentKineticEnergy in state Fluid
+ In gls_tke
+ Calculating GLS stability functions
+ Calculating BCs
+ In assemble_advectiondiffusion_m_cv
+ In find_upwind_values
+ In calculate_all_upwind_project
+ Exiting calculate_all_upwind_project
+ Exiting find_upwind_values
+ Exiting assemble_advectiondiffusion_m_cv
+ In assemble_field_eqn_cv
+ Exiting assemble_field_eqn_cv
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ In assemble_advectiondiffusion_m_cv
+ In find_upwind_values
+ In calculate_all_upwind_project
+ Exiting calculate_all_upwind_project
+ Exiting find_upwind_values
+ Exiting assemble_advectiondiffusion_m_cv
+ In assemble_field_eqn_cv
+ Exiting assemble_field_eqn_cv
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ In assemble_advectiondiffusion_m_cv
+ In find_upwind_values
+ In calculate_all_upwind_project
+ Exiting calculate_all_upwind_project
+ Exiting find_upwind_values
+ Exiting assemble_advectiondiffusion_m_cv
+ In assemble_field_eqn_cv
+ Exiting assemble_field_eqn_cv
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ Finished field GLSTurbulentKineticEnergy in state Fluid
+ Considering scalar field GLSGenericSecondQuantity in state Fluid
+ In gls_psi
+ In assemble_advectiondiffusion_m_cv
+ In find_upwind_values
+ In calculate_all_upwind_project
+ Exiting calculate_all_upwind_project
+ Exiting find_upwind_values
+ Exiting assemble_advectiondiffusion_m_cv
+ In assemble_field_eqn_cv
+ Exiting assemble_field_eqn_cv
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ In assemble_advectiondiffusion_m_cv
+ In find_upwind_values
+ In calculate_all_upwind_project
+ Exiting calculate_all_upwind_project
+ Exiting find_upwind_values
+ Exiting assemble_advectiondiffusion_m_cv
+ In assemble_field_eqn_cv
+ Exiting assemble_field_eqn_cv
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ In assemble_advectiondiffusion_m_cv
+ In find_upwind_values
+ In calculate_all_upwind_project
+ Exiting calculate_all_upwind_project
+ Exiting find_upwind_values
+ Exiting assemble_advectiondiffusion_m_cv
+ In assemble_field_eqn_cv
+ Exiting assemble_field_eqn_cv
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ Finished field GLSGenericSecondQuantity in state Fluid
+ In gls_diffusivity
+ Entering solve_momentum
+ Entering get_pressure_options
+ Entering get_phase_submaterials
+ Number of sub-materials =            1
+ Exiting get_phase_submaterials
+ Entering calculate_momentum_diagnostics
+ Entering calculate_diagnostic_phase_volume_fraction
+ Exiting calculate_diagnostic_phase_volume_fraction
+ In calculate_perturbation_density
+ Exiting calculate_momentum_diagnostics
+ Entering get_velocity_options
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Entering construct_momentum_cg
+ Inside wind_forcing
+ Entering advance_velocity
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ Entering finalise_state
+ In calculate_diagnostic_variables
+ In calculate_perturbation_density
+ In calculate_perturbation_density
+ Exiting calculate_diagnostic_variables
+ In calculate_diagnostic_variables
+ Exiting calculate_diagnostic_variables
+ In write_diagnostics
+ Registered diagnostics:
+ In write_detectors
+ In set_dirichlet_consistent
+ ********************
+ *** NEW TIMESTEP ***
+ ********************
+ Current simulation time:    15.000000000000000     
+ Timestep number:            2
+ Timestep size (dt):    15.000000000000000     
+ In set_boundary_conditions
+ In set_prescribed_field_values
+ In enforce_discrete_properties
+ Exiting enforce_discrete_properties
+ ###################
+ Start of another nonlinear iteration; ITS,nonlinear_iterations=           1           2
+ ###################
+ Considering scalar field Density in state Fluid
+ Finished field Density in state Fluid
+ Considering scalar field Temperature in state Fluid
+ In solve_field_equation_cg
+ In assemble_advection_diffusion_cg
+ Exiting assemble_advection_diffusion_cg
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ Exiting solve_field_equation_cg
+ Finished field Temperature in state Fluid
+ Considering scalar field Salinity in state Fluid
+ In solve_field_equation_cg
+ In assemble_advection_diffusion_cg
+ Exiting assemble_advection_diffusion_cg
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ Exiting solve_field_equation_cg
+ Finished field Salinity in state Fluid
+ Considering scalar field PerturbationDensity in state Fluid
+ Finished field PerturbationDensity in state Fluid
+ Considering scalar field CFLNumber in state Fluid
+ Finished field CFLNumber in state Fluid
+ Considering scalar field DistanceToTop in state Fluid
+ Finished field DistanceToTop in state Fluid
+ Considering scalar field DistanceToBottom in state Fluid
+ Finished field DistanceToBottom in state Fluid
+ Considering scalar field GLSTurbulentKineticEnergy in state Fluid
+ In gls_tke
+ Calculating GLS stability functions
+ Calculating BCs
+ In assemble_advectiondiffusion_m_cv
+ In find_upwind_values
+ In calculate_all_upwind_project
+ Exiting calculate_all_upwind_project
+ Exiting find_upwind_values
+ Exiting assemble_advectiondiffusion_m_cv
+ In assemble_field_eqn_cv
+ Exiting assemble_field_eqn_cv
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ In assemble_advectiondiffusion_m_cv
+ In find_upwind_values
+ In calculate_all_upwind_project
+ Exiting calculate_all_upwind_project
+ Exiting find_upwind_values
+ Exiting assemble_advectiondiffusion_m_cv
+ In assemble_field_eqn_cv
+ Exiting assemble_field_eqn_cv
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ In assemble_advectiondiffusion_m_cv
+ In find_upwind_values
+ In calculate_all_upwind_project
+ Exiting calculate_all_upwind_project
+ Exiting find_upwind_values
+ Exiting assemble_advectiondiffusion_m_cv
+ In assemble_field_eqn_cv
+ Exiting assemble_field_eqn_cv
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ Finished field GLSTurbulentKineticEnergy in state Fluid
+ Considering scalar field GLSGenericSecondQuantity in state Fluid
+ In gls_psi
+ In assemble_advectiondiffusion_m_cv
+ In find_upwind_values
+ In calculate_all_upwind_project
+ Exiting calculate_all_upwind_project
+ Exiting find_upwind_values
+ Exiting assemble_advectiondiffusion_m_cv
+ In assemble_field_eqn_cv
+ Exiting assemble_field_eqn_cv
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ In assemble_advectiondiffusion_m_cv
+ In find_upwind_values
+ In calculate_all_upwind_project
+ Exiting calculate_all_upwind_project
+ Exiting find_upwind_values
+ Exiting assemble_advectiondiffusion_m_cv
+ In assemble_field_eqn_cv
+ Exiting assemble_field_eqn_cv
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ In assemble_advectiondiffusion_m_cv
+ In find_upwind_values
+ In calculate_all_upwind_project
+ Exiting calculate_all_upwind_project
+ Exiting find_upwind_values
+ Exiting assemble_advectiondiffusion_m_cv
+ In assemble_field_eqn_cv
+ Exiting assemble_field_eqn_cv
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ Finished field GLSGenericSecondQuantity in state Fluid
+ In gls_diffusivity
+ Entering solve_momentum
+ Entering get_pressure_options
+ Entering get_phase_submaterials
+ Number of sub-materials =            1
+ Exiting get_phase_submaterials
+ Entering calculate_momentum_diagnostics
+ Entering calculate_diagnostic_phase_volume_fraction
+ Exiting calculate_diagnostic_phase_volume_fraction
+ In calculate_perturbation_density
+ Exiting calculate_momentum_diagnostics
+ Entering get_velocity_options
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Entering construct_momentum_cg
+ Inside wind_forcing
+ Entering advance_velocity
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ Entering finalise_state
+ ###################
+ Start of another nonlinear iteration; ITS,nonlinear_iterations=           2           2
+ ###################
+ Considering scalar field Density in state Fluid
+ Finished field Density in state Fluid
+ Considering scalar field Temperature in state Fluid
+ In solve_field_equation_cg
+ In assemble_advection_diffusion_cg
+ Exiting assemble_advection_diffusion_cg
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ Exiting solve_field_equation_cg
+ Finished field Temperature in state Fluid
+ Considering scalar field Salinity in state Fluid
+ In solve_field_equation_cg
+ In assemble_advection_diffusion_cg
+ Exiting assemble_advection_diffusion_cg
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ Exiting solve_field_equation_cg
+ Finished field Salinity in state Fluid
+ Considering scalar field PerturbationDensity in state Fluid
+ Finished field PerturbationDensity in state Fluid
+ Considering scalar field CFLNumber in state Fluid
+ Finished field CFLNumber in state Fluid
+ Considering scalar field DistanceToTop in state Fluid
+ Finished field DistanceToTop in state Fluid
+ Considering scalar field DistanceToBottom in state Fluid
+ Finished field DistanceToBottom in state Fluid
+ Considering scalar field GLSTurbulentKineticEnergy in state Fluid
+ In gls_tke
+ Calculating GLS stability functions
+ Calculating BCs
+ In assemble_advectiondiffusion_m_cv
+ In find_upwind_values
+ In calculate_all_upwind_project
+ Exiting calculate_all_upwind_project
+ Exiting find_upwind_values
+ Exiting assemble_advectiondiffusion_m_cv
+ In assemble_field_eqn_cv
+ Exiting assemble_field_eqn_cv
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ In assemble_advectiondiffusion_m_cv
+ In find_upwind_values
+ In calculate_all_upwind_project
+ Exiting calculate_all_upwind_project
+ Exiting find_upwind_values
+ Exiting assemble_advectiondiffusion_m_cv
+ In assemble_field_eqn_cv
+ Exiting assemble_field_eqn_cv
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ In assemble_advectiondiffusion_m_cv
+ In find_upwind_values
+ In calculate_all_upwind_project
+ Exiting calculate_all_upwind_project
+ Exiting find_upwind_values
+ Exiting assemble_advectiondiffusion_m_cv
+ In assemble_field_eqn_cv
+ Exiting assemble_field_eqn_cv
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ Finished field GLSTurbulentKineticEnergy in state Fluid
+ Considering scalar field GLSGenericSecondQuantity in state Fluid
+ In gls_psi
+ In assemble_advectiondiffusion_m_cv
+ In find_upwind_values
+ In calculate_all_upwind_project
+ Exiting calculate_all_upwind_project
+ Exiting find_upwind_values
+ Exiting assemble_advectiondiffusion_m_cv
+ In assemble_field_eqn_cv
+ Exiting assemble_field_eqn_cv
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ In assemble_advectiondiffusion_m_cv
+ In find_upwind_values
+ In calculate_all_upwind_project
+ Exiting calculate_all_upwind_project
+ Exiting find_upwind_values
+ Exiting assemble_advectiondiffusion_m_cv
+ In assemble_field_eqn_cv
+ Exiting assemble_field_eqn_cv
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ In assemble_advectiondiffusion_m_cv
+ In find_upwind_values
+ In calculate_all_upwind_project
+ Exiting calculate_all_upwind_project
+ Exiting find_upwind_values
+ Exiting assemble_advectiondiffusion_m_cv
+ In assemble_field_eqn_cv
+ Exiting assemble_field_eqn_cv
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ Finished field GLSGenericSecondQuantity in state Fluid
+ In gls_diffusivity
+ Entering solve_momentum
+ Entering get_pressure_options
+ Entering get_phase_submaterials
+ Number of sub-materials =            1
+ Exiting get_phase_submaterials
+ Entering calculate_momentum_diagnostics
+ Entering calculate_diagnostic_phase_volume_fraction
+ Exiting calculate_diagnostic_phase_volume_fraction
+ In calculate_perturbation_density
+ Exiting calculate_momentum_diagnostics
+ Entering get_velocity_options
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Entering construct_momentum_cg
+ Inside wind_forcing
+ Entering advance_velocity
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ Entering finalise_state
+ In calculate_diagnostic_variables
+ In calculate_perturbation_density
+ In calculate_perturbation_density
+ Exiting calculate_diagnostic_variables
+ In calculate_diagnostic_variables
+ Exiting calculate_diagnostic_variables
+ In write_diagnostics
+ Registered diagnostics:
+ In write_detectors
+ In set_dirichlet_consistent
+ ********************
+ *** NEW TIMESTEP ***
+ ********************
+ Current simulation time:    30.000000000000000     
+ Timestep number:            3
+ Timestep size (dt):    15.000000000000000     
+ In set_boundary_conditions
+ In set_prescribed_field_values
+ In enforce_discrete_properties
+ Exiting enforce_discrete_properties
+ ###################
+ Start of another nonlinear iteration; ITS,nonlinear_iterations=           1           2
+ ###################
+ Considering scalar field Density in state Fluid
+ Finished field Density in state Fluid
+ Considering scalar field Temperature in state Fluid
+ In solve_field_equation_cg
+ In assemble_advection_diffusion_cg
+ Exiting assemble_advection_diffusion_cg
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ Exiting solve_field_equation_cg
+ Finished field Temperature in state Fluid
+ Considering scalar field Salinity in state Fluid
+ In solve_field_equation_cg
+ In assemble_advection_diffusion_cg
+ Exiting assemble_advection_diffusion_cg
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ Exiting solve_field_equation_cg
+ Finished field Salinity in state Fluid
+ Considering scalar field PerturbationDensity in state Fluid
+ Finished field PerturbationDensity in state Fluid
+ Considering scalar field CFLNumber in state Fluid
+ Finished field CFLNumber in state Fluid
+ Considering scalar field DistanceToTop in state Fluid
+ Finished field DistanceToTop in state Fluid
+ Considering scalar field DistanceToBottom in state Fluid
+ Finished field DistanceToBottom in state Fluid
+ Considering scalar field GLSTurbulentKineticEnergy in state Fluid
+ In gls_tke
+ Calculating GLS stability functions
+ Calculating BCs
+ In assemble_advectiondiffusion_m_cv
+ In find_upwind_values
+ In calculate_all_upwind_project
+ Exiting calculate_all_upwind_project
+ Exiting find_upwind_values
+ Exiting assemble_advectiondiffusion_m_cv
+ In assemble_field_eqn_cv
+ Exiting assemble_field_eqn_cv
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ In assemble_advectiondiffusion_m_cv
+ In find_upwind_values
+ In calculate_all_upwind_project
+ Exiting calculate_all_upwind_project
+ Exiting find_upwind_values
+ Exiting assemble_advectiondiffusion_m_cv
+ In assemble_field_eqn_cv
+ Exiting assemble_field_eqn_cv
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ In assemble_advectiondiffusion_m_cv
+ In find_upwind_values
+ In calculate_all_upwind_project
+ Exiting calculate_all_upwind_project
+ Exiting find_upwind_values
+ Exiting assemble_advectiondiffusion_m_cv
+ In assemble_field_eqn_cv
+ Exiting assemble_field_eqn_cv
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ Finished field GLSTurbulentKineticEnergy in state Fluid
+ Considering scalar field GLSGenericSecondQuantity in state Fluid
+ In gls_psi
+ In assemble_advectiondiffusion_m_cv
+ In find_upwind_values
+ In calculate_all_upwind_project
+ Exiting calculate_all_upwind_project
+ Exiting find_upwind_values
+ Exiting assemble_advectiondiffusion_m_cv
+ In assemble_field_eqn_cv
+ Exiting assemble_field_eqn_cv
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ In assemble_advectiondiffusion_m_cv
+ In find_upwind_values
+ In calculate_all_upwind_project
+ Exiting calculate_all_upwind_project
+ Exiting find_upwind_values
+ Exiting assemble_advectiondiffusion_m_cv
+ In assemble_field_eqn_cv
+ Exiting assemble_field_eqn_cv
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ In assemble_advectiondiffusion_m_cv
+ In find_upwind_values
+ In calculate_all_upwind_project
+ Exiting calculate_all_upwind_project
+ Exiting find_upwind_values
+ Exiting assemble_advectiondiffusion_m_cv
+ In assemble_field_eqn_cv
+ Exiting assemble_field_eqn_cv
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ Finished field GLSGenericSecondQuantity in state Fluid
+ In gls_diffusivity
+ Entering solve_momentum
+ Entering get_pressure_options
+ Entering get_phase_submaterials
+ Number of sub-materials =            1
+ Exiting get_phase_submaterials
+ Entering calculate_momentum_diagnostics
+ Entering calculate_diagnostic_phase_volume_fraction
+ Exiting calculate_diagnostic_phase_volume_fraction
+ In calculate_perturbation_density
+ Exiting calculate_momentum_diagnostics
+ Entering get_velocity_options
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Entering construct_momentum_cg
+ Inside wind_forcing
+ Entering advance_velocity
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ Entering finalise_state
+ ###################
+ Start of another nonlinear iteration; ITS,nonlinear_iterations=           2           2
+ ###################
+ Considering scalar field Density in state Fluid
+ Finished field Density in state Fluid
+ Considering scalar field Temperature in state Fluid
+ In solve_field_equation_cg
+ In assemble_advection_diffusion_cg
+ Exiting assemble_advection_diffusion_cg
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ Exiting solve_field_equation_cg
+ Finished field Temperature in state Fluid
+ Considering scalar field Salinity in state Fluid
+ In solve_field_equation_cg
+ In assemble_advection_diffusion_cg
+ Exiting assemble_advection_diffusion_cg
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ Exiting solve_field_equation_cg
+ Finished field Salinity in state Fluid
+ Considering scalar field PerturbationDensity in state Fluid
+ Finished field PerturbationDensity in state Fluid
+ Considering scalar field CFLNumber in state Fluid
+ Finished field CFLNumber in state Fluid
+ Considering scalar field DistanceToTop in state Fluid
+ Finished field DistanceToTop in state Fluid
+ Considering scalar field DistanceToBottom in state Fluid
+ Finished field DistanceToBottom in state Fluid
+ Considering scalar field GLSTurbulentKineticEnergy in state Fluid
+ In gls_tke
+ Calculating GLS stability functions
+ Calculating BCs
+ In assemble_advectiondiffusion_m_cv
+ In find_upwind_values
+ In calculate_all_upwind_project
+ Exiting calculate_all_upwind_project
+ Exiting find_upwind_values
+ Exiting assemble_advectiondiffusion_m_cv
+ In assemble_field_eqn_cv
+ Exiting assemble_field_eqn_cv
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ In assemble_advectiondiffusion_m_cv
+ In find_upwind_values
+ In calculate_all_upwind_project
+ Exiting calculate_all_upwind_project
+ Exiting find_upwind_values
+ Exiting assemble_advectiondiffusion_m_cv
+ In assemble_field_eqn_cv
+ Exiting assemble_field_eqn_cv
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ In assemble_advectiondiffusion_m_cv
+ In find_upwind_values
+ In calculate_all_upwind_project
+ Exiting calculate_all_upwind_project
+ Exiting find_upwind_values
+ Exiting assemble_advectiondiffusion_m_cv
+ In assemble_field_eqn_cv
+ Exiting assemble_field_eqn_cv
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ Finished field GLSTurbulentKineticEnergy in state Fluid
+ Considering scalar field GLSGenericSecondQuantity in state Fluid
+ In gls_psi
+ In assemble_advectiondiffusion_m_cv
+ In find_upwind_values
+ In calculate_all_upwind_project
+ Exiting calculate_all_upwind_project
+ Exiting find_upwind_values
+ Exiting assemble_advectiondiffusion_m_cv
+ In assemble_field_eqn_cv
+ Exiting assemble_field_eqn_cv
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ In assemble_advectiondiffusion_m_cv
+ In find_upwind_values
+ In calculate_all_upwind_project
+ Exiting calculate_all_upwind_project
+ Exiting find_upwind_values
+ Exiting assemble_advectiondiffusion_m_cv
+ In assemble_field_eqn_cv
+ Exiting assemble_field_eqn_cv
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ In assemble_advectiondiffusion_m_cv
+ In find_upwind_values
+ In calculate_all_upwind_project
+ Exiting calculate_all_upwind_project
+ Exiting find_upwind_values
+ Exiting assemble_advectiondiffusion_m_cv
+ In assemble_field_eqn_cv
+ Exiting assemble_field_eqn_cv
+ Assembling matrix.
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Matrix assembly completed.
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ Finished field GLSGenericSecondQuantity in state Fluid
+ In gls_diffusivity
+ Entering solve_momentum
+ Entering get_pressure_options
+ Entering get_phase_submaterials
+ Number of sub-materials =            1
+ Exiting get_phase_submaterials
+ Entering calculate_momentum_diagnostics
+ Entering calculate_diagnostic_phase_volume_fraction
+ Exiting calculate_diagnostic_phase_volume_fraction
+ In calculate_perturbation_density
+ Exiting calculate_momentum_diagnostics
+ Entering get_velocity_options
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Entering construct_momentum_cg
+ Inside wind_forcing
+ Entering advance_velocity
+ Inside setup_ksp_from_options
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ Entering finalise_state
+ In calculate_diagnostic_variables
+ In calculate_perturbation_density
+ In calculate_perturbation_density
+ Exiting calculate_diagnostic_variables
+ In calculate_diagnostic_variables
+ Exiting calculate_diagnostic_variables
+ In write_diagnostics
+ Registered diagnostics:
+ In write_detectors
+ In set_dirichlet_consistent
+ Finish time reached
+ In write_state
+ In vtk_write_state_new_options
+ Exiting vtk_write_state_new_options
+ Exiting write_state
+ Cleaning up GLS variables
+ Cleaning up GLS surface variables
+ Finished gls_cleanup
+ Printing references before final deallocation
+ Printing out all currently allocated references:
+ mesh_type VelocityMeshDGSurfaceMesh has reference count 1
+ and id 22
+ csr_sparsity VelocityMeshVelocityMeshSparsity has reference count 1
+ and id 5
+ scalar_field VelocityMeshLumpedMass has reference count 1
+ and id 119
+ scalar_field Time has reference count 1
+ and id 94
+ vector_field GridVelocity has reference count 1
+ and id 24
+ scalar_field VelocityBuoyancyDensity has reference count 1
+ and id 93
+ vector_field NonlinearVelocity has reference count 1
+ and id 23
+ vector_field IteratedVelocity has reference count 1
+ and id 22
+ vector_field OldVelocity has reference count 1
+ and id 21
+ scalar_field IteratedGLSVerticalDiffusivity has reference count 1
+ and id 92
+ scalar_field OldGLSVerticalDiffusivity has reference count 1
+ and id 91
+ scalar_field IteratedGLSVerticalViscosity has reference count 1
+ and id 90
+ scalar_field OldGLSVerticalViscosity has reference count 1
+ and id 89
+ scalar_field IteratedGLSWallFunction has reference count 1
+ and id 88
+ scalar_field OldGLSWallFunction has reference count 1
+ and id 87
+ scalar_field IteratedGLSAbsorption2 has reference count 1
+ and id 86
+ scalar_field OldGLSAbsorption2 has reference count 1
+ and id 85
+ scalar_field IteratedGLSAbsorption1 has reference count 1
+ and id 84
+ scalar_field OldGLSAbsorption1 has reference count 1
+ and id 83
+ scalar_field IteratedGLSSource2 has reference count 1
+ and id 82
+ scalar_field OldGLSSource2 has reference count 1
+ and id 81
+ scalar_field IteratedGLSSource1 has reference count 1
+ and id 80
+ scalar_field OldGLSSource1 has reference count 1
+ and id 79
+ scalar_field IteratedGLSStabilityFunctionSH has reference count 1
+ and id 78
+ scalar_field OldGLSStabilityFunctionSH has reference count 1
+ and id 77
+ scalar_field IteratedGLSStabilityFunctionSM has reference count 1
+ and id 76
+ scalar_field OldGLSStabilityFunctionSM has reference count 1
+ and id 75
+ scalar_field IteratedGLSDissipationEpsilon has reference count 1
+ and id 74
+ scalar_field OldGLSDissipationEpsilon has reference count 1
+ and id 73
+ scalar_field IteratedGLSBuoyancyProduction has reference count 1
+ and id 72
+ scalar_field OldGLSBuoyancyProduction has reference count 1
+ and id 71
+ scalar_field IteratedGLSShearProduction has reference count 1
+ and id 70
+ scalar_field OldGLSShearProduction has reference count 1
+ and id 69
+ scalar_field IteratedGLSVelocityShear has reference count 1
+ and id 68
+ scalar_field OldGLSVelocityShear has reference count 1
+ and id 67
+ scalar_field IteratedGLSBuoyancyFrequency has reference count 1
+ and id 66
+ scalar_field OldGLSBuoyancyFrequency has reference count 1
+ and id 65
+ scalar_field IteratedGLSLengthScale has reference count 1
+ and id 64
+ scalar_field OldGLSLengthScale has reference count 1
+ and id 63
+ scalar_field OldGLSGenericSecondQuantityAbsorption has reference count 1
+ and id 62
+ scalar_field OldGLSGenericSecondQuantitySource has reference count 1
+ and id 61
+ scalar_field IteratedGLSGenericSecondQuantity has reference count 1
+ and id 60
+ scalar_field OldGLSGenericSecondQuantity has reference count 1
+ and id 59
+ scalar_field OldGLSTurbulentKineticEnergyAbsorption has reference count 1
+ and id 58
+ scalar_field OldGLSTurbulentKineticEnergySource has reference count 1
+ and id 57
+ scalar_field IteratedGLSTurbulentKineticEnergy has reference count 1
+ and id 56
+ scalar_field OldGLSTurbulentKineticEnergy has reference count 1
+ and id 55
+ scalar_field IteratedCFLNumber has reference count 1
+ and id 54
+ scalar_field OldCFLNumber has reference count 1
+ and id 53
+ scalar_field IteratedPerturbationDensity has reference count 1
+ and id 52
+ scalar_field OldPerturbationDensity has reference count 1
+ and id 51
+ scalar_field IteratedSalinity has reference count 1
+ and id 50
+ scalar_field OldSalinity has reference count 1
+ and id 49
+ scalar_field IteratedTemperature has reference count 1
+ and id 48
+ scalar_field OldTemperature has reference count 1
+ and id 47
+ scalar_field IteratedDensity has reference count 1
+ and id 46
+ scalar_field OldDensity has reference count 1
+ and id 45
+ scalar_field value has reference count 1
+ and id 40
+ scalar_field value has reference count 1
+ and id 39
+ mesh_type psi_bottom_boundaryMesh has reference count 2
+ and id 13
+ mesh_type tke_bottom_boundaryMesh has reference count 2
+ and id 12
+ scalar_field value has reference count 1
+ and id 38
+ scalar_field value has reference count 1
+ and id 37
+ mesh_type psi_top_boundaryMesh has reference count 2
+ and id 11
+ mesh_type tke_top_boundaryMesh has reference count 2
+ and id 10
+ vector_field WindSurfaceField has reference count 1
+ and id 15
+ mesh_type BulkForcingVelocityMesh has reference count 2
+ and id 9
+ vector_field value has reference count 1
+ and id 13
+ mesh_type topbottomMesh has reference count 2
+ and id 8
+ vector_field value has reference count 1
+ and id 11
+ mesh_type lateralMesh has reference count 2
+ and id 7
+ scalar_field value has reference count 1
+ and id 36
+ mesh_type BulkForcingSalinityMesh has reference count 2
+ and id 6
+ scalar_field value has reference count 1
+ and id 35
+ mesh_type BulkForcingTemperatureMesh has reference count 2
+ and id 5
+ tensor_field GLSEddyDiffusivityKH has reference count 3
+ and id 7
+ tensor_field GLSEddyViscosityKM has reference count 1
+ and id 6
+ tensor_field GLSBackgroundDiffusivity has reference count 1
+ and id 5
+ tensor_field GLSBackgroundViscosity has reference count 1
+ and id 4
+ scalar_field GLSVerticalDiffusivity has reference count 1
+ and id 28
+ scalar_field GLSVerticalViscosity has reference count 1
+ and id 27
+ scalar_field GLSWallFunction has reference count 1
+ and id 26
+ scalar_field GLSAbsorption2 has reference count 1
+ and id 25
+ scalar_field GLSAbsorption1 has reference count 1
+ and id 24
+ scalar_field GLSSource2 has reference count 1
+ and id 23
+ scalar_field GLSSource1 has reference count 1
+ and id 22
+ scalar_field GLSStabilityFunctionSH has reference count 1
+ and id 21
+ scalar_field GLSStabilityFunctionSM has reference count 1
+ and id 20
+ scalar_field GLSDissipationEpsilon has reference count 1
+ and id 19
+ scalar_field GLSBuoyancyProduction has reference count 1
+ and id 18
+ scalar_field GLSShearProduction has reference count 1
+ and id 17
+ scalar_field GLSVelocityShear has reference count 1
+ and id 16
+ scalar_field GLSBuoyancyFrequency has reference count 1
+ and id 15
+ scalar_field GLSLengthScale has reference count 1
+ and id 14
+ tensor_field GLSGenericSecondQuantityDiffusivity has reference count 1
+ and id 3
+ scalar_field GLSGenericSecondQuantityAbsorption has reference count 2
+ and id 13
+ scalar_field GLSGenericSecondQuantitySource has reference count 2
+ and id 12
+ scalar_field GLSGenericSecondQuantity has reference count 1
+ and id 11
+ tensor_field GLSTurbulentKineticEnergyDiffusivity has reference count 1
+ and id 2
+ scalar_field GLSTurbulentKineticEnergyAbsorption has reference count 2
+ and id 10
+ scalar_field GLSTurbulentKineticEnergySource has reference count 2
+ and id 9
+ scalar_field GLSTurbulentKineticEnergy has reference count 1
+ and id 8
+ vector_field GravityDirection has reference count 3
+ and id 5
+ tensor_field Viscosity has reference count 1
+ and id 1
+ vector_field VelocityAbsorption has reference count 3
+ and id 4
+ vector_field Velocity has reference count 1
+ and id 3
+ scalar_field DistanceToBottom has reference count 3
+ and id 7
+ scalar_field DistanceToTop has reference count 3
+ and id 6
+ scalar_field CFLNumber has reference count 1
+ and id 5
+ scalar_field PerturbationDensity has reference count 1
+ and id 4
+ scalar_field Salinity has reference count 1
+ and id 3
+ scalar_field Temperature has reference count 1
+ and id 2
+ scalar_field Density has reference count 1
+ and id 1
+ csr_sparsity EEListSparsity has reference count 2
+ and id 4
+ csr_sparsity NEListSparsity has reference count 1
+ and id 3
+ halo_type CoordinateMeshMaximalElementHalo has reference count 2
+ and id 3
+ halo_type CoordinateMeshLevel2Halo has reference count 1
+ and id 2
+ halo_type CoordinateMeshLevel1Halo has reference count 3
+ and id 1
+ mesh_type SurfaceCoordinateMesh has reference count 1
+ and id 2
+ element_type  has reference count 12
+ and id 2
+ quadrature_type  has reference count 2
+ and id 2
+ csr_matrix CoordinateMeshFaceList has reference count 1
+ and id 1
+ csr_sparsity EEListSparsity has reference count 2
+ and id 2
+ csr_sparsity NEListSparsity has reference count 1
+ and id 1
+ vector_field Coordinate has reference count 4
+ and id 1
+ mesh_type CoordinateMesh has reference count 97
+ and id 1
+ element_type  has reference count 1
+ and id 1
+ quadrature_type  has reference count 1
+ and id 1
+ Printing references after final deallocation
+ Printing out all currently allocated references:
+ There are no references left.
+ No registered memory in use.
+ Exited fluids

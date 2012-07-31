@@ -27,7 +27,8 @@
 
 #include "fdebug.h"
 
-subroutine supermesh_difference(vtu1_filename, vtu1_filename_len, vtu2_filename, vtu2_filename_len, output_filename, output_filename_len)
+subroutine supermesh_difference(vtu1_filename_, vtu1_filename_len, vtu2_filename_, &
+            &vtu2_filename_len, output_filename_, output_filename_len) bind(c)
   
   use fields
   use fldebug
@@ -39,16 +40,16 @@ subroutine supermesh_difference(vtu1_filename, vtu1_filename_len, vtu2_filename,
   use supermesh_construction
   use unify_meshes_module
   use vtk_interfaces
+  use iso_c_binding
   
   implicit none
   
-  integer, intent(in) :: vtu1_filename_len
-  integer, intent(in) :: vtu2_filename_len
-  integer, intent(in) :: output_filename_len
-  character(len = vtu1_filename_len), intent(in) :: vtu1_filename
-  character(len = vtu2_filename_len), intent(in) :: vtu2_filename
-  character(len = output_filename_len), intent(in) :: output_filename
+  integer(kind=c_size_t), value  :: vtu1_filename_len, vtu2_filename_len, output_filename_len
+  character(kind=c_char, len=1) :: vtu1_filename_(*), vtu2_filename_(*), output_filename_(*)
   
+  character(len = vtu1_filename_len) :: vtu1_filename
+  character(len = vtu2_filename_len) :: vtu2_filename
+  character(len = output_filename_len) :: output_filename
   integer :: dim, ele_1, ele_2, ele_3, i, j, nintersections, nintersections_max
   integer, dimension(:), allocatable :: ele_map_13, ele_map_23, node_map_13, &
     & node_map_23
@@ -73,6 +74,17 @@ subroutine supermesh_difference(vtu1_filename, vtu1_filename_len, vtu2_filename,
   type(vector_field), dimension(:), allocatable :: intersections
   
   ewrite(1, *) "In supermesh_difference"
+
+  do i=1, vtu1_filename_len
+    vtu1_filename(i:i)=vtu1_filename_(i)
+  end do
+  do i=1, vtu2_filename_len
+    vtu2_filename(i:i)=vtu2_filename_(i)
+  end do
+  do i=1, output_filename_len
+    output_filename(i:i)=output_filename_(i)
+  end do
+
   
   call vtk_read_state(vtu1_filename, state_1)
   call vtk_read_state(vtu2_filename, state_2)

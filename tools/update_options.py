@@ -44,6 +44,11 @@ extdict = {"flml" : "fluidity_options.rng",
            "swml" : "shallow_water_options.rng", 
            "adml" : "test_advection_diffusion_options.rng"}
 
+# cache parsed schema files
+schemadict = {}
+for k,v in extdict.items():
+  schemadict[k] = schema.Schema(os.path.join(rootDir, "schemas", v))
+
 filenames = args
 if len(filenames) == 0:
   filenames = []
@@ -60,8 +65,7 @@ for filename in filenames:
   debug.dprint("Processing " + str(filename), 1)
   
   ext = filename.split(".")[-1]
-  schemafile = os.path.join(rootDir, "schemas", extdict[ext])
-  sch = schema.Schema(schemafile)
+  sch = schemadict[ext]
  
   # Read the file and check that either the file is valid, or diamond.schema
   # can make the file valid by adding in the missing elements

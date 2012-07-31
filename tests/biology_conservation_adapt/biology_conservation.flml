@@ -200,7 +200,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
         if (abs(X[2]) &lt; 300):
                 return 1
         else:
@@ -323,7 +323,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
         if (abs(X[2]) &lt; 300):
                 return 1
         else:
@@ -533,7 +533,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
         if (abs(X[2]) &lt; 300):
                 return 0.1
         else:
@@ -560,7 +560,7 @@
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="python">def val(X,t):
+                <string_value lines="20" type="code" language="python">def val(X,t):
 	if (X[2]&gt;-1000):
 		return 0.001
 	elif(X[2]&gt;-2000):
@@ -670,7 +670,7 @@
     <scalar_field name="TotalBiology" rank="0">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="python">D=state.scalar_fields["Detritus"]
+          <string_value lines="20" type="code" language="python">D=state.scalar_fields["Detritus"]
 P=state.scalar_fields["Phytoplankton"]
 Z=state.scalar_fields["Zooplankton"]
 N=state.scalar_fields["Nutrient"]
@@ -734,7 +734,7 @@ for node in range(field.node_count):
   <ocean_biology>
     <pznd>
       <source_and_sink_algorithm>
-        <string_value lines="20" type="python">import fluidity.ocean_biology as biology
+        <string_value lines="20" type="code" language="python">import fluidity.ocean_biology as biology
 
 day=1./(3600*24)
 
@@ -797,7 +797,7 @@ biology.pznd(state, p)</string_value>
             <type name="dirichlet">
               <apply_weakly/>
               <python>
-                <string_value lines="20" type="python">def val(X,t):
+                <string_value lines="20" type="code" language="python">def val(X,t):
 	from math import cos, pi
 	day=3600*24.
 	year=365.*day
