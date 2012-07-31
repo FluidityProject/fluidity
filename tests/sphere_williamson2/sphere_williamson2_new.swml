@@ -169,6 +169,7 @@
           </value>
           <output/>
           <stat>
+            <manifold_transformation/>
             <include_in_stat/>
           </stat>
           <detectors>
@@ -221,7 +222,7 @@
         <initial_condition name="WholeMesh">
           <commuting_projection>
             <python>
-              <string_value type="code" lines="20" language="python">def val(X,t):
+              <string_value lines="20" type="code" language="python">def val(X,t):
   from math import pi
   x = X[0]
   y = X[1]
@@ -237,16 +238,16 @@
           </commuting_projection>
         </initial_condition>
         <output/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-        <consistent_interpolation/>
+        <stat>
+          <manifold_transformation/>
+          <include_in_stat/>
+          <previous_time_step>
+            <exclude_from_stat/>
+          </previous_time_step>
+          <nonlinear_field>
+            <exclude_from_stat/>
+          </nonlinear_field>
+        </stat>
       </prognostic>
     </vector_field>
     <scalar_field name="LayerThickness" rank="0">
@@ -287,7 +288,7 @@
         </solver>
         <initial_condition name="ProjectionFromPython">
           <python>
-            <string_value type="code" lines="20" language="python">def val(X,t): 
+            <string_value lines="20" type="code" language="python">def val(X,t): 
   from math import pi
   x = X[0]
   y = X[1]
@@ -310,7 +311,9 @@ g = 9.80616
           <reset_this_value/>
         </mean_layer_thickness>
         <output/>
-        <stat/>
+        <stat>
+          <manifold_transformation/>
+        </stat>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
@@ -337,7 +340,10 @@ g = 9.80616
         <output>
           <exclude_from_vtu/>
         </output>
-        <stat/>
+        <stat>
+          <manifold_transformation/>
+          <exclude_from_stat/>
+        </stat>
         <debug/>
       </prognostic>
     </scalar_field>
@@ -346,7 +352,9 @@ g = 9.80616
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
         <output/>
-        <stat/>
+        <stat>
+          <manifold_transformation/>
+        </stat>
         <convergence>
           <include_in_convergence/>
         </convergence>
@@ -363,12 +371,15 @@ g = 9.80616
     </scalar_field>
     <scalar_field name="PVError" rank="0">
       <diagnostic>
-        <algorithm name="scalar_difference" source_field_1_name="InitialPV" source_field_2_name="PotentialVorticity" source_field_2_type="scalar" material_phase_support="single" source_field_1_type="scalar"/>
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="InitialPV" source_field_2_name="PotentialVorticity" material_phase_support="single" source_field_1_type="scalar"/>
         <mesh name="VorticityMesh"/>
         <output>
           <exclude_from_vtu/>
         </output>
-        <stat/>
+        <stat>
+          <manifold_transformation/>
+          <exclude_from_stat/>
+        </stat>
         <convergence>
           <include_in_convergence/>
         </convergence>
@@ -385,10 +396,12 @@ g = 9.80616
     </scalar_field>
     <scalar_field name="InitialD" rank="0">
       <diagnostic>
-        <algorithm material_phase_support="single" source_field_type="scalar" source_field_name="LayerThickness" name="scalar_copy"/>
+        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_copy" source_field_name="LayerThickness"/>
         <mesh name="VelocityMesh"/>
         <output/>
-        <stat/>
+        <stat>
+          <manifold_transformation/>
+        </stat>
         <convergence>
           <include_in_convergence/>
         </convergence>
@@ -406,10 +419,12 @@ g = 9.80616
     </scalar_field>
     <scalar_field name="DError" rank="0">
       <diagnostic>
-        <algorithm name="scalar_difference" source_field_1_name="InitialD" source_field_2_name="LayerThickness" source_field_2_type="scalar" material_phase_support="single" source_field_1_type="scalar"/>
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="InitialD" source_field_2_name="LayerThickness" material_phase_support="single" source_field_1_type="scalar"/>
         <mesh name="PressureMesh"/>
         <output/>
-        <stat/>
+        <stat>
+          <manifold_transformation/>
+        </stat>
         <convergence>
           <include_in_convergence/>
         </convergence>
@@ -426,12 +441,14 @@ g = 9.80616
     </scalar_field>
     <scalar_field name="InitialPV" rank="0">
       <diagnostic>
-        <algorithm material_phase_support="single" source_field_type="scalar" source_field_name="PotentialVorticity" name="scalar_copy"/>
+        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_copy" source_field_name="PotentialVorticity"/>
         <mesh name="VorticityMesh"/>
         <output>
           <exclude_from_vtu/>
         </output>
-        <stat/>
+        <stat>
+          <manifold_transformation/>
+        </stat>
         <convergence>
           <include_in_convergence/>
         </convergence>
@@ -449,10 +466,54 @@ g = 9.80616
     </scalar_field>
     <scalar_field name="PVErrorP2DG" rank="0">
       <diagnostic>
-        <algorithm material_phase_support="single" source_field_type="scalar" source_field_name="PVError" name="scalar_galerkin_projection"/>
+        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="PVError"/>
         <mesh name="VelocityMesh"/>
         <output/>
-        <stat/>
+        <stat>
+          <manifold_transformation/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="One" rank="0">
+      <prescribed>
+        <mesh name="CoordinateMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value rank="0">1.0</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat>
+          <manifold_transformation/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="PVP2DG" rank="0">
+      <diagnostic>
+        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="PotentialVorticity"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <manifold_transformation/>
+        </stat>
         <convergence>
           <include_in_convergence/>
         </convergence>
@@ -469,10 +530,11 @@ g = 9.80616
     </scalar_field>
     <vector_field name="InitialVelocity" rank="1">
       <diagnostic>
-        <algorithm material_phase_support="single" source_field_type="vector" source_field_name="Velocity" name="vector_copy"/>
+        <algorithm source_field_type="vector" material_phase_support="single" name="vector_copy" source_field_name="Velocity"/>
         <mesh name="VelocityMesh"/>
         <output/>
         <stat>
+          <manifold_transformation/>
           <include_in_stat/>
         </stat>
         <convergence>
@@ -492,10 +554,11 @@ g = 9.80616
     </vector_field>
     <vector_field name="UError" rank="1">
       <diagnostic>
-        <algorithm name="vector_difference" source_field_1_name="Velocity" source_field_2_name="InitialVelocity" source_field_2_type="vector" material_phase_support="single" source_field_1_type="vector"/>
+        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="Velocity" source_field_2_name="InitialVelocity" material_phase_support="single" source_field_1_type="vector"/>
         <mesh name="VelocityMesh"/>
         <output/>
         <stat>
+          <manifold_transformation/>
           <include_in_stat/>
         </stat>
         <convergence>
@@ -513,9 +576,4 @@ g = 9.80616
       </diagnostic>
     </vector_field>
   </material_phase>
-  <debug>
-    <check_inverse_coriolis_matrix/>
-    <check_wave_matrix/>
-    <check_solution/>
-  </debug>
 </shallow_water_options>

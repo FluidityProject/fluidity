@@ -158,11 +158,17 @@ Biology.o ../include/biology.mod: Biology.F90 \
 	@true
 
 Bubble_tools.o ../include/bubble_tools.mod: Bubble_tools.F90 \
-   ../include/element_numbering.mod ../include/fdebug.h ../include/fields.mod \
-   ../include/fldebug_parameters.mod ../include/ieee_arithmetic.mod \
+   ../femtools/Reference_count_interface_mesh_type.F90 \
+   ../femtools/Reference_count_mesh_type.F90 ../include/adjacency_lists.mod \
+   ../include/element_numbering.mod ../include/fdebug.h \
+   ../include/field_options.mod ../include/fields.mod \
+   ../include/fields_allocates.mod ../include/fldebug_parameters.mod \
+   ../include/ieee_arithmetic.mod ../include/quadrature.mod \
+   ../include/reference_counting.mod ../include/shape_functions.mod \
    ../include/solvers.mod ../include/sparse_matrices_fields.mod \
    ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
-   ../include/state_module.mod ../include/vector_tools.mod
+   ../include/state_module.mod ../include/vector_tools.mod \
+   ../include/vtk_interfaces.mod
 
 ../include/burgers_assembly.mod: Burgers_Assembly.o
 	@true

@@ -79,6 +79,7 @@ module diagnostic_variables
   use detector_move_lagrangian
   use ieee_arithmetic, only: cget_nan
   use state_fields_module, only: get_cv_mass
+  use manifold_tools
   
   implicit none
 
@@ -1956,8 +1957,14 @@ contains
 
           ! Standard scalar field stats
           if(stat_field(sfield, state(phase))) then
-          
-            call field_stats(sfield, Xfield, fmin, fmax, fnorm2, fintegral)
+             if(have_option(trim(complete_field_path(sfield%option_path,stat&
+                  &=stat))//"/stat/manifold_transformation")) then
+                call field_stats_manifold(&
+                     sfield, Xfield, fmin, fmax, fnorm2, fintegral)
+             else
+                call field_stats(sfield, Xfield, fmin, fmax, fnorm2,&
+                     & fintegral)
+             end if
             if(getprocno() == 1) then
               write(default_stat%diag_unit, trim(format4), advance="no") fmin, fmax, fnorm2,&
                    & fintegral
@@ -1966,7 +1973,7 @@ contains
           end if
 
           ! Control volume stats
-          if(have_option(trim(complete_field_path(sfield%option_path,stat=stat)) //&
+          if(have_option(trim(complete_field_path(sfield%option_path,stat=stat))//&
                & "/stat/include_cv_stats")) then
             
             ! Get the CV mass matrix 
@@ -2039,7 +2046,13 @@ contains
 
          ! Standard scalar field stats for vector field magnitude
          if(stat_field(vfield,state(phase))) then
-           call field_stats(vfield, Xfield, fmin, fmax, fnorm2)
+             if(have_option(trim(complete_field_path(vfield%option_path,stat&
+                  &=stat))//"/stat/manifold_transformation")) then
+                call field_stats_manifold(vfield, Xfield, fmin, fmax, fnorm2)
+             else
+                call field_stats(vfield, Xfield, fmin, fmax,fnorm2)
+             end if
+
            ! Only the first process should write statistics information
            if(getprocno() == 1) then
              write(default_stat%diag_unit, trim(format3), advance = "no") fmin, fmax, fnorm2
@@ -2050,9 +2063,14 @@ contains
          if(stat_field(vfield, state(phase), test_for_components = .true.)) then
            do j = 1, vfield%dim
              vfield_comp = extract_scalar_field(vfield, j)
-
-             call field_stats(vfield_comp, Xfield, fmin, fmax, fnorm2, &
-               & fintegral)
+             if(have_option(trim(complete_field_path(vfield%option_path,stat&
+                  &=stat))//"/stat/manifold_transformation")) then
+                call field_stats_manifold(&
+                     vfield_comp, Xfield, fmin, fmax, fnorm2,fintegral)
+             else
+                call field_stats(vfield_comp, Xfield, fmin, fmax, fnorm2, &
+                     & fintegral)
+             end if
              ! Only the first process should write statistics information
              if(getprocno() == 1) then
                write(default_stat%diag_unit, trim(format4), advance = "no") fmin, fmax, fnorm2, &

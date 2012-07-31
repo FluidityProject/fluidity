@@ -1191,14 +1191,7 @@ requires a distinct name for the options dictionary.</a:documentation>
       </element>
     </optional>
     <ref name="prognostic_vector_output_options"/>
-    <ref name="vector_convergence_options"/>
-    <ref name="prognostic_detector_options"/>
-    <ref name="vector_steady_state_options"/>
-    <ref name="adaptivity_options_prognostic_vector_field"/>
-    <ref name="interpolation_algorithm_vector"/>
-    <optional>
-      <ref name="discrete_properties_algorithm_vector"/>
-    </optional>
+    <ref name="prognostic_vector_stat_options"/>
   </define>
   <define name="prognostic_layerthickness_field">
     <element name="spatial_discretisation">
@@ -2073,6 +2066,9 @@ Select this option to exclude this field.</a:documentation>
   <define name="prognostic_scalar_stat_options">
     <element name="stat">
       <a:documentation>Specify what is added to .stat files</a:documentation>
+      <element name="manifold_transformation">
+        <empty/>
+      </element>
       <ref name="prognostic_scalar_stat_options.stat"/>
     </element>
   </define>
@@ -2080,6 +2076,9 @@ Select this option to exclude this field.</a:documentation>
   <define name="prognostic_scalar_stat_no_old_or_nonlinear_options">
     <element name="stat">
       <a:documentation>Specify what is added to .stat files</a:documentation>
+      <element name="manifold_transformation">
+        <empty/>
+      </element>
       <ref name="prognostic_scalar_stat_no_old_or_nonlinear_options.stat"/>
     </element>
   </define>
@@ -2146,6 +2145,9 @@ iteration in the .stat file.</a:documentation>
   <define name="prognostic_vector_stat_options">
     <element name="stat">
       <a:documentation>Specify what is added to .stat files</a:documentation>
+      <element name="manifold_transformation">
+        <empty/>
+      </element>
       <ref name="prognostic_vector_stat_options.stat"/>
     </element>
   </define>
@@ -2153,6 +2155,9 @@ iteration in the .stat file.</a:documentation>
   <define name="prognostic_vector_stat_no_old_or_nonlinear_options">
     <element name="stat">
       <a:documentation>Specify what is added to .stat files</a:documentation>
+      <element name="manifold_transformation">
+        <empty/>
+      </element>
       <ref name="prognostic_vector_stat_no_old_or_nonlinear_options.stat"/>
     </element>
   </define>

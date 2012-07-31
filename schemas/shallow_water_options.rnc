@@ -956,13 +956,8 @@ prognostic_sw_velocity_field =
             empty
          }?
       }?,
-   prognostic_vector_output_options,
-   vector_convergence_options,
-   prognostic_detector_options,
-   vector_steady_state_options,
-   adaptivity_options_prognostic_vector_field,
-   interpolation_algorithm_vector,
-   discrete_properties_algorithm_vector?
+      prognostic_vector_output_options,
+      prognostic_vector_stat_options
 )
 
 prognostic_layerthickness_field =
@@ -1743,7 +1738,10 @@ prognostic_scalar_stat_options =
    (
       ## Specify what is added to .stat files
       element stat {
-        prognostic_scalar_stat_options.stat
+         element manifold_transformation {
+            empty
+         },
+         prognostic_scalar_stat_options.stat
       }
    )
   
@@ -1752,6 +1750,9 @@ prognostic_scalar_stat_no_old_or_nonlinear_options =
    (
       ## Specify what is added to .stat files
       element stat {
+         element manifold_transformation {
+            empty
+         },
          prognostic_scalar_stat_no_old_or_nonlinear_options.stat
          
       }
@@ -1775,7 +1776,7 @@ prognostic_scalar_stat_options.stat &=
       }?
    )
 prognostic_scalar_stat_no_old_or_nonlinear_options.stat = 
-   (
+   (        
       exclude_stat?,
       cv_stats?,
       surface_integral_stats_scalar*,
@@ -1797,6 +1798,9 @@ prognostic_vector_stat_options =
    (
       ## Specify what is added to .stat files
       element stat {
+         element manifold_transformation {
+            empty
+         },
          (
             prognostic_vector_stat_options.stat
          )
@@ -1808,6 +1812,9 @@ prognostic_vector_stat_no_old_or_nonlinear_options =
    (
       ## Specify what is added to .stat files
       element stat {
+         element manifold_transformation {
+            empty
+         },
          prognostic_vector_stat_no_old_or_nonlinear_options.stat
       }
    )

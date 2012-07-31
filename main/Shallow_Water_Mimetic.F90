@@ -172,6 +172,7 @@
     ewrite(2,*) 'Energy = ',energy
 
     ! One last dump
+    call project_local_to_cartesian(states(1))
     call output_state(states)
     call write_diagnostics(states,current_time, dt, timestep)
 
@@ -562,6 +563,8 @@
       type(vector_field), pointer  :: X, U
       integer :: ele
       character(len=PYTHON_FUNC_LEN) :: Python_Function
+
+      ewrite(1,*) 'set_velocity_galerkin_projection'
 
       X=>extract_vector_field(state,"Coordinate")
       U=>extract_vector_field(state,"LocalVelocity")
