@@ -589,6 +589,24 @@ does not apply any upwinding</a:documentation>
           </optional>
           <optional>
             <element name="scalar_field">
+              <a:documentation>Orography</a:documentation>
+              <attribute name="rank">
+                <value>0</value>
+              </attribute>
+              <attribute name="name">
+                <value>Orography</value>
+              </attribute>
+              <element name="prescribed">
+                <element name="value">
+                  <ref name="input_choice_real"/>
+                </element>
+                <ref name="pressure_mesh_choice"/>
+                <ref name="prognostic_scalar_output_options"/>
+              </element>
+            </element>
+          </optional>
+          <optional>
+            <element name="scalar_field">
               <attribute name="rank">
                 <value>0</value>
               </attribute>

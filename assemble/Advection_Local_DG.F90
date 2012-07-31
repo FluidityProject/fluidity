@@ -1689,7 +1689,7 @@ module advection_local_DG
     type(vector_field), pointer :: X
     type(scalar_field), pointer :: Orography
     real :: dt, theta,g 
-    type(scalar_field) :: l_orography
+    type(scalar_field), target :: l_orography
     logical :: have_orography
 
     ewrite(1,*) '  subroutine compute_U_residual('
@@ -1704,23 +1704,30 @@ module advection_local_DG
     if(.not.have_orography) then
        call allocate(l_orography,X%mesh,"L_Orography")
        orography => l_orography
+       call zero(l_orography)
     end if
 
     call zero(UResidual)
     do ele = 1, ele_count(UResidual)
-       call compute_U_residual_ele(UResidual,oldU,oldD,newU,newD,PVFlux,X,theta&
+       call compute_U_residual_ele(UResidual,oldU,oldD,newU,newD,PVFlux,&
+            orography,X,theta&
             &,dt,g,ele)
     end do
     
+    if(.not.have_orography) then
+       call deallocate(l_orography)
+    end if
+
     ewrite(1,*) 'END subroutine compute_U_residual('
 
   end subroutine compute_U_residual
 
-  subroutine compute_U_residual_ele(UResidual,oldU,oldD,newU,newD,PVFlux,X,theta&
+  subroutine compute_U_residual_ele(UResidual,oldU,oldD,newU,newD,PVFlux,&
+       orography,X,theta&
        &,dt,g,ele)
     type(vector_field), intent(inout) :: UResidual
     type(vector_field), intent(in) :: oldU,newU,PVFlux,X
-    type(scalar_field), intent(in) :: oldD,newD
+    type(scalar_field), intent(in) :: oldD,newD,orography
     real, intent(in) :: dt,theta,g
     integer, intent(in) :: ele
     !
@@ -1734,6 +1741,7 @@ module advection_local_DG
     real, dimension(mesh_dim(oldU),ele_loc(UResidual,ele)) :: UR_rhs
     integer :: gi
     type(element_type), pointer :: U_shape
+    real, dimension(ele_ngi(X,ele)) :: orography_gi
 
     !r[w] = <w,u^{n+1}-u^n> + <w,FQ^\perp> 
     !           - dt*<div w, g\bar{h} + \bar{|u|^2/2}>
@@ -1744,6 +1752,7 @@ module advection_local_DG
 
     !Get all the variables at the quadrature points
     D_gi = ele_val_at_quad(oldD,ele)
+    orography_gi = ele_val_at_quad(orography,ele)
     newD_gi = ele_val_at_quad(newD,ele)
     U_gi = ele_val_at_quad(oldU,ele)
     newU_gi = ele_val_at_quad(newU,ele)
@@ -1769,7 +1778,7 @@ module advection_local_DG
     UR_rhs = UR_rhs + shape_vector_rhs(U_shape,newU_rhs-U_rhs,&
          U_shape%quadrature%weight)
     !Now the gradient terms (done in local coordinates)
-    D_bar_gi = theta*newD_gi + (1-theta)*D_gi
+    D_bar_gi = theta*newD_gi + (1-theta)*D_gi + orography_gi
     K_bar_gi = 0.5*(theta*sum(newU_cart_gi**2,1)+(1-theta)*sum(U_cart_gi**2,1))
     !integration by parts, so minus sign
     UR_rhs = UR_rhs - dt * dshape_rhs(U_shape%dn,&

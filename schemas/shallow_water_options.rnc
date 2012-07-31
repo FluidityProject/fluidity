@@ -460,6 +460,18 @@ start =
                      }
                   )
                }?,
+               ## Orography
+               element scalar_field {
+                  attribute rank { "0" },
+                  attribute name { "Orography" },
+                  element prescribed {                     
+                     element value {
+                        input_choice_real                        
+                     },
+                     pressure_mesh_choice,
+                     prognostic_scalar_output_options
+                  }
+               }?,
                element scalar_field {
                   attribute rank { "0" },
                   attribute name { "InitialLayerThickness" },
