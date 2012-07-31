@@ -1264,6 +1264,7 @@ contains
       ! memory for coordinates, velocity, normals, determinants, nodes
       ! and the cfl number at the gauss pts and nodes
       real, dimension(x%dim,ele_loc(x,1)) :: x_ele
+      real, dimension(x%dim,ele_loc(tfield,1)) :: xt_ele
       real, dimension(x%dim,face_loc(x,1)) :: x_ele_bdy
       real, dimension(x%dim,x_cvshape%ngi) :: x_f
       real, dimension(advu%dim,u_cvshape%ngi) :: u_f
@@ -1415,6 +1416,7 @@ contains
       ! loop over elements
       element_loop: do ele=1, element_count(tfield)
         x_ele=ele_val(x, ele)
+        xt_ele=ele_val(x_tfield, ele)
         x_f=ele_val_at_quad(x, ele, x_cvshape)
         nodes=>ele_nodes(tfield, ele)
         ! the nodes in this element from the coordinate mesh projected
@@ -1527,7 +1529,7 @@ contains
                                         tfield_face_val, &
                                         oldtfield_face_val, &
                                         tfield_options%theta, dt, udotn, &
-                                        x_ele, tfield_options%limit_theta, &
+                                        xt_ele, tfield_options%limit_theta, &
                                         tfield_ele, oldtfield_ele, &
                                         ftheta=ftheta)
 
@@ -1555,7 +1557,7 @@ contains
                                           tdensity_face_val, &
                                           oldtdensity_face_val, &
                                           tdensity_options%theta, dt, udotn, &
-                                          x_ele, tdensity_options%limit_theta, &
+                                          xt_ele, tdensity_options%limit_theta, &
                                           tdensity_ele, oldtdensity_ele)
 
                       if(assemble_advection_matrix) then
