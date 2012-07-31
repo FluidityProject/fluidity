@@ -1,8 +1,25 @@
 input: clean
 	tar -xzvf ../bdfm1_sphere/src/sphere.tgz
-
+	cp sphere_williamson2_new.swml sphere_williamson2_new3.swml
+	cp sphere_williamson2_new.swml sphere_williamson2_new4.swml
+	cp sphere_williamson2_new.swml sphere_williamson2_new5.swml
+	cp sphere_williamson2_new.swml sphere_williamson2_new6.swml
+	spud-set sphere_williamson2_new3.swml /simulation_name 'sphere_williamson2mesh3'
+	spud-set sphere_williamson2_new4.swml /simulation_name 'sphere_williamson2mesh4'
+	spud-set sphere_williamson2_new5.swml /simulation_name 'sphere_williamson2mesh5'
+	spud-set sphere_williamson2_new6.swml /simulation_name 'sphere_williamson2mesh6'
+	sed -i s/sphere_ico4/sphere_ico3/ sphere_williamson2_new3.swml
+	sed -i s/sphere_ico4/sphere_ico4/ sphere_williamson2_new4.swml
+	sed -i s/sphere_ico4/sphere_ico5/ sphere_williamson2_new5.swml
+	sed -i s/sphere_ico4/sphere_ico6/ sphere_williamson2_new6.swml
 clean:
 	rm -f *.d.* *.vtu
 	rm -f fluidity.err-0 fluidity.log-0
 	rm -f channel*.ele channel*.face chanel*.node channel*.edge *.stat *.halo
 	rm -f *.msh *.geo
+
+sw2_convergence_runs: input
+	../../bin/shallow_water_mimetic -v 1 sphere_williamson2_new3.swml &> 3.out &
+	../../bin/shallow_water_mimetic -v 1 sphere_williamson2_new4.swml &> 4.out &
+	../../bin/shallow_water_mimetic -v 1 sphere_williamson2_new5.swml &> 5.out &
+	../../bin/shallow_water_mimetic -v 1 sphere_williamson2_new6.swml &> 6.out &
