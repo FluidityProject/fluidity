@@ -32,6 +32,7 @@ module halos_debug
   use fldebug
   use halo_data_types
   use halos_base
+  use halos_numbering
   use mpi_interfaces
   use parallel_tools
 
@@ -217,12 +218,14 @@ contains
     
     do i = 1, halo_proc_count(halo)
        ewrite(priority,*) "Sends to process ", i
-       ewrite(priority,*) halo_sends(halo, i)
+       ewrite(priority,*) 'global:    ', halo_sends(halo, i)
+       ewrite(priority,*) 'universal: ', halo_universal_numbers(halo, halo_sends(halo, i))
     end do
 
     do i = 1, halo_proc_count(halo)
        ewrite(priority,*) "Receives from process ", i
-       ewrite(priority,*) halo_receives(halo, i)
+       ewrite(priority,*) 'global:    ', halo_receives(halo, i)
+       ewrite(priority,*) 'universal: ', halo_universal_numbers(halo, halo_receives(halo, i))
     end do
     
   end subroutine print_halo

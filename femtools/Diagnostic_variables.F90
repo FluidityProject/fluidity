@@ -1369,7 +1369,10 @@ contains
     assert(xfield%dim+1==local_coord_count(shape))
 
     ! Determine element and local_coords from position
-    call picker_inquire(xfield,position,element,local_coord=lcoords,global=.false.)
+    ! In parallel, global=.false. can often work because there will be
+    ! a halo of non-owned elements in your process and so you can work out
+    ! ownership without communication.  But in general it won't work.
+    call picker_inquire(xfield,position,element,local_coord=lcoords,global=.true.)
 
     ! If we're in parallel and don't own the element, skip this detector
     if (isparallel()) then
