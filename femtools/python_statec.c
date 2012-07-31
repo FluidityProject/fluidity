@@ -31,6 +31,11 @@ void python_init_(void){
   // Initialize a persistent dictionary
   PyRun_SimpleString("persistent = {}");
 
+  // Initialize Fluidity field caches
+  PyRun_SimpleString("scalar_field_cache = {}");
+  PyRun_SimpleString("vector_field_cache = {}");
+  PyRun_SimpleString("tensor_field_cache = {}");
+
   // Add the working directory to the module search path.
   PyRun_SimpleString("import sys");
   PyRun_SimpleString("sys.path.append('.')");
@@ -65,7 +70,7 @@ void python_reset_(void){
 #ifdef HAVE_PYTHON
   if(Py_IsInitialized()){
     // Create a list of items to be kept
-    PyRun_SimpleString("keep = [];keep.append('keep');keep.append('rem');keep.append('__builtins__');keep.append('__name__'); keep.append('__doc__');keep.append('string');keep.append('numpy');keep.append('persistent')");
+    PyRun_SimpleString("keep = ['keep', 'rem', '__builtins__', '__name__', '__doc__', 'string', 'numpy', 'persistent', 'scalar_field_cache', 'vector_field_cache', 'tensor_field_cache']");
 
     // Create a list of items to  be removed
     PyRun_SimpleString("rem = []");
@@ -140,12 +145,6 @@ char* fix_string(char *s,int len){
 }
 
 
-
-
-
-
-
-
 // Functions to add a state and fields: scalar, vector, tensor, mesh, quadrature, polynomial
 
 
@@ -197,7 +196,7 @@ void python_add_scalar_(int *sx,double x[],char *name,int *nlen, int *field_type
   char *n = fix_string(state,*slen);
   int tlen=150+*slen+*mesh_name_len;
   char t[tlen];
-  snprintf(t, tlen, "field = ScalarField(n,s,ft,op,uid); states['%s'].scalar_fields['%s'] = field",n,namec);
+  snprintf(t, tlen, "field = scalar_field_cache.setdefault(uid, ScalarField(n,s,ft,op,uid)); states['%s'].scalar_fields['%s'] = field",n,namec);
   PyRun_SimpleString(t);
 
   // Set the mesh for this field
@@ -296,7 +295,7 @@ void python_add_vector_(int *num_dim, int *s,
   char *n = fix_string(state,*slen);
   int tlen=150+*slen+*mesh_name_len;
   char t[tlen];
-  snprintf(t, tlen, "field = VectorField(n,vector,ft,op,nd,uid); states[\"%s\"].vector_fields['%s'] = field",n,namec);
+  snprintf(t, tlen, "field = vector_field_cache.setdefault(uid, VectorField(n,vector,ft,op,nd,uid)); states[\"%s\"].vector_fields['%s'] = field",n,namec);
   PyRun_SimpleString(t);
 
   // Set the mesh for this field
@@ -355,7 +354,7 @@ void python_add_tensor_(int *sx,int *sy,int *sz, double *x, int num_dim[],
   char *n = fix_string(state,*slen);
   int tlen=150+*slen+*mesh_name_len;
   char t[tlen];
-  snprintf(t, tlen, "field = TensorField(n,val,ft,op,nd0,nd1,uid); states[\"%s\"].tensor_fields['%s'] = field",n,namec);
+  snprintf(t, tlen, "field = tensor_field_cache.setdefault(uid, TensorField(n,val,ft,op,nd0,nd1,uid)); states[\"%s\"].tensor_fields['%s'] = field",n,namec);
   PyRun_SimpleString(t);  
 
   // Set the mesh for this field
