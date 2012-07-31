@@ -169,7 +169,7 @@ void python_add_statec_(char *name,int *len){
 
 void python_add_scalar_(int *sx,double x[],char *name,int *nlen, int *field_type, 
   char *option_path, int *oplen, char *state,int *slen,
-  char *mesh_name, int *mesh_name_len){
+  char *mesh_name, int *mesh_name_len, int *uid){
 #ifdef HAVE_NUMPY
   // Add the Fortran scalar field to the dictionary of the Python interpreter
   PyObject *pMain = PyImport_AddModule("__main__");
@@ -188,6 +188,8 @@ void python_add_scalar_(int *sx,double x[],char *name,int *nlen, int *field_type
   PyDict_SetItemString(pDict,"op",poptionp);  
   PyObject *pft = PyInt_FromLong(*field_type);
   PyDict_SetItemString(pDict,"ft",pft);  
+  PyObject *puid = PyInt_FromLong(*uid);
+  PyDict_SetItemString(pDict,"uid",puid);  
 
   PyRun_SimpleString("n = string.strip(n)");
   PyRun_SimpleString("op = string.strip(op)");
@@ -195,7 +197,7 @@ void python_add_scalar_(int *sx,double x[],char *name,int *nlen, int *field_type
   char *n = fix_string(state,*slen);
   int tlen=150+*slen+*mesh_name_len;
   char t[tlen];
-  snprintf(t, tlen, "field = ScalarField(n,s,ft,op); states['%s'].scalar_fields['%s'] = field",n,namec);
+  snprintf(t, tlen, "field = ScalarField(n,s,ft,op,uid); states['%s'].scalar_fields['%s'] = field",n,namec);
   PyRun_SimpleString(t);
 
   // Set the mesh for this field
@@ -203,7 +205,7 @@ void python_add_scalar_(int *sx,double x[],char *name,int *nlen, int *field_type
   PyRun_SimpleString(t);
 
   // Clean up
-  PyRun_SimpleString("del n; del op; del ft; del s; del field");
+  PyRun_SimpleString("del n; del op; del ft; del uid; del s; del field");
   free(namec); 
   free(opc);
   free(n);
@@ -211,6 +213,7 @@ void python_add_scalar_(int *sx,double x[],char *name,int *nlen, int *field_type
   Py_DECREF(pname);
   Py_DECREF(poptionp);
   Py_DECREF(pft);
+  Py_DECREF(puid);
 #endif
 }
 
@@ -262,7 +265,7 @@ void python_add_csr_matrix_(int *valSize, double val[], int *col_indSize, int co
 void python_add_vector_(int *num_dim, int *s, 
   double x[], 
   char *name,int *nlen, int *field_type, char *option_path, int *oplen, char *state,int *slen,
-  char *mesh_name, int *mesh_name_len){
+  char *mesh_name, int *mesh_name_len, int *uid){
 #ifdef HAVE_NUMPY
   // Make the Fortran vector field availabe to the Python interpreter
   PyObject *pMain = PyImport_AddModule("__main__");
@@ -284,6 +287,8 @@ void python_add_vector_(int *num_dim, int *s,
   PyDict_SetItemString(pDict,"ft",pft);  
   PyObject *pnd = PyInt_FromLong(*num_dim);
   PyDict_SetItemString(pDict,"nd",pnd);  
+  PyObject *puid = PyInt_FromLong(*uid);
+  PyDict_SetItemString(pDict,"uid",puid);  
 
   PyRun_SimpleString("n = string.strip(n)");
   PyRun_SimpleString("op = string.strip(op)");
@@ -291,7 +296,7 @@ void python_add_vector_(int *num_dim, int *s,
   char *n = fix_string(state,*slen);
   int tlen=150+*slen+*mesh_name_len;
   char t[tlen];
-  snprintf(t, tlen, "field = VectorField(n,vector,ft,op,nd); states[\"%s\"].vector_fields['%s'] = field",n,namec);
+  snprintf(t, tlen, "field = VectorField(n,vector,ft,op,nd,uid); states[\"%s\"].vector_fields['%s'] = field",n,namec);
   PyRun_SimpleString(t);
 
   // Set the mesh for this field
@@ -299,7 +304,7 @@ void python_add_vector_(int *num_dim, int *s,
   PyRun_SimpleString(t);
 
   // Clean up
-  PyRun_SimpleString("del n; del op; del ft; del nd; del vector; del field");
+  PyRun_SimpleString("del n; del op; del ft; del nd; del uid; del vector; del field");
   free(n);
   free(namec); 
   free(opc);
@@ -309,13 +314,14 @@ void python_add_vector_(int *num_dim, int *s,
   Py_DECREF(poptionp);
   Py_DECREF(pft);
   Py_DECREF(pnd);
+  Py_DECREF(puid);
 #endif
 }
 
 
 void python_add_tensor_(int *sx,int *sy,int *sz, double *x, int num_dim[],
   char *name,int *nlen, int *field_type, char *option_path, int *oplen, char *state,int *slen,
-  char *mesh_name, int *mesh_name_len){
+  char *mesh_name, int *mesh_name_len, int *uid){
 #ifdef HAVE_NUMPY
   // Expose a Fortran tensor field to the Python interpreter
   PyObject *pMain = PyImport_AddModule("__main__");
@@ -340,6 +346,8 @@ void python_add_tensor_(int *sx,int *sy,int *sz, double *x, int num_dim[],
   PyDict_SetItemString(pDict,"nd0",pnd0);  
   PyObject *pnd1 = PyInt_FromLong(num_dim[1]);
   PyDict_SetItemString(pDict,"nd1",pnd1);  
+  PyObject *puid = PyInt_FromLong(*uid);
+  PyDict_SetItemString(pDict,"uid",puid);  
 
   PyRun_SimpleString("n = string.strip(n)");
   PyRun_SimpleString("op = string.strip(op)");
@@ -347,7 +355,7 @@ void python_add_tensor_(int *sx,int *sy,int *sz, double *x, int num_dim[],
   char *n = fix_string(state,*slen);
   int tlen=150+*slen+*mesh_name_len;
   char t[tlen];
-  snprintf(t, tlen, "field = TensorField(n,val,ft,op,nd0,nd1); states[\"%s\"].tensor_fields['%s'] = field",n,namec);
+  snprintf(t, tlen, "field = TensorField(n,val,ft,op,nd0,nd1,uid); states[\"%s\"].tensor_fields['%s'] = field",n,namec);
   PyRun_SimpleString(t);  
 
   // Set the mesh for this field
@@ -355,7 +363,7 @@ void python_add_tensor_(int *sx,int *sy,int *sz, double *x, int num_dim[],
   PyRun_SimpleString(t);
 
   // Clean up
-  PyRun_SimpleString("del n; del op; del val; del field");
+  PyRun_SimpleString("del n; del op; del uid; del val; del field");
   free(n);
   free(namec); 
   free(opc); 
@@ -366,6 +374,7 @@ void python_add_tensor_(int *sx,int *sy,int *sz, double *x, int num_dim[],
   Py_DECREF(pft);
   Py_DECREF(pnd0);
   Py_DECREF(pnd1);
+  Py_DECREF(puid);
 #endif
 }
 

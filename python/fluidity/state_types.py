@@ -24,11 +24,12 @@ class State:
     self.tensor_fields,"\ncsr_matrices:", self.csr_matrices
 
 class Field:
-  def __init__(self,n,ft,op,description):
+  def __init__(self,n,ft,op,description,uid):
     self.name = n
     self.field_type = ft
     self.option_path = op
     self.description = description
+    self.uid = uid
 
   def __repr__(self):
     return '(%s) %s' % (self.description,self.name)
@@ -126,8 +127,8 @@ class Field:
 class ScalarField(Field):
   "A scalar field"  
   description = "ScalarField"
-  def __init__(self,n,v,ft,op):
-    Field.__init__(self,n,ft,op,self.description)
+  def __init__(self,n,v,ft,op,uid):
+    Field.__init__(self,n,ft,op,self.description,uid)
     self.val = v
     self.node_count = self.val.shape[0]
 
@@ -135,8 +136,8 @@ class ScalarField(Field):
 class VectorField(Field):
   "A vector field"
   description = "VectorField"
-  def __init__(self,n,v,ft,op,dim):
-    Field.__init__(self,n,ft,op,self.description)
+  def __init__(self,n,v,ft,op,dim,uid):
+    Field.__init__(self,n,ft,op,self.description,uid)
     self.val = v
     self.dimension = dim
     self.node_count=self.val.shape[0]
@@ -144,8 +145,8 @@ class VectorField(Field):
 class TensorField(Field):
   "A tensor field"
   description = "VectorField"
-  def __init__(self,n,v,ft,op,dim0,dim1):
-    Field.__init__(self,n,ft,op,self.description)
+  def __init__(self,n,v,ft,op,dim0,dim1,uid):
+    Field.__init__(self,n,ft,op,self.description,uid)
     self.val = v
     self.dimension = numpy.array([dim0,dim1])
     self.node_count=self.val.shape[0]
