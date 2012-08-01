@@ -508,7 +508,7 @@ contains
 
        ! momentum source term adjustment for k-epsilon model
        ! this is a hack - we need to set a source term for the momentum equation
-       ! to take account of (-2/3 k delta(ij)) in the reynolds stresses, however we also
+       ! to take account of (-2/3 k rho delta(ij)) in the reynolds stresses, however we also
        ! want to be able to have a prescribed momentum source term and hence need to add
        ! the adjustment after the prescribed value is set  
        call keps_momentum_source(state(1))
