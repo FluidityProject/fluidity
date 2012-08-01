@@ -70,7 +70,7 @@ implicit none
 #endif
 #endif
 ! hack around PetscTruth->PetscBool change in petsc 3.2
-#if PETSC_VERSION_MINOR==2
+#if PETSC_VERSION_MINOR>=2
 #define PetscTruth PetscBool
 #endif
   ! options read from command-line (-prns_... options)
@@ -93,7 +93,7 @@ implicit none
   ! read in the matrix equation and init. guess:
   call PetscViewerBinaryOpen(MPI_COMM_FEMTOOLS, trim(filename), &
      FILE_MODE_READ, viewer, ierr)
-#if PETSC_VERSION_MINOR==2
+#if PETSC_VERSION_MINOR>=2
   ! in petsc 3.2 MatLoad and VecLoad do no longer create a new vector
   call MatCreate(MPI_COMM_FEMTOOLS, matrix, ierr)
   call VecCreate(MPI_COMM_FEMTOOLS, rhs, ierr)
@@ -753,7 +753,7 @@ contains
     ncomponents=size(petsc_numbering%gnn2unn, 2)
     allocate(unns(1:n*ncomponents))
     unns=reshape( petsc_numbering%gnn2unn(1:n,:), (/ n*ncomponents /))
-#if PETSC_VERSION_MINOR==2
+#if PETSC_VERSION_MINOR>=2
     ! for petsc 3.2 we have an extra PetscCopyMode argument
     call ISCreateGeneral(MPI_COMM_FEMTOOLS, &
        size(unns), unns, PETSC_COPY_VALUES, row_indexset, ierr)

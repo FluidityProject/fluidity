@@ -40,8 +40,14 @@ implicit none
 #include "finclude/petscsys.h"
 #endif
 #endif
-#if PETSC_VERSION_MINOR==2
+#if PETSC_VERSION_MINOR>=2
 #define KSP_NORM_NO KSP_NORM_NONE
+#endif
+#if PETSC_VERSION_MINOR>=3
+#define MatCreateSeqAIJ myMatCreateSeqAIJ
+#define MatCreateMPIAIJ myMatCreateMPIAIJ
+#define MatCreateSeqBAIJ myMatCreateSeqBAIJ
+#define MatCreateMPIBAIJ myMatCreateMPIBAIJ
 #endif
 
 !! Some parameters that change the behaviour of 
@@ -367,7 +373,6 @@ subroutine SetupSmoothedAggregation(prec, matrix, ierror, &
 !!< This subroutine sets up the preconditioner for using the smoothed
 !!< aggregation method (as described in Vanek et al. 
 !!< Computing 56, 179-196 (1996).
-
 PC, intent(inout):: prec
 Mat, intent(in):: matrix
 !! ierror=0 upon succesful return, otherwise ierror=1 and everything 
@@ -459,10 +464,8 @@ logical, optional, intent(in) :: has_null_space
         end do
         deallocate(matrices, prolongators, contexts)
         ! Need to set n/o levels (to 1) otherwise PCDestroy will fail:
-
         myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
-!        call PCMGSetLevels(prec, 1, PETSC_NULL_OBJECT, ierr)
-        call PCMGSetLevels(prec, 1, PETSC_COMM_WORLD, ierr)
+        call PCMGSetLevels(prec, 1, PETSC_NULL_OBJECT, ierr)
         if (myPETSC_NULL_OBJECT/=PETSC_NULL_OBJECT) then
            FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
         end if
@@ -488,11 +491,7 @@ logical, optional, intent(in) :: has_null_space
     end if
     
     myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
-
-    print*, PETSC_NULL_OBJECT, 'Ferret!'
-
     call PCMGSetLevels(prec, nolevels, PETSC_NULL_OBJECT, ierr)
-!    call PCMGSetLevels(prec, nolevels, PETSC_COMM_WORLD, ierr)
     if (myPETSC_NULL_OBJECT/=PETSC_NULL_OBJECT) then
        FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
     end if
@@ -694,13 +693,17 @@ integer, intent(in):: iterations
   PC:: pc
   PetscErrorCode:: ierr
   
+#if PETSC_VERSION_MINOR>=3
+  call KSPSetType(ksp, KSPCHEBYSHEV, ierr)
+#else
   call KSPSetType(ksp, KSPCHEBYCHEV, ierr)
+#endif
   call KSPSetOperators(ksp, matrix, matrix, SAME_PRECONDITIONER, ierr)
   call KSPSetTolerances(ksp, PETSC_DEFAULT_DOUBLE_PRECISION, &
     PETSC_DEFAULT_DOUBLE_PRECISION, PETSC_DEFAULT_DOUBLE_PRECISION, &
     iterations, ierr)
-#ifdef DOUBLEP
-  call KSPChebychevSetEigenvalues(ksp, emax, emin, ierr)
+#if PETSC_VERSION_MINOR>=3
+  call KSPChebyshevSetEigenvalues(ksp, emax, emin, ierr)
 #else
   call KSPChebychevSetEigenvalues(ksp, emax, emin, ierr)
 #endif
@@ -717,7 +720,7 @@ PetscReal, intent(out):: epsilon, epsilon_decay, omega
 integer, intent(out):: maxlevels, coarsesize
 integer, intent(out):: nosmd, nosmu, clustersize
 
-#if PETSC_VERSION_MINOR==2
+#if PETSC_VERSION_MINOR>=2
   PetscBool flag
 #else
   PetscTruth flag
@@ -818,7 +821,7 @@ integer, optional, dimension(:), intent(out):: cluster
   
   !
   call VecCopy(diag, sqrt_diag, ierr)
-#if PETSC_VERSION_MINOR==2
+#if PETSC_VERSION_MINOR>=3
   call VecSqrtAbs(sqrt_diag, ierr)
 #else
   call VecSqrt(sqrt_diag, ierr)
@@ -953,8 +956,6 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega)
   
   myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
   call MatGetVecs(A, rowsum_vec, PETSC_NULL_OBJECT, ierr)
-  ewrite(1,*) myPETSC_NULL_OBJECT
-  ewrite(1,*) PETSC_NULL_OBJECT
   if (myPETSC_NULL_OBJECT/=PETSC_NULL_OBJECT) then
     FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
   end if

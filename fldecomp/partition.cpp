@@ -40,11 +40,21 @@ using namespace std;
 extern "C" { // This is the glue between METIS and fluidity  
   
   // Declarations needed from METIS
+
+
   typedef int idxtype;
+
+
+#ifdef OLD_METIS
   void METIS_PartGraphKway(int *,idxtype *,idxtype *,idxtype *,idxtype *,int *,int *,int *,
                            int *,int *,idxtype *);
-  void METIS_PartGraphRecursive(int *,idxtype *,idxtype *,idxtype *,idxtype *,int *,int *,
-                                int *,int *,int *,idxtype *);
+ void METIS_PartGraphRecursive(int *,idxtype *,idxtype *,idxtype *,idxtype *,int *,int *,
+                                  int *,int *,int *,idxtype *);
+#else
+
+#include <metis.h>
+#endif
+
 
 #ifndef HAVE_MPI
         void METIS_PartGraphKway(int *a, idxtype *b, idxtype *c, idxtype *d, idxtype *e,
@@ -192,14 +202,35 @@ namespace Fluidity{
     
     // Partition graph
     decomp.resize(nnodes);
-    int wgtflag=0, numflag=1, options[] = {0}, edgecut=0;
+    int wgtflag=0, numflag=1, edgecut=0;
     
     if(partition_method){
+#ifdef OLD_METIS
+      int options[] = {0};
       METIS_PartGraphKway(&nnodes, &(xadj[0]), &(adjncy[0]), NULL, NULL, &wgtflag, 
                           &numflag, &npartitions, options, &edgecut, &(decomp[0]));
+#else
+      idx_t nbc=1;
+      idx_t options[METIS_NOPTIONS];
+      METIS_SetDefaultOptions(options);
+      options[METIS_OPTION_NUMBERING]=1;
+      METIS_PartGraphKway(&nnodes,&nbc,&(xadj[0]),&(adjncy[0]), NULL, NULL,NULL,
+			  &npartitions, NULL, NULL,options,&edgecut,
+			  &(decomp[0]));
+#endif
     }else{
+#ifdef OLD_METIS
       METIS_PartGraphRecursive(&nnodes, &(xadj[0]), &(adjncy[0]), NULL, NULL, &wgtflag, 
                                &numflag, &npartitions, options, &edgecut, &(decomp[0]));
+#else
+      idx_t nbc=1;
+      idx_t options[METIS_NOPTIONS];
+      METIS_SetDefaultOptions(options);
+      options[METIS_OPTION_NUMBERING]=1;
+      METIS_PartGraphRecursive(&nnodes,&nbc,&(xadj[0]),&(adjncy[0]), NULL, NULL,NULL,
+			       &npartitions, NULL, NULL,options,&edgecut,
+			  &(decomp[0]));
+#endif
     }
     
     // number from zero

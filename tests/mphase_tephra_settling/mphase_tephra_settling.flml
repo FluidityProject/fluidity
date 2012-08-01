@@ -631,7 +631,7 @@
       <diagnostic>
         <algorithm name="particle_reynolds_number" material_phase_support="multiple">
           <depends>
-            <string_value lines="1">Water::Density,Water::Velocity,Water::PhaseVolumeFraction,Tephra::Velocity</string_value>
+            <string_value lines="1">Water::Density,   Water::Velocity,  Water::PhaseVolumeFraction,  Tephra::Velocity</string_value>
           </depends>
           <particle_diameter>
             <real_value rank="0">48e-6</real_value>

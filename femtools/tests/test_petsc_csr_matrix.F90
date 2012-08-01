@@ -9,7 +9,8 @@ subroutine test_petsc_csr_matrix()
 #include "finclude/petsc.h"
   
   interface
-    subroutine error_handler(line, func, file, dir, n, p, mess, ctx, ierr)
+    subroutine error_handler(comm,line, func, file, dir, n, p, mess, ctx, ierr)
+    MPI_Comm:: comm
     PetscInt:: line
     character(len=*):: func, file, dir
     PetscErrorCode:: n
@@ -110,8 +111,9 @@ subroutine test_petsc_csr_matrix()
       
 end subroutine test_petsc_csr_matrix
   
-subroutine error_handler(line, func, file, dir, n, p, mess, ctx, ierr)
+subroutine error_handler(comm,line, func, file, dir, n, p, mess, ctx, ierr)
 #include "finclude/petsc.h"
+MPI_Comm:: comm
 PetscInt:: line
 character(len=*):: func, file, dir
 PetscErrorCode:: n
@@ -119,6 +121,7 @@ PetscInt:: p
 character(len=*):: mess
 PetscInt:: ctx
 PetscErrorCode:: ierr
+
 
   ctx=1
 

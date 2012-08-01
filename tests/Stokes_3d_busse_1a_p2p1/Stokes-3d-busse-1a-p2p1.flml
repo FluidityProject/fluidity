@@ -143,7 +143,7 @@
                   <iterative_method name="cg"/>
                   <preconditioner name="mg"/>
                   <relative_error>
-                    <real_value rank="0">1.0e-8</real_value>
+                    <real_value rank="0">1.0e-6</real_value>
                   </relative_error>
                   <max_iterations>
                     <integer_value rank="0">10000</integer_value>
@@ -177,7 +177,7 @@
             </solver>
           </preconditioner>
           <relative_error>
-            <real_value rank="0">1.0e-6</real_value>
+            <real_value rank="0">1.0e-4</real_value>
           </relative_error>
           <absolute_error>
             <real_value rank="0">1e-16</real_value>
@@ -257,7 +257,7 @@
           <iterative_method name="cg"/>
           <preconditioner name="mg"/>
           <relative_error>
-            <real_value rank="0">1.0e-8</real_value>
+            <real_value rank="0">1.0e-6</real_value>
           </relative_error>
           <max_iterations>
             <integer_value rank="0">10000</integer_value>
@@ -466,11 +466,7 @@
             <surface_ids>
               <integer_value shape="1" rank="1">31</integer_value>
             </surface_ids>
-          </surface_integral>
-          <surface_integral type="gradient_normal" name="Side">
-            <surface_ids>
-              <integer_value shape="1" rank="1">32</integer_value>
-            </surface_ids>
+            <normalise/>
           </surface_integral>
         </stat>
         <convergence>

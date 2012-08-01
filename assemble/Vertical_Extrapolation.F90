@@ -45,7 +45,6 @@ use global_parameters, only: real_4, real_8
 use spud
 use dynamic_bin_sort_module
 use pickers
-use coordinates, only: earth_radius
 use integer_set_module
 use vtk_interfaces
 implicit none
@@ -70,10 +69,6 @@ real, parameter:: VERTICAL_INTEGRATION_EPS=1.0e-8
 ! the equator. So this shift needs to be big enough to not make both projected hemispheres
 ! overlap
 real, parameter:: HEMISPHERE_SHIFT=10.0
-! elements in the overlap that are still included in the projected northern hemisphere are
-! elements for which any of its nodes has a z-coordinate bigger than -HEMISPHERE_OVERLAP
-! (and z<+HEMISPHERE_OVERLAP for the southern hemisphere)
-real, parameter:: HEMISPHERE_OVERLAP=0.01*earth_radius
   
 private
 
@@ -679,7 +674,7 @@ subroutine create_horizontal_positions_hemisphere(positions, &
   
   do i=1, size(surface_element_list)
     sele=surface_element_list(i)
-    if (any(hemi_sign*face_val(positions, 3, sele)>-HEMISPHERE_OVERLAP)) then
+    if (sele_is_on_hemisphere(sele)) then
       call insert(surface_element_set, sele)
     end if
   end do
@@ -709,7 +704,21 @@ subroutine create_horizontal_positions_hemisphere(positions, &
   end do
     
   call deallocate(horizontal_positions)
-    
+
+  contains
+
+  logical function sele_is_on_hemisphere(sele)
+    integer, intent(in):: sele
+
+    real, dimension(face_loc(positions, sele)):: znodes
+
+    znodes=face_val(positions, 3, sele)
+    ! if any of the nodes is on the hemisphere or *very* close to the equator
+    ! (relative to the other nodes)    
+    sele_is_on_hemisphere = any(hemi_sign * znodes > -sum(abs(znodes))*1e-6)
+
+  end function sele_is_on_hemisphere
+
 end subroutine create_horizontal_positions_hemisphere
 
 function map2horizontal(xyz, normal_vector)

@@ -1,0 +1,2 @@
+ Warning: You have a field called DistanceToTop
+ but you don't have ocean_boundaries switched on.

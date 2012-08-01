@@ -181,7 +181,7 @@ void Graph::WPartGraphRecursive(int nparts, vector<float>& pweights, vector<int>
   options[3] = 1; // Early-Exit Boundary FM refinment
   options[4] = 0; // always set to 0
 
-  METIS_WPartGraphRecursive(&ncnt,  
+  METIS_WPartGraphRecursive(&ncnt,1,  
 			    bptr.begin(), edges.begin(), 
 			    NULL, NULL, &wflag, &cflag,
 			    &nparts, pweights.begin(), options,
@@ -206,11 +206,16 @@ void Graph::WPartGraphKway(int nparts, const vector<float>& pweights, vector<int
 		     the connectivity among the subdomains. */
   options[4] = 0; // always set to 0
   
-  METIS_WPartGraphKway(&ncnt,  
+  METIS_WPartGraphKway(&Ncnt,  
 		       bptr.begin(), edges.begin(), 
 		       NULL, NULL, &wflag, &cflag,
 		       &nparts, (float *)(pweights.begin()), options,
 		       &edgecut, noddom.begin());
+
+//     METIS_WPartGraphKway(&ncnt,  
+// 		       bptr.begin(), edges.begin(), 
+// 		       &nparts, options,
+// 		       &edgecut, noddom.begin());
 
 }
 
@@ -233,6 +238,11 @@ void Graph::WPartGraphVKway(int nparts, vector<float>& pweights, vector<int>& no
   METIS_WPartGraphVKway(&ncnt,  
 			bptr.begin(), edges.begin(), 
 			NULL, NULL, &wflag, &cflag,
+			&nparts, pweights.begin(), options,
+			&edgecut, noddom.begin());
+
+  METIS_WPartGraphVKway(&ncnt,  
+			bptr.begin(), edges.begin(), 
 			&nparts, pweights.begin(), options,
 			&edgecut, noddom.begin());
 

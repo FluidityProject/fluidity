@@ -184,7 +184,7 @@ contains
       type(vector_field), pointer :: field, x
 
       type(csr_sparsity) :: divergence_sparsity
-      type(block_csr_matrix) :: CT_m
+      type(block_csr_matrix), pointer :: CT_m
 
       character(len=FIELD_NAME_LEN) :: field_name
 
@@ -200,6 +200,7 @@ contains
       call allocate(ctfield, div%mesh, name="CTField")
 
       divergence_sparsity=make_sparsity(div%mesh, field%mesh, "DivergenceSparsity")
+      allocate(CT_m)
       call allocate(CT_m, divergence_sparsity, (/1, field%dim/), name="DivergenceMatrix" )
       call allocate(ct_rhs, div%mesh, name="CTRHS")
 
@@ -219,6 +220,7 @@ contains
       call petsc_solve(div, mass, ctfield)
 
       call deallocate(CT_m)
+      deallocate(CT_m)
       call deallocate(ct_rhs)
       call deallocate(ctfield)
       call deallocate(divergence_sparsity)
@@ -235,7 +237,7 @@ contains
       type(scalar_field), pointer :: field
 
       type(csr_sparsity) :: divergence_sparsity
-      type(block_csr_matrix) :: CT_m
+      type(block_csr_matrix), pointer :: CT_m
 
       character(len=FIELD_NAME_LEN) :: field_name
 
@@ -252,6 +254,7 @@ contains
 
       ! Sparsity of C^T - the transpose of the gradient operator.
       divergence_sparsity=make_sparsity(field%mesh, grad%mesh, "DivergenceSparsity")
+      allocate(CT_m)
       call allocate(CT_m, divergence_sparsity, (/1, grad%dim/), name="DivergenceMatrix" )
 
       mass_sparsity=make_sparsity(grad%mesh, grad%mesh, "MassSparsity")
@@ -269,6 +272,7 @@ contains
 
       call deallocate(divergence_sparsity)
       call deallocate(CT_m)
+      deallocate(CT_m)
       call deallocate(mass_sparsity)
       call deallocate(mass)
       call deallocate(cfield)
@@ -336,7 +340,7 @@ contains
       integer :: i, stat
 
       type(csr_sparsity) :: divergence_sparsity
-      type(block_csr_matrix) :: ct_m
+      type(block_csr_matrix), pointer :: ct_m
 
       type(csr_sparsity) :: mass_sparsity
       type(csr_matrix) :: mass
@@ -378,6 +382,7 @@ contains
 
          ! Allocate sparsity patterns, C^T matrix and C^T RHS for current state
          divergence_sparsity=make_sparsity(sum_velocity_divergence%mesh, u%mesh, "DivergenceSparsity")
+         allocate(ct_m)
          call allocate(ct_m, divergence_sparsity, (/1, u%dim/), name="DivergenceMatrix" )
          call allocate(ct_rhs, sum_velocity_divergence%mesh, name="CTRHS")
          
@@ -406,6 +411,7 @@ contains
          call addto(ctfield, temp)
 
          call deallocate(ct_m)
+         deallocate(ct_m)
          call deallocate(ct_rhs)
          call deallocate(divergence_sparsity)
 

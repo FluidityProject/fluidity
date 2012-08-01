@@ -32,6 +32,12 @@
 
 #include "confdefs.h"
 
+#ifdef HAVE_LIBNUMA
+#include <numa.h>
+#include <numaif.h>
+#include <sys/resource.h>
+#endif
+
 #ifdef HAVE_MPI
 #include <mpi.h>
 #endif
@@ -47,10 +53,19 @@ class Profiler{
   void toc(const std::string&);
   void zero();
   void zero(const std::string&);
+  int minorpagefaults();
+  int majorpagefaults();
+  int getresidence(void *ptr);
+
+#ifdef HAVE_LIBNUMA
+ public:
+  struct rusage usage;
+#endif
 
 private:
   double wall_time() const;
   std::map< std::string, std::pair<double, double> > timings;
+
 };
 
 extern Profiler flprofiler;

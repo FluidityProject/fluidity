@@ -685,7 +685,6 @@ type(petsc_csr_matrix), dimension(:), optional, intent(in) :: prolongators
 !! Stuff needed for internal smoother
 integer, dimension(:), optional, intent(in) :: surface_node_list
 integer, optional, intent(in) :: internal_smoothing_option
-  
   logical, dimension(:), pointer:: inactive_mask
   integer, dimension(:), allocatable:: ghost_nodes
   Mat:: pmat
@@ -1701,7 +1700,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
          FLAbort("Need petsc_numbering for monitor")
        end if
        call petsc_monitor_setup(petsc_numbering, max_its)
-       call KSPMonitorSet(ksp,MyKSPMonitor,PETSC_NULL_INTEGER, &
+       call KSPMonitorSet(ksp,MyKSPMonitor,PETSC_NULL_OBJECT, &
             &                     PETSC_NULL_FUNCTION,ierr)
     end if
 
@@ -1843,7 +1842,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     PCType:: pctype
     PetscReal:: rtol, atol, dtol
     PetscInt:: maxits
-#if PETSC_VERSION_MINOR==2
+#if PETSC_VERSION_MINOR>=2
     PetscBool:: flag
 #else
     PetscTruth:: flag
@@ -2165,9 +2164,6 @@ subroutine MyKSPMonitor(ksp,n,rnorm,dummy,ierr)
   Mat:: Amat, Pmat
   PC:: pc
   Vec:: dummy_vec, r, rhs
-
-  ! Stop warnings.
-  ierr = dummy  
 
   !  Build the solution vector  
   call VecZeroEntries(petsc_monitor_x,ierr)

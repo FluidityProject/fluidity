@@ -500,7 +500,7 @@ implicit none
       PetscInt  i,j,II,JJ,m,n,its
       PetscInt  Istart,Iend,ione
       PetscErrorCode ierr
-#if PETSC_VERSION_MINOR==2
+#if PETSC_VERSION_MINOR>=2
       PetscBool flg
 #else
       PetscTruth  flg
