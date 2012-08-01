@@ -955,65 +955,65 @@ MULTIPLE_STATE_TENSOR_DIAGNOSTICS
     ewrite(2, *) "Checking diagnostic fields related options"
      
     ! Dependency checking
-    ! do i = 0, option_count("/material_phase")
-    !   state_path = "/material_phase[" // int2str(i) // "]"
-    !   call get_option(trim(state_path) // "/name", state_name, default = "UnknownState")
+    do i = 0, option_count("/material_phase")
+      state_path = "/material_phase[" // int2str(i) // "]"
+      call get_option(trim(state_path) // "/name", state_name, default = "UnknownState")
        
-    !   do j = 1, 3
-    !     select case(j)
-    !       case(1)
-    !         field_type_path = "scalar_field"
-    !       case(2)
-    !         field_type_path = "vector_field"
-    !       case(3)
-    !         field_type_path = "tensor_field"
-    !       case default
-    !         FLAbort("Invalid loop index")
-    !     end select
+      do j = 1, 3
+        select case(j)
+          case(1)
+            field_type_path = "scalar_field"
+          case(2)
+            field_type_path = "vector_field"
+          case(3)
+            field_type_path = "tensor_field"
+          case default
+            FLAbort("Invalid loop index")
+        end select
         
-    !     do k = 0, option_count(trim(state_path) // "/" // field_type_path)
-    !       field_path = trim(state_path) // "/" // trim(field_type_path) // "[" // int2str(k) // "]"
-    !       if(.not. have_option(trim(field_path) // "/diagnostic")) cycle
-    !       call get_option(trim(field_path) // "/name", field_name, default = "UnknownField")
+        do k = 0, option_count(trim(state_path) // "/" // field_type_path)
+          field_path = trim(state_path) // "/" // trim(field_type_path) // "[" // int2str(k) // "]"
+          if(.not. have_option(trim(field_path) // "/diagnostic")) cycle
+          call get_option(trim(field_path) // "/name", field_name, default = "UnknownField")
                                               
-    !       field_path = complete_field_path(field_path)
+          field_path = complete_field_path(field_path)
           
-    !       if(have_option(trim(field_path) // "/algorithm/legacy")) then
-    !         call field_warning(state_name, field_name, "Diagnostic field is deprecated")
-    !       end if
+          if(have_option(trim(field_path) // "/algorithm/legacy")) then
+            call field_warning(state_name, field_name, "Diagnostic field is deprecated")
+          end if
                              
-    !       do l = 1, size(depend_paths)
-    !         call get_option(trim(field_path) // "/" // depend_paths(l), dependency, stat = stat)
-    !         if(stat /= SPUD_NO_ERROR) cycle
+          do l = 1, size(depend_paths)
+            call get_option(trim(field_path) // "/" // depend_paths(l), dependency, stat = stat)
+            if(stat /= SPUD_NO_ERROR) cycle
                   
-    !         call tokenize(trim(dependency), dependencies, ",")
-    !         do m = 1, size(dependencies)
-    !           call tokenize(trim(dependencies(m)), split_dependency, "::")
-    !           select case(size(split_dependency))
-    !             case(1)
-    !               if(option_count(trim(state_path) // "/scalar_field::" // trim(split_dependency(1))) + &
-    !                 & option_count(trim(state_path) // "/vector_field::" // trim(split_dependency(1))) + &
-    !                 & option_count(trim(state_path) // "/tensor_field::" // trim(split_dependency(1))) == 0) then
-    !                 call field_error(state_name, field_name, "Field depends on " // split_dependency(1))
-    !               end if
-    !             case(2)
-    !               if(option_count("/material_phase::" // trim(split_dependency(1)) // "/scalar_field::" // trim(split_dependency(2))) + &
-    !                 & option_count("/material_phase::" // trim(split_dependency(1)) // "/vector_field::" // trim(split_dependency(2))) + &
-    !                 & option_count("/material_phase::" // trim(split_dependency(1)) // "/tensor_field::" // trim(split_dependency(2))) == 0) then
-    !                 call field_error(state_name, field_name, "Field depends on " // trim(split_dependency(2)) // " in state " // split_dependency(1))
-    !               end if
-    !             case default
-    !               ewrite(-1, *) "For dependency " // trim(dependencies(m))
-    !               call field_error(state_name, field_name, "Invalid dependency")
-    !           end select
+            call tokenize(trim(dependency), dependencies, ",")
+            do m = 1, size(dependencies)
+              call tokenize(trim(dependencies(m)), split_dependency, "::")
+              select case(size(split_dependency))
+                case(1)
+                  if(option_count(trim(state_path) // "/scalar_field::" // trim(split_dependency(1))) + &
+                    & option_count(trim(state_path) // "/vector_field::" // trim(split_dependency(1))) + &
+                    & option_count(trim(state_path) // "/tensor_field::" // trim(split_dependency(1))) == 0) then
+                    call field_error(state_name, field_name, "Field depends on " // split_dependency(1))
+                  end if
+                case(2)
+                  if(option_count("/material_phase::" // trim(split_dependency(1)) // "/scalar_field::" // trim(split_dependency(2))) + &
+                    & option_count("/material_phase::" // trim(split_dependency(1)) // "/vector_field::" // trim(split_dependency(2))) + &
+                    & option_count("/material_phase::" // trim(split_dependency(1)) // "/tensor_field::" // trim(split_dependency(2))) == 0) then
+                    call field_error(state_name, field_name, "Field depends on " // trim(split_dependency(2)) // " in state " // split_dependency(1))
+                  end if
+                case default
+                  ewrite(-1, *) "For dependency " // trim(dependencies(m))
+                  call field_error(state_name, field_name, "Invalid dependency")
+              end select
                
-    !           deallocate(split_dependency)
-    !         end do
-    !         deallocate(dependencies)
-    !       end do
-    !     end do
-    !   end do
-    ! end do
+              deallocate(split_dependency)
+            end do
+            deallocate(dependencies)
+          end do
+        end do
+      end do
+    end do
      
     ewrite(2, *) "Finished checking diagnostic fields related options"
     
