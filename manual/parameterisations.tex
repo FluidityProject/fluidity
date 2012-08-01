@@ -283,10 +283,10 @@ The fourth term on the right, containing the Reynolds stress tensor $-\rho\mathb
 \end{equation}
 where $k=(\mathbf{u}'\cdot\mathbf{u}')/2$ is the turbulent kinetic energy and $\mu_T(\mathbf{x},t)$ is the dynamic eddy viscosity. For incompressible flow this becomes:
 \begin{equation}\label{eq:R_tensor_incompressible}
- -\rho\mathbf{u}'\mathbf{u}' = \tautens_R = \mu_T \left( \nabla\mathbf{u} + \left(\nabla\mathbf{u}\right)^{\mathrm{T}} \right) - \frac{2}{3} k\mathbf{I},
+ -\rho\mathbf{u}'\mathbf{u}' = \tautens_R = \mu_T \left( \nabla\mathbf{u} + \left(\nabla\mathbf{u}\right)^{\mathrm{T}} \right) - \frac{2}{3} k\rho\mathbf{I},
 \end{equation}
 The eddy viscosity is estimated as:
-\begin{equation}\label{eq:mut}
+\begin{equation}\label{eq:nut}
  \mu_T = \rho C_\mu \frac{k^2}{\epsilon},
 \end{equation}
 where $\epsilon$ is the turbulent dissipation. The equations are closed by solving transport equations for $k$ and the turbulent energy dissipation $\epsilon$:
@@ -356,10 +356,10 @@ where:
  f_2 = 1 - e^{-Re_T^2},
 \end{equation}
 \begin{equation}\label{eq:R_y}
- R_y = \frac{k^{1/2}y}{\nu},
+ R_y = \frac{\rho k^{1/2}y}{\mu},
 \end{equation}
 \begin{equation}\label{eq:Re_T}
- Re_T = \frac{k^2}{\epsilon \nu},
+ Re_T = \frac{\rho k^2}{\epsilon \mu},
 \end{equation}
 Additionally:
 \begin{itemize}
@@ -371,22 +371,22 @@ The associated boundary conditions are:
 \begin{align}
 \bmu &= 0, \label{eq:ubc1}\\
 k &= 0, \label{eq:kbc1}\\
-\epsilon &= \nu \ppxx[y]{k} = 2 \nu \left ( \ppx[n]{k^{1/2}} \right ). \label{eq:epsbc1}
+\epsilon &= \frac{\mu}{\rho} \ppxx[y]{k} = \frac{2\mu}{\rho} \left ( \ppx[n]{k^{1/2}} \right ). \label{eq:epsbc1}
 \end{align}
 
 \par{\textbf{High Reynolds number boundary conditions}\\}
 For high Reynolds numbers ($Re>10^4$), the \option{high\_Re} wall functions are recommended \citep{wilcox1998turbulence}:
 
 \begin{align}
-\bmu &= u_* \left [ \frac{1}{\kappa} \ln (u_* y / \nu) + B \right ], \label{eq:ubc2}\\
+\bmu &= u_* \left [ \frac{1}{\kappa} \ln (\rho u_* y / \mu) + B \right ], \label{eq:ubc2}\\
 k &= \frac{u_*^2}{C_{\mu}^{1/2}}, \label{eq:kbc2}\\
 \epsilon &= \frac{u_*^3}{\kappa y}, \label{eq:epsbc2}\\
-u_* &= (\tau_w / \rho)^{1/2} = \left ( \nu_T \ppx[n]{U_S} \right )^{1/2}, \label{eq:ustar}
+u_* &= (\tau_w / \rho)^{1/2} = \left ( \frac{\mu_T}{\rho} \ppx[n]{U_S} \right )^{1/2}, \label{eq:ustar}
 \end{align}
 where $B$ is a model constant, $y$ is the distance to the wall, $u_*$ is the friction
 velocity, $U_S$ is the streamwise velocity parallel to the wall, $\kappa=0.43$ is Von
-Karman's constant, $\nu$ is the kinematic laminar (background) viscosity, $\nu_T$ is the
-kinematic eddy (turbulent) viscosity, $\rho$ is the density and $\ppx[n]{}$ is the
+Karman's constant, $\mu$ is the dynamic laminar (background) viscosity, $\mu_T$ is the
+dynamic eddy (turbulent) viscosity, $\rho$ is the density and $\ppx[n]{}$ is the
 gradient operator in the wall-normal direction. For implementation details see
 \ref{sec:kepsilon_usage}.
 

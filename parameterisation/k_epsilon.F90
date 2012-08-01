@@ -835,6 +835,7 @@ subroutine keps_bcs(state)
   type(scalar_field), pointer                :: field1, field2    ! k or epsilon
   type(scalar_field), pointer                :: f_1, f_2, f_mu, y
   type(scalar_field), pointer                :: surface_field, EV
+  type(scalar_field), pointer                :: density, dummydensity
   type(vector_field), pointer                :: positions, u
   type(tensor_field), pointer                :: bg_visc
   type(scalar_field)                         :: rhs_field, surface_values
@@ -844,6 +845,7 @@ subroutine keps_bcs(state)
   character(len=FIELD_NAME_LEN)              :: bc_type, bc_name, wall_fns
   character(len=OPTION_PATH_LEN)             :: bc_path, bc_path_i, option_path 
   real                                       :: c_mu
+  character(len=FIELD_NAME_LEN)             :: equation_type
 
   option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/'
 
@@ -856,6 +858,25 @@ subroutine keps_bcs(state)
   f_1       => extract_scalar_field(state, "f_1")
   f_2       => extract_scalar_field(state, "f_2")
   f_mu      => extract_scalar_field(state, "f_mu")
+
+  allocate(dummydensity)
+  call allocate(dummydensity, positions%mesh, "DummyDensity", field_type=FIELD_TYPE_CONSTANT)
+  call set(dummydensity, 1.0)
+  dummydensity%option_path = ""
+  
+  ! Depending on the equation type, extract the density or set it to some dummy field allocated above
+  call get_option(trim(u%option_path)//"/prognostic/equation[0]/name", equation_type)
+  select case(equation_type)
+     case("LinearMomentum")
+        density=>extract_scalar_field(state, "Density")
+     case("Boussinesq")
+        density=>dummydensity
+     case("Drainage")
+        density=>dummydensity
+     case default
+        ! developer error... out of sync options input and code
+        FLAbort("Unknown equation type for velocity")
+  end select
 
   ! initialise low_Re damping functions
   call set(f_1, 1.0)
@@ -909,7 +930,7 @@ subroutine keps_bcs(state)
               ele  = face_ele(rhs_field, sele)
 
               ! Calculate wall function
-              call keps_wall_function(field1,field2,positions,u,bg_visc,EV,ele,sele,index,wall_fns,c_mu,rhs_field)
+              call keps_wall_function(field1,field2,positions,u,bg_visc,EV,density,ele,sele,index,wall_fns,c_mu,rhs_field)
            end do
 
            ! Put values onto surface mesh
@@ -929,7 +950,7 @@ subroutine keps_bcs(state)
                  FLAbort("I need the distance to the wall - enable a DistanceToWall field")
               end if
               do node = 1, node_count(field1)
-                 call keps_damping_functions(state,field2,field1,f_1,f_2,f_mu,y,bg_visc,node)
+                 call keps_damping_functions(state,field2,field1,f_1,f_2,f_mu,y,bg_visc,density,node)
               end do
            end if
 
@@ -937,17 +958,20 @@ subroutine keps_bcs(state)
      end do boundary_conditions
   end do field_loop
 
+  call deallocate(dummydensity)
+  deallocate(dummydensity)
+
 end subroutine keps_bcs
 
 !--------------------------------------------------------------------------------!
 ! Only used if bc type == k_epsilon for field and low_Re                         !
 !--------------------------------------------------------------------------------!
 
-subroutine keps_damping_functions(state,k,eps,f_1,f_2,f_mu,y,bg_visc,node)
+subroutine keps_damping_functions(state,k,eps,f_1,f_2,f_mu,y,bg_visc,density,node)
 
   type(state_type), intent(in) :: state
   type(scalar_field), intent(inout) :: f_1, f_2, f_mu
-  type(scalar_field), intent(in) :: k, eps, y
+  type(scalar_field), intent(in) :: k, eps, y, density
   type(tensor_field), intent(in) :: bg_visc
   integer, intent(in) :: node
 
@@ -959,6 +983,7 @@ subroutine keps_damping_functions(state,k,eps,f_1,f_2,f_mu,y,bg_visc,node)
   if ((node_val(k,node) .eq. 0.0) .or. &
        & (node_val(y,node) .eq. 0.0) .or. &
        & (node_val(bg_visc,1,1,node) .eq. 0.0) .or. &
+       & (node_val(density,node) .eq. 0.0) .or. &
        & (node_val(eps,node) .eq. 0.0)) then
      call set(f_mu, node, 0.0)
      call set(f_1, node, 0.0)
@@ -968,11 +993,11 @@ subroutine keps_damping_functions(state,k,eps,f_1,f_2,f_mu,y,bg_visc,node)
 
   if (node_val(bg_visc,1,1,node) /= 0.0) then
      if (node_val(eps,node) /= 0.0) then
-        Re_T = node_val(k,node)**2.0 / (node_val(eps,node) * node_val(bg_visc,1,1,node))
+        Re_T = (node_val(density,node) * node_val(k,node)**2.0) / (node_val(eps,node) * node_val(bg_visc,1,1,node))
      else 
         Re_T = 1e5
      end if
-     R_y = node_val(k,node)**0.5 * node_val(y,node) / node_val(bg_visc,1,1,node)
+     R_y = (node_val(density,node) * node_val(k,node)**0.5 * node_val(y,node)) / node_val(bg_visc,1,1,node)
   else
      Re_T = 1e5
      R_y = 1e5
@@ -999,9 +1024,9 @@ end subroutine keps_damping_functions
 ! Only used if bc type == k_epsilon for field.                                   !
 !--------------------------------------------------------------------------------!
 
-subroutine keps_wall_function(field1,field2,positions,u,bg_visc,EV,ele,sele,index,wall_fns,c_mu,rhs_field)
+subroutine keps_wall_function(field1,field2,positions,u,bg_visc,EV,density,ele,sele,index,wall_fns,c_mu,rhs_field)
 
-  type(scalar_field), pointer, intent(in)              :: field1, field2, EV
+  type(scalar_field), pointer, intent(in)              :: field1, field2, EV, density
   type(vector_field), pointer, intent(in)              :: positions, u
   type(tensor_field), pointer, intent(in)              :: bg_visc
   integer, intent(in)                                  :: ele, sele, index
@@ -1013,7 +1038,7 @@ subroutine keps_wall_function(field1,field2,positions,u,bg_visc,EV,ele,sele,inde
   real                                                 :: kappa, h, c_mu
   real, dimension(1,1)                                 :: hb
   real, dimension(ele_ngi(field1,ele))                 :: detwei
-  real, dimension(face_ngi(field1,sele))               :: detwei_bdy, ustar, q_sgin, visc_sgi
+  real, dimension(face_ngi(field1,sele))               :: detwei_bdy, ustar, q_sgin, visc_sgi, density_sgi
   real, dimension(face_loc(field1,sele))               :: lumpedfmass
   real, dimension(ele_loc(field1,ele))                 :: sqrt_k
   real, dimension(positions%dim,1)                     :: n
@@ -1058,6 +1083,7 @@ subroutine keps_wall_function(field1,field2,positions,u,bg_visc,EV,ele,sele,inde
         rhs = 0.0
      else if (index==2) then
         bg_visc_sgi = face_val_at_quad(bg_visc,sele)
+        density_sgi = face_val_at_quad(density,sele)
         visc_sgi = bg_visc_sgi(1,1,:)
 
         ! grad(k**0.5) (dim, ngi)
@@ -1082,13 +1108,16 @@ subroutine keps_wall_function(field1,field2,positions,u,bg_visc,EV,ele,sele,inde
         end do
 
         ! integral of 2*nu*(grad(k**0.5))**2 (sloc)
-        rhs = shape_rhs(fshape, detwei_bdy*q_sgin**2.0*visc_sgi*2.0)
+        ! Note: we divide by density here to write the BC in terms of a dynamic viscosity,
+        ! rather than a kinematic one.
+        rhs = shape_rhs(fshape, detwei_bdy*q_sgin**2.0*(2.0*visc_sgi/density_sgi))
         rhs = rhs/lumpedfmass
      end if
 
      ! high Re shear-stress wall functions for k and epsilon: see e.g. Wilcox (1994), Mathieu p.360
   else if(wall_fns=="high_Re") then
      visc_sgi = face_val_at_quad(EV,sele)
+     density_sgi = face_val_at_quad(density,sele)
      grad_u = ele_grad_at_quad(u, ele, dshape)
 
      ! grad(U) at ele_nodes (dim,dim,loc)
@@ -1114,7 +1143,9 @@ subroutine keps_wall_function(field1,field2,positions,u,bg_visc,EV,ele,sele,inde
         qq_sgin(:,gi) = qq_sgin(:,gi)-normal_bdy(:,gi)*dot_product(qq_sgin(:,gi),normal_bdy(:,gi))
 
         ! Get streamwise component by taking sqrt(grad_n.grad_n). Multiply by eddy viscosity.
-        ustar(gi) = norm2(qq_sgin(:,gi)) * visc_sgi(gi)
+        ! Note: we divide by density here to write the BC in terms of a dynamic viscosity,
+        ! rather than a kinematic one.
+        ustar(gi) = norm2(qq_sgin(:,gi)) * visc_sgi(gi) / density_sgi(gi)
      end do
 
      if (index==1) then
