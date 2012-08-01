@@ -508,10 +508,12 @@ contains
 
        ! momentum source term adjustment for k-epsilon model
        ! this is a hack - we need to set a source term for the momentum equation
-       ! to take account of (-2/3 k rho delta(ij)) in the reynolds stresses, however we also
+       ! to take account of (-2/3 k delta(ij)) in the reynolds stresses, however we also
        ! want to be able to have a prescribed momentum source term and hence need to add
-       ! the adjustment after the prescribed value is set  
-       call keps_momentum_source(state(1))
+       ! the adjustment after the prescribed value is set
+       do i = 1, size(state)
+          call keps_momentum_source(state(i))
+       end do
 
        if(use_sub_state()) call set_full_domain_prescribed_fields(state,time=current_time+dt)
 
@@ -706,8 +708,10 @@ contains
             call gls_diffusivity(state(1))
           end if
 
-          ! Update eddy viscosity after each iteration - single phase only!
-          call keps_eddyvisc(state(1))
+          ! Update eddy viscosity after each iteration!
+          do i = 1, size(state)
+             call keps_eddyvisc(state(i))
+          end do
           
           !BC for ice melt
           if (have_option('/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries')) then
@@ -1011,6 +1015,7 @@ contains
     integer, intent(inout) :: nonlinear_iterations, nonlinear_iterations_adapt
     type(state_type), dimension(:), pointer :: sub_state
     character(len=OPTION_PATH_LEN) :: keps_option_path
+    integer :: i
 
     ! Overwrite the number of nonlinear iterations if the option is switched on
     if(have_option("/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt")) then
@@ -1076,12 +1081,14 @@ contains
     end if
 
     ! k_epsilon
-    keps_option_path="/material_phase[0]/subgridscale_parameterisations/k-epsilon/"
-    if (have_option(trim(keps_option_path)//"/scalar_field::TurbulentKineticEnergy/prognostic") &
-        &.and. have_option(trim(keps_option_path)//"/scalar_field::TurbulentDissipation/prognostic") &
-        &.and. have_option(trim(keps_option_path)//"/scalar_field::ScalarEddyViscosity/diagnostic")) then
-        call keps_adapt_mesh(state(1))
-    end if
+    do i = 1, size(state)
+       keps_option_path="/material_phase["//int2str(i-1)//"]/subgridscale_parameterisations/k-epsilon/"
+       if (have_option(trim(keps_option_path)//"/scalar_field::TurbulentKineticEnergy/prognostic") &
+           &.and. have_option(trim(keps_option_path)//"/scalar_field::TurbulentDissipation/prognostic") &
+           &.and. have_option(trim(keps_option_path)//"/scalar_field::ScalarEddyViscosity/diagnostic")) then
+           call keps_adapt_mesh(state(i))
+       end if
+    end do
 
   end subroutine update_state_post_adapt
 
