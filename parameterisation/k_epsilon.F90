@@ -1322,16 +1322,18 @@ subroutine k_epsilon_check_options(state)
        "/tensor_field::Viscosity/") .and. &
        .not.have_option(trim(state%option_path)//"/vector_field::Velocity/prescribed")) then
      FLExit("Need viscosity switched on under the Velocity field for k-epsilon.") 
-     ! check that the user has switched Velocity/viscosity to diagnostic
-     if (.not.have_option(trim(state%option_path)//"/vector_field::Velocity/prognostic"//&
-          &"/tensor_field::Viscosity/diagnostic/")) then
-        FLExit("You need to switch the viscosity field under Velocity to diagnostic/internal")
-     end if
-     ! check that the user has enabled a Velocity Source field
-     if (.not.have_option(trim(state%option_path)//"/vector_field::Velocity/prognostic"//&
-          &"/vector_field::Source/")) then
-        FLExit("A velocity source field is required for the reynolds stress adjustment (-2/3 k delta(ij))")
-     end if
+  end if
+  ! check that the user has switched Velocity/viscosity to diagnostic
+  if (have_option(trim(state%option_path)//"/vector_field::Velocity/prognostic" .and. &
+       .not.have_option(trim(state%option_path)//"/vector_field::Velocity/prognostic"//&
+       "/tensor_field::Viscosity/diagnostic/")) then
+     FLExit("You need to switch the viscosity field under Velocity to diagnostic/internal")
+  end if
+  ! check that the user has enabled a Velocity Source field
+  if (have_option(trim(state%option_path)//"/vector_field::Velocity/prognostic" .and. &
+       .not.have_option(trim(state%option_path)//"/vector_field::Velocity/prognostic"//&
+       &"/vector_field::Source/")) then
+     FLExit("A velocity source field is required for the reynolds stress adjustment (-2/3 k delta(ij))")
   end if
 
   ! Check ScalarEddyViscosity is diagnostic
