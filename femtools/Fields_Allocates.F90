@@ -43,6 +43,7 @@ use memory_diagnostics
 use ieee_arithmetic
 use data_structures
 use parallel_tools
+use python_state
 
 implicit none
 
@@ -566,6 +567,8 @@ contains
        return
     end if
 
+    call python_run_string("if "//field%refcount%id//" in scalar_field_cache: scalar_field_cache.pop["//field%refcount%id//"]")
+
     select case(field%field_type)
     case(FIELD_TYPE_NORMAL)
       if (.not.field%wrapped) then
@@ -633,6 +636,8 @@ contains
        return
     end if
 
+    call python_run_string("if "//field%refcount%id//" in vector_field_cache: vector_field_cache.pop["//field%refcount%id//"]")
+
     if (.not.field%wrapped) then
       select case(field%field_type)
       case(FIELD_TYPE_NORMAL,FIELD_TYPE_CONSTANT)
@@ -687,6 +692,8 @@ contains
        ! There are still references to this field so we don't deallocate.
        return
     end if
+
+    call python_run_string("if "//field%refcount%id//" in tensor_field_cache: tensor_field_cache.pop["//field%refcount%id//"]")
 
     if (.not.field%wrapped) then
       select case(field%field_type)
