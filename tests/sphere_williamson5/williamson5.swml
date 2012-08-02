@@ -21,7 +21,7 @@
       </from_mesh>
       <recompute_coordinate_field>
         <python>
-          <string_value lines="20" type="code" language="python">def val(X,t):
+          <string_value lines="20" type="python">def val(X,t):
   R0 = 6.37122e6
   x = X[0]
   y = X[1]
@@ -123,11 +123,12 @@
     <dump_format>
       <string_value>vtk</string_value>
     </dump_format>
-    <dump_period_in_timesteps>
+    <dump_period>
       <constant>
-        <integer_value rank="0">5</integer_value>
+        <real_value rank="0">86400</real_value>
+        <comment>every  days = 60*60*24s = 86400s</comment>
       </constant>
-    </dump_period_in_timesteps>
+    </dump_period>
     <output_mesh name="VelocityMesh"/>
   </io>
   <timestepping>
@@ -145,8 +146,8 @@
       <integer_value rank="0">4</integer_value>
     </nonlinear_iterations>
     <finish_time>
-      <real_value rank="0">432000.0</real_value>
-      <comment>Williamson 2 runs for 5 days = 60*60*24*5 = 432000.0s</comment>
+      <real_value rank="0">4320000.0</real_value>
+      <comment>Williamson 5 runs for 50 days = 60*60*24*50 = 4320000.0s</comment>
     </finish_time>
   </timestepping>
   <physical_parameters>
@@ -159,7 +160,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <python>
-              <string_value lines="20" type="code" language="python">def val(X,t):
+              <string_value lines="20" type="python">def val(X,t):
   x=X[0]
   y=X[1]
   z=X[2]
@@ -182,7 +183,7 @@
       </vector_field>
     </gravity>
     <coriolis>
-      <string_value lines="20" type="code" language="python">def val(X,t):
+      <string_value lines="20" type="python">def val(X,t):
   Omega = 7.292e-5
   x = X[0]
   y = X[1]
@@ -222,7 +223,7 @@
         <initial_condition name="WholeMesh">
           <galerkin_projection>
             <python>
-              <string_value type="code" lines="20" language="python">def val(X,t):
+              <string_value lines="20" type="python">def val(X,t):
   from math import pi
   x = X[0]
   y = X[1]
@@ -259,6 +260,7 @@
             <advection_terms>
               <exclude_advection_terms/>
             </advection_terms>
+            <slope_limiter name="Vertex_Based"/>
           </discontinuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0.</real_value>
@@ -288,7 +290,7 @@
         </solver>
         <initial_condition name="ProjectionFromPython">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t): 
+            <string_value lines="20" type="python">def val(X,t): 
   from math import pi,atan2,asin
   x = X[0]
   y = X[1]
@@ -323,7 +325,16 @@
       <prognostic>
         <mesh name="VorticityMesh"/>
         <spatial_discretisation>
-          <continuous_galerkin/>
+          <continuous_galerkin>
+            <streamline_upwinding>
+              <alpha>
+                <real_value rank="0">0.3</real_value>
+              </alpha>
+              <tol>
+                <real_value rank="0">1.0e-10</real_value>
+              </tol>
+            </streamline_upwinding>
+          </continuous_galerkin>
         </spatial_discretisation>
         <solver>
           <iterative_method name="preonly"/>
@@ -353,7 +364,7 @@
       <prescribed>
         <value>
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value lines="20" type="python">def val(X,t):
   from math import atan2,asin,pi
   x = X[0]
   y = X[1]

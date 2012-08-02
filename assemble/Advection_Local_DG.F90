@@ -250,9 +250,6 @@ module advection_local_DG
        call limit_vb_manifold(state,T,delta_T)
        if(present(flux)) then
           call zero(upwindflux)
-          do ele = 1, ele_count(T)
-             assert(abs(sum(ele_val(delta_t,ele)))<1.0e-8)
-          end do
           call mult(delta_T_total, mass, delta_T)
           call update_flux(Flux, Delta_T_total, UpwindFlux, Mass)
        end if

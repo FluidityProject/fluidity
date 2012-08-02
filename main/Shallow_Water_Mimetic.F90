@@ -975,7 +975,8 @@
                end if
             end do
             if(stat==0) then
-               call bubble_field_to_vtk(state(1),BubbleFields,"Bubble",dump_no)
+               call bubble_field_to_vtk(state(1),BubbleFields,&
+                    &trim(simulation_name)//"Bubble",dump_no)
             end if
             deallocate(BubbleFields)
          end if
