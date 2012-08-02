@@ -1079,42 +1079,9 @@ subroutine keps_wall_function(field1,field2,positions,u,bg_visc,EV,density,ele,s
 
   ! low Re wall functions for k and epsilon: see e.g. Wilcox (1994)
   if(wall_fns=="low_Re") then
-     if (index==1) then
-        rhs = 0.0
-     else if (index==2) then
-        bg_visc_sgi = face_val_at_quad(bg_visc,sele)
-        density_sgi = face_val_at_quad(density,sele)
-        visc_sgi = bg_visc_sgi(1,1,:)
+     rhs = 0.0
 
-        ! grad(k**0.5) (dim, ngi)
-        sqrt_k = ele_val(field2, ele)
-        sqrt_k = sqrt(abs(sqrt_k))
-        ! Lifted from ele_grad_at_quad function:
-        do i=1, positions%dim
-           grad_k(i,:) = matmul(sqrt_k, dshape(:,:,i))
-        end do
-
-        ! grad(k**0.5) at ele_nodes (dim,loc)
-        q = shape_vector_rhs(shape, grad_k, detwei)
-
-        q = matmul(q,invmass)
-        ! Pick surface nodes (dim,sloc)
-        q_s = q(:,face_local_nodes(field1,sele))
-        q_sgi = matmul(q_s, fshape%n)
-
-        !dot with surface normal
-        do gi = 1, sgi
-           q_sgin(gi) = dot_product(q_sgi(:,gi),normal_bdy(:,gi))
-        end do
-
-        ! integral of 2*nu*(grad(k**0.5))**2 (sloc)
-        ! Note: we divide by density here to write the BC in terms of a dynamic viscosity,
-        ! rather than a kinematic one.
-        rhs = shape_rhs(fshape, detwei_bdy*q_sgin**2.0*(2.0*visc_sgi/density_sgi))
-        rhs = rhs/lumpedfmass
-     end if
-
-     ! high Re shear-stress wall functions for k and epsilon: see e.g. Wilcox (1994), Mathieu p.360
+  ! high Re shear-stress wall functions for k and epsilon: see e.g. Wilcox (1994), Mathieu p.360
   else if(wall_fns=="high_Re") then
      visc_sgi = face_val_at_quad(EV,sele)
      density_sgi = face_val_at_quad(density,sele)
