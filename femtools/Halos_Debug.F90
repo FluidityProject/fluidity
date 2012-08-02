@@ -213,6 +213,8 @@ contains
 
     integer :: i
 
+    assert(has_global_to_universal_numbering(halo))
+
     ewrite(priority,*) "Halo name: ", halo_name(halo)
     ewrite(priority,*) "Owned nodes: ", halo_nowned_nodes(halo)
     
