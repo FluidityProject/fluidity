@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <testproblem>
   <name>test energy stats and compare parallel and serial</name>
-  <owner userid="hhiester"/>
+  <owner userid="skramer"/>
   <tags> parallel 2dadapt </tags>
   <problem_definition length="medium" nprocs="1">
     <command_line>

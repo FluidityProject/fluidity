@@ -66,7 +66,7 @@ def MLD(filelist):
             break
 
      # the MLD is somewhere between these two values - let's estimate half way!
-     mld = (zza+zzb)/2.
+     mld = (zzb+zza)/2.
      if (last_mld == mld):
         continue
 

@@ -9,6 +9,11 @@
     <!-- Check that the sediment re-entrainment rate is correct -->
 </problem_definition>
   <variables>   
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="sediment_flux_200" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("Sediment_Reentrainment.stat")
@@ -37,6 +42,9 @@ sediment_concentration_final = s["Fluid"]["Single"]["integral"][-1]
 
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
       <!-- initial concentration = 0.1, sinking velocity = 0.1, therefore after 200 seconds 
            we should have 2m of sediment, which should be an integral of 200m over the 10m channel
            -->
