@@ -169,6 +169,16 @@
             <comment>Produce a radius 0.25 disk centred at -0.5,0</comment>
           </python>
         </initial_condition>
+        <boundary_conditions name="ZeroDirichlet">
+          <surface_ids>
+            <integer_value shape="2" rank="1">1 2</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <constant>
+              <real_value rank="0">0.0</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
         <output/>
         <stat/>
         <convergence>
@@ -183,5 +193,48 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
+    <vector_field name="TracerMoment" rank="1">
+      <diagnostic>
+        <algorithm name="vector_python_diagnostic" material_phase_support="single">
+          <string_value type="code" lines="20" language="python">tracer=state.scalar_fields['Tracer']
+x=state.vector_fields['DiagnosticCoordinate']
+for i in range(field.node_count):
+  field.set(i, tracer.node_val(i)*x.node_val(i))</string_value>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </vector_field>
+    <vector_field name="DiagnosticCoordinate" rank="1">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </vector_field>
   </material_phase>
 </fluidity_options>

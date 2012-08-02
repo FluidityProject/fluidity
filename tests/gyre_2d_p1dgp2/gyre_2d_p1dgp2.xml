@@ -8,6 +8,11 @@
     <command_line>fluidity -v3 -l gyre.flml</command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="western_boundary_width" language="python">
 import vtktools
 import numpy as np
@@ -22,6 +27,9 @@ western_boundary_width=min(downx[np.nonzero(downx)])
     </variable>    
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="Check width of western boundary current (&lt; 0.25)." language="python">
 import fluidity_tools
 assert( western_boundary_width &lt; 0.25 )
