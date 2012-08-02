@@ -782,6 +782,20 @@ otherwise.</a:documentation>
                       <ref name="real"/>
                     </element>
                   </optional>
+                  <optional>
+                    <element name="ocean_parameterisation">
+                      <a:documentation>Add extra parameterisation for internal wave breaking at base of MLD. This
+is based on the same parameterisation in NEMO and smooths the TKE down 
+the water column based on an exponential function
+Set the two parameters: % of TKE to smooth down and length scale to do this over</a:documentation>
+                      <element name="lengthscale">
+                        <ref name="real"/>
+                      </element>
+                      <element name="percentage">
+                        <ref name="real"/>
+                      </element>
+                    </element>
+                  </optional>
                   <element name="scalar_field">
                     <a:documentation>Turbulent kinetic energy. Make sure that the Diffusivity tensor field in here is set to diagnostic/internal.</a:documentation>
                     <attribute name="rank">
