@@ -921,28 +921,32 @@ subroutine keps_bcs(state)
            surface_field => extract_surface_field(field1, bc_name=bc_name, name="value")
            call zero(surface_field)
 
-           call allocate(surface_values, surface_mesh, name="surfacevalues")
-           call allocate(rhs_field, field1%mesh, name="rhs")
-           call zero(surface_values); call zero(rhs_field)
+           if(wall_fns=="high_Re") then
+              call allocate(surface_values, surface_mesh, name="surfacevalues")
+              call allocate(rhs_field, field1%mesh, name="rhs")
+              call zero(surface_values); call zero(rhs_field)
 
-           do j = 1, ele_count(surface_mesh)
-              sele = surface_elements(j)
-              ele  = face_ele(rhs_field, sele)
+              do j = 1, ele_count(surface_mesh)
+                 sele = surface_elements(j)
+                 ele  = face_ele(rhs_field, sele)
+                 
+                 ! Calculate wall function
+                 call keps_wall_function(field1,field2,positions,u,bg_visc,EV,density,ele,sele,index,c_mu,rhs_field)
+              end do
+              
+              ! Put values onto surface mesh
+              call remap_field_to_surface(rhs_field, surface_values, surface_elements)
+              ewrite_minmax(rhs_field)
+              do j = 1, size(surface_node_list)
+                 call set(surface_field, j, node_val(surface_values, j))
+              end do
 
-              ! Calculate wall function
-              call keps_wall_function(field1,field2,positions,u,bg_visc,EV,density,ele,sele,index,wall_fns,c_mu,rhs_field)
-           end do
+              call deallocate(surface_values); call deallocate(rhs_field)
+           end if           
 
-           ! Put values onto surface mesh
-           call remap_field_to_surface(rhs_field, surface_values, surface_elements)
-           ewrite_minmax(rhs_field)
-           do j = 1, size(surface_node_list)
-              call set(surface_field, j, node_val(surface_values, j))
-           end do
-
-           call deallocate(surface_values); call deallocate(rhs_field)
-
-           ! Check for low reynolds boundary condition and calculate damping functions
+           ! assume low Re wall functions if .not. high_Re: see e.g. Wilcox (1994)
+           ! k = 0; dEps/dy = 0
+           ! Now check for low reynolds boundary condition and calculate damping functions
            ! Lam-Bremhorst model (Wilcox 1998 - Turbulence modelling for CFD)
            if (wall_fns=="low_Re" .and. index==2) then
               y => extract_scalar_field(state, "DistanceToWall", stat = stat)
@@ -1024,13 +1028,12 @@ end subroutine keps_damping_functions
 ! Only used if bc type == k_epsilon for field.                                   !
 !--------------------------------------------------------------------------------!
 
-subroutine keps_wall_function(field1,field2,positions,u,bg_visc,EV,density,ele,sele,index,wall_fns,c_mu,rhs_field)
+subroutine keps_wall_function(field1,field2,positions,u,bg_visc,EV,density,ele,sele,index,c_mu,rhs_field)
 
   type(scalar_field), pointer, intent(in)              :: field1, field2, EV, density
   type(vector_field), pointer, intent(in)              :: positions, u
   type(tensor_field), pointer, intent(in)              :: bg_visc
   integer, intent(in)                                  :: ele, sele, index
-  character(len=FIELD_NAME_LEN), intent(in)            :: wall_fns
   type(scalar_field), intent(inout)                    :: rhs_field
 
   type(element_type), pointer                          :: shape, fshape
@@ -1077,61 +1080,53 @@ subroutine keps_wall_function(field1,field2,positions,u,bg_visc,EV,density,ele,s
   fmass = shape_shape(fshape, fshape, detwei_bdy)  !*density_gi*vfrac_gi to be safe?
   lumpedfmass = sum(fmass, 2)
 
-  ! low Re wall functions for k and epsilon: see e.g. Wilcox (1994)
-  if(wall_fns=="low_Re") then
-     rhs = 0.0
-
   ! high Re shear-stress wall functions for k and epsilon: see e.g. Wilcox (1994), Mathieu p.360
-  else if(wall_fns=="high_Re") then
-     visc_sgi = face_val_at_quad(EV,sele)
-     density_sgi = face_val_at_quad(density,sele)
-     grad_u = ele_grad_at_quad(u, ele, dshape)
-
-     ! grad(U) at ele_nodes (dim,dim,loc)
-     qq = shape_tensor_rhs(shape, grad_u, detwei)
-
-     do i=1,u%dim
-        do j=1,u%dim
-           qq(i,j,:) = matmul(invmass,qq(i,j,:))
-
-           ! Pick surface nodes (dim,dim,sloc)
-           qq_s(i,j,:) = qq(i,j,face_local_nodes(field1,sele))
-
-           ! Get values at surface quadrature (dim,dim,sgi)
-           qq_sgi(i,j,:) = matmul(qq_s(i,j,:), fshape%n)
-        end do
+  visc_sgi = face_val_at_quad(EV,sele)
+  density_sgi = face_val_at_quad(density,sele)
+  grad_u = ele_grad_at_quad(u, ele, dshape)
+  
+  ! grad(U) at ele_nodes (dim,dim,loc)
+  qq = shape_tensor_rhs(shape, grad_u, detwei)
+  
+  do i=1,u%dim
+     do j=1,u%dim
+        qq(i,j,:) = matmul(invmass,qq(i,j,:))
+        
+        ! Pick surface nodes (dim,dim,sloc)
+        qq_s(i,j,:) = qq(i,j,face_local_nodes(field1,sele))
+        
+        ! Get values at surface quadrature (dim,dim,sgi)
+        qq_sgi(i,j,:) = matmul(qq_s(i,j,:), fshape%n)
      end do
-
-     do gi = 1, sgi
-        !dot with surface normal (dim,sgi)
-        qq_sgin(:,gi) = matmul(qq_sgi(:,:,gi),normal_bdy(:,gi))
-
-        ! Subtract normal component of velocity, leaving tangent components:
-        qq_sgin(:,gi) = qq_sgin(:,gi)-normal_bdy(:,gi)*dot_product(qq_sgin(:,gi),normal_bdy(:,gi))
-
-        ! Get streamwise component by taking sqrt(grad_n.grad_n). Multiply by eddy viscosity.
-        ! Note: we divide by density here to write the BC in terms of a dynamic viscosity,
-        ! rather than a kinematic one.
-        ustar(gi) = norm2(qq_sgin(:,gi)) * visc_sgi(gi) / density_sgi(gi)
-     end do
-
-     if (index==1) then
-        rhs = shape_rhs(fshape, detwei_bdy*ustar/c_mu**0.5)
-        rhs = rhs/lumpedfmass
-     else if (index==2) then
-        ! calculate wall-normal element size
-        G = matmul(transpose(invJ(:,:,1)), invJ(:,:,1))
-        n(:,1) = normal_bdy(:,1)
-        hb = 1. / sqrt( matmul(matmul(transpose(n), G), n) )
-        h  = hb(1,1)
-        ! Von Karman's constant
-        kappa = 0.43
-
-        rhs = shape_rhs(fshape, detwei_bdy*ustar**1.5/kappa/h)
-        rhs = rhs/lumpedfmass
-     end if
-  else
-     FLAbort("Unknown wall function option for k_epsilon boundary conditions!")
+  end do
+  
+  do gi = 1, sgi
+     !dot with surface normal (dim,sgi)
+     qq_sgin(:,gi) = matmul(qq_sgi(:,:,gi),normal_bdy(:,gi))
+     
+     ! Subtract normal component of velocity, leaving tangent components:
+     qq_sgin(:,gi) = qq_sgin(:,gi)-normal_bdy(:,gi)*dot_product(qq_sgin(:,gi),normal_bdy(:,gi))
+     
+     ! Get streamwise component by taking sqrt(grad_n.grad_n). Multiply by eddy viscosity.
+     ! Note: we divide by density here to write the BC in terms of a dynamic viscosity,
+     ! rather than a kinematic one.
+     ustar(gi) = norm2(qq_sgin(:,gi)) * visc_sgi(gi) / density_sgi(gi)
+  end do
+  
+  if (index==1) then
+     rhs = shape_rhs(fshape, detwei_bdy*ustar/c_mu**0.5)
+     rhs = rhs/lumpedfmass
+  else if (index==2) then
+     ! calculate wall-normal element size
+     G = matmul(transpose(invJ(:,:,1)), invJ(:,:,1))
+     n(:,1) = normal_bdy(:,1)
+     hb = 1. / sqrt( matmul(matmul(transpose(n), G), n) )
+     h  = hb(1,1)
+     ! Von Karman's constant
+     kappa = 0.43
+     
+     rhs = shape_rhs(fshape, detwei_bdy*ustar**1.5/kappa/h)
+     rhs = rhs/lumpedfmass
   end if
 
   ! Add element contribution to rhs field

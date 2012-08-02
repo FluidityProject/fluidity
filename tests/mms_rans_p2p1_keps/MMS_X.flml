@@ -195,8 +195,12 @@
               <surface_ids>
                 <integer_value shape="1" rank="1">1</integer_value>
               </surface_ids>
-              <type name="k_epsilon">
-                <string_value>low_Re</string_value>
+              <type name="dirichlet">
+                <python>
+                  <string_value type="code" lines="20" language="python">def val(X,t):
+   import mms_rans_p2p1_keps_tools as k
+   return k.ke(X)</string_value>
+                </python>
               </type>
             </boundary_conditions>
             <tensor_field name="Diffusivity" rank="2">
@@ -295,8 +299,12 @@
               <surface_ids>
                 <integer_value shape="1" rank="1">1</integer_value>
               </surface_ids>
-              <type name="k_epsilon">
-                <string_value>low_Re</string_value>
+              <type name="dirichlet">
+                <python>
+                  <string_value type="code" lines="20" language="python">def val(X,t):
+   import mms_rans_p2p1_keps_tools as k
+   return k.eps(X)</string_value>
+                </python>
               </type>
             </boundary_conditions>
             <tensor_field name="Diffusivity" rank="2">
