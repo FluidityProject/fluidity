@@ -21,7 +21,7 @@
       </from_mesh>
       <recompute_coordinate_field>
         <python>
-          <string_value lines="20" type="python">def val(X,t):
+          <string_value lines="20" type="code" language="python">def val(X,t):
   R0 = 6.37122e6
   x = X[0]
   y = X[1]
@@ -123,12 +123,11 @@
     <dump_format>
       <string_value>vtk</string_value>
     </dump_format>
-    <dump_period>
+    <dump_period_in_timesteps>
       <constant>
-        <real_value rank="0">86400</real_value>
-        <comment>every  days = 60*60*24s = 86400s</comment>
+        <integer_value rank="0">1</integer_value>
       </constant>
-    </dump_period>
+    </dump_period_in_timesteps>
     <output_mesh name="VelocityMesh"/>
   </io>
   <timestepping>
@@ -146,7 +145,7 @@
       <integer_value rank="0">4</integer_value>
     </nonlinear_iterations>
     <finish_time>
-      <real_value rank="0">4320000.0</real_value>
+      <real_value rank="0">180000.0</real_value>
       <comment>Williamson 5 runs for 50 days = 60*60*24*50 = 4320000.0s</comment>
     </finish_time>
   </timestepping>
@@ -160,7 +159,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <python>
-              <string_value lines="20" type="python">def val(X,t):
+              <string_value lines="20" type="code" language="python">def val(X,t):
   x=X[0]
   y=X[1]
   z=X[2]
@@ -183,7 +182,7 @@
       </vector_field>
     </gravity>
     <coriolis>
-      <string_value lines="20" type="python">def val(X,t):
+      <string_value lines="20" type="code" language="python">def val(X,t):
   Omega = 7.292e-5
   x = X[0]
   y = X[1]
@@ -223,7 +222,7 @@
         <initial_condition name="WholeMesh">
           <galerkin_projection>
             <python>
-              <string_value lines="20" type="python">def val(X,t):
+              <string_value lines="20" type="code" language="python">def val(X,t):
   from math import pi
   x = X[0]
   y = X[1]
@@ -290,7 +289,7 @@
         </solver>
         <initial_condition name="ProjectionFromPython">
           <python>
-            <string_value lines="20" type="python">def val(X,t): 
+            <string_value lines="20" type="code" language="python">def val(X,t): 
   from math import pi,atan2,asin
   x = X[0]
   y = X[1]
@@ -307,7 +306,7 @@
   R1 = pi/9
   h0 = 2000.
   r = (min(R1,lambda0**2+theta**2))**0.5
-  return (gh0-(R0*Omega*u0 + u0**2/2)*sinsqtheta)/g - h0*(1.0-r/R1)</string_value>
+  return (gh0-(R0*Omega*u0 + u0**2/2)*sinsqtheta)/g</string_value>
           </python>
         </initial_condition>
         <mean_layer_thickness>
@@ -325,16 +324,7 @@
       <prognostic>
         <mesh name="VorticityMesh"/>
         <spatial_discretisation>
-          <continuous_galerkin>
-            <streamline_upwinding>
-              <alpha>
-                <real_value rank="0">0.3</real_value>
-              </alpha>
-              <tol>
-                <real_value rank="0">1.0e-10</real_value>
-              </tol>
-            </streamline_upwinding>
-          </continuous_galerkin>
+          <continuous_galerkin/>
         </spatial_discretisation>
         <solver>
           <iterative_method name="preonly"/>
@@ -364,7 +354,7 @@
       <prescribed>
         <value>
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
   from math import atan2,asin,pi
   x = X[0]
   y = X[1]
@@ -378,6 +368,9 @@
   return h0*(1.0-r/R0)</string_value>
           </python>
         </value>
+        <projected/>
+        <limit_values/>
+        <subtract_from_layer_thickness/>
         <mesh name="PressureMesh"/>
         <output/>
       </prescribed>
@@ -545,6 +538,28 @@
       <diagnostic>
         <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="PotentialVorticity"/>
         <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <manifold_transformation/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="LayerHeight" rank="0">
+      <diagnostic>
+        <algorithm source_field_2_type="scalar" name="scalar_sum" source_field_1_name="LayerThickness" source_field_2_name="Orography" material_phase_support="single" source_field_1_type="scalar"/>
+        <mesh name="PressureMesh"/>
         <output/>
         <stat>
           <manifold_transformation/>

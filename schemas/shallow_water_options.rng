@@ -600,6 +600,25 @@ does not apply any upwinding</a:documentation>
                 <element name="value">
                   <ref name="input_choice_real"/>
                 </element>
+                <optional>
+                  <element name="projected">
+                    <a:documentation>Initialise field from L2 projection</a:documentation>
+                    <empty/>
+                  </element>
+                </optional>
+                <optional>
+                  <element name="limit_values">
+                    <a:documentation>Apply limiter to orography</a:documentation>
+                    <empty/>
+                  </element>
+                </optional>
+                <optional>
+                  <element name="subtract_from_layer_thickness">
+                    <a:documentation>Subtract orography from layer thickness
+field</a:documentation>
+                    <empty/>
+                  </element>
+                </optional>
                 <ref name="pressure_mesh_choice"/>
                 <ref name="prognostic_scalar_output_options"/>
               </element>

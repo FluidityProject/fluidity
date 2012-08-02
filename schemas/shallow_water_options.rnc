@@ -468,6 +468,19 @@ start =
                      element value {
                         input_choice_real                        
                      },
+                     ## Initialise field from L2 projection
+                     element projected {
+                        empty
+                     }?,
+                     ## Apply limiter to orography
+                     element limit_values {
+                        empty
+                     }?,
+                     ## Subtract orography from layer thickness
+                     ## field
+                     element subtract_from_layer_thickness {
+                        empty
+                     }?,
                      pressure_mesh_choice,
                      prognostic_scalar_output_options
                   }

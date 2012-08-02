@@ -2690,8 +2690,8 @@ contains
 
     if(present(name)) then
        D=>extract_scalar_field(state, trim(name))
-       call get_option("/material_phase::Fluid/scalar_field::PrescribedLayer&
-            &DepthFromProjection/prescribed/python",Python_Function)
+       call get_option(trim(D%option_path)//"/prescribed/value/python",&
+            & Python_Function)
     else
        D=>extract_scalar_field(state, "LayerThickness")
        call get_option("/material_phase::Fluid/scalar_field&

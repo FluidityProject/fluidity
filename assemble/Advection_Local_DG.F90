@@ -1170,7 +1170,6 @@ module advection_local_DG
     !                                     \theta<\nabla\gamma,FQ^{n+1}> 
     !                                  -(1-\theta)<\nabla\gamma,FQ^n>
 
-
     detwei_l = Q_shape%quadrature%weight
     !Advection terms
     !! <-grad gamma, FQ >
@@ -1515,6 +1514,8 @@ module advection_local_DG
             matmul(Metric(:,:,gi),Flux_perp_gi(:,gi))
     end do
 
+    !!Q_test1_rhs contains -<\nabla\gamma,Q>
+
     select case(mesh_dim(X))
     case (2)
        velocity_perp_gi(1,:) = -contravariant_velocity_gi(2,:)
@@ -1525,6 +1526,9 @@ module advection_local_DG
     case default
        FLAbort('Exterior derivative not implemented for given mesh dimension' )
     end select
+
+    !!Q_test2_rhs contains <\gamma,Q^{n+1}\tilde{D}^{n+1}-
+    !!                             Q^n\tilde{D}^n>
 
     Q_test2_rhs = shape_rhs(ele_shape(Q,ele),(Q_gi*D_gi-Q_old_gi&
          &*D_old_gi)*Q_shape%quadrature%weight)
@@ -1740,7 +1744,7 @@ module advection_local_DG
     type(element_type), pointer :: U_shape
     real, dimension(ele_ngi(X,ele)) :: orography_gi
 
-    !r[w] = <w,u^{n+1}-u^n> + <w,FQ^\perp> 
+    !r[w] = <w,u^{n+1}-u^n> - <w,FQ^\perp> 
     !           - dt*<div w, g\bar{h} + \bar{|u|^2/2}>
 
     call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), &

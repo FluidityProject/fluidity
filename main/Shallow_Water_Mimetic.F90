@@ -56,6 +56,7 @@
     use manifold_tools
     use FEFields
     use field_copies_diagnostics
+    use slope_limiters_dg
     implicit none
 #ifdef HAVE_PETSC
 #include "finclude/petsc.h"
@@ -318,11 +319,6 @@
                call compute_U_residual(UResidual,U_old,D_old,&
                     newU,newD,PVFlux,state)
 
-               !NOTES ON CHECKING RESIDUAL
-               !Requires to solve mass matrix (with metric) 
-               !on UResidual, with constraints and projection,
-               !to compute the corresponding vorticity
-
                !Perform (quasi)Newton iteration
                ewrite(2,*) 'CJC newU newD', maxval(abs(newU%val)), maxval(abs(newD%val))
                call solve_hybridised_timestep_residual(state,newU,newD,&
@@ -501,6 +497,22 @@
        call set_layerthickness_projection(state,&
             &"PrescribedLayerDepthFromProjection")
     end if
+    if(have_option("/material_phase::Fluid/scalar_field::Orography/prescribe&
+         &d/subtract_from_layer_thickness")) then
+       call set_layerthickness_projection(state,"Orography")
+    end if
+    if(have_option("/material_phase::Fluid/scalar_field::Orography/prescribe&
+         &d/limit_values")) then
+       s_field => extract_scalar_field(state, "Orography")
+       call limit_vb_manifold(state,s_field)
+    end if
+    if(have_option("/material_phase::Fluid/scalar_field::Orography/prescribe&
+         &d/subtract_from_layer_thickness")) then
+       s_field => extract_scalar_field(state, "Orography")
+       D => extract_scalar_field(state, "LayerThickness")
+       D%val = D%val - s_field%val
+    end if
+    call fix_layerdepth_mean(state)
 
     s_field => extract_scalar_field(state,"PotentialVorticityTracer",stat)
     if(stat==0) then
@@ -508,8 +520,6 @@
           call fix_bubble_component(s_field)
        end if
     end if
-
-    call fix_layerdepth_mean(state)
 
     end subroutine setup_fields
 
