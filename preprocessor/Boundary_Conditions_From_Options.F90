@@ -231,8 +231,8 @@ contains
 
        ! Same thing for k_epsilon turbulence model.
        if (trim(bc_type) .eq. "k_epsilon") then
-          if (have_option(trim(bc_path_i)//"/type::k_epsilon/low_Re") .and. &
-               trim(field%name) .eq. "TurbulentDissipation") then
+          call get_option(trim(bc_path_i)//"/type::k_epsilon/", bc_type)
+          if (trim(bc_type) .eq. "low_Re" .and. trim(field%name) .eq. "TurbulentDissipation") then
              ewrite(2,*) "Changing low_Re epsilon BC type to neumann"
              bc_type = "neumann"
           else
