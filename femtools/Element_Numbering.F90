@@ -1761,7 +1761,10 @@ contains
              ! increment to go from node 1 to node 2: 0, -1 or +1
              inc=iand(nodes(2)-1, k)/k-l(i)
              ! remember the coordinate in which node 1 and 2 differ:
-             if (inc/=0) j=i
+             if (inc/=0)  then
+                j=i
+                exit
+             end if
              k=k*2
           end do
             

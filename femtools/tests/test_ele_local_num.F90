@@ -33,5 +33,11 @@ subroutine test_ele_local_num
   
   pass = all( ele_local_num( (/3,1,4,2/), ele_num)==(/ 6, 4, 1, 9, 7, 10, 5, 2, 8, 3 /))
   call report_test("[ele_local_num on 2nd degree tet reordered]", .not. pass, .false., "wrong output")
+
+  ! edges of linear quad
+  ele_num => find_element_numbering(4, 2, 1)
   
+  pass = all( edge_local_num( (/1,2/), ele_num, interior = .false.) == (/ 1,2 /))
+  call report_test("[edge_local_num on linear quad]", .not. pass, .false., "wrong output")
+
 end subroutine test_ele_local_num
