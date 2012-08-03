@@ -83,7 +83,7 @@ OBJS = Dgtools.o Coordinates.o EventCounter.o \
   Fields_Base.o Fields_Allocates.o Fields_Calculations.o Fields_Manipulation.o \
   Sparse_Matrices_Fields.o Unittest_Tools_Cpp.o Adaptive_Timestepping.o \
   Checkpoint.o Surface_Integrals.o\
-  python_state.o python_statec.o Dynamic_Bin_Sort.o \
+  python_state.o python_statec.o python_utils.o Dynamic_Bin_Sort.o \
   Supermesh.o Supermesh_Assembly.o Conservative_interpolation.o \
   Interpolation.o Pseudo_Consistent_Interpolation.o Pseudo_2D.o DG_interpolation.o \
   Halo_Data_Types.o Halos.o Halos_Allocates.o Halos_Base.o \

@@ -35,6 +35,7 @@ module adjoint_functionals
   use state_module
   use embed_python
   use python_state
+  use python_utils
 
   implicit none
   

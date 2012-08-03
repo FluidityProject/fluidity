@@ -399,7 +399,7 @@ Fields_Allocates.o ../include/fields_allocates.mod: Fields_Allocates.F90 \
    ../include/halos_allocates.mod ../include/halos_repair.mod \
    ../include/ieee_arithmetic.mod ../include/memory_diagnostics.mod \
    ../include/parallel_tools.mod ../include/pickers_deallocates.mod \
-   ../include/python_state.mod ../include/shape_functions.mod \
+   ../include/python_utils.mod ../include/shape_functions.mod \
    Reference_count_interface_mesh_type.F90 \
    Reference_count_interface_scalar_field.F90 \
    Reference_count_interface_tensor_field.F90 \
@@ -1260,7 +1260,14 @@ ieee_arithmetic_dummy.o ../include/ieee_arithmetic.mod: \
 python_state.o ../include/python_state.mod: python_state.F90 \
    ../include/elements.mod ../include/fdebug.h ../include/fields.mod \
    ../include/fldebug.mod ../include/global_parameters.mod \
-   ../include/quadrature.mod ../include/state_module.mod
+   ../include/python_utils.mod ../include/quadrature.mod \
+   ../include/state_module.mod
+
+../include/python_utils.mod: python_utils.o
+	@true
+
+python_utils.o ../include/python_utils.mod: python_utils.F90 \
+   ../include/fdebug.h ../include/fldebug.mod
 
 ../include/quicksort.mod: qsortd.o
 	@true

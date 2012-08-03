@@ -17,7 +17,7 @@ Adjoint_Functional_Evaluation.o ../include/adjoint_functional_evaluation.mod: \
    ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
    ../include/global_parameters.mod ../include/libadjoint_data_callbacks.mod \
    ../include/mangle_options_tree.mod ../include/python_state.mod \
-   ../include/spud.mod ../include/state_module.mod
+   ../include/python_utils.mod ../include/spud.mod ../include/state_module.mod
 
 ../include/adjoint_global_variables.mod: Adjoint_Global_Variables.o
 	@true

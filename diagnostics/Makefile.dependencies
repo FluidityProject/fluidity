@@ -6,7 +6,7 @@ Adjoint_Functionals.o ../include/adjoint_functionals.mod: \
    Adjoint_Functionals.F90 ../include/embed_python.mod ../include/fdebug.h \
    ../include/fields.mod ../include/fldebug.mod \
    ../include/global_parameters.mod ../include/python_state.mod \
-   ../include/spud.mod ../include/state_module.mod
+   ../include/python_utils.mod ../include/spud.mod ../include/state_module.mod
 
 ../include/binary_operators.mod: Binary_Operators.o
 	@true
@@ -119,7 +119,7 @@ Parallel_Diagnostics.o ../include/parallel_diagnostics.mod: \
 Python_Diagnostics.o ../include/python_diagnostics.mod: Python_Diagnostics.F90 \
    ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
    ../include/global_parameters.mod ../include/python_state.mod \
-   ../include/spud.mod ../include/state_module.mod
+   ../include/python_utils.mod ../include/spud.mod ../include/state_module.mod
 
 ../include/simple_diagnostics.mod: Simple_Diagnostics.o
 	@true

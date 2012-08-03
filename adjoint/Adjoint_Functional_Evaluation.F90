@@ -40,6 +40,7 @@ module adjoint_functional_evaluation
   use diagnostic_variables, only: set_diagnostic, get_diagnostic
   use embed_python
   use python_state
+  use python_utils
   use libadjoint_data_callbacks
   use field_options
   use adjoint_global_variables

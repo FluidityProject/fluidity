@@ -1,18 +1,9 @@
-!! This module provides the functionality to call Python code
-!! from Fortran:
-!!  python_run_string(string::s)
-!!  python_run_file(string::filename)
-
-!! Most importantly states can be added to the dictionary via:
+!! Python states can be added to the dictionary via:
 !!  python_add_state(State::S)
 !! The last added state will be available as 'state', while all states added 
 !! are accessible via the 'states' dictionary.
 !! Adding a state twice will result in overwriting the information. All states 
 !! are uniquely identified by their name attribute. 
-
-!! These should be called once (either from C or Fortran) before and after anything else of this module is used:
-!! python_init() initializes the Python interpreter; 
-!! python_end() finalizes 
 
 !! Files belonging to this module:
 !! python_state.F90
@@ -28,49 +19,23 @@ module python_state
   use fields
   use global_parameters, only:FIELD_NAME_LEN, current_debug_level, OPTION_PATH_LEN, PYTHON_FUNC_LEN
   use state_module 
+  use python_utils
    
   implicit none
   
   private
   
-  public :: python_init, python_reset
-  public :: python_add_array, python_add_field, python_remove_from_cache
+  public :: python_add_array, python_add_field
   public :: python_add_state, python_add_states, python_add_states_time
-  public :: python_run_string, python_run_file
   public :: python_shell
-  public :: python_fetch_real
 
   interface
-    !! Python init and end
-    subroutine python_init()
-    end subroutine python_init
-    subroutine python_reset()
-    end subroutine python_reset
-    subroutine python_end()
-    end subroutine python_end
-
     !! Add a state_type object into the Python interpreter
     subroutine python_add_statec(name,nlen)
       implicit none
       integer :: nlen
       character(len=nlen) :: name
     end subroutine python_add_statec
-
-    !! Run a python string and file
-    subroutine python_run_stringc(s, slen, stat)
-      implicit none
-      integer, intent(in) :: slen
-      character(len = slen), intent(in) :: s
-      integer, intent(out) :: stat
-    end subroutine python_run_stringc
-    
-    subroutine python_run_filec(s, slen, stat)
-      implicit none
-      integer, intent(in) :: slen
-      character(len = slen), intent(in) :: s
-      integer, intent(out) :: stat
-    end subroutine python_run_filec
-
   end interface
 
   interface python_shell
@@ -575,72 +540,5 @@ module python_state
     name_len = len(var_name)
     call python_add_array_integer_3d(arr,sizex,sizey,sizez,var_name,name_len)
   end subroutine python_add_array_i_3d_directly
-
-  subroutine python_run_string(s, stat)
-    !!< Wrapper for function for python_run_stringc
-    
-    character(len = *), intent(in) :: s
-    integer, optional, intent(out) :: stat
-    
-    integer :: lstat
-        
-    if(present(stat)) stat = 0
-        
-    call python_run_stringc(s, len_trim(s), lstat)
-    if(lstat /= 0) then
-      if(present(stat)) then
-        stat = lstat
-      else
-        ewrite(-1, *) "Python error, Python string was:"
-        ewrite(-1, *) trim(s)
-        FLExit("Dying")
-      end if
-    end if
-    
-  end subroutine python_run_string
-  
-  subroutine python_run_file(s, stat)
-    !!< Wrapper for function for python_run_filec
-    
-    character(len = *), intent(in) :: s
-    integer, optional, intent(out) :: stat
-    
-    integer :: lstat
-
-    if(present(stat)) stat = 0
-
-    call python_run_filec(s, len_trim(s), lstat)
-    if(lstat /= 0) then
-      if(present(stat)) then
-        stat = lstat
-      else
-        ewrite(-1, *) "Python error, Python file was:"
-        ewrite(-1, *) trim(s)
-        FLExit("Dying")
-      end if
-    end if
-    
-  end subroutine python_run_file
-
-  subroutine python_remove_from_cache(type, uid)
-    !!< Remove a field of type type with id uid from the python cache
-    
-    character(len=6), intent(in) :: type
-    integer, intent(in) :: uid
-    
-    character(len=16) :: buf
-
-    write(unit=buf,fmt="(i0)")uid
-
-    call python_run_string("if "//trim(adjustl(buf))//" in "//type//"_field_cache: "//type//"_field_cache.pop("//trim(adjustl(buf))//")")
-    
-  end subroutine python_remove_from_cache
-  
-  function python_fetch_real(name) result(output)
-    character(len=*), intent(in) :: name
-    real :: output
-
-    call python_fetch_real_c(name, len(name), output)
-  end function python_fetch_real
 
 end module python_state
