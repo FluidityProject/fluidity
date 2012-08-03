@@ -37,16 +37,16 @@ subroutine test_ele_local_num
   ! edges of linear quad
   ele_num => find_element_numbering(4, 2, 1)
   
-  pass = all( edge_local_num( (/1,2/), ele_num, interior = .false.) == (/ 1,2 /))
+  pass = all( edge_local_num( (/1,2/), ele_num, interior = .false.) == (/ 1,3 /))
   call report_test("[edge_local_num on linear quad vertices 1 and 2]", .not. pass, .false., "wrong output")
 
-  pass = all( edge_local_num( (/3,4/), ele_num, interior = .false.) == (/ 3,4 /))
+  pass = all( edge_local_num( (/3,4/), ele_num, interior = .false.) == (/ 2,4 /))
   call report_test("[edge_local_num on linear quad vertices 4 and 3]", .not. pass, .false., "wrong output")
 
-  pass = all( edge_local_num( (/1,3/), ele_num, interior = .false.) == (/ 1,3 /))
+  pass = all( edge_local_num( (/1,3/), ele_num, interior = .false.) == (/ 1,2 /))
   call report_test("[edge_local_num on linear quad vertices 1 and 3]", .not. pass, .false., "wrong output")
 
-  pass = all( edge_local_num( (/2,4/), ele_num, interior = .false.) == (/ 2,4 /))
+  pass = all( edge_local_num( (/2,4/), ele_num, interior = .false.) == (/ 3,4 /))
   call report_test("[edge_local_num on linear quad vertices 4 and 2]", .not. pass, .false., "wrong output")
 
 end subroutine test_ele_local_num
