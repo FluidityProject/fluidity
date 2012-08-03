@@ -321,7 +321,16 @@ g = 9.80616
       <prognostic>
         <mesh name="VorticityMesh"/>
         <spatial_discretisation>
-          <continuous_galerkin/>
+          <continuous_galerkin>
+            <streamline_upwinding>
+              <alpha>
+                <real_value rank="0">0.26</real_value>
+              </alpha>
+              <tol>
+                <real_value rank="0">1.0e-15</real_value>
+              </tol>
+            </streamline_upwinding>
+          </continuous_galerkin>
         </spatial_discretisation>
         <solver>
           <iterative_method name="preonly"/>
