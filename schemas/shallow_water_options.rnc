@@ -340,30 +340,7 @@ start =
                      vorticity_mesh_choice,
                      element spatial_discretisation {
                         element continuous_galerkin {
-                           element laplacian_filter {
-                              element diffusivity {
-                                 real
-                              }
-                           }?,
-                           element streamline_upwinding {
-                              ## Scaling parameter for upwinding
-                              ## parameter tau, 1 = first-order upwind,
-                              ## magic value for 1D = 1.0/sqrt(15)
-                              element alpha {
-                                 real
-                              },
-                              ## For velocities below this tolerance, 
-                              ## does not apply any upwinding
-                              element tol {
-                                 real
-                              }
-                           }?,
-                           element local_projection {
-                              empty
-                           }?,
-                           element discontinuity_capturing {
-                              empty
-                           }?
+                           pv_stabilisation_options
                         }
                      },
                      ## Solver
@@ -385,30 +362,7 @@ start =
                   element prognostic {
                      element spatial_discretisation {
                         element continuous_galerkin {
-                           element laplacian_filter {
-                              element diffusivity {
-                                 real
-                              }
-                           }?,
-                           element streamline_upwinding {
-                              ## Scaling parameter for upwinding
-                              ## parameter tau, 1 = first-order upwind,
-                              ## magic value for 1D = 1.0/sqrt(15)
-                              element alpha {
-                                 real
-                              },
-                              ## For velocities below this tolerance, 
-                              ## does not apply any upwinding
-                              element tol {
-                                 real
-                              }
-                           }?,
-                           element local_projection {
-                              empty
-                           }?,
-                           element discontinuity_capturing {
-                              empty
-                           }?
+                           pv_stabilisation_options
                         }
                      },
                      element initial_condition {
@@ -518,6 +472,47 @@ start =
          adjoint_options?
       }
    )      
+
+pv_stabilisation_options = 
+   element laplacian_filter {
+      element diffusivity {
+         real
+      }
+   }?,
+   element streamline_upwinding {
+      ## Scaling parameter for upwinding
+      ## parameter tau, 1 = first-order upwind,
+      ## magic value for 1D = 1.0/sqrt(15)
+      element alpha {
+         real
+      },
+      ## For velocities below this tolerance, 
+      ## does not apply any upwinding
+      element tol {
+         real
+      }
+   }?,
+   element local_projection {
+      empty
+   }?,
+   ## Use discontinuity capturing similar to that used in
+   ## J.-L. Guermond, A. Marra, L. Quartapelle, Subgrid stabilized
+   ## projection method for 2D unsteady flows at high Reynolds
+   ## numbers, Computer Methods in Applied Mechanics and Engineering,
+   ## Volume 195, Issues 44–47, 15 September 2006, Pages 5857-5876,
+   ## ISSN 0045-7825, 10.1016/j.cma.2005.08.016.
+   ##
+   ## The discontinuity indicator uses the pressure space for 
+   ## the local projection filter.
+   ##
+   ## The scaling coefficient controls the strength of the
+   ## discontinuity capturing and is proportional to the solution
+   ## magnitude
+   element discontinuity_capturing {
+      element scaling_coefficient {
+         real
+      }
+   }?
 
 scalar_field_choice = 
    (
