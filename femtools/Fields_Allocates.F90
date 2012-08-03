@@ -560,14 +560,19 @@ contains
     !!< is called on the mesh which will delete one reference to it and
     !!< deallocate it if the count drops to zero.
     type(scalar_field), intent(inout) :: field
+
+    integer uid
       
+    ! Save the uid
+    uid = field%refcount%id
+
     call decref(field)
     if (has_references(field)) then
        ! There are still references to this field so we don't deallocate.
        return
     end if
 
-    call python_run_string("if "//field%refcount%id//" in scalar_field_cache: scalar_field_cache.pop["//field%refcount%id//"]")
+    call python_remove_from_cache("scalar", uid)
 
     select case(field%field_type)
     case(FIELD_TYPE_NORMAL)
@@ -630,13 +635,18 @@ contains
     !!< deallocate it if the count drops to zero.
     type(vector_field), intent(inout) :: field
     
+    integer uid
+      
+    ! Save the uid
+    uid = field%refcount%id
+
     call decref(field)
     if (has_references(field)) then
        ! There are still references to this field so we don't deallocate.
        return
     end if
 
-    call python_run_string("if "//field%refcount%id//" in vector_field_cache: vector_field_cache.pop["//field%refcount%id//"]")
+    call python_remove_from_cache("vector", uid)
 
     if (.not.field%wrapped) then
       select case(field%field_type)
@@ -687,13 +697,18 @@ contains
     !!< deallocate it if the count drops to zero.
     type(tensor_field), intent(inout) :: field
     
+    integer uid
+      
+    ! Save the uid
+    uid = field%refcount%id
+
     call decref(field)
     if (has_references(field)) then
        ! There are still references to this field so we don't deallocate.
        return
     end if
 
-    call python_run_string("if "//field%refcount%id//" in tensor_field_cache: tensor_field_cache.pop["//field%refcount%id//"]")
+    call python_remove_from_cache("tensor", uid)
 
     if (.not.field%wrapped) then
       select case(field%field_type)

@@ -399,7 +399,8 @@ Fields_Allocates.o ../include/fields_allocates.mod: Fields_Allocates.F90 \
    ../include/halos_allocates.mod ../include/halos_repair.mod \
    ../include/ieee_arithmetic.mod ../include/memory_diagnostics.mod \
    ../include/parallel_tools.mod ../include/pickers_deallocates.mod \
-   ../include/shape_functions.mod Reference_count_interface_mesh_type.F90 \
+   ../include/python_state.mod ../include/shape_functions.mod \
+   Reference_count_interface_mesh_type.F90 \
    Reference_count_interface_scalar_field.F90 \
    Reference_count_interface_tensor_field.F90 \
    Reference_count_interface_vector_field.F90 Reference_count_mesh_type.F90 \

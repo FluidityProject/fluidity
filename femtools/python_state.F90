@@ -34,7 +34,7 @@ module python_state
   private
   
   public :: python_init, python_reset
-  public :: python_add_array, python_add_field
+  public :: python_add_array, python_add_field, python_remove_from_cache
   public :: python_add_state, python_add_states, python_add_states_time
   public :: python_run_string, python_run_file
   public :: python_shell
@@ -129,9 +129,9 @@ module python_state
   !! Add a field to a State (these are for the C-interface, python_add_field_directly() is what you want probably)
   interface python_add_field
     subroutine python_add_scalar(sx,x,name,nlen,field_type,option_path,oplen,state_name,snlen,&
-      &mesh_name,mesh_name_len)
+      &mesh_name,mesh_name_len,uid)
       implicit none
-      integer :: sx,nlen,field_type,oplen,snlen,mesh_name_len
+      integer :: sx,nlen,field_type,oplen,snlen,mesh_name_len,uid
       real, dimension(sx) :: x
       character(len=nlen) :: name
       character(len=snlen) :: state_name
@@ -152,9 +152,9 @@ module python_state
     
     subroutine python_add_vector(numdim,sx,x,&
       &name,nlen,field_type,option_path,oplen,state_name,snlen,&
-      &mesh_name,mesh_name_len)
+      &mesh_name,mesh_name_len,uid)
       implicit none
-      integer :: sx,numdim,nlen,field_type,oplen,snlen,mesh_name_len
+      integer :: sx,numdim,nlen,field_type,oplen,snlen,mesh_name_len,uid
       real, dimension(sx) :: x
       character(len=nlen) :: name
       character(len=snlen) :: state_name
@@ -162,9 +162,9 @@ module python_state
       character(len=mesh_name_len) :: mesh_name
     end subroutine python_add_vector
     subroutine python_add_tensor(sx,sy,sz,x,numdim,name,nlen,field_type,option_path,oplen,state_name,snlen,&
-      &mesh_name,mesh_name_len)
+      &mesh_name,mesh_name_len,uid)
       implicit none
-      integer :: sx,sy,sz,nlen,field_type,oplen,snlen,mesh_name_len
+      integer :: sx,sy,sz,nlen,field_type,oplen,snlen,mesh_name_len,uid
       integer, dimension(2) :: numdim
       real, dimension(sx,sy,sz) :: x
       character(len=nlen) :: name
@@ -231,10 +231,6 @@ module python_state
   end interface
 
 
-
-
-
-
   !! The function versions called in Fortran, mainly simplified arguments, then 
   !! unwrapped and called to the interface to C
  contains
@@ -248,7 +244,7 @@ module python_state
     oplen = len(trim(S%option_path))
     mesh_name_len = len(trim(S%mesh%name))
     call python_add_scalar(size(S%val,1),S%val,&
-      trim(S%name),slen, S%field_type,S%option_path,oplen,trim(st%name),snlen,S%mesh%name,mesh_name_len)
+      trim(S%name),slen, S%field_type,S%option_path,oplen,trim(st%name),snlen,S%mesh%name,mesh_name_len,S%refcount%id)
   end subroutine python_add_scalar_directly
   
   subroutine python_add_csr_matrix_directly(csrMatrix,st)
@@ -295,7 +291,7 @@ module python_state
     
     assert(v%dim==size(v%val,1))
     call python_add_vector(V%dim, size(V%val,2), V%val, &
-      trim(V%name), slen, V%field_type, V%option_path, oplen,trim(st%name),snlen,V%mesh%name,mesh_name_len)
+      trim(V%name), slen, V%field_type, V%option_path, oplen,trim(st%name),snlen,V%mesh%name,mesh_name_len,V%refcount%id)
     
   end subroutine python_add_vector_directly
 
@@ -308,7 +304,7 @@ module python_state
     oplen = len(trim(T%option_path))
     mesh_name_len = len(trim(T%mesh%name))
     call python_add_tensor(size(T%val,1),size(T%val,2),size(T%val,3),T%val, T%dim,&
-      trim(T%name),slen, T%field_type,T%option_path,oplen,trim(st%name),snlen,T%mesh%name,mesh_name_len)
+      trim(T%name),slen, T%field_type,T%option_path,oplen,trim(st%name),snlen,T%mesh%name,mesh_name_len,T%refcount%id)
   end subroutine python_add_tensor_directly
 
   subroutine python_add_mesh_directly(M,st)
@@ -626,6 +622,20 @@ module python_state
     
   end subroutine python_run_file
 
+  subroutine python_remove_from_cache(type, uid)
+    !!< Remove a field of type type with id uid from the python cache
+    
+    character(len=6), intent(in) :: type
+    integer, intent(in) :: uid
+    
+    character(len=16) :: buf
+
+    write(unit=buf,fmt="(i0)")uid
+
+    call python_run_string("if "//trim(adjustl(buf))//" in "//type//"_field_cache: "//type//"_field_cache.pop("//trim(adjustl(buf))//")")
+    
+  end subroutine python_remove_from_cache
+  
   function python_fetch_real(name) result(output)
     character(len=*), intent(in) :: name
     real :: output
