@@ -1134,7 +1134,7 @@ module advection_local_DG
     integer :: loc,dim1,dim2,gi
     real :: tau, alpha, tol, area, h,c_sc,disc_indicator
     real, dimension(ele_ngi(X,ele),ele_ngi(X,ele)) :: Metric, MetricT
-    real, dimension(mesh_dim(X,ele),ele_ngi(X,ele)) :: gradQ
+    real, dimension(mesh_dim(X),ele_ngi(X,ele)) :: gradQ
     type(element_type), pointer :: D_shape
     !
 
@@ -1249,25 +1249,25 @@ module advection_local_DG
     !Discontinuity capturing options
     if(have_option(trim(Q%option_path)//'/prognostic/spatial_discretisation/&
          &continuous_galerkin/discontinuity_capturing')) then
-       call have_option(&
-            &trim(Q%option_path)//'/prognostic/spatial_discretisation/&
-            &continuous_galerkin/discontinuity_capturing/&
-            &scaling_coefficient',c_sc)
+       ! call have_option(&
+       !      &trim(Q%option_path)//'/prognostic/spatial_discretisation/&
+       !      &continuous_galerkin/discontinuity_capturing/&
+       !      &scaling_coefficient',c_sc)
 
-       do gi=1,ele_ngi(Q,ele)
-          Metric(:,:,gi)=matmul(J(:,:,gi), transpose(J(:,:,gi)))/detJ(gi)
-       end do
-       MetricT(1,1,:) = MetricT(2,2,:)
-       MetricT(2,2,:) = MetricT(1,1,:)
-       MetricT(1,2,:) =-MetricT(2,1,:)
-       MetricT(2,1,:) =-MetricT(1,2,:)
+       ! do gi=1,ele_ngi(Q,ele)
+       !    Metric(:,:,gi)=matmul(J(:,:,gi), transpose(J(:,:,gi)))/detJ(gi)
+       ! end do
+       ! MetricT(1,1,:) = MetricT(2,2,:)
+       ! MetricT(2,2,:) = MetricT(1,1,:)
+       ! MetricT(1,2,:) =-MetricT(2,1,:)
+       ! MetricT(2,1,:) =-MetricT(1,2,:)
 
-       area = sum(detwei)
-       D_gi = ele_val_at_quad(D_old,ele)
-       tmp_mat = dshape_tensor_dshape(Q_shape%dn, &
-            area*D_gi*MetricT, Q_shape%dn,&
-            Q_shape%quadrature%weight)
-       l_rhs = l_rhs - dt*c_sc*matmul(tmp_mat,Q_val)
+       ! area = sum(detwei)
+       ! D_gi = ele_val_at_quad(D_old,ele)
+       ! tmp_mat = dshape_tensor_dshape(Q_shape%dn, &
+       !      area*D_gi*MetricT, Q_shape%dn,&
+       !      Q_shape%quadrature%weight)
+       ! l_rhs = l_rhs - dt*c_sc*matmul(tmp_mat,Q_val)
        FLAbort('not ready yet')
     end if
 
