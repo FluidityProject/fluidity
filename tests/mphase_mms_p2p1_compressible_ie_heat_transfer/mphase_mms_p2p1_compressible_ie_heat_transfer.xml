@@ -64,6 +64,21 @@ print b_error
 ab_ratio = a_error / b_error
 ab_convergence_p = log(ab_ratio, 2)
     </variable>
+
+    <variable name="ab_convergence_compressiblecontinuityresidual" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+
+print "Calculating errors for CompressibleContinuityResidual in A-B convergence test"
+a_error = stat("MMS_A.stat")["Fluid"]["CompressibleContinuityResidualAbsoluteDifference"]["l2norm"][-1]
+b_error = stat("MMS_B.stat")["Fluid"]["CompressibleContinuityResidualAbsoluteDifference"]["l2norm"][-1]
+
+print a_error
+print b_error
+
+ab_ratio = a_error / b_error
+ab_convergence_compressiblecontinuityresidual = log(ab_ratio, 2)
+    </variable>
     
     <variable name="ab_convergence_ie" language="python">
 from fluidity_tools import stat_parser as stat
@@ -158,6 +173,21 @@ print c_error
 bc_ratio = b_error / c_error
 bc_convergence_p = log(bc_ratio, 2)
     </variable>
+
+    <variable name="bc_convergence_compressiblecontinuityresidual" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+
+print "Calculating errors for CompressibleContinuityResidual in B-C convergence test"
+b_error = stat("MMS_B.stat")["Fluid"]["CompressibleContinuityResidualAbsoluteDifference"]["l2norm"][-1]
+c_error = stat("MMS_C.stat")["Fluid"]["CompressibleContinuityResidualAbsoluteDifference"]["l2norm"][-1]
+
+print b_error
+print c_error
+
+bc_ratio = b_error / c_error
+bc_convergence_compressiblecontinuityresidual = log(bc_ratio, 2)
+    </variable>
     
     <variable name="bc_convergence_ie" language="python">
 from fluidity_tools import stat_parser as stat
@@ -225,6 +255,10 @@ assert(ab_convergence_p &gt; 2.0)
     <test name="ab_convergence_density: L2 order > 2.0" language="python">
 assert(ab_convergence_density &gt; 2.0)
     </test>    
+
+    <test name="ab_convergence_compressiblecontinuityresidual: L2 order > 1.5" language="python">
+assert(ab_convergence_compressiblecontinuityresidual &gt; 1.5)
+    </test>
     
     <test name="ab_convergence_ie for Particle: L2 order > 1.8" language="python">
 assert(ab_convergence_ie[0] &gt; 1.8)
@@ -250,6 +284,10 @@ assert(bc_convergence_vel[1][1] &gt; 1.9)
     
     <test name="bc_convergence_p: L2 order > 1.3" language="python">
 assert(bc_convergence_p &gt; 1.3)
+    </test>
+
+    <test name="bc_convergence_compressiblecontinuityresidual: L2 order > 1.5" language="python">
+assert(bc_convergence_compressiblecontinuityresidual &gt; 1.5)
     </test>
 
     <test name="bc_convergence_density: L2 order > 2.0" language="python">
