@@ -37,6 +37,18 @@ def h_integrand(phi):
     f = 2*Omega*sin(phi)
     return -u(phi)*(f+tan(phi)*u(phi)/R0)
 
+def h_perturbation(x,y,z):
+    from numpy import arcsin,arctan2,cos,exp,pi
+    alpha = 1./3.
+    beta = 1./15.
+    hhat = 120
+    R = (x**2+y**2+z**2)**0.5
+    phi = arcsin(z/R)
+    phi2 = pi/4
+    lambda0 = arctan2(y,x)
+    return hhat*cos(phi)*exp(-(lambda0/alpha)**2)*\
+        exp(-((phi2-phi)/beta)**2)
+
 def Hval(X,t):
     """Interface function for calculating h"""
     x = X[0]
@@ -53,6 +65,24 @@ def Hval(X,t):
     else:
         val,err = integrate.quadrature(h_integrand,phi0,phi,tol=1.0e-8)
         return val*R0/g
+
+def HPval(X,t):
+    """Interface function for calculating perturbed h"""
+    x = X[0]
+    y = X[1]
+    z = X[2]
+    R = (x**2+y**2+z**2)**0.5
+    R0 = 6.37122e6
+    g = 9.80616
+    phi = arcsin(z/R)
+    phi0 = pi/7.0
+    phi1 = pi/2.0-phi0
+    if(phi<=phi0): 
+        val = 0.
+    else:
+        val,err = integrate.quadrature(h_integrand,phi0,phi,tol=1.0e-8)
+        val = val*R0/g
+    return val + h_perturbation(x,y,z)
 
 if __name__ == "__main__":
     import numpy as np
