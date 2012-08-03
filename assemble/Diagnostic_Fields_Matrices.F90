@@ -59,7 +59,7 @@ module diagnostic_fields_matrices
   public :: calculate_divergence_cv, calculate_divergence_fe, &
             calculate_div_t_cv, calculate_div_t_fe, &
             calculate_grad_fe, calculate_sum_velocity_divergence, &
-            calculate_compressible_continuity
+            calculate_compressible_continuity_residual
 
 contains
 
@@ -334,8 +334,7 @@ contains
       !!< field (i.e. each phase). Used in multiphase flow simulations.
 
       type(state_type), dimension(:), intent(inout) :: state
-      type(scalar_field), pointer :: sum_velocity_divergence, vfrac
-      type(scalar_field) :: temp_vfrac
+      type(scalar_field), pointer :: sum_velocity_divergence
 
       ! Local variables
       type(vector_field), pointer :: u, x
@@ -350,7 +349,6 @@ contains
       type(scalar_field), pointer :: cv_mass
       
       logical :: test_with_cv_dual
-      real :: dt
 
       ewrite(1,*) 'Entering calculate_sum_velocity_divergence'
          
@@ -368,8 +366,6 @@ contains
          call allocate(mass, mass_sparsity, name="MassMatrix")
          call zero(mass)      
       end if 
-      
-      call get_option("/timestepping/timestep", dt)
       
       ! Sum up over the div's
       do i = 1, size(state)
@@ -451,12 +447,12 @@ contains
   end subroutine calculate_sum_velocity_divergence
 
   
-  subroutine calculate_compressible_continuity(state, compressible_continuity)
-      !!< Calculates the continity equation used in compressible multiphase flow simulations:
+  subroutine calculate_compressible_continuity_residual(state, compressible_continuity_residual)
+      !!< Calculates the residual of the continity equation used in compressible multiphase flow simulations:
       !!< vfrac_c*d(rho_c)/dt + div(rho_c*vfrac_c*u_c) + \sum_i{ rho_c*div(vfrac_i*u_i) }
       
       type(state_type), dimension(:), intent(inout) :: state
-      type(scalar_field), pointer :: compressible_continuity, density, olddensity, vfrac
+      type(scalar_field), pointer :: compressible_continuity_residual, density, olddensity, vfrac
       type(scalar_field) :: drhodt
 
       ! Local variables
@@ -472,21 +468,21 @@ contains
       type(scalar_field) :: ctfield, ct_rhs, temp
       
       type(element_type) :: test_function
-      type(element_type), pointer :: compressible_continuity_shape
-      integer, dimension(:), pointer :: compressible_continuity_nodes
+      type(element_type), pointer :: compressible_continuity_residual_shape
+      integer, dimension(:), pointer :: compressible_continuity_residual_nodes
       real, dimension(:), allocatable :: detwei
       real, dimension(:), allocatable :: drhodt_addto
       
       real :: dt
 
-      ewrite(1,*) 'Entering calculate_compressible_continuity'
+      ewrite(1,*) 'Entering calculate_compressible_continuity_residual'
 
       ! Allocate memory for matrices and sparsity patterns
-      call allocate(ctfield, compressible_continuity%mesh, name="CTField")
+      call allocate(ctfield, compressible_continuity_residual%mesh, name="CTField")
       call zero(ctfield)
-      call allocate(temp, compressible_continuity%mesh, name="Temp")
+      call allocate(temp, compressible_continuity_residual%mesh, name="Temp")
             
-      mass_sparsity=make_sparsity(compressible_continuity%mesh, compressible_continuity%mesh, "MassSparsity")
+      mass_sparsity=make_sparsity(compressible_continuity_residual%mesh, compressible_continuity_residual%mesh, "MassSparsity")
       call allocate(mass, mass_sparsity, name="MassMatrix")
       call zero(mass)
       
@@ -507,10 +503,10 @@ contains
          x => extract_vector_field(state(i), "Coordinate")
 
          ! Allocate sparsity patterns, C^T matrix and C^T RHS for current state
-         divergence_sparsity=make_sparsity(compressible_continuity%mesh, u%mesh, "DivergenceSparsity")
+         divergence_sparsity=make_sparsity(compressible_continuity_residual%mesh, u%mesh, "DivergenceSparsity")
          allocate(ct_m)
          call allocate(ct_m, divergence_sparsity, (/1, u%dim/), name="DivergenceMatrix")
-         call allocate(ct_rhs, compressible_continuity%mesh, name="CTRHS")
+         call allocate(ct_rhs, compressible_continuity_residual%mesh, name="CTRHS")
 
          ! Reassemble C^T matrix here
          if(i==1) then ! Construct the mass matrix (just do this once)
@@ -522,7 +518,7 @@ contains
          if(have_option("/material_phase::"//trim(state(i)%name)//"/equation_of_state/compressible")) then
             ! Get the time derivative term for the compressible phase's density, vfrac_c * d(rho_c)/dt
 
-            call allocate(drhodt, compressible_continuity%mesh, name="drhodt")
+            call allocate(drhodt, compressible_continuity_residual%mesh, name="drhodt")
                   
             density => extract_scalar_field(state(i), "Density", stat)
             olddensity => extract_scalar_field(state(i), "OldDensity", stat)
@@ -532,24 +528,24 @@ contains
             ! as it should be according to the manual.
             call zero(drhodt)
             
-            dg = continuity(compressible_continuity) < 0
+            dg = continuity(compressible_continuity_residual) < 0
             
-            element_loop: do ele = 1, element_count(compressible_continuity)
+            element_loop: do ele = 1, element_count(compressible_continuity_residual)
 
-               if(.not.dg .or. (dg .and. element_owned(compressible_continuity,ele))) then
+               if(.not.dg .or. (dg .and. element_owned(compressible_continuity_residual,ele))) then
                
-                  allocate(detwei(ele_ngi(compressible_continuity, ele)))
-                  allocate(drhodt_addto(ele_loc(compressible_continuity, ele)))
+                  allocate(detwei(ele_ngi(compressible_continuity_residual, ele)))
+                  allocate(drhodt_addto(ele_loc(compressible_continuity_residual, ele)))
                
-                  compressible_continuity_nodes => ele_nodes(compressible_continuity, ele)
-                  compressible_continuity_shape => ele_shape(compressible_continuity, ele)
-                  test_function = compressible_continuity_shape
+                  compressible_continuity_residual_nodes => ele_nodes(compressible_continuity_residual, ele)
+                  compressible_continuity_residual_shape => ele_shape(compressible_continuity_residual, ele)
+                  test_function = compressible_continuity_residual_shape
                   
                   call transform_to_physical(x, ele, detwei=detwei)
                   
                   drhodt_addto = shape_rhs(test_function, detwei*(ele_val_at_quad(vfrac,ele)*(ele_val_at_quad(density,ele) - ele_val_at_quad(olddensity,ele))/dt))
                   
-                  call addto(drhodt, compressible_continuity_nodes, drhodt_addto)
+                  call addto(drhodt, compressible_continuity_residual_nodes, drhodt_addto)
                   
                   deallocate(detwei)
                   deallocate(drhodt_addto)
@@ -578,10 +574,10 @@ contains
 
       end do
 
-      ! Solve for compressible_continuity      
-      call zero(compressible_continuity)
-      call petsc_solve(compressible_continuity, mass, ctfield)
-      ewrite_minmax(compressible_continuity)
+      ! Solve for compressible_continuity_residual      
+      call zero(compressible_continuity_residual)
+      call petsc_solve(compressible_continuity_residual, mass, ctfield)
+      ewrite_minmax(compressible_continuity_residual)
          
       ! Deallocate memory
       call deallocate(ctfield)
@@ -589,9 +585,9 @@ contains
       call deallocate(mass_sparsity)
       call deallocate(mass)
 
-      ewrite(1,*) 'Exiting calculate_compressible_continuity'
+      ewrite(1,*) 'Exiting calculate_compressible_continuity_residual'
          
-  end subroutine calculate_compressible_continuity
+  end subroutine calculate_compressible_continuity_residual
   
   
 end module diagnostic_fields_matrices

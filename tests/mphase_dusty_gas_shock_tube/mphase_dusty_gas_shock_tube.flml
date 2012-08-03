@@ -306,7 +306,7 @@ u_ref = sqrt(p/rho_g)</comment>
         </detectors>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="CompressibleContinuity" rank="0">
+    <scalar_field name="CompressibleContinuityResidual" rank="0">
       <diagnostic>
         <mesh name="PressureMesh"/>
         <algorithm name="Internal" material_phase_support="multiple"/>

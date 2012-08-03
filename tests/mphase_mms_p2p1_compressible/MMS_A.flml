@@ -545,7 +545,7 @@ for i in range(field.node_count):
         </detectors>
       </prescribed>
     </scalar_field>
-    <scalar_field name="CompressibleContinuity" rank="0">
+    <scalar_field name="CompressibleContinuityResidual" rank="0">
       <diagnostic>
         <mesh name="PressureMesh"/>
         <algorithm name="Internal" material_phase_support="multiple"/>
@@ -574,7 +574,7 @@ for i in range(field.node_count):
         </solver>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="CompressibleContinuityAnalytical" rank="0">
+    <scalar_field name="CompressibleContinuityResidualAnalytical" rank="0">
       <prescribed>
         <mesh name="PressureMesh"/>
         <value name="WholeMesh">

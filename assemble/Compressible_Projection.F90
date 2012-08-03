@@ -458,9 +458,6 @@ module compressible_projection
     ! Volume fraction fields
     type(scalar_field), pointer :: vfrac
     type(scalar_field) :: nvfrac
-    type(element_type), pointer :: nvfrac_shape
-    ! Transformed gradient function for the non-linear PhaseVolumeFraction. 
-    real, dimension(:, :, :), allocatable :: dnvfrac_t
 
     ! =============================================================
     ! Subroutine to construct the matrix CT_m (a.k.a. C1/2/3T).
@@ -499,8 +496,6 @@ module compressible_projection
          call zero(nvfrac)
          call get_nonlinear_volume_fraction(state, nvfrac)
          ewrite_minmax(nvfrac)
-      else
-         nullify(vfrac)
       end if
       
       pressure => extract_scalar_field(state, "Pressure")
@@ -647,8 +642,6 @@ module compressible_projection
     integer :: istate
     
     if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
-       multiphase = .true.
-
        do istate=1,size(state)
           density=>extract_scalar_field(state(istate),'Density')
           
@@ -657,8 +650,6 @@ module compressible_projection
           end if
        end do
     else
-       multiphase = .false.
-
        if((size(state)==1).and.(.not.has_scalar_field(state(1), "MaterialVolumeFraction"))) then
        
           density=>extract_scalar_field(state(1),'Density')

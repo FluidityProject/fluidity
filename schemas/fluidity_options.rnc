@@ -4684,14 +4684,14 @@ scalar_field_choice =
             )
          }|
          
-         ## CompressibleContinuity
+         ## CompressibleContinuityResidual
          ##
-         ## Diagnostic field for the continuity equation used in compressible multiphase flow simulations
+         ## Computes the residual of the continuity equation used in compressible multiphase flow simulations
          ## i.e. vfrac_c*d(rho_c)/dt + div(rho_c*vfrac_c*u_c) + \sum_i{ rho_c*div(vfrac_i*u_i) }
          ## where _c and _i denote the compressible and incompressible phases respectively.
          element scalar_field {
             attribute rank { "0" },
-            attribute name { "CompressibleContinuity" },
+            attribute name { "CompressibleContinuityResidual" },
             (
                element diagnostic {
                   velocity_mesh_choice,
