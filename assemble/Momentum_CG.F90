@@ -111,6 +111,7 @@
     logical :: have_implicit_buoyancy
     logical :: have_vertical_velocity_relaxation
     logical :: have_viscosity
+    logical :: have_eddyviscosity
     logical :: have_surfacetension
     logical :: have_coriolis
     logical :: have_geostrophic_pressure
@@ -210,7 +211,7 @@
       type(scalar_field), pointer :: gp
       type(vector_field), pointer :: gravity
       type(vector_field), pointer :: oldu, nu, ug, source, absorption
-      type(tensor_field), pointer :: viscosity
+      type(tensor_field), pointer :: viscosity, eddyviscosity
       type(tensor_field), pointer :: surfacetension
       type(vector_field), pointer :: x_old, x_new
 
@@ -360,6 +361,14 @@
         ewrite_minmax(viscosity)
       end if
       
+      eddyviscosity=>extract_tensor_field(state, "EddyViscosity", stat)
+      have_eddyviscosity = stat == 0
+      if(.not. have_eddyviscosity) then
+         eddyviscosity=>dummytensor
+      else
+        ewrite_minmax(eddyviscosity)
+      end if
+
       surfacetension=>extract_tensor_field(state, "VelocitySurfaceTension", stat)
       have_surfacetension = stat == 0
       if(.not. have_surfacetension) then
@@ -2115,8 +2124,8 @@
                 ! First filter width G1=alpha^2*mesh size (units length^2)
                 f1_mod = alpha**2*length_scale(x, ele)
                 f1_gi = 0.0
-                ! Second filter width G2=(alpha^2+gamma^2)*mesh size
-                f2_mod = (alpha**2+gamma**2)/alpha**2*f1_mod
+                ! Combined width G2=(1+gamma^2)*G1
+                f2_mod = (1.0+gamma**2)*f1_mod
                 f2_gi = 0.0
 
                 do gi=1, ele_ngi(nu, ele)
@@ -2137,19 +2146,13 @@
                 ! First filter width G1=alpha^2*mesh size (units length^2)
                 f1_gi = alpha**2*length_scale_tensor(du_t, ele_shape(nu, ele))
                 f1_mod = alpha**2*length_scale(x, ele)
-
-                ! Second filter width G2=(alpha^2+gamma^2)*mesh size
-                f2_gi = gamma**2*f1_gi
-                f2_mod = gamma**2*f1_mod
-
+                ! Combined width G2=(1+gamma^2)*G1
+                f2_gi = (1.0+gamma**2)*f1_gi
+                f2_mod = (1.0+gamma**2)*f1_mod
                 do gi=1, ele_ngi(nu, ele)
                   ! Normalise tensor filter width so that volume equals that of scalar filter width definition
-                  f1_gi(:,:,gi) = f1_gi(:,:,gi)*f1_mod(gi)/norm2(f1_gi(:,:,gi))
-                  f2_gi(:,:,gi) = f2_gi(:,:,gi)*f2_mod(gi)/norm2(f2_gi(:,:,gi))
-
-                  ! Temporary check that volumes agree:
-                  f1_mod(gi)=norm2(f1_gi(:,:,gi))
-                  f2_mod(gi)=norm2(f2_gi(:,:,gi))
+                  !f1_gi(:,:,gi) = f1_gi(:,:,gi)*f1_mod(gi)/norm2(f1_gi(:,:,gi))
+                  !f2_gi(:,:,gi) = f2_gi(:,:,gi)*f2_mod(gi)/norm2(f2_gi(:,:,gi))
 
                   ! Tensor M_ij = (|S2|*S2).G2 - ((|S1|S1)^f2).G1
                   tensor_gi(:,:,gi) = strain2_mod(gi)*strain2_gi(:,:,gi)*f2_gi(:,:,gi) - strain_prod_gi(:,:,gi)*f1_gi(:,:,gi)
@@ -2159,7 +2162,7 @@
 
                   ! Clip at zero and (optional) maxval.
                   les_coef_gi(gi) = min(max(les_coef_gi(gi),0.0), smagorinsky_coefficient)
-
+!ONLY WORKS IF USING STRESS FORM?
                   ! Anisotropic tensor dynamic eddy viscosity m_ij = -2C|S1|.alpha^2.G1
                   les_tensor_gi(:,:,gi) = 2*alpha**2*les_coef_gi(gi)*strain1_mod(gi)*f1_gi(:,:,gi)
                 end do
@@ -2218,7 +2221,7 @@
           end do
         end if
       end if
-      
+
       big_m_tensor_addto = big_m_tensor_addto + dt*theta*viscosity_mat
       
       do dim = 1, u%dim
@@ -2235,6 +2238,9 @@
         end if
       end do
       
+      ewrite(2,*) 'viscosity_mat'
+      ewrite(2,*) viscosity_mat(:,:,1,1)
+
     end subroutine add_viscosity_element_cg
     
     subroutine get_viscous_terms_element_cg(ele, u, nu, x, viscosity, &
