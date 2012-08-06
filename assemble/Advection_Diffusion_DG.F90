@@ -924,7 +924,8 @@ contains
     allocate( bc_type(1:surface_element_count(T)) )
     call get_entire_boundary_condition(T, &
        & (/"weakdirichlet", &
-           "neumann      "/), &
+       &   "dirichlet    ", &
+       &   "neumann      "/), &
        & bc_value, bc_type)
 
     call zero(big_m)
@@ -1695,7 +1696,7 @@ contains
        if(primal) then
           call construct_adv_diff_interface_dg(ele, face, face_2, ni,&
                & centre_vec,& 
-               & big_m, rhs, Grad_T_mat, Div_T_mat, X, T, U_nl,&
+               & big_m, rhs, rhs_diff, Grad_T_mat, Div_T_mat, X, T, U_nl,&
                & bc_value, bc_type, &
                & U_mesh, q_mesh, cdg_switch_in, &
                & primal_fluxes_mat, ele2grad_mat,diffusivity, &
@@ -1714,7 +1715,7 @@ contains
        else
           call construct_adv_diff_interface_dg(ele, face, face_2, ni,&
                & centre_vec,&
-               & big_m, rhs, Grad_T_mat, Div_T_mat, X, T, U_nl,&
+               & big_m, rhs, rhs_diff, Grad_T_mat, Div_T_mat, X, T, U_nl,&
                & bc_value, bc_type, &
                & U_mesh, q_mesh)
        end if
@@ -2279,7 +2280,7 @@ contains
   end subroutine construct_adv_diff_element_dg
   
   subroutine construct_adv_diff_interface_dg(ele, face, face_2, &
-       ni, centre_vec,big_m, rhs, Grad_T_mat, Div_T_mat, &
+       ni, centre_vec,big_m, rhs, rhs_diff, Grad_T_mat, Div_T_mat, &
        & X, T, U_nl,&
        & bc_value, bc_type, &
        & U_mesh, q_mesh, CDG_switch_in, &
@@ -2292,7 +2293,7 @@ contains
 
     integer, intent(in) :: ele, face, face_2, ni
     type(csr_matrix), intent(inout) :: big_m
-    type(scalar_field), intent(inout) :: rhs
+    type(scalar_field), intent(inout) :: rhs, rhs_diff
     real, dimension(:,:,:), intent(inout) :: Grad_T_mat, Div_T_mat
     ! We pass these additional fields to save on state lookups.
     type(vector_field), intent(in) :: X, U_nl
@@ -2609,7 +2610,7 @@ contains
 
    ! Add non-zero contributions from Neumann boundary conditions (if present)
    if (neumann) then
-      call addto(RHS, T_face, shape_rhs(T_shape, detwei * ele_val_at_quad(bc_value, face)))
+      call addto(RHS_diff, T_face, shape_rhs(T_shape, detwei * ele_val_at_quad(bc_value, face)))
    end if
 
   contains
