@@ -649,6 +649,9 @@ contains
           ! yes, we're subcycling
           ! we should have already calculated the courant number (or aborted in the attempt)
           no_subcycles=ceiling(max_cfl/max_sub_cfl)
+          if(include_diffusion.or.include_source.or.include_absorption) then
+            no_subcycles = max(no_subcycles, 1)
+          end if
           if(no_subcycles>1) then
             sub_dt=dt/real(no_subcycles)
             call scale(cfl_no, 1.0/real(no_subcycles))
@@ -1692,6 +1695,7 @@ contains
                                          + ptheta*(-udotn)*detwei(ggi)*tdensity_face_val*tfield_pivot_val &
                                          - (-udotn)*detwei(ggi)*tfield_theta_val*tdensity_face_val &
                                          + (1.-ftheta)*(1.-beta)*detwei(ggi)*(-divudotn)*tdensity_face_val*oldtfield_ele(oloc)
+
                       end if
 
                     else

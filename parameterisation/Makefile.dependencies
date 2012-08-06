@@ -18,7 +18,8 @@ Gls_vertical_turbulence_model.o ../include/gls.mod: \
    ../include/fields.mod ../include/fldebug.mod \
    ../include/global_parameters.mod ../include/quadrature.mod \
    ../include/sparse_matrices_fields.mod ../include/spud.mod \
-   ../include/state_fields_module.mod ../include/state_module.mod
+   ../include/state_fields_module.mod ../include/state_module.mod \
+   ../include/vertical_extrapolation_module.mod
 
 ../include/iceshelf_meltrate_surf_normal.mod: iceshelf_meltrate_surf_normal.o
 	@true

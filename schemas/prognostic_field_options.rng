@@ -113,7 +113,8 @@ a boundary when solving the advection-diffusion equation.</a:documentation>
  T the scalar field value on the surface,
  C0 is the input order zero coefficient and
  C1 is the input order one coefficient.
- THIS WILL ONLY WORK FOR CONTINUOUS GALERKIN SPATIAL DISCRETISATION</a:documentation>
+ THIS WILL ONLY WORK FOR CONTINUOUS GALERKIN OR CONTROL VOLUME 
+ (USING AN ELEMENTGRADIENT DIFFUSION SCHEME) SPATIAL DISCRETISATIONS.</a:documentation>
       <attribute name="name">
         <value>robin</value>
       </attribute>

@@ -83,6 +83,18 @@ components. The dissipation is modelled using a rate of dissipation term:
 \end{equation}
 where $c_\mu^0$ is a model constant used to make $\Psi$ identifiable with any of the transitional
 models, e.g. $kl$, $\epsilon$, and $\omega$, by adopting the values shown in Table \ref{tab:glsparams} \citep{umlauf2003}.
+
+There is also the option to add an extra term to account for various
+oceanic parameters, such an internal waves breaking. This is based on the NEMO
+ocean model and takes a user-defined percentage of the surface $k$ and adds it down-depth
+using an exponential profile:
+\begin{equation}
+    k_z = {k_z}_o + p*k_{\mathrm{sur}} * \exp{\left( -z / l_k \right)}
+\end{equation}
+where $k_z$ is the new turbulent kinetic energy value at depth, $z$, ${k_z}_o$ is the original TKE, $k_{\mathrm{sur}}$
+is the surface TKE, $p$ is a constant, and $l_k$ is a lengthscale. The options for this can be found in
+\option{\ldots/subgridscale\_parameterisations/gls/ocean\_parameterisation}.
+
 The second equation is:
 \begin{equation}
 \frac{\partial \Psi}{\partial t} + \bmu_i\frac{\partial \Psi}{\partial x_i} =
