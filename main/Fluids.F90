@@ -103,6 +103,7 @@ module fluids_module
   use multiphase_module
   use detector_parallel, only: sync_detector_coordinates, deallocate_detector_list_array
   use momentum_diagnostic_fields, only: calculate_densities
+  use ufl_module
 
   implicit none
 
@@ -173,7 +174,8 @@ contains
     !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
     !     backward compatibility with new option structure - crgw 21/12/07
-    logical::use_advdif=.true.  ! decide whether we enter advdif or not
+    logical::use_advdif=.false.  ! decide whether we enter advdif or not
+    logical::use_ufl=.false.     ! decide whether we solve a UFL equation or not
 
     INTEGER :: adapt_count
 
@@ -659,8 +661,13 @@ contains
              select case(trim(option_buffer))
              case ( "AdvectionDiffusion", "ConservationOfMass", "ReducedConservationOfMass", "InternalEnergy", "HeatTransfer", "KEpsilon" )
                 use_advdif=.true.
+                use_ufl=.false.
+             case ( "UFL" )
+                use_advdif=.false.
+                use_ufl=.true.
              case default
                 use_advdif=.false.
+                use_ufl=.false.
              end select
 
              IF(use_advdif)THEN
@@ -709,6 +716,12 @@ contains
 
                 ! ENDOF IF((TELEDI(IT).EQ.1).AND.D3) THEN ELSE...
              ENDIF
+
+             if(use_ufl)then
+               ewrite(1, *) "Solving UFL equation for field " // trim(field_name_list(it)) // " in state " // trim(state(field_state_list(it))%name)
+               sfield => extract_scalar_field(state(field_state_list(it)), field_name_list(it))
+               call calculate_scalar_ufl_equation(state, field_state_list(it), sfield, current_time, dt)
+             endif
 
              ewrite(1, *) "Finished field " // trim(field_name_list(it)) // " in state " // trim(state(field_state_list(it))%name)
           end do field_loop
@@ -1171,4 +1184,4 @@ contains
 
   end subroutine check_old_code_path
 
-  end module fluids_module
+end module fluids_module

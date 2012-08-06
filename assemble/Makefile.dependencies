@@ -809,6 +809,14 @@ Turbine.o ../include/turbine.mod: Turbine.F90 ../include/fdebug.h \
    ../include/fields.mod ../include/futils.mod \
    ../include/global_parameters.mod ../include/spud.mod
 
+../include/ufl_module.mod: UFL.o
+	@true
+
+UFL.o ../include/ufl_module.mod: UFL.F90 ../include/fdebug.h \
+   ../include/fields_data_types.mod ../include/fldebug.mod \
+   ../include/global_parameters.mod ../include/python_state.mod \
+   ../include/python_utils.mod ../include/spud.mod ../include/state_module.mod
+
 ../include/upwind_stabilisation.mod: Upwind_Stabilisation.o
 	@true
 
