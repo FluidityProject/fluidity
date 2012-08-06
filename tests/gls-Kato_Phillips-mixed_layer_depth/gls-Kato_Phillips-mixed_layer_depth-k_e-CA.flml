@@ -137,8 +137,7 @@
       <real_value rank="0">1</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">18000</real_value>
-      <comment>36000</comment>
+      <real_value rank="0">36000</real_value>
     </finish_time>
     <nonlinear_iterations>
       <integer_value rank="0">2</integer_value>
