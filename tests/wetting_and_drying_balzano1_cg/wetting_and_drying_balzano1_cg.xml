@@ -6,6 +6,11 @@
     <command_line>fluidity balzano1_2plus1.flml; ./plotfs_detec.py --file=balzano1_2plus1.detectors -w --save=fluidity; ./plotfs_detec.py --file=balzano1_2plus1.detectors --save=fluidity</command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="velocity" language="python">from fluidity_tools import stat_parser
 s = stat_parser("balzano1_2plus1.detectors")
 velocity=s["water"]["Velocity"]</variable>
@@ -17,7 +22,10 @@ s = stat_parser("balzano1_2plus1.detectors")
 ElapsedTime=s["ElapsedTime"]["value"]</variable>
   </variables>
   <pass_tests>
-    <test name="endtime" language="python">assert(ElapsedTime[-1]==99600.0)</test>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
+    <test name="endtime" language="python">assert(ElapsedTime[-1]>=99600.0)</test>
     <test name="wetting_drying_alpha" language="python">print "Checking if left third of domain is dry at last timestep...",
 for det in range(1,332):
   det_str="det_%(#)04d" %{"#": det}

@@ -7,10 +7,10 @@ default: input
 
 input:
 	tar -xvjf src/meshes.tar.bz2
-	fldecomp -n 2 square-8
-	fldecomp -n 2 square-16
-	fldecomp -n 2 square-32
-	fldecomp -n 2 square-64
+	../../bin/fldecomp -n 2 square-8
+	../../bin/fldecomp -n 2 square-16
+	../../bin/fldecomp -n 2 square-32
+	../../bin/fldecomp -n 2 square-64
 	cp $(FLMLMODEL1).flml $(FLMLMODEL2).flml 
 	sed -i "s/"$(FLMLMODEL1)"/"$(FLMLMODEL2)"/g" $(FLMLMODEL2).flml 
 	sed -i "s/square-8/square-16/g" $(FLMLMODEL2).flml 

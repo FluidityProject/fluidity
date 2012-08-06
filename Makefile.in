@@ -28,16 +28,6 @@ SHELL = @SHELL@
 
 PACKAGE_NAME = @PACKAGE_NAME@
 
-# Ignore package version from autoconf. Instead, for packages
-# FLUIDITY_VERSION is passed into ./configure and used here. If it is not
-# set we obtain version information from bzr. Again, this is not done in
-# configure to ensure the info is up-to-date after a "bzr up" without reconfiguring
-ifeq ("@FLUIDITY_VERSION@","")
-PACKAGE_VERSION = `bzr version-info --custom --template='{branch_nick}.{revno}'`
-else
-PACKAGE_VERSION = "@FLUIDITY_VERSION@"
-endif
-
 FLUIDITY = $(PACKAGE_NAME)
 
 PROGRAM	 = ./bin/$(FLUIDITY)
@@ -74,9 +64,9 @@ LINKER  = @LINKER@ @LDFLAGS@
 
 FLLINKER = @FLLINKER@ @LDFLAGS@ $(FCFLAGS)
 
-LIBS    = -L./lib -l$(FLUIDITY) @BLAS_LIBS@ @LIB_FEMDEM@ ./lib/libadaptivity.a \
+LIBS    = -L./lib -l$(FLUIDITY) @LIB_FEMDEM@ ./lib/libadaptivity.a \
            ./lib/libvtkfortran.a ./lib/libspatialindex.a ./lib/libspud.a ./lib/libjudy.a \
-           @LIBS@
+           @LIBS@ @BLAS_LIBS@
 
 OBJS = $(shell find . -mindepth 2 -maxdepth 2 -name '*.c' -o -name '*.cpp' -o -name '*.[fF]' -o -name '*.F90' | grep -v ^./lib | xargs)
 MAKE = @MAKE@ -s
@@ -177,19 +167,17 @@ ifeq (@FEMDEM@,yes)
 	@cd @FLFEMDEM_PATH@;$(MAKE)
 endif
 
-include/libspud.h: lib/libspud.a
+include/spud.h: lib/libspud.a
 
-main.o: include/version.h include/libspud.h
+main.o: include/version.h include/spud.h
 
-include/version.h:
-	@echo "DEFINE __FLUIDITY_VERSION__"
-	@grep "$(PACKAGE_VERSION)" include/version.h >/dev/null 2>&1 || \
-	printf "#ifndef _FLUIDITY_VERSION_H\n\
-	#define _FLUIDITY_VERSION_H\n\
-	#define __FLUIDITY_VERSION__ \"$(PACKAGE_VERSION)\"\n\
-	#endif /* _FLUIDITY_VERSION_H */\n" > include/version.h
+include/version.h: version-info
+	@bin/version-info $@
 
-.PHONY: include/version.h
+version-info:
+	@$(MAKE) -C tools install-version-info
+
+.PHONY: version-info
 
 bin/$(FLUIDITY): main.o lib/lib$(FLUIDITY).a
 	@echo "BUILD fluidity"
@@ -513,8 +501,14 @@ test: fltools bin/$(FLUIDITY) bin/shallow_water serialtest bin/burgers_equation
 serialtest: fltools bin/$(FLUIDITY) bin/shallow_water
 	@cd tests; ../bin/testharness -l short -p serial $(EXCLUDE_TAGS) -n $(THREADS)
 
-mediumtest: fltools bin/$(FLUIDITY) manual bin/burgers_equation bin/shallow_water
+mediumtest: fltools bin/$(FLUIDITY) manual bin/burgers_equation bin/shallow_water spudtools
 	@cd tests; ../bin/testharness -l medium $(EXCLUDE_TAGS) -n $(THREADS)
+
+.PHONY: spudtools
+
+spudtools:
+	@cd libspud ; $(MAKE) install-spudtools
+	@echo "    INSTALL spudtools"
 
 setuputs: 
 	@echo "SETUP tests"
@@ -523,7 +517,6 @@ setuputs:
 	@echo "    MKDIR bin/tests"
 	@mkdir -p bin/tests
 	@ln -sf ../../tests/data bin/tests/data
-
 
 build_unittest: fluidity_library libfemtools setuputs
 	@echo "    UNITTEST libspud"
@@ -548,7 +541,11 @@ unittest: build_unittest
 	@echo "RUN bin/tests"
 	@bin/unittestharness bin/tests
 
-schema:
+bin/spud-preprocess:
+	@echo "Installing spudtools"
+	@$(MAKE) -C libspud install-spudtools
+
+schema: bin/spud-preprocess
 	@echo "Rebuilding schema fluidity_options.rng"
 	@./bin/spud-preprocess schemas/fluidity_options.rnc
 
@@ -610,24 +607,29 @@ endif
 
 install: default fltools bin/shallow_water bin/burgers_equation
 	@mkdir -p $(DESTDIR)$(bindir) $(DESTDIR)$(docdir)/fluidity
-	cp bin/* $(DESTDIR)$(bindir)
+	find bin/ -maxdepth 1 -type f -exec cp '{}' $(DESTDIR)$(bindir) \;
 	rm -f $(DESTDIR)$(bindir)/spud-* $(DESTDIR)$(bindir)/diamond $(DESTDIR)$(bindir)/silenteval $(DESTDIR)$(bindir)/runut
 	[ -f manual/fluidity_manual.pdf ] && cp manual/fluidity_manual.pdf $(DESTDIR)$(docdir)/fluidity || true
 	mkdir -p $(DESTDIR)$(datadir)/fluidity
 	cp -r schemas/ $(DESTDIR)$(datadir)/fluidity/
 	mkdir -p $(DESTDIR)$(datadir)/diamond/schemata
 	cp schemas/flml $(DESTDIR)$(datadir)/diamond/schemata
-	cd python ; python setup.py install --root="${DESTDIR}" --prefix="$(prefix)" $$FLUIDITY_PYTHON_INSTALL_ARGS
+	cd python ; python setup.py install --root=$(shell echo ${DESTDIR} | sed 's/^$$/\//') --prefix="$(prefix)" $$FLUIDITY_PYTHON_INSTALL_ARGS
 	cp -r examples/ $(DESTDIR)$(docdir)/fluidity
 	find $(DESTDIR)$(docdir)/fluidity/examples -type f -exec sed -i "s/\.\.\/\.\.\/\.\.\/bin\///" '{}' \;
 	find $(DESTDIR)$(docdir)/fluidity/examples -type f -exec sed -i "s/\.\.\/\.\.\/bin\///" '{}' \;
-	tar -czvf $(DESTDIR)$(docdir)/fluidity/examples.tar.gz $(DESTDIR)$(docdir)/fluidity/examples/
+	cd $(DESTDIR)$(docdir)/fluidity ; tar -czvf $(DESTDIR)$(docdir)/fluidity/examples.tar.gz examples/
 	rm -rf $(DESTDIR)$(docdir)/fluidity/examples/
 
 install-diamond: 
-	cd libspud/diamond;     python setup.py install --prefix=$(DESTDIR)@prefix@; cd ../..
+	cd libspud; ./configure --prefix=$(DESTDIR)@prefix@; cd ../..
+	cd libspud; $(MAKE) clean; cd ../..
+	cd libspud; $(MAKE) install-diamond; cd ../..
+	cd libspud; $(MAKE) install-dxdiff; cd ../..
+	cd libspud; $(MAKE) install-spudtools; cd ../..
+	cd libspud; ./configure --prefix=$(PWD); cd ../..
 
 install-user-schemata:
-	mkdir -p $(HOME)/.schemata/
-	echo "Fluidity Markup Language" > $(HOME)/.schemata/flml
-	echo "$(PWD)/schemas/fluidity_options.rng" >> $(HOME)/.schemata/flml
+	mkdir -p $(HOME)/.diamond/schemata/
+	echo "Fluidity Markup Language" > $(HOME)/.diamond/schemata/flml
+	echo "$(PWD)/schemas/fluidity_options.rng" >> $(HOME)/.diamond/schemata/flml

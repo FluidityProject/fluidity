@@ -181,7 +181,7 @@
           <type name="dirichlet">
             <apply_weakly/>
             <python>
-              <string_value lines="20" type="python">def val(X,t):
+              <string_value lines="20" type="code" language="python">def val(X,t):
   from math import sin, pi
   T=1.0e4
   g=10.0
@@ -323,7 +323,7 @@
         <mesh name="PressureMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
   from numpy import sqrt, exp, cos, pi, real
   a=1.0 # amplitude
   T=1e4 # period

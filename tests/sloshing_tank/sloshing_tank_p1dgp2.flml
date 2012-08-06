@@ -223,7 +223,7 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">from scipy.special import erf
+            <string_value lines="20" type="code" language="python">from scipy.special import erf
 def val(X, t):
     import settings
     import ana_sol
@@ -348,7 +348,7 @@ def val(X, t):
             <value name="WholeMesh">
               <isotropic>
                 <python>
-                  <string_value lines="20" type="python">def val(X, t):
+                  <string_value lines="20" type="code" language="python">def val(X, t):
     import settings
     return settings.eta</string_value>
                 </python>
@@ -401,7 +401,7 @@ def val(X, t):
         <mesh name="PressureMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">from scipy.special import erf
+            <string_value lines="20" type="code" language="python">from scipy.special import erf
 def val(X, t):
     import settings
     import ana_sol

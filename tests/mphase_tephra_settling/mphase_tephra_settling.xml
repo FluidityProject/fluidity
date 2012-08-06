@@ -73,8 +73,8 @@ assert abs(apparent_density_max[-1] - 0.275) &lt; 0.025
 assert abs(particle_reynolds_number_max[-1] - 0.08) &lt; 0.5
     </test>
     
-    <test name="SumVelocityDivergence is less than 1e-8 at the final timestep" language="python">
-assert abs(divergence[-1]) &lt; 1e-8
+    <test name="SumVelocityDivergence is less than 1e-7 at the final timestep" language="python">
+assert abs(divergence[-1]) &lt; 1e-7
     </test>
   </pass_tests>
   

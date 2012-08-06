@@ -6,7 +6,7 @@
   </define>
   <define name="input_choice_real_plus_boundary_forcing">
     <choice>
-      <ref name="input_choice_real_contents"/>
+      <ref name="input_choice_real_plus_field"/>
       <element name="from_file">
         <oneOrMore>
           <element name="tidal">
@@ -131,6 +131,25 @@ wish below.</a:documentation>
       </element>
     </choice>
   </define>
+  <define name="input_choice_real_plus_field">
+    <choice>
+      <ref name="input_choice_real_contents"/>
+      <element name="from_field">
+        <a:documentation>The parent field contains the boundary values that you want to apply as a boundary condition to this field.
+
+Note 1: Only works with a parent field in the same material_phase.
+
+Note 2: If the parent field is time-dependent, then the boundary values being used will be 1 timestep out since the parent field is only re-computed after BCs are set at the beginning of each timestep.
+
+Note 3: The parent field must be remappable to this field (e.g. remapping from a discontinuous to a continuous field, or from a higher order to a lower order field, is not allowed).
+
+Note 4: The j-th component of a vector field BC can be set from either a scalar parent field or a vector parent field. In the latter case, the BC data will be obtained from j-th component of the parent field. A scalar field BC can only be set from a scalar parent field.</a:documentation>
+        <attribute name="parent_field_name">
+          <data type="string"/>
+        </attribute>
+      </element>
+    </choice>
+  </define>
   <define name="input_choice_real_contents">
     <choice>
       <element name="constant">
@@ -229,19 +248,19 @@ be set to use this option.</a:documentation>
       </element>
       <element name="from_netcdf">
         <a:documentation>Initialize a single field from data contained within a NetCDF file.
-Data should be in the form x,y,z(y,x) where where x and y are the coordinates
-(either cartesian or longitude-latitude) and z is the value of the intial
+Data should be in the form x, y, z(y,x) where x and y are the coordinates
+(either cartesian or longitude-latitude) and z is the value of the initial
 condition to be imposed (or in the GEBCO, COARDS or CF-1.0 formats). 
-Note: This option currently only supports 'single layer' data sets.</a:documentation>
+Note: This option currently only supports 'single layer' data sets.
+
+Current format options are: raw
+Simulations using the format 'other' should be updated to use 'raw'.</a:documentation>
         <attribute name="file_name">
           <data type="string"/>
         </attribute>
         <element name="format">
           <element name="string_value">
-            <choice>
-              <value>Free-surface height</value>
-              <value>other</value>
-            </choice>
+            <value>raw</value>
           </element>
         </element>
       </element>
@@ -309,19 +328,19 @@ be set to use this option.</a:documentation>
       </element>
       <element name="from_netcdf">
         <a:documentation>Initialize a single field from data contained within a NetCDF file.
-Data should be in the form x,y,z where where x and y are the coordinates
-(either cartesian or longitude-latitude) and z is the value of the intial
-condition to be imposed. 
-Note: This option currently only supports 'single layer' data sets.</a:documentation>
+Data should be in the form x, y, z(y,x) where x and y are the coordinates
+(either cartesian or longitude-latitude) and z is the value of the initial
+condition to be imposed (or in the GEBCO, COARDS or CF-1.0 formats). 
+Note: This option currently only supports 'single layer' data sets.
+
+Current format options are: raw
+Simulations using the format 'other' should be updated to use 'raw'.</a:documentation>
         <attribute name="file_name">
           <data type="string"/>
         </attribute>
         <element name="format">
           <element name="string_value">
-            <choice>
-              <value>Free-surface height</value>
-              <value>other</value>
-            </choice>
+            <value>raw</value>
           </element>
         </element>
       </element>
@@ -584,7 +603,7 @@ Currently only works with triangle files created by gmsh2triangle.</a:documentat
   </define>
   <define name="input_choice_real_bc_component">
     <choice>
-      <ref name="input_choice_real"/>
+      <ref name="input_choice_real_plus_field"/>
       <element name="synthetic_eddy_method">
         <element name="number_of_eddies">
           <a:documentation>use a large number to ensure Gaussian 

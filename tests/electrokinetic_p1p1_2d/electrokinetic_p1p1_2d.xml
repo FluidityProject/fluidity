@@ -9,6 +9,11 @@
     <!-- Trivial 2D test case of uniform flow through a square. -->
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="pressure" language="python">
 import vtktools
 v = vtktools.vtu("electrokinetic_1.vtu")
@@ -21,9 +26,11 @@ elec = e.GetScalarRange("ElectricalPotential")
     </variable>
   </variables>
     <pass_tests>
-    <test name="pressure range check" language="python">
-assert abs(pressure[0]) &lt; 1e-5
-assert abs(pressure[1] - 1.0e9) &lt; 1.0
+      <test name="Solvers converged" language="python">
+        assert(solvers_converged)
+      </test>
+    <test name="pressure range check with tolerance 1.1e-06" language="python">
+assert abs(pressure[1] - 1.0e9) &lt; 1.1e-06
     </test>
     <test name="electrical range check" language="python">
 assert abs(elec[0] + 10.0) &lt; 0.1

@@ -7,4 +7,5 @@ input:	clean
 	#../../bin/gmsh2triangle --2d src/MMS_F.msh
 
 clean:
-	rm -f *.vtu *.stat *.log *.node *.ele *.edge *checkpoint* *.convergence
+	rm -f *.vtu *.stat *.log *.node *.ele *.edge *checkpoint* *.convergence \
+	matrixdump matrixdump.info

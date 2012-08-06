@@ -189,7 +189,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X, t):
+            <string_value lines="20" type="code" language="python">def val(X, t):
    from math import cos
    g=1.00
    return  ((g*0.01*cos(3.1415926536*X[0])))</string_value>

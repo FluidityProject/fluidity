@@ -319,9 +319,6 @@ if test "x$acx_blas_ok" != xyes; then
 	acx_lapack_ok=noblas
 fi
 
-# add BLAS to libs
-LIBS="$BLAS_LIBS $LIBS"
-
 # Are we linking from C?
 case "$ac_ext" in
   f*|F*) dsyev="dsyev" ;;
@@ -418,7 +415,7 @@ fi
 
 
 PETSC_LINK_LIBS=`make -s -f petsc_makefile getlinklibs`
-LIBS="$LIBS $PETSC_LINK_LIBS"
+LIBS="$PETSC_LINK_LIBS $LIBS"
 
 PETSC_INCLUDE_FLAGS=`make -s -f petsc_makefile getincludedirs`
 CPPFLAGS="$CPPFLAGS $PETSC_INCLUDE_FLAGS"
@@ -621,7 +618,7 @@ tmpLIBS=$LIBS
 tmpCPPFLAGS=$CPPFLAGS
 AC_LANG_SAVE
 AC_LANG_C
-LIBS="$tmpLIBS -L$ParMetis_LIBS_PATH -lparmetis -lmetis -lm"
+LIBS="$tmpLIBS -L$ParMetis_LIBS_PATH -lparmetis -lmetis -lm $ZOLTAN_DEPS"
 AC_CHECK_LIB(
 	[parmetis],
 	[ParMETIS_V3_AdaptiveRepart],

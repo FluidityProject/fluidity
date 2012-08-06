@@ -71,7 +71,7 @@ contains
       type(state_type), intent(inout) :: state
 
       ! the velocity divergence gradient matrices
-      type(block_csr_matrix), intent(inout) :: CT_m
+      type(block_csr_matrix), pointer :: CT_m
 
       type(scalar_field), intent(inout), optional :: ct_rhs
 
@@ -362,7 +362,7 @@ contains
       type(state_type), dimension(:), intent(inout) :: state
 
       ! the compressible divergence matrix
-      type(block_csr_matrix), intent(inout) :: ctp_m
+      type(block_csr_matrix), pointer :: ctp_m
 
       type(scalar_field), intent(inout), optional :: ct_rhs
 
@@ -385,7 +385,7 @@ contains
       type(state_type), intent(inout) :: state
 
       ! the compressible divergence matrix
-      type(block_csr_matrix), intent(inout) :: ctp_m
+      type(block_csr_matrix), pointer :: ctp_m
 
       type(scalar_field), intent(inout), optional :: ct_rhs
 

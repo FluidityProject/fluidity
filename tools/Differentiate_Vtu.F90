@@ -27,7 +27,8 @@
 
 #include "fdebug.h"
 
-subroutine differentiate_vtu(input_filename, input_filename_len, output_filename, output_filename_len, input_fieldname, input_fieldname_len)
+subroutine differentiate_vtu(input_filename_, input_filename_len, output_filename_, &
+    output_filename_len, input_fieldname_, input_fieldname_len) bind(c)
 
 ! these 5 need to be on top and in this order, so as not to confuse silly old intel compiler 
   use quadrature
@@ -40,15 +41,21 @@ subroutine differentiate_vtu(input_filename, input_filename_len, output_filename
   use fldebug
   use state_module
   use vtk_interfaces
-  
+  use iso_c_binding
   implicit none
+
   
-  integer, intent(in) :: input_filename_len
-  integer, intent(in) :: output_filename_len
-  integer, intent(in) :: input_fieldname_len
-  character(len = input_filename_len), intent(in) :: input_filename
-  character(len = output_filename_len), intent(in) :: output_filename
-  character(len = input_fieldname_len), intent(in) :: input_fieldname
+  character(kind=c_char, len=1) :: input_filename_(*)
+  integer(kind=c_size_t), value :: input_filename_len
+  character(kind=c_char, len=1) :: output_filename_(*)
+  integer(kind=c_size_t), value :: output_filename_len
+  character(kind=c_char, len=1) :: input_fieldname_(*)
+  integer(kind=c_size_t), value :: input_fieldname_len
+
+  
+  character(len = input_filename_len) :: input_filename
+  character(len = output_filename_len) :: output_filename
+  character(len = input_fieldname_len) :: input_fieldname
   
   integer :: dim, i, j, nfields
   logical :: allocated
@@ -60,9 +67,19 @@ subroutine differentiate_vtu(input_filename, input_filename_len, output_filename
   type(vector_field) :: field_grad
   type(vector_field), dimension(:), allocatable :: field_grads
   type(vector_field), pointer :: positions
- 
+
   ewrite(1, *) "In differentiate_vtu"
   
+  do i=1, input_filename_len
+    input_filename(i:i)=input_filename_(i)
+  end do
+  do i=1, output_filename_len
+    output_filename(i:i)=output_filename_(i)
+  end do
+  do i=1, input_fieldname_len
+    input_fieldname(i:i)=input_fieldname_(i)
+  end do
+
   call vtk_read_state(trim(input_filename), state)
   
   positions => extract_vector_field(state, "Coordinate")
