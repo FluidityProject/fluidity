@@ -610,6 +610,9 @@ contains
           ! yes, we're subcycling
           ! we should have already calculated the courant number (or aborted in the attempt)
           no_subcycles=ceiling(max_cfl/max_sub_cfl)
+          if(include_diffusion.or.include_source.or.include_absorption) then
+            no_subcycles = max(no_subcycles, 1)
+          end if
           if(no_subcycles>1) then
             sub_dt=dt/real(no_subcycles)
             call scale(cfl_no, 1.0/real(no_subcycles))
