@@ -194,13 +194,9 @@ void python_add_scalar_(int *sx,double x[],char *name,int *nlen, int *field_type
   PyRun_SimpleString("op = string.strip(op)");
 
   char *n = fix_string(state,*slen);
-  int tlen=150+*slen+*mesh_name_len;
+  int tlen=140+2**slen+*nlen+*mesh_name_len;
   char t[tlen];
-  snprintf(t, tlen, "field = scalar_field_cache.setdefault(uid, ScalarField(n,s,ft,op,uid)); states['%s'].scalar_fields['%s'] = field",n,namec);
-  PyRun_SimpleString(t);
-
-  // Set the mesh for this field
-  snprintf(t, tlen, "field.set_mesh(states['%s'].meshes['%s'])",n,meshc);
+  snprintf(t, tlen, "field = scalar_field_cache.setdefault(uid, ScalarField(n,s,ft,op,uid,states['%s'].meshes['%s'])); states['%s'].scalar_fields['%s'] = field",n,meshc,n,namec);
   PyRun_SimpleString(t);
 
   // Clean up
@@ -293,13 +289,9 @@ void python_add_vector_(int *num_dim, int *s,
   PyRun_SimpleString("op = string.strip(op)");
 
   char *n = fix_string(state,*slen);
-  int tlen=150+*slen+*mesh_name_len;
+  int tlen=150+2**slen+*nlen+*mesh_name_len;
   char t[tlen];
-  snprintf(t, tlen, "field = vector_field_cache.setdefault(uid, VectorField(n,vector,ft,op,nd,uid)); states[\"%s\"].vector_fields['%s'] = field",n,namec);
-  PyRun_SimpleString(t);
-
-  // Set the mesh for this field
-  snprintf(t, tlen, "field.set_mesh(states['%s'].meshes['%s'])",n,meshc);
+  snprintf(t, tlen, "field = vector_field_cache.setdefault(uid, VectorField(n,vector,ft,op,nd,uid,states['%s'].meshes['%s'])); states['%s'].vector_fields['%s'] = field",n,meshc,n,namec);
   PyRun_SimpleString(t);
 
   // Clean up
@@ -352,14 +344,10 @@ void python_add_tensor_(int *sx,int *sy,int *sz, double *x, int num_dim[],
   PyRun_SimpleString("op = string.strip(op)");
 
   char *n = fix_string(state,*slen);
-  int tlen=150+*slen+*mesh_name_len;
+  int tlen=160+2**slen+*nlen+*mesh_name_len;
   char t[tlen];
-  snprintf(t, tlen, "field = tensor_field_cache.setdefault(uid, TensorField(n,val,ft,op,nd0,nd1,uid)); states[\"%s\"].tensor_fields['%s'] = field",n,namec);
+  snprintf(t, tlen, "field = tensor_field_cache.setdefault(uid, TensorField(n,val,ft,op,nd0,nd1,uid,states['%s'].meshes['%s'])); states['%s'].tensor_fields['%s'] = field",n,meshc,n,namec);
   PyRun_SimpleString(t);  
-
-  // Set the mesh for this field
-  snprintf(t, tlen, "field.set_mesh(states['%s'].meshes['%s'])",n,meshc);
-  PyRun_SimpleString(t);
 
   // Clean up
   PyRun_SimpleString("del n; del op; del uid; del val; del field");
