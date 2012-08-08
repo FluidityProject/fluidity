@@ -47,7 +47,7 @@ assert solvers_converged
     </test>
     
     <!-- Remember to offset the times in this pass_test. Here we want to check that the -->
-    <!-- simulation time is 0.01, not the time after the shock wave hits the particle bed. -->
+    <!-- simulation finish time is 0.002 seconds, not the time after the shock wave hits the particle bed. -->
     <test name="Finish time is 0.002 seconds" language="python">
 assert (time[-1] + 0.0008 &gt;= 0.002)
 assert (time[-1] + 0.0008 &lt; (0.002 + 7.5e-6))

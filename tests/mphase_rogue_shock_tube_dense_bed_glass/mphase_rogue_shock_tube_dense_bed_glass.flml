@@ -72,7 +72,7 @@
       <real_value rank="0">7.5e-6</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">0.01</real_value>
+      <real_value rank="0">0.002</real_value>
     </finish_time>
     <nonlinear_iterations>
       <integer_value rank="0">2</integer_value>
