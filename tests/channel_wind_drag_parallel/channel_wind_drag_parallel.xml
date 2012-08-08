@@ -8,6 +8,11 @@
     <command_line>mpiexec -np 4 ../../bin/fluidity -v3 -l  channel_parallel_periodised_flredecomp.flml </command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="numerical_solution" language="python">
 import vtktools
 # read in the .vtu
@@ -44,6 +49,9 @@ analytical_solution=xyz[:,2]*dudz+u_b;
     </variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="Compare with analytical solution" language="python">
 import fluidity_tools
 fluidity_tools.compare_variables(numerical_solution, analytical_solution, 1e-3)

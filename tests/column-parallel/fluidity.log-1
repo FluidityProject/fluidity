@@ -439,6 +439,20 @@ Block CSR Matrices:
  Considering scalar field Temperature in state Fluid
  In solve_field_equation_cg
  In assemble_advection_diffusion_cg
+ Creating universal numbering for a trailing receives halo
+ Checking nodes in halo CoordinateMeshMaximalElementHaloDG for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Checking nodes in halo CoordinateMeshMaximalElementHaloDG for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Checking nodes in halo CoordinateMeshMaximalElementHaloDG for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Creating universal numbering for a trailing receives halo
+ Checking nodes in halo CoordinateMeshMaximalElementHaloDG for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Checking nodes in halo CoordinateMeshMaximalElementHaloDG for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
+ Checking nodes in halo CoordinateMeshMaximalElementHaloDG for consistency with trailing receive ordering
+ Halo nodes are consistent with trailing receive ordering
  Exiting assemble_advection_diffusion_cg
  Assembling matrix.
  Checking nodes in halo CoordinateMeshLevel1Halo for consistency with trailing receive ordering
@@ -1670,9 +1684,13 @@ Block CSR Matrices:
  Printing references before final deallocation
  Printing out all currently allocated references:
  scalar_field VelocityMeshCVMass has reference count 1
- and id 150
+ and id 153
  mesh_type VelocityMeshDGSurfaceMesh has reference count 1
- and id 22
+ and id 20
+ csr_sparsity P0MeshCoordinateMeshDoubleSparsity has reference count 1
+ and id 6
+ halo_type CoordinateMeshMaximalElementHaloDG has reference count 2
+ and id 8
  csr_sparsity VelocityMeshVelocityMeshSparsity has reference count 1
  and id 5
  scalar_field VelocityMeshLumpedMass has reference count 1

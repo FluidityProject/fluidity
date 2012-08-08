@@ -77,6 +77,7 @@ public VerticalExtrapolation, vertical_integration
 public vertical_element_ordering
 public VerticalProlongationOperator
 public vertical_extrapolation_module_check_options
+public compute_face_normal_gravity
 
 contains
   
