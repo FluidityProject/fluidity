@@ -281,7 +281,9 @@
          integer :: i, dim
          logical :: not_found ! Error flag. Have we found the fluid phase?
          integer :: istate_fluid, istate_particle
-         
+   
+         ! Types of drag correlation
+         integer, parameter :: DRAG_CORRELATION_TYPE_STOKES = 1, DRAG_CORRELATION_TYPE_WEN_YU = 2, DRAG_CORRELATION_TYPE_ERGUN = 3
          
          ewrite(1, *) "Entering add_fluid_particle_drag"
          
@@ -292,8 +294,7 @@
                
          ! Get the timestepping options
          call get_option("/timestepping/timestep", dt)
-         call get_option(trim(u%option_path)//"/prognostic/temporal_discretisation/theta", &
-                        theta)
+         call get_option(trim(u%option_path)//"/prognostic/temporal_discretisation/theta", theta)
                                           
          ! For the big_m matrix. Controls whether the off diagonal entries are used    
          block_mask = .false.
@@ -362,7 +363,8 @@
                type(tensor_field), pointer :: viscosity_fluid
                type(scalar_field) :: nvfrac_fluid, nvfrac_particle
                real :: d ! Particle diameter
-               character(len=OPTION_PATH_LEN) :: drag_correlation
+               character(len=OPTION_PATH_LEN) :: drag_correlation_name
+               integer :: drag_correlation
 
                ! Get the necessary fields to calculate the drag force
                velocity_fluid => extract_vector_field(state(istate_fluid), "Velocity")
@@ -391,8 +393,18 @@
                   oldu_fluid => extract_vector_field(state(istate_fluid), "OldVelocity")
                   oldu_particle => extract_vector_field(state(istate_particle), "OldVelocity")
                   
-                  call get_option("/multiphase_interaction/fluid_particle_drag/drag_correlation/name", drag_correlation)
-      
+                  call get_option("/multiphase_interaction/fluid_particle_drag/drag_correlation/name", drag_correlation_name)
+                  select case(trim(drag_correlation_name))
+                     case("stokes")
+                        drag_correlation = DRAG_CORRELATION_TYPE_STOKES
+                     case("wen_yu")
+                        drag_correlation = DRAG_CORRELATION_TYPE_WEN_YU
+                     case("ergun")
+                        drag_correlation = DRAG_CORRELATION_TYPE_ERGUN
+                     case("default")
+                        FLAbort("Unknown correlation for fluid-particle drag")
+                  end select
+                  
                   ! ----- Volume integrals over elements -------------           
                   call profiler_tic(u, "element_loop")
                   element_loop: do ele = 1, element_count(u)
@@ -441,7 +453,7 @@
                type(vector_field), intent(in) :: oldu_fluid, oldu_particle
                type(tensor_field), intent(in) :: viscosity_fluid    
                real, intent(in) :: d ! Particle diameter 
-               character(len=OPTION_PATH_LEN), intent(in) :: drag_correlation
+               integer, intent(in) :: drag_correlation
                
                ! Local variables
                real, dimension(ele_ngi(u,ele)) :: vfrac_fluid_gi, vfrac_particle_gi
@@ -490,8 +502,8 @@
                particle_re_gi = (vfrac_fluid_gi*density_fluid_gi*magnitude_gi*d) / viscosity_fluid_gi(1,1,:)
            
                ! Compute the drag coefficient
-               select case(trim(drag_correlation))
-                  case("stokes")
+               select case(drag_correlation)
+                  case(DRAG_CORRELATION_TYPE_STOKES)
                      ! Stokes drag correlation
                      do gi = 1, ele_ngi(u,ele)
                         if(particle_re_gi(gi) < 1000) then
@@ -501,7 +513,7 @@
                         end if
                      end do
                      
-                  case("wen_yu")
+                  case(DRAG_CORRELATION_TYPE_WEN_YU)
                      ! Wen & Yu (1966) drag correlation
                      do gi = 1, ele_ngi(u,ele)
                         if(particle_re_gi(gi) < 1000) then
@@ -511,10 +523,8 @@
                         end if
                      end do
                      
-                  case("ergun")
-                     
-                  case("default")
-                     FLAbort("Unknown correlation for fluid-particle drag")
+                  case(DRAG_CORRELATION_TYPE_ERGUN)
+                     ! No drag coefficient is needed here.                  
                end select
                       
                ! Don't let the drag_coefficient_gi be NaN
@@ -524,13 +534,13 @@
                   end if
                end do
            
-               select case(trim(drag_correlation))
-                  case("stokes")
+               select case(drag_correlation)
+                  case(DRAG_CORRELATION_TYPE_STOKES)
                      K = vfrac_particle_gi*(3.0/4.0)*drag_coefficient_gi*(vfrac_fluid_gi*density_fluid_gi*magnitude_gi)/(d)
-                  case("wen_yu")
+                  case(DRAG_CORRELATION_TYPE_WEN_YU)
                      ! Wen & Yu (1966) drag term
                      K = vfrac_particle_gi*(3.0/4.0)*drag_coefficient_gi*(vfrac_fluid_gi*density_fluid_gi*magnitude_gi)/(d*vfrac_fluid_gi**2.7)
-                  case("ergun")
+                  case(DRAG_CORRELATION_TYPE_ERGUN)
                      K = 150.0*((vfrac_particle_gi**2)*viscosity_fluid_gi(1,1,:))/(vfrac_fluid_gi*(d**2)) + 1.75*(vfrac_particle_gi*density_fluid_gi*magnitude_gi/d)
                end select               
                
