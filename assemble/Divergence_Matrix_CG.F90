@@ -474,7 +474,7 @@ module divergence_matrix_cg
          ! Find the compressible phase and extract it's density to form rho_c * div(vfrac_i*u_i), where _c and _i represent
          ! the compressible and incompressible phases respectively.
          do i = 1, size(state)
-            if(have_option(trim(state(istate)%option_path)//"/equation_of_state/compressible")) then
+            if(have_option(trim(state(i)%option_path)//"/equation_of_state/compressible")) then
                density => extract_scalar_field(state(i), "Density")
                olddensity => extract_scalar_field(state(i), "OldDensity")
             end if
