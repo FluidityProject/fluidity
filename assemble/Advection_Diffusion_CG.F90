@@ -1018,8 +1018,7 @@ contains
                                                            + shape_shape(test_function, t_shape, detwei*nvfrac_at_quad*udotgradrho_at_quad) &
                                                            + shape_shape(test_function, t_shape, detwei*density_at_quad*udotgradnvfrac_at_quad) )
           else
-             advection_mat = advection_mat - (1.0-beta) * shape_shape(test_function, t_shape, (velocity_div_at_quad*density_at_quad &
-                                                                  +udotgradrho_at_quad)*detwei)
+             advection_mat = advection_mat - (1.0-beta) * shape_shape(test_function, t_shape, (velocity_div_at_quad*density_at_quad + udotgradrho_at_quad)*detwei)
           end if
         end if
       case default
