@@ -1046,7 +1046,6 @@
 
                      call profiler_toc(u, "assembly")
 
-                     density => extract_scalar_field(state(istate), "Density", stat)
                      if(compressible_eos) then
                         call deallocate(ctp_m(istate)%ptr)
                         deallocate(ctp_m(istate)%ptr)
@@ -1508,7 +1507,7 @@
          integer, intent(in) :: istate
 
          type(vector_field), pointer :: u, old_u
-         type(scalar_field), pointer :: p, p_theta, density
+         type(scalar_field), pointer :: p, p_theta
 
          ! Compressible pressure gradient operator/left hand matrix of CMC
          type(block_csr_matrix_pointer), dimension(:), intent(inout) :: ctp_m
@@ -1582,9 +1581,8 @@
          call deallocate(kmk_rhs)
 
          cmc_m => extract_csr_matrix(state(istate), "PressurePoissonMatrix", stat)
-         density => extract_scalar_field(state(istate), "Density", stat)
-
-         if(compressible_eos .and. have_option('/material_phase::'//trim(state(istate)%name)//'/equation_of_state/compressible')) then
+         
+         if(compressible_eos .and. have_option(trim(state(istate)%option_path)//'/equation_of_state/compressible')) then
             call allocate(compress_projec_rhs, p%mesh, "CompressibleProjectionRHS")
 
             if(cv_pressure) then
