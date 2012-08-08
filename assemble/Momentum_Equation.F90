@@ -467,17 +467,16 @@
                end select
             end if
 
-            if (has_boundary_condition(u, "free_surface")) then
-               ! this needs fixing for multiphase theta_pg could in principle be chosen
+            if (has_boundary_condition(u, "free_surface") .or. compressible_eos) then
+               ! This needs fixing for multiphase. theta_pg could in principle be chosen
                ! per phase but then we need an array and we'd have to include theta_pg
                ! in cmc_m, i.e. solve for theta_div*dt*dp instead of theta_div*theta_pg*dt*dp
                ! theta_div can only be set once, but where and what is the default?
-               if (multiphase) then
+               if (has_boundary_condition(u, "free_surface") .and. multiphase) then
                  FLExit("Multiphase does not work with a free surface.")
                end if
 
-
-               ! With free surface or compressible-projection pressures are at integer
+               ! With free surface or compressible-projection, pressures are at integer
                ! time levels and we apply a theta-weighting to the pressure gradient term
                ! Also, obtain theta-weighting to be used in divergence term
                call get_option( trim(u%option_path)//'/prognostic/temporal_discretisation/theta', &
@@ -491,6 +490,15 @@
                ewrite(2,*) "theta_pg: ", theta_pg
                ewrite(2,*) "Velocity divergence is evaluated at n+theta_divergence"
                ewrite(2,*) "theta_divergence: ", theta_divergence
+               
+               ! Note: Compressible multiphase simulations work, but only when use_theta_pg and use_theta_divergence
+               ! are false. This needs improving - see comment above.
+               if(compressible_eos .and. multiphase .and. (use_theta_pg .or. use_theta_divergence)) then
+                  ewrite(-1,*) "Currently, for compressible multiphase flow simulations, the"
+                  ewrite(-1,*) "temporal_discretisation/theta and temporal_discretisation/theta_divergence values"
+                  ewrite(-1,*) "for each Velocity field must be set to 1.0."
+                  FLExit("Multiphase does not work when use_theta_pg or use_theta_divergence are true.")
+               end if
             else
                ! Pressures are, as usual, staggered in time with the velocities
                use_theta_pg=.false.
@@ -686,8 +694,8 @@
                
                if(compressible_eos) then
                   ! Note: If we are running a compressible multiphase simulation then the C^T matrix for each phase becomes:
-                  ! rho*div(alpha*u) for each incompressible phase
-                  ! rho*div(alpha*u) + alpha*u*grad(rho) for the single compressible phase.
+                  ! rho*div(vfrac*u) for each incompressible phase
+                  ! rho*div(vfrac*u) + vfrac*u*grad(rho) for the single compressible phase.
 
                   allocate(ctp_m(istate)%ptr)
                   call allocate(ctp_m(istate)%ptr, ct_m(istate)%ptr%sparsity, (/1, u%dim/), name="CTP_m")
