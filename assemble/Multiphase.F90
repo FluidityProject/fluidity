@@ -305,15 +305,13 @@
          dg = continuity(u) < 0
 
          ! Is this phase a particle phase?
-         is_particle_phase = have_option("/material_phase["//int2str(istate-1)//&
-                          &"]/multiphase_properties/particle_diameter")
+         is_particle_phase = have_option(trim(state(istate)%option_path)//"/multiphase_properties/particle_diameter")
               
          ! Retrieve the index of the fluid phase in the state array.
          not_found = .true.
          if(is_particle_phase) then    
             do i = 1, size(state)
-               if(.not.have_option("/material_phase["//int2str(i-1)//&
-                        &"]/multiphase_properties/particle_diameter")) then
+               if(.not.have_option(trim(state(i)%option_path)//"/multiphase_properties/particle_diameter")) then
 
                   velocity_fluid => extract_vector_field(state(i), "Velocity")
                   ! Aliased material_phases will also not have a particle_diameter,
@@ -377,8 +375,7 @@
                   density_particle => extract_scalar_field(state(istate_particle), "Density")
                   viscosity_fluid => extract_tensor_field(state(istate_fluid), "Viscosity")
          
-                  call get_option("/material_phase["//int2str(istate_particle-1)//&
-                           &"]/multiphase_properties/particle_diameter", d)
+                  call get_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter", d)
 
                   ! Calculate the non-linear approximation to the PhaseVolumeFractions
                   call allocate(nvfrac_fluid, vfrac_fluid%mesh, "NonlinearPhaseVolumeFraction")
@@ -622,15 +619,13 @@
          dg = continuity(internal_energy) < 0
 
          ! Is this phase a particle phase?
-         is_particle_phase = have_option("/material_phase["//int2str(istate-1)//&
-                          &"]/multiphase_properties/particle_diameter")
+         is_particle_phase = have_option(trim(state(istate)%option_path)//"/multiphase_properties/particle_diameter")
               
          ! Retrieve the index of the fluid phase in the state array.
          not_found = .true.
          if(is_particle_phase) then    
             do i = 1, size(state)
-               if(.not.have_option("/material_phase["//int2str(i-1)//&
-                        &"]/multiphase_properties/particle_diameter")) then
+               if(.not.have_option(trim(state(i)%option_path)//"/multiphase_properties/particle_diameter")) then
 
                   velocity_fluid => extract_vector_field(state(i), "Velocity")
                   ! Aliased material_phases will also not have a particle_diameter,
@@ -698,20 +693,15 @@
                   density_particle => extract_scalar_field(state(istate_particle), "Density")
                   viscosity_fluid => extract_tensor_field(state(istate_fluid), "Viscosity")
          
-                  call get_option("/material_phase["//int2str(istate_particle-1)//&
-                           &"]/multiphase_properties/particle_diameter", d)
+                  call get_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/particle_diameter", d)
                            
-                  call get_option("/material_phase["//int2str(istate_fluid-1)//&
-                           &"]/multiphase_properties/effective_conductivity", k, kstat)
+                  call get_option(trim(state(istate_fluid)%option_path)//"/multiphase_properties/effective_conductivity", k, kstat)
                            
-                  call get_option("/material_phase["//int2str(istate_fluid-1)//&
-                           &"]/multiphase_properties/specific_heat", C_fluid, cstat_fluid)
+                  call get_option(trim(state(istate_fluid)%option_path)//"/multiphase_properties/specific_heat", C_fluid, cstat_fluid)
                   
-                  call get_option("/material_phase["//int2str(istate_particle-1)//&
-                           &"]/multiphase_properties/specific_heat", C_particle, cstat_particle)
+                  call get_option(trim(state(istate_particle)%option_path)//"/multiphase_properties/specific_heat", C_particle, cstat_particle)
                   
-                  call get_option("/material_phase["//int2str(istate_fluid-1)//&
-                           &"]/equation_of_state/compressible/stiffened_gas/ratio_specific_heats", gamma, gstat)
+                  call get_option(trim(state(istate_fluid)%option_path)//"/equation_of_state/compressible/stiffened_gas/ratio_specific_heats", gamma, gstat)
                            
                   if(kstat /= 0) then
                      FLExit("For inter-phase heat transfer, an effective_conductivity needs to be specified for the fluid phase.")
