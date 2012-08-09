@@ -397,8 +397,8 @@ void python_add_mesh_(int ndglno[],int *sndglno, int *elements, int *nodes,
   char t[tlen];
 
   snprintf(t, tlen,
-      "states['%s'].meshes['%s'] = mesh_cache.setdefault(%d, Mesh(mesh_array,%d,%d,%d,n,op,region_ids))",
-      n, namec, *uid, *elements, *nodes, *continuity);
+      "states['%s'].meshes['%s'] = mesh_cache.setdefault(%d, Mesh(mesh_array,%d,%d,%d,n,op,region_ids,%d))",
+      n, namec, *uid, *elements, *nodes, *continuity, *uid);
   PyRun_SimpleString(t);
   snprintf(t, tlen, "m = states['%s'].meshes['%s']", n, namec);
   PyRun_SimpleString(t);

@@ -173,7 +173,7 @@ except ImportError:
 
 class Mesh:
   "A mesh"
-  def __init__(self,ndglno,elements,nodes,continuity,name,option_path,region_ids):
+  def __init__(self,ndglno,elements,nodes,continuity,name,option_path,region_ids,uid):
     self.ndglno = ndglno
     self.element_count = elements
     self.node_count = nodes
@@ -182,6 +182,7 @@ class Mesh:
     self.option_path = option_path
     self.region_ids = region_ids
     self.shape = Element(0,0,0,0,[],[], [], 0,0,0,0, "unknown", "unknown")
+    self.uid = uid
 
   def __repr__(self):
     return '(Mesh) %s' % self.name
