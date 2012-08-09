@@ -495,12 +495,19 @@ contains
     !!< Deallocate the components of mesh. Shape functions are not
     !!< deallocated here.
     type(mesh_type), intent(inout) :: mesh
-    integer :: i
+    integer :: i, uid
+      
+    ! Save the uid
+    uid = mesh%refcount%id
+
     call decref(mesh)
     if (has_references(mesh)) then
        ! There are still references to this mesh so we don't deallocate.
        return
     end if
+
+    call python_remove_from_cache("mesh", uid)
+
     call deallocate(mesh%shape)
     
     if (.not.mesh%wrapped) then
@@ -572,7 +579,7 @@ contains
        return
     end if
 
-    call python_remove_from_cache("scalar", uid)
+    call python_remove_from_cache("scalar_field", uid)
 
     select case(field%field_type)
     case(FIELD_TYPE_NORMAL)
@@ -646,7 +653,7 @@ contains
        return
     end if
 
-    call python_remove_from_cache("vector", uid)
+    call python_remove_from_cache("vector_field", uid)
 
     if (.not.field%wrapped) then
       select case(field%field_type)
@@ -708,7 +715,7 @@ contains
        return
     end if
 
-    call python_remove_from_cache("tensor", uid)
+    call python_remove_from_cache("tensor_field", uid)
 
     if (.not.field%wrapped) then
       select case(field%field_type)

@@ -139,11 +139,11 @@ module python_state
     end subroutine python_add_tensor
 
     subroutine python_add_mesh(ndglno,sndglno,elements,nodes,name,nlen,option_path,oplen,&
-      &continuity,region_ids,sregion_ids,state_name,state_name_len)
+      &continuity,region_ids,sregion_ids,state_name,state_name_len,uid)
       !! Add a mesh to the state called state_name
       implicit none
       integer, dimension(*) :: ndglno,region_ids    !! might cause a problem
-      integer :: sndglno, elements, nodes, nlen, oplen, continuity, sregion_ids, state_name_len
+      integer :: sndglno, elements, nodes, nlen, oplen, continuity, sregion_ids, state_name_len, uid
       character(len=nlen) :: name
       character(len=oplen) :: option_path
       character(len=state_name_len) :: state_name
@@ -286,13 +286,13 @@ module python_state
       call python_add_mesh(M%ndglno,size(M%ndglno,1),M%elements,M%nodes,&
         trim(M%name),slen,M%option_path,oplen,&
         M%continuity, M%region_ids, size(M%region_ids),&
-        trim(st%name),snlen)
+        trim(st%name),snlen, M%refcount%id)
     else
       allocate(temp_region_ids(0))
       call python_add_mesh(M%ndglno,size(M%ndglno,1),M%elements,M%nodes,&
         trim(M%name),slen,M%option_path,oplen,&
         M%continuity, temp_region_ids, size(temp_region_ids),&
-        trim(st%name),snlen)
+        trim(st%name),snlen, M%refcount%id)
       deallocate(temp_region_ids)
     end if
   end subroutine python_add_mesh_directly

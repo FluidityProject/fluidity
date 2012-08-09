@@ -109,14 +109,14 @@ contains
   subroutine python_remove_from_cache(type, uid)
     !!< Remove a field of type type with id uid from the python cache
     
-    character(len=6), intent(in) :: type
+    character(len=*), intent(in) :: type
     integer, intent(in) :: uid
     
     character(len=16) :: buf
 
     write(unit=buf,fmt="(i0)")uid
 
-    call python_run_string("if "//trim(adjustl(buf))//" in "//type//"_field_cache: "//type//"_field_cache.pop("//trim(adjustl(buf))//")")
+    call python_run_string("if "//trim(adjustl(buf))//" in "//type//"_cache: "//type//"_cache.pop("//trim(adjustl(buf))//")")
     
   end subroutine python_remove_from_cache
   

@@ -32,6 +32,7 @@ void python_init_(void){
   PyRun_SimpleString("persistent = {}");
 
   // Initialize Fluidity field caches
+  PyRun_SimpleString("mesh_cache = {}");
   PyRun_SimpleString("scalar_field_cache = {}");
   PyRun_SimpleString("vector_field_cache = {}");
   PyRun_SimpleString("tensor_field_cache = {}");
@@ -70,7 +71,7 @@ void python_reset_(void){
 #ifdef HAVE_PYTHON
   if(Py_IsInitialized()){
     // Create a list of items to be kept
-    PyRun_SimpleString("keep = ['keep', 'rem', '__builtins__', '__name__', '__doc__', 'string', 'numpy', 'persistent', 'scalar_field_cache', 'vector_field_cache', 'tensor_field_cache']");
+    PyRun_SimpleString("keep = ['keep', 'rem', '__builtins__', '__name__', '__doc__', 'string', 'numpy', 'persistent', 'mesh_cache', 'scalar_field_cache', 'vector_field_cache', 'tensor_field_cache']");
 
     // Create a list of items to  be removed
     PyRun_SimpleString("rem = []");
@@ -369,7 +370,7 @@ void python_add_tensor_(int *sx,int *sy,int *sz, double *x, int num_dim[],
 void python_add_mesh_(int ndglno[],int *sndglno, int *elements, int *nodes, 
   char *name,int *nlen, char *option_path, int *oplen, 
   int *continuity, int region_ids[], int *sregion_ids,
-  char *state_name, int *state_name_len){
+  char *state_name, int *state_name_len, int *uid){
 #ifdef HAVE_NUMPY
   // Add the Mesh to the interpreter
   PyObject *pMain = PyImport_AddModule("__main__");
@@ -395,9 +396,11 @@ void python_add_mesh_(int ndglno[],int *sndglno, int *elements, int *nodes,
   int tlen=150 + *state_name_len;
   char t[tlen];
 
-  snprintf(t, tlen, "states[\"%s\"].meshes[\"%s\"] = Mesh(mesh_array,%d,%d,%d,n,op,region_ids)",n,namec,*elements,*nodes,*continuity);
+  snprintf(t, tlen,
+      "states['%s'].meshes['%s'] = mesh_cache.setdefault(%d, Mesh(mesh_array,%d,%d,%d,n,op,region_ids))",
+      n, namec, *uid, *elements, *nodes, *continuity);
   PyRun_SimpleString(t);
-  snprintf(t, tlen, "m = states[\"%s\"].meshes[\"%s\"]",n,namec);
+  snprintf(t, tlen, "m = states['%s'].meshes['%s']", n, namec);
   PyRun_SimpleString(t);
 
   // Clean up
