@@ -188,8 +188,6 @@ void python_add_scalar_(int *sx,double x[],char *name,int *nlen, int *field_type
   PyDict_SetItemString(pDict,"op",poptionp);  
   PyObject *pft = PyInt_FromLong(*field_type);
   PyDict_SetItemString(pDict,"ft",pft);  
-  PyObject *puid = PyInt_FromLong(*uid);
-  PyDict_SetItemString(pDict,"uid",puid);  
 
   PyRun_SimpleString("n = string.strip(n)");
   PyRun_SimpleString("op = string.strip(op)");
@@ -197,11 +195,15 @@ void python_add_scalar_(int *sx,double x[],char *name,int *nlen, int *field_type
   char *n = fix_string(state,*slen);
   int tlen=140+2**slen+*nlen+*mesh_name_len;
   char t[tlen];
-  snprintf(t, tlen, "field = scalar_field_cache.setdefault(uid, ScalarField(n,s,ft,op,uid,states['%s'].meshes['%s'])); states['%s'].scalar_fields['%s'] = field",n,meshc,n,namec);
+  snprintf(t, tlen,
+      "field = scalar_field_cache.setdefault(%d, ScalarField(n,s,ft,op,%d,states['%s'].meshes['%s']))",
+      *uid, *uid, n, meshc);
+  PyRun_SimpleString(t);
+  snprintf(t, tlen, "states['%s'].scalar_fields['%s'] = field",n,namec);
   PyRun_SimpleString(t);
 
   // Clean up
-  PyRun_SimpleString("del n; del op; del ft; del uid; del s; del field");
+  PyRun_SimpleString("del n; del op; del ft; del s; del field");
   free(namec); 
   free(opc);
   free(n);
@@ -209,7 +211,6 @@ void python_add_scalar_(int *sx,double x[],char *name,int *nlen, int *field_type
   Py_DECREF(pname);
   Py_DECREF(poptionp);
   Py_DECREF(pft);
-  Py_DECREF(puid);
 #endif
 }
 
@@ -283,8 +284,6 @@ void python_add_vector_(int *num_dim, int *s,
   PyDict_SetItemString(pDict,"ft",pft);  
   PyObject *pnd = PyInt_FromLong(*num_dim);
   PyDict_SetItemString(pDict,"nd",pnd);  
-  PyObject *puid = PyInt_FromLong(*uid);
-  PyDict_SetItemString(pDict,"uid",puid);  
 
   PyRun_SimpleString("n = string.strip(n)");
   PyRun_SimpleString("op = string.strip(op)");
@@ -292,11 +291,15 @@ void python_add_vector_(int *num_dim, int *s,
   char *n = fix_string(state,*slen);
   int tlen=150+2**slen+*nlen+*mesh_name_len;
   char t[tlen];
-  snprintf(t, tlen, "field = vector_field_cache.setdefault(uid, VectorField(n,vector,ft,op,nd,uid,states['%s'].meshes['%s'])); states['%s'].vector_fields['%s'] = field",n,meshc,n,namec);
+  snprintf(t, tlen,
+      "field = vector_field_cache.setdefault(%d, VectorField(n,vector,ft,op,nd,%d,states['%s'].meshes['%s']))",
+      *uid, *uid, n, meshc);
+  PyRun_SimpleString(t);
+  snprintf(t, tlen, "states['%s'].vector_fields['%s'] = field", n, namec);
   PyRun_SimpleString(t);
 
   // Clean up
-  PyRun_SimpleString("del n; del op; del ft; del nd; del uid; del vector; del field");
+  PyRun_SimpleString("del n; del op; del ft; del nd; del vector; del field");
   free(n);
   free(namec); 
   free(opc);
@@ -306,7 +309,6 @@ void python_add_vector_(int *num_dim, int *s,
   Py_DECREF(poptionp);
   Py_DECREF(pft);
   Py_DECREF(pnd);
-  Py_DECREF(puid);
 #endif
 }
 
@@ -338,8 +340,6 @@ void python_add_tensor_(int *sx,int *sy,int *sz, double *x, int num_dim[],
   PyDict_SetItemString(pDict,"nd0",pnd0);  
   PyObject *pnd1 = PyInt_FromLong(num_dim[1]);
   PyDict_SetItemString(pDict,"nd1",pnd1);  
-  PyObject *puid = PyInt_FromLong(*uid);
-  PyDict_SetItemString(pDict,"uid",puid);  
 
   PyRun_SimpleString("n = string.strip(n)");
   PyRun_SimpleString("op = string.strip(op)");
@@ -347,11 +347,13 @@ void python_add_tensor_(int *sx,int *sy,int *sz, double *x, int num_dim[],
   char *n = fix_string(state,*slen);
   int tlen=160+2**slen+*nlen+*mesh_name_len;
   char t[tlen];
-  snprintf(t, tlen, "field = tensor_field_cache.setdefault(uid, TensorField(n,val,ft,op,nd0,nd1,uid,states['%s'].meshes['%s'])); states['%s'].tensor_fields['%s'] = field",n,meshc,n,namec);
+  snprintf(t, tlen, "field = tensor_field_cache.setdefault(%d, TensorField(n,val,ft,op,nd0,nd1,%d,states['%s'].meshes['%s']))", *uid, *uid, n, meshc);
+  PyRun_SimpleString(t);  
+  snprintf(t, tlen, "states['%s'].tensor_fields['%s'] = field", n, namec);
   PyRun_SimpleString(t);  
 
   // Clean up
-  PyRun_SimpleString("del n; del op; del uid; del val; del field");
+  PyRun_SimpleString("del n; del op; del val; del field");
   free(n);
   free(namec); 
   free(opc); 
@@ -362,7 +364,6 @@ void python_add_tensor_(int *sx,int *sy,int *sz, double *x, int num_dim[],
   Py_DECREF(pft);
   Py_DECREF(pnd0);
   Py_DECREF(pnd1);
-  Py_DECREF(puid);
 #endif
 }
 
