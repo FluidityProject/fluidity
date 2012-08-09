@@ -220,7 +220,48 @@ Arbitrary agent pairs will be merged to enforce this limit.</a:documentation>
             <attribute name="name">
               <data type="string"/>
             </attribute>
+            <element name="variables">
+              <a:documentation>External FGroups need to create fields associated with chemical variables...</a:documentation>
+              <zeroOrMore>
+                <ref name="chemical_variable"/>
+              </zeroOrMore>
+            </element>
+            <element name="scalar_field">
+              <attribute name="name">
+                <value>Concentration</value>
+              </attribute>
+              <element name="prescribed">
+                <element name="mesh">
+                  <attribute name="name">
+                    <value>LEBiologyMesh</value>
+                  </attribute>
+                </element>
+                <ref name="prescribed_scalar_field_no_adapt"/>
+                <ref name="adaptivity_options_scalar_field"/>
+                <element name="galerkin_projection">
+                  <element name="discontinuous">
+                    <empty/>
+                  </element>
+                </element>
+                <optional>
+                  <ref name="recalculation_options"/>
+                </optional>
+              </element>
+            </element>
             <ref name="food_set"/>
+            <choice>
+              <element name="biology">
+                <a:documentation>Biology model for this functional group</a:documentation>
+                <element name="python">
+                  <a:documentation>Python code specifying the biology model</a:documentation>
+                  <ref name="python_code"/>
+                </element>
+              </element>
+              <element name="disable_biology">
+                <a:documentation>Do not calculate biology</a:documentation>
+                <empty/>
+              </element>
+            </choice>
           </element>
         </choice>
       </zeroOrMore>

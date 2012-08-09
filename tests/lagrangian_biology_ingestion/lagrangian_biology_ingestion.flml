@@ -105,7 +105,7 @@
       <random_seed>
         <integer_value rank="0">123456</integer_value>
       </random_seed>
-      <functional_group name="Prey">
+      <functional_group name="PreyA">
         <variables>
           <state_variable name="Stage"/>
           <state_variable name="Size">
@@ -156,7 +156,7 @@
             <string_value lines="20" type="code" language="python">from lebiology import stage_id
 
 def val(agent):
-  agent['Stage'] = stage_id('Prey', 'Inactive')
+  agent['Stage'] = stage_id('PreyA', 'Inactive')
   agent['Size'] = 100.0
   agent['Carbon'] = 1.e-6
   return agent</string_value>
@@ -301,7 +301,7 @@ def val(agent, env, dt):
             </biology>
           </stage>
         </stages>
-        <food_set functional_group="Prey" name="Food">
+        <food_set functional_group="PreyA" name="Food">
           <scalar_field name="Concentration">
             <diagnostic>
               <algorithm name="Internal" material_phase_support="multiple"/>
@@ -369,6 +369,221 @@ def val(agent, env, dt):
           </diagnostic>
         </scalar_field>
       </functional_group>
+      <functional_group name="PreyB">
+        <variables>
+          <state_variable name="Stage"/>
+          <state_variable name="Size">
+            <scalar_field name="Ensemble">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <mesh name="LEBiologyMesh"/>
+                <output/>
+                <stat/>
+                <do_not_recalculate/>
+                <galerkin_projection>
+                  <discontinuous/>
+                </galerkin_projection>
+              </diagnostic>
+              <stage_diagnostic/>
+            </scalar_field>
+          </state_variable>
+          <chemical_variable name="Carbon">
+            <scalar_field name="Particulate">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <mesh name="LEBiologyMesh"/>
+                <output/>
+                <stat/>
+                <do_not_recalculate/>
+                <galerkin_projection>
+                  <discontinuous/>
+                </galerkin_projection>
+              </diagnostic>
+              <stage_diagnostic/>
+            </scalar_field>
+            <include_in_io/>
+          </chemical_variable>
+        </variables>
+        <initial_state>
+          <number_of_agents>
+            <integer_value rank="0">10000</integer_value>
+          </number_of_agents>
+          <position>
+            <string_value lines="20" type="code" language="python">def val(t):
+  import numpy as np
+  x = np.reshape([np.arange(0.005, 1., 0.01) for i in range(100)], (1,10000))
+  y = np.reshape([np.ones(100)*i for i in np.arange(0.005, 1., 0.01)], (1,10000))
+  positions = np.reshape(np.concatenate((x,y)),(2,10000)).T
+  return positions</string_value>
+          </position>
+          <biology>
+            <string_value lines="20" type="code" language="python">from lebiology import stage_id
+
+def val(agent):
+  agent['Stage'] = stage_id('PreyB', 'Inactive')
+  agent['Size'] = 100.0
+  agent['Carbon'] = 1.e-6
+  return agent</string_value>
+          </biology>
+        </initial_state>
+        <movement>
+          <subcycles>
+            <integer_value rank="0">1</integer_value>
+          </subcycles>
+          <search_tolerance>
+            <real_value rank="0">1.0e-10</real_value>
+          </search_tolerance>
+          <reflect_on_boundary/>
+          <parametric_guided_search/>
+        </movement>
+        <environment/>
+        <stages>
+          <stage name="Inactive">
+            <biology>
+              <python>
+                <string_value lines="20" type="code" language="python">def val(agent, env, dt):
+  return agent</string_value>
+              </python>
+            </biology>
+          </stage>
+        </stages>
+        <scalar_field name="Agents">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="LEBiologyMesh"/>
+            <output/>
+            <stat/>
+            <do_not_recalculate/>
+            <galerkin_projection>
+              <discontinuous/>
+            </galerkin_projection>
+          </diagnostic>
+        </scalar_field>
+      </functional_group>
+      <external_fgroup name="ExtPred">
+        <variables>
+          <chemical_variable name="Carbon">
+            <scalar_field name="Particulate">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <mesh name="LEBiologyMesh"/>
+                <output/>
+                <stat/>
+                <do_not_recalculate/>
+                <galerkin_projection>
+                  <discontinuous/>
+                </galerkin_projection>
+              </diagnostic>
+            </scalar_field>
+            <scalar_field name="Ingested">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <mesh name="LEBiologyMesh"/>
+                <output/>
+                <stat/>
+                <do_not_recalculate/>
+                <galerkin_projection>
+                  <discontinuous/>
+                </galerkin_projection>
+              </diagnostic>
+            </scalar_field>
+          </chemical_variable>
+        </variables>
+        <scalar_field name="Concentration">
+          <prescribed>
+            <mesh name="LEBiologyMesh"/>
+            <value name="WholeMesh">
+              <constant>
+                <real_value rank="0">1000.0</real_value>
+              </constant>
+            </value>
+            <output/>
+            <stat/>
+            <detectors>
+              <exclude_from_detectors/>
+            </detectors>
+            <galerkin_projection>
+              <discontinuous/>
+            </galerkin_projection>
+          </prescribed>
+        </scalar_field>
+        <food_set functional_group="PreyB" name="Food">
+          <scalar_field name="Concentration">
+            <diagnostic>
+              <algorithm name="Internal" material_phase_support="multiple"/>
+              <mesh name="LEBiologyMesh"/>
+              <output/>
+              <stat/>
+              <do_not_recalculate/>
+              <galerkin_projection>
+                <discontinuous/>
+              </galerkin_projection>
+            </diagnostic>
+          </scalar_field>
+          <scalar_field name="Request">
+            <diagnostic>
+              <algorithm name="Internal" material_phase_support="multiple"/>
+              <mesh name="LEBiologyMesh"/>
+              <output/>
+              <stat/>
+              <do_not_recalculate/>
+              <galerkin_projection>
+                <discontinuous/>
+              </galerkin_projection>
+            </diagnostic>
+            <stage_diagnostic/>
+            <include_in_io/>
+          </scalar_field>
+          <scalar_field name="Depletion">
+            <diagnostic>
+              <algorithm name="Internal" material_phase_support="multiple"/>
+              <mesh name="LEBiologyMesh"/>
+              <output/>
+              <stat/>
+              <do_not_recalculate/>
+              <galerkin_projection>
+                <discontinuous/>
+              </galerkin_projection>
+            </diagnostic>
+          </scalar_field>
+          <scalar_field name="IngestedCells">
+            <diagnostic>
+              <algorithm name="Internal" material_phase_support="multiple"/>
+              <mesh name="LEBiologyMesh"/>
+              <output/>
+              <stat/>
+              <do_not_recalculate/>
+              <galerkin_projection>
+                <discontinuous/>
+              </galerkin_projection>
+            </diagnostic>
+            <include_in_io/>
+          </scalar_field>
+          <food_type name="Inactive"/>
+        </food_set>
+        <biology>
+          <python>
+            <string_value lines="20" type="code" language="python">dt = 1.
+
+pred_field = state.scalar_fields["ExtPredConcentration"]
+food_field = state.scalar_fields["PreyBEnsembleSizeInactive"]
+request_field = state.scalar_fields["ExtPredFoodRequestInactive"]
+
+carbon_ing_field = state.scalar_fields["ExtPredIngestedCarbon"]
+carbon_part_field = state.scalar_fields["ExtPredParticulateCarbon"]
+
+for n in range(pred_field.node_count):
+    # Housekeeping
+    carbon_ing = carbon_ing_field.node_val(n)
+    carbon_part_field.addto(n, carbon_ing)
+    
+    pred = pred_field.node_val(n)
+    food = food_field.node_val(n)
+    #if food &gt; 200000.:
+    request_field.set(n, 100. * dt * pred)</string_value>
+          </python>
+        </biology>
+      </external_fgroup>
     </lagrangian_ensemble_biology>
   </embedded_models>
 </fluidity_options>

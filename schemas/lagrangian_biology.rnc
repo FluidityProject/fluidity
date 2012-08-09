@@ -177,7 +177,42 @@ lagrangian_biology =
             }|
             element external_fgroup {
                attribute name { xsd:string },
-               food_set
+               ## External FGroups need to create fields associated with chemical variables...
+               element variables {
+                  chemical_variable*
+               },
+               element scalar_field {
+                  attribute name { "Concentration" },
+                  element prescribed {
+                     element mesh {
+                        attribute name { "LEBiologyMesh" }
+                     },
+                     prescribed_scalar_field_no_adapt,
+                     adaptivity_options_scalar_field,
+                     element galerkin_projection {
+                        element discontinuous {
+                          empty
+                        }
+                     },
+                     recalculation_options?
+                  }
+               },
+               food_set,
+               (
+                  ## Biology model for this functional group
+                  element biology {
+                     (
+                        ## Python code specifying the biology model
+                        element python {
+                           python_code
+                        }
+                     )
+                  }|
+                  ## Do not calculate biology
+                  element disable_biology {
+                     empty
+                  }
+               )
             }
          )*
       }

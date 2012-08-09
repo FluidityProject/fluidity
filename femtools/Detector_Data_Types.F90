@@ -266,6 +266,7 @@ module detector_data_types
 
   type functional_group
     character(len=FIELD_NAME_LEN) :: name
+    character(len=OPTION_PATH_LEN) :: option_path
 
     ! List of all stages within this FG
     type(stringlist) :: stage_names
@@ -292,8 +293,9 @@ module detector_data_types
     ! Option path for the Agents diagnostic field
     character(len=OPTION_PATH_LEN) :: agents_field_path
 
-    ! Flag indicating external FGroups
+    ! External FGroups to represent Eulerian predators
     logical :: is_external = .false.
+    character(len=PYTHON_FUNC_LEN) :: external_python
   end type functional_group
 
 end module detector_data_types

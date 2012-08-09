@@ -201,10 +201,14 @@ contains
     do fg=1, n_ext_fgroups
        fgroup => functional_groups(n_fgroups + fg)
        write(fg_buffer, "(a,i0,a)") "/embedded_models/lagrangian_ensemble_biology/external_fgroup[",fg-1,"]"
+       fgroup%option_path = trim(fg_buffer)
        
        call read_functional_group(fgroup, trim(fg_buffer))
        allocate(fgroup%agent_arrays(0))
        fgroup%is_external = .true.
+       if (have_option( trim(fg_buffer)//"/biology" )) then
+          call get_option( trim(fg_buffer)//"/biology/python", fgroup%external_python )
+       end if
     end do
 
     ewrite(1,*) "Lagrangian biology: Initialised metamodel"
@@ -682,10 +686,12 @@ contains
     type(detector_type), pointer :: agent, agent_to_move
     type(vector_field), pointer :: xfield
     type(scalar_field_pointer), dimension(:), pointer :: env_fields, food_fields
+    type(scalar_field), pointer :: exchange_field
     character(len=FIELD_NAME_LEN) :: foodname
     character(len=OPTION_PATH_LEN) :: le_options
     type(food_set) :: fset
     integer :: i, j, f, v, env, pm_period, hvar, hvar_ind, hvar_src_ind, fg, stage
+    logical :: python_state_initialised
 
     ewrite(1,*) "Lagrangian biology: Updating agents..."
     call profiler_tic("/update_lagrangian_biology")
@@ -693,14 +699,7 @@ contains
     xfield=>extract_vector_field(state(1), "Coordinate")
 
     le_options = trim("/embedded_models/lagrangian_ensemble_biology")
-
-    ! Prepare python-state
-    ! Note: Currently disabled for performance reasons. 
-    ! Actually only needed for Python RW with field sampling
-    !call profiler_tic("/update_lagrangian_biology::python_reload")
-    !call python_reset()
-    !call python_add_state(state(1))
-    !call profiler_toc("/update_lagrangian_biology::python_reload")
+    python_state_initialised = .false.
 
     ! Derive the number of subcycles per agent in each element
     if (have_option(trim(le_options)//"/scalar_field::RandomWalkSubcycling")) then
@@ -711,6 +710,26 @@ contains
 
     do fg=1, get_num_functional_groups()
        fgroup => get_functional_group(fg)
+
+       ! Reset all the exchange and predation fields
+       ! that might be set by external FGroups
+       call reset_exchange_fields(state(1), fgroup)
+
+       ! Prepare python-state, but only for external FGroups
+       if (fgroup%is_external) then
+          if (.not. python_state_initialised) then
+             call profiler_tic("/update_lagrangian_biology::python_reload")
+             call python_reset()
+             call python_add_state(state(1))
+             call profiler_toc("/update_lagrangian_biology::python_reload")
+             python_state_initialised = .true.
+          end if
+
+          ! Run the Eulerian external code and skip the rest of the agent loop
+          call python_run_string( trim(fgroup%external_python) )    
+
+          cycle
+       end if
 
        ! Prepare food concentrations
        ! Note: Assume there is only one FoodSet for now...
@@ -929,6 +948,38 @@ contains
 
   end subroutine distribute_by_stage
 
+  subroutine reset_exchange_fields(state, fgroup)
+    ! Zero all fields that may be set by external FGroups
+    type(state_type), intent(inout) :: state
+    type(functional_group), pointer, intent(inout):: fgroup
+
+    type(scalar_field), pointer :: exchange_field
+    type(le_variable), pointer :: var
+    type(food_variety), pointer :: variety
+    integer :: v
+
+    do v=1, size(fgroup%ivars_uptake)
+       var => fgroup%variables( fgroup%ivars_uptake(v) )
+       exchange_field => extract_scalar_field(state, var%field_name)
+       call zero(exchange_field)
+    end do
+
+    do v=1, size(fgroup%ivars_release)
+       var => fgroup%variables( fgroup%ivars_release(v) )
+       exchange_field => extract_scalar_field(state, var%field_name)
+       call zero(exchange_field)
+    end do
+
+    if (size(fgroup%food_sets) > 0) then
+       do v=1, size(fgroup%food_sets(1)%varieties)
+          variety => fgroup%food_sets(1)%varieties(v)
+
+          exchange_field => extract_scalar_field(state, trim(variety%vrequest%field_name))
+          call zero(exchange_field)
+       end do
+    end if
+  end subroutine reset_exchange_fields
+
   subroutine derive_agent_counts(state, agent_list, xfield)    
     type(state_type), intent(inout) :: state
     type(detector_linked_list), intent(inout) :: agent_list
@@ -973,7 +1024,10 @@ contains
            var%field_type == BIOFIELD_INGESTED ) then
 
           diagfields(v)%ptr => extract_scalar_field(state, trim(var%field_name))
-          call zero(diagfields(v)%ptr)
+
+          if (.not.fgroup%is_external .and. .not.var%field_type == BIOFIELD_INGESTED) then
+             call zero(diagfields(v)%ptr)
+          end if
        end if
     end do
 
@@ -1074,18 +1128,19 @@ contains
        fgroup => get_functional_group(fg)
 
        ! Pull and reset FG-level diagnostic fields
+       ! Don't reset here, since these may be set by external FGroups
        allocate(uptake_diagfields(size(fgroup%ivars_uptake)))
        do v=1, size(fgroup%ivars_uptake)
           var => fgroup%variables( fgroup%ivars_uptake(v) )
           uptake_diagfields(v)%ptr => extract_scalar_field(state, var%field_name)
-          call zero(uptake_diagfields(v)%ptr)
+          !call zero(uptake_diagfields(v)%ptr)
        end do
 
        allocate(release_diagfields(size(fgroup%ivars_release)))
        do v=1, size(fgroup%ivars_release)
           var => fgroup%variables( fgroup%ivars_release(v) )
           release_diagfields(v)%ptr => extract_scalar_field(state, var%field_name)
-          call zero(release_diagfields(v)%ptr)
+          !call zero(release_diagfields(v)%ptr)
        end do
 
        ! Derive FG-level diagnostic fields
@@ -1311,14 +1366,16 @@ contains
 
     type(functional_group), pointer :: fgroup, target_fg
     type(detector_linked_list), pointer :: agent_array
-    type(scalar_field), pointer :: conc_field, request_field, depletion_field
+    type(scalar_field), pointer :: conc_field, request_field, depletion_field, ing_cells_field
     type(scalar_field_pointer), dimension(:), allocatable :: prey_chem_fields
+    type(scalar_field_pointer), dimension(:), allocatable :: fgroup_ing_fields
     type(vector_field), pointer :: xfield
     type(food_set), pointer :: fset 
     type(food_variety), pointer :: fvariety
     type(le_variable), pointer :: chempool_var
     type(detector_type), pointer :: agent
     real :: conc, request, chem_conc, prop, old_size, path_total, ele_ingest_cells
+    real :: ele_volume, cells_ing, target_chem, absorbed_chem
     real, dimension(1) :: depletion
     type(elepath_list), pointer :: path_ele
     integer :: i, c, fs, fg, fv, t, ele, ingest_ind, stage
@@ -1332,19 +1389,44 @@ contains
        if (allocated(fgroup%food_sets)) then
 
           ! Derive the required Request fields
-          if (size(fgroup%food_sets) > 0 .and. .not.fgroup%is_external) then
+          if (size(fgroup%food_sets) > 0) then
              call ingestion_derive_requests(state, fgroup)
           end if
 
           do fs=1, size(fgroup%food_sets)
              fset => fgroup%food_sets(fs)
+
+             ! Pull FGroupIngestedChem fields, to set them manually for externals
+             if (fgroup%is_external) then
+                allocate(fgroup_ing_fields(size(fset%ingest_chem_inds)))
+                do c=1, size(fset%ingest_chem_inds)
+                   chempool_var => fgroup%variables( fset%ingest_chem_inds(c) )
+                   fgroup_ing_fields(c)%ptr => extract_scalar_field(state, trim(fgroup%name)//"Ingested"//trim(chempool_var%name) )
+
+                   ! Note: Move this higher up to combine with environment uptake for external FGroups
+                   call zero(fgroup_ing_fields(c)%ptr)
+                end do
+             end if
+
              do fv=1, size(fset%varieties)
                 fvariety => fset%varieties(fv)
                 target_fg => fvariety%target_list%ptr%fgroup
 
                 conc_field => extract_scalar_field(state, fvariety%conc_field)
                 request_field => extract_scalar_field(state, fvariety%vrequest%field_name)
-                depletion_field => extract_scalar_field(state, trim(fvariety%vrequest%field_name)//"Depletion")       
+                depletion_field => extract_scalar_field(state, trim(fvariety%vrequest%field_name)//"Depletion") 
+
+                ! We want to set the ingestion fields directly, so get them...
+                if (fgroup%is_external) then
+                   ing_cells_field => extract_scalar_field(state, trim(fvariety%vingest%field_name))
+                end if
+
+                ! For dealing with ingestion, first pull target chem concentrations...
+                allocate(prey_chem_fields(size(fset%ingest_chem_inds)))
+                do c=1, size(fset%ingest_chem_inds)
+                   chempool_var => fgroup%variables( fset%ingest_chem_inds(c) )
+                   prey_chem_fields(c)%ptr => extract_scalar_field(state, trim(fset%target_fgroup)//"Particulate"//trim(chempool_var%name)//trim(fvariety%name) )
+                end do    
 
                 ! Loop over all elements in the source concentration field
                 do ele=1,ele_count(conc_field)
@@ -1358,75 +1440,90 @@ contains
                       depletion(1) = 1.0
                    end if
                    call set(depletion_field, ele, depletion(1))
+
+                   ! For external FGroups calculate Eulerian ingestion fields
+                   if (fgroup%is_external) then
+                      ele_volume = element_volume(xfield, ele)
+
+                      cells_ing = request * depletion(1) / ele_volume
+                      call set(ing_cells_field, ele, cells_ing)
+
+                      do c=1, size(fset%ingest_chem_inds)
+                         target_chem = integral_element(prey_chem_fields(c)%ptr, xfield, ele)
+                         if (conc > 0.0) then
+                            absorbed_chem = cells_ing * target_chem / conc
+                         else
+                            absorbed_chem = 0.0
+                         end if
+                         call addto( fgroup_ing_fields(c)%ptr, ele, absorbed_chem )
+                      end do
+                   end if
                 end do
 
                 ! Loop over predator agents to set Ingest variables
-                allocate(prey_chem_fields(size(fset%ingest_chem_inds)))
-                do c=1, size(fset%ingest_chem_inds)
-                   chempool_var => fgroup%variables( fset%ingest_chem_inds(c) )
-                   prey_chem_fields(c)%ptr => extract_scalar_field(state, trim(fset%target_fgroup)//"Particulate"//trim(chempool_var%name)//trim(fvariety%name) )
-                end do
+                if (.not.fgroup%is_external) then
+                   do stage=1, size(fgroup%agent_arrays)
+                      agent_array => fgroup%agent_arrays(stage)
 
-                do stage=1, size(fgroup%agent_arrays)
-                   agent_array => fgroup%agent_arrays(stage)
+                      agent => agent_array%first
+                      do while (associated(agent))
 
-                   agent => agent_array%first
-                   do while (associated(agent))
+                         ! Integrate along the path of the agent
+                         if (fvariety%vrequest%path_integration .and. associated(agent%path_elements)) then                
+                            ! First we need the total path length
+                            path_total = 0.0
+                            path_ele => agent%path_elements
+                            do while( associated(path_ele) )
+                               path_total = path_total + path_ele%data%dist
+                               path_ele => elepath_list_next(path_ele)
+                            end do
 
-                      ! Integrate along the path of the agent
-                      if (fvariety%vrequest%path_integration .and. associated(agent%path_elements)) then                
-                         ! First we need the total path length
-                         path_total = 0.0
-                         path_ele => agent%path_elements
-                         do while( associated(path_ele) )
-                            path_total = path_total + path_ele%data%dist
-                            path_ele => elepath_list_next(path_ele)
-                         end do
+                            agent%food_ingests(fv) = 0.0
+                            path_ele => agent%path_elements
+                            do while( associated(path_ele) )
+                               depletion = ele_val(depletion_field, path_ele%data%ele)
+                               conc = integral_element(conc_field, xfield, path_ele%data%ele) 
 
-                         agent%food_ingests(fv) = 0.0
-                         path_ele => agent%path_elements
-                         do while( associated(path_ele) )
-                            depletion = ele_val(depletion_field, path_ele%data%ele)
-                            conc = integral_element(conc_field, xfield, path_ele%data%ele) 
+                               if (conc / element_volume(xfield, path_ele%data%ele) >= agent%food_thresholds(fv)) then
+                                  ele_ingest_cells = depletion(1) * (path_ele%data%dist / path_total) * agent%food_requests(fv)
+                                  agent%food_ingests(fv) = agent%food_ingests(fv) + ele_ingest_cells
 
-                            if (conc / element_volume(xfield, path_ele%data%ele) >= agent%food_thresholds(fv)) then
-                               ele_ingest_cells = depletion(1) * (path_ele%data%dist / path_total) * agent%food_requests(fv)
-                               agent%food_ingests(fv) = agent%food_ingests(fv) + ele_ingest_cells
+                                  ! Set ChemIngested pools
+                                  do c=1, size(fset%ingest_chem_inds)
+                                     ingest_ind = fgroup%variables( fset%ingest_chem_inds(c) )%ingest_index
+                                     chem_conc = integral_element(prey_chem_fields(c)%ptr, xfield, path_ele%data%ele)
+                                     if (conc > 0.0) then
+                                        agent%biology(ingest_ind) = agent%biology(ingest_ind) + ( chem_conc * (ele_ingest_cells / conc) )
+                                     end if
+                                  end do
+                               end if
 
-                               ! Set ChemIngested pools
-                               do c=1, size(fset%ingest_chem_inds)
-                                  ingest_ind = fgroup%variables( fset%ingest_chem_inds(c) )%ingest_index
-                                  chem_conc = integral_element(prey_chem_fields(c)%ptr, xfield, path_ele%data%ele)
-                                  if (conc > 0.0) then
-                                     agent%biology(ingest_ind) = agent%biology(ingest_ind) + ( chem_conc * (ele_ingest_cells / conc) )
-                                  end if
-                               end do
-                            end if
+                               path_ele => elepath_list_next(path_ele)
+                            end do
 
-                            path_ele => elepath_list_next(path_ele)
-                         end do
+                         else
 
-                      else
+                            ! Set 'IngestedCells' variable
+                            depletion = ele_val(depletion_field, agent%element)
+                            agent%food_ingests(fv) = depletion(1) * agent%food_requests(fv)
 
-                         ! Set 'IngestedCells' variable
-                         depletion = ele_val(depletion_field, agent%element)
-                         agent%food_ingests(fv) = depletion(1) * agent%food_requests(fv)
+                            ! Set ChemIngested pools
+                            conc = integral_element(conc_field, xfield, agent%element)
+                            do c=1, size(fset%ingest_chem_inds)
+                               ingest_ind = fgroup%variables( fset%ingest_chem_inds(c) )%ingest_index
+                               chem_conc = integral_element(prey_chem_fields(c)%ptr, xfield, agent%element)
+                               if (conc > 0.0) then
+                                  agent%biology(ingest_ind) = agent%biology(ingest_ind) + ( chem_conc * (agent%food_ingests(fv) / conc) )
+                               end if
+                            end do
 
-                         ! Set ChemIngested pools
-                         conc = integral_element(conc_field, xfield, agent%element)
-                         do c=1, size(fset%ingest_chem_inds)
-                            ingest_ind = fgroup%variables( fset%ingest_chem_inds(c) )%ingest_index
-                            chem_conc = integral_element(prey_chem_fields(c)%ptr, xfield, agent%element)
-                            if (conc > 0.0) then
-                               agent%biology(ingest_ind) = agent%biology(ingest_ind) + ( chem_conc * (agent%food_ingests(fv) / conc) )
-                            end if
-                         end do
+                         end if
 
-                      end if
-
-                      agent => agent%next
+                         agent => agent%next
+                      end do
                    end do
-                end do
+
+                end if
                 deallocate(prey_chem_fields)
 
                 ! Loop over prey agents to adjust ensemble size
@@ -1449,10 +1546,11 @@ contains
                 end do
 
              end do  ! Food Variety
+             if (fgroup%is_external) deallocate(fgroup_ing_fields)
           end do  ! FoodSet
 
           ! Derive the resulting Ingested fields
-          if (size(fgroup%food_sets) > 0 .and. .not.fgroup%is_external) then
+          if (.not.fgroup%is_external .and. size(fgroup%food_sets) > 0) then
              call ingestion_set_ingests(state, fgroup)
           end if
 
@@ -1470,24 +1568,23 @@ contains
     type(food_variety), pointer :: variety
     type(detector_type), pointer :: agent
     real :: ele_volume
-    integer :: i, v, vsize
+    integer :: i, v
 
     xfield=>extract_vector_field(state, "Coordinate")
 
     ! Pull requests fields and zero them
-    vsize = size(fgroup%food_sets(1)%varieties)
-    do v=1, vsize
+    do v=1, size(fgroup%food_sets(1)%varieties)
        variety => fgroup%food_sets(1)%varieties(v)
 
        frequest_fields(v)%ptr => extract_scalar_field(state, trim(variety%vrequest%field_name))
        fthreshold_fields(v)%ptr => extract_scalar_field(state, trim(variety%conc_field))
-       call zero(frequest_fields(v)%ptr)
+       !call zero(frequest_fields(v)%ptr)
     end do
 
     do i=1, size(fgroup%agent_arrays)       
        agent => fgroup%agent_arrays(i)%first
        do while (associated(agent))
-          do v=1, vsize
+          do v=1, size(fgroup%food_sets(1)%varieties)
              variety => fgroup%food_sets(1)%varieties(v)
 
              if (variety%vrequest%path_integration .and. associated(agent%path_elements)) then

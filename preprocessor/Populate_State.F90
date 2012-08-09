@@ -1447,27 +1447,34 @@ contains
       do fg=1, get_num_functional_groups()
          fgroup => get_functional_group(fg)
 
-         ! Allocate Agents diagnostic fields
-         do i=1, size(fgroup%stage_names%ptr)
-            call allocate_and_insert_scalar_field(trim(fgroup%agents_field_path), &
-                   state, field_name=trim(fgroup%name)//"Agents"//trim(fgroup%stage_names%ptr(i)), &
-                   dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
-         end do
-
-         do stage=1, size(fgroup%agent_arrays)
-            stage_options = fgroup%agent_arrays(stage)%stage_options
-            if (have_option(trim(stage_options)//"/particle_management/scalar_field::AgentsMin")) then
-               call allocate_and_insert_scalar_field(trim(stage_options)//"/particle_management/scalar_field::AgentsMin", &
-                      state, field_name=trim(fgroup%name)//"AgentsMin"//trim(fgroup%stage_names%ptr(stage)), &
+         if (fgroup%is_external) then
+            call allocate_and_insert_scalar_field(trim(fgroup%option_path)//"/scalar_field::Concentration", &
+                      state, field_name=trim(fgroup%name)//"Concentration", &
                       dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
-            end if
+         else
 
-            if (have_option(trim(stage_options)//"/particle_management/scalar_field::AgentsMax")) then
-               call allocate_and_insert_scalar_field(trim(stage_options)//"/particle_management/scalar_field::AgentsMax", &
-                      state, field_name=trim(fgroup%name)//"AgentsMax"//trim(fgroup%stage_names%ptr(stage)), &
+            ! Allocate Agents diagnostic fields
+            do i=1, size(fgroup%stage_names%ptr)
+               call allocate_and_insert_scalar_field(trim(fgroup%agents_field_path), &
+                      state, field_name=trim(fgroup%name)//"Agents"//trim(fgroup%stage_names%ptr(i)), &
                       dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
-            end if
-         end do
+            end do
+
+            do stage=1, size(fgroup%agent_arrays)
+               stage_options = fgroup%agent_arrays(stage)%stage_options
+               if (have_option(trim(stage_options)//"/particle_management/scalar_field::AgentsMin")) then
+                  call allocate_and_insert_scalar_field(trim(stage_options)//"/particle_management/scalar_field::AgentsMin", &
+                         state, field_name=trim(fgroup%name)//"AgentsMin"//trim(fgroup%stage_names%ptr(stage)), &
+                         dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+               end if
+
+               if (have_option(trim(stage_options)//"/particle_management/scalar_field::AgentsMax")) then
+                  call allocate_and_insert_scalar_field(trim(stage_options)//"/particle_management/scalar_field::AgentsMax", &
+                         state, field_name=trim(fgroup%name)//"AgentsMax"//trim(fgroup%stage_names%ptr(stage)), &
+                         dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+               end if
+            end do
+         end if
 
          do v=1, size(fgroup%variables)
             call insert_single_le_biology_field(state, fgroup, fgroup%variables(v))
