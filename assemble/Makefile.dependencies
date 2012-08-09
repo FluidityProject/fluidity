@@ -79,12 +79,12 @@ Advection_Diffusion_CG.o ../include/advection_diffusion_cg.mod: \
    ../include/boundary_conditions_from_options.mod ../include/colouring.mod \
    ../include/elements.mod ../include/fdebug.h ../include/field_options.mod \
    ../include/fields.mod ../include/fldebug.mod \
-   ../include/global_parameters.mod ../include/petsc_solve_state_module.mod \
-   ../include/porous_media.mod ../include/profiler.mod \
-   ../include/quadrature.mod ../include/sparse_tools.mod \
-   ../include/sparse_tools_petsc.mod ../include/sparsity_patterns_meshes.mod \
-   ../include/spud.mod ../include/state_module.mod \
-   ../include/upwind_stabilisation.mod
+   ../include/global_parameters.mod ../include/multiphase_module.mod \
+   ../include/petsc_solve_state_module.mod ../include/porous_media.mod \
+   ../include/profiler.mod ../include/quadrature.mod \
+   ../include/sparse_tools.mod ../include/sparse_tools_petsc.mod \
+   ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
+   ../include/state_module.mod ../include/upwind_stabilisation.mod
 
 ../include/advection_diffusion_dg.mod: Advection_Diffusion_DG.o
 	@true
