@@ -622,8 +622,8 @@
          ! Get the coordinate field from state(istate)
          x => extract_vector_field(state(istate), "Coordinate")
          ewrite_minmax(x)
-         assert(x%dim == mesh_dim(t))
-         assert(ele_count(x) == ele_count(t))
+         assert(x%dim == mesh_dim(internal_energy))
+         assert(ele_count(x) == ele_count(internal_energy))
 
          ! Are we using a discontinuous Galerkin discretisation?
          dg = continuity(internal_energy) < 0
