@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<testproblem>
+   
+  <name>mphase_wen_yu_drag_correlation</name>
+  <owner userid="ctj10"/>
+  <tags>flml</tags>
+  
+  <problem_definition length="short" nprocs="1">
+    <command_line>make run</command_line>
+    <!-- This is a 2D simulation which checks that the terminal velocity of the particle phase -->
+    <!-- is the same as that predicted by the Wen & Yu (1966) drag correlation. -->
+  </problem_definition>
+  
+  <variables>
+    <variable name="water_u" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_wen_yu_drag_correlation.stat")
+water_u = s["Water"]["Velocity%magnitude"]["max"][-1]
+    </variable>
+    
+    <variable name="tephra_u" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_wen_yu_drag_correlation.stat")
+tephra_u = s["Tephra"]["Velocity%magnitude"]["max"][-1]
+    </variable>
+    
+    <variable name="relative_terminal_velocity_wen_yu" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_wen_yu_drag_correlation.stat")
+relative_terminal_velocity_wen_yu = s["Tephra"]["TerminalVelocityWenYu%magnitude"]["max"][-1]
+    </variable>
+    
+    <variable name="relative_terminal_velocity_stokes" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_wen_yu_drag_correlation.stat")
+relative_terminal_velocity_stokes = s["Tephra"]["TerminalVelocityStokes%magnitude"]["max"][-1]
+    </variable>
+    
+    <variable name="drag_force" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_wen_yu_drag_correlation.stat")
+drag_force = s["Tephra"]["DragForce%magnitude"]["max"][-1]
+    </variable>
+    
+    <variable name="buoyancy_force" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_wen_yu_drag_correlation.stat")
+buoyancy_force = s["Tephra"]["BuoyancyForce%magnitude"]["max"][-1]
+    </variable>
+    
+  </variables>
+    
+  <pass_tests>
+    <test name="Drag = Weight - Buoyancy" language="python">
+assert abs(drag_force - buoyancy_force) &lt; 1e-4
+    </test>
+    
+    <test name="Terminal velocity (with the wen_yu drag correlation) is the same as that predicted by balancing the buoyancy force and drag force" language="python">
+assert abs(relative_terminal_velocity_wen_yu - (tephra_u + water_u)) &lt; 1e-4
+    </test>
+    
+    <test name="Terminal velocity with the wen_yu drag correlation is around 0.122" language="python">
+assert abs(relative_terminal_velocity_wen_yu - 0.122) &lt; 1e-3
+    </test>
+
+    <!-- The Stokes drag correlation greatly underestimates the drag coefficient, so we should see a much greater particle phase velocity -->
+    <test name="Terminal velocity with the Stokes drag correlation is around 0.693 (i.e. much greater than the one predicted by the wen_yu drag correlation)" language="python">
+assert abs(relative_terminal_velocity_stokes - 0.693) &lt; 1e-3
+    </test>
+  </pass_tests>
+  
+  <warn_tests>
+  </warn_tests>
+  
+</testproblem>

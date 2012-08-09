@@ -15,6 +15,7 @@ include "temporal_discretisation.rnc"
 include "embedded_models.rnc"
 include "flredecomp.rnc"
 include "porous_media.rnc"
+include "multiphase_interaction.rnc"
 include "equation_of_state.rnc"
 
 start =
@@ -1387,6 +1388,17 @@ start =
                comment,
                element particle_diameter { 
                      real 
+               }?,
+               ## If this is the fluid phase, 
+               ## the effective conductivity is required 
+               ## for the inter-phase heat transfer term.
+               element effective_conductivity { 
+                     real 
+               }?,
+               ## The specific heat (at constant volume) is required 
+               ## for the inter-phase heat transfer term.
+               element specific_heat { 
+                     real
                }?
             }?,
             sediment?
@@ -1570,7 +1582,8 @@ start =
          reduced_model?,
          porous_media_model?,
          embedded_models?,
-         flredecomp?
+         flredecomp?,
+         multiphase_interaction?
       }
    )      
 
@@ -4681,7 +4694,27 @@ scalar_field_choice =
                   }
                }
             )
-         }              
+         }|
+         
+         ## CompressibleContinuityResidual
+         ##
+         ## Computes the residual of the continuity equation used in compressible multiphase flow simulations
+         ## i.e. vfrac_c*d(rho_c)/dt + div(rho_c*vfrac_c*u_c) + \sum_i{ rho_c*div(vfrac_i*u_i) }
+         ## where _c and _i denote the compressible and incompressible phases respectively.
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "CompressibleContinuityResidual" },
+            (
+               element diagnostic {
+                  velocity_mesh_choice,
+                  internal_algorithm,
+                  diagnostic_scalar_field_no_adapt,
+                  element solver {
+                     linear_solver_options_sym
+                  }
+               }
+            )
+         }    
 
 # Insert new diagnostic scalar fields here using the template:
 #        element scalar_field {
