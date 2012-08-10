@@ -781,6 +781,8 @@ contains
     call halo_update(halo, lreal_array)
     
     epsl = spacing( maxval( abs( lreal_array ))) * 10000.
+    call allmax(epsl)
+
     verifies = all(abs(real_array - lreal_array) < epsl )
 #ifdef DDEBUG
     if(.not. verifies) then

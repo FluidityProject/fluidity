@@ -259,9 +259,9 @@
  The end time (LTIME) is set to:                           45.000000000000000     
  This corresponds to this many time steps in simulation:   3.0000000000000000     
  -
- The maximum volume of element in the mesh is:   15000.000000000187     
+ The maximum volume of element in the mesh is:   15000.000000000186     
  The minimum volume of element in the mesh is:   14999.999999999809     
- The ratio of max to min volumes is:             1.0000000000000253     
+ The ratio of max to min volumes is:             1.0000000000000251     
  The following material phases and their contents are in existence
 State: Fluid
 Meshes: 
@@ -405,7 +405,7 @@ Block CSR Matrices:
  GLS Parameters
  --------------------------------------------
  cm0:   0.52646469697902409     
- kappa:   0.36474544142360915     
+ kappa:   0.36474544142360921     
  p:    3.0000000000000000     
  m:    1.5000000000000000     
  n:   -1.0000000000000000     
@@ -482,6 +482,7 @@ Block CSR Matrices:
  In gls_tke
  Calculating GLS stability functions
  Calculating BCs
+ In compute_cv_mass
  In assemble_advectiondiffusion_m_cv
  In find_upwind_values
  In calculate_all_upwind_project
@@ -1668,8 +1669,10 @@ Block CSR Matrices:
  Finished gls_cleanup
  Printing references before final deallocation
  Printing out all currently allocated references:
+ scalar_field VelocityMeshCVMass has reference count 1
+ and id 154
  mesh_type VelocityMeshDGSurfaceMesh has reference count 1
- and id 22
+ and id 18
  csr_sparsity VelocityMeshVelocityMeshSparsity has reference count 1
  and id 5
  scalar_field VelocityMeshLumpedMass has reference count 1
@@ -1918,7 +1921,7 @@ Block CSR Matrices:
  and id 1
  vector_field Coordinate has reference count 4
  and id 1
- mesh_type CoordinateMesh has reference count 97
+ mesh_type CoordinateMesh has reference count 98
  and id 1
  element_type  has reference count 1
  and id 1
