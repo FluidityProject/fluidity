@@ -211,22 +211,10 @@ single block. This section outlines how to decompose a mesh with \fluidity\ tool
   \label{fig:NACA0025_mesh_with_partitions}
 \end{figure}
 
-\subsubsection{fldecomp}
-\index{mesh!meshing tools!fldecomp}
-\label{mesh!meshing tools!fldecomp}
-
-\lstinline[language=bash]+fldecomp+ can be used to decompose a mesh. For example, if your mesh
-file is \lstinline[language=bash]+foo.msh+ and you want to decompose into four parts, type:
-\begin{lstlisting}[language = Bash]
-`\fluiditysourcepath'/bin/fldecomp -n 4 -m gmsh foo
-\end{lstlisting}
-See section \ref{sec:fldecomp} for more details.
-
 \subsubsection{flredecomp}
 \index{mesh!meshing tools!flredecomp}
 \label{mesh!meshing tools!flredecomp}
-\lstinline[language=bash]+flredecomp+ is a tool similar to \lstinline[language=bash]+fldecomp+ but runs in parallel. 
-It performs a re-decomposition of a Fluidity checkpoint.
+\lstinline[language=bash]+flredecomp+ can be used to perform the initial decomposition of a mesh, or to perform a re-decomposition of a Fluidity checkpoint. \lstinline[language=bash]+flredecomp+ runs in parallel. 
 For example, to decompose the serial file \lstinline+foo.flml+
 into four parts, running on 4 processors type:
 
@@ -236,9 +224,21 @@ mpiexec -n 4 `\fluiditysourcepath'/bin/flredecomp \
 \end{lstlisting}
 
 The output of running flredecomp is a series of mesh and vtu files as well
-as the new flml; in this case \lstinline+foo_flredecomp.flml+. 
+as the new flml to be used in the subsequent run of Fluidity.  In the example above, this file is \lstinline+foo_flredecomp.flml+. 
 Note that \lstinline[language=bash]+flredecomp+ must be run on a number of processors equal to the larger number of processors between input and output.
 More information can be found in section~\ref{sec:flredecomp}.
+
+\subsubsection{fldecomp}
+\index{mesh!meshing tools!fldecomp}
+\label{mesh!meshing tools!fldecomp}
+
+\lstinline[language=bash]+fldecomp+ is a tool similar to \lstinline[language=bash]+flredecomp+ but runs in serial. \lstinline[language=bash]+flredecomp+ is the recommended tool for mesh decomposition.  \lstinline[language=bash]+fldecomp+ is retained only to decompose Terreno meshes (section~\ref{sec:Terreno}), which \lstinline[language=bash]+flredecomp+ cannot process.
+
+For example, if your Terreno mesh files have the base name \lstinline[language=bash]+foo+ and you want to decompose the mesh into four parts, type:
+\begin{lstlisting}[language = Bash]
+`\fluiditysourcepath'/bin/fldecomp -n 4 -t foo
+\end{lstlisting}
+See section \ref{sec:fldecomp} for more details.
 
 \subsection{Decomposing a periodic mesh}
 \index{mesh!meshing tools!periodise}
@@ -280,6 +280,7 @@ two of the tools commonly used.
 \subsection{Terreno}
 \index{mesh!meshing tools!Terreno}
 \index{Terreno}
+\label{sec:Terreno}
 
 Terreno uses a 2D anisotropic mesh optimisation algorithm to explicitly optimise for 
 element quality and bathymetric approximation while minimising the number of mesh
