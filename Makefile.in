@@ -455,7 +455,7 @@ clean-debian:
 
 clean-test:      
 	@echo "    CLEAN tests"
-	@cd tests; PYTHONPATH=../python ../tools/testharness.py --clean >/dev/null
+	@cd tests; PYTHONPATH=../python ../tools/testharness.py --clean >/dev/null; ls -l square-convection-parallel-trivial/src
 	@cd tests/data; $(MAKE) clean
 
 clean-all-tests: clean-test     
