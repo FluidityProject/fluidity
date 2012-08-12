@@ -294,14 +294,13 @@ contains
         tdensity=>extract_scalar_field(state(1), trim(tmpstring))
         ewrite_minmax(tdensity)
 
+        ! halo exchange? - not currently necessary when suboptimal halo exchange if density
+        ! is solved for with this subroutine and the correct priority ordering.
+        oldtdensity=>extract_scalar_field(state(1), "Old"//trim(tmpstring))
+        ewrite_minmax(oldtdensity)
+           
         if(have_option(trim(tdensity%option_path)//"/prognostic")) then
            prognostic_density = .true.
-           ! halo exchange? - not currently necessary when suboptimal halo exchange if density
-           ! is solved for with this subroutine and the correct priority ordering.
-           oldtdensity=>extract_scalar_field(state(1), "Old"//trim(tmpstring))
-           ewrite_minmax(oldtdensity)
-        else
-           oldtdensity=>dummyscalar
         end if
       end select
 
