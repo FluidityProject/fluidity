@@ -586,6 +586,21 @@ contains
             FLExit("The SumVelocityDivergence field is only used in multiphase simulations.")
          end if
        end if
+       
+       s_field => extract_scalar_field(state(i), "CompressibleContinuityResidual", stat)
+       if(stat == 0) then
+         ! Check that we are running a compressible multiphase simulation
+         if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1 .and. option_count("/material_phase/equation_of_state/compressible") > 0) then 
+            diagnostic = have_option(trim(s_field%option_path)//"/diagnostic")
+            if(diagnostic .and. .not.(aliased(s_field))) then
+               if(recalculate(trim(s_field%option_path))) then
+                  call calculate_compressible_continuity_residual(state, s_field)
+               end if
+            end if
+         else
+            FLExit("The CompressibleContinuityResidual field is only used in compressible multiphase simulations.")
+         end if
+       end if
 
        ! end of fields that cannot be called through the generic
        ! calculate_diagnostic_variable interface, i.e. - those that need things

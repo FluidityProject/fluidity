@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+   
+  <name>flux_bc</name>
+  <owner userid="ctj10"/>
+  <tags>flml</tags>
+  
+  <problem_definition length="medium" nprocs="1">
+    <command_line>make run</command_line>
+    <!-- This checks the integral of the PhaseVolumeFraction field at t = 1 second. -->
+    <!-- The volumetric flux (r) is set to 0.5 m^3/s/m^2, and the flux boundary condition -->
+    <!-- enforces d/dt \int_{volume} vfrac = \int_{surface} r -->
+  </problem_definition>
+  
+  <variables>
+    <variable name="vfrac_integral_2d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("flux_bc_2d.stat")
+vfrac_integral_2d = s["Tephra"]["PhaseVolumeFraction"]["integral"]
+    </variable>
+    
+    <variable name="vfrac_integral_3d" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("flux_bc_3d.stat")
+vfrac_integral_3d = s["Tephra"]["PhaseVolumeFraction"]["integral"]
+    </variable>
+  </variables>
+    
+  <pass_tests>
+    <test name="Integral of PhaseVolumeFraction after 1 second = 0.15 in 2D simulation." language="python">
+assert abs(vfrac_integral_2d[10] - 0.15) &lt; 1.0e-9
+    </test>
+
+    <test name="Integral of PhaseVolumeFraction after 1 second = 0.045 in 3D simulation." language="python">
+assert abs(vfrac_integral_3d[10] - 0.045) &lt; 1.0e-9
+    </test>
+  </pass_tests>
+  
+  <warn_tests>
+  </warn_tests>
+  
+</testproblem>

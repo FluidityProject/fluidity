@@ -92,7 +92,7 @@
       logical :: assemble_schur_auxiliary_matrix
 
       ! Do we want to use the compressible projection method?
-      logical :: use_compressible_projection
+      logical :: compressible_eos
       ! Are we doing a full Schur solve?
       logical :: full_schur
       ! Are we lumping mass or assuming consistent mass?
@@ -282,7 +282,7 @@
             multiphase = .false.
          end if
          ! Do we have fluid-particle drag (for multi-phase simulations)?
-         have_fp_drag = option_count("/material_phase/multiphase_properties/particle_diameter") > 0
+         have_fp_drag = have_option("/multiphase_interaction/fluid_particle_drag")
 
          ! Get the pressure p^{n}, and get the assembly options for the divergence and CMC matrices
          ! find the first non-aliased pressure
@@ -388,7 +388,7 @@
                ! get the CV tested pressure gradient matrix (i.e. the divergence matrix)
                ! if required with a different unique name. Note there is no need
                ! to again decide reassemble_ct_m as ctp_m for this case is assembled when ct_m is.
-               if ((.not. use_compressible_projection) .and. cg_pressure_cv_test_continuity) then
+               if ((.not. compressible_eos) .and. cg_pressure_cv_test_continuity) then
                   ctp_m(istate)%ptr => get_velocity_divergence_matrix(state(istate), ct_m_name = "CVTestedVelocityDivergenceMatrix")
                end if
 
@@ -467,17 +467,16 @@
                end select
             end if
 
-            if (has_boundary_condition(u, "free_surface") .or. use_compressible_projection) then
-               ! this needs fixing for multiphase theta_pg could in principle be chosen
+            if (has_boundary_condition(u, "free_surface") .or. compressible_eos) then
+               ! This needs fixing for multiphase. theta_pg could in principle be chosen
                ! per phase but then we need an array and we'd have to include theta_pg
                ! in cmc_m, i.e. solve for theta_div*dt*dp instead of theta_div*theta_pg*dt*dp
                ! theta_div can only be set once, but where and what is the default?
-               if (multiphase) then
-                 FLExit("Multiphase does not work with a free surface or compressible flow.")
+               if (has_boundary_condition(u, "free_surface") .and. multiphase) then
+                 FLExit("Multiphase does not work with a free surface.")
                end if
 
-
-               ! With free surface or compressible-projection pressures are at integer
+               ! With free surface or compressible-projection, pressures are at integer
                ! time levels and we apply a theta-weighting to the pressure gradient term
                ! Also, obtain theta-weighting to be used in divergence term
                call get_option( trim(u%option_path)//'/prognostic/temporal_discretisation/theta', &
@@ -491,6 +490,15 @@
                ewrite(2,*) "theta_pg: ", theta_pg
                ewrite(2,*) "Velocity divergence is evaluated at n+theta_divergence"
                ewrite(2,*) "theta_divergence: ", theta_divergence
+               
+               ! Note: Compressible multiphase simulations work, but only when use_theta_pg and use_theta_divergence
+               ! are false. This needs improving - see comment above.
+               if(compressible_eos .and. multiphase .and. (use_theta_pg .or. use_theta_divergence)) then
+                  ewrite(-1,*) "Currently, for compressible multiphase flow simulations, the"
+                  ewrite(-1,*) "temporal_discretisation/theta and temporal_discretisation/theta_divergence values"
+                  ewrite(-1,*) "for each Velocity field must be set to 1.0."
+                  FLExit("Multiphase does not work when use_theta_pg or use_theta_divergence are true.")
+               end if
             else
                ! Pressures are, as usual, staggered in time with the velocities
                use_theta_pg=.false.
@@ -514,6 +522,7 @@
             ! Allocation of big_m
             if(dg(istate)) then
                call allocate_big_m_dg(state(istate), big_m(istate), u)
+
                if(subcycle(istate)) then
                   u_sparsity => get_csr_sparsity_firstorder(state, u%mesh, u%mesh)
                   ! subcycle_m currently only contains advection, so diagonal=.true.
@@ -531,8 +540,8 @@
             ! Initialise the big_m, ct_m and ctp_m matrices
             call zero(big_m(istate))
             if(reassemble_ct_m) then
-               call zero(ct_m(istate)%ptr)               
-               if ((.not. use_compressible_projection) .and. cg_pressure_cv_test_continuity) then
+               call zero(ct_m(istate)%ptr)         
+               if ((.not. compressible_eos) .and. cg_pressure_cv_test_continuity) then
                   call zero(ctp_m(istate)%ptr)
                end if
             end if
@@ -580,7 +589,7 @@
                   call subtract_geostrophic_pressure_gradient(mom_rhs(istate), state(istate))
                end if
             else
-               ! This call will form the ct_rhs, which for use_compressible_projection
+               ! This call will form the ct_rhs, which for compressible_eos
                ! or cg_pressure_cv_test_continuity is formed for a second time later below.
                call construct_momentum_cg(u, p, density, x, &
                      big_m(istate), mom_rhs(istate), ct_m(istate)%ptr, &
@@ -635,7 +644,7 @@
 
             call profiler_tic(p, "assembly")
             if(cv_pressure) then
-               ! This call will form the ct_rhs, which for use_compressible_projection
+               ! This call will form the ct_rhs, which for compressible_eos
                ! is formed for a second time later below.
                call assemble_divergence_matrix_cv(ct_m(istate)%ptr, state(istate), ct_rhs=ct_rhs(istate), &
                                              test_mesh=p%mesh, field=u, get_ct=reassemble_ct_m)
@@ -643,7 +652,7 @@
 
             ! Assemble divergence matrix C^T.
             ! At the moment cg does its own ct assembly. We might change this in the future.
-            ! This call will form the ct_rhs, which for use_compressible_projection
+            ! This call will form the ct_rhs, which for compressible_eos
             ! or cg_pressure_cv_test_continuity is formed for a second time later below.
             if(dg(istate) .and. .not. cv_pressure) then
                call assemble_divergence_matrix_cg(ct_m(istate)%ptr, state(istate), ct_rhs=ct_rhs(istate), &
@@ -683,7 +692,11 @@
                
                ! Set up the left C matrix in CMC
                
-               if(use_compressible_projection) then
+               if(compressible_eos) then
+                  ! Note: If we are running a compressible multiphase simulation then the C^T matrix for each phase becomes:
+                  ! rho*div(vfrac*u) for each incompressible phase
+                  ! rho*div(vfrac*u) + vfrac*u*grad(rho) for the single compressible phase.
+
                   allocate(ctp_m(istate)%ptr)
                   call allocate(ctp_m(istate)%ptr, ct_m(istate)%ptr%sparsity, (/1, u%dim/), name="CTP_m")
                   ! NOTE that this is not optimal in that the ct_rhs
@@ -691,7 +704,7 @@
                   if(cv_pressure) then
                      call assemble_compressible_divergence_matrix_cv(ctp_m(istate)%ptr, state, ct_rhs(istate))
                   else
-                     call assemble_compressible_divergence_matrix_cg(ctp_m(istate)%ptr, state, ct_rhs(istate))
+                     call assemble_compressible_divergence_matrix_cg(ctp_m(istate)%ptr, state, istate, ct_rhs(istate))
                   end if               
                else                  
                   ! Incompressible scenario
@@ -708,7 +721,7 @@
                   end if
                end if
                
-               if (use_compressible_projection .or. cg_pressure_cv_test_continuity) then
+               if (compressible_eos .or. cg_pressure_cv_test_continuity) then
                   if (have_rotated_bcs(u)) then
                      if (dg(istate)) then
                        call zero_non_owned(u)
@@ -1041,7 +1054,7 @@
 
                      call profiler_toc(u, "assembly")
 
-                     if(use_compressible_projection) then
+                     if(compressible_eos) then
                         call deallocate(ctp_m(istate)%ptr)
                         deallocate(ctp_m(istate)%ptr)
                      end if
@@ -1252,15 +1265,12 @@
 
          ewrite(1,*) 'Entering get_pressure_options'
 
-
          ! Are we using a compressible projection?
-         use_compressible_projection = have_option(trim(p%option_path)//&
-                                       "/prognostic/scheme&
-                                       &/use_compressible_projection_method")
+         compressible_eos = option_count("/material_phase/equation_of_state/compressible") > 0
 
          reassemble_all_cmc_m = have_option(trim(p%option_path)//&
                      "/prognostic/scheme/update_discretised_equation") .or. &
-                     use_compressible_projection
+                     compressible_eos
 
          reassemble_all_ct_m = have_option(trim(p%option_path)//&
                      "/prognostic/scheme/update_discretised_equation")
@@ -1579,15 +1589,15 @@
          call deallocate(kmk_rhs)
 
          cmc_m => extract_csr_matrix(state(istate), "PressurePoissonMatrix", stat)
-
-         if(use_compressible_projection) then
+         
+         if(compressible_eos .and. have_option(trim(state(istate)%option_path)//'/equation_of_state/compressible')) then
             call allocate(compress_projec_rhs, p%mesh, "CompressibleProjectionRHS")
 
             if(cv_pressure) then
                call assemble_compressible_projection_cv(state, cmc_m, compress_projec_rhs, dt, &
                                                       theta_pg, theta_divergence, reassemble_cmc_m)
             else
-               call assemble_compressible_projection_cg(state, cmc_m, compress_projec_rhs, dt, &
+               call assemble_compressible_projection_cg(state, istate, cmc_m, compress_projec_rhs, dt, &
                                                       theta_pg, theta_divergence, reassemble_cmc_m)
             end if
 
@@ -1720,7 +1730,7 @@
          call addto(p, delta_p, scale=1.0/(theta_pg*dt))
          ewrite_minmax(p)
 
-         if(use_compressible_projection) then
+         if(compressible_eos) then
             call update_compressible_density(state)
          end if
 
