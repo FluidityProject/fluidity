@@ -9,6 +9,11 @@
     <!-- Two dimensional diffusion only problem. -->
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
 <!--    <variable name="detectors" language="python">
 from fluidity_tools import stat_parser
 detectors = stat_parser("heat.detectors")
@@ -82,6 +87,9 @@ regionids = array(regionids)
     </variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="finish time is 500" language="python">
 assert abs(finish_time - 500) &lt; 1e-9
     </test>

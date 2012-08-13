@@ -7,6 +7,11 @@
     <command_line>make clean-run; mpiexec -n 2 ../../bin/flredecomp -i 1 -o 2 -v -l parallel_p0_consistent_interpolation parallel_p0_consistent_interpolation_flredecomp; mpiexec -n 2 ../../bin/fluidity -v2 -l parallel_p0_consistent_interpolation_flredecomp.flml</command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="stat" language="python">import fluidity_tools
 
 stat = fluidity_tools.stat_parser("parallel_p0_consistent_interpolation.stat")</variable>
@@ -28,6 +33,9 @@ import fluidity.diagnostics.vtutools as vtutools
 initialVtu = vtutools.PvtuToVtu(vtktools.vtu("parallel_p0_consistent_interpolation_0.pvtu"))</variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="SimulationCompleted" language="python">print "Timesteps: ", len(stat["ElapsedTime"])
 
 assert(len(stat["ElapsedTime"]) == 1)</test>

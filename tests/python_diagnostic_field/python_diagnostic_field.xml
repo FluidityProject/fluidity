@@ -9,6 +9,11 @@
     <!-- Set a diagnostic field using embedded python code.  -->
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="input_integral" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("python.stat")
@@ -26,6 +31,9 @@ vector_max = s["Water"]["VectorDerived%magnitude"]["max"][0]
     </variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="field integral is the same when calculated in different ways." language="python">
 assert abs(input_integral-output_integral) &lt; 1.0e-10
     </test>

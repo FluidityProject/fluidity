@@ -13,6 +13,11 @@
       </command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="cur_xforce" language="python">
 import fluidity_tools
 s = fluidity_tools.stat_parser("circle-2d-drag-serial.stat")
@@ -34,6 +39,9 @@ cur_xforce_par_adapt = s["0"]["Velocity"]["force%1"][-1]
 
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="relative drag force difference (2.5%) in serial." language="python">
 print (100.0*abs(cur_xforce - exact_xforce)/exact_xforce)
 assert(abs(cur_xforce - exact_xforce)/exact_xforce &lt; 0.025)

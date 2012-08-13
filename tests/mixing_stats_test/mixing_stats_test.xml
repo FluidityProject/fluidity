@@ -4,7 +4,7 @@
 
   <name>Control volume, multi-material flow test for testing mixing stats</name>
   
-  <owner userid="hhiester"/>
+  <owner userid="piggt01"/>
   
   <tags>flml parallel</tags>
   
@@ -15,6 +15,11 @@
   </problem_definition> 
    
   <variables>  
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
   
     <variable name = "matvolume_serial" language = "python">
 import vtktools
@@ -145,6 +150,9 @@ for i in range(len(stat['Material2']['MaterialVolumeFraction']['mixing_bins%cv']
   </variables>
   
     <pass_tests>  
+      <test name="Solvers converged" language="python">
+        assert(solvers_converged)
+      </test>
     
     <test name = "check serial and parallel volumes are same in vtus/pvtus" language = "python">
 material = ['mat1', 'mat2']

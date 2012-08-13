@@ -7,6 +7,11 @@
     <command_line>mpiexec -np 2 ../../bin/fluidity -v2 -l mmat-interpolation_flredecomp.flml &amp;&amp; mv fluidity.log-0 first.log-0 &amp;&amp; mv fluidity.log-1 first.log-1 &amp;&amp; mv fluidity.err-0 first.err-0 &amp;&amp; mv fluidity.err-1 first.err-1 &amp;&amp; ./change_options.py &amp;&amp; mpiexec -np 2 ../../bin/fluidity -v2 -l mmat-interpolation_2_checkpoint.flml &amp;&amp; mv fluidity.log-0 checkpoint.log-0 &amp;&amp; mv fluidity.log-1 checkpoint.log-1 &amp;&amp; mv fluidity.err-0 checkpoint.err-0 &amp;&amp; mv fluidity.err-1 checkpoint.err-1 </command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="material1integralstart" language="python"> 
 from fluidity_tools import stat_parser as stat
 material1integralstart = stat("mmat-interpolation.stat")["Material1"]["MaterialVolumeFraction"]["integral"][0]
@@ -205,6 +210,9 @@ absolutedifference = stat("mmat-interpolation.stat")["Material3"]["ScalarAbsolut
     </variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="check material1 was conserved" language="python">
 print 'mass loss = ', abs(material1integralstart-material1integralend)
 assert abs(material1integralstart-material1integralend) &lt; max(abs(divergencemaxstart), abs(divergencemaxend), abs(divergenceminstart), abs(divergenceminend), 5.E-6)

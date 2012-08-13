@@ -11,6 +11,11 @@ mpiexec -np 2 ../../bin/fluidity -v2 -l Stokes-square-convection-1e4-p1p1-parall
   </problem_definition>
 
 <variables>  
+  <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+  </variable>
 
 <variable name="nu_top" language="python">
 from fluidity_tools import stat_parser as stat
@@ -30,6 +35,9 @@ rms_vel= stat("stokes-1e4-p1p1-parallel.stat")["Fluid"]["Velocity%magnitude"]["l
 </variables>
 
 <pass_tests>
+  <test name="Solvers converged" language="python">
+    assert(solvers_converged)
+  </test>
 
 <test name="Surface Nusselt Number Validity: 4.7 .lt. Nu .lt. 5.3" language="python">
 assert(abs(nu_top-5.0) &lt; 0.30)

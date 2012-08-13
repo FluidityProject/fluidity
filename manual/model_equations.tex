@@ -10,7 +10,7 @@ This chapter covers the fluid and associated field equations modelled by {\fluid
 problem & underlying equations & boundary conditions & other considerations\\
 \hline
 scalar advection & \ref{sec:MP-AdvdifEqn-eqns}, \ref{sec:MP-AdvdifEqn-adv} & \ref{sec:bc_scalar_dirichlet}, \ref{sec:bc_scalar_neumann} & × \\
-scalar advection-diffusion & \ref{sec:MP-AdvdifEqn-eqns}, \ref{sec:MP-AdvdifEqn-diff} & × & ×\\
+scalar advection-diffusion & \ref{sec:MP-AdvdifEqn-eqns}, \ref{sec:MP-AdvdifEqn-diff} & \ref{sec:bc_scalar_dirichlet}, \ref{sec:bc_scalar_neumann}, \ref{sec:bc_scalar_robin} × & ×\\
 momentum equation & \ref{sec:MP-MomEqn} & \ref{sec:bc_vector_dirichlet}, \ref{sec:bc_vector_stress}, \ref{sec:bc_vector_traction}, \ref{sec:FS} & \ref{sec:eqn_extensions} \\
 \hline
 \end{tabular}
@@ -117,6 +117,21 @@ The Neumann condition is specified by assigning a value to $(\kaptens\nabla c)\c
 (\kaptens\nabla c)\cdot\bmn = q,\quad \textrm{on}\quad \partial\Omega,
 \end{equation*}
 and substituting in this surface integral to the discretised equation. Note that $q$ is often termed a flux.
+
+
+\subsubsection{Robin condition for a scalar field}\label{sec:bc_scalar_robin}
+\index{boundary conditions!Neumann}
+
+Taking the weak form (applying Green's theorem to the diffusion term) of the advection-diffusion equation \eqref{eq:general_scalar_eqn} leads to a surface integral of the form
+\begin{equation*}
+\int_{\partial\Omega} \phi (\kaptens\nabla c)\cdot\bmn \;d\Gamma,
+\end{equation*}
+where $\phi$ is a test function (see section \ref{chap:numerical_discretisation}).
+The Robin condition is specified by relating the surface diffusive flux $(\kaptens\nabla c)\cdot\bmn$ to an ambient field value $c_{a}$, with an associated surface transfer coefficient $h$. This is given by the relationship
+\begin{equation*}
+-(\kaptens\nabla c)\cdot\bmn = h (c - c_{a}),\quad \textrm{on}\quad \partial\Omega,
+\end{equation*}
+where in general $h$ and $c_{a}$ can vary spatially and temporally. This is substituted into the discretised equation to give a surface absorption term given by $hc$ and a surface source given by $-hc_{a}$.
 
 
 \section{Fluid equations}\label{sec:MP-MomEqn}
@@ -712,7 +727,7 @@ use in body tide corrections to the majority of tidal constituents.
 
 \subsection{Multi-material simulations}
 \index{multi-material flow}
-The ability to differentiate between regions with distinct material properties is of fundamental importance in the modelling of many physical systems. Two different approaches exist for achieving this: the multi-material approach and the multi-phase approach. The multi-material approach is implemented within \fluidity, and the multi-phase approach (discussed in the next subsection) is currently under development.
+The ability to differentiate between regions with distinct material properties is of fundamental importance in the modelling of many physical systems. Two different approaches exist for achieving this: the multi-material approach and the multiphase approach. The multi-material approach is implemented within \fluidity, and the multiphase approach (discussed in the next subsection) is currently under development.
 In situations where the model can resolve physical mixing of immiscible materials, or where there is no mixing, only one velocity field (and hence one momentum equation) is required to describe the flow of all materials. The \emph{multi-material} approach, considers all materials to be immiscible materials separated by a sharp interface.
 
 In a multi-material approach, the various forms of the conservation equations can be solved for multiple material flows if the point-wise mass density $\rho$ in the equations is defined as the bulk density at each point.  If the flow comprises $n$ materials and the volume fraction of the $i^{th}$ material is denoted $\phi_i$ then the bulk density is given by:
@@ -734,14 +749,17 @@ The transport of the $i^{th}$ volume fraction is given by
 \end{equation}
 where the volume fraction field at time zero must be specified.
 
-\subsection{Multi-phase simulations}
+\subsection{Multiphase simulations}
 \label{sec:multiphase_equations}
-\index{multi-phase flow}
-Multi-phase flows are defined by \cite{prosperettiEtAl2007} to be flows in which two or more phases of matter (solid, liquid, gas, etc) are simultaneously present and are allowed to inter-penetrate. Simple examples include the flow of a fizzy drink which is composed of a liquid and a finite number of gas bubbles, the transportation of solid sediment particles in a river, and the flow of blood cells around the human body.
+\index{multiphase flow}
+Multiphase flows are defined by \cite{prosperettiEtAl2007} to be flows in which two or more phases of matter (solid, liquid, gas, etc) are simultaneously present and are allowed to inter-penetrate. Simple examples include the flow of a fizzy drink which is composed of a liquid and a finite number of gas bubbles, the transportation of solid sediment particles in a river, and the flow of blood cells around the human body.
 
 Further to the above definition, each phase is classed as either \textit{continuous} or \textit{dispersed}, where a continuous phase is a connected liquid or gas substance in which dispersed phases (comprising a finite number of solid particles, liquid droplets and/or gas bubbles) may be immersed \citep{croweEtAl1998}.
 
-To enable the mixing and inter-penetration of phases, a separate velocity field (and hence a separate momentum equation) is assigned to each one and solved for. Extra terms are then included to account for inter-phase interactions. Furthermore, the model currently assumes no mass transfer between phases, incompressible flow, and a common pressure field $p$ so that only one continuity equation is used. Thus, the continuity equation and momentum equation for phase $i$ (based on the derivation in \cite{ishii1975}, written in non-conservative form) are:
+To enable the mixing and inter-penetration of phases, a separate velocity field (and hence a separate momentum equation) is assigned to each one and solved for. Extra terms are then included to account for inter-phase interactions. Furthermore, the model currently assumes no mass transfer between phases, incompressible flow, and a common pressure field $p$ so that only one continuity equation is used. The form of the governing equations depends on whether we are dealing with incompressible or compressible flow.
+
+\subsubsection{Incompressible flow}
+For an incompressible multiphase flow, the continuity equation and momentum equation for phase $i$ (based on the derivation in \cite{ishii1975}, written in non-conservative form) are:
 \begin{equation}
 \sum_{i=1}^N\nabla\cdot\left(\alpha_i\mathbf{u}_i\right) = 0,
 \end{equation}
@@ -753,6 +771,19 @@ To enable the mixing and inter-penetration of phases, a separate velocity field 
 \mathbf{F}_i,
 \end{equation}
 where $\mathbf{u}_i$, $\rho_i$, $\mu_i$ and $\alpha_i$ are the velocity, density, isotropic viscosity and volume fraction of phase $i$ respectively, and $\mathbf{F}_i$ represents the forces imposed on phase $i$ by the other $N-1$ phases. Details of momentum transfer terms are given in Chapter \ref{chap:configuration}.
+
+\subsubsection{Compressible flow}
+Fluidity currently only supports the case where the continuous phase is compressible. All other phases (the dispersed phases) are incompressible. The momentum equation is the same as the one given above, but the continuity equation becomes:
+\begin{equation}
+\alpha_1\frac{\partial\rho_1}{\partial t} + \nabla\cdot\left(\alpha_1\rho_1\mathbf{u}_1\right) + \rho_1\left(\sum_{i=2}^N\nabla\cdot\left(\alpha_i\mathbf{u}_i\right)\right) = 0,
+\end{equation}
+where the compressible phase has an index of $i=1$ here.
+
+An internal energy equation may also need to be solved depending on the equation of state used for the compressible phase. This is given by:
+\begin{equation}
+\alpha_i\rho_i\frac{\partial e_i}{\partial t} + \alpha_i\rho_i\mathbf{u}_i\cdot\nabla e_i = -p\nabla\cdot\left(\alpha_i\mathbf{u}_i\right) + Q_i
+\end{equation}
+where $e_i$ is the internal energy and $Q_i$ is an inter-phase energy transfer term described in Chapter \ref{chap:configuration}.
 
 \subsection{Porous Media Darcy Flow}
 \label{sec:porous_media_darcy_flow_equations}

@@ -11,6 +11,11 @@ mpiexec -np 16 ../../bin/fluidity -v2 -l heat_flredecomp.flml </command_line>
     <!-- Two dimensional diffusion only problem. -->
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="tracer1_integral0" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("heat.stat")
@@ -53,6 +58,9 @@ tracer2_error = s["Water"]["VectorAbsoluteDifference%2"]["max"][-1]
     </variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="tracer1 integral is 1.0" language="python">
 assert abs(tracer1_integral - 1.0) &lt; 1e-6
     </test>

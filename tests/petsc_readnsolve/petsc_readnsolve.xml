@@ -5,7 +5,7 @@
   <tags> parallel </tags>
   <problem_definition length="short" nprocs="1">
     <command_line>echo 'velocity flredecomp'; mpiexec -n 3 ../../bin/flredecomp -i 1 -o 3 -v -l standing_wave_failing_velocity standing_wave_failing_velocity_flredecomp;
-echo 'velocity fluidity'; mpiexec -n 3 fluidity -v2 -l standing_wave_failing_velocity_flredecomp.flml;
+echo 'velocity fluidity'; mpiexec -n 3 fluidity -v2 standing_wave_failing_velocity_flredecomp.flml;
 echo 'velocity mv matrixdump'; mv matrixdump velocity_matrixdump;
 echo 'velocity mkdir'; mkdir -p velocity_logs;
 echo 'velocity mv logs'; mv fluidity.log* fluidity.err* velocity_logs/;

@@ -610,6 +610,9 @@ contains
           ! yes, we're subcycling
           ! we should have already calculated the courant number (or aborted in the attempt)
           no_subcycles=ceiling(max_cfl/max_sub_cfl)
+          if(include_diffusion.or.include_source.or.include_absorption) then
+            no_subcycles = max(no_subcycles, 1)
+          end if
           if(no_subcycles>1) then
             sub_dt=dt/real(no_subcycles)
             call scale(cfl_no, 1.0/real(no_subcycles))
@@ -1264,6 +1267,7 @@ contains
       ! memory for coordinates, velocity, normals, determinants, nodes
       ! and the cfl number at the gauss pts and nodes
       real, dimension(x%dim,ele_loc(x,1)) :: x_ele
+      real, dimension(x%dim,ele_loc(tfield,1)) :: xt_ele
       real, dimension(x%dim,face_loc(x,1)) :: x_ele_bdy
       real, dimension(x%dim,x_cvshape%ngi) :: x_f
       real, dimension(advu%dim,u_cvshape%ngi) :: u_f
@@ -1313,7 +1317,7 @@ contains
       ! the type of the bc if integrating over domain boundaries
       integer, dimension(:), allocatable :: tfield_bc_type, tdensity_bc_type
       ! fields for the bcs over the entire surface mesh
-      type(scalar_field) :: tfield_bc, tdensity_bc
+      type(scalar_field) :: tfield_bc, tfield_bc2, tdensity_bc
 
       ! local element matrices - allow the assembly of an entire face without multiple calls to csr_pos
       real, dimension(mesh_dim(tfield), ele_loc(tfield,1), ele_loc(tfield,1)) :: grad_mat_local
@@ -1322,6 +1326,11 @@ contains
       real, dimension(mesh_dim(tfield), face_loc(tfield,1)) :: grad_mat_local_bdy, grad_rhs_local_bdy
       real, dimension(face_loc(tfield,1)) :: mat_local_bdy, rhs_local_bdy, div_rhs_local_bdy
       real, dimension(ele_loc(tfield,1)) :: rhs_local
+      
+      ! Data associated with Robin BC's.
+      real, dimension(face_loc(tfield,1)) :: robin_diff_mat_local_bdy
+      real, dimension(face_loc(tfield,1)) :: robin_diff_rhs_local_bdy
+      real, dimension(face_loc(tfield,1)) :: robin_bc_val1_ele_bdy, robin_bc_val2_ele_bdy
 
       ! the auxilliary gradient matrix (assembled as a divergence confusingly)
       type(block_csr_matrix) :: div_m
@@ -1338,7 +1347,7 @@ contains
 
       ! Boundary condition types
       integer, parameter :: BC_TYPE_WEAKDIRICHLET = 1, BC_TYPE_NEUMANN = 2, BC_TYPE_INTERNAL = 3, &
-                            BC_TYPE_ZEROFLUX = 4, BC_TYPE_FLUX = 5
+                            BC_TYPE_ZEROFLUX = 4, BC_TYPE_FLUX = 5, BC_TYPE_ROBIN = 6
 
       ewrite(1, *) "In assemble_advectiondiffusion_m_cv"
 
@@ -1410,6 +1419,7 @@ contains
       ! loop over elements
       element_loop: do ele=1, element_count(tfield)
         x_ele=ele_val(x, ele)
+        xt_ele=ele_val(x_tfield, ele)
         x_f=ele_val_at_quad(x, ele, x_cvshape)
         nodes=>ele_nodes(tfield, ele)
         ! the nodes in this element from the coordinate mesh projected
@@ -1522,7 +1532,7 @@ contains
                                         tfield_face_val, &
                                         oldtfield_face_val, &
                                         tfield_options%theta, dt, udotn, &
-                                        x_ele, tfield_options%limit_theta, &
+                                        xt_ele, tfield_options%limit_theta, &
                                         tfield_ele, oldtfield_ele, &
                                         ftheta=ftheta)
 
@@ -1550,7 +1560,7 @@ contains
                                           tdensity_face_val, &
                                           oldtdensity_face_val, &
                                           tdensity_options%theta, dt, udotn, &
-                                          x_ele, tdensity_options%limit_theta, &
+                                          xt_ele, tdensity_options%limit_theta, &
                                           tdensity_ele, oldtdensity_ele)
 
                       if(assemble_advection_matrix) then
@@ -1682,7 +1692,8 @@ contains
         "neumann      ", &
         "internal     ", &
         "zero_flux    ", &
-        "flux         "/), tfield_bc, tfield_bc_type)
+        "flux         ", &
+        "robin        "/), tfield_bc, tfield_bc_type, boundary_second_value = tfield_bc2)
       if(include_density) then
         allocate(tdensity_bc_type(surface_element_count(tdensity)))
         call get_entire_boundary_condition(tdensity, (/"weakdirichlet"/), tdensity_bc, tdensity_bc_type)
@@ -1764,7 +1775,17 @@ contains
         end if
 
         if(assemble_diffusion) then
-          ghost_gradtfield_ele_bdy = ele_val(tfield_bc, sele)
+          if (tfield_bc_type(sele)==BC_TYPE_ROBIN) then
+             if (.not. tfield_options%diffusionscheme == CV_DIFFUSION_ELEMENTGRADIENT) then
+                FLExit('Can only use CV robin BC with ElementGradient diffusion scheme')
+             end if
+             robin_bc_val1_ele_bdy    = ele_val(tfield_bc, sele)
+             robin_bc_val2_ele_bdy    = ele_val(tfield_bc2, sele)
+             robin_diff_mat_local_bdy = 0.0
+             robin_diff_rhs_local_bdy = 0.0
+          else
+             ghost_gradtfield_ele_bdy = ele_val(tfield_bc, sele)
+           end if
         end if
 
         ! zero small matrices for assembly
@@ -1914,6 +1935,18 @@ contains
                       div_rhs_local_bdy(iloc) = div_rhs_local_bdy(iloc) &
                                   -detwei_bdy(ggi)*ghost_gradtfield_ele_bdy(iloc)
 
+                    else if (tfield_bc_type(sele)==BC_TYPE_ROBIN) then
+                        
+                        ! Add first coeff term to rhs
+                        robin_diff_rhs_local_bdy(iloc) = robin_diff_rhs_local_bdy(iloc) - &
+                                                         detwei_bdy(ggi) * &
+                                                         robin_bc_val1_ele_bdy(iloc)
+                                                
+                        ! Add implicit second coeff * tfield term to matrix
+                        robin_diff_mat_local_bdy(iloc) = robin_diff_mat_local_bdy(iloc) + &
+                                                         detwei_bdy(ggi) * &
+                                                         robin_bc_val2_ele_bdy(iloc)
+                    
                     else
 
                       ! because transform to physical doesn't give the full gradient at a face
@@ -1972,6 +2005,12 @@ contains
 
               call addto(diff_rhs, nodes_bdy, div_rhs_local_bdy)
 
+            else if (tfield_bc_type(sele)==BC_TYPE_ROBIN) then
+              
+               call addto(diff_rhs, nodes_bdy, robin_diff_rhs_local_bdy)
+               
+               call addto_diag(D_m, nodes_bdy, robin_diff_mat_local_bdy)
+              
             else
 
             !    assume zero neumann for the moment
@@ -2003,6 +2042,7 @@ contains
 
       deallocate(tfield_bc_type)
       call deallocate(tfield_bc)
+      call deallocate(tfield_bc2)
       call deallocate(tfield_upwind)
       call deallocate(oldtfield_upwind)
       if(include_density) then

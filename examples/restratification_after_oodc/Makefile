@@ -29,7 +29,7 @@ postprocess:
 	@echo **********No postprocessing needed
 
 input: clean
-	$(MAKE) preprocess
+	$(MAKE) preprocess NPROCS=32
 
 clean:
 	@echo **********Cleaning the output from previous fluidity runs:

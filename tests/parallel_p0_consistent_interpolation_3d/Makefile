@@ -14,4 +14,6 @@ clean-mesh:
 	rm -f $(MESH)_?*.face $(MESH)_?*.ele $(MESH)_?*.node $(MESH)_?*.halo
 	rm -f src/$(MESH)*.msh
 clean-run:
-	rm -f $(FLMLMODEL)_?*.pvtu $(FLMLMODEL)_?*_?*.vtu $(FLMLMODEL).stat fluidity.err-* fluidity.log-* *flredecomp*
+	rm -f $(FLMLMODEL)_?*.pvtu $(FLMLMODEL)_?*_?*.vtu $(FLMLMODEL).stat fluidity.err-* fluidity.log-* \
+	matrixdump matrixdump.info
+	rm -rf *flredecomp*

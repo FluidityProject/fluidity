@@ -8,6 +8,11 @@
 mpiexec -n 2 ../../bin/fluidity -v2 -l square-convection_flredecomp.flml</command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name = "time" language = "python">
 import fluidity_tools
 s = fluidity_tools.stat_parser("square-convection.stat")
@@ -15,6 +20,9 @@ time = s["ElapsedTime"]["value"][-1]
     </variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
 <!--Crash tests-->
     <test name = "Simulation completed" language = "python">
 import fluidity_tools

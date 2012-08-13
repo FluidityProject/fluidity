@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<testproblem>
+  
+  <!-- A 2D compressible multiphase flow simulation of the shock tube experiment by Rogue et al. (1998). -->
+  <!-- Compared with typical single-phase shock tube problems, the key difference in this setup is the inclusion of -->
+  <!-- a 2cm packed bed of glass particles with a volume fraction of 0.65. When the incident shock wave hits the bed, -->
+  <!-- part of the shock is reflected back and detected by the upstream pressure gauge while the other part of the shock -->
+  <!-- is transmitted through the packed bed. -->
+  
+  <name>mphase_rogue_shock_tube_dense_bed_glass</name>
+  <owner userid="ctj10"/>
+  <tags>flml</tags>
+  
+  <problem_definition length="medium" nprocs="1">
+    <command_line>make run</command_line>
+  </problem_definition>
+  
+  <variables>
+     <!-- Note: this the the time after the incident shock wave hits the particle bed. -->
+    <variable name="time" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_rogue_shock_tube_dense_bed_glass.stat")
+time=s["ElapsedTime"]["value"]
+
+for i in range(0, len(time)):
+  time[i] = time[i] - 0.0008
+    </variable>
+    
+    <variable name="positions" language="python">
+import vtktools
+
+file = vtktools.vtu('mphase_rogue_shock_tube_dense_bed_glass_1.vtu')
+file.GetFieldNames()
+p = file.GetLocations()
+positions = p[:,1]
+    </variable>
+    
+  </variables>
+    
+  <pass_tests>
+    <test name="Solvers have converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+assert solvers_converged
+    </test>
+    
+    <!-- Remember to offset the times in this pass_test. Here we want to check that the -->
+    <!-- simulation finish time is 0.002 seconds, not the time after the shock wave hits the particle bed. -->
+    <test name="Finish time is 0.002 seconds" language="python">
+assert (time[-1] + 0.0008 &gt;= 0.002)
+assert (time[-1] + 0.0008 &lt; (0.002 + 7.5e-6))
+    </test>    
+
+    <!-- Remember to exclude t = 0 for this pass_test, because the Pressure will be zero initially. -->
+    <!-- Also, we don't analyse every dump here. Otherwise this check will take ages! -->
+    <test name="Pressure is 100,000 Pa at the upstream pressure guage for t in [-0.001, -0.0005]" language="python">
+import vtktools
+import numpy
+
+for i in range(1, len(time), 2):
+   filename='mphase_rogue_shock_tube_dense_bed_glass_' + str(i) + '.vtu'
+   vt=vtktools.vtu(filename)
+   
+   if(time[i] &lt; -0.0005):
+      probedpressure_upstream = vtktools.vtu.ProbeData(vt, numpy.array([[0.0125, 1.35 - 0.11, 0]]), 'Gas::Pressure')
+      assert abs(probedpressure_upstream - 100000) &lt; 1.0e-2
+   else:
+      break
+    </test>
+
+    <test name="Pressure is between 100,000 Pa and 183,000 Pa at the upstream pressure guage for t in [-0.0005, 0.0001]" language="python">
+import vtktools
+import numpy
+
+for i in range(1, len(time), 2):
+   filename='mphase_rogue_shock_tube_dense_bed_glass_' + str(i) + '.vtu'
+   vt=vtktools.vtu(filename)
+   
+   if(time[i] &gt; -0.0005 and time[i] &lt; 0.0001):
+      probedpressure_upstream = vtktools.vtu.ProbeData(vt, numpy.array([[0.0125, 1.35 - 0.11, 0]]), 'Gas::Pressure')
+      assert abs(probedpressure_upstream) &lt; 190000
+      assert abs(probedpressure_upstream) &gt; 100000
+   else:
+      if(time[i] &gt; 0.0001):
+         break
+    </test>
+
+    <test name="Pressure is between 320,000 Pa and 123,000 Pa at the upstream pressure guage for t in [0.0005, 0.008]" language="python">
+import vtktools
+import numpy
+
+for i in range(1, len(time), 10):
+   filename='mphase_rogue_shock_tube_dense_bed_glass_' + str(i) + '.vtu'
+   vt=vtktools.vtu(filename)
+   
+   if(time[i] &gt; 0.0005 and time[i] &lt; 0.008):
+      probedpressure_upstream = vtktools.vtu.ProbeData(vt, numpy.array([[0.0125, 1.35 - 0.11, 0]]), 'Gas::Pressure')
+      assert abs(probedpressure_upstream) &lt; 320000
+      assert abs(probedpressure_upstream) &gt; 123000
+    </test>
+  </pass_tests>
+  
+  <warn_tests>
+  </warn_tests>
+  
+</testproblem>

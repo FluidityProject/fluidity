@@ -9,6 +9,11 @@
       <command_line>mpiexec -n 2 ../../bin/fluidity backward_facing_step_2d_flredecomp.flml</command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="FinalTime" language="python">
 import fluidity_tools
 FinalTime = fluidity_tools.stat_parser("backward_facing_step_2d.stat")['ElapsedTime']['value'][-1]
@@ -36,6 +41,9 @@ FinalNodeCountSam = fluidity_tools.stat_parser("backward_facing_step_2d_sam.stat
 
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
 <!-- 
      On the same machine the first two tests should be nearly exact. Because buildbot is not the machine
      where the Sam tests were run, the output might well be a bit different. Therefore using % error even on the
