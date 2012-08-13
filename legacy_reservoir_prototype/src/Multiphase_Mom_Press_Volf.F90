@@ -565,7 +565,7 @@ print *, u(1+u_nonods:2*u_nonods)
 !stop 777
 
 
-!if (.false.) &
+if (.true.) &
           CALL VOLFRA_ASSEM_SOLVE( &
                NCOLACV, FINACV, COLACV, MIDACV, &
                NCOLCT, FINDCT, COLCT, &

@@ -771,6 +771,15 @@
                IF( NDIM >= 3 ) CV_RHS( CV_INOD ) = CV_RHS( CV_INOD ) + CT( COUNT + &
                     2 * NCOLCT + NCOLCT * NDIM * ( IPHASE-  1 )) * W( J )
 
+               !if (cv_inod==6 .and. iphase==2) &
+               !     print *, 'YYYYY', cv_inod, u_jnod, j, iphase, CT( COUNT + NCOLCT * NDIM * ( IPHASE - 1 )) * U( J ), &
+               !     CT( COUNT + NCOLCT + NCOLCT     * NDIM * ( IPHASE - 1 )) * V( J ), CT( COUNT + NCOLCT * NDIM * ( IPHASE - 1 )), U( J ), V( J )
+   
+               if (cv_inod==6 .and. iphase==2)  then
+                    print *, 'YYYYY', cv_inod, u_jnod, j
+                    print *,    CT( COUNT + NCOLCT * NDIM * ( IPHASE - 1 )) ,U( J )   ,    CT( COUNT + NCOLCT + NCOLCT     * NDIM * ( IPHASE - 1 )) , V( J )
+                 end if
+
             END DO
 
          END DO

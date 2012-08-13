@@ -321,6 +321,7 @@
            SUM, &
            SUM_LIMT, SUM_LIMTOLD, FTHETA_T2, ONE_M_FTHETA_T2OLD, THERM_FTHETA, &
            W_SUM_ONE1, W_SUM_ONE2
+      real :: vel_int_u,vel_int_v,vel_int_w,ndot_vel_int,racc_6row2ph
 
       REAL, PARAMETER :: W_SUM_ONE = 1.
       ! second_theta=0.
@@ -328,7 +329,7 @@
       REAL, PARAMETER :: SECOND_THETA = 0.
 
 
-      integer :: x_nod1,x_nod2,x_nod3,cv_inod_ipha, IGETCT
+      integer :: x_nod1,x_nod2,x_nod3,cv_inod_ipha, IGETCT, U_NODK_IPHA
       real :: x_mean,y_mean
       ! Functions...
       !REAL :: R2NORM,FACE_THETA  
@@ -339,7 +340,15 @@
 
       CHARACTER(LEN=OPTION_PATH_LEN) :: OPTION_PATH
 
+      real, dimension(u_nonods*nphase):: mat_kloc_u, mat_kloc_v
+      integer :: i
+
+      mat_kloc_u=0.
+      mat_kloc_v=0.
+
+
       ewrite(3,*) 'In CV_ASSEMB'
+      racc_6row2ph=0.0
 
       ewrite(3,*) 'CV_P', CV_P
       ewrite(3,*) 'DEN', DEN
@@ -1130,6 +1139,33 @@
                              -  SCVDETWEI( GI ) * ( FTHETA_T2 * NDOTQ * LIMDT &
                              + ONE_M_FTHETA_T2OLD * NDOTQOLD * LIMDTOLD ) ! hi order adv
 
+
+                        if(cv_nodi==6) then
+                           vel_int_u=0.0
+                           vel_int_v=0.0
+                           vel_int_w=0.0
+                           DO U_KLOC = 1, U_NLOC
+                              U_NODK_IPHA  = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC ) +(IPHASE-1)*U_NONODS
+                              vel_int_u=vel_int_u + SUFEN( U_KLOC, GI )*UGI_COEF_ELE( U_KLOC) *nu(U_NODK_IPHA )
+                              if(ndim.ge.2) vel_int_v=vel_int_v + SUFEN( U_KLOC, GI )*vGI_COEF_ELE( U_KLOC) *nv(U_NODK_IPHA )
+                              if(ndim.ge.3) vel_int_w=vel_int_w + SUFEN( U_KLOC, GI )*wGI_COEF_ELE( U_KLOC) *nw(U_NODK_IPHA )
+                           
+                              mat_kloc_u(u_nodk_ipha)= mat_kloc_u(u_nodk_ipha) + SUFEN( U_KLOC, GI )*UGI_COEF_ELE( U_KLOC) *SCVDETWEI( GI )*CVNORMX( GI ) *limdt
+                              mat_kloc_v( u_nodk_ipha  )= mat_kloc_v(u_nodk_ipha) + SUFEN( U_KLOC, GI )*vGI_COEF_ELE( U_KLOC) *SCVDETWEI( GI )*CVNORMy( GI ) *limdt
+                           end do
+                           ndot_vel_int=CVNORMX( GI )*vel_int_u+CVNORMy( GI )*vel_int_v+ CVNORMz( GI )*vel_int_w
+                           print *,'ele,iphase,CV_NODI_IPHA,gi,SECOND_THETA,SCVDETWEI( GI ):', &
+                                ele,iphase,CV_NODI_IPHA,gi,SECOND_THETA,SCVDETWEI( GI )
+                           print *,'FTHETA_T2, NDOTQ,ndot_vel_int, LIMDT:',FTHETA_T2, NDOTQ,ndot_vel_int, LIMDT
+
+
+          
+
+                           if(iphase==2) then
+                              racc_6row2ph=racc_6row2ph+ ndotq*SCVDETWEI( GI )* LIMDT
+                           endif
+                        endif
+
                         !  Subtract out 1st order term non-conservative adv.
                         CV_RHS( CV_NODI_IPHA ) =  CV_RHS( CV_NODI_IPHA ) &
                              - FTHETA_T2 * ( 1. - CV_BETA ) * SCVDETWEI( GI ) * NDOTQ * LIMD * TMID
@@ -1186,6 +1222,18 @@
       END DO Loop_Elements
       !stop 123
 
+     
+
+                              do i=1, u_nonods*nphase
+                                 if   (mat_kloc_u(i)   /=0.  .or. mat_kloc_v(i)/=0. ) then
+                                    print *, 'XXXXX_U::', i, mat_kloc_u(i), nu(i)
+                                    print *, 'XXXXX_V::', i, mat_kloc_v(i), nv(i)
+                                 end if
+                              end do
+
+
+
+
       IF(GET_GTHETA) THEN
          DO CV_NODI = 1, CV_NONODS
             DO IPHASE = 1, NPHASE    
@@ -1201,6 +1249,12 @@
          !ewrite(3,*)'before adding extra bits*****DENOLD:',DENOLD
          !ewrite(3,*)'before adding extra bits*****TOLD:',TOLD
          !ewrite(3,*)'before adding extra bits*****MEAN_PORE_CV:',MEAN_PORE_CV
+          print *,'CV_RHS(1:cv_nonods):',CV_RHS(1:cv_nonods)
+          print *,'CV_RHS(1+cv_nonods:2*cv_nonods):',CV_RHS(1+cv_nonods:2*cv_nonods)
+!           print *,'t   =',t
+!           print *,'told=',told
+          print *,'racc_6row2ph=',racc_6row2ph
+stop 777
 
          !sourct2( 1 : cv_nonods ) = -.0 !-981. * ( 1.05 - .71 )
          !sourct2( cv_nonods + 1 : cv_nonods * nphase ) = -0.!-10.0e-1 !-981. * ( 1.05 - .71 )
@@ -4180,7 +4234,7 @@ print *, 'AAAAAAAAAAAAAAAAAAAAA', NDOTQ, NDOTQOLD
                     ABS_CV_NODI_IPHA, ABS_CV_NODJ_IPHA, &
                     GRAD_ABS_CV_NODI_IPHA, GRAD_ABS_CV_NODJ_IPHA,CONSERV,MAX_OPER,SAT_BASED)
 
-               if (.true.) then
+               if (.true.) then ! Chris look at this...
 
                   IF(0.5*(NDOTQ+NDOTQ2) < 0.0) THEN
                      INCOME3=1.0

@@ -1036,6 +1036,16 @@ print *, Satura(1+cv_nonods:2*cv_nonods)
          end if
       END IF
 
+
+print *, '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@'
+      P_RHS=0.
+      CALL CT_MULT(P_RHS, DU, DV, DW, CV_NONODS, U_NONODS, NDIM, NPHASE, &
+           CT, NCOLCT, FINDCT, COLCT)
+      !stop 87666
+print *, '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@'
+
+
+
       DEALLOCATE( ACV )
       DEALLOCATE( CT )
       DEALLOCATE( CT_RHS )
