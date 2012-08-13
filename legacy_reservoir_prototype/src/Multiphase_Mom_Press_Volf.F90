@@ -557,6 +557,15 @@ contains
           NVOLD = VOLD
           NWOLD = WOLD
 
+
+print *,' 1st phase'
+print *, u(1:u_nonods)
+print *,' 2nd phase'
+print *, u(1+u_nonods:2*u_nonods)
+!stop 777
+
+
+!if (.false.) &
           CALL VOLFRA_ASSEM_SOLVE( &
                NCOLACV, FINACV, COLACV, MIDACV, &
                NCOLCT, FINDCT, COLCT, &

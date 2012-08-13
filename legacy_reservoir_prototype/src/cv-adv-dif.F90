@@ -319,9 +319,14 @@
            TMID, TOLDMID, &
            DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX, BCZERO, ROBIN1, ROBIN2, &
            SUM, &
-           SUM_LIMT, SUM_LIMTOLD, FTHETA_T2, ONE_M_FTHETA_T2OLD, THERM_FTHETA
+           SUM_LIMT, SUM_LIMTOLD, FTHETA_T2, ONE_M_FTHETA_T2OLD, THERM_FTHETA, &
+           W_SUM_ONE1, W_SUM_ONE2
 
-      REAL, PARAMETER :: W_SUM_ONE = 0.
+      REAL, PARAMETER :: W_SUM_ONE = 1.
+      ! second_theta=0.
+      ! second_theta=1. orginal implicit method
+      REAL, PARAMETER :: SECOND_THETA = 0.
+
 
       integer :: x_nod1,x_nod2,x_nod3,cv_inod_ipha, IGETCT
       real :: x_mean,y_mean
@@ -336,10 +341,16 @@
 
       ewrite(3,*) 'In CV_ASSEMB'
 
-      !ewrite(3,*) 'CV_P', CV_P
-      !ewrite(3,*) 'DEN', DEN
-      !ewrite(3,*) 'DENOLD', DENOLD
-      !ewrite(3,*) 'MEAN_PORE_CV', MEAN_PORE_CV
+      ewrite(3,*) 'CV_P', CV_P
+      ewrite(3,*) 'DEN', DEN
+      ewrite(3,*) 'DENOLD', DENOLD
+      ewrite(3,*) 'MEAN_PORE_CV', MEAN_PORE_CV
+
+      ewrite(3,*) 'SUF_T_BC_p1', SUF_T_BC(1:STOTEL*CV_SNLOC)
+      ewrite(3,*) 'SUF_T_BC_P2', SUF_T_BC(1+STOTEL*CV_SNLOC:2*STOTEL*CV_SNLOC)
+
+      ewrite(3,*) 'WIC_T_BC_p1', WIC_T_BC(1:STOTEL)
+      ewrite(3,*) 'WIC_T_BC_P2', WIC_T_BC(1+STOTEL:2*STOTEL)
 
       option_path='/material_phase[0]/scalar_field::PhaseVolumeFraction/' // &
            'prognostic/spatial_discretisation/control_volumes/face_value/' // &
@@ -648,7 +659,7 @@
            T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD, &
            DENMIN_NOD, DENMAX_NOD, DENOLDMIN_NOD, DENOLDMAX_NOD )
 
-      ALLOCATE( FACE_ELE( NFACE, TOTELE ))
+      ALLOCATE( FACE_ELE( NFACE, TOTELE )) ; FACE_ELE = 0
       ! Calculate FACE_ELE
       CALL CALC_FACE_ELE( FACE_ELE, TOTELE, STOTEL, NFACE, &
            NCOLELE, FINELE, COLELE, CV_NLOC, CV_SNLOC, CV_NONODS, CV_NDGLN, CV_SNDGLN, &
@@ -675,7 +686,7 @@
       ! Timopt is 1 if CV_DISOPT is odd (non-linear theta scheme) 
       TIMOPT = MOD( CV_DISOPT, 2 )
 
-      VTHETA = 1.0    
+      VTHETA = 1.0
       FTHETA = CV_THETA    
 
       IF( GETCT ) THEN ! Obtain the CV discretised CT eqns plus RHS       
@@ -791,11 +802,11 @@
                   X_NODI = X_NDGLN(( ELE - 1 ) * X_NLOC  + CV_ILOC )
 
                   Conditional_GETCT1: IF( GETCT ) THEN ! Obtain the CV discretised CT equations plus RHS
-                     !ewrite(3,*)'==================================================================='
-                     !ewrite(3,*)'CV_NODI, CV_NODJ, ELE, ELE2, GI:', CV_NODI, CV_NODJ, ELE, ELE2, GI
-                     !ewrite(3,*)'findct:',FINDCT( CV_NODI ), FINDCT( CV_NODI + 1 ) - 1
-                     !ewrite(3,*)'colct:',colct( FINDCT( CV_NODI ) : FINDCT( CV_NODI + 1 ) - 1 )
-                     !ewrite(3,*)'SCVDETWEI:', SCVDETWEI(GI)
+                     ewrite(3,*)'==================================================================='
+                     ewrite(3,*)'CV_NODI, CV_NODJ, ELE, ELE2, GI:', CV_NODI, CV_NODJ, ELE, ELE2, GI
+                     ewrite(3,*)'findct:',FINDCT( CV_NODI ), FINDCT( CV_NODI + 1 ) - 1
+                     ewrite(3,*)'colct:',colct( FINDCT( CV_NODI ) : FINDCT( CV_NODI + 1 ) - 1 )
+                     ewrite(3,*)'SCVDETWEI:', SCVDETWEI(GI)
 
                      DO U_KLOC = 1, U_NLOC
                         U_NODK = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC )
@@ -1017,7 +1028,7 @@
                      ENDIF
 
                      !ewrite(3,*) 'IGOT_THETA_FLUX,GET_THETA_FLUX,USE_THETA_FLUX:', &
-                     !IGOT_THETA_FLUX,GET_THETA_FLUX,USE_THETA_FLUX
+                     !     IGOT_THETA_FLUX,GET_THETA_FLUX,USE_THETA_FLUX
                      !ewrite(3,*) 'FTHETA_T2,ONE_M_FTHETA_T2OLD:',FTHETA_T2,ONE_M_FTHETA_T2OLD
                      !stop 2821
 
@@ -1062,12 +1073,12 @@
                            ! - Calculate the integration of the limited, high-order flux over a face  
                            ! Conservative discretisation. The matrix (PIVOT ON LOW ORDER SOLN)
                            IF( ( CV_NODI_IPHA /= CV_NODJ_IPHA ) .AND. ( CV_NODJ_IPHA /= 0 ) ) THEN
-                              DO COUNT = FINACV( CV_NODI_IPHA ), FINACV( CV_NODI_IPHA + 1 ) - 1, 1
+                              DO COUNT = FINACV( CV_NODI_IPHA ), FINACV( CV_NODI_IPHA + 1 ) - 1
                                  IF( COLACV( COUNT ) == CV_NODJ_IPHA )  JCOUNT_IPHA = COUNT
                               END DO
 
                               ACV( JCOUNT_IPHA ) =  ACV( JCOUNT_IPHA ) &
-                                   + FTHETA_T2 * SCVDETWEI( GI ) * NDOTQ * INCOME * LIMD  & ! advection
+                                   + SECOND_THETA * FTHETA_T2 * SCVDETWEI( GI ) * NDOTQ * INCOME * LIMD  & ! advection
                                    - FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX ! Diffusion contribution
                               IF(GET_GTHETA) THEN
                                  THETA_GDIFF( CV_NODI_IPHA ) =  THETA_GDIFF( CV_NODI_IPHA ) &
@@ -1089,7 +1100,7 @@
                            IMID_IPHA = MIDACV( CV_NODI_IPHA )
 
                            ACV( IMID_IPHA ) =  ACV( IMID_IPHA ) &
-                                +  FTHETA_T2 * SCVDETWEI( GI ) * NDOTQ * ( 1. - INCOME ) * LIMD  & ! advection
+                                +  SECOND_THETA * FTHETA_T2 * SCVDETWEI( GI ) * NDOTQ * ( 1. - INCOME ) * LIMD  & ! advection
                                 +  FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX  &  ! Diffusion contribution
                                 +  SCVDETWEI( GI ) * ROBIN1  ! Robin bc
                            IF(GET_GTHETA) THEN
@@ -1100,7 +1111,7 @@
 
                            ! CV_BETA=0 for Non-conservative discretisation (CV_BETA=1 for conservative disc)
                            ACV( IMID_IPHA ) =  ACV( IMID_IPHA )  &
-                                - FTHETA_T2 * ( 1. - CV_BETA ) * SCVDETWEI( GI ) * NDOTQ * LIMD 
+                                - SECOND_THETA * FTHETA_T2 * ( 1. - CV_BETA ) * SCVDETWEI( GI ) * NDOTQ * LIMD 
                         ENDIF
 
                         TMID   =     T( CV_NODI_IPHA )
@@ -1110,10 +1121,12 @@
                         BCZERO=1.0
                         IF( (SELE /= 0) .AND. (INCOME > 0.5) ) BCZERO=0.0
 
+                        !print *, 'ZZZZZZ::', 'CV_NODI_IPHA, GI, NDOTQ:', CV_NODI_IPHA, GI, NDOTQ
+
                         ! Put results into the RHS vector
                         CV_RHS( CV_NODI_IPHA ) =  CV_RHS( CV_NODI_IPHA )  &
                              ! subtract 1st order adv. soln.
-                             + FTHETA_T2 * NDOTQ * SCVDETWEI( GI ) * LIMD * FVT * BCZERO & 
+                             + SECOND_THETA * FTHETA_T2 * NDOTQ * SCVDETWEI( GI ) * LIMD * FVT * BCZERO & 
                              -  SCVDETWEI( GI ) * ( FTHETA_T2 * NDOTQ * LIMDT &
                              + ONE_M_FTHETA_T2OLD * NDOTQOLD * LIMDTOLD ) ! hi order adv
 
@@ -1191,6 +1204,7 @@
 
          !sourct2( 1 : cv_nonods ) = -.0 !-981. * ( 1.05 - .71 )
          !sourct2( cv_nonods + 1 : cv_nonods * nphase ) = -0.!-10.0e-1 !-981. * ( 1.05 - .71 )
+         ! CV_RHS( 1+cv_nonods:2*cv_nonods)=0.0 
 
          Loop_CVNODI2: DO CV_NODI = 1, CV_NONODS ! Put onto the diagonal of the matrix 
 
@@ -1203,13 +1217,13 @@
 
                IF(IGOT_T2==1) THEN
                   CV_RHS( CV_NODI_IPHA ) = CV_RHS( CV_NODI_IPHA ) &
-                       + MASS_CV(CV_NODI) * SOURCT(CV_NODI_IPHA) 
-!                       - CV_BETA * MEAN_PORE_CV(CV_NODI) * MASS_CV(CV_NODI) & ! conservative time term. 
-!                       * TOLD(CV_NODI_IPHA)  &
-!                       * (DEN(CV_NODI_IPHA) * T2(CV_NODI_IPHA) - DENOLD(CV_NODI_IPHA) * T2OLD(CV_NODI_IPHA)) / DT
+                       + MASS_CV(CV_NODI) * SOURCT(CV_NODI_IPHA) !&
+                  !- CV_BETA * MEAN_PORE_CV(CV_NODI) * MASS_CV(CV_NODI) & ! conservative time term. 
+                  !* TOLD(CV_NODI_IPHA)  &
+                  !* (DEN(CV_NODI_IPHA) * T2(CV_NODI_IPHA) - DENOLD(CV_NODI_IPHA) * T2OLD(CV_NODI_IPHA)) / DT
 
                   ACV( IMID_IPHA ) =  ACV( IMID_IPHA ) &
-!                       + (CV_BETA * DENOLD(CV_NODI_IPHA) * T2OLD(CV_NODI_IPHA) &
+                       !+ (CV_BETA * DENOLD(CV_NODI_IPHA) * T2OLD(CV_NODI_IPHA) &
                        + (CV_BETA * DEN(CV_NODI_IPHA) * T2(CV_NODI_IPHA) &
                        + (1.-CV_BETA) * DEN(CV_NODI_IPHA) * T2(CV_NODI_IPHA))  &
                        * MEAN_PORE_CV(CV_NODI) * MASS_CV(CV_NODI) / DT
@@ -1219,14 +1233,21 @@
                        + (1.-CV_BETA) * DEN(CV_NODI_IPHA) * T2(CV_NODI_IPHA))  &
                        * MEAN_PORE_CV(CV_NODI) * MASS_CV(CV_NODI) * TOLD(CV_NODI_IPHA) / DT
                ELSE
+
+                  ! NOTE: We should only have bc contributions at this stage...'
+                  ewrite(3,*)'*********:', CV_NODI_IPHA, CV_RHS( CV_NODI_IPHA )
+
+
                   CV_RHS( CV_NODI_IPHA ) = CV_RHS( CV_NODI_IPHA ) &
-                       + MASS_CV(CV_NODI) * SOURCT(CV_NODI_IPHA) 
- !                      - CV_BETA * MEAN_PORE_CV( CV_NODI ) * MASS_CV( CV_NODI ) & ! conservative time term. 
- !                      * TOLD(CV_NODI_IPHA) * (DEN(CV_NODI_IPHA) - DENOLD(CV_NODI_IPHA)) / DT
+                       + MASS_CV(CV_NODI) * SOURCT(CV_NODI_IPHA) !&
+                  !- CV_BETA * MEAN_PORE_CV( CV_NODI ) * MASS_CV( CV_NODI ) & ! conservative time term. 
+                  !* TOLD(CV_NODI_IPHA) &
+                  !* (DEN(CV_NODI_IPHA) - DENOLD(CV_NODI_IPHA)) / DT
 
                   ACV( IMID_IPHA ) =  ACV( IMID_IPHA ) &
- !                      + (CV_BETA * DENOLD(CV_NODI_IPHA) + (1.-CV_BETA) * DEN(CV_NODI_IPHA))  &
-                       + (CV_BETA * DEN(CV_NODI_IPHA) + (1.-CV_BETA) * DEN(CV_NODI_IPHA))  &
+                       !+ (CV_BETA * DENOLD(CV_NODI_IPHA) + (1.-CV_BETA) * DEN(CV_NODI_IPHA))  &
+                       + (CV_BETA * DEN(CV_NODI_IPHA) &
+                       + (1.-CV_BETA) * DEN(CV_NODI_IPHA))  &
                        * MEAN_PORE_CV(CV_NODI) * MASS_CV(CV_NODI) / DT
 
                   CV_RHS( CV_NODI_IPHA ) = CV_RHS( CV_NODI_IPHA ) &
@@ -1264,27 +1285,49 @@
                ewrite(3,*) 'MEAN_PORE_CV( CV_NODI ) , TOLD( CV_NODI_IPHA ) , DERIV( CV_NODI_IPHA ), DT , DENOLD( CV_NODI_IPHA )', &
                     MEAN_PORE_CV( CV_NODI ) , TOLD( CV_NODI_IPHA ) , DERIV( CV_NODI_IPHA ), DT , DENOLD( CV_NODI_IPHA )
 
-!!$               CT_RHS( CV_NODI ) = CT_RHS( CV_NODI )  -  MEAN_PORE_CV( CV_NODI ) * MASS_CV( CV_NODI ) &
-!!$                    * TOLD( CV_NODI_IPHA ) * ( DEN( CV_NODI_IPHA ) - DENOLD( CV_NODI_IPHA )  &
-!!$                    - DERIV( CV_NODI_IPHA ) * CV_P( CV_NODI ) ) / ( DT * DENOLD( CV_NODI_IPHA ) )   
-!!$
-!!$               DIAG_SCALE_PRES( CV_NODI ) = DIAG_SCALE_PRES( CV_NODI ) + &
-!!$                    MEAN_PORE_CV( CV_NODI ) * TOLD( CV_NODI_IPHA ) * DERIV( CV_NODI_IPHA )  &
-!!$                    / ( DT * DENOLD( CV_NODI_IPHA ) )
 
+               if(.false.) then
+                  CT_RHS( CV_NODI ) = CT_RHS( CV_NODI )  -  MEAN_PORE_CV( CV_NODI ) * MASS_CV( CV_NODI ) &
+                       * TOLD( CV_NODI_IPHA ) * ( DEN( CV_NODI_IPHA ) - DENOLD( CV_NODI_IPHA )  &
+                       - DERIV( CV_NODI_IPHA ) * CV_P( CV_NODI ) ) / ( DT * DENOLD( CV_NODI_IPHA ) )   
 
-               CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) - MASS_CV( CV_NODI ) * ( &
-                    (1.0-W_SUM_ONE) * MEAN_PORE_CV( CV_NODI ) * T( CV_NODI_IPHA ) / DT - &
-                    MEAN_PORE_CV( CV_NODI ) *  TOLD( CV_NODI_IPHA ) * DENOLD( CV_NODI_IPHA ) / ( DT * DEN( CV_NODI_IPHA ) ) - &
-                    MEAN_PORE_CV( CV_NODI ) * DERIV( CV_NODI_IPHA ) * CV_P( CV_NODI ) * T( CV_NODI_IPHA ) / ( DT * DEN( CV_NODI_IPHA ) )&
-                    )
-           IF(IPHASE==1) THEN ! Add constraint to force sum of volume fracts to be unity... 
-              ! W_SUM_ONE==1 applies the constraint
-              ! W_SUM_ONE==0 does NOT apply the constraint
-              CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) - MASS_CV( CV_NODI ) *   &
-                   W_SUM_ONE * MEAN_PORE_CV( CV_NODI )  / DT
-           ENDIF
-               
+                  DIAG_SCALE_PRES( CV_NODI ) = DIAG_SCALE_PRES( CV_NODI ) + &
+                       MEAN_PORE_CV( CV_NODI ) * TOLD( CV_NODI_IPHA ) * DERIV( CV_NODI_IPHA )  &
+                       / ( DT * DENOLD( CV_NODI_IPHA ) )
+               end if
+
+               if(.false.) then
+
+                  CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) - MASS_CV( CV_NODI ) * ( &
+                       (1.0-W_SUM_ONE) * MEAN_PORE_CV( CV_NODI ) * T( CV_NODI_IPHA ) / DT - &
+                       MEAN_PORE_CV( CV_NODI ) *  TOLD( CV_NODI_IPHA ) * DENOLD( CV_NODI_IPHA ) / ( DT * DEN( CV_NODI_IPHA ) ) - &
+                       MEAN_PORE_CV( CV_NODI ) * DERIV( CV_NODI_IPHA ) * CV_P( CV_NODI ) * T( CV_NODI_IPHA ) / ( DT * DEN( CV_NODI_IPHA ) )&
+                       )
+                  IF(IPHASE==1) THEN ! Add constraint to force sum of volume fracts to be unity... 
+                     ! W_SUM_ONE==1 applies the constraint
+                     ! W_SUM_ONE==0 does NOT apply the constraint
+                     CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) - MASS_CV( CV_NODI ) *   &
+                          W_SUM_ONE * MEAN_PORE_CV( CV_NODI )  / DT
+                  ENDIF
+               else
+                  W_SUM_ONE1 = 1.0 !=1 Applies constraint to T
+                  W_SUM_ONE2 = 1.0 !=1 Applies constraint to Told 
+                  ! the original working code used W_SUM_ONE1 = 1, W_SUM_ONE2 = 1
+
+                  CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) - MASS_CV( CV_NODI ) * MEAN_PORE_CV( CV_NODI ) *( &
+                       (1.0-W_SUM_ONE1) *  T( CV_NODI_IPHA ) / DT &
+                       -(1.0-W_SUM_ONE2) *  TOLD( CV_NODI_IPHA ) / DT  &
+                       +TOLD( CV_NODI_IPHA ) * (DEN( CV_NODI_IPHA )-DENOLD( CV_NODI_IPHA )) / ( DT * DEN( CV_NODI_IPHA ) ) - &
+                       DERIV( CV_NODI_IPHA ) * CV_P( CV_NODI ) * T( CV_NODI_IPHA ) / ( DT * DEN( CV_NODI_IPHA ) )&
+                       )
+                  IF(IPHASE==1) THEN ! Add constraint to force sum of volume fracts to be unity... 
+                     ! W_SUM_ONE==1 applies the constraint
+                     ! W_SUM_ONE==0 does NOT apply the constraint
+                     CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) - MASS_CV( CV_NODI ) *   &
+                          (W_SUM_ONE1 - W_SUM_ONE2) * MEAN_PORE_CV( CV_NODI )  / DT
+                  ENDIF
+               endif
+
                DIAG_SCALE_PRES( CV_NODI ) = DIAG_SCALE_PRES( CV_NODI ) + &
                     MEAN_PORE_CV( CV_NODI ) * T( CV_NODI_IPHA ) * DERIV( CV_NODI_IPHA )  &
                     / ( DT * DEN( CV_NODI_IPHA ) )
@@ -1342,8 +1385,32 @@
       !end if
 
       if (.true. .and. getcv_disc) then
+
+         ewrite(3,*) '-----------------------------------------------------------------------------------------------------------------------------------'
+         ewrite(3,*) '-----------------------------------------------------------------------------------------------------------------------------------'
+
          ewrite(3,*)'cv_rhs_1:',cv_rhs(1:cv_nonods)
          ewrite(3,*)'cv_rhs_2:',cv_rhs(cv_nonods+1:2*cv_nonods)
+
+         ewrite(3,*) '-----------------------------------------------------------------------------------------------------------------------------------'
+         ewrite(3,*) '-----------------------------------------------------------------------------------------------------------------------------------'
+
+         ewrite(3,*) '11::',0.5 * mass_cv* t(1:cv_nonods) / dt
+         ewrite(3,*) '22::',0.5 * mass_cv * t(cv_nonods+1:2*cv_nonods) / dt
+
+         ewrite(3,*) '-----------------------------------------------------------------------------------------------------------------------------------'
+         ewrite(3,*) '-----------------------------------------------------------------------------------------------------------------------------------'
+
+         ewrite(3,*) '11::',0.5 * mass_cv* t(1:cv_nonods) / dt - cv_rhs(1:cv_nonods)
+         ewrite(3,*) '22::',0.5 * mass_cv * t(cv_nonods+1:2*cv_nonods) / dt - cv_rhs(cv_nonods+1:2*cv_nonods)
+
+         ewrite(3,*) '-----------------------------------------------------------------------------------------------------------------------------------'
+         ewrite(3,*) '-----------------------------------------------------------------------------------------------------------------------------------'
+
+         ewrite(3,*) 'dT, igot_t2, thermal, getmat, cv_beta:', dT, igot_t2, thermal, getmat, cv_beta
+         ewrite(3,*) 'MASS:', MASS_CV
+         ewrite(3,*) 'T:', T
+         ewrite(3,*) 'TOLD:', TOLD
       end if
 
       ewrite(3,*)'IN cv_adv_dif a CV representation t:'
@@ -1356,7 +1423,7 @@
       DEALLOCATE( CVNORMX )
       DEALLOCATE( CVNORMY )
       DEALLOCATE( CVNORMZ )
-      DEALLOCATE( COLGPTS ) !The size of this vector is over-estimated
+      DEALLOCATE( COLGPTS ) ! The size of this vector is over-estimated
       DEALLOCATE( FINDGPTS )
       DEALLOCATE( SNDOTQ )
       DEALLOCATE( SNDOTQOLD )
@@ -3864,7 +3931,7 @@
       REAL :: TMIN_STORE, TMAX_STORE, TOLDMIN_STORE, TOLDMAX_STORE
       ! coefficients for this element ELE
 
-! The adjustment method for variable CV volumes is not ready for new limiter method...
+      ! The adjustment method for variable CV volumes is not ready for new limiter method...
       LIM_VOL_ADJUST=LIM_VOL_ADJUST2.AND.(.NOT.LIMIT_USE_2ND)
 
       UGI_COEF_ELE=0.0
@@ -3888,6 +3955,9 @@
             UOLDDGI = 0.0
             VOLDDGI = 0.0
             WOLDDGI = 0.0
+            UGI_COEF_ELE=0.0
+            VGI_COEF_ELE=0.0
+            WGI_COEF_ELE=0.0 
             DO U_KLOC_LEV = 1, U_NLOC_LEV
                U_KLOC=(CV_ILOC-1)*U_NLOC_LEV + U_KLOC_LEV
                U_NODK_IPHA = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC ) +(IPHASE-1)*U_NONODS
@@ -3908,6 +3978,9 @@
             UOLDDGI = 0.0
             VOLDDGI = 0.0
             WOLDDGI = 0.0
+            UGI_COEF_ELE=0.0
+            VGI_COEF_ELE=0.0
+            WGI_COEF_ELE=0.0 
             DO U_SKLOC_LEV = 1, U_SNLOC_LEV
                U_SKLOC = (CV_ILOC-1)*U_SNLOC_LEV + U_SKLOC_LEV
                U_KLOC = U_SLOC2LOC( U_SKLOC )
@@ -3932,9 +4005,9 @@
                   UOLDDGI = UOLDDGI + SUFEN( U_KLOC, GI ) * SUF_U_BC( U_SNODK_IPHA ) 
                   VOLDDGI = VOLDDGI + SUFEN( U_KLOC, GI ) * SUF_V_BC( U_SNODK_IPHA ) 
                   WOLDDGI = WOLDDGI + SUFEN( U_KLOC, GI ) * SUF_W_BC( U_SNODK_IPHA )
-               ENDIF
+               END IF
             END DO
-         ENDIF
+         END IF
 
       ELSE ! Conditional_SELE. Not on the boundary of the domain.
          Conditional_ELE2: IF(( ELE2 == 0 ).OR.( ELE2 == ELE)) THEN
@@ -3955,9 +4028,11 @@
                U_KLOC2=(CV_JLOC-1)*U_NLOC_LEV + U_KLOC_LEV
                U_NODK_IPHA  = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC ) +(IPHASE-1)*U_NONODS
                U_NODK2_IPHA = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC2 )+(IPHASE-1)*U_NONODS
+
                UDGI = UDGI + SUFEN( U_KLOC, GI ) * NU( U_NODK_IPHA )
                VDGI = VDGI + SUFEN( U_KLOC, GI ) * NV( U_NODK_IPHA )
                WDGI = WDGI + SUFEN( U_KLOC, GI ) * NW( U_NODK_IPHA )
+
                UOLDDGI = UOLDDGI + SUFEN( U_KLOC, GI ) * NUOLD( U_NODK_IPHA ) 
                VOLDDGI = VOLDDGI + SUFEN( U_KLOC, GI ) * NVOLD( U_NODK_IPHA ) 
                WOLDDGI = WOLDDGI + SUFEN( U_KLOC, GI ) * NWOLD( U_NODK_IPHA ) 
@@ -3965,6 +4040,7 @@
                UDGI2 = UDGI2 + SUFEN( U_KLOC2, GI ) * NU( U_NODK2_IPHA )
                VDGI2 = VDGI2 + SUFEN( U_KLOC2, GI ) * NV( U_NODK2_IPHA )
                WDGI2 = WDGI2 + SUFEN( U_KLOC2, GI ) * NW( U_NODK2_IPHA )
+
                UOLDDGI2 = UOLDDGI2 + SUFEN( U_KLOC2, GI ) * NUOLD( U_NODK2_IPHA ) 
                VOLDDGI2 = VOLDDGI2 + SUFEN( U_KLOC2, GI ) * NVOLD( U_NODK2_IPHA ) 
                WOLDDGI2 = WOLDDGI2 + SUFEN( U_KLOC2, GI ) * NWOLD( U_NODK2_IPHA ) 
@@ -3975,39 +4051,44 @@
             NDOTQOLD = 0.5 * ( CVNORMX(GI) * (UOLDDGI+UOLDDGI2) + CVNORMY(GI) * (VOLDDGI+VOLDDGI2) &
                  + CVNORMZ(GI) * (WOLDDGI+WOLDDGI2) )
 
-            CV_NODI = CV_NODI_IPHA -(IPHASE-1)*CV_NONODS
-            CV_NODJ = CV_NODJ_IPHA -(IPHASE-1)*CV_NONODS
+print *, 'AAAAAAAAAAAAAAAAAAAAA', NDOTQ, NDOTQOLD
+
+            CV_NODI = CV_NODI_IPHA - (IPHASE-1)*CV_NONODS
+            CV_NODJ = CV_NODJ_IPHA - (IPHASE-1)*CV_NONODS
 
             IF(IN_ELE_UPWIND==1) THEN
+
                IF(NDOTQ < 0.0) THEN
                   INCOME=1.0
                ELSE
                   INCOME=0.0
-               ENDIF
+               END IF
 
                IF(NDOTQOLD < 0.0) THEN
                   INCOMEOLD=1.0
                ELSE
                   INCOMEOLD=0.0
-               ENDIF
+               END IF
+
             ELSE IF(IN_ELE_UPWIND==2) THEN ! the best
-               UPWIND_FRAC=0.5
+
+               UPWIND_FRAC=0.8
                IF(NDOTQ < 0.0) THEN
-                  INCOME=0.5
+                  INCOME=0.8
                   !INCOME= 1.0 - 2.*(1.-UPWIND_FRAC)*MASS_CV(CV_NODJ)/(MASS_CV(CV_NODI)+MASS_CV(CV_NODJ))
                ELSE
-                  INCOME=0.5
+                  INCOME=0.8
                   !INCOME= 2.*(1.-UPWIND_FRAC)*MASS_CV(CV_NODI)/(MASS_CV(CV_NODI)+MASS_CV(CV_NODJ))
-               ENDIF
+               END IF
                IF(NDOTQOLD < 0.0) THEN
-                  INCOMEOLD=0.5
+                  INCOMEOLD=0.8
                   !INCOMEOLD=1.0 - 2.*(1.-UPWIND_FRAC)*MASS_CV(CV_NODJ)/(MASS_CV(CV_NODI)+MASS_CV(CV_NODJ))
                ELSE
-                  INCOMEOLD=0.5
+                  INCOMEOLD=0.2
                   !INCOMEOLD=2.*(1.-UPWIND_FRAC)*MASS_CV(CV_NODI)/(MASS_CV(CV_NODI)+MASS_CV(CV_NODJ))
-               ENDIF
+               END IF
+
             ELSE IF(IN_ELE_UPWIND==3) THEN ! the best optimal upwind frac.
-               !ELSE IF(IN_ELE_UPWIND==-3) THEN ! the best optimal upwind frac.
 
                NDOTQ = CVNORMX( GI ) * UDGI + CVNORMY( GI ) * VDGI  &
                     + CVNORMZ(GI) * WDGI 
@@ -4020,33 +4101,34 @@
 
                MAT_NODI=MAT_NDGLN((ELE-1)*MAT_NLOC+CV_ILOC)
                MAT_NODJ=MAT_NDGLN((ELE-1)*MAT_NLOC+CV_JLOC)
+
                FEMTGI_IPHA = 0.0
                FEMTOLDGI_IPHA = 0.0
                DO CV_KLOC=1,CV_NLOC
                   CV_KNOD=CV_NDGLN((ELE-1)*CV_NLOC+CV_KLOC)
                   FEMTGI_IPHA = FEMTGI_IPHA &
-                       + SCVFEN(CV_KLOC,GI)*FEMT(CV_KNOD+(IPHASE-1)*CV_NONODS)
-                  !    + SCVFEN(CV_KLOC,GI)*T(CV_KNOD+(IPHASE-1)*CV_NONODS)
+                       + SCVFEN(CV_KLOC,GI) * FEMT(CV_KNOD+(IPHASE-1)*CV_NONODS)
                   FEMTOLDGI_IPHA = FEMTOLDGI_IPHA &
-                       + SCVFEN(CV_KLOC,GI)*FEMTOLD(CV_KNOD+(IPHASE-1)*CV_NONODS)
-                  !    + SCVFEN(CV_KLOC,GI)*TOLD(CV_KNOD+(IPHASE-1)*CV_NONODS)
+                       + SCVFEN(CV_KLOC,GI) * FEMTOLD(CV_KNOD+(IPHASE-1)*CV_NONODS)
                END DO
-               !FEMTGI_IPHA = (MASS_CV(CV_NODJ)* T(CV_NODI_IPHA) + &
-               !     MASS_CV(CV_NODI)*T(CV_NODJ_IPHA) )/ (MASS_CV(CV_NODI)+MASS_CV(CV_NODJ))
-               !FEMTOLDGI_IPHA = (MASS_CV(CV_NODJ)* TOLD(CV_NODI_IPHA) + &
-               !     MASS_CV(CV_NODI)*TOLD(CV_NODJ_IPHA) )/ (MASS_CV(CV_NODI)+MASS_CV(CV_NODJ))
+               !FEMTGI_IPHA = ( MASS_CV(CV_NODJ) * T(CV_NODI_IPHA) + &
+               !     MASS_CV(CV_NODI) * T(CV_NODJ_IPHA) ) / (MASS_CV(CV_NODI)+MASS_CV(CV_NODJ))
+               !FEMTOLDGI_IPHA = ( MASS_CV(CV_NODJ) * TOLD(CV_NODI_IPHA) + &
+               !     MASS_CV(CV_NODI) * TOLD(CV_NODJ_IPHA) ) / (MASS_CV(CV_NODI)+MASS_CV(CV_NODJ))
 
-               !GEOMTGI_IPHA = (MASS_CV(CV_NODJ)* T(CV_NODI_IPHA) + &
-               !     MASS_CV(CV_NODI)*T(CV_NODJ_IPHA) )/ (MASS_CV(CV_NODI)+MASS_CV(CV_NODJ))
-               !GEOMTOLDGI_IPHA = (MASS_CV(CV_NODJ)* TOLD(CV_NODI_IPHA) + &
-               !     MASS_CV(CV_NODI)*TOLD(CV_NODJ_IPHA) )/ (MASS_CV(CV_NODI)+MASS_CV(CV_NODJ))
+               !GEOMTGI_IPHA = ( MASS_CV(CV_NODJ) * T(CV_NODI_IPHA) + &
+               !     MASS_CV(CV_NODI) * T(CV_NODJ_IPHA) ) / (MASS_CV(CV_NODI)+MASS_CV(CV_NODJ))
+               !GEOMTOLDGI_IPHA = ( MASS_CV(CV_NODJ) * TOLD(CV_NODI_IPHA) + &
+               !     MASS_CV(CV_NODI) * TOLD(CV_NODJ_IPHA) ) / (MASS_CV(CV_NODI)+MASS_CV(CV_NODJ))
+
                ! Central is fine as its within an element with equally spaced nodes. 
-               FEMTGI_IPHA = 0.5*(T(CV_NODI_IPHA) + T(CV_NODJ_IPHA) )
-               FEMTOLDGI_IPHA = 0.5*(TOLD(CV_NODI_IPHA) + TOLD(CV_NODJ_IPHA) )
-               GEOMTGI_IPHA = 0.5*(T(CV_NODI_IPHA) + T(CV_NODJ_IPHA) )
+               FEMTGI_IPHA = 0.5 * ( T(CV_NODI_IPHA) + T(CV_NODJ_IPHA) )
+               FEMTOLDGI_IPHA = 0.5 * ( TOLD(CV_NODI_IPHA) + TOLD(CV_NODJ_IPHA) )
+               GEOMTGI_IPHA = 0.5 * ( T(CV_NODI_IPHA) + T(CV_NODJ_IPHA) )
                GEOMTOLDGI_IPHA = 0.5*(TOLD(CV_NODI_IPHA) + TOLD(CV_NODJ_IPHA) )
-               !             GEOMTGI_IPHA = FEMTGI_IPHA
-               !                          GEOMTOLDGI_IPHA = FEMTOLDGI_IPHA 
+               !GEOMTGI_IPHA = FEMTGI_IPHA
+               !GEOMTOLDGI_IPHA = FEMTOLDGI_IPHA
+
                NVEC(1)=CVNORMX(GI)
                NVEC(2)=CVNORMY(GI)
                NVEC(3)=CVNORMZ(GI)
@@ -4073,12 +4155,10 @@
                   GRAD_ABS_CV_NODJ_IPHA = GRAD_ABS_CV_NODJ_IPHA + NVEC(IDIM)*G_NODJ
                END DO
                ! OPT_VEL_UPWIND_COEFS contains the coefficients
-               !IF(FACE_ITS>1) FEMTOLDGI_IPHA=0.5*(LIMT+FEMTOLDGI_IPHA)
                OVER_RELAX=1.0
                MAX_OPER=.TRUE.
-               CONSERV=.true.
+               CONSERV=.TRUE.
                SAT_BASED=.FALSE.
-               !             IF(FACE_ITS>1) THEN
                IF(.false.) THEN
                   !FEMTOLDGI_IPHA=(LIMT-FEMTGI) + GEOMTOLDGI_IPHA
                   FEMTOLDGI_IPHA=LIMT
@@ -4088,7 +4168,7 @@
                   OVER_RELAX=1.0
                   MAX_OPER=.FALSE.
                   SAT_BASED=.TRUE.
-               ENDIF
+               END IF
 
                CALL FIND_OPT_INCOME_INTERP(INCOME, W_UPWIND, NDOTQ, NDOTQ2, IPHASE, &
                     T(CV_NODI_IPHA),T(CV_NODJ_IPHA), FEMTGI_IPHA, GEOMTGI_IPHA,OVER_RELAX, &
@@ -4100,18 +4180,19 @@
                     ABS_CV_NODI_IPHA, ABS_CV_NODJ_IPHA, &
                     GRAD_ABS_CV_NODI_IPHA, GRAD_ABS_CV_NODJ_IPHA,CONSERV,MAX_OPER,SAT_BASED)
 
-               if(.true.) then
+               if (.true.) then
 
                   IF(0.5*(NDOTQ+NDOTQ2) < 0.0) THEN
                      INCOME3=1.0
                   ELSE
                      INCOME3=0.0
-                  ENDIF
+                  END IF
                   IF(0.5*(NDOTQOLD+NDOTQOLD2) < 0.0) THEN
                      INCOMEOLD3=1.0
                   ELSE
                      INCOMEOLD3=0.0
-                  ENDIF
+                  END IF
+
                   IF(LIM_VOL_ADJUST) THEN
                      RESET_STORE=.FALSE. 
                      CALL CAL_LIM_VOL_ADJUST(TMIN_STORE,TMIN,T,TMIN_NOD,RESET_STORE,MASS_CV, &
@@ -4123,24 +4204,25 @@
                           CV_NODI_IPHA,CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE, INCOMEOLD3 )
                      CALL CAL_LIM_VOL_ADJUST(TOLDMAX_STORE,TOLDMAX,TOLD,TOLDMAX_NOD,RESET_STORE,MASS_CV, &
                           CV_NODI_IPHA,CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE, INCOMEOLD3 )
-                  ENDIF
+                  END IF
 
 
                   CALL ONVDLIMsqrt( CV_NONODS, &
                        LIMT3, FEMTGI_IPHA, INCOME3, CV_NODI, CV_NODJ, &
-                       T( (IPHASE-1)*CV_NONODS+1 ), TMIN( (IPHASE-1)*CV_NONODS+1 ), TMAX( (IPHASE-1)*CV_NONODS+1 ), .FALSE. , .FALSE.)
+                       T( (IPHASE-1)*CV_NONODS+1 ), &
+                       TMIN( (IPHASE-1)*CV_NONODS+1 ), TMAX( (IPHASE-1)*CV_NONODS+1 ), .FALSE. , .FALSE.)
+
 
                   CALL ONVDLIMsqrt( CV_NONODS, &
                        LIMTOLD3, FEMTOLDGI_IPHA, INCOMEOLD3, CV_NODI, CV_NODJ, &
-                       TOLD( (IPHASE-1)*CV_NONODS+1 ), TOLDMIN( (IPHASE-1)*CV_NONODS+1 ), TOLDMAX( (IPHASE-1)*CV_NONODS+1 ), .FALSE., .FALSE. )
+                       TOLD( (IPHASE-1)*CV_NONODS+1 ), &
+                       TOLDMIN( (IPHASE-1)*CV_NONODS+1 ), TOLDMAX( (IPHASE-1)*CV_NONODS+1 ), .FALSE., .FALSE. )
 
+                  INCOME4 = ( LIMT3 - T( CV_NODI_IPHA ) ) &
+                       / TOLFUN( T( CV_NODJ_IPHA ) - T( CV_NODI_IPHA ) )
 
-                  INCOME4=(LIMT3 - T( CV_NODI_IPHA )) &
-                       /TOLFUN(T( CV_NODJ_IPHA )- T( CV_NODI_IPHA ))
-
-                  INCOMEOLD4=(LIMTOLD3 - TOLD( CV_NODI_IPHA )) &
-                       /TOLFUN(TOLD( CV_NODJ_IPHA )- TOLD( CV_NODI_IPHA ))
-
+                  INCOMEOLD4 = ( LIMTOLD3 - TOLD( CV_NODI_IPHA ) ) &
+                       / TOLFUN( TOLD( CV_NODJ_IPHA ) - TOLD( CV_NODI_IPHA ) )
 
                   INCOME    = INCOME3*MAX(INCOME4,INCOME) + (1.-INCOME3)*MIN(INCOME4,INCOME) 
                   INCOMEOLD = INCOMEOLD3*MAX(INCOMEOLD4,INCOMEOLD) + (1.-INCOMEOLD3)*MIN(INCOMEOLD4,INCOMEOLD)     
@@ -4156,30 +4238,30 @@
                           CV_NODI_IPHA,CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE, INCOMEOLD3 )
                      CALL CAL_LIM_VOL_ADJUST(TOLDMAX_STORE,TOLDMAX,TOLD,TOLDMAX_NOD,RESET_STORE,MASS_CV, &
                           CV_NODI_IPHA,CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE, INCOMEOLD3 )
-                  ENDIF
+                  END IF
 
-               endif
+               end if
 
             ELSE
+
                UPWIND_FRAC=0.5
                IF(NDOTQ < 0.0) THEN
-                  !         INCOME=0.8
+                  !INCOME=0.8
                   INCOME= 1.0 - 2.*(1.-UPWIND_FRAC)*MASS_CV(CV_NODJ)/(MASS_CV(CV_NODI)+MASS_CV(CV_NODJ))
                ELSE
-                  !         INCOME=0.2
+                  !INCOME=0.2
                   INCOME= 2.*(1.-UPWIND_FRAC)*MASS_CV(CV_NODI)/(MASS_CV(CV_NODI)+MASS_CV(CV_NODJ))
-               ENDIF
+               END IF
                IF(NDOTQOLD < 0.0) THEN
-                  !         INCOMEOLD=0.8
+                  !INCOMEOLD=0.8
                   INCOMEOLD=1.0 - 2.*(1.-UPWIND_FRAC)*MASS_CV(CV_NODJ)/(MASS_CV(CV_NODI)+MASS_CV(CV_NODJ))
                ELSE
-                  !         INCOMEOLD=0.2
+                  !INCOMEOLD=0.2
                   INCOMEOLD=2.*(1.-UPWIND_FRAC)*MASS_CV(CV_NODI)/(MASS_CV(CV_NODI)+MASS_CV(CV_NODJ))
-               ENDIF
+               END IF
                !INCOME=0.5
                !INCOMEOLD=0.5
-            ENDIF
-
+            END IF
 
             UDGI = 0.0
             VDGI = 0.0
@@ -4187,28 +4269,33 @@
             UOLDDGI = 0.0
             VOLDDGI = 0.0
             WOLDDGI = 0.0
+            UGI_COEF_ELE=0.0
+            VGI_COEF_ELE=0.0
+            WGI_COEF_ELE=0.0 
             DO U_KLOC_LEV = 1, U_NLOC_LEV
                U_KLOC =(CV_ILOC-1)*U_NLOC_LEV + U_KLOC_LEV
                U_KLOC2=(CV_JLOC-1)*U_NLOC_LEV + U_KLOC_LEV
                U_NODK_IPHA  = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC ) +(IPHASE-1)*U_NONODS
                U_NODK2_IPHA = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC2 )+(IPHASE-1)*U_NONODS
 
-               UDGI = UDGI + SUFEN( U_KLOC, GI ) * (NU( U_NODK_IPHA )*(1.0-INCOME) &
-                    + NU( U_NODK2_IPHA )*INCOME )
-               VDGI = VDGI + SUFEN( U_KLOC, GI ) * (NV( U_NODK_IPHA )*(1.0-INCOME) &
-                    + NV( U_NODK2_IPHA )*INCOME )
-               WDGI = WDGI + SUFEN( U_KLOC, GI ) * (NW( U_NODK_IPHA )*(1.0-INCOME) &
-                    + NW( U_NODK2_IPHA )*INCOME )
-               UOLDDGI = UOLDDGI + SUFEN( U_KLOC, GI ) * (NUOLD( U_NODK_IPHA )*(1.0-INCOMEOLD) &
-                    +NUOLD( U_NODK2_IPHA )*INCOMEOLD  )
-               VOLDDGI = VOLDDGI + SUFEN( U_KLOC, GI ) * (NVOLD( U_NODK_IPHA )*(1.0-INCOMEOLD) &
-                    +NVOLD( U_NODK2_IPHA )*INCOMEOLD  )
-               WOLDDGI = WOLDDGI + SUFEN( U_KLOC, GI ) * (NWOLD( U_NODK_IPHA )*(1.0-INCOMEOLD) &
-                    +NWOLD( U_NODK2_IPHA )*INCOMEOLD  )
+               UDGI = UDGI + SUFEN( U_KLOC, GI ) * NU( U_NODK_IPHA ) * (1.0-INCOME) &
+                    + SUFEN( U_KLOC2, GI ) * NU( U_NODK2_IPHA ) * INCOME 
+               VDGI = VDGI + SUFEN( U_KLOC, GI ) * NV( U_NODK_IPHA ) * (1.0-INCOME) &
+                    + SUFEN( U_KLOC2, GI ) * NV( U_NODK2_IPHA ) * INCOME
+               WDGI = WDGI + SUFEN( U_KLOC, GI ) * NW( U_NODK_IPHA ) * (1.0-INCOME) &
+                    + SUFEN( U_KLOC2, GI ) * NW( U_NODK2_IPHA ) * INCOME
+
+               UOLDDGI = UOLDDGI + SUFEN( U_KLOC, GI ) * NUOLD( U_NODK_IPHA ) * (1.0-INCOMEOLD) &
+                    + SUFEN( U_KLOC, GI ) * NUOLD( U_NODK2_IPHA ) * INCOMEOLD
+               VOLDDGI = VOLDDGI + SUFEN( U_KLOC, GI ) * NVOLD( U_NODK_IPHA ) * (1.0-INCOMEOLD) &
+                    + SUFEN( U_KLOC, GI ) * NVOLD( U_NODK2_IPHA ) * INCOMEOLD
+               WOLDDGI = WOLDDGI + SUFEN( U_KLOC, GI ) * NWOLD( U_NODK_IPHA ) * (1.0-INCOMEOLD) &
+                    + SUFEN( U_KLOC, GI ) * NWOLD( U_NODK2_IPHA ) * INCOMEOLD
 
                UGI_COEF_ELE(U_KLOC)=UGI_COEF_ELE(U_KLOC)+1.0-INCOME
                VGI_COEF_ELE(U_KLOC)=VGI_COEF_ELE(U_KLOC)+1.0-INCOME
                WGI_COEF_ELE(U_KLOC)=WGI_COEF_ELE(U_KLOC)+1.0-INCOME
+
                UGI_COEF_ELE(U_KLOC2)=UGI_COEF_ELE(U_KLOC2)+INCOME
                VGI_COEF_ELE(U_KLOC2)=VGI_COEF_ELE(U_KLOC2)+INCOME
                WGI_COEF_ELE(U_KLOC2)=WGI_COEF_ELE(U_KLOC2)+INCOME
@@ -4224,15 +4311,21 @@
             UOLDDGI = 0.0
             VOLDDGI = 0.0
             WOLDDGI = 0.0
+            UGI_COEF_ELE = 0.0
+            VGI_COEF_ELE = 0.0
+            WGI_COEF_ELE = 0.0
             DO U_KLOC_LEV = 1, U_NLOC_LEV
                U_KLOC=(CV_ILOC-1)*U_NLOC_LEV + U_KLOC_LEV
-               U_NODK_IPHA = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC ) +(IPHASE-1)*U_NONODS
+               U_NODK_IPHA = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC ) + (IPHASE-1)*U_NONODS
+
                UDGI = UDGI + SUFEN( U_KLOC, GI ) * NU( U_NODK_IPHA )
                VDGI = VDGI + SUFEN( U_KLOC, GI ) * NV( U_NODK_IPHA )
                WDGI = WDGI + SUFEN( U_KLOC, GI ) * NW( U_NODK_IPHA )
+
                UGI_COEF_ELE(U_KLOC)=UGI_COEF_ELE(U_KLOC)+1.0
                VGI_COEF_ELE(U_KLOC)=VGI_COEF_ELE(U_KLOC)+1.0
                WGI_COEF_ELE(U_KLOC)=WGI_COEF_ELE(U_KLOC)+1.0
+
                UOLDDGI = UOLDDGI + SUFEN( U_KLOC, GI ) * NUOLD( U_NODK_IPHA ) 
                VOLDDGI = VOLDDGI + SUFEN( U_KLOC, GI ) * NVOLD( U_NODK_IPHA ) 
                WOLDDGI = WOLDDGI + SUFEN( U_KLOC, GI ) * NWOLD( U_NODK_IPHA ) 
@@ -4244,25 +4337,31 @@
             UOLDDGI2 = 0.0
             VOLDDGI2 = 0.0
             WOLDDGI2 = 0.0
+            UGI_COEF_ELE2 = 0.0
+            VGI_COEF_ELE2 = 0.0
+            WGI_COEF_ELE2 = 0.0
             DO U_KLOC_LEV = 1, U_NLOC_LEV
                U_KLOC=(CV_ILOC-1)*U_NLOC_LEV + U_KLOC_LEV
                U_KLOC2 = U_OTHER_LOC( U_KLOC )
                IF( U_KLOC2 /= 0 ) THEN
-                  U_NODK2_IPHA = U_NDGLN((ELE2-1)*U_NLOC+U_KLOC2) +(IPHASE-1)*U_NONODS
+                  U_NODK2_IPHA = U_NDGLN((ELE2-1)*U_NLOC+U_KLOC2)+(IPHASE-1)*U_NONODS
+
                   UDGI2  = UDGI2 + SUFEN( U_KLOC, GI ) * NU( U_NODK2_IPHA )
                   VDGI2  = VDGI2 + SUFEN( U_KLOC, GI ) * NV( U_NODK2_IPHA )
                   WDGI2  = WDGI2 + SUFEN( U_KLOC, GI ) * NW( U_NODK2_IPHA )
+
                   UGI_COEF_ELE2(U_KLOC2)=UGI_COEF_ELE2(U_KLOC2)+1.0
                   VGI_COEF_ELE2(U_KLOC2)=VGI_COEF_ELE2(U_KLOC2)+1.0
                   WGI_COEF_ELE2(U_KLOC2)=WGI_COEF_ELE2(U_KLOC2)+1.0
+
                   UOLDDGI2  = UOLDDGI2 + SUFEN( U_KLOC, GI ) * NUOLD( U_NODK2_IPHA )
                   VOLDDGI2  = VOLDDGI2 + SUFEN( U_KLOC, GI ) * NVOLD( U_NODK2_IPHA )
                   WOLDDGI2  = WOLDDGI2 + SUFEN( U_KLOC, GI ) * NWOLD( U_NODK2_IPHA )
-               ENDIF
+               END IF
             END DO
 
             NDOTQ = CVNORMX( GI ) * UDGI + CVNORMY( GI ) * VDGI  &
-                 + CVNORMZ(GI) * WDGI 
+                 + CVNORMZ(GI) * WDGI
             NDOTQOLD =CVNORMX( GI ) * UOLDDGI + CVNORMY( GI ) * VOLDDGI &
                  + CVNORMZ(GI) * WOLDDGI 
             NDOTQ2 =  CVNORMX( GI ) * UDGI2 + CVNORMY( GI ) * VDGI2  &
@@ -4272,7 +4371,6 @@
 
             CV_NODI=CV_NODI_IPHA -(IPHASE-1)*CV_NONODS
             CV_NODJ=CV_NODJ_IPHA -(IPHASE-1)*CV_NONODS
-
 
             IF( ABS( CV_DG_VEL_INT_OPT ) == 1 ) THEN
                DT_I=1.0
@@ -4290,18 +4388,22 @@
                DTOLD_I=DENOLD( CV_NODI_IPHA )*TOLD( CV_NODI_IPHA )
                DTOLD_J=DENOLD( CV_NODJ_IPHA )*TOLD( CV_NODJ_IPHA )
             ELSE IF( ABS(CV_DG_VEL_INT_OPT ) == 4) THEN
+
                IF(DG_ELE_UPWIND==1) THEN
+
                   IF(0.5*(NDOTQ+NDOTQ2) < 0.0) THEN
                      INCOME=1.0
                   ELSE
                      INCOME=0.0
-                  ENDIF
+                  END IF
                   IF(0.5*(NDOTQOLD+NDOTQOLD2) < 0.0) THEN
                      INCOMEOLD=1.0
                   ELSE
                      INCOMEOLD=0.0
-                  ENDIF
+                  END IF
+
                ELSE IF(DG_ELE_UPWIND==2) THEN ! the best
+
                   UPWIND_FRAC=0.8
                   IF(0.5*(NDOTQ+NDOTQ2) < 0.0) THEN
                      !INCOME=0.8
@@ -4309,70 +4411,78 @@
                   ELSE
                      !INCOME=0.2
                      INCOME= 2.*(1.-UPWIND_FRAC)*MASS_CV(CV_NODI)/(MASS_CV(CV_NODI)+MASS_CV(CV_NODJ))
-                  ENDIF
+                  END IF
                   IF(0.5*(NDOTQOLD+NDOTQOLD2) < 0.0) THEN
                      !INCOMEOLD=0.8
                      INCOMEOLD=1.0 -2.*(1.-UPWIND_FRAC)*MASS_CV(CV_NODJ)/(MASS_CV(CV_NODI)+MASS_CV(CV_NODJ))
                   ELSE
                      !INCOMEOLD=0.2
                      INCOMEOLD=2.*(1.-UPWIND_FRAC)*MASS_CV(CV_NODI)/(MASS_CV(CV_NODI)+MASS_CV(CV_NODJ))
-                  ENDIF
+                  END IF
+
                ELSE IF(DG_ELE_UPWIND==3) THEN ! the best optimal upwind frac.
 
                   MAT_NODI=MAT_NDGLN((ELE-1)*MAT_NLOC+CV_ILOC)
                   MAT_NODJ=MAT_NDGLN((ELE2-1)*MAT_NLOC+CV_JLOC)
+
                   FEMTGI_IPHA = 0.0
                   FEMTOLDGI_IPHA = 0.0
                   DO CV_KLOC = 1, CV_NLOC
                      CV_KLOC2 = CV_OTHER_LOC( CV_KLOC )
                      IF(CV_KLOC2 /= 0 ) THEN
-                        if(.false.) then
-                           CV_KNOD =CV_NDGLN((ELE-1) *CV_NLOC+CV_KLOC)
-                           CV_KNOD2=CV_NDGLN((ELE2-1)*CV_NLOC+CV_KLOC2)
+                        if (.false.) then
+                           CV_KNOD = CV_NDGLN((ELE-1)*CV_NLOC+CV_KLOC)
+                           CV_KNOD2 = CV_NDGLN((ELE2-1)*CV_NLOC+CV_KLOC2)
                            FEMTGI_IPHA = FEMTGI_IPHA + SCVFEN(CV_KLOC,GI) & 
-                                *0.5*(FEMT(CV_KNOD+(IPHASE-1)*CV_NONODS) &
-                                +FEMT(CV_KNOD2+(IPHASE-1)*CV_NONODS))
+                                * 0.5 * ( FEMT(CV_KNOD+(IPHASE-1)*CV_NONODS) &
+                                + FEMT(CV_KNOD2+(IPHASE-1)*CV_NONODS) )
                            FEMTOLDGI_IPHA = FEMTOLDGI_IPHA + SCVFEN(CV_KLOC,GI) & 
-                                *0.5*(FEMTOLD(CV_KNOD+(IPHASE-1)*CV_NONODS) &
-                                +FEMTOLD(CV_KNOD2+(IPHASE-1)*CV_NONODS))
-                        endif
-                        if(.true.) then
-                           if(0.5*(NDOTQ+NDOTQ2)>0.0) then
-                              CV_KNOD =CV_NDGLN((ELE-1) *CV_NLOC+CV_KLOC)
+                                * 0.5 * ( FEMTOLD(CV_KNOD+(IPHASE-1)*CV_NONODS) &
+                                + FEMTOLD(CV_KNOD2+(IPHASE-1)*CV_NONODS) )
+                        end if
+
+                        if (.true.) then
+                           if (0.5*(NDOTQ+NDOTQ2)>0.0) then
+                              CV_KNOD = CV_NDGLN((ELE-1)*CV_NLOC+CV_KLOC)
                               FEMTGI_IPHA = FEMTGI_IPHA + SCVFEN(CV_KLOC,GI) &
-                                   *FEMT(CV_KNOD+(IPHASE-1)*CV_NONODS)
-                              !!           *T(CV_KNOD+(IPHASE-1)*CV_NONODS)
+                                   * FEMT(CV_KNOD+(IPHASE-1)*CV_NONODS)
                            else
-                              CV_KNOD2=CV_NDGLN((ELE2-1)*CV_NLOC+CV_KLOC2)
+                              CV_KNOD2 = CV_NDGLN((ELE2-1)*CV_NLOC+CV_KLOC2)
                               FEMTGI_IPHA = FEMTGI_IPHA + SCVFEN(CV_KLOC,GI) &
-                                   *FEMT(CV_KNOD2+(IPHASE-1)*CV_NONODS)
-                              !!           *T(CV_KNOD2+(IPHASE-1)*CV_NONODS)
-                           endif
-                           if(0.5*(NDOTQOLD+NDOTQOLD2)>0.0) then
-                              CV_KNOD =CV_NDGLN((ELE-1) *CV_NLOC+CV_KLOC)
+                                   * FEMT(CV_KNOD2+(IPHASE-1)*CV_NONODS)
+                           end if
+                           if (0.5*(NDOTQOLD+NDOTQOLD2)>0.0) then
+                              CV_KNOD = CV_NDGLN((ELE-1)*CV_NLOC+CV_KLOC)
                               FEMTOLDGI_IPHA = FEMTOLDGI_IPHA + SCVFEN(CV_KLOC,GI) &
-                                   *FEMTOLD(CV_KNOD+(IPHASE-1)*CV_NONODS)
-                              !!           *TOLD(CV_KNOD+(IPHASE-1)*CV_NONODS)
+                                   * FEMTOLD(CV_KNOD+(IPHASE-1)*CV_NONODS)
                            else
-                              CV_KNOD2=CV_NDGLN((ELE2-1)*CV_NLOC+CV_KLOC2)
+                              CV_KNOD2 = CV_NDGLN((ELE2-1)*CV_NLOC+CV_KLOC2)
                               FEMTOLDGI_IPHA = FEMTOLDGI_IPHA + SCVFEN(CV_KLOC,GI) &
-                                   *FEMTOLD(CV_KNOD2+(IPHASE-1)*CV_NONODS)
-                              !!           *TOLD(CV_KNOD2+(IPHASE-1)*CV_NONODS)
-                           endif
-                        endif
-                     ENDIF
+                                   * FEMTOLD(CV_KNOD2+(IPHASE-1)*CV_NONODS)
+                           end if
+                        end if
+
+                        if (.false.) then
+                           CV_KNOD = CV_NDGLN((ELE-1)*CV_NLOC+CV_KLOC)
+                           FEMTGI_IPHA = FEMTGI_IPHA &
+                                + SCVFEN(CV_KLOC,GI) * FEMT(CV_KNOD+(IPHASE-1)*CV_NONODS)
+                           FEMTOLDGI_IPHA = FEMTOLDGI_IPHA &
+                                + SCVFEN(CV_KLOC,GI) * FEMTOLD(CV_KNOD+(IPHASE-1)*CV_NONODS)
+                        end if
+                     END IF
                   END DO
-                  !      FEMTOLDGI_IPHA = (MASS_CV(CV_NODJ)* T(CV_NODI_IPHA) + &
-                  !         MASS_CV(CV_NODI)*T(CV_NODJ_IPHA) )/ (MASS_CV(CV_NODI)+MASS_CV(CV_NODJ))
-                  !      FEMTOLDGI_IPHA = (MASS_CV(CV_NODi)* T(CV_NODI_IPHA) + &
-                  !         MASS_CV(CV_NODj)*T(CV_NODJ_IPHA) )/ (MASS_CV(CV_NODI)+MASS_CV(CV_NODJ))
-                  !      FEMTOLDGI_IPHA = 0.5*(T(CV_NODI_IPHA) + T(CV_NODJ_IPHA) )
-                  GEOMTGI_IPHA = (MASS_CV(CV_NODJ)* T(CV_NODI_IPHA) + &
-                       MASS_CV(CV_NODI)*T(CV_NODJ_IPHA) )/ (MASS_CV(CV_NODI)+MASS_CV(CV_NODJ))
-                  GEOMTOLDGI_IPHA = (MASS_CV(CV_NODJ)* TOLD(CV_NODI_IPHA) + &
-                       MASS_CV(CV_NODI)*TOLD(CV_NODJ_IPHA) )/ (MASS_CV(CV_NODI)+MASS_CV(CV_NODJ))
-                  !                             GEOMTGI_IPHA =FEMTGI_IPHA
-                  !                             GEOMTOLDGI_IPHA =FEMTOLDGI_IPHA
+                  !FEMTOLDGI_IPHA = (MASS_CV(CV_NODJ)* T(CV_NODI_IPHA) + &
+                  !   MASS_CV(CV_NODI)*T(CV_NODJ_IPHA) )/ (MASS_CV(CV_NODI)+MASS_CV(CV_NODJ))
+                  !FEMTOLDGI_IPHA = (MASS_CV(CV_NODi)* T(CV_NODI_IPHA) + &
+                  !   MASS_CV(CV_NODj)*T(CV_NODJ_IPHA) )/ (MASS_CV(CV_NODI)+MASS_CV(CV_NODJ))
+                  !FEMTOLDGI_IPHA = 0.5*(T(CV_NODI_IPHA) + T(CV_NODJ_IPHA) )
+                  GEOMTGI_IPHA = ( MASS_CV(CV_NODJ) * T(CV_NODI_IPHA) + &
+                       MASS_CV(CV_NODI) * T(CV_NODJ_IPHA) ) / (MASS_CV(CV_NODI)+MASS_CV(CV_NODJ))
+                  GEOMTOLDGI_IPHA = ( MASS_CV(CV_NODJ) * TOLD(CV_NODI_IPHA) + &
+                       MASS_CV(CV_NODI) * TOLD(CV_NODJ_IPHA) ) / (MASS_CV(CV_NODI)+MASS_CV(CV_NODJ))
+                  !GEOMTGI_IPHA =FEMTGI_IPHA
+                  !GEOMTOLDGI_IPHA =FEMTOLDGI_IPHA
+
                   NVEC(1)=CVNORMX(GI)
                   NVEC(2)=CVNORMY(GI)
                   NVEC(3)=CVNORMZ(GI)
@@ -4401,7 +4511,7 @@
                   ! OPT_VEL_UPWIND_COEFS contains the coefficients...
                   OVER_RELAX=1.
                   MAX_OPER=.TRUE.
-                  CONSERV=.true.
+                  CONSERV=.TRUE.
                   SAT_BASED=.FALSE.
 
                   CALL FIND_OPT_INCOME_INTERP(INCOME, W_UPWIND, NDOTQ, NDOTQ2, IPHASE, &
@@ -4414,19 +4524,18 @@
                        ABS_CV_NODI_IPHA, ABS_CV_NODJ_IPHA, &
                        GRAD_ABS_CV_NODI_IPHA, GRAD_ABS_CV_NODJ_IPHA,CONSERV,MAX_OPER,SAT_BASED)
 
-
-                  IF(0.5*(NDOTQ+NDOTQ2) < 0.0) THEN
-                     INCOME3=1.0
-                  ELSE
-                     INCOME3=0.0
-                  ENDIF
-                  IF(0.5*(NDOTQOLD+NDOTQOLD2) < 0.0) THEN
-                     INCOMEOLD3=1.0
-                  ELSE
-                     INCOMEOLD3=0.0
-                  ENDIF
-
                   if(.true.) then
+
+                     IF(0.5*(NDOTQ+NDOTQ2) < 0.0) THEN
+                        INCOME3=1.0
+                     ELSE
+                        INCOME3=0.0
+                     END IF
+                     IF(0.5*(NDOTQOLD+NDOTQOLD2) < 0.0) THEN
+                        INCOMEOLD3=1.0
+                     ELSE
+                        INCOMEOLD3=0.0
+                     END IF
 
                      IF(LIM_VOL_ADJUST) THEN
                         RESET_STORE=.FALSE. 
@@ -4439,7 +4548,7 @@
                              CV_NODI_IPHA,CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE, INCOMEOLD3 )
                         CALL CAL_LIM_VOL_ADJUST(TOLDMAX_STORE,TOLDMAX,TOLD,TOLDMAX_NOD,RESET_STORE,MASS_CV, &
                              CV_NODI_IPHA,CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE, INCOMEOLD3 )
-                     ENDIF
+                     END IF
 
 
                      CALL ONVDLIMsqrt( CV_NONODS, &
@@ -4463,24 +4572,21 @@
                              CV_NODI_IPHA,CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE, INCOMEOLD3 )
                         CALL CAL_LIM_VOL_ADJUST(TOLDMAX_STORE,TOLDMAX,TOLD,TOLDMAX_NOD,RESET_STORE,MASS_CV, &
                              CV_NODI_IPHA,CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE, INCOMEOLD3 )
-                     ENDIF
-
-                  endif
+                     END IF
+ 
+                  end if
 
                   OVER_RELAX=1.
                   MAX_OPER=.TRUE.
-                  CONSERV=.true.
+                  CONSERV=.TRUE.
                   SAT_BASED=.FALSE.
-                  !             IF(FACE_ITS>1) THEN
-                  !             IF(.false.) THEN
                   IF(.true.) THEN
                      FEMTGI_IPHA=LIMT3
                      FEMTOLDGI_IPHA=LIMTOLD3
-                     !  GEOMTOLDGI_IPHA=FEMTGI
                      OVER_RELAX=1.0
                      MAX_OPER=.FALSE.
                      SAT_BASED=.TRUE.
-                  ENDIF
+                  END IF
 
                   CALL FIND_OPT_INCOME_INTERP(INCOME4, W_UPWIND, NDOTQ, NDOTQ2, IPHASE, &
                        T(CV_NODI_IPHA),T(CV_NODJ_IPHA), FEMTGI_IPHA, GEOMTGI_IPHA,OVER_RELAX, &
@@ -4494,7 +4600,9 @@
 
                   INCOME    = INCOME3*MAX(INCOME4,INCOME) + (1.-INCOME3)*MIN(INCOME4,INCOME) 
                   INCOMEOLD = INCOMEOLD3*MAX(INCOMEOLD4,INCOMEOLD) + (1.-INCOMEOLD3)*MIN(INCOMEOLD4,INCOMEOLD)
+
                ELSE
+
                   UPWIND_FRAC=0.5
                   IF(0.5*(NDOTQ+NDOTQ2) < 0.0) THEN
                      !INCOME=0.8
@@ -4502,22 +4610,22 @@
                   ELSE
                      !INCOME=0.2
                      INCOME= 2.*(1.-UPWIND_FRAC)*MASS_CV(CV_NODI)/(MASS_CV(CV_NODI)+MASS_CV(CV_NODJ))
-                  ENDIF
+                  END IF
                   IF(0.5*(NDOTQOLD+NDOTQOLD2) < 0.0) THEN
                      !INCOMEOLD=0.8
                      INCOMEOLD=1.0 -2.*(1.-UPWIND_FRAC)*MASS_CV(CV_NODJ)/(MASS_CV(CV_NODI)+MASS_CV(CV_NODJ))
                   ELSE
                      !INCOMEOLD=0.2
                      INCOMEOLD=2.*(1.-UPWIND_FRAC)*MASS_CV(CV_NODI)/(MASS_CV(CV_NODI)+MASS_CV(CV_NODJ))
-                  ENDIF
-               ENDIF
+                  END IF
+               END IF
 
                DT_I = 1.0 - INCOME
                DT_J = 1.0 - DT_I
 
                DTOLD_I = 1.0 - INCOMEOLD
                DTOLD_J = 1.0 - DTOLD_I
-            ENDIF
+            END IF
 
             ! Amend weighting for porosity only across elements...
             IF((ABS(CV_DG_VEL_INT_OPT ) == 2).OR.(ABS(CV_DG_VEL_INT_OPT ) == 3)) THEN 
@@ -4526,8 +4634,8 @@
                   DT_J=VOLFRA_PORE(ELE2)*DT_J
                   DTOLD_I=VOLFRA_PORE(ELE) *DTOLD_I
                   DTOLD_J=VOLFRA_PORE(ELE2)*DTOLD_J
-               ENDIF
-            ENDIF
+               END IF
+            END IF
 
             !dt_i=0.5
             !dt_j=0.5
@@ -4550,20 +4658,20 @@
                NDOTQOLD_INT = CVNORMX( GI ) * UOLDDGI_INT + CVNORMY( GI ) * VOLDDGI_INT + &
                     CVNORMZ( GI ) * WOLDDGI_INT
 
-               IF( NDOTQ_INT <= 0.0 ) THEN  !Incoming
-                  !   DT_I=1.0
+               IF( NDOTQ_INT <= 0.0 ) THEN ! Incoming
+                  !DT_I=1.0
                   DT_J=DT_I+DT_J
                ELSE
                   DT_I=DT_I+DT_J
-                  !   DT_J=1.0
-               ENDIF
-               IF( NDOTQOLD_INT <= 0.0 ) THEN  !Incoming
-                  !   DTOLD_I=1.0
+                  !DT_J=1.0
+               END IF
+               IF( NDOTQOLD_INT <= 0.0 ) THEN ! Incoming
+                  !DTOLD_I=1.0
                   DTOLD_J=DTOLD_I+DTOLD_J
                ELSE
                   DTOLD_I=DTOLD_I+DTOLD_J
-                  !   DTOLD_J=1.0
-               ENDIF
+                  !DTOLD_J=1.0
+               END IF
 
                UDGI_INT = ( DT_I * UDGI + DT_J * UDGI2 ) / (DT_I + DT_J)
                VDGI_INT = ( DT_I * VDGI + DT_J * VDGI2 ) / (DT_I + DT_J)
@@ -4572,7 +4680,7 @@
                UOLDDGI_INT = ( DTOLD_I * UOLDDGI + DTOLD_J * UOLDDGI2 ) / (DTOLD_I + DTOLD_J)
                VOLDDGI_INT = ( DTOLD_I * VOLDDGI + DTOLD_J * VOLDDGI2 ) / (DTOLD_I + DTOLD_J)
                WOLDDGI_INT = ( DTOLD_I * WOLDDGI + DTOLD_J * WOLDDGI2 ) / (DTOLD_I + DTOLD_J)
-            ENDIF
+            END IF
 
             UDGI  = UDGI_INT 
             VDGI  = VDGI_INT 
@@ -4590,20 +4698,22 @@
             VOLDDGI  = VOLDDGI_INT 
             WOLDDGI  = WOLDDGI_INT
 
-         ENDIF Conditional_ELE2
+         END IF Conditional_ELE2
 
-      ENDIF Conditional_SELE
+      END IF Conditional_SELE
 
       NDOTQ =  CVNORMX( GI ) * UDGI + CVNORMY( GI ) * VDGI + CVNORMZ(GI) * WDGI
       NDOTQOLD =  CVNORMX( GI ) * UOLDDGI + CVNORMY( GI ) * VOLDDGI + CVNORMZ(GI) * WOLDDGI
 
       ! Define whether flux is incoming or outgoing, depending on direction of flow
       INCOME = 1.
-      IF( NDOTQ > 0. ) INCOME = 0.
+      IF( NDOTQ >= 0. ) INCOME = 0.
 
       INCOMEOLD = 1.
-      IF( NDOTQOLD > 0. ) INCOMEOLD = 0.
+      IF( NDOTQOLD >= 0. ) INCOMEOLD = 0.
 
+print *, 'BBBBBBBBBBBBBBBBBBBBB', NDOTQ, NDOTQOLD
+print *, '====================================='
       RETURN  
 
     END SUBROUTINE GET_INT_VEL_OVERLAP
@@ -6182,21 +6292,23 @@
            U_KLOC_LEV, U_NLOC_LEV
       REAL :: RCON,UDGI_IMP,VDGI_IMP,WDGI_IMP,NDOTQ_IMP
 
-      !ewrite(3,*)' In PUT_IN_CT_RHS CVNORMX/Y/Z:',CVNORMX( GI ),CVNORMY( GI ),CVNORMZ( GI )
-      !ewrite(3,*)' SCVDETWEI( GI ):',SCVDETWEI( GI )
-      !ewrite(3,*)' SUFEN( :, GI ):',SUFEN( :, GI )
-      !ewrite(3,*)' jcount_kloc:', jcount_kloc
+      ewrite(3,*)' In PUT_IN_CT_RHS CVNORMX/Y/Z:',CVNORMX( GI ),CVNORMY( GI ),CVNORMZ( GI ), &
+           ':', CVNORMX( GI )**2+CVNORMY( GI )**2+CVNORMZ( GI )**2
+      ewrite(3,*)' SCVDETWEI( GI ):',SCVDETWEI( GI )
+      ewrite(3,*)' SUFEN( :, GI ):',SUFEN( :, GI )
+      ewrite(3,*)' jcount_kloc, limdt, theta:', jcount_kloc, limdt, ftheta_t2
 
-      !ewrite(3,*)' ugi_coef_ele:', ugi_coef_ele
-      !ewrite(3,*)' vgi_coef_ele:', vgi_coef_ele
-      !ewrite(3,*)' wgi_coef_ele:', wgi_coef_ele
-      !ewrite(3,*)' ugi_coef_ele2:', ugi_coef_ele2
-      !ewrite(3,*)' vgi_coef_ele2:', vgi_coef_ele2
-      !ewrite(3,*)' wgi_coef_ele2:', wgi_coef_ele2
+      ewrite(3,*)' ugi_coef_ele:', ugi_coef_ele
+      ewrite(3,*)' vgi_coef_ele:', vgi_coef_ele
+      ewrite(3,*)' wgi_coef_ele:', wgi_coef_ele
+      ewrite(3,*)' ugi_coef_ele2:', ugi_coef_ele2
+      ewrite(3,*)' vgi_coef_ele2:', vgi_coef_ele2
+      ewrite(3,*)' wgi_coef_ele2:', wgi_coef_ele2
 
       DO U_KLOC = 1, U_NLOC
 
          JCOUNT_IPHA = JCOUNT_KLOC( U_KLOC )  +  (IPHASE - 1 ) * NCOLCT * NDIM
+
          RCON    = SCVDETWEI( GI ) * FTHETA_T2 * LIMDT  &
               * SUFEN( U_KLOC, GI ) / DEN( CV_NODI_IPHA )
 
@@ -6204,18 +6316,21 @@
          !     U_KLOC, CV_NODI_IPHA, JCOUNT_IPHA, RCON
 
          IDIM = 1
-         CT( JCOUNT_IPHA + ( IDIM - 1 ) * NCOLCT ) =  CT( JCOUNT_IPHA + ( IDIM - 1 ) * NCOLCT) &
-              +  RCON *UGI_COEF_ELE(U_KLOC)* CVNORMX( GI )
+         CT( JCOUNT_IPHA + ( IDIM - 1 ) * NCOLCT ) &
+              =  CT( JCOUNT_IPHA + ( IDIM - 1 ) * NCOLCT) &
+              +  RCON * UGI_COEF_ELE(U_KLOC) * CVNORMX( GI )
 
          IDIM = 2
          IF( NDIM >= 2 ) &
-              CT( JCOUNT_IPHA + ( IDIM - 1 ) * NCOLCT ) =  CT( JCOUNT_IPHA + ( IDIM - 1 ) * NCOLCT ) &
-              +  RCON * VGI_COEF_ELE(U_KLOC)* CVNORMY( GI )
+              CT( JCOUNT_IPHA + ( IDIM - 1 ) * NCOLCT ) &
+              =  CT( JCOUNT_IPHA + ( IDIM - 1 ) * NCOLCT ) &
+              +  RCON * VGI_COEF_ELE(U_KLOC) * CVNORMY( GI )
 
          IDIM = 3
          IF( NDIM >= 3 ) &
-              CT( JCOUNT_IPHA + ( IDIM - 1 ) * NCOLCT ) =  CT( JCOUNT_IPHA + ( IDIM - 1 ) * NCOLCT ) &
-              +  RCON * WGI_COEF_ELE(U_KLOC)* CVNORMZ( GI )
+              CT( JCOUNT_IPHA + ( IDIM - 1 ) * NCOLCT ) &
+              =  CT( JCOUNT_IPHA + ( IDIM - 1 ) * NCOLCT ) &
+              +  RCON * WGI_COEF_ELE(U_KLOC) * CVNORMZ( GI )
       END DO
 
       IF(SELE /= 0) THEN
@@ -6250,6 +6365,7 @@
       ENDIF
 
       IF((ELE2 /= 0).AND.(ELE2 /= ELE)) THEN
+
          ! We have a discontinuity between elements so integrate along the face...
          !DO U_KLOC_LEV = 1, U_NLOC_LEV
          !U_KLOC=(CV_ILOC-1)*U_NLOC_LEV + U_KLOC_LEV

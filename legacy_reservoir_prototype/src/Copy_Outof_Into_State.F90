@@ -439,16 +439,19 @@
 
       ! IN/DG_ELE_UPWIND are options for optimisation of upwinding across faces in the overlapping
       ! formulation. The data structure and options for this formulation need to be added later. 
-      in_ele_upwind = 3
+      in_ele_upwind =  3
       dg_ele_upwind = 3
 
-      ! if the pressure is discontinuous use this
-      if (cv_nonods == totele * cv_nloc)  in_ele_upwind = 2
+      ! if the pressure is discontinuous use these options
+      !if (cv_nonods == totele * cv_nloc)  then
+      !   in_ele_upwind = 4
+      !   dg_ele_upwind = 3
+      !end if
 
       ! Variables *ENTIRELY HARD-WIRED* that *MUST BE REPLACED* in the future
       t_dg_vel_int_opt = 1
       u_dg_vel_int_opt = 4 ! Not used -- it can be deleted
-      v_dg_vel_int_opt = 4 !4
+      v_dg_vel_int_opt = 4
       if (.not.is_overlapping) v_dg_vel_int_opt = 1
       w_dg_vel_int_opt = 0 ! Not used -- it can be deleted
       comp_diffusion_opt = 0
@@ -2220,6 +2223,8 @@ ewrite(3,*)'-->:',k + 1, k + node_count( field ), kk + 1, kk + stotel * cv_snloc
          end if
       endif 
 
+v_disopt=4
+
       call get_option('/material_phase[0]/scalar_field::Temperature/prognostic/' // &
            'spatial_discretisation/conservative_advection', t_beta, default=0.0)
       call get_option('/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
@@ -2231,6 +2236,8 @@ ewrite(3,*)'-->:',k + 1, k + node_count( field ), kk + 1, kk + stotel * cv_snloc
            'temporal_discretisation/theta', v_theta)
       call get_option('/material_phase[0]/vector_field::Velocity/prognostic/' // &
            'temporal_discretisation/theta', u_theta)
+
+v_theta=1.
 
       !! I'm going to get this one from the PhaseVolumeFraction scalar_field
       lump_eqns = have_option('/material_phase[0]/scalar_field::PhaseVolumeFraction/' // &

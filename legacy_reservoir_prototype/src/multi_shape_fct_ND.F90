@@ -868,8 +868,8 @@
                if (whole_ele_surface_order==2) sbcvngi = 2
                if (whole_ele_surface_order==2) scvngi = 2
             else
-               if (volume_order==1) cv_ngi = 3 ! 4x8
-               if (volume_order==2) cv_ngi = 3*4 ! 4x8
+               if (volume_order==1) cv_ngi = 3
+               if (volume_order==2) cv_ngi = 3*4
 
                if (surface_order==1) scvngi = 3
                if (surface_order==1) sbcvngi = 2
@@ -892,12 +892,12 @@
                if (whole_ele_surface_order==3) scvngi = 3
             else
                if (volume_order==1) cv_ngi = 12
-               if (volume_order==2) cv_ngi = 48 
+               if (volume_order==2) cv_ngi = 12*4
 
                if (surface_order==1) scvngi = 12
                if (surface_order==1) sbcvngi = 4 
-               if (surface_order==2) scvngi = 24
-               if (surface_order==2) sbcvngi = 8 
+               if (surface_order==2) scvngi = 12*2
+               if (surface_order==2) sbcvngi = 4*2
             endif
          case default; FLExit(" Invalid integer for cv_nloc ")
          end Select Conditional_CV_NLOC2D_Tri
@@ -975,8 +975,8 @@
                if (whole_ele_surface_order==3) sbcvngi = 7
                if (whole_ele_surface_order==3) scvngi = 7
             else
-               if (volume_order==1) cv_ngi = 4 ! 4x8
-               if (volume_order==2) cv_ngi = 32 ! 4x8
+               if (volume_order==1) cv_ngi = 4
+               if (volume_order==2) cv_ngi = 4*8
 
                if (surface_order==1) scvngi = 6
                if (surface_order==1) sbcvngi = 3

@@ -452,9 +452,7 @@
 
       V_BETA = 1.0
 
-      Loop_NonLinearFlux: DO ITS_FLUX_LIM = 1, NITS_FLUX_LIM
-
-print *, 'NEW ITS', ITS_FLUX_LIM, 'XXXXXXXXXXXXXXXXXXXXXXXXXX'
+      Loop_NonLinearFlux: DO ITS_FLUX_LIM = 1, 1!NITS_FLUX_LIM
 
          CALL CV_ASSEMB( CV_RHS, &
               NCOLACV, ACV, FINACV, COLACV, MIDACV, &
@@ -488,19 +486,30 @@ print *, 'NEW ITS', ITS_FLUX_LIM, 'XXXXXXXXXXXXXXXXXXXXXXXXXX'
               FINACV, COLACV, NCOLACV, ACV, THERMAL, &
               mass_ele_transp )
 
+
+print *, '>>>>>>>>>>>>>'
+print *, CV_RHS(1:cv_nonods)
+print *, '>>>>>>>>>>>>>'
+print *, CV_RHS(1+cv_nonods:2*cv_nonods)
+
+
          CALL SOLVER( ACV, SATURA, CV_RHS, &
               FINACV, COLACV, &
               trim(option_path))
 
+print *, '>>>>>>>>>>>>>'
+print *, Satura(1:cv_nonods)
+print *, '>>>>>>>>>>>>>'
+print *, Satura(1+cv_nonods:2*cv_nonods)
+!!$stop 8888
+
+
           !satura(1+cv_nonods : 2*cv_nonods) = 1. - satura(1:cv_nonods)
 
-
-         print *, satura(1:cv_nonods)
-         print *, '----------'
-         print *, satura(1+cv_nonods:2*cv_nonods)
-         print *, '----------'
-
-
+         !print *, satura(1:cv_nonods)
+         !print *, '----------'
+         !print *, satura(1+cv_nonods:2*cv_nonods)
+         !print *, '----------'
 
       END DO Loop_NonLinearFlux
 
@@ -774,9 +783,9 @@ print *, 'NEW ITS', ITS_FLUX_LIM, 'XXXXXXXXXXXXXXXXXXXXXXXXXX'
          ! Put pressure in rhs of force balance eqn:  CDP=C*P
          CALL C_MULT( CDP, P, CV_NONODS, U_NONODS, NDIM, NPHASE, C, NCOLC, FINDC, COLC)
 
-         !ewrite(3,*) 'U_RHS:',U_RHS
-         !ewrite(3,*) 'CDP:',CDP
-         !ewrite(3,*) 'P:',P
+         ewrite(3,*) 'U_RHS:',U_RHS
+         ewrite(3,*) 'CDP:',CDP
+         ewrite(3,*) 'P:',P
          ewrite(3,*) 'C:',C
 
          U_RHS_CDP = U_RHS + CDP
@@ -799,10 +808,12 @@ print *, 'NEW ITS', ITS_FLUX_LIM, 'XXXXXXXXXXXXXXXXXXXXXXXXXX'
 
          CALL ULONG_2_UVW( U, V, W, UP_VEL, U_NONODS, NDIM, NPHASE )
 
-         !ewrite(3,*) 'u::', u
-         !ewrite(3,*) 'v::', v
-         !ewrite(3,*) 'w::', w
+         ewrite(3,*) 'u::', u
+         ewrite(3,*) 'v::', v
+         ewrite(3,*) 'w::', w
          ewrite(3,*) 'ct::', ct
+         ewrite(3,*) 'ct_rhs::', ct_rhs
+
 
          ! put on rhs the cty eqn; put most recent pressure in RHS of momentum eqn
          ! NB. P_RHS = -CT*U + CT_RHS 
@@ -822,8 +833,8 @@ print *, 'NEW ITS', ITS_FLUX_LIM, 'XXXXXXXXXXXXXXXXXXXXXXXXXX'
             END DO
          END DO
 
-         !ewrite(3,*) 'P_RHS2::', p_rhs
-         !ewrite(3,*) 'CT_RHS::', ct_rhs
+         ewrite(3,*) 'P_RHS2::', p_rhs
+         ewrite(3,*) 'CT_RHS::', ct_rhs
 
          ! solve for pressure correction DP that is solve CMC *DP=P_RHS...
          ewrite(3,*)'about to solve for pressure'
@@ -893,12 +904,23 @@ print *, 'NEW ITS', ITS_FLUX_LIM, 'XXXXXXXXXXXXXXXXXXXXXXXXXX'
          IF( NDIM >= 2 ) V = V + DV
          IF( NDIM >= 3 ) W = W + DW
 
+
+         ewrite(3,*)'new velocity...'
+         ewrite(3,*)'U', U
+         ewrite(3,*)'V', V
+         ewrite(3,*)'W', W
+
          ! check continuity
-         !p_rhs=0.
-         !CALL CT_MULT(P_RHS, U, V, W, CV_NONODS, U_NONODS, NDIM, NPHASE, &
-         !     CT, NCOLCT, FINDCT, COLCT)
-         !print *, ''
-         !print *, 'p_rhs', -p_rhs+ct_rhs
+         ewrite(3,*)'check continuity...'
+         p_rhs=0.
+         CALL CT_MULT(P_RHS, U, V, W, CV_NONODS, U_NONODS, NDIM, NPHASE, &
+              CT, NCOLCT, FINDCT, COLCT)
+         print *, ''
+         print *, 'p_rhs', -p_rhs+ct_rhs
+
+         p_rhs= -p_rhs+ct_rhs
+         print *, 'max,min:', maxval(p_rhs), minval(p_rhs)
+
          !stop 66
 
          !ewrite(3,*)'x,p:'
@@ -970,20 +992,18 @@ print *, 'NEW ITS', ITS_FLUX_LIM, 'XXXXXXXXXXXXXXXXXXXXXXXXXX'
       !ewrite(3,*) 'VOLFRA_PORE:',VOLFRA_PORE
       !ewrite(3,*) 'den:',den
       !ewrite(3,*) 'denold:',denold
-
+      
       IF(.false.) THEN
          DO IPHASE=1,NPHASE
-            DU=0
-            DV=0
-            DW=0
-            !! if(iphase==1) then
+            DU=0.
+            DV=0.
+            DW=0.
             DU(1+U_NONODS*(IPHASE-1):U_NONODS*IPHASE)=U(1+U_NONODS*(IPHASE-1):U_NONODS*IPHASE)
             DV(1+U_NONODS*(IPHASE-1):U_NONODS*IPHASE)=V(1+U_NONODS*(IPHASE-1):U_NONODS*IPHASE)
             DW(1+U_NONODS*(IPHASE-1):U_NONODS*IPHASE)=W(1+U_NONODS*(IPHASE-1):U_NONODS*IPHASE)
-            !! endif
 
             ewrite(3,*)'iphase,du:',iphase,du
-            !CALL CT_MULT(P_RHS, U, V, W, CV_NONODS, U_NONODS, NDIM, NPHASE, &
+            P_RHS=0.
             CALL CT_MULT(P_RHS, DU, DV, DW, CV_NONODS, U_NONODS, NDIM, NPHASE, &
                  CT, NCOLCT, FINDCT, COLCT)
             !ewrite(3,*) 'P_RHS:',P_RHS
@@ -992,25 +1012,29 @@ print *, 'NEW ITS', ITS_FLUX_LIM, 'XXXXXXXXXXXXXXXXXXXXXXXXXX'
 
             if(iphase==1) then
                SATURA(1+CV_NONODS*(IPHASE-1):CV_NONODS*IPHASE) &
-                    = SATURAOLD(1+CV_NONODS*(IPHASE-1):CV_NONODS*IPHASE) +(-DT*P_RHS(1:CV_NONODS)+DT*CT_RHS(1:CV_NONODS))  &
-                    /(MASS_CV(1:CV_NONODS) *VOLFRA_PORE(1)) 
+                    = SATURAOLD(1+CV_NONODS*(IPHASE-1):CV_NONODS*IPHASE) + &
+                    ( -DT * P_RHS(1:CV_NONODS) + DT * CT_RHS(1:CV_NONODS) ) &
+                    / (MASS_CV(1:CV_NONODS) * VOLFRA_PORE(1) )
             else
                SATURA(1+CV_NONODS*(IPHASE-1):CV_NONODS*IPHASE) &
-                    = SATURAOLD(1+CV_NONODS*(IPHASE-1):CV_NONODS*IPHASE) -DT*P_RHS(1:CV_NONODS)  &
-                    /(MASS_CV(1:CV_NONODS) *VOLFRA_PORE(1))
-            endif
+                    = SATURAOLD(1+CV_NONODS*(IPHASE-1):CV_NONODS*IPHASE) - &
+                    DT * P_RHS(1:CV_NONODS)  &
+                    / (MASS_CV(1:CV_NONODS) * VOLFRA_PORE(1) )
+            end if
          END DO
 
-         ewrite(3,*)'as a CV representation t:'
-         CALL PRINT_CV_DIST(CV_NONODS,X_NONODS,TOTELE,CV_NLOC,X_NLOC,NPHASE, &
-              SATURA, X_NDGLN, CV_NDGLN, X) 
-         ewrite(3,*)'sumof phases:'
-         do iphase=1,nphase
-            do cv_nod=1,cv_nonods
-               ewrite(3,*)'cv_nod,sum:',cv_nod,SATURA(cv_nod)+SATURA(cv_nod+cv_nonods)
+         if(.false.) then
+            ewrite(3,*)'as a CV representation t:'
+            CALL PRINT_CV_DIST(CV_NONODS,X_NONODS,TOTELE,CV_NLOC,X_NLOC,NPHASE, &
+                 SATURA, X_NDGLN, CV_NDGLN, X) 
+            ewrite(3,*)'sumof phases:'
+            do iphase=1,nphase
+               do cv_nod=1,cv_nonods
+                  ewrite(3,*)'cv_nod,sum:',cv_nod,SATURA(cv_nod)+SATURA(cv_nod+cv_nonods)
+               end do
             end do
-         end do
-      ENDIF
+         end if
+      END IF
 
       DEALLOCATE( ACV )
       DEALLOCATE( CT )

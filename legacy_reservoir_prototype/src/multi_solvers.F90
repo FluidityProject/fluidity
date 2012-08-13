@@ -153,9 +153,9 @@ contains
     REAL ERROR, RELAX, RELAX_DIAABS, RELAX_DIA
     INTEGER N_LIN_ITS, NGL_ITS
 
-    PARAMETER(ERROR=1.E-15, RELAX=0.01, RELAX_DIAABS=1000.0)
-    PARAMETER(RELAX_DIA=1000.0, N_LIN_ITS=1000)
-    PARAMETER(NGL_ITS=30 ) ! maybe we need to increase this...
+    PARAMETER(ERROR=1.E-15, RELAX=0.1, RELAX_DIAABS=0.0)
+    PARAMETER(RELAX_DIA=2.0, N_LIN_ITS=2)
+    PARAMETER(NGL_ITS=50) ! maybe we need to increase this...
 
     !  PARAMETER(ERROR=1.E-15, RELAX=0.05, RELAX_DIAABS=0.0)
     !  PARAMETER(RELAX_DIA=2.0, N_LIN_ITS=2)
@@ -243,12 +243,12 @@ contains
 
           if (.true.) then
              call set_solver_options(path, &
-                  ksptype = "gmres", &
-                  !pctype = "jacobi", & ! use this for P1DGP1DG
-                  pctype = "none", &   ! use this for P1DGP2DG
+                  !ksptype = "gmres", &
+                  pctype = "jacobi", & ! use this for P1DGP1DG
+                  !pctype = "none", &   ! use this for P1DGP2DG
                   rtol = 1.e-10, &
                   atol = 1.e-15, &
-                  max_its = 20)
+                  max_its = 25)
              ! ignore solver failures...
              call add_option( &
                   trim(path)//"/solver/ignore_all_solver_failures", stat)
