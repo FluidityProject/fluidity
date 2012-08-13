@@ -824,7 +824,6 @@ module fsi_model
          !     number_of_solids, python_function, current_time)
       !end if
 
-      ! Just one mesh supported for now:
       ! Loop over number of solid meshes defined:
       solid_mesh_loop: do i=0, num_solid_mesh-1
          ! Get mesh name:

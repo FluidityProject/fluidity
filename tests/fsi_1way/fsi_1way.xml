@@ -1,0 +1,52 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>2D 1way FSI model</name>
+  <owner userid="ffm10"/>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity fsi_1way_2d_cylinder.flml;
+    </command_line>
+  </problem_definition>
+  <variables>
+    <variable name = "solvers_converged" language = "python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files 
+    </variable>
+    <!-- Below variables for 2D WITH sideset, testing correct read functionality of mesh and boundary conditions -->
+    <variable name="ElapsedTime" language="python">from fluidity_tools import stat_parser
+s = stat_parser("1way_fsi_2dcylinder.stat")
+ElapsedTime=s["ElapsedTime"]["value"][-1]
+    </variable>
+    <variable name="IntegralSolidConcentration" language="python">from fluidity_tools import stat_parser
+s = stat_parser("1way_fsi_2dcylinder.stat")
+IntegralSolidConcentration = s["fluid"]["SolidConcentration"]["integral"][-1]
+    </variable>
+    <variable name="DeltaP" language="python">from fluidity_tools import stat_parser
+det = stat_parser("1way_fsi_2dcylinder.detectors")
+p_front = det["fluid"]["Pressure"]["front_cylinder"]
+p_back = det["fluid"]["Pressure"]["back_cylinder"]
+DeltaP = p_front[-1] - p_back[-1]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name = "Solvers converged" language = "python">
+assert(solvers_converged)
+    </test>
+    <test name = "Simulation completed" language = "python">
+import fluidity_tools
+fluidity_tools.compare_variable(ElapsedTime, 1.0, 1.0e-6)
+    </test>
+    <test name = "Integral of solid concentration on fluid mesh" language = "python">
+import fluidity_tools
+from math import pi
+r=0.05;
+a=pi*r*r
+fluidity_tools.compare_variable(IntegralSolidConcentration, a, 1.0e-4)
+    </test>
+    <test name = "DeltaP: front and back of cylinder" language = "python">
+import fluidity_tools
+fluidity_tools.compare_variable(DeltaP, 0.1092737, 1.0e-3)
+    </test>
+  </pass_tests>
+</testproblem>
+
