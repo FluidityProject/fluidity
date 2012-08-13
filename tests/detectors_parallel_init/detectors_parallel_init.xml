@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<testproblem>
+  <name>detectors_parallel_init</name>
+  <owner userid="mlange"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>mpiexec -n 2 ../../bin/fluidity detectors.flml </command_line>
+    <!-- Test that detectors are initialised correctly in parallel. -->
+  </problem_definition>
+  <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
+    <variable name = "time" language = "python">
+from fluidity_tools import stat_parser
+time = stat_parser("detectors.stat")["ElapsedTime"]["value"]
+    </variable>
+    <variable name = "detector_position" language = "python">
+from fluidity_tools import stat_parser
+detector_position = stat_parser("detectors.detectors")["MidPoint"]['position']
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
+    <test name="Test finished" language="python">
+assert abs(time - 1.0) &lt; 1.0e-6
+    </test>
+    <test name="Detector output" language="python">
+assert abs(len(time) - len(detector_position[-1])) &lt; 1.0e-6
+    </test>
+    <test name="Detector initialised correctly" language="python">
+assert abs(detector_position[0] - 0.5).all() &lt; 1.0e-6
+assert abs(detector_position[1] - 0.5).all() &lt; 1.0e-6
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
