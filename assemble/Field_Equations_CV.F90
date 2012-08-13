@@ -265,12 +265,10 @@ contains
            case("LinearMomentum")
               include_density = .true.
               tdensity=>extract_scalar_field(state(1), "Density")
+              oldtdensity=>extract_scalar_field(state(1), "OldDensity")
 
               if(have_option(trim(tdensity%option_path)//"/prognostic")) then
                  prognostic_density = .true.
-                 oldtdensity=>extract_scalar_field(state(1), "OldDensity")
-              else
-                 oldtdensity=>dummyscalar
               end if
            case("Boussinesq")
               tdensity=>dummyscalar
@@ -305,18 +303,22 @@ contains
       end select
 
       ! get the density option path
-      if(prognostic_density) then
-         if(have_option(trim(option_path)//'/prognostic/equation[0]/density[0]/discretisation_options')) then
-           tdensity_option_path = trim(option_path)//'/prognostic/equation[0]/density[0]/discretisation_options'
+      if(include_density) then
+         if(prognostic_density) then
+            if(have_option(trim(option_path)//'/prognostic/equation[0]/density[0]/discretisation_options')) then
+               tdensity_option_path = trim(option_path)//'/prognostic/equation[0]/density[0]/discretisation_options'
+            else
+               tdensity_option_path = trim(tdensity%option_path)
+            end if
          else
-           tdensity_option_path = trim(tdensity%option_path)
+            tdensity_option_path = trim(tfield%option_path)
          end if
       end if
 
       ! now we can get the options for these fields
       ! handily wrapped in a new type...
       tfield_options=get_cv_options(tfield%option_path, tfield%mesh%shape%numbering%family, mesh_dim(tfield))
-      if(include_density .and. prognostic_density) then
+      if(include_density) then
         tdensity_options=get_cv_options(tdensity_option_path, tdensity%mesh%shape%numbering%family, mesh_dim(tdensity),  coefficient_field=.true.)
       end if
 
@@ -1456,7 +1458,7 @@ contains
       end if
 
       ! does the density field need upwind values?
-      if(include_density .and. prognostic_density) then
+      if(include_density) then
         call allocate(tdensity_upwind, mesh_sparsity, name="TDensityUpwindValues")
         call allocate(oldtdensity_upwind, mesh_sparsity, name="OldTDensityUpwindValues")
 
@@ -1620,85 +1622,55 @@ contains
                                         ftheta=ftheta)
 
                     if(include_density) then
+                      ! do the same for the density but save some effort if it's just a dummy
+                      select case (tdensity%field_type)
+                      case(FIELD_TYPE_CONSTANT)
 
-                      if(prognostic_density) then
-                         ! do the same for the density but save some effort if it's just a dummy
-                         select case (tdensity%field_type)
-                         case(FIELD_TYPE_CONSTANT)
+                          tdensity_face_val = tdensity_ele(iloc)
+                          oldtdensity_face_val = oldtdensity_ele(iloc)
 
-                             tdensity_face_val = tdensity_ele(iloc)
-                             oldtdensity_face_val = oldtdensity_ele(iloc)
+                      case default
 
-                         case default
+                          call evaluate_face_val(tdensity_face_val, oldtdensity_face_val, &
+                                                iloc, oloc, ggi, upwind_nodes, &
+                                                t_cvshape,&
+                                                tdensity_ele, oldtdensity_ele, &
+                                                tdensity_upwind, oldtdensity_upwind, &
+                                                inflow, cfl_ele, &
+                                                tdensity_options)
 
-                             call evaluate_face_val(tdensity_face_val, oldtdensity_face_val, &
-                                                   iloc, oloc, ggi, upwind_nodes, &
-                                                   t_cvshape,&
-                                                   tdensity_ele, oldtdensity_ele, &
-                                                   tdensity_upwind, oldtdensity_upwind, &
-                                                   inflow, cfl_ele, &
-                                                   tdensity_options)
+                      end select
 
-                         end select
+                      tdensity_theta_val=theta_val(iloc, oloc, &
+                                          tdensity_face_val, &
+                                          oldtdensity_face_val, &
+                                          tdensity_options%theta, dt, udotn, &
+                                          xt_ele, tdensity_options%limit_theta, &
+                                          tdensity_ele, oldtdensity_ele)
 
-                         tdensity_theta_val=theta_val(iloc, oloc, &
-                                             tdensity_face_val, &
-                                             oldtdensity_face_val, &
-                                             tdensity_options%theta, dt, udotn, &
-                                             xt_ele, tdensity_options%limit_theta, &
-                                             tdensity_ele, oldtdensity_ele)
-
-                         if(assemble_advection_matrix) then
-                           mat_local(iloc, oloc) = mat_local(iloc, oloc) &
-                                                 + ptheta*detwei(ggi)*udotn*income*tdensity_theta_val
-                           mat_local(oloc, iloc) = mat_local(oloc, iloc) &
-                                                 + ptheta*detwei(ggi)*(-udotn)*(1.-income)*tdensity_theta_val
-                           mat_local(iloc, iloc) = mat_local(iloc, iloc) &
-                                                 + ptheta*detwei(ggi)*udotn*(1.0-income)*tdensity_theta_val &
-                                                 - ftheta*(1.-beta)*detwei(ggi)*divudotn*tdensity_theta_val
-                           mat_local(oloc, oloc) = mat_local(oloc, oloc) &
-                                                 + ptheta*detwei(ggi)*(-udotn)*income*tdensity_theta_val &
-                                                 - ftheta*(1.-beta)*detwei(ggi)*(-divudotn)*tdensity_theta_val
-                         end if
-
-                         rhs_local(iloc) = rhs_local(iloc) &
-                                         + ptheta*udotn*detwei(ggi)*tdensity_theta_val*tfield_pivot_val &
-                                         - udotn*detwei(ggi)*tfield_theta_val*tdensity_theta_val &
-                                         + (1.-ftheta)*(1.-beta)*detwei(ggi)*divudotn*tdensity_theta_val*oldtfield_ele(iloc)
-                         rhs_local(oloc) = rhs_local(oloc) &
-                                         + ptheta*(-udotn)*detwei(ggi)*tdensity_theta_val*tfield_pivot_val &
-                                         - (-udotn)*detwei(ggi)*tfield_theta_val*tdensity_theta_val &
-                                         + (1.-ftheta)*(1.-beta)*detwei(ggi)*(-divudotn)*tdensity_theta_val*oldtfield_ele(oloc)
-                      else
-                         ! Not a prognostic Density
-                         tdensity_face_val = tdensity_ele(iloc)
-
-                         if(assemble_advection_matrix) then
-                           mat_local(iloc, oloc) = mat_local(iloc, oloc) &
-                                                 + ptheta*detwei(ggi)*udotn*income*tdensity_face_val
-                           mat_local(oloc, iloc) = mat_local(oloc, iloc) &
-                                                 + ptheta*detwei(ggi)*(-udotn)*(1.-income)*tdensity_face_val
-                           mat_local(iloc, iloc) = mat_local(iloc, iloc) &
-                                                 + ptheta*detwei(ggi)*udotn*(1.0-income)*tdensity_face_val &
-                                                 - ftheta*(1.-beta)*detwei(ggi)*divudotn*tdensity_face_val
-                           mat_local(oloc, oloc) = mat_local(oloc, oloc) &
-                                                 + ptheta*detwei(ggi)*(-udotn)*income*tdensity_face_val &
-                                                 - ftheta*(1.-beta)*detwei(ggi)*(-divudotn)*tdensity_face_val
-                         end if
-
-                         rhs_local(iloc) = rhs_local(iloc) &
-                                         + ptheta*udotn*detwei(ggi)*tdensity_face_val*tfield_pivot_val &
-                                         - udotn*detwei(ggi)*tfield_theta_val*tdensity_face_val &
-                                         + (1.-ftheta)*(1.-beta)*detwei(ggi)*divudotn*tdensity_face_val*oldtfield_ele(iloc)
-                         rhs_local(oloc) = rhs_local(oloc) &
-                                         + ptheta*(-udotn)*detwei(ggi)*tdensity_face_val*tfield_pivot_val &
-                                         - (-udotn)*detwei(ggi)*tfield_theta_val*tdensity_face_val &
-                                         + (1.-ftheta)*(1.-beta)*detwei(ggi)*(-divudotn)*tdensity_face_val*oldtfield_ele(oloc)
-
+                      if(assemble_advection_matrix) then
+                        mat_local(iloc, oloc) = mat_local(iloc, oloc) &
+                                              + ptheta*detwei(ggi)*udotn*income*tdensity_theta_val
+                        mat_local(oloc, iloc) = mat_local(oloc, iloc) &
+                                              + ptheta*detwei(ggi)*(-udotn)*(1.-income)*tdensity_theta_val
+                        mat_local(iloc, iloc) = mat_local(iloc, iloc) &
+                                              + ptheta*detwei(ggi)*udotn*(1.0-income)*tdensity_theta_val &
+                                              - ftheta*(1.-beta)*detwei(ggi)*divudotn*tdensity_theta_val
+                        mat_local(oloc, oloc) = mat_local(oloc, oloc) &
+                                              + ptheta*detwei(ggi)*(-udotn)*income*tdensity_theta_val &
+                                              - ftheta*(1.-beta)*detwei(ggi)*(-divudotn)*tdensity_theta_val
                       end if
 
+                      rhs_local(iloc) = rhs_local(iloc) &
+                                      + ptheta*udotn*detwei(ggi)*tdensity_theta_val*tfield_pivot_val &
+                                      - udotn*detwei(ggi)*tfield_theta_val*tdensity_theta_val &
+                                      + (1.-ftheta)*(1.-beta)*detwei(ggi)*divudotn*tdensity_theta_val*oldtfield_ele(iloc)
+                      rhs_local(oloc) = rhs_local(oloc) &
+                                      + ptheta*(-udotn)*detwei(ggi)*tdensity_theta_val*tfield_pivot_val &
+                                      - (-udotn)*detwei(ggi)*tfield_theta_val*tdensity_theta_val &
+                                      + (1.-ftheta)*(1.-beta)*detwei(ggi)*(-divudotn)*tdensity_theta_val*oldtfield_ele(oloc)
+                                      
                     else
-                      ! else, don't include density
                       if(assemble_advection_matrix) then
                         mat_local(iloc, oloc) = mat_local(iloc, oloc) &
                                               + ptheta*detwei(ggi)*udotn*income
@@ -1960,45 +1932,24 @@ contains
                   oldtfield_face_val = income*ghost_oldtfield_ele_bdy(iloc) + (1.-income)*oldtfield_ele_bdy(iloc)
 
                   if(include_density) then
+                    ! for tdensity
+                    tdensity_face_val = income*ghost_tdensity_ele_bdy(iloc) + (1.-income)*tdensity_ele_bdy(iloc)
+                    oldtdensity_face_val = income*ghost_oldtdensity_ele_bdy(iloc) + (1.-income)*oldtdensity_ele_bdy(iloc)
 
-                    if(prognostic_density) then 
-                       ! for tdensity
-                       tdensity_face_val = income*ghost_tdensity_ele_bdy(iloc) + (1.-income)*tdensity_ele_bdy(iloc)
-                       oldtdensity_face_val = income*ghost_oldtdensity_ele_bdy(iloc) + (1.-income)*oldtdensity_ele_bdy(iloc)
+                    tdensity_theta_val = tdensity_options%theta*tdensity_face_val + (1.-tdensity_options%theta)*oldtdensity_face_val
 
-                       tdensity_theta_val = tdensity_options%theta*tdensity_face_val + (1.-tdensity_options%theta)*oldtdensity_face_val
-
-                       if(assemble_advection_matrix) then
-                         ! if iloc is the donor we can do this implicitly
-                         mat_local_bdy(iloc) = mat_local_bdy(iloc) &
-                                         + ptheta*detwei_bdy(ggi)*udotn*(1.-income)*tdensity_theta_val &  
-                                         - ptheta*(1.-beta)*detwei_bdy(ggi)*divudotn*tdensity_theta_val
-                       end if
-
-                       ! but we can't if it's the downwind
-                       rhs_local_bdy(iloc) = rhs_local_bdy(iloc) &
-                                     - ptheta*udotn*detwei_bdy(ggi)*income*tdensity_theta_val*ghost_tfield_ele_bdy(iloc) & 
-                                     - (1.-ptheta)*udotn*detwei_bdy(ggi)*tdensity_theta_val*oldtfield_face_val &
-                                     + (1.-ptheta)*(1.-beta)*divudotn*detwei_bdy(ggi)*tdensity_theta_val*oldtfield_ele_bdy(iloc)
-                    else
-                       ! for tdensity
-                       tdensity_face_val = tdensity_ele_bdy(iloc)
-
-                       if(assemble_advection_matrix) then
-                         ! if iloc is the donor we can do this implicitly
-                         mat_local_bdy(iloc) = mat_local_bdy(iloc) &
-                                         + ptheta*detwei_bdy(ggi)*udotn*(1.-income)*tdensity_face_val &  
-                                         - ptheta*(1.-beta)*detwei_bdy(ggi)*divudotn*tdensity_face_val
-                       end if
-
-                       ! but we can't if it's the downwind
-                       rhs_local_bdy(iloc) = rhs_local_bdy(iloc) &
-                                     - ptheta*udotn*detwei_bdy(ggi)*income*tdensity_face_val*ghost_tfield_ele_bdy(iloc) & 
-                                     - (1.-ptheta)*udotn*detwei_bdy(ggi)*tdensity_face_val*oldtfield_face_val &
-                                     + (1.-ptheta)*(1.-beta)*divudotn*detwei_bdy(ggi)*tdensity_face_val*oldtfield_ele_bdy(iloc)
-
-
+                    if(assemble_advection_matrix) then
+                      ! if iloc is the donor we can do this implicitly
+                      mat_local_bdy(iloc) = mat_local_bdy(iloc) &
+                                      + ptheta*detwei_bdy(ggi)*udotn*(1.-income)*tdensity_theta_val &  
+                                      - ptheta*(1.-beta)*detwei_bdy(ggi)*divudotn*tdensity_theta_val
                     end if
+
+                    ! but we can't if it's the downwind
+                    rhs_local_bdy(iloc) = rhs_local_bdy(iloc) &
+                                  - ptheta*udotn*detwei_bdy(ggi)*income*tdensity_theta_val*ghost_tfield_ele_bdy(iloc) & 
+                                  - (1.-ptheta)*udotn*detwei_bdy(ggi)*tdensity_theta_val*oldtfield_face_val &
+                                  + (1.-ptheta)*(1.-beta)*divudotn*detwei_bdy(ggi)*tdensity_theta_val*oldtfield_ele_bdy(iloc)
                   else
                     if(assemble_advection_matrix) then
                       ! if iloc is the donor we can do this implicitly
@@ -2183,10 +2134,8 @@ contains
         deallocate(tdensity_bc_type)
         call deallocate(tdensity_bc)
 
-        if(prognostic_density) then
-           call deallocate(tdensity_upwind)
-           call deallocate(oldtdensity_upwind)
-        end if
+        call deallocate(tdensity_upwind)
+        call deallocate(oldtdensity_upwind)
       end if
 
       if(assemble_diffusion.and.(tfield_options%diffusionscheme==CV_DIFFUSION_BASSIREBAY)) then
