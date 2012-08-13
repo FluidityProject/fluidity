@@ -18,9 +18,21 @@ solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
 from fluidity_tools import stat_parser
 time = stat_parser("detectors.stat")["ElapsedTime"]["value"]
     </variable>
-    <variable name = "detector_position" language = "python">
+    <variable name = "det_midpoint" language = "python">
 from fluidity_tools import stat_parser
-detector_position = stat_parser("detectors.detectors")["MidPoint"]['position']
+det_midpoint = stat_parser("detectors.detectors")["MidPoint"]['position']
+    </variable>
+    <variable name = "det_arr1" language = "python">
+from fluidity_tools import stat_parser
+det_arr1 = stat_parser("detectors.detectors")["DArray_1"]['position']
+    </variable>
+    <variable name = "det_arr2" language = "python">
+from fluidity_tools import stat_parser
+det_arr2 = stat_parser("detectors.detectors")["DArray_2"]['position']
+    </variable>
+    <variable name = "det_arr3" language = "python">
+from fluidity_tools import stat_parser
+det_arr3 = stat_parser("detectors.detectors")["DArray_3"]['position']
     </variable>
   </variables>
   <pass_tests>
@@ -31,11 +43,17 @@ detector_position = stat_parser("detectors.detectors")["MidPoint"]['position']
 assert abs(time - 1.0) &lt; 1.0e-6
     </test>
     <test name="Detector output" language="python">
-assert abs(len(time) - len(detector_position[-1])) &lt; 1.0e-6
+assert abs(len(time) - len(det_midpoint[-1])) &lt; 1.0e-6
     </test>
-    <test name="Detector initialised correctly" language="python">
-assert abs(detector_position[0] - 0.5).all() &lt; 1.0e-6
-assert abs(detector_position[1] - 0.5).all() &lt; 1.0e-6
+    <test name="Detectors initialised correctly" language="python">
+assert abs(det_midpoint[0] - 0.5).all() &lt; 1.0e-6
+assert abs(det_midpoint[1] - 0.5).all() &lt; 1.0e-6
+assert abs(det_arr1[0]).all() &lt; 1.0e-6
+assert abs(det_arr1[1] - 1.0).all() &lt; 1.0e-6
+assert abs(det_arr2[0] - 0.5).all() &lt; 1.0e-6
+assert abs(det_arr2[1] - 0.5).all() &lt; 1.0e-6
+assert abs(det_arr3[0] - 1.0).all() &lt; 1.0e-6
+assert abs(det_arr3[1]).all() &lt; 1.0e-6
     </test>
   </pass_tests>
   <warn_tests>
