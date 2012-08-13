@@ -11,11 +11,11 @@ mpiexec -n 3 ../../bin/flredecomp -i 1 -o 3 -v -l standing_wave standing_wave_fl
 sed --in-place s/failing_velocity_flredecomp_CoordinateMesh/flredecomp_CoordinateMesh/g standing_wave_failing_velocity_flredecomp.flml;
 sed --in-place s/failing_pressure_flredecomp_CoordinateMesh/flredecomp_CoordinateMesh/g standing_wave_failing_pressure_flredecomp.flml;
 rm -f *failing_velocity_flredecomp_CoordinateMesh* *failing_pressure_flredecomp_CoordinateMesh*
-( mpiexec -n 3 fluidity -v2 -l standing_wave_failing_velocity_flredecomp.flml 2&gt;&amp;1 ) &gt; /dev/null;
+mpiexec -n 3 fluidity -v2 standing_wave_failing_velocity_flredecomp.flml;
 mv matrixdump velocity_matrixdump;
 mkdir -p velocity_logs;
 mv fluidity.log* fluidity.err* velocity_logs/;
-( mpiexec -n 3 fluidity -v2 -l standing_wave_failing_pressure_flredecomp.flml 2&gt;&amp;1 ) &gt; /dev/null;
+mpiexec -n 3 fluidity -v2 standing_wave_failing_pressure_flredecomp.flml;
 mv matrixdump pressure_matrixdump;
 rm matrixdump.info;
 mpiexec -n 3 petsc_readnsolve -v -l -prns_filename velocity_matrixdump  standing_wave_flredecomp.flml Velocity;
