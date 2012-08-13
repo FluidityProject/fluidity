@@ -7,7 +7,7 @@ MODEL = square-convection
 default: input
 
 input: clean
-	cp src/*.{node,ele,edge} .
+	cp src/*.node src/*.ele src/*.edge .
 
 clean: clean-mesh clean-run-debug 
 	rm -fr *.ele *.node *.halo *.edge *checkpoint* square-convection.detectors.dat square-convection_* fluidity.[le]*
