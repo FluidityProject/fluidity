@@ -776,8 +776,10 @@
                !     CT( COUNT + NCOLCT + NCOLCT     * NDIM * ( IPHASE - 1 )) * V( J ), CT( COUNT + NCOLCT * NDIM * ( IPHASE - 1 )), U( J ), V( J )
    
                if (cv_inod==6 .and. iphase==2)  then
-                    print *, 'YYYYY', cv_inod, u_jnod, j
-                    print *,    CT( COUNT + NCOLCT * NDIM * ( IPHASE - 1 )) ,U( J )   ,    CT( COUNT + NCOLCT + NCOLCT     * NDIM * ( IPHASE - 1 )) , V( J )
+!                    print *, 'YYYYY', cv_inod, u_jnod, j
+!                    print *,    CT( COUNT + NCOLCT * NDIM * ( IPHASE - 1 )) ,U( J )   ,    CT( COUNT + NCOLCT + NCOLCT     * NDIM * ( IPHASE - 1 )) , V( J )
+                    print *, 'YYYYY_U', j, CT( COUNT + NCOLCT * NDIM * ( IPHASE - 1 )) ,U( J )  
+                    print *, 'YYYYY_V', j, CT( COUNT + NCOLCT + NCOLCT     * NDIM * ( IPHASE - 1 )) , V( J )
                  end if
 
             END DO

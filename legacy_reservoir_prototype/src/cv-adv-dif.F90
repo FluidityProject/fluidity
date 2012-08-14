@@ -320,7 +320,7 @@
            DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX, BCZERO, ROBIN1, ROBIN2, &
            SUM, &
            SUM_LIMT, SUM_LIMTOLD, FTHETA_T2, ONE_M_FTHETA_T2OLD, THERM_FTHETA, &
-           W_SUM_ONE1, W_SUM_ONE2
+           W_SUM_ONE1, W_SUM_ONE2, NDOTQNEW
       real :: vel_int_u,vel_int_v,vel_int_w,ndot_vel_int,racc_6row2ph
 
       REAL, PARAMETER :: W_SUM_ONE = 1.
@@ -865,9 +865,11 @@
 
                         ! Calculate NDOTQ and INCOME on the CV boundary at quadrature pt GI.
                         IF(IGOT_T2==1) THEN 
-                           CALL GET_INT_VEL( NPHASE, NDOTQ, INCOME, NDOTQOLD, INCOMEOLD, &
+                           CALL GET_INT_VEL( NPHASE, NDOTQNEW, NDOTQ, INCOME, NDOTQOLD, INCOMEOLD, &
                                 HDC, GI, IPHASE, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
-                                T2, T2OLD, FEMT2, FEMT2OLD, DEN, DENOLD, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
+                                T2, T2OLD, FEMT2, FEMT2OLD, DEN, DENOLD, &
+!                                UNEW, VNEW, WNEW, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
+                                NU, NV, NW, NUOLD, NVOLD, NWOLD, NUOLD, NVOLD, NWOLD, &
                                 CV_NODI_IPHA, CV_NODJ_IPHA, CVNORMX, CVNORMY, CVNORMZ,  &
                                 CV_DG_VEL_INT_OPT, ELE, ELE2, U_OTHER_LOC, &
                                 SELE, U_SNLOC, STOTEL, U_SLOC2LOC, SUF_U_BC, SUF_V_BC, SUF_W_BC,WIC_U_BC, &
@@ -880,9 +882,11 @@
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
                                 T2MIN_2ND_MC, T2OLDMIN_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, LIMIT_USE_2ND)
                         ELSE
-                           CALL GET_INT_VEL( NPHASE, NDOTQ, INCOME, NDOTQOLD, INCOMEOLD, &
+                           CALL GET_INT_VEL( NPHASE, NDOTQNEW, NDOTQ, INCOME, NDOTQOLD, INCOMEOLD, &
                                 HDC, GI, IPHASE, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
-                                T, TOLD, FEMT, FEMTOLD, DEN, DENOLD, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
+                                T, TOLD, FEMT, FEMTOLD, DEN, DENOLD, &
+!                                UNEW, VNEW, WNEW, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
+                                NU, NV, NW, NUOLD, NVOLD, NWOLD, NUOLD, NVOLD, NWOLD, &
                                 CV_NODI_IPHA, CV_NODJ_IPHA, CVNORMX, CVNORMY, CVNORMZ,  &
                                 CV_DG_VEL_INT_OPT, ELE, ELE2, U_OTHER_LOC, &
                                 SELE, U_SNLOC, STOTEL, U_SLOC2LOC, SUF_U_BC, SUF_V_BC, SUF_W_BC,WIC_U_BC, &
@@ -946,9 +950,11 @@
                      DO FACE_ITS = 1, NFACE_ITS
                         ! Calculate NDOTQ and INCOME on the CV boundary at quadrature pt GI. 
                         IF(IGOT_T2==1) THEN
-                           CALL GET_INT_VEL( NPHASE, NDOTQ, INCOME, NDOTQOLD, INCOMEOLD, &
+                           CALL GET_INT_VEL( NPHASE, NDOTQNEW, NDOTQ, INCOME, NDOTQOLD, INCOMEOLD, &
                                 HDC, GI, IPHASE, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
-                                T2, T2OLD, FEMT2, FEMT2OLD, DEN, DENOLD, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
+                                T2, T2OLD, FEMT2, FEMT2OLD, DEN, DENOLD, &
+!                                UNEW, VNEW, WNEW, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
+                                NU, NV, NW, NUOLD, NVOLD, NWOLD, NUOLD, NVOLD, NWOLD, &
                                 CV_NODI_IPHA, CV_NODJ_IPHA, CVNORMX, CVNORMY, CVNORMZ,  &
                                 CV_DG_VEL_INT_OPT, ELE, ELE2, U_OTHER_LOC, &
                                 SELE, U_SNLOC, STOTEL, U_SLOC2LOC, SUF_U_BC, SUF_V_BC, SUF_W_BC,WIC_U_BC, &
@@ -961,9 +967,11 @@
                                 IN_ELE_UPWIND, DG_ELE_UPWIND, &
                                 T2MIN_2ND_MC, T2OLDMIN_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC,  LIMIT_USE_2ND)
                         ELSE
-                           CALL GET_INT_VEL( NPHASE, NDOTQ, INCOME, NDOTQOLD, INCOMEOLD, &
+                           CALL GET_INT_VEL( NPHASE, NDOTQNEW, NDOTQ, INCOME, NDOTQOLD, INCOMEOLD, &
                                 HDC, GI, IPHASE, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
-                                T, TOLD, FEMT, FEMTOLD, DEN, DENOLD, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
+                                T, TOLD, FEMT, FEMTOLD, DEN, DENOLD, &
+!                                UNEW, VNEW, WNEW, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
+                                NU, NV, NW, NUOLD, NVOLD, NWOLD, NUOLD, NVOLD, NWOLD, &
                                 CV_NODI_IPHA, CV_NODJ_IPHA, CVNORMX, CVNORMY, CVNORMZ,  &
                                 CV_DG_VEL_INT_OPT, ELE, ELE2, U_OTHER_LOC, &
                                 SELE, U_SNLOC, STOTEL, U_SLOC2LOC, SUF_U_BC, SUF_V_BC, SUF_W_BC,WIC_U_BC, &
@@ -1067,11 +1075,12 @@
 
                         CALL PUT_IN_CT_RHS(CT, CT_RHS, U_NLOC, SCVNGI, GI, NCOLCT, NDIM, &
                              CV_NONODS, U_NONODS, NPHASE, IPHASE, TOTELE, ELE, ELE2, SELE, &
+!                             JCOUNT_KLOC, JCOUNT_KLOC2, U_OTHER_LOC, U_NDGLN, UNEW, VNEW, WNEW,  &
                              JCOUNT_KLOC, JCOUNT_KLOC2, U_OTHER_LOC, U_NDGLN, NU, NV, NW,  &
                              SUFEN, SCVDETWEI, CVNORMX, CVNORMY, CVNORMZ, DEN, CV_NODI, CV_NODI_IPHA, &
                              UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
                              UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2, &
-                             NDOTQ, NDOTQOLD, LIMDT, LIMDTOLD, FTHETA_T2, ONE_M_FTHETA_T2OLD )
+                             NDOTQNEW, NDOTQOLD, LIMDT, LIMDTOLD, FTHETA_T2, ONE_M_FTHETA_T2OLD )
 
                      ENDIF Conditional_GETCT2
 
@@ -1087,7 +1096,7 @@
                               END DO
 
                               ACV( JCOUNT_IPHA ) =  ACV( JCOUNT_IPHA ) &
-                                   + SECOND_THETA * FTHETA_T2 * SCVDETWEI( GI ) * NDOTQ * INCOME * LIMD  & ! advection
+                                   + SECOND_THETA * FTHETA_T2 * SCVDETWEI( GI ) * NDOTQNEW * INCOME * LIMD  & ! advection
                                    - FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX ! Diffusion contribution
                               IF(GET_GTHETA) THEN
                                  THETA_GDIFF( CV_NODI_IPHA ) =  THETA_GDIFF( CV_NODI_IPHA ) &
@@ -1109,7 +1118,7 @@
                            IMID_IPHA = MIDACV( CV_NODI_IPHA )
 
                            ACV( IMID_IPHA ) =  ACV( IMID_IPHA ) &
-                                +  SECOND_THETA * FTHETA_T2 * SCVDETWEI( GI ) * NDOTQ * ( 1. - INCOME ) * LIMD  & ! advection
+                                +  SECOND_THETA * FTHETA_T2 * SCVDETWEI( GI ) * NDOTQNEW * ( 1. - INCOME ) * LIMD  & ! advection
                                 +  FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX  &  ! Diffusion contribution
                                 +  SCVDETWEI( GI ) * ROBIN1  ! Robin bc
                            IF(GET_GTHETA) THEN
@@ -1120,7 +1129,7 @@
 
                            ! CV_BETA=0 for Non-conservative discretisation (CV_BETA=1 for conservative disc)
                            ACV( IMID_IPHA ) =  ACV( IMID_IPHA )  &
-                                - SECOND_THETA * FTHETA_T2 * ( 1. - CV_BETA ) * SCVDETWEI( GI ) * NDOTQ * LIMD 
+                                - SECOND_THETA * FTHETA_T2 * ( 1. - CV_BETA ) * SCVDETWEI( GI ) * NDOTQNEW * LIMD 
                         ENDIF
 
                         TMID   =     T( CV_NODI_IPHA )
@@ -1130,13 +1139,13 @@
                         BCZERO=1.0
                         IF( (SELE /= 0) .AND. (INCOME > 0.5) ) BCZERO=0.0
 
-                        !print *, 'ZZZZZZ::', 'CV_NODI_IPHA, GI, NDOTQ:', CV_NODI_IPHA, GI, NDOTQ
+                        !print *, 'ZZZZZZ::', 'CV_NODI_IPHA, GI, NDOTQNEW:', CV_NODI_IPHA, GI, NDOTQNEW
 
                         ! Put results into the RHS vector
                         CV_RHS( CV_NODI_IPHA ) =  CV_RHS( CV_NODI_IPHA )  &
                              ! subtract 1st order adv. soln.
-                             + SECOND_THETA * FTHETA_T2 * NDOTQ * SCVDETWEI( GI ) * LIMD * FVT * BCZERO & 
-                             -  SCVDETWEI( GI ) * ( FTHETA_T2 * NDOTQ * LIMDT &
+                             + SECOND_THETA * FTHETA_T2 * NDOTQNEW * SCVDETWEI( GI ) * LIMD * FVT * BCZERO & 
+                             -  SCVDETWEI( GI ) * ( FTHETA_T2 * NDOTQNEW * LIMDT &
                              + ONE_M_FTHETA_T2OLD * NDOTQOLD * LIMDTOLD ) ! hi order adv
 
 
@@ -1156,24 +1165,24 @@
                            ndot_vel_int=CVNORMX( GI )*vel_int_u+CVNORMy( GI )*vel_int_v+ CVNORMz( GI )*vel_int_w
                            print *,'ele,iphase,CV_NODI_IPHA,gi,SECOND_THETA,SCVDETWEI( GI ):', &
                                 ele,iphase,CV_NODI_IPHA,gi,SECOND_THETA,SCVDETWEI( GI )
-                           print *,'FTHETA_T2, NDOTQ,ndot_vel_int, LIMDT:',FTHETA_T2, NDOTQ,ndot_vel_int, LIMDT
+                           print *,'FTHETA_T2, NDOTQNEW,ndot_vel_int, LIMDT:',FTHETA_T2, NDOTQNEW,ndot_vel_int, LIMDT
 
 
           
 
                            if(iphase==2) then
-                              racc_6row2ph=racc_6row2ph+ ndotq*SCVDETWEI( GI )* LIMDT
+                              racc_6row2ph=racc_6row2ph+ NDOTQNEW*SCVDETWEI( GI )* LIMDT
                            endif
                         endif
 
                         !  Subtract out 1st order term non-conservative adv.
                         CV_RHS( CV_NODI_IPHA ) =  CV_RHS( CV_NODI_IPHA ) &
-                             - FTHETA_T2 * ( 1. - CV_BETA ) * SCVDETWEI( GI ) * NDOTQ * LIMD * TMID
+                             - FTHETA_T2 * ( 1. - CV_BETA ) * SCVDETWEI( GI ) * NDOTQNEW * LIMD * TMID
 
                         ! High-order non-conservative advection contribution 
                         CV_RHS( CV_NODI_IPHA ) =  CV_RHS( CV_NODI_IPHA ) &
                              + ( 1. - CV_BETA) * SCVDETWEI( GI ) &
-                             * ( FTHETA_T2 * NDOTQ * TMID * LIMD  &
+                             * ( FTHETA_T2 * NDOTQNEW * TMID * LIMD  &
                              + ONE_M_FTHETA_T2OLD * NDOTQOLD * LIMDOLD * TOLDMID )
 
                         ! Diffusion contribution
@@ -1198,12 +1207,12 @@
                            if( igot_t2 /= 0 ) then
                               CV_RHS( CV_NODI_IPHA ) = CV_RHS( CV_NODI_IPHA ) &
                                    - CV_P( CV_NODI ) * SCVDETWEI( GI ) * ( &
-                                   THERM_FTHETA * NDOTQ * LIMT2 & 
+                                   THERM_FTHETA * NDOTQNEW * LIMT2 & 
                                    + ( 1. - THERM_FTHETA ) * NDOTQOLD * LIMT2OLD )
                            else
                               CV_RHS( CV_NODI_IPHA ) = CV_RHS( CV_NODI_IPHA ) &
                                    - CV_P( CV_NODI ) * SCVDETWEI( GI ) * ( &
-                                   THERM_FTHETA * NDOTQ & 
+                                   THERM_FTHETA * NDOTQNEW & 
                                    + ( 1. - THERM_FTHETA ) * NDOTQOLD )
                            end if
 
@@ -1254,7 +1263,7 @@
 !           print *,'t   =',t
 !           print *,'told=',told
           print *,'racc_6row2ph=',racc_6row2ph
-stop 777
+!stop 777
 
          !sourct2( 1 : cv_nonods ) = -.0 !-981. * ( 1.05 - .71 )
          !sourct2( cv_nonods + 1 : cv_nonods * nphase ) = -0.!-10.0e-1 !-981. * ( 1.05 - .71 )
@@ -3814,9 +3823,10 @@ stop 777
 
 
 
-    SUBROUTINE GET_INT_VEL( NPHASE, NDOTQ, INCOME, NDOTQOLD, INCOMEOLD, &
+    SUBROUTINE GET_INT_VEL( NPHASE, NDOTQNEW, NDOTQ,INCOME, NDOTQOLD, INCOMEOLD, &
          HDC, GI, IPHASE, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
-         T, TOLD, FEMT, FEMTOLD, DEN, DENOLD, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
+         T, TOLD, FEMT, FEMTOLD, DEN, DENOLD, &
+         UNEW, VNEW, WNEW, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
          CV_NODI_IPHA, CV_NODJ_IPHA, CVNORMX, CVNORMY, CVNORMZ,  &
          CV_DG_VEL_INT_OPT, ELE, ELE2, U_OTHER_LOC, &
          SELE, U_SNLOC,STOTEL, U_SLOC2LOC, SUF_U_BC, SUF_V_BC, SUF_W_BC, WIC_U_BC, &
@@ -3836,7 +3846,7 @@ stop 777
            NOPT_VEL_UPWIND_COEFS, NDIM, MAT_NLOC, MAT_NONODS, FACE_ITS, &
            IN_ELE_UPWIND, DG_ELE_UPWIND
       REAL, intent( in ) :: HDC, LIMT, LIMTOLD, FEMDGI, FEMTGI, FEMDOLDGI, FEMTOLDGI
-      REAL, intent( inout ) :: NDOTQ, INCOME, NDOTQOLD, INCOMEOLD
+      REAL, intent( inout ) :: NDOTQNEW,NDOTQ, INCOME, NDOTQOLD, INCOMEOLD
       INTEGER, DIMENSION( TOTELE*U_NLOC ), intent( in ) :: U_NDGLN
       INTEGER, DIMENSION( U_NLOC ), intent( in ) :: U_OTHER_LOC
       INTEGER, DIMENSION( U_SNLOC ), intent( in ) :: U_SLOC2LOC
@@ -3845,7 +3855,7 @@ stop 777
            TOLDMAX_NOD
       REAL, DIMENSION( U_NLOC, SCVNGI  ), intent( in ) :: SUFEN
       REAL, DIMENSION( CV_NONODS * NPHASE  ), intent( in ) :: T, TOLD, FEMT, FEMTOLD, DEN, DENOLD
-      REAL, DIMENSION( U_NONODS * NPHASE  ), intent( in ) :: NU, NV, NW, NUOLD, NVOLD, NWOLD
+      REAL, DIMENSION( U_NONODS * NPHASE  ), intent( in ) :: UNEW, VNEW, WNEW, NU, NV, NW, NUOLD, NVOLD, NWOLD
       REAL, DIMENSION( SCVNGI ), intent( in ) :: CVNORMX, CVNORMY, CVNORMZ
       REAL, DIMENSION( STOTEL * U_SNLOC * NPHASE ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
       REAL, DIMENSION( U_NLOC ), intent( inout ) :: UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
@@ -3864,6 +3874,7 @@ stop 777
       ! local variables
       character( len = option_path_len ) :: overlapping_path 
       logical :: is_overlapping   
+      INTEGER :: U_NLOC_LEV,U_KLOC_LEV,U_KLOC,U_NODK_IPHA
 
       is_overlapping = .false.
       call get_option( '/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
@@ -3902,6 +3913,19 @@ stop 777
               IN_ELE_UPWIND, DG_ELE_UPWIND, &
               TMIN_2ND_MC, TOLDMIN_2ND_MC, TMAX_2ND_MC, TOLDMAX_2ND_MC,  LIMIT_USE_2ND)
       ENDIF
+!
+! Calculate NDOTQNEW from NDOTQ
+      NDOTQNEW=NDOTQ ! initialize it like this so that it contains the b.c's
+      U_NLOC_LEV =U_NLOC /CV_NLOC
+      DO U_KLOC_LEV = 1, U_NLOC_LEV
+               U_KLOC=(CV_ILOC-1)*U_NLOC_LEV + U_KLOC_LEV
+               U_NODK_IPHA = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC ) +(IPHASE-1)*U_NONODS
+               NDOTQNEW=NDOTQNEW &
+               + SUFEN( U_KLOC, GI ) * UGI_COEF_ELE(U_KLOC)*(UNEW( U_NODK_IPHA )-NU( U_NODK_IPHA ))*CVNORMX(GI) &
+               + SUFEN( U_KLOC, GI ) * VGI_COEF_ELE(U_KLOC)*(VNEW( U_NODK_IPHA )-NV( U_NODK_IPHA ))*CVNORMY(GI) &
+               + SUFEN( U_KLOC, GI ) * WGI_COEF_ELE(U_KLOC)*(WNEW( U_NODK_IPHA )-NW( U_NODK_IPHA ))*CVNORMZ(GI)
+      END DO
+
       RETURN
     END SUBROUTINE GET_INT_VEL
 
