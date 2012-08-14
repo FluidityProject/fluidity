@@ -1401,13 +1401,13 @@
                     / ( DT * DEN( CV_NODI_IPHA ) )
 
 
-               CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + MASS_CV( CV_NODI ) * SOURCT( CV_NODI_IPHA ) 
-               !CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + MASS_CV( CV_NODI ) * SOURCT2( CV_NODI_IPHA ) 
+               CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + MASS_CV( CV_NODI ) * SOURCT( CV_NODI_IPHA ) / DEN( CV_NODI_IPHA )
+               !CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + MASS_CV( CV_NODI ) * SOURCT2( CV_NODI_IPHA ) / DEN( CV_NODI_IPHA )
 
                DO JPHASE = 1, NPHASE   
                   CV_NODI_JPHA = CV_NODI + ( JPHASE - 1 ) * CV_NONODS
                   CT_RHS( CV_NODI ) = CT_RHS( CV_NODI )  &
-                       - MASS_CV( CV_NODI ) * ABSORBT( CV_NODI, IPHASE, JPHASE ) * T( CV_NODI_JPHA )
+                       - MASS_CV( CV_NODI ) * ABSORBT( CV_NODI, IPHASE, JPHASE ) * T( CV_NODI_JPHA ) / DEN( CV_NODI_IPHA )
                END DO
             END DO
          END DO
