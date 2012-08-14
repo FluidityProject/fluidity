@@ -3949,7 +3949,10 @@ def update_Senescent_Copepod(param, vars, env, dt):
   new_agent_vars['Stage'] = stage_id('Copepod', 'Dead')
   new_agent_vars['Size'] = vars['Size'] * (((1.0 / (param['A_rmax'] - vars['A_r']))) if (vars['A_r'] < param['A_rmax']) else (1.0))
   vars['Size'] = vars['Size'] - new_agent_vars['Size']
-  add_agent('Copepod', new_agent_vars, [vars['x'], vars['y'], -vars['z']])
+  if vars.has_key('x') and vars.has_key('y'):
+    add_agent('Copepod', new_agent_vars, [vars['x'], vars['y'], -vars['z']])
+  else:
+    add_agent('Copepod', new_agent_vars, [-vars['z']])
   
 
   ### Excretion ###
