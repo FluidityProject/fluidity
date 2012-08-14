@@ -2437,7 +2437,6 @@ contains
     integer :: p, f, nphases, nsfields, nvfields, ntfields
 
     ewrite(1,*) "In set_prescribed_field_values"
-    call profiler_tic("/set_prescribed_field_values")
 
     mesh_changed = .not. present_and_true(initial_mesh)
     
@@ -2520,8 +2519,6 @@ contains
       
     ! flush the cache
     call vtk_cache_finalise()
-
-    call profiler_toc("/set_prescribed_field_values")
 
   end subroutine set_prescribed_field_values
   

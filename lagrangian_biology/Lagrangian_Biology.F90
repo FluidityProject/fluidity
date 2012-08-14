@@ -777,6 +777,7 @@ contains
 
           if (have_option(trim(agent_array%stage_options)//"/biology") .and. agent_array%length > 0 ) then
              ewrite(2,*) "Lagrangian biology: Updating ", trim(agent_array%name)
+             call profiler_tic(trim(agent_array%name)//"::update")
 
              ! Compile python function to set bio-variable, and store in the global dictionary
              if (have_option(trim(agent_array%stage_options)//"/biology/python")) then
@@ -825,6 +826,7 @@ contains
                 end if
              end do
 
+             call profiler_toc(trim(agent_array%name)//"::update")
           end if  ! have_biology
        end do  ! stages
 

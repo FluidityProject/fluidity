@@ -258,7 +258,6 @@ contains
 
        ! Explicit Runge-Kutta iterations
        if (detector_list%velocity_advection) then
-          call profiler_tic(trim(detector_list%name)//"::movement::Runge-Kutta-"//trim(int2str(detector_list%n_stages)))
           RKstages_loop: do stage = 1, detector_list%n_stages
 
              ! Compute the update vector for the current stage
@@ -270,12 +269,10 @@ contains
              call track_detectors(detector_list,xfield,periodic_mesh)
 
           end do RKstages_loop
-          call profiler_toc(trim(detector_list%name)//"::movement::Runge-Kutta-"//trim(int2str(detector_list%n_stages)))
        end if
 
        if (allocated(detector_list%random_walks)) then
           do rw=1, size(detector_list%random_walks)
-             call profiler_tic(trim(detector_list%name)//"::movement::"//trim(detector_list%random_walks(rw)%name))
 
              ! Apply single-cycle Random Walks
              if (.not. detector_list%random_walks(rw)%auto_subcycle) then
@@ -318,7 +315,6 @@ contains
                 FLExit("Auto-subcycling can only be used with internal diffusive Random Walk.")
              end if
 
-             call profiler_toc(trim(detector_list%name)//"::movement::"//trim(detector_list%random_walks(rw)%name))
           end do
        end if 
 
@@ -434,8 +430,6 @@ contains
     real :: search_tolerance
     integer :: k, nprocs, new_owner, all_send_lists_empty
     logical :: outside_domain, any_lagrangian
-
-    call profiler_tic(trim(detector_list%name)//"::movement::tracking")
 
     ! We allocate a sendlist for every processor
     nprocs=getnprocs()
@@ -573,8 +567,6 @@ contains
 
        detector => detector%next
     end do
-
-    call profiler_toc(trim(detector_list%name)//"::movement::tracking")
 
   end subroutine track_detectors
 
@@ -716,7 +708,8 @@ contains
        ! exactly on a domain boundary, which is not periodic.
        ! In this case no next_face will be found and we can only exit the loop with -1
        if (ele_t == huge(1.0)) then
-          ewrite(-1,*) "No new element found in RT tracking routine, update_vector:", detector%update_vector
+          ewrite(-1,*) "No new element found in RT tracking routine in list ", trim(detector_list%name)
+          ewrite(-1,*) "Update_vector:", detector%update_vector, ", ray_o: ", detector%ray_o, ", ray_d: ", detector%ray_d, ", t: ", detector%current_t
           ewrite(-1,*) "Most likely an agent ended its last timestep on a domain boundary!"
           FLAbort("Could not determine next element in RT tracking!")
        end if

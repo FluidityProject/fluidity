@@ -105,6 +105,7 @@ module fluids_module
   use detectors
   use detector_parallel
   use detector_move_lagrangian
+  use Profiler
 
 
   implicit none
@@ -522,8 +523,10 @@ contains
        if(use_sub_state()) call set_boundary_conditions_values(sub_state, shift_time=.true.)
 
        ! evaluate prescribed fields at time = current_time+dt
+       call profiler_tic("/fluidity::set_prescribed_field_values")
        call set_prescribed_field_values(state, exclude_interpolated=.true., &
             exclude_nonreprescribed=.true., time=current_time+dt)
+       call profiler_toc("/fluidity::set_prescribed_field_values")
 
        if(use_sub_state()) call set_full_domain_prescribed_fields(state,time=current_time+dt)
 
@@ -552,6 +555,7 @@ contains
 
        ! nonlinear_iterations=maximum no of iterations within a time step
 
+       call profiler_tic("/fluidity::nonlinear_iterations")
        nonlinear_iteration_loop: do  ITS=1,nonlinear_iterations
 
           ewrite(1,*)'###################'
@@ -800,6 +804,7 @@ contains
           end if
 
        end do nonlinear_iteration_loop
+       call profiler_toc("/fluidity::nonlinear_iterations")
 
        ! Reset the number of nonlinear iterations in case it was overwritten by nonlinear_iterations_adapt
        call get_option('/timestepping/nonlinear_iterations',nonlinear_iterations,&
@@ -850,8 +855,10 @@ contains
 !          call melt_surf_calc(state(1))
 !       end if
        ! calculate and write diagnostics before the timestep gets changed
+       call profiler_tic("/fluidity::diagnostic_variables")
        call calculate_diagnostic_variables(State, exclude_nonrecalculated=.true.)
        call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
+       call profiler_toc("/fluidity::diagnostic_variables")
           
        ! Call the modern and significantly less satanic version of study
        call write_diagnostics(state, current_time, dt, timestep)
