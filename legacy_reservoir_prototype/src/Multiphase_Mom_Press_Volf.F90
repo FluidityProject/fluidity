@@ -567,7 +567,6 @@ print *, u(1+u_nonods:2*u_nonods)
            print *,'before volfra nu(4249):',nu(4249)
            print *,'before volfra nuold(4249):',nuold(4249)
 
-!if (.false.) &
            CALL VOLFRA_ASSEM_SOLVE( &
                 NCOLACV, FINACV, COLACV, MIDACV, &
                 NCOLCT, FINDCT, COLCT, &

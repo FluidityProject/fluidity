@@ -326,7 +326,7 @@
       REAL, PARAMETER :: W_SUM_ONE = 1.
       ! second_theta=0.
       ! second_theta=1. orginal implicit method
-      REAL, PARAMETER :: SECOND_THETA = 0.
+      REAL, PARAMETER :: SECOND_THETA = 1.
 
 
       integer :: x_nod1,x_nod2,x_nod3,cv_inod_ipha, IGETCT, U_NODK_IPHA
@@ -1306,10 +1306,6 @@
                        + (1.-CV_BETA) * DEN(CV_NODI_IPHA) * T2(CV_NODI_IPHA))  &
                        * MEAN_PORE_CV(CV_NODI) * MASS_CV(CV_NODI) * TOLD(CV_NODI_IPHA) / DT
                ELSE
-
-                  ! NOTE: We should only have bc contributions at this stage...'
-                  ewrite(3,*)'*********:', CV_NODI_IPHA, CV_RHS( CV_NODI_IPHA )
-
 
                   CV_RHS( CV_NODI_IPHA ) = CV_RHS( CV_NODI_IPHA ) &
                        + MASS_CV(CV_NODI) * SOURCT(CV_NODI_IPHA) !&
@@ -3884,7 +3880,7 @@
       ! local variables
       character( len = option_path_len ) :: overlapping_path 
       logical :: is_overlapping   
-      INTEGER :: U_NLOC_LEV,U_KLOC_LEV,U_KLOC,U_NODK_IPHA
+      INTEGER :: U_NLOC_LEV,U_KLOC_LEV,U_KLOC,U_NODK_IPHA, U_KLOC2, U_NODK2_IPHA
 
       is_overlapping = .false.
       call get_option( '/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
@@ -3930,10 +3926,26 @@
       DO U_KLOC = 1, U_NLOC
                U_NODK_IPHA = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC ) +(IPHASE-1)*U_NONODS
                NDOTQNEW=NDOTQNEW &
-               + SUFEN( U_KLOC, GI ) * UGI_COEF_ELE(U_KLOC)*(U( U_NODK_IPHA )-NU( U_NODK_IPHA ))*CVNORMX(GI) &
-               + SUFEN( U_KLOC, GI ) * VGI_COEF_ELE(U_KLOC)*(V( U_NODK_IPHA )-NV( U_NODK_IPHA ))*CVNORMY(GI) &
-               + SUFEN( U_KLOC, GI ) * WGI_COEF_ELE(U_KLOC)*(W( U_NODK_IPHA )-NW( U_NODK_IPHA ))*CVNORMZ(GI)
+               + SUFEN( U_KLOC, GI ) * UGI_COEF_ELE(U_KLOC) * ( U( U_NODK_IPHA ) - NU( U_NODK_IPHA ) ) * CVNORMX(GI) &
+               + SUFEN( U_KLOC, GI ) * VGI_COEF_ELE(U_KLOC) * ( V( U_NODK_IPHA ) - NV( U_NODK_IPHA ) ) * CVNORMY(GI) &
+               + SUFEN( U_KLOC, GI ) * WGI_COEF_ELE(U_KLOC) * ( W( U_NODK_IPHA ) - NW( U_NODK_IPHA ) ) * CVNORMZ(GI)
       END DO
+
+
+
+      IF((ELE2 /= 0).AND.(ELE2 /= ELE)) THEN
+         ! We have a discontinuity between elements so integrate along the face...
+         DO U_KLOC = 1, U_NLOC
+            U_KLOC2=U_OTHER_LOC(U_KLOC)
+            IF(U_KLOC2 /= 0) THEN
+               U_NODK2_IPHA = U_NDGLN(( ELE2 - 1 ) * U_NLOC + U_KLOC2 ) +(IPHASE-1)*U_NONODS
+               NDOTQNEW=NDOTQNEW &
+                    + SUFEN( U_KLOC, GI ) * UGI_COEF_ELE2(U_KLOC2) * ( U( U_NODK2_IPHA ) - NU( U_NODK2_IPHA ) ) * CVNORMX(GI) &
+                    + SUFEN( U_KLOC, GI ) * VGI_COEF_ELE2(U_KLOC2) * ( V( U_NODK2_IPHA ) - NV( U_NODK2_IPHA ) ) * CVNORMY(GI) &
+                    + SUFEN( U_KLOC, GI ) * WGI_COEF_ELE2(U_KLOC2) * ( W( U_NODK2_IPHA ) - NW( U_NODK2_IPHA ) ) * CVNORMZ(GI)
+            END IF
+         END DO
+      END IF
 
       RETURN
     END SUBROUTINE GET_INT_VEL
@@ -6452,7 +6464,6 @@ print *, '====================================='
       ENDIF
 
       IF((ELE2 /= 0).AND.(ELE2 /= ELE)) THEN
-
          ! We have a discontinuity between elements so integrate along the face...
          !DO U_KLOC_LEV = 1, U_NLOC_LEV
          !U_KLOC=(CV_ILOC-1)*U_NLOC_LEV + U_KLOC_LEV

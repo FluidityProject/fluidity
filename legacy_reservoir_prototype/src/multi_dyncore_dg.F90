@@ -452,7 +452,12 @@
 
       V_BETA = 1.0
 
-      Loop_NonLinearFlux: DO ITS_FLUX_LIM = 1, 1!NITS_FLUX_LIM
+      ! ADD OPTION TO DIAMOND..!!!!
+      ! call get_option(.....second_theta)
+      ! if (second_theta==0.) NITS_FLUX_LIM=1
+      !
+
+      Loop_NonLinearFlux: DO ITS_FLUX_LIM = 1, NITS_FLUX_LIM
 
          CALL CV_ASSEMB( CV_RHS, &
               NCOLACV, ACV, FINACV, COLACV, MIDACV, &
