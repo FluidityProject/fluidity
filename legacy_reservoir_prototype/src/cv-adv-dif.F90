@@ -46,7 +46,7 @@
          CV_NLOC, U_NLOC, X_NLOC, &
          CV_NDGLN, X_NDGLN, U_NDGLN, &
          CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-         X, Y, Z, &
+         X, Y, Z, U, V, W, &
          NU, NV, NW, NUOLD, NVOLD, NWOLD, &
          T, TOLD, DEN, DENOLD, &
          MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
@@ -224,7 +224,7 @@
       REAL, DIMENSION( NCOLCMC ), intent( inout ) :: MASS_MN_PRES
 
       REAL, DIMENSION( X_NONODS ), intent( in ) :: X, Y, Z
-      REAL, DIMENSION( U_NONODS * NPHASE ), intent( in ) :: NU, NV, NW, NUOLD, NVOLD, NWOLD
+      REAL, DIMENSION( U_NONODS * NPHASE ), intent( in ) :: U, V, W, NU, NV, NW, NUOLD, NVOLD, NWOLD
       REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: T, TOLD, DEN, DENOLD
       REAL, DIMENSION( CV_NONODS * NPHASE * IGOT_T2 ), intent( in ) :: T2, T2OLD
       REAL, DIMENSION( CV_NONODS * NPHASE * IGOT_T2 ), intent( inout ) :: THETA_GDIFF
@@ -869,8 +869,8 @@
                            CALL GET_INT_VEL( NPHASE, NDOTQNEW, NDOTQ, INCOME, NDOTQOLD, INCOMEOLD, &
                                 HDC, GI, IPHASE, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
                                 T2, T2OLD, FEMT2, FEMT2OLD, DEN, DENOLD, &
-!                                UNEW, VNEW, WNEW, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
-                                NU, NV, NW, NUOLD, NVOLD, NWOLD, NUOLD, NVOLD, NWOLD, &
+                                U, V, W, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
+!                                NU, NV, NW, NUOLD, NVOLD, NWOLD, NUOLD, NVOLD, NWOLD, &
                                 CV_NODI_IPHA, CV_NODJ_IPHA, CVNORMX, CVNORMY, CVNORMZ,  &
                                 CV_DG_VEL_INT_OPT, ELE, ELE2, U_OTHER_LOC, &
                                 SELE, U_SNLOC, STOTEL, U_SLOC2LOC, SUF_U_BC, SUF_V_BC, SUF_W_BC,WIC_U_BC, &
@@ -886,8 +886,8 @@
                            CALL GET_INT_VEL( NPHASE, NDOTQNEW, NDOTQ, INCOME, NDOTQOLD, INCOMEOLD, &
                                 HDC, GI, IPHASE, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
                                 T, TOLD, FEMT, FEMTOLD, DEN, DENOLD, &
-!                                UNEW, VNEW, WNEW, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
-                                NU, NV, NW, NUOLD, NVOLD, NWOLD, NUOLD, NVOLD, NWOLD, &
+                                U, V, W, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
+!                                NU, NV, NW, NUOLD, NVOLD, NWOLD, NUOLD, NVOLD, NWOLD, &
                                 CV_NODI_IPHA, CV_NODJ_IPHA, CVNORMX, CVNORMY, CVNORMZ,  &
                                 CV_DG_VEL_INT_OPT, ELE, ELE2, U_OTHER_LOC, &
                                 SELE, U_SNLOC, STOTEL, U_SLOC2LOC, SUF_U_BC, SUF_V_BC, SUF_W_BC,WIC_U_BC, &
@@ -954,8 +954,8 @@
                            CALL GET_INT_VEL( NPHASE, NDOTQNEW, NDOTQ, INCOME, NDOTQOLD, INCOMEOLD, &
                                 HDC, GI, IPHASE, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
                                 T2, T2OLD, FEMT2, FEMT2OLD, DEN, DENOLD, &
-!                                UNEW, VNEW, WNEW, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
-                                NU, NV, NW, NUOLD, NVOLD, NWOLD, NUOLD, NVOLD, NWOLD, &
+                                U, V, W, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
+!                                NU, NV, NW, NUOLD, NVOLD, NWOLD, NUOLD, NVOLD, NWOLD, &
                                 CV_NODI_IPHA, CV_NODJ_IPHA, CVNORMX, CVNORMY, CVNORMZ,  &
                                 CV_DG_VEL_INT_OPT, ELE, ELE2, U_OTHER_LOC, &
                                 SELE, U_SNLOC, STOTEL, U_SLOC2LOC, SUF_U_BC, SUF_V_BC, SUF_W_BC,WIC_U_BC, &
@@ -971,8 +971,8 @@
                            CALL GET_INT_VEL( NPHASE, NDOTQNEW, NDOTQ, INCOME, NDOTQOLD, INCOMEOLD, &
                                 HDC, GI, IPHASE, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
                                 T, TOLD, FEMT, FEMTOLD, DEN, DENOLD, &
-!                                UNEW, VNEW, WNEW, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
-                                NU, NV, NW, NUOLD, NVOLD, NWOLD, NUOLD, NVOLD, NWOLD, &
+                                U, V, W, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
+!                                NU, NV, NW, NUOLD, NVOLD, NWOLD, NUOLD, NVOLD, NWOLD, &
                                 CV_NODI_IPHA, CV_NODJ_IPHA, CVNORMX, CVNORMY, CVNORMZ,  &
                                 CV_DG_VEL_INT_OPT, ELE, ELE2, U_OTHER_LOC, &
                                 SELE, U_SNLOC, STOTEL, U_SLOC2LOC, SUF_U_BC, SUF_V_BC, SUF_W_BC,WIC_U_BC, &
@@ -1076,8 +1076,8 @@
 
                         CALL PUT_IN_CT_RHS(CT, CT_RHS, U_NLOC, SCVNGI, GI, NCOLCT, NDIM, &
                              CV_NONODS, U_NONODS, NPHASE, IPHASE, TOTELE, ELE, ELE2, SELE, &
-!                             JCOUNT_KLOC, JCOUNT_KLOC2, U_OTHER_LOC, U_NDGLN, UNEW, VNEW, WNEW,  &
-                             JCOUNT_KLOC, JCOUNT_KLOC2, U_OTHER_LOC, U_NDGLN, NU, NV, NW,  &
+                             JCOUNT_KLOC, JCOUNT_KLOC2, U_OTHER_LOC, U_NDGLN, U, V, W,  &
+!                             JCOUNT_KLOC, JCOUNT_KLOC2, U_OTHER_LOC, U_NDGLN, NU, NV, NW,  &
                              SUFEN, SCVDETWEI, CVNORMX, CVNORMY, CVNORMZ, DEN, CV_NODI, CV_NODI_IPHA, &
                              UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
                              UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2, &
@@ -3836,7 +3836,7 @@
     SUBROUTINE GET_INT_VEL( NPHASE, NDOTQNEW, NDOTQ,INCOME, NDOTQOLD, INCOMEOLD, &
          HDC, GI, IPHASE, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
          T, TOLD, FEMT, FEMTOLD, DEN, DENOLD, &
-         UNEW, VNEW, WNEW, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
+         U, V, W, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
          CV_NODI_IPHA, CV_NODJ_IPHA, CVNORMX, CVNORMY, CVNORMZ,  &
          CV_DG_VEL_INT_OPT, ELE, ELE2, U_OTHER_LOC, &
          SELE, U_SNLOC,STOTEL, U_SLOC2LOC, SUF_U_BC, SUF_V_BC, SUF_W_BC, WIC_U_BC, &
@@ -3865,7 +3865,7 @@
            TOLDMAX_NOD
       REAL, DIMENSION( U_NLOC, SCVNGI  ), intent( in ) :: SUFEN
       REAL, DIMENSION( CV_NONODS * NPHASE  ), intent( in ) :: T, TOLD, FEMT, FEMTOLD, DEN, DENOLD
-      REAL, DIMENSION( U_NONODS * NPHASE  ), intent( in ) :: UNEW, VNEW, WNEW, NU, NV, NW, NUOLD, NVOLD, NWOLD
+      REAL, DIMENSION( U_NONODS * NPHASE  ), intent( in ) :: U, V, W, NU, NV, NW, NUOLD, NVOLD, NWOLD
       REAL, DIMENSION( SCVNGI ), intent( in ) :: CVNORMX, CVNORMY, CVNORMZ
       REAL, DIMENSION( STOTEL * U_SNLOC * NPHASE ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
       REAL, DIMENSION( U_NLOC ), intent( inout ) :: UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
@@ -3927,14 +3927,12 @@
 ! Calculate NDOTQNEW from NDOTQ
       NDOTQNEW=NDOTQ ! initialize it like this so that it contains the b.c's
       U_NLOC_LEV =U_NLOC /CV_NLOC
-!      DO U_KLOC_LEV = 1, U_NLOC_LEV
-!               U_KLOC=(CV_ILOC-1)*U_NLOC_LEV + U_KLOC_LEV
       DO U_KLOC = 1, U_NLOC
                U_NODK_IPHA = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC ) +(IPHASE-1)*U_NONODS
                NDOTQNEW=NDOTQNEW &
-               + SUFEN( U_KLOC, GI ) * UGI_COEF_ELE(U_KLOC)*(UNEW( U_NODK_IPHA )-NU( U_NODK_IPHA ))*CVNORMX(GI) &
-               + SUFEN( U_KLOC, GI ) * VGI_COEF_ELE(U_KLOC)*(VNEW( U_NODK_IPHA )-NV( U_NODK_IPHA ))*CVNORMY(GI) &
-               + SUFEN( U_KLOC, GI ) * WGI_COEF_ELE(U_KLOC)*(WNEW( U_NODK_IPHA )-NW( U_NODK_IPHA ))*CVNORMZ(GI)
+               + SUFEN( U_KLOC, GI ) * UGI_COEF_ELE(U_KLOC)*(U( U_NODK_IPHA )-NU( U_NODK_IPHA ))*CVNORMX(GI) &
+               + SUFEN( U_KLOC, GI ) * VGI_COEF_ELE(U_KLOC)*(V( U_NODK_IPHA )-NV( U_NODK_IPHA ))*CVNORMY(GI) &
+               + SUFEN( U_KLOC, GI ) * WGI_COEF_ELE(U_KLOC)*(W( U_NODK_IPHA )-NW( U_NODK_IPHA ))*CVNORMZ(GI)
       END DO
 
       RETURN

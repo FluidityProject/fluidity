@@ -180,7 +180,7 @@
               CV_NLOC, U_NLOC, X_NLOC,  &
               CV_NDGLN, X_NDGLN, U_NDGLN, &
               CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-              X, Y, Z, &
+              X, Y, Z, NU, NV, NW, &
               NU, NV, NW, NUOLD, NVOLD, NWOLD, &
               T, TOLD, DEN, DENOLD, &
               MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
@@ -343,7 +343,7 @@
          CV_NLOC, U_NLOC, X_NLOC, &
          CV_NDGLN, X_NDGLN, U_NDGLN, &
          CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-         X, Y, Z, &
+         X, Y, Z, U, V, W, &
          NU, NV, NW, NUOLD, NVOLD, NWOLD, SATURA, SATURAOLD, DEN, DENOLD, &
          MAT_NLOC,MAT_NDGLN,MAT_NONODS, &
          V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, V_BETA, &
@@ -388,7 +388,7 @@
       INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCT
       INTEGER, DIMENSION( NCOLCT ), intent( in ) :: COLCT
       REAL, DIMENSION( X_NONODS ), intent( in ) :: X, Y, Z
-      REAL, DIMENSION( U_NONODS * NPHASE ), intent( in ) :: NU, NV, NW, NUOLD, NVOLD, NWOLD
+      REAL, DIMENSION( U_NONODS * NPHASE ), intent( in ) :: U, V, W, NU, NV, NW, NUOLD, NVOLD, NWOLD
       REAL, DIMENSION( CV_NONODS *NPHASE ), intent( inout ) :: SATURA, SATURAOLD, Sat_FEMT, DEN_FEMT
       REAL, DIMENSION( CV_NONODS *NPHASE ), intent( in ) :: DEN, DENOLD
       REAL, DIMENSION( TOTELE*IGOT_THETA_FLUX, CV_NLOC, SCVNGI_THETA, NPHASE ), &
@@ -463,7 +463,7 @@
               CV_NLOC, U_NLOC, X_NLOC,  &
               CV_NDGLN, X_NDGLN, U_NDGLN, &
               CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-              X, Y, Z, &
+              X, Y, Z, U, V, W, &
               NU, NV, NW, NUOLD, NVOLD, NWOLD, & 
               SATURA, SATURAOLD, DEN, DENOLD, &
               MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
@@ -1540,7 +1540,7 @@ print *, '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@'
            CV_NLOC, U_NLOC, X_NLOC, &
            CV_NDGLN, X_NDGLN, U_NDGLN, &
            CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-           X, Y, Z, &
+           X, Y, Z, NU, NV, NW, &
            NU, NV, NW, NUOLD, NVOLD, NWOLD, &
            SATURA, SATURAOLD, DEN, DENOLD, &
            MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &

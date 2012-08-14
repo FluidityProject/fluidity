@@ -499,6 +499,14 @@ contains
              ewrite(3,*)' '  
           end do
 
+          NU = U
+          NV = V
+          NW = W
+
+          NUOLD = UOLD
+          NVOLD = VOLD
+          NWOLD = WOLD
+
           CALL FORCE_BAL_CTY_ASSEM_SOLVE( &
                NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
                U_ELE_TYPE, P_ELE_TYPE, &
@@ -549,14 +557,6 @@ contains
 
           if (SIG_INT) exit Loop_ITS
 
-          NU = U
-          NV = V
-          NW = W
-
-          NUOLD = UOLD
-          NVOLD = VOLD
-          NWOLD = WOLD
-
 
 print *,' 1st phase'
 print *, u(1:u_nonods)
@@ -567,38 +567,38 @@ print *, u(1+u_nonods:2*u_nonods)
            print *,'before volfra nu(4249):',nu(4249)
            print *,'before volfra nuold(4249):',nuold(4249)
 
-if (.true.) &
-          CALL VOLFRA_ASSEM_SOLVE( &
-               NCOLACV, FINACV, COLACV, MIDACV, &
-               NCOLCT, FINDCT, COLCT, &
-               CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
-               CV_ELE_TYPE,  &
-               NPHASE,  &
-               CV_NLOC, U_NLOC, X_NLOC,  &
-               CV_NDGLN, X_NDGLN, U_NDGLN, &
-               CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-               X, Y, Z, &
-               NU, NV, NW, NUOLD, NVOLD, NWOLD, &
-               SATURA, SATURAOLD, &
-               DEN, DENOLD, &
-               MAT_NLOC,MAT_NDGLN,MAT_NONODS, &
-               V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, V_BETA, &
-               SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, &
-               WIC_VOL_BC, WIC_D_BC, WIC_U_BC, &
-               DERIV, P, &
-               V_SOURCE_STORE, V_ABSORB, VOLFRA_PORE, &
-               NDIM, &
-               NCOLM, FINDM, COLM, MIDM, &
-               XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
-               OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, & 
-               Sat_FEMT, Den_FEMT, &
-               IGOT_THETA_FLUX, SCVNGI_THETA, VOLFRA_USE_THETA_FLUX, &
-               SUM_THETA_FLUX, SUM_ONE_M_THETA_FLUX, &
-               IN_ELE_UPWIND, DG_ELE_UPWIND, &
-               NOIT_DIM, &
-               NITS_FLUX_LIM_VOLFRA, &
-               option_path = '/material_phase[0]/scalar_field::PhaseVolumeFraction', &
-               mass_ele_transp = mass_ele )
+!if (.false.) &
+           CALL VOLFRA_ASSEM_SOLVE( &
+                NCOLACV, FINACV, COLACV, MIDACV, &
+                NCOLCT, FINDCT, COLCT, &
+                CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
+                CV_ELE_TYPE,  &
+                NPHASE,  &
+                CV_NLOC, U_NLOC, X_NLOC,  &
+                CV_NDGLN, X_NDGLN, U_NDGLN, &
+                CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
+                X, Y, Z, U, V, W, &
+                NU, NV, NW, NUOLD, NVOLD, NWOLD, &
+                SATURA, SATURAOLD, &
+                DEN, DENOLD, &
+                MAT_NLOC,MAT_NDGLN,MAT_NONODS, &
+                V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, V_BETA, &
+                SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, &
+                WIC_VOL_BC, WIC_D_BC, WIC_U_BC, &
+                DERIV, P, &
+                V_SOURCE_STORE, V_ABSORB, VOLFRA_PORE, &
+                NDIM, &
+                NCOLM, FINDM, COLM, MIDM, &
+                XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
+                OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, & 
+                Sat_FEMT, Den_FEMT, &
+                IGOT_THETA_FLUX, SCVNGI_THETA, VOLFRA_USE_THETA_FLUX, &
+                SUM_THETA_FLUX, SUM_ONE_M_THETA_FLUX, &
+                IN_ELE_UPWIND, DG_ELE_UPWIND, &
+                NOIT_DIM, &
+                NITS_FLUX_LIM_VOLFRA, &
+                option_path = '/material_phase[0]/scalar_field::PhaseVolumeFraction', &
+                mass_ele_transp = mass_ele )
 
           if (SIG_INT) exit Loop_ITS
 
