@@ -552,9 +552,6 @@ contains
              ewrite(3,*)' '  
           end do
 
-          CALL calculate_multiphase_density( state, CV_NONODS, CV_PHA_NONODS, DEN, DERIV, &
-               T, CV_P )
-
           if (SIG_INT) exit Loop_ITS
 
 
@@ -563,9 +560,6 @@ print *, u(1:u_nonods)
 print *,' 2nd phase'
 print *, u(1+u_nonods:2*u_nonods)
 !stop 777
-
-           print *,'before volfra nu(4249):',nu(4249)
-           print *,'before volfra nuold(4249):',nuold(4249)
 
            CALL VOLFRA_ASSEM_SOLVE( &
                 NCOLACV, FINACV, COLACV, MIDACV, &
