@@ -1308,15 +1308,15 @@
                ELSE
 
                   CV_RHS( CV_NODI_IPHA ) = CV_RHS( CV_NODI_IPHA ) &
-                       + MASS_CV(CV_NODI) * SOURCT(CV_NODI_IPHA) !&
-                  !- CV_BETA * MEAN_PORE_CV( CV_NODI ) * MASS_CV( CV_NODI ) & ! conservative time term. 
-                  !* TOLD(CV_NODI_IPHA) &
-                  !* (DEN(CV_NODI_IPHA) - DENOLD(CV_NODI_IPHA)) / DT
+                       + MASS_CV(CV_NODI) * SOURCT(CV_NODI_IPHA) &
+                       - CV_BETA * MEAN_PORE_CV( CV_NODI ) * MASS_CV( CV_NODI ) & ! conservative time term. 
+                       * TOLD(CV_NODI_IPHA) &
+                       * (DEN(CV_NODI_IPHA) - DENOLD(CV_NODI_IPHA)) / DT
 
                   ACV( IMID_IPHA ) =  ACV( IMID_IPHA ) &
-                       !+ (CV_BETA * DENOLD(CV_NODI_IPHA) + (1.-CV_BETA) * DEN(CV_NODI_IPHA))  &
-                       + (CV_BETA * DEN(CV_NODI_IPHA) &
-                       + (1.-CV_BETA) * DEN(CV_NODI_IPHA))  &
+                       + (CV_BETA * DENOLD(CV_NODI_IPHA) + (1.-CV_BETA) * DEN(CV_NODI_IPHA))  &
+                       !+ (CV_BETA * DEN(CV_NODI_IPHA) &
+                       !+ (1.-CV_BETA) * DEN(CV_NODI_IPHA))  &
                        * MEAN_PORE_CV(CV_NODI) * MASS_CV(CV_NODI) / DT
 
                   CV_RHS( CV_NODI_IPHA ) = CV_RHS( CV_NODI_IPHA ) &
@@ -1370,19 +1370,18 @@
                   CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) - MASS_CV( CV_NODI ) * ( &
                        (1.0-W_SUM_ONE) * MEAN_PORE_CV( CV_NODI ) * T( CV_NODI_IPHA ) / DT - &
                        MEAN_PORE_CV( CV_NODI ) *  TOLD( CV_NODI_IPHA ) * DENOLD( CV_NODI_IPHA ) / ( DT * DEN( CV_NODI_IPHA ) ) - &
-                       MEAN_PORE_CV( CV_NODI ) * DERIV( CV_NODI_IPHA ) * CV_P( CV_NODI ) * T( CV_NODI_IPHA ) / ( DT * DEN( CV_NODI_IPHA ) )&
+                       MEAN_PORE_CV( CV_NODI ) * DERIV( CV_NODI_IPHA ) * CV_P( CV_NODI ) * T( CV_NODI_IPHA ) / ( DT * DEN( CV_NODI_IPHA ) ) &
                        )
                   IF(IPHASE==1) THEN ! Add constraint to force sum of volume fracts to be unity... 
                      ! W_SUM_ONE==1 applies the constraint
                      ! W_SUM_ONE==0 does NOT apply the constraint
-                     CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) - MASS_CV( CV_NODI ) *   &
+                     CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) - MASS_CV( CV_NODI ) * &
                           W_SUM_ONE * MEAN_PORE_CV( CV_NODI )  / DT
                   ENDIF
                else
                   W_SUM_ONE1 = 1.0 !=1 Applies constraint to T
                   W_SUM_ONE2 = 1.0 !=1 Applies constraint to Told 
                   ! the original working code used W_SUM_ONE1 = 1, W_SUM_ONE2 = 1
-
                   CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) - MASS_CV( CV_NODI ) * MEAN_PORE_CV( CV_NODI ) *( &
                        (1.0-W_SUM_ONE1) *  T( CV_NODI_IPHA ) / DT &
                        -(1.0-W_SUM_ONE2) *  TOLD( CV_NODI_IPHA ) / DT  &
