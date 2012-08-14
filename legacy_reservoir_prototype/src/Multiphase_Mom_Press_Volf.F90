@@ -564,6 +564,8 @@ print *,' 2nd phase'
 print *, u(1+u_nonods:2*u_nonods)
 !stop 777
 
+           print *,'before volfra nu(4249):',nu(4249)
+           print *,'before volfra nuold(4249):',nuold(4249)
 
 if (.true.) &
           CALL VOLFRA_ASSEM_SOLVE( &

@@ -754,7 +754,9 @@
 
       ! Local variables
       INTEGER :: CV_INOD, COUNT, U_JNOD, IPHASE, J
+      real r_sixth
 
+      r_sixth=0.0
       CV_RHS = 0.0
 
       DO CV_INOD = 1, CV_NONODS
@@ -780,6 +782,8 @@
 !                    print *,    CT( COUNT + NCOLCT * NDIM * ( IPHASE - 1 )) ,U( J )   ,    CT( COUNT + NCOLCT + NCOLCT     * NDIM * ( IPHASE - 1 )) , V( J )
                     print *, 'YYYYY_U', j, CT( COUNT + NCOLCT * NDIM * ( IPHASE - 1 )) ,U( J )  
                     print *, 'YYYYY_V', j, CT( COUNT + NCOLCT + NCOLCT     * NDIM * ( IPHASE - 1 )) , V( J )
+           r_sixth=r_sixth+CT( COUNT + NCOLCT * NDIM * ( IPHASE - 1 )) *U( J ) &
+                          +CT( COUNT + NCOLCT + NCOLCT     * NDIM * ( IPHASE - 1 )) *V( J )
                  end if
 
             END DO
@@ -787,6 +791,8 @@
          END DO
 
       END DO
+
+      print *,'r_sixth=',r_sixth
 
       RETURN
 

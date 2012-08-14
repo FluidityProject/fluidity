@@ -1039,7 +1039,7 @@ print *, Satura(1+cv_nonods:2*cv_nonods)
 
 print *, '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@'
       P_RHS=0.
-      CALL CT_MULT(P_RHS, DU, DV, DW, CV_NONODS, U_NONODS, NDIM, NPHASE, &
+      CALL CT_MULT(P_RHS, U, V, W, CV_NONODS, U_NONODS, NDIM, NPHASE, &
            CT, NCOLCT, FINDCT, COLCT)
       !stop 87666
 print *, '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@'

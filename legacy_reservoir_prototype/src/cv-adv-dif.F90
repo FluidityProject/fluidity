@@ -330,7 +330,7 @@
 
 
       integer :: x_nod1,x_nod2,x_nod3,cv_inod_ipha, IGETCT, U_NODK_IPHA
-      real :: x_mean,y_mean
+      real :: x_mean,y_mean,rsixth2
       ! Functions...
       !REAL :: R2NORM,FACE_THETA  
       !        ===>  LOGICALS  <===
@@ -349,6 +349,7 @@
 
       ewrite(3,*) 'In CV_ASSEMB'
       racc_6row2ph=0.0
+      rsixth2=0.0
 
       ewrite(3,*) 'CV_P', CV_P
       ewrite(3,*) 'DEN', DEN
@@ -1171,7 +1172,13 @@
           
 
                            if(iphase==2) then
+                           DO U_KLOC = 1, U_NLOC
+                              U_NODK_IPHA  = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC ) +(IPHASE-1)*U_NONODS
+   rsixth2=rsixth2+SUFEN( U_KLOC, GI )*UGI_COEF_ELE( U_KLOC) *SCVDETWEI( GI )*CVNORMX( GI ) *limdt*nu(U_NODK_IPHA )  &
+                  +SUFEN( U_KLOC, GI )*vGI_COEF_ELE( U_KLOC) *SCVDETWEI( GI )*CVNORMy( GI ) *limdt*nv(U_NODK_IPHA )
+                           end do 
                               racc_6row2ph=racc_6row2ph+ NDOTQNEW*SCVDETWEI( GI )* LIMDT
+!                              racc_6row2ph=racc_6row2ph+ ndot_vel_int*SCVDETWEI( GI )* LIMDT
                            endif
                         endif
 
@@ -1237,6 +1244,8 @@
                                  if   (mat_kloc_u(i)   /=0.  .or. mat_kloc_v(i)/=0. ) then
                                     print *, 'XXXXX_U::', i, mat_kloc_u(i), nu(i)
                                     print *, 'XXXXX_V::', i, mat_kloc_v(i), nv(i)
+!                                    print *, 'XXXXX_U::', i, mat_kloc_u(i), nuold(i)
+!                                    print *, 'XXXXX_V::', i, mat_kloc_v(i), nvold(i)
                                  end if
                               end do
 
@@ -1263,6 +1272,7 @@
 !           print *,'t   =',t
 !           print *,'told=',told
           print *,'racc_6row2ph=',racc_6row2ph
+          print *,'rsixth2=',rsixth2
 !stop 777
 
          !sourct2( 1 : cv_nonods ) = -.0 !-981. * ( 1.05 - .71 )
@@ -3917,8 +3927,9 @@
 ! Calculate NDOTQNEW from NDOTQ
       NDOTQNEW=NDOTQ ! initialize it like this so that it contains the b.c's
       U_NLOC_LEV =U_NLOC /CV_NLOC
-      DO U_KLOC_LEV = 1, U_NLOC_LEV
-               U_KLOC=(CV_ILOC-1)*U_NLOC_LEV + U_KLOC_LEV
+!      DO U_KLOC_LEV = 1, U_NLOC_LEV
+!               U_KLOC=(CV_ILOC-1)*U_NLOC_LEV + U_KLOC_LEV
+      DO U_KLOC = 1, U_NLOC
                U_NODK_IPHA = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC ) +(IPHASE-1)*U_NONODS
                NDOTQNEW=NDOTQNEW &
                + SUFEN( U_KLOC, GI ) * UGI_COEF_ELE(U_KLOC)*(UNEW( U_NODK_IPHA )-NU( U_NODK_IPHA ))*CVNORMX(GI) &
