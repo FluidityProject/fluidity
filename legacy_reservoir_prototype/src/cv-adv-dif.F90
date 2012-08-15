@@ -1174,11 +1174,11 @@
                            if(iphase==2) then
                            DO U_KLOC = 1, U_NLOC
                               U_NODK_IPHA  = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC ) +(IPHASE-1)*U_NONODS
-   rsixth2=rsixth2+SUFEN( U_KLOC, GI )*UGI_COEF_ELE( U_KLOC) *SCVDETWEI( GI )*CVNORMX( GI ) *limdt*nu(U_NODK_IPHA )  &
-                  +SUFEN( U_KLOC, GI )*vGI_COEF_ELE( U_KLOC) *SCVDETWEI( GI )*CVNORMy( GI ) *limdt*nv(U_NODK_IPHA )
-                           end do 
-                              racc_6row2ph=racc_6row2ph+ NDOTQNEW*SCVDETWEI( GI )* LIMDT
-!                              racc_6row2ph=racc_6row2ph+ ndot_vel_int*SCVDETWEI( GI )* LIMDT
+                              rsixth2=rsixth2+SUFEN( U_KLOC, GI )*UGI_COEF_ELE( U_KLOC) *SCVDETWEI( GI )*CVNORMX( GI ) *limdt*nu(U_NODK_IPHA )  &
+                                   +SUFEN( U_KLOC, GI )*vGI_COEF_ELE( U_KLOC) *SCVDETWEI( GI )*CVNORMy( GI ) *limdt*nv(U_NODK_IPHA )
+                           end do
+                           racc_6row2ph=racc_6row2ph+ NDOTQNEW*SCVDETWEI( GI )* LIMDT
+                           !racc_6row2ph=racc_6row2ph+ ndot_vel_int*SCVDETWEI( GI )* LIMDT
                            endif
                         endif
 
@@ -1291,9 +1291,9 @@
                IF(IGOT_T2==1) THEN
                   CV_RHS( CV_NODI_IPHA ) = CV_RHS( CV_NODI_IPHA ) &
                        + MASS_CV(CV_NODI) * SOURCT(CV_NODI_IPHA) !&
-                  !- CV_BETA * MEAN_PORE_CV(CV_NODI) * MASS_CV(CV_NODI) & ! conservative time term. 
-                  !* TOLD(CV_NODI_IPHA)  &
-                  !* (DEN(CV_NODI_IPHA) * T2(CV_NODI_IPHA) - DENOLD(CV_NODI_IPHA) * T2OLD(CV_NODI_IPHA)) / DT
+                       !- CV_BETA * MEAN_PORE_CV(CV_NODI) * MASS_CV(CV_NODI) & ! conservative time term. 
+                       !* TOLD(CV_NODI_IPHA)  &
+                       !* (DEN(CV_NODI_IPHA) * T2(CV_NODI_IPHA) - DENOLD(CV_NODI_IPHA) * T2OLD(CV_NODI_IPHA)) / DT
 
                   ACV( IMID_IPHA ) =  ACV( IMID_IPHA ) &
                        !+ (CV_BETA * DENOLD(CV_NODI_IPHA) * T2OLD(CV_NODI_IPHA) &
@@ -1308,15 +1308,15 @@
                ELSE
 
                   CV_RHS( CV_NODI_IPHA ) = CV_RHS( CV_NODI_IPHA ) &
-                       + MASS_CV(CV_NODI) * SOURCT(CV_NODI_IPHA) &
-                       - CV_BETA * MEAN_PORE_CV( CV_NODI ) * MASS_CV( CV_NODI ) & ! conservative time term. 
-                       * TOLD(CV_NODI_IPHA) &
-                       * (DEN(CV_NODI_IPHA) - DENOLD(CV_NODI_IPHA)) / DT
+                       + MASS_CV(CV_NODI) * SOURCT(CV_NODI_IPHA) !&
+                       !- CV_BETA * MEAN_PORE_CV( CV_NODI ) * MASS_CV( CV_NODI ) & ! conservative time term. 
+                       !* TOLD(CV_NODI_IPHA) &
+                       !* (DEN(CV_NODI_IPHA) - DENOLD(CV_NODI_IPHA)) / DT
 
                   ACV( IMID_IPHA ) =  ACV( IMID_IPHA ) &
-                       + (CV_BETA * DENOLD(CV_NODI_IPHA) + (1.-CV_BETA) * DEN(CV_NODI_IPHA))  &
-                       !+ (CV_BETA * DEN(CV_NODI_IPHA) &
-                       !+ (1.-CV_BETA) * DEN(CV_NODI_IPHA))  &
+                       !+ (CV_BETA * DENOLD(CV_NODI_IPHA) + (1.-CV_BETA) * DEN(CV_NODI_IPHA))  &
+                       + (CV_BETA * DEN(CV_NODI_IPHA) &
+                       + (1.-CV_BETA) * DEN(CV_NODI_IPHA))  &
                        * MEAN_PORE_CV(CV_NODI) * MASS_CV(CV_NODI) / DT
 
                   CV_RHS( CV_NODI_IPHA ) = CV_RHS( CV_NODI_IPHA ) &
@@ -1365,7 +1365,7 @@
                        / ( DT * DENOLD( CV_NODI_IPHA ) )
                end if
 
-               if(.false.) then
+               if(.true.) then
 
                   CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) - MASS_CV( CV_NODI ) * ( &
                        (1.0-W_SUM_ONE) * MEAN_PORE_CV( CV_NODI ) * T( CV_NODI_IPHA ) / DT - &
@@ -3918,8 +3918,8 @@
               IN_ELE_UPWIND, DG_ELE_UPWIND, &
               TMIN_2ND_MC, TOLDMIN_2ND_MC, TMAX_2ND_MC, TOLDMAX_2ND_MC,  LIMIT_USE_2ND)
       ENDIF
-!
-! Calculate NDOTQNEW from NDOTQ
+
+      ! Calculate NDOTQNEW from NDOTQ
       NDOTQNEW=NDOTQ ! initialize it like this so that it contains the b.c's
       U_NLOC_LEV =U_NLOC /CV_NLOC
       DO U_KLOC = 1, U_NLOC
@@ -3929,8 +3929,6 @@
                + SUFEN( U_KLOC, GI ) * VGI_COEF_ELE(U_KLOC) * ( V( U_NODK_IPHA ) - NV( U_NODK_IPHA ) ) * CVNORMY(GI) &
                + SUFEN( U_KLOC, GI ) * WGI_COEF_ELE(U_KLOC) * ( W( U_NODK_IPHA ) - NW( U_NODK_IPHA ) ) * CVNORMZ(GI)
       END DO
-
-
 
       IF((ELE2 /= 0).AND.(ELE2 /= ELE)) THEN
          ! We have a discontinuity between elements so integrate along the face...

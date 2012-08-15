@@ -442,12 +442,6 @@
       in_ele_upwind =  3
       dg_ele_upwind = 3
 
-      ! if the pressure is discontinuous use these options
-      !if (cv_nonods == totele * cv_nloc)  then
-      !   in_ele_upwind = 4
-      !   dg_ele_upwind = 3
-      !end if
-
       ! Variables *ENTIRELY HARD-WIRED* that *MUST BE REPLACED* in the future
       t_dg_vel_int_opt = 1
       u_dg_vel_int_opt = 4 ! Not used -- it can be deleted
