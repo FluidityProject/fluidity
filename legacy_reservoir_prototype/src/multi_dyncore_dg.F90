@@ -457,7 +457,7 @@
       ! if (second_theta==0.) NITS_FLUX_LIM=1
       !
 
-      Loop_NonLinearFlux: DO ITS_FLUX_LIM = 1, 1!NITS_FLUX_LIM
+      Loop_NonLinearFlux: DO ITS_FLUX_LIM = 1, 2!NITS_FLUX_LIM
 
          CALL CV_ASSEMB( CV_RHS, &
               NCOLACV, ACV, FINACV, COLACV, MIDACV, &
