@@ -698,6 +698,7 @@ contains
        do i=1, size(face_list)
           call ray_intersetion_distance(face_list(i), face_t)
 
+          ! The second condition is to ensure that we do not trace backwards
           if (face_t < ele_t .and. detector%current_t < face_t .and. search_tolerance < face_t) then
              ele_t = face_t
              next_face = face_list(i)
@@ -706,12 +707,17 @@ contains
 
        ! This is an extreme corner case, where we ended the last timestep 
        ! exactly on a domain boundary, which is not periodic.
-       ! In this case no next_face will be found and we can only exit the loop with -1
+       ! In this case we go through the faces again, to find the one we're on, 
+       ! so we can set ele_t and next_face to get the update_vector reflected
        if (ele_t == huge(1.0)) then
-          ewrite(-1,*) "No new element found in RT tracking routine in list ", trim(detector_list%name)
-          ewrite(-1,*) "Update_vector:", detector%update_vector, ", ray_o: ", detector%ray_o, ", ray_d: ", detector%ray_d, ", t: ", detector%current_t
-          ewrite(-1,*) "Most likely an agent ended its last timestep on a domain boundary!"
-          FLAbort("Could not determine next element in RT tracking!")
+
+          ele_t = detector%current_t
+          do i=1, size(face_list)
+            call ray_intersetion_distance(face_list(i), face_t)
+            if (abs(face_t) < search_tolerance) then
+               next_face = face_list(i)
+            end if
+         end do
        end if
 
        if (ele_t < detector%target_distance + search_tolerance) then
