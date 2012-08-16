@@ -9762,9 +9762,6 @@ if test "x$acx_blas_ok" != xyes; then
 	acx_lapack_ok=noblas
 fi
 
-# add BLAS to libs
-LIBS="$BLAS_LIBS $LIBS"
-
 # Are we linking from C?
 case "$ac_ext" in
   f*|F*) dsyev="dsyev" ;;
@@ -10319,7 +10316,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
     # Assume same flag for FC
     FCFLAGS="$FCFLAGS $OPENMP_CXXFLAGS"
 fi
-LIBS="$LAPACK_LIBS $BLAS_LIBS $LIBS $FCLIBS $FLIBS"
+LIBS="$LAPACK_LIBS $LIBS $FCLIBS $FLIBS"
 
 
 
@@ -10425,7 +10422,7 @@ $as_echo "-fno-realloc-lhs works, adding to FCFLAGS" >&6; }
 
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-  FCFLAGS="$OLD_FCLAGS"
+  FCFLAGS="$OLD_FCFLAGS"
   ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -12907,7 +12904,7 @@ fi
 
 
 PETSC_LINK_LIBS=`make -s -f petsc_makefile getlinklibs`
-LIBS="$LIBS $PETSC_LINK_LIBS"
+LIBS="$PETSC_LINK_LIBS $LIBS"
 
 PETSC_INCLUDE_FLAGS=`make -s -f petsc_makefile getincludedirs`
 CPPFLAGS="$CPPFLAGS $PETSC_INCLUDE_FLAGS"

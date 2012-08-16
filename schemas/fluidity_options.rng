@@ -16,6 +16,8 @@
   <include href="embedded_models.rng"/>
   <include href="flredecomp.rng"/>
   <include href="porous_media.rng"/>
+  <include href="multiphase_interaction.rng"/>
+  <include href="equation_of_state.rng"/>
   <start>
     <element name="fluidity_options">
       <a:documentation>The root node of the options dictionary.</a:documentation>
@@ -642,143 +644,7 @@ file.</a:documentation>
             <data type="string"/>
           </attribute>
           <optional>
-            <element name="equation_of_state">
-              <a:documentation>The equation of state</a:documentation>
-              <choice>
-                <element name="fluids">
-                  <a:documentation>Equations of state for ocean (and simple fluid) applications</a:documentation>
-                  <choice>
-                    <element name="linear">
-                      <a:documentation>Incompressible linear equation of state
-
-(e.g. density=denini*(1.0-dengam*(temperature-temini)+dengam_sal*(salinity-S0)))</a:documentation>
-                      <element name="reference_density">
-                        <a:documentation>The reference or background density</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <optional>
-                        <element name="temperature_dependency">
-                          <a:documentation>Enable to add temperature dependency
-to the equation of state.</a:documentation>
-                          <element name="reference_temperature">
-                            <a:documentation>The reference or background
-temperature (actual temperature =
-calculated temperature plus this
-value).</a:documentation>
-                            <ref name="real"/>
-                          </element>
-                          <element name="thermal_expansion_coefficient">
-                            <a:documentation>The thermal expansion coefficient</a:documentation>
-                            <ref name="real"/>
-                          </element>
-                        </element>
-                      </optional>
-                      <optional>
-                        <element name="salinity_dependency">
-                          <a:documentation>Enable to add salinity dependency to
-the equation of state.</a:documentation>
-                          <element name="reference_salinity">
-                            <a:documentation>The reference or background
-salinity (actual salinity =
-calculated salinity plus this
-value).</a:documentation>
-                            <ref name="real"/>
-                          </element>
-                          <element name="saline_contraction_coefficient">
-                            <a:documentation>The haline contraction coefficient</a:documentation>
-                            <ref name="real"/>
-                          </element>
-                        </element>
-                      </optional>
-                      <optional>
-                        <element name="subtract_out_hydrostatic_level">
-                          <a:documentation>Enable this option to subtract out
-the hydrostatic level</a:documentation>
-                          <empty/>
-                        </element>
-                      </optional>
-                    </element>
-                    <element name="ocean_pade_approximation">
-                      <a:documentation>2002 McDougall, Jackett, Wright and
-Feistel equation of state using Pade
-approximation</a:documentation>
-                      <optional>
-                        <element name="include_depth_below_surface">
-                          <empty/>
-                        </element>
-                      </optional>
-                    </element>
-                  </choice>
-                </element>
-                <element name="compressible">
-                  <a:documentation>Equations of state for compressible applications</a:documentation>
-                  <choice>
-                    <element name="stiffened_gas">
-                      <a:documentation>Stiffened Gas EoS
-
-Used with compressible simulations</a:documentation>
-                      <optional>
-                        <element name="reference_density">
-                          <a:documentation>reference uncompressed density
-
-if activated then either Liquid EoS or
-full Stiffened Gas EoS</a:documentation>
-                          <ref name="real"/>
-                        </element>
-                      </optional>
-                      <optional>
-                        <element name="ratio_specific_heats">
-                          <a:documentation>Ratio of specific heats at constant
-pressure to that at constant volume
-
-Requires an energy field.
-If activated then a full Stiffened Gas EoS </a:documentation>
-                          <ref name="real"/>
-                        </element>
-                      </optional>
-                      <optional>
-                        <element name="bulk_sound_speed_squared">
-                          <a:documentation>bulk_sound_speed_squared = isothermal_bulk_modulus/reference_density
-
-if activated then either full or partial Liquid EoS or full
-Stiffened Gas EoS</a:documentation>
-                          <ref name="real"/>
-                        </element>
-                      </optional>
-                    </element>
-                    <element name="giraldo">
-                      <a:documentation>Giraldo et. al. 2008, J. Comp. Phys.
-
-Used with compressible simulations</a:documentation>
-                      <element name="reference_pressure">
-                        <a:documentation>reference pressure
-
-The pressure at which potential temperature
-equals actual temperature. Normally taken to
-be the surface pressure, 1.0e05.</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <element name="C_P">
-                        <a:documentation>Heat capacity at constant pressure</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                      <element name="C_V">
-                        <a:documentation>Heat capacity at constant volume</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                    </element>
-                    <element name="foam">
-                      <a:documentation>Foam EoS
-Used with compressible simulations of liquid drainage in foams.
-It describes the liquid content in the foam as the product of the 
-Plateau border cross sectional area and the local Plateau 
-border length per unit volume (lambda). </a:documentation>
-                      <empty/>
-                    </element>
-                  </choice>
-                </element>
-              </choice>
-            </element>
+            <ref name="equation_of_state_options"/>
           </optional>
           <optional>
             <element name="subgridscale_parameterisations">
@@ -915,6 +781,20 @@ If being used with adaptivity, ensure you switch on interpolation of the
 GLSVerticalDiffusivity and GLSVerticalViscosity fields. You will seg fault
 otherwise.</a:documentation>
                       <ref name="real"/>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="ocean_parameterisation">
+                      <a:documentation>Add extra parameterisation for internal wave breaking at base of MLD. This
+is based on the same parameterisation in NEMO and smooths the TKE down 
+the water column based on an exponential function
+Set the two parameters: % of TKE to smooth down and length scale to do this over</a:documentation>
+                      <element name="lengthscale">
+                        <ref name="real"/>
+                      </element>
+                      <element name="percentage">
+                        <ref name="real"/>
+                      </element>
                     </element>
                   </optional>
                   <element name="scalar_field">
@@ -2014,6 +1894,21 @@ probably equal to the location of the borehole</a:documentation>
                   <ref name="real"/>
                 </element>
               </optional>
+              <optional>
+                <element name="effective_conductivity">
+                  <a:documentation>If this is the fluid phase, 
+the effective conductivity is required 
+for the inter-phase heat transfer term.</a:documentation>
+                  <ref name="real"/>
+                </element>
+              </optional>
+              <optional>
+                <element name="specific_heat">
+                  <a:documentation>The specific heat (at constant volume) is required 
+for the inter-phase heat transfer term.</a:documentation>
+                  <ref name="real"/>
+                </element>
+              </optional>
             </element>
           </optional>
           <optional>
@@ -2346,6 +2241,9 @@ while a factor of 1 represents a connected domain.</a:documentation>
       </optional>
       <optional>
         <ref name="flredecomp"/>
+      </optional>
+      <optional>
+        <ref name="multiphase_interaction"/>
       </optional>
     </element>
   </start>
@@ -6138,6 +6036,27 @@ or with a CG but with the continuity tested with the CV dual. </a:documentation>
               <ref name="comment"/>
             </element>
           </optional>
+          <ref name="diagnostic_scalar_field_no_adapt"/>
+          <element name="solver">
+            <ref name="linear_solver_options_sym"/>
+          </element>
+        </element>
+      </element>
+      <element name="scalar_field">
+        <a:documentation>CompressibleContinuityResidual
+
+Computes the residual of the continuity equation used in compressible multiphase flow simulations
+i.e. vfrac_c*d(rho_c)/dt + div(rho_c*vfrac_c*u_c) + \sum_i{ rho_c*div(vfrac_i*u_i) }
+where _c and _i denote the compressible and incompressible phases respectively.</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>CompressibleContinuityResidual</value>
+        </attribute>
+        <element name="diagnostic">
+          <ref name="velocity_mesh_choice"/>
+          <ref name="internal_algorithm"/>
           <ref name="diagnostic_scalar_field_no_adapt"/>
           <element name="solver">
             <ref name="linear_solver_options_sym"/>

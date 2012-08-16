@@ -54,12 +54,12 @@ contains
     type(scalar_field), pointer:: T, S, oldT, oldS, topdis
     type(scalar_field) DeltaT, DeltaS, remapT, remapS, fluidconcentration,&
          & sedimentdensity
-    character(len=OPTION_PATH_LEN) option_path, dep_option_path, sediment_field_name
+    character(len=OPTION_PATH_LEN) option_path, dep_option_path, sediment_field_name, class_name, sfield_name
     logical, dimension(:), allocatable:: done
     logical include_depth_below
     real T0, S0, gamma, rho_0, salt, temp, dist, dens, theta
     integer, dimension(:), pointer:: density_nodes
-    integer ele, i, node, n_sediment_fields
+    integer ele, i, node, n_sediment_fields, f
     
     ewrite(1,*) 'In calculate_perturbation_density'
     
@@ -122,6 +122,32 @@ contains
           call addto(density, deltaS, scale=gamma)
           call deallocate(deltaS)
           call deallocate(remapS)
+       end if
+
+       if (have_option(trim(option_path)//'/generic_scalar_field_dependency')) then
+          do f = 1, option_count(trim(option_path)//'/generic_scalar_field_dependency')
+             dep_option_path=trim(option_path)//'/generic_scalar_field_dependency['//int2str(f-1)//']'
+             call get_option(trim(dep_option_path)//'/scalar_field_name', sfield_name)
+             call get_option(trim(dep_option_path)//'/reference_value', T0)
+             call get_option(trim(dep_option_path)//'/expansion_coefficient', gamma)
+             T => extract_scalar_field(state, trim(sfield_name))
+             oldT => extract_scalar_field(state, "Old"//trim(sfield_name))
+             call allocate(deltaT, density%mesh, "DeltaT")
+             call allocate(remapT, density%mesh, "RemapT")
+
+             ! deltaT=theta*T+(1-theta)*oldT-T0
+             call remap_field(T, remapT)
+             call set(deltaT, remapT)
+             call scale(deltaT, theta)
+
+             call remap_field(oldT, remapT)
+             call addto(deltaT, remapT, 1.0-theta)
+             call addto(deltaT, -T0)
+             ! density=density-gamma*deltaT
+             call addto(density, deltaT, scale=-gamma)
+             call deallocate(deltaT)
+             call deallocate(remapT)
+          end do
        end if
        
        call get_option(trim(option_path)//'/reference_density', rho_0)
