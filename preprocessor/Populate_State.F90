@@ -245,7 +245,7 @@ contains
                 mesh_file_format = "gmsh"
                 call set_option_attribute(trim(from_file_path)//"/format/name", trim(mesh_file_format), stat=stat)
                 if (stat /= SPUD_NO_ERROR) then
-                  FLAbort("Failed to set the mesh format from exodusII to gmsh, which is currently required for checkpointing. Spud error code is: "//int2str(stat))
+                  FLAbort("Failed to set the mesh format to gmsh (required for checkpointing). Spud error code is: "//int2str(stat))
                 end if
               end if
               mesh=position%mesh
