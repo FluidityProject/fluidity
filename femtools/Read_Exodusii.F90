@@ -72,7 +72,7 @@ contains
     type(element_type) :: shape
     integer :: dim, loc
     
-    ewrite(2,*) "In read_exodusii_simple"
+    ewrite(1,*) "In read_exodusii_simple"
 
     if(isparallel()) then
        !call identify_exodusii_file(parallel_filename(filename), dim, loc)
@@ -134,7 +134,7 @@ contains
 
     logical :: haveBoundaries, haveInternalBounds
 
-    ewrite(2,*) "In identify_exodusii_file"
+    ewrite(1,*) "In identify_exodusii_file"
 
     call get_exodusii_filename(filename, lfilename, fileExists)
     if(.not. fileExists) then
@@ -177,7 +177,7 @@ contains
 
     ierr = f_ex_close(exoid)
     if (ierr /= 0) then
-       FLExit("Unable close file "//trim(lfilename))
+       FLExit("Unable to close file "//trim(lfilename))
     end if
 
     ! Return optional variables requested
@@ -240,7 +240,8 @@ contains
     integer :: loc, sloc
     integer :: nodeID, elemID, blockID, eff_dim, b, d, e, f, i, j, n, z, z2, exo_e, exo_f
     integer :: n_cnt_pos
-    
+
+    ewrite(1,*) "In read_exodusii_file_to_field"
 
     ! First of all: Identify the filename:
     call get_exodusii_filename(filename, lfilename, fileExists)
@@ -810,6 +811,8 @@ contains
     if (haveBoundaries) then
        deallocate(boundaryIDs); deallocate(sndglno)
     end if
+
+    ewrite(2,*) "Out of read_exodusii_file_to_field"
 
   end function read_exodusii_file_to_field
 
