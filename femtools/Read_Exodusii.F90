@@ -177,11 +177,18 @@ contains
 
     ! Return optional variables requested
     if(present(numDimenOut)) numDimenOut=num_dim
+    ! numElementsOut is set to be the total number of volume and surface
+    ! elements in the exodusII mesh, as only that is stored in the header
+    ! of the mesh file. In Fluidity, only the volume elements of the mesh
+    ! file are taken into account. Thus the actual number of volume
+    ! elements is computed when the CoordinateMesh is assembled.
     if(present(numElementsOut)) numElementsOut=num_allelem
-    ! Here we are assuming all elements have the same number of vertices/nodes.
-    ! Depending on 2D/3D, we could have edges/faces, thus we have to
-    ! get the max value of num_nodes_per_elem and assign it to locOut
-    ! Note: We check for hybrid meshes in a bit, and abort if it is present.
+    ! Here we assume all (volume) elements of the mesh have the same 
+    ! number of vertices/nodes. Since the exodusII mesh could contain 
+    ! surface elements (as described above) we set locOut to be the
+    ! max number of nodes per elements. Checking for hybrid meshes, 
+    ! that are currently not supported in Fluidity, is done when 
+    ! assembling the CoordinateMesh.
     if(present(locOut)) locOut=maxval(num_nodes_per_elem)
     if(present(boundaryFlagOut)) boundaryFlagOut=boundaryFlag
 
