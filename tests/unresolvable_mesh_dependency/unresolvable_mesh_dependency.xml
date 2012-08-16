@@ -9,6 +9,11 @@
     <!-- Problem with a dependency loop in the meshes. -->
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="error_present" language="python">
 error_present=False
 for line in file("fluidity.err-0","r"):
@@ -17,6 +22,9 @@ for line in file("fluidity.err-0","r"):
     </variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="Fluidity failed with the expected error" language="python">
 assert(error_present)
     </test>

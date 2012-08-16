@@ -2,12 +2,17 @@
 
 <testproblem>
   <name>Test adapt_at_first_timestep</name>
-  <owner userid="hhiester"/>
+  <owner userid="skramer"/>
   <tags>flml nozoltan parallel</tags>
     <problem_definition length="short" nprocs="1">
     <command_line>mpiexec -n 2 ../../bin/fluidity -v3 -l test_adapt-at-first-time-step.flml </command_line>
   </problem_definition>  
   <variables>  
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
      <variable name="filelist" language="python">
 import glob
 import numpy
@@ -35,6 +40,9 @@ filelist = GetFiles('test_adapt-at-first-time-step')
      </variable>
   </variables>
     <pass_tests>  
+      <test name="Solvers converged" language="python">
+        assert(solvers_converged)
+      </test>
     <test name="check have 2 vtus" language="python">
    assert len(filelist) == 2
     </test>
