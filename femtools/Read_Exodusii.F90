@@ -115,9 +115,7 @@ contains
     integer, intent(out), optional :: numElementsOut
     integer, intent(out), optional :: boundaryFlagOut
 
-    integer :: numElements, boundaryFlag, numNodes, numDimen
-    integer :: loc, effDimen, nodeAttributes
-    integer :: i, filestatus
+    integer :: boundaryFlag
 
     logical :: fileExists
 
@@ -130,8 +128,6 @@ contains
     integer :: num_dim, num_nodes, num_allelem, num_elem_blk
     integer :: num_node_sets, num_side_sets
     integer, allocatable, dimension(:) :: block_ids, num_elem_in_block, num_nodes_per_elem
-
-    logical :: haveBoundaries, haveInternalBounds
 
     ewrite(1,*) "In identify_exodusii_file"
 
