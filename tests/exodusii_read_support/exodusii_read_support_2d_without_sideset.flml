@@ -102,16 +102,6 @@
             <monitors/>
           </diagnostics>
         </solver>
-        <boundary_conditions name="out">
-          <surface_ids>
-            <integer_value shape="1" rank="1">11</integer_value>
-          </surface_ids>
-          <type name="dirichlet">
-            <constant>
-              <real_value rank="0">0.0</real_value>
-            </constant>
-          </type>
-        </boundary_conditions>
         <output/>
         <stat/>
         <convergence>
@@ -178,52 +168,6 @@
             <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions name="Inflow">
-          <surface_ids>
-            <integer_value shape="1" rank="1">10</integer_value>
-          </surface_ids>
-          <type name="dirichlet">
-            <align_bc_with_cartesian>
-              <x_component>
-                <constant>
-                  <real_value rank="0">1.0</real_value>
-                </constant>
-              </x_component>
-              <y_component>
-                <constant>
-                  <real_value rank="0">0.</real_value>
-                </constant>
-              </y_component>
-            </align_bc_with_cartesian>
-          </type>
-        </boundary_conditions>
-        <boundary_conditions name="walls">
-          <surface_ids>
-            <integer_value shape="2" rank="1">11 12</integer_value>
-          </surface_ids>
-          <type name="dirichlet">
-            <align_bc_with_cartesian>
-              <x_component>
-                <constant>
-                  <real_value rank="0">0.0</real_value>
-                </constant>
-              </x_component>
-              <y_component>
-                <constant>
-                  <real_value rank="0">0.0</real_value>
-                </constant>
-              </y_component>
-            </align_bc_with_cartesian>
-          </type>
-        </boundary_conditions>
-        <boundary_conditions name="outflow">
-          <surface_ids>
-            <integer_value shape="1" rank="1">13</integer_value>
-          </surface_ids>
-          <type name="dirichlet">
-            <align_bc_with_cartesian/>
-          </type>
-        </boundary_conditions>
         <tensor_field name="Viscosity" rank="2">
           <prescribed>
             <value name="WholeMesh">
