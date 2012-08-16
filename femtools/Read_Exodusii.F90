@@ -103,8 +103,7 @@ contains
   ! -----------------------------------------------------------------
   ! ExodusII version of gmsh/triangle equivalent.
   subroutine identify_exodusii_file(filename, numDimenOut, locOut, &
-       numNodesOut, numElementsOut, &
-       nodeAttributesOut, selementsOut, boundaryFlagOut)
+       numElementsOut, boundaryFlagOut)
     ! Discover the dimension and size of the ExodusII mesh.
     ! Filename is the base name of the file without the
     ! ExodusII extension .e .exo .E .EXO
@@ -112,9 +111,9 @@ contains
     character(len=*), intent(in) :: filename
 
     !! Number of vertices of elements.
-    integer, intent(out), optional :: numDimenOut, locOut, numNodesOut
-    integer, intent(out), optional :: numElementsOut, nodeAttributesOut
-    integer, intent(out), optional :: selementsOut, boundaryFlagOut
+    integer, intent(out), optional :: numDimenOut, locOut
+    integer, intent(out), optional :: numElementsOut
+    integer, intent(out), optional :: boundaryFlagOut
 
     integer :: numElements, boundaryFlag, numNodes, numDimen
     integer :: loc, effDimen, nodeAttributes
@@ -181,7 +180,6 @@ contains
     end if
 
     ! Return optional variables requested
-!    if(present(nodeAttributesOut)) nodeAttributesOut=nodeAttributes
     if(present(numDimenOut)) numDimenOut=num_dim
     if(present(numElementsOut)) numElementsOut=num_allelem
     ! Here we are assuming all elements have the same number of vertices/nodes.
