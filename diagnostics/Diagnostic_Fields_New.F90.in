@@ -994,13 +994,13 @@ MULTIPLE_STATE_TENSOR_DIAGNOSTICS
                   if(option_count(trim(state_path) // "/scalar_field::" // trim(split_dependency(1))) + &
                     & option_count(trim(state_path) // "/vector_field::" // trim(split_dependency(1))) + &
                     & option_count(trim(state_path) // "/tensor_field::" // trim(split_dependency(1))) == 0) then
-                    call field_error(state_name, field_name, "Field depends on " // split_dependency(1))
+                    !call field_error(state_name, field_name, "Field depends on " // split_dependency(1))
                   end if
                 case(2)
                   if(option_count("/material_phase::" // trim(split_dependency(1)) // "/scalar_field::" // trim(split_dependency(2))) + &
                     & option_count("/material_phase::" // trim(split_dependency(1)) // "/vector_field::" // trim(split_dependency(2))) + &
                     & option_count("/material_phase::" // trim(split_dependency(1)) // "/tensor_field::" // trim(split_dependency(2))) == 0) then
-                    call field_error(state_name, field_name, "Field depends on " // trim(split_dependency(2)) // " in state " // split_dependency(1))
+                    !call field_error(state_name, field_name, "Field depends on " // trim(split_dependency(2)) // " in state " // split_dependency(1))
                   end if
                 case default
                   ewrite(-1, *) "For dependency " // trim(dependencies(m))
