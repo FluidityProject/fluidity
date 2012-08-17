@@ -477,7 +477,7 @@ contains
     type(scalar_field), intent(inout) :: grn
 
     type(vector_field), pointer :: U, X
-    integer :: ele, gi, stat
+    integer :: ele, gi, stat, a, b
     ! Transformed quadrature weights.
     real, dimension(ele_ngi(GRN, 1)) :: detwei
     ! Inverse of the local coordinate change matrix.
@@ -525,6 +525,24 @@ contains
        ! The matmul is as given by dham
        GRN_q=ele_val_at_quad(U, ele)
        vis_q=ele_val_at_quad(viscosity, ele)
+
+       ! for full and partial stress form we need to set the off diagonal terms of the viscosity tensor to zero
+       ! to be able to invert it 
+       if (have_option(trim(u%option_path)//&
+            &"/prognostic/spatial_discretisation/continuous_galerkin"//&
+            &"/stress_terms/stress_form") .or. &
+            have_option(trim(u%option_path)//&
+            &"/prognostic/spatial_discretisation/continuous_galerkin"//&
+            &"/stress_terms/partial_stress_form")) then
+
+          do a=1,size(vis_q,1)
+             do b=1,size(vis_q,2)
+                if(a.eq.b) cycle
+                vis_q(a,b,:) = 0.0
+             end do
+          end do
+       end if
+
        do gi=1, size(detwei)
           GRN_q(:,gi)=matmul(GRN_q(:,gi), J(:,:,gi))
           GRN_q(:,gi)=matmul(inverse(vis_q(:,:,gi)), GRN_q(:,gi))
