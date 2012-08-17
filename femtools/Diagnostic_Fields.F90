@@ -528,10 +528,10 @@ contains
 
        ! for full and partial stress form we need to set the off diagonal terms of the viscosity tensor to zero
        ! to be able to invert it 
-       if (have_option(trim(u%option_path)//&
+       if (have_option(trim(U%option_path)//&
             &"/prognostic/spatial_discretisation/continuous_galerkin"//&
             &"/stress_terms/stress_form") .or. &
-            have_option(trim(u%option_path)//&
+            have_option(trim(U%option_path)//&
             &"/prognostic/spatial_discretisation/continuous_galerkin"//&
             &"/stress_terms/partial_stress_form")) then
 
