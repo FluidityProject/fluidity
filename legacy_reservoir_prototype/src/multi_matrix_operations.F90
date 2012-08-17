@@ -754,9 +754,7 @@
 
       ! Local variables
       INTEGER :: CV_INOD, COUNT, U_JNOD, IPHASE, J
-      real r_sixth
 
-      r_sixth=0.0
       CV_RHS = 0.0
 
       DO CV_INOD = 1, CV_NONODS
@@ -772,27 +770,11 @@
                     NCOLCT + NCOLCT     * NDIM * ( IPHASE - 1 )) * V( J )
                IF( NDIM >= 3 ) CV_RHS( CV_INOD ) = CV_RHS( CV_INOD ) + CT( COUNT + &
                     2 * NCOLCT + NCOLCT * NDIM * ( IPHASE-  1 )) * W( J )
-
-               !if (cv_inod==6 .and. iphase==2) &
-               !     print *, 'YYYYY', cv_inod, u_jnod, j, iphase, CT( COUNT + NCOLCT * NDIM * ( IPHASE - 1 )) * U( J ), &
-               !     CT( COUNT + NCOLCT + NCOLCT     * NDIM * ( IPHASE - 1 )) * V( J ), CT( COUNT + NCOLCT * NDIM * ( IPHASE - 1 )), U( J ), V( J )
-   
-               if (cv_inod==6 .and. iphase==2)  then
-!                    print *, 'YYYYY', cv_inod, u_jnod, j
-!                    print *,    CT( COUNT + NCOLCT * NDIM * ( IPHASE - 1 )) ,U( J )   ,    CT( COUNT + NCOLCT + NCOLCT     * NDIM * ( IPHASE - 1 )) , V( J )
-                    print *, 'YYYYY_U', j, CT( COUNT + NCOLCT * NDIM * ( IPHASE - 1 )) ,U( J )  
-                    print *, 'YYYYY_V', j, CT( COUNT + NCOLCT + NCOLCT     * NDIM * ( IPHASE - 1 )) , V( J )
-           r_sixth=r_sixth+CT( COUNT + NCOLCT * NDIM * ( IPHASE - 1 )) *U( J ) &
-                          +CT( COUNT + NCOLCT + NCOLCT     * NDIM * ( IPHASE - 1 )) *V( J )
-                 end if
-
             END DO
 
          END DO
 
       END DO
-
-      print *,'r_sixth=',r_sixth
 
       RETURN
 

@@ -2217,8 +2217,6 @@ ewrite(3,*)'-->:',k + 1, k + node_count( field ), kk + 1, kk + stotel * cv_snloc
          end if
       endif 
 
-v_disopt=4
-
       call get_option('/material_phase[0]/scalar_field::Temperature/prognostic/' // &
            'spatial_discretisation/conservative_advection', t_beta, default=0.0)
       call get_option('/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
@@ -2230,8 +2228,6 @@ v_disopt=4
            'temporal_discretisation/theta', v_theta)
       call get_option('/material_phase[0]/vector_field::Velocity/prognostic/' // &
            'temporal_discretisation/theta', u_theta)
-
-v_theta=1.
 
       !! I'm going to get this one from the PhaseVolumeFraction scalar_field
       lump_eqns = have_option('/material_phase[0]/scalar_field::PhaseVolumeFraction/' // &

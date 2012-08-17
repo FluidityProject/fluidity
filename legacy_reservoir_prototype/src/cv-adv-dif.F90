@@ -297,7 +297,7 @@
       REAL, DIMENSION( : , :, : ), allocatable :: DTX_ELE,DTY_ELE,DTZ_ELE,  &
            DTOLDX_ELE,DTOLDY_ELE,DTOLDZ_ELE
 
-      !          ===> INTEGERS <====
+      !        ===> INTEGERS <===
       INTEGER :: CV_NGI, CV_NGI_SHORT, SCVNGI, SBCVNGI, COUNT, JCOUNT, &
            ELE, ELE2, GI, GCOUNT, SELE,   &
            NCOLGPTS, &
@@ -330,9 +330,9 @@
 
 
       integer :: x_nod1,x_nod2,x_nod3,cv_inod_ipha, IGETCT, U_NODK_IPHA
-      real :: x_mean,y_mean,rsixth2
+      real :: x_mean, y_mean
       ! Functions...
-      !REAL :: R2NORM,FACE_THETA  
+      !REAL :: R2NORM, FACE_THETA  
       !        ===>  LOGICALS  <===
       LOGICAL :: GETMAT, LIMIT_USE_2ND, &
            D1, D3, DCYL, GOT_DIFFUS, INTEGRAT_AT_GI, &
@@ -340,27 +340,12 @@
 
       CHARACTER(LEN=OPTION_PATH_LEN) :: OPTION_PATH
 
-      real, dimension(u_nonods*nphase):: mat_kloc_u, mat_kloc_v
-      integer :: i
-
-      mat_kloc_u=0.
-      mat_kloc_v=0.
-
-
       ewrite(3,*) 'In CV_ASSEMB'
-      racc_6row2ph=0.0
-      rsixth2=0.0
 
-      ewrite(3,*) 'CV_P', CV_P
-      ewrite(3,*) 'DEN', DEN
-      ewrite(3,*) 'DENOLD', DENOLD
-      ewrite(3,*) 'MEAN_PORE_CV', MEAN_PORE_CV
-
-      ewrite(3,*) 'SUF_T_BC_p1', SUF_T_BC(1:STOTEL*CV_SNLOC)
-      ewrite(3,*) 'SUF_T_BC_P2', SUF_T_BC(1+STOTEL*CV_SNLOC:2*STOTEL*CV_SNLOC)
-
-      ewrite(3,*) 'WIC_T_BC_p1', WIC_T_BC(1:STOTEL)
-      ewrite(3,*) 'WIC_T_BC_P2', WIC_T_BC(1+STOTEL:2*STOTEL)
+      !ewrite(3,*) 'CV_P', CV_P
+      !ewrite(3,*) 'DEN', DEN
+      !ewrite(3,*) 'DENOLD', DENOLD
+      !ewrite(3,*) 'MEAN_PORE_CV', MEAN_PORE_CV
 
       option_path='/material_phase[0]/scalar_field::PhaseVolumeFraction/' // &
            'prognostic/spatial_discretisation/control_volumes/face_value/' // &
@@ -646,7 +631,7 @@
       !ewrite(3,*) 'MEAN_PORE_CV:', MEAN_PORE_CV
 
       !sum=0.0
-      !DO ELE = 1, TOTELE
+      !do ele = 1, totele
       !   ewrite(3,*) ele, mass_ele(ele)
       !   sum=sum+mass_ele(ele)
       !end do
@@ -676,12 +661,9 @@
            CV_SLOCLIST, X_NLOC, X_NDGLN )
 
       IF( GOT_DIFFUS ) THEN
-
-         !femt(:)=-(x(:)-0.5)*(x(:)-0.5)
-         !femt(:)=x(:)
          CALL DG_DERIVS( FEMT, FEMTOLD, &
               NDIM, NPHASE, CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
-                                !NGI2, CV_NLOC, N2, WEIGHT2, N2, NLX2, NLY2, NLY2, &
+              !NGI2, CV_NLOC, N2, WEIGHT2, N2, NLX2, NLY2, NLY2, &
               CV_NGI_SHORT, CV_NLOC, CVWEIGHT_SHORT, CVFEN_SHORT, &
               CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, &
               X_NONODS, X, Y, Z,  &
@@ -1061,18 +1043,6 @@
 
                      !====================== ACV AND RHS ASSEMBLY ===================
                      Conditional_GETCT2 : IF( GETCT ) THEN ! Obtain the CV discretised CT eqations plus RHS
-                        !x_nod1=x_NDGLN(( ELE - 1 )  * CV_NLOC + 1 )
-                        !x_nod2=x_NDGLN(( ELE - 1 )  * CV_NLOC + 2 )
-                        !x_nod3=x_NDGLN(( ELE - 1 )  * CV_NLOC + 3 )
-                        !x_mean=0.333333333*(x(x_nod1)+x(x_nod2)+x(x_nod3))
-                        !y_mean=0.333333333*(y(x_nod1)+y(x_nod2)+y(x_nod3))
-                        !ewrite(3,*) 'mean coord:',x_mean,y_mean
-                        !ewrite(3,*) 'length of quad 2,4,7:',sqrt( (0.5*(x(x_nod1)+x(x_nod2))-x_mean)**2 &
-                        !     +(0.5*(y(x_nod1)+y(x_nod2))-y_mean)**2 ),  &
-                        !     sqrt( (0.5*(x(x_nod1)+x(x_nod3))-x_mean)**2 &
-                        !     +(0.5*(y(x_nod1)+y(x_nod3))-y_mean)**2 ), &
-                        !     sqrt( (0.5*(x(x_nod2)+x(x_nod3))-x_mean)**2 &
-                        !     +(0.5*(y(x_nod2)+y(x_nod3))-y_mean)**2 ) 
 
                         CALL PUT_IN_CT_RHS(CT, CT_RHS, U_NLOC, SCVNGI, GI, NCOLCT, NDIM, &
                              CV_NONODS, U_NONODS, NPHASE, IPHASE, TOTELE, ELE, ELE2, SELE, &
@@ -1124,7 +1094,7 @@
                                 +  SCVDETWEI( GI ) * ROBIN1  ! Robin bc
                            IF(GET_GTHETA) THEN
                               THETA_GDIFF( CV_NODI_IPHA ) =  THETA_GDIFF( CV_NODI_IPHA ) &
-                                   -  FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX*T( CV_NODI_IPHA ) & !Diffusion contribution
+                                   -  FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX * T( CV_NODI_IPHA ) & !Diffusion contribution
                                    -  SCVDETWEI( GI ) * ROBIN1 * T( CV_NODI_IPHA )  ! Robin bc
                            ENDIF
 
@@ -1140,47 +1110,12 @@
                         BCZERO=1.0
                         IF( (SELE /= 0) .AND. (INCOME > 0.5) ) BCZERO=0.0
 
-                        !print *, 'ZZZZZZ::', 'CV_NODI_IPHA, GI, NDOTQNEW:', CV_NODI_IPHA, GI, NDOTQNEW
-
                         ! Put results into the RHS vector
                         CV_RHS( CV_NODI_IPHA ) =  CV_RHS( CV_NODI_IPHA )  &
                              ! subtract 1st order adv. soln.
-                             + SECOND_THETA * FTHETA_T2 * NDOTQNEW * SCVDETWEI( GI ) * LIMD * FVT * BCZERO & 
+                             + SECOND_THETA * FTHETA_T2 * NDOTQNEW * SCVDETWEI( GI ) * LIMD * FVT * BCZERO &
                              -  SCVDETWEI( GI ) * ( FTHETA_T2 * NDOTQNEW * LIMDT &
                              + ONE_M_FTHETA_T2OLD * NDOTQOLD * LIMDTOLD ) ! hi order adv
-
-
-                        if(cv_nodi==6) then
-                           vel_int_u=0.0
-                           vel_int_v=0.0
-                           vel_int_w=0.0
-                           DO U_KLOC = 1, U_NLOC
-                              U_NODK_IPHA  = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC ) +(IPHASE-1)*U_NONODS
-                              vel_int_u=vel_int_u + SUFEN( U_KLOC, GI )*UGI_COEF_ELE( U_KLOC) *nu(U_NODK_IPHA )
-                              if(ndim.ge.2) vel_int_v=vel_int_v + SUFEN( U_KLOC, GI )*vGI_COEF_ELE( U_KLOC) *nv(U_NODK_IPHA )
-                              if(ndim.ge.3) vel_int_w=vel_int_w + SUFEN( U_KLOC, GI )*wGI_COEF_ELE( U_KLOC) *nw(U_NODK_IPHA )
-                           
-                              mat_kloc_u(u_nodk_ipha)= mat_kloc_u(u_nodk_ipha) + SUFEN( U_KLOC, GI )*UGI_COEF_ELE( U_KLOC) *SCVDETWEI( GI )*CVNORMX( GI ) *limdt
-                              mat_kloc_v( u_nodk_ipha  )= mat_kloc_v(u_nodk_ipha) + SUFEN( U_KLOC, GI )*vGI_COEF_ELE( U_KLOC) *SCVDETWEI( GI )*CVNORMy( GI ) *limdt
-                           end do
-                           ndot_vel_int=CVNORMX( GI )*vel_int_u+CVNORMy( GI )*vel_int_v+ CVNORMz( GI )*vel_int_w
-                           print *,'ele,iphase,CV_NODI_IPHA,gi,SECOND_THETA,SCVDETWEI( GI ):', &
-                                ele,iphase,CV_NODI_IPHA,gi,SECOND_THETA,SCVDETWEI( GI )
-                           print *,'FTHETA_T2, NDOTQNEW,ndot_vel_int, LIMDT:',FTHETA_T2, NDOTQNEW,ndot_vel_int, LIMDT
-
-
-          
-
-                           if(iphase==2) then
-                           DO U_KLOC = 1, U_NLOC
-                              U_NODK_IPHA  = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC ) +(IPHASE-1)*U_NONODS
-                              rsixth2=rsixth2+SUFEN( U_KLOC, GI )*UGI_COEF_ELE( U_KLOC) *SCVDETWEI( GI )*CVNORMX( GI ) *limdt*nu(U_NODK_IPHA )  &
-                                   +SUFEN( U_KLOC, GI )*vGI_COEF_ELE( U_KLOC) *SCVDETWEI( GI )*CVNORMy( GI ) *limdt*nv(U_NODK_IPHA )
-                           end do
-                           racc_6row2ph=racc_6row2ph+ NDOTQNEW*SCVDETWEI( GI )* LIMDT
-                           !racc_6row2ph=racc_6row2ph+ ndot_vel_int*SCVDETWEI( GI )* LIMDT
-                           endif
-                        endif
 
                         !  Subtract out 1st order term non-conservative adv.
                         CV_RHS( CV_NODI_IPHA ) =  CV_RHS( CV_NODI_IPHA ) &
@@ -1236,21 +1171,6 @@
          END DO Loop_CV_ILOC
 
       END DO Loop_Elements
-      !stop 123
-
-     
-
-                              do i=1, u_nonods*nphase
-                                 if   (mat_kloc_u(i)   /=0.  .or. mat_kloc_v(i)/=0. ) then
-                                    print *, 'XXXXX_U::', i, mat_kloc_u(i), nu(i)
-                                    print *, 'XXXXX_V::', i, mat_kloc_v(i), nv(i)
-!                                    print *, 'XXXXX_U::', i, mat_kloc_u(i), nuold(i)
-!                                    print *, 'XXXXX_V::', i, mat_kloc_v(i), nvold(i)
-                                 end if
-                              end do
-
-
-
 
       IF(GET_GTHETA) THEN
          DO CV_NODI = 1, CV_NONODS
@@ -1267,17 +1187,6 @@
          !ewrite(3,*)'before adding extra bits*****DENOLD:',DENOLD
          !ewrite(3,*)'before adding extra bits*****TOLD:',TOLD
          !ewrite(3,*)'before adding extra bits*****MEAN_PORE_CV:',MEAN_PORE_CV
-          print *,'CV_RHS(1:cv_nonods):',CV_RHS(1:cv_nonods)
-          print *,'CV_RHS(1+cv_nonods:2*cv_nonods):',CV_RHS(1+cv_nonods:2*cv_nonods)
-!           print *,'t   =',t
-!           print *,'told=',told
-          print *,'racc_6row2ph=',racc_6row2ph
-          print *,'rsixth2=',rsixth2
-!stop 777
-
-         !sourct2( 1 : cv_nonods ) = -.0 !-981. * ( 1.05 - .71 )
-         !sourct2( cv_nonods + 1 : cv_nonods * nphase ) = -0.!-10.0e-1 !-981. * ( 1.05 - .71 )
-         ! CV_RHS( 1+cv_nonods:2*cv_nonods)=0.0 
 
          Loop_CVNODI2: DO CV_NODI = 1, CV_NONODS ! Put onto the diagonal of the matrix 
 
@@ -1344,7 +1253,7 @@
 
       ENDIF Conditional_GETCV_DISC2
 
-      IF(GETCT) THEN! Form the rhs of the discretised equations
+      IF(GETCT) THEN ! Form the rhs of the discretised equations
          DIAG_SCALE_PRES = 0.0 ! Obtain the CV discretised CT eqations plus RHS
 
          DO IPHASE = 1, NPHASE
@@ -1353,7 +1262,6 @@
 
                ewrite(3,*) 'MEAN_PORE_CV( CV_NODI ) , TOLD( CV_NODI_IPHA ) , DERIV( CV_NODI_IPHA ), DT , DENOLD( CV_NODI_IPHA )', &
                     MEAN_PORE_CV( CV_NODI ) , TOLD( CV_NODI_IPHA ) , DERIV( CV_NODI_IPHA ), DT , DENOLD( CV_NODI_IPHA )
-
 
                if(.false.) then
                   CT_RHS( CV_NODI ) = CT_RHS( CV_NODI )  -  MEAN_PORE_CV( CV_NODI ) * MASS_CV( CV_NODI ) &
@@ -1378,9 +1286,11 @@
                      CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) - MASS_CV( CV_NODI ) * &
                           W_SUM_ONE * MEAN_PORE_CV( CV_NODI )  / DT
                   ENDIF
+
                else
-                  W_SUM_ONE1 = 1.0 !=1 Applies constraint to T
-                  W_SUM_ONE2 = 1.0 !=1 Applies constraint to Told 
+
+                  W_SUM_ONE1 = 1.0 ! =1 Applies constraint to T
+                  W_SUM_ONE2 = 1.0 ! =1 Applies constraint to Told 
                   ! the original working code used W_SUM_ONE1 = 1, W_SUM_ONE2 = 1
                   CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) - MASS_CV( CV_NODI ) * MEAN_PORE_CV( CV_NODI ) *( &
                        (1.0-W_SUM_ONE1) *  T( CV_NODI_IPHA ) / DT &
@@ -1394,6 +1304,7 @@
                      CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) - MASS_CV( CV_NODI ) *   &
                           (W_SUM_ONE1 - W_SUM_ONE2) * MEAN_PORE_CV( CV_NODI )  / DT
                   ENDIF
+
                endif
 
                DIAG_SCALE_PRES( CV_NODI ) = DIAG_SCALE_PRES( CV_NODI ) + &
@@ -1452,7 +1363,7 @@
       !   ewrite(3,*)'ct(1+ncolct:2*ncolct);',ct(1+ncolct:2*ncolct)
       !end if
 
-      if (.true. .and. getcv_disc) then
+      if (.false. .and. getcv_disc) then
 
          ewrite(3,*) '-----------------------------------------------------------------------------------------------------------------------------------'
          ewrite(3,*) '-----------------------------------------------------------------------------------------------------------------------------------'

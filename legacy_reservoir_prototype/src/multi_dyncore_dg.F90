@@ -424,7 +424,7 @@
       LOGICAL :: GET_THETA_FLUX
 
       GET_THETA_FLUX = .FALSE.
-      IGOT_T2=0
+      IGOT_T2 = 0
 
       ALLOCATE( T2( CV_NONODS * NPHASE * IGOT_T2 ))
       ALLOCATE( T2OLD( CV_NONODS * NPHASE * IGOT_T2 ))
@@ -452,12 +452,8 @@
 
       V_BETA = 1.0
 
-      ! ADD OPTION TO DIAMOND..!!!!
-      ! call get_option(.....second_theta)
-      ! if (second_theta==0.) NITS_FLUX_LIM=1
-      !
-
-      Loop_NonLinearFlux: DO ITS_FLUX_LIM = 1, 2!NITS_FLUX_LIM
+      ! THIS DOES NOT WORK FOR NITS_FLUX_LIM>1 (NOBODY KNOWS WHY)
+      Loop_NonLinearFlux: DO ITS_FLUX_LIM = 1, 1 !NITS_FLUX_LIM
 
          CALL CV_ASSEMB( CV_RHS, &
               NCOLACV, ACV, FINACV, COLACV, MIDACV, &
@@ -491,30 +487,9 @@
               FINACV, COLACV, NCOLACV, ACV, THERMAL, &
               mass_ele_transp )
 
-
-print *, '>>>>>>>>>>>>>'
-print *, CV_RHS(1:cv_nonods)
-print *, '>>>>>>>>>>>>>'
-print *, CV_RHS(1+cv_nonods:2*cv_nonods)
-
-
          CALL SOLVER( ACV, SATURA, CV_RHS, &
               FINACV, COLACV, &
-              trim(option_path))
-
-print *, '>>>>>>>>>>>>>'
-print *, Satura(1:cv_nonods)
-print *, '>>>>>>>>>>>>>'
-print *, Satura(1+cv_nonods:2*cv_nonods)
-!!$stop 8888
-
-
-          !satura(1+cv_nonods : 2*cv_nonods) = 1. - satura(1:cv_nonods)
-
-         !print *, satura(1:cv_nonods)
-         !print *, '----------'
-         !print *, satura(1+cv_nonods:2*cv_nonods)
-         !print *, '----------'
+              trim(option_path) )
 
       END DO Loop_NonLinearFlux
 
