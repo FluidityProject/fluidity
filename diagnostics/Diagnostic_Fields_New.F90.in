@@ -288,6 +288,8 @@ contains
     do i = 1, size(states)
       do j = 1, scalar_field_count(states(i))
         s_field => extract_scalar_field(states(i), j)
+
+        if (s_field%is_embedded) cycle
         
         ! Only calculate non-aliased diagnostic fields
         if(aliased(s_field) .or. .not. have_option(trim(s_field%option_path) // "/diagnostic")) cycle

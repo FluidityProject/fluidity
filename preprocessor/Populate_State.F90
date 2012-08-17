@@ -1439,7 +1439,7 @@ contains
       rw_subcycle_options = trim("/embedded_models/lagrangian_ensemble_biology/scalar_field::RandomWalkSubcycling")
       if (have_option(rw_subcycle_options)) then
          call allocate_and_insert_scalar_field(trim(rw_subcycle_options), &
-                state, field_name="RandomWalkSubcycling", &
+                state, field_name="RandomWalkSubcycling", embed_field=.true., &
                 dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
       end if
 
@@ -1449,7 +1449,7 @@ contains
 
          if (fgroup%is_external) then
             call allocate_and_insert_scalar_field(trim(fgroup%option_path)//"/scalar_field::Concentration", &
-                      state, field_name=trim(fgroup%name)//"Concentration", &
+                      state, field_name=trim(fgroup%name)//"Concentration", embed_field=.true., &
                       dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
          else
 
@@ -1457,6 +1457,7 @@ contains
             do i=1, size(fgroup%stage_names%ptr)
                call allocate_and_insert_scalar_field(trim(fgroup%agents_field_path), &
                       state, field_name=trim(fgroup%name)//"Agents"//trim(fgroup%stage_names%ptr(i)), &
+                      embed_field=.true., &
                       dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
             end do
 
@@ -1465,12 +1466,14 @@ contains
                if (have_option(trim(stage_options)//"/particle_management/scalar_field::AgentsMin")) then
                   call allocate_and_insert_scalar_field(trim(stage_options)//"/particle_management/scalar_field::AgentsMin", &
                          state, field_name=trim(fgroup%name)//"AgentsMin"//trim(fgroup%stage_names%ptr(stage)), &
+                         embed_field=.true., &
                          dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
                end if
 
                if (have_option(trim(stage_options)//"/particle_management/scalar_field::AgentsMax")) then
                   call allocate_and_insert_scalar_field(trim(stage_options)//"/particle_management/scalar_field::AgentsMax", &
                          state, field_name=trim(fgroup%name)//"AgentsMax"//trim(fgroup%stage_names%ptr(stage)), &
+                         embed_field=.true., &
                          dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
                end if
             end do
@@ -1503,7 +1506,7 @@ contains
 
       ! Allocate diagnostic field <FG><Variable>
       call allocate_and_insert_scalar_field(trim(variable%field_path), state, &
-             field_name=trim(variable%field_name), &
+             field_name=trim(variable%field_name), embed_field=.true., &
              dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
 
       ! Allocate stage-diagnostic field <FG><Variable><Stage>
@@ -1511,6 +1514,7 @@ contains
          do stage=1, size(fgroup%stage_names%ptr)
             call allocate_and_insert_scalar_field(trim(variable%field_path), state, &
                    field_name=trim(variable%field_name)//trim(fgroup%stage_names%ptr(stage)), &
+                   embed_field=.true., &
                    dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
          end do
       end if
@@ -1519,25 +1523,25 @@ contains
       ! Note: This should technically go above the FG, but works for the moment...
       if (variable%field_type == BIOFIELD_UPTAKE) then
          call allocate_and_insert_scalar_field(trim(variable%field_path), &
-                state, field_name=trim(variable%chemfield)//"Request", &
+                state, field_name=trim(variable%chemfield)//"Request", embed_field=.true., &
                 dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
 
          call allocate_and_insert_scalar_field(trim(variable%depletion_field_path), &
-                state, field_name=trim(variable%chemfield)//"Depletion", &
+                state, field_name=trim(variable%chemfield)//"Depletion", embed_field=.true., &
                 dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
       end if
 
       ! Allocate global aggregated release field
       if (variable%field_type == BIOFIELD_RELEASE) then
          call allocate_and_insert_scalar_field(trim(variable%field_path), &
-                state, field_name=trim(variable%chemfield)//"Release", &
+                state, field_name=trim(variable%chemfield)//"Release", embed_field=.true., &
                 dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
       end if
 
       ! Allocate depletion for food requests
       if (variable%field_type == BIOFIELD_FOOD_REQUEST) then
          call allocate_and_insert_scalar_field(trim(variable%depletion_field_path), &
-                state, field_name=trim(variable%field_name)//"Depletion", &
+                state, field_name=trim(variable%field_name)//"Depletion", embed_field=.true., &
                 dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
       end if
 
@@ -1935,7 +1939,7 @@ contains
   end function allocate_field_as_constant_tensor
 
   recursive subroutine allocate_and_insert_scalar_field(option_path, state, &
-    parent_mesh, parent_name, field_name, &
+    parent_mesh, parent_name, field_name, embed_field, &
     dont_allocate_prognostic_value_spaces)
 
     character(len=*), intent(in) :: option_path
@@ -1943,6 +1947,7 @@ contains
     character(len=*), intent(in), optional :: parent_mesh
     character(len=*), intent(in), optional :: parent_name
     character(len=*), optional, intent(in):: field_name
+    logical, optional, intent(in):: embed_field
     logical, optional, intent(in):: dont_allocate_prognostic_value_spaces
 
     logical :: is_prognostic, is_prescribed, is_diagnostic, is_aliased
@@ -2044,6 +2049,13 @@ contains
 
     ! Set field%option_path
     field%option_path=trim(option_path)
+
+    ! Flag fields belonging to embedded models
+    ! so we can bypass them in the timestep loop
+    if (present_and_true(embed_field)) then
+       field%is_embedded = .true.
+       ewrite(2,*) "Flagged ", trim(lfield_name), " as embedded"
+    end if
 
     ! Finally! Insert field into state!
     call insert(state, field, field%name)
@@ -2666,6 +2678,10 @@ contains
       sfields_loop: do f=1, nsfields
 
         sfield => extract_scalar_field(states(p), f)
+
+        ! Embedded fields don't need auxilliary fields,
+        ! since they are not solved in the timestep loop
+        if (sfield%is_embedded) cycle
 
         ! Save path to field
         field_path=trim(sfield%option_path)

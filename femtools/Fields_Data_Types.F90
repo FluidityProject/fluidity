@@ -165,6 +165,8 @@ module fields_data_types
      logical :: py_positions_same_mesh
      integer :: py_dim
      type(element_type), pointer :: py_positions_shape => null()
+
+     logical :: is_embedded = .false.
   end type scalar_field
 
   type vector_field
