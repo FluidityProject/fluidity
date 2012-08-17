@@ -52,7 +52,7 @@ implicit none
   private
 
   ! locally allocatad fields
-  real, save                          :: fields_min = 1.e-10
+  real, save                          :: fields_min = 1.0e-10
 
   public :: keps_diagnostics, keps_eddyvisc, keps_bcs, keps_adapt_mesh,&
        & k_epsilon_check_options, keps_momentum_source, tensor_inner_product
@@ -498,6 +498,9 @@ subroutine keps_eddyvisc(state)
   integer, pointer, dimension(:)   :: nodes_ev
   real, allocatable, dimension(:)  :: detwei, rhs_addto
   real, allocatable, dimension(:,:):: invmass
+  real, allocatable, dimension(:)  :: kk_at_quad, eps_at_quad, ll_at_quad
+  
+  ! Options grabbed from the options tree
   real                             :: c_mu, lmax
   character(len=OPTION_PATH_LEN)   :: option_path
   logical                          :: lump_mass, have_visc = .true.
@@ -561,14 +564,6 @@ subroutine keps_eddyvisc(state)
      call set(viscosity, bg_visc)
   end if
 
-  ! Clip fields: can't allow negative/zero epsilon or k
-  do i = 1, node_count(EV)
-     call set(kk, i, max(node_val(kk,i), fields_min))
-     call set(eps, i, max(node_val(eps,i), fields_min))
-     ! Limit lengthscale to prevent instablilities.
-     call set(ll, i, min(node_val(kk,i)**1.5 / node_val(eps,i), lmax))
-  end do
-
   ! Calculate scalar eddy viscosity by integration over element
   do ele = 1, ele_count(EV)
      nodes_ev => ele_nodes(EV, ele)
@@ -576,18 +571,51 @@ subroutine keps_eddyvisc(state)
      allocate(detwei (ele_ngi(EV, ele)))
      allocate(rhs_addto (ele_loc(EV, ele)))
      allocate(invmass (ele_loc(EV, ele), ele_loc(EV, ele)))
+     allocate(kk_at_quad(ele_ngi(kk, ele)), eps_at_quad(ele_ngi(kk, ele)))
+     
+     ! Get detwei
      call transform_to_physical(positions, ele, detwei=detwei)
-!      rhs_addto = shape_rhs(shape_ev, detwei*C_mu*ele_val_at_quad(f_mu,ele)* &
-!      ele_val_at_quad(kk,ele)**0.5*ele_val_at_quad(ll,ele))
+     
+     ! Get the k, epsilon and the length scale values at the Gauss points
+     kk_at_quad = ele_val_at_quad(kk,ele)
+     eps_at_quad = ele_val_at_quad(eps,ele)
+     ll_at_quad = ele_val_at_quad(ll,ele)
+     
+     ! Clip the fields at the Gauss points
+     ! Can't allow negative/zero epsilon or k.
+     ! Note: here we assume all fields have the same number of
+     ! Gauss points per element.
+     do i = 1, ele_ngi(kk, ele)
+        ! k
+        if(kk_at_quad(i) < fields_min) then
+           kk_at_quad(i) = fields_min
+        end if
+        ! epsilon
+        if(eps_at_quad(i) < fields_min) then
+           eps_at_quad(i) = fields_min
+        end if
+        ! Limit lengthscale to prevent instablilities.
+!         if(ll_at_quad(i) > lmax) then
+!            ll_at_quad(i) = lmax
+!         end if 
+     end do
+     
+     ! Compute the eddy viscosity
+!    rhs_addto = shape_rhs(shape_ev, detwei*C_mu*ele_val_at_quad(f_mu,ele)* &
+!                (kk_at_quad**0.5)*ll_at_quad)
      rhs_addto = shape_rhs(shape_ev, detwei*C_mu*ele_val_at_quad(density,ele)*&
-          ele_val_at_quad(f_mu,ele)*ele_val_at_quad(kk,ele)**2.0/ele_val_at_quad(eps,ele))
+                    ele_val_at_quad(f_mu,ele)*(kk_at_quad**2.0)/eps_at_quad)
+          
      ! In the DG case we will apply the inverse mass locally.
      if(continuity(EV)<0) then
         invmass = inverse(shape_shape(shape_ev, shape_ev, detwei))
         rhs_addto = matmul(rhs_addto, invmass)
      end if
+     
+     ! Add the element's contribution to the nodes of ev_rhs
      call addto(ev_rhs, nodes_ev, rhs_addto)
-     deallocate(detwei, rhs_addto, invmass)
+     
+     deallocate(detwei, rhs_addto, invmass, kk_at_quad, eps_at_quad)
   end do
 
   ! For non-DG we apply inverse mass globally
