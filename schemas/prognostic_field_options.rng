@@ -2556,9 +2556,8 @@ electrokinetic, electrochemical or electrothermal sources </a:documentation>
         </attribute>
       </element>
       <element name="equation">
-        <a:documentation>Select the equation used to solve for this field.
-k-epsilon model equation.
-ONLY WORKS FOR CONTINUOUS GALERKIN DISCRETISATIONS</a:documentation>
+        <a:documentation>Equation type for the k-epsilon model fields.
+Note: Only works for continuous galerkin or control volume discretisations.</a:documentation>
         <attribute name="name">
           <value>KEpsilon</value>
         </attribute>

@@ -2076,9 +2076,8 @@ scalar_equation_choice =
          element equation { 
             attribute name { "ElectricalPotential" }
          }|
-         ## Select the equation used to solve for this field.
-         ## k-epsilon model equation.
-         ## ONLY WORKS FOR CONTINUOUS GALERKIN DISCRETISATIONS
+         ## Equation type for the k-epsilon model fields.
+         ## Note: Only works for continuous galerkin or control volume discretisations.
          element equation {
             attribute name { "KEpsilon" }
          }
