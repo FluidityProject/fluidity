@@ -177,7 +177,7 @@ contains
       type(cv_options_type) :: tfield_options, tdensity_options
 
       ! a dummy density in case we're solving for Advection
-      type(scalar_field), pointer :: dummyscalar
+      type(scalar_field), pointer :: dummyscalar, dummydensity
       type(vector_field), pointer :: dummyvector
       type(tensor_field), pointer :: dummytensor
       ! somewhere to put strings temporarily
@@ -246,6 +246,13 @@ contains
       call allocate(dummytensor, tfield%mesh, name="DummyTensor", field_type=FIELD_TYPE_CONSTANT)
       call zero(dummytensor)
       dummytensor%option_path = " "
+      
+      ! Allocate a dummy density field set to 1.0 in case we are using KEpsilon, 
+      ! but have a Boussinesq or Drainage equation_type for Velocity.
+      allocate(dummydensity)
+      call allocate(dummydensity, tfield%mesh, name="DummyDensity", field_type=FIELD_TYPE_CONSTANT)
+      call set(dummydensity, 1.0)
+      dummydensity%option_path = " "
 
       ! find out equation type and hence if density is needed or not
       equation_type=equation_type_index(trim(option_path))
@@ -271,11 +278,11 @@ contains
                  prognostic_density = .true.
               end if
            case("Boussinesq")
-              tdensity=>dummyscalar
-              oldtdensity => dummyscalar
+              tdensity => dummydensity
+              oldtdensity => dummydensity
            case("Drainage")
-              tdensity=>dummyscalar
-              oldtdensity => dummyscalar
+              tdensity => dummydensity
+              oldtdensity => dummydensity
            case default
               ! developer error... out of sync options input and code
               FLAbort("Unknown equation type for velocity")
@@ -783,6 +790,8 @@ contains
       deallocate(dummyvector)
       call deallocate(dummytensor)
       deallocate(dummytensor)
+      call deallocate(dummydensity)
+      deallocate(dummydensity)
       if (include_diffusion) then
         call deallocate(D_m)
         call deallocate(diff_rhs)
