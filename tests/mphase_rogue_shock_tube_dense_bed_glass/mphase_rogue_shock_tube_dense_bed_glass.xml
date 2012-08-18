@@ -36,6 +36,12 @@ p = file.GetLocations()
 positions = p[:,1]
     </variable>
     
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
+    
   </variables>
     
   <pass_tests>
@@ -99,6 +105,10 @@ for i in range(1, len(time), 10):
       probedpressure_upstream = vtktools.vtu.ProbeData(vt, numpy.array([[0.0125, 1.35 - 0.11, 0]]), 'Gas::Pressure')
       assert abs(probedpressure_upstream) &lt; 320000
       assert abs(probedpressure_upstream) &gt; 123000
+    </test>
+    
+    <test name="Solvers converged" language="python">
+assert(solvers_converged)
     </test>
   </pass_tests>
   

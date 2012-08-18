@@ -439,6 +439,9 @@
            call leonard_tensor(nu, x, tnu, leonard, alpha, les_option_path)
 
            ewrite_minmax(leonard)
+         else
+            tnu => dummyvector
+            leonard => dummytensor
          end if
       else
          les_second_order=.false.; les_fourth_order=.false.; wale=.false.; dynamic_les=.false.
