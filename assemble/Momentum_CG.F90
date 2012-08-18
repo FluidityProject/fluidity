@@ -436,7 +436,8 @@
          end if
       else
          les_second_order=.false.; les_fourth_order=.false.; wale=.false.; dynamic_les=.false.
-         nullify(nu_f1); nullify(nu_f2); nullify(stp); nullify(lnd)
+         nu_f1 => dummyvector; nu_f2 => dummyvector
+         lnd => dummytensor; stp => dummytensor
       end if
       
       have_temperature_dependent_viscosity = have_option(trim(u%option_path)//"/prognostic"//&
@@ -1986,6 +1987,8 @@
       type(vector_field), intent(in)    :: nu_f1, nu_f2
       type(tensor_field), intent(in)    :: lnd, stp
       real, intent(in)                  :: alpha, gamma
+      real, dimension(u%dim, u%dim) :: v1
+      real, dimension(u%dim) :: a1
 
       ! Local quantities specific to Germano Dynamic LES Model
       real, dimension(x%dim, x%dim, ele_ngi(u,ele))  :: strain1_gi, strain2_gi, strain_prod_gi
@@ -2012,7 +2015,6 @@
       real, dimension(ele_ngi(u, ele)), intent(in)                                   :: detwei
       real, dimension(u%dim, u%dim, ele_loc(u, ele), ele_loc(u, ele)), intent(inout) :: big_m_tensor_addto
       real, dimension(u%dim, ele_loc(u, ele)), intent(inout)                         :: rhs_addto
-
 
       if (have_viscosity .AND. .not.(have_temperature_dependent_viscosity)) then
          viscosity_gi = ele_val_at_quad(viscosity, ele)
@@ -2057,12 +2059,12 @@
             les_coef_gi=les_viscosity_strength(du_t, nu_ele)
             if(.not. have_anisotropy) then
               ! Isotropic filter/viscosity case
-              f1_mod = 4*length_scale(x, ele)
-              f1_gi = 0.0
+              f1_gi = 4.*length_scale_tensor_isotropic(du_t, ele_shape(nu, ele))
               do gi=1, size(les_coef_gi)
-                ! Scalar eddy viscosity is tensor component (all equal)
-                les_scalar_gi(gi) = les_coef_gi(gi)*f1_mod(gi)*smagorinsky_coefficient**2
-                les_tensor_gi(:,:,gi)=les_scalar_gi(gi)
+                ! Scalar eddy viscosity is eigenvalue of isotropic tensor viscosity
+                call eigendecomposition_symmetric(f1_gi(:,:,gi), v1, a1)
+                f1_mod(gi) = a1(1)
+                les_tensor_gi(:,:,gi) = les_coef_gi(gi)*f1_gi(:,:,gi)*smagorinsky_coefficient**2
               end do
             else
               ! Anisotropic filter/viscosity case
@@ -2071,10 +2073,9 @@
                 ! Normalise tensor filter width so that volume equals that of scalar filter width definition
                 !f1_gi(:,:,gi) = f1_gi(:,:,gi)*f1_mod(gi)/norm2(f1_gi(:,:,gi))
                 les_tensor_gi(:,:,gi) = les_coef_gi(gi)*f1_gi(:,:,gi)*smagorinsky_coefficient**2
-                ! Scalar eddy viscosity is tensor magnitude
-                les_scalar_gi(gi)=norm2(les_tensor_gi(:,:,gi))
-                ! Scalar filter width is tensor magnitude
-                f1_mod(gi) = norm2(f1_gi(:,:,gi))
+                ! Scalar eddy viscosity is average of eigenvalues of tensor viscosity
+                call eigendecomposition_symmetric(f1_gi(:,:,gi), v1, a1)
+                f1_mod(gi) = equivalent_radius_ellipsoid(u%dim, a1)
               end do
             end if
             call les_set_diagnostic_fields(state, nu, density, ele, detwei, eddy_visc_gi=les_tensor_gi, &
@@ -2122,15 +2123,17 @@
               ! Isotropic filter/viscosity case
               if(.not. have_anisotropy) then
                 ! First filter width G1=alpha^2*mesh size (units length^2)
-                f1_mod = alpha**2*length_scale(x, ele)
-                f1_gi = 0.0
+                f1_gi = alpha**2*length_scale_tensor_isotropic(du_t, ele_shape(nu, ele))
                 ! Combined width G2=(1+gamma^2)*G1
-                f2_mod = (1.0+gamma**2)*f1_mod
-                f2_gi = 0.0
+                f2_gi = (1.0+gamma**2)*f1_gi
 
                 do gi=1, ele_ngi(nu, ele)
+                  call eigendecomposition_symmetric(f1_gi(:,:,gi), v1, a1)
+                  f1_mod(gi) = a1(1)
+                  f2_mod(gi) = (1.0+gamma**2)*f1_mod(gi)
                   ! Tensor M_ij = (|S2|*S2)G2 - ((|S1|S1)^f2)G1
-                  tensor_gi(:,:,gi) = strain2_mod(gi)*strain2_gi(:,:,gi)*f2_mod(gi) - strain_prod_gi(:,:,gi)*f1_mod(gi)
+                  !tensor_gi(:,:,gi) = strain2_mod(gi)*strain2_gi(:,:,gi)*f2_mod(gi) - strain_prod_gi(:,:,gi)*f1_mod(gi)
+                  tensor_gi(:,:,gi) = strain2_mod(gi)*strain2_gi(:,:,gi)*f2_gi(:,:,gi) - strain_prod_gi(:,:,gi)*f1_gi(:,:,gi)
 
                   ! Model coeff C = -(L_ij M_ij) / 2(M_ij M_ij)
                   les_coef_gi(gi) = -0.5*sum(leonard_gi(:,:,gi)*tensor_gi(:,:,gi)) / sum(tensor_gi(:,:,gi)*tensor_gi(:,:,gi))
@@ -2139,17 +2142,19 @@
                   les_coef_gi(gi) = min(max(les_coef_gi(gi),0.0), smagorinsky_coefficient)
 
                   ! Isotropic tensor dynamic eddy viscosity m_ij = -2C|S1|.alpha^2.G1
-                  les_tensor_gi(:,:,gi) = 2*alpha**2*les_coef_gi(gi)*strain1_mod(gi)*f1_mod(gi)
+                  !les_tensor_gi(:,:,gi) = 2*alpha**2*les_coef_gi(gi)*strain1_mod(gi)*f1_gi(gi)
+                  les_tensor_gi(:,:,gi) = 2*alpha**2*les_coef_gi(gi)*strain1_mod(gi)*f1_gi(:,:,gi)
                 end do
               else
               ! Anisotropic filter/viscosity case
                 ! First filter width G1=alpha^2*mesh size (units length^2)
                 f1_gi = alpha**2*length_scale_tensor(du_t, ele_shape(nu, ele))
-                f1_mod = alpha**2*length_scale(x, ele)
                 ! Combined width G2=(1+gamma^2)*G1
                 f2_gi = (1.0+gamma**2)*f1_gi
-                f2_mod = (1.0+gamma**2)*f1_mod
                 do gi=1, ele_ngi(nu, ele)
+                  call eigendecomposition_symmetric(f1_gi(:,:,gi), v1, a1)
+                  f1_mod(gi) = equivalent_radius_ellipsoid(u%dim, a1)
+                  f2_mod(gi) = (1.0+gamma**2)*f1_mod(gi)
                   ! Normalise tensor filter width so that volume equals that of scalar filter width definition
                   !f1_gi(:,:,gi) = f1_gi(:,:,gi)*f1_mod(gi)/norm2(f1_gi(:,:,gi))
                   !f2_gi(:,:,gi) = f2_gi(:,:,gi)*f2_mod(gi)/norm2(f2_gi(:,:,gi))

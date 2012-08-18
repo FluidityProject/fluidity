@@ -438,15 +438,16 @@ subroutine keps_eddyvisc(state)
     type(tensor_field), pointer      :: eddy_visc, viscosity, bg_visc
     type(vector_field), pointer      :: positions, u
     type(scalar_field), pointer      :: kk, eps, EV, ll, lumped_mass, filter
-    type(scalar_field)               :: ev_rhs, filter_rhs
+    type(scalar_field)               :: ev_rhs, delta
     type(element_type), pointer      :: shape_ev
     type(patch_type)                 :: patch
     integer                          :: i, ele
     integer, pointer, dimension(:)   :: nodes_ev
     real, allocatable, dimension(:)  :: detwei, rhs_addto, uele
     ! VLES parameters
-    real                             :: delta, dt, f, dx
-
+    real                             :: f, lcut, lint, lkol
+    real                             :: beta=-0.002 ! coefficient calibrated by Speziale (1998)
+    real                             :: n=2.0 ! exponent calibrated by Han (2012)
     ewrite(1,*) "In keps_eddyvisc"
     kk         => extract_scalar_field(state, "TurbulentKineticEnergy")
     eps        => extract_scalar_field(state, "TurbulentDissipation")
@@ -463,11 +464,11 @@ subroutine keps_eddyvisc(state)
     ewrite_minmax(eps)
     ewrite_minmax(EV)
 
+    call zero(filter)
     call allocate(ev_rhs, EV%mesh, name="EVRHS")
     call zero(ev_rhs)
-    call allocate(filter_rhs, EV%mesh, name="FilterRHS")
-    call zero(filter_rhs)
-    call zero(filter)
+    call allocate(delta, EV%mesh, name="MeshSize")
+    call zero(delta)
 
     ! Initialise viscosity to background value
     call set(viscosity, bg_visc)
@@ -480,8 +481,6 @@ subroutine keps_eddyvisc(state)
       call set(ll, i, min(node_val(kk,i)**1.5 / node_val(eps,i), lmax))
     end do
 
-    call get_option("/timestepping/timestep", dt)
-
     ! Calculate scalar eddy viscosity by integration over element
     do ele = 1, ele_count(EV)
       nodes_ev => ele_nodes(EV, ele)
@@ -489,35 +488,21 @@ subroutine keps_eddyvisc(state)
       allocate(detwei (ele_ngi(EV, ele)))
       allocate(rhs_addto (ele_loc(EV, ele)))
       call transform_to_physical(positions, ele, detwei=detwei)
-
-      ! VLES modification: filter eddy viscosity
-      if(vles) then
-        allocate(uele (ele_loc(EV, ele)))
-        ! isotropic filter size
-        delta = length_scale(positions, ele)
-        uele = norm2(ele_val(u, ele))
-        ! lengthscale is max(delta, |u|dt)
-        dx = max(delta, sum(uele)/size(nodes_ev)*dt)
-        rhs_addto = (dx/ele_val(ll, ele))**(2./3.)
-        do i=1, size(nodes_ev)
-          patch = get_patch_ele(EV%mesh, nodes_ev(i))
-          ! Make filter values sum correctly
-          rhs_addto(i) = rhs_addto(i)/patch%count
-          deallocate(patch%elements)
-        end do
-        deallocate(uele)
-      else
-        rhs_addto = 1.0
-        do i=1, size(nodes_ev)
-          patch = get_patch_ele(EV%mesh, nodes_ev(i))
-          rhs_addto(i) = rhs_addto(i)/patch%count
-          deallocate(patch%elements)
-        end do
-      end if
-
-      call addto(filter_rhs, nodes_ev, rhs_addto)
-      rhs_addto = shape_rhs(shape_ev, detwei*C_mu*ele_val_at_quad(kk,ele)**0.5*ele_val_at_quad(ll,ele))
+      rhs_addto = shape_rhs(shape_ev, detwei*C_mu*sqrt(ele_val_at_quad(kk,ele))*ele_val_at_quad(ll,ele))
       call addto(ev_rhs, nodes_ev, rhs_addto)
+
+      ! VLES by Han/Krajnovic (2012) method:
+      ! filter eddy viscosity according to proportion of resolved turbulence
+      ! as measured by relative sizes of cutoff, Kolmogorov and integral lengthscales
+      if(vles) then
+        ! Set patch average value of element size at ele nodes.
+        do i=1, size(nodes_ev)
+          patch = get_patch_ele(EV%mesh, nodes_ev(i))
+          rhs_addto(i) = sqrt(length_scale(positions, ele))/patch%count
+          deallocate(patch%elements)
+        end do
+        call addto(delta, nodes_ev, rhs_addto)
+      end if
       deallocate(detwei, rhs_addto)
     end do
 
@@ -525,12 +510,17 @@ subroutine keps_eddyvisc(state)
 
     ! Set eddy viscosity
     do i = 1, node_count(EV)
-      f = max(node_val(filter_rhs, i), 0.)
-      call set(filter, i, min(1.0, f))
-      call set(EV, i, node_val(filter,i)*node_val(ev_rhs,i)/node_val(lumped_mass,i))
+      ! Nodal values of cutoff, integral and Kolmogorov lengthscales:
+      lcut = node_val(delta, i)
+      lint = node_val(ll, i)
+      lkol = node_val(EV, i)**0.75/node_val(eps, i)**0.25
+      ! expression for filter in terms of lengthscales:
+      f = min(1.0, (1.0 - exp(beta*lcut/lkol) )/(1.0 - exp(beta*lint/lkol) ) )**n
+      call set(filter, i, f)
+      call set(EV, i, f*node_val(ev_rhs,i)/node_val(lumped_mass,i))
     end do
 
-    call deallocate(ev_rhs); call deallocate(filter_rhs)
+    call deallocate(ev_rhs); call deallocate(delta)
 
     ewrite(2,*) "Setting k-epsilon eddy-viscosity tensor"
     call zero(eddy_visc)

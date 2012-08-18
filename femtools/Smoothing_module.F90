@@ -7,10 +7,13 @@ module smoothing_module
   use sparsity_patterns
   use solvers
   use metric_tools
-  use boundary_conditions, only: apply_dirichlet_conditions
+  use boundary_conditions, only: apply_dirichlet_conditions, get_entire_boundary_condition
   use global_parameters, only : OPTION_PATH_LEN
   use elements
   use transform_elements
+  use merge_tensors
+  use vector_tools
+  use unittest_tools
   implicit none
 
   private
@@ -18,7 +21,7 @@ module smoothing_module
   public :: smooth_scalar, smooth_vector, smooth_tensor
   public :: anisotropic_smooth_scalar, anisotropic_smooth_vector
   public :: anisotropic_smooth_tensor, length_scale, average_length_scale, length_scale_tensor
-
+  public :: length_scale_tensor_isotropic, equivalent_radius_ellipsoid
 contains
 
   subroutine smooth_scalar(field_in,positions,field_out,alpha, path)
@@ -104,7 +107,7 @@ contains
     end do
 
     ! Boundary conditions
-    ewrite(2,*) "Applying strong Dirichlet boundary conditions to filtered field"
+    ewrite(2,*) "Applying strong Dirichlet boundary conditions to filtered field:"
     if(present(bc_field)) then
       ewrite(2,*) trim(bc_field%name)
       do dim=1, bc_field%dim
@@ -194,7 +197,7 @@ contains
 
     ! Assemble M element by element.
     do ele=1, element_count(field_in)
-      call assemble_anisotropic_smooth_scalar(M, rhsfield, positions, field_in, path, alpha, ele)
+      call assemble_anisotropic_smooth_scalar(M, rhsfield, positions, field_in, alpha, ele)
     end do
 
     ! Boundary conditions
@@ -220,12 +223,16 @@ contains
     character(len=*), intent(in) :: path
     ! For dynamic LES, need to specify the velocity field from which BCs are taken
     type(vector_field), intent(inout), optional :: bc_field
+    ! For weak BCs, this is the surface field containing BC values
+    type(vector_field) :: field_bc
+    ! For weak BCs, arrays of size(field_bc)
+    integer, dimension(:,:), allocatable :: field_bc_type, field_bc_number
 
     !local variables
     type(csr_matrix) :: M
     type(csr_sparsity) :: M_sparsity
     type(vector_field) :: rhsfield
-    integer :: ele, dim
+    integer :: ele, sele, dim
     integer, dimension(:), pointer :: neighs
 
     !allocate smoothing matrix
@@ -253,9 +260,20 @@ contains
       end do
     end if
 
+    ! Weak Dirichlet conditions
+    !allocate(field_bc_type(field_out%dim, surface_element_count(field_out)))
+    !allocate(field_bc_number(field_out%dim, surface_element_count(field_out)))
+    !call get_entire_boundary_condition(field_out, (/ "weakdirichlet" /), field_bc, field_bc_type, field_bc_number)
+    !ewrite(2,*) 'applying weak Dirichlet BCs to filtered field: ', size(field_bc_number)
+    !do sele=1, surface_element_count(field_out)
+       !ele = face_ele(field_out, sele)
+       !call assemble_anisotropic_smooth_vector_surface(M, rhsfield, positions, field_in, alpha, ele, sele, field_bc)
+    !end do
+
     call petsc_solve(field_out, M, rhsfield, option_path=trim(path))
 
     call deallocate(rhsfield); call deallocate(M); call deallocate(M_sparsity)
+    !call deallocate(field_bc); deallocate(field_bc_type); deallocate(field_bc_number)
 
   end subroutine anisotropic_smooth_vector
 
@@ -311,8 +329,6 @@ contains
 
     ! value of field_in at quad points
     real, dimension(ele_ngi(positions,ele)) :: field_in_quad
-    ! Locations of quadrature points
-    real, dimension(positions%dim,ele_ngi(positions,ele)) :: X_quad
     ! smoothing tensor at quadrature points real,
     real,dimension(positions%dim,positions%dim,ele_ngi(positions,ele)) &
          &:: alpha_quad
@@ -335,9 +351,6 @@ contains
 
     ele_field_in=>ele_nodes(field_in, ele)
     shape_field_in=>ele_shape(field_in, ele)
-
-    ! Locations of quadrature points.
-    X_quad=ele_val_at_quad(positions, ele)
     field_in_quad = ele_val_at_quad(field_in, ele)
 
     ! Transform derivatives and weights into physical space.
@@ -354,6 +367,9 @@ contains
           alpha_quad(j,j,i) = alpha**2*w/24.
        end forall
     end forall
+    ! Test of isotropic tensor filter width definition
+    alpha_quad=0.
+    alpha_quad = alpha**2 / 24. * length_scale_tensor_isotropic(dshape_field_in, shape_field_in)
 
     ! Local assembly:
     field_in_mat=dshape_tensor_dshape(dshape_field_in, alpha_quad, &
@@ -381,7 +397,6 @@ contains
     ! value of field_in at quad points
     real, dimension(positions%dim,ele_ngi(positions,ele)) :: field_in_quad
     ! Locations of quadrature points
-    real, dimension(positions%dim,ele_ngi(positions,ele)) :: X_quad
     ! smoothing tensor at quadrature points real,
     real,dimension(positions%dim,positions%dim,ele_ngi(positions,ele)) &
          &:: alpha_quad
@@ -404,9 +419,6 @@ contains
 
     ele_field_in=>ele_nodes(field_in, ele)
     shape_field_in=>ele_shape(field_in, ele)
-
-    ! Locations of quadrature points.
-    X_quad=ele_val_at_quad(positions, ele)
     field_in_quad = ele_val_at_quad(field_in, ele)
 
     ! Transform derivatives and weights into physical space.
@@ -423,6 +435,8 @@ contains
           alpha_quad(j,j,i) = alpha**2*w/24.
        end forall
     end forall
+    alpha_quad=0.
+    alpha_quad = alpha**2 / 24. * length_scale_tensor_isotropic(dshape_field_in, shape_field_in)
 
     ! Local assembly:    assert(field_in%mesh==field_out%mesh))
     field_in_mat=dshape_tensor_dshape(dshape_field_in, alpha_quad, &
@@ -449,8 +463,6 @@ contains
 
     ! value of field_in at quad points
     real, dimension(positions%dim,positions%dim,ele_ngi(positions,ele)) :: field_in_quad
-    ! Locations of quadrature points
-    real, dimension(positions%dim,ele_ngi(positions,ele)) :: X_quad
     ! smoothing tensor at quadrature points real,
     real,dimension(positions%dim,positions%dim,ele_ngi(positions,ele)) &
          &:: alpha_quad
@@ -473,9 +485,6 @@ contains
 
     ele_field_in=>ele_nodes(field_in, ele)
     shape_field_in=>ele_shape(field_in, ele)
-
-    ! Locations of quadrature points.
-    X_quad=ele_val_at_quad(positions, ele)
     field_in_quad = ele_val_at_quad(field_in, ele)
 
     ! Transform derivatives and weights into physical space.
@@ -508,16 +517,14 @@ contains
 
   end subroutine assemble_smooth_tensor
 
-  subroutine assemble_anisotropic_smooth_scalar(M, rhsfield, positions, field_in, path, alpha, ele)
+  subroutine assemble_anisotropic_smooth_scalar(M, rhsfield, positions, field_in, alpha, ele)
     type(csr_matrix), intent(inout) :: M
     type(scalar_field), intent(inout) :: rhsfield
     type(vector_field), intent(in) :: positions
     type(scalar_field), intent(in) :: field_in
-    character(len=*), intent(in) :: path
     real, intent(in) :: alpha
     integer, intent(in) :: ele
     real, dimension(ele_ngi(positions,ele))                                      :: field_in_quad
-    real, dimension(positions%dim,ele_ngi(positions,ele))                        :: X_quad
     real,dimension(positions%dim,positions%dim,ele_ngi(positions,ele))           :: mesh_tensor_quad
     real, dimension(ele_loc(field_in,ele), ele_ngi(field_in,ele), positions%dim) :: dshape_field_in
     real, dimension(ele_ngi(positions,ele))                                      :: detwei
@@ -536,9 +543,6 @@ contains
 
     ele_field_in=>ele_nodes(field_in, ele)
     shape_field_in=>ele_shape(field_in, ele)
-
-    ! Locations of quadrature points. Fields evaluated at quads.
-    X_quad=ele_val_at_quad(positions, ele)
     field_in_quad = ele_val_at_quad(field_in, ele)
 
     ! Transform derivatives and weights into physical space.
@@ -590,7 +594,6 @@ contains
     integer, intent(in) :: ele
     integer :: dim
     real, dimension(positions%dim,ele_ngi(positions,ele))                        :: field_in_quad
-    real, dimension(positions%dim,ele_ngi(positions,ele))                        :: X_quad
     real,dimension(positions%dim,positions%dim,ele_ngi(field_in,ele))           :: mesh_tensor_quad
     real, dimension(ele_loc(field_in,ele), ele_ngi(field_in,ele), positions%dim) :: dshape_field_in
     real, dimension(ele_ngi(field_in,ele))                                      :: detwei
@@ -608,9 +611,6 @@ contains
 
     ele_field_in=>ele_nodes(field_in, ele)
     shape_field_in=>ele_shape(field_in, ele)
-
-    ! Locations of quadrature points. Fields evaluated at quads.
-    X_quad=ele_val_at_quad(positions, ele)
     field_in_quad = ele_val_at_quad(field_in, ele)
 
     ! Transform derivatives and weights into physical space.
@@ -651,6 +651,111 @@ contains
 
   end subroutine assemble_anisotropic_smooth_vector
 
+  subroutine assemble_anisotropic_smooth_vector_surface(M, rhsfield, positions, field_in, alpha, ele, sele, field_bc)
+    type(csr_matrix), intent(inout) :: M
+    type(vector_field), intent(inout) :: rhsfield
+    type(vector_field), intent(in) :: positions
+    type(vector_field), intent(in) :: field_in, field_bc
+    real, intent(in) :: alpha
+    integer, intent(in) :: ele, sele
+
+    integer :: i, j, dim, l_face_number, inode
+    real, dimension(positions%dim,face_ngi(positions,sele))                      :: field_in_quad
+    real,dimension(positions%dim,positions%dim,ele_ngi(field_in,ele))          :: mesh_tensor_quad
+    type(element_type), pointer                                                  :: shape_field_in, shape_face
+    type(element_type)                                                            :: augmented_shape
+    real, dimension(positions%dim, ele_loc(field_in, ele))                       :: bc_vals
+    real, dimension(ele_loc(field_in, ele), ele_loc(field_in, ele))          :: field_in_mat
+    real, dimension(positions%dim,face_ngi(field_in,sele))                      :: normal_bdy
+    real, dimension(face_ngi(field_in,sele))                                    :: detwei_bdy
+    real, dimension(ele_ngi(field_in,ele))                                    :: detwei
+    integer, dimension(face_loc(field_in, sele))                                 :: nodes_bdy
+    integer, dimension(ele_loc(field_in, ele))                                 :: nodes_ele
+    real, dimension(positions%dim, positions%dim, ele_ngi(field_in, sele))        :: invJ
+    real, dimension(positions%dim, positions%dim, face_ngi(field_in, sele))       :: invJ_face
+    real, dimension(ele_loc(field_in,ele), ele_ngi(field_in,ele), positions%dim) :: dshape_field_in
+    real, dimension(ele_loc(field_in, ele), face_ngi(field_in, sele),positions%dim):: dshape_face
+    integer, dimension(:), pointer       :: faces_ele
+    shape_field_in => ele_shape(field_in, ele)
+    shape_face => face_shape(field_in, sele)
+    nodes_bdy = face_global_nodes(field_in, sele)
+    nodes_ele = ele_nodes(field_in, ele)
+    !ewrite(2,*) 'nodes_bdy, nodes_ele: ', nodes_bdy, nodes_ele
+    !ewrite(2,*) 'nodes_sele: ', ele_nodes(field_bc, sele)
+    !ewrite(2,*) 'local_nodes: ', face_local_nodes(field_in, sele)
+    l_face_number = local_face_number(field_in, sele)
+    !ewrite(2,*) 'l_face_number: ', l_face_number
+    field_in_quad = face_val_at_quad(field_in, sele)
+    !ewrite(2,*) 'face shape: ', shape_face%ngi, shape_face%dim, shape_face%loc
+    !ewrite(2,*) 'ele shape: ', shape_field_in%ngi, shape_field_in%dim, shape_field_in%loc
+
+    call transform_to_physical(positions, ele, shape=shape_field_in, dshape=dshape_field_in, detwei=detwei, invJ=invJ)
+    call transform_facet_to_physical(positions, sele, detwei_f=detwei_bdy, normal=normal_bdy)
+    augmented_shape = make_element_shape(shape_field_in%loc, shape_field_in%dim, &
+                      & shape_field_in%degree, shape_field_in%quadrature, quad_s=shape_face%quadrature)
+
+    ! From Surface_Integrals.F90:
+    if (shape_field_in%degree == 1 .and. shape_field_in%numbering%family == FAMILY_SIMPLEX) then
+       invJ_face = spread(invJ(:, :, 1), 3, size(invJ_face, 3))
+    else
+       ewrite(-1,*) "If positions are nonlinear, then you have to compute"
+       ewrite(-1,*) "the inverse Jacobian of the volume element at the surface"
+       ewrite(-1,*) "quadrature points. Sorry ..."
+       FLExit("Calculating the body drag not supported for nonlinear coordinates.")
+    end if
+
+    ! Get dshape transformed onto surface element: nloc x sngi x dim
+    dshape_face = eval_volume_dshape_at_face_quad(augmented_shape, l_face_number, invJ_face)
+    !ewrite(2,*) 'face dshape: ', size(dshape_face,1), size(dshape_face,2), size(dshape_face,3)
+
+    ! mesh size tensor=(edge lengths)**2
+    ! Helmholtz smoothing lengthscale = alpha**2 * 1/24 * mesh size tensor
+    ! 2D OR 3D?
+    mesh_tensor_quad = alpha**2 / 24. * length_scale_tensor(dshape_field_in, shape_field_in)
+    !ewrite(2,*) 'mesh tensor: ', size(mesh_tensor_quad,1), size(mesh_tensor_quad,2), size(mesh_tensor_quad,3)
+    !do gi=1,sngi
+    !   filter_gi(:,:,gi) = matmul(dshape_face(:,gi,:), matmul(mesh_tensor_quad, dshape_face(:,gi,:)))
+    !end do
+    !field_in_mat = matmul(filter_gi, detwei_bdy)
+
+    field_in_mat = dshape_tensor_dshape(dshape_field_in, mesh_tensor_quad, dshape_field_in, detwei) &
+                   & + shape_shape(shape_field_in, shape_field_in, detwei)
+!    field_in_mat = shape_shape(shape_face, shape_face, detwei_bdy)
+
+    ! Vector length (nloc) comprising bc values and off-wall value:
+    bc_vals=0.
+!    do i = 1, size(nodes_bdy)
+!       do j = 1, size(nodes_ele)
+!          ewrite(2,*) 'i,j,nodes_ele,nodes_bdy: ', i,j,nodes_bdy(i),nodes_ele(j)
+!          if (nodes_ele(j)==nodes_bdy(i)) then
+!             do dim=1,positions%dim
+!                bc_vals(dim,j)=node_val(field_bc, dim, nodes_bdy(i))
+!             end do
+!          end if
+!       end do
+!    end do
+    do dim=1,positions%dim
+       bc_vals(dim,face_local_nodes(field_in, sele)) = ele_val(field_bc, dim, sele)
+    end do
+    ! find element node inside the domain
+    faces_ele => ele_faces(field_in, ele)
+    do i = 1, size(faces_ele)
+       if (faces_ele(i)==sele) exit
+    end do
+    inode = nodes_ele(i)
+    do dim=1,positions%dim
+       !bc_vals(dim,i)=sum(ele_val(field_bc, dim, sele))/size(nodes_bdy)
+       bc_vals(dim,i)=node_val(field_in,dim,inode)
+    end do
+    ewrite(2,*) 'field_bc: ', ele_val(field_bc, sele)
+    ewrite(2,*) 'bc_vals: ', bc_vals
+    ! Global assembly of weak Dirichlet BC:
+    do dim = 1, field_in%dim
+       call addto(rhsfield, dim, ele_nodes(field_in, ele), -matmul(field_in_mat, bc_vals(dim,:)))
+    end do
+
+  end subroutine assemble_anisotropic_smooth_vector_surface
+
   subroutine assemble_anisotropic_smooth_tensor(M, rhsfield, positions, field_in, alpha, ele)
     type(csr_matrix), intent(inout) :: M
     type(tensor_field), intent(inout) :: rhsfield
@@ -659,7 +764,6 @@ contains
     real, intent(in) :: alpha
     integer, intent(in) :: ele
     real, dimension(positions%dim,positions%dim,ele_ngi(positions,ele))          :: field_in_quad
-    real, dimension(positions%dim,ele_ngi(positions,ele))                        :: X_quad
     real,dimension(positions%dim,positions%dim,ele_ngi(positions,ele))           :: mesh_tensor_quad
     real, dimension(ele_loc(field_in,ele), ele_ngi(field_in,ele), positions%dim) :: dshape_field_in
     real, dimension(ele_ngi(positions,ele))                                      :: detwei    
@@ -670,9 +774,6 @@ contains
 
     ele_field_in=>ele_nodes(field_in, ele)
     shape_field_in=>ele_shape(field_in, ele)
-
-    ! Locations of quadrature points. Fields evaluated at quads.
-    X_quad=ele_val_at_quad(positions, ele)
     field_in_quad = ele_val_at_quad(field_in, ele)
 
     ! Transform derivatives and weights into physical space.
@@ -768,11 +869,17 @@ contains
 
     do gi=1, compute_ngi
        do loc=1, nloc
+          ! eigenvalues of metric
           M=outer_product( du_t(loc,gi,:), du_t(loc,gi,:) )
+          ! determinant of M
           r=sum( (/ ( M(i,i), i=1, dim) /) )
+          ! M^-1 = 1/det(M)*adj(M) = 1/det(M)*M
+          ! Why det(M)^2?
           if (.not. r==0.0) then
              t(:,:,gi)=t(:,:,gi)+M/(r**2)
           end if
+          ! rotation of M^-1 by V^T V comes later:
+          ! construction of viscosity matrix happens in local coords
        end do
     end do
 
@@ -782,5 +889,66 @@ contains
     end do
 
   end function length_scale_tensor
+
+  function length_scale_tensor_isotropic(du_t, shape) result(t2)
+    !! Computes a length scale tensor to be used in LES (units are in length^2)
+    !! derivative of velocity shape function (nloc x ngi x dim)
+    real, dimension(:,:,:), intent(in):: du_t
+    !! the resulting tensor (dim x dim x ngi)
+    real, dimension(size(du_t,3),size(du_t,3),size(du_t,2)) :: t, t2
+    !! for a simplex if degree==1 the tensor is the same for all gaussian points
+    type(element_type), intent(in):: shape
+
+    real, dimension(size(t,1), size(t,2)):: M
+    real, dimension(size(t, 1), size(t, 1)), target :: v1, v2, Finv, F ! eigenvectors, rotations
+    real, dimension(size(t, 1)), target :: a1, a2 ! eigenvalues
+    real r
+    integer gi, loc, i, dim, nloc, compute_ngi
+
+    t2=0.0
+    nloc=size(du_t,1)
+    dim=size(du_t,3)
+
+    if (.not.(shape%degree==1 .and. shape%numbering%family==FAMILY_SIMPLEX)) then
+      ! for non-linear compute on all gauss points
+      compute_ngi=shape%ngi
+    else
+      ! for linear: compute only the first and copy the rest
+      compute_ngi=1
+    end if
+
+    ! Get anisotropic tensor
+    t = length_scale_tensor(du_t, shape)
+
+    ! Distort metric t to sphere with same volume as ellipsoid
+    do gi=1, compute_ngi
+       call eigendecomposition_symmetric(t(:,:,gi), v1, a1)
+       call vec_clean(a1, 1e-12)
+       a2 = equivalent_radius_ellipsoid(dim, a1)
+       v2 = get_matrix_identity(dim)
+       call eigenrecomposition(t2(:,:,gi), v2, a2)
+    end do
+
+    ! copy the rest
+    do gi=compute_ngi+1, shape%ngi
+       t2(:,:,gi)=t2(:,:,1)
+    end do
+
+  end function length_scale_tensor_isotropic
+
+  function equivalent_radius_ellipsoid(dim, evals) result(r)
+    ! given the eigenvalues of an ellipsoid, compute the eigenvalue
+    ! of the sphere with equal volume
+    real, dimension(dim), target :: evals
+    real r
+    integer i, dim
+
+    r = 1.0
+    do i=1, dim
+       r = r*evals(i)
+    end do
+    r = r**(1./dim)
+
+  end function equivalent_radius_ellipsoid
 
 end module smoothing_module

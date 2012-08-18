@@ -54,6 +54,7 @@ module field_copies_diagnostics
   public :: calculate_scalar_galerkin_projection, calculate_vector_galerkin_projection
   public :: calculate_helmholtz_smoothed_scalar, calculate_helmholtz_smoothed_vector, calculate_helmholtz_smoothed_tensor
   public :: calculate_lumped_mass_smoothed_scalar, calculate_lumped_mass_smoothed_vector
+  public :: calculate_lumped_mass_smoothed_tensor
   public :: calculate_helmholtz_anisotropic_smoothed_scalar, calculate_helmholtz_anisotropic_smoothed_vector
   public :: calculate_helmholtz_anisotropic_smoothed_tensor
 
@@ -590,5 +591,33 @@ contains
     ewrite(1, *) "Exiting calculate_lumped_mass_smoothed_vector"
 
   end subroutine calculate_lumped_mass_smoothed_vector
+
+  subroutine calculate_lumped_mass_smoothed_tensor(state, t_field)
+
+    type(state_type), intent(inout) :: state
+    type(tensor_field), intent(inout) :: t_field
+    type(tensor_field), pointer :: source_field
+    type(scalar_field), pointer :: lumpedmass
+    type(scalar_field) :: inverse_lumpedmass
+    type(csr_matrix), pointer :: mass
+    
+    ewrite(1, *) "In calculate_lumped_mass_smoothed_tensor"
+    
+    source_field => tensor_source_field(state, t_field)
+
+    ! Apply smoothing filter
+    call allocate(inverse_lumpedmass, source_field%mesh, "InverseLumpedMass")
+    mass => get_mass_matrix(state, source_field%mesh)
+    lumpedmass => get_lumped_mass(state, source_field%mesh)
+    call invert(lumpedmass, inverse_lumpedmass)
+    ! IS IT POSSIBLE TO MULTIPLY CSR_MATRIX BY TENSOR FIELD?
+    ! SEE Sparse_Matrices_Fields/csr_mult_vector_vector
+    !call mult( t_field, mass, source_field)
+    call scale(t_field, inverse_lumpedmass) ! the averaging operator is [inv(ML)*M*]
+    call deallocate(inverse_lumpedmass)
+
+    ewrite(1, *) "Exiting calculate_lumped_mass_smoothed_tensor"
+
+  end subroutine calculate_lumped_mass_smoothed_tensor
 
 end module field_copies_diagnostics

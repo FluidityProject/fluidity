@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">MMS_A_Helmiso_structured</string_value>
+    <string_value lines="1">MMS_A_structured</string_value>
   </simulation_name>
   <problem_type>
     <string_value lines="1">fluids</string_value>
@@ -181,6 +181,16 @@
                 </solver>
                 <anisotropic_viscosity/>
                 <first_filter_type>implicit</first_filter_type>
+                <tensor_field name="EddyViscosity" rank="2">
+                  <diagnostic>
+                    <algorithm name="Internal" material_phase_support="multiple"/>
+                    <mesh name="VelocityMesh"/>
+                    <output/>
+                    <stat>
+                      <include_in_stat/>
+                    </stat>
+                  </diagnostic>
+                </tensor_field>
                 <scalar_field name="SmagorinskyCoefficient" rank="1">
                   <diagnostic>
                     <algorithm name="Internal" material_phase_support="multiple"/>
@@ -270,7 +280,17 @@
                     </steady_state>
                   </diagnostic>
                 </vector_field>
-                <tensor_field name="EddyViscosity" rank="2">
+                <tensor_field name="TensorFirstFilterWidth" rank="2">
+                  <diagnostic>
+                    <algorithm name="Internal" material_phase_support="multiple"/>
+                    <mesh name="VelocityMesh"/>
+                    <output/>
+                    <stat>
+                      <include_in_stat/>
+                    </stat>
+                  </diagnostic>
+                </tensor_field>
+                <tensor_field name="TensorSecondFilterWidth" rank="2">
                   <diagnostic>
                     <algorithm name="Internal" material_phase_support="multiple"/>
                     <mesh name="VelocityMesh"/>
@@ -346,11 +366,11 @@
         <tensor_field name="Viscosity" rank="2">
           <prescribed>
             <value name="WholeMesh">
-              <isotropic>
+              <anisotropic_symmetric>
                 <constant>
-                  <real_value rank="0">1.</real_value>
+                  <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">1. 0. 0. 1.</real_value>
                 </constant>
-              </isotropic>
+              </anisotropic_symmetric>
             </value>
             <output>
               <exclude_from_vtu/>

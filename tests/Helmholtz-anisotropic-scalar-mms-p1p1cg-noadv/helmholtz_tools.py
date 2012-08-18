@@ -19,6 +19,13 @@ def gaussian_advected(XX):
    u=exp(-pi*r**2)
    return u
 
+def gaussian_1x1(XX):
+   '''Gaussian bump'''
+   x = XX[0]-0.5; y = XX[1]-0.5
+   r=(x**2+y**2)**.5
+   u=exp(-pi*3.*r**2)
+   return u
+
 def velocity(XX):
    x = XX[0]; y = XX[1]
    u = 0.0

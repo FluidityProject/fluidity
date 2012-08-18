@@ -92,6 +92,15 @@ def dissipation_taylor(t,nu):
    # See Orszag et al, 1976
    '''Taylor's 1st-order Taylor expansion of mean-square vorticity'''
    omega_t=numpy.zeros(t.size)
+   for i in range(len(t)):
+      omega_t[i] = nu*0.75*(1.-6.*t[i]*nu + (5./48.+18.*nu**2.)*t[i]**2. - (5./3.+36.*nu**2.)*nu*t[i]**3.)
+      #omega_t[i] = nu*0.75*(1.-6.*t[i]*nu + (5./48.+18.*nu**2.)*t[i]**2. - (5./3.+36.*nu**2.)*nu*t[i]**3. + (50./99.64+1835./9.16*nu**2.+54.*nu**4.)*t[i]**4. - (361./44.32+761./12.*nu**2.+324./5.*nu**4.)*nu*t[i]**5.)/omega_0
+   return omega_t
+
+def dissipation_taylor_norm(t,nu):
+   # See Orszag et al, 1976
+   '''Taylor's 1st-order Taylor expansion of mean-square vorticity'''
+   omega_t=numpy.zeros(t.size)
    omega_0=nu*0.75
    for i in range(len(t)):
       omega_t[i] = nu*0.75*(1.-6.*t[i]*nu + (5./48.+18.*nu**2.)*t[i]**2. - (5./3.+36.*nu**2.)*nu*t[i]**3.)/omega_0
@@ -107,8 +116,9 @@ def dissipation_goldstein(t,nu):
    '''Goldstein's expansion of mean-square vorticity'''
    omega_g=numpy.zeros(t.size)
    for i in range(len(t)):
-      #omega_g[i] = nu*0.75*(exp(-6.*t[i]*nu) - 1./384./nu**2*(exp(-6.*t[i]*nu) - 20.*exp(-12.*t[i]*nu) + 35.*exp(-14.*t[i]*nu) - 16.*exp(-16.*t[i]*nu)) + 1./nu**4*(4105./635830272.*exp(-6.*t[i]*nu)))
-      omega_g[i] = nu*0.75*(exp(-6.*t[i]*nu) - 1./384./nu**2.*(exp(-6.*t[i]*nu) - 20.*exp(-12.*t[i]*nu) + 35.*exp(-14.*t[i]*nu) - 16.*exp(-16.*t[i]*nu)))
+      omega_g[i] = nu*0.075*(exp(-6.*t[i]*nu) - 1./384./nu**2*(exp(-6.*t[i]*nu) - 20.*exp(-12.*t[i]*nu) + 35.*exp(-14.*t[i]*nu) - 16.*exp(-16.*t[i]*nu)) + 1./nu**4*(4105./635830272.*exp(-6.*t[i]*nu)))
+      #omega_g[i] = nu*0.075*(exp(-6.*t[i]*nu) - 1./384./nu**2.*(exp(-6.*t[i]*nu) - 20.*exp(-12.*t[i]*nu) + 35.*exp(-14.*t[i]*nu) - 16.*exp(-16.*t[i]*nu)))
+      #omega_g[i] = nu*0.75*(exp(-6.*t[i]*nu) - 1./384./nu**2.*(exp(-6.*t[i]*nu) - 20.*exp(-12.*t[i]*nu) + 35.*exp(-14.*t[i]*nu) - 16.*exp(-16.*t[i]*nu)))
    return omega_g
 
 def dissipation_goldstein_norm(t,nu):
@@ -120,6 +130,17 @@ def dissipation_goldstein_norm(t,nu):
       #omega_g_norm[i] = nu*0.75*(exp(-6.*t[i]*nu) - 1./384./nu**2*(exp(-6.*t[i]*nu) - 20.*exp(-12.*t[i]*nu) + 35.*exp(-14.*t[i]*nu) - 16.*exp(-16.*t[i]*nu)) + 1./nu**4*(4105./635830272.*exp(-6.*t[i]*nu)))/omega_0
       omega_g_norm[i] = nu*0.75*(exp(-6.*t[i]*nu) - 1./384./nu**2.*(exp(-6.*t[i]*nu) - 20.*exp(-12.*t[i]*nu) + 35.*exp(-14.*t[i]*nu) - 16.*exp(-16.*t[i]*nu)))/omega_0
    return omega_g_norm
+
+def extract_data(file,Re,norm):
+   data = open('data/'+str(file)+str(Re)+'.dat','r').readlines()
+   t = [float(line.split()[0]) for line in data]
+   omega = [float(line.split()[1])/2. for line in data]
+   if(norm=='true'):
+     omega = [o/omega[0] for o in omega]
+   return t,omega
+
+
+###############################################
 
 def plot_velo(XX,t):
   vel=[]
@@ -183,32 +204,79 @@ def plot_dissipation(tarrays,varrays):
   ax.set_xlabel('Time (s)')
   ax.set_ylabel('turbulent kinetic energy dissipation rate')
 
-  ax.plot(tarrays[0], varrays[0], linestyle='dotted',color='blue') # dns-periodic-12
-  ax.plot(tarrays[1], varrays[1], linestyle='dashdot',color='blue') # dns-periodic-24
+  #ax.plot(tarrays[0], varrays[0], linestyle='dotted',color='blue') # dns-periodic-12
+  #ax.plot(tarrays[1], varrays[1], linestyle='dashdot',color='blue') # dns-periodic-24
   ax.plot(tarrays[2], varrays[2], linestyle='dashed',color='blue') # dns-periodic-48
   ax.plot(tarrays[3], varrays[3], linestyle='solid',color='blue') # dns-periodic-64
-  ax.plot(tarrays[4], varrays[4], linestyle='dotted',color='green') # dynles-periodic-12
-  ax.plot(tarrays[5], varrays[5], linestyle='dashdot',color='green') # dynles-periodic-24
-  ax.plot(tarrays[6], varrays[6], linestyle='dashed',color='green') # dynles-periodic-48
-  ax.plot(tarrays[7], varrays[7], linestyle='solid',color='green') # dynles-periodic-64
-  ax.plot(tarrays[8], varrays[8], linestyle='dotted',color='red') # dynles-aniso-periodic-12
-  ax.plot(tarrays[9], varrays[9], linestyle='dashdot',color='red') # dynles-aniso-periodic-24
-  ax.plot(tarrays[10], varrays[10], linestyle='solid',color='purple') # analytical-12
+  ax.plot(tarrays[4], varrays[4], linestyle='solid',lw=2,color='blue') # dns-periodic-96
+  #ax.plot(tarrays[5], varrays[5], linestyle='dotted',color='green') # dynles-periodic-12
+  #ax.plot(tarrays[6], varrays[6], linestyle='dashdot',color='green') # dynles-periodic-24
+  ax.plot(tarrays[7], varrays[7], linestyle='dashed',color='green') # dynles-periodic-48
+  ax.plot(tarrays[8], varrays[8], linestyle='solid',color='green') # dynles-periodic-64
+  ax.plot(tarrays[9], varrays[9], linestyle='solid',lw=2,color='green') # dynles-periodic-96
+  #ax.plot(tarrays[10], varrays[10], linestyle='dotted',color='red') # dynles-novisc-periodic-12
+  #ax.plot(tarrays[11], varrays[11], linestyle='dashdot',color='red') # dynles-novisc-periodic-24
+  ax.plot(tarrays[12], varrays[12], linestyle='dashed',color='red') # dynles-novisc-periodic-48
+  ax.plot(tarrays[13], varrays[13], linestyle='solid',color='red') # dynles-novisc-periodic-64
+  ax.plot(tarrays[14], varrays[14], linestyle='solid',lw=2,color='red') # dynles-novisc-periodic-96
+  #ax.plot(tarrays[15], varrays[15], linestyle='dotted',color='purple') # dynles-novisc-nolimc-periodic-12
+  #ax.plot(tarrays[16], varrays[16], linestyle='dashdot',color='purple') # dynles-novisc-nolimc-periodic-24
+  #ax.plot(tarrays[17], varrays[17], linestyle='dashed',color='purple') # dynles-novisc-nolimc-periodic-48
+  #ax.plot(tarrays[18], varrays[18], linestyle='solid',color='purple') # dynles-novisc-nolimc-periodic-64
+  #ax.plot(tarrays[19], varrays[19], linestyle='solid',lw=2,color='purple') # dynles-novisc-nolimc-periodic-96
+  #ax.plot(tarrays[20], varrays[20], linestyle='dotted',color='brown') # novisc-periodic-12
+  #ax.plot(tarrays[21], varrays[21], linestyle='dashdot',color='brown') # novisc-periodic-24
+  #ax.plot(tarrays[22], varrays[22], linestyle='dashed',color='brown') # novisc-periodic-48
+  #ax.plot(tarrays[23], varrays[23], linestyle='solid',color='brown') # novisc-periodic-64
+  #ax.plot(tarrays[24], varrays[24], linestyle='solid',lw=2,color='brown') # novisc-periodic-96
 
-  ax.plot(tarrays[0], dissipation_goldstein_norm(tarrays[0],0.005), linestyle='none',color='black',marker='s',markerfacecolor='none') # Goldstein-0.005
-  ax.plot(tarrays[0], dissipation_goldstein_norm(tarrays[0],0.01), linestyle='none',color='black',marker='x') # Goldstein-0.01
-  ax.plot(tarrays[0], dissipation_goldstein_norm(tarrays[0],0.01333), linestyle='none',color='black',marker='o',markerfacecolor='none') # Goldstein-0.01333
-  ax.plot(tarrays[0], dissipation_goldstein_norm(tarrays[0],0.015), linestyle='none',color='black',marker='+') # Goldstein-0.015
-  #ax.plot(tarrays[], dissipation_taylor(tarrays[],1./50.), linestyle='dashdot',color='cyan')
+  ax.plot(tarrays[-1], varrays[-1], linestyle='solid',color='black') # analytical-12
 
-  pylab.legend(('vort_p_12','vort_p_24','vort_p_48','vort_p_64',
-'vort_dynlesp_12','vort_dynlesp_24','vort_dynlesp_48','vort_dynlesp_64',
-'vort_dynlesap_12','vort_dynlesap_24',
-'vort_analytp_12','vort_gold_0.005','vort_gold_0.01','vort_gold_0.0133','vort_gold_0.015'),loc='best')
+  #ax.plot(tarrays[0], dissipation_goldstein(tarrays[0],0.05), linestyle='none',color='black',marker='x') # Goldstein-0.01
+  #ax.plot(tarrays[0], dissipation_goldstein(tarrays[0],0.1), linestyle='none',color='black',marker='o',markerfacecolor='none') # Goldstein-0.01333
+  #ax.plot(tarrays[0], dissipation_goldstein(tarrays[0],0.2), linestyle='none',color='black',marker='+') # Goldstein-0.015
 
-  ltext = pylab.gca().get_legend().get_texts()
+  ax.plot(tarrays[0], dissipation_taylor_norm(tarrays[0],0.01),
+linestyle='none',markeredgecolor='blue',marker='s',markerfacecolor='none') # Taylor-100
+  #ax.plot(tarrays[0], dissipation_goldstein_norm(tarrays[0],0.005), linestyle='none',markeredgecolor='blue',marker='o',markerfacecolor='none') # Goldstein-200
+
+  # extract data
+  norm='false'
+  tt,taylor = extract_data('Taylor-Green-Fig1-dissratenorm-Re',100,'false')
+  tg,gold2  = extract_data('Orszag-Fig1-dissratenorm-Goldstein-Re',200,'false')
+  tb1,b1    = extract_data('Brachet-TGV-Fig7-dissrate-Re',100,norm)
+  tb2,b2    = extract_data('Brachet-TGV-Fig7-dissrate-Re',200,norm)
+  tb4,b4    = extract_data('Brachet-TGV-Fig7-dissrate-Re',400,norm)
+  tb8,b8    = extract_data('Brachet-TGV-Fig7-dissrate-Re',800,norm)
+  tb16,b16  = extract_data('Brachet-TGV-Fig7-dissrate-Re',1600,norm)
+  tb30,b30    = extract_data('Brachet-TGV-Fig7-dissrate-Re',3000,norm)
+  tc1,c1    = extract_data('Caughey-Fig1-dissrate-Re',100,norm)
+
+  ax.plot(tt, taylor, linestyle='none',markeredgecolor='black',marker='s',markerfacecolor='none') # Taylor-100
+  #ax.plot(tg, gold2, linestyle='none',markeredgecolor='black',marker='o',markerfacecolor='none') # Goldstein-200
+  ax.plot(tb1, b1, linestyle='none',markeredgecolor='black',marker='+',markerfacecolor='none') # Brachet-100
+  #ax.plot(tb2, b2, linestyle='none',markeredgecolor='blue',marker='+',markerfacecolor='none') # Brachet-200
+  #ax.plot(tb4, b4, linestyle='none',markeredgecolor='green',marker='+',markerfacecolor='none') # Brachet-400
+  #ax.plot(tb8, b8, linestyle='none',markeredgecolor='red',marker='+',markerfacecolor='none') # Brachet-800
+  ax.plot(tb16, b16, linestyle='none',markeredgecolor='brown',marker='+',markerfacecolor='none') # Brachet-1600
+  #ax.plot(tb30, b30, linestyle='none',markeredgecolor='pink',marker='+',markerfacecolor='none') # Brachet-3000
+  #ax.plot(tc1, c1, linestyle='none',markeredgecolor='black',marker='x',markerfacecolor='none') # Caughey-100
+
+  pylab.legend(('vort_p_48','vort_p_64','vort_p_96',
+'vort_dynlesp_48','vort_dynlesp_64','vort_dynlesp_96',
+'vort_dynlesnp_48','vort_dynlesnp_64','vort_dynlesnp_96',
+#'vort_dynlesnnp_24','vort_dynlesnnp_48','vort_dynlesnnp_64','vort_dynlesnnp_96',
+#'vort_np_24','vort_np_48','vort_np_64','vort_np_96',
+'analytical_100','taylor_100','taylor_data_100','brachet_100','brachet_1600'),loc='upper right')
+#'vort_analytp_12','vort_gold_0.01','vort_gold_0.0133','vort_gold_0.02'),loc='best')
+  leg = pylab.gca().get_legend()
+  ltext = leg.get_texts()
   pylab.setp(ltext, fontsize = 10, color = 'b')
-  pylab.axis([0,20,0,6])
+  frame=leg.get_frame()
+  frame.set_fill(False)
+  frame.set_visible(False)
+
+  pylab.axis([0,20,0,0.0075])
 
   for tick in ax.xaxis.get_major_ticks():
     tick.label1.set_fontsize(size)
