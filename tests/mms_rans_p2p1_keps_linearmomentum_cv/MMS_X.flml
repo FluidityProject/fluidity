@@ -825,7 +825,12 @@
               <python>
                 <string_value lines="20" type="code" language="python">def val(X,t):
    import mms_rans_p2p1_keps_tools as k
-   return k.forcing_velocity(X)</string_value>
+   density = k.rho(X)
+   forcing_velocity = k.forcing_velocity(X)
+   # Remember to divide through by density here
+   # because we multiply through by Density in
+   # Momentum_CG.F90.
+   return (forcing_velocity[0]/density, forcing_velocity[1]/density)</string_value>
               </python>
             </value>
             <output/>

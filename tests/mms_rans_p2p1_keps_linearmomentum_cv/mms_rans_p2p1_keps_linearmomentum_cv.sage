@@ -75,6 +75,9 @@ print ''
 print 'def temperature(X):'
 print '    return', str(temperature).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
 print ''  
+print 'def rho(X):'
+print '    return', str(rho).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
+print '' 
 print 'def ke(X):'
 print '    return', str(ke).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
 print ''
