@@ -1202,9 +1202,6 @@ start =
                         prescribed_scalar_field
                      }
                   }?,
-                  ## Limit the turbulence lengthscale to within physical bounds (e.g. inlet min dimension).
-                  ## This helps to prevent instabilities during simulation spin-up.
-                  element lengthscale_limit {real},
                   ## Eddy-viscosity coefficient: nu_T = density * C_mu * k**2 / epsilon.
                   ## Recommended value (default): 0.09.
                   element C_mu {real},
@@ -1221,6 +1218,9 @@ start =
                   ## Turbulent Schmidt number (eddy-viscosity coefficient from epsilon equation).
                   ## Recommended value (default): 1.3.
                   element sigma_eps {real},
+                  ## Limit the turbulence length scale to within physical bounds (e.g. inlet min dimension).
+                  ## This helps to prevent instabilities during simulation spin-up.
+                  element limit_length_scale {real}?,
                   ## Implicit source term - lump production term into absorbtion so that it is calculated 
                   ## implicitly
                   element implicit_source { empty }?,

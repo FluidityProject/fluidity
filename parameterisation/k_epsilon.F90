@@ -503,7 +503,7 @@ subroutine keps_eddyvisc(state)
   ! Options grabbed from the options tree
   real                             :: c_mu, lmax
   character(len=OPTION_PATH_LEN)   :: option_path
-  logical                          :: lump_mass, have_visc = .true.
+  logical                          :: lump_mass, limit_length_scale, have_visc = .true.
   character(len=FIELD_NAME_LEN)    :: equation_type
 
   option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/'
@@ -514,11 +514,15 @@ subroutine keps_eddyvisc(state)
 
   ewrite(1,*) "In keps_eddyvisc"
 
-  ! get model constants
-  call get_option(trim(option_path)//'/lengthscale_limit', lmax)
+  ! Get model constants
+  limit_length_scale = have_option(trim(option_path)//'/limit_length_scale')
+  if(limit_length_scale) then
+     ! Limit length scale to prevent instablilities.
+     call get_option(trim(option_path)//'/limit_length_scale', lmax)
+  end if
   call get_option(trim(option_path)//'/C_mu', c_mu, default = 0.09)
   
-  ! get field data
+  ! Get field data
   kk         => extract_scalar_field(state, "TurbulentKineticEnergy")
   eps        => extract_scalar_field(state, "TurbulentDissipation")
   positions  => extract_vector_field(state, "Coordinate")
@@ -563,6 +567,11 @@ subroutine keps_eddyvisc(state)
   if (have_visc) then
      call set(viscosity, bg_visc)
   end if
+  
+  ! Compute this diagnostic field at the nodes.
+  do i = 1, node_count(EV)
+     call set(ll, i, (node_val(kk,i)**1.5)/node_val(eps,i))
+  end do
 
   ! Calculate scalar eddy viscosity by integration over element
   do ele = 1, ele_count(EV)
@@ -571,7 +580,7 @@ subroutine keps_eddyvisc(state)
      allocate(detwei (ele_ngi(EV, ele)))
      allocate(rhs_addto (ele_loc(EV, ele)))
      allocate(invmass (ele_loc(EV, ele), ele_loc(EV, ele)))
-     allocate(kk_at_quad(ele_ngi(kk, ele)), eps_at_quad(ele_ngi(kk, ele)))
+     allocate(kk_at_quad(ele_ngi(kk, ele)), eps_at_quad(ele_ngi(kk, ele)), ll_at_quad(ele_ngi(kk, ele)))
      
      ! Get detwei
      call transform_to_physical(positions, ele, detwei=detwei)
@@ -579,7 +588,9 @@ subroutine keps_eddyvisc(state)
      ! Get the k, epsilon and the length scale values at the Gauss points
      kk_at_quad = ele_val_at_quad(kk,ele)
      eps_at_quad = ele_val_at_quad(eps,ele)
-     ll_at_quad = ele_val_at_quad(ll,ele)
+     if(limit_length_scale) then
+        ll_at_quad = (kk_at_quad**1.5)/eps_at_quad
+     end if
      
      ! Clip the fields at the Gauss points
      ! Can't allow negative/zero epsilon or k.
@@ -595,16 +606,21 @@ subroutine keps_eddyvisc(state)
            eps_at_quad(i) = fields_min
         end if
         ! Limit lengthscale to prevent instablilities.
-!         if(ll_at_quad(i) > lmax) then
-!            ll_at_quad(i) = lmax
-!         end if 
+        if(limit_length_scale) then
+           if(ll_at_quad(i) > lmax) then
+              ll_at_quad(i) = lmax
+           end if 
+        end if
      end do
      
      ! Compute the eddy viscosity
-!    rhs_addto = shape_rhs(shape_ev, detwei*C_mu*ele_val_at_quad(f_mu,ele)* &
-!                (kk_at_quad**0.5)*ll_at_quad)
-     rhs_addto = shape_rhs(shape_ev, detwei*C_mu*ele_val_at_quad(density,ele)*&
+     if(limit_length_scale) then
+         rhs_addto = shape_rhs(shape_ev, detwei*C_mu*ele_val_at_quad(f_mu,ele)* &
+                     (kk_at_quad**0.5)*ll_at_quad)
+     else
+         rhs_addto = shape_rhs(shape_ev, detwei*C_mu*ele_val_at_quad(density,ele)*&
                     ele_val_at_quad(f_mu,ele)*(kk_at_quad**2.0)/eps_at_quad)
+     end if
           
      ! In the DG case we will apply the inverse mass locally.
      if(continuity(EV)<0) then
@@ -615,7 +631,7 @@ subroutine keps_eddyvisc(state)
      ! Add the element's contribution to the nodes of ev_rhs
      call addto(ev_rhs, nodes_ev, rhs_addto)
      
-     deallocate(detwei, rhs_addto, invmass, kk_at_quad, eps_at_quad)
+     deallocate(detwei, rhs_addto, invmass, kk_at_quad, eps_at_quad, ll_at_quad)
   end do
 
   ! For non-DG we apply inverse mass globally

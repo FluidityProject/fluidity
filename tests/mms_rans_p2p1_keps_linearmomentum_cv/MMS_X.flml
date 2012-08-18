@@ -480,9 +480,6 @@
         <max_damping_value>
           <real_value rank="0">10.0</real_value>
         </max_damping_value>
-        <lengthscale_limit>
-          <real_value rank="0">1e10</real_value>
-        </lengthscale_limit>
         <C_mu>
           <real_value rank="0">1.0</real_value>
         </C_mu>
