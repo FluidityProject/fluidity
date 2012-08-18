@@ -563,9 +563,18 @@ subroutine keps_eddyvisc(state)
      call set(viscosity, bg_visc)
   end if
   
-  ! Compute this diagnostic field at the nodes.
+  ! Compute the length scale diagnostic field here.
   do i = 1, node_count(EV)
-     call set(ll, i, (node_val(kk,i)**1.5)/node_val(eps,i))
+     ! Also clip the k and epsilon fields at the nodes.
+     call set(kk, i, max(node_val(kk,i), fields_min))
+     call set(eps, i, max(node_val(eps,i), fields_min))
+     
+     ! Limit lengthscale to prevent instablilities.
+     if(limit_length_scale) then
+        call set(ll, i, min(node_val(kk,i)**1.5 / node_val(eps,i), lmax))
+     else
+        call set(ll, i, node_val(kk,i)**1.5 / node_val(eps,i))
+     end if
   end do
 
   ! Calculate scalar eddy viscosity by integration over element
@@ -644,12 +653,14 @@ subroutine keps_eddyvisc(state)
       kk_at_quad = ele_val_at_quad(kk,ele)
       eps_at_quad = ele_val_at_quad(eps,ele)
       if(limit_length_scale) then
-         ll_at_quad = (kk_at_quad**1.5)/eps_at_quad
+         ll_at_quad = ele_val_at_quad(ll,ele)
       end if
       
-      ! Clip the fields at the Gauss points
-      ! Can't allow negative/zero epsilon or k.
-      ! Note: here we assume all fields have the same number of
+      ! Clip the field values at the Gauss points.
+      ! Note 1: This isn't a permanent change directly to the field itself,
+      ! only to the values used in the computation of the eddy viscosity.
+      ! Note 2: Can't allow negative/zero epsilon or k.
+      ! Note 3: Here we assume all fields have the same number of
       ! Gauss points per element.
       do i = 1, ele_ngi(kk, ele)
          ! k
