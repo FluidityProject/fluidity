@@ -493,12 +493,7 @@ subroutine keps_eddyvisc(state)
   type(vector_field), pointer      :: positions, u
   type(scalar_field), pointer      :: kk, eps, EV, ll, f_mu, density, dummydensity
   type(scalar_field)               :: ev_rhs
-  type(element_type), pointer      :: shape_ev
   integer                          :: i, j, ele, stat
-  integer, pointer, dimension(:)   :: nodes_ev
-  real, allocatable, dimension(:)  :: detwei, rhs_addto
-  real, allocatable, dimension(:,:):: invmass
-  real, allocatable, dimension(:)  :: kk_at_quad, eps_at_quad, ll_at_quad
   
   ! Options grabbed from the options tree
   real                             :: c_mu, lmax
@@ -575,63 +570,7 @@ subroutine keps_eddyvisc(state)
 
   ! Calculate scalar eddy viscosity by integration over element
   do ele = 1, ele_count(EV)
-     nodes_ev => ele_nodes(EV, ele)
-     shape_ev =>  ele_shape(EV, ele)
-     allocate(detwei (ele_ngi(EV, ele)))
-     allocate(rhs_addto (ele_loc(EV, ele)))
-     allocate(invmass (ele_loc(EV, ele), ele_loc(EV, ele)))
-     allocate(kk_at_quad(ele_ngi(kk, ele)), eps_at_quad(ele_ngi(kk, ele)), ll_at_quad(ele_ngi(kk, ele)))
-     
-     ! Get detwei
-     call transform_to_physical(positions, ele, detwei=detwei)
-     
-     ! Get the k, epsilon and the length scale values at the Gauss points
-     kk_at_quad = ele_val_at_quad(kk,ele)
-     eps_at_quad = ele_val_at_quad(eps,ele)
-     if(limit_length_scale) then
-        ll_at_quad = (kk_at_quad**1.5)/eps_at_quad
-     end if
-     
-     ! Clip the fields at the Gauss points
-     ! Can't allow negative/zero epsilon or k.
-     ! Note: here we assume all fields have the same number of
-     ! Gauss points per element.
-     do i = 1, ele_ngi(kk, ele)
-        ! k
-        if(kk_at_quad(i) < fields_min) then
-           kk_at_quad(i) = fields_min
-        end if
-        ! epsilon
-        if(eps_at_quad(i) < fields_min) then
-           eps_at_quad(i) = fields_min
-        end if
-        ! Limit lengthscale to prevent instablilities.
-        if(limit_length_scale) then
-           if(ll_at_quad(i) > lmax) then
-              ll_at_quad(i) = lmax
-           end if 
-        end if
-     end do
-     
-     ! Compute the eddy viscosity
-     if(limit_length_scale) then
-         rhs_addto = shape_rhs(shape_ev, detwei*C_mu*ele_val_at_quad(f_mu,ele)* &
-                     (kk_at_quad**0.5)*ll_at_quad)
-     else
-         rhs_addto = shape_rhs(shape_ev, detwei*C_mu*ele_val_at_quad(density,ele)*&
-                    ele_val_at_quad(f_mu,ele)*(kk_at_quad**2.0)/eps_at_quad)
-     end if
-          
-     ! In the DG case we will apply the inverse mass locally.
-     if(continuity(EV)<0) then
-        invmass = inverse(shape_shape(shape_ev, shape_ev, detwei))
-        rhs_addto = matmul(rhs_addto, invmass)
-     end if
-     
-     ! Add the element's contribution to the nodes of ev_rhs
-     call addto(ev_rhs, nodes_ev, rhs_addto)
-     
-     deallocate(detwei, rhs_addto, invmass, kk_at_quad, eps_at_quad, ll_at_quad)
+     call keps_eddyvisc_ele(ele, positions, kk, eps, EV, ll, f_mu, density, ev_rhs)
   end do
 
   ! For non-DG we apply inverse mass globally
@@ -674,6 +613,80 @@ subroutine keps_eddyvisc(state)
   ewrite_minmax(eps)
   ewrite_minmax(EV)
   ewrite_minmax(ll)
+  
+  
+  contains
+  
+   subroutine keps_eddyvisc_ele(ele, positions, kk, eps, EV, ll, f_mu, density, ev_rhs)
+   
+      type(vector_field), pointer      :: positions
+      type(scalar_field), pointer      :: kk, eps, EV, ll, f_mu, density
+      type(scalar_field), intent(inout) :: ev_rhs
+      integer, intent(in)              :: ele
+      
+      
+      type(element_type), pointer      :: shape_ev
+      integer, pointer, dimension(:)   :: nodes_ev
+      integer                          :: i 
+      real, dimension(ele_ngi(EV, ele)) :: detwei
+      real, dimension(ele_loc(EV, ele)) :: rhs_addto
+      real, dimension(ele_loc(EV, ele), ele_loc(EV, ele)) :: invmass
+      real, dimension(ele_ngi(kk, ele)) :: kk_at_quad, eps_at_quad, ll_at_quad
+      
+   
+      nodes_ev => ele_nodes(EV, ele)
+      shape_ev =>  ele_shape(EV, ele)
+      
+      ! Get detwei
+      call transform_to_physical(positions, ele, detwei=detwei)
+      
+      ! Get the k, epsilon and the length scale values at the Gauss points
+      kk_at_quad = ele_val_at_quad(kk,ele)
+      eps_at_quad = ele_val_at_quad(eps,ele)
+      if(limit_length_scale) then
+         ll_at_quad = (kk_at_quad**1.5)/eps_at_quad
+      end if
+      
+      ! Clip the fields at the Gauss points
+      ! Can't allow negative/zero epsilon or k.
+      ! Note: here we assume all fields have the same number of
+      ! Gauss points per element.
+      do i = 1, ele_ngi(kk, ele)
+         ! k
+         if(kk_at_quad(i) < fields_min) then
+            kk_at_quad(i) = fields_min
+         end if
+         ! epsilon
+         if(eps_at_quad(i) < fields_min) then
+            eps_at_quad(i) = fields_min
+         end if
+         ! Limit lengthscale to prevent instablilities.
+         if(limit_length_scale) then
+            if(ll_at_quad(i) > lmax) then
+               ll_at_quad(i) = lmax
+            end if 
+         end if
+      end do
+      
+      ! Compute the eddy viscosity
+      if(limit_length_scale) then
+         rhs_addto = shape_rhs(shape_ev, detwei*C_mu*ele_val_at_quad(f_mu,ele)* &
+                     (kk_at_quad**0.5)*ll_at_quad)
+      else
+         rhs_addto = shape_rhs(shape_ev, detwei*C_mu*ele_val_at_quad(density,ele)*&
+                     ele_val_at_quad(f_mu,ele)*(kk_at_quad**2.0)/eps_at_quad)
+      end if
+            
+      ! In the DG case we will apply the inverse mass locally.
+      if(continuity(EV)<0) then
+         invmass = inverse(shape_shape(shape_ev, shape_ev, detwei))
+         rhs_addto = matmul(rhs_addto, invmass)
+      end if
+      
+      ! Add the element's contribution to the nodes of ev_rhs
+      call addto(ev_rhs, nodes_ev, rhs_addto)    
+   
+   end subroutine keps_eddyvisc_ele
 
 end subroutine keps_eddyvisc
 
@@ -889,7 +902,7 @@ subroutine keps_bcs(state)
   character(len=FIELD_NAME_LEN)              :: bc_type, bc_name, wall_fns
   character(len=OPTION_PATH_LEN)             :: bc_path, bc_path_i, option_path 
   real                                       :: c_mu
-  character(len=FIELD_NAME_LEN)             :: equation_type
+  character(len=FIELD_NAME_LEN)              :: equation_type
 
   option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/'
 
