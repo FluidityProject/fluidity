@@ -12,6 +12,9 @@ def p(X):
 def temperature(X):
     return 3.70*sin(1.30*X[0]*X[1]/pi) - 1.80*sin(1.70*X[0]) - 1.30*cos(2.10*X[1]) + 5.20
 
+def rho(X):
+    return 37.0*sin(1.30*X[0]*X[1]/pi) - 18.0*sin(1.70*X[0]) - 13.0*cos(2.10*X[1]) + 62.0
+
 def ke(X):
     return 0.600*sin(0.700*X[1]) + 0.400*cos(0.800*X[0]*X[1]/pi) + 0.900*cos(0.600*X[0]) + 0.900
 
