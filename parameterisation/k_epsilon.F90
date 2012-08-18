@@ -807,8 +807,12 @@ subroutine keps_momentum_source(state)
      
     grad_k = ele_grad_at_quad(k, i, dshape_k)
     grad_density = ele_grad_at_quad(density, i, dshape_density)
-    rhs_addto = shape_vector_rhs(shape_k, -(2./3.)*grad_k, detwei*ele_val_at_quad(density,i)) + &
-                shape_vector_rhs(shape_k, -(2./3.)*grad_density, detwei*ele_val_at_quad(k,i)) 
+    ! IMPORTANT: This gets added to the VelocitySource term. In Momentum_CG/DG.F90
+    ! the VelocitySource gets multiplied by the Density field, so we have
+    ! divided through by Density here in order to cancel this out
+    ! and get the desired result.
+    rhs_addto = shape_vector_rhs(shape_k, -(2./3.)*grad_k, detwei) + &
+                shape_vector_rhs(shape_k, -(2./3.)*grad_density, detwei*ele_val_at_quad(k,i)/ele_val_at_quad(density,i)) 
       
     ! In the DG case we apply the inverse mass locally.
     if(continuity(k)<0) then
