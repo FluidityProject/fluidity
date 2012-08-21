@@ -46,7 +46,7 @@
     </dump_format>
     <dump_period_in_timesteps>
       <constant>
-        <integer_value rank="0">10</integer_value>
+        <integer_value rank="0">1</integer_value>
       </constant>
     </dump_period_in_timesteps>
     <output_mesh name="CoordinateMesh"/>
@@ -138,7 +138,7 @@
             </solver>
             <initial_condition name="WholeMesh">
               <constant>
-                <real_value rank="0">1.e-4</real_value>
+                <real_value rank="0">1.e-6</real_value>
               </constant>
             </initial_condition>
             <boundary_conditions name="inflow">
@@ -254,7 +254,7 @@
             </solver>
             <initial_condition name="WholeMesh">
               <constant>
-                <real_value rank="0">1.e-6</real_value>
+                <real_value rank="0">1.e-5</real_value>
               </constant>
             </initial_condition>
             <boundary_conditions name="inflow">
@@ -444,9 +444,6 @@
         <sigma_eps>
           <real_value rank="0">1.3</real_value>
         </sigma_eps>
-        <limit_length_scale>
-          <real_value rank="0">0.94</real_value>
-        </limit_length_scale>
         <mass_lumping_in_diagnostics>
           <lump_mass/>
         </mass_lumping_in_diagnostics>
@@ -501,7 +498,12 @@
         <spatial_discretisation>
           <continuous_galerkin>
             <stabilisation>
-              <no_stabilisation/>
+              <streamline_upwind_petrov_galerkin>
+                <nu_bar_optimal/>
+                <nu_scale name="0.5">
+                  <real_value shape="1" rank="0">0.5</real_value>
+                </nu_scale>
+              </streamline_upwind_petrov_galerkin>
             </stabilisation>
             <mass_terms>
               <lump_mass_matrix/>

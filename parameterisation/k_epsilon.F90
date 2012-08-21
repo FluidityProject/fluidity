@@ -85,7 +85,7 @@ subroutine keps_calculate_rhs(state)
   type(scalar_field) :: src_to_abs
   type(vector_field), pointer :: positions, u, g
   type(scalar_field), pointer :: dummydensity, density
-  type(tensor_field), pointer :: diff
+  type(tensor_field), pointer :: diff, debug_diff
   integer :: i, node, ele, term, stat
   real :: g_magnitude, c_eps_1, c_eps_2, sigma_eps, sigma_k
   real, allocatable, dimension(:) :: beta, delta_t
@@ -280,17 +280,21 @@ subroutine keps_calculate_rhs(state)
   deallocate(dummydensity)
 
   ! Set diffusivity
-  diff => extract_tensor_field(state, trim(field_names(1))//"Diffusivity", stat)
+  debug_diff => extract_tensor_field(state, "KEpsilon_MMS_Diffusivity", stat)
+
+  diff => extract_tensor_field(state, trim(field_names(1))//"Diffusivity")
+  do i = 1, diff%dim(1)
+     call set(diff, i, i, EV, scale=1. / sigma_k)
+  end do
   if (stat == 0) then
-     do i = 1, diff%dim(1)
-        call set(diff, i, i, EV, scale=1. / sigma_k)
-     end do
+     call addto(diff, debug_diff)
   end if
-  diff => extract_tensor_field(state, trim(field_names(2))//"Diffusivity", stat)
+  diff => extract_tensor_field(state, trim(field_names(2))//"Diffusivity")
+  do i = 1, diff%dim(1)
+     call set(diff, i, i, EV, scale=1. / sigma_eps)
+  end do
   if (stat == 0) then
-     do i = 1, diff%dim(1)
-        call set(diff, i, i, EV, scale=1. / sigma_eps)
-     end do
+     call addto(diff, debug_diff)
   end if
 
 end subroutine keps_calculate_rhs
@@ -1033,6 +1037,22 @@ subroutine keps_bcs(state)
         end if
      end do boundary_conditions
   end do field_loop
+
+  ! This is for the lowRe MMS test. This was complicated as values are limited actually
+  ! near the wall so we need a way to test this code away from directly next to the
+  ! wall. This was the only way I could see of enabling the damping functions without
+  ! actually having to have a low_Re boundary. See tests/mms_rans_p2p1_keps_lowRe
+  if (have_option(trim(option_path)//"/debugging_options/enable_lowRe_damping")) then
+     field1 => extract_scalar_field(state, "TurbulentDissipation")
+     field2 => extract_scalar_field(state, "TurbulentKineticEnergy")
+     y => extract_scalar_field(state, "DistanceToWall", stat = stat)
+     if (stat /= 0) then
+        FLAbort("I need the distance to the wall - enable a DistanceToWall field")
+     end if
+     do node = 1, node_count(field1)
+        call keps_damping_functions(state,field2,field1,f_1,f_2,f_mu,y,bg_visc,density,node)
+     end do
+  end if
 
   call deallocate(dummydensity)
   deallocate(dummydensity)

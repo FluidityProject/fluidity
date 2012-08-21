@@ -1764,6 +1764,13 @@ This is useful for MMS tests</a:documentation>
                         </element>
                       </optional>
                       <optional>
+                        <element name="enable_lowRe_damping">
+                          <a:documentation>enabling this option enables the low-Re number damping functions regardless of whether there is
+a low-Re boundary condition</a:documentation>
+                          <empty/>
+                        </element>
+                      </optional>
+                      <optional>
                         <element name="zero_reynolds_stress_tensor">
                           <a:documentation>Enabling this option disables feedback from the k-epsilon model back into 
 the rest of the model. Reynolds stress tensor is set to zero by zeroing 
@@ -1774,6 +1781,24 @@ momentum equation will be as if there were no turbulence model present.
 
 ScalarEddyViscosity is still calculated as normal.</a:documentation>
                           <empty/>
+                        </element>
+                      </optional>
+                      <optional>
+                        <element name="tensor_field">
+                          <a:documentation>Enabling this field allows the user to set a background diffusivity for 
+the kinetic energy and dissipation fields. This can be useful for making 
+these fields stable when testing the model. This should not be enabled for 
+realistic scenarios.</a:documentation>
+                          <attribute name="rank">
+                            <value>2</value>
+                          </attribute>
+                          <attribute name="name">
+                            <value>KEpsilon_MMS_Diffusivity</value>
+                          </attribute>
+                          <element name="prescribed">
+                            <ref name="velocity_mesh_choice"/>
+                            <ref name="prescribed_tensor_field"/>
+                          </element>
                         </element>
                       </optional>
                     </element>

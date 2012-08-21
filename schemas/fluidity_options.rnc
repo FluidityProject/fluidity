@@ -1330,6 +1330,9 @@ start =
                      element disable_destruction{ empty }?,
                      ## enabling this option disables the bouyancy term in the k and epsilon equation
                      element disable_buoyancy{ empty }?,
+                     ## enabling this option enables the low-Re number damping functions regardless of whether there is
+                     ## a low-Re boundary condition
+                     element enable_lowRe_damping{ empty }?,
                      ## Enabling this option disables feedback from the k-epsilon model back into 
                      ## the rest of the model. Reynolds stress tensor is set to zero by zeroing 
                      ## EddyViscosity and the added source term, based on k, in the momentum equation.
@@ -1338,7 +1341,21 @@ start =
                      ## momentum equation will be as if there were no turbulence model present. 
                      ## 
                      ## ScalarEddyViscosity is still calculated as normal.
-                     element zero_reynolds_stress_tensor{ empty }?
+                     element zero_reynolds_stress_tensor{ empty }?,
+                     ## Enabling this field allows the user to set a background diffusivity for 
+                     ## the kinetic energy and dissipation fields. This can be useful for making 
+                     ## these fields stable when testing the model. This should not be enabled for 
+                     ## realistic scenarios.
+                     element tensor_field {
+                        attribute rank { "2" },
+                        attribute name { "KEpsilon_MMS_Diffusivity" },
+                        (
+                           element prescribed {
+                              velocity_mesh_choice,
+                              prescribed_tensor_field
+                           }
+                        )
+                     }?
                   }?
                }?
             }?,
