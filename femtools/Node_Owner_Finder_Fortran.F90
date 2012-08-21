@@ -240,7 +240,7 @@ contains
             closest_ele_id = possible_ele_id
             closest_miss = miss
           end if
-       end do
+        end do
 
         ! We didn't find an owner, so choose the element with the closest miss
         ele_ids(i) = closest_ele_id

@@ -217,12 +217,12 @@ contains
     
     do i = 1, halo_proc_count(halo)
        ewrite(priority,*) "Sends to process ", i
-       ewrite(priority,*) 'global:    ', halo_sends(halo, i)
+       ewrite(priority,*) halo_sends(halo, i)
     end do
 
     do i = 1, halo_proc_count(halo)
        ewrite(priority,*) "Receives from process ", i
-       ewrite(priority,*) 'global:    ', halo_receives(halo, i)
+       ewrite(priority,*) halo_receives(halo, i)
     end do
     
   end subroutine print_halo
