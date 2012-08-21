@@ -1286,7 +1286,7 @@
                 end do
              end do
 
-             call supg_test_function(supg_shape, u_shape, du_t, relu_gi, j_mat, diff_q = ele_val_at_quad(viscosity, ele), &
+             call supg_test_function(supg_shape, u_shape, du_t, relu_gi, j_mat, diff_q = diff_q, &
                   & nu_bar_scheme = nu_bar_scheme, nu_bar_scale = nu_bar_scale)
           else
              call supg_test_function(supg_shape, u_shape, du_t, relu_gi, j_mat, &
