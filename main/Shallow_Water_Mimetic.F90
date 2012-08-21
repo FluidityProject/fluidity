@@ -506,13 +506,13 @@
        s_field => extract_scalar_field(state, "Orography")
        call limit_vb_manifold(state,s_field)
     end if
+    call fix_layerdepth_mean(state)
     if(have_option("/material_phase::Fluid/scalar_field::Orography/prescribe&
          &d/subtract_from_layer_thickness")) then
        s_field => extract_scalar_field(state, "Orography")
        D => extract_scalar_field(state, "LayerThickness")
        D%val = D%val - s_field%val
     end if
-    call fix_layerdepth_mean(state)
 
     s_field => extract_scalar_field(state,"PotentialVorticityTracer",stat)
     if(stat==0) then

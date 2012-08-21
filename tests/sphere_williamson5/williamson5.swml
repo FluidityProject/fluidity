@@ -21,7 +21,7 @@
       </from_mesh>
       <recompute_coordinate_field>
         <python>
-          <string_value lines="20" type="python">def val(X,t):
+          <string_value lines="20" type="code" language="python">def val(X,t):
   R0 = 6.37122e6
   x = X[0]
   y = X[1]
@@ -148,6 +148,9 @@
       <real_value rank="0">4320000.0</real_value>
       <comment>Williamson 5 runs for 50 days = 60*60*24*50 = 4320000.0s</comment>
     </finish_time>
+    <final_timestep>
+      <integer_value rank="0">0</integer_value>
+    </final_timestep>
   </timestepping>
   <physical_parameters>
     <gravity>
@@ -159,7 +162,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <python>
-              <string_value lines="20" type="python">def val(X,t):
+              <string_value lines="20" type="code" language="python">def val(X,t):
   x=X[0]
   y=X[1]
   z=X[2]
@@ -182,7 +185,7 @@
       </vector_field>
     </gravity>
     <coriolis>
-      <string_value lines="20" type="python">def val(X,t):
+      <string_value lines="20" type="code" language="python">def val(X,t):
   Omega = 7.292e-5
   x = X[0]
   y = X[1]
@@ -222,7 +225,7 @@
         <initial_condition name="WholeMesh">
           <galerkin_projection>
             <python>
-              <string_value lines="20" type="python">def val(X,t):
+              <string_value lines="20" type="code" language="python">def val(X,t):
   from math import pi
   x = X[0]
   y = X[1]
@@ -288,7 +291,7 @@
         </solver>
         <initial_condition name="ProjectionFromPython">
           <python>
-            <string_value lines="20" type="python">def val(X,t): 
+            <string_value lines="20" type="code" language="python">def val(X,t): 
   from math import pi,atan2,asin
   x = X[0]
   y = X[1]
@@ -362,7 +365,7 @@
       <prescribed>
         <value>
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
   from math import atan2,asin,pi
   x = X[0]
   y = X[1]
