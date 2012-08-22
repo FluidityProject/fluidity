@@ -425,7 +425,7 @@ endif
 	@cd main; $(MAKE) clean
 	@rm -fr bin/* lib
 
-clean: clean-light clean-all-tests python_clean clean-debian
+clean: clean-light clean-test python_clean clean-debian
 	@echo "    CLEAN libvtkfortran"
 	@cd libvtkfortran; $(MAKE) clean
 	@echo "    CLEAN libjudy"
@@ -459,7 +459,7 @@ clean-test:
 	@cd tests/data; $(MAKE) clean
 
 clean-all-tests: clean-test     
-	@echo "    CLEAN parallel tests"
+	@echo "    CLEAN parallel/special/long tests"
 	@PYTHONPATH=python tools/testharness.py --parallelism=parallel --clean >/dev/null
 	@PYTHONPATH=python tools/testharness.py --length=special --clean >/dev/null
 	@PYTHONPATH=python tools/testharness.py --length=special --parallelism=parallel --clean >/dev/null

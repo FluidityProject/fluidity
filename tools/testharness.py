@@ -19,7 +19,7 @@ except ImportError:
 
 class TestHarness:
     def __init__(self, length="any", parallel=False, exclude_tags=None, tags=None, file="", verbose=True, justtest=False,
-        valgrind=False, fldecomp=False):
+        valgrind=False):
         self.tests = []
         self.verbose = verbose
         self.length = length
@@ -31,7 +31,6 @@ class TestHarness:
         self.completed_tests = []
         self.justtest = justtest
         self.valgrind = valgrind
-        self.fldecomp = fldecomp
 
         fluidity_command = self.decide_fluidity_command()
 
@@ -50,10 +49,7 @@ class TestHarness:
         xml_files = []
         rootdir = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), os.pardir))
         dirnames = []
-        if self.fldecomp:
-          testpaths = ["examples_fldecomp", "tests_fldecomp", "longtests_fldecomp"]
-        else:
-          testpaths = ["examples", "tests", "longtests"]
+        testpaths = ["examples", "tests", "longtests"]
         for directory in testpaths:
           if os.path.exists(os.path.join(rootdir, directory)):
             dirnames.append(directory)
@@ -338,7 +334,6 @@ if __name__ == "__main__":
     parser.add_option("-c", "--clean", action="store_true", dest="clean", default = False)
     parser.add_option("--just-test", action="store_true", dest="justtest")
     parser.add_option("--just-list", action="store_true", dest="justlist")
-    parser.add_option("--fldecomp", action="store_true", dest="fldecomp", help="use the fldecomp test directories (tests_fldecomp, etc.)")
     (options, args) = parser.parse_args()
 
     if len(args) > 0: parser.error("Too many arguments.")
@@ -373,8 +368,7 @@ if __name__ == "__main__":
       tags = options.tags
 
     testharness = TestHarness(length=options.length, parallel=para, exclude_tags=exclude_tags, tags=tags, file=options.file, verbose=True,
-        justtest=options.justtest, valgrind=options.valgrind,
-        fldecomp=options.fldecomp)
+        justtest=options.justtest, valgrind=options.valgrind)
 
     if options.justlist:
       testharness.list()
