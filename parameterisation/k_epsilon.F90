@@ -87,7 +87,6 @@ subroutine keps_calculate_rhs(state)
   type(tensor_field), pointer :: diff, visc
   integer :: i, j, node, ele, term, stat
   real :: g_magnitude, c_eps_1, c_eps_2, sigma_eps, sigma_k, prandtl_schmidt_number
-  real, allocatable, dimension(:) :: delta_t
   logical :: prescribed, gravity = .true., have_buoyancy_turbulence = .true., lump_mass
   character(len=OPTION_PATH_LEN) :: option_path 
   character(len=FIELD_NAME_LEN), dimension(2) :: field_names
