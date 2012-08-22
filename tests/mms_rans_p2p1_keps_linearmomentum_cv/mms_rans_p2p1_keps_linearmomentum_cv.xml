@@ -13,7 +13,7 @@ from fluidity_tools import stat_parser as stat
 from math import log
 import numpy as np
 
-meshes = [['A','B'], ['B','C']]#, ['C','D']]
+meshes = [['A','B'], ['B','C'], ['C','D']]
 
 convergence = np.ones(12) * 1e10
 
