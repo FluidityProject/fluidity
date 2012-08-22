@@ -303,10 +303,10 @@ The eddy viscosity is estimated as:
 \end{equation}
 where $\epsilon$ is the turbulent dissipation. The equations are closed by solving transport equations for $k$ and the turbulent energy dissipation $\epsilon$:
 \begin{equation}\label{eq:k}
-\rho\frac{\partial k}{\partial t} + \rho\mathbf{u}\cdot\nabla k = \nabla\cdot\left(\frac{\mu_T}{\sigma_k} \nabla k \right) + \tautens_R \cdot \nabla\mathbf{u} - \frac{\mu_T}{\rho\sigma_T} \, \mathbf{g}\cdot\nabla\rho - \rho\epsilon,
+\rho\frac{\partial k}{\partial t} + \rho\mathbf{u}\cdot\nabla k = \nabla\cdot\left(\left(\mu + \frac{\mu_T}{\sigma_k}\right) \nabla k \right) + \tautens_R \cdot \nabla\mathbf{u} - \frac{\mu_T}{\rho\sigma_T} \, \mathbf{g}\cdot\nabla\rho - \rho\epsilon,
 \end{equation}
 \begin{equation}\label{eq:eps}
-\rho\frac{\partial \epsilon}{\partial t} + \rho\mathbf{u}\cdot\nabla \epsilon = \nabla\cdot\left(\frac{\mu_T}{\sigma_\epsilon} \nabla{\epsilon} \right) + C_{\epsilon1} \frac{\epsilon}{k} \left( \tautens_R \cdot \nabla\mathbf{u} - C_{\epsilon3} \, \frac{\mu_T}{\rho\sigma_T} \, \mathbf{g}\cdot\nabla\rho \right)- C_{\epsilon2} \rho\frac{\epsilon^2}{k},
+\rho\frac{\partial \epsilon}{\partial t} + \rho\mathbf{u}\cdot\nabla \epsilon = \nabla\cdot\left(\left(\mu + \frac{\mu_T}{\sigma_\epsilon}\right) \nabla{\epsilon} \right) + C_{\epsilon1} \frac{\epsilon}{k} \left( \tautens_R \cdot \nabla\mathbf{u} - C_{\epsilon3} \, \frac{\mu_T}{\rho\sigma_T} \, \mathbf{g}\cdot\nabla\rho \right)- C_{\epsilon2} \rho\frac{\epsilon^2}{k},
 \end{equation}
 The right hand side terms in the $k$ and $\epsilon$ equations relate to the diffusion, production, production/destruction due to buoyancy, and destruction of $k$ and $\epsilon$. Within the buoyancy term, $\mathbf{g}$ is the gravitational vector, $\sigma_T$ is the Prandtl or Schmidt number for the Density field, and $C_{\epsilon3}$ varies depending on the direction of the flow with respect to gravity. This is approximated to be:
 \begin{equation}\label{eq:Cepsilon3}
