@@ -406,6 +406,9 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, equation_type, density
     
     deallocate(dshape_density)
     
+  else
+    ! No buoyancy term, so set this part of the array to zero.
+    rhs_addto(3,:) = 0.0    
   end if
 
   ! In the DG case we apply the inverse mass locally.
