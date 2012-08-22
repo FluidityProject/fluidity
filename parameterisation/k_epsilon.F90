@@ -86,7 +86,7 @@ subroutine keps_calculate_rhs(state)
   type(vector_field), pointer :: positions, u, g
   type(scalar_field), pointer :: dummydensity, density
   type(tensor_field), pointer :: diff, visc
-  integer :: i, node, ele, term, stat
+  integer :: i, j, node, ele, term, stat
   real :: g_magnitude, c_eps_1, c_eps_2, sigma_eps, sigma_k
   real, allocatable, dimension(:) :: beta, delta_t
   logical :: prescribed, gravity = .true., have_buoyant_fields =.false., lump_mass
@@ -282,15 +282,21 @@ subroutine keps_calculate_rhs(state)
 
   ! Set diffusivity
   diff => extract_tensor_field(state, trim(field_names(1))//"Diffusivity")
-  do i = 1, diff%dim(1)
-     call set(diff, i, i, EV, scale=1. / sigma_k)
+  call zero(diff)
+  do i = 1, node_count(diff)
+     do j = 1, diff%dim(1)
+        call addto(diff, j, j, i, node_val(visc, j, j, i))
+        call addto(diff, j, j, i, node_val(EV, i) / sigma_k)
+     end do
   end do
-  call addto(diff, visc)
   diff => extract_tensor_field(state, trim(field_names(2))//"Diffusivity")
-  do i = 1, diff%dim(1)
-     call set(diff, i, i, EV, scale=1. / sigma_eps)
+  call zero(diff)
+  do i = 1, node_count(diff)
+     do j = 1, diff%dim(1)
+        call addto(diff, j, j, i, node_val(visc, j, j, i))
+        call addto(diff, j, j, i, node_val(EV, i) / sigma_k)
+     end do
   end do
-  call addto(diff, visc)
 
 end subroutine keps_calculate_rhs
     
