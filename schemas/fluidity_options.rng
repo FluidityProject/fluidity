@@ -1573,6 +1573,14 @@ Recommended value (default): 1.0.</a:documentation>
 Recommended value (default): 1.3.</a:documentation>
                     <ref name="real"/>
                   </element>
+                  <element name="prandtl_schmidt_number">
+                    <a:documentation>The Schmidt number (ratio of viscous diffusion rate to momentum diffusion rate) for 
+massive scalar fields, or Prandtl number (ratio of viscous diffusion rate to thermal diffusion rate) 
+for thermal fields. This is used to calculate the turbulent buoyancy term.
+
+Recommended value (default): 1.0.</a:documentation>
+                    <ref name="real"/>
+                  </element>
                   <optional>
                     <element name="limit_length_scale">
                       <a:documentation>Limit the turbulence length scale to within physical bounds (e.g. inlet min dimension).
@@ -1781,24 +1789,6 @@ momentum equation will be as if there were no turbulence model present.
 
 ScalarEddyViscosity is still calculated as normal.</a:documentation>
                           <empty/>
-                        </element>
-                      </optional>
-                      <optional>
-                        <element name="tensor_field">
-                          <a:documentation>Enabling this field allows the user to set a background diffusivity for 
-the kinetic energy and dissipation fields. This can be useful for making 
-these fields stable when testing the model. This should not be enabled for 
-realistic scenarios.</a:documentation>
-                          <attribute name="rank">
-                            <value>2</value>
-                          </attribute>
-                          <attribute name="name">
-                            <value>KEpsilon_MMS_Diffusivity</value>
-                          </attribute>
-                          <element name="prescribed">
-                            <ref name="velocity_mesh_choice"/>
-                            <ref name="prescribed_tensor_field"/>
-                          </element>
                         </element>
                       </optional>
                     </element>

@@ -226,33 +226,10 @@ and epsilon equations. See the manual for more information.
           <attribute name="name">
             <value>k-epsilon</value>
           </attribute>
-          <element name="prandtl_schmidt_number">
-            <a:documentation>Option to set the Schmidt number (ratio of viscous diffusion rate to momentum diffusion rate) for 
-massive scalar fields, or Prandtl number (ratio of viscous diffusion rate to thermal diffusion rate) 
-for thermal fields.
-
-For this field. Default = 1.0 if not specified.</a:documentation>
-            <ref name="real"/>
-          </element>
           <optional>
             <element name="background_diffusivity">
               <a:documentation>Option to set a unique isotropic background diffusivity for this field.</a:documentation>
               <ref name="real"/>
-            </element>
-          </optional>
-          <optional>
-            <element name="buoyancy_effects">
-              <a:documentation>Option to enable buoyancy source term for this field.</a:documentation>
-              <element name="beta">
-                <a:documentation>The beta value given transforms the scalar field gradient into a density gradient such that a unit increase in the scalar. 
-field increases the density by beta. For a temperature field this will be the thermal expansion coefficient and it will be 
-negative, for a sediment field it will be the submerged specific gravity and will be positive.
-
-\delta rho = S * \beta
-
-where S is the value of the scalar field.</a:documentation>
-                <ref name="real"/>
-              </element>
             </element>
           </optional>
         </element>

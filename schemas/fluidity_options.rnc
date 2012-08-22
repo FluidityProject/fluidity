@@ -1218,6 +1218,12 @@ start =
                   ## Turbulent Schmidt number (eddy-viscosity coefficient from epsilon equation).
                   ## Recommended value (default): 1.3.
                   element sigma_eps {real},
+                  ## The Schmidt number (ratio of viscous diffusion rate to momentum diffusion rate) for 
+                  ## massive scalar fields, or Prandtl number (ratio of viscous diffusion rate to thermal diffusion rate) 
+                  ## for thermal fields. This is used to calculate the turbulent buoyancy term.
+                  ##
+                  ## Recommended value (default): 1.0.
+                  element prandtl_schmidt_number {real},
                   ## Limit the turbulence length scale to within physical bounds (e.g. inlet min dimension).
                   ## This helps to prevent instabilities during simulation spin-up.
                   element limit_length_scale {real}?,

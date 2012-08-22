@@ -495,6 +495,9 @@
         <sigma_eps>
           <real_value rank="0">1.0</real_value>
         </sigma_eps>
+        <prandtl_schmidt_number>
+          <real_value rank="0">1.0</real_value>
+        </prandtl_schmidt_number>
         <mass_lumping_in_diagnostics>
           <solve_using_mass_matrix>
             <solver>
@@ -1011,17 +1014,9 @@
           </type>
         </boundary_conditions>
         <subgridscale_parameterisation name="k-epsilon">
-          <prandtl_schmidt_number>
-            <real_value rank="0">1.0</real_value>
-          </prandtl_schmidt_number>
           <background_diffusivity>
             <real_value rank="0">1.0</real_value>
           </background_diffusivity>
-          <buoyancy_effects>
-            <beta>
-              <real_value rank="0">1.0</real_value>
-            </beta>
-          </buoyancy_effects>
         </subgridscale_parameterisation>
         <tensor_field name="Diffusivity" rank="2">
           <diagnostic>

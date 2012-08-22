@@ -81,15 +81,14 @@ subroutine keps_calculate_rhs(state)
   type(scalar_field), dimension(3) :: src_abs_terms
   type(scalar_field_pointer), dimension(2) :: fields
   type(scalar_field), pointer :: src, abs, EV, f_1, f_2, debug
-  type(scalar_field_pointer), allocatable, dimension(:) :: buoyant_fields
   type(scalar_field) :: src_to_abs
   type(vector_field), pointer :: positions, u, g
-  type(scalar_field), pointer :: dummydensity, density
+  type(scalar_field), pointer :: dummydensity, density, buoyancy_density
   type(tensor_field), pointer :: diff, visc
   integer :: i, j, node, ele, term, stat
-  real :: g_magnitude, c_eps_1, c_eps_2, sigma_eps, sigma_k
-  real, allocatable, dimension(:) :: beta, delta_t
-  logical :: prescribed, gravity = .true., have_buoyant_fields =.false., lump_mass
+  real :: g_magnitude, c_eps_1, c_eps_2, sigma_eps, sigma_k, prandtl_schmidt_number
+  real, allocatable, dimension(:) :: delta_t
+  logical :: prescribed, gravity = .true., have_buoyancy_turbulence = .true., lump_mass
   character(len=OPTION_PATH_LEN) :: option_path 
   character(len=FIELD_NAME_LEN), dimension(2) :: field_names
   character(len=FIELD_NAME_LEN) :: equation_type
@@ -107,6 +106,7 @@ subroutine keps_calculate_rhs(state)
   call get_option(trim(option_path)//'/C_eps_2', c_eps_2, default = 1.92)
   call get_option(trim(option_path)//'/sigma_k', sigma_k, default = 1.0)
   call get_option(trim(option_path)//'/sigma_eps', sigma_eps, default = 1.3)
+  call get_option(trim(option_path)//'/prandtl_schmidt_number', prandtl_schmidt_number, default = 1.0)
   
   ! get field data
   positions    => extract_vector_field(state, "Coordinate")
@@ -119,10 +119,7 @@ subroutine keps_calculate_rhs(state)
   call get_option('physical_parameters/gravity/magnitude', g_magnitude, stat)
   if (stat /= 0) then
      gravity = .false.
-  end if
-  call get_scalar_field_buoyancy_data(state, buoyant_fields, beta, delta_t)
-  if (allocated(buoyant_fields)) then
-     have_buoyant_fields = .true.
+     have_buoyancy_turbulence = .false.
   end if
   
   allocate(dummydensity)
@@ -143,6 +140,10 @@ subroutine keps_calculate_rhs(state)
         ! developer error... out of sync options input and code
         FLAbort("Unknown equation type for velocity")
   end select
+  
+  if(have_buoyancy_turbulence) then
+     buoyancy_density => extract_scalar_field(state, "VelocityBuoyancyDensity")
+  end if
 
   field_names(1) = 'TurbulentKineticEnergy'
   field_names(2) = 'TurbulentDissipation'
@@ -156,7 +157,6 @@ subroutine keps_calculate_rhs(state)
      !-----------------------------------------------------------------------------------
      
      ! Setup
-
      src            => extract_scalar_field(state, trim(field_names(i))//"Source")
      abs            => extract_scalar_field(state, trim(field_names(i))//"Absorption")
      fields(1)%ptr  => extract_scalar_field(state, trim(field_names(i)))
@@ -170,11 +170,10 @@ subroutine keps_calculate_rhs(state)
      !-----------------------------------------------------------------------------------
 
      ! Assembly loop
-     
      do ele = 1, ele_count(fields(1)%ptr)
         call assemble_rhs_ele(src_abs_terms, fields(i)%ptr, fields(3-i)%ptr, EV, u, equation_type, &
-             & density, buoyant_fields, have_buoyant_fields, beta, delta_t, g, g_magnitude, gravity, positions, &
-             & c_eps_1, c_eps_2, sigma_k, sigma_eps, f_1, f_2, ele, i)
+             & density, buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, gravity, positions, &
+             & c_eps_1, c_eps_2, sigma_k, sigma_eps, prandtl_schmidt_number, f_1, f_2, ele, i)
      end do
 
      ! For non-DG we apply inverse mass globally
@@ -199,7 +198,6 @@ subroutine keps_calculate_rhs(state)
      !-----------------------------------------------------------------------------------
 
      ! Produce debugging output
-
      debug => extract_scalar_field(state, &
           trim(field_names(i))//"Production", stat)
      if (stat == 0) then
@@ -258,8 +256,7 @@ subroutine keps_calculate_rhs(state)
      !-----------------------------------------------------------------------------------
 
      ! This allows user-specified source and absorption terms, so that an MMS test can be
-     ! set up. 
-
+     ! set up.
      debug => extract_scalar_field(state, &
              trim(field_names(i))//"PrescribedSource", stat)
      if (stat == 0) then
@@ -268,14 +265,11 @@ subroutine keps_calculate_rhs(state)
      !-----------------------------------------------------------------------------------
 
      ! Deallocate fields
-
      do term = 1, 3
         call deallocate(src_abs_terms(term))
      end do
 
   end do field_loop
-
-  call deallocate_scalar_field_buoyancy_data(buoyant_fields, beta, delta_t)
   
   call deallocate(dummydensity)
   deallocate(dummydensity)
@@ -304,18 +298,16 @@ end subroutine keps_calculate_rhs
 ! calculate the source and absorbtion terms                                    !
 !------------------------------------------------------------------------------!
 subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, equation_type, density, &
-     buoyant_fields, have_buoyant_fields, beta, delta_t, g, g_magnitude, gravity, &
-     positions, c_eps_1, c_eps_2, sigma_k, sigma_eps, f_1, f_2, ele, field_id)
+     buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, gravity, &
+     positions, c_eps_1, c_eps_2, sigma_k, sigma_eps, prandtl_schmidt_number, f_1, f_2, ele, field_id)
 
   type(scalar_field), dimension(3), intent(inout) :: src_abs_terms
   type(scalar_field), intent(in) :: k, eps, EV, f_1, f_2
-  type(scalar_field_pointer), dimension(:) :: buoyant_fields
   type(vector_field), intent(in) :: positions, u, g
   character(len=FIELD_NAME_LEN), intent(in) :: equation_type
-  type(scalar_field), intent(in) :: density
-  real, dimension(:) :: beta, delta_t
-  real, intent(in) :: g_magnitude, c_eps_1, c_eps_2, sigma_k, sigma_eps
-  logical, intent(in) :: gravity, have_buoyant_fields
+  type(scalar_field), intent(in) :: density, buoyancy_density
+  real, intent(in) :: g_magnitude, c_eps_1, c_eps_2, sigma_k, sigma_eps, prandtl_schmidt_number
+  logical, intent(in) :: gravity, have_buoyancy_turbulence
   integer, intent(in) :: ele, field_id
 
   real, dimension(ele_loc(k, ele), ele_ngi(k, ele), positions%dim) :: dshape
@@ -325,7 +317,13 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, equation_type, density
   real, dimension(ele_loc(k, ele), ele_loc(k, ele)) :: invmass
   real, dimension(u%dim, u%dim, ele_ngi(k, ele)) :: reynolds_stress, grad_u
   type(element_type), pointer :: shape
-  integer :: i_loc, i_field, term, ngi, dim, gi, i
+  integer :: i_loc, term, ngi, dim, gi, i
+  
+  ! For buoyancy turbulence stuff
+  real, dimension(u%dim, ele_ngi(u, ele))  :: vector, u_z, u_xy
+  real, dimension(ele_ngi(u, ele)) :: scalar, c_eps_3
+  real, dimension(ele_loc(buoyancy_density, ele),ele_ngi(buoyancy_density, ele),positions%dim) :: dshape_density
+  type(element_type), pointer :: shape_density
 
   shape => ele_shape(k, ele)
   nodes = ele_nodes(k, ele)
@@ -340,7 +338,7 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, equation_type, density
      inv_k = 1.0/fields_min
   end where
 
-  ! Compute reynolds stress
+  ! Compute Reynolds stress
   grad_u = ele_grad_at_quad(u, ele, dshape)
   EV_ele = ele_val_at_quad(EV, ele)
   k_ele = ele_val_at_quad(k, ele)
@@ -366,20 +364,45 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, equation_type, density
   end if
   rhs_addto(2,:) = shape_rhs(shape, detwei*rhs)
 
-  ! Gk:
-  ! zero buoyancy addto array
-  do i_loc = 1, ele_loc(k, ele)
-     rhs_addto(3,i_loc) = 0.0
-  end do
-  ! check buoyant fields are possible and present
-  if (have_buoyant_fields .and. gravity) then 
-     ! loop through buoyant fields, calculate source term and add to addto array
-     do i_field = 1, size(buoyant_fields, 1)
-        call calculate_buoyancy_term(rhs_addto, EV, u, equation_type, density, &
-             & buoyant_fields(i_field)%ptr, beta(i_field), delta_t(i_field), g, &
-             & g_magnitude, positions, ele, detwei, shape, field_id, c_eps_1, &
-             & f_1, inv_k, eps)
-     end do
+  ! Gk:  
+  ! Calculate buoyancy turbulence term and add to addto array
+  if(have_buoyancy_turbulence) then    
+  
+    ! calculate scalar and vector components of the source term    
+    if(.not.(buoyancy_density%mesh == k%mesh)) then
+       shape_density => ele_shape(buoyancy_density, ele)
+       call transform_to_physical( positions, ele, shape_density, dshape=dshape_density ) 
+    else
+       dshape_density = dshape
+    end if
+     
+    scalar = -1.0*g_magnitude*ele_val_at_quad(EV, ele)/(prandtl_schmidt_number*ele_val_at_quad(density,ele))
+    vector = ele_val_at_quad(g, ele)*ele_grad_at_quad(buoyancy_density, ele, dshape_density)
+    
+    ! multiply vector component by scalar and sum across dimensions - note that the
+    ! vector part has been multiplied by the gravitational direction so that it is
+    ! zero everywhere apart from in this direction.
+    do gi = 1, ngi
+       scalar(gi) = sum(scalar(gi) * vector(:, gi))
+    end do
+   
+    if (field_id == 2) then
+       ! get components of velocity in direction of gravity and in other directions
+       u_z = abs(ele_val_at_quad(g, ele)) * ele_val_at_quad(u, ele)
+       u_xy = ele_val_at_quad(u, ele) - u_z
+       ! calculate c_eps_3 = tanh(v/u)
+       do gi = 1, ngi
+          if (norm2(u_xy(:, gi)) > fields_min) then
+             c_eps_3(gi) = tanh(norm2(u_z(:, gi))/norm2(u_xy(:, gi))) 
+          else
+             c_eps_3(gi) = 1.0
+          end if
+       end do     
+       scalar = scalar*c_eps_1*ele_val_at_quad(f_1,ele)*c_eps_3*ele_val_at_quad(eps,ele)*inv_k
+    end if
+
+    ! multiply by determinate weights, integrate and assign to rhs
+    rhs_addto(3,:) = shape_rhs(shape, scalar * detwei)
   end if
 
   ! In the DG case we apply the inverse mass locally.
@@ -413,84 +436,11 @@ function tensor_inner_product(A, B)
   end do
 
 end function tensor_inner_product
-    
-!------------------------------------------------------------------------------!
-! calculate the buoyancy source term for each buoyant scalar field             !
-!------------------------------------------------------------------------------!
-subroutine calculate_buoyancy_term(rhs_addto, EV, u, equation_type, density, buoyant_field, beta,&
-     & delta_t, g, g_magnitude, positions, ele, detwei, shape, field_id, c_eps_1, f_1,&
-     & inv_k, eps)
-
-  real, intent(inout), dimension(:,:) :: rhs_addto
-  type(scalar_field), intent(in) :: EV, buoyant_field, f_1, eps, density
-  type(vector_field), intent(in) :: positions, u, g
-  character(len=FIELD_NAME_LEN), intent(in) :: equation_type
-  real, intent(in), dimension(:) :: detwei, inv_k
-  real, intent(in) :: g_magnitude, c_eps_1, beta, delta_t
-  type(element_type), intent(in), pointer :: shape
-  integer, intent(in) :: ele, field_id
-
-  real, dimension(u%dim, ele_ngi(u, ele))  :: vector, u_z, u_xy
-  real, dimension(ele_ngi(u, ele)) :: scalar, c_eps_3
-  real, dimension(ele_loc(buoyant_field, ele),ele_ngi(buoyant_field, ele),positions%dim) :: dshape_s
-  real, dimension(ele_loc(density, ele),ele_ngi(density, ele),positions%dim) :: dshape_density
-  type(element_type), pointer :: shape_s, shape_density
-
-  integer :: i_gi, i_loc, i_field
-
-  ! get dshape for scalar field so that we can obtain gradients 
-  shape_s => ele_shape(buoyant_field, ele)
-  call transform_to_physical( positions, ele, shape_s, dshape=dshape_s )        
-
-  ! calculate scalar and vector components of the source term    
-  if(equation_type == "LinearMomentum") then
-     if(.not.(density%mesh == buoyant_field%mesh)) then
-        shape_density => ele_shape(density, ele)
-        call transform_to_physical( positions, ele, shape_density, dshape=dshape_density ) 
-     else
-        dshape_density = dshape_s
-     end if
-     
-     scalar = g_magnitude*ele_val_at_quad(EV, ele)/(delta_t*ele_val_at_quad(density,ele))
-     vector = ele_val_at_quad(g, ele)*ele_grad_at_quad(density, ele, dshape_density)
-  else
-     scalar = -1.0*beta*g_magnitude*ele_val_at_quad(EV, ele)/delta_t
-     vector = ele_val_at_quad(g, ele)*ele_grad_at_quad(buoyant_field, ele, dshape_s)
-  end if
-
-  ! multiply vector component by scalar and sum across dimensions - note that the
-  ! vector part has been multiplied by the gravitational direction so that it is
-  ! zero everywhere apart from in this direction.
-  do i_gi = 1, ele_ngi(u, ele)
-     scalar(i_gi) = sum(scalar(i_gi) * vector(:, i_gi))
-  end do
-  
-  if (field_id==2) then  
-     ! get components of velocity in direction of gravity and in other directions
-     u_z = abs(ele_val_at_quad(g, ele)) * ele_val_at_quad(u, ele)
-     u_xy = ele_val_at_quad(u, ele) - u_z
-     ! calculate c_eps_3 = tanh(v/u)
-     do i_gi = 1, ele_ngi(u, ele)
-        if (norm2(u_xy(:, i_gi)) > fields_min) then
-           c_eps_3(i_gi) = tanh(norm2(u_z(:, i_gi))/norm2(u_xy(:, i_gi))) 
-        else
-           c_eps_3(i_gi) = 1.0
-        end if
-     end do     
-     scalar = scalar*c_eps_1*ele_val_at_quad(f_1,ele)*c_eps_3* &
-          ele_val_at_quad(eps,ele)*inv_k
-  end if
-
-  ! multiply by determinate weights, integrate and add to rhs
-  rhs_addto(3,:) = rhs_addto(3,:) + shape_rhs(shape, scalar * detwei)     
-
-end subroutine calculate_buoyancy_term
 
 !----------
-! eddyvisc calculates the lengthscale, and then the eddy viscosity.!
+! eddyvisc calculates the lengthscale, and then the eddy viscosity!
 ! Eddy viscosity is added to the background viscosity.
 !----------
-
 subroutine keps_eddyvisc(state)
 
   type(state_type), intent(inout)  :: state
@@ -1397,105 +1347,5 @@ subroutine k_epsilon_check_options(state)
   end if
 
 end subroutine k_epsilon_check_options
-
-!----------------------------------------------------------------------------------------! 
-! Collect information required from scalar fields in order to calculate buoyancy source  !
-! terms                                                                                  !
-!----------------------------------------------------------------------------------------!
-subroutine get_scalar_field_buoyancy_data(state, buoyant_fields, beta, delta_t)
-  
-  type(state_type), intent(in)                                      :: state
-  type(scalar_field_pointer), allocatable, dimension(:), intent(out):: buoyant_fields
-  real, allocatable, dimension(:), intent(out)                      :: beta, delta_t
-  type(scalar_field_pointer), allocatable, dimension(:)             :: temp_buoyant_fields
-  real, allocatable, dimension(:)                                   :: temp_beta, temp_delta_t
-  type(scalar_field), pointer                                       :: field
-  integer                                                           :: n_fields, i_field, stat
-
-  ! Get number of scalar fields that are children of this state
-  n_fields = scalar_field_count(state)
-
-  ! Loop over scalar fields and copy required information to arrays if buoyancy_effects
-  !  are selected for the field
-  scalar_field_loop: do i_field = 1, n_fields
-
-     field => extract_scalar_field(state, i_field)
-
-     if (have_option(trim(field%option_path)//&
-          &'/prognostic/subgridscale_parameterisation::k-epsilon/buoyancy_effects')) then
-
-        ! determine allocation requirements, resize array and store required values
-        if (allocated(buoyant_fields)) then
-
-           allocate(temp_buoyant_fields(size(buoyant_fields, 1)))
-           allocate(temp_beta(size(beta, 1)))
-           allocate(temp_delta_t(size(delta_t, 1)))
-
-           temp_buoyant_fields = buoyant_fields
-           temp_beta = beta
-           temp_delta_t = delta_t
-
-           deallocate(buoyant_fields)
-           deallocate(beta)
-           deallocate(delta_t)
-
-           allocate(buoyant_fields(size(temp_buoyant_fields, 1) + 1))
-           allocate(beta(size(temp_beta, 1) + 1))
-           allocate(delta_t(size(temp_delta_t, 1) + 1))
-
-           buoyant_fields(1:size(temp_buoyant_fields,1)) = temp_buoyant_fields
-           beta(1:size(temp_beta, 1)) = temp_beta
-           delta_t(1:size(temp_delta_t, 1)) = temp_delta_t
-
-           buoyant_fields(ubound(buoyant_fields,1))%ptr => extract_scalar_field(state, i_field)
-           call get_option(trim(field%option_path)//&
-                &'/prognostic/subgridscale_parameterisation::k-epsilon/buoyancy_effects/beta', &
-                & beta(ubound(beta,1))) 
-           call get_option(trim(field%option_path)//&
-                &'/prognostic/subgridscale_parameterisation::k-epsilon/prandtl_schmidt_number', &
-                & delta_t(ubound(delta_t,1)), stat) 
-
-           deallocate(temp_buoyant_fields)
-           deallocate(temp_beta)
-           deallocate(temp_delta_t)
-
-        else
-
-           allocate(buoyant_fields(1))
-           allocate(beta(1))
-           allocate(delta_t(1))
-
-           buoyant_fields(1)%ptr => extract_scalar_field(state, i_field)
-           call get_option(trim(field%option_path)//&
-                &'/prognostic/subgridscale_parameterisation::k-epsilon/buoyancy_effects/beta', &
-                & beta(1)) 
-           call get_option(trim(field%option_path)//&
-                &'/prognostic/subgridscale_parameterisation::k-epsilon/prandtl_schmidt_number', &
-                & delta_t(1))         
-
-        end if
-
-     end if
-
-  end do scalar_field_loop
-
-end subroutine get_scalar_field_buoyancy_data
-
-!----------------------------------------------------------------------------------------! 
-! Deallocates scalar buoyancy information                                                !
-!----------------------------------------------------------------------------------------!
-subroutine deallocate_scalar_field_buoyancy_data(buoyant_fields, beta, delta_t)
-  
-  type(scalar_field_pointer), allocatable, dimension(:), intent(inout):: buoyant_fields
-  real, allocatable, dimension(:), intent(inout)                      :: beta, delta_t
-
-  ! deallocate buoyancy data
-  if (allocated(buoyant_fields)) then
-     deallocate(buoyant_fields)
-     deallocate(beta)
-     deallocate(delta_t)
-  end if
-
-end subroutine deallocate_scalar_field_buoyancy_data
 
 end module k_epsilon

@@ -189,25 +189,8 @@ prognostic_scalar_field =
          ##
          element subgridscale_parameterisation {
             attribute name { "k-epsilon"},
-            ## Option to set the Schmidt number (ratio of viscous diffusion rate to momentum diffusion rate) for 
-            ## massive scalar fields, or Prandtl number (ratio of viscous diffusion rate to thermal diffusion rate) 
-            ## for thermal fields.
-            ##
-            ## For this field. Default = 1.0 if not specified.
-            element prandtl_schmidt_number { real },
             ## Option to set a unique isotropic background diffusivity for this field.
-            element background_diffusivity { real }?,
-            ## Option to enable buoyancy source term for this field.
-            element buoyancy_effects {
-               ## The beta value given transforms the scalar field gradient into a density gradient such that a unit increase in the scalar. 
-               ## field increases the density by beta. For a temperature field this will be the thermal expansion coefficient and it will be 
-               ## negative, for a sediment field it will be the submerged specific gravity and will be positive.
-               ##
-               ## \delta rho = S * \beta
-               ##
-               ## where S is the value of the scalar field.
-               element beta { real }
-            }?
+            element background_diffusivity { real }?
          }|
          element subgridscale_parameterisation {
             attribute name { "prescribed_diffusivity"}
