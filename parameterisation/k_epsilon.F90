@@ -321,8 +321,8 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, equation_type, density
   ! For buoyancy turbulence stuff
   real, dimension(u%dim, ele_ngi(u, ele))  :: vector, u_z, u_xy
   real, dimension(ele_ngi(u, ele)) :: scalar, c_eps_3
-  real, dimension(ele_loc(buoyancy_density, ele),ele_ngi(buoyancy_density, ele),positions%dim) :: dshape_density
   type(element_type), pointer :: shape_density
+  real, dimension(:, :, :), allocatable :: dshape_density
 
   shape => ele_shape(k, ele)
   nodes = ele_nodes(k, ele)
@@ -368,6 +368,7 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, equation_type, density
   if(have_buoyancy_turbulence) then    
   
     ! calculate scalar and vector components of the source term    
+    allocate(dshape_density(ele_loc(buoyancy_density, ele), ele_ngi(buoyancy_density, ele), positions%dim))
     if(.not.(buoyancy_density%mesh == k%mesh)) then
        shape_density => ele_shape(buoyancy_density, ele)
        call transform_to_physical( positions, ele, shape_density, dshape=dshape_density ) 
@@ -402,6 +403,9 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, equation_type, density
 
     ! multiply by determinate weights, integrate and assign to rhs
     rhs_addto(3,:) = shape_rhs(shape, scalar * detwei)
+    
+    deallocate(dshape_density)
+    
   end if
 
   ! In the DG case we apply the inverse mass locally.
