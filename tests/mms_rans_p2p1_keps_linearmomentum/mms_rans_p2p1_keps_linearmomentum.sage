@@ -58,8 +58,8 @@ pr = 1
 ab = 1
 bo = 1
 
-Ske = rho*u*diff(ke,x) + rho*v*diff(ke,y) - nu_T*(diff(ke, x, x) + diff(ke, y, y)) - diff(nu_T, x)*diff(ke, x) -  diff(nu_T, y)*diff(ke, y) - pr*P + ab*rho*eps - bo*B
-Seps = rho*u*diff(eps,x) + rho*v*diff(eps,y) - nu_T*(diff(eps, x, x) + diff(eps, y, y)) - diff(nu_T, x)*diff(eps, x) -  diff(nu_T, y)*diff(eps, y) - pr*(eps/ke)*P + ab*rho*(eps^2/ke) - bo*C3*(eps/ke)*B
+Ske = rho*u*diff(ke,x) + rho*v*diff(ke,y) - (nu + nu_T)*(diff(ke, x, x) + diff(ke, y, y)) - diff(nu_T, x)*diff(ke, x) -  diff(nu_T, y)*diff(ke, y) - pr*P + ab*rho*eps - bo*B
+Seps = rho*u*diff(eps,x) + rho*v*diff(eps,y) - (nu + nu_T)*(diff(eps, x, x) + diff(eps, y, y)) - diff(nu_T, x)*diff(eps, x) -  diff(nu_T, y)*diff(eps, y) - pr*(eps/ke)*P + ab*rho*(eps^2/ke) - bo*C3*(eps/ke)*B
   
 print 'from math import sin, cos, tanh, pi'
 print ''
