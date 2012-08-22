@@ -1,8 +1,8 @@
 CREATING mms_rans_p2p1_keps_tools.py:
 
-edit mms_rans_p2p1_keps_tools.sage as required
+edit mms_rans_p2p1_keps.sage as required
 in the terminal, run:
-sage mms_rans_p2p1_keps_tools.sage > mms_rans_p2p1_keps_tools.py
+sage mms_rans_p2p1_keps.sage > mms_rans_p2p1_keps_tools.py
 
 EDITING MMS_X.flml and MMS_X.geo (copyscript):
 
