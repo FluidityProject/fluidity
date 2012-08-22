@@ -439,6 +439,9 @@
            call leonard_tensor(nu, x, tnu, leonard, alpha, les_option_path)
 
            ewrite_minmax(leonard)
+         else
+            tnu => dummyvector
+            leonard => dummytensor
          end if
       else
          les_second_order=.false.; les_fourth_order=.false.; wale=.false.; dynamic_les=.false.
@@ -1184,7 +1187,7 @@
       real, dimension(u%dim, ele_loc(u, ele)) :: oldu_val
       type(element_type), pointer :: u_shape, p_shape
       real, dimension(ele_ngi(u, ele)) :: detwei, detwei_old, detwei_new
-      real, dimension(u%dim, u%dim, ele_ngi(u,ele)) :: J_mat
+      real, dimension(u%dim, u%dim, ele_ngi(u,ele)) :: J_mat, diff_q
       real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim) :: du_t
       real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim) :: dug_t
       real, dimension(ele_loc(p, ele), ele_ngi(p, ele), u%dim) :: dp_t
@@ -1197,7 +1200,7 @@
       real, dimension(u%dim, ele_loc(u, ele)) :: big_m_diag_addto, rhs_addto
       real, dimension(u%dim, u%dim, ele_loc(u, ele), ele_loc(u, ele)) :: big_m_tensor_addto
       logical, dimension(u%dim, u%dim) :: block_mask ! control whether the off diagonal entries are used
-      integer :: dim
+      integer :: dim, i, j
       type(element_type) :: test_function
 
       if(move_mesh) then
@@ -1272,11 +1275,22 @@
             relu_gi = relu_gi - ele_val_at_quad(ug, ele)
           end if
           if(have_viscosity) then
-          call supg_test_function(supg_shape, u_shape, du_t, relu_gi, j_mat, diff_q = ele_val_at_quad(viscosity, ele), &
-            & nu_bar_scheme = nu_bar_scheme, nu_bar_scale = nu_bar_scale)
+             diff_q = ele_val_at_quad(viscosity, ele)
+
+             ! for full and partial stress form we need to set the off diagonal terms of the viscosity tensor to zero
+             ! to be able to invert it when calculating nu_bar
+             do i=1,size(diff_q,1)
+                do j=1,size(diff_q,2)
+                   if(i.eq.j) cycle
+                   diff_q(i,j,:) = 0.0
+                end do
+             end do
+
+             call supg_test_function(supg_shape, u_shape, du_t, relu_gi, j_mat, diff_q = diff_q, &
+                  & nu_bar_scheme = nu_bar_scheme, nu_bar_scale = nu_bar_scale)
           else
-          call supg_test_function(supg_shape, u_shape, du_t, relu_gi, j_mat, &
-            & nu_bar_scheme = nu_bar_scheme, nu_bar_scale = nu_bar_scale)
+             call supg_test_function(supg_shape, u_shape, du_t, relu_gi, j_mat, &
+                  & nu_bar_scheme = nu_bar_scheme, nu_bar_scale = nu_bar_scale)
           end if
           test_function = supg_shape
         case default
@@ -1531,11 +1545,11 @@
       real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim), intent(in) :: dug_t
       real, dimension(:, :, :), intent(in) :: dnvfrac_t
       real, dimension(ele_ngi(u, ele)), intent(in) :: detwei
-      real, dimension(u%dim, u%dim, ele_ngi(u,ele)) :: J_mat
+      real, dimension(u%dim, u%dim, ele_ngi(u,ele)) :: J_mat, diff_q
       real, dimension(u%dim, u%dim, ele_loc(u, ele), ele_loc(u, ele)), intent(inout) :: big_m_tensor_addto
       real, dimension(u%dim, ele_loc(u, ele)), intent(inout) :: rhs_addto
     
-      integer :: dim, i
+      integer :: dim, i, j
       real, dimension(ele_ngi(u, ele)) :: density_gi, div_relu_gi
       real, dimension(ele_ngi(u, ele)) :: nvfrac_gi, relu_dot_grad_nvfrac_gi
       real, dimension(u%dim, ele_ngi(u, ele)) :: grad_nvfrac_gi
@@ -1603,15 +1617,26 @@
       
       select case(stabilisation_scheme)
       case(STABILISATION_STREAMLINE_UPWIND)
-        if(have_viscosity) then
-          advection_mat = advection_mat + &
-            & element_upwind_stabilisation(u_shape, du_t, relu_gi, J_mat, detwei, &
-            & diff_q = ele_val_at_quad(viscosity, ele), nu_bar_scheme = nu_bar_scheme, nu_bar_scale = nu_bar_scale)
-        else
-           advection_mat = advection_mat + &
-            & element_upwind_stabilisation(u_shape, du_t, relu_gi, J_mat, detwei, &
-            & nu_bar_scheme = nu_bar_scheme, nu_bar_scale = nu_bar_scale)
-        end if
+         if(have_viscosity) then
+            diff_q = ele_val_at_quad(viscosity, ele)
+
+            ! for full and partial stress form we need to set the off diagonal terms of the viscosity tensor to zero
+            ! to be able to invert it when calculating nu_bar
+            do i=1,size(diff_q,1)
+               do j=1,size(diff_q,2)
+                  if(i.eq.j) cycle
+                  diff_q(i,j,:) = 0.0
+               end do
+            end do
+
+            advection_mat = advection_mat + &
+                 & element_upwind_stabilisation(u_shape, du_t, relu_gi, J_mat, detwei, &
+                 & diff_q, nu_bar_scheme = nu_bar_scheme, nu_bar_scale = nu_bar_scale)
+         else
+            advection_mat = advection_mat + &
+                 & element_upwind_stabilisation(u_shape, du_t, relu_gi, J_mat, detwei, &
+                 & nu_bar_scheme = nu_bar_scheme, nu_bar_scale = nu_bar_scale)
+         end if
       end select
       
       do dim = 1, u%dim
