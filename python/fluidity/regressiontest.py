@@ -96,17 +96,12 @@ class TestProblem:
 
     def is_finished(self):
         if self.nprocs > 1 or self.length == "long":
-            # remove the scheduler stuff to try a run on one magny processor
-            # but possibly several MPI processes on the cores.  There will
-            # be no lock file so always return true.  I hope this is
-            # thread safe, i.e the lock is for PBS/genpbs
-#            file = os.environ["HOME"] + "/lock/" + self.random
-#            try:
-#                os.remove(file)
-#                return True
-#            except OSError:
-#                return False
-            return True
+            file = os.environ["HOME"] + "/lock/" + self.random
+            try:
+                os.remove(file)
+                return True
+            except OSError:
+                return False
         else:
             return True
 
@@ -136,20 +131,9 @@ class TestProblem:
           self.log("No Makefile, not calling make")
 
         if self.nprocs > 1 or self.length == "long":
-          # remove the scheduler stuff to try a run on one magny node
-          # but possibly several MPI processes on the cores.  This requires
-          # mpiexec to be fudged (and see self.is_finished() also).  Note
-          # that genpbs is a local AMCG thing to create a PBS script.
-          self.log("excise-fldecomp version")
-          self.log(self.command_line)
-          start_time=time.clock()
-          os.system("alias mpiexec='mpiexec --display-map -np '"+'%d'%self.nprocs+"\n cd "+dir+"; alias; "+self.command_line)
-          # need a newline between the alias and the command, since the whole
-          # line is read by bash and then the alias is made (see bash manpage)
-          run_time=time.clock()-start_time
-#            ret = self.call_genpbs(dir)
-#            self.log("cd "+dir+"; qsub " + self.filename[:-4] + ".pbs: " + self.command_line)
-#            os.system("cd "+dir+"; qsub " + self.filename[:-4] + ".pbs")
+            ret = self.call_genpbs(dir)
+            self.log("cd "+dir+"; qsub " + self.filename[:-4] + ".pbs: " + self.command_line)
+            os.system("cd "+dir+"; qsub " + self.filename[:-4] + ".pbs")
         else:
           self.log(self.command_line)
           start_time=time.clock()
