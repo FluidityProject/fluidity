@@ -2168,7 +2168,11 @@
         !  /
         !  | B_A^T C B_B dV
         !  /
-        viscosity_mat = stiffness_matrix(du_t, viscosity_gi, du_t, detwei)
+        if(multiphase) then
+           viscosity_mat = stiffness_matrix(du_t, viscosity_gi, du_t, detwei*ele_val_at_quad(nvfrac, ele))
+        else
+           viscosity_mat = stiffness_matrix(du_t, viscosity_gi, du_t, detwei)
+        end if
       else
         if(isotropic_viscosity .and. .not. have_les) then
           assert(u%dim > 0)
@@ -2186,15 +2190,25 @@
           end do
         else if(diagonal_viscosity .and. .not. have_les) then
           assert(u%dim > 0)
-          viscosity_mat(1, 1, :, :) = dshape_diagtensor_dshape(du_t, viscosity_gi, du_t, detwei)
+          
+          if(multiphase) then
+             viscosity_mat(1, 1, :, :) = dshape_diagtensor_dshape(du_t, viscosity_gi, du_t, detwei*&
+                                         ele_val_at_quad(nvfrac, ele))
+          else
+             viscosity_mat(1, 1, :, :) = dshape_diagtensor_dshape(du_t, viscosity_gi, du_t, detwei)
+          end if
 
           do dim = 2, u%dim
             viscosity_mat(dim, dim, :, :) = viscosity_mat(1, 1, :, :)
           end do
         else
           do dim = 1, u%dim
-            viscosity_mat(dim, dim, :, :) = &
-                        dshape_tensor_dshape(du_t, viscosity_gi, du_t, detwei)
+            if(multiphase) then
+               viscosity_mat(dim, dim, :, :) = dshape_tensor_dshape(du_t, viscosity_gi, du_t, detwei*&
+                                               ele_val_at_quad(nvfrac, ele))
+            else
+               viscosity_mat(dim, dim, :, :) = dshape_tensor_dshape(du_t, viscosity_gi, du_t, detwei)
+            end if
           end do
         end if
       end if
