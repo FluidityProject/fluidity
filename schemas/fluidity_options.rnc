@@ -1341,21 +1341,7 @@ start =
                      ## momentum equation will be as if there were no turbulence model present. 
                      ## 
                      ## ScalarEddyViscosity is still calculated as normal.
-                     element zero_reynolds_stress_tensor{ empty }?,
-                     ## Enabling this field allows the user to set a background diffusivity for 
-                     ## the kinetic energy and dissipation fields. This can be useful for making 
-                     ## these fields stable when testing the model. This should not be enabled for 
-                     ## realistic scenarios.
-                     element tensor_field {
-                        attribute rank { "2" },
-                        attribute name { "KEpsilon_MMS_Diffusivity" },
-                        (
-                           element prescribed {
-                              velocity_mesh_choice,
-                              prescribed_tensor_field
-                           }
-                        )
-                     }?
+                     element zero_reynolds_stress_tensor{ empty }?
                   }?
                }?
             }?,

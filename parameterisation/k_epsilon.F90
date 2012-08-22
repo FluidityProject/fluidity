@@ -85,7 +85,7 @@ subroutine keps_calculate_rhs(state)
   type(scalar_field) :: src_to_abs
   type(vector_field), pointer :: positions, u, g
   type(scalar_field), pointer :: dummydensity, density
-  type(tensor_field), pointer :: diff, debug_diff
+  type(tensor_field), pointer :: diff, visc
   integer :: i, node, ele, term, stat
   real :: g_magnitude, c_eps_1, c_eps_2, sigma_eps, sigma_k
   real, allocatable, dimension(:) :: beta, delta_t
@@ -112,6 +112,7 @@ subroutine keps_calculate_rhs(state)
   positions    => extract_vector_field(state, "Coordinate")
   u            => extract_vector_field(state, "Velocity")
   EV           => extract_scalar_field(state, "ScalarEddyViscosity")
+  visc         => extract_tensor_field(state, "BackgroundViscosity")
   f_1          => extract_scalar_field(state, "f_1")
   f_2          => extract_scalar_field(state, "f_2")
   g            => extract_vector_field(state, "GravityDirection", stat)
@@ -280,22 +281,16 @@ subroutine keps_calculate_rhs(state)
   deallocate(dummydensity)
 
   ! Set diffusivity
-  debug_diff => extract_tensor_field(state, "KEpsilon_MMS_Diffusivity", stat)
-
   diff => extract_tensor_field(state, trim(field_names(1))//"Diffusivity")
   do i = 1, diff%dim(1)
      call set(diff, i, i, EV, scale=1. / sigma_k)
   end do
-  if (stat == 0) then
-     call addto(diff, debug_diff)
-  end if
+  call addto(diff, visc)
   diff => extract_tensor_field(state, trim(field_names(2))//"Diffusivity")
   do i = 1, diff%dim(1)
      call set(diff, i, i, EV, scale=1. / sigma_eps)
   end do
-  if (stat == 0) then
-     call addto(diff, debug_diff)
-  end if
+  call addto(diff, visc)
 
 end subroutine keps_calculate_rhs
     
