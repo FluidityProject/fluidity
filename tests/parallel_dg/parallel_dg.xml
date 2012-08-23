@@ -43,10 +43,10 @@ for vtu in final_vtus:
   velocity = vtu.GetVectorField("Velocity")
   for vel in velocity:
     assert(len(vel) == 3)
-    # tolerance loosened from 1.0e-6 to 5.0e-3
-    assert(abs(vel[0] - 1.0) &lt; 5.0e-3)
-    assert(abs(vel[1]) &lt; 5.0e-3)
-    assert(abs(vel[2]) &lt; 5.0e-3)
+    # tolerance loosened from 1.0e-6 to 3.0e-3
+    assert(abs(vel[0] - 1.0) &lt; 3.0e-3)
+    assert(abs(vel[1]) &lt; 3.0e-3)
+    assert(abs(vel[2]) &lt; 3.0e-3)
     </test>
   </pass_tests>
   <warn_tests>
