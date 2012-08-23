@@ -52,7 +52,7 @@ P = nu_T*(2*(diff(u,x)^2 + diff(v,y)^2 + diff(u,y)*diff(v,x)) + diff(u,y)^2 + di
 
 u_z = g_x*u + g_y*v
 u_xy = ((u**2 + v**2.0) - u_z**2.0)**0.5
-C3 = 1.0 #tanh(u_z/u_xy)
+C3 = tanh(u_z/u_xy)
 B = -nu_T*(g_x*diff(rho,x) + g_y*diff(rho,y))  
 pr = 1
 ab = 1

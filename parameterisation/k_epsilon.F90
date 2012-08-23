@@ -396,8 +396,7 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, equation_type, density
           u_z = dot_product(g_quad(:, gi), u_quad(:, gi))
           u_xy = (norm2(u_quad(:, gi))**2.0 - u_z**2.0)**0.5
           if (u_xy > fields_min) then
-             c_eps_3(gi) = 1.0
-             ! c_eps_3(gi) = tanh(u_z/u_xy) 
+             c_eps_3(gi) = tanh(u_z/u_xy) 
           else
              c_eps_3(gi) = 1.0
           end if
