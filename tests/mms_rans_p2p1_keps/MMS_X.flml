@@ -107,7 +107,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <constant>
-              <real_value shape="2" dim1="dim" rank="1">1.0 1.0</real_value>
+              <real_value shape="2" dim1="dim" rank="1">0.707106781 0.707106781</real_value>
             </constant>
           </value>
           <output/>

@@ -319,7 +319,8 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, equation_type, density
   integer :: i_loc, term, ngi, dim, gi, i
   
   ! For buoyancy turbulence stuff
-  real, dimension(u%dim, ele_ngi(u, ele))  :: vector, u_z, u_xy
+  real, dimension(u%dim, ele_ngi(u, ele))  :: vector, u_quad, g_quad
+  real :: u_z, u_xy
   real, dimension(ele_ngi(u, ele)) :: scalar, c_eps_3
   type(element_type), pointer :: shape_density
   real, dimension(:, :, :), allocatable :: dshape_density
@@ -387,13 +388,16 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, equation_type, density
     end do
    
     if (field_id == 2) then
-       ! get components of velocity in direction of gravity and in other directions
-       u_z = abs(ele_val_at_quad(g, ele)) * ele_val_at_quad(u, ele)
-       u_xy = ele_val_at_quad(u, ele) - u_z
        ! calculate c_eps_3 = tanh(v/u)
+       g_quad = ele_val_at_quad(g, ele)
+       u_quad = ele_val_at_quad(u, ele)
        do gi = 1, ngi
-          if (norm2(u_xy(:, gi)) > fields_min) then
-             c_eps_3(gi) = tanh(norm2(u_z(:, gi))/norm2(u_xy(:, gi))) 
+          ! get components of velocity in direction of gravity and in other directions
+          u_z = dot_product(g_quad(:, gi), u_quad(:, gi))
+          u_xy = (norm2(u_quad(:, gi))**2.0 - u_z**2.0)**0.5
+          if (u_xy > fields_min) then
+             c_eps_3(gi) = 1.0
+             ! c_eps_3(gi) = tanh(u_z/u_xy) 
           else
              c_eps_3(gi) = 1.0
           end if

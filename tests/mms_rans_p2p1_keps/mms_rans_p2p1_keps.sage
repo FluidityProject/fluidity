@@ -11,7 +11,7 @@ def function(phi_0, phi_x, phi_y, phi_xy,
     f = f_0 + f_x + f_y + f_xy
     return f
 
-u = function(2.5, 1.0, 0.6, 0.0, 
+u = function(3.0, 1.0, 0.6, 0.0, 
              0.0, 1.0, 1.0, 0.0, 1.0, 0.0,
              1.0, 1.0, 1.0)
 p = function(-1.0, 1.0, 1.0, 1.0,
@@ -30,6 +30,9 @@ v = integral(-diff(u,x),y)  # divergence free
 nu_T = ke^2/eps
 nu = 1.0
 
+g_x = 0.707106781
+g_y = 0.707106781
+
 tau_xx = 2*nu*diff(u,x)            
 tau_xy = nu*(diff(u,y) + diff(v,x))
 tau_yy = 2*nu*diff(v,y)            
@@ -40,18 +43,17 @@ tau_xy_R = nu_T*(diff(u,y) + diff(v,x))
 tau_yy_R = 2*nu_T*diff(v,y) - (2./3.)*ke
 tau_yx_R = nu_T*(diff(u,y) + diff(v,x))
 
-Su = u*diff(u,x) + v*diff(u,y) - diff(tau_xx, x) - diff(tau_xy, y) - diff(tau_xx_R, x) - diff(tau_xy_R, y) - rho + diff(p,x)  
-Sv = u*diff(v,x) + v*diff(v,y) - diff(tau_yx, x) - diff(tau_yy, y) - diff(tau_yx_R, x) - diff(tau_yy_R, y) - rho + diff(p,y)  
+Su = u*diff(u,x) + v*diff(u,y) - diff(tau_xx, x) - diff(tau_xy, y) - diff(tau_xx_R, x) - diff(tau_xy_R, y) - g_x*rho + diff(p,x)  
+Sv = u*diff(v,x) + v*diff(v,y) - diff(tau_yx, x) - diff(tau_yy, y) - diff(tau_yx_R, x) - diff(tau_yy_R, y) - g_y*rho + diff(p,y)  
 
-Srho = u*diff(rho,x) + v*diff(rho,y) - (1.0 + nu_T)*(diff(rho, x, x) + diff(rho, y, y)) - diff(nu_T, x)*diff(rho, x) -  diff(nu_T, y)*diff(rho, y)
+Srho = u*diff(rho,x) + v*diff(rho,y) - (1.0 + nu_T)*(diff(rho, x, x) + diff(rho, y, y)) - diff(nu_T, x)*diff(rho, x) - diff(nu_T, y)*diff(rho, y)
 
 P = nu_T*(2*(diff(u,x)^2 + diff(v,y)^2 + diff(u,y)*diff(v,x)) + diff(u,y)^2 + diff(v,x)^2) - (2./3.)*ke*(diff(u,x) + diff(v,y))
 
-C3 = 1.0
-g_x = 1.0
-g_y = 1.0
+u_z = g_x*u + g_y*v
+u_xy = ((u**2 + v**2.0) - u_z**2.0)**0.5
+C3 = 1.0 #tanh(u_z/u_xy)
 B = -nu_T*(g_x*diff(rho,x) + g_y*diff(rho,y))  
-
 pr = 1
 ab = 1
 bo = 1
@@ -123,3 +125,9 @@ print '   return A([X[0],X[1]])*ke([X[0],X[1]])'
 print ''
 print 'def A_eps(X):'
 print '   return A([X[0],X[1]])*eps([X[0],X[1]])'
+print ''
+print 'def C3(X):'
+print '    return', str(C3).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
+print ''
+print 'def u_xy(X):'
+print '    return', str(u_xy).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
