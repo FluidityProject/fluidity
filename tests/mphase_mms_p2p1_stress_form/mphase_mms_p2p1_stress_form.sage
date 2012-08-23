@@ -14,15 +14,15 @@ def function(phi_0, phi_x, phi_y, phi_xy,
 p = function(-1.0, 1.0, 1.0, 1.0,
              1.0, 0.0, 0.0, 1.0, 1.0, 0.0,
              1.0, 1.0, 1.0)
-rho1 = 10.0
-rho2 = 256.0
+rho1 = 2.5
+rho2 = 0.5
 u1 = 0.25*cos(x)*cos(y) - x*cos(y)
 v1 = sin(y)
 u2 = sin(x)*cos(y)
 v2 = sin(y)*sin(x) - cos(x)*sin(y)
              
-vfrac1 = 0.8
-vfrac2 = 1.0 - vfrac1
+vfrac1 = 0.8 #0.1 + y/20.0
+vfrac2 = 1.0 - vfrac1 #1.0 - vfrac1
 
 #print "DIVERGENCE = ", diff(vfrac1*u1,x) + diff(vfrac1*v1,y) + diff(vfrac2*u2,x) + diff(vfrac2*v2,y)
 
