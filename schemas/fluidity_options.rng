@@ -1573,18 +1573,30 @@ Recommended value (default): 1.0.</a:documentation>
 Recommended value (default): 1.3.</a:documentation>
                     <ref name="real"/>
                   </element>
-                  <element name="prandtl_schmidt_number">
+                  <element name="sigma_p">
                     <a:documentation>The Schmidt number (ratio of viscous diffusion rate to momentum diffusion rate) for 
 massive scalar fields, or Prandtl number (ratio of viscous diffusion rate to thermal diffusion rate) 
 for thermal fields. This is used to calculate the turbulent buoyancy term.
-
 Recommended value (default): 1.0.</a:documentation>
                     <ref name="real"/>
                   </element>
                   <optional>
+                    <element name="approximate_C_eps_3">
+                      <a:documentation>C_eps_3, a coefficient relating to the dissipation buoyancy term, requires the calculation of 
+tanh(v/u) at every grid point. This can be computationally expensive. Enabling this option 
+causes the program to approximate tanh(v/u) as:
+
+  C_eps_3 = sin(v/u) if v/u &lt;= 1.57  (pi/2.0)
+                   1.0 if v/u &gt; 1.57  (pi/2.0)
+
+This achieves a similar result with a lower computational cost.</a:documentation>
+                      <empty/>
+                    </element>
+                  </optional>
+                  <optional>
                     <element name="limit_length_scale">
-                      <a:documentation>Limit the turbulence length scale to within physical bounds (e.g. inlet min dimension).
-This helps to prevent instabilities during simulation spin-up.</a:documentation>
+                      <a:documentation>Implicit source term - lump production term into absorbtion so that it is calculated 
+implicitly</a:documentation>
                       <ref name="real"/>
                     </element>
                   </optional>

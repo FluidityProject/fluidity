@@ -495,9 +495,9 @@
         <sigma_eps>
           <real_value rank="0">1.0</real_value>
         </sigma_eps>
-        <prandtl_schmidt_number>
+        <sigma_p>
           <real_value rank="0">1.0</real_value>
-        </prandtl_schmidt_number>
+        </sigma_p>
         <mass_lumping_in_diagnostics>
           <solve_using_mass_matrix>
             <solver>

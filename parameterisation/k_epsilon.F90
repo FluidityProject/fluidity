@@ -86,8 +86,8 @@ subroutine keps_calculate_rhs(state)
   type(scalar_field), pointer :: dummydensity, density, buoyancy_density
   type(tensor_field), pointer :: diff, visc
   integer :: i, j, node, ele, term, stat
-  real :: g_magnitude, c_eps_1, c_eps_2, sigma_eps, sigma_k, prandtl_schmidt_number
-  logical :: prescribed, gravity = .true., have_buoyancy_turbulence = .true., lump_mass
+  real :: g_magnitude, c_eps_1, c_eps_2, sigma_eps, sigma_k, sigma_p
+  logical :: prescribed, gravity = .true., have_buoyancy_turbulence = .true., lump_mass, approximate_c_eps_3
   character(len=OPTION_PATH_LEN) :: option_path 
   character(len=FIELD_NAME_LEN), dimension(2) :: field_names
   character(len=FIELD_NAME_LEN) :: equation_type
@@ -105,7 +105,7 @@ subroutine keps_calculate_rhs(state)
   call get_option(trim(option_path)//'/C_eps_2', c_eps_2, default = 1.92)
   call get_option(trim(option_path)//'/sigma_k', sigma_k, default = 1.0)
   call get_option(trim(option_path)//'/sigma_eps', sigma_eps, default = 1.3)
-  call get_option(trim(option_path)//'/prandtl_schmidt_number', prandtl_schmidt_number, default = 1.0)
+  call get_option(trim(option_path)//'/sigma_p', sigma_p, default = 1.0)
   
   ! get field data
   positions    => extract_vector_field(state, "Coordinate")
@@ -120,7 +120,8 @@ subroutine keps_calculate_rhs(state)
      gravity = .false.
      have_buoyancy_turbulence = .false.
   end if
-  
+  approximate_c_eps_3 = have_option(trim(option_path)//'approximate_C_eps_3')
+
   allocate(dummydensity)
   call allocate(dummydensity, positions%mesh, "DummyDensity", field_type=FIELD_TYPE_CONSTANT)
   call set(dummydensity, 1.0)
@@ -171,8 +172,9 @@ subroutine keps_calculate_rhs(state)
      ! Assembly loop
      do ele = 1, ele_count(fields(1)%ptr)
         call assemble_rhs_ele(src_abs_terms, fields(i)%ptr, fields(3-i)%ptr, EV, u, equation_type, &
-             & density, buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, gravity, positions, &
-             & c_eps_1, c_eps_2, sigma_k, sigma_eps, prandtl_schmidt_number, f_1, f_2, ele, i)
+             density, buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, gravity, positions, &
+             c_eps_1, c_eps_2, sigma_k, sigma_eps, sigma_p, f_1, f_2, ele, i, &
+             approximate_c_eps_3)
      end do
 
      ! For non-DG we apply inverse mass globally
@@ -298,14 +300,14 @@ end subroutine keps_calculate_rhs
 !------------------------------------------------------------------------------!
 subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, equation_type, density, &
      buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, gravity, &
-     positions, c_eps_1, c_eps_2, sigma_k, sigma_eps, prandtl_schmidt_number, f_1, f_2, ele, field_id)
+     positions, c_eps_1, c_eps_2, sigma_k, sigma_eps, sigma_p, f_1, f_2, ele, field_id)
 
   type(scalar_field), dimension(3), intent(inout) :: src_abs_terms
   type(scalar_field), intent(in) :: k, eps, EV, f_1, f_2
   type(vector_field), intent(in) :: positions, u, g
   character(len=FIELD_NAME_LEN), intent(in) :: equation_type
   type(scalar_field), intent(in) :: density, buoyancy_density
-  real, intent(in) :: g_magnitude, c_eps_1, c_eps_2, sigma_k, sigma_eps, prandtl_schmidt_number
+  real, intent(in) :: g_magnitude, c_eps_1, c_eps_2, sigma_k, sigma_eps, sigma_p
   logical, intent(in) :: gravity, have_buoyancy_turbulence
   integer, intent(in) :: ele, field_id
 
@@ -377,7 +379,7 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, equation_type, density
        dshape_density = dshape
     end if
      
-    scalar = -1.0*g_magnitude*ele_val_at_quad(EV, ele)/(prandtl_schmidt_number*ele_val_at_quad(density,ele))
+    scalar = -1.0*g_magnitude*ele_val_at_quad(EV, ele)/(sigma_p*ele_val_at_quad(density,ele))
     vector = ele_val_at_quad(g, ele)*ele_grad_at_quad(buoyancy_density, ele, dshape_density)
     
     ! multiply vector component by scalar and sum across dimensions - note that the
@@ -396,7 +398,13 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, equation_type, density
           u_z = dot_product(g_quad(:, gi), u_quad(:, gi))
           u_xy = (norm2(u_quad(:, gi))**2.0 - u_z**2.0)**0.5
           if (u_xy > fields_min) then
-             c_eps_3(gi) = tanh(u_z/u_xy) 
+             if (approximate_c_eps_3) then
+                if (u_z/u_xy < 1.57) then
+                   c_eps_3(gi) = sin(u_z/u_xy)
+                else:
+                   c_eps_3(gi) = 1.0
+             else:
+                c_eps_3(gi) = tanh(u_z/u_xy) 
           else
              c_eps_3(gi) = 1.0
           end if
