@@ -173,8 +173,7 @@ subroutine keps_calculate_rhs(state)
      do ele = 1, ele_count(fields(1)%ptr)
         call assemble_rhs_ele(src_abs_terms, fields(i)%ptr, fields(3-i)%ptr, EV, u, equation_type, &
              density, buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, gravity, positions, &
-             c_eps_1, c_eps_2, sigma_k, sigma_eps, sigma_p, f_1, f_2, ele, i, &
-             approximate_c_eps_3)
+             c_eps_1, c_eps_2, sigma_k, sigma_eps, sigma_p, f_1, f_2, ele, i)
      end do
 
      ! For non-DG we apply inverse mass globally
@@ -398,13 +397,7 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, equation_type, density
           u_z = dot_product(g_quad(:, gi), u_quad(:, gi))
           u_xy = (norm2(u_quad(:, gi))**2.0 - u_z**2.0)**0.5
           if (u_xy > fields_min) then
-             if (approximate_c_eps_3) then
-                if (u_z/u_xy < 1.57) then
-                   c_eps_3(gi) = sin(u_z/u_xy)
-                else:
-                   c_eps_3(gi) = 1.0
-             else:
-                c_eps_3(gi) = tanh(u_z/u_xy) 
+             c_eps_3(gi) = tanh(u_z/u_xy) 
           else
              c_eps_3(gi) = 1.0
           end if

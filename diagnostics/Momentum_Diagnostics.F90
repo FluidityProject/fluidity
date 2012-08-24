@@ -81,7 +81,7 @@ contains
     type(tensor_field), intent(inout) :: t_field
     character(len = OPTION_PATH_LEN)  :: parent_path
     integer                           :: slash_location, i, stat
-    real                              :: prandtl_schmidt, local_background_diffusivity
+    real                              :: sigma_p, local_background_diffusivity
     type(scalar_field)                :: local_background_diffusivity_field
     type(scalar_field), pointer       :: scalar_eddy_viscosity
     type(tensor_field), pointer       :: global_background_diffusivity
@@ -99,12 +99,8 @@ contains
        FLExit('you must have /subgridscale_parameterisation(k-epsilon) to be able to calculate diffusivity based upon the k-epsilon model')
     end if
 
-    ! get prandtl_schmidt number
-    call get_option(trim(parent_path)//'/subgridscale_parameterisation::k-epsilon/prandtl_&
-         &schmidt_number', prandtl_schmidt, stat=stat)
-    if (stat /= 0) then 
-       prandtl_schmidt = 1.0
-    end if
+    ! get sigma_p number
+    call get_option(trim(parent_path)//'/subgridscale_parameterisation::k-epsilon/sigma_p', sigma_p)
 
     ! allocate and zero required fields
     call allocate(background_diffusivity, t_field%mesh, name="background_diff&
@@ -139,7 +135,7 @@ contains
     call zero(t_field)
     call addto(t_field, background_diffusivity)
     do i = 1, t_field%dim(1)
-       call addto(t_field, i, i, scalar_eddy_viscosity, 1.0/prandtl_schmidt)
+       call addto(t_field, i, i, scalar_eddy_viscosity, 1.0/sigma_p)
     end do
 
     call deallocate(background_diffusivity)
