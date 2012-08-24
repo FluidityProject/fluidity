@@ -300,7 +300,7 @@ def six_component(state, parameters):
         C_n=max(.5*(C.node_val(n)+Cnew.node_val(n)), 0.0)
         D_n=max(.5*(D.node_val(n)+Dnew.node_val(n)), 0.0)
         I_n=max(I.node_val(n), 0.0)
-        depth=abs(coords.node_val(n)[2])
+        depth=abs(coords.node_val(n)[-1])
 
         if (I_n < 0.0001):
             I_n =0

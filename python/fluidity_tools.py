@@ -406,7 +406,10 @@ for example:
         columns = [[] for i in range(nColumns)]
         lineNo = 0
         for line in statfile:
-          entries = map(float, line.split())
+          try:
+            entries = map(float, line.split())
+          except ValueError:
+            break
           # Ignore non-sampled lines
           if len(entries) == len(columns) and (lineNo % subsample) == 0:
             map(list.append, columns, entries)

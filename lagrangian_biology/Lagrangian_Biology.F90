@@ -1238,18 +1238,17 @@ contains
           element_nodes=>ele_nodes(chemfield, ele)
           do n=1, size(element_nodes)
              chemval = node_val(chemfield, element_nodes(n))
-             ! Avoid div-by-zero errors, and make sure not to write 0.0 into any field,
-             ! since it will cause NaNs in the solvers. Instead use tiny()
+             ! Avoid div-by-zero errors
              if (chem_integral > 0.0) then 
                 ! C := C (1 - S/C_bar )
                 chemval_new = chemval * (1.0 - (request * depletion(1) / chem_integral))
                 if (chemval_new > 0.0) then
                    call set(chemfield, element_nodes(n), chemval_new)
                 else
-                   call set(chemfield, element_nodes(n), tiny(1.0))
+                   call set(chemfield, element_nodes(n), 0.0)
                 end if
              else
-                call set(chemfield, element_nodes(n), tiny(1.0))
+                call set(chemfield, element_nodes(n), 0.0)
              end if
           end do
        end do
@@ -1337,15 +1336,14 @@ contains
           element_nodes=>ele_nodes(chemfield, ele)
           do n=1, size(element_nodes)
              chemval = node_val(chemfield, element_nodes(n))
-             ! Avoid div-by-zero error, and make sure not to write 0.0 into any field,
-             ! since it will cause NaNs in the solvers. Instead use tiny()
+             ! Avoid div-by-zero error
              if (chem_integral > 0.0) then 
                 ! C := C (1 + S/C_bar )
                 chemval_new = chemval * (1.0 + (release / chem_integral))
                 if (chemval_new > 0.0) then
                    call set(chemfield, element_nodes(n), chemval_new)
                 else
-                   call set(chemfield, element_nodes(n), tiny(1.0))
+                   call set(chemfield, element_nodes(n), 0.0)
                 end if
              else
                 ! If there is zero chemical in this element 
@@ -1354,7 +1352,7 @@ contains
                 if (release > 0.0) then
                    call set(chemfield, element_nodes(n), release / ele_volume)
                 else
-                   call set(chemfield, element_nodes(n), tiny(1.0))
+                   call set(chemfield, element_nodes(n), 0.0)
                 end if 
              end if
           end do
