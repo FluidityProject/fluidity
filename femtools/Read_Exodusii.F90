@@ -771,17 +771,15 @@ contains
     end do
 
     ! Assemble array with faces, and boundaryIDs
-    if (haveBoundaries) then
-       allocate(sndglno(1:num_faces*sloc))
-       sndglno=0
-       if(haveBoundaries) then
-          allocate(boundaryIDs(1:num_faces))
-       end if
-       do f=1, num_faces
-          sndglno((f-1)*sloc+1:f*sloc) = exo_face(f)%nodeIDs(1:sloc)
-          if(haveBoundaries) boundaryIDs(f) = exo_face(f)%tags(1)
-       end do
+    allocate(sndglno(1:num_faces*sloc))
+    sndglno=0
+    if(haveBoundaries) then
+       allocate(boundaryIDs(1:num_faces))
     end if
+    do f=1, num_faces
+       sndglno((f-1)*sloc+1:f*sloc) = exo_face(f)%nodeIDs(1:sloc)
+       if(haveBoundaries) boundaryIDs(f) = exo_face(f)%tags(1)
+    end do
 
     ! Adding the face-elements to the mesh:
     if (haveBoundaries) then
@@ -810,8 +808,9 @@ contains
     call deallocate( mesh )
 
     if (haveBoundaries) then
-       deallocate(boundaryIDs); deallocate(sndglno)
+       deallocate(boundaryIDs)
     end if
+    deallocate(sndglno)
 
     ewrite(2,*) "Out of read_exodusii_file_to_field"
 
