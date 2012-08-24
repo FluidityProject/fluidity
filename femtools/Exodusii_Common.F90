@@ -71,13 +71,12 @@ module exodusii_common
   
   ! -----------------------------------------------------------------
   ! Reorder to Fluidity node ordering
-  subroutine toFluidityElementNodeOrdering( oldList, elemType )
-    integer, allocatable, dimension(:) :: oldList, flNodeList, nodeOrder
-    integer i, elemType, numNodes
+  subroutine toFluidityElementNodeOrdering( ele_nodes, elemType )
+    integer, dimension(:), intent(inout) :: ele_nodes
+    integer, intent(in) :: elemType
 
-    numNodes = size(oldList)
-    allocate( flNodeList(numNodes) )
-    allocate( nodeOrder(numNodes) )
+    integer i
+    integer, dimension(size(ele_nodes)) :: nodeOrder
 
     ! Specify node ordering
     select case( elemType )
@@ -88,20 +87,12 @@ module exodusii_common
     case (5)
        nodeOrder = (/1, 2, 4, 3, 5, 6, 8, 7/)
     case default
-       do i=1, numNodes
+       do i=1, size(ele_nodes)
           nodeOrder(i) = i
        end do
     end select
 
-    ! Reorder nodes
-    do i=1, numNodes
-       flNodeList(i) = oldList( nodeOrder(i) )
-    end do
-
-    ! Allocate to original list, and dealloc temp list.
-    oldList(:) = flNodeList(:)
-    deallocate( flNodeList )
-    deallocate(nodeOrder)
+    ele_nodes = ele_nodes(nodeOrder)
 
   end subroutine toFluidityElementNodeOrdering
 
