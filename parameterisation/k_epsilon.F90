@@ -46,6 +46,7 @@ module k_epsilon
   use FLDebug
   use vtk_interfaces
   use solvers
+  use momentum_diagnostic_fields
 
 implicit none
 
@@ -53,6 +54,7 @@ implicit none
 
   ! locally allocatad fields
   real, save                          :: fields_min = 1.0e-10
+  integer, save                       :: call_count = 0 ! How many times has k-epsilon been called?
 
   public :: keps_diagnostics, keps_eddyvisc, keps_bcs, keps_adapt_mesh,&
        & k_epsilon_check_options, keps_momentum_source, tensor_inner_product
@@ -69,6 +71,7 @@ subroutine keps_diagnostics(state)
 
   type(state_type), intent(inout) :: state
 
+  call_count = call_count + 1
   call keps_eddyvisc(state)
   call keps_calculate_rhs(state)
 
@@ -142,7 +145,13 @@ subroutine keps_calculate_rhs(state)
   end select
   
   if(have_buoyancy_turbulence) then
-     buoyancy_density => extract_scalar_field(state, "VelocityBuoyancyDensity")
+     buoyancy_density => extract_scalar_field(state, 'VelocityBuoyancyDensity')
+     if(call_count == 1) then
+        ! The very first time k-epsilon is called, VelocityBuoyancyDensity
+        ! is set to zero until calculate_densities is called in the momentum equation
+        ! solve. Calling calculate_densities here is a work-around for this problem.        
+        call calculate_densities(state, buoyancy_density=buoyancy_density)
+     end if
   end if
 
   field_names(1) = 'TurbulentKineticEnergy'
