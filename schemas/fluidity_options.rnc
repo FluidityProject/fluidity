@@ -2200,7 +2200,7 @@ diagnostic_vector_field_bed_shear_stress =
                real
             }|
             ## velocity_gradient - nu * grad(u)
-            ## This uses the velocity gradient at the boundarieds to calculate the 
+            ## This uses the velocity gradient at the boundaries to calculate the 
             ## bed shear stress. Valid for non parameterised velocity boundaries
             element velocity_gradient {  
                empty

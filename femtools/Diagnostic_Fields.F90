@@ -477,7 +477,7 @@ contains
     type(scalar_field), intent(inout) :: grn
 
     type(vector_field), pointer :: U, X
-    integer :: ele, gi, stat
+    integer :: ele, gi, stat, a, b
     ! Transformed quadrature weights.
     real, dimension(ele_ngi(GRN, 1)) :: detwei
     ! Inverse of the local coordinate change matrix.
@@ -525,6 +525,24 @@ contains
        ! The matmul is as given by dham
        GRN_q=ele_val_at_quad(U, ele)
        vis_q=ele_val_at_quad(viscosity, ele)
+
+       ! for full and partial stress form we need to set the off diagonal terms of the viscosity tensor to zero
+       ! to be able to invert it 
+       if (have_option(trim(U%option_path)//&
+            &"/prognostic/spatial_discretisation/continuous_galerkin"//&
+            &"/stress_terms/stress_form") .or. &
+            have_option(trim(U%option_path)//&
+            &"/prognostic/spatial_discretisation/continuous_galerkin"//&
+            &"/stress_terms/partial_stress_form")) then
+
+          do a=1,size(vis_q,1)
+             do b=1,size(vis_q,2)
+                if(a.eq.b) cycle
+                vis_q(a,b,:) = 0.0
+             end do
+          end do
+       end if
+
        do gi=1, size(detwei)
           GRN_q(:,gi)=matmul(GRN_q(:,gi), J(:,:,gi))
           GRN_q(:,gi)=matmul(inverse(vis_q(:,:,gi)), GRN_q(:,gi))
@@ -3162,7 +3180,6 @@ contains
             call zero(masslump)
          end if
 
-         ! write(*,*) 'grad_U_at_quad, visc_at_quad, abs_normal, transpose(shear_at_quad), normal_shear_at_quad'
          do face = 1, surface_element_count(bed_shear_stress)
             call calculate_bed_shear_stress_ele(bed_shear_stress, masslump, face, X, U,&
                  & visc, density)
@@ -3260,10 +3277,6 @@ contains
         ! to surface - transpose (because fluidity stores data in row-major order??)
         normal_shear_at_quad(:,i_gi) = matmul(transpose(shear_at_quad(:,:,i_gi)),&
              & abs_normal) 
-
-        ! write(*,*) grad_U_at_quad(:,:,i_gi), ',', visc_at_quad(:,:,i_gi), ',', &
-        !      & abs_normal, ',', transpose(shear_at_quad(:,:,i_gi)), ',', &
-        !      & normal_shear_at_quad(:,i_gi)
      end do  
 
      normal_shear_at_loc = shape_vector_rhs(f_shape, normal_shear_at_quad, density *&
