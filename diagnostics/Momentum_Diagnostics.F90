@@ -96,11 +96,11 @@ contains
     ! check options
     if (.not.(have_option(trim(parent_path)//'/subgridscale_parameterisation::k-epsilon')))&
          & then
-       FLExit('you must have /subgridscale_parameterisation(k-epsilon) to be able to calculate diffusivity based upon the k-epsilon model')
+       FLExit('you must have /subgridscale_parameterisation::k-epsilon to be able to calculate diffusivity based upon the k-epsilon model')
     end if
 
     ! get sigma_p number
-    call get_option(trim(parent_path)//'/subgridscale_parameterisation::k-epsilon/sigma_p', sigma_p)
+    call get_option(trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/sigma_p', sigma_p)
 
     ! allocate and zero required fields
     call allocate(background_diffusivity, t_field%mesh, name="background_diff&
