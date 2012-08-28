@@ -131,13 +131,24 @@ contains
   ! --------------------------------------------------------------------------
 
 
-  function read_mesh_files_to_field(filename, format, shape) result (field)
+  function read_mesh_files_to_field(filename, format, shape, solid) result (field)
     character(len=*), intent(in) :: filename
     type(element_type), intent(in), target :: shape
+    integer, intent(inout), optional :: solid
     type(vector_field)  :: field
     character(len=OPTION_PATH_LEN) :: meshFormat
+    
+    logical :: issolid
 
     character(len=*), optional, intent(in) :: format
+
+    if(.not. present(solid)) then
+       issolid = .false.
+    else
+       if (solid .eq. 1) then
+          issolid = .true.
+       end if
+    end if
 
     if( .not. present(format) ) then
        call guess_external_mesh_format(meshFormat)
@@ -150,7 +161,7 @@ contains
        field = read_triangle_files(filename, shape)
 
     case("gmsh")
-       field = read_gmsh_file(filename, shape)
+       field = read_gmsh_file(filename, shape, solid=solid)
 
        ! Additional mesh format subroutines go here
 
@@ -206,7 +217,7 @@ contains
 
   function read_mesh_simple(filename, quad_degree, &
        quad_ngi, no_faces, &
-       quad_family, mdim, format ) &
+       quad_family, mdim, format, solid ) &
        result (field)
 
     ! A simpler mechanism for reading a mesh file into a field.
@@ -223,11 +234,23 @@ contains
     integer, intent(in), optional :: quad_family
     ! Dimension of mesh
     integer, intent(in), optional :: mdim
+    !! If it is a solid mesh, force it to be read in serial
+    integer, intent(in), optional :: solid
+    
+!    logical :: issolid
 
     type(vector_field) :: field
 
     character(len=*), optional, intent(in) :: format
     character(len=option_path_len) :: meshFormat
+
+!    if(.not. present(solid)) then
+!       issolid = .false.
+!    else
+!       if (solid .eq. 1) then
+!          issolid = .true.
+!       end if
+!    end if
 
     if( .not. present(format) ) then
        call guess_external_mesh_format(meshFormat)
@@ -243,7 +266,7 @@ contains
 
     case("gmsh")
        field = read_gmsh_file(filename, quad_degree, quad_ngi, &
-            no_faces, quad_family)
+            no_faces, quad_family, solid=solid)
 
        ! Additional mesh format subroutines go here
 

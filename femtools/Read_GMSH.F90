@@ -181,13 +181,16 @@ contains
   ! -----------------------------------------------------------------
   ! The main function for reading GMSH files
 
-  function read_gmsh_file_to_field(filename, shape) result (field)
+  function read_gmsh_file_to_field(filename, shape, solid) result (field)
     ! Filename is the base name of the GMSH file without .msh 
     ! In parallel the filename must *not* include the process number.
 
     character(len=*), intent(in) :: filename
     type(element_type), intent(in), target :: shape
+    integer, intent(in), optional :: solid
     type(vector_field)  :: field
+
+    logical :: issolid
 
     integer :: fd
     integer,  pointer, dimension(:) :: sndglno, boundaryIDs, faceOwner
@@ -205,8 +208,16 @@ contains
     type(GMSHelement), pointer :: elements(:), faces(:)
 
 
+    if(.not. present(solid)) then
+       issolid = .false.
+    else
+       if (solid .eq. 1) then
+          issolid = .true.
+       end if
+    end if
+
     ! If running in parallel, add the process number
-    if(isparallel()) then
+    if(isparallel() .and. (.not. issolid)) then
        lfilename = trim(parallel_filename(filename)) // ".msh"
     else
        lfilename = trim(filename) // ".msh"
@@ -390,7 +401,7 @@ contains
   ! -----------------------------------------------------------------
   ! Simplified interface to reading GMSH files
   function read_gmsh_simple( filename, quad_degree, &
-       quad_ngi, no_faces, quad_family ) &
+       quad_ngi, no_faces, quad_family, solid ) &
        result (field)
     !!< A simpler mechanism for reading a GMSH file into a field.
     !!< In parallel the filename must *not* include the process number.
@@ -404,15 +415,26 @@ contains
     logical, intent(in), optional :: no_faces
     !! What quadrature family to use
     integer, intent(in), optional :: quad_family
+    !! If it is a solid mesh, force it to be read in serial
+    integer, intent(in), optional :: solid
 
     type(vector_field) :: field
     type(quadrature_type) :: quad
     type(element_type) :: shape
+    
+    logical :: issolid
 
     integer :: dim, loc
 
+    if(.not. present(solid)) then
+       issolid = .false.
+    else
+       if (solid .eq. 1) then
+          issolid = .true.
+       end if
+    end if
 
-    if(isparallel()) then
+    if(isparallel() .and. (.not. issolid)) then
        call identify_gmsh_file(parallel_filename(filename), dim, loc)
     else
        call identify_gmsh_file(filename, dim, loc)
@@ -430,7 +452,7 @@ contains
 
     shape=make_element_shape(loc, dim, 1, quad)
 
-    field=read_gmsh_file(filename, shape)
+    field=read_gmsh_file(filename, shape, solid=solid)
 
     ! deallocate our references of shape and quadrature:
     call deallocate_element(shape)

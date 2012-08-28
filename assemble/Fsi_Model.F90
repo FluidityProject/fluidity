@@ -151,6 +151,10 @@ module fsi_model
 
         ! Set absorption term /sigma
         call compute_fluid_absorption(state)
+        ! Set source term:
+        if (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed") .and. its == 1) then
+            call compute_source_term(state)
+        end if
 
         ! the variable name might be misleading when reading it as 
         ! holding the value at the end of the timestep, but when 
@@ -356,7 +360,7 @@ module fsi_model
 
         type(state_type), intent(inout) :: state
         type(scalar_field), pointer :: alpha_solidmesh
-        type(vector_field), pointer :: solidforce_mesh
+        type(vector_field), pointer :: solidforce_mesh, solidvelocity_mesh
         character(len=OPTION_PATH_LEN) :: mesh_path, mesh_name
         integer :: i, num_solid_mesh
 
@@ -377,6 +381,10 @@ module fsi_model
            alpha_solidmesh%option_path = 'testtmp/'//trim(alpha_solidmesh%option_path)
            solidforce_mesh => extract_vector_field(state, trim(mesh_name)//'SolidForce')
            solidforce_mesh%option_path = 'testtmp/'//trim(solidforce_mesh%option_path)
+           if (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed")) then
+              solidvelocity_mesh => extract_vector_field(state, trim(mesh_name)//'SolidForce')
+              solidvelocity_mesh%option_path = 'testtmp/'//trim(solidvelocity_mesh%option_path)
+           end if
 
         end do solid_mesh_loop
 
@@ -394,10 +402,10 @@ module fsi_model
 
         type(state_type), intent(inout) :: state
         type(mesh_type), pointer :: solid_mesh
-        type(vector_field), pointer :: solid_position, fluid_position, solid_force
+        type(vector_field), pointer :: solid_position, fluid_position, solid_force, solid_velocity
         type(scalar_field), pointer :: alpha_global
         type(scalar_field) :: alpha_solidmesh
-        type(vector_field) :: solidforce_mesh
+        type(vector_field) :: solidforce_mesh, solidvelocity_mesh
         character(len=OPTION_PATH_LEN) :: mesh_path, mesh_name
         integer :: i, num_solid_mesh
 
@@ -409,6 +417,9 @@ module fsi_model
           fluid_position => extract_vector_field(state, 'Coordinate')
           alpha_global => extract_scalar_field(state, 'SolidConcentration')
           solid_force => extract_vector_field(state, "SolidForce")
+          if (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed")) then
+             solid_velocity => extract_vector_field(state, "SolidVelocity")
+          end if
 
           ! figure out if we want to print out diagnostics and initialise files
           ! check for mutiple solids and get translation coordinates
@@ -442,6 +453,14 @@ module fsi_model
              solidforce_mesh%option_path = solid_force%option_path
              call zero(solidforce_mesh)
              call insert(state, solidforce_mesh, trim(solid_mesh%name)//"SolidForce")
+             
+             ! SolidVelocity per solid mesh:
+             if (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed")) then
+                call allocate(solidvelocity_mesh, solid_velocity%dim, solid_velocity%mesh, trim(solid_mesh%name)//"SolidVelocity")
+                solidvelocity_mesh%option_path = solid_velocity%option_path
+                call zero(solidforce_mesh)
+                call insert(state, solidvelocity_mesh, trim(solid_mesh%name)//"SolidVelocity")
+             end if
 
           end do solid_mesh_loop
 
@@ -516,13 +535,20 @@ module fsi_model
     subroutine fsi_move_solid_mesh(state)
     !! Moving a solid mesh
       type(state_type), intent(in) :: state
-      type(vector_field), pointer :: solid_position
+      type(vector_field), pointer :: fluid_position
+      type(vector_field), pointer :: solid_position, solid_velocity, solid_velocity_global
+      type(scalar_field), pointer :: solid_alpha
       type(vector_field) :: solid_movement
       integer :: i, num_pre_solid_vel, num_solid_mesh
       character(len=PYTHON_FUNC_LEN) :: func
       character(len=OPTION_PATH_LEN) :: mesh_name
 
       ewrite(2,*) "inside move_solid_mesh"
+
+      ! Get fluid positions:
+      fluid_position => extract_vector_field(state, "Coordinate")
+      solid_velocity_global => extract_vector_field(state, "SolidVelocity")
+      call zero(solid_velocity_global)
 
       ! Get number of solid meshes that have a prescribed velocity:
       num_pre_solid_vel = option_count('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed/mesh')
@@ -533,8 +559,10 @@ module fsi_model
             ! 1st get mesh name:
             call get_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed/mesh['//int2str(i)//']/name', mesh_name)
 
-            ! 2nd get coordinate field of this solid mesh:
+            ! 2nd get coordinate field of this solid mesh, and velocity field (which is on the fluid mesh):
             solid_position => extract_vector_field(state, trim(mesh_name)//"SolidCoordinate")
+            solid_alpha => extract_scalar_field(state, trim(mesh_name)//"SolidConcentration")
+            solid_velocity => extract_vector_field(state, trim(mesh_name)//"SolidVelocity")
 
             ! 3nd get the python function for this solid mesh:
             call get_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed/mesh['//int2str(i)//']/python', func)
@@ -543,11 +571,19 @@ module fsi_model
             call allocate(solid_movement, solid_position%dim, solid_position%mesh, name=trim(mesh_name)//"SolidMovement")
             call zero(solid_movement)
 
+            ! For the solid mesh:
             call set_from_python_function(solid_movement, func, solid_position, current_time)
-            
+
             ! 5 set solid position field:
-            solid_position => extract_vector_field(state, trim(mesh_name)//"SolidCoordinate")
             call addto(solid_position, solid_movement, dt)
+            
+            ! 6 set solid velocity (on fluid mesh), THIS SHOULD BE DONE VIA A PROJECTION FROM SOLID TO FLUID MESH:
+            call zero(solid_velocity)
+            ! And for now, also for fluid mesh:
+            call set_from_python_function(solid_velocity, func, fluid_position, current_time)
+            call scale(solid_velocity, solid_alpha)
+            call scale(solid_velocity, dt)
+            call addto(solid_velocity_global, solid_velocity)
 
             ! 6 Deallocate dummy vector field:
             call deallocate(solid_movement)
@@ -563,33 +599,43 @@ module fsi_model
     !----------------------------------------------------------------------------
 
 ! For future use:
-!    subroutine set_source(state)
-!
-!      type(state_type), intent(inout) :: state
-!
-!      type(vector_field), pointer :: source, positions
-!      type(vector_field), pointer :: velocity, absorption
-!      type(scalar_field), pointer :: Tsource
-!      integer :: i, particle
-!      real :: x0, y0, z0, x, y, z, sigma
-!
-!      if (two_way_coupling) then
-!
-!         velocity => extract_vector_field(state, "Velocity")
-!         absorption => extract_vector_field(state, "VelocityAbsorption")
-!
-!         source => extract_vector_field(state, "VelocitySource")
-!         call zero(source)
-!
-!         ! (\rho_f \alpha_s / \Delta t) (\hat{u_f} or u) - F_s/ \Delta t
-!         do i = 1, node_count(source)
-!            call set(source, i, &
-!                 node_val(absorption, i) * node_val(velocity, i) &
-!                 - node_val(fl_pos_solid_force, i)/dt)
-!         end do
-!
-!      end if
-!
+    subroutine compute_source_term(state)
+
+      type(state_type), intent(inout) :: state
+
+      type(vector_field), pointer :: source_term
+      type(vector_field), pointer :: fluid_velocity, solid_velocity, fluid_absorption
+      type(scalar_field), pointer :: alpha
+
+      integer, dimension(:), pointer :: nodes
+      integer :: i, j, ele
+
+      if (have_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed')) then
+
+         fluid_velocity => extract_vector_field(state, "Velocity")
+         fluid_absorption => extract_vector_field(state, "VelocityAbsorption")         
+         solid_velocity => extract_vector_field(state, "SolidVelocity")
+         alpha => extract_scalar_field(state, "SolidConcentration")
+
+         source_term => extract_vector_field(state, "VelocitySource")
+         call zero(source_term)
+
+         ! (\rho_f \alpha_s / \Delta t) (\hat{u_f} or u) - F_s/ \Delta t
+         do ele = 1, ele_count(source_term%mesh)
+             nodes => ele_nodes(source_term%mesh, ele)
+             do i = 1, size(nodes)
+                 if (node_val(alpha, nodes(i)) .gt. 0.0) then
+                     do j = 1, source_term%dim
+                         call set(source_term, j, nodes(i), node_val(solid_velocity,j,nodes(i)) / dt  + (-1.0 * node_val(alpha, nodes(i)) / dt) * (node_val(fluid_velocity,j,nodes(i)) )  )
+!                         call set(source_term, j, nodes(i), (node_val(alpha, nodes(i)) / dt) * (node_val(fluid_velocity,j,nodes(i)) - (node_val(solid_velocity,j,nodes(i))) ) )
+                     end do
+                 end if
+             end do
+         end do
+
+      end if
+
+
 !      if (have_pressure_gradient) then
 !
 !         source => extract_vector_field(state, "VelocitySource")
@@ -602,7 +648,7 @@ module fsi_model
 !
 !      end if
 !
-!    end subroutine set_source
+    end subroutine compute_source_term
 
     !----------------------------------------------------------------------------
 ! For future use:
@@ -674,6 +720,7 @@ module fsi_model
 
       type(vector_field), pointer :: fluid_velocity, fluid_coord, fluid_absorption
       type(vector_field), pointer :: solidforce, solidforce_global
+      type(vector_field), pointer :: solid_velocity
       type(scalar_field), pointer :: alpha
       integer :: i, j, ele
       integer, dimension(:), pointer :: nodes
@@ -692,9 +739,16 @@ module fsi_model
           solidforce => extract_vector_field(state, "SolidForce")
           alpha => extract_scalar_field(state, "SolidConcentration")
       end if
+      ! solidvelocity doesn't have to be of that specific solid, but can be the global solidvelocity field,
+      ! as for the computation of the solidforce (for a specific solid), only the elements where alpha>0.0
+      ! are taken into account. Since alpha is solid-mesh specific, this works!
+      if (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed")) then
+         solid_velocity => extract_vector_field(state, "SolidVelocity")
+      end if
 
       ! 1-way coupling:
-      if (have_option('/embedded_models/fsi_model/one_way_coupling')) then
+      if (have_option('/embedded_models/fsi_model/one_way_coupling') &
+           & .and. (.not. have_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed'))) then
 
           ! Looping over ele, looping over nodes:
           call zero(solidforce)
@@ -718,6 +772,33 @@ module fsi_model
           solid_force_diag = 0.0
           solid_force_diag = field_integral(solidforce, fluid_coord)
 
+      ! 1-way coupling with prescribed movement:
+      else if (have_option('/embedded_models/fsi_model/one_way_coupling') &
+           & .and. have_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed')) then
+
+          ! Looping over ele, looping over nodes:
+          call zero(solidforce)
+          do ele = 1, ele_count(solidforce%mesh)
+              nodes => ele_nodes(solidforce%mesh, ele)
+              do i = 1, size(nodes)
+                  if (node_val(alpha, nodes(i)) .gt. 0.0) then
+                      do j = 1, solidforce%dim
+                          call set(solidforce, j, nodes(i), (node_val(alpha, nodes(i)) / dt) * (node_val(fluid_velocity,j,nodes(i)) - (node_val(solid_velocity,j,nodes(i))) ) )
+                      end do
+                  end if
+              end do
+          end do
+
+          if (present(mesh_name)) then
+              ! Add the computed solid force to the field holding all the force-fields:
+              call addto(solidforce_global, solidforce)
+          end if !else solidforce points to the global field, e.g. only 1 solid mesh provided
+          
+          ! computing the integral of the solidforce (x-component)
+          solid_force_diag = 0.0
+          solid_force_diag = field_integral(solidforce, fluid_coord)
+
+      ! 2-way coupling
       else if (have_option('/embedded_models/fsi_model/two_way_coupling')) then
          ! Do nothing at this stage
       end if
@@ -908,8 +989,8 @@ module fsi_model
     subroutine fsi_initialise(state)
     !! Initialise fields and meshes for FSI problems
       type(state_type), intent(inout) :: state
-      type(vector_field), pointer :: fluid_position, solid_force
-      type(vector_field) :: solid_position, solidforce_mesh
+      type(vector_field), pointer :: fluid_position, solid_force, solid_velocity
+      type(vector_field) :: solid_position, solidforce_mesh, solidvelocity_mesh
       type(scalar_field) :: alpha_solidmesh
       type(scalar_field), pointer :: alpha_global
       type(mesh_type) :: solid_mesh
@@ -924,6 +1005,10 @@ module fsi_model
       alpha_global => extract_scalar_field(state, "SolidConcentration")
       ! and the solid force field in state:
       solid_force => extract_vector_field(state, "SolidForce")
+      if (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed")) then
+         ! and the solid velocity field in state:
+         solid_velocity => extract_vector_field(state, "SolidVelocity")
+      end if
       
       ! figure out if we want to print out diagnostics and initialise files
       ! check for mutiple solids and get translation coordinates
@@ -949,8 +1034,11 @@ module fsi_model
          call get_option('/embedded_models/fsi_model/geometry/quadrature/degree', quad_degree)
          ! Read in the serial mesh of solid body
          ! For now the FS coupling is parallel for the fluid domain, but serial for the solid domain:
-         solid_position = read_triangle_serial(mesh_filename, quad_degree=quad_degree)
+!         solid_position = read_triangle_serial(mesh_filename, quad_degree=quad_degree)
 !         solid_position = read_mesh_files(mesh_filename, quad_degree=quad_degree, solidmesh=.true., format=meshformat)
+          solid_position = read_mesh_files(mesh_filename, quad_degree=quad_degree, format=meshformat, solid=1)
+
+
 
          ! Set mesh parameters
          solid_mesh = solid_position%mesh
@@ -984,6 +1072,15 @@ module fsi_model
 !         ! Add to extra state:
 !         call insert(global_fluid_state, solidforce_mesh, trim(solidforce_mesh%name))
          call deallocate(solidforce_mesh)
+         
+         if (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed")) then
+            ! And the solidvelocity:
+            call allocate(solidvelocity_mesh, solid_velocity%dim, solid_velocity%mesh, trim(solid_mesh%name)//"SolidVelocity")
+            solidvelocity_mesh%option_path = solid_velocity%option_path
+            call zero(solidvelocity_mesh)
+            call insert(state, solidvelocity_mesh, trim(solid_mesh%name)//"SolidVelocity")
+            call deallocate(solidvelocity_mesh)
+         end if
 
          ! Abort if dimensions of fluid and solid mesh don't add up
          assert(fluid_position%dim == solid_position%dim)         
