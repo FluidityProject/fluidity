@@ -2992,7 +2992,7 @@ This is calculated at all boundaries</a:documentation>
         </element>
         <element name="velocity_gradient">
           <a:documentation>velocity_gradient - nu * grad(u)
-This uses the velocity gradient at the boundarieds to calculate the 
+This uses the velocity gradient at the boundaries to calculate the 
 bed shear stress. Valid for non parameterised velocity boundaries</a:documentation>
           <empty/>
         </element>
