@@ -74,7 +74,7 @@ module fluids_module
   use write_triangle
   use biology
   use foam_flow_module, only: calculate_potential_flow, calculate_foam_velocity
-  use fsi_model, only: fsi_modelling, fsi_model_compute_diagnostics, fsi_model_nonlinear_iteration_converged
+  use fsi_model, only: fsi_modelling, fsi_model_compute_diagnostics, fsi_model_nonlinear_iteration_converged, fsi_insert_state
   use momentum_equation
   use timeloop_utilities
   use free_surface_module
@@ -470,6 +470,11 @@ contains
        end if
 
        if(simulation_completed(current_time, timestep)) exit timestep_loop
+       
+       ! Adding additional fields:
+       if (have_option("/embedded_models/fsi_model/")) then
+          call fsi_insert_state(state(1))
+       end if
 
        if( &
                                 ! Do not dump at the start of the simulation (this is handled by write_state call earlier)
