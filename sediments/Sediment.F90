@@ -96,7 +96,7 @@ contains
     integer, intent(out), optional              :: stat
 
     call get_option(trim(state%option_path)//'/sediment/scalar_field['//int2str(i_field -&
-         & 1)//']/name', item) 
+         & 1)//']/name', item, stat=stat) 
 
   end subroutine get_sediment_field_name
 
@@ -151,7 +151,7 @@ contains
     type(state_type), intent(in)     :: state
     type(scalar_field), pointer      :: sediment_field
     integer                          :: i_field, i_bc, n_bc
-    character(len = FIELD_NAME_LEN)  :: bc_name, bc_type, algorithm
+    character(len = FIELD_NAME_LEN)  :: bc_name, bc_type
     character(len = OPTION_PATH_LEN) :: bc_path, bc_path_
 
     ewrite(1,*) "In set_sediment_reentrainment"
@@ -275,7 +275,7 @@ contains
                & shear_stress, surface_element_list, x, masslump, sink_U, volume_fraction)
        case("Garcia_1991")
           call assemble_garcia_1991_reentrainment_ele(state, i_field, i_ele, reentrainment,&
-               & x, masslump, surface_mesh, surface_element_list, viscosity_pointer,&
+               & x, masslump, surface_element_list, viscosity_pointer,&
                & shear_stress, d50, sink_U, sigma, volume_fraction)
        case default
           FLExit("A valid reentrainment algorithm must be selected")
@@ -314,7 +314,7 @@ contains
   end subroutine set_reentrainment_bc
   
   subroutine assemble_garcia_1991_reentrainment_ele(state, i_field, i_ele, reentrainment,&
-       & x, masslump, surface_mesh, surface_element_list, viscosity, shear_stress, d50,&
+       & x, masslump, surface_element_list, viscosity, shear_stress, d50,&
        & sink_U, sigma, volume_fraction)
 
     type(state_type), intent(in)                     :: state
@@ -325,7 +325,6 @@ contains
     type(scalar_field), pointer, intent(inout)       :: reentrainment
     type(scalar_field), pointer, intent(in)          :: d50, sink_U, sigma,&
          & volume_fraction 
-    type(mesh_type), pointer, intent(in)             :: surface_mesh
     integer, dimension(:), pointer, intent(in)       :: surface_element_list
     type(element_type), pointer                      :: shape
     integer, dimension(:), pointer                   :: ele
@@ -333,7 +332,6 @@ contains
     real, dimension(ele_loc(reentrainment, i_ele), &
          & ele_loc(reentrainment, i_ele))            :: invmass
     real                                             :: A, R, d, g, density
-    real                                             :: algorithm_viscosity
     real, dimension(ele_ngi(reentrainment, i_ele))   :: R_p, u_star, Z
     real, dimension(ele_loc(reentrainment, i_ele))   :: E
     real, dimension(ele_ngi(reentrainment, i_ele))   :: shear, lambda_m
@@ -503,7 +501,7 @@ contains
   subroutine sediment_check_options
 
     character(len=FIELD_NAME_LEN)           :: field_mesh, sediment_mesh, bc_type
-    character(len=OPTION_PATH_LEN)          :: field_option_path, bc_path, bc_path_i
+    character(len=OPTION_PATH_LEN)          :: field_option_path 
     integer                                 :: i_field, i_bc, i_bc_surf, i_bedload_surf,&
          & n_sediment_fields, nbcs
     integer, dimension(2)                   :: bc_surface_id_count, bedload_surface_id_count

@@ -66,16 +66,14 @@ contains
     type(scalar_field), dimension(:), allocatable          :: deposited_sediment, erosion
     type(scalar_field), pointer                            :: erosion_flux, bedload_field&
          &, sediment_field, sink_U
-    type(scalar_field)                                     :: masslump, temp
+    type(scalar_field)                                     :: masslump
     integer                                                :: n_sediment_fields,&
-         & i_field, i_bcs, i_node, ele, stat, n_bcs
+         & i_field, i_bcs, i_node, ele, n_bcs
     integer, dimension(2)                                  :: surface_id_count
     integer, dimension(:), allocatable                     :: surface_ids
     integer, dimension(:), pointer                         :: to_nodes, surface_element_list
-    real                                                   :: current_time, start_time
     real, dimension(:), allocatable                        :: values
-    character(len=FIELD_NAME_LEN)                          :: field_name, bc_name,&
-         & bc_type
+    character(len=FIELD_NAME_LEN)                          :: bc_name, bc_type
     character(len=OPTION_PATH_LEN)                         :: bc_path
 
     ! check if this is before the first timestep (no deposited sediment)
@@ -309,7 +307,6 @@ contains
     type(scalar_field)                                        :: rhs
     integer                                                   :: n_sediment_fields,&
          & i_field, i_node
-    character(len = FIELD_NAME_LEN)                          :: field_name
 
     ewrite(1,*) 'In calculate sediment sinking velocities'
 
@@ -457,8 +454,8 @@ contains
     type(vector_field), pointer                           :: x
     type(scalar_field_pointer), dimension(:), allocatable :: bedload
     real, dimension(:), allocatable                       :: diameter
-    type(scalar_field)                                    :: mean, total_bedload,&
-         & masslump, sigma_surface, sigma_remap
+    type(scalar_field)                                    :: mean, &
+         & masslump, sigma_surface
     integer                                               :: n_fields, i_field, i_ele,&
          & i_node, stat
     integer, dimension(2)                                 :: surface_id_count
@@ -554,7 +551,7 @@ contains
     real, dimension(ele_ngi(sigma_surface, i_ele))           :: detwei, total_bedload, &
          & mean_diameter, sigma_numerator, diameter_temp
     real, dimension(ele_loc(sigma_surface, i_ele))           :: sigma
-    integer                                                  :: i_field, i_gi, i_loc
+    integer                                                  :: i_field, i_gi
     real                                                     :: min_bedload = 1.0e-20
 
     ele => ele_nodes(sigma_surface, i_ele)
@@ -620,7 +617,7 @@ contains
     type(scalar_field)                                    :: total_bedload,&
          & volume_fraction_surface, masslump
     integer                                               :: n_fields, i_field, i_ele,&
-         & i_node, stat
+         & i_node
     integer, dimension(2)                                 :: surface_id_count
     integer, dimension(:), allocatable                    :: surface_ids
 
@@ -713,7 +710,7 @@ contains
     type(scalar_field), intent(in)                           :: bedload, total_bedload
     type(scalar_field), intent(inout)                        :: masslump
     type(vector_field), pointer, intent(in)                  :: x
-    integer, dimension(:), pointer                           :: ele, i_gi
+    integer, dimension(:), pointer                           :: ele
     type(element_type), pointer                              :: shape
     real, dimension(ele_loc(volume_fraction_surface, i_ele), &
          & ele_loc(volume_fraction_surface, i_ele))          :: invmass
