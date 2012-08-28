@@ -367,14 +367,6 @@
                its = its + 1
             end do
 
-            ! set bed shear stress diagnostic field node values (must scale by velocity
-            ! field later)
-            if (have_BS) then
-               do dim = 1, ndim
-                  call addto(bed_shear, dim, node, max(tau, 0.))
-               end do
-            end if
-
             ! generally u_p shouldn't go over 10.
             if (u_p>=25. .and. Cb>0. .and. abs(tau-Cb*(v/h))>1.e-10 .and. its>0) then
                ewrite(3,*) "WARNING: you are making the wall treatment unhappy",u_p, 'its', its
@@ -383,6 +375,14 @@
             T(loc) = max(tau/dt, 0.)
 
          end do ! snloc
+
+         ! set bed shear stress diagnostic field node values (must scale by velocity
+         ! field later)
+         if (have_BS) then
+            do dim = 1, ndim
+               call addto(bed_shear, dim, u_nodes_bdy, T)
+            end do
+         end if
 
          ! get absorption factor at quad
          T_at_quad = matmul(T, u_f_shape%n)

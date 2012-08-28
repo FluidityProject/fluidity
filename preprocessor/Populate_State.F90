@@ -1643,6 +1643,39 @@ contains
        
     end do
 
+    ! Eddy diffusivity from K-Epsilon 2-equation turbulence model
+    do i = 1, size(states)
+       
+       tfield=extract_tensor_field(states(i), "KEpsEddyViscosity", stat)
+
+       if (stat/=0) cycle
+
+       tfield%aliased=.True.
+
+       do s = 1, scalar_field_count(states(i))
+
+          sfield => extract_scalar_field(states(i), s)
+          
+          if (have_option(trim(sfield%option_path)//&
+               "/prognostic/subgridscale_parameterisation&
+               &::k_epsilon")) then
+
+             ! Get Prandtl number, if specified.
+             call get_option(trim(sfield%option_path)//&
+               "/prognostic/subgridscale_parameterisation&
+               &::k_epsilon/Prandtl_number", Pr, default = 1.0)
+
+             ! Scale field by Prandtl number
+             call scale(tfield, 1./Pr)
+             tfield%name=trim(sfield%name)//"Diffusivity"
+             call insert(states(i), tfield, tfield%name)
+
+          end if
+
+       end do
+       
+    end do
+
   end subroutine alias_diffusivity
 
   function allocate_scalar_field_as_constant(option_path) result(is_constant)

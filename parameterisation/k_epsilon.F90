@@ -35,7 +35,7 @@ module k_epsilon
   use field_options
   use state_module
   use spud
-  use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN, timestep, current_time
+  use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN
   use state_fields_module
   use boundary_conditions
   use fields_manipulation
@@ -44,7 +44,6 @@ module k_epsilon
   use vector_tools
   use sparsity_patterns_meshes
   use FLDebug
-  use vtk_interfaces
 
 implicit none
 
@@ -52,13 +51,11 @@ implicit none
 
   ! locally allocatad fields
   type(scalar_field), save            :: tke_old, tke_src_old
-  real, save                          :: c_mu, c_eps_1, c_eps_2, sigma_eps, sigma_k, lmax, dump_period
-  real, save                          :: last_dump_time_k = -INFINITY
-  real, save                          :: last_dump_time_eps = -INFINITY
+  real, save                          :: c_mu, c_eps_1, c_eps_2, sigma_eps, sigma_k, lmax
   real, save                          :: fields_min = 1.e-10
   character(len=FIELD_NAME_LEN), save :: src_abs
 
-  public :: keps_init, keps_cleanup, keps_tke, keps_eps, keps_eddyvisc, keps_bcs, keps_adapt_mesh, k_epsilon_check_options
+  public :: keps_init, keps_cleanup, keps_tke, keps_eps, keps_eddyvisc, keps_bcs, keps_adapt_mesh, keps_check_options
 
   ! Outline:
   !  - Init in populate_state.
@@ -78,10 +75,9 @@ contains
 subroutine keps_init(state)
 
     type(state_type), intent(inout) :: state
-    type(scalar_field), pointer     :: field
+    type(scalar_field), pointer     :: Field
     character(len=OPTION_PATH_LEN)  :: keps_path
     real                            :: visc
-    integer                         :: stat
 
     ewrite(1,*)'Now in k_epsilon turbulence model - keps_init'
     keps_path = trim(state%option_path)//"/subgridscale_parameterisations/k-epsilon"
@@ -99,31 +95,35 @@ subroutine keps_init(state)
     ! Get the 5 model constants
     call get_option(trim(keps_path)//'/C_mu', C_mu, default = 0.09)
     call get_option(trim(keps_path)//'/C_eps_1', c_eps_1, default = 1.44)
-    call get_option(trim(keps_path)//'/C_eps_2', c_eps_2, default = 1.92)
+    call get_option(trim(keps_path)//'C_eps_2', c_eps_2, default = 1.92)
     call get_option(trim(keps_path)//'/sigma_k', sigma_k, default = 1.0)
-    call get_option(trim(keps_path)//'/sigma_eps', sigma_eps, default = 1.3)
+    call get_option(trim(keps_path)//'sigma_eps', sigma_eps, default = 1.3)
 
-    ! Get dump period for debugging if enabled
-    call get_option(trim(keps_path)//'/debugging_mode/period', dump_period, &
-         & default = 0.0)
+    ! Get background viscosity
+    call get_option(trim(keps_path)//"/tensor_field::BackgroundViscosity/prescribed/&
+                          &value::WholeMesh/isotropic/constant", visc)
+    
+    ! initialise eddy viscosity
+    if (have_option(trim(keps_path)//"/scalar_field::ScalarEddyViscosity/diagnostic")) then
+       Field => extract_scalar_field(state, "ScalarEddyViscosity")
+       call set(Field, visc)
+    end if
 
     ! initialise lengthscale
-    field => extract_scalar_field(state, "LengthScale")
-    call zero(field)
-
-    ! initialise scalar eddy viscosity
-    call keps_eddyvisc(state)
+    Field => extract_scalar_field(state, "LengthScale")
+    call zero(Field)
 
     ewrite(2,*) "k-epsilon parameters"
     ewrite(2,*) "--------------------------------------------"
-    ewrite(2,*) "c_mu: ", c_mu
-    ewrite(2,*) "c_eps_1: ", c_eps_1
-    ewrite(2,*) "c_eps_2: ", c_eps_2
-    ewrite(2,*) "sigma_k: ", sigma_k
-    ewrite(2,*) "sigma_eps: ", sigma_eps
-    ewrite(2,*) "fields_min: ", fields_min
-    ewrite(2,*) "implicit/explicit source/absorption terms: ", trim(src_abs)
-    ewrite(2,*) "max turbulence lengthscale: ", lmax
+    ewrite(2,*) "c_mu: ",     c_mu
+    ewrite(2,*) "c_eps_1: ",  c_eps_1
+    ewrite(2,*) "c_eps_2: ",  c_eps_2
+    ewrite(2,*) "sigma_k: ",  sigma_k
+    ewrite(2,*) "sigma_eps: ",sigma_eps
+    ewrite(2,*) "fields_min: ",fields_min
+    ewrite(2,*) "background visc: ",   visc
+    ewrite(2,*) "implicit/explicit source/absorption terms: ",   trim(src_abs)
+    ewrite(2,*) "max turbulence lengthscale: ",     lmax
     ewrite(2,*) "--------------------------------------------"
 
 end subroutine keps_init
@@ -134,74 +134,64 @@ subroutine keps_tke(state)
 
     type(state_type), intent(inout)    :: state
     type(scalar_field), pointer        :: src_kk, abs_kk, kk, eps, EV, lumped_mass
-    type(scalar_field_pointer), allocatable, dimension(:) :: buoyant_fields
-    type(scalar_field)                 :: prescribed_src_kk, prescribed_abs_kk
-    type(vector_field), pointer        :: positions, nu, u, g
+    type(scalar_field)                 :: src_rhs, abs_rhs, prescribed_src_kk, prescribed_abs_kk
+    type(vector_field), pointer        :: positions, nu, u
     type(tensor_field), pointer        :: kk_diff
-    real, allocatable, dimension(:)    :: beta, delta_t
-    integer                            :: i, ele, stat, i_term
-    real                               :: residual, g_magnitude
-    logical :: prescribed_src, prescribed_abs, gravity = .true., have_buoyant_fields = .false.
-
-    ! for vtu output of source terms
-    type(scalar_field), dimension(3)   :: src_abs_terms
+    type(element_type), pointer        :: shape_kk
+    integer                            :: i, ele
+    integer, pointer, dimension(:)     :: nodes_kk
+    real                               :: residual
+    real, allocatable, dimension(:)    :: detwei, strain_ngi, rhs_addto
+    real, allocatable, dimension(:,:,:):: dshape_kk
+    logical                            :: prescribed_src, prescribed_abs
 
     ewrite(1,*) "In keps_tke"
 
     positions       => extract_vector_field(state, "Coordinate")
     nu              => extract_vector_field(state, "NonlinearVelocity")
     u               => extract_vector_field(state, "Velocity")
-    src_kk          => extract_scalar_field(state, "TurbulentKineticEnergySource")
-    abs_kk          => extract_scalar_field(state, "TurbulentKineticEnergyAbsorption")
+    src_kk       => extract_scalar_field(state, "TurbulentKineticEnergySource")
+    abs_kk   => extract_scalar_field(state, "TurbulentKineticEnergyAbsorption")
     kk_diff         => extract_tensor_field(state, "TurbulentKineticEnergyDiffusivity")
     kk              => extract_scalar_field(state, "TurbulentKineticEnergy")
     eps             => extract_scalar_field(state, "TurbulentDissipation")
     EV              => extract_scalar_field(state, "ScalarEddyViscosity")
-    g               => extract_vector_field(state, "GravityDirection", stat)
-    call get_option('physical_parameters/gravity/magnitude', g_magnitude, stat)
-    if (stat /= 0) then
-       gravity = .false.
-    end if
-    call get_scalar_field_buoyancy_data(state, buoyant_fields, beta, delta_t)
-    if (allocated(buoyant_fields)) then
-       have_buoyant_fields = .true.
-    end if
 
     ! Set copy of old kk for eps solve
     call set(tke_old, kk)
 
     prescribed_src=.false.
     prescribed_abs=.false.
-    call allocate(src_abs_terms(1), kk%mesh, name="KK_P_EV_SRC")
-    call allocate(src_abs_terms(2), kk%mesh, name="KK_EPS_ABS")
-    call allocate(src_abs_terms(3), kk%mesh, name="KK_BUOY_ABS")
-    call zero(src_abs_terms(1)); call zero(src_abs_terms(2)); call zero(src_abs_terms(3))
+    call allocate(src_rhs, kk%mesh, name="KKSRCRHS")
+    call allocate(abs_rhs, kk%mesh, name="KKABSRHS")
+    call zero(src_rhs); call zero(abs_rhs)
     
     ! Assembly loop
     do ele = 1, ele_count(kk)
-       call assemble_keps_tke_ele(src_abs_terms, kk, eps, EV, u, buoyant_fields, &
-            & have_buoyant_fields, beta, delta_t, g, g_magnitude, gravity, positions, ele)
-    end do
-    
-    ! For non-DG we apply inverse mass globally
-    if(continuity(kk)>=0) then
-       lumped_mass => get_lumped_mass(state, kk%mesh)
-       do i = 1, node_count(kk)
-          do i_term = 1, 3
-             call set(src_abs_terms(i_term), i, node_val(src_abs_terms(i_term),i)&
-                  &/node_val(lumped_mass,i))
-          end do
-       end do
-    end if
+        shape_kk => ele_shape(kk, ele)
+        nodes_kk => ele_nodes(kk, ele)
 
-    ! produce debugging vtu's if required
-    if (have_option(trim(state%option_path)//&
-         &"/subgridscale_parameterisations/k-epsilon/debugging_mode") &
-         & .and. current_time > last_dump_time_k + dump_period) then
-       call vtk_write_fields("KK_src_abs_terms", timestep, positions, kk%mesh,&
-            & src_abs_terms)
-       last_dump_time_k = current_time
-    end if
+        allocate(dshape_kk (size(nodes_kk), ele_ngi(kk, ele), positions%dim))
+        allocate(detwei (ele_ngi(kk, ele)))
+        allocate(strain_ngi (ele_ngi(kk, ele)))
+        allocate(rhs_addto(ele_loc(kk, ele)))
+        call transform_to_physical( positions, ele, shape_kk, dshape=dshape_kk, detwei=detwei )
+
+        ! Calculate TKE production at ngi using strain rate (double_dot_product) function
+        strain_ngi = double_dot_product(dshape_kk, ele_val(u, ele) )
+
+        ! Source term:
+        rhs_addto = shape_rhs(shape_kk, detwei*strain_ngi*ele_val_at_quad(EV, ele))
+        call addto(src_rhs, nodes_kk, rhs_addto)
+
+        ! Absorption term:
+        rhs_addto = shape_rhs(shape_kk, detwei*ele_val_at_quad(eps,ele)/ele_val_at_quad(kk,ele))
+        call addto(abs_rhs, nodes_kk, rhs_addto)
+
+        deallocate(dshape_kk, detwei, strain_ngi, rhs_addto)
+    end do
+
+    lumped_mass => get_lumped_mass(state, kk%mesh)
 
     ! This allows user-specified source and absorption terms, so that an MMS test can be set up.
     prescribed_src = (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
@@ -209,12 +199,12 @@ subroutine keps_tke(state)
                     &scalar_field::Source/prescribed"))
 
     if(prescribed_src) then
-       ewrite(2,*) "Prescribed k source"
-       call allocate(prescribed_src_kk, kk%mesh, name="PRSKKSRC")
-       call zero(prescribed_src_kk)
-       call set(prescribed_src_kk, src_kk)
-       ewrite_minmax(prescribed_src_kk)
-       call zero(src_kk)
+      ewrite(2,*) "Prescribed k source"
+      call allocate(prescribed_src_kk, kk%mesh, name="PRSKKSRC")
+      call zero(prescribed_src_kk)
+      call set(prescribed_src_kk, src_kk)
+      ewrite_minmax(prescribed_src_kk)
+      call zero(src_kk)
     end if
 
     prescribed_abs = (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
@@ -222,61 +212,52 @@ subroutine keps_tke(state)
                     &scalar_field::Absorption/prescribed"))
 
     if(prescribed_abs) then
-       ewrite(2,*) "Prescribed k absorption"
-       call allocate(prescribed_abs_kk, kk%mesh, name="PRSKKABS")
-       call zero(prescribed_abs_kk)
-       call set(prescribed_abs_kk, abs_kk)
-       ewrite_minmax(prescribed_abs_kk)
-       call zero(abs_kk)
+      ewrite(2,*) "Prescribed k absorption"
+      call allocate(prescribed_abs_kk, kk%mesh, name="PRSKKABS")
+      call zero(prescribed_abs_kk)
+      call set(prescribed_abs_kk, abs_kk)
+      ewrite_minmax(prescribed_abs_kk)
+      call zero(abs_kk)
     end if
 
     ewrite(2,*) "Calculating k source and absorption"
-    select case (src_abs)
-    case ("explicit")
-       call zero(src_kk)
-       call zero(abs_kk)
-       call addto(src_kk, src_abs_terms(1))
-       call addto(abs_kk, src_abs_terms(2))
-       call addto(abs_kk, src_abs_terms(3))
-    case ("implicit") ! does this work???
-       do i = 1, node_count(kk)
-          residual = (- node_val(src_abs_terms(1),i) + node_val(src_abs_terms(2),i) +&
-               & node_val(src_abs_terms(3),i))/node_val(lumped_mass,i)
-          call set(src_kk, i, -min(0.0, residual) )
-          call set(abs_kk, i, max(0.0, residual) )
-       end do
-    case default
-       FLAbort("Invalid implicitness option for k")
-    end select
+    do i = 1, node_count(kk)
+      select case (src_abs)
+      case ("explicit")
+        call set(src_kk, i, node_val(src_rhs,i)/node_val(lumped_mass,i))
+        call set(abs_kk, i, node_val(abs_rhs,i)/node_val(lumped_mass,i))
+      case ("implicit")
+        residual = (node_val(abs_rhs,i) - node_val(src_rhs,i))/node_val(lumped_mass,i)
+        call set(src_kk, i, -min(0.0, residual) )
+        call set(abs_kk, i, max(0.0, residual) )
+      case default
+        FLAbort("Invalid implicitness option for k")
+      end select
+    end do
 
     ! Set copy of old kk for eps solve
     call set(tke_src_old, src_kk)
-    
+
     if(prescribed_src) then
-       ewrite_minmax(src_kk)
-       ! Set copy of old kk for eps solve
-       call set(tke_src_old, src_kk)
-       call addto(src_kk, prescribed_src_kk)
-       ewrite_minmax(src_kk)
-       call deallocate(prescribed_src_kk)
+      ewrite_minmax(src_kk)
+      ! Set copy of old kk for eps solve
+      call set(tke_src_old, src_kk)
+      call addto(src_kk, prescribed_src_kk)
+      ewrite_minmax(src_kk)
+      call deallocate(prescribed_src_kk)
     end if
 
     if(prescribed_abs) then
-       call set(abs_kk, prescribed_abs_kk)
-       call deallocate(prescribed_abs_kk)
+      call set(abs_kk, prescribed_abs_kk)
+      call deallocate(prescribed_abs_kk)
     end if
 
-    ! deallocate source term fields
-    do i_term = 1, 3
-       call deallocate(src_abs_terms(i_term))
-    end do
-
-    call deallocate_scalar_field_buoyancy_data(buoyant_fields, beta, delta_t)
+    call deallocate(src_rhs); call deallocate(abs_rhs)
 
     ! Set diffusivity for k equation.
     call zero(kk_diff)
     do i = 1, kk_diff%dim(1)
-       call set(kk_diff, i, i, EV, scale=1. / sigma_k)
+        call set(kk_diff, i, i, EV, scale=1. / sigma_k)
     end do
 
     ewrite_minmax(kk_diff)
@@ -285,129 +266,8 @@ subroutine keps_tke(state)
     ewrite_minmax(src_kk)
     ewrite_minmax(tke_src_old)
     ewrite_minmax(abs_kk)
-    
+
 end subroutine keps_tke
-    
-!------------------------------------------------------------------------------!
-! calculate the source term fand absorbtion terms                              !
-!------------------------------------------------------------------------------!
-subroutine assemble_keps_tke_ele(src_abs_terms, kk, eps, EV, u, buoyant_fields, &
-     & have_buoyant_fields, beta, delta_t, g, g_magnitude, gravity, positions, ele)
-
-  type(scalar_field), dimension(3), intent(inout) :: src_abs_terms
-  type(scalar_field), intent(in) :: kk, eps, EV
-  type(scalar_field_pointer), dimension(:) :: buoyant_fields
-  type(vector_field), intent(in) :: positions, u, g
-  real, dimension(:) :: beta, delta_t
-  real, intent(in) :: g_magnitude
-  logical, intent(in) :: gravity, have_buoyant_fields
-  integer, intent(in) :: ele
-
-  real, dimension(ele_loc(kk, ele), ele_ngi(kk, ele), positions%dim) :: dshape_kk
-  real, dimension(ele_ngi(kk, ele)) :: detwei, strain_ngi, inv_k
-  real, dimension(3, ele_loc(kk, ele)) :: rhs_addto
-  integer, dimension(ele_loc(kk, ele)) :: nodes_kk
-  real, dimension(ele_loc(kk, ele), ele_loc(kk, ele)) :: invmass
-  type(element_type), pointer :: shape_kk
-  integer :: i_loc, i_field, i_term
-
-  shape_kk => ele_shape(kk, ele)
-  nodes_kk = ele_nodes(kk, ele)
-
-  call transform_to_physical( positions, ele, shape_kk, dshape=dshape_kk, detwei=detwei )
-
-  ! Calculate TKE production at ngi using strain rate (double_dot_product) function
-  strain_ngi = double_dot_product(dshape_kk, ele_val(u, ele) )
-
-  ! Source term:
-  rhs_addto(1,:) = shape_rhs(shape_kk, detwei*strain_ngi*ele_val_at_quad(EV, ele))
-
-  ! Absorption term:
-  inv_k = ele_val_at_quad(kk,ele)
-  where (inv_k /= 0.0)
-     inv_k = 1.0/inv_k
-  elsewhere
-     inv_k = 0.0
-  end where
-  rhs_addto(2,:) = shape_rhs(shape_kk, detwei*ele_val_at_quad(eps,ele)*inv_k)
-
-  ! Buoyancy term - As absorbtion:
-  ! zero buoyancy addto array
-  do i_loc = 1, ele_loc(kk, ele)
-     rhs_addto(3,i_loc) = 0.0
-  end do
-  ! check buoyant fields are possible and present
-  if (have_buoyant_fields .and. gravity) then 
-     ! loop through buoyant fields, calculate source term and add to addto array
-     do i_field = 1, size(buoyant_fields, 1)
-        call calculate_buoyancy_term_kk(rhs_addto, kk, EV, u, buoyant_fields(i_field)%ptr, &
-             & beta(i_field), delta_t(i_field), g, g_magnitude, positions, ele, detwei,&
-             & shape_kk)
-     end do
-  end if
-
-  ! In the DG case we apply the inverse mass locally.
-  if(continuity(kk)<0) then
-     invmass = inverse(shape_shape(shape_kk, shape_kk, detwei))
-     do i_term = 1, 3
-        rhs_addto(i_term,:) = matmul(rhs_addto(i_term,:), invmass)
-     end do
-  end if
-
-  do i_term = 1, 3
-     call addto(src_abs_terms(i_term), nodes_kk, rhs_addto(i_term,:))
-  end do
-
-end subroutine
-    
-!------------------------------------------------------------------------------!
-! calculate the buoyancy source term for each buoyant scalar field             !
-!------------------------------------------------------------------------------!
-subroutine calculate_buoyancy_term_kk(rhs_addto, kk, EV, u, buoyant_field, beta,&
-     & delta_t, g, g_magnitude, positions, ele, detwei, shape_kk)
-
-  real, intent(inout), dimension(:,:) :: rhs_addto
-  type(scalar_field), intent(in) :: kk, EV,buoyant_field 
-  type(vector_field), intent(in) :: positions, u, g
-  real, intent(in), dimension(:) :: detwei
-  real, intent(in) :: g_magnitude, beta, delta_t
-  type(element_type), intent(in), pointer :: shape_kk
-  integer, intent(in) :: ele
-
-  real, dimension(u%dim, ele_ngi(u, ele))  :: vector
-  real, dimension(ele_ngi(u, ele)) :: scalar, inv_k 
-  real, dimension(ele_loc(buoyant_field, ele),ele_ngi(buoyant_field, ele),positions%dim) :: dshape_s
-  type(element_type), pointer :: shape_s
-
-  integer :: i_gi, i_loc, i_field
-
-  ! get dshape for scalar field so that we can obtain gradients 
-  shape_s => ele_shape(buoyant_field, ele)
-  call transform_to_physical( positions, ele, shape_s, dshape=dshape_s )        
-
-  ! calculate scalar and vector components of the source term
-  vector = ele_val_at_quad(g, ele)*ele_grad_at_quad(buoyant_field,&
-       & ele, dshape_s)
-  inv_k = ele_val_at_quad(kk,ele)
-  where (inv_k /= 0.0)
-     inv_k = 1.0 / inv_k
-  elsewhere
-     inv_k = 0.0
-  end where
-  scalar = inv_k*beta*g_magnitude*ele_val_at_quad(EV,&
-       & ele)/delta_t
-
-  ! multiply vector component by scalar and sum across dimensions - note that the
-  ! vector part has been multiplied by the gravitational direction so the it is
-  ! zero everywhere apart from in this direction
-  do i_gi = 1, ele_ngi(u, ele)
-     scalar(i_gi) = sum(scalar(i_gi) * vector(:, i_gi))
-  end do
-
-  ! multiply by determinate weights, integrate and add to rhs
-  rhs_addto(3,:) = rhs_addto(3,:) + shape_rhs(shape_kk, scalar * detwei)     
-
-end subroutine calculate_buoyancy_term_kk
 
 !----------------------------------------------------------------------------------
 
@@ -415,72 +275,52 @@ subroutine keps_eps(state)
 
     type(state_type), intent(inout)    :: state
     type(scalar_field), pointer        :: src_eps, src_kk, abs_eps, eps, EV, lumped_mass
-    type(scalar_field_pointer), allocatable, dimension(:) :: buoyant_fields
-    type(scalar_field)                 :: prescribed_src_eps, prescribed_abs_eps 
-    type(vector_field), pointer        :: positions, u, g
+    type(scalar_field)                 :: src_rhs, abs_rhs, prescribed_src_eps, prescribed_abs_eps
+    type(vector_field), pointer        :: positions
     type(tensor_field), pointer        :: eps_diff
-    type(element_type), pointer        :: shape_eps, shape_s
-    integer                            :: i, ele, i_term, stat
-    real                               :: residual, g_magnitude
-    real, allocatable, dimension(:)    :: beta, delta_t, detwei
-    real, allocatable, dimension(:,:)  :: rhs_addto, invmass
-    real, allocatable, dimension(:,:,:):: dshape_s 
+    type(element_type), pointer        :: shape_eps
+    integer                            :: i, ele
+    real                               :: residual
+    real, allocatable, dimension(:)    :: detwei, rhs_addto
     integer, pointer, dimension(:)     :: nodes_eps
-    logical :: prescribed_src, prescribed_abs, gravity = .true., have_buoyant_fields = .false.
-
-    ! for vtu output
-    type(scalar_field), dimension(3)   :: src_abs_terms
+    logical                            :: prescribed_src, prescribed_abs
 
     ewrite(1,*) "In keps_eps"
     eps             => extract_scalar_field(state, "TurbulentDissipation")
-    src_eps         => extract_scalar_field(state, "TurbulentDissipationSource")
-    src_kk          => extract_scalar_field(state, "TurbulentKineticEnergySource")
-    abs_eps         => extract_scalar_field(state, "TurbulentDissipationAbsorption")
+    src_eps      => extract_scalar_field(state, "TurbulentDissipationSource")
+    src_kk       => extract_scalar_field(state, "TurbulentKineticEnergySource")
+    abs_eps  => extract_scalar_field(state, "TurbulentDissipationAbsorption")
     eps_diff        => extract_tensor_field(state, "TurbulentDissipationDiffusivity")
     EV              => extract_scalar_field(state, "ScalarEddyViscosity")
     positions       => extract_vector_field(state, "Coordinate")
-    g               => extract_vector_field(state, "GravityDirection", stat)
-    u               => extract_vector_field(state, "Velocity")
-    call get_option('physical_parameters/gravity/magnitude', g_magnitude, stat)
-    if (stat /= 0) then
-       gravity = .false.
-    end if
-    call get_scalar_field_buoyancy_data(state, buoyant_fields, beta, delta_t)
-    if (allocated(buoyant_fields)) then
-       have_buoyant_fields = .true.
-    end if
 
-    call allocate(src_abs_terms(1), eps%mesh, name="EPS_P_EV_SRC")
-    call allocate(src_abs_terms(2), eps%mesh, name="EPS_EPS_ABS")
-    call allocate(src_abs_terms(3), eps%mesh, name="EPS_BUOY_ABS")
-    call zero(src_abs_terms(1)); call zero(src_abs_terms(2)); call zero(src_abs_terms(3))
+    call allocate(src_rhs, eps%mesh, name="EPSSRCRHS")
+    call allocate(abs_rhs, eps%mesh, name="EPSABSRHS")
+    call zero(src_rhs); call zero(abs_rhs)
 
     ! Assembly loop
     do ele = 1, ele_count(eps)
-       call assemble_keps_eps_ele(src_abs_terms, tke_old, tke_src_old, eps, EV, u, & 
-            & buoyant_fields, have_buoyant_fields, beta, delta_t, g, g_magnitude, &
-            & gravity, positions, ele)
-    end do
-    
-    ! For non-DG we apply inverse mass globally
-    if(continuity(eps)>=0) then
-       lumped_mass => get_lumped_mass(state, eps%mesh)
-       do i = 1, node_count(eps)
-          do i_term = 1, 3
-             call set(src_abs_terms(i_term), i, node_val(src_abs_terms(i_term),i)&
-                  &/node_val(lumped_mass,i))
-          end do
-       end do
-    end if
+        shape_eps => ele_shape(eps, ele)
+        nodes_eps => ele_nodes(eps, ele)
 
-    ! produce debugging vtu's if required
-    if (have_option(trim(state%option_path)//&
-         &"/subgridscale_parameterisations/k-epsilon/debugging_mode") &
-         & .and. current_time > last_dump_time_eps + dump_period) then
-       call vtk_write_fields("EPS_src_abs_terms", timestep, positions, eps%mesh,&
-            & src_abs_terms)
-       last_dump_time_eps = current_time
-    end if
+        allocate(detwei (ele_ngi(eps, ele)))
+        allocate(rhs_addto(ele_loc(eps, ele)))
+        call transform_to_physical(positions, ele, detwei=detwei)
+
+        ! Source term:
+        rhs_addto = shape_rhs(shape_eps, detwei*c_eps_1*ele_val_at_quad(eps,ele)/ &
+                              ele_val_at_quad(tke_old,ele)*ele_val_at_quad(tke_src_old,ele))
+        call addto(src_rhs, nodes_eps, rhs_addto)
+
+        ! Absorption term:
+        rhs_addto = shape_rhs(shape_eps, detwei*c_eps_2*ele_val_at_quad(eps,ele)/ &
+                              ele_val_at_quad(tke_old,ele))
+        call addto(abs_rhs, nodes_eps, rhs_addto)
+
+        deallocate(detwei, rhs_addto)
+    end do
+
+    lumped_mass => get_lumped_mass(state, eps%mesh)
 
     ! This allows user-specified source and absorption terms, so that an MMS test can be set up.
     prescribed_src = (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
@@ -508,24 +348,20 @@ subroutine keps_eps(state)
       call zero(abs_eps)
     end if
 
-    ewrite(2,*) "Calculating k source and absorption"
-    select case (src_abs)
-    case ("explicit")
-       call zero(src_eps)
-       call zero(abs_eps)
-       call addto(src_eps, src_abs_terms(1))
-       call addto(abs_eps, src_abs_terms(2))
-       call addto(abs_eps, src_abs_terms(3))
-    case ("implicit") ! does this work???
-       do i = 1, node_count(eps)
-          residual = (- node_val(src_abs_terms(1),i) + node_val(src_abs_terms(2),i) +&
-               & node_val(src_abs_terms(3),i))/node_val(lumped_mass,i)
-          call set(src_eps, i, -min(0.0, residual) )
-          call set(abs_eps, i, max(0.0, residual) )
-       end do
-    case default
-       FLAbort("Invalid implicitness option for epsilon")
-    end select
+    ewrite(2,*) "Calculating epsilon source and absorption"
+    do i = 1, node_count(eps)
+      select case (src_abs)
+      case ("explicit")
+        call set(src_eps, i, node_val(src_rhs,i)/node_val(lumped_mass,i))
+        call set(abs_eps, i, node_val(abs_rhs,i)/node_val(lumped_mass,i))
+      case ("implicit")
+        residual = (node_val(abs_rhs,i) - node_val(src_rhs,i))/node_val(lumped_mass,i)
+        call set(src_eps, i, -min(0.0, residual) )
+        call set(abs_eps, i, max(0.0, residual) )
+      case default
+        FLAbort("Invalid implicitness option for epsilon")
+      end select
+    end do
 
     if(prescribed_src) then
       ewrite_minmax(src_eps)
@@ -541,12 +377,7 @@ subroutine keps_eps(state)
         call deallocate(prescribed_abs_eps)
     end if
 
-    ! deallocate source term fields
-    do i_term = 1, 3
-       call deallocate(src_abs_terms(i_term))
-    end do 
-
-    call deallocate_scalar_field_buoyancy_data(buoyant_fields, beta, delta_t)
+    call deallocate(src_rhs); call deallocate(abs_rhs)
 
     ! Set diffusivity for Eps
     call zero(eps_diff)
@@ -556,150 +387,15 @@ subroutine keps_eps(state)
 
     ewrite_minmax(eps_diff)
     ewrite_minmax(tke_old)
+    ewrite_minmax(src_kk)
     ewrite_minmax(eps)
     ewrite_minmax(src_eps)
     ewrite_minmax(abs_eps)
 
 end subroutine keps_eps
-    
-!------------------------------------------------------------------------------!
-! calculate the source term fand absorbtion terms                              !
-!------------------------------------------------------------------------------!
-subroutine assemble_keps_eps_ele(src_abs_terms, tke_old, tke_src_old, eps, EV, u, & 
-     & buoyant_fields, have_buoyant_fields, beta, delta_t, g, g_magnitude, &
-     & gravity, positions, ele)
-
-  type(scalar_field), dimension(3), intent(inout) :: src_abs_terms
-  type(scalar_field), intent(in) :: tke_old, tke_src_old, eps, EV
-  type(scalar_field_pointer), dimension(:) :: buoyant_fields
-  type(vector_field), intent(in) :: positions, u, g
-  real, dimension(:) :: beta, delta_t
-  real, intent(in) :: g_magnitude
-  logical, intent(in) :: gravity, have_buoyant_fields
-  integer, intent(in) :: ele
-
-  real, dimension(ele_ngi(eps, ele)) :: detwei, inv_tke_old
-  real, dimension(3, ele_loc(eps, ele)) :: rhs_addto
-  integer, dimension(ele_loc(eps, ele)) :: nodes_eps
-  real, dimension(ele_loc(eps, ele), ele_loc(eps, ele)) :: invmass
-  real, dimension(u%dim, ele_ngi(u, ele)) :: u_z, u_xy
-  real, dimension(ele_ngi(u, ele)) :: c_eps_3
-  type(element_type), pointer :: shape_eps
-  real :: u_min = 1e-10
-  integer :: i_loc, i_field, i_term, i_gi, i_dim
-
-  shape_eps => ele_shape(eps, ele)
-  nodes_eps = ele_nodes(eps, ele)
-  call transform_to_physical(positions, ele, detwei=detwei)
-
-  ! Source term:
-  inv_tke_old = ele_val_at_quad(tke_old,ele)
-  where (inv_tke_old /= 0.0)
-     inv_tke_old = 1.0/inv_tke_old
-  elsewhere
-     inv_tke_old = 0.0
-  end where
-  rhs_addto(1,:) = shape_rhs(shape_eps, detwei*c_eps_1*ele_val_at_quad(eps,ele)*&
-       inv_tke_old*ele_val_at_quad(tke_src_old,ele)) 
-
-  ! Absorption term:
-  rhs_addto(2,:) = shape_rhs(shape_eps, detwei*c_eps_2*ele_val_at_quad(eps,ele)*&
-       inv_tke_old)
-
-  ! Buoyancy term - As absorbtion:
-  ! zero buoyancy addto array
-  do i_loc = 1, ele_loc(eps, ele)
-     rhs_addto(3,i_loc) = 0.0
-  end do
-  ! check buoyant fields are possible and present
-  if (have_buoyant_fields .and. gravity) then 
-     ! get components of velocity in direction of gravity and in other directions
-     u_z = abs(ele_val_at_quad(g, ele)) * ele_val_at_quad(u, ele)
-     u_xy = ele_val_at_quad(u, ele) - u_z
-     ! calculate c_eps_3 = tanh(v/u)
-     do i_gi = 1, ele_ngi(u, ele)
-        do i_dim = 1, u%dim
-           u_xy(i_dim, i_gi) = max(abs(u_xy(i_dim, i_gi)), u_min)
-        end do
-        if (norm2(u_xy(:, i_gi)) /= 0.0) then
-           c_eps_3(i_gi) = tanh(norm2(u_z(:, i_gi))/norm2(u_xy(:, i_gi))) 
-        else
-           c_eps_3(i_gi) = 1.0
-        end if
-     end do
-     ! loop through buoyant fields, calculate source term and add to addto array
-     do i_field = 1, size(buoyant_fields, 1)
-        call calculate_buoyancy_term_eps(rhs_addto, tke_old, EV, u, buoyant_fields(i_field)%ptr, &
-             & beta(i_field), delta_t(i_field), g, g_magnitude, positions, ele, detwei,&
-             & shape_eps, c_eps_3)
-     end do
-  end if
-
-  ! In the DG case we apply the inverse mass locally.
-  if(continuity(eps)<0) then
-     invmass = inverse(shape_shape(shape_eps, shape_eps, detwei))
-     do i_term = 1, 3
-        rhs_addto(i_term,:) = matmul(rhs_addto(i_term,:), invmass)
-     end do
-  end if
-
-  do i_term = 1, 3
-     call addto(src_abs_terms(i_term), nodes_eps, rhs_addto(i_term,:))
-  end do
-
-end subroutine
-    
-!------------------------------------------------------------------------------!
-! calculate the buoyancy source term for each buoyant scalar field             !
-!------------------------------------------------------------------------------!
-subroutine calculate_buoyancy_term_eps(rhs_addto, tke_old, EV, u, buoyant_field, beta,&
-     & delta_t, g, g_magnitude, positions, ele, detwei, shape_eps, c_eps_3)
-
-  real, intent(inout), dimension(:,:) :: rhs_addto
-  type(scalar_field), intent(in) :: tke_old, EV,buoyant_field 
-  type(vector_field), intent(in) :: positions, u, g
-  real, intent(in), dimension(:) :: detwei, c_eps_3
-  real, intent(in) :: g_magnitude, beta, delta_t
-  type(element_type), intent(in), pointer :: shape_eps
-  integer, intent(in) :: ele
-
-  real, dimension(u%dim, ele_ngi(u, ele))  :: vector
-  real, dimension(ele_ngi(u, ele)) :: scalar, inv_tke_old
-  real, dimension(ele_loc(buoyant_field, ele),ele_ngi(buoyant_field, ele),positions%dim) :: dshape_s
-  type(element_type), pointer :: shape_s
-
-  integer :: i_gi, i_loc, i_field
-
-  ! get dshape for scalar field so that we can obtain gradients 
-  shape_s => ele_shape(buoyant_field, ele)
-  call transform_to_physical( positions, ele, shape_s, dshape=dshape_s )       
-
-  ! calculate scalar and vector components of the source term
-  vector = ele_val_at_quad(g, ele)*ele_grad_at_quad(buoyant_field, &
-       & ele, dshape_s)
-  inv_tke_old = ele_val_at_quad(tke_old,ele)
-  where (inv_tke_old /= 0.0)
-     inv_tke_old = 1.0/inv_tke_old
-  elsewhere
-     inv_tke_old = 0.0
-  end where  
-  scalar = c_eps_1*c_eps_3*1*inv_tke_old&
-       &*beta*g_magnitude*ele_val_at_quad(EV, ele)/delta_t
-
-  ! multiply vector component by scalar and sum across dimensions - note that the
-  ! vector part has been multiplied by the gravitational direction so the it is
-  ! zero everywhere apart from in this direction
-  do i_gi = 1, ele_ngi(u, ele)
-     scalar(i_gi) = sum(scalar(i_gi) * vector(:, i_gi))
-  end do
-
-  ! multiply by determinate weights, integrate and add to rhs
-  rhs_addto(3,:) = rhs_addto(3,:) + shape_rhs(shape_eps, scalar * detwei)     
-
-end subroutine calculate_buoyancy_term_eps
 
 !----------
-! eddyvisc calculates the lengthscale, and then the eddy viscosity.!
+! eddyvisc calculates the lengthscale, and then the eddy viscosity.
 ! Eddy viscosity is added to the background viscosity.
 !----------
 
@@ -714,7 +410,6 @@ subroutine keps_eddyvisc(state)
     integer                          :: i, ele
     integer, pointer, dimension(:)   :: nodes_ev
     real, allocatable, dimension(:)  :: detwei, rhs_addto
-    real, allocatable, dimension(:,:):: invmass
 
     ewrite(1,*) "In keps_eddyvisc"
     kk         => extract_scalar_field(state, "TurbulentKineticEnergy")
@@ -750,27 +445,19 @@ subroutine keps_eddyvisc(state)
       shape_ev =>  ele_shape(EV, ele)
       allocate(detwei (ele_ngi(EV, ele)))
       allocate(rhs_addto (ele_loc(EV, ele)))
-      allocate(invmass (ele_loc(EV, ele), ele_loc(EV, ele)))
       call transform_to_physical(positions, ele, detwei=detwei)
       rhs_addto = shape_rhs(shape_ev, detwei*C_mu*ele_val_at_quad(kk,ele)**0.5*ele_val_at_quad(ll,ele))
-      ! In the DG case we will apply the inverse mass locally.
-      if(continuity(EV)<0) then
-         invmass = inverse(shape_shape(shape_ev, shape_ev, detwei))
-         rhs_addto = matmul(rhs_addto, invmass)
-      end if
       call addto(ev_rhs, nodes_ev, rhs_addto)
-      deallocate(detwei, rhs_addto, invmass)
+      deallocate(detwei, rhs_addto)
     end do
-    
-    ! For non-DG we apply inverse mass globally
-    if(continuity(EV)>=0) then
-       lumped_mass => get_lumped_mass(state, EV%mesh)
-       do i = 1, node_count(EV)
-          call set(ev_rhs, i, node_val(ev_rhs,i)/node_val(lumped_mass,i))
-       end do
-    end if
 
-    call set(EV, ev_rhs)
+    lumped_mass => get_lumped_mass(state, EV%mesh)
+
+    ! Set eddy viscosity
+    do i = 1, node_count(EV)
+      call set(EV, i, node_val(ev_rhs,i)/node_val(lumped_mass,i))
+    end do
+
     call deallocate(ev_rhs)
 
     ewrite(2,*) "Setting k-epsilon eddy-viscosity tensor"
@@ -928,122 +615,125 @@ end subroutine keps_adapt_mesh
 
 !---------------------------------------------------------------------------------
 
-subroutine k_epsilon_check_options
+subroutine keps_check_options(state)
 
-  ! THIS WILL ONLY WORK FOR SINGLE PHASE MODELS
-  
-  character(len=OPTION_PATH_LEN) :: option_path
-  character(len=FIELD_NAME_LEN)  :: kmsh, emsh, vmsh
-  integer                        :: dimension
+    type(state_type), intent(in)   :: state
+    type(vector_field), pointer    :: u
+    character(len=OPTION_PATH_LEN) :: option_path
+    character(len=FIELD_NAME_LEN)  :: kmsh, emsh, vmsh
+    integer                        :: dimension
 
-  ewrite(1,*) "In keps_check_options"
-  option_path = "/material_phase[0]/subgridscale_parameterisations/k-epsilon"
+    ewrite(1,*) "In keps_check_options"
+    option_path = trim(state%option_path)//"/subgridscale_parameterisations/k-epsilon"
+    u => extract_vector_field(state, "Velocity")
 
-  ! one dimensional problems not supported
-  call get_option("/geometry/dimension/", dimension) 
-  if (dimension .eq. 1 .and. have_option(trim(option_path))) then
-     FLExit("k-epsilon model is only supported for dimension > 1")
-  end if
-  ! Don't do k-epsilon if it's not included in the model!
-  if (.not.have_option(trim(option_path))) return
+    ! one dimensional problems not supported
+    call get_option("/geometry/dimension/", dimension) 
+    if (dimension .eq. 1 .and. have_option(trim(option_path))) then
+        FLExit("k-epsilon model is only supported for dimension > 1")
+    end if
+    ! Don't do k-epsilon if it's not included in the model!
+    if (.not.have_option(trim(option_path))) return
 
-  ! checking for required fields
-  if (.not.have_option(trim(option_path)//"/scalar_field::TurbulentKineticEnergy")) then
-     FLExit("You need TurbulentKineticEnergy field for k-epsilon")
-  end if
-  if (.not.have_option(trim(option_path)//"/scalar_field::TurbulentDissipation")) then
-     FLExit("You need TurbulentDissipation field for k-epsilon")
-  end if
-  ! Check that TurbulentKineticEnergy and TurbulentDissipation fields are on the same
-  !  mesh as the velocity
-  call get_option(trim(option_path)//&
-       &"/scalar_field::TurbulentKineticEnergy/prognostic/mesh/name", kmsh)
-  call get_option(trim(option_path)//&
-       &"/scalar_field::TurbulentDissipation/prognostic/mesh/name", emsh)
-  call get_option("/material_phase[0]/vector_field::Velocity/prognostic/mesh/name", vmsh)
-  if(.not. kmsh==emsh .or. .not. kmsh==vmsh .or. .not. emsh==vmsh) then
-     FLExit("You must use the Velocity mesh for TurbulentKineticEnergy and TurbulentDissipation fields")
-  end if
-  ! check that diffusivity is on for the two turbulent fields, and diagnostic
-  if (.not.have_option(trim(option_path)//"/scalar_field::TurbulentKineticEnergy"//&
-       &"/prognostic/tensor_field::Diffusivity")) then
-     FLExit("You need TurbulentKineticEnergy Diffusivity field for k-epsilon")
-  end if
-  if (.not.have_option(trim(option_path)//&
-       &"/scalar_field::TurbulentKineticEnergy/prognostic/"//&
-       &"/tensor_field::Diffusivity/diagnostic/algorithm::Internal")) then
-     FLExit("You need TurbulentKineticEnergy Diffusivity field set to diagnostic/internal")
-  end if
-  if (.not.have_option(trim(option_path)//&
-       &"/scalar_field::TurbulentDissipation/prognostic"//&
-       &"/tensor_field::Diffusivity")) then
-     FLExit("You need TurbulentDissipation Diffusivity field for k-epsilon")
-  end if
-  if (.not.have_option(trim(option_path)//&
-       &"/scalar_field::TurbulentDissipation/prognostic"//&
-       &"/tensor_field::Diffusivity/diagnostic/algorithm::Internal")) then
-     FLExit("You need TurbulentDissipation Diffusivity field set to diagnostic/internal")
-  end if
-  ! source terms
-  if (.not.have_option(trim(option_path)//&
-       &"/scalar_field::TurbulentKineticEnergy/prognostic"//&
-       &"/scalar_field::Source")) then
-     FLExit("You need TurbulentKineticEnergy Source field for k-epsilon")
-  end if
-  if (.not. have_option(trim(option_path)//&
-       &"/scalar_field::TurbulentKineticEnergy/prognostic"//&
-       &"/scalar_field::Source/diagnostic/algorithm::Internal")&
-       .and. .not. have_option(trim(option_path)//&
-       &"/scalar_field::TurbulentKineticEnergy/prognostic"//&
-       &"/scalar_field::Source/prescribed")) then
-     FLExit("You need TurbulentKineticEnergy Source field set to diagnostic/internal or prescribed")
-  end if
-  if (.not.have_option(trim(option_path)//&
-       &"/scalar_field::TurbulentDissipation/prognostic"//&
-       &"/scalar_field::Source")) then
-     FLExit("You need TurbulentDissipation Source field for k-epsilon")
-  end if
-  if (.not. have_option(trim(option_path)//&
-       &"/scalar_field::TurbulentDissipation/prognostic"//&
-       &"/scalar_field::Source/diagnostic/algorithm::Internal")&
-       .and. .not. have_option(trim(option_path)//&
-       &"/scalar_field::TurbulentDissipation/prognostic"//&
-       &"/scalar_field::Source/prescribed")) then
-     FLExit("You need TurbulentDissipation Source field set to diagnostic/internal or prescribed")
-  end if
-  ! absorption terms
-  if (.not.have_option(trim(option_path)//&
-       &"/scalar_field::TurbulentKineticEnergy/prognostic"//&
-       &"/scalar_field::Absorption")) then
-     FLExit("You need TurbulentKineticEnergy Absorption field for k-epsilon")
-  end if
-  if (.not.have_option(trim(option_path)//&
-       &"/scalar_field::TurbulentKineticEnergy/prognostic"//&
-       &"/scalar_field::Absorption/diagnostic/algorithm::Internal")) then
-     FLExit("You need TurbulentKineticEnergy Absorption field set to diagnostic/internal")
-  end if
-  if (.not.have_option(trim(option_path)//&
-       &"/scalar_field::TurbulentDissipation/prognostic"//&
-       &"/scalar_field::Absorption")) then
-     FLExit("You need TurbulentDissipation Absorption field for k-epsilon")
-  end if
-  if (.not.have_option(trim(option_path)//&
-       &"/scalar_field::TurbulentDissipation/prognostic"//&
-       &"/scalar_field::Absorption/diagnostic/algorithm::Internal")) then
-     FLExit("You need TurbulentDissipation Absorption field set to diagnostic/internal")
-  end if
-  ! check there's a viscosity somewhere
-  if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic"//&
-       &"/tensor_field::Viscosity/")) then
-     FLExit("Need viscosity switched on under the Velocity field for k-epsilon.") 
-  end if
-  ! check that the user has switched Velocity/viscosity to diagnostic
-  if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic"//&
-       &"/tensor_field::Viscosity/diagnostic/")) then
-     FLExit("You need to switch the viscosity field under Velocity to diagnostic/internal")
-  end if
+    ! checking for required fields
+    if (.not.have_option(trim(option_path)//"/scalar_field::TurbulentKineticEnergy")) then
+        FLExit("You need TurbulentKineticEnergy field for k-epsilon")
+    end if
+    if (.not.have_option(trim(option_path)//"/scalar_field::TurbulentDissipation")) then
+        FLExit("You need TurbulentDissipation field for k-epsilon")
+    end if
+    ! Check that TurbulentKineticEnergy and TurbulentDissipation fields are on the same mesh
+    call get_option(trim(option_path)//"/scalar_field::TurbulentKineticEnergy/prognostic/mesh", kmsh)
+    call get_option(trim(option_path)//"/scalar_field::TurbulentDissipation/prognostic/mesh", emsh)
+    call get_option(trim(state%option_path)//"/vector_field::Velocity/prognostic/mesh", vmsh)
+    if(.not. kmsh==emsh .or. .not. kmsh==vmsh .or. .not. emsh==vmsh) then
+        FLExit("You must use the Velocity mesh for TurbulentKineticEnergy and TurbulentDissipation fields")
+    end if
+    ! check that diffusivity is on for the two turbulent fields, and diagnostic
+    if (.not.have_option(trim(option_path)//"/scalar_field::TurbulentKineticEnergy"//&
+        &"/prognostic/tensor_field::Diffusivity")) then
+        FLExit("You need TurbulentKineticEnergy Diffusivity field for k-epsilon")
+    end if    
+    if (.not.have_option(trim(option_path)//&
+                          &"/scalar_field::TurbulentKineticEnergy/prognostic/"//&
+                          &"/tensor_field::Diffusivity/diagnostic/algorithm::Internal")) then
+        FLExit("You need TurbulentKineticEnergy Diffusivity field set to diagnostic/internal")
+    end if
+    if (.not.have_option(trim(option_path)//&
+                          &"/scalar_field::TurbulentDissipation/prognostic"//&
+                          &"/tensor_field::Diffusivity")) then
+        FLExit("You need TurbulentDissipation Diffusivity field for k-epsilon")
+    end if
+    if (.not.have_option(trim(option_path)//&
+                          &"/scalar_field::TurbulentDissipation/prognostic"//&
+                          &"/tensor_field::Diffusivity/diagnostic/algorithm::Internal")) then
+        FLExit("You need TurbulentDissipation Diffusivity field set to diagnostic/internal")
+    end if
+    ! source terms
+    if (.not.have_option(trim(option_path)//&
+                          &"/scalar_field::TurbulentKineticEnergy/prognostic"//&
+                          &"/scalar_field::Source")) then
+        FLExit("You need TurbulentKineticEnergy Source field for k-epsilon")
+    end if    
+    if (.not. have_option(trim(option_path)//&
+                          &"/scalar_field::TurbulentKineticEnergy/prognostic"//&
+                          &"/scalar_field::Source/diagnostic/algorithm::Internal")&
+        .or. .not. have_option(trim(option_path)//&
+                          &"/scalar_field::TurbulentKineticEnergy/prognostic"//&
+                          &"/scalar_field::Source/prescribed")) then
+        FLExit("You need TurbulentKineticEnergy Source field set to diagnostic/internal or prescribed")
+    end if
+    if (.not.have_option(trim(option_path)//&
+                          &"/scalar_field::TurbulentDissipation/prognostic"//&
+                          &"/scalar_field::Source")) then
+        FLExit("You need TurbulentDissipation Source field for k-epsilon")
+    end if
+    if (.not. have_option(trim(option_path)//&
+                          &"/scalar_field::TurbulentDissipation/prognostic"//&
+                          &"/scalar_field::Source/diagnostic/algorithm::Internal")&
+        .or. .not. have_option(trim(option_path)//&
+                          &"/scalar_field::TurbulentDissipation/prognostic"//&
+                          &"/scalar_field::Source/prescribed")) then
+        FLExit("You need TurbulentDissipation Source field set to diagnostic/internal or prescribed")
+    end if
+    ! absorption terms
+    if (.not.have_option(trim(option_path)//&
+                          &"/scalar_field::TurbulentKineticEnergy/prognostic"//&
+                          &"/scalar_field::Absorption")) then
+        FLExit("You need TurbulentKineticEnergy Absorption field for k-epsilon")
+    end if    
+    if (.not.have_option(trim(option_path)//&
+                          &"/scalar_field::TurbulentKineticEnergy/prognostic"//&
+                          &"/scalar_field::Absorption/diagnostic/algorithm::Internal")) then
+        FLExit("You need TurbulentKineticEnergy Absorption field set to diagnostic/internal")
+    end if
+    if (.not.have_option(trim(option_path)//&
+                          &"/scalar_field::TurbulentDissipation/prognostic"//&
+                          &"/scalar_field::Absorption")) then
+        FLExit("You need TurbulentDissipation Absorption field for k-epsilon")
+    end if
+    if (.not.have_option(trim(option_path)//&
+                          &"/scalar_field::TurbulentDissipation/prognostic"//&
+                          &"/scalar_field::Absorption/diagnostic/algorithm::Internal")) then
+        FLExit("You need TurbulentDissipation Absorption field set to diagnostic/internal")
+    end if
+    ! check there's a viscosity somewhere
+    if (.not.have_option(trim(state%option_path)//"/vector_field::Velocity/prognostic"//&
+                          &"/tensor_field::Viscosity/")) then
+        FLExit("Need viscosity switched on under the Velocity field for k-epsilon.") 
+    end if
+    ! check that the user has switched Velocity/viscosity to diagnostic
+    if (.not.have_option(trim(state%option_path)//"/vector_field::Velocity/prognostic"//&
+                          &"/tensor_field::Viscosity/diagnostic/")) then
+        FLExit("You need to switch the viscosity field under Velocity to diagnostic/internal")
+    end if
+    ! check that the background viscosity is an isotropic constant
+    if (.not.have_option(trim(option_path)//"/tensor_field::BackgroundViscosity/prescribed"//&
+                          &"/value::WholeMesh/isotropic/constant")) then
+        FLExit("You need to switch the BackgroundViscosity field to isotropic/constant")
+    end if
 
-end subroutine k_epsilon_check_options
+end subroutine keps_check_options
 
 !------------------------------------------------------------------!
 !                       Private subroutines                        !
@@ -1201,106 +891,6 @@ subroutine keps_wall_function(field1,field2,positions,u,bg_visc,EV,ele,sele,inde
     end if
 
 end subroutine keps_wall_function
-
-!----------------------------------------------------------------------------------------! 
-! Collect information required from scalar fields in order to calculate buoyancy source  !
-! terms                                                                                  !
-!----------------------------------------------------------------------------------------!
-subroutine get_scalar_field_buoyancy_data(state, buoyant_fields, beta, delta_t)
-  
-  type(state_type), intent(in)                                      :: state
-  type(scalar_field_pointer), allocatable, dimension(:), intent(out):: buoyant_fields
-  real, allocatable, dimension(:), intent(out)                      :: beta, delta_t
-  type(scalar_field_pointer), allocatable, dimension(:)             :: temp_buoyant_fields
-  real, allocatable, dimension(:)                                   :: temp_beta, temp_delta_t
-  type(scalar_field), pointer                                       :: field
-  integer                                                           :: n_fields, i_field, stat
-
-  ! Get number of scalar fields that are children of this state
-  n_fields = scalar_field_count(state)
-
-  ! Loop over scalar fields and copy required information to arrays if buoyancy_effects
-  !  are selected for the field
-  scalar_field_loop: do i_field = 1, n_fields
-
-     field => extract_scalar_field(state, i_field)
-     
-     if (have_option(trim(field%option_path)//&
-          &'/prognostic/subgridscale_parameterisation::k-epsilon/buoyancy_effects')) then
-        
-        ! determine allocation requirements, resize array and store required values
-        if (allocated(buoyant_fields)) then
-
-           allocate(temp_buoyant_fields(size(buoyant_fields, 1)))
-           allocate(temp_beta(size(beta, 1)))
-           allocate(temp_delta_t(size(delta_t, 1)))
-
-           temp_buoyant_fields = buoyant_fields
-           temp_beta = beta
-           temp_delta_t = delta_t
-
-           deallocate(buoyant_fields)
-           deallocate(beta)
-           deallocate(delta_t)
-
-           allocate(buoyant_fields(size(temp_buoyant_fields, 1) + 1))
-           allocate(beta(size(temp_beta, 1) + 1))
-           allocate(delta_t(size(temp_delta_t, 1) + 1))
-           
-           buoyant_fields(1:size(temp_buoyant_fields,1)) = temp_buoyant_fields
-           beta(1:size(temp_beta, 1)) = temp_beta
-           delta_t(1:size(temp_delta_t, 1)) = temp_delta_t
-
-           buoyant_fields(ubound(buoyant_fields,1))%ptr => extract_scalar_field(state, i_field)
-           call get_option(trim(field%option_path)//&
-                &'/prognostic/subgridscale_parameterisation::k-epsilon/buoyancy_effects/beta', &
-                & beta(ubound(beta,1))) 
-           call get_option(trim(field%option_path)//&
-                &'/prognostic/subgridscale_parameterisation::k-epsilon/prandtl_schmidt_number', &
-                & delta_t(ubound(delta_t,1)), stat) 
-
-           deallocate(temp_buoyant_fields)
-           deallocate(temp_beta)
-           deallocate(temp_delta_t)
-
-        else
-           
-           allocate(buoyant_fields(1))
-           allocate(beta(1))
-           allocate(delta_t(1))
-
-           buoyant_fields(1)%ptr => extract_scalar_field(state, i_field)
-           call get_option(trim(field%option_path)//&
-                &'/prognostic/subgridscale_parameterisation::k-epsilon/buoyancy_effects/beta', &
-                & beta(1)) 
-           call get_option(trim(field%option_path)//&
-                &'/prognostic/subgridscale_parameterisation::k-epsilon/prandtl_schmidt_number', &
-                & delta_t(1))         
-           
-        end if
-
-     end if
-
-  end do scalar_field_loop
-  
-end subroutine get_scalar_field_buoyancy_data
-
-!----------------------------------------------------------------------------------------! 
-! Deallocates scalar buoyancy information                                                !
-!----------------------------------------------------------------------------------------!
-subroutine deallocate_scalar_field_buoyancy_data(buoyant_fields, beta, delta_t)
-  
-  type(scalar_field_pointer), allocatable, dimension(:), intent(inout):: buoyant_fields
-  real, allocatable, dimension(:), intent(inout)                      :: beta, delta_t
-
-  ! deallocate buoyancy data
-  if (allocated(buoyant_fields)) then
-     deallocate(buoyant_fields)
-     deallocate(beta)
-     deallocate(delta_t)
-  end if
-
-end subroutine deallocate_scalar_field_buoyancy_data
 
 !------------------------------------------------------------------------------------------!
 ! Computes the strain rate for the LES model. Double-dot product results in a scalar:      !
