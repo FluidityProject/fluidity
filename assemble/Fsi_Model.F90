@@ -83,6 +83,7 @@ module fsi_model
 
   logical, save :: adapt_at_previous_dt
 !  logical, save :: have_prescribed_solid_movement
+  type(state_type), save :: global_fluid_state, global_solid_state
 
   private
   
@@ -109,7 +110,7 @@ module fsi_model
             adapt_at_previous_dt = .true.
             recompute_alpha = .true.
             solid_moved = .true.
-            ! At this stage, everything is initialised:
+            ! At this stage, everything is initialised
         end if
 
         ! Check if alpha needs to be recomputed (at this timestep):
@@ -277,16 +278,16 @@ module fsi_model
         else if (have_option("/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/grandy_interpolation")) then
             ! Grandy interpolation:
             call fsi_one_way_grandy_interpolation(fluid_position, solid_position, alpha_tmp)
-        
+
         !else
             ! Add more interpolations here
-        
+
         end if
 
         ewrite_minmax(alpha_tmp)
 
         ewrite(2,*) "leaving fsi_ibm_projections_mesh"
-    
+
     end subroutine fsi_ibm_projections_mesh
 
     !----------------------------------------------------------------------------
@@ -305,7 +306,7 @@ module fsi_model
         integer :: ele_F, ele_S
         integer :: num_intersections
         integer :: i, dim
-        
+
         ewrite(2,*) "inside fsi_compute_intersection_map"
 
         ! Get fluid positions:
@@ -335,12 +336,102 @@ module fsi_model
             end if
         end do
 
-        ! Copy values over to map_SF        
+        ! Copy values over to map_SF
         map_SF = map_SF_tmp
-        
+
         ewrite(2,*) "leaving fsi_compute_intersection_map"
 
     end subroutine fsi_compute_intersection_map
+
+    !----------------------------------------------------------------------------
+
+    subroutine fsi_remove_from_state(state)
+    !! This subroutine removes additional fields from state, e.g. solidvolumefraction
+    !! per solid mesh, solidforce per solid mesh etc, such that state only contains
+    !! the fields stated in the flml, and thus the fluid mesh can be adapted
+
+        type(state_type), intent(inout) :: state
+        type(mesh_type), pointer :: solid_mesh
+        type(vector_field), pointer :: solid_position, solidforce_mesh
+        type(scalar_field), pointer :: alpha_solidmesh
+        character(len=OPTION_PATH_LEN) :: mesh_path, mesh_name
+        integer :: i, num_solid_mesh
+
+        ewrite(2,*) "inside fsi_remove_from_state"
+
+        ! figure out if we want to print out diagnostics and initialise files
+        ! check for mutiple solids and get translation coordinates
+        num_solid_mesh = option_count('/embedded_models/fsi_model/geometry/mesh')
+
+        ! Loop over number of solid meshes defined:
+        solid_mesh_loop: do i=0, num_solid_mesh-1
+           ! Get mesh name:
+           mesh_path="/embedded_models/fsi_model/geometry/mesh["//int2str(i)//"]"
+           call get_option(trim(mesh_path)//'/name', mesh_name)
+
+           ! Remove alpha and force fields from state:
+           call remove_scalar_field(state, trim(solid_mesh%name//'SolidConcentration'))
+           call remove_vector_field(state, trim(solid_mesh%name//'SolidForce'))
+
+        end do solid_mesh_loop
+
+        ewrite(2,*) "leaving fsi_remove_from_state"
+
+    end subroutine fsi_remove_from_state
+
+    !----------------------------------------------------------------------------
+
+    subroutine fsi_insert_state(state)
+    !! This subroutine inserts additional fields to state, e.g. solidvolumefraction
+    !! per solid mesh, solidforce per solid mesh etc. 
+    !! This should happen after adapting the mesh, such that the neccessary fields
+    !! are allocated.
+
+        type(state_type), intent(inout) :: state
+        type(mesh_type), pointer :: solid_mesh
+        type(vector_field), pointer :: solid_position, solidforce_mesh
+        type(scalar_field), pointer :: alpha_solidmesh
+        character(len=OPTION_PATH_LEN) :: mesh_path, mesh_name
+        integer :: i, num_solid_mesh
+
+        ewrite(2,*) "inside fsi_insert_state"
+
+        ! figure out if we want to print out diagnostics and initialise files
+        ! check for mutiple solids and get translation coordinates
+        num_solid_mesh = option_count('/embedded_models/fsi_model/geometry/mesh')
+
+        ! Loop over number of solid meshes defined:
+        solid_mesh_loop: do i=0, num_solid_mesh-1
+           ! Get mesh name:
+           mesh_path="/embedded_models/fsi_model/geometry/mesh["//int2str(i)//"]"
+           call get_option(trim(mesh_path)//'/name', mesh_name)
+
+           ! Extract solid mesh from original state, and 
+           ! insert solid mesh into additional solid state:
+           solid_mesh => extract_mesh(global_solid_state, trim(mesh_name))
+           ! Add to extra state:
+           call insert(state, solid_mesh, trim(solid_mesh%name))
+
+           ! Solid positions:
+           solid_position => extract_vector_field(global_solid_state, trim(solid_mesh%name//'SolidCoordinate'))
+           ! Add to extra state:
+           call insert(state, solid_position, trim(solid_position%name))
+
+           ! Solid volume fraction:
+           alpha_solidmesh => extract_scalar_field(global_fluid_state, trim(solid_mesh%name//'SolidConcentration'))
+           ! Add to extra state:
+           call insert(state, alpha_solidmesh, trim(alpha_solidmesh%name))
+
+           ! Solid force:
+           solidforce_mesh => extract_vector_field(global_fluid_state, trim(solid_mesh%name//'SolidForce'))
+           ! Add to extra state:
+           call insert(state, solidforce_mesh, trim(solidforce_mesh%name))
+
+        end do solid_mesh_loop
+
+        ewrite(2,*) "leaving fsi_insert_state"
+
+    end subroutine fsi_insert_state
 
     !----------------------------------------------------------------------------
 
@@ -363,7 +454,7 @@ module fsi_model
         call insert(fluid_state, fluid_mesh, "Mesh")
         call insert(solid_state, solid_position, "Coordinate")
         call insert(fluid_state, fluid_position, "Coordinate")
-        
+
         ewrite(2,*) "leaving fsi_assemble_fs_states"
 
     end subroutine fsi_assemble_fs_states
@@ -847,6 +938,9 @@ module fsi_model
          ! Insert solid_mesh and solid_position into state:
          call insert(state, solid_mesh, trim(solid_mesh%name))
          call insert(state, solid_position, trim(solid_position%name))
+         ! Add to extra state:
+         call insert(global_solid_state, solid_mesh, trim(solid_mesh%name)) 
+         call insert(global_solid_state, solid_position, trim(solid_position%name))         
 
          ! Also set-up solidvolumefraction field for all solids:
          call allocate(alpha_solidmesh, fluid_position%mesh, trim(solid_mesh%name)//"SolidConcentration")
@@ -854,6 +948,8 @@ module fsi_model
          call zero(alpha_solidmesh)
          ! And insert it into state so that we have one solidconcentration field per solidmesh:
          call insert(state, alpha_solidmesh, trim(solid_mesh%name)//"SolidConcentration")
+         ! Add to extra state:
+         call insert(global_fluid_state, alpha_solidmesh, trim(alpha_solidmesh%name))
          call deallocate(alpha_solidmesh)
 
          ! And the solidforce:
@@ -861,6 +957,8 @@ module fsi_model
          solidforce_mesh%option_path = solid_force%option_path
          call zero(solidforce_mesh)
          call insert(state, solidforce_mesh, trim(solid_mesh%name)//"SolidForce")
+         ! Add to extra state:
+         call insert(global_fluid_state, solidforce_mesh, trim(solidforce_mesh%name))
          call deallocate(solidforce_mesh)
 
          ! Abort if dimensions of fluid and solid mesh don't add up
