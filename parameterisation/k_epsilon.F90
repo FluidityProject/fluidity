@@ -1197,15 +1197,14 @@ end subroutine keps_adapt_mesh
 
 !---------------------------------------------------------------------------------
 
-subroutine k_epsilon_check_options(state)
+subroutine k_epsilon_check_options
 
-  type(state_type) :: state  
   character(len=OPTION_PATH_LEN) :: option_path
   character(len=FIELD_NAME_LEN)  :: kmsh, emsh, vmsh
   integer                        :: dimension, stat
 
   ewrite(1,*) "In keps_check_options"
-  option_path = trim(state%option_path)//"/subgridscale_parameterisations/k-epsilon"
+  option_path = "/material_phase[0]/subgridscale_parameterisations/k-epsilon"
 
   ! one dimensional problems not supported
   call get_option("/geometry/dimension/", dimension) 
