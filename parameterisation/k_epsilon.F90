@@ -1201,15 +1201,15 @@ subroutine k_epsilon_check_options
 
   character(len=OPTION_PATH_LEN) :: option_path
   character(len=FIELD_NAME_LEN)  :: kmsh, emsh, vmsh
-  integer                        :: dimension, stat, n_phases, i_phase
+  integer                        :: dimension, stat, n_phases, istate
 
   ewrite(1,*) "In keps_check_options"
 
   n_phases = option_count("/material_phase")
 
-  do i_phase = 0, n_phases
+  do istate = 0, n_phases-1
 
-     option_path = "/material_phase["//int2str(i_phase)//"]/subgridscale_parameterisations/k-epsilon"
+     option_path = "/material_phase["//int2str(istate)//"]/subgridscale_parameterisations/k-epsilon"
      
      ! one dimensional problems not supported
      call get_option("/geometry/dimension/", dimension) 
@@ -1315,10 +1315,10 @@ subroutine k_epsilon_check_options
              &"/scalar_field::TurbulentDissipation/prescribed/mesh/name", emsh,&
              & stat)
      end if
-     call get_option("/material_phase["//int2str(i_phase)//"]/vector_field::Velocity/prognostic/mesh/name", vmsh,&
+     call get_option("/material_phase["//int2str(istate)//"]/vector_field::Velocity/prognostic/mesh/name", vmsh,&
           & stat)
      if (stat /= 0) then
-        call get_option("/material_phase["//int2str(i_phase)//"]/vector_field::Velocity/prescribed/mesh/name", vmsh,&
+        call get_option("/material_phase["//int2str(istate)//"]/vector_field::Velocity/prescribed/mesh/name", vmsh,&
              & stat)
         if (stat /= 0) then
            FLExit("You must use a prognostic or prescribed Velocity field")
@@ -1329,20 +1329,20 @@ subroutine k_epsilon_check_options
      end if
 
      ! Velocity field options
-     if (.not.have_option("/material_phase["//int2str(i_phase)//"]/vector_field::Velocity/prognostic"//&
+     if (.not.have_option("/material_phase["//int2str(istate)//"]/vector_field::Velocity/prognostic"//&
           "/tensor_field::Viscosity/") .and. &
-          .not.have_option("/material_phase["//int2str(i_phase)//"]/vector_field::Velocity/prescribed")) then
+          .not.have_option("/material_phase["//int2str(istate)//"]/vector_field::Velocity/prescribed")) then
         FLExit("Need viscosity switched on under the Velocity field for k-epsilon.") 
      end if
      ! check that the user has switched Velocity/viscosity to diagnostic
-     if (have_option("/material_phase["//int2str(i_phase)//"]/vector_field::Velocity/prognostic") .and. &
-          .not.have_option("/material_phase["//int2str(i_phase)//"]/vector_field::Velocity/prognostic"//&
+     if (have_option("/material_phase["//int2str(istate)//"]/vector_field::Velocity/prognostic") .and. &
+          .not.have_option("/material_phase["//int2str(istate)//"]/vector_field::Velocity/prognostic"//&
           "/tensor_field::Viscosity/diagnostic/")) then
         FLExit("You need to switch the viscosity field under Velocity to diagnostic/internal")
      end if
      ! check that the user has enabled a Velocity Source field
-     if (have_option("/material_phase["//int2str(i_phase)//"]/vector_field::Velocity/prognostic") .and. &
-          .not.have_option("/material_phase["//int2str(i_phase)//"]/vector_field::Velocity/prognostic"//&
+     if (have_option("/material_phase["//int2str(istate)//"]/vector_field::Velocity/prognostic") .and. &
+          .not.have_option("/material_phase["//int2str(istate)//"]/vector_field::Velocity/prognostic"//&
           &"/vector_field::Source/")) then
         FLExit("A velocity source field is required for the reynolds stress adjustment (-2/3 k delta(ij))")
      end if
