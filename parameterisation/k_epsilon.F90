@@ -46,7 +46,6 @@ module k_epsilon
   use FLDebug
   use vtk_interfaces
   use solvers
-  use momentum_diagnostic_fields
 
 implicit none
 
@@ -54,7 +53,6 @@ implicit none
 
   ! locally allocatad fields
   real, save                          :: fields_min = 1.0e-10
-  integer, save                       :: call_count = 0 ! How many times has k-epsilon been called?
 
   public :: keps_diagnostics, keps_eddyvisc, keps_bcs, keps_adapt_mesh,&
        & k_epsilon_check_options, keps_momentum_source, tensor_inner_product
@@ -70,8 +68,7 @@ contains
 subroutine keps_diagnostics(state)
 
   type(state_type), intent(inout) :: state
-
-  call_count = call_count + 1
+  
   call keps_eddyvisc(state)
   call keps_calculate_rhs(state)
 
@@ -90,7 +87,7 @@ subroutine keps_calculate_rhs(state)
   type(tensor_field), pointer :: diff, visc
   integer :: i, j, ele, term, stat
   real :: g_magnitude, c_eps_1, c_eps_2, sigma_eps, sigma_k, sigma_p
-  logical :: gravity = .true., have_buoyancy_turbulence = .true., lump_mass, approximate_c_eps_3
+  logical :: have_buoyancy_turbulence = .true., lump_mass, approximate_c_eps_3
   character(len=OPTION_PATH_LEN) :: option_path 
   character(len=FIELD_NAME_LEN), dimension(2) :: field_names
   character(len=FIELD_NAME_LEN) :: equation_type
@@ -118,9 +115,8 @@ subroutine keps_calculate_rhs(state)
   f_1          => extract_scalar_field(state, "f_1")
   f_2          => extract_scalar_field(state, "f_2")
   g            => extract_vector_field(state, "GravityDirection", stat)
-  call get_option('physical_parameters/gravity/magnitude', g_magnitude, stat)
+  call get_option('/physical_parameters/gravity/magnitude', g_magnitude, stat)
   if (stat /= 0) then
-     gravity = .false.
      have_buoyancy_turbulence = .false.
   end if
   approximate_c_eps_3 = have_option(trim(option_path)//'approximate_C_eps_3')
@@ -146,12 +142,6 @@ subroutine keps_calculate_rhs(state)
   
   if(have_buoyancy_turbulence) then
      buoyancy_density => extract_scalar_field(state, 'VelocityBuoyancyDensity')
-     if(call_count == 1) then
-        ! The very first time k-epsilon is called, VelocityBuoyancyDensity
-        ! is set to zero until calculate_densities is called in the momentum equation
-        ! solve. Calling calculate_densities here is a work-around for this problem.        
-        call calculate_densities(state, buoyancy_density=buoyancy_density)
-     end if
   end if
 
   field_names(1) = 'TurbulentKineticEnergy'
