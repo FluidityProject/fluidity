@@ -1207,7 +1207,7 @@ subroutine k_epsilon_check_options
 
   n_phases = option_count("/material_phase")
 
-  do i_phase = 1, n_phases
+  do i_phase = 0, n_phases
 
      option_path = "/material_phase["//int2str(i_phase)//"]/subgridscale_parameterisations/k-epsilon"
      
