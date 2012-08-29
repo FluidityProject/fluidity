@@ -94,9 +94,9 @@ contains
     parent_path = t_field%option_path(1:slash_location-1)
 
     ! check options
-    if (.not.(have_option(trim(state%option_path)//'/subgridscale_parameterisation/k-epsilon')))&
+    if (.not.(have_option(trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon')))&
          & then
-       FLExit('you must have /subgridscale_parameterisation::k-epsilon to be able to calculate diffusivity based upon the k-epsilon model')
+       FLExit('you must have /subgridscale_parameterisations/k-epsilon to be able to calculate diffusivity based upon the k-epsilon model')
     end if
 
     ! get sigma_p number
