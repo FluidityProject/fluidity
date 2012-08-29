@@ -96,7 +96,7 @@
     </finish_time>
     <steady_state>
       <tolerance>
-        <real_value rank="0">1.E-7</real_value>
+        <real_value rank="0">1.E-5</real_value>
         <infinity_norm/>
       </tolerance>
     </steady_state>
@@ -187,7 +187,7 @@
         </initial_condition>
         <boundary_conditions name="all_sides">
           <surface_ids>
-            <integer_value shape="4" rank="1">7 8 9 10</integer_value>
+            <integer_value shape="1" rank="1">1</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -231,8 +231,7 @@
    # Remember to divide through by density here
    # because we multiply through by Density in
    # Momentum_CG.F90.
-   return (forcing_velocity[0]/density, forcing_velocity[1]/density)
-</string_value>
+   return (forcing_velocity[0]/density, forcing_velocity[1]/density)</string_value>
               </python>
             </value>
             <output/>
@@ -484,7 +483,7 @@
         </initial_condition>
         <boundary_conditions name="all_sides">
           <surface_ids>
-            <integer_value shape="4" rank="1">7 8 9 10</integer_value>
+            <integer_value shape="1" rank="1">1</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>

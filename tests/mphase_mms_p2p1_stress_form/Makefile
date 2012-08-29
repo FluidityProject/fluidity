@@ -5,9 +5,4 @@ input:	clean
 	gmsh -2 -bin src/MMS_C.geo
 
 clean:
-	rm -f *.vtu *.stat *.s *.log *_A* *_B* *_C* *_D* matrix* *~ *.pyc fluidity.*
-
-run:
-	../../bin/fluidity MMS_A.flml
-	../../bin/fluidity MMS_B.flml
-	../../bin/fluidity MMS_C.flml
+	rm -f *.vtu *.stat *.s *.log *_A* *_B* *_C* src/*A.* src/*B.* src/*C.* matrix* *~ mms_rans_p2p1_keps.py *.pyc fluidity.*

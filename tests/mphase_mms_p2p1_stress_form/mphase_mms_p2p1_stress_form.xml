@@ -138,8 +138,8 @@ assert(ab_convergence_vel[1][0] &gt; 2.8)
 assert(ab_convergence_vel[1][1] &gt; 2.8)
     </test>
     
-    <test name="ab_convergence_p: L2 order > 1.7" language="python">
-assert(ab_convergence_p &gt; 1.7)
+    <test name="ab_convergence_p: L2 order > 2.0" language="python">
+assert(ab_convergence_p &gt; 2.0)
     </test>
     
     <test name="bc_convergence_vel_x for Fluid1: L2 order > 2.8" language="python">
@@ -149,15 +149,15 @@ assert(bc_convergence_vel[0][0] &gt; 2.8)
 assert(bc_convergence_vel[0][1] &gt; 2.8)
     </test>
     
-    <test name="bc_convergence_vel_x for Fluid2: L2 order > 2.0" language="python">
+    <test name="bc_convergence_vel_x for Fluid2: L2 order > 2.8" language="python">
 assert(bc_convergence_vel[1][0] &gt; 2.8)
     </test>
     <test name="bc_convergence_vel_y for Fluid2: L2 order > 2.8" language="python">
 assert(bc_convergence_vel[1][1] &gt; 2.8)
     </test>
     
-    <test name="bc_convergence_p: L2 order > 1.7" language="python">
-assert(bc_convergence_p &gt; 1.7)
+    <test name="bc_convergence_p: L2 order > 2.0" language="python">
+assert(bc_convergence_p &gt; 2.0)
     </test>
     
     <test name="Solvers converged" language="python">
