@@ -88,9 +88,9 @@ subroutine keps_calculate_rhs(state)
   type(vector_field), pointer :: positions, u, g
   type(scalar_field), pointer :: dummydensity, density, buoyancy_density
   type(tensor_field), pointer :: diff, visc
-  integer :: i, j, node, ele, term, stat
+  integer :: i, j, ele, term, stat
   real :: g_magnitude, c_eps_1, c_eps_2, sigma_eps, sigma_k, sigma_p
-  logical :: prescribed, gravity = .true., have_buoyancy_turbulence = .true., lump_mass, approximate_c_eps_3
+  logical :: gravity = .true., have_buoyancy_turbulence = .true., lump_mass, approximate_c_eps_3
   character(len=OPTION_PATH_LEN) :: option_path 
   character(len=FIELD_NAME_LEN), dimension(2) :: field_names
   character(len=FIELD_NAME_LEN) :: equation_type
@@ -180,9 +180,9 @@ subroutine keps_calculate_rhs(state)
 
      ! Assembly loop
      do ele = 1, ele_count(fields(1)%ptr)
-        call assemble_rhs_ele(src_abs_terms, fields(i)%ptr, fields(3-i)%ptr, EV, u, equation_type, &
-             density, buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, gravity, positions, &
-             c_eps_1, c_eps_2, sigma_k, sigma_eps, sigma_p, f_1, f_2, ele, i)
+        call assemble_rhs_ele(src_abs_terms, fields(i)%ptr, fields(3-i)%ptr, EV, u, &
+             density, buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, positions, &
+             c_eps_1, c_eps_2, sigma_p, f_1, f_2, ele, i)
      end do
 
      ! For non-DG we apply inverse mass globally
@@ -297,7 +297,7 @@ subroutine keps_calculate_rhs(state)
   do i = 1, node_count(diff)
      do j = 1, diff%dim(1)
         call addto(diff, j, j, i, node_val(visc, j, j, i))
-        call addto(diff, j, j, i, node_val(EV, i) / sigma_k)
+        call addto(diff, j, j, i, node_val(EV, i) / sigma_eps)
      end do
   end do
 
@@ -306,27 +306,26 @@ end subroutine keps_calculate_rhs
 !------------------------------------------------------------------------------!
 ! calculate the source and absorbtion terms                                    !
 !------------------------------------------------------------------------------!
-subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, equation_type, density, &
-     buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, gravity, &
-     positions, c_eps_1, c_eps_2, sigma_k, sigma_eps, sigma_p, f_1, f_2, ele, field_id)
+subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, density, &
+     buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, &
+     positions, c_eps_1, c_eps_2, sigma_p, f_1, f_2, ele, field_id)
 
   type(scalar_field), dimension(3), intent(inout) :: src_abs_terms
   type(scalar_field), intent(in) :: k, eps, EV, f_1, f_2
   type(vector_field), intent(in) :: positions, u, g
-  character(len=FIELD_NAME_LEN), intent(in) :: equation_type
   type(scalar_field), intent(in) :: density, buoyancy_density
-  real, intent(in) :: g_magnitude, c_eps_1, c_eps_2, sigma_k, sigma_eps, sigma_p
-  logical, intent(in) :: gravity, have_buoyancy_turbulence
+  real, intent(in) :: g_magnitude, c_eps_1, c_eps_2, sigma_p
+  logical, intent(in) :: have_buoyancy_turbulence
   integer, intent(in) :: ele, field_id
 
   real, dimension(ele_loc(k, ele), ele_ngi(k, ele), positions%dim) :: dshape
-  real, dimension(ele_ngi(k, ele)) :: detwei, strain_ngi, inv_k, rhs, EV_ele, k_ele
+  real, dimension(ele_ngi(k, ele)) :: detwei, inv_k, rhs, EV_ele, k_ele
   real, dimension(3, ele_loc(k, ele)) :: rhs_addto
   integer, dimension(ele_loc(k, ele)) :: nodes
   real, dimension(ele_loc(k, ele), ele_loc(k, ele)) :: invmass
   real, dimension(u%dim, u%dim, ele_ngi(k, ele)) :: reynolds_stress, grad_u
   type(element_type), pointer :: shape
-  integer :: i_loc, term, ngi, dim, gi, i
+  integer :: term, ngi, dim, gi, i
   
   ! For buoyancy turbulence stuff
   real, dimension(u%dim, ele_ngi(u, ele))  :: vector, u_quad, g_quad
@@ -685,10 +684,9 @@ subroutine keps_momentum_source(state)
 
   type(state_type), intent(inout)  :: state
   
-  type(scalar_field), pointer :: k, lumped_mass, dummydensity, density
+  type(scalar_field), pointer :: k, dummydensity, density
   type(vector_field), pointer :: source, x, u
   type(vector_field) :: rhs
-  type(vector_field) :: prescribed_source
   integer :: i
   logical :: prescribed, lump_mass
   character(len=OPTION_PATH_LEN) :: option_path 
@@ -977,7 +975,7 @@ subroutine keps_bcs(state)
                  ele  = face_ele(rhs_field, sele)
                  
                  ! Calculate wall function
-                 call keps_wall_function(field1,field2,positions,u,bg_visc,EV,density,ele,sele,index,c_mu,rhs_field)
+                 call keps_wall_function(field1,positions,u,EV,density,ele,sele,index,c_mu,rhs_field)
               end do
               
               ! Put values onto surface mesh
@@ -1090,11 +1088,10 @@ end subroutine keps_damping_functions
 ! Only used if bc type == k_epsilon for field.                                   !
 !--------------------------------------------------------------------------------!
 
-subroutine keps_wall_function(field1,field2,positions,u,bg_visc,EV,density,ele,sele,index,c_mu,rhs_field)
+subroutine keps_wall_function(field1,positions,u,EV,density,ele,sele,index,c_mu,rhs_field)
 
-  type(scalar_field), pointer, intent(in)              :: field1, field2, EV, density
+  type(scalar_field), pointer, intent(in)              :: field1, EV, density
   type(vector_field), pointer, intent(in)              :: positions, u
-  type(tensor_field), pointer, intent(in)              :: bg_visc
   integer, intent(in)                                  :: ele, sele, index
   type(scalar_field), intent(inout)                    :: rhs_field
 
@@ -1103,21 +1100,17 @@ subroutine keps_wall_function(field1,field2,positions,u,bg_visc,EV,density,ele,s
   real                                                 :: kappa, h, c_mu
   real, dimension(1,1)                                 :: hb
   real, dimension(ele_ngi(field1,ele))                 :: detwei
-  real, dimension(face_ngi(field1,sele))               :: detwei_bdy, ustar, q_sgin, visc_sgi, density_sgi
+  real, dimension(face_ngi(field1,sele))               :: detwei_bdy, ustar, visc_sgi, density_sgi
   real, dimension(face_loc(field1,sele))               :: lumpedfmass
-  real, dimension(ele_loc(field1,ele))                 :: sqrt_k
   real, dimension(positions%dim,1)                     :: n
   real, dimension(positions%dim,positions%dim)         :: G
-  real, dimension(positions%dim,ele_ngi(field1,ele))   :: grad_k
-  real, dimension(positions%dim,face_ngi(field1,sele)) :: normal_bdy, q_sgi, qq_sgin
-  real, dimension(positions%dim,ele_loc(field1,ele))   :: q
-  real, dimension(positions%dim,face_loc(field1,ele))  :: q_s
+  real, dimension(positions%dim,face_ngi(field1,sele)) :: normal_bdy, qq_sgin
   real, dimension(face_loc(field1,ele),face_loc(field1,ele))   :: fmass
   real, dimension(ele_loc(field1,ele),ele_loc(field1,ele))     :: invmass
   real, dimension(positions%dim,positions%dim,ele_loc(field1,sele))       :: qq
   real, dimension(positions%dim,positions%dim,ele_ngi(field1,sele))       :: grad_u, invJ
   real, dimension(positions%dim,positions%dim,face_loc(field1,sele))      :: qq_s
-  real, dimension(positions%dim,positions%dim,face_ngi(field1,sele))      :: bg_visc_sgi, qq_sgi
+  real, dimension(positions%dim,positions%dim,face_ngi(field1,sele))      :: qq_sgi
   real, dimension(ele_loc(field1,ele),ele_ngi(field1,ele),positions%dim)  :: dshape
   real, dimension(face_loc(rhs_field, sele))           :: rhs
   integer, dimension(face_loc(rhs_field, sele))        :: nodes_bdy
