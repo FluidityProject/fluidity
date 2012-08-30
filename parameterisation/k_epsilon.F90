@@ -1075,7 +1075,7 @@ subroutine keps_damping_functions(state,k,eps,f_1,f_2,f_mu,y,bg_visc,density,nod
 end subroutine keps_damping_functions
 
 !--------------------------------------------------------------------------------!
-! Only used if bc type == k_epsilon for field.                                   !
+! Only used if bc type == k_epsilon for field and high_Re.                       !
 !--------------------------------------------------------------------------------!
 
 subroutine keps_wall_function(field1,positions,u,EV,density,ele,sele,index,c_mu,rhs_field)
@@ -1090,7 +1090,7 @@ subroutine keps_wall_function(field1,positions,u,EV,density,ele,sele,index,c_mu,
   real                                                 :: kappa, h, c_mu
   real, dimension(1,1)                                 :: hb
   real, dimension(ele_ngi(field1,ele))                 :: detwei
-  real, dimension(face_ngi(field1,sele))               :: detwei_bdy, ustar, visc_sgi, density_sgi
+  real, dimension(face_ngi(field1,sele))               :: detwei_bdy, tau_wall, visc_sgi, density_sgi
   real, dimension(face_loc(field1,sele))               :: lumpedfmass
   real, dimension(positions%dim,1)                     :: n
   real, dimension(positions%dim,positions%dim)         :: G
@@ -1152,16 +1152,18 @@ subroutine keps_wall_function(field1,positions,u,EV,density,ele,sele,index,c_mu,
      ! Subtract normal component of velocity, leaving tangent components:
      qq_sgin(:,gi) = qq_sgin(:,gi)-normal_bdy(:,gi)*dot_product(qq_sgin(:,gi),normal_bdy(:,gi))
      
-     ! Get streamwise component by taking sqrt(grad_n.grad_n). Multiply by eddy viscosity.
-     ! Note: we divide by density here to write the BC in terms of a dynamic viscosity,
-     ! rather than a kinematic one.
-     ustar(gi) = norm2(qq_sgin(:,gi)) * visc_sgi(gi) / density_sgi(gi)
+     ! Wall shear stress tau_wall/rho = nu_T*du/dn.
+     ! Get streamwise velocity gradient by taking sqrt(grad_n.grad_n).
+     ! Eddy viscosity is dynamic not kinematic so divide by density.
+     tau_wall(gi) = norm2(qq_sgin(:,gi)) * visc_sgi(gi) / density_sgi(gi)
   end do
   
   if (index==1) then
-     rhs = shape_rhs(fshape, detwei_bdy*ustar/c_mu**0.5)
+     ! k = tau_wall/rho/c_mu**0.5
+     rhs = shape_rhs(fshape, detwei_bdy*tau_wall/c_mu**0.5)
      rhs = rhs/lumpedfmass
   else if (index==2) then
+     ! epsilon = (tau_wall/rho)**1.5/kappa/h
      ! calculate wall-normal element size
      G = matmul(transpose(invJ(:,:,1)), invJ(:,:,1))
      n(:,1) = normal_bdy(:,1)
@@ -1170,7 +1172,7 @@ subroutine keps_wall_function(field1,positions,u,EV,density,ele,sele,index,c_mu,
      ! Von Karman's constant
      kappa = 0.43
      
-     rhs = shape_rhs(fshape, detwei_bdy*ustar**1.5/kappa/h)
+     rhs = shape_rhs(fshape, detwei_bdy*tau_wall**1.5/kappa/h)
      rhs = rhs/lumpedfmass
   end if
 
