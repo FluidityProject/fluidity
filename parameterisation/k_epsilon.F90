@@ -1206,6 +1206,10 @@ subroutine k_epsilon_check_options
   ewrite(1,*) "In keps_check_options"
 
   n_phases = option_count("/material_phase")
+  
+  if(option_count("/material_phase/subgridscale_parameterisations/k-epsilon") > 1) then
+     FLExit("The k-epsilon model can only be applied to a single-phase.")
+  end if
 
   do istate = 0, n_phases-1
 
