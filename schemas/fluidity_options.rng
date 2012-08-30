@@ -16,6 +16,7 @@
   <include href="embedded_models.rng"/>
   <include href="flredecomp.rng"/>
   <include href="porous_media.rng"/>
+  <include href="multiphase_interaction.rng"/>
   <include href="equation_of_state.rng"/>
   <start>
     <element name="fluidity_options">
@@ -1852,6 +1853,21 @@ probably equal to the location of the borehole</a:documentation>
                   <ref name="real"/>
                 </element>
               </optional>
+              <optional>
+                <element name="effective_conductivity">
+                  <a:documentation>If this is the fluid phase, 
+the effective conductivity is required 
+for the inter-phase heat transfer term.</a:documentation>
+                  <ref name="real"/>
+                </element>
+              </optional>
+              <optional>
+                <element name="specific_heat">
+                  <a:documentation>The specific heat (at constant volume) is required 
+for the inter-phase heat transfer term.</a:documentation>
+                  <ref name="real"/>
+                </element>
+              </optional>
             </element>
           </optional>
           <optional>
@@ -2184,6 +2200,9 @@ while a factor of 1 represents a connected domain.</a:documentation>
       </optional>
       <optional>
         <ref name="flredecomp"/>
+      </optional>
+      <optional>
+        <ref name="multiphase_interaction"/>
       </optional>
     </element>
   </start>
@@ -2861,8 +2880,27 @@ guided search particle tracking</a:documentation>
     <element name="density">
       <ref name="real"/>
     </element>
-    <element name="drag_coefficient">
-      <ref name="real"/>
+    <element name="calculation_method">
+      <a:documentation>Three options for calculation of bed shear stress are available:</a:documentation>
+      <choice>
+        <element name="drag_coefficient">
+          <a:documentation>density*drag_coeff*|u|*u 
+This is calculated at all boundaries</a:documentation>
+          <ref name="real"/>
+        </element>
+        <element name="velocity_gradient">
+          <a:documentation>velocity_gradient - nu * grad(u)
+This uses the velocity gradient at the boundaries to calculate the 
+bed shear stress. Valid for non parameterised velocity boundaries</a:documentation>
+          <empty/>
+        </element>
+        <element name="wall_treatment">
+          <a:documentation>This diagnostic can only be used in conjunction with a near-wall treatment
+velocity boundary condition. It is calculated at the same time as that boundary condition.
+The shear stress depends upon parameters set for the near-wall treatment algorithm.</a:documentation>
+          <empty/>
+        </element>
+      </choice>
     </element>
     <ref name="diagnostic_output_options"/>
     <ref name="diagnostic_vector_stat_options"/>
@@ -5929,6 +5967,27 @@ or with a CG but with the continuity tested with the CV dual. </a:documentation>
               <ref name="comment"/>
             </element>
           </optional>
+          <ref name="diagnostic_scalar_field_no_adapt"/>
+          <element name="solver">
+            <ref name="linear_solver_options_sym"/>
+          </element>
+        </element>
+      </element>
+      <element name="scalar_field">
+        <a:documentation>CompressibleContinuityResidual
+
+Computes the residual of the continuity equation used in compressible multiphase flow simulations
+i.e. vfrac_c*d(rho_c)/dt + div(rho_c*vfrac_c*u_c) + \sum_i{ rho_c*div(vfrac_i*u_i) }
+where _c and _i denote the compressible and incompressible phases respectively.</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>CompressibleContinuityResidual</value>
+        </attribute>
+        <element name="diagnostic">
+          <ref name="velocity_mesh_choice"/>
+          <ref name="internal_algorithm"/>
           <ref name="diagnostic_scalar_field_no_adapt"/>
           <element name="solver">
             <ref name="linear_solver_options_sym"/>

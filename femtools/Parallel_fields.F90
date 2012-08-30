@@ -284,8 +284,11 @@ contains
     !!< Return .true. if ELEMENT_NUMBER has a neighbour in MESH that
     !!< is owned by this process otherwise .false.
 
-    !! Effectively, this computes whether ELEMENT_NUMBER is in the L1
-    !! halo.
+    !! Note, you cannot use this function to compute if
+    !! ELEMENT_NUMBER is owned.  Imagine if this is the only owned
+    !! element on a process, then none of the neighbours will be owned.
+    !! You can use this function to compute whether ELEMENT_NUMBER is
+    !! in the L1 element halo.
     type(mesh_type), intent(in) :: mesh
     integer, intent(in) :: element_number
     logical :: owned
@@ -311,8 +314,11 @@ contains
     !!< Return .true. if ELEMENT_NUMBER has a neighbour in FIELD that
     !!< is owned by this process otherwise .false.
 
-    !! Effectively, this computes whether ELEMENT_NUMBER is in the L1
-    !! halo.
+    !! Note, you cannot use this function to compute if
+    !! ELEMENT_NUMBER is owned.  Imagine if this is the only owned
+    !! element on a process, then none of the neighbours will be owned.
+    !! You can use this function to compute whether ELEMENT_NUMBER is
+    !! in the L1 element halo.
     type(scalar_field), intent(in) :: field
     integer, intent(in) :: element_number
     logical :: owned
@@ -324,8 +330,11 @@ contains
     !!< Return .true. if ELEMENT_NUMBER has a neighbour in FIELD that
     !!< is owned by this process otherwise .false.
 
-    !! Effectively, this computes whether ELEMENT_NUMBER is in the L1
-    !! halo.
+    !! Note, you cannot use this function to compute if
+    !! ELEMENT_NUMBER is owned.  Imagine if this is the only owned
+    !! element on a process, then none of the neighbours will be owned.
+    !! You can use this function to compute whether ELEMENT_NUMBER is
+    !! in the L1 element halo.
     type(vector_field), intent(in) :: field
     integer, intent(in) :: element_number
     logical :: owned
@@ -337,8 +346,11 @@ contains
     !!< Return .true. if ELEMENT_NUMBER has a neighbour in FIELD that
     !!< is owned by this process otherwise .false.
 
-    !! Effectively, this computes whether ELEMENT_NUMBER is in the L1
-    !! halo.
+    !! Note, you cannot use this function to compute if
+    !! ELEMENT_NUMBER is owned.  Imagine if this is the only owned
+    !! element on a process, then none of the neighbours will be owned.
+    !! You can use this function to compute whether ELEMENT_NUMBER is
+    !! in the L1 element halo.
     type(tensor_field), intent(in) :: field
     integer, intent(in) :: element_number
     logical :: owned
