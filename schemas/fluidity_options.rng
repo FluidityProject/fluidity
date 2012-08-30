@@ -1534,7 +1534,13 @@ Recommended value (default): 10.0</a:documentation>
                   <optional>
                     <element name="scalar_field">
                       <a:documentation>Describes distance to nearest solid wall.
-Required for low_Re boundaries.</a:documentation>
+Required for low_Re boundaries.
+For simple geometries the simplest method of providing this information is to use a python function.
+For complex geometries where this is not possible precursive Eikonal equation or Poisson equation
+simulations must be run using Fluidity to determine the values for this field.
+Details of how this is done can be found in:
+Tucker, P 2011: "Hybrid Hamilton/Jacobi/Poisson wall distance function model"
+Elias et al 2007: "Simple finite element-based computation of distance functions in unstructured grids"</a:documentation>
                       <attribute name="rank">
                         <value>0</value>
                       </attribute>
@@ -1580,19 +1586,6 @@ for thermal fields. This is used to calculate the turbulent buoyancy term.
 Recommended value (default): 1.0.</a:documentation>
                     <ref name="real"/>
                   </element>
-                  <optional>
-                    <element name="approximate_C_eps_3">
-                      <a:documentation>C_eps_3, a coefficient relating to the dissipation buoyancy term, requires the calculation of 
-tanh(v/u) at every grid point. This can be computationally expensive. Enabling this option 
-causes the program to approximate tanh(v/u) as:
-
-  C_eps_3 = sin(v/u) if v/u &lt;= 1.57  (pi/2.0)
-                   1.0 if v/u &gt; 1.57  (pi/2.0)
-
-This achieves a similar result with a lower computational cost.</a:documentation>
-                      <empty/>
-                    </element>
-                  </optional>
                   <optional>
                     <element name="limit_length_scale">
                       <a:documentation>Implicit source term - lump production term into absorbtion so that it is calculated 

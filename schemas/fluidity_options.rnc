@@ -1194,6 +1194,12 @@ start =
                   element max_damping_value {real},
                   ## Describes distance to nearest solid wall.
                   ## Required for low_Re boundaries.
+                  ## For simple geometries the simplest method of providing this information is to use a python function.
+                  ## For complex geometries where this is not possible precursive Eikonal equation or Poisson equation
+                  ## simulations must be run using Fluidity to determine the values for this field.
+                  ## Details of how this is done can be found in:
+                  ## Tucker, P 2011: "Hybrid Hamilton/Jacobi/Poisson wall distance function model"
+                  ## Elias et al 2007: "Simple finite element-based computation of distance functions in unstructured grids"
                   element scalar_field {
                      attribute rank { "0" },
                      attribute name { "DistanceToWall" },
