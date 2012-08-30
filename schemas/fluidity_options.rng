@@ -1421,22 +1421,6 @@ IMPORTANT: make velocity/viscosity diagnostic.</a:documentation>
                       </element>
                     </choice>
                   </element>
-                  <optional>
-                    <element name="tensor_field">
-                      <a:documentation>Set the value of the background (laminar) diffusivity field here.
-This is used to calculate scalar field diffusivities.</a:documentation>
-                      <attribute name="rank">
-                        <value>2</value>
-                      </attribute>
-                      <attribute name="name">
-                        <value>BackgroundDiffusivity</value>
-                      </attribute>
-                      <element name="prescribed">
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="prescribed_tensor_field"/>
-                      </element>
-                    </element>
-                  </optional>
                   <element name="tensor_field">
                     <a:documentation>Eddy viscosity (turbulent diffusion of velocity).
 This is a fictitious isotropic viscosity, added to normal viscosity field, that
@@ -1529,17 +1513,6 @@ Recommended value (default): 1.0.</a:documentation>
 Recommended value (default): 1.3.</a:documentation>
                     <ref name="real"/>
                   </element>
-                  <optional>
-                    <element name="debugging_mode">
-                      <a:documentation>produce vtu output of individual kk and eps source terms</a:documentation>
-                      <optional>
-                        <element name="period">
-                          <a:documentation>output is created every timestep unless a period (in seconds) is provided here</a:documentation>
-                          <ref name="real"/>
-                        </element>
-                      </optional>
-                    </element>
-                  </optional>
                 </element>
               </optional>
             </element>
@@ -2287,20 +2260,29 @@ The units are in unit distances as a depth of sediment.</a:documentation>
               <attribute name="name">
                 <value>Bedload</value>
               </attribute>
-              <element name="diagnostic">
+              <choice>
                 <a:documentation>Field type</a:documentation>
-                <element name="surface_ids">
-                  <a:documentation>Surface ids over which to calculate the bedload:</a:documentation>
-                  <ref name="integer_vector"/>
+                <element name="diagnostic">
+                  <element name="surface_ids">
+                    <a:documentation>Surface ids over which to calculate the bedload:</a:documentation>
+                    <ref name="integer_vector"/>
+                  </element>
+                  <ref name="diagnostic_scalar_field"/>
                 </element>
-                <ref name="diagnostic_scalar_field"/>
-              </element>
+                <element name="prescribed">
+                  <element name="surface_ids">
+                    <a:documentation>Surface ids over which to calculate the bedload deposition:</a:documentation>
+                    <ref name="integer_vector"/>
+                  </element>
+                  <ref name="prescribed_scalar_field"/>
+                </element>
+              </choice>
             </element>
             <element name="scalar_field">
               <a:documentation>Sediment bedload diagnostic which records the sediment 
 deposited through the prescribed boundary.
 
-The units are in unit distances as a depth of sediment.</a:documentation>
+The units are in unit distances/second.</a:documentation>
               <attribute name="rank">
                 <value>0</value>
               </attribute>
@@ -2312,6 +2294,40 @@ The units are in unit distances as a depth of sediment.</a:documentation>
                 <ref name="diagnostic_scalar_field"/>
               </element>
             </element>
+            <optional>
+              <element name="scalar_field">
+                <a:documentation>Sediment bedload deposit rate diagnostic.
+
+The units are in unit distances/second.</a:documentation>
+                <attribute name="rank">
+                  <value>0</value>
+                </attribute>
+                <attribute name="name">
+                  <value>BedloadDepositRate</value>
+                </attribute>
+                <element name="diagnostic">
+                  <a:documentation>Field type</a:documentation>
+                  <ref name="diagnostic_scalar_field"/>
+                </element>
+              </element>
+            </optional>
+            <optional>
+              <element name="scalar_field">
+                <a:documentation>Sediment bedload erosion rate diagnostic.
+
+The units are in unit distances as a depth of sediment.</a:documentation>
+                <attribute name="rank">
+                  <value>0</value>
+                </attribute>
+                <attribute name="name">
+                  <value>BedloadErosionRate</value>
+                </attribute>
+                <element name="diagnostic">
+                  <a:documentation>Field type</a:documentation>
+                  <ref name="diagnostic_scalar_field"/>
+                </element>
+              </element>
+            </optional>
             <optional>
               <element name="scalar_field">
                 <a:documentation>This is the unhindered sinking velocity of the sediment particles. 
@@ -2332,7 +2348,7 @@ floats upwards, this field should be negative.</a:documentation>
                   <value>0</value>
                 </attribute>
                 <element name="prescribed">
-                  <ref name="prescribed_scalar_field_no_adapt"/>
+                  <ref name="prescribed_scalar_field"/>
                 </element>
               </element>
             </optional>
@@ -6795,10 +6811,6 @@ in a multimaterial simulation.</a:documentation>
             <ref name="generic_aliased_field"/>
           </element>
         </choice>
-      </element>
-      <element name="___Prescribed_fields_below___">
-        <a:documentation>Prescribed scalar fields below this</a:documentation>
-        <empty/>
       </element>
       <!--
         

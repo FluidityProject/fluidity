@@ -65,10 +65,10 @@ contains
     type(vector_field), pointer                            :: X, U, gravity
     type(scalar_field), dimension(:), allocatable          :: deposited_sediment, erosion
     type(scalar_field), pointer                            :: erosion_flux, bedload_field&
-         &, sediment_field, sink_U
+         &, sediment_field, sink_U, diagnostic_field
     type(scalar_field)                                     :: masslump
     integer                                                :: n_sediment_fields,&
-         & i_field, i_bcs, i_node, ele, n_bcs
+         & i_field, i_bcs, i_node, ele, n_bcs, stat
     integer, dimension(2)                                  :: surface_id_count
     integer, dimension(:), allocatable                     :: surface_ids
     integer, dimension(:), pointer                         :: to_nodes, surface_element_list
@@ -141,6 +141,7 @@ contains
                    call set(erosion(i_field),to_nodes(i_node),values(i_node))
                 end do
              end do
+
              call scale(erosion(i_field),dt)
              deallocate(values)
              
@@ -172,11 +173,19 @@ contains
        end if
        
        ! obtain surface ids over which to record deposition
-       surface_id_count=option_shape(trim(bedload_field%option_path)//&
-            &"/diagnostic/surface_ids") 
-       allocate(surface_ids(surface_id_count(1)))
-       call get_option(trim(bedload_field%option_path)//"/diagnostic/surface_ids", &
-            & surface_ids)
+       if (have_option(trim(bedload_field%option_path)//"/diagnostic")) then
+          surface_id_count=option_shape(trim(bedload_field%option_path)//&
+               &"/diagnostic/surface_ids")
+          allocate(surface_ids(surface_id_count(1)))
+          call get_option(trim(bedload_field%option_path)//"/diagnostic/surface_ids", &
+               & surface_ids)
+       else
+          surface_id_count=option_shape(trim(bedload_field%option_path)//&
+               &"/prescribed/surface_ids")
+          allocate(surface_ids(surface_id_count(1)))
+          call get_option(trim(bedload_field%option_path)//"/prescribed/surface_ids", &
+               & surface_ids)
+       end if
 
        ! loop through elements in surface field
        elements: do ele=1,element_count(deposited_sediment(i_field))
@@ -206,26 +215,50 @@ contains
 
     end do deposit_fields_loop
     
-    ! thrid loop to calculate net flux of sediment for this timestep
+    ! third loop to calculate net flux of sediment for this timestep
     net_flux_loop: do i_field=1, n_sediment_fields
        
        ! obtain scalar fields for this sediment class
        call get_sediment_item(state, i_field, "Bedload", bedload_field)
 
-       ! Add on sediment falling in and subtract sediment coming out
-       do i_node = 1, node_count(surface_mesh(i_field))
-          ! add deposited sediment
-          call addto(bedload_field, surface_nodes(i_field)%nodes(i_node), &
-               & node_val(deposited_sediment(i_field), i_node))
-          ! remove eroded sediment
-          call addto(bedload_field, surface_nodes(i_field)%nodes(i_node), &
-               & -1.0 * node_val(erosion(i_field), i_node))
+       ! get erosion rate diagnostic field
+       call get_sediment_item(state, i_field, "BedloadDepositRate", diagnostic_field, stat)
+       if (stat == 0) then
+          call zero(diagnostic_field)
+          do i_node = 1, node_count(surface_mesh(i_field))
+             call set(diagnostic_field, surface_nodes(i_field)%nodes(i_node), &
+                  & node_val(deposited_sediment(i_field), i_node))
+          end do
+          call scale(diagnostic_field, 1./dt)
+       end if
 
-          ! make sure bedload is positive
-          if (node_val(bedload_field, surface_nodes(i_field)%nodes(i_node)) < 0.0) then
-             call set(bedload_field, surface_nodes(i_field)%nodes(i_node), 0.0)
-          end if
-       end do
+       ! get deposit rate diagnostic field
+       call get_sediment_item(state, i_field, "BedloadErosionRate", diagnostic_field, stat)
+       if (stat == 0) then
+          call zero(diagnostic_field)
+          do i_node = 1, node_count(surface_mesh(i_field))
+             call set(diagnostic_field, surface_nodes(i_field)%nodes(i_node), &
+                  & node_val(erosion(i_field), i_node))
+          end do
+          call scale(diagnostic_field, 1./dt)
+       end if
+       
+       if (.not. have_option(trim(bedload_field%option_path)//'/prescribed')) then
+          ! Add on sediment falling in and subtract sediment coming out
+          do i_node = 1, node_count(surface_mesh(i_field))
+             ! add deposited sediment
+             call addto(bedload_field, surface_nodes(i_field)%nodes(i_node), &
+                  & node_val(deposited_sediment(i_field), i_node))
+             ! remove eroded sediment
+             call addto(bedload_field, surface_nodes(i_field)%nodes(i_node), &
+                  & -1.0 * node_val(erosion(i_field), i_node))
+             
+             ! make sure bedload is positive
+             if (node_val(bedload_field, surface_nodes(i_field)%nodes(i_node)) < 0.0) then
+                call set(bedload_field, surface_nodes(i_field)%nodes(i_node), 0.0)
+             end if
+          end do
+       end if
 
        ewrite_minmax(deposited_sediment(i_field)) 
        ewrite_minmax(erosion(i_field)) 
@@ -549,7 +582,7 @@ contains
     real, dimension(ele_loc(sigma_surface, i_ele), &
          & ele_loc(sigma_surface, i_ele))                    :: invmass
     real, dimension(ele_ngi(sigma_surface, i_ele))           :: detwei, total_bedload, &
-         & mean_diameter, sigma_numerator, diameter_temp
+         & mean_diameter, sigma_squared
     real, dimension(ele_loc(sigma_surface, i_ele))           :: sigma
     integer                                                  :: i_field, i_gi
     real                                                     :: min_bedload = 1.0e-20
@@ -570,13 +603,13 @@ contains
     do i_gi = 1, ele_ngi(sigma_surface, i_ele)
        total_bedload(i_gi) = 0.0
        mean_diameter(i_gi) = 0.0
-       sigma_numerator(i_gi) = 0.0
+       sigma_squared(i_gi) = 0.0
     end do
    
     mean_calculation_loop: do i_field = 1, n_fields
        total_bedload = total_bedload + face_val_at_quad(bedload(i_field)%ptr, i_ele)
-       mean_diameter = mean_diameter + face_val_at_quad(bedload(i_field)%ptr, i_ele) *&
-            & diameter(i_field)
+       mean_diameter = mean_diameter + face_val_at_quad(bedload(i_field)%ptr, i_ele) &
+            *diameter(i_field)
     end do mean_calculation_loop
     where ((total_bedload > min_bedload)) 
        mean_diameter = mean_diameter / total_bedload
@@ -585,18 +618,15 @@ contains
     end where
 
     sigma_calculation_loop: do i_field = 1, n_fields
-       do i_gi = 1, ele_ngi(sigma_surface, i_ele)
-          diameter_temp(i_gi) = diameter(i_field)
-       end do
-       sigma_numerator = sigma_numerator + face_val_at_quad(bedload(i_field)%ptr, i_ele) &
-            &* (diameter_temp - mean_diameter)**2.0
+       sigma_squared = sigma_squared + face_val_at_quad(bedload(i_field)%ptr, i_ele) &
+            *(diameter(i_field) - mean_diameter)**2.0       
     end do sigma_calculation_loop
     where ((total_bedload > min_bedload)) 
-        sigma_numerator = sigma_numerator / total_bedload
+        sigma_squared = sigma_squared / total_bedload
     elsewhere
-        sigma_numerator = 0.0
+        sigma_squared = 0.0
     end where
-    sigma = shape_rhs(shape, sigma_numerator**0.5 * detwei)
+    sigma = shape_rhs(shape, sigma_squared**0.5 * detwei)
 
     if(continuity(sigma_surface)<0) then
        ! DG case.
@@ -657,9 +687,19 @@ contains
        end if
 
        ! obtain sediment bedload surface ids
-       surface_id_count=option_shape(trim(bedload%option_path)//'/diagnostic/surface_ids') 
-       allocate(surface_ids(surface_id_count(1)))
-       call get_option(trim(bedload%option_path)//'/diagnostic/surface_ids', surface_ids)
+       if (have_option(trim(bedload%option_path)//"/diagnostic")) then
+          surface_id_count=option_shape(trim(bedload%option_path)//&
+               &"/diagnostic/surface_ids")
+          allocate(surface_ids(surface_id_count(1)))
+          call get_option(trim(bedload%option_path)//"/diagnostic/surface_ids", &
+               & surface_ids)
+       else
+          surface_id_count=option_shape(trim(bedload%option_path)//&
+               &"/prescribed/surface_ids")
+          allocate(surface_ids(surface_id_count(1)))
+          call get_option(trim(bedload%option_path)//"/prescribed/surface_ids", &
+               & surface_ids)
+       end if
        
        ! loop through elements in surface field
        elements: do i_ele=1, element_count(volume_fraction_surface)

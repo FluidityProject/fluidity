@@ -1634,18 +1634,27 @@ sediment =
                   attribute rank { "0" },
                   attribute name { "Bedload" },
                   ## Field type
-                  element diagnostic {
-                     ## Surface ids over which to calculate the bedload:
-                     element surface_ids {
-                        integer_vector
-                     },
-                     diagnostic_scalar_field
-                  }
+                  (
+                     element diagnostic {
+                        ## Surface ids over which to calculate the bedload:
+                        element surface_ids {
+                           integer_vector
+                        },
+                        diagnostic_scalar_field
+                     }|
+                     element prescribed {
+                        ## Surface ids over which to calculate the bedload deposition:
+                        element surface_ids {
+                           integer_vector
+                        },
+                        prescribed_scalar_field
+                     }
+                  )
                },
                ## Sediment bedload diagnostic which records the sediment 
                ## deposited through the prescribed boundary.
                ##
-               ## The units are in unit distances as a depth of sediment.
+               ## The units are in unit distances/second.
                element scalar_field {
                   attribute rank { "0" },
                   attribute name { "BedloadVolumeFraction" },
@@ -1654,6 +1663,28 @@ sediment =
                      diagnostic_scalar_field
                   }
                },
+               ## Sediment bedload deposit rate diagnostic.
+               ##
+               ## The units are in unit distances/second.
+               element scalar_field {
+                  attribute rank { "0" },
+                  attribute name { "BedloadDepositRate" },
+                  ## Field type
+                  element diagnostic {
+                     diagnostic_scalar_field
+                  }
+               }?,
+               ## Sediment bedload erosion rate diagnostic.
+               ##
+               ## The units are in unit distances as a depth of sediment.
+               element scalar_field {
+                  attribute rank { "0" },
+                  attribute name { "BedloadErosionRate" },
+                  ## Field type
+                  element diagnostic {
+                     diagnostic_scalar_field
+                  }
+               }?,
                ## This is the unhindered sinking velocity of the sediment particles. 
                ## 
                ## With the sinking velocity field set to diagnostic, this field is used, along with the sediment 
@@ -1669,7 +1700,7 @@ sediment =
                   attribute name { "UnhinderedSinkingVelocity" },
                   attribute rank { "0" },
                   element prescribed {
-                     prescribed_scalar_field_no_adapt
+                     prescribed_scalar_field
                   }
                }?,
                ## This is the submerged specific gravity, R, of this sediment. 

@@ -278,7 +278,7 @@ contains
                & x, masslump, surface_element_list, viscosity_pointer,&
                & shear_stress, d50, sink_U, sigma, volume_fraction)
        case default
-          FLExit("A valid reentrainment algorithm must be selected")
+          FLExit("A valid re-entrainment algorithm must be selected")
        end select   
 
     end do elements
@@ -360,7 +360,7 @@ contains
     call get_option("/physical_parameters/gravity/magnitude", g)
     ! VISCOSITY ASSUMED TO BE ISOTROPIC - maybe should be in normal direction to surface
     where (face_val_at_quad(viscosity, surface_element_list(i_ele), 1, 1) > 0.0) 
-       R_p = sqrt(R*g*d**3)/face_val_at_quad(viscosity, surface_element_list(i_ele), 1, 1)
+       R_p = sqrt(R*g*d**3.0)/face_val_at_quad(viscosity, surface_element_list(i_ele), 1, 1)
     elsewhere 
        R_p = 0.0
     end where 
@@ -375,10 +375,7 @@ contains
     u_star = sqrt(shear/density)
 
     ! calculate lambda_m
-    do i_gi = 1, ele_ngi(reentrainment, i_ele)
-       lambda_m(i_gi) = 1.0
-    end do
-    lambda_m = lambda_m - 0.288 * face_val_at_quad(sigma, surface_element_list(i_ele))
+    lambda_m = 1.0 - 0.288 * face_val_at_quad(sigma, surface_element_list(i_ele))
 
     ! calculate Z
     where (face_val_at_quad(d50, surface_element_list(i_ele)) > 0.0)
@@ -502,6 +499,7 @@ contains
 
     character(len=FIELD_NAME_LEN)           :: field_mesh, sediment_mesh, bc_type
     character(len=OPTION_PATH_LEN)          :: field_option_path 
+    character(len=10)                       :: type
     integer                                 :: i_field, i_bc, i_bc_surf, i_bedload_surf,&
          & n_sediment_fields, nbcs
     integer, dimension(2)                   :: bc_surface_id_count, bedload_surface_id_count
@@ -532,9 +530,7 @@ contains
              FLExit("All sediment fields must be on the same mesh")
           end if
 
-          ! check reentrainment is set on a bedload surface and that a BedShearStress field is
-          !  present if there is reentrainment
-
+          ! check re-entrainment options
           ! get boundary condition path and number of boundary conditions
           nbcs=option_count(trim(field_option_path)//'/boundary_conditions')
           ! Loop over boundary conditions for field
@@ -554,19 +550,28 @@ contains
                 FLExit("Reentrainment boundary condition requires a BedShearStress field")
              end if
 
+             ! warn if bedload field is prescribed
+             type = 'diagnostic'
+             if (have_option(trim(field_option_path)//'/scalar_field::Bedload/prescribed')) then
+                ewrite(0,*) 'WARNING: Bedload field is prescribed'
+                type = 'prescribed'
+             end if
+             
+             ! check boundary id's are the same for re-entrainment and bedload
+             
              ! get bedload surface ids
-             bedload_surface_id_count=option_shape(trim(field_option_path)//'/scalar_field&
-                  &::Bedload/diagnostic/surface_ids')
+             bedload_surface_id_count=option_shape(trim(field_option_path)// &
+                  '/scalar_field::Bedload/'//type//'/surface_ids')
              allocate(bedload_surface_ids(bedload_surface_id_count(1)))
-             call get_option(trim(field_option_path)//'/scalar_field::Bedload/diagnostic/surf&
-                  &ace_ids', bedload_surface_ids) 
+             call get_option(trim(field_option_path)// &
+                  '/scalar_field::Bedload/'//type//'/surface_ids', bedload_surface_ids) 
 
              ! get reentrainment surface ids
              bc_surface_id_count=option_shape(trim(field_option_path)//'/boundary_conditions['&
                   &//int2str(i_bc)//']/surface_ids')
              allocate(bc_surface_ids(bc_surface_id_count(1)))
-             call get_option(trim(field_option_path)//'/boundary_conditions['//int2str(i_bc)//']/sur&
-                  &face_ids', bc_surface_ids) 
+             call get_option(trim(field_option_path)// &
+                  '/boundary_conditions['//int2str(i_bc)//']/surface_ids', bc_surface_ids) 
 
              bc_surface_id: do i_bc_surf=1, bc_surface_id_count(1)
 

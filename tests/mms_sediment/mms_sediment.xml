@@ -10,12 +10,13 @@
   <variables>
     <variable name="convergence" language="python">
 from fluidity_tools import stat_parser as stat
+from vtktools import *
 from math import log
 import numpy as np
 
 meshes = [['A','B'], ['B','C'], ['C','D']]
 
-convergence = np.ones(15) * 1e10
+convergence = np.ones(8) * 1e10
 
 print ''
 print 'ORDER OF CONVERGENCE'
@@ -62,7 +63,31 @@ for i, field in enumerate(fields):
     
     print '-------------------------------------------'
 
-print ''
+fields = ['s1BedloadErosionRateError', 
+          's2BedloadErosionRateError', 
+          's1BedloadDepositRateError', 
+          's2BedloadDepositRateError', 
+          ]
+
+for i, field in enumerate(fields):
+    print field
+    print '-------------------------------------------'
+
+    for j, mesh in enumerate(meshes):
+        
+        a = vtu('MMS_'+str(mesh[0])+'_1.vtu')
+	b = vtu('MMS_'+str(mesh[1])+'_1.vtu')
+
+        a_error = a.GetField(field).max()
+        b_error = b.GetField(field).max()
+        
+        ratio = a_error / b_error
+        
+        print mesh[0] + '->' + mesh[1] + ': ', log(ratio, 2)
+
+        convergence[i+4] = min(log(ratio, 2), convergence[i+4])
+    
+    print '-------------------------------------------'
     </variable>
     <variable name="a_finish_time" language="python">
 from fluidity_tools import stat_parser as stat
@@ -85,14 +110,26 @@ d_finish_time = stat("MMS_D.stat")["ElapsedTime"]["value"][-1]
     <test name="velocity convergence order > 2.8" language="python">
 assert(convergence[0] &gt; 2.8)
     </test>
+    <test name="pressure convergence order > 1.7" language="python">
+assert(convergence[3] &gt; 1.7)
+    </test>
     <test name="s1 convergence order > 2.8" language="python">
 assert(convergence[1] &gt; 2.8)
     </test>
     <test name="s2 convergence order > 2.8" language="python">
 assert(convergence[2] &gt; 2.8)
     </test>
-    <test name="pressure convergence order > 1.7" language="python">
-assert(convergence[3] &gt; 1.7)
+    <test name="s1 erosion rate convergence order > 1.8" language="python">
+assert(convergence[4] &gt; 1.8)
+    </test>
+    <test name="s1 deposit rate convergence order > 1.8" language="python">
+assert(convergence[6] &gt; 1.8)
+    </test>
+    <test name="s2 erosion rate convergence order > 1.8" language="python">
+assert(convergence[5] &gt; 1.8)
+    </test>
+    <test name="s2 deposit rate convergence order > 1.8" language="python">
+assert(convergence[7] &gt; 1.8)
     </test>
     <test name="checking A finished in less than 100 seconds" language="python">
 assert(a_finish_time-100.0 &lt; 1.E-10)

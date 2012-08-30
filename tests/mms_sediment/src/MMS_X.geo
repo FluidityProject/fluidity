@@ -11,5 +11,6 @@ Extrude {0.0, pi, 0.0} {
   Line{1}; Layers{n};
 }
 
-Physical Line(1) = {1,2,3,4}; 
+Physical Line(1) = {2,3,4}; 
+Physical Line(2) = {1}; 
 Physical Surface(6) = {5};
