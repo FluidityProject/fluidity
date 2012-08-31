@@ -507,15 +507,6 @@ contains
        call set_prescribed_field_values(state, exclude_interpolated=.true., &
             exclude_nonreprescribed=.true., time=current_time+dt)
 
-       ! momentum source term adjustment for k-epsilon model
-       ! this is a hack - we need to set a source term for the momentum equation
-       ! to take account of (-2/3 k delta(ij)) in the reynolds stresses, however we also
-       ! want to be able to have a prescribed momentum source term and hence need to add
-       ! the adjustment after the prescribed value is set
-       do i = 1, size(state)
-          call keps_momentum_source(state(i))
-       end do
-
        if(use_sub_state()) call set_full_domain_prescribed_fields(state,time=current_time+dt)
 
        ! move the mesh according to a prescribed grid velocity

@@ -723,11 +723,7 @@ subroutine keps_momentum_source(state)
         FLAbort("Unknown equation type for velocity")
   end select
   
-  ! Allow for prescribed momentum source
-  prescribed = (have_option(trim(source%option_path)//'/prescribed/'))
-  if(.not.prescribed) then
-     call zero(source)
-  end if
+  call zero(source)
 
   call allocate(rhs, source%dim, source%mesh, name='TempSource')
   call zero(rhs)
@@ -747,19 +743,6 @@ subroutine keps_momentum_source(state)
   
   call deallocate(dummydensity)
   deallocate(dummydensity)
-
-  ! This code isn't needed because the adjustment to the field is done before the non
-  ! -linear iteration loop
-  ! ! Allow for prescribed momentum source
-  ! prescribed = (have_option(trim(source%option_path)//'/prescribed/'))
-  ! if(prescribed) then
-  !    call allocate(prescribed_source, source%dim, source%mesh, name='PrescribedSource')
-  !    call initialise_field_over_regions(prescribed_source, &
-  !         trim(source%option_path)//'/prescribed/value', &
-  !         x)
-  !    call addto(source, prescribed_source)
-  !    call deallocate(prescribed_source)
-  ! end if
 
  contains
     
@@ -1189,6 +1172,85 @@ subroutine keps_wall_function(field1,positions,u,EV,density,ele,sele,index,c_mu,
   call addto(rhs_field, nodes_bdy, rhs)
 
 end subroutine keps_wall_function
+
+!---------------------------------------------------------------------------------
+
+subroutine keps_tracer_diffusion(state)
+  ! calculates scalar field diffusivity based upon eddy viscosity and background
+  !  diffusivity
+  type(state_type), intent(inout)   :: state
+  type(tensor_field), intent(inout) :: t_field
+  integer                           :: i_field, i, stat
+  real                              :: sigma_p, local_background_diffusivity
+  type(scalar_field)                :: local_background_diffusivity_field
+  type(scalar_field), pointer       :: scalar_eddy_viscosity, s_field
+  type(tensor_field), pointer       :: global_background_diffusivity
+  type(tensor_field)                :: background_diffusivity
+
+  ewrite(1,*) 'In calculate_k_epsilon_diffusivity'
+
+  do i_field = 1, scalar_field_count(state)
+     s_field => extract_scalar_field(state, i_field)
+
+     if (have_option(trim(s_field%option_path)//&
+          '/subgridscale_parameterisation::k-epsilon')) then
+        
+        ! check options
+        if (.not.(have_option(trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon')))&
+             & then
+           FLExit('you must have /subgridscale_parameterisations/k-epsilon to be able to calculate diffusivity based upon the k-epsilon model')
+        end if
+
+        t_field => extract_tensor_field(state, trim(s_field%name)//'Diffusivity', stat=stat) 
+        if (stat /= 0) then
+           FLExit('you must have a Diffusivity field to be able to calculate diffusivity based upon the k-epsilon model')        
+        else if (.not. have_option(trim(t_field%option_path)//"diagnostic/algorithm/Internal")) then
+           FLExit('you must have a diagnostic Diffusivity field with algorithm/Internal to be able to calculate diffusivity based upon the k-epsilon model')  
+        end if
+
+        ! get sigma_p number
+        call get_option(trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/sigma_p', sigma_p)
+
+        ! allocate and zero required fields
+        call allocate(background_diffusivity, t_field%mesh, name="background_diffusivity")
+        call zero(background_diffusivity)
+        call allocate(local_background_diffusivity_field, t_field%mesh, &
+             name="local_background_diffusivity_field")
+        call zero(local_background_diffusivity_field)
+
+        ! set background_diffusivity (local takes precendence over global)
+        call get_option(trim(parent_path)//&
+             '/subgridscale_parameterisation::k-epsilon/background_diffusivity', &
+             local_background_diffusivity, stat=stat)
+        if (stat == 0) then 
+           ! set local isotropic background diffusivity
+           call addto(local_background_diffusivity_field, local_background_diffusivity)
+           do i = 1, background_diffusivity%dim(1)
+              call set(background_diffusivity, i, i, local_background_diffusivity_field)
+           end do
+        else
+           global_background_diffusivity => extract_tensor_field(state, 'BackgroundDiffusivity', stat=stat)
+           if (stat == 0) then 
+              call set(background_diffusivity, global_background_diffusivity)
+           end if
+        end if
+
+        ! get eddy viscosity
+        scalar_eddy_viscosity => extract_scalar_field(state, 'ScalarEddyViscosity', stat)
+
+        call zero(t_field)
+        call addto(t_field, background_diffusivity)
+        do i = 1, t_field%dim(1)
+           call addto(t_field, i, i, scalar_eddy_viscosity, 1.0/sigma_p)
+        end do
+
+        call deallocate(background_diffusivity)
+        call deallocate(local_background_diffusivity_field)
+
+     end if
+  end do
+
+end subroutine keps_tracer_diffusion
 
 !---------------------------------------------------------------------------------
 
