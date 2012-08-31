@@ -54,14 +54,13 @@ implicit none
   ! locally allocatad fields
   real, save                          :: fields_min = 1.0e-10
 
-  public :: keps_diagnostics, keps_eddyvisc, keps_bcs, keps_adapt_mesh,&
+  public :: keps_diagnostics, keps_eddyvisc, keps_bcs, &
        & k_epsilon_check_options, keps_momentum_source, tensor_inner_product
 
   ! Outline:
   !  - call diagnostics to obtain source terms and calculate eddy viscosity
   !  - after each scalar field solve recalculates the eddy viscosity
   !  - wall functions are added to selected boundaries in keps_bcs and wall_functions
-  !  - keps_adapt_options repopulates the fields after an adapt
 
 contains
 
@@ -1180,22 +1179,6 @@ subroutine keps_wall_function(field1,positions,u,EV,density,ele,sele,index,c_mu,
   call addto(rhs_field, nodes_bdy, rhs)
 
 end subroutine keps_wall_function
-
-!------------------------------------------------------------------------------------!
-! Called after an adapt to reset the fields and arrays within the module             !
-!------------------------------------------------------------------------------------!
-
-subroutine keps_adapt_mesh(state)
-
-  type(state_type), intent(inout) :: state
-
-  ewrite(1,*) "In keps_adapt_mesh"
-
-  call keps_eddyvisc(state)
-  call keps_calculate_rhs(state)
-  call keps_eddyvisc(state)
-
-end subroutine keps_adapt_mesh
 
 !---------------------------------------------------------------------------------
 

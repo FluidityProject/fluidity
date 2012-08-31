@@ -1080,16 +1080,6 @@ contains
         call gls_adapt_mesh(state(1))
     end if
 
-    ! k_epsilon
-    do i = 1, size(state)
-       keps_option_path="/material_phase["//int2str(i-1)//"]/subgridscale_parameterisations/k-epsilon/"
-       if (have_option(trim(keps_option_path)//"/scalar_field::TurbulentKineticEnergy/prognostic") &
-           &.and. have_option(trim(keps_option_path)//"/scalar_field::TurbulentDissipation/prognostic") &
-           &.and. have_option(trim(keps_option_path)//"/scalar_field::ScalarEddyViscosity/diagnostic")) then
-           call keps_adapt_mesh(state(i))
-       end if
-    end do
-
   end subroutine update_state_post_adapt
 
   subroutine fluids_module_check_options
