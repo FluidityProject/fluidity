@@ -122,7 +122,8 @@ module fsi_model
         ! 1-WAY COUPLING (prescribed solid velocity)
         ! First check if prescribed solid movement is enabled,
         ! and if so, move the solid mesh
-        if (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed") &
+        if (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed") .or. &
+            have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidPosition/prescribed") &
             & .and. its == 1) then
            call fsi_move_solid_mesh(state)
            ! Check if solid actually moved:
@@ -539,7 +540,7 @@ module fsi_model
       type(vector_field), pointer :: solid_position, solid_velocity, solid_velocity_global
       type(scalar_field), pointer :: solid_alpha
       type(vector_field) :: solid_movement
-      integer :: i, num_pre_solid_vel, num_solid_mesh
+      integer :: i, num_pre_solid_vel, num_pre_solid_pos, num_solid_mesh
       character(len=PYTHON_FUNC_LEN) :: func
       character(len=OPTION_PATH_LEN) :: mesh_name
 
@@ -549,48 +550,76 @@ module fsi_model
       fluid_position => extract_vector_field(state, "Coordinate")
       solid_velocity_global => extract_vector_field(state, "SolidVelocity")
       call zero(solid_velocity_global)
+      
+      if (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed")) then
 
-      ! Get number of solid meshes that have a prescribed velocity:
-      num_pre_solid_vel = option_count('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed/mesh')
+         ! Get number of solid meshes that have a prescribed velocity:
+         num_pre_solid_vel = option_count('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed/mesh')
 
-         ! Loop over number of solid meshes that have a prescribed velocity and set their new coordinates:
-         pre_solid_vel_loop: do i=0, num_pre_solid_vel-1
+            ! Loop over number of solid meshes that have a prescribed velocity and set their new coordinates:
+            pre_solid_vel_loop: do i=0, num_pre_solid_vel-1
 
-            ! 1st get mesh name:
-            call get_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed/mesh['//int2str(i)//']/name', mesh_name)
+               ! 1st get mesh name:
+               call get_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed/mesh['//int2str(i)//']/name', mesh_name)
 
-            ! 2nd get coordinate field of this solid mesh, and velocity field (which is on the fluid mesh):
-            solid_position => extract_vector_field(state, trim(mesh_name)//"SolidCoordinate")
-            solid_alpha => extract_scalar_field(state, trim(mesh_name)//"SolidConcentration")
-            solid_velocity => extract_vector_field(state, trim(mesh_name)//"SolidVelocity")
+               ! 2nd get coordinate field of this solid mesh, and velocity field (which is on the fluid mesh):
+               solid_position => extract_vector_field(state, trim(mesh_name)//"SolidCoordinate")
+               solid_alpha => extract_scalar_field(state, trim(mesh_name)//"SolidConcentration")
+               solid_velocity => extract_vector_field(state, trim(mesh_name)//"SolidVelocity")
 
-            ! 3nd get the python function for this solid mesh:
-            call get_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed/mesh['//int2str(i)//']/python', func)
+               ! 3nd get the python function for this solid mesh:
+               call get_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed/mesh['//int2str(i)//']/python', func)
 
-            ! 4 set the field based on the python function:
-            call allocate(solid_movement, solid_position%dim, solid_position%mesh, name=trim(mesh_name)//"SolidMovement")
-            call zero(solid_movement)
+               ! 4 set the field based on the python function:
+               call allocate(solid_movement, solid_position%dim, solid_position%mesh, name=trim(mesh_name)//"SolidMovement")
+               call zero(solid_movement)
 
-            ! For the solid mesh:
-            call set_from_python_function(solid_movement, func, solid_position, current_time)
+               ! For the solid mesh:
+               call set_from_python_function(solid_movement, func, solid_position, current_time)
 
-            ! 5 set solid position field:
-            call addto(solid_position, solid_movement, dt)
-            
-            ! 6 set solid velocity (on fluid mesh), THIS SHOULD BE DONE VIA A PROJECTION FROM SOLID TO FLUID MESH:
-            call zero(solid_velocity)
-            ! And for now, also for fluid mesh:
-            call set_from_python_function(solid_velocity, func, fluid_position, current_time)
-            call scale(solid_velocity, solid_alpha)
-            call scale(solid_velocity, dt)
-            call addto(solid_velocity_global, solid_velocity)
+               ! 5 set solid position field:
+               call addto(solid_position, solid_movement, dt)
 
-            ! 6 Deallocate dummy vector field:
-            call deallocate(solid_movement)
+               ! 6 set solid velocity (on fluid mesh), THIS SHOULD BE DONE VIA A PROJECTION FROM SOLID TO FLUID MESH:
+               call zero(solid_velocity)
+               ! And for now, also for fluid mesh:
+               call set_from_python_function(solid_velocity, func, fluid_position, current_time)
+               call scale(solid_velocity, solid_alpha)
+               call scale(solid_velocity, dt)
+               call addto(solid_velocity_global, solid_velocity)
 
-         end do pre_solid_vel_loop
+               ! 6 Deallocate dummy vector field:
+               call deallocate(solid_movement)
 
-  !    call vtk_write_fields("solid_mesh_test", index=2, position=solid_position, model=solid_position%mesh, vfields=(/solid_movement/))
+            end do pre_solid_vel_loop
+
+      end if
+
+      ! NOW DO THE SAME WITH PRESCRIBED SOLID POSITION:
+      
+      if (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidPosition/prescribed")) then
+
+         ! Get number of solid meshes that have a prescribed velocity:
+         num_pre_solid_pos = option_count('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidPosition/prescribed/mesh')
+
+            ! Loop over number of solid meshes that have a prescribed velocity and set their new coordinates:
+            pre_solid_pos_loop: do i=0, num_pre_solid_pos-1
+
+               ! 1st get mesh name:
+               call get_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidPosition/prescribed/mesh['//int2str(i)//']/name', mesh_name)
+
+               ! 2nd get coordinate field of this solid mesh, and velocity field (which is on the fluid mesh):
+               solid_position => extract_vector_field(state, trim(mesh_name)//"SolidCoordinate")
+
+               ! 3rd get the python function for this solid mesh:
+               call get_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidPosition/prescribed/mesh['//int2str(i)//']/python', func)
+
+               ! 4. Set the new coordinates from the python function:
+               call set_from_python_function(solid_position, func, solid_position, dt)
+
+            end do pre_solid_pos_loop
+
+      end if
 
       ewrite(2,*) 'end of move_solid_mesh'
 
@@ -613,7 +642,7 @@ module fsi_model
       if (have_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed')) then
 
          fluid_velocity => extract_vector_field(state, "Velocity")
-         fluid_absorption => extract_vector_field(state, "VelocityAbsorption")         
+         fluid_absorption => extract_vector_field(state, "VelocityAbsorption")
          solid_velocity => extract_vector_field(state, "SolidVelocity")
          alpha => extract_scalar_field(state, "SolidConcentration")
 
