@@ -1348,6 +1348,14 @@ Solves 2 additional equations for TurbulentDissipation (epsilon) and TurbulentKi
 in order to close momentum equations.
 Generates an isotropic 'eddy viscosity', added to molecular viscosity field, that
 carries the influence of turbulence onto the velocity field. See the manual for details.</a:documentation>
+                  <element name="model_theta">
+                    <a:documentation>Implicit/explicit control (THETA) of source terms and eddy viscosity in
+the k-epsilon model
+ =0.  -- explicit
+ =0.5 -- Crank-Nicolson
+ =1.  -- implicit</a:documentation>
+                    <ref name="real"/>
+                  </element>
                   <element name="scalar_field">
                     <a:documentation>Turbulent kinetic energy (k).
 1. 'k_esilon'-type boundary conditions are recommended for this field.
