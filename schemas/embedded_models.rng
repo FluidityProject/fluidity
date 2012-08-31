@@ -72,6 +72,14 @@ python script.</a:documentation>
                     </choice>
                   </element>
                 </optional>
+                <optional>
+                  <element name="beta">
+                    <a:documentation>Beta is a scaling factor to improve the 
+relaxation of the fluid within a solid body. 
+Useful for thin structures, e.g. turbine blades.</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                </optional>
                 <element name="stat">
                   <a:documentation>Specify what is added to .stat files</a:documentation>
                   <optional>
@@ -107,6 +115,14 @@ python script.</a:documentation>
         <data type="string"/>
       </attribute>
       <ref name="mesh_info"/>
+      <optional>
+        <element name="beta">
+          <a:documentation>Beta is a scaling factor to improve the 
+relaxation of the fluid within a solid body. 
+Useful for thin structures, e.g. turbine blades.</a:documentation>
+          <ref name="real"/>
+        </element>
+      </optional>
       <optional>
         <element name="exclude_from_mesh_adaptivity">
           <empty/>

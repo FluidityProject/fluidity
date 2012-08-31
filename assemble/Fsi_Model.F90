@@ -506,7 +506,7 @@ module fsi_model
         type(vector_field), pointer :: absorption
         type(scalar_field), pointer :: alpha_global
         integer :: i, j, ele
-        real :: sigma
+        real :: sigma, beta
         integer, dimension(:), pointer :: nodes
 
         ewrite(2, *) 'inside compute_fluid_absorption'
@@ -526,6 +526,11 @@ module fsi_model
                 end do
             end do
         end do
+        
+        if (have_option('/embedded_models/fsi_model/one_way_coupling/beta')) then
+            call get_option('/embedded_models/fsi_model/one_way_coupling/beta', beta)
+            call scale(absorption, beta)
+        end if
 
         ewrite(2, *) "leaving compute_fluid_absorption"
 

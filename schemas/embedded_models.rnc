@@ -62,6 +62,10 @@ embedded_models =
                            fsi_model_diagnostic_solid_position_mesh
                         )
                      }?,
+                     ## Beta is a scaling factor to improve the 
+                     ## relaxation of the fluid within a solid body. 
+                     ## Useful for thin structures, e.g. turbine blades.
+                     element beta {real}?,
                      ## Specify what is added to .stat files
                      element stat {
                         ## Exclude all FSI modelling output fields?
@@ -87,6 +91,10 @@ fsi_model_input_mesh =
    element mesh {
       attribute name { xsd:string },
       mesh_info,
+      ## Beta is a scaling factor to improve the 
+      ## relaxation of the fluid within a solid body. 
+      ## Useful for thin structures, e.g. turbine blades.
+      element beta {real}?,
       element exclude_from_mesh_adaptivity{empty}?
    }
 
