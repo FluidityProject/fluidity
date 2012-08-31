@@ -54,8 +54,8 @@ implicit none
   ! locally allocatad fields
   real, save                          :: fields_min = 1.0e-10
 
-  public :: keps_diagnostics, keps_eddyvisc, keps_bcs, &
-       & k_epsilon_check_options, keps_momentum_source, tensor_inner_product
+  public :: keps_advdif_diagnostics, keps_momentum_diagnostics, keps_eddyvisc, keps_bcs, &
+       & k_epsilon_check_options, tensor_inner_product
 
   ! Outline:
   !  - call diagnostics to obtain source terms and calculate eddy viscosity
@@ -64,14 +64,24 @@ implicit none
 
 contains
 
-subroutine keps_diagnostics(state)
+subroutine keps_advdif_diagnostics(state)
 
   type(state_type), intent(inout) :: state
   
   call keps_eddyvisc(state)
+  call keps_tracer_diffusion(state)
   call keps_calculate_rhs(state)
 
 end subroutine keps_diagnostics
+
+subroutine keps_momentum_diagnostics(state)
+
+  type(state_type), intent(inout) :: state
+  
+  call keps_eddyvisc(state)
+  call keps_momentum_source(state)
+
+end subroutine keps_momentum_diagnostics
 
 subroutine keps_calculate_rhs(state)
 

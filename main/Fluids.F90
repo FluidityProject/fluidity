@@ -161,9 +161,10 @@ contains
     INTEGER :: ss,ph
     LOGICAL :: have_solids
 
-    !     Turbulence modelling - JBull 24-05-11
-    LOGICAL :: have_k_epsilon
-    character(len=OPTION_PATH_LEN) :: keps_option_path
+    ! An array of submaterials of the current phase in state(istate).
+    ! Needed for k-epsilon VelocityBuoyancyDensity calculation line:~630
+    ! S Parkinson 31-08-12
+    type(state_type), dimension(:), pointer :: submaterials     
 
     ! Pointers for scalars and velocity fields
     type(scalar_field), pointer :: sfield
@@ -623,6 +624,26 @@ contains
              call solids(state(1), its, nonlinear_iterations)
           end if
 
+          ! Do we have the k-epsilon turbulence model?
+          ! If we do then we want to calculate source terms and diffusivity for the k and epsilon fields
+          ! and also tracer field diffusivities at n + theta_nl
+          if( have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon")) then
+             if(timestep == 0 .and. have_option('/physical_parameters/gravity')) then
+                ! The very first time k-epsilon is called, VelocityBuoyancyDensity
+                ! is set to zero until calculate_densities is called in the momentum equation
+                ! solve. Calling calculate_densities here is a work-around for this problem.  
+                sfield => extract_scalar_field(state, 'VelocityBuoyancyDensity')
+                if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then 
+                   call get_phase_submaterials(state, 1, submaterials)
+                   call calculate_densities(submaterials, buoyancy_density=sfield)
+                   deallocate(submaterials)
+                else
+                   call calculate_densities(state, buoyancy_density=sfield)
+                end if
+             end if
+             call keps_advdif_diagnostics(state(1))
+          end if
+
           field_loop: do it = 1, ntsol
              ewrite(2, "(a,i0,a,i0)") "Considering scalar field ", it, " of ", ntsol
              ewrite(1, *) "Considering scalar field " // trim(field_name_list(it)) // " in state " // trim(state(field_state_list(it))%name)
@@ -707,11 +728,6 @@ contains
           if( have_option("/material_phase[0]/subgridscale_parameterisations/GLS/option")) then
             call gls_diffusivity(state(1))
           end if
-
-          ! Update eddy viscosity after each iteration!
-          do i = 1, size(state)
-             call keps_eddyvisc(state(i))
-          end do
           
           !BC for ice melt
           if (have_option('/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries')) then
@@ -1014,7 +1030,6 @@ contains
     real, intent(inout) :: dt
     integer, intent(inout) :: nonlinear_iterations, nonlinear_iterations_adapt
     type(state_type), dimension(:), pointer :: sub_state
-    character(len=OPTION_PATH_LEN) :: keps_option_path
     integer :: i
 
     ! Overwrite the number of nonlinear iterations if the option is switched on
