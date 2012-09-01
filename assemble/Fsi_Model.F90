@@ -209,7 +209,7 @@ module fsi_model
     !! subroutines to obtain the solid volume fraction
         type(state_type), intent(inout) :: state
         
-        type(vector_field), pointer :: solid_position_mesh
+        type(vector_field) :: solid_position_mesh
         type(scalar_field), pointer :: alpha_global, alpha_solidmesh
         
         type(scalar_field) :: alpha_tmp
@@ -234,7 +234,7 @@ module fsi_model
             call get_option('/embedded_models/fsi_model/geometry/mesh['//int2str(i)//']/name', mesh_name)
 
             ! Get coordinate field of the current solid (mesh):
-            solid_position_mesh => extract_vector_field(state, trim(mesh_name)//'SolidCoordinate')
+            solid_position_mesh = extract_vector_field(state, trim(mesh_name)//'SolidCoordinate')
             ! Also the according solid volume fraction field:
             alpha_solidmesh => extract_scalar_field(state, trim(mesh_name)//'SolidConcentration')
 
@@ -266,7 +266,7 @@ module fsi_model
 
     subroutine fsi_ibm_projections_mesh(state, solid_position, alpha_tmp)
         type(state_type), intent(inout) :: state
-        type(vector_field), pointer, intent(inout) :: solid_position
+        type(vector_field), intent(inout) :: solid_position
         type(scalar_field), intent(inout) :: alpha_tmp
         type(vector_field), pointer :: fluid_position, fluid_velocity
         

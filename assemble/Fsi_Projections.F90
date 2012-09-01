@@ -481,7 +481,7 @@ contains
    subroutine fsi_one_way_grandy_interpolation(fluid_position, solid_position, alpha)
 
        type(vector_field), pointer, intent(in) :: fluid_position
-       type(vector_field), pointer, intent(in) :: solid_position
+       type(vector_field), intent(in) :: solid_position
        type(scalar_field), intent(inout) :: alpha
 
        type(vector_field), pointer :: positions
