@@ -225,15 +225,15 @@ contains
              if (allocated(detector%ray_o)) deallocate(detector%ray_o)
              allocate(detector%ray_o(xfield%dim))
              detector%ray_o = detector%position
+
+             if (associated(detector%path_elements)) then
+                call elepath_list_destroy(detector%path_elements)
+             end if
           end if
 
           if (detector_list%tracking_method == GEOMETRIC_TRACKING) then
              if (allocated(detector%ray_d)) deallocate(detector%ray_d)
              allocate(detector%ray_d(xfield%dim))
-
-             if (associated(detector%path_elements)) then
-                call elepath_list_destroy(detector%path_elements)
-             end if
           end if
 
        end if
@@ -850,12 +850,13 @@ contains
     ! Inverse of the local coordinate change matrix.
     real, dimension(mesh_dim(xfield), mesh_dim(xfield), ele_ngi(xfield, 1)) :: invJ
     ! Displacement vector in physical space
-    real, dimension(xfield%dim) :: vdisp
+    real, dimension(xfield%dim) :: vdisp, last_position, displacement
     real, dimension(xfield%dim+1) :: lc_update, lc_vdisp, dist_intersect
     real, dimension(ele_loc(xfield, detector%element), ele_ngi(xfield, detector%element), xfield%dim) :: dshape
     real, dimension(ele_ngi(xfield, detector%element)) :: old_detJ, new_detJ
     integer :: i, dim, neigh, local_face
     integer, dimension(:), pointer :: neigh_list, face_list
+    type(path_element) :: path_ele
     
     dim = xfield%dim   
     search_loop: do 
@@ -872,18 +873,43 @@ contains
        if (minval(lc_update)>-search_tolerance) then
           !The arrival point is in this element, we're done
           detector%local_coords = lc_update
+
+          ! Record the elements along the path travelled
+          ! and the distance travelled within them
+          path_ele%ele = detector%element
+          displacement = detector%update_vector - detector%ray_o
+          path_ele%dist = sqrt( sum(displacement**2) )
+          if (associated(detector%path_elements)) then
+             call elepath_list_insert( detector%path_elements, path_ele )
+          else
+             call elepath_list_create( detector%path_elements, path_ele )
+          end if
+
           detector%ray_o = detector%update_vector
           new_owner=getprocno()
+
           exit search_loop
        end if
 
        ! Find closest intersection with an element boundary in parametric space, 
        ! and derive the according element neighbour
        lc_vdisp = lc_update - detector%local_coords
-       dist_intersect = - detector%local_coords / lc_vdisp     
+       dist_intersect = - detector%local_coords / lc_vdisp
        neigh = minval(minloc(dist_intersect, dist_intersect > search_tolerance))
        detector%local_coords = detector%local_coords + lc_vdisp * dist_intersect(neigh)
-       detector%ray_o = eval_field(detector%element, xfield, detector%local_coords)
+       last_position = detector%ray_o
+       detector%ray_o = detector%ray_o + vdisp * dist_intersect(neigh)
+       
+       ! Record the elements along the path travelled
+       ! and the distance travelled within them
+       path_ele%ele = detector%element
+       displacement = detector%ray_o - last_position
+       path_ele%dist = sqrt( sum(displacement**2) )
+       if (associated(detector%path_elements)) then
+          call elepath_list_insert( detector%path_elements, path_ele )
+       else
+          call elepath_list_create( detector%path_elements, path_ele )
+       end if
 
        ! Record the face we went through
        neigh_list=>ele_neigh(xfield,detector%element)
