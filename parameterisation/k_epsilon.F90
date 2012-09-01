@@ -1148,7 +1148,7 @@ subroutine keps_wall_function(field1,X,U,masslump,EV,density,sele,index,c_mu,rhs
       grad_U_at_quad(i, j, :) = matmul(ele_val(U, j, ele), ele_dshape_at_face_quad(:,:,i))
     end do
   end do
-  ewrite(2,*) 'grad U ', grad_U_at_quad(:,:,1)
+
   density_at_quad = face_val_at_quad(density, sele)
   visc_at_quad = face_val_at_quad(EV, sele)
   do gi = 1, face_ngi(X, sele)
@@ -1168,8 +1168,7 @@ subroutine keps_wall_function(field1,X,U,masslump,EV,density,sele,index,c_mu,rhs
     ! Eddy viscosity is dynamic not kinematic so divide by density.
     tau_wall_at_quad(gi) = norm2(normal_shear_at_quad(:,gi))
   end do
-  ewrite(2,*) 'normal shear ', normal_shear_at_quad(:,1)
-  ewrite(2,*) 'tau ', tau_wall_at_quad(1)
+
   if (index==1) then
     ! k = tau_wall/rho/c_mu**0.5
     rhs = shape_rhs(f_shape, tau_wall_at_quad/density_at_quad/c_mu**0.5*detwei)
