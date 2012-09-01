@@ -1587,13 +1587,6 @@ Recommended value (default): 1.0.</a:documentation>
                     <ref name="real"/>
                   </element>
                   <optional>
-                    <element name="limit_length_scale">
-                      <a:documentation>Implicit source term - lump production term into absorbtion so that it is calculated 
-implicitly</a:documentation>
-                      <ref name="real"/>
-                    </element>
-                  </optional>
-                  <optional>
                     <element name="implicit_source">
                       <a:documentation>Implicit source term - lump production term into absorbtion so that it is calculated 
 implicitly</a:documentation>
@@ -1615,8 +1608,6 @@ explicitly</a:documentation>
                     </element>
                   </optional>
                   <element name="mass_lumping_in_diagnostics">
-                    <a:documentation>Explicit absorbtion term - lump absorbtion term into source so that it is calculated 
-explicitly</a:documentation>
                     <choice>
                       <element name="lump_mass">
                         <empty/>

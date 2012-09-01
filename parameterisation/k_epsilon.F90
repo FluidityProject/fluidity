@@ -445,7 +445,7 @@ function tensor_inner_product(A, B)
 end function tensor_inner_product
 
 !----------
-! eddyvisc calculates the lengthscale, and then the eddy viscosity!
+! eddyvisc calculates the lengthscale and the eddy viscosity
 ! Eddy viscosity is added to the background viscosity.
 !----------
 subroutine keps_eddyvisc(state)
@@ -460,7 +460,7 @@ subroutine keps_eddyvisc(state)
   ! Options grabbed from the options tree
   real                             :: c_mu, lmax
   character(len=OPTION_PATH_LEN)   :: option_path
-  logical                          :: lump_mass, limit_length_scale, have_visc = .true.
+  logical                          :: lump_mass, have_visc = .true.
   character(len=FIELD_NAME_LEN)    :: equation_type
 
   option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/'
@@ -471,12 +471,7 @@ subroutine keps_eddyvisc(state)
 
   ewrite(1,*) "In keps_eddyvisc"
 
-  ! Get model constants
-  limit_length_scale = have_option(trim(option_path)//'/limit_length_scale')
-  if(limit_length_scale) then
-     ! Limit length scale to prevent instablilities.
-     call get_option(trim(option_path)//'/limit_length_scale', lmax)
-  end if
+  ! Get model constant
   call get_option(trim(option_path)//'/C_mu', c_mu, default = 0.09)
   
   ! Get field data
@@ -530,18 +525,12 @@ subroutine keps_eddyvisc(state)
      ! Also clip the k and epsilon fields at the nodes.
      call set(kk, i, max(node_val(kk,i), fields_min))
      call set(eps, i, max(node_val(eps,i), fields_min))
-     
-     ! Limit lengthscale to prevent instablilities.
-     if(limit_length_scale) then
-        call set(ll, i, min(node_val(kk,i)**1.5 / node_val(eps,i), lmax))
-     else
-        call set(ll, i, node_val(kk,i)**1.5 / node_val(eps,i))
-     end if
+     call set(ll, i, node_val(kk,i)**1.5 / node_val(eps,i))
   end do
 
   ! Calculate scalar eddy viscosity by integration over element
   do ele = 1, ele_count(EV)
-     call keps_eddyvisc_ele(ele, X, kk, eps, EV, ll, f_mu, density, ev_rhs)
+     call keps_eddyvisc_ele(ele, X, kk, eps, EV, f_mu, density, ev_rhs)
   end do
 
   ! For non-DG we apply inverse mass globally
@@ -588,10 +577,10 @@ subroutine keps_eddyvisc(state)
   
   contains
   
-   subroutine keps_eddyvisc_ele(ele, X, kk, eps, EV, ll, f_mu, density, ev_rhs)
+   subroutine keps_eddyvisc_ele(ele, X, kk, eps, EV, f_mu, density, ev_rhs)
    
       type(vector_field), pointer      :: X
-      type(scalar_field), pointer      :: kk, eps, EV, ll, f_mu, density
+      type(scalar_field), pointer      :: kk, eps, EV, f_mu, density
       type(scalar_field), intent(inout) :: ev_rhs
       integer, intent(in)              :: ele
       
@@ -611,12 +600,9 @@ subroutine keps_eddyvisc(state)
       ! Get detwei
       call transform_to_physical(X, ele, detwei=detwei)
       
-      ! Get the k, epsilon and the length scale values at the Gauss points
+      ! Get the k and epsilon values at the Gauss points
       kk_at_quad = ele_val_at_quad(kk,ele)
       eps_at_quad = ele_val_at_quad(eps,ele)
-      if(limit_length_scale) then
-         ll_at_quad = ele_val_at_quad(ll,ele)
-      end if
       
       ! Clip the field values at the Gauss points.
       ! Note 1: This isn't a permanent change directly to the field itself,
@@ -633,22 +619,11 @@ subroutine keps_eddyvisc(state)
          if(eps_at_quad(i) < fields_min) then
             eps_at_quad(i) = fields_min
          end if
-         ! Limit lengthscale to prevent instablilities.
-         if(limit_length_scale) then
-            if(ll_at_quad(i) > lmax) then
-               ll_at_quad(i) = lmax
-            end if 
-         end if
       end do
       
       ! Compute the eddy viscosity
-      if(limit_length_scale) then
-         rhs_addto = shape_rhs(shape_ev, detwei*C_mu*ele_val_at_quad(f_mu,ele)* &
-                     (kk_at_quad**0.5)*ll_at_quad)
-      else
-         rhs_addto = shape_rhs(shape_ev, detwei*C_mu*ele_val_at_quad(density,ele)*&
+      rhs_addto = shape_rhs(shape_ev, detwei*C_mu*ele_val_at_quad(density,ele)*&
                      ele_val_at_quad(f_mu,ele)*(kk_at_quad**2.0)/eps_at_quad)
-      end if
             
       ! In the DG case we will apply the inverse mass locally.
       if(continuity(EV)<0) then
@@ -1101,14 +1076,13 @@ subroutine keps_wall_function(field1,X,U,masslump,EV,density,sele,index,c_mu,rhs
   real                                                 :: kappa, h, c_mu
   real, dimension(1,1)                                 :: hb
   real, dimension(face_ngi(field1,sele))               :: detwei, tau_wall_at_quad, visc_at_quad, density_at_quad
-  real, dimension(X%dim,1)                     :: n
-  real, dimension(X%dim)                       :: abs_normal
-  real, dimension(X%dim,X%dim)         :: G
+  real, dimension(X%dim,1)                             :: n
+  real, dimension(X%dim,X%dim)                         :: G
   real, dimension(face_loc(rhs_field, sele))           :: rhs
-  real, dimension(X%dim,face_ngi(field1,sele)) :: normal, normal_shear_at_quad
-  real, dimension(face_loc(field1, sele), face_loc(field1, sele))   :: fmass
-  real, dimension(X%dim, X%dim, ele_ngi(field1, face_ele(field1, sele))) :: invJ
-  real, dimension(X%dim, X%dim, face_ngi(field1, sele)) :: f_invJ, grad_U_at_quad, shear_at_quad
+  real, dimension(X%dim,face_ngi(field1,sele))         :: normal, normal_shear_at_quad
+  real, dimension(X%dim, X%dim, face_ngi(field1, sele)):: f_invJ, grad_U_at_quad, shear_at_quad
+  real, dimension(face_loc(field1, sele), face_loc(field1, sele))                     :: fmass
+  real, dimension(X%dim, X%dim, ele_ngi(field1, face_ele(field1, sele)))              :: invJ
   real, dimension(ele_loc(X, face_ele(field1, sele)), face_ngi(field1, sele), X%dim)  :: ele_dshape_at_face_quad
 
   nodes_bdy = face_global_nodes(rhs_field, sele) ! nodes in rhs_field
@@ -1154,12 +1128,6 @@ subroutine keps_wall_function(field1,X,U,masslump,EV,density,sele,index,c_mu,rhs
   do gi = 1, face_ngi(X, sele)
     ! Multiply by visosity
     shear_at_quad(:,:,gi) = grad_U_at_quad(:,:,gi)*visc_at_quad(gi)
-
-    ! Get absolute of normal vector - why?
-    do i = 1,dim
-      abs_normal(i) = abs(normal(i,gi))
-    end do
-
     ! Multiply by surface normal (dim,sgi) to obtain shear in direction normal
     ! to surface - transpose (because fluidity stores data in row-major order??)
     normal_shear_at_quad(:,gi) = matmul(shear_at_quad(:,:,gi), normal(:,gi))
