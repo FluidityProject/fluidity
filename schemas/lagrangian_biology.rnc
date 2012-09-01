@@ -433,6 +433,9 @@ agent_movement =
             element parametric_guided_search{
                empty
             }|
+            element pure_guided_search{
+               empty
+            }|
             element geometric_tracking{
                element periodic_mesh {
                   mesh_choice

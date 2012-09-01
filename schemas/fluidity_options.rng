@@ -2891,6 +2891,9 @@ element. Recommended value 1.0e-10.</a:documentation>
         <element name="parametric_guided_search">
           <empty/>
         </element>
+        <element name="pure_guided_search">
+          <empty/>
+        </element>
         <element name="rtree_tracking">
           <empty/>
         </element>

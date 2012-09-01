@@ -178,6 +178,8 @@ contains
 
        if (have_option(trim(options_path)//trim("/parametric_guided_search"))) then
           detector_list%tracking_method = GUIDED_SEARCH_TRACKING
+       elseif (have_option(trim(options_path)//trim("/pure_guided_search"))) then
+          detector_list%tracking_method = PURE_GS
        elseif (have_option(trim(options_path)//trim("/geometric_tracking"))) then
           detector_list%tracking_method = GEOMETRIC_TRACKING
           if (have_option(trim(options_path)//"/geometric_tracking/periodic_mesh")) then

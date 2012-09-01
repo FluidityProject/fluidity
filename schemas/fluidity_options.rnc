@@ -2122,6 +2122,9 @@ lagrangian_timestepping =
             element parametric_guided_search{
                empty
             }|
+            element pure_guided_search{
+               empty
+            }|
             element rtree_tracking{
                empty
             }|

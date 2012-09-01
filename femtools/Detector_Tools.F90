@@ -337,6 +337,10 @@ contains
              ! Ray tracking: ray_o(ndims) + ray_d(ndims) + target_distance + current_t
              buffer_size = buffer_size + 2*ndims + 2
           end if
+          if (list%tracking_method == PURE_GS) then
+             ! Ray tracking: ray_o(ndims)
+             buffer_size = buffer_size + ndims
+          end if
        end if
 
        ! LEBiology
@@ -401,6 +405,12 @@ contains
              buff(index:index+ndims-1) = detector%ray_o
              index = index + ndims
              buff(index:index+ndims-1) = detector%ray_d
+             index = index + ndims
+          end if
+
+          if (list%tracking_method == PURE_GS) then
+             ! GS tracking: ray_o 
+             buff(index:index+ndims-1) = detector%ray_o
              index = index + ndims
           end if
        end if
@@ -498,6 +508,17 @@ contains
              if (.not. allocated(detector%ray_d)) allocate(detector%ray_d(ndims))
              detector%ray_d = buff(index:index+ndims-1)
              index = index + ndims
+          end if
+
+          if (list%tracking_method == PURE_GS) then
+             ! GS tracking: ray_o
+             if (.not.allocated(detector%ray_o)) allocate(detector%ray_o(ndims))
+             detector%ray_o = buff(index:index+ndims-1)
+             index = index + ndims
+
+             if (present(coordinates)) then  
+                detector%local_coords=local_coords(coordinates,detector%element,detector%ray_o)
+             end if
           end if
        end if
 

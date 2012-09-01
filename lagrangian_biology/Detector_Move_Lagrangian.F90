@@ -220,11 +220,14 @@ contains
              detector%k = 0.
           end if
 
-          if (detector_list%tracking_method == GEOMETRIC_TRACKING) then
+          if (detector_list%tracking_method == GEOMETRIC_TRACKING .or. &
+             detector_list%tracking_method == PURE_GS) then
              if (allocated(detector%ray_o)) deallocate(detector%ray_o)
              allocate(detector%ray_o(xfield%dim))
              detector%ray_o = detector%position
+          end if
 
+          if (detector_list%tracking_method == GEOMETRIC_TRACKING) then
              if (allocated(detector%ray_d)) deallocate(detector%ray_d)
              allocate(detector%ray_d(xfield%dim))
 
@@ -483,6 +486,8 @@ contains
                 else
                    call geometric_ray_tracing(xfield,detector,detector_list,new_owner,search_tolerance)
                 end if
+             elseif (detector_list%tracking_method == PURE_GS) then
+                call parametric_guided_search(xfield,detector,new_owner,search_tolerance)
              else
                 FLExit('No lagrangian particle tracking method specified')
              end if
@@ -498,6 +503,8 @@ contains
                       ! and calculate a new direction
                       detector%ray_o = detector%ray_o + (detector%current_t * detector%ray_d)
                       call initialise_ray(detector, detector%update_vector)
+                   elseif (detector_list%tracking_method == PURE_GS) then
+                      call reflect_on_boundary(xfield,detector%update_vector,detector%element, face=detector%current_face)
                    else
                       call reflect_on_boundary(xfield,detector%update_vector,detector%element)
                    end if
@@ -828,6 +835,96 @@ contains
     end subroutine ray_intersetion_distance
 
   end subroutine geometric_ray_tracing
+
+  subroutine parametric_guided_search(xfield, detector, new_owner, search_tolerance)
+    ! Implementation of Guided Search tracking algorithm purely in parametric space
+    ! This works generaically for any detector displacement, 
+    ! by transforming the displcement vector to parametric space via the inverse Jacobian,
+    ! computing the intersection with the element boundary, 
+    ! and updating the local coordinates accordingly
+    type(vector_field), pointer, intent(in) :: xfield
+    type(detector_type), pointer, intent(inout) :: detector
+    integer, intent(out) :: new_owner
+    real, intent(in) :: search_tolerance
+
+    ! Inverse of the local coordinate change matrix.
+    real, dimension(mesh_dim(xfield), mesh_dim(xfield), ele_ngi(xfield, 1)) :: invJ
+    ! Displacement vector in physical space
+    real, dimension(xfield%dim) :: vdisp
+    real, dimension(xfield%dim+1) :: lc_update, lc_vdisp, dist_intersect
+    real, dimension(ele_loc(xfield, detector%element), ele_ngi(xfield, detector%element), xfield%dim) :: dshape
+    real, dimension(ele_ngi(xfield, detector%element)) :: old_detJ, new_detJ
+    integer :: i, dim, neigh, local_face
+    integer, dimension(:), pointer :: neigh_list, face_list
+    
+    dim = xfield%dim   
+    search_loop: do 
+       ! Displacement vector, where ray_o is the origin of the tracking step
+       vdisp = detector%update_vector - detector%ray_o
+
+       ! Get the inverse Jacobian and detJ for the old element
+       call transform_to_physical(xfield, detector%element, xfield%mesh%shape, dshape, invJ=invJ, detJ=old_detJ)
+
+       ! Compute equivalent of detector%update_vector in parametric space
+       lc_update(1:dim) = detector%local_coords(1:dim) + matmul(vdisp, invJ(:,:,1))
+       lc_update(dim+1) = 1. - sum(lc_update(1:dim))
+
+       if (minval(lc_update)>-search_tolerance) then
+          !The arrival point is in this element, we're done
+          detector%local_coords = lc_update
+          detector%ray_o = detector%update_vector
+          new_owner=getprocno()
+          exit search_loop
+       end if
+
+       ! Find closest intersection with an element boundary in parametric space, 
+       ! and derive the according element neighbour
+       lc_vdisp = lc_update - detector%local_coords
+       dist_intersect = - detector%local_coords / lc_vdisp     
+       neigh = minval(minloc(dist_intersect, dist_intersect > search_tolerance))
+       detector%local_coords = detector%local_coords + lc_vdisp * dist_intersect(neigh)
+       detector%ray_o = eval_field(detector%element, xfield, detector%local_coords)
+
+       ! Record the face we went through
+       neigh_list=>ele_neigh(xfield,detector%element)
+       face_list=>ele_faces(xfield,detector%element)
+       detector%current_face = face_list(neigh)
+       
+       if (neigh > 0 .and. neigh_list(neigh)>0) then
+          ! The neighbouring element is also on this domain:
+          ! Now construct the local_coords of the intersection point 
+          ! on the element boundary wrt. to the new element
+          detector%element = neigh_list(neigh) 
+
+          ! The detJ seems to indicate whether we need to 
+          ! inverse the internal element numbering or not ...
+          ! Note, however, that the transform is virtually for free thanks to caching
+          call transform_to_physical(xfield, detector%element, xfield%mesh%shape, dshape, invJ=invJ, detJ=new_detJ)
+          local_face = local_face_number(xfield, face_neigh(xfield, detector%current_face))
+
+          ! For some reason, if the detJ is negative the element connectivity is reversed?
+          if (old_detJ(1) * new_detJ(1) > search_tolerance) then 
+             detector%local_coords = detector%local_coords(ubound(detector%local_coords,1):lbound(detector%local_coords,1):-1)
+             neigh = dim+2 - neigh
+          end if
+
+          ! Now we can shift the local coords according to the difference in local number
+          detector%local_coords = cshift(detector%local_coords, shift=neigh-local_face)
+       else
+          ! Update vector is not on this domain, 
+          ! so check if the last element is owned
+          if (element_owned(xfield,detector%element)) then
+             ! Detector leaving local domain
+             new_owner=-1
+          else
+             ! The current element is on a Halo, we need to send it to the owner.
+             new_owner=element_owner(xfield%mesh,detector%element)
+          end if
+          exit search_loop
+       end if
+
+    end do search_loop
+  end subroutine parametric_guided_search
 
   subroutine reflect_on_boundary(xfield, coordinate, element, face)
     ! Reflect the coordinate in the according boundary face of the element.

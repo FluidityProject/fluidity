@@ -54,10 +54,10 @@ module detector_data_types
   public :: detector_type, detector_linked_list, detector_list_ptr, stringlist, detector_buffer, &
             random_walk, le_variable, functional_group, food_set, food_variety, &
             STATIC_DETECTOR, LAGRANGIAN_DETECTOR, &
-            GUIDED_SEARCH_TRACKING, GEOMETRIC_TRACKING
+            GUIDED_SEARCH_TRACKING, GEOMETRIC_TRACKING, PURE_GS
 
   integer, parameter :: STATIC_DETECTOR=1, LAGRANGIAN_DETECTOR=2
-  integer, parameter :: GUIDED_SEARCH_TRACKING=1, RTREE_TRACKING=2, GEOMETRIC_TRACKING=3
+  integer, parameter :: GUIDED_SEARCH_TRACKING=1, RTREE_TRACKING=2, GEOMETRIC_TRACKING=3, PURE_GS=4
 
   type stringlist
      !!< Container type for a list of strings.
@@ -103,7 +103,7 @@ module detector_data_types
      integer :: current_face
 
      ! Element list and distances for path integration
-     type(ele_path_list), pointer :: path_elements
+     type(ele_path_list), pointer :: path_elements => null()
 
      !! Biology variables
      real, dimension(:), allocatable :: biology
