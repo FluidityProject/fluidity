@@ -153,9 +153,42 @@ void NodeOwnerFinder::SetTestRegion(const double*& pLow, const double*& pHigh, c
 
   visitor.clear();
 
-  SpatialIndex::Region* region = new SpatialIndex::Region(pLow, pHigh, dim);
-  rTree->intersectsWithQuery(*region, visitor);
-  delete region;
+  if (dim==1){
+    /* 1D case is essentially the same as above, 
+       just with two coordinates defining the range */
+
+    vector<Element1D>::iterator candidate;
+    // Finds the first 1d element that is not to the left of
+    // the specified point. 
+    candidate=lower_bound( mesh1d.begin(), mesh1d.end(), *pLow );
+    
+    // Because the point may be coincident with
+    // the upper bound of the element we're looking for, this element
+    // may still be considered to the left of the point due to round off
+    // We therefore go back one to make sure it is included.
+    if (candidate!=mesh1d.begin()) candidate--;
+    
+    // add candidates to visitor list as long as the candidate element 
+    // is not to the right of the specified point
+    for (;
+      !(candidate==mesh1d.end() || *candidate > *pHigh) ;
+      candidate++)
+    {
+      visitor.push_back( (*candidate).id );
+    };
+    
+    // Similarly to above, because the point may be coincident with
+    // the lower bound of the element we're looking for, this element
+    // may be considered to the right of the point due to round off.
+    // Add one extra candidate to make sure it is included.
+    if (candidate!=mesh1d.end())
+      visitor.push_back( (*candidate).id );
+    
+  }else{
+     SpatialIndex::Region* region = new SpatialIndex::Region(pLow, pHigh, dim);
+     rTree->intersectsWithQuery(*region, visitor);
+     delete region;
+  }
 
   return;
 }
