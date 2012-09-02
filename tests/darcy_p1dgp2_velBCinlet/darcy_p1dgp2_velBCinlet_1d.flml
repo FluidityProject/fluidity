@@ -232,7 +232,7 @@ the geometry is 1d and one time step is done (as nothing depends on time)</comme
           <diagnostic>
             <mesh name="DGP0"/>
             <algorithm name="vector_python_diagnostic" material_phase_support="multiple">
-              <string_value lines="20" type="python"># get the prescribed fields 
+              <string_value lines="20" type="code" language="python"># get the prescribed fields 
 perm = states["fluid"].scalar_fields["Permeability"]
 visc = states["fluid"].scalar_fields["Viscosity"]
 
@@ -336,7 +336,7 @@ also assume that the velocity is dg</comment>
     <vector_field name="interstitial_velocity" rank="1">
       <diagnostic>
         <algorithm name="vector_python_diagnostic" material_phase_support="multiple">
-          <string_value lines="20" type="python">phi = states["fluid"].scalar_fields["Porosity"]
+          <string_value lines="20" type="code" language="python">phi = states["fluid"].scalar_fields["Porosity"]
 darcy_vel = states["fluid"].vector_fields["Velocity"]
 
 for ele in range(field.element_count):

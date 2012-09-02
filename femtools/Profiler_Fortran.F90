@@ -28,11 +28,14 @@
 module Profiler
   use global_parameters, only : real_8
   use fields
+
   implicit none
   
   private
   
-  public profiler_tic, profiler_toc, profiler_zero
+  public profiler_tic, profiler_toc, profiler_zero, &
+       profiler_minorpagefaults, profiler_majorpagefaults, &
+       profiler_getresidence
   
   interface profiler_tic
     module procedure profiler_tic_scalar, profiler_tic_vector, &
@@ -72,6 +75,24 @@ module Profiler
       character(len = key_len), intent(in) :: key
       real(kind = real_8), intent(out) :: time
     end subroutine cprofiler_get
+
+    subroutine cprofiler_minorpagefaults(faults)
+      implicit none
+      integer, intent(out) :: faults
+    end subroutine cprofiler_minorpagefaults
+
+    subroutine cprofiler_majorpagefaults(faults)
+      implicit none
+      integer, intent(out) :: faults
+    end subroutine cprofiler_majorpagefaults
+
+    subroutine cprofiler_getresidence(ptr, residence)
+      use iso_c_binding, only : c_ptr
+      implicit none
+      type(c_ptr), intent(in) :: ptr
+      integer, intent(out):: residence
+    end subroutine cprofiler_getresidence
+
   end interface
 
 contains
@@ -192,5 +213,22 @@ contains
   subroutine profiler_zero()
     call cprofiler_zero()
   end subroutine profiler_zero
+
+  subroutine profiler_minorpagefaults(faults)
+    integer, intent(out) :: faults
+    call cprofiler_minorpagefaults(faults)
+  end subroutine profiler_minorpagefaults
+
+  subroutine profiler_majorpagefaults(faults)
+    integer, intent(out) :: faults
+    call cprofiler_majorpagefaults(faults)
+  end subroutine profiler_majorpagefaults
+
+  subroutine profiler_getresidence(ptr, residence)
+    use iso_c_binding, only : c_ptr
+    type(c_ptr), intent(in) :: ptr
+    integer, intent(out) :: residence
+    call cprofiler_getresidence(ptr, residence)
+    end subroutine profiler_getresidence
 
 end module Profiler

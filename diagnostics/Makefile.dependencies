@@ -53,6 +53,15 @@ Field_Copies.o ../include/field_copies_diagnostics.mod: Field_Copies.F90 \
    ../include/spud.mod ../include/state_fields_module.mod \
    ../include/state_module.mod ../include/transform_elements.mod
 
+../include/mass_matrix_diagnostics.mod: Mass_Matrix_Diagnostics.o
+	@true
+
+Mass_Matrix_Diagnostics.o ../include/mass_matrix_diagnostics.mod: \
+   Mass_Matrix_Diagnostics.F90 ../include/fdebug.h \
+   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
+   ../include/global_parameters.mod ../include/spud.mod \
+   ../include/state_fields_module.mod ../include/state_module.mod
+
 ../include/mesh_diagnostics.mod: Mesh_Diagnostics.o
 	@true
 

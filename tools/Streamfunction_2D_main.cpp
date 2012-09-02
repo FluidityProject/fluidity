@@ -42,9 +42,8 @@
 using namespace std;
 
 extern "C"{
-#define streamfunction_2d F77_FUNC(streamfunction_2d, STREAMFUNCTION_2D)
-  void streamfunction_2d(const char* input_basename, const int* input_basename_len,
-                         const char* output_basename, const int* output_basename_len);
+  void streamfunction_2d(const char* input_basename, size_t input_basename_len,
+                         const char* output_basename, size_t output_basename_len);
 #ifdef HAVE_PYTHON
 #include "python_statec.h"
 #endif
@@ -124,10 +123,10 @@ int main(int argc, char** argv){
     exit(-1);
   }
       
-  int input_basename_len = input_basename.size();
-  int output_basename_len = output_basename.size();
-  streamfunction_2d(input_basename.c_str(), &input_basename_len,
-                    output_basename.c_str(), &output_basename_len);
+  size_t input_basename_len = input_basename.size();
+  size_t output_basename_len = output_basename.size();
+  streamfunction_2d(input_basename.c_str(), input_basename_len,
+                    output_basename.c_str(), output_basename_len);
 
 #ifdef HAVE_PYTHON
   // Finalize the Python Interpreter

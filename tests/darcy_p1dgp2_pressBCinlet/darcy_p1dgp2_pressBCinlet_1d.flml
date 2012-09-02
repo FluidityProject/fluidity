@@ -28,8 +28,7 @@ the left and right boundary conditions of pressure are applied strongly.
 
 For 2d and 3d a second approach is also done via solving a pressure poisson equation then calculating the 
 velocity diagnostically from this. This uses generic scalar and vector fields and python diagnostics. 
-The latter didnt work in 1d. The same vel-press element pair is used as the mixed projection formulation.
-    </comment>
+The latter didnt work in 1d. The same vel-press element pair is used as the mixed projection formulation.</comment>
   </simulation_name>
   <problem_type>
     <string_value lines="1">fluids</string_value>
@@ -234,7 +233,7 @@ The latter didnt work in 1d. The same vel-press element pair is used as the mixe
           <diagnostic>
             <mesh name="DGP0"/>
             <algorithm name="vector_python_diagnostic" material_phase_support="multiple">
-              <string_value lines="20" type="python"># get the prescribed fields 
+              <string_value lines="20" type="code" language="python"># get the prescribed fields 
 perm = states["fluid"].scalar_fields["Permeability"]
 visc = states["fluid"].scalar_fields["Viscosity"]
 
@@ -338,7 +337,7 @@ also assume that the velocity is dg</comment>
     <vector_field name="interstitial_velocity" rank="1">
       <diagnostic>
         <algorithm name="vector_python_diagnostic" material_phase_support="multiple">
-          <string_value lines="20" type="python">phi = states["fluid"].scalar_fields["Porosity"]
+          <string_value lines="20" type="code" language="python">phi = states["fluid"].scalar_fields["Porosity"]
 darcy_vel = states["fluid"].vector_fields["Velocity"]
 
 for ele in range(field.element_count):

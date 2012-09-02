@@ -35,7 +35,7 @@ subroutine project_to_continuous(vtuname_, vtuname_len, meshname_,&
   use state_module
   use elements
   use fields
-  use mesh_files
+  use read_triangle
   use vtk_interfaces
   use sparse_tools
   use fefields
@@ -72,7 +72,7 @@ subroutine project_to_continuous(vtuname_, vtuname_len, meshname_,&
 
   call vtk_read_state(vtuname, dg_state, quad_degree=6)
   
-  cg_coordinate= read_mesh_files(meshname, quad_degree=6)
+  cg_coordinate= read_triangle_files(meshname, quad_degree=6)
   cg_mesh=cg_coordinate%mesh
 
   call allocate(lumped_mass, cg_mesh, "LumpedMass")

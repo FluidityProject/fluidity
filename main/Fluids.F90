@@ -80,7 +80,6 @@ module fluids_module
   use free_surface_module
   use field_priority_lists
   use boundary_conditions
-  use porous_media
   use spontaneous_potentials, only: calculate_electrical_potential
   use saturation_distribution_search_hookejeeves
   use discrete_properties_module
@@ -104,6 +103,7 @@ module fluids_module
 #endif
   use multiphase_module
   use detector_parallel, only: sync_detector_coordinates, deallocate_detector_list_array
+
 
   implicit none
 
@@ -317,17 +317,18 @@ contains
     !        Currently only needed for free surface
     if (has_scalar_field(state(1), "DistanceToTop")) then
        if (.not. have_option('/geometry/ocean_boundaries')) then
-          ewrite(-1,*) "There are no top and bottom boundary markers."
-          FLExit("Switch on /geometry/ocean_boundaries or remove your DistanceToTop field.")
-       end if
-       call CalculateTopBottomDistance(state(1))
-       ! Initialise the OriginalDistanceToBottom field used for wetting and drying
-       if (have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")) then
-          call insert_original_distance_to_bottom(state(1))
-          ! Wetting and drying only works with no poisson guess ... lets check that
-          call get_option("/material_phase::water/scalar_field::Pressure/prognostic/scheme/poisson_pressure_solution", option_buffer)
-          if (.not. trim(option_buffer) == "never") then 
-            FLExit("Please choose 'never' under /material_phase::water/scalar_field::Pressure/prognostic/scheme/poisson_pressure_solution when using wetting and drying")
+          ewrite(-1,*) "Warning: You have a field called DistanceToTop"
+          ewrite(-1,*) "but you don't have ocean_boundaries switched on."
+       else
+          call CalculateTopBottomDistance(state(1))
+          ! Initialise the OriginalDistanceToBottom field used for wetting and drying
+          if (have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")) then
+             call insert_original_distance_to_bottom(state(1))
+             ! Wetting and drying only works with no poisson guess ... lets check that
+             call get_option("/material_phase::water/scalar_field::Pressure/prognostic/scheme/poisson_pressure_solution", option_buffer)
+             if (.not. trim(option_buffer) == "never") then 
+               FLExit("Please choose 'never' under /material_phase::water/scalar_field::Pressure/prognostic/scheme/poisson_pressure_solution when using wetting and drying")
+             end if
           end if
        end if
     end if
@@ -602,17 +603,13 @@ contains
           end if
           !end explicit ale ------------  jem 21/07/08
 
-          !-----------------------------------------------------
-          ! Call to porous_media module (leading to multiphase flow in porous media)
-          ! jhs - 16/01/09
+          ! Call to electrical properties for porous_media module 
           if (have_option("/porous_media")) then
-             call porous_media_advection(state)
-             ! compute spontaneous electrical potentials (myg - 28/10/09)
+             ! compute spontaneous electrical potentials
              do i=1,size(state)
                 option_buffer = '/material_phase['//int2str(i-1)//']/electrical_properties/'
                 ! Option to search through a space of saturation distributions to find
                 ! best match to measured electrical data - for reservoir modelling.
-                ! Added 18 May 2010 jhs
                 if (have_option(trim(option_buffer)//'Saturation_Distribution_Search')) then
                    call search_saturations_hookejeeves(state, i)
                 elseif (have_option(trim(option_buffer)//'coupling_coefficients/scalar_field::Electrokinetic').or.&
@@ -622,7 +619,6 @@ contains
                 end if
              end do
           end if
-          ! End call to porous_media
 
           if (have_option("/ocean_biology")) then
              call calculate_biology_terms(state(1))
@@ -713,7 +709,7 @@ contains
                 else if(have_option(trim(field_optionpath_list(it)) // &
                      & "/prognostic/spatial_discretisation/continuous_galerkin")) then
 
-                   call solve_field_equation_cg(field_name_list(it), state(field_state_list(it)), dt)
+                   call solve_field_equation_cg(field_name_list(it), state, field_state_list(it), dt)
                 else
 
                    ewrite(2, *) "Not solving scalar field " // trim(field_name_list(it)) // " in state " // trim(state(field_state_list(it))%name) //" in an advdif-like subroutine."
@@ -749,14 +745,6 @@ contains
           !
           ! Assemble and solve N.S equations.
           !
-
-          !-------------------------------------------------------------
-          ! Call to porous_media_momentum (leading to multiphase)
-          ! jhs - 16/01/09
-          ! moved to here 04/02/09
-          if (have_option("/porous_media")) then
-             call porous_media_momentum(state)
-          end if
 
           if (have_solids) then
              ewrite(2,*) 'into solid_drag_calculation'
@@ -1000,7 +988,7 @@ contains
           call deallocate(pod_state(i))
        end do
     end if
-
+    
     ! deallocate the pointer to the array of states and sub-state:
     deallocate(state)
     if(use_sub_state()) deallocate(sub_state)
