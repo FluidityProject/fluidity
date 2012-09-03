@@ -55,6 +55,7 @@ module Coordinates
        ll2r3_rotate, &
        lon_lat_height_2_spherical_polar, spherical_polar_2_lon_lat_height, &
        lon_lat_height_2_cartesian, cartesian_2_lon_lat_height, &
+       lon_lat_height_2_cartesian_c, cartesian_2_lon_lat_height_c, &
        vector_spherical_polar_2_cartesian, vector_cartesian_2_spherical_polar, &
        vector_lon_lat_height_2_cartesian, vector_cartesian_2_lon_lat_height, &
        vector_lon_lat_height_2_cartesian_c, vector_cartesian_2_lon_lat_height_c, &
@@ -134,14 +135,14 @@ contains
   end subroutine ll2r3_rotate
 
   subroutine spherical_polar_2_cartesian(radius,theta,phi,x,y,z)
-    !Subroutine for calculation of cartesian coordinates from spherical-polar
+    !Subroutine for calculation of Cartesian coordinates from spherical-polar
     ! coordinates.
     implicit none
 
     real, intent(in) :: radius  !Distance from centre of sphere
     real, intent(in) :: theta   !Polar angle, in radians
     real, intent(in) :: phi     !Azimuthal angle, in radians
-    real, intent(out) :: x,y,z  !cartesian coordinates
+    real, intent(out) :: x,y,z  !Cartesian coordinates
     
     x = radius*sin(theta)*cos(phi)
     y = radius*sin(theta)*sin(phi)      
@@ -150,21 +151,21 @@ contains
   end subroutine spherical_polar_2_cartesian
   
   subroutine spherical_polar_2_cartesian_c(radius,theta,phi,x,y,z) bind(c)
-    !C-inter-operable subroutine for calculation of cartesian coordinates
+    !C-inter-operable subroutine for calculation of Cartesian coordinates
     ! from spherical-polar coordinates.
     implicit none
     
     real(kind=c_double) :: radius  !Distance from centre of sphere
     real(kind=c_double) :: theta   !Polar angle, in radians
     real(kind=c_double) :: phi     !Azimuthal angle, in radians
-    real(kind=c_double) :: x,y,z   !cartesian coordinates
+    real(kind=c_double) :: x,y,z   !Cartesian coordinates
 
     real :: radius_f
     real :: theta_f
     real :: phi_f
     real :: x_f,y_f,z_f
 
-    !Cast input variables to fortran intrinsic types.
+    !Cast input variables to FORTRAN intrinsic types.
     radius_f = real(radius)
     theta_f = real(theta)
     phi_f = real(phi)
@@ -180,7 +181,7 @@ contains
   end subroutine spherical_polar_2_cartesian_c
 
   subroutine cartesian_2_spherical_polar(x,y,z,radius,theta,phi)
-    !Subroutine for calculation of cartesian coordinates from spherical-polar coordinates.
+    !Subroutine for calculation of Cartesian coordinates from spherical-polar coordinates.
     implicit none
 
     real, intent(in) :: x,y,z   !cartesian coordinates
@@ -338,15 +339,16 @@ contains
   subroutine lon_lat_height_2_cartesian(longitude, latitude, height, &
                                         x, y, z, &
                                         referenceRadius)
-    !Subroutine for convertion of cartesian coordinates into longitude-latitude-height
-    ! If referenceRadius is specified, height is measured as the radial distance relative
-    ! to that radius, ie it is the distance relative to the surface of the sphere.
+    !Subroutine for convertion of longitude-latitude-height coordinates into 
+    ! Cartesian coordinates. If referenceRadius is specified, height is measured
+    ! as the radial distance relative to that radius, i.e. it is the distance
+    ! relative to the surface of the sphere.
     implicit none
 
     real, intent(in) :: longitude !in degrees
     real, intent(in) :: latitude  !in degrees
     real, intent(in) :: height
-    real, intent(out) :: x,y,z   !cartesian coordinates
+    real, intent(out) :: x,y,z   !Cartesian coordinates
     real, intent(in), optional :: referenceRadius
 
     real :: radius !Distance from centre of sphere
@@ -372,14 +374,53 @@ contains
 
   end subroutine lon_lat_height_2_cartesian
 
+  subroutine lon_lat_height_2_cartesian_c(longitude, latitude, height, &
+                                          x, y, z, &
+                                          referenceRadius) bind(c)
+    !C-inter-operable subroutine for conversion of longitude-latitude-height into
+    ! spherical-polar coordinates. referenceRadius must be specified, i.e. height
+    ! is always measured as the radial distance relative to that radius and denotes
+    ! the distance from the surface of the sphere.
+    implicit none
+    
+    real(kind=c_double) :: longitude        !Longitude, in radians.
+    real(kind=c_double) :: latitude         !Latitude, in radians.
+    real(kind=c_double) :: height           !Distance from surface of sphere.
+    real(kind=c_double) :: x,y,z            !Cartesian coordinates.
+    real(kind=c_double) :: referenceRadius  !Sphere radius.
+
+    real :: longitude_f
+    real :: latitude_f
+    real :: height_f
+    real :: x_f,y_f,z_f
+    real :: referenceRadius_f
+
+    !Cast input variables to FORTRAN intrinsic types.
+    longitude_f = real(longitude)
+    latitude_f = real(latitude)
+    height_f = real(height)
+    referenceRadius_f = real(referenceRadius)
+
+    !Convert coordinates
+    call lon_lat_height_2_cartesian(longitude_f, latitude_f, height_f, &
+                                    x_f, y_f, z_f, &
+                                    referenceRadius_f)
+
+    !Cast output variables to C-inter-operable types.
+    x = real(x_f, kind=c_double)
+    y = real(y_f, kind=c_double)
+    z = real(z_f, kind=c_double)
+
+  end subroutine lon_lat_height_2_cartesian_c
+
   subroutine cartesian_2_lon_lat_height(x, y, z, longitude, latitude, height, &
                                         referenceRadius)
-    !Subroutine for convertion of cartesian coordinates into longitude-latitude-height
+    !Subroutine for conversion of Cartesian coordinates into longitude-latitude-height
     ! If referenceRadius is specified, height is measures as the radial distance relative
     ! to that radius.
     implicit none
 
-    real, intent(in) :: x,y,z   !cartesian coordinates
+    real, intent(in) :: x,y,z   !Cartesian coordinates
     real, intent(out) :: longitude !in degrees
     real, intent(out) :: latitude  !in degrees
     real, intent(out) :: height
@@ -388,7 +429,7 @@ contains
     real :: theta  !Polar angle, in radians
     real :: phi    !Azimuthal angle, in radians
 
-    !convert cartesian coordinates to spherical-polar
+    !convert Cartesian coordinates to spherical-polar
     call cartesian_2_spherical_polar(x,y,z,radius,theta,phi)
 
     !Convert polar angle into latitude and azimuthal angle into longitude; in radians.
@@ -404,7 +445,7 @@ contains
   end subroutine cartesian_2_lon_lat_height
 
   subroutine transformation_matrix_cartesian_2_spherical_polar(xCoord, yCoord, zCoord, R, RT)
-    !Subroutine calculating transformation martix for spherical-polar to/from cartesian
+    !Subroutine calculating transformation matrix for spherical-polar to/from Cartesian
     ! tensor transformations. The routine also returns the transposed transformation matrix
     implicit none
 

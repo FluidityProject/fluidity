@@ -35,9 +35,6 @@
 using namespace std;
 using namespace Spud;
 
-extern int projections(int nPoints, double *x, double *y, double *z, string current_coord, string output_coord);
-
-
 void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const double *Z, 
                      double *T, const double *Vx, const double *Vy, const double *Vz, double *salinity,
                      double *F, double *Q, double *tau_u, double *tau_v, double *solar,
@@ -102,6 +99,10 @@ void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const d
                                               &u_rot, &v_rot, &w_rot,
                                               &longitude[i], &latitude[i], &height[i],
                                               &surface_radius);
+        }else{
+          cartesian_2_lon_lat_height_c(&x_cart, &y_cart, &z_cart,
+                                       &longitude[i], &latitude[i], &height[i],
+                                       &surface_radius);
         }
 
         /*
