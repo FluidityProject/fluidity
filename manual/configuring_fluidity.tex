@@ -1361,32 +1361,33 @@ If these fields are not set correctly, a user error will occur.
 \index{turbulence model}
 \index{k-$\epsilon$ model}
 
-This option enables the turbulence model described in \ref{sec:kepsilon}. It must not be confused with the
-$k-\epsilon$ option in the GLS model (see \ref{sec:GLS}) which is only for oceans like problems.
-The user must select either implicit or explicit source and absorption terms via \option{\ldots/option}.
-If \option{explicit} is chosen, the source and absorption terms are as described in \ref{sec:kepsilon}.
-If \option{implicit} is chosen, the source and absorption terms are calculated as follows:
-\begin{align*}
-\textrm{source} &= -\min(0.0, \textrm{diss}-\textrm{prod}), \\
-\textrm{absorption} &= max(0.0, \textrm{diss}-\textrm{prod}), 
-\end{align*}
-where `$\textrm{source}$' is the explicitly calculated source term and `$\textrm{absorption}$' is the explicitly calculated absorption term. 
+\option{../subgridscale\_parameterisations/k-epsilon} enables the turbulence model
+described in \ref{sec:kepsilon}. It must not be confused with the $k-\epsilon$ option in
+the GLS model (see \ref{sec:GLS}) which is only for oceans like problems.
 
-In \fluidity\ the $k$ field is called \option{TurbulentKineticEnergy} and the $\epsilon$ field \option{TurbulentDissipation}.
-The model works well with the following spatial discretisation options for $k$ and $\epsilon$: \linebreak
-\option{\ldots/control\_volumes/face\_value::FiniteElement/limit\_face\_value/limiter::Sweby} \linebreak
-with \option{/control\_volumes/diffusion\_scheme::ElementGradient}.
-This discretisation is significantly speeded up by selecting
-\option{/project\_upwind\_value\_from\_point/} \linebreak
-\option{store\_upwind\_elements\_store\_upwind\_quadrature}.
+In \fluidity\ the $k$ field is called \option{TurbulentKineticEnergy} and the $\epsilon$
+field is called \option{TurbulentDissipation}.  The model works well with the following
+spatial discretisation options for $k$ and $\epsilon$:
+\begin{itemize}
+\item
+  \option{\ldots/control\_volumes/face\_value::FiniteElement/limit\_face\_value/limiter::Sweby}
+\item \option{/control\_volumes/diffusion\_scheme::ElementGradient}.
+\item significant speeded up is achieved by selecting
+  \begin{itemize}
+  \item \option{/project\_upwind\_value\_from\_point/}
+  \item \option{store\_upwind\_elements\_store\_upwind\_quadrature}.
+  \end{itemize}
+\end{itemize}
 
-Fully implicit or Crank-Nicolson temporal discretisation is recommended.
-If using the above spatial discretisation the
-\option{control\_volume} discretisation option should be selected, with \linebreak
-\option{number\_advection\_iterations} = 3.
+Under temporal discretisation option:
+\begin{itemize}
+\item Fully implicit or Crank-Nicholson temporal discretisation is recommended.
+\item \option{control\_volume} discretisation option should be selected
+\item \option{number\_advection\_iterations} = 3.
+\end{itemize}
 
-Fields that are altered by the k-epsilon model need to be switched
-to \linebreak \option{diagnostic/algorithm::Internal}. The list of fields to switch is:
+The following fields are altered by the k-epsilon model and need to be switched on and set
+to \option{diagnostic/algorithm::Internal}:
 \begin{enumerate}
 \item \option{Velocity/Viscosity}
 \item \option{TurbulentKineticEnergy/Diffusivity}
@@ -1397,24 +1398,57 @@ to \linebreak \option{diagnostic/algorithm::Internal}. The list of fields to swi
 \item \option{TurbulentDissipation/Absorption}
 \end{enumerate}
 
-If these fields are not set correctly, a user error will occur. The eddy viscosity is available as a diagnostic
-tensor field and as a diagnostic scalar field. However, the molecular (or laminar) viscosity must still be prescribed under \linebreak
-\option{\ldots/k-epsilon/tensor\_field::BackgroundViscosity}.
+Although it is possible to set some of these fields to \option{prescribed} or off
+altogether for the purposes of debugging results and/or the code itself. If these fields
+are not set correctly, a user error will occur and/or warnings will be displayed.
 
-If using additional scalar fields such as temperature, salinity etc, an option is available under \linebreak
-\option{\ldots/subgridscale\_parameterisation::k-epsilon} to use the eddy diffusivity scaled by a user-specified Prandtl number.
+Boundary conditions for the $k$ and $\epsilon$ fields should be set to type
+\option{k\_epsilon}. Read section \ref{sec:kepsilon} for information about how to choose
+the correct settings for boundary conditions.
 
-Three optional diagnostic scalar fields are available within the model: LengthScale, TKEOverEpsilon and EpsilonOverTKE. The first is the integral length scale of the turbulence (see \eqref{lengthscale}), the second is the ratio of the $k$ and $\epsilon$ fields, and the third is it the reciprocal, also known as omega or the specific dissipation.
+The molecular (or laminar) viscosity must be prescribed under
+\option{\ldots/k-epsilon/tensor\_field::BackgroundViscosity}. This must be set to
+\option{prescribed/value::WholeMesh/anisotropic\_symmetric/constant} with all values set
+to the isotropic viscosity.
 
-\subsubsection{Initial and Boundary Conditions}
+If using additional scalar fields such as temperature, salinity etc, an option is
+available under \option{\ldots/subgridscale\_parameterisation::k-epsilon} to use the eddy
+diffusivity scaled by a user-specified Prandtl number. A background diffusivity is
+required and this can either be set under
+\option{\ldots/k-epsilon/tensor\_field::BackgroundDiffusivity} or within the additional
+scalar field under
+\option{\ldots/subgridscale\_parameterisation::k-epsilon/background\_diffusivity}, with
+the latter taking priority. Buoyancy effects can also be accounted for by setting
+\option{\ldots/subgridscale\_parameterisation::k-epsilon/buoyancy\_effects} within scalar
+fields.
 
-The model is sensitive to the initial conditions specified for the $k$ and $\epsilon$ fields. It is recommended to use the special boundary condition type, \option{\ldots/k\_epsilon} on any surface of interest for these fields. Different wall functions are available for low- and high-Reynolds-number flows. The cutoff between high and low Reynolds number is at the user's discretion but is usually of order $10^4$.
+There are options available to allow the treatment of each of the source terms in the
+$k-\epsilon$ model as either source or absorption terms within Fluidity. Choosing implicit
+calculation causes the terms to be calculated semi-implicitly as absorption
+terms. Choosing explicit calculation calculates the term completely explicitly as a source
+term.
 
-In the low Reynolds number case, \eqref{epsbc1} are implemented by selecting \option{\ldots/boundary\_conditions/k\_epsilon/low\_Re}. In the high Reynolds number case, \eqref{kbc2} and \eqref{epsbc2} are implemented by selecting \option{\ldots/boundary\_conditions/k\_epsilon/high\_Re}. The velocity condition, \eqref{ubc2}, can be selected under \linebreak
-\option{\ldots/Velocity/prognostic/boundary\_conditions/type::log\_law\_of\_wall}.
-However, if using a sufficiently fine near-wall mesh, roughly the correct velocity profile can be obtained with a no-slip Dirichlet BC.
+In calculation of the source terms it is required to invert a mass matrix. For P1
+discretisations this can be done using mass lumping. For other discretisations it is
+necessary to solve a system of equations. When using non P1 discretisations for the $k$
+and $\epsilon$ fields the option
+\option{\ldots/k-epsilon/mass\_lumping\_in\_diagnostics/solve\_using\_mass\_matrix} should
+be selected, along with suitable solver settings.
 
-If using Dirichlet conditions, it is recommended that $k$ and $\epsilon$ be set to small values, chosen such that the eddy viscosity on the boundaries is of order $O(\nu)$ (background viscosity), and both fields perhaps of order $O(1/Re)$.
+Within \option{\ldots/k-epsilon/debugging\_options} there are a number of options for
+debugging the model. It is possible to output each term in the $k$ and $\epsilon$
+equations separately, provide prescribed sources for the $k$ and $\epsilon$ equations, and
+also to disable specific terms in the equations.
+
+When using the Low Reynolds number model, which is enabled whenever a
+\option{k\_epsilon/lowRe} boundary condition is specified, a \option{DistanceToWall} field
+must be specified. For simple geometries the simplest method of providing this information
+is to use a python function. For complex geometries where this is not possible precursor
+Eikonal equation or Poisson equation simulations must be run to determine the values for
+this field. These can be carried out quite easily using Fluidity. Details of this process
+can be found in Tucker, P 2011: "Hybrid Hamilton/Jacobi/Poisson wall distance function
+model" and Elias et al 2007: "Simple finite element-based computation of distance
+functions in unstructured grids"
 
 \subsection{Large Eddy Simulation Models}
 
@@ -1728,12 +1762,12 @@ option.
 \index{k-$\epsilon$ model!boundary conditions}
 \index{boundary conditions!k-$\epsilon$ model}
 
-The k-epsilon turbulence model (see section \ref{sec:kepsilon}) should apply zero Dirichlet boundary
-conditions to the TurbulentKineticEnergy ($k$) field. The TurbulentDissipation ($\epsilon$) field
-should use the special type of Dirichlet condition called \option{k\_epsilon} which is calculated in the
-k-epsilon module. To enable calculation of the boundary conditions on both fields, set the \linebreak
-\option{\ldots/subgridscale\_parameterisations/k-epsilon/calculate\_boundaries}
-option.
+The k-epsilon turbulence model (see section \ref{sec:kepsilon}) should apply zero
+Dirichlet boundary conditions to the TurbulentKineticEnergy ($k$) field. The
+TurbulentDissipation ($\epsilon$) field should use the special type of Dirichlet condition
+called \option{k\_epsilon} which is calculated in the k-epsilon module. To enable
+calculation of the boundary conditions on both fields, set the \linebreak
+\option{\ldots/subgridscale\_parameterisations/k-epsilon/calculate\_boundaries} option.
 
 \section{Astronomical tidal forcing}
 \label{config:tides}
@@ -2381,7 +2415,6 @@ To include this term, switch on the \option{/multiphase\_interaction/heat\_trans
 \begin{itemize}
  \item Boussinesq multiphase simulations are not yet supported.
  \item The momentum equation for each \option{material\_phase} can only be discretised in non-conservative form.
- \item The stress term must be in tensor form, and only works with an isotropic viscosity.
  \item \option{bassi\_rebay} and \option{compact\_discontinuous\_galerkin} are currently the only DG viscosity schemes available for multiphase flow simulations.
  \item Discontinuous \option{PhaseVolumeFraction} fields are not yet supported.
  \item For compressible multiphase flow simulations, the Pressure field only supports a \option{continuous\_galerkin} discretisation.
