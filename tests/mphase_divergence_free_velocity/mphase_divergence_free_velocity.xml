@@ -17,11 +17,21 @@ from fluidity_tools import stat_parser
 s = stat_parser("mphase_divergence_free_velocity.stat")
 SumVelocityDivergence = s["Fluid1"]["SumVelocityDivergence"]["max"]
       </variable>
+      
+      <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+      </variable>
    </variables>
    
    <pass_tests>
       <test name="\sum{div(vfrac*u)} is less than 1e-10." language="python">
 assert(max(abs(SumVelocityDivergence)) &lt; 1e-10)
+      </test>
+      
+      <test name="Solvers converged" language="python">
+assert(solvers_converged)
       </test>
    </pass_tests>
    

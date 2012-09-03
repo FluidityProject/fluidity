@@ -3443,7 +3443,7 @@ function shape_vector_rhs(shape, vector, detwei)
   real, dimension(:,:), intent(in) :: vector
   real, dimension(shape1%ngi), intent(in) :: detwei
 
-  real, dimension(shape%loc, vector_dim(vector)) :: shape_vector_rhs
+  real, dimension(vector_dim(vector), shape%loc) :: shape_vector_rhs
 \end{lstlisting}
 
 This routine constructs the following matrix:
@@ -3463,7 +3463,7 @@ function shape_tensor_rhs(shape, tensor, detwei)
   real, dimension(:,:,:), intent(in) :: tensor
   real, dimension(shape1%ngi), intent(in) :: detwei
 
-  real, dimension(shape%loc, tensor_dim(tensor,1), tensor_dim(tensor,2)) &
+  real, dimension(tensor_dim(tensor,1), tensor_dim(tensor,2), shape%loc) &
        & :: shape_tensor_rhs
 \end{lstlisting}
 

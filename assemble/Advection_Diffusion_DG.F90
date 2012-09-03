@@ -52,8 +52,14 @@ module advection_diffusion_DG
   use sparse_matrices_fields
   use sparsity_patterns_meshes
   use diagnostic_fields, only: calculate_diagnostic_variable
-  use global_parameters, only : FIELD_NAME_LEN
+  use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN, COLOURING_DG2, &
+       COLOURING_DG0
   use porous_media
+  use colouring
+  use Profiler
+#ifdef _OPENMP
+  use omp_lib
+#endif
 
   implicit none
 
@@ -738,6 +744,13 @@ contains
     !! Add the Source directly to the right hand side?
     logical :: add_src_directly_to_rhs
 
+
+    type(integer_set), dimension(:), pointer :: colours
+    integer :: len, clr, nnid
+    !! Is the transform_to_physical cache we prepopulated valid
+    logical :: cache_valid
+    integer :: num_threads
+
     ewrite(1,*) "Writing advection-diffusion equation for "&
          &//trim(field_name)
 
@@ -965,16 +978,48 @@ contains
       ! TODO: Align this direction with gravity local to an element
     end if
 
-    element_loop: do ELE=1,element_count(T)
-       
+    if (include_diffusion) then
+       call get_mesh_colouring(state, T%mesh, COLOURING_DG2, colours)
+#ifdef _OPENMP
+      if(diffusion_scheme == MASSLUMPED_RT0) then
+         call omp_set_num_threads(1)
+         ewrite(1,*) "WARNING: hybrid assembly can't support The MASSLUMPED_RT0 scheme yet, &
+         set threads back to 1"
+      endif
+#endif
+    else
+       call get_mesh_colouring(state, T%mesh, COLOURING_DG0, colours)
+    end if
+
+#ifdef _OPENMP
+    cache_valid = prepopulate_transform_cache(X)
+    assert(cache_valid)
+#endif
+
+    call profiler_tic(t, "advection_diffusion_dg_loop")
+
+    !$OMP PARALLEL DEFAULT(SHARED) &
+    !$OMP PRIVATE(clr, nnid, ele, len)
+
+    colour_loop: do clr = 1, size(colours) 
+      len = key_count(colours(clr))
+
+      !$OMP DO SCHEDULE(STATIC)
+      element_loop: do nnid = 1, len
+       ele = fetch(colours(clr), nnid)
        call construct_adv_diff_element_dg(ele, big_m, rhs, big_m_diff,&
             & rhs_diff, X, X_old, X_new, T, U_nl, U_mesh, Source, &
             & Absorption, Diffusivity, bc_value, bc_type, q_mesh, mass, &
             & buoyancy, gravity, gravity_magnitude, mixing_diffusion_amplitude, &
             & add_src_directly_to_rhs, porosity_theta) 
        
-    end do element_loop
+      end do element_loop
+      !$OMP END DO
 
+    end do colour_loop
+    !$OMP END PARALLEL
+
+    call profiler_toc(t, "advection_diffusion_dg_loop")
     ! Add the source directly to the rhs if required 
     ! which must be included before dirichlet BC's.
     if (add_src_directly_to_rhs) call addto(rhs, Source)
