@@ -280,6 +280,7 @@ module detector_data_types
 
     ! List of environment fields to sample before the agent update
     character(len=FIELD_NAME_LEN), dimension(:), allocatable :: envfield_names
+    logical, dimension(:), allocatable :: envfield_integrate
 
     integer, dimension(:), allocatable :: ivars_uptake, ivars_release
 

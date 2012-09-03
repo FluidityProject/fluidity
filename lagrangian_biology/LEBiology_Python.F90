@@ -294,8 +294,28 @@ contains
 
     ! Sample environment fields
     do f=1, size(envfields)
-       ! Evaluate at detector position
-       envfield_vals(f) = eval_field(agent%element, envfields(f)%ptr, agent%local_coords)
+       if (fgroup%envfield_integrate(f) .and. associated(agent%path_elements)) then
+          envfield_vals(f) = 0.0
+          path_total = 0.0
+          path_ele => agent%path_elements
+          do while( associated(path_ele) )
+              ele_integral = integral_element(envfields(f)%ptr, xfield, path_ele%data%ele)
+              ele_volume = element_volume(xfield, path_ele%data%ele)
+              envfield_vals(f) = envfield_vals(f) + path_ele%data%dist * ele_integral / ele_volume
+              path_total = path_total + path_ele%data%dist
+
+              path_ele => elepath_list_next(path_ele)
+          end do
+
+          if (path_total > 0.0) then
+             envfield_vals(f) = envfield_vals(f) / path_total
+          else
+             envfield_vals(f) = integral_element(envfields(f)%ptr, xfield, agent%element) / element_volume(xfield, agent%element)
+          end if
+       else
+          ! Evaluate at detector position
+          envfield_vals(f) = eval_field(agent%element, envfields(f)%ptr, agent%local_coords)
+       end if
     end do
 
     ! Add food concentrations
