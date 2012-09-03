@@ -106,7 +106,6 @@ module populate_state_module
        "/subgridscale_parameterisations/k-epsilon/debugging_options/prescribed_source_terms                 ", &
        "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/dynamic_les ", &
        "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/second_order" &
->>>>>>> MERGE-SOURCE
        /)
 
   !! Relative paths under a field that are searched for grandchildren
