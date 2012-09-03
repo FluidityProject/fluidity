@@ -38,6 +38,8 @@ module momentum_diagnostic_fields
   use multimaterial_module
   use multiphase_module
   use diagnostic_fields_wrapper_new
+  use k_epsilon
+  use initialise_fields_module
   implicit none
 
   interface calculate_densities

@@ -102,7 +102,7 @@ module fluids_module
 #endif
   use multiphase_module
   use detector_parallel, only: sync_detector_coordinates, deallocate_detector_list_array
-
+  use momentum_diagnostic_fields, only: calculate_densities
 
   implicit none
 

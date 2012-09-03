@@ -54,7 +54,6 @@ module diagnostic_fields_wrapper
   use momentum_diagnostic_fields
   use spontaneous_potentials, only: calculate_formation_conductivity
   use sediment_diagnostics
-  use k_epsilon
   use geostrophic_pressure
   use multiphase_module
   

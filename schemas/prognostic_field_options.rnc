@@ -235,8 +235,7 @@ prognostic_scalar_field =
                mesh_choice?,
                (
                   tensor_python_diagnostic_algorithm |
-                  internal_algorithm |
-                  k_epsilon_diffusivity_algorithm
+                  internal_algorithm 
                ),
                diagnostic_tensor_field
             }

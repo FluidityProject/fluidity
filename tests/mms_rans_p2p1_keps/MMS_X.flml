@@ -70,11 +70,11 @@
     <dump_format>
       <string_value>vtk</string_value>
     </dump_format>
-    <dump_period>
+    <dump_period_in_timesteps>
       <constant>
-        <real_value rank="0">1000.0</real_value>
+        <integer_value rank="0">1</integer_value>
       </constant>
-    </dump_period>
+    </dump_period_in_timesteps>
     <output_mesh name="VelocityMesh"/>
     <stat/>
   </io>
@@ -90,6 +90,9 @@
       <real_value rank="0">1000.0</real_value>
       <comment>10.0</comment>
     </finish_time>
+    <nonlinear_iterations>
+      <integer_value rank="0">1</integer_value>
+    </nonlinear_iterations>
     <steady_state>
       <tolerance>
         <real_value rank="0">1.E-4</real_value>
@@ -142,6 +145,9 @@
     </equation_of_state>
     <subgridscale_parameterisations>
       <k-epsilon>
+        <model_theta>
+          <real_value rank="0">0.0</real_value>
+        </model_theta>
         <scalar_field name="TurbulentKineticEnergy" rank="0">
           <prognostic>
             <mesh name="VelocityMesh"/>
@@ -1137,7 +1143,7 @@ for n in range(field.node_count):
         </subgridscale_parameterisation>
         <tensor_field name="Diffusivity" rank="2">
           <diagnostic>
-            <algorithm name="k_epsilon_diffusivity" material_phase_support="single"/>
+            <algorithm name="Internal" material_phase_support="multiple"/>
             <output/>
             <stat>
               <include_in_stat/>
