@@ -444,6 +444,42 @@ contains
 
   end subroutine cartesian_2_lon_lat_height
 
+  subroutine cartesian_2_lon_lat_height_c(x, y, z, longitude, latitude, height, &
+                                          referenceRadius) bind(c)
+    !C-inter-operable subroutine for conversion of Cartesian coordinates into
+    ! longitude-latitude-height. If referenceRadius is specified, height is measured
+    ! as the radial distance relative to that radius.
+    implicit none
+
+    real(kind=c_double) :: x,y,z   !Cartesian coordinates
+    real(kind=c_double) :: longitude !in degrees
+    real(kind=c_double) :: latitude  !in degrees
+    real(kind=c_double) :: height
+    real(kind=c_double) :: referenceRadius
+
+    real :: x_f,y_f,z_f
+    real :: longitude_f
+    real :: latitude_f
+    real :: height_f
+    real :: referenceRadius_f
+
+    !Cast input variables to FORTRAN intrinsic types.
+    x_f = real(x)
+    y_f = real(y)
+    z_f = real(z)
+    referenceRadius_f = real(referenceRadius)
+
+    !Convert coordinates
+    call cartesian_2_lon_lat_height(x, y, z, longitude, latitude, height, &
+                                        referenceRadius)
+
+    !Cast output variables to C-inter-operable types.
+    longitude = real(longitude_f, kind=c_double)
+    latitude = real(latitude_f, kind=c_double)
+    height = real(height_f, kind=c_double)
+
+  end subroutine cartesian_2_lon_lat_height_c
+
   subroutine transformation_matrix_cartesian_2_spherical_polar(xCoord, yCoord, zCoord, R, RT)
     !Subroutine calculating transformation matrix for spherical-polar to/from Cartesian
     ! tensor transformations. The routine also returns the transposed transformation matrix

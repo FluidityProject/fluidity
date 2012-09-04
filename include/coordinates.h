@@ -62,5 +62,21 @@ extern "C" {
                                                      double *zCoord,
                                                      double *referenceRadius);
 
+            void lon_lat_height_2_cartesian_c(double *longitude,
+                                              double *latitude,
+                                              double *height,
+                                              double *x,
+                                              double *y,
+                                              double *z,
+                                              double *referenceRadius);
+
+            void cartesian_2_lon_lat_height_c(double *x,
+                                              double *y,
+                                              double *z,
+                                              double *longitude,
+                                              double *latitude,
+                                              double *height,
+                                              double *referenceRadius);
+
 }
  #endif
