@@ -1237,9 +1237,6 @@ start =
                   element sigma_p {real},
                   ## Implicit source term - lump production term into absorbtion so that it is calculated 
                   ## implicitly
-                  element limit_length_scale {real}?,
-                  ## Implicit source term - lump production term into absorbtion so that it is calculated 
-                  ## implicitly
                   element implicit_source { empty }?,
                   ## Implicit buoyancy term - lump buoyancy term into absorbtion so that it is calculated 
                   ## implicitly
@@ -1247,8 +1244,6 @@ start =
                   ## Explicit absorbtion term - lump absorbtion term into source so that it is calculated 
                   ## explicitly
                   element explicit_absorbtion { empty }?,
-                  ## Explicit absorbtion term - lump absorbtion term into source so that it is calculated 
-                  ## explicitly
                   element mass_lumping_in_diagnostics {  
                      (
                         element lump_mass { empty }
