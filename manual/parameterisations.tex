@@ -265,165 +265,276 @@ difficulties in the case of stress-free surface boundary layers \citep{burchard1
 
 
 \subsubsection{Standard $k-\epsilon$ Turbulence Model}\label{sec:kepsilon}
-\index{viscosity!eddy}
-\index{diffusivity!eddy}
-\index{Reynolds stress}
-\index{turbulence model}
-\index{k-$\epsilon$ model}
+\index{viscosity!eddy} \index{diffusivity!eddy} \index{Reynolds stress} \index{turbulence
+  model} \index{k-$\epsilon$ model}
 
 Available under \option{\ldots/subgridscale\_parameterisations/k-epsilon}.
 
-The widely-used $k-\epsilon$ turbulence model has been implemented in \fluidity\ based on the descriptions given in
-\citet{wilcox1998turbulence} and \citet{Rodi1993}. It is distinct from the $k-\epsilon$ option in the generic length scale (GLS) model (see
-Section \ref{sec:GLS}), in that it uses a 3D eddy-viscosity tensor and can be applied to any geometry. The eddy viscosity is added to the user-specified molecular (background) viscosity when solving for velocity, and if solving for additional prognostic scalar fields, it is scaled by a user-specified Prandtl number to obtain the field eddy diffusivity.
+The widely-used $k-\epsilon$ turbulence model has been implemented in \fluidity\ based on
+the descriptions given in \citet{wilcox1998turbulence} and \citet{Rodi1993}. It is
+distinct from the $k-\epsilon$ option in the generic length scale (GLS) model (see Section
+\ref{sec:GLS}), in that it uses a 3D eddy-viscosity tensor and can be applied to any
+geometry. The eddy viscosity is added to the user-specified molecular (background)
+viscosity when solving for velocity, and if solving for additional prognostic scalar
+fields, it is scaled by a user-specified Prandtl number to obtain the field eddy
+diffusivity.
 
-The model is based on the unsteady Reynolds-averaged Navier-Stokes (RANS) equations, in which the velocity is decomposed into quasi-steady (moving average) and fluctuating (turbulent) components:
+The model is based on the unsteady Reynolds-averaged Navier-Stokes (RANS) equations, in
+which the velocity is decomposed into quasi-steady (moving average) and fluctuating
+(turbulent) components:
 
 %% \begin{equation}\label{RANS}
 %%  \rho\left(\frac{\partial\bmu}{\partial{t}} + \bmu\cdot\nabla\bmu\right) = \nabla\cdot\tautens - \nabla p +\rho\bmF,
 %% \end{equation}
 
 \begin{equation}\label{eq:RANS}
-\rho\frac{\partial \mathbf{u}}{\partial t} + \rho\mathbf{u}\cdot\nabla\mathbf{u} =
--\nabla p + \rho\mathbf{g} + \nabla\cdot\tautens + \nabla\cdot\left(-\rho\mathbf{u}'\mathbf{u}'\right),
+  \rho\frac{\partial \mathbf{u}}{\partial t} + \rho\mathbf{u}\cdot\nabla\mathbf{u} =
+  -\nabla p + \rho\mathbf{g} + \nabla\cdot\tautens + \nabla\cdot\left(-\rho\mathbf{u}'\mathbf{u}'\right),
 \end{equation}
-where $\mathbf{u}$ is the steady velocity, $\mathbf{u}'$ is the fluctuating velocity, and $p$ is the steady pressure.
-The fourth term on the right, containing the Reynolds stress tensor $-\rho\mathbf{u}'\mathbf{u}'$, represents the effect of turbulent fluctuations on the steady flow and is modelled as:
+where $\mathbf{u}$ is the steady velocity, $\mathbf{u}'$ is the fluctuating velocity, and
+$p$ is the steady pressure.  The fourth term on the right, containing the Reynolds stress
+tensor $-\rho\mathbf{u}'\mathbf{u}'$, represents the effect of turbulent fluctuations on
+the steady flow and is modelled as:
 
 \begin{equation}\label{eq:R_tensor_compressible}
- -\rho\mathbf{u}'\mathbf{u}' = \tautens_R = \mu_T \left( \nabla\mathbf{u} + \left(\nabla\mathbf{u}\right)^{\mathrm{T}} - \frac{1}{3}\left(\nabla\cdot\mathbf{u}\right)\mathbf{I} \right) - \frac{2}{3} k\rho\mathbf{I},
+  -\rho\mathbf{u}'\mathbf{u}' = \tautens_R = \mu_T \left( \nabla\mathbf{u} + \left(\nabla\mathbf{u}\right)^{\mathrm{T}} - \frac{1}{3}\left(\nabla\cdot\mathbf{u}\right)\mathbf{I} \right) - \frac{2}{3} k\rho\mathbf{I},
 \end{equation}
-where $k=(\mathbf{u}'\cdot\mathbf{u}')/2$ is the turbulent kinetic energy and $\mu_T(\mathbf{x},t)$ is the dynamic eddy viscosity. For incompressible flow this becomes:
+where $k=(\mathbf{u}'\cdot\mathbf{u}')/2$ is the turbulent kinetic energy and
+$\mu_T(\mathbf{x},t)$ is the dynamic eddy viscosity. For incompressible flow this becomes:
 \begin{equation}\label{eq:R_tensor_incompressible}
- -\rho\mathbf{u}'\mathbf{u}' = \tautens_R = \mu_T \left( \nabla\mathbf{u} + \left(\nabla\mathbf{u}\right)^{\mathrm{T}} \right) - \frac{2}{3} k\rho\mathbf{I},
+  -\rho\mathbf{u}'\mathbf{u}' = \tautens_R = \mu_T \left( \nabla\mathbf{u} + \left(\nabla\mathbf{u}\right)^{\mathrm{T}} \right) - \frac{2}{3} k\rho\mathbf{I},
 \end{equation}
 The eddy viscosity is estimated as:
 \begin{equation}\label{eq:nut}
- \mu_T = \rho C_\mu \frac{k^2}{\epsilon},
+  \mu_T = \rho C_\mu \frac{k^2}{\epsilon},
 \end{equation}
-where $\epsilon$ is the turbulent dissipation. The equations are closed by solving transport equations for $k$ and the turbulent energy dissipation $\epsilon$:
+where $\epsilon$ is the turbulent dissipation. The equations are closed by solving
+transport equations for $k$ and the turbulent energy dissipation $\epsilon$:
 \begin{equation}\label{eq:k}
-\rho\frac{\partial k}{\partial t} + \rho\mathbf{u}\cdot\nabla k = \nabla\cdot\left(\left(\mu + \frac{\mu_T}{\sigma_k}\right) \nabla k \right) + \tautens_R \cdot \nabla\mathbf{u} - \frac{\mu_T}{\rho\sigma_T} \, \mathbf{g}\cdot\nabla\rho - \rho \left( \frac{\epsilon}{k} \right) k,
+  \rho\frac{\partial k}{\partial t} + \rho\mathbf{u}\cdot\nabla k = \nabla\cdot\left(\left(\mu + \frac{\mu_T}{\sigma_k}\right) \nabla k \right) + \tautens_R \cdot \nabla\mathbf{u} - \frac{\mu_T}{\rho\sigma_T} \, \mathbf{g}\cdot\nabla\rho - \rho \epsilon ,
 \end{equation}
 \begin{equation}\label{eq:eps}
-\rho\frac{\partial \epsilon}{\partial t} + \rho\mathbf{u}\cdot\nabla \epsilon = \nabla\cdot\left(\left(\mu + \frac{\mu_T}{\sigma_\epsilon}\right) \nabla{\epsilon} \right) + C_{\epsilon1} \left( \frac{\epsilon}{k} \right) \left( \tautens_R \cdot \nabla\mathbf{u} - C_{\epsilon3} \, \frac{\mu_T}{\rho\sigma_T} \, \mathbf{g}\cdot\nabla\rho \right)- C_{\epsilon2} \rho \left( \frac{\epsilon}{k} \right)\epsilon,
+  \rho\frac{\partial \epsilon}{\partial t} + \rho\mathbf{u}\cdot\nabla \epsilon = \nabla\cdot\left(\left(\mu + \frac{\mu_T}{\sigma_\epsilon}\right) \nabla{\epsilon} \right) + C_{\epsilon1} \left( \frac{\epsilon}{k} \right) \left( \tautens_R \cdot \nabla\mathbf{u} - C_{\epsilon3} \, \frac{\mu_T}{\rho\sigma_T} \, \mathbf{g}\cdot\nabla\rho \right)- C_{\epsilon2} \rho \frac{\epsilon^2}{k} ,
 \end{equation}
-The right hand side terms in the $k$ and $\epsilon$ equations relate to the diffusion, production, production/destruction due to buoyancy, and destruction of $k$ and $\epsilon$.
-Within the buoyancy term, $\mathbf{g}$ is the gravitational vector, $\sigma_T$ is the Prandtl or Schmidt number for the Density field, and $C_{\epsilon3}$ varies depending on the direction of the flow with respect to gravity.
-This is approximated to be:
+The right hand side terms in the $k$ and $\epsilon$ equations relate to the diffusion,
+production, production/destruction due to buoyancy, and destruction of $k$ and $\epsilon$.
+Within the buoyancy term, $\mathbf{g}$ is the gravitational vector, $\sigma_T$ is the
+Prandtl or Schmidt number for the Density field, and $C_{\epsilon3}$ varies depending on
+the direction of the flow with respect to gravity.  This is approximated to be:
 \begin{equation}\label{eq:Cepsilon3}
-C_{\epsilon3} = \mathrm{tanh}\left ( \frac{u_z}{u_{xy}}  \right ),
+  C_{\epsilon3} = \mathrm{tanh}\left ( \frac{u_z}{u_{xy}}  \right ),
 \end{equation}
-where $u_z$ is the magnitude of the velocity in the same direction as gravity and $u_{xy}$ is the magnitude of the velocity in all other directions.
+where $u_z$ is the magnitude of the velocity in the same direction as gravity and $u_{xy}$
+is the magnitude of the velocity in all other directions.
 
-Note that the destruction term in \ref{eq:k} and the production and destruction terms in \ref{eq:eps} contain the fraction $\epsilon/k$, which is calculated at the previous iteration so that these terms have a mixed time discretisation.
-The effect is to decouple and linearise the equations, which improves the robustness of the model, as proposed in \cite{kuzmin2007}.
+Note that the destruction term in \ref{eq:k} and the production and destruction terms in
+\ref{eq:eps} contain the fraction $\epsilon/k$, which is calculated at the previous
+iteration so that these terms have a mixed time discretisation.  The effect is to decouple
+and linearise the equations, which improves the robustness of the model, as proposed in
+\cite{kuzmin2007}.
 
-%% A turbulence length scale is associated with the dissipation of turbulent kinetic energy by the subgrid scale motions:
+%% A turbulence length scale is associated with the dissipation of turbulent kinetic
+%% energy by the subgrid scale motions:
 
 %% \begin{equation}\label{lengthscale}
 %% l = \frac{k^{3/2}}{\epsilon}.
 %% \end{equation}
 
-The five model coefficients are in Table \ref{tab:kepsco}. These are the default values but they can be changed in Diamond.
+The five model coefficients are in Table \ref{tab:kepsco}. These are the default values
+but they can be changed in Diamond.
 
 \begin{table}[hb]
-\begin{center}
-\begin{tabular}{ll}\hline
-Coefficient & Standard value \\ \hline
-$C_\mu$ & 0.09 \\
-$C_{\epsilon1}$ & 1.44 \\
-$C_{\epsilon2}$ & 1.92 \\
-$\sigma_\epsilon$ & 1.3 \\
-$\sigma_k$ & 1.0 \\
-$\sigma_T$ & 1.0 \\ \hline
-\end{tabular}
-\end{center}
-\caption{$k-\epsilon$ model coefficients}
-\label{tab:kepsco}
+  \begin{center}
+    \begin{tabular}{ll}\hline
+      Coefficient & Standard value \\ \hline
+      $C_\mu$ & 0.09 \\
+      $C_{\epsilon1}$ & 1.44 \\
+      $C_{\epsilon2}$ & 1.92 \\
+      $\sigma_\epsilon$ & 1.3 \\
+      $\sigma_k$ & 1.0 \\
+      $\sigma_T$ & 1.0 \\ \hline
+    \end{tabular}
+  \end{center}
+  \caption{$k-\epsilon$ model coefficients}
+  \label{tab:kepsco}
 \end{table}
 
 \par{\textbf{Important notes on applying the model in Fluidity}}
 \begin{itemize}
-\item The background viscosity must be set as an \option{anisotropic\_symmetric} tensor, with all values set equal to the isotropic viscosity.
-\item The velocity stress terms should be in partial-stress form, which is set under \option{../vector\_field::Velocity/prognostic/spatial\_discretisation/../stress\_terms/}.
-\item If using anything other than a P1 Velocity mesh, mass-lumping does not work when calculating the source and absorbtion terms for the model. \option{../k-epsilon/mass\_lumping\_in\_diagnostics/solve\_using\_mass\_matrix} must be selected.
+\item The background viscosity must be set as an \option{anisotropic\_symmetric} tensor,
+  with all values set equal to the isotropic viscosity.
+\item The velocity stress terms should be in partial-stress form, which is set under
+  \option{../vector\_field::Velocity/prognostic/spatial\_discretisation/../stress\_terms/}.
+\item If using anything other than a P1 Velocity mesh, mass-lumping does not work when
+  calculating the source and absorbtion terms for the
+  model. \option{../k-epsilon/mass\_lumping\_in\_diagnostics/solve\_using\_mass\_matrix}
+  must be selected.
 \end{itemize}
 
 For more notes on usage see \ref{sec:kepsilon_usage}
 
 \par{\textbf{Low Reynolds number model}\\}
-When simulating low Reynolds numbers ($Re<10^4$) it is recommended that the low-Re k-epsilon model is used. \option{\ldots/boundary\_conditions/type::k\_epsilon/Low\_Re/} boundary conditions should be selected for both the $k$ and $\epsilon$ fields, for all solid boundaries, and the \option{DistanceToWall} field must be set. The distance to the closest solid boundary is a prescribed field and can be described using a python function for simple geometries. For more complex geometries where this is not possible an estimate of the distance to the closest wall can be generated using a Poisson's, or Eikonal, equation, as described in \citet{Tucker2011}. 
+When simulating low Reynolds numbers ($Re<10^4$) it is recommended that the low-Re
+k-epsilon model is used. \option{\ldots/boundary\_conditions/type::k\_epsilon/Low\_Re/}
+boundary conditions should be selected for both the $k$ and $\epsilon$ fields, for all
+solid boundaries, and the \option{DistanceToWall} field must be set. The distance to the
+closest solid boundary is a prescribed field and can be described using a python function
+for simple geometries. For more complex geometries where this is not possible an estimate
+of the distance to the closest wall can be generated using a Poisson's, or Eikonal,
+equation, as described in \citet{Tucker2011}.
 
-The Lam and Bremhorst low-reynolds RANS model is implemented in Fluidity, as detailed in \citet{wilcox1998turbulence}. Damping functions are applied to the equations \ref{eq:eps} and \ref{eq:nut} as:
+The Lam and Bremhorst low-reynolds RANS model is implemented in Fluidity, as detailed in
+\citet{wilcox1998turbulence}. Damping functions are applied to the equations \ref{eq:eps}
+and \ref{eq:nut} as:
 \begin{equation}\label{eq:nut_lowRe}
- \mu_T = \rho C_\mu f_\mu \frac{k^2}{\epsilon},
+  \mu_T = \rho C_\mu f_\mu \frac{k^2}{\epsilon},
 \end{equation}
 \begin{equation}\label{eq:eps_lowRe}
-\rho\frac{\partial \epsilon}{\partial t} + \rho\mathbf{u}\cdot\nabla \epsilon = \nabla\cdot\left(\frac{\mu_T}{\sigma_\epsilon} \nabla{\epsilon} \right) + C_{\epsilon1} f_1 \frac{\epsilon}{k} \left( \tautens_R \cdot \nabla\mathbf{u} + C_{\epsilon3} \, \frac{\mu_T}{\sigma_T} \, \mathbf{g}\cdot \beta \nabla c \right)- C_{\epsilon2} \rho f_2 \frac{\epsilon^2}{k},
+  \rho\frac{\partial \epsilon}{\partial t} + \rho\mathbf{u}\cdot\nabla \epsilon = \nabla\cdot\left(\frac{\mu_T}{\sigma_\epsilon} \nabla{\epsilon} \right) + C_{\epsilon1} f_1 \frac{\epsilon}{k} \left( \tautens_R \cdot \nabla\mathbf{u} + C_{\epsilon3} \, \frac{\mu_T}{\sigma_T} \, \mathbf{g}\cdot \beta \nabla c \right)- C_{\epsilon2} \rho f_2 \frac{\epsilon^2}{k},
 \end{equation}
 where:
 
 \begin{equation}\label{eq:f_mu}
- f_\mu = \left( 1 - e^{-0.0165 \, R_y} \right)^2 \left( 1 + 20.5/Re_T \right),
+  f_\mu = \left( 1 - e^{-0.0165 \, R_y} \right)^2 \left( 1 + 20.5/Re_T \right),
 \end{equation}
 \begin{equation}\label{eq:f_1}
- f_1 = 1 + \left( 0.05/f_\mu \right)^3,
+  f_1 = 1 + \left( 0.05/f_\mu \right)^3,
 \end{equation}
 \begin{equation}\label{eq:f_2}
- f_2 = 1 - e^{-Re_T^2},
+  f_2 = 1 - e^{-Re_T^2},
 \end{equation}
 \begin{equation}\label{eq:R_y}
- R_y = \frac{\rho k^{1/2}y}{\mu},
+  R_y = \frac{\rho k^{1/2}y}{\mu},
 \end{equation}
 \begin{equation}\label{eq:Re_T}
- Re_T = \frac{\rho k^2}{\epsilon \mu},
+  Re_T = \frac{\rho k^2}{\epsilon \mu},
 \end{equation}
 Additionally:
 \begin{itemize}
-\item $f_\mu$ is limited to a maximum value of 1.0. Where this limit is reached, $f_1$ and $f_2$ are set to 1.0.
-\item For stability, $f_1$ is limited to a value set under \option{\ldots/max\_damping\_value/}.
+\item $f_\mu$ is limited to a maximum value of 1.0. Where this limit is reached, $f_1$ and
+  $f_2$ are set to 1.0.
+\item For stability, $f_1$ is limited to a value set under
+  \option{\ldots/max\_damping\_value/}.
 \end{itemize}
 
 The associated boundary conditions are:
 \begin{align}
-\bmu &= 0, \label{eq:ubc1}\\
-k &= 0, \label{eq:kbc1}\\
-\epsilon &= \frac{\mu}{\rho} \ppxx[y]{k} = \frac{2\mu}{\rho} \left ( \ppx[n]{k^{1/2}} \right ). \label{eq:epsbc1}
+  \bmu &= 0, \label{eq:ubc1}\\
+  k &= 0, \label{eq:kbc1}\\
+  \epsilon &= \frac{\mu}{\rho} \ppxx[y]{k} = \frac{2\mu}{\rho} \left ( \ppx[n]{k^{1/2}}
+  \right ). \label{eq:epsbc1}
 \end{align}
 
 \par{\textbf{High Reynolds number boundary conditions}\\}
-For high Reynolds numbers ($Re>10^4$), the \option{high\_Re} wall functions are recommended \citep{wilcox1998turbulence}:
+For high Reynolds numbers ($Re>10^4$), the \option{high\_Re} wall functions are
+recommended \citep{wilcox1998turbulence}:
 
 \begin{align}
-\bmu &= u_* \left [ \frac{1}{\kappa} \ln (\rho u_* y / \mu) + B \right ], \label{eq:ubc2}\\
-k &= \frac{u_*^2}{C_{\mu}^{1/2}}, \label{eq:kbc2}\\
-\epsilon &= \frac{u_*^3}{\kappa y}, \label{eq:epsbc2}\\
-u_* &= (\tau_w / \rho)^{1/2} = \left ( \frac{\mu_T}{\rho} \ppx[n]{U_S} \right )^{1/2}, \label{eq:ustar}
+  \bmu &= u_* \left [ \frac{1}{\kappa} \ln (\rho u_* y / \mu) + B \right ], \label{eq:ubc2}\\
+  k &= \frac{u_*^2}{C_{\mu}^{1/2}}, \label{eq:kbc2}\\
+  \epsilon &= \frac{u_*^3}{\kappa y}, \label{eq:epsbc2}\\
+  u_* &= (\tau_w / \rho)^{1/2} = \left ( \frac{\mu_T}{\rho} \ppx[n]{U_S} \right
+  )^{1/2}, \label{eq:ustar}
 \end{align}
 where $B$ is a model constant, $y$ is the distance to the wall, $u_*$ is the friction
 velocity, $U_S$ is the streamwise velocity parallel to the wall, $\kappa=0.43$ is Von
 Karman's constant, $\mu$ is the dynamic laminar (background) viscosity, $\mu_T$ is the
-dynamic eddy (turbulent) viscosity, $\rho$ is the density and $\ppx[n]{}$ is the
-gradient operator in the wall-normal direction. For implementation details see
+dynamic eddy (turbulent) viscosity, $\rho$ is the density and $\ppx[n]{}$ is the gradient
+operator in the wall-normal direction. For implementation details see
 \ref{sec:kepsilon_usage}.
 
 \par{\textbf{Turbulent diffusivity of scalar fields}\\}
 When using scalar fields, such as a temperature or sediment field, The k-$\epsilon$ model
-simulates subgridscale eddies by increasing the diffusivity  of the scalar fields such
-that the diffusivity tensor, $\kaptens$, in the advection diffusion equation~\ref{eq:general_scalar_eqn} becomes:
+simulates subgridscale eddies by increasing the diffusivity of the scalar fields such that
+the diffusivity tensor, $\kaptens$, in the advection diffusion
+equation~\ref{eq:general_scalar_eqn} becomes:
 
 \begin{equation}\label{eq:keps_diff}
-\kaptens = D + v_T/\sigma_T
+  \kaptens = D + \mu_T/\sigma_T
 \end{equation}
 
 where $D$ is the background diffusivity tensor for the fluid or the scalar field, and
-$\sigma_T$ is the Prandtl number, $Pr_T$, for temperature fields or the Schmidt number, $Sc_T$,
-for massive fields.  
+$\sigma_T$ is the Prandtl number, $Pr_T$, for temperature fields or the Schmidt number,
+$Sc_T$, for massive fields.
 
 The Prandtl number is the ratio of momentum diffusivity (eddy viscosity) to the eddy
 thermal diffusivity. The Schmidt number is the ratio of momentum diffusivity to the
-diffusivity of mass. 
+diffusivity of mass.
+
+\par{\textbf{Time discretisation and coupling}\\}
+The $k$ and $\epsilon$ equations are coupled and are highly non-linear. In Fluidity, the
+equations are linearised and decoupled by calculating all source terms and also the eddy
+viscosity, $\mu_T$, using a combination of values from the previous non-linear time step
+and values from the previous time step. Equations \ref{eq:R_tensor_compressible} to
+\ref{eq:Cepsilon3} therefore become:
+
+\begin{equation}\label{eq:R_tensor_compressible_td}
+  \tautens_{R}^{n+\theta_{k\epsilon}} = \mu_T^{n+\theta_{k\epsilon}} \left( \nabla\mathbf{u}^{n+\theta_{nl}} + \left(\nabla\mathbf{u}^{n+\theta_{nl}}\right)^{\mathrm{T}} - \frac{1}{3}\left(\nabla\cdot\mathbf{u}^{n+\theta_{nl}}\right)\mathbf{I} \right) - \frac{2}{3} k^{n+\theta_{k\epsilon}}\rho^{n+\theta_{nl}}\mathbf{I},
+\end{equation}
+
+\begin{equation}\label{eq:nut_td}
+  \mu_T^{n+\theta_{k\epsilon}} = \rho^{n+\theta_{nl}} C_\mu \frac{(k^{n+\theta_{k\epsilon}})^2}{\epsilon^{n+\theta_{k\epsilon}}},
+\end{equation}
+\noindent with $\mu_T^{n+\theta_{k\epsilon}}$ being evaluated both at the beginning of
+each non-linear iteration, and also before the momentum solve.
+
+\begin{align}\label{eq:k_td}
+  \rho^{n+\theta_{nl}} \frac{\partial k}{\partial t} + \rho^{n+\theta_{nl}}
+  \mathbf{u}^{n+\theta_{nl}} \cdot \nabla k^{n+\theta_{c}} =
+  \nonumber \\
+  \nabla\cdot\left(\left(\mu + \frac{\mu_T^{n+\theta_{k\epsilon}}}{\sigma_k}\right) \nabla
+    k^{n+\theta_{c}} \right) + \tautens_R^{n+\theta_{k\epsilon}} \cdot
+  \nabla\mathbf{u}^{n+\theta_{nl}} - G_k^{n+\theta_{k\epsilon}} - \rho^{n+\theta_{nl}}
+  \epsilon^{n+\theta_{k\epsilon}} ,
+\end{align}
+\noindent where:
+\begin{equation}\label{eq:g_k_td}
+  G_k^{n+\theta_{k\epsilon}} = \frac{\mu_T^{n+\theta_{k\epsilon}}}{\rho^{n+\theta_{nl}}\sigma_T} \, \mathbf{g}\cdot\nabla\rho^{n+\theta_{nl}},
+\end{equation}
+
+
+\begin{align}\label{eq:eps_td}
+  \rho^{n+\theta_{nl}}\frac{\partial \epsilon}{\partial t} +
+  \rho^{n+\theta_{nl}}\mathbf{u}^{n+\theta_{nl}}\cdot \nabla
+  \epsilon^{n+\theta_c} =
+  \nonumber \\
+  \nabla\cdot\left(\left(\mu + \frac{\mu_T^{n+\theta_{k\epsilon}}}{\sigma_\epsilon}\right)
+    \nabla{\epsilon^{n+\theta_c}} \right) + C_{\epsilon1} \left(
+    \frac{\epsilon^{n+\theta_{k\epsilon}}}{k^{n+\theta_{k\epsilon}}} \right) \left(
+    \tautens_R^{n+\theta_{k\epsilon}} \cdot \nabla\mathbf{u}^{n+\theta_{nl}} -
+    G_\epsilon^{n+\theta_{k\epsilon}} \right) - C_{\epsilon2} \rho^{n+\theta_{nl}}
+  \frac{(\epsilon^{n+\theta_{k\epsilon}})^2}{k^{n+\theta_{k\epsilon}}} ,
+\end{align}
+\noindent where:
+\begin{equation}\label{eq:g_eps_td}
+  G_\epsilon^{n+\theta_{k\epsilon}} = C_{\epsilon3} \, \frac{\mu_T^{n+\theta_{k\epsilon}}}{\rho^{n+\theta_{nl}}\sigma_T} \, \mathbf{g}\cdot\nabla \rho^{n+\theta_{nl}},
+\end{equation}
+
+\begin{equation}\label{eq:Cepsilon3_td}
+  C_{\epsilon3} = \mathrm{tanh}\left ( \frac{u_z^{n+\theta_{nl}}}{u_{xy}^{n+\theta_{nl}}}  \right ),
+\end{equation}
+
+Throughout the above, where $\gamma$ is interchangeable with any variable and
+$\gamma^{nl}$ indicates the most up to date value for that variable that is available:
+\begin{equation}
+  \gamma^{n+\theta_{k\epsilon}} =  \theta_{k\epsilon} \gamma^{nl} + \left( 1.0 - \theta_{k\epsilon} \right) \gamma^n .
+\end{equation}
+$\theta_{k\epsilon}$ is a value set by the user.
+
+The low-Reynolds number model follows the same convention with equations \ref{eq:R_y} and
+\ref{eq:Re_T} becoming:
+\begin{equation}\label{eq:R_y_td}
+  R_y^{n+\theta_{k\epsilon}} = \frac{\rho^{n+\theta_{nl}} (k^{n+\theta_{k\epsilon}})^{1/2} y}{\mu},
+\end{equation}
+\begin{equation}\label{eq:Re_T_td}
+  Re_T^{n+\theta_{k\epsilon}} = \frac{\rho^{n+\theta_{nl}} (k^{n+\theta_{k\epsilon}})^2}{\epsilon^{n+\theta_{k\epsilon}} \mu},
+\end{equation}
+
+Additionally, it is possible to implement each of the source terms that are specific to the $k\epsilon$ model as absorbtion terms. When this is done, the chosen source term, denoted as $S$, becomes:
+\begin{equation}
+  \bar{S}^{n+\theta_{k\epsilon}} = \frac{S^{n+\theta_{k\epsilon}}}{\gamma^{n+\theta_{k\epsilon}}}\gamma^{n+\theta_c}
+\end{equation}
+\noindent where $\gamma$ is $k$ or $\epsilon$ depending upon the equation the source term is from. This can help stability in some cases and is the recommended approach for the destruction terms.
 
 \subsection{Large-Eddy Simulation (LES)}\label{sec:LES}
 \index{large eddy simulation}

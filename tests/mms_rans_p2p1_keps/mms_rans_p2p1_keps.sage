@@ -46,8 +46,7 @@ tau_yx_R = nu_T*(diff(u,y) + diff(v,x))
 Su = u*diff(u,x) + v*diff(u,y) - diff(tau_xx, x) - diff(tau_xy, y) - diff(tau_xx_R, x) - diff(tau_xy_R, y) - g_x*rho + diff(p,x)  
 Sv = u*diff(v,x) + v*diff(v,y) - diff(tau_yx, x) - diff(tau_yy, y) - diff(tau_yx_R, x) - diff(tau_yy_R, y) - g_y*rho + diff(p,y)  
 
-# Srho = u*diff(rho,x) + v*diff(rho,y) - (1.0 + nu_T)*(diff(rho, x, x) + diff(rho, y, y)) - diff(nu_T, x)*diff(rho, x) - diff(nu_T, y)*diff(rho, y)
-Srho = u*diff(rho,x) + v*diff(rho,y) - (diff(rho, x, x) + diff(rho, y, y))
+Srho = u*diff(rho,x) + v*diff(rho,y) - (1.0 + nu_T)*(diff(rho, x, x) + diff(rho, y, y)) - diff(nu_T, x)*diff(rho, x) - diff(nu_T, y)*diff(rho, y)
 
 P = nu_T*(2*(diff(u,x)^2 + diff(v,y)^2 + diff(u,y)*diff(v,x)) + diff(u,y)^2 + diff(v,x)^2) - (2./3.)*ke*(diff(u,x) + diff(v,y))
 
@@ -97,16 +96,19 @@ print ''
 print 'def forcing_eps(X):'
 print '    return', str(Seps).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
 print ''
-print 'def P(X):'
+print 'def P_ke(X):'
 print '    return', str(P).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
 print ''
 print 'def P_eps(X):'
 print '    return', str((eps/ke)*P).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
 print ''
-print 'def A(X):'
-print '    return', str(eps/ke).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
+print 'def A_ke(X):'
+print '    return', str(-eps).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
 print ''
-print 'def B(X):'
+print 'def A_eps(X):'
+print '    return', str(-eps^2.0/ke).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
+print ''
+print 'def B_ke(X):'
 print '    return', str(B).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
 print ''
 print 'def B_eps(X):'
@@ -120,12 +122,6 @@ print '   return [u(X), v(X)]'
 print ''
 print 'def forcing_velocity(X):'
 print '   return [forcing_u(X), forcing_v(X)]'
-print ''
-print 'def A_ke(X):'
-print '   return A([X[0],X[1]])*ke([X[0],X[1]])'
-print ''
-print 'def A_eps(X):'
-print '   return A([X[0],X[1]])*eps([X[0],X[1]])'
 print ''
 print 'def C3(X):'
 print '    return', str(C3).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
