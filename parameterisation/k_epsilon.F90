@@ -98,7 +98,7 @@ subroutine keps_damping_functions(state, advdif)
   type(scalar_field) :: k, eps
   type(tensor_field), pointer :: bg_visc
   integer :: node, stat
-  real :: rhs, Re_T, R_y, fields_max, theta
+  real :: rhs, Re_T, R_y, fields_max
   character(len=FIELD_NAME_LEN) :: equation_type
   character(len=OPTION_PATH_LEN) :: option_path
 
@@ -218,9 +218,9 @@ subroutine keps_calculate_rhs(state)
   type(scalar_field) :: src_to_abs
   type(vector_field), pointer :: x, u, g
   type(scalar_field), pointer :: dummydensity, density, buoyancy_density, scalar_eddy_visc
-  integer :: i, j, ele, term, stat
+  integer :: i, ele, term, stat
   real :: g_magnitude, c_eps_1, c_eps_2, sigma_p
-  logical :: have_buoyancy_turbulence = .true., lump_mass, approximate_c_eps_3
+  logical :: have_buoyancy_turbulence = .true., lump_mass
   character(len=OPTION_PATH_LEN) :: option_path 
   character(len=FIELD_NAME_LEN), dimension(2) :: field_names
   character(len=FIELD_NAME_LEN) :: equation_type, implementation
@@ -553,7 +553,7 @@ subroutine keps_eddyvisc(state, advdif)
   integer                          :: i, j, ele, stat
   
   ! Options grabbed from the options tree
-  real                             :: c_mu, lmax
+  real                             :: c_mu
   character(len=OPTION_PATH_LEN)   :: option_path
   logical                          :: lump_mass, have_visc = .true.
   character(len=FIELD_NAME_LEN)    :: equation_type
@@ -678,11 +678,10 @@ subroutine keps_eddyvisc(state, advdif)
       
       type(element_type), pointer      :: shape_ev
       integer, pointer, dimension(:)   :: nodes_ev
-      integer                          :: i 
       real, dimension(ele_ngi(scalar_eddy_visc, ele)) :: detwei
       real, dimension(ele_loc(scalar_eddy_visc, ele)) :: rhs_addto
       real, dimension(ele_loc(scalar_eddy_visc, ele), ele_loc(scalar_eddy_visc, ele)) :: invmass
-      real, dimension(ele_ngi(kk, ele)) :: kk_at_quad, eps_at_quad, ll_at_quad
+      real, dimension(ele_ngi(kk, ele)) :: kk_at_quad, eps_at_quad
       
    
       nodes_ev => ele_nodes(scalar_eddy_visc, ele)
@@ -864,7 +863,7 @@ subroutine keps_momentum_source(state)
   type(vector_field), pointer :: source, x, u
   type(vector_field) :: rhs
   integer :: i
-  logical :: prescribed, lump_mass
+  logical :: lump_mass
   character(len=OPTION_PATH_LEN) :: option_path 
   character(len=FIELD_NAME_LEN)    :: equation_type
 
@@ -989,14 +988,14 @@ subroutine keps_bcs(state)
 
   type(state_type), intent(in)               :: state
   type(scalar_field), pointer                :: field1, field2    ! k or epsilon
-  type(scalar_field), pointer                :: f_1, f_2, f_mu, y
+  type(scalar_field), pointer                :: f_1, f_2, f_mu
   type(scalar_field), pointer                :: surface_field, scalar_eddy_visc
   type(scalar_field), pointer                :: density, dummydensity
   type(vector_field), pointer                :: X, u
   type(tensor_field), pointer                :: bg_visc
   type(scalar_field)                         :: rhs_field, surface_values, masslump
   type(mesh_type), pointer                   :: surface_mesh
-  integer                                    :: i, j, sele, index, nbcs, stat, node
+  integer                                    :: i, j, sele, index, nbcs, stat
   integer, dimension(:), pointer             :: surface_elements, surface_node_list
   character(len=FIELD_NAME_LEN)              :: bc_type, bc_name, wall_fns
   character(len=OPTION_PATH_LEN)             :: bc_path, bc_path_i, option_path 
