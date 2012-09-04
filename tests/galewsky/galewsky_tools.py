@@ -26,8 +26,9 @@ def Uval(X,t):
     phi = arcsin(z/R)
     uin = u(array([phi]))
     uin = uin[0]
-    erx = -y/R
-    ery = x/R
+    Rz = (x**2+y**2)**0.5
+    erx = -y/Rz
+    ery = x/Rz
     return [erx*uin,ery*uin,0.]
 
 def h_integrand(phi):

@@ -1048,7 +1048,10 @@ prognostic_layerthickness_field =
       },
       ## Temporal discretisation options
       element temporal_discretisation {
-         temporal_discontinuous_galerkin_options?
+         temporal_discontinuous_galerkin_options?,
+	 element maximum_number_subcycles {
+            real
+         }?
       },
       ## Solver
       element solver {
