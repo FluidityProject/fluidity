@@ -619,7 +619,7 @@ contains
           ! If we do then we want to calculate source terms and diffusivity for the k and epsilon fields
           ! and also tracer field diffusivities at n + theta_nl
           if( have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon")) then
-             if(timestep == 0 .and. have_option('/physical_parameters/gravity')) then
+             if(timestep == 1 .and. its == 1 .and. have_option('/physical_parameters/gravity')) then
                 ! The very first time k-epsilon is called, VelocityBuoyancyDensity
                 ! is set to zero until calculate_densities is called in the momentum equation
                 ! solve. Calling calculate_densities here is a work-around for this problem.  
@@ -631,6 +631,7 @@ contains
                 else
                    call calculate_densities(state, buoyancy_density=sfield)
                 end if
+                ewrite_minmax(sfield)
              end if
              call keps_advdif_diagnostics(state(1))
           end if

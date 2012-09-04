@@ -55,7 +55,7 @@ implicit none
   real, save     :: fields_min = 1.0e-10
   logical, save  :: low_Re = .false.                     
 
-  public :: keps_advdif_diagnostics, keps_momentum_diagnostics, keps_eddyvisc, keps_bcs, &
+  public :: keps_advdif_diagnostics, keps_momentum_diagnostics, keps_bcs, &
        & k_epsilon_check_options, tensor_inner_product
 
   ! Outline:
@@ -71,6 +71,7 @@ subroutine keps_advdif_diagnostics(state)
   
   call keps_damping_functions(state, advdif=.true.)
   call keps_eddyvisc(state, advdif=.true.)
+  call keps_diffusion(state)
   call keps_tracer_diffusion(state)
   call keps_calculate_rhs(state)
 
@@ -101,40 +102,13 @@ subroutine keps_damping_functions(state, advdif)
   character(len=FIELD_NAME_LEN) :: equation_type
   character(len=OPTION_PATH_LEN) :: option_path
 
+  ewrite(1,*) 'in keps_damping_functions'
+
   option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/'
 
   f_1 => extract_scalar_field(state, "f_1")
   f_2 => extract_scalar_field(state, "f_2")
   f_mu => extract_scalar_field(state, "f_mu")
-  bg_visc => extract_tensor_field(state, "BackgroundViscosity")
-  y => extract_scalar_field(state, "DistanceToWall", stat = stat)
-  if (stat /= 0) then
-     FLAbort("I need the distance to the wall - enable a DistanceToWall field")
-  end if
-
-  call get_option(trim(option_path)//'model_theta', theta)
-  call time_averaged_value(state, k, 'TurbulentKineticEnergy', advdif, option_path)
-  call time_averaged_value(state, eps, 'TurbulentDissipation', advdif, option_path)
-
-  allocate(dummydensity)
-  call allocate(dummydensity, f_1%mesh, "DummyDensity", field_type=FIELD_TYPE_CONSTANT)
-  call set(dummydensity, 1.0)
-  dummydensity%option_path = ""
-  
-  ! Depending on the equation type, extract the density or set it to some dummy field allocated above
-  call get_option(trim(state%option_path)//&
-       "/vector_field::Velocity/prognostic/equation[0]/name", equation_type)
-  select case(equation_type)
-     case("LinearMomentum")
-        density=>extract_scalar_field(state, "Density")
-     case("Boussinesq")
-        density=>dummydensity
-     case("Drainage")
-        density=>dummydensity
-     case default
-        ! developer error... out of sync options input and code
-        FLAbort("Unknown equation type for velocity")
-  end select
 
   ! initialise low_Re damping functions
   call set(f_1, 1.0)
@@ -149,6 +123,36 @@ subroutine keps_damping_functions(state, advdif)
   ! Lam-Bremhorst model (Wilcox 1998 - Turbulence modelling for CFD)
   if (low_Re .eqv. .true. .or. &
        have_option(trim(option_path)//"/debugging_options/enable_lowRe_damping")) then
+  
+     bg_visc => extract_tensor_field(state, "BackgroundViscosity")
+     y => extract_scalar_field(state, "DistanceToWall", stat = stat)
+     if (stat /= 0) then
+        FLAbort("I need the distance to the wall - enable a DistanceToWall field")
+     end if
+
+     call get_option(trim(option_path)//'model_theta', theta)
+     call time_averaged_value(state, k, 'TurbulentKineticEnergy', advdif, option_path)
+     call time_averaged_value(state, eps, 'TurbulentDissipation', advdif, option_path)
+
+     allocate(dummydensity)
+     call allocate(dummydensity, f_1%mesh, "DummyDensity", field_type=FIELD_TYPE_CONSTANT)
+     call set(dummydensity, 1.0)
+     dummydensity%option_path = ""
+
+     ! Depending on the equation type, extract the density or set it to some dummy field allocated above
+     call get_option(trim(state%option_path)//&
+          "/vector_field::Velocity/prognostic/equation[0]/name", equation_type)
+     select case(equation_type)
+     case("LinearMomentum")
+        density=>extract_scalar_field(state, "Density")
+     case("Boussinesq")
+        density=>dummydensity
+     case("Drainage")
+        density=>dummydensity
+     case default
+        ! developer error... out of sync options input and code
+        FLAbort("Unknown equation type for velocity")
+     end select
 
      node_loop: do node = 1, node_count(k)
 
@@ -177,7 +181,6 @@ subroutine keps_damping_functions(state, advdif)
            Re_T = 1e5
            R_y = 1e5
         end if
-
         rhs = (- exp(- 0.0165*R_y) + 1.0)**2.0 * (20.5/Re_T + 1.0)
         if (rhs > 1.0) then
            call set(f_mu, node, 1.0)
@@ -195,10 +198,12 @@ subroutine keps_damping_functions(state, advdif)
         
      end do node_loop
 
-  end if
+     call deallocate(k)
+     call deallocate(eps)
+     call deallocate(dummydensity)
+     deallocate(dummydensity)
 
-  call deallocate(k)
-  call deallocate(eps)
+  end if
 
 end subroutine keps_damping_functions
     
@@ -210,13 +215,12 @@ subroutine keps_calculate_rhs(state)
 
   type(scalar_field), dimension(3) :: src_abs_terms
   type(scalar_field), dimension(2) :: fields
-  type(scalar_field), pointer :: src, abs, EV, f_1, f_2, debug
+  type(scalar_field), pointer :: src, abs, f_1, f_2, debug
   type(scalar_field) :: src_to_abs
   type(vector_field), pointer :: positions, u, g
-  type(scalar_field), pointer :: dummydensity, density, buoyancy_density
-  type(tensor_field), pointer :: diff, visc
+  type(scalar_field), pointer :: dummydensity, density, buoyancy_density, EV
   integer :: i, j, ele, term, stat
-  real :: g_magnitude, c_eps_1, c_eps_2, sigma_eps, sigma_k, sigma_p
+  real :: g_magnitude, c_eps_1, c_eps_2, sigma_p
   logical :: have_buoyancy_turbulence = .true., lump_mass, approximate_c_eps_3
   character(len=OPTION_PATH_LEN) :: option_path 
   character(len=FIELD_NAME_LEN), dimension(2) :: field_names
@@ -233,15 +237,12 @@ subroutine keps_calculate_rhs(state)
   ! get model constants
   call get_option(trim(option_path)//'/C_eps_1', c_eps_1, default = 1.44)
   call get_option(trim(option_path)//'/C_eps_2', c_eps_2, default = 1.92)
-  call get_option(trim(option_path)//'/sigma_k', sigma_k, default = 1.0)
-  call get_option(trim(option_path)//'/sigma_eps', sigma_eps, default = 1.3)
   call get_option(trim(option_path)//'/sigma_p', sigma_p, default = 1.0)
   
   ! get field data
   positions => extract_vector_field(state, "Coordinate")
   u => extract_vector_field(state, "NonlinearVelocity")
   EV => extract_scalar_field(state, "ScalarEddyViscosity")
-  visc => extract_tensor_field(state, "BackgroundViscosity")
   f_1 => extract_scalar_field(state, "f_1")
   f_2 => extract_scalar_field(state, "f_2")
   g => extract_vector_field(state, "GravityDirection", stat)
@@ -348,7 +349,7 @@ subroutine keps_calculate_rhs(state)
      
      ! This allows user-specified implicit/explicit rhs terms
 
-     ewrite(2,*) "Calculating k source and absorption"
+     ewrite(2,*) "Adding rhs value to source and absorption fields"
      ! Set implicit/explicit source/absorbtion terms
      if(have_option(trim(option_path)//'implicit_source')) then
         call allocate(src_to_abs, fields(1)%mesh, name='SourceToAbsorbtion')
@@ -406,24 +407,6 @@ subroutine keps_calculate_rhs(state)
   
   call deallocate(dummydensity)
   deallocate(dummydensity)
-
-  ! Set diffusivity
-  diff => extract_tensor_field(state, trim(field_names(1))//"Diffusivity")
-  call zero(diff)
-  do i = 1, node_count(diff)
-     do j = 1, diff%dim(1)
-        call addto(diff, j, j, i, node_val(visc, j, j, i))
-        call addto(diff, j, j, i, node_val(EV, i) / sigma_k)
-     end do
-  end do
-  diff => extract_tensor_field(state, trim(field_names(2))//"Diffusivity")
-  call zero(diff)
-  do i = 1, node_count(diff)
-     do j = 1, diff%dim(1)
-        call addto(diff, j, j, i, node_val(visc, j, j, i))
-        call addto(diff, j, j, i, node_val(EV, i) / sigma_eps)
-     end do
-  end do
 
 end subroutine keps_calculate_rhs
     
@@ -801,6 +784,47 @@ end subroutine keps_eddyvisc
 
 !---------------------------------------------------------------------------------
 
+subroutine keps_diffusion(state)
+
+  ! calculates k and epsilon field diffusivities
+  type(state_type), intent(inout)   :: state
+
+  type(tensor_field), pointer :: diff, bg_visc, eddy_visc
+  real :: sigma_k, sigma_eps
+  integer :: i, j
+  character(len=OPTION_PATH_LEN) :: option_path 
+
+  ewrite(1,*) 'in keps_diffusion'
+  
+  option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/'
+
+  eddy_visc => extract_tensor_field(state, "EddyViscosity")
+  bg_visc => extract_tensor_field(state, "BackgroundViscosity")
+  call get_option(trim(option_path)//'/sigma_k', sigma_k, default = 1.0)
+  call get_option(trim(option_path)//'/sigma_eps', sigma_eps, default = 1.3)
+
+  ! Set diffusivity
+  diff => extract_tensor_field(state, "TurbulentKineticEnergyDiffusivity")
+  call zero(diff)
+  do i = 1, node_count(diff)
+     do j = 1, diff%dim(1)
+        call addto(diff, j, j, i, node_val(bg_visc, j, j, i))
+        call addto(diff, j, j, i, node_val(eddy_visc, j, j, i) / sigma_k)
+     end do
+  end do
+  diff => extract_tensor_field(state, "TurbulentDissipationDiffusivity")
+  call zero(diff)
+  do i = 1, node_count(diff)
+     do j = 1, diff%dim(1)
+        call addto(diff, j, j, i, node_val(bg_visc, j, j, i))
+        call addto(diff, j, j, i, node_val(eddy_visc, j, j, i) / sigma_eps)
+     end do
+  end do
+
+end subroutine keps_diffusion
+
+!---------------------------------------------------------------------------------
+
 subroutine keps_tracer_diffusion(state)
 
   ! calculates scalar field diffusivity based upon eddy viscosity and background
@@ -815,7 +839,7 @@ subroutine keps_tracer_diffusion(state)
   type(tensor_field), pointer       :: global_background_diffusivity
   type(tensor_field)                :: background_diffusivity
 
-  ewrite(1,*) 'In calculate_k_epsilon_diffusivity'
+  ewrite(1,*) 'In keps_tracer_diffusion'
 
   do i_field = 1, scalar_field_count(state)
      s_field => extract_scalar_field(state, i_field)
@@ -890,7 +914,8 @@ subroutine keps_momentum_source(state)
 
   type(state_type), intent(inout)  :: state
   
-  type(scalar_field), pointer :: k, dummydensity, density
+  type(scalar_field), pointer :: dummydensity, density
+  type(scalar_field) :: k
   type(vector_field), pointer :: source, x, u
   type(vector_field) :: rhs
   integer :: i
@@ -898,18 +923,29 @@ subroutine keps_momentum_source(state)
   character(len=OPTION_PATH_LEN) :: option_path 
   character(len=FIELD_NAME_LEN)    :: equation_type
 
+  ewrite(1,*) 'In keps_momentum_source'
+
   option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/'
 
+  ! exit if there is no k-epsilon model or if the velocity field is prescribed (hence no source term)
   if (.not.have_option(trim(option_path)) .or. &
-      have_option(trim(option_path)//'debugging_options/zero_reynolds_stress_tensor') .or. &
       have_option(trim(state%option_path)//"/vector_field::Velocity/prescribed")) then 
      return
   end if
 
+  source => extract_vector_field(state, "VelocitySource")
+  call zero(source)
+
+  ! exit after zero'ing field if zero_reynolds_stress_tensor is disabled
+  ! zero'd because this is what the calling subroutine expects - the calling routine handles reapplying
+  ! prescribed source terms
+  if (have_option(trim(option_path)//'debugging_options/zero_reynolds_stress_tensor')) then 
+     return
+  end if
+  
+  x => extract_vector_field(state, "Coordinate")
+  u => extract_vector_field(state, "NonlinearVelocity")
   call time_averaged_value(state, k, "TurbulentKineticEnergy", .false., option_path)
-  source    => extract_vector_field(state, "VelocitySource")
-  x         => extract_vector_field(state, "Coordinate")
-  u         => extract_vector_field(state, "NonlinearVelocity")
   
   allocate(dummydensity)
   call allocate(dummydensity, x%mesh, "DummyDensity", field_type=FIELD_TYPE_CONSTANT)
@@ -930,8 +966,6 @@ subroutine keps_momentum_source(state)
         ! developer error... out of sync options input and code
         FLAbort("Unknown equation type for velocity")
   end select
-  
-  call zero(source)
 
   call allocate(rhs, source%dim, source%mesh, name='TempSource')
   call zero(rhs)
@@ -946,10 +980,11 @@ subroutine keps_momentum_source(state)
      call solve_cg_inv_mass_vector(state, rhs, lump_mass, option_path)  
      call addto(source, rhs)
   end if
+
+  ewrite_minmax(source)
   
   call deallocate(rhs)
   call deallocate(k)
-  
   call deallocate(dummydensity)
   deallocate(dummydensity)
 
@@ -1260,6 +1295,10 @@ subroutine time_averaged_value(state, A, field_name, advdif, option_path)
   call zero(A)
   call addto(A, old, 1.0-theta)
   call addto(A, iterated, theta)
+
+  ewrite_minmax(old)
+  ewrite_minmax(iterated)
+  ewrite_minmax(A)
 
 end subroutine time_averaged_value
 
