@@ -347,7 +347,7 @@ subroutine keps_calculate_rhs(state)
      end if
      !-----------------------------------------------------------------------------------
      
-     ! This allows user-specified implicit/explicit rhs terms
+     ! Are these terms implemented as a source or an absorbtion
 
      ewrite(2,*) "Adding rhs value to source and absorption fields"
      ! Set implicit/explicit source/absorbtion terms
@@ -425,7 +425,7 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, density, &
   integer, intent(in) :: ele, field_id
 
   real, dimension(ele_loc(k, ele), ele_ngi(k, ele), positions%dim) :: dshape
-  real, dimension(ele_ngi(k, ele)) :: detwei, inv_k, rhs, EV_ele, k_ele
+  real, dimension(ele_ngi(k, ele)) :: detwei, rhs, EV_ele, k_ele, eps_ele, gamma
   real, dimension(3, ele_loc(k, ele)) :: rhs_addto
   integer, dimension(ele_loc(k, ele)) :: nodes
   real, dimension(ele_loc(k, ele), ele_loc(k, ele)) :: invmass
@@ -445,19 +445,18 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, density, &
 
   call transform_to_physical( positions, ele, shape, dshape=dshape, detwei=detwei )
 
-  ! require inverse of k field for some terms
-  inv_k = ele_val_at_quad(k,ele)
-  where (inv_k >= fields_min)
-     inv_k = 1.0/inv_k
-  elsewhere
-     inv_k = 1.0/fields_min
-  end where
+  ! get bounded values of k and epsilon for source terms
+  k_ele = ele_val_at_quad(k,ele)
+  eps_ele = ele_val_at_quad(eps, ele)
+  ngi = ele_ngi(u, ele)
+  do gi = 1, ngi
+     k_ele(gi) = max(k_ele(gi), fields_min)
+     eps_ele(gi) = max(eps_ele(gi), fields_min)
+  end do
 
   ! Compute Reynolds stress
   grad_u = ele_grad_at_quad(u, ele, dshape)
   EV_ele = ele_val_at_quad(EV, ele)
-  k_ele = ele_val_at_quad(k, ele)
-  ngi = ele_ngi(u, ele)
   dim = u%dim
   do gi = 1, ngi
      reynolds_stress(:,:,gi) = EV_ele(gi)*(grad_u(:,:,gi) + transpose(grad_u(:,:,gi)))
@@ -465,17 +464,18 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, density, &
   do i = 1, dim
      reynolds_stress(i,i,:) = reynolds_stress(i,i,:) - (2./3.)*k_ele*ele_val_at_quad(density, ele)
   end do
+
   ! Compute P
   rhs = tensor_inner_product(reynolds_stress, grad_u)
   if (field_id==2) then
-     rhs = rhs*c_eps_1*ele_val_at_quad(f_1,ele)*ele_val_at_quad(eps,ele)*inv_k
+     rhs = rhs*c_eps_1*ele_val_at_quad(f_1,ele)*eps_ele/k_ele
   end if
   rhs_addto(1,:) = shape_rhs(shape, detwei*rhs)
 
   ! A:
-  rhs = ele_val_at_quad(eps,ele)*ele_val_at_quad(density, ele)*inv_k
+  rhs = eps_ele*ele_val_at_quad(density, ele)
   if (field_id==2) then
-     rhs = rhs*c_eps_2*ele_val_at_quad(f_2,ele)
+     rhs = rhs*c_eps_2*ele_val_at_quad(f_2,ele)*eps_ele/k_ele
   end if
   rhs_addto(2,:) = shape_rhs(shape, detwei*rhs)
 
@@ -516,7 +516,7 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, EV, u, density, &
              c_eps_3(gi) = 1.0
           end if
        end do     
-       scalar = scalar*c_eps_1*ele_val_at_quad(f_1,ele)*c_eps_3*ele_val_at_quad(eps,ele)*inv_k
+       scalar = scalar*c_eps_1*ele_val_at_quad(f_1,ele)*c_eps_3*eps_ele/k_ele
     end if
 
     ! multiply by determinate weights, integrate and assign to rhs
@@ -1282,7 +1282,7 @@ subroutine time_averaged_value(state, A, field_name, advdif, option_path)
   real :: theta
   type(scalar_field), pointer :: old, iterated
   
-  call get_option(trim(option_path)//'model_theta', theta)
+  call get_option(trim(option_path)//'time_discretisation/theta', theta)
 
   old => extract_scalar_field(state, "Old"//trim(field_name))
   if (advdif) then
