@@ -21,7 +21,7 @@
       </from_mesh>
       <recompute_coordinate_field>
         <python>
-          <string_value lines="20" type="python">def val(X,t):
+          <string_value lines="20" type="code" language="python">def val(X,t):
   R0 = 6.37122e6
   x = X[0]
   y = X[1]
@@ -159,7 +159,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <python>
-              <string_value lines="20" type="python">def val(X,t):
+              <string_value lines="20" type="code" language="python">def val(X,t):
   x=X[0]
   y=X[1]
   z=X[2]
@@ -182,7 +182,7 @@
       </vector_field>
     </gravity>
     <coriolis>
-      <string_value lines="20" type="python">def val(X,t):
+      <string_value lines="20" type="code" language="python">def val(X,t):
   Omega = 7.292e-5
   x = X[0]
   y = X[1]
@@ -222,7 +222,7 @@
         <initial_condition name="WholeMesh">
           <galerkin_projection>
             <python>
-              <string_value lines="20" type="python">def val(X,t):
+              <string_value lines="20" type="code" language="python">def val(X,t):
   from math import pi
   x = X[0]
   y = X[1]
@@ -288,7 +288,7 @@
         </solver>
         <initial_condition name="ProjectionFromPython">
           <python>
-            <string_value lines="20" type="python">def val(X,t): 
+            <string_value lines="20" type="code" language="python">def val(X,t): 
   from math import pi,atan2,asin
   x = X[0]
   y = X[1]
@@ -301,10 +301,6 @@
   Omega = 7.292e-5
   sinsqtheta = (z/R)**2
   lambda0 = atan2(y,x)
-  theta = asin(z/R)
-  R1 = pi/9
-  h0 = 2000.
-  r = (min(R1,lambda0**2+theta**2))**0.5
   return (gh0-(R0*Omega*u0 + u0**2/2)*sinsqtheta)/g</string_value>
           </python>
         </initial_condition>
@@ -362,7 +358,7 @@
       <prescribed>
         <value>
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
   from math import atan2,asin,pi
   x = X[0]
   y = X[1]
@@ -372,11 +368,11 @@
   theta = asin(z/R)
   R0 = pi/9
   h0 = 2000.
-  lambdac = 3*pi/2
+  lambdac = -pi/2
   thetac = pi/6
-  r = (min(R0,(lambda0-lambdac)**2+(theta-thetac)**2))**0.5
+  r = ((lambda0-lambdac)**2+(theta-thetac)**2)**0.5
+  r = min(r,R0)
   val = h0*(1.0-r/R0)
-  print 'cjc',val
   return val</string_value>
           </python>
         </value>
