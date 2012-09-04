@@ -620,11 +620,6 @@ contains
         call set_sediment_reentrainment(states(1))
     end if
 
-    if (have_option(trim(states(1)%option_path)//'/subgridscale_parameterisations/k-epsilon')) then
-        ewrite(2,*) "Calling keps_bcs"
-        call keps_bcs(states(1))
-    end if
-
     nphases = size(states)
     do p = 0, nphases-1
 
@@ -662,6 +657,12 @@ contains
                position, shift_time=shift_time)
 
        end do
+       
+       ! Special k-epsilon boundary conditions
+       if (have_option(trim(states(p+1)%option_path)//'/subgridscale_parameterisations/k-epsilon')) then
+          ewrite(2,*) "Calling keps_bcs"
+          call keps_bcs(states(p+1))
+       end if
 
     end do
 
