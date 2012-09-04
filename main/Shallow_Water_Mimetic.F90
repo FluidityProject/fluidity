@@ -498,7 +498,7 @@
             &"PrescribedLayerDepthFromProjection")
     end if
     if(have_option("/material_phase::Fluid/scalar_field::Orography/prescribe&
-         &d/subtract_from_layer_thickness")) then
+         &d/projected")) then
        call set_layerthickness_projection(state,"Orography")
     end if
     if(have_option("/material_phase::Fluid/scalar_field::Orography/prescribe&
@@ -1067,12 +1067,12 @@
 ! Mass mapping from P1dg to P2b -- DONE and TESTED
 ! PV calculation -- DONE
 ! Timestepping for PV -- DONE, TESTED (advection of 1)
-! Computation of PV flux -- DONE
-! Nonlinear residual calculation from Velocity and DG advection
-! Check on spherical mesh
-! stabilisation for PV
+! Computation of PV flux -- DONE, TESTED
+! Nonlinear residual calculation from Velocity and DG advection, DONE, TESTED
+! Check on spherical mesh, DONE, TESTED
+! stabilisation for PV, DONE, TESTED
 ! discontinuity capturing for PV
 ! stabilisation for divergence
 ! Improve DG timestepping
 ! Improve slope limiter
-! Visualisation of vorticity with bubbles
+! Visualisation of vorticity with bubbles, DONE, TESTED

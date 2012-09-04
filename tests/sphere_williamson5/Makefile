@@ -14,10 +14,15 @@ input: clean
 	sed -i s/sphere_ico4/sphere_ico5/ williamson5_5.swml
 	sed -i s/sphere_ico4/sphere_ico6/ williamson5_6.swml
 
+	spud-set williamson5_6.swml /timestepping/timestep 300.0
+
 sw2_convergence_runs: input
 	../../bin/shallow_water_mimetic -v 1 williamson5_3.swml &> 3.out &
 	../../bin/shallow_water_mimetic -v 1 williamson5_4.swml &> 4.out &
 	../../bin/shallow_water_mimetic -v 1 williamson5_5.swml &> 5.out &
+	../../bin/shallow_water_mimetic -v 1 williamson5_6.swml &> 6.out &
+
+sw2_6: input
 	../../bin/shallow_water_mimetic -v 1 williamson5_6.swml &> 6.out &
 
 clean:
