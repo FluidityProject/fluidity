@@ -48,18 +48,25 @@ void python_init_(void){
 
 void init_vars(void){
 #ifdef HAVE_PYTHON
-  // Import the types and setup the states dictionary
-  // This is called every time the data is reset
-  if(PyRun_SimpleString("from fluidity.state_types import *") == -1){
-    fprintf(stderr, "Warning: The 'state_types.py' module could not be loaded. Make sure the PYTHONPATH environment variable is set.\n");
-    fprintf(stderr, "This is a problem if you have ocean biology or Python diagnostic fields.\n");
+  // Try importing the Fluidity OP2 state interface
+  if(PyRun_SimpleString("from fluidity.flop import *") == -1){
+    fprintf(stderr, "Warning: The 'flop.py' module could not be loaded. Make sure the PYTHONPATH environment variable is set.\n");
+    fprintf(stderr, "This is a problem if you want to use OP2/UFL equations.\n");
     fprintf(stderr, "It will not otherwise affect the running of Fluidity.\n");
     PyErr_Clear();
-  }
-  else{
-    if (get_global_debug_level_() > 1) {
-      printf("fluidity.state_types imported successfully; location: \n");
-      PyRun_SimpleString("import fluidity.state_types; print fluidity.state_types.__file__");
+    // Import the types and setup the states dictionary
+    // This is called every time the data is reset
+    if(PyRun_SimpleString("from fluidity.state_types import *") == -1){
+      fprintf(stderr, "Warning: The 'state_types.py' module could not be loaded. Make sure the PYTHONPATH environment variable is set.\n");
+      fprintf(stderr, "This is a problem if you have ocean biology or Python diagnostic fields.\n");
+      fprintf(stderr, "It will not otherwise affect the running of Fluidity.\n");
+      PyErr_Clear();
+    }
+    else{
+      if (get_global_debug_level_() > 1) {
+        printf("fluidity.state_types imported successfully; location: \n");
+        PyRun_SimpleString("import fluidity.state_types; print fluidity.state_types.__file__");
+      }
     }
   }
   PyRun_SimpleString("states = dict()");
