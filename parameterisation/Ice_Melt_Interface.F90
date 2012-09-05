@@ -150,7 +150,7 @@ contains
        ! Get current time
          call get_option("/timestepping/current_time", current_time)
        ! Set initial condition from python function
-       ! TODO: This field should be generated automatically and is not needed in the schema
+       
        subshelf_hydrostatic_pressure => extract_scalar_field(state,"subshelf_hydrostatic_pressure")
        positions => extract_vector_field(state,"Coordinate")
        call set_from_python_function(subshelf_hydrostatic_pressure, trim(subshelf_hydrostatic_pressure_function), positions, current_time)
@@ -189,15 +189,12 @@ contains
     call get_option("/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries", bc_type)
     call allocate(surface_ids)
     call insert(surface_ids,surf_id)
-    ewrite(1,*) "set2vector(surface_ids)", set2vector(surface_ids)
-
+    
     ewrite(1,*) "bc_type: ", bc_type
      ! Add boundary condition
     T => extract_scalar_field(state,"Temperature")
     S => extract_scalar_field(state,"Salinity")
-!    do i=1,node_count(T)
-!        ewrite(1,*) "line2100,i,node_val(T,i): ",i, node_val(T,i)
-!    enddo
+
     call add_boundary_condition(T, 'temperature_iceshelf_BC', bc_type, surf_id)
     call add_boundary_condition(S, 'salinity_iceshelf_BC', bc_type, surf_id)
     deallocate(surf_id)
@@ -251,7 +248,7 @@ contains
     call set(MeltRate,0.0)
     Tb => extract_scalar_field(state,"Tb")
     Sb => extract_scalar_field(state,"Sb")
-    ! call set(MeltRate,setnan(arg))
+    
     call set(Tb,0.0)
     call set(Sb,-1.0)
     Heat_flux => extract_scalar_field(state,"Heat_flux")
@@ -307,7 +304,6 @@ contains
         coord = node_val(funky_positions,the_node)
         call picker_inquire(positions, coord, ele, local_coord,global=.false.)
 
-        !! If sum(local_coord) is not equal to 1,
         !! we know that this coord (funky position) does not exist in the domain.
         if (sum(local_coord) .gt. 2.0) then
             ewrite(0,*) "Melt interface, funky coordinate: ", node_val(funky_positions,the_node)
@@ -332,10 +328,9 @@ contains
 
         if (speed .lt. 0.001) then
             speed = 0.001
-            !TODO: Use a maxval here instead
+            
         endif
         ! constant = -7.53e-8 [C Pa^(-1)] comes from Holland and Jenkins Table 1
-        ! TODO: Define as a constant explicitly, i.e. real, parameter :: topo = -7.53e-8
         topo = -7.53e-8*P
 
         ! Define Aa,Bb,Cc
@@ -375,7 +370,7 @@ contains
         loc_Tb = a*loc_Sb + b + topo
         loc_meltrate = gammaS*speed*(S-loc_Sb)/loc_Sb
         !! Heat flux to the ocean
-        loc_heatflux = (gammaT*speed+ loc_meltrate)*(loc_Tb - T) ! or loc_meltrate*L + loc_meltrate*cI*(loc_Tb-TI)
+        loc_heatflux = (gammaT*speed+ loc_meltrate)*(loc_Tb - T) 
         !! Salt flux to the ocean
         loc_saltflux = (gammaS*speed+loc_meltrate)*(loc_Sb - S)
 
@@ -399,7 +394,7 @@ contains
     deallocate(local_coord)
     deallocate(coord)
     call deallocate(re_pressure)
-    ! TODO: check this below
+
     if (have_option("/geometry/ocean_boundaries/scalar_field::DistanceToBottom")) then
         call deallocate(re_DistanceToTop)
     endif
@@ -506,8 +501,6 @@ contains
 
       do i=1,node_count(ice_surfaceT)
         the_node = surface_nodes(i)
-        !                Kt = (sum(node_val(unit_normal_vectors_vel,the_node)*Kt_ar))
-        !                Tz = node_val(heat_flux_vel,the_node)/(-Kt*c0)
         Tz = node_val(heat_flux_vel,the_node)
         call set(scalar_surface,i,Tz)
       enddo
@@ -519,10 +512,7 @@ contains
       scalar_surface2 => extract_surface_field(SS, 'salinity_iceshelf_BC', "value")
       do i=1,node_count(ice_surfaceS)
         the_node = surface_nodes(i)
-        !                Ks = abs(sum(node_val(unit_normal_vectors_vel,the_node)*Ks_ar))
-        !                Sz = node_val(salt_flux_vel,the_node)/(-Ks)
         Sz = node_val(salt_flux_vel,the_node)
-        !call set(ice_surfaceS,i,Sz)
         call set(scalar_surface2,i,Sz)
       enddo
       ! Deallocate the heat_flux and salt_flux on velocity mesh
@@ -578,31 +568,6 @@ contains
     case default
       FLAbort('Unknown boundary condition for ice-ocean interface')
     end select
-
-    ! create a surface mesh to place values onto. This is for the top surface
-    !call get_boundary_condition(TT, 'temperature_iceshelf_BC', surface_mesh=ice_mesh)
-    !call allocate(ice_surfaceT, ice_mesh, name="ice_surfaceT")
-    ! Define ice_surfaceT according to Heat_flux?
-
-    !do i=1,node_count(ice_surfaceT)
-    !    the_node = surface_node_list(i)
-    !    call set(ice_surfaceT,i,node_val(T_bc,the_node))
-    !enddo
-
-    ! Salinity
-    !call get_boundary_condition(SS, 'salinity_iceshelf_BC', surface_mesh=ice_mesh)
-    !call allocate(ice_surfaceS, ice_mesh, name="ice_surfaceS")
-    !do i=1,node_count(ice_surfaceS)
-    !    the_node = surface_node_list(i)
-    !    call set(ice_surfaceS,i,node_val(S_bc,the_node))
-    !enddo
-
-    !!! Temperature
-    !scalar_surface => extract_surface_field(TT, 'temperature_iceshelf_BC', "value")
-    !call remap_field(ice_surfaceT, scalar_surface)
-    !!! Salinity
-    !scalar_surface => extract_surface_field(SS, 'salinity_iceshelf_BC', "value")
-    !call remap_field(ice_surfaceS, scalar_surface)
 
     call deallocate(T_bc)
     call deallocate(S_bc)
@@ -743,13 +708,7 @@ contains
             table(j+1,st:en)=av_normal(j)
         enddo
     enddo
-    ! Now loop over surface_nodes
-    !        ewrite(1,*) "table(1,1:3): ", table(1,1:3)
-    !        ewrite(1,*) "table(2,1:3),normal_x: ", table(2,1:3)
-    !        ewrite(1,*) "table(3,1:3),normal_y: ", table(3,1:3)
-    !        ewrite(1,*) "table(4,1:3),normal_z: ", table(4,1:3)
-    ! In this loop, we will average adjacent normal vectors, using the area of the surface elements.
-
+    
 
     do i=1,size(node_occupants(1,:))
         node = node_occupants(1,i)
@@ -761,7 +720,7 @@ contains
             !Pick the surface elements that sheare the "node"
             if (node_occupants(1,j) .eq. node) then
                 do k=1,dim_vec
-                    !table(1,j) = area of the surface element
+                    
                     av_normal(k) = av_normal(k) + table(k+1,j)*table(1,j)
                 enddo
                 !The total areas of the surface elements that occupies the "node"
@@ -801,7 +760,6 @@ contains
             ewrite(1,*) "icehslef location, coord: ", coord
             ewrite(1,*) "funky position, xyz: ", xyz
             call picker_inquire(positions, coord, ele, local_coord,global=.false.)
-            !! node_val(surface_positions,the_node) = node_val(positions,the_node)
             ewrite(1,*) "Original ele: ",ele
             ewrite(1,*) "sum of local_coord: ",  sum(local_coord)
             FLExit("In setting funky_position, your funky_positions is out of the domain. Change melt_LayerLength.")
@@ -843,8 +801,6 @@ contains
 
     call allocate(surface_elements)
     do i=1, surface_element_count(mesh)
-      ! ewrite(1,*) "surf_normal surface_element_id(mesh, i)", surface_element_id(mesh, i)
-      ! ewrite(1,*) "surf_normal surface_ids", set2vector(surface_ids)
       if (has_value(surface_ids, surface_element_id(mesh, i))) then
         call insert(surface_elements, i)
       end if
@@ -861,7 +817,6 @@ contains
     character(len=*), parameter :: option_path = '/ocean_forcing/iceshelf_meltrate/Holland08'
 
     ! Get the 6 model constants
-    ! TODO: Check these exist first and error with a useful message if not - in preprocessor
     if (present(c0)) call get_option(trim(option_path)//'c0', c0, default = 3974.0)
     if (present(cI)) call get_option(trim(option_path)//'cI', cI, default = 2009.0)
     if (present(L))  call get_option(trim(option_path)//'/L', L, default = 3.35e5)
