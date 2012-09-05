@@ -136,6 +136,19 @@ module zoltan_integration
     zoltan_global_migrate_extruded_mesh = option_count('/geometry/mesh/from_mesh/extrude') > 0 &
       .and. .not. present_and_true(ignore_extrusion)
 
+    zoltan_global_field_weighted_partitions = &
+     have_option(trim(zoltan_global_base_option_path) // "/field_weighted_partitions")
+
+    if(zoltan_global_migrate_extruded_mesh .AND. zoltan_global_field_weighted_partitions) then
+        ewrite(-1,*) "Cannot weight mesh partitions based upon extruded columns"// &
+                     "and a prescribed field. Select one option only or fix the code."
+        FLExit("Use Weighted mesh partitions for EITHER extruded meshes or prescribed fields")
+    end if
+
+    if(zoltan_global_field_weighted_partitions) then
+       call get_field_weights(states)
+    end if
+    
     call setup_module_variables(states, final_adapt_iteration, zz)
     
     call setup_quality_module_variables(states, metric) ! this needs to be called after setup_module_variables
@@ -296,6 +309,22 @@ module zoltan_integration
     ewrite(1,*) "Exiting zoltan_drive"
 
   end subroutine zoltan_drive
+
+  subroutine get_field_weights(states)
+    type(state_type), dimension(:), intent(in), target :: states
+    type(scalar_field), pointer :: field_weighted_partition_values
+    integer :: count, node
+
+    field_weighted_partition_values => extract_scalar_field(states(1), "field_weighted_partitions") 
+
+    call allocate(zoltan_global_field_weighted_partition_values, zoltan_global_zz_mesh, "FieldWeights")
+    call zero(zoltan_global_field_weighted_partition_values)
+
+    do node = 1, node_count(zoltan_global_zz_mesh)
+       zoltan_global_field_weighted_partition_values(node) = field_weighted_partition_values(node)
+    end do
+
+  end subroutine get_field_weights
 
   subroutine setup_module_variables(states, final_adapt_iteration, zz, mesh_name)
     type(state_type), dimension(:), intent(inout), target :: states
@@ -724,6 +753,10 @@ module zoltan_integration
     if(zoltan_global_migrate_extruded_mesh) then
        call deallocate(zoltan_global_columns_sparsity)
     end if
+    if(zoltan_global_field_weighted_partitions) then
+       call deallocate(zoltan_global_field_weighted_partition_values)
+    end if
+
   end subroutine cleanup_quality_module_variables
 
   subroutine cleanup_other_module_variables

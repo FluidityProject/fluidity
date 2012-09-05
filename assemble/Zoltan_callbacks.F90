@@ -64,7 +64,6 @@ contains
     ierr = ZOLTAN_OK
   end function zoltan_cb_owned_node_count
 
-
   subroutine zoltan_cb_get_owned_nodes(data, num_gid_entries, num_lid_entries, global_ids, local_ids, wgt_dim, obj_wgts, ierr)
     integer(zoltan_int), dimension(*), intent(in) :: data ! not used
     integer(zoltan_int), intent(in) :: num_gid_entries, num_lid_entries 
@@ -113,7 +112,6 @@ contains
     ierr = ZOLTAN_OK
   end subroutine zoltan_cb_get_owned_nodes
 
-
   subroutine zoltan_cb_get_num_edges(data, num_gid_entries, num_lid_entries, num_obj, global_ids, local_ids, num_edges, ierr)  
     integer(zoltan_int), dimension(*), intent(in) :: data 
     integer(zoltan_int), intent(in) :: num_gid_entries, num_lid_entries, num_obj
@@ -149,7 +147,6 @@ contains
 
     ierr = ZOLTAN_OK
   end subroutine zoltan_cb_get_num_edges
-
 
   subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_obj, global_ids, local_ids, &
        &  num_edges, nbor_global_id, nbor_procs, wgt_dim, ewgts, ierr)

@@ -1143,6 +1143,16 @@ cut off. Default is 0. </a:documentation>
             </element>
           </optional>
           <optional>
+            <element name="field_weighted_partitions">
+              <a:documentation>Field weighted partitions
+Turning on this option allows one to weight mesh partitions, based upon a prescribed field.</a:documentation>
+              <element name="prescribed">
+                <ref name="velocity_mesh_choice"/>
+                <ref name="prescribed_scalar_field"/>
+              </element>
+            </element>
+          </optional>
+          <optional>
             <element name="zoltan_debug">
               <a:documentation>Zoltan Debugging
 

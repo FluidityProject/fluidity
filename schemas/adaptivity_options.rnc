@@ -974,6 +974,14 @@ hr_adaptivity =
             element additional_adapt_iterations {
                 integer
             }?,
+            ## Field weighted partitions
+            ## Turning on this option allows one to weight mesh partitions, based upon a prescribed field.
+            element field_weighted_partitions {
+                 element prescribed {
+                     velocity_mesh_choice,
+                     prescribed_scalar_field
+                  }
+            }?,
             ## Zoltan Debugging
             ## 
             ## Turn on more verbose output for use when debugging Zoltan.

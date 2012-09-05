@@ -30,6 +30,14 @@ flredecomp =
                 }
             }
         }?,
+        element field_weighted_partitions {
+        ## Field weighted partitions: turning on this option allows one to 
+        ## weight mesh partitions, based upon a prescribed field.
+               element prescribed {
+                  velocity_mesh_choice,
+                  prescribed_scalar_field
+               }
+        }?,
         ## Zoltan Debugging
         ## 
         ## Turn on more verbose output for use when debugging Zoltan.
