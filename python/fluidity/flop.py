@@ -45,7 +45,7 @@ type2family = {'lagrangian': 'Lagrange'}
 
 def ufl_cell(shape):
     try:
-        return dimloc2cell[shape.dimension][shape.loc]
+        return dimloc2cell[shape.dimension][shape.quadrature.loc]
     except KeyError:
         raise RuntimeError("Elements of dimension %d and loc %d are not suppported" \
                 % (shape.dimension, shape.loc))
