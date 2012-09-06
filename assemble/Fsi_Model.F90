@@ -255,6 +255,12 @@ module fsi_model
 
         end do solid_mesh_loop
         
+        ! Make sure that the solid volume fraction is max 1.0,
+        ! only necessary if more than one solid mesh is present
+        if (num_solid_mesh .gt. 1) then
+            call sum_union_solid_volume_fraction(state)
+        end if
+        
         ! At this point, the new solid volume fraction of all given solid meshes has been (re)computed and stored in SolidConcentration in state!
 
         ewrite(2,*) "leaving fsi_ibm_projections"
@@ -297,6 +303,38 @@ module fsi_model
         ewrite(2,*) "leaving fsi_ibm_projections_mesh"
 
     end subroutine fsi_ibm_projections_mesh
+
+    !----------------------------------------------------------------------------
+
+    subroutine sum_union_solid_volume_fraction(state)
+    !! In case two solid meshes are in close neighbourhood, the global solid
+    !! volume fraction field could be significantly > 1.0, which is unphysical, 
+    !! but could results from the bounded, minimal diffusive Galerkin projection
+    !! via supermesh. 
+    !! This subroutine ensures that in such a case, the solid volume fraction is 
+    !! set to 1.0 at all nodes >1.0. 
+    !! As a result, we loose conservation, but the loss should be neglectably
+    !! small, and furthermore is expected to be within a solid.
+
+        type(state_type), intent(inout) :: state
+        type(scalar_field), pointer :: alpha_global
+        integer, dimension(:), pointer :: nodes
+        integer :: i, ele
+
+        ! Get global alpha field:
+        alpha_global => extract_scalar_field(state, "SolidConcentration")
+
+        ! Looping over ele, looping over nodes:
+        do ele = 1, ele_count(alpha_global%mesh)
+            nodes => ele_nodes(alpha_global%mesh, ele)
+            do i = 1, size(nodes)
+                if (node_val(alpha_global, nodes(i)) .gt. 1.0) then
+                    call set(alpha_global, nodes(i), 1.0)
+                end if
+            end do
+        end do
+
+    end subroutine sum_union_solid_volume_fraction
 
     !----------------------------------------------------------------------------
 
