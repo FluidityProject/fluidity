@@ -723,31 +723,6 @@ Setup similar to that described in Holland et al. 2008.</comment>
             </steady_state>
           </diagnostic>
         </vector_field>
-        <scalar_field name="subshelf_hydrostatic_pressure" rank="0">
-          <diagnostic>
-            <algorithm name="Internal" material_phase_support="multiple"/>
-            <mesh name="CoordinateMesh"/>
-            <output/>
-            <stat/>
-            <convergence>
-              <include_in_convergence/>
-            </convergence>
-            <detectors>
-              <include_in_detectors/>
-            </detectors>
-            <steady_state>
-              <include_in_steady_state/>
-            </steady_state>
-          </diagnostic>
-        </scalar_field>
-        <subshelf_hydrostatic_pressure>
-          <python>
-            <string_value lines="20" type="python">def val(X,t):
-  from math import exp, sqrt, pi
-  S=9.81*1000.0*(1100.0-X[2])
-  return S</string_value>
-          </python>
-        </subshelf_hydrostatic_pressure>
         <calculate_boundaries>
           <string_value>neumann</string_value>
         </calculate_boundaries>
