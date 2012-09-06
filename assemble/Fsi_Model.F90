@@ -614,12 +614,21 @@ module fsi_model
 
                ! 2nd get coordinate field of this solid mesh, and velocity field (which is on the fluid mesh):
                solid_position => extract_vector_field(state, trim(mesh_name)//"SolidCoordinate")
+               ! and create new field in which the travelled distance is stored:
+               call allocate(solid_movement, solid_position%dim, solid_position%mesh, name=trim(mesh_name)//"SolidMovement")
+               call zero(solid_movement)
 
                ! 3rd get the python function for this solid mesh:
                call get_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidPosition/prescribed/mesh['//int2str(i)//']/python', func)
 
                ! 4. Set the new coordinates from the python function:
-               call set_from_python_function(solid_position, func, solid_position, dt)
+               call set_from_python_function(solid_movement, func, solid_position, dt)
+               
+               ! 5. Set the new coordinates of the solid:
+               call addto(solid_position, solid_movement)
+               
+               ! Deallocate:
+               call deallocate(solid_movement)
 
             end do pre_solid_pos_loop
 

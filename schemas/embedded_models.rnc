@@ -49,7 +49,8 @@ embedded_models =
                      ## Use this if you want to apply a translational, 
                      ## rotational velocity on a solid body. The return 
                      ## vector of the python function is supposed to contain
-                     ## the new coordinates of the (rigid) solid body. 
+                     ## the distance a node of a rigid body
+                     ## travels within the time interval dt.
                      ## Hence the computation is entirely done in the 
                      ## python script.
                      element vector_field {
