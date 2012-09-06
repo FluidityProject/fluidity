@@ -302,7 +302,7 @@ subroutine keps_calculate_rhs(state)
 
      ! For non-DG we apply inverse mass globally
      if(continuity(fields(1))>=0) then
-        lump_mass = have_option(trim(option_path)//'mass_lumping/lump_mass')
+        lump_mass = have_option(trim(option_path)//'mass_terms/lump_mass')
         do term = 1, 3
            call solve_cg_inv_mass(state, src_abs_terms(term), lump_mass, option_path)           
         end do
@@ -621,7 +621,7 @@ subroutine keps_eddyvisc(state, advdif)
 
   ! For non-DG we apply inverse mass globally
   if(continuity(scalar_eddy_visc)>=0) then
-     lump_mass = have_option(trim(option_path)//'mass_lumping/lump_mass')
+     lump_mass = have_option(trim(option_path)//'mass_terms/lump_mass')
      call solve_cg_inv_mass(state, ev_rhs, lump_mass, option_path)  
   end if
   
@@ -913,7 +913,7 @@ subroutine keps_momentum_source(state)
   ! For non-DG we apply inverse mass globally
   if(continuity(k)>=0) then
      lump_mass = have_option(trim(option_path)//&
-          'mass_lumping/lump_mass')
+          'mass_terms/lump_mass')
      call solve_cg_inv_mass_vector(state, rhs, lump_mass, option_path)  
      call addto(source, rhs)
   end if
@@ -1278,7 +1278,7 @@ subroutine solve_cg_inv_mass(state, A, lump, option_path)
      mass_matrix => get_mass_matrix(state, A%mesh)
      call petsc_solve(x, mass_matrix, A, &
           trim(option_path)//&
-          'mass_lumping/solve_using_mass_matrix/')
+          'mass_terms/use_consistent_mass_matrix/')
      call set(A, x)
      call deallocate(x)
   end if
@@ -1310,7 +1310,7 @@ subroutine solve_cg_inv_mass_vector(state, A, lump, option_path)
      mass_matrix => get_mass_matrix(state, A%mesh)
      call petsc_solve(x, mass_matrix, A, &
           trim(option_path)//&
-          'mass_lumping/solve_using_mass_matrix/')
+          'mass_terms/use_consistent_mass_matrix/')
      call set(A, x)
      call deallocate(x)
   end if
