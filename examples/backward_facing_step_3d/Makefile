@@ -1,6 +1,6 @@
 BIN=../../../bin
 RE=5100
-JOB=dynles-lilly-sem-adapt
+JOB=DNS-stress-sem-adapt
 NN=0.125
 preprocess:
 	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi;
@@ -68,7 +68,7 @@ postprocess:
 
 postprocess-les:
 	@echo **********Calling the LES velocity data extraction and plotting python script:
-	@$(foreach JOB, dynles-lilly-sem-adapt, \
+	@$(foreach JOB, LES-sem-adapt, \
 		cd $(RE)-$(JOB)-$(NN); \
 		ln -s ../postprocessor_3d_les.py .; \
 		./postprocessor_3d_les.py $(RE) $(JOB) $(NN); \

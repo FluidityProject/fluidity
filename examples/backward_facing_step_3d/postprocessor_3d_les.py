@@ -639,9 +639,9 @@ def main():
     ##### Call reattachment_length function
     reattachment_length = numpy.array(reatt_length(filelist, zarray))
     name = "reatt_len_"+str(Re)+"_"+str(type)+"_"+str(mesh)
-    #numpy.save('../numpy_data/'+str(name), reattachment_length)
+    numpy.save('../numpy_data/'+str(name), reattachment_length)
     plot_length(Re,type,mesh,reattachment_length)
-    return
+    
     # Find time-averaged reattachment length
     npy, rl_av = avrl.moving_average('../numpy_data/'+str(name)+'.npy')
     numpy.save('../numpy_data/av_'+str(name), [rl_av,npy[:,-1]])
@@ -661,18 +661,18 @@ def main():
 
     ##### Call meanvelo function
     zarray = numpy.array([2.0])
-    #vprofiles = meanvelo(filelist, xnarray, zarray, yarray)
-    #numpy.save("../numpy_data/mean_velo_"+str(Re)+"_"+str(type)+"_"+str(mesh), vprofiles)
-    #print "Showing plot of velocity profiles."
-    #plot_meanvelo(Re,type,mesh,vprofiles,xnarray,yarray)
+    vprofiles = meanvelo(filelist, xnarray, zarray, yarray)
+    numpy.save("../numpy_data/mean_velo_"+str(Re)+"_"+str(type)+"_"+str(mesh), vprofiles)
+    print "Showing plot of velocity profiles."
+    plot_meanvelo(Re,type,mesh,vprofiles,xnarray,yarray)
 
     # points used by Le & Moin in U+ plot:
-    #xarray=numpy.array([10.0,12.5,15.0,17.5,19.0])
-    #vprofiles = meanvelo(filelist, xarray, zarray, yarray)
-    #yplus, uplus = plusvelo(filelist,vprofiles, yarray)
-    #numpy.save('../numpy_data/yplus_'+str(Re)+"_"+str(type)+"_"+str(mesh), yplus)
-    #numpy.save('../numpy_data/uplus_'+str(Re)+"_"+str(type)+"_"+str(mesh), uplus)
-    #plot_plusvelo(Re,type,mesh,uplus,yplus,xarray)
+    xarray=numpy.array([10.0,12.5,15.0,17.5,19.0])
+    vprofiles = meanvelo(filelist, xarray, zarray, yarray)
+    yplus, uplus = plusvelo(filelist,vprofiles, yarray)
+    numpy.save('../numpy_data/yplus_'+str(Re)+"_"+str(type)+"_"+str(mesh), yplus)
+    numpy.save('../numpy_data/uplus_'+str(Re)+"_"+str(type)+"_"+str(mesh), uplus)
+    plot_plusvelo(Re,type,mesh,uplus,yplus,xarray)
 
     ##### Call Reynolds stress2 function
     rprofiles2 = reynolds_stresses2(filelist, xnarray, zarray, yarray)
@@ -680,13 +680,13 @@ def main():
     plot_reynolds_stresses2(Re,type,mesh,rprofiles2,xnarray,zarray,yarray)
 
     ##### Plot inlet region
-    #xarray = numpy.array([-10.0, -7.0, -3.0, 0.0])
-    #yarray = numpy.array([1.0,1.01,1.02,1.03,1.04,1.05,1.06,1.07,1.08,1.09,1.1,1.11,1.12,1.13,1.14,1.15,1.16,1.17,1.18,1.19,1.2,1.21,1.22,1.23,1.24,1.25,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4,2.5,2.6,2.7,2.8,2.9,3.0,3.1,3.2,3.3,3.4,3.5,3.6,3.7,3.8,3.9,4.0,4.1,4.2,4.3,4.5,4.6,4.7,4.8,4.9,5.0,5.1,5.2,5.3,5.4,5.5,5.6,5.7,5.8,5.9,6.0])
-    #rprofiles = reynolds_stresses2(filelist, xarray, zarray, yarray)
-    #vprofiles = meanvelo(filelist, xarray, zarray, yarray)
-    #numpy.save("../numpy_data/inlet_profiles_"+str(Re)+"_"+str(type)+"_"+str(mesh), vprofiles)
-    #print "Showing plot of inlet profiles."
-    #plot_inlet(Re,type,mesh,vprofiles,rprofiles,xarray,zarray,yarray)
+    xarray = numpy.array([-10.0, -7.0, -3.0, 0.0])
+    yarray = numpy.array([1.0,1.01,1.02,1.03,1.04,1.05,1.06,1.07,1.08,1.09,1.1,1.11,1.12,1.13,1.14,1.15,1.16,1.17,1.18,1.19,1.2,1.21,1.22,1.23,1.24,1.25,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4,2.5,2.6,2.7,2.8,2.9,3.0,3.1,3.2,3.3,3.4,3.5,3.6,3.7,3.8,3.9,4.0,4.1,4.2,4.3,4.5,4.6,4.7,4.8,4.9,5.0,5.1,5.2,5.3,5.4,5.5,5.6,5.7,5.8,5.9,6.0])
+    rprofiles = reynolds_stresses2(filelist, xarray, zarray, yarray)
+    vprofiles = meanvelo(filelist, xarray, zarray, yarray)
+    numpy.save("../numpy_data/inlet_profiles_"+str(Re)+"_"+str(type)+"_"+str(mesh), vprofiles)
+    print "Showing plot of inlet profiles."
+    plot_inlet(Re,type,mesh,vprofiles,rprofiles,xarray,zarray,yarray)
     #pylab.show()
 
     print "\nAll done.\n"

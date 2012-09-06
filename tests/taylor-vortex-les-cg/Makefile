@@ -1,15 +1,11 @@
+
 input: clean
-	#gmsh -3 -o cube-12.msh src/cube_12.geo
-	#gmsh -3 -o cube-24.msh src/cube_24.geo
-	#gmsh -3 -o cube-48.msh src/cube_48.geo
-	#../../bin/gmsh2triangle cube-12.msh
-	#../../bin/gmsh2triangle cube-24.msh
-	#../../bin/gmsh2triangle cube-48.msh
+	gmsh -3 -optimize -o MMS_$(N).msh Stokes-test-files/MMS_$(N).geo
+	../../bin/gmsh2triangle -i MMS_$(N).msh
+	../../bin/periodise taylor-green-vortex-3d-periodic-$(N).flml
+	mpiexec -n $(P) ../../bin/flredecomp -i 1 -o $(P) taylor-green-vortex-3d-periodic-$(N)_periodised taylor-green-vortex-3d-periodic-$(N)-$(P)p
 	#../../bin/create_aligned_mesh cube_0_2pi_12 6.283185307179586 6.283185307179586 6.283185307179586 12 12 12
-	#../../bin/create_aligned_mesh cube_0_2pi_24 6.283185307179586 6.283185307179586 6.283185307179586 24 24 24
-	#../../bin/create_aligned_mesh cube_0_2pi_48 6.283185307179586 6.283185307179586 6.283185307179586 48 48 48
-	#../../bin/fldecomp -n 2 -f cube_0_2pi_24
-	#../../bin/fldecomp -n 4 -f cube_0_2pi_48
+	cd ..
 
 clean:
 	#rm -f *.ele *.face *.node

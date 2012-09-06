@@ -104,7 +104,7 @@ def reattachment_length(filelist):
     uvw = datafile.ProbeData(pts, "Velocity")
     u = []
     u = uvw[:,0]
-    points = 0.0
+    points1 = 0.0
 
     for i in range(len(u)-1):
       ##### Hack to ignore division by zero entries in u.
@@ -113,14 +113,33 @@ def reattachment_length(filelist):
         ##### interpolate between nodes. Correct for origin not at step.
         p = pts[i][0] + (pts[i+1][0]-pts[i][0]) * (0.0-u[i]) / (u[i+1]-u[i]) -5.0
         ##### Ignore spurious corner points
-        if(p>0.5):
-          points = p
+        if(p>1.):
+          points1 = p
+          print "reattachment point found at: ", p
         ##### We have our first point on this plane so...
         break
-    print "reattachment point found at: ", points
+
+    ##### Get x-velocity on bottom boundary
+    uvw = datafile.ProbeData(pts, "AverageVelocity")
+    u = []
+    u = uvw[:,0]
+    points2 = 0.0
+
+    for i in range(len(u)-1):
+      ##### Hack to ignore division by zero entries in u.
+      ##### All u should be nonzero away from boundary!
+      if((u[i] / u[i+1]) < 0. and u[i+1] > 0. and not numpy.isinf(u[i] / u[i+1])):
+        ##### interpolate between nodes. Correct for origin not at step.
+        p = pts[i][0] + (pts[i+1][0]-pts[i][0]) * (0.0-u[i]) / (u[i+1]-u[i]) -5.0
+        ##### Ignore spurious corner points
+        if(p>1.):
+          points2 = p
+          print "reattachment point found at: ", p
+        ##### We have our first point on this plane so...
+        break
 
     ##### Append actual reattachment point and time:
-    results.append([points,t])
+    results.append([points1,points2,t])
 
   return results
 
@@ -157,6 +176,7 @@ def meanvelo(filelist,x,y):
       ##### Get x-velocity
       uvw = datafile.ProbeData(pts, "Velocity")
       #umax = max(abs(datafile.GetVectorField("Velocity")[:,0]))
+      umax = 2.3
       u = uvw[:,0]
       u=u.reshape([x.size,y.size])
       profiles[filecount,:,:] = u
@@ -167,7 +187,7 @@ def meanvelo(filelist,x,y):
 
 #########################################################################
 
-def plot_length(type,reattachment_length):
+def plot_length(type,mesh,reattachment_length):
   ##### Plot time series of reattachment length using pylab(matplotlib)
   ##### Kim's (1978) experimental result, Re=132000
   kim = numpy.zeros([len(reattachment_length[:,1])])
@@ -177,20 +197,23 @@ def plot_length(type,reattachment_length):
   ilinca[:]=6.21
 
   plot1 = pylab.figure()
-  pylab.title("Time series of reattachment length: Re=132000, "+str(type))
+  pylab.title("Time series of reattachment length: "+str(type))
   pylab.xlabel('Time (s)')
   pylab.ylabel('Reattachment Length (L/h)')
-  pylab.plot(reattachment_length[:,1], reattachment_length[:,0], marker = 'o', markerfacecolor='white', markersize=6, markeredgecolor='black', linestyle="solid",color='blue')
-  pylab.plot(reattachment_length[:,1], kim, linestyle="solid",color='black')
-  pylab.plot(reattachment_length[:,1], ilinca, linestyle="solid",color='red')
+  pylab.plot(reattachment_length[:,-1], reattachment_length[:,0], marker = 'o', markerfacecolor='white', markersize=6, markeredgecolor='black', linestyle="solid",color='blue')
+  pylab.plot(reattachment_length[:,-1], kim, linestyle="solid",color='black')
+  pylab.plot(reattachment_length[:,-1], ilinca, linestyle="solid",color='red')
+  pylab.axis([0,reattachment_length[-1,-1],4.5,7.75])
   pylab.legend(("Fluidity","Kim expt.","Ilinca sim."), loc="best")
-  pylab.savefig("../reattachment_length_kim_"+str(type)+".pdf")
+  pylab.savefig("../reattachment_length-"+str(type)+'-'+str(mesh)+".pdf")
   return
 
-def plot_meanvelo(type,profiles,xarray,yarray,time):
+#########################################################################
+
+def plot_meanvelo(type,mesh,profiles,xarray,yarray,time):
   ##### Plot evolution of velocity profiles at different points behind step
   plot1 = pylab.figure(figsize = (20.0, 8.5))
-  pylab.suptitle("Evolution of U-velocity: Re=132000, "+str(type), fontsize=20)
+  pylab.suptitle("Evolution of U-velocity: "+str(type), fontsize=20)
 
   # get profiles from Ilinca's experimental/numerical data
   datafile = open('../Ilinca-data/Ilinca-U-expt-1.33.dat', 'r')
@@ -338,7 +361,7 @@ def plot_meanvelo(type,profiles,xarray,yarray,time):
   bx.set_xlabel('Normalised U-velocity (U/Umax)', fontsize=24)
   ax.set_ylabel('z/h', fontsize=24)
 
-  pylab.savefig("../velocity_profiles_kim_"+str(type)+".pdf")
+  pylab.savefig("../velocity_profiles-"+str(type)+'-'+str(mesh)+".pdf")
   return
 
 #########################################################################
@@ -346,28 +369,32 @@ def plot_meanvelo(type,profiles,xarray,yarray,time):
 def main():
     ##### Which run is being processed?
     type = sys.argv[1]
+    mesh = sys.argv[2]
 
     ##### Only process every nth file by taking integer multiples of n:
-    filelist = get_filelist(sample=5, start=0)
+    filelist = get_filelist(sample=10, start=0)
 
     ##### Call reattachment_length function
     reatt_length = numpy.array(reattachment_length(filelist))
     av_length = sum(reatt_length[:,0]) / len(reatt_length[:,0])
-    numpy.save("reattachment_length_kim_"+str(type), reatt_length)
-    plot_length(type,reatt_length)
+
+    print 'time av length', av_length
+    print 'final length from AverageVelocity', reatt_length[-1,1]
+    numpy.save("reattachment_length_kim_"+str(type)+str(mesh), reatt_length)
+    plot_length(type,mesh,reatt_length)
 
     ##### Points to generate profiles:
     xarray = numpy.array([1.33,2.66,5.33,8.0,16.0])
     yarray = numpy.array([0.01,0.02,0.03,0.04,0.05,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4,2.5,2.6,2.7,2.8,2.9,2.95,2.96,2.97,2.98,2.99,3.0])
 
     ##### Only process every nth file by taking integer multiples of n:
-    filelist = get_filelist(sample=20, start=0)
+    filelist = get_filelist(sample=50, start=0)
 
     ##### Call meanvelo function
     profiles, time = meanvelo(filelist, xarray, yarray)
-    numpy.save("velocity_profiles_kim_"+str(type), profiles)
-    plot_meanvelo(type,profiles,xarray,yarray,time)
-    pylab.show()
+    numpy.save("velocity_profiles_kim_"+str(type)+str(mesh), profiles)
+    plot_meanvelo(type,mesh,profiles,xarray,yarray,time)
+    #pylab.show()
 
     print "\nAll done.\n"
 
