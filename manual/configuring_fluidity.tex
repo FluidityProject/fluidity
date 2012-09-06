@@ -719,7 +719,7 @@ between a phase and material in this context.
 
 When configuring ocean problems (or single material/single phase fluids
 problems), only one \option{/material\_phase} is required.  Multi-material
-and multi-phase problems will require one \option{/material\_phase} for each
+and multiphase problems will require one \option{/material\_phase} for each
 phase or material in the problem.
 
 Note that you must give each of your material phases a name.
@@ -1184,7 +1184,8 @@ The current limitations of this method are:
 \index{conjugate gradient}
 \index{multigrid}
 \index{PETSc}
-As described in Section \ref{ND_Linear_solvers}, for the solution of large sparse linear systems, the so called iterative methods are usually employed. These methods avoid having to explicitly construct the inverse of the matrix, which is generally dense and therefore costly to compute (both in memory and computer time). FLUIDITY is linked to PETSc: a suite of data structures and routines for the scalable (parallel) solution of scientific applications modelled by partial differential equations.  It employs the MPI standard for parallelism. FLUIDITY therefore supports any iterative method provided by the PETSc library (http://www-unix.mcs.anl.gov/petsc/petsc-2/snapshots/petsc-dev/docs/manualpages/KSP/KSPType.html --- available methods may depend on the PETSc library installed on your system). Examples include Conjugate Gradient (CG), GMRES and FGMRES (Flexible GMRES). Some options are explicitly listed under \option{solver/iterative\_method}, for example CG: \option{solver/iterative\_method::cg}, whereas others can be selected entering the name of the chosen scheme in \option{solver/iterative\_method}.
+As described in Section \ref{ND_Linear_solvers}, for the solution of large sparse linear systems, the so called iterative methods are usually employed. These methods avoid having to explicitly construct the inverse of the matrix, which is generally dense and therefore costly to compute (both in memory and computer time). FLUIDITY is linked to PETSc: a suite of data structures and routines for the scalable (parallel) solution of scientific applications modelled by partial differential equations.  It employs the MPI standard for parallelism. FLUIDITY therefore supports any iterative method provided by the PETSc library (http://www-unix.mcs.anl.gov/petsc/petsc-2/snapshots/petsc-dev/docs/manualpages/KSP/KSPType.html --- available methods may depend on the PETSc library installed on your system). Examples include Conjugate Gradient (CG), GMRES and FGMRES (Flexible GMRES). Some options are explicitly listed under \option{solver/iterative\_method}, for example CG: \option{solver/iterative\_method::cg}, whereas 
+others can be selected entering the name of the chosen scheme in \option{solver/iterative\_method}.
 
 \subsection{Preconditioner}
 \index{linear solvers!preconditioners}
@@ -1360,32 +1361,33 @@ If these fields are not set correctly, a user error will occur.
 \index{turbulence model}
 \index{k-$\epsilon$ model}
 
-This option enables the turbulence model described in \ref{sec:kepsilon}. It must not be confused with the
-$k-\epsilon$ option in the GLS model (see \ref{sec:GLS}) which is only for oceans like problems.
-The user must select either implicit or explicit source and absorption terms via \option{\ldots/option}.
-If \option{explicit} is chosen, the source and absorption terms are as described in \ref{sec:kepsilon}.
-If \option{implicit} is chosen, the source and absorption terms are calculated as follows:
-\begin{align*}
-\textrm{source} &= -\min(0.0, \textrm{diss}-\textrm{prod}), \\
-\textrm{absorption} &= max(0.0, \textrm{diss}-\textrm{prod}), 
-\end{align*}
-where `$\textrm{source}$' is the explicitly calculated source term and `$\textrm{absorption}$' is the explicitly calculated absorption term. 
+\option{../subgridscale\_parameterisations/k-epsilon} enables the turbulence model
+described in \ref{sec:kepsilon}. It must not be confused with the $k-\epsilon$ option in
+the GLS model (see \ref{sec:GLS}) which is only for oceans like problems.
 
-In \fluidity\ the $k$ field is called \option{TurbulentKineticEnergy} and the $\epsilon$ field \option{TurbulentDissipation}.
-The model works well with the following spatial discretisation options for $k$ and $\epsilon$: \linebreak
-\option{\ldots/control\_volumes/face\_value::FiniteElement/limit\_face\_value/limiter::Sweby} \linebreak
-with \option{/control\_volumes/diffusion\_scheme::ElementGradient}.
-This discretisation is significantly speeded up by selecting
-\option{/project\_upwind\_value\_from\_point/} \linebreak
-\option{store\_upwind\_elements\_store\_upwind\_quadrature}.
+In \fluidity\ the $k$ field is called \option{TurbulentKineticEnergy} and the $\epsilon$
+field is called \option{TurbulentDissipation}.  The model works well with the following
+spatial discretisation options for $k$ and $\epsilon$:
+\begin{itemize}
+\item
+  \option{\ldots/control\_volumes/face\_value::FiniteElement/limit\_face\_value/limiter::Sweby}
+\item \option{/control\_volumes/diffusion\_scheme::ElementGradient}.
+\item significant speeded up is achieved by selecting
+  \begin{itemize}
+  \item \option{/project\_upwind\_value\_from\_point/}
+  \item \option{store\_upwind\_elements\_store\_upwind\_quadrature}.
+  \end{itemize}
+\end{itemize}
 
-Fully implicit or Crank-Nicolson temporal discretisation is recommended.
-If using the above spatial discretisation the
-\option{control\_volume} discretisation option should be selected, with \linebreak
-\option{number\_advection\_iterations} = 3.
+Under temporal discretisation option:
+\begin{itemize}
+\item Fully implicit or Crank-Nicholson temporal discretisation is recommended.
+\item \option{control\_volume} discretisation option should be selected
+\item \option{number\_advection\_iterations} = 3.
+\end{itemize}
 
-Fields that are altered by the k-epsilon model need to be switched
-to \linebreak \option{diagnostic/algorithm::Internal}. The list of fields to switch is:
+The following fields are altered by the k-epsilon model and need to be switched on and set
+to \option{diagnostic/algorithm::Internal}:
 \begin{enumerate}
 \item \option{Velocity/Viscosity}
 \item \option{TurbulentKineticEnergy/Diffusivity}
@@ -1396,24 +1398,57 @@ to \linebreak \option{diagnostic/algorithm::Internal}. The list of fields to swi
 \item \option{TurbulentDissipation/Absorption}
 \end{enumerate}
 
-If these fields are not set correctly, a user error will occur. The eddy viscosity is available as a diagnostic
-tensor field and as a diagnostic scalar field. However, the molecular (or laminar) viscosity must still be prescribed under \linebreak
-\option{\ldots/k-epsilon/tensor\_field::BackgroundViscosity}.
+Although it is possible to set some of these fields to \option{prescribed} or off
+altogether for the purposes of debugging results and/or the code itself. If these fields
+are not set correctly, a user error will occur and/or warnings will be displayed.
 
-If using additional scalar fields such as temperature, salinity etc, an option is available under \linebreak
-\option{\ldots/subgridscale\_parameterisation::k-epsilon} to use the eddy diffusivity scaled by a user-specified Prandtl number.
+Boundary conditions for the $k$ and $\epsilon$ fields should be set to type
+\option{k\_epsilon}. Read section \ref{sec:kepsilon} for information about how to choose
+the correct settings for boundary conditions.
 
-Three optional diagnostic scalar fields are available within the model: LengthScale, TKEOverEpsilon and EpsilonOverTKE. The first is the integral length scale of the turbulence (see \eqref{lengthscale}), the second is the ratio of the $k$ and $\epsilon$ fields, and the third is it the reciprocal, also known as omega or the specific dissipation.
+The molecular (or laminar) viscosity must be prescribed under
+\option{\ldots/k-epsilon/tensor\_field::BackgroundViscosity}. This must be set to
+\option{prescribed/value::WholeMesh/anisotropic\_symmetric/constant} with all values set
+to the isotropic viscosity.
 
-\subsubsection{Initial and Boundary Conditions}
+If using additional scalar fields such as temperature, salinity etc, an option is
+available under \option{\ldots/subgridscale\_parameterisation::k-epsilon} to use the eddy
+diffusivity scaled by a user-specified Prandtl number. A background diffusivity is
+required and this can either be set under
+\option{\ldots/k-epsilon/tensor\_field::BackgroundDiffusivity} or within the additional
+scalar field under
+\option{\ldots/subgridscale\_parameterisation::k-epsilon/background\_diffusivity}, with
+the latter taking priority. Buoyancy effects can also be accounted for by setting
+\option{\ldots/subgridscale\_parameterisation::k-epsilon/buoyancy\_effects} within scalar
+fields.
 
-The model is sensitive to the initial conditions specified for the $k$ and $\epsilon$ fields. It is recommended to use the special boundary condition type, \option{\ldots/k\_epsilon} on any surface of interest for these fields. Different wall functions are available for low- and high-Reynolds-number flows. The cutoff between high and low Reynolds number is at the user's discretion but is usually of order $10^4$.
+There are options available to allow the treatment of each of the source terms in the
+$k-\epsilon$ model as either source or absorption terms within Fluidity. Choosing implicit
+calculation causes the terms to be calculated semi-implicitly as absorption
+terms. Choosing explicit calculation calculates the term completely explicitly as a source
+term.
 
-In the low Reynolds number case, \eqref{epsbc1} are implemented by selecting \option{\ldots/boundary\_conditions/k\_epsilon/low\_Re}. In the high Reynolds number case, \eqref{kbc2} and \eqref{epsbc2} are implemented by selecting \option{\ldots/boundary\_conditions/k\_epsilon/high\_Re}. The velocity condition, \eqref{ubc2}, can be selected under \linebreak
-\option{\ldots/Velocity/prognostic/boundary\_conditions/type::log\_law\_of\_wall}.
-However, if using a sufficiently fine near-wall mesh, roughly the correct velocity profile can be obtained with a no-slip Dirichlet BC.
+In calculation of the source terms it is required to invert a mass matrix. For P1
+discretisations this can be done using mass lumping. For other discretisations it is
+necessary to solve a system of equations. When using non P1 discretisations for the $k$
+and $\epsilon$ fields the option
+\option{\ldots/k-epsilon/mass\_lumping\_in\_diagnostics/solve\_using\_mass\_matrix} should
+be selected, along with suitable solver settings.
 
-If using Dirichlet conditions, it is recommended that $k$ and $\epsilon$ be set to small values, chosen such that the eddy viscosity on the boundaries is of order $O(\nu)$ (background viscosity), and both fields perhaps of order $O(1/Re)$.
+Within \option{\ldots/k-epsilon/debugging\_options} there are a number of options for
+debugging the model. It is possible to output each term in the $k$ and $\epsilon$
+equations separately, provide prescribed sources for the $k$ and $\epsilon$ equations, and
+also to disable specific terms in the equations.
+
+When using the Low Reynolds number model, which is enabled whenever a
+\option{k\_epsilon/lowRe} boundary condition is specified, a \option{DistanceToWall} field
+must be specified. For simple geometries the simplest method of providing this information
+is to use a python function. For complex geometries where this is not possible precursor
+Eikonal equation or Poisson equation simulations must be run to determine the values for
+this field. These can be carried out quite easily using Fluidity. Details of this process
+can be found in Tucker, P 2011: "Hybrid Hamilton/Jacobi/Poisson wall distance function
+model" and Elias et al 2007: "Simple finite element-based computation of distance
+functions in unstructured grids"
 
 \subsection{Large Eddy Simulation Models}
 
@@ -1727,12 +1762,12 @@ option.
 \index{k-$\epsilon$ model!boundary conditions}
 \index{boundary conditions!k-$\epsilon$ model}
 
-The k-epsilon turbulence model (see section \ref{sec:kepsilon}) should apply zero Dirichlet boundary
-conditions to the TurbulentKineticEnergy ($k$) field. The TurbulentDissipation ($\epsilon$) field
-should use the special type of Dirichlet condition called \option{k\_epsilon} which is calculated in the
-k-epsilon module. To enable calculation of the boundary conditions on both fields, set the \linebreak
-\option{\ldots/subgridscale\_parameterisations/k-epsilon/calculate\_boundaries}
-option.
+The k-epsilon turbulence model (see section \ref{sec:kepsilon}) should apply zero
+Dirichlet boundary conditions to the TurbulentKineticEnergy ($k$) field. The
+TurbulentDissipation ($\epsilon$) field should use the special type of Dirichlet condition
+called \option{k\_epsilon} which is calculated in the k-epsilon module. To enable
+calculation of the boundary conditions on both fields, set the \linebreak
+\option{\ldots/subgridscale\_parameterisations/k-epsilon/calculate\_boundaries} option.
 
 \section{Astronomical tidal forcing}
 \label{config:tides}
@@ -2313,7 +2348,7 @@ where $\tensor{\mu}$ is the bulk viscosity and $\tensor{\mu}^i$ is the individua
 Models with one prognostic velocity field per \option{material\_phase} are referred to as multiple phase models. The use of these multiple velocity fields permits the inter-penetration and interaction between different phases.
 
 \subsubsection{Simulation requirements}
-In a multi-phase simulation, each \option{material\_phase} requires:
+In a multiphase simulation, each \option{material\_phase} requires:
 \begin{itemize}
  \item an equation of state, and
  \item a PhaseVolumeFraction scalar field.
@@ -2328,13 +2363,15 @@ For an $N$ phase problem, $N$ material\_phases are required and hence $N$ PhaseV
 \alpha_N = 1 - \sum_{i=1}^{N-1}\alpha_i\textrm{.}
 \end{equation}
 
-\subsubsection{Inter-phase interactions}
-Inter-phase interactions can be included under \option{../multiphase\_properties} in Diamond. Currently, \fluidity\ only supports fluid-particle drag between the continuous phase and dispersed phase(s), given by:
-\begin{equation}\label{eq:multiphase_drag_term}
+\subsubsection{Inter-phase momentum interaction}
+Currently, \fluidity\ only supports fluid-particle drag between the continuous phase and dispersed phase(s). This can be enabled by switching on the \option{/multiphase\_interaction/fluid\_particle\_drag} option in Diamond and specifying the drag correlation: Stokes, \cite{wen_yu_1966} or \cite{ergun1952}.
+
+The drag force using the Stokes drag correlation is given by:
+\begin{equation}\label{eq:stokes_drag_force}
 \mathbf{F}_D = \frac{3\ \alpha_p\ C_D\ \alpha_f\ \rho_f\ |\mathbf{u}_f-\mathbf{u}_p|\ (\mathbf{u}_f-\mathbf{u}_p)}{4\ d},
 \end{equation}
 where $f$ and $p$ denote the fluid (i.e. continuous) and particle (i.e. dispersed) phases respectively, and $d$ is the diameter of a single particle in the dispersed phase. The drag coefficient $C_D$ is defined as:
-\begin{equation}\label{eq:drag_coefficient}
+\begin{equation}\label{eq:stokes_drag_coefficient}
 C_D = \frac{24}{\mathrm{Re}},
 \end{equation}
 with
@@ -2343,17 +2380,51 @@ with
 \end{equation}
 Note that $\mu_f$ denotes the isotropic viscosity of the fluid (i.e. continuous) phase.
 
-Within a dispersed phase, entering a value for $d$ in the \option{../multiphase\_properties/particle\_diameter} option enables fluid-particle interaction between itself and the continuous phase.
+With the drag correlation by \cite{wen_yu_1966}, $\mathbf{F}_D$ and $C_D$ become:
+\begin{equation}\label{eq:wen_yu_drag_force}
+\mathbf{F}_D = \frac{3\ \alpha_p\ C_D\ \alpha_f\ \rho_f\ |\mathbf{u}_f-\mathbf{u}_p|\ (\mathbf{u}_f-\mathbf{u}_p)}{4\ d\alpha_f^{2.7}},
+\end{equation}
+\begin{equation}\label{eq:wen_yu_drag_coefficient}
+C_D = \frac{24}{\mathrm{Re}}\left(1.0 + 0.15\mathrm{Re}^{0.687}\right).
+\end{equation}
+In contrast to the Stokes drag correlation, the \cite{wen_yu_1966} drag correlation is more suitable for larger particle Reynolds number flows. 
+
+For dense multiphase flows with $\alpha_p > 0.2$, the drag correlation by \cite{ergun1952} is often the most appropriate:
+\begin{equation}\label{eq:ergun_drag_force}
+\mathbf{F}_D = \left(150\frac{\alpha_p^2\mu_f}{\alpha_f d_p^2} + 1.75\frac{\alpha_p\rho_f|\mathbf{u}_f-\mathbf{u}_p|}{d_p}\right)\left(\mathbf{u}_f-\mathbf{u}_p\right).
+\end{equation}
+
+Note that within each dispersed phase, a value for $d$ must be specified in \option{../multiphase\_properties/particle\_diameter} regardless of which drag correlation is used.
+
+\subsubsection{Inter-phase energy interaction}
+This subsection considers compressible multiphase flow simulations where each phase has its own InternalEnergy field. Users can choose to include the inter-phase heat transfer term by \cite{gunn1978}, denoted $Q$ in Section \ref{sec:multiphase_equations}, on the RHS of each internal energy equation:
+
+\begin{equation}\label{eq:gunn_heat_transfer_term}
+Q = \frac{6 k \alpha_p \mathrm{Nu}_p}{d_p^2}\left(\frac{e_f}{C_f} - \frac{e_p}{C_p}\right),
+\end{equation}
+where 
+\begin{equation}
+\mathrm{Nu}_p = \left(7 - 10\alpha_f + 5\alpha_f^2\right)\left(1 + 0.7\mathrm{Re}_p^{0.2}\mathrm{Pr}^{\frac{1}{3}}\right) + \left(1.33 - 2.4\alpha_f + 1.2\alpha_f^2\right)\mathrm{Re}_p^{0.7}\mathrm{Pr}^{\frac{1}{3}},
+\end{equation}
+\begin{equation}
+ \mathrm{Pr} = \frac{C_f \gamma \mu_f}{k},
+\end{equation}
+and
+\begin{equation}
+ \mathrm{Re} = \frac{\rho_f d_p |\mathbf{u}_f-\mathbf{u}_p|}{\mu_f},
+\end{equation}
+are the Nusselt, Prandtl and Reynolds number respectively. $C_i$ denotes the specific heat of phase i at constant volume, and $k$ denotes the effective conductivity of the fluid phase; these must be specified in \option{../multiphase\_properties/effective\_conductivity} and \option{../multiphase\_properties/specific\_heat}. Note that we have written the above in terms of internal energy (rather than temperature) by dividing $e_i$ by the specific heat at constant volume.
+
+To include this term, switch on the \option{/multiphase\_interaction/heat\_transfer} option in Diamond.
 
 \subsubsection{Current limitations}
 \begin{itemize}
- \item Boussinesq and fully compressible multi-phase simulations are not yet supported.
+ \item Boussinesq multiphase simulations are not yet supported.
  \item The momentum equation for each \option{material\_phase} can only be discretised in non-conservative form.
- \item The stress term must be in tensor form, and only works with an isotropic viscosity.
- \item \option{bassi\_rebay} and \option{compact\_discontinuous\_galerkin} are currently the only DG viscosity schemes available for multi-phase flow simulations.
+ \item \option{bassi\_rebay} and \option{compact\_discontinuous\_galerkin} are currently the only DG viscosity schemes available for multiphase flow simulations.
  \item Discontinuous \option{PhaseVolumeFraction} fields are not yet supported.
- \item The Pressure field only supports \option{continuous\_galerkin} and \option{control\_volume} discretisations.
- \item Prescribed velocity fields cannot yet be used in multi-phase simulations.
+ \item For compressible multiphase flow simulations, the Pressure field only supports a \option{continuous\_galerkin} discretisation.
+ \item Prescribed velocity fields cannot yet be used in multiphase simulations.
  \item Fluid-particle drag can currently only support one continuous (i.e. fluid) phase.
 \end{itemize}
 
@@ -2396,7 +2467,8 @@ Either continuous Galerkin or control volumes can be used as discretisation opti
 
 This section describes how to configure \fluidity to simulate single phase incompressible Darcy flow.
 
-First, the \option{Porosity} and \option{Permeability} fields found under the option element \option{/porous\_media} require configuring. Both fields can be either \option{prescribed} or \option{diagnostic}. The \option{Permeability} field can be either a \option{scalar\_field} or a \option{vector\_field}. The \option{Porosity} field will only be used in the transport of scalar fields and the metric tensor. The \option{Permeability} field will only be used in forming the absorption coefficient in the Darcy velocity equation. The use of these two fields should be considered when selecting their associated mesh. If \option{Porosity} is to be included in the transport of scalar fields (and the metric tensor) that are discretised using control volumes, due to the way this method is coded, the mesh associated with the \option{Porosity} must be either element wise (meaning discontinuous order zero) or the same order as field to be transported. It is therefore recommended that the \option{Porosity} field always be associated with a mesh that is discontinuous order zero. It is recommended that the \option{Permeability} field also be associated with a mesh that is discontinuous order zero, due to the recommended Darcy velocity - pressure element pair (being p0p1cv or p0p1 with the continuity tested with the p1 control volume dual space)
+First, the \option{Porosity} and \option{Permeability} fields found under the option element \option{/porous\_media} require configuring. Both fields can be either \option{prescribed} or \option{diagnostic}. The \option{Permeability} field can be either a \option{scalar\_field} or a \option{vector\_field}. The \option{Porosity} field will only be used in the transport of scalar fields and the metric tensor. The \option{Permeability} field will only be used in forming the absorption coefficient in the Darcy velocity equation. The use of these two fields should be considered when selecting their associated mesh. If \option{Porosity} is to be included in the transport of scalar fields (and the metric tensor) that are discretised using control volumes, due to the way this method is coded, the mesh associated with the \option{Porosity} must be either element wise (meaning discontinuous order zero) or the same order as field to be transported. It is therefore recommended that the \option{Porosity} field always be 
+associated with a mesh that is discontinuous order zero. It is recommended that the \option{Permeability} field also be associated with a mesh that is discontinuous order zero, due to the recommended Darcy velocity - pressure element pair (being p0p1cv or p0p1 with the continuity tested with the p1 control volume dual space)
 
 Second, the prognostic \option{Velocity} vector field of the (only) phase is now taken to be the Darcy velocity \ref{sec:porous_media_darcy_flow_equations}. There is no option to select Darcy flow but this can be achieved via a careful selection of the \option{Velocity} field options tree given by:
 \begin{itemize}

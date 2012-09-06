@@ -59,6 +59,12 @@ s = stat_parser("mphase_sedimentation_1d.stat")
 divergence = s["Fluid1"]["SumVelocityDivergence"]["max"][-1]
     </variable>
     
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
+    
   </variables>
     
   <pass_tests>
@@ -82,6 +88,9 @@ assert abs(f1_vfrac_integral - 0.5) &lt; 1e-6
     </test>
     <test name="PhaseVolumeFraction for Fluid 2 is conserved" language="python">
 assert abs(f2_vfrac_integral - 0.5) &lt; 1e-6
+    </test>
+    <test name="Solvers converged" language="python">
+assert(solvers_converged)
     </test>
   </pass_tests>
   
