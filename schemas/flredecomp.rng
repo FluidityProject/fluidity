@@ -39,11 +39,19 @@ and can produce non-contiguous partitions for certain problems.</a:documentation
       </optional>
       <optional>
         <element name="field_weighted_partitions">
-          <element name="prescribed">
+          <element name="scalar_field">
             <a:documentation>Field weighted partitions: turning on this option allows one to 
-weight mesh partitions, based upon a prescribed field.</a:documentation>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="prescribed_scalar_field"/>
+weight mesh partitions, based upon a prescribed scalar field.</a:documentation>
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="name">
+              <value>FieldWeightedPartitionValues</value>
+            </attribute>
+            <element name="prescribed">
+              <ref name="coordinate_mesh_choice"/>
+              <ref name="prescribed_scalar_field"/>
+            </element>
           </element>
         </element>
       </optional>

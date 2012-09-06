@@ -18,7 +18,7 @@ module zoltan_callbacks
 
   ! Needed for zoltan_cb_get_num_edges
   use global_parameters, only: real_size, OPTION_PATH_LEN
-  use parallel_tools, only: getrank, getnprocs, getprocno, MPI_COMM_FEMTOOLS
+  use parallel_tools, only: getrank, getnprocs, getprocno, allmax, allmin, MPI_COMM_FEMTOOLS
 
   ! Needed for zoltan_cb_get_edge_list
   ! - added halo_node_owners to use halos
@@ -74,7 +74,7 @@ contains
     integer(zoltan_int), intent(out) :: ierr
     
     integer :: count, i
-    real(zoltan_float) :: max_obj_wgt
+    real(zoltan_float) :: max_obj_wgt, min_obj_wgt, range_obj_wgt
     
     ewrite(1,*) "In zoltan_cb_get_owned_nodes"
     
@@ -95,18 +95,35 @@ contains
     if(zoltan_global_migrate_extruded_mesh) then
        ! weight the nodes according to the number of nodes in the column beneath it
        max_obj_wgt = 1.0
-       do i=1,count
+       do i = 1, count
           obj_wgts(i) = float(row_length(zoltan_global_columns_sparsity, i))
           max_obj_wgt = max(max_obj_wgt, obj_wgts(i))
        end do
        ! normalise according to the most nodes in a column
-       do i=1,count
+       do i = 1, count
           obj_wgts(i) = obj_wgts(i)/max_obj_wgt
        end do
     else
-       do i=1,count
+       do i = 1, count
           obj_wgts(i) = 1.0
        end do
+    end if
+
+    if(zoltan_global_field_weighted_partitions) then
+       max_obj_wgt = 1.0
+       min_obj_wgt = 0.0
+       do i = 1, count
+          obj_wgts(i) = node_val(zoltan_global_field_weighted_partition_values,i)
+       end do
+       max_obj_wgt = maxval(obj_wgts(1:count))
+       min_obj_wgt = minval(obj_wgts(1:count))
+!       call allmax(max_obj_wgt)
+!       call allmin(min_obj_wgt)
+!       range_obj_wgt = abs(max_obj_wgt - min_obj_wgt)
+       ! normalise according to range of values:
+!       do i = 1, count
+!          obj_wgts(i) = (obj_wgts(i) - min_obj_wgt) / range_obj_wgt
+!       end do
     end if
     
     ierr = ZOLTAN_OK

@@ -144,16 +144,15 @@ module zoltan_integration
                      "and a prescribed field. Select one option only or fix the code."
         FLExit("Use Weighted mesh partitions for EITHER extruded meshes or prescribed fields")
     end if
-
-    if(zoltan_global_field_weighted_partitions) then
-       call get_field_weights(states)
-    end if
     
     call setup_module_variables(states, final_adapt_iteration, zz)
+
+    if(zoltan_global_field_weighted_partitions) then
+       call get_field_weighted_partition_values(states)
+    end if
     
     call setup_quality_module_variables(states, metric) ! this needs to be called after setup_module_variables
                                         ! (but only on the 2d mesh with 2+1d adaptivity)
-
 
     load_imbalance_tolerance = get_load_imbalance_tolerance(final_adapt_iteration)
     call set_zoltan_parameters(final_adapt_iteration, flredecomp, flredecomp_target_procs, load_imbalance_tolerance, zz)
@@ -310,21 +309,17 @@ module zoltan_integration
 
   end subroutine zoltan_drive
 
-  subroutine get_field_weights(states)
+  subroutine get_field_weighted_partition_values(states)
     type(state_type), dimension(:), intent(in), target :: states
-    type(scalar_field), pointer :: field_weighted_partition_values
     integer :: count, node
 
-    field_weighted_partition_values => extract_scalar_field(states(1), "field_weighted_partitions") 
+    ! Extract fields from state:
+    zoltan_global_field_weighted_partition_values = extract_scalar_field(states(1), "FieldWeightedPartitionValues") 
+    assert(zoltan_global_field_weighted_partition_values%mesh == zoltan_global_zz_mesh)
 
-    call allocate(zoltan_global_field_weighted_partition_values, zoltan_global_zz_mesh, "FieldWeights")
-    call zero(zoltan_global_field_weighted_partition_values)
+    call incref(zoltan_global_field_weighted_partition_values)
 
-    do node = 1, node_count(zoltan_global_zz_mesh)
-       zoltan_global_field_weighted_partition_values(node) = field_weighted_partition_values(node)
-    end do
-
-  end subroutine get_field_weights
+  end subroutine get_field_weighted_partition_values
 
   subroutine setup_module_variables(states, final_adapt_iteration, zz, mesh_name)
     type(state_type), dimension(:), intent(inout), target :: states
@@ -1819,7 +1814,6 @@ module zoltan_integration
     ewrite(1,*) 'exiting initialise_transfer'
     
   end subroutine initialise_transfer
-
 
   subroutine update_detector_list_element(detector_list_array)
     ! Update the detector%element field for every detector left in our list

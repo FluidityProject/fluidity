@@ -974,6 +974,18 @@ hr_adaptivity =
             element additional_adapt_iterations {
                 integer
             }?,
+            element field_weighted_partitions {
+            ## Field weighted partitions: turning on this option allows one to 
+            ## weight mesh partitions, based upon a prescribed scalar field.
+	       element scalar_field {
+                  attribute rank { "0" },
+                  attribute name { "FieldWeightedPartitionValues" },
+                  element prescribed {
+                     coordinate_mesh_choice,
+                     prescribed_scalar_field
+                  }
+               }
+            }?,
             ## Field weighted partitions
             ## Turning on this option allows one to weight mesh partitions, based upon a prescribed field.
             element field_weighted_partitions {
