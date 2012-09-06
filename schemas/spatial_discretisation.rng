@@ -546,7 +546,7 @@ Follows a new control volume code path.</a:documentation>
 basis functions of the parent finite element mesh to
 form the divergence.
 
-DOES NOT CURRENTLY WORK WITH ROBIN OR WEAK DIRICHLET BOUNDARY CONDITIONS!
+DOES NOT CURRENTLY WORK WITH WEAK DIRICHLET BOUNDARY CONDITIONS!
 
 Based on schemes in Handbook of Numerical Analysis,
 P.G. Ciarlet, J.L. Lions eds, vol 7, pp 713-1020</a:documentation>

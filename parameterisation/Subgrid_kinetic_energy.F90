@@ -57,7 +57,7 @@ subroutine compute_subgrid_tke(state)
     real                   :: alpha
     ! Tensor or scalar filter. Only scalar for now.
     logical                :: anisotropy
-    type(scalar_field), pointer        :: k, src_k, abs_k, lumped_mass
+    type(scalar_field), pointer        :: k, src_k, abs_k, lumped_mass, density
     type(scalar_field)                 :: src_rhs, abs_rhs, diff_rhs
     type(vector_field), pointer        :: positions, nu
     type(tensor_field), pointer        :: eddyvisc, visc, diff_k
@@ -69,6 +69,7 @@ subroutine compute_subgrid_tke(state)
 
     positions       => extract_vector_field(state, "Coordinate",stat)
     nu              => extract_vector_field(state, "Velocity",stat)
+    density         => extract_scalar_field(state, "Density",stat)
     k               => extract_scalar_field(state, "SubgridKineticEnergy",stat)
     src_k           => extract_scalar_field(state, "SubgridKineticEnergySource",stat)
     if(stat/=0) then
@@ -112,7 +113,7 @@ subroutine compute_subgrid_tke(state)
        ! Realisability condition: k=>0 because we use k**0.5 in src and abs terms
        knodes => ele_nodes(k,ele)
        call set(k, knodes, max(node_val(k,knodes),0.))
-       call assemble_subgrid_tke_ele(src_rhs, abs_rhs, diff_rhs, k, nu, eddyvisc, visc, positions, ele, alpha, anisotropy)
+       call assemble_subgrid_tke_ele(src_rhs, abs_rhs, diff_rhs, k, nu, density, eddyvisc, visc, positions, ele, alpha, anisotropy)
     end do
 
     lumped_mass => get_lumped_mass(state, k%mesh)
@@ -136,10 +137,10 @@ subroutine compute_subgrid_tke(state)
 
 end subroutine compute_subgrid_tke
 
-subroutine assemble_subgrid_tke_ele(src_rhs, abs_rhs, diff_rhs, k, u, eddyvisc, visc, x, ele, alpha, anisotropy)
+subroutine assemble_subgrid_tke_ele(src_rhs, abs_rhs, diff_rhs, k, u, density, eddyvisc, visc, x, ele, alpha, anisotropy)
 
   type(scalar_field), intent(inout) :: src_rhs, abs_rhs, diff_rhs
-  type(scalar_field), intent(in)    :: k
+  type(scalar_field), intent(in)    :: k, density
   type(vector_field), intent(in)    :: x, u
   type(tensor_field), intent(in)    :: eddyvisc, visc
   integer, intent(in)               :: ele
@@ -147,18 +148,20 @@ subroutine assemble_subgrid_tke_ele(src_rhs, abs_rhs, diff_rhs, k, u, eddyvisc, 
   logical, intent(in)               :: anisotropy
 
   real, dimension(ele_loc(k, ele), ele_ngi(k, ele), x%dim) :: dshape_x
-  real, dimension(ele_ngi(k, ele))                         :: detwei, strain_ngi
+  real, dimension(ele_ngi(k, ele))                         :: detwei, rhs
   real, dimension(ele_loc(k, ele))                         :: rhs_addto
-  real, dimension(x%dim, x%dim, ele_ngi(k, ele))           :: ft, evt, nut
-  real, dimension(ele_ngi(k, ele))                         :: f, ev, nu
+  real, dimension(x%dim, x%dim, ele_ngi(k, ele))           :: ft, evt, nut, grad_u, reynolds_stress
+  real, dimension(ele_ngi(k, ele))                         :: f, ev, nu, k_ele
   integer, dimension(ele_loc(k, ele))                      :: nodes_k
   type(element_type), pointer                              :: shape_k, shape_x
-  integer                                                  :: i, gi
+  integer                                                  :: i, gi, ngi, dim
   real                                                     :: C_s, C_e, sigma_k
 
   shape_k => ele_shape(k, ele)
   shape_x => ele_shape(x, ele)
   nodes_k = ele_nodes(k, ele)
+  ngi = ele_ngi(u, ele)
+  dim = u%dim
 
   ! Model coefficients
   C_e = 0.7 ! Absorption coeff from Schmidt & Schumann 1989
@@ -167,16 +170,16 @@ subroutine assemble_subgrid_tke_ele(src_rhs, abs_rhs, diff_rhs, k, u, eddyvisc, 
 
   call transform_to_physical(x, ele, shape_x, dshape=dshape_x, detwei=detwei)
 
-  ! Calculate TKE production at ngi using strain rate (double_dot_product) function
-  strain_ngi = double_dot_product(dshape_x, ele_val(u, ele) )
-
   !if(.not. anisotropy) then
   ! Scalar terms
     ! mesh metric tensor (units length^2)
     ft = length_scale_tensor(dshape_x, ele_shape(u, ele))
     evt = ele_val_at_quad(eddyvisc, ele)
     nut = ele_val_at_quad(visc, ele)
-    do gi=1, ele_ngi(u, ele)
+    k_ele = ele_val_at_quad(k, ele)
+    grad_u = ele_grad_at_quad(u, ele, dshape_x)
+
+    do gi=1, ngi
       ! 2-norm of filter size. Actually want units of length so sqrt
       f(gi) = sqrt(alpha**2*norm2(ft(:,:,gi)))
       ! 2-norm of eddy viscosity
@@ -192,8 +195,16 @@ subroutine assemble_subgrid_tke_ele(src_rhs, abs_rhs, diff_rhs, k, u, eddyvisc, 
   !ewrite(2,*) 'SGS src terms: ', strain_ngi, ev
   !ewrite(2,*) 'SGS abs terms: ', C_e, f, ele_val_at_quad(k,ele)**0.5
 
-  ! Source term: depends on filter size via eddy viscosity
-  rhs_addto = shape_rhs(shape_k, detwei*strain_ngi*ev)
+  ! Compute Reynolds stress
+  do gi = 1, ngi
+     reynolds_stress(:,:,gi) = ev(gi)*(grad_u(:,:,gi) + transpose(grad_u(:,:,gi)))
+  end do
+  do i = 1, dim
+     reynolds_stress(i,i,:) = reynolds_stress(i,i,:) - (2./3.)*k_ele*ele_val_at_quad(density, ele)
+  end do
+  ! Compute production
+  rhs = tensor_inner_product(reynolds_stress, grad_u)
+  rhs_addto = shape_rhs(shape_k, detwei*rhs)
   call addto(src_rhs, nodes_k, rhs_addto)
 
   ! Absorption term: depends on inverse filter size

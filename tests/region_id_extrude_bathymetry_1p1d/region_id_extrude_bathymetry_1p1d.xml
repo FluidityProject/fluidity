@@ -6,6 +6,11 @@
     <command_line>fluidity -v2 -l region_id_extrude_bathymetry_1p1d.flml</command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="err_n_lines" language="python">import glob
 files = glob.glob1(".","*.err-?")
 err_n_lines = {}
@@ -68,6 +73,9 @@ region_id_2 = stat("landslide_benchmark.detectors")["Water"]["RegionIDs"]["Regio
 region_id_3 = stat("landslide_benchmark.detectors")["Water"]["RegionIDs"]["Region3"]</variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="domain_area_constant" language="python">assert abs(domain_area[0]-65578750.) &lt; 1.E-10</test>
     <test name="check_no_nodes" language="python">assert abs(no_nodes[0]-26554) == 0</test>
     <test name="check_finish_time" language="python">assert abs(finish_time) &lt; 1.E-10</test>

@@ -30,7 +30,7 @@
 module diagnostic_fields_wrapper
   !!< A module to link to diagnostic variable calculations.
 
-  use global_parameters, only:FIELD_NAME_LEN 
+  use global_parameters, only: FIELD_NAME_LEN, timestep
   use fields
   use sparse_matrices_fields
   use field_derivatives
@@ -54,6 +54,7 @@ module diagnostic_fields_wrapper
   use momentum_diagnostic_fields
   use spontaneous_potentials, only: calculate_formation_conductivity
   use sediment_diagnostics
+  use k_epsilon
   use geostrophic_pressure
   use multiphase_module
   
@@ -78,6 +79,8 @@ contains
 
     ! An array of submaterials of the current phase in state(istate).
     type(state_type), dimension(:), pointer :: submaterials
+    ! Needed for k-epsilon diagnostic fields (explained below).
+    type(scalar_field), pointer :: buoyancy_density
     
     ewrite(1, *) "In calculate_diagnostic_variables"
  
@@ -585,6 +588,21 @@ contains
             FLExit("The SumVelocityDivergence field is only used in multiphase simulations.")
          end if
        end if
+       
+       s_field => extract_scalar_field(state(i), "CompressibleContinuityResidual", stat)
+       if(stat == 0) then
+         ! Check that we are running a compressible multiphase simulation
+         if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1 .and. option_count("/material_phase/equation_of_state/compressible") > 0) then 
+            diagnostic = have_option(trim(s_field%option_path)//"/diagnostic")
+            if(diagnostic .and. .not.(aliased(s_field))) then
+               if(recalculate(trim(s_field%option_path))) then
+                  call calculate_compressible_continuity_residual(state, s_field)
+               end if
+            end if
+         else
+            FLExit("The CompressibleContinuityResidual field is only used in compressible multiphase simulations.")
+         end if
+       end if
 
        ! end of fields that cannot be called through the generic
        ! calculate_diagnostic_variable interface, i.e. - those that need things
@@ -618,6 +636,27 @@ contains
          if(recalculate(trim(v_field%option_path))) then
            call calculate_diagnostic_variable(state(i), "AbsoluteDifference", v_field)  
          end if
+       end if
+       
+       ! k-epsilon diagnostics
+       ! Note: only call this after all other diagnostic fields
+       ! have been computed, so that we know that the Density field
+       ! has been calculated first.
+       if(have_option(trim(state(i)%option_path)//'/subgridscale_parameterisations/k-epsilon/')) then
+         if(timestep == 0 .and. have_option('/physical_parameters/gravity')) then
+            ! The very first time k-epsilon is called, VelocityBuoyancyDensity
+            ! is set to zero until calculate_densities is called in the momentum equation
+            ! solve. Calling calculate_densities here is a work-around for this problem.  
+            buoyancy_density => extract_scalar_field(state, 'VelocityBuoyancyDensity')
+            if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then 
+              call get_phase_submaterials(state, i, submaterials)
+              call calculate_densities(submaterials, buoyancy_density=buoyancy_density)
+              deallocate(submaterials)
+            else
+              call calculate_densities(state, buoyancy_density=buoyancy_density)
+            end if
+         end if
+         call keps_diagnostics(state(i))
        end if
 
     end do

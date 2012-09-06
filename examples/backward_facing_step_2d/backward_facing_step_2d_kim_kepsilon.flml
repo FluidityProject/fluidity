@@ -46,7 +46,7 @@
     </dump_format>
     <dump_period_in_timesteps>
       <constant>
-        <integer_value rank="0">10</integer_value>
+        <integer_value rank="0">25</integer_value>
       </constant>
     </dump_period_in_timesteps>
     <output_mesh name="CoordinateMesh"/>
@@ -60,22 +60,14 @@
       <real_value rank="0">0.01</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">100</real_value>
+      <real_value rank="0">300.0</real_value>
     </finish_time>
     <nonlinear_iterations>
       <integer_value rank="0">2</integer_value>
     </nonlinear_iterations>
-    <adaptive_timestep>
-      <requested_cfl>
-        <real_value rank="0">2.0</real_value>
-      </requested_cfl>
-      <courant_number name="CFLNumber">
-        <mesh name="VelocityMesh"/>
-      </courant_number>
-    </adaptive_timestep>
     <steady_state>
       <tolerance>
-        <real_value rank="0">1.e-5</real_value>
+        <real_value rank="0">1.e-4</real_value>
         <infinity_norm/>
       </tolerance>
       <steady_state_file>
@@ -89,7 +81,7 @@
         <scalar_field name="TurbulentKineticEnergy" rank="0">
           <prognostic>
             <mesh name="VelocityMesh"/>
-            <equation name="AdvectionDiffusion"/>
+            <equation name="KEpsilon"/>
             <spatial_discretisation>
               <control_volumes>
                 <face_value name="FiniteElement">
@@ -111,7 +103,7 @@
             </spatial_discretisation>
             <temporal_discretisation>
               <theta>
-                <real_value rank="0">0.5</real_value>
+                <real_value rank="0">1.0</real_value>
               </theta>
               <control_volumes>
                 <number_advection_iterations>
@@ -138,7 +130,7 @@
             </solver>
             <initial_condition name="WholeMesh">
               <constant>
-                <real_value rank="0">0.</real_value>
+                <real_value rank="0">1.e-4</real_value>
               </constant>
             </initial_condition>
             <boundary_conditions name="inflow">
@@ -147,7 +139,7 @@
               </surface_ids>
               <type name="dirichlet">
                 <constant>
-                  <real_value rank="0">0.</real_value>
+                  <real_value rank="0">1.e-4</real_value>
                 </constant>
               </type>
             </boundary_conditions>
@@ -205,7 +197,7 @@
         <scalar_field name="TurbulentDissipation" rank="0">
           <prognostic>
             <mesh name="VelocityMesh"/>
-            <equation name="AdvectionDiffusion"/>
+            <equation name="KEpsilon"/>
             <spatial_discretisation>
               <control_volumes>
                 <face_value name="FiniteElement">
@@ -227,7 +219,7 @@
             </spatial_discretisation>
             <temporal_discretisation>
               <theta>
-                <real_value rank="0">0.5</real_value>
+                <real_value rank="0">1.0</real_value>
               </theta>
               <control_volumes>
                 <number_advection_iterations>
@@ -254,7 +246,7 @@
             </solver>
             <initial_condition name="WholeMesh">
               <constant>
-                <real_value rank="0">0.</real_value>
+                <real_value rank="0">1.e-5</real_value>
               </constant>
             </initial_condition>
             <boundary_conditions name="inflow">
@@ -263,7 +255,7 @@
               </surface_ids>
               <type name="dirichlet">
                 <constant>
-                  <real_value rank="0">0.</real_value>
+                  <real_value rank="0">1.e-5</real_value>
                 </constant>
               </type>
             </boundary_conditions>
@@ -322,12 +314,11 @@
           <prescribed>
             <mesh name="VelocityMesh"/>
             <value name="WholeMesh">
-              <isotropic>
+              <anisotropic_symmetric>
                 <constant>
-                  <real_value rank="0">1.74e-5</real_value>
-                  <comment>corresponds to Re=132000 with Umax=2.3, same as Kim 1978, Lacasse 2004 &amp; Speziale 1988</comment>
+                  <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">1.74e-5 1.74e-5 1.74e-5 1.74e-5</real_value>
                 </constant>
-              </isotropic>
+              </anisotropic_symmetric>
             </value>
             <output/>
           </prescribed>
@@ -376,7 +367,7 @@
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <scalar_field name="Filter" rank="0">
+        <scalar_field name="f_1" rank="0">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
@@ -393,12 +384,43 @@
             </steady_state>
           </diagnostic>
         </scalar_field>
-        <source_absorption>
-          <string_value>explicit</string_value>
-        </source_absorption>
-        <lengthscale_limit>
-          <real_value rank="0">1000</real_value>
-        </lengthscale_limit>
+        <scalar_field name="f_2" rank="0">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
+        <scalar_field name="f_mu" rank="0">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
+        <max_damping_value>
+          <real_value rank="0">10.0</real_value>
+        </max_damping_value>
         <C_mu>
           <real_value rank="0">.09</real_value>
         </C_mu>
@@ -414,6 +436,12 @@
         <sigma_eps>
           <real_value rank="0">1.3</real_value>
         </sigma_eps>
+        <sigma_p>
+          <real_value rank="0">1.0</real_value>
+        </sigma_p>
+        <mass_lumping_in_diagnostics>
+          <lump_mass/>
+        </mass_lumping_in_diagnostics>
       </k-epsilon>
     </subgridscale_parameterisations>
     <scalar_field name="Pressure" rank="0">
@@ -472,7 +500,7 @@
             </mass_terms>
             <advection_terms/>
             <stress_terms>
-              <tensor_form/>
+              <partial_stress_form/>
             </stress_terms>
           </continuous_galerkin>
           <conservative_advection>
@@ -554,17 +582,47 @@
           <surface_ids>
             <integer_value shape="2" rank="1">10 12</integer_value>
           </surface_ids>
-          <type name="no_normal_flow"/>
+          <type name="dirichlet">
+            <align_bc_with_surface>
+              <normal_component>
+                <constant>
+                  <real_value rank="0">0.</real_value>
+                </constant>
+              </normal_component>
+            </align_bc_with_surface>
+          </type>
         </boundary_conditions>
         <tensor_field name="Viscosity" rank="2">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
-            <output/>
+            <output>
+              <exclude_from_vtu/>
+            </output>
             <stat>
               <exclude_from_stat/>
             </stat>
           </diagnostic>
         </tensor_field>
+        <vector_field name="Source" rank="1">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <output>
+              <exclude_from_vtu/>
+            </output>
+            <stat>
+              <exclude_from_stat/>
+            </stat>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </vector_field>
         <output/>
         <stat>
           <include_in_stat/>
@@ -582,7 +640,7 @@
           <include_in_detectors/>
         </detectors>
         <steady_state>
-          <exclude_from_steady_state/>
+          <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>

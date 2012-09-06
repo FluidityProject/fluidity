@@ -35,7 +35,7 @@ module populate_state_module
   use vtk_cache_module
   use global_parameters, only: OPTION_PATH_LEN, is_active_process, pi, &
     no_active_processes, topology_mesh_name, adaptivity_mesh_name, &
-    periodic_boundary_option_path, domain_bbox, domain_volume
+    periodic_boundary_option_path, domain_bbox, domain_volume, surface_radius
   use field_options
   use reserve_state_module
   use fields_manipulation
@@ -82,24 +82,30 @@ module populate_state_module
   end interface allocate_field_as_constant
     
   !! A list of locations in which additional scalar/vector/tensor fields
-  !! are to be found. It is assumed that all additional fields are
-  !! in state 1.
-  character(len=OPTION_PATH_LEN), dimension(14) :: field_locations=&
+  !! are to be found. These are absolute paths in the schema.
+  character(len=OPTION_PATH_LEN), dimension(5) :: additional_fields_absolute=&
        (/ &
        "/ocean_biology/pznd                                                                                                   ", &
        "/ocean_biology/six_component                                                                                          ", &
-       "/material_phase[0]/subgridscale_parameterisations/Mellor_Yamada                                                       ", &
-       "/material_phase[0]/subgridscale_parameterisations/prescribed_diffusivity                                              ", &
-       "/material_phase[0]/subgridscale_parameterisations/GLS                                                                 ", &
-       "/material_phase[0]/subgridscale_parameterisations/k-epsilon                                                           ", &
        "/ocean_forcing/iceshelf_meltrate/Holland08                                                                            ", &
        "/ocean_forcing/bulk_formulae/output_fluxes_diagnostics                                                                ", &
-       "/porous_media                                                                                                         ", &
-       "/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin                       ", &
-       "/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/second_order", &
-       "/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/fourth_order", &
-       "/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/wale        ", &
-       "/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/dynamic_les " &
+       "/porous_media                                                                                                         " &
+       /)
+       
+  !! A list of relative paths under /material_phase[i]
+  !! that are searched for additional fields to be added.
+  character(len=OPTION_PATH_LEN), dimension(10) :: additional_fields_relative=&
+       (/ &
+       "/subgridscale_parameterisations/Mellor_Yamada                                                       ", &
+       "/subgridscale_parameterisations/prescribed_diffusivity                                              ", &
+       "/subgridscale_parameterisations/GLS                                                                 ", &
+       "/subgridscale_parameterisations/k-epsilon                                                           ", &
+       "/subgridscale_parameterisations/k-epsilon/debugging_options/source_term_output_fields               ", &
+       "/subgridscale_parameterisations/k-epsilon/debugging_options/prescribed_source_terms                 ", &
+       "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/second_order", &
+       "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/fourth_order", &
+       "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/wale        ", &
+       "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/dynamic_les " &
        /)
 
   !! Relative paths under a field that are searched for grandchildren
@@ -1163,8 +1169,8 @@ contains
     !! able to one by one allocate them as we get them back from SAM.
     logical, optional, intent(in):: dont_allocate_prognostic_value_spaces
 
-    character(len=OPTION_PATH_LEN) :: field_name
-    integer :: i ! counters
+    character(len=OPTION_PATH_LEN) :: field_name, absolute_path
+    integer :: i, istate ! counters
     integer :: nstates ! number of states
     character(len=255) :: tmp ! temporary string to make life a little easier
     type(scalar_field), pointer :: fshistory_sfield
@@ -1255,13 +1261,25 @@ contains
     end if
 
     ! insert miscellaneous scalar fields
-    do i=1, size(field_locations)
-       if (have_option(trim(field_locations(i)))) then
+    do i=1, size(additional_fields_absolute)
+       if (have_option(trim(additional_fields_absolute(i)))) then
 
-          call allocate_and_insert_one_phase(field_locations(i), states(1), &
+          call allocate_and_insert_one_phase(additional_fields_absolute(i), states(1), &
              dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
           
        end if
+    end do
+    
+    do i=1, size(additional_fields_relative)
+       do istate = 1, size(states)
+         absolute_path = "/material_phase["//int2str(istate-1)//"]/"//trim(additional_fields_relative(i))
+         if (have_option(absolute_path)) then
+
+            call allocate_and_insert_one_phase(absolute_path, states(istate), &
+               dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+            
+         end if
+       end do
     end do
 
     call allocate_metric_limits(states(1))
@@ -1294,6 +1312,7 @@ contains
          call get_option(trim(path)//"/name", field_name)
          ! Reset path to have field name rather than index
          path=trim(state_path)//"/scalar_field::"//trim(field_name)
+
          ! If field is not aliased call allocate_and_insert_scalar_field
          is_aliased=have_option(trim(path)//"/aliased")
          if(.not.is_aliased) then
@@ -1678,39 +1697,6 @@ contains
                "/prognostic/subgridscale_parameterisation&
                &::GLS")) then
              
-             tfield%name=trim(sfield%name)//"Diffusivity"
-             call insert(states(i), tfield, tfield%name)
-
-          end if
-
-       end do
-       
-    end do
-
-    ! Eddy diffusivity from K-Epsilon 2-equation turbulence model
-    do i = 1, size(states)
-       
-       tfield=extract_tensor_field(states(i), "EddyViscosity", stat)
-
-       if (stat/=0) cycle
-
-       tfield%aliased=.True.
-
-       do s = 1, scalar_field_count(states(i))
-
-          sfield => extract_scalar_field(states(i), s)
-          
-          if (have_option(trim(sfield%option_path)//&
-               "/prognostic/subgridscale_parameterisation&
-               &::k_epsilon")) then
-
-             ! Get Prandtl number, if specified.
-             call get_option(trim(sfield%option_path)//&
-               "/prognostic/subgridscale_parameterisation&
-               &::k_epsilon/Prandtl_number", Pr, default = 1.0)
-
-             ! Scale field by Prandtl number
-             call scale(tfield, 1./Pr)
              tfield%name=trim(sfield%name)//"Diffusivity"
              call insert(states(i), tfield, tfield%name)
 
@@ -3205,6 +3191,13 @@ contains
 
     domain_volume = vol
     ewrite(2,*) "domain_volume =", domain_volume
+
+    !If on-the-sphere, calculate the radius of the sphere.
+    if (have_option("/geometry/spherical_earth/")) then
+      surface_radius = maxval(magnitude(positions))
+      call allmax(surface_radius)
+    end if
+
 
   end subroutine compute_domain_statistics
   
