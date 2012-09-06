@@ -177,7 +177,8 @@ subroutine keps_damping_functions(state, advdif)
            call set(f_mu, node, 1.0)
            call set(f_1, node, 1.0)
            call set(f_2, node, 1.0)
-           return
+           
+           cycle node_loop
         end if
         call set(f_mu, node, min(rhs,fields_max))
 

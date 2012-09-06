@@ -514,8 +514,8 @@
             <buoyancy_term>source</buoyancy_term>
           </source_term_implementation>
         </time_discretisation>
-        <mass_lumping>
-          <solve_using_mass_matrix>
+        <mass_terms>
+          <use_consistent_mass_matrix>
             <solver>
               <iterative_method name="cg"/>
               <preconditioner name="sor"/>
@@ -530,8 +530,8 @@
                 <monitors/>
               </diagnostics>
             </solver>
-          </solve_using_mass_matrix>
-        </mass_lumping>
+          </use_consistent_mass_matrix>
+        </mass_terms>
         <debugging_options>
           <source_term_output_fields>
             <scalar_field name="TurbulentKineticEnergy_production_term" rank="0">
