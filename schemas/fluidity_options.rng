@@ -1622,17 +1622,17 @@ for more information.</a:documentation>
                       </element>
                     </element>
                   </element>
-                  <element name="mass_lumping">
+                  <element name="mass_terms">
                     <a:documentation>The source terms in the k-epsilon model are calculated before the field is 
 solved. The process requires inversion of a mass matrix. This element contains
 options for defining how this is done. For P1 meshes mass lumping can be used,
-for P2 meshes the mass matrix can not be easily inverted and so a solve must be
-carried out, with solver options specified.</a:documentation>
+for other discretisations the mass matrix can not be easily inverted and so a 
+solve must be carried out, with solver options specified.</a:documentation>
                     <choice>
                       <element name="lump_mass">
                         <empty/>
                       </element>
-                      <element name="solve_using_mass_matrix">
+                      <element name="use_consistent_mass_matrix">
                         <element name="solver">
                           <ref name="linear_solver_options_asym"/>
                         </element>

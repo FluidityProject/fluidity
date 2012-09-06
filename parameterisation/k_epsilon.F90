@@ -52,7 +52,7 @@ implicit none
   private
 
   ! locally allocatad fields
-  real, save     :: fields_min = 1.0e-10
+  real, save     :: fields_min = 1.0e-11
   logical, save  :: low_Re = .false.                     
 
   public :: keps_advdif_diagnostics, keps_momentum_diagnostics, keps_bcs, &
@@ -155,11 +155,11 @@ subroutine keps_damping_functions(state, advdif)
 
      node_loop: do node = 1, node_count(k)
 
-        if ((node_val(k,node) <= fields_min) .or. &
-             & (node_val(y,node) <= fields_min) .or. &
-             & (node_val(bg_visc,1,1,node) <= fields_min) .or. &
-             & (node_val(density,node) <= fields_min) .or. &
-             & (node_val(eps,node) <= fields_min)) then
+        if (node_val(k,node) <= fields_min .or. &
+             & node_val(y,node) <= fields_min .or. &
+             & node_val(bg_visc,1,1,node) <= fields_min .or. &
+             & node_val(density,node) <= fields_min .or. &
+             & node_val(eps,node) <= fields_min) then
            call set(f_mu, node, 0.0)
            call set(f_1, node, 0.0)
            call set(f_2, node, 0.0)
@@ -167,19 +167,11 @@ subroutine keps_damping_functions(state, advdif)
            cycle node_loop
         end if
 
-        if (node_val(bg_visc,1,1,node) /= 0.0) then
-           if (node_val(eps,node) /= 0.0) then
-              Re_T = (node_val(density,node) * node_val(k,node)**2.0) / &
-                   (node_val(eps,node) * node_val(bg_visc,1,1,node))
-           else 
-              Re_T = 1e5
-           end if
-           R_y = (node_val(density,node) * node_val(k,node)**0.5 * node_val(y,node)) / &
-                node_val(bg_visc,1,1,node)
-        else
-           Re_T = 1e5
-           R_y = 1e5
-        end if
+        Re_T = (node_val(density,node) * node_val(k,node)**2.0) / &
+             (node_val(eps,node) * node_val(bg_visc,1,1,node))
+        R_y = (node_val(density,node) * node_val(k,node)**0.5 * node_val(y,node)) / &
+             node_val(bg_visc,1,1,node)
+        
         rhs = (- exp(- 0.0165*R_y) + 1.0)**2.0 * (20.5/Re_T + 1.0)
         if (rhs > 1.0) then
            call set(f_mu, node, 1.0)
