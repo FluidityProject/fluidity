@@ -113,10 +113,7 @@ module fsi_model
             solid_moved = .true.
             ! At this stage, everything is initialised
         end if
-        
 
-        ! Check if alpha needs to be recomputed (at this timestep):
-        recompute_alpha = fsi_recompute_alpha(its, solid_moved=solid_moved)
 
         ! For future use:
         ! 1-WAY COUPLING (prescribed solid velocity)
@@ -127,17 +124,19 @@ module fsi_model
             & .and. its == 1) then
            call fsi_move_solid_mesh(state)
            ! Check if solid actually moved:
-        
+
            ! If solid moved, store new coordinates in state:
            solid_moved = .true.
            ! ... And recalculate the volume fraction:
            
         else
            solid_moved = .false.
-        
+
         end if
 
-        
+        ! Check if alpha needs to be recomputed (at this timestep):
+        recompute_alpha = fsi_recompute_alpha(its, solid_moved=solid_moved)
+
         ! Do we need to compute the new alpha field(s)?
         if (recompute_alpha) then
             ! projection between solid/fluid mesh:
