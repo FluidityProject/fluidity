@@ -7967,6 +7967,37 @@ melt_LayerLength = ||Location - Location_org||</a:documentation>
                 </element>
               </optional>
               <optional>
+                <element name="scalar_field">
+                  <a:documentation>Provide the hydrostatic pressure under the shelf
+for the interface melt parameterisation</a:documentation>
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>subshelf_hydrostatic_pressure</value>
+                  </attribute>
+                  <element name="diagnostic">
+                    <ref name="internal_algorithm"/>
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="diagnostic_scalar_field"/>
+                  </element>
+                </element>
+              </optional>
+              <optional>
+                <element name="subshelf_hydrostatic_pressure">
+                  <element name="python">
+                    <a:documentation>Python function prescribing real input. Functions should be of the form:
+
+ def val(t):
+    # Function code
+    return # Return value
+
+</a:documentation>
+                    <ref name="python_code"/>
+                  </element>
+                </element>
+              </optional>
+              <optional>
                 <element name="calculate_boundaries">
                   <a:documentation>Boundary stuff   </a:documentation>
                   <element name="string_value">

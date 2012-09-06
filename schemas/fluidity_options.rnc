@@ -6304,6 +6304,33 @@ forcing =
                         }
                      )
            }?, 
+           ## Provide the hydrostatic pressure under the shelf
+           ## for the interface melt parameterisation
+           element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "subshelf_hydrostatic_pressure" },
+                     (
+                       element diagnostic {
+                        internal_algorithm,
+                        velocity_mesh_choice,
+                        diagnostic_scalar_field
+                        }
+                     )
+           }?,
+           element subshelf_hydrostatic_pressure {
+                (
+                   ## Python function prescribing real input. Functions should be of the form:
+                   ##
+                   ##  def val(t):
+                   ##     # Function code
+                   ##     return # Return value
+                   ##
+                   ## 
+                   element python {
+                     python_code
+                   }
+                )  
+            }?, 
             ## Boundary stuff   
            element calculate_boundaries {
                      element string_value {
