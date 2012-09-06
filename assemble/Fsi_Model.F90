@@ -207,11 +207,8 @@ module fsi_model
     !! Subroutine that loops over all solid meshes and calls the corresponding 
     !! subroutines to obtain the solid volume fraction
         type(state_type), intent(inout) :: state
+        type(scalar_field), pointer :: alpha_global
         
-        type(vector_field) :: solid_position_mesh
-        type(scalar_field), pointer :: alpha_global, alpha_solidmesh
-        
-        type(scalar_field) :: alpha_tmp
         character(len=OPTION_PATH_LEN) :: mesh_name
         integer :: num_solid_mesh
         integer :: i
@@ -232,26 +229,8 @@ module fsi_model
             ! Get mesh name:
             call get_option('/embedded_models/fsi_model/geometry/mesh['//int2str(i)//']/name', mesh_name)
 
-            ! Get coordinate field of the current solid (mesh):
-            solid_position_mesh = extract_vector_field(state, trim(mesh_name)//'SolidCoordinate')
-            ! Also the according solid volume fraction field:
-            alpha_solidmesh => extract_scalar_field(state, trim(mesh_name)//'SolidConcentration')
-
-            ! allocate temp solid volume fraction field for the projection:
-            call allocate(alpha_tmp, alpha_solidmesh%mesh, 'TMPSolidConcentration')
-            call zero(alpha_tmp)
-
-            ! Now do the projection to obtain new alpha field:
-            call fsi_ibm_projections_mesh(state, solid_position_mesh, alpha_tmp)
-
-            ! After projection, set the solid volume fraction of the current solid:
-            call set(alpha_solidmesh, alpha_tmp)
-
-            ! And add the alpha of the current solid to the global alpha (of all solids):
-            call addto(alpha_global, alpha_solidmesh)
-
-            ! Deallocate temp arrays:
-            call deallocate(alpha_tmp)
+            ! Now do the projection to obtain the alpha field of the current solid mesh:
+            call fsi_ibm_projections_mesh(state, mesh_name)
 
         end do solid_mesh_loop
         
@@ -269,17 +248,32 @@ module fsi_model
 
     !----------------------------------------------------------------------------
 
-    subroutine fsi_ibm_projections_mesh(state, solid_position, alpha_tmp)
+!    subroutine fsi_ibm_projections_mesh(state, solid_position, alpha_tmp)
+    subroutine fsi_ibm_projections_mesh(state, mesh_name)
         type(state_type), intent(inout) :: state
-        type(vector_field), intent(inout) :: solid_position
-        type(scalar_field), intent(inout) :: alpha_tmp
+        character(len=OPTION_PATH_LEN), intent(in) :: mesh_name
+
         type(vector_field), pointer :: fluid_position, fluid_velocity
+        type(scalar_field), pointer :: alpha_global, alpha_solidmesh
+        type(vector_field) :: solid_position_mesh
+        type(scalar_field) :: alpha_tmp
         
         ewrite(2,*) "inside fsi_ibm_projections_mesh"
         
         ! Get relevant fields:
         fluid_velocity => extract_vector_field(state, "Velocity")
         fluid_position => extract_vector_field(state, "Coordinate")
+        alpha_global => extract_scalar_field(state, "SolidConcentration")
+
+        ! Get coordinate field of the current solid (mesh):
+        solid_position_mesh = extract_vector_field(state, trim(mesh_name)//'SolidCoordinate')
+        ! Also the according solid volume fraction field:
+        alpha_solidmesh => extract_scalar_field(state, trim(mesh_name)//'SolidConcentration')
+
+        ! Allocate temp solid volume fraction field for the projection:
+        call allocate(alpha_tmp, alpha_solidmesh%mesh, 'TMPSolidConcentration')
+        call zero(alpha_tmp)
+
 
         ! Distinguish between different projection methods:
 
@@ -287,18 +281,27 @@ module fsi_model
         if (have_option("/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/galerkin_projection")) then
 
             ! Computing /alpha_s^f by projecting unity from the solid mesh to the fluid mesh:
-            call fsi_one_way_galerkin_projection(fluid_velocity, fluid_position, solid_position, alpha_tmp)
+            call fsi_one_way_galerkin_projection(fluid_velocity, fluid_position, solid_position_mesh, alpha_tmp)
 
         else if (have_option("/embedded_models/fsi_model/one_way_coupling/inter_mesh_projection/grandy_interpolation")) then
             ! Grandy interpolation:
-            call fsi_one_way_grandy_interpolation(fluid_position, solid_position, alpha_tmp)
+            call fsi_one_way_grandy_interpolation(fluid_position, solid_position_mesh, alpha_tmp)
 
         !else
             ! Add more interpolations here
 
         end if
 
-        ewrite_minmax(alpha_tmp)
+
+        ! After projection, set the solid volume fraction of the current solid:
+        call set(alpha_solidmesh, alpha_tmp)
+        ewrite_minmax(alpha_solidmesh)
+
+        ! And add the alpha of the current solid to the global alpha (of all solids):
+        call addto(alpha_global, alpha_solidmesh)
+
+        ! Deallocate temp arrays:
+        call deallocate(alpha_tmp)
 
         ewrite(2,*) "leaving fsi_ibm_projections_mesh"
 
