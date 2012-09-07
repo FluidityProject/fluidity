@@ -449,9 +449,9 @@
             <buoyancy_term>source</buoyancy_term>
           </source_term_implementation>
         </time_discretisation>
-        <mass_lumping>
+        <mass_terms>
           <lump_mass/>
-        </mass_lumping>
+        </mass_terms>
       </k-epsilon>
     </subgridscale_parameterisations>
     <scalar_field name="Pressure" rank="0">
