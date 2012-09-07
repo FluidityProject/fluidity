@@ -1146,7 +1146,9 @@ cut off. Default is 0. </a:documentation>
             <element name="field_weighted_partitions">
               <element name="scalar_field">
                 <a:documentation>Field weighted partitions: turning on this option allows one to 
-weight mesh partitions, based upon a prescribed scalar field.</a:documentation>
+weight mesh partitions, based upon a prescribed scalar field. 
+Note that the field should have a minimum value of 0 and a maximum
+value of 1 (no normalisation is done within the code).</a:documentation>
                 <attribute name="rank">
                   <value>0</value>
                 </attribute>
@@ -1157,16 +1159,6 @@ weight mesh partitions, based upon a prescribed scalar field.</a:documentation>
                   <ref name="coordinate_mesh_choice"/>
                   <ref name="prescribed_scalar_field"/>
                 </element>
-              </element>
-            </element>
-          </optional>
-          <optional>
-            <element name="field_weighted_partitions">
-              <a:documentation>Field weighted partitions
-Turning on this option allows one to weight mesh partitions, based upon a prescribed field.</a:documentation>
-              <element name="prescribed">
-                <ref name="velocity_mesh_choice"/>
-                <ref name="prescribed_scalar_field"/>
               </element>
             </element>
           </optional>

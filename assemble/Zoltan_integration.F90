@@ -147,10 +147,6 @@ module zoltan_integration
     
     call setup_module_variables(states, final_adapt_iteration, zz)
 
-    if(zoltan_global_field_weighted_partitions) then
-       call get_field_weighted_partition_values(states)
-    end if
-    
     call setup_quality_module_variables(states, metric) ! this needs to be called after setup_module_variables
                                         ! (but only on the 2d mesh with 2+1d adaptivity)
 
@@ -309,18 +305,6 @@ module zoltan_integration
 
   end subroutine zoltan_drive
 
-  subroutine get_field_weighted_partition_values(states)
-    type(state_type), dimension(:), intent(in), target :: states
-    integer :: count, node
-
-    ! Extract fields from state:
-    zoltan_global_field_weighted_partition_values = extract_scalar_field(states(1), "FieldWeightedPartitionValues") 
-    assert(zoltan_global_field_weighted_partition_values%mesh == zoltan_global_zz_mesh)
-
-    call incref(zoltan_global_field_weighted_partition_values)
-
-  end subroutine get_field_weighted_partition_values
-
   subroutine setup_module_variables(states, final_adapt_iteration, zz, mesh_name)
     type(state_type), dimension(:), intent(inout), target :: states
     logical, intent(in) :: final_adapt_iteration
@@ -448,7 +432,22 @@ module zoltan_integration
           call insert(zoltan_global_universal_element_number_to_region_id, universal_element_number, zoltan_global_zz_positions%mesh%region_ids(i))
        end do
     end if
-    
+
+    if(zoltan_global_field_weighted_partitions) then
+       zoltan_global_field_weighted_partition_values = extract_scalar_field(states, "FieldWeightedPartitionValues") 
+       assert(zoltan_global_field_weighted_partition_values%mesh == zoltan_global_zz_mesh)
+
+       if(zoltan_global_field_weighted_partition_values%mesh%name /= zoltan_global_zz_mesh%name) then
+          ewrite(-1,*) "FieldWeightedPartitionValues and Zoltan Global ZZ Mesh must be on the " // &
+                       "Same mesh. 99.9% of the time, this means that FieldWeightedPartitionValues " // & 
+                       "must be on the coordinate mesh"
+          FLExit("FieldWeightedPartitionValues must be on the coordinate mesh")
+       end if
+
+       call incref(zoltan_global_field_weighted_partition_values)
+
+    end if
+
   end subroutine setup_module_variables
 
   subroutine setup_quality_module_variables(states, metric)

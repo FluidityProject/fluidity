@@ -32,7 +32,6 @@ module parallel_tools
   use fldebug
   use mpi_interfaces
   use global_parameters, only: is_active_process, no_active_processes
-  use zoltan, only: zoltan_float 
   use iso_c_binding
 #ifdef _OPENMP
   use omp_lib
@@ -51,11 +50,11 @@ module parallel_tools
   integer(c_int), bind(c) :: MPI_COMM_FEMTOOLS = MPI_COMM_WORLD
 
   interface allmax
-    module procedure allmax_integer, allmax_real, allmax_real_zoltan
+    module procedure allmax_integer, allmax_real
   end interface allmax
   
   interface allmin
-    module procedure allmin_integer, allmin_real, allmin_real_zoltan
+    module procedure allmin_integer, allmin_real
   end interface allmin
 
   interface allsum
@@ -747,32 +746,6 @@ contains
 #endif
 
   end subroutine allmax_real
-
-  subroutine allmax_real_zoltan(value, communicator)
-    !!< Find the maxmimum value across all processes
-  
-    real(zoltan_float), intent(inout) :: value
-    integer, optional, intent(in) :: communicator
-    
-#ifdef HAVE_MPI
-    integer :: ierr, lcommunicator
-    real :: maximum
-    
-    if(present(communicator)) then
-      lcommunicator = communicator
-    else
-      lcommunicator = MPI_COMM_FEMTOOLS
-    end if
-    
-    if(isparallel()) then
-       assert(valid_communicator(lcommunicator))
-       call mpi_allreduce(value, maximum, 1, MPI_REAL, MPI_MAX, lcommunicator, ierr)
-       assert(ierr == MPI_SUCCESS)
-       value = maximum
-    end if
-#endif
-
-  end subroutine allmax_real_zoltan
   
   subroutine allmin_integer(value, communicator)
     !!< Find the minimum value across all processes
@@ -824,32 +797,6 @@ contains
 #endif
 
   end subroutine allmin_real
-  
-  subroutine allmin_real_zoltan(value, communicator)
-    !!< Find the minimum value across all processes
-  
-    real(zoltan_float), intent(inout) :: value
-    integer, optional, intent(in) :: communicator
-    
-#ifdef HAVE_MPI
-    integer :: lcommunicator, mierr
-    real :: minimum
-    
-    if(present(communicator)) then
-      lcommunicator = communicator
-    else
-      lcommunicator = MPI_COMM_FEMTOOLS
-    end if
-    
-    if(IsParallel()) then
-       assert(valid_communicator(lcommunicator))
-       call MPI_Allreduce(value, minimum, 1, MPI_REAL, MPI_MIN, lcommunicator, mierr)
-       assert(mierr == MPI_SUCCESS)
-       value = minimum
-    end if
-#endif
-
-  end subroutine allmin_real_zoltan
   
   subroutine allsum_integer(value, communicator)
     !!< Sum the integer value across all processes

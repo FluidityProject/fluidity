@@ -235,8 +235,6 @@ contains
        allocate(POD_state(1:0))
     end if
 
-    call vtk_write_state("Rhod_Test_1", index=1, state = state, write_region_ids=.true.)
-
     ! Check the diagnostic field dependencies for circular dependencies
     call check_diagnostic_dependencies(state)
 
@@ -901,8 +899,6 @@ contains
        end if
 
     end do timestep_loop
-
-    call vtk_write_state("Rhod_Test_2", index=1, state = state, write_region_ids=.true.)
 
     ! ****************************
     ! *** END OF TIMESTEP LOOP ***
