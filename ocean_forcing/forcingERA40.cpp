@@ -75,7 +75,6 @@ void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const d
     }
     
 
-    // loop over nodes
     double surface_radius = get_surface_radius();
     double longitude[NNodes];
     double latitude[NNodes];
@@ -83,6 +82,8 @@ void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const d
     double u_rot = 0.0;
     double v_rot = 0.0;
     double w_rot = 0.0;
+
+    // loop over nodes
     for (int i=0; i<NNodes; i++) {
         
         // Rotate ocean surface velocity to zonal-meridional-vertical. Also

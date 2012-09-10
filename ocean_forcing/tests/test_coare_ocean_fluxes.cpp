@@ -1,6 +1,7 @@
 #include "fmangle.h"
 #include "../FluxesReader.h"
 #include "../BulkForcing.h"
+#include "../../include/coordinates.h"
 #include <fstream>
 
 using namespace std;
@@ -72,10 +73,15 @@ void test_coare_ocean_fluxes_fc() {
     Y[0] = -2.35154e+06;
     Z[0] = 4.88594e+06;
     y[0] = Y[0] , x[0] = X[0] , z[0] = Z[0];
-    ret = projections(n, &x[0], &y[0], &z[0], "cart", "spherical");
-    if (ret != 0) {
-        cerr<<"Error converting coord system"<<endl;
-    }
+    double surface_radius = sqrt(pow(X[0],2) + pow(Y[0],2) + pow(Z[0],2));
+    cartesian_2_lon_lat_height_c(&X[0], &Y[0], &Z[0],
+                                 &x[0], &y[0], &z[0],
+                                 &surface_radius);
+    cout << x[0] << y[0] << z[0];
+    //ret = projections(n, &x[0], &y[0], &z[0], "cart", "spherical");
+    //if (ret != 0) {
+    //    cerr<<"Error converting coord system"<<endl;
+    //}
     
     FluxesReader_ERAdata.GetScalars(x[0], y[0], values_out);
     FluxesReader_global.GetScalars(x[0], y[0], values_in);
