@@ -439,9 +439,9 @@ module zoltan_integration
 
        if(zoltan_global_field_weighted_partition_values%mesh%name /= zoltan_global_zz_mesh%name) then
           ewrite(-1,*) "FieldWeightedPartitionValues and Zoltan Global ZZ Mesh must be on the " // &
-                       "Same mesh. 99.9% of the time, this means that FieldWeightedPartitionValues " // & 
-                       "must be on the coordinate mesh"
-          FLExit("FieldWeightedPartitionValues must be on the coordinate mesh")
+                       "same mesh. 99.9% of the time, this means that FieldWeightedPartitionValues " // & 
+                       "must be on the external mesh."
+          FLExit("FieldWeightedPartitionValues must be on the external mesh")
        end if
 
        call incref(zoltan_global_field_weighted_partition_values)
