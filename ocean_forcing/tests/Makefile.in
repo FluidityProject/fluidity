@@ -69,6 +69,7 @@ unittest: $(TEST_BINARIES)
 %.o:	%.c
 	$(CC) $(CFLAGS) -c $<
 %.o:	%.cpp
+	echo $(CXXFLAGS)
 	$(CXX) $(CXXFLAGS) -c $<
 %: %.cpp
 

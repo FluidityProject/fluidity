@@ -442,6 +442,7 @@ contains
                                             longitude, latitude, height)
     endif
 
+
   end subroutine cartesian_2_lon_lat_height
 
   subroutine cartesian_2_lon_lat_height_c(x, y, z, longitude, latitude, height, &
@@ -467,10 +468,11 @@ contains
     x_f = real(x)
     y_f = real(y)
     z_f = real(z)
+
     referenceRadius_f = real(referenceRadius)
 
     !Convert coordinates
-    call cartesian_2_lon_lat_height(x, y, z, longitude, latitude, height, &
+    call cartesian_2_lon_lat_height(x_f, y_f, z_f, longitude_f, latitude_f, height_f, &
                                         referenceRadius)
 
     !Cast output variables to C-inter-operable types.
