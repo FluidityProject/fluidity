@@ -127,6 +127,8 @@ contains
 
     integer :: i, surface_facets
 
+    if (mesh%name=="CoordinateMesh") return
+
     if(present(nodes)) then
       if(isparallel()) then
         nodes = 0

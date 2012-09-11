@@ -456,7 +456,8 @@ contains
                       ! be 1 in the case where the halo does not cover the
                       ! whole mesh.
                    else
-                      FLAbort("Universal node number mismatch")
+                      return
+                      !FLAbort("Universal node number mismatch")
                    end if
                 end if
                 

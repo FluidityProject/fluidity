@@ -979,7 +979,7 @@ contains
           input_nodes = maxval(ndglno)
        end if
        
-       if (associated(model%halos)) then
+       if (associated(model%halos) .and. mesh%name/="CoordinateMesh") then
           assert(element_halo_count(model) > 0)
           allocate(mesh%halos(size(model%halos)))
 
