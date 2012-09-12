@@ -67,6 +67,15 @@ class Mesh(fluidity_state.Mesh):
     def element_set(self):
         return op2.Set(self.element_count, "%s_elements" % self.name)
 
+    @cached_property
+    def node_set(self):
+        return op2.Set(self.node_count, "%s_nodes" % self.name)
+
+    @cached_property
+    def element_node_map(self):
+        return op2.Map(self.element_set, self.node_set, self.shape.loc, \
+                self.ndglno - 1, "%s_elem_node" % self.name)
+
 class FieldCoefficient(Coefficient):
     """Coefficient derived from a Fluidity field."""
 
