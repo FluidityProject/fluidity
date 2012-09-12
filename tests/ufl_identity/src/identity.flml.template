@@ -100,23 +100,15 @@ This may also depend on development trunk versions of other FEniCS programs.
 
 t = state.scalar_fields["Tracer"]
 
-v = TestFunction(t.element())
-u = TrialFunction(t.element())
+v = TestFunction(t)
+u = TrialFunction(t)
 
 a = v*u*dx
 L = v*t*dx
 
 # Assemble and solve
 
-x = solve(a, L)
-
-# Print solution
-
-#print "Expected solution: %s" % t.field.val
-#print "Computed solution: %s" % x.data
-
-t.field.val = x.data
-state.scalar_fields["Tracer"] = t
+solve(a, t, L)
 </string_value>
         </equation>
         <spatial_discretisation>
