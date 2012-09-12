@@ -841,7 +841,7 @@ contains
     ! Pressure
     if(equation_type==FIELD_EQUATION_INTERNALENERGY) call add_pressurediv_element_cg(ele, test_function, t, &
                                                                                   velocity, pressure, nvfrac, &
-                                                                                  du_t, dnvfrac_t, detwei, rhs_addto)
+                                                                                  du_t, detwei, rhs_addto)
     
     ! Step 4: Insertion
             
@@ -1162,7 +1162,7 @@ contains
     
   end subroutine add_diffusivity_element_cg
   
-  subroutine add_pressurediv_element_cg(ele, test_function, t, velocity, pressure, nvfrac, du_t, dnvfrac_t, detwei, rhs_addto)
+  subroutine add_pressurediv_element_cg(ele, test_function, t, velocity, pressure, nvfrac, du_t, detwei, rhs_addto)
   
     integer, intent(in) :: ele
     type(element_type), intent(in) :: test_function
@@ -1171,23 +1171,15 @@ contains
     type(scalar_field), intent(in) :: pressure
     type(scalar_field), intent(in) :: nvfrac
     real, dimension(ele_loc(velocity, ele), ele_ngi(velocity, ele), mesh_dim(t)), intent(in) :: du_t
-    real, dimension(:, :, :), intent(in) :: dnvfrac_t
     real, dimension(ele_ngi(t, ele)), intent(in) :: detwei
     real, dimension(ele_loc(t, ele)), intent(inout) :: rhs_addto
-    
-    real, dimension(velocity%dim, ele_ngi(t, ele)) :: nvfracgrad_at_quad
-    real, dimension(ele_ngi(t, ele)) :: udotgradnvfrac_at_quad
     
     assert(equation_type==FIELD_EQUATION_INTERNALENERGY)
     assert(ele_ngi(pressure, ele)==ele_ngi(t, ele))
     
     if(multiphase) then
-       ! -p * (div(vfrac*nu)) 
-       nvfracgrad_at_quad = ele_grad_at_quad(nvfrac, ele, dnvfrac_t)
-       udotgradnvfrac_at_quad = sum(nvfracgrad_at_quad*ele_val_at_quad(velocity, ele), 1)
-             
-       rhs_addto = rhs_addto - ( shape_rhs(test_function, ele_div_at_quad(velocity, ele, du_t) * ele_val_at_quad(nvfrac, ele) * ele_val_at_quad(pressure, ele) * detwei) &
-                                 + shape_rhs(test_function, udotgradnvfrac_at_quad * ele_val_at_quad(pressure, ele) * detwei) )
+       ! -p * vfrac * div(nu)
+       rhs_addto = rhs_addto - shape_rhs(test_function, ele_div_at_quad(velocity, ele, du_t) * ele_val_at_quad(pressure, ele) * detwei * ele_val_at_quad(nvfrac, ele))
     else
        rhs_addto = rhs_addto - shape_rhs(test_function, ele_div_at_quad(velocity, ele, du_t) * ele_val_at_quad(pressure, ele) * detwei)
     end if
