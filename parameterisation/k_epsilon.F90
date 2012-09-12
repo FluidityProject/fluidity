@@ -52,7 +52,7 @@ implicit none
   private
 
   ! locally allocatad fields
-  real, save     :: fields_min = 1.0e-10
+  real, save     :: fields_min = 1.0e-11
   logical, save  :: low_Re = .false.                     
 
   public :: keps_advdif_diagnostics, keps_momentum_diagnostics, keps_bcs, &
@@ -155,11 +155,11 @@ subroutine keps_damping_functions(state, advdif)
 
      node_loop: do node = 1, node_count(k)
 
-        if ((node_val(k,node) <= fields_min) .or. &
-             & (node_val(y,node) <= fields_min) .or. &
-             & (node_val(bg_visc,1,1,node) <= fields_min) .or. &
-             & (node_val(density,node) <= fields_min) .or. &
-             & (node_val(eps,node) <= fields_min)) then
+        if (node_val(k,node) <= fields_min .or. &
+             & node_val(y,node) <= fields_min .or. &
+             & node_val(bg_visc,1,1,node) <= fields_min .or. &
+             & node_val(density,node) <= fields_min .or. &
+             & node_val(eps,node) <= fields_min) then
            call set(f_mu, node, 0.0)
            call set(f_1, node, 0.0)
            call set(f_2, node, 0.0)
@@ -167,25 +167,18 @@ subroutine keps_damping_functions(state, advdif)
            cycle node_loop
         end if
 
-        if (node_val(bg_visc,1,1,node) /= 0.0) then
-           if (node_val(eps,node) /= 0.0) then
-              Re_T = (node_val(density,node) * node_val(k,node)**2.0) / &
-                   (node_val(eps,node) * node_val(bg_visc,1,1,node))
-           else 
-              Re_T = 1e5
-           end if
-           R_y = (node_val(density,node) * node_val(k,node)**0.5 * node_val(y,node)) / &
-                node_val(bg_visc,1,1,node)
-        else
-           Re_T = 1e5
-           R_y = 1e5
-        end if
+        Re_T = (node_val(density,node) * node_val(k,node)**2.0) / &
+             (node_val(eps,node) * node_val(bg_visc,1,1,node))
+        R_y = (node_val(density,node) * node_val(k,node)**0.5 * node_val(y,node)) / &
+             node_val(bg_visc,1,1,node)
+        
         rhs = (- exp(- 0.0165*R_y) + 1.0)**2.0 * (20.5/Re_T + 1.0)
         if (rhs > 1.0) then
            call set(f_mu, node, 1.0)
            call set(f_1, node, 1.0)
            call set(f_2, node, 1.0)
-           return
+           
+           cycle node_loop
         end if
         call set(f_mu, node, min(rhs,fields_max))
 
@@ -309,7 +302,7 @@ subroutine keps_calculate_rhs(state)
 
      ! For non-DG we apply inverse mass globally
      if(continuity(fields(1))>=0) then
-        lump_mass = have_option(trim(option_path)//'mass_lumping/lump_mass')
+        lump_mass = have_option(trim(option_path)//'mass_terms/lump_mass')
         do term = 1, 3
            call solve_cg_inv_mass(state, src_abs_terms(term), lump_mass, option_path)           
         end do
@@ -628,7 +621,7 @@ subroutine keps_eddyvisc(state, advdif)
 
   ! For non-DG we apply inverse mass globally
   if(continuity(scalar_eddy_visc)>=0) then
-     lump_mass = have_option(trim(option_path)//'mass_lumping/lump_mass')
+     lump_mass = have_option(trim(option_path)//'mass_terms/lump_mass')
      call solve_cg_inv_mass(state, ev_rhs, lump_mass, option_path)  
   end if
   
@@ -920,7 +913,7 @@ subroutine keps_momentum_source(state)
   ! For non-DG we apply inverse mass globally
   if(continuity(k)>=0) then
      lump_mass = have_option(trim(option_path)//&
-          'mass_lumping/lump_mass')
+          'mass_terms/lump_mass')
      call solve_cg_inv_mass_vector(state, rhs, lump_mass, option_path)  
      call addto(source, rhs)
   end if
@@ -1285,7 +1278,7 @@ subroutine solve_cg_inv_mass(state, A, lump, option_path)
      mass_matrix => get_mass_matrix(state, A%mesh)
      call petsc_solve(x, mass_matrix, A, &
           trim(option_path)//&
-          'mass_lumping/solve_using_mass_matrix/')
+          'mass_terms/use_consistent_mass_matrix/')
      call set(A, x)
      call deallocate(x)
   end if
@@ -1317,7 +1310,7 @@ subroutine solve_cg_inv_mass_vector(state, A, lump, option_path)
      mass_matrix => get_mass_matrix(state, A%mesh)
      call petsc_solve(x, mass_matrix, A, &
           trim(option_path)//&
-          'mass_lumping/solve_using_mass_matrix/')
+          'mass_terms/use_consistent_mass_matrix/')
      call set(A, x)
      call deallocate(x)
   end if
