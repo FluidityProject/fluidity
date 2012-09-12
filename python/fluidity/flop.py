@@ -4,8 +4,10 @@ from pyop2 import ffc_interface, op2
 
 import state_types as fluidity_state
 from state_types import *
+from ufl_expr import *
 
 valuetype = numpy.float64
+op2.init()
 
 class FieldDict(dict):
 
@@ -144,45 +146,4 @@ class TensorField(FieldCoefficient):
         field = fluidity_state.TensorField(n, v, ft, op, dim0, dim1, uid, mesh)
         super(TensorField, self).__init__(field)
 
-def solve(a, L):
-    """Solve LSE a*x = L for x."""
-
-    # FIXME do this only once
-    op2.init(backend='sequential')
-
-    # Generate code for mass and rhs assembly.
-
-    a_code = ffc_interface.compile_form(a, "a")
-    L_code = ffc_interface.compile_form(L, "L")
-
-    a_kernel = op2.Kernel(a_code, "a_cell_integral_0_0" )
-    L_kernel = op2.Kernel(L_code, "l_cell_integral_0_0")
-
-    f = L.compute_form_data().coefficients[0]
-
-    # Set up simulation data structures
-
-    b = f.temporary_dat("b")
-    x = f.temporary_dat("x")
-
-    # Create sparsity and matrix
-
-    sparsity = op2.Sparsity((f.element_node_map, f.element_node_map), \
-            f.value_shape, "%s_sparsity" % f.name)
-    mat = op2.Mat(sparsity, valuetype, "%s_mat" % f.name)
-
-    # Assemble and solve
-    
-    elem_node = f.element_node_map
-    op2.par_loop(a_kernel, f.element_set(3,3),
-                 mat((elem_node[op2.i[0]], elem_node[op2.i[1]]), op2.INC),
-                 a.measures()[0].domain_data().dat(elem_node, op2.READ))
-
-    op2.par_loop(L_kernel, f.element_set,
-                 b(elem_node, op2.INC),
-                 L.measures()[0].domain_data().dat(elem_node, op2.READ),
-                 f.dat(elem_node, op2.READ))
-
-    op2.solve(mat, b, x)
-
-    return x
+from solving import solve
