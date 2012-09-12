@@ -231,8 +231,14 @@ contains
 
        ! Same thing for k_epsilon turbulence model.
        if (trim(bc_type) .eq. "k_epsilon") then
-          ewrite(2,*) "Changing k_epsilon BC type to dirichlet"
-          bc_type = "dirichlet"
+          call get_option(trim(bc_path_i)//"/type::k_epsilon/", bc_type)
+          if (trim(bc_type) .eq. "low_Re" .and. trim(field%name) .eq. "TurbulentDissipation") then
+             ewrite(2,*) "Changing low_Re epsilon BC type to neumann"
+             bc_type = "neumann"
+          else
+             ewrite(2,*) "Changing k_epsilon BC type to dirichlet"
+             bc_type = "dirichlet"
+          end if
        end if
 
        if(have_option(trim(bc_path_i)//"/type[0]/apply_weakly")) then
@@ -614,11 +620,6 @@ contains
         call set_sediment_reentrainment(states(1))
     end if
 
-    if (have_option(trim(states(1)%option_path)//'/subgridscale_parameterisations/k-epsilon')) then
-        ewrite(2,*) "Calling keps_bcs"
-        call keps_bcs(states(1))
-    end if
-
     nphases = size(states)
     do p = 0, nphases-1
 
@@ -656,6 +657,12 @@ contains
                position, shift_time=shift_time)
 
        end do
+       
+       ! Special k-epsilon boundary conditions
+       if (have_option(trim(states(p+1)%option_path)//'/subgridscale_parameterisations/k-epsilon')) then
+          ewrite(2,*) "Calling keps_bcs"
+          call keps_bcs(states(p+1))
+       end if
 
     end do
 
