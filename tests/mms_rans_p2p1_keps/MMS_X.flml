@@ -1147,9 +1147,53 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
+    <scalar_field name="PressureAnalyticalVariation" rank="0">
+      <diagnostic>
+        <algorithm name="scalar_python_diagnostic" material_phase_support="single">
+          <string_value type="code" lines="20" language="python">p=state.scalar_fields["PressureAnalytical"]
+pav=sum(p)/p.node_count
+for n in range(field.node_count):
+	field.set(n,p.node_val(n)-pav)</string_value>
+        </algorithm>
+        <mesh name="ErrorMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="PressureProjectionVariation" rank="0">
+      <diagnostic>
+        <algorithm name="scalar_python_diagnostic" material_phase_support="single">
+          <string_value type="code" lines="20" language="python">p=state.scalar_fields["PressureProjection"]
+pav=sum(p)/p.node_count
+for n in range(field.node_count):
+	field.set(n,p.node_val(n)-pav)</string_value>
+        </algorithm>
+        <mesh name="ErrorMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
     <scalar_field name="PressureError" rank="0">
       <diagnostic>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="PressureProjection" source_field_2_name="PressureAnalytical" material_phase_support="single" source_field_1_type="scalar">
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="PressureProjectionVariation" source_field_2_name="PressureAnalyticalVariation" material_phase_support="single" source_field_1_type="scalar">
           <absolute_difference/>
         </algorithm>
         <mesh name="ErrorMesh"/>

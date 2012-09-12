@@ -7,7 +7,7 @@ def v(X):
     return X[1]*sin(X[0])
 
 def p(X):
-    return sin(X[0]*X[1]/pi) + sin(X[0]) + cos(X[1]) - 1.00
+    return sin(X[0]*X[1]/pi) + sin(X[0]) + 0.400*sin(0.700*X[1]) + 0.266666666666667*cos(0.800*X[0]*X[1]/pi) + 0.600*cos(0.600*X[0]) + cos(X[1]) - 0.400
 
 def rho(X):
     return 3.70*sin(1.30*X[0]*X[1]/pi) - 1.80*sin(1.70*X[0]) - 1.30*cos(2.10*X[1]) + 5.20

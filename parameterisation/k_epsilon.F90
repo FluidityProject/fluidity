@@ -83,7 +83,7 @@ subroutine keps_momentum_diagnostics(state)
   
   call keps_damping_functions(state, advdif=.false.)
   call keps_eddyvisc(state, advdif=.false.)
-  call keps_momentum_source(state)
+  ! call keps_momentum_source(state)
 
 end subroutine keps_momentum_diagnostics
 
