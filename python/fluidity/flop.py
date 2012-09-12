@@ -70,10 +70,10 @@ class Mesh(fluidity_state.Mesh):
 class FieldCoefficient(Coefficient):
     """Coefficient derived from a Fluidity field."""
 
-    def __init__(self, field):
+    def __init__(self, field, element=None, count=None):
         field.rank = field2rank[field.description]
         self._field = field
-        super(FieldCoefficient, self).__init__(ufl_element(field))
+        super(FieldCoefficient, self).__init__(element or ufl_element(field), count)
 
     @property
     def field(self):
@@ -112,6 +112,10 @@ class FieldCoefficient(Coefficient):
     def temporary_dat(self, name):
         return op2.Dat(self.node_set, self.value_shape, \
                 numpy.zeros(self.field.node_count), valuetype, name)
+
+    def _reconstruct(self, element, count):
+        # This code is class specific
+        return FieldCoefficient(self._field, element, count)
 
 class ScalarField(FieldCoefficient):
 
