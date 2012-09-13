@@ -33,6 +33,7 @@ module adjoint_controls
   use boundary_conditions
   use spud
   use state_module
+  use python_utils
   use python_state
 
     implicit none

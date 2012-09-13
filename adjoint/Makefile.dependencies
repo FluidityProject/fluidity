@@ -5,7 +5,8 @@
 Adjoint_Controls.o ../include/adjoint_controls.mod: Adjoint_Controls.F90 \
    ../include/boundary_conditions.mod ../include/fdebug.h \
    ../include/fields.mod ../include/global_parameters.mod \
-   ../include/python_state.mod ../include/spud.mod ../include/state_module.mod
+   ../include/python_state.mod ../include/python_utils.mod ../include/spud.mod \
+   ../include/state_module.mod
 
 ../include/adjoint_functional_evaluation.mod: Adjoint_Functional_Evaluation.o
 	@true
