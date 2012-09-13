@@ -118,6 +118,10 @@ module advection_diffusion_cg
   logical :: move_mesh
   ! Include porosity?
   logical :: include_porosity
+  ! Include the heat flux term? (InternalEnergy equation only)
+  logical :: include_heatflux
+  ! Is this material_phase compressible?
+  logical :: compressible = .false.
   ! Are we running a multiphase flow simulation?
   logical :: multiphase
 
@@ -251,6 +255,9 @@ contains
 
     ! Porosity field
     type(scalar_field) :: porosity_theta
+    
+    ! For the heat flux term
+    real :: k, C_v
         
     !! Coloring  data structures for OpenMP parallization
     type(integer_set), dimension(:), pointer :: colours
@@ -519,19 +526,27 @@ contains
       olddensity=>extract_scalar_field(state, "Old"//trim(density_name))
       ewrite_minmax(olddensity)
       
-      if(.not.multiphase .or. have_option('/material_phase::'//trim(state%name)//&
-         &'/equation_of_state/compressible')) then         
-         call get_option(trim(density%option_path)//"/prognostic/temporal_discretisation/theta", &
-                        density_theta)
+      if(.not.multiphase .or. have_option(trim(state%option_path)//'/equation_of_state/compressible')) then         
+         call get_option(trim(density%option_path)//"/prognostic/temporal_discretisation/theta", density_theta)
+         compressible = .true.
       else
          ! Since the particle phase is always incompressible then its Density
          ! will not be prognostic. Just use a fixed theta value of 1.0.
          density_theta = 1.0
+         compressible = .false.
       end if
                       
       pressure=>extract_scalar_field(state, "Pressure")
       ewrite_minmax(pressure)
-
+      
+      if(have_option(trim(t%option_path)//'/prognostic/equation[0]/density[0]/heat_flux_term')) then
+         include_heatflux = .true.
+         call get_option(trim(t%option_path)//'/prognostic/equation[0]/density[0]/heat_flux_term/effective_conductivity', k)
+         call get_option(trim(t%option_path)//'/prognostic/equation[0]/density[0]/heat_flux_term/specific_heat', C_v)
+      else
+         include_heatflux = .false.
+      end if
+      
     case default
       FLExit("Unknown field equation type for cg advection diffusion.")
     end select
@@ -571,7 +586,7 @@ contains
               positions, old_positions, new_positions, &
               velocity, grid_velocity, &
               source, absorption, diffusivity, &
-              density, olddensity, pressure, porosity_theta, nvfrac, &
+              density, olddensity, pressure, porosity_theta, k, C_v, nvfrac, &
               supg_element(thread_num+1))
       end do element_loop
       !$OMP END DO
@@ -687,7 +702,7 @@ contains
                                       positions, old_positions, new_positions, &
                                       velocity, grid_velocity, &
                                       source, absorption, diffusivity, &
-                                      density, olddensity, pressure, porosity_theta, nvfrac, supg_shape)
+                                      density, olddensity, pressure, porosity_theta, k, C_v, nvfrac, supg_shape)
     integer, intent(in) :: ele
     type(scalar_field), intent(in) :: t
     type(csr_matrix), intent(inout) :: matrix
@@ -703,6 +718,7 @@ contains
     type(scalar_field), intent(in) :: olddensity
     type(scalar_field), intent(in) :: pressure
     type(scalar_field), intent(in) :: porosity_theta
+    real :: k, C_v
     type(scalar_field), intent(in) :: nvfrac
     type(element_type), intent(inout) :: supg_shape
 
@@ -839,9 +855,14 @@ contains
     end if
     
     ! Pressure
-    if(equation_type==FIELD_EQUATION_INTERNALENERGY) call add_pressurediv_element_cg(ele, test_function, t, &
+    if(equation_type==FIELD_EQUATION_INTERNALENERGY .and. compressible) call add_pressurediv_element_cg(ele, test_function, t, &
                                                                                   velocity, pressure, nvfrac, &
                                                                                   du_t, detwei, rhs_addto)
+                                                                                  
+    ! Heat flux
+    if(equation_type==FIELD_EQUATION_INTERNALENERGY .and. include_heatflux) call add_heatflux_element_cg(ele, test_function, t, du_t, &
+                                                                                  nvfrac, k, C_v, detwei, matrix_addto, rhs_addto)
+                                                                                  
     
     ! Step 4: Insertion
             
@@ -1185,6 +1206,39 @@ contains
     end if
     
   end subroutine add_pressurediv_element_cg
+  
+  subroutine add_heatflux_element_cg(ele, test_function, t, dt_t, nvfrac, K, C_v, detwei, matrix_addto, rhs_addto)
+  
+    integer, intent(in) :: ele
+    type(element_type), intent(in) :: test_function
+    type(scalar_field), intent(in) :: t
+    real, dimension(ele_loc(t, ele), ele_ngi(t, ele), mesh_dim(t)), intent(in) :: dt_t
+    type(scalar_field), intent(in) :: nvfrac
+    real, intent(in) :: K, C_v
+    real, dimension(ele_ngi(t, ele)), intent(in) :: detwei
+    real, dimension(ele_loc(t, ele), ele_loc(t, ele)), intent(inout) :: matrix_addto
+    real, dimension(ele_loc(t, ele)), intent(inout) :: rhs_addto
+        
+    real, dimension(ele_loc(t, ele), ele_loc(t, ele)) :: heatflux_mat
+    
+    assert(equation_type==FIELD_EQUATION_INTERNALENERGY)
+    assert(ele_ngi(pressure, ele)==ele_ngi(t, ele))
+    
+    if(multiphase) then
+       ! -div(vfrac * q) = -div(vfrac * K * grad(ie)/C_v)
+       ! where K is the effective conductivity
+       ! ie is the internal energy
+       ! C_v is the specific heat at constant volume, needed to convert the temperature to internal energy
+       heatflux_mat = dshape_dot_dshape(dt_t, dt_t, detwei * K * ele_val_at_quad(nvfrac, ele) / C_v )
+    else
+       heatflux_mat = dshape_dot_dshape(dt_t, dt_t, detwei * K / C_v )
+    end if
+    
+    if(abs(dt_theta) > epsilon(0.0)) matrix_addto = matrix_addto - dt_theta * heatflux_mat
+    
+    rhs_addto = rhs_addto + matmul(heatflux_mat, ele_val(t, ele))
+    
+  end subroutine add_heatflux_element_cg
   
   subroutine assemble_advection_diffusion_face_cg(face, bc_type, t, t_bc, t_bc_2, matrix, rhs, positions, velocity, grid_velocity, density, olddensity, nvfrac)
     integer, intent(in) :: face

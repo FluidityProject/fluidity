@@ -2025,17 +2025,16 @@ scalar_equation_choice =
             attribute name { "ReducedConservationOfMass" },
             equation_coefficients
          }|
-         ## ***UNDER TESTING***
-         ##
          ## Select the equation used to solve for this field.
          ## Internal Energy equation - requires the selection of a Density field.
-         ## ONLY WORKS FOR CONTROL VOLUME DISCRETISATIONS
+         ## ONLY WORKS FOR CG and CV DISCRETISATIONS
          ## Solve the internal energy equation for this field.
          ## Requires pressure and velocity fields to be present.
          ## Uses a nonconservative time discretisation.
          element equation {
             attribute name { "InternalEnergy" },
-            equation_coefficients
+            equation_coefficients,
+            heatflux_coefficients?
          }|
          ## Option to solve for electrical potential from
          ## electrokinetic, electrochemical or electrothermal sources 
@@ -2068,6 +2067,23 @@ equation_coefficients =
       element density {
         attribute name { string },
         coefficient_discretisation_options?
+      }
+   )
+   
+heatflux_coefficients =
+   (
+      ## Adds the heat flux term: -div(q) = -div(K * grad(ie)/C_v)
+      ## K = Effective conductivity
+      ## C_v = Specific heat (at constant volume)
+      element heat_flux_term {
+        ## Effective conductivity, K
+        element effective_conductivity {
+          real
+        },
+        ## The specific heat (at constant volume), C_v
+        element specific_heat {
+          real
+        }
       }
    )
 

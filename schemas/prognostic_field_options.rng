@@ -2493,11 +2493,9 @@ MaterialDensity (Advection) equations in compressible multimaterial simulations.
         <ref name="equation_coefficients"/>
       </element>
       <element name="equation">
-        <a:documentation>***UNDER TESTING***
-
-Select the equation used to solve for this field.
+        <a:documentation>Select the equation used to solve for this field.
 Internal Energy equation - requires the selection of a Density field.
-ONLY WORKS FOR CONTROL VOLUME DISCRETISATIONS
+ONLY WORKS FOR CG and CV DISCRETISATIONS
 Solve the internal energy equation for this field.
 Requires pressure and velocity fields to be present.
 Uses a nonconservative time discretisation.</a:documentation>
@@ -2505,6 +2503,9 @@ Uses a nonconservative time discretisation.</a:documentation>
           <value>InternalEnergy</value>
         </attribute>
         <ref name="equation_coefficients"/>
+        <optional>
+          <ref name="heatflux_coefficients"/>
+        </optional>
       </element>
       <element name="equation">
         <a:documentation>Option to solve for electrical potential from
@@ -2552,6 +2553,21 @@ Whatever field is selected must be present.</a:documentation>
         </optional>
       </element>
     </choice>
+  </define>
+  <define name="heatflux_coefficients">
+    <element name="heat_flux_term">
+      <a:documentation>Adds the heat flux term: -div(q) = -div(K * grad(ie)/C_v)
+K = Effective conductivity
+C_v = Specific heat (at constant volume)</a:documentation>
+      <element name="effective_conductivity">
+        <a:documentation>Effective conductivity, K</a:documentation>
+        <ref name="real"/>
+      </element>
+      <element name="specific_heat">
+        <a:documentation>The specific heat (at constant volume), C_v</a:documentation>
+        <ref name="real"/>
+      </element>
+    </element>
   </define>
   <define name="coefficient_discretisation_options">
     <element name="discretisation_options">
