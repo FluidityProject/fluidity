@@ -945,7 +945,8 @@ contains
     if (present(diffusion_m)) call zero(diffusion_m)
     if (present(diffusion_RHS)) call zero(diffusion_RHS)
     if (have_buoyancy_adjustment_by_vertical_diffusion) then
-      if (have_option(trim(T%option_path)//"/prognostic/buoyancy_adjustment"&
+      ewrite(3,*) "Buoyancy adjustment by vertical mixing: enabled"
+      if (have_option(trim(T%option_path)//"/prognostic/buoyancy_adjustment"//&
           &"/by_vertical_diffusion/project_buoyancy_to_continuous_space")) then    
         buoyancy_from_state = extract_scalar_field(state, "VelocityBuoyancyDensity", stat)
         if (stat/=0) FLAbort('Error extracting buoyancy field.')
@@ -958,6 +959,7 @@ contains
         call lumped_mass_galerkin_projection_scalar(state, buoyancy, buoyancy_from_state)
         ewrite(3,*) "Buoyancy adjustment by vertical mixing: projecting to continuous space"
       else
+        ewrite(3,*) "Buoyancy adjustment by vertical mixing: no projection"
         buoyancy = extract_scalar_field(state, "VelocityBuoyancyDensity", stat)
         if (stat/=0) FLAbort('Error extracting buoyancy field.')
         call incref(buoyancy)
