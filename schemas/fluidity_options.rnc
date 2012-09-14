@@ -1209,9 +1209,11 @@ start =
                      }
                   }?,
                   ## VLES Filter function (diagnostic).
+                  ## Run a VLES by switching this option on.
+                  ## If so then filtering is applied to the eddy viscosity.
                   element scalar_field {
                      attribute rank { "0" },
-                     attribute name { "Filter" },
+                     attribute name { "VLESFilter" },
                      (
                         element diagnostic {
                            internal_algorithm,
@@ -1219,11 +1221,6 @@ start =
                            diagnostic_scalar_field
                         }
                      )
-                  },
-                  ## Select whether this is a VLES or not,
-                  ## if so then apply LES filtering to the equations.
-                  element vles {
-                     empty
                   }?,
                   ## Eddy-viscosity coefficient: nu_T = density * C_mu * k**2 / epsilon.
                   ## Recommended value (default): 0.09.

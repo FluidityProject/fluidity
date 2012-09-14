@@ -1553,25 +1553,22 @@ Elias et al 2007: "Simple finite element-based computation of distance functions
                       </element>
                     </element>
                   </optional>
-                  <element name="scalar_field">
-                    <a:documentation>VLES Filter function (diagnostic).</a:documentation>
-                    <attribute name="rank">
-                      <value>0</value>
-                    </attribute>
-                    <attribute name="name">
-                      <value>Filter</value>
-                    </attribute>
-                    <element name="diagnostic">
-                      <ref name="internal_algorithm"/>
-                      <ref name="velocity_mesh_choice"/>
-                      <ref name="diagnostic_scalar_field"/>
-                    </element>
-                  </element>
                   <optional>
-                    <element name="vles">
-                      <a:documentation>Select whether this is a VLES or not,
-if so then apply LES filtering to the equations.</a:documentation>
-                      <empty/>
+                    <element name="scalar_field">
+                      <a:documentation>VLES Filter function (diagnostic).
+Run a VLES by switching this option on.
+If so then filtering is applied to the eddy viscosity.</a:documentation>
+                      <attribute name="rank">
+                        <value>0</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>VLESFilter</value>
+                      </attribute>
+                      <element name="diagnostic">
+                        <ref name="internal_algorithm"/>
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="diagnostic_scalar_field"/>
+                      </element>
                     </element>
                   </optional>
                   <element name="C_mu">
