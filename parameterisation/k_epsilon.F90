@@ -98,7 +98,7 @@ subroutine keps_damping_functions(state, advdif)
   type(scalar_field) :: k, eps
   type(tensor_field), pointer :: bg_visc
   integer :: node, stat
-  real :: rhs, Re_T, R_y, fields_max
+  real :: f_mu_val, f_1_val, f_2_val, Re_T, R_y, fields_max
   character(len=FIELD_NAME_LEN) :: equation_type
   character(len=OPTION_PATH_LEN) :: option_path
 
@@ -155,38 +155,33 @@ subroutine keps_damping_functions(state, advdif)
 
      node_loop: do node = 1, node_count(k)
 
-        if (node_val(k,node) <= fields_min .or. &
-             & node_val(y,node) <= fields_min .or. &
-             & node_val(bg_visc,1,1,node) <= fields_min .or. &
-             & node_val(density,node) <= fields_min .or. &
-             & node_val(eps,node) <= fields_min) then
-           call set(f_mu, node, 0.0)
-           call set(f_1, node, 0.0)
-           call set(f_2, node, 0.0)
+        ! calc of damping values with error catching
+        if (node_val(bg_visc,1,1,node) <= fields_min) then
+           f_mu_val = 1.0
+           f_1_val = 1.0
+           f_2_val = 1.0
+        else if (node_val(eps,node) <= fields_min) then
+           R_y = (node_val(density,node) * node_val(k,node)**0.5 * node_val(y,node)) / &
+                node_val(bg_visc,1,1,node)
 
-           cycle node_loop
+           f_mu_val = (1.0 - exp(- 0.0165*R_y))**2.0
+           f_1_val = (0.05/node_val(f_mu,node))**3.0 + 1.0
+           f_2_val = 1.0        
+        else 
+           Re_T = (node_val(density,node) * node_val(k,node)**2.0) / &
+                (node_val(eps,node) * node_val(bg_visc,1,1,node))
+           R_y = (node_val(density,node) * node_val(k,node)**0.5 * node_val(y,node)) / &
+                node_val(bg_visc,1,1,node)
+
+           f_mu_val = (1.0 - exp(- 0.0165*R_y))**2.0 * (20.5/Re_T + 1.0)
+           f_1_val = (0.05/node_val(f_mu,node))**3.0 + 1.0
+           f_2_val = 1.0 - exp(- Re_T**2.0)
         end if
 
-        Re_T = (node_val(density,node) * node_val(k,node)**2.0) / &
-             (node_val(eps,node) * node_val(bg_visc,1,1,node))
-        R_y = (node_val(density,node) * node_val(k,node)**0.5 * node_val(y,node)) / &
-             node_val(bg_visc,1,1,node)
-        
-        rhs = (- exp(- 0.0165*R_y) + 1.0)**2.0 * (20.5/Re_T + 1.0)
-        if (rhs > 1.0) then
-           call set(f_mu, node, 1.0)
-           call set(f_1, node, 1.0)
-           call set(f_2, node, 1.0)
-           
-           cycle node_loop
-        end if
-        call set(f_mu, node, min(rhs,fields_max))
-
-        rhs = (0.05/node_val(f_mu,node))**3.0 + 1.0
-        call set(f_1, node, min(rhs,fields_max))
-
-        rhs = -exp(- Re_T**2.0) + 1.0
-        call set(f_2, node, min(rhs,fields_max))       
+        ! limit values of damping functions
+        call set(f_mu, node, min(f_mu_val, 1.0))
+        call set(f_1, node, min(f_1_val, fields_max))
+        call set(f_2, node, min(f_2_val, fields_max))       
         
      end do node_loop
 
