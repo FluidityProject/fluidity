@@ -45,23 +45,23 @@ dimloc2cell = {1: {1: 'vertex', 2: 'interval'},
 
 type2family = {'lagrangian': 'Lagrange'}
 
-def ufl_cell(shape):
+def ufl_cell(element):
     try:
-        return dimloc2cell[shape.dimension][shape.quadrature.loc]
+        return dimloc2cell[element.dimension][element.quadrature.loc]
     except KeyError:
         raise RuntimeError("Elements of dimension %d and loc %d are not suppported" \
-                % (shape.dimension, shape.loc))
+                % (element.dimension, element.loc))
 
 def ufl_family(field):
     try:
         return "%s%s" % ("Discontinuous " if field.mesh.continuity < 0 else "", \
-                         type2family[field.shape().type])
+                         type2family[field.fluidity_element.type])
     except KeyError:
-        raise RuntimeError("Elements of type %s are not supported" % field.shape().type)
+        raise RuntimeError("Elements of type %s are not supported" % field.fluidity_element.type)
 
 def ufl_element(field):
-    s = field.shape()
-    return field2element[field.description](ufl_family(field), ufl_cell(s), s.degree)
+    e = field.fluidity_element
+    return field2element[field.description](ufl_family(field), ufl_cell(e), e.degree)
 
 class Mesh(fluidity_state.Mesh):
 
@@ -81,69 +81,76 @@ class Mesh(fluidity_state.Mesh):
 class FieldCoefficient(Coefficient):
     """Coefficient derived from a Fluidity field."""
 
-    def __init__(self, field, element=None, count=None):
-        field.rank = field2rank[field.description]
-        self._field = field
-        super(FieldCoefficient, self).__init__(element or ufl_element(field), count)
-
-    @property
-    def field(self):
-        return self._field
-
-    @property
-    def mesh(self):
-        return self.field.mesh
-
-    @property
-    def name(self):
-        return self.field.name
-
     @property
     def value_shape(self):
-        return (self.field.mesh.shape.dimension,)*self.field.rank or 1
+        return (self.mesh.shape.dimension,)*self.rank() or 1
 
     @property
     def element_set(self):
-        return self.field.mesh.element_set
+        return self.mesh.element_set
 
     @cached_property
     def node_set(self):
-        return op2.Set(self.field.node_count, "%s_nodes" % self.name)
+        return op2.Set(self.node_count, "%s_nodes" % self.name)
 
     @cached_property
     def dat(self):
         return op2.Dat(self.node_set, self.value_shape, \
-                self.field.val, valuetype, self.name)
+                self.val, valuetype, self.name)
 
     @cached_property
     def element_node_map(self):
-        return op2.Map(self.field.mesh.element_set, self.node_set, self.field.mesh.shape.loc, \
-                self.field.mesh.ndglno - 1, "%s_elem_node" % self.name)
+        return op2.Map(self.mesh.element_set, self.node_set, self.mesh.shape.loc, \
+                self.mesh.ndglno - 1, "%s_elem_node" % self.name)
 
     def temporary_dat(self, name):
         return op2.Dat(self.node_set, self.value_shape, \
-                numpy.zeros(self.field.node_count), valuetype, name)
+                numpy.zeros(self.node_count), valuetype, name)
+
+class ScalarField(FieldCoefficient, fluidity_state.ScalarField):
+
+    def __init__(self,n,v,ft,op,uid,mesh=None,element=None,count=None):
+        fluidity_state.ScalarField.__init__(self, n, v, ft, op, uid, mesh)
+        FieldCoefficient.__init__(self, element or ufl_element(self), count)
+
+    @property
+    def fluidity_element(self):
+        return fluidity_state.ScalarField.shape(self)
 
     def _reconstruct(self, element, count):
         # This code is class specific
-        return FieldCoefficient(self._field, element, count)
+        return ScalarField(self.name, self.val, self.field_type, self.option_path,
+                self.uid, self.mesh, element, count)
 
-class ScalarField(FieldCoefficient):
+class VectorField(FieldCoefficient, fluidity_state.VectorField):
 
-    def __init__(self,n,v,ft,op,uid,mesh=None):
-        field = fluidity_state.ScalarField(n, v, ft, op, uid, mesh)
-        super(ScalarField, self).__init__(field)
+    def __init__(self,n,v,ft,op,dim,uid,mesh=None,element=None,count=None):
+        fluidity_state.VectorField.__init__(self, n, v, ft, op, dim, uid, mesh)
+        FieldCoefficient.__init__(self, element or ufl_element(self), count)
 
-class VectorField(FieldCoefficient):
+    @property
+    def fluidity_element(self):
+        return fluidity_state.VectorField.shape(self)
 
-    def __init__(self,n,v,ft,op,dim,uid,mesh=None):
-        field = fluidity_state.VectorField(n, v, ft, op, dim, uid, mesh)
-        super(VectorField, self).__init__(field)
+    def _reconstruct(self, element, count):
+        # This code is class specific
+        return VectorField(self.name, self.val, self.field_type, self.option_path,
+                self.dimension, self.uid, self.mesh, element, count)
 
-class TensorField(FieldCoefficient):
+class TensorField(FieldCoefficient, fluidity_state.TensorField):
 
-    def __init__(self,n,v,ft,op,dim0,dim1,uid,mesh=None):
-        field = fluidity_state.TensorField(n, v, ft, op, dim0, dim1, uid, mesh)
-        super(TensorField, self).__init__(field)
+    def __init__(self,n,v,ft,op,dim0,dim1,uid,mesh=None,element=None,count=None):
+        fluidity_state.TensorField.__init__(self, n, v, ft, op, dim0, dim1, uid, mesh)
+        FieldCoefficient.__init__(self, element or ufl_element(self), count)
+
+    @property
+    def fluidity_element(self):
+        return fluidity_state.TensorField.shape(self)
+
+    def _reconstruct(self, element, count):
+        # This code is class specific
+        return TensorField(self.name, self.val, self.field_type, self.option_path,
+                self.dimension[0], self.dimension[1], self.uid,
+                self.mesh, element, count)
 
 from solving import solve

@@ -151,8 +151,8 @@ def _la_solve(A, x, b, solver="cg", preconditioner="jacobi"):
     op2.solve(mat, b, x.dat)
 
     # Update the field value with the new data
-    for n in xrange(x.field.node_count):
-        x.field.set(n, x.dat.data[n])
+    for n in xrange(x.node_count):
+        x.set(n, x.dat.data[n])
 
 
 # Solve function handles both linear systems and variational problems
