@@ -162,25 +162,7 @@ contains
     ! k-epsilon momentum diagnostics (reynolds stress tensor)
     if(have_option(trim(state(istate)%option_path)//&
          "/subgridscale_parameterisations/k-epsilon")) then
-
        call keps_momentum_diagnostics(state(istate))
-
-       ! ! Allow for prescribed momentum source
-       ! ! This has to be done here as it depends upon a subroutine in preprocessor
-       ! ! k_epsilon is built before preprocessor but diagnostics is built after
-       ! vfield => extract_vector_field(state(istate), "VelocitySource", stat)
-       
-       ! if (stat==0) then
-       !    if (have_option(trim(vfield%option_path)//'/prescribed/')) then
-       !       x => extract_vector_field(state(istate), "Coordinate")
-       !       call allocate(prescribed_source, vfield%dim, vfield%mesh, name='PrescribedSource')
-       !       call initialise_field_over_regions(prescribed_source, &
-       !            trim(vfield%option_path)//'/prescribed/value', x)
-       !       call addto(vfield, prescribed_source)
-       !       call deallocate(prescribed_source)
-       !    end if
-       ! end if
-
     end if
 
     ewrite(1,*) 'Exiting calculate_momentum_diagnostics'
