@@ -956,6 +956,7 @@ contains
         ! Grab an extra reference to cause the deallocate below to be safe.
         ! Check this is OK
         call lumped_mass_galerkin_projection_scalar(state, buoyancy, buoyancy_from_state)
+        ewrite(3,*) "Buoyancy adjustment by vertical mixing: projecting to continuous space"
       else
         buoyancy = extract_scalar_field(state, "VelocityBuoyancyDensity", stat)
         if (stat/=0) FLAbort('Error extracting buoyancy field.')
