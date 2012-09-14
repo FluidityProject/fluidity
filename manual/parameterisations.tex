@@ -327,18 +327,18 @@ the direction of the flow with respect to gravity.  This is approximated to be:
 where $u_z$ is the magnitude of the velocity in the same direction as gravity and $u_{xy}$
 is the magnitude of the velocity in all other directions.
 
-Note that the destruction term in \ref{eq:k} and the production and destruction terms in
-\ref{eq:eps} contain the fraction $\epsilon/k$, which is calculated at the previous
-iteration so that these terms have a mixed time discretisation.  The effect is to decouple
-and linearise the equations, which improves the robustness of the model, as proposed in
-\cite{kuzmin2007}.
+The last term in equations \ref{eq:R_tensor_compressible} and \ref{eq:R_tensor_incompressible} is not added explicitly. This term is determined during the conservation equation solve and is absorbed into the calculated pressure gradient. This means that the pressure gradient calculated by the model is actually:
+\begin{equation}\label{eq:Modified_pressure}
+  \nabla p' = \nabla \left( p + \frac{2}{3} k \right).
+\end{equation}
+The pressure field will therefore no longer be the pressure, but instead a modified pressure $p'$. The real pressure can be obtained by subtracting $\frac{2}{3} k$.
 
-%% A turbulence length scale is associated with the dissipation of turbulent kinetic
-%% energy by the subgrid scale motions:
+A turbulence length scale is associated with the dissipation of turbulent kinetic
+energy by the subgrid scale motions:
 
-%% \begin{equation}\label{lengthscale}
-%% l = \frac{k^{3/2}}{\epsilon}.
-%% \end{equation}
+\begin{equation}\label{lengthscale}
+l = \frac{k^{3/2}}{\epsilon}.
+\end{equation}
 
 The five model coefficients are in Table \ref{tab:kepsco}. These are the default values
 but they can be changed in Diamond.
@@ -411,9 +411,8 @@ where:
 \end{equation}
 Additionally:
 \begin{itemize}
-\item $f_\mu$ is limited to a maximum value of 1.0. Where this limit is reached, $f_1$ and
-  $f_2$ are set to 1.0.
-\item For stability, $f_1$ is limited to a value set under
+\item $f_\mu$ is limited to a maximum value of 1.0.
+\item For stability, $f_1$ and $f_2$ are limited to a value set under
   \option{\ldots/max\_damping\_value/}.
 \end{itemize}
 
