@@ -44,11 +44,17 @@ implicit none
 
 contains
 
-  subroutine prepare_hydrostatic_projection(state, surface_p, surface_old_p, lumped_cmc_m, get_cmc_m)
+  subroutine prepare_hydrostatic_projection(state, surface_p, surface_old_p, lumped_cmc_m, reassemble_cmc_m)
+    !!< prepare_hydrostatic_projection consists of the following steps:
+    !!< * create the surface pressure mesh, a prolongator between the surface and full mesh and a sparsity for the lumped pressure matrix if not yet present in state. 
+    !!<     Also allocate and insert the lumped pressure matrix if not in state yet.
+    !!< * remap Pressure and OldPressure to SurfacePressure and SurfaceOldPressure on the surface_mesh
+    !!< * Return a pointer to the lumped pressure matrix lumped_cmc_m, and to the SurfacePressure and SurfaceOldPressure fields, and return a logical that tells whether
+    !!<   the lumped_cmc_m has been allocated anew (and should therefore be reassembled).
     type(state_type), intent(inout):: state
     type(scalar_field), intent(out):: surface_p, surface_old_p
     type(csr_matrix), pointer:: lumped_cmc_m
-    logical, intent(out):: get_cmc_m
+    logical, intent(out):: reassemble_cmc_m
     
     type(vector_field), pointer:: positions, vertical_normal
     type(scalar_field), pointer:: topdis, p, old_p
@@ -89,7 +95,7 @@ contains
       vertical_normal => extract_vector_field(state, "GravityDirection")
 
       assert(.not. has_csr_matrix(state, "HydrostaticProlongator"))
-      ! note, have to provide surface_mesh to ensure from_mesh of the prolongator uses same node ordering
+      ! note: have to provide surface_mesh to ensure from_mesh of the prolongator uses same node ordering
       prolongator = VerticalProlongationOperator( &
            p_mesh, positions, vertical_normal, surface_element_list, &
            surface_mesh=surface_p_mesh)
@@ -116,12 +122,12 @@ contains
       call deallocate(local_lumped_cmc_m)
       call deallocate(pcmc_sparsity)
       call deallocate(pcmcp_sparsity)
-      get_cmc_m = .true.
+      reassemble_cmc_m = .true.
       
       
     else
        
-      get_cmc_m = .false.
+      reassemble_cmc_m = .false.
             
     end if
     
@@ -139,12 +145,15 @@ contains
     
   end subroutine prepare_hydrostatic_projection
   
-  subroutine get_lumped_continuity_equation(state, lumped_p_mesh, ct_m, ct_rhs, get_ct_m, lumped_ct_m, lumped_ct_rhs)
+  subroutine get_lumped_continuity_equation(state, lumped_p_mesh, ct_m, ct_rhs, reassemble_ct_m, lumped_ct_m, lumped_ct_rhs)
+    !!< Computes the lumped version of ct_m (depth integrated divergence operator) as : lumped_ct_m = P^T * ct_m,
+    !!< where P is the prolongator from the surface to the full pressure mesh, and * is a matrix-matrix multiply.
+    !!< The lumped_ct_rhs is simply the mat-vec: P^T * ct_rhs
     type(state_type), intent(inout):: state
     type(mesh_type), intent(inout):: lumped_p_mesh
     type(block_csr_matrix), intent(in):: ct_m
     type(scalar_field), intent(in):: ct_rhs
-    logical, intent(in):: get_ct_m
+    logical, intent(in):: reassemble_ct_m
     type(block_csr_matrix), pointer:: lumped_ct_m
     type(scalar_field), intent(out):: lumped_ct_rhs
       
@@ -153,8 +162,8 @@ contains
     logical:: compute_lumped_ct_m
     
     ! compute or retreive the lumped version of the divergence matrix
-    ! if ct_m hasn't changed (get_ct_m==.false.) we should be able to reuse the one cached in state
-    compute_lumped_ct_m = get_ct_m
+    ! if ct_m hasn't changed (reassemble_ct_m==.false.) we should be able to reuse the one cached in state
+    compute_lumped_ct_m = reassemble_ct_m
     
     prolongator => extract_csr_matrix(state, "HydrostaticProlongator")
     
@@ -192,19 +201,17 @@ contains
     
   end subroutine get_lumped_continuity_equation
     
-  subroutine reconstruct_vertical_velocities(state, u, full_ct_m, full_ct_rhs, get_ct_m)
+  subroutine reconstruct_vertical_velocities(state, u, full_ct_m, full_ct_rhs)
     type(state_type), intent(inout):: state
     type(vector_field), intent(inout):: u
     type(block_csr_matrix), intent(in):: full_ct_m
     type(scalar_field):: full_ct_rhs
-    logical, intent(in):: get_ct_m
 
     type(mesh_type), pointer:: p_mesh, l_mesh
     type(scalar_field), pointer:: bottom_distance
     type(vector_field), pointer:: gravity_normal, positions
-    type(scalar_field):: inter_column
     type(vector_field):: ugravity_normal
-    type(integer_set):: column_nodes
+    real, dimension(:), allocatable:: facet_rhs
     real, dimension(u%dim):: uvec, unorm
     integer, dimension(:) ,pointer:: surface_element_list
     integer :: i, sele, ele, c
@@ -237,7 +244,8 @@ contains
       call set(u, i, uvec - dot_product(unorm,uvec)*unorm)
     end do
 
-    call allocate(inter_column, p_mesh, "InterColumnFaceIntegrals")
+    ! this routine only works for PnDGPn+1 with constant n
+    allocate(facet_rhs(face_loc(p_mesh,1)))
 
     ! we start from the bottom - its surface mesh is stored as a boundary condition under "DistanceToBottom"
     bottom_distance => extract_scalar_field(state, "DistanceToBottom")
@@ -246,21 +254,18 @@ contains
     c=0 ! count the elements we've visited
     do i=1, size(surface_element_list)
       sele = surface_element_list(i)
-      call zero(inter_column)
-      ! the set of velocity nodes in this column, we've solved already:
-      call allocate(column_nodes)
+      facet_rhs = 0.0
       do
         ele=face_ele(p_mesh, sele)
         ! solve the velocities in the element ele above sele
         ! this routine returns the sele that faces the element above
         ! or returns sele=-1 if we've reached the top
-        call vertical_reconstruction_ele(column_nodes, ele, sele)
+        call vertical_reconstruction_ele(ele, sele, facet_rhs)
         c=c+1
 
         if (sele<0) exit
 
       end do
-      call deallocate(column_nodes)
 
     end do
 
@@ -273,62 +278,82 @@ contains
 
     contains
 
-    subroutine vertical_reconstruction_ele(column_nodes, ele, sele)
-      type(integer_set), intent(inout):: column_nodes
+    subroutine vertical_reconstruction_ele(ele, sele, facet_rhs)
+      ! element to solve the vertical velocities of
       integer, intent(in):: ele
+      ! bottom facet through which we enter this element, on return
+      ! this will contain the bottom facet of the next element above
       integer, intent(inout):: sele
+      ! contributions that have already been for the bottom entry facet,
+      ! on return this will contain rhs contributions for the bottom facet of the
+      ! next element above
+      real, dimension(:), intent(inout):: facet_rhs
 
-      integer, dimension(face_loc(l_mesh,sele)):: flnodes
-      type(integer_set):: fnodes
+      integer, dimension(face_loc(l_mesh,sele)):: fnodes
+      type(integer_set):: top_lpnodes
       type(real_vector), dimension(u%dim):: rowvals
       real, dimension(face_ngi(u,sele)):: detwei_f
       real, dimension(u%dim, face_ngi(u,sele)):: normal
-      real, dimension(ele_loc(p_mesh,ele)):: inter_column_face_integral
+      real, dimension(ele_loc(p_mesh,ele)):: p_ele_rhs
       real, dimension(ele_loc(u,ele)):: rhs
       real, dimension(size(rhs), size(rhs)):: matrix
-      real, dimension(u%dim):: unorm
-      integer, dimension(:), pointer:: faces, pnodes, unodes, row
-      integer:: j, k, k1, m, p, next_sele, f, f2
+      real, dimension(u%dim):: unorm, uvec
+      real :: coef
+      integer, dimension(:), pointer:: facets, pnodes, unodes, row, flnodes
+      integer:: j, k, pos, m, p, next_sele, f, f2
 
-      ! find the face between this element and the next in the column
-      ! this should be an element whose nodes are all in different columns
-      faces => ele_faces(l_mesh, ele)
-      do j=1, size(faces)
-        if (faces(j)==sele) cycle
-        flnodes=face_global_nodes(l_mesh, faces(j))
-        if (all_different(l_mesh%columns(flnodes))) exit
-      end do
-      if (j>size(faces)) then
-        ! no such face found, something is wrong
+      facets => ele_faces(l_mesh, ele)
+      next_sele = 0
+      p_ele_rhs = 0.0
+facet_loop:  do j=1, size(facets)
+        f = facets(j)
+        ! check if this is the facet between this element and the next above in the column
+        ! this should be a facet whose nodes are all in different columns
+        ! only check if we haven't found it yet (next_sele==0)
+        if (f/=sele .and. next_sele==0) then
+          if (all_different( l_mesh%columns(face_global_nodes(l_mesh, f)) )) then
+            next_sele = f
+          end if
+        end if
+
+        if (f==sele) then
+          ! the entry face, we copy the right-hand side contributions that have been previously assembled
+          p_ele_rhs(face_local_nodes(p_mesh,f)) = p_ele_rhs(face_local_nodes(p_mesh,f)) + facet_rhs
+        else if (f/=next_sele) then
+          ! not an entry or exit facet, so this has to be a side facet
+          ! we'll add its facet integral contribution to the rhs
+          f2 = face_opposite(p_mesh, f)
+          if (f2>0) then ! not for boundary facets
+            call transform_facet_to_physical(positions, f, detwei_f, normal)
+            p_ele_rhs(face_local_nodes(p_mesh,f)) = p_ele_rhs(face_local_nodes(p_mesh,f)) - &
+                shape_rhs(face_shape(p_mesh, f), detwei_f * &
+                   sum(normal*(face_val_at_quad(u, f)+face_val_at_quad(u,f2))/2.0, dim=1))
+          end if
+        end if
+      end do facet_loop
+
+      if (next_sele==0) then
+        ! no exit face found, something is wrong
         ewrite(-1,*) "It seems the mesh is not columnar"
         ! how did we get here if %columns is present?
         FLExit("Hydrostatic pressure projection requires columnar mesh.")
       end if
-      next_sele=faces(j)
 
       pnodes => ele_nodes(p_mesh, ele)
       unodes => ele_nodes(u, ele)
-      call allocate(fnodes)
-      call insert(fnodes, face_global_nodes(p_mesh, next_sele))
-      call insert(column_nodes, unodes)
+      ! create a set of the (local) presssure nodes on the top facet, the equations
+      ! associated with these will not be solved in this element, but are passed
+      ! on to the element above
+      call allocate(top_lpnodes)
+      call insert(top_lpnodes, face_local_nodes(p_mesh, next_sele))
 
-      do j=1, size(faces)
-        f=faces(j)
-        if (f==sele .or. f==next_sele) cycle
-        f2=face_opposite(p_mesh, f)
-        if (f2>0) then
-          call transform_facet_to_physical(positions, f, detwei_f, normal)
-          call addto(inter_column, face_global_nodes(p_mesh,f), &
-              shape_rhs(face_shape(p_mesh, f), detwei_f * &
-                 -sum(normal*(face_val_at_quad(u, f)+face_val_at_quad(u,f2))/2.0, dim=1)))
-        end if
-      end do
-      inter_column_face_integral=ele_val(inter_column, ele)
-
+      ! assemble the matrix and rhs to solve for the velocity nodes in this element
+      ! this done by taking the pressure tested contiuitiy equations and excluding
+      ! the pressure nodes on the top facet
       p=0
 pressure_node_loop: do j=1, size(pnodes)
-        ! if this node is on the next face, we'll deal with in the next element
-        if (has_value(fnodes, pnodes(j))) cycle
+        ! if this node is on the top facet, we'll deal with it in the next element
+        if (has_value(top_lpnodes, j)) cycle
         p=p+1 ! count the pressure nodes we do deal with
 
         ! get the column indices, and matrix values for this pressure row
@@ -337,37 +362,38 @@ pressure_node_loop: do j=1, size(pnodes)
           rowvals(m)%ptr => row_val_ptr(full_ct_m, 1, m, pnodes(j))
         end do
 
-        ! Multiply current velocity with ct_m and put on rhs. Only velocity dofs
-        ! that we've visisted before within this column are included. By the choice of pressure
-        ! points within this element these are the only u-nodes that we should encounter in this
-        ! matrix row, so that effectively we're computing the restriction of this pressure test
-        ! function to the column. Note that this includes u-nodes within this element, of which
-        ! the vertical component has been zeroed, for the other nodes, strictly below the element
-        ! this vertical component has been computed before and is included in the rhs.
-        ! Also in this loop, we find the start of the u-nodes of this element itelf within row(:) - assuming sorted rows
-        rhs(p)=inter_column_face_integral(j)
-        do k=1, size(row)
-          if (has_value(column_nodes, row(k))) then
-            do m=1, u%dim
-              rhs(p) = rhs(p) - rowvals(m)%ptr(k)*node_val(u, m, row(k))
-            end do
-            if (row(k)==unodes(1)) k1=k-1
-          end if
+        ! start with contributions so far (from elements below)
+        rhs(p) = p_ele_rhs(j)
+
+        ! find the first column entry that corresponds to velocities in this element
+        ! (this assumes both the rows of ct_m and ele_nodes(u, ele) are sorted)
+        do pos=1, size(row)
+          if (row(pos)==unodes(1)) exit
         end do
+
+        assert(pos<=size(row))
+        pos=pos-1 ! decrement, so pos+1 is first u_node from this element
 
         ! the row of the local matrix associated with this pressure node
         ! is computed by taking the inner product of the normal with ct_m
         ! restricting to only the u-nodes of this element
+        ! On the rhs we need to add the horizontal contributions from velocities
+        ! within this element (assumes 'u' does not have vertical component added in yet for this element)
         do k=1, size(unodes)
+          assert( row(pos+k)==unodes(k) )
           unorm=node_val(ugravity_normal, unodes(k))
-          assert( row(k1+k)==unodes(k) )
-          matrix(p, k)=0.0
+          uvec=node_val(u, unodes(k))
+          matrix(p, k) = 0.0
           do m=1, u%dim
-            matrix(p, k)=matrix(p, k) - unorm(m)*rowvals(m)%ptr(k1+k)
+            coef=rowvals(m)%ptr(pos+k)
+            matrix(p, k) = matrix(p, k) - unorm(m)*coef
+            rhs(p) = rhs(p) - coef*uvec(m)
           end do
         end do
 
       end do pressure_node_loop
+
+      call deallocate(top_lpnodes)
 
       ! make sure the number of pressure-tested eqns equals the number of velocity dofs to solve for
       assert( p==ele_loc(u, ele) )
@@ -381,9 +407,39 @@ pressure_node_loop: do j=1, size(pnodes)
         call addto(u, unodes(k), -unorm*rhs(k))
       end do
 
-      call deallocate(fnodes)
+      ! now assemble the rhs contributions for the top facet pressure nodes, which we'll
+      ! pass on to the next element
+      flnodes => face_local_nodes(p_mesh, next_sele)
+      do j=1, size(flnodes)
+        ! start with contributions so far (from elements further below)
+        facet_rhs(j) = p_ele_rhs(flnodes(j))
+        p = pnodes(flnodes(j))
+        ! get the column indices, and matrix values for this pressure row
+        row => row_m_ptr(full_ct_m, p)
+        do m=1, u%dim
+          rowvals(m)%ptr => row_val_ptr(full_ct_m, 1, m, p)
+        end do
 
-      sele=face_opposite(p_mesh, next_sele)
+        ! find the first column entry that corresponds to velocities in this element
+        do pos=1, size(row)
+          if (row(pos)==unodes(1)) exit
+        end do
+
+        assert(pos<=size(row))
+        pos=pos-1 ! decrement, so pos+1 is first u_node from this element
+
+        ! add the solved for velocities within this element to the rhs
+        do k=1, size(unodes)
+          assert( row(pos+k)==unodes(k) )
+          uvec=node_val(u, unodes(k))
+          do m=1, u%dim
+            facet_rhs(j) = facet_rhs(j) - rowvals(m)%ptr(pos+k)*uvec(m)
+          end do
+        end do
+
+      end do
+
+      sele = face_opposite(p_mesh, next_sele)
 
     end subroutine vertical_reconstruction_ele
 

@@ -410,7 +410,7 @@
                  ! Pressure and OldPressure remapped to them
                  call prepare_hydrostatic_projection(state(istate), &
                        surface_p, surface_old_p, &
-                       cmc_m, get_cmc_m=reassemble_cmc_m)
+                       cmc_m, reassemble_cmc_m=reassemble_cmc_m)
                else
                  ! Get the pressure poisson matrix (i.e. the CMC/projection matrix)
                  cmc_m => get_pressure_poisson_matrix(state(istate), get_cmc=reassemble_cmc_m) ! ...and similarly for get_cmc_m
@@ -1111,7 +1111,7 @@
                      end if
                      
                      if(use_hydrostatic_projection) then
-                        call reconstruct_vertical_velocities(state(istate), u, full_ct_m(istate)%ptr, full_ct_rhs(istate), reassemble_ct_m)
+                        call reconstruct_vertical_velocities(state(istate), u, full_ct_m(istate)%ptr, full_ct_rhs(istate))
                         call deallocate(full_ct_rhs(istate))
                      end if
 
