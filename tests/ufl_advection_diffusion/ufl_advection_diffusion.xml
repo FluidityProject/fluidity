@@ -3,7 +3,7 @@
   <name>UFL Advection-Diffusion</name>
   <owner userid="fr710"/>
   <tags>flml ufl</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="medium" nprocs="1">
     <command_line>time fluidity MMS_A.flml; time fluidity MMS_B.flml; time fluidity MMS_C.flml; time fluidity MMS_D.flml</command_line>
   </problem_definition>
   <variables>
