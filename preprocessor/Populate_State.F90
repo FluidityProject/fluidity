@@ -1217,7 +1217,7 @@ contains
     end if
 
     ! agent-based lagrangian biology model
-    if (have_option("/embedded_models/lagrangian_ensemble_biology/functional_group")) then 
+    if (have_option("/embedded_models/lagrangian_ensemble_biology")) then 
        call allocate_and_insert_lagrangian_biology_fields(states(1))
     end if
 

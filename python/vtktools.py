@@ -404,23 +404,12 @@ class vtu:
 
       if integrate_cell:
         Cell = self.ugrid.GetCell(cell_no)
-        
-        Cell_points = Cell.GetPoints ()
-        nCell_points = Cell.GetNumberOfPoints()
-        if nCell_points == 4:
-          Volume = abs(Cell.ComputeVolume(Cell_points.GetPoint(0), \
-                                            Cell_points.GetPoint(1), \
-                                            Cell_points.GetPoint(2), \
-                                            Cell_points.GetPoint(3)))
-        elif nCell_points == 3:
-          Volume = abs(Cell.TriangleArea(Cell_points.GetPoint(0), \
-                                            Cell_points.GetPoint(1), \
-                                            Cell_points.GetPoint(2)))
-        else:
-          raise Exception("Unexpected number of points: " + str(nCell_points))
 
+        Cell_points = Cell.GetPoints()
+        nCell_points = Cell.GetNumberOfPoints()
         Cell_ids = Cell.GetPointIds()
-        
+        Volume = self.GetCellVolume(cell_no)
+
         for point in range(Cell_ids.GetNumberOfIds()):
           PointId = Cell_ids.GetId(point)
           integral = integral + (Volume*field[PointId] / float(nCell_points))
@@ -436,6 +425,8 @@ class vtu:
       return abs(cell.ComputeVolume(pts.GetPoint(0), pts.GetPoint(1), pts.GetPoint(2), pts.GetPoint(3)))
     elif cell.GetNumberOfPoints() == 3:
       return abs(cell.ComputeVolume(pts.GetPoint(0), pts.GetPoint(1), pts.GetPoint(2)))
+    elif cell.GetNumberOfPoints() == 2:
+      return math.sqrt(vtk.vtkMath.Distance2BetweenPoints(pts.GetPoint(0), pts.GetPoint(1)))
     else:
       raise Exception("Unexpected number of points")
 

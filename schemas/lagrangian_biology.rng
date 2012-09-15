@@ -230,23 +230,29 @@ Arbitrary agent pairs will be merged to enforce this limit.</a:documentation>
               <attribute name="name">
                 <value>Concentration</value>
               </attribute>
-              <element name="prescribed">
-                <element name="mesh">
-                  <attribute name="name">
-                    <value>LEBiologyMesh</value>
-                  </attribute>
-                </element>
-                <ref name="prescribed_scalar_field_no_adapt"/>
-                <ref name="adaptivity_options_scalar_field"/>
-                <element name="galerkin_projection">
-                  <element name="discontinuous">
-                    <empty/>
+              <choice>
+                <element name="prescribed">
+                  <element name="mesh">
+                    <attribute name="name">
+                      <value>LEBiologyMesh</value>
+                    </attribute>
                   </element>
+                  <ref name="prescribed_scalar_field_no_adapt"/>
+                  <ref name="adaptivity_options_scalar_field"/>
+                  <element name="galerkin_projection">
+                    <element name="discontinuous">
+                      <empty/>
+                    </element>
+                  </element>
+                  <optional>
+                    <ref name="recalculation_options"/>
+                  </optional>
                 </element>
-                <optional>
-                  <ref name="recalculation_options"/>
-                </optional>
-              </element>
+                <element name="diagnostic">
+                  <ref name="scalar_galerkin_projection_algorithm"/>
+                  <ref name="diagnostic_scalar_field_lebiology"/>
+                </element>
+              </choice>
             </element>
             <ref name="food_set"/>
             <choice>

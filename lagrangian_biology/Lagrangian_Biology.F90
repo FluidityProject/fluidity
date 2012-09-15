@@ -234,17 +234,15 @@ contains
     character(len=OPTION_PATH_LEN) :: stage_buffer
     real, allocatable, dimension(:,:) :: coords
     real:: current_time
-    integer :: ag, fg, stage, dim, n_agents
+    integer :: ag, fg, stage, dim, n_agents, stat
 
     if (.not.have_option("/embedded_models/lagrangian_ensemble_biology")) return
 
     ! Check LEBiologyMesh
-    lebiology_mesh => extract_mesh(state, "LEBiologyMesh")
-    if (.not.associated(lebiology_mesh)) then
-       ewrite(-1,*) "No LEBiologyMesh found! Please add this mesh to your geometry options."
-       FLExit("Lagrangian Ensemble biology requires LEBiologyMesh")
-    end if
-    if (lebiology_mesh%shape%degree /= 0) then
+    lebiology_mesh => extract_mesh(state, "LEBiologyMesh", stat)
+    if (stat < 0) then
+       ewrite(-1,*) "Warning: No LEBiologyMesh found! Please add this mesh to your geometry options."
+    else if (lebiology_mesh%shape%degree /= 0) then
        ewrite(-1,*) "LEBiologyMesh has wrong polynomial degree."
        FLExit("Lagrangian Ensemble biology requires a P0 mesh")
     end if

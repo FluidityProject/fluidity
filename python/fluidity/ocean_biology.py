@@ -248,7 +248,12 @@ def six_component(state, parameters):
     Nnew=state.scalar_fields["IteratedNutrient"]
     Anew=state.scalar_fields["IteratedAmmonium"]
     Dnew=state.scalar_fields["IteratedDetritus"]
-    coords=state.vector_fields["Coordinate"]
+    usingDistToTop = False
+    try:
+        distanceToTop=state.scalar_fields["DTT"]
+        usingDistToTop = True
+    except KeyError:
+        coords=state.vector_fields["Coordinate"]
 
 
     P_source=state.scalar_fields["PhytoplanktonSource"]
@@ -300,7 +305,10 @@ def six_component(state, parameters):
         C_n=max(.5*(C.node_val(n)+Cnew.node_val(n)), 0.0)
         D_n=max(.5*(D.node_val(n)+Dnew.node_val(n)), 0.0)
         I_n=max(I.node_val(n), 0.0)
-        depth=abs(coords.node_val(n)[-1])
+        if (usingDistToTop):
+            depth = distanceToTop.node_val(n)
+        else:
+            depth=abs(coords.node_val(n)[-1])
 
         if (I_n < 0.0001):
             I_n =0

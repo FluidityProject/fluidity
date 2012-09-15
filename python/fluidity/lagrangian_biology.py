@@ -2,203 +2,283 @@ import os
 import sys
 import math
 
-### Model Constants ###
-param_A_E =            -10000
-param_Alpha_Chl =      7.9E-7
-param_C_minS =         1.584E-8
-param_C_rep =          1.76E-8
-param_C_starve =       8.5E-9
-param_k_AR =           1.0
-param_k_S =            1.0
-param_Ndis =           0.0042
-param_P_ref_c =        0.14
-param_Q_Nmax =         0.17
-param_Q_Nmin =         0.034
-param_Q_remN =         2.95
-param_Q_remS =         2.27
-param_Q_S_max =        0.15
-param_Q_S_min =        0.04
-param_R_Chl =          2E-3
-param_R_maintenance =  2E-3
-param_R_N =            2E-3
-param_S_dis =          8.3E-4
-param_S_rep =          2.1E-9
-param_T_ref =          293.0
-param_T_refN =         283.0
-param_T_refS =         278.0
-param_Theta_max_N =    4.2
-param_V_ref_c =        0.01
-param_V_S_ref =        0.03
-param_z_sink =         0.04
-param_Zeta =           2.3
+import math
+import numpy
+from lebiology import stage_id, add_agent
 
-def update_living_diatom(vars, env, dt):
-  """ Update kernel for living Diatom agents from LERM-ES, 
-      created by M. Sinerchia nd W. Hinsley
+# Parameters for FGroup Diatom
+# Species: Default_Diatom_Variety
+species_Default_Diatom_Variety = {
+    'A_E' : -10000.0,
+    'Alpha_Chl' : 7.9e-07,
+    'C_minS' : 1.584e-08,
+    'C_rep' : 1.76e-08,
+    'C_starve' : 8.5e-09,
+    'C_struct' : 8.5e-09,
+    'Ndis' : 0.0042,
+    'P_ref_c' : 0.14,
+    'Q_Nmax' : 0.17,
+    'Q_Nmin' : 0.034,
+    'Q_S_max' : 0.15,
+    'Q_S_min' : 0.04,
+    'Q_remN' : 2.95,
+    'Q_remS' : 2.27,
+    'R_Chl' : 0.002,
+    'R_N' : 0.002,
+    'R_maintenance' : 0.002,
+    'S_dis' : 0.00083,
+    'S_rep' : 2.1e-09,
+    'T_ref' : 293.0,
+    'T_refN' : 283.0,
+    'T_refS' : 278.0,
+    'Theta_max_N' : 4.2,
+    'V_S_ref' : 0.03,
+    'V_ref_c' : 0.01,
+    'Zeta' : 2.3,
+    'k_AR' : 1.0,
+    'k_S' : 1.0,
+    'z_sink' : 0.04,
+}
 
-     References:
-     "Testing theories of fisheries recruitment.", Sinerchia, M., 2007
-     PhD Thesis, Department of Earth Science and Engineering, Imperial College, London
-
-     "Using an individual-based model with four trophic levels to model the effect of predation and competition on squid recruitment", 
-     Sinerchia, M., Field, A. J., Woods, J. D., Vallerga, S., and Hinsley, W. R.
-     ICES Journal of Marine Science, doi:10.1093/icesjms/fsr190.
+def update_Living_Diatom_no_sil(param, vars, env, dt):
+  """ FGroup:  Diatom
+      Stage:   Living
   """
+  dt_in_hours = dt / 3600.0
 
-  stepInHours = dt/3600.
+  ### Effect of temperature ###
+  T_K = (env['Temperature'] + 273.0)
+  T_function = math.exp((param['A_E'] * ((1.0 / T_K) - (1.0 / param['T_ref']))))
 
-  # Temperature conversion
-  T_K = env['Temperature'] + 273.0
-  T_function = math.exp(34.12969283 - 10000/T_K)
+  ### Photosynthesis ###
+  Q_N = ((vars['Ammonium'] + vars['AmmoniumIngested'] + vars['Nitrate'] + vars['NitrateIngested']) / vars['Carbon'])
+  #Q_s = ((vars['Silicate'] + vars['SilicateIngested']) / vars['Carbon'])
+  P_max_c = (((param['P_ref_c'] * T_function)) if (Q_N > param['Q_Nmax']) else (((0.0) if (Q_N < param['Q_Nmin']) else ((param['P_ref_c'] * T_function * ((Q_N - param['Q_Nmin']) / (param['Q_Nmax'] - param['Q_Nmin'])))))))
+  Theta_c = (vars['Chlorophyll'] / vars['Carbon'])
+  E_0 = (4.6 * env['PhotosyntheticRadiation'])
+  #P_phot_c = ((0.0) if ((P_max_c == 0.0) or (Q_s <= param['Q_S_min'])) else ((P_max_c * (1.0 - math.exp(((-3600.0 * param['Alpha_Chl'] * Theta_c * E_0) / P_max_c))))))
+  P_phot_c = ((0.0) if ((P_max_c == 0.0)) else ((P_max_c * (1.0 - math.exp(((-3600.0 * param['Alpha_Chl'] * Theta_c * E_0) / P_max_c))))))
 
-  # Photosynthesis
-  Q_N = (vars['Ammonium'] + vars['AmmoniumIngested'] + vars['Nitrate'] + vars['NitrateIngested']) / vars['Carbon']
-  Q_s = (vars['Silicate'] + vars['SilicateIngested']) / vars['Carbon']
+  ### Chlorophyll Synthesis ###
+  Theta_N = (vars['Chlorophyll'] / (vars['Ammonium'] + vars['AmmoniumIngested'] + vars['Nitrate'] + vars['NitrateIngested']))
+  Rho_Chl = (((param['Theta_max_N'] * (P_phot_c / (3600.0 * param['Alpha_Chl'] * Theta_c * E_0)))) if ((E_0 > 0.0) and (Theta_c > 0.0)) else (0.0))
 
-  if Q_N > param_Q_Nmax:
-    P_max_c = param_P_ref_c * T_function
-  else:
-    if Q_N < param_Q_Nmin:
-      P_max_c = 0.0
-    else:
-      P_max_c = param_P_ref_c * T_function * (Q_N - param_Q_Nmin) / (param_Q_Nmax - param_Q_Nmin)
+  ### Respiration ###
+  R_C_growth = (((vars['AmmoniumIngested'] + vars['NitrateIngested']) * param['Zeta']) / (dt_in_hours * vars['Carbon']))
+  R_C = (param['R_maintenance'] + R_C_growth)
 
-  Theta_c = vars['Chlorophyll'] / vars['Carbon']
-  E_0 = 4.6 * env['Irradiance']
+  ### Cell Division ###
+  #C_d = ((2.0) if (((vars['Carbon'] + (vars['Carbon'] * (P_phot_c - R_C) * dt_in_hours)) >= param['C_rep']) and ((vars['Silicate'] + vars['SilicateIngested']) >= param['S_rep'])) else (1.0))
+  C_d = ((2.0) if (((vars['Carbon'] + (vars['Carbon'] * (P_phot_c - R_C) * dt_in_hours)) >= param['C_rep'])) else (1.0))
+  if (C_d == 2.0):
+    vars['Size'] = vars['Size'] * 2.0
 
-  if P_max_c == 0.0 or Q_s <= param_Q_S_min:
-    P_phot_c = 0.0
-  else:
-    P_phot_c = P_max_c * (1.0 - math.exp(-0.284400e-2*Theta_c*E_0 / P_max_c))
+  ### Nutrients uptake ###
+  Q_nitrate = ((vars['Nitrate'] + vars['NitrateIngested']) / vars['Carbon'])
+  Q_ammonium = ((vars['Ammonium'] + vars['AmmoniumIngested']) / vars['Carbon'])
+  omega = ((param['k_AR'] / (param['k_AR'] + env['Ammonium'])) * ((param['k_AR'] + env['Nutrient']) / (param['k_AR'] + env['Ammonium'] + env['Nutrient'])))
+  V_max_C = (((((param['V_ref_c'] * T_function)) if ((Q_ammonium + Q_nitrate) < param['Q_Nmin']) else (((0.0) if ((Q_ammonium + Q_nitrate) > param['Q_Nmax']) else ((param['V_ref_c'] * math.pow(((param['Q_Nmax'] - (Q_ammonium + Q_nitrate)) / (param['Q_Nmax'] - param['Q_Nmin'])), 0.05) * T_function)))))) if ((vars['Ammonium'] + vars['Nitrate']) < 1000.0) else (0.0))
+  V_C_ammonium = (V_max_C * (env['Ammonium'] / (param['k_AR'] + env['Ammonium'])))
+  V_C_nitrate = (V_max_C * (env['Nutrient'] / (param['k_AR'] + env['Nutrient'])) * omega)
+  #V_S_max = (((((param['V_S_ref'] * T_function)) if (Q_s <= param['Q_S_min']) else (((0.0) if (Q_s >= param['Q_S_max']) else ((param['V_S_ref'] * math.pow(((param['Q_S_max'] - Q_s) / (param['Q_S_max'] - param['Q_S_min'])), 0.05) * T_function)))))) if (vars['Carbon'] >= param['C_minS']) else (0.0))
 
-  # Chlorophyll Synthesis
-  Theta_N = vars['Chlorophyll'] / (vars['Ammonium'] + vars['AmmoniumIngested'] + vars['Nitrate'] + vars['NitrateIngested'])
+  # ml805 Disabling Silicate limitation
+  #V_S_S = (V_S_max * (env['DissolvedSilicate'] / (env['DissolvedSilicate'] + param['k_S'])))
+  vars['AmmoniumUptake'] = (vars['Carbon'] * V_C_ammonium * dt_in_hours)
+  vars['NitrateUptake'] = (vars['Carbon'] * V_C_nitrate * dt_in_hours)
+  #vars['SilicateUptake'] = (vars['Silicate'] * V_S_S * dt_in_hours)
 
-  if E_0 > 0.0 and Theta_c > 0.0:
-    Rho_Chl = param_Theta_max_N * P_phot_c / (3600.0 * param_Alpha_Chl * Theta_c * E_0)
-  else:
-    Rho_Chl = 0.0
+  ### Update Pools ###
+  Ammonium_new = ((((vars['Ammonium'] + vars['AmmoniumIngested'] + vars['NitrateIngested']) - (vars['Ammonium'] * param['R_N'] * dt_in_hours * T_function)) - (((0.0 * (Q_N - param['Q_Nmax']))) if (Q_N > param['Q_Nmax']) else (0.0))) / C_d)
+  Nitrate_new = 0.0
+  #Silicate_new = (((vars['Silicate'] + vars['SilicateIngested']) - 0.0) / C_d)
+  C_new = max(0.0, (((vars['Carbon'] * (P_phot_c - (R_C * T_function)) * dt_in_hours) + vars['Carbon']) / C_d))
+  death_flag = ((1.0) if (C_new <= param['C_starve']) else (0.0))
+  if (death_flag == 1.0):
+    vars['Stage'] = stage_id('Diatom', 'Dead')
+  Carbon_new = C_new
+  Chlorophyll_new = ((max((((((vars['Chlorophyll'] + (Rho_Chl * (vars['AmmoniumIngested'] + vars['NitrateIngested'])))) if (Theta_N <= param['Theta_max_N']) else ((vars['Chlorophyll'] - (vars['Chlorophyll'] - ((vars['Ammonium'] + vars['Nitrate']) * param['Theta_max_N']))))) - ((vars['Chlorophyll'] * param['R_Chl'] * dt_in_hours * T_function) + 0.0)) / C_d), 0.0)) if (death_flag == 0.0) else (0.0))
+  Nitrogen_new = (vars['Ammonium'] + vars['Nitrate'])
+  C_fuel_new = (vars['Carbon'] - param['C_struct'])
 
-  # Respiration
-  R_C_growth = (vars['AmmoniumIngested'] + vars['NitrateIngested']) * param_Zeta / (stepInHours * vars['Carbon'])
-  R_C = param_R_maintenance + R_C_growth
+  ### Remineralisation Nitrogen ###
+  vars['AmmoniumRelease'] = ((vars['Ammonium'] + vars['Nitrate']) * param['R_N'] * dt_in_hours * T_function)
 
-  # Cell division
-  if vars['Carbon'] + (vars['Carbon'] * (P_phot_c - R_C) * stepInHours) >= param_C_rep and (vars['Silicate'] + vars['SilicateIngested']) >= param_S_rep:
-    C_d = 2.0
-  else:
-    C_d = 1.0
+  ### Photoadaptation ###
+  ChltoC_new = (((vars['Chlorophyll'] / vars['Carbon'])) if (vars['Carbon'] > 0.0) else (0.0))
+  NtoC_new = ((((vars['Ammonium'] + vars['Nitrate']) / vars['Carbon'])) if (vars['Carbon'] > 0.0) else (0.0))
 
-  if C_d == 2.0:
-    vars['Size'] = vars['Size'] * 2
+  ### Setting pool variables
+  vars['Ammonium'] = Ammonium_new
+  vars['Nitrate'] = Nitrate_new
+  #vars['Silicate'] = Silicate_new
+  vars['Carbon'] = Carbon_new
+  vars['Chlorophyll'] = Chlorophyll_new
+  vars['Nitrogen'] = Nitrogen_new
+  vars['C_fuel'] = C_fuel_new
+  vars['ChltoC'] = ChltoC_new
+  vars['NtoC'] = NtoC_new
 
-  # Nutrients Uptake
-  Q_nitrate = (vars['Nitrate'] + vars['NitrateIngested']) / vars['Carbon']
-  Q_ammonium = (vars['Ammonium'] + vars['AmmoniumIngested']) / vars['Carbon']
-  omega = (param_k_AR / (param_k_AR + env['DissolvedAmmonium'])) * ((param_k_AR + env['DissolvedNitrate']) / (param_k_AR + env['DissolvedAmmonium'] + env['DissolvedNitrate']))
-
-  if vars['Ammonium'] + vars['Nitrate'] < 1000.0:
-    if Q_ammonium + Q_nitrate < param_Q_Nmin:
-      V_max_C = param_V_ref_c * T_function
-    else:
-      if Q_ammonium + Q_nitrate > param_Q_Nmax:
-        V_max_C = 0.0
-      else:
-        V_max_C = param_V_ref_c * math.pow( (param_Q_Nmax - (Q_ammonium + Q_nitrate)) / (param_Q_Nmax - param_Q_Nmin), 0.05) * T_function
-  else:
-    V_max_C = 0.0
-
-  V_C_ammonium = V_max_C * env['DissolvedAmmonium'] / (param_k_AR + env['DissolvedAmmonium'])
-  V_C_nitrate = V_max_C * env['DissolvedNitrate'] / (param_k_AR + env['DissolvedNitrate']) * omega 
-
-  if vars['Carbon'] >= param_C_minS:
-    if Q_s <= param_Q_S_min:
-      V_S_max = param_V_S_ref * T_function
-    else:
-      if Q_s >= param_Q_S_max:
-        V_S_max = 0.0
-      else:
-        V_S_max = param_V_S_ref * math.pow( (param_Q_S_max - Q_s) / (param_Q_S_max - param_Q_S_min), 0.05) * T_function
-  else:
-    V_S_max = 0.0
-
-  V_S_S = V_S_max * env['DissolvedSilicate'] / (env['DissolvedSilicate'] + param_k_S)
-
-  ammonium_uptake_rate = vars['Carbon'] * V_C_ammonium * stepInHours
-  nitrate_uptake_rate = vars['Carbon'] * V_C_nitrate * stepInHours
-  silicate_uptake_rate = vars['Silicate'] * V_S_S * stepInHours
-
-  # Update Pools
-  ammonium_pool_new = (vars['Ammonium'] + vars['AmmoniumIngested'] + vars['NitrateIngested'] - (vars['Ammonium'] * param_R_N * stepInHours * T_function)) / C_d
-  nitrate_pool_new = 0.0
-  silicate_pool_new = (vars['Silicate'] + vars['SilicateIngested']) / C_d
-
-  if Theta_N <= param_Theta_max_N:
-    chlorophyll_pool_new = vars['Chlorophyll'] + Rho_Chl * (vars['AmmoniumIngested'] + vars['NitrateIngested'])
-  else:
-    chlorophyll_pool_new = param_Theta_max_N * (vars['Ammonium'] + vars['Nitrate'])
-  chlorophyll_pool_new = chlorophyll_pool_new - (vars['Chlorophyll'] * param_R_Chl * stepInHours * T_function)
-  chlorophyll_pool_new = max(chlorophyll_pool_new / C_d, 0.0)
-
-  carbon_pool_new = ((vars['Carbon'] * (P_phot_c - (R_C * T_function)) * stepInHours) + vars['Carbon']) / C_d
-
-  # Mortality
-  if vars['Carbon'] <= param_C_starve:
-    vars['Stage'] = 1.0 # is Dead
-    carbon_pool_new = 0.0
-    chlorophyll_pool_new = 0.0
-
-  # Remineralisation Nitrogen
-  ammonium_release_rate = (vars['Ammonium'] + vars['Nitrate']) * param_R_N * stepInHours * T_function
-
-  # Housekeeping
-  vars['Carbon'] = carbon_pool_new
-  vars['Chlorophyll'] = chlorophyll_pool_new
-  vars['Ammonium'] = ammonium_pool_new
-  vars['Nitrate'] = nitrate_pool_new
-  vars['Silicate'] = silicate_pool_new
-
-  vars['AmmoniumUptake'] = ammonium_uptake_rate
-  vars['NitrateUptake'] = nitrate_uptake_rate
-  vars['SilicateUptake'] = silicate_uptake_rate
-
-  vars['AmmoniumRelease'] = ammonium_release_rate
-  vars['SilicateRelease'] = 0.0
-
-def update_dead_diatom(vars, env, dt):
-  """ Update kernel for dead Diatom agents from LERM-ES, 
-      created by M. Sinerchia nd W. Hinsley
-
-     References:
-     "Testing theories of fisheries recruitment.", Sinerchia, M., 2007
-     PhD Thesis, Department of Earth Science and Engineering, Imperial College, London
-
-     "Using an individual-based model with four trophic levels to model the effect of predation and competition on squid recruitment", 
-     Sinerchia, M., Field, A. J., Woods, J. D., Vallerga, S., and Hinsley, W. R.
-     ICES Journal of Marine Science, doi:10.1093/icesjms/fsr190.
+def update_Dead_Diatom_no_sil(param, vars, env, dt):
+  """ FGroup:  Diatom
+      Stage:   Dead
   """
+  dt_in_hours = dt / 3600.0
 
-  stepInHours = dt/3600.
+  ### Remineralisation Dead T ###
+  #Si_reminT = (param['S_dis'] * math.pow(param['Q_remS'], (((env['Temperature'] + 273.0) - param['T_refS']) / 10.0)))
+  N_reminT = (param['Ndis'] * math.pow(param['Q_remN'], (((env['Temperature'] + 273.0) - param['T_refN']) / 10.0)))
+  #vars['SilicateRelease'] = (vars['Silicate'] * Si_reminT * dt_in_hours)
+  #Silicate_new = max((vars['Silicate'] - (vars['Silicate'] * Si_reminT * dt_in_hours)), 0.0)
+  vars['AmmoniumRelease'] = ((vars['Ammonium'] + vars['Nitrate']) * N_reminT * dt_in_hours)
+  Ammonium_new = max((vars['Ammonium'] - (vars['Ammonium'] * N_reminT * dt_in_hours)), 0.0)
+  Nitrate_new = max((vars['Nitrate'] - (vars['Nitrate'] * N_reminT * dt_in_hours)), 0.0)
 
-  Si_reminT = param_S_dis * math.pow(param_Q_remS, (env['Temperature'] + 273.0 - param_T_refS) / 10.0)
-  N_reminT = param_Ndis * math.pow(param_Q_remN, (env['Temperature'] + 273.0 - param_T_refN) / 10.0)
-  silicate_release_rate = vars['Silicate'] * Si_reminT * stepInHours
-  silicate_pool_new = max(vars['Silicate'] - (vars['Silicate'] * Si_reminT * stepInHours), 0.0)
-  ammonium_release_rate = (vars['Ammonium'] + vars['Nitrate']) * N_reminT * stepInHours
-  ammonium_pool_new = max(vars['Ammonium'] - (vars['Ammonium'] * N_reminT * stepInHours), 0.0)
-  nitrate_pool_new = max(vars['Nitrate'] - (vars['Nitrate'] * N_reminT * stepInHours), 0.0)
+  ### Setting pool variables
+  #vars['Silicate'] = Silicate_new
+  vars['Ammonium'] = Ammonium_new
+  vars['Nitrate'] = Nitrate_new
 
-  # Housekeeping
-  vars['Ammonium'] = ammonium_pool_new
-  vars['Nitrate'] = nitrate_pool_new
-  vars['Silicate'] = silicate_pool_new
 
-  vars['AmmoniumUptake'] = 0.0
-  vars['NitrateUptake'] = 0.0
-  vars['SilicateUptake'] = 0.0
+###  PCZDNA  ###
 
-  vars['AmmoniumRelease'] = ammonium_release_rate
-  vars['SilicateRelease'] = silicate_release_rate
+def six_component_zdna(state, parameters):
+    '''Calculate sources and sinks for pczdna biology model'''    
+
+    # Based on the equations in
+    # Popova, E. E.; Coward, A. C.; Nurser, G. A.; de Cuevas, B.; Fasham, M. J. R. & Anderson, T. R. 
+    # Mechanisms controlling primary and new production in a global ecosystem model - Part I: 
+    # Validation of the biological simulation Ocean Science, 2006, 2, 249-266. 
+    # DOI: 10.5194/os-2-249-2006
+
+    ### ml805 note:
+    # Removed Chlorophyll and using P only as input for Z, 
+    # so that P and C may be replaced by an agent set
+    import math
+
+    #if not check_six_component_parameters(parameters):
+    #    raise TypeError("Missing Parameter")
+    
+    P=state.scalar_fields["Phytoplankton"]
+    Z=state.scalar_fields["Zooplankton"]
+    N=state.scalar_fields["Nutrient"]
+    A=state.scalar_fields["Ammonium"]
+    D=state.scalar_fields["Detritus"]
+    I=state.scalar_fields["_PAR"] # Note: *NOT* PhotosyntheticRadation field, but the internal _PAR field, which 
+                                  # has been projected onto the same mesh as phytoplankton and has been converted from
+                                  # incident radiation to just the active part.
+    Znew=state.scalar_fields["IteratedZooplankton"]
+    Nnew=state.scalar_fields["IteratedNutrient"]
+    Anew=state.scalar_fields["IteratedAmmonium"]
+    Dnew=state.scalar_fields["IteratedDetritus"]
+    usingDistToTop = False
+    try:
+        distanceToTop=state.scalar_fields["DTT"]
+        usingDistToTop = True
+    except KeyError:
+        coords=state.vector_fields["Coordinate"]
+
+    Z_source=state.scalar_fields["ZooplanktonSource"]
+    N_source=state.scalar_fields["NutrientSource"]
+    N_abs=state.scalar_fields["NutrientAbsorption"]
+    A_source=state.scalar_fields["AmmoniumSource"]
+    D_source=state.scalar_fields["DetritusSource"]
+    try:
+        PP=state.scalar_fields["PrimaryProduction"]
+    except KeyError:
+        PP=None
+    try:
+        PG=state.scalar_fields["PhytoplanktonGrazing"]
+    except KeyError:
+        PG=None
+
+    alpha_c=parameters["alpha_c"]
+    beta_P=parameters["beta_p"]
+    beta_D=parameters["beta_d"]
+    delta=parameters["delta"]
+    gamma=parameters["gamma"]
+    zeta=parameters["zeta"]
+    epsilon=parameters["epsilon"]
+    psi=parameters["psi"]
+    g=parameters["g"]
+    k_N=parameters["k_N"]
+    k_A=parameters["k_A"]
+    k_p=parameters["k_p"]
+    k_z=parameters["k_z"]
+    v=parameters["v"]
+    mu_P=parameters["mu_P"]
+    mu_Z=parameters["mu_Z"]
+    mu_D=parameters["mu_D"]
+    p_P=parameters["p_P"]
+    theta_m=parameters["theta_m"]
+    lambda_bio=parameters["lambda_bio"]
+    lambda_A=parameters["lambda_A"]
+    photicZoneLimit=parameters["photic_zone_limit"]
+    p_D=1-p_P
+
+    for n in range(P.node_count):
+        # Values of fields on this node.
+        P_n=max((P.node_val(n)), 0.0)
+        Z_n=max(.5*(Z.node_val(n)+Znew.node_val(n)), 0.0)
+        N_n=max(.5*(N.node_val(n)+Nnew.node_val(n)), 0.0)
+        A_n=max(.5*(A.node_val(n)+Anew.node_val(n)), 0.0)
+        D_n=max(.5*(D.node_val(n)+Dnew.node_val(n)), 0.0)
+        I_n=max(I.node_val(n), 0.0)
+        if (usingDistToTop):
+            depth = distanceToTop.node_val(n)
+        else:
+            depth=abs(coords.node_val(n)[-1])
+
+        if (I_n < 0.0001):
+            I_n =0
+
+        # Zooplankton grazing of phytoplankton.
+	    # It looks a bit different from the original version, however
+	    # it is the same function with differently normalised parameters to 
+	    # simplify tuning 
+        # G_P=(g * epsilon * p_P * P_n**2 * Z_n)/(g+epsilon*(p_P*P_n**2 + p_D*D_n**2))
+        G_P=(g * p_P * P_n**2 * Z_n)/(epsilon + (p_P*P_n**2 + p_D*D_n**2))
+
+        # Zooplankton grazing of detritus. (p_D - 1-p_P)
+        # G_D=(g * epsilon * (1-p_P) * D_n**2 * Z_n)/(g+epsilon*(p_P*P_n**2 + p_D*D_n**2))
+        G_D=(g  * (1-p_P) * D_n**2 * Z_n)/(epsilon + (p_P*P_n**2 + p_D*D_n**2))
+
+        # Death rate of zooplankton.
+	    # There is an additional linear term because we have a unified model
+	    # (no below/above photoc zone distinction)
+        De_Z=mu_Z*Z_n**3/(Z_n+k_z)+lambda_bio*Z_n
+
+        # Detritus remineralisation.
+        #De_D=mu_D*D_n+lambda_bio*P_n+lambda_bio*Z_n
+        De_D=mu_D*D_n+lambda_bio*Z_n
+
+        # Ammonium nitrification (only below the photic zone)
+	    # This is the only above/below term
+        De_A=lambda_A*A_n*(1-photic_zone(depth,100,20))
+
+        # ml805: Disabled phytoplankton impact...
+        Z_source.set(n, delta*(beta_P*G_P+beta_D*G_D) - De_Z)
+        D_source.set(n, -De_D + gamma*De_Z +(1-beta_P)*G_P - beta_D*G_D)
+        #D_source.set(n, -De_D + De_P + gamma*De_Z +(1-beta_P)*G_P - beta_D*G_D)
+        #N_source.set(n, -J*P_n*Q_N+De_A)
+        N_source.set(n, De_A)
+        #A_source.set(n, -J*P_n*Q_A + De_D + (1 - delta)*(beta_P*G_P + beta_D*G_D) + (1-gamma)*De_Z-De_A)
+        A_source.set(n, + De_D + (1 - delta)*(beta_P*G_P + beta_D*G_D) + (1-gamma)*De_Z-De_A)
+
+        if PG:
+            PG.set(n, G_P)
+
+
+
+def photic_zone(z,limit,transition_length):
+
+    depth = abs(z)
+    if (depth < limit):
+        return 1.
+    elif (depth < limit+transition_length):
+        return 1.-(depth-limit)/float(transition_length)
+    else:
+        return 0.0
 
 #####################################
 ## Utiliy functions for Hyperlight ##

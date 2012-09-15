@@ -183,19 +183,27 @@ lagrangian_biology =
                },
                element scalar_field {
                   attribute name { "Concentration" },
-                  element prescribed {
-                     element mesh {
-                        attribute name { "LEBiologyMesh" }
-                     },
-                     prescribed_scalar_field_no_adapt,
-                     adaptivity_options_scalar_field,
-                     element galerkin_projection {
-                        element discontinuous {
-                          empty
-                        }
-                     },
-                     recalculation_options?
-                  }
+                  (
+                     element prescribed {
+                        element mesh {
+                           attribute name { "LEBiologyMesh" }
+                        },
+                        prescribed_scalar_field_no_adapt,
+                        adaptivity_options_scalar_field,
+                        element galerkin_projection {
+                           element discontinuous {
+                             empty
+                           }
+                        },
+                        recalculation_options?
+                     }|
+                     element diagnostic {
+                        (
+                           scalar_galerkin_projection_algorithm
+                        ),
+                        diagnostic_scalar_field_lebiology
+                     }
+                  )
                },
                food_set,
                (
