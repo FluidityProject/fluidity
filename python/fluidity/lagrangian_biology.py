@@ -55,7 +55,7 @@ def update_Living_Diatom_no_sil(param, vars, env, dt):
   #Q_s = ((vars['Silicate'] + vars['SilicateIngested']) / vars['Carbon'])
   P_max_c = (((param['P_ref_c'] * T_function)) if (Q_N > param['Q_Nmax']) else (((0.0) if (Q_N < param['Q_Nmin']) else ((param['P_ref_c'] * T_function * ((Q_N - param['Q_Nmin']) / (param['Q_Nmax'] - param['Q_Nmin'])))))))
   Theta_c = (vars['Chlorophyll'] / vars['Carbon'])
-  E_0 = (4.6 * env['PhotosyntheticRadiation'])
+  E_0 = (4.6 * env['Irradiance'])
   #P_phot_c = ((0.0) if ((P_max_c == 0.0) or (Q_s <= param['Q_S_min'])) else ((P_max_c * (1.0 - math.exp(((-3600.0 * param['Alpha_Chl'] * Theta_c * E_0) / P_max_c))))))
   P_phot_c = ((0.0) if ((P_max_c == 0.0)) else ((P_max_c * (1.0 - math.exp(((-3600.0 * param['Alpha_Chl'] * Theta_c * E_0) / P_max_c))))))
 
@@ -76,10 +76,10 @@ def update_Living_Diatom_no_sil(param, vars, env, dt):
   ### Nutrients uptake ###
   Q_nitrate = ((vars['Nitrate'] + vars['NitrateIngested']) / vars['Carbon'])
   Q_ammonium = ((vars['Ammonium'] + vars['AmmoniumIngested']) / vars['Carbon'])
-  omega = ((param['k_AR'] / (param['k_AR'] + env['Ammonium'])) * ((param['k_AR'] + env['Nutrient']) / (param['k_AR'] + env['Ammonium'] + env['Nutrient'])))
+  omega = ((param['k_AR'] / (param['k_AR'] + env['DissolvedAmmonium'])) * ((param['k_AR'] + env['DissolvedNitrate']) / (param['k_AR'] + env['DissolvedAmmonium'] + env['DissolvedNitrate'])))
   V_max_C = (((((param['V_ref_c'] * T_function)) if ((Q_ammonium + Q_nitrate) < param['Q_Nmin']) else (((0.0) if ((Q_ammonium + Q_nitrate) > param['Q_Nmax']) else ((param['V_ref_c'] * math.pow(((param['Q_Nmax'] - (Q_ammonium + Q_nitrate)) / (param['Q_Nmax'] - param['Q_Nmin'])), 0.05) * T_function)))))) if ((vars['Ammonium'] + vars['Nitrate']) < 1000.0) else (0.0))
-  V_C_ammonium = (V_max_C * (env['Ammonium'] / (param['k_AR'] + env['Ammonium'])))
-  V_C_nitrate = (V_max_C * (env['Nutrient'] / (param['k_AR'] + env['Nutrient'])) * omega)
+  V_C_ammonium = (V_max_C * (env['DissolvedAmmonium'] / (param['k_AR'] + env['DissolvedAmmonium'])))
+  V_C_nitrate = (V_max_C * (env['DissolvedNitrate'] / (param['k_AR'] + env['DissolvedNitrate'])) * omega)
   #V_S_max = (((((param['V_S_ref'] * T_function)) if (Q_s <= param['Q_S_min']) else (((0.0) if (Q_s >= param['Q_S_max']) else ((param['V_S_ref'] * math.pow(((param['Q_S_max'] - Q_s) / (param['Q_S_max'] - param['Q_S_min'])), 0.05) * T_function)))))) if (vars['Carbon'] >= param['C_minS']) else (0.0))
 
   # ml805 Disabling Silicate limitation

@@ -615,7 +615,7 @@ contains
           FLExit("Unknown functional group "//trim(fgroup%food_sets(i)%target_fgroup))
        end if
 
-       do v=1, var_index
+       do v=1, size(fgroup%variables)
           if (fgroup%variables(v)%field_type==BIOFIELD_INGESTED) then
              ! We have an Ingested field, check if target FG has the according Pool
              vname = fgroup%variables( fgroup%variables(v)%pool_index )%name
