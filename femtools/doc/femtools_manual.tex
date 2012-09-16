@@ -1418,13 +1418,13 @@ solving the equations.
 
 
 \section{Changing coordinates and bases}
-A number of routiens have been implemented in \lstinline{femtools/Coordinates.F90}
+A number of routines have been implemented in \lstinline{femtools/Coordinates.F90}
 that can be used for coordinate transformations and vector/tensor change of basis.
-The transformation routines also feature C-iter-operable routines so that the
+The transformation routines also feature C-interoperable routines so that the
 tansformations can also be called from C/C++ code. The C function prototypes are
 located in \lstinline{include/coordinates.h}.
 \par
-The following lists the availabe transformations.
+The following lists the availabe transformations:
 \subsection{Spherical-polar to Cartesian}
 Fortran routine: \lstinline{spherical_polar_2_cartesian}\\
 Fortran routine unit-test: \lstinline{femtools/tests/test_spherical_polar_2_cartesian.F90}\\
