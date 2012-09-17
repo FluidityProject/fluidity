@@ -117,7 +117,8 @@ def _la_solve(A, x, b, solver="cg", preconditioner="jacobi"):
     # Construct iteration space
     test, trial = Ap.arguments
     itspace_set = test.mesh.element_set
-    itspace = itspace_set(*[ arg.mesh.shape.loc for arg in (test, trial) ])
+    itspace_mat = itspace_set(*[ arg.mesh.shape.loc for arg in (test, trial) ])
+    itspace_vec = itspace_set(test.mesh.shape.loc)
 
     # Construct OP2 Mat to assemble into
     trial_element = trial.element()
@@ -134,13 +135,13 @@ def _la_solve(A, x, b, solver="cg", preconditioner="jacobi"):
 
     # Build arg list for matrix assembly par_loop
     mat_arg = mat((test.mesh.element_node_map[op2.i[0]], trial.mesh.element_node_map[op2.i[1]]), op2.INC)
-    mat_args = [mat_kernel, itspace, mat_arg, coords.dat(coord_elem_node, op2.READ)]
+    mat_args = [mat_kernel, itspace_mat, mat_arg, coords.dat(coord_elem_node, op2.READ)]
     for c in Ap.coefficients:
         mat_args.append(c.dat(c.element_node_map, op2.READ))
 
     # Build arg list for rhs assembly par loop
     b = Ab.coefficients[0].temporary_dat("%s_rhs_dat" % x.name)
-    rhs_args = [rhs_kernel, itspace_set, b(test.mesh.element_node_map, op2.INC), 
+    rhs_args = [rhs_kernel, itspace_vec, b(test.mesh.element_node_map[op2.i[0]], op2.INC), 
                 coords.dat(coord_elem_node, op2.READ)]
     for c in Ab.coefficients:
         rhs_args.append(c.dat(c.element_node_map, op2.READ))
