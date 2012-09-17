@@ -143,6 +143,7 @@ module advection_diffusion_DG
   logical :: on_sphere
   ! Vertical diffusion by mixing option
   logical :: have_buoyancy_adjustment_by_vertical_diffusion
+  logical :: have_buoyancy_adjustment_diffusivity
 
 contains
 
@@ -751,6 +752,8 @@ contains
     logical :: cache_valid
     integer :: num_threads
 
+    type(scalar_field) :: buoyancy_adjustment_diffusivity
+
     ewrite(1,*) "Writing advection-diffusion equation for "&
          &//trim(field_name)
 
@@ -979,6 +982,15 @@ contains
       end if
       ! Set direction of mixing diffusion, default is in the y- and z-direction for 2- and 3-d spaces respectively
       ! TODO: Align this direction with gravity local to an element
+
+      buoyancy_adjustment_diffusivity = extract_scalar_field(state, "BuoyancyAdjustmentDiffusivity", stat)
+      if (stat==0) then
+        have_buoyancy_adjustment_diffusivity = .true.
+        ewrite(3,*) "Buoynacy adjustment by vertical mixing: Updating BuoyancyAdjustmentDiffusivity field."
+      else
+        have_buoyancy_adjustment_diffusivity = .false.
+      end if
+
     end if
 
     if (include_diffusion) then
@@ -1014,6 +1026,7 @@ contains
             & rhs_diff, X, X_old, X_new, T, U_nl, U_mesh, Source, &
             & Absorption, Diffusivity, bc_value, bc_type, q_mesh, mass, &
             & buoyancy, gravity, gravity_magnitude, mixing_diffusion_amplitude, &
+            & buoyancy_adjustment_diffusivity, &
             & add_src_directly_to_rhs, porosity_theta) 
        
       end do element_loop
@@ -1130,6 +1143,7 @@ contains
        & X, X_old, X_new, T, U_nl, U_mesh, Source, Absorption, Diffusivity,&
        & bc_value, bc_type, &
        & q_mesh, mass, buoyancy, gravity, gravity_magnitude, mixing_diffusion_amplitude, &
+       & buoyancy_adjustment_diffusivity, &
        & add_src_directly_to_rhs, porosity_theta)
     !!< Construct the advection_diffusion equation for discontinuous elements in
     !!< acceleration form.
@@ -1157,6 +1171,9 @@ contains
     type(scalar_field), intent(in) :: T, Source, Absorption
     !! Diffusivity
     type(tensor_field), intent(in) :: Diffusivity
+
+    !! Buoyancy adjustment diagnostic
+    type(scalar_field), intent(inout) :: buoyancy_adjustment_diffusivity
     
     !! If adding Source directly to rhs then
     !! do nothing with it here
@@ -1426,12 +1443,21 @@ contains
                  &* gravity_magnitude * dr**2 * gravity_at_node(i) * drho_dz(:)
          end do
        end if
-       
+        
+       if(have_buoyancy_adjustment_diffusivity) then
+         ewrite (-1,*) 'asc nodes', T_ele
+         do i = 1,size(T_ele)
+           call set(buoyancy_adjustment_diffusivity, T_ele(i), mixing_diffusion_amplitude * dt&
+                 &* gravity_magnitude * dr**2 * maxval(drho_dz(:)))
+         end do
+         ewrite(4,*) "Buoynacy adjustment diffusivity, ele:", ele, "diffusivity:", mixing_diffusion_amplitude * dt * gravity_magnitude * dr**2 * maxval(drho_dz(:))
+       end if 
+
        !ewrite(3,*) "mixing_density_values", buoyancysample
-       ewrite(4,*) "mixing_grad_rho", minval(grad_rho(:,:)), maxval(grad_rho(:,:))
-       ewrite(4,*) "mixing_drho_dz", minval(drho_dz(:)), maxval(drho_dz(:))
-       ewrite(4,*) "mixing_coeffs amp dt g dr", mixing_diffusion_amplitude, dt, gravity_magnitude, dr**2
-       ewrite(4,*) "mixing_diffusion", minval(mixing_diffusion(2,2,:)), maxval(mixing_diffusion(2,2,:))
+       !ewrite(4,*) "mixing_grad_rho", minval(grad_rho(:,:)), maxval(grad_rho(:,:))
+       !ewrite(4,*) "mixing_drho_dz", minval(drho_dz(:)), maxval(drho_dz(:))
+       !ewrite(4,*) "mixing_coeffs amp dt g dr", mixing_diffusion_amplitude, dt, gravity_magnitude, dr**2
+       !ewrite(4,*) "mixing_diffusion", minval(mixing_diffusion(2,2,:)), maxval(mixing_diffusion(2,2,:))
 
        mixing_diffusion_rhs=shape_tensor_rhs(T%mesh%shape, mixing_diffusion, detwei_rho)
        t_mass=shape_shape(T%mesh%shape, T%mesh%shape, detwei_rho)
