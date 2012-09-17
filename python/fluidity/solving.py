@@ -150,11 +150,6 @@ def _la_solve(A, x, b, solver="cg", preconditioner="jacobi"):
     op2.par_loop(*rhs_args)
     op2.solve(mat, b, x.dat)
 
-    # Update the field value with the new data
-    for n in xrange(x.node_count):
-        x.set(n, x.dat.data[n])
-
-
 # Solve function handles both linear systems and variational problems
 
 def solve(*args, **kwargs):
