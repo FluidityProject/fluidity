@@ -1428,10 +1428,10 @@ contains
        end if
        
        !ewrite(3,*) "mixing_density_values", buoyancysample
-       ewrite(3,*) "mixing_grad_rho", minval(grad_rho(:,:)), maxval(grad_rho(:,:))
-       ewrite(3,*) "mixing_drho_dz", minval(drho_dz(:)), maxval(drho_dz(:))
-       ewrite(3,*) "mixing_coeffs amp dt g dr", mixing_diffusion_amplitude, dt, gravity_magnitude, dr**2
-       ewrite(3,*) "mixing_diffusion", minval(mixing_diffusion(2,2,:)), maxval(mixing_diffusion(2,2,:))
+       ewrite(4,*) "mixing_grad_rho", minval(grad_rho(:,:)), maxval(grad_rho(:,:))
+       ewrite(4,*) "mixing_drho_dz", minval(drho_dz(:)), maxval(drho_dz(:))
+       ewrite(4,*) "mixing_coeffs amp dt g dr", mixing_diffusion_amplitude, dt, gravity_magnitude, dr**2
+       ewrite(4,*) "mixing_diffusion", minval(mixing_diffusion(2,2,:)), maxval(mixing_diffusion(2,2,:))
 
        mixing_diffusion_rhs=shape_tensor_rhs(T%mesh%shape, mixing_diffusion, detwei_rho)
        t_mass=shape_shape(T%mesh%shape, T%mesh%shape, detwei_rho)
