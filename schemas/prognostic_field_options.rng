@@ -75,7 +75,7 @@ sediment grain</a:documentation>
             <a:documentation>Select algorithm to calculate reentrainment by (see the manual for more detail)</a:documentation>
             <choice>
               <value>Garcia_1991</value>
-              <value>Hill_2010</value>
+              <value>Generic</value>
             </choice>
           </element>
           <optional>
