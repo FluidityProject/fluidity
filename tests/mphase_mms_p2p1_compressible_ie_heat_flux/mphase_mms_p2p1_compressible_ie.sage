@@ -11,32 +11,29 @@ def function(phi_0, phi_x, phi_y, phi_xy,
     f = f_0 + f_x + f_y + f_xy
     return f
              
-rho1 = function(5.2, -1.8, -1.3, 3.7, 
-               1.0, 0.0, 0.0, 1.0, 1.0, 0.0,
-               1.7, 2.1, 1.3)
+rho1 = 0.5*(sin(x*x + y*y) + 1.5)
 rho2 = 3.0
 
-ie1 = function(0.9, 0.9, 0.6, 0.4, 
-             0.0, 1.0, 1.0, 0.0, 0.0, 1.0,
-             0.6, 0.7, 0.8)
-ie2 = function(8.2, -3.8, 4.3, 1.7, 
-             1.0, 0.0, 0.0, 1.0, 1.0, 0.0,
-             0.7, 0.8, 0.6)
+ie1 = 0.5*(cos(x + y) + 1.5)
+ie2 = 0.5*(cos(x + y) + 1.5)
  
 u1 = 1.0*(sin(x**2+y**2)+0.5)
 v1 = 0.1*(cos(x**2+y**2)+0.5)
 
-u2 = cos(x**2+y**2)+2.5*x
-v2 = 0.5*x*y
+u2 = 1.0*(sin(x**2+y**2)+0.5)
+v2 = 0.1*(cos(x**2+y**2)+0.5)
  
 gamma = 1.4
-p = (gamma - 1.0)*rho1*ie1
+rho0 = 0.5
+csq = 100.0
+#p = csq*(rho1 - rho0)
+p = (gamma-1.0)*ie1*rho1
              
 vfrac1 = 0.8
 vfrac2 = 1.0 - vfrac1
              
 nu1 = 0.7
-nu2 = 0.9
+nu2 = 0.7
 
 g_x = 0.707106781
 g_y = 0.707106781
@@ -60,8 +57,9 @@ Sv2 = vfrac2*rho2*u2*diff(v2,x) + vfrac2*rho2*v2*diff(v2,y) - diff(vfrac2*tau_yy
 Srho1 = diff(vfrac1*u1*rho1,x) + diff(vfrac1*v1*rho1,y) + rho1*diff(u2*vfrac2, x) + rho1*diff(v2*vfrac2, y)
 
 k = 0.1
-Sie1 = vfrac1*rho1*u1*diff(ie1, x) + vfrac1*rho1*v1*diff(ie1, y) - k*(diff(ie1, x, x) + diff(ie1, y, y)) + p*diff(vfrac1*u1, x) + p*diff(vfrac1*v1, y)
-Sie2 = vfrac2*rho2*u2*diff(ie2, x) + vfrac2*rho2*v2*diff(ie2, y) - k*(diff(ie2, x, x) + diff(ie2, y, y)) + p*diff(vfrac2*u2, x) + p*diff(vfrac2*v2, y)
+C_v = 0.4
+Sie1 = u1*diff(ie1, x) + v1*diff(ie1, y) #+ p*diff(u1, x) + p*diff(v1, y)
+Sie2 = u2*diff(ie2, x) + v2*diff(ie2, y) #+ p*diff(u1, x) + p*diff(v1, y)
 
 print 'from math import sin, cos, tanh, pi'
 print ''

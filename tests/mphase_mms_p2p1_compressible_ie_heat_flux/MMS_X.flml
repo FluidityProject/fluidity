@@ -4,7 +4,7 @@
     <string_value lines="1">MMS_X</string_value>
   </simulation_name>
   <problem_type>
-    <string_value lines="1">multiphase</string_value>
+    <string_value lines="1">fluids</string_value>
   </problem_type>
   <geometry>
     <dimension>
@@ -148,6 +148,7 @@
             <remove_stabilisation_term/>
           </continuous_galerkin>
         </spatial_discretisation>
+        <repair_stiff_nodes/>
         <scheme>
           <poisson_pressure_solution>
             <string_value lines="1">never</string_value>
@@ -204,13 +205,9 @@
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
-          <continuous_galerkin>
-            <stabilisation>
-              <no_stabilisation/>
-            </stabilisation>
-            <advection_terms/>
-            <mass_terms/>
-          </continuous_galerkin>
+          <control_volumes>
+            <face_value name="FirstOrderUpwind"/>
+          </control_volumes>
           <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
@@ -221,9 +218,11 @@
           </theta>
         </temporal_discretisation>
         <initial_condition name="WholeMesh">
-          <constant>
-            <real_value rank="0">1.0</real_value>
-          </constant>
+          <python>
+            <string_value lines="20" type="code" language="python">def val(X,t):
+   import mphase_mms_p2p1_compressible_ie_tools as tools
+   return tools.rho1(X)</string_value>
+          </python>
         </initial_condition>
         <boundary_conditions name="All">
           <surface_ids>
@@ -423,9 +422,7 @@
     <scalar_field name="InternalEnergy" rank="0">
       <prognostic>
         <mesh name="PressureMesh"/>
-        <equation name="InternalEnergy">
-          <density name="Density"/>
-        </equation>
+        <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <continuous_galerkin>
             <stabilisation>
@@ -456,15 +453,17 @@
           <max_iterations>
             <integer_value rank="0">10000</integer_value>
           </max_iterations>
-          <never_ignore_solver_failures/>
+          <ignore_all_solver_failures/>
           <diagnostics>
             <monitors/>
           </diagnostics>
         </solver>
         <initial_condition name="WholeMesh">
-          <constant>
-            <real_value rank="0">1.0</real_value>
-          </constant>
+          <python>
+            <string_value lines="20" type="code" language="python">def val(X,t):
+   import mphase_mms_p2p1_compressible_ie_tools as tools
+   return tools.ie1(X)</string_value>
+          </python>
         </initial_condition>
         <boundary_conditions name="All">
           <surface_ids>
@@ -478,18 +477,6 @@
             </python>
           </type>
         </boundary_conditions>
-        <tensor_field name="Diffusivity" rank="2">
-          <prescribed>
-            <value name="WholeMesh">
-              <isotropic>
-                <constant>
-                  <real_value rank="0">0.1</real_value>
-                </constant>
-              </isotropic>
-            </value>
-            <output/>
-          </prescribed>
-        </tensor_field>
         <scalar_field name="Source" rank="0">
           <prescribed>
             <value name="WholeMesh">
@@ -656,114 +643,6 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="PhaseVolumeFraction" rank="0">
-      <diagnostic>
-        <mesh name="CoordinateMesh"/>
-        <algorithm name="Internal" material_phase_support="multiple"/>
-        <output/>
-        <stat/>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-      </diagnostic>
-    </scalar_field>
-    <scalar_field name="CompressibleContinuityResidual" rank="0">
-      <diagnostic>
-        <mesh name="PressureMesh"/>
-        <algorithm name="Internal" material_phase_support="multiple"/>
-        <output/>
-        <stat/>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <solver>
-          <iterative_method name="gmres">
-            <restart>
-              <integer_value rank="0">30</integer_value>
-            </restart>
-          </iterative_method>
-          <preconditioner name="sor"/>
-          <relative_error>
-            <real_value rank="0">1.0e-7</real_value>
-          </relative_error>
-          <max_iterations>
-            <integer_value rank="0">10000</integer_value>
-          </max_iterations>
-          <never_ignore_solver_failures/>
-          <diagnostics>
-            <monitors/>
-          </diagnostics>
-        </solver>
-      </diagnostic>
-    </scalar_field>
-    <scalar_field name="CompressibleContinuityResidualAnalytical" rank="0">
-      <prescribed>
-        <mesh name="ErrorMesh"/>
-        <value name="WholeMesh">
-          <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
-   import mphase_mms_p2p1_compressible_ie_tools as tools
-   return tools.forcing_rho1(X)</string_value>
-          </python>
-        </value>
-        <output/>
-        <stat/>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-      </prescribed>
-    </scalar_field>
-    <scalar_field name="CompressibleContinuityResidualError" rank="0">
-      <diagnostic>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="CompressibleContinuityResidualAnalytical" source_field_2_name="CompressibleContinuityResidualProjection" material_phase_support="single" source_field_1_type="scalar">
-          <absolute_difference/>
-        </algorithm>
-        <mesh name="ErrorMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </scalar_field>
-    <scalar_field name="CompressibleContinuityResidualProjection" rank="0">
-      <diagnostic>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="CompressibleContinuityResidual">
-          <solver>
-            <iterative_method name="cg"/>
-            <preconditioner name="sor"/>
-            <relative_error>
-              <real_value rank="0">1e-10</real_value>
-            </relative_error>
-            <max_iterations>
-              <integer_value rank="0">1000</integer_value>
-            </max_iterations>
-            <never_ignore_solver_failures/>
-            <diagnostics>
-              <monitors/>
-            </diagnostics>
-          </solver>
-        </algorithm>
-        <mesh name="ErrorMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </scalar_field>
     <scalar_field name="DensityAnalytical" rank="0">
       <prescribed>
         <mesh name="ErrorMesh"/>
@@ -830,6 +709,17 @@
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="PhaseVolumeFraction" rank="0">
+      <diagnostic>
+        <mesh name="CoordinateMesh"/>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <output/>
+        <stat/>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
       </diagnostic>
     </scalar_field>
     <vector_field name="VelocityAnalytical" rank="1">
@@ -1021,7 +911,7 @@
             <value name="WholeMesh">
               <isotropic>
                 <constant>
-                  <real_value rank="0">0.9</real_value>
+                  <real_value rank="0">0.7</real_value>
                 </constant>
               </isotropic>
             </value>
@@ -1093,9 +983,7 @@
     <scalar_field name="InternalEnergy" rank="0">
       <prognostic>
         <mesh name="PressureMesh"/>
-        <equation name="InternalEnergy">
-          <density name="Density"/>
-        </equation>
+        <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <continuous_galerkin>
             <stabilisation>
@@ -1126,15 +1014,17 @@
           <max_iterations>
             <integer_value rank="0">10000</integer_value>
           </max_iterations>
-          <never_ignore_solver_failures/>
+          <ignore_all_solver_failures/>
           <diagnostics>
             <monitors/>
           </diagnostics>
         </solver>
         <initial_condition name="WholeMesh">
-          <constant>
-            <real_value rank="0">1.0</real_value>
-          </constant>
+          <python>
+            <string_value lines="20" type="code" language="python">def val(X,t):
+   import mphase_mms_p2p1_compressible_ie_tools as tools
+   return tools.ie2(X)</string_value>
+          </python>
         </initial_condition>
         <boundary_conditions name="All">
           <surface_ids>
@@ -1148,18 +1038,6 @@
             </python>
           </type>
         </boundary_conditions>
-        <tensor_field name="Diffusivity" rank="2">
-          <prescribed>
-            <value name="WholeMesh">
-              <isotropic>
-                <constant>
-                  <real_value rank="0">0.1</real_value>
-                </constant>
-              </isotropic>
-            </value>
-            <output/>
-          </prescribed>
-        </tensor_field>
         <scalar_field name="Source" rank="0">
           <prescribed>
             <value name="WholeMesh">
@@ -1192,7 +1070,7 @@
     </scalar_field>
     <scalar_field name="InternalEnergyAnalytical" rank="0">
       <prescribed>
-        <mesh name="PressureMesh"/>
+        <mesh name="ErrorMesh"/>
         <value name="WholeMesh">
           <python>
             <string_value lines="20" type="code" language="python">def val(X,t):
@@ -1207,12 +1085,63 @@
         </detectors>
       </prescribed>
     </scalar_field>
+    <scalar_field name="InternalEnergyError" rank="0">
+      <diagnostic>
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="InternalEnergyAnalytical" source_field_2_name="InternalEnergyProjection" material_phase_support="single" source_field_1_type="scalar">
+          <absolute_difference/>
+        </algorithm>
+        <mesh name="ErrorMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="InternalEnergyProjection" rank="0">
+      <diagnostic>
+        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="InternalEnergy">
+          <solver>
+            <iterative_method name="cg"/>
+            <preconditioner name="sor"/>
+            <relative_error>
+              <real_value rank="0">1e-10</real_value>
+            </relative_error>
+            <max_iterations>
+              <integer_value rank="0">1000</integer_value>
+            </max_iterations>
+            <never_ignore_solver_failures/>
+            <diagnostics>
+              <monitors/>
+            </diagnostics>
+          </solver>
+        </algorithm>
+        <mesh name="ErrorMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
     <scalar_field name="PhaseVolumeFraction" rank="0">
       <prescribed>
         <mesh name="CoordinateMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
+            <string_value type="code" lines="20" language="python">def val(X,t):
    import mphase_mms_p2p1_compressible_ie_tools as tools
    return tools.vfrac2(X)</string_value>
           </python>
@@ -1223,23 +1152,6 @@
           <exclude_from_detectors/>
         </detectors>
       </prescribed>
-    </scalar_field>
-    <scalar_field name="ScalarAbsoluteDifference" rank="0">
-      <diagnostic field_name_b="InternalEnergy" field_name_a="InternalEnergyAnalytical">
-        <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="PressureMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <exclude_from_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <exclude_from_steady_state/>
-        </steady_state>
-      </diagnostic>
     </scalar_field>
     <vector_field name="VelocityAnalytical" rank="1">
       <prescribed>
@@ -1264,7 +1176,11 @@
       <diagnostic>
         <algorithm source_field_type="vector" material_phase_support="single" name="vector_galerkin_projection" source_field_name="Velocity">
           <solver>
-            <iterative_method name="cg"/>
+            <iterative_method name="gmres">
+              <restart>
+                <integer_value rank="0">30</integer_value>
+              </restart>
+            </iterative_method>
             <preconditioner name="sor"/>
             <relative_error>
               <real_value rank="0">1e-10</real_value>
