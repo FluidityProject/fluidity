@@ -25,7 +25,6 @@ __all__ = ["LinearVariationalProblem",
 import numpy
 
 import ufl
-from ufl.algorithms import preprocess
 from ufl.finiteelement import FiniteElement, VectorElement, TensorElement
 
 from pyop2 import op2, ffc_interface
@@ -107,8 +106,8 @@ def _la_solve(A, x, b, solver="cg", preconditioner="jacobi"):
     rhs_kernel = op2.Kernel(rhs_code, "rhs_cell_integral_0_0")
 
     # FIXME: Get preprocessed data from FFC when the interface supports it
-    Ap = preprocess(A)
-    Ab = preprocess(b)
+    Ap = A.form_data()
+    Ab = b.form_data()
     
     # Get relevant entities of the coordinate field
     coords = A.measures()[0].domain_data()
