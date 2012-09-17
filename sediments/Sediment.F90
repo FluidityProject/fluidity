@@ -270,8 +270,8 @@ contains
     elements: do i_ele = 1, element_count(reentrainment)
 
        select case(trim(algorithm))
-       case("Hill_2010")
-          call assemble_hill_2010_reentrainment_ele(state, i_field, i_ele, reentrainment,&
+       case("Generic")
+          call assemble_generic_reentrainment_ele(state, i_field, i_ele, reentrainment,&
                & shear_stress, surface_element_list, x, masslump, sink_U, volume_fraction)
        case("Garcia_1991")
           call assemble_garcia_1991_reentrainment_ele(state, i_field, i_ele, reentrainment,&
@@ -399,7 +399,7 @@ contains
     
   end subroutine assemble_garcia_1991_reentrainment_ele
 
-  subroutine assemble_hill_2010_reentrainment_ele(state, i_field, i_ele, reentrainment,&
+  subroutine assemble_generic_reentrainment_ele(state, i_field, i_ele, reentrainment,&
        & shear_stress, surface_element_list, x, masslump, sink_U, volume_fraction)
 
     type(state_type), intent(in)                     :: state
@@ -432,7 +432,7 @@ contains
     ! get or calculate critical shear stress
     if (.not.any(stat .eq. 0)) then
        FLExit("You need to either specify a critical shear stress or a &
-            &sediment diameter to use the j_hill formula for reentrainment")
+            &sediment diameter to use the generic formula for reentrainment")
     else if (stat(1) /= 0) then
        ! estimate of critical shear stress assuming grains larger than
        ! 10 microns and constant viscosity
@@ -493,7 +493,7 @@ contains
 
     call addto(reentrainment, ele, E)
 
-  end subroutine assemble_hill_2010_reentrainment_ele
+  end subroutine assemble_generic_reentrainment_ele
 
   subroutine sediment_check_options
 
