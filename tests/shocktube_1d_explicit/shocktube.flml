@@ -349,7 +349,7 @@
 import shocktube
 x = state.vector_fields['DiagnosticCoordinate']
 time = state.scalar_fields['Time']
-t=time[0]
+t=time.node_val(0)
 for (i,xi) in enumerate(x.val):
   sol=shocktube.solution(xi[0],t)
   field.set(i, sol[0])</string_value>
@@ -392,7 +392,7 @@ for (i,xi) in enumerate(x.val):
 import shocktube
 x = state.vector_fields['DiagnosticCoordinate']
 time = state.scalar_fields['Time']
-t=time[0]
+t=time.node_val(0)
 for (i,xi) in enumerate(x.val):
   sol=shocktube.solution(xi[0],t)
   field.set(i, sol[2])</string_value>
@@ -435,7 +435,7 @@ for (i,xi) in enumerate(x.val):
 import shocktube
 x = state.vector_fields['Coordinate']
 time = state.scalar_fields['Time']
-t=time[0]
+t=time.node_val(0)
 for (i,xi) in enumerate(x.val):
   sol=shocktube.solution(xi[0],t)
   p=sol[0]; rho=sol[2]
@@ -479,7 +479,7 @@ for (i,xi) in enumerate(x.val):
 import shocktube
 x = state.vector_fields['Coordinate']
 time = state.scalar_fields['Time']
-t=time[0]
+t=time.node_val(0)
 for (i,xi) in enumerate(x.val):
   sol=shocktube.solution(xi[0],t)
   field.set(i, [sol[1]])</string_value>
