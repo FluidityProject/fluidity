@@ -752,6 +752,7 @@ contains
     logical :: cache_valid
     integer :: num_threads
 
+    !! Diffusivity to add due to the buoyancy adjustment by vertical mixing scheme
     type(scalar_field) :: buoyancy_adjustment_diffusivity
 
     ewrite(1,*) "Writing advection-diffusion equation for "&
@@ -982,7 +983,8 @@ contains
       end if
       ! Set direction of mixing diffusion, default is in the y- and z-direction for 2- and 3-d spaces respectively
       ! TODO: Align this direction with gravity local to an element
-
+      
+      ! Check if the diagnostic associated with the buoyancy adjustment by vertical mixing scheme is required
       buoyancy_adjustment_diffusivity = extract_scalar_field(state, "BuoyancyAdjustmentDiffusivity", stat)
       if (stat==0) then
         have_buoyancy_adjustment_diffusivity = .true.
@@ -1172,7 +1174,7 @@ contains
     !! Diffusivity
     type(tensor_field), intent(in) :: Diffusivity
 
-    !! Buoyancy adjustment diagnostic
+    !! Diffusivity to add due to the buoyancy adjustment by vertical mixing scheme
     type(scalar_field), intent(inout) :: buoyancy_adjustment_diffusivity
     
     !! If adding Source directly to rhs then
@@ -1452,12 +1454,12 @@ contains
          end do
          ewrite(4,*) "Buoynacy adjustment diffusivity, ele:", ele, "diffusivity:", mixing_diffusion_amplitude * dt * gravity_magnitude * dr**2 * maxval(drho_dz(:))
        end if 
-
-       !ewrite(3,*) "mixing_density_values", buoyancysample
-       !ewrite(4,*) "mixing_grad_rho", minval(grad_rho(:,:)), maxval(grad_rho(:,:))
-       !ewrite(4,*) "mixing_drho_dz", minval(drho_dz(:)), maxval(drho_dz(:))
-       !ewrite(4,*) "mixing_coeffs amp dt g dr", mixing_diffusion_amplitude, dt, gravity_magnitude, dr**2
-       !ewrite(4,*) "mixing_diffusion", minval(mixing_diffusion(2,2,:)), maxval(mixing_diffusion(2,2,:))
+        
+       !! Buoyancy adjustment by vertical mixing scheme debugging statements
+       ewrite(4,*) "mixing_grad_rho", minval(grad_rho(:,:)), maxval(grad_rho(:,:))
+       ewrite(4,*) "mixing_drho_dz", minval(drho_dz(:)), maxval(drho_dz(:))
+       ewrite(4,*) "mixing_coeffs amp dt g dr", mixing_diffusion_amplitude, dt, gravity_magnitude, dr**2
+       ewrite(4,*) "mixing_diffusion", minval(mixing_diffusion(2,2,:)), maxval(mixing_diffusion(2,2,:))
 
        mixing_diffusion_rhs=shape_tensor_rhs(T%mesh%shape, mixing_diffusion, detwei_rho)
        t_mass=shape_shape(T%mesh%shape, T%mesh%shape, detwei_rho)
