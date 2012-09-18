@@ -103,7 +103,7 @@ module advection_diffusion_DG
   ! Boundary condition types:
   ! (the numbers should match up with the order in the 
   !  get_entire_boundary_condition call)
-  integer :: BCTYPE_WEAKDIRICHLET=1, BCTYPE_DIRICHLET=2
+  integer :: BCTYPE_WEAKDIRICHLET=1, BCTYPE_DIRICHLET=2, BCTYPE_NEUMANN=3
 
   logical :: include_mass
   ! are we moving the mesh?
@@ -936,7 +936,9 @@ contains
     ! BCTYPE_WEAKDIRICHLET=1)
     allocate( bc_type(1:surface_element_count(T)) )
     call get_entire_boundary_condition(T, &
-       & (/"weakdirichlet"/), &
+       & (/"weakdirichlet", &
+       &   "dirichlet    ", &
+       &   "neumann      "/), &
        & bc_value, bc_type)
 
     call zero(big_m)
@@ -1739,7 +1741,7 @@ contains
        if(primal) then
           call construct_adv_diff_interface_dg(ele, face, face_2, ni,&
                & centre_vec,& 
-               & big_m, rhs, Grad_T_mat, Div_T_mat, X, T, U_nl,&
+               & big_m, rhs, rhs_diff, Grad_T_mat, Div_T_mat, X, T, U_nl,&
                & bc_value, bc_type, &
                & U_mesh, q_mesh, cdg_switch_in, &
                & primal_fluxes_mat, ele2grad_mat,diffusivity, &
@@ -1758,7 +1760,7 @@ contains
        else
           call construct_adv_diff_interface_dg(ele, face, face_2, ni,&
                & centre_vec,&
-               & big_m, rhs, Grad_T_mat, Div_T_mat, X, T, U_nl,&
+               & big_m, rhs, rhs_diff, Grad_T_mat, Div_T_mat, X, T, U_nl,&
                & bc_value, bc_type, &
                & U_mesh, q_mesh)
        end if
@@ -2323,7 +2325,7 @@ contains
   end subroutine construct_adv_diff_element_dg
   
   subroutine construct_adv_diff_interface_dg(ele, face, face_2, &
-       ni, centre_vec,big_m, rhs, Grad_T_mat, Div_T_mat, &
+       ni, centre_vec,big_m, rhs, rhs_diff, Grad_T_mat, Div_T_mat, &
        & X, T, U_nl,&
        & bc_value, bc_type, &
        & U_mesh, q_mesh, CDG_switch_in, &
@@ -2336,7 +2338,7 @@ contains
 
     integer, intent(in) :: ele, face, face_2, ni
     type(csr_matrix), intent(inout) :: big_m
-    type(scalar_field), intent(inout) :: rhs
+    type(scalar_field), intent(inout) :: rhs, rhs_diff
     real, dimension(:,:,:), intent(inout) :: Grad_T_mat, Div_T_mat
     ! We pass these additional fields to save on state lookups.
     type(vector_field), intent(in) :: X, U_nl
@@ -2387,7 +2389,7 @@ contains
     real, dimension(:,:,:), allocatable :: kappa_gi
 
     integer :: dim, start, finish
-    logical :: boundary, dirichlet
+    logical :: boundary, dirichlet, neumann
 
     logical :: do_primal_fluxes
 
@@ -2430,9 +2432,12 @@ contains
     ! Boundary nodes have both faces the same.
     boundary=(face==face_2)
     dirichlet=.false.
+    neumann=.false.
     if (boundary) then
        if (bc_type(face)==BCTYPE_WEAKDIRICHLET) then
          dirichlet=.true.
+       elseif (bc_type(face)==BCTYPE_NEUMANN) then
+         neumann=.true.
        end if
     end if
 
@@ -2645,8 +2650,13 @@ contains
           end if
 
        end if
-
+      
     end if
+
+   ! Add non-zero contributions from Neumann boundary conditions (if present)
+   if (neumann) then
+      call addto(RHS_diff, T_face, shape_rhs(T_shape, detwei * ele_val_at_quad(bc_value, face)))
+   end if
 
   contains
 
