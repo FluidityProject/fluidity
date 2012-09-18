@@ -71,7 +71,21 @@ sediment grain</a:documentation>
           <attribute name="name">
             <value>sediment_reentrainment</value>
           </attribute>
-          <empty/>
+          <element name="algorithm">
+            <a:documentation>Select algorithm to calculate reentrainment by (see the manual for more detail)</a:documentation>
+            <choice>
+              <value>Garcia_1991</value>
+              <value>Generic</value>
+            </choice>
+          </element>
+          <optional>
+            <element name="viscosity">
+              <a:documentation>Viscosity value to use within this algorithm. This allows the user to override 
+use of the material viscosity used for the rest of the simulation for calculating 
+sediment reentrainment. </a:documentation>
+              <ref name="real"/>
+            </element>
+          </optional>
         </element>
         <element name="type">
           <a:documentation>[UNDER DEVELOPMENT - DOES NOT WORK YET]
@@ -1168,6 +1182,7 @@ viscosity tensor is dealt with in the momentum equation.</a:documentation>
               <ref name="internal_algorithm"/>
               <ref name="bulk_viscosity_algorithm"/>
               <ref name="tensor_python_diagnostic_algorithm"/>
+              <ref name="sediment_concentration_dependent_viscosity_algorithm"/>
             </choice>
             <ref name="diagnostic_tensor_field"/>
           </element>

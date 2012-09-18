@@ -556,7 +556,11 @@ contains
 
        ! Start of sediment diagnostics.
        if (have_option("/material_phase[0]/sediment")) then
+          call calculate_sediment_sinking_velocity(state(i))
           call calculate_sediment_flux(state(i))
+          call calculate_sediment_active_layer_d50(state(i))
+          call calculate_sediment_active_layer_sigma(state(i))
+          call calculate_sediment_active_layer_volume_fractions(state(i))
        end if
        ! End of sediment diagnostics.
 
