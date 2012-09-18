@@ -194,12 +194,6 @@ contains
     call initialise_qmesh
     call initialise_write_state
 
-
-    ! Initialise sediments
-    if (have_option("/material_phase[0]/sediment")) then
-        call sediment_init()
-    end if
-
     ! Initialise Hyperlight
 #ifdef HAVE_HYPERLIGHT
     if (have_option("ocean_biology/lagrangian_ensemble/hyperlight")) then
@@ -916,10 +910,6 @@ contains
     ! cleanup GLS
     if (have_option('/material_phase[0]/subgridscale_parameterisations/GLS/')) then
         call gls_cleanup()
-    end if
-
-    if (have_option("/material_phase[0]/sediment")) then
-        call sediment_cleanup()
     end if
 
     ! closing .stat, .convergence and .detector files

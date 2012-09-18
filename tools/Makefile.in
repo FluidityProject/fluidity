@@ -109,10 +109,12 @@ endif
 default: $(BINARIES) scripts
 
 scripts:
+	mkdir -p ../bin
 	for i in *.py ; do cp $$i ../bin/`basename $$i .py` ; done
 	for i in *.sh ; do cp $$i ../bin/`basename $$i .sh` ; done
 
 install-version-info: version-info
+	@mkdir -p ../bin
 	@chmod +x $<
 	@cp $< ../bin/$<
 
