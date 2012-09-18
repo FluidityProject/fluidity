@@ -794,7 +794,7 @@
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">0.8372</real_value>
+              <real_value rank="0">1.</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -859,7 +859,7 @@
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">0.1860</real_value>
+              <real_value rank="0">0.</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -940,7 +940,7 @@
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">0.16279</real_value>
+              <real_value rank="0">0.</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -1005,7 +1005,7 @@
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">0.81395</real_value>
+              <real_value rank="0">0.</real_value>
             </constant>
           </type>
         </boundary_conditions>
