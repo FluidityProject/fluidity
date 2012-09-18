@@ -1211,6 +1211,15 @@ contains
             states(1), dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
     end if
 
+    ! Field that controls the weighting of partitions:
+    if (have_option('/flredecomp/field_weighted_partitions')) then
+       call allocate_and_insert_scalar_field('/flredecomp/field_weighted_partitions/scalar_field::FieldWeightedPartitionValues', states(1))
+    end if
+    
+    if (have_option('/mesh_adaptivity/hr_adaptivity/zoltan_options/field_weighted_partitions')) then
+       call allocate_and_insert_scalar_field('/mesh_adaptivity/hr_adaptivity/zoltan_options/field_weighted_partitions/scalar_field::FieldWeightedPartitionValues', states(1))
+    end if
+    
     ! grid velocity
     if (have_option('/mesh_adaptivity/mesh_movement/vector_field::GridVelocity')) then
        call allocate_and_insert_vector_field('/mesh_adaptivity/mesh_movement/vector_field::GridVelocity', &
