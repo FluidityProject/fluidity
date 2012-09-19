@@ -15,8 +15,8 @@ rho1 = 0.5*(sin(x*x + y*y) + 1.5)
 rho2 = 3.0
 
 ie1 = 0.5*(cos(x + y) + 1.5)
-ie2 = 0.5*(cos(x + y) + 1.5)
- 
+ie2 = 3.0*y
+
 u1 = 1.0*(sin(x**2+y**2)+0.5)
 v1 = 0.1*(cos(x**2+y**2)+0.5)
 
@@ -59,7 +59,7 @@ Srho1 = diff(vfrac1*u1*rho1,x) + diff(vfrac1*v1*rho1,y) + rho1*diff(u2*vfrac2, x
 k = 0.1
 C_v = 0.4
 Sie1 = vfrac1*rho1*u1*diff(ie1, x) + vfrac1*rho1*v1*diff(ie1, y) + vfrac1*p*diff(u1, x) + vfrac1*p*diff(v1, y)
-Sie2 = vfrac2*rho2*u2*diff(ie2, x) + vfrac2*rho2*v2*diff(ie2, y)
+Sie2 = u2*diff(ie2, x) + v2*diff(ie2, y)
 
 print 'from math import sin, cos, tanh, pi'
 print ''

@@ -18,8 +18,8 @@ rho1 = _sage_const_0p5 *(sin(x*x + y*y) + _sage_const_1p5 )
 rho2 = _sage_const_3p0 
 
 ie1 = _sage_const_0p5 *(cos(x + y) + _sage_const_1p5 )
-ie2 = _sage_const_0p5 *(cos(x + y) + _sage_const_1p5 )
- 
+ie2 = _sage_const_3p0 *y
+
 u1 = _sage_const_1p0 *(sin(x**_sage_const_2 +y**_sage_const_2 )+_sage_const_0p5 )
 v1 = _sage_const_0p1 *(cos(x**_sage_const_2 +y**_sage_const_2 )+_sage_const_0p5 )
 
@@ -62,7 +62,7 @@ Srho1 = diff(vfrac1*u1*rho1,x) + diff(vfrac1*v1*rho1,y) + rho1*diff(u2*vfrac2, x
 k = _sage_const_0p1 
 C_v = _sage_const_0p4 
 Sie1 = vfrac1*rho1*u1*diff(ie1, x) + vfrac1*rho1*v1*diff(ie1, y) + vfrac1*p*diff(u1, x) + vfrac1*p*diff(v1, y)
-Sie2 = vfrac2*rho2*u2*diff(ie2, x) + vfrac2*rho2*v2*diff(ie2, y)
+Sie2 = u2*diff(ie2, x) + v2*diff(ie2, y)
 
 print 'from math import sin, cos, tanh, pi'
 print ''
