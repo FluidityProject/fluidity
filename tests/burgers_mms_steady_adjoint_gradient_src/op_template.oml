@@ -1,15 +1,15 @@
 <?xml version='1.0' encoding='utf-8'?>
 <optimality_options>
   <name>
-    <string_value lines="1">op_C</string_value>
+    <string_value lines="1">op_template</string_value>
   </name>
-  <model command_line="../../bin/burgers_equation" option_file="mms_C.bml"/>
+  <model command_line="../../bin/burgers_equation" option_file="mms_template.bml"/>
   <functional name="time_integral_ad"/>
   <optimisation_options>
     <optimisation_algorithm name="NULL"/>
   </optimisation_options>
   <control_io>
-    <control name="InitialCondition">
+    <control name="Source">
       <type name="default"/>
     </control>
   </control_io>

@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='utf-8'?>
 <optimality_options>
   <name>
-    <string_value lines="1">shallow_water_optimisation_A</string_value>
+    <string_value lines="1">shallow_water_optimisation_template</string_value>
   </name>
-  <model command_line="../../bin/shallow_water" option_file="adjoint_A.swml"/>
+  <model command_line="../../bin/shallow_water" option_file="adjoint_template.swml"/>
   <functional name="integral_eta_t1"/>
   <optimisation_options>
     <optimisation_algorithm name="BFGS">

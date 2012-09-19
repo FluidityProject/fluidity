@@ -445,7 +445,7 @@ clean: clean-light clean-test python_clean clean-debian
 	@echo "    CLEAN manual"
 	@cd manual; $(MAKE) clean
 	@CLEAN_LIBADAPT@
-	@rm -fr include/*.mod *.cache core *.o config.status
+	@rm -fr lib*/configure.lineno include/*.mod *.cache core *.o config.status
 	@find ./ \( -name work.pc \) -exec rm {} \;
 	@find ./ \( -name work.pcl \) -exec rm {} \;
 
