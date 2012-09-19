@@ -203,7 +203,7 @@ contains
         call deallocate(supermesh_field_mesh)
         call deallocate(alpha_sf_on_supermesh)
       end if
-      ! Flust ilist of intersecting elements (when using the rtree intersection finder):
+      ! Flush ilist of intersecting elements (when using the rtree intersection finder):
       !call flush_list(map_SF_rtree)
       call deallocate(map_SF_rtree)
     end do
