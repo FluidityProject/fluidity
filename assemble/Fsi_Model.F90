@@ -89,8 +89,7 @@ module fsi_model
 
   public :: fsi_modelling, fsi_model_compute_diagnostics, &
             fsi_model_nonlinear_iteration_converged, &
-            fsi_model_check_options, fsi_model_register_diagnostic, &
-            fsi_insert_state
+            fsi_model_register_diagnostic, fsi_insert_state
 
   contains
 
