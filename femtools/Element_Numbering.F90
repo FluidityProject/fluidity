@@ -1720,11 +1720,14 @@ contains
     integer, dimension(edge_num_length(ele_num, interior)) :: edge_local_num
 
     integer, dimension(4) :: l
-    integer :: cnt, i, j, k, inc
+    integer :: cnt, i, j, k, inc, inc_l
     ! Local edge vertices for trace elements. 
     integer, dimension(2) :: ln
     ! array for locating face in quad
     integer, dimension(7) :: sum2face
+    integer, dimension(1:ele_num%vertices) :: vertices
+    
+    vertices=local_vertices(ele_num)
     
     select case (ele_num%type)
     case (ELEMENT_LAGRANGIAN)
@@ -1756,12 +1759,15 @@ contains
           j=0
           do i=ele_num%dimension, 1, -1
              ! compute ith 'count' coordinate
-             l(i)=iand(nodes(1)-1, k)/k
+             l(i) = iand(vertices(nodes(1))-1, k)/k
              
              ! increment to go from node 1 to node 2: 0, -1 or +1
-             inc=iand(nodes(2)-1, k)/k-l(i)
+             inc_l = iand(vertices(nodes(2))-1, k)/k-l(i)
              ! remember the coordinate in which node 1 and 2 differ:
-             if (inc/=0) j=i
+             if (inc_l/=0)  then
+                j = i
+                inc = inc_l
+             end if
              k=k*2
           end do
             

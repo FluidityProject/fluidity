@@ -44,14 +44,15 @@ module momentum_diagnostics
   use spud
   use state_fields_module
   use state_module
+  use sediment, only : get_n_sediment_fields, get_sediment_item
   
   implicit none
   
   private
   
-  public :: calculate_strain_rate, calculate_bulk_viscosity, calculate_buoyancy, calculate_coriolis, &
-            calculate_tensor_second_invariant, calculate_imposed_material_velocity_source, &
-            calculate_imposed_material_velocity_absorption, &
+  public :: calculate_strain_rate, calculate_bulk_viscosity, calculate_sediment_concentration_dependent_viscosity, &
+            calculate_buoyancy, calculate_coriolis, calculate_tensor_second_invariant, &
+            calculate_imposed_material_velocity_source, calculate_imposed_material_velocity_absorption, &
             calculate_scalar_potential, calculate_projection_scalar_potential, &
             calculate_geostrophic_velocity, calculate_k_epsilon_diffusivity
            
@@ -143,6 +144,58 @@ contains
 
   end subroutine calculate_k_epsilon_diffusivity
 
+  subroutine calculate_sediment_concentration_dependent_viscosity(state, t_field)
+    ! calculates viscosity based upon total sediment concentration
+    type(state_type), intent(inout) :: state
+    type(tensor_field), intent(inout) :: t_field
+    
+    type(scalar_field_pointer), dimension(:), allocatable :: sediment_concs
+    type(tensor_field), pointer :: zero_conc_viscosity
+    type(scalar_field) :: rhs
+    integer :: sediment_classes, i
+    character(len = FIELD_NAME_LEN) :: field_name
+    
+    ewrite(1,*) 'In calculate_sediment_concentration_dependent_viscosity'
+
+    sediment_classes = get_n_sediment_fields()
+
+    if (sediment_classes > 0) then
+        allocate(sediment_concs(sediment_classes))
+        
+        call get_sediment_item(state, 1, sediment_concs(1)%ptr)
+        
+        call allocate(rhs, sediment_concs(1)%ptr%mesh, name="Rhs")
+        call set(rhs, 1.0)
+        
+        ! get sediment concentrations and remove c/0.65 from rhs
+        do i=1, sediment_classes
+           call get_sediment_item(state, i, sediment_concs(i)%ptr)
+           call addto(rhs, sediment_concs(i)%ptr, scale=-(1.0/0.65))
+        end do
+        
+        ! raise rhs to power of -1.625
+        do i = 1, node_count(rhs)
+           call set(rhs, i, node_val(rhs, i)**(-1.625))
+        end do
+        
+        ! check for presence of ZeroSedimentConcentrationViscosity field
+        if (.not. has_tensor_field(state, "ZeroSedimentConcentrationViscosity")) then
+           FLExit("You must specify an zero sediment concentration viscosity to be able &
+                &to calculate sediment concentration dependent viscosity field values")
+        endif
+        zero_conc_viscosity => extract_tensor_field(state, 'ZeroSedimentConcentrationViscosity')
+        
+        call set(t_field, zero_conc_viscosity)
+        call scale(t_field, rhs)
+        ewrite_minmax(t_field) 
+
+        deallocate(sediment_concs)
+        call deallocate(rhs)
+    else
+        ewrite(1,*) 'No sediment in problem definition'
+    end if  
+  end subroutine calculate_sediment_concentration_dependent_viscosity
+  
   subroutine calculate_tensor_second_invariant(state, s_field)
     type(state_type), intent(inout) :: state
     type(scalar_field), intent(inout) :: s_field
