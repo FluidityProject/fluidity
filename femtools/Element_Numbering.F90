@@ -1727,10 +1727,9 @@ contains
     integer, dimension(7) :: sum2face
     integer, dimension(1:ele_num%vertices) :: vertices
     
-    vertices=local_vertices(ele_num)
-    
     select case (ele_num%type)
     case (ELEMENT_LAGRANGIAN)
+      vertices=local_vertices(ele_num)
       select case (ele_num%family)
       case (FAMILY_SIMPLEX)
           l=0
