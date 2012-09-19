@@ -984,7 +984,9 @@
     <scalar_field name="InternalEnergy" rank="0">
       <prognostic>
         <mesh name="PressureMesh"/>
-        <equation name="AdvectionDiffusion"/>
+        <equation name="InternalEnergy">
+          <density name="Density"/>
+        </equation>
         <spatial_discretisation>
           <continuous_galerkin>
             <stabilisation>

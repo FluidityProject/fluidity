@@ -59,7 +59,7 @@ Srho1 = diff(vfrac1*u1*rho1,x) + diff(vfrac1*v1*rho1,y) + rho1*diff(u2*vfrac2, x
 k = 0.1
 C_v = 0.4
 Sie1 = vfrac1*rho1*u1*diff(ie1, x) + vfrac1*rho1*v1*diff(ie1, y) + vfrac1*p*diff(u1, x) + vfrac1*p*diff(v1, y)
-Sie2 = u2*diff(ie2, x) + v2*diff(ie2, y)
+Sie2 = vfrac2*rho2*u2*diff(ie2, x) + vfrac2*rho2*v2*diff(ie2, y)
 
 print 'from math import sin, cos, tanh, pi'
 print ''
