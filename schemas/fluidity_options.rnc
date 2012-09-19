@@ -35,7 +35,7 @@ start =
                # Lines is a hint to the gui about the size of the text box.
                # It is not an enforced limit on string length.
                attribute lines { "1" },
-               ( "fluids" | "oceans" | "multimaterial" | "stokes" | "large_scale_ocean_options" | "foams" | "multiphase" )
+               ( "fluids" | "oceans" | "multimaterial" | "stokes" | "large_scale_ocean_options" | "foams" | "multiphase" | "fsi" )
             },
             comment
          },
