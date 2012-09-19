@@ -134,6 +134,8 @@ contains
 
     !If any meshes have constraints, allocate an appropriate trace mesh
     call insert_trace_meshes(states)
+    
+    call insert_external_solid_mesh(states, save_vtk_cache = .true.)
 
     call compute_domain_statistics(states)
 
@@ -862,6 +864,144 @@ contains
 
   end subroutine insert_trace_meshes
 
+  subroutine insert_external_solid_mesh(states, save_vtk_cache)
+    !!< Read in external meshes that are defined and treated as solid meshes
+    !!< from file as specified in options tree and insert in state
+    type(state_type), intent(inout), dimension(:) :: states
+    !! By default the vtk_cache, build up by the vtu mesh reads in this
+    !! subroutine, is flushed at the end of this subroutine. This cache can be
+    !! reused however in subsequent calls reading from vtu files.
+    logical, intent(in), optional:: save_vtk_cache
+
+    type(mesh_type) :: mesh
+    type(vector_field) :: solid_position
+    type(vector_field), pointer :: solid_position_ptr
+    character(len=OPTION_PATH_LEN) :: mesh_path, mesh_file_name, mesh_name,&
+         & mesh_file_format, from_file_path
+    integer :: i, j, num_solid_mesh, nstates, quad_degree, stat
+    type(element_type), pointer :: shape
+    type(quadrature_type), pointer :: quad
+    logical :: from_file
+    integer :: dim, loc
+    integer :: quad_family
+
+    ewrite(2,*) "inside external_solid_mesh_loop"
+
+    call tic(TICTOC_ID_IO_READ)
+
+    ! Find out how many states there are
+    nstates=option_count("/material_phase")
+    ! Get number of meshes
+    num_solid_mesh = option_count('/embedded_models/fsi_model/geometry/mesh')
+    ewrite(2,*) "There are", num_solid_mesh, "solid meshes."
+
+    ! Loop over solid meshes:
+    external_solid_mesh_loop: do i=0, num_solid_mesh-1
+
+       ! Save mesh path
+       mesh_path="/embedded_models/fsi_model/geometry/mesh["//int2str(i)//"]"
+
+       from_file_path = trim(mesh_path) // "/from_file"
+       from_file = have_option(from_file_path)
+
+       if(from_file) then
+
+          ! Get file format
+          ! Can remove stat test when mesh format data backwards compatibility is removed
+          call get_option(trim(from_file_path)//"/format/name", mesh_file_format, stat)
+          ! Can remove following when mesh format data backwards compatibility is removed
+          if(stat /= 0) then
+             ewrite(0, *) "Warning: Mesh format name attribute missing for mesh " // trim(mesh_path)
+             call get_option(trim(from_file_path)//"/format", mesh_file_format)
+          end if
+
+          ! Get filename for mesh, and other options
+          call get_option(trim(from_file_path)//"/file_name", mesh_file_name)
+          ! a quad_degree is required by the routines reading in a mesh, 
+          ! but logically not needed for a solid mesh at this point.
+          ! as a default, use the same quad_degree as fluid mesh:
+          call get_option("/geometry/quadrature/degree", quad_degree)
+
+          if (is_active_process) then
+            select case (mesh_file_format)
+            case ("triangle", "gmsh")
+              ! Read mesh
+              solid_position=read_mesh_files(trim(mesh_file_name), &
+                  quad_degree=quad_degree, &
+                  format=mesh_file_format, &
+                  solid=1)
+              mesh=solid_position%mesh
+            case ("vtu") ! this is untested
+              solid_position_ptr => vtk_cache_read_positions_field(mesh_file_name)
+              ! No hybrid mesh support here
+              assert(ele_count(solid_position_ptr) > 0)
+              dim = solid_position_ptr%dim
+              loc = ele_loc(solid_position_ptr, 1)
+
+              ! Generate a copy, and swap the quadrature degree
+              ! Note: Even if solid_positions_ptr has the correct quadrature degree, it
+              ! won't have any faces and hence a copy is still required (as
+              ! add_faces is a construction routine only)
+              allocate(quad)
+              allocate(shape)
+              quad = make_quadrature(loc, dim, degree = quad_degree, family=quad_family)
+              shape = make_element_shape(loc, dim, 1, quad)
+              call allocate(mesh, nodes = node_count(solid_position_ptr), elements = ele_count(solid_position_ptr), shape = shape, name = solid_position_ptr%mesh%name)
+              do j = 1, ele_count(mesh)
+                 call set_ele_nodes(mesh, j, ele_nodes(solid_position_ptr%mesh, j))
+              end do
+              call add_faces(mesh)
+              call allocate(solid_position, dim, mesh, solid_position_ptr%name)
+              call set(solid_position, solid_position_ptr)
+              call deallocate(mesh)
+              call deallocate(shape)
+              call deallocate(quad)
+              deallocate(quad)
+              deallocate(shape)
+
+              mesh = solid_position%mesh
+            case default
+              ewrite(-1,*) trim(mesh_file_format), " is not a valid format for a mesh file"
+              FLAbort("Invalid format for mesh file")
+            end select
+         end if
+
+          ! Set mesh parameters
+!          solid_mesh = solid_position%mesh
+          call get_option(trim(mesh_path)//'/name', mesh_name)
+          mesh%name = trim(mesh_name)//'SolidCoordinateMesh'
+          ! Set mesh option path.
+          mesh%option_path = mesh_path
+
+          ! Now copy those back to the solid_position:
+          solid_position%mesh = mesh
+          solid_position%name = trim(mesh_name)//'SolidCoordinate'
+
+          call surface_id_stats(mesh, solid_position)
+          
+          ! Insert mesh and position field into states(1) and
+          ! alias it to all the others
+          call insert(states, mesh, mesh%name)
+          call insert(states, solid_position, solid_position%name)
+
+          call deallocate(solid_position)
+       else
+          FLAbort("Solid mesh must be defined as 'from_file'")
+       end if
+
+    end do external_solid_mesh_loop
+    
+    if(.not. present_and_true(save_vtk_cache)) then
+       ! Flush the cache
+       call vtk_cache_finalise()
+    end if
+
+    call toc(TICTOC_ID_IO_READ)
+
+    ewrite(2,*) "leaving external_solid_mesh_loop"
+
+  end subroutine insert_external_solid_mesh
+
   function make_mesh_from_options(from_mesh, mesh_path) result (mesh)
     ! make new mesh changing shape or continuity of from_mesh
     type(mesh_type):: mesh
@@ -1160,12 +1300,20 @@ contains
     !! able to one by one allocate them as we get them back from SAM.
     logical, optional, intent(in):: dont_allocate_prognostic_value_spaces
 
-    character(len=OPTION_PATH_LEN) :: field_name
-    integer :: i ! counters
+    character(len=OPTION_PATH_LEN) :: field_name, mesh_path, mesh_name
+    integer :: i, j ! counters
     integer :: nstates ! number of states
+    integer :: num_solid_mesh ! number of solid meshes
     character(len=255) :: tmp ! temporary string to make life a little easier
     type(scalar_field), pointer :: fshistory_sfield
     integer :: fshistory_levels 
+
+    type(mesh_type), pointer :: solid_mesh
+    type(vector_field) :: solid_position
+    type(vector_field), pointer :: fluid_position, solid_force, solid_velocity
+    type(scalar_field), pointer :: alpha_global
+    type(vector_field) :: solidforce_mesh, solidvelocity_mesh
+    type(scalar_field) :: alpha_solidmesh
     
     nstates=option_count("/material_phase")
 
@@ -1260,6 +1408,56 @@ contains
           
        end if
     end do
+
+    ewrite(2,*) "adding additional fields on fluid mesh for solids"
+
+    ! insert solid specific fields in fluid states:
+    if (have_option("/embedded_models/fsi_model")) then
+      ! get some fields from state that we need:
+      fluid_position => extract_vector_field(states(1), "Coordinate")
+      alpha_global => extract_scalar_field(states(1), "SolidConcentration")
+      solid_force => extract_vector_field(states(1), "SolidForce")
+      solid_velocity => extract_vector_field(states(1), "SolidVelocity")
+
+      ! Get number of meshes
+      num_solid_mesh = option_count('/embedded_models/fsi_model/geometry/mesh')
+      ! Additional fields are only neccessary iff we have multiple solids:
+!      if (num_solid_mesh .gt. 1) then
+      
+        do j=0, nstates-1
+
+          solid_mesh_loop: do i=0, num_solid_mesh-1
+            
+            mesh_path="/embedded_models/fsi_model/geometry/mesh["//int2str(i)//"]"
+            call get_option(trim(mesh_path)//'/name', mesh_name)
+            
+            ! Setting up additional fields on the fluid mesh, e.g. 
+            ! one solid volume fraction field per solid mesh on the fluid mesh:
+            call allocate(alpha_solidmesh, fluid_position%mesh, trim(mesh_name)//"SolidConcentration")
+            alpha_solidmesh%option_path = alpha_global%option_path
+            call zero(alpha_solidmesh)
+            call insert(states(j+1), alpha_solidmesh, trim(mesh_name)//"SolidConcentration")
+            call deallocate(alpha_solidmesh)
+            
+            ! And the solidforce:
+            call allocate(solidforce_mesh, solid_force%dim, solid_force%mesh, trim(mesh_name)//"SolidForce")
+            solidforce_mesh%option_path = solid_force%option_path
+            call zero(solidforce_mesh)
+            call insert(states(j+1), solidforce_mesh, trim(mesh_name)//"SolidForce")
+            call deallocate(solidforce_mesh)
+
+            ! And the solidvelocity:
+            call allocate(solidvelocity_mesh, solid_velocity%dim, solid_velocity%mesh, trim(mesh_name)//"SolidVelocity")
+            solidvelocity_mesh%option_path = solid_velocity%option_path
+            call zero(solidvelocity_mesh)
+            call insert(states(j+1), solidvelocity_mesh, trim(mesh_name)//"SolidVelocity")
+            call deallocate(solidvelocity_mesh)
+            
+          end do solid_mesh_loop
+
+        end do
+!      end if
+    end if
 
     call allocate_metric_limits(states(1))
     
@@ -3039,7 +3237,7 @@ contains
       area(sidmin:sidmax))
     no_elements=0
     area=0.0
-    
+
     do i=1, surface_element_count(mesh)
        sid=surface_ids(i)
        no_elements(sid)=no_elements(sid)+1

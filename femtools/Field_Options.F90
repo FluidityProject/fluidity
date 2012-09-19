@@ -390,9 +390,13 @@ contains
     type(mesh_type), pointer:: mesh_i
     character(len=FIELD_NAME_LEN):: mesh_name
     integer:: i
-    
+        
     if (have_option(trim(mesh%option_path)//"/exclude_from_mesh_adaptivity")) then
       positions=extract_vector_field(state, trim(mesh%name)//"Coordinate")
+      call incref(positions)
+    else if (trim(mesh%option_path(1:40)) .eq. "/embedded_models/fsi_model/geometry/mesh") then
+      call get_option(trim(mesh%option_path)//'/name', mesh_name)
+      positions=extract_vector_field(state, trim(mesh_name)//"SolidCoordinate")
       call incref(positions)
     else
       coordinate_field => extract_vector_field(state, "Coordinate")

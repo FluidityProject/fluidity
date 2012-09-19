@@ -105,7 +105,7 @@ module fsi_model
         ewrite(2, *) "inside fsi_modelling"
 
         if (timestep == 1 .and. its == 1) then
-            call fsi_initialise(state)
+!            call fsi_initialise(state)
             ! Make sure /alpha_s^f is computed at first timestep:
             adapt_at_previous_dt = .true.
             recompute_alpha = .true.
@@ -519,10 +519,8 @@ module fsi_model
            alpha_solidmesh%option_path = 'testtmp/'//trim(alpha_solidmesh%option_path)
            solidforce_mesh => extract_vector_field(state, trim(mesh_name)//'SolidForce')
            solidforce_mesh%option_path = 'testtmp/'//trim(solidforce_mesh%option_path)
-           if (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed")) then
-              solidvelocity_mesh => extract_vector_field(state, trim(mesh_name)//'SolidForce')
-              solidvelocity_mesh%option_path = 'testtmp/'//trim(solidvelocity_mesh%option_path)
-           end if
+           solidvelocity_mesh => extract_vector_field(state, trim(mesh_name)//'SolidForce')
+           solidvelocity_mesh%option_path = 'testtmp/'//trim(solidvelocity_mesh%option_path)
 
         end do solid_mesh_loop
 
