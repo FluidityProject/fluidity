@@ -162,7 +162,7 @@
                   <real_value shape="1" rank="0">0.5</real_value>
                 </nu_scale>
               </streamline_upwind>
-             </stabilisation>
+            </stabilisation>
             <mass_terms>
               <lump_mass_matrix/>
             </mass_terms>
@@ -348,6 +348,25 @@
       </diagnostic>
     </scalar_field>
     <vector_field name="SolidForce" rank="1">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </vector_field>
+    <vector_field name="SolidVelocity" rank="1">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
