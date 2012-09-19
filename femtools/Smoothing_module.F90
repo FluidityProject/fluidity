@@ -11,7 +11,6 @@ module smoothing_module
   use global_parameters, only : OPTION_PATH_LEN
   use elements
   use transform_elements
-  use merge_tensors
   use vector_tools
   use unittest_tools
   implicit none
@@ -939,9 +938,9 @@ contains
   function equivalent_radius_ellipsoid(dim, evals) result(r)
     ! given the eigenvalues of an ellipsoid, compute the eigenvalue
     ! of the sphere with equal volume
-    real, dimension(dim), target :: evals
     real r
     integer i, dim
+    real, dimension(dim), target :: evals
 
     r = 1.0
     do i=1, dim
