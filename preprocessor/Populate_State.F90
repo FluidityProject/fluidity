@@ -1409,10 +1409,9 @@ contains
        end if
     end do
 
-    ewrite(2,*) "adding additional fields on fluid mesh for solids"
-
     ! insert solid specific fields in fluid states:
     if (have_option("/embedded_models/fsi_model")) then
+      ewrite(2,*) "adding additional fields on fluid mesh for solids"
       ! get some fields from state that we need:
       fluid_position => extract_vector_field(states(1), "Coordinate")
       alpha_global => extract_scalar_field(states(1), "SolidConcentration")
