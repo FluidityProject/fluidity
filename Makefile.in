@@ -469,6 +469,7 @@ distclean: clean
 	@cd libvtkfortran ; make distclean > /dev/null
 	@cd libspud ; make distclean > /dev/null ; rm -rf		\
 	 libspud.so.0 libtool diamond/build python/build > /dev/null
+	@cd tools ; make distclean > /dev/null
 	@rm -fr `find ./ -name config.status` `find ./ -name		\
 	 config.log` share include/Judy.h include/Wm4Command.h		\
 	 include/Wm4FoundationLIB.h include/Wm4FoundationPCH.h		\
