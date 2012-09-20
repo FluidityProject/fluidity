@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from pylab import *
+from pylab import size, sqrt, arccos, arctan, sin, cos
 import argparse
 import vtktools
 
