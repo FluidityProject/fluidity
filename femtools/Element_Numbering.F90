@@ -1450,6 +1450,12 @@ contains
          end do
          
       case (FAMILY_CUBE)
+      
+         ! Degree zero element only has one node which is non-zero on all vertices.
+         if(ele_num%degree == 0) then
+            ele_num_local_vertices = 1
+            return
+         end if
         
          l=0
          c=1 ! coordinate counter
@@ -1729,7 +1735,6 @@ contains
     
     select case (ele_num%type)
     case (ELEMENT_LAGRANGIAN)
-      vertices=local_vertices(ele_num)
       select case (ele_num%family)
       case (FAMILY_SIMPLEX)
           l=0
@@ -1752,6 +1757,15 @@ contains
 
           end do number_loop
       case (FAMILY_CUBE)
+      
+          ! If a quad element has degree zero then the local 
+          if(ele_num%degree == 0) then
+            edge_local_num = 1
+            return
+          end if
+         
+         ! Get local node numbers of vertices
+         vertices=local_vertices(ele_num)
 
           l=0
           k=1 ! bit mask
