@@ -297,16 +297,16 @@
   R0 = 6.37122e6
   u0 = 2*pi*R0/(12.*60.*60.*24)
   g = 9.80616
-  gh0 = 2.94e4
+  h0 = 5400.
   Omega = 7.292e-5
   sinsqtheta = (z/R)**2
   lambda0 = atan2(y,x)
-  return (gh0-(R0*Omega*u0 + u0**2/2)*sinsqtheta)/g</string_value>
+  return (g*h0-(R0*Omega*u0 + u0**2/2)*sinsqtheta)/g</string_value>
           </python>
         </initial_condition>
         <mean_layer_thickness>
           <real_value rank="0">5400</real_value>
-          <reset_field_mean/>
+          <reset_this_value/>
         </mean_layer_thickness>
         <output/>
         <stat>
