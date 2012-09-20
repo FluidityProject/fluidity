@@ -94,9 +94,10 @@ module fsi_model
 
   contains
 
-    subroutine fsi_modelling(state, its, itinoi)
+    subroutine fsi_modelling(state, solid_states, its, itinoi)
     !! Main routine for FSI, being called every picard iteration
         type(state_type), intent(inout) :: state
+        type(state_type), intent(inout), dimension(:) :: solid_states
         integer, intent(in) :: its, itinoi
         type(scalar_field), pointer :: alpha_global
         type(scalar_field), pointer :: old_alpha_global
