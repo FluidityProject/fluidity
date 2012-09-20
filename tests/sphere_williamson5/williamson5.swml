@@ -49,7 +49,7 @@
           <string_value>BDFM</string_value>
           <solver>
             <iterative_method name="cg"/>
-            <preconditioner name="mg"/>
+            <preconditioner name="sor"/>
             <relative_error>
               <real_value rank="0">1.0e-8</real_value>
             </relative_error>
@@ -335,7 +335,7 @@
               <integer_value rank="0">40</integer_value>
             </restart>
           </iterative_method>
-          <preconditioner name="eisenstat"/>
+          <preconditioner name="sor"/>
           <relative_error>
             <real_value rank="0">1.0e-8</real_value>
           </relative_error>
