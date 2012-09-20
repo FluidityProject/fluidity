@@ -48,10 +48,10 @@
         <constraint_type>
           <string_value>BDFM</string_value>
           <solver>
-            <iterative_method name="preonly"/>
-            <preconditioner name="lu"/>
+            <iterative_method name="cg"/>
+            <preconditioner name="mg"/>
             <relative_error>
-              <real_value rank="0">1.0e-50</real_value>
+              <real_value rank="0">1.0e-8</real_value>
             </relative_error>
             <max_iterations>
               <integer_value rank="0">1000</integer_value>
@@ -330,8 +330,12 @@
           </continuous_galerkin>
         </spatial_discretisation>
         <solver>
-          <iterative_method name="preonly"/>
-          <preconditioner name="lu"/>
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">40</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="eisenstat"/>
           <relative_error>
             <real_value rank="0">1.0e-8</real_value>
           </relative_error>
