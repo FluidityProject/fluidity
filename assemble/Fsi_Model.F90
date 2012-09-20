@@ -147,7 +147,7 @@ module fsi_model
 !        if (recompute_alpha) then
         if (adapt_at_previous_dt) then
             ! projection between solid/fluid mesh:
-            call fsi_ibm_projections(state)
+            call fsi_ibm_projections(state, solid_states)
         end if
 
         ! 1-WAY COUPLING (prescribed solid velocity)
@@ -156,7 +156,7 @@ module fsi_model
         ! solid volume fractions as well
         if (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidPosition/prescribed") &
             & .and. its == 1) then
-            call fsi_update_solid_position_volume_fraction(state)
+            call fsi_update_solid_position_volume_fraction(state, solid_states)
         end if
 
 
@@ -220,11 +220,12 @@ module fsi_model
 
     !----------------------------------------------------------------------------
 
-    subroutine fsi_update_solid_position_volume_fraction(state)
+    subroutine fsi_update_solid_position_volume_fraction(state, solid_states)
     !! Subroutine that loops over all solid meshes that have a prescribed
     !! velocity or movement, applies solid movement and 
     !! updates the solid volume fraction fields afterwards
         type(state_type), intent(inout) :: state
+        type(state_type), intent(inout), dimension(:) :: solid_states
 
         type(vector_field) :: solid_movement
         type(vector_field), pointer :: fluid_position
@@ -260,7 +261,7 @@ module fsi_model
             ! Check for user error:
             if (have_option(trim(fsi_path)//"SolidPosition/prescribed/mesh::"//trim(mesh_name))) then
             
-                call fsi_move_solid_mesh(state, mesh_name, solid_moved=solid_moved)
+                call fsi_move_solid_mesh(state, solid_states, mesh_name, solid_moved=solid_moved)
                 ewrite(1,*) "moved solid mesh: ", trim(mesh_name)
                 solid_moved = .true.
             else
@@ -270,7 +271,7 @@ module fsi_model
             ! Recompute solid volume fraction, if solid just moved:
             if (solid_moved) then
                 ewrite(1,*) "update alpha of solid mesh: ", trim(mesh_name)
-                call fsi_ibm_projections_mesh(state, mesh_name)
+                call fsi_ibm_projections_mesh(state, solid_states, mesh_name)
             end if
 
         end do solid_mesh_position_loop
@@ -307,10 +308,11 @@ module fsi_model
 
     !----------------------------------------------------------------------------
 
-    subroutine fsi_ibm_projections(state)
+    subroutine fsi_ibm_projections(state, solid_states)
     !! Subroutine that loops over all solid meshes and calls the corresponding 
     !! subroutines to obtain the solid volume fraction
         type(state_type), intent(inout) :: state
+        type(state_type), intent(inout), dimension(:) :: solid_states
         type(scalar_field), pointer :: alpha_global
 
         character(len=OPTION_PATH_LEN) :: mesh_name
@@ -334,7 +336,7 @@ module fsi_model
             call get_option('/embedded_models/fsi_model/geometry/mesh['//int2str(i)//']/name', mesh_name)
 
             ! Now do the projection to obtain the alpha field of the current solid mesh:
-            call fsi_ibm_projections_mesh(state, mesh_name)
+            call fsi_ibm_projections_mesh(state, solid_states, mesh_name)
 
         end do solid_mesh_loop
 
@@ -352,8 +354,9 @@ module fsi_model
 
     !----------------------------------------------------------------------------
 
-    subroutine fsi_ibm_projections_mesh(state, mesh_name)
+    subroutine fsi_ibm_projections_mesh(state, solid_states, mesh_name)
         type(state_type), intent(inout) :: state
+        type(state_type), intent(inout), dimension(:) :: solid_states
         character(len=OPTION_PATH_LEN), intent(in) :: mesh_name
 
         type(vector_field), pointer :: fluid_position, fluid_velocity
@@ -444,12 +447,13 @@ module fsi_model
 
     !----------------------------------------------------------------------------
 
-    subroutine fsi_compute_intersection_map(state, solid_position, map_SF)
+    subroutine fsi_compute_intersection_map(state, solid_states, solid_position, map_SF)
     !! This subroutine computes a list of intersecting elements between a solid and fluid mesh
     !! The rtree intersection finder is used as it is more robust in parallel than the 
     !! advancing front intersection finder, e.g. it doesn't abort if no intersection was found,
     !! which is possible with the solid domain being immersed in a fluid domain
         type(state_type), intent(inout) :: state
+        type(state_type), intent(inout), dimension(:) :: solid_states
         type(vector_field), pointer, intent(in) :: solid_position
         type(ilist), dimension(:), allocatable, intent(inout) :: map_SF
         type(ilist) :: map_SF_tmp
@@ -679,9 +683,10 @@ module fsi_model
 
   !----------------------------------------------------------------------------
 
-    subroutine fsi_move_solid_mesh(state, mesh_name, solid_moved)
+    subroutine fsi_move_solid_mesh(state, solid_states, mesh_name, solid_moved)
     !! Moving a solid mesh
       type(state_type), intent(in) :: state
+      type(state_type), intent(inout), dimension(:) :: solid_states
       character(len=OPTION_PATH_LEN), intent(in) :: mesh_name
       logical, intent(inout), optional :: solid_moved
 
@@ -1291,9 +1296,10 @@ module fsi_model
 
     !----------------------------------------------------------------------------
 
-    subroutine fsi_model_pre_adapt_cleanup(states)
+    subroutine fsi_model_pre_adapt_cleanup(states, solid_states)
     !! Initialise fields and meshes for FSI problems
       type(state_type), dimension(:) :: states
+      type(state_type), dimension(:) :: solid_states
       type(scalar_field), pointer :: alpha_solidmesh
       type(vector_field), pointer :: solid_position_mesh, solidforce_mesh, solidvelocity_mesh
       type(mesh_type), pointer :: solid_mesh
@@ -1354,9 +1360,10 @@ module fsi_model
     
     !----------------------------------------------------------------------------
 
-    subroutine fsi_post_adapt_operations(states)
+    subroutine fsi_post_adapt_operations(states, solid_states)
     !! Initialise fields and meshes for FSI problems
       type(state_type), dimension(:) :: states
+      type(state_type), dimension(:) :: solid_states
       type(scalar_field), pointer :: alpha_solidmesh
       type(vector_field), pointer :: solid_position_mesh, solidforce_mesh, solidvelocity_mesh
       character(len=OPTION_PATH_LEN) :: mesh_path, state_path, mesh_name

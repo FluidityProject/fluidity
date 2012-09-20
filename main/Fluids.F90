@@ -894,7 +894,7 @@ contains
        if(have_option("/mesh_adaptivity/hr_adaptivity")) then
 
           if(do_adapt_mesh(current_time, timestep)) then
-             call pre_adapt_tasks(sub_state, state)
+             call pre_adapt_tasks(sub_state, state, solid_states=solid_state)
 
              call qmesh(state, metric_tensor)
              if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
@@ -902,7 +902,7 @@ contains
 
              call adapt_state(state, metric_tensor)
 
-             call update_state_post_adapt(state, metric_tensor, dt, sub_state, nonlinear_iterations, nonlinear_iterations_adapt)
+             call update_state_post_adapt(state, solid_state, metric_tensor, dt, sub_state, nonlinear_iterations, nonlinear_iterations_adapt)
 
              if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
              call run_diagnostics(state)
@@ -911,13 +911,13 @@ contains
        else if(have_option("/mesh_adaptivity/prescribed_adaptivity")) then
           if(do_adapt_state_prescribed(current_time)) then
 
-             call pre_adapt_tasks(sub_state, state)
+             call pre_adapt_tasks(sub_state, state, solid_states=solid_state)
 
              if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
              call run_diagnostics(state)
 
              call adapt_state_prescribed(state, current_time)
-             call update_state_post_adapt(state, metric_tensor, dt, sub_state, nonlinear_iterations, nonlinear_iterations_adapt)
+             call update_state_post_adapt(state, solid_state, metric_tensor, dt, sub_state, nonlinear_iterations, nonlinear_iterations_adapt)
 
              if(have_option("/io/stat/output_after_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
              call run_diagnostics(state)
@@ -1021,10 +1021,11 @@ contains
 
   end subroutine fluids
 
-  subroutine pre_adapt_tasks(sub_state, state)
+  subroutine pre_adapt_tasks(sub_state, state, solid_states)
 
     type(state_type), dimension(:), pointer :: sub_state
     type(state_type), dimension(:), intent(in) :: state
+    type(state_type), dimension(:), intent(inout), optional :: solid_states
 
     integer :: ss
 
@@ -1042,7 +1043,7 @@ contains
     
     ! If we use the FSI-Model, some added fields need to be removed from state:
     if (have_option("/embedded_models/fsi_model/")) then
-        call fsi_model_pre_adapt_cleanup(state)
+        call fsi_model_pre_adapt_cleanup(state, solid_states)
     end if
 
     ! deallocate sub-state
@@ -1055,8 +1056,9 @@ contains
 
   end subroutine pre_adapt_tasks
 
-  subroutine update_state_post_adapt(state, metric_tensor, dt, sub_state, nonlinear_iterations, nonlinear_iterations_adapt)
+  subroutine update_state_post_adapt(state, solid_states, metric_tensor, dt, sub_state, nonlinear_iterations, nonlinear_iterations_adapt)
     type(state_type), dimension(:), intent(inout) :: state
+    type(state_type), dimension(:), intent(inout) :: solid_states
     type(tensor_field), intent(out) :: metric_tensor
     real, intent(inout) :: dt
     integer, intent(inout) :: nonlinear_iterations, nonlinear_iterations_adapt
@@ -1137,7 +1139,7 @@ contains
     ! For FSI modelling, re-adding addtional fields
     ! and recompute solid volume fraction on the new mesh
     if (have_option("/embedded_models/fsi_model/")) then
-      call fsi_post_adapt_operations(state)
+      call fsi_post_adapt_operations(state, solid_states)
     end if
 
   end subroutine update_state_post_adapt
