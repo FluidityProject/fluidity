@@ -669,6 +669,8 @@
       type(vector_field), pointer  :: X
       type(scalar_field), pointer :: D
 
+      ewrite(1,*) 'fix_layerdepth_mean(state)'
+
       X=>extract_vector_field(state,"Coordinate")
       D=>extract_scalar_field(state,"LayerThickness")
       
@@ -698,9 +700,9 @@
       do ele = 1, element_count(D)
          call assemble_mean_ele(D,X,h_mean,area,ele)
       end do
-      ewrite(2,*) 'H mean',h_mean/area,D0
+      ewrite(2,*) 'fix_layerdepth_mean H mean',h_mean/area,D0
       assert(abs(h_mean/area-D0)/D0<1.0e-8)
-
+      ewrite(1,*) 'END fix_layerdepth_mean(state)'
   end subroutine fix_layerdepth_mean
 
   subroutine setup_pv(state)

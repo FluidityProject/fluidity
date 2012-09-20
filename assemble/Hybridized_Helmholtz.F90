@@ -2259,7 +2259,7 @@ contains
     D_gi = ele_val_at_quad(D,ele)
     call compute_jacobian(ele_val(X,ele),ele_shape(X,ele), J=J, &
          detwei=detwei)
-    
+    assert(all(detwei>0.))
     mean = mean + sum(detwei*D_gi)
     area = area + sum(detwei)
     
