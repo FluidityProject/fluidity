@@ -88,8 +88,9 @@ module fsi_model
   private
 
   public :: fsi_modelling, fsi_model_compute_diagnostics, &
-            fsi_model_nonlinear_iteration_converged, &
-            fsi_model_register_diagnostic, fsi_insert_state
+             fsi_model_nonlinear_iteration_converged, &
+             fsi_model_register_diagnostic, fsi_insert_state, &
+             fsi_model_pre_adapt_cleanup, fsi_post_adapt_operations
 
   contains
 
@@ -101,6 +102,7 @@ module fsi_model
         type(scalar_field), pointer :: old_alpha_global
         logical :: recompute_alpha
         logical :: solid_moved
+        !type(vector_field), pointer :: test
 
         ewrite(2, *) "inside fsi_modelling"
 
@@ -112,6 +114,9 @@ module fsi_model
             solid_moved = .true.
             ! At this stage, everything is initialised
         end if
+        
+            
+        !test => extract_vector_field(state, "frontcylinderSolidCoordinate")
 
 
 !        ! For future use:
@@ -1102,9 +1107,9 @@ module fsi_model
       
       ! If the mesh is about to be adapted at the end of this timestep,
       ! remove additional fields from state:
-      if (adapt_at_previous_dt) then
-         call fsi_remove_from_state(state)
-      end if
+!      if (adapt_at_previous_dt) then
+!         call fsi_remove_from_state(state)
+!      end if
 
       ewrite(2, *) "leaving fsi_model_compute_diagnostics"
 
@@ -1194,8 +1199,8 @@ module fsi_model
          call insert(state, solid_mesh, trim(solid_mesh%name))
          call insert(state, solid_position, trim(solid_position%name))
          ! Add to extra state:
-         call insert(global_solid_state, solid_mesh, trim(solid_mesh%name)) 
-         call insert(global_solid_state, solid_position, trim(solid_position%name))         
+         call insert(global_solid_state, solid_mesh, trim(solid_mesh%name))
+         call insert(global_solid_state, solid_position, trim(solid_position%name))
 
          ! Also set-up solidvolumefraction field for all solids:
          call allocate(alpha_solidmesh, fluid_position%mesh, trim(solid_mesh%name)//"SolidConcentration")
@@ -1282,5 +1287,116 @@ module fsi_model
       end if
 
     end subroutine fsi_model_register_diagnostic
+
+    !----------------------------------------------------------------------------
+
+    subroutine fsi_model_pre_adapt_cleanup(states)
+    !! Initialise fields and meshes for FSI problems
+      type(state_type), dimension(:) :: states
+      type(scalar_field), pointer :: alpha_solidmesh
+      type(vector_field), pointer :: solid_position_mesh, solidforce_mesh, solidvelocity_mesh
+      type(mesh_type), pointer :: solid_mesh
+      character(len=OPTION_PATH_LEN) :: mesh_path, mesh_name
+      integer :: i, j, num_solid_mesh, nstates
+      integer :: stat
+
+      ewrite(2,*) "inside fsi_model_pre_adapt_cleanup"
+
+      ! get number of fluid-states and solid meshes:
+      nstates=option_count("/material_phase")
+      num_solid_mesh = option_count('/embedded_models/fsi_model/geometry/mesh')
+
+      state_loop: do j=0, nstates-1
+
+        ewrite(2,*) "state number: ", j
+
+        ! Loop over number of solid meshes defined:
+        solid_mesh_loop: do i=0, num_solid_mesh-1
+
+          ! Get mesh name:
+          mesh_path="/embedded_models/fsi_model/geometry/mesh["//int2str(i)//"]"
+          call get_option(trim(mesh_path)//'/name', mesh_name)
+          ewrite(2,*) "removing fields from solid: ", mesh_name
+
+!          call remove_scalar_field(states(j+1), trim(mesh_name)//"SolidConcentration", stat)
+!          ewrite(2,*) "stat = ", stat
+!          call remove_vector_field(states(j+1), trim(mesh_name)//"SolidForce", stat)
+!          ewrite(2,*) "stat = ", stat
+!          call remove_vector_field(states(j+1), trim(mesh_name)//"SolidVelocity", stat)
+!          ewrite(2,*) "stat = ", stat
+
+          ! Get solid specific fields and mesh:
+          solid_mesh => extract_mesh(states(j+1), trim(mesh_name)//"SolidMesh")
+          solid_position_mesh => extract_vector_field(states(j+1), trim(mesh_name)//"SolidCoordinate")
+          alpha_solidmesh => extract_scalar_field(states(j+1), trim(mesh_name)//'SolidConcentration')
+          solidforce_mesh => extract_vector_field(states(j+1), trim(mesh_name)//'SolidForce')
+          solidvelocity_mesh => extract_vector_field(states(j+1), trim(mesh_name)//'SolidVelocity')
+          
+          call remove_scalar_field(states(j+1), trim(mesh_name)//"SolidConcentration", stat)
+          alpha_solidmesh => extract_scalar_field(states(j+1), trim(mesh_name)//'SolidConcentration')
+          
+          !test => extract_scalar_field(states(j+1), trim(mesh_name)//'TEST')
+          !FLExit("end")
+
+          ! not removing, but changing option paths:
+          alpha_solidmesh%option_path = 'solidtmp/'//trim(alpha_solidmesh%option_path)
+          solidforce_mesh%option_path = 'solidtmp/'//trim(solidforce_mesh%option_path)
+          solidvelocity_mesh%option_path = 'solidtmp/'//trim(solidvelocity_mesh%option_path)
+
+        end do solid_mesh_loop
+      
+      end do state_loop
+
+      ewrite(2,*) "leaving fsi_model_pre_adapt_cleanup"
+
+    end subroutine fsi_model_pre_adapt_cleanup
+    
+    !----------------------------------------------------------------------------
+
+    subroutine fsi_post_adapt_operations(states)
+    !! Initialise fields and meshes for FSI problems
+      type(state_type), dimension(:) :: states
+      type(scalar_field), pointer :: alpha_solidmesh
+      type(vector_field), pointer :: solid_position_mesh, solidforce_mesh, solidvelocity_mesh
+      character(len=OPTION_PATH_LEN) :: mesh_path, state_path, mesh_name
+      integer :: i, j, num_solid_mesh, nstates
+      integer :: stat
+
+      ewrite(2,*) "inside fsi_post_adapt_operations"
+
+      ! get number of fluid-states and solid meshes:
+      nstates=option_count("/material_phase")
+      num_solid_mesh = option_count('/embedded_models/fsi_model/geometry/mesh')
+
+      state_loop: do j=0, nstates-1
+
+        ewrite(2,*) "state number: ", j
+        state_path = '/material_phase['//int2str(j)//']/'
+
+        ! Loop over number of solid meshes defined:
+        solid_mesh_loop: do i=0, num_solid_mesh-1
+
+          ! Get mesh name:
+          mesh_path="/embedded_models/fsi_model/geometry/mesh["//int2str(i)//"]"
+          call get_option(trim(mesh_path)//'/name', mesh_name)
+          ewrite(2,*) "resetting option_paths of solid fields of solid mesh: ", mesh_name
+
+          ! not removing, but changing option paths:
+          !test => extract_scalar_field(states(j+1), trim(mesh_name)//'TEST')
+          
+          solid_position_mesh => extract_vector_field(states(j+1), trim(mesh_name)//"SolidCoordinate")
+          alpha_solidmesh => extract_scalar_field(states(j+1), trim(mesh_name)//'SolidConcentration')
+          alpha_solidmesh%option_path = trim(state_path)//'scalar_field::SolidConcentration'
+          solidforce_mesh => extract_vector_field(states(j+1), trim(mesh_name)//'SolidForce')
+          solidforce_mesh%option_path = trim(state_path)//'vector_field::SolidForce'
+          solidvelocity_mesh => extract_vector_field(states(j+1), trim(mesh_name)//'SolidVelocity')
+          solidvelocity_mesh%option_path = trim(state_path)//'vector_field::SolidVelocity'
+        end do solid_mesh_loop
+      
+      end do state_loop
+
+      ewrite(2,*) "leaving fsi_post_adapt_operations"
+
+    end subroutine fsi_post_adapt_operations
 
 end module fsi_model
