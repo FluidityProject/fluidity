@@ -109,9 +109,10 @@ module populate_state_module
 contains
 
 
-  subroutine populate_state(states)
+  subroutine populate_state(states, solid_states)
     use Profiler
     type(state_type), pointer, dimension(:) :: states
+    type(state_type), pointer, dimension(:), optional :: solid_states
 
     integer :: nstates ! number of states
     integer :: i
@@ -135,7 +136,9 @@ contains
     !If any meshes have constraints, allocate an appropriate trace mesh
     call insert_trace_meshes(states)
     
-    call insert_external_solid_mesh(states, save_vtk_cache = .true.)
+    if (have_option("/embedded_models/fsi_model/")) then
+      call insert_external_solid_mesh(states, solid_states, save_vtk_cache = .true.)
+    end if
 
     call compute_domain_statistics(states)
 
@@ -864,10 +867,11 @@ contains
 
   end subroutine insert_trace_meshes
 
-  subroutine insert_external_solid_mesh(states, save_vtk_cache)
+  subroutine insert_external_solid_mesh(states, solid_states, save_vtk_cache)
     !!< Read in external meshes that are defined and treated as solid meshes
     !!< from file as specified in options tree and insert in state
     type(state_type), intent(inout), dimension(:) :: states
+    type(state_type), pointer, intent(inout), dimension(:) :: solid_states
     !! By default the vtk_cache, build up by the vtu mesh reads in this
     !! subroutine, is flushed at the end of this subroutine. This cache can be
     !! reused however in subsequent calls reading from vtu files.
@@ -884,7 +888,7 @@ contains
     logical :: from_file
     integer :: dim, loc
     integer :: quad_family
-
+ 
     ewrite(2,*) "inside external_solid_mesh_loop"
 
     call tic(TICTOC_ID_IO_READ)
@@ -894,6 +898,13 @@ contains
     ! Get number of meshes
     num_solid_mesh = option_count('/embedded_models/fsi_model/geometry/mesh')
     ewrite(2,*) "There are", num_solid_mesh, "solid meshes."
+
+    ! allocate solid_states based on number of solid meshes:
+    allocate(solid_states(1:num_solid_mesh))
+    do i = 0, num_solid_mesh-1
+       call nullify(solid_states(i+1))
+       call set_option_path(solid_states(i+1), "/embedded_models/fsi_model/geometry/mesh["//int2str(i)//"]")
+    end do
 
     ! Loop over solid meshes:
     external_solid_mesh_loop: do i=0, num_solid_mesh-1
@@ -981,8 +992,8 @@ contains
           
           ! Insert mesh and position field into states(1) and
           ! alias it to all the others
-          call insert(states, mesh, mesh%name)
-          call insert(states, solid_position, solid_position%name)
+          call insert(solid_states(i+1), mesh, mesh%name)
+          call insert(solid_states(i+1), solid_position, solid_position%name)
 
           call deallocate(solid_position)
        else
@@ -1310,7 +1321,7 @@ contains
 
     type(mesh_type), pointer :: solid_mesh
     type(vector_field) :: solid_position
-    type(vector_field), pointer :: fluid_position, solid_force, solid_velocity
+    type(vector_field), pointer :: solid_force, solid_velocity
     type(scalar_field), pointer :: alpha_global
     type(vector_field) :: solidforce_mesh, solidvelocity_mesh
     type(scalar_field) :: alpha_solidmesh
@@ -1413,7 +1424,6 @@ contains
     if (have_option("/embedded_models/fsi_model")) then
       ewrite(2,*) "adding additional fields on fluid mesh for solids"
       ! get some fields from state that we need:
-      fluid_position => extract_vector_field(states(1), "Coordinate")
       alpha_global => extract_scalar_field(states(1), "SolidConcentration")
       solid_force => extract_vector_field(states(1), "SolidForce")
       solid_velocity => extract_vector_field(states(1), "SolidVelocity")
@@ -1432,7 +1442,7 @@ contains
             
             ! Setting up additional fields on the fluid mesh, e.g. 
             ! one solid volume fraction field per solid mesh on the fluid mesh:
-            call allocate(alpha_solidmesh, fluid_position%mesh, trim(mesh_name)//"SolidConcentration")
+            call allocate(alpha_solidmesh, alpha_global%mesh, trim(mesh_name)//"SolidConcentration")
             alpha_solidmesh%option_path = alpha_global%option_path
             call zero(alpha_solidmesh)
             call insert(states(j+1), alpha_solidmesh, trim(mesh_name)//"SolidConcentration")

@@ -74,7 +74,7 @@ module fluids_module
   use write_triangle
   use biology
   use foam_flow_module, only: calculate_potential_flow, calculate_foam_velocity
-  use fsi_model, only: fsi_modelling, fsi_model_compute_diagnostics, fsi_model_nonlinear_iteration_converged, fsi_insert_state
+  use fsi_model, only: fsi_modelling, fsi_model_compute_diagnostics, fsi_model_nonlinear_iteration_converged, fsi_insert_state, fsi_model_pre_adapt_cleanup, fsi_post_adapt_operations
   use momentum_equation
   use timeloop_utilities
   use free_surface_module
@@ -134,6 +134,7 @@ contains
 
     !     System state wrapper.
     type(state_type), dimension(:), pointer :: state => null()
+    type(state_type), dimension(:), pointer :: solid_state => null()
     type(state_type), dimension(:), pointer :: sub_state => null()
     type(state_type), dimension(:), allocatable :: POD_state
 
@@ -225,7 +226,11 @@ contains
     adapt_count = 0
 
     ! Read state from .flml file
-    call populate_state(state)
+    if (have_option("/embedded_models/fsi_model/")) then
+      call populate_state(state, solid_states=solid_state)
+    else
+      call populate_state(state)
+    end if
 
     ewrite(3,*)'before have_option test'
 
@@ -471,12 +476,6 @@ contains
        end if
 
        if(simulation_completed(current_time, timestep)) exit timestep_loop
-       
-       ! Adding additional fields:
-       if (have_option("/embedded_models/fsi_model/")) then
-          call fsi_insert_state(state(1))
-       end if
-
        if( &
                                 ! Do not dump at the start of the simulation (this is handled by write_state call earlier)
             & current_time > simulation_start_time &
@@ -895,8 +894,7 @@ contains
        if(have_option("/mesh_adaptivity/hr_adaptivity")) then
 
           if(do_adapt_mesh(current_time, timestep)) then
-
-             call pre_adapt_tasks(sub_state)
+             call pre_adapt_tasks(sub_state, state)
 
              call qmesh(state, metric_tensor)
              if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
@@ -913,7 +911,7 @@ contains
        else if(have_option("/mesh_adaptivity/prescribed_adaptivity")) then
           if(do_adapt_state_prescribed(current_time)) then
 
-             call pre_adapt_tasks(sub_state)
+             call pre_adapt_tasks(sub_state, state)
 
              if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
              call run_diagnostics(state)
@@ -1023,9 +1021,10 @@ contains
 
   end subroutine fluids
 
-  subroutine pre_adapt_tasks(sub_state)
+  subroutine pre_adapt_tasks(sub_state, state)
 
     type(state_type), dimension(:), pointer :: sub_state
+    type(state_type), dimension(:), intent(in) :: state
 
     integer :: ss
 
@@ -1039,6 +1038,11 @@ contains
     ! management system complains
     if (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/")) then
         call keps_cleanup() ! deallocate everything
+    end if
+    
+    ! If we use the FSI-Model, some added fields need to be removed from state:
+    if (have_option("/embedded_models/fsi_model/")) then
+        call fsi_model_pre_adapt_cleanup(state)
     end if
 
     ! deallocate sub-state
@@ -1128,6 +1132,12 @@ contains
         &.and. have_option(trim(keps_option_path)//"/scalar_field::TurbulentDissipation/prognostic") &
         &.and. have_option(trim(keps_option_path)//"/scalar_field::ScalarEddyViscosity/diagnostic")) then
         call keps_adapt_mesh(state(1))
+    end if
+    
+    ! For FSI modelling, re-adding addtional fields
+    ! and recompute solid volume fraction on the new mesh
+    if (have_option("/embedded_models/fsi_model/")) then
+      call fsi_post_adapt_operations(state)
     end if
 
   end subroutine update_state_post_adapt
