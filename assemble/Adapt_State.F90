@@ -832,27 +832,33 @@ contains
     end if
   end subroutine adapt_mesh
 
-  subroutine adapt_state_single(state, metric, initialise_fields)
+  subroutine adapt_state_single(state, metric, initialise_fields, solid_states)
 
     type(state_type), intent(inout) :: state
     type(tensor_field), intent(inout) :: metric
     !! If present and .true., initialise fields rather than interpolate them
     logical, optional, intent(in) :: initialise_fields
+    type(state_type), dimension(:), intent(inout), optional :: solid_states
 
     type(state_type), dimension(1) :: states
 
     states = (/state/)
-    call adapt_state(states, metric, initialise_fields = initialise_fields)
+    if (present(solid_states)) then
+      call adapt_state(states, metric, initialise_fields = initialise_fields, solid_states=solid_states)
+    else
+      call adapt_state(states, metric, initialise_fields = initialise_fields)
+    end if
     state = states(1)
 
   end subroutine adapt_state_single
 
-  subroutine adapt_state_multiple(states, metric, initialise_fields)
+  subroutine adapt_state_multiple(states, metric, initialise_fields, solid_states)
 
     type(state_type), dimension(:), intent(inout) :: states
     type(tensor_field), intent(inout) :: metric
     !! If present and .true., initialise fields rather than interpolate them
     logical, optional, intent(in) :: initialise_fields
+    type(state_type), dimension(:), intent(inout), optional :: solid_states
 
     call tictoc_clear(TICTOC_ID_SERIAL_ADAPT)
     call tictoc_clear(TICTOC_ID_DATA_MIGRATION)
@@ -861,7 +867,11 @@ contains
 
     call tic(TICTOC_ID_ADAPT)
 
-    call adapt_state_internal(states, metric, initialise_fields = initialise_fields)
+    if (present(solid_states)) then
+      call adapt_state_internal(states, metric, initialise_fields = initialise_fields, solid_states=solid_states)
+    else
+      call adapt_state_internal(states, metric, initialise_fields = initialise_fields)
+    end if
 
     call toc(TICTOC_ID_ADAPT)
 
@@ -872,10 +882,11 @@ contains
 
   end subroutine adapt_state_multiple
 
-  subroutine adapt_state_first_timestep(states)
+  subroutine adapt_state_first_timestep(states, solid_states)
     !!< Subroutine to adapt the supplied states at the simulation start
 
     type(state_type), dimension(:), intent(inout) :: states
+    type(state_type), dimension(:), intent(inout), optional :: solid_states
 
     character(len = *), parameter :: base_path = "/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep"
     integer :: adapt_iterations, i
@@ -915,7 +926,11 @@ contains
 
       ! Adapt state, initialising fields from the options tree rather than
       ! interpolating them
-      call adapt_state(states, metric, initialise_fields = .true.)
+      if (present(solid_states)) then
+        call adapt_state(states, metric, initialise_fields = .true., solid_states=solid_states)
+      else
+        call adapt_state(states, metric, initialise_fields = .true.)
+      end if
     end do
 
     if(have_option(trim(base_path) // "/output_adapted_mesh")) then
@@ -934,7 +949,7 @@ contains
 
   end subroutine adapt_state_first_timestep
 
-  subroutine adapt_state_internal(states, metric, initialise_fields)
+  subroutine adapt_state_internal(states, metric, initialise_fields, solid_states)
     !!< Adapt the supplied states according to the supplied metric. In parallel,
     !!< additionally re-load-balance with libsam. metric is deallocated by this
     !!< routine. Based on adapt_state_2d.
@@ -946,6 +961,7 @@ contains
     !! according to the specified initial condition in the options tree, except
     !! if these fields are initialised from_file (checkpointed).
     logical, optional, intent(in) :: initialise_fields
+    type(state_type), dimension(:), intent(inout), optional :: solid_states
 
     character(len = FIELD_NAME_LEN) :: metric_name
     integer :: i, j, k, max_adapt_iteration
@@ -1126,7 +1142,12 @@ contains
       end if
 
       ! Then reallocate all fields
-      call allocate_and_insert_fields(states)
+      if (present(solid_states)) then
+        call allocate_and_insert_fields(states, solid_states=solid_states)
+      else
+        call allocate_and_insert_fields(states)
+      end if
+
       ! Insert fields from reserve states
       call restore_reserved_fields(states)
       ! Add on the boundary conditions again

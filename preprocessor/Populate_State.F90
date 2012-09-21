@@ -146,7 +146,7 @@ contains
 
     call initialise_prognostic_fields(states, save_vtk_cache=.true., &
       initial_mesh=.true.)
-
+      
     call set_prescribed_field_values(states, initial_mesh=.true.)
 
     call populate_boundary_conditions(states)
@@ -1421,7 +1421,8 @@ contains
     end do
 
     ! insert solid specific fields in fluid states:
-    if (have_option("/embedded_models/fsi_model")) then
+    if (have_option("/embedded_models/fsi_model") .and. &
+        present(solid_states)) then
       ewrite(2,*) "adding additional fields on fluid mesh for solids"
       ! get some fields from state that we need:
       alpha_global => extract_scalar_field(states(1), "SolidConcentration")
@@ -1430,76 +1431,74 @@ contains
 
       ! Get number of meshes
       num_solid_mesh = option_count('/embedded_models/fsi_model/geometry/mesh')
-      ! Additional fields are only neccessary iff we have multiple solids:
-!      if (num_solid_mesh .gt. 1) then
-      
-        fluid_phase_loop: do j=0, nstates-1
 
-          solid_mesh_loop: do i=0, num_solid_mesh-1
-            
-            mesh_path="/embedded_models/fsi_model/geometry/mesh["//int2str(i)//"]"
-            call get_option(trim(mesh_path)//'/name', mesh_name)
+      fluid_phase_loop: do j=0, nstates-1
 
-            ! Setting up additional fields on the fluid mesh, e.g. 
-            ! one solid volume fraction field per solid mesh on the fluid mesh:
-            call allocate(alpha_solidmesh, alpha_global%mesh, trim(mesh_name)//"SolidConcentration")
-            alpha_solidmesh%option_path = alpha_global%option_path
-            call zero(alpha_solidmesh)
-            call insert(states(j+1), alpha_solidmesh, trim(mesh_name)//"SolidConcentration")
-            call deallocate(alpha_solidmesh)
-
-            ! And the solidforce:
-            call allocate(solidforce_mesh, solid_force%dim, solid_force%mesh, trim(mesh_name)//"SolidForce")
-            solidforce_mesh%option_path = solid_force%option_path
-            call zero(solidforce_mesh)
-            call insert(states(j+1), solidforce_mesh, trim(mesh_name)//"SolidForce")
-            call deallocate(solidforce_mesh)
-
-            ! And the solidvelocity:
-            call allocate(solidvelocity_mesh, solid_velocity%dim, solid_velocity%mesh, trim(mesh_name)//"SolidVelocity")
-            solidvelocity_mesh%option_path = solid_velocity%option_path
-            call zero(solidvelocity_mesh)
-            call insert(states(j+1), solidvelocity_mesh, trim(mesh_name)//"SolidVelocity")
-            call deallocate(solidvelocity_mesh)
-
-          end do solid_mesh_loop
-
-        end do fluid_phase_loop
-
-        ! Now that the additional fields on the fluid mesh(es) are generated,
-        ! allocate fields on the solid mesh(es) and insert them in solid_states
-        solid_states_loop: do i=0, num_solid_mesh-1
-
+        solid_mesh_loop: do i=0, num_solid_mesh-1
+          
           mesh_path="/embedded_models/fsi_model/geometry/mesh["//int2str(i)//"]"
           call get_option(trim(mesh_path)//'/name', mesh_name)
 
-          ! Get solid positions:
-          solid_position_mesh => extract_vector_field(solid_states, trim(mesh_name)//"SolidCoordinate")
-
-          ! Allocate field for volume fraction:
-          call allocate(alpha_solidmesh, solid_position_mesh%mesh, trim(mesh_name)//"SolidConcentration")
-          alpha_solidmesh%option_path = solid_position_mesh%option_path
-          call set(alpha_solidmesh, 1.0) ! solid volume fraction on solid mesh is unity by definition
-          call insert(solid_states(i+1), alpha_solidmesh, trim(mesh_name)//"SolidConcentration")
+          ! Setting up additional fields on the fluid mesh, e.g. 
+          ! one solid volume fraction field per solid mesh on the fluid mesh:
+          call allocate(alpha_solidmesh, alpha_global%mesh, trim(mesh_name)//"SolidConcentration")
+          alpha_solidmesh%option_path = alpha_global%option_path
+          call zero(alpha_solidmesh)
+          call insert(states(j+1), alpha_solidmesh, trim(mesh_name)//"SolidConcentration")
           call deallocate(alpha_solidmesh)
 
           ! And the solidforce:
-          call allocate(solidforce_mesh, solid_position_mesh%dim, solid_position_mesh%mesh, trim(mesh_name)//"SolidForce")
-          solidforce_mesh%option_path = solid_position_mesh%option_path
+          call allocate(solidforce_mesh, solid_force%dim, solid_force%mesh, trim(mesh_name)//"SolidForce")
+          solidforce_mesh%option_path = solid_force%option_path
           call zero(solidforce_mesh)
-          call insert(solid_states(j+1), solidforce_mesh, trim(mesh_name)//"SolidForce")
+          call insert(states(j+1), solidforce_mesh, trim(mesh_name)//"SolidForce")
           call deallocate(solidforce_mesh)
 
           ! And the solidvelocity:
-          call allocate(solidvelocity_mesh, solid_position_mesh%dim, solid_position_mesh%mesh, trim(mesh_name)//"SolidVelocity")
-          solidvelocity_mesh%option_path = solid_position_mesh%option_path
+          call allocate(solidvelocity_mesh, solid_velocity%dim, solid_velocity%mesh, trim(mesh_name)//"SolidVelocity")
+          solidvelocity_mesh%option_path = solid_velocity%option_path
           call zero(solidvelocity_mesh)
-          call insert(solid_states(j+1), solidvelocity_mesh, trim(mesh_name)//"SolidVelocity")
+          call insert(states(j+1), solidvelocity_mesh, trim(mesh_name)//"SolidVelocity")
           call deallocate(solidvelocity_mesh)
 
-        end do solid_states_loop
+        end do solid_mesh_loop
 
-!      end if
+      end do fluid_phase_loop
+
+      ! Now that the additional fields on the fluid mesh(es) are generated,
+      ! allocate fields on the solid mesh(es) and insert them in solid_states
+      solid_states_loop: do i=0, num_solid_mesh-1
+
+        mesh_path="/embedded_models/fsi_model/geometry/mesh["//int2str(i)//"]"
+        call get_option(trim(mesh_path)//'/name', mesh_name)
+
+        ! Get solid positions:
+        ewrite(2,*) "get solid coordinates: ", trim(mesh_name)
+        solid_position_mesh => extract_vector_field(solid_states(i+1), trim(mesh_name)//"SolidCoordinate")
+
+        ! Allocate field for volume fraction:
+        call allocate(alpha_solidmesh, solid_position_mesh%mesh, trim(mesh_name)//"SolidConcentration")
+        alpha_solidmesh%option_path = solid_position_mesh%option_path
+        call set(alpha_solidmesh, 1.0) ! solid volume fraction on solid mesh is unity by definition
+        call insert(solid_states(i+1), alpha_solidmesh, trim(mesh_name)//"SolidConcentration")
+        call deallocate(alpha_solidmesh)
+
+        ! And the solidforce:
+        call allocate(solidforce_mesh, solid_position_mesh%dim, solid_position_mesh%mesh, trim(mesh_name)//"SolidForce")
+        solidforce_mesh%option_path = solid_position_mesh%option_path
+        call zero(solidforce_mesh)
+        call insert(solid_states(j+1), solidforce_mesh, trim(mesh_name)//"SolidForce")
+        call deallocate(solidforce_mesh)
+
+        ! And the solidvelocity:
+        call allocate(solidvelocity_mesh, solid_position_mesh%dim, solid_position_mesh%mesh, trim(mesh_name)//"SolidVelocity")
+        solidvelocity_mesh%option_path = solid_position_mesh%option_path
+        call zero(solidvelocity_mesh)
+        call insert(solid_states(j+1), solidvelocity_mesh, trim(mesh_name)//"SolidVelocity")
+        call deallocate(solidvelocity_mesh)
+
+      end do solid_states_loop
+
     end if
 
     call allocate_metric_limits(states(1))

@@ -74,7 +74,7 @@ module fluids_module
   use write_triangle
   use biology
   use foam_flow_module, only: calculate_potential_flow, calculate_foam_velocity
-  use fsi_model, only: fsi_modelling, fsi_model_compute_diagnostics, fsi_model_nonlinear_iteration_converged, fsi_insert_state, fsi_model_pre_adapt_cleanup, fsi_post_adapt_operations
+  use fsi_model, only: fsi_modelling, fsi_model_compute_diagnostics, fsi_model_nonlinear_iteration_converged, fsi_ibm_all_alpha_projections, fsi_model_pre_adapt_cleanup, fsi_post_adapt_operations
   use momentum_equation
   use timeloop_utilities
   use free_surface_module
@@ -336,6 +336,12 @@ contains
              end if
           end if
        end if
+    end if
+
+    ! For immersed FSI models,
+    ! compute the solid volume fraction on fluid mesh:
+    if (have_option("/embedded_models/fsi_model/")) then
+      call fsi_ibm_all_alpha_projections(state, solid_state)
     end if
 
     ! move mesh according to inital free surface:
@@ -900,7 +906,11 @@ contains
              if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
              call run_diagnostics(state)
 
-             call adapt_state(state, metric_tensor)
+             if (have_option("/embedded_models/fsi_model")) then
+               call adapt_state(state, metric_tensor, solid_states=solid_state)
+             else
+               call adapt_state(state, metric_tensor)
+             end if
 
              call update_state_post_adapt(state, solid_state, metric_tensor, dt, sub_state, nonlinear_iterations, nonlinear_iterations_adapt)
 
@@ -1076,6 +1086,11 @@ contains
       call allocate(metric_tensor, extract_mesh(state(1), topology_mesh_name), "ErrorMetric")
     end if
 
+    ! For FSI modelling, re-adding addtional fields
+    if (have_option("/embedded_models/fsi_model/")) then
+      call fsi_post_adapt_operations(state, solid_states)
+    end if
+
     ! Auxilliary fields.
     call allocate_and_insert_auxilliary_fields(state)
     call copy_to_stored_values(state,"Old")
@@ -1136,12 +1151,12 @@ contains
         call keps_adapt_mesh(state(1))
     end if
     
-    ! For FSI modelling, re-adding addtional fields
-    ! and recompute solid volume fraction on the new mesh
+    ! For FSI modelling, recomputing solid volume fraction 
+    ! of all solid meshes on the new fluid mesh
     if (have_option("/embedded_models/fsi_model/")) then
-      call fsi_post_adapt_operations(state, solid_states)
+      call fsi_ibm_all_alpha_projections(state, solid_states)
     end if
-
+    
   end subroutine update_state_post_adapt
 
   subroutine fluids_module_check_options
