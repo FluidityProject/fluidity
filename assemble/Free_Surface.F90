@@ -1026,7 +1026,7 @@ contains
     character(len=FIELD_NAME_LEN):: bctype
     character(len=OPTION_PATH_LEN):: fs_option_path
     real:: external_density, rho0, g
-    integer, dimension(:), pointer:: surface_element_list
+    integer, dimension(:), pointer:: surface_element_list, surface_node_list
     integer:: i, j, stat
 
     type(integer_hash_table):: sele_to_fs_ele
@@ -1061,7 +1061,11 @@ contains
    deallocate(surface_element_list)
    call deallocate(surface_elements)
 
-   call get_boundary_condition(fs, "_implicit_free_surface", surface_mesh=surface_mesh)
+   call get_boundary_condition(fs, "_implicit_free_surface", surface_mesh=surface_mesh, &
+     surface_node_list=surface_node_list)
+   if (IsParallel()) then
+     call generate_free_surface_halos(fs%mesh, surface_mesh, surface_node_list)
+   end if
 
    call allocate(scaled_fs, surface_mesh, "ScaledFreeSurface")
    call zero(scaled_fs)
@@ -1153,6 +1157,57 @@ contains
     end subroutine add_boundary_integral_sele
 
   end subroutine initialise_implicit_prognostic_free_surface
+
+  subroutine generate_free_surface_halos(full_mesh, surface_mesh, surface_nodes)
+    type(mesh_type), intent(in):: full_mesh
+    type(mesh_type), intent(inout):: surface_mesh
+    integer, dimension(:), intent(in):: surface_nodes
+
+    integer :: nprocs, procno, communicator 
+    integer :: ihalo, nhalos
+
+    ewrite(1, *) "In generate_free_surface_halos"
+
+    ! hm, is this only gonna work for p1cg fs+pressure?
+    assert(continuity(surface_mesh) == 0)
+    assert(.not. associated(surface_mesh%halos))
+    assert(.not. associated(surface_mesh%element_halos))
+
+    ! Initialise key MPI information:
+
+    nhalos = halo_count(full_mesh)
+    ewrite(2,*) "Number of urface_mesh halos = ",nhalos
+
+    if(nhalos == 0) return
+
+    ! this stuff can go after debugging:
+    communicator = halo_communicator(full_mesh%halos(nhalos))
+    nprocs = getnprocs(communicator = communicator)
+    ewrite(2,*) 'Number of processes = ', nprocs
+    procno = getprocno(communicator = communicator)
+    ewrite(2,*) 'Processor ID/number = ', procno
+
+    ! Allocate subdomain mesh halos:
+    allocate(surface_mesh%halos(nhalos))
+
+    ! Derive subdomain_mesh halos:
+    do ihalo = 1, nhalos
+
+       surface_mesh%halos(ihalo) = derive_sub_halo(full_mesh%halos(ihalo), surface_nodes)
+
+       assert(trailing_receives_consistent(surface_mesh%halos(ihalo)))
+       assert(halo_valid_for_communication(surface_mesh%halos(ihalo)))
+       call create_global_to_universal_numbering(surface_mesh%halos(ihalo))
+       call create_ownership(surface_mesh%halos(ihalo))
+       
+    end do ! ihalo 
+    
+    allocate(surface_mesh%element_halos(nhalos))
+    ! the element order of the surface mesh will not be trailing receive - do we care?
+    call derive_element_halo_from_node_halo(surface_mesh, &
+        & ordering_scheme = HALO_ORDER_GENERAL, create_caches = .true.)
+
+  end subroutine generate_free_surface_halos
 
   subroutine initialise_prognostic_free_surface(state, fs, u)
     type(state_type), intent(inout):: state
