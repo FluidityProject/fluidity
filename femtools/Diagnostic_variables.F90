@@ -498,15 +498,18 @@ contains
              end if
           end do
           allocate(default_stat%sfield_list(phase)%ptr(n_stat_fields))
+          n_stat_fields = 0
           do i=1, size(state(phase)%scalar_names)
              if (stat_field(state(phase)%scalar_fields(i)%ptr, state(phase))) then
-                default_stat%sfield_list(phase)%ptr(i) = state(phase)%scalar_names(i)
+                n_stat_fields = n_stat_fields + 1
+                default_stat%sfield_list(phase)%ptr(n_stat_fields) = state(phase)%scalar_names(i)
              end if
           end do
        else
           allocate(default_stat%sfield_list(phase)%ptr(0))
        end if
     end do
+
     ! Vector field list
     allocate (default_stat%vfield_list(size(state)))
     do phase = 1, size(state)
