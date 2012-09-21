@@ -842,11 +842,13 @@ can read in Gmsh files directly as noted in section \ref{sec:supported_mesh_form
 this tool should be used in cases where native Gmsh support does not work.
 It is run from the command line:
 \begin{lstlisting}[language = Bash]
-gmsh2triangle [--2d] input
+gmsh2triangle [--2d | --shell] input
 \end{lstlisting}
 where \lstinline[language = Bash]+input+ is the input .msh file.
 The \lstinline[language = Bash]+--2d+ flag can be used to instruct \lstinline+gmsh2triangle+
-to process a 2D input .msh file. Otherwise, 3D input is assumed.
+to process a 2D input .msh file. 
+The \lstinline[language = Bash]+--shell+ flag should be used when the input is a 2D
+manifold in 3D space, such as when a spherical shell is provided. Otherwise, 3D input is assumed.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%% GMSH_MESH_TRANSFORM %%%%%%%%%%%%%%%%%%%%
 
