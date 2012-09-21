@@ -189,12 +189,14 @@ module fsi_model
 
             ! Check for user error:
             if (have_option(trim(fsi_path)//"SolidPosition/prescribed/mesh::"//trim(mesh_name))) then
-            
-                call fsi_move_solid_mesh(state, solid_states, mesh_name, solid_moved=solid_moved)
-                ewrite(1,*) "moved solid mesh: ", trim(mesh_name)
-                solid_moved = .true.
-            else
-                solid_moved = .false.
+                ! Move the mesh:
+                call fsi_move_solid_mesh(state, solid_states(i+1), mesh_name, solid_moved)
+
+                if (solid_moved) then
+                  ewrite(1,*) "moved solid mesh: ", trim(mesh_name)
+                else
+                  ewrite(1,*) "solid mesh "//trim(mesh_name)//" did not move this timestep, although it has a prescribed movement."
+                end if
             end if
 
             ! Recompute solid volume fraction, if solid just moved:
@@ -211,9 +213,10 @@ module fsi_model
             else
                 call set(solid_alpha_mesh, solid_old_alpha_mesh)
             end if
+            
+            solid_moved = .false.
 
         end do solid_mesh_position_loop
-
 
         ! Update the global solid volume fraction:
         solid_alpha_global => extract_scalar_field(state, 'SolidConcentration')
@@ -644,30 +647,26 @@ module fsi_model
 
   !----------------------------------------------------------------------------
 
-    subroutine fsi_move_solid_mesh(state, solid_states, mesh_name, solid_moved)
+    subroutine fsi_move_solid_mesh(state, solid_state, mesh_name, solid_moved)
     !! Moving a solid mesh
       type(state_type), intent(in) :: state
-      type(state_type), intent(inout), dimension(:) :: solid_states
+      type(state_type), intent(inout) :: solid_state
       character(len=OPTION_PATH_LEN), intent(in) :: mesh_name
-      logical, intent(inout), optional :: solid_moved
+      logical, intent(inout) :: solid_moved
 
-      type(vector_field), pointer :: solid_position_mesh, solid_velocity_global
-      type(vector_field) :: solid_movement_mesh, solid_velocity_mesh
+      type(vector_field), pointer :: solid_velocity_global
+      type(vector_field), pointer :: solid_position_mesh, solid_velocity_mesh
+      type(vector_field) :: solid_movement_mesh
 
-      character(len=PYTHON_FUNC_LEN) :: func      
-
+      character(len=PYTHON_FUNC_LEN) :: func
 
       ewrite(2,*) "inside move_solid_mesh"
 
       ! 1st get coordinate field of this solid mesh, and its velocity field (which is on the fluid mesh):
-      solid_position_mesh => extract_vector_field(solid_states, trim(mesh_name)//"SolidCoordinate")
+      solid_position_mesh => extract_vector_field(solid_state, trim(mesh_name)//"SolidCoordinate")
       ! and create new field in which the travelled distance is stored:
       call allocate(solid_movement_mesh, solid_position_mesh%dim, solid_position_mesh%mesh, name=trim(mesh_name)//"SolidMovement")
       call zero(solid_movement_mesh)
-      ! and create field for its velocity: (for now, we'll comment it out):
-!      call allocate(solid_velocity_mesh, solid_position_mesh%dim, solid_position_mesh%mesh, name=trim(mesh_name)//"SolidVelocity")
-!      call zero(solid_velocity_mesh)
-!      ewrite(2,*) "after getting solid velocity field"
 
       ! 2nd get the python function for this solid mesh:
       call get_option('/embedded_models/fsi_model/one_way_coupling/vector_field::SolidPosition/prescribed/mesh::'//trim(mesh_name)//'/python', func)
@@ -675,14 +674,24 @@ module fsi_model
       call set_from_python_function(solid_movement_mesh, func, solid_position_mesh, dt)
       
       ! 4th Check if the mesh has actually moved:
-!      if (.not. solid_movement_mesh .eq. zero) then
-!      
-!      end if
-!      ewrite(2,*) "max(solid_movement_mesh) = ", maxval(solid_movement_mesh(0))
-!      ewrite(2,*) "min(solid_movement_mesh) = ", minval(solid_movement_mesh(0))
+      if (maxval(solid_movement_mesh%val(:,:)) == 0.0 .and. &
+          minval(solid_movement_mesh%val(:,:)) == 0.0) then
+          solid_moved = .false.
+      else
+          solid_moved = .true.
+      end if
 
-      ! 4th Set the new coordinates of the solid:
-      call addto(solid_position_mesh, solid_movement_mesh)
+      if (solid_moved) then
+        ! 4th Set the new coordinates of the solid:
+        call addto(solid_position_mesh, solid_movement_mesh)
+
+        ! 5th Set the solid velocity field of this solid on solid mesh:
+        solid_velocity_mesh => extract_vector_field(solid_state, trim(mesh_name)//"SolidVelocity")
+        call zero(solid_velocity_mesh)
+        ! And set it:
+        call addto(solid_velocity_mesh, solid_movement_mesh, 1.0/dt)
+
+      end if
 
       ! 5th Set the solid velocity field of this solid, and addto global velocity field:
       ! comment it out for now, as global and local velocity fields live on different coordinate meshes:
