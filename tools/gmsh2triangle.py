@@ -16,6 +16,9 @@ optparser.add_option("--2D", "--2d", "-2",
                   help="discard 3rd coordinate of node positions",
                   action="store_const", const=2, dest="dim", default=3)
 
+optparser.add_option("--shell", "-s",
+                  help="interpret a 3d input mesh as a 2d mesh on a spherical shell",
+                  action="store_const", const=True, dest="spherical_shell", default=False)
 
 optparser.add_option("--internal-boundary", "-i", 
                   help="mesh contains internal faces - this option is required if you have assigned " +
@@ -57,6 +60,9 @@ if nodecount<0:
   sys.exit(1)
 
 dim=options.dim
+nodefile_dim = dim
+if options.spherical_shell:
+  nodefile_dim -= 1
 
 nodefile_linelist = []
 for i in range(nodecount):
@@ -154,7 +160,7 @@ else:
     sys.exit(1)
 
 nodefile=file(basename+".node", 'w')
-nodefile.write(`nodecount`+" "+`options.dim`+" 0 0\n")
+nodefile.write(`nodecount`+" "+`nodefile_dim`+" 0 0\n")
 j=0
 for i in range(nodecount):    
   j=j+1
