@@ -1473,7 +1473,6 @@ contains
         call get_option(trim(mesh_path)//'/name', mesh_name)
 
         ! Get solid positions:
-        ewrite(2,*) "get solid coordinates: ", trim(mesh_name)
         solid_position_mesh => extract_vector_field(solid_states(i+1), trim(mesh_name)//"SolidCoordinate")
 
         ! Allocate field for volume fraction:
@@ -1487,14 +1486,14 @@ contains
         call allocate(solidforce_mesh, solid_position_mesh%dim, solid_position_mesh%mesh, trim(mesh_name)//"SolidForce")
         solidforce_mesh%option_path = solid_position_mesh%option_path
         call zero(solidforce_mesh)
-        call insert(solid_states(j+1), solidforce_mesh, trim(mesh_name)//"SolidForce")
+        call insert(solid_states(i+1), solidforce_mesh, trim(mesh_name)//"SolidForce")
         call deallocate(solidforce_mesh)
 
         ! And the solidvelocity:
         call allocate(solidvelocity_mesh, solid_position_mesh%dim, solid_position_mesh%mesh, trim(mesh_name)//"SolidVelocity")
         solidvelocity_mesh%option_path = solid_position_mesh%option_path
         call zero(solidvelocity_mesh)
-        call insert(solid_states(j+1), solidvelocity_mesh, trim(mesh_name)//"SolidVelocity")
+        call insert(solid_states(i+1), solidvelocity_mesh, trim(mesh_name)//"SolidVelocity")
         call deallocate(solidvelocity_mesh)
 
       end do solid_states_loop
