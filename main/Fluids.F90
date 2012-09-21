@@ -634,7 +634,7 @@ contains
           end if
           
           if (have_option("/embedded_models/fsi_model")) then
-             call fsi_modelling(state(1), solid_state, its, nonlinear_iterations)
+             call fsi_modelling(state(1), solid_state, its)
           end if
 
           field_loop: do it = 1, ntsol

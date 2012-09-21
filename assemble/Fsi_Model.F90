@@ -95,57 +95,13 @@ module fsi_model
 
   contains
 
-    subroutine fsi_modelling(state, solid_states, its, itinoi)
+    subroutine fsi_modelling(state, solid_states, its)
     !! Main routine for FSI, being called every picard iteration
         type(state_type), intent(inout) :: state
         type(state_type), intent(inout), dimension(:) :: solid_states
-        integer, intent(in) :: its, itinoi
-        type(scalar_field), pointer :: alpha_global
-        type(scalar_field), pointer :: old_alpha_global
-        logical :: recompute_alpha
-        logical :: solid_moved
-        !type(vector_field), pointer :: test
+        integer, intent(in) :: its
 
         ewrite(2, *) "inside fsi_modelling"
-
-        if (timestep == 1 .and. its == 1) then
-!            call fsi_initialise(state)
-            ! Make sure /alpha_s^f is computed at first timestep:
-            adapt_at_previous_dt = .true.
-            recompute_alpha = .true.
-            solid_moved = .true.
-            ! At this stage, everything is initialised
-        end if
-
-!        ! For future use:
-!        ! 1-WAY COUPLING (prescribed solid velocity)
-!        ! First check if prescribed solid movement is enabled,
-!        ! and if so, move the solid mesh
-!        if (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed") .or. &
-!            have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidPosition/prescribed") &
-!            & .and. its == 1) then
-!           call fsi_move_solid_mesh(state)
-!           ! Check if solid actually moved:
-!
-!           ! If solid moved, store new coordinates in state:
-!           solid_moved = .true.
-!           ! ... And recalculate the volume fraction:
-!           
-!        else
-!           solid_moved = .false.
-!
-!        end if
-
-!        ! Check if alpha needs to be recomputed (at this timestep):
-!        recompute_alpha = fsi_recompute_alpha(its, solid_moved=solid_moved)
-
-
-        ! Do we need to compute the new alpha field(s)?
-!        if (recompute_alpha) then
-!        if (adapt_at_previous_dt) then
-!            ! projection between solid/fluid mesh:
-!            call fsi_ibm_all_alpha_projections(state, solid_states)
-!        end if
 
         ! 1-WAY COUPLING (prescribed solid velocity)
         ! First check if prescribed solid movement is enabled,
@@ -156,30 +112,11 @@ module fsi_model
             call fsi_update_solid_position_volume_fraction(state, solid_states)
         end if
 
-
-!        if (its == 1) then
-!          ! Get alpha (of all solids) from state
-!          alpha_global => extract_scalar_field(state, "SolidConcentration")
-!          ! Get old alpha and overwrite it:
-!          old_alpha_global => extract_scalar_field(state, "OldSolidConcentration")
-!          call zero(old_alpha_global)
-!          call set(old_alpha_global, alpha_global)
-!        end if
-
         ! Set absorption term /sigma
         call compute_fluid_absorption(state)
         ! Set source term:
         if (have_option("/embedded_models/fsi_model/one_way_coupling/vector_field::SolidVelocity/prescribed") .and. its == 1) then
             call compute_source_term(state)
-        end if
-
-        ! the variable name might be misleading when reading it as 
-        ! holding the value at the end of the timestep, but when 
-        ! reading it at the beginning of the next timestep, the name makes sense:
-        if (do_adapt_mesh(current_time, timestep) .and. its==itinoi) then
-            adapt_at_previous_dt = .true.
-        else
-            adapt_at_previous_dt = .false.
         end if
 
         ewrite(2, *) 'leaving fsi_modelling'
@@ -227,17 +164,12 @@ module fsi_model
         type(state_type), intent(inout) :: state
         type(state_type), intent(inout), dimension(:) :: solid_states
 
-        type(vector_field) :: solid_movement
-        type(vector_field), pointer :: fluid_position
-        type(vector_field), pointer :: solid_velocity_global
         type(scalar_field), pointer :: solid_alpha_mesh, solid_alpha_global
         type(scalar_field), pointer :: solid_old_alpha_mesh
 
         character(len=OPTION_PATH_LEN) :: mesh_name
         character(len=OPTION_PATH_LEN) :: fsi_path="/embedded_models/fsi_model/one_way_coupling/vector_field::"
-        character(len=PYTHON_FUNC_LEN) :: func
-        integer :: num_solid_mesh, num_pre_solid_pos, num_pre_solid_vel
-        integer :: i
+        integer :: i, num_solid_mesh
 
         logical :: solid_moved
 
@@ -245,10 +177,6 @@ module fsi_model
 
         ! Set logical to false, as at this moment, no solid has moved yet:
         solid_moved = .false.
-
-        ! Set global solid velocity field to zero:
-!        solid_velocity_global => extract_vector_field(state, "SolidVelocity")
-!        call zero(solid_velocity_global)
 
         ! Get number of solid meshes:
         num_solid_mesh = option_count('/embedded_models/fsi_model/geometry/mesh')
@@ -340,7 +268,7 @@ module fsi_model
         type(state_type), intent(inout), dimension(:) :: states
         type(state_type), intent(inout), dimension(:) :: solid_states
         type(scalar_field), pointer :: alpha_global
-        type(scalar_field), pointer :: solid_alpha_mesh, solid_old_alpha_mesh
+        type(scalar_field), pointer :: solid_alpha_mesh
 
         character(len=OPTION_PATH_LEN) :: mesh_name
         integer :: num_solid_mesh
@@ -394,8 +322,8 @@ module fsi_model
         character(len=OPTION_PATH_LEN), intent(in) :: mesh_name
 
         type(vector_field), pointer :: fluid_position, fluid_velocity
-        type(scalar_field), pointer :: alpha_global, alpha_solid_fluidmesh
-        type(scalar_field), pointer :: alpha_solid_solidmesh
+        type(scalar_field), pointer :: alpha_solid_fluidmesh
+        !type(scalar_field), pointer :: alpha_solid_solidmesh
         type(vector_field) :: solid_position_mesh
         type(scalar_field) :: alpha_tmp
 
@@ -404,7 +332,6 @@ module fsi_model
         ! Get relevant fields:
         fluid_velocity => extract_vector_field(state, "Velocity")
         fluid_position => extract_vector_field(state, "Coordinate")
-        alpha_global => extract_scalar_field(state, "SolidConcentration")
 
         ! Get coordinate field of the current solid (mesh):
         solid_position_mesh = extract_vector_field(solid_states, trim(mesh_name)//'SolidCoordinate')
@@ -1329,10 +1256,9 @@ module fsi_model
       type(state_type), dimension(:) :: states
       type(state_type), dimension(:) :: solid_states
       type(scalar_field), pointer :: alpha_solidmesh
-      type(vector_field), pointer :: solid_position_mesh, solidforce_mesh, solidvelocity_mesh
+      type(vector_field), pointer :: solidforce_mesh, solidvelocity_mesh
       character(len=OPTION_PATH_LEN) :: mesh_path, mesh_name
       integer :: i, j, num_solid_mesh, nstates
-      integer :: stat
 
       ewrite(2,*) "inside fsi_model_pre_adapt_cleanup"
 
@@ -1351,30 +1277,6 @@ module fsi_model
           mesh_path="/embedded_models/fsi_model/geometry/mesh["//int2str(i)//"]"
           call get_option(trim(mesh_path)//'/name', mesh_name)
           ewrite(2,*) "removing fields from solid: ", mesh_name
-
-!          call remove_scalar_field(states(j+1), trim(mesh_name)//"SolidConcentration", stat)
-!          ewrite(2,*) "stat = ", stat
-!          call remove_vector_field(states(j+1), trim(mesh_name)//"SolidForce", stat)
-!          ewrite(2,*) "stat = ", stat
-!          call remove_vector_field(states(j+1), trim(mesh_name)//"SolidVelocity", stat)
-!          ewrite(2,*) "stat = ", stat
-
-          ! Get solid specific fields and mesh:
-!          solid_position_mesh => extract_vector_field(solid_states(i+1), trim(mesh_name)//"SolidCoordinate")
-          
-!          alpha_solidmesh => extract_scalar_field(states(j+1), trim(mesh_name)//"SolidConcentrations")
-          
-!          call remove_scalar_field(states(j+1), trim(mesh_name)//"SolidConcentration", stat)
-!          call remove_vector_field(states(j+1), trim(mesh_name)//"SolidForce", stat)
-!          call remove_vector_field(states(j+1), trim(mesh_name)//"SolidVelocity", stat)
-         
-!          alpha_solidmesh => extract_scalar_field(states(j+1), trim(mesh_name)//"SolidConcentrations")
-          
-!          alpha_solidmesh => extract_scalar_field(states(j+1), trim(mesh_name)//'SolidConcentration')
-
-          
-          !test => extract_scalar_field(states(j+1), trim(mesh_name)//'TEST')
-          !FLExit("end")
 
           ! not removing, but changing option paths:
           alpha_solidmesh => extract_scalar_field(states(j+1), trim(mesh_name)//'SolidConcentration')
@@ -1400,14 +1302,10 @@ module fsi_model
       type(state_type), dimension(:) :: solid_states
       type(scalar_field), pointer :: alpha_global
       type(vector_field), pointer :: solid_velocity, solid_force
-      type(scalar_field) :: alpha_solidmesh, alpha_solid_fluidmesh
-      type(scalar_field), pointer :: alpha_solidmesh_ptr
-      type(vector_field), pointer :: solidforce_mesh_ptr, solidvelocity_mesh_ptr
-      type(vector_field), pointer :: solid_position_mesh
+      type(scalar_field) :: alpha_solid_fluidmesh
       type(vector_field) :: solidforce_mesh, solidvelocity_mesh
       character(len=OPTION_PATH_LEN) :: mesh_path, state_path, mesh_name
       integer :: i, j, num_solid_mesh, nstates
-      integer :: stat
 
       ewrite(2,*) "inside fsi_post_adapt_operations"
 
