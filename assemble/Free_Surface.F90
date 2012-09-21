@@ -253,7 +253,7 @@ contains
       real:: g, rho0, external_density, delta_rho, alpha, alpha_old, coef, coef_old, d0
       integer, dimension(:), pointer:: surface_element_list, fs_surface_element_list
       integer:: fs_node_offset
-      integer:: i, j, grav_stat, fs_stat, dens_stat
+      integer:: i, j, grav_stat, dens_stat
       logical:: include_normals, move_mesh
       logical:: addto_cmc, variable_density, any_variable_density, have_density
       logical:: have_wd, have_wd_node_int
@@ -652,7 +652,7 @@ contains
     end if
 
     if (.not. has_boundary_condition_name(fs, "_free_surface")) then
-      call initialise_prognostic_free_surface(state, fs, u)
+      call initialise_prognostic_free_surface(fs, u)
     end if
 
     call get_boundary_condition(fs, "_free_surface", surface_mesh=surface_mesh, &
@@ -814,7 +814,7 @@ contains
     real g, coef, rho0, delta_rho, rho_external
     integer, dimension(:), pointer:: surface_element_list, fs_surface_element_list
     integer:: fs_node_offset
-    integer i, j, grav_stat, fs_stat, dens_stat
+    integer i, j, grav_stat, dens_stat
     logical:: include_normals
     logical:: implicit_prognostic_fs, use_fs_mesh
     logical:: move_mesh, variable_density, have_density
@@ -1020,22 +1020,15 @@ contains
     type(scalar_field), intent(inout):: fs
     type(vector_field), intent(in):: u
 
+    character(len=OPTION_PATH_LEN):: fs_option_path
+    character(len=FIELD_NAME_LEN):: bctype
     type(integer_set):: surface_elements
     type(mesh_type), pointer:: surface_mesh
     type(scalar_field):: scaled_fs, old_scaled_fs
-    character(len=FIELD_NAME_LEN):: bctype
-    character(len=OPTION_PATH_LEN):: fs_option_path
-    real:: external_density, rho0, g
-    integer, dimension(:), pointer:: surface_element_list, surface_node_list
-    integer:: i, j, stat
-
     type(integer_hash_table):: sele_to_fs_ele
-    type(csr_sparsity), pointer :: surface_sparsity
-    type(csr_matrix):: fs_matrix
-    type(scalar_field):: fs_rhs
-    type(vector_field), pointer :: x
-    type(scalar_field), pointer :: density
-    logical :: have_density, variable_density, move_mesh
+    integer, dimension(:), pointer:: surface_element_list, surface_node_list
+    integer:: i
+
 
     ewrite(1,*) 'Entering initialise_implicit_prognostic_free_surface'
 
@@ -1070,51 +1063,7 @@ contains
    call allocate(scaled_fs, surface_mesh, "ScaledFreeSurface")
    call zero(scaled_fs)
 
-   move_mesh = have_option("/mesh_adaptivity/mesh_movement/free_surface")
-   x => extract_vector_field(state, "Coordinate")
-   call get_option('/physical_parameters/gravity/magnitude', g, stat=stat)
-   if (stat/=0) then
-     FLExit("For a free surface you need gravity")
-   end if
-   density => extract_scalar_field(state, "Density", stat=stat)
-   have_density = (stat==0)
-   call get_reference_density_from_options(rho0, state%option_path)
-
-   surface_sparsity => get_csr_sparsity_firstorder(state, surface_mesh, surface_mesh)
-   call allocate(fs_matrix, surface_sparsity, name="FSMatrix")
-   call zero(fs_matrix)
-   call allocate(fs_rhs, surface_mesh, name="FSRHS")
-   call zero(fs_rhs)
-
-   do i=1, get_boundary_condition_count(u)
-     call get_boundary_condition(u, i, type=bctype, &
-          surface_element_list=surface_element_list, &
-          option_path=fs_option_path)
-     if (bctype=="free_surface") then
-       if(have_option(trim(fs_option_path)//"/type[0]/no_normal_stress") .and. &
-          (.not.have_option(trim(fs_option_path)//"/type[0]/no_normal_stress/explicit"))) then
-         call get_option(trim(fs_option_path)//"/type[0]/external_density", &
-              external_density, default=0.0)
-
-         variable_density = have_option(trim(fs_option_path)//"/type[0]/variable_density") &
-                           .and. (.not.move_mesh)
-         if (variable_density.and.(.not.have_density)) then
-           FLExit("Variable density free surface requires a Density field.")
-         end if
-
-         do j=1, size(surface_element_list)
-           call add_boundary_integral_sele(surface_element_list(j))
-         end do
-       end if
-     end if
-   end do
-
-   call petsc_solve(scaled_fs, fs_matrix, fs_rhs, option_path=trim(fs%option_path))
-   ewrite_minmax(fs)
-   ewrite_minmax(scaled_fs)
-
-   call deallocate(fs_matrix)
-   call deallocate(fs_rhs)
+   call solve_initial_scaled_free_surface(state, scaled_fs, u, sele_to_fs_ele, fs)
 
    call insert_surface_field(fs, "_implicit_free_surface", scaled_fs)
 
@@ -1127,6 +1076,81 @@ contains
 
    call deallocate(sele_to_fs_ele)
 
+
+  end subroutine initialise_implicit_prognostic_free_surface
+
+  subroutine solve_initial_scaled_free_surface(state, scaled_fs, u, sele_to_fs_ele, fs)
+    !!< Solve for the initial value of the "ScaledFreeSurface" surface field, this is
+    !!< obtained by solving scaled_fs = g*delta_rho*fs as a mass matrix equation on the surface
+    !!< where fs is the initial condition (or interpolated after adaptivity) value of the prognostic fs field
+    type(state_type), intent(inout):: state
+    type(scalar_field), intent(inout):: scaled_fs ! the surface field solved for
+    type(vector_field), intent(in):: u
+    ! a map between surface element nos of the fs%mesh, and elements in scaled_fs%mesh:
+    type(integer_hash_table), intent(in):: sele_to_fs_ele 
+    type(scalar_field), intent(in):: fs ! the full, prognostic fs 
+
+    character(len=FIELD_NAME_LEN):: bctype
+    character(len=OPTION_PATH_LEN):: fs_option_path
+    real:: external_density, rho0, g
+    integer, dimension(:), pointer:: surface_element_list
+    integer:: i, j, stat
+
+    type(csr_sparsity), pointer :: surface_sparsity
+    type(csr_matrix):: fs_matrix
+    type(scalar_field):: fs_rhs
+    type(vector_field), pointer :: x
+    type(scalar_field), pointer :: density
+    logical :: have_density, variable_density, move_mesh
+
+    ewrite(1,*) "Inside solve_initial_scaled_free_surface"
+
+    move_mesh = have_option("/mesh_adaptivity/mesh_movement/free_surface")
+    x => extract_vector_field(state, "Coordinate")
+    call get_option('/physical_parameters/gravity/magnitude', g, stat=stat)
+    if (stat/=0) then
+      FLExit("For a free surface you need gravity")
+    end if
+    density => extract_scalar_field(state, "Density", stat=stat)
+    have_density = (stat==0)
+    call get_reference_density_from_options(rho0, state%option_path)
+
+    surface_sparsity => get_csr_sparsity_firstorder(state, scaled_fs%mesh, scaled_fs%mesh)
+    call allocate(fs_matrix, surface_sparsity, name="FSMatrix")
+    call zero(fs_matrix)
+    call allocate(fs_rhs, scaled_fs%mesh, name="FSRHS")
+    call zero(fs_rhs)
+
+    do i=1, get_boundary_condition_count(u)
+      call get_boundary_condition(u, i, type=bctype, &
+        surface_element_list=surface_element_list, &
+        option_path=fs_option_path)
+      if (bctype=="free_surface") then
+        if(have_option(trim(fs_option_path)//"/type[0]/no_normal_stress") .and. &
+          (.not.have_option(trim(fs_option_path)//"/type[0]/no_normal_stress/explicit"))) then
+          call get_option(trim(fs_option_path)//"/type[0]/external_density", &
+            external_density, default=0.0)
+
+          variable_density = have_option(trim(fs_option_path)//"/type[0]/variable_density") &
+            .and. (.not.move_mesh)
+          if (variable_density.and.(.not.have_density)) then
+            FLExit("Variable density free surface requires a Density field.")
+          end if
+
+          do j=1, size(surface_element_list)
+            call add_boundary_integral_sele(surface_element_list(j))
+          end do
+        end if
+      end if
+    end do
+
+    call petsc_solve(scaled_fs, fs_matrix, fs_rhs, option_path=trim(fs%option_path))
+    ewrite_minmax(fs)
+    ewrite_minmax(scaled_fs)
+
+    call deallocate(fs_matrix)
+    call deallocate(fs_rhs)
+
   contains
 
     subroutine add_boundary_integral_sele(sele)
@@ -1134,29 +1158,30 @@ contains
 
       real, dimension(face_ngi(fs, sele)) :: detwei_bdy
       real, dimension(face_ngi(fs, sele)):: delta_rho_quad
+      integer :: fs_ele
 
       if(variable_density) then
         delta_rho_quad = face_val_at_quad(density, sele)-external_density
       else
         delta_rho_quad = rho0-external_density
       end if
-      
+
       call transform_facet_to_physical(x, sele, &
-           detwei_f=detwei_bdy)
+          detwei_f=detwei_bdy)
 
-      call addto(fs_matrix, ele_nodes(surface_mesh, fetch(sele_to_fs_ele, sele)), &
-                            ele_nodes(surface_mesh, fetch(sele_to_fs_ele, sele)), &
-                            shape_shape(face_shape(fs, sele), face_shape(fs, sele), detwei_bdy))
+      fs_ele = fetch(sele_to_fs_ele, sele)
+      call addto(fs_matrix, ele_nodes(scaled_fs, fs_ele), &
+          ele_nodes(scaled_fs, fs_ele), &
+          shape_shape(face_shape(fs, sele), face_shape(fs, sele), detwei_bdy))
 
-      call addto(fs_rhs, ele_nodes(surface_mesh, fetch(sele_to_fs_ele, sele)),  &
-                                               shape_rhs(face_shape(fs,sele),  &
-                                                         detwei_bdy* &
-                                                         face_val_at_quad(fs,sele)* &
-                                                         g*delta_rho_quad))
+      call addto(fs_rhs, ele_nodes(scaled_fs, fs_ele), &
+          shape_rhs(face_shape(fs,sele),  &
+              detwei_bdy * face_val_at_quad(fs,sele) * g * delta_rho_quad))
 
     end subroutine add_boundary_integral_sele
 
-  end subroutine initialise_implicit_prognostic_free_surface
+  end subroutine solve_initial_scaled_free_surface
+
 
   subroutine generate_free_surface_halos(full_mesh, surface_mesh, surface_nodes)
     type(mesh_type), intent(in):: full_mesh
@@ -1209,8 +1234,7 @@ contains
 
   end subroutine generate_free_surface_halos
 
-  subroutine initialise_prognostic_free_surface(state, fs, u)
-    type(state_type), intent(inout):: state
+  subroutine initialise_prognostic_free_surface(fs, u)
     type(scalar_field), intent(inout):: fs
     type(vector_field), intent(in):: u
 
