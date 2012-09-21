@@ -196,11 +196,14 @@ Arbitrary agent pairs will be merged to enforce this limit.</a:documentation>
                       </optional>
                     </element>
                   </optional>
-                  <optional>
+                  <choice>
+                    <element name="disable_io">
+                      <empty/>
+                    </element>
                     <element name="io_period">
                       <ref name="real"/>
                     </element>
-                  </optional>
+                  </choice>
                 </element>
               </zeroOrMore>
             </element>

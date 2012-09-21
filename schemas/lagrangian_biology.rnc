@@ -160,9 +160,14 @@ lagrangian_biology =
                            integer
                         }?
                      }?,
-                     element io_period {
-                        real
-                     }?
+                     (
+                     	element disable_io {
+                        	empty
+                     	}|
+                     	element io_period {
+                        	real
+                     	}
+                     )
                   }*
                },
                food_set,

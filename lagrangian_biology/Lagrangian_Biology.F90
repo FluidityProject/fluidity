@@ -196,7 +196,7 @@ contains
           if (have_option(trim(stage_buffer)//"/io_period")) then
              call get_option(trim(stage_buffer)//"/io_period", agent_array%output_period)
           else
-             agent_array%output_period = 1.0
+             agent_array%output_period = -1.0
           end if
 
           array = array + 1
@@ -321,7 +321,9 @@ contains
 
           call derive_agent_counts(state(1), agent_array, xfield)
 
-          call write_detector_header(state, agent_array)
+          if (agent_array%output_period > 0.) then
+             call write_detector_header(state, agent_array)
+          end if
 
        end do  ! Stage
 
@@ -912,8 +914,10 @@ contains
           end if
 
           ! Output agent positions after re-sampling
-          if (timestep == 1 .or. mod(time, agent_array%output_period) == 0) then
-             call write_detectors(state, agent_array, time, dt, timestep)
+          if (agent_array%output_period > 0.) then
+             if (timestep == 1 .or. mod(time, agent_array%output_period) == 0) then
+                call write_detectors(state, agent_array, time, dt, timestep)
+             end if
           end if
        end do
 
