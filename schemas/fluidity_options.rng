@@ -5368,6 +5368,14 @@ Adapting to this field is not recommended</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
+        <a:documentation>Buoyancy Adjustment diffusivity
+
+The element-wise diffusion applied
+in the buoyancy adjustment by vertical mixing
+scheme available for tracer fields.
+
+This is an element-wise P0 field, so it is best
+calculated in a discontinuous function space.</a:documentation>
         <attribute name="rank">
           <value>0</value>
         </attribute>

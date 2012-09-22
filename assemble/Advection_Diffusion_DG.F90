@@ -1449,10 +1449,8 @@ contains
        end if
         
        if(have_buoyancy_adjustment_diffusivity) then
-         do i = 1,size(T_ele)
-           call set(buoyancy_adjustment_diffusivity, T_ele(i), mixing_diffusion_amplitude * dt&
-                 &* gravity_magnitude * dr**2 * maxval(drho_dz(:)))
-         end do
+        call set(buoyancy_adjustment_diffusivity, T_ele, mixing_diffusion_amplitude * dt&
+              &* gravity_magnitude * dr**2 * maxval(drho_dz(:)))
          ewrite(4,*) "Buoynacy adjustment diffusivity, ele:", ele, "diffusivity:", mixing_diffusion_amplitude * dt * gravity_magnitude * dr**2 * maxval(drho_dz(:))
        end if 
         
