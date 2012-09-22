@@ -1449,7 +1449,6 @@ contains
        end if
         
        if(have_buoyancy_adjustment_diffusivity) then
-         ewrite (-1,*) 'asc nodes', T_ele
          do i = 1,size(T_ele)
            call set(buoyancy_adjustment_diffusivity, T_ele(i), mixing_diffusion_amplitude * dt&
                  &* gravity_magnitude * dr**2 * maxval(drho_dz(:)))
