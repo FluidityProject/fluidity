@@ -1279,7 +1279,10 @@ contains
     type(mesh_type), intent(out):: extended_mesh
 
     type(vector_field), pointer:: u
-    integer, dimension(:), pointer:: fs_surface_node_list
+    type(mesh_type), pointer:: surface_mesh
+
+    integer :: nprocs, procno, communicator 
+    integer :: ihalo, nhalos
 
     if (.not. has_boundary_condition_name(fs, "_implicit_free_surface")) then
       u => extract_vector_field(state, "Velocity")
@@ -1289,11 +1292,32 @@ contains
     ! obtain the f.s. surface mesh that has been stored under the
     ! "_implicit_free_surface" boundary condition
     call get_boundary_condition(fs, "_implicit_free_surface", &
-        surface_node_list=fs_surface_node_list)
+        surface_mesh=surface_mesh)
 
-    call allocate(extended_mesh, node_count(pressure_mesh)+size(fs_surface_node_list), &
+    call allocate(extended_mesh, node_count(pressure_mesh)+node_count(surface_mesh), &
         element_count(pressure_mesh), pressure_mesh%shape, &
         "Extended"//trim(pressure_mesh%name))
+
+    nhalos = halo_count(pressure_mesh)
+    ewrite(2,*) "Number of halos = ",nhalos
+    if(nhalos == 0) return
+
+    ! Allocate extended mesh halos:
+    allocate(extended_mesh%halos(nhalos))
+
+    ! Derive extended_mesh nodal halos:
+    do ihalo = 1, nhalos
+
+       extended_mesh%halos(ihalo) = combine_halos( &
+         (/ pressure_mesh%halos(ihalo), surface_mesh%halos(ihalo) /), &
+         name="Extended"//trim(pressure_mesh%halos(ihalo)%name))
+
+       assert(trailing_receives_consistent(extended_mesh%halos(ihalo)))
+       assert(halo_valid_for_communication(extended_mesh%halos(ihalo)))
+       call create_global_to_universal_numbering(extended_mesh%halos(ihalo))
+       call create_ownership(extended_mesh%halos(ihalo))
+       
+    end do ! ihalo 
 
   end subroutine extend_pressure_mesh_for_viscous_free_surface
   

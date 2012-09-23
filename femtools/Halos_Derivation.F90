@@ -53,7 +53,7 @@ module halos_derivation
 
   public :: derive_l1_from_l2_halo, derive_element_halo_from_node_halo, &
     & derive_maximal_surface_element_halo, derive_nonperiodic_halos_from_periodic_halos, derive_sub_halo
-  public :: invert_comms_sizes, ele_owner
+  public :: invert_comms_sizes, ele_owner, combine_halos
   
   interface derive_l1_from_l2_halo
     module procedure derive_l1_from_l2_halo_mesh
@@ -1297,5 +1297,77 @@ contains
     deallocate(sub_nsends)
 
   end function derive_sub_halo
+
+  function combine_halos(halos, name) result (halo_out)
+    type(halo_type) :: halo_out
+    type(halo_type), dimension(:), intent(in):: halos
+    character(len=*), intent(in):: name ! name for the halo
+
+    integer, dimension(halo_proc_count(halos(1))):: nsends, nreceives, combined_nsends, combined_nreceives, &
+      send_count, receive_count
+    integer:: data_type, communicator, nprocs
+    integer:: combined_nowned_nodes
+    integer:: owned_base, receive_base
+    integer:: ihalo, jproc, k, new_node_no
+
+    communicator = halo_communicator(halos(1))
+    data_type = halo_data_type(halos(1))
+    nprocs = halo_proc_count(halos(1))
+#ifdef DDEBUG
+    do ihalo=2, size(halos)
+      assert(communicator==halo_communicator(halos(ihalo)))
+      assert(data_type==halo_data_type(halos(ihalo)))
+      assert(nprocs==halo_proc_count(halos(ihalo)))
+    end do
+#endif
+    
+
+    combined_nsends = 0
+    combined_nreceives =0
+    combined_nowned_nodes =0
+
+    do ihalo=1, size(halos)
+      call halo_send_counts(halos(ihalo), nsends)
+      combined_nsends = combined_nsends + nsends
+      call halo_receive_counts(halos(ihalo), nreceives)
+      combined_nreceives = combined_nreceives + nreceives
+      combined_nowned_nodes = combined_nowned_nodes + halo_nowned_nodes(halos(ihalo))
+    end do
+
+    call allocate(halo_out, combined_nsends, combined_nreceives, name=name, &
+      communicator=communicator, data_type=data_type, nowned_nodes=combined_nowned_nodes)
+
+    owned_base = 0
+    receive_base = combined_nowned_nodes
+    send_count = 0
+    receive_count = 0
+
+    do ihalo=1, size(halos)
+
+      do jproc=1, nprocs
+
+        do k=1, halo_send_count(halos(ihalo), jproc)
+          new_node_no = owned_base + halo_send(halos(ihalo), jproc, k)
+          call set_halo_send(halo_out, jproc, send_count(jproc)+k, new_node_no)
+        end do
+        send_count(jproc) = send_count(jproc) + halo_send_count(halos(ihalo), jproc)
+
+        do k=1, halo_receive_count(halos(ihalo), jproc)
+          new_node_no = receive_base + halo_receive(halos(ihalo), jproc, k) - halo_nowned_nodes(halos(ihalo))
+          call set_halo_receive(halo_out, jproc, receive_count(jproc)+k, new_node_no)
+        end do
+        receive_count(jproc) = receive_count(jproc) + halo_receive_count(halos(ihalo), jproc)
+      end do
+
+      owned_base = owned_base + halo_nowned_nodes(halos(ihalo))
+      receive_base = receive_base + halo_all_receives_count(halos(ihalo))
+
+    end do
+
+    assert( all(receive_count==combined_nreceives) )
+    assert( all(send_count==combined_nsends) )
+
+  end function combine_halos
+    
 
 end module halos_derivation
