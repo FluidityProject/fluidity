@@ -227,7 +227,7 @@ contains
   
   subroutine spherical_polar_2_cartesian_field(spherical_polar_coordinate_field, &
                                                cartesian_coordinate_field)
-    !Subroutine for convertion of a spherical-polar coordinate field into a cartesian
+    !Subroutine for conversion of a spherical-polar coordinate field into a cartesian
     ! coordinate field.
     implicit none
 
@@ -247,7 +247,7 @@ contains
 
   subroutine cartesian_2_spherical_polar_field(cartesian_coordinate_field, &
                                                spherical_polar_coordinate_field)
-    !Subroutine for convertion of a cartesian coordinate field into a spherical-polar
+    !Subroutine for conversion of a cartesian coordinate field into a spherical-polar
     ! coordinate field.
     implicit none
 
@@ -339,7 +339,7 @@ contains
   subroutine lon_lat_height_2_cartesian(longitude, latitude, height, &
                                         x, y, z, &
                                         referenceRadius)
-    !Subroutine for convertion of longitude-latitude-height coordinates into 
+    !Subroutine for conversion of longitude-latitude-height coordinates into 
     ! Cartesian coordinates. If referenceRadius is specified, height is measured
     ! as the radial distance relative to that radius, i.e. it is the distance
     ! relative to the surface of the sphere.
