@@ -234,7 +234,7 @@ contains
     type(vector_field) :: spherical_polar_coordinate_field
     type(vector_field) :: cartesian_coordinate_field
     integer :: node
-    real, dimension(3) :: XYZ, RTP !arrays containing a signel node's position vector
+    real, dimension(3) :: XYZ, RTP !arrays containing a single node's position vector
                                    ! in cartesian & spherical-polar bases 
 
     do node=1,node_count(spherical_polar_coordinate_field)
@@ -254,7 +254,7 @@ contains
     type(vector_field) :: cartesian_coordinate_field
     type(vector_field) :: spherical_polar_coordinate_field
     integer :: node
-    real, dimension(3) :: XYZ, RTP !arrays containing a signel node's position vector
+    real, dimension(3) :: XYZ, RTP !arrays containing a single node's position vector
                                    ! components in cartesian & spherical-polar bases 
 
     do node=1,node_count(cartesian_coordinate_field)
