@@ -458,6 +458,10 @@ a rotational mode around each axis may be present.</a:documentation>
           </element>
         </optional>
       </element>
+      <element name="no_components">
+        <a:documentation>Do not remove any constant-component solutions</a:documentation>
+        <empty/>
+      </element>
     </choice>
     <optional>
       <choice>

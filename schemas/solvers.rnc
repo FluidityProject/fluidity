@@ -439,6 +439,10 @@ null_space_options =
           element z_component {
              empty
           }?
+        }|
+	## Do not remove any constant-component solutions
+        element no_components {
+          empty
         }
       ),
       (

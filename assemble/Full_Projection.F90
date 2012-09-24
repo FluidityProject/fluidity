@@ -85,8 +85,7 @@
     
 !--------------------------------------------------------------------------------------------------------------------
     subroutine petsc_solve_full_projection(x,ctp_m,inner_m,ct_m,rhs,pmat,&
-      state, inner_mesh, &
-      auxiliary_matrix)
+      state, inner_mesh, auxiliary_matrix)
 !--------------------------------------------------------------------------------------------------------------------
 
       ! Solve Schur complement problem the nice way (using petsc) !!
@@ -161,10 +160,8 @@
 
 !--------------------------------------------------------------------------------------------------------
     subroutine petsc_solve_setup_full_projection(y,A,b,ksp,petsc_numbering_p,name,solver_option_path, &
-         lstartfromzero,inner_m,div_matrix_comp, &
-         div_matrix_incomp,option_path,preconditioner_matrix,rhs, &
-         state, inner_mesh, &
-         auxiliary_matrix)
+         lstartfromzero,inner_m,div_matrix_comp, div_matrix_incomp,option_path,preconditioner_matrix,rhs, &
+         state, inner_mesh, auxiliary_matrix)
          
 !--------------------------------------------------------------------------------------------------------
 
@@ -367,21 +364,32 @@
       ! Set ksp for M block solver inside the Schur Complement (the inner, inner solve!). 
       call MatSchurComplementGetKSP(A,ksp_schur,ierr)
       call petsc_solve_state_setup(inner_solver_option_path, prolongators, surface_nodes, &
-        state, inner_mesh, blocks(div_matrix_comp,2), inner_option_path, .false.)
+        state, inner_mesh, blocks(div_matrix_comp,2), inner_option_path, matrix_has_solver_cache=.false., &
+        mesh_positions=positions)
       if (associated(prolongators)) then
         if (associated(surface_nodes)) then
           FLExit("Internal smoothing not available for inner solve")
         end if
-        call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
-          inner_solver_option_path, startfromzero_in=.true., &
-          prolongators=prolongators)
+        if (associated(positions)) then
+          call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
+            inner_solver_option_path, petsc_numbering=petsc_numbering_u, startfromzero_in=.true., &
+            prolongators=prolongators, positions=positions)
+        else
+          call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
+            inner_solver_option_path, petsc_numbering=petsc_numbering_u, startfromzero_in=.true., &
+            prolongators=prolongators)
+        end if
         do i=1, size(prolongators)
           call deallocate(prolongators(i))
         end do
         deallocate(prolongators)
+      else if (associated(positions)) then
+        call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
+          inner_solver_option_path, petsc_numbering=petsc_numbering_u, startfromzero_in=.true., &
+          positions=positions)
       else
         call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
-          inner_solver_option_path, startfromzero_in=.true.)
+          inner_solver_option_path, petsc_numbering=petsc_numbering_u, startfromzero_in=.true.)
       end if
       
       ! leaving out petsc_numbering and mesh, so "iteration_vtus" monitor won't work!

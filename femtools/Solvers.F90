@@ -1571,9 +1571,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
   end subroutine SetupKSP
     
   recursive subroutine setup_ksp_from_options(ksp, mat, pmat, solver_option_path, &
-      petsc_numbering, &
-      startfromzero_in, &
-      prolongators, surface_node_list, matrix_csr, &
+      petsc_numbering, startfromzero_in, prolongators, surface_node_list, matrix_csr, &
       internal_smoothing_option, positions)
   !!< Sets options for the given ksp according to the options
   !!< in the options tree.
@@ -2305,6 +2303,8 @@ function create_null_space_from_options(null_space_option_path, petsc_numbering,
      end if
    else if(have_option(trim(null_space_option_path)//'/all_components')) then
      mask = .true.
+   else if(have_option(trim(null_space_option_path)//'/no_components')) then
+     mask = .false.
    end if
 
    if(have_option(trim(null_space_option_path)//'/specify_rotations')) then
@@ -2339,6 +2339,10 @@ function create_null_space_from_options(null_space_option_path, petsc_numbering,
      end if
    else
      rot_mask = .false.
+   end if
+
+   if (.not. (any(mask) .or. any(rot_mask)) ) then
+      FLExit("You must remove either a component or a rotation.")
    end if
 
    if(any(rot_mask) .and. dim<2) then

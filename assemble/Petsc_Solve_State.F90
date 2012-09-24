@@ -224,10 +224,7 @@ contains
     type(petsc_csr_matrix), dimension(:), pointer:: prolongators
     ! if associated on return, this array of surface_nodes should be passed into petsc_solve
     integer, dimension(:), pointer:: surface_nodes
-    ! if associated on return, this mesh_positions field should be passed into petsc_solve
-    ! currently only for vector solves
-    type(vector_field), pointer, optional:: mesh_positions
-    !
+
     type(state_type), intent(in):: state
     type(mesh_type), intent(in):: mesh ! mesh we're solving on
     integer, intent(in):: field_dim ! dimension of the field
@@ -236,6 +233,9 @@ contains
     logical, intent(in):: matrix_has_solver_cache
     ! optional option_path that may be provided to override field option_path
     character(len=*), intent(in), optional:: option_path
+    ! if associated on return, this mesh_positions field should be passed into petsc_solve
+    ! currently only for vector solves
+    type(vector_field), pointer, optional:: mesh_positions
     
     type(vector_field):: positions
     type(scalar_field), pointer:: exact
@@ -297,7 +297,8 @@ contains
       end if
     end if
 
-    if (have_option(trim(solver_option_path)//"/multigrid_near_null_space")) then
+    if (have_option(trim(solver_option_path)//"/multigrid_near_null_space") .or. &
+        have_option(trim(solver_option_path)//"/remove_null_space")) then
       if (.not. present(mesh_positions)) then
         ! currently this option only exists for vector solves, if it occurs in other places
         ! mesh_positions should be passed down
