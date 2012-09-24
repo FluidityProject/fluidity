@@ -3,5 +3,6 @@ input: clean
 	../../bin/fldecomp -n 2 column
 
 clean:
-	rm -f *.face *.ele *.edge *.node *.poly *.vtu *.s *.d.1 *.stat \
+	rm -f *.halo *.face *.ele *.edge *.node *.poly *.pvtu *.vtu *.s *.d.1 *.stat \
 	matrixdump matrixdump.info
+	rm -rf photosynthetic_radiation_?
