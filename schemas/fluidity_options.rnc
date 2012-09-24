@@ -15,6 +15,7 @@ include "temporal_discretisation.rnc"
 include "embedded_models.rnc"
 include "flredecomp.rnc"
 include "porous_media.rnc"
+include "multiphase_interaction.rnc"
 include "equation_of_state.rnc"
 
 start =
@@ -627,6 +628,18 @@ start =
                   element relax_diffusivity {
                      real
                   }?,
+                  ## Add extra parameterisation for internal wave breaking at base of MLD. This
+                  ## is based on the same parameterisation in NEMO and smooths the TKE down 
+                  ## the water column based on an exponential function
+                  ## Set the two parameters: % of TKE to smooth down and length scale to do this over
+                  element ocean_parameterisation {
+                     element lengthscale {
+                        real
+                     },
+                     element percentage {
+                        real
+                     }
+                  }?,
                   ## Turbulent kinetic energy. Make sure that the Diffusivity tensor field in here is set to diagnostic/internal.
                   element scalar_field {
                      attribute rank { "0" },
@@ -1033,7 +1046,7 @@ start =
                ## carries the influence of turbulence onto the velocity field. See the manual for details.
                element k-epsilon {
                   ## Turbulent kinetic energy (k).
-                  ## 1. 'k_epsilon'-type boundary conditions are recommended for this field.
+                  ## 1. 'k_esilon'-type boundary conditions are recommended for this field.
                   ## 2. Turn on diffusivity, source and absorption diagnostic fields.
                   ## 3. Use the same mesh as Velocity.
                   element scalar_field {
@@ -1081,6 +1094,18 @@ start =
                         }
                      )
                   },
+                  ## Set the value of the background (laminar) diffusivity field here.
+                  ## This is used to calculate scalar field diffusivities.
+                  element tensor_field {
+                     attribute rank { "2" },
+                     attribute name { "BackgroundDiffusivity" },
+                     (
+                        element prescribed {
+                           velocity_mesh_choice,
+                           prescribed_tensor_field
+                        }
+                     )
+                  }?,
                   ## Eddy viscosity (turbulent diffusion of velocity).
                   ## This is a fictitious isotropic viscosity, added to normal viscosity field, that
                   ## carries the influence of turbulence onto the velocity field.
@@ -1124,16 +1149,65 @@ start =
                         }
                      )
                   },
-                  ## Select whether source and absorption terms for k and epsilon
-                  ## are implicit or explicit.
-                  element source_absorption {
-                     element string_value {
-                     "explicit"|"implicit"
+                  ## f_1 damping coefficient for low_Re k-epsilon model
+                  ## Required for low_Re boundaries. If no low_Re boundaries are present
+                  ## this will be set to 1.0 throughout the domain and will not
+                  ## affect the result
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "f_1" },
+                     element diagnostic {
+                        internal_algorithm,
+                        velocity_mesh_choice,
+                        diagnostic_scalar_field                        
                      }
                   },
-                  ## Limit the turbulence lengthscale to within physical bounds (e.g. inlet min dimension).
-                  ## This helps to prevent instabilities during simulation spin-up.
-                  element lengthscale_limit {real},
+                  ## f_2 damping coefficient for low_Re k-epsilon model
+                  ## Required for low_Re boundaries. If no low_Re boundaries are present
+                  ## this will be set to 1.0 throughout the domain and will not
+                  ## affect the result
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "f_2" },
+                     element diagnostic {
+                        internal_algorithm,
+                        velocity_mesh_choice,
+                        diagnostic_scalar_field                        
+                     }
+                  },
+                  ## f_mu damping coefficient for low_Re k-epsilon model
+                  ## Required for low_Re boundaries. If no low_Re boundaries are present
+                  ## this will be set to 1.0 throughout the domain and will not
+                  ## affect the result
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "f_mu" },
+                     element diagnostic {
+                        internal_algorithm,
+                        velocity_mesh_choice,
+                        diagnostic_scalar_field                        
+                     }
+                  },
+                  ## Limit the maximum value of damping function values. This helps stability when using low_Re number
+                  ## boundary conditions. If not using low_Re boundaries this will have no effect. 
+                  ## Recommended value (default): 10.0
+                  element max_damping_value {real},
+                  ## Describes distance to nearest solid wall.
+                  ## Required for low_Re boundaries.
+                  ## For simple geometries the simplest method of providing this information is to use a python function.
+                  ## For complex geometries where this is not possible precursive Eikonal equation or Poisson equation
+                  ## simulations must be run using Fluidity to determine the values for this field.
+                  ## Details of how this is done can be found in:
+                  ## Tucker, P 2011: "Hybrid Hamilton/Jacobi/Poisson wall distance function model"
+                  ## Elias et al 2007: "Simple finite element-based computation of distance functions in unstructured grids"
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "DistanceToWall" },
+                     element prescribed {
+                        velocity_mesh_choice,
+                        prescribed_scalar_field
+                     }
+                  }?,
                   ## Eddy-viscosity coefficient: nu_T = density * C_mu * k**2 / epsilon.
                   ## Recommended value (default): 0.09.
                   element C_mu {real},
@@ -1149,8 +1223,132 @@ start =
                   element sigma_k {real},
                   ## Turbulent Schmidt number (eddy-viscosity coefficient from epsilon equation).
                   ## Recommended value (default): 1.3.
-                  element sigma_eps {real}
-                  
+                  element sigma_eps {real},
+                  ## The Schmidt number (ratio of viscous diffusion rate to momentum diffusion rate) for 
+                  ## massive scalar fields, or Prandtl number (ratio of viscous diffusion rate to thermal diffusion rate) 
+                  ## for thermal fields. This is used to calculate the turbulent buoyancy term.
+                  ## Recommended value (default): 1.0.
+                  element sigma_p {real},
+                  ## Implicit source term - lump production term into absorbtion so that it is calculated 
+                  ## implicitly
+                  element implicit_source { empty }?,
+                  ## Implicit buoyancy term - lump buoyancy term into absorbtion so that it is calculated 
+                  ## implicitly
+                  element implicit_buoyancy { empty }?,
+                  ## Explicit absorbtion term - lump absorbtion term into source so that it is calculated 
+                  ## explicitly
+                  element explicit_absorbtion { empty }?,
+                  element mass_lumping_in_diagnostics {  
+                     (
+                        element lump_mass { empty }
+                        |
+                        element solve_using_mass_matrix { 
+                           element solver {
+                              linear_solver_options_asym
+                           }
+                        }                     
+                     )
+                  },
+                  ## produce vtu output of individual kk and eps source terms and set prescribed source terms
+                  ## for k and epsilon fields (for mms tests)
+                  element debugging_options{
+                     ## output fields for each of the source and absorbtion terms in the k-epsilon 
+                     ## model
+                     element source_term_output_fields{
+                        element scalar_field {
+                           attribute rank { "0" },
+                           attribute name { "TurbulentKineticEnergyProduction" },
+                           element diagnostic {
+                              internal_algorithm,
+                              velocity_mesh_choice,
+                              diagnostic_scalar_field                        
+                           }
+                        }?,
+                        element scalar_field {
+                           attribute rank { "0" },
+                           attribute name { "TurbulentKineticEnergyBuoyancyTerm" },
+                           element diagnostic {
+                              internal_algorithm,
+                              velocity_mesh_choice,
+                              diagnostic_scalar_field                        
+                           }
+                        }?,
+                        element scalar_field {
+                           attribute rank { "0" },
+                           attribute name { "TurbulentKineticEnergyDestruction" },
+                           element diagnostic {
+                              internal_algorithm,
+                              velocity_mesh_choice,
+                              diagnostic_scalar_field                        
+                           }
+                        }?,
+                        element scalar_field {
+                           attribute rank { "0" },
+                           attribute name { "TurbulentDissipationProduction" },
+                           element diagnostic {
+                              internal_algorithm,
+                              velocity_mesh_choice,
+                              diagnostic_scalar_field                        
+                           }
+                        }?,
+                        element scalar_field {
+                           attribute rank { "0" },
+                           attribute name { "TurbulentDissipationBuoyancyTerm" },
+                           element diagnostic {
+                              internal_algorithm,
+                              velocity_mesh_choice,
+                              diagnostic_scalar_field                        
+                           }
+                        }?,
+                        element scalar_field {
+                           attribute rank { "0" },
+                           attribute name { "TurbulentDissipationDestruction" },
+                           element diagnostic {
+                              internal_algorithm,
+                              velocity_mesh_choice,
+                              diagnostic_scalar_field                        
+                           }
+                        }?
+                     },
+                     ## Enable to apply prescribed source terms into the k and epsilon equations.
+                     ## This is useful for MMS tests
+                     element prescribed_source_terms{
+                        element scalar_field {
+                           attribute rank { "0" },
+                           attribute name { "TurbulentKineticEnergyPrescribedSource" },
+                           element prescribed {
+                              velocity_mesh_choice,
+                              prescribed_scalar_field                        
+                           }
+                        }?,
+                        element scalar_field {
+                           attribute rank { "0" },
+                           attribute name { "TurbulentDissipationPrescribedSource" },
+                           element prescribed {
+                              velocity_mesh_choice,
+                              prescribed_scalar_field                        
+                           }
+                        }?
+                     },
+                     ## enabling this option disables the production term in the k and epsilon equations
+                     element disable_production{ empty }?,
+                     ## enabling this option disables the destruction term in the k and epsilon equation
+                     element disable_destruction{ empty }?,
+                     ## enabling this option disables the bouyancy term in the k and epsilon equation
+                     element disable_buoyancy{ empty }?,
+                     ## enabling this option enables the low-Re number damping functions regardless of whether there is
+                     ## a low-Re boundary condition
+                     element enable_lowRe_damping{ empty }?,
+                     ## Enabling this option disables feedback from the k-epsilon model back into 
+                     ## the rest of the model. Reynolds stress tensor is set to zero by zeroing 
+                     ## EddyViscosity and the added source term, based on k, in the momentum equation.
+                     ## Hence, Viscosity will always stay as the BackgroundViscosity,
+                     ## diffusivities will remain at the relevant BackgroundDiffusivity, and the 
+                     ## momentum equation will be as if there were no turbulence model present. 
+                     ## 
+                     ## ScalarEddyViscosity is still calculated as normal.
+                     element zero_reynolds_stress_tensor{ empty }?
+                  }?
                }?
             }?,
             ## Pressure
@@ -1375,6 +1573,17 @@ start =
                comment,
                element particle_diameter { 
                      real 
+               }?,
+               ## If this is the fluid phase, 
+               ## the effective conductivity is required 
+               ## for the inter-phase heat transfer term.
+               element effective_conductivity { 
+                     real 
+               }?,
+               ## The specific heat (at constant volume) is required 
+               ## for the inter-phase heat transfer term.
+               element specific_heat { 
+                     real
                }?
             }?,
             sediment?
@@ -1558,7 +1767,8 @@ start =
          reduced_model?,
          porous_media_model?,
          embedded_models?,
-         flredecomp?
+         flredecomp?,
+         multiphase_interaction?
       }
    )      
 
@@ -2093,19 +2303,33 @@ diagnostic_vector_field =
       interpolation_algorithm_vector?
    )
 
-
 diagnostic_vector_field_bed_shear_stress =
    (
+      element density {
+         real
+      }, 
       (
-          element density {
-             real
-          }
-      ),       
-      (
-          element drag_coefficient {
-             real
-          }
-      ),   
+         ## Three options for calculation of bed shear stress are available:
+         element calculation_method {
+            ## density*drag_coeff*|u|*u 
+            ## This is calculated at all boundaries
+            element drag_coefficient {
+               real
+            }|
+            ## velocity_gradient - nu * grad(u)
+            ## This uses the velocity gradient at the boundaries to calculate the 
+            ## bed shear stress. Valid for non parameterised velocity boundaries
+            element velocity_gradient {  
+               empty
+            }|
+            ## This diagnostic can only be used in conjunction with a near-wall treatment
+            ## velocity boundary condition. It is calculated at the same time as that boundary condition.
+            ## The shear stress depends upon parameters set for the near-wall treatment algorithm.
+            element wall_treatment {  
+               empty
+            }
+         }
+      ),
       diagnostic_output_options,
       diagnostic_vector_stat_options,
       diagnostic_detector_options,
@@ -4669,7 +4893,27 @@ scalar_field_choice =
                   }
                }
             )
-         }              
+         }|
+         
+         ## CompressibleContinuityResidual
+         ##
+         ## Computes the residual of the continuity equation used in compressible multiphase flow simulations
+         ## i.e. vfrac_c*d(rho_c)/dt + div(rho_c*vfrac_c*u_c) + \sum_i{ rho_c*div(vfrac_i*u_i) }
+         ## where _c and _i denote the compressible and incompressible phases respectively.
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "CompressibleContinuityResidual" },
+            (
+               element diagnostic {
+                  velocity_mesh_choice,
+                  internal_algorithm,
+                  diagnostic_scalar_field_no_adapt,
+                  element solver {
+                     linear_solver_options_sym
+                  }
+               }
+            )
+         }    
 
 # Insert new diagnostic scalar fields here using the template:
 #        element scalar_field {

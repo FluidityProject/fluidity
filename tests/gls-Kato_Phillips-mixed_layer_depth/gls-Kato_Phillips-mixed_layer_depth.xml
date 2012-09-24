@@ -6,57 +6,58 @@
   <tags>flml gls</tags>
     <problem_definition length="medium" nprocs="1">
         <command_line>
-            fluidity gls-Kato_Phillips-mixed_layer_depth-k_e-CA.flml
-            fluidity gls-Kato_Phillips-mixed_layer_depth-k_kl-KC94.flml
+            fluidity gls-Kato_Phillips-mixed_layer_depth-gen-GL.flml
+            fluidity gls-Kato_Phillips-mixed_layer_depth-k_w-CB.flml
         </command_line>
   </problem_definition>  
   <variables>  
 
-    <variable name="FinalTimeKECA" language="python">
+    <variable name="FinalTimeGenGL" language="python">
 import fluidity_tools
-FinalTimeKECA = fluidity_tools.stat_parser("Kato_Phillips-mld-k_e-CA.stat")['ElapsedTime']['value'][-1]
-    </variable>
-    <variable name="FinalTimeKKLKC" language="python">
+FinalTimeGenGL = fluidity_tools.stat_parser("Kato_Phillips-mld-gen-GL.stat")['ElapsedTime']['value'][-1]
+    </variable>    
+    <variable name="FinalTimeKWCB" language="python">
 import fluidity_tools
-FinalTimeKKLKC = fluidity_tools.stat_parser("Kato_Phillips-mld-k_kl-KC.stat")['ElapsedTime']['value'][-1]
+FinalTimeKWCB = fluidity_tools.stat_parser("Kato_Phillips-mld-k_w-CB.stat")['ElapsedTime']['value'][-1]
     </variable>
 
-    <variable name="KECA_MLD" language="python">
+    <variable name="GenGL_MLD" language="python">
 import sys
 sys.path.append("gls-Kato_Phillips-mixed_layer_depth")
 import mld_calc
 import glob
-filelist = glob.glob("Kato_Phillips-mld-k_e-CA*.vtu")
+filelist = glob.glob("Kato_Phillips-mld-gen-GL_*.vtu")
 mld_calc.sort_nicely(filelist)
-KECA_MLD = mld_calc.MLD(filelist)
+GenGL_MLD = mld_calc.MLD(filelist)
     </variable>
-    <variable name="KKLKC_MLD" language="python">
+    <variable name="KWCB_MLD" language="python">
 import sys
-sys.path.append("gls-Kato_Phillips-mixed_layer_depth")        
+sys.path.append("gls-Kato_Phillips-mixed_layer_depth")
 import mld_calc
 import glob
-filelist = glob.glob("Kato_Phillips-mld-k_kl-KC_*.vtu")
+filelist = glob.glob("Kato_Phillips-mld-k_w-CB_*.vtu")
 mld_calc.sort_nicely(filelist)
-KKLKC_MLD = mld_calc.MLD(filelist)
-    </variable>
+KWCB_MLD = mld_calc.MLD(filelist)
+    </variable>    
 
   </variables>    
 
   <pass_tests> 
-    <test name="Final time equals 10 hours for k-e CA" language="python">
-assert FinalTimeKECA &gt; 17900
+    <test name="Final time equals 10 hours for Gen GL" language="python">
+assert FinalTimeGenGL &gt; 35900
     </test>
-    <test name="Final time equals 10 hours for k-kl KC" language="python">
-assert FinalTimeKKLKC &gt; 17900
+    <test name="Final time equals 10 hours for k-w CB" language="python">
+assert FinalTimeKWCB &gt; 35900
     </test>
 
-    <test name ="MLD for K-E KC vs analytical" language="python">
+    <test name ="MLD for Gen GL vs analytical" language="python">
 from numpy import array, all
-assert (all( abs(array(KECA_MLD[1]) - array(KECA_MLD[2]) ) &lt; 1.5))
-    </test>
-    <test name ="MLD for K-KL vs analytical" language="python">
+assert (all( abs(array(GenGL_MLD[1]) - array(GenGL_MLD[2]) ) &lt; 2.0))
+    </test>   
+    <test name ="MLD for K-W CB vs analytical" language="python">
 from numpy import array, all
-assert (all( abs(array(KKLKC_MLD[1]) - array(KKLKC_MLD[2]) ) &lt; 1.5))
+print abs(array(KWCB_MLD[1]) - array(KWCB_MLD[2]) )
+assert (all( abs(array(KWCB_MLD[1]) - array(KWCB_MLD[2]) ) &lt; 2.0))
     </test>
 
   </pass_tests>

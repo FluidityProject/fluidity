@@ -320,7 +320,7 @@
 #include "finclude/petscpc.h"
 #endif
 
-#if PETSC_VERSION_MINOR==2
+#if PETSC_VERSION_MINOR>=2
     PetscBool:: flag
 #else
     PetscTruth:: flag

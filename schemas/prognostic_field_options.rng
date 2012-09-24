@@ -113,7 +113,8 @@ a boundary when solving the advection-diffusion equation.</a:documentation>
  T the scalar field value on the surface,
  C0 is the input order zero coefficient and
  C1 is the input order one coefficient.
- THIS WILL ONLY WORK FOR CONTINUOUS GALERKIN SPATIAL DISCRETISATION</a:documentation>
+ THIS WILL ONLY WORK FOR CONTINUOUS GALERKIN OR CONTROL VOLUME 
+ (USING AN ELEMENTGRADIENT DIFFUSION SCHEME) SPATIAL DISCRETISATIONS.</a:documentation>
       <attribute name="name">
         <value>robin</value>
       </attribute>
@@ -199,18 +200,36 @@ At this time, do not switch on this option if you are using Mellor-Yamada.</a:do
           </attribute>
         </element>
         <element name="subgridscale_parameterisation">
-          <a:documentation>[UNDER DEVELOPMENT - DOES NOT WORK YET]
-Set the diffusivity to the eddy diffusivity calculated by the
-k-epsilon turbulence model. If using this, set the diffusivity field to
-diagnostic/algorithm(internal).</a:documentation>
+          <a:documentation>Turning this option on enables calculation of turbulent diffusivity for this field, and calculation of buoyancy 
+source terms for this field in the k_eps code.
+
+TURBULENT DIFFUSIVITY
+
+To enable, set the diffusivity field to diagnostic/algorithm(k_epsilon). 
+
+The diffusivity, D, is set to the sum of the background diffusivity, D_bg, and the eddy diffusivity calculated 
+by the k-epsilon turbulence model.
+
+D = D_bg  nu_t / Pr
+
+where: nu_t = turbulent viscosity ; Pr = Prandtl or Schmidt number
+
+A background diffusivity can either be set globally
+under material_phase[]/subgridscale_parameterisations/k-epsilon, or individually for each field this is 
+applied upon. If it is set globally and locally, the local background diffusivity is used.
+
+BUOYANCY EFFECTS
+
+Enable this by selecting the buoyancy_effects node. A buoyancy source term is added to the right hand side of the k
+and epsilon equations. See the manual for more information.
+</a:documentation>
           <attribute name="name">
             <value>k-epsilon</value>
           </attribute>
           <optional>
-            <element name="Prandtl_number">
-              <a:documentation>Option to set the Prandtl number (ratio of momentum diffusivity to field diffusivity)
- for this field. Default = 1.0 if not specified.</a:documentation>
-              <ref name="input_choice_real"/>
+            <element name="background_diffusivity">
+              <a:documentation>Option to set a unique isotropic background diffusivity for this field.</a:documentation>
+              <ref name="real"/>
             </element>
           </optional>
         </element>
@@ -278,6 +297,7 @@ elements when buoyancy is a discontinuous field.</a:documentation>
             <choice>
               <ref name="tensor_python_diagnostic_algorithm"/>
               <ref name="internal_algorithm"/>
+              <ref name="k_epsilon_diffusivity_algorithm"/>
             </choice>
             <ref name="diagnostic_tensor_field"/>
           </element>
@@ -2510,6 +2530,13 @@ Uses a nonconservative time discretisation.</a:documentation>
 electrokinetic, electrochemical or electrothermal sources </a:documentation>
         <attribute name="name">
           <value>ElectricalPotential</value>
+        </attribute>
+      </element>
+      <element name="equation">
+        <a:documentation>Equation type for the k-epsilon model fields.
+Note: Only works for continuous galerkin or control volume discretisations.</a:documentation>
+        <attribute name="name">
+          <value>KEpsilon</value>
         </attribute>
       </element>
     </choice>

@@ -412,8 +412,6 @@ if test "x$PETSC_DIR" == "x"; then
   AC_MSG_ERROR( [You need to set PETSC_DIR to point at your PETSc installation... exiting] )
 fi
 
-
-
 PETSC_LINK_LIBS=`make -s -f petsc_makefile getlinklibs`
 LIBS="$PETSC_LINK_LIBS $LIBS"
 
@@ -467,7 +465,7 @@ fi
 # petsc tutorial - using the headers in the same way as we do in the code
 AC_LINK_IFELSE(
 [AC_LANG_SOURCE([
-program test
+program test_petsc
 #include "petscversion.h"
 #ifdef HAVE_PETSC_MODULES
   use petsc
@@ -497,7 +495,7 @@ implicit none
       PetscInt  i,j,II,JJ,m,n,its
       PetscInt  Istart,Iend,ione
       PetscErrorCode ierr
-#if PETSC_VERSION_MINOR==2
+#if PETSC_VERSION_MINOR>=2
       PetscBool flg
 #else
       PetscTruth  flg
@@ -574,13 +572,13 @@ implicit none
       call MatDestroy(A,ierr)
 
       call PetscFinalize(ierr)
-end program test
+end program test_petsc
 ])],
 [
 AC_MSG_NOTICE([PETSc program succesfully compiled and linked.])
 ],
 [
-cp conftest.F90 test.F90
+cp conftest.F90 test_petsc.F90
 AC_MSG_FAILURE([Failed to compile and link PETSc program.])])
 
 AC_LANG_RESTORE
@@ -1006,7 +1004,6 @@ if test -e $zoltan_INCLUDES_PATH/zoltan.mod; then
 	echo "note: using $zoltan_INCLUDES_PATH/zoltan.mod"
 fi 
 
-
 AC_LANG_SAVE
 AC_LANG_C
 AC_CHECK_LIB(
@@ -1014,7 +1011,28 @@ AC_CHECK_LIB(
 	[Zoltan_Initialize],
 	[AC_DEFINE(HAVE_ZOLTAN,1,[Define if you have zoltan library.])],
 	[AC_MSG_ERROR( [Could not link in the zoltan library... exiting] )] )
-# Save variables...
+
+# Small test for zoltan .mod files:
+AC_LANG(Fortran)
+ac_ext=F90
+# In fluidity's makefile we explicitly add CPPFLAGS, temporarily add it to
+# FCFLAGS here for this zoltan test:
+tmpFCFLAGS="$FCFLAGS"
+FCFLAGS="$FCFLAGS $CPPFLAGS"
+AC_LINK_IFELSE(
+[AC_LANG_SOURCE([
+program test_zoltan
+ use zoltan
+end program test_zoltan
+])],
+[
+AC_MSG_NOTICE([Great success! Zoltan .mod files exist and are usable])
+],
+[
+cp conftest.F90 test_zoltan.F90
+AC_MSG_FAILURE([Failed to find zoltan.mod files])])
+# And now revert FCFLAGS
+FCFLAGS="$tmpFCFLAGS"
 AC_LANG_RESTORE
 
 ZOLTAN="yes"

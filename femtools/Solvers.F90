@@ -693,7 +693,6 @@ integer, optional, intent(in) :: internal_smoothing_option
 !! positions field is only used with remove_null_space/ with rotational components
 type(vector_field), intent(in), optional :: positions
 
-  
   logical, dimension(:), pointer:: inactive_mask
   integer, dimension(:), allocatable:: ghost_nodes
   Mat:: pmat
@@ -1876,7 +1875,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     PCType:: pctype
     PetscReal:: rtol, atol, dtol
     PetscInt:: maxits
-#if PETSC_VERSION_MINOR==2
+#if PETSC_VERSION_MINOR>=2
     PetscBool:: flag
 #else
     PetscTruth:: flag

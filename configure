@@ -2137,6 +2137,52 @@ fi
 
 } # ac_fn_f77_try_link
 
+# ac_fn_fc_try_link LINENO
+# ------------------------
+# Try to link conftest.$ac_ext, and return whether this succeeded.
+ac_fn_fc_try_link ()
+{
+  as_lineno=${as_lineno-"$1"} as_lineno_stack=as_lineno_stack=$as_lineno_stack
+  rm -f conftest.$ac_objext conftest$ac_exeext
+  if { { ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:${as_lineno-$LINENO}: $ac_try_echo\""
+$as_echo "$ac_try_echo"; } >&5
+  (eval "$ac_link") 2>conftest.err
+  ac_status=$?
+  if test -s conftest.err; then
+    grep -v '^ *+' conftest.err >conftest.er1
+    cat conftest.er1 >&5
+    mv -f conftest.er1 conftest.err
+  fi
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; } && {
+	 test -z "$ac_fc_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext && {
+	 test "$cross_compiling" = yes ||
+	 $as_test_x conftest$ac_exeext
+       }; then :
+  ac_retval=0
+else
+  $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	ac_retval=1
+fi
+  # Delete the IPA/IPO (Inter Procedural Analysis/Optimization) information
+  # created by the PGI compiler (conftest_ipa8_conftest.oo), as it would
+  # interfere with the next link command; also delete a directory that is
+  # left behind by Apple's compiler.  We do this before executing the actions.
+  rm -rf conftest.dSYM conftest_ipa8_conftest.oo
+  eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
+  as_fn_set_status $ac_retval
+
+} # ac_fn_fc_try_link
+
 # ac_fn_c_check_func LINENO FUNC VAR
 # ----------------------------------
 # Tests whether FUNC exists, setting the cache variable VAR accordingly
@@ -2219,52 +2265,6 @@ $as_echo "$ac_res" >&6; }
   eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
 
 } # ac_fn_c_check_func
-
-# ac_fn_fc_try_link LINENO
-# ------------------------
-# Try to link conftest.$ac_ext, and return whether this succeeded.
-ac_fn_fc_try_link ()
-{
-  as_lineno=${as_lineno-"$1"} as_lineno_stack=as_lineno_stack=$as_lineno_stack
-  rm -f conftest.$ac_objext conftest$ac_exeext
-  if { { ac_try="$ac_link"
-case "(($ac_try" in
-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
-  *) ac_try_echo=$ac_try;;
-esac
-eval ac_try_echo="\"\$as_me:${as_lineno-$LINENO}: $ac_try_echo\""
-$as_echo "$ac_try_echo"; } >&5
-  (eval "$ac_link") 2>conftest.err
-  ac_status=$?
-  if test -s conftest.err; then
-    grep -v '^ *+' conftest.err >conftest.er1
-    cat conftest.er1 >&5
-    mv -f conftest.er1 conftest.err
-  fi
-  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
-  test $ac_status = 0; } && {
-	 test -z "$ac_fc_werror_flag" ||
-	 test ! -s conftest.err
-       } && test -s conftest$ac_exeext && {
-	 test "$cross_compiling" = yes ||
-	 $as_test_x conftest$ac_exeext
-       }; then :
-  ac_retval=0
-else
-  $as_echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-	ac_retval=1
-fi
-  # Delete the IPA/IPO (Inter Procedural Analysis/Optimization) information
-  # created by the PGI compiler (conftest_ipa8_conftest.oo), as it would
-  # interfere with the next link command; also delete a directory that is
-  # left behind by Apple's compiler.  We do this before executing the actions.
-  rm -rf conftest.dSYM conftest_ipa8_conftest.oo
-  eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
-  as_fn_set_status $ac_retval
-
-} # ac_fn_fc_try_link
 
 # ac_fn_fc_try_run LINENO
 # -----------------------
@@ -11791,7 +11791,6 @@ if test -e $zoltan_INCLUDES_PATH/zoltan.mod; then
 fi
 
 
-
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -11858,7 +11857,42 @@ else
   as_fn_error $? "Could not link in the zoltan library... exiting " "$LINENO" 5
 fi
 
-# Save variables...
+
+# Small test for zoltan .mod files:
+ac_ext=${ac_fc_srcext-f}
+ac_compile='$FC -c $FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
+ac_link='$FC -o conftest$ac_exeext $FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_fc_compiler_gnu
+
+ac_ext=F90
+# In fluidity's makefile we explicitly add CPPFLAGS, temporarily add it to
+# FCFLAGS here for this zoltan test:
+tmpFCFLAGS="$FCFLAGS"
+FCFLAGS="$FCFLAGS $CPPFLAGS"
+cat > conftest.$ac_ext <<_ACEOF
+
+program test_zoltan
+ use zoltan
+end program test_zoltan
+
+_ACEOF
+if ac_fn_fc_try_link "$LINENO"; then :
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: Great success! Zoltan .mod files exist and are usable" >&5
+$as_echo "$as_me: Great success! Zoltan .mod files exist and are usable" >&6;}
+
+else
+
+cp conftest.F90 test_zoltan.F90
+{ { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "Failed to find zoltan.mod files
+See \`config.log' for more details" "$LINENO" 5; }
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+# And now revert FCFLAGS
+FCFLAGS="$tmpFCFLAGS"
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -12901,8 +12935,6 @@ $as_echo "$as_me: WARNING: No PETSC_DIR set - do you need to load a petsc module
   as_fn_error $? "You need to set PETSC_DIR to point at your PETSc installation... exiting " "$LINENO" 5
 fi
 
-
-
 PETSC_LINK_LIBS=`make -s -f petsc_makefile getlinklibs`
 LIBS="$PETSC_LINK_LIBS $LIBS"
 
@@ -12972,7 +13004,7 @@ fi
 # petsc tutorial - using the headers in the same way as we do in the code
 cat > conftest.$ac_ext <<_ACEOF
 
-program test
+program test_petsc
 #include "petscversion.h"
 #ifdef HAVE_PETSC_MODULES
   use petsc
@@ -13002,7 +13034,7 @@ implicit none
       PetscInt  i,j,II,JJ,m,n,its
       PetscInt  Istart,Iend,ione
       PetscErrorCode ierr
-#if PETSC_VERSION_MINOR==2
+#if PETSC_VERSION_MINOR>=2
       PetscBool flg
 #else
       PetscTruth  flg
@@ -13079,7 +13111,7 @@ implicit none
       call MatDestroy(A,ierr)
 
       call PetscFinalize(ierr)
-end program test
+end program test_petsc
 
 _ACEOF
 if ac_fn_fc_try_link "$LINENO"; then :
@@ -13089,7 +13121,7 @@ $as_echo "$as_me: PETSc program succesfully compiled and linked." >&6;}
 
 else
 
-cp conftest.F90 test.F90
+cp conftest.F90 test_petsc.F90
 { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
 as_fn_error $? "Failed to compile and link PETSc program.
