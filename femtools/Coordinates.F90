@@ -1056,7 +1056,7 @@ contains
 
   function rotate_diagonal_to_cartesian_gi(positions, ele_number, diagonal) result(quad_val)
     ! Given the diagonal of a tensor in spherical coordinates, this function transforms the
-    ! tensor components to a cartesian system system at all quadrature points of an element.
+    ! tensor components to a cartesian system at all quadrature points of an element.
     ! This result is given by R(diagonal)R^T where R is the transformation matrix.
     type(vector_field), intent(in) :: positions
     integer, intent(in) :: ele_number
@@ -1108,7 +1108,7 @@ contains
 
   function rotate_diagonal_to_cartesian_face(positions, face_number, diagonal) result(quad_val)
     ! Given the diagonal of a tensor in spherical coordinates, this function transforms the
-    ! tensor components to a cartesian system system at all quadrature points of an face.
+    ! tensor components to a cartesian system at all quadrature points of an face.
     ! This result is given by R(diagonal)R^T where R is the transformation matrix.
     type(vector_field), intent(in) :: positions
     integer, intent(in) :: face_number
