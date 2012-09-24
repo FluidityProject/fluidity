@@ -165,7 +165,7 @@ contains
     real :: phi_f
     real :: x_f,y_f,z_f
 
-    !Cast input variables to FORTRAN intrinsic types.
+    !Cast input variables to Fortran intrinsic types.
     radius_f = real(radius)
     theta_f = real(theta)
     phi_f = real(phi)
@@ -395,7 +395,7 @@ contains
     real :: x_f,y_f,z_f
     real :: referenceRadius_f
 
-    !Cast input variables to FORTRAN intrinsic types.
+    !Cast input variables to Fortran intrinsic types.
     longitude_f = real(longitude)
     latitude_f = real(latitude)
     height_f = real(height)
@@ -464,7 +464,7 @@ contains
     real :: height_f
     real :: referenceRadius_f
 
-    !Cast input variables to FORTRAN intrinsic types.
+    !Cast input variables to Fortran intrinsic types.
     x_f = real(x)
     y_f = real(y)
     z_f = real(z)
@@ -729,7 +729,7 @@ contains
                                                  referenceRadius) bind(c)
     !C-interoperable subroutine for change of basis of a vector from
     !  meridional-zonal-vertical components to cartesian components. Note that
-    !  unlike the FORTRAN version of the present routine, referenceRadius is
+    !  unlike the Fortran version of the present routine, referenceRadius is
     !  a mandatory argument.
     implicit none
 
@@ -770,7 +770,7 @@ contains
     real :: zCoord_f         !3rd vector component of position vector in cartesian basis
     real :: referenceRadius_f
 
-    !Convert C-types in to FORTRAN intrinsic types.
+    !Convert C-types in to Fortran intrinsic types.
     zonalComponent_f = real(zonalComponent)
     meridionalComponent_f = real(meridionalComponent)
     verticalComponent_f = real(verticalComponent)
@@ -790,7 +790,7 @@ contains
                                            xCoord_f, yCoord_f, zCoord_f, &
                                            referenceRadius_f)
 
-    !Convert FORTRAN intrinsic types to C-types.
+    !Convert Fortran intrinsic types to C-types.
     xComp = real(xComp_f, kind=c_double)
     yComp = real(yComp_f, kind=c_double)
     zComp = real(zComp_f, kind=c_double)
@@ -811,7 +811,7 @@ contains
                                                  referenceRadius) bind (c)
     !C inter-operable subroutine for change of basis of a vector from Cartesian to
     !  meridional-zonal-vertical. Note that
-    !  unlike the FORTRAN version of the present routine, referenceRadius is
+    !  unlike the Fortran version of the present routine, referenceRadius is
     !  a mandatory argument.
     implicit none
 
@@ -855,7 +855,7 @@ contains
     real :: height_f
     real :: referenceRadius_f
 
-    !Convert C-types in to FORTRAN intrinsic types.
+    !Convert C-types in to Fortran intrinsic types.
     xComp_f = real(xComp)
     yComp_f = real(yComp)
     zComp_f = real(zComp)
@@ -875,7 +875,7 @@ contains
                                            height_f, &
                                            referenceRadius_f)
 
-    !Convert FORTRAN intrinsic types to C-types.
+    !Convert Fortran intrinsic types to C-types.
     zonalComponent = real(zonalComponent_f, kind=c_double)
     meridionalComponent = real(meridionalComponent_f, kind=c_double)
     verticalComponent = real(verticalComponent_f, kind=c_double)
