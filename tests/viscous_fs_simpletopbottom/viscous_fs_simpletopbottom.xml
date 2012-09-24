@@ -4,7 +4,7 @@
   <owner userid="cwilson"/>
   <tags>flml</tags>
   <problem_definition length="medium" nprocs="1">
-    <command_line>fluidity -v2 viscous_fs_simpletopbottom_E.flml &gt;&amp; E.log &amp;&amp; fluidity -v2 viscous_fs_simpletopbottom_F.flml &gt;&amp; F.log &amp;&amp; fluidity -v2 viscous_fs_simpletopbottom_G.flml &gt;&amp; G.log &amp;&amp; fluidity -v2 viscous_fs_simpletopbottom_H.flml &gt;&amp; H.log &amp;&amp; fluidity -v2 viscous_fs_simpletopbottom_I.flml &gt;&amp; I.log</command_line>
+    <command_line>fluidity -v2 -l viscous_fs_simpletopbottom_E.flml; fluidity -v2 -l viscous_fs_simpletopbottom_F.flml; fluidity -v2 -l viscous_fs_simpletopbottom_G.flml; fluidity -v2 viscous_fs_simpletopbottom_H.flml; fluidity -v2 -l viscous_fs_simpletopbottom_I.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="finish_time_e" language="python">from fluidity_tools import stat_parser as stat
