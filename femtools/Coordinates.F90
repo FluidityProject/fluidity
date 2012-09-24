@@ -306,7 +306,7 @@ contains
     !Subroutine for conversion of spherical-polar coordinates to
     !  longitude-latitude-height coordinates. The polar coordinates must
     !  be given in radians. Longitude and latitude are returned in
-    !  degrees. If referenceRadius is specified, height is measured as the as the
+    !  degrees. If referenceRadius is specified, height is measured as the
     !  radial distance relative to that radius, ie it is the distance relative to the
     !  surface of the sphere. if referenceRadius is absent height is the distance
     !  from the center of the sphere.
@@ -448,8 +448,7 @@ contains
   subroutine cartesian_2_lon_lat_height_c(x, y, z, longitude, latitude, height, &
                                           referenceRadius) bind(c)
     !C-inter-operable subroutine for conversion of Cartesian coordinates into
-    ! longitude-latitude-height. If referenceRadius is specified, height is measured
-    ! as the radial distance relative to that radius.
+    ! longitude-latitude-height.
     implicit none
 
     real(kind=c_double) :: x,y,z   !Cartesian coordinates
@@ -473,7 +472,7 @@ contains
 
     !Convert coordinates
     call cartesian_2_lon_lat_height(x_f, y_f, z_f, longitude_f, latitude_f, height_f, &
-                                        referenceRadius)
+                                        referenceRadius_f)
 
     !Cast output variables to C-inter-operable types.
     longitude = real(longitude_f, kind=c_double)
