@@ -440,6 +440,9 @@ contains
          & .and. .not. have_option("/io/disable_dump_at_start") &
          & ) then
        call write_state(dump_no, state)
+       if (have_option("/embedded_models/fsi_model/")) then
+         call write_state(dump_no, solid_state, solid=.true.)
+       end if
     end if
 
     call initialise_convergence(filename, state)
@@ -500,6 +503,9 @@ contains
              call checkpoint_simulation(state, cp_no = dump_no)
           end if
           call write_state(dump_no, state)
+          if (have_option("/embedded_models/fsi_model/")) then
+            call write_state(dump_no, solid_state, solid=.true.)
+          end if
        end if
 
        ewrite(2,*)'steady_state_tolerance,nonlinear_iterations:',steady_state_tolerance,nonlinear_iterations
@@ -950,6 +956,9 @@ contains
     ! Dump at end, unless explicitly disabled
     if(.not. have_option("/io/disable_dump_at_end")) then
        call write_state(dump_no, state)
+       if (have_option("/embedded_models/fsi_model/")) then
+         call write_state(dump_no, solid_state, solid=.true.)
+       end if
     end if
 
     ! cleanup GLS

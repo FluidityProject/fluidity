@@ -193,16 +193,19 @@ contains
   
   end subroutine update_dump_times
 
-  subroutine write_state(dump_no, state, adjoint)
+  subroutine write_state(dump_no, state, adjoint, solid)
     !!< Data output routine. Write output data.
 
     integer, intent(inout) :: dump_no
     type(state_type), dimension(:), intent(inout) :: state
     logical, intent(in), optional :: adjoint
+    logical, intent(in), optional :: solid
 
-    character(len = OPTION_PATH_LEN) :: dump_filename, dump_format
+    character(len = OPTION_PATH_LEN) :: dump_filename, sim_name, dump_format
+    character(len = FIELD_NAME_LEN) :: mesh_name
     integer :: max_dump_no, stat
     integer :: increment
+    integer :: i
 
     ewrite(1, *) "In write_state"
     call profiler_tic("I/O")
@@ -211,12 +214,27 @@ contains
     call get_option("/io/max_dump_file_count", max_dump_no, stat, default = huge(0))
 
     dump_no = modulo(dump_no, max_dump_no)
+    if (present_and_true(solid)) then
+      ewrite(1, *) "Writing solid dump files"
+      call get_option("/simulation_name", sim_name)
+      dump_no = dump_no-1 !resetting such that numbers are equivalent with fluid dumps
+    end if
+
 
     call get_option("/io/dump_format", dump_format)
     select case(trim(dump_format))
       case("vtk")
          ewrite(2, *) "Writing output " // int2str(dump_no) // " to vtu"
-         call vtk_write_state_new_options(dump_filename, dump_no, state)
+         if (present_and_true(solid)) then
+           do i = 1, size(state)
+             ! Reassemble dump_filename for each solid:
+             call get_option('/embedded_models/fsi_model/geometry/mesh['//int2str(i-1)//']/name', mesh_name)
+             dump_filename = trim(sim_name)//"_solid_"//trim(mesh_name)
+             call vtk_write_state_new_options(dump_filename, dump_no, state(i:i), solid=solid)
+           end do
+         else ! fluid:
+           call vtk_write_state_new_options(dump_filename, dump_no, state)
+         end if
       case default
         FLAbort("Unrecognised dump file format.")      
     end select
@@ -235,7 +253,7 @@ contains
 
   end subroutine write_state
 
-  subroutine vtk_write_state_new_options(filename, index, state, write_region_ids)
+  subroutine vtk_write_state_new_options(filename, index, state, write_region_ids, solid)
     !!< Write the state variables out to a vtu file according to options
     !!< set in the options tree. Only fields present in the option tree
     !!< will be written, except for those disabled in the same options tree.
@@ -247,6 +265,7 @@ contains
     integer, intent(in), optional :: index    !! Index number of dump for filename.
     type(state_type), dimension(:), intent(inout) :: state
     logical, intent(in), optional :: write_region_ids
+    logical, intent(in), optional :: solid
     
     type(vector_field), pointer :: model_coordinate
     type(mesh_type), pointer :: model_mesh
@@ -260,8 +279,13 @@ contains
     
     ewrite(1, *) "In vtk_write_state_new_options"
         
-    call get_option("/io/output_mesh[0]/name", mesh_name)
-    model_mesh => extract_mesh(state(1), mesh_name)
+    if (present_and_true(solid)) then
+      mesh_name = trim(state(1)%name(1:len(trim(state(1)%name))-10))
+      model_mesh => extract_mesh(state, trim(mesh_name)//"SolidCoordinateMesh")
+    else
+      call get_option("/io/output_mesh[0]/name", mesh_name)
+      model_mesh => extract_mesh(state(1), mesh_name)
+    end if
     
     multi_state = size(state) > 1
         
@@ -271,7 +295,7 @@ contains
       if (associated(state(i)%scalar_fields)) then
         do f = 1, size(state(i)%scalar_fields)
           field_name = state(i)%scalar_fields(f)%ptr%name
-          if (include_scalar_field_in_vtu(state, i, field_name)) then
+          if (include_scalar_field_in_vtu(state, i, field_name, solid=solid)) then
             counter = counter + 1
           end if
         end do
@@ -285,7 +309,7 @@ contains
       if (associated(state(i)%scalar_fields)) then
         do f = 1, size(state(i)%scalar_fields)
           field_name = state(i)%scalar_fields(f)%ptr%name
-          if (include_scalar_field_in_vtu(state, i, field_name)) then
+          if (include_scalar_field_in_vtu(state, i, field_name, solid=solid)) then
             counter = counter + 1
             lsfields(counter)=extract_scalar_field(state(i), field_name)
             if (multi_state) then
@@ -302,13 +326,13 @@ contains
       if (associated(state(i)%vector_fields)) then
         do f = 1, size(state(i)%vector_fields)
           field_name = state(i)%vector_fields(f)%ptr%name
-          if (include_vector_field_in_vtu(state, i, field_name)) then
+          if (include_vector_field_in_vtu(state, i, field_name, solid=solid)) then
             counter = counter + 1
           end if
         end do
       end if
     end do
-    
+
     ! collect vector fields:
     allocate(lvfields(1:counter))
     counter = 0
@@ -316,7 +340,7 @@ contains
       if (associated(state(i)%vector_fields)) then
         do f = 1, size(state(i)%vector_fields)
           field_name = state(i)%vector_fields(f)%ptr%name
-          if (include_vector_field_in_vtu(state, i, field_name)) then
+          if (include_vector_field_in_vtu(state, i, field_name, solid=solid)) then
             counter = counter + 1
             lvfields(counter)=extract_vector_field(state(i), field_name)
             if (multi_state) then
@@ -333,13 +357,13 @@ contains
       if (associated(state(i)%tensor_fields)) then
         do f = 1, size(state(i)%tensor_fields)
           field_name = state(i)%tensor_fields(f)%ptr%name
-          if (include_tensor_field_in_vtu(state, i, field_name)) then
+          if (include_tensor_field_in_vtu(state, i, field_name, solid=solid)) then
             counter = counter + 1
           end if
         end do
       end if
     end do
-    
+
     ! collect tensor fields:
     allocate(ltfields(1:counter))
     counter = 0
@@ -347,7 +371,7 @@ contains
       if (associated(state(i)%tensor_fields)) then
         do f = 1, size(state(i)%tensor_fields)
           field_name = state(i)%tensor_fields(f)%ptr%name
-          if (include_tensor_field_in_vtu(state, i, field_name)) then
+          if (include_tensor_field_in_vtu(state, i, field_name, solid=solid)) then
             counter = counter + 1
             ltfields(counter)=extract_tensor_field(state(i), field_name)
             if (multi_state) then
@@ -363,34 +387,44 @@ contains
     ewrite(2, "(a,i0,a)") "Writing ", size(lvfields), " vector field(s)"
     ewrite(2, "(a,i0,a)") "Writing ", size(ltfields), " tensor field(s)"
     
-    model_coordinate=>get_external_coordinate_field(state(1), model_mesh)
-    
+    if (.not. present_and_true(solid)) then
+      model_coordinate=>get_external_coordinate_field(state(1), model_mesh)
+    else
+      ewrite(2,*) "calling vtk_write_fields for solid meshes:"
+      model_coordinate=>get_external_coordinate_field(state(1), model_mesh)
+    end if
     call vtk_write_fields(filename, index, &
-         model_coordinate, &
-         model_mesh,  &
-         sfields=lsfields, &
-         vfields=lvfields, &
-         tfields=ltfields, &
-         write_region_ids=write_region_ids)
-         
+           model_coordinate, &
+           model_mesh,  &
+           sfields=lsfields, &
+           vfields=lvfields, &
+           tfields=ltfields, &
+           write_region_ids=write_region_ids)
+
     ewrite(1, *) "Exiting vtk_write_state_new_options"
     
   end subroutine vtk_write_state_new_options
     
-  logical function include_scalar_field_in_vtu(state, istate, field_name)
+  logical function include_scalar_field_in_vtu(state, istate, field_name, solid)
     !!< function that uses optionpath and state number to work out
     !!< if a field should be written out (skipping aliased fields)
   
     type(state_type), dimension(:), intent(in):: state
     integer, intent(in):: istate
     character(len=*), intent(in):: field_name
+    logical, intent(in), optional :: solid
   
     type(scalar_field), pointer:: field
     character(len=OPTION_PATH_LEN) output_option_path
     logical is_old_field, is_nonlinear_field, is_iterated_field
 
     integer :: stat
-    
+
+    if (present_and_true(solid)) then
+      include_scalar_field_in_vtu=.true.
+      return
+    end if
+
     if (field_name=='Time') then
       field => extract_scalar_field(state(istate), field_name)
       ! Time is special, always included (unless it's aliased)
@@ -468,23 +502,29 @@ contains
     else
       include_scalar_field_in_vtu=.not. have_option(trim(output_option_path)//'/exclude_from_vtu')
     end if
-  
+
   end function include_scalar_field_in_vtu
     
-  logical function include_vector_field_in_vtu(state, istate, field_name)
+  logical function include_vector_field_in_vtu(state, istate, field_name, solid)
     !!< function that uses optionpath and state number to work out
     !!< if a field should be written to vtu (skipping aliased fields)
     
     type(state_type), dimension(:), intent(in):: state
     integer, intent(in):: istate
     character(len=*), intent(in):: field_name
+    logical, intent(in), optional :: solid
   
     type(vector_field), pointer:: field
     character(len=OPTION_PATH_LEN) output_option_path
     logical is_old_field, is_nonlinear_field, is_iterated_field
 
     integer :: stat
-    
+
+    if (present_and_true(solid)) then
+      include_vector_field_in_vtu=.true.
+      return
+    end if
+
     if (.not. has_vector_field(state(istate), field_name)) then
       ! not even in state, so no
       include_vector_field_in_vtu=.false.
@@ -570,19 +610,25 @@ contains
   
   end function include_vector_field_in_vtu
   
-  logical function include_tensor_field_in_vtu(state, istate, field_name)
+  logical function include_tensor_field_in_vtu(state, istate, field_name, solid)
     !!< function that uses optionpath and state number to work out
     !!< if a field should be written to vtu (skipping aliased fields)
   
     type(state_type), dimension(:), intent(in):: state
     integer, intent(in):: istate
     character(len=*), intent(in):: field_name
+    logical, intent(in), optional :: solid
   
     type(tensor_field), pointer:: field
     character(len=OPTION_PATH_LEN) output_option_path
     logical is_old_field, is_nonlinear_field, is_iterated_field
 
     integer :: stat
+
+    if (present_and_true(solid)) then
+      include_tensor_field_in_vtu=.true.
+      return
+    end if
 
     if (.not. has_tensor_field(state(istate), field_name)) then
       ! not even in state, so no
