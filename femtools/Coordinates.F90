@@ -181,7 +181,7 @@ contains
   end subroutine spherical_polar_2_cartesian_c
 
   subroutine cartesian_2_spherical_polar(x,y,z,radius,theta,phi)
-    !Subroutine for calculation of Cartesian coordinates from spherical-polar coordinates.
+    !Subroutine for calculation of spherical-polar coordinates from cartesian.
     implicit none
 
     real, intent(in) :: x,y,z   !cartesian coordinates
