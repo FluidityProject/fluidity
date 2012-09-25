@@ -140,7 +140,7 @@ contains
 
     select case(format)
     case("triangle")
-       call write_triangle_files(filename, state, mesh)
+       call write_triangle_files(filename, state, mesh, solid=solid)
 
     case("gmsh")
        call write_gmsh_file(filename, state, mesh, solid=solid )
@@ -166,7 +166,7 @@ contains
 
     select case( trim(format) )
     case("triangle")
-       call write_triangle_files( trim(filename), positions)
+       call write_triangle_files( trim(filename), positions, solid=solid)
 
     case("gmsh")
        call write_gmsh_file( trim(filename), positions, solid=solid)

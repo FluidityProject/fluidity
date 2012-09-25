@@ -49,26 +49,32 @@ module write_triangle
   
 contains
   
-  subroutine write_mesh_to_triangles(filename, state, mesh)
+  subroutine write_mesh_to_triangles(filename, state, mesh, solid)
     !!< Write out the supplied mesh to the specified filename as triangle files.
     
     character(len = *), intent(in) :: filename
     type(state_type), intent(in) :: state
     type(mesh_type), intent(in) :: mesh
+    !! If it is a solid mesh, force it to be written in serial
+    logical, intent(in), optional :: solid
     
     type(vector_field):: positions
     
     ! gets a coordinate field for the given mesh, if necessary
     ! interpolated from "Coordinate", always takes a reference:
-    positions = get_nodal_coordinate_field(state, mesh)
+    if (.not. present_and_true(solid)) then
+      positions = get_nodal_coordinate_field( state, mesh )
+    else
+      positions = extract_vector_field(state, trim(state%name(1:len(trim(state%name))-10))//"SolidCoordinate")
+    end if
 
-    call write_triangle_files(filename, positions)
+    call write_triangle_files(filename, positions, solid=solid)
     
     call deallocate(positions)
     
   end subroutine write_mesh_to_triangles
 
-  subroutine write_positions_to_triangles(filename, positions, print_internal_faces)
+  subroutine write_positions_to_triangles(filename, positions, print_internal_faces, solid)
     !!< Write out the mesh given by the position field in triangle files:
     !!<    a .node and a .ele-file (and a .face file if the mesh has a %faces
     !!<    component with more than 0 surface elements)
@@ -76,6 +82,8 @@ contains
     character(len=*), intent(in):: filename
     type(vector_field), intent(in):: positions
     logical, intent(in), optional :: print_internal_faces
+    !! If it is a solid mesh, force it to be written in serial
+    logical, intent(in), optional :: solid
     
     integer :: nparts
     
@@ -84,28 +92,50 @@ contains
     
     ! Write out data only for those processes that contain data - SPMD requires
     ! that there be no early return
-    
-    if(getprocno() <= nparts) then
-       
-       ! write .node file with columns if present
-       if (associated(positions%mesh%columns)) then
-         call write_triangle_node_file_with_columns(filename, positions)
-       else
-         call write_triangle_node_file(filename, positions)
+    if (.not. present_and_true(solid)) then
+       if(getprocno() <= nparts) then
+         
+          ! write .node file with columns if present
+          if (associated(positions%mesh%columns)) then
+            call write_triangle_node_file_with_columns(filename, positions)
+          else
+            call write_triangle_node_file(filename, positions)
+          end if
+          
+          call write_triangle_ele_file(filename, positions%mesh)
        end if
-       
-       call write_triangle_ele_file(filename, positions%mesh)
+    else
+       if( getprocno() == 1 ) then
+          ! write .node file with columns if present
+          if (associated(positions%mesh%columns)) then
+            call write_triangle_node_file_with_columns(filename, positions)
+          else
+            call write_triangle_node_file(filename, positions)
+          end if
+          
+          call write_triangle_ele_file(filename, positions%mesh)
+       end if
     end if
 
     if (present_and_true(print_internal_faces) .and. .not. has_faces(positions%mesh)) then
        call add_faces(positions%mesh)
     end if
 
-    if(getprocno() <= nparts) then    
-       if (present_and_true(print_internal_faces)) then
-          call write_triangle_face_file_full(filename, positions%mesh)
-       else
-          call write_triangle_face_file(filename, positions%mesh)
+    if (.not. present_and_true(solid)) then
+       if(getprocno() <= nparts) then    
+          if (present_and_true(print_internal_faces)) then
+             call write_triangle_face_file_full(filename, positions%mesh)
+          else
+             call write_triangle_face_file(filename, positions%mesh)
+          end if
+       end if
+    else
+       if( getprocno() == 1 ) then    
+          if (present_and_true(print_internal_faces)) then
+             call write_triangle_face_file_full(filename, positions%mesh)
+          else
+             call write_triangle_face_file(filename, positions%mesh)
+          end if
        end if
     end if
     
