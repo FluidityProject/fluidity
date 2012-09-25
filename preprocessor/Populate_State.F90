@@ -115,6 +115,7 @@ contains
     type(state_type), pointer, dimension(:), optional :: solid_states
 
     integer :: nstates ! number of states
+    integer :: num_solid_mesh ! number of solid states
     integer :: i
 
     ewrite(1,*) "In populate_state"
@@ -127,6 +128,17 @@ contains
     do i = 1, nstates
        call nullify(states(i))
        call set_option_path(states(i), "/material_phase["//int2str(i-1)//"]")
+    end do
+    
+    ! Get number of solid meshes
+    num_solid_mesh = option_count('/embedded_models/fsi_model/geometry/mesh')
+    ewrite(2,*) "There are", num_solid_mesh, "solid meshes."
+
+    ! allocate solid_states based on number of solid meshes:
+    allocate(solid_states(1:num_solid_mesh))
+    do i = 0, num_solid_mesh-1
+       call nullify(solid_states(i+1))
+       call set_option_path(solid_states(i+1), "/embedded_models/fsi_model/geometry/mesh["//int2str(i)//"]")
     end do
 
     call insert_external_mesh(states, save_vtk_cache = .true.)
@@ -870,7 +882,7 @@ contains
   subroutine insert_external_solid_mesh(solid_states, save_vtk_cache)
     !!< Read in external meshes that are defined and treated as solid meshes
     !!< from file as specified in options tree and insert in state
-    type(state_type), pointer, intent(inout), dimension(:) :: solid_states
+    type(state_type), pointer, dimension(:) :: solid_states
     !! By default the vtk_cache, build up by the vtu mesh reads in this
     !! subroutine, is flushed at the end of this subroutine. This cache can be
     !! reused however in subsequent calls reading from vtu files.
@@ -897,13 +909,6 @@ contains
     ! Get number of meshes
     num_solid_mesh = option_count('/embedded_models/fsi_model/geometry/mesh')
     ewrite(2,*) "There are", num_solid_mesh, "solid meshes."
-
-    ! allocate solid_states based on number of solid meshes:
-    allocate(solid_states(1:num_solid_mesh))
-    do i = 0, num_solid_mesh-1
-       call nullify(solid_states(i+1))
-       call set_option_path(solid_states(i+1), "/embedded_models/fsi_model/geometry/mesh["//int2str(i)//"]")
-    end do
 
     ! Loop over solid meshes:
     external_solid_mesh_loop: do i=0, num_solid_mesh-1
