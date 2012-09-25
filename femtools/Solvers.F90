@@ -1608,10 +1608,15 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     
     ! do multigrid near null spaces before setting up the pc
     if (have_option(trim(solver_option_path)//"/multigrid_near_null_space")) then
+#if PETSC_VERSION_MINOR<3
+       FLEXit("multigrid_near_null_space only available in petsc 3.3")
+#else
+
        null_space = create_null_space_from_options(trim(solver_option_path)//"/multigrid_near_null_space", &
             petsc_numbering, positions=positions)
        call MatSetNearNullSpace(mat, null_space, ierr)
        call MatNullSpaceDestroy(null_space, ierr)
+#endif
     end if
     
     ! first set pc options
