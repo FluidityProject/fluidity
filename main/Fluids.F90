@@ -431,6 +431,11 @@ contains
     
     ! Checkpoint at start
     if(do_checkpoint_simulation(dump_no)) call checkpoint_simulation(state, cp_no = dump_no)
+    if(do_checkpoint_simulation(dump_no) .and. have_option("/embedded_models/fsi_model/")) then
+      do i = 1, size(solid_state)
+        call checkpoint_simulation(solid_state(i:i), cp_no = dump_no, solid=.true.)
+      end do
+    end if
     ! Dump at start
     if( &
          ! if this is not a zero timestep simulation (otherwise, there would
@@ -501,6 +506,11 @@ contains
           ! Intermediate dumps
           if(do_checkpoint_simulation(dump_no)) then
              call checkpoint_simulation(state, cp_no = dump_no)
+             if(have_option("/embedded_models/fsi_model/")) then
+               do i = 1, size(solid_state)
+                 call checkpoint_simulation(solid_state(i:i), cp_no = dump_no, solid=.true.)
+               end do
+             end if
           end if
           call write_state(dump_no, state)
           if (have_option("/embedded_models/fsi_model/")) then
@@ -952,6 +962,11 @@ contains
     ! Checkpoint at end, if enabled
     if(have_option("/io/checkpointing/checkpoint_at_end")) then
        call checkpoint_simulation(state, cp_no = dump_no)
+       if(have_option("/embedded_models/fsi_model/")) then
+         do i = 1, size(solid_state)
+           call checkpoint_simulation(solid_state(i:i), cp_no = dump_no, solid=.true.)
+         end do
+       end if
     end if
     ! Dump at end, unless explicitly disabled
     if(.not. have_option("/io/disable_dump_at_end")) then

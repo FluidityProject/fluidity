@@ -216,7 +216,7 @@ contains
   end subroutine vtk_write_state
 
   subroutine vtk_write_fields(filename, index, position, model, sfields,&
-       & vfields, tfields, write_region_ids, write_columns, write_inactive_parts, stat)
+       & vfields, tfields, write_region_ids, write_columns, write_inactive_parts, solid, stat)
     !!< Write the state variables out to a vtu file. Two different elements
     !!< are supported along with fields corresponding to each of them.
     !!<
@@ -239,6 +239,8 @@ contains
     !! The zero element processes are supposed to be trailing in rank. If provided and true all
     !! vtus are written:
     logical, intent(in), optional :: write_inactive_parts
+    !! If provided and true, serial file will be written for solid parts:
+    logical, intent(in), optional :: solid
     integer, intent(out), optional :: stat
     
     integer :: NNod, sz_enlist, i, dim, j, k, nparts
@@ -277,6 +279,8 @@ contains
     
     if (present_and_true(write_inactive_parts)) then
       nparts = getnprocs()
+    elseif (present_and_true(solid)) then
+      nparts = 1
     else
       nparts = get_active_nparts(ele_count(model))
     end if

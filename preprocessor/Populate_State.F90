@@ -1318,7 +1318,7 @@ contains
     integer :: num_solid_mesh ! number of solid meshes
     character(len=255) :: tmp ! temporary string to make life a little easier
     type(scalar_field), pointer :: fshistory_sfield
-    integer :: fshistory_levels 
+    integer :: fshistory_levels
 
     type(vector_field), pointer :: solid_force, solid_velocity
     type(scalar_field), pointer :: alpha_global

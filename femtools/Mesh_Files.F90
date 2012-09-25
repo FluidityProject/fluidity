@@ -128,20 +128,22 @@ contains
   ! --------------------------------------------------------------------------
 
 
-  subroutine write_mesh_to_file(filename, format, state, mesh)
+  subroutine write_mesh_to_file(filename, format, state, mesh, solid)
     ! Write out the supplied mesh to the specified filename as mesh files.
 
     character(len = *), intent(in) :: filename
     character(len = *), intent(in) :: format
     type(state_type), intent(in) :: state
     type(mesh_type), intent(in) :: mesh
+    !! If it is a solid mesh, force it to be written in serial
+    logical, intent(in), optional :: solid
 
     select case(format)
     case("triangle")
        call write_triangle_files(filename, state, mesh)
 
     case("gmsh")
-       call write_gmsh_file(filename, state, mesh )
+       call write_gmsh_file(filename, state, mesh, solid=solid )
 
        ! Additional mesh format subroutines go here
 
@@ -154,18 +156,20 @@ contains
 
   ! --------------------------------------------------------------------------
 
-  subroutine write_positions_to_file(filename, format, positions)
+  subroutine write_positions_to_file(filename, format, positions, solid)
     !!< Write out the mesh given by the position field in mesh files
     !!< In parallel, empty trailing processes are not written.
     character(len=*), intent(in):: filename, format
     type(vector_field), intent(in):: positions
+    !! If it is a solid mesh, force it to be written in serial
+    logical, intent(in), optional :: solid
 
     select case( trim(format) )
     case("triangle")
        call write_triangle_files( trim(filename), positions)
 
     case("gmsh")
-       call write_gmsh_file( trim(filename), positions)
+       call write_gmsh_file( trim(filename), positions, solid=solid)
 
        ! Additional mesh format subroutines go here
 

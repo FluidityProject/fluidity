@@ -98,7 +98,7 @@ contains
   end function do_checkpoint_simulation
 
   subroutine checkpoint_simulation(state, prefix, postfix, cp_no, protect_simulation_name, &
-    keep_initial_data)
+    keep_initial_data, solid)
     !!< Checkpoint the whole simulation
     
     type(state_type), dimension(:), intent(in) :: state
@@ -114,8 +114,10 @@ contains
     !! checkpoint extruded meshes if the extrusion can be repeated using the initial sizing_function, 
     !! i.e. if this run has not been started with a checkpointed extruded mesh (extrude/checkpoint_from_file)
     logical, optional, intent(in) :: keep_initial_data
+    logical, optional, intent(in) :: solid
 
     character(len = PREFIX_LEN) :: lpostfix, lprefix
+    character(len = FIELD_NAME_LEN) :: mesh_name
 
     ewrite(1, *) "Checkpointing simulation"
 
@@ -135,7 +137,7 @@ contains
     end if
 
     call checkpoint_state(state, lprefix, postfix = lpostfix, cp_no = cp_no, &
-      keep_initial_data = keep_initial_data)
+      keep_initial_data = keep_initial_data, solid=solid)
     if(have_option("/io/detectors")) then
       call checkpoint_detectors(state, lprefix, postfix = lpostfix, cp_no = cp_no)
     end if
@@ -401,7 +403,7 @@ contains
 
   end subroutine update_detectors_options
 
-  subroutine checkpoint_state(state, prefix, postfix, cp_no, keep_initial_data)
+  subroutine checkpoint_state(state, prefix, postfix, cp_no, keep_initial_data, solid)
     !!< Checkpoint state.
 
     type(state_type), dimension(:), intent(in) :: state
@@ -412,13 +414,14 @@ contains
     !! checkpoint extruded meshes if the extrusion can be repeated using the initial sizing_function, 
     !! i.e. if this run has not been started with a checkpointed extruded mesh (extrude/checkpoint_from_file)
     logical, optional, intent(in) :: keep_initial_data
+    logical, optional, intent(in) :: solid
 
-    call checkpoint_meshes(state, prefix, postfix, cp_no, keep_initial_data=keep_initial_data)
-    call checkpoint_fields(state, prefix, postfix, cp_no, keep_initial_data=keep_initial_data)
+    call checkpoint_meshes(state, prefix, postfix, cp_no, keep_initial_data=keep_initial_data, solid=solid)
+    call checkpoint_fields(state, prefix, postfix, cp_no, keep_initial_data=keep_initial_data, solid=solid)
 
   end subroutine checkpoint_state
 
-  subroutine checkpoint_meshes(state, prefix, postfix, cp_no, keep_initial_data)
+  subroutine checkpoint_meshes(state, prefix, postfix, cp_no, keep_initial_data, solid)
     !!< Checkpoint the meshes in state. Outputs to mesh files with names:
     !!<   [prefix]_[mesh_name][_cp_no][_postfix][_process].[extention]
     !!< where cp_no is optional and the process number is added in parallel.
@@ -430,6 +433,7 @@ contains
     integer, optional, intent(in) :: cp_no
     ! if present and true: do not checkpoint extruded meshes that can be re-extruded
     logical, optional, intent(in) :: keep_initial_data
+    logical, optional, intent(in) :: solid
 
     type(vector_field), pointer:: position
     character(len = FIELD_NAME_LEN) :: mesh_name, mesh_format
@@ -437,13 +441,21 @@ contains
     integer :: i, n_meshes, stat1, stat2
     type(mesh_type), pointer :: mesh, external_mesh
     logical :: from_file, extruded
-    
+
     assert(len_trim(prefix) > 0)
 
-    n_meshes = option_count("/geometry/mesh")
+    if (.not. present_and_true(solid)) then
+      n_meshes = option_count("/geometry/mesh")
+    else
+      n_meshes = 1
+    end if
     do i = 0, n_meshes - 1
-      ! Dump each mesh listed under /geometry/mesh that is from_file
-      mesh_path = "/geometry/mesh[" // int2str(i) // "]"
+      if (.not. present_and_true(solid)) then
+        ! Dump each mesh listed under /geometry/mesh that is from_file
+        mesh_path = "/geometry/mesh[" // int2str(i) // "]"
+      else ! this is a solid mesh
+        mesh_path = "/embedded_models/fsi_model/geometry/mesh::"//trim(state(1)%name(1:len(trim(state(1)%name))-10))
+      end if
       
       from_file = have_option(trim(mesh_path) // "/from_file")
       extruded = have_option(trim(mesh_path) // "/from_mesh/extrude") .and. &
@@ -453,12 +465,20 @@ contains
       if(from_file .or. extruded) then
         ! Find the mesh (looking in first state)
         call get_option(trim(mesh_path) // "/name", mesh_name)
-        mesh => extract_mesh(state(1), trim(mesh_name))
+        if (.not. present_and_true(solid)) then
+          mesh => extract_mesh(state(1), trim(mesh_name))
+        else
+          mesh => extract_mesh(state(1), trim(mesh_name)//"SolidCoordinateMesh")
+        end if
 
         ewrite(2, *) "Checkpointing mesh " // trim(mesh_name)
 
         ! Construct a new mesh filename
-        mesh_filename = trim(prefix) // "_" // trim(mesh%name)
+        if (present_and_true(solid)) then
+          mesh_filename = trim(prefix) // "_solid_" // trim(mesh%name)
+        else
+          mesh_filename = trim(prefix) // "_" // trim(mesh%name)
+        end if
         if(present(cp_no)) mesh_filename = trim(mesh_filename) // "_" // int2str(cp_no)
         if(present_and_nonempty(postfix)) mesh_filename = trim(mesh_filename) // "_" // trim(postfix)
 
@@ -480,8 +500,12 @@ contains
           end if
         end if
 
-        if(get_active_nparts(ele_count(mesh)) > 1) then
-          ! Write out the mesh
+        if (present_and_true(solid)) then
+          ! checkpoint the solid mesh (always serial for now):
+          position => extract_vector_field(state(1), trim(mesh_name)//"SolidCoordinate")
+          call write_mesh_files(mesh_filename, mesh_format, position, solid=solid)
+        else if(get_active_nparts(ele_count(mesh)) > 1) then
+          ! Write out the fluid mesh
           if (mesh%name=="CoordinateMesh") then
             position => extract_vector_field(state(1), "Coordinate")
           else
@@ -492,7 +516,7 @@ contains
           ewrite(2, *) "Checkpointing halos"
           call write_halos(mesh_filename, mesh)
         else
-          ! Write out the mesh
+          ! Write out the fluid mesh
           call write_mesh_files(mesh_filename, mesh_format, state(1), mesh)
         end if
      end if
@@ -500,7 +524,7 @@ contains
 
   end subroutine checkpoint_meshes
 
-  subroutine checkpoint_fields(state, prefix, postfix, cp_no, keep_initial_data)
+  subroutine checkpoint_fields(state, prefix, postfix, cp_no, keep_initial_data, solid)
     !!< Checkpoint the fields in state. Outputs to vtu files with names:
     !!<   [prefix]_[_state name]_[mesh_name][_cp_no][_postfix][_process].vtu
     !!< where the state name is added if multiple states are passed, cp_no is
@@ -512,8 +536,9 @@ contains
     integer, optional, intent(in) :: cp_no
     ! if present and true: do not checkpoint fields that can be reinitialised
     logical, optional, intent(in) :: keep_initial_data
+    logical, optional, intent(in) :: solid
 
-    character(len = OPTION_PATH_LEN) :: vtu_filename
+    character(len = OPTION_PATH_LEN) :: vtu_filename, mesh_name
     integer :: i, j, k, nparts, n_ps_fields_on_mesh, n_pv_fields_on_mesh, n_pt_fields_on_mesh
     type(mesh_type), pointer :: mesh
     type(scalar_field), pointer :: s_field
@@ -526,9 +551,14 @@ contains
     integer :: stat
 
     assert(len_trim(prefix) > 0)
-
+    
     do i = 1, size(state)
-      positions => extract_vector_field(state(i), "Coordinate")
+      if (.not. present_and_true(solid)) then
+        positions => extract_vector_field(state(i), "Coordinate")
+      else
+        mesh_name = trim(state(1)%name(1:len(trim(state(1)%name))-10))
+        positions => extract_vector_field(state(i), trim(mesh_name)//"SolidCoordinate")
+      end if
       do j = 1, size(state(i)%meshes)
         mesh => state(i)%meshes(j)%ptr
         nparts = get_active_nparts(ele_count(mesh))
@@ -536,10 +566,14 @@ contains
         ! Construct a new field checkpoint filename
         vtu_filename = trim(prefix)
         if(size(state) > 1) vtu_filename = trim(vtu_filename) // "_" // trim(state(i)%name)
-        vtu_filename = trim(vtu_filename) // "_" // trim(mesh%name)
+        if (.not. present_and_true(solid)) then
+          vtu_filename = trim(vtu_filename) // "_" // trim(mesh%name)
+        else
+          vtu_filename = trim(vtu_filename) // "_solid_" // trim(mesh_name)
+        end if
         if(present(cp_no)) vtu_filename = trim(vtu_filename) // "_" // int2str(cp_no)
         if(present_and_nonempty(postfix)) vtu_filename = trim(vtu_filename) // "_" // trim(postfix)
-        if(nparts > 1) then
+        if(nparts > 1 .and. .not. present_and_true(solid)) then
           vtu_filename = trim(vtu_filename) // ".pvtu"
         else
           vtu_filename = trim(vtu_filename) // ".vtu"
@@ -603,8 +637,13 @@ contains
               & .or. (have_option(trim(v_field%option_path) // "/prescribed") &
                 & .and. interpolate_field(v_field, first_time_step=keep_initial_data))) &
               & .and. .not. aliased(v_field) &
-              & .or. have_option(trim(v_field%option_path) // "/diagnostic/output/checkpoint") ) then
-              if(have_option(trim(complete_field_path(v_field%option_path)) // "/exclude_from_checkpointing")) cycle
+              & .or. have_option(trim(v_field%option_path) // "/diagnostic/output/checkpoint") &
+              & .or. present_and_true(solid) .and. (trim(v_field%name) == trim(mesh_name)//"SolidForce" &
+              & .or. trim(v_field%name) == trim(mesh_name)//"SolidVelocity") & 
+              & ) then
+              if(.not. present_and_true(solid)) then
+                if (have_option(trim(complete_field_path(v_field%option_path)) // "/exclude_from_checkpointing")) cycle
+              end if
               ! needs_initial_mesh indicates the field is from_file (i.e. we're dealing with a checkpoint)
               if(present_and_true(keep_initial_data) .and. .not. needs_initial_mesh(v_field)) cycle
 
@@ -621,6 +660,8 @@ contains
               else if (have_option(trim(v_field%option_path) // "/diagnostic/output/checkpoint").and.&
                        interpolate_field(v_field)) then
                 ewrite(2, *) "... diagnostic field"
+              else if (present_and_true(solid)) then
+                ewrite(2,*) "checkpoint solid fields"
               else
                 FLAbort("Can only checkpoint prognostic or prescribed (with interpolation options) fields.")
               end if
@@ -663,7 +704,7 @@ contains
         if(n_ps_fields_on_mesh + n_pv_fields_on_mesh + n_pt_fields_on_mesh > 0) then
           call vtk_write_fields(vtu_filename, position = positions, model = mesh, &
             & sfields = ps_fields_on_mesh(:n_ps_fields_on_mesh), vfields = pv_fields_on_mesh(:n_pv_fields_on_mesh), &
-            & tfields = pt_fields_on_mesh(:n_pt_fields_on_mesh), stat=stat)
+            & tfields = pt_fields_on_mesh(:n_pt_fields_on_mesh), solid=solid, stat=stat)
         end if
 
         deallocate(ps_fields_on_mesh)

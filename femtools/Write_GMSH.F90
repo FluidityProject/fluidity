@@ -61,16 +61,23 @@ contains
   ! -----------------------------------------------------------------
 
 
-  subroutine write_mesh_to_gmsh( filename, state, mesh )
+  subroutine write_mesh_to_gmsh( filename, state, mesh, solid )
 
     character(len = *), intent(in) :: filename
     type(state_type), intent(in) :: state
     type(mesh_type), intent(in) :: mesh
+    !! If it is a solid mesh, force it to be written in serial
+    logical, intent(in), optional :: solid
+
     type(vector_field) :: positions
 
-    positions = get_nodal_coordinate_field( state, mesh )
+    if (.not. present_and_true(solid)) then
+      positions = get_nodal_coordinate_field( state, mesh )
+    else
+      positions = extract_vector_field(state, trim(state%name(1:len(trim(state%name))-10))//"SolidCoordinate")
+    end if
 
-    call write_gmsh_file( filename, positions )
+    call write_gmsh_file( filename, positions, solid=solid)
 
     ! Deallocate node and element memory structures
     call deallocate(positions)
@@ -86,11 +93,13 @@ contains
 
 
 
-  subroutine write_positions_to_gmsh(filename, positions)
+  subroutine write_positions_to_gmsh(filename, positions, solid)
     !!< Write out the mesh given by the position field in GMSH file:
     !!< In parallel, empty trailing processes are not written.
     character(len=*), intent(in):: filename
     type(vector_field), intent(in):: positions
+    !! If it is a solid mesh, force it to be written in serial
+    logical, intent(in), optional :: solid
     
     character(len=longStringLen) :: meshFile
     integer :: numParts, fileDesc
@@ -100,33 +109,66 @@ contains
     
     ! Write out data only for those processes that contain data - SPMD requires
     ! that there be no early return    
-    if( getprocno() <= numParts ) then
+    if (.not. present_and_true(solid)) then
+      if( getprocno() <= numParts ) then
 
-      fileDesc=free_unit()
+        fileDesc=free_unit()
 
-      meshFile = trim(filename) // ".msh"
+        meshFile = trim(filename) // ".msh"
 
-      open( fileDesc, file=trim(meshFile), status="replace", access="stream", &
-           action="write", err=101 )
-      
+        open( fileDesc, file=trim(meshFile), status="replace", access="stream", &
+             action="write", err=101 )
+        
+      end if
+    else
+      if( getprocno() == 1 ) then
+
+        fileDesc=free_unit()
+
+        meshFile = trim(filename) // ".msh"
+
+        open( fileDesc, file=trim(meshFile), status="replace", access="stream", &
+             action="write", err=101 )
+        
+      end if
     end if
 
-    if( getprocno() <= numParts ) then
-       ! Writing GMSH file header
-       call write_gmsh_header( fileDesc, meshFile, useBinaryGMSH )
-       call write_gmsh_nodes( fileDesc, meshFile, positions, useBinaryGMSH )
-       call write_gmsh_faces_and_elements( fileDesc, meshFile, &
-            positions%mesh, useBinaryGMSH )
+    if (.not. present_and_true(solid)) then
+       if( getprocno() <= numParts ) then
+          ! Writing GMSH file header
+          call write_gmsh_header( fileDesc, meshFile, useBinaryGMSH)
+          call write_gmsh_nodes( fileDesc, meshFile, positions, useBinaryGMSH )
+          call write_gmsh_faces_and_elements( fileDesc, meshFile, &
+               positions%mesh, useBinaryGMSH )
 
-       ! write columns data if present
-       if (associated(positions%mesh%columns)) then
-          call write_gmsh_node_columns( fileDesc, meshFile, positions, &
-               useBinaryGMSH )
+          ! write columns data if present
+          if (associated(positions%mesh%columns)) then
+             call write_gmsh_node_columns( fileDesc, meshFile, positions, &
+                  useBinaryGMSH )
+          end if
+
+         ! Close GMSH file
+         close( fileDesc )
+
        end if
+    else
+      if( getprocno() == 1 ) then
+          ! Writing GMSH file header
+          call write_gmsh_header( fileDesc, meshFile, useBinaryGMSH)
+          call write_gmsh_nodes( fileDesc, meshFile, positions, useBinaryGMSH )
+          call write_gmsh_faces_and_elements( fileDesc, meshFile, &
+               positions%mesh, useBinaryGMSH )
 
-      ! Close GMSH file
-      close( fileDesc )
+          ! write columns data if present
+          if (associated(positions%mesh%columns)) then
+             call write_gmsh_node_columns( fileDesc, meshFile, positions, &
+                  useBinaryGMSH )
+          end if
 
+         ! Close GMSH file
+         close( fileDesc )
+
+       end if
     end if
       
     return
