@@ -78,6 +78,15 @@ temporal_control_volume_options =
          ##  - pivot_theta = 0 - explicit pivot
          element pivot_theta {
             real
+         }?,
+         ## Second theta
+         ##
+         ## =1. implicit method
+         ## =0. explicit method
+         ##
+         ## Defaults to the implicit method if unselected.
+          element second_theta {
+            real
          }?
       }
    )

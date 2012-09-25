@@ -162,12 +162,20 @@
       REAL, DIMENSION( : ), allocatable :: CV_RHS_SUB, ACV_SUB
       INTEGER, DIMENSION( : ), allocatable :: COLACV_SUB, FINACV_SUB, MIDACV_SUB
       INTEGER :: NCOLACV_SUB, IPHASE, I, J
+      REAL :: SECOND_THETA
+      INTEGER :: STAT
+      CHARACTER(LEN=101) :: PATH
+
 
       ALLOCATE( ACV( NCOLACV ))
       ALLOCATE( CV_RHS( CV_NONODS * NPHASE ))
       ALLOCATE( DIAG_SCALE_PRES( CV_NONODS ))
       ALLOCATE( CT_RHS( CV_NONODS ))
       ALLOCATE( CT( NCOLCT *NDIM * NPHASE ))
+
+      SECOND_THETA = 1.0
+      path='/material_phase[0]/scalar_field::Temperature/prognostic/temporal_discretisation/control_volumes/second_theta'
+      call get_option( path, second_theta, stat )
 
       Loop_NonLinearFlux: DO ITS_FLUX_LIM = 1, NITS_FLUX_LIM
 
@@ -184,7 +192,7 @@
               NU, NV, NW, NUOLD, NVOLD, NWOLD, &
               T, TOLD, DEN, DENOLD, &
               MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
-              T_DISOPT, T_DG_VEL_INT_OPT, DT, T_THETA, T_BETA, &
+              T_DISOPT, T_DG_VEL_INT_OPT, DT, T_THETA, SECOND_THETA, T_BETA, &
               SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, &
               SUF_T_BC_ROB1, SUF_T_BC_ROB2,  &
               WIC_T_BC, WIC_D_BC, WIC_U_BC, &
@@ -422,6 +430,31 @@
       INTEGER, DIMENSION( : ), allocatable :: WIC_T2_BC
       REAL, DIMENSION( : ), allocatable :: THETA_GDIFF, T2, T2OLD, MEAN_PORE_CV
       LOGICAL :: GET_THETA_FLUX
+      REAL :: SECOND_THETA
+      INTEGER :: STAT
+      CHARACTER(LEN=101) :: PATH
+
+      !INTEGER :: ELE, ILOC
+      !do ele=1, totele
+      !   do iloc=1, X_nloc
+      !      if ( X( X_NDGLN( (ELE-1)*X_NLOC + ILOC ) ) ==0. ) then
+      !         ewrite(3,*) '*************X=0'
+      !         ewrite(3,*) 'Y, U, V', Y( X_NDGLN( (ELE-1)*X_NLOC + ILOC ) ), &
+      !              ( U( U_NDGLN( (ELE-1)*U_NLOC + ILOC ) ) + U( U_NDGLN( (ELE-1)*U_NLOC + ILOC + 3) ) + U( U_NDGLN( (ELE-1)*U_NLOC + ILOC + 6) ) ) / 3., &
+      !              ( V( U_NDGLN( (ELE-1)*U_NLOC + ILOC ) ) + V( U_NDGLN( (ELE-1)*U_NLOC + ILOC + 3) ) + V( U_NDGLN( (ELE-1)*U_NLOC + ILOC + 6) ) ) / 3.
+      !      end if
+      !   end do
+      !end do
+      !do ele=1, totele
+      !   do iloc=1, X_nloc
+      !      if ( Y( X_NDGLN( (ELE-1)*X_NLOC + ILOC ) ) ==0. ) then
+      !         ewrite(3,*) '*************Y=0'
+      !         ewrite(3,*) 'X, U, V', X( X_NDGLN( (ELE-1)*X_NLOC + ILOC ) ), &
+      !              ( U( U_NDGLN( (ELE-1)*U_NLOC + ILOC ) ) + U( U_NDGLN( (ELE-1)*U_NLOC + ILOC + 3) ) + U( U_NDGLN( (ELE-1)*U_NLOC + ILOC + 6) ) ) / 3., &
+      !              ( V( U_NDGLN( (ELE-1)*U_NLOC + ILOC ) ) + V( U_NDGLN( (ELE-1)*U_NLOC + ILOC + 3) ) + V( U_NDGLN( (ELE-1)*U_NLOC + ILOC + 6) ) ) / 3.
+      !      end if
+      !   end do
+      !end do
 
       GET_THETA_FLUX = .FALSE.
       IGOT_T2 = 0
@@ -452,6 +485,10 @@
 
       V_BETA = 1.0
 
+      SECOND_THETA = 1.0
+      path='/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/temporal_discretisation/control_volumes/second_theta'
+      call get_option( trim(path), second_theta, stat )
+
       ! THIS DOES NOT WORK FOR NITS_FLUX_LIM>1 (NOBODY KNOWS WHY)
       Loop_NonLinearFlux: DO ITS_FLUX_LIM = 1, 1 !NITS_FLUX_LIM
 
@@ -468,7 +505,7 @@
               NU, NV, NW, NUOLD, NVOLD, NWOLD, & 
               SATURA, SATURAOLD, DEN, DENOLD, &
               MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
-              V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, V_BETA, &
+              V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, SECOND_THETA, V_BETA, &
               SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, &
               SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2,  &
               WIC_VOL_BC, WIC_D_BC, WIC_U_BC, &
@@ -713,26 +750,24 @@
       !ewrite(3,*) 'global_solve, just_bl_diag_mat', global_solve, just_bl_diag_mat
 
       if(scale_momentum_by_volume_fraction) then
-          ! add in the entries to petsc matrix
-          do ele = 1, totele
-           do cv_iloc = 1, cv_nloc
-            cv_nod = (ele - 1)*cv_nloc + cv_iloc
-            do u_nloc_lev = 1, n_nloc_lev
-             do iphase = 1, nphase
-              u_iloc =(cv_iloc-1)*n_nloc_lev + u_nloc_lev
-              u_nod = u_ndgln(( ele - 1 ) * u_nloc + u_iloc )
-              u_nod_pha=u_nod +(iphase-1)*u_nonods
-              
-              mcy_rhs(u_nod_pha) = mcy_rhs(u_nod_pha) / satura(cv_nod)
-              
-              do count = finmcy(u_nod), finmcy(u_nod+1) - 1
-                mcy(count) = mcy(count) / satura(cv_nod)
-              end do ! End of count loop through sparisit
-             end do ! End of phase loop
-            end do ! End of overlapping level loop
-           end do ! End of dg local element loop
-          end do  ! End of element loop    
-       end if
+         ! add in the entries to petsc matrix
+         do ele = 1, totele
+            do cv_iloc = 1, cv_nloc
+               cv_nod = (ele - 1)*cv_nloc + cv_iloc
+               do u_nloc_lev = 1, n_nloc_lev
+                  do iphase = 1, nphase
+                     u_iloc =(cv_iloc-1)*n_nloc_lev + u_nloc_lev
+                     u_nod = u_ndgln(( ele - 1 ) * u_nloc + u_iloc )
+                     u_nod_pha=u_nod +(iphase-1)*u_nonods
+                     mcy_rhs(u_nod_pha) = mcy_rhs(u_nod_pha) / satura(cv_nod)
+                     do count = finmcy(u_nod), finmcy(u_nod+1) - 1
+                        mcy(count) = mcy(count) / satura(cv_nod)
+                     end do ! End of count loop through sparisit
+                  end do ! End of phase loop
+               end do ! End of overlapping level loop
+            end do ! End of dg local element loop
+         end do  ! End of element loop    
+      end if
 
 
 
@@ -763,10 +798,10 @@
          ! Put pressure in rhs of force balance eqn:  CDP=C*P
          CALL C_MULT( CDP, P, CV_NONODS, U_NONODS, NDIM, NPHASE, C, NCOLC, FINDC, COLC)
 
-         ewrite(3,*) 'U_RHS:',U_RHS
-         ewrite(3,*) 'CDP:',CDP
-         ewrite(3,*) 'P:',P
-         ewrite(3,*) 'C:',C
+         !ewrite(3,*) 'U_RHS:',U_RHS
+         !ewrite(3,*) 'CDP:',CDP
+         !ewrite(3,*) 'P:',P
+         !ewrite(3,*) 'C:',C
 
          U_RHS_CDP = U_RHS + CDP
 
@@ -788,12 +823,11 @@
 
          CALL ULONG_2_UVW( U, V, W, UP_VEL, U_NONODS, NDIM, NPHASE )
 
-         ewrite(3,*) 'u::', u
-         ewrite(3,*) 'v::', v
-         ewrite(3,*) 'w::', w
-         ewrite(3,*) 'ct::', ct
-         ewrite(3,*) 'ct_rhs::', ct_rhs
-
+         !ewrite(3,*) 'u::', u
+         !ewrite(3,*) 'v::', v
+         !ewrite(3,*) 'w::', w
+         !ewrite(3,*) 'ct::', ct
+         !ewrite(3,*) 'ct_rhs::', ct_rhs
 
          ! put on rhs the cty eqn; put most recent pressure in RHS of momentum eqn
          ! NB. P_RHS = -CT*U + CT_RHS 
@@ -813,14 +847,14 @@
             END DO
          END DO
 
-         ewrite(3,*) 'P_RHS2::', p_rhs
-         ewrite(3,*) 'CT_RHS::', ct_rhs
+         !ewrite(3,*) 'P_RHS2::', p_rhs
+         !ewrite(3,*) 'CT_RHS::', ct_rhs
 
          ! solve for pressure correction DP that is solve CMC *DP=P_RHS...
          ewrite(3,*)'about to solve for pressure'
 
          ! Print cmc
-         if( .true. ) then
+         if( .false. ) then
             DO CV_NOD = 1, CV_NONODS
                ewrite(3,*) 'cv_nod=',cv_nod, &
                     'findcmc=', FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
@@ -876,30 +910,37 @@
 
          CALL ULONG_2_UVW( DU, DV, DW, DU_VEL, U_NONODS, NDIM, NPHASE )
 
-         !ewrite(3,*)'DU', DU
-         !ewrite(3,*)'DV', DV
-         !ewrite(3,*)'DW', DW
+         ewrite(3,*)'old velocity...'
+         ewrite(3,*)'U1', U(1:U_NONODS)
+         ewrite(3,*)'U2', U(1+U_NONODS:2*U_NONODS)
+         ewrite(3,*)'V1', V(1:U_NONODS)
+         ewrite(3,*)'V2', V(1+U_NONODS:2*U_NONODS)
+
+         ewrite(3,*)'DU1', DU(1:U_NONODS)
+         ewrite(3,*)'DU2', DU(1+U_NONODS:2*U_NONODS)
+         ewrite(3,*)'DV1', DV(1:U_NONODS)
+         ewrite(3,*)'DV2', DV(1+U_NONODS:2*U_NONODS)
 
          U = U + DU
          IF( NDIM >= 2 ) V = V + DV
          IF( NDIM >= 3 ) W = W + DW
 
-
          ewrite(3,*)'new velocity...'
-         ewrite(3,*)'U', U
-         ewrite(3,*)'V', V
-         ewrite(3,*)'W', W
+         ewrite(3,*)'U1', U(1:U_NONODS)
+         ewrite(3,*)'U2', U(1+U_NONODS:2*U_NONODS)
+         ewrite(3,*)'V1', V(1:U_NONODS)
+         ewrite(3,*)'V2', V(1+U_NONODS:2*U_NONODS)
+
+         !stop 777
 
          ! check continuity
-         ewrite(3,*)'check continuity...'
-         p_rhs=0.
-         CALL CT_MULT(P_RHS, U, V, W, CV_NONODS, U_NONODS, NDIM, NPHASE, &
-              CT, NCOLCT, FINDCT, COLCT)
-         print *, ''
-         print *, 'p_rhs', -p_rhs+ct_rhs
-
-         p_rhs= -p_rhs+ct_rhs
-         print *, 'max,min:', maxval(p_rhs), minval(p_rhs)
+         !ewrite(3,*)'check continuity...'
+         !p_rhs=0.
+         !CALL CT_MULT(P_RHS, U, V, W, CV_NONODS, U_NONODS, NDIM, NPHASE, &
+         !     CT, NCOLCT, FINDCT, COLCT)
+         !ewrite(3,*) 'p_rhs', -p_rhs+ct_rhs
+         !p_rhs= -p_rhs+ct_rhs
+         !ewrite(3,*) 'max,min:', maxval(p_rhs), minval(p_rhs)
 
          !stop 66
 
@@ -1015,16 +1056,6 @@
             end do
          end if
       END IF
-
-
-print *, '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@'
-      P_RHS=0.
-      CALL CT_MULT(P_RHS, U, V, W, CV_NONODS, U_NONODS, NDIM, NPHASE, &
-           CT, NCOLCT, FINDCT, COLCT)
-      !stop 87666
-print *, '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@'
-
-
 
       DEALLOCATE( ACV )
       DEALLOCATE( CT )
@@ -1439,7 +1470,7 @@ print *, '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@'
            PLIKE_GRAD_SOU_GRAD
 
       ! Local variables
-      REAL, PARAMETER :: V_BETA = 1.0
+      REAL, PARAMETER :: V_BETA = 1.0, SECOND_THETA = 1.0
       LOGICAL, PARAMETER :: GETCV_DISC = .FALSE., GETCT= .TRUE., THERMAL= .FALSE.
       REAL, DIMENSION( : ), allocatable :: ACV, CV_RHS, SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2, &
            SAT_FEMT, DEN_FEMT, dummy_transp
@@ -1524,7 +1555,7 @@ print *, '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@'
            NU, NV, NW, NUOLD, NVOLD, NWOLD, &
            SATURA, SATURAOLD, DEN, DENOLD, &
            MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
-           V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, V_BETA, &
+           V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, SECOND_THETA, V_BETA, &
            SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, &
            SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2,  &
            WIC_VOL_BC, WIC_D_BC, WIC_U_BC, &
@@ -1829,7 +1860,7 @@ print *, '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@'
 
 
 
-      LOGICAL :: D1, D3, DCYL, GOT_DIFFUS, GOT_UDEN, DISC_PRES,QUAD_OVER_WHOLE_ELE
+      LOGICAL :: D1, D3, DCYL, GOT_DIFFUS, GOT_UDEN, DISC_PRES, QUAD_OVER_WHOLE_ELE
       INTEGER :: CV_NGI, CV_NGI_SHORT, SCVNGI, SBCVNGI, NFACE
       INTEGER :: IPHASE, ELE, GI, ILOC, GLOBI, GLOBJ, U_NOD, IU_NOD, JCV_NOD, &
            COUNT, COUNT2, IPHA_IDIM, JPHA_JDIM, COUNT_PHA, IU_PHA_NOD, MAT_NOD, SGI, SELE, &
@@ -1885,7 +1916,7 @@ print *, '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@'
       call get_option( &
            '/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/conservative_advection', &
            beta )
-      if (beta==1.) mom_conserv=.true.
+      if (beta>=.999) mom_conserv=.true.
       ewrite(3,*) 'mom_conserv:', mom_conserv
 
 

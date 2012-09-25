@@ -94,6 +94,17 @@ higher order solution is pivotted.
           <ref name="real"/>
         </element>
       </optional>
+      <optional>
+        <element name="second_theta">
+          <a:documentation>Second theta
+
+=1. implicit method
+=0. explicit method
+
+Defaults to the implicit method if unselected.</a:documentation>
+          <ref name="real"/>
+        </element>
+      </optional>
     </element>
   </define>
   <define name="temporal_discontinuous_galerkin_options">

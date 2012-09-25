@@ -545,13 +545,17 @@ contains
                  STOTEL, U_SNLOC, P_SNLOC, CV_SNLOC
     ewrite(3,*) 'phase 1 is gas, phase 2 is liquid'
     ewrite(3,*) 'all of SUF_U_BC:',SUF_U_BC
+    ewrite(3,*) 'all of SUF_V_BC:',SUF_V_BC
+    ewrite(3,*) 'all of SUF_W_BC:',SUF_W_BC
     ewrite(3,*) 'all of SUF_D_BC:',SUF_D_BC
     ewrite(3,*) 'all of SUF_VOL_BC:',SUF_VOL_BC
     ewrite(3,*) 'all of wic_U_BC:',wic_U_BC
     ewrite(3,*) 'all of wic_D_BC:',wic_D_BC
     ewrite(3,*) 'all of wic_p_BC:',wic_p_BC
     ewrite(3,*) 'all of wic_vol_BC:',wic_vol_BC
+ 
 
+   ewrite(3,*) 'XXXXXXXXXXXXXXX:',wic_vol_BC+wic_U_BC
 
     DO XNOD=1,X_NONODS
        XMIN=MIN(XMIN,X(XNOD))
@@ -569,9 +573,9 @@ contains
        DO CV_SILOC=1,CV_SNLOC
 
           ! if pressure is continuous use this
-          X_NOD=CV_SNDGLN((SELE-1)*CV_SNLOC+CV_SILOC)
+          !X_NOD=CV_SNDGLN((SELE-1)*CV_SNLOC+CV_SILOC)
           ! if pressure is discontinuous use this
-          !X_NOD=X_SNDGLN((SELE-1)*CV_SNLOC+CV_SILOC)
+          X_NOD=X_SNDGLN((SELE-1)*CV_SNLOC+CV_SILOC)
 
           ewrite(3,*), 'sele, cv_siloc, x_nod', sele, cv_siloc, x_nod
 
@@ -645,7 +649,7 @@ contains
 
        END DO
     END DO
-!        stop 3821
+    stop 3821
     RETURN
   END SUBROUTINE TEST_BC
 

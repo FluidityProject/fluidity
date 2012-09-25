@@ -1959,7 +1959,7 @@ ewrite(3,*)'-->:',k + 1, k + node_count( field ), kk + 1, kk + stotel * cv_snloc
                      if (ndim>2) suf_w_bc( ( iphase - 1 ) * stotel * snloc + &
                           (j-1) * snloc + kk ) = field_prot_bc%val( 3, face_nodes(count) )
 
-                     count=count+1
+                     count = count + 1
                      if ( mod(kk, snloc2)==0. ) count=1
                   end do
 

@@ -50,7 +50,7 @@
          NU, NV, NW, NUOLD, NVOLD, NWOLD, &
          T, TOLD, DEN, DENOLD, &
          MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
-         CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA, &
+         CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, SECOND_THETA, CV_BETA, &
          SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, &
          SUF_T_BC_ROB1, SUF_T_BC_ROB2,  &
          WIC_T_BC, WIC_D_BC, WIC_U_BC, &
@@ -231,7 +231,7 @@
       REAL, DIMENSION( TOTELE * IGOT_THETA_FLUX, CV_NLOC, SCVNGI_THETA, NPHASE ), &
            intent( inout ) :: THETA_FLUX, ONE_M_THETA_FLUX
       REAL, DIMENSION( MAT_NONODS, NDIM, NDIM, NPHASE ), intent( in ) :: TDIFFUSION
-      REAL, intent( in ) :: DT, CV_THETA, CV_BETA
+      REAL, intent( in ) :: DT, CV_THETA, SECOND_THETA, CV_BETA
       REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE ), intent( in ) :: SUF_T_BC, SUF_D_BC
       REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE * IGOT_T2  ), intent( in ) :: SUF_T2_BC
       REAL, DIMENSION( STOTEL * U_SNLOC * NPHASE ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
@@ -321,16 +321,10 @@
            SUM, &
            SUM_LIMT, SUM_LIMTOLD, FTHETA_T2, ONE_M_FTHETA_T2OLD, THERM_FTHETA, &
            W_SUM_ONE1, W_SUM_ONE2, NDOTQNEW
-      real :: vel_int_u,vel_int_v,vel_int_w,ndot_vel_int,racc_6row2ph
 
       REAL, PARAMETER :: W_SUM_ONE = 1.
-      ! second_theta=0.
-      ! second_theta=1. orginal implicit method
-      REAL, PARAMETER :: SECOND_THETA = 1.
 
-
-      integer :: x_nod1,x_nod2,x_nod3,cv_inod_ipha, IGETCT, U_NODK_IPHA
-      real :: x_mean, y_mean
+      integer :: cv_inod_ipha, IGETCT, U_NODK_IPHA
       ! Functions...
       !REAL :: R2NORM, FACE_THETA  
       !        ===>  LOGICALS  <===
@@ -353,8 +347,8 @@
       LIMIT_USE_2ND=.FALSE.
       if ( have_option( option_path ) ) LIMIT_USE_2ND=.TRUE.
 
-      ewrite(3,*)'CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA, LIMIT_USE_2ND:', &
-           CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA, LIMIT_USE_2ND
+      ewrite(3,*)'CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA, LIMIT_USE_2ND, SECOND_THETA:', &
+           CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA, LIMIT_USE_2ND, SECOND_THETA
 
       ndotq = 0. ; ndotqold = 0.
 
@@ -794,11 +788,11 @@
                   X_NODI = X_NDGLN(( ELE - 1 ) * X_NLOC  + CV_ILOC )
 
                   Conditional_GETCT1: IF( GETCT ) THEN ! Obtain the CV discretised CT equations plus RHS
-                     ewrite(3,*)'==================================================================='
-                     ewrite(3,*)'CV_NODI, CV_NODJ, ELE, ELE2, GI:', CV_NODI, CV_NODJ, ELE, ELE2, GI
-                     ewrite(3,*)'findct:',FINDCT( CV_NODI ), FINDCT( CV_NODI + 1 ) - 1
-                     ewrite(3,*)'colct:',colct( FINDCT( CV_NODI ) : FINDCT( CV_NODI + 1 ) - 1 )
-                     ewrite(3,*)'SCVDETWEI:', SCVDETWEI(GI)
+                     !ewrite(3,*)'==================================================================='
+                     !ewrite(3,*)'CV_NODI, CV_NODJ, ELE, ELE2, GI:', CV_NODI, CV_NODJ, ELE, ELE2, GI
+                     !ewrite(3,*)'findct:',FINDCT( CV_NODI ), FINDCT( CV_NODI + 1 ) - 1
+                     !ewrite(3,*)'colct:',colct( FINDCT( CV_NODI ) : FINDCT( CV_NODI + 1 ) - 1 )
+                     !ewrite(3,*)'SCVDETWEI:', SCVDETWEI(GI)
 
                      DO U_KLOC = 1, U_NLOC
                         U_NODK = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC )
@@ -1310,7 +1304,6 @@
                DIAG_SCALE_PRES( CV_NODI ) = DIAG_SCALE_PRES( CV_NODI ) + &
                     MEAN_PORE_CV( CV_NODI ) * T( CV_NODI_IPHA ) * DERIV( CV_NODI_IPHA )  &
                     / ( DT * DEN( CV_NODI_IPHA ) )
-
 
                CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + MASS_CV( CV_NODI ) * SOURCT( CV_NODI_IPHA ) / DEN( CV_NODI_IPHA )
                !CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) + MASS_CV( CV_NODI ) * SOURCT2( CV_NODI_IPHA ) / DEN( CV_NODI_IPHA )
@@ -4058,8 +4051,6 @@
             NDOTQOLD = 0.5 * ( CVNORMX(GI) * (UOLDDGI+UOLDDGI2) + CVNORMY(GI) * (VOLDDGI+VOLDDGI2) &
                  + CVNORMZ(GI) * (WOLDDGI+WOLDDGI2) )
 
-print *, 'AAAAAAAAAAAAAAAAAAAAA', NDOTQ, NDOTQOLD
-
             CV_NODI = CV_NODI_IPHA - (IPHASE-1)*CV_NONODS
             CV_NODJ = CV_NODJ_IPHA - (IPHASE-1)*CV_NONODS
 
@@ -4719,8 +4710,6 @@ print *, 'AAAAAAAAAAAAAAAAAAAAA', NDOTQ, NDOTQOLD
       INCOMEOLD = 1.
       IF( NDOTQOLD >= 0. ) INCOMEOLD = 0.
 
-print *, 'BBBBBBBBBBBBBBBBBBBBB', NDOTQ, NDOTQOLD
-print *, '====================================='
       RETURN  
 
     END SUBROUTINE GET_INT_VEL_OVERLAP
