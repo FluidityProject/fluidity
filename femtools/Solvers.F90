@@ -1659,24 +1659,24 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     ! Set up the monitors:
     if (have_option(trim(solver_option_path)// &
        '/diagnostics/monitors/preconditioned_residual')) then
-        call KSPMonitorSet(ksp, KSPMonitorDefault, PETSC_NULL_INTEGER, &
+        call KSPMonitorSet(ksp, KSPMonitorDefault, PETSC_NULL_OBJECT, &
            PETSC_NULL_FUNCTION, ierr)
     end if
     if (have_option(trim(solver_option_path)// &
        '/diagnostics/monitors/true_residual')) then
-        call KSPMonitorSet(ksp, KSPMonitorTrueResidualNorm, PETSC_NULL_INTEGER, &
+        call KSPMonitorSet(ksp, KSPMonitorTrueResidualNorm, PETSC_NULL_OBJECT, &
            PETSC_NULL_FUNCTION, ierr)
     end if
     if (have_option(trim(solver_option_path)// &
        '/diagnostics/monitors/preconditioned_residual_graph')) then
-        call KSPMonitorSet(ksp, KSPMonitorLG, PETSC_NULL_INTEGER, &
+        call KSPMonitorSet(ksp, KSPMonitorLG, PETSC_NULL_OBJECT, &
            PETSC_NULL_FUNCTION, ierr)
     end if
 
     if (have_option(trim(solver_option_path)// &
        '/diagnostics/monitors/true_error') &
        .and. .not. petsc_monitor_has_exact) then
-       ewrite(0,*) "Solver option diagnostics/monitors/true_error set but "
+       ewrite(-1,*) "Solver option diagnostics/monitors/true_error set but "
        ewrite(0,*) "petsc_solve_monitor_exact() not called. This probably means"
        ewrite(0,*) "this version of petsc_solve() doesn't support the monitor."
        FLExit("petsc_solve_monitor_exact() not called")
