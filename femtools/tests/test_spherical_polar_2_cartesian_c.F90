@@ -42,7 +42,7 @@ subroutine test_spherical_polar_2_cartesian_C
   type(vector_field), pointer :: PolarCoordinate
   type(vector_field) :: difference
   integer :: node
-  real(kind=c_double), dimension(3) :: XYZ, RTP !Arrays containing a signel node's
+  real(kind=c_double), dimension(3) :: XYZ, RTP !Arrays containing a single node's
                                  ! position vector components in Cartesian &
                                  ! spherical-polar bases.
   logical :: fail

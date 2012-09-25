@@ -40,7 +40,7 @@ subroutine test_spherical_polar_2_lon_lat_height
   type(vector_field), pointer :: PolarCoordinate
   type(vector_field) :: difference
   integer :: node
-  real, dimension(3) :: LLH, RTP !Arrays containing a signel node's position vector
+  real, dimension(3) :: LLH, RTP !Arrays containing a single node's position vector
                                  ! components in lon-lat-height & spherical-polar bases.
   logical :: fail
 
