@@ -681,6 +681,13 @@ start =
                         element prescribed {
                            mesh_choice,
                            prescribed_tensor_field
+                        }|
+                        element diagnostic {
+                           mesh_choice,
+                           (
+                              sediment_concentration_dependent_viscosity_algorithm
+                           ),
+                           diagnostic_tensor_field
                         }
                      )
                   },                  
@@ -1091,6 +1098,13 @@ start =
                         element prescribed {
                            velocity_mesh_choice,
                            prescribed_tensor_field
+                        }|
+                        element diagnostic {
+                           velocity_mesh_choice,
+                           (
+                              sediment_concentration_dependent_viscosity_algorithm
+                           ),
+                           diagnostic_tensor_field
                         }
                      )
                   },
@@ -1774,125 +1788,194 @@ start =
 
 sediment = 
    (
-      ## A simple sediment model in which different classes of sediment fall 
-      ## and diffuse at different rates.
+      ## A sediment model. See the manual for details on how to use this model.
       element sediment {
-         ## This field is the basis for all sediment fields. Each
-         ## sediment class has a sediment field with name
-         ## SedimentClassName where ClassName is the name of the
-         ## class.
+         ## A single sediment field with discrete characteristics
+         ## 
+         ## Notes: 
          ##
-         ## By default, all sediment classes have exactly the same
-         ## characteristics, however each class can be given its own
-         ## settling velocity, diffusivity and initial condition under
-         ## the sediment_class element and this will override the
-         ## default specified here.
+         ## - a sinking velocity is required for sediment fields, this can be set for each
+         ## sediment field under prognostic/SinkingVelocity
+         ##
+         ## - continuity must be the same for all fields. i.e. use the same mesh for all fields
+         ##
+         ## - rentrainment bc's can be used to allow sediment to be picked up from the bed
+         ## due to turbulence. This must be set on the same boundaries as the SedimentDepositon
+         ## field
+         ## 
+         ## - see the manual for more details on how to use this model 
          element scalar_field {
             attribute rank { "0" },
-            attribute name { "SedimentTemplate" },
+            attribute name { string },
             ## Field type
             element prognostic {
                velocity_mesh_choice,
-               prognostic_scalar_field
-            },
-            ## This is the density of this sediment. It will be used
-            ## with the sediment concentration in the equation of state.
-            ## Density must be specified here or for each sediment class.
-            element density {
-               real
-            }?,
-            ## This is the diameter of the grain in mm.
-            ## Diameter must be specified here or under each sediment class.
-            element diameter {
-               real
-            }?,
-            ## Set porosity to use. Default is 0.3. 1.0 is a sold material.
-            element porosity {
-               real
-            }?,
-            ## Erodability of the sediment grain. A value of one means that only the
-            ## critical shear stress is used to determine if a grain can be put into 
-            ## suspension. A value of zero means these grains can never be resuspended.
-            ## Default is 1.
-            element erodability {
-                real
-            }?,
-            ## Critical shear stress of a grain. If not switched on a value
-            ## will be computed according to the particle Reynolds number and Shield's
-            ## criterion. Otherwise inoput a value in Nm-1
-            element critical_shear_stress {
-               real
-            }?
-         },
-         ## This field is the template for the sediment flux
-         ## diagnostic which records the flux of sediment through the
-         ## domain boundary.
+               prognostic_scalar_field,
+               ## Sediment bedload diagnostic which records the sediment 
+               ## deposited through the prescribed boundary.
+               ##
+               ## The units are in unit distances as a depth of sediment.
+               element scalar_field {
+                  attribute rank { "0" },
+                  attribute name { "Bedload" },
+                  ## Field type
+                  (
+                     element diagnostic {
+                        ## Surface ids over which to calculate the bedload:
+                        element surface_ids {
+                           integer_vector
+                        },
+                        diagnostic_scalar_field
+                     }|
+                     element prescribed {
+                        ## Surface ids over which to calculate the bedload deposition:
+                        element surface_ids {
+                           integer_vector
+                        },
+                        prescribed_scalar_field
+                     }
+                  )
+               },
+               ## Sediment bedload diagnostic which records the sediment 
+               ## deposited through the prescribed boundary.
+               ##
+               ## The units are in unit distances/second.
+               element scalar_field {
+                  attribute rank { "0" },
+                  attribute name { "BedloadVolumeFraction" },
+                  ## Field type
+                  element diagnostic {
+                     diagnostic_scalar_field
+                  }
+               },
+               ## Sediment bedload deposit rate diagnostic.
+               ##
+               ## The units are in unit distances/second.
+               element scalar_field {
+                  attribute rank { "0" },
+                  attribute name { "BedloadDepositRate" },
+                  ## Field type
+                  element diagnostic {
+                     diagnostic_scalar_field
+                  }
+               }?,
+               ## Sediment bedload erosion rate diagnostic.
+               ##
+               ## The units are in unit distances as a depth of sediment.
+               element scalar_field {
+                  attribute rank { "0" },
+                  attribute name { "BedloadErosionRate" },
+                  ## Field type
+                  element diagnostic {
+                     diagnostic_scalar_field
+                  }
+               }?,
+               ## This is the unhindered sinking velocity of the sediment particles. 
+               ## 
+               ## With the sinking velocity field set to diagnostic, this field is used, along with the sediment 
+               ## concentration, to calculate the hindered sinking velocity of sediment particles. 
+               ##
+               ## This uses the equation developed by Richardson and Zaki [1954]. 
+               ##
+               ## If the 'SinkingVelocity' is not set to diagnostic, this field will not be used.
+               ##
+               ## As with the sinking velocity, this velocity is in the direction of gravity so if the substance
+               ## floats upwards, this field should be negative.
+               element scalar_field {
+                  attribute name { "UnhinderedSinkingVelocity" },
+                  attribute rank { "0" },
+                  element prescribed {
+                     prescribed_scalar_field
+                  }
+               }?,
+               ## This is the submerged specific gravity, R, of this sediment. 
+               ## It will be used with the sediment concentration in the equation
+               ## of state, as well as in erosion algorithms.
+               ## 
+               ## R = (rho_s - rho_a)/(rho_a)
+               ##
+               ## Where: rho_s is the sediment density and rho_a is the ambient fluid density
+               element submerged_specific_gravity {
+                  real
+               },
+               ## This is the diameter of the grain.
+               ## Diameter must be specified here or under each sediment class.
+               element diameter {
+                  real
+               }?,
+               ## Set porosity to use. Default is 0.3. 1.0 is a sold material.
+               element bed_porosity {
+                  real
+               }?,
+               ## Erodability of the sediment grain. A value of one means that only the
+               ## critical shear stress is used to determine if a grain can be put into 
+               ## suspension. A value of zero means these grains can never be resuspended.
+               ## Default is 1.
+               element erodability {
+                  real
+               }?,
+               ## Critical shear stress of a grain. If not switched on a value
+               ## will be computed according to the particle Reynolds number and Shield's
+               ## criterion.
+               element critical_shear_stress {
+                  real
+               }?
+            }
+         }*,
+         ## The median sediment diameter in the active layer of the bed. 
+         ## Required for some reentrainment algorithms.
          element scalar_field {
             attribute rank { "0" },
-            attribute name { "SedimentFluxTemplate" },
-            ## Field type
-            element diagnostic {
-               ## Surface ids over which to calculate the flux:
-               element surface_ids {
-                  integer_vector
-               },
-               velocity_mesh_choice,
-               diagnostic_scalar_field
-            }
-         },
-         element sediment_class {
-            attribute name { xsd:string },
-            initial_condition_scalar*,
-            scalar_boundary_conditions*,
-            ## Diffusivity for sediment class
-            element tensor_field {
-               attribute name { "Diffusivity" },
-               attribute rank { "2" },
-               (
-                  element prescribed {
-                     mesh_choice?,
-                     prescribed_tensor_field_no_adapt
-                  }|
-                  element diagnostic {
-                    tensor_python_diagnostic_algorithm,
-                    diagnostic_tensor_field
-                  }
-               )
-            }?,
-            ## Velocity at which this sediment sinks through the water column.
-            ## 
-            ## This velocity is in the direction of gravity so if the substance
-            ## floats upwards, this field should be negative.
-            element scalar_field {
-               attribute name { "SinkingVelocity" },
-               attribute rank { "0" },
-               element prescribed {
-                  prescribed_scalar_field_no_adapt
+            attribute name { "SedimentBedActiveLayerD50" },
+            (
+               element diagnostic {
+                  ## Surface ids over which to calculate the bedload:
+                  element surface_ids {
+                     integer_vector
+                  },
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
                }
-            }?,
-            ## This is the density of this sediment. It will be used
-            ## with the sediment concentration in the equation of state.
-            element density {
-               real
-            }?,
-            ## This is the diamter of the grain in mm
-            element diameter {
-               real
-            }?,
-            ## Erodability of the sediment grain. A value of one means that only the
-            ## critical shear stress is used to determine if a grain can be put into 
-            ## suspension. A value of zero means these grains can never be resuspended.
-            ## Default is 1.
-            element erodability {
-                real
-            }?,
-            ## Critical shear stress of a grain. If not switched on a value
-            ## will be computed according to the particle Reynolds number and Shield's
-            ## criterion. Otherwise inoput a value in Nm-1
-            element critical_shear_stress {
-               real
-            }?
-         }+
+            )
+         },
+         ## The standard deviation of sediment in the active layer of the
+         ## bed. Required for some reentrainment algorithms
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "SedimentBedActiveLayerSigma" },
+            (
+               element diagnostic {
+                  ## Surface ids over which to calculate the bedload:
+                  element surface_ids {
+                     integer_vector
+                  },
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }
+            )
+         },
+         ## ZeroSedimentConcentrationViscosity field:
+         ##
+         ## Field for the viscosity of this a fluid with zero 
+         ## concentration of sediment.
+         ## Required if using a diagnostic viscosity
+         ## in a sediment problem where sediment concentration
+         ## dependent viscosity is required.
+         element tensor_field {
+            attribute rank { "2" },
+            attribute name { "ZeroSedimentConcentrationViscosity" },
+            (
+               element prescribed {
+                  velocity_mesh_choice,
+                  prescribed_tensor_field
+               }|
+               element aliased {
+                  generic_aliased_field
+               }
+            )
+         }?
       }
    )
 
@@ -4095,6 +4178,28 @@ scalar_field_choice =
                   internal_algorithm,
                   velocity_mesh_choice,
                   porosity_include_dg_and_cg_cfl,
+                  diagnostic_scalar_field
+               }|
+               element aliased {
+                  generic_aliased_field
+               }
+            )
+         }|
+         ## Buoyancy Adjustment diffusivity
+         ##
+         ## The element-wise diffusion applied
+         ## in the buoyancy adjustment by vertical mixing
+         ## scheme available for tracer fields.
+         ##
+         ## This is an element-wise P0 field, so it is best
+         ## calculated in a discontinuous function space.
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "BuoyancyAdjustmentDiffusivity" },
+            (
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
                   diagnostic_scalar_field
                }|
                element aliased {
