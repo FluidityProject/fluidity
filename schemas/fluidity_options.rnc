@@ -4199,6 +4199,28 @@ scalar_field_choice =
                }
             )
          }|
+         ## Buoyancy Adjustment diffusivity
+         ##
+         ## The element-wise diffusion applied
+         ## in the buoyancy adjustment by vertical mixing
+         ## scheme available for tracer fields.
+         ##
+         ## This is an element-wise P0 field, so it is best
+         ## calculated in a discontinuous function space.
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "BuoyancyAdjustmentDiffusivity" },
+            (
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }|
+               element aliased {
+                  generic_aliased_field
+               }
+            )
+         }|
          ## The equilibrium pressure perturbation 
          ## 
          ## Further details to be added
