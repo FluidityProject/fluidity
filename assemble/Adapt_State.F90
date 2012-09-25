@@ -77,6 +77,7 @@ module adapt_state_module
 #ifdef HAVE_ZOLTAN
   use zoltan_integration
   use mpi_interfaces
+  use fsi_model, only: fsi_model_pre_adapt_cleanup, fsi_post_adapt_operations, fsi_ibm_all_alpha_projections
 #endif
 
   implicit none
@@ -919,6 +920,17 @@ contains
         call set_option("/timestepping/timestep", dt)
       end if
 
+      ! For FSI modelling, recomputing solid volume fraction 
+      ! of all solid meshes on the new fluid mesh
+      if (have_option("/embedded_models/fsi_model/")) then
+        call fsi_ibm_all_alpha_projections(states, solid_states)
+      end if
+
+      ! If we use the FSI-Model, some added fields need to be removed from state before adapting the mesh:
+      if (have_option("/embedded_models/fsi_model/")) then
+         call fsi_model_pre_adapt_cleanup(states, solid_states)
+      end if
+
       ! Form the new metric
       old_mesh => extract_mesh(states(1), "CoordinateMesh")
       call allocate(metric, old_mesh, "ErrorMetric")
@@ -931,6 +943,12 @@ contains
       else
         call adapt_state(states, metric, initialise_fields = .true.)
       end if
+
+      ! For FSI modelling, re-adding addtional fields
+      if (have_option("/embedded_models/fsi_model/")) then
+        call fsi_post_adapt_operations(states, solid_states)
+      end if
+
     end do
 
     if(have_option(trim(base_path) // "/output_adapted_mesh")) then

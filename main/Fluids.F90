@@ -231,6 +231,12 @@ contains
     else
       call populate_state(state)
     end if
+    ! For immersed FSI models,
+    ! compute the solid volume fraction on fluid mesh:
+    if (have_option("/embedded_models/fsi_model/")) then
+      call allocate_and_insert_auxilliary_fields(state)
+      call fsi_ibm_all_alpha_projections(state, solid_state)
+    end if
 
     ewrite(3,*)'before have_option test'
 
@@ -259,7 +265,7 @@ contains
          & default=1)
     call get_option("/timestepping/nonlinear_iterations/tolerance", &
          & nonlinear_iteration_tolerance, default=0.0)
-    
+
     if(have_option("/mesh_adaptivity/hr_adaptivity/adapt_at_first_timestep")) then
 
        if(have_option("/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt")) then
@@ -267,7 +273,16 @@ contains
          nonlinear_iterations = nonlinear_iterations_adapt
        end if
 
-       call adapt_state_first_timestep(state)
+       if (have_option("/embedded_models/fsi_model/")) then
+         call adapt_state_first_timestep(state, solid_states=solid_state)
+       else
+         call adapt_state_first_timestep(state)
+       end if
+
+       ! For FSI modelling, re-adding addtional fields
+       if (have_option("/embedded_models/fsi_model/")) then
+         call fsi_post_adapt_operations(state, solid_state)
+       end if
 
        ! Auxilliary fields.
        call allocate_and_insert_auxilliary_fields(state)
@@ -276,6 +291,12 @@ contains
        call relax_to_nonlinear(state)
 
        call enforce_discrete_properties(state)
+
+       ! For FSI modelling, recomputing solid volume fraction 
+       ! of all solid meshes on the new fluid mesh
+       if (have_option("/embedded_models/fsi_model/")) then
+         call fsi_ibm_all_alpha_projections(state, solid_state)
+       end if
 
        ! Ensure that checkpoints do not adapt at first timestep.
        call delete_option(&
@@ -338,11 +359,11 @@ contains
        end if
     end if
 
-    ! For immersed FSI models,
-    ! compute the solid volume fraction on fluid mesh:
-    if (have_option("/embedded_models/fsi_model/")) then
-      call fsi_ibm_all_alpha_projections(state, solid_state)
-    end if
+!    ! For immersed FSI models,
+!    ! compute the solid volume fraction on fluid mesh:
+!    if (have_option("/embedded_models/fsi_model/")) then
+!      call fsi_ibm_all_alpha_projections(state, solid_state)
+!    end if
 
     ! move mesh according to inital free surface:
     !    top/bottom distance needs to be up-to-date before this call, after the movement
