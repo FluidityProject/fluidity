@@ -74,10 +74,10 @@ module adapt_state_module
   use diagnostic_fields_wrapper_new, only : calculate_diagnostic_variables_new => calculate_diagnostic_variables
   use pickers
   use write_gmsh
+  use fsi_model, only: fsi_model_pre_adapt_cleanup, fsi_post_adapt_operations, fsi_ibm_all_alpha_projections
 #ifdef HAVE_ZOLTAN
   use zoltan_integration
   use mpi_interfaces
-  use fsi_model, only: fsi_model_pre_adapt_cleanup, fsi_post_adapt_operations, fsi_ibm_all_alpha_projections
 #endif
 
   implicit none
