@@ -684,7 +684,7 @@
          ele = fetch(colours(clr), nnid)
          call construct_momentum_element_cg(state, ele, big_m, rhs, ct_m, mass, inverse_masslump, visc_inverse_masslump, &
               x, x_old, x_new, u, oldu, nu, ug, &
-              density, p, &
+              density, ct_rhs, &
               source, absorption, buoyancy, gravity, &
               viscosity, grad_u, &
               tnu, leonard, alpha, &
@@ -743,7 +743,7 @@
             ele = face_ele(x, sele)
             
             call construct_momentum_surface_element_cg(sele, big_m, rhs, ct_m, ct_rhs, &
-                 inverse_masslump, x, u, nu, ug, density, p, gravity, &
+                 inverse_masslump, x, u, nu, ug, density, gravity, &
                  velocity_bc, velocity_bc_type, &
                  pressure_bc, pressure_bc_type, &
                  assemble_ct_matrix_here, include_pressure_and_continuity_bcs, oldu, nvfrac)
@@ -919,7 +919,7 @@
     end subroutine construct_momentum_cg
 
     subroutine construct_momentum_surface_element_cg(sele, big_m, rhs, ct_m, ct_rhs, &
-                                                     masslump, x, u, nu, ug, density, p, gravity, &
+                                                     masslump, x, u, nu, ug, density, gravity, &
                                                      velocity_bc, velocity_bc_type, &
                                                      pressure_bc, pressure_bc_type, &
                                                      assemble_ct_matrix_here, include_pressure_and_continuity_bcs,&
@@ -938,7 +938,7 @@
       type(vector_field), intent(in) :: x, oldu
       type(vector_field), intent(in) :: u, nu
       type(vector_field), pointer :: ug
-      type(scalar_field), intent(in) :: density, p
+      type(scalar_field), intent(in) :: density
       type(vector_field), pointer, intent(in) :: gravity 
 
       type(vector_field), intent(in) :: velocity_bc
@@ -956,12 +956,12 @@
       integer :: dim, dim2, i
 
       integer, dimension(face_loc(u, sele)) :: u_nodes_bdy
-      integer, dimension(face_loc(p, sele)) :: p_nodes_bdy
+      integer, dimension(face_loc(ct_rhs, sele)) :: p_nodes_bdy
       type(element_type), pointer :: u_shape, p_shape
 
       real, dimension(face_ngi(u, sele)) :: detwei_bdy
       real, dimension(u%dim, face_ngi(u, sele)) :: normal_bdy, upwards_gi
-      real, dimension(u%dim, face_loc(p, sele), face_loc(u, sele)) :: ct_mat_bdy
+      real, dimension(u%dim, face_loc(ct_rhs, sele), face_loc(u, sele)) :: ct_mat_bdy
       real, dimension(u%dim, face_loc(u, sele), face_loc(u, sele)) :: fs_surfacestab
       real, dimension(u%dim, u%dim, face_loc(u, sele), face_loc(u, sele)) :: fs_surfacestab_sphere
       real, dimension(u%dim, u%dim, face_ngi(u, sele)) :: fs_stab_gi_sphere
@@ -975,10 +975,10 @@
       real, dimension(u%dim, face_ngi(u, sele)) :: ndotk_k
 
       u_shape=> face_shape(u, sele)
-      p_shape=> face_shape(p, sele)
+      p_shape=> face_shape(ct_rhs, sele)
 
       u_nodes_bdy = face_global_nodes(u, sele)
-      p_nodes_bdy = face_global_nodes(p, sele)
+      p_nodes_bdy = face_global_nodes(ct_rhs, sele)
 
       oldu_val = face_val(oldu, sele)
 
@@ -1147,7 +1147,7 @@
     subroutine construct_momentum_element_cg(state, ele, big_m, rhs, ct_m, &
                                             mass, masslump, visc_masslump, &
                                             x, x_old, x_new, u, oldu, nu, ug, &
-                                            density, p, &
+                                            density, ct_rhs, &
                                             source, absorption, buoyancy, gravity, &
                                             viscosity, grad_u, &
                                             tnu, leonard, alpha, &
@@ -1175,7 +1175,7 @@
 
       type(vector_field), intent(in) :: x, u, oldu, nu 
       type(vector_field), pointer :: x_old, x_new, ug
-      type(scalar_field), intent(in) :: density, p, buoyancy
+      type(scalar_field), intent(in) :: density, buoyancy, ct_rhs
       type(vector_field), intent(in) :: source, absorption, gravity
       type(tensor_field), intent(in) :: viscosity, grad_u
 
@@ -1213,10 +1213,10 @@
       real, dimension(u%dim, u%dim, ele_ngi(u,ele)) :: J_mat, diff_q
       real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim) :: du_t
       real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim) :: dug_t
-      real, dimension(ele_loc(p, ele), ele_ngi(p, ele), u%dim) :: dp_t
+      real, dimension(ele_loc(ct_rhs, ele), ele_ngi(ct_rhs, ele), u%dim) :: dp_t
 
       real, dimension(u%dim, ele_ngi(u, ele)) :: relu_gi
-      real, dimension(u%dim, ele_loc(p, ele), ele_loc(u, ele)) :: grad_p_u_mat
+      real, dimension(u%dim, ele_loc(ct_rhs, ele), ele_loc(u, ele)) :: grad_p_u_mat
       
       ! What we will be adding to the matrix and RHS - assemble these as we
       ! go, so that we only do the calculations we really need
@@ -1251,8 +1251,8 @@
       u_ele=>ele_nodes(u, ele)
       u_shape=>ele_shape(u, ele)
 
-      p_ele=>ele_nodes(p, ele)
-      p_shape=>ele_shape(p, ele)
+      p_ele=>ele_nodes(ct_rhs, ele)
+      p_shape=>ele_shape(ct_rhs, ele)
 
       oldu_val = ele_val(oldu, ele)
       ! Step 1: Transform

@@ -347,9 +347,8 @@
            end if
 
            if (implicit_prognostic_fs) then
-             allocate(p_mesh)
-             call extend_pressure_mesh_for_viscous_free_surface(state(istate), &
-                p%mesh, free_surface, p_mesh)
+             p_mesh => get_extended_pressure_mesh_for_viscous_free_surface(state(istate), &
+                p%mesh, free_surface)
            end if
 
          end if
@@ -431,7 +430,7 @@
                reassemble_cmc_m = reassemble_cmc_m .or. reassemble_all_cmc_m
 
                if (implicit_prognostic_fs) then
-                 call extend_matrices_for_viscous_free_surface(state(istate), cmc_m, ct_m(istate)%ptr, u, p, free_surface)
+                 call extend_matrices_for_viscous_free_surface(state(istate), cmc_m, ct_m(istate)%ptr, u, p, free_surface, p_mesh)
                end if
                call profiler_toc(p, "assembly")
 
@@ -695,7 +694,7 @@
                ! This call will form the ct_rhs, which for compressible_eos
                ! is formed for a second time later below.
                call assemble_divergence_matrix_cv(ct_m(istate)%ptr, state(istate), ct_rhs=ct_rhs(istate), &
-                                             test_mesh=p%mesh, field=u, get_ct=reassemble_ct_m)
+                                             test_mesh=p_theta%mesh, field=u, get_ct=reassemble_ct_m)
             end if
 
             ! Assemble divergence matrix C^T.
@@ -704,14 +703,16 @@
             ! or cg_pressure_cv_test_continuity is formed for a second time later below.
             if(dg(istate) .and. .not. cv_pressure) then
                call assemble_divergence_matrix_cg(ct_m(istate)%ptr, state(istate), ct_rhs=ct_rhs(istate), &
-                 test_mesh=p%mesh, field=u, get_ct=reassemble_ct_m)
+                 test_mesh=p_theta%mesh, field=u, get_ct=reassemble_ct_m)
             end if
             if (implicit_prognostic_fs .and. reassemble_ct_m) then
-              call add_implicit_viscous_free_surface_integrals(state(istate), ct_m(istate)%ptr, u, p, free_surface)
+              call add_implicit_viscous_free_surface_integrals(state(istate), &
+                ct_m(istate)%ptr, u, p_mesh, free_surface)
             end if
             if (explicit_prognostic_fs) then
-              call add_explicit_viscous_free_surface_integrals(state(istate), mom_rhs(istate), ct_m(istate)%ptr, reassemble_ct_m, &
-                                                                u, p, free_surface)
+              call add_explicit_viscous_free_surface_integrals(state(istate), &
+                mom_rhs(istate), ct_m(istate)%ptr, reassemble_ct_m, &
+                u, p_mesh, free_surface)
             end if
 
             call profiler_toc(p, "assembly")
@@ -1241,10 +1242,6 @@
          call profiler_toc("finalisation_loop")
 
          u => extract_vector_field(state, "Velocity")
-         if (implicit_prognostic_fs) then
-           call deallocate(p_mesh)
-           deallocate(p_mesh)
-         end if
          if(implicit_prognostic_fs .or. use_theta_pg) then
             call deallocate(p_theta)
             deallocate(p_theta)

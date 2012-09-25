@@ -55,7 +55,7 @@ public move_mesh_free_surface, add_free_surface_to_cmc_projection, &
   add_free_surface_to_poisson_rhs, copy_poisson_solution_to_interior, &
   calculate_diagnostic_wettingdrying_alpha, insert_original_distance_to_bottom, &
   calculate_volume_by_surface_integral
-public extend_pressure_mesh_for_viscous_free_surface, copy_to_extended_p, &
+public get_extended_pressure_mesh_for_viscous_free_surface, copy_to_extended_p, &
   update_pressure_and_viscous_free_surface, extend_matrices_for_viscous_free_surface, &
   add_implicit_viscous_free_surface_integrals, extend_schur_auxiliary_matrix_for_viscous_free_surface, &
   add_implicit_viscous_free_surface_scaled_mass_integrals, update_prognostic_free_surface, &
@@ -245,14 +245,13 @@ contains
       type(scalar_field), pointer:: density, old_surface_density
       type(scalar_field), pointer:: free_surface, scaled_fs, old_scaled_fs
       type(scalar_field), pointer :: original_bottomdist_remap
-      type(mesh_type), pointer:: surface_mesh, fs_mesh
+      type(mesh_type), pointer:: surface_mesh, fs_mesh, embedded_fs_mesh
       type(mesh_type):: dens_surface_mesh
       integer, dimension(:), pointer:: dens_surface_node_list
       character(len=FIELD_NAME_LEN):: bctype
       character(len=OPTION_PATH_LEN) :: fs_option_path
       real:: g, rho0, external_density, delta_rho, alpha, alpha_old, coef, coef_old, d0
       integer, dimension(:), pointer:: surface_element_list, fs_surface_element_list
-      integer:: fs_node_offset
       integer:: i, j, grav_stat, dens_stat
       logical:: include_normals, move_mesh
       logical:: addto_cmc, variable_density, any_variable_density, have_density
@@ -291,6 +290,7 @@ contains
         call invert_set(fs_surface_element_list, sele_to_fs_ele)
         scaled_fs => extract_surface_field(free_surface, "_implicit_free_surface", "ScaledFreeSurface")
         old_scaled_fs => extract_surface_field(free_surface, "_implicit_free_surface", "OldScaledFreeSurface")
+        embedded_fs_mesh => extract_mesh(state, "_embedded_free_surface_mesh")
       end if
       
       ! reference density
@@ -350,8 +350,6 @@ contains
               (.not.have_option(trim(fs_option_path)//"/type[0]/no_normal_stress/explicit"))) then
             assert(implicit_prognostic_fs)
             use_fs_mesh=.true.
-            ! node i in the fs_mesh will be associated with row/column i+fs_node_offset in cmc
-            fs_node_offset=node_count(p)
           else
             use_fs_mesh=.false.
           end if
@@ -492,7 +490,7 @@ contains
       end if
       
       if (use_fs_mesh) then
-        nodes = ele_nodes(fs_mesh, fetch(sele_to_fs_ele, sele))+fs_node_offset
+        nodes = ele_nodes(embedded_fs_mesh, fetch(sele_to_fs_ele, sele))
         top_pressures = ele_val(scaled_fs, fetch(sele_to_fs_ele, sele))
         old_top_pressures = ele_val(old_scaled_fs, fetch(sele_to_fs_ele, sele))
       else
@@ -809,11 +807,11 @@ contains
     type(integer_hash_table):: sele_to_fs_ele
     type(vector_field), pointer:: positions, u, gravity_normal
     type(scalar_field), pointer:: p, free_surface, scaled_fs, density
+    type(mesh_type), pointer:: embedded_fs_mesh
     character(len=FIELD_NAME_LEN):: bctype
     character(len=OPTION_PATH_LEN):: fs_option_path
     real g, coef, rho0, delta_rho, rho_external
     integer, dimension(:), pointer:: surface_element_list, fs_surface_element_list
-    integer:: fs_node_offset
     integer i, j, grav_stat, dens_stat
     logical:: include_normals
     logical:: implicit_prognostic_fs, use_fs_mesh
@@ -847,6 +845,7 @@ contains
       ! create a map from face numbers to element numbers in the fs mesh
       call invert_set(fs_surface_element_list, sele_to_fs_ele)
       scaled_fs => extract_surface_field(free_surface, "_implicit_free_surface", "ScaledFreeSurface")
+      embedded_fs_mesh => extract_mesh(state, "_embedded_free_surface_mesh")
     end if
     
     ! reference density
@@ -881,8 +880,6 @@ contains
             (.not.have_option(trim(fs_option_path)//"/type[0]/no_normal_stress/explicit"))) then
           assert(implicit_prognostic_fs)
           use_fs_mesh=.true.
-          ! node i in the fs_mesh will be associated with row/column i+fs_node_offset in cmc
-          fs_node_offset=node_count(p)
         else
           use_fs_mesh=.false.
         end if
@@ -933,7 +930,7 @@ contains
       end if
       
       if (use_fs_mesh) then
-        nodes = ele_nodes(scaled_fs, fetch(sele_to_fs_ele, sele))+fs_node_offset
+        nodes = ele_nodes(embedded_fs_mesh, fetch(sele_to_fs_ele, sele))
         values = ele_val(scaled_fs, fetch(sele_to_fs_ele, sele))
       else
         nodes = face_global_nodes(p, sele)
@@ -1238,10 +1235,11 @@ contains
     type(scalar_field), intent(inout):: fs
     type(vector_field), intent(in):: u
 
+    type(mesh_type), pointer:: surface_mesh
     type(integer_set):: surface_elements
     character(len=FIELD_NAME_LEN):: bctype
     character(len=OPTION_PATH_LEN):: fs_option_path
-    integer, dimension(:), pointer:: surface_element_list
+    integer, dimension(:), pointer:: surface_element_list, surface_node_list
     integer:: i
 
     ewrite(1,*) 'Entering initialise_prognostic_free_surface'
@@ -1265,10 +1263,15 @@ contains
       surface_element_list)
    deallocate(surface_element_list)
    call deallocate(surface_elements)
+   if (IsParallel()) then
+     call get_boundary_condition(fs, "_free_surface", surface_mesh=surface_mesh, &
+       surface_node_list=surface_node_list)
+     call generate_free_surface_halos(fs%mesh, surface_mesh, surface_node_list)
+   end if
 
   end subroutine initialise_prognostic_free_surface
 
-  subroutine extend_pressure_mesh_for_viscous_free_surface(state, pressure_mesh, fs, extended_mesh)
+  function get_extended_pressure_mesh_for_viscous_free_surface(state, pressure_mesh, fs) result (extended_pressure_mesh)
     ! extend the pressure mesh to contain the extra free surface dofs
     ! (doubling the pressure nodes at the free surface)
 
@@ -1276,50 +1279,100 @@ contains
     type(state_type), intent(inout):: state
     type(mesh_type), intent(in):: pressure_mesh
     type(scalar_field), intent(inout):: fs
-    type(mesh_type), intent(out):: extended_mesh
+    type(mesh_type), pointer:: extended_pressure_mesh
 
     type(vector_field), pointer:: u
-    type(mesh_type), pointer:: surface_mesh
+    type(mesh_type), pointer:: fs_mesh
+    type(mesh_type):: extended_mesh, embedded_fs_mesh
 
-    integer :: nprocs, procno, communicator 
-    integer :: ihalo, nhalos
+    integer, dimension(ele_loc(pressure_mesh, 1)):: new_nodes
+    integer, dimension(face_loc(fs%mesh, 1)):: new_fs_nodes
+    integer, dimension(:), pointer:: nodes
+    integer :: fsowned_nodes, powned_nodes, pnode_count
+    integer :: ihalo, nhalos, ele, j
 
-    if (.not. has_boundary_condition_name(fs, "_implicit_free_surface")) then
-      u => extract_vector_field(state, "Velocity")
-      assert(have_option(trim(u%option_path)//"/prognostic"))
-      call initialise_implicit_prognostic_free_surface(state, fs, u)
+    if (.not. has_mesh(state, "_extended_pressure_mesh")) then
+
+      if (.not. has_boundary_condition_name(fs, "_implicit_free_surface")) then
+        u => extract_vector_field(state, "Velocity")
+        assert(have_option(trim(u%option_path)//"/prognostic"))
+        call initialise_implicit_prognostic_free_surface(state, fs, u)
+      end if
+      ! obtain the f.s. surface mesh that has been stored under the
+      ! "_implicit_free_surface" boundary condition
+      call get_boundary_condition(fs, "_implicit_free_surface", &
+          surface_mesh=fs_mesh)
+
+      call allocate(extended_mesh, node_count(pressure_mesh)+node_count(fs_mesh), &
+          element_count(pressure_mesh), pressure_mesh%shape, &
+          "Extended"//trim(pressure_mesh%name))
+
+      fsowned_nodes = nowned_nodes(fs_mesh)
+      do ele=1, element_count(pressure_mesh)
+        nodes => ele_nodes(pressure_mesh,ele)
+        do j=1, size(nodes)
+          if (node_owned(pressure_mesh, nodes(j))) then
+            new_nodes(j) = nodes(j)
+          else
+            new_nodes(j) = nodes(j) + fsowned_nodes
+          end if
+          call set_ele_nodes(extended_mesh, ele, new_nodes)
+        end do
+      end do
+
+      call add_faces(extended_mesh, model=pressure_mesh)
+
+      nhalos = halo_count(pressure_mesh)
+      ewrite(2,*) "Number of halos = ",nhalos
+
+      ! Allocate extended mesh halos:
+      allocate(extended_mesh%halos(nhalos))
+
+      ! Derive extended_mesh nodal halos:
+      do ihalo = 1, nhalos
+
+         extended_mesh%halos(ihalo) = combine_halos( &
+           (/ pressure_mesh%halos(ihalo), fs_mesh%halos(ihalo) /), &
+           name="Extended"//trim(pressure_mesh%halos(ihalo)%name))
+
+         assert(trailing_receives_consistent(extended_mesh%halos(ihalo)))
+         assert(halo_valid_for_communication(extended_mesh%halos(ihalo)))
+         call create_global_to_universal_numbering(extended_mesh%halos(ihalo))
+         call create_ownership(extended_mesh%halos(ihalo))
+         
+      end do ! ihalo 
+
+      call insert(state, extended_mesh, "_extended_pressure_mesh")
+      call deallocate(extended_mesh)
+
+      ! now create an auxillary surface mesh, that has the same topology as surface_mesh
+      ! but uses the node numbering for free surface nodes of the extended mesh
+      call allocate(embedded_fs_mesh, node_count(extended_mesh), &
+        element_count(fs_mesh), fs_mesh%shape, &
+        name="Emmbedded"//trim(fs_mesh%name))
+
+      powned_nodes = nowned_nodes(pressure_mesh)
+      pnode_count = node_count(pressure_mesh)
+      do ele=1, element_count(fs_mesh)
+        nodes => ele_nodes(fs_mesh,ele)
+        do j=1, size(nodes)
+          if (node_owned(fs_mesh, nodes(j))) then
+            new_fs_nodes(j) = nodes(j) + powned_nodes
+          else
+            new_fs_nodes(j) = nodes(j) + pnode_count
+          end if
+          call set_ele_nodes(embedded_fs_mesh, ele, new_fs_nodes)
+        end do
+      end do
+
+      call insert(state, embedded_fs_mesh, "_embedded_free_surface_mesh")
+      call deallocate(embedded_fs_mesh)
+      
     end if
-    ! obtain the f.s. surface mesh that has been stored under the
-    ! "_implicit_free_surface" boundary condition
-    call get_boundary_condition(fs, "_implicit_free_surface", &
-        surface_mesh=surface_mesh)
 
-    call allocate(extended_mesh, node_count(pressure_mesh)+node_count(surface_mesh), &
-        element_count(pressure_mesh), pressure_mesh%shape, &
-        "Extended"//trim(pressure_mesh%name))
+    extended_pressure_mesh => extract_mesh(state, "_extended_pressure_mesh")
 
-    nhalos = halo_count(pressure_mesh)
-    ewrite(2,*) "Number of halos = ",nhalos
-    if(nhalos == 0) return
-
-    ! Allocate extended mesh halos:
-    allocate(extended_mesh%halos(nhalos))
-
-    ! Derive extended_mesh nodal halos:
-    do ihalo = 1, nhalos
-
-       extended_mesh%halos(ihalo) = combine_halos( &
-         (/ pressure_mesh%halos(ihalo), surface_mesh%halos(ihalo) /), &
-         name="Extended"//trim(pressure_mesh%halos(ihalo)%name))
-
-       assert(trailing_receives_consistent(extended_mesh%halos(ihalo)))
-       assert(halo_valid_for_communication(extended_mesh%halos(ihalo)))
-       call create_global_to_universal_numbering(extended_mesh%halos(ihalo))
-       call create_ownership(extended_mesh%halos(ihalo))
-       
-    end do ! ihalo 
-
-  end subroutine extend_pressure_mesh_for_viscous_free_surface
+  end function get_extended_pressure_mesh_for_viscous_free_surface
   
   subroutine copy_to_extended_p(p, fs, theta_pg, p_theta)
     type(scalar_field), intent(in):: p, fs
@@ -1328,18 +1381,27 @@ contains
     ! copy p and fs into p_theta that is allocated on the extended pressure mesh
 
     type(scalar_field), pointer:: scaled_fs, old_scaled_fs
+    integer:: powned_nodes, fsowned_nodes
 
     ! obtain the scaled f.s. that has been stored under the
     ! "_implicit_free_surface" boundary condition
     scaled_fs => extract_surface_field(fs, "_implicit_free_surface", "ScaledFreeSurface")
     old_scaled_fs => extract_surface_field(fs, "_implicit_free_surface", "OldScaledFreeSurface")
 
+    powned_nodes = nowned_nodes(p)
+    fsowned_nodes = nowned_nodes(scaled_fs)
+    
     ! p is not theta weighted (as usual for incompressible)
-    p_theta%val(1:node_count(p)) = p%val
+    p_theta%val(1:powned_nodes) = p%val(1:powned_nodes)
 
     ! setting this to the old scaled fs values means we're calculating the change in the free surface across the timestep
     ! not just since the last solve - unlike pressure where delta_p is since the last solve!
-    p_theta%val(node_count(p)+1:) = theta_pg*scaled_fs%val + (1.-theta_pg)*old_scaled_fs%val
+    p_theta%val(powned_nodes+1:powned_nodes+fsowned_nodes) = theta_pg*scaled_fs%val(1:fsowned_nodes) + (1.-theta_pg)*old_scaled_fs%val(1:fsowned_nodes)
+
+    ! we only copy the owned nodes into to combined pressure/fs field p_theta
+    ! because the renumbering of the receive nodes is a little more complicated
+    ! therefore, do a halo update to give the receive nodes its correct values as well
+    call halo_update(p_theta)
 
   end subroutine copy_to_extended_p
 
@@ -1353,6 +1415,7 @@ contains
 
     type(vector_field), pointer:: u
     type(scalar_field), pointer :: scaled_fs
+    integer:: powned_nodes, fsowned_nodes
     real:: dt
 
     ewrite(1,*) 'Entering update_pressure_and_viscous_free_surface'
@@ -1368,14 +1431,19 @@ contains
 
     call get_option('/timestepping/timestep', dt)
 
-    p%val = p%val + delta_p%val(1:node_count(p))/dt
+    powned_nodes = nowned_nodes(p)
+    fsowned_nodes = nowned_nodes(scaled_fs)
 
-    scaled_fs%val = scaled_fs%val + delta_p%val(node_count(p)+1:)/(dt*theta_pg)
+    p%val(1:powned_nodes) = p%val(1:powned_nodes) + delta_p%val(1:powned_nodes)/dt
+    call halo_update(p)
+
+    scaled_fs%val(1:fsowned_nodes) = scaled_fs%val(1:fsowned_nodes) + delta_p%val(powned_nodes+1:powned_nodes+fsowned_nodes)/(dt*theta_pg)
+    call halo_update(scaled_fs)
     ewrite_minmax(scaled_fs)
 
   end subroutine update_pressure_and_viscous_free_surface
 
-  subroutine extend_matrices_for_viscous_free_surface(state, cmc_m, ct_m, u, p, fs)
+  subroutine extend_matrices_for_viscous_free_surface(state, cmc_m, ct_m, u, p, fs, p_mesh)
     ! extend ct_m with some extra rows to enforce the kinematic bc
     ! in the transpose of this the extra columns are used to enforce the
     ! \rho_0 g\eta term in the no_normal_stress bc (see next routine
@@ -1389,6 +1457,7 @@ contains
     type(vector_field), intent(in):: u
     type(scalar_field), intent(in):: p
     type(scalar_field), intent(inout):: fs
+    type(mesh_type), intent(in):: p_mesh ! extended pressure mesh
 
     type(integer_set):: fs_nodes
     type(block_csr_matrix):: new_ct_m
@@ -1418,6 +1487,15 @@ contains
 
     if (extend_ct_m) then
       new_sparsity = sparsity_duplicate_rows(ct_m%sparsity, fs_nodes, ct_m%sparsity%name)
+      if (associated(p_mesh%halos)) then
+        allocate(new_sparsity%row_halo)
+        new_sparsity%row_halo = p_mesh%halos(1)
+        call incref(new_sparsity%row_halo)
+        allocate(new_sparsity%column_halo)
+        new_sparsity%column_halo = ct_m%sparsity%column_halo
+        call incref(new_sparsity%column_halo)
+      end if
+
       ! only thing we want to keep from the original ct_m before deallocating
       ct_name=ct_m%name
       ! (ct_m is just a borrowed reference so we don't need to deallocate ourselves, this is done by the insert)
@@ -1435,12 +1513,28 @@ contains
     if (extend_cmc_m) then
       ! first add some columns
       new_sparsity = sparsity_duplicate_columns(cmc_m%sparsity, fs_nodes, cmc_m%sparsity%name)
+      if (associated(p_mesh%halos)) then
+        allocate(new_sparsity%row_halo)
+        new_sparsity%row_halo=cmc_m%sparsity%row_halo
+        call incref(new_sparsity%row_halo)
+        allocate(new_sparsity%column_halo)
+        new_sparsity%column_halo=p_mesh%halos(2)
+        call incref(new_sparsity%column_halo)
+      end if
       ! only thing we want to keep from the original cmc_m before deallocating
       cmc_name=cmc_m%name
       ! (cmc_m is just a borrowed reference so we don't need to deallocate ourselves, this is done by the insert)
 
       ! now add the rows
       new_sparsity2 = sparsity_duplicate_rows(new_sparsity, fs_nodes, new_sparsity%name)
+      if (associated(p_mesh%halos)) then
+        allocate(new_sparsity2%row_halo)
+        new_sparsity2%row_halo=p_mesh%halos(2)
+        call incref(new_sparsity2%row_halo)
+        allocate(new_sparsity2%column_halo)
+        new_sparsity2%column_halo=p_mesh%halos(2)
+        call incref(new_sparsity2%column_halo)
+      end if
       call deallocate(new_sparsity)
 
       call allocate(new_cmc_m, new_sparsity2, name=cmc_name)
@@ -1455,6 +1549,186 @@ contains
     call deallocate(fs_nodes)
 
   end subroutine extend_matrices_for_viscous_free_surface
+
+  function sparsity_duplicate_rows(sparsity_in, rows, name) result (sparsity_out)
+  !!< function that returns a new sparsity based on sparsity_in
+  !!< that has all the rows in the set 'rows' duplicated and appended
+  !!< at the end (as extra rows).
+    type(csr_sparsity):: sparsity_out
+    type(csr_sparsity), intent(in):: sparsity_in
+    type(integer_set), intent(in):: rows
+    character(len=*), intent(in):: name
+
+    type(halo_type), pointer:: row_halo
+    integer, dimension(:), allocatable:: rowl
+    integer, dimension(:), pointer:: new_row
+    integer:: i, new_i, row, extra_entries, owned_rows, new_row_base, owned_new_rows
+
+    extra_entries=0
+    do i=1, key_count(rows)
+      row=fetch(rows, i)
+      extra_entries=extra_entries+row_length(sparsity_in, row)
+    end do
+
+    call allocate(sparsity_out, size(sparsity_in,1)+key_count(rows), size(sparsity_in,2), &
+      entries=size(sparsity_in%colm)+extra_entries, name=name)
+
+    row_halo => sparsity_in%row_halo
+    if (associated(row_halo)) then
+      owned_rows = halo_nowned_nodes(row_halo)
+    else
+      owned_rows = size(sparsity_in, 1)
+    end if
+    
+    allocate(rowl(1:size(sparsity_out,1)))
+    new_row_base = owned_rows
+    do i=1, owned_rows
+      rowl(i)=row_length(sparsity_in, i)
+      if (has_value(rows, i)) then
+        new_row_base = new_row_base+1
+        rowl(new_row_base) = row_length(sparsity_in, i)
+      end if
+    end do
+    owned_new_rows = new_row_base-owned_rows
+    new_row_base = size(sparsity_in,1)+owned_new_rows
+    do i=owned_rows+1, size(sparsity_in, 1)
+      new_i = owned_new_rows+i
+      rowl(new_i)=row_length(sparsity_in, i)
+      if (has_value(rows, i)) then
+        new_row_base = new_row_base+1
+        rowl(new_row_base)=row_length(sparsity_in, i)
+      end if
+    end do
+    assert(new_row_base==size(sparsity_out,1))
+
+    sparsity_out%findrm = findrm_from_row_length(rowl)
+
+    new_row_base = owned_rows
+    do i=1, owned_rows
+      new_row => row_m_ptr(sparsity_out, i)
+      new_row=row_m(sparsity_in, i)
+      if (has_value(rows, i)) then
+        new_row_base = new_row_base+1
+        new_row => row_m_ptr(sparsity_out, new_row_base)
+        new_row=row_m(sparsity_in, i)
+      end if
+    end do
+    new_row_base = size(sparsity_in,1) + owned_new_rows
+    do i=owned_rows+1, size(sparsity_in, 1)
+      new_i = owned_new_rows+i
+      new_row => row_m_ptr(sparsity_out, new_i)
+      new_row=row_m(sparsity_in, i)
+      if (has_value(rows, i)) then
+        new_row_base = new_row_base+1
+        new_row => row_m_ptr(sparsity_out, new_row_base)
+        new_row=row_m(sparsity_in, i)
+      end if
+    end do
+
+    sparsity_out%sorted_rows=sparsity_in%sorted_rows
+
+  end function sparsity_duplicate_rows
+
+  function findrm_from_row_length(rowl) result(findrm)
+    integer, dimension(:), intent(in):: rowl
+    integer, dimension(size(rowl)+1):: findrm
+
+    integer:: i
+
+    findrm(1)=1
+    do i=1, size(rowl)
+      findrm(i+1)=findrm(i)+rowl(i)
+    end do
+
+  end function findrm_from_row_length
+
+  function sparsity_duplicate_columns(sparsity_in, columns, name) result (sparsity_out)
+  !!< function that returns a new sparsity based on sparsity_in
+  !!< that has all the columns in the set 'cols' duplicated and appended
+  !!< at the end (as extra columns).
+    type(csr_sparsity):: sparsity_out
+    type(csr_sparsity), intent(in):: sparsity_in
+    type(integer_set), intent(in):: columns
+    character(len=*), intent(in):: name
+
+    type(halo_type), pointer:: column_halo
+    type(integer_hash_table):: column_index
+    integer, dimension(:), pointer:: row_in
+    integer:: owned_columns, owned_new_columns, owned_row_columns
+    integer:: old_pos, new_pos
+    integer:: i, j, k, l, extra_entries
+
+    if (.not. sparsity_in%sorted_rows) then
+      FLAbort("This routine should only be called with sorted rows sparsities")
+    end if
+
+    extra_entries=0
+    do i=1, size(sparsity_in%colm)
+      if (has_value(columns, sparsity_in%colm(i))) then
+        extra_entries=extra_entries+1
+      end if
+    end do
+
+    call allocate(sparsity_out, size(sparsity_in,1), size(sparsity_in,2)+key_count(columns), &
+      entries=size(sparsity_in%colm)+extra_entries, name=name)
+
+    ! column index maps from a column index in sparsity_in to an index in columns
+    call invert_set(columns, column_index)
+
+    column_halo => sparsity_in%column_halo
+    if (associated(column_halo)) then
+      owned_columns = halo_nowned_nodes(column_halo)
+      owned_new_columns = 0
+      do i=1, key_count(columns)
+        j=fetch(columns,i)
+        if (node_owned(column_halo, j)) owned_new_columns=owned_new_columns+1
+      end do
+    else
+      owned_columns = size(sparsity_in, 1)
+      owned_new_columns = key_count(columns)
+    end if
+
+    k=1
+    do i=1, size(sparsity_in, 1)
+      sparsity_out%findrm(i)=k
+      row_in => row_m_ptr(sparsity_in, i)
+      l=size(row_in)
+      ! first count the owned columns in this row
+      do j=1, l
+        if (row_in(j)>owned_columns) exit
+      end do
+      owned_row_columns=j-1
+      old_pos=k
+      new_pos=k+owned_row_columns
+      do j=1, l
+        if (row_in(j)>owned_columns) exit
+        sparsity_out%colm(old_pos)=row_in(j)
+        old_pos=old_pos+1
+        if (has_value(columns,row_in(j))) then
+          sparsity_out%colm(new_pos)=fetch(column_index,row_in(j))+owned_columns
+          new_pos=new_pos+1
+        end if
+      end do
+      old_pos=new_pos
+      new_pos=new_pos+l-owned_row_columns
+      do j=j,l
+        sparsity_out%colm(old_pos)=row_in(j)+owned_new_columns
+        old_pos=old_pos+1
+        if (has_value(columns,row_in(j))) then
+          sparsity_out%colm(new_pos)=fetch(column_index,row_in(j))+size(sparsity_in,2)
+          new_pos=new_pos+1
+        end if
+      end do
+      ! start of new row
+      k=new_pos
+    end do
+    ! fill in the usual last row
+    sparsity_out%findrm(i)=k
+    assert( k==size(sparsity_out%colm)+1 )
+
+    sparsity_out%sorted_rows=.true.
+
+  end function sparsity_duplicate_columns
   
   subroutine extend_schur_auxiliary_matrix_for_viscous_free_surface(state, schur_auxiliary_matrix, u, p, fs)
     ! Schur auxiliary matrix needs to be extended
@@ -1507,7 +1781,8 @@ contains
 
   end subroutine extend_schur_auxiliary_matrix_for_viscous_free_surface
   
-  subroutine add_implicit_viscous_free_surface_integrals(state, ct_m, u, p, fs)
+  subroutine add_implicit_viscous_free_surface_integrals(state, ct_m, u, &
+      p_mesh, fs)
     ! This routine adds in the boundary conditions for the viscous free surface
     ! (that is the free_surface bc with the no_normal_stress option)
     ! ct_m has been extended with some extra rows (corresponding to free surface
@@ -1519,11 +1794,11 @@ contains
     type(state_type), intent(inout):: state
     type(block_csr_matrix), intent(inout):: ct_m
     type(vector_field), intent(in):: u
-    type(scalar_field), intent(in):: p
+    type(mesh_type), intent(in):: p_mesh ! the extended pressure mesh
     type(scalar_field), intent(inout):: fs
 
     type(vector_field), pointer:: x
-    type(mesh_type), pointer:: fs_mesh
+    type(mesh_type), pointer:: fs_mesh, embedded_fs_mesh
     type(integer_hash_table):: sele_to_fs_ele
     character(len=FIELD_NAME_LEN):: bc_type
     character(len=OPTION_PATH_LEN):: bc_option_path
@@ -1541,6 +1816,7 @@ contains
         surface_mesh=fs_mesh, surface_element_list=surface_element_list)
     ! create a map from face numbers to element numbers in fs_mesh
     call invert_set(surface_element_list, sele_to_fs_ele)
+    embedded_fs_mesh => extract_mesh(state, "_embedded_free_surface_mesh")
 
     x => extract_vector_field(state, "Coordinate")
 
@@ -1562,7 +1838,7 @@ contains
     subroutine add_boundary_integral_sele(sele)
       integer, intent(in):: sele
 
-      real, dimension(u%dim, face_loc(p, sele), face_loc(u, sele)) :: ct_mat_bdy
+      real, dimension(u%dim, face_loc(p_mesh, sele), face_loc(u, sele)) :: ct_mat_bdy
       real, dimension(u%dim, face_loc(fs, sele), face_loc(u, sele)) :: ht_mat_bdy
       real, dimension(face_ngi(u, sele)) :: detwei_bdy
       real, dimension(u%dim, face_ngi(u, sele)) :: normal_bdy
@@ -1570,7 +1846,7 @@ contains
       
       call transform_facet_to_physical(x, sele, &
            detwei_f=detwei_bdy, normal=normal_bdy)
-      ct_mat_bdy = shape_shape_vector(face_shape(p, sele), face_shape(u, sele), &
+      ct_mat_bdy = shape_shape_vector(face_shape(p_mesh, sele), face_shape(u, sele), &
            detwei_bdy, normal_bdy)
       ht_mat_bdy = shape_shape_vector(face_shape(fs, sele), face_shape(u, sele), &
            detwei_bdy, normal_bdy)
@@ -1578,12 +1854,12 @@ contains
         ! we've integrated continuity by parts, but not yet added in the resulting
         ! surface integral - for the non-viscous free surface this is left
         ! out to enforce the kinematic bc
-        call addto(ct_m, 1, dim, face_global_nodes(p,sele), &
+        call addto(ct_m, 1, dim, face_global_nodes(p_mesh,sele), &
              face_global_nodes(u,sele), ct_mat_bdy(dim,:,:))
         ! for the viscous bc however we add this bc in the extra rows at the bottom of ct_m
         ! this integral will also enforce the \rho_0 g\eta term in the no_normal_stress bc:
         !   n\cdot\tau\cdot n + p - (\rho_0-\rho_external) g\eta = 0
-        call addto(ct_m, 1, dim, node_count(p)+ele_nodes(fs_mesh, fetch(sele_to_fs_ele, sele)), &
+        call addto(ct_m, 1, dim, ele_nodes(embedded_fs_mesh, fetch(sele_to_fs_ele, sele)), &
              face_global_nodes(u,sele), -ht_mat_bdy(dim,:,:))
       end do
 
@@ -1591,13 +1867,14 @@ contains
 
   end subroutine add_implicit_viscous_free_surface_integrals
 
-  subroutine add_explicit_viscous_free_surface_integrals(state, mom_rhs, ct_m, reassemble_ct_m, u, p, fs)
+  subroutine add_explicit_viscous_free_surface_integrals(state, mom_rhs, ct_m, &
+        reassemble_ct_m, u, p_mesh, fs)
    type(state_type), intent(inout):: state
    type(vector_field), intent(inout):: mom_rhs 
    type(block_csr_matrix), intent(inout):: ct_m
    logical, intent(in):: reassemble_ct_m
    type(vector_field), intent(in):: u
-   type(scalar_field), intent(in):: p
+   type(mesh_type), intent(in):: p_mesh
    type(scalar_field), intent(in):: fs
 
    type(scalar_field), pointer:: it_fs, old_fs, density
@@ -1657,12 +1934,12 @@ contains
     subroutine add_boundary_integral_sele(sele)
       integer, intent(in):: sele
 
-      real, dimension(u%dim, face_loc(p, sele), face_loc(u, sele)) :: ct_mat_bdy
+      real, dimension(u%dim, face_loc(p_mesh, sele), face_loc(u, sele)) :: ct_mat_bdy
       real, dimension(face_ngi(u, sele)) :: detwei_bdy
       real, dimension(u%dim, face_ngi(u, sele)) :: normal_bdy
       real, dimension(face_ngi(fs, sele)):: delta_rho_g_quad
       integer, dimension(face_loc(u, sele)) :: u_nodes_bdy
-      integer, dimension(face_loc(p, sele)) :: p_nodes_bdy
+      integer, dimension(face_loc(p_mesh, sele)) :: p_nodes_bdy
       integer:: dim
 
       u_nodes_bdy = face_global_nodes(u, sele)
@@ -1682,9 +1959,9 @@ contains
                                      (1.0-itheta)*face_val_at_quad(old_fs, sele))))
 
       if(reassemble_ct_m) then
-        p_nodes_bdy = face_global_nodes(p, sele)
+        p_nodes_bdy = face_global_nodes(p_mesh, sele)
 
-        ct_mat_bdy = shape_shape_vector(face_shape(p, sele), face_shape(u, sele), &
+        ct_mat_bdy = shape_shape_vector(face_shape(p_mesh, sele), face_shape(u, sele), &
              detwei_bdy, normal_bdy)
 
         do dim=1, u%dim
@@ -1699,7 +1976,7 @@ contains
 
   end subroutine add_explicit_viscous_free_surface_integrals
 
-  subroutine add_implicit_viscous_free_surface_scaled_mass_integrals(state, mass, u, p, fs)
+  subroutine add_implicit_viscous_free_surface_scaled_mass_integrals(state, mass, u, p_mesh, fs)
     ! This routine adds in the boundary conditions for the viscous free surface
     ! (that is the free_surface bc with the no_normal_stress option)
     ! to the "scaled mass matrix" (pressure mass scaled with inverse of viscosity used as stokes preconditioner)
@@ -1710,13 +1987,13 @@ contains
     type(state_type), intent(inout):: state
     type(csr_matrix), intent(inout):: mass
     type(vector_field), intent(in):: u
-    type(scalar_field), intent(in):: p
+    type(scalar_field), intent(in):: p_mesh
     type(scalar_field), intent(inout):: fs
 
     type(tensor_field), pointer :: viscosity
     type(vector_field), pointer:: x
     type(scalar_field) :: viscosity_component, inverse_viscosity_component
-    type(mesh_type), pointer:: fs_mesh
+    type(mesh_type), pointer:: fs_mesh, embedded_fs_mesh
     type(integer_hash_table):: sele_to_fs_ele
     character(len=FIELD_NAME_LEN):: bc_type
     character(len=OPTION_PATH_LEN):: bc_option_path
@@ -1734,6 +2011,7 @@ contains
         surface_mesh=fs_mesh, surface_element_list=fs_surface_element_list)
     ! create a map from face numbers to element numbers in fs_mesh
     call invert_set(fs_surface_element_list, sele_to_fs_ele)
+    embedded_fs_mesh => extract_mesh(state, "_embedded_free_surface_mesh")
 
     x => extract_vector_field(state, "Coordinate")
 
@@ -1771,15 +2049,15 @@ contains
     subroutine add_boundary_integral_sele(sele)
       integer, intent(in):: sele
 
-      real, dimension(face_loc(p, sele), face_loc(p, sele)) :: mat_bdy
-      real, dimension(face_ngi(p, sele)) :: detwei_bdy
+      real, dimension(face_loc(p_mesh, sele), face_loc(p_mesh, sele)) :: mat_bdy
+      real, dimension(face_ngi(p_mesh, sele)) :: detwei_bdy
       
       call transform_facet_to_physical(x, sele, &
            detwei_f=detwei_bdy)
       mat_bdy = shape_shape(face_shape(fs, sele), face_shape(fs, sele), &
            detwei_bdy*face_val_at_quad(inverse_viscosity_component, sele))
-      call addto(mass, node_count(p)+ele_nodes(fs_mesh, fetch(sele_to_fs_ele, sele)), &
-                       node_count(p)+ele_nodes(fs_mesh, fetch(sele_to_fs_ele, sele)), &
+      call addto(mass, ele_nodes(embedded_fs_mesh, fetch(sele_to_fs_ele, sele)), &
+                       ele_nodes(embedded_fs_mesh, fetch(sele_to_fs_ele, sele)), &
                        mat_bdy)
 
     end subroutine add_boundary_integral_sele
