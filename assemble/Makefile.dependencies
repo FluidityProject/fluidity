@@ -25,10 +25,10 @@ Adapt_State.o ../include/adapt_state_module.mod: Adapt_State.F90 \
    ../include/discrete_properties_module.mod ../include/edge_length_module.mod \
    ../include/elements.mod ../include/eventcounter.mod ../include/fdebug.h \
    ../include/field_options.mod ../include/fields.mod \
-   ../include/fields_halos.mod ../include/global_parameters.mod \
-   ../include/hadapt_extrude.mod ../include/hadapt_metric_based_extrude.mod \
-   ../include/halos.mod ../include/interpolation_manager.mod \
-   ../include/interpolation_module.mod \
+   ../include/fields_halos.mod ../include/fsi_model.mod \
+   ../include/global_parameters.mod ../include/hadapt_extrude.mod \
+   ../include/hadapt_metric_based_extrude.mod ../include/halos.mod \
+   ../include/interpolation_manager.mod ../include/interpolation_module.mod \
    ../include/intersection_finder_module.mod ../include/mba2d_integration.mod \
    ../include/mba3d_integration.mod ../include/mba_adapt_module.mod \
    ../include/metric_assemble.mod ../include/mpi_interfaces.mod \
