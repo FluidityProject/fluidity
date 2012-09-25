@@ -170,7 +170,7 @@ contains
 
     end subroutine assemble_diagonal_schur
 
-    subroutine assemble_scaled_pressure_mass_matrix(state,scaled_pressure_mass_matrix)
+    subroutine assemble_scaled_pressure_mass_matrix(state, scaled_pressure_mass_matrix, p_mesh)
 
       ! This routine assembles the scaled_pressure_mass_matrix. It is scaled
       ! by the inverse of viscosity.
@@ -180,8 +180,9 @@ contains
       ! Scaled pressure mass matrix - already allocated in Momentum_Eq:
       type(csr_matrix), intent(inout) :: scaled_pressure_mass_matrix
 
-      ! Pressure field:
-      type(scalar_field), pointer :: pressure
+      ! Pressure mesh (for free surface this should be the extended pressure mesh)
+      type(mesh_type), intent(in) :: p_mesh
+
       ! Viscosity tensor:
       type(tensor_field), pointer :: viscosity     
       ! Viscosity component:
@@ -196,9 +197,6 @@ contains
       ! Positions:
       positions => extract_vector_field(state, "Coordinate")
 
-      ! Get the pressure field:
-      pressure=>extract_scalar_field(state, "Pressure")
- 
       ! Extract viscosity tensor from state:
       viscosity => extract_tensor_field(state,'Viscosity')
 
@@ -213,7 +211,7 @@ contains
 
       ! Compute pressure mass matrix, scaled by inverse viscosity - note that the
       ! inverse viscosity is supplied as density here:
-      call compute_mass(positions,pressure%mesh,scaled_pressure_mass_matrix,density=inverse_viscosity_component)
+      call compute_mass(positions,p_mesh,scaled_pressure_mass_matrix,density=inverse_viscosity_component)
 
       ewrite_minmax(scaled_pressure_mass_matrix)
 
