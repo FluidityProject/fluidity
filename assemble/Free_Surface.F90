@@ -1730,7 +1730,7 @@ contains
 
   end function sparsity_duplicate_columns
   
-  subroutine extend_schur_auxiliary_matrix_for_viscous_free_surface(state, schur_auxiliary_matrix, u, p, fs)
+  subroutine extend_schur_auxiliary_matrix_for_viscous_free_surface(state, schur_auxiliary_matrix, u, p, fs, p_mesh)
     ! Schur auxiliary matrix needs to be extended
     ! in both rows and columns to store the extra entries as a result 
     ! of extending ct_m, for the mass matrix of the time derivative in the 
@@ -1740,6 +1740,7 @@ contains
     type(vector_field), intent(in):: u
     type(scalar_field), intent(in):: p
     type(scalar_field), intent(inout):: fs
+    type(mesh_type), intent(in):: p_mesh ! extended pressure mesh
 
     type(integer_set):: fs_nodes
     type(csr_sparsity):: new_sparsity, new_sparsity2
@@ -1766,12 +1767,28 @@ contains
 
     ! first add some columns
     new_sparsity = sparsity_duplicate_columns(schur_auxiliary_matrix%sparsity, fs_nodes, schur_auxiliary_matrix%sparsity%name)
+    if (associated(p_mesh%halos)) then
+      allocate(new_sparsity%row_halo)
+      new_sparsity%row_halo=schur_auxiliary_matrix%sparsity%row_halo
+      call incref(new_sparsity%row_halo)
+      allocate(new_sparsity%column_halo)
+      new_sparsity%column_halo=p_mesh%halos(2)
+      call incref(new_sparsity%column_halo)
+    end if
     ! only thing we want to keep from the original matrix before deallocating
     schur_auxiliary_matrix_name=schur_auxiliary_matrix%name
     call deallocate(schur_auxiliary_matrix)
 
     ! now add the rows
     new_sparsity2 = sparsity_duplicate_rows(new_sparsity, fs_nodes, new_sparsity%name)
+    if (associated(p_mesh%halos)) then
+      allocate(new_sparsity2%row_halo)
+      new_sparsity2%row_halo=p_mesh%halos(2)
+      call incref(new_sparsity2%row_halo)
+      allocate(new_sparsity2%column_halo)
+      new_sparsity2%column_halo=p_mesh%halos(2)
+      call incref(new_sparsity2%column_halo)
+    end if
     call deallocate(new_sparsity)
 
     call allocate(schur_auxiliary_matrix, new_sparsity2, name=schur_auxiliary_matrix_name)
