@@ -85,13 +85,13 @@ class Field:
     self.set(node, val)
      
   def node_val(self,node):
-    return self.val[node]
-
-  def __getitem__(self, node):
     if node != int(node):
       raise TypeError
     if node > self.node_count:
       raise IndexError
+    return self.val[node]
+
+  def __getitem__(self, node):
     return self.node_val(node)
 
   def ele_val(self,ele_number):
