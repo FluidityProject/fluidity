@@ -1201,8 +1201,8 @@ module fsi_model
          end if
 
          ! Abort if dimensions of fluid and solid mesh don't add up
-         assert(fluid_position%dim == solid_position%dim)         
-
+         !assert(fluid_position%dim == solid_position%dim)         
+         
       end do solid_mesh_loop
 
       ! 1D set-ups not supported:
