@@ -34,6 +34,18 @@ program Darcy_IMPES
    use ISO_FORTRAN_ENV, only: OUTPUT_UNIT, ERROR_UNIT
    
    ! Fluidity modules
+
+
+  ! Ordering for Intel compiler
+   use quadrature
+   use elements 
+   use sparse_tools
+   use shape_functions
+   use fields
+   use state_module
+  
+
+   use sparse_tools_petsc	
    use AuxilaryOptions
    use MeshDiagnostics
    use signal_vars
@@ -41,10 +53,6 @@ program Darcy_IMPES
    use timers
    use adapt_state_module
    use FLDebug
-   use sparse_tools
-   use sparse_tools_petsc
-   use elements
-   use fields
    use field_options
    use reserve_state_module
    use vtk_interfaces
@@ -88,8 +96,6 @@ program Darcy_IMPES
    use cv_faces
    use cv_options
    use FEFields
-   use state_module
-   use shape_functions
    use write_gmsh
    use merge_tensors, only: merge_tensor_fields
    use form_metric_field, only: bound_metric
