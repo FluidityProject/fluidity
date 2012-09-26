@@ -70,10 +70,10 @@
       <real_value rank="0">0.0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">1e-10</real_value>
+      <real_value rank="0">1.0</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">1e10</real_value>
+      <real_value rank="0">1.0</real_value>
     </finish_time>
     <final_timestep>
       <integer_value rank="0">1</integer_value>
@@ -156,7 +156,7 @@
                   </diagnostics>
                 </solver>
               </inner_matrix>
-              <preconditioner_matrix name="DiagonalSchurComplement"/>
+              <preconditioner_matrix name="ScaledPressureMassMatrix"/>
             </full_schur_complement>
           </use_projection_method>
         </scheme>
@@ -243,7 +243,7 @@
           <iterative_method name="cg"/>
           <preconditioner name="gamg"/>
           <relative_error>
-            <real_value rank="0">1.0e-7</real_value>
+            <real_value rank="0">1.0e-10</real_value>
           </relative_error>
           <max_iterations>
             <integer_value rank="0">10000</integer_value>
@@ -254,7 +254,9 @@
           </multigrid_near_null_space>
           <never_ignore_solver_failures/>
           <diagnostics>
-            <monitors/>
+            <monitors>
+              <preconditioned_residual/>
+            </monitors>
           </diagnostics>
         </solver>
         <initial_condition name="WholeMesh">
