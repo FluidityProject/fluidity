@@ -56,7 +56,8 @@ public move_mesh_free_surface, add_free_surface_to_cmc_projection, &
   calculate_diagnostic_wettingdrying_alpha, insert_original_distance_to_bottom, &
   calculate_volume_by_surface_integral
 public get_extended_pressure_mesh_for_viscous_free_surface, copy_to_extended_p, &
-  update_pressure_and_viscous_free_surface, extend_matrices_for_viscous_free_surface, &
+  update_pressure_and_viscous_free_surface, extend_divergence_matrix_for_viscous_free_surface, &
+  extend_pressure_matrix_for_viscous_free_surface, &
   add_implicit_viscous_free_surface_integrals, extend_schur_auxiliary_matrix_for_viscous_free_surface, &
   add_implicit_viscous_free_surface_scaled_mass_integrals, update_prognostic_free_surface, &
   update_implicit_scaled_free_surface, has_implicit_viscous_free_surface_bc, &
@@ -1198,7 +1199,7 @@ contains
     ! Initialise key MPI information:
 
     nhalos = halo_count(full_mesh)
-    ewrite(2,*) "Number of urface_mesh halos = ",nhalos
+    ewrite(2,*) "Number of surface_mesh halos = ",nhalos
 
     if(nhalos == 0) return
 
@@ -1443,7 +1444,7 @@ contains
 
   end subroutine update_pressure_and_viscous_free_surface
 
-  subroutine extend_matrices_for_viscous_free_surface(state, cmc_m, ct_m, u, p, fs, p_mesh)
+  subroutine extend_divergence_matrix_for_viscous_free_surface(state, ct_m, u, fs, p_mesh)
     ! extend ct_m with some extra rows to enforce the kinematic bc
     ! in the transpose of this the extra columns are used to enforce the
     ! \rho_0 g\eta term in the no_normal_stress bc (see next routine
@@ -1452,28 +1453,18 @@ contains
     ! of extending ct_m, for the mass matrix of the time derivative in the 
     ! kinematic bc.
     type(state_type), intent(inout):: state
-    type(csr_matrix), pointer:: cmc_m
     type(block_csr_matrix), pointer:: ct_m
     type(vector_field), intent(in):: u
-    type(scalar_field), intent(in):: p
     type(scalar_field), intent(inout):: fs
     type(mesh_type), intent(in):: p_mesh ! extended pressure mesh
 
     type(integer_set):: fs_nodes
     type(block_csr_matrix):: new_ct_m
-    type(csr_matrix):: new_cmc_m
-    type(csr_sparsity):: new_sparsity, new_sparsity2
-    character(len=FIELD_NAME_LEN):: ct_name, cmc_name
+    type(csr_sparsity):: new_sparsity
+    character(len=FIELD_NAME_LEN):: ct_name
     integer, dimension(:), pointer:: fs_surface_node_list
-    logical:: extend_ct_m, extend_cmc_m
 
     assert(have_option(trim(fs%option_path)//"/prognostic"))
-
-    ! normal matrices have n/o rows=n/o pressure dofs, we need to add f.s. dofs
-    extend_ct_m = size(ct_m,1)==node_count(p)
-    extend_cmc_m = size(cmc_m,1)==node_count(p)
-    ! check whether we have anything to do at all
-    if (.not. (extend_ct_m .or. extend_cmc_m)) return
 
     if (.not. has_boundary_condition_name(fs, "_implicit_free_surface")) then
       call initialise_implicit_prognostic_free_surface(state, fs, u)
@@ -1485,70 +1476,101 @@ contains
     call allocate(fs_nodes)
     call insert(fs_nodes, fs_surface_node_list)
 
-    if (extend_ct_m) then
-      new_sparsity = sparsity_duplicate_rows(ct_m%sparsity, fs_nodes, ct_m%sparsity%name)
-      if (associated(p_mesh%halos)) then
-        allocate(new_sparsity%row_halo)
-        new_sparsity%row_halo = p_mesh%halos(1)
-        call incref(new_sparsity%row_halo)
-        allocate(new_sparsity%column_halo)
-        new_sparsity%column_halo = ct_m%sparsity%column_halo
-        call incref(new_sparsity%column_halo)
-      end if
-
-      ! only thing we want to keep from the original ct_m before deallocating
-      ct_name=ct_m%name
-      ! (ct_m is just a borrowed reference so we don't need to deallocate ourselves, this is done by the insert)
-
-      call allocate(new_ct_m, new_sparsity, (/ 1, u%dim /), name=ct_name)
-      call deallocate(new_sparsity)
-
-      call insert(state, new_ct_m, ct_name)
-      call deallocate(new_ct_m)
-
-      ct_m => extract_block_csr_matrix(state, ct_name)
-
+    new_sparsity = sparsity_duplicate_rows(ct_m%sparsity, fs_nodes, ct_m%sparsity%name)
+    if (associated(p_mesh%halos)) then
+      allocate(new_sparsity%row_halo)
+      new_sparsity%row_halo = p_mesh%halos(1)
+      call incref(new_sparsity%row_halo)
+      allocate(new_sparsity%column_halo)
+      new_sparsity%column_halo = ct_m%sparsity%column_halo
+      call incref(new_sparsity%column_halo)
     end if
 
-    if (extend_cmc_m) then
-      ! first add some columns
-      new_sparsity = sparsity_duplicate_columns(cmc_m%sparsity, fs_nodes, cmc_m%sparsity%name)
-      if (associated(p_mesh%halos)) then
-        allocate(new_sparsity%row_halo)
-        new_sparsity%row_halo=cmc_m%sparsity%row_halo
-        call incref(new_sparsity%row_halo)
-        allocate(new_sparsity%column_halo)
-        new_sparsity%column_halo=p_mesh%halos(2)
-        call incref(new_sparsity%column_halo)
-      end if
-      ! only thing we want to keep from the original cmc_m before deallocating
-      cmc_name=cmc_m%name
-      ! (cmc_m is just a borrowed reference so we don't need to deallocate ourselves, this is done by the insert)
+    ! only thing we want to keep from the original ct_m before deallocating
+    ct_name=ct_m%name
+    ! (ct_m is just a borrowed reference so we don't need to deallocate ourselves, this is done by the insert)
 
-      ! now add the rows
-      new_sparsity2 = sparsity_duplicate_rows(new_sparsity, fs_nodes, new_sparsity%name)
-      if (associated(p_mesh%halos)) then
-        allocate(new_sparsity2%row_halo)
-        new_sparsity2%row_halo=p_mesh%halos(2)
-        call incref(new_sparsity2%row_halo)
-        allocate(new_sparsity2%column_halo)
-        new_sparsity2%column_halo=p_mesh%halos(2)
-        call incref(new_sparsity2%column_halo)
-      end if
-      call deallocate(new_sparsity)
+    call allocate(new_ct_m, new_sparsity, (/ 1, u%dim /), name=ct_name)
+    call deallocate(new_sparsity)
 
-      call allocate(new_cmc_m, new_sparsity2, name=cmc_name)
-      call deallocate(new_sparsity2)
+    call insert(state, new_ct_m, ct_name)
+    call deallocate(new_ct_m)
 
-      call insert(state, new_cmc_m, cmc_name)
-      call deallocate(new_cmc_m)
-     
-      cmc_m => extract_csr_matrix(state, cmc_name)
-    end if
+    ct_m => extract_block_csr_matrix(state, ct_name)
 
     call deallocate(fs_nodes)
 
-  end subroutine extend_matrices_for_viscous_free_surface
+  end subroutine extend_divergence_matrix_for_viscous_free_surface
+
+  subroutine extend_pressure_matrix_for_viscous_free_surface(state, cmc_m, u, fs, p_mesh)
+    ! extend cmc_m with some extra rows to enforce the kinematic bc
+    ! in the transpose of this the extra columns are used to enforce the
+    ! \rho_0 g\eta term in the no_normal_stress bc (see next routine
+    ! add_implicit_viscous_free_surface_integrals). Also cmc_m needs to be extended
+    ! in both rows and columns to store the extra entries as a result 
+    ! of extending ct_m, for the mass matrix of the time derivative in the 
+    ! kinematic bc.
+    type(state_type), intent(inout):: state
+    type(csr_matrix), pointer:: cmc_m
+    type(vector_field), intent(in):: u
+    type(scalar_field), intent(inout):: fs
+    type(mesh_type), intent(in):: p_mesh ! extended pressure mesh
+
+    type(integer_set):: fs_nodes
+    type(csr_matrix):: new_cmc_m
+    type(csr_sparsity):: new_sparsity, new_sparsity2
+    character(len=FIELD_NAME_LEN):: cmc_name
+    integer, dimension(:), pointer:: fs_surface_node_list
+
+    assert(have_option(trim(fs%option_path)//"/prognostic"))
+
+    if (.not. has_boundary_condition_name(fs, "_implicit_free_surface")) then
+      call initialise_implicit_prognostic_free_surface(state, fs, u)
+    end if
+    ! obtain the f.s. surface mesh that has been stored under the
+    ! "_implicit_free_surface" boundary condition
+    call get_boundary_condition(fs, "_implicit_free_surface", &
+        surface_node_list=fs_surface_node_list)
+    call allocate(fs_nodes)
+    call insert(fs_nodes, fs_surface_node_list)
+
+    ! first add some columns
+    new_sparsity = sparsity_duplicate_columns(cmc_m%sparsity, fs_nodes, cmc_m%sparsity%name)
+    if (associated(p_mesh%halos)) then
+      allocate(new_sparsity%row_halo)
+      new_sparsity%row_halo=cmc_m%sparsity%row_halo
+      call incref(new_sparsity%row_halo)
+      allocate(new_sparsity%column_halo)
+      new_sparsity%column_halo=p_mesh%halos(2)
+      call incref(new_sparsity%column_halo)
+    end if
+    ! only thing we want to keep from the original cmc_m before deallocating
+    cmc_name=cmc_m%name
+    ! (cmc_m is just a borrowed reference so we don't need to deallocate ourselves, this is done by the insert)
+
+    ! now add the rows
+    new_sparsity2 = sparsity_duplicate_rows(new_sparsity, fs_nodes, new_sparsity%name)
+    if (associated(p_mesh%halos)) then
+      allocate(new_sparsity2%row_halo)
+      new_sparsity2%row_halo=p_mesh%halos(2)
+      call incref(new_sparsity2%row_halo)
+      allocate(new_sparsity2%column_halo)
+      new_sparsity2%column_halo=p_mesh%halos(2)
+      call incref(new_sparsity2%column_halo)
+    end if
+    call deallocate(new_sparsity)
+
+    call allocate(new_cmc_m, new_sparsity2, name=cmc_name)
+    call deallocate(new_sparsity2)
+
+    call insert(state, new_cmc_m, cmc_name)
+    call deallocate(new_cmc_m)
+   
+    cmc_m => extract_csr_matrix(state, cmc_name)
+
+    call deallocate(fs_nodes)
+
+  end subroutine extend_pressure_matrix_for_viscous_free_surface
 
   function sparsity_duplicate_rows(sparsity_in, rows, name) result (sparsity_out)
   !!< function that returns a new sparsity based on sparsity_in

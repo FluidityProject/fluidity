@@ -415,6 +415,9 @@
                call profiler_tic(p, "assembly")
                ! Get the pressure gradient matrix (i.e. the divergence matrix)
                ct_m(istate)%ptr => get_velocity_divergence_matrix(state(istate), get_ct=reassemble_ct_m) ! Sets reassemble_ct_m to true if it does not already exist in state(i) 
+               if (implicit_prognostic_fs .and. reassemble_ct_m) then
+                 call extend_divergence_matrix_for_viscous_free_surface(state(istate), ct_m(istate)%ptr, u, free_surface, p_mesh)
+               end if
                reassemble_ct_m = reassemble_ct_m .or. reassemble_all_ct_m
                
                ! For the CG pressure with CV tested continuity case 
@@ -427,11 +430,11 @@
 
                ! Get the pressure poisson matrix (i.e. the CMC/projection matrix)
                cmc_m => get_pressure_poisson_matrix(state(istate), get_cmc=reassemble_cmc_m) ! ...and similarly for reassemble_cmc_m
+               if (implicit_prognostic_fs .and. reassemble_cmc_m) then
+                 call extend_pressure_matrix_for_viscous_free_surface(state(istate), cmc_m, u, free_surface, p_mesh)
+               end if
                reassemble_cmc_m = reassemble_cmc_m .or. reassemble_all_cmc_m
 
-               if (implicit_prognostic_fs) then
-                 call extend_matrices_for_viscous_free_surface(state(istate), cmc_m, ct_m(istate)%ptr, u, p, free_surface, p_mesh)
-               end if
                call profiler_toc(p, "assembly")
 
             end if
