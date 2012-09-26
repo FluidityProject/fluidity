@@ -22,9 +22,9 @@ cd_convergence_gal_stat = convergence_gal_stat("MMS_C.stat", "MMS_D.stat")
   </variables>
   <pass_tests>
     <test name="test_advection_diffusion advection order." language="python">
-assert ab_convergence_gal_stat[0] > 1.3
+assert ab_convergence_gal_stat[0] > 1.4
 assert bc_convergence_gal_stat[0] > 1.9
-assert cd_convergence_gal_stat[0] > 1.4
+assert cd_convergence_gal_stat[0] > 1.9
     </test>
   </pass_tests>
   <warn_tests/>
