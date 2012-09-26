@@ -14,7 +14,7 @@ def key(file):
   return int(file.split('_')[-1].split('.')[0])
 
 def get_filelist():
-  filelist = glob.glob1('.', 'viscous_fs_drunkensailor_*.vtu')
+  filelist = glob.glob1('.', 'viscous_fs_drunkensailor_*.pvtu')
   filelist = sorted(filelist, key=key)
   return filelist
 
@@ -24,10 +24,8 @@ def get_time(file):
   return time[0]
 
 def get_interface_depth(file):
-  reader = vtk.vtkXMLUnstructuredGridReader();
-  reader.SetFileName(file)
-  reader.Update()
-  data = reader.GetOutput()
+  vtu=vtktools.vtu(file)
+  data = vtu.ugrid
   data.GetPointData().SetActiveScalars("Dense::MaterialVolumeFraction")
   contour = vtk.vtkContourFilter ()
   contour.SetInput(data)

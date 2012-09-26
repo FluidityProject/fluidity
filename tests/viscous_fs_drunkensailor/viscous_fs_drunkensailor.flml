@@ -133,8 +133,8 @@
             <full_schur_complement>
               <inner_matrix name="FullMomentumMatrix">
                 <solver>
-                  <iterative_method name="preonly"/>
-                  <preconditioner name="lu"/>
+                  <iterative_method name="cg"/>
+                  <preconditioner name="mg"/>
                   <relative_error>
                     <real_value rank="0">1.0e-10</real_value>
                   </relative_error>
@@ -155,8 +155,8 @@
           <iterative_method name="fgmres"/>
           <preconditioner name="ksp">
             <solver>
-              <iterative_method name="preonly"/>
-              <preconditioner name="lu"/>
+              <iterative_method name="cg"/>
+              <preconditioner name="sor"/>
               <relative_error>
                 <real_value rank="0">1.0e-10</real_value>
               </relative_error>
@@ -243,8 +243,8 @@
           </relaxation>
         </temporal_discretisation>
         <solver>
-          <iterative_method name="preonly"/>
-          <preconditioner name="lu"/>
+          <iterative_method name="cg"/>
+          <preconditioner name="mg"/>
           <relative_error>
             <real_value rank="0">1.0e-10</real_value>
           </relative_error>
