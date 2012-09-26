@@ -462,76 +462,94 @@ diffusivity of mass.
 
 \par{\textbf{Time discretisation and coupling}\\}
 The $k$ and $\epsilon$ equations are coupled and are highly non-linear. In Fluidity, the
-equations are linearised and decoupled by calculating all source terms and also the eddy
-viscosity, $\mu_T$, using a combination of values from the previous non-linear time step
-and values from the previous time step. Equations \ref{eq:R_tensor_compressible} to
-\ref{eq:Cepsilon3} therefore become:
+equations are linearised and decoupled using available values from previous iterations
+and time steps as follows.  
+
+Being consistent with all advection diffusion equations in Fluidity, the density and
+velocity values used are defined by non-linear relaxation of the available values for
+these variables as defined in section \ref{sec:relax}, which are denoted as
+$\hat{\mathbf{u}} = \mathbf{u}^{n+\theta_{nl}}$ and $\hat{\rho} = \rho^{n+\theta_{nl}}$
+for the remainder of this section.
+
+Two discretisations are used for $k$ and $\epsilon$. % The time-discretisation of the
+% advection diffusion equations for $k$ and $\epsilon$ differs from the discretisation
+% described in section\ref{sec:ND_time_disct_adv_diff} due to 
+The coupled, non-linear source terms and eddy viscosity are calculated using a
+discretisation of $k$ and $\epsilon$ similar to the non-linear relaxation of $\mathbf{u}$
+and $\rho$. i.e. based upon values from the previous non-linear iteration,
+$\tilde{\gamma}^{n+1}$ (where $\gamma$ implies either $k$ or $\epsilon$), and values from
+the previous time step $\gamma^n$. The choice between these values is made using the
+$k-\epsilon$ nonlinear relaxation parameter, $\theta_{k\epsilon}$, which must lie in the
+interval [0, 1]. This allows us to define:
+
+\begin{equation}
+  \hat{\gamma} = \gamma^{n+\theta_{k\epsilon}} =  \theta_{k\epsilon} \tilde{\gamma}^{n+1} + \left( 1.0 - \theta_{k\epsilon} \right) \gamma^n .
+\end{equation}
+
+Other terms in these equations are discretised using the $\theta$ scheme described in
+section~\ref{sec:ND_time_theta_scheme}, as in
+section~\ref{sec:ND_time_disct_adv_diff}. These values are denoted as $\bar{\gamma}$
+throughout the remainder of this section.
+
+Equations \ref{eq:R_tensor_compressible} to \ref{eq:Cepsilon3} therefore become:
 
 \begin{equation}\label{eq:R_tensor_compressible_td}
-  \tautens_{R}^{n+\theta_{k\epsilon}} = \mu_T^{n+\theta_{k\epsilon}} \left( \nabla\mathbf{u}^{n+\theta_{nl}} + \left(\nabla\mathbf{u}^{n+\theta_{nl}}\right)^{\mathrm{T}} - \frac{1}{3}\left(\nabla\cdot\mathbf{u}^{n+\theta_{nl}}\right)\mathbf{I} \right) - \frac{2}{3} k^{n+\theta_{k\epsilon}}\rho^{n+\theta_{nl}}\mathbf{I},
+  \hat{\tautens_{R}} = \hat{\mu_T} \left( \nabla\hat{\mathbf{u}} + \left( \nabla\hat{\mathbf{u}} \right)^{\mathrm{T}} - \frac{1}{3}\left( \nabla\cdot\hat{\mathbf{u}} \right)\mathbf{I} \right) - \frac{2}{3} \hat{k} \hat{\rho} \mathbf{I},
 \end{equation}
 
 \begin{equation}\label{eq:nut_td}
-  \mu_T^{n+\theta_{k\epsilon}} = \rho^{n+\theta_{nl}} C_\mu \frac{(k^{n+\theta_{k\epsilon}})^2}{\epsilon^{n+\theta_{k\epsilon}}},
+  \hat{\mu_T} = \hat{\rho} C_\mu \frac{\hat{k}^2}{\hat{\epsilon}}
 \end{equation}
-\noindent with $\mu_T^{n+\theta_{k\epsilon}}$ being evaluated both at the beginning of
-each non-linear iteration, and also before the momentum solve.
+\noindent $\hat{\mu_T}$ is evaluated both at the beginning of each non-linear iteration
+and also before the momentum solve so that the most up to date value is used for all
+equation solves.
 
-\begin{align}\label{eq:k_td}
-  \rho^{n+\theta_{nl}} \frac{\partial k}{\partial t} + \rho^{n+\theta_{nl}}
-  \mathbf{u}^{n+\theta_{nl}} \cdot \nabla k^{n+\theta_{c}} =
-  \nonumber \\
-  \nabla\cdot\left(\left(\mu + \frac{\mu_T^{n+\theta_{k\epsilon}}}{\sigma_k}\right) \nabla
-    k^{n+\theta_{c}} \right) + \tautens_R^{n+\theta_{k\epsilon}} \cdot
-  \nabla\mathbf{u}^{n+\theta_{nl}} - G_k^{n+\theta_{k\epsilon}} - \rho^{n+\theta_{nl}}
+\begin{equation}\label{eq:k_td}
+  \hat{\rho} \frac{\partial k}{\partial t} + \hat{\rho}
+  \hat{\mathbf{u}} \cdot \nabla \bar{k} =
+  \nabla\cdot\left(\left(\mu + \frac{\hat{\mu_T}}{\sigma_k}\right) \nabla
+    \bar{k} \right) + \hat{\tautens_R} \cdot
+  \nabla\hat{\mathbf{u}} - \hat{G_k} - \hat{\rho}
   \epsilon^{n+\theta_{k\epsilon}} ,
-\end{align}
+\end{equation}
 \noindent where:
 \begin{equation}\label{eq:g_k_td}
-  G_k^{n+\theta_{k\epsilon}} = \frac{\mu_T^{n+\theta_{k\epsilon}}}{\rho^{n+\theta_{nl}}\sigma_T} \, \mathbf{g}\cdot\nabla\rho^{n+\theta_{nl}},
+  \hat{G_k} = \frac{\hat{\mu_T}}{\hat{\rho}\sigma_T} \, \mathbf{g}\cdot\nabla\hat{\rho},
 \end{equation}
 
 
-\begin{align}\label{eq:eps_td}
-  \rho^{n+\theta_{nl}}\frac{\partial \epsilon}{\partial t} +
-  \rho^{n+\theta_{nl}}\mathbf{u}^{n+\theta_{nl}}\cdot \nabla
-  \epsilon^{n+\theta_c} =
-  \nonumber \\
-  \nabla\cdot\left(\left(\mu + \frac{\mu_T^{n+\theta_{k\epsilon}}}{\sigma_\epsilon}\right)
-    \nabla{\epsilon^{n+\theta_c}} \right) + C_{\epsilon1} \left(
-    \frac{\epsilon^{n+\theta_{k\epsilon}}}{k^{n+\theta_{k\epsilon}}} \right) \left(
-    \tautens_R^{n+\theta_{k\epsilon}} \cdot \nabla\mathbf{u}^{n+\theta_{nl}} -
-    G_\epsilon^{n+\theta_{k\epsilon}} \right) - C_{\epsilon2} \rho^{n+\theta_{nl}}
-  \frac{(\epsilon^{n+\theta_{k\epsilon}})^2}{k^{n+\theta_{k\epsilon}}} ,
-\end{align}
+\begin{equation}\label{eq:eps_td}
+  \hat{\rho}\frac{\partial \epsilon}{\partial t} +
+  \hat{\rho}\hat{\mathbf{u}}\cdot \nabla
+  \bar{\epsilon} =
+  \nabla\cdot\left(\left(\mu + \frac{\hat{\mu_T}}{\sigma_\epsilon}\right)
+    \nabla{\bar{\epsilon}} \right) + C_{\epsilon1} \left(
+    \frac{\hat{\epsilon}}{\hat{k}} \right) \left(
+    \hat{\tautens_R} \cdot \nabla\hat{\mathbf{u}} -
+    \hat{G_\epsilon} \right) - C_{\epsilon2} \hat{\rho}
+  \frac{\hat{\epsilon}^2}{\hat{k}} ,
+\end{equation}
 \noindent where:
 \begin{equation}\label{eq:g_eps_td}
-  G_\epsilon^{n+\theta_{k\epsilon}} = C_{\epsilon3} \, \frac{\mu_T^{n+\theta_{k\epsilon}}}{\rho^{n+\theta_{nl}}\sigma_T} \, \mathbf{g}\cdot\nabla \rho^{n+\theta_{nl}},
+  \hat{G_\epsilon} = C_{\epsilon3} \, \frac{\hat{\mu_T}}{\hat{\rho}\sigma_T} \, \mathbf{g}\cdot\nabla \hat{\rho},
 \end{equation}
 
 \begin{equation}\label{eq:Cepsilon3_td}
-  C_{\epsilon3} = \mathrm{tanh}\left ( \frac{u_z^{n+\theta_{nl}}}{u_{xy}^{n+\theta_{nl}}}  \right ),
+  C_{\epsilon3} = \mathrm{tanh}\left ( \frac{\hat{u_z}}{\hat{u_{xy}}}  \right ),
 \end{equation}
-
-Throughout the above, $\gamma$ is interchangeable with any variable and
-$\gamma^{nl}$ indicates the most up to date value for that variable that is available:
-\begin{equation}
-  \gamma^{n+\theta_{k\epsilon}} =  \theta_{k\epsilon} \gamma^{nl} + \left( 1.0 - \theta_{k\epsilon} \right) \gamma^n .
-\end{equation}
-$\theta_{k\epsilon}$ is a value set by the user.
 
 The low-Reynolds number model follows the same convention with equations \ref{eq:R_y} and
 \ref{eq:Re_T} becoming:
 \begin{equation}\label{eq:R_y_td}
-  R_y^{n+\theta_{k\epsilon}} = \frac{\rho^{n+\theta_{nl}} (k^{n+\theta_{k\epsilon}})^{1/2} y}{\mu},
+  \hat{R_y} = \frac{\hat{\rho} \hat{k}^{1/2} y}{\mu},
 \end{equation}
 \begin{equation}\label{eq:Re_T_td}
-  Re_T^{n+\theta_{k\epsilon}} = \frac{\rho^{n+\theta_{nl}} (k^{n+\theta_{k\epsilon}})^2}{\epsilon^{n+\theta_{k\epsilon}} \mu},
+  \hat{Re_T} = \frac{\hat{\rho} \hat{k}^2}{\hat{\epsilon} \mu},
 \end{equation}
 
-Additionally, it is possible to implement each of the source terms that are specific to the $k\epsilon$ model as absorbtion terms. When this is done, the chosen source term, denoted as $S$, becomes:
+Additionally, it is possible to implement each of the source terms that are specific to the $k-\epsilon$ model as absorbtion terms. When this is done, the chosen source term, denoted as $\hat{S}$, becomes:
 \begin{equation}
-  \bar{S}^{n+\theta_{k\epsilon}} = \frac{S^{n+\theta_{k\epsilon}}}{\gamma^{n+\theta_{k\epsilon}}}\gamma^{n+\theta_c}
+  \hat{S}_{absorbtion} = \frac{\hat{S}}{\hat{\gamma}}\bar{\gamma}
 \end{equation}
 \noindent where $\gamma$ is $k$ or $\epsilon$ depending upon the equation the source term is from. This can help stability in some cases and is the recommended approach for the destruction terms.
 
