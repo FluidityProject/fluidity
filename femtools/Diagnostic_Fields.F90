@@ -3237,7 +3237,7 @@ contains
         augmented_shape = shape
         call incref(augmented_shape)
      else
-        augmented_shape = make_element_shape(shape%loc, shape%dim, shape%degree, &
+        augmented_shape = make_element_shape(shape%ndof, shape%dim, shape%degree, &
              & shape%quadrature, quad_s = f_shape%quadrature)
      end if
     

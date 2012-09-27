@@ -133,7 +133,7 @@ contains
                   & name="value")
              
              ! set erosion field values
-             allocate(values(erosion(i_field)%mesh%shape%loc))             
+             allocate(values(erosion(i_field)%mesh%shape%ndof))             
              do ele=1,ele_count(erosion_flux)
                 to_nodes => ele_nodes(erosion(i_field), surface_element_list(ele))
                 values = ele_val(erosion_flux,ele)
