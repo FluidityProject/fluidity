@@ -128,7 +128,7 @@
     use boundary_conditions
     use free_surface_module
     use FLDebug
-    use multigrid
+    use multigrid_interface
     use spud
     implicit none
     type(state_type), intent(inout) :: state

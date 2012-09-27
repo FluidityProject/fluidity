@@ -31,7 +31,7 @@ module solvers
   use elements
   use Petsc_tools
   use Signal_Vars
-  use Multigrid
+  use multigrid_interface
   use Sparse_Tools
   use sparse_tools_petsc
   use sparse_matrices_fields

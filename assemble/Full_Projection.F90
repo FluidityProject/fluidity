@@ -39,7 +39,6 @@
     use Global_Parameters
     use spud
     use halos
-    use Multigrid
     use state_module
     use petsc_solve_state_module
     use boundary_conditions_from_options

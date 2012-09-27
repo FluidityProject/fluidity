@@ -24,7 +24,7 @@ use elements
 use fields
 use halos
 use state_module
-use Multigrid
+use multigrid_interface
 use FLDebug
 use Sparse_Tools
 use Petsc_Tools
