@@ -277,7 +277,7 @@ contains
     real :: finish_time
     integer :: dump_period_in_timesteps
     integer :: final_timestep
-    integer :: stat
+    integer :: stat, pressure_max_iterations, velocity_max_iteration
 
     character( len = 500 ) :: dummy_string_phase, dummy_string_dump, &
          dummy_string_comp, dump_name, file_format
@@ -464,6 +464,18 @@ contains
              if (SIG_INT) exit Loop_ITS
 
           end if solve_temp
+
+!!!
+!!! Check later for a more well-defined way to set up an advection problem
+!!!
+          call get_option( "/material_phase[0]/scalar_field::Pressure/prognostic/solver/max_iterations", &
+                 pressure_max_iterations, default =  500 )
+
+          call get_option( "/material_phase[0]/vector_field::Velocity/prognostic/solver/max_iterations", &
+                 velocity_max_iteration,  default =  500 )
+
+          if( ( pressure_max_iterations == 0 ) .and. ( velocity_max_iteration == 0 ) ) cycle Loop_ITS
+
 
           if (SIG_INT) exit Loop_ITS
 
