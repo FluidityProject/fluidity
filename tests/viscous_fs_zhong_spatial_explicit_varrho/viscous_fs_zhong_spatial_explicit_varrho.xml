@@ -27,7 +27,7 @@ finish_time_b = stat(file1)["ElapsedTime"]["value"][-1]</variable>
   <pass_tests>
     <test name="afinish" language="python">assert(finish_time_a&gt;2.0)</test>
     <test name="bfinish" language="python">assert(finish_time_b&gt;2.0)</test>
-    <test name="abtop" language="python">assert(ab_convergence_fs[0]&gt;1.97)</test>
-    <test name="abbot" language="python">assert(ab_convergence_fs[1]&gt;1.97)</test>
+    <test name="abtop" language="python">assert(ab_convergence_fs[0]&gt;1.95)</test>
+    <test name="abbot" language="python">assert(ab_convergence_fs[1]&gt;1.95)</test>
   </pass_tests>
 </testproblem>
