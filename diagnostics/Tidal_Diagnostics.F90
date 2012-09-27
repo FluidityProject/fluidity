@@ -46,6 +46,10 @@ module tidal_diagnostics
 
   public :: calculate_free_surface_history, calculate_tidal_harmonics
 
+  ! Module level variables - 'cos we have both the free surface history and
+  ! harmonic analyses to get options from
+  integer, save :: nLevels_
+
 type harmonic_field
    type(scalar_field) , pointer :: s_field
    character(len=OPTION_PATH_LEN) :: name ! name of scalar field
@@ -56,7 +60,13 @@ end type harmonic_field
 
 contains
 
+function get_number_of_harmonic_fields() result(N)
 
+    integer :: N
+
+    N = option_count('algorithm::tidal_harmonics')
+
+end function
 
 subroutine calculate_free_surface_history(state, s_field)
 !
@@ -69,7 +79,7 @@ subroutine calculate_free_surface_history(state, s_field)
     real :: spin_up_time, current_time, timestep
     real, dimension(:), allocatable :: saved_snapshots_times
 !
-    ewrite(3,*),'in free_surface_history_diagnostics'
+    ewrite(-3,*),'in free_surface_history_diagnostics'
 !
     fs_field => extract_scalar_field(state,"FreeSurface",stat)
 !
@@ -79,22 +89,14 @@ subroutine calculate_free_surface_history(state, s_field)
     end if
 
 ! get history options
-   spin_up_time=0
-   call get_option("/timestepping/current_time", current_time)
-   call get_option("/timestepping/timestep", timestep)
-   if(current_time+timestep<spin_up_time) then
-       ewrite(4,*), "Still spinning up."
-       return
-   endif
    base_path=trim(complete_field_path(s_field%option_path)) // "/algorithm/"
+   
    ! levels: the number of levels which will be saved. Too old levels will be overwritten by new ones.
-   if (have_option(trim(base_path) // "levels")) then
-       call get_option(trim(base_path) // "levels", levels)
-       levels=max(levels,0)
-   else
-       levels=50
-   end if
+   call get_option(trim(base_path) // "levels", levels, default=50)
+   levels=max(levels,0)
+   ! Set it for checkpointing, etc
    call set_option(trim(base_path) // "levels", levels, stat)
+   nLevels_ = levels
    assert(any(stat == (/SPUD_NO_ERROR, SPUD_NEW_KEY_WARNING/)))
 
    ! The internal timestep counter of calculate_free_surface_history.
@@ -109,14 +111,23 @@ subroutine calculate_free_surface_history(state, s_field)
    assert(any(stat == (/SPUD_NO_ERROR, SPUD_NEW_KEY_WARNING/)))
 
    ! stride: Defines how many timesteps shall be skipped between two history snapshots.
-   if (have_option(trim(base_path) // "stride")) then
-       call get_option(trim(base_path) // "stride", stride)
-   else
-       stride=5
-   end if
+   call get_option(trim(base_path) // "stride", stride, default=50)
+   ! Set it for checkpointing in the future
    call set_option(trim(base_path) // "stride", stride, stat)
    assert(any(stat == (/SPUD_NO_ERROR, SPUD_NEW_KEY_WARNING/)))
 
+   call get_option(trim(base_path)//"spin_up_time", spin_up_time, default=0.0)
+   call get_option("/timestepping/current_time", current_time)
+   call get_option("/timestepping/timestep", timestep)
+   ! Spin up time is measured from the start of the simulation, not the start
+   ! time (hence no start time in here).
+   ! Note this is after the options check above as we add options to the tree if
+   ! they aren't there and they are needed in tidal_harmonics diagnostics
+   if(current_time+timestep<spin_up_time) then
+       ewrite(4,*), "Still spinning up."
+       return
+   endif
+   
    ! check if we want to save the current timestep at all
    if (mod(timestep_counter,stride)/=0) then
        ewrite(4,*), "Ignoring thbis timestep"
@@ -152,13 +163,24 @@ end subroutine calculate_free_surface_history
 
 subroutine calculate_tidal_harmonics(state, s_field)
    type(state_type), intent(in) :: state
-   type(scalar_field), intent(in) :: s_field ! Will not be used!
-   type(harmonic_field), save, dimension(100) :: harmonic_fields ! Dimension could be automatically determined but 100 harmonic constiuent fields should be enough. 
-   real, dimension(50), save :: sigma ! Dimension could be automatically determined but 50 frequencies should be enough. 
+   type(scalar_field), intent(in) :: s_field
+   type(harmonic_field), save, dimension(:), allocatable :: harmonic_fields ! Dimension could be automatically determined but 100 harmonic constiuent fields should be enough. 
+   real, dimension(:), allocatable, save :: sigma ! Dimension could be automatically determined but 50 frequencies should be enough. 
    integer, save :: last_update=-1, nohfs=-1, M=-1
    logical :: ignoretimestep
    real, dimension(:), allocatable :: saved_snapshots_times
    integer :: i, current_snapshot_index
+
+   ! Allocate the arrays - note we do not deallocate. If anyone knows how to
+   ! save an array and have it allocatable, please fix. We will therefore have a
+   ! small memory leak - need to add exception to valgrind test
+   if ( .not. allocated(harmonic_fields)) then
+       allocate(harmonic_fields(get_number_of_harmonic_fields()))
+   end if
+   if ( .not. allocated(sigma)) then
+       allocate(sigma(nLevels_))
+   end if
+
 
    ! Only if Harmonics weren't already calculated in this timestep
    if (last_update/=timestep) then 
