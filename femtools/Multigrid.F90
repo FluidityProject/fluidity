@@ -3,7 +3,6 @@
 !! aggregation preconditioner.
 module multigrid
 use FLDebug
-use parallel_tools
 #include "petscversion.h"
 #ifdef HAVE_PETSC_MODULES
   use petsc
@@ -121,11 +120,13 @@ logical, optional, intent(in) :: has_null_space
   Vec:: eigvec, Px
   PetscReal, allocatable, dimension(:):: emin, emax
   PetscObject:: myPETSC_NULL_OBJECT
+  MPI_Comm:: comm
   integer, allocatable, dimension(:):: contexts
-  integer i, j, ri, nolevels, m, n, top_level
+  integer i, j, ri, nolevels, m, n, top_level, nprocs, minimum
   integer nosmd, nosmu, clustersize, no_external_prolongators
   logical forgetlastone
   logical lno_top_smoothing
+  logical isparallel, initialized
 
     ! this might be already done, but it doesn't hurt:
     call PCSetType(prec, PCMG, ierr)
@@ -135,8 +136,19 @@ logical, optional, intent(in) :: has_null_space
        lno_top_smoothing = no_top_smoothing
     end if
 
+    ! work out whether we're running in parallel
+    call PetscObjectGetComm(matrix, comm, ierr)
+    call MPI_Initialized(initialized, ierr)
+    if (ierr==0 .and. initialized) then
+      call MPI_Comm_Size(comm, nprocs, ierr)
+    else
+      nprocs=1
+    end if
+    isparallel = nprocs>1
+
+
     call SetSmoothedAggregationOptions(epsilon, epsilon_decay, omega, maxlevels, coarsesize, &
-      nosmd, nosmu, clustersize)
+      nosmd, nosmu, clustersize, isparallel)
       
     ! In the following level i=1 is the original, fine, problem
     ! i=nolevels corresponds to the coarsest problem
@@ -166,12 +178,12 @@ logical, optional, intent(in) :: has_null_space
          prolongators(i)=external_prolongators(i)
          ewrite(2,*) "Using provided external prolongator"
       else
-         prolongators(i)=Prolongator(matrices(i), epsilon, omega, clustersize)
+         prolongators(i)=Prolongator(matrices(i), epsilon, omega, clustersize, isparallel)
          epsilon=epsilon/epsilon_decay
       end if
 
       if (prolongators(i)==PETSC_NULL_OBJECT) then
-        if (IsParallel()) then
+        if (isparallel) then
           ! in parallel we give up
           ewrite(-1,*) "ERROR: mg preconditioner setup failed"
           ewrite(-1,*) "This may be caused by local partitions being too small"
@@ -200,7 +212,10 @@ logical, optional, intent(in) :: has_null_space
       call MatPtAP(matrices(i), prolongators(i), MAT_INITIAL_MATRIX, PetscOne, &
         matrices(i+1), ierr)
       
-      call allmin(n)
+      if (isparallel) then
+        call MPI_Allreduce(n, minimum, 1, MPI_INTEGER, MPI_MIN, comm, ierr)
+        n=minimum
+      end if
       if (n<coarsesize) exit
     end do
     
@@ -276,7 +291,7 @@ logical, optional, intent(in) :: has_null_space
         ! reverse index where 1 is fine and nolevels coarse:
         ri=nolevels-i
         call PCMGGetSmootherUp(prec, i, ksp_smoother, ierr)
-        if (IsParallel()) then
+        if (isparallel) then
           call SetupSORSmoother(ksp_smoother, matrices(ri), SOR_LOCAL_SYMMETRIC_SWEEP, nosmu)
         else
           call SetupSORSmoother(ksp_smoother, matrices(ri), SOR_FORWARD_SWEEP, nosmu)
@@ -285,7 +300,7 @@ logical, optional, intent(in) :: has_null_space
         call PCMGGetSmootherDown(prec, i, ksp_smoother, ierr)
         if (lno_top_smoothing .and. i==nolevels-1) then
           call SetupNoneSmoother(ksp_smoother, matrices(ri))
-        else if (IsParallel()) then
+        else if (isparallel) then
           call SetupSORSmoother(ksp_smoother, matrices(ri), SOR_LOCAL_SYMMETRIC_SWEEP, nosmu)
         else
           call SetupSORSmoother(ksp_smoother, matrices(ri), SOR_BACKWARD_SWEEP, nosmd)
@@ -338,7 +353,7 @@ logical, optional, intent(in) :: has_null_space
     ! solver options coarsest level:
     call PCMGGetCoarseSolve(prec, ksp_smoother, ierr)
     call KSPGetPC(ksp_smoother, prec_smoother, ierr)
-    if (IsParallel() .or. present_and_true(has_null_space)) then
+    if (isparallel .or. present_and_true(has_null_space)) then
       call SetupSORSmoother(ksp_smoother, matrices(nolevels), &
         SOR_LOCAL_SYMMETRIC_SWEEP, 20)
     else
@@ -433,10 +448,11 @@ integer, intent(in):: iterations
 end subroutine SetupChebychevSmoother
   
 subroutine SetSmoothedAggregationOptions(epsilon, epsilon_decay, omega, maxlevels, &
-  coarsesize, nosmd, nosmu, clustersize)
+  coarsesize, nosmd, nosmu, clustersize, isparallel)
 PetscReal, intent(out):: epsilon, epsilon_decay, omega
 integer, intent(out):: maxlevels, coarsesize
 integer, intent(out):: nosmd, nosmu, clustersize
+logical, intent(in):: isparallel
 
 #if PETSC_VERSION_MINOR==2
   PetscBool flag
@@ -463,7 +479,7 @@ integer, intent(out):: nosmd, nosmu, clustersize
     end if
     call PetscOptionsGetInt('', '-mymg_coarsesize', coarsesize, flag, ierr)
     if (.not. flag) then
-      if (IsParallel()) then
+      if (isparallel) then
         coarsesize=MULTIGRID_COARSESIZE_DEFAULT_PARALLEL
       else
         coarsesize=MULTIGRID_COARSESIZE_DEFAULT_SERIAL
@@ -493,7 +509,7 @@ integer, intent(out):: nosmd, nosmu, clustersize
     
 end subroutine SetSmoothedAggregationOptions
 
-function Prolongator(A, epsilon, omega, maxclustersize, cluster) result (P)
+function Prolongator(A, epsilon, omega, maxclustersize, isparallel, cluster) result (P)
 !!< Constructs coarse grid and prolongator operator between coarse and fine
 !!< grid based on the matrix A.
 Mat:: P
@@ -503,7 +519,8 @@ PetscReal, intent(in):: epsilon
 !! overrelaxtion in jacobi-smoothed aggregation
 PetscReal, intent(in):: omega
 !! maximum size of clusters
-integer, intent(in):: maxclustersize 
+integer, intent(in):: maxclustersize
+logical, intent(in):: isparallel
 !! 0 means only clustering as in Vanek '96
 !! if supplied returns cluster number each node is assigned to:
 integer, optional, dimension(:), intent(out):: cluster
@@ -562,7 +579,7 @@ integer, optional, dimension(:), intent(out):: cluster
     ! we return PETSC_NULL; callers of this function should check for this
     P=PETSC_NULL_OBJECT
     return
-  else if (100*ccnt<99*nrows .and. .not. IsParallel()) then
+  else if (100*ccnt<99*nrows .and. .not. isparallel) then
     ! more than 1% isolated nodes, give a warning
     ewrite(2,*) "Percentage of isolated nodes: ", (100.0*(nrows-ccnt))/nrows
     ewrite(2,*) "Warning: more than 1 perc. isolated nodes - this may mean mg is not the most suitable preconditioner"
@@ -596,7 +613,7 @@ integer, optional, dimension(:), intent(out):: cluster
   call MatDiagonalScale(A, inv_sqrt_diag, sqrt_diag, ierr)
   
   ! we now have all the stuff to create the prolongator
-  call create_prolongator(P, nrows, jc, findN, N, R, A, base, omega)
+  call create_prolongator(P, nrows, jc, findN, N, R, A, base, omega, isparallel)
   
   ! now restore the original matrix
   ! unfortunately MatDiagonalScale is broken for one-sided scaling, i.e.
@@ -615,7 +632,7 @@ integer, optional, dimension(:), intent(out):: cluster
     
 end function Prolongator
 
-subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega)
+subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega, isparallel)
   
   Mat, intent(out):: P
   integer, intent(in):: nrows ! number of fine nodes
@@ -625,8 +642,11 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega)
   Mat, intent(in):: A
   integer, intent(in):: base
   PetscReal, intent(in):: omega
+  logical, intent(in):: isparallel
   
   PetscObject:: myPETSC_NULL_OBJECT
+  MatType:: mat_type
+  MPI_Comm:: comm
   PetscErrorCode:: ierr
   Vec:: rowsum_vec
   PetscReal, dimension(:), allocatable:: Arowsum
@@ -651,12 +671,14 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega)
     dnnz(i)=min(dnnz(i), ncols)
   end do      
 
-  if (IsParallel()) then
+  call MatGetType(A, mat_type, ierr)
+  call PetscObjectGetComm(a, comm, ierr)
+  if (mat_type==MATMPIAIJ) then
     ! for the moment the prolongator is completely local:
     allocate(onnz(1:nrows))
     onnz=0
     
-    call MatCreateMPIAIJ(MPI_COMM_FEMTOOLS, nrows, ncols, PETSC_DECIDE, PETSC_DECIDE, &
+    call MatCreateMPIAIJ(comm, nrows, ncols, PETSC_DECIDE, PETSC_DECIDE, &
       PETSC_NULL_INTEGER, dnnz, PETSC_NULL_INTEGER, onnz, P, ierr)
     call MatSetOption(P, MAT_USE_INODES, PETSC_FALSE, ierr)
       
@@ -664,12 +686,14 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega)
     call MatGetOwnerShipRangeColumn(P, coarse_base, PETSC_NULL_INTEGER, ierr)
     ! subtract 1 to convert from 1-based fortran to 0 based petsc
     coarse_base=coarse_base-1
-  else
-    call MatCreateSeqAIJ(MPI_COMM_SELF, nrows, ncols, &
+  else if (mat_type==MATSEQAIJ) then
+    call MatCreateSeqAIJ(comm, nrows, ncols, &
       PETSC_NULL_INTEGER, dnnz, P, ierr)
     call MatSetOption(P, MAT_USE_INODES, PETSC_FALSE, ierr)
     ! subtract 1 from each cluster no to get petsc 0-based numbering
     coarse_base=-1
+  else
+    FLAbort("Multigrid mg only support seqaij and mpiaij PETSc matrices")
   end if
   
   myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
