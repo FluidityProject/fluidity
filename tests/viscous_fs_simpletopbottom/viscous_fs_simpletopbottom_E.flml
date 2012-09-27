@@ -140,7 +140,6 @@
                   </max_iterations>
                   <never_ignore_solver_failures/>
                   <diagnostics>
-                    <print_norms/>
                     <monitors/>
                   </diagnostics>
                 </solver>
@@ -163,7 +162,6 @@
               </max_iterations>
               <never_ignore_solver_failures/>
               <diagnostics>
-                <print_norms/>
                 <monitors/>
               </diagnostics>
             </solver>
@@ -179,7 +177,6 @@
           </max_iterations>
           <never_ignore_solver_failures/>
           <diagnostics>
-            <print_norms/>
             <monitors/>
           </diagnostics>
         </solver>
@@ -265,7 +262,6 @@
           </max_iterations>
           <never_ignore_solver_failures/>
           <diagnostics>
-            <print_norms/>
             <monitors/>
           </diagnostics>
         </solver>
@@ -372,7 +368,6 @@ def val(X,t):
           </max_iterations>
           <never_ignore_solver_failures/>
           <diagnostics>
-            <print_norms/>
             <monitors/>
           </diagnostics>
         </solver>
