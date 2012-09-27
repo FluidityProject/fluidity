@@ -1463,6 +1463,7 @@ contains
     type(csr_sparsity):: new_sparsity
     character(len=FIELD_NAME_LEN):: ct_name
     integer, dimension(:), pointer:: fs_surface_node_list
+    logical:: add_halos
 
     assert(have_option(trim(fs%option_path)//"/prognostic"))
 
@@ -1478,6 +1479,11 @@ contains
 
     new_sparsity = sparsity_duplicate_rows(ct_m%sparsity, fs_nodes, ct_m%sparsity%name)
     if (associated(p_mesh%halos)) then
+      add_halos = size(p_mesh%halos)>0
+    else
+      add_halos = .false.
+    end if
+    if (add_halos) then
       allocate(new_sparsity%row_halo)
       new_sparsity%row_halo = p_mesh%halos(1)
       call incref(new_sparsity%row_halo)
@@ -1521,6 +1527,7 @@ contains
     type(csr_sparsity):: new_sparsity, new_sparsity2
     character(len=FIELD_NAME_LEN):: cmc_name
     integer, dimension(:), pointer:: fs_surface_node_list
+    logical:: add_halos
 
     assert(have_option(trim(fs%option_path)//"/prognostic"))
 
@@ -1537,6 +1544,11 @@ contains
     ! first add some columns
     new_sparsity = sparsity_duplicate_columns(cmc_m%sparsity, fs_nodes, cmc_m%sparsity%name)
     if (associated(p_mesh%halos)) then
+      add_halos = size(p_mesh%halos)>0
+    else
+      add_halos = .false.
+    end if
+    if (add_halos) then
       allocate(new_sparsity%row_halo)
       new_sparsity%row_halo=cmc_m%sparsity%row_halo
       call incref(new_sparsity%row_halo)
@@ -1550,7 +1562,7 @@ contains
 
     ! now add the rows
     new_sparsity2 = sparsity_duplicate_rows(new_sparsity, fs_nodes, new_sparsity%name)
-    if (associated(p_mesh%halos)) then
+    if (add_halos) then
       allocate(new_sparsity2%row_halo)
       new_sparsity2%row_halo=p_mesh%halos(2)
       call incref(new_sparsity2%row_halo)
@@ -1768,14 +1780,9 @@ contains
     type(csr_sparsity):: new_sparsity, new_sparsity2
     character(len=FIELD_NAME_LEN):: schur_auxiliary_matrix_name
     integer, dimension(:), pointer:: fs_surface_node_list
-    logical:: extend
+    logical:: add_halos
 
     assert(have_option(trim(fs%option_path)//"/prognostic"))
-
-    ! normal matrices have n/o rows=n/o pressure dofs, we need to add f.s. dofs
-    extend = size(schur_auxiliary_matrix,1)==node_count(p)
-    ! check whether we have anything to do at all
-    if (.not. extend) return
 
     if (.not. has_boundary_condition_name(fs, "_implicit_free_surface")) then
       call initialise_implicit_prognostic_free_surface(state, fs, u)
@@ -1790,6 +1797,11 @@ contains
     ! first add some columns
     new_sparsity = sparsity_duplicate_columns(schur_auxiliary_matrix%sparsity, fs_nodes, schur_auxiliary_matrix%sparsity%name)
     if (associated(p_mesh%halos)) then
+      add_halos = size(p_mesh%halos)>0
+    else
+      add_halos = .false.
+    end if
+    if (add_halos) then
       allocate(new_sparsity%row_halo)
       new_sparsity%row_halo=schur_auxiliary_matrix%sparsity%row_halo
       call incref(new_sparsity%row_halo)
@@ -1803,7 +1815,7 @@ contains
 
     ! now add the rows
     new_sparsity2 = sparsity_duplicate_rows(new_sparsity, fs_nodes, new_sparsity%name)
-    if (associated(p_mesh%halos)) then
+    if (add_halos) then
       allocate(new_sparsity2%row_halo)
       new_sparsity2%row_halo=p_mesh%halos(2)
       call incref(new_sparsity2%row_halo)
