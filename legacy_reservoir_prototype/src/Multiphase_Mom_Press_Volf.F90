@@ -423,6 +423,10 @@ contains
           solve_temp: if (have_temperature_fields .and. &
                have_option('/material_phase[0]/scalar_field::Temperature/prognostic')) then
 
+             NU = U
+             NV = V
+             NW = W
+
              call INTENERGE_ASSEM_SOLVE(  &
                   NCOLACV, FINACV, COLACV, MIDACV, & 
                   NCOLCT, FINDCT, COLCT, &

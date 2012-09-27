@@ -1284,7 +1284,7 @@
                else
 
                   W_SUM_ONE1 = 1.0 ! =1 Applies constraint to T
-                  W_SUM_ONE2 = 1.0 ! =1 Applies constraint to Told 
+                  W_SUM_ONE2 = 0.0 ! =1 Applies constraint to Told 
                   ! the original working code used W_SUM_ONE1 = 1, W_SUM_ONE2 = 1
                   CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) - MASS_CV( CV_NODI ) * MEAN_PORE_CV( CV_NODI ) *( &
                        (1.0-W_SUM_ONE1) *  T( CV_NODI_IPHA ) / DT &
