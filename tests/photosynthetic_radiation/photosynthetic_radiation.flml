@@ -142,7 +142,7 @@
                                 <integer_value rank="0">30</integer_value>
                             </restart>
                         </iterative_method>
-                        <preconditioner name="ilu"></preconditioner>
+                        <preconditioner name="sor"></preconditioner>
                         <relative_error>
                             <real_value rank="0">1e-07</real_value>
                         </relative_error>

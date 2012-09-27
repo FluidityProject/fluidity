@@ -598,4 +598,9 @@
             </particle_diameter>
         </multiphase_properties>
     </material_phase>
+    <multiphase_interaction>
+        <fluid_particle_drag>
+            <drag_correlation name="stokes"></drag_correlation>
+        </fluid_particle_drag>
+    </multiphase_interaction>
 </fluidity_options>

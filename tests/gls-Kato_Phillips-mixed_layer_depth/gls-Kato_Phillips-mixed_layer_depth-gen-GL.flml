@@ -74,10 +74,10 @@
         </quadrature>
         <ocean_boundaries>
             <top_surface_ids>
-                <integer_value rank="1" shape="1">8</integer_value>
+                <integer_value rank="1" shape="1">11</integer_value>
             </top_surface_ids>
             <bottom_surface_ids>
-                <integer_value rank="1" shape="1">11</integer_value>
+                <integer_value rank="1" shape="1">8</integer_value>
             </bottom_surface_ids>
             <scalar_field name="DistanceToTop" rank="0">
                 <diagnostic>
@@ -211,10 +211,10 @@
                 <calculate_boundaries>
                     <string_value>neumann</string_value>
                     <top_surface_ids>
-                        <integer_value rank="1" shape="1">8</integer_value>
+                        <integer_value rank="1" shape="1">11</integer_value>
                     </top_surface_ids>
                     <bottom_surface_ids>
-                        <integer_value rank="1" shape="1">11</integer_value>
+                        <integer_value rank="1" shape="1">8</integer_value>
                     </bottom_surface_ids>
                 </calculate_boundaries>
                 <scalar_field name="GLSTurbulentKineticEnergy" rank="0">
@@ -236,7 +236,7 @@
                         </spatial_discretisation>
                         <temporal_discretisation>
                             <theta>
-                                <real_value rank="0">0.5</real_value>
+                                <real_value rank="0">1</real_value>
                             </theta>
                             <control_volumes>
                                 <number_advection_iterations>
@@ -332,7 +332,7 @@
                         </spatial_discretisation>
                         <temporal_discretisation>
                             <theta>
-                                <real_value rank="0">0.5</real_value>
+                                <real_value rank="0">1</real_value>
                             </theta>
                             <control_volumes>
                                 <number_advection_iterations>
@@ -768,7 +768,7 @@
                 </spatial_discretisation>
                 <temporal_discretisation>
                     <theta>
-                        <real_value rank="0">0.5</real_value>
+                        <real_value rank="0">1</real_value>
                     </theta>
                     <relaxation>
                         <real_value rank="0">0.5</real_value>
@@ -877,7 +877,7 @@
                 </spatial_discretisation>
                 <temporal_discretisation>
                     <theta>
-                        <real_value rank="0">0.5</real_value>
+                        <real_value rank="0">1</real_value>
                     </theta>
                 </temporal_discretisation>
                 <solver>

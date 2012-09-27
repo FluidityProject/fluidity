@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   version="1.0"
+   width="472.00269"
+   height="616.11145"
+   id="svg2"
+   inkscape:version="0.48.1 r9760"
+   sodipodi:docname="fluidity_logo_full.svg">
+  <metadata
+     id="metadata3039">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1680"
+     inkscape:window-height="1026"
+     id="namedview3037"
+     showgrid="false"
+     inkscape:zoom="0.96956055"
+     inkscape:cx="176.22352"
+     inkscape:cy="261.38322"
+     inkscape:window-x="0"
+     inkscape:window-y="24"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg2"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0" />
+  <defs
+     id="defs5">
+    <filter
+       id="filter3837"
+       inkscape:label="Drop shadow"
+       width="1.5"
+       height="1.5"
+       x="-0.25"
+       y="-0.25"
+       color-interpolation-filters="sRGB">
+      <feGaussianBlur
+         id="feGaussianBlur3839"
+         in="SourceAlpha"
+         stdDeviation="2"
+         result="blur" />
+      <feColorMatrix
+         id="feColorMatrix3841"
+         result="bluralpha"
+         type="matrix"
+         values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 0.5 0 " />
+      <feOffset
+         id="feOffset3843"
+         in="bluralpha"
+         dx="4"
+         dy="4"
+         result="offsetBlur" />
+      <feMerge
+         id="feMerge3845">
+        <feMergeNode
+           id="feMergeNode3847"
+           in="offsetBlur" />
+        <feMergeNode
+           id="feMergeNode3849"
+           in="SourceGraphic" />
+      </feMerge>
+    </filter>
+    <filter
+       id="filter3764"
+       inkscape:label="Drop shadow"
+       width="1.5"
+       height="1.5"
+       x="-.25"
+       y="-.25">
+      <feGaussianBlur
+         id="feGaussianBlur3766"
+         in="SourceAlpha"
+         stdDeviation="2"
+         result="blur" />
+      <feColorMatrix
+         id="feColorMatrix3768"
+         result="bluralpha"
+         type="matrix"
+         values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 0.5 0 " />
+      <feOffset
+         id="feOffset3770"
+         in="bluralpha"
+         dx="4"
+         dy="4"
+         result="offsetBlur" />
+      <feMerge
+         id="feMerge3772">
+        <feMergeNode
+           id="feMergeNode3774"
+           in="offsetBlur" />
+        <feMergeNode
+           id="feMergeNode3776"
+           in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+  <rect
+     style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:1.07077491;stroke-linecap:square;stroke-linejoin:bevel;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+     id="rect3778"
+     width="698.9292"
+     height="398.92923"
+     x="25.305401"
+     y="118.94616" />
+  <path
+     d="m 95.81829,312.20274 c -4.779459,69.08051 46.1632,131.51723 118.08424,142.25194 75.94412,11.3352 147.07415,-39.18837 158.77237,-112.77582 11.6982,-73.58747 -40.44341,-142.51019 -116.38756,-153.84539 -4.41589,-0.68898 -8.87207,-1.07863 -13.33185,-1.35015 -25.82158,0.14768 -57.42809,18.24121 -63.29039,55.11786 -4.94819,31.12651 12.22579,52.24423 35.73757,55.75353 17.58382,2.62451 31.33956,-5.17878 33.87087,-21.102 4.06271,-25.55635 -26.01059,-35.72612 -40.74133,-24.27742 15.17934,-16.45475 33.29573,-11.3314 33.29573,-11.3314 36.69814,5.47744 73.3792,43.54045 65.0178,96.13771 -9.36148,58.88843 -66.71109,80.64629 -108.36899,74.42856 -32.36162,-4.8302 -85.86655,-33.40763 -102.65846,-99.00742 z"
+     id="path2384-1"
+     style="fill:#00368c;fill-opacity:1;stroke:#000000;stroke-width:1.07550250999999997;stroke-opacity:1"
+     inkscape:connector-curvature="0"
+     inkscape:export-filename="/data2/jhill1/projects/misc/imperial_logo.png"
+     inkscape:export-xdpi="90"
+     inkscape:export-ydpi="90" />
+  <path
+     d="m 210.97867,130.21283 c -96.36501,8.29781 -172.07363,89.73114 -172.07362,188.23468 0,104.01359 84.41683,188.43043 188.43043,188.43043 104.0136,0 188.43044,-84.41684 188.43043,-188.43043 0.0412,-6.05441 -0.33909,-12.09903 -0.88327,-18.12335 -5.52524,-34.51432 -37.02059,-72.95136 -89.14461,-72.95136 -43.99638,0 -69.61457,27.46773 -69.61457,59.66963 0,24.08291 13.60887,40.8266 36.11583,40.8266 36.12311,0 43.9671,-42.39685 25.12405,-59.66964 25.84738,16.80828 22.50698,42.13513 22.50698,42.13513 0,50.26204 -44.99465,107.43152 -119.33928,107.43152 -83.23697,0 -125.096858,-72.09841 -125.096858,-129.15335 0,-44.32271 28.430768,-121.98278 115.544488,-158.39986 z"
+     id="path2384"
+     style="fill:#648bc7;fill-opacity:0.80000001;stroke:#000000;stroke-width:1.04683565999999995;stroke-opacity:1"
+     inkscape:connector-curvature="0"
+     inkscape:export-filename="/data2/jhill1/projects/misc/imperial_logo.png"
+     inkscape:export-xdpi="90"
+     inkscape:export-ydpi="90" />
+  <text
+     xml:space="preserve"
+     style="font-size:170.72573853000000099px;font-style:italic;font-variant:normal;font-weight:bold;font-stretch:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#124aff;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;font-family:TeXGyrePagella;-inkscape-font-specification:TeXGyrePagella Bold Italic"
+     x="171.41357"
+     y="396.5802"
+     id="text3809"
+     sodipodi:linespacing="125%"><tspan
+       sodipodi:role="line"
+       id="tspan3811"
+       x="171.41357"
+       y="396.5802"
+       style="stroke-width:2;stroke-miterlimit:4;stroke-dasharray:none">luidity</tspan></text>
+  <text
+     xml:space="preserve"
+     style="font-size:375px;font-style:italic;font-variant:normal;font-weight:bold;font-stretch:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#1a4aff;fill-opacity:1;stroke:#000000;stroke-width:4;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;font-family:TeXGyrePagella;-inkscape-font-specification:TeXGyrePagella Bold Italic"
+     x="78.888351"
+     y="406.61267"
+     id="text3813"
+     sodipodi:linespacing="125%"><tspan
+       sodipodi:role="line"
+       id="tspan3815"
+       x="78.888351"
+       y="406.61267">f</tspan></text>
+</svg>

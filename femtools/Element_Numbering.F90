@@ -1531,6 +1531,12 @@ contains
          end do
          
       case (FAMILY_CUBE)
+      
+         ! Degree zero element only has one node which is non-zero on all vertices.
+         if(ele_num%degree == 0) then
+            ele_num_local_vertices = 1
+            return
+         end if
         
          l=0
          c=1 ! coordinate counter
@@ -1784,14 +1790,13 @@ contains
     
     integer, dimension(ele_num%nodes_per(1)) :: edge_local_num
 
-    integer, dimension(4) :: l, dl
-    integer :: cnt, i, j, k, inc
+    integer, dimension(4) :: l
+    integer :: cnt, i, j, k, inc, inc_l
     ! Local edge vertices for trace elements. 
     integer, dimension(2) :: ln
     ! array for locating face in quad
     integer, dimension(7) :: sum2face
-    ! vertex numbers
-    integer, dimension(2**ele_num%dimension) :: cube_vertices
+    integer, dimension(1:ele_num%vertices) :: vertices
     
     select case (ele_num%type)
     case (ELEMENT_LAGRANGIAN)
@@ -1816,30 +1821,29 @@ contains
 
           end do number_loop
       case (FAMILY_CUBE)
-         
-         if (ele_num%degree==0) then
-            ! In 
-            edge_local_num=1
-         end if
-
-         cube_vertices=local_vertices(ele_num)
-         
-         l=0
-         l(:size(ele_num%number2count,1))&
-              =ele_num%number2count(:,cube_vertices(nodes(1)))
-         dl=0
-         dl(:size(ele_num%number2count,1))&
-              =ele_num%number2count(:,cube_vertices(nodes(2)))
-         dl=(dl-l)/ele_num%degree
-                     
-          if (all(dl==0)) then
-            FLAbort("The same node appears more than once in edge_local_num.")
+      
+          ! If a quad element has degree zero then the local 
+          if(ele_num%degree == 0) then
+            edge_local_num = 1
+            return
           end if
-            
-          ! leave out boundary nodes
-          do i=1, ele_num%degree-1
-             l=l+dl
-             edge_local_num(i)=ele_num%count2number(l(1), l(2), l(3))
+         ! Get local node numbers of vertices
+         vertices=local_vertices(ele_num)
+          l=0
+          k=1 ! bit mask
+          j=0
+          do i=ele_num%dimension, 1, -1
+             ! compute ith 'count' coordinate
+             l(i) = iand(vertices(nodes(1))-1, k)/k
+             
+             ! increment to go from node 1 to node 2: 0, -1 or +1
+             inc_l = iand(vertices(nodes(2))-1, k)/k-l(i)
+             ! remember the coordinate in which node 1 and 2 differ:
+             if (inc_l/=0)  then
+                j = i
+                inc = inc_l
+             end if
+             k=k*2
           end do
           
       case default

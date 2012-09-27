@@ -12,6 +12,11 @@
         </command_line>
   </problem_definition>  
   <variables>  
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
 <!-- COARE forcing -->
     <variable name="FinalTimeCoare" language="python">
 import fluidity_tools
@@ -95,6 +100,9 @@ FinalSalinityMinp1dg = fluidity_tools.stat_parser("forcing-ncar.stat")['Fluid'][
   </variables>    
 
   <pass_tests> 
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="Coare: Final time is 1440 seconds" language="python">
 assert FinalTimeCoare ==1440 
     </test>
