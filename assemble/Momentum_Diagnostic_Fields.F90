@@ -38,6 +38,8 @@ module momentum_diagnostic_fields
   use multimaterial_module
   use multiphase_module
   use diagnostic_fields_wrapper_new
+  use k_epsilon
+  use initialise_fields_module
   implicit none
 
   interface calculate_densities
@@ -62,7 +64,8 @@ contains
     
     ! Local variables  
     type(scalar_field), pointer :: bulk_density, buoyancy_density, sfield
-    type(vector_field), pointer :: vfield
+    type(vector_field), pointer :: vfield, x
+    type(vector_field) :: prescribed_source
     type(tensor_field), pointer :: tfield
     
     integer :: stat
@@ -154,6 +157,12 @@ contains
       if(diagnostic) then
         call calculate_diagnostic_pressure(submaterials(submaterials_istate), sfield)
       end if
+    end if
+
+    ! k-epsilon momentum diagnostics (reynolds stress tensor)
+    if(have_option(trim(state(istate)%option_path)//&
+         "/subgridscale_parameterisations/k-epsilon")) then
+       call keps_momentum_diagnostics(state(istate))
     end if
 
     ewrite(1,*) 'Exiting calculate_momentum_diagnostics'
