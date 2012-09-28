@@ -273,9 +273,11 @@
         </scheme>
         <solver>
           <iterative_method name="cg"/>
-          <preconditioner name="sor"/>
+          <preconditioner name="mg">
+            <vertical_lumping/>
+          </preconditioner>
           <relative_error>
-            <real_value rank="0">1.0e-8</real_value>
+            <real_value rank="0">1.0e-7</real_value>
           </relative_error>
           <absolute_error>
             <real_value rank="0">0.0</real_value>
@@ -369,7 +371,7 @@
           </iterative_method>
           <preconditioner name="sor"/>
           <relative_error>
-            <real_value rank="0">1.0e-8</real_value>
+            <real_value rank="0">1.0e-7</real_value>
           </relative_error>
           <absolute_error>
             <real_value rank="0">0.0</real_value>
@@ -410,7 +412,7 @@
     c = X[2]
     from math import sqrt, sin, cos, atan2, acos
     r=sqrt(a**2+b**2+c**2)
-    A1=2000.0
+    A1=10000.0
     A2=A1
     A3=1.0
     phi=atan2(b,a)
