@@ -60,11 +60,30 @@ end type harmonic_field
 
 contains
 
-function get_number_of_harmonic_fields() result(N)
+function get_number_of_harmonic_fields(state) result(N)
+
+    type(state_type) :: state
 
     integer :: N
+    character(len = OPTION_PATH_LEN) :: lalgorithm, base_path
+    type(scalar_field), pointer :: iter_field
+    integer :: ii
 
-    N = option_count('algorithm::tidal_harmonics')
+    N = 0
+    
+    do ii=1,scalar_field_count(state)
+       iter_field => extract_scalar_field(state,ii)
+       if (trim(iter_field%option_path)=='')then
+          cycle
+       end if
+       base_path = trim(complete_field_path(iter_field%option_path)) // '/algorithm/'
+       if (have_option(trim(base_path) // 'name')) then
+           call get_option(trim(base_path) // 'name', lalgorithm, default = "Internal")
+           if (trim(lalgorithm)=='tidal_harmonics') then
+              N = N + 1
+           end if
+       end if
+    end do
 
 end function
 
@@ -173,9 +192,8 @@ subroutine calculate_tidal_harmonics(state, s_field)
    integer :: when_to_calculate
    
 
-   allocate(harmonic_fields(get_number_of_harmonic_fields()))
+   allocate(harmonic_fields(get_number_of_harmonic_fields(state)))
    allocate(sigma(nLevels_))
-   write(*,*) get_number_of_harmonic_fields()
 
    ! Check dump period - if we're about to dump output, calculate, regardless of
    ! other options
@@ -183,11 +201,10 @@ subroutine calculate_tidal_harmonics(state, s_field)
        ! Note: diagnostics are done at the end of the timestemp, dumps at the
        ! begining. Hence the +1 on the timestep number above - we're
        ! anticipating a dump at the start of the next timestep
-       
        ! Now check if the user wants a timestep
-       if (have_option(trim(s_field%option_path)//"algorithm/calculation_period"))   then
-           call get_option(trim(s_field%option_path)//"algorithm/calculation_period",when_to_calculate)
-           if (.not. mod(timestep,when_to_calculate) == 0) then
+       if (have_option(trim(s_field%option_path)//"/diagnostic/algorithm::tidal_harmonics/calculation_period"))   then
+           call get_option(trim(s_field%option_path)//"/diagnostic/algorithm::tidal_harmonics/calculation_period",when_to_calculate)
+           if (.not. mod(timestep,when_to_calculate+1) == 0) then
                return ! it's not time to calculate
            end if
        end if
@@ -195,7 +212,7 @@ subroutine calculate_tidal_harmonics(state, s_field)
 
    ! Only if Harmonics weren't already calculated in this timestep
    if (last_update/=timestep) then 
-      ewrite(3,*), "In tidal_harmonics"
+      ewrite(-3,*), "In tidal_harmonics"
       last_update=timestep
       call getFreeSurfaceHistoryData(state, ignoretimestep, saved_snapshots_times, current_snapshot_index)
       if (.not. ignoretimestep) then
@@ -241,12 +258,12 @@ subroutine getFreeSurfaceHistoryData(state, ignoretimestep, saved_snapshots_time
    call get_option(trim(free_surface_history_path) // "levels", levels)
 
    if( mod(timestep_counter,stride)/=0) then
-        ewrite(4,*),'Do nothing in this timestep.'
+        ewrite(-4,*),'Do nothing in this timestep.'
          ignoretimestep=.true.
         return
    end if
    if(timestep_counter/stride+1 .lt. levels) then
-        ewrite(4,*), 'Do nothing until levels are filled up.'
+        ewrite(-4,*), 'Do nothing until levels are filled up.'
         ignoretimestep=.true.
         return
    end if
@@ -319,8 +336,8 @@ subroutine getHarmonicFields(state, harmonic_fields, nohfs, sigma, M)
            end if
        end if
     end do s_field_loop
-    ewrite(4,*), 'Found ',  nohfs, ' constituents to analyse.' 
-    ewrite(4,*), 'Found ', M, ' frequencies to analyse.'
+    ewrite(-4,*), 'Found ',  nohfs, ' constituents to analyse.' 
+    ewrite(-4,*), 'Found ', M, ' frequencies to analyse.'
 
    if ( M .le. 0 ) then
       FLExit("Internal error in calculate_tidal_harmonics(). No harmonic constituents were found in option tree.")
