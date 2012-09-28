@@ -130,7 +130,7 @@ subroutine calculate_free_surface_history(state, s_field)
    
    ! check if we want to save the current timestep at all
    if (mod(timestep_counter,stride)/=0) then
-       ewrite(4,*), "Ignoring thbis timestep"
+       ewrite(4,*), "Ignoring this timestep"
        return
    end if
 
@@ -175,6 +175,7 @@ subroutine calculate_tidal_harmonics(state, s_field)
 
    allocate(harmonic_fields(get_number_of_harmonic_fields()))
    allocate(sigma(nLevels_))
+   write(*,*) get_number_of_harmonic_fields()
 
    ! Check dump period - if we're about to dump output, calculate, regardless of
    ! other options

@@ -1,5 +1,5 @@
 radius = 6.37101e+06;
-cellSize=2500000;
+cellSize=1250000;
 pio2=Pi/2;
 
 // create inner 1/8 shell
