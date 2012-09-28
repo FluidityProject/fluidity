@@ -108,7 +108,7 @@ L = v*t*dx
 
 # Assemble and solve
 
-solve(a, t, L)
+solve(a == L, t)
 </string_value>
         </equation>
         <spatial_discretisation>

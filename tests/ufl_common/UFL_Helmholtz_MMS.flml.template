@@ -106,7 +106,7 @@ A = (dot(grad(v),grad(u))-lmbda*v*u)*dx
 
 RHS = v*f*dx
 
-solve(A, f, RHS)
+solve(A == RHS, f)
 </string_value>
         </equation>
         <spatial_discretisation>

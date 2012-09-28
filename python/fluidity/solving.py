@@ -29,6 +29,8 @@ from ufl.finiteelement import FiniteElement, VectorElement, TensorElement
 
 from pyop2 import op2, ffc_interface
 
+DEFAULT_SOLVER_PARAMETERS = {'solver': 'cg', 'preconditioner': 'jacobi'}
+
 class LinearVariationalProblem(object):
 
     def __init__(self, a, L, u, bcs=None,
@@ -47,10 +49,14 @@ class LinearVariationalProblem(object):
         u = _extract_u(u)
         bcs = _extract_bcs(bcs)
 
+        # Check if linear form L is empty
+        if L.integrals() == ():
+            L = v*0*dx
+
         # Store input UFL forms and solution Function
-        self.a_ufl = a
-        self.L_ufl = L
-        self.u_ufl = u
+        self.a = a
+        self.L = L
+        self.u = u
 
         # Store form compiler parameters
         form_compiler_parameters = form_compiler_parameters or {}
@@ -85,71 +91,73 @@ class NonlinearVariationalProblem(object):
 
 class LinearVariationalSolver(object):
     """Solves a linear variational problem."""
-    pass
+    
+    def __init__(self, problem):
+        self._problem = problem
+        self.parameters = {}
+        self.parameters.update(DEFAULT_SOLVER_PARAMETERS)
+
+    def solve(self):
+        A = _assemble_tensor(self._problem.a)
+        b = _assemble_tensor(self._problem.L)
+        solver = self.parameters['solver']
+        preconditioner = self.parameters['preconditioner']
+        _la_solve(A, self._problem.u, b, solver, preconditioner)
 
 class NonlinearVariationalSolver(object):
     """Solves a nonlinear variational problem."""
     pass
 
+def _assemble_tensor(f):
+    code = mat_code = ffc_interface.compile_form(f, "form")
+    kernel = op2.Kernel(code, "form_cell_integral_0_0")
+
+    # FIXME: Get preprocessed data from FFC when the interface supports it
+    fd = f.form_data()
+    is_mat = fd.rank == 2
+
+    # Get relevant entities of the coordinate field
+    coords = f.measures()[0].domain_data()
+    coord_elem_node = coords.element_node_map
+
+    if is_mat:
+        test,trial = fd.arguments
+        itspace = test.mesh.element_set(*[ arg.mesh.shape.loc for arg in (test, trial) ])
+        
+        # Construct OP2 Mat to assemble into
+        trial_element = trial.element()
+        if isinstance(trial_element, FiniteElement):
+            sparsity_dim = 1
+        elif isinstance(trial_element, VectorElement):
+            sparsity_dim = trial_element.topological_dimension()
+        else: # TensorElement
+            sparsity_dim = pow(trial_element.topological_dimension(), 2)
+        mesh_names = (test.mesh.name, trial.mesh.name)
+        sparsity = op2.Sparsity((test.mesh.element_node_map, trial.mesh.element_node_map),
+                                sparsity_dim, "%s_%s_sparsity" % mesh_names)
+        tensor = op2.Mat(sparsity, numpy.float64, "%s_%s_matrix" % mesh_names)    
+        tensor_arg = tensor((test.mesh.element_node_map[op2.i[0]], 
+                             trial.mesh.element_node_map[op2.i[1]]), op2.INC)
+    else:
+        test = fd.arguments[0]
+        itspace = test.mesh.element_set(test.mesh.shape.loc)
+        tensor = fd.coefficients[0].temporary_dat()
+        tensor_arg = tensor(test.mesh.element_node_map[op2.i[0]], op2.INC)
+
+    args = [kernel, itspace, tensor_arg, coords.dat(coord_elem_node, op2.READ)]
+    for c in fd.coefficients:
+        args.append(c.dat(c.element_node_map, op2.READ))
+    op2.par_loop(*args)
+    
+    return tensor
+
 def _la_solve(A, x, b, solver="cg", preconditioner="jacobi"):
     """Solves a linear algebra problem."""
-
     if solver!="cg" or preconditioner!="jacobi":
         log.error("Only 'cg' solver with 'jacobi' preconditioner are "\
                   "presently supported.")
-
-    # FIXME: When compile_form returns a list of kernels, use this to construct
-    # the appropriate op2.Kernel objects.
-    mat_code = ffc_interface.compile_form(A, "mat")
-    rhs_code = ffc_interface.compile_form(b, "rhs")
-    mat_kernel = op2.Kernel(mat_code, "mat_cell_integral_0_0")
-    rhs_kernel = op2.Kernel(rhs_code, "rhs_cell_integral_0_0")
-
-    # FIXME: Get preprocessed data from FFC when the interface supports it
-    Ap = A.form_data()
-    Ab = b.form_data()
+    op2.solve(A, b, x.dat)
     
-    # Get relevant entities of the coordinate field
-    coords = A.measures()[0].domain_data()
-    coord_elem_node = coords.element_node_map
-
-    # Construct iteration space
-    test, trial = Ap.arguments
-    itspace_set = test.mesh.element_set
-    itspace_mat = itspace_set(*[ arg.mesh.shape.loc for arg in (test, trial) ])
-    itspace_vec = itspace_set(test.mesh.shape.loc)
-
-    # Construct OP2 Mat to assemble into
-    trial_element = trial.element()
-    if isinstance(trial_element, FiniteElement):
-        sparsity_dim = 1
-    elif isinstance(trial_element, VectorElement):
-        sparsity_dim = trial_element.topological_dimension()
-    else: # TensorElement
-        sparsity_dim = pow(trial_element.topological_dimension(), 2)
-    mesh_names = (test.mesh.name, trial.mesh.name)
-    sparsity = op2.Sparsity((test.mesh.element_node_map, trial.mesh.element_node_map), sparsity_dim, 
-                            "%s_%s_sparsity" % mesh_names)
-    mat = op2.Mat(sparsity, numpy.float64, "%s_%s_matrix" % mesh_names)
-
-    # Build arg list for matrix assembly par_loop
-    mat_arg = mat((test.mesh.element_node_map[op2.i[0]], trial.mesh.element_node_map[op2.i[1]]), op2.INC)
-    mat_args = [mat_kernel, itspace_mat, mat_arg, coords.dat(coord_elem_node, op2.READ)]
-    for c in Ap.coefficients:
-        mat_args.append(c.dat(c.element_node_map, op2.READ))
-
-    # Build arg list for rhs assembly par loop
-    b = Ab.coefficients[0].temporary_dat("%s_rhs_dat" % x.name)
-    rhs_args = [rhs_kernel, itspace_vec, b(test.mesh.element_node_map[op2.i[0]], op2.INC), 
-                coords.dat(coord_elem_node, op2.READ)]
-    for c in Ab.coefficients:
-        rhs_args.append(c.dat(c.element_node_map, op2.READ))
-
-    # Assemble and solve
-    op2.par_loop(*mat_args)
-    op2.par_loop(*rhs_args)
-    op2.solve(mat, b, x.dat)
-
 # Solve function handles both linear systems and variational problems
 
 def solve(*args, **kwargs):
@@ -238,7 +246,7 @@ def _solve_varproblem(*args, **kwargs):
     "Solve variational problem a == L or F == 0"
 
     # Extract arguments
-    eq, u, bcs, J, tol, M, form_compiler_parameters, solver_parameters \
+    eq, u, bcs, J, M, form_compiler_parameters, solver_parameters \
         = _extract_args(*args, **kwargs)
 
     # Solve linear variational problem
@@ -330,7 +338,7 @@ def _extract_args(*args, **kwargs):
     form_compiler_parameters = kwargs.get("form_compiler_parameters", {})
     solver_parameters = kwargs.get("solver_parameters", {})
 
-    return eq, u, bcs, J, tol, M, form_compiler_parameters, solver_parameters
+    return eq, u, bcs, J, M, form_compiler_parameters, solver_parameters
 
 def _extract_eq(eq):
     "Extract and check argument eq"

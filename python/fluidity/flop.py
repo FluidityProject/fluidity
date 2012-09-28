@@ -103,7 +103,7 @@ class FieldCoefficient(Coefficient):
         return op2.Map(self.mesh.element_set, self.node_set, self.mesh.shape.loc, \
                 self.mesh.ndglno - 1, "%s_elem_node" % self.name)
 
-    def temporary_dat(self, name):
+    def temporary_dat(self, name=None):
         return op2.Dat(self.node_set, self.value_shape, \
                 numpy.zeros(self.node_count), valuetype, name)
 

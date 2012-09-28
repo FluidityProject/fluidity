@@ -96,8 +96,8 @@ d=-dt*diffusivity*dot(grad(q),grad(p))*dx
 D=M-0.5*d
 diff_rhs=action(M+0.5*d,t)
 
-solve(M,t,adv_rhs)
-solve(D,t,diff_rhs)
+solve(M == adv_rhs, t)
+solve(D == diff_rhs, t)
 </string_value>
         </equation>
         <spatial_discretisation>
