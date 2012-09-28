@@ -1034,6 +1034,10 @@ free_surface_history_algorithm =
          element spin_up_time { 
                 real
          }?,
+         ## How often to calculate the harmonics. 0 is every timestep. Default is just before a dump
+         element calculation_period {
+            integer
+         },
          ## Internal use only
          element saved_snapshots_times {
             real_vector

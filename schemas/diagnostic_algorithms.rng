@@ -1385,6 +1385,10 @@ Implemented as a queue data structure.</a:documentation>
           <ref name="real"/>
         </element>
       </optional>
+      <element name="calculation_period">
+        <a:documentation>How often to calculate the harmonics. 0 is every timestep. Default is just before a dump</a:documentation>
+        <ref name="integer"/>
+      </element>
       <optional>
         <element name="saved_snapshots_times">
           <a:documentation>Internal use only</a:documentation>
