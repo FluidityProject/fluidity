@@ -1423,7 +1423,7 @@ subroutine ConvergenceCheck(reason, iterations, name, solver_option_path, &
         call get_option(trim(solver_option_path)//'/allow_non_convergence_during_spin_up/spin_up_time', spin_up_time)
         call get_option('/timestepping/current_time', current_time)
         ewrite(2,*) 'current time:', current_time
-         ewrite(2,*) 'spin up time:', spin_up_time
+        ewrite(2,*) 'spin up time:', spin_up_time
         if (current_time<spin_up_time) then
            ewrite(0,*) "Non-convergence during spin up, therefore continuing"
         else
