@@ -34,12 +34,12 @@ module tidal_diagnostics
   use initialise_fields_module
   use fields
   use fldebug
-  use global_parameters, only : timestep, OPTION_PATH_LEN
+  use global_parameters, only : timestep, OPTION_PATH_LEN, current_time
   use spud
   use state_fields_module
   use state_module
   use Tidal_module
-
+  use write_state_module, only: do_write_state
   implicit none
 
   private
@@ -69,7 +69,7 @@ function get_number_of_harmonic_fields() result(N)
 end function
 
 subroutine calculate_free_surface_history(state, s_field)
-!
+
     type(state_type), intent(in) :: state
     type(scalar_field), intent(inout) :: s_field
     type(scalar_field), pointer :: hist_fs_field
@@ -78,11 +78,11 @@ subroutine calculate_free_surface_history(state, s_field)
     integer :: stride, new_snapshot_index, levels, stat, timestep_counter
     real :: spin_up_time, current_time, timestep
     real, dimension(:), allocatable :: saved_snapshots_times
-!
-    ewrite(-3,*),'in free_surface_history_diagnostics'
-!
+
+    ewrite(3,*),'in free_surface_history_diagnostics'
+
     fs_field => extract_scalar_field(state,"FreeSurface",stat)
-!
+
     if(stat /= 0) then
       FLExit('I do not have a FreeSurface field so can not calculate diagnostics on it. Please switch on the FreeSurface diagnostic.')
       return
@@ -164,23 +164,33 @@ end subroutine calculate_free_surface_history
 subroutine calculate_tidal_harmonics(state, s_field)
    type(state_type), intent(in) :: state
    type(scalar_field), intent(in) :: s_field
-   type(harmonic_field), save, dimension(:), allocatable :: harmonic_fields ! Dimension could be automatically determined but 100 harmonic constiuent fields should be enough. 
-   real, dimension(:), allocatable, save :: sigma ! Dimension could be automatically determined but 50 frequencies should be enough. 
+   type(harmonic_field), dimension(:), allocatable :: harmonic_fields
+   real, dimension(:), allocatable :: sigma
    integer, save :: last_update=-1, nohfs=-1, M=-1
    logical :: ignoretimestep
    real, dimension(:), allocatable :: saved_snapshots_times
    integer :: i, current_snapshot_index
+   integer :: when_to_calculate
+   
 
-   ! Allocate the arrays - note we do not deallocate. If anyone knows how to
-   ! save an array and have it allocatable, please fix. We will therefore have a
-   ! small memory leak - need to add exception to valgrind test
-   if ( .not. allocated(harmonic_fields)) then
-       allocate(harmonic_fields(get_number_of_harmonic_fields()))
-   end if
-   if ( .not. allocated(sigma)) then
-       allocate(sigma(nLevels_))
-   end if
+   allocate(harmonic_fields(get_number_of_harmonic_fields()))
+   allocate(sigma(nLevels_))
 
+   ! Check dump period - if we're about to dump output, calculate, regardless of
+   ! other options
+   if (.not. do_write_state(current_time, timestep+1)) then 
+       ! Note: diagnostics are done at the end of the timestemp, dumps at the
+       ! begining. Hence the +1 on the timestep number above - we're
+       ! anticipating a dump at the start of the next timestep
+       
+       ! Now check if the user wants a timestep
+       if (have_option(trim(s_field%option_path)//"algorithm/calculation_period"))   then
+           call get_option(trim(s_field%option_path)//"algorithm/calculation_period",when_to_calculate)
+           if (.not. mod(timestep,when_to_calculate) == 0) then
+               return ! it's not time to calculate
+           end if
+       end if
+   end if
 
    ! Only if Harmonics weren't already calculated in this timestep
    if (last_update/=timestep) then 
@@ -204,6 +214,9 @@ subroutine calculate_tidal_harmonics(state, s_field)
    if (allocated(saved_snapshots_times)) then
      deallocate(saved_snapshots_times)
    end if
+   deallocate(harmonic_fields)
+   deallocate(sigma)
+
 end subroutine calculate_tidal_harmonics
 
 subroutine getFreeSurfaceHistoryData(state, ignoretimestep, saved_snapshots_times, current_snapshot_index)
@@ -254,8 +267,8 @@ subroutine getHarmonicFields(state, harmonic_fields, nohfs, sigma, M)
    real :: freq
    type(scalar_field), pointer :: iter_field
 
-    nohfs=0  ! size of harmonic_fields array
-    M=0 ! size of sigma array
+    nohfs=0  ! number of harmonic_fields
+    M=0 ! number of sigmas
     ! Get desired constituents from the optione tree
     s_field_loop: do ii=1,scalar_field_count(state)
        iter_field => extract_scalar_field(state,ii)
@@ -268,7 +281,7 @@ subroutine getHarmonicFields(state, harmonic_fields, nohfs, sigma, M)
            if (trim(lalgorithm)=='tidal_harmonics') then
                nohfs=nohfs+1
                if (nohfs>size(harmonic_fields)) then
-                  FLExit('You reached the maximal number (100) of harmonic constituents.')
+                  FLAbort('We found more tidal_harmonic fields than the space we allocated. Please report this as a bug')
                end if
                call get_option(trim(base_path) // 'constituent/name', constituent_name)
                harmonic_fields(nohfs)%s_field=>iter_field

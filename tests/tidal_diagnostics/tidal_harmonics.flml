@@ -177,7 +177,7 @@
       <time_units date="seconds since 1987-01-05 00:00.0"/>
     </current_time>
     <timestep>
-      <real_value rank="0">2.0</real_value>
+      <real_value rank="0">600.0</real_value>
     </timestep>
     <finish_time>
       <real_value rank="0">2592000</real_value>
@@ -197,10 +197,10 @@
         <real_value rank="0">1.0</real_value>
       </minimum_timestep>
       <maximum_timestep>
-        <real_value rank="0">50</real_value>
+        <real_value rank="0">1800</real_value>
       </maximum_timestep>
       <increase_tolerance>
-        <real_value rank="0">1.1</real_value>
+        <real_value rank="0">1.75</real_value>
       </increase_tolerance>
     </adaptive_timestep>
   </timestepping>

@@ -1034,10 +1034,6 @@ free_surface_history_algorithm =
          element spin_up_time { 
                 real
          }?,
-         ## How often to calculate the harmonics. 0 is every timestep. Default is just before a dump
-         element calculation_period {
-            integer
-         },
          ## Internal use only
          element saved_snapshots_times {
             real_vector
@@ -1060,6 +1056,12 @@ tidal_harmonic_algorithm =
        attribute depends {"FreeSurfaceHistory" },
        attribute target { "Amplitude" | "Phase" },
        attribute averageFSLevel { "ForceToZero" | "Calculate" },
+       ## How often to calculate the harmonics. Default is just before output dumps. You can set this
+       ## variable to calculate the diagnostics more often if required. 0 would calculate every timestep
+       ## Note: harmonic calaulations are quite expensive.
+       element calculation_period {
+          integer
+       }?,
        (
        ## Constant free surface offset (i.e. sigma=0). This can be forced to 0 by setting SetC0toZero to True. 
        element constituent {
