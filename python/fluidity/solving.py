@@ -109,8 +109,7 @@ class NonlinearVariationalSolver(object):
     pass
 
 def _assemble_tensor(f):
-    code = mat_code = ffc_interface.compile_form(f, "form")
-    kernel = op2.Kernel(code, "form_cell_integral_0_0")
+    kernel, _, _ = ffc_interface.compile_form(f, "form")
 
     # FIXME: Get preprocessed data from FFC when the interface supports it
     fd = f.form_data()
