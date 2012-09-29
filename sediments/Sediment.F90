@@ -549,13 +549,6 @@ contains
              if (.not.(have_option('/material_phase[0]/vector_field::BedShearStress'))) then
                 FLExit("Reentrainment boundary condition requires a BedShearStress field")
              end if
-
-             ! warn if bedload field is prescribed
-             type = 'diagnostic'
-             if (have_option(trim(field_option_path)//'/scalar_field::Bedload/prescribed')) then
-                ewrite(0,*) 'WARNING: Bedload field is prescribed'
-                type = 'prescribed'
-             end if
              
              ! check boundary id's are the same for re-entrainment and bedload
              

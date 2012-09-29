@@ -173,11 +173,11 @@ contains
        end if
        
        ! obtain surface ids over which to record deposition
-       if (have_option(trim(bedload_field%option_path)//"/diagnostic")) then
+       if (have_option(trim(bedload_field%option_path)//"/prognostic")) then
           surface_id_count=option_shape(trim(bedload_field%option_path)//&
-               &"/diagnostic/surface_ids")
+               &"/prognostic/surface_ids")
           allocate(surface_ids(surface_id_count(1)))
-          call get_option(trim(bedload_field%option_path)//"/diagnostic/surface_ids", &
+          call get_option(trim(bedload_field%option_path)//"/prognostic/surface_ids", &
                & surface_ids)
        else
           surface_id_count=option_shape(trim(bedload_field%option_path)//&
@@ -243,7 +243,7 @@ contains
           call scale(diagnostic_field, 1./dt)
        end if
        
-       if (.not. have_option(trim(bedload_field%option_path)//'/prescribed')) then
+       if (.not. have_option(trim(bedload_field%option_path)//'/prognostic/disable_calculation')) then
           ! Add on sediment falling in and subtract sediment coming out
           do i_node = 1, node_count(surface_mesh(i_field))
              ! add deposited sediment
@@ -687,11 +687,11 @@ contains
        end if
 
        ! obtain sediment bedload surface ids
-       if (have_option(trim(bedload%option_path)//"/diagnostic")) then
+       if (have_option(trim(bedload%option_path)//"/prognostic")) then
           surface_id_count=option_shape(trim(bedload%option_path)//&
-               &"/diagnostic/surface_ids")
+               &"/prognostic/surface_ids")
           allocate(surface_ids(surface_id_count(1)))
-          call get_option(trim(bedload%option_path)//"/diagnostic/surface_ids", &
+          call get_option(trim(bedload%option_path)//"/prognostic/surface_ids", &
                & surface_ids)
        else
           surface_id_count=option_shape(trim(bedload%option_path)//&

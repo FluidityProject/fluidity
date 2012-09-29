@@ -1815,24 +1815,33 @@ sediment =
                ## deposited through the prescribed boundary.
                ##
                ## The units are in unit distances as a depth of sediment.
+               ##
+               ## - The equation type must be set to SedimentBedload
+               ##
+               ## - Spatial discretisation should be as the parent sediment class
+               ##
+               ## - Initial conditions can be set as normal
+               ##
+               ## - Most other settings are irrelevant
+               ##     - No solver settings are required as the sediment model only works
+               ##       for p1 CG or DG fields where the mass matrix can be easily inverted.
+               ##     - The bedload is always calculated completely explicitly
+               ##     - You cannot apply Source or Absorbtion terms to the bedload
+               ##     - There is no diffusion of the bedload
                element scalar_field {
                   attribute rank { "0" },
                   attribute name { "Bedload" },
                   ## Field type
                   (
-                     element diagnostic {
+                     element prognostic {
                         ## Surface ids over which to calculate the bedload:
                         element surface_ids {
                            integer_vector
                         },
-                        diagnostic_scalar_field
-                     }|
-                     element prescribed {
-                        ## Surface ids over which to calculate the bedload deposition:
-                        element surface_ids {
-                           integer_vector
-                        },
-                        prescribed_scalar_field
+                        prognostic_scalar_field,
+                        ## Disables calculation of change to bedload due to 
+                        ## erosion/deposition (generally only used for mms testing):
+                        element disable_calculation { empty }?
                      }
                   )
                },
