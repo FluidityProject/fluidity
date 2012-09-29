@@ -1,0 +1,49 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{dsfont}
+\usepackage{graphicx}
+\usepackage{subfigure}
+\usepackage{pdflscape}
+\usepackage{float}
+\usepackage{natbib}
+\usepackage{amsmath}
+\usepackage[top=2cm,bottom=2cm,left=2.2cm,right=2.2cm]{geometry}
+\usepackage{setspace}
+\usepackage{indentfirst}
+\usepackage[font=small,format=plain,labelfont=bf,up,%% textfont=it
+  ,up]{caption}
+\usepackage{tikz}
+\usetikzlibrary{calc,3d}
+\setlength{\parindent}{10pt}
+\setlength{\parskip}{7pt}
+\usepackage{upgreek}
+\usepackage{mathrsfs}
+\usepackage{breqn}
+
+\begin{document}
+
+\begin{dmath}
+  \int_{\Omega_h} {\bf g_h} \cdot {\bf z_h} \; \text{d}\Omega - \int_{\Omega_h} {\bf g_h} \cdot \nabla u_h \; \text{d}\Omega + \int_{\Sigma^0_h} \left\{ {\bf g_h} \right\} \cdot \mathscr{J}^0 u_h \; \text{d}\sigma = 0
+\end{dmath}
+
+% \renewcommand\arraystretch{2}
+% \begin{dmath}
+%   {\bf C^e_{ab}} = \int_{\Omega_e}
+%   \begin{bmatrix}
+%     N_1 u \frac{\partial N_1}{\partial x} & N_1 u \frac{\partial N_2}{\partial x}  \\
+%     N_2 u \frac{\partial N_1}{\partial x}  & N_2 u \frac{\partial N_2}{\partial x}
+%   \end{bmatrix} \; dx  = \frac{hu}{2} \int_{-1}^1
+%   \begin{bmatrix}
+%     N_1 \frac{2}{h} \frac{\partial N_1}{\partial \xi} & N_1 \frac{2}{h} \frac{\partial N_2}{\partial \xi} \\
+%     N_2 \frac{2}{h} \frac{\partial N_1}{\partial \xi} & N_2 \frac{2}{h} \frac{\partial N_2}{\partial \xi} 
+%   \end{bmatrix} \; d\xi  = u \int_{-1}^1
+%   \begin{bmatrix}
+%     N_1 \frac{\partial N_1}{\partial \xi}  & N_1 \frac{\partial N_2}{\partial \xi} \\
+%     N_2 \frac{\partial N_1}{\partial \xi}  & N_2 \frac{\partial N_2}{\partial \xi} 
+%   \end{bmatrix} \; d\xi  = \frac{u}{2} 
+%   \begin{bmatrix}
+%      -1 & +1 \\
+%      -1 & +1
+%   \end{bmatrix}
+% \end{dmath}
+
+\end{document}
