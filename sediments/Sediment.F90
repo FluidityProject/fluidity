@@ -499,7 +499,6 @@ contains
 
     character(len=FIELD_NAME_LEN)           :: field_mesh, sediment_mesh, bc_type
     character(len=OPTION_PATH_LEN)          :: field_option_path 
-    character(len=10)                       :: type
     integer                                 :: i_field, i_bc, i_bc_surf, i_bedload_surf,&
          & n_sediment_fields, nbcs
     integer, dimension(2)                   :: bc_surface_id_count, bedload_surface_id_count
@@ -536,10 +535,6 @@ contains
           ! Loop over boundary conditions for field
           boundary_conditions: do i_bc=0, nbcs-1
 
-             ! get name and type of boundary condition
-             call get_option(trim(field_option_path)//'/boundary_conditions['//int2str(i_bc)//&
-                  &']/type[0]/name', bc_type)
-
              ! check whether this is a reentrainment boundary
              if (.not. (trim(bc_type) .eq. "sediment_reentrainment")) then
                 cycle boundary_conditions
@@ -554,10 +549,10 @@ contains
              
              ! get bedload surface ids
              bedload_surface_id_count=option_shape(trim(field_option_path)// &
-                  '/scalar_field::Bedload/'//type//'/surface_ids')
+                  '/scalar_field::Bedload/prognostic/surface_ids')
              allocate(bedload_surface_ids(bedload_surface_id_count(1)))
              call get_option(trim(field_option_path)// &
-                  '/scalar_field::Bedload/'//type//'/surface_ids', bedload_surface_ids) 
+                  '/scalar_field::Bedload/prognostic/surface_ids', bedload_surface_ids) 
 
              ! get reentrainment surface ids
              bc_surface_id_count=option_shape(trim(field_option_path)//'/boundary_conditions['&
