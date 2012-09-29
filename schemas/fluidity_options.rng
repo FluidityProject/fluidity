@@ -2638,6 +2638,7 @@ floats upwards, this field should be negative.</a:documentation>
                   <value>0</value>
                 </attribute>
                 <element name="prescribed">
+                  <ref name="velocity_mesh_choice"/>
                   <ref name="prescribed_scalar_field"/>
                 </element>
               </element>

@@ -301,9 +301,11 @@ prognostic_scalar_field =
          attribute rank { "0" },
          (
             element prescribed {
+               velocity_mesh_choice,
                prescribed_scalar_field_no_adapt
             }|
             element diagnostic {
+               velocity_mesh_choice,
                (
                   scalar_python_diagnostic_algorithm |
                   internal_algorithm

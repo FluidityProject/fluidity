@@ -1885,6 +1885,7 @@ sediment =
                   attribute name { "UnhinderedSinkingVelocity" },
                   attribute rank { "0" },
                   element prescribed {
+                     velocity_mesh_choice,
                      prescribed_scalar_field
                   }
                }?,

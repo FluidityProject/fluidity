@@ -391,9 +391,11 @@ floats or swims upwards, this field should be negative.</a:documentation>
         </attribute>
         <choice>
           <element name="prescribed">
+            <ref name="velocity_mesh_choice"/>
             <ref name="prescribed_scalar_field_no_adapt"/>
           </element>
           <element name="diagnostic">
+            <ref name="velocity_mesh_choice"/>
             <choice>
               <ref name="scalar_python_diagnostic_algorithm"/>
               <ref name="internal_algorithm"/>
