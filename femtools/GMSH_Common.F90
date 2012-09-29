@@ -74,7 +74,7 @@ contains
 
     inquire(fd, POS=position)
     close(fd)
-     
+
     select case( trim(readWriteStr) )
     case("read")
 #ifdef __INTEL_COMPILER

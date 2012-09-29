@@ -102,7 +102,7 @@ module fluids_module
 #endif
   use multiphase_module
   use detector_parallel, only: sync_detector_coordinates, deallocate_detector_list_array
-
+  use momentum_diagnostic_fields, only: calculate_densities
 
   implicit none
 
@@ -161,9 +161,10 @@ contains
     INTEGER :: ss,ph
     LOGICAL :: have_solids
 
-    !     Turbulence modelling - JBull 24-05-11
-    LOGICAL :: have_k_epsilon
-    character(len=OPTION_PATH_LEN) :: keps_option_path
+    ! An array of submaterials of the current phase in state(istate).
+    ! Needed for k-epsilon VelocityBuoyancyDensity calculation line:~630
+    ! S Parkinson 31-08-12
+    type(state_type), dimension(:), pointer :: submaterials     
 
     ! Pointers for scalars and velocity fields
     type(scalar_field), pointer :: sfield
@@ -500,15 +501,6 @@ contains
        call set_prescribed_field_values(state, exclude_interpolated=.true., &
             exclude_nonreprescribed=.true., time=current_time+dt)
 
-       ! momentum source term adjustment for k-epsilon model
-       ! this is a hack - we need to set a source term for the momentum equation
-       ! to take account of (-2/3 k delta(ij)) in the reynolds stresses, however we also
-       ! want to be able to have a prescribed momentum source term and hence need to add
-       ! the adjustment after the prescribed value is set
-       do i = 1, size(state)
-          call keps_momentum_source(state(i))
-       end do
-
        if(use_sub_state()) call set_full_domain_prescribed_fields(state,time=current_time+dt)
 
        ! move the mesh according to a prescribed grid velocity
@@ -617,6 +609,30 @@ contains
              call solids(state(1), its, nonlinear_iterations)
           end if
 
+          ! Do we have the k-epsilon turbulence model?
+          ! If we do then we want to calculate source terms and diffusivity for the k and epsilon 
+          ! fields and also tracer field diffusivities at n + theta_nl
+          do i= 1, size(state)
+             if(have_option("/material_phase["//&
+                  int2str(i-1)//"]/subgridscale_parameterisations/k-epsilon")) then
+                if(timestep == 1 .and. its == 1 .and. have_option('/physical_parameters/gravity')) then
+                   ! The very first time k-epsilon is called, VelocityBuoyancyDensity
+                   ! is set to zero until calculate_densities is called in the momentum equation
+                   ! solve. Calling calculate_densities here is a work-around for this problem.  
+                   sfield => extract_scalar_field(state, 'VelocityBuoyancyDensity')
+                   if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then 
+                      call get_phase_submaterials(state, i, submaterials)
+                      call calculate_densities(submaterials, buoyancy_density=sfield)
+                      deallocate(submaterials)
+                   else
+                      call calculate_densities(state, buoyancy_density=sfield)
+                   end if
+                   ewrite_minmax(sfield)
+                end if
+                call keps_advdif_diagnostics(state(i))
+             end if
+          end do
+
           field_loop: do it = 1, ntsol
              ewrite(2, "(a,i0,a,i0)") "Considering scalar field ", it, " of ", ntsol
              ewrite(1, *) "Considering scalar field " // trim(field_name_list(it)) // " in state " // trim(state(field_state_list(it))%name)
@@ -701,11 +717,6 @@ contains
           if( have_option("/material_phase[0]/subgridscale_parameterisations/GLS/option")) then
             call gls_diffusivity(state(1))
           end if
-
-          ! Update eddy viscosity after each iteration!
-          do i = 1, size(state)
-             call keps_eddyvisc(state(i))
-          end do
           
           !BC for ice melt
           if (have_option('/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries')) then
@@ -893,6 +904,7 @@ contains
        end if
 
     end do timestep_loop
+
     ! ****************************
     ! *** END OF TIMESTEP LOOP ***
     ! ****************************
@@ -1004,7 +1016,6 @@ contains
     real, intent(inout) :: dt
     integer, intent(inout) :: nonlinear_iterations, nonlinear_iterations_adapt
     type(state_type), dimension(:), pointer :: sub_state
-    character(len=OPTION_PATH_LEN) :: keps_option_path
     integer :: i
 
     ! Overwrite the number of nonlinear iterations if the option is switched on
@@ -1161,4 +1172,3 @@ contains
   end subroutine check_old_code_path
 
   end module fluids_module
-

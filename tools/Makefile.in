@@ -216,5 +216,8 @@ clean:
 	rm -rf build dist fluidity.egg-info 
 	rm -f lib
 
+distclean:
+	rm -f version-info
+
 $(TEST_TRACE_SPACE): Test_Trace_Space.o lib/
 	$(FLLINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)

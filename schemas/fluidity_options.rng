@@ -1600,33 +1600,53 @@ for thermal fields. This is used to calculate the turbulent buoyancy term.
 Recommended value (default): 1.0.</a:documentation>
                     <ref name="real"/>
                   </element>
-                  <optional>
-                    <element name="implicit_source">
-                      <a:documentation>Implicit source term - lump production term into absorbtion so that it is calculated 
-implicitly</a:documentation>
-                      <empty/>
+                  <element name="time_discretisation">
+                    <a:documentation>Time discretisation of the source terms in the k and epsilon equations and also
+of the eddy viscosity</a:documentation>
+                    <element name="theta">
+                      <a:documentation>Implicit/explicit control (THETA) of source terms and eddy viscosity in
+the k-epsilon model
+ = 0.  -- explicit
+ = 0.5 -- Crank-Nicolson
+ = 1.  -- implicit</a:documentation>
+                      <ref name="real"/>
                     </element>
-                  </optional>
-                  <optional>
-                    <element name="implicit_buoyancy">
-                      <a:documentation>Implicit buoyancy term - lump buoyancy term into absorbtion so that it is calculated 
-implicitly</a:documentation>
-                      <empty/>
+                    <element name="source_term_implementation">
+                      <a:documentation>Each term in the k and epsilon equations can be implemented as either a 
+source or as an absorbtion term. See the manual under 
+'Parameterisations/Turbulent flow modelling and simulation/Reynolds Averaged Navier Stokes (RANS) Modelling/Standard k − ε Turbulence Model/Time Discretisation and Coupling' 
+for more information.</a:documentation>
+                      <element name="production_term">
+                        <choice>
+                          <value>source</value>
+                          <value>absorbtion</value>
+                        </choice>
+                      </element>
+                      <element name="destruction_term">
+                        <choice>
+                          <value>source</value>
+                          <value>absorbtion</value>
+                        </choice>
+                      </element>
+                      <element name="buoyancy_term">
+                        <choice>
+                          <value>source</value>
+                          <value>absorbtion</value>
+                        </choice>
+                      </element>
                     </element>
-                  </optional>
-                  <optional>
-                    <element name="explicit_absorbtion">
-                      <a:documentation>Explicit absorbtion term - lump absorbtion term into source so that it is calculated 
-explicitly</a:documentation>
-                      <empty/>
-                    </element>
-                  </optional>
-                  <element name="mass_lumping_in_diagnostics">
+                  </element>
+                  <element name="mass_terms">
+                    <a:documentation>The source terms in the k-epsilon model are calculated before the field is 
+solved. The process requires inversion of a mass matrix. This element contains
+options for defining how this is done. For P1 meshes mass lumping can be used,
+for other discretisations the mass matrix can not be easily inverted and so a 
+solve must be carried out, with solver options specified.</a:documentation>
                     <choice>
                       <element name="lump_mass">
                         <empty/>
                       </element>
-                      <element name="solve_using_mass_matrix">
+                      <element name="use_consistent_mass_matrix">
                         <element name="solver">
                           <ref name="linear_solver_options_asym"/>
                         </element>
@@ -1635,18 +1655,17 @@ explicitly</a:documentation>
                   </element>
                   <optional>
                     <element name="debugging_options">
-                      <a:documentation>produce vtu output of individual kk and eps source terms and set prescribed source terms
-for k and epsilon fields (for mms tests)</a:documentation>
+                      <a:documentation>produce vtu output of individual kk and eps source terms and set prescribed 
+source terms for k and epsilon fields (for mms tests)</a:documentation>
                       <element name="source_term_output_fields">
-                        <a:documentation>output fields for each of the source and absorbtion terms in the k-epsilon 
-model</a:documentation>
+                        <a:documentation>output fields for each of the source terms in the k-epsilon model</a:documentation>
                         <optional>
                           <element name="scalar_field">
                             <attribute name="rank">
                               <value>0</value>
                             </attribute>
                             <attribute name="name">
-                              <value>TurbulentKineticEnergyProduction</value>
+                              <value>TurbulentKineticEnergy_production_term</value>
                             </attribute>
                             <element name="diagnostic">
                               <ref name="internal_algorithm"/>
@@ -1661,7 +1680,7 @@ model</a:documentation>
                               <value>0</value>
                             </attribute>
                             <attribute name="name">
-                              <value>TurbulentKineticEnergyBuoyancyTerm</value>
+                              <value>TurbulentKineticEnergy_destruction_term</value>
                             </attribute>
                             <element name="diagnostic">
                               <ref name="internal_algorithm"/>
@@ -1676,7 +1695,7 @@ model</a:documentation>
                               <value>0</value>
                             </attribute>
                             <attribute name="name">
-                              <value>TurbulentKineticEnergyDestruction</value>
+                              <value>TurbulentKineticEnergy_buoyancy_term</value>
                             </attribute>
                             <element name="diagnostic">
                               <ref name="internal_algorithm"/>
@@ -1691,7 +1710,7 @@ model</a:documentation>
                               <value>0</value>
                             </attribute>
                             <attribute name="name">
-                              <value>TurbulentDissipationProduction</value>
+                              <value>TurbulentDissipation_production_term</value>
                             </attribute>
                             <element name="diagnostic">
                               <ref name="internal_algorithm"/>
@@ -1706,7 +1725,7 @@ model</a:documentation>
                               <value>0</value>
                             </attribute>
                             <attribute name="name">
-                              <value>TurbulentDissipationBuoyancyTerm</value>
+                              <value>TurbulentDissipation_destruction_term</value>
                             </attribute>
                             <element name="diagnostic">
                               <ref name="internal_algorithm"/>
@@ -1721,7 +1740,7 @@ model</a:documentation>
                               <value>0</value>
                             </attribute>
                             <attribute name="name">
-                              <value>TurbulentDissipationDestruction</value>
+                              <value>TurbulentDissipation_buoyancy_term</value>
                             </attribute>
                             <element name="diagnostic">
                               <ref name="internal_algorithm"/>
@@ -1764,19 +1783,19 @@ This is useful for MMS tests</a:documentation>
                         </optional>
                       </element>
                       <optional>
-                        <element name="disable_production">
+                        <element name="disable_production_term">
                           <a:documentation>enabling this option disables the production term in the k and epsilon equations</a:documentation>
                           <empty/>
                         </element>
                       </optional>
                       <optional>
-                        <element name="disable_destruction">
+                        <element name="disable_destruction_term">
                           <a:documentation>enabling this option disables the destruction term in the k and epsilon equation</a:documentation>
                           <empty/>
                         </element>
                       </optional>
                       <optional>
-                        <element name="disable_buoyancy">
+                        <element name="disable_buoyancy_term">
                           <a:documentation>enabling this option disables the bouyancy term in the k and epsilon equation</a:documentation>
                           <empty/>
                         </element>
@@ -5373,6 +5392,32 @@ Adapting to this field is not recommended</a:documentation>
             <ref name="internal_algorithm"/>
             <ref name="velocity_mesh_choice"/>
             <ref name="porosity_include_dg_and_cg_cfl"/>
+            <ref name="diagnostic_scalar_field"/>
+          </element>
+          <element name="aliased">
+            <ref name="generic_aliased_field"/>
+          </element>
+        </choice>
+      </element>
+      <element name="scalar_field">
+        <a:documentation>Buoyancy Adjustment diffusivity
+
+The element-wise diffusion applied
+in the buoyancy adjustment by vertical mixing
+scheme available for tracer fields.
+
+This is an element-wise P0 field, so it is best
+calculated in a discontinuous function space.</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>BuoyancyAdjustmentDiffusivity</value>
+        </attribute>
+        <choice>
+          <element name="diagnostic">
+            <ref name="internal_algorithm"/>
+            <ref name="velocity_mesh_choice"/>
             <ref name="diagnostic_scalar_field"/>
           </element>
           <element name="aliased">
