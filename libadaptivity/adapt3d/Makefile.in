@@ -77,6 +77,7 @@ OBJS = Debug.o AdaptProgress.o write_log.o adapt1.o  addedg.o  addele.o  addfac.
 	$(CXX) $(CXXFLAGS) -c $<
 
 $(LIB): $(OBJS)
+	@mkdir -p ../lib
 	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
 
 include/fdebug_adapt.h: include/confdefs.h include/ewrite.h

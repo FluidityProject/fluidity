@@ -235,14 +235,14 @@ contains
     real, intent(in) :: dt
     character(len = *), optional, intent(in) :: velocity_name
 
-    character(len = FIELD_NAME_LEN) :: lvelocity_name
+    character(len = FIELD_NAME_LEN) :: lvelocity_name, velocity_equation_type
     integer :: i, j, stat
     integer, dimension(:), allocatable :: t_bc_types
     type(scalar_field) :: t_bc, t_bc_2
     type(scalar_field), pointer :: absorption, sinking_velocity, source
     type(tensor_field), pointer :: diffusivity
     type(vector_field) :: velocity
-    type(vector_field), pointer :: gravity_direction, velocity_ptr, grid_velocity
+    type(vector_field), pointer :: gravity_direction, temp_velocity_ptr, velocity_ptr, grid_velocity
     type(vector_field), pointer :: positions, old_positions, new_positions
     type(scalar_field), target :: dummydensity
     type(scalar_field), pointer :: density, olddensity
@@ -512,6 +512,7 @@ contains
       olddensity => dummydensity
       density_theta = 1.0
       pressure => dummydensity
+
     case(FIELD_EQUATION_INTERNALENERGY)
       ewrite(2,*) "Solving internal energy equation"
       if(move_mesh) then
@@ -546,7 +547,35 @@ contains
       else
          include_heatflux = .false.
       end if
+
+    case(FIELD_EQUATION_KEPSILON)
+      ewrite(2,*) "Solving k-epsilon equation"
+      if(move_mesh) then
+        FLExit("Haven't implemented a moving mesh k-epsilon equation yet.")
+      end if
       
+      ! Depending on the equation type, extract the density or set it to some dummy field allocated above
+      temp_velocity_ptr => extract_vector_field(state, "Velocity")
+      call get_option(trim(temp_velocity_ptr%option_path)//"/prognostic/equation[0]/name", velocity_equation_type)
+      select case(velocity_equation_type)
+         case("LinearMomentum")
+            density=>extract_scalar_field(state, "Density")
+            olddensity => dummydensity
+            density_theta = 1.0
+         case("Boussinesq")
+            density=>dummydensity
+            olddensity => dummydensity
+            density_theta = 1.0
+         case("Drainage")
+            density=>dummydensity
+            olddensity => dummydensity
+            density_theta = 1.0
+         case default
+            ! developer error... out of sync options input and code
+            FLAbort("Unknown equation type for velocity")
+      end select
+      ewrite_minmax(density)
+
     case default
       FLExit("Unknown field equation type for cg advection diffusion.")
     end select
@@ -779,7 +808,7 @@ contains
         & dshape = dt_t, detwei = detwei)
     end if
     
-    if(have_advection.or.(equation_type==FIELD_EQUATION_INTERNALENERGY)) then
+    if(have_advection.or.(equation_type==FIELD_EQUATION_INTERNALENERGY).or.equation_type==FIELD_EQUATION_KEPSILON) then
       call transform_to_physical(positions, ele, &
            & ele_shape(velocity, ele), dshape = du_t)
     end if
@@ -794,7 +823,7 @@ contains
       call transform_to_physical(new_positions, ele, detwei=detwei_new)
     end if
     
-    if(have_advection.and.(equation_type==FIELD_EQUATION_INTERNALENERGY)) then
+    if(have_advection.and.(equation_type==FIELD_EQUATION_INTERNALENERGY .or. equation_type==FIELD_EQUATION_KEPSILON)) then
       if(ele_shape(density, ele)==t_shape) then
         drho_t = dt_t
       else
@@ -911,6 +940,9 @@ contains
           mass_matrix = shape_shape(test_function, ele_shape(t, ele), detwei*density_at_quad)
         end if
       end if
+    case(FIELD_EQUATION_KEPSILON)      
+      density_at_quad = ele_val_at_quad(density, ele)
+      mass_matrix = shape_shape(test_function, ele_shape(t, ele), detwei*density_at_quad)
     case default
     
       if(move_mesh) then
@@ -1012,6 +1044,11 @@ contains
       if(multiphase) then
          nvfrac_at_quad = ele_val_at_quad(nvfrac, ele)
       end if
+
+    case(FIELD_EQUATION_KEPSILON)
+      density_at_quad = ele_val_at_quad(density, ele)
+      densitygrad_at_quad = ele_grad_at_quad(density, ele, drho_t)
+      udotgradrho_at_quad = sum(densitygrad_at_quad*velocity_at_quad, 1)
     end select
                 
     if(integrate_advection_by_parts) then
@@ -1041,6 +1078,14 @@ contains
           else
              advection_mat = advection_mat - (1.0-beta) * shape_shape(test_function, t_shape, (velocity_div_at_quad*density_at_quad + udotgradrho_at_quad)*detwei)
           end if
+        end if
+      case(FIELD_EQUATION_KEPSILON)
+        advection_mat = -dshape_dot_vector_shape(dt_t, velocity_at_quad, t_shape, detwei*density_at_quad)
+        if(abs(1.0 - beta) > epsilon(0.0)) then
+          velocity_div_at_quad = ele_div_at_quad(velocity, ele, du_t)
+          advection_mat = advection_mat &
+                    - (1.0-beta) * shape_shape(test_function, t_shape, (velocity_div_at_quad*density_at_quad &
+                                                                      +udotgradrho_at_quad)* detwei)
         end if
       case default
         advection_mat = -dshape_dot_vector_shape(dt_t, velocity_at_quad, t_shape, detwei)
@@ -1082,6 +1127,14 @@ contains
              advection_mat = advection_mat + beta*shape_shape(test_function, t_shape, (velocity_div_at_quad*density_at_quad &
                                                               +udotgradrho_at_quad)*detwei)
           end if
+        end if
+      case(FIELD_EQUATION_KEPSILON)
+        advection_mat = shape_vector_dot_dshape(test_function, velocity_at_quad, dt_t, detwei*density_at_quad)
+        if(abs(beta) > epsilon(0.0)) then
+          velocity_div_at_quad = ele_div_at_quad(velocity, ele, du_t)
+          advection_mat = advection_mat &
+                    + beta*shape_shape(test_function, t_shape, (velocity_div_at_quad*density_at_quad &
+                                                                +udotgradrho_at_quad)*detwei)
         end if
       case default
         advection_mat = shape_vector_dot_dshape(test_function, velocity_at_quad, dt_t, detwei)
