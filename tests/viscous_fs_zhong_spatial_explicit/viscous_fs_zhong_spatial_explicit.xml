@@ -12,7 +12,7 @@
 file1 = "viscous_fs_zhong_A.stat"
 
 finish_time_a = stat(file1)["ElapsedTime"]["value"][-1]</variable>
-    <variable name="ab_convergence_fs" language="python">import calculate_order
+    <variable name="ab_convergence_fs" language="python">import calculate_order_zhong_spatial_explicit as calculate_order
 
 file1 = "viscous_fs_zhong_A.stat"
 file2 = "viscous_fs_zhong_B.stat"

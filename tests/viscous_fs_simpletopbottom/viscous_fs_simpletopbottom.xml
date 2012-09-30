@@ -12,7 +12,7 @@
 file1 = "viscous_fs_simpletopbottom_E.stat"
 
 finish_time_e = stat(file1)["ElapsedTime"]["value"][-1]</variable>
-    <variable name="ef_convergence_fs" language="python">import calculate_order
+    <variable name="ef_convergence_fs" language="python">import calculate_order_simpletopbottom as calculate_order
 
 file1 = "viscous_fs_simpletopbottom_E.stat"
 file2 = "viscous_fs_simpletopbottom_F.stat"
@@ -23,7 +23,7 @@ ef_convergence_fs = calculate_order.report_convergence(file1, file2)</variable>
 file1 = "viscous_fs_simpletopbottom_F.stat"
 
 finish_time_f = stat(file1)["ElapsedTime"]["value"][-1]</variable>
-    <variable name="fg_convergence_fs" language="python">import calculate_order
+    <variable name="fg_convergence_fs" language="python">import calculate_order_simpletopbottom as calculate_order
 
 file1 = "viscous_fs_simpletopbottom_F.stat"
 file2 = "viscous_fs_simpletopbottom_G.stat"
@@ -34,7 +34,7 @@ fg_convergence_fs = calculate_order.report_convergence(file1, file2)</variable>
 file1 = "viscous_fs_simpletopbottom_G.stat"
 
 finish_time_g = stat(file1)["ElapsedTime"]["value"][-1]</variable>
-    <variable name="gh_convergence_fs" language="python">import calculate_order
+    <variable name="gh_convergence_fs" language="python">import calculate_order_simpletopbottom as calculate_order
 
 file1 = "viscous_fs_simpletopbottom_G.stat"
 file2 = "viscous_fs_simpletopbottom_H.stat"
@@ -45,7 +45,7 @@ gh_convergence_fs = calculate_order.report_convergence(file1, file2)</variable>
 file1 = "viscous_fs_simpletopbottom_H.stat"
 
 finish_time_h = stat(file1)["ElapsedTime"]["value"][-1]</variable>
-    <variable name="hi_convergence_fs" language="python">import calculate_order
+    <variable name="hi_convergence_fs" language="python">import calculate_order_simpletopbottom as calculate_order
 
 file1 = "viscous_fs_simpletopbottom_H.stat"
 file2 = "viscous_fs_simpletopbottom_I.stat"
