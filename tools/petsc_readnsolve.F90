@@ -39,14 +39,6 @@ use halos_registration
 use parallel_tools
 #ifdef HAVE_PETSC_MODULES
   use petsc 
-#if PETSC_VERSION_MINOR==0
-  use petscvec 
-  use petscmat 
-  use petscksp 
-  use petscpc 
-  use petscis 
-  use petscmg  
-#endif
 #endif
 implicit none
 #ifdef HAVE_PETSC_MODULES
@@ -58,16 +50,6 @@ implicit none
 #include "finclude/petscisdef.h"
 #else
 #include "finclude/petsc.h"
-#if PETSC_VERSION_MINOR==0
-#include "finclude/petscmat.h"
-#include "finclude/petscvec.h"
-#include "finclude/petscviewer.h"
-#include "finclude/petscksp.h"
-#include "finclude/petscpc.h"
-#include "finclude/petscmg.h"
-#include "finclude/petscis.h"
-#include "finclude/petscsys.h"
-#endif
 #endif
 ! hack around PetscTruth->PetscBool change in petsc 3.2
 #if PETSC_VERSION_MINOR>=2
@@ -764,28 +746,13 @@ contains
        
     m=petsc_numbering%universal_length ! global length
        
-#if PETSC_VERSION_MINOR==0    
-    ! in petsc 3.0 we have to ask for all columns
-    ! so we need to create an index set with all universal node numbers(!)    
-    allocate( allcols(1:m) )
-    allcols=(/ ( i, i=0, m-1) /)
-    call ISCreateGeneral(MPI_COMM_FEMTOOLS, &
-       m, allcols, col_indexset, ierr)
-    call ISSetIdentity(col_indexset, ierr)
-       
-    ! redistribute matrix by asking for owned rows and all columns
-    ! n*components is the number of columns we own
-    call MatGetSubMatrix(matrix, row_indexset, col_indexset, n*ncomponents, &
-       MAT_INITIAL_MATRIX, new_matrix, ierr)
-    call ISDestroy(col_indexset, ierr)
-#else
-    ! in petsc 3.1 we only ask for owned columns (although presumably
+    ! we only ask for owned columns (although presumably
     ! still all columns of owned rows are stored locally)
     ! we only deal with square matrices (same d.o.f. for rows and columns)
     ! in fluidity, so we can simply reuse row_indexset as the col_indexset
     call MatGetSubMatrix(matrix, row_indexset, row_indexset, &
        MAT_INITIAL_MATRIX, new_matrix, ierr)
-#endif
+
     ! destroy the old read-in matrix and replace by the new one
     call MatDestroy(matrix, ierr)
     matrix=new_matrix

@@ -13008,27 +13008,12 @@ program test_petsc
 #include "petscversion.h"
 #ifdef HAVE_PETSC_MODULES
   use petsc
-#if PETSC_VERSION_MINOR==0
-  use petscvec
-  use petscmat
-  use petscksp
-  use petscpc
-#endif
 #endif
 implicit none
 #ifdef HAVE_PETSC_MODULES
-#include "finclude/petscvecdef.h"
-#include "finclude/petscmatdef.h"
-#include "finclude/petsckspdef.h"
-#include "finclude/petscpcdef.h"
+#include "finclude/petscdef.h"
 #else
 #include "finclude/petsc.h"
-#if PETSC_VERSION_MINOR==0
-#include "finclude/petscvec.h"
-#include "finclude/petscmat.h"
-#include "finclude/petscksp.h"
-#include "finclude/petscpc.h"
-#endif
 #endif
       double precision  norm
       PetscInt  i,j,II,JJ,m,n,its
@@ -13141,16 +13126,20 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 if ac_fn_c_compute_int "$LINENO" ""PETSC_VERSION_MAJOR"" "PETSC_VERSION_MAJOR"        "#include \"petscversion.h\""; then :
 
 else
-  as_fn_error $? "Unknown petsc version" "$LINENO" 5
+  as_fn_error $? "Unknown petsc major version" "$LINENO" 5
 fi
 
-if test "x$PETSC_VERSION_MAJOR" == "x3" ; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: Detected PETSc version 3" >&5
-$as_echo "$as_me: Detected PETSc version 3" >&6;}
+if ac_fn_c_compute_int "$LINENO" ""PETSC_VERSION_MINOR"" "PETSC_VERSION_MINOR"        "#include \"petscversion.h\""; then :
+
 else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: Detected PETSc version \"$PETSC_VERSION_MAJOR\"" >&5
-$as_echo "$as_me: Detected PETSc version \"$PETSC_VERSION_MAJOR\"" >&6;}
-  as_fn_error $? "Fluidity needs PETSc version 3" "$LINENO" 5
+  as_fn_error $? "Unknown petsc minor version" "$LINENO" 5
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: Detected PETSc version \"$PETSC_VERSION_MAJOR\".\"$PETSC_VERSION_MINOR\"" >&5
+$as_echo "$as_me: Detected PETSc version \"$PETSC_VERSION_MAJOR\".\"$PETSC_VERSION_MINOR\"" >&6;}
+# if major<3 or minor<1
+if test "0$PETSC_VERSION_MAJOR" -lt 3 -o "0$PETSC_VERSION_MINOR" -lt 1; then
+  as_fn_error $? "Fluidity needs PETSc version >=3.1" "$LINENO" 5
 fi
 
 

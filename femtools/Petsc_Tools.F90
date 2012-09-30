@@ -40,38 +40,13 @@ module Petsc_Tools
   use profiler
 #ifdef HAVE_PETSC_MODULES
   use petsc 
-#if PETSC_VERSION_MINOR==0
-  use petscvec 
-  use petscmat 
-  use petscksp 
-  use petscpc 
-  use petscis 
-  use petscmg  
-#endif
 #endif
   implicit none
 #include "petscversion.h"
 #ifdef HAVE_PETSC_MODULES
-#if PETSC_VERSION_MINOR==0
-#include "finclude/petscvecdef.h"
-#include "finclude/petscmatdef.h"
-#include "finclude/petsckspdef.h"
-#include "finclude/petscpcdef.h"
-#include "finclude/petscviewerdef.h"
-#include "finclude/petscisdef.h"
-#else
 #include "finclude/petscdef.h"
-#endif
 #else
 #include "finclude/petsc.h"
-#if PETSC_VERSION_MINOR==0
-#include "finclude/petscvec.h"
-#include "finclude/petscmat.h"
-#include "finclude/petscksp.h"
-#include "finclude/petscpc.h"
-#include "finclude/petscviewer.h"
-#include "finclude/petscis.h"
-#endif
 #endif
 
   PetscReal, parameter, private :: dummy_petsc_real = 0.0
@@ -1545,9 +1520,6 @@ end module Petsc_Tools
 ! this routine calls MatGetInfo with an implicit interface.
 subroutine myMatGetInfo(A, flag, info, ierr)
 #include "finclude/petsc.h"
-#if PETSC_VERSION_MINOR==0
-#include "finclude/petscmat.h"
-#endif
 Mat, intent(in):: A
 MatInfoType, intent(in):: flag
 double precision, dimension(:), intent(out):: info
