@@ -1386,6 +1386,15 @@ Implemented as a queue data structure.</a:documentation>
         </element>
       </optional>
       <optional>
+        <element name="calculation_period">
+          <a:documentation>How often to calculate the harmonics. Default is just before output dumps. You can set this
+variable to calculate the diagnostics more often if required. 0 would calculate every timestep
+Note: harmonic calaulations are quite expensive. The value below applies to all tidal harmonics
+in the simulation</a:documentation>
+          <ref name="integer"/>
+        </element>
+      </optional>
+      <optional>
         <element name="saved_snapshots_times">
           <a:documentation>Internal use only</a:documentation>
           <ref name="real_vector"/>
@@ -1425,14 +1434,6 @@ By setting averageFSLevel to ForceToZero, C0 is set to zero. Recommended is "Cal
           <value>Calculate</value>
         </choice>
       </attribute>
-      <optional>
-        <element name="calculation_period">
-          <a:documentation>How often to calculate the harmonics. Default is just before output dumps. You can set this
-variable to calculate the diagnostics more often if required. 0 would calculate every timestep
-Note: harmonic calaulations are quite expensive.</a:documentation>
-          <ref name="integer"/>
-        </element>
-      </optional>
       <choice>
         <element name="constituent">
           <a:documentation>Constant free surface offset (i.e. sigma=0). This can be forced to 0 by setting SetC0toZero to True. </a:documentation>

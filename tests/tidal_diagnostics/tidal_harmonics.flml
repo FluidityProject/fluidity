@@ -159,7 +159,7 @@
     </dump_format>
     <dump_period>
       <constant>
-        <real_value rank="0">10800</real_value>
+        <real_value rank="0">20000</real_value>
         <comment>21600: dump results every 6 hours (0.25 days) of simulated time. Given a finish-time of 2592000 s (1 month), 120 dumps are expected.</comment>
       </constant>
     </dump_period>
@@ -483,7 +483,7 @@
       <diagnostic>
         <algorithm depends="FreeSurface" name="free_surface_history" material_phase_support="single">
           <levels>
-            <integer_value rank="0">50</integer_value>
+            <integer_value rank="0">10</integer_value>
           </levels>
           <stride>
             <integer_value rank="0">1</integer_value>
@@ -498,9 +498,6 @@
     <scalar_field name="M2amp" rank="0">
       <diagnostic>
         <algorithm depends="FreeSurfaceHistory" averageFSLevel="Calculate" material_phase_support="single" name="tidal_harmonics" target="Amplitude">
-          <calculation_period>
-            <integer_value rank="0">0</integer_value>
-          </calculation_period>
           <constituent name="M2">
             <real_value shape="1" rank="0">2.23642934E-05</real_value>
           </constituent>
