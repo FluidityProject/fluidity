@@ -308,7 +308,7 @@
               <prescribed>
                 <value name="WholeMesh">
                   <python>
-                    <string_value lines="20" type="code" language="python">def val(X, t):
+                    <string_value lines="20" type="python">def val(X, t):
     if (X[0]&lt;-3):
        return [1e10,1e10,1e10]
     else:
@@ -352,7 +352,7 @@
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="code" language="python">def val(X, t):
+            <string_value lines="20" type="python">def val(X, t):
     from math import exp,sqrt
     F = exp(-20*sqrt(X[0]**2 + X[1]**2 + X[2]**2))/exp(-10)
     return F</string_value>
@@ -417,6 +417,14 @@
         </number_of_adapts>
         <output_adapted_mesh/>
       </adapt_at_first_timestep>
+      <zoltan_options>
+        <load_imbalance_tolerance>
+          <real_value rank="0">1.1</real_value>
+        </load_imbalance_tolerance>
+      </zoltan_options>
+      <adapt_iterations>
+        <integer_value rank="0">4</integer_value>
+      </adapt_iterations>
     </hr_adaptivity>
   </mesh_adaptivity>
 </fluidity_options>

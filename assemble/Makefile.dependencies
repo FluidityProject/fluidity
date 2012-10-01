@@ -203,7 +203,7 @@ Diagnostic_fields_wrapper.o ../include/diagnostic_fields_wrapper.mod: \
    ../include/field_options.mod ../include/fields.mod \
    ../include/free_surface_module.mod ../include/futils.mod \
    ../include/geostrophic_pressure.mod ../include/global_parameters.mod \
-   ../include/k_epsilon.mod ../include/momentum_diagnostic_fields.mod \
+   ../include/momentum_diagnostic_fields.mod \
    ../include/multimaterial_module.mod ../include/multiphase_module.mod \
    ../include/parallel_tools.mod ../include/sediment_diagnostics.mod \
    ../include/sparse_matrices_fields.mod ../include/spontaneous_potentials.mod \
@@ -564,6 +564,7 @@ Momentum_Diagnostic_Fields.o ../include/momentum_diagnostic_fields.mod: \
    ../include/equation_of_state.mod ../include/fdebug.h \
    ../include/field_priority_lists.mod ../include/fields.mod \
    ../include/fldebug.mod ../include/global_parameters.mod \
+   ../include/initialise_fields_module.mod ../include/k_epsilon.mod \
    ../include/multimaterial_module.mod ../include/multiphase_module.mod \
    ../include/spud.mod ../include/state_module.mod
 
