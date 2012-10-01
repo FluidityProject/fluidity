@@ -9,6 +9,7 @@ import fluidity.regressiontest as regressiontest
 import traceback
 import threading
 import xml.parsers.expat
+import string
 
 
 sys.path.insert(0, os.path.join(os.getcwd(), os.path.dirname(sys.argv[0]), os.pardir, "python"))
@@ -19,7 +20,7 @@ except ImportError:
 
 class TestHarness:
     def __init__(self, length="any", parallel=False, exclude_tags=None, tags=None, file="", verbose=True, justtest=False,
-        valgrind=False):
+        valgrind=False, no_pbs=False):
         self.tests = []
         self.verbose = verbose
         self.length = length
@@ -31,6 +32,7 @@ class TestHarness:
         self.completed_tests = []
         self.justtest = justtest
         self.valgrind = valgrind
+        self.no_pbs = no_pbs
 
         fluidity_command = self.decide_fluidity_command()
 
@@ -73,8 +75,11 @@ class TestHarness:
         if file != "":
           for (subdir, xml_file) in [os.path.split(x) for x in xml_files]:
             if xml_file == file:
+              p = etree.parse(os.path.join(subdir,xml_file))
+              prob_defn = p.findall("problem_definition")[0]
+              prob_nprocs = int(prob_defn.attrib["nprocs"])                
               testprob = regressiontest.TestProblem(filename=os.path.join(subdir, xml_file),
-                           verbose=self.verbose, replace=self.modify_command_line())
+                           verbose=self.verbose, replace=self.modify_command_line(prob_nprocs), no_pbs=no_pbs)
               self.tests = [(subdir, testprob)]
               return
           print "Could not find file %s." % file
@@ -138,8 +143,12 @@ class TestHarness:
           tagged_set = working_set
 
         for (subdir, xml_file) in [os.path.split(x) for x in tagged_set]:
+          # need to grab nprocs here to pass through to modify_command_line
+          p = etree.parse(os.path.join(subdir,xml_file))
+          prob_defn = p.findall("problem_definition")[0]
+          prob_nprocs = int(prob_defn.attrib["nprocs"])
           testprob = regressiontest.TestProblem(filename=os.path.join(subdir, xml_file),
-                       verbose=self.verbose, replace=self.modify_command_line())
+                       verbose=self.verbose, replace=self.modify_command_line(prob_nprocs))
           self.tests.append((subdir, testprob))
 
         if len(self.tests) == 0:
@@ -192,9 +201,9 @@ class TestHarness:
               
         return None
 
-    def modify_command_line(self):
+    def modify_command_line(self, nprocs):
       flucmd = self.decide_fluidity_command()
-
+      print flucmd
       def f(s):
         if not flucmd in [None, "fluidity"]:
           s = s.replace('fluidity ', flucmd + ' ')
@@ -203,6 +212,18 @@ class TestHarness:
           s = "valgrind --tool=memcheck --leak-check=full -v" + \
               " --show-reachable=yes --num-callers=8 --error-limit=no " + \
               "--log-file=test.log " + s
+
+        print s
+        if (self.no_pbs):
+            # check for mpiexec and the correct number of cores
+            if (string.find(s, 'mpiexec') == -1):
+                s = s.replace(flucmd+" ", "mpiexec "+flucmd+" ")
+                print s
+
+            if (string.find(s, '-n') == -1): 
+                s = s.replace('mpiexec ', 'mpiexec -n '+str(nprocs)+' ')
+                print s
+
         return s
 
       return f
@@ -334,6 +355,7 @@ if __name__ == "__main__":
     parser.add_option("-c", "--clean", action="store_true", dest="clean", default = False)
     parser.add_option("--just-test", action="store_true", dest="justtest")
     parser.add_option("--just-list", action="store_true", dest="justlist")
+    parser.add_option("--no_pbs", action="store_true", dest="no_pbs")
     (options, args) = parser.parse_args()
 
     if len(args) > 0: parser.error("Too many arguments.")
@@ -368,7 +390,7 @@ if __name__ == "__main__":
       tags = options.tags
 
     testharness = TestHarness(length=options.length, parallel=para, exclude_tags=exclude_tags, tags=tags, file=options.file, verbose=True,
-        justtest=options.justtest, valgrind=options.valgrind)
+        justtest=options.justtest, valgrind=options.valgrind, no_pbs=options.no_pbs)
 
     if options.justlist:
       testharness.list()
