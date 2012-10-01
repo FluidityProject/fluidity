@@ -3,4 +3,5 @@ input: clean
 	../../bin/fldecomp -n 16  square
 
 clean:
-	rm -f  *.ele *.edge *.node *.poly *.halo *.vtu *.pvtu fluidity.* *.s *.d.1 *.stat
+	rm -rf  *.ele *.edge *.node *.poly *.halo *.vtu *.pvtu fluidity.* *.s *.d.1 *.stat \
+	matrixdump matrixdump.info heat_*

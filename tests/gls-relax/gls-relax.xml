@@ -20,6 +20,11 @@
        tricky to work out the relax is what we expect.
   -->
   <variables>     
+       <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+       </variable>
     <variable name="NormalVertDiffStart" language="python">
 for line in open("fluidity.log_orig.0"):
   if "Min, max of K_H" in line:
@@ -91,6 +96,9 @@ for line in open("fluidity.log_relax.0"):
 </variables>
 
   <pass_tests> 
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
       <test name ="Relaxed diffusivity is half value of normal" language="python">
 normalDiffChange = NormalVertDiffEnd-NormalVertDiffStart
 relaxDiffChange = RelaxVertDiffEnd-RelaxVertDiffStart
