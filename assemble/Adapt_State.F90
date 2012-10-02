@@ -1081,10 +1081,13 @@ contains
       canonical_numbering%mesh%uid=>canonical_numbering
       call order_elements(canonical_numbering)
       call insert(states, canonical_numbering, name="CanonicalNumbering")
+      ! order_elements mucks with the mesh, so we need a new copy of the
+      !  mesh descriptor.
+      new_positions%mesh=canonical_numbering%mesh
       call deallocate(canonical_numbering)
-      new_positions%mesh%uid=>extract_scalar_field(states(1), "CanonicalNumbering")      
+      
       ! The previous pointer to canonical numbering is unsafe, so fix it.
-      new_positions%mesh%uid%mesh%uid=>extract_scalar_field(states(1), "CanonicalNumbering")      
+      new_positions%mesh%uid=>extract_scalar_field(states(1), "CanonicalNumbering")      
 
       ! Insert the new mesh field and linear mesh into all states
       call insert(states, new_positions%mesh, name = new_positions%mesh%name)
@@ -1144,6 +1147,7 @@ contains
       call allocate_and_insert_fields(states)
       ! Insert fields from reserve states
       call restore_reserved_fields(states)
+      
       ! Add on the boundary conditions again
       call populate_boundary_conditions(states)
       ! Set their values

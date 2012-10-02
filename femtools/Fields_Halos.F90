@@ -342,6 +342,14 @@ contains
           end do
        end do
     end if
+    if (allocated(element_owner)) then
+       ! The element_owner list is contains old element numbers, it needs
+       !  the new ones
+       do i = 1, size(element_owner)
+          element_owner(i) = p0_mesh%ndglno(element_owner(i))
+       end do
+    end if
+
     call deallocate(p0_mesh)
 
     ! The faces are now invalid so re-establish them.

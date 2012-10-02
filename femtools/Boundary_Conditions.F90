@@ -164,6 +164,7 @@ contains
     ! generate list of surface elements where this b.c. is applied
     ele_count=0
     boundary_id_used=.false.
+
     do i=1, surface_element_count(field)
       if (any(boundary_ids==surface_element_id(field, i))) then
         ele_count=ele_count+1
