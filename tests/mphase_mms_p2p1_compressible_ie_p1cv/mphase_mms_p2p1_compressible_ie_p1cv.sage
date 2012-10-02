@@ -30,7 +30,7 @@ csq = 100.0
 #p = csq*(rho1 - rho0)
 p = (gamma-1.0)*ie1*rho1
              
-vfrac1 = 0.8
+vfrac1 = 0.5*cos(x)*cos(x) + 0.1
 vfrac2 = 1.0 - vfrac1
              
 nu1 = 0.7
