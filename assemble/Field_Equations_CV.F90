@@ -203,7 +203,7 @@ contains
       type(vector_field), pointer :: temp_velocity_ptr
       character(len=FIELD_NAME_LEN) :: velocity_equation_type
       ! Volume fraction fields for multiphase flow simulation
-      type(scalar_field), pointer :: vfrac
+      type(scalar_field), pointer :: vfrac, oldvfrac
       type(scalar_field) :: nvfrac ! Non-linear version
 
       ! assume explicitness?
@@ -269,10 +269,10 @@ contains
          call get_nonlinear_volume_fraction(state(1), nvfrac)
          
          ewrite_minmax(nvfrac)
+         
+         oldvfrac => extract_scalar_field(state(1), "OldPhaseVolumeFraction")
       else
          multiphase = .false.
-         call allocate(nvfrac, tfield%mesh, "DummyNonlinearPhaseVolumeFraction", field_type=FIELD_TYPE_CONSTANT)
-         call set(nvfrac, 1.0)
       end if
 
       ! find out equation type and hence if density is needed or not
@@ -731,8 +731,8 @@ contains
             ! diffusion matrix then assemble A_m, D_m and rhs here
             call assemble_advectiondiffusion_m_cv(A_m, rhs, D_m, diff_rhs, &
                                         tfield, l_old_tfield, tfield_options, &
-                                        tdensity, oldtdensity, nvfrac, tdensity_options, &
-                                        cvfaces, x_cvshape, x_cvbdyshape, &
+                                        tdensity, oldtdensity, nvfrac, oldvfrac, &
+                                        tdensity_options, cvfaces, x_cvshape, x_cvbdyshape, &
                                         u_cvshape, u_cvbdyshape, t_cvshape, &
                                         ug_cvshape, ug_cvbdyshape, &
                                         x_cvshape_full, x_cvbdyshape_full, &
@@ -747,7 +747,7 @@ contains
           call assemble_field_eqn_cv(M, A_m, cvmass, rhs, &
                                     tfield, l_old_tfield, &
                                     tdensity, oldtdensity, tdensity_options, &
-                                    source, absorption, nvfrac, tfield_options%theta, &
+                                    source, absorption, nvfrac, oldvfrac, tfield_options%theta, &
                                     state, advu, sub_dt, explicit, &
                                     t_cvmass, t_abs_src_cvmass, t_cvmass_old, t_cvmass_new, & 
                                     D_m, diff_rhs)
@@ -835,7 +835,9 @@ contains
       if (include_porosity) then
         call deallocate(t_cvmass_with_porosity)
       end if
-      call deallocate(nvfrac)
+      if(multiphase) then
+         call deallocate(nvfrac)
+      end if
 
     end subroutine solve_field_eqn_cv
     ! end of solution wrapping subroutines
@@ -845,7 +847,7 @@ contains
     subroutine assemble_field_eqn_cv(M, A_m, m_cvmass, rhs, &
                                     tfield, oldtfield, &
                                     tdensity, oldtdensity, tdensity_options, &
-                                    source, absorption, nvfrac, theta, &
+                                    source, absorption, nvfrac, oldvfrac, theta, &
                                     state, advu, dt, explicit, &
                                     cvmass, abs_src_cvmass, cvmass_old, cvmass_new, &
                                     D_m, diff_rhs)
@@ -870,7 +872,7 @@ contains
       type(scalar_field), intent(inout) :: oldtfield, tdensity, oldtdensity
       ! options wrappers for tdensity
       type(cv_options_type) :: tdensity_options
-      type(scalar_field), intent(inout) :: source, absorption, nvfrac
+      type(scalar_field), intent(inout) :: source, absorption, nvfrac, oldvfrac
       ! time discretisation parameter
       real, intent(in) :: theta
       ! bucket full of fields
@@ -1193,12 +1195,16 @@ contains
 
         call allocate(CT_m, gradient_sparsity, (/1, advu%dim/), name="DivergenceMatrix" )
         call assemble_divergence_matrix_cv(CT_m, state(1), &
-                                           test_mesh=p%mesh, field=advu)
+                                           test_mesh=p%mesh, field=advu, include_vfrac=.false.)
 
         call allocate(pterm, p%mesh, "PressureTerm")
 
         ! construct the pressure term
         call mult(pterm, CT_m, advu) 
+        if(multiphase) then
+           call scale(pterm, nvfrac) ! We need vfrac*p*div(u) for the multiphase InternalEnergy equation
+        end if
+        
                                 ! should this really be the advection velocity or just the relative or the nonlinear?
         pterm%val = pterm%val*(p%val+atmospheric_pressure)
 
@@ -1319,8 +1325,8 @@ contains
     ! assembly subroutines 
     subroutine assemble_advectiondiffusion_m_cv(A_m, rhs, D_m, diff_rhs, &
                                        tfield, oldtfield, tfield_options, &
-                                       tdensity, oldtdensity, nvfrac, tdensity_options, &
-                                       cvfaces, x_cvshape, x_cvbdyshape, &
+                                       tdensity, oldtdensity, nvfrac, oldvfrac, &
+                                       tdensity_options, cvfaces, x_cvshape, x_cvbdyshape, &
                                        u_cvshape, u_cvbdyshape, t_cvshape, &
                                        ug_cvshape, ug_cvbdyshape, &
                                        x_cvshape_full, x_cvbdyshape_full, &
@@ -1383,7 +1389,7 @@ contains
       ! timestep
       real, intent(in) :: dt
       
-      type(scalar_field), intent(in) :: nvfrac
+      type(scalar_field), intent(in) :: nvfrac, oldvfrac
 
       ! mesh sparsity for upwind value matrices
       type(csr_sparsity), intent(in) :: mesh_sparsity
@@ -1602,7 +1608,7 @@ contains
           
           if(multiphase) then
             tdensity_ele = tdensity_ele*ele_val(nvfrac,ele)
-            oldtdensity_ele = oldtdensity_ele*ele_val(nvfrac,ele)
+            oldtdensity_ele = oldtdensity_ele*ele_val(oldvfrac,ele)
           end if
         end if
 
