@@ -208,7 +208,7 @@ contains
       ! Extract first component of viscosity tensor from full tensor:
       viscosity_component = extract_scalar_field(viscosity,1,1)
 
-      ! Allocate, initialise and assemble scaled pressure mass matrix:
+      ! Initialise and assemble scaled pressure mass matrix:
       allocate(detwei(ele_ngi(pressure, 1)), &
                mass_matrix(ele_loc(pressure, 1), ele_loc(pressure, 1)), &
                mu_gi(ele_ngi(viscosity_component, 1)))
