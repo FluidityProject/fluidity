@@ -1,0 +1,163 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>2D 1way FSI model: Checkpointing for solids</name>
+  <owner userid="ffm10"/>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity fsi_1way_solid_checkpointing.flml;
+                  fluidity test-fsi_solid_vtu_dump_checkpointing_1_checkpoint.flml;
+    </command_line>
+  </problem_definition>
+  <variables>
+    <variable name = "solvers_converged" language = "python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files 
+    </variable>
+    <!-- Below variables checking on solid vtu dump files -->
+    <variable name="first_solid_dump_check" language="python">
+import os
+files = os.listdir("./")
+first_solid_dump_check = "test-fsi_solid_vtu_dump_checkpointing_solid_small_box_0.vtu" in files and "test-fsi_solid_vtu_dump_checkpointing_solid_small_box_1.vtu" in files
+    </variable>
+    <!-- Below variables checking on solid checkpoint files -->
+    <variable name="first_solid_checkpoint_check" language="python">
+import os
+files = os.listdir("./")
+first_solid_checkpoint_check = "test-fsi_solid_vtu_dump_checkpointing_solid_small_boxSolidCoordinateMesh_1_checkpoint.msh" in files and "test-fsi_solid_vtu_dump_checkpointing_solid_small_box_1_checkpoint.vtu" in files
+    </variable>
+
+    <!-- For checking SOLID VTU files -->
+    <variable name = "first_initial_solid_vtu" language = "python">
+import vtktools
+first_initial_solid_vtu = vtktools.vtu("test-fsi_solid_vtu_dump_checkpointing_solid_small_box_0.vtu")
+    </variable>
+    <variable name = "first_final_solid_vtu" language = "python">
+import vtktools
+first_final_solid_vtu = vtktools.vtu("test-fsi_solid_vtu_dump_checkpointing_solid_small_box_1.vtu")
+    </variable>
+    <variable name = "first_checkpoint_solid_vtu" language = "python">
+import vtktools
+first_checkpoint_solid_vtu = vtktools.vtu("test-fsi_solid_vtu_dump_checkpointing_solid_small_box_1_checkpoint.vtu")
+    </variable>
+    <variable name = "checkpointed_final_solid_vtu" language = "python">
+import vtktools
+checkpointed_final_solid_vtu = vtktools.vtu("test-fsi_solid_vtu_dump_checkpointing_checkpoint_solid_small_box_1.vtu")
+    </variable>
+    <variable name = "checkpointed_checkpoint_solid_vtu" language = "python">
+import vtktools
+checkpointed_checkpoint_solid_vtu = vtktools.vtu("test-fsi_solid_vtu_dump_checkpointing_checkpoint_solid_small_box_1_checkpoint.vtu")
+    </variable>
+
+    <!-- For CHECKPOINTED run -->
+    <!-- Below variables for the restarted simulation from the first checkpoint -->
+    <variable name="second_solid_dump_check" language="python">
+import os
+files = os.listdir("./")
+second_solid_dump_check = "test-fsi_solid_vtu_dump_checkpointing_checkpoint_solid_small_box_0.vtu" in files and "test-fsi_solid_vtu_dump_checkpointing_checkpoint_solid_small_box_1.vtu" in files
+    </variable>
+    <!-- Below variables checking on solid checkpoint files -->
+    <variable name="second_solid_checkpoint_check" language="python">
+import os
+files = os.listdir("./")
+second_solid_checkpoint_check = "test-fsi_solid_vtu_dump_checkpointing_checkpoint_solid_small_boxSolidCoordinateMesh_1_checkpoint.msh" in files and "test-fsi_solid_vtu_dump_checkpointing_checkpoint_solid_small_box_1_checkpoint.vtu" in files
+    </variable>
+
+    <variable name="total_ElapsedTime" language="python">from fluidity_tools import stat_parser
+s = stat_parser("test-fsi_solid_vtu_dump_checkpointing_checkpoint.stat")
+total_ElapsedTime=s["ElapsedTime"]["value"][-1]
+    </variable>
+    <variable name="first_fluid_max_SolidConcentration" language="python">from fluidity_tools import stat_parser
+s = stat_parser("test-fsi_solid_vtu_dump_checkpointing.stat")
+first_fluid_max_SolidConcentration = s["fluid"]["SolidConcentration"]["max"][0]
+    </variable>
+    <variable name="first_fluid_IntegralSolidConcentration" language="python">from fluidity_tools import stat_parser
+s = stat_parser("test-fsi_solid_vtu_dump_checkpointing.stat")
+first_fluid_IntegralSolidConcentration = s["fluid"]["SolidConcentration"]["integral"]
+    </variable>
+    <variable name="second_fluid_IntegralSolidConcentration" language="python">from fluidity_tools import stat_parser
+s = stat_parser("test-fsi_solid_vtu_dump_checkpointing_checkpoint.stat")
+second_fluid_IntegralSolidConcentration = s["fluid"]["SolidConcentration"]["integral"]
+    </variable>
+  </variables>
+
+  <pass_tests>
+    <test name = "Solvers converged" language = "python">
+assert(solvers_converged)
+    </test>
+    <test name = "First run: Solid vtu dump files present" language = "python">
+assert(first_solid_dump_check)
+    </test>
+    <test name = "First run: Solid checkpoint dump files present" language = "python">
+assert(first_solid_checkpoint_check)
+    </test>
+
+    <test name = "CHECKPOINTED run: Solid vtu dump files present" language = "python">
+assert(second_solid_dump_check)
+    </test>
+    <test name = "CHECKPOINTED run: Solid checkpoint dump files present" language = "python">
+assert(second_solid_checkpoint_check)
+    </test>
+
+    <test name = "Simulation completed" language = "python">
+import fluidity_tools
+fluidity_tools.compare_variable(total_ElapsedTime, 0.02, 1.0e-7)
+    </test>
+    <test name = "Compare max and integral of solid concentration: Fluid mesh (first + checkpointed run)" language = "python">
+import fluidity_tools
+print "-----------------------"
+print "Checking for alpha on fluid mesh (from stat file):"
+
+IntegralSolidConcentration_check = 0.0199999999
+
+print "CHECK: FIRST_fluid_IntegralSolidConcentration[0] and FIRST_fluid_IntegralSolidConcentration[1]:"
+fluidity_tools.compare_variable(first_fluid_IntegralSolidConcentration[0], first_fluid_IntegralSolidConcentration[1], 1.0e-7)
+print "CHECK: SECOND_fluid_IntegralSolidConcentration[0] and SECOND_fluid_IntegralSolidConcentration[1]:"
+fluidity_tools.compare_variable(second_fluid_IntegralSolidConcentration[0], second_fluid_IntegralSolidConcentration[1], 1.0e-7)
+print "CHECK: FIRST_fluid_IntegralSolidConcentration[1] and SECOND_fluid_IntegralSolidConcentration[0]:"
+fluidity_tools.compare_variable(first_fluid_IntegralSolidConcentration[1], second_fluid_IntegralSolidConcentration[0], 1.0e-7)
+print "CHECK: Integral of alpha at very first timestep consistent with previous results:"
+fluidity_tools.compare_variable(first_fluid_IntegralSolidConcentration[0], IntegralSolidConcentration_check, 1.0e-7)
+    </test>
+
+<!-- Tests for SOLID VTU files -->
+    <test name = "Checking alhpa on Solid VTU files" language = "python">
+import fluidity_tools
+print "-----------------------"
+print "Checking for SOLID VTU files:"
+solid_first_initial_solid_coords = first_initial_solid_vtu.GetLocations()
+solid_first_final_solid_coords = first_final_solid_vtu.GetLocations()
+solid_first_checkpoint_solid_coords = first_checkpoint_solid_vtu.GetLocations()
+solid_checkpointed_final_solid_coords = checkpointed_final_solid_vtu.GetLocations()
+solid_checkpointed_checkpoint_solid_coords = checkpointed_checkpoint_solid_vtu.GetLocations()
+
+solid_first_initial_solid_alpha = first_initial_solid_vtu.GetScalarField("small_boxSolidConcentration")
+solid_first_final_solid_alpha = first_final_solid_vtu.GetScalarField("small_boxSolidConcentration")
+solid_checkpointed_final_solid_alpha = checkpointed_final_solid_vtu.GetScalarField("small_boxSolidConcentration")
+
+print "check FIRST INITIAL solid vtu: min(alhpa) = 1.0:"
+fluidity_tools.compare_variable(min(solid_first_initial_solid_alpha), 1.0, 1.0e-7)
+print "check FIRST INITIAL solid vtu: alpha = 1.0 on all nodes:"
+fluidity_tools.compare_variable(min(solid_first_initial_solid_alpha) - max(solid_first_initial_solid_alpha), 0.0, 1.0e-7)
+
+print "check FIRST FINAL solid vtu: min(alhpa) = 1.0:"
+fluidity_tools.compare_variable(min(solid_first_final_solid_alpha), 1.0, 1.0e-7)
+print "check FIRST FINAL solid vtu: alpha = 1.0 on all nodes:"
+fluidity_tools.compare_variable(min(solid_first_final_solid_alpha) - max(solid_first_final_solid_alpha), 0.0, 1.0e-7)
+
+print "check CHECKPOINTED FINAL solid vtu: min(alpha) = 1.0:"
+fluidity_tools.compare_variable(min(solid_checkpointed_final_solid_alpha), 1.0, 1.0e-7)
+print "check CHECKPOINTED FINAL solid vtu: alpha = 1.0 on all nodes:"
+fluidity_tools.compare_variable(min(solid_checkpointed_final_solid_alpha) - max(solid_checkpointed_final_solid_alpha), 0.0, 1.0e-7)
+
+print "check consistency of number of nodes in solid mesh with all solid vtu files:"
+print "number of nodes in first initial solid vtu = ", len(solid_first_initial_solid_coords)
+fluidity_tools.compare_variable(len(solid_first_initial_solid_coords), 287, 1e-7)
+fluidity_tools.compare_variable(len(solid_first_initial_solid_coords), len(solid_first_final_solid_coords), 1e-7)
+fluidity_tools.compare_variable(len(solid_first_initial_solid_coords), len(solid_first_checkpoint_solid_coords), 1e-7)
+fluidity_tools.compare_variable(len(solid_first_initial_solid_coords), len(solid_checkpointed_final_solid_coords), 1e-7)
+fluidity_tools.compare_variable(len(solid_first_initial_solid_coords), len(solid_checkpointed_checkpoint_solid_coords), 1e-7)
+    </test>
+
+  </pass_tests>
+</testproblem>
+
