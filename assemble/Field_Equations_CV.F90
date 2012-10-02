@@ -56,6 +56,7 @@ module field_equations_cv
   use field_options
   use state_fields_module
   use porous_media
+  use multiphase_module
 
   implicit none
 
@@ -93,6 +94,8 @@ module field_equations_cv
   logical :: assemble_advection_matrix = .true.
   ! diffusion?
   logical :: assemble_diffusion = .false.
+  ! Are we running a multiphase flow simulation?
+  logical :: multiphase = .false.
 
 contains
     !************************************************************************
@@ -199,6 +202,9 @@ contains
       !! Temporary pointer to the material_phase's Velocity field
       type(vector_field), pointer :: temp_velocity_ptr
       character(len=FIELD_NAME_LEN) :: velocity_equation_type
+      ! Volume fraction fields for multiphase flow simulation
+      type(scalar_field), pointer :: vfrac
+      type(scalar_field) :: nvfrac ! Non-linear version
 
       ! assume explicitness?
       logical :: explicit
@@ -253,6 +259,21 @@ contains
       call allocate(dummydensity, tfield%mesh, name="DummyDensity", field_type=FIELD_TYPE_CONSTANT)
       call set(dummydensity, 1.0)
       dummydensity%option_path = " "
+      
+      ! PhaseVolumeFraction for multiphase flow simulations
+      if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
+         multiphase = .true.
+         vfrac => extract_scalar_field(state(1), "PhaseVolumeFraction")
+         call allocate(nvfrac, vfrac%mesh, "NonlinearPhaseVolumeFraction")
+         call zero(nvfrac)
+         call get_nonlinear_volume_fraction(state(1), nvfrac)
+         
+         ewrite_minmax(nvfrac)
+      else
+         multiphase = .false.
+         call allocate(nvfrac, tfield%mesh, "DummyNonlinearPhaseVolumeFraction", field_type=FIELD_TYPE_CONSTANT)
+         call set(nvfrac, 1.0)
+      end if
 
       ! find out equation type and hence if density is needed or not
       equation_type=equation_type_index(trim(option_path))
@@ -276,6 +297,8 @@ contains
 
               if(have_option(trim(tdensity%option_path)//"/prognostic")) then
                  prognostic_density = .true.
+              else
+                 prognostic_density = .false.
               end if
            case("Boussinesq")
               tdensity => dummydensity
@@ -306,6 +329,8 @@ contains
            
         if(have_option(trim(tdensity%option_path)//"/prognostic")) then
            prognostic_density = .true.
+        else
+           prognostic_density = .false.
         end if
       end select
 
@@ -326,7 +351,11 @@ contains
       ! handily wrapped in a new type...
       tfield_options=get_cv_options(tfield%option_path, tfield%mesh%shape%numbering%family, mesh_dim(tfield))
       if(include_density) then
-        tdensity_options=get_cv_options(tdensity_option_path, tdensity%mesh%shape%numbering%family, mesh_dim(tdensity),  coefficient_field=.true.)
+        if(prognostic_density) then
+          tdensity_options=get_cv_options(tdensity_option_path, tdensity%mesh%shape%numbering%family, mesh_dim(tdensity),  coefficient_field=.true.)
+        else
+          tdensity_options=tfield_options
+        end if
       end if
 
       ! extract fields from state
@@ -702,7 +731,7 @@ contains
             ! diffusion matrix then assemble A_m, D_m and rhs here
             call assemble_advectiondiffusion_m_cv(A_m, rhs, D_m, diff_rhs, &
                                         tfield, l_old_tfield, tfield_options, &
-                                        tdensity, oldtdensity, tdensity_options, &
+                                        tdensity, oldtdensity, nvfrac, tdensity_options, &
                                         cvfaces, x_cvshape, x_cvbdyshape, &
                                         u_cvshape, u_cvbdyshape, t_cvshape, &
                                         ug_cvshape, ug_cvbdyshape, &
@@ -718,7 +747,7 @@ contains
           call assemble_field_eqn_cv(M, A_m, cvmass, rhs, &
                                     tfield, l_old_tfield, &
                                     tdensity, oldtdensity, tdensity_options, &
-                                    source, absorption, tfield_options%theta, &
+                                    source, absorption, nvfrac, tfield_options%theta, &
                                     state, advu, sub_dt, explicit, &
                                     t_cvmass, t_abs_src_cvmass, t_cvmass_old, t_cvmass_new, & 
                                     D_m, diff_rhs)
@@ -806,6 +835,7 @@ contains
       if (include_porosity) then
         call deallocate(t_cvmass_with_porosity)
       end if
+      call deallocate(nvfrac)
 
     end subroutine solve_field_eqn_cv
     ! end of solution wrapping subroutines
@@ -815,7 +845,7 @@ contains
     subroutine assemble_field_eqn_cv(M, A_m, m_cvmass, rhs, &
                                     tfield, oldtfield, &
                                     tdensity, oldtdensity, tdensity_options, &
-                                    source, absorption, theta, &
+                                    source, absorption, nvfrac, theta, &
                                     state, advu, dt, explicit, &
                                     cvmass, abs_src_cvmass, cvmass_old, cvmass_new, &
                                     D_m, diff_rhs)
@@ -840,7 +870,7 @@ contains
       type(scalar_field), intent(inout) :: oldtfield, tdensity, oldtdensity
       ! options wrappers for tdensity
       type(cv_options_type) :: tdensity_options
-      type(scalar_field), intent(inout) :: source, absorption
+      type(scalar_field), intent(inout) :: source, absorption, nvfrac
       ! time discretisation parameter
       real, intent(in) :: theta
       ! bucket full of fields
@@ -1181,10 +1211,16 @@ contains
         if(explicit) then
           if(include_mass) then
             call scale(m_cvmass, tdensity)
+            if(multiphase) then
+               call scale(m_cvmass, nvfrac) 
+            end if
           end if
         else
           if(include_mass) then
             call mult_diag(M, tdensity)
+            if(multiphase) then
+               call mult_diag(M, nvfrac) 
+            end if
           end if
           if(include_advection) call addto(M, A_m, dt)
           if(include_absorption) call addto_diag(M, massabsorption, theta*dt)
@@ -1283,7 +1319,7 @@ contains
     ! assembly subroutines 
     subroutine assemble_advectiondiffusion_m_cv(A_m, rhs, D_m, diff_rhs, &
                                        tfield, oldtfield, tfield_options, &
-                                       tdensity, oldtdensity, tdensity_options, &
+                                       tdensity, oldtdensity, nvfrac, tdensity_options, &
                                        cvfaces, x_cvshape, x_cvbdyshape, &
                                        u_cvshape, u_cvbdyshape, t_cvshape, &
                                        ug_cvshape, ug_cvbdyshape, &
@@ -1346,6 +1382,8 @@ contains
       type(scalar_field), intent(in) :: cfl_no
       ! timestep
       real, intent(in) :: dt
+      
+      type(scalar_field), intent(in) :: nvfrac
 
       ! mesh sparsity for upwind value matrices
       type(csr_sparsity), intent(in) :: mesh_sparsity
@@ -1561,6 +1599,11 @@ contains
         if(include_density) then
           tdensity_ele = ele_val(tdensity, ele)
           oldtdensity_ele = ele_val(oldtdensity, ele)
+          
+          if(multiphase) then
+            tdensity_ele = tdensity_ele*ele_val(nvfrac,ele)
+            oldtdensity_ele = oldtdensity_ele*ele_val(nvfrac,ele)
+          end if
         end if
 
         notvisited=.true.
@@ -1634,28 +1677,25 @@ contains
                       ! do the same for the density but save some effort if it's just a dummy
                       select case (tdensity%field_type)
                       case(FIELD_TYPE_CONSTANT)
-
                           tdensity_face_val = tdensity_ele(iloc)
                           oldtdensity_face_val = oldtdensity_ele(iloc)
 
                       case default
-
                           call evaluate_face_val(tdensity_face_val, oldtdensity_face_val, &
-                                                iloc, oloc, ggi, upwind_nodes, &
-                                                t_cvshape,&
-                                                tdensity_ele, oldtdensity_ele, &
-                                                tdensity_upwind, oldtdensity_upwind, &
-                                                inflow, cfl_ele, &
-                                                tdensity_options)
+                                                   iloc, oloc, ggi, upwind_nodes, &
+                                                   t_cvshape,&
+                                                   tdensity_ele, oldtdensity_ele, &
+                                                   tdensity_upwind, oldtdensity_upwind, &
+                                                   inflow, cfl_ele, &
+                                                   tdensity_options)
 
                       end select
-
                       tdensity_theta_val=theta_val(iloc, oloc, &
-                                          tdensity_face_val, &
-                                          oldtdensity_face_val, &
-                                          tdensity_options%theta, dt, udotn, &
-                                          xt_ele, tdensity_options%limit_theta, &
-                                          tdensity_ele, oldtdensity_ele)
+                                             tdensity_face_val, &
+                                             oldtdensity_face_val, &
+                                             tdensity_options%theta, dt, udotn, &
+                                             xt_ele, tdensity_options%limit_theta, &
+                                             tdensity_ele, oldtdensity_ele)
 
                       if(assemble_advection_matrix) then
                         mat_local(iloc, oloc) = mat_local(iloc, oloc) &
@@ -1854,17 +1894,30 @@ contains
             if(tdensity_bc_type(sele)==BC_TYPE_WEAKDIRICHLET) then
               ghost_tdensity_ele_bdy=ele_val(tdensity_bc, sele)
             else
-              ghost_tdensity_ele_bdy=face_val(tdensity, sele)
+              if(multiphase) then
+                 ghost_tdensity_ele_bdy=face_val(tdensity, sele)*face_val(nvfrac, sele)
+              else
+                 ghost_tdensity_ele_bdy=face_val(tdensity, sele)
+              end if
             end if
 
             if(tdensity_bc_type(sele)==BC_TYPE_WEAKDIRICHLET) then
               ghost_oldtdensity_ele_bdy=ele_val(tdensity_bc, sele) ! not considering time varying bcs yet
             else
-              ghost_oldtdensity_ele_bdy=face_val(oldtdensity, sele)
+              if(multiphase) then
+                 ghost_oldtdensity_ele_bdy=face_val(oldtdensity, sele)*face_val(nvfrac, sele)
+              else
+                 ghost_oldtdensity_ele_bdy=face_val(oldtdensity, sele)
+              end if
             end if
 
             tdensity_ele_bdy=face_val(tdensity, sele)
             oldtdensity_ele_bdy=face_val(oldtdensity, sele)
+            
+            if(multiphase) then
+               tdensity_ele_bdy=tdensity_ele_bdy*face_val(nvfrac, sele)
+               oldtdensity_ele_bdy=oldtdensity_ele_bdy*face_val(nvfrac, sele)
+            end if
           end if
         end if
 
@@ -2723,12 +2776,12 @@ contains
           do f = 1, nfields
 
             ! assemble it all into a coherent equation
-            call assemble_field_eqn_cv(M(f), A_m(f), cvmass(f), rhs(f), &
-                                      tfield(f)%ptr, l_old_tfield(f)%ptr, &
-                                      tdensity(f)%ptr, oldtdensity(f)%ptr, tdensity_options(f), &
-                                      source(f)%ptr, absorption(f)%ptr, tfield_options(f)%theta, &
-                                      state(state_indices(f):state_indices(f)), advu, sub_dt, explicit(f), &
-                                      t_cvmass(f)%ptr, t_abs_src_cvmass, t_cvmass_old, t_cvmass_new)
+!             call assemble_field_eqn_cv(M(f), A_m(f), cvmass(f), rhs(f), &
+!                                       tfield(f)%ptr, l_old_tfield(f)%ptr, &
+!                                       tdensity(f)%ptr, oldtdensity(f)%ptr, tdensity_options(f), &
+!                                       source(f)%ptr, absorption(f)%ptr, tfield_options(f)%theta, &
+!                                       state(state_indices(f):state_indices(f)), advu, sub_dt, explicit(f), &
+!                                       t_cvmass(f)%ptr, t_abs_src_cvmass, t_cvmass_old, t_cvmass_new)
 
             ! Solve for the change in tfield.
             if(explicit(f)) then
