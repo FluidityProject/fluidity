@@ -748,10 +748,10 @@ contains
           call assemble_field_eqn_cv(M, A_m, cvmass, rhs, &
                                     tfield, l_old_tfield, &
                                     tdensity, oldtdensity, tdensity_options, &
-                                    source, absorption, nvfrac, oldvfrac, tfield_options%theta, &
+                                    source, absorption, tfield_options%theta, &
                                     state(istate:istate), advu, sub_dt, explicit, &
                                     t_cvmass, t_abs_src_cvmass, t_cvmass_old, t_cvmass_new, & 
-                                    D_m, diff_rhs)
+                                    D_m, diff_rhs, nvfrac, oldvfrac)
 
           if(have_option("/multiphase_interaction/heat_transfer") .and. &
              equation_type_index(trim(tfield%option_path)) == FIELD_EQUATION_INTERNALENERGY) then
@@ -852,10 +852,10 @@ contains
     subroutine assemble_field_eqn_cv(M, A_m, m_cvmass, rhs, &
                                     tfield, oldtfield, &
                                     tdensity, oldtdensity, tdensity_options, &
-                                    source, absorption, nvfrac, oldvfrac, theta, &
+                                    source, absorption, theta, &
                                     state, advu, dt, explicit, &
                                     cvmass, abs_src_cvmass, cvmass_old, cvmass_new, &
-                                    D_m, diff_rhs)
+                                    D_m, diff_rhs, nvfrac, oldvfrac)
 
       ! This subroutine assembles the equation
       ! M(T^{n+1}-T^{n})/\Delta T = rhs
@@ -877,7 +877,7 @@ contains
       type(scalar_field), intent(inout) :: oldtfield, tdensity, oldtdensity
       ! options wrappers for tdensity
       type(cv_options_type) :: tdensity_options
-      type(scalar_field), intent(inout) :: source, absorption, nvfrac, oldvfrac
+      type(scalar_field), intent(inout) :: source, absorption
       ! time discretisation parameter
       real, intent(in) :: theta
       ! bucket full of fields
@@ -899,6 +899,8 @@ contains
       ! diffusion:
       type(csr_matrix), intent(inout), optional :: D_m
       type(scalar_field), intent(inout), optional :: diff_rhs
+      
+      type(scalar_field), intent(inout), optional :: nvfrac, oldvfrac
 
       ! local memory:
       ! for all equation types:
@@ -2787,12 +2789,12 @@ contains
           do f = 1, nfields
 
             ! assemble it all into a coherent equation
-!             call assemble_field_eqn_cv(M(f), A_m(f), cvmass(f), rhs(f), &
-!                                       tfield(f)%ptr, l_old_tfield(f)%ptr, &
-!                                       tdensity(f)%ptr, oldtdensity(f)%ptr, tdensity_options(f), &
-!                                       source(f)%ptr, absorption(f)%ptr, tfield_options(f)%theta, &
-!                                       state(state_indices(f):state_indices(f)), advu, sub_dt, explicit(f), &
-!                                       t_cvmass(f)%ptr, t_abs_src_cvmass, t_cvmass_old, t_cvmass_new)
+            call assemble_field_eqn_cv(M(f), A_m(f), cvmass(f), rhs(f), &
+                                      tfield(f)%ptr, l_old_tfield(f)%ptr, &
+                                      tdensity(f)%ptr, oldtdensity(f)%ptr, tdensity_options(f), &
+                                      source(f)%ptr, absorption(f)%ptr, tfield_options(f)%theta, &
+                                      state(state_indices(f):state_indices(f)), advu, sub_dt, explicit(f), &
+                                      t_cvmass(f)%ptr, t_abs_src_cvmass, t_cvmass_old, t_cvmass_new)
 
             ! Solve for the change in tfield.
             if(explicit(f)) then
