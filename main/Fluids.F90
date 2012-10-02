@@ -694,8 +694,7 @@ contains
 
                    ! Solve the pure control volume form of the equations
                    call solve_field_eqn_cv(field_name=trim(field_name_list(it)), &
-                        state=state(field_state_list(it):field_state_list(it)), &
-                        global_it=its)
+                        state=state, istate=field_state_list(it), global_it=its)
 
                 else if(have_option(trim(field_optionpath_list(it)) // &
                      & "/prognostic/spatial_discretisation/continuous_galerkin")) then

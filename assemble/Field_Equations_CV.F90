@@ -100,7 +100,7 @@ module field_equations_cv
 contains
     !************************************************************************
     ! solution wrapping subroutines
-    subroutine solve_field_eqn_cv(field_name, state, global_it)
+    subroutine solve_field_eqn_cv(field_name, state, istate, global_it)
       !!< Construct and solve the advection-diffusion equation for the given
       !!< field using control volumes.
 
@@ -108,6 +108,7 @@ contains
       character(len=*), intent(in) :: field_name
       !! Collection of fields defining system state.
       type(state_type), dimension(:), intent(inout) :: state
+      integer, intent(in) :: istate ! The material_phase index in which the field called field_name is in.
       ! global iteration number - passed in so it can be output to file
       integer, intent(in) :: global_it
 
@@ -216,20 +217,20 @@ contains
       character(len=OPTION_PATH_LEN), dimension(1) :: tdensity_option_path_array
 
       ewrite(2,*) 'in solve_field_eqn_cv'
-      ewrite(2,*) 'solving for '//field_name//' in state '//trim(state(1)%name)
+      ewrite(2,*) 'solving for '//field_name//' in state '//trim(state(istate)%name)
 
       ! extract lots of fields:
       ! the actual thing we're trying to solve for
-      tfield=>extract_scalar_field(state(1), trim(field_name))
+      tfield=>extract_scalar_field(state(istate), trim(field_name))
       ewrite_minmax(tfield)
       option_path=tfield%option_path
       ! its previous timelevel - if we're doing more than one iteration per timestep!
-      oldtfield=>extract_scalar_field(state(1), "Old"//trim(field_name))
+      oldtfield=>extract_scalar_field(state(istate), "Old"//trim(field_name))
       ! because fluidity resets tfield to oldtfield at the start of every
       ! global iteration we need to undo this so that the control volume faces
       ! are discretised using the most up to date values
       ! therefore extract the iterated values:
-      it_tfield=>extract_scalar_field(state(1), "Iterated"//trim(field_name))
+      it_tfield=>extract_scalar_field(state(istate), "Iterated"//trim(field_name))
       ! and set tfield to them:
       call set(tfield, it_tfield)
       ewrite_minmax(tfield)
@@ -263,14 +264,14 @@ contains
       ! PhaseVolumeFraction for multiphase flow simulations
       if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
          multiphase = .true.
-         vfrac => extract_scalar_field(state(1), "PhaseVolumeFraction")
+         vfrac => extract_scalar_field(state(istate), "PhaseVolumeFraction")
          call allocate(nvfrac, vfrac%mesh, "NonlinearPhaseVolumeFraction")
          call zero(nvfrac)
-         call get_nonlinear_volume_fraction(state(1), nvfrac)
+         call get_nonlinear_volume_fraction(state(istate), nvfrac)
          
          ewrite_minmax(nvfrac)
          
-         oldvfrac => extract_scalar_field(state(1), "OldPhaseVolumeFraction")
+         oldvfrac => extract_scalar_field(state(istate), "OldPhaseVolumeFraction")
       else
          multiphase = .false.
       end if
@@ -287,13 +288,13 @@ contains
 
       case(FIELD_EQUATION_KEPSILON)
         ! Depending on the equation type, extract the density or set it to some dummy field allocated above
-        temp_velocity_ptr => extract_vector_field(state(1), "Velocity")
+        temp_velocity_ptr => extract_vector_field(state(istate), "Velocity")
         call get_option(trim(temp_velocity_ptr%option_path)//"/prognostic/equation[0]/name", velocity_equation_type)
         select case(velocity_equation_type)
            case("LinearMomentum")
               include_density = .true.
-              tdensity=>extract_scalar_field(state(1), "Density")
-              oldtdensity=>extract_scalar_field(state(1), "OldDensity")
+              tdensity=>extract_scalar_field(state(istate), "Density")
+              oldtdensity=>extract_scalar_field(state(istate), "OldDensity")
 
               if(have_option(trim(tdensity%option_path)//"/prognostic")) then
                  prognostic_density = .true.
@@ -319,12 +320,12 @@ contains
         ! density needed so extract the type specified in the input
         ! ?? are there circumstances where this should be "Iterated"... need to be
         ! careful with priority ordering
-        tdensity=>extract_scalar_field(state(1), trim(tmpstring))
+        tdensity=>extract_scalar_field(state(istate), trim(tmpstring))
         ewrite_minmax(tdensity)
 
         ! halo exchange? - not currently necessary when suboptimal halo exchange if density
         ! is solved for with this subroutine and the correct priority ordering.
-        oldtdensity=>extract_scalar_field(state(1), "Old"//trim(tmpstring))
+        oldtdensity=>extract_scalar_field(state(istate), "Old"//trim(tmpstring))
         ewrite_minmax(oldtdensity)
            
         if(have_option(trim(tdensity%option_path)//"/prognostic")) then
@@ -360,9 +361,9 @@ contains
 
       ! extract fields from state
       ! the base Coordinate field
-      x=>extract_vector_field(state(1), "Coordinate")
+      x=>extract_vector_field(state(istate), "Coordinate")
       ! the Coordinate field on the same mesh as tfield
-      x_tfield=get_coordinate_field(state(1), tfield%mesh)
+      x_tfield=get_coordinate_field(state(istate), tfield%mesh)
 
       ! are we including the mass (generally yes)?
       include_mass = .not.have_option(trim(tfield%option_path)//"/prognostic/spatial_discretisation/control_volumes/mass_terms/exclude_mass_terms")
@@ -370,7 +371,7 @@ contains
       ! are we inclulding advection (generally yes)?
       include_advection = .not.(tfield_options%facevalue==CV_FACEVALUE_NONE)
       if(include_advection) then
-        nu=>extract_vector_field(state(1), "NonlinearVelocity")
+        nu=>extract_vector_field(state(istate), "NonlinearVelocity")
         ewrite_minmax(nu)
         ! find relative velocity
         allocate(advu)
@@ -383,10 +384,10 @@ contains
             ewrite(2,*) "Removing velocity from ", trim(field_name)
         end if
         ! add in sinking velocity
-        sink=>extract_scalar_field(state(1), trim(field_name)//"SinkingVelocity"&
+        sink=>extract_scalar_field(state(istate), trim(field_name)//"SinkingVelocity"&
             &, stat=stat)
         if(stat==0) then
-          gravity=>extract_vector_field(state(1), "GravityDirection")
+          gravity=>extract_vector_field(state(istate), "GravityDirection")
           ! this may perform a "remap" internally from CoordinateMesh to VelocityMesh
           call addto(advu, gravity, scale=sink)
         end if
@@ -394,7 +395,7 @@ contains
       else
         ewrite(2,*) 'Excluding advection'
         advu => dummyvector
-        if(has_scalar_field(state(1), trim(field_name)//"SinkingVelocity")) then
+        if(has_scalar_field(state(istate), trim(field_name)//"SinkingVelocity")) then
             ewrite(-1,*) "No advection in "//trim(field_name)
             FLExit("But you have a sinking velocity on. Can't have that")
         end if
@@ -403,7 +404,7 @@ contains
       ! do we have a diffusivity - this will control whether we construct an auxiliary
       ! eqn or not (if BassiRebay is selected) or whether we construct gradients (if ElementGradient
       ! is selected)
-      diffusivity=>extract_tensor_field(state(1), trim(field_name)//"Diffusivity", stat=stat)
+      diffusivity=>extract_tensor_field(state(istate), trim(field_name)//"Diffusivity", stat=stat)
       include_diffusion = (stat==0).and.(tfield_options%diffusionscheme/=CV_DIFFUSION_NONE)
       if(.not.include_diffusion) then
         diffusivity => dummytensor
@@ -412,7 +413,7 @@ contains
       end if
       
       ! do we have a source?
-      source=>extract_scalar_field(state(1), trim(field_name)//"Source", stat=stat)
+      source=>extract_scalar_field(state(istate), trim(field_name)//"Source", stat=stat)
       include_source = (stat==0)
       if(.not.include_source) then
         source=>dummyscalar
@@ -428,7 +429,7 @@ contains
       end if
       
       ! do we have an absorption?
-      absorption=>extract_scalar_field(state(1), trim(field_name)//"Absorption", stat=stat)
+      absorption=>extract_scalar_field(state(istate), trim(field_name)//"Absorption", stat=stat)
       include_absorption = (stat==0)
       if(.not.include_absorption) then
         absorption=>dummyscalar
@@ -500,7 +501,7 @@ contains
       option_path_array(1) = trim(option_path)                  ! temporary hack for compiler failure
       tdensity_option_path_array(1) = tdensity_option_path
       call cv_disc_get_cfl_no(option_path_array, &
-                      state(1), tfield%mesh, cfl_no, &
+                      state(istate), tfield%mesh, cfl_no, &
                       tdensity_option_path_array)
 
       ! get the mesh sparsity for the matrices
@@ -582,7 +583,7 @@ contains
          include_porosity = .true.
 
          ! get the porosity theta averaged field - this will allocate it
-         call form_porosity_theta(porosity_theta, state(1), &
+         call form_porosity_theta(porosity_theta, state(istate), &
              &option_path = trim(complete_field_path(tfield%option_path))//'/porosity')       
                   
          call allocate(t_cvmass_with_porosity, tfield%mesh, name="CVMassWithPorosity")
@@ -615,8 +616,8 @@ contains
            FLExit("Moving mesh not set up to work when including porosity")
         end if
         ewrite(2,*) "Moving mesh."
-        x_old=>extract_vector_field(state(1), "OldCoordinate")
-        x_new=>extract_vector_field(state(1), "IteratedCoordinate")
+        x_old=>extract_vector_field(state(istate), "OldCoordinate")
+        x_new=>extract_vector_field(state(istate), "IteratedCoordinate")
         call allocate(t_cvmass_old, tfield%mesh, name=trim(field_name)//"OldCVMass")
         call allocate(t_cvmass_new, tfield%mesh, name=trim(field_name)//"NewCVMass")
 
@@ -625,7 +626,7 @@ contains
         ewrite_minmax(t_cvmass_old)
         ewrite_minmax(t_cvmass_new)
         
-        ug=>extract_vector_field(state(1), "GridVelocity")
+        ug=>extract_vector_field(state(istate), "GridVelocity")
         ewrite_minmax(ug)
 
         ug_cvshape=make_cv_element_shape(cvfaces, ug%mesh%shape)
@@ -738,7 +739,7 @@ contains
                                         x_cvshape_full, x_cvbdyshape_full, &
                                         t_cvshape_full, t_cvbdyshape_full, &
                                         diff_cvshape_full, diff_cvbdyshape_full, &
-                                        state, advu, ug, x, x_tfield, cfl_no, sub_dt, &
+                                        state(istate:istate), advu, ug, x, x_tfield, cfl_no, sub_dt, &
                                         diffusivity, q_cvmass, &
                                         mesh_sparsity_x, grad_m_t_sparsity)
           end if
@@ -748,10 +749,14 @@ contains
                                     tfield, l_old_tfield, &
                                     tdensity, oldtdensity, tdensity_options, &
                                     source, absorption, nvfrac, oldvfrac, tfield_options%theta, &
-                                    state, advu, sub_dt, explicit, &
+                                    state(istate:istate), advu, sub_dt, explicit, &
                                     t_cvmass, t_abs_src_cvmass, t_cvmass_old, t_cvmass_new, & 
                                     D_m, diff_rhs)
 
+          if(have_option("/multiphase_interaction/heat_transfer") .and. &
+             equation_type_index(trim(tfield%option_path)) == FIELD_EQUATION_INTERNALENERGY) then
+            call add_heat_transfer(state, istate, tfield, M, rhs)
+          end if
 
           ! Solve for the change in tfield.
           if(explicit) then
@@ -765,7 +770,7 @@ contains
             call apply_dirichlet_conditions(M, rhs, tfield, sub_dt)
 
             call zero(delta_tfield)
-            call petsc_solve(delta_tfield, M, rhs, state(1))
+            call petsc_solve(delta_tfield, M, rhs, state(istate))
           end if
 
           ! reset tfield to l_old_tfield before applying change
@@ -776,7 +781,7 @@ contains
           call halo_update(tfield)  ! exchange the extended halos
 
           call test_and_write_advection_convergence(tfield, advit_tfield, x, t_cvmass, &
-                                    filename=trim(state(1)%name)//"__"//trim(tfield%name), &
+                                    filename=trim(state(istate)%name)//"__"//trim(tfield%name), &
                                     time=time+sub_dt, dt=sub_dt, it=global_it, adv_it=adv_it, &
                                     subcyc=sub, error=error)
 

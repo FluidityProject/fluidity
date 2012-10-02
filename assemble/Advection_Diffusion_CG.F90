@@ -155,8 +155,9 @@ contains
     
     ! Note: the assembly of the heat transfer term is done here to avoid 
     ! passing in the whole state array to assemble_advection_diffusion_cg.
-    if(have_option("/multiphase_interaction/heat_transfer")) then
-       call add_heat_transfer(state, istate, t, matrix, rhs)
+    if(have_option("/multiphase_interaction/heat_transfer") .and. &
+       equation_type_index(trim(t%option_path)) == FIELD_EQUATION_INTERNALENERGY) then
+      call add_heat_transfer(state, istate, t, matrix, rhs)
     end if
     call profiler_toc(t, "assembly")
     
