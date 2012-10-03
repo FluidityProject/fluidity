@@ -35,7 +35,7 @@ module populate_state_module
   use vtk_cache_module
   use global_parameters, only: OPTION_PATH_LEN, is_active_process, pi, &
     no_active_processes, topology_mesh_name, adaptivity_mesh_name, &
-    periodic_boundary_option_path, domain_bbox, domain_volume
+    periodic_boundary_option_path, domain_bbox, domain_volume, surface_radius
   use field_options
   use reserve_state_module
   use fields_manipulation
@@ -57,7 +57,6 @@ module populate_state_module
   use data_structures
   use fields_halos
   use read_triangle
-  use sediment, only: get_nSediments, get_sediment_name
 
   implicit none
 
@@ -82,21 +81,31 @@ module populate_state_module
   end interface allocate_field_as_constant
     
   !! A list of locations in which additional scalar/vector/tensor fields
-  !! are to be found. It is assumed that all additional fields are
-  !! in state 1.
-  character(len=OPTION_PATH_LEN), dimension(11) :: field_locations=&
+  !! are to be found. These are absolute paths in the schema.
+  character(len=OPTION_PATH_LEN), dimension(8) :: additional_fields_absolute=&
        (/ &
        "/ocean_biology/pznd                                                                                                   ", &
        "/ocean_biology/six_component                                                                                          ", &
-       "/material_phase[0]/subgridscale_parameterisations/Mellor_Yamada                                                       ", &
-       "/material_phase[0]/subgridscale_parameterisations/prescribed_diffusivity                                              ", &
-       "/material_phase[0]/subgridscale_parameterisations/GLS                                                                 ", &
-       "/material_phase[0]/subgridscale_parameterisations/k-epsilon                                                           ", &
        "/ocean_forcing/iceshelf_meltrate/Holland08                                                                            ", &
        "/ocean_forcing/bulk_formulae/output_fluxes_diagnostics                                                                ", &
        "/porous_media                                                                                                         ", &
        "/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/dynamic_les ", &
-       "/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/second_order" &
+       "/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/second_order", &
+       "/material_phase[0]/sediment/                                                                                          " &
+       /)
+       
+  !! A list of relative paths under /material_phase[i]
+  !! that are searched for additional fields to be added.
+  character(len=OPTION_PATH_LEN), dimension(8) :: additional_fields_relative=&
+       (/ &
+       "/subgridscale_parameterisations/Mellor_Yamada                                                       ", &
+       "/subgridscale_parameterisations/prescribed_diffusivity                                              ", &
+       "/subgridscale_parameterisations/GLS                                                                 ", &
+       "/subgridscale_parameterisations/k-epsilon                                                           ", &
+       "/subgridscale_parameterisations/k-epsilon/debugging_options/source_term_output_fields               ", &
+       "/subgridscale_parameterisations/k-epsilon/debugging_options/prescribed_source_terms                 ", &
+       "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/dynamic_les ", &
+       "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/second_order" &
        /)
 
   !! Relative paths under a field that are searched for grandchildren
@@ -1171,8 +1180,8 @@ contains
     !! able to one by one allocate them as we get them back from SAM.
     logical, optional, intent(in):: dont_allocate_prognostic_value_spaces
 
-    character(len=OPTION_PATH_LEN) :: field_name
-    integer :: i ! counters
+    character(len=OPTION_PATH_LEN) :: field_name, absolute_path
+    integer :: i, istate ! counters
     integer :: nstates ! number of states
     character(len=255) :: tmp ! temporary string to make life a little easier
     type(scalar_field), pointer :: fshistory_sfield
@@ -1213,6 +1222,15 @@ contains
             states(1), dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
     end if
 
+    ! Field that controls the weighting of partitions:
+    if (have_option('/flredecomp/field_weighted_partitions')) then
+       call allocate_and_insert_scalar_field('/flredecomp/field_weighted_partitions/scalar_field::FieldWeightedPartitionValues', states(1))
+    end if
+    
+    if (have_option('/mesh_adaptivity/hr_adaptivity/zoltan_options/field_weighted_partitions')) then
+       call allocate_and_insert_scalar_field('/mesh_adaptivity/hr_adaptivity/zoltan_options/field_weighted_partitions/scalar_field::FieldWeightedPartitionValues', states(1))
+    end if
+    
     ! grid velocity
     if (have_option('/mesh_adaptivity/mesh_movement/vector_field::GridVelocity')) then
        call allocate_and_insert_vector_field('/mesh_adaptivity/mesh_movement/vector_field::GridVelocity', &
@@ -1263,13 +1281,25 @@ contains
     end if
 
     ! insert miscellaneous scalar fields
-    do i=1, size(field_locations)
-       if (have_option(trim(field_locations(i)))) then
+    do i=1, size(additional_fields_absolute)
+       if (have_option(trim(additional_fields_absolute(i)))) then
 
-          call allocate_and_insert_one_phase(field_locations(i), states(1), &
+          call allocate_and_insert_one_phase(additional_fields_absolute(i), states(1), &
              dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
           
        end if
+    end do
+    
+    do i=1, size(additional_fields_relative)
+       do istate = 1, size(states)
+         absolute_path = "/material_phase["//int2str(istate-1)//"]/"//trim(additional_fields_relative(i))
+         if (have_option(absolute_path)) then
+
+            call allocate_and_insert_one_phase(absolute_path, states(istate), &
+               dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+            
+         end if
+       end do
     end do
 
     call allocate_metric_limits(states(1))
@@ -1355,49 +1385,7 @@ contains
 
        end do tensor_field_loop
 
-       ! Sediment submodel
-       if (have_option(trim(state_path)//"/sediment")) then 
-          call allocate_and_insert_sediment(state_path, state)
-       end if
-
     end subroutine allocate_and_insert_one_phase
-
-    subroutine allocate_and_insert_sediment(state_path, state)
-      !! Allocate all the sediment submodel fields.
-      character(len=*), intent(in) :: state_path
-      type(state_type), intent(inout) :: state
-      
-      integer :: nfields, j
-      character(len=OPTION_PATH_LEN) :: field_name
-      character(len=FIELD_NAME_LEN)  :: class_name
-
-      type(scalar_field), pointer :: sedimentflux
-
-      nfields=get_nSediments()
-
-      sediment_class_loop: do j=1,nfields
-         ! Note that this currently duplicates shared subfields such as
-         ! diffusivity. This should be changed.
-
-         class_name=get_sediment_name(j)
-
-         ! Now set up the diagnostic flux field.
-         field_name="SedimentFlux"//trim(class_name)
-
-         call allocate_and_insert_scalar_field(&
-               trim(state_path)&
-               //"/sediment/scalar_field::SedimentFluxTemplate", &
-               state, field_name=field_name, &
-               dont_allocate_prognostic_value_spaces&
-               =dont_allocate_prognostic_value_spaces)
-             
-         sedimentflux=>extract_scalar_field(state, field_name)
-
-         call zero(sedimentflux)
-
-        end do sediment_class_loop
-
-    end subroutine allocate_and_insert_sediment
 
     subroutine allocate_and_insert_irradiance(state)
       ! Allocate irradiance fields for 36 wavebands in PAR
@@ -1687,39 +1675,6 @@ contains
                "/prognostic/subgridscale_parameterisation&
                &::GLS")) then
              
-             tfield%name=trim(sfield%name)//"Diffusivity"
-             call insert(states(i), tfield, tfield%name)
-
-          end if
-
-       end do
-       
-    end do
-
-    ! Eddy diffusivity from K-Epsilon 2-equation turbulence model
-    do i = 1, size(states)
-       
-       tfield=extract_tensor_field(states(i), "KEpsEddyViscosity", stat)
-
-       if (stat/=0) cycle
-
-       tfield%aliased=.True.
-
-       do s = 1, scalar_field_count(states(i))
-
-          sfield => extract_scalar_field(states(i), s)
-          
-          if (have_option(trim(sfield%option_path)//&
-               "/prognostic/subgridscale_parameterisation&
-               &::k_epsilon")) then
-
-             ! Get Prandtl number, if specified.
-             call get_option(trim(sfield%option_path)//&
-               "/prognostic/subgridscale_parameterisation&
-               &::k_epsilon/Prandtl_number", Pr, default = 1.0)
-
-             ! Scale field by Prandtl number
-             call scale(tfield, 1./Pr)
              tfield%name=trim(sfield%name)//"Diffusivity"
              call insert(states(i), tfield, tfield%name)
 
@@ -2469,50 +2424,12 @@ contains
           end if
        end do
 
-       if (have_option(trim(phase_path)//"/sediment")) then
-          call initialise_prognostic_sediment
-       end if
-
     end do
       
     if (.not. present_and_true(save_vtk_cache)) then
        ! flush the cache
        call vtk_cache_finalise()
     end if
-
-  contains
-    
-    subroutine initialise_prognostic_sediment
-      character(len=OPTION_PATH_LEN):: class_path, class_name, field_name
-
-      nsfields=option_count(trim(phase_path)//"/sediment/sediment_class")
-      do f=0,nsfields-1
-         class_path=trim(phase_path)//"/sediment/sediment_class["&
-              //int2str(f)//"]"
-
-         ! Don't bother unless an additional initial condition is provided
-         ! for this field (otherwise it defaults to the general case).
-         if (.not.have_option(trim(class_path)//"/initial_condition")) then 
-            cycle
-         end if
-         
-         call get_option(trim(class_path)//"/name", class_name)
-         field_name="SedimentConcentration"//trim(class_name)
-         
-         sfield => extract_scalar_field(states(p+1),field_name)
-
-         if (mesh_changed .and. needs_initial_mesh(sfield)) cycle
-         if (.not. aliased(sfield) .and. &
-              have_option(trim(sfield%option_path)//'/prognostic')) then
-            call zero(sfield)
-            call initialise_field_over_regions(sfield, &
-                 trim(class_path)//'/initial_condition', &
-                 position)
-         end if
-         
-      end do
-
-    end subroutine initialise_prognostic_sediment
 
   end subroutine initialise_prognostic_fields
 
@@ -3215,6 +3132,13 @@ contains
     domain_volume = vol
     ewrite(2,*) "domain_volume =", domain_volume
 
+    !If on-the-sphere, calculate the radius of the sphere.
+    if (have_option("/geometry/spherical_earth/")) then
+      surface_radius = maxval(magnitude(positions))
+      call allmax(surface_radius)
+    end if
+
+
   end subroutine compute_domain_statistics
   
   subroutine populate_state_module_check_options
@@ -3831,103 +3755,90 @@ if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic/vecto
     ! Check options for Stokes flow simulations.
 
     integer :: i, nmat
-    character(len=OPTION_PATH_LEN) :: velocity_path, pressure_path
-    character(len=FIELD_NAME_LEN) :: schur_preconditioner, inner_matrix
+    character(len=OPTION_PATH_LEN) :: velocity_path, pressure_path, schur_path
+    character(len=FIELD_NAME_LEN)  :: schur_preconditioner, inner_matrix, pc_type
     logical :: exclude_mass, exclude_advection
     real :: theta
 
     nmat = option_count("/material_phase")
 
     do i = 0, nmat-1
-      velocity_path="/material_phase["//int2str(i)//"]/vector_field::Velocity/prognostic"
+       velocity_path="/material_phase["//int2str(i)//"]/vector_field::Velocity/prognostic"
 
-      if (have_option(trim(velocity_path))) then
+       if (have_option(trim(velocity_path))) then
+         
+          ! Check that mass and advective terms are excluded:
+          exclude_mass = have_option(trim(velocity_path)//&
+               "/spatial_discretisation/continuous_galerkin/mass_terms"//&
+               &"/exclude_mass_terms").or.&
+               have_option(trim(velocity_path)//&
+               "/spatial_discretisation/discontinuous_galerkin/mass_terms"//&
+               &"/exclude_mass_terms")
+          
+          exclude_advection = have_option(trim(velocity_path)//&
+               "/spatial_discretisation/continuous_galerkin/advection_terms"//&
+               &"/exclude_advection_terms").or.&
+               have_option(trim(velocity_path)//&
+               "/spatial_discretisation/discontinuous_galerkin/advection_scheme/none") 
+          
+          if(.not.(exclude_mass) .OR. .not.(exclude_advection)) then
+             FLExit("For Stokes problems you need to exclude the mass and advection terms.")
+          end if
 
-         ! Check that mass and advective terms are excluded:
-         exclude_mass = have_option(trim(velocity_path)//&
-              "/spatial_discretisation"//&
-              &"/continuous_galerkin/mass_terms"//&
-              &"/exclude_mass_terms").or.&
-                        have_option(trim(velocity_path)//&
-              "/spatial_discretisation"//&
-              &"/discontinuous_galerkin/mass_terms"//&
-              &"/exclude_mass_terms")
+          ! Check that theta = 1 (we must be implicit as we have no time term!)
+          call get_option(trim(velocity_path)//'/temporal_discretisation/theta/', theta)
+          if(theta /= 1.) then
+             FLExit("For Stokes problems, theta (under velocity) must = 1")
+          end if
 
-         exclude_advection = have_option(trim(velocity_path)//&
-              "/spatial_discretisation"//&
-              &"/continuous_galerkin/advection_terms"//&
-              &"/exclude_advection_terms").or.&
-                             have_option(trim(velocity_path)//&
-              "/spatial_discretisation"//&
-              &"/discontinuous_galerkin/advection_scheme/none") 
+       end if
 
-         if(.not.(exclude_mass) .OR. .not.(exclude_advection)) then
-            FLExit("For Stokes problems you need to exclude the mass and advection terms.")
-         end if
+       pressure_path="/material_phase["//int2str(i)//"]/scalar_field::Pressure/prognostic"
 
-         ! Check that theta = 1 (we must be implicit as we have no time term!)
-         call get_option(trim(velocity_path)//'/temporal_discretisation/theta/', theta)
-         if(theta /= 1.) then
-            FLExit("For Stokes problems, theta (under velocity) must = 1")
-         end if
+       if (have_option(trim(pressure_path))) then  
 
-      end if
+          schur_path = "/material_phase["//int2str(i)//"]/scalar_field::Pressure/prognostic/"//&
+               &"scheme/use_projection_method/full_schur_complement"
 
-      pressure_path="/material_phase["//int2str(i)//"]/scalar_field::Pressure/prognostic"
+          if(have_option(trim(schur_path))) then
+             
+             call get_option(trim(schur_path)//"/preconditioner_matrix[0]/name", schur_preconditioner)
+             
+             select case(schur_preconditioner)
+             case("ScaledPressureMassMatrix")
+                ! Check pressure_mass_matrix preconditioner is compatible with viscosity tensor:
+                if(have_option(trim(velocity_path)//&
+                     &"/tensor_field::Viscosity/prescribed/value"//&
+                     &"/anisotropic_symmetric").or.&
+                     have_option(trim(velocity_path)//&
+                     &"/tensor_field::Viscosity/prescribed/value"//&
+                     &"/anisotropic_asymmetric")) then
+                   ewrite(-1,*) "WARNING - At present, the viscosity scaling for the pressure mass matrix is"
+                   ewrite(-1,*) "taken from the 1st component of the viscosity tensor. Such a scaling"
+                   ewrite(-1,*) "is only valid when all components of each viscosity tensor are constant."
+                end if
+             case("NoPreconditionerMatrix")
+                ! Check no preconditioner is selected when no preconditioner matrix is desired:
+                call get_option("/material_phase["//int2str(i)//&
+                     "]/scalar_field::Pressure/prognostic/solver/preconditioner/name", pc_type)
+                if(pc_type /= 'none') FLExit("If no preconditioner is desired, set pctype='none'.")
+             end select
+             
+             ! Check inner matrix is valid for Stokes - must have full viscous terms
+             ! included. Stokes does not have a mass matrix.
+             call get_option(trim(schur_path)//"/inner_matrix[0]/name", inner_matrix)
+             
+             if(trim(inner_matrix)/="FullMomentumMatrix") then
+                ewrite(-1,*) "For Stokes problems, FullMomentumMatrix must be specified under:"
+                ewrite(-1,*) "scalar_field::Pressure/prognostic/scheme/use_projection_method& "
+                ewrite(-1,*) "&/full_schur_complement/inner_matrix"
+                FLExit("For Stokes problems, change --> FullMomentumMatrix")
+             end if
 
-      if (have_option(trim(pressure_path))) then  
-
-         ! Check pressure_mass_matrix preconditioner is compatible with viscosity tensor:
-          if(have_option("/material_phase["//int2str(i)//&
-               "]/vector_field::Velocity/prognostic"//&
-               &"/tensor_field::Viscosity/prescribed/value"//&
-               &"/anisotropic_symmetric").or.&
-             have_option("/material_phase["//int2str(i)//&
-               "]/vector_field::Velocity/prognostic"//&
-               &"/tensor_field::Viscosity/prescribed/value"//&
-               &"/anisotropic_asymmetric")) then
-
-            if(have_option("/material_phase["//int2str(i)//&
-                 "]/scalar_field::Pressure/prognostic"//&
-                 &"/scheme/use_projection_method")) then
-
-               if(have_option("/material_phase["//int2str(i)//&
-                    "]/scalar_field::Pressure/prognostic"//&
-                    &"/scheme/use_projection_method"//&
-                    &"/full_schur_complement")) then
-
-                  call get_option("/material_phase["//int2str(i)//&
-                       &"]/scalar_field::Pressure/prognostic/scheme/use_projection_method"//&
-                       &"/full_schur_complement/preconditioner_matrix[0]/name", schur_preconditioner)
-
-                  select case(schur_preconditioner)
-                  case("ScaledPressureMassMatrix")
-                     ewrite(-1,*) "WARNING - At present, the viscosity scaling for the pressure mass matrix is"
-                     ewrite(-1,*) "taken from the 1st component of the viscosity tensor. Such a scaling"
-                     ewrite(-1,*) "is only valid when all components of each viscosity tensor are constant."
-                  end select
-
-                  ! Check inner matrix is valid for Stokes - must have full viscous terms
-                  ! included. Stokes does not have a mass matrix.
-                  call get_option("/material_phase["//int2str(i)//&
-                       &"]/scalar_field::Pressure/prognostic/scheme/use_projection_method"//&
-                       &"/full_schur_complement/inner_matrix[0]/name", inner_matrix)
-                  
-                  if(trim(inner_matrix)/="FullMomentumMatrix") then
-                     ewrite(-1,*) "For Stokes problems, FullMomentumMatrix must be specified under:"
-                     ewrite(-1,*) "scalar_field::Pressure/prognostic/scheme/use_projection_method& "
-                     ewrite(-1,*) "&/full_schur_complement/inner_matrix"
-                     FLExit("For Stokes problems, change --> FullMomentumMatrix")
-                  end if
-
-               end if
-
-            end if
-
-         end if
-
-      end if
-
+          end if
+          
+       end if
+       
     end do
 
   end subroutine check_stokes_options

@@ -2,13 +2,18 @@
 
 <testproblem>
   <name>photosynthetic_radiation</name>
-  <owner userid="dham"/>
+  <owner userid="jhill1"/>
   <tags>flml biology par</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>fluidity  photosynthetic_radiation.flml </command_line>
+    <command_line>mpiexec -n 2 fluidity  photosynthetic_radiation.flml </command_line>
     <!-- Calculate the amount of light in the ocean. This version is DG. -->
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="light_stats" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("photosynthetic_radiation.stat")
@@ -18,6 +23,9 @@ light_stats = [s["Water"]["PhotosyntheticRadiation"]["integral"][-1],
     </variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="Maximum intensity is 100" language="python">
 assert abs(light_stats[2]-100.0) &lt; 1.0
     </test>

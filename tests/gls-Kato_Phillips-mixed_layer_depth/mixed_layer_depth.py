@@ -52,7 +52,7 @@ for file in filelist:
    tt = time[0]
    kk = u.GetScalarField('GLSTurbulentKineticEnergy')
    pos = u.GetLocations()
-   if (tt < 14400):
+   if (tt < 100):
       continue
 
    xyzkk = []
