@@ -3,7 +3,8 @@
 \index{grid|see{mesh}}
 
 This chapter describes the information contained in a mesh file and the 
-two mesh formats that can be read by \fluidity: the gmsh and triangle format.
+three mesh formats that can be read by \fluidity: the gmsh, triangle and 
+ExodusII format.
 For an overview and further pointers on how to generate these meshes
 see chapter \ref{chap:meshes}.
 
@@ -296,4 +297,127 @@ Secondly, when checkpointing extruded meshes, a new section called
 \lstinline+$NodeData+ is created at the end of the GMSH file; this contains
 essential node column ID information.
  
+\section{The ExodusII format}
+\label{sec:exodusii_format}
+\index{exodusii}
+
+Currently Fluidity support read-only support for serial ExodusII files. It is the default 
+output mesh format of the automated mesh generation toolkit \href{http://cubit.sandia.gov/}{Cubit}.
+The mesh is stored within one binary file and typically has one of the following file extensions: 
+\texttt{.e}, \texttt{.E}, \texttt{.exo}, or \texttt{.EXO}.
+
+A brief description of the structure of an ExodusII file is given. Interested readers can find a 
+more detailed description of the ExodusII format in the official manual at 
+\url{http://sourceforge.net/projects/exodusii/}.
+
+\subsubsection*{The header}
+\label{ssec:exodusii_header_section}
+
+The header contains basic information about the ExodusII file, such as the number of dimensions, 
+nodes, elements, blocks, sidesets and many more. Below an excerpt of the header is given.
+\begin{lstlisting}
+netcdf \2dbox_with_sideset {
+dimensions:
+    ...
+    num_dim = 2 ;
+    num_nodes = 23 ;
+    num_elem = 35 ;
+    num_el_blk = 2 ;
+    ...
+    num_side_sets = 4 ;
+    num_side_ss1 = 5 ;
+    ...
+    num_el_in_blk1 = 30 ;
+    num_nod_per_el1 = 3 ;
+    ...
+\end{lstlisting}
+
+From this header we can identify that the file contains a 2-dimensional 
+mesh (\texttt{num\_dim = 2}), with 23 nodes (\texttt{num\_nodes}), and 
+35 elements (\texttt{num\_elem}). Furthermore, the mesh was divided into 
+two blocks (\texttt{num\_el\_blk = 2}), whereas the first block has 
+30 elements (\texttt{num\_el\_in\_blk1}) and the number of nodes of each 
+element in this block is three (\texttt{num\_nod\_per\_el1 = 3}). In addition 
+to the blocks, four sidesets were defined (\texttt{num\_side\_sets}), 
+whereas the first sideset contains 5 elements (\texttt{num\_side\_ss1 = 5}).
+The ids of the blocks and sidesets are not to be confused with the numbering 
+of the blocks and sidesets above. The corresponding ids are stored in the 
+\texttt{data} section of an ExodusII file, which is covered in the following 
+section.
+
+\subsubsection*{The data section}
+\label{ssec:exodusii_header_section}
+
+The data section contains the actual mesh properties, such as block and sideset ids,
+the list of elements and sides of each sideset, the node connectivity of each 
+defined block, and of course the element mapping of the entire mesh and the 
+coordinates of the vertices. 
+\begin{lstlisting}
+data:
+...
+ ss_prop1 = 10, 11, 12, 13 ;
+...
+ elem_ss1 = 4, 8, 19, 20, 21 ;
+...
+ elem_ss2 = 2, 4, 13 ;
+...
+ elem_map = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 
+    19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35 ;
+...
+ eb_prop1 = 1, 2 ;
+...
+ connect2 =
+  7, 8,
+  8, 20,
+  20, 23,
+  23, 15,
+  15, 16 ;
+...
+  coord =
+  0.283701736685801, 0.166666666666667, 0.0265230044875502, 0.5, 
+    -0.0944251982348238, -0.258225085856399, -0.5, -0.5, -0.166666666666667, 
+    0.218376401545253, 0.283363015396065, 0.5, -0.166666666666667, 
+    -0.25779029343402, -0.5, -0.5, 0.0259480610716054, 0.5, 0.5, -0.5, 
+    -0.321383277222933, 0.166666666666667, -0.5,
+  0.280428743148782, 0.5, 0.242760465386713, 0.5, -0.00227602386180678, 
+    0.188837287760358, 0.5, 0.3, 0.5, -0.00202880785288154, 
+    -0.284316506446615, -0.166666666666667, -0.5, -0.193411124527211, -0.3, 
+    -0.5, -0.247855406465798, -0.5, 0.166666666666667, 0.1, 
+    -0.00195855747202122, -0.5, -0.1 ;
+\end{lstlisting}
+
+Here \texttt{ss\_prop1} lists the id numbers of the defined sidesets, e.g.~the 
+id number $10$ was assigned to the first sideset. As stated in the header, the 
+first sideset contains five elements (\texttt{num\_side\_ss1 = 5}), which are 
+listed in the data section under \texttt{elem\_ss1 = 4, 8, 19, 20, 21 ;}
+
+As stated above, the mesh was divided into two blocks. Their id numbers are 1 
+and 2, as can be seen under \texttt{eb\_prop1 = 1, 2;} The element connectivity 
+stored for each block separately under \texttt{connect1} and \texttt{connect2}. 
+
+Finally the coordinates of the vertices are stored under \texttt{coord = ...}
+
+\subsection*{Use within Fluidity}
+\label{ssec:exodusii_use_within_fluidity}
+
+Once the mesh is generated, it can be read in by Fluidity by simply setting the 
+mesh format in Diamond to \texttt{exodusii} and providing its file name.
+
+The region ids and surface ids set in Diamond are the block ids and sideset ids 
+in the ExodusII file respectively. 
+
+
+\subsection*{Current restrictions}
+\label{ssec:exodusii_restrictions}
+
+This is work in progress and the following restrictions apply to using the ExodusII 
+mesh format:
+\begin{itemize}
+ \item Currently only serial mesh files can be read in
+ \item Currently Fluidity does not support writing ExodusII files, thus whenever
+ an ExodusII mesh file is read in, the checkpointed mesh files that are written are 
+ in the gmsh mesh format.
+ \item FLTools such as periodise currently do not support the ExodusII mesh format.
+
+\end{itemize}
 
