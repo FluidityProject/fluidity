@@ -145,7 +145,7 @@ subroutine error_handler(comm,line, func, file, dir, n, p, mess, ctx, ierr)
 end subroutine error_handler
 #else
     subroutine error_handler(line, func, file, dir, n, p, mess, ctx, ierr)
-    #include "finclude/petsc.h"
+#include "finclude/petsc.h"
       PetscInt:: line
       character(len=*):: func, file, dir
       PetscErrorCode:: n
