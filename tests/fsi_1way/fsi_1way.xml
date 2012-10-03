@@ -34,7 +34,7 @@ assert(solvers_converged)
     </test>
     <test name = "Simulation completed" language = "python">
 import fluidity_tools
-fluidity_tools.compare_variable(ElapsedTime, 1.0, 1.0e-6)
+fluidity_tools.compare_variable(ElapsedTime, 1.0, 1.0e-7)
     </test>
     <test name = "Integral of solid concentration on fluid mesh" language = "python">
 import fluidity_tools
@@ -45,7 +45,7 @@ fluidity_tools.compare_variable(IntegralSolidConcentration, a, 1.0e-4)
     </test>
     <test name = "DeltaP: front and back of cylinder" language = "python">
 import fluidity_tools
-fluidity_tools.compare_variable(DeltaP, 0.1092737, 1.0e-3)
+fluidity_tools.compare_variable(DeltaP, 0.1092737, 1.0e-7)
     </test>
   </pass_tests>
 </testproblem>
