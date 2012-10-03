@@ -275,13 +275,7 @@ contains
                entity_owner(entity)&
                     &=maxval(entity_owner(&
                     &         vertices(cell%entities(d,e)%vertices))) 
-               
-               ! The default receive level for foreign entities is 2.
-               if (entity_owner(entity)/=rank&
-                    .and.entity_receive_level(entity)==0) then
-                  entity_receive_level(entity)=2
-               end if
-               
+                              
                ! Set up the sort order lists. The primary key is the owner,
                !  the following sort keys are the UIDs of the vertices in
                !   ascending order.
@@ -294,8 +288,10 @@ contains
                !   for any processor, not just us.
                if (all(entity_owner(vertices)==entity_owner(vertices(1)))) cycle
                
-               ! This is a level 1 element
-               level1(vertices)=.True.
+               ! Check if this is level 1 WRT us.
+               if (any(entity_owner(vertices)==rank)) then
+                  level1(vertices)=.True.
+               end if
                
                ! If the entity is foreign, check if this element causes it
                !  to have a level 1 receive level.
@@ -330,6 +326,11 @@ contains
             call insert(entity_send_targets(cell_entity,2), &
                  entity_send_targets(vertices(v),1))
          end do
+         ! Set the receive level 2 if it isn't already 1.
+         if (entity_owner(cell_entity)/=rank&
+              .and.entity_receive_level(cell_entity)==0) then
+               entity_receive_level(cell_entity)=2
+         end if
 
          do d=0, mesh_dim(mesh)-1
             do e=1,cell%entity_counts(d)
@@ -346,6 +347,12 @@ contains
                   entity=ival(edge_numbers,edge(1),edge(2))
                end if
                
+               ! Set the receive level 2 if it isn't already 1.
+               if (entity_owner(entity)/=rank&
+                    .and.entity_receive_level(entity)==0) then
+                  entity_receive_level(entity)=2
+               end if
+
                ! Insert the cell send list into all the other send lists.
                call insert(entity_send_targets(entity,2), &
                     entity_send_targets(cell_entity,2))
@@ -354,6 +361,14 @@ contains
          end do
       end do
 
+      ! There are corner cases of visible entities which are outside the
+      !  level 2 halo. We give them a receive level of 3.
+      do entity = 1, size(entity_owner)
+         if (entity_owner(entity)/=rank .and. entity_receive_level(entity)==0) then
+            entity_receive_level(entity)=3
+         end if
+      end do
+      
       deallocate(level1)
 
     end subroutine create_topology_halos
