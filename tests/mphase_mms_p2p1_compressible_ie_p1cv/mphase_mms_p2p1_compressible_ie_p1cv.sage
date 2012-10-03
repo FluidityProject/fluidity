@@ -18,21 +18,34 @@ ie1 = 0.5*(cos(x + y) + 1.5)
 ie2 = 2.5*(sin(x*x) + 1.5)
 #ie2 = 3.0*y
 
+#u1 = 0.25*(sin(2*x+(x**2)*(y**2))+0.5)
+#v1 = 0.1*(cos(x**2+y**2)+0.5)
+
+#u2 = 1.0*(sin(x**2+y**2)+0.25)
+#v2 = 1.15*(cos(x*y)+0.75)
+
 u1 = 1.0*(sin(x**2+y**2)+0.5)
 v1 = 0.1*(cos(x**2+y**2)+0.5)
+u2 = cos(x**2+y**2)+2.5*x
+v2 = 0.5*x*y 
 
-u2 = 1.0*(sin(x**2+y**2)+0.5)
-v2 = 0.1*(cos(x**2+y**2)+0.5)
- 
+rho1 = 0.5*(sin(x*x + y*y) + 1.5)
+rho2 = 2.0
+
+ie1 = 1.25*x*y + cos(x + y)
+ie2 = sin(x*y)
+
+
 gamma = 1.4
 rho0 = 0.5
 csq = 100.0
 #p = csq*(rho1 - rho0)
 p = (gamma-1.0)*ie1*rho1
              
-vfrac1 = 0.5*cos(x)*cos(x) + 0.1
-vfrac2 = 1.0 - vfrac1
-             
+#vfrac1 = 0.5*cos(x)*cos(x) + 0.1
+vfrac1 = 0.8
+vfrac2 = 1.0 - vfrac1 
+            
 nu1 = 0.7
 nu2 = 0.7
 
@@ -57,12 +70,21 @@ Sv2 = vfrac2*rho2*u2*diff(v2,x) + vfrac2*rho2*v2*diff(v2,y) - diff(vfrac2*tau_yy
 
 Srho1 = diff(vfrac1*u1*rho1,x) + diff(vfrac1*v1*rho1,y) + rho1*diff(u2*vfrac2, x) + rho1*diff(v2*vfrac2, y)
 
-k = 0.1
-C_v = 0.4
-Sie1 = vfrac1*rho1*u1*diff(ie1, x) + vfrac1*rho1*v1*diff(ie1, y) + vfrac1*p*diff(u1, x) + vfrac1*p*diff(v1, y)
-Sie2 = vfrac2*rho2*u2*diff(ie2, x) + vfrac2*rho2*v2*diff(ie2, y) + vfrac2*p*diff(u2, x) + vfrac2*p*diff(v2, y)
+# Heat transfer term for the internal energy equations
+k = 0.5
+Cv1 = 700.0
+Cv2 = 700.0
+d = 0.1
 
-print 'from math import sin, cos, tanh, pi'
+Pr = Cv1*gamma*nu1/k
+Re = rho1*d*(sqrt((u1 - u2)**2 + (v1 - v2)**2))/nu1
+Nu = (7.0 - 10.0*vfrac1 + 5.0*vfrac1**2)*(1.0 + 0.7*(Re**0.2)*(Pr**(1.0/3.0))) + (1.33 - 2.4*vfrac1 + 1.2*vfrac1**2)*(Re**0.7)*(Pr**(1.0/3.0))
+Q = (6.0*k*vfrac2*Nu/(d**2))*(ie2/Cv2 - ie1/Cv1)
+
+Sie1 = vfrac1*rho1*u1*diff(ie1, x) + vfrac1*rho1*v1*diff(ie1, y) + vfrac1*p*diff(u1, x) + vfrac1*p*diff(v1, y) - Q
+Sie2 = vfrac2*rho2*u2*diff(ie2, x) + vfrac2*rho2*v2*diff(ie2, y) + vfrac2*p*diff(u2, x) + vfrac2*p*diff(v2, y) + Q
+
+print 'from math import sin, cos, tanh, pi, sqrt'
 print ''
 print 'def u1(X):'
 print '    return', str(u1).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')

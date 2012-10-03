@@ -60,6 +60,19 @@
         </stat>
       </from_mesh>
     </mesh>
+    <mesh name="DensityMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">2</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
     <quadrature>
       <degree>
         <integer_value rank="0">8</integer_value>
@@ -172,18 +185,6 @@
             <monitors/>
           </diagnostics>
         </solver>
-        <boundary_conditions name="Incoming">
-          <surface_ids>
-            <integer_value shape="2" rank="1">7 10</integer_value>
-          </surface_ids>
-          <type name="dirichlet">
-            <python>
-              <string_value lines="20" type="code" language="python">def val(X,t):
-   import mphase_mms_p2p1_compressible_ie_p1cv_tools as tools
-   return tools.p(X)</string_value>
-            </python>
-          </type>
-        </boundary_conditions>
         <output>
           <include_previous_time_step/>
         </output>
@@ -202,7 +203,7 @@
     </scalar_field>
     <scalar_field name="Density" rank="0">
       <prognostic>
-        <mesh name="PressureMesh"/>
+        <mesh name="DensityMesh"/>
         <spatial_discretisation>
           <control_volumes>
             <face_value name="FirstOrderUpwind"/>
@@ -315,11 +316,9 @@
           </diagnostics>
         </solver>
         <initial_condition name="WholeMesh">
-          <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
-   import mphase_mms_p2p1_compressible_ie_p1cv_tools as tools
-   return tools.velocity1(X)</string_value>
-          </python>
+          <constant>
+            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+          </constant>
         </initial_condition>
         <boundary_conditions name="All">
           <surface_ids>
@@ -451,7 +450,7 @@
           <max_iterations>
             <integer_value rank="0">10000</integer_value>
           </max_iterations>
-          <ignore_all_solver_failures/>
+          <never_ignore_solver_failures/>
           <diagnostics>
             <monitors/>
           </diagnostics>
@@ -794,13 +793,21 @@
         </steady_state>
       </diagnostic>
     </vector_field>
+    <multiphase_properties>
+      <effective_conductivity>
+        <real_value rank="0">0.5</real_value>
+      </effective_conductivity>
+      <specific_heat>
+        <real_value rank="0">700.0</real_value>
+      </specific_heat>
+    </multiphase_properties>
   </material_phase>
   <material_phase name="Phase2">
     <equation_of_state>
       <fluids>
         <linear>
           <reference_density>
-            <real_value rank="0">3.0</real_value>
+            <real_value rank="0">2.0</real_value>
           </reference_density>
         </linear>
       </fluids>
@@ -811,7 +818,7 @@
     <scalar_field name="Density" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="PressureMesh"/>
+        <mesh name="DensityMesh"/>
         <output/>
         <stat/>
         <convergence>
@@ -875,11 +882,9 @@
           </diagnostics>
         </solver>
         <initial_condition name="WholeMesh">
-          <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
-   import mphase_mms_p2p1_compressible_ie_p1cv_tools as tools
-   return tools.velocity2(X)</string_value>
-          </python>
+          <constant>
+            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
+          </constant>
         </initial_condition>
         <boundary_conditions name="All">
           <surface_ids>
@@ -1011,7 +1016,7 @@
           <max_iterations>
             <integer_value rank="0">10000</integer_value>
           </max_iterations>
-          <ignore_all_solver_failures/>
+          <never_ignore_solver_failures/>
           <diagnostics>
             <monitors/>
           </diagnostics>
@@ -1194,5 +1199,18 @@
         </steady_state>
       </diagnostic>
     </vector_field>
+    <multiphase_properties>
+      <particle_diameter>
+        <real_value rank="0">0.1</real_value>
+      </particle_diameter>
+      <specific_heat>
+        <real_value rank="0">700.0</real_value>
+      </specific_heat>
+    </multiphase_properties>
   </material_phase>
+  <multiphase_interaction>
+    <heat_transfer>
+      <heat_transfer_coefficient name="gunn"/>
+    </heat_transfer>
+  </multiphase_interaction>
 </fluidity_options>

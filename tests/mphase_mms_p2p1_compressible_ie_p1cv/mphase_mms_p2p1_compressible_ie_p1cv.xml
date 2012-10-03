@@ -15,7 +15,7 @@ import numpy as np
 
 meshes = [['A','B']]#, ['B','C']]
 
-convergence = np.ones(4) * 1e10
+convergence = np.ones(5) * 1e10
 
 print ''
 print 'ORDER OF CONVERGENCE'
@@ -43,6 +43,7 @@ print '-------------------------------------------'
 fields = [
           'PressureError',
           'InternalEnergyError',
+          'DensityError',
           ]
 
 for i, field in enumerate(fields):
@@ -82,7 +83,7 @@ for i, field in enumerate(fields):
         
         print mesh[0] + '->' + mesh[1] + ': ', log(ratio, 2)
 
-        convergence[i+3] = min(log(ratio, 2), convergence[i+1])
+        convergence[i+4] = min(log(ratio, 2), convergence[i+1])
     
     print '-------------------------------------------'
 
@@ -116,8 +117,11 @@ assert(convergence[1] &gt; 1.9)
     <test name="ie (phase 1) convergence order > 1.9" language="python">
 assert(convergence[2] &gt; 1.9)
     </test>
-    <test name="ie (phase 2) convergence order > 1.9" language="python">
+    <test name="density (phase 1) convergence order > 1.9" language="python">
 assert(convergence[3] &gt; 1.9)
+    </test>
+    <test name="ie (phase 2) convergence order > 1.9" language="python">
+assert(convergence[4] &gt; 1.9)
     </test>
     <test name="checking A finished in less than 100 seconds" language="python">
 assert(a_finish_time-100.0 &lt; 1.E-10)
