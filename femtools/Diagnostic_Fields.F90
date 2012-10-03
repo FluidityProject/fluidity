@@ -3129,7 +3129,13 @@ contains
       real, dimension(mesh_dim(bed_shear_stress)) :: invmass
       type(mesh_type) :: surface_mesh
       integer, dimension(:), pointer :: surface_node_list
-!
+
+      !! for DG
+      !! Field over the entire surface mesh containing bc values:
+      type(vector_field) :: bc_value
+      !! Integer array of all surface elements indicating bc type
+      !! (see below call to get_entire_boundary_condition):
+      integer, dimension(:), allocatable :: bc_type
       
       ! assumes constant density
       call get_option(trim(bed_shear_stress%option_path)//"/diagnostic/density", density)
@@ -3173,17 +3179,40 @@ contains
          visc => extract_tensor_field(state, "Viscosity")
          U    => extract_vector_field(state, "Velocity")
          X    => extract_vector_field(state, "Coordinate")
+
+         ! Check velociy and bed shear stress meshes are consistent
+         if (continuity(bed_shear_stress) /= continuity(U) .or. &
+             element_degree(bed_shear_stress, 1) /= element_degree(U, 1)) then
+            FLAbort('Bed shear stress and velocity mesh must have the same continuity and degree')
+         end if         
          
          ! In the CG case we need to calculate a global lumped mass
          if(continuity(bed_shear_stress)>=0) then
             call allocate(masslump, bed_shear_stress%mesh, 'Masslump')
             call zero(masslump)
          end if
-
-         do face = 1, surface_element_count(bed_shear_stress)
-            call calculate_bed_shear_stress_ele(bed_shear_stress, masslump, face, X, U,&
-                 & visc, density)
-         end do
+         
+         if(continuity(bed_shear_stress)>=0) then
+            do face = 1, surface_element_count(bed_shear_stress)
+               call calculate_bed_shear_stress_ele_cg(bed_shear_stress, masslump, face, X, U,&
+                    & visc, density)
+            end do
+         else
+            ! Enquire about boundary conditions we're interested in
+            ! Returns an integer array bc_type over the surface elements
+            ! that indicates the bc type (in the order we specified, i.e.
+            ! BCTYPE_WEAKDIRICHLET=1)
+            allocate( bc_type(1:surface_element_count(T)) )
+            call get_entire_boundary_condition(T, &
+                 & (/"weakdirichlet", &
+                 &   "dirichlet    ", &
+                 &   "neumann      "/), &
+                 & bc_value, bc_type)
+            do face = 1, surface_element_count(bed_shear_stress)
+               call calculate_bed_shear_stress_ele_dg(bed_shear_stress, masslump, face, X, U,&
+                    & visc, density, bc_value, bc_type)
+            end do
+         end if
             
          ! In the CG case we globally apply inverse mass
          if(continuity(bed_shear_stress)>=0) then
@@ -3200,7 +3229,7 @@ contains
 
    end subroutine calculate_bed_shear_stress
 
-   subroutine calculate_bed_shear_stress_ele(bed_shear_stress, masslump, face, X, U, visc&
+   subroutine calculate_bed_shear_stress_ele_cg(bed_shear_stress, masslump, face, X, U, visc&
         &, density)
 
      type(vector_field), intent(inout) :: bed_shear_stress
@@ -3282,22 +3311,171 @@ contains
      normal_shear_at_loc = shape_vector_rhs(f_shape, normal_shear_at_quad, density *&
           & detwei)
 
+     ! for CG we need to calculate a global lumped mass
      mass = shape_shape(f_shape, f_shape, detwei)
-     ! In the CG case we need to calculate a global lumped mass
-     if(continuity(bed_shear_stress)>=0) then
-        call addto(masslump, face_global_nodes(bed_shear_stress,face), sum(mass,1))
-     else ! In the DG case we will apply the inverse mass locally.
-        do i = 1,dim
-           normal_shear_at_loc(i,:) = matmul(inverse(mass), normal_shear_at_loc(i,:))
-        end do
-     end if
+     call addto(masslump, face_global_nodes(bed_shear_stress,face), sum(mass,1))
 
      ! add to bed_shear_stress field
      call addto(bed_shear_stress, face_global_nodes(bed_shear_stress,face), normal_shear_at_loc)
 
      call deallocate(augmented_shape)
           
-   end subroutine calculate_bed_shear_stress_ele
+   end subroutine calculate_bed_shear_stress_ele_cg
+
+   subroutine calculate_bed_shear_stress_ele_dg(bed_shear_stress, masslump, face, X, U, visc&
+        &, density, bc_value, bc_type)
+
+     type(vector_field), intent(inout) :: bed_shear_stress
+     type(scalar_field), intent(inout) :: masslump
+     type(vector_field), intent(in), pointer :: X, U
+     type(tensor_field), intent(in), pointer :: visc
+     integer, intent(in) :: face
+     real, intent(in) :: density
+     type(vector_field), intent(in) :: bc_value
+     integer, dimension(:), intent(in) :: bc_type
+
+     integer :: i, j, i_gi
+     type(element_type), pointer :: shape
+     real, dimension(ele_loc(U, face_ele(U, face)), ele_ngi(U, face_ele(U, face)), U%dim) :: dshape
+     real, dimension(ele_ngi(U, face_ele(U, face))) :: detwei
+     real, dimension(U%dim, U%dim, ele_ngi(U, face_ele(U, face))) :: grad_Uh_gi
+     real, dimension(U%dim, U%dim, ele_loc(U, face_ele(U, face))) :: rhs
+
+
+
+     real, dimension(U%dim, face_ngi(U, face)) :: normal, normal_shear_at_quad, U_ele
+     real, dimension(U%dim) :: abs_normal
+     real, dimension(U%dim, U%dim, ele_ngi(U, face_ele(U, face))) :: grad_U_at_quad, visc_at_quad, shear_at_quad  
+     real, dimension(U%dim, face_loc(U, face)) :: normal_shear_at_loc
+     real, dimension(face_loc(U, face), face_loc(U, face)) :: mass
+
+     ! assumption is made that gradient within element is constant - this is only
+     ! true for p0 or p1 discretisations
+     if (shape%degree > 1) then
+        FLAbort('Bed shear stress calculation using the velocity gradient' // &
+             ' currently only works for DG deiscretisations with degree 1 or 0')
+     end if
+
+     ele = face_ele(U, face) ! ele number for volume mesh
+     dim = mesh_dim(bed_shear_stress) ! field dimension 
+
+     ! get shape functions  
+     shape   => ele_shape(U, ele) 
+      
+     call transform_to_physical(X, ele, shape, dshape, detwei)
+     
+     ! Calculate grad of U_h within the element
+     grad_Uh_gi = ele_grad_at_quad(U, ele, dshape)
+     
+     ! Assemble interior contributions to rhs
+     rhs = shape_tensor_rhs(shape, grad_Uh_gi, detwei)
+
+     call addto(bed_shear_stress, ele, rhs)
+     
+     !-------------------------------------------------------------------
+     ! Interface integrals
+     !-------------------------------------------------------------------
+
+     neigh=>ele_neigh(U, ele)
+     ! x_neigh/=t_neigh only on periodic boundaries.
+     x_neigh=>ele_neigh(X, ele)
+     periodic_neigh = any(neigh .ne. x_neigh)
+
+     ! Local node map counter.
+     start=size(T_ele)+1
+
+     neighbourloop: do ni=1,size(neigh)
+
+        !----------------------------------------------------------------------
+        ! Find the relevant faces.
+        !----------------------------------------------------------------------
+
+        ! These finding routines are outside the inner loop so as to allow
+        ! for local stack variables of the right size in
+        ! construct_add_diff_interface_dg.
+
+        ele_2 = neigh(ni)
+        face = ele_face(U, ele, ele_2)
+
+        if (ele_2>0) then
+           ! Internal faces.
+           face_2=ele_face(U, ele_2, ele)
+        else
+           ! External face.
+           face_2=face
+        end if
+
+        finish=start+face_loc(T, face_2)-1
+        local_glno(start:finish)=face_global_nodes(T, face_2)
+
+        call calculate_bed_shear_stress_ele_dg_interface(ele, face, face_2, ni, &
+             & rhs, X, U, bc_value, bc_type)
+
+        start=start+face_loc(T, face_2)
+
+     end do neighbourloop
+
+     do i = 1,dim
+        grad_U_at_loc(i,:) = matmul(inverse(mass), rhs(i,:))
+     end do
+
+     ! add to bed_shear_stress field
+     call addto(bed_shear_stress, face_global_nodes(bed_shear_stress,face), normal_shear_at_loc)
+
+     call deallocate(augmented_shape)
+          
+   end subroutine calculate_bed_shear_stress_ele_dg
+  
+   subroutine calculate_bed_shear_stress_ele_dg_interface(ele, face, face_2, &
+        ni, bed_shear_stress, X, U, bc_value, bc_type)
+
+     !!< Construct the DG element boundary integrals on the ni-th face of
+     !!< element ele.
+
+     integer, intent(in) :: ele, face, face_2, ni
+     type(tensor_field), intent(inout) :: bed_shear_stress
+     type(vector_field), intent(in) :: X, U
+     type(scalar_field), intent(in) :: bc_value
+     integer, dimension(:), intent(in) :: bc_type
+
+     ! Face objects and numberings.
+     type(element_type), pointer :: shape_1, shape_2
+     integer, dimension(face_loc(T,face)) :: U_face, U_face_l
+     integer, dimension(face_loc(T,face_2)) :: U_face_2
+
+     ! Note that both sides of the face can be assumed to have the same
+     ! number of quadrature points.
+     real, dimension(U_nl%dim, face_ngi(U_nl, face)) :: normal, normal_2
+     ! Variable transform times quadrature weights.
+     real, dimension(face_ngi(T,face)) :: detwei, detwei_2
+     real, dimension(U%dim, U%dim, face_loc(U, face)) :: rhs
+
+     integer :: dim, start, finish
+     logical :: boundary, dirichlet, neumann
+
+     integer :: i
+
+     shape_1 => face_shape(U, face)
+     shape_2 => face_shape(U, face_2)
+     call transform_facet_to_physical(X, face, detwei_f=detwei, normal=normal)
+     call transform_facet_to_physical(X, face_2, detwei_f=detwei_2, normal=normal_2)
+
+     !----------------------------------------------------------------------
+     ! Construct element-wise quantities.
+     !----------------------------------------------------------------------
+
+     rhs = shape_tensor_rhs(shape_1, 0.5*matmul(face_val_at_quad(U, face), transpose(normal)), detwei) 
+     rhs = rhs + shape_tensor_rhs(shape_2, 0.5*matmul(face_val_at_quad(U, face_2), transpose(normal_2)), detwei_2) 
+     
+     if (face==face_2) then   ! boundary face - need to apply weak bc's
+        if (bc_type(face)==BCTYPE_WEAKDIRICHLET) then
+           rhs = rhs - shape_tensor_rhs(shape_2, matmul(face_val_at_quad(bc_value, face), transpose(normal)), detwei) 
+        end if
+     end if
+
+     call addto(bed_shear_stress, face_global_nodes(U, face), rhs)
+
+   end subroutine calculate_bed_shear_stress_ele_dg_interface
 
    subroutine calculate_max_bed_shear_stress(state, max_bed_shear_stress)
 !
