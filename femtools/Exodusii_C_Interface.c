@@ -219,19 +219,6 @@ int c_ex_get_side_set_node_list(int *exoid, int *side_set_id, int *side_set_node
 
 /* Following some additional interfaces that differ from the official interfaces of the exodusii library */
 
-/* Nicer function for open ExodusII File for reading */
-int c_read_ex_open_short(const char *path, float *version)
-{
-   int exoid;
-#ifdef HAVE_LIBEXOIIV2C
-   int comp_ws=0, io_ws=0;
-   exoid = ex_open(path, EX_READ, &comp_ws, &io_ws, version);
-#else
-   FLExit("Fluidity was not configured with exodusII, reconfigure with '--with-exodusII'!");
-#endif
-   return (exoid);
-}
-
 /* get element block ids and block parameters */
 int c_ex_get_elem_block_parameters(int *exoid, int *num_elem_blk, int *block_ids, int *num_elem_in_block, int *num_nodes_per_elem)
 {
