@@ -311,7 +311,6 @@ elements when buoyancy is a discontinuous field.</a:documentation>
             <choice>
               <ref name="tensor_python_diagnostic_algorithm"/>
               <ref name="internal_algorithm"/>
-              <ref name="k_epsilon_diffusivity_algorithm"/>
             </choice>
             <ref name="diagnostic_tensor_field"/>
           </element>

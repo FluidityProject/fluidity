@@ -66,8 +66,7 @@
     
 !--------------------------------------------------------------------------------------------------------------------
     subroutine petsc_solve_full_projection(x,ctp_m,inner_m,ct_m,rhs,pmat,&
-      state, inner_mesh, &
-      auxiliary_matrix)
+      state, inner_mesh, auxiliary_matrix)
 !--------------------------------------------------------------------------------------------------------------------
 
       ! Solve Schur complement problem the nice way (using petsc) !!
@@ -142,10 +141,8 @@
 
 !--------------------------------------------------------------------------------------------------------
     subroutine petsc_solve_setup_full_projection(y,A,b,ksp,petsc_numbering_p,name,solver_option_path, &
-         lstartfromzero,inner_m,div_matrix_comp, &
-         div_matrix_incomp,option_path,preconditioner_matrix,rhs, &
-         state, inner_mesh, &
-         auxiliary_matrix)
+         lstartfromzero,inner_m,div_matrix_comp, div_matrix_incomp,option_path,preconditioner_matrix,rhs, &
+         state, inner_mesh, auxiliary_matrix)
          
 !--------------------------------------------------------------------------------------------------------
 
@@ -211,7 +208,7 @@
       character(len=OPTION_PATH_LEN) :: inner_option_path, inner_solver_option_path
       
       integer reference_node, stat, i
-      logical parallel, have_auxiliary_matrix
+      logical parallel, have_auxiliary_matrix, have_preconditioner_matrix
 
       logical :: apply_reference_node, apply_reference_node_from_coordinates, reference_node_owned
 
@@ -220,7 +217,7 @@
       inner_option_path= trim(option_path)//&
               "/prognostic/scheme/use_projection_method&
               &/full_schur_complement/inner_matrix[0]"
-      
+
       if (have_option(trim(option_path)//'/name')) then
          call get_option(trim(option_path)//'/name', name)
          ewrite(1,*) 'Inside petsc_solve_(block_)csr, solving for: ', trim(name)
@@ -359,8 +356,14 @@
       
       ! leaving out petsc_numbering and mesh, so "iteration_vtus" monitor won't work!
 
-      ! Assemble preconditioner matrix in petsc format:
-      pmat=csr2petsc(preconditioner_matrix, petsc_numbering_p, petsc_numbering_p)
+      ! Assemble preconditioner matrix in petsc format (if required):
+      have_preconditioner_matrix=.not.(have_option(trim(option_path)//&
+              "/prognostic/scheme/use_projection_method&
+              &/full_schur_complement/preconditioner_matrix::NoPreconditionerMatrix"))
+
+      if(have_preconditioner_matrix) then
+         pmat=csr2petsc(preconditioner_matrix, petsc_numbering_p, petsc_numbering_p)
+      end if
 
       ! Set up RHS and Solution vectors (note these are loaded later):
       b = PetscNumberingCreateVec(petsc_numbering_p)
@@ -371,8 +374,12 @@
 
       parallel=IsParallel()
 
-      call SetupKSP(ksp,A,pmat,solver_option_path,parallel,&
-        petsc_numbering_p, lstartfromzero)
+      if(have_preconditioner_matrix) then
+         call SetupKSP(ksp,A,pmat,solver_option_path,parallel,petsc_numbering_p, lstartfromzero)
+      else
+         ! If preconditioner matrix is not required, send in A instead:
+         call SetupKSP(ksp,A,A,solver_option_path,parallel,petsc_numbering_p, lstartfromzero)
+      end if
       
       ! Destroy the matrices setup for the schur complement computation. While
       ! these matrices are destroyed here, they are still required for the inner solve,
@@ -383,7 +390,7 @@
       call MatDestroy(G_t_comp,ierr) ! Destroy Compressible Divergence Operator.
       call MatDestroy(G_t_incomp, ierr) ! Destroy Incompressible Divergence Operator.
       call MatDestroy(G, ierr) ! Destroy Gradient Operator (i.e. transpose of incompressible div).
-      call MatDestroy(pmat,ierr) ! Destroy preconditioning matrix if allocated.
+      if(have_preconditioner_matrix) call MatDestroy(pmat,ierr) ! Destroy preconditioning matrix.
       if(have_auxiliary_matrix) call MatDestroy(S,ierr) ! Destroy stabilization matrix
       
       call deallocate( petsc_numbering_u )
