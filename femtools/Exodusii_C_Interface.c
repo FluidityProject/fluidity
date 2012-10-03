@@ -15,8 +15,7 @@ int c_read_ex_open(const char *path, int mode, int *comp_ws, int *io_ws, float *
 #ifdef HAVE_LIBEXOIIV2C
    exoid = ex_open(path, EX_READ, comp_ws, io_ws, version);
 #else
-   fprintf(stderr, "ERROR: no ExodusII support compiled\n");
-   exit(-1);
+   FLExit("Fluidity was not configured with exodusII, reconfigure with '--with-exodusII'!");
 #endif
    return (exoid);
 }
@@ -31,8 +30,7 @@ int c_ex_get_init(int *exoid, char *title, int *num_dim, int *num_nodes,
 #ifdef HAVE_LIBEXOIIV2C
    error = ex_get_init(*exoid, title, num_dim, num_nodes, num_elem, num_elem_blk, num_node_sets, num_side_sets);
 #else
-   fprintf(stderr, "ERROR: no ExodusII support compiled\n");
-   exit(-1);
+   FLExit("Fluidity was not configured with exodusII, reconfigure with '--with-exodusII'!");
 #endif
    return (error);
 }
@@ -44,8 +42,7 @@ int c_ex_get_coord(int *exoid, float *x,float *y,float *z)
 #ifdef HAVE_LIBEXOIIV2C
    error = ex_get_coord(*exoid, x, y, z);
 #else
-   fprintf(stderr, "ERROR: no ExodusII support compiled\n");
-   exit(-1);
+   FLExit("Fluidity was not configured with exodusII, reconfigure with '--with-exodusII'!");
 #endif
    return(error);
 }
@@ -58,8 +55,7 @@ int c_ex_get_node_num_map(int *exoid, int *node_map)
 #ifdef HAVE_LIBEXOIIV2C
    error = ex_get_node_num_map(*exoid, node_map);
 #else
-   fprintf(stderr, "ERROR: no ExodusII support compiled\n");
-   exit(-1);
+   FLExit("Fluidity was not configured with exodusII, reconfigure with '--with-exodusII'!");
 #endif
    return (error);
 }
@@ -71,8 +67,7 @@ int c_ex_get_elem_num_map(int *exoid, int *elem_num_map)
 #ifdef HAVE_LIBEXOIIV2C
    error = ex_get_elem_num_map(*exoid, elem_num_map);
 #else
-   fprintf(stderr, "ERROR: no ExodusII support compiled\n");
-   exit(-1);
+   FLExit("Fluidity was not configured with exodusII, reconfigure with '--with-exodusII'!");
 #endif
    return (error);
 }
@@ -84,8 +79,7 @@ int c_ex_get_elem_order_map(int *exoid, int *elem_order_map)
 #ifdef HAVE_LIBEXOIIV2C
    error = ex_get_map(*exoid, elem_order_map);
 #else
-   fprintf(stderr, "ERROR: no ExodusII support compiled\n");
-   exit(-1);
+   FLExit("Fluidity was not configured with exodusII, reconfigure with '--with-exodusII'!");
 #endif
    return (error);
 }
@@ -97,8 +91,7 @@ int c_ex_get_elem_blk_ids(int *exoid, int *block_ids)
 #ifdef HAVE_LIBEXOIIV2C
    error = ex_get_elem_blk_ids(*exoid, block_ids);
 #else
-   fprintf(stderr, "ERROR: no ExodusII support compiled\n");
-   exit(-1);
+   FLExit("Fluidity was not configured with exodusII, reconfigure with '--with-exodusII'!");
 #endif
    return (error);
 }
@@ -116,8 +109,7 @@ int c_ex_get_elem_block(int *exoid, int *block_id, const char *elem_type, int *n
                              num_nodes_per_elem,
                              num_attr);
 #else
-   fprintf(stderr, "ERROR: no ExodusII support compiled\n");
-   exit(-1);
+   FLExit("Fluidity was not configured with exodusII, reconfigure with '--with-exodusII'!");
 #endif
    return (error);
 }
@@ -129,8 +121,7 @@ int c_ex_get_elem_connectivity(int *exoid, int *block_id, int *elem_connectivity
 #ifdef HAVE_LIBEXOIIV2C
    error = ex_get_elem_conn(*exoid, *block_id, elem_connectivity);
 #else
-   fprintf(stderr, "ERROR: no ExodusII support compiled\n");
-   exit(-1);
+   FLExit("Fluidity was not configured with exodusII, reconfigure with '--with-exodusII'!");
 #endif
    return (error);
 }
@@ -142,8 +133,7 @@ int c_ex_get_node_set_node_list(int *exoid, int *num_node_sets, int *node_set_id
 #ifdef HAVE_LIBEXOIIV2C
    error = ex_get_node_set(*exoid, *node_set_id, node_set_node_list);
 #else
-   fprintf(stderr, "ERROR: no ExodusII support compiled\n");
-   exit(-1);
+   FLExit("Fluidity was not configured with exodusII, reconfigure with '--with-exodusII'!");
 #endif
    return (error);
 }
@@ -155,8 +145,7 @@ int c_ex_close(int *exoid)
 #ifdef HAVE_LIBEXOIIV2C
    error = ex_close(*exoid);
 #else
-   fprintf(stderr, "ERROR: no ExodusII support compiled\n");
-   exit(-1);
+   FLExit("Fluidity was not configured with exodusII, reconfigure with '--with-exodusII'!");
 #endif
    return (error);
 }
@@ -176,8 +165,7 @@ int c_ex_get_node_set_param(int *exoid, int *num_node_sets, int *node_set_ids, i
       error = ex_get_node_set_param(*exoid, node_set_ids[i], &num_nodes_in_set[i], &num_df_in_set);
    }
 #else
-   fprintf(stderr, "ERROR: no ExodusII support compiled\n");
-   exit(-1);
+   FLExit("Fluidity was not configured with exodusII, reconfigure with '--with-exodusII'!");
 #endif
    return (error);
 }
@@ -188,8 +176,7 @@ int c_ex_get_side_set_ids(int *exoid, int *side_set_ids)
 #ifdef HAVE_LIBEXOIIV2C
    error = ex_get_side_set_ids (*exoid, side_set_ids);
 #else
-   fprintf(stderr, "ERROR: no ExodusII support compiled\n");
-   exit(-1);
+   FLExit("Fluidity was not configured with exodusII, reconfigure with '--with-exodusII'!");
 #endif
    return (error);
 }
@@ -201,8 +188,7 @@ int c_ex_get_side_set_param(int *exoid, int *side_set_id, int *num_sides_in_set,
 #ifdef HAVE_LIBEXOIIV2C
    error = ex_get_side_set_param(*exoid, *side_set_id, num_sides_in_set, num_df_in_set);
 #else
-   fprintf(stderr, "ERROR: no ExodusII support compiled\n");
-   exit(-1);
+   FLExit("Fluidity was not configured with exodusII, reconfigure with '--with-exodusII'!");
 #endif
    return (error);
 }
@@ -214,8 +200,7 @@ int c_ex_get_side_set(int *exoid, int *side_set_id, int *side_set_elem_list, int
 #ifdef HAVE_LIBEXOIIV2C
    error = ex_get_side_set (*exoid, *side_set_id, side_set_elem_list, side_set_side_list);
 #else
-   fprintf(stderr, "ERROR: no ExodusII support compiled\n");
-   exit(-1);
+   FLExit("Fluidity was not configured with exodusII, reconfigure with '--with-exodusII'!");
 #endif
    return (error);
 }
@@ -227,8 +212,7 @@ int c_ex_get_side_set_node_list(int *exoid, int *side_set_id, int *side_set_node
 #ifdef HAVE_LIBEXOIIV2C
    error = ex_get_side_set_node_list(*exoid, *side_set_id, side_set_node_cnt_list, side_set_node_list);
 #else
-   fprintf(stderr, "ERROR: no ExodusII support compiled\n");
-   exit(-1);
+   FLExit("Fluidity was not configured with exodusII, reconfigure with '--with-exodusII'!");
 #endif
    return (error);
 }
@@ -243,8 +227,7 @@ int c_read_ex_open_short(const char *path, float *version)
    int comp_ws=0, io_ws=0;
    exoid = ex_open(path, EX_READ, &comp_ws, &io_ws, version);
 #else
-   fprintf(stderr, "ERROR: no ExodusII support compiled\n");
-   exit(-1);
+   FLExit("Fluidity was not configured with exodusII, reconfigure with '--with-exodusII'!");
 #endif
    return (exoid);
 }
@@ -274,8 +257,7 @@ int c_ex_get_elem_block_parameters(int *exoid, int *num_elem_blk, int *block_ids
    }
    free(num_attr);
 #else
-   fprintf(stderr, "ERROR: no ExodusII support compiled\n");
-   exit(-1);
+   FLExit("Fluidity was not configured with exodusII, reconfigure with '--with-exodusII'!");
 #endif
    return (error);
 }
