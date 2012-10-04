@@ -1431,7 +1431,7 @@ contains
   subroutine advection_diffusion_cg_check_options
     !!< Check CG advection-diffusion specific options
     
-    character(len = FIELD_NAME_LEN) :: field_name, state_name
+    character(len = FIELD_NAME_LEN) :: field_name, field_name_2, state_name
     character(len = OPTION_PATH_LEN) :: path
     integer :: i, j, stat
     real :: beta, l_theta
@@ -1504,7 +1504,17 @@ contains
               call field_error(state_name, field_name, &
                 & "Weak Dirichlet boundary conditions with diffusivity are not supported by CG advection-diffusion")
             end if
-            
+                 
+            call get_option(trim(path) // "/scalar_field::SinkingVelocity/prognostic/mesh[0]/name", &
+                 field_name, stat)
+            if(stat == SPUD_NO_ERROR) then
+               call get_option(complete_field_path("/material_phase[" // int2str(i) // &
+                    "]/vector_field::Velocity/") // "mesh[0]/name", field_name_2)
+               if(trim(field_name) /= trim(field_name_2)) then
+                  call field_warning(state_name, field_name, &
+                       & "SinkingVelocity is on a different mesh to the Velocity field this could cause problems")
+               end if
+            end if
             if(have_option(trim(path) // "/spatial_discretisation/continuous_galerkin/advection_terms/exclude_advection_terms")) then
               if(have_option(trim(path) // "/scalar_field::SinkingVelocity")) then
                 call field_warning(state_name, field_name, &
