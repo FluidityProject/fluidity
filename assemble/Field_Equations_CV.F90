@@ -1192,34 +1192,36 @@ contains
         ! [\rho^{n+1}M + dt*A_m + dt*theta*D_m](T^{n+1}-T^{n})/dt = rhs - [A_m + D_m]*T^{n} - diff_rhs - (p+atm_p)*CT_m*u
 
         ! construct rhs
-        p=>extract_scalar_field(state(1), "Pressure")
-        ewrite_minmax(p)
-        assert(p%mesh==tfield%mesh)
-        ! halo exchange not necessary as it is done straight after solve
-        call get_option(trim(p%option_path)//'/prognostic/atmospheric_pressure', &
-                              atmospheric_pressure, default=0.0)
-        gradient_sparsity => get_csr_sparsity_firstorder(state, p%mesh, advu%mesh)
+        if(have_option(trim(tfield%option_path)//'/prognostic/equation[0]/density[0]/include_pressure_term')) then
+           p=>extract_scalar_field(state(1), "Pressure")
+           ewrite_minmax(p)
+           assert(p%mesh==tfield%mesh)
+           ! halo exchange not necessary as it is done straight after solve
+           call get_option(trim(p%option_path)//'/prognostic/atmospheric_pressure', &
+                                   atmospheric_pressure, default=0.0)
+           gradient_sparsity => get_csr_sparsity_firstorder(state, p%mesh, advu%mesh)
 
-        call allocate(CT_m, gradient_sparsity, (/1, advu%dim/), name="DivergenceMatrix" )
-        call assemble_divergence_matrix_cv(CT_m, state(1), &
-                                           test_mesh=p%mesh, field=advu, include_vfrac=.false.)
+           call allocate(CT_m, gradient_sparsity, (/1, advu%dim/), name="DivergenceMatrix" )
+           call assemble_divergence_matrix_cv(CT_m, state(1), &
+                                                test_mesh=p%mesh, field=advu, include_vfrac=.false.)
+                                                
+           call allocate(pterm, p%mesh, "PressureTerm")
+            
+           ! construct the pressure term
+           call mult(pterm, CT_m, advu) 
+           if(multiphase) then
+              call scale(pterm, nvfrac) ! We need vfrac*p*div(u) for the multiphase InternalEnergy equation
+           end if
+            
+                                   ! should this really be the advection velocity or just the relative or the nonlinear?
+           pterm%val = pterm%val*(p%val+atmospheric_pressure)
 
-        call allocate(pterm, p%mesh, "PressureTerm")
+           call addto(rhs, pterm, -1.0)
 
-        ! construct the pressure term
-        call mult(pterm, CT_m, advu) 
-        if(multiphase) then
-           call scale(pterm, nvfrac) ! We need vfrac*p*div(u) for the multiphase InternalEnergy equation
+           call deallocate(CT_m)
+           call deallocate(pterm)
         end if
-        
-                                ! should this really be the advection velocity or just the relative or the nonlinear?
-        pterm%val = pterm%val*(p%val+atmospheric_pressure)
-
-        call addto(rhs, pterm, -1.0)
-
-        call deallocate(CT_m)
-        call deallocate(pterm)
-
+         
         ! construct M
         if(explicit) then
           if(include_mass) then
