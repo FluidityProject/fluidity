@@ -598,7 +598,7 @@ contains
   
   subroutine advection_diffusion_fv_check_options
   
-    character(len = FIELD_NAME_LEN) :: field_name, field_name_2, state_name
+    character(len = FIELD_NAME_LEN) :: field_name, mesh_0, mesh_1, state_name
     character(len = OPTION_PATH_LEN) :: path
     integer :: i, j, stat
     real :: beta, l_theta
@@ -653,12 +653,13 @@ contains
                 & "Implicitness factor (theta) should = 1.0 when excluding mass")
             end if
                  
-            call get_option(trim(path) // "/scalar_field::SinkingVelocity/prognostic/mesh[0]/name", &
-                 field_name, stat)
+            call get_option(trim(complete_field_path(trim(path) // &
+                 "/scalar_field::SinkingVelocity"))//"/mesh[0]/name", &
+                 mesh_0, stat)
             if(stat == SPUD_NO_ERROR) then
-              call get_option(complete_field_path("/material_phase[" // int2str(i) // &
-                   "]/vector_field::Velocity/") // "mesh[0]/name", field_name_2)
-              if(trim(field_name) /= trim(field_name_2)) then
+              call get_option(trim(complete_field_path("/material_phase[" // int2str(i) // &
+                   "]/vector_field::Velocity")) // "/mesh[0]/name", mesh_1)
+              if(trim(mesh_0) /= trim(mesh_1)) then
                  call field_warning(state_name, field_name, &
                   & "SinkingVelocity is on a different mesh to the Velocity field this could cause problems")
               end if

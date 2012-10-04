@@ -68,7 +68,8 @@ module advection_diffusion_DG
   character(len=255), private :: message
 
   private
-  public solve_advection_diffusion_dg, construct_advection_diffusion_dg
+  public solve_advection_diffusion_dg, construct_advection_diffusion_dg, &
+       advection_diffusion_dg_check_options
 
   ! Local private control parameters. These are module-global parameters
   ! because it would be expensive and/or inconvenient to re-evaluate them
@@ -3125,7 +3126,7 @@ contains
   subroutine advection_diffusion_dg_check_options
     !!< Check DG advection-diffusion specific options
     
-    character(len = FIELD_NAME_LEN) :: field_name, field_name_2, state_name
+    character(len = FIELD_NAME_LEN) :: field_name, mesh_0, mesh_1, state_name
     character(len = OPTION_PATH_LEN) :: path
     integer :: i, j, stat
     real :: beta, l_theta
@@ -3152,12 +3153,15 @@ contains
              if(have_option(trim(path) // "/spatial_discretisation/discontinuous_galerkin").and.&
                   have_option(trim(path) // "/equation[0]")) then       
 
-                call get_option(trim(path) // "/scalar_field::SinkingVelocity/prognostic/mesh[0]/name", &
-                     field_name, stat)
+                
+                 
+                call get_option(trim(complete_field_path(trim(path) // &
+                     "/scalar_field::SinkingVelocity"))//"/mesh[0]/name", &
+                     mesh_0, stat)
                 if(stat == SPUD_NO_ERROR) then
-                   call get_option(complete_field_path("/material_phase[" // int2str(i) // &
-                        "]/vector_field::Velocity/") // "mesh[0]/name", field_name_2)
-                   if(trim(field_name) /= trim(field_name_2)) then
+                   call get_option(trim(complete_field_path("/material_phase[" // int2str(i) // &
+                        "]/vector_field::Velocity")) // "/mesh[0]/name", mesh_1)
+                   if(trim(mesh_0) /= trim(mesh_1)) then
                       call field_warning(state_name, field_name, &
                            "SinkingVelocity is on a different mesh to the Velocity field this could "//&
                            "cause problems. If using advection_scheme/project_velocity_to_continuous "//&
