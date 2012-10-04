@@ -293,7 +293,8 @@
            SUFEN, SUFENSLX, SUFENSLY, SUFENLX, SUFENLY, SUFENLZ, &
            SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
            SBCVFENLX, SBCVFENLY, SBCVFENLZ, SBUFEN, SBUFENSLX, SBUFENSLY, &
-           SBUFENLX, SBUFENLY, SBUFENLZ
+           SBUFENLX, SBUFENLY, SBUFENLZ, &
+           DUMMY_ZERO_NDIM_NDIM
       REAL, DIMENSION( : , :, : ), allocatable :: DTX_ELE,DTY_ELE,DTZ_ELE,  &
            DTOLDX_ELE,DTOLDY_ELE,DTOLDZ_ELE
 
@@ -345,6 +346,7 @@
            'prognostic/spatial_discretisation/control_volumes/face_value/' // &
            'limit_face_value/limiter::Extrema'
       LIMIT_USE_2ND=.FALSE.
+!      LIMIT_USE_2ND=.true.
       if ( have_option( option_path ) ) LIMIT_USE_2ND=.TRUE.
 
       ewrite(3,*)'CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA, LIMIT_USE_2ND, SECOND_THETA:', &
@@ -429,6 +431,8 @@
       ALLOCATE( SBUFENLX( U_SNLOC, SBCVNGI ))
       ALLOCATE( SBUFENLY( U_SNLOC, SBCVNGI ))
       ALLOCATE( SBUFENLZ( U_SNLOC, SBCVNGI ))
+      ALLOCATE( DUMMY_ZERO_NDIM_NDIM(NDIM,NDIM)) 
+      DUMMY_ZERO_NDIM_NDIM=0.0
 
       ALLOCATE( CV_SLOC2LOC( CV_SNLOC ))
       ALLOCATE( U_SLOC2LOC( U_SNLOC )) 
@@ -913,7 +917,8 @@
                         ! This sub caculates the effective diffusion coefficientd DIFF_COEF_DIVDX,DIFF_COEFOLD_DIVDX
                         CALL DIFFUS_CAL_COEFF(DIFF_COEF_DIVDX,DIFF_COEFOLD_DIVDX,  &
                              CV_NLOC, MAT_NLOC, CV_NONODS, NPHASE, TOTELE, MAT_NONODS,MAT_NDGLN, &
-                             SCVFEN,SCVNGI,GI,IPHASE,NDIM,TDIFFUSION,HDC, T,TOLD,CV_NODJ_IPHA,CV_NODI_IPHA,ELE,ELE2, &
+                             SCVFEN,SCVNGI,GI,IPHASE,NDIM,TDIFFUSION, DUMMY_ZERO_NDIM_NDIM, &
+                             HDC, T,TOLD,CV_NODJ_IPHA,CV_NODI_IPHA,ELE,ELE2, &
                              CVNORMX,CVNORMY,CVNORMZ,  &
                              DTX_ELE,DTY_ELE,DTZ_ELE,DTOLDX_ELE,DTOLDY_ELE,DTOLDZ_ELE, &
                              SELE,STOTEL,WIC_T_BC,WIC_T_BC_DIRICHLET, CV_OTHER_LOC,MAT_OTHER_LOC )
@@ -3555,9 +3560,125 @@
 
 
 
+    SUBROUTINE BETWEEN_ELE_SOLVE_DIF(UDIFF_SUF_STAB, &
+                       DIFF_FOR_BETWEEN_U_ELE, DIFF_FOR_BETWEEN_U_ELE2, &
+                       MAT_ELE, MAT_ELE2, U_SLOC2LOC,U_ILOC_OTHER_SIDE,  &
+                       SBUFEN,SBCVNGI,U_NLOC,U_SNLOC,NDIM,NPHASE,GOT_OTHER_ELE) 
+! Calculate the between element diffusion coefficients for stabaization scheme UDIFF_SUF_STAB.
+      use matrix_operations
+      implicit none
+      INTEGER, intent( in ) :: SBCVNGI,U_NLOC,U_SNLOC,NDIM,NPHASE
+      LOGICAL, intent( in ) :: GOT_OTHER_ELE
+      REAL, DIMENSION( NPHASE,SBCVNGI,NDIM,NDIM  ), intent( out ) :: UDIFF_SUF_STAB
+      REAL, DIMENSION( U_NLOC ), intent( in ) :: DIFF_FOR_BETWEEN_U_ELE,DIFF_FOR_BETWEEN_U_ELE2
+      REAL, DIMENSION( U_NLOC,U_NLOC ), intent( in ) :: MAT_ELE, MAT_ELE2
+      INTEGER, DIMENSION( U_SNLOC ), intent( in ) :: U_SLOC2LOC,U_ILOC_OTHER_SIDE
+      REAL, DIMENSION( U_SNLOC,SBCVNGI ), intent( in ) :: SBUFEN
+! Local variables...
+      REAL, DIMENSION( : , : ), allocatable :: MAT_LOC_2ELES,MAT
+      REAL, DIMENSION( : ), allocatable :: VECRHS_2ELES, DIFF
+      REAL, DIMENSION( SBCVNGI ) :: DIFF_ADD_STAB
+      INTEGER, DIMENSION( U_NLOC ) :: OTHER_SI2
+      INTEGER, DIMENSION( 2*U_NLOC ) :: GLOB_NO
+      REAL, DIMENSION( U_SNLOC ) :: DIFF_SUF
+      INTEGER :: U_SILOC,U_ILOC,U_ILOC2,U_JLOC2,IGL,JGL,SGI,IPHASE,NLEN,IDIM
+      LOGICAL :: GOTDEC
+
+! initialize to zero to set the off diagonal terms to 0.0
+      UDIFF_SUF_STAB=0.0
+
+      DO U_ILOC=1,U_NLOC
+        GLOB_NO(U_ILOC)=U_ILOC
+      END DO
+
+      IF(GOT_OTHER_ELE) THEN
+            OTHER_SI2(1:U_NLOC)=0
+            DO U_SILOC = 1, U_SNLOC
+                U_ILOC = U_SLOC2LOC( U_SILOC )
+                U_ILOC2= U_ILOC_OTHER_SIDE( U_SILOC ) 
+                OTHER_SI2(U_ILOC2)=U_ILOC
+            END DO
+
+            IGL=U_NLOC
+            DO U_ILOC2=1,U_NLOC
+              IF(OTHER_SI2(U_ILOC2)==0) THEN
+                 IGL=IGL+1
+                 GLOB_NO(U_ILOC2+U_NLOC)=IGL
+              ELSE
+                 GLOB_NO(U_ILOC2+U_NLOC)=OTHER_SI2(U_ILOC2)
+              ENDIF
+            END DO
+
+            NLEN=2*U_NLOC-U_SNLOC
+            ALLOCATE(VECRHS_2ELES(NLEN))
+   
+            ALLOCATE(MAT_LOC_2ELES(NLEN,NLEN))
+            MAT_LOC_2ELES(:,:)=0.0
+            MAT_LOC_2ELES(1:U_NLOC,1:U_NLOC)=MAT_ELE(1:U_NLOC,1:U_NLOC)
+            DO U_ILOC2=1,U_NLOC 
+               IGL=GLOB_NO(U_ILOC2+U_NLOC)
+               DO U_JLOC2=1,U_NLOC 
+                  JGL=GLOB_NO(U_JLOC2+U_NLOC)
+                  MAT_LOC_2ELES(IGL,JGL)=MAT_LOC_2ELES(IGL,JGL)+MAT_ELE2(U_ILOC2,U_JLOC2)
+                END DO
+            END DO
+      ELSE
+            NLEN=U_NLOC
+            ALLOCATE(VECRHS_2ELES(NLEN))
+
+            ALLOCATE(MAT_LOC_2ELES(NLEN,NLEN))
+            MAT_LOC_2ELES(:,:)=0.0
+            MAT_LOC_2ELES(1:U_NLOC,1:U_NLOC)=MAT_ELE(1:U_NLOC,1:U_NLOC)
+      ENDIF
+
+      ALLOCATE(DIFF(NLEN))
+      ALLOCATE(MAT(NLEN,NLEN))
+      MAT=MAT_LOC_2ELES ! MAT is overwritten
+
+      GOTDEC =.FALSE.
+      DO IPHASE=1,NPHASE
+
+         VECRHS_2ELES(:)   =0.0
+         VECRHS_2ELES(1:U_NLOC)=DIFF_FOR_BETWEEN_U_ELE(1:U_NLOC)
+         IF(GOT_OTHER_ELE) THEN
+
+            DO U_ILOC2=1,U_NLOC 
+               IGL=GLOB_NO(U_ILOC2+U_NLOC)
+               VECRHS_2ELES(IGL)=VECRHS_2ELES(IGL)+DIFF_FOR_BETWEEN_U_ELE2(U_ILOC2)
+            END DO
+         ENDIF
+
+            ! Solve MAT_LOC_2ELES *DIFF = VECRHS_2ELES  
+         ! MAT is overwritten by decomposition
+         CALL SMLINNGOT( MAT, DIFF, VECRHS_2ELES, NLEN, NLEN, GOTDEC)
+         GOTDEC =.TRUE.
+         DO U_SILOC=1,U_SNLOC
+            U_ILOC = U_SLOC2LOC( U_SILOC )
+            DIFF_SUF(U_SILOC)=DIFF(U_ILOC)
+         END DO
+! Calculate added stabilization diffusion DIFF_ADD_STAB( SGI,IDIM,IPHASE )
+         DIFF_ADD_STAB( : )=0.0
+         DO U_SILOC=1,U_SNLOC
+            DIFF_ADD_STAB( : )=DIFF_ADD_STAB( : )+SBUFEN(U_SILOC,:)*DIFF_SUF(U_SILOC)
+         END DO
+! Make certain the diffusion is positive between the elements...
+         DIFF_ADD_STAB( : )=MAX(0.0,DIFF_ADD_STAB( : ))
+         DO IDIM=1,NDIM
+            UDIFF_SUF_STAB(IPHASE,1:SBCVNGI,IDIM,IDIM  )=UDIFF_SUF_STAB(IPHASE,1:SBCVNGI,IDIM,IDIM  ) &
+               + DIFF_ADD_STAB( 1:SBCVNGI )
+         END DO
+! ENDOF DO IPHASE=1,NPHASE...
+      END DO
+      
+    END SUBROUTINE BETWEEN_ELE_SOLVE_DIF
+
+
+
+
     SUBROUTINE DIFFUS_CAL_COEFF(DIFF_COEF_DIVDX,DIFF_COEFOLD_DIVDX,  &
          CV_NLOC, MAT_NLOC, CV_NONODS, NPHASE, TOTELE, MAT_NONODS,MAT_NDGLN, &
-         SCVFEN,SCVNGI,GI,IPHASE,NDIM,TDIFFUSION,HDC, T,TOLD,CV_NODJ_IPHA,CV_NODI_IPHA,ELE,ELE2, &
+         SCVFEN,SCVNGI,GI,IPHASE,NDIM,TDIFFUSION,DIFF_GI_ADDED, &
+         HDC, T,TOLD,CV_NODJ_IPHA,CV_NODI_IPHA,ELE,ELE2, &
          CVNORMX,CVNORMY,CVNORMZ, &
          DTX_ELE,DTY_ELE,DTZ_ELE,DTOLDX_ELE,DTOLDY_ELE,DTOLDZ_ELE, &
          SELE,STOTEL,WIC_T_BC,WIC_T_BC_DIRICHLET, CV_OTHER_LOC,MAT_OTHER_LOC )
@@ -3576,6 +3697,7 @@
       REAL, DIMENSION( CV_NONODS*NPHASE ), intent( in ) ::T,TOLD
       REAL, DIMENSION( CV_NLOC,SCVNGI  ), intent( in ) :: SCVFEN
       REAL, DIMENSION( MAT_NONODS,NDIM,NDIM,NPHASE  ), intent( in ) :: TDIFFUSION
+      REAL, DIMENSION( NDIM, NDIM ), intent( in ) :: DIFF_GI_ADDED
       REAL, DIMENSION( CV_NLOC, NPHASE, TOTELE ), intent( in ) :: DTX_ELE,DTY_ELE,DTZ_ELE, &
            DTOLDX_ELE,DTOLDY_ELE,DTOLDZ_ELE
       REAL, DIMENSION( SCVNGI ), intent( in ) :: CVNORMX,CVNORMY,CVNORMZ
@@ -3630,6 +3752,7 @@
             DIFF_GI( 1:NDIM , 1:NDIM ) = DIFF_GI( 1:NDIM , 1:NDIM ) &
                  + SCVFEN( MAT_KLOC, GI ) * TDIFFUSION( MAT_NODK, 1:NDIM , 1:NDIM , IPHASE )
          END DO
+         DIFF_GI( 1:NDIM , 1:NDIM ) = DIFF_GI( 1:NDIM , 1:NDIM )+DIFF_GI_ADDED( 1:NDIM , 1:NDIM )
 
          N_DOT_DKDT=CVNORMX(GI)*(DIFF_GI(1,1)*DTDX_GI+DIFF_GI(1,2)*DTDY_GI+DIFF_GI(1,3)*DTDZ_GI) &
               +CVNORMY(GI)*(DIFF_GI(2,1)*DTDX_GI+DIFF_GI(2,2)*DTDY_GI+DIFF_GI(2,3)*DTDZ_GI) &
