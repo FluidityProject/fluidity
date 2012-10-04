@@ -296,6 +296,10 @@ prognostic_scalar_field =
       ## 
       ## This velocity is in the direction of gravity so if the substance
       ## floats or swims upwards, this field should be negative.
+      ##
+      ## This should be on the same mesh as the velocity field unless you are 
+      ## using a DG discretisation and projecting the velocity to contiuous, in 
+      ## which case it should be on a continuous mesh.
       element scalar_field {
          attribute name { "SinkingVelocity" },
          attribute rank { "0" },

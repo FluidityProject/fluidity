@@ -1881,6 +1881,8 @@ sediment =
                ##
                ## As with the sinking velocity, this velocity is in the direction of gravity so if the substance
                ## floats upwards, this field should be negative.
+               ##
+               ## This should be on the same mesh as the associated SinkingVelocity field.
                element scalar_field {
                   attribute name { "UnhinderedSinkingVelocity" },
                   attribute rank { "0" },
