@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <multiphase_options>
   <simulation_name>
-    <string_value lines="1">CompModel_2d_2Phases_2Components_P1DGP2</string_value>
+    <string_value lines="1">CompModel_2d_2Phases_2Components_P1DGP1</string_value>
   </simulation_name>
   <geometry>
     <dimension>
@@ -121,7 +121,7 @@
       <real_value rank="0">0.</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">0.002</real_value>
+      <real_value rank="0">0.0005</real_value>
       <comment>0.001</comment>
     </timestep>
     <finish_time>
