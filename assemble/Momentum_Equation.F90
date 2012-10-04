@@ -182,7 +182,7 @@
          ! Scaled pressure mass matrix - used for preconditioning full projection solve:
          type(csr_matrix), target :: scaled_pressure_mass_matrix
          type(csr_sparsity), pointer :: scaled_pressure_mass_matrix_sparsity
-         ! Left hand matrix of CMC. For incompressibe flow this points to ct_m as they are identical, 
+         ! Left hand matrix of CMC. For incompressible flow this points to ct_m as they are identical, 
          ! unless for CG pressure with CV tested continuity case when this matrix will be the 
          ! CV divergence tested matrix and ct_m the CG divergence tested matrix (right hand matrix of CMC).
          ! For compressible flow this differs to ct_m in that it will contain the variable density.
@@ -2135,6 +2135,16 @@
                   FLExit("Cannot use implicit solids two way coupling if the pressure is control volume discretised")
                end if
                
+            end if
+            
+            ! Check that each particle phase has a PROGNOSTIC PhaseVolumeFraction field.
+            ! The fluid phase cannot have a prognostic PhaseVolumeFraction as this is not always valid.
+            ! For example, since we do not include the Density in the advection-diffusion equation for the PhaseVolumeFraction,
+            ! solving this equation for the compressible fluid phase would not be correct. The particle phases on the other hand
+            ! are always incompressible where the density is constant.
+            if(have_option("/material_phase["//int2str(i)//"]/multiphase_properties/particle_diameter") .and. &
+               (.not.have_option("/material_phase["//int2str(i)//"]/scalar_field::PhaseVolumeFraction/prognostic"))) then
+               FLExit("All particle phases must have a prognostic PhaseVolumeFraction field. The diagnostic PhaseVolumeFraction field should always be in the continuous/fluid phase.")
             end if
             
          end do
