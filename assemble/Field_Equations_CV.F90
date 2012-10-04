@@ -3677,14 +3677,18 @@ contains
             end if
                  
             if(mmat_cv_disc .or. cv_disc) then
-               call get_option(trim(complete_field_path("/material_phase["//int2str(m)//&
-                    "]/scalar_field["//int2str(f)//"]/prognostic/scalar_field::SinkingVelocity"))//&
-                    "/mesh[0]/name", mesh_0, stat)
-               if(stat == 0) then
-                  call get_option(trim(complete_field_path("/material_phase[" // int2str(m) // &
-                       "]/vector_field::Velocity")) // "/mesh[0]/name", mesh_1)
-                  if(trim(mesh_0) /= trim(mesh_1)) then
-                     ewrite(0, *) "SinkingVelocity for "//trim(field_name)//" is on a different mesh to the Velocity field this could cause problems"
+               if (have_option("/material_phase["//int2str(m)//"]/scalar_field["//int2str(f)//&
+                    "]/prognostic/scalar_field::SinkingVelocity")) then
+                  call get_option(trim(complete_field_path("/material_phase["//&
+                       int2str(m)//"]/scalar_field["//int2str(f)//&
+                       "]/prognostic/scalar_field::SinkingVelocity"))//"/mesh[0]/name", mesh_0, stat)
+                  if(stat == 0) then
+                     call get_option(trim(complete_field_path("/material_phase[" // int2str(m) // &
+                          "]/vector_field::Velocity")) // "/mesh[0]/name", mesh_1)
+                     if(trim(mesh_0) /= trim(mesh_1)) then
+                        ewrite(0, *) "SinkingVelocity for "//trim(field_name)//&
+                             " is on a different mesh to the Velocity field this could cause problems"
+                     end if
                   end if
                end if
             end if

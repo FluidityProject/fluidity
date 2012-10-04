@@ -3151,22 +3151,22 @@ contains
              path = trim(path) // "/prognostic"
 
              if(have_option(trim(path) // "/spatial_discretisation/discontinuous_galerkin").and.&
-                  have_option(trim(path) // "/equation[0]")) then       
-
-                
+                  have_option(trim(path) // "/equation[0]")) then   
                  
-                call get_option(trim(complete_field_path(trim(path) // &
-                     "/scalar_field::SinkingVelocity"))//"/mesh[0]/name", &
-                     mesh_0, stat)
-                if(stat == SPUD_NO_ERROR) then
-                   call get_option(trim(complete_field_path("/material_phase[" // int2str(i) // &
-                        "]/vector_field::Velocity")) // "/mesh[0]/name", mesh_1)
-                   if(trim(mesh_0) /= trim(mesh_1)) then
-                      call field_warning(state_name, field_name, &
-                           "SinkingVelocity is on a different mesh to the Velocity field this could "//&
-                           "cause problems. If using advection_scheme/project_velocity_to_continuous "//&
-                           "and a discontinuous Velocity field, then SinkingVelocity must be on a "//&
-                           "continuous mesh and hence should not be on the same mesh as the Velocity")
+                if (have_option(trim(path) // "/scalar_field::SinkingVelocity")) then
+                   call get_option(trim(complete_field_path(trim(path) // &
+                        "/scalar_field::SinkingVelocity"))//"/mesh[0]/name", &
+                        mesh_0, stat)
+                   if(stat == SPUD_NO_ERROR) then
+                      call get_option(trim(complete_field_path("/material_phase[" // int2str(i) // &
+                           "]/vector_field::Velocity")) // "/mesh[0]/name", mesh_1)
+                      if(trim(mesh_0) /= trim(mesh_1)) then
+                         call field_warning(state_name, field_name, &
+                              "SinkingVelocity is on a different mesh to the Velocity field this could "//&
+                              "cause problems. If using advection_scheme/project_velocity_to_continuous "//&
+                              "and a discontinuous Velocity field, then SinkingVelocity must be on a "//&
+                              "continuous mesh and hence should not be on the same mesh as the Velocity")
+                      end if
                    end if
                 end if
 
