@@ -2531,13 +2531,13 @@ Internal Energy equation - requires the selection of a Density field.
 ONLY WORKS FOR CG and CV DISCRETISATIONS
 Solve the internal energy equation for this field.
 Requires pressure and velocity fields to be present.
-Uses a nonconservative time discretisation.</a:documentation>
+Uses a non-conservative time discretisation.</a:documentation>
         <attribute name="name">
           <value>InternalEnergy</value>
         </attribute>
         <ref name="equation_coefficients"/>
         <optional>
-          <ref name="heatflux_coefficients"/>
+          <ref name="extra_internal_energy_terms"/>
         </optional>
       </element>
       <element name="equation">
@@ -2594,20 +2594,29 @@ Whatever field is selected must be present.</a:documentation>
       </element>
     </choice>
   </define>
-  <define name="heatflux_coefficients">
-    <element name="heat_flux_term">
-      <a:documentation>Adds the heat flux term: -div(q) = -div(K * grad(ie)/C_v)
+  <define name="extra_internal_energy_terms">
+    <optional>
+      <element name="include_heat_flux_term">
+        <a:documentation>Adds the heat flux term: -div(q) = -div(K * grad(ie)/C_v)
 K = Effective conductivity
 C_v = Specific heat (at constant volume)</a:documentation>
-      <element name="effective_conductivity">
-        <a:documentation>Effective conductivity, K</a:documentation>
-        <ref name="real"/>
+        <element name="effective_conductivity">
+          <a:documentation>Effective conductivity, K</a:documentation>
+          <ref name="real"/>
+        </element>
+        <element name="specific_heat">
+          <a:documentation>The specific heat (at constant volume), C_v</a:documentation>
+          <ref name="real"/>
+        </element>
       </element>
-      <element name="specific_heat">
-        <a:documentation>The specific heat (at constant volume), C_v</a:documentation>
-        <ref name="real"/>
+    </optional>
+    <optional>
+      <element name="include_pressure_term">
+        <a:documentation>Adds the pressure term: -p*div(u)
+( or, for multiphase simulations, -vfrac*p*div(u) ).</a:documentation>
+        <empty/>
       </element>
-    </element>
+    </optional>
   </define>
   <define name="coefficient_discretisation_options">
     <element name="discretisation_options">

@@ -118,8 +118,8 @@ module advection_diffusion_cg
   logical :: move_mesh
   ! Include porosity?
   logical :: include_porosity
-  ! Include the heat flux term? (InternalEnergy equation only)
-  logical :: include_heatflux
+  ! Include the extra internal energy equation terms? (for InternalEnergy equation_type only)
+  logical :: include_heat_flux = .false., include_pressure_term = .false.
   ! Is this material_phase compressible?
   logical :: compressible = .false.
   ! Are we running a multiphase flow simulation?
@@ -537,16 +537,23 @@ contains
          density_theta = 1.0
          compressible = .false.
       end if
-                      
-      pressure=>extract_scalar_field(state, "Pressure")
-      ewrite_minmax(pressure)
-      
-      if(have_option(trim(t%option_path)//'/prognostic/equation[0]/density[0]/heat_flux_term')) then
-         include_heatflux = .true.
-         call get_option(trim(t%option_path)//'/prognostic/equation[0]/density[0]/heat_flux_term/effective_conductivity', k)
-         call get_option(trim(t%option_path)//'/prognostic/equation[0]/density[0]/heat_flux_term/specific_heat', C_v)
+
+      if(have_option(trim(t%option_path)//'/prognostic/equation[0]/density[0]/include_pressure_term')) then
+         include_pressure_term = .true.
+         pressure=>extract_scalar_field(state, "Pressure")
+         ewrite_minmax(pressure)
       else
-         include_heatflux = .false.
+         include_pressure_term = .false.
+         pressure => dummydensity
+      end if
+
+      
+      if(have_option(trim(t%option_path)//'/prognostic/equation[0]/density[0]/include_heat_flux_term')) then
+         include_heat_flux = .true.
+         call get_option(trim(t%option_path)//'/prognostic/equation[0]/density[0]/include_heat_flux_term/effective_conductivity', k)
+         call get_option(trim(t%option_path)//'/prognostic/equation[0]/density[0]/include_heat_flux_term/specific_heat', C_v)
+      else
+         include_heat_flux = .false.
       end if
 
     case(FIELD_EQUATION_KEPSILON)
@@ -885,12 +892,12 @@ contains
     end if
     
     ! Pressure
-    if(equation_type==FIELD_EQUATION_INTERNALENERGY .and. compressible) call add_pressurediv_element_cg(ele, test_function, t, &
-                                                                                  velocity, pressure, nvfrac, &
-                                                                                  du_t, detwei, rhs_addto)
+    if(equation_type==FIELD_EQUATION_INTERNALENERGY .and. compressible .and. include_pressure_term) call add_pressurediv_element_cg(ele, test_function, t, &
+                                                                                                                                    velocity, pressure, nvfrac, &
+                                                                                                                                    du_t, detwei, rhs_addto)
                                                                                   
     ! Heat flux
-    if(equation_type==FIELD_EQUATION_INTERNALENERGY .and. include_heatflux) call add_heatflux_element_cg(ele, test_function, t, du_t, &
+    if(equation_type==FIELD_EQUATION_INTERNALENERGY .and. include_heat_flux) call add_heat_flux_element_cg(ele, test_function, t, du_t, &
                                                                                   nvfrac, k, C_v, detwei, matrix_addto, rhs_addto)
                                                                                   
     
@@ -1261,7 +1268,7 @@ contains
     
   end subroutine add_pressurediv_element_cg
   
-  subroutine add_heatflux_element_cg(ele, test_function, t, dt_t, nvfrac, K, C_v, detwei, matrix_addto, rhs_addto)
+  subroutine add_heat_flux_element_cg(ele, test_function, t, dt_t, nvfrac, K, C_v, detwei, matrix_addto, rhs_addto)
   
     integer, intent(in) :: ele
     type(element_type), intent(in) :: test_function
@@ -1273,26 +1280,25 @@ contains
     real, dimension(ele_loc(t, ele), ele_loc(t, ele)), intent(inout) :: matrix_addto
     real, dimension(ele_loc(t, ele)), intent(inout) :: rhs_addto
         
-    real, dimension(ele_loc(t, ele), ele_loc(t, ele)) :: heatflux_mat
+    real, dimension(ele_loc(t, ele), ele_loc(t, ele)) :: heat_flux_mat
     
     assert(equation_type==FIELD_EQUATION_INTERNALENERGY)
-    assert(ele_ngi(pressure, ele)==ele_ngi(t, ele))
     
     if(multiphase) then
        ! -div(vfrac * q) = -div(vfrac * K * grad(ie)/C_v)
        ! where K is the effective conductivity
        ! ie is the internal energy
        ! C_v is the specific heat at constant volume, needed to convert the temperature to internal energy
-       heatflux_mat = dshape_dot_dshape(dt_t, dt_t, detwei * K * ele_val_at_quad(nvfrac, ele) / C_v )
+       heat_flux_mat = dshape_dot_dshape(dt_t, dt_t, detwei * K * ele_val_at_quad(nvfrac, ele) / C_v )
     else
-       heatflux_mat = dshape_dot_dshape(dt_t, dt_t, detwei * K / C_v )
+       heat_flux_mat = dshape_dot_dshape(dt_t, dt_t, detwei * K / C_v )
     end if
     
-    if(abs(dt_theta) > epsilon(0.0)) matrix_addto = matrix_addto - dt_theta * heatflux_mat
+    if(abs(dt_theta) > epsilon(0.0)) matrix_addto = matrix_addto - dt_theta * heat_flux_mat
     
-    rhs_addto = rhs_addto + matmul(heatflux_mat, ele_val(t, ele))
+    rhs_addto = rhs_addto + matmul(heat_flux_mat, ele_val(t, ele))
     
-  end subroutine add_heatflux_element_cg
+  end subroutine add_heat_flux_element_cg
   
   subroutine assemble_advection_diffusion_face_cg(face, bc_type, t, t_bc, t_bc_2, matrix, rhs, positions, velocity, grid_velocity, density, olddensity, nvfrac)
     integer, intent(in) :: face
