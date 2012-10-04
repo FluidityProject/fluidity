@@ -224,9 +224,7 @@ subroutine calculate_tidal_harmonics(state, s_field)
       call getFreeSurfaceHistoryData(state, ignoretimestep, saved_snapshots_times, current_snapshot_index)
       if (.not. ignoretimestep) then
          ! Initialize the harmonic fields and frequencies if not already done.
-         if (nohfs==-1) then
-           call getHarmonicFields(state, harmonic_fields, nohfs, sigma, M)
-         end if
+         call getHarmonicFields(state, harmonic_fields, nohfs, sigma, M)
          ewrite(4,*), 'Frequencies to analyse:'
          do i=1,M
             ewrite(4,*), sigma(i)
