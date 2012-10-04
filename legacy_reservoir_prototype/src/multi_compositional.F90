@@ -745,8 +745,9 @@
       ! =0 is no adjustment. 
       ! Local variables...
       !    REAL, PARAMETER :: SUM2ONE_RELAX = 0.25
-      REAL, PARAMETER :: SUM2ONE_RELAX = 0.99
-      !!!!!!!!REAL, PARAMETER :: SUM2ONE_RELAX = 0.1
+      !REAL, PARAMETER :: SUM2ONE_RELAX = 0.99
+      REAL, PARAMETER :: SUM2ONE_RELAX = 1.0
+      !REAL, PARAMETER :: SUM2ONE_RELAX = 0.1
       !REAL, PARAMETER :: SUM2ONE_RELAX = 0.99
       INTEGER :: IPHASE, CV_NODI, ICOMP
       REAL :: RSUM
@@ -754,7 +755,7 @@
       DO IPHASE = 1, NPHASE
          DO CV_NODI = 1, CV_NONODS
 
-            IF( ITS == NITS ) THEN ! last iteration so prepare for next time step. 
+            IF( ( ITS == NITS ) .or. .true. ) THEN ! last iteration so prepare for next time step. 
 
                V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) &
                     = V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) & 

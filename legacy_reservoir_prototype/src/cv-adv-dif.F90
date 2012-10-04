@@ -1886,7 +1886,7 @@
               FEMPSI_RHS( 1 + ( IT - 1 ) * CV_NONODS : CV_NONODS + (IT - 1 ) * CV_NONODS ),  &
               FINDM, &
               COLM, &
-              option_path = '/material_phase[0]/scalar_field::Temperature' )
+              option_path = '/material_phase[0]/scalar_field::Pressure' )
       END DO
 
       DEALLOCATE( MASS_CV )

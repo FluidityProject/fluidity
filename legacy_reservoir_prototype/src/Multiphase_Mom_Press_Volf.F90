@@ -735,6 +735,10 @@ contains
                      mass_ele_transp = dummy_ele, &
                      thermal=.false. ) ! the false means that we don't add an extra source term
 
+
+! Hackkkkkkkkkkkkkkkk change later
+                     comp_femt = comp
+
                 do cv_nodi = 1, cv_nonods
                    ewrite(3,*)'icomp, kcomp 2nd:', icomp, k_comp( icomp, 1 : nphase, 1 : nphase )
                    ewrite(3,*)'CV, sat1, den1, sat2, den2:', cv_nodi, satura( cv_nodi ), &
