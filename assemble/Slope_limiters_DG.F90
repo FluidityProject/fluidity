@@ -1428,12 +1428,10 @@ contains
 
        !loop over nodes, adjust alpha
        do node = 1, size(T_val)
-          if (abs(T_val(node)-Tbar) > 1e-10) then
-             if(T_val(node)>Tbar*(1.0+sign(1.0e-12,Tbar))) then
-                alpha = min(alpha,(T_val_max(node)-Tbar)/(T_val(node)-Tbar))
-             else if(T_val(node)<Tbar*(1.0-sign(1.0e-12,Tbar))) then
-                alpha = min(alpha,(T_val_min(node)-Tbar)/(T_val(node)-Tbar))
-             end if
+          if ( T_val(node) > Tbar + (T_val_max(node) - Tbar)*1.0e-1 ) then
+             alpha = min(alpha,(T_val_max(node)-Tbar)/(T_val(node)-Tbar))
+          else if ( T_val(node) < Tbar + (T_val_min(node) - Tbar)*1.0e-1 ) then
+             alpha = min(alpha,(T_val_min(node)-Tbar)/(T_val(node)-Tbar))
           end if
        end do
 
