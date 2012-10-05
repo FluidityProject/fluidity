@@ -1026,7 +1026,7 @@ ewrite(3,*)'-->:',k + 1, k + node_count( field ), kk + 1, kk + stotel * cv_snloc
       if (KComp_Sigmoid) then
          do i=1, ncomps
             call get_option('material_phase['// int2str(i+nphases-1) //']/is_multiphase_component/' // &
-                 'KComp_Sigmoid/k_comp', k_comp(i, 1, 1))
+                 'KComp_Sigmoid/K_Comp', k_comp(i, 1, 1))
             k_comp(i, 1:nphases, 1:nphases) = k_comp(i, 1, 1)
          end do
       end if
