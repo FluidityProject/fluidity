@@ -1439,7 +1439,7 @@
          call CT_DG_Sparsity( mx_nface_p1,  &
          totele, cv_nloc, u_nloc,  &
          cv_nonods, &
-         cv_ndgln,u_ndgln,  &
+         cv_ndgln, u_ndgln,  &
          ncolele, finele, colele, &
          mx_nct, nct, findct, colct )
         endif
@@ -1586,7 +1586,7 @@
     subroutine CT_DG_Sparsity( mx_nface_p1, &
          totele, cv_nloc, u_nloc, &
          cv_nonods, &
-         cv_ndgln,u_ndgln, &
+         cv_ndgln, u_ndgln, &
          ncolele, finele, colele, &
          mx_nct, nct, findct, colct )
       implicit none
@@ -1617,14 +1617,14 @@
 
       colct = 0
       Loop_Elements_4: do ele = 1, totele
-               Loop_CVILOC_5: do cv_iloc = 1, cv_nloc ! Loop over nodes of the elements
-                  cv_nodi = cv_ndgln( ( ele - 1 ) * cv_nloc + cv_iloc )
-                  count2 = 0
+         Loop_CVILOC_5: do cv_iloc = 1, cv_nloc ! Loop over nodes of the elements
+            cv_nodi = cv_ndgln( ( ele - 1 ) * cv_nloc + cv_iloc )
+            count2 = 0
 
-         do FACE_COUNT = FINELE( ELE ), FINELE( ELE + 1 ) - 1
+            do FACE_COUNT = FINELE( ELE ), FINELE( ELE + 1 ) - 1
 
-            ele2 = COLELE( FACE_COUNT )
-            if( ele2 > 0 ) then
+               ele2 = COLELE( FACE_COUNT )
+               if( ele2 > 0 ) then
                   Loop_CVILOC_6: do u_jloc = 1, u_nloc ! Loop over nodes of the elements
                      u_nodj = u_ndgln( ( ele2 - 1 ) * u_nloc + u_jloc )
                      count2 = count2 + 1
@@ -1632,10 +1632,10 @@
                      colct( count ) = u_nodj
                      no_in_row( cv_nodi ) = no_in_row( cv_nodi ) + 1
                   end do Loop_CVILOC_6
-            end if
-         end do
+               end if
+            end do
 
-               end do Loop_CVILOC_5
+         end do Loop_CVILOC_5
       end do Loop_Elements_4
 
       !stop 22
