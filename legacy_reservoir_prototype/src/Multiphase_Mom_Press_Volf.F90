@@ -340,7 +340,7 @@ contains
     call get_option( "/material_phase[0]/vector_field::Velocity/prognostic/solver/max_iterations", &
          velocity_max_iterations,  default =  500 )
 
-    call get_option( "/material_phase[0]/scalar_field::PhaseVoluneFraction/prognostic/solver/max_iterations", &
+    call get_option( "/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/solver/max_iterations", &
          saturation_max_iterations,  default =  500 )
 
     solve_force_balance = .false.
