@@ -31,7 +31,7 @@
     use fldebug
     use shape_functions
     use shape_functions_linear_quadratic
-
+    use futils, only: int2str
 
   contains
 
@@ -753,8 +753,8 @@
       integer :: iphase, cv_nodi, icomp
 
 
-      if( have_option( '/material_phase[0]/is_multiphase_component/Comp_Sum2One/Relaxation_Coefficient' ) ) then
-         call get_option( '/material_phase[0]/is_multiphase_component/Comp_Sum2One/Relaxation_Coefficient', &
+      if( have_option( '/material_phase[' //int2str(nphase)// ']/is_multiphase_component/Comp_Sum2One/Relaxation_Coefficient' ) ) then
+         call get_option( '/material_phase[' //int2str(nphase)// ']/is_multiphase_component/Comp_Sum2One/Relaxation_Coefficient', &
               sum2one_relax )
       else
          FLAbort( 'Please define the relaxation coefficient for components mass conservation constraint.' )
