@@ -277,12 +277,13 @@ contains
     real :: finish_time
     integer :: dump_period_in_timesteps
     integer :: final_timestep
-    integer :: stat, pressure_max_iterations, velocity_max_iteration
+    integer :: stat, pressure_max_iterations, velocity_max_iterations, saturation_max_iterations
 
     character( len = 500 ) :: dummy_string_phase, dummy_string_dump, &
          dummy_string_comp, dump_name, file_format
     integer :: output_channel
     real :: norm_satura1, norm_satura2
+    logical :: solve_force_balance, solve_saturation
 
     allocate( sigma( mat_nonods, ndim * nphase, ndim * nphase ))
 
@@ -329,6 +330,23 @@ contains
     compold = comp
 
     DX = DOMAIN_LENGTH / REAL(TOTELE)
+
+!!!
+!!! Check later for a more well-defined way to set up an advection problem
+!!!
+    call get_option( "/material_phase[0]/scalar_field::Pressure/prognostic/solver/max_iterations", &
+         pressure_max_iterations, default =  500 )
+
+    call get_option( "/material_phase[0]/vector_field::Velocity/prognostic/solver/max_iterations", &
+         velocity_max_iterations,  default =  500 )
+
+    call get_option( "/material_phase[0]/scalar_field::PhaseVoluneFraction/prognostic/solver/max_iterations", &
+         saturation_max_iterations,  default =  500 )
+
+    solve_force_balance = .false.
+    if( velocity_max_iterations /= 0 ) solve_force_balance = .true.
+    solve_saturation = .false.
+    if( saturation_max_iterations /= 0 ) solve_saturation = .true. 
 
     ewrite(3,*) 'suf_u_bc:'
     do iphase = 1, nphase
@@ -469,26 +487,19 @@ contains
 
           end if solve_temp
 
-!!!
-!!! Check later for a more well-defined way to set up an advection problem
-!!!
-          call get_option( "/material_phase[0]/scalar_field::Pressure/prognostic/solver/max_iterations", &
-                 pressure_max_iterations, default =  500 )
 
-          call get_option( "/material_phase[0]/vector_field::Velocity/prognostic/solver/max_iterations", &
-                 velocity_max_iteration,  default =  500 )
-
-          if( ( pressure_max_iterations == 0 ) .and. ( velocity_max_iteration == 0 ) ) cycle Loop_ITS
 
 
           if (SIG_INT) exit Loop_ITS
 
-          ! Calculate absorption for momentum eqns    
-          CALL calculate_absorption( MAT_NONODS, CV_NONODS, NPHASE, NDIM, &
-               SATURA, TOTELE, CV_NLOC, MAT_NLOC, &
-               CV_NDGLN, MAT_NDGLN, &
-               U_ABSORB, PERM, MOBILITY, &
-               OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS )
+          if (solve_force_balance) then
+             ! Calculate absorption for momentum eqns    
+             CALL calculate_absorption( MAT_NONODS, CV_NONODS, NPHASE, NDIM, &
+                  SATURA, TOTELE, CV_NLOC, MAT_NLOC, &
+                  CV_NDGLN, MAT_NDGLN, &
+                  U_ABSORB, PERM, MOBILITY, &
+                  OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS )
+          end if
 
           if (SIG_INT) exit Loop_ITS
 
@@ -509,98 +520,88 @@ contains
              udenold = denold
           end if
 
-          do cv_nodi = 1, cv_nonods
-             ewrite(3,*)'CV, sat1, sat2 b4Force:', cv_nodi, satura( cv_nodi ), &
-                  satura( cv_nonods + cv_nodi )
-             ewrite(3,*)' '  
-          end do
+          if (solve_force_balance) then
+             NU = U
+             NV = V
+             NW = W
 
-          NU = U
-          NV = V
-          NW = W
+             NUOLD = UOLD
+             NVOLD = VOLD
+             NWOLD = WOLD
 
-          NUOLD = UOLD
-          NVOLD = VOLD
-          NWOLD = WOLD
-
-          CALL FORCE_BAL_CTY_ASSEM_SOLVE( &
-               NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
-               U_ELE_TYPE, P_ELE_TYPE, &
-               U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
-               U_NDGLN, P_NDGLN, CV_NDGLN, X_NDGLN, MAT_NDGLN,&
-               STOTEL, CV_SNDGLN, U_SNDGLN, P_SNDGLN, &
-               U_SNLOC, P_SNLOC, CV_SNLOC, &
-               X, Y, Z, U_ABS_STAB, U_ABSORB, U_SOURCE, &
-               U, V, W, UOLD, VOLD, WOLD, &
-               P, CV_P, DEN, DENOLD, SATURA, SATURAOLD, DERIV, &
-               DT, &
-               NCOLC, FINDC, COLC, & ! C sparsity - global cty eqn 
-               NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, MIDDGM_PHA, &! Force balance sparsity
-               NCOLELE, FINELE, COLELE, & ! Element connectivity.
-               NCOLCMC, FINDCMC, COLCMC, MIDCMC, & ! pressure matrix for projection method
-               NCOLACV, FINACV, COLACV, MIDACV, & ! For CV discretisation method
-               NLENMCY, NCOLMCY, FINMCY, COLMCY, MIDMCY, & ! Force balance plus cty multi-phase eqns
-               NCOLCT, FINDCT, COLCT, & ! CT sparsity - global cty eqn.
-               CV_ELE_TYPE, &
-               NU, NV, NW, NUOLD, NVOLD, NWOLD, &
-               V_DISOPT, V_DG_VEL_INT_OPT, V_THETA,  &
-               SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_P_BC, &
-               SUF_U_BC_ROB1, SUF_U_BC_ROB2, SUF_V_BC_ROB1, SUF_V_BC_ROB2,  &
-               SUF_W_BC_ROB1, SUF_W_BC_ROB2, &       
-               WIC_VOL_BC, WIC_D_BC, WIC_U_BC, WIC_P_BC,  &
-               V_SOURCE_STORE, V_ABSORB, VOLFRA_PORE, &
-               NCOLM, FINDM, COLM, MIDM, & ! Sparsity for the CV-FEM
-               XU_NLOC, XU_NDGLN, &
-               UDEN, UDENOLD, UDIFFUSION, NDPSET, &
-               OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
-               IGOT_THETA_FLUX, SCVNGI_THETA, VOLFRA_USE_THETA_FLUX, &
-               SUM_THETA_FLUX, SUM_ONE_M_THETA_FLUX, &
-               IN_ELE_UPWIND, DG_ELE_UPWIND, &
-               NOIT_DIM, &
-               IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, &
-               scale_momentum_by_volume_fraction ) 
+             CALL FORCE_BAL_CTY_ASSEM_SOLVE( &
+                  NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
+                  U_ELE_TYPE, P_ELE_TYPE, &
+                  U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
+                  U_NDGLN, P_NDGLN, CV_NDGLN, X_NDGLN, MAT_NDGLN,&
+                  STOTEL, CV_SNDGLN, U_SNDGLN, P_SNDGLN, &
+                  U_SNLOC, P_SNLOC, CV_SNLOC, &
+                  X, Y, Z, U_ABS_STAB, U_ABSORB, U_SOURCE, &
+                  U, V, W, UOLD, VOLD, WOLD, &
+                  P, CV_P, DEN, DENOLD, SATURA, SATURAOLD, DERIV, &
+                  DT, &
+                  NCOLC, FINDC, COLC, & ! C sparsity - global cty eqn 
+                  NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, MIDDGM_PHA, &! Force balance sparsity
+                  NCOLELE, FINELE, COLELE, & ! Element connectivity.
+                  NCOLCMC, FINDCMC, COLCMC, MIDCMC, & ! pressure matrix for projection method
+                  NCOLACV, FINACV, COLACV, MIDACV, & ! For CV discretisation method
+                  NLENMCY, NCOLMCY, FINMCY, COLMCY, MIDMCY, & ! Force balance plus cty multi-phase eqns
+                  NCOLCT, FINDCT, COLCT, & ! CT sparsity - global cty eqn.
+                  CV_ELE_TYPE, &
+                  NU, NV, NW, NUOLD, NVOLD, NWOLD, &
+                  V_DISOPT, V_DG_VEL_INT_OPT, V_THETA,  &
+                  SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_P_BC, &
+                  SUF_U_BC_ROB1, SUF_U_BC_ROB2, SUF_V_BC_ROB1, SUF_V_BC_ROB2,  &
+                  SUF_W_BC_ROB1, SUF_W_BC_ROB2, &       
+                  WIC_VOL_BC, WIC_D_BC, WIC_U_BC, WIC_P_BC,  &
+                  V_SOURCE_STORE, V_ABSORB, VOLFRA_PORE, &
+                  NCOLM, FINDM, COLM, MIDM, & ! Sparsity for the CV-FEM
+                  XU_NLOC, XU_NDGLN, &
+                  UDEN, UDENOLD, UDIFFUSION, NDPSET, &
+                  OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
+                  IGOT_THETA_FLUX, SCVNGI_THETA, VOLFRA_USE_THETA_FLUX, &
+                  SUM_THETA_FLUX, SUM_ONE_M_THETA_FLUX, &
+                  IN_ELE_UPWIND, DG_ELE_UPWIND, &
+                  NOIT_DIM, &
+                  IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, &
+                  scale_momentum_by_volume_fraction ) 
+          end if
 
           if (SIG_INT) exit Loop_ITS
 
-          do cv_nodi = 1, cv_nonods
-             ewrite(3,*)'CV, sat1, sat2 afterForce:', cv_nodi, satura( cv_nodi ), &
-                  satura( cv_nonods + cv_nodi )
-             ewrite(3,*)' '  
-          end do
-
-          if (SIG_INT) exit Loop_ITS
-
-           CALL VOLFRA_ASSEM_SOLVE( &
-                NCOLACV, FINACV, COLACV, MIDACV, &
-                NCOLCT, FINDCT, COLCT, &
-                CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
-                CV_ELE_TYPE,  &
-                NPHASE,  &
-                CV_NLOC, U_NLOC, X_NLOC,  &
-                CV_NDGLN, X_NDGLN, U_NDGLN, &
-                CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-                X, Y, Z, U, V, W, &
-                NU, NV, NW, NUOLD, NVOLD, NWOLD, &
-                SATURA, SATURAOLD, &
-                DEN, DENOLD, &
-                MAT_NLOC,MAT_NDGLN,MAT_NONODS, &
-                V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, V_BETA, &
-                SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, &
-                WIC_VOL_BC, WIC_D_BC, WIC_U_BC, &
-                DERIV, P, &
-                V_SOURCE_STORE, V_ABSORB, VOLFRA_PORE, &
-                NDIM, &
-                NCOLM, FINDM, COLM, MIDM, &
-                XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
-                OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, & 
-                Sat_FEMT, Den_FEMT, &
-                IGOT_THETA_FLUX, SCVNGI_THETA, VOLFRA_USE_THETA_FLUX, &
-                SUM_THETA_FLUX, SUM_ONE_M_THETA_FLUX, &
-                IN_ELE_UPWIND, DG_ELE_UPWIND, &
-                NOIT_DIM, &
-                NITS_FLUX_LIM_VOLFRA, &
-                option_path = '/material_phase[0]/scalar_field::PhaseVolumeFraction', &
-                mass_ele_transp = mass_ele )
+          if (solve_saturation) then
+             CALL VOLFRA_ASSEM_SOLVE( &
+                  NCOLACV, FINACV, COLACV, MIDACV, &
+                  NCOLCT, FINDCT, COLCT, &
+                  CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
+                  CV_ELE_TYPE,  &
+                  NPHASE,  &
+                  CV_NLOC, U_NLOC, X_NLOC,  &
+                  CV_NDGLN, X_NDGLN, U_NDGLN, &
+                  CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
+                  X, Y, Z, U, V, W, &
+                  NU, NV, NW, NUOLD, NVOLD, NWOLD, &
+                  SATURA, SATURAOLD, &
+                  DEN, DENOLD, &
+                  MAT_NLOC,MAT_NDGLN,MAT_NONODS, &
+                  V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, V_BETA, &
+                  SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, &
+                  WIC_VOL_BC, WIC_D_BC, WIC_U_BC, &
+                  DERIV, P, &
+                  V_SOURCE_STORE, V_ABSORB, VOLFRA_PORE, &
+                  NDIM, &
+                  NCOLM, FINDM, COLM, MIDM, &
+                  XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
+                  OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, & 
+                  Sat_FEMT, Den_FEMT, &
+                  IGOT_THETA_FLUX, SCVNGI_THETA, VOLFRA_USE_THETA_FLUX, &
+                  SUM_THETA_FLUX, SUM_ONE_M_THETA_FLUX, &
+                  IN_ELE_UPWIND, DG_ELE_UPWIND, &
+                  NOIT_DIM, &
+                  NITS_FLUX_LIM_VOLFRA, &
+                  option_path = '/material_phase[0]/scalar_field::PhaseVolumeFraction', &
+                  mass_ele_transp = mass_ele )
+          end if
 
           if (SIG_INT) exit Loop_ITS
 
@@ -612,12 +613,6 @@ contains
           ELSE 
              NCOMP2 = NCOMP
           END IF
-
-          do cv_nodi = 1, cv_nonods
-             ewrite(3,*)'CV, sat1, sat2 0th:', cv_nodi, satura( cv_nodi ), &
-                  satura( cv_nonods + cv_nodi )
-             ewrite(3,*)' '  
-          end do
 
           Loop_COMPONENTS: DO ICOMP = 1, NCOMP2
 
@@ -634,7 +629,7 @@ contains
                   TOTELE, CV_NLOC, CV_NDGLN, mass_ele )
 
              IF( have_option("/material_phase[" // int2str(nstates-ncomp) // &
-                  "]/is_multiphase_component/KComp_Sigmoid" )) THEN
+                  "]/is_multiphase_component/KComp_Sigmoid" ) .and. nphase>1) THEN
 
                 ewrite(3,*) "+++++++++KComp_Sigmoid"
 
@@ -659,17 +654,6 @@ contains
                    ENDIF
                 END DO
              END IF
-
-             do cv_nodi = 1, cv_nonods
-                ewrite(3,*)'icomp, kcomp 1st:', icomp, k_comp( icomp, 1 : nphase, 1 : nphase )
-                ewrite(3,*)'CV, sat1, den1, sat2, den2:', cv_nodi, satura( cv_nodi ), &
-                     den( cv_nodi ), satura( cv_nonods + cv_nodi ), den( cv_nonods + cv_nodi )
-                ewrite(3,*)'absorp_comp:', comp_absorb( cv_nodi, 1, 1 ), &
-                     comp_absorb( cv_nodi, 1, 2 ), & 
-                     comp_absorb( cv_nodi, 2, 1 ), & 
-                     comp_absorb( cv_nodi, 2, 2 ) 
-                ewrite(3,*)' '  
-             end do
 
              ! Calculate the diffusion COMP_DIFFUSION...        
              CALL CALC_COMP_DIF( NDIM, NPHASE, COMP_DIFFUSION_OPT, MAT_NONODS, &
@@ -731,29 +715,9 @@ contains
                      NOIT_DIM, &
                      NITS_FLUX_LIM_COMP, &
                      MEAN_PORE_CV, &
-                     option_path = '/material_phase[0]/scalar_field::PhaseVolumeFraction', &
+                     option_path = '', &
                      mass_ele_transp = dummy_ele, &
                      thermal=.false. ) ! the false means that we don't add an extra source term
-
-
-! Hackkkkkkkkkkkkkkkk change later
-                     comp_femt = comp
-
-                do cv_nodi = 1, cv_nonods
-                   ewrite(3,*)'icomp, kcomp 2nd:', icomp, k_comp( icomp, 1 : nphase, 1 : nphase )
-                   ewrite(3,*)'CV, sat1, den1, sat2, den2:', cv_nodi, satura( cv_nodi ), &
-                        den( cv_nodi ), satura( cv_nonods + cv_nodi ), den( cv_nonods + cv_nodi )
-                   ewrite(3,*)'absorp_comp:', comp_absorb( cv_nodi, 1, 1 ), &
-                        comp_absorb( cv_nodi, 1, 2 ), & 
-                        comp_absorb( cv_nodi, 2, 1 ), & 
-                        comp_absorb( cv_nodi, 2, 2 ) 
-                   ewrite(3,*)' '  
-                end do
-                do iphase = 1, nphase
-                   ewrite(3,*) 'icomp, iphase, comp:', icomp, iphase, &
-                        comp( ( icomp - 1 ) * nphase * cv_nonods + ( iphase - 1 ) * cv_nonods + 1 : &
-                        ( icomp - 1 ) * nphase * cv_nonods + iphase * cv_nonods )
-                end do
 
              END DO Loop_ITS2
 
@@ -776,16 +740,6 @@ contains
                 END DO
              END DO
 
-             do cv_nodi = 1, cv_nonods
-                ewrite(3,*)'icomp, kcomp 3rd:', icomp, k_comp( icomp, 1 : nphase, 1 : nphase )
-                ewrite(3,*)'CV, sat1, den1, sat2, den2:', cv_nodi, satura( cv_nodi ), &
-                     den( cv_nodi ), satura( cv_nonods + cv_nodi ), den( cv_nonods + cv_nodi )
-                ewrite(3,*)'absorp_comp:', comp_absorb( cv_nodi, 1, 1 ), &
-                     comp_absorb( cv_nodi, 1, 2 ), & 
-                     comp_absorb( cv_nodi, 2, 1 ), & 
-                     comp_absorb( cv_nodi, 2, 2 ) 
-                ewrite(3,*)' '  
-             end do
              if (SIG_INT) exit Loop_COMPONENTS
 
              !ewrite(3,*) 'absorb, source b4-2:', r2norm( comp_absorb, cv_nonods * nphase * &
@@ -802,16 +756,6 @@ contains
                   MEAN_PORE_CV, SATURA, SATURAOLD, DEN, DENOLD, COMP, COMPOLD ) 
           ENDIF
 
-          do cv_nodi = 1, cv_nonods
-             ewrite(3,*)'icomp, kcomp 4th:', icomp, k_comp( icomp, 1 : nphase, 1 : nphase )
-             ewrite(3,*)'CV, sat1, den1, sat2, den2:', cv_nodi, satura( cv_nodi ), &
-                  den( cv_nodi ), satura( cv_nonods + cv_nodi ), den( cv_nonods + cv_nodi )
-             ewrite(3,*)'absorp_comp:', comp_absorb( cv_nodi, 1, 1 ), &
-                  comp_absorb( cv_nodi, 1, 2 ), & 
-                  comp_absorb( cv_nodi, 2, 1 ), & 
-                  comp_absorb( cv_nodi, 2, 2 ) 
-             ewrite(3,*)' '  
-          end do
 
           !ewrite(3,*)'V_SOURCE_COMP after:', r2norm(V_SOURCE_COMP, cv_nonods * nphase)
 
@@ -824,16 +768,6 @@ contains
                   cv_nodi = 1, cv_nonods )
           end do
 
-          do cv_nodi = 1, cv_nonods
-             ewrite(3,*)'icomp, kcomp 5th:', icomp, k_comp( icomp, 1 : nphase, 1 : nphase )
-             ewrite(3,*)'CV, sat1, den1, sat2, den2:', cv_nodi, satura( cv_nodi ), &
-                  den( cv_nodi ), satura( cv_nonods + cv_nodi ), den( cv_nonods + cv_nodi )
-             ewrite(3,*)'absorp_comp:', comp_absorb( cv_nodi, 1, 1 ), &
-                  comp_absorb( cv_nodi, 1, 2 ), & 
-                  comp_absorb( cv_nodi, 2, 1 ), & 
-                  comp_absorb( cv_nodi, 2, 2 ) 
-             ewrite(3,*)' '  
-          end do
 
           !ewrite(3,*)''
           !ewrite(3,*)'composition:'
@@ -862,18 +796,8 @@ contains
 
        END DO Loop_ITS
 
-       do cv_nodi = 1, cv_nonods
-          ewrite(3,*)'icomp, kcomp 6th:', icomp, k_comp( icomp, 1 : nphase, 1 : nphase )
-          ewrite(3,*)'CV, sat1, den1, sat2, den2:', cv_nodi, satura( cv_nodi ), &
-               den( cv_nodi ), satura( cv_nonods + cv_nodi ), den( cv_nonods + cv_nodi )
-          ewrite(3,*)'absorp_comp:', comp_absorb( cv_nodi, 1, 1 ), &
-               comp_absorb( cv_nodi, 1, 2 ), & 
-               comp_absorb( cv_nodi, 2, 1 ), & 
-               comp_absorb( cv_nodi, 2, 2 ) 
-          ewrite(3,*)' '  
-       end do
 
-       ewrite(3,*)'just after -satura:', satura( 1 : cv_nonods )
+       ewrite(3,*)'just after satura subrt:', satura( 1 : nphase * cv_nonods )
 
        call set_option("/timestepping/current_time", ACCTIM)
        call set_option("/timestepping/timestep", dt)

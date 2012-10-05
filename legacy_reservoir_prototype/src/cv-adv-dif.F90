@@ -652,7 +652,7 @@
            T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD, &
            DENMIN_NOD, DENMAX_NOD, DENOLDMIN_NOD, DENOLDMAX_NOD )
 
-      ALLOCATE( FACE_ELE( NFACE, TOTELE )) ; FACE_ELE = 0
+      ALLOCATE( FACE_ELE( NFACE, TOTELE ) ) ; FACE_ELE = 0
       ! Calculate FACE_ELE
       CALL CALC_FACE_ELE( FACE_ELE, TOTELE, STOTEL, NFACE, &
            NCOLELE, FINELE, COLELE, CV_NLOC, CV_SNLOC, CV_NONODS, CV_NDGLN, CV_SNDGLN, &
@@ -899,7 +899,8 @@
                              DENMIN_NOD, DENMAX_NOD, DENOLDMIN_NOD, DENOLDMAX_NOD, &
                              T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD, IGOT_T2, &
                              TMIN_2ND_MC, TOLDMIN_2ND_MC, T2MIN_2ND_MC, T2OLDMIN_2ND_MC, DENMIN_2ND_MC, DENOLDMIN_2ND_MC, &
-                             TMAX_2ND_MC, TOLDMAX_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, DENMAX_2ND_MC, DENOLDMAX_2ND_MC, LIMIT_USE_2ND)
+                             TMAX_2ND_MC, TOLDMAX_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, DENMAX_2ND_MC, DENOLDMAX_2ND_MC, &
+                             LIMIT_USE_2ND)
 
                         SUM_LIMT    = SUM_LIMT    + LIMT
                         SUM_LIMTOLD = SUM_LIMTOLD + LIMTOLD
@@ -984,7 +985,8 @@
                              DENMIN_NOD, DENMAX_NOD, DENOLDMIN_NOD, DENOLDMAX_NOD, &
                              T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD, IGOT_T2, &
                              TMIN_2ND_MC, TOLDMIN_2ND_MC, T2MIN_2ND_MC, T2OLDMIN_2ND_MC, DENMIN_2ND_MC, DENOLDMIN_2ND_MC, &
-                             TMAX_2ND_MC, TOLDMAX_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, DENMAX_2ND_MC, DENOLDMAX_2ND_MC, LIMIT_USE_2ND)
+                             TMAX_2ND_MC, TOLDMAX_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, DENMAX_2ND_MC, DENOLDMAX_2ND_MC, &
+                             LIMIT_USE_2ND)
 
                      END DO
 
@@ -1212,7 +1214,7 @@
                   CV_RHS( CV_NODI_IPHA ) = CV_RHS( CV_NODI_IPHA ) &
                        + (CV_BETA * DENOLD(CV_NODI_IPHA) * T2OLD(CV_NODI_IPHA) &
                        + (1.-CV_BETA) * DEN(CV_NODI_IPHA) * T2(CV_NODI_IPHA))  &
-                       * MEAN_PORE_CV(CV_NODI) * MASS_CV(CV_NODI) * TOLD(CV_NODI_IPHA) / DT
+                       * MEAN_PORE_CV(CV_NODI) * MASS_CV(CV_NODI) * TOLD(CV_NODI_IPHA) / DT 
                ELSE
 
                   CV_RHS( CV_NODI_IPHA ) = CV_RHS( CV_NODI_IPHA ) &
@@ -1228,7 +1230,8 @@
                        * MEAN_PORE_CV(CV_NODI) * MASS_CV(CV_NODI) / DT
 
                   CV_RHS( CV_NODI_IPHA ) = CV_RHS( CV_NODI_IPHA ) &
-                       + (CV_BETA * DENOLD(CV_NODI_IPHA) + (1.-CV_BETA) * DEN(CV_NODI_IPHA)) &
+                       + (CV_BETA * DENOLD(CV_NODI_IPHA) &
+                       + (1.-CV_BETA) * DEN(CV_NODI_IPHA)) &
                        * MEAN_PORE_CV(CV_NODI) * MASS_CV(CV_NODI) * TOLD(CV_NODI_IPHA) / DT
                ENDIF
 
@@ -1272,7 +1275,7 @@
                        / ( DT * DENOLD( CV_NODI_IPHA ) )
                end if
 
-               if(.true.) then
+               if(.false.) then
 
                   CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) - MASS_CV( CV_NODI ) * ( &
                        (1.0-W_SUM_ONE) * MEAN_PORE_CV( CV_NODI ) * T( CV_NODI_IPHA ) / DT - &
@@ -1295,7 +1298,7 @@
                        (1.0-W_SUM_ONE1) *  T( CV_NODI_IPHA ) / DT &
                        -(1.0-W_SUM_ONE2) *  TOLD( CV_NODI_IPHA ) / DT  &
                        +TOLD( CV_NODI_IPHA ) * (DEN( CV_NODI_IPHA )-DENOLD( CV_NODI_IPHA )) / ( DT * DEN( CV_NODI_IPHA ) ) - &
-                       DERIV( CV_NODI_IPHA ) * CV_P( CV_NODI ) * T( CV_NODI_IPHA ) / ( DT * DEN( CV_NODI_IPHA ) )&
+                       DERIV( CV_NODI_IPHA ) * CV_P( CV_NODI ) * T( CV_NODI_IPHA ) / ( DT * DEN( CV_NODI_IPHA ) ) &
                        )
                   IF(IPHASE==1) THEN ! Add constraint to force sum of volume fracts to be unity... 
                      ! W_SUM_ONE==1 applies the constraint
@@ -1886,6 +1889,7 @@
               FEMPSI_RHS( 1 + ( IT - 1 ) * CV_NONODS : CV_NONODS + (IT - 1 ) * CV_NONODS ),  &
               FINDM, &
               COLM, &
+              !option_path = '/material_phase[0]/scalar_field::Temperature' )
               option_path = '/material_phase[0]/scalar_field::Pressure' )
       END DO
 
