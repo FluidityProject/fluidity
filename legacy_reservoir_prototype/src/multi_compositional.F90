@@ -746,13 +746,24 @@
       ! Local variables...
       !    REAL, PARAMETER :: SUM2ONE_RELAX = 0.25
       !REAL, PARAMETER :: SUM2ONE_RELAX = 0.99
-      REAL, PARAMETER :: SUM2ONE_RELAX = 1.0
+!!!!!REAL, PARAMETER :: SUM2ONE_RELAX = 1.0
       !REAL, PARAMETER :: SUM2ONE_RELAX = 0.1
       !REAL, PARAMETER :: SUM2ONE_RELAX = 0.99
-      INTEGER :: IPHASE, CV_NODI, ICOMP
-      REAL :: RSUM
+      real :: sum2one_relax, rsum
+      integer :: iphase, cv_nodi, icomp
+
+
+      if( have_option( '/material_phase[0]/is_multiphase_component/Comp_Sum2One/Relaxation_Coefficient' ) ) then
+         call get_option( '/material_phase[0]/is_multiphase_component/Comp_Sum2One/Relaxation_Coefficient', &
+              sum2one_relax )
+      else
+         FLAbort( 'Please define the relaxation coefficient for components mass conservation constraint.' )
+      end if
+
+
 
       DO IPHASE = 1, NPHASE
+
          DO CV_NODI = 1, CV_NONODS
 
             IF( ( ITS == NITS ) .or. .true. ) THEN ! last iteration so prepare for next time step. 

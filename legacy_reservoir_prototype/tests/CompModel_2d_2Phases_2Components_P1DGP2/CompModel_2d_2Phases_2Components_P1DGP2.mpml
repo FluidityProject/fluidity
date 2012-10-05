@@ -121,7 +121,7 @@
       <real_value rank="0">0.</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">0.001</real_value>
+      <real_value rank="0">0.0005</real_value>
       <comment>0.001</comment>
     </timestep>
     <finish_time>
@@ -389,7 +389,11 @@
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>
-            <face_value name="FirstOrderDownwind"/>
+            <face_value name="FiniteElement">
+              <limit_face_value>
+                <limiter name="Sweby"/>
+              </limit_face_value>
+            </face_value>
             <diffusion_scheme name="ElementGradient"/>
           </control_volumes>
           <conservative_advection>
@@ -653,7 +657,11 @@
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>
-            <face_value name="FirstOrderDownwind"/>
+            <face_value name="FiniteElement">
+              <limit_face_value>
+                <limiter name="Sweby"/>
+              </limit_face_value>
+            </face_value>
             <diffusion_scheme name="ElementGradient"/>
           </control_volumes>
           <conservative_advection>
@@ -725,11 +733,15 @@
         <real_value rank="0">10.</real_value>
       </alpha_beta>
       <KComp_Sigmoid>
-        <k_comp>
+        <K_Comp>
           <real_value rank="0">4.5</real_value>
-        </k_comp>
+        </K_Comp>
       </KComp_Sigmoid>
-      <Comp_Sum2One/>
+      <Comp_Sum2One>
+        <Relaxation_Coefficient>
+          <real_value rank="0">0.1</real_value>
+        </Relaxation_Coefficient>
+      </Comp_Sum2One>
     </is_multiphase_component>
     <vector_field name="Velocity" rank="1">
       <aliased material_phase_name="phase1" field_name="Velocity"/>
@@ -851,7 +863,7 @@
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">0.16279</real_value>
+              <real_value rank="0">0.1860</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -876,11 +888,15 @@
         <real_value rank="0">10.</real_value>
       </alpha_beta>
       <KComp_Sigmoid>
-        <k_comp>
-          <real_value rank="0">.2</real_value>
-        </k_comp>
+        <K_Comp>
+          <real_value rank="0">0.2</real_value>
+        </K_Comp>
       </KComp_Sigmoid>
-      <Comp_Sum2One/>
+      <Comp_Sum2One>
+        <Relaxation_Coefficient>
+          <real_value rank="0">0.1</real_value>
+        </Relaxation_Coefficient>
+      </Comp_Sum2One>
     </is_multiphase_component>
     <vector_field name="Velocity" rank="1">
       <aliased material_phase_name="phase2" field_name="Velocity"/>

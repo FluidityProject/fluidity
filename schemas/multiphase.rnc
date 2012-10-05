@@ -436,13 +436,19 @@ start =
                   element KComp_Sigmoid {
                      (
                         ## KComp value for this component
-                        element k_comp { real }
+                        element K_Comp { real }
                      )
                   }?,
                   ## Enable this option to force component mass fractions
-                  ## to sum to 1. Oddly set to false (ie not set) in the test cases
-                  element Comp_Sum2One { comment }?
-               )
+                  ## to sum to 1 by adding constraint into compositional source term.
+                  element Comp_Sum2One { 
+                     (
+                        ## Relaxation coefficient to summation constraint [0,1]. 
+                        ## --> 0: under-relaxation ; --> 1: over-relaxation
+                        element Relaxation_Coefficient { real }
+                     )
+                  }?
+               )               
             }?,
             ## Scale the momentum equation by the volume fraction for when some problems are not well poised.
             element scale_momentum_by_volume_fraction {empty}?,

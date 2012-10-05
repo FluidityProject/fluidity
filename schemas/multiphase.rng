@@ -513,7 +513,7 @@ between 0 and 1. Test cases have 1.</a:documentation>
               <optional>
                 <element name="KComp_Sigmoid">
                   <a:documentation>Enable this option to use sigmoid method for finding equilibrium</a:documentation>
-                  <element name="k_comp">
+                  <element name="K_Comp">
                     <a:documentation>KComp value for this component</a:documentation>
                     <ref name="real"/>
                   </element>
@@ -522,8 +522,12 @@ between 0 and 1. Test cases have 1.</a:documentation>
               <optional>
                 <element name="Comp_Sum2One">
                   <a:documentation>Enable this option to force component mass fractions
-to sum to 1. Oddly set to false (ie not set) in the test cases</a:documentation>
-                  <ref name="comment"/>
+to sum to 1 by adding constraint into compositional source term.</a:documentation>
+                  <element name="Relaxation_Coefficient">
+                    <a:documentation>Relaxation coefficient to summation constraint [0,1]. 
+--&gt; 0: under-relaxation ; --&gt; 1: over-relaxation</a:documentation>
+                    <ref name="real"/>
+                  </element>
                 </element>
               </optional>
             </element>
