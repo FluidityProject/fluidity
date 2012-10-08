@@ -229,8 +229,9 @@ void python_add_scalar_(int *sx,double x[],char *name,int *nlen, int *field_type
 #endif
 }
 
-void python_add_csr_matrix_(int *valSize, double val[], int *col_indSize, int col_ind [], int *row_ptrSize, \
-                            int row_ptr [], char *name, int *namelen, char *state, int *statelen, int *numCols)
+void python_add_csr_matrix_(int *valSize, double val[], int ival[], int *col_indSize, int col_ind [], int *row_ptrSize,
+                            int row_ptr [], char *name, int *namelen, char *state, int *statelen, int *numCols,
+                            int *type)
 {
 #ifdef HAVE_NUMPY
   // Add the Fortran csr matrix to the dictionary of the Python interpreter
@@ -245,7 +246,10 @@ void python_add_csr_matrix_(int *valSize, double val[], int *col_indSize, int co
   PyDict_SetItemString(pDict,"numRows",pnumRows); 
   
   // Create the array
-  python_add_array_double_1d(val,valSize,"val");
+  if (*type==0) // type=CSR_REAL
+    python_add_array_double_1d(val,valSize,"val");
+  else // type=CSR_INTEGER
+    python_add_array_integer_1d(ival,valSize,"val");
   python_add_array_integer_1d(col_ind,col_indSize,"col_ind");
   python_add_array_integer_1d(row_ptr,row_ptrSize,"row_ptr");
 
@@ -427,6 +431,31 @@ void python_add_mesh_(int ndglno[],int *sndglno, int *elements, int *nodes,
 
   Py_DECREF(pname);
   Py_DECREF(poptionp);
+#endif
+}
+
+
+void python_add_faces_(char *state_name, int *state_name_len,
+                       char *mesh_name,  int *mesh_name_len,
+                       int surface_node_list[], int *ssurface_node_list,
+                       int face_element_list[], int *sface_element_list,
+                       int boundary_ids[], int *sboundary_ids)
+{
+#ifdef HAVE_NUMPY
+  char *meshc = fix_string(mesh_name,*mesh_name_len);
+  char *statec = fix_string(state_name,*state_name_len);
+  int tlen = 140+*mesh_name_len+*state_name_len;
+  char t[tlen];
+
+  python_add_array_integer_1d(surface_node_list, ssurface_node_list, "surface_node_list_array");
+  python_add_array_integer_1d(face_element_list, sface_element_list, "face_element_list_array");
+  python_add_array_integer_1d(boundary_ids, sboundary_ids, "boundary_ids_array");
+
+  snprintf(t, tlen, "faces = Faces(surface_node_list_array, face_element_list_array, boundary_ids_array); states['%s'].meshes['%s'].faces = faces",
+           statec, meshc);
+  PyRun_SimpleString(t);
+
+  PyRun_SimpleString("del surface_node_list_array; del face_element_list_array; del boundary_ids_array");
 #endif
 }
 

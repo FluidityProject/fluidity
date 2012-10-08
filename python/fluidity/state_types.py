@@ -183,6 +183,8 @@ class Mesh:
     self.region_ids = region_ids
     self.shape = Element(0,0,0,0,[],[], [], 0,0,0,0, "unknown", "unknown")
     self.uid = uid
+    self.coords = None
+    self.faces = None
 
   def __repr__(self):
     return '(Mesh) %s' % self.name
@@ -204,9 +206,18 @@ class Mesh:
       nodes.append(self.ndglno[base+i]-1)
     return nodes
 
-  def ele_region_id(ele_number):
+  def ele_region_id(self, ele_number):
     # Return the region_id of element ele_number
-    return self.mesh.region_ids[ele_number]
+    return self.region_ids[ele_number]
+
+class Faces:
+  "Mesh faces"
+  def __init__(self, surface_node_list, face_element_list, boundary_ids):
+    self.surface_node_list = surface_node_list
+    self.face_element_list = face_element_list
+    self.boundary_ids = boundary_ids
+    self.boundaries = {}
+    self.face_list = None
 
 class Element:
   "An element"

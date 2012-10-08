@@ -64,6 +64,7 @@ contains
     call python_add_state(states(state_index))
 
     call python_run_string("coordinates = state.vector_fields['Coordinate']")
+    call python_run_string("for mesh in state.meshes.itervalues(): mesh.coords = coordinates")
     call python_run_string("dx._domain_data = coordinates")
     call python_run_string("ds._domain_data = coordinates")
     write(buffer,*) current_time

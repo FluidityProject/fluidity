@@ -104,11 +104,12 @@ module python_state
       character(len=mesh_name_len) :: mesh_name
     end subroutine python_add_scalar
     
-    subroutine python_add_csr_matrix(valuesSize, values, col_indSize, col_ind, row_ptrSize, &
-      row_ptr, name, namelen, state_name,snlen, numCols)
+    subroutine python_add_csr_matrix(valuesSize, values, ivalues, col_indSize, col_ind, row_ptrSize, &
+      row_ptr, name, namelen, state_name,snlen, numCols, valtype)
       implicit none
-      integer :: valuesSize,col_indSize,row_ptrSize,namelen,snlen,numCols
+      integer :: valuesSize,col_indSize,row_ptrSize,namelen,snlen,numCols, valtype
       real, dimension(valuesSize) :: values
+      integer, dimension(valuesSize) :: ivalues
       integer, dimension(col_indSize) :: col_ind
       integer, dimension(row_ptrSize) :: row_ptr
       character(len=namelen) :: name
@@ -215,23 +216,25 @@ module python_state
   subroutine python_add_csr_matrix_directly(csrMatrix,st)
     type(csr_matrix) :: csrMatrix
     type(state_type) :: st
-    integer :: valSize, col_indSize, row_ptrSize, nameLen, statenameLen,numCols
+    integer :: valSize, col_indSize, row_ptrSize, nameLen, statenameLen,numCols, valtype
     type(csr_sparsity) :: csrSparsity
     real, dimension(:), pointer :: values
+    integer, dimension(:), pointer :: ivalues
     integer, dimension(:), pointer :: col_ind
     integer, dimension(:), pointer :: row_ptr
     
     csrSparsity = csrMatrix%sparsity 
     values => csrMatrix%val
+    ivalues => csrMatrix%ival
 
-    ! For CSR_INTEGER matrices, %val is not allocated. To ensure that python state
-    ! does not try to wrap it in an array, we return if this is the case.
-    if (.not. associated(values)) then
-      ewrite(2,*) "Skipping "//trim(csrMatrix%name)//" insertion into python state."
-      return
+    if (associated(values)) then
+      valtype = CSR_REAL
+      valSize = size(csrMatrix%val,1)
+    else
+      valtype = CSR_INTEGER
+      valSize = size(csrMatrix%ival,1)
     end if
 
-    valSize = size(csrMatrix%val,1)
     col_ind => csrSparsity%colm
     col_indSize = valSize
     row_ptr => csrSparsity%findrm
@@ -239,8 +242,8 @@ module python_state
     nameLen = len(trim(csrMatrix%name))
     statenameLen = len(trim(st%name))
     numCols = csrSparsity%columns
-    call python_add_csr_matrix(valSize, values, col_indSize, col_ind, row_ptrSize, row_ptr, &
-      trim(csrMatrix%name), nameLen, trim(st%name),statenameLen,numCols)
+    call python_add_csr_matrix(valSize, values, ivalues, col_indSize, col_ind, row_ptrSize, row_ptr, &
+      trim(csrMatrix%name), nameLen, trim(st%name),statenameLen,numCols,valtype)
   end subroutine python_add_csr_matrix_directly
 
   subroutine python_add_vector_directly(V,st)
@@ -295,7 +298,34 @@ module python_state
         trim(st%name),snlen, M%refcount%id)
       deallocate(temp_region_ids)
     end if
+
+    if(associated(M%faces)) then
+      call python_add_faces_directly(M%faces, M, st)
+    end if
+
   end subroutine python_add_mesh_directly
+
+  subroutine python_add_faces_directly(F,M,st)
+    type(mesh_faces) :: F
+    type(mesh_type) :: M
+    type(state_type) :: st
+    integer :: mlen, snlen
+
+    mlen = len(trim(M%name))
+    snlen = len(trim(st%name))
+
+    call python_add_faces(trim(st%name), snlen, trim(M%name), mlen, &
+                             & F%surface_node_list, size(F%surface_node_list), &
+                             & F%face_element_list, size(F%face_element_list), &
+                             & F%boundary_ids, size(F%boundary_ids))
+
+    call python_add_csr_matrix_directly(F%face_list, st)
+    call python_run_string("states['" // trim(st%name) // "'].meshes['" // trim(M%name) // &
+                         & "'].faces.face_list = states['"// trim(st%name) // &
+                         & "'].csr_matrices['" // trim(M%faces%face_list%name) // &
+                         & "']")
+
+  end subroutine python_add_faces_directly
 
   subroutine python_add_element_directly(E,M,st)
     !! Add an element to the mesh M, by adding first the element and then its 
