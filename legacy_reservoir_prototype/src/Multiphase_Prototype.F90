@@ -291,7 +291,7 @@ module mp_prototype
       mx_nface_p1 = 2 * ndim + 1
       mxnele = mx_nface_p1 * totele
       if(cv_nonods==cv_nloc*totele) then ! is DG for pressure...
-         mx_nct = totele * u_nloc * cv_nloc * mx_nface_p1* ndim * nphase
+         mx_nct = totele * u_nloc * cv_nloc * mx_nface_p1 * ndim * nphase * totele
       else
          mx_nct = totele * u_nloc * cv_nloc * ndim * nphase
       endif
@@ -303,7 +303,12 @@ module mp_prototype
       mx_ncoldgm_pha = ( mxnele + totele ) * ( u_nloc * ndim * nphase)**2
       mx_ncolmcy = mx_ncoldgm_pha + mx_nct + mx_nc + mx_ncolcmc
       mx_ncolacv = 3 * mx_nface_p1 * cv_nonods * nphase + cv_nonods * ( nphase - 1 ) * nphase
-      mx_ncolm = mxnele * cv_nloc * cv_nloc * nphase
+
+      if(cv_nonods==cv_nloc*totele) then ! is DG for pressure
+         mx_ncolm = mxnele * cv_nloc * cv_nloc * nphase * totele
+      else
+         mx_ncolm = mxnele * cv_nloc * cv_nloc * nphase
+      endif
 
       allocate( colmcy( mx_ncolmcy ) )
       allocate( colacv( mx_ncolacv ) )

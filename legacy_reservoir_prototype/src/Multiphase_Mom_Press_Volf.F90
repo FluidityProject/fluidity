@@ -277,7 +277,7 @@ contains
     real :: finish_time
     integer :: dump_period_in_timesteps
     integer :: final_timestep
-    integer :: stat, pressure_max_iterations, velocity_max_iterations, saturation_max_iterations
+    integer :: stat, velocity_max_iterations, saturation_max_iterations
 
     character( len = 500 ) :: dummy_string_phase, dummy_string_dump, &
          dummy_string_comp, dump_name, file_format
@@ -334,8 +334,6 @@ contains
 !!!
 !!! Check later for a more well-defined way to set up an advection problem
 !!!
-    call get_option( "/material_phase[0]/scalar_field::Pressure/prognostic/solver/max_iterations", &
-         pressure_max_iterations, default =  500 )
 
     call get_option( "/material_phase[0]/vector_field::Velocity/prognostic/solver/max_iterations", &
          velocity_max_iterations,  default =  500 )

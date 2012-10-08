@@ -732,6 +732,7 @@
     SUBROUTINE CAL_COMP_SUM2ONE_SOU( V_SOURCE_COMP, CV_NONODS, NPHASE, NCOMP2, DT, ITS, NITS, &  
          MEAN_PORE_CV, SATURA, SATURAOLD, DEN, DENOLD, COMP, COMPOLD ) 
       ! make sure the composition sums to 1.0 
+      use futils
       implicit none
       integer, intent( in ) :: cv_nonods, nphase, ncomp2, ITS, NITS
       REAL, INTENT( IN ) :: DT
@@ -753,13 +754,21 @@
       integer :: iphase, cv_nodi, icomp
 
 
-      if( have_option( '/material_phase[' //int2str(nphase)// ']/is_multiphase_component/Comp_Sum2One/Relaxation_Coefficient' ) ) then
-         call get_option( '/material_phase[' //int2str(nphase)// ']/is_multiphase_component/Comp_Sum2One/Relaxation_Coefficient', &
-              sum2one_relax )
-      else
-         FLAbort( 'Please define the relaxation coefficient for components mass conservation constraint.' )
-      end if
+      do icomp = nphase + 1, ncomp2
+         if( have_option( '/material_phase[' // int2str( icomp - 1 ) // &
+              ']/is_multiphase_component/Comp_Sum2One/Relaxation_Coefficient' ) ) then
+            call get_option( '/material_phase[' // int2str( icomp - 1 ) // & 
+                 ']/is_multiphase_component/Comp_Sum2One/Relaxation_Coefficient', &
+                 sum2one_relax )
+            ewrite(3,*)'path:', '/material_phase[' // int2str( icomp - 1 ) // & 
+                 ']/is_multiphase_component/Comp_Sum2One/Relaxation_Coefficient'
+         else
+            FLAbort( 'Please define the relaxation coefficient for components mass conservation constraint.' )
+         end if
+      end do
 
+      ewrite(3,*) 'sum2one_relax', sum2one_relax
+      !stop 91
 
 
       DO IPHASE = 1, NPHASE
