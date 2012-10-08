@@ -20,108 +20,65 @@
 # First added:  2008-10-22
 # Last changed: 2012-08-18
 
-__all__ = ["AutoSubDomain", "DirichletBC", "PeriodicBC", "homogenize"]
+__all__ = ["SubDomain", "DirichletBC", "PeriodicBC", "homogenize", "near"]
 
 import types
-
-import dolfin.cpp as cpp
-from dolfin.functions.constant import Constant
-from dolfin.compilemodules.subdomains import compile_subdomains
 import ufl
-from dolfin.fem.projection import project
+import sys
+from pyop2.utils import as_tuple
 
-class AutoSubDomain(cpp.SubDomain):
-    "Wrapper class for creating a SubDomain from an inside() function."
+# From Dolfin
+EPS = 3.0e-16
 
-    def __init__(self, inside_function):
-        "Create SubDomain subclass for given inside() function"
+def near(x, x0):
+    return x0-EPS < x < x0+EPS
 
-        # Check that we get a function
-        if not isinstance(inside_function, types.FunctionType):
-            cpp.dolfin_error("bcs.py",
-                             "auto-create subdomain",
-                             "Expecting a function (not %s)" % \
-                                 str(type(inside_function)))
-        self.inside_function = inside_function
-
-        # Check the number of arguments
-        if not inside_function.func_code.co_argcount in (1, 2):
-            cpp.dolfin_error("bcs.py",
-                             "auto-create subdomain",
-                             "Expecting a function of the form inside(x) or inside(x, on_boundary)")
-        self.num_args = inside_function.func_code.co_argcount
-
-        cpp.SubDomain.__init__(self)
+class SubDomain(object):
+    
+    def mark(self, mesh, id):
+        coordinates = getattr(sys.modules['__main__'], 'coordinates')
+        mesh.faces.boundaries[id] = []
+        for node in mesh.faces.surface_node_list:
+            # If node inside boundary then mark with that boundary id.
+            # Need the coordinate field to do this.
+            if self.inside(coordinates.val[node], 0):
+                mesh.faces.boundaries[id].append(node)
 
     def inside(self, x, on_boundary):
-        "Return true for points inside the subdomain"
+        raise NotImplementedError("inside must be implemented.")
 
-        if self.num_args == 1:
-            return self.inside_function(x)
-        else:
-            return self.inside_function(x, on_boundary)
+class BoundaryCondition(object):
+    pass
 
-class DirichletBC(cpp.DirichletBC):
-
-    # Reuse doc-string from cpp.DirichletBC
-    __doc__ = cpp.DirichletBC.__doc__
+class DirichletBC(BoundaryCondition):
 
     def __init__(self, *args, **kwargs):
         "Create Dirichlet boundary condition"
 
         # Copy constructor
         if len(args) == 1:
-            if not isinstance(args[0], cpp.DirichletBC):
-                cpp.dolfin_error("bcs.py",
-                                 "create DirichletBC",
-                                 "Expecting a DirichleBC as only argument"\
-                                 " for copy constructor")
+            if not isinstance(args[0], DirichletBC):
+                log.error("bcs.py, create DirichletBC: " \
+                          "Expecting a DirichletBC as only argument"\
+                          " for copy constructor")
 
-            # Initialize base class
-            cpp.DirichletBC.__init__(self, args[0])
+            other = args[0]
+            self.mesh_arg = other.mesh_arg
+            self.function_arg = other.function_arg
+            self.domain_args = other.domain_args
             return
 
-        # Special case for value specified as float, tuple or similar
-        if len(args) >= 2 and not isinstance(args[1], cpp.GenericFunction):
-            if isinstance(args[1], ufl.classes.Expr):
-                expr = project(args[1], args[0])
-            else:
-                expr = Constant(args[1]) # let Constant handle all problems
-            args = args[:1] + (expr,) + args[2:]
-
-        # Special case for sub domain specified as a function
-        if len(args) >= 3 and isinstance(args[2], types.FunctionType):
-            sub_domain = AutoSubDomain(args[2])
-            args = args[:2] + (sub_domain,) + args[3:]
-
-        # Special case for sub domain specified as a string
-        if len(args) >= 3 and isinstance(args[2], str):
-            sub_domain = compile_subdomains(args[2])
-            args = args[:2] + (sub_domain,) + args[3:]
-
-        # Store Expression to avoid scoping issue with SWIG directors
-        if isinstance(args[1], cpp.Expression):
-            self.function_arg = args[1]
-
-        # Store SubDomain to avoid scoping issue with SWIG directors
+        # Only support setting BC value as float or tuple of floats initially.
+        self.function_arg = as_tuple(args[1], float)
         self.domain_args = args[2:]
 
         # Add method argument if it's given
         if "method" in kwargs:
             args = tuple(list(args) + [kwargs["method"]])
 
-        # Initialize base class
-        cpp.DirichletBC.__init__(self, *args)
-
-    # Set doc string
-    __init__.__doc__ = cpp.DirichletBC.__init__.__doc__
-
 # Creattion of Python class to avoid issue of SWIG directors going out
 # of scope
-class PeriodicBC(cpp.PeriodicBC):
-
-    # Reuse doc-string from cpp.PeriodicBC
-    __doc__ = cpp.PeriodicBC.__doc__
+class PeriodicBC(BoundaryCondition):
 
     def __init__(self, *args, **kwargs):
         "Create Periodic boundary condition"
@@ -160,9 +117,6 @@ class PeriodicBC(cpp.PeriodicBC):
             cpp.dolfin_error("bcs.py",
                              "create PeriodicBC",
                              "Too many arguments passed to constructor")
-
-    # Set doc string
-    __init__.__doc__ = cpp.PeriodicBC.__init__.__doc__
 
 
 def homogenize(bc):
