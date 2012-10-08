@@ -1,6 +1,8 @@
 #define ALLOW_IMPORT_ARRAY
 #include "python_statec.h"
 
+int python_initialised = 0;
+
 void python_init_(void){
 #ifdef HAVE_PYTHON
   // Initialize the Python interpreter
@@ -43,6 +45,8 @@ void python_init_(void){
   
   init_vars();
 #endif
+  
+  python_initialised = 1;
 }
 
 
@@ -112,6 +116,10 @@ void python_end_(void){
 
 void python_run_stringc_(char *s,int *slen, int *stat){
 #ifdef HAVE_PYTHON
+  
+  if (!python_initialised)
+    python_init_();
+  
   // Run a python command from Fortran
   char *c = fix_string(s,*slen);
   int tlen=8+*slen;
