@@ -359,6 +359,7 @@
         <mesh name="VelocityMesh"/>
         <equation name="InternalEnergy">
           <density name="MaterialDensity"/>
+          <include_pressure_term/>
         </equation>
         <spatial_discretisation>
           <control_volumes>
