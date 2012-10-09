@@ -48,10 +48,6 @@ module sparse_tools
 #include "finclude/petsckspdef.h"
 #else
 #include "finclude/petsc.h"
-#if PETSC_VERSION_MINOR==0
-#include "finclude/petscksp.h"
-#include "finclude/petscsys.h"
-#endif
 #endif
 
   private

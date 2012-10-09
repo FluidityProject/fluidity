@@ -9,11 +9,11 @@ run:
 
 run_24:
 	@echo **********Calling fluidity with verbose log output enabled:
-	../../bin/fluidity -v2 -l Stokes-square-convection-24.flml
+	../../bin/fluidity -v2 -l stokes-square-convection-24.flml
 
 run_48:
 	@echo **********Calling fluidity with verbose log output enabled:
-	../../bin/fluidity -v2 -l Stokes-square-convection-48.flml
+	../../bin/fluidity -v2 -l stokes-square-convection-48.flml
 
 postprocess:
 	@echo **********Calling the python plotting scripts:
