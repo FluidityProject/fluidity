@@ -10,7 +10,8 @@
     <variable name="error" language="python">from fluidity_tools import stat_parser as stat
 from math import log
 
-error = stat("ufl_laplace.stat")["Fluid"]["AbsoluteDifference"]["l2norm"][-1]
+stat = stat("ufl_laplace.stat")
+error = stat["Fluid"]["AbsoluteDifference"]["l2norm"][-1]
 print error
     </variable>
   </variables>
