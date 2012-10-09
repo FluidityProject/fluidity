@@ -10,6 +10,11 @@
     <!-- Two dimensional diffusion only problem. -->
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="tracer_integral" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("heat.stat")
@@ -22,6 +27,9 @@ tracer_error = s["Water"]["ScalarAbsoluteDifference"]["max"][-1]-9.9e-5
     </variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="tracer integral is 1.0" language="python">
 assert abs(tracer_integral - 1.0) &lt; 1e-3
     </test>

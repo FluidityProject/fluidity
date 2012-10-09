@@ -95,7 +95,7 @@ AC_CANONICAL_HOST
 case $host_os in
      darwin* ) 
 	     LINUX=no
-     	     DARWIN=yes
+       DARWIN=yes
 	     FCFLAGS="-DDARWIN $FCFLAGS"
 	     CXXFLAGS="-DDARWIN -fpermissive $CXXFLAGS"
 	     CPPFLAGS="-DDARWIN $CXXFLAGS"
@@ -103,10 +103,10 @@ case $host_os in
 # that the framework is valid
 	     LIBS="$LIBS -framework Carbon";;
      linux*  )
-     	     LINUX=yes
-             DARWIN=no;;
+       LINUX=yes
+       DARWIN=no;;
      *       )
-             LINUX=no
+       LINUX=no
 	     DARWIN=no;;
 esac
 
@@ -331,7 +331,7 @@ if test "x$enable_openmp" == "xyes" ; then
     # Assume same flag for FC
     FCFLAGS="$FCFLAGS $OPENMP_CXXFLAGS"
 fi
-LIBS="$LAPACK_LIBS $BLAS_LIBS $LIBS $FCLIBS $FLIBS"
+LIBS="$LAPACK_LIBS $LIBS $FCLIBS $FLIBS"
 
 AC_SUBST(LAPACK_LIBS)
 AC_SUBST(BLAS_LIBS)

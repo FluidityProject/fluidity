@@ -58,7 +58,7 @@ OBJS    = Momentum_Diagnostic_Fields.o \
 	Drag.o    \
 	Multimaterials.o Multiphase.o Diagnostic_fields_wrapper.o Diagnostic_Fields_Matrices.o Vorticity_Diagnostics.o \
 	Compressible_Projection.o \
-	Vertical_Extrapolation.o Biology.o \
+	Biology.o \
 	Foam_Drainage.o Foam_Flow.o \
 	Timeloop_utilities.o Pseudo_supermesh.o \
 	Sam_integration.o Solenoidal_interpolation.o \

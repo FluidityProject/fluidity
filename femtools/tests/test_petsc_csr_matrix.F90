@@ -1,5 +1,6 @@
 #include "fdebug.h"
 subroutine test_petsc_csr_matrix()
+#include "petscversion.h"
   use sparse_tools
   use sparse_tools_petsc
   use parallel_tools
@@ -7,20 +8,35 @@ subroutine test_petsc_csr_matrix()
   use unittest_tools
   implicit none
 #include "finclude/petsc.h"
-  
-  interface
-    subroutine error_handler(comm,line, func, file, dir, n, p, mess, ctx, ierr)
-    MPI_Comm:: comm
-    PetscInt:: line
-    character(len=*):: func, file, dir
-    PetscErrorCode:: n
-    PetscInt:: p
-    character(len=*):: mess
-    PetscInt:: ctx
-    PetscErrorCode:: ierr
 
-    end subroutine error_handler    
+  
+#if PETSC_VERSION_MINOR>=2
+  interface
+     subroutine error_handler(comm,line, func, file, dir, n, p, mess, ctx, ierr)
+       MPI_Comm:: comm
+       PetscInt:: line
+       character(len=*):: func, file, dir
+       PetscErrorCode:: n
+       PetscInt:: p
+       character(len=*):: mess
+       PetscInt:: ctx
+       PetscErrorCode:: ierr
+     end subroutine error_handler
   end interface
+#else
+  interface
+     subroutine error_handler(line, func, file, dir, n, p, mess, ctx, ierr)
+       PetscInt:: line
+       character(len=*):: func, file, dir
+       PetscErrorCode:: n
+       PetscInt:: p
+       character(len=*):: mess
+       PetscInt:: ctx
+       PetscErrorCode:: ierr
+       
+     end subroutine error_handler
+  end interface
+#endif
   
   type(petsc_csr_matrix):: A
   type(csr_matrix):: B
@@ -111,18 +127,36 @@ subroutine test_petsc_csr_matrix()
       
 end subroutine test_petsc_csr_matrix
   
+#if PETSC_VERSION_MINOR>=2
 subroutine error_handler(comm,line, func, file, dir, n, p, mess, ctx, ierr)
 #include "finclude/petsc.h"
-MPI_Comm:: comm
-PetscInt:: line
-character(len=*):: func, file, dir
-PetscErrorCode:: n
-PetscInt:: p
-character(len=*):: mess
-PetscInt:: ctx
-PetscErrorCode:: ierr
-
+  MPI_Comm:: comm
+  PetscInt:: line
+  character(len=*):: func, file, dir
+  PetscErrorCode:: n
+  PetscInt:: p
+  character(len=*):: mess
+  PetscInt:: ctx
+  PetscErrorCode:: ierr
+  
 
   ctx=1
-
+  
 end subroutine error_handler
+#else
+    subroutine error_handler(line, func, file, dir, n, p, mess, ctx, ierr)
+#include "finclude/petsc.h"
+      PetscInt:: line
+      character(len=*):: func, file, dir
+      PetscErrorCode:: n
+      PetscInt:: p
+      character(len=*):: mess
+      PetscInt:: ctx
+      PetscErrorCode:: ierr
+      
+
+      ctx=1
+      
+    end subroutine error_handler
+    
+#endif
