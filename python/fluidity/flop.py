@@ -103,9 +103,9 @@ class Faces(fluidity_state.Faces):
         # The mapping from elements on each boundary to the global element number
         self.boundary_maps = {}
         # The sets of nodes on each boundary
-        self.boundary_node_sets = {}
-        # A mapping from the nodes on a boundary to the global node number
-        self.boundary_nodes_to_nodes_maps = {}
+        self.surface_elem_sets = {}
+        # A mapping from the elements on a boundary to the global node numbers
+        self.surface_elements_to_nodes_maps = {}
 
     @cached_property 
     def boundary_list(self):
@@ -147,31 +147,39 @@ class Faces(fluidity_state.Faces):
             elem_node_mapping[boundary] += mesh.ele_nodes(element)
             element_count[boundary] += 1
 
-        # Find the nodes in each boundary
-        node_count = {}
-        boundary_nodes_to_nodes = {}
+        # Find the surface elements in each boundary and their global nodes
+        surface_element_count = {}
+        surface_elements = {}
         for boundary in self.boundary_list:
-            node_count[boundary] = 0
-            boundary_nodes_to_nodes[boundary] = []
-        for i, node in enumerate(self.surface_node_list):
-            bid = self.boundary_ids[i]
-            node_count[bid] += 1
-            boundary_nodes_to_nodes[bid].append(node-1) # Node numbers offset by 1
+            surface_element_count[boundary] = 0
+            surface_elements[boundary] = []
+        for surface_element, boundary in enumerate(mesh.faces.boundary_ids):
+            surface_element_count[boundary] += 1
+            surface_elements[boundary].append(surface_element)
+        
+        surface_elements_to_nodes = {}
+        for boundary, surface_elements in surface_elements.iteritems():
+            surface_elements_to_nodes[boundary] = []
+            for surface_element in surface_elements:
+                local_nodes = mesh.faces.surface_mesh.ele_nodes(surface_element)
+                # Global node number is in Fortran numbering
+                global_nodes = [ mesh.faces.surface_node_list[n]-1 for n in local_nodes ]
+                surface_elements_to_nodes[boundary] += global_nodes
 
         # Construct OP2 data structures on top of this information
         for boundary in self.boundary_list:
             self.boundary_elem_sets[boundary] = \
                 op2.Set(element_count[boundary])
-            self.boundary_node_sets[boundary] = \
-                op2.Set(node_count[boundary])
+            self.surface_elem_sets[boundary] = \
+                op2.Set(surface_element_count[boundary])
             self.boundary_maps[boundary] = \
                 op2.Map(self.boundary_elem_sets[boundary], 
                         mesh.node_set, mesh.shape.loc, 
                         elem_node_mapping[boundary])
-            self.boundary_nodes_to_nodes_maps[boundary] = \
-                op2.Map(self.boundary_node_sets[boundary], 
-                        mesh.node_set, 1, 
-                        boundary_nodes_to_nodes[boundary])
+            self.surface_elements_to_nodes_maps[boundary] = \
+                op2.Map(self.surface_elem_sets[boundary], 
+                        mesh.node_set, mesh.faces.surface_mesh.shape.loc, 
+                        surface_elements_to_nodes[boundary])
             self.boundary_facets[boundary] = \
                 op2.Dat(self.boundary_elem_sets[boundary], 1, 
                         boundary_faces[boundary], numpy.int32)

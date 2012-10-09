@@ -1,6 +1,6 @@
 input: clean
 	
-	gmsh -2 -clscale 20.0 -o laplace.msh src/cdisk.geo 
+	gmsh -2 -clscale 1.0 -o laplace.msh src/cdisk.geo 
 	../../bin/gmsh2triangle --2d laplace.msh
 	sed -e 's/{SIMULATION}/ufl_laplace/g' -e 's/{DEGREE}/1/g' src/laplace.flml.template > laplace.flml
 
