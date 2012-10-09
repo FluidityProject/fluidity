@@ -6,6 +6,7 @@ from pyop2.utils import uniquify
 import state_types as fluidity_state
 from state_types import *
 from ufl_expr import *
+from bcs import *
 
 valuetype = numpy.float64
 op2.init()
@@ -95,9 +96,16 @@ class Faces(fluidity_state.Faces):
 
     def __init__(self, surface_node_list, face_element_list, boundary_ids):
         fluidity_state.Faces.__init__(self, surface_node_list, face_element_list, boundary_ids)
-        self.boundary_sets = {}
-        self.boundary_maps = {}
+        # The sets of elements on each boundary
+        self.boundary_elem_sets = {}
+        # The facet id of the facet on the boundary for a given element
         self.boundary_facets = {}
+        # The mapping from elements on each boundary to the global element number
+        self.boundary_maps = {}
+        # The sets of nodes on each boundary
+        self.boundary_node_sets = {}
+        # A mapping from the nodes on a boundary to the global node number
+        self.boundary_nodes_to_nodes_maps = {}
 
     @cached_property 
     def boundary_list(self):
@@ -139,14 +147,34 @@ class Faces(fluidity_state.Faces):
             elem_node_mapping[boundary] += mesh.ele_nodes(element)
             element_count[boundary] += 1
 
+        # Find the nodes in each boundary
+        node_count = {}
+        boundary_nodes_to_nodes = {}
+        for boundary in self.boundary_list:
+            node_count[boundary] = 0
+            boundary_nodes_to_nodes[boundary] = []
+        for i, node in enumerate(self.surface_node_list):
+            bid = self.boundary_ids[i]
+            node_count[bid] += 1
+            boundary_nodes_to_nodes[bid].append(node)
+
         # Construct OP2 data structures on top of this information
         for boundary in self.boundary_list:
-            self.boundary_sets[boundary] = \
+            self.boundary_elem_sets[boundary] = \
                 op2.Set(element_count[boundary])
+            self.boundary_node_sets[boundary] = \
+                op2.Set(node_count[boundary])
             self.boundary_maps[boundary] = \
-                op2.Map(self.boundary_sets[boundary], mesh.node_set, mesh.shape.loc, elem_node_mapping[boundary])
+                op2.Map(self.boundary_elem_sets[boundary], 
+                        mesh.node_set, mesh.shape.loc, 
+                        elem_node_mapping[boundary])
+            self.boundary_nodes_to_nodes_maps[boundary] = \
+                op2.Map(self.boundary_node_sets[boundary], 
+                        mesh.node_set, 1, 
+                        boundary_nodes_to_nodes[boundary])
             self.boundary_facets[boundary] = \
-                op2.Dat(self.boundary_sets[boundary], 1, boundary_faces[boundary], numpy.int32)
+                op2.Dat(self.boundary_elem_sets[boundary], 1, 
+                        boundary_faces[boundary], numpy.int32)
 
     def check_boundary(self, boundary):
         if boundary not in self.boundary_list:
