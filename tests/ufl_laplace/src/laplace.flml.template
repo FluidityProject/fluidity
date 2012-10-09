@@ -93,13 +93,13 @@ g = state.scalar_fields["Temperature"]
 v = TestFunction(t)
 u = TrialFunction(t)
 
-a = dot(grad(v),grad(u))*dx + v*g*ds(1)
+a = dot(grad(v),grad(u))*dx #+ v*g*ds(1)
 L = v*t*dx
 
-#bcs = [DirichletBC(t.mesh, 1.0, 2)]
+bcs = [DirichletBC(t.mesh, 1.0, 2), DirichletBC(t.mesh, 3.0, 1)]
 
-from fluidity_tools import shell
-shell()()
+#from fluidity_tools import shell
+#shell()()
 
 # Assemble and solve
 
@@ -139,10 +139,7 @@ solve(a == L, t, bcs)</string_value>
         <initial_condition name="WholeMesh">
           <python>
             <string_value lines="20" type="python">def val(X,t):
-    from numpy import pi, cos
-    n = 2
-    val = cos(X[0]*pi*n)*cos(X[1]*pi*n)
-    return -val</string_value>
+    return 0.0</string_value>
           </python>
         </initial_condition>
         <output/>

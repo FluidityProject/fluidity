@@ -11,9 +11,9 @@ Plane Surface (1) = {1};
 
 // Volume number for whole domain.
 Physical Surface (1) = {1};
+// Rest of the walls.
+Physical Line(666) = {1,3};
 // Top of the box.
 Physical Line(1) = {4};
 // Bottom of the box
 Physical Line(2) = {2};
-// Rest of the walls.
-Physical Line(666) = {1,3};

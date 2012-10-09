@@ -156,7 +156,7 @@ class Faces(fluidity_state.Faces):
         for i, node in enumerate(self.surface_node_list):
             bid = self.boundary_ids[i]
             node_count[bid] += 1
-            boundary_nodes_to_nodes[bid].append(node)
+            boundary_nodes_to_nodes[bid].append(node-1) # Node numbers offset by 1
 
         # Construct OP2 data structures on top of this information
         for boundary in self.boundary_list:
