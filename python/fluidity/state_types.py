@@ -218,6 +218,7 @@ class Faces:
     self.boundary_ids = boundary_ids
     self.boundaries = {}
     self.face_list = None
+    self.surface_mesh = None
 
 class Element:
   "An element"

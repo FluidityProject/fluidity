@@ -150,6 +150,19 @@ module python_state
       character(len=state_name_len) :: state_name
     end subroutine python_add_mesh
 
+    subroutine python_add_faces(state_name, state_name_len, mesh_name, mesh_name_len, surface_mesh_name,&
+      &surface_mesh_name_len, surface_node_list, ssurface_node_list, face_element_list,&
+      &sface_element_list, boundary_ids, sboundary_ids)
+      !! Add a faces to the mesh called mesh_name in state state_name
+      implicit none
+      integer :: state_name_len, mesh_name_len, surface_mesh_name_len
+      character(len=state_name_len) :: state_name
+      character(len=mesh_name_len) :: mesh_name
+      character(len=surface_mesh_name_len) :: surface_mesh_name
+      integer, dimension(*) :: surface_node_list, face_element_list, boundary_ids
+      integer :: ssurface_node_list, sface_element_list, sboundary_ids
+    end subroutine python_add_faces
+
     subroutine python_add_element(dim,loc,ngi,degree,stname,slen,mname,mlen,n,nx,ny,dn,dnx,dny,dnz,&
       &size_spoly_x,size_spoly_y,size_dspoly_x,size_dspoly_y, family_name, family_name_len, &
       & type_name, type_name_len, &
@@ -309,17 +322,27 @@ module python_state
     type(mesh_faces) :: F
     type(mesh_type) :: M
     type(state_type) :: st
-    integer :: mlen, snlen
+    integer :: mlen, snlen, smlen
 
     mlen = len(trim(M%name))
     snlen = len(trim(st%name))
+    smlen = len(trim(F%surface_mesh%name))
+
+    call python_add_mesh_directly(F%surface_mesh, st)
+    call python_add_element_directly(F%surface_mesh%shape,F%surface_mesh,st)
 
     call python_add_faces(trim(st%name), snlen, trim(M%name), mlen, &
+                             & trim(F%surface_mesh%name), smlen, &
                              & F%surface_node_list, size(F%surface_node_list), &
                              & F%face_element_list, size(F%face_element_list), &
                              & F%boundary_ids, size(F%boundary_ids))
 
+!    call python_run_string("states['" // trim(st%name) // "'].meshes['" // trim(M%name) // &
+!                         & "'].faces.surface_mesh = states['" // trim(st%name) // &
+!                         & "'].meshes['" // trim(F%surface_mesh%name) // "']")
+
     call python_add_csr_matrix_directly(F%face_list, st)
+
     call python_run_string("states['" // trim(st%name) // "'].meshes['" // trim(M%name) // &
                          & "'].faces.face_list = states['"// trim(st%name) // &
                          & "'].csr_matrices['" // trim(M%faces%face_list%name) // &

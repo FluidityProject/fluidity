@@ -108,7 +108,7 @@ class LinearVariationalSolver(object):
 
         mesh = self._problem.u.mesh
         mesh.compute_boundaries()
-        
+
         # Apply Dirichlet BCs
         for bc in self._problem.bcs:
             if not isinstance(bc, DirichletBC):

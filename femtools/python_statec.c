@@ -437,6 +437,7 @@ void python_add_mesh_(int ndglno[],int *sndglno, int *elements, int *nodes,
 
 void python_add_faces_(char *state_name, int *state_name_len,
                        char *mesh_name,  int *mesh_name_len,
+                       char *surface_mesh_name, int *surface_mesh_name_len,
                        int surface_node_list[], int *ssurface_node_list,
                        int face_element_list[], int *sface_element_list,
                        int boundary_ids[], int *sboundary_ids)
@@ -444,15 +445,16 @@ void python_add_faces_(char *state_name, int *state_name_len,
 #ifdef HAVE_NUMPY
   char *meshc = fix_string(mesh_name,*mesh_name_len);
   char *statec = fix_string(state_name,*state_name_len);
-  int tlen = 140+*mesh_name_len+*state_name_len;
+  char *surface_meshc = fix_string(surface_mesh_name,*surface_mesh_name_len);
+  int tlen = 200+*mesh_name_len+*state_name_len+*surface_mesh_name_len;
   char t[tlen];
 
   python_add_array_integer_1d(surface_node_list, ssurface_node_list, "surface_node_list_array");
   python_add_array_integer_1d(face_element_list, sface_element_list, "face_element_list_array");
   python_add_array_integer_1d(boundary_ids, sboundary_ids, "boundary_ids_array");
 
-  snprintf(t, tlen, "faces = Faces(surface_node_list_array, face_element_list_array, boundary_ids_array); states['%s'].meshes['%s'].faces = faces",
-           statec, meshc);
+  snprintf(t, tlen, "faces = Faces(surface_node_list_array, face_element_list_array, boundary_ids_array); states['%s'].meshes['%s'].faces = faces; faces.surface_mesh = states['%s'].meshes['%s']",
+           statec, meshc, statec, surface_meshc);
   PyRun_SimpleString(t);
 
   PyRun_SimpleString("del surface_node_list_array; del face_element_list_array; del boundary_ids_array");
