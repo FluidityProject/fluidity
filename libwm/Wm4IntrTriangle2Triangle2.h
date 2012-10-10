@@ -106,6 +106,8 @@ typedef IntrTriangle2Triangle2<long double> IntrTriangle2Triangle2ld;
 
 }
 
+#ifndef DARWIN
 #include "Wm4IntrTriangle2Triangle2.cpp"
+#endif
 
 #endif

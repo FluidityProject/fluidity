@@ -71,6 +71,8 @@ typedef Intersector1<double> Intersector1d;
 
 }
 
+#ifndef DARWIN
 #include "Wm4Intersector1.cpp"
+#endif
 
 #endif
