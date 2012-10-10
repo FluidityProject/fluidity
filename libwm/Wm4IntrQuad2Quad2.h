@@ -61,8 +61,4 @@ typedef IntrQuad2Quad2<double> IntrQuad2Quad2d;
 
 }
 
-#ifndef DARWIN
-#include "Wm4IntrQuad2Quad2.cpp"
-#endif
-
 #endif
