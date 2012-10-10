@@ -170,7 +170,7 @@ contains
 
     end subroutine assemble_diagonal_schur
 
-    subroutine assemble_scaled_pressure_mass_matrix(state, scaled_pressure_mass_matrix, p_mesh)
+    subroutine assemble_scaled_pressure_mass_matrix(state, scaled_pressure_mass_matrix, p_mesh, dt)
 
       ! This routine assembles the scaled_pressure_mass_matrix at the
       ! quadrature points. It is scaled by the inverse of viscosity.
@@ -181,6 +181,7 @@ contains
 
       ! Pressure mesh (for free surface this should be the extended pressure mesh)
       type(mesh_type), intent(in) :: p_mesh
+      real, intent(in) :: dt
 
       ! Viscosity tensor:
       type(tensor_field), pointer :: viscosity     
@@ -217,7 +218,7 @@ contains
         p_shape => ele_shape(p_mesh, ele)
         mu_gi = ele_val_at_quad(viscosity_component, ele)
         call transform_to_physical(positions, ele, detwei=detwei)
-        mass_matrix = shape_shape(p_shape, p_shape, detwei/mu_gi)
+        mass_matrix = shape_shape(p_shape, p_shape, detwei/(mu_gi*dt))
         call addto(scaled_pressure_mass_matrix, ele_nodes(p_mesh, ele),&
              ele_nodes(p_mesh, ele), mass_matrix)
       end do

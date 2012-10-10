@@ -2027,7 +2027,7 @@ contains
 
   end subroutine add_explicit_viscous_free_surface_integrals
 
-  subroutine add_implicit_viscous_free_surface_scaled_mass_integrals(state, mass, u, p_mesh, fs)
+  subroutine add_implicit_viscous_free_surface_scaled_mass_integrals(state, mass, u, p_mesh, fs, dt)
     ! This routine adds in the boundary conditions for the viscous free surface
     ! (that is the free_surface bc with the no_normal_stress option)
     ! to the "scaled mass matrix" (pressure mass scaled with inverse of viscosity used as stokes preconditioner)
@@ -2040,10 +2040,11 @@ contains
     type(vector_field), intent(in):: u
     type(scalar_field), intent(in):: p_mesh
     type(scalar_field), intent(inout):: fs
+    real, intent(in) :: dt
 
     type(tensor_field), pointer :: viscosity
     type(vector_field), pointer:: x
-    type(scalar_field) :: viscosity_component, inverse_viscosity_component
+    type(scalar_field) :: viscosity_component
     type(mesh_type), pointer:: fs_mesh, embedded_fs_mesh
     type(integer_hash_table):: sele_to_fs_ele
     character(len=FIELD_NAME_LEN):: bc_type
@@ -2072,13 +2073,6 @@ contains
     ! Extract first component of viscosity tensor from full tensor:
     viscosity_component = extract_scalar_field(viscosity,1,1)
 
-    ! Allocate memory for inverse viscosity component scalar field:
-    call allocate(inverse_viscosity_component, viscosity_component%mesh, name="inverse_viscosity_component")
-
-    ! Invert viscosity:
-    call invert(viscosity_component,inverse_viscosity_component)
-
-
     do i=1, get_boundary_condition_count(u)
       call get_boundary_condition(u, i, type=bc_type, &
            option_path=bc_option_path, &
@@ -2093,8 +2087,6 @@ contains
       end if
     end do
 
-    call deallocate(inverse_viscosity_component)
-
   contains
 
     subroutine add_boundary_integral_sele(sele)
@@ -2106,7 +2098,7 @@ contains
       call transform_facet_to_physical(x, sele, &
            detwei_f=detwei_bdy)
       mat_bdy = shape_shape(face_shape(fs, sele), face_shape(fs, sele), &
-           detwei_bdy*face_val_at_quad(inverse_viscosity_component, sele))
+           detwei_bdy/(face_val_at_quad(viscosity_component, sele)*dt))
       call addto(mass, ele_nodes(embedded_fs_mesh, fetch(sele_to_fs_ele, sele)), &
                        ele_nodes(embedded_fs_mesh, fetch(sele_to_fs_ele, sele)), &
                        mat_bdy)

@@ -927,9 +927,9 @@
                     call extend_schur_auxiliary_matrix_for_viscous_free_surface( &
                         state(istate), scaled_pressure_mass_matrix, u, p, free_surface, p_mesh)
                   end if
-                  call assemble_scaled_pressure_mass_matrix(state(istate),scaled_pressure_mass_matrix, p_mesh)
+                  call assemble_scaled_pressure_mass_matrix(state(istate),scaled_pressure_mass_matrix, p_mesh, dt)
                   if (implicit_prognostic_fs) then
-                    call add_implicit_viscous_free_surface_scaled_mass_integrals(state(istate), scaled_pressure_mass_matrix, u, p, free_surface)
+                    call add_implicit_viscous_free_surface_scaled_mass_integrals(state(istate), scaled_pressure_mass_matrix, u, p, free_surface, dt)
                   end if
                   if (standard_fs .or. implicit_prognostic_fs) then
                      ewrite(2,*) "Adding free surface to scaled pressure mass matrix preconditioner"
