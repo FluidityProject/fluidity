@@ -41,37 +41,18 @@ module sparse_tools_petsc
   use petsc_tools
 #ifdef HAVE_PETSC_MODULES
   use petsc
-#if PETSC_VERSION_MINOR==0
-  use petscvec
-  use petscmat
-  use petscksp
-  use petscpc
-  use petscis
-  use petscmg
-#endif
 #endif
   implicit none
 #ifdef HAVE_PETSC_MODULES
-#if PETSC_VERSION_MINOR==0
-#include "finclude/petscvecdef.h"
-#include "finclude/petscmatdef.h"
-#include "finclude/petsckspdef.h"
-#include "finclude/petscpcdef.h"
-#include "finclude/petscviewerdef.h"
-#include "finclude/petscisdef.h"
-#else
 #include "finclude/petscdef.h"
-#endif
 #else
 #include "finclude/petsc.h"
-#if PETSC_VERSION_MINOR==0
-#include "finclude/petscvec.h"
-#include "finclude/petscmat.h"
-#include "finclude/petscksp.h"
-#include "finclude/petscpc.h"
-#include "finclude/petscviewer.h"
-#include "finclude/petscis.h"
 #endif
+#if PETSC_VERSION_MINOR>=3
+#define MatCreateSeqAIJ myMatCreateSeqAIJ
+#define MatCreateMPIAIJ myMatCreateMPIAIJ
+#define MatCreateSeqBAIJ myMatCreateSeqBAIJ
+#define MatCreateMPIBAIJ myMatCreateMPIBAIJ
 #endif
 
   private
@@ -160,10 +141,6 @@ module sparse_tools_petsc
      module procedure petsc_csr_assemble
   end interface
 
-  interface petsc_must_assemble_by_column
-     module procedure petsc_must_assemble_by_column_array, &
-          &petsc_must_assemble_by_column_scalar
-  end interface petsc_must_assemble_by_column
 #include "Reference_count_interface_petsc_csr_matrix.F90"
 
   public :: petsc_csr_matrix, petsc_csr_matrix_pointer, &
@@ -607,40 +584,15 @@ contains
     logical :: ret
     type(petsc_csr_matrix), intent(in) :: matrix
     integer, dimension(:), intent(in) :: i
-#if PETSC_VERSION_MAJOR >= 3 && (PETSC_VERSION_MINOR >= 1 || (PETSC_VERSION_MINOR == 0 && PETSC_VERSION_SUBMINOR == 0 && PETSC_VERSION_PATCH >= 8))
+
     ret = .false.
-#else
-    ! due to a bug in petsc, the option MAT_IGNORE_ZERO_ENTRIES causes
-    ! an entire non-owned row to be dropped if only its first entry is
-    ! zero therefore we have to assemble column by column.  Fixed in
-    ! PETSc 3.0.0-p8 and later.  (see
-    ! http://lists.mcs.anl.gov/pipermail/petsc-users/2009-July/004772.html)
-    if (IsParallel() .and. maxval(i)>matrix%row_numbering%nprivatenodes) then
-       ret = .true.
-    else
-       ret = .false.
-    end if
-#endif
   end function petsc_must_assemble_by_column_array
 
   function petsc_must_assemble_by_column_scalar(matrix, i) result(ret)
     logical :: ret
     type(petsc_csr_matrix), intent(in) :: matrix
     integer, intent(in) :: i
-#if PETSC_VERSION_MAJOR >= 3 && (PETSC_VERSION_MINOR >= 1 || (PETSC_VERSION_MINOR == 0 && PETSC_VERSION_SUBMINOR == 0 && PETSC_VERSION_PATCH >= 8))
     ret = .false.
-#else
-    ! due to a bug in petsc, the option MAT_IGNORE_ZERO_ENTRIES causes
-    ! an entire non-owned row to be dropped if only its first entry is
-    ! zero therefore we have to assemble column by column.  Fixed in
-    ! PETSc 3.0.0-p8 and later.  (see
-    ! http://lists.mcs.anl.gov/pipermail/petsc-users/2009-July/004772.html)
-    if (IsParallel() .and. i>matrix%row_numbering%nprivatenodes) then
-       ret = .true.
-    else
-       ret = .false.
-    end if
-#endif
   end function petsc_must_assemble_by_column_scalar
 
   pure function petsc_csr_block_size(matrix, dim)
@@ -761,22 +713,12 @@ contains
     PetscInt, dimension(size(j)):: idxn
     PetscErrorCode:: ierr
     
-    integer:: k
-    
     idxm=matrix%row_numbering%gnn2unn(i,blocki)
     idxn=matrix%column_numbering%gnn2unn(j,blockj)
     
-    if (petsc_must_assemble_by_column(matrix, i)) then
-      do k=1, size(j)
-        ! luckily columns are contiguous in memory in fortran, so no copy, required
-        call MatSetValues(matrix%M, size(i), idxm, 1, idxn(k:k), real(val(:,k), kind=PetscScalar_kind), &
-          ADD_VALUES, ierr)
-      end do
-    else
-    
-      call MatSetValues(matrix%M, size(i), idxm, size(j), idxn, real(val, kind=PetscScalar_kind), &
+    call MatSetValues(matrix%M, size(i), idxm, size(j), idxn, real(val, kind=PetscScalar_kind), &
         ADD_VALUES, ierr)
-    end if
+
     matrix%is_assembled=.false.
 
   end subroutine petsc_csr_vaddto
@@ -792,20 +734,13 @@ contains
     PetscInt, dimension(size(matrix%row_numbering%gnn2unn,2)):: idxm
     PetscInt, dimension(size(matrix%column_numbering%gnn2unn,2)):: idxn
     PetscErrorCode:: ierr
-    integer:: blockj
     
     idxm=matrix%row_numbering%gnn2unn(i,:)
     idxn=matrix%column_numbering%gnn2unn(j,:)
     
-    if (petsc_must_assemble_by_column(matrix, i)) then
-      do blockj=1, size(matrix%column_numbering%gnn2unn,2)
-        call MatSetValues(matrix%M, size(idxm), idxm, 1, idxn(blockj:blockj), &
-                  real(val(:,blockj), kind=PetscScalar_kind), ADD_VALUES, ierr)
-      end do
-    else
-      call MatSetValues(matrix%M, size(idxm), idxm, size(idxn), idxn, &
+    call MatSetValues(matrix%M, size(idxm), idxm, size(idxn), idxn, &
                   real(val, kind=PetscScalar_kind), ADD_VALUES, ierr)
-    end if
+
     matrix%is_assembled=.false.
 
   end subroutine petsc_csr_block_addto
@@ -823,29 +758,19 @@ contains
     PetscInt, dimension(size(i)):: idxm
     PetscInt, dimension(size(j)):: idxn
     PetscErrorCode:: ierr
-    integer:: blocki, blockj, k
-    logical:: insert_per_column
+    integer:: blocki, blockj
     
-    insert_per_column=petsc_must_assemble_by_column(matrix, i)
-
     do blocki=1, size(matrix%row_numbering%gnn2unn,2)
       idxm=matrix%row_numbering%gnn2unn(i,blocki)
       do blockj=1, size(matrix%column_numbering%gnn2unn,2)
         idxn=matrix%column_numbering%gnn2unn(j,blockj)
         ! unfortunately we need a copy here to pass contiguous memory
         value=val(blocki, blockj, :, :)
-        if (insert_per_column) then
-          do k=1, size(j)
-            ! luckily columns are contiguous in memory in fortran, so no copy, required
-            call MatSetValues(matrix%M, size(i), idxm, 1, idxn(k:k), &
-                value(:,k), ADD_VALUES, ierr)
-          end do
-        else
-          call MatSetValues(matrix%M, size(i), idxm, size(j), idxn, &
+        call MatSetValues(matrix%M, size(i), idxm, size(j), idxn, &
               value, ADD_VALUES, ierr)
-        end if
       end do
     end do
+
     matrix%is_assembled=.false.
 
   end subroutine petsc_csr_blocks_addto
@@ -864,11 +789,8 @@ contains
     PetscInt, dimension(size(i)):: idxm
     PetscInt, dimension(size(j)):: idxn
     PetscErrorCode:: ierr
-    integer:: blocki, blockj, k
-    logical:: insert_per_column
+    integer:: blocki, blockj
     
-    insert_per_column=petsc_must_assemble_by_column(matrix, i)
-
     do blocki=1, size(matrix%row_numbering%gnn2unn,2)
       idxm=matrix%row_numbering%gnn2unn(i,blocki)
       do blockj=1, size(matrix%column_numbering%gnn2unn,2)
@@ -876,19 +798,12 @@ contains
           idxn=matrix%column_numbering%gnn2unn(j,blockj)
           ! unfortunately we need a copy here to pass contiguous memory
           value=val(blocki, blockj, :, :)
-          if (insert_per_column) then
-            do k=1, size(j)
-              ! luckily columns are contiguous in memory in fortran, so no copy, required
-              call MatSetValues(matrix%M, size(i), idxm, 1, idxn(k:k), &
-                  value(:,k), ADD_VALUES, ierr)
-            end do
-          else
-            call MatSetValues(matrix%M, size(i), idxm, size(j), idxn, &
+          call MatSetValues(matrix%M, size(i), idxm, size(j), idxn, &
                 value, ADD_VALUES, ierr)
-          end if
         end if
       end do
     end do
+
     matrix%is_assembled=.false.
 
   end subroutine petsc_csr_blocks_addto_withmask
