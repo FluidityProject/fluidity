@@ -60,7 +60,7 @@ subroutine test_vector_lon_lat_height_2_cartesian_c
                                      ! & lon-lat-height bases.
   real, dimension(3) :: meridionalZonalVerticalVectorComponents, &
                         cartesianVectorComponents
-  real, dimension(3) :: XYZ, LLH !Arrays containing a signel node's position vector
+  real, dimension(3) :: XYZ, LLH !Arrays containing a single node's position vector
                                  ! components in Cartesian & lon-lat-height bases.
   integer :: node
   logical :: fail

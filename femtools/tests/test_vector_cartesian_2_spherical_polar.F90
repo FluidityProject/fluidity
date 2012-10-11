@@ -49,7 +49,7 @@ subroutine test_vector_cartesian_2_spherical_polar
                         azimuthalVectorDifference
   real, dimension(3) :: sphericalPolarVectorComponents, &
                         cartesianVectorComponents
-  real, dimension(3) :: XYZ, RTP !Arrays containing a signel node's position vector
+  real, dimension(3) :: XYZ, RTP !Arrays containing a single node's position vector
                                  ! components in Cartesian & spherical-polar bases.
   integer :: node
   logical :: fail

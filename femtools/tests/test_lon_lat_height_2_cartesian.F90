@@ -40,7 +40,7 @@ subroutine test_lon_lat_height_2_cartesian
   type(vector_field), pointer :: CartesianCoordinate
   type(vector_field) :: difference
   integer :: node
-  real, dimension(3) :: LLH, XYZ !Arrays containing a signel node's position vector
+  real, dimension(3) :: LLH, XYZ !Arrays containing a single node's position vector
                                  ! components in lon-lat-height & Cartesian coordinates.
   logical :: fail
 

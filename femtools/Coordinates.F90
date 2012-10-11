@@ -165,7 +165,7 @@ contains
     real :: phi_f
     real :: x_f,y_f,z_f
 
-    !Cast input variables to FORTRAN intrinsic types.
+    !Cast input variables to Fortran intrinsic types.
     radius_f = real(radius)
     theta_f = real(theta)
     phi_f = real(phi)
@@ -181,7 +181,7 @@ contains
   end subroutine spherical_polar_2_cartesian_c
 
   subroutine cartesian_2_spherical_polar(x,y,z,radius,theta,phi)
-    !Subroutine for calculation of Cartesian coordinates from spherical-polar coordinates.
+    !Subroutine for calculation of spherical-polar coordinates from cartesian.
     implicit none
 
     real, intent(in) :: x,y,z   !cartesian coordinates
@@ -227,14 +227,14 @@ contains
   
   subroutine spherical_polar_2_cartesian_field(spherical_polar_coordinate_field, &
                                                cartesian_coordinate_field)
-    !Subroutine for convertion of a spherical-polar coordinate field into a cartesian
+    !Subroutine for conversion of a spherical-polar coordinate field into a cartesian
     ! coordinate field.
     implicit none
 
     type(vector_field) :: spherical_polar_coordinate_field
     type(vector_field) :: cartesian_coordinate_field
     integer :: node
-    real, dimension(3) :: XYZ, RTP !arrays containing a signel node's position vector
+    real, dimension(3) :: XYZ, RTP !arrays containing a single node's position vector
                                    ! in cartesian & spherical-polar bases 
 
     do node=1,node_count(spherical_polar_coordinate_field)
@@ -247,14 +247,14 @@ contains
 
   subroutine cartesian_2_spherical_polar_field(cartesian_coordinate_field, &
                                                spherical_polar_coordinate_field)
-    !Subroutine for convertion of a cartesian coordinate field into a spherical-polar
+    !Subroutine for conversion of a cartesian coordinate field into a spherical-polar
     ! coordinate field.
     implicit none
 
     type(vector_field) :: cartesian_coordinate_field
     type(vector_field) :: spherical_polar_coordinate_field
     integer :: node
-    real, dimension(3) :: XYZ, RTP !arrays containing a signel node's position vector
+    real, dimension(3) :: XYZ, RTP !arrays containing a single node's position vector
                                    ! components in cartesian & spherical-polar bases 
 
     do node=1,node_count(cartesian_coordinate_field)
@@ -306,7 +306,7 @@ contains
     !Subroutine for conversion of spherical-polar coordinates to
     !  longitude-latitude-height coordinates. The polar coordinates must
     !  be given in radians. Longitude and latitude are returned in
-    !  degrees. If referenceRadius is specified, height is measured as the as the
+    !  degrees. If referenceRadius is specified, height is measured as the
     !  radial distance relative to that radius, ie it is the distance relative to the
     !  surface of the sphere. if referenceRadius is absent height is the distance
     !  from the center of the sphere.
@@ -339,7 +339,7 @@ contains
   subroutine lon_lat_height_2_cartesian(longitude, latitude, height, &
                                         x, y, z, &
                                         referenceRadius)
-    !Subroutine for convertion of longitude-latitude-height coordinates into 
+    !Subroutine for conversion of longitude-latitude-height coordinates into 
     ! Cartesian coordinates. If referenceRadius is specified, height is measured
     ! as the radial distance relative to that radius, i.e. it is the distance
     ! relative to the surface of the sphere.
@@ -395,7 +395,7 @@ contains
     real :: x_f,y_f,z_f
     real :: referenceRadius_f
 
-    !Cast input variables to FORTRAN intrinsic types.
+    !Cast input variables to Fortran intrinsic types.
     longitude_f = real(longitude)
     latitude_f = real(latitude)
     height_f = real(height)
@@ -448,8 +448,7 @@ contains
   subroutine cartesian_2_lon_lat_height_c(x, y, z, longitude, latitude, height, &
                                           referenceRadius) bind(c)
     !C-inter-operable subroutine for conversion of Cartesian coordinates into
-    ! longitude-latitude-height. If referenceRadius is specified, height is measured
-    ! as the radial distance relative to that radius.
+    ! longitude-latitude-height.
     implicit none
 
     real(kind=c_double) :: x,y,z   !Cartesian coordinates
@@ -464,7 +463,7 @@ contains
     real :: height_f
     real :: referenceRadius_f
 
-    !Cast input variables to FORTRAN intrinsic types.
+    !Cast input variables to Fortran intrinsic types.
     x_f = real(x)
     y_f = real(y)
     z_f = real(z)
@@ -473,7 +472,7 @@ contains
 
     !Convert coordinates
     call cartesian_2_lon_lat_height(x_f, y_f, z_f, longitude_f, latitude_f, height_f, &
-                                        referenceRadius)
+                                        referenceRadius_f)
 
     !Cast output variables to C-inter-operable types.
     longitude = real(longitude_f, kind=c_double)
@@ -729,7 +728,7 @@ contains
                                                  referenceRadius) bind(c)
     !C-interoperable subroutine for change of basis of a vector from
     !  meridional-zonal-vertical components to cartesian components. Note that
-    !  unlike the FORTRAN version of the present routine, referenceRadius is
+    !  unlike the Fortran version of the present routine, referenceRadius is
     !  a mandatory argument.
     implicit none
 
@@ -770,7 +769,7 @@ contains
     real :: zCoord_f         !3rd vector component of position vector in cartesian basis
     real :: referenceRadius_f
 
-    !Convert C-types in to FORTRAN intrinsic types.
+    !Convert C-types in to Fortran intrinsic types.
     zonalComponent_f = real(zonalComponent)
     meridionalComponent_f = real(meridionalComponent)
     verticalComponent_f = real(verticalComponent)
@@ -790,7 +789,7 @@ contains
                                            xCoord_f, yCoord_f, zCoord_f, &
                                            referenceRadius_f)
 
-    !Convert FORTRAN intrinsic types to C-types.
+    !Convert Fortran intrinsic types to C-types.
     xComp = real(xComp_f, kind=c_double)
     yComp = real(yComp_f, kind=c_double)
     zComp = real(zComp_f, kind=c_double)
@@ -811,7 +810,7 @@ contains
                                                  referenceRadius) bind (c)
     !C inter-operable subroutine for change of basis of a vector from Cartesian to
     !  meridional-zonal-vertical. Note that
-    !  unlike the FORTRAN version of the present routine, referenceRadius is
+    !  unlike the Fortran version of the present routine, referenceRadius is
     !  a mandatory argument.
     implicit none
 
@@ -855,7 +854,7 @@ contains
     real :: height_f
     real :: referenceRadius_f
 
-    !Convert C-types in to FORTRAN intrinsic types.
+    !Convert C-types in to Fortran intrinsic types.
     xComp_f = real(xComp)
     yComp_f = real(yComp)
     zComp_f = real(zComp)
@@ -875,7 +874,7 @@ contains
                                            height_f, &
                                            referenceRadius_f)
 
-    !Convert FORTRAN intrinsic types to C-types.
+    !Convert Fortran intrinsic types to C-types.
     zonalComponent = real(zonalComponent_f, kind=c_double)
     meridionalComponent = real(meridionalComponent_f, kind=c_double)
     verticalComponent = real(verticalComponent_f, kind=c_double)
@@ -1057,7 +1056,7 @@ contains
 
   function rotate_diagonal_to_cartesian_gi(positions, ele_number, diagonal) result(quad_val)
     ! Given the diagonal of a tensor in spherical coordinates, this function transforms the
-    ! tensor components to a cartesian system system at all quadrature points of an element.
+    ! tensor components to a cartesian system at all quadrature points of an element.
     ! This result is given by R(diagonal)R^T where R is the transformation matrix.
     type(vector_field), intent(in) :: positions
     integer, intent(in) :: ele_number
@@ -1109,7 +1108,7 @@ contains
 
   function rotate_diagonal_to_cartesian_face(positions, face_number, diagonal) result(quad_val)
     ! Given the diagonal of a tensor in spherical coordinates, this function transforms the
-    ! tensor components to a cartesian system system at all quadrature points of an face.
+    ! tensor components to a cartesian system at all quadrature points of an face.
     ! This result is given by R(diagonal)R^T where R is the transformation matrix.
     type(vector_field), intent(in) :: positions
     integer, intent(in) :: face_number
