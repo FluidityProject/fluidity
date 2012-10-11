@@ -1420,6 +1420,27 @@ solving the equations.
 \section{Changing coordinates and bases}
 A number of routines have been implemented in \lstinline{femtools/Coordinates.F90}
 that can be used for coordinate transformations and vector/tensor change of basis.
+The transformations available allow expression of tensor fields in three coordinate
+systems:
+\begin{enumerate}
+\item{\emph{Cartesian coordinates:}} The default coordinate-set in Fluidity. In an
+ocean modelling context the origin of the axes is placed at the centre of the planet,
+the $x$--axis goes through the $0^\circ$ East, $0^\circ$ North point on the surface,
+the $y$--axis goes through the $90^\circ$ East, $0^\circ$ North point on the surface
+and the $z$--axis runs though the planet's poles (spherical planet assumed).
+\item{\emph{Spherical-polar coordinates:}} The position vector is specified in terms
+of $\left[ r \theta \phi \right]^T$, where $r$ is the distance from the axes origin,
+$\theta$ is the polar angle and $\phi$ is the azimuthal angle, also shown in the left
+panel of figure \ref{fig:polarCoordinates}. The vector basis is $\left[ \hat{e}_r \hat{e}_\theta \hat{e}_\phi \right]^T$, also shown in figure \ref{fig:polarCoordinates}.
+\item{\emph{longitude--latitude coordinates:}}
+\end{enumerate}
+\begin{figure}[ht]
+  \centering
+  \scalebox{0.55}{\includegraphics{coordinate_transformations.png}}
+  \caption{}
+  \label{fig:polarCoordinates}
+\end{figure}
+\par
 The transformation routines also feature C-interoperable routines so that the
 tansformations can also be called from C/C++ code. The C function prototypes are
 located in \lstinline{include/coordinates.h}.
@@ -1436,8 +1457,8 @@ Fortran routine: \lstinline{cartesian_2_spherical_polar}\\
 Fortran routine unit-test: \lstinline{femtools/tests/test_cartesian_2_spherical_polar.F90}\\
 C-inter-operable wrapper: \lstinline{cartesian_2_spherical_polar_c}\\
 C-inter-operable wrapper unit-test: \lstinline{femtools/tests/test_cartesian_2_spherical_polar_c.F90}
-
-
+\par
+Write about he python version of the transformation routines.
 
 
 
