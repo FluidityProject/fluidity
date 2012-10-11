@@ -1243,35 +1243,49 @@ start =
                   ## for thermal fields. This is used to calculate the turbulent buoyancy term.
                   ## Recommended value (default): 1.0.
                   element sigma_p {real},
-                  ## Implicit source term - lump production term into absorbtion so that it is calculated 
-                  ## implicitly
-                  element implicit_source { empty }?,
-                  ## Implicit buoyancy term - lump buoyancy term into absorbtion so that it is calculated 
-                  ## implicitly
-                  element implicit_buoyancy { empty }?,
-                  ## Explicit absorbtion term - lump absorbtion term into source so that it is calculated 
-                  ## explicitly
-                  element explicit_absorbtion { empty }?,
-                  element mass_lumping_in_diagnostics {  
+                  ## Time discretisation of the source terms in the k and epsilon equations and also
+                  ## of the eddy viscosity
+                  element time_discretisation {  
+                     ## Implicit/explicit control (THETA) of source terms and eddy viscosity in
+                     ## the k-epsilon model
+                     ##  = 0.  -- explicit
+                     ##  = 0.5 -- Crank-Nicolson
+                     ##  = 1.  -- implicit
+                     element theta {real},
+                     ## Each term in the k and epsilon equations can be implemented as either a 
+                     ## source or as an absorbtion term. See the manual under 
+                     ## 'Parameterisations/Turbulent flow modelling and simulation/Reynolds Averaged Navier Stokes (RANS) Modelling/Standard k − ε Turbulence Model/Time Discretisation and Coupling' 
+                     ## for more information.
+                     element source_term_implementation { 
+                        element production_term { 'source'|'absorbtion' },
+                        element destruction_term { 'source'|'absorbtion' },
+                        element buoyancy_term { 'source'|'absorbtion' }
+                     }
+                  },
+                  ## The source terms in the k-epsilon model are calculated before the field is 
+                  ## solved. The process requires inversion of a mass matrix. This element contains
+                  ## options for defining how this is done. For P1 meshes mass lumping can be used,
+                  ## for other discretisations the mass matrix can not be easily inverted and so a 
+                  ## solve must be carried out, with solver options specified.
+                  element mass_terms {  
                      (
                         element lump_mass { empty }
                         |
-                        element solve_using_mass_matrix { 
+                        element use_consistent_mass_matrix { 
                            element solver {
                               linear_solver_options_asym
                            }
                         }                     
                      )
                   },
-                  ## produce vtu output of individual kk and eps source terms and set prescribed source terms
-                  ## for k and epsilon fields (for mms tests)
+                  ## produce vtu output of individual kk and eps source terms and set prescribed 
+                  ## source terms for k and epsilon fields (for mms tests)
                   element debugging_options{
-                     ## output fields for each of the source and absorbtion terms in the k-epsilon 
-                     ## model
+                     ## output fields for each of the source terms in the k-epsilon model
                      element source_term_output_fields{
                         element scalar_field {
                            attribute rank { "0" },
-                           attribute name { "TurbulentKineticEnergyProduction" },
+                           attribute name { "TurbulentKineticEnergy_production_term" },
                            element diagnostic {
                               internal_algorithm,
                               velocity_mesh_choice,
@@ -1280,7 +1294,7 @@ start =
                         }?,
                         element scalar_field {
                            attribute rank { "0" },
-                           attribute name { "TurbulentKineticEnergyBuoyancyTerm" },
+                           attribute name { "TurbulentKineticEnergy_destruction_term" },
                            element diagnostic {
                               internal_algorithm,
                               velocity_mesh_choice,
@@ -1289,7 +1303,7 @@ start =
                         }?,
                         element scalar_field {
                            attribute rank { "0" },
-                           attribute name { "TurbulentKineticEnergyDestruction" },
+                           attribute name { "TurbulentKineticEnergy_buoyancy_term" },
                            element diagnostic {
                               internal_algorithm,
                               velocity_mesh_choice,
@@ -1298,7 +1312,7 @@ start =
                         }?,
                         element scalar_field {
                            attribute rank { "0" },
-                           attribute name { "TurbulentDissipationProduction" },
+                           attribute name { "TurbulentDissipation_production_term" },
                            element diagnostic {
                               internal_algorithm,
                               velocity_mesh_choice,
@@ -1307,7 +1321,7 @@ start =
                         }?,
                         element scalar_field {
                            attribute rank { "0" },
-                           attribute name { "TurbulentDissipationBuoyancyTerm" },
+                           attribute name { "TurbulentDissipation_destruction_term" },
                            element diagnostic {
                               internal_algorithm,
                               velocity_mesh_choice,
@@ -1316,7 +1330,7 @@ start =
                         }?,
                         element scalar_field {
                            attribute rank { "0" },
-                           attribute name { "TurbulentDissipationDestruction" },
+                           attribute name { "TurbulentDissipation_buoyancy_term" },
                            element diagnostic {
                               internal_algorithm,
                               velocity_mesh_choice,
@@ -1345,11 +1359,11 @@ start =
                         }?
                      },
                      ## enabling this option disables the production term in the k and epsilon equations
-                     element disable_production{ empty }?,
+                     element disable_production_term{ empty }?,
                      ## enabling this option disables the destruction term in the k and epsilon equation
-                     element disable_destruction{ empty }?,
+                     element disable_destruction_term{ empty }?,
                      ## enabling this option disables the bouyancy term in the k and epsilon equation
-                     element disable_buoyancy{ empty }?,
+                     element disable_buoyancy_term{ empty }?,
                      ## enabling this option enables the low-Re number damping functions regardless of whether there is
                      ## a low-Re boundary condition
                      element enable_lowRe_damping{ empty }?,
@@ -4188,6 +4202,14 @@ scalar_field_choice =
                }
             )
          }|
+         ## Buoyancy Adjustment diffusivity
+         ##
+         ## The element-wise diffusion applied
+         ## in the buoyancy adjustment by vertical mixing
+         ## scheme available for tracer fields.
+         ##
+         ## This is an element-wise P0 field, so it is best
+         ## calculated in a discontinuous function space.
          element scalar_field {
             attribute rank { "0" },
             attribute name { "BuoyancyAdjustmentDiffusivity" },

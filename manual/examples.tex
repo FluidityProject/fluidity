@@ -5,7 +5,7 @@
 This chapter describes several example problems that cover the various aspects of the functionality
 of \fluidity. The input files for these examples can be found in separate directories
 under \\ \texttt{\fluiditysourcepath/examples/}. Each directory contains a \texttt{Makefile},
-that implements the following commands. The examples are run by giving these 3 commands in order.
+that implements the following commands. Unless otherwise specified, the examples are run by giving these 3 commands in order.
 
 \hspace{0.05\textwidth}
 \begin{minipage}{0.9\textwidth}
@@ -47,6 +47,7 @@ examples plots are created and put in the directory.
   \ref{sec:tides_in_the_med} Tides in the Mediterranean Sea  & \texttt{tides\_in\_the\_Mediterranean\_Sea/} & 64 & 5 hr. \\
   \ref{sec:hokkaido-nansei-oki_tsunami} Hokkaido-Nansei-Oki tsunami  & \texttt{hokkaido-nansei-oki\_tsunami/} & 4 & 1.5 hr. \\
   \ref{sec:tephra_settling} Tephra settling & \texttt{tephra\_settling/} & 1 & 1 hr. \\
+  \ref{sec:stokes_square_convection} Stokes square convection & \texttt{stokes\_square\_convection/} & 1 & 15 min. \\
   \hline
 \end{tabular}
 \caption{Estimated run times (wall time) for the examples. For parallel examples this is using
@@ -1444,3 +1445,14 @@ To explore the multiphase functionality of \fluidity, the following variations o
 \item Alter the particle size to observe its affect on plume formation
 \item Add a second dispersed phase (with a different particle size).
 \end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%% Stokes square convection  %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Stokes Square Convection}
+\label{sec:stokes_square_convection}
+
+\subsection{Overview}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
