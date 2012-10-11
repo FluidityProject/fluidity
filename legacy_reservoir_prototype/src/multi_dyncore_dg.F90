@@ -2191,6 +2191,10 @@
 
       JUST_BL_DIAG_MAT=( ( .NOT. GOT_DIFFUS ) .AND. ( .NOT. GOT_UDEN ) )
 
+!        print *,'RESID_BASED_STAB_DIF,BETWEEN_ELE_STAB,GOT_DIFFUS:', &
+!                 RESID_BASED_STAB_DIF,BETWEEN_ELE_STAB,GOT_DIFFUS
+!      stop 292
+
       ALLOCATE(UDIFF_SUF_STAB(NDIM,NPHASE,SBCVNGI,NDIM,NDIM ))
       UDIFF_SUF_STAB=0.0
 
@@ -2262,17 +2266,23 @@
       ewrite(3,*) 'got_diffus:', got_diffus
 
       IF( GOT_DIFFUS ) THEN
+         !  print *,'X_NLOC,U_NLOC,cv_nloc,XU_NLOC:',X_NLOC,U_NLOC,cv_nloc,XU_NLOC
+         !  stop 821
          ! Calculate all the 1st order derivatives for the diffusion term.
          CALL DG_DERIVS_UVW( U, UOLD, V, VOLD, W, WOLD, &
-              NDIM, NPHASE, U_NONODS, TOTELE, U_NDGLN, X_NLOC, X_NDGLN, &
-              CV_NGI, U_NLOC, CVWEIGHT, UFEN, UFENLX, UFENLY, UFENLZ, &
-              X_NONODS, X, Y, Z,  &
               DUX_ELE, DUY_ELE, DUZ_ELE, DUOLDX_ELE, DUOLDY_ELE, DUOLDZ_ELE, &
               DVX_ELE, DVY_ELE, DVZ_ELE, DVOLDX_ELE, DVOLDY_ELE, DVOLDZ_ELE, &
               DWX_ELE, DWY_ELE, DWZ_ELE, DWOLDX_ELE, DWOLDY_ELE, DWOLDZ_ELE, &
-              NFACE,FACE_ELE,U_SLOCLIST,STOTEL,U_SNLOC,WIC_U_BC, &
+              NDIM, NPHASE, U_NONODS, TOTELE, U_NDGLN, &
+              XU_NDGLN, X_NLOC, X_NDGLN, &
+              CV_NGI, U_NLOC, CVWEIGHT, &
+              UFEN, UFENLX, UFENLY, UFENLZ, &
+              CVFEN, CVFENX, CVFENY, CVFENZ, &
+              X_NONODS, X, Y, Z, &
+              NFACE, FACE_ELE, U_SLOCLIST, CV_SLOCLIST, STOTEL, U_SNLOC, CV_SNLOC, WIC_U_BC, &
               SUF_U_BC,SUF_V_BC,SUF_W_BC, &
-              WIC_U_BC_DIRICHLET, SBCVNGI, SBUFEN, SBUFENSLX, SBUFENSLY, SBCVFEWEIGH)
+              WIC_U_BC_DIRICHLET, SBCVNGI, SBUFEN, SBUFENSLX, SBUFENSLY, SBCVFEWEIGH, &
+              SBCVFEN, SBCVFENSLX, SBCVFENSLY)
       ENDIF
 
       Loop_Elements: DO ELE = 1, TOTELE ! Volume integral

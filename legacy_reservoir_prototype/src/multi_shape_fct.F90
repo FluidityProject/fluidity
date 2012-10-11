@@ -7633,7 +7633,7 @@
       REAL, intent( inout ) :: VOLUME
       LOGICAL, intent( in ) :: D1, D3, DCYL
       REAL, DIMENSION( X_NLOC, NGI ), intent( inout ) :: NX, NY, NZ
-      REAL, DIMENSION( U_NLOC, NGI ), intent( inout ) :: UNLX, UNLY, UNLZ
+      REAL, DIMENSION( U_NLOC, NGI ), intent( in ) :: UNLX, UNLY, UNLZ
       REAL, DIMENSION( U_NLOC, NGI ), intent( inout ) :: UNX, UNY, UNZ
 
       ! Local variables

@@ -660,14 +660,16 @@
 
       IF( GOT_DIFFUS ) THEN
          CALL DG_DERIVS( FEMT, FEMTOLD, &
-              NDIM, NPHASE, CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
-              !NGI2, CV_NLOC, N2, WEIGHT2, N2, NLX2, NLY2, NLY2, &
-              CV_NGI_SHORT, CV_NLOC, CVWEIGHT_SHORT, CVFEN_SHORT, &
-              CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, &
-              X_NONODS, X, Y, Z,  &
               DTX_ELE, DTY_ELE, DTZ_ELE, DTOLDX_ELE, DTOLDY_ELE, DTOLDZ_ELE, &
-              NFACE, FACE_ELE, CV_SLOCLIST, STOTEL, CV_SNLOC, WIC_T_BC, SUF_T_BC, &
-              WIC_T_BC_DIRICHLET, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH )
+              NDIM, NPHASE, CV_NONODS, TOTELE, CV_NDGLN, &
+              X_NDGLN, X_NLOC, X_NDGLN, &
+              CV_NGI_SHORT, CV_NLOC, CVWEIGHT_SHORT, &
+              CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, &
+              CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, &
+              X_NONODS, X, Y, Z,  &
+              NFACE, FACE_ELE, CV_SLOCLIST, CV_SLOCLIST, STOTEL, CV_SNLOC, CV_SNLOC, WIC_T_BC, SUF_T_BC, &
+              WIC_T_BC_DIRICHLET, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, &
+              SBCVFEN, SBCVFENSLX, SBCVFENSLY)
       ENDIF
 
       !     =============== DEFINE THETA FOR TIME-STEPPING ===================
@@ -1882,8 +1884,10 @@
 
 !!! --- HACK THE SOLVER OPTIONS TO BE THE SAME AS THAT OF PRESSURE --- !!!
 
+        
       ! Solve...
       DO IT = 1, NTSOL
+!           print *,'it,about to solve it,ntsol:',it,ntsol
          CALL SOLVER( MAT,  &
               FEMPSI( 1 + (IT - 1 ) * CV_NONODS : CV_NONODS + (IT - 1 ) * CV_NONODS ),  &
               FEMPSI_RHS( 1 + ( IT - 1 ) * CV_NONODS : CV_NONODS + (IT - 1 ) * CV_NONODS ),  &
@@ -1915,64 +1919,84 @@
 
 
     SUBROUTINE DG_DERIVS_UVW( U, UOLD, V, VOLD, W, WOLD, &
-         NDIM, NPHASE, U_NONODS, TOTELE, U_NDGLN, X_NLOC, X_NDGLN, &
-         CV_NGI, U_NLOC, CVWEIGHT, N, NLX, NLY, NLZ, &
-         X_NONODS, X, Y, Z, &
          DUX_ELE, DUY_ELE, DUZ_ELE, DUOLDX_ELE, DUOLDY_ELE, DUOLDZ_ELE, &
          DVX_ELE, DVY_ELE, DVZ_ELE, DVOLDX_ELE, DVOLDY_ELE, DVOLDZ_ELE, &
          DWX_ELE, DWY_ELE, DWZ_ELE, DWOLDX_ELE, DWOLDY_ELE, DWOLDZ_ELE, &
-         NFACE, FACE_ELE, U_SLOCLIST, STOTEL, U_SNLOC, WIC_U_BC,  &
+         NDIM, NPHASE, U_NONODS, TOTELE, U_NDGLN, &
+         XU_NDGLN, X_NLOC, X_NDGLN, &
+         CV_NGI, U_NLOC, CVWEIGHT, &
+         N, NLX, NLY, NLZ, &
+         CVFEN, CVFENX, CVFENY, CVFENZ, &
+         X_NONODS, X, Y, Z, &
+         NFACE, FACE_ELE, U_SLOCLIST, CV_SLOCLIST, STOTEL, U_SNLOC, CV_SNLOC, WIC_U_BC,  &
          SUF_U_BC,SUF_V_BC,SUF_W_BC, &
-         WIC_U_BC_DIRICHLET, SBCVNGI,SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBWEIGH ) 
+         WIC_U_BC_DIRICHLET, SBCVNGI, SBUFEN, SBUFENSLX, SBUFENSLY, SBWEIGH, & 
+         SBCVFEN, SBCVFENSLX, SBCVFENSLY)   
 
       ! determine FEMT (finite element wise) etc from T (control volume wise)
       use shape_functions 
       use matrix_operations
       IMPLICIT NONE
       INTEGER, intent( in ) :: NDIM, NPHASE, U_NONODS, TOTELE, X_NLOC, CV_NGI, U_NLOC, &
-           X_NONODS, STOTEL, U_SNLOC, WIC_U_BC_DIRICHLET, SBCVNGI, NFACE
+           X_NONODS, STOTEL, U_SNLOC, CV_SNLOC, WIC_U_BC_DIRICHLET, SBCVNGI, NFACE
       REAL, DIMENSION( U_NONODS * NPHASE ), intent( in ) :: U, UOLD, V, VOLD, W, WOLD
-      INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ) :: U_NDGLN
-      INTEGER, DIMENSION( TOTELE * X_NLOC ), intent( in ) ::  X_NDGLN
-      INTEGER, DIMENSION( STOTEL*NPHASE ), intent( in ) ::  WIC_U_BC
-      REAL, DIMENSION( STOTEL*U_SNLOC*NPHASE ), intent( in ) ::  SUF_U_BC,SUF_V_BC,SUF_W_BC
-      INTEGER, DIMENSION( NFACE,U_SNLOC ), intent( in ) ::  U_SLOCLIST
-      INTEGER, DIMENSION( NFACE,TOTELE ), intent( in ) ::  FACE_ELE
-      REAL, DIMENSION( CV_NGI ), intent( inout ) :: CVWEIGHT
-      REAL, DIMENSION( U_NLOC, CV_NGI ), intent( in ) :: N, NLX, NLY, NLZ 
-      REAL, DIMENSION( X_NONODS ), intent( in ) :: X, Y, Z
       REAL, DIMENSION( U_NLOC, NPHASE, TOTELE ), intent( inout ) :: DUX_ELE,DUY_ELE,DUZ_ELE, &
            DUOLDX_ELE,DUOLDY_ELE,DUOLDZ_ELE
       REAL, DIMENSION( U_NLOC, NPHASE, TOTELE ), intent( inout ) :: DVX_ELE,DVY_ELE,DVZ_ELE, &
            DVOLDX_ELE,DVOLDY_ELE,DVOLDZ_ELE
       REAL, DIMENSION( U_NLOC, NPHASE, TOTELE ), intent( inout ) :: DWX_ELE,DWY_ELE,DWZ_ELE, &
            DWOLDX_ELE,DWOLDY_ELE,DWOLDZ_ELE
-      REAL, DIMENSION( U_SNLOC, SBCVNGI ), intent( in ) :: SBCVFEN, SBCVFENSLX, SBCVFENSLY
+      INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ) :: U_NDGLN
+      INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ) :: XU_NDGLN
+      INTEGER, DIMENSION( TOTELE * X_NLOC ), intent( in ) ::  X_NDGLN
+      INTEGER, DIMENSION( STOTEL*NPHASE ), intent( in ) ::  WIC_U_BC
+      REAL, DIMENSION( STOTEL*U_SNLOC*NPHASE ), intent( in ) ::  SUF_U_BC,SUF_V_BC,SUF_W_BC
+      INTEGER, DIMENSION( NFACE,U_SNLOC ), intent( in ) ::  U_SLOCLIST
+      INTEGER, DIMENSION( NFACE,CV_SNLOC ), intent( in ) ::  CV_SLOCLIST
+      INTEGER, DIMENSION( NFACE,TOTELE ), intent( in ) ::  FACE_ELE
+      REAL, DIMENSION( CV_NGI ), intent( inout ) :: CVWEIGHT
+      REAL, DIMENSION( U_NLOC, CV_NGI ), intent( in ) :: N, NLX, NLY, NLZ 
+      REAL, DIMENSION( X_NLOC, CV_NGI ), intent( in ) :: CVFEN, CVFENX, CVFENY, CVFENZ
+      REAL, DIMENSION( X_NONODS ), intent( in ) :: X, Y, Z
+      REAL, DIMENSION( U_SNLOC, SBCVNGI ), intent( in ) :: SBUFEN, SBUFENSLX, SBUFENSLY
+      REAL, DIMENSION( CV_SNLOC, SBCVNGI ), intent( in ) :: SBCVFEN, SBCVFENSLX, SBCVFENSLY
       REAL, DIMENSION( SBCVNGI ), intent( in ) :: SBWEIGH
 
       CALL DG_DERIVS( U, UOLD, &
-           NDIM, NPHASE, U_NONODS, TOTELE, U_NDGLN, X_NLOC, X_NDGLN, &
-           CV_NGI, U_NLOC, CVWEIGHT, N, NLX, NLY, NLZ, &
-           X_NONODS, X, Y, Z, &
            DUX_ELE, DUY_ELE, DUZ_ELE, DUOLDX_ELE, DUOLDY_ELE, DUOLDZ_ELE, &
-           NFACE, FACE_ELE, U_SLOCLIST, STOTEL, U_SNLOC, WIC_U_BC, SUF_U_BC, &
-           WIC_U_BC_DIRICHLET, SBCVNGI,SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBWEIGH ) 
+           NDIM, NPHASE, U_NONODS, TOTELE, U_NDGLN, &
+           XU_NDGLN, X_NLOC, X_NDGLN, &
+           CV_NGI, U_NLOC, CVWEIGHT, &
+           N, NLX, NLY, NLZ, &
+           CVFEN, CVFENX, CVFENY, CVFENZ, &
+           X_NONODS, X, Y, Z, &
+           NFACE, FACE_ELE, U_SLOCLIST, CV_SLOCLIST, STOTEL, U_SNLOC, CV_SNLOC, WIC_U_BC, SUF_U_BC, &
+           WIC_U_BC_DIRICHLET, SBCVNGI, SBUFEN, SBUFENSLX, SBUFENSLY, SBWEIGH, & 
+           SBCVFEN, SBCVFENSLX, SBCVFENSLY)   
 
       CALL DG_DERIVS( V, VOLD, &
-           NDIM, NPHASE, U_NONODS, TOTELE, U_NDGLN, X_NLOC, X_NDGLN, &
-           CV_NGI, U_NLOC, CVWEIGHT, N, NLX, NLY, NLZ, &
-           X_NONODS, X, Y, Z, &
            DVX_ELE, DVY_ELE, DVZ_ELE, DVOLDX_ELE, DVOLDY_ELE, DVOLDZ_ELE, &
-           NFACE, FACE_ELE, U_SLOCLIST, STOTEL, U_SNLOC, WIC_U_BC, SUF_V_BC, &
-           WIC_U_BC_DIRICHLET, SBCVNGI,SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBWEIGH ) 
+           NDIM, NPHASE, U_NONODS, TOTELE, U_NDGLN, &
+           XU_NDGLN, X_NLOC, X_NDGLN, &
+           CV_NGI, U_NLOC, CVWEIGHT, &
+           N, NLX, NLY, NLZ, &
+           CVFEN, CVFENX, CVFENY, CVFENZ, &
+           X_NONODS, X, Y, Z, &
+           NFACE, FACE_ELE, U_SLOCLIST, CV_SLOCLIST, STOTEL, U_SNLOC, CV_SNLOC, WIC_U_BC, SUF_V_BC, &
+           WIC_U_BC_DIRICHLET, SBCVNGI, SBUFEN, SBUFENSLX, SBUFENSLY, SBWEIGH, & 
+           SBCVFEN, SBCVFENSLX, SBCVFENSLY)  
 
       CALL DG_DERIVS( W, WOLD, &
-           NDIM, NPHASE, U_NONODS, TOTELE, U_NDGLN, X_NLOC, X_NDGLN, &
-           CV_NGI, U_NLOC, CVWEIGHT, N, NLX, NLY, NLZ, &
-           X_NONODS, X, Y, Z, &
            DWX_ELE, DWY_ELE, DWZ_ELE, DWOLDX_ELE, DWOLDY_ELE, DWOLDZ_ELE, &
-           NFACE, FACE_ELE, U_SLOCLIST, STOTEL, U_SNLOC, WIC_U_BC, SUF_W_BC, &
-           WIC_U_BC_DIRICHLET, SBCVNGI,SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBWEIGH ) 
+           NDIM, NPHASE, U_NONODS, TOTELE, U_NDGLN, &
+           XU_NDGLN, X_NLOC, X_NDGLN, &
+           CV_NGI, U_NLOC, CVWEIGHT, &
+           N, NLX, NLY, NLZ, &
+           CVFEN, CVFENX, CVFENY, CVFENZ, &
+           X_NONODS, X, Y, Z, &
+           NFACE, FACE_ELE, U_SLOCLIST, CV_SLOCLIST, STOTEL, U_SNLOC, CV_SNLOC, WIC_U_BC, SUF_W_BC, &
+           WIC_U_BC_DIRICHLET, SBCVNGI, SBUFEN, SBUFENSLX, SBUFENSLY, SBWEIGH, & 
+           SBCVFEN, SBCVFENSLX, SBCVFENSLY) 
 
       RETURN
     END SUBROUTINE DG_DERIVS_UVW
@@ -1981,12 +2005,14 @@
 
 
     SUBROUTINE DG_DERIVS( FEMT, FEMTOLD, &
-         NDIM, NPHASE, CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
-         CV_NGI, CV_NLOC, CVWEIGHT, N, NLX, NLY, NLZ, &
-         X_NONODS, X, Y, Z, &
          DTX_ELE, DTY_ELE, DTZ_ELE, DTOLDX_ELE, DTOLDY_ELE, DTOLDZ_ELE, &
-         NFACE, FACE_ELE, CV_SLOCLIST, STOTEL, CV_SNLOC, WIC_T_BC, SUF_T_BC, &
-         WIC_T_BC_DIRICHLET, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBWEIGH ) 
+         NDIM, NPHASE, CV_NONODS, TOTELE, CV_NDGLN, &
+         XCV_NDGLN, X_NLOC, X_NDGLN,&
+         CV_NGI, CV_NLOC, CVWEIGHT, N, NLX, NLY, NLZ, X_N, X_NLX, X_NLY, X_NLZ, &
+         X_NONODS, X, Y, Z, &
+         NFACE, FACE_ELE, CV_SLOCLIST, X_SLOCLIST, STOTEL, CV_SNLOC, X_SNLOC, WIC_T_BC, SUF_T_BC, &
+         WIC_T_BC_DIRICHLET, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBWEIGH, &
+         X_SBCVFEN, X_SBCVFENSLX, X_SBCVFENSLY ) 
 
       ! determine FEMT (finite element wise) etc from T (control volume wise)
       use shape_functions 
@@ -1994,37 +2020,41 @@
       use matrix_operations
       IMPLICIT NONE
       INTEGER, intent( in ) :: NDIM, NPHASE, CV_NONODS, TOTELE, X_NLOC, CV_NGI, CV_NLOC, &
-           X_NONODS, STOTEL, CV_SNLOC, WIC_T_BC_DIRICHLET, SBCVNGI, NFACE
+           X_NONODS, STOTEL, CV_SNLOC, X_SNLOC, WIC_T_BC_DIRICHLET, SBCVNGI, NFACE
       REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: FEMT, FEMTOLD
+      REAL, DIMENSION( CV_NLOC, NPHASE, TOTELE ), intent( inout ) :: DTX_ELE, DTY_ELE, DTZ_ELE, &
+           DTOLDX_ELE, DTOLDY_ELE, DTOLDZ_ELE
       INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in ) :: CV_NDGLN
       INTEGER, DIMENSION( TOTELE * X_NLOC ), intent( in ) ::  X_NDGLN
+      INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in ) ::  XCV_NDGLN
       INTEGER, DIMENSION( STOTEL*NPHASE ), intent( in ) ::  WIC_T_BC
       REAL, DIMENSION( STOTEL*CV_SNLOC*NPHASE ), intent( in ) ::  SUF_T_BC
       INTEGER, DIMENSION( NFACE,CV_SNLOC ), intent( in ) ::  CV_SLOCLIST
+      INTEGER, DIMENSION( NFACE,X_SNLOC ), intent( in ) ::  X_SLOCLIST
       INTEGER, DIMENSION( NFACE,TOTELE ), intent( in ) ::  FACE_ELE
       REAL, DIMENSION( CV_NGI ), intent( inout ) :: CVWEIGHT
       REAL, DIMENSION( CV_NLOC, CV_NGI ), intent( in ) :: N, NLX, NLY, NLZ 
+      REAL, DIMENSION( X_NLOC, CV_NGI ), intent( in ) :: X_N, X_NLX, X_NLY, X_NLZ 
       REAL, DIMENSION( X_NONODS ), intent( in ) :: X, Y, Z
-      REAL, DIMENSION( CV_NLOC, NPHASE, TOTELE ), intent( inout ) :: DTX_ELE, DTY_ELE, DTZ_ELE, &
-           DTOLDX_ELE, DTOLDY_ELE, DTOLDZ_ELE
       REAL, DIMENSION( CV_SNLOC, SBCVNGI ), intent( in ) :: SBCVFEN, SBCVFENSLX, SBCVFENSLY
+      REAL, DIMENSION( X_SNLOC, SBCVNGI ), intent( in ) :: X_SBCVFEN, X_SBCVFENSLX, X_SBCVFENSLY
       REAL, DIMENSION( SBCVNGI ), intent( in ) :: SBWEIGH
       ! Local variables
       LOGICAL :: D1, D3, DCYL, APPLYBC
       REAL, DIMENSION( : ), allocatable :: DETWEI, RA
-      REAL, DIMENSION( :, : ), allocatable :: NX, NY, NZ
+      REAL, DIMENSION( :, : ), allocatable :: NX, NY, NZ, X_NX, X_NY, X_NZ
       REAL, DIMENSION( :, :, : ), allocatable :: MASELE
       REAL, DIMENSION( :, :, : ), allocatable :: VTX_ELE, VTY_ELE, VTZ_ELE, VTOLDX_ELE, VTOLDY_ELE, VTOLDZ_ELE
       REAL, DIMENSION( :, : ), allocatable :: MASS, INV_MASS
       REAL, DIMENSION( : ), allocatable :: VTX, VTY, VTZ, VTOLDX, VTOLDY, VTOLDZ, DTX, DTY, DTZ, DTOLDX, DTOLDY, DTOLDZ
       REAL, DIMENSION( : ), allocatable :: XSL, YSL, ZSL, SNORMXN, SNORMYN, SNORMZN, SDETWE
-      INTEGER, DIMENSION( : ), allocatable :: SLOC2LOC, ILOC_OTHER_SIDE
+      INTEGER, DIMENSION( : ), allocatable :: SLOC2LOC, X_SLOC2LOC, ILOC_OTHER_SIDE
       REAL :: VOLUME, NN, NNX, NNY, NNZ, NORMX, NORMY, NORMZ, SAREA, NRBC, RNN, RTBC, &
            VLM_NORX, VLM_NORY, VLM_NORZ
       INTEGER :: ELE, CV_ILOC, CV_JLOC, CV_NODI, CV_NODJ, CV_GI, CV_ILOC2, &
            CV_INOD, CV_INOD2, CV_JLOC2, CV_NODJ2, CV_NODJ2_IPHA, CV_NODJ_IPHA, &
            CV_SILOC, CV_SJLOC, ELE2, IFACE, IPHASE, SELE2, SUF_CV_SJ2, SUF_CV_SJ2_IPHA, &
-           X_INOD, SGI
+           X_INOD, SGI, X_SILOC, X_ILOC
 
       ewrite(3,*)'in DG_DERIVS sbrt'
       ALLOCATE( DETWEI( CV_NGI )) 
@@ -2032,6 +2062,9 @@
       ALLOCATE( NX( CV_NLOC, CV_NGI ))
       ALLOCATE( NY( CV_NLOC, CV_NGI ))
       ALLOCATE( NZ( CV_NLOC, CV_NGI ))
+      ALLOCATE( X_NX( X_NLOC, CV_NGI ))
+      ALLOCATE( X_NY( X_NLOC, CV_NGI ))
+      ALLOCATE( X_NZ( X_NLOC, CV_NGI ))
       ALLOCATE( MASELE( CV_NLOC, CV_NLOC, TOTELE ))
       ALLOCATE( VTX_ELE( CV_NLOC, NPHASE, TOTELE ))
       ALLOCATE( VTY_ELE( CV_NLOC, NPHASE, TOTELE ))
@@ -2048,10 +2081,11 @@
       ALLOCATE( VTOLDY( CV_NLOC ))
       ALLOCATE( VTOLDZ( CV_NLOC ))
       ALLOCATE( SLOC2LOC( CV_SNLOC ))
+      ALLOCATE( X_SLOC2LOC( X_SNLOC ))
       ALLOCATE( ILOC_OTHER_SIDE( CV_SNLOC ))
-      ALLOCATE( XSL( CV_SNLOC ))
-      ALLOCATE( YSL( CV_SNLOC ))
-      ALLOCATE( ZSL( CV_SNLOC ))
+      ALLOCATE( XSL( X_SNLOC ))
+      ALLOCATE( YSL( X_SNLOC ))
+      ALLOCATE( ZSL( X_SNLOC ))
       ALLOCATE( SNORMXN( SBCVNGI ))
       ALLOCATE( SNORMYN( SBCVNGI ))
       ALLOCATE( SNORMZN( SBCVNGI ))
@@ -2078,9 +2112,16 @@
       Loop_Elements1: DO ELE = 1, TOTELE
 
          ! Calculate DETWEI,RA,NX,NY,NZ for element ELE
-         CALL DETNLXR( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, CV_NLOC, CV_NGI, &
-              N, NLX, NLY, NLZ, CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
-              NX, NY, NZ ) 
+!         CALL DETNLXR_SUPER( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, X_NLOC, CV_NLOC, CV_NGI, &
+!              X_N, X_NLX, X_NLY, X_NLZ, N, NLX, NLY, NLZ, &
+!              CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
+!              NX, NY, NZ ) 
+         ! Calculate DETWEI,RA,NX,NY,NZ for element ELE
+         CALL DETNLXR_PLUS_U( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, &
+              X_NLOC, X_NLOC, CV_NGI, &
+              X_N, X_NLX, X_NLY, X_NLZ, CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
+              X_NX, X_NY, X_NZ, &
+              CV_NLOC, NLX, NLY, NLZ, NX, NY, NZ ) 
 
          !ewrite(3,*)'N',N
          !ewrite(3,*)'nlx:',nlx
@@ -2166,23 +2207,25 @@
 
             ! The surface nodes on element face IFACE.  
             SLOC2LOC( : ) = CV_SLOCLIST( IFACE, : )
+            X_SLOC2LOC( : ) = X_SLOCLIST( IFACE, : )
+            print *,'CV_SLOCLIST( IFACE, : ):',CV_SLOCLIST( IFACE, : )
 
             ! Form approximate surface normal (NORMX,NORMY,NORMZ)
-            CALL DGSIMPLNORM( ELE, SLOC2LOC, TOTELE, CV_NLOC, CV_SNLOC, X_NDGLN, &
+            CALL DGSIMPLNORM( ELE, X_SLOC2LOC, TOTELE, X_NLOC, X_SNLOC, X_NDGLN, &
                  X, Y, Z, X_NONODS, NORMX, NORMY, NORMZ )
 
             ! Recalculate the normal...
-            DO CV_SILOC = 1, CV_SNLOC
-               CV_ILOC = SLOC2LOC( CV_SILOC )
-               X_INOD = X_NDGLN(( ELE - 1 ) * X_NLOC + CV_ILOC )
-               XSL( CV_SILOC ) = X( X_INOD )
-               YSL( CV_SILOC ) = Y( X_INOD )
-               ZSL( CV_SILOC ) = Z( X_INOD )
+            DO X_SILOC = 1, X_SNLOC
+               X_ILOC = X_SLOC2LOC( X_SILOC )
+               X_INOD = X_NDGLN(( ELE - 1 ) * X_NLOC + X_ILOC )
+               XSL( X_SILOC ) = X( X_INOD )
+               YSL( X_SILOC ) = Y( X_INOD )
+               ZSL( X_SILOC ) = Z( X_INOD )
             END DO
 
-            CALL DGSDETNXLOC2 (CV_SNLOC, SBCVNGI, &
+            CALL DGSDETNXLOC2(X_SNLOC, SBCVNGI, &
                  XSL, YSL, ZSL, &
-                 SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBWEIGH, SDETWE, SAREA, &
+                 X_SBCVFEN, X_SBCVFENSLX, X_SBCVFENSLY, SBWEIGH, SDETWE, SAREA, &
                  (NDIM==1), (NDIM==3), (NDIM==-2), &
                  SNORMXN, SNORMYN, SNORMZN, &
                  NORMX, NORMY, NORMZ )
@@ -2192,15 +2235,19 @@
             !ewrite(3,*)'iface=',iface
             IF(SELE2 == 0) THEN
                ! Calculate the nodes on the other side of the face:
-               ewrite(3,*)'SLOC2LOC:',SLOC2LOC
+               !print *,'X_NLOC,CV_SNLOC,CV_NLOC,ele,ele2:',X_NLOC,CV_SNLOC,CV_NLOC,ele,ele2
+               !ewrite(3,*)'SLOC2LOC:',SLOC2LOC
                DO CV_SILOC = 1, CV_SNLOC
                   CV_ILOC = SLOC2LOC( CV_SILOC )
-                  CV_INOD = X_NDGLN(( ELE - 1 ) * CV_NLOC + CV_ILOC )
+                  CV_INOD = XCV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_ILOC )
+                  ! print *,'CV_SILOC,CV_ILOC,CV_INOD:',CV_SILOC,CV_ILOC,CV_INOD
                   DO CV_ILOC2 = 1, CV_NLOC
-                     CV_INOD2 = X_NDGLN(( ELE2 - 1 ) * CV_NLOC + CV_ILOC2 )
+                     CV_INOD2 = XCV_NDGLN(( ELE2 - 1 ) * CV_NLOC + CV_ILOC2 )
+                 ! print *,'CV_INOD2,CV_INOD=',CV_INOD2,CV_INOD
                      IF( CV_INOD2 == CV_INOD ) ILOC_OTHER_SIDE( CV_SILOC ) = CV_ILOC2
                   END DO
                END DO
+               ! print *,'ILOC_OTHER_SIDE:',ILOC_OTHER_SIDE
                APPLYBC=(ELE /= ELE2).AND.(ELE2 /= 0)
                !ewrite(3,*)'ele,ele2:',ele,ele2
                !ewrite(3,*)'iface=',iface
@@ -2224,10 +2271,10 @@
                         NRBC=0.0
                      ELSE
                         CV_JLOC2=ILOC_OTHER_SIDE(CV_SJLOC)
-                        !ewrite(3,*)'(ELE2-1)*CV_NLOC+CV_JLOC2,ELE2,CV_NLOC,CV_JLOC2:', &
-                        !     (ELE2-1)*CV_NLOC+CV_JLOC2,ELE2,CV_NLOC,CV_JLOC2
-                        !ewrite(3,*)'ILOC_OTHER_SIDE:',ILOC_OTHER_SIDE
-                        !ewrite(3,*)'ELE,ELE2,SELE2,CV_JLOC2=',ELE,ELE2,SELE2,CV_JLOC2
+                       ! ewrite(3,*)'(ELE2-1)*CV_NLOC+CV_JLOC2,ELE2,CV_NLOC,CV_JLOC2:', &
+                       !      (ELE2-1)*CV_NLOC+CV_JLOC2,ELE2,CV_NLOC,CV_JLOC2
+                       ! ewrite(3,*)'ILOC_OTHER_SIDE:',ILOC_OTHER_SIDE
+                       ! ewrite(3,*)'ELE,ELE2,SELE2,CV_JLOC2=',ELE,ELE2,SELE2,CV_JLOC2
                         CV_NODJ2=CV_NDGLN((ELE2-1)*CV_NLOC+CV_JLOC2)
                         NRBC=1.0
                      ENDIF
