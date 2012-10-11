@@ -12,33 +12,12 @@ use parallel_tools
 #include "petscversion.h"
 #ifdef HAVE_PETSC_MODULES
   use petsc
-#if PETSC_VERSION_MINOR==0
-  use petscvec
-  use petscmat
-  use petscksp
-  use petscpc
-  use petscis
-  use petscmg
-#endif
 #endif
 implicit none
 #ifdef HAVE_PETSC_MODULES
-#include "finclude/petscvecdef.h"
-#include "finclude/petscmatdef.h"
-#include "finclude/petsckspdef.h"
-#include "finclude/petscpcdef.h"
-#include "finclude/petscviewerdef.h"
-#include "finclude/petscsysdef.h"
+#include "finclude/petscdef.h"
 #else
 #include "finclude/petsc.h"
-#if PETSC_VERSION_MINOR==0
-#include "finclude/petscmat.h"
-#include "finclude/petscvec.h"
-#include "finclude/petscviewer.h"
-#include "finclude/petscksp.h"
-#include "finclude/petscpc.h"
-#include "finclude/petscsys.h"
-#endif
 #endif
 #if PETSC_VERSION_MINOR>=2
 #define KSP_NORM_NO KSP_NORM_NONE

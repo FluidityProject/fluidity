@@ -44,30 +44,15 @@ module solvers
   use parallel_tools
 #ifdef HAVE_PETSC_MODULES
   use petsc 
-#if PETSC_VERSION_MINOR==0
-  use petscvec 
-  use petscmat 
-  use petscksp 
-  use petscpc
-#endif
 #endif
   implicit none
   ! Module to provide explicit interfaces to matrix solvers.
 
 #include "petscversion.h"
 #ifdef HAVE_PETSC_MODULES
-#include "finclude/petscvecdef.h"
-#include "finclude/petscmatdef.h"
-#include "finclude/petsckspdef.h"
-#include "finclude/petscpcdef.h"
+#include "finclude/petscdef.h"
 #else
 #include "finclude/petsc.h"
-#if PETSC_VERSION_MINOR==0
-#include "finclude/petscvec.h"
-#include "finclude/petscmat.h"
-#include "finclude/petscksp.h"
-#include "finclude/petscpc.h"
-#endif
 #endif
 
   ! stuff used in the PETSc monitor (see petsc_solve_callback_setup() below)
