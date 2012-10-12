@@ -274,6 +274,9 @@ contains
 
     real, dimension( : ), allocatable :: T_FEMT, mass_ele, dummy_ele
 
+
+    real, dimension(cv_nonods * nphase * ndim) :: u_source_cv
+
     real :: finish_time
     integer :: dump_period_in_timesteps
     integer :: final_timestep
@@ -346,22 +349,22 @@ contains
     solve_saturation = .false.
     if( saturation_max_iterations /= 0 ) solve_saturation = .true. 
 
-    ewrite(3,*) 'suf_u_bc:'
-    do iphase = 1, nphase
-       ewrite(3,*) suf_u_bc( ( iphase - 1 ) * stotel * u_snloc  + 1 : &
-            iphase * stotel * u_snloc  )
-    end do
+    !ewrite(3,*) 'suf_u_bc:'
+    !do iphase = 1, nphase
+    !   ewrite(3,*) suf_u_bc( ( iphase - 1 ) * stotel * u_snloc  + 1 : &
+    !        iphase * stotel * u_snloc  )
+    !end do
 
-    ewrite(3,*)'suf_comp_bc:', stotel, cv_snloc
-    do icomp = 1, ncomp
-       do iphase = 1, nphase
-          ewrite(3,*) icomp, iphase, suf_comp_bc( ( icomp - 1 ) * nphase * stotel * cv_snloc + &
-               ( iphase - 1 ) * stotel * cv_snloc + 1 : &
-               ( icomp - 1 ) * nphase * stotel * cv_snloc + &
-               ( iphase - 1 ) * stotel * cv_snloc + stotel * cv_snloc )
-          ewrite(3,*)' '
-       end do
-    end do
+    !ewrite(3,*)'suf_comp_bc:', stotel, cv_snloc
+    !do icomp = 1, ncomp
+    !   do iphase = 1, nphase
+    !      ewrite(3,*) icomp, iphase, suf_comp_bc( ( icomp - 1 ) * nphase * stotel * cv_snloc + &
+    !           ( iphase - 1 ) * stotel * cv_snloc + 1 : &
+    !           ( icomp - 1 ) * nphase * stotel * cv_snloc + &
+    !           ( iphase - 1 ) * stotel * cv_snloc + stotel * cv_snloc )
+    !      ewrite(3,*)' '
+    !   end do
+    !end do
 
     call get_option("/timestepping/current_time", acctim)
     call get_option("/timestepping/timestep", dt)
@@ -485,9 +488,6 @@ contains
 
           end if solve_temp
 
-
-
-
           if (SIG_INT) exit Loop_ITS
 
           if (solve_force_balance) then
@@ -527,6 +527,10 @@ contains
              NVOLD = VOLD
              NWOLD = WOLD
 
+             ! this calculates u_source_cv - it is the buoyancy term
+             ! as the name suggests it's a cv source term for u
+             call calculate_u_source_cv(state, cv_nonods, ndim, nphase, den, u_source_cv)
+
              CALL FORCE_BAL_CTY_ASSEM_SOLVE( &
                   NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
                   U_ELE_TYPE, P_ELE_TYPE, &
@@ -534,7 +538,7 @@ contains
                   U_NDGLN, P_NDGLN, CV_NDGLN, X_NDGLN, MAT_NDGLN,&
                   STOTEL, CV_SNDGLN, U_SNDGLN, P_SNDGLN, &
                   U_SNLOC, P_SNLOC, CV_SNLOC, &
-                  X, Y, Z, U_ABS_STAB, U_ABSORB, U_SOURCE, &
+                  X, Y, Z, U_ABS_STAB, U_ABSORB, U_SOURCE, U_SOURCE_CV, &
                   U, V, W, UOLD, VOLD, WOLD, &
                   P, CV_P, DEN, DENOLD, SATURA, SATURAOLD, DERIV, &
                   DT, &

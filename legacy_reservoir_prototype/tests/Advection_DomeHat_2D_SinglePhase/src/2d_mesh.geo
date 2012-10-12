@@ -1,6 +1,6 @@
 Point(1) = {0., 0., 0.};
-Extrude {3, 0, 0} {
-  Point{1}; Layers{30};
+Extrude {6, 0, 0} {
+  Point{1}; Layers{60};
 }
 Extrude {0, 1, 0} {
   Line{1}; Layers{10};

@@ -346,8 +346,8 @@
            'prognostic/spatial_discretisation/control_volumes/face_value/' // &
            'limit_face_value/limiter::Extrema'
       LIMIT_USE_2ND=.FALSE.
-!      LIMIT_USE_2ND=.true.
       if ( have_option( option_path ) ) LIMIT_USE_2ND=.TRUE.
+      LIMIT_USE_2ND=.TRUE.
 
       ewrite(3,*)'CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA, LIMIT_USE_2ND, SECOND_THETA:', &
            CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA, LIMIT_USE_2ND, SECOND_THETA
@@ -902,7 +902,7 @@
                              T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD, IGOT_T2, &
                              TMIN_2ND_MC, TOLDMIN_2ND_MC, T2MIN_2ND_MC, T2OLDMIN_2ND_MC, DENMIN_2ND_MC, DENOLDMIN_2ND_MC, &
                              TMAX_2ND_MC, TOLDMAX_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, DENMAX_2ND_MC, DENOLDMAX_2ND_MC, &
-                             LIMIT_USE_2ND)
+                             LIMIT_USE_2ND, HDC, NDOTQ, NDOTQOLD, DT)
 
                         SUM_LIMT    = SUM_LIMT    + LIMT
                         SUM_LIMTOLD = SUM_LIMTOLD + LIMTOLD
@@ -988,7 +988,7 @@
                              T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD, IGOT_T2, &
                              TMIN_2ND_MC, TOLDMIN_2ND_MC, T2MIN_2ND_MC, T2OLDMIN_2ND_MC, DENMIN_2ND_MC, DENOLDMIN_2ND_MC, &
                              TMAX_2ND_MC, TOLDMAX_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, DENMAX_2ND_MC, DENOLDMAX_2ND_MC, &
-                             LIMIT_USE_2ND)
+                             LIMIT_USE_2ND, HDC, NDOTQ, NDOTQOLD, DT)
 
                      END DO
 
@@ -1293,8 +1293,8 @@
 
                else
 
-                  W_SUM_ONE1 = 1.0 ! =1 Applies constraint to T
-                  W_SUM_ONE2 = 0.0 ! =1 Applies constraint to Told 
+                  W_SUM_ONE1 = 1.0 ! =1 Applies constraint to T (if ==1.0)
+                  W_SUM_ONE2 = 0.0 ! =1 Applies constraint to Told (if ==1.0)
                   ! the original working code used W_SUM_ONE1 = 1, W_SUM_ONE2 = 1
                   CT_RHS( CV_NODI ) = CT_RHS( CV_NODI ) - MASS_CV( CV_NODI ) * MEAN_PORE_CV( CV_NODI ) *( &
                        (1.0-W_SUM_ONE1) *  T( CV_NODI_IPHA ) / DT &
@@ -1676,8 +1676,15 @@
       ! Local variables
       REAL, DIMENSION( : ), allocatable :: PSI, FEMPSI, PSI_AVE, PSI_INT
       INTEGER :: NTSOL,NTSOL_AVE,NTSOL_INT,ELE,CV_ILOC,X_INOD,CV_INOD,NL,NFIELD
+      CHARACTER(100) :: PATH
 
       ewrite(3,*) 'In PROJ_CV_TO_FEM_4'
+
+      if ( igot_t2 ==1 ) then
+         path = '/material_phase[0]/scalar_field::Pressure' 
+      else
+         path = '/material_phase[0]/scalar_field::Temperature' 
+      end if
 
       NFIELD=4 + IGOT_T2*2
       ALLOCATE( PSI( NFIELD * CV_NONODS*NPHASE ))
@@ -1717,7 +1724,7 @@
            CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
            CV_NGI, CV_NLOC, CVN, CVWEIGHT, N, NLX, NLY, NLZ, &
            X_NONODS, X, Y, Z, NCOLM, FINDM, COLM, MIDM, &
-           IGETCT, MASS_MN_PRES, FINDCMC, COLCMC, NCOLCMC )
+           IGETCT, MASS_MN_PRES, FINDCMC, COLCMC, NCOLCMC, PATH )
 
       NL=CV_NONODS*NPHASE
       FEMT( 1 : NL ) = FEMPSI( 1 + 0 * NL : NL + 0 * NL ) 
@@ -1753,7 +1760,7 @@
          CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
          CV_NGI, CV_NLOC, CVN, CVWEIGHT, N, NLX, NLY, NLZ, &
          X_NONODS, X, Y, Z, NCOLM, FINDM, COLM, MIDM, &
-         IGETCT, MASS_MN_PRES, FINDCMC, COLCMC, NCOLCMC )
+         IGETCT, MASS_MN_PRES, FINDCMC, COLCMC, NCOLCMC, PATH )
 
       ! Determine FEMT (finite element wise) etc from T (control volume wise)
       ! Also integrate PSI_INT over each CV and avergae PSI_AVE over each CV. 
@@ -1778,6 +1785,7 @@
       INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDM
       INTEGER, DIMENSION( NCOLM ), intent( in ) :: COLM
       INTEGER, DIMENSION( CV_NONODS ), intent( in ) :: MIDM
+      CHARACTER(100), intent(in) :: PATH
 
       REAL, DIMENSION( IGETCT*NCOLCMC ), intent( inout ) :: MASS_MN_PRES
       INTEGER, DIMENSION( IGETCT*(CV_NONODS + 1) ), intent( in ) :: FINDCMC
@@ -1882,19 +1890,14 @@
          END DO
       END DO
 
-!!! --- HACK THE SOLVER OPTIONS TO BE THE SAME AS THAT OF PRESSURE --- !!!
-
-        
       ! Solve...
       DO IT = 1, NTSOL
-!           print *,'it,about to solve it,ntsol:',it,ntsol
          CALL SOLVER( MAT,  &
               FEMPSI( 1 + (IT - 1 ) * CV_NONODS : CV_NONODS + (IT - 1 ) * CV_NONODS ),  &
               FEMPSI_RHS( 1 + ( IT - 1 ) * CV_NONODS : CV_NONODS + (IT - 1 ) * CV_NONODS ),  &
               FINDM, &
               COLM, &
-              !option_path = '/material_phase[0]/scalar_field::Temperature' )
-              option_path = '/material_phase[0]/scalar_field::Pressure' )
+              option_path = trim(path) )
       END DO
 
       DEALLOCATE( MASS_CV )
@@ -2439,7 +2442,7 @@
     SUBROUTINE ONVDLIM_ALL( TOTELE, &
          TDLIM, TDCEN, INCOME, PELE, PELEOT, &
          ETDNEW, TDMIN, TDMAX, &
-         TDMIN_2nd_mc, TDMAX_2nd_mc, FIRORD, NOLIMI, LIMIT_USE_2ND)
+         TDMIN_2nd_mc, TDMAX_2nd_mc, FIRORD, NOLIMI, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE)
       implicit none 
       ! This sub calculates the limited face values TDADJ(1...SNGI) from the central 
       ! difference face values TDCEN(1...SNGI) using a NVD shceme.  
@@ -2466,7 +2469,7 @@
       !--------------------------------------------------- 
       INTEGER, intent( in ) :: TOTELE 
       REAL, intent( inout ) :: TDLIM  
-      REAL, intent( in ) :: TDCEN, INCOME
+      REAL, intent( in ) :: TDCEN, INCOME, COURANT_OR_MINUS_ONE
       INTEGER, intent( in ) :: PELE, PELEOT
       REAL, DIMENSION( TOTELE ), intent( in ) :: ETDNEW, TDMIN, TDMAX, TDMIN_2nd_mc, TDMAX_2nd_mc
       LOGICAL, intent( in ) :: FIRORD, NOLIMI, LIMIT_USE_2ND
@@ -2478,7 +2481,7 @@
       ELSE
          CALL ONVDLIM( TOTELE, &
          TDLIM, TDCEN, INCOME, PELE, PELEOT, &
-         ETDNEW, TDMIN, TDMAX, FIRORD, NOLIMI )
+         ETDNEW, TDMIN, TDMAX, FIRORD, NOLIMI, COURANT_OR_MINUS_ONE )
       ENDIF
 
       RETURN
@@ -2622,7 +2625,7 @@
 
     SUBROUTINE ONVDLIM( TOTELE, &
          TDLIM, TDCEN, INCOME, PELE, PELEOT, &
-         ETDNEW, TDMIN, TDMAX, FIRORD, NOLIMI )
+         ETDNEW, TDMIN, TDMAX, FIRORD, NOLIMI, COURANT_OR_MINUS_ONE )
       implicit none 
       ! This sub calculates the limited face values TDADJ(1...SNGI) from the central 
       ! difference face values TDCEN(1...SNGI) using a NVD shceme.  
@@ -2645,7 +2648,7 @@
       !--------------------------------------------------- 
       INTEGER, intent( in ) :: TOTELE 
       REAL, intent( inout ) :: TDLIM  
-      REAL, intent( in ) :: TDCEN, INCOME
+      REAL, intent( in ) :: TDCEN, INCOME, COURANT_OR_MINUS_ONE
       INTEGER, intent( in ) :: PELE, PELEOT
       REAL, DIMENSION( TOTELE ), intent( in ) :: ETDNEW, TDMIN, TDMAX
       LOGICAL, intent( in ) :: FIRORD, NOLIMI
@@ -2714,7 +2717,7 @@
 
          ! Velocity is going out of element
          TDLIM= INCOME*( TUPWIN + NVDFUNNEW( FTILIN, CTILIN, -1.0 ) * DENOIN ) &
-              + ( 1.0 - INCOME ) * ( TUPWI2 + NVDFUNNEW( FTILOU, CTILOU, -1.0 ) &
+              + ( 1.0 - INCOME ) * ( TUPWI2 + NVDFUNNEW( FTILOU, CTILOU, COURANT_OR_MINUS_ONE ) &
               * DENOOU )
 
       ENDIF Conditional_FIRORD
@@ -5177,14 +5180,15 @@
          DENMIN_NOD, DENMAX_NOD, DENOLDMIN_NOD, DENOLDMAX_NOD, &
          T2MIN_NOD, T2MAX_NOD, T2OLDMIN_NOD, T2OLDMAX_NOD, IGOT_T2, &
          TMIN_2ND_MC, TOLDMIN_2ND_MC, T2MIN_2ND_MC, T2OLDMIN_2ND_MC, DENMIN_2ND_MC, DENOLDMIN_2ND_MC, &
-         TMAX_2ND_MC, TOLDMAX_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, DENMAX_2ND_MC, DENOLDMAX_2ND_MC, LIMIT_USE_2ND)
+         TMAX_2ND_MC, TOLDMAX_2ND_MC, T2MAX_2ND_MC, T2OLDMAX_2ND_MC, DENMAX_2ND_MC, DENOLDMAX_2ND_MC, LIMIT_USE_2ND, &
+         HDC, NDOTQ, NDOTQOLD, DT)
       !================= ESTIMATE THE FACE VALUE OF THE SUB-CV ===============
       IMPLICIT NONE
       ! Calculate T and DEN on the CV face at quadrature point GI.
       REAL, intent( inout ) :: FVT,FVTOLD, FVT2, FVT2OLD,FVD,FVDOLD, LIMD,LIMT,LIMT2, &
            LIMDOLD,LIMTOLD,LIMT2OLD,LIMDT,LIMDTOLD,LIMDTT2,LIMDTT2OLD, &
            FEMDGI, FEMTGI, FEMT2GI, FEMDOLDGI, FEMTOLDGI, FEMT2OLDGI
-      REAL, intent( in ) :: INCOME,INCOMEOLD
+      REAL, intent( in ) :: INCOME,INCOMEOLD,HDC,NDOTQ,NDOTQOLD,DT
       logical, intent( in ) :: LIMIT_USE_2ND
       INTEGER, intent( in ) :: CV_DISOPT,CV_NONODS,NPHASE,CV_NODI_IPHA,CV_NODJ_IPHA,ELE,ELE2,  &
            CV_NLOC,TOTELE,SCVNGI,GI,IPHASE,SELE,CV_SNLOC,STOTEL, &
@@ -5219,15 +5223,25 @@
       LOGICAL :: FIRSTORD, NOLIMI, RESET_STORE, LIM_VOL_ADJUST
       REAL :: RELAX, RELAXOLD, TMIN_STORE, TMAX_STORE, TOLDMIN_STORE, TOLDMAX_STORE, &
            T2MIN_STORE, T2MAX_STORE, T2OLDMIN_STORE, T2OLDMAX_STORE, &
-           DENMIN_STORE, DENMAX_STORE, DENOLDMIN_STORE, DENOLDMAX_STORE
+           DENMIN_STORE, DENMAX_STORE, DENOLDMIN_STORE, DENOLDMAX_STORE, &
+           COURANT_OR_MINUS_ONE_NEW, COURANT_OR_MINUS_ONE_OLD
       INTEGER :: CV_KLOC, CV_NODK, CV_NODK_IPHA, CV_KLOC2, CV_NODK2, CV_NODK2_IPHA, CV_STAR_IPHA, &
            CV_SKLOC, CV_SNODK, CV_SNODK_IPHA
 
-! The adjustment method is not ready for the LIMIT_USE_2ND - the new limiting method.
+      ! The adjustment method is not ready for the LIMIT_USE_2ND - the new limiting method.
       LIM_VOL_ADJUST =LIM_VOL_ADJUST2.AND.(.NOT.LIMIT_USE_2ND)
 
       FVT2    = 1.0
       FVT2OLD = 1.0
+
+      if (cv_disopt>=8) then
+         courant_or_minus_one_new = DT * ndotq / HDC
+         courant_or_minus_one_old = DT * ndotqold / HDC
+      else
+         courant_or_minus_one_new = -1.0
+         courant_or_minus_one_old = -1.0
+      end if
+
 
       IF(SELE == 0) THEN ! Is NOT on boundary of the domain
 
@@ -5517,33 +5531,33 @@
          CALL ONVDLIM_ALL( CV_NONODS, &
               LIMT, FEMTGI, INCOME, CV_NODI_IPHA-(IPHASE-1)*CV_NONODS, CV_NODJ_IPHA-(IPHASE-1)*CV_NONODS, &
               T( CV_STAR_IPHA ), TMIN( CV_STAR_IPHA ), TMAX( CV_STAR_IPHA ), &
-              TMIN_2ND_MC( CV_STAR_IPHA ), TMAX_2ND_MC( CV_STAR_IPHA ), FIRSTORD, NOLIMI, LIMIT_USE_2ND )
+              TMIN_2ND_MC( CV_STAR_IPHA ), TMAX_2ND_MC( CV_STAR_IPHA ), FIRSTORD, NOLIMI, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_NEW )
 
          CALL ONVDLIM_ALL( CV_NONODS, &
               LIMTOLD, FEMTOLDGI, INCOMEOLD, CV_NODI_IPHA-(IPHASE-1)*CV_NONODS, CV_NODJ_IPHA-(IPHASE-1)*CV_NONODS, &
               TOLD( CV_STAR_IPHA ), TOLDMIN( CV_STAR_IPHA ), TOLDMAX( CV_STAR_IPHA ), &
-              TOLDMIN_2ND_MC( CV_STAR_IPHA ), TOLDMAX_2ND_MC( CV_STAR_IPHA ), FIRSTORD, NOLIMI, LIMIT_USE_2ND )
+              TOLDMIN_2ND_MC( CV_STAR_IPHA ), TOLDMAX_2ND_MC( CV_STAR_IPHA ), FIRSTORD, NOLIMI, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_OLD )
 
          CALL ONVDLIM_ALL( CV_NONODS, &
               LIMD, FEMDGI, INCOME, CV_NODI_IPHA-(IPHASE-1)*CV_NONODS, CV_NODJ_IPHA-(IPHASE-1)*CV_NONODS, &
               DEN( CV_STAR_IPHA ), DENMIN( CV_STAR_IPHA ), DENMAX( CV_STAR_IPHA ), &
-              DENMIN_2ND_MC( CV_STAR_IPHA ), DENMAX_2ND_MC( CV_STAR_IPHA ), FIRSTORD, NOLIMI, LIMIT_USE_2ND )
+              DENMIN_2ND_MC( CV_STAR_IPHA ), DENMAX_2ND_MC( CV_STAR_IPHA ), FIRSTORD, NOLIMI, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_NEW )
 
          CALL ONVDLIM_ALL( CV_NONODS, &
               LIMDOLD,FEMDOLDGI, INCOMEOLD, CV_NODI_IPHA-(IPHASE-1)*CV_NONODS, CV_NODJ_IPHA-(IPHASE-1)*CV_NONODS, &
               DENOLD( CV_STAR_IPHA ), DENOLDMIN( CV_STAR_IPHA ), DENOLDMAX( CV_STAR_IPHA ), &
-              DENOLDMIN_2ND_MC( CV_STAR_IPHA ), DENOLDMAX_2ND_MC( CV_STAR_IPHA ), FIRSTORD, NOLIMI, LIMIT_USE_2ND )
+              DENOLDMIN_2ND_MC( CV_STAR_IPHA ), DENOLDMAX_2ND_MC( CV_STAR_IPHA ), FIRSTORD, NOLIMI, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_OLD )
 
          IF(IGOT_T2==1) THEN
             CALL ONVDLIM_ALL( CV_NONODS, &
                  LIMT2, FEMT2GI, INCOME, CV_NODI_IPHA-(IPHASE-1)*CV_NONODS, CV_NODJ_IPHA-(IPHASE-1)*CV_NONODS, &
                  T2( CV_STAR_IPHA ), T2MIN( CV_STAR_IPHA ), T2MAX( CV_STAR_IPHA ), &
-                 T2MIN_2ND_MC( CV_STAR_IPHA ), T2MAX_2ND_MC( CV_STAR_IPHA ),FIRSTORD, NOLIMI, LIMIT_USE_2ND )
+                 T2MIN_2ND_MC( CV_STAR_IPHA ), T2MAX_2ND_MC( CV_STAR_IPHA ),FIRSTORD, NOLIMI, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_NEW )
 
             CALL ONVDLIM_ALL( CV_NONODS, &
                  LIMT2OLD, FEMT2OLDGI, INCOMEOLD, CV_NODI_IPHA-(IPHASE-1)*CV_NONODS, CV_NODJ_IPHA-(IPHASE-1)*CV_NONODS, &
                  T2OLD( CV_STAR_IPHA ), T2OLDMIN( CV_STAR_IPHA ), T2OLDMAX( CV_STAR_IPHA ), &
-                 T2OLDMIN_2ND_MC( CV_STAR_IPHA ), T2OLDMAX_2ND_MC( CV_STAR_IPHA ), FIRSTORD, NOLIMI, LIMIT_USE_2ND )
+                 T2OLDMIN_2ND_MC( CV_STAR_IPHA ), T2OLDMAX_2ND_MC( CV_STAR_IPHA ), FIRSTORD, NOLIMI, LIMIT_USE_2ND, COURANT_OR_MINUS_ONE_OLD )
          ELSE
             LIMT2   =1.0
             LIMT2OLD=1.0

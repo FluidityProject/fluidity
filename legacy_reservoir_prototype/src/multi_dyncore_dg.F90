@@ -566,7 +566,7 @@
          U_NDGLN, P_NDGLN, CV_NDGLN, X_NDGLN, MAT_NDGLN, &
          STOTEL, CV_SNDGLN, U_SNDGLN, P_SNDGLN, &
          U_SNLOC, P_SNLOC, CV_SNLOC, &
-         X, Y, Z, U_ABS_STAB, U_ABSORB, U_SOURCE, &
+         X, Y, Z, U_ABS_STAB, U_ABSORB, U_SOURCE, U_SOURCE_CV, &
          U, V, W, UOLD, VOLD, WOLD, &
          P, CV_P, DEN, DENOLD, SATURA, SATURAOLD, DERIV, &
          DT, &
@@ -621,6 +621,7 @@
       REAL, DIMENSION( MAT_NONODS, NDIM * NPHASE, NDIM * NPHASE ), intent( in ) :: U_ABS_STAB
       REAL, DIMENSION( MAT_NONODS, NDIM * NPHASE, NDIM * NPHASE ), intent( in ) :: U_ABSORB
       REAL, DIMENSION( NDIM * U_NONODS * NPHASE ), intent( in ) :: U_SOURCE
+      REAL, DIMENSION( NDIM * CV_NONODS * NPHASE ), intent( in ) :: U_SOURCE_CV
       REAL, DIMENSION( U_NONODS * NPHASE ), intent( inout ) :: U, V, W
       REAL, DIMENSION( U_NONODS * NPHASE ), intent( in ) :: UOLD, VOLD, WOLD
       REAL, DIMENSION( CV_NONODS ), intent( inout ) :: P,CV_P
@@ -720,7 +721,7 @@
            U_NDGLN, P_NDGLN, CV_NDGLN, X_NDGLN, MAT_NDGLN, &
            STOTEL, CV_SNDGLN, U_SNDGLN, P_SNDGLN, &
            U_SNLOC, P_SNLOC, CV_SNLOC, &
-           X, Y, Z, U_ABS_STAB, U_ABSORB,U_SOURCE, &
+           X, Y, Z, U_ABS_STAB, U_ABSORB, U_SOURCE, U_SOURCE_CV, &
            U, V, W, UOLD, VOLD, WOLD,  &
            P, CV_P, DEN, DENOLD, SATURA, SATURAOLD, DERIV, &
            DT, &
@@ -1123,7 +1124,7 @@
          U_NDGLN, P_NDGLN, CV_NDGLN, X_NDGLN, MAT_NDGLN, &
          STOTEL, CV_SNDGLN, U_SNDGLN, P_SNDGLN, &
          U_SNLOC, P_SNLOC, CV_SNLOC, &
-         X, Y, Z, U_ABS_STAB, U_ABSORB, U_SOURCE, &
+         X, Y, Z, U_ABS_STAB, U_ABSORB, U_SOURCE, U_SOURCE_CV, &
          U, V, W, UOLD, VOLD, WOLD,  &
          P, CV_P, DEN, DENOLD, SATURA, SATURAOLD, DERIV, &
          DT, &
@@ -1182,6 +1183,7 @@
       REAL, DIMENSION( MAT_NONODS, NDIM * NPHASE, NDIM * NPHASE ), intent( in ) :: U_ABS_STAB
       REAL, DIMENSION( MAT_NONODS, NDIM * NPHASE, NDIM * NPHASE ), intent( in ) :: U_ABSORB
       REAL, DIMENSION( NDIM * U_NONODS * NPHASE ), intent( in ) :: U_SOURCE
+      REAL, DIMENSION( NDIM * CV_NONODS * NPHASE ), intent( in ) :: U_SOURCE_CV
       REAL, DIMENSION( U_NONODS * NPHASE ), intent( in ) :: U, V, W
       REAL, DIMENSION( U_NONODS * NPHASE ), intent( in ) :: UOLD, VOLD, WOLD
       REAL, DIMENSION( CV_NONODS ), intent( inout ) ::  CV_P, P
@@ -1256,7 +1258,7 @@
            U_NDGLN, P_NDGLN, CV_NDGLN, X_NDGLN, MAT_NDGLN, &
            STOTEL, CV_SNDGLN, U_SNDGLN, P_SNDGLN, &
            U_SNLOC, P_SNLOC, CV_SNLOC, &
-           X, Y, Z, U_ABS_STAB, U_ABSORB, U_SOURCE, &
+           X, Y, Z, U_ABS_STAB, U_ABSORB, U_SOURCE, U_SOURCE_CV, &
            U, V, W, UOLD, VOLD, WOLD,  &
            P, CV_P, DEN, DENOLD, SATURA, SATURAOLD, DERIV, &
            DT, &
@@ -1362,7 +1364,7 @@
          U_NDGLN, P_NDGLN, CV_NDGLN, X_NDGLN, MAT_NDGLN, &
          STOTEL, CV_SNDGLN, U_SNDGLN, P_SNDGLN, &
          U_SNLOC, P_SNLOC, CV_SNLOC, &
-         X, Y, Z, U_ABS_STAB, U_ABSORB, U_SOURCE, &
+         X, Y, Z, U_ABS_STAB, U_ABSORB, U_SOURCE, U_SOURCE_CV, &
          U, V, W, UOLD, VOLD, WOLD,  &
          P, CV_P, DEN, DENOLD, SATURA, SATURAOLD, DERIV, &
          DT, &
@@ -1419,6 +1421,7 @@
       REAL, DIMENSION( MAT_NONODS, NDIM * NPHASE, NDIM * NPHASE ), intent( in ) :: U_ABS_STAB
       REAL, DIMENSION( MAT_NONODS, NDIM * NPHASE, NDIM * NPHASE ), intent( in ) :: U_ABSORB
       REAL, DIMENSION( NDIM * U_NONODS * NPHASE ), intent( in ) :: U_SOURCE
+      REAL, DIMENSION( NDIM * CV_NONODS * NPHASE ), intent( in ) :: U_SOURCE_CV
       REAL, DIMENSION( U_NONODS * NPHASE ), intent( in ) :: U, V, W, UOLD, VOLD, WOLD
       REAL, DIMENSION( CV_NONODS ), intent( in ) :: CV_P, P
       REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: DEN, DENOLD, SATURA, SATURAOLD
@@ -1518,7 +1521,7 @@
            U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
            U_NDGLN, P_NDGLN, CV_NDGLN, X_NDGLN, MAT_NDGLN, &
            STOTEL, U_SNDGLN, P_SNDGLN, CV_SNDGLN, U_SNLOC, P_SNLOC, CV_SNLOC, &
-           X, Y, Z, U_ABS_STAB, U_ABSORB, U_SOURCE, &
+           X, Y, Z, U_ABS_STAB, U_ABSORB, U_SOURCE, U_SOURCE_CV, &
            U, V, W, UOLD, VOLD, WOLD, UDEN, UDENOLD, &
            DT, &
            SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_P_BC, &
@@ -1748,7 +1751,7 @@
          U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
          U_NDGLN, P_NDGLN, CV_NDGLN, X_NDGLN, MAT_NDGLN, &
          STOTEL, U_SNDGLN, P_SNDGLN, CV_SNDGLN, U_SNLOC, P_SNLOC, CV_SNLOC, &
-         X, Y, Z, U_ABS_STAB, U_ABSORB, U_SOURCE, &
+         X, Y, Z, U_ABS_STAB, U_ABSORB, U_SOURCE, U_SOURCE_CV, &
          U, V, W, UOLD, VOLD, WOLD, UDEN, UDENOLD, &
          DT, &
          SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_P_BC, &
@@ -1789,6 +1792,7 @@
       REAL, DIMENSION( MAT_NONODS, NDIM * NPHASE, NDIM * NPHASE ), intent( in ) :: U_ABS_STAB
       REAL, DIMENSION( MAT_NONODS, NDIM * NPHASE, NDIM * NPHASE ), intent( in ) :: U_ABSORB
       REAL, DIMENSION( NDIM * U_NONODS * NPHASE ), intent( in ) :: U_SOURCE
+      REAL, DIMENSION( NDIM * CV_NONODS * NPHASE ), intent( in ) :: U_SOURCE_CV
       REAL, DIMENSION( U_NONODS * NPHASE ), intent( in ) :: U, V, W, UOLD, VOLD, WOLD
       REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: UDEN, UDENOLD
       REAL, intent( in ) :: DT
@@ -1878,10 +1882,10 @@
            SUF_U_SJ2, SUF_U_SJ2_IPHA, U_ILOC2, U_INOD, U_INOD2, U_JLOC2, U_KLOC, U_NOD_PHA, &
            IU_NOD_PHA, IU_NOD_DIM_PHA, U_NODI_IPHA, U_NODK, U_NODK_PHA, U_SKLOC, X_INOD, X_INOD2, &
            U_NODJ, U_NODJ2, U_NODJ_IPHA, U_SJLOC, X_ILOC, MAT_ILOC2, MAT_INOD, MAT_INOD2, MAT_SILOC, &
-           CV_ILOC, CV_NOD, CV_NOD_PHA, U_JNOD_IDIM_IPHA, COUNT_PHA2, P_JLOC2, P_JNOD, P_JNOD2, &
+           CV_ILOC, CV_JLOC, CV_NOD, CV_NOD_PHA, U_JNOD_IDIM_IPHA, COUNT_PHA2, P_JLOC2, P_JNOD, P_JNOD2, &
            CV_SILOC, JDIM, JPHASE, ILEV, U_NLOC2, CV_KLOC2, CV_NODK2, CV_NODK2_PHA, GI_SHORT, NLEV
       REAL    :: NN, NXN, NNX, NXNX, NMX, NMY, NMZ, SAREA, &
-           VNMX, VNMY, VNMZ
+           VNMX, VNMY, VNMZ, NM
       REAL    :: VOLUME, MN, XC, YC, ZC, XC2, YC2, ZC2, HDC, VLM, VLM_NEW,VLM_OLD, NN_SNDOTQ_IN,NN_SNDOTQ_OUT, &
            NN_SNDOTQOLD_IN,NN_SNDOTQOLD_OUT, NORMX, NORMY, NORMZ, RNN, RN
       REAL    :: MASSE, MASSE2, rsum
@@ -2405,11 +2409,26 @@
 
          Loop_ilev_DGNods1: DO ILEV=1,NLEV
             Loop_DGNods1: DO U_ILOC = 1 +(ILEV-1)*U_NLOC2, ILEV*U_NLOC2
-               !Loop_DGNods1: DO U_ILOC = 1, U_NLOC
                GLOBI = U_NDGLN(( ELE - 1 ) * U_NLOC + U_ILOC )
 
+               ! put CV source in...
+               Loop_CVNods2: DO CV_JLOC = 1 , CV_NLOC
+                  GLOBJ = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_JLOC )
+                  NM = 0.0 
+                  Loop_Gauss_CV: DO GI = 1, CV_NGI
+                     NM = NM + UFEN( U_ILOC, GI ) * CVN( CV_JLOC,  GI ) * DETWEI( GI )
+                  end do Loop_Gauss_CV
+
+                  DO IDIM = 1, NDIM
+                     DO IPHASE = 1, NPHASE
+                        U_RHS( GLOBI + (IDIM-1)*U_NONODS + ( IPHASE - 1 ) * NDIM*U_NONODS ) =   &
+                             U_RHS( GLOBI + (IDIM-1)*U_NONODS + ( IPHASE - 1 ) * NDIM*U_NONODS )     &
+                             + NM * U_SOURCE_CV( GLOBJ + (IDIM-1)*CV_NONODS + ( IPHASE - 1 ) * NDIM*CV_NONODS )
+                     END DO
+                  END DO
+               END DO LOOP_CVNODS2
+
                Loop_DGNods2: DO U_JLOC = 1 +(ILEV-1)*U_NLOC2, ILEV*U_NLOC2
-                  !Loop_DGNods2: DO U_JLOC = 1, U_NLOC
                   GLOBJ = U_NDGLN(( ELE - 1 ) * U_NLOC + U_JLOC )
 
                   NN = 0.0 

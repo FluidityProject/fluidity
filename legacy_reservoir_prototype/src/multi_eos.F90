@@ -778,5 +778,40 @@
       RETURN
     END SUBROUTINE calculate_capillary_pressure
 
+    subroutine calculate_u_source_cv(state, cv_nonods, ndim, nphase, den, u_source_cv)
+      type(state_type), dimension(:), intent(in) :: state
+      integer, intent(in) :: cv_nonods, ndim, nphase
+      real, dimension(cv_nonods*nphase), intent(in) :: den
+      real, dimension(cv_nonods*ndim*nphase), intent(inout) :: u_source_cv
+
+      type(vector_field), pointer :: gravity_direction
+      real, dimension(ndim) :: g
+      logical :: have_gravity
+      real :: gravity_magnitude
+      integer :: idim, iphase, nod, stat
+
+      call get_option( "/physical_parameters/gravity/magnitude", gravity_magnitude, stat )
+      have_gravity = ( stat == 0 )
+
+      if( have_gravity ) then
+         gravity_direction => extract_vector_field(state(1), 'GravityDirection', stat )
+         g = node_val(gravity_direction, 1) * gravity_magnitude
+
+         u_source_cv = 0.
+      
+         do idim = 1, ndim
+            do iphase = 1, nphase
+               do nod = 1, cv_nonods
+                  u_source_cv( nod + (idim-1)*cv_nonods + ndim*cv_nonods*(iphase-1) ) = &
+                       den( nod + (iphase-1)*cv_nonods ) * g( idim )
+               end do
+            end do
+         end do
+         
+      else
+         u_source_cv = 0.
+      end if
+
+    end subroutine calculate_u_source_cv
 
   end module multiphase_EOS

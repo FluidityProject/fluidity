@@ -121,10 +121,10 @@
       <real_value rank="0">0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">1.e-2</real_value>
+      <real_value rank="0">2.e-2</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">1.</real_value>
+      <real_value rank="0">10.</real_value>
     </finish_time>
     <nonlinear_iterations>
       <integer_value rank="0">3</integer_value>
@@ -571,7 +571,7 @@
    
    import math
    
-   if X[0] &lt; 0.25 and X[1] &lt; 0.25:
+   if (X[0] &gt; 0.25 and X[0] &lt; 0.95 and X[1] &gt; 0.15 and X[1] &lt; 0.85 ):
             
       val = 1.0
    

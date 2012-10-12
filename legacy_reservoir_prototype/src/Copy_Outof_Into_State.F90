@@ -958,7 +958,7 @@ ewrite(3,*)'-->:',k + 1, k + node_count( field ), kk + 1, kk + stotel * cv_snloc
 
       density => extract_scalar_field(state(1), "Density")
       if (have_gravity) then
-         do i = 1, nphases - 1, 1
+         do i = 1, nphases - 1
             delta_den = 0.
             do j = 2, node_count( density )
                delta_den = delta_den + ( den((i)*node_count(density)+j) - &
@@ -2193,8 +2193,8 @@ ewrite(3,*)'-->:',k + 1, k + node_count( field ), kk + 1, kk + stotel * cv_snloc
       !       =5      Finite elements in space    Theta=non-linear   UNIVERSAL
       !       =6      Finite elements in space    Theta=specified    NONE
       !       =7      Finite elements in space    Theta=non-linear   NONE
-      !       =8      Finite elements in space    Theta=specified    DOWNWIND+
-      !       =9      Finite elements in space    Theta=non-linear   DOWNWIND+
+      !       =8      Finite elements in space    Theta=specified    DOWNWIND+INTERFACE TRACKING
+      !       =9      Finite elements in space    Theta=non-linear   DOWNWIND+INTERFACE TRACKING
 
       ! Add this variables into spud and replace them in cv_assemb and multi_dyncore
       if (have_option('/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
@@ -2216,6 +2216,9 @@ ewrite(3,*)'-->:',k + 1, k + node_count( field ), kk + 1, kk + stotel * cv_snloc
             v_disopt = 8
          end if
       endif 
+
+      v_disopt = 9
+      t_disopt = 9
 
       call get_option('/material_phase[0]/scalar_field::Temperature/prognostic/' // &
            'spatial_discretisation/conservative_advection', t_beta, default=0.0)
