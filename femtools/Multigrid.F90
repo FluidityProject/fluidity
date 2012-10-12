@@ -18,7 +18,7 @@ implicit none
 #define KSP_NORM_NONE KSP_NORM_NO
 #define PetscBool PetscTruth
 #endif
-#ifdef PETSC_VERSION_MINOR<3
+#if PETSC_VERSION_MINOR<3
 #define KSPCHEBYSHEV KSPCHEBYCHEV
 #define KSPChebyshevSetEigenvalues KSPChebychevSetEigenvalues
 #define VecSqrtAbs VecSqrt
@@ -647,7 +647,7 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega, ispa
 
   call PetscObjectGetComm(a, comm, ierr)
 #if PETSC_VERSION_MINOR>=3
-  call MPICreateAIJ(comm, nrows, ncols, PETSC_DECIDE, PETSC_DECIDE, &
+  call MatCreateAIJ(comm, nrows, ncols, PETSC_DECIDE, PETSC_DECIDE, &
     PETSC_NULL_INTEGER, dnnz, 0, PETSC_NULL_INTEGER, P, ierr)
 #else
   call MatGetType(A, mat_type, ierr)
