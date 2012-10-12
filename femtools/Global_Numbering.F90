@@ -102,7 +102,7 @@ contains
     max_vertices=size(entity_vertices(cell,[cell%dimension,1]))
     if (have_halos) then
        allocate(entity_sort_list(sum(entity_counts),0:max_vertices))
-       entity_sort_list=-1
+       entity_sort_list=-666
     end if
     allocate(visit_order(sum(entity_counts)))
     allocate(entity_dof_starts(sum(entity_counts)))
@@ -279,18 +279,31 @@ contains
                ! Set up the sort order lists. The primary key is the owner,
                !  the following sort keys are the UIDs of the vertices in
                !   ascending order.
-               entity_sort_list(entity,0)=entity_owner(entity)
-               entity_sort_list(entity,1:size(cell%entities(d,e)%vertices))&
-                    =sorted(int(node_val(uid,vertices(cell%entities(d,e)%vertices))))
+               if (entity_sort_list(entity, 0) == -666) then 
+                  if (entity_owner(entity)==rank) then
+                     ! Default to core until proven level 1 halo.
+                     entity_sort_list(entity,0)=-2
+                  else                                   
+                     ! Default to level 2 halo until proven level 1 halo.
+                     entity_sort_list(entity,0)=entity_owner(entity)&
+                           + getnprocs() + 1
+                  end if
+                  entity_sort_list(entity,1:size(cell%entities(d,e)%vertices))&
+                       =sorted(int(node_val(uid,vertices(cell%entities(d,e)%vertices))))
+               end if
 
-               ! A level 1 halo entity has vertices owned by different
+               ! A level 1 halo cell has vertices owned by different
                !  processors. Note that level1 in this context means level1
                !   for any processor, not just us.
                if (all(entity_owner(vertices)==entity_owner(vertices(1)))) cycle
-               
+
                ! Check if this is level 1 WRT us.
                if (any(entity_owner(vertices)==rank)) then
                   level1(vertices)=.True.
+
+                  if (entity_owner(entity)/=rank) then
+                     entity_sort_list(entity,0)=entity_owner(entity)
+                  end if
                end if
                
                ! If the entity is foreign, check if this element causes it
@@ -332,6 +345,11 @@ contains
                entity_receive_level(cell_entity)=2
          end if
 
+         if (entity_owner(cell_entity)==rank) then
+            entity_sort_list(cell_entity,0)=-1
+         end if
+
+
          do d=0, mesh_dim(mesh)-1
             do e=1,cell%entity_counts(d)
                if (d==0) then
@@ -357,6 +375,9 @@ contains
                call insert(entity_send_targets(entity,2), &
                     entity_send_targets(cell_entity,2))
 
+               if (entity_owner(entity)==rank) then
+                  entity_sort_list(entity,0)=-1
+               end if
             end do
          end do
       end do
@@ -370,6 +391,7 @@ contains
       end do
       
       deallocate(level1)
+
 
     end subroutine create_topology_halos
 
@@ -385,16 +407,9 @@ contains
     subroutine entity_order
       ! Form an orderly queue of topological entities. With halos, this
       !  ensures that all non-owned entities follow all owned entities.
-      integer :: rank, i
+      integer :: i
       
       if (have_halos) then
-         rank=getprocno()
-         do i=1,size(entity_sort_list,1)
-            ! ensure local entities come first.
-            if (entity_sort_list(i,0)==rank) then
-               entity_sort_list(i,0)=-1
-            end if
-         end do
          call sort(entity_sort_list, visit_order)
       else
          ! In the serial case, we just run through the list in order.
@@ -560,6 +575,7 @@ contains
          do p=1,size(mesh%halos(h)%receives)
             mesh%halos(h)%receives(p)%ptr=sorted(set2vector(receives(hh,p)))
          end do
+
 
          call create_global_to_universal_numbering(mesh%halos(h))
          call create_ownership(mesh%halos(h))

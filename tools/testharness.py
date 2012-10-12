@@ -19,7 +19,7 @@ except ImportError:
 
 class TestHarness:
     def __init__(self, length="any", parallel=False, exclude_tags=None, tags=None, file="", verbose=True, justtest=False,
-        valgrind=False):
+        valgrind=False, from_file=None):
         self.tests = []
         self.verbose = verbose
         self.length = length
@@ -71,14 +71,29 @@ class TestHarness:
         # step 2. if the user has specified a particular file, let's use that.
 
         if file != "":
+          files = [file]
+        elif from_file is not None:
+          try:
+            f = open(from_file, 'r')
+            files = map(lambda x : x[:-1], f.readlines())
+          except IOError as e:
+            sys.stderr.write("Unable to open file %s: %s" % (from_file, e))
+            sys.exit(1)
+          f.close()
+        else:
+          files = None
+
+        if files is not None:
           for (subdir, xml_file) in [os.path.split(x) for x in xml_files]:
-            if xml_file == file:
+            if xml_file in files:
               testprob = regressiontest.TestProblem(filename=os.path.join(subdir, xml_file),
                            verbose=self.verbose, replace=self.modify_command_line())
-              self.tests = [(subdir, testprob)]
-              return
-          print "Could not find file %s." % file
-          sys.exit(1)
+              self.tests.append((subdir, testprob))
+              files.remove(xml_file)
+          if files != []:
+            print "Could not find file %s." % files
+            sys.exit(1)
+          return
 
         # step 3. form a cut-down list of the xml files matching the correct length and the correct parallelism.
         working_set = []
@@ -334,6 +349,7 @@ if __name__ == "__main__":
     parser.add_option("-c", "--clean", action="store_true", dest="clean", default = False)
     parser.add_option("--just-test", action="store_true", dest="justtest")
     parser.add_option("--just-list", action="store_true", dest="justlist")
+    parser.add_option("--tests-from-file", dest="from_file", default=None, help="take tests to run from file")
     (options, args) = parser.parse_args()
 
     if len(args) > 0: parser.error("Too many arguments.")
@@ -368,7 +384,7 @@ if __name__ == "__main__":
       tags = options.tags
 
     testharness = TestHarness(length=options.length, parallel=para, exclude_tags=exclude_tags, tags=tags, file=options.file, verbose=True,
-        justtest=options.justtest, valgrind=options.valgrind)
+        justtest=options.justtest, valgrind=options.valgrind, from_file=options.from_file)
 
     if options.justlist:
       testharness.list()
