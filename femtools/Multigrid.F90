@@ -6,36 +6,22 @@ use FLDebug
 #include "petscversion.h"
 #ifdef HAVE_PETSC_MODULES
   use petsc
-#if PETSC_VERSION_MINOR==0
-  use petscvec
-  use petscmat
-  use petscksp
-  use petscpc
-  use petscis
-  use petscmg
-#endif
 #endif
 implicit none
 #ifdef HAVE_PETSC_MODULES
-#include "finclude/petscvecdef.h"
-#include "finclude/petscmatdef.h"
-#include "finclude/petsckspdef.h"
-#include "finclude/petscpcdef.h"
-#include "finclude/petscviewerdef.h"
-#include "finclude/petscsysdef.h"
+#include "finclude/petscdef.h"
 #else
 #include "finclude/petsc.h"
-#if PETSC_VERSION_MINOR==0
-#include "finclude/petscmat.h"
-#include "finclude/petscvec.h"
-#include "finclude/petscviewer.h"
-#include "finclude/petscksp.h"
-#include "finclude/petscpc.h"
-#include "finclude/petscsys.h"
 #endif
+
+#if PETSC_VERSION_MINOR==1
+#define KSP_NORM_NONE KSP_NORM_NO
+#define PetscBool PetscTruth
 #endif
-#if PETSC_VERSION_MINOR==2
-#define KSP_NORM_NO KSP_NORM_NONE
+#ifdef PETSC_VERSION_MINOR<3
+#define KSPCHEBYSHEV KSPCHEBYCHEV
+#define KSPChebyshevSetEigenvalues KSPChebychevSetEigenvalues
+#define VecSqrtAbs VecSqrt
 #endif
 
 !! Some parameters that change the behaviour of 
@@ -391,7 +377,7 @@ integer, intent(in):: iterations
   call KSPSetTolerances(ksp, PETSC_DEFAULT_DOUBLE_PRECISION, &
     PETSC_DEFAULT_DOUBLE_PRECISION, PETSC_DEFAULT_DOUBLE_PRECISION, &
     1, ierr)
-  call KSPSetNormType(ksp, KSP_NORM_NO, ierr)
+  call KSPSetNormType(ksp, KSP_NORM_NONE, ierr)
   
   call KSPGetPC(ksp, pc, ierr)
   call PCSetType(pc, PCSOR, ierr)
@@ -414,7 +400,7 @@ Mat, intent(in):: matrix
     PETSC_DEFAULT_DOUBLE_PRECISION, PETSC_DEFAULT_DOUBLE_PRECISION, &
     0, ierr)
   call KSPRichardsonSetScale(ksp,PetscZero,ierr)
-  call KSPSetNormType(ksp, KSP_NORM_NO, ierr)
+  call KSPSetNormType(ksp, KSP_NORM_NONE, ierr)
   
   call KSPGetPC(ksp, pc, ierr)
   call PCSetType(pc,PCNONE,ierr)
@@ -430,17 +416,13 @@ integer, intent(in):: iterations
   PC:: pc
   PetscErrorCode:: ierr
   
-  call KSPSetType(ksp, KSPCHEBYCHEV, ierr)
+  call KSPSetType(ksp, KSPCHEBYSHEV, ierr)
   call KSPSetOperators(ksp, matrix, matrix, SAME_PRECONDITIONER, ierr)
   call KSPSetTolerances(ksp, PETSC_DEFAULT_DOUBLE_PRECISION, &
     PETSC_DEFAULT_DOUBLE_PRECISION, PETSC_DEFAULT_DOUBLE_PRECISION, &
     iterations, ierr)
-#ifdef DOUBLEP
-  call KSPChebychevSetEigenvalues(ksp, emax, emin, ierr)
-#else
-  call KSPChebychevSetEigenvalues(ksp, emax, emin, ierr)
-#endif
-  call KSPSetNormType(ksp, KSP_NORM_NO, ierr)
+  call KSPChebyshevSetEigenvalues(ksp, emax, emin, ierr)
+  call KSPSetNormType(ksp, KSP_NORM_NONE, ierr)
 
   call KSPGetPC(ksp, pc, ierr)
   call PCSetType(pc, PCNONE, ierr)
@@ -454,11 +436,7 @@ integer, intent(out):: maxlevels, coarsesize
 integer, intent(out):: nosmd, nosmu, clustersize
 logical, intent(in):: isparallel
 
-#if PETSC_VERSION_MINOR==2
   PetscBool flag
-#else
-  PetscTruth flag
-#endif
   PetscErrorCode ierr
 
     call PetscOptionsGetReal('', '-mymg_epsilon', epsilon, flag, ierr)
@@ -556,11 +534,7 @@ integer, optional, dimension(:), intent(out):: cluster
   
   !
   call VecCopy(diag, sqrt_diag, ierr)
-#if PETSC_VERSION_MINOR==2
   call VecSqrtAbs(sqrt_diag, ierr)
-#else
-  call VecSqrt(sqrt_diag, ierr)
-#endif
   !
   call VecDuplicate(sqrt_diag, inv_sqrt_diag, ierr)
   call VecCopy(sqrt_diag, inv_sqrt_diag, ierr)
@@ -651,7 +625,7 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega, ispa
   Vec:: rowsum_vec
   PetscReal, dimension(:), allocatable:: Arowsum
   PetscReal:: aij(1), rowsum
-  integer, dimension(:), allocatable:: dnnz, onnz
+  integer, dimension(:), allocatable:: dnnz
   integer:: i, j, k, coarse_base
   
   allocate(dnnz(1:nrows), Arowsum(1:nrows))
@@ -671,30 +645,29 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega, ispa
     dnnz(i)=min(dnnz(i), ncols)
   end do      
 
-  call MatGetType(A, mat_type, ierr)
   call PetscObjectGetComm(a, comm, ierr)
+#if PETSC_VERSION_MINOR>=3
+  call MPICreateAIJ(comm, nrows, ncols, PETSC_DECIDE, PETSC_DECIDE, &
+    PETSC_NULL_INTEGER, dnnz, 0, PETSC_NULL_INTEGER, P, ierr)
+#else
+  call MatGetType(A, mat_type, ierr)
   if (mat_type==MATMPIAIJ) then
-    ! for the moment the prolongator is completely local:
-    allocate(onnz(1:nrows))
-    onnz=0
     
     call MatCreateMPIAIJ(comm, nrows, ncols, PETSC_DECIDE, PETSC_DECIDE, &
-      PETSC_NULL_INTEGER, dnnz, PETSC_NULL_INTEGER, onnz, P, ierr)
-    call MatSetOption(P, MAT_USE_INODES, PETSC_FALSE, ierr)
+      PETSC_NULL_INTEGER, dnnz, 0, PETSC_NULL_INTEGER, P, ierr)
       
-    ! get base for coarse node/cluster numbering
-    call MatGetOwnerShipRangeColumn(P, coarse_base, PETSC_NULL_INTEGER, ierr)
-    ! subtract 1 to convert from 1-based fortran to 0 based petsc
-    coarse_base=coarse_base-1
   else if (mat_type==MATSEQAIJ) then
     call MatCreateSeqAIJ(comm, nrows, ncols, &
       PETSC_NULL_INTEGER, dnnz, P, ierr)
-    call MatSetOption(P, MAT_USE_INODES, PETSC_FALSE, ierr)
-    ! subtract 1 from each cluster no to get petsc 0-based numbering
-    coarse_base=-1
   else
     FLAbort("Multigrid mg only support seqaij and mpiaij PETSc matrices")
   end if
+#endif
+  ! get base for coarse node/cluster numbering
+  call MatGetOwnerShipRangeColumn(P, coarse_base, PETSC_NULL_INTEGER, ierr)
+  ! subtract 1 to convert from 1-based fortran to 0 based petsc
+  coarse_base=coarse_base-1
+  call MatSetOption(P, MAT_USE_INODES, PETSC_FALSE, ierr)
   
   myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
   call MatGetVecs(A, rowsum_vec, PETSC_NULL_OBJECT, ierr)
