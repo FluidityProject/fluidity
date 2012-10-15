@@ -337,10 +337,6 @@ module python_state
                              & F%face_element_list, size(F%face_element_list), &
                              & F%boundary_ids, size(F%boundary_ids))
 
-!    call python_run_string("states['" // trim(st%name) // "'].meshes['" // trim(M%name) // &
-!                         & "'].faces.surface_mesh = states['" // trim(st%name) // &
-!                         & "'].meshes['" // trim(F%surface_mesh%name) // "']")
-
     call python_add_csr_matrix_directly(F%face_list, st)
 
     call python_run_string("states['" // trim(st%name) // "'].meshes['" // trim(M%name) // &
