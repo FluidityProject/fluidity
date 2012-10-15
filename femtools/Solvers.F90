@@ -1597,6 +1597,9 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
        FLExit("multigrid_near_null_space only available in petsc 3.3")
 #else
 
+       if (.not. present(petsc_numbering)) then
+         FLAbort("Need petsc_numbering for multigrid near null space")
+       end if
        null_space = create_null_space_from_options(trim(solver_option_path)//"/multigrid_near_null_space", &
             petsc_numbering, positions=positions)
        call MatSetNearNullSpace(mat, null_space, ierr)
@@ -1610,6 +1613,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     remove_null_space=have_option(trim(solver_option_path)//'/remove_null_space')
     call setup_pc_from_options(pc, pmat, &
        trim(solver_option_path)//'/preconditioner[0]', &
+       petsc_numbering=petsc_numbering, &
        prolongators=prolongators, surface_node_list=surface_node_list, &
        matrix_csr=matrix_csr, internal_smoothing_option=internal_smoothing_option, &
        has_null_space=remove_null_space)
@@ -1656,6 +1660,9 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
 
     ! If requested, remove nullspace from residual field.
     if (remove_null_space) then
+       if (.not. present(petsc_numbering)) then
+         FLAbort("Need petsc_numbering for null space removal")
+       end if
        if (size(petsc_numbering%gnn2unn,2)==1) then
          ! scalar case, only constant null space
          ewrite(2,*) 'Adding null-space removal options to KSP'
@@ -1726,11 +1733,13 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
   end subroutine setup_ksp_from_options
     
   recursive subroutine setup_pc_from_options(pc, pmat, option_path, &
-    prolongators, surface_node_list, matrix_csr, internal_smoothing_option, &
-    is_subpc, has_null_space)
+    petsc_numbering, prolongators, surface_node_list, matrix_csr, &
+    internal_smoothing_option, is_subpc, has_null_space)
   PC, intent(inout):: pc
   Mat, intent(in):: pmat
   character(len=*), intent(in):: option_path
+  ! may need to be passed down to pcksp:
+  type(petsc_numbering_type), optional, intent(in):: petsc_numbering
   ! additional information for multigrid smoother:
   type(petsc_csr_matrix), dimension(:), optional, intent(in) :: prolongators
   integer, dimension(:), optional, intent(in) :: surface_node_list
@@ -1795,7 +1804,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
           &"for the complete ksp solve of the preconditioner"
        call KSPSetOperators(subksp, pmat, pmat, DIFFERENT_NONZERO_PATTERN, ierr)
        call setup_ksp_from_options(subksp, pmat, pmat, &
-         trim(option_path)//'/solver')
+         trim(option_path)//'/solver', petsc_numbering=petsc_numbering)
        ewrite(1,*) "Returned from setup_ksp_from_options for the preconditioner solve, "//&
           &"now setting options for the outer solve"
       
@@ -1816,6 +1825,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
       ewrite(2,*) "Going into setup_pc_from_options for the subpc within the local domain."
       call setup_pc_from_options(subpc, pmat, &
          trim(option_path)//'/preconditioner[0]', &
+         petsc_numbering=petsc_numbering, &
          prolongators=prolongators, surface_node_list=surface_node_list, &
          matrix_csr=matrix_csr, internal_smoothing_option=internal_smoothing_option, &
          is_subpc=.true.)
