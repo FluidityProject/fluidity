@@ -74,8 +74,7 @@ subroutine test_tensor_spherical_polar_2_cartesian
     call set(difference, node, cartesianComponents)
   enddo
   call addto(difference, tensor_cartesian, -1.0)
-  call vtk_write_fields("data/test_tensor_spherical_polar_2_cartesian_out", 0, &
-                        CartesianCoordinate, mesh, tfields=(/difference/))
+
   fail = any(difference%val > 1e-8)
   call report_test("[Tensor change of basis: Spherical-polar to Cartesian.]", &
                    fail, .false., "Tensor components not transformed correctly.")

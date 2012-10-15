@@ -87,6 +87,11 @@ module Coordinates
                       vector_spherical_polar_2_cartesian_field
   end interface
 
+  interface vector_cartesian_2_spherical_polar
+     module procedure vector_cartesian_2_spherical_polar, &
+                      vector_cartesian_2_spherical_polar_field
+  end interface
+
 contains
     
   subroutine LongitudeLatitude_single(xyz, longitude, latitude)
@@ -331,7 +336,7 @@ contains
     if(present(referenceRadius)) then
       height = radius - referenceRadius
     else
-      height = radius
+      height = radius - surface_radius
     endif
 
   end subroutine spherical_polar_2_lon_lat_height
@@ -509,15 +514,7 @@ contains
     R(3,2)=cos(phi)
     R(3,3)=0.0
 
-    RT(1,1) = R(1,1)
-    RT(1,2) = R(2,1)
-    RT(1,3) = R(3,1)
-    RT(2,1) = R(1,2)
-    RT(2,2) = R(2,2)
-    RT(2,3) = R(3,2)
-    RT(3,1) = R(1,3)
-    RT(3,2) = R(2,3)
-    RT(3,3) = R(3,3)
+    RT = TRANSPOSE(R)
 
   end subroutine transformation_matrix_cartesian_2_spherical_polar
 
@@ -902,6 +899,8 @@ contains
                                    ! in cartesian & spherical-polar bases 
     real, dimension(3) :: cartesianComponents, sphericalPolarComponents
 
+    assert(node_count(spherical_polar_coordinate_field) == node_count(cartesian_coordinate_field))
+
     do node=1,node_count(spherical_polar_coordinate_field)
       RTP = node_val(spherical_polar_coordinate_field, node)
       sphericalPolarComponents = node_val(spherical_polar_vector_field, node)
@@ -927,14 +926,16 @@ contains
     ! fields
     implicit none
 
-    type(vector_field), pointer :: cartesian_vector_field
-    type(vector_field), pointer :: cartesian_coordinate_field
-    type(vector_field), pointer :: spherical_polar_vector_field
-    type(vector_field), pointer :: spherical_polar_coordinate_field
+    type(vector_field) :: cartesian_vector_field
+    type(vector_field) :: cartesian_coordinate_field
+    type(vector_field) :: spherical_polar_vector_field
+    type(vector_field) :: spherical_polar_coordinate_field
     integer :: node
     real, dimension(3) :: XYZ, RTP !arrays containing a signel node's position vector
                                    ! in cartesian & spherical-polar bases 
     real, dimension(3) :: cartesianComponents, sphericalPolarComponents
+
+    assert(node_count(spherical_polar_coordinate_field) == node_count(cartesian_coordinate_field) )
 
     do node=1,node_count(spherical_polar_coordinate_field)
       XYZ = node_val(cartesian_coordinate_field, node)
@@ -1060,19 +1061,19 @@ contains
     ! This result is given by R(diagonal)R^T where R is the transformation matrix.
     type(vector_field), intent(in) :: positions
     integer, intent(in) :: ele_number
-    real, dimension(positions%dim,ele_ngi(positions,ele_number)), intent(in) :: diagonal
-    real, dimension(positions%dim,ele_ngi(positions,ele_number)) :: X_quad
-    real, dimension(positions%dim,positions%dim) :: R, RT
-    real, dimension(positions%dim,positions%dim,ele_ngi(positions,ele_number)) :: diagonal_T, quad_val
+    real, dimension(mesh_dim(positions),ele_ngi(positions,ele_number)), intent(in) :: diagonal
+    real, dimension(mesh_dim(positions),ele_ngi(positions,ele_number)) :: X_quad
+    real, dimension(mesh_dim(positions),mesh_dim(positions)) :: R, RT
+    real, dimension(mesh_dim(positions),mesh_dim(positions),ele_ngi(positions,ele_number)) :: diagonal_T, quad_val
     real :: radius, theta, phi !distance form origin, polar angle, azimuthal angle
     integer :: i
 
-    assert(positions%dim==3)
+    assert(mesh_dim(positions)==3)
 
     X_quad=ele_val_at_quad(positions, ele_number)
 
     diagonal_T=0.0
-    do i=1,positions%dim
+    do i=1,mesh_dim(positions)
       diagonal_T(i,i,:)=diagonal(i,:)
     end do
 
@@ -1090,15 +1091,7 @@ contains
       R(3,2)=-sin(theta)
       R(3,3)=0.0
 
-      RT(1,1) = R(1,1)
-      RT(1,2) = R(2,1)
-      RT(1,3) = R(3,1)
-      RT(2,1) = R(1,2)
-      RT(2,2) = R(2,2)
-      RT(2,3) = R(3,2)
-      RT(3,1) = R(1,3)
-      RT(3,2) = R(2,3)
-      RT(3,3) = R(3,3)
+      RT = TRANSPOSE(R)
 
       quad_val(:,:,i)=matmul((matmul(R,diagonal_T(:,:,i))),RT)
 
@@ -1142,15 +1135,7 @@ contains
       R(3,2)=-sin(theta)
       R(3,3)=0.0
 
-      RT(1,1) = R(1,1)
-      RT(1,2) = R(2,1)
-      RT(1,3) = R(3,1)
-      RT(2,1) = R(1,2)
-      RT(2,2) = R(2,2)
-      RT(2,3) = R(3,2)
-      RT(3,1) = R(1,3)
-      RT(3,2) = R(2,3)
-      RT(3,3) = R(3,3)
+      RT = TRANSPOSE(R)
 
       quad_val(:,:,i)=matmul((matmul(R,diagonal_T(:,:,i))),RT)
 
@@ -1195,15 +1180,7 @@ contains
       R(3,2)=cos(phi)
       R(3,3)=0.0
 
-      RT(1,1) = R(1,1)
-      RT(1,2) = R(2,1)
-      RT(1,3) = R(3,1)
-      RT(2,1) = R(1,2)
-      RT(2,2) = R(2,2)
-      RT(2,3) = R(3,2)
-      RT(3,1) = R(1,3)
-      RT(3,2) = R(2,3)
-      RT(3,3) = R(3,3)
+      RT = TRANSPOSE(R)
 
       quad_val(:,:,i)=matmul((matmul(R,diagonal_T(:,:,i))),RT)
 
@@ -1248,15 +1225,7 @@ contains
       R(3,2)=cos(phi)
       R(3,3)=0.0
 
-      RT(1,1) = R(1,1)
-      RT(1,2) = R(2,1)
-      RT(1,3) = R(3,1)
-      RT(2,1) = R(1,2)
-      RT(2,2) = R(2,2)
-      RT(2,3) = R(3,2)
-      RT(3,1) = R(1,3)
-      RT(3,2) = R(2,3)
-      RT(3,3) = R(3,3)
+      RT = TRANSPOSE(R)
 
       quad_val(:,:,i)=matmul((matmul(R,diagonal_T(:,:,i))),RT)
 
