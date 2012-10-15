@@ -18,8 +18,9 @@ except ImportError:
   import elementtree.ElementTree as etree
 
 class TestHarness:
-    def __init__(self, length="any", parallel=False, exclude_tags=None, tags=None, file="", verbose=True, justtest=False,
-        valgrind=False):
+    def __init__(self, length="any", parallel=False, exclude_tags=None,
+                 tags=None, file="", verbose=True, justtest=False,
+                 valgrind=False):
         self.tests = []
         self.verbose = verbose
         self.length = length
@@ -367,8 +368,11 @@ if __name__ == "__main__":
     else:
       tags = options.tags
 
-    testharness = TestHarness(length=options.length, parallel=para, exclude_tags=exclude_tags, tags=tags, file=options.file, verbose=True,
-        justtest=options.justtest, valgrind=options.valgrind)
+    testharness = TestHarness(length=options.length, parallel=para,
+                              exclude_tags=exclude_tags, tags=tags,
+                              file=options.file, verbose=True,
+                              justtest=options.justtest,
+                              valgrind=options.valgrind)
 
     if options.justlist:
       testharness.list()
