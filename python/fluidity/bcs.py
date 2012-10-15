@@ -20,14 +20,15 @@
 # First added:  2008-10-22
 # Last changed: 2012-08-18
 
-__all__ = ["SubDomain", "DirichletBC", "PeriodicBC", "homogenize", "near"]
+__all__ = ["SubDomain", "DirichletBC", "homogenize", "near"]
 
 import types
+import logging
+
 import ufl
 import sys
 from pyop2.utils import as_tuple
 
-# From Dolfin
 EPS = 3.0e-16
 
 def near(x, x0):
@@ -58,9 +59,9 @@ class DirichletBC(BoundaryCondition):
         # Copy constructor
         if len(args) == 1:
             if not isinstance(args[0], DirichletBC):
-                log.error("bcs.py, create DirichletBC: " \
-                          "Expecting a DirichletBC as only argument"\
-                          " for copy constructor")
+                logging.error("bcs.py, create DirichletBC: " \
+                              "Expecting a DirichletBC as only argument"\
+                              " for copy constructor")
 
             other = args[0]
             self.mesh_arg = other.mesh_arg
@@ -76,58 +77,14 @@ class DirichletBC(BoundaryCondition):
         if "method" in kwargs:
             args = tuple(list(args) + [kwargs["method"]])
 
-# Creattion of Python class to avoid issue of SWIG directors going out
-# of scope
-class PeriodicBC(BoundaryCondition):
-
-    def __init__(self, *args, **kwargs):
-        "Create Periodic boundary condition"
-
-        # Copy constructor
-        if len(args) == 1:
-            if not isinstance(args[0], cpp.PeriodicBC):
-                cpp.dolfin_error("bcs.py",
-                                 "create PeriodicBC",
-                                 "Expecting a DirichleBC as only argument"\
-                                 " for copy constructor")
-
-            # Initialize base class
-            cpp.PeriodicBC.__init__(self, args[0])
-
-        elif len(args) == 2:
-            if not isinstance(args[0], cpp.FunctionSpace):
-                cpp.dolfin_error("bcs.py",
-                                 "create PeriodicBC",
-                                 "Expecting a FunctionSpace as first"\
-                                 " constructor argument")
-
-            if not isinstance(args[1], cpp.SubDomain):
-                cpp.dolfin_error("bcs.py",
-                                 "create PeriodicBC",
-                                 "Expecting a SubDomain as second"\
-                                 " constructor argument")
-
-            # Store SubDomain to avoid scoping issue with SWIG directors
-            self.domain_args = args[1:]
-
-            # Initialize base class
-            cpp.PeriodicBC.__init__(self, *args)
-
-        else:
-            cpp.dolfin_error("bcs.py",
-                             "create PeriodicBC",
-                             "Too many arguments passed to constructor")
-
-
 def homogenize(bc):
     """
     Return a homogeneous version of the given boundary condition.
 
     *Arguments*
         bc
-            a :py:class:`DirichletBC <dolfin.fem.bcs.DirichletBC>` instance,
-            or a list/tuple of
-            :py:class:`DirichletBC <dolfin.fem.bcs.DirichletBC>` instances.
+            a :py:class:`DirichletBC` instance, or a list/tuple of
+            :py:class:`DirichletBC` instances.
 
     Other types of boundary conditions, like periodic, are ignored.
 
@@ -142,7 +99,7 @@ def homogenize(bc):
         return [homogenize(bc) for bc in bcs]
 
     # Only consider Dirichlet boundary conditions
-    if not isinstance(bc, cpp.DirichletBC):
+    if not isinstance(bc, DirichletBC):
         return bc
 
     # Create zero function
@@ -152,20 +109,20 @@ def homogenize(bc):
     elif V.element().value_rank() == 1:
         zero = Constant([0]*V.element().value_dimension(0))
     else:
-        cpp.dolfin_error("bcs.py",
-                         "homogenize boundary condition",
-                         "Unhandled value rank %d for homogenization of boundary conditions" % \
-                             V.element().value_rank())
+        logging.error("bcs.py",
+                      "homogenize boundary condition",
+                      "Unhandled value rank %d for homogenization of boundary conditions" % \
+                          V.element().value_rank())
 
     # Create homogeneous boundary condition
     if len(bc.domain_args) == 1:
-        new_bc = cpp.DirichletBC(V, zero, bc.domain_args[0])
+        new_bc = DirichletBC(V, zero, bc.domain_args[0])
     elif len(bc.domain_args) == 2:
-        new_bc = cpp.DirichletBC(V, zero, bc.domain_args[0], bc.domain_args[1])
+        new_bc = DirichletBC(V, zero, bc.domain_args[0], bc.domain_args[1])
     else:
-        cpp.dolfin_error("bcs.py",
-                         "homogenize boundary condition",
-                         "Unknown type of boundary specification")
+        logging.error("bcs.py",
+                      "homogenize boundary condition",
+                      "Unknown type of boundary specification")
     new_bc.domain_args = bc.domain_args
 
     return new_bc
