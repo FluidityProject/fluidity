@@ -275,7 +275,7 @@ print kinetic_energy,kinetic_energy_error
     </variable>   
     <variable name="streamfunction_min_error" language="python">
 import fluidity_tools
-streamfunction_min = fluidity_tools.stat_parser("driven_cavity_2d.stat")['Fluid']['StreamFunction']['min'][-1]
+streamfunction_min = fluidity_tools.stat_parser("driven_cavity_2d.stat")['Fluid']['MultiplyConnectedStreamFunction']['min'][-1]
 streamfunction_min_error = abs( streamfunction_min - -0.118942 )
 print streamfunction_min,streamfunction_min_error
     </variable>   
