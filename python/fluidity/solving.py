@@ -26,7 +26,7 @@ import numpy
 
 import ufl
 from ufl.finiteelement import FiniteElement, VectorElement, TensorElement
-
+from bcs import BoundaryCondition, DirichletBC
 from pyop2 import op2, ffc_interface
 
 DEFAULT_SOLVER_PARAMETERS = {'solver': 'cg', 'preconditioner': 'jacobi'}
@@ -47,7 +47,7 @@ class LinearVariationalProblem(object):
 
         # Extract and check arguments
         u = _extract_u(u)
-        bcs = _extract_bcs(bcs)
+        self.bcs = _extract_bcs(bcs)
 
         # Check if linear form L is empty
         if L.integrals() == ():
@@ -89,6 +89,13 @@ class NonlinearVariationalProblem(object):
         form_compiler_parameters = form_compiler_parameters or {}
         self.form_compiler_parameters = form_compiler_parameters
 
+_apply_dirichlet_1 = """\
+void apply_dirichlet(double **t, double *val) { t[0][0] = *val; t[1][0] = *val; }
+"""
+
+_apply_dirichlet = {}
+_apply_dirichlet[1] = op2.Kernel(_apply_dirichlet_1, "apply_dirichlet")
+
 class LinearVariationalSolver(object):
     """Solves a linear variational problem."""
     
@@ -100,6 +107,34 @@ class LinearVariationalSolver(object):
     def solve(self):
         A = _assemble_tensor(self._problem.a)
         b = _assemble_tensor(self._problem.L)
+
+        mesh = self._problem.u.mesh
+        mesh.compute_boundaries()
+
+        # Apply Dirichlet BCs
+        for bc in self._problem.bcs:
+            if not isinstance(bc, DirichletBC):
+                raise NotImplementedError("Only DirichletBCs supported (not PeriodicBCs)")
+            for domain in bc.domain_args:
+                # Get list of nodes in domain. #FIXME: get zero_rows to take a map
+                # so we don't mandate pulling data back and forth in the interface.
+                domain_nodes = set()
+                for nodelist in mesh.faces.surface_elements_to_nodes_maps[domain].values:
+                    for node in nodelist:
+                        domain_nodes.add(node)
+                domain_nodes = list(domain_nodes)
+                A.zero_rows(domain_nodes, 1.0)
+                # Apply BC on RHS
+                # FIXME: Need to generate the appropriate code for setting the BC depending
+                # on the number of nodes and data dimension
+                dim = len(bc.function_arg)
+                value = op2.Global(dim, bc.function_arg)
+                op2.par_loop(_apply_dirichlet[dim], mesh.faces.surface_elem_sets[domain],
+                             b(mesh.faces.surface_elements_to_nodes_maps[domain], op2.WRITE),
+                             value(op2.READ))
+
+        numpy.set_printoptions(linewidth=150)
+
         solver = self.parameters['solver']
         preconditioner = self.parameters['preconditioner']
         _la_solve(A, self._problem.u, b, solver, preconditioner)

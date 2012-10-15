@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>ufl_laplace</name>
+  <owner userid="fr710"/>
+  <tags>ufl</tags>
+  <problem_definition length="ufl" nprocs="1">
+    <command_line>fluidity laplace.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="error" language="python">from fluidity_tools import stat_parser as stat
+from math import log
+
+stat = stat("ufl_laplace.stat")
+error = stat["Fluid"]["AbsoluteDifference"]["l2norm"][-1]
+print error
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Error L2norm." language="python">assert error &lt; 1.0e-4</test>
+  </pass_tests>
+  <warn_tests/>
+</testproblem>
