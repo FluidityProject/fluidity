@@ -538,7 +538,7 @@ contains
          compressible = .false.
       end if
 
-      if(have_option(trim(t%option_path)//'/prognostic/equation[0]/density[0]/include_pressure_term')) then
+      if(have_option(trim(t%option_path)//'/prognostic/equation[0]/include_pressure_term')) then
          include_pressure_term = .true.
          pressure=>extract_scalar_field(state, "Pressure")
          ewrite_minmax(pressure)
@@ -548,10 +548,10 @@ contains
       end if
 
       
-      if(have_option(trim(t%option_path)//'/prognostic/equation[0]/density[0]/include_heat_flux_term')) then
+      if(have_option(trim(t%option_path)//'/prognostic/equation[0]/include_heat_flux_term')) then
          include_heat_flux = .true.
-         call get_option(trim(t%option_path)//'/prognostic/equation[0]/density[0]/include_heat_flux_term/effective_conductivity', k)
-         call get_option(trim(t%option_path)//'/prognostic/equation[0]/density[0]/include_heat_flux_term/specific_heat', C_v)
+         call get_option(trim(t%option_path)//'/prognostic/equation[0]/include_heat_flux_term/effective_conductivity', k)
+         call get_option(trim(t%option_path)//'/prognostic/equation[0]/include_heat_flux_term/specific_heat', C_v)
       else
          include_heat_flux = .false.
       end if
