@@ -329,7 +329,8 @@ contains
       .or. have_option( &
         trim(solver_option_path)//'/diagnostics/monitors/true_error') &
       .or. have_option( &
-        trim(solver_option_path)//'/diagnostics/monitors/iteration_vtus')
+        trim(solver_option_path)//'/diagnostics/monitors/iteration_vtus') &
+      .or. petsc_solve_needs_positions(solver_option_path)
   
   end function petsc_solve_needs_state
   
