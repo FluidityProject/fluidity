@@ -184,7 +184,7 @@
       type(state_type), intent(in):: state
       type(mesh_type), intent(in):: inner_mesh
       ! Positions:
-      type(vector_field), pointer :: positions
+      type(vector_field), pointer :: positions, mesh_positions
 
       ! Additional arrays used internally:
       ! Additional numbering types:
@@ -338,15 +338,15 @@
       call MatSchurComplementGetKSP(A,ksp_schur,ierr)
       call petsc_solve_state_setup(inner_solver_option_path, prolongators, surface_nodes, &
         state, inner_mesh, blocks(div_matrix_comp,2), inner_option_path, matrix_has_solver_cache=.false., &
-        mesh_positions=positions)
+        mesh_positions=mesh_positions)
       if (associated(prolongators)) then
         if (associated(surface_nodes)) then
           FLExit("Internal smoothing not available for inner solve")
         end if
-        if (associated(positions)) then
+        if (associated(mesh_positions)) then
           call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
             inner_solver_option_path, petsc_numbering=petsc_numbering_u, startfromzero_in=.true., &
-            prolongators=prolongators, positions=positions)
+            prolongators=prolongators, positions=mesh_positions)
         else
           call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
             inner_solver_option_path, petsc_numbering=petsc_numbering_u, startfromzero_in=.true., &
@@ -356,15 +356,20 @@
           call deallocate(prolongators(i))
         end do
         deallocate(prolongators)
-      else if (associated(positions)) then
+      else if (associated(mesh_positions)) then
         call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
           inner_solver_option_path, petsc_numbering=petsc_numbering_u, startfromzero_in=.true., &
-          positions=positions)
+          positions=mesh_positions)
       else
         call setup_ksp_from_options(ksp_schur, inner_M%M, inner_M%M, &
           inner_solver_option_path, petsc_numbering=petsc_numbering_u, startfromzero_in=.true.)
       end if
       
+      if (associated(mesh_positions)) then
+        call deallocate(mesh_positions)
+        deallocate(mesh_positions)
+      end if
+       
       ! leaving out petsc_numbering and mesh, so "iteration_vtus" monitor won't work!
 
       ! Assemble preconditioner matrix in petsc format (if required):
