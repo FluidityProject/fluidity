@@ -1,8 +1,7 @@
-#include "fdebug.h"
 !! This module contains multigrid related subroutines, such as the smoothed
 !! aggregation preconditioner.
 module multigrid
-use FLDebug
+  use, intrinsic:: iso_c_binding
 #include "petscversion.h"
 #ifdef HAVE_PETSC_MODULES
   use petsc
@@ -14,6 +13,7 @@ implicit none
 #include "finclude/petsc.h"
 #endif
 
+! some backward compatibility stuff:
 #if PETSC_VERSION_MINOR==1
 #define KSP_NORM_NONE KSP_NORM_NO
 #define PetscBool PetscTruth
@@ -24,37 +24,37 @@ implicit none
 #define VecSqrtAbs VecSqrt
 #endif
 
-!! Some parameters that change the behaviour of 
-!! the smoothed aggregation method. All of
-!! of these can also be set as PETSC_options:
-!! 
-!! --mymg_maxlevels, --mymg_coarsesize, --mymg_epsilon and --mymg_omega
-!!
-!! maximum number of multigrid levels:
-integer, public, parameter:: MULTIGRID_MAXLEVELS_DEFAULT=25
-!! the maximum number of nodes at the coarsest level 
-!! (that is solved by a direct solver):
-!! in serial we use a direct solver:
-integer, public, parameter:: MULTIGRID_COARSESIZE_DEFAULT_SERIAL=5000
-!! in parallel we coarsen a bit further:
-integer, public, parameter:: MULTIGRID_COARSESIZE_DEFAULT_PARALLEL=100
-!! epsilon determines the relatively strong connections:
-PetscReal, public, parameter:: MULTIGRID_EPSILON_DEFAULT=0.01
-!! epsilon is divided by epsilon_decay after each coarsening,
-!! as the coarser levels are generally less anisotropic and therefore
-!! we need a less strong criterium for strong connections
-PetscReal, public, parameter:: MULTIGRID_EPSILON_DECAY_DEFAULT=1.0
-!! omega in the prolongation smoother:
-PetscReal, public, parameter:: MULTIGRID_OMEGA_DEFAULT=2.0/3.0
-!! number of smoother iterations going down
-integer, public, parameter:: MULTIGRID_NOSMD_DEFAULT=1
-!! number of smoother iterations going up
-integer, public, parameter:: MULTIGRID_NOSMU_DEFAULT=1
-!! max size of clusters (in first round), 0 means follow Vanek'96
-integer, public, parameter:: MULTIGRID_CLUSTERSIZE_DEFAULT=0
+  !! Some parameters that change the behaviour of 
+  !! the smoothed aggregation method. All of
+  !! of these can also be set as PETSC_options:
+  !! 
+  !! --mymg_maxlevels, --mymg_coarsesize, --mymg_epsilon and --mymg_omega
+  !!
+  !! maximum number of multigrid levels:
+  integer, public, parameter:: MULTIGRID_MAXLEVELS_DEFAULT=25
+  !! the maximum number of nodes at the coarsest level 
+  !! (that is solved by a direct solver):
+  !! in serial we use a direct solver:
+  integer, public, parameter:: MULTIGRID_COARSESIZE_DEFAULT_SERIAL=5000
+  !! in parallel we coarsen a bit further:
+  integer, public, parameter:: MULTIGRID_COARSESIZE_DEFAULT_PARALLEL=100
+  !! epsilon determines the relatively strong connections:
+  PetscReal, public, parameter:: MULTIGRID_EPSILON_DEFAULT=0.01
+  !! epsilon is divided by epsilon_decay after each coarsening,
+  !! as the coarser levels are generally less anisotropic and therefore
+  !! we need a less strong criterium for strong connections
+  PetscReal, public, parameter:: MULTIGRID_EPSILON_DECAY_DEFAULT=1.0
+  !! omega in the prolongation smoother:
+  PetscReal, public, parameter:: MULTIGRID_OMEGA_DEFAULT=2.0/3.0
+  !! number of smoother iterations going down
+  integer, public, parameter:: MULTIGRID_NOSMD_DEFAULT=1
+  !! number of smoother iterations going up
+  integer, public, parameter:: MULTIGRID_NOSMU_DEFAULT=1
+  !! max size of clusters (in first round), 0 means follow Vanek'96
+  integer, public, parameter:: MULTIGRID_CLUSTERSIZE_DEFAULT=0
 
-integer, private, parameter:: ISOLATED=0, COUPLED=-1
-
+  integer, private, parameter:: ISOLATED=0, COUPLED=-1
+  
   ! Copied from Petsc_Tools to avoid dependency: 
   PetscReal, parameter, private :: dummy_petsc_real = 0.0
   integer, parameter, public :: PetscRealKind = kind(dummy_petsc_real)
@@ -75,6 +75,26 @@ public setup_mg
     end subroutine myMatGetInfo
   end interface
 
+  interface MGInfo
+    module procedure MGInfoString, MGInfoStringInt, MGInfoStringReal, MGInfoStringIntRealReal
+  end interface MGInfo
+
+  interface
+     ! interface to MGInfo in multigridc.c, which is just a wrapper around PetscInfo
+     ! we use this because the fortran interface to PetscInfo that petsc itself provides is deficient
+     function MGInfoWrapper(vobj, message) bind (c, name='MGInfo')
+      use, intrinsic :: iso_c_binding
+      PetscErrorCode :: MGInfoWrapper
+      PetscObject, value :: vobj
+      character(len=c_char), dimension(*) :: message
+    end function MGInfoWrapper
+  end interface
+
+#if PETSC_VERSION_MINOR==1
+#define MGERROR(comm, ierror, message, ierr) SETERRQ(ierror,message, ierr)
+#else
+#define MGERROR(comm, ierror, message, ierr) SETERRQ(comm, ierror,message, ierr)
+#endif
 contains
 
 subroutine setup_mg(prec, matrix, ierror, &
@@ -105,7 +125,6 @@ logical, optional, intent(in) :: has_null_space
   PetscScalar :: Px2
   Vec:: eigvec, Px
   PetscReal, allocatable, dimension(:):: emin, emax
-  PetscObject:: myPETSC_NULL_OBJECT
   MPI_Comm:: comm
   integer, allocatable, dimension(:):: contexts
   integer i, j, ri, nolevels, m, n, top_level, nprocs, minimum
@@ -133,7 +152,7 @@ logical, optional, intent(in) :: has_null_space
     isparallel = nprocs>1
 
 
-    call SetSmoothedAggregationOptions(epsilon, epsilon_decay, omega, maxlevels, coarsesize, &
+    call SetSmoothedAggregationOptions(prec, epsilon, epsilon_decay, omega, maxlevels, coarsesize, &
       nosmd, nosmu, clustersize, isparallel)
       
     ! In the following level i=1 is the original, fine, problem
@@ -158,37 +177,24 @@ logical, optional, intent(in) :: has_null_space
     forgetlastone=.false.
     matrices(1)=matrix
     do i=1, maxlevels-1
-      ewrite(3,*) '---------------------'
-      ewrite(3,*) 'coarsening from level',i,' to ',i+1
+      call MGInfo(prec, '---------------------', ierr)
+      call MGInfo(prec, 'coarsening from level', i, ierr)
       if (i<=no_external_prolongators) then
          prolongators(i)=external_prolongators(i)
-         ewrite(2,*) "Using provided external prolongator"
+         call MGInfo(prec, "Using provided external prolongator", ierr)
       else
-         prolongators(i)=Prolongator(matrices(i), epsilon, omega, clustersize, isparallel)
+         prolongators(i)=Prolongator(prec, matrices(i), epsilon, omega, clustersize, isparallel)
          epsilon=epsilon/epsilon_decay
       end if
 
       if (prolongators(i)==PETSC_NULL_OBJECT) then
-        if (isparallel) then
-          ! in parallel we give up
-          ewrite(-1,*) "ERROR: mg preconditioner setup failed"
-          ewrite(-1,*) "This may be caused by local partitions being too small"
-        else
-          ! in serial you may want to try something else automatically
-          ewrite(0,*) 'WARNING: mg preconditioner setup failed'          
-          ewrite(0,*) 'This probably means the matrix is not suitable for it.'
-        end if
         do j=1+no_external_prolongators, i-1
           call MatDestroy(prolongators(j), ierr)
           call MatDestroy(matrices(j), ierr)
         end do
         deallocate(matrices, prolongators, contexts)
         ! Need to set n/o levels (to 1) otherwise PCDestroy will fail:
-        myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
         call PCMGSetLevels(prec, 1, PETSC_NULL_OBJECT, ierr)
-        if (myPETSC_NULL_OBJECT/=PETSC_NULL_OBJECT) then
-           FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
-        end if
         ierror=1
         return
       end if
@@ -213,11 +219,7 @@ logical, optional, intent(in) :: has_null_space
       nolevels=i
     end if
     
-    myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
     call PCMGSetLevels(prec, nolevels, PETSC_NULL_OBJECT, ierr)
-    if (myPETSC_NULL_OBJECT/=PETSC_NULL_OBJECT) then
-       FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
-    end if
     
     if (lno_top_smoothing) then
       top_level=nolevels-2
@@ -232,20 +234,19 @@ logical, optional, intent(in) :: has_null_space
       
       allocate(emin(1:nolevels-1), emax(1:nolevels))
       
-      call PowerMethod(matrices(1), eigval, eigvec)
+      call PowerMethod(matrices(1), eigval, eigvec, ierror)
+      if (ierror/=0) return
       emax(1)=eigval
       call VecDestroy(eigvec, ierr)
       
       ! loop over reverse index where 1 is fine and nolevels coarse:
       do ri=2, nolevels
-        call PowerMethod(matrices(ri), eigval, eigvec)
+        call PowerMethod(matrices(ri), eigval, eigvec, ierror)
+        if (ierror/=0) return
+
         emax(ri)=eigval
         
-        myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
         call MatGetVecs(prolongators(ri-1), PETSC_NULL_OBJECT, Px, ierr)
-        if (myPETSC_NULL_OBJECT/=PETSC_NULL_OBJECT) then
-           FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
-        end if
         call MatMult(prolongators(ri-1), eigvec, Px, ierr)
         call VecNorm(Px, NORM_2, Px2, ierr)
         emin(ri-1)=eigval/Px2**2.
@@ -259,7 +260,7 @@ logical, optional, intent(in) :: has_null_space
       do i=1, top_level
         ! reverse index where 1 is fine and nolevels coarse:
         ri=nolevels-i
-        ewrite(2,*) "level, emin, emax", ri, emin(ri), emax(ri)
+        call MGInfo(prec, "level, emin, emax", ri, emin(ri), emax(ri), ierr)
         call PCMGGetSmootherUp(prec, i, ksp_smoother, ierr)
         call SetupChebychevSmoother(ksp_smoother, matrices(ri), &
           emin(ri), emax(ri), -nosmu)
@@ -296,7 +297,9 @@ logical, optional, intent(in) :: has_null_space
       
     else
     
-      FLAbort("Can't combine chebychev and sor smoothing")
+      MGERROR(comm, 1, "Can't combine chebychev and sor smoothing", ierr)
+      ierror=1
+      return
       
     end if
       
@@ -429,8 +432,9 @@ integer, intent(in):: iterations
 
 end subroutine SetupChebychevSmoother
   
-subroutine SetSmoothedAggregationOptions(epsilon, epsilon_decay, omega, maxlevels, &
+subroutine SetSmoothedAggregationOptions(prec, epsilon, epsilon_decay, omega, maxlevels, &
   coarsesize, nosmd, nosmu, clustersize, isparallel)
+PC, intent(in):: prec
 PetscReal, intent(out):: epsilon, epsilon_decay, omega
 integer, intent(out):: maxlevels, coarsesize
 integer, intent(out):: nosmd, nosmu, clustersize
@@ -476,21 +480,22 @@ logical, intent(in):: isparallel
       clustersize=MULTIGRID_CLUSTERSIZE_DEFAULT
     end if
 
-    ewrite(2,*) 'multgrid options- epsilon:', epsilon
-    ewrite(2,*) 'multgrid options- epsilon_decay:', epsilon_decay
-    ewrite(2,*) 'multgrid options- omega: ', omega
-    ewrite(2,*) 'multgrid options- maxlevels:', maxlevels
-    ewrite(2,*) 'multgrid options- coarsesize: ', coarsesize
-    ewrite(2,*) 'multgrid options- n/o smoother its down (nosmd): ', nosmd
-    ewrite(2,*) 'multgrid options- n/o smoother its up (nosmu): ', nosmu
-    ewrite(2,*) 'multgrid options- maximum clustersize: ', clustersize
+    call MGInfo(prec, 'multgrid options- epsilon:', epsilon, ierr)
+    call MGInfo(prec, 'multgrid options- epsilon_decay:', epsilon_decay, ierr)
+    call MGInfo(prec, 'multgrid options- omega: ', omega, ierr)
+    call MGInfo(prec, 'multgrid options- maxlevels:', maxlevels, ierr)
+    call MGInfo(prec, 'multgrid options- coarsesize: ', coarsesize, ierr)
+    call MGInfo(prec, 'multgrid options- n/o smoother its down (nosmd): ', nosmd, ierr)
+    call MGInfo(prec, 'multgrid options- n/o smoother its up (nosmu): ', nosmu, ierr)
+    call MGInfo(prec, 'multgrid options- maximum clustersize: ', clustersize, ierr)
     
 end subroutine SetSmoothedAggregationOptions
 
-function Prolongator(A, epsilon, omega, maxclustersize, isparallel, cluster) result (P)
+function Prolongator(prec, A, epsilon, omega, maxclustersize, isparallel, cluster) result (P)
 !!< Constructs coarse grid and prolongator operator between coarse and fine
 !!< grid based on the matrix A.
 Mat:: P
+PC, intent(in):: prec
 Mat, intent(in):: A
 !! strong connectivity criterion as in Vanek '96
 PetscReal, intent(in):: epsilon 
@@ -507,10 +512,12 @@ integer, optional, dimension(:), intent(out):: cluster
   PetscInt:: diagminloc
   PetscReal:: diagmin
   Vec:: sqrt_diag, inv_sqrt_diag, diag, one
+  MPI_Comm:: comm
   double precision, dimension(MAT_INFO_SIZE):: matrixinfo
   integer, dimension(:), allocatable:: findN, N, R
   integer:: nrows, nentries, ncols
   integer:: jc, ccnt, base
+  integer:: myccnt, minimum_ccnt
     
   ! find out basic dimensions of A
   call MatGetLocalSize(A, nrows, ncols, ierr)
@@ -528,8 +535,9 @@ integer, optional, dimension(:), intent(out):: cluster
   call MatGetDiagonal(A, diag, ierr)
   call VecMin(diag, diagminloc, diagmin, ierr)
   if (diagmin<=0.0) then
-    ewrite(0,*) 'Multigrid preconditioner "mg" requires strictly positive diagonal'
-    FLExit("Zero or negative value on the diagonal")
+    MGERROR(PETSC_COMM_SELF, 1, "Zero or negative value on the diagonal", ierr)
+    P=PETSC_NULL_OBJECT
+    return
   end if
   
   !
@@ -545,19 +553,36 @@ integer, optional, dimension(:), intent(out):: cluster
   ! and use R to register isolated nodes i with N_i={i}
   call Prolongator_init(R, ccnt, findN, N, A, base, epsilon)
   
-  if (ccnt==0 .and. nrows>0) then
-    ! all nodes are isolated, strongly diagonal dominant matrix
-    ! we should solve by other means
+  ! work out the minimum cluster count over all processes, except we ignore
+  ! empty (nrows==0) domains
+  if (nrows>0) then
+    myccnt=ccnt
+  else
+    myccnt=1
+  end if
+  if (isparallel) then
+    call PetscObjectGetComm(A, comm, ierr)
+    call MPI_Allreduce(myccnt, minimum_ccnt, 1, MPI_INTEGER, MPI_MIN, comm, ierr)
+  else
+    minimum_ccnt=myccnt
+    comm=PETSC_COMM_SELF
+  end if
+
+  if (minimum_ccnt==0) then
+    ! there is at least one non-empty domain (nrow>0) with all isolated nodes
     if (present(cluster)) cluster=ISOLATED
     deallocate(findN, N, R)
+    MGERROR(comm, 1, "all nodes in one domain are isolated", ierr)
     ! we return PETSC_NULL; callers of this function should check for this
     P=PETSC_NULL_OBJECT
     return
   else if (100*ccnt<99*nrows .and. .not. isparallel) then
     ! more than 1% isolated nodes, give a warning
-    ewrite(2,*) "Percentage of isolated nodes: ", (100.0*(nrows-ccnt))/nrows
-    ewrite(2,*) "Warning: more than 1 perc. isolated nodes - this may mean mg is not the most suitable preconditioner"
-    ewrite(2,*) "On small meshes with a lot of boundary nodes, this is typically fine though."
+    ! in parallel with strong scaling this may be quite common, in serial
+    ! it probably means another preconditioner should be tried
+    call MGInfo(prec, "Percentage of isolated nodes: ", (100.0*(nrows-ccnt))/nrows, ierr)
+    call MGInfo(prec, "Warning: more than 1 perc. isolated nodes - this may mean mg is not the most suitable preconditioner", ierr)
+    call MGInfo(prec, "On small meshes with a lot of boundary nodes, this is typically fine though.", ierr)
   end if
 
   ! Step 1 - Startup aggregation
@@ -572,15 +597,15 @@ integer, optional, dimension(:), intent(out):: cluster
   ! Step 3 - Handling the remnants
   ! the remaining nodes, that are COUPLED but neither in the original covering
   ! or assigned in step 2, are assigned to new aggregates
-  call Prolongator_step3(R, jc, findN, N)
+  call Prolongator_step3(prec, R, jc, findN, N)
   
   ! jc is now the n/o aggregates, i.e. the n/o coarse nodes
   ! R(i) is now either the coarse node, fine node i is assigned to
   !             or ==ISOLATED
   
-  ewrite(3,*) 'Fine nodes: ', nrows
-  ewrite(3,*) 'Isolated fine nodes: ', nrows-ccnt
-  ewrite(3,*) 'Aggregates: ', jc
+  call MGInfo(prec, 'Fine nodes: ', nrows, ierr)
+  call MGinfo(prec, 'Isolated fine nodes: ', nrows-ccnt, ierr)
+  call MGInfo(prec, 'Aggregates: ', jc, ierr)
   
   ! now scale a_ij -> a_ii^-1/2 * a_ij * ajj^1/2, i.e. starting from the
   ! original matrix: a_ij -> a_ii^-1 * a_ij
@@ -618,7 +643,6 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega, ispa
   PetscReal, intent(in):: omega
   logical, intent(in):: isparallel
   
-  PetscObject:: myPETSC_NULL_OBJECT
   MatType:: mat_type
   MPI_Comm:: comm
   PetscErrorCode:: ierr
@@ -669,11 +693,7 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega, ispa
   coarse_base=coarse_base-1
   call MatSetOption(P, MAT_USE_INODES, PETSC_FALSE, ierr)
   
-  myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
   call MatGetVecs(A, rowsum_vec, PETSC_NULL_OBJECT, ierr)
-  if (myPETSC_NULL_OBJECT/=PETSC_NULL_OBJECT) then
-    FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
-  end if
   call VecPlaceArray(rowsum_vec, Arowsum, ierr)
   call MatGetRowSum(A, rowsum_vec, ierr)
     
@@ -834,19 +854,23 @@ integer, intent(in):: base
 
 end subroutine Prolongator_step2
 
-subroutine Prolongator_step3(R, jc, findN, N)
+subroutine Prolongator_step3(prec, R, jc, findN, N)
 ! Step 3 - Handling the remnants
 ! the remaining nodes, that are COUPLED but neither in the original covering
 ! or assigned in step 2, are assigned to new aggregates
+PC, intent(in):: prec
 integer, dimension(:), intent(inout):: R
 integer, intent(inout):: jc
 integer, dimension(:), intent(in):: findN, N
 
   integer i, j, p
+  logical:: step3_action
+  PetscErrorCode:: ierr
   
+  step3_action=.false.
   do i=1, size(R)
     if (R(i)==COUPLED) then
-      ewrite(3,*) 'step3 action! ',i, ':', N(findN(i):findN(i+1)-1)
+      step3_action=.true.
       jc=jc+1 ! add new aggregate
       do p=findN(i), findN(i+1)-1
         j=N(p)
@@ -859,33 +883,34 @@ integer, dimension(:), intent(in):: findN, N
       R(i)=-(R(i)-COUPLED)
     end if
   end do
+  if (step3_action) then
+    ! remaining nodes handled in step 3 only occur for asymmetric systems
+    call MGInfo(prec, "This is a not a symmetric system!! Not sure if mg is the best choice here", ierr)
+  end if
 
 end subroutine Prolongator_step3
   
-subroutine PowerMethod(matrix, eigval, eigvec)
+subroutine PowerMethod(matrix, eigval, eigvec, ierr)
 Mat, intent(in):: matrix
 PetscReal, intent(out):: eigval
 Vec, intent(out):: eigvec
+PetscErrorCode, intent(out):: ierr
 
   integer, parameter:: MAX_ITERATIONS=100
   PetscReal, parameter:: TOLERANCE=0.001
   Vec:: x_k, x_kp1
-  PetscErrorCode:: ierr
   PetscReal, dimension(2):: dot_prods
   PetscReal:: rho_k, rho_kp1, norm2
   integer:: i
   PetscRandom:: pr
-  PetscObject:: myPETSC_NULL_OBJECT  
   
+  ierr=0
+
   call MatGetVecs(matrix, x_kp1, x_k, ierr)
   
   ! initial guess
   call PetscRandomCreate(PETSC_COMM_WORLD, pr, ierr)
-  myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
   call VecSetRandom(x_k, PETSC_NULL_OBJECT, ierr)
-  if (myPETSC_NULL_OBJECT/=PETSC_NULL_OBJECT) then
-    FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
-  end if
   call PetscRandomDestroy(pr, ierr)
 
   rho_k=0.0
@@ -908,9 +933,10 @@ Vec, intent(out):: eigvec
   end do
   
   if (i>MAX_ITERATIONS) then
-    FLAbort("PowerMethod failed to converge")
+    MGERROR(PETSC_COMM_WORLD, 1, "Power method to determine eigenvalues failed", ierr)
+    ierr=1; return
   end if
-  
+
   eigval=rho_kp1
   eigvec=x_kp1
   
@@ -930,5 +956,57 @@ end subroutine PowerMethod
     end if
 
   end function present_and_true
+  
+  subroutine MGInfoString(prec, message, ierr)
+    PC, intent(in):: prec
+    character(len=*), intent(in):: message
+    PetscErrorCode, intent(out):: ierr
+
+    ierr=MGInfoWrapper(prec, trim(message)//c_new_line//c_null_char)
+
+  end subroutine MGInfoString
+
+  subroutine MGInfoStringInt(prec, message, n, ierr)
+    PC, intent(in):: prec
+    character(len=*), intent(in):: message
+    integer, intent(in):: n
+    PetscErrorCode, intent(out):: ierr
+
+    character(len=len(message)+100):: buffer
+
+    write(buffer,*) message, n
+
+    ierr=MGInfoWrapper(prec, trim(buffer)//c_new_line//c_null_char)
+
+  end subroutine MGInfoStringInt
+
+  subroutine MGInfoStringReal(prec, message, x, ierr)
+    PC, intent(in):: prec
+    character(len=*), intent(in):: message
+    PetscReal, intent(in):: x
+    PetscErrorCode, intent(out):: ierr
+
+    character(len=len(message)+100):: buffer
+
+    write(buffer,*) message, x
+
+    ierr=MGInfoWrapper(prec, trim(buffer)//c_new_line//c_null_char)
+
+  end subroutine MGInfoStringReal
+
+  subroutine MGInfoStringIntRealReal(prec, message, n, x, y, ierr)
+    PC, intent(in):: prec
+    character(len=*), intent(in):: message
+    integer, intent(in):: n
+    real, intent(in):: x, y
+    PetscErrorCode, intent(out):: ierr
+
+    character(len=len(message)+100):: buffer
+
+    write(buffer,*) message, n, x, y
+
+    ierr=MGInfoWrapper(prec, trim(buffer)//c_new_line//c_null_char)
+
+  end subroutine MGInfoStringIntRealReal
 
 end module multigrid
