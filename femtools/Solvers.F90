@@ -83,7 +83,7 @@ module solvers
 private
 
 public petsc_solve, set_solver_options, &
-   complete_solver_option_path
+   complete_solver_option_path, petsc_solve_needs_positions
 
 ! meant for unit-testing solver code only:
 public petsc_solve_setup, petsc_solve_core, petsc_solve_destroy, &
@@ -2408,5 +2408,20 @@ function create_null_space_from_options(null_space_option_path, petsc_numbering,
    deallocate(null_space_array)
 
 end function create_null_space_from_options
+
+function petsc_solve_needs_positions(solver_option_path)
+  !!< Auxillary function to tell us if we need to pass in a positions field to petsc_solve
+  !!< Currently only for vector solves with remove_null_space or multigrid_near_null_space
+  !!< with specify_rotations or all_rotations
+  character(len=*), intent(in):: solver_option_path
+  logical:: petsc_solve_needs_positions
+
+  petsc_solve_needs_positions = &
+    have_option(trim(solver_option_path)//'/remove_null_space/specify_rotations') .or. &
+    have_option(trim(solver_option_path)//'/remove_null_space/all_rotations') .or. &
+    have_option(trim(solver_option_path)//'/multigrid_near_null_space/specify_rotations') .or. &
+    have_option(trim(solver_option_path)//'/multigrid_near_null_space/all_rotations')
+
+end function petsc_solve_needs_positions
 
 end module solvers
