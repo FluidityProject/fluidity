@@ -73,13 +73,15 @@ contains
     !! the number of petsc iterations taken
     integer, intent(out), optional :: iterations_taken
     
+    type(vector_field), pointer :: mesh_positions
     integer, dimension(:), pointer:: surface_nodes
     type(petsc_csr_matrix), dimension(:), pointer:: prolongators
     character(len=OPTION_PATH_LEN):: solver_option_path
     integer:: i
     
     call petsc_solve_state_setup(solver_option_path, prolongators, surface_nodes, &
-      state, x%mesh, 1, x%option_path, has_solver_cache(matrix), option_path=option_path)
+      state, x%mesh, 1, x%option_path, has_solver_cache(matrix), option_path=option_path, &
+      mesh_positions=mesh_positions)
 
     if (associated(prolongators)) then
     
@@ -111,7 +113,12 @@ contains
                        iterations_taken = iterations_taken)
       
     end if
-    
+
+    if (associated(mesh_positions)) then
+      call deallocate(mesh_positions)
+      deallocate(mesh_positions)
+    end if
+
   end subroutine petsc_solve_scalar_state
   
   subroutine petsc_solve_scalar_state_petsc_csr(x, matrix, rhs, state, &
@@ -126,6 +133,7 @@ contains
     !! override x%option_path if provided:
     character(len=*), optional, intent(in):: option_path
     
+    type(vector_field), pointer :: mesh_positions
     integer, dimension(:), pointer:: surface_nodes
     type(petsc_csr_matrix), dimension(:), pointer:: prolongators
     character(len=OPTION_PATH_LEN):: solver_option_path
@@ -133,7 +141,8 @@ contains
     
     ! no solver cache for petsc_csr_matrices at the mo'
     call petsc_solve_state_setup(solver_option_path, prolongators, surface_nodes, &
-      state, x%mesh, 1, x%option_path, .false., option_path=option_path)
+      state, x%mesh, 1, x%option_path, .false., option_path=option_path, &
+      mesh_positions=mesh_positions)
     
     if (associated(prolongators)) then
     
@@ -163,6 +172,11 @@ contains
       
     end if
     
+    if (associated(mesh_positions)) then
+      call deallocate(mesh_positions)
+      deallocate(mesh_positions)
+    end if
+
   end subroutine petsc_solve_scalar_state_petsc_csr
   
   subroutine petsc_solve_vector_state_petsc_csr(x, matrix, rhs, state, &
