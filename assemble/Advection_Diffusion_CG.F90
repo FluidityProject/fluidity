@@ -892,13 +892,14 @@ contains
     end if
     
     ! Pressure
-    if(equation_type==FIELD_EQUATION_INTERNALENERGY .and. compressible .and. include_pressure_term) call add_pressurediv_element_cg(ele, test_function, t, &
-                                                                                                                                    velocity, pressure, nvfrac, &
-                                                                                                                                    du_t, detwei, rhs_addto)
+    if(equation_type==FIELD_EQUATION_INTERNALENERGY .and. compressible .and. include_pressure_term) then
+       call add_pressurediv_element_cg(ele, test_function, t, velocity, pressure, nvfrac, du_t, detwei, rhs_addto)
+    end if
                                                                                   
     ! Heat flux
-    if(equation_type==FIELD_EQUATION_INTERNALENERGY .and. include_heat_flux) call add_heat_flux_element_cg(ele, test_function, t, du_t, &
-                                                                                  nvfrac, k, C_v, detwei, matrix_addto, rhs_addto)
+    if(equation_type==FIELD_EQUATION_INTERNALENERGY .and. include_heat_flux) then
+       call add_heat_flux_element_cg(ele, test_function, t, du_t, nvfrac, k, C_v, detwei, matrix_addto, rhs_addto)
+    end if
                                                                                   
     
     ! Step 4: Insertion
