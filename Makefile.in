@@ -156,6 +156,8 @@ endif
 
 libfemtools: sub_system
 	@echo '    MKDIR lib'; mkdir -p lib
+	@echo '    MAKE multigrid'
+	@$(MAKE) -C multigrid
 	@echo '    MAKE debug'
 	@cd debug; $(MAKE)
 	@echo '    MAKE libwm'
@@ -290,6 +292,8 @@ lib/lib$(FLUIDITY).a: $(OBJS) python_build sub_system scripts
 	@echo "BUILD libfluidity"
 	@echo "    MKDIR lib"
 	@mkdir -p lib
+	@echo "    MAKE multigrid"
+	@$(MAKE) -C multigrid/
 	@echo "    MAKE debug"
 	@cd debug; 	$(MAKE)
 	@echo '    MAKE libwm'
@@ -334,6 +338,7 @@ endif
 	@cd preprocessor; $(MAKE) register_diagnostics.o
 	@echo "    BUILDING fluidity_library"
 	@$(AR) $(ARFLAGS) lib/libfluidity.a \
+multigrid/*.o \
 debug/*.o \
 libwm/*.o \
 femtools/*.o \
@@ -367,6 +372,8 @@ all:
 	$(MAKE) fltools
 
 clean-light:
+	@echo "    CLEAN multigrid"
+	@$(MAKE) -C multigrid clean
 	@echo "    CLEAN debug"
 	@cd debug; $(MAKE) clean
 	@echo "    CLEAN libwm"
@@ -565,6 +572,8 @@ ifneq (@HAVE_ADJOINT@,yes)
 	@echo "makefile dependency generation requires adjoint"
 	@false
 endif
+	@echo "    Generating multigrid dependencies"
+	@cd multigrid; 	../bin/create_makefile $(TESTOPTS)
 	@echo "    Generating debug dependencies"
 	@cd debug; 	../bin/create_makefile $(TESTOPTS)
 	@echo "    Generating libwm dependencies"

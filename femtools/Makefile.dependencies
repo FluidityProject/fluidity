@@ -747,12 +747,6 @@ Mixing_Statistics.o ../include/mixing_statistics.mod: Mixing_Statistics.F90 \
    ../include/meshdiagnostics.mod ../include/spud.mod \
    ../include/state_module.mod ../include/unittest_tools.mod
 
-../include/multigrid.mod: Multigrid.o
-	@true
-
-Multigrid.o ../include/multigrid.mod: Multigrid.F90 ../include/fdebug.h \
-   ../include/fldebug.mod ../include/parallel_tools.mod
-
 ../include/multigrid_interface.mod: Multigrid_Interface.o
 	@true
 

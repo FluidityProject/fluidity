@@ -297,7 +297,7 @@ logical, optional, intent(in) :: has_null_space
       
     else
     
-      MGERROR(comm, 1, "Can't combine chebychev and sor smoothing", ierr)
+      MGERROR(comm, 1, "Can't combine chebyshev and sor smoothing", ierr)
       ierror=1
       return
       
@@ -684,7 +684,7 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega, ispa
     call MatCreateSeqAIJ(comm, nrows, ncols, &
       PETSC_NULL_INTEGER, dnnz, P, ierr)
   else
-    FLAbort("Multigrid mg only support seqaij and mpiaij PETSc matrices")
+    MGERROR(comm, 1, "Multigrid mg only support seqaij and mpiaij PETSc matrices", ierr)
   end if
 #endif
   ! get base for coarse node/cluster numbering

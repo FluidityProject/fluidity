@@ -1545,6 +1545,7 @@ AC_OUTPUT(Makefile
           ocean_forcing/Makefile ocean_forcing/tests/Makefile
           sediments/Makefile
           hyperlight/Makefile
+          multigrid/Makefile
           femtools/Makefile femtools/tests/Makefile
           forward_interfaces/Makefile
           horizontal_adaptivity/Makefile horizontal_adaptivity/tests/Makefile
