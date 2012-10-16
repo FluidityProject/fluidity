@@ -63,8 +63,7 @@ subroutine test_spherical_polar_2_cartesian_C
     call set(difference, node, XYZ)
   enddo
   call addto(difference, CartesianCoordinate, -1.0)
-  call vtk_write_fields("data/test_spherical_polar_2_cartesian_C_out", 0, &
-                        CartesianCoordinate, mesh, vfields=(/difference/))
+
   fail = any(difference%val > 1e-8)
   call report_test("[Coordinate change: Spherical-polar to Cartesian (C-types).]", &
                    fail, .false., "Position vector components not transformed correctly.")

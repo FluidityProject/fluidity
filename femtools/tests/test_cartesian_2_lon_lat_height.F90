@@ -60,8 +60,7 @@ subroutine test_cartesian_2_lon_lat_height
     call set(difference, node, LLH)
   enddo
   call addto(difference, LonLatHeightCoordinate, -1.0)
-  call vtk_write_fields("data/test_test_cartesian_2_lon_lat_height_out", 0, &
-                        difference, mesh, vfields=(/difference/))
+
   fail = any(difference%val > 1e-8)
   call report_test("[Coordinate change: Cartesian to lon-lat-height.]", &
                    fail, .false., "Position vector components not transformed correctly.")

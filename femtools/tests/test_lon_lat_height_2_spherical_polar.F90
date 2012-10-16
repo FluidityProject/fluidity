@@ -60,8 +60,7 @@ subroutine test_lon_lat_height_2_spherical_polar
     call set(difference, node, RTP)
   enddo
   call addto(difference, PolarCoordinate, -1.0)
-  call vtk_write_fields("data/test_lon_lat_height_2_spherical_polar_out", 0, &
-                        difference, mesh, vfields=(/difference/))
+
   fail = any(difference%val > 1e-8)
   call report_test("[Coordinate change: lon-lat-height to Spherical-polar.]", &
                    fail, .false., "Position vector components not transformed correctly.")

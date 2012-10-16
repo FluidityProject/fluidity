@@ -27,8 +27,7 @@ subroutine test_spherical_polar_2_cartesian_field
   call allocate(difference, 3 , mesh, 'difference')
   call spherical_polar_2_cartesian(PolarCoordinate, difference)
   call addto(difference, CartesianCoordinate, -1.0)
-  call vtk_write_fields("data/spherical_polar_2_cartesian_field_out", 0, &
-                        CartesianCoordinate, mesh, vfields=(/difference/))
+
   fail = any(difference%val > 1e-8)
   call report_test("[Coordinate change of whole field: Spherical-polar to Cartesian.]", &
                    fail, .false., "Position vector components not transformed correctly.")
