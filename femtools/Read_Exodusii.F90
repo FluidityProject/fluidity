@@ -325,19 +325,10 @@ contains
     ! Get faceType and give the user an error if he supplied a mesh with an unsupported combination of element types:
     call check_combination_face_element_types(num_dim, num_elem_blk, elem_type, lfilename, elementType, faceType)
 
-
     ! read element connectivity:
     allocate(elem_connectivity(0))
-    do i=1, num_elem_blk
-       ! Get element connectivity of block 'i' and append to global element connectivity:
-       allocate(elem_blk_connectivity(num_nodes_per_elem(i) * num_elem_in_block(i)))
-       ierr = f_ex_get_elem_connectivity(exoid, block_ids(i), elem_blk_connectivity)
-       call append_array(elem_connectivity, elem_blk_connectivity)
-       deallocate(elem_blk_connectivity)
-    end do
-    if (ierr /= 0) then
-       FLExit("Unable to read in element connectivity from "//trim(lfilename))
-    end if
+    call get_element_connectivity(exoid, block_ids, num_elem_blk, num_nodes_per_elem, num_elem_in_block, lfilename, elem_connectivity)
+    
 
     ! Initialize logical variables:
     ! We have RegionIDs when there are blockIDs assigned to elements
@@ -758,13 +749,6 @@ contains
 
   end function read_exodusii_file_to_field
 
-
-
-
-
-
-
-
   ! -----------------------------------------------------------------
 
   subroutine get_block_param(exoid, lfilename, &
@@ -826,6 +810,7 @@ contains
 
   end subroutine get_block_param
 
+  ! -----------------------------------------------------------------
 
   subroutine check_combination_face_element_types(num_dim, &
                                                    num_elem_blk, &
@@ -878,6 +863,40 @@ contains
     end do
 
   end subroutine check_combination_face_element_types
+
+  ! -----------------------------------------------------------------
+
+  subroutine get_element_connectivity(exoid, &
+                                        block_ids, &
+                                        num_elem_blk, &
+                                        num_nodes_per_elem, &
+                                        num_elem_in_block, &
+                                        lfilename, &
+                                        elem_connectivity)
+    ! This subroutine gets the element connectivity of the given mesh file
+    integer, intent(in) :: exoid
+    integer, dimension(:), intent(in) :: block_ids
+    integer, intent(in) :: num_elem_blk
+    integer, dimension(:), intent(in) :: num_nodes_per_elem
+    integer, dimension(:), intent(in) :: num_elem_in_block
+    character(kind=c_char, len=OPTION_PATH_LEN), intent(in) :: lfilename
+    integer, dimension(:), allocatable, intent(inout) :: elem_connectivity
+
+    integer, dimension(:), allocatable :: elem_blk_connectivity
+    integer :: i, ierr
+
+      do i=1, num_elem_blk
+         ! Get element connectivity of block 'i' and append to global element connectivity:
+         allocate(elem_blk_connectivity(num_nodes_per_elem(i) * num_elem_in_block(i)))
+         ierr = f_ex_get_elem_connectivity(exoid, block_ids(i), elem_blk_connectivity)
+         call append_array(elem_connectivity, elem_blk_connectivity)
+         deallocate(elem_blk_connectivity)
+      end do
+      if (ierr /= 0) then
+         FLExit("Unable to read in element connectivity from "//trim(lfilename))
+      end if
+  
+  end subroutine get_element_connectivity
 
 
   ! -----------------------------------------------------------------
