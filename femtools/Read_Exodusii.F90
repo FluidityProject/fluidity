@@ -444,31 +444,16 @@ contains
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Now actually set the elements and face-elements:
     ! assemble array with faces (exo_face contains element number (=element id of mesh))
-    allocate(exo_element(num_elem)); allocate(exo_face(num_faces))
-    b=0; exo_e=1; exo_f=1;
-    do i=1, num_elem_blk
-       do e=1, num_elem_in_block(i)
-          ! Distinguish between faces/edges and elements:
-          if( .not. ( (num_dim .eq. 2 .and. elem_type(i) .eq. 1) .or. &
-               (num_dim .eq. 3 .and. &
-               (elem_type(i) .eq. 2 .or. elem_type(i) .eq. 3)) ) ) then
-             ! these are elements (not edges/faces)
-             allocate( exo_element(exo_e)%nodeIDs(size(allElements(e+b)%nodeIDs)))
-             exo_element(exo_e)%elementID = allelements(e+b)%elementID
-             exo_element(exo_e)%blockID = allelements(e+b)%blockID
-             exo_element(exo_e)%nodeIDs = allelements(e+b)%nodeIDs
-             exo_element(exo_e)%type = allelements(e+b)%type
-             exo_e = exo_e + 1
-          ! else
-             ! These are edges/faces, thus do nothing
-          end if
-       ! next element e of block i
-       end do
-       b = b + num_elem_in_block(i) ! next block
-    end do
+    allocate(exo_element(num_elem))
+    call assemble_actual_elements(num_dim, num_elem_blk, num_elem_in_block, elem_type, allElements, exo_element)
+
+
     ! Now derive the faces for fluidity, that are based on elements with side-set-ID:
     if (haveBoundaries) then
-       n_cnt_pos=1; z=1;
+       allocate(exo_face(num_faces))
+       !call assemble_actual_face_elements
+       
+       n_cnt_pos=1; z=1; exo_f=1;
        do i=1, num_side_sets
           do e=1, num_elem_in_set(i)
              num_nodes_face_ele = total_side_sets_node_cnt_list(e)
@@ -570,7 +555,10 @@ contains
        deallocate(total_side_sets_node_cnt_list); deallocate(num_elem_in_set)
     end if
     deallocate(exo_nodes); deallocate(allelements)
-    deallocate(exo_element); deallocate(exo_face)
+    deallocate(exo_element)
+    if (haveBoundaries) then
+       deallocate(exo_face)
+    end if
     call deallocate( mesh )
 
     if (haveBoundaries) then
@@ -1011,11 +999,11 @@ contains
 
   end subroutine get_num_elem
 
-  ! -----------------------------------------------------------------  
+  ! -----------------------------------------------------------------
 
   subroutine get_num_faces(num_allelem, allelements, num_faces)
     integer, intent(in) :: num_allelem
-    type(EXOelement), pointer, dimension(:), intent(inout) :: allelements
+    type(EXOelement), pointer, dimension(:), intent(in) :: allelements
     integer, intent(inout) :: num_faces
     
     integer :: i, z, elemID, num_tags_elem
@@ -1035,6 +1023,47 @@ contains
        end do
 
   end subroutine get_num_faces
+
+  ! -----------------------------------------------------------------  
+
+  subroutine assemble_actual_elements(num_dim, num_elem_blk, num_elem_in_block, elem_type, allElements, exo_element)
+    integer, intent(in) :: num_dim
+    integer, intent(in) :: num_elem_blk
+    integer, dimension(:), intent(in) :: num_elem_in_block
+    integer, dimension(:), intent(in) :: elem_type
+    type(EXOelement), pointer, dimension(:), intent(in) :: allelements
+    type(EXOelement), pointer, dimension(:), intent(inout) :: exo_element
+  
+    integer :: b, e, i, exo_e
+    ! This subroutine assembles a bucket (called exo_element) which corresponds
+    ! to the actual elements of the mesh, meaning in a 3D mesh only to the volume
+    ! elements, and in a 2D mesh only to the surface elements. For each elements
+    ! that matches this description, the elementID, the block ID the element belongs
+    ! to, its node IDs, and the element type are stored in this bucket.
+
+    b=0; exo_e=1
+    do i=1, num_elem_blk
+       do e=1, num_elem_in_block(i)
+          ! Distinguish between faces/edges and elements:
+          if( .not. ( (num_dim .eq. 2 .and. elem_type(i) .eq. 1) .or. &
+               (num_dim .eq. 3 .and. &
+               (elem_type(i) .eq. 2 .or. elem_type(i) .eq. 3)) ) ) then
+             ! these are elements (not edges/faces)
+             allocate( exo_element(exo_e)%nodeIDs(size(allElements(e+b)%nodeIDs)))
+             exo_element(exo_e)%elementID = allelements(e+b)%elementID
+             exo_element(exo_e)%blockID = allelements(e+b)%blockID
+             exo_element(exo_e)%nodeIDs = allelements(e+b)%nodeIDs
+             exo_element(exo_e)%type = allelements(e+b)%type
+             exo_e = exo_e + 1
+          ! else
+             ! These are edges/faces, thus do nothing
+          end if
+       ! next element e of block i
+       end do
+       b = b + num_elem_in_block(i) ! next block
+    end do
+
+  end subroutine assemble_actual_elements
 
   ! -----------------------------------------------------------------
   ! Read ExodusII file to state object.
