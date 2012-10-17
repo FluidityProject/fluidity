@@ -140,7 +140,7 @@
         <solver>
           <iterative_method name="preonly"/>
           <preconditioner name="lu">
-            <factorization_package name="umfpack"/>
+            <factorization_package name="petsc"/>
           </preconditioner>
           <relative_error>
             <real_value rank="0">1e-07</real_value>
@@ -224,7 +224,7 @@
         <solver>
           <iterative_method name="preonly"/>
           <preconditioner name="lu">
-            <factorization_package name="umfpack"/>
+            <factorization_package name="petsc"/>
           </preconditioner>
           <relative_error>
             <real_value rank="0">1e-07</real_value>

@@ -334,7 +334,7 @@
           </iterative_method>
           <preconditioner name="asm">
             <preconditioner name="lu">
-              <factorization_package name="umfpack"/>
+              <factorization_package name="petsc"/>
             </preconditioner>
           </preconditioner>
           <relative_error>

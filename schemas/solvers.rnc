@@ -184,9 +184,14 @@ pclu_options =
       element preconditioner {
          attribute name { "lu" },
          (
+           ## Package to use for the factorization - petsc.
+           element factorization_package {
+             attribute name { "petsc" },
+             empty
+           }|
            ## Package to use for the factorization - umfpack.
            ##
-           ## Useful for systems with a near zero pivot.
+           ## Useful for systems with a near zero pivot (if installed on system).
            element factorization_package {
              attribute name { "umfpack" },
              empty
@@ -196,11 +201,6 @@ pclu_options =
            ## Useful for parallel direct solves (if installed on system).
            element factorization_package {
              attribute name { "mumps" },
-             empty
-           }|
-           ## Package to use for the factorization - petsc.
-           element factorization_package {
-             attribute name { "petsc" },
              empty
            }|
            ## Package to use for the factorization - any valid package.

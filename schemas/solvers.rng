@@ -187,9 +187,16 @@ This performs a complete, direct solve of the equation and should only be used i
       </attribute>
       <choice>
         <element name="factorization_package">
+          <a:documentation>Package to use for the factorization - petsc.</a:documentation>
+          <attribute name="name">
+            <value>petsc</value>
+          </attribute>
+          <empty/>
+        </element>
+        <element name="factorization_package">
           <a:documentation>Package to use for the factorization - umfpack.
 
-Useful for systems with a near zero pivot.</a:documentation>
+Useful for systems with a near zero pivot (if installed on system).</a:documentation>
           <attribute name="name">
             <value>umfpack</value>
           </attribute>
@@ -201,13 +208,6 @@ Useful for systems with a near zero pivot.</a:documentation>
 Useful for parallel direct solves (if installed on system).</a:documentation>
           <attribute name="name">
             <value>mumps</value>
-          </attribute>
-          <empty/>
-        </element>
-        <element name="factorization_package">
-          <a:documentation>Package to use for the factorization - petsc.</a:documentation>
-          <attribute name="name">
-            <value>petsc</value>
           </attribute>
           <empty/>
         </element>
