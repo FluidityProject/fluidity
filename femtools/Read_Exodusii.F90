@@ -207,7 +207,6 @@ contains
     logical :: fileExists
     logical :: haveRegionIDs, haveBoundaries
 
-    type(EXOnode), pointer :: exo_nodes(:)
     type(EXOelement), pointer :: exo_element(:), exo_face(:), allelements(:)
 
     ! exodusii lib basic variables:
@@ -223,10 +222,8 @@ contains
     real(real_4), allocatable, dimension(:) :: coord_x, coord_y, coord_z
     integer, allocatable, dimension(:) :: node_map, elem_num_map, elem_order_map
     integer, allocatable, dimension(:) :: block_ids, num_elem_in_block, num_nodes_per_elem
-    character(len=6) :: elem_type_char
-    integer, allocatable, dimension(:) :: elem_type
-    integer, allocatable, dimension(:) :: elem_connectivity
-    integer, allocatable, dimension(:) :: side_set_ids, num_elem_in_set, num_sides_in_set
+    integer, allocatable, dimension(:) :: elem_type, elem_connectivity
+    integer, allocatable, dimension(:) :: side_set_ids, num_elem_in_set
     integer, allocatable, dimension(:) :: total_side_sets_node_list, total_side_sets_elem_list
     integer, allocatable, dimension(:) :: total_side_sets_node_cnt_list
 
@@ -235,10 +232,9 @@ contains
     integer, allocatable, dimension(:) :: total_elem_node_list
     integer, allocatable, dimension(:) :: sndglno, boundaryIDs
     
-    integer :: num_faces, num_faces_ele, num_elem, num_tags_elem, elementType, faceType
-    integer :: num_nodes_face_ele, num_nodes_per_elem_ele
+    integer :: num_faces, num_elem, faceType
     integer :: loc, sloc
-    integer :: nodeID, elemID, blockID, eff_dim, b, d, e, f, i, j, n, z, z2, exo_e, exo_f
+    integer :: eff_dim, b, d, e, f, i, j, n, z, z2, exo_e, exo_f
     integer :: n_cnt_pos
 
     ewrite(1,*) "In read_exodusii_file_to_field"
@@ -322,7 +318,7 @@ contains
     call get_block_param(exoid, lfilename, block_ids, num_elem_blk, num_elem_in_block, num_nodes_per_elem, elem_type)
 
     ! Get faceType and give the user an error if he supplied a mesh with an unsupported combination of element types:
-    call check_combination_face_element_types(num_dim, num_elem_blk, elem_type, lfilename, elementType, faceType)
+    call check_combination_face_element_types(num_dim, num_elem_blk, elem_type, lfilename, faceType)
 
     ! read element connectivity:
     allocate(elem_connectivity(0))
@@ -597,7 +593,6 @@ contains
                                                    num_elem_blk, &
                                                    elem_type, &
                                                    lfilename, &
-                                                   elementType, &
                                                    faceType)
     ! This subroutine get block specific data from the mesh file, 
     ! e.g. the element type (Triangle/Quad/Tet/Hex...)
@@ -606,9 +601,9 @@ contains
     integer, intent(in) :: num_elem_blk
     integer, dimension(:), intent(in) :: elem_type
     character(kind=c_char, len=OPTION_PATH_LEN), intent(in) :: lfilename
-    integer, intent(inout) :: elementType, faceType
+    integer, intent(inout) :: faceType
 
-    integer :: i
+    integer :: i, elementType
 
        elementType = 0; faceType = 0
        ! Practically looping over the blocks, and checking the combination of face/element types for 
@@ -966,12 +961,11 @@ contains
     type(EXOelement), pointer, dimension(:), intent(in) :: allelements
     integer, intent(inout) :: num_faces
     
-    integer :: i, z, elemID, num_tags_elem
+    integer :: i, elemID, num_tags_elem
     ! This subroutines computes the number of faces, which will be
     ! included in the fluidity mesh. These are the elements of the mesh
     ! which have a boundary ID/side set ID assigned to them.
 
-       z=1;
        do i=1, num_allelem
           elemID = allelements(i)%elementID
           num_tags_elem = allelements(elemID)%numTags
