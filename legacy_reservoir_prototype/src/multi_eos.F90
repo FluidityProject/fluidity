@@ -264,84 +264,7 @@
 
          if ( eos_comp_python .or. eos_incomp_python ) then
 
-            ! Extract fields from state
-            pressure    => extract_scalar_field( state(iphase), "Pressure" )
-            temperature => extract_scalar_field( state(iphase), "Temperature" )
-            density     => extract_scalar_field( state(iphase), "Density" )
-
-            temperature % val = t( ( iphase - 1 ) * cv_nonods + 1 : iphase * cv_nonods )
-
-            ! Get the code
-            call get_option(trim(density%option_path)//"/diagnostic/algorithm", pycode)
-
-            pressure % val = p( ( iphase - 1 ) * cv_nonods + 1 : iphase * cv_nonods )
-            call zero( density )
-
-            call python_reset()
-            call python_add_state( state( iphase ) )
-
-            call python_run_string("field = state.scalar_fields[Density]")
-
-            call get_option("/timestepping/current_time", current_time)
-            write(buffer,*) current_time
-            call python_run_string("time="//trim(buffer))
-            call get_option("/timestepping/timestep", dt)
-            write(buffer,*) dt
-            call python_run_string("dt="//trim(buffer))  
-
-            call python_run_string(trim(pycode))
-            den( ( iphase - 1 ) * cv_nonods + 1 : iphase * cv_nonods ) = density % val
-
-            call python_reset()
-
-            ! Calculating d(den) / dP
-            ! redefine p as p+pert and p-pert and then run python state again to get the d(den) / d P...
-            pert_p = 1.
-
-            pressure % val = p( ( iphase - 1 ) * cv_nonods + 1 : iphase * cv_nonods ) + pert_p
-            call zero( density )
-
-            call python_reset()
-            call python_add_state( state( iphase ) )
-
-            call python_run_string("field = state.scalar_fields[Density]")
-
-            call get_option("/timestepping/current_time", current_time)
-            write(buffer,*) current_time
-            call python_run_string("time="//trim(buffer))
-            call get_option("/timestepping/timestep", dt)
-            write(buffer,*) dt
-            call python_run_string("dt="//trim(buffer))  
-
-            call python_run_string(trim(pycode))
-            den_plus_python = density % val
-
-            call python_reset()
-
-            pressure % val = p( ( iphase - 1 ) * cv_nonods + 1 : iphase * cv_nonods ) - pert_p
-            call zero( density )
-
-            call python_reset()
-            call python_add_state( state( iphase ) )
-
-            call python_run_string("field = state.scalar_fields[Density]")
-
-            call get_option("/timestepping/current_time", current_time)
-            write(buffer,*) current_time
-            call python_run_string("time="//trim(buffer))
-            call get_option("/timestepping/timestep", dt)
-            write(buffer,*) dt
-            call python_run_string("dt="//trim(buffer))
-
-            call python_run_string(trim(pycode))
-            den_minus_python = density % val
-
-            call python_reset()
-
-            ! derivative
-            deriv( ( iphase - 1 ) * cv_nonods + 1 : iphase * cv_nonods ) = ( den_plus_python - den_minus_python ) / ( 2. * pert_p )
-
-            FLAbort('I have to test this code...')
+            FLAbort('Code does not exist...')
 
          end if
 
@@ -494,7 +417,7 @@
       real, parameter :: toler = 1.0E-10
       real, dimension( : ), allocatable, save :: reference_pressure
       real, dimension( : ), allocatable :: Density_Field, DRho_DPressure, eos_coefs, perturbation_pressure, &
-           DensityPlus, DensityMinus
+           DensityPlus, DensityMinus, pressure_back_up, density_back_up
       real :: dt, current_time
 
 !!$ Den = c1 * ( P + c2 ) / T           :: Stiffened EOS
@@ -516,7 +439,6 @@
 
       pressure    => extract_scalar_field( state( iphase ), 'Pressure' )
       if( have_temperature_field ) temperature => extract_scalar_field( state( iphase ), 'Temperature' )
-      density     => extract_scalar_field( state( iphase ), 'Density' )
 
       assert( node_count( pressure ) == node_count( density ) )
       allocate( Density_Field( node_count( pressure ) ), DRho_DPressure( node_count( pressure ) ) ) ; &
@@ -539,7 +461,7 @@
 
          option_path_comp   = trim( '/material_phase['  // int2str( istate2 - 1 ) // ']/equation_of_state/compressible' )
          option_path_incomp = trim( '/material_phase['  // int2str( istate2 - 1 ) // ']/equation_of_state/incompressible' )
-         option_path_python = trim( '/material_phase['  // int2str( istate2 - 1 ) // ']/equation_of_state/python_state' )
+         option_path_python = trim( '/material_phase['  // int2str( istate2 - 1 ) // ']/equation_of_state/python_state/algorithm' )
 
          Conditional_EOS_Option: if( trim( eos_option_path( istate2 ) ) == trim( option_path_comp // '/stiffened_gas' ) ) then
 !!$ Den = C0 / T * ( P - C1 )
@@ -637,13 +559,97 @@
             deallocate( eos_coefs )
 
          elseif( trim( eos_option_path( istate2 ) ) == trim( option_path_python ) ) then
-!!$ Python function
-!!$
-!!$            call get_option( trim( option_path_python ), pycode )
-!!$            call zero( density )
-!!$
-!!$            call python_reset()
-!!$            call python_add_state( state(  ) )
+
+#ifdef HAVE_NUMPY
+            ewrite(3,*) "Have both NumPy and a python eos..."
+#else
+            FLAbort("Python eos requires NumPy, which cannot be located.")
+#endif
+
+            density => extract_scalar_field( state( istate2 ), "Density" )         
+            call zero( density )
+
+            call python_reset()
+            call python_add_state( state( istate2 ) )
+
+            call python_run_string("field = state.scalar_fields[Density]")
+            call get_option("/timestepping/current_time", current_time)
+            write(buffer,*) current_time
+            call python_run_string("time="//trim(buffer))
+            call get_option("/timestepping/timestep", dt)
+            write(buffer,*) dt
+            call python_run_string("dt="//trim(buffer))  
+
+            ! Get the code
+            call get_option( trim( option_path_python ), pycode )
+
+            ! Run the code
+            call python_run_string( trim( pycode ) )
+
+            ! Copy result to protoype memory
+            Density_Field = density % val
+
+            ! Back up pressure and density before we start perturbing stuff... 
+            allocate( pressure_back_up( node_count( pressure ) ), density_back_up( node_count( pressure ) ) )
+            pressure_back_up = 0. ; density_back_up = 0.
+            pressure_back_up = pressure % val
+            density_back_up = density % val
+
+            call python_reset()
+
+            ! Calculating d(den) / dP
+            ! redefine p as p+pert and p-pert and then run python state again to get the d(den) / d P...
+            perturbation_pressure = 1.
+
+            pressure % val = pressure % val + perturbation_pressure
+            call zero( density )
+
+            call python_reset()
+            call python_add_state( state( istate2 ) )
+
+            call python_run_string("field = state.scalar_fields[Density]")
+
+            call get_option("/timestepping/current_time", current_time)
+            write(buffer,*) current_time
+            call python_run_string("time="//trim(buffer))
+            call get_option("/timestepping/timestep", dt)
+            write(buffer,*) dt
+            call python_run_string("dt="//trim(buffer))  
+
+            call python_run_string(trim(pycode))
+            DensityPlus = density % val
+
+            call python_reset()
+
+            pressure % val = pressure_back_up
+            pressure % val = pressure % val - perturbation_pressure
+            call zero( density )
+
+            call python_reset()
+            call python_add_state( state( istate2 ) )
+
+            call python_run_string("field = state.scalar_fields[Density]")
+
+            call get_option("/timestepping/current_time", current_time)
+            write(buffer,*) current_time
+            call python_run_string("time="//trim(buffer))
+            call get_option("/timestepping/timestep", dt)
+            write(buffer,*) dt
+            call python_run_string("dt="//trim(buffer))
+
+            call python_run_string(trim(pycode))
+            DensityMinus = density % val
+
+            call python_reset()
+
+            ! derivative
+            DRho_DPressure = 0.5 * ( DensityPlus - DensityMinus ) / perturbation_pressure
+
+            ! Restore pressure and density values in state
+            pressure % val = pressure_back_up
+            density % val = density_back_up
+
+            deallocate( pressure_back_up, density_back_up )
 
          else
             FLAbort( 'No option given for choice of EOS' )

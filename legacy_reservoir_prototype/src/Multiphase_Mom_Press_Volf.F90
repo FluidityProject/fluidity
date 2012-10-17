@@ -433,6 +433,8 @@ contains
        Loop_ITS: DO ITS = 1, NITS
           ewrite(1,*)' New Non-Linear Iteration:', its
 
+          !call CopyIntoState()
+
           CALL calculate_multiphase_density( state, CV_NONODS, CV_PHA_NONODS, DEN, DERIV, &
                T, CV_P )
 
@@ -481,8 +483,12 @@ contains
                   mass_ele_transp = dummy_ele, &
                   thermal = .true. )                  
 
+          !call CopyIntoState()
+
              CALL calculate_multiphase_density( state, CV_NONODS, CV_PHA_NONODS, DEN, DERIV, &
                   T, CV_P )
+
+          !call CopyIntoState()
 
              if (SIG_INT) exit Loop_ITS
 
@@ -566,7 +572,10 @@ contains
                   IN_ELE_UPWIND, DG_ELE_UPWIND, &
                   NOIT_DIM, &
                   IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, &
-                  scale_momentum_by_volume_fraction ) 
+                  scale_momentum_by_volume_fraction )
+
+             !call CopyIntoState()
+
           end if
 
           if (SIG_INT) exit Loop_ITS
@@ -603,6 +612,9 @@ contains
                   NITS_FLUX_LIM_VOLFRA, &
                   option_path = '/material_phase[0]/scalar_field::PhaseVolumeFraction', &
                   mass_ele_transp = mass_ele )
+             
+             !call CopyIntoState()
+
           end if
 
           if (SIG_INT) exit Loop_ITS
@@ -721,6 +733,8 @@ contains
                      option_path = '', &
                      mass_ele_transp = dummy_ele, &
                      thermal=.false. ) ! the false means that we don't add an extra source term
+
+                !call CopyIntoState()
 
              END DO Loop_ITS2
 
