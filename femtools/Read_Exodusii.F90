@@ -323,36 +323,8 @@ contains
     call get_block_param(exoid, lfilename, block_ids, num_elem_blk, num_elem_in_block, num_nodes_per_elem, elem_type)
 
     ! Get faceType and give the user an error if he supplied a mesh with an unsupported combination of element types:
-    elementType = 0; faceType = 0
-    do i=1, num_elem_blk
-       ! 2D meshes:
-       if (num_dim == 2) then 
-          if (elem_type(i) .ne. 1) then !then it's no edge, but either triangle or shell
-             if (elementType .ne. 0 .and. elementType .ne. elem_type(i)) then
-                FLExit("Mesh file "//trim(lfilename)//": You have generated a hybrid 2D mesh with Triangles and Shells which Fluidity does not support. Please choose either Triangles or Shells.")
-             end if
-          end if
-          ! the face type of 2D meshes are obviously edges, aka type '1'
-          faceType = 1
-       ! Now 3D meshes:
-       else if (num_dim == 3) then
-          if (elem_type(i) .ne. 2 .and. elem_type(i) .ne. 3) then !then it's not a triangle nor a shell
-             if (elementType .ne. 0 .and. elementType .ne. elem_type(i)) then
-                FLExit("Mesh file "//trim(lfilename)//": You have generated a hybrid 3D mesh with Tetrahedras and Hexahedrons which Fluidity does not support. Please choose either Tetrahedras or Hexahedrons.")
-             end if
-          end if
-          if (elem_type(i) == 4) then ! tet
-             ! Set faceType for tets
-             faceType = 2
-          else if (elem_type(i) == 5) then !hex
-             ! Set faceType for hexas
-             faceType = 3
-          end if
-       elementType = elem_type(i)
-       else
-          FLExit("Mesh file "//trim(lfilename)//": Fluidity currently does not support 1D exodusII meshes. But you do NOT want to use fancy cubit to create a 1D mesh, do you? GMSH or other meshing tools can easily be used to generate 1D meshes")
-       end if
-    end do
+    call check_combination_face_element_types(num_dim, num_elem_blk, elem_type, lfilename, elementType, faceType)
+
 
     ! read element connectivity:
     allocate(elem_connectivity(0))
@@ -855,7 +827,57 @@ contains
   end subroutine get_block_param
 
 
+  subroutine check_combination_face_element_types(num_dim, &
+                                                   num_elem_blk, &
+                                                   elem_type, &
+                                                   lfilename, &
+                                                   elementType, &
+                                                   faceType)
+    ! This subroutine get block specific data from the mesh file, 
+    ! e.g. the element type (Triangle/Quad/Tet/Hex...)
+    ! number of elements (and nodes per element) per block:
+    integer, intent(in) :: num_dim
+    integer, intent(in) :: num_elem_blk
+    integer, dimension(:), intent(in) :: elem_type
+    character(kind=c_char, len=OPTION_PATH_LEN), intent(in) :: lfilename
+    integer, intent(inout) :: elementType, faceType
 
+    integer :: i
+
+    elementType = 0; faceType = 0
+    ! Practically looping over the blocks, and checking the combination of face/element types for 
+    ! each block in the supplied mesh, plus exit if dimension of mesh is 1!
+    do i=1, num_elem_blk
+       ! 2D meshes:
+       if (num_dim == 2) then 
+          if (elem_type(i) .ne. 1) then !then it's no edge, but either triangle or shell
+             if (elementType .ne. 0 .and. elementType .ne. elem_type(i)) then
+                FLExit("Mesh file "//trim(lfilename)//": You have generated a hybrid 2D mesh with Triangles and Shells which Fluidity does not support. Please choose either Triangles or Shells.")
+             end if
+          end if
+          ! the face type of 2D meshes are obviously edges, aka type '1'
+          faceType = 1
+       ! Now 3D meshes:
+       else if (num_dim == 3) then
+          if (elem_type(i) .ne. 2 .and. elem_type(i) .ne. 3) then !then it's not a triangle nor a shell
+             if (elementType .ne. 0 .and. elementType .ne. elem_type(i)) then
+                FLExit("Mesh file "//trim(lfilename)//": You have generated a hybrid 3D mesh with Tetrahedras and Hexahedrons which Fluidity does not support. Please choose either Tetrahedras or Hexahedrons.")
+             end if
+          end if
+          if (elem_type(i) == 4) then ! tet
+             ! Set faceType for tets
+             faceType = 2
+          else if (elem_type(i) == 5) then !hex
+             ! Set faceType for hexas
+             faceType = 3
+          end if
+       elementType = elem_type(i)
+       else
+          FLExit("Mesh file "//trim(lfilename)//": Fluidity currently does not support 1D exodusII meshes. But you do NOT want to use fancy cubit to create a 1D mesh, do you? GMSH or other meshing tools can easily be used to generate 1D meshes")
+       end if
+    end do
+
+  end subroutine check_combination_face_element_types
 
 
   ! -----------------------------------------------------------------
