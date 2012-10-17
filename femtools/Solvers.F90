@@ -1801,11 +1801,6 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
        call KSPGetPC(subksp, subpc, ierr)
        call PCSetType(subpc, pctype, ierr)
        
-    else if (pctype==PCLU) then
-      
-      call get_option(trim(option_path)//'/factorization_package/name', matsolverpackage)
-      call PCFactorSetMatSolverPackage(pc, matsolverpackage, ierr)
-      
     else
        
        ! this doesn't work for hypre
@@ -1816,6 +1811,11 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
        ! set pctype again to enforce flml choice
        call PCSetType(pc, pctype, ierr)
 
+       if (pctype==PCLU) then
+          call get_option(trim(option_path)//'/factorization_package/name', matsolverpackage)
+          call PCFactorSetMatSolverPackage(pc, matsolverpackage, ierr)
+       end if
+      
     end if
     
     ewrite(2, *) 'pc_type: ', trim(pctype)
