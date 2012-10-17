@@ -1084,6 +1084,8 @@ contains
 
     type(EXOnode), pointer, dimension(:) :: exo_nodes
     integer :: d, n, nodeID
+    ! This subroutine does what its name tells us: Adding the nodes of the mesh file
+    ! to the actual field that describes the coordinate mesh in Fluidity
 
     ! Now set up nodes, their IDs and coordinates:
     ! Allocate exodus nodes
@@ -1100,7 +1102,6 @@ contains
           field%val(d,nodeID) = exo_nodes(n)%x(d)
        end forall
     end do
-
     ! Don't need those anymore:
     deallocate(exo_nodes);
 
