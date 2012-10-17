@@ -625,6 +625,7 @@ contains
 
              CALL CALC_COMP_ABSORB( ICOMP, NCOMP, DT, ALPHA_BETA, &
                   NPHASE, CV_NONODS, &
+                  !.true., K_COMP, &
                   .false., K_COMP, &
                   DENOLD, SATURAOLD, &
                   VOLFRA_PORE, COMP_ABSORB, &

@@ -2217,9 +2217,6 @@ ewrite(3,*)'-->:',k + 1, k + node_count( field ), kk + 1, kk + stotel * cv_snloc
          end if
       endif 
 
-      v_disopt = 9
-      t_disopt = 9
-
       call get_option('/material_phase[0]/scalar_field::Temperature/prognostic/' // &
            'spatial_discretisation/conservative_advection', t_beta, default=0.0)
       call get_option('/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &

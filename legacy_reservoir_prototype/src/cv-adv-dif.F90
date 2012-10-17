@@ -347,7 +347,7 @@
            'limit_face_value/limiter::Extrema'
       LIMIT_USE_2ND=.FALSE.
       if ( have_option( option_path ) ) LIMIT_USE_2ND=.TRUE.
-      LIMIT_USE_2ND=.TRUE.
+      !LIMIT_USE_2ND=.TRUE.
 
       ewrite(3,*)'CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA, LIMIT_USE_2ND, SECOND_THETA:', &
            CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA, LIMIT_USE_2ND, SECOND_THETA
@@ -1677,10 +1677,17 @@
       REAL, DIMENSION( : ), allocatable :: PSI, FEMPSI, PSI_AVE, PSI_INT
       INTEGER :: NTSOL,NTSOL_AVE,NTSOL_INT,ELE,CV_ILOC,X_INOD,CV_INOD,NL,NFIELD
       CHARACTER(100) :: PATH
+      INTEGER :: velocity_max_iterations
+      LOGICAL :: solve_force_balance
 
       ewrite(3,*) 'In PROJ_CV_TO_FEM_4'
 
-      if ( igot_t2 ==1 ) then
+      call get_option( "/material_phase[0]/vector_field::Velocity/prognostic/solver/max_iterations", &
+           velocity_max_iterations,  default =  500 )
+      solve_force_balance = .false.
+      if( velocity_max_iterations /= 0 ) solve_force_balance = .true.
+
+      if ( solve_force_balance ) then
          path = '/material_phase[0]/scalar_field::Pressure' 
       else
          path = '/material_phase[0]/scalar_field::Temperature' 

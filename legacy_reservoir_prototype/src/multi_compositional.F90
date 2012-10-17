@@ -653,7 +653,6 @@
             end do
          end do
 
-
       else
 
          Sat0 = Sat
@@ -675,7 +674,6 @@
 
             end do
          end do
-
 
       end if Conditional_KComp_Sig
 
