@@ -392,85 +392,17 @@ contains
        node_coord(3,:) = coord_z(:)
     end if
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    ! Elements (incl faces)    !
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    ! Set up for allelements:
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! Assemble allelements (without faces) !
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     allocate(allelements(num_allelem))
-    ! Set elementIDs and blockIDs of to which the elements belong to
-    allelements(:)%elementID = 0.0; allelements(:)%blockID = 0.0
-    allelements(:)%type = 0.0; allelements(:)%numTags = 0.0
-    z=0; z2=0;
-    do i=1, num_elem_blk
-       do e=1, num_elem_in_block(i)
-          ! Set elementID:
-          allelements(e+z)%elementID = elem_order_map(e+z)
-          ! Set blockID of element e
-          allelements(e+z)%blockID = block_ids(i)
-          ! Set type of element:
-          allelements(e+z)%type = elem_type(i)
-          ! For nodeIDs:
-          allocate( allelements(e+z)%nodeIDs(num_nodes_per_elem(i)) )
-          do n=1, num_nodes_per_elem(i)
-             ! copy the nodes of the element out of total_elem_node_list:
-             allelements(e+z)%nodeIDs(n) = total_elem_node_list(n+z2)
-          end do
-          z2 = z2+num_nodes_per_elem(i)
-       end do
-       z = z + num_elem_in_block(i)
-    end do
+    call assemble_allelements(num_elem_blk, block_ids, num_elem_in_block, &
+                               num_nodes_per_elem, elem_order_map, elem_type, &
+                               total_elem_node_list, allelements)
     ! At this stage 'allelements' contains all elements (faces and elements) of all blocks of the mesh
-
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    ! Setting numTags to the elements with side-set-id !
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! Now, in case we have side sets/boundary ids in the mesh, assigns those ids to allelements:
     if (haveBoundaries) then
-       z=1;
-       do i=1, num_side_sets
-          do e=1, num_elem_in_set(i)
-             ! Get global element id:
-             elemID = total_side_sets_elem_list(z)
-             ! Set # of tags for this particular element
-             allelements(elemID)%numTags = allelements(elemID)%numTags+1
-             z = z+1
-          end do
-       end do
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    ! Setting tags to the elements with side-set-id !
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-       z=1;
-       do i=1, num_side_sets
-          do e=1, num_elem_in_set(i)
-             ! Get global element id:
-             elemID = total_side_sets_elem_list(z)
-             num_tags_elem = allelements(elemID)%numTags
-             ! Allocate array of tags for this particular element
-             allocate(allelements(elemID)%tags(num_tags_elem))
-             ! Initialize element%tag with a diabolic integer to indicate
-             ! that the tag has not been 'correctly' set
-             allelements(elemID)%tags(:) = -666
-             z = z+1
-          end do
-       end do
-       ! Now that the tags for all elements are allocated and uniquely marked, set them:
-       z=1;
-       do i=1, num_side_sets
-          do e=1, num_elem_in_set(i)
-             ! Get global element id:
-             elemID = total_side_sets_elem_list(z)
-             num_tags_elem = allelements(elemID)%numTags
-             ! Set the side-set-id to this element
-             do j=1, num_tags_elem
-                ! Check for already existing tags in this element
-                if ( allelements(elemID)%tags(j) == -666 ) then
-                   allelements(elemID)%tags(j) = side_set_ids(i)
-                   ! end exit the inner loop after setting this side sets id to the element
-                   exit
-                end if
-             end do
-             z = z+1
-          end do
-       end do
+       call allelements_add_boundary_ids(num_side_sets, num_elem_in_set, total_side_sets_elem_list, side_set_ids, allelements)
     end if
    ! At this stage, the elements of 'allelements' have been correctly tagged, 
    ! meaning they carry the side set ID(s) as tags, which later will
@@ -491,22 +423,11 @@ contains
     ! and depending on the mesh dimension, determine if element e is a face or element
     ! This does not support a 1D mesh,
     ! because you do NOT want to use fancy cubit to create a 1D mesh, do you?!
-    ! Identify the number of faces:
-    num_faces = 0; num_elem = 0
+    ! Get number of elements and faces in the mesh:
+    num_elem = 0; num_faces = 0
     sloc = 0
-    do i=1, num_elem_blk
-       if (num_dim .eq. 2) then
-          if (elem_type(i) .eq. 2 .or. elem_type(i) .eq. 3) then
-             ! this is an element:
-             num_elem = num_elem + num_elem_in_block(i)
-          end if
-       else if (num_dim .eq. 3) then
-          if ( elem_type(i) .eq. 4 .or. elem_type(i) .eq. 5 ) then
-             ! this is an element:
-             num_elem = num_elem + num_elem_in_block(i)
-          end if
-       end if
-    end do
+    call get_num_elem(num_dim, num_elem_blk, elem_type, num_elem_in_block, num_elem)
+
     ! Set sloc based on faceType:
     ! Only faceTypes 1, 2, and 3 are allowed (see above), their corresponding sloc is faceType+1,
     ! e.g. if faceType = 2 (triangle), it should have 3 nodes, which is faceType+1
@@ -642,7 +563,6 @@ contains
     else
        call add_faces(field%mesh, sndgln = sndglno(1:num_faces*sloc))
     end if
-
 
     ! Deallocate arrays (exodusii arrays):
     deallocate(coord_x); deallocate(coord_y); deallocate(coord_z)
@@ -922,11 +842,11 @@ contains
     integer, dimension(:), intent(in) :: elem_connectivity
     integer, dimension(:), intent(in) :: elem_type
     integer, allocatable, dimension(:), intent(inout) :: total_elem_node_list
-    
+
     integer, allocatable, dimension(:) :: elem_node_list
 
     integer :: i, e, n, z
-    
+
     z = 0
     do i=1, num_elem_blk
        ! assemble element node list as we go:
@@ -947,6 +867,158 @@ contains
     end do
 
   end subroutine reorder_node_numbering
+
+  ! -----------------------------------------------------------------
+
+  subroutine assemble_allelements(num_elem_blk, &
+                                    block_ids, &
+                                    num_elem_in_block, &
+                                    num_nodes_per_elem, &
+                                    elem_order_map, &
+                                    elem_type, &
+                                    total_elem_node_list, &
+                                    allelements)
+    integer, intent(in) :: num_elem_blk
+    integer, dimension(:), intent(in) :: block_ids
+    integer, dimension(:), intent(in) :: num_elem_in_block
+    integer, dimension(:), intent(in) :: num_nodes_per_elem
+    integer, dimension(:), intent(in) :: elem_order_map
+    integer, dimension(:), intent(in) :: elem_type
+    integer, dimension(:), intent(in) :: total_elem_node_list
+    type(EXOelement), pointer, dimension(:), intent(inout) :: allelements
+
+    integer :: i, e, n, z, z2
+    ! Subroutine to assemble a bucket full of element related data,
+    ! e.g. element id, which block id it belongs to, its element type,
+    ! its node ids. 
+    ! This is done for all elements of the mesh, e.g. also for surface
+    ! elements of a 3D mesh. These surface elements won't be passed 
+    ! to the fluidity structure later on, but are added to allelements
+    ! here. 
+    ! Also: Potential boundaryID numbers are added in the seperate
+    ! subroutine 'allelements_add_boundary_ids'.
+
+       ! Set elementIDs and blockIDs of to which the elements belong to
+       allelements(:)%elementID = 0.0; allelements(:)%blockID = 0.0
+       allelements(:)%type = 0.0; allelements(:)%numTags = 0.0
+       z=0; z2=0;
+       do i=1, num_elem_blk
+          do e=1, num_elem_in_block(i)
+             ! Set elementID:
+             allelements(e+z)%elementID = elem_order_map(e+z)
+             ! Set blockID of element e
+             allelements(e+z)%blockID = block_ids(i)
+             ! Set type of element:
+             allelements(e+z)%type = elem_type(i)
+             ! For nodeIDs:
+             allocate( allelements(e+z)%nodeIDs(num_nodes_per_elem(i)) )
+             do n=1, num_nodes_per_elem(i)
+                ! copy the nodes of the element out of total_elem_node_list:
+                allelements(e+z)%nodeIDs(n) = total_elem_node_list(n+z2)
+             end do
+             z2 = z2+num_nodes_per_elem(i)
+          end do
+          z = z + num_elem_in_block(i)
+       end do
+
+  end subroutine assemble_allelements
+  
+  ! -----------------------------------------------------------------
+  
+  subroutine allelements_add_boundary_ids(num_side_sets, &
+                                            num_elem_in_set, &
+                                            total_side_sets_elem_list, &
+                                            side_set_ids, &
+                                            allelements)
+    integer, intent(in) :: num_side_sets
+    integer, dimension(:), intent(in) :: num_elem_in_set
+    integer, dimension(:), intent(in) :: total_side_sets_elem_list
+    integer, dimension(:), intent(in) :: side_set_ids
+    type(EXOelement), pointer, dimension(:), intent(inout) :: allelements
+
+    integer :: elemID, num_tags_elem
+    integer :: e, i, j, z
+
+      z=1;
+      do i=1, num_side_sets
+         do e=1, num_elem_in_set(i)
+            ! Get global element id:
+            elemID = total_side_sets_elem_list(z)
+            ! Set # of tags for this particular element
+            allelements(elemID)%numTags = allelements(elemID)%numTags+1
+            z = z+1
+         end do
+      end do
+     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+     ! Setting tags to the elements with side-set-id !
+     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      z=1;
+      do i=1, num_side_sets
+         do e=1, num_elem_in_set(i)
+            ! Get global element id:
+            elemID = total_side_sets_elem_list(z)
+            num_tags_elem = allelements(elemID)%numTags
+            ! Allocate array of tags for this particular element
+            allocate(allelements(elemID)%tags(num_tags_elem))
+            ! Initialize element%tag with a diabolic integer to indicate
+            ! that the tag has not been 'correctly' set
+            allelements(elemID)%tags(:) = -666
+            z = z+1
+         end do
+      end do
+      ! Now that the tags for all elements are allocated and uniquely marked, set them:
+      z=1;
+      do i=1, num_side_sets
+         do e=1, num_elem_in_set(i)
+            ! Get global element id:
+            elemID = total_side_sets_elem_list(z)
+            num_tags_elem = allelements(elemID)%numTags
+            ! Set the side-set-id to this element
+            do j=1, num_tags_elem
+               ! Check for already existing tags in this element
+               if ( allelements(elemID)%tags(j) == -666 ) then
+                  allelements(elemID)%tags(j) = side_set_ids(i)
+                  ! end exit the inner loop after setting this side sets id to the element
+                  exit
+               end if
+            end do
+            z = z+1
+         end do
+      end do
+
+  end subroutine allelements_add_boundary_ids
+
+  ! -----------------------------------------------------------------
+
+  subroutine get_num_elem(num_dim, num_elem_blk, elem_type, num_elem_in_block, num_elem)
+    integer, intent(in) :: num_dim
+    integer, intent(in) :: num_elem_blk
+    integer, dimension(:), intent(in) :: elem_type
+    integer, dimension(:), intent(in) :: num_elem_in_block
+    integer, intent(inout) :: num_elem
+
+    integer :: i
+    ! This subroutines computes the number of elements, which will be
+    ! included in the fluidity mesh, thus num_elem is the number of 
+    ! elements of the mesh - the number of face-elements, e.g.
+    ! in a 3D mesh the number of tetrahedras minus the number of 
+    ! triangles on surfaces.
+
+    do i=1, num_elem_blk
+       if (num_dim .eq. 2) then
+          if (elem_type(i) .eq. 2 .or. elem_type(i) .eq. 3) then
+             ! this is an element:
+             num_elem = num_elem + num_elem_in_block(i)
+          end if
+       else if (num_dim .eq. 3) then
+          if ( elem_type(i) .eq. 4 .or. elem_type(i) .eq. 5 ) then
+             ! this is an element:
+             num_elem = num_elem + num_elem_in_block(i)
+          end if
+       end if
+    end do
+
+  end subroutine get_num_elem
 
   ! -----------------------------------------------------------------
   ! Read ExodusII file to state object.
