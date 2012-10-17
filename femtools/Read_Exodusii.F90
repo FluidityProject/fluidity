@@ -474,25 +474,8 @@ contains
       allocate( field%mesh%region_ids(num_elem) )
       field%mesh%region_ids = 0
     end if
-    z=0; exo_e=1;
-    do i=1, num_elem
-       elementType = exo_element(exo_e)%type
-       if(.not.( (num_dim .eq. 2 .and. elementType .eq. 1) .or. &
-         (num_dim .eq. 3 .and. &
-         (elementType .eq. 2 .or. elementType .eq. 3)) ) ) then
-         !these are normal elements:
-          num_nodes_per_elem_ele = size(exo_element(exo_e)%nodeIDs)
-          do n=1, num_nodes_per_elem_ele
-             field%mesh%ndglno(n+z) = exo_element(exo_e)%nodeIDs(n)
-          end do
-          ! Set region_id of element (this will be its blockID in exodus)
-          if (haveRegionIDS) then
-             field%mesh%region_ids = exo_element(exo_e)%blockID
-          end if
-          exo_e = exo_e+1
-          z = z+num_nodes_per_elem_ele
-       end if
-    end do
+    call adding_elements_to_field(num_dim, num_elem, exo_element, field)
+
 
     ! Assemble array with faces, and boundaryIDs
     allocate(sndglno(1:num_faces*sloc))
@@ -1106,6 +1089,39 @@ contains
     deallocate(exo_nodes);
 
   end subroutine adding_nodes_to_field
+
+  ! -----------------------------------------------------------------
+
+  subroutine adding_elements_to_field(num_dim, num_elem, exo_element, field)
+    integer, intent(in) :: num_dim
+    integer, intent(in) :: num_elem
+    type(EXOelement), pointer, dimension(:), intent(in) :: exo_element
+    type(vector_field), intent(inout) :: field
+
+    integer :: elementType, num_nodes_per_elem_ele
+    integer :: i, n, z, exo_e
+    ! This subroutine now adds elements and regionIDs (which in an exodusII mesh
+    ! are blockIDs) to the field
+
+    z=0; exo_e=1;
+    do i=1, num_elem
+       elementType = exo_element(exo_e)%type
+       if(.not.( (num_dim .eq. 2 .and. elementType .eq. 1) .or. &
+         (num_dim .eq. 3 .and. &
+         (elementType .eq. 2 .or. elementType .eq. 3)) ) ) then
+         !these are normal elements:
+          num_nodes_per_elem_ele = size(exo_element(exo_e)%nodeIDs)
+          do n=1, num_nodes_per_elem_ele
+             field%mesh%ndglno(n+z) = exo_element(exo_e)%nodeIDs(n)
+          end do
+          ! Set region_id of element (this will be its blockID in exodus)
+          field%mesh%region_ids = exo_element(exo_e)%blockID
+          exo_e = exo_e+1
+          z = z+num_nodes_per_elem_ele
+       end if
+    end do
+
+  end subroutine adding_elements_to_field
 
   ! -----------------------------------------------------------------
   ! Read ExodusII file to state object.
