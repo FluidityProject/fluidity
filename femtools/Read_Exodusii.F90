@@ -774,41 +774,41 @@ contains
     integer, allocatable, dimension(:) :: num_attr
     integer :: i, ierr
 
-    ! Get block parameters:
-    allocate(num_attr(num_elem_blk))
-    ! Loop over the blocks in the mesh and get block specific data:
-    do i=1, num_elem_blk
-       ierr = f_ex_get_elem_block(exoid, block_ids(i), elem_type_char, &
-                                  num_elem_in_block(i), &
-                                  num_nodes_per_elem(i), &
-                                  num_attr(i))
-       ! assemble array to hold integers determining the element type
-       ! element type names in exodusii are:
-       ! Integer to element type relation (same as for gmsh):
-       ! 1: BAR2 (line)
-       ! 2: TRI3 (triangle)
-       ! 3: SHELL4 (quad)
-       ! 4: TETRA (tetrahedra)
-       ! 5: HEX8 (hexahedron)
-       ! assemble array to hold integers to identify element type of element block i:
-       if (trim(elem_type_char(1:4)) .eq. "BAR2") then
-          elem_type(i) = 1
-       else if (trim(elem_type_char(1:4)) .eq. "TRI3") then
-          elem_type(i) = 2
-       else if (trim(elem_type_char(1:6)) .eq. "SHELL4") then
-          elem_type(i) = 3
-       else if (trim(elem_type_char(1:5)) .eq. "TETRA") then
-          elem_type(i) = 4
-       else if (trim(elem_type_char(1:4)) .eq. "HEX8") then
-          elem_type(i) = 5
-       else ! element type is not supported, give user an error
-          FLExit("Mesh file "//trim(lfilename)//": Fluidity does not support meshes with elements of type"//trim(elem_type_char(1:6))//". Please provide a mesh with Triangles, Shells, Tetrahedras or Hexahedrons.")
+       ! Get block parameters:
+       allocate(num_attr(num_elem_blk))
+       ! Loop over the blocks in the mesh and get block specific data:
+       do i=1, num_elem_blk
+          ierr = f_ex_get_elem_block(exoid, block_ids(i), elem_type_char, &
+                                     num_elem_in_block(i), &
+                                     num_nodes_per_elem(i), &
+                                     num_attr(i))
+          ! assemble array to hold integers determining the element type
+          ! element type names in exodusii are:
+          ! Integer to element type relation (same as for gmsh):
+          ! 1: BAR2 (line)
+          ! 2: TRI3 (triangle)
+          ! 3: SHELL4 (quad)
+          ! 4: TETRA (tetrahedra)
+          ! 5: HEX8 (hexahedron)
+          ! assemble array to hold integers to identify element type of element block i:
+          if (trim(elem_type_char(1:4)) .eq. "BAR2") then
+             elem_type(i) = 1
+          else if (trim(elem_type_char(1:4)) .eq. "TRI3") then
+             elem_type(i) = 2
+          else if (trim(elem_type_char(1:6)) .eq. "SHELL4") then
+             elem_type(i) = 3
+          else if (trim(elem_type_char(1:5)) .eq. "TETRA") then
+             elem_type(i) = 4
+          else if (trim(elem_type_char(1:4)) .eq. "HEX8") then
+             elem_type(i) = 5
+          else ! element type is not supported, give user an error
+             FLExit("Mesh file "//trim(lfilename)//": Fluidity does not support meshes with elements of type"//trim(elem_type_char(1:6))//". Please provide a mesh with Triangles, Shells, Tetrahedras or Hexahedrons.")
+          end if
+       end do
+       if (ierr /= 0) then
+          FLExit("Unable to read in element block parameters from "//trim(lfilename))
        end if
-    end do
-    if (ierr /= 0) then
-       FLExit("Unable to read in element block parameters from "//trim(lfilename))
-    end if
-    deallocate(num_attr)  
+       deallocate(num_attr)  
 
   end subroutine get_block_param
 
@@ -926,7 +926,6 @@ contains
        end if
   
   end subroutine get_side_set_param
-
 
   ! -----------------------------------------------------------------
   ! Read ExodusII file to state object.
