@@ -3,12 +3,12 @@ sys.path.append('../../../python/')
 import os
 import vtktools
 import scipy as sp
-import rotation
+import GFD_basisChange_tools as GFDtools
 
 #Generate mesh from Gmsh .geo file, convert into triangle fromat and then
 # into vtu format.
 os.system('gmsh -3 spherical_shell.geo')
-os.system('../../../bin/gmsh2triangle spherical_shell.msh')
+os.system('../../../tools/gmsh2triangle.py spherical_shell.msh')
 os.system('../../../bin/triangle2vtu spherical_shell')
 #Open file containing mesh and extract vertex coordinates
 file = vtktools.vtu('spherical_shell.vtu')
@@ -46,23 +46,23 @@ unitAzimuthalVector_inZMV=[]
 for point in vertices:
    #Extract Cartesian coordinates from the mesh, calculate spherical-polar coord and
    # append to appropriate lists.
-   point_sphericalPolar = rotation.cartesian_2_sphericalPolar(point)
-   point_lon_lat_radius = rotation.cartesian_2_lonlatradius(point)
+   point_sphericalPolar = GFDtools.cartesian_2_sphericalPolar(point)
+   point_lon_lat_radius = GFDtools.cartesian_2_lonlatradius(point)
    cartesianCoordinate.append(point)
    polarCoordinate.append(point_sphericalPolar)
    lon_lat_radius_coordinate.append(point_lon_lat_radius)
    #Calculate the vector and tensor components in a Cartesian basis and append to
    # appropriate lists.
-   tensor_inCartesian.append(rotation.transform_tensor_sphericalPolar_2_cartesian(point_sphericalPolar, TensorComponents_sphericalPolar))
-   unitRadialVector_inCartesian.append(rotation.transform_vector_sphericalPolar_2_cartesian(point_sphericalPolar, VectorComponents_unitRadial))
-   unitPolarVector_inCartesian.append(rotation.transform_vector_sphericalPolar_2_cartesian(point_sphericalPolar, VectorComponents_unitPolar))
-   unitAzimuthalVector_inCartesian.append(rotation.transform_vector_sphericalPolar_2_cartesian(point_sphericalPolar, VectorComponents_unitAzimuthal))
+   tensor_inCartesian.append(GFDtools.transform_tensor_sphericalPolar_2_cartesian(point_sphericalPolar, TensorComponents_sphericalPolar))
+   unitRadialVector_inCartesian.append(GFDtools.transform_vector_sphericalPolar_2_cartesian(point_sphericalPolar, VectorComponents_unitRadial))
+   unitPolarVector_inCartesian.append(GFDtools.transform_vector_sphericalPolar_2_cartesian(point_sphericalPolar, VectorComponents_unitPolar))
+   unitAzimuthalVector_inCartesian.append(GFDtools.transform_vector_sphericalPolar_2_cartesian(point_sphericalPolar, VectorComponents_unitAzimuthal))
    #Calculate the vector and tensor components in a zonal-meridional-vertical basis
    # and append to appropriate lists.
-   tensor_inZMV.append(rotation.transform_tensor_sphericalPolar_2_lon_lat_rad(TensorComponents_sphericalPolar))
-   unitRadialVector_inZMV.append(rotation.transform_vector_sphericalPolar_2_lon_lat_rad(VectorComponents_unitRadial))
-   unitPolarVector_inZMV.append(rotation.transform_vector_sphericalPolar_2_lon_lat_rad(VectorComponents_unitPolar))
-   unitAzimuthalVector_inZMV.append(rotation.transform_vector_sphericalPolar_2_lon_lat_rad(VectorComponents_unitAzimuthal))
+   tensor_inZMV.append(GFDtools.transform_tensor_sphericalPolar_2_lon_lat_rad(TensorComponents_sphericalPolar))
+   unitRadialVector_inZMV.append(GFDtools.transform_vector_sphericalPolar_2_lon_lat_rad(VectorComponents_unitRadial))
+   unitPolarVector_inZMV.append(GFDtools.transform_vector_sphericalPolar_2_lon_lat_rad(VectorComponents_unitPolar))
+   unitAzimuthalVector_inZMV.append(GFDtools.transform_vector_sphericalPolar_2_lon_lat_rad(VectorComponents_unitAzimuthal))
    #Append to appropriate lists the tensor and vector components in spherical-polar basis.
    tensor_inPolar.append(TensorComponents_sphericalPolar)
    unitRadialVector_inPolar.append(VectorComponents_unitRadial)
