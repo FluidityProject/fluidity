@@ -594,6 +594,9 @@ start =
                               real
                            }
                         }
+                     }|
+                     element python_state{
+                       scalar_python_diagnostic_algorithm
                      }
                   )
                )

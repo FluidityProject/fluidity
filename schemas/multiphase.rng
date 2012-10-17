@@ -709,6 +709,9 @@ DEN = A * P ^ B
                     </element>
                   </choice>
                 </element>
+                <element name="python_state">
+                  <ref name="scalar_python_diagnostic_algorithm"/>
+                </element>
               </choice>
             </element>
           </optional>
