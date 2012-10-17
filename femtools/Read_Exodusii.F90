@@ -451,7 +451,9 @@ contains
     ! Now derive the faces for fluidity, that are based on elements with side-set-ID:
     if (haveBoundaries) then
        allocate(exo_face(num_faces))
-       !call assemble_actual_face_elements
+       call assemble_actual_face_elements(num_side_sets, num_elem_in_set, side_set_ids, &
+                                           total_side_sets_node_cnt_list, total_side_sets_node_list, &
+                                           exo_face)
        
        n_cnt_pos=1; z=1; exo_f=1;
        do i=1, num_side_sets
@@ -1064,6 +1066,42 @@ contains
     end do
 
   end subroutine assemble_actual_elements
+
+  ! -----------------------------------------------------------------
+
+  subroutine assemble_actual_face_elements(num_side_sets, &
+                                             num_elem_in_set, &
+                                             side_set_ids, &
+                                             total_side_sets_node_cnt_list, &
+                                             total_side_sets_node_list, &
+                                             exo_face)
+    integer, intent(in) :: num_side_sets
+    integer, dimension(:), intent(in) :: num_elem_in_set
+    integer, dimension(:), intent(in) :: side_set_ids
+    integer, dimension(:), intent(in) :: total_side_sets_node_cnt_list
+    integer, dimension(:), intent(in) :: total_side_sets_node_list
+    type(EXOelement), pointer, dimension(:), intent(inout) :: exo_face
+
+    integer :: num_nodes_face_ele
+    integer :: i, e, n, m, exo_f
+
+       n=1; exo_f=1;
+       do i=1, num_side_sets
+          do e=1, num_elem_in_set(i)
+             num_nodes_face_ele = total_side_sets_node_cnt_list(e)
+             allocate( exo_face(exo_f)%nodeIDs(num_nodes_face_ele))
+             do m=1, num_nodes_face_ele
+                exo_face(exo_f)%nodeIDs(m) = total_side_sets_node_list(n)
+                n = n+1
+             end do
+             ! Set boundaryID to face:
+             allocate(exo_face(exo_f)%tags(1))
+             exo_face(exo_f)%tags = side_set_ids(i)
+             exo_f = exo_f+1
+          end do
+       end do
+
+  end subroutine assemble_actual_face_elements
 
   ! -----------------------------------------------------------------
   ! Read ExodusII file to state object.
