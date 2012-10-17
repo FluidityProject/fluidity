@@ -320,38 +320,8 @@ contains
     allocate(num_elem_in_block(num_elem_blk))
     allocate(num_nodes_per_elem(num_elem_blk))
     allocate(elem_type(num_elem_blk))
-    allocate(num_attr(num_elem_blk))
-    do i=1, num_elem_blk
-       ierr = f_ex_get_elem_block(exoid, block_ids(i), elem_type_char, &
-                                  num_elem_in_block(i), &
-                                  num_nodes_per_elem(i), &
-                                  num_attr(i))
-       ! assemble array to hold integers determining the element type
-       ! element type names in exodusii are:
-       ! Integer to element type relation (same as for gmsh):
-       ! 1: BAR2 (line)
-       ! 2: TRI3 (triangle)
-       ! 3: SHELL4 (quad)
-       ! 4: TETRA (tetrahedra)
-       ! 5: HEX8 (hexahedron)
-       ! assemble array to hold integers to identify element type of element block i:
-       if (trim(elem_type_char(1:4)) .eq. "BAR2") then
-          elem_type(i) = 1
-       else if (trim(elem_type_char(1:4)) .eq. "TRI3") then
-          elem_type(i) = 2
-       else if (trim(elem_type_char(1:6)) .eq. "SHELL4") then
-          elem_type(i) = 3
-       else if (trim(elem_type_char(1:5)) .eq. "TETRA") then
-          elem_type(i) = 4
-       else if (trim(elem_type_char(1:4)) .eq. "HEX8") then
-          elem_type(i) = 5
-       else ! element type is not supported, give user an error
-          FLExit("Mesh file "//trim(lfilename)//": Fluidity does not support meshes with elements of type"//trim(elem_type_char(1:6))//". Please provide a mesh with Triangles, Shells, Tetrahedras or Hexahedrons.")
-       end if
-    end do
-    if (ierr /= 0) then
-       FLExit("Unable to read in element block parameters from "//trim(lfilename))
-    end if
+    call get_block_param(exoid, lfilename, block_ids, num_elem_blk, num_elem_in_block, num_nodes_per_elem, elem_type)
+
     ! Get faceType and give the user an error if he supplied a mesh with an unsupported combination of element types:
     elementType = 0; faceType = 0
     do i=1, num_elem_blk
@@ -793,7 +763,7 @@ contains
     deallocate(coord_x); deallocate(coord_y); deallocate(coord_z)
     deallocate(node_map); deallocate(elem_num_map); deallocate(elem_order_map); 
     deallocate(block_ids); deallocate(num_elem_in_block); deallocate(num_nodes_per_elem);
-    deallocate(elem_type); deallocate(num_attr); 
+    deallocate(elem_type) 
     deallocate(elem_connectivity); 
 
     ! Deallocate other arrays:
@@ -815,6 +785,78 @@ contains
     ewrite(2,*) "Out of read_exodusii_file_to_field"
 
   end function read_exodusii_file_to_field
+
+
+
+
+
+
+
+
+  ! -----------------------------------------------------------------
+
+  subroutine get_block_param(exoid, lfilename, &
+                              block_ids, &
+                              num_elem_blk, &
+                              num_elem_in_block, &
+                              num_nodes_per_elem, &
+                              elem_type)
+    ! This subroutine get block specific data from the mesh file, 
+    ! e.g. the element type (Triangle/Quad/Tet/Hex...)
+    ! number of elements (and nodes per element) per block:
+    integer, intent(in) :: exoid
+    character(kind=c_char, len=OPTION_PATH_LEN), intent(in) :: lfilename
+    integer, dimension(:), intent(in) :: block_ids
+    integer, intent(in) :: num_elem_blk
+    integer, dimension(:), intent(inout) :: num_elem_in_block
+    integer, dimension(:), intent(inout) :: num_nodes_per_elem
+    integer, dimension(:), intent(inout) :: elem_type
+
+    character(len=6) :: elem_type_char    
+    integer, allocatable, dimension(:) :: num_attr
+    integer :: i, ierr
+
+    ! Get block parameters:
+    allocate(num_attr(num_elem_blk))
+    ! Loop over the blocks in the mesh and get block specific data:
+    do i=1, num_elem_blk
+       ierr = f_ex_get_elem_block(exoid, block_ids(i), elem_type_char, &
+                                  num_elem_in_block(i), &
+                                  num_nodes_per_elem(i), &
+                                  num_attr(i))
+       ! assemble array to hold integers determining the element type
+       ! element type names in exodusii are:
+       ! Integer to element type relation (same as for gmsh):
+       ! 1: BAR2 (line)
+       ! 2: TRI3 (triangle)
+       ! 3: SHELL4 (quad)
+       ! 4: TETRA (tetrahedra)
+       ! 5: HEX8 (hexahedron)
+       ! assemble array to hold integers to identify element type of element block i:
+       if (trim(elem_type_char(1:4)) .eq. "BAR2") then
+          elem_type(i) = 1
+       else if (trim(elem_type_char(1:4)) .eq. "TRI3") then
+          elem_type(i) = 2
+       else if (trim(elem_type_char(1:6)) .eq. "SHELL4") then
+          elem_type(i) = 3
+       else if (trim(elem_type_char(1:5)) .eq. "TETRA") then
+          elem_type(i) = 4
+       else if (trim(elem_type_char(1:4)) .eq. "HEX8") then
+          elem_type(i) = 5
+       else ! element type is not supported, give user an error
+          FLExit("Mesh file "//trim(lfilename)//": Fluidity does not support meshes with elements of type"//trim(elem_type_char(1:6))//". Please provide a mesh with Triangles, Shells, Tetrahedras or Hexahedrons.")
+       end if
+    end do
+    if (ierr /= 0) then
+       FLExit("Unable to read in element block parameters from "//trim(lfilename))
+    end if
+    deallocate(num_attr)  
+
+  end subroutine get_block_param
+
+
+
+
 
   ! -----------------------------------------------------------------
   ! Read ExodusII file to state object.
