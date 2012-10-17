@@ -14,8 +14,8 @@ run:	preprocess
 	@$(foreach layers, 4 8 16 32 64, \
 		cd channel-$(layers); \
 		echo **********Running simulation for $(layers) layer mesh.;\
-		echo ../../../bin/fluidity channel.flml; \
-		../../../bin/fluidity channel.flml; \
+		echo ../../../bin/fluidity -v 2 -l channel.flml; \
+		../../../bin/fluidity -v 2 -l channel.flml; \
 		cd ..;\
 	) 
 
