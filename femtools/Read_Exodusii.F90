@@ -315,7 +315,7 @@ contains
     if (ierr /= 0) then
        FLExit("Unable to read in element block ids from "//trim(lfilename))
     end if
-    
+
     ! Get block parameters:
     allocate(num_elem_in_block(num_elem_blk))
     allocate(num_nodes_per_elem(num_elem_blk))
@@ -328,7 +328,6 @@ contains
     ! read element connectivity:
     allocate(elem_connectivity(0))
     call get_element_connectivity(exoid, block_ids, num_elem_blk, num_nodes_per_elem, num_elem_in_block, lfilename, elem_connectivity)
-    
 
     ! Initialize logical variables:
     ! We have RegionIDs when there are blockIDs assigned to elements
@@ -344,9 +343,12 @@ contains
     ! Get side sets
     ! Side sets in exodusii are what physical lines/surfaces are in gmsh (so basically boundary-IDs)
     ! Allocate arrays for the side sets:
-    ! Get Side SetIDs:
+    ! Get Side SetIDs and parameters:
     if (haveBoundaries) then
        allocate(side_set_ids(num_side_sets)); allocate(num_sides_in_set(num_side_sets)); allocate(num_df_in_set(num_side_sets))
+       call get_side_set_param(exoid, num_side_sets, side_set_ids, num_sides_in_set, num_df_in_set, lfilename)
+
+
        side_set_ids=0; num_sides_in_set=0; num_df_in_set=0;
        ierr = f_ex_get_side_set_ids(exoid, side_set_ids);
        if (ierr /= 0) then
@@ -829,39 +831,39 @@ contains
 
     integer :: i
 
-    elementType = 0; faceType = 0
-    ! Practically looping over the blocks, and checking the combination of face/element types for 
-    ! each block in the supplied mesh, plus exit if dimension of mesh is 1!
-    do i=1, num_elem_blk
-       ! 2D meshes:
-       if (num_dim == 2) then 
-          if (elem_type(i) .ne. 1) then !then it's no edge, but either triangle or shell
-             if (elementType .ne. 0 .and. elementType .ne. elem_type(i)) then
-                FLExit("Mesh file "//trim(lfilename)//": You have generated a hybrid 2D mesh with Triangles and Shells which Fluidity does not support. Please choose either Triangles or Shells.")
+       elementType = 0; faceType = 0
+       ! Practically looping over the blocks, and checking the combination of face/element types for 
+       ! each block in the supplied mesh, plus exit if dimension of mesh is 1!
+       do i=1, num_elem_blk
+          ! 2D meshes:
+          if (num_dim == 2) then 
+             if (elem_type(i) .ne. 1) then !then it's no edge, but either triangle or shell
+                if (elementType .ne. 0 .and. elementType .ne. elem_type(i)) then
+                   FLExit("Mesh file "//trim(lfilename)//": You have generated a hybrid 2D mesh with Triangles and Shells which Fluidity does not support. Please choose either Triangles or Shells.")
+                end if
              end if
-          end if
-          ! the face type of 2D meshes are obviously edges, aka type '1'
-          faceType = 1
-       ! Now 3D meshes:
-       else if (num_dim == 3) then
-          if (elem_type(i) .ne. 2 .and. elem_type(i) .ne. 3) then !then it's not a triangle nor a shell
-             if (elementType .ne. 0 .and. elementType .ne. elem_type(i)) then
-                FLExit("Mesh file "//trim(lfilename)//": You have generated a hybrid 3D mesh with Tetrahedras and Hexahedrons which Fluidity does not support. Please choose either Tetrahedras or Hexahedrons.")
+             ! the face type of 2D meshes are obviously edges, aka type '1'
+             faceType = 1
+          ! Now 3D meshes:
+          else if (num_dim == 3) then
+             if (elem_type(i) .ne. 2 .and. elem_type(i) .ne. 3) then !then it's not a triangle nor a shell
+                if (elementType .ne. 0 .and. elementType .ne. elem_type(i)) then
+                   FLExit("Mesh file "//trim(lfilename)//": You have generated a hybrid 3D mesh with Tetrahedras and Hexahedrons which Fluidity does not support. Please choose either Tetrahedras or Hexahedrons.")
+                end if
              end if
+             if (elem_type(i) == 4) then ! tet
+                ! Set faceType for tets
+                faceType = 2
+             else if (elem_type(i) == 5) then !hex
+                ! Set faceType for hexas
+                faceType = 3
+             end if
+          elementType = elem_type(i)
+          else
+             FLExit("Mesh file "//trim(lfilename)//": Fluidity currently does not support 1D exodusII meshes. But you do NOT want to use fancy cubit to create a 1D mesh, do you? GMSH or other meshing tools can easily be used to generate 1D meshes")
           end if
-          if (elem_type(i) == 4) then ! tet
-             ! Set faceType for tets
-             faceType = 2
-          else if (elem_type(i) == 5) then !hex
-             ! Set faceType for hexas
-             faceType = 3
-          end if
-       elementType = elem_type(i)
-       else
-          FLExit("Mesh file "//trim(lfilename)//": Fluidity currently does not support 1D exodusII meshes. But you do NOT want to use fancy cubit to create a 1D mesh, do you? GMSH or other meshing tools can easily be used to generate 1D meshes")
-       end if
-    end do
-
+       end do
+     
   end subroutine check_combination_face_element_types
 
   ! -----------------------------------------------------------------
@@ -898,20 +900,46 @@ contains
   
   end subroutine get_element_connectivity
 
+  ! -----------------------------------------------------------------
+
+  subroutine get_side_set_param(exoid, num_side_sets, side_set_ids, num_sides_in_set, num_df_in_set, lfilename)
+    integer, intent(in) :: exoid
+    integer, intent(in) :: num_side_sets
+    integer, dimension(:), intent(inout) :: side_set_ids, num_sides_in_set, num_df_in_set
+    character(kind=c_char, len=OPTION_PATH_LEN), intent(in) :: lfilename
+    
+    integer :: i, ierr
+    ! This subroutine gives back side set related data
+
+       side_set_ids=0; num_sides_in_set=0; num_df_in_set=0;
+       ierr = f_ex_get_side_set_ids(exoid, side_set_ids);
+       if (ierr /= 0) then
+          ewrite(2,*) "No side sets found in "//trim(lfilename)
+       end if
+
+      ! Get side set parameters:
+       do i=1, num_side_sets
+          ierr = f_ex_get_side_set_param(exoid, side_set_ids(i), num_sides_in_set(i), num_df_in_set(i));
+       end do
+       if (ierr /= 0) then
+          FLExit("Unable to read in the side set parameters from "//trim(lfilename))
+       end if
+  
+  end subroutine get_side_set_param
+
 
   ! -----------------------------------------------------------------
   ! Read ExodusII file to state object.
   function read_exodusii_file_to_state(filename, shape,shape_type,n_states) &
        result (result_state)
     ! Filename is the base name of the ExodusII file without file extension, e.g. .exo
-
     character(len=*), intent(in) :: filename
     type(element_type), intent(in), target :: shape
     logical , intent(in):: shape_type
     integer, intent(in), optional :: n_states
     type(state_type)  :: result_state
 
-    FLAbort("read_exodusii_file_to_state() not implemented yet")
+       FLAbort("read_exodusii_file_to_state() not implemented yet")
 
   end function read_exodusii_file_to_state
 
@@ -921,12 +949,12 @@ contains
      integer, allocatable, dimension(:), intent(inout) :: array
      integer, allocatable, dimension(:), intent(in) :: array2
      integer, allocatable, dimension(:) :: tmp
-     allocate(tmp(size(array) + size(array2)))
-     tmp(1:size(array)) = array
-     tmp(size(array)+1:size(array)+size(array2)) = array2
-     deallocate(array)
-     allocate(array(size(tmp)))
-     array = tmp
+        allocate(tmp(size(array) + size(array2)))
+        tmp(1:size(array)) = array
+        tmp(size(array)+1:size(array)+size(array2)) = array2
+        deallocate(array)
+        allocate(array(size(tmp)))
+        array = tmp
   end subroutine append_array
 
 end module read_exodusii
