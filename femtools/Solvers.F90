@@ -1710,6 +1710,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     KSP:: subksp
     PC:: subpc
     PCType:: pctype, hypretype
+    MatSolverPackage:: matsolverpackage
     PetscErrorCode:: ierr
     
     call get_option(trim(option_path)//'/name', pctype)
@@ -1800,6 +1801,11 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
        call KSPGetPC(subksp, subpc, ierr)
        call PCSetType(subpc, pctype, ierr)
        
+    else if (pctype==PCLU) then
+      
+      call get_option(trim(option_path)//'/factorization_package/name', matsolverpackage)
+      call PCFactorSetMatSolverPackage(pc, matsolverpackage)
+      
     else
        
        ! this doesn't work for hypre

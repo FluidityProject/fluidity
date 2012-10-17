@@ -333,7 +333,9 @@
             </restart>
           </iterative_method>
           <preconditioner name="asm">
-            <preconditioner name="lu"/>
+            <preconditioner name="lu">
+              <factorization_package name="umfpack"/>
+            </preconditioner>
           </preconditioner>
           <relative_error>
             <real_value rank="0">1.0e-10</real_value>

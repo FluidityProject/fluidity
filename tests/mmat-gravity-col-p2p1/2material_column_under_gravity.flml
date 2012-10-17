@@ -136,7 +136,9 @@
               <inner_matrix name="FullMassMatrix">
                 <solver>
                   <iterative_method name="preonly"/>
-                  <preconditioner name="lu"/>
+                  <preconditioner name="lu">
+                    <factorization_package name="umfpack"/>
+                  </preconditioner>
                   <relative_error>
                     <real_value rank="0">1.E-10</real_value>
                   </relative_error>
