@@ -232,7 +232,7 @@ contains
 
     ! variables for conversion to fluidity structure:
     real(real_4), allocatable, dimension(:,:) :: node_coord
-    integer, allocatable, dimension(:) :: elem_node_list, total_elem_node_list
+    integer, allocatable, dimension(:) :: total_elem_node_list
     integer, allocatable, dimension(:) :: sndglno, boundaryIDs
     
     integer :: num_faces, num_faces_ele, num_elem, num_tags_elem, elementType, faceType
@@ -371,24 +371,7 @@ contains
     ! Reorder element node numbering (if necessary):
     ! (allows for different element types)
     allocate(total_elem_node_list(0))
-    z = 0
-    do i=1, num_elem_blk
-       ! assemble element node list as we go:
-       allocate(elem_node_list(num_nodes_per_elem(i)))
-       do e=1, num_elem_in_block(i)
-          do n=1, num_nodes_per_elem(i)
-             elem_node_list(n) = elem_connectivity(n + z)
-          end do
-          call toFluidityElementNodeOrdering( elem_node_list, elem_type(i) )
-          ! Now append elem_node_list to total_elem_node_list
-          call append_array(total_elem_node_list, elem_node_list)
-          z = z + num_nodes_per_elem(i)
-       ! reset node list:
-       elem_node_list = 0
-       end do
-       ! deallocate elem_node_list for next block
-       deallocate(elem_node_list)
-    end do
+    call reorder_node_numbering(num_elem_blk, num_nodes_per_elem, num_elem_in_block, elem_connectivity, elem_type, total_elem_node_list)
 
     ! check if number of vertices/nodes are consistent with shape
     loc = maxval(num_nodes_per_elem)
@@ -924,6 +907,46 @@ contains
        deallocate(num_sides_in_set); deallocate(num_df_in_set)
 
   end subroutine get_side_set_param
+
+  ! -----------------------------------------------------------------
+
+  subroutine reorder_node_numbering(num_elem_blk, &
+                                      num_nodes_per_elem, &
+                                      num_elem_in_block, &
+                                      elem_connectivity, &
+                                      elem_type, &
+                                      total_elem_node_list)
+    integer, intent(in) :: num_elem_blk    
+    integer, dimension(:), intent(in) :: num_nodes_per_elem
+    integer, dimension(:), intent(in) :: num_elem_in_block
+    integer, dimension(:), intent(in) :: elem_connectivity
+    integer, dimension(:), intent(in) :: elem_type
+    integer, allocatable, dimension(:), intent(inout) :: total_elem_node_list
+    
+    integer, allocatable, dimension(:) :: elem_node_list
+
+    integer :: i, e, n, z
+    
+    z = 0
+    do i=1, num_elem_blk
+       ! assemble element node list as we go:
+       allocate(elem_node_list(num_nodes_per_elem(i)))
+       do e=1, num_elem_in_block(i)
+          do n=1, num_nodes_per_elem(i)
+             elem_node_list(n) = elem_connectivity(n + z)
+          end do
+          call toFluidityElementNodeOrdering( elem_node_list, elem_type(i) )
+          ! Now append elem_node_list to total_elem_node_list
+          call append_array(total_elem_node_list, elem_node_list)
+          z = z + num_nodes_per_elem(i)
+       ! reset node list:
+       elem_node_list = 0
+       end do
+       ! deallocate elem_node_list for next block
+       deallocate(elem_node_list)
+    end do
+
+  end subroutine reorder_node_numbering
 
   ! -----------------------------------------------------------------
   ! Read ExodusII file to state object.
