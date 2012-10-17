@@ -436,16 +436,7 @@ contains
     ! than an edge/face will be generated next to that element, 
     ! and the element's side-set-ID will be assigned to the newly generated edge/face
     if (haveBoundaries) then
-       z=1;
-       do i=1, num_allelem
-          elemID = allelements(i)%elementID
-          num_tags_elem = allelements(elemID)%numTags
-          ! Is there at least one site set ID assigned to the element, it is a face:
-          if (num_tags_elem > 0) then
-             ! increase number of faces in the mesh...
-             num_faces = num_faces + num_tags_elem
-          end if
-       end do
+       call get_num_faces(num_allelem, allelements, num_faces)
     end if
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -1019,6 +1010,31 @@ contains
     end do
 
   end subroutine get_num_elem
+
+  ! -----------------------------------------------------------------  
+
+  subroutine get_num_faces(num_allelem, allelements, num_faces)
+    integer, intent(in) :: num_allelem
+    type(EXOelement), pointer, dimension(:), intent(inout) :: allelements
+    integer, intent(inout) :: num_faces
+    
+    integer :: i, z, elemID, num_tags_elem
+    ! This subroutines computes the number of faces, which will be
+    ! included in the fluidity mesh. These are the elements of the mesh
+    ! which have a boundary ID/side set ID assigned to them.
+
+       z=1;
+       do i=1, num_allelem
+          elemID = allelements(i)%elementID
+          num_tags_elem = allelements(elemID)%numTags
+          ! Is there at least one site set ID assigned to the element, it is a face:
+          if (num_tags_elem > 0) then
+             ! increase number of faces in the mesh...
+             num_faces = num_faces + num_tags_elem
+          end if
+       end do
+
+  end subroutine get_num_faces
 
   ! -----------------------------------------------------------------
   ! Read ExodusII file to state object.
