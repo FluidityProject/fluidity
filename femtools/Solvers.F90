@@ -1804,7 +1804,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     else if (pctype==PCLU) then
       
       call get_option(trim(option_path)//'/factorization_package/name', matsolverpackage)
-      call PCFactorSetMatSolverPackage(pc, matsolverpackage)
+      call PCFactorSetMatSolverPackage(pc, matsolverpackage, ierr)
       
     else
        
