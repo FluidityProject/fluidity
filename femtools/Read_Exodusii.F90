@@ -347,23 +347,6 @@ contains
     if (haveBoundaries) then
        allocate(side_set_ids(num_side_sets)); allocate(num_sides_in_set(num_side_sets)); allocate(num_df_in_set(num_side_sets))
        call get_side_set_param(exoid, num_side_sets, side_set_ids, num_sides_in_set, num_df_in_set, lfilename)
-
-
-       side_set_ids=0; num_sides_in_set=0; num_df_in_set=0;
-       ierr = f_ex_get_side_set_ids(exoid, side_set_ids);
-       if (ierr /= 0) then
-          ewrite(2,*) "No side sets found in "//trim(lfilename)
-       end if
-    end if
-
-    ! Get side set parameters:
-    if (haveBoundaries) then
-       do i=1, num_side_sets
-          ierr = f_ex_get_side_set_param(exoid, side_set_ids(i), num_sides_in_set(i), num_df_in_set(i));
-       end do
-    end if
-    if (ierr /= 0) then
-       FLExit("Unable to read in the side set parameters from "//trim(lfilename))
     end if
 
     ! Now let's finally get the side-set-ids!
