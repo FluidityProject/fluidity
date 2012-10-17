@@ -3,9 +3,9 @@ preprocess:
 		echo **********Installing directory for $(layers) layer simulation.;\
 		install -d channel-$(layers); \
 		cd channel-$(layers); \
-		ln -s ../channel.flml .;\
-		ln -s ../channel_tools.py .;\
-		ln -s ../src/chan$(layers).msh ./channel.msh;\
+		ln -sf ../channel.flml .;\
+		ln -sf ../channel_tools.py .;\
+		ln -sf ../src/chan$(layers).msh ./channel.msh;\
 		cd ..; \
 	)
 
