@@ -476,8 +476,9 @@ contains
     end if
     call adding_elements_to_field(num_dim, num_elem, exo_element, field)
 
-
-    ! Assemble array with faces, and boundaryIDs
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! Assemble array with faces and boundaryIDs !
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     allocate(sndglno(1:num_faces*sloc))
     sndglno=0
     if(haveBoundaries) then
@@ -488,12 +489,16 @@ contains
        if(haveBoundaries) boundaryIDs(f) = exo_face(f)%tags(1)
     end do
 
-    ! Adding the face-elements to the mesh:
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! Adding the face-elements to the mesh !
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     if (haveBoundaries) then
        call add_faces(field%mesh, sndgln = sndglno(1:num_faces*sloc), boundary_ids = boundaryIDs(1:num_faces))
     else
        call add_faces(field%mesh, sndgln = sndglno(1:num_faces*sloc))
     end if
+
+    ! At this point, the field 'CoordinateMesh' is assembled
 
     ! Deallocate arrays (exodusii arrays):
     deallocate(coord_x); deallocate(coord_y); deallocate(coord_z)
