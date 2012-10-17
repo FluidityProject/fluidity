@@ -35,6 +35,7 @@ module Tidal_module
    use coordinates
    use sparse_matrices_fields
    use state_module
+   use field_options
    
    implicit none
    
@@ -402,10 +403,7 @@ contains
     
 
       ! Find node positions on the pressure mesh
-      call allocate(positions_mapped_to_pressure_space, position%dim, p_mesh, name="PressureCoordinate")
-      call zero(positions_mapped_to_pressure_space)
-      call remap_field(position, positions_mapped_to_pressure_space, stat=stat)
-      ! FIXME: check the stat here
+      positions_mapped_to_pressure_space=get_nodal_coordinate_field(state, p_mesh)
 
       if (have_option('/ocean_forcing/tidal_forcing')) then
          ! Tidal forcing

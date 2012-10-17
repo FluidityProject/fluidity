@@ -633,9 +633,12 @@ contains
     ! Interior face numbers - only for 3D.
     !----------------------------------------------------------------------
     if (D3.and.face_len>0) then
-       !if(isparallel()) then
-       !  FLAbort("This is broken - blame dham.")
-       !end if
+       if(IsParallel() .and. have_halos)then
+         ! This is broken in parallel, but if we don't supply halos
+         ! and thus presumably no communication is taking place, we can
+         ! ignore it
+         FLAbort("This is broken - blame dham.")
+       end if
        allocate(face_nodes(snloc), ndglno_pos(face_len))
        do ele=1,size(EEList,1)
           do j=EEList%findrm(ele),EEList%findrm(ele+1)-1
@@ -713,11 +716,11 @@ contains
              n(this_receive_halo_level)=n(this_receive_halo_level)+1
              new_ndglno(ndglno_pos(i))=n(this_receive_halo_level)
              
-             !if(isparallel()) then
-               !FLAbort("This is broken - blame dham.")
-               !new_receive_halo_level(ndglno_pos(i))=this_receive_halo_level
-!               new_node_owner(ndglno_pos(i))=this_node_owner
-             !end if
+             if(isparallel() .and. have_halos) then
+               FLAbort("This is broken - blame dham.")
+               new_receive_halo_level(ndglno_pos(i))=this_receive_halo_level
+               !new_node_owner(ndglno_pos(i))=this_node_owner
+             end if
           end if
        end do
 

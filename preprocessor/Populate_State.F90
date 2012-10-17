@@ -877,6 +877,7 @@ contains
     
     character(len=FIELD_NAME_LEN) :: mesh_name
     character(len=OPTION_PATH_LEN) :: continuity_option, element_option, constraint_option_string
+    type(mesh_type):: model_mesh
     type(quadrature_type):: quad
     type(element_type):: shape
     integer :: constraint_choice
@@ -955,8 +956,32 @@ contains
     ! Get mesh name.
     call get_option(trim(mesh_path)//"/name", mesh_name)
 
+    ! temporary work-around for the fact that meshes with polynomial degree
+    ! bigger than 2 are not currently supported in parallel: we don't strictly
+    ! need halos for the CoordinateMesh so in that case we carry on regardless
+    model_mesh=from_mesh
+    if (IsParallel() .and. shape%degree>2) then
+      if (mesh_name=="CoordinateMesh") then
+        ! nullifying the model halos means that make_mesh won't attempt
+        ! (and fail) to make halos for the Pn>=3 mesh
+        nullify(model_mesh%halos)
+        ! the only place halos are used (if no fields are allocated on it)
+        ! is for mesh diagnostics: tell users to switch it off
+        if (have_option(trim(mesh_path)//'/from_mesh/stat/include_in_stat')) then
+          ewrite(-1,*) "In parallel to run with a CoordinateMesh of polynomial degree higher than 2"
+          ewrite(-1,*) "you have to switch of mesh diagnostics for that mesh, as this is currently"
+          ewrite(-1,*) "not supported. Under /geometry/mesh::CoordinateMesh/from_mesh/stat select"
+          ewrite(-1,*) "exclude_from_stat."
+          FLExit("In parallel, include_in_stat not supported for super-parametric CoordinateMesh")
+        end if
+      else
+        ewrite(-1,*) "For mesh: ", trim(mesh_name)
+        FLExit("Polynomial degree higher than 2 not supported in parallel")
+      end if
+    end if
+
     ! Make new mesh
-    mesh=make_mesh(from_mesh, shape, continuity, mesh_name)
+    mesh=make_mesh(model_mesh, shape, continuity, mesh_name)
 
     ! Set mesh option path
     mesh%option_path = trim(mesh_path)
