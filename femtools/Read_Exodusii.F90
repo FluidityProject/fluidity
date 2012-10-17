@@ -224,12 +224,11 @@ contains
     integer, allocatable, dimension(:) :: node_map, elem_num_map, elem_order_map
     integer, allocatable, dimension(:) :: block_ids, num_elem_in_block, num_nodes_per_elem
     character(len=6) :: elem_type_char
-    integer, allocatable, dimension(:) :: elem_type, num_attr
-    integer, allocatable, dimension(:) :: elem_blk_connectivity, elem_connectivity
-    integer, allocatable, dimension(:) :: side_set_ids, num_sides_in_set, num_elem_in_set, num_df_in_set
-    integer, allocatable, dimension(:) :: side_set_node_list, side_set_side_list, side_set_elem_list
+    integer, allocatable, dimension(:) :: elem_type
+    integer, allocatable, dimension(:) :: elem_connectivity
+    integer, allocatable, dimension(:) :: side_set_ids, num_elem_in_set, num_sides_in_set
     integer, allocatable, dimension(:) :: total_side_sets_node_list, total_side_sets_elem_list
-    integer, allocatable, dimension(:) :: side_set_node_cnt_list, total_side_sets_node_cnt_list
+    integer, allocatable, dimension(:) :: total_side_sets_node_cnt_list
 
     ! variables for conversion to fluidity structure:
     real(real_4), allocatable, dimension(:,:) :: node_coord
@@ -328,7 +327,7 @@ contains
     ! read element connectivity:
     allocate(elem_connectivity(0))
     call get_element_connectivity(exoid, block_ids, num_elem_blk, num_nodes_per_elem, num_elem_in_block, lfilename, elem_connectivity)
-
+    
     ! Initialize logical variables:
     ! We have RegionIDs when there are blockIDs assigned to elements
     ! so basically always when supplying an exodusII mesh, as an blockID is assigned
@@ -345,56 +344,11 @@ contains
     ! Allocate arrays for the side sets:
     ! Get Side SetIDs and parameters:
     if (haveBoundaries) then
-       allocate(side_set_ids(num_side_sets)); allocate(num_sides_in_set(num_side_sets)); allocate(num_df_in_set(num_side_sets))
-       call get_side_set_param(exoid, num_side_sets, side_set_ids, num_sides_in_set, num_df_in_set, lfilename)
-    end if
-
-    ! Now let's finally get the side-set-ids!
-    if (haveBoundaries) then
+       allocate(side_set_ids(num_side_sets))
        allocate(num_elem_in_set(num_side_sets)) ! There are the same # of elements as sides in a side set
-       num_elem_in_set = num_sides_in_set;
-       allocate(total_side_sets_elem_list(0))
-       allocate(total_side_sets_node_list(0))
-       allocate(total_side_sets_node_cnt_list(0))
-       do i=1, num_side_sets
-          ! Reset the node index to 1 for the ith side set:
-          n_cnt_pos = 1
-          ! Arrays for side list and element list of side sets:
-          allocate(side_set_elem_list(num_elem_in_set(i))); allocate(side_set_side_list(num_sides_in_set(i)))
-          ! Arrays needed to obtain the node list:
-          allocate(side_set_node_list(num_df_in_set(i))); allocate(side_set_node_cnt_list(num_elem_in_set(i)))
-
-          ! Get side set ids, element list, side list
-          ierr = f_ex_get_side_set(exoid, side_set_ids(i), side_set_elem_list, side_set_side_list)
-          ! Get side set node list:
-          ierr = f_ex_get_side_set_node_list(exoid, side_set_ids(i), side_set_node_cnt_list, side_set_node_list)
-
-          ! In case the present element is a hexahedron, its face should be a quad... otherwise sth seriously went wrong
-          ! Thus, renumber the node list of that quad before adding the node list to the global array:
-          do e=1, num_elem_in_set(i)
-             if (side_set_node_cnt_list(e) == 4) then
-                allocate(elem_node_list(side_set_node_cnt_list(e)))
-                ! Copy relevant nodes to a tmp array:
-                elem_node_list(:) = side_set_node_list( n_cnt_pos : n_cnt_pos+side_set_node_cnt_list(e)-1 )
-                ! Renumber the local node list of that face
-                call toFluidityElementNodeOrdering( elem_node_list, 3 )
-                ! After renumbering the face-nodes, copy them back into side_set_node_list:
-                side_set_node_list( n_cnt_pos : n_cnt_pos+side_set_node_cnt_list(e)-1 ) = elem_node_list(:)
-                deallocate(elem_node_list)
-             end if
-             ! Increase the node-index by number of nodes in element e of side-set i
-             n_cnt_pos = n_cnt_pos + side_set_node_cnt_list(e)
-          end do
-
-          ! append the side set element list in global array for later:
-          call append_array(total_side_sets_elem_list, side_set_elem_list)
-          call append_array(total_side_sets_node_list, side_set_node_list)
-          call append_array(total_side_sets_node_cnt_list, side_set_node_cnt_list)
-          deallocate(side_set_elem_list); deallocate(side_set_side_list)
-          deallocate(side_set_node_list); deallocate(side_set_node_cnt_list)
-       end do
-       ! We don't need the distribution factors, so deallocate this immediately:
-       deallocate(num_df_in_set)
+       ! Allocate return arrays of the subroutine get_side_set_param:
+       allocate(total_side_sets_elem_list(0)); allocate(total_side_sets_node_list(0)); allocate(total_side_sets_node_cnt_list(0))
+       call get_side_set_param(exoid, num_side_sets, lfilename, side_set_ids, num_elem_in_set, total_side_sets_elem_list, total_side_sets_node_list, total_side_sets_node_cnt_list)
     end if
 
     ! Close ExodusII meshfile
@@ -717,7 +671,7 @@ contains
     ! Deallocate other arrays:
     deallocate(node_coord); deallocate(total_elem_node_list)
     if (haveBoundaries) then
-       deallocate(num_sides_in_set); deallocate(side_set_ids);
+       deallocate(side_set_ids);
        deallocate(total_side_sets_elem_list); deallocate(total_side_sets_node_list)
        deallocate(total_side_sets_node_cnt_list); deallocate(num_elem_in_set)
     end if
@@ -885,15 +839,33 @@ contains
 
   ! -----------------------------------------------------------------
 
-  subroutine get_side_set_param(exoid, num_side_sets, side_set_ids, num_sides_in_set, num_df_in_set, lfilename)
+  subroutine get_side_set_param(exoid, &
+                                  num_side_sets, &
+                                  lfilename, &
+                                  side_set_ids, &
+                                  num_elem_in_set, &
+                                  total_side_sets_elem_list, &
+                                  total_side_sets_node_list, &
+                                  total_side_sets_node_cnt_list)
     integer, intent(in) :: exoid
     integer, intent(in) :: num_side_sets
-    integer, dimension(:), intent(inout) :: side_set_ids, num_sides_in_set, num_df_in_set
     character(kind=c_char, len=OPTION_PATH_LEN), intent(in) :: lfilename
-    
-    integer :: i, ierr
+    integer, dimension(:), intent(inout) :: side_set_ids
+    integer, dimension(:), intent(inout) :: num_elem_in_set
+    integer, allocatable, dimension(:), intent(inout) :: total_side_sets_elem_list
+    integer, allocatable, dimension(:), intent(inout) :: total_side_sets_node_list
+    integer, allocatable, dimension(:), intent(inout) :: total_side_sets_node_cnt_list
+
+
+    integer, allocatable, dimension(:) :: num_sides_in_set, num_df_in_set
+    integer, allocatable, dimension(:) :: side_set_node_list, side_set_side_list
+    integer, allocatable, dimension(:) :: side_set_elem_list, side_set_node_cnt_list
+    integer, allocatable, dimension(:) :: elem_node_list
+
+    integer :: i, e, n, ierr
     ! This subroutine gives back side set related data
 
+       allocate(num_sides_in_set(num_side_sets)); allocate(num_df_in_set(num_side_sets));
        side_set_ids=0; num_sides_in_set=0; num_df_in_set=0;
        ierr = f_ex_get_side_set_ids(exoid, side_set_ids);
        if (ierr /= 0) then
@@ -907,7 +879,50 @@ contains
        if (ierr /= 0) then
           FLExit("Unable to read in the side set parameters from "//trim(lfilename))
        end if
-  
+
+       num_elem_in_set = num_sides_in_set; ! There are as many elements in a side set, as there are sides in a side set
+       ! Now let's finally get the side-set-ids!
+       do i=1, num_side_sets
+          ! Reset the node index to 1 for the ith side set:
+          n = 1
+          ! Arrays for side list and element list of side sets:
+          allocate(side_set_elem_list(num_elem_in_set(i))); allocate(side_set_side_list(num_sides_in_set(i)))
+          ! Arrays needed to obtain the node list:
+          allocate(side_set_node_list(num_df_in_set(i))); allocate(side_set_node_cnt_list(num_elem_in_set(i)))
+
+          ! Get side set ids, element list, side list
+          ierr = f_ex_get_side_set(exoid, side_set_ids(i), side_set_elem_list, side_set_side_list)
+          ! Get side set node list:
+          ierr = f_ex_get_side_set_node_list(exoid, side_set_ids(i), side_set_node_cnt_list, side_set_node_list)
+
+          ! In case the present element is a hexahedron, its face should be a quad... otherwise sth seriously went wrong
+          ! Thus, renumber the node list of that quad before adding the node list to the global array:
+          do e=1, num_elem_in_set(i)
+             if (side_set_node_cnt_list(e) == 4) then
+                allocate(elem_node_list(side_set_node_cnt_list(e)))
+                ! Copy relevant nodes to a tmp array:
+                elem_node_list(:) = side_set_node_list( n : n+side_set_node_cnt_list(e)-1 )
+                ! Renumber the local node list of that face
+                call toFluidityElementNodeOrdering( elem_node_list, 3 )
+                ! After renumbering the face-nodes, copy them back into side_set_node_list:
+                side_set_node_list( n : n+side_set_node_cnt_list(e)-1 ) = elem_node_list(:)
+                deallocate(elem_node_list)
+             end if
+             ! Increase the node-index by number of nodes in element e of side-set i
+             n = n + side_set_node_cnt_list(e)
+          end do
+
+          ! append the side set element list in global array for later:
+          call append_array(total_side_sets_elem_list, side_set_elem_list)
+          call append_array(total_side_sets_node_list, side_set_node_list)
+          call append_array(total_side_sets_node_cnt_list, side_set_node_cnt_list)
+          deallocate(side_set_elem_list); deallocate(side_set_side_list)
+          deallocate(side_set_node_list); deallocate(side_set_node_cnt_list)
+       end do
+
+       ! Deallocate whatever we do not need anymore:
+       deallocate(num_sides_in_set); deallocate(num_df_in_set)
+
   end subroutine get_side_set_param
 
   ! -----------------------------------------------------------------
