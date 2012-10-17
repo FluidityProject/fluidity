@@ -234,8 +234,7 @@ contains
     
     integer :: num_faces, num_elem, faceType
     integer :: loc, sloc
-    integer :: eff_dim, b, d, e, f, i, j, n, z, z2, exo_e, exo_f
-    integer :: n_cnt_pos
+    integer :: eff_dim, f
 
     ewrite(1,*) "In read_exodusii_file_to_field"
 
