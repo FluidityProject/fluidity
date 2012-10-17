@@ -461,24 +461,10 @@ contains
     call allocate(mesh, num_nodes, num_elem, shape, name="CoordinateMesh")
     call allocate(field, eff_dim, mesh, name="Coordinate")
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    ! Copy Node IDs to field   !
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    ! Now set up nodes, their IDs and coordinates:
-    ! Allocate exodus nodes
-    allocate(exo_nodes(num_nodes))
-    ! setting all node properties to zero
-    exo_nodes(:)%nodeID = 0.0
-    exo_nodes(:)%x(1)=0.0; exo_nodes(:)%x(2)=0.0; exo_nodes(:)%x(3)=0.0;
-    ! copy coordinates into Coordinate field
-    do n=1, num_nodes
-       nodeID = node_map(n)
-       exo_nodes(n)%nodeID = nodeID
-       forall (d = 1:eff_dim)
-          exo_nodes(n)%x(d) = node_coord(d,n)
-          field%val(d,nodeID) = exo_nodes(n)%x(d)
-       end forall
-    end do
+    !!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! Copy Node IDs to field !
+    !!!!!!!!!!!!!!!!!!!!!!!!!!
+    call adding_nodes_to_field(eff_dim, num_nodes, node_map, node_coord, field)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Copy (only) Elements to the mesh !
@@ -540,7 +526,7 @@ contains
        deallocate(total_side_sets_elem_list); deallocate(total_side_sets_node_list)
        deallocate(total_side_sets_node_cnt_list); deallocate(num_elem_in_set)
     end if
-    deallocate(exo_nodes); deallocate(allelements)
+    deallocate(allelements)
     deallocate(exo_element)
     if (haveBoundaries) then
        deallocate(exo_face)
@@ -1086,6 +1072,39 @@ contains
        end do
 
   end subroutine assemble_actual_face_elements
+
+  ! -----------------------------------------------------------------
+
+  subroutine adding_nodes_to_field(eff_dim, num_nodes, node_map, node_coord, field)
+    integer, intent(in) :: eff_dim
+    integer, intent(in) :: num_nodes
+    integer, allocatable, dimension(:), intent(in) :: node_map
+    real(real_4), dimension(:,:), intent(in) :: node_coord
+    type(vector_field), intent(inout) :: field
+
+    type(EXOnode), pointer, dimension(:) :: exo_nodes
+    integer :: d, n, nodeID
+
+    ! Now set up nodes, their IDs and coordinates:
+    ! Allocate exodus nodes
+    allocate(exo_nodes(num_nodes))
+    ! setting all node properties to zero
+    exo_nodes(:)%nodeID = 0.0
+    exo_nodes(:)%x(1)=0.0; exo_nodes(:)%x(2)=0.0; exo_nodes(:)%x(3)=0.0;
+    ! copy coordinates into Coordinate field
+    do n=1, num_nodes
+       nodeID = node_map(n)
+       exo_nodes(n)%nodeID = nodeID
+       forall (d = 1:eff_dim)
+          exo_nodes(n)%x(d) = node_coord(d,n)
+          field%val(d,nodeID) = exo_nodes(n)%x(d)
+       end forall
+    end do
+
+    ! Don't need those anymore:
+    deallocate(exo_nodes);
+
+  end subroutine adding_nodes_to_field
 
   ! -----------------------------------------------------------------
   ! Read ExodusII file to state object.
