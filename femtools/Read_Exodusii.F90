@@ -454,22 +454,6 @@ contains
        call assemble_actual_face_elements(num_side_sets, num_elem_in_set, side_set_ids, &
                                            total_side_sets_node_cnt_list, total_side_sets_node_list, &
                                            exo_face)
-       
-       n_cnt_pos=1; z=1; exo_f=1;
-       do i=1, num_side_sets
-          do e=1, num_elem_in_set(i)
-             num_nodes_face_ele = total_side_sets_node_cnt_list(e)
-             allocate( exo_face(exo_f)%nodeIDs(num_nodes_face_ele))
-             do n=1, num_nodes_face_ele
-                exo_face(exo_f)%nodeIDs(n) = total_side_sets_node_list(n_cnt_pos)
-                n_cnt_pos = n_cnt_pos+1
-             end do
-             ! Set boundaryID to face:
-             allocate(exo_face(exo_f)%tags(1))
-             exo_face(exo_f)%tags = side_set_ids(i)
-             exo_f = exo_f+1
-          end do
-       end do
     end if
     ! faces and elements are now all set
 
