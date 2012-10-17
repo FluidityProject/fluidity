@@ -2,6 +2,7 @@
 <testproblem>
   <name>Read support for exodusii</name>
   <owner userid="ffm10"/>
+  <tags>exodusii</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>fluidity exodusii_read_support_2d_with_sideset.flml; 
     fluidity exodusii_read_support_2d_without_sideset.flml;
