@@ -3,9 +3,9 @@ preprocess:
 		echo **********Installing directory for $(layers) layer simulation.;\
 		install -d channel-$(layers); \
 		cd channel-$(layers); \
-		ln -s ../channel.flml .;\
-		ln -s ../channel_tools.py .;\
-		ln -s ../src/chan$(layers).msh ./channel.msh;\
+		ln -sf ../channel.flml .;\
+		ln -sf ../channel_tools.py .;\
+		ln -sf ../src/chan$(layers).msh ./channel.msh;\
 		cd ..; \
 	)
 
@@ -14,8 +14,8 @@ run:	preprocess
 	@$(foreach layers, 4 8 16 32 64, \
 		cd channel-$(layers); \
 		echo **********Running simulation for $(layers) layer mesh.;\
-		echo ../../../bin/fluidity channel.flml; \
-		../../../bin/fluidity channel.flml; \
+		echo ../../../bin/fluidity -v 2 -l channel.flml; \
+		../../../bin/fluidity -v 2 -l channel.flml; \
 		cd ..;\
 	) 
 
