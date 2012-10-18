@@ -235,8 +235,7 @@
       real, dimension(ele_ngi(D,ele)) :: D_gi,D_exact_gi,D_exact_D_mesh_gi,&
            &detwei
 
-      call compute_jacobian(ele_val(X,ele),ele_shape(X,ele), J=J, &
-           detwei=detwei)
+      call compute_jacobian(X, ele, J=J, detwei=detwei)
       d_gi = ele_val_at_quad(D,ele)
       d_exact_gi = ele_val_at_quad(D_exact,ele)
       d_exact_d_mesh_gi = ele_val_at_quad(D_exact_D_mesh,ele)
@@ -258,8 +257,7 @@
       real, dimension(U%dim, ele_ngi(X,ele)) :: U_quad, U_rhs_quad
       integer :: dim1
 
-      call compute_jacobian(ele_val(X,ele),ele_shape(X,ele), J=J, &
-           detwei=detwei)
+      call compute_jacobian(X, ele, J=J, detwei=detwei)
       u_quad = ele_val_at_quad(U,ele)
       u_rhs_quad = ele_val_at_quad(U_rhs,ele)
 

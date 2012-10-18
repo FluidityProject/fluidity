@@ -273,8 +273,7 @@
       end do
       inode = ele_nodes_u(i)
 
-      call compute_inverse_jacobian( ele_val(x, ele), &
-           ele_shape(x, ele), invJ )
+      call compute_inverse_jacobian(x, ele, invJ)
 
       call transform_facet_to_physical( x, sele, detwei_f=detwei_bdy, normal=normal_bdy )
 

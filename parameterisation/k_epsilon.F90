@@ -1019,7 +1019,7 @@ subroutine keps_wall_function(field1,X,U,masslump,scalar_eddy_visc,density,sele,
     
   ! assumes that the jacobian is the same for all quadrature points
   ! this is not valid for spheres!
-  call compute_inverse_jacobian(ele_val(X, ele), ele_shape(X, ele), invj = invJ)
+  call compute_inverse_jacobian(X, ele, invJ)
   assert(ele_numbering_family(shape) == FAMILY_SIMPLEX)
   f_invJ = spread(invJ(:, :, 1), 3, size(f_invJ, 3))
    

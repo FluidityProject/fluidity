@@ -119,7 +119,7 @@ module conservative_interpolation_module
     inversion_matrix_B = transpose(inversion_matrix_B)
 
     ! Second thing: assemble the mass matrix of B on the left.
-    call compute_inverse_jacobian(ele_val(new_position, ele_B), ele_shape(new_position, ele_B), invJ=invJ, detJ=detJ, detwei=detwei_B)
+    call compute_inverse_jacobian(new_position, ele_B, invJ=invJ, detJ=detJ, detwei=detwei_B)
 
     do mesh = 1, mesh_count
       if(field_counts(mesh)>0) then

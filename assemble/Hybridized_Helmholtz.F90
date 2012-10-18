@@ -623,8 +623,7 @@ contains
 
     !J, detJ is needed for Piola transform
     !detwei is needed for pressure mass matrix
-    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
-         detwei=detwei, detJ=detJ)
+    call compute_jacobian(X, ele, J=J, detwei=detwei, detJ=detJ)
 
     !----construct local solver
     !metrics for velocity mass and coriolis matrices
@@ -723,7 +722,7 @@ contains
     real, dimension(ele_ngi(X,ele)) :: orientation_gi
     real :: norm
 
-    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J)
+    call compute_jacobian(X, ele, J)
 
     select case(mesh_dim(X)) 
     case (2)
@@ -948,8 +947,7 @@ contains
     U_ele => ele_nodes(U, ele)
 
     u_shape=ele_shape(u, ele)
-    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
-         detwei=detwei,detJ=detJ)
+    call compute_jacobian(X, ele, J=J, detwei=detwei,detJ=detJ)
 
     local_u_gi = ele_val_at_quad(U,ele)
     do gi = 1, ele_ngi(U,ele)
@@ -1091,10 +1089,8 @@ contains
     real, dimension(X%dim,ele_loc(X,ele)) :: X_ele
     real, dimension(X%dim,face_loc(X,face)) :: X_face
 
-    call compute_jacobian(ele_val(X,ele),ele_shape(X,ele), J=J, &
-         detwei=detwei)
-    call compute_jacobian(face_val(X,face),face_Shape(X,face), J=J_f, &
-         detwei=detwei_f)
+    call compute_jacobian(X, ele, J=J, detwei=detwei)
+    call compute_jacobian(X,face, J=J_f, detwei=detwei_f, facet=.true.)
 
     !Jacobian can be expanded without error in X function space
     !so we map it to the basis function DOFs by projection
@@ -1170,8 +1166,7 @@ contains
        face = ele_face(X,ele,ele2)
        call get_nc_rhs_face(nc_rhs,l_mass_mat,lambda,lambda_nc,X,face)
     end do
-    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
-         detwei=detwei)
+    call compute_jacobian(X, ele, J=J, detwei=detwei)
     call solve(l_mass_mat,nc_rhs)
     call set(lambda_nc,ele_nodes(lambda_nc,ele),nc_rhs)
   end subroutine reconstruct_lambda_nc
@@ -1257,8 +1252,7 @@ contains
        if(have_d_rhs) l_d_rhs => d_rhs
        if(have_u_rhs) l_u_rhs => u_rhs
        
-       call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
-            detJ=detJ,detwei=detwei)
+       call compute_jacobian(X, ele, J=J, detJ=detJ,detwei=detwei)
        
        Rhs_loc = 0.
        if(have_d_rhs) then
@@ -1308,8 +1302,7 @@ contains
     real, dimension(mesh_dim(U),ele_loc(U,ele),ele_loc(D,ele)) :: l_div_mat
     real, dimension(ele_loc(D,ele),ele_loc(D,ele)) :: d_mass_mat
     !
-    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
-         detJ=detJ,detwei=detwei)
+    call compute_jacobian(X, ele, J=J, detJ=detJ,detwei=detwei)
     
     u_shape = ele_shape(U,ele)
     d_shape = ele_shape(D,ele)
@@ -1391,8 +1384,7 @@ contains
     u_shape = ele_shape(u,ele)
     d_shape = ele_shape(d,ele)
     x_shape = ele_shape(X,ele)
-    call compute_jacobian(x_val,x_shape, J=J, &
-         detwei=detwei)
+    call compute_jacobian(X, ele, J=J, detwei=detwei)
 
     u_mass = shape_shape(u_shape,u_shape,detwei)
     d_mass = shape_shape(d_shape,d_shape,detwei)
@@ -1577,8 +1569,7 @@ contains
     d_shape = ele_shape(d,ele)
     psi_quad = ele_val_at_quad(psi,ele)
 
-    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
-         detwei=detwei)
+    call compute_jacobian(X, ele, J=J, detwei=detwei)
 
     d_rhs = shape_rhs(d_shape,detwei*psi_quad*f_gi/g)
     d_mass = shape_shape(d_shape,d_shape,detwei)
@@ -1612,8 +1603,7 @@ contains
 
     uloc = ele_loc(force,ele)
     force_shape = ele_shape(force,ele)
-    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
-         detJ=detJ)
+    call compute_jacobian(X, ele, J=J, detJ=detJ)
     do gi=1,ele_ngi(force,ele)
        Metric(:,:,gi)=matmul(J(:,:,gi), transpose(J(:,:,gi)))/detJ(gi)
     end do
@@ -1713,8 +1703,7 @@ contains
     coriolis_rhs = 0.
     l_u_mat = 0.
     !metrics for velocity mass and coriolis matrices
-    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
-         detJ=detJ)
+    call compute_jacobian(X, ele, J=J, detJ=detJ)
     do gi=1, ele_ngi(U_local,ele)
        rot(1,:,gi)=(/0.,-up_gi(3,gi),up_gi(2,gi)/)
        rot(2,:,gi)=(/up_gi(3,gi),0.,-up_gi(1,gi)/)
