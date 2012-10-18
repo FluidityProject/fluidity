@@ -791,9 +791,13 @@ contains
           ! of the coordinates spans that of the external mesh
           call remap_field(from_field=modelposition, to_field=coordinateposition)
                 
-          if (mesh_name=="CoordinateMesh" .and. have_option('/geometry/spherical_earth/superparametric_mapping/')) then
+          if (mesh_name=="CoordinateMesh" .and. have_option('/geometry/spherical_earth/')) then
 
-             call higher_order_sphere_projection(modelposition, coordinateposition)
+            if (have_option('/geometry/spherical_earth/superparametric_mapping/')) then
+              call higher_order_sphere_projection(modelposition, coordinateposition)
+            else if (have_option('/geometry/spherical_earth/analytical_mapping/')) then
+              coordinateposition%field_type = FIELD_TYPE_SPHERICAL_COORDINATES
+            end if
                    
           endif
 

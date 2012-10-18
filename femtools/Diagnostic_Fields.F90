@@ -441,8 +441,7 @@ contains
        ele_CFL=>ele_nodes(CFL, ele)
        CFL_shape=>ele_shape(CFL, ele)
 
-       call compute_inverse_jacobian(ele_val(X,ele), ele_shape(X,ele), &
-            detwei=detwei, invJ=invJ)
+       call compute_inverse_jacobian(X, ele, detwei=detwei, invJ=invJ)
 
        ! Calculate the CFL number at each quadrature point.
        ! The matmul is the transpose of what I originally thought it should
@@ -527,8 +526,7 @@ contains
        ele_GRN=>ele_nodes(GRN, ele)
        GRN_shape=>ele_shape(GRN, ele)
 
-       call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), &
-            J=J, detwei=detwei)
+       call compute_jacobian(X, ele, J=J, detwei=detwei)
 
        ! Calculate the GRN number at each quadrature point.
        ! The matmul is as given by dham
@@ -616,8 +614,7 @@ contains
            ele_GPN=>ele_nodes(GPN, ele)
            GPN_shape=>ele_shape(GPN, ele)
 
-           call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), &
-            J=J, detwei=detwei)
+           call compute_jacobian(X, ele, J=J, detwei=detwei)
 
            ! Calculate the GPN number at each quadrature point.
            ! The matmul is as given by dham
@@ -2393,8 +2390,7 @@ contains
          ele_CFL=>ele_nodes(s_field, ele)
          CFL_shape=>ele_shape(s_field, ele)
 
-         call compute_inverse_jacobian(ele_val(X,ele), ele_shape(X,ele), &
-                                       detwei=detwei, invJ=invJ)
+         call compute_inverse_jacobian(X, ele, detwei=detwei, invJ=invJ)
 
          ! Calculate the CFL number at each quadrature point.
          ! The matmul is the transpose of what I originally thought it should
@@ -3260,7 +3256,7 @@ contains
     
      ! assumes that the jacobian is the same for all quadrature points
      ! this is not valid for spheres!
-     call compute_inverse_jacobian(ele_val(X, ele), ele_shape(X, ele), invj = invJ)
+     call compute_inverse_jacobian(X, ele, invj = invJ)
      assert(ele_numbering_family(shape) == FAMILY_SIMPLEX)
      f_invJ = spread(invJ(:, :, 1), 3, size(f_invJ, 3))
       
