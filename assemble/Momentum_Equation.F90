@@ -2143,8 +2143,9 @@
             ! solving this equation for the compressible fluid phase would not be correct. The particle phases on the other hand
             ! are always incompressible where the density is constant.
             if(have_option("/material_phase["//int2str(i)//"]/multiphase_properties/particle_diameter") .and. &
-               (.not.have_option("/material_phase["//int2str(i)//"]/scalar_field::PhaseVolumeFraction/prognostic"))) then
-               FLExit("All particle phases must have a prognostic PhaseVolumeFraction field. The diagnostic PhaseVolumeFraction field should always be in the continuous/fluid phase.")
+               .not.(have_option("/material_phase["//int2str(i)//"]/scalar_field::PhaseVolumeFraction/prognostic") .or. &
+               have_option("/material_phase["//int2str(i)//"]/scalar_field::PhaseVolumeFraction/prescribed"))) then
+               FLExit("All particle phases must have a prognostic/prescribed PhaseVolumeFraction field. The diagnostic PhaseVolumeFraction field should always be in the continuous/fluid phase.")
             end if
             
          end do
