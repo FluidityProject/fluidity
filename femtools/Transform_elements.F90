@@ -1182,6 +1182,8 @@ contains
     real, dimension(X%dim,face_loc(X,face)) :: X_f
     ! Column n of X_f is the position of the nth node on the facet.
     real, dimension(X%dim,ele_loc(X,face_ele(X,face))) :: X_val
+    ! radius (l2norm) of X_f at the facet nodes (used for spherical positions)
+    real, dimension(size(X_f,2)) :: r_f
     ! shape function coordinate interpolation on the boundary
     type(element_type), pointer :: x_shape_f
 
@@ -1191,7 +1193,7 @@ contains
     ! Determinant of J
     real :: detJ
     ! Whether the cache can be used
-    logical :: cache_valid
+    logical :: cache_valid, x_spherical
     
 
     integer :: gi, i, compute_ngi
@@ -1206,8 +1208,10 @@ contains
        assert(size(detwei_f)==x_shape_f%ngi)
     end if
 #endif
+
+    x_spherical = X%field_type==FIELD_TYPE_SPHERICAL_COORDINATES
     
-    if (.not.(x_shape_f%degree==1 .and. x_shape_f%numbering%family==FAMILY_SIMPLEX)) then
+    if (x_spherical .or. .not.(x_shape_f%degree==1 .and. x_shape_f%numbering%family==FAMILY_SIMPLEX)) then
       ! for non-linear compute on all gauss points
       compute_ngi=x_shape_f%ngi
       cache_valid=.false.
@@ -1230,6 +1234,9 @@ contains
     if (.not.cache_valid) then
        X_val=ele_val(X, face_ele(X,face))
        X_f=face_val(X, face)
+       if (x_spherical) then
+          r_f = sqrt(sum(X_f**2, dim=1))
+       end if
     end if
 
     ! Loop over quadrature points.
@@ -1246,6 +1253,9 @@ contains
 
        ! Form Jacobian.
        J=matmul(X_f(:,:), x_shape_f%dn(:, gi, :))
+       if (x_spherical) then
+         J = jacobian_on_sphere(x_shape_f, gi, X_f, r_f, J)
+       end if
 
        detJ=0.0
        ! Calculate determinant.
@@ -1364,6 +1374,8 @@ contains
     
     ! Column n of X_f is the position of the nth node on the facet.
     real, dimension(X%dim,face_loc(X,face)) :: X_f
+    ! radius (l2norm) of X_f at the facet nodes (used for spherical positions)
+    real, dimension(size(X_f,2)) :: r_f
     ! Column n of X_f is the position of the nth node on the facet.
     real, dimension(X%dim,ele_loc(X,face_ele(X,face))) :: X_val
     ! shape function coordinate interpolation on the boundary
@@ -1378,6 +1390,7 @@ contains
     logical :: cache_valid
     ! Outward normal vector. This is a dummy.
     real, dimension(X%dim) :: lnormal
+    logical :: x_spherical
     
 
     integer :: gi, i, compute_ngi
@@ -1390,7 +1403,9 @@ contains
     end if
 #endif
     
-    if (.not.(x_shape_f%degree==1 .and. x_shape_f%numbering%type==FAMILY_SIMPLEX)) then
+    x_spherical = X%field_type==FIELD_TYPE_SPHERICAL_COORDINATES
+
+    if (x_spherical .or. .not.(x_shape_f%degree==1 .and. x_shape_f%numbering%type==FAMILY_SIMPLEX)) then
       ! for non-linear compute on all gauss points
       compute_ngi=x_shape_f%ngi
       cache_valid=.false.
@@ -1413,6 +1428,9 @@ contains
     if (.not.cache_valid) then
        X_val=ele_val(X, face_ele(X,face))
        X_f=face_val(X, face)
+       if (x_spherical) then
+          r_f = sqrt(sum(X_f**2, dim=1))
+       end if
     end if
 
     ! Loop over quadrature points.
@@ -1429,6 +1447,9 @@ contains
 
        ! Form Jacobian.
        J=matmul(X_f(:,:), x_shape_f%dn(:, gi, :))
+       if (x_spherical) then
+         J = jacobian_on_sphere(x_shape_f, gi, X_f, r_f, J)
+       end if
 
        detJ=0.0
        ! Calculate determinant.
