@@ -1399,6 +1399,7 @@ contains
       real, intent(in) :: dt
       
       type(scalar_field), intent(in) :: nvfrac, oldvfrac
+      real, dimension(x_cvshape%ngi) :: nvfrac_gi
 
       ! mesh sparsity for upwind value matrices
       type(csr_sparsity), intent(in) :: mesh_sparsity
@@ -1450,6 +1451,9 @@ contains
 
       ! loop integers
       integer :: ele, sele, iloc, oloc, dloc, face, gi, ggi, dim
+      
+      ! what equation type are we solving for?
+      integer :: equation_type
 
       ! upwind value matrices for the fields and densities
       type(csr_matrix)  :: tfield_upwind, &
@@ -1604,6 +1608,12 @@ contains
           call transform_to_physical(X, ele, x_shape=x_cvshape_full, &
                                     shape=t_cvshape_full, dshape=dt_t)
           diffusivity_gi = ele_val_at_quad(diffusivity, ele, diff_cvshape_full)
+          
+          equation_type = equation_type_index(trim(tfield%option_path))
+          if(multiphase .and. equation_type==FIELD_EQUATION_INTERNALENERGY) then
+            nvfrac_gi = ele_val_at_quad(nvfrac, ele, diff_cvshape_full)
+          end if
+          
         end if
 
         cfl_ele = ele_val(cfl_no, ele)
@@ -1786,16 +1796,35 @@ contains
                       end do dimension_loop1
 
                     case(CV_DIFFUSION_ELEMENTGRADIENT)
+                    
+                     if(multiphase .and. equation_type==FIELD_EQUATION_INTERNALENERGY) then
+                        ! This allows us to use the Diffusivity term as the heat flux term
+                        ! in the multiphase InternalEnergy equation: div( (k/Cv) * vfrac * grad(ie) ).
+                        ! The user needs to input k/Cv for the prescribed diffusivity,
+                        ! where k is the effective conductivity and Cv is the specific heat
+                        ! at constant volume. The division by Cv is needed because the heat flux
+                        ! is defined in terms of temperature T = ie/Cv.
+                     
+                        do dloc=1,size(dt_t,1)
+                           ! n_i K_{ij} dT/dx_j
+                           diff_mat_local(iloc,dloc) = diff_mat_local(iloc,dloc) - &
+                           sum(matmul(diffusivity_gi(:,:,ggi), dt_t(dloc, ggi, :))*normgi, 1)*detwei(ggi)*nvfrac_gi(ggi)
 
-                      do dloc=1,size(dt_t,1)
-                        ! n_i K_{ij} dT/dx_j
-                        diff_mat_local(iloc,dloc) = diff_mat_local(iloc,dloc) - &
-                          sum(matmul(diffusivity_gi(:,:,ggi), dt_t(dloc, ggi, :))*normgi, 1)*detwei(ggi)
+                           ! notvisited
+                           diff_mat_local(oloc, dloc) = diff_mat_local(oloc,dloc) - &
+                           sum(matmul(diffusivity_gi(:,:,ggi), dt_t(dloc, ggi, :))*(-normgi), 1)*detwei(ggi)*nvfrac_gi(ggi)
+                        end do
+                     else       
+                        do dloc=1,size(dt_t,1)
+                           ! n_i K_{ij} dT/dx_j
+                           diff_mat_local(iloc,dloc) = diff_mat_local(iloc,dloc) - &
+                           sum(matmul(diffusivity_gi(:,:,ggi), dt_t(dloc, ggi, :))*normgi, 1)*detwei(ggi)
 
-                        ! notvisited
-                        diff_mat_local(oloc, dloc) = diff_mat_local(oloc,dloc) - &
-                          sum(matmul(diffusivity_gi(:,:,ggi), dt_t(dloc, ggi, :))*(-normgi), 1)*detwei(ggi)
-                      end do
+                           ! notvisited
+                           diff_mat_local(oloc, dloc) = diff_mat_local(oloc,dloc) - &
+                           sum(matmul(diffusivity_gi(:,:,ggi), dt_t(dloc, ggi, :))*(-normgi), 1)*detwei(ggi)
+                        end do
+                     end if
 
                     end select
                   end if

@@ -2596,21 +2596,6 @@ Whatever field is selected must be present.</a:documentation>
   </define>
   <define name="extra_internal_energy_terms">
     <optional>
-      <element name="include_heat_flux_term">
-        <a:documentation>Adds the heat flux term: -div(q) = -div(K * grad(ie)/C_v)
-K = Effective conductivity
-C_v = Specific heat (at constant volume)</a:documentation>
-        <element name="effective_conductivity">
-          <a:documentation>Effective conductivity, K</a:documentation>
-          <ref name="real"/>
-        </element>
-        <element name="specific_heat">
-          <a:documentation>The specific heat (at constant volume), C_v</a:documentation>
-          <ref name="real"/>
-        </element>
-      </element>
-    </optional>
-    <optional>
       <element name="include_pressure_term">
         <a:documentation>Adds the pressure term: -p*div(u)
 ( or, for multiphase simulations, -vfrac*p*div(u) ).</a:documentation>

@@ -119,7 +119,7 @@ module advection_diffusion_cg
   ! Include porosity?
   logical :: include_porosity
   ! Include the extra internal energy equation terms? (for InternalEnergy equation_type only)
-  logical :: include_heat_flux = .false., include_pressure_term = .false.
+  logical :: include_pressure_term = .false.
   ! Is this material_phase compressible?
   logical :: compressible = .false.
   ! Are we running a multiphase flow simulation?
@@ -547,15 +547,6 @@ contains
          pressure => dummydensity
       end if
 
-      
-      if(have_option(trim(t%option_path)//'/prognostic/equation[0]/include_heat_flux_term')) then
-         include_heat_flux = .true.
-         call get_option(trim(t%option_path)//'/prognostic/equation[0]/include_heat_flux_term/effective_conductivity', k)
-         call get_option(trim(t%option_path)//'/prognostic/equation[0]/include_heat_flux_term/specific_heat', C_v)
-      else
-         include_heat_flux = .false.
-      end if
-
     case(FIELD_EQUATION_KEPSILON)
       ewrite(2,*) "Solving k-epsilon equation"
       if(move_mesh) then
@@ -884,7 +875,7 @@ contains
     if(have_absorption) call add_absorption_element_cg(ele, test_function, t, absorption, detwei, matrix_addto, rhs_addto)
     
     ! Diffusivity
-    if(have_diffusivity) call add_diffusivity_element_cg(ele, t, diffusivity, dt_t, detwei, matrix_addto, rhs_addto)
+    if(have_diffusivity) call add_diffusivity_element_cg(ele, t, diffusivity, dt_t, nvfrac, detwei, matrix_addto, rhs_addto)
     
     ! Source
     if(have_source .and. (.not. add_src_directly_to_rhs)) then 
@@ -894,11 +885,6 @@ contains
     ! Pressure
     if(equation_type==FIELD_EQUATION_INTERNALENERGY .and. compressible .and. include_pressure_term) then
        call add_pressurediv_element_cg(ele, test_function, t, velocity, pressure, nvfrac, du_t, detwei, rhs_addto)
-    end if
-                                                                                  
-    ! Heat flux
-    if(equation_type==FIELD_EQUATION_INTERNALENERGY .and. include_heat_flux) then
-       call add_heat_flux_element_cg(ele, test_function, t, du_t, nvfrac, k, C_v, detwei, matrix_addto, rhs_addto)
     end if
                                                                                   
     
@@ -1217,9 +1203,9 @@ contains
     
   end subroutine add_absorption_element_cg
   
-  subroutine add_diffusivity_element_cg(ele, t, diffusivity, dt_t, detwei, matrix_addto, rhs_addto)
+  subroutine add_diffusivity_element_cg(ele, t, diffusivity, dt_t, nvfrac, detwei, matrix_addto, rhs_addto)
     integer, intent(in) :: ele
-    type(scalar_field), intent(in) :: t
+    type(scalar_field), intent(in) :: t, nvfrac
     type(tensor_field), intent(in) :: diffusivity
     real, dimension(ele_loc(t, ele), ele_ngi(t, ele), mesh_dim(t)), intent(in) :: dt_t
     real, dimension(ele_ngi(t, ele)), intent(in) :: detwei
@@ -1232,9 +1218,22 @@ contains
     assert(have_diffusivity)
     
     diffusivity_gi = ele_val_at_quad(diffusivity, ele)
+
     if(isotropic_diffusivity) then
-      assert(size(diffusivity_gi, 1) > 0)
-      diffusivity_mat = dshape_dot_dshape(dt_t, dt_t, detwei * diffusivity_gi(1, 1, :))
+      assert(size(diffusivity_gi, 1) > 0)    
+          
+      if(multiphase .and. equation_type==FIELD_EQUATION_INTERNALENERGY) then
+         ! This allows us to use the Diffusivity term as the heat flux term
+         ! in the multiphase InternalEnergy equation: div( (k/Cv) * vfrac * grad(ie) ).
+         ! The user needs to input k/Cv for the prescribed diffusivity,
+         ! where k is the effective conductivity and Cv is the specific heat
+         ! at constant volume. We've assumed this will always be isotropic here.
+         ! The division by Cv is needed because the heat flux
+         ! is defined in terms of temperature T = ie/Cv.
+         diffusivity_mat = dshape_dot_dshape(dt_t, dt_t, detwei * diffusivity_gi(1, 1, :) * ele_val_at_quad(nvfrac, ele))
+      else
+         diffusivity_mat = dshape_dot_dshape(dt_t, dt_t, detwei * diffusivity_gi(1, 1, :))
+      end if
     else
       diffusivity_mat = dshape_tensor_dshape(dt_t, diffusivity_gi, dt_t, detwei)
     end if
@@ -1268,38 +1267,6 @@ contains
     end if
     
   end subroutine add_pressurediv_element_cg
-  
-  subroutine add_heat_flux_element_cg(ele, test_function, t, dt_t, nvfrac, K, C_v, detwei, matrix_addto, rhs_addto)
-  
-    integer, intent(in) :: ele
-    type(element_type), intent(in) :: test_function
-    type(scalar_field), intent(in) :: t
-    real, dimension(ele_loc(t, ele), ele_ngi(t, ele), mesh_dim(t)), intent(in) :: dt_t
-    type(scalar_field), intent(in) :: nvfrac
-    real, intent(in) :: K, C_v
-    real, dimension(ele_ngi(t, ele)), intent(in) :: detwei
-    real, dimension(ele_loc(t, ele), ele_loc(t, ele)), intent(inout) :: matrix_addto
-    real, dimension(ele_loc(t, ele)), intent(inout) :: rhs_addto
-        
-    real, dimension(ele_loc(t, ele), ele_loc(t, ele)) :: heat_flux_mat
-    
-    assert(equation_type==FIELD_EQUATION_INTERNALENERGY)
-    
-    if(multiphase) then
-       ! -div(vfrac * q) = -div(vfrac * K * grad(ie)/C_v)
-       ! where K is the effective conductivity
-       ! ie is the internal energy
-       ! C_v is the specific heat at constant volume, needed to convert the temperature to internal energy
-       heat_flux_mat = dshape_dot_dshape(dt_t, dt_t, detwei * K * ele_val_at_quad(nvfrac, ele) / C_v )
-    else
-       heat_flux_mat = dshape_dot_dshape(dt_t, dt_t, detwei * K / C_v )
-    end if
-    
-    if(abs(dt_theta) > epsilon(0.0)) matrix_addto = matrix_addto - dt_theta * heat_flux_mat
-    
-    rhs_addto = rhs_addto + matmul(heat_flux_mat, ele_val(t, ele))
-    
-  end subroutine add_heat_flux_element_cg
   
   subroutine assemble_advection_diffusion_face_cg(face, bc_type, t, t_bc, t_bc_2, matrix, rhs, positions, velocity, grid_velocity, density, olddensity, nvfrac)
     integer, intent(in) :: face

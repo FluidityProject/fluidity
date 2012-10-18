@@ -2098,20 +2098,7 @@ equation_coefficients =
    )
    
 extra_internal_energy_terms =
-   (
-      ## Adds the heat flux term: -div(q) = -div(K * grad(ie)/C_v)
-      ## K = Effective conductivity
-      ## C_v = Specific heat (at constant volume)
-      element include_heat_flux_term {
-        ## Effective conductivity, K
-        element effective_conductivity {
-          real
-        },
-        ## The specific heat (at constant volume), C_v
-        element specific_heat {
-          real
-        }
-      }?,      
+   (    
       ## Adds the pressure term: -p*div(u)
       ## ( or, for multiphase simulations, -vfrac*p*div(u) ).
       element include_pressure_term {
