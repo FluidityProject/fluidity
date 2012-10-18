@@ -831,9 +831,7 @@ contains
     
     call transform_facet_to_physical(positions, face, &
       & detwei_f = detwei, normal = normal)
-    call compute_inverse_jacobian( &
-      & ele_val(positions, ele), positions_shape, &
-      & invj = invj)
+    call compute_inverse_jacobian(positions, ele, invj = invj)
     assert(positions_shape%degree == 1)
     assert(ele_numbering_family(positions_shape) == FAMILY_SIMPLEX)
     invj_face = spread(invj(:, :, 1), 3, size(invj_face, 3))

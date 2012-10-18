@@ -3133,6 +3133,14 @@ adaptivity and is automatically disabled for non-linear positions fields.</a:doc
 nth degree polynomial, where n is the polynomial degree of the coordinate mesh.</a:documentation>
               <empty/>
             </element>
+            <element name="analytical_mapping">
+              <a:documentation>This option should be used in combination with a linear CoordinateMesh.
+The linear tetrahedrals (as always defined by the input mesh) are bent on the sphere
+using an analytical expression (as opposed to superparametric where it's approximated
+by a higher order polynomial), the derivatives are calculated by taking the analytical
+derivative on the gauss points.</a:documentation>
+              <empty/>
+            </element>
           </choice>
         </element>
       </optional>

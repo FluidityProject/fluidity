@@ -315,10 +315,7 @@ contains
         & quad_s = face_element_shape%quadrature)
     end if
     
-    call compute_inverse_jacobian( &
-      & ele_val(positions, ele), positions_shape, &
-      ! Output variables
-      & invj = invj)
+    call compute_inverse_jacobian(positions, ele, invj = invj)
     assert(ele_numbering_family(positions_shape) == FAMILY_SIMPLEX)
     invj_face = spread(invj(:, :, 1), 3, size(invj_face, 3))
       

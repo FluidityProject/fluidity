@@ -2266,6 +2266,14 @@ geometry =
                ## nth degree polynomial, where n is the polynomial degree of the coordinate mesh.
                element superparametric_mapping {
                   empty
+               }|
+               ## This option should be used in combination with a linear CoordinateMesh.
+               ## The linear tetrahedrals (as always defined by the input mesh) are bent on the sphere
+               ## using an analytical expression (as opposed to superparametric where it's approximated
+               ## by a higher order polynomial), the derivatives are calculated by taking the analytical
+               ## derivative on the gauss points.
+               element analytical_mapping {
+                  empty
                }
             )
          }?,
