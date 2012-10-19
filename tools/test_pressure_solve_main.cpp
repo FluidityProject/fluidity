@@ -34,11 +34,6 @@ int main(int argc, char **argv){
   chdir(getenv("PWD"));
 #endif
 
-#ifdef HAVE_PYTHON
-  // Initialize the Python Interpreter
-  python_init_();
-#endif
-
 #ifdef HAVE_PETSC
   static char help[] = "Use -help to see the help.\n\n";
   PetscErrorCode ierr = PetscInitialize(&argc, &argv, NULL, help);
@@ -46,12 +41,16 @@ int main(int argc, char **argv){
   // This sets all kinds of objects such as PETSC_NULL_OBJECT, PETSC_COMM_WORLD, etc., etc.
   ierr = PetscInitializeFortran();
   
+#ifdef HAVE_PYTHON
+  // Initialize the Python Interpreter
+  python_init_();
+#endif
   test_pressure_solve_();
-  PetscFinalize();
 #ifdef HAVE_PYTHON
   // Finalize the Python Interpreter
   python_end_();
 #endif
+  PetscFinalize();
   return 0;
 #else
   cerr << "ERROR: Not configured with PETSc, so test_pressure_solve is not gonna work!" << endl; 
