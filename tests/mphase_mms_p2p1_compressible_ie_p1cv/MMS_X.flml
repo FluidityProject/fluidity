@@ -480,7 +480,7 @@
             <value name="WholeMesh">
               <isotropic>
                 <constant>
-                  <real_value rank="0">0.000714285714286</real_value>
+                  <real_value rank="0">0.001</real_value>
                 </constant>
               </isotropic>
             </value>
@@ -820,7 +820,7 @@
       <fluids>
         <linear>
           <reference_density>
-            <real_value rank="0">2.0</real_value>
+            <real_value rank="0">3.0</real_value>
           </reference_density>
         </linear>
       </fluids>
@@ -1059,7 +1059,7 @@
             <value name="WholeMesh">
               <isotropic>
                 <constant>
-                  <real_value rank="0">0.000714285714286</real_value>
+                  <real_value rank="0">0.001</real_value>
                 </constant>
               </isotropic>
             </value>

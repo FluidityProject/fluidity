@@ -10,9 +10,6 @@ def function(phi_0, phi_x, phi_y, phi_xy,
     f_xy = phi_xy*(f_sin_xy*sin(alpha_xy*x*y/pi) + f_cos_xy*cos(alpha_xy*x*y/pi)) 
     f = f_0 + f_x + f_y + f_xy
     return f
-             
-rho1 = 0.5*(sin(x*x + y*y) + 1.5)
-rho2 = 3.0
 
 ie1 = 0.5*(cos(x + y) + 1.5)
 ie2 = 2.5*(sin(x*x) + 1.5)
@@ -30,7 +27,7 @@ u2 = cos(x**2+y**2)+2.5*x
 v2 = 0.5*x*y 
 
 rho1 = 0.5*(sin(x*x + y*y) + 1.5)
-rho2 = 2.0
+rho2 = 3.0
 
 ie1 = 1.25*x*y + cos(x + y)
 ie2 = sin(x*y)
@@ -72,8 +69,8 @@ Srho1 = diff(vfrac1*u1*rho1,x) + diff(vfrac1*v1*rho1,y) + rho1*diff(u2*vfrac2, x
 
 # Heat transfer term for the internal energy equations
 k = 0.5
-Cv1 = 700.0
-Cv2 = 700.0
+Cv1 = 500.0
+Cv2 = 500.0
 d = 0.1
 
 Pr = Cv1*gamma*nu1/k
@@ -86,8 +83,8 @@ heat_flux_y1 = (k/Cv1)*vfrac1*diff(ie1,y)
 heat_flux_x2 = (k/Cv2)*vfrac2*diff(ie2,x)
 heat_flux_y2 = (k/Cv2)*vfrac2*diff(ie2,y)
 
-Sie1 = vfrac1*rho1*u1*diff(ie1, x) + vfrac1*rho1*v1*diff(ie1, y) - diff(vfrac1*heat_flux_x1, x) - diff(vfrac1*heat_flux_y1, y) + vfrac1*p*diff(u1, x) + vfrac1*p*diff(v1, y) - diff(heat_flux_x1, x) - diff(heat_flux_y1, y) #- Q
-Sie2 = vfrac2*rho2*u2*diff(ie2, x) + vfrac2*rho2*v2*diff(ie2, y) - diff(vfrac2*heat_flux_x2, x) - diff(vfrac1*heat_flux_y2, y) + vfrac2*p*diff(u2, x) + vfrac2*p*diff(v2, y) - diff(heat_flux_x2, x) - diff(heat_flux_y2, y) #+ Q
+Sie1 = vfrac1*rho1*u1*diff(ie1, x) + vfrac1*rho1*v1*diff(ie1, y) - diff(heat_flux_x1, x) - diff(heat_flux_y1, y) + vfrac1*p*diff(u1, x) + vfrac1*p*diff(v1, y) #- Q
+Sie2 = vfrac2*rho2*u2*diff(ie2, x) + vfrac2*rho2*v2*diff(ie2, y) - diff(heat_flux_x2, x) - diff(heat_flux_y2, y) + vfrac2*p*diff(u2, x) + vfrac2*p*diff(v2, y) #+ Q
 
 print 'from math import sin, cos, tanh, pi, sqrt'
 print ''
