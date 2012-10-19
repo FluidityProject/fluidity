@@ -78,7 +78,9 @@
         </scheme>
         <solver>
           <iterative_method name="preonly"/>
-          <preconditioner name="lu"/>
+          <preconditioner name="lu">
+            <factorization_package name="petsc"/>
+          </preconditioner>
           <relative_error>
             <real_value rank="0">1e-7</real_value>
           </relative_error>
@@ -190,7 +192,9 @@
         </temporal_discretisation>
         <solver>
           <iterative_method name="preonly"/>
-          <preconditioner name="lu"/>
+          <preconditioner name="lu">
+            <factorization_package name="petsc"/>
+          </preconditioner>
           <relative_error>
             <real_value rank="0">1e-7</real_value>
           </relative_error>
@@ -269,7 +273,9 @@
         </temporal_discretisation>
         <solver>
           <iterative_method name="preonly"/>
-          <preconditioner name="lu"/>
+          <preconditioner name="lu">
+            <factorization_package name="petsc"/>
+          </preconditioner>
           <relative_error>
             <real_value rank="0">1e-7</real_value>
           </relative_error>
@@ -306,7 +312,9 @@
         <mesh name="CoordinateMesh"/>
         <solver>
           <iterative_method name="preonly"/>
-          <preconditioner name="lu"/>
+          <preconditioner name="lu">
+            <factorization_package name="petsc"/>
+          </preconditioner>
           <relative_error>
             <real_value rank="0">1e-7</real_value>
           </relative_error>
