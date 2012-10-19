@@ -1752,6 +1752,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     KSP:: subksp
     PC:: subpc
     PCType:: pctype, hypretype
+    MatSolverPackage:: matsolverpackage
     PetscErrorCode:: ierr
     
     call get_option(trim(option_path)//'/name', pctype)
@@ -1852,6 +1853,11 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
        ! set pctype again to enforce flml choice
        call PCSetType(pc, pctype, ierr)
 
+       if (pctype==PCLU) then
+          call get_option(trim(option_path)//'/factorization_package/name', matsolverpackage)
+          call PCFactorSetMatSolverPackage(pc, matsolverpackage, ierr)
+       end if
+      
     end if
     
     ewrite(2, *) 'pc_type: ', trim(pctype)
