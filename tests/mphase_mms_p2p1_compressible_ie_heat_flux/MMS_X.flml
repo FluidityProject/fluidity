@@ -423,6 +423,7 @@
         <mesh name="PressureMesh"/>
         <equation name="InternalEnergy">
           <density name="Density"/>
+          <include_pressure_term/>
         </equation>
         <spatial_discretisation>
           <continuous_galerkin>
@@ -478,6 +479,18 @@
             </python>
           </type>
         </boundary_conditions>
+        <tensor_field name="Diffusivity" rank="2">
+          <prescribed>
+            <value name="WholeMesh">
+              <isotropic>
+                <constant>
+                  <real_value rank="0">0.001</real_value>
+                </constant>
+              </isotropic>
+            </value>
+            <output/>
+          </prescribed>
+        </tensor_field>
         <scalar_field name="Source" rank="0">
           <prescribed>
             <value name="WholeMesh">
@@ -986,6 +999,7 @@
         <mesh name="PressureMesh"/>
         <equation name="InternalEnergy">
           <density name="Density"/>
+          <include_pressure_term/>
         </equation>
         <spatial_discretisation>
           <continuous_galerkin>
@@ -1041,6 +1055,18 @@
             </python>
           </type>
         </boundary_conditions>
+        <tensor_field name="Diffusivity" rank="2">
+          <prescribed>
+            <value name="WholeMesh">
+              <isotropic>
+                <constant>
+                  <real_value rank="0">0.001</real_value>
+                </constant>
+              </isotropic>
+            </value>
+            <output/>
+          </prescribed>
+        </tensor_field>
         <scalar_field name="Source" rank="0">
           <prescribed>
             <value name="WholeMesh">

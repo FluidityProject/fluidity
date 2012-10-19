@@ -56,10 +56,17 @@ Sv2 = vfrac2*rho2*u2*diff(v2,x) + vfrac2*rho2*v2*diff(v2,y) - diff(vfrac2*tau_yy
 
 Srho1 = diff(vfrac1*u1*rho1,x) + diff(vfrac1*v1*rho1,y) + rho1*diff(u2*vfrac2, x) + rho1*diff(v2*vfrac2, y)
 
-k = 0.1
-C_v = 0.4
-Sie1 = vfrac1*rho1*u1*diff(ie1, x) + vfrac1*rho1*v1*diff(ie1, y) + vfrac1*p*diff(u1, x) + vfrac1*p*diff(v1, y)
-Sie2 = vfrac2*rho2*u2*diff(ie2, x) + vfrac2*rho2*v2*diff(ie2, y)
+k = 0.5
+Cv1 = 500.0
+Cv2 = 500.0
+
+heat_flux_x1 = (k/Cv1)*vfrac1*diff(ie1,x)
+heat_flux_y1 = (k/Cv1)*vfrac1*diff(ie1,y)
+heat_flux_x2 = (k/Cv2)*vfrac2*diff(ie2,x)
+heat_flux_y2 = (k/Cv2)*vfrac2*diff(ie2,y)
+
+Sie1 = vfrac1*rho1*u1*diff(ie1, x) + vfrac1*rho1*v1*diff(ie1, y) + vfrac1*p*diff(u1, x) + vfrac1*p*diff(v1, y) - diff(heat_flux_x1, x) - diff(heat_flux_y1, y)
+Sie2 = vfrac2*rho2*u2*diff(ie2, x) + vfrac2*rho2*v2*diff(ie2, y) + vfrac2*p*diff(u2, x) + vfrac2*p*diff(v2, y) - diff(heat_flux_x2, x) - diff(heat_flux_y2, y)
 
 print 'from math import sin, cos, tanh, pi'
 print ''
