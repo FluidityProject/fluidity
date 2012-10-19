@@ -37,7 +37,8 @@
 
   contains
 
-    SUBROUTINE CV_ASSEMB( CV_RHS, &
+    SUBROUTINE CV_ASSEMB( state, &
+         CV_RHS, &
          NCOLACV, ACV, FINACV, COLACV, MIDACV, &
          NCOLCT, CT, DIAG_SCALE_PRES, CT_RHS, FINDCT, COLCT, &
          CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
@@ -191,6 +192,7 @@
       use printout
       ! Inputs/Outputs
       IMPLICIT NONE
+      type( state_type ), dimension( : ), intent( inout ) :: state
       INTEGER, intent( in ) :: NCOLACV, NCOLCT, CV_NONODS, U_NONODS, X_NONODS, MAT_NONODS, &
            TOTELE, &
            CV_ELE_TYPE, &
@@ -333,7 +335,7 @@
            D1, D3, DCYL, GOT_DIFFUS, INTEGRAT_AT_GI, &
            NORMALISE, SUM2ONE, GET_GTHETA, QUAD_OVER_WHOLE_ELE
 
-      CHARACTER(LEN=OPTION_PATH_LEN) :: OPTION_PATH
+      character( len = option_path_len ) :: option_path, option_path2
 
       ewrite(3,*) 'In CV_ASSEMB'
 
@@ -342,12 +344,14 @@
       !ewrite(3,*) 'DENOLD', DENOLD
       !ewrite(3,*) 'MEAN_PORE_CV', MEAN_PORE_CV
 
-      option_path='/material_phase[0]/scalar_field::PhaseVolumeFraction/' // &
+      option_path= '/material_phase[0]/scalar_field::PhaseVolumeFraction/' // &
            'prognostic/spatial_discretisation/control_volumes/face_value/' // &
            'limit_face_value/limiter::Extrema'
-      LIMIT_USE_2ND=.FALSE.
-      if ( have_option( option_path ) ) LIMIT_USE_2ND=.TRUE.
-      !LIMIT_USE_2ND=.TRUE.
+      option_path2 = '/material_phase[0]/scalar_field::Temperature/prognostic/' // &
+           'spatial_discretisation/control_volumes/face_value::FiniteElement/' // &
+           'limit_face_value/limiter::Extrema'
+      limit_use_2nd = .false.
+      if( have_option( option_path ) .or. have_option( option_path2 ) ) limit_use_2nd = .true.
 
       ewrite(3,*)'CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA, LIMIT_USE_2ND, SECOND_THETA:', &
            CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA, LIMIT_USE_2ND, SECOND_THETA
@@ -586,7 +590,7 @@
       IGETCT=0
       IF(GETCT) IGETCT=1
 
-      CALL PROJ_CV_TO_FEM_4( FEMT, FEMTOLD, FEMDEN, FEMDENOLD, T, TOLD, DEN, DENOLD, &
+      CALL PROJ_CV_TO_FEM_4( state, FEMT, FEMTOLD, FEMDEN, FEMDENOLD, T, TOLD, DEN, DENOLD, &
            IGOT_T2, T2,T2OLD, FEMT2,FEMT2OLD, &
            XC_CV, YC_CV, ZC_CV, MASS_CV, MASS_ELE,  &
            NDIM, NPHASE, CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
@@ -852,7 +856,7 @@
                                 HDC, GI, IPHASE, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
                                 T2, T2OLD, FEMT2, FEMT2OLD, DEN, DENOLD, &
                                 U, V, W, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
-!                                NU, NV, NW, NUOLD, NVOLD, NWOLD, NUOLD, NVOLD, NWOLD, &
+                                !                                NU, NV, NW, NUOLD, NVOLD, NWOLD, NUOLD, NVOLD, NWOLD, &
                                 CV_NODI_IPHA, CV_NODJ_IPHA, CVNORMX, CVNORMY, CVNORMZ,  &
                                 CV_DG_VEL_INT_OPT, ELE, ELE2, U_OTHER_LOC, &
                                 SELE, U_SNLOC, STOTEL, U_SLOC2LOC, SUF_U_BC, SUF_V_BC, SUF_W_BC,WIC_U_BC, &
@@ -869,7 +873,7 @@
                                 HDC, GI, IPHASE, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
                                 T, TOLD, FEMT, FEMTOLD, DEN, DENOLD, &
                                 U, V, W, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
-!                                NU, NV, NW, NUOLD, NVOLD, NWOLD, NUOLD, NVOLD, NWOLD, &
+                                !                                NU, NV, NW, NUOLD, NVOLD, NWOLD, NUOLD, NVOLD, NWOLD, &
                                 CV_NODI_IPHA, CV_NODJ_IPHA, CVNORMX, CVNORMY, CVNORMZ,  &
                                 CV_DG_VEL_INT_OPT, ELE, ELE2, U_OTHER_LOC, &
                                 SELE, U_SNLOC, STOTEL, U_SLOC2LOC, SUF_U_BC, SUF_V_BC, SUF_W_BC,WIC_U_BC, &
@@ -939,7 +943,7 @@
                                 HDC, GI, IPHASE, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
                                 T2, T2OLD, FEMT2, FEMT2OLD, DEN, DENOLD, &
                                 U, V, W, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
-!                                NU, NV, NW, NUOLD, NVOLD, NWOLD, NUOLD, NVOLD, NWOLD, &
+                                !                                NU, NV, NW, NUOLD, NVOLD, NWOLD, NUOLD, NVOLD, NWOLD, &
                                 CV_NODI_IPHA, CV_NODJ_IPHA, CVNORMX, CVNORMY, CVNORMZ,  &
                                 CV_DG_VEL_INT_OPT, ELE, ELE2, U_OTHER_LOC, &
                                 SELE, U_SNLOC, STOTEL, U_SLOC2LOC, SUF_U_BC, SUF_V_BC, SUF_W_BC,WIC_U_BC, &
@@ -956,7 +960,7 @@
                                 HDC, GI, IPHASE, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
                                 T, TOLD, FEMT, FEMTOLD, DEN, DENOLD, &
                                 U, V, W, NU, NV, NW, NUOLD, NVOLD, NWOLD, &
-!                                NU, NV, NW, NUOLD, NVOLD, NWOLD, NUOLD, NVOLD, NWOLD, &
+                                !                                NU, NV, NW, NUOLD, NVOLD, NWOLD, NUOLD, NVOLD, NWOLD, &
                                 CV_NODI_IPHA, CV_NODJ_IPHA, CVNORMX, CVNORMY, CVNORMZ,  &
                                 CV_DG_VEL_INT_OPT, ELE, ELE2, U_OTHER_LOC, &
                                 SELE, U_SNLOC, STOTEL, U_SLOC2LOC, SUF_U_BC, SUF_V_BC, SUF_W_BC,WIC_U_BC, &
@@ -1050,7 +1054,7 @@
                         CALL PUT_IN_CT_RHS(CT, CT_RHS, U_NLOC, SCVNGI, GI, NCOLCT, NDIM, &
                              CV_NONODS, U_NONODS, NPHASE, IPHASE, TOTELE, ELE, ELE2, SELE, &
                              JCOUNT_KLOC, JCOUNT_KLOC2, U_OTHER_LOC, U_NDGLN, U, V, W,  &
-!                             JCOUNT_KLOC, JCOUNT_KLOC2, U_OTHER_LOC, U_NDGLN, NU, NV, NW,  &
+                             !                             JCOUNT_KLOC, JCOUNT_KLOC2, U_OTHER_LOC, U_NDGLN, NU, NV, NW,  &
                              SUFEN, SCVDETWEI, CVNORMX, CVNORMY, CVNORMZ, DEN, CV_NODI, CV_NODI_IPHA, &
                              UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
                              UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2, &
@@ -1115,7 +1119,7 @@
 
                         ! Put results into the RHS vector
                         CV_RHS( CV_NODI_IPHA ) =  CV_RHS( CV_NODI_IPHA )  &
-                             ! subtract 1st order adv. soln.
+                                ! subtract 1st order adv. soln.
                              + SECOND_THETA * FTHETA_T2 * NDOTQNEW * SCVDETWEI( GI ) * LIMD * FVT * BCZERO &
                              -  SCVDETWEI( GI ) * ( FTHETA_T2 * NDOTQNEW * LIMDT &
                              + ONE_M_FTHETA_T2OLD * NDOTQOLD * LIMDTOLD ) ! hi order adv
@@ -1203,12 +1207,12 @@
                IF(IGOT_T2==1) THEN
                   CV_RHS( CV_NODI_IPHA ) = CV_RHS( CV_NODI_IPHA ) &
                        + MASS_CV(CV_NODI) * SOURCT(CV_NODI_IPHA) !&
-                       !- CV_BETA * MEAN_PORE_CV(CV_NODI) * MASS_CV(CV_NODI) & ! conservative time term. 
-                       !* TOLD(CV_NODI_IPHA)  &
-                       !* (DEN(CV_NODI_IPHA) * T2(CV_NODI_IPHA) - DENOLD(CV_NODI_IPHA) * T2OLD(CV_NODI_IPHA)) / DT
+                  !- CV_BETA * MEAN_PORE_CV(CV_NODI) * MASS_CV(CV_NODI) & ! conservative time term. 
+                  !* TOLD(CV_NODI_IPHA)  &
+                  !* (DEN(CV_NODI_IPHA) * T2(CV_NODI_IPHA) - DENOLD(CV_NODI_IPHA) * T2OLD(CV_NODI_IPHA)) / DT
 
                   ACV( IMID_IPHA ) =  ACV( IMID_IPHA ) &
-                       !+ (CV_BETA * DENOLD(CV_NODI_IPHA) * T2OLD(CV_NODI_IPHA) &
+                                !+ (CV_BETA * DENOLD(CV_NODI_IPHA) * T2OLD(CV_NODI_IPHA) &
                        + (CV_BETA * DEN(CV_NODI_IPHA) * T2(CV_NODI_IPHA) &
                        + (1.-CV_BETA) * DEN(CV_NODI_IPHA) * T2(CV_NODI_IPHA))  &
                        * MEAN_PORE_CV(CV_NODI) * MASS_CV(CV_NODI) / DT
@@ -1221,12 +1225,12 @@
 
                   CV_RHS( CV_NODI_IPHA ) = CV_RHS( CV_NODI_IPHA ) &
                        + MASS_CV(CV_NODI) * SOURCT(CV_NODI_IPHA) !&
-                       !- CV_BETA * MEAN_PORE_CV( CV_NODI ) * MASS_CV( CV_NODI ) & ! conservative time term. 
-                       !* TOLD(CV_NODI_IPHA) &
-                       !* (DEN(CV_NODI_IPHA) - DENOLD(CV_NODI_IPHA)) / DT
+                  !- CV_BETA * MEAN_PORE_CV( CV_NODI ) * MASS_CV( CV_NODI ) & ! conservative time term. 
+                  !* TOLD(CV_NODI_IPHA) &
+                  !* (DEN(CV_NODI_IPHA) - DENOLD(CV_NODI_IPHA)) / DT
 
                   ACV( IMID_IPHA ) =  ACV( IMID_IPHA ) &
-                       !+ (CV_BETA * DENOLD(CV_NODI_IPHA) + (1.-CV_BETA) * DEN(CV_NODI_IPHA))  &
+                                !+ (CV_BETA * DENOLD(CV_NODI_IPHA) + (1.-CV_BETA) * DEN(CV_NODI_IPHA))  &
                        + (CV_BETA * DEN(CV_NODI_IPHA) &
                        + (1.-CV_BETA) * DEN(CV_NODI_IPHA))  &
                        * MEAN_PORE_CV(CV_NODI) * MASS_CV(CV_NODI) / DT
@@ -1642,7 +1646,8 @@
 
 
 
-    SUBROUTINE PROJ_CV_TO_FEM_4( FEMT, FEMTOLD, FEMDEN, FEMDENOLD, T, TOLD, DEN, DENOLD, &
+    SUBROUTINE PROJ_CV_TO_FEM_4( state, &
+         FEMT, FEMTOLD, FEMDEN, FEMDENOLD, T, TOLD, DEN, DENOLD, &
          IGOT_T2,T2,T2OLD, FEMT2,FEMT2OLD, &
          XC_CV,YC_CV,ZC_CV, MASS_CV, MASS_ELE, &
          NDIM, NPHASE, CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
@@ -1652,6 +1657,7 @@
 
       ! determine FEMT (finite element wise) etc from T (control volume wise) 
       IMPLICIT NONE
+      type( state_type ), dimension( : ), intent( inout ) :: state
       INTEGER, intent( in ) :: NDIM, NPHASE, CV_NONODS, TOTELE, X_NLOC, CV_NGI, CV_NLOC, &
            X_NONODS, NCOLM, IGOT_T2, IGETCT, NCOLCMC
       INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in ) :: CV_NDGLN
@@ -1677,17 +1683,26 @@
       REAL, DIMENSION( : ), allocatable :: PSI, FEMPSI, PSI_AVE, PSI_INT
       INTEGER :: NTSOL,NTSOL_AVE,NTSOL_INT,ELE,CV_ILOC,X_INOD,CV_INOD,NL,NFIELD
       CHARACTER(100) :: PATH
-      INTEGER :: velocity_max_iterations
-      LOGICAL :: solve_force_balance
+      INTEGER :: velocity_max_iterations, nstates, istate
+      LOGICAL :: solve_force_balance, have_component
 
-      ewrite(3,*) 'In PROJ_CV_TO_FEM_4'
+      
+     ewrite(3,*) 'In PROJ_CV_TO_FEM_4'
 
+      nstates = option_count( "/material_phase" )
+      have_component = .false.
+      do istate = 1, nstates
+         if( have_option( '/material_phase[' // int2str( istate - 1 ) //']/is_multiphase_component/' ) ) ) then
+            have_component = .true.
+         end if
+      end do
+
+      solve_force_balance = .false.
       call get_option( "/material_phase[0]/vector_field::Velocity/prognostic/solver/max_iterations", &
            velocity_max_iterations,  default =  500 )
-      solve_force_balance = .false.
       if( velocity_max_iterations /= 0 ) solve_force_balance = .true.
 
-      if ( solve_force_balance ) then
+      if ( solve_force_balance .or. have_component ) then
          path = '/material_phase[0]/scalar_field::Pressure' 
       else
          path = '/material_phase[0]/scalar_field::Temperature' 
@@ -1898,6 +1913,7 @@
       END DO
 
       ! Solve...
+ewrite(3,*)'path:', trim( path )
       DO IT = 1, NTSOL
          CALL SOLVER( MAT,  &
               FEMPSI( 1 + (IT - 1 ) * CV_NONODS : CV_NONODS + (IT - 1 ) * CV_NONODS ),  &
@@ -5647,6 +5663,7 @@
          CV_NODI_IPHA,CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE, INCOME )
       ! Adjust TMIN to take into account different sized CV's. 
       ! if RESET_STORE then reset TMIN to orginal values.
+      implicit none
       REAL, intent( in ) :: INCOME
       INTEGER, intent( in ) :: CV_NODI_IPHA, CV_NODJ_IPHA,IPHASE, CV_NONODS, NPHASE
       LOGICAL, intent( in ) :: RESET_STORE

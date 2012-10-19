@@ -59,7 +59,7 @@
 
   contains
 
-    SUBROUTINE INTENERGE_ASSEM_SOLVE(  &
+    SUBROUTINE INTENERGE_ASSEM_SOLVE( state, &
          NCOLACV, FINACV, COLACV, MIDACV, &
          NCOLCT, FINDCT, COLCT, &
          CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
@@ -98,7 +98,7 @@
       ! Solve for internal energy using a control volume method.
 
       implicit none
-
+      type( state_type ), dimension( : ), intent( inout ) :: state
       INTEGER, intent( in ) :: NCOLACV, NCOLCT, CV_NONODS, U_NONODS, X_NONODS, MAT_NONODS, TOTELE, &
            U_ELE_TYPE, CV_ELE_TYPE, CV_SELE_TYPE, NPHASE, CV_NLOC, U_NLOC, X_NLOC,  MAT_NLOC, &
            CV_SNLOC, U_SNLOC, STOTEL, XU_NLOC, NDIM, NCOLM, NCOLELE, &
@@ -181,7 +181,8 @@
 
       Loop_NonLinearFlux: DO ITS_FLUX_LIM = 1, NITS_FLUX_LIM
 
-         CALL CV_ASSEMB( CV_RHS, &
+         CALL CV_ASSEMB( state, &
+              CV_RHS, &
               NCOLACV, ACV, FINACV, COLACV, MIDACV, &
               NCOLCT, CT, DIAG_SCALE_PRES, CT_RHS, FINDCT, COLCT, &
               CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
@@ -344,7 +345,7 @@
 
 
 
-    SUBROUTINE VOLFRA_ASSEM_SOLVE(  &
+    SUBROUTINE VOLFRA_ASSEM_SOLVE( state, &
          NCOLACV, FINACV, COLACV, MIDACV, &
          NCOLCT, FINDCT, COLCT, &
          CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
@@ -375,6 +376,7 @@
          mass_ele_transp )
 
       implicit none
+      type( state_type ), dimension( : ), intent( inout ) :: state
       INTEGER, intent( in ) :: NCOLACV, NCOLCT, &
            CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
            CV_ELE_TYPE, &
@@ -490,13 +492,14 @@
       SECOND_THETA = 1.0
       path='/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/temporal_discretisation/control_volumes/second_theta'
       call get_option( trim(path), second_theta, stat )
- 
+
       !SECOND_THETA = 0.0
 
       ! THIS DOES NOT WORK FOR NITS_FLUX_LIM>1 (NOBODY KNOWS WHY)
       Loop_NonLinearFlux: DO ITS_FLUX_LIM = 1, 1 !NITS_FLUX_LIM
 
-         CALL CV_ASSEMB( CV_RHS, &
+         CALL CV_ASSEMB( state, &
+              CV_RHS, &
               NCOLACV, ACV, FINACV, COLACV, MIDACV, &
               NCOLCT, CT, DIAG_SCALE_PRES, CT_RHS, FINDCT, COLCT, &
               CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
@@ -559,7 +562,7 @@
 
 
 
-    SUBROUTINE FORCE_BAL_CTY_ASSEM_SOLVE( &
+    SUBROUTINE FORCE_BAL_CTY_ASSEM_SOLVE( state, &
          NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
          U_ELE_TYPE, P_ELE_TYPE, &
          U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
@@ -596,6 +599,7 @@
          IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD,scale_momentum_by_volume_fraction )
 
       IMPLICIT NONE
+      type( state_type ), dimension( : ), intent( inout ) :: state
       INTEGER, intent( in ) :: NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, &
            TOTELE, U_ELE_TYPE, P_ELE_TYPE, &
            U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
@@ -711,10 +715,10 @@
       ALLOCATE( PIVIT_MAT( TOTELE, U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM )) ; PIVIT_MAT=0.
       ALLOCATE( INV_PIVIT_MAT( TOTELE, U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM )) ; INV_PIVIT_MAT=0.
       ALLOCATE( DGM_PHA( NCOLDGM_PHA )) ; DGM_PHA=0.
-      
+
       n_nloc_lev = u_nloc / cv_nloc
 
-      CALL CV_ASSEMB_FORCE_CTY_PRES(  &
+      CALL CV_ASSEMB_FORCE_CTY_PRES( state, &
            NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
            U_ELE_TYPE, P_ELE_TYPE, &
            U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
@@ -1018,7 +1022,7 @@
       !ewrite(3,*) 'VOLFRA_PORE:',VOLFRA_PORE
       !ewrite(3,*) 'den:',den
       !ewrite(3,*) 'denold:',denold
-      
+
       IF(.false.) THEN
          DO IPHASE=1,NPHASE
             DU=0.
@@ -1117,7 +1121,7 @@
 
 
 
-    SUBROUTINE CV_ASSEMB_FORCE_CTY_PRES(  &
+    SUBROUTINE CV_ASSEMB_FORCE_CTY_PRES( state, &
          NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
          U_ELE_TYPE, P_ELE_TYPE, &
          U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
@@ -1158,6 +1162,7 @@
 
       ! Assembly the force balance, cty and if .not.GLOBAL_SOLVE pressure eqn. 
 
+      type( state_type ), dimension( : ), intent( inout ) :: state
       INTEGER, intent( in ) :: NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, &
            TOTELE, U_ELE_TYPE, P_ELE_TYPE, &
            U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
@@ -1251,7 +1256,7 @@
       ALLOCATE( ACV( NCOLACV )) 
 
 
-      CALL CV_ASSEMB_FORCE_CTY(  &
+      CALL CV_ASSEMB_FORCE_CTY( state, &
            NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
            U_ELE_TYPE, P_ELE_TYPE, &
            U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
@@ -1357,7 +1362,7 @@
 
 
 
-    SUBROUTINE CV_ASSEMB_FORCE_CTY( &
+    SUBROUTINE CV_ASSEMB_FORCE_CTY( state, &
          NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
          U_ELE_TYPE, P_ELE_TYPE, &
          U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
@@ -1398,6 +1403,7 @@
 
       ! Form the global CTY and momentum eqns and combine to form one large matrix eqn. 
 
+      type( state_type ), dimension( : ), intent( inout ) :: state
       INTEGER, intent( in ) :: NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, &
            TOTELE, U_ELE_TYPE, P_ELE_TYPE, &
            U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
@@ -1536,7 +1542,7 @@
            PIVIT_MAT, JUST_BL_DIAG_MAT, &
            UDIFFUSION, IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, &
            P,scale_momentum_by_volume_fraction )
-           
+
       ! scale the momentum equations by the volume fraction / saturation for the matrix and rhs     
 
       IF(GLOBAL_SOLVE) THEN
@@ -1549,7 +1555,8 @@
       ENDIF
 
       ! Form CT & MASS_MN_PRES matrix...
-      CALL CV_ASSEMB( CV_RHS, &
+      CALL CV_ASSEMB( state, &
+           CV_RHS, &
            NCOLACV, ACV, FINACV, COLACV, MIDACV, &
            NCOLCT, CT, DIAG_SCALE_PRES, CT_RHS, FINDCT, COLCT, &
            CV_NONODS, U_NONODS, X_NONODS, TOTELE, &

@@ -2159,7 +2159,7 @@ ewrite(3,*)'-->:',k + 1, k + node_count( field ), kk + 1, kk + stotel * cv_snloc
            'prognostic/temporal_discretisation/control_volumes/' // &
            'number_advection_iterations', nits_internal, default=1)
 
-      ! Refernce pressure node to be set
+      ! Reference pressure node to be set
       call get_option('/material_phase[0]/scalar_field::Pressure/' // &
            'prognostic/spatial_discretisation/reference_node', ndpset, default = 0 )
 
@@ -2180,9 +2180,18 @@ ewrite(3,*)'-->:',k + 1, k + node_count( field ), kk + 1, kk + stotel * cv_snloc
 
       ! Still hard-wired: MUST BE REVIEWED LATER
       t_disopt = 1
-      if (have_option('/material_phase[0]/scalar_field::Temperature/prognostic/' // &
+
+      if ( have_option('/material_phase[0]/scalar_field::Temperature/prognostic/' // &
            'spatial_discretisation/control_volumes/face_value::FiniteElement/' // &
-           'limit_face_value') ) t_disopt = 5
+           'limit_face_value/limiter::Extrema' ) ) then
+         t_disopt = 9
+
+      else
+         if ( have_option( '/material_phase[0]/scalar_field::Temperature/prognostic/' // &
+              'spatial_discretisation/control_volumes/face_value::FiniteElement/' // &
+              'limit_face_value' ) ) t_disopt = 5
+      end if
+
       !! disopt options: going to need to change the schema I think
       !       =0      1st order in space          Theta=specified    UNIVERSAL
       !       =1      1st order in space          Theta=non-linear   UNIVERSAL
@@ -2212,20 +2221,25 @@ ewrite(3,*)'-->:',k + 1, k + node_count( field ), kk + 1, kk + stotel * cv_snloc
               'spatial_discretisation/control_volumes/face_value::FiniteElement/' // &
               'limit_face_value/limiter::Sweby' ) ) then
             v_disopt = 5 !! Unless all the other options, but need to be able to get 8 here
+         elseif( have_option( '/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
+              'spatial_discretisation/control_volumes/face_value::FiniteElement/' // &
+              'limit_face_value/limiter::Extrema' ) ) then
+            v_disopt = 9
          else
             v_disopt = 8
          end if
-      endif 
+      endif
 
       call get_option('/material_phase[0]/scalar_field::Temperature/prognostic/' // &
            'spatial_discretisation/conservative_advection', t_beta, default=0.0)
       call get_option('/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
            'spatial_discretisation/conservative_advection', v_beta )
-
       call get_option('/material_phase[0]/scalar_field::Temperature/prognostic/' // &
            'temporal_discretisation/theta', t_theta, default=1.)
+
       call get_option('/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
            'temporal_discretisation/theta', v_theta)
+
       call get_option('/material_phase[0]/vector_field::Velocity/prognostic/' // &
            'temporal_discretisation/theta', u_theta)
 

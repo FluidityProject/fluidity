@@ -124,7 +124,7 @@ contains
        t_get_theta_flux )
     implicit none
 
-    type(state_type), dimension(:), intent( inout ) :: state
+    type( state_type ), dimension( : ), intent( inout ) :: state
 
     integer, intent( in ) :: nphase, ncomp, totele, ndim, &
          u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc, &
@@ -433,8 +433,6 @@ contains
        Loop_ITS: DO ITS = 1, NITS
           ewrite(1,*)' New Non-Linear Iteration:', its
 
-          !call CopyIntoState()
-
           CALL calculate_multiphase_density( state, CV_NONODS, CV_PHA_NONODS, DEN, DERIV, &
                T, CV_P )
 
@@ -448,7 +446,7 @@ contains
              NV = V
              NW = W
 
-             call INTENERGE_ASSEM_SOLVE(  &
+             call INTENERGE_ASSEM_SOLVE( state, &
                   NCOLACV, FINACV, COLACV, MIDACV, & 
                   NCOLCT, FINDCT, COLCT, &
                   CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
@@ -483,12 +481,8 @@ contains
                   mass_ele_transp = dummy_ele, &
                   thermal = .true. )                  
 
-          !call CopyIntoState()
-
              CALL calculate_multiphase_density( state, CV_NONODS, CV_PHA_NONODS, DEN, DERIV, &
                   T, CV_P )
-
-          !call CopyIntoState()
 
              if (SIG_INT) exit Loop_ITS
 
@@ -537,7 +531,7 @@ contains
              ! as the name suggests it's a cv source term for u
              call calculate_u_source_cv(state, cv_nonods, ndim, nphase, den, u_source_cv)
 
-             CALL FORCE_BAL_CTY_ASSEM_SOLVE( &
+             CALL FORCE_BAL_CTY_ASSEM_SOLVE( state, &
                   NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
                   U_ELE_TYPE, P_ELE_TYPE, &
                   U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
@@ -572,16 +566,13 @@ contains
                   IN_ELE_UPWIND, DG_ELE_UPWIND, &
                   NOIT_DIM, &
                   IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, &
-                  scale_momentum_by_volume_fraction )
-
-             !call CopyIntoState()
-
+                  scale_momentum_by_volume_fraction ) 
           end if
 
           if (SIG_INT) exit Loop_ITS
 
           if (solve_saturation) then
-             CALL VOLFRA_ASSEM_SOLVE( &
+             CALL VOLFRA_ASSEM_SOLVE( state, &
                   NCOLACV, FINACV, COLACV, MIDACV, &
                   NCOLCT, FINDCT, COLCT, &
                   CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
@@ -612,9 +603,6 @@ contains
                   NITS_FLUX_LIM_VOLFRA, &
                   option_path = '/material_phase[0]/scalar_field::PhaseVolumeFraction', &
                   mass_ele_transp = mass_ele )
-             
-             !call CopyIntoState()
-
           end if
 
           if (SIG_INT) exit Loop_ITS
@@ -695,7 +683,7 @@ contains
                 ewrite(3,*)'COMP_ABSORB:', COMP_ABSORB
                 !ewrite(3,*)'COMP_DIFFUSION:', COMP_DIFFUSION
 
-                CALL INTENERGE_ASSEM_SOLVE(  &
+                CALL INTENERGE_ASSEM_SOLVE( state, &
                      NCOLACV, FINACV, COLACV, MIDACV, & ! CV sparsity pattern matrix
                      NCOLCT, FINDCT, COLCT, &
                      CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
@@ -733,8 +721,6 @@ contains
                      option_path = '', &
                      mass_ele_transp = dummy_ele, &
                      thermal=.false. ) ! the false means that we don't add an extra source term
-
-                !call CopyIntoState()
 
              END DO Loop_ITS2
 
