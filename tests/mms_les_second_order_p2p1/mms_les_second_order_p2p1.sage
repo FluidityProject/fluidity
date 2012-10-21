@@ -35,10 +35,12 @@ nu_T = 4*((Cs)**2)*S_norm
 
 #print "DIVERGENCE = ", diff(u,x) + diff(v,y)
 
-tau_xx = (nu + nu_T)*diff(u,x)
-tau_xy = (nu + nu_T)*diff(u,y)
-tau_yy = (nu + nu_T)*diff(v,y)
-tau_yx = (nu + nu_T)*diff(v,x)
+nu = nu+nu_T
+
+tau_xx = 2*nu*diff(u,x) - (2.0/3.0)*nu*(diff(u,x) + diff(v,y))
+tau_xy = nu*(diff(u,y) + diff(v,x))
+tau_yy = 2*nu*diff(v,y) - (2.0/3.0)*nu*(diff(u,x) + diff(v,y)) 
+tau_yx = nu*(diff(u,y) + diff(v,x))
 
 Su = rho*u*diff(u,x) + rho*v*diff(u,y) - diff(tau_xx, x) - diff(tau_xy, y) + diff(p,x)  
 Sv = rho*u*diff(v,x) + rho*v*diff(v,y) - diff(tau_yx, x) - diff(tau_yy, y) + diff(p,y)

@@ -2077,8 +2077,6 @@
             do gi=1, size(les_coef_gi)
                les_tensor_gi(:,:,gi)=4.*les_coef_gi(gi)* &
                     smagorinsky_coefficient**2
-               les_tensor_gi(1,2,gi) = 0.0
-               les_tensor_gi(2,1,gi) = 0.0
             end do
             
             ! Eddy viscosity tensor field. Calling this subroutine works because

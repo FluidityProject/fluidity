@@ -202,7 +202,7 @@
             </mass_terms>
             <advection_terms/>
             <stress_terms>
-              <tensor_form/>
+              <stress_form/>
             </stress_terms>
             <les_model>
               <second_order>
@@ -275,7 +275,7 @@
             <value name="WholeMesh">
               <anisotropic_asymmetric>
                 <constant>
-                  <real_value symmetric="false" dim2="dim" shape="2 2" dim1="dim" rank="2">0.7 0.0 0.0 0.7</real_value>
+                  <real_value symmetric="false" dim2="dim" shape="2 2" dim1="dim" rank="2">0.7 0.7 0.7 0.7</real_value>
                 </constant>
               </anisotropic_asymmetric>
             </value>
