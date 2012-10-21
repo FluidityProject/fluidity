@@ -2075,9 +2075,12 @@
             les_tensor_gi=length_scale_tensor(du_t, ele_shape(u, ele))
             les_coef_gi=les_viscosity_strength(du_t, nu_ele)
             do gi=1, size(les_coef_gi)
-               les_tensor_gi(:,:,gi)=4.*les_coef_gi(gi)*les_tensor_gi(:,:,gi)* &
+               les_tensor_gi(:,:,gi)=4.*les_coef_gi(gi)* &
                     smagorinsky_coefficient**2
+               les_tensor_gi(1,2,gi) = 0.0
+               les_tensor_gi(2,1,gi) = 0.0
             end do
+            
             ! Eddy viscosity tensor field. Calling this subroutine works because
             ! you can't have 2 different types of LES model for the same material phase.
             if(have_eddy_visc) then
@@ -2111,7 +2114,7 @@
             ! Filter width G1 associated with mesh size (units length^2)
             mesh_size_gi = length_scale_tensor(du_t, ele_shape(u, ele))
             ! Leonard tensor L at gi
-            leonard_gi =ele_val_at_quad(leonard, ele)
+            leonard_gi = ele_val_at_quad(leonard, ele)
 
             do gi=1, ele_ngi(nu, ele)
               ! Get strain modulus |S1| for unfiltered velocity (ngi)
@@ -2179,7 +2182,9 @@
          else
             FLAbort("Unknown LES model")
          end if
+         
          viscosity_gi=viscosity_gi+les_tensor_gi
+         
       end if
       ! element viscosity matrix - tensor form
       !  /

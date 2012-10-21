@@ -21,17 +21,29 @@ v = integral(-diff(u,x),y)  # divergence free
 rho = 2.5  
 nu = 0.7
 
+# Smagorinsky model
+Cs = 0.1
+#Delta = 
+
+S_xx = diff(u,x)
+S_xy = 0.5*(diff(u,y) + diff(v,x))
+S_yy = diff(v,y)
+S_yx = 0.5*(diff(u,y) + diff(v,x))
+S_norm = sqrt(2*(S_xx**2 + S_xy**2 + S_yx**2 + S_yy**2))
+
+nu_T = 4*((Cs)**2)*S_norm
+
 #print "DIVERGENCE = ", diff(u,x) + diff(v,y)
 
-tau_xx = nu*diff(u,x)
-tau_xy = nu*diff(u,y)
-tau_yy = nu*diff(v,y)
-tau_yx = nu*diff(v,x)
+tau_xx = (nu + nu_T)*diff(u,x)
+tau_xy = (nu + nu_T)*diff(u,y)
+tau_yy = (nu + nu_T)*diff(v,y)
+tau_yx = (nu + nu_T)*diff(v,x)
 
 Su = rho*u*diff(u,x) + rho*v*diff(u,y) - diff(tau_xx, x) - diff(tau_xy, y) + diff(p,x)  
 Sv = rho*u*diff(v,x) + rho*v*diff(v,y) - diff(tau_yx, x) - diff(tau_yy, y) + diff(p,y)
   
-print 'from math import sin, cos, tanh, pi'
+print 'from math import sin, cos, tanh, pi, sqrt'
 print ''
 print 'def u(X):'
 print '    return', str(u).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')

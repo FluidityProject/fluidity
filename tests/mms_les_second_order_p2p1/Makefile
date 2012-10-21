@@ -10,4 +10,4 @@ run:
 	../../bin/fluidity MMS_C.flml
 
 clean:
-	rm -f *.vtu *.stat *.s *.log *_A* *_B* *_C* src/*A.* src/*B.* src/*C.* matrix* *~ mms_les_second_order_p2p1.py *.pyc fluidity.*
+	rm -f *.vtu *.stat *.s *.log *_A* *_B* *_C* src/*A.* src/*B.* src/*C.* matrix* *~ mms_les_second_order_p2p1.py *.pyc fluidity.* nohup.out
