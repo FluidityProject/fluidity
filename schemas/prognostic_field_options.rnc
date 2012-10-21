@@ -529,6 +529,7 @@ prognostic_velocity_field =
                      element smagorinsky_coefficient {
                         real
                      },
+                     element length_scale_type { 'scalar'|'tensor' },
                      ## eddy viscosity (turbulent diffusion of velocity).
                      ## This is an anisotropic symmetric viscosity, added to normal viscosity field, that
                      ## carries the influence of turbulence onto the velocity field.

@@ -636,6 +636,12 @@ where N_a and N_b are shape functions of the ath and bth node respectively and m
 suggested value 0.1</a:documentation>
                     <ref name="real"/>
                   </element>
+                  <element name="length_scale_type">
+                    <choice>
+                      <value>scalar</value>
+                      <value>tensor</value>
+                    </choice>
+                  </element>
                   <optional>
                     <element name="tensor_field">
                       <a:documentation>eddy viscosity (turbulent diffusion of velocity).
