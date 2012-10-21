@@ -1368,8 +1368,7 @@
       ! Viscous terms
       if(have_viscosity .or. have_les) then
         call add_viscosity_element_cg(state, ele, test_function, u, oldu_val, nu, x, viscosity, grad_u, &
-           tnu, leonard, alpha, &
-           du_t, detwei, big_m_tensor_addto, rhs_addto, temperature, nvfrac)
+           tnu, leonard, alpha, du_t, detwei, big_m_tensor_addto, rhs_addto, temperature, density, nvfrac)
       end if
       
       ! Get only the viscous terms
@@ -1993,7 +1992,7 @@
       
     subroutine add_viscosity_element_cg(state, ele, test_function, u, oldu_val, nu, x, viscosity, grad_u, &
         tnu, leonard, alpha, &
-         du_t, detwei, big_m_tensor_addto, rhs_addto, temperature, nvfrac)
+         du_t, detwei, big_m_tensor_addto, rhs_addto, temperature, density, nvfrac)
       type(state_type), intent(inout) :: state
       integer, intent(in) :: ele
       type(element_type), intent(in) :: test_function
@@ -2018,7 +2017,8 @@
 
       ! Temperature dependent viscosity:
       type(scalar_field), intent(in) :: temperature
-    
+      ! Density field
+      type(scalar_field), intent(in) :: density
       ! Non-linear PhaseVolumeFraction
       type(scalar_field), intent(in) :: nvfrac
 
@@ -2027,7 +2027,7 @@
       real, dimension(u%dim, u%dim, ele_ngi(u, ele))                                 :: viscosity_gi
       real, dimension(u%dim, u%dim, ele_loc(u, ele), ele_loc(u, ele))                :: viscosity_mat
       real, dimension(x%dim, x%dim, ele_ngi(u, ele))                                 :: les_tensor_gi
-      real, dimension(ele_ngi(u, ele))                                               :: les_coef_gi, wale_coef_gi
+      real, dimension(ele_ngi(u, ele))                                               :: les_coef_gi, wale_coef_gi, density_gi
       real, dimension(x%dim, ele_loc(u,ele), ele_loc(u,ele))                         :: div_les_viscosity
       real, dimension(x%dim, x%dim, ele_loc(u,ele))                                  :: grad_u_nodes
       real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim), intent(in)           :: du_t
@@ -2074,8 +2074,9 @@
          else if(les_second_order) then
             les_tensor_gi=length_scale_tensor(du_t, ele_shape(u, ele))
             les_coef_gi=les_viscosity_strength(du_t, nu_ele)
+            density_gi = ele_val_at_quad(density, ele)
             do gi=1, size(les_coef_gi)
-               les_tensor_gi(:,:,gi)=4.*les_coef_gi(gi)* &
+               les_tensor_gi(:,:,gi)=4.*density_gi(gi)*les_coef_gi(gi)* &
                     smagorinsky_coefficient**2
             end do
             
