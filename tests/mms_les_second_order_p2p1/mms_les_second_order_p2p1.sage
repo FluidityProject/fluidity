@@ -1,4 +1,5 @@
 y = var('y')
+from math import pi
 
 def function(phi_0, phi_x, phi_y, phi_xy, 
              f_sin_x, f_cos_x, f_sin_y, f_cos_y, f_sin_xy, f_cos_xy, 
@@ -23,7 +24,8 @@ nu = 0.7
 
 # Smagorinsky model
 Cs = 0.1
-#Delta = 
+n = 8
+Delta2 = 0.0771062843836 # Delta squared - the area of each element in MMS_A.msh.
 
 S_xx = diff(u,x)
 S_xy = 0.5*(diff(u,y) + diff(v,x))
@@ -31,7 +33,7 @@ S_yy = diff(v,y)
 S_yx = 0.5*(diff(u,y) + diff(v,x))
 S_norm = sqrt(2*(S_xx**2 + S_xy**2 + S_yx**2 + S_yy**2))
 
-nu_T = 4*((Cs)**2)*S_norm
+nu_T = 2*rho*((Cs)**2)*S_norm*Delta2
 
 #print "DIVERGENCE = ", diff(u,x) + diff(v,y)
 
