@@ -303,10 +303,10 @@ contains
     allocate( SumConc_FEMT( cv_nonods * ncomp ))
     allocate( MEAN_PORE_CV( cv_nonods ))
 
-    allocate( V_SOURCE_STORE( cv_nonods * nphase )) ; V_SOURCE_STORE = 0.
+    allocate( V_SOURCE_STORE( cv_nonods * nphase )) ; V_SOURCE_STORE = 0.0
     allocate( V_SOURCE_COMP( cv_nonods * nphase )) ; V_SOURCE_COMP = 0.0
 
-    allocate( PLIKE_GRAD_SOU_GRAD( cv_nonods * nphase ))
+    allocate( PLIKE_GRAD_SOU_GRAD( cv_nonods * nphase )) ; PLIKE_GRAD_SOU_GRAD =0.0
     allocate( mass_ele( totele ) ) ; mass_ele = 0.
     allocate( dummy_ele( totele ) ) ; dummy_ele = 0.
 
@@ -433,8 +433,13 @@ contains
        Loop_ITS: DO ITS = 1, NITS
           ewrite(1,*)' New Non-Linear Iteration:', its
 
-          CALL calculate_multiphase_density( state, CV_NONODS, CV_PHA_NONODS, DEN, DERIV, &
-               T, CV_P )
+          call copy_into_state( state, satura, t, p, u, v, w, den, comp, & 
+               ncomp, nphase, cv_ndgln, p_ndgln, u_ndgln, ndim )
+
+          CALL Calculate_Phase_Component_Densities( state, DEN, DERIV )
+
+          call copy_into_state( state, satura, t, p, u, v, w, den, comp, & 
+               ncomp, nphase, cv_ndgln, p_ndgln, u_ndgln, ndim )
 
           if ( its == 1 ) DENOLD = DEN
 
@@ -481,8 +486,13 @@ contains
                   mass_ele_transp = dummy_ele, &
                   thermal = .true. )                  
 
-             CALL calculate_multiphase_density( state, CV_NONODS, CV_PHA_NONODS, DEN, DERIV, &
-                  T, CV_P )
+             call copy_into_state( state, satura, t, p, u, v, w, den, comp, & 
+                  ncomp, nphase, cv_ndgln, p_ndgln, u_ndgln, ndim )
+
+             CALL Calculate_Phase_Component_Densities( state, DEN, DERIV )
+
+             call copy_into_state( state, satura, t, p, u, v, w, den, comp, & 
+                  ncomp, nphase, cv_ndgln, p_ndgln, u_ndgln, ndim )
 
              if (SIG_INT) exit Loop_ITS
 
@@ -566,7 +576,11 @@ contains
                   IN_ELE_UPWIND, DG_ELE_UPWIND, &
                   NOIT_DIM, &
                   IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, &
-                  scale_momentum_by_volume_fraction ) 
+                  scale_momentum_by_volume_fraction )
+
+             call copy_into_state( state, satura, t, p, u, v, w, den, comp, & 
+                  ncomp, nphase, cv_ndgln, p_ndgln, u_ndgln, ndim )
+
           end if
 
           if (SIG_INT) exit Loop_ITS
@@ -603,6 +617,10 @@ contains
                   NITS_FLUX_LIM_VOLFRA, &
                   option_path = '/material_phase[0]/scalar_field::PhaseVolumeFraction', &
                   mass_ele_transp = mass_ele )
+
+             call copy_into_state( state, satura, t, p, u, v, w, den, comp, & 
+                  ncomp, nphase, cv_ndgln, p_ndgln, u_ndgln, ndim )
+
           end if
 
           if (SIG_INT) exit Loop_ITS
@@ -721,6 +739,9 @@ contains
                      option_path = '', &
                      mass_ele_transp = dummy_ele, &
                      thermal=.false. ) ! the false means that we don't add an extra source term
+
+                call copy_into_state( state, satura, t, p, u, v, w, den, comp, & 
+                     ncomp, nphase, cv_ndgln, p_ndgln, u_ndgln, ndim )
 
              END DO Loop_ITS2
 
@@ -984,21 +1005,8 @@ contains
 
           !! Output vtus from state
           ! Start by copying the interesting files back into state:
-          call copy_into_state(state, &
-               satura, &
-               t, &
-               p, &
-               u, &
-               v, &
-               w,  &
-               den, &
-               comp, &
-               ncomp, &
-               nphase, &
-               cv_ndgln, &
-               p_ndgln, &
-               u_ndgln, &
-               ndim)
+          call copy_into_state( state, satura, t, p, u, v, w, den, comp, & 
+               ncomp, nphase, cv_ndgln, p_ndgln, u_ndgln, ndim )
 
           ! find the current time - that reached by the prototype
           call get_option("/timestepping/current_time", current_time)

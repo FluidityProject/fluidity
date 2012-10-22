@@ -861,20 +861,21 @@ ewrite(3,*)'-->:',k + 1, k + node_count( field ), kk + 1, kk + stotel * cv_snloc
          if (have_option(trim(option_path)//"/Corey")) uabs_option(i)=3
          if (have_option(trim(option_path)//"/Corey/boost_at_zero_saturation")) uabs_option(i)=5
 
-         option_path = "/material_phase[" // int2str(i-1) // "]/equation_of_state"
-         if (have_option(trim(option_path)//"/incompressible/linear")) then
-            eos_option(i) = 2
-         elseif (have_option(trim(option_path)//"/compressible/stiffened_gas")) then
-            eos_option(i) = 1
-         elseif (have_option(trim(option_path)//"/compressible/exponential_oil_gas")) then
-            eos_option(i) = 3
-         elseif (have_option(trim(option_path)//"/compressible/linear_in_pressure")) then
-            ! do nothing here
-         elseif (have_option(trim(option_path)//"/compressible/exponential_in_pressure")) then
-            ! do nothing here
-         else
-            FLAbort("Unknown EoS option for phase "// int2str(i))
-         endif
+!!$         option_path = "/material_phase[" // int2str(i-1) // "]/equation_of_state"
+!!$         if (have_option(trim(option_path)//"/incompressible/linear")) then
+!!$            eos_option(i) = 2
+!!$         elseif (have_option(trim(option_path)//"/compressible/stiffened_gas")) then
+!!$            eos_option(i) = 1
+!!$         elseif (have_option(trim(option_path)//"/compressible/exponential_oil_gas")) then
+!!$            eos_option(i) = 3
+!!$         elseif (have_option(trim(option_path)//"/compressible/linear_in_pressure")) then
+!!$            ! do nothing here
+!!$         elseif (have_option(trim(option_path)//"/compressible/exponential_in_pressure")) then
+!!$            ! do nothing here
+!!$         else
+!!$            FLAbort("Unknown EoS option for phase "// int2str(i))
+!!$         endif
+
          cp_option(i) = 1
          option_path = "/material_phase[" // int2str(i-1) // "]/scale_momentum_by_volume_fraction"
          if(have_option(trim(option_path))) scale_momentum_by_volume_fraction = .true.
@@ -1107,7 +1108,7 @@ ewrite(3,*)'-->:',k + 1, k + node_count( field ), kk + 1, kk + stotel * cv_snloc
       integer :: i,j,k,p,ele,jloc
       integer :: number_nodes
       integer :: nstates
-      integer :: nloc
+      integer :: nloc, nlev
       integer, dimension(:), pointer :: element_nodes => null()
       type(scalar_field), pointer :: phasevolumefraction => null()
       type(scalar_field), pointer :: phasetemperature => null()      
@@ -1115,11 +1116,74 @@ ewrite(3,*)'-->:',k + 1, k + node_count( field ), kk + 1, kk + stotel * cv_snloc
       type(vector_field), pointer :: velocity => null()
       type(scalar_field), pointer :: density => null()
       type(scalar_field), pointer :: componentmassfraction => null()
-      character(len=option_path_len) :: material_phase_name
-
+      character(len=option_path_len) :: material_phase_name, vel_element_type
+      logical :: is_overlapping
+      real, dimension(:), allocatable :: proto_velocity_u_tmp, proto_velocity_v_tmp, proto_velocity_w_tmp
       ewrite(3,*) "In copy_into_state"
 
       assert(size(state) >= nphase)
+
+      ! Deal with overlapping velocity...
+      ! Get the vel element type.
+      call get_option('/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
+           vel_element_type)
+      is_overlapping = .false.
+      if ( trim( vel_element_type ) == 'overlapping' ) is_overlapping = .true. 
+
+      velocity => extract_vector_field(state(1), "Velocity", stat=stat)
+      if (stat /= 0) then 
+         FLAbort('Failed to extract phase velocity from state in copy_into_state')
+      end if
+      number_nodes = node_count( velocity )
+
+      allocate( proto_velocity_u_tmp( number_nodes * nphase ) ) ; proto_velocity_u_tmp = 0.
+      allocate( proto_velocity_v_tmp( number_nodes * nphase ) ) ; proto_velocity_v_tmp = 0.
+      allocate( proto_velocity_w_tmp( number_nodes * nphase ) ) ; proto_velocity_w_tmp = 0.
+
+      if ( is_overlapping ) then
+
+         ! in case of overlapping elements just take
+         ! the average of the various levels
+         !
+         ! this means that this field cannot be used 
+         ! for any cv-fem calculations
+         !
+         ! ONLY for visualisation purposes
+
+         pressure => extract_scalar_field(state(1), "Pressure")
+         nlev = ele_loc( pressure, 1 )
+         nloc = ele_loc( velocity, 1 )
+
+         do p = 1, nphase
+            do i = 1, element_count( velocity )
+               do j = 1, nlev
+                  proto_velocity_u_tmp ( (p-1)*number_nodes + (i-1)*nloc + 1 : (p-1)*number_nodes + i*nloc ) = &
+                       proto_velocity_u_tmp ( (p-1)*number_nodes + (i-1)*nloc + 1 : (p-1)*number_nodes + i*nloc ) + &
+                       proto_velocity_u ( (p-1)*number_nodes*nlev + (i-1)*nloc*nlev + (j-1)*nloc+ 1 : & 
+                       &                        (p-1)*number_nodes*nlev + (i-1)*nloc*nlev + j*nloc )
+
+                  proto_velocity_v_tmp ( (p-1)*number_nodes + (i-1)*nloc + 1 : (p-1)*number_nodes + i*nloc ) = &
+                       proto_velocity_v_tmp ( (p-1)*number_nodes + (i-1)*nloc + 1 : (p-1)*number_nodes + i*nloc ) + &
+                       proto_velocity_v ( (p-1)*number_nodes*nlev + (i-1)*nloc*nlev + (j-1)*nloc+ 1 : & 
+                       &                        (p-1)*number_nodes*nlev + (i-1)*nloc*nlev + j*nloc )
+
+                  proto_velocity_w_tmp ( (p-1)*number_nodes + (i-1)*nloc + 1 : (p-1)*number_nodes + i*nloc ) = &
+                       proto_velocity_w_tmp ( (p-1)*number_nodes + (i-1)*nloc + 1 : (p-1)*number_nodes + i*nloc ) + &
+                       proto_velocity_w ( (p-1)*number_nodes*nlev + (i-1)*nloc*nlev + (j-1)*nloc+ 1 : & 
+                       &                        (p-1)*number_nodes*nlev + (i-1)*nloc*nlev + j*nloc )
+               end do
+            end do
+         end do
+
+         proto_velocity_u_tmp = proto_velocity_u_tmp / nlev
+         proto_velocity_v_tmp = proto_velocity_v_tmp / nlev
+         proto_velocity_w_tmp = proto_velocity_w_tmp / nlev
+
+      else
+         proto_velocity_u_tmp = proto_velocity_u
+         proto_velocity_v_tmp = proto_velocity_v
+         proto_velocity_w_tmp = proto_velocity_w
+      end if
 
       phase_loop: do p = 1,nphase
 
@@ -1229,25 +1293,27 @@ ewrite(3,*)'-->:',k + 1, k + node_count( field ), kk + 1, kk + stotel * cv_snloc
                call set(velocity, &
                     1, &
                     element_nodes(j), &
-                    proto_velocity_u((u_ndgln((i-1)*nloc+j)) + (p-1)*number_nodes))
+                    proto_velocity_u_tmp( (i-1)*nloc + j + (p-1)*number_nodes) )
 
                ! set v
                if (ndim > 1) call set(velocity, &
                     2, &
                     element_nodes(j), &
-                    proto_velocity_v((u_ndgln((i-1)*nloc+j)) + (p-1)*number_nodes))
+                    proto_velocity_v_tmp( (i-1)*nloc + j + (p-1)*number_nodes) )
 
                ! set w
                if (ndim > 2) call set(velocity, &
                     3, &
                     element_nodes(j), &
-                    proto_velocity_w((u_ndgln((i-1)*nloc+j)) + (p-1)*number_nodes))
+                    proto_velocity_w_tmp( (i-1)*nloc + j + (p-1)*number_nodes) )
 
             end do vel_node_loop
 
          end do vel_ele_loop
 
       end do phase_loop
+
+      deallocate( proto_velocity_u_tmp, proto_velocity_v_tmp, proto_velocity_w_tmp )
 
       ! comp is stored in the order
       !   comp1 phase1
@@ -1858,8 +1924,8 @@ ewrite(3,*)'-->:',k + 1, k + node_count( field ), kk + 1, kk + stotel * cv_snloc
       type(scalar_field), pointer :: pressure, field_source, field_absorption
       integer, dimension(:), allocatable :: sufid_bc, face_nodes
       character( len = option_path_len ) :: option_path, field_name
-      integer :: ndim, stotel, snloc, snloc2, nonods, nobcs, bc_type, j, k, kk, l, &
-           shape_option( 2 ), count
+      integer :: ndim, nlev, stotel, snloc, snloc2, nonods, nobcs, bc_type, j, k, kk, l, &
+           shape_option( 2 ), count, nloc, nloc2, ele, ilev
       real, dimension( : ), allocatable :: initial_constant
       logical :: have_source, have_absorption
       character(len=8192) :: func
@@ -1868,14 +1934,20 @@ ewrite(3,*)'-->:',k + 1, k + node_count( field ), kk + 1, kk + stotel * cv_snloc
       cmesh => extract_mesh(state, "CoordinateMesh" )
 
       positions => extract_vector_field(state(1), "Coordinate")
-
       ndim = field % dim
-      stotel = surface_element_count( cmesh )
-      snloc2 = face_loc(field, 1)
-      snloc = snloc2
-      if ( is_overlapping ) snloc = snloc2 * ele_loc(pmesh, 1)
 
-      nonods = node_count( field )
+      nlev = 1
+      if ( is_overlapping ) nlev = ele_loc(pmesh, 1)
+
+      nonods = node_count( field ) * nlev
+
+      stotel = surface_element_count( cmesh )
+
+      snloc2 = face_loc( field, 1 )
+      snloc = snloc2 * nlev
+      nloc2 = ele_loc( field, 1 )
+      nloc = nloc2 * nlev
+
       field_name = trim( field % name )
 
       option_path = "/material_phase["//int2str(iphase-1)//"]/vector_field::"//trim(field_name)
@@ -1885,9 +1957,9 @@ ewrite(3,*)'-->:',k + 1, k + node_count( field ), kk + 1, kk + stotel * cv_snloc
          call get_option(trim(option_path)//"/prognostic/initial_condition::WholeMesh/constant", &
               initial_constant)
 
-         field_u_prot((iphase-1) * nonods+1 : iphase * nonods)=initial_constant(1)
-         if (ndim>1) field_v_prot((iphase-1) * nonods+1 : iphase * nonods)=initial_constant(2)
-         if (ndim>2) field_w_prot((iphase-1) * nonods+1 : iphase * nonods)=initial_constant(3)
+         field_u_prot( (iphase-1) * nonods + 1 : iphase * nonods ) = initial_constant(1)
+         if (ndim>1) field_v_prot( (iphase-1) * nonods + 1 : iphase * nonods ) = initial_constant(2)
+         if (ndim>2) field_w_prot( (iphase-1) * nonods + 1 : iphase * nonods ) = initial_constant(3)
 
          deallocate( initial_constant )
 
@@ -1899,9 +1971,23 @@ ewrite(3,*)'-->:',k + 1, k + node_count( field ), kk + 1, kk + stotel * cv_snloc
          call get_option("/timestepping/current_time", current_time)
          call set_from_python_function(dummy, trim(func), positions, current_time)
 
-         field_u_prot((iphase-1) * nonods+1 : iphase * nonods)=dummy%val(1,:)
-         if (ndim>1) field_v_prot((iphase-1) * nonods+1 : iphase * nonods)=dummy%val(2,:)
-         if (ndim>2) field_w_prot((iphase-1) * nonods+1 : iphase * nonods)=dummy%val(3,:)
+         do ele = 1, ele_count( field )
+            do ilev = 1, nlev
+               field_u_prot( (iphase-1) * nonods + (ele-1) * nloc + (ilev-1) * nloc2 + 1 : &
+                    &           (iphase-1) * nonods + (ele-1) * nloc + (ilev-1) * nloc2 + nloc2 ) = &
+                    &    ele_val( dummy, 1, ele )
+
+               if (ndim>1) &
+                    field_v_prot( (iphase-1) * nonods + (ele-1) * nloc + (ilev-1) * nloc2 + 1 : &
+                    &                (iphase-1) * nonods + (ele-1) * nloc + (ilev-1) * nloc2 + nloc2 ) = &
+                    &         ele_val( dummy, 2, ele )
+
+               if (ndim>2) &
+                    field_v_prot( (iphase-1) * nonods + (ele-1) * nloc + (ilev-1) * nloc2 + 1 : &
+                    &                (iphase-1) * nonods + (ele-1) * nloc + (ilev-1) * nloc2 + nloc2 ) = &
+                    &          ele_val( dummy, 3, ele )
+            end do
+         end do
 
          call deallocate(dummy)
 

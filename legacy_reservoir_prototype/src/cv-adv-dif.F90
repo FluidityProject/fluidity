@@ -34,6 +34,7 @@
     use state_module
     use spud
     use global_parameters, only: option_path_len
+    use futils
 
   contains
 
@@ -1692,7 +1693,7 @@
       nstates = option_count( "/material_phase" )
       have_component = .false.
       do istate = 1, nstates
-         if( have_option( '/material_phase[' // int2str( istate - 1 ) //']/is_multiphase_component/' ) ) ) then
+         if( have_option( '/material_phase[' // int2str( istate - 1 ) //']/is_multiphase_component/' ) ) then
             have_component = .true.
          end if
       end do
