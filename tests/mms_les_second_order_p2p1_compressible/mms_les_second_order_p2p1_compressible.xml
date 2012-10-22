@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 <testproblem>
 
   <name>mms_les_second_order_p2p1_compressible</name>
   <owner userid="ctj10"/>
   <tags>flml</tags>
   
-  <problem_definition length="medium" nprocs="1">
-    <command_line>make run</command_line>
+  <problem_definition length="special" nprocs="1">
+    <command_line>fluidity -v3 MMS_A.flml &gt; MMS_A.log; fluidity -v3 MMS_B.flml &gt; MMS_B.log; fluidity -v3 MMS_C.flml &gt; MMS_C.log</command_line>
   </problem_definition>
   
   <variables>
