@@ -106,7 +106,7 @@
       <comment>10.0</comment>
     </finish_time>
     <nonlinear_iterations>
-      <integer_value rank="0">2</integer_value>
+      <integer_value rank="0">3</integer_value>
       <tolerance>
         <real_value rank="0">1.0e-9</real_value>
         <infinity_norm/>
@@ -262,8 +262,16 @@
             </mass_terms>
             <advection_terms/>
             <stress_terms>
-              <tensor_form/>
+              <stress_form/>
             </stress_terms>
+            <les_model>
+              <second_order>
+                <smagorinsky_coefficient>
+                  <real_value rank="0">0.1</real_value>
+                </smagorinsky_coefficient>
+                <length_scale_type>scalar</length_scale_type>
+              </second_order>
+            </les_model>
           </continuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0.0</real_value>
@@ -326,11 +334,11 @@
         <tensor_field name="Viscosity" rank="2">
           <prescribed>
             <value name="WholeMesh">
-              <isotropic>
+              <anisotropic_asymmetric>
                 <constant>
-                  <real_value rank="0">0.7</real_value>
+                  <real_value symmetric="false" dim2="dim" shape="2 2" dim1="dim" rank="2">0.5 0.5 0.5 0.5</real_value>
                 </constant>
-              </isotropic>
+              </anisotropic_asymmetric>
             </value>
             <output/>
           </prescribed>

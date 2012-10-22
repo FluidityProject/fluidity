@@ -28,12 +28,12 @@ gamma = 1.4
 
 p = (gamma-1.0)*ie*rho
 
-nu = 0.7
+nu = 0.5
 
 # Smagorinsky model
 Cs = 0.1
 n = 8
-Delta2 = 0.0771062843836 # Delta squared - the area of each element in MMS_A.msh.
+Delta2 = 0.005 # Delta squared - the area of each element in MMS_A.msh.
 
 S_xx = diff(u,x)
 S_xy = 0.5*(diff(u,y) + diff(v,x))
@@ -45,17 +45,12 @@ nu_T = 2*rho*((Cs)**2)*S_norm*Delta2
 
 #print "DIVERGENCE = ", diff(u,x) + diff(v,y)
 
-#nu = nu+nu_T
+nu = nu+nu_T
 
-#tau_xx = 2*nu*diff(u,x) - (2.0/3.0)*nu*(diff(u,x) + diff(v,y))
-#tau_xy = nu*(diff(u,y) + diff(v,x))
-#tau_yy = 2*nu*diff(v,y) - (2.0/3.0)*nu*(diff(u,x) + diff(v,y)) 
-#tau_yx = nu*(diff(u,y) + diff(v,x))
-
-tau_xx = nu*diff(u,x)            
-tau_yy = nu*diff(v,y)
-tau_xy = nu*diff(u,y)
-tau_yx = nu*diff(v,x)  
+tau_xx = 2*nu*diff(u,x) - (2.0/3.0)*nu*(diff(u,x) + diff(v,y))
+tau_xy = nu*(diff(u,y) + diff(v,x))
+tau_yy = 2*nu*diff(v,y) - (2.0/3.0)*nu*(diff(u,x) + diff(v,y)) 
+tau_yx = nu*(diff(u,y) + diff(v,x))
 
 Su = rho*u*diff(u,x) + rho*v*diff(u,y) - diff(tau_xx, x) - diff(tau_xy, y) + diff(p,x)  
 Sv = rho*u*diff(v,x) + rho*v*diff(v,y) - diff(tau_yx, x) - diff(tau_yy, y) + diff(p,y)
