@@ -81,7 +81,8 @@ contains
     integer, intent(out), optional              :: stat
     character(len=FIELD_NAME_LEN)               :: name
 
-    call get_option(trim(state%option_path)//'/sediment/scalar_field['//int2str(i_field -&
+	! had to remove trim(state%option_path)// as this didn't work with flredecomp
+    call get_option('/material_phase[0]/sediment/scalar_field['//int2str(i_field -&
          & 1)//']/name', name) 
     item => extract_scalar_field(state, trim(name), stat)
 
@@ -95,7 +96,8 @@ contains
     character(len=FIELD_NAME_LEN), intent(out)  :: item
     integer, intent(out), optional              :: stat
 
-    call get_option(trim(state%option_path)//'/sediment/scalar_field['//int2str(i_field -&
+	! had to remove trim(state%option_path)// as this didn't work with flredecomp
+    call get_option('/material_phase[0]/sediment/scalar_field['//int2str(i_field -&
          & 1)//']/name', item, stat=stat) 
 
   end subroutine get_sediment_field_name
@@ -109,7 +111,8 @@ contains
     character(len=FIELD_NAME_LEN), intent(out)  :: item
     integer, intent(out), optional              :: stat
 
-    call get_option(trim(state%option_path)//'/sediment/scalar_field['//int2str(i_field -&
+	! had to remove trim(state%option_path)// as this didn't work with flredecomp
+    call get_option('/material_phase[0]/sediment/scalar_field['//int2str(i_field -&
          & 1)//']/prognostic/'//option, item, stat=stat) 
 
   end subroutine get_sediment_option_string
@@ -124,7 +127,8 @@ contains
     integer, intent(out), optional              :: stat
     real, intent(in), optional                  :: default
     
-    call get_option(trim(state%option_path)//'/sediment/scalar_field['//int2str(i_field -&
+	! had to remove trim(state%option_path)// as this didn't work with flredecomp
+    call get_option('/material_phase[0]/sediment/scalar_field['//int2str(i_field -&
          & 1)//']/prognostic/'//option, item, stat = stat, default = default) 
 
   end subroutine get_sediment_option_real
@@ -140,7 +144,8 @@ contains
     
     character(len=FIELD_NAME_LEN)               :: field_name
 
-    call get_option(trim(state%option_path)//'/sediment/scalar_field['//int2str(i_field -&
+	! had to remove trim(state%option_path)// as this didn't work with flredecomp
+    call get_option('/material_phase[0]/sediment/scalar_field['//int2str(i_field -&
          & 1)//']/name', field_name) 
     item => extract_scalar_field(state, trim(field_name)//option, stat)
 
