@@ -2,6 +2,8 @@
 #include "../FluxesReader.h"
 #include "../BulkForcing.h"
 #include <fstream>
+#include "global_parameters.h"
+#include "coordinates.h"
 
 using namespace std;
 
@@ -11,7 +13,6 @@ extern "C" {
     void test_coare_ocean_fluxes_fc();
 }
 
-extern int projections(int nPoints, double *x, double *y, double *z, string current_coord, string output_coord);
 extern void report_test(const string& title, const bool& fail, const bool& warn, const string& msg);
 
 void test_coare_ocean_fluxes_fc() {
@@ -19,18 +20,15 @@ void test_coare_ocean_fluxes_fc() {
    
 #ifdef HAVE_LIBUDUNITS
     FluxesReader FluxesReader_ERAdata;
-    int err = -1;
     bool fail = true;
     bool warn = false;
     char errorMessage[256];
     int NNodes = 1;
-    double error;
     double time = 86400;
     vector<double> T(NNodes, 0.0), S(NNodes, 35.0), Vx(NNodes, 0.0), Vy(NNodes, 0.0), Vz(NNodes, 0.0),
     F_as(NNodes, 0.0), Q_as(NNodes, 0.0), tau_u(NNodes, 0.0), tau_v(NNodes, 0.0),
     X(NNodes, 0.0), Y(NNodes, 0.0), Z(NNodes, 0.0), Q_solar(NNodes, 0.0), e(NNodes,0.0),
-    q_l(NNodes,0.0), q_h(NNodes,0.0), q_e(NNodes, 0.0), q_p(NNodes, 0.0), x(NNodes,0.0), 
-    y(NNodes,0.0), z(NNodes,0.0);
+    q_l(NNodes,0.0), q_h(NNodes,0.0), q_e(NNodes, 0.0), q_p(NNodes, 0.0);
 
     // set up the normal input file (ERA40)
     FluxesReader_global.RegisterDataFile("../../tests/data/stationPapa_1970.nc");
@@ -62,7 +60,6 @@ void test_coare_ocean_fluxes_fc() {
     int const nFields_in=9, nFields_out=7;
     double values_in[nFields_in];
     double values_out[nFields_out];
-    int ret;
     double accumulated_correction = 6.0*60.0*60.0;
 
     int n = 1;
@@ -71,14 +68,16 @@ void test_coare_ocean_fluxes_fc() {
     X[0] = -3.35835e+06;
     Y[0] = -2.35154e+06;
     Z[0] = 4.88594e+06;
-    y[0] = Y[0] , x[0] = X[0] , z[0] = Z[0];
-    ret = projections(n, &x[0], &y[0], &z[0], "cart", "spherical");
-    if (ret != 0) {
-        cerr<<"Error converting coord system"<<endl;
-    }
+    double surface_radius = 6.37101e+06;
+    double longitude = 0.0;
+    double latitude = 0.0;
+    double height = 0.0;
+    cartesian_2_lon_lat_height_c(&X[0], &Y[0], &Z[0],
+                                 &longitude, &latitude, &height,
+                                 &surface_radius);
     
-    FluxesReader_ERAdata.GetScalars(x[0], y[0], values_out);
-    FluxesReader_global.GetScalars(x[0], y[0], values_in);
+    FluxesReader_ERAdata.GetScalars(longitude, latitude, values_out);
+    FluxesReader_global.GetScalars(longitude, latitude, values_in);
     double temp =  (values_in[3] - values_out[3]);
     temp = temp / accumulated_correction; // correcting for accumulated values
     temp = temp / 5.67e-8;                // SB constant
@@ -110,9 +109,9 @@ void test_coare_ocean_fluxes_fc() {
     for (int t = 86400 ; t < 2592000; t += 21600) {
     
         FluxesReader_ERAdata.SetTimeSeconds(t);
-        FluxesReader_ERAdata.GetScalars(x[0], y[0], values_out);
+        FluxesReader_ERAdata.GetScalars(longitude, latitude, values_out);
         FluxesReader_global.SetTimeSeconds(t);
-        FluxesReader_global.GetScalars(x[0], y[0], values_in);
+        FluxesReader_global.GetScalars(longitude, latitude, values_in);
 
         // now let's work out the fluxes for our test location
         double Tau_u_out = values_out[4]/(accumulated_correction*ocean_density);
