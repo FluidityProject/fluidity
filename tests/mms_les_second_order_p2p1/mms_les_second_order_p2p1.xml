@@ -97,8 +97,8 @@ assert(ab_convergence_vel[0] &gt; 2.8)
 assert(ab_convergence_vel[1] &gt; 2.8)
     </test>
     
-    <test name="ab_convergence_p: L2 order > 1.9" language="python">
-assert(ab_convergence_p &gt; 1.9)
+    <test name="ab_convergence_p: L2 order > 1.75" language="python">
+assert(ab_convergence_p &gt; 1.75)
     </test>
     
     <test name="bc_convergence_vel_x for Fluid: L2 order > 2.8" language="python">
