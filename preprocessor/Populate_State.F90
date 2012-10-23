@@ -990,7 +990,7 @@ contains
               ewrite(-1,*) trim(mesh_file_format), " is not a valid format for a mesh file"
               FLAbort("Invalid format for mesh file")
             end select
-         end if
+          end if
 
           ! Set mesh parameters
 !          solid_mesh = solid_position%mesh
