@@ -32,6 +32,12 @@ MinimumPressure = fluidity_tools.stat_parser("backward_facing_step_2d_kim_kepsil
 import fluidity_tools
 FinalNodeCount = fluidity_tools.stat_parser("backward_facing_step_2d_kim_kepsilon.stat")['CoordinateMesh']['nodes'][-1]
     </variable>
+    <variable name="RL" language="python">
+from postprocessor_2d import reattachment_length, get_filelist
+import numpy
+filelist = get_filelist(sample=5, start=0)
+RL = numpy.array(reattachment_length(filelist))
+    </variable>
   </variables>
   <pass_tests>
     <test name="Solvers converged" language="python">
@@ -51,6 +57,10 @@ assert MinimumPressure &gt; -0.25
     </test>
     <test name="Check final number of nodes within 100 of the number I had when run with code revision 10100" language="python">
 assert abs ( FinalNodeCount - 14200 ) &lt; 1000
+    </test>
+    <test name="Reattachment length does not change by more than 10%" language="python">
+        print ( ( max(RL[:,0]) - min(RL[:,0]) ) / min(RL[:,0]) )
+assert( ( max(RL[:,0]) - min(RL[:,0]) ) / min(RL[:,0]) &lt; 0.1)
     </test>
   </pass_tests>
   <warn_tests>
