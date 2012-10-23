@@ -132,10 +132,10 @@
             eos_option_path_out = trim( eos_option_path_out ) // '/exponential_oil_gas'
 
          elseif( have_option( trim( eos_option_path_out ) // '/linear_in_pressure' ) ) then
-            eos_option_path_out = trim( eos_option_path_out // '/linear_in_pressure' )
+            eos_option_path_out = trim( eos_option_path_out ) // '/linear_in_pressure'
 
             if( have_option( trim( eos_option_path_out ) // '/include_internal_energy' ) ) &
-                 eos_option_path_out = trim( eos_option_path_out // '/include_internal_energy' )
+                 eos_option_path_out = trim( eos_option_path_out ) // '/include_internal_energy'
 
          elseif( have_option( trim( eos_option_path_out ) // '/exponential_in_pressure' ) ) then
             eos_option_path_out = trim( eos_option_path_out ) // '/exponential_in_pressure'
@@ -240,6 +240,9 @@
          option_path_python = trim( '/material_phase['  // int2str( istate2 - 1 ) // ']/equation_of_state/python_state/algorithm' )
          eos_option_path_tmp = trim( eos_option_path( istate2 ) )
 
+
+
+
          Conditional_EOS_Option: if( trim( eos_option_path_tmp ) == trim( option_path_comp ) // '/stiffened_gas' ) then
 !!$ Den = C0 / T * ( P - C1 )
             if( .not. have_temperature_field ) FLAbort( 'Temperature Field not defined' )
@@ -271,8 +274,8 @@
 !!$ Den = C0 * P/T +C1
             if( .not. have_temperature_field ) FLAbort( 'Temperature Field not defined' )
             allocate( eos_coefs( 2 ) ) ; eos_coefs = 0.
-            call get_option( trim( eos_option_path_tmp ) // '/coefficient_A', eos_coefs( 1 ) )
-            call get_option( trim( eos_option_path_tmp ) // '/coefficient_B', eos_coefs( 2 ) )
+            call get_option( trim( option_path_comp ) // '/linear_in_pressure/coefficient_A', eos_coefs( 1 ) )
+            call get_option( trim( option_path_comp ) // '/linear_in_pressure/coefficient_B', eos_coefs( 2 ) )
             Density_Field = eos_coefs( 1 ) * pressure % val / temperature % val + eos_coefs( 2 )
             perturbation_pressure = 1.
             DensityPlus = eos_coefs( 1 ) * ( pressure % val + perturbation_pressure ) / &
