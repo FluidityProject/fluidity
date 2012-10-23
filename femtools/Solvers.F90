@@ -44,30 +44,15 @@ module solvers
   use parallel_tools
 #ifdef HAVE_PETSC_MODULES
   use petsc 
-#if PETSC_VERSION_MINOR==0
-  use petscvec 
-  use petscmat 
-  use petscksp 
-  use petscpc
-#endif
 #endif
   implicit none
   ! Module to provide explicit interfaces to matrix solvers.
 
 #include "petscversion.h"
 #ifdef HAVE_PETSC_MODULES
-#include "finclude/petscvecdef.h"
-#include "finclude/petscmatdef.h"
-#include "finclude/petsckspdef.h"
-#include "finclude/petscpcdef.h"
+#include "finclude/petscdef.h"
 #else
 #include "finclude/petsc.h"
-#if PETSC_VERSION_MINOR==0
-#include "finclude/petscvec.h"
-#include "finclude/petscmat.h"
-#include "finclude/petscksp.h"
-#include "finclude/petscpc.h"
-#endif
 #endif
 
   ! stuff used in the PETSc monitor (see petsc_solve_callback_setup() below)
@@ -1659,24 +1644,24 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     ! Set up the monitors:
     if (have_option(trim(solver_option_path)// &
        '/diagnostics/monitors/preconditioned_residual')) then
-        call KSPMonitorSet(ksp, KSPMonitorDefault, PETSC_NULL_INTEGER, &
+        call KSPMonitorSet(ksp, KSPMonitorDefault, PETSC_NULL_OBJECT, &
            PETSC_NULL_FUNCTION, ierr)
     end if
     if (have_option(trim(solver_option_path)// &
        '/diagnostics/monitors/true_residual')) then
-        call KSPMonitorSet(ksp, KSPMonitorTrueResidualNorm, PETSC_NULL_INTEGER, &
+        call KSPMonitorSet(ksp, KSPMonitorTrueResidualNorm, PETSC_NULL_OBJECT, &
            PETSC_NULL_FUNCTION, ierr)
     end if
     if (have_option(trim(solver_option_path)// &
        '/diagnostics/monitors/preconditioned_residual_graph')) then
-        call KSPMonitorSet(ksp, KSPMonitorLG, PETSC_NULL_INTEGER, &
+        call KSPMonitorSet(ksp, KSPMonitorLG, PETSC_NULL_OBJECT, &
            PETSC_NULL_FUNCTION, ierr)
     end if
 
     if (have_option(trim(solver_option_path)// &
        '/diagnostics/monitors/true_error') &
        .and. .not. petsc_monitor_has_exact) then
-       ewrite(0,*) "Solver option diagnostics/monitors/true_error set but "
+       ewrite(-1,*) "Solver option diagnostics/monitors/true_error set but "
        ewrite(0,*) "petsc_solve_monitor_exact() not called. This probably means"
        ewrite(0,*) "this version of petsc_solve() doesn't support the monitor."
        FLExit("petsc_solve_monitor_exact() not called")
@@ -1700,7 +1685,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
          FLAbort("Need petsc_numbering for monitor")
        end if
        call petsc_monitor_setup(petsc_numbering, max_its)
-       call KSPMonitorSet(ksp,MyKSPMonitor,PETSC_NULL_INTEGER, &
+       call KSPMonitorSet(ksp,MyKSPMonitor,PETSC_NULL_OBJECT, &
             &                     PETSC_NULL_FUNCTION,ierr)
     end if
 
@@ -1725,6 +1710,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     KSP:: subksp
     PC:: subpc
     PCType:: pctype, hypretype
+    MatSolverPackage:: matsolverpackage
     PetscErrorCode:: ierr
     
     call get_option(trim(option_path)//'/name', pctype)
@@ -1825,6 +1811,11 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
        ! set pctype again to enforce flml choice
        call PCSetType(pc, pctype, ierr)
 
+       if (pctype==PCLU) then
+          call get_option(trim(option_path)//'/factorization_package/name', matsolverpackage)
+          call PCFactorSetMatSolverPackage(pc, matsolverpackage, ierr)
+       end if
+      
     end if
     
     ewrite(2, *) 'pc_type: ', trim(pctype)
@@ -1842,7 +1833,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     PCType:: pctype
     PetscReal:: rtol, atol, dtol
     PetscInt:: maxits
-#if PETSC_VERSION_MINOR==2
+#if PETSC_VERSION_MINOR>=2
     PetscBool:: flag
 #else
     PetscTruth:: flag
@@ -2164,9 +2155,6 @@ subroutine MyKSPMonitor(ksp,n,rnorm,dummy,ierr)
   Mat:: Amat, Pmat
   PC:: pc
   Vec:: dummy_vec, r, rhs
-
-  ! Stop warnings.
-  ierr = dummy  
 
   !  Build the solution vector  
   call VecZeroEntries(petsc_monitor_x,ierr)

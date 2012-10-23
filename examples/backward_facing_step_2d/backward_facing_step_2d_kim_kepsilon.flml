@@ -439,9 +439,19 @@
         <sigma_p>
           <real_value rank="0">1.0</real_value>
         </sigma_p>
-        <mass_lumping_in_diagnostics>
+        <time_discretisation>
+          <theta>
+            <real_value rank="0">0.5</real_value>
+          </theta>
+          <source_term_implementation>
+            <production_term>source</production_term>
+            <destruction_term>absorbtion</destruction_term>
+            <buoyancy_term>source</buoyancy_term>
+          </source_term_implementation>
+        </time_discretisation>
+        <mass_terms>
           <lump_mass/>
-        </mass_lumping_in_diagnostics>
+        </mass_terms>
       </k-epsilon>
     </subgridscale_parameterisations>
     <scalar_field name="Pressure" rank="0">
