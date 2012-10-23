@@ -143,15 +143,11 @@
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
-          <continuous_galerkin>
-            <stabilisation>
-              <no_stabilisation/>
-            </stabilisation>
-            <advection_terms/>
-            <mass_terms/>
-          </continuous_galerkin>
+          <control_volumes>
+            <face_value name="FirstOrderUpwind"/>
+          </control_volumes>
           <conservative_advection>
-            <real_value rank="0">0.0</real_value>
+            <real_value rank="0">1.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
@@ -210,12 +206,12 @@
         <spatial_discretisation>
           <continuous_galerkin>
             <stabilisation>
-              <streamline_upwind>
+              <streamline_upwind_petrov_galerkin>
                 <nu_bar_optimal/>
-                <nu_scale name="custom">
-                  <real_value rank="0">0.5</real_value>
+                <nu_scale name="0.5">
+                  <real_value shape="1" rank="0">0.5</real_value>
                 </nu_scale>
-              </streamline_upwind>
+              </streamline_upwind_petrov_galerkin>
             </stabilisation>
             <mass_terms>
               <lump_mass_matrix>
@@ -224,7 +220,7 @@
             </mass_terms>
             <advection_terms/>
             <stress_terms>
-              <tensor_form/>
+              <stress_form/>
             </stress_terms>
           </continuous_galerkin>
           <conservative_advection>
@@ -317,11 +313,11 @@
         <tensor_field name="Viscosity" rank="2">
           <prescribed>
             <value name="WholeMesh">
-              <isotropic>
+              <anisotropic_asymmetric>
                 <constant>
-                  <real_value rank="0">1.87e-5</real_value>
+                  <real_value symmetric="false" dim2="dim" shape="2 2" dim1="dim" rank="2">1.87e-5 1.87e-5 1.87e-5 1.87e-5</real_value>
                 </constant>
-              </isotropic>
+              </anisotropic_asymmetric>
             </value>
             <output/>
           </prescribed>
@@ -356,18 +352,14 @@
           <include_pressure_term/>
         </equation>
         <spatial_discretisation>
-          <continuous_galerkin>
-            <stabilisation>
-              <streamline_upwind>
-                <nu_bar_optimal/>
-                <nu_scale name="custom">
-                  <real_value rank="0">0.5</real_value>
-                </nu_scale>
-              </streamline_upwind>
-            </stabilisation>
-            <advection_terms/>
-            <mass_terms/>
-          </continuous_galerkin>
+          <control_volumes>
+            <face_value name="FiniteElement">
+              <limit_face_value>
+                <limiter name="Sweby"/>
+              </limit_face_value>
+            </face_value>
+            <diffusion_scheme name="ElementGradient"/>
+          </control_volumes>
           <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
@@ -404,6 +396,18 @@
     return 208333.333333</string_value>
           </python>
         </initial_condition>
+        <tensor_field name="Diffusivity" rank="2">
+          <prescribed>
+            <value name="WholeMesh">
+              <isotropic>
+                <constant>
+                  <real_value rank="0">0.00065963060686</real_value>
+                </constant>
+              </isotropic>
+            </value>
+            <output/>
+          </prescribed>
+        </tensor_field>
         <output/>
         <stat/>
         <convergence>
@@ -500,12 +504,12 @@
         <spatial_discretisation>
           <continuous_galerkin>
             <stabilisation>
-              <streamline_upwind>
+              <streamline_upwind_petrov_galerkin>
                 <nu_bar_optimal/>
-                <nu_scale name="custom">
-                  <real_value rank="0">0.5</real_value>
+                <nu_scale name="0.5">
+                  <real_value shape="1" rank="0">0.5</real_value>
                 </nu_scale>
-              </streamline_upwind>
+              </streamline_upwind_petrov_galerkin>
             </stabilisation>
             <mass_terms>
               <lump_mass_matrix>
@@ -605,6 +609,18 @@
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
+        <tensor_field name="Viscosity" rank="2">
+          <prescribed>
+            <value name="WholeMesh">
+              <isotropic>
+                <constant>
+                  <real_value rank="0">0.5</real_value>
+                </constant>
+              </isotropic>
+            </value>
+            <output/>
+          </prescribed>
+        </tensor_field>
         <output/>
         <stat>
           <include_in_stat/>
@@ -632,21 +648,16 @@
         <mesh name="PressureMesh"/>
         <equation name="InternalEnergy">
           <density name="Density"/>
-          <include_pressure_term/>
         </equation>
         <spatial_discretisation>
-          <continuous_galerkin>
-            <stabilisation>
-              <streamline_upwind>
-                <nu_bar_optimal/>
-                <nu_scale name="custom">
-                  <real_value rank="0">0.5</real_value>
-                </nu_scale>
-              </streamline_upwind>
-            </stabilisation>
-            <advection_terms/>
-            <mass_terms/>
-          </continuous_galerkin>
+          <control_volumes>
+            <face_value name="FiniteElement">
+              <limit_face_value>
+                <limiter name="Sweby"/>
+              </limit_face_value>
+            </face_value>
+            <diffusion_scheme name="ElementGradient"/>
+          </control_volumes>
           <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
@@ -746,6 +757,12 @@
     return 1.0e-7</string_value>
           </python>
         </initial_condition>
+        <boundary_conditions name="All">
+          <surface_ids>
+            <integer_value shape="3" rank="1">333 444 666</integer_value>
+          </surface_ids>
+          <type name="zero_flux"/>
+        </boundary_conditions>
         <output/>
         <stat/>
         <convergence>
