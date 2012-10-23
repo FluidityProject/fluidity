@@ -306,7 +306,9 @@ contains
     allocate( V_SOURCE_STORE( cv_nonods * nphase )) ; V_SOURCE_STORE = 0.0
     allocate( V_SOURCE_COMP( cv_nonods * nphase )) ; V_SOURCE_COMP = 0.0
 
-    allocate( PLIKE_GRAD_SOU_GRAD( cv_nonods * nphase )) ; PLIKE_GRAD_SOU_GRAD =0.0
+    allocate( PLIKE_GRAD_SOU_GRAD( cv_nonods * nphase )) ; PLIKE_GRAD_SOU_GRAD = 0.0
+    allocate( PLIKE_GRAD_SOU_COEF( cv_nonods * nphase )) ; PLIKE_GRAD_SOU_COEF = 0.0
+
     allocate( mass_ele( totele ) ) ; mass_ele = 0.
     allocate( dummy_ele( totele ) ) ; dummy_ele = 0.
 
@@ -433,13 +435,13 @@ contains
        Loop_ITS: DO ITS = 1, NITS
           ewrite(1,*)' New Non-Linear Iteration:', its
 
-          call copy_into_state( state, satura, t, p, u, v, w, den, comp, & 
-               ncomp, nphase, cv_ndgln, p_ndgln, u_ndgln, ndim )
+          !call copy_into_state( state, satura, t, p, u, v, w, den, comp, & 
+          !     ncomp, nphase, cv_ndgln, p_ndgln, u_ndgln, ndim )
 
           CALL Calculate_Phase_Component_Densities( state, DEN, DERIV )
 
-          call copy_into_state( state, satura, t, p, u, v, w, den, comp, & 
-               ncomp, nphase, cv_ndgln, p_ndgln, u_ndgln, ndim )
+          !call copy_into_state( state, satura, t, p, u, v, w, den, comp, & 
+          !     ncomp, nphase, cv_ndgln, p_ndgln, u_ndgln, ndim )
 
           if ( its == 1 ) DENOLD = DEN
 
@@ -491,8 +493,8 @@ contains
 
              CALL Calculate_Phase_Component_Densities( state, DEN, DERIV )
 
-             call copy_into_state( state, satura, t, p, u, v, w, den, comp, & 
-                  ncomp, nphase, cv_ndgln, p_ndgln, u_ndgln, ndim )
+             !call copy_into_state( state, satura, t, p, u, v, w, den, comp, & 
+             !     ncomp, nphase, cv_ndgln, p_ndgln, u_ndgln, ndim )
 
              if (SIG_INT) exit Loop_ITS
 
@@ -513,7 +515,7 @@ contains
 
           IF( have_option("/material_phase[0]/multiphase_properties/capillary_pressure") ) THEN
              CALL calculate_capillary_pressure( state, CV_NONODS, NPHASE, PLIKE_GRAD_SOU_GRAD, SATURA )
-          ENDIF
+          END IF
 
           V_SOURCE_STORE = V_SOURCE + V_SOURCE_COMP
 
@@ -578,8 +580,8 @@ contains
                   IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, &
                   scale_momentum_by_volume_fraction )
 
-             call copy_into_state( state, satura, t, p, u, v, w, den, comp, & 
-                  ncomp, nphase, cv_ndgln, p_ndgln, u_ndgln, ndim )
+             !call copy_into_state( state, satura, t, p, u, v, w, den, comp, & 
+             !     ncomp, nphase, cv_ndgln, p_ndgln, u_ndgln, ndim )
 
           end if
 
@@ -618,8 +620,8 @@ contains
                   option_path = '/material_phase[0]/scalar_field::PhaseVolumeFraction', &
                   mass_ele_transp = mass_ele )
 
-             call copy_into_state( state, satura, t, p, u, v, w, den, comp, & 
-                  ncomp, nphase, cv_ndgln, p_ndgln, u_ndgln, ndim )
+             !call copy_into_state( state, satura, t, p, u, v, w, den, comp, & 
+             !     ncomp, nphase, cv_ndgln, p_ndgln, u_ndgln, ndim )
 
           end if
 
@@ -684,6 +686,9 @@ contains
                   MAT_NDGLN, U_NDGLN, X_NDGLN, &
                   U_ELE_TYPE, P_ELE_TYPE )
 
+             ewrite(3,*)'COMP', COMP(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 : ICOMP * NPHASE * CV_NONODS )
+             ewrite(3,*)'COMPold', COMPold(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 : ICOMP * NPHASE * CV_NONODS )
+
              ! nits_internal=1 check Copy_Outof_Into_State.F90 for more
              Loop_ITS2: DO ITS2 = 1, 3 !nits_internal
 
@@ -699,7 +704,7 @@ contains
                 ewrite(3,*)'SUF_COMP_BC_ROB2:',SUF_COMP_BC_ROB2
                 ewrite(3,*)'COMP_SOURCE:', COMP_SOURCE
                 ewrite(3,*)'COMP_ABSORB:', COMP_ABSORB
-                !ewrite(3,*)'COMP_DIFFUSION:', COMP_DIFFUSION
+                ewrite(3,*)'COMP_DIFFUSION:', COMP_DIFFUSION
 
                 CALL INTENERGE_ASSEM_SOLVE( state, &
                      NCOLACV, FINACV, COLACV, MIDACV, & ! CV sparsity pattern matrix
@@ -740,8 +745,8 @@ contains
                      mass_ele_transp = dummy_ele, &
                      thermal=.false. ) ! the false means that we don't add an extra source term
 
-                call copy_into_state( state, satura, t, p, u, v, w, den, comp, & 
-                     ncomp, nphase, cv_ndgln, p_ndgln, u_ndgln, ndim )
+             !   call copy_into_state( state, satura, t, p, u, v, w, den, comp, & 
+             !        ncomp, nphase, cv_ndgln, p_ndgln, u_ndgln, ndim )
 
              END DO Loop_ITS2
 

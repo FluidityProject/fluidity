@@ -353,6 +353,7 @@
            'limit_face_value/limiter::Extrema'
       limit_use_2nd = .false.
       if( have_option( option_path ) .or. have_option( option_path2 ) ) limit_use_2nd = .true.
+      !limit_use_2nd = .true.
 
       ewrite(3,*)'CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA, LIMIT_USE_2ND, SECOND_THETA:', &
            CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA, LIMIT_USE_2ND, SECOND_THETA
@@ -2139,10 +2140,10 @@ ewrite(3,*)'path:', trim( path )
       Loop_Elements1: DO ELE = 1, TOTELE
 
          ! Calculate DETWEI,RA,NX,NY,NZ for element ELE
-!         CALL DETNLXR_SUPER( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, X_NLOC, CV_NLOC, CV_NGI, &
-!              X_N, X_NLX, X_NLY, X_NLZ, N, NLX, NLY, NLZ, &
-!              CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
-!              NX, NY, NZ ) 
+         !CALL DETNLXR_SUPER( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, X_NLOC, CV_NLOC, CV_NGI, &
+         !     X_N, X_NLX, X_NLY, X_NLZ, N, NLX, NLY, NLZ, &
+         !     CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
+         !     NX, NY, NZ ) 
          ! Calculate DETWEI,RA,NX,NY,NZ for element ELE
          CALL DETNLXR_PLUS_U( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, &
               X_NLOC, X_NLOC, CV_NGI, &
@@ -2410,14 +2411,14 @@ ewrite(3,*)'path:', trim( path )
 
       END DO Loop_Elements3
 
-      ewrite(3,*)'--derivative:'
-      do ele=1,-totele
-         do cv_iloc=1,cv_nloc
-            !ewrite(3,*)x(x_ndgln((ele-1)*x_nloc+cv_iloc)),femt(cv_ndgln((ele-1)*cv_nloc+cv_iloc))
-            ewrite(3,*)x(x_ndgln((ele-1)*x_nloc+cv_iloc)),DTX_ELE(cv_iloc,1,ele)
-            !ewrite(3,*)x(x_ndgln((ele-1)*x_nloc+cv_iloc)),VTX_ELE(cv_iloc,1,ele)
-         end do
-      end do
+      !ewrite(3,*)'--derivative:'
+      !do ele=1,-totele
+      !   do cv_iloc=1,cv_nloc
+      !      !ewrite(3,*)x(x_ndgln((ele-1)*x_nloc+cv_iloc)),femt(cv_ndgln((ele-1)*cv_nloc+cv_iloc))
+      !      ewrite(3,*)x(x_ndgln((ele-1)*x_nloc+cv_iloc)),DTX_ELE(cv_iloc,1,ele)
+      !      !ewrite(3,*)x(x_ndgln((ele-1)*x_nloc+cv_iloc)),VTX_ELE(cv_iloc,1,ele)
+      !   end do
+      !end do
       !stop 331
 
       DEALLOCATE( DETWEI ) 
@@ -2740,7 +2741,7 @@ ewrite(3,*)'path:', trim( path )
          FTILOU = ( TDCEN - TUPWI2 ) / DENOOU
 
          ! Velocity is going out of element
-         TDLIM= INCOME*( TUPWIN + NVDFUNNEW( FTILIN, CTILIN, -1.0 ) * DENOIN ) &
+         TDLIM= INCOME*( TUPWIN + NVDFUNNEW( FTILIN, CTILIN, COURANT_OR_MINUS_ONE ) * DENOIN ) &
               + ( 1.0 - INCOME ) * ( TUPWI2 + NVDFUNNEW( FTILOU, CTILOU, COURANT_OR_MINUS_ONE ) &
               * DENOOU )
 
@@ -2990,7 +2991,9 @@ ewrite(3,*)'path:', trim( path )
          !  limit is defined by XI, not the Hyper-C scheme.)
 
          IF( COURAT > 0.0 ) THEN
-            TILDEUF = MIN( 1.0, max( UC / COURAT, XI * UC ))
+            !TILDEUF = MIN( 1.0, max( UC / COURAT, XI * UC ))
+            ! halve the slope for now...
+            TILDEUF = MIN( 1.0, max( UC / 1.0*COURAT, XI * UC ))
          ELSE !For the normal limiting
             MAXUF = MAX( 0.0, UF )
             TILDEUF = MIN( 1.0, XI * UC, MAXUF )

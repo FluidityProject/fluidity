@@ -923,7 +923,7 @@ ewrite(3,*)'-->:',k + 1, k + node_count( field ), kk + 1, kk + stotel * cv_snloc
             grm=grm + gravity_direction%val(i,1)**2
          end do
          do i=1,ndim
-            gravity_direction%val(i,:) = gravity_direction%val(i,:)/sqrt(grm)
+            gravity_direction%val(i,:) = gravity_direction%val(i,:) / sqrt( grm )
          end do
       end if
 
@@ -957,25 +957,25 @@ ewrite(3,*)'-->:',k + 1, k + node_count( field ), kk + 1, kk + stotel * cv_snloc
          enddo
       end if Conditional_VelocitySource
 
-      density => extract_scalar_field(state(1), "Density")
-      if (have_gravity) then
-         do i = 1, nphases - 1
-            delta_den = 0.
-            do j = 2, node_count( density )
-               delta_den = delta_den + ( den((i)*node_count(density)+j) - &
-                    den((i-1)*node_count(density)+j) ) / &
-                    real( ( node_count( density ) - 1 ) * max( 1, ( nphases - 1 )))
-            end do
-            do j = 1, u_nonods
-               do k = 1, ndim
-                  u_source( ( k - 1 ) * u_nonods * nphases + ( i - 1 ) * u_nonods + j  ) = &
-                       u_source( ( k - 1 ) * u_nonods * nphases + ( i - 1 ) * u_nonods + j  ) + &
-                       delta_den * gravity_magnitude * gravity_direction%val(k,1) * min( 0.027, & 
-                       domain_length /  real( totele * cv_nloc ))
-               end do
-            end do
-         end do
-      end if
+      !density => extract_scalar_field(state(1), "Density")
+      !if (have_gravity) then
+      !   do i = 1, nphases - 1
+      !      delta_den = 0.
+      !      do j = 2, node_count( density )
+      !         delta_den = delta_den + ( den((i)*node_count(density)+j) - &
+      !              den((i-1)*node_count(density)+j) ) / &
+      !              real( ( node_count( density ) - 1 ) * max( 1, ( nphases - 1 )))
+      !      end do
+      !      do j = 1, u_nonods
+      !         do k = 1, ndim
+      !            u_source( ( k - 1 ) * u_nonods * nphases + ( i - 1 ) * u_nonods + j  ) = &
+      !                 u_source( ( k - 1 ) * u_nonods * nphases + ( i - 1 ) * u_nonods + j  ) + &
+      !                 delta_den * gravity_magnitude * gravity_direction%val(k,1) * min( 0.027, & 
+      !                 domain_length /  real( totele * cv_nloc ))
+      !         end do
+      !      end do
+      !   end do
+      !end if
 
 
 !!!
@@ -1095,7 +1095,6 @@ ewrite(3,*)'-->:',k + 1, k + node_count( field ), kk + 1, kk + stotel * cv_snloc
       real, dimension(:), intent(in) :: proto_velocity_w      
       real, dimension(:), intent(in) :: proto_densities
       real, dimension(:), intent(in) :: proto_components
-      !      real, dimension(:,:,:), intent(in) :: velocity_dg
       integer, intent(in) :: ncomp      
       integer, intent(in) :: nphase
       integer, dimension(:), intent(in) :: cv_ndgln
@@ -2315,6 +2314,8 @@ ewrite(3,*)'-->:',k + 1, k + node_count( field ), kk + 1, kk + stotel * cv_snloc
             v_disopt = 8
          end if
       endif
+
+v_disopt=9
 
       call get_option('/material_phase[0]/scalar_field::Temperature/prognostic/' // &
            'spatial_discretisation/conservative_advection', t_beta, default=0.0)

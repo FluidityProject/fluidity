@@ -176,7 +176,6 @@
       SECOND_THETA = 1.0
       path='/material_phase[0]/scalar_field::Temperature/prognostic/temporal_discretisation/control_volumes/second_theta'
       call get_option( path, second_theta, stat )
-
       !SECOND_THETA = 0.0
 
       Loop_NonLinearFlux: DO ITS_FLUX_LIM = 1, NITS_FLUX_LIM
@@ -492,7 +491,6 @@
       SECOND_THETA = 1.0
       path='/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/temporal_discretisation/control_volumes/second_theta'
       call get_option( trim(path), second_theta, stat )
-
       !SECOND_THETA = 0.0
 
       ! THIS DOES NOT WORK FOR NITS_FLUX_LIM>1 (NOBODY KNOWS WHY)
@@ -695,7 +693,7 @@
       ALLOCATE( CT( NCOLCT * NDIM * NPHASE )) ; CT=0.
       ALLOCATE( CT_RHS( CV_NONODS )) ; CT_RHS=0.
       ALLOCATE( DIAG_SCALE_PRES( CV_NONODS )) ; DIAG_SCALE_PRES=0.
-      ALLOCATE( U_RHS( U_NONODS * NDIM * NPHASE )); U_RHS=0.
+      ALLOCATE( U_RHS( U_NONODS * NDIM * NPHASE )) ; U_RHS=0.
       ALLOCATE( MCY_RHS( U_NONODS * NDIM * NPHASE + CV_NONODS )) ; MCY_RHS=0.
       ALLOCATE( C( NCOLC * NDIM * NPHASE )) ; C=0.
       ALLOCATE( MCY( NCOLMCY )) ; MCY=0.
@@ -754,7 +752,7 @@
            THETA_FLUX, ONE_M_THETA_FLUX, &
            IN_ELE_UPWIND, DG_ELE_UPWIND, &
            NOIT_DIM, &
-           IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD,scale_momentum_by_volume_fraction )
+           IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, scale_momentum_by_volume_fraction )
 
       !ewrite(3,*) 'global_solve, just_bl_diag_mat', global_solve, just_bl_diag_mat
 
@@ -919,26 +917,26 @@
 
          CALL ULONG_2_UVW( DU, DV, DW, DU_VEL, U_NONODS, NDIM, NPHASE )
 
-         ewrite(3,*)'old velocity...'
-         ewrite(3,*)'U1', U(1:U_NONODS)
-         ewrite(3,*)'U2', U(1+U_NONODS:2*U_NONODS)
-         ewrite(3,*)'V1', V(1:U_NONODS)
-         ewrite(3,*)'V2', V(1+U_NONODS:2*U_NONODS)
+         !ewrite(3,*)'old velocity...'
+         !ewrite(3,*)'U1', U(1:U_NONODS)
+         !ewrite(3,*)'U2', U(1+U_NONODS:2*U_NONODS)
+         !ewrite(3,*)'V1', V(1:U_NONODS)
+         !ewrite(3,*)'V2', V(1+U_NONODS:2*U_NONODS)
 
-         ewrite(3,*)'DU1', DU(1:U_NONODS)
-         ewrite(3,*)'DU2', DU(1+U_NONODS:2*U_NONODS)
-         ewrite(3,*)'DV1', DV(1:U_NONODS)
-         ewrite(3,*)'DV2', DV(1+U_NONODS:2*U_NONODS)
+         !ewrite(3,*)'DU1', DU(1:U_NONODS)
+         !ewrite(3,*)'DU2', DU(1+U_NONODS:2*U_NONODS)
+         !ewrite(3,*)'DV1', DV(1:U_NONODS)
+         !ewrite(3,*)'DV2', DV(1+U_NONODS:2*U_NONODS)
 
          U = U + DU
          IF( NDIM >= 2 ) V = V + DV
          IF( NDIM >= 3 ) W = W + DW
 
-         ewrite(3,*)'new velocity...'
-         ewrite(3,*)'U1', U(1:U_NONODS)
-         ewrite(3,*)'U2', U(1+U_NONODS:2*U_NONODS)
-         ewrite(3,*)'V1', V(1:U_NONODS)
-         ewrite(3,*)'V2', V(1+U_NONODS:2*U_NONODS)
+         !ewrite(3,*)'new velocity...'
+         !ewrite(3,*)'U1', U(1:U_NONODS)
+         !ewrite(3,*)'U2', U(1+U_NONODS:2*U_NONODS)
+         !ewrite(3,*)'V1', V(1:U_NONODS)
+         !ewrite(3,*)'V2', V(1+U_NONODS:2*U_NONODS)
 
          !stop 777
 
@@ -1483,7 +1481,8 @@
            PLIKE_GRAD_SOU_GRAD
 
       ! Local variables
-      REAL, PARAMETER :: V_BETA = 1.0, SECOND_THETA = 1.0
+      REAL, PARAMETER :: V_BETA = 1.0
+      REAL :: SECOND_THETA
       LOGICAL, PARAMETER :: GETCV_DISC = .FALSE., GETCT= .TRUE., THERMAL= .FALSE.
       REAL, DIMENSION( : ), allocatable :: ACV, CV_RHS, SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2, &
            SAT_FEMT, DEN_FEMT, dummy_transp
@@ -2604,9 +2603,9 @@
                            DGM_PHA( COUNT ) = DGM_PHA( COUNT ) + VLK( IPHASE ) + VLN( IPHASE )
                            PIVIT_MAT(ELE, I, J) = PIVIT_MAT(ELE, I, J) + VLK( IPHASE )
 
-         IF(IDIM==1) RHS_DIFF_U(U_ILOC,IPHASE)=RHS_DIFF_U(U_ILOC,IPHASE)+VLK( IPHASE )*U(GLOBJ + (IDIM-1)*U_NONODS)
-         IF(IDIM==2) RHS_DIFF_V(U_ILOC,IPHASE)=RHS_DIFF_V(U_ILOC,IPHASE)+VLK( IPHASE )*V(GLOBJ + (IDIM-1)*U_NONODS)
-         IF(IDIM==3) RHS_DIFF_W(U_ILOC,IPHASE)=RHS_DIFF_W(U_ILOC,IPHASE)+VLK( IPHASE )*W(GLOBJ + (IDIM-1)*U_NONODS)
+         IF(IDIM==1) RHS_DIFF_U(U_ILOC,IPHASE)=RHS_DIFF_U(U_ILOC,IPHASE)+VLK( IPHASE )*U(GLOBJ  ) ! + (IDIM-1)*U_NONODS)
+         IF(IDIM==2) RHS_DIFF_V(U_ILOC,IPHASE)=RHS_DIFF_V(U_ILOC,IPHASE)+VLK( IPHASE )*V(GLOBJ  )  ! + (IDIM-1)*U_NONODS)
+         IF(IDIM==3) RHS_DIFF_W(U_ILOC,IPHASE)=RHS_DIFF_W(U_ILOC,IPHASE)+VLK( IPHASE )*W(GLOBJ )  ! + (IDIM-1)*U_NONODS)
 
                         END DO
                      END DO
@@ -4296,6 +4295,836 @@
 
     END SUBROUTINE LUMP_ENERGY_EQNS
 
+!*************************************************************************************************************************************************************
+!*************************************************************************************************************************************************************
+!*************************************************************************************************************************************************************
+!*************************************************************************************************************************************************************
+
+
+
+    SUBROUTINE CALCULATE_SURFACE_TENSION( state, nphase, ncomp, &
+         PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, IPLIKE_GRAD_SOU, &
+         VOLUME_FRAC, &
+         NCOLACV, FINACV, COLACV, MIDACV, &
+         NCOLCT, FINDCT, COLCT, &
+         CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
+         CV_ELE_TYPE, CV_SELE_TYPE, U_ELE_TYPE, &
+         CV_NLOC, U_NLOC, X_NLOC, CV_SNLOC, U_SNLOC, &
+         CV_NDGLN, X_NDGLN, U_NDGLN, &
+         X, Y, Z, &
+         MAT_NLOC, MAT_NDGLN, MAT_NONODS,  &
+         NDIM,  &
+         NCOLM, FINDM, COLM, MIDM, &
+         XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE )
+
+      IMPLICIT NONE
+
+      real, dimension( cv_nonods * nphase ), intent( inout ) :: PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD
+      integer, intent( inout ) :: IPLIKE_GRAD_SOU
+
+      type(state_type), dimension( : ), intent( inout ) :: state
+      integer, intent( in ) :: nphase, ncomp, cv_nonods, U_NONODS, X_NONODS, MAT_NONODS, &
+           &                       NCOLACV, NCOLCT, TOTELE, CV_ELE_TYPE, CV_SELE_TYPE, U_ELE_TYPE, &
+           &                       CV_NLOC, U_NLOC, X_NLOC, MAT_NLOC, CV_SNLOC, U_SNLOC, NDIM, &
+           &                       NCOLM, XU_NLOC, NCOLELE
+      integer, dimension( TOTELE * CV_NLOC ), intent( in ) :: CV_NDGLN
+      integer, dimension( TOTELE * X_NLOC ), intent( in ) ::  X_NDGLN
+      integer, dimension( TOTELE * U_NLOC ), intent( in ) :: U_NDGLN 
+      integer, dimension( TOTELE * XU_NLOC ), intent( in ) :: XU_NDGLN
+      integer, dimension( TOTELE * MAT_NLOC ), intent( in ) :: MAT_NDGLN
+      integer, dimension( CV_NONODS * NPHASE + 1 ), intent( in ) :: FINACV
+      integer, dimension( NCOLACV ), intent( in ) :: COLACV
+      integer, dimension( CV_NONODS * NPHASE ), intent( in ) :: MIDACV 
+
+      integer, dimension( CV_NONODS + 1 ), intent( in ) :: FINDCT
+      integer, dimension( NCOLCT ), intent( in ) :: COLCT
+
+      real, dimension( CV_NONODS ), intent( in ) :: VOLUME_FRAC
+
+      real, dimension( X_NONODS ), intent( in ) :: X, Y, Z
+      integer, dimension( CV_NONODS + 1 ), intent( in ) :: FINDM
+      integer, dimension( NCOLM ), intent( in ) :: COLM
+      integer, dimension( CV_NONODS ), intent( in ) :: MIDM
+      integer, dimension( TOTELE + 1 ), intent( in ) :: FINELE
+      integer, dimension( NCOLELE ), intent( in ) :: COLELE
+
+
+      real, dimension( : ), allocatable :: U_FORCE_X_SUF_TEN,U_FORCE_Y_SUF_TEN,U_FORCE_Z_SUF_TEN
+
+      integer :: iphase, icomp
+      real :: coefficient
+      logical :: surface_tension
+
+      do icomp = 1, ncomp
+
+         surface_tension = have_option( '/material_phase[' // int2str( nphase - 1 + icomp ) // &
+              ']/is_multiphase_component/surface_tension' )
+
+         if ( surface_tension ) then
+
+            call get_option(   '/material_phase[' // int2str( nphase - 1 + icomp ) // &
+                 ']/is_multiphase_component/surface_tension/coefficient', coefficient )
+
+
+            allocate( U_FORCE_X_SUF_TEN( U_NONODS) ) ; U_FORCE_X_SUF_TEN = 0.0
+            allocate( U_FORCE_Y_SUF_TEN( U_NONODS) ) ; U_FORCE_X_SUF_TEN = 0.0
+            allocate( U_FORCE_Z_SUF_TEN( U_NONODS) ) ; U_FORCE_X_SUF_TEN = 0.0
+
+
+            do iphase = 1, nphase
+
+               CALL SURFACE_TENSION_WRAPPER( state, &
+                    U_FORCE_X_SUF_TEN, U_FORCE_Y_SUF_TEN, U_FORCE_Z_SUF_TEN, &
+                    PLIKE_GRAD_SOU_COEF( 1+CV_NONODS*(IPHASE-1) : CV_NONODS*IPHASE ), & 
+                    PLIKE_GRAD_SOU_GRAD( 1+CV_NONODS*(IPHASE-1) : CV_NONODS*IPHASE ), &
+                    IPLIKE_GRAD_SOU, &
+                    COEFFICIENT, VOLUME_FRAC, &
+                    NCOLACV, FINACV, COLACV, MIDACV, &
+                    NCOLCT, FINDCT, COLCT, &
+                    CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
+                    CV_ELE_TYPE, CV_SELE_TYPE, U_ELE_TYPE, &
+                    CV_NLOC, U_NLOC, X_NLOC, CV_SNLOC, U_SNLOC, &
+                    CV_NDGLN, X_NDGLN, U_NDGLN, &
+                    X, Y, Z, &
+                    MAT_NLOC, MAT_NDGLN, MAT_NONODS,  &
+                    NDIM,  &
+                    NCOLM, FINDM, COLM, MIDM, &
+                    XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE)
+
+            end do
+
+            deallocate( U_FORCE_X_SUF_TEN, U_FORCE_Y_SUF_TEN, U_FORCE_Z_SUF_TEN)
+
+         end if
+
+      end do
+
+
+      RETURN
+    END SUBROUTINE CALCULATE_SURFACE_TENSION
+
+
+
+
+
+
+
+
+
+
+
+    SUBROUTINE SURFACE_TENSION_WRAPPER( state, &
+         U_FORCE_X_SUF_TEN, U_FORCE_Y_SUF_TEN, U_FORCE_Z_SUF_TEN, &
+         PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, IPLIKE_GRAD_SOU, &
+         SUF_TENSION_COEF,VOLUME_FRAC, &
+         NCOLACV, FINACV, COLACV, MIDACV, &
+         NCOLCT, FINDCT, COLCT, &
+         CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
+         CV_ELE_TYPE, CV_SELE_TYPE, U_ELE_TYPE, &
+         CV_NLOC, U_NLOC, X_NLOC, CV_SNLOC, U_SNLOC, &
+         CV_NDGLN, X_NDGLN, U_NDGLN, &
+         X, Y, Z, &
+         MAT_NLOC, MAT_NDGLN, MAT_NONODS,  &
+         NDIM,  &
+         NCOLM, FINDM, COLM, MIDM, &
+         XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE)
+
+      ! Calculate the surface tension force: U_FORCE_X_SUF_TEN,U_FORCE_X_SUF_TEN,U_FORCE_X_SUF_TEN
+      ! or PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD,
+      ! for a given volume fraction field VOLUME_FRAC
+      ! SUF_TENSION_COEF is the surface tension coefficient. 
+
+      !  =====================================================================
+      !     In this subroutine the advection terms in the advection-diffusion
+      !     equation (in the matrix and RHS) are calculated as ACV and CV_RHS. 
+      !
+      !     This routine uses a Control Volume (CV) formulation to compute
+      !     the advection terms. The general procedure is as follows:
+      !
+      !        1. For each node-pair, define which node is the donor, which is
+      !           the receptor and define an "upwind" value of the field being 
+      !           advected (and the accompanying "density"; see note below)
+      !        2. Calculate the volume flux across the CV face that separates
+      !           these two nodes
+      !        3. Estimate the value of the advected variable at the control
+      !           volume face.
+      !        4. Using information from the donor, receptor and upwind nodes,
+      !           limit the field face value (removes oscillations from the
+      !           solution)
+      !        5. Assemble the fluxes to form the matrix and rhs of the 
+      !           advection equation
+      !
+      !     This procedure is implemented by considering the CV to be made up
+      !     of a number of sub-control-volumes, which represent the part of
+      !     the control volume within a given element.  The assembly of terms
+      !     considers each of these sub-CVs in turn, calculating (and limiting)
+      !     the flux across sub-CV faces that are external to the CV...
+      !
+      !     NOTE: Add in note about what density is in this sub!!!
+      !
+      !     To define the "upwind" value of the field variable, which is
+      !     necessary for the limiting scheme, either:
+      !
+      !        A. The upwind value of the field variable to be advected is
+      !           found by interpolation and stored in a matrix (TUPWIND)
+      !        B. The neighbouring nodes are searched for the local maximum 
+      !           and minimum
+      !     
+      !     The subroutine has several options...
+      !
+      !     Discretisation option
+      !     ---------------------
+      !      - The estimate of the face value may be determined in one of
+      !        several ways.
+      !      - The face value may be centered in time by either a specified 
+      !        CV_THETA value, or a non-linear CV_THETA value that is determined 
+      !        automatically.  
+      !      - The face value may be limited using a univeral-limiter-type
+      !        scheme, or a limited-downwind scheme that is ideal for INTERFACE
+      !        TRACKING.  Alternatively no limiting can be applied.  
+      !     
+      !     These options are defined by the value of CV_DISOPT, which corresponds 
+      !     to the clast digit of the GEM option NDISOT for the field in question.
+      !
+      !     CV_DISOPT=discretisation option in space and time
+      !     ------------------------------------------------------------------
+      !     CV_DISOPT   Method for face-value est.    Time-stepping     Limiting   
+      !     ------------------------------------------------------------------
+      !       =0      1st order in space          Theta=specified    UNIVERSAL
+      !       =1      1st order in space          Theta=non-linear   UNIVERSAL
+      !       =2      Trapezoidal rule in space   Theta=specified    UNIVERSAL
+      !       =2 if isotropic limiter then FEM-quadratic & stratification adjust. Theta=non-linear 
+      !       =3      Trapezoidal rule in space   Theta=non-linear   UNIVERSAL
+      !       =4      Finite elements in space    Theta=specified    UNIVERSAL
+      !       =5      Finite elements in space    Theta=non-linear   UNIVERSAL
+      !       =6      Finite elements in space    Theta=specified    NONE
+      !       =7      Finite elements in space    Theta=non-linear   NONE
+      !       =8      Finite elements in space    Theta=specified    DOWNWIND+
+      !       =9      Finite elements in space    Theta=non-linear   DOWNWIND+
+      !
+      !     CV_DG_VEL_INT_OPT=interface velocity calculation option between elements
+      !
+      !     Limiting scheme
+      !     ---------------
+      !     The limiting scheme is defined in the subroutine NVDFUNNEW; 
+      !     the limited values are computed in subroutine ANONVDLIM/ONVDLIM.
+      !     
+      !     ONVDLIM is the original limiting algorithm
+      !
+      !     ANONVDLIM is a new anisoptropic limiting algorithm, which is 
+      !     called if either ALOLIM=1 (where ALOLIM is an option flag set 
+      !     in this subroutine), or if the interface tracking limiting option 
+      !     is selected (CV_DISOPT=8/9).  ***In general ALOLIM appears to be set to 1 (GSC)
+      !     
+      !     NOTE: ANONVDLIM only works for TETS; for all other element types 
+      !     ONVDLIM is used.
+      !
+      !
+      !     IMPORTANT INPUTS:
+      !     ----------------
+      !     
+      !     ACV   - Matrix for assembling the advection terms (empty on input)
+      !     CV_RHS      - Right-hand side vector for advection-diffusion terms
+      !     X,Y,Z    - Node co-ordinates
+      !     NU       - Nodal velocity component
+      !     T,TOLD   - New and old advected field values at nodes
+      !     DEN,  - New and old "density" at nodes, which is actually a constant
+      !     DENOLD     multiplying the advection diffusion equation for the field
+      !     CV_DISOPT   - The discretisation/limiting option (see above)
+      !     DT       - The time step
+      !     CV_THETA    - The time-stepping discretisation parameter
+      !     CV_BETA     - Conservative(1.)/non-conservative(0.) flag
+      !     ELE_TYP   - Integer flag definining element type   
+      !
+      !     IMPORTANT OUTPUTS:
+      !     -----------------
+      !
+      !     ACV   - Matrix updated to include the advection terms
+      !     CV_RHS      - Right-hand side vector updated to include advection terms
+      !
+      !
+      !     IMPORTANT LOCAL PARAMETERS:
+      !     --------------------------
+      !
+      !     TIMOPT    - Temporal discretisation option, derived from CV_DISOPT.
+      !                (1 for non-linear theta; 0 for theta specified (THETA))
+      !
+      !
+      !***********************************************************************
+      use shape_functions
+      use matrix_operations
+      use printout
+      ! Inputs/Outputs
+      IMPLICIT NONE
+      type(state_type), dimension( : ), intent( inout ) :: state
+      INTEGER, PARAMETER :: NPHASE = 1
+      INTEGER, intent( in ) :: NCOLACV, NCOLCT, CV_NONODS, U_NONODS, X_NONODS, MAT_NONODS, &
+           TOTELE, &
+           CV_ELE_TYPE, CV_SELE_TYPE, U_ELE_TYPE, &
+           CV_NLOC, U_NLOC, X_NLOC, MAT_NLOC, &
+           CV_SNLOC, U_SNLOC, NDIM, &
+           NCOLM, XU_NLOC, NCOLELE
+      INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in ) :: CV_NDGLN
+      INTEGER, DIMENSION( TOTELE * X_NLOC ), intent( in ) ::  X_NDGLN
+      INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ) :: U_NDGLN 
+      INTEGER, DIMENSION( TOTELE * XU_NLOC ), intent( in ) :: XU_NDGLN
+      INTEGER, DIMENSION( TOTELE * MAT_NLOC ), intent( in ) :: MAT_NDGLN
+      INTEGER, DIMENSION( CV_NONODS * NPHASE + 1 ), intent( in ) :: FINACV
+      INTEGER, DIMENSION( NCOLACV ), intent( in ) :: COLACV
+      INTEGER, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: MIDACV 
+
+      INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCT
+      INTEGER, DIMENSION( NCOLCT ), intent( in ) :: COLCT
+
+      REAL, intent( in ) ::  SUF_TENSION_COEF
+
+      REAL, DIMENSION( U_NONODS ), intent( inout ) :: U_FORCE_X_SUF_TEN,U_FORCE_Y_SUF_TEN,U_FORCE_Z_SUF_TEN
+      REAL, DIMENSION( CV_NONODS ) :: PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD
+      INTEGER, INTENT( INOUT ) :: IPLIKE_GRAD_SOU
+
+      REAL, DIMENSION( CV_NONODS ), intent( in ) :: VOLUME_FRAC
+
+      REAL, DIMENSION( X_NONODS ), intent( in ) :: X, Y, Z
+      INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDM
+      INTEGER, DIMENSION( NCOLM ), intent( in ) :: COLM
+      INTEGER, DIMENSION( CV_NONODS ), intent( in ) :: MIDM
+      INTEGER, DIMENSION( TOTELE + 1 ), intent( in ) :: FINELE
+      INTEGER, DIMENSION( NCOLELE ), intent( in ) :: COLELE
+
+      ! Local variables 
+      LOGICAL, DIMENSION( : ), allocatable :: X_SHARE,LOG_ON_BOUND
+      LOGICAL, DIMENSION( :, : ), allocatable :: CV_ON_FACE, U_ON_FACE, &
+           CVFEM_ON_FACE, UFEM_ON_FACE
+      INTEGER, DIMENSION( : ), allocatable :: FINDGPTS, &
+           CV_OTHER_LOC, U_OTHER_LOC, MAT_OTHER_LOC, &
+           JCOUNT_KLOC, JCOUNT_KLOC2, COLGPTS, CV_SLOC2LOC, U_SLOC2LOC, &
+           TMAX_NOD, TMIN_NOD, TOLDMAX_NOD, &
+           TOLDMIN_NOD, DENMAX_NOD, DENMIN_NOD, DENOLDMAX_NOD, DENOLDMIN_NOD, &
+           T2MAX_NOD, T2MIN_NOD, T2OLDMAX_NOD, T2OLDMIN_NOD, IDUM
+      INTEGER, DIMENSION( : , : ), allocatable :: CV_SLOCLIST, U_SLOCLIST, &
+           FACE_ELE, CV_NEILOC
+      REAL, DIMENSION( : ), allocatable :: CVWEIGHT, CVWEIGHT_SHORT, SCVFEWEIGH, SBCVFEWEIGH, &
+           CVNORMX, &
+           CVNORMY, CVNORMZ, MASS_CV, MASS_ELE, SNDOTQ, SNDOTQOLD,  &
+           FEMT, FEMTOLD, FEMT2, FEMT2OLD, FEMDEN, FEMDENOLD, XC_CV, YC_CV, ZC_CV, &
+           SCVDETWEI, SRA, UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
+           UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2,  &
+           SUM_CV, ONE_PORE, SELE_OVERLAP_SCALE, &
+           T2MAX, T2MIN, T2OLDMAX, &
+           T2OLDMIN, &
+           T2MAX_2ND_MC, T2MIN_2ND_MC, T2OLDMAX_2ND_MC, &
+           T2OLDMIN_2ND_MC, &
+           UP_WIND_NOD, DU, DV, DW, RDUM, RZERO, CURVATURE, RNOD_COUNT, CV_ONE, DETWEI, RA
+      REAL, DIMENSION( : ), allocatable :: CV_FORCE_X_SUF_TEN, CV_FORCE_Y_SUF_TEN, CV_FORCE_Z_SUF_TEN
+      REAL, DIMENSION( : , : ), allocatable :: CVN, CVN_SHORT, CVFEN, CVFENLX, CVFENLY, CVFENLZ, &
+           CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT,  &
+           CVFENX, CVFENY, CVFENZ, &
+           UFEN, UFENLX, UFENLY, UFENLZ, SCVFEN, SCVFENSLX, SCVFENSLY, &
+           SCVFENLX, SCVFENLY, SCVFENLZ, UFENX, UFENY, UFENZ, &
+           SUFEN, SUFENSLX, SUFENSLY, SUFENLX, SUFENLY, SUFENLZ, &
+           SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
+           SBCVFENLX, SBCVFENLY, SBCVFENLZ, SBUFEN, SBUFENSLX, SBUFENSLY, &
+           SBUFENLX, SBUFENLY, SBUFENLZ, &
+           DUMMY_ZERO_NDIM_NDIM
+      REAL, DIMENSION( : , : ), allocatable :: MASS, STORE_MASS
+      REAL, DIMENSION( : , :, : ), allocatable :: DTX_ELE,DTY_ELE,DTZ_ELE,  &
+           DTOLDX_ELE,DTOLDY_ELE,DTOLDZ_ELE, TDIFFUSION
+      REAL, DIMENSION( : ), allocatable :: B_CV_X,B_CV_Y,B_CV_Z, &
+           RHS_U_SHORT_X,RHS_U_SHORT_Y,RHS_U_SHORT_Z, &
+           U_SOL_X,U_SOL_Y,U_SOL_Z,T_ABSORB, &
+           DIF_TX, DIF_TY, DIF_TZ, &
+           DX_DIFF_X, DY_DIFF_X, DZ_DIFF_X, &
+           DX_DIFF_Y, DY_DIFF_Y, DZ_DIFF_Y, &
+           DX_DIFF_Z, DY_DIFF_Z, DZ_DIFF_Z
+
+      !        ===> INTEGERS <===
+      INTEGER :: CV_NGI, CV_NGI_SHORT, SCVNGI, SBCVNGI, COUNT, JCOUNT, &
+           ELE, ELE2, GI, GCOUNT, SELE, &
+           NCOLGPTS, &
+           CV_SILOC, U_ILOC, U_JLOC, U_KLOC, &
+           CV_ILOC, CV_JLOC, IPHASE, JPHASE, &
+           CV_NODJ, CV_NODJ_IPHA, &
+           CV_NODI, CV_NODI_IPHA, CV_NODI_JPHA, U_NODK, TIMOPT, &
+           JCOUNT_IPHA, IMID_IPHA, &
+           NFACE, X_NODI,  U_INOD, U_NOD, &
+           CV_INOD, CV_JNOD, MAT_NODI, FACE_ITS, NFACE_ITS, &
+           CVNOD, XNOD, STOTEL, CV_NOD, DG_CV_NOD, IDIM, IGOT_T2, &
+           nopt_vel_upwind_coefs
+      !        ===>  REALS  <===
+      REAL :: NDOTQ, NDOTQOLD,  &
+           INCOME, INCOMEOLD, HDC, FVT, FVTOLD, FVT2, FVT2OLD, &
+           FVD, FVDOLD, LIMT, LIMTOLD, LIMT2, LIMT2OLD,&
+           LIMD, LIMDOLD, FTHETA, VTHETA, &
+           LIMDT, LIMDTOLD, LIMDTT2, LIMDTT2OLD, &
+           FEMDGI, FEMTGI,FEMT2GI, FEMDOLDGI, FEMTOLDGI, FEMT2OLDGI, &
+           TMID, TOLDMID, &
+           DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX, BCZERO, ROBIN1, ROBIN2, &
+           SUM, &
+           SUM_LIMT, SUM_LIMTOLD, FTHETA_T2, ONE_M_FTHETA_T2OLD, THERM_FTHETA, &
+           W_SUM_ONE1, W_SUM_ONE2, NDOTQNEW, NN, NM, DT, T_THETA, T_BETA, RDIF, RR, &
+           VOLUME
+
+      REAL, PARAMETER :: W_SUM_ONE = 1.0, TOLER=1.0E-10
+
+      integer :: cv_inod_ipha, IGETCT, U_NODK_IPHA, NOIT_DIM, &
+           CV_DG_VEL_INT_OPT, IN_ELE_UPWIND, DG_ELE_UPWIND, &
+           CV_DISOPT, IGOT_THETA_FLUX, scvngi_theta
+      ! Functions...
+      !REAL :: R2NORM, FACE_THETA  
+      !        ===>  LOGICALS  <===
+      LOGICAL :: GETMAT, LIMIT_USE_2ND, &
+           D1, D3, DCYL, GOT_DIFFUS, INTEGRAT_AT_GI, &
+           NORMALISE, SUM2ONE, GET_GTHETA, QUAD_OVER_WHOLE_ELE, GETCT
+      LOGICAL :: GET_THETA_FLUX, USE_THETA_FLUX, THERMAL, LUMP_EQNS, &
+           SIMPLE_LINEAR_SCHEME, GOTDEC, USE_PRESSURE_FORCE
+
+      CHARACTER(LEN=OPTION_PATH_LEN) :: OPTION_PATH
+      CHARACTER(100) :: PATH
+      REAL, DIMENSION(TOTELE) :: DUMMY_ELE
+
+      USE_PRESSURE_FORCE = .true.
+
+      if ( USE_PRESSURE_FORCE ) then
+         IPLIKE_GRAD_SOU = 1
+      else
+         IPLIKE_GRAD_SOU = 0
+         PLIKE_GRAD_SOU_COEF = 0.0
+         PLIKE_GRAD_SOU_GRAD = 0.0
+      end if
+
+      IGOT_T2=0
+      CV_DISOPT=0
+      CV_DG_VEL_INT_OPT=0
+      IN_ELE_UPWIND=0
+      DG_ELE_UPWIND=0
+      STOTEL=0
+      GETCT=.FALSE.
+      GET_THETA_FLUX=.FALSE. 
+      USE_THETA_FLUX=.FALSE.
+      THERMAL=.FALSE. 
+      LIMIT_USE_2ND=.FALSE.
+
+      ALLOCATE(RDUM(MAX(U_NLOC,CV_NLOC)*TOTELE)) 
+      ALLOCATE(IDUM(MAX(U_NLOC,CV_NLOC)*TOTELE)) 
+      ALLOCATE(RZERO(MAX(U_NLOC,CV_NLOC)*TOTELE)) 
+      ALLOCATE(CV_ONE(CV_NONODS))
+      ALLOCATE(CURVATURE(CV_NONODS))
+      RZERO=0.0
+      NOPT_VEL_UPWIND_COEFS=0
+      CV_ONE=1.0
+
+      ndotq = 0. ; ndotqold = 0.
+
+      QUAD_OVER_WHOLE_ELE=.FALSE. 
+      ! If QUAD_OVER_WHOLE_ELE=.true. then dont divide element into CV's to form quadrature.
+      call retrieve_ngi( ndim, cv_ele_type, cv_nloc, u_nloc, &
+           cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, QUAD_OVER_WHOLE_ELE )
+
+      GOT_DIFFUS = .true.
+      ALLOCATE(CV_FORCE_X_SUF_TEN(CV_NONODS))
+      ALLOCATE(CV_FORCE_Y_SUF_TEN(CV_NONODS))
+      ALLOCATE(CV_FORCE_Z_SUF_TEN(CV_NONODS))
+
+      ! Allocate memory for the control volume surface shape functions, etc.
+      ALLOCATE( JCOUNT_KLOC(  U_NLOC )) ; jcount_kloc = 0
+      ALLOCATE( JCOUNT_KLOC2(  U_NLOC )) ; jcount_kloc2 = 0
+
+      ALLOCATE( CVNORMX( SCVNGI ))
+      ALLOCATE( CVNORMY( SCVNGI ))
+      ALLOCATE( CVNORMZ( SCVNGI ))
+      ALLOCATE( COLGPTS( CV_NLOC * SCVNGI )) !The size of this vector is over-estimated
+      ALLOCATE( FINDGPTS( CV_NLOC + 1 ))
+      ALLOCATE( SNDOTQ( SCVNGI ))
+      ALLOCATE( SNDOTQOLD( SCVNGI ))
+      ALLOCATE( CV_ON_FACE( CV_NLOC, SCVNGI ))
+      ALLOCATE( CVFEM_ON_FACE( CV_NLOC, SCVNGI ))
+      ALLOCATE( U_ON_FACE( U_NLOC, SCVNGI ))
+      ALLOCATE( UFEM_ON_FACE( U_NLOC, SCVNGI ))
+      ALLOCATE( CV_OTHER_LOC( CV_NLOC ))
+      ALLOCATE( U_OTHER_LOC( U_NLOC ))
+      ALLOCATE( MAT_OTHER_LOC( MAT_NLOC ))
+      ALLOCATE( X_SHARE( X_NONODS ))
+      ALLOCATE( CVWEIGHT( CV_NGI ))
+      ALLOCATE( CVN( CV_NLOC, CV_NGI ))
+      ALLOCATE( CVFEN( CV_NLOC, CV_NGI ))
+      ALLOCATE( CVFENLX( CV_NLOC, CV_NGI ))
+      ALLOCATE( CVFENLY( CV_NLOC, CV_NGI ))
+      ALLOCATE( CVFENLZ( CV_NLOC, CV_NGI ))
+
+      ALLOCATE( CVFENX( CV_NLOC, CV_NGI ))
+      ALLOCATE( CVFENY( CV_NLOC, CV_NGI ))
+      ALLOCATE( CVFENZ( CV_NLOC, CV_NGI ))
+
+      ALLOCATE( CVWEIGHT_SHORT( CV_NGI_SHORT ))
+      ALLOCATE( CVN_SHORT( CV_NLOC, CV_NGI_SHORT ))
+      ALLOCATE( CVFEN_SHORT( CV_NLOC, CV_NGI_SHORT))
+      ALLOCATE( CVFENLX_SHORT( CV_NLOC, CV_NGI_SHORT ))
+      ALLOCATE( CVFENLY_SHORT( CV_NLOC, CV_NGI_SHORT ))
+      ALLOCATE( CVFENLZ_SHORT( CV_NLOC, CV_NGI_SHORT ))
+
+      ALLOCATE( UFEN( U_NLOC, CV_NGI)) 
+      ALLOCATE( UFENLX( U_NLOC, CV_NGI ))
+      ALLOCATE( UFENLY( U_NLOC, CV_NGI ))
+      ALLOCATE( UFENLZ( U_NLOC, CV_NGI ))
+
+      ALLOCATE( UFENX( U_NLOC, CV_NGI ))
+      ALLOCATE( UFENY( U_NLOC, CV_NGI ))
+      ALLOCATE( UFENZ( U_NLOC, CV_NGI ))
+
+      ALLOCATE( SCVFEN( CV_NLOC, SCVNGI ))
+      ALLOCATE( SCVFENSLX( CV_NLOC, SCVNGI ))
+      ALLOCATE( SCVFENSLY( CV_NLOC, SCVNGI ))
+      ALLOCATE( SCVFENLX( CV_NLOC, SCVNGI ))
+      ALLOCATE( SCVFENLY( CV_NLOC, SCVNGI ))
+      ALLOCATE( SCVFENLZ( CV_NLOC, SCVNGI ))
+      ALLOCATE( SCVFEWEIGH( SCVNGI ))
+
+      ALLOCATE( SUFEN( U_NLOC, SCVNGI ))
+      ALLOCATE( SUFENSLX( U_NLOC, SCVNGI ))
+      ALLOCATE( SUFENSLY( U_NLOC, SCVNGI ))
+      ALLOCATE( SUFENLX( U_NLOC, SCVNGI ))
+      ALLOCATE( SUFENLY( U_NLOC, SCVNGI ))
+      ALLOCATE( SUFENLZ( U_NLOC, SCVNGI ))
+
+      ALLOCATE( SCVDETWEI( SCVNGI )) ; SCVDETWEI = 0.
+      ALLOCATE( SRA( SCVNGI ))
+      ALLOCATE( LOG_ON_BOUND(CV_NONODS))
+
+      ALLOCATE( SBCVFEN( CV_SNLOC, SBCVNGI ))
+      ALLOCATE( SBCVFENSLX( CV_SNLOC, SBCVNGI ))
+      ALLOCATE( SBCVFENSLY( CV_SNLOC, SBCVNGI ))
+      ALLOCATE( SBCVFEWEIGH( SBCVNGI ))
+      ALLOCATE( SBCVFENLX( CV_SNLOC, SBCVNGI ))
+      ALLOCATE( SBCVFENLY( CV_SNLOC, SBCVNGI ))
+      ALLOCATE( SBCVFENLZ( CV_SNLOC, SBCVNGI ))
+      ALLOCATE( SBUFEN( U_SNLOC, SBCVNGI ))
+      ALLOCATE( SBUFENSLX( U_SNLOC, SBCVNGI ))
+      ALLOCATE( SBUFENSLY( U_SNLOC, SBCVNGI ))
+      ALLOCATE( SBUFENLX( U_SNLOC, SBCVNGI ))
+      ALLOCATE( SBUFENLY( U_SNLOC, SBCVNGI ))
+      ALLOCATE( SBUFENLZ( U_SNLOC, SBCVNGI ))
+      ALLOCATE( DUMMY_ZERO_NDIM_NDIM(NDIM,NDIM)) 
+      DUMMY_ZERO_NDIM_NDIM=0.0
+
+      ALLOCATE( CV_SLOC2LOC( CV_SNLOC ))
+      ALLOCATE( U_SLOC2LOC( U_SNLOC )) 
+      ALLOCATE( CV_SLOCLIST( NFACE, CV_SNLOC ))
+      ALLOCATE( U_SLOCLIST( NFACE, U_SNLOC ))
+      ALLOCATE( CV_NEILOC( CV_NLOC, SCVNGI ))
+
+      ALLOCATE( SELE_OVERLAP_SCALE(CV_NLOC) )
+
+      ALLOCATE( UGI_COEF_ELE(U_NLOC),  VGI_COEF_ELE(U_NLOC),  WGI_COEF_ELE(U_NLOC) )
+      ALLOCATE( UGI_COEF_ELE2(U_NLOC), VGI_COEF_ELE2(U_NLOC), WGI_COEF_ELE2(U_NLOC) )
+      ! The procity mapped to the CV nodes
+      ALLOCATE( SUM_CV( CV_NONODS ))
+      ALLOCATE( UP_WIND_NOD( CV_NONODS * NPHASE )) ; UP_WIND_NOD = 0.0
+
+      ewrite(3,*)'here1'
+
+      D1 = ( NDIM == 1 )
+      D3 = ( NDIM == 3 )
+      DCYL= ( NDIM == -2 )
+
+      GETMAT = .TRUE.
+
+      X_SHARE = .FALSE.
+
+      ! If using the original limiting scheme, the first step is to estimate 
+      ! the upwind field value from the surrounding nodes
+
+      ! Allocate memory for terms needed by GETGXYZ OR ONVDLIM
+
+      !     ======= DEFINE THE SUB-CONTROL VOLUME & FEM SHAPE FUNCTIONS ========
+
+      CALL CV_FEM_SHAPE_FUNS( &
+                                ! Volume shape functions...
+           NDIM, CV_ELE_TYPE,  & 
+           CV_NGI, CV_NGI_SHORT, CV_NLOC, U_NLOC, CVN, CVN_SHORT, &
+           CVWEIGHT, CVFEN, CVFENLX, CVFENLY, CVFENLZ, &
+           CVWEIGHT_SHORT, CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, &
+           UFEN, UFENLX, UFENLY, UFENLZ, &
+                                ! Surface of each CV shape functions...
+           SCVNGI, CV_NEILOC, CV_ON_FACE, CVFEM_ON_FACE, &  
+           SCVFEN, SCVFENSLX, SCVFENSLY, SCVFEWEIGH, &
+           SCVFENLX, SCVFENLY, SCVFENLZ,  &
+           SUFEN, SUFENSLX, SUFENSLY,  &
+           SUFENLX, SUFENLY, SUFENLZ,  &
+                                ! Surface element shape funcs...
+           U_ON_FACE, UFEM_ON_FACE, NFACE, & 
+           SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, SBCVFENLX, SBCVFENLY, SBCVFENLZ, &
+           SBUFEN, SBUFENSLX, SBUFENSLY, SBUFENLX, SBUFENLY, SBUFENLZ, &
+           CV_SLOCLIST, U_SLOCLIST, CV_SNLOC, U_SNLOC, &
+                                ! Define the gauss points that lie on the surface of the CV...
+           FINDGPTS, COLGPTS, NCOLGPTS, &
+           SELE_OVERLAP_SCALE, QUAD_OVER_WHOLE_ELE )  
+
+
+      ! Determine FEMT (finite element wise) etc from T (control volume wise)
+      ! Also determine the CV mass matrix MASS_CV and centre of the CV's XC_CV,YC_CV,ZC_CV. 
+      ! This is for projecting to finite element basis functions... 
+      ALLOCATE( FEMT( CV_NONODS * NPHASE ))
+      ALLOCATE( FEMTOLD( CV_NONODS * NPHASE ))
+      ALLOCATE( MASS_CV( CV_NONODS ))
+      ALLOCATE( MASS_ELE( TOTELE ))
+      ALLOCATE( XC_CV( CV_NONODS ))
+      ALLOCATE( YC_CV( CV_NONODS ))
+      ALLOCATE( ZC_CV( CV_NONODS ))
+      ALLOCATE( DTX_ELE( CV_NLOC, NPHASE, TOTELE ))
+      ALLOCATE( DTY_ELE( CV_NLOC, NPHASE, TOTELE ))
+      ALLOCATE( DTZ_ELE( CV_NLOC, NPHASE, TOTELE ))
+      ALLOCATE( DTOLDX_ELE( CV_NLOC, NPHASE, TOTELE ))
+      ALLOCATE( DTOLDY_ELE( CV_NLOC, NPHASE, TOTELE ))
+      ALLOCATE( DTOLDZ_ELE( CV_NLOC, NPHASE, TOTELE ))
+
+      ewrite(3,*)'here2'
+      IGETCT=0
+      IF(GETCT) IGETCT=1
+
+      path='/material_phase[0]/scalar_field::Pressure'
+
+      CALL PROJ_CV_TO_FEM( FEMT, VOLUME_FRAC, 1, NDIM, &
+           RDUM,0, RDUM,0, MASS_ELE, &
+           CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
+           CV_NGI_SHORT, CV_NLOC, CVN_SHORT, CVWEIGHT_SHORT, &
+           CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, &
+           X_NONODS, X, Y, Z, NCOLM, FINDM, COLM, MIDM, &
+           IGETCT, RDUM, IDUM, IDUM, IDUM(1), PATH)
+
+      FEMTOLD=0.0
+
+      ALLOCATE( FACE_ELE( NFACE, TOTELE ) ) ; FACE_ELE = 0
+      ! Calculate FACE_ELE
+      CALL CALC_FACE_ELE( FACE_ELE, TOTELE, STOTEL, NFACE, &
+           NCOLELE, FINELE, COLELE, CV_NLOC, CV_SNLOC, CV_NONODS, CV_NDGLN, IDUM, &
+           CV_SLOCLIST, X_NLOC, X_NDGLN )
+
+      CALL DG_DERIVS( FEMT, FEMTOLD, &
+           DTX_ELE, DTY_ELE, DTZ_ELE, DTOLDX_ELE, DTOLDY_ELE, DTOLDZ_ELE, &
+           NDIM, NPHASE, CV_NONODS, TOTELE, CV_NDGLN, &
+           X_NDGLN, X_NLOC, X_NDGLN, &
+           CV_NGI_SHORT, CV_NLOC, CVWEIGHT_SHORT, &
+           CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, &
+           CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, &
+           X_NONODS, X, Y, Z,  &
+           NFACE, FACE_ELE, CV_SLOCLIST, CV_SLOCLIST, STOTEL, CV_SNLOC, CV_SNLOC, IDUM, RDUM, &
+           0, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, &
+           SBCVFEN, SBCVFENSLX, SBCVFENSLY)
+
+      ! determine the curvature by solving a simple eqn...
+
+      ALLOCATE(TDIFFUSION(NDIM,NDIM,CV_NONODS))
+      TDIFFUSION=0.0
+      ALLOCATE(RNOD_COUNT(CV_NONODS))
+      RNOD_COUNT=0.0
+      DO ELE=1,TOTELE
+         DO CV_ILOC=1,CV_NLOC
+            CV_NOD=CV_NDGLN((ELE-1)*CV_NLOC+CV_ILOC)
+            RNOD_COUNT(CV_NOD)=RNOD_COUNT(CV_NOD)+1.0
+         END DO
+      END DO
+
+      DO ELE=1,TOTELE
+         DO CV_ILOC=1,CV_NLOC
+            CV_NOD=CV_NDGLN((ELE-1)*CV_NLOC+CV_ILOC)
+            DG_CV_NOD=(ELE-1)*CV_NLOC+CV_ILOC
+            RR=DTX_ELE(CV_ILOC, 1, ELE)**2
+            IF(NDIM.GE.2) RR=RR+DTY_ELE(CV_ILOC, 1, ELE)**2
+            IF(NDIM.GE.3) RR=RR+DTZ_ELE(CV_ILOC, 1, ELE)**2
+            RDIF=1.0/MAX(TOLER,RNOD_COUNT(CV_NOD)*SQRT(RR))
+            DO IDIM=1,NDIM
+               TDIFFUSION(IDIM,IDIM,CV_NOD)=TDIFFUSION(IDIM,IDIM,CV_NOD)+RDIF
+            END DO
+         END DO
+      END DO
+
+      SIMPLE_LINEAR_SCHEME=.FALSE.
+
+      IF ( SIMPLE_LINEAR_SCHEME ) THEN
+
+         ! Direct linear scheme
+
+         ALLOCATE(DIF_TX(CV_NONODS)) ; DIF_TX=0.0
+         ALLOCATE(DIF_TY(CV_NONODS)) ; DIF_TY=0.0
+         ALLOCATE(DIF_TZ(CV_NONODS)) ; DIF_TZ=0.0
+
+         DO ELE=1,TOTELE
+            DO CV_ILOC=1,CV_NLOC
+               CV_NOD=CV_NDGLN((ELE-1)*CV_NLOC+CV_ILOC)
+               DG_CV_NOD=(ELE-1)*CV_NLOC+CV_ILOC
+               DIF_TX(CV_NOD)=DIF_TX(CV_NOD)+TDIFFUSION(1,1,CV_NOD)*DTX_ELE(CV_ILOC, 1, ELE)
+               IF(NDIM.GE.2) DIF_TY(CV_NOD)=DIF_TY(CV_NOD)+TDIFFUSION(1,1,CV_NOD)*DTY_ELE(CV_ILOC, 1, ELE)
+               IF(NDIM.GE.3) DIF_TZ(CV_NOD)=DIF_TZ(CV_NOD)+TDIFFUSION(1,1,CV_NOD)*DTZ_ELE(CV_ILOC, 1, ELE)
+            END DO
+         END DO
+
+         ALLOCATE(DX_DIFF_X(CV_NLOC*TOTELE), DY_DIFF_X(CV_NLOC*TOTELE), DZ_DIFF_X(CV_NLOC*TOTELE))
+         ALLOCATE(DX_DIFF_Y(CV_NLOC*TOTELE), DY_DIFF_Y(CV_NLOC*TOTELE), DZ_DIFF_Y(CV_NLOC*TOTELE))
+         ALLOCATE(DX_DIFF_Z(CV_NLOC*TOTELE), DY_DIFF_Z(CV_NLOC*TOTELE), DZ_DIFF_Z(CV_NLOC*TOTELE)) 
+
+         CALL DG_DERIVS_UVW( DIF_TX, DIF_TX, DIF_TY, DIF_TY, DIF_TZ, DIF_TZ, &
+              DX_DIFF_X, DY_DIFF_X, DZ_DIFF_X, RDUM, RDUM, RDUM, &
+              DX_DIFF_Y, DY_DIFF_Y, DZ_DIFF_Y, RDUM, RDUM, RDUM, &
+              DX_DIFF_Z, DY_DIFF_Z, DZ_DIFF_Z, RDUM, RDUM, RDUM, &
+              NDIM, NPHASE, CV_NONODS, TOTELE, CV_NDGLN, &
+              XU_NDGLN, X_NLOC, X_NDGLN, &
+              CV_NGI, CV_NLOC, CVWEIGHT, &
+              CVFEN, CVFENLX, CVFENLY, CVFENLZ, &
+              CVFEN, CVFENLX, CVFENLY, CVFENLZ, &
+              X_NONODS, X, Y, Z, &
+              NFACE, FACE_ELE, CV_SLOCLIST, CV_SLOCLIST, STOTEL, CV_SNLOC, CV_SNLOC, IDUM,  &
+              RDUM,RDUM,RDUM, &
+              0, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, & 
+              SBCVFEN, SBCVFENSLX, SBCVFENSLY)
+
+         CURVATURE=DX_DIFF_X 
+         IF(NDIM.GE.2) CURVATURE=CURVATURE + DY_DIFF_Y
+         IF(NDIM.GE.3) CURVATURE=CURVATURE + DZ_DIFF_Z
+         !CURVATURE=DX_DIFF_X + DY_DIFF_Y + DZ_DIFF_Z
+
+         DEALLOCATE(DIF_TX, DIF_TY, DIF_TZ)
+         DEALLOCATE(DX_DIFF_X, DX_DIFF_Y, DX_DIFF_Z)
+
+      ELSE
+
+         ALLOCATE(T_ABSORB(CV_NONODS))
+         T_ABSORB=1.0
+         DT=1.0
+         T_THETA=0.0 
+         T_BETA=0.0
+         NOIT_DIM=100
+         LUMP_EQNS=.FALSE.
+
+         CALL INTENERGE_ASSEM_SOLVE( state, &
+              NCOLACV, FINACV, COLACV, MIDACV, & 
+              NCOLCT, FINDCT, COLCT, &
+              CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
+              U_ELE_TYPE, CV_ELE_TYPE, CV_SELE_TYPE,  &
+              NPHASE,  &
+              CV_NLOC, U_NLOC, X_NLOC,  &
+              CV_NDGLN, X_NDGLN, U_NDGLN, &
+              CV_SNLOC, U_SNLOC, STOTEL, IDUM, IDUM, &
+              X, Y, Z, &
+              RZERO,RZERO,RZERO, RZERO,RZERO,RZERO, RZERO,RZERO,RZERO, &
+              CURVATURE, VOLUME_FRAC, &
+              RZERO,RZERO, &
+              MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
+              CV_DISOPT, CV_DG_VEL_INT_OPT, DT, T_THETA, T_BETA, &
+              RZERO, RZERO, RZERO, RZERO, RZERO, &
+              RZERO, RZERO, &
+              IDUM, IDUM, IDUM, &
+              RZERO, RZERO, &
+              RZERO, T_ABSORB, RZERO, &
+              NDIM,  &
+              NCOLM, FINDM, COLM, MIDM, &
+              XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, LUMP_EQNS, &
+              RDUM, NOPT_VEL_UPWIND_COEFS, &
+              RDUM, CV_ONE, &
+              IGOT_T2,CURVATURE, VOLUME_FRAC, IGOT_THETA_FLUX, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
+              CURVATURE,CURVATURE,CURVATURE, &
+              RZERO, RZERO, RZERO, IDUM, IN_ELE_UPWIND, DG_ELE_UPWIND, &
+              NOIT_DIM, &
+              3, & ! nits_flux_lim_t
+              RZERO, &
+              option_path = '/material_phase[0]/scalar_field::Temperature', &
+              mass_ele_transp = dummy_ele, &
+              thermal = .FALSE. )    
+
+         DEALLOCATE(T_ABSORB)
+
+      END IF
+
+
+      IF_USE_PRESSURE_FORCE: IF ( USE_PRESSURE_FORCE ) THEN
+
+         PLIKE_GRAD_SOU_COEF = SUF_TENSION_COEF*CURVATURE
+         PLIKE_GRAD_SOU_GRAD = VOLUME_FRAC
+
+      ELSE
+
+         ! determine the curvature by solving a simple eqn...
+         CV_FORCE_X_SUF_TEN=0.0
+         CV_FORCE_Y_SUF_TEN=0.0
+         CV_FORCE_Z_SUF_TEN=0.0
+         DO ELE=1,TOTELE
+            DO CV_ILOC=1,CV_NLOC
+               CV_NOD=CV_NDGLN((ELE-1)*CV_NLOC+CV_ILOC)
+               RR=SUF_TENSION_COEF*CURVATURE(CV_NOD)/RNOD_COUNT(CV_NOD)
+               CV_FORCE_X_SUF_TEN(CV_NOD)=CV_FORCE_X_SUF_TEN(CV_NOD)+RR*DTX_ELE(CV_ILOC, 1, ELE)
+               IF(NDIM.GE.2) CV_FORCE_Y_SUF_TEN(CV_NOD)=CV_FORCE_Y_SUF_TEN(CV_NOD)+RR*DTY_ELE(CV_ILOC, 1, ELE)
+               IF(NDIM.GE.3) CV_FORCE_Z_SUF_TEN(CV_NOD)=CV_FORCE_Z_SUF_TEN(CV_NOD)+RR*DTZ_ELE(CV_ILOC, 1, ELE)
+            END DO
+         END DO
+
+         ! Convert force to velocity space...
+         ALLOCATE(MASS(U_NLOC,U_NLOC))
+         ALLOCATE(STORE_MASS(U_NLOC,U_NLOC))
+         ALLOCATE(B_CV_X(CV_NLOC),B_CV_Y(CV_NLOC),B_CV_Z(CV_NLOC))
+         ALLOCATE(RHS_U_SHORT_X(U_NLOC), RHS_U_SHORT_Y(U_NLOC), RHS_U_SHORT_Z(U_NLOC))
+         ALLOCATE(U_SOL_X(U_NLOC),U_SOL_Y(U_NLOC),U_SOL_Z(U_NLOC))
+         ALLOCATE(DETWEI(CV_NGI), RA(CV_NGI)) ; DETWEI = 0.0
+         DO ELE=1,TOTELE
+            ! Calculate DETWEI,RA,NX,NY,NZ for element ELE
+            CALL DETNLXR_PLUS_U( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, &
+                 X_NLOC, CV_NLOC, CV_NGI, &
+                 CVFEN, CVFENLX, CVFENLY, CVFENLZ, CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
+                 CVFENX, CVFENY, CVFENZ, &
+                 U_NLOC, UFENLX, UFENLY, UFENLZ, UFENX, UFENY, UFENZ ) 
+
+            MASS=0.0
+            DO U_ILOC=1,U_NLOC
+               DO U_JLOC=1,U_NLOC
+                  NN=0.0
+                  DO GI=1,CV_NGI
+                     NN = NN + UFEN( U_ILOC, GI ) * UFEN( U_JLOC, GI ) * DETWEI(GI)
+                  END DO
+                  MASS(U_ILOC,U_JLOC)=MASS(U_ILOC,U_JLOC)+NN
+               END DO
+            END DO
+
+            DO CV_JLOC=1,CV_NLOC
+               CV_JNOD=CV_NDGLN((ELE-1)*CV_NLOC+CV_JLOC)
+               B_CV_X(CV_JLOC)=CV_FORCE_X_SUF_TEN(CV_JNOD)
+               IF(NDIM.GE.2) B_CV_Y(CV_JLOC)=CV_FORCE_Y_SUF_TEN(CV_JNOD)
+               IF(NDIM.GE.3) B_CV_Z(CV_JLOC)=CV_FORCE_Z_SUF_TEN(CV_JNOD)
+            END DO
+
+            RHS_U_SHORT_X=0.0
+            RHS_U_SHORT_Y=0.0
+            RHS_U_SHORT_Z=0.0
+            DO U_ILOC=1,U_NLOC
+               DO CV_JLOC=1,CV_NLOC
+                  NM=0.0
+                  DO GI=1,CV_NGI
+                     NM=NM+UFEN( U_ILOC, GI ) * CVFEN( CV_JLOC, GI ) *DETWEI(GI)
+                  END DO
+                  RHS_U_SHORT_X(U_ILOC)=RHS_U_SHORT_X(U_ILOC)+NM*B_CV_X(CV_JLOC)
+                  IF(NDIM.GE.2) RHS_U_SHORT_Y(U_ILOC)=RHS_U_SHORT_Y(U_ILOC)+NM*B_CV_Y(CV_JLOC)
+                  IF(NDIM.GE.3) RHS_U_SHORT_Z(U_ILOC)=RHS_U_SHORT_Z(U_ILOC)+NM*B_CV_Z(CV_JLOC)
+               END DO
+            END DO
+            ! Invert mass matrix...
+            ! Solve STORE_MASS *U_SOL_X = RHS_U_SHORT_X 
+            ! STORE_MASS is overwritten by lu decomposition which used after the 1st solve. 
+            STORE_MASS=MASS
+            GOTDEC = .FALSE.
+            CALL SMLINNGOT( STORE_MASS, U_SOL_X, RHS_U_SHORT_X, U_NLOC, U_NLOC, GOTDEC)
+            GOTDEC =.TRUE.
+            IF(NDIM.GE.2) CALL SMLINNGOT( STORE_MASS, U_SOL_Y, RHS_U_SHORT_Y, U_NLOC, U_NLOC, GOTDEC)
+            IF(NDIM.GE.3) CALL SMLINNGOT( STORE_MASS, U_SOL_Z, RHS_U_SHORT_Z, U_NLOC, U_NLOC, GOTDEC)
+
+            ! Solve mass matrix systems...
+            DO U_ILOC=1,U_NLOC
+               U_NOD=U_NDGLN((ELE-1)*U_NLOC+U_ILOC)
+               U_FORCE_X_SUF_TEN(U_INOD)=U_SOL_X(U_ILOC)
+               IF(NDIM.GE.2) U_FORCE_Y_SUF_TEN(U_INOD)=U_SOL_Y(U_ILOC)
+               IF(NDIM.GE.3) U_FORCE_Z_SUF_TEN(U_INOD)=U_SOL_Z(U_ILOC)
+            END DO
+         END DO
+
+      END IF IF_USE_PRESSURE_FORCE
+
+    END SUBROUTINE SURFACE_TENSION_WRAPPER
 
   end module multiphase_1D_engine
 
