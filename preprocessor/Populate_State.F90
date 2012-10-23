@@ -139,16 +139,18 @@ contains
        call set_option_path(states(i), "/material_phase["//int2str(i-1)//"]")
     end do
     
-    ! Get number of solid meshes
-    num_solid_mesh = option_count('/embedded_models/fsi_model/geometry/mesh')
-    ewrite(2,*) "There are", num_solid_mesh, "solid meshes."
+    if (have_option("/embedded_models/fsi_model/")) then
+      ! Get number of solid meshes
+      num_solid_mesh = option_count('/embedded_models/fsi_model/geometry/mesh')
+      ewrite(2,*) "There are", num_solid_mesh, "solid meshes."
 
-    ! allocate solid_states based on number of solid meshes:
-    allocate(solid_states(1:num_solid_mesh))
-    do i = 0, num_solid_mesh-1
-       call nullify(solid_states(i+1))
-       call set_option_path(solid_states(i+1), "/embedded_models/fsi_model/geometry/mesh["//int2str(i)//"]")
-    end do
+      ! allocate solid_states based on number of solid meshes:
+      allocate(solid_states(1:num_solid_mesh))
+      do i = 0, num_solid_mesh-1
+         call nullify(solid_states(i+1))
+         call set_option_path(solid_states(i+1), "/embedded_models/fsi_model/geometry/mesh["//int2str(i)//"]")
+      end do
+    end if
 
     call insert_external_mesh(states, save_vtk_cache = .true.)
 
