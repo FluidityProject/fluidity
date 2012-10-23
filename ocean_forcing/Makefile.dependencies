@@ -41,7 +41,7 @@ bulk_parameterisations.o ../include/bulk_parameterisations.mod: \
    ../include/spud.mod ../include/state_module.mod
 
 forcingERA40_fortran.o : forcingERA40_fortran.F90 \
-   ../include/bulk_parameterisations.mod ../include/coordinates.mod
+   ../include/bulk_parameterisations.mod
 
 ../include/load_netcdf_module.mod: load_netcdf.o
 	@true
