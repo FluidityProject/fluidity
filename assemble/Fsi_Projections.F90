@@ -242,6 +242,7 @@ contains
     end if
 
     call deallocate(mass_matrix_fluid)
+    call deallocate(alpha_sf_on_solid)
     call deallocate(rhs_alpha_sf)
     call deallocate(lumped_mass_matrix_fluid)
     call deallocate(lumped_inverse_mass_matrix_fluid)
