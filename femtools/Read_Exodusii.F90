@@ -266,7 +266,8 @@ contains
     ! Give the user an error message, since node sets are not supported here, only side sets:
     if (num_node_sets > 0) then
        ! Maybe a warning might be better here, instead of FLExit:
-       FLExit("You have specified node sets on your ExodusII meshfile '"//trim(lfilename)//"' but node sets are not supported by Fluidity. Please set your boundary conditions as side sets")
+       ewrite(-1,*) "You have specified node sets on your ExodusII meshfile '"//trim(lfilename)//"' but node sets are not supported by Fluidity. Please set your boundary conditions as side sets"
+       FLExit("Node sets are not supported by Fluidity, use side sets instead.")
     end if
 
     ! read nodal coordinates values and names from database
@@ -576,7 +577,8 @@ contains
           else if (trim(elem_type_char(1:4)) .eq. "HEX8") then
              elem_type(i) = 5
           else ! element type is not supported, give user an error
-             FLExit("Mesh file "//trim(lfilename)//": Fluidity does not support meshes with elements of type"//trim(elem_type_char(1:6))//". Please provide a mesh with Triangles, Shells, Tetrahedras or Hexahedrons.")
+             ewrite(-1,*) "Mesh file "//trim(lfilename)//": Fluidity does not support meshes with elements of type"//trim(elem_type_char(1:6))//". Please provide a mesh with Triangles, Shells, Tetrahedras or Hexahedrons."
+             FLExit("Element type of "//trim(elem_type_char(1:6))//" is not supported.")
           end if
        end do
        if (ierr /= 0) then
@@ -612,7 +614,8 @@ contains
           if (num_dim == 2) then 
              if (elem_type(i) .ne. 1) then !then it's no edge, but either triangle or shell
                 if (elementType .ne. 0 .and. elementType .ne. elem_type(i)) then
-                   FLExit("Mesh file "//trim(lfilename)//": You have generated a hybrid 2D mesh with Triangles and Shells which Fluidity does not support. Please choose either Triangles or Shells.")
+                   ewrite(-1,*) "Mesh file "//trim(lfilename)//": You have generated a hybrid 2D mesh with Triangles and Shells which Fluidity does not support. Please choose either Triangles or Shells."
+                   FLExit("Hybrid meshes are not supported by Fluidity.")
                 end if
              end if
              ! the face type of 2D meshes are obviously edges, aka type '1'
@@ -621,7 +624,8 @@ contains
           else if (num_dim == 3) then
              if (elem_type(i) .ne. 2 .and. elem_type(i) .ne. 3) then !then it's not a triangle nor a shell
                 if (elementType .ne. 0 .and. elementType .ne. elem_type(i)) then
-                   FLExit("Mesh file "//trim(lfilename)//": You have generated a hybrid 3D mesh with Tetrahedras and Hexahedrons which Fluidity does not support. Please choose either Tetrahedras or Hexahedrons.")
+                   ewrite(-1,*) "Mesh file "//trim(lfilename)//": You have generated a hybrid 3D mesh with Tetrahedras and Hexahedrons which Fluidity does not support. Please choose either Tetrahedras or Hexahedrons."
+                   FLExit("Hybrid meshes are not supported by Fluidity.")
                 end if
              end if
              if (elem_type(i) == 4) then ! tet
@@ -633,7 +637,8 @@ contains
              end if
           elementType = elem_type(i)
           else
-             FLExit("Mesh file "//trim(lfilename)//": Fluidity currently does not support 1D exodusII meshes. But you do NOT want to use fancy cubit to create a 1D mesh, do you? GMSH or other meshing tools can easily be used to generate 1D meshes")
+             ewrite(-1,*) "Mesh file "//trim(lfilename)//": Fluidity currently does not support 1D exodusII meshes. But you do NOT want to use fancy cubit to create a 1D mesh, do you? GMSH or other meshing tools can easily be used to generate 1D meshes"
+             FLExit("1D exodusII mesh files are not supported.")
           end if
        end do
      
