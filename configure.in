@@ -832,7 +832,7 @@ if test "$with_exodusii" = "yes" ; then
     AC_CHECK_LIB(exoIIv2c, ex_close)
     HAVE_EXODUSII=yes
 fi
-AC_SUBST(HAVE_ADJOINT)
+AC_SUBST(HAVE_EXODUSII)
 
 # Parmetis and zoltan
 ACX_ParMetis([AC_MSG_NOTICE(["ParMetis found"])], [AC_MSG_WARN(["ParMetis not found"])])
