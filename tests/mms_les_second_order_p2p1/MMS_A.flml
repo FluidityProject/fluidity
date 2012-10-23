@@ -11,8 +11,8 @@
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_file file_name="src/MMS_A">
-        <format name="gmsh"/>
+      <from_file file_name="MMS_A">
+        <format name="triangle"/>
         <stat>
           <include_in_stat/>
         </stat>
@@ -210,6 +210,16 @@
                   <real_value rank="0">0.1</real_value>
                 </smagorinsky_coefficient>
                 <length_scale_type>scalar</length_scale_type>
+                <tensor_field name="EddyViscosity" rank="2">
+                  <diagnostic>
+                    <algorithm name="Internal" material_phase_support="multiple"/>
+                    <mesh name="VelocityMesh"/>
+                    <output/>
+                    <stat>
+                      <include_in_stat/>
+                    </stat>
+                  </diagnostic>
+                </tensor_field>
               </second_order>
             </les_model>
           </continuous_galerkin>
