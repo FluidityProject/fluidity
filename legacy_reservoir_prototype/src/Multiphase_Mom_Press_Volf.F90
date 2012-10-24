@@ -251,7 +251,8 @@ contains
     integer :: itime, iphase, jphase, its, its2, icomp, icomp2, ncomp2
     integer :: nstates
     real :: dx
-    integer, parameter :: izero = 0, rzero = 0.
+    integer, parameter :: izero = 0
+    real, parameter :: rzero = 0.
 
     ! Absorption terms and dg velocity
     real, dimension( :, :, : ), allocatable :: sigma, velocity_dg
@@ -287,6 +288,8 @@ contains
     integer :: output_channel
     real :: norm_satura1, norm_satura2
     logical :: solve_force_balance, solve_saturation
+
+    type(scalar_field), pointer :: pressure, temperature
 
     allocate( sigma( mat_nonods, ndim * nphase, ndim * nphase ))
 
@@ -425,6 +428,16 @@ contains
        TOLD = T
        COMPOLD = COMP
 
+       ! update state memory
+       if (have_temperature_fields) then
+          do iphase = 1, nphase
+             temperature => extract_scalar_field( state( iphase ), 'Temperature' )
+             temperature % val = t( 1+(iphase-1)*cv_nonods : iphase*cv_nonods )
+          end do
+       end if
+       pressure => extract_scalar_field( state( 1 ), 'Pressure' )
+       pressure % val = p
+
        ewrite(1,*)' New Time Step:', itime
 
        ! evaluate prescribed fields at time = current_time+dt
@@ -435,13 +448,7 @@ contains
        Loop_ITS: DO ITS = 1, NITS
           ewrite(1,*)' New Non-Linear Iteration:', its
 
-          !call copy_into_state( state, satura, t, p, u, v, w, den, comp, & 
-          !     ncomp, nphase, cv_ndgln, p_ndgln, u_ndgln, ndim )
-
           CALL Calculate_Phase_Component_Densities( state, DEN, DERIV )
-
-          !call copy_into_state( state, satura, t, p, u, v, w, den, comp, & 
-          !     ncomp, nphase, cv_ndgln, p_ndgln, u_ndgln, ndim )
 
           if ( its == 1 ) DENOLD = DEN
 
@@ -486,15 +493,15 @@ contains
                   MEAN_PORE_CV, &
                   option_path = '/material_phase[0]/scalar_field::Temperature', &
                   mass_ele_transp = dummy_ele, &
-                  thermal = .true. )                  
+                  thermal = .true. )
 
-             call copy_into_state( state, satura, t, p, u, v, w, den, comp, & 
-                  ncomp, nphase, cv_ndgln, p_ndgln, u_ndgln, ndim )
+             ! update state memory
+             do iphase = 1, nphase
+                temperature => extract_scalar_field( state( iphase ), 'Temperature' )
+                temperature % val = t( 1+(iphase-1)*cv_nonods : iphase*cv_nonods )
+             end do
 
              CALL Calculate_Phase_Component_Densities( state, DEN, DERIV )
-
-             !call copy_into_state( state, satura, t, p, u, v, w, den, comp, & 
-             !     ncomp, nphase, cv_ndgln, p_ndgln, u_ndgln, ndim )
 
              if (SIG_INT) exit Loop_ITS
 
@@ -579,10 +586,6 @@ contains
                   NOIT_DIM, &
                   IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, &
                   scale_momentum_by_volume_fraction )
-
-             !call copy_into_state( state, satura, t, p, u, v, w, den, comp, & 
-             !     ncomp, nphase, cv_ndgln, p_ndgln, u_ndgln, ndim )
-
           end if
 
           if (SIG_INT) exit Loop_ITS
@@ -619,9 +622,6 @@ contains
                   NITS_FLUX_LIM_VOLFRA, &
                   option_path = '/material_phase[0]/scalar_field::PhaseVolumeFraction', &
                   mass_ele_transp = mass_ele )
-
-             !call copy_into_state( state, satura, t, p, u, v, w, den, comp, & 
-             !     ncomp, nphase, cv_ndgln, p_ndgln, u_ndgln, ndim )
 
           end if
 
@@ -695,16 +695,16 @@ contains
                 COMP_GET_THETA_FLUX = .TRUE. ! This will be set up in the input file
                 COMP_USE_THETA_FLUX = .FALSE.       
 
-                ewrite(3,*)'suf_comp_bc:',  SUF_COMP_BC( 1 + STOTEL * CV_SNLOC * NPHASE *( ICOMP - 1 ) : &
-                     &                                                            STOTEL * CV_SNLOC * NPHASE * ICOMP )
-                ewrite(3,*)'SUF_D_BC:', SUF_D_BC
-                ewrite(3,*)'SUF_U_BC:', SUF_U_BC
-                ewrite(3,*)'SUF_V_BC:', SUF_V_BC
-                ewrite(3,*)'SUF_COMP_BC_ROB1:',SUF_COMP_BC_ROB1
-                ewrite(3,*)'SUF_COMP_BC_ROB2:',SUF_COMP_BC_ROB2
-                ewrite(3,*)'COMP_SOURCE:', COMP_SOURCE
-                ewrite(3,*)'COMP_ABSORB:', COMP_ABSORB
-                ewrite(3,*)'COMP_DIFFUSION:', COMP_DIFFUSION
+                !ewrite(3,*)'suf_comp_bc:',  SUF_COMP_BC( 1 + STOTEL * CV_SNLOC * NPHASE *( ICOMP - 1 ) : &
+                !     &                                                            STOTEL * CV_SNLOC * NPHASE * ICOMP )
+                !ewrite(3,*)'SUF_D_BC:', SUF_D_BC
+                !ewrite(3,*)'SUF_U_BC:', SUF_U_BC
+                !ewrite(3,*)'SUF_V_BC:', SUF_V_BC
+                !ewrite(3,*)'SUF_COMP_BC_ROB1:',SUF_COMP_BC_ROB1
+                !ewrite(3,*)'SUF_COMP_BC_ROB2:',SUF_COMP_BC_ROB2
+                !ewrite(3,*)'COMP_SOURCE:', COMP_SOURCE
+                !ewrite(3,*)'COMP_ABSORB:', COMP_ABSORB
+                !ewrite(3,*)'COMP_DIFFUSION:', COMP_DIFFUSION
 
                 CALL INTENERGE_ASSEM_SOLVE( state, &
                      NCOLACV, FINACV, COLACV, MIDACV, & ! CV sparsity pattern matrix
@@ -744,9 +744,6 @@ contains
                      option_path = '', &
                      mass_ele_transp = dummy_ele, &
                      thermal=.false. ) ! the false means that we don't add an extra source term
-
-             !   call copy_into_state( state, satura, t, p, u, v, w, den, comp, & 
-             !        ncomp, nphase, cv_ndgln, p_ndgln, u_ndgln, ndim )
 
              END DO Loop_ITS2
 
@@ -788,15 +785,14 @@ contains
 
           !ewrite(3,*)'V_SOURCE_COMP after:', r2norm(V_SOURCE_COMP, cv_nonods * nphase)
 
-          ewrite(3,*)'Finished VOLFRA_ASSEM_SOLVE ITS,nits,ITIME:',ITS,nits,ITIME
+          !ewrite(3,*)'Finished VOLFRA_ASSEM_SOLVE ITS,nits,ITIME:',ITS,nits,ITIME
 
-          ewrite(3,*)'after all loops -- comp with its=', its
-          ewrite(3,*)'saturation:'
-          do iphase = 1, nphase
-             ewrite(3,*) iphase, ( satura( ( iphase - 1 ) * cv_nonods + cv_nodi ), &
-                  cv_nodi = 1, cv_nonods )
-          end do
-
+          !ewrite(3,*)'after all loops -- comp with its=', its
+          !ewrite(3,*)'saturation:'
+          !do iphase = 1, nphase
+          !   ewrite(3,*) iphase, ( satura( ( iphase - 1 ) * cv_nonods + cv_nodi ), &
+          !        cv_nodi = 1, cv_nonods )
+          !end do
 
           !ewrite(3,*)''
           !ewrite(3,*)'composition:'
