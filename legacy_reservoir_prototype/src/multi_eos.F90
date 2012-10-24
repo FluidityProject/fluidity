@@ -212,7 +212,7 @@
       ewrite(3,*) 'have_temperature_field, have_component_field::', &
            have_temperature_field, have_component_field
 
-      pressure => extract_scalar_field( state( iphase ), 'Pressure' )
+      pressure => extract_scalar_field( state( 1 ), 'Pressure' )
       if ( have_temperature_field ) &
            temperature => extract_scalar_field( state( iphase ), 'Temperature' )
 

@@ -4348,12 +4348,16 @@
       integer, dimension( TOTELE + 1 ), intent( in ) :: FINELE
       integer, dimension( NCOLELE ), intent( in ) :: COLELE
 
-
-      real, dimension( : ), allocatable :: U_FORCE_X_SUF_TEN,U_FORCE_Y_SUF_TEN,U_FORCE_Z_SUF_TEN
+      real, dimension( : ), allocatable :: U_FORCE_X_SUF_TEN, U_FORCE_Y_SUF_TEN, U_FORCE_Z_SUF_TEN
 
       integer :: iphase, icomp
       real :: coefficient
-      logical :: surface_tension
+      logical :: surface_tension, use_pressure_force
+
+      ! Initialise...
+      IPLIKE_GRAD_SOU = 0
+      PLIKE_GRAD_SOU_COEF = 0.0
+      PLIKE_GRAD_SOU_GRAD = 0.0
 
       do icomp = 1, ncomp
 
@@ -4362,14 +4366,20 @@
 
          if ( surface_tension ) then
 
-            call get_option(   '/material_phase[' // int2str( nphase - 1 + icomp ) // &
+            call get_option( '/material_phase[' // int2str( nphase - 1 + icomp ) // &
                  ']/is_multiphase_component/surface_tension/coefficient', coefficient )
-
 
             allocate( U_FORCE_X_SUF_TEN( U_NONODS) ) ; U_FORCE_X_SUF_TEN = 0.0
             allocate( U_FORCE_Y_SUF_TEN( U_NONODS) ) ; U_FORCE_X_SUF_TEN = 0.0
             allocate( U_FORCE_Z_SUF_TEN( U_NONODS) ) ; U_FORCE_X_SUF_TEN = 0.0
 
+            USE_PRESSURE_FORCE = .true.
+
+            if ( USE_PRESSURE_FORCE ) then
+               IPLIKE_GRAD_SOU = 1
+            else
+               IPLIKE_GRAD_SOU = 0
+            end if
 
             do iphase = 1, nphase
 
@@ -4377,7 +4387,6 @@
                     U_FORCE_X_SUF_TEN, U_FORCE_Y_SUF_TEN, U_FORCE_Z_SUF_TEN, &
                     PLIKE_GRAD_SOU_COEF( 1+CV_NONODS*(IPHASE-1) : CV_NONODS*IPHASE ), & 
                     PLIKE_GRAD_SOU_GRAD( 1+CV_NONODS*(IPHASE-1) : CV_NONODS*IPHASE ), &
-                    IPLIKE_GRAD_SOU, &
                     COEFFICIENT, VOLUME_FRAC, &
                     NCOLACV, FINACV, COLACV, MIDACV, &
                     NCOLCT, FINDCT, COLCT, &
@@ -4387,35 +4396,24 @@
                     CV_NDGLN, X_NDGLN, U_NDGLN, &
                     X, Y, Z, &
                     MAT_NLOC, MAT_NDGLN, MAT_NONODS,  &
-                    NDIM,  &
+                    NDIM, USE_PRESSURE_FORCE, &
                     NCOLM, FINDM, COLM, MIDM, &
                     XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE)
 
             end do
 
-            deallocate( U_FORCE_X_SUF_TEN, U_FORCE_Y_SUF_TEN, U_FORCE_Z_SUF_TEN)
+            deallocate( U_FORCE_X_SUF_TEN, U_FORCE_Y_SUF_TEN, U_FORCE_Z_SUF_TEN )
 
          end if
 
       end do
 
-
       RETURN
     END SUBROUTINE CALCULATE_SURFACE_TENSION
 
-
-
-
-
-
-
-
-
-
-
     SUBROUTINE SURFACE_TENSION_WRAPPER( state, &
          U_FORCE_X_SUF_TEN, U_FORCE_Y_SUF_TEN, U_FORCE_Z_SUF_TEN, &
-         PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, IPLIKE_GRAD_SOU, &
+         PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, &
          SUF_TENSION_COEF,VOLUME_FRAC, &
          NCOLACV, FINACV, COLACV, MIDACV, &
          NCOLCT, FINDCT, COLCT, &
@@ -4425,7 +4423,7 @@
          CV_NDGLN, X_NDGLN, U_NDGLN, &
          X, Y, Z, &
          MAT_NLOC, MAT_NDGLN, MAT_NONODS,  &
-         NDIM,  &
+         NDIM, USE_PRESSURE_FORCE, &
          NCOLM, FINDM, COLM, MIDM, &
          XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE)
 
@@ -4579,8 +4577,7 @@
       REAL, intent( in ) ::  SUF_TENSION_COEF
 
       REAL, DIMENSION( U_NONODS ), intent( inout ) :: U_FORCE_X_SUF_TEN,U_FORCE_Y_SUF_TEN,U_FORCE_Z_SUF_TEN
-      REAL, DIMENSION( CV_NONODS ) :: PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD
-      INTEGER, INTENT( INOUT ) :: IPLIKE_GRAD_SOU
+      REAL, DIMENSION( CV_NONODS ), intent( inout ) :: PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD
 
       REAL, DIMENSION( CV_NONODS ), intent( in ) :: VOLUME_FRAC
 
@@ -4590,6 +4587,7 @@
       INTEGER, DIMENSION( CV_NONODS ), intent( in ) :: MIDM
       INTEGER, DIMENSION( TOTELE + 1 ), intent( in ) :: FINELE
       INTEGER, DIMENSION( NCOLELE ), intent( in ) :: COLELE
+      LOGICAL, intent( in ) :: USE_PRESSURE_FORCE
 
       ! Local variables 
       LOGICAL, DIMENSION( : ), allocatable :: X_SHARE,LOG_ON_BOUND
@@ -4676,21 +4674,11 @@
            D1, D3, DCYL, GOT_DIFFUS, INTEGRAT_AT_GI, &
            NORMALISE, SUM2ONE, GET_GTHETA, QUAD_OVER_WHOLE_ELE, GETCT
       LOGICAL :: GET_THETA_FLUX, USE_THETA_FLUX, THERMAL, LUMP_EQNS, &
-           SIMPLE_LINEAR_SCHEME, GOTDEC, USE_PRESSURE_FORCE
+           SIMPLE_LINEAR_SCHEME, GOTDEC
 
       CHARACTER(LEN=OPTION_PATH_LEN) :: OPTION_PATH
       CHARACTER(100) :: PATH
       REAL, DIMENSION(TOTELE) :: DUMMY_ELE
-
-      USE_PRESSURE_FORCE = .true.
-
-      if ( USE_PRESSURE_FORCE ) then
-         IPLIKE_GRAD_SOU = 1
-      else
-         IPLIKE_GRAD_SOU = 0
-         PLIKE_GRAD_SOU_COEF = 0.0
-         PLIKE_GRAD_SOU_GRAD = 0.0
-      end if
 
       IGOT_T2=0
       CV_DISOPT=0

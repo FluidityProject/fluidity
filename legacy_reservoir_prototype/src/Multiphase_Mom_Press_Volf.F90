@@ -436,7 +436,7 @@ contains
           end do
        end if
        pressure => extract_scalar_field( state( 1 ), 'Pressure' )
-       pressure % val = p
+       pressure % val = cv_p
 
        ewrite(1,*)' New Time Step:', itime
 
@@ -524,6 +524,21 @@ contains
              CALL calculate_capillary_pressure( state, CV_NONODS, NPHASE, PLIKE_GRAD_SOU_GRAD, SATURA )
           END IF
 
+          !CALL CALCULATE_SURFACE_TENSION( state, nphase, ncomp, &
+          !     PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, IPLIKE_GRAD_SOU, &
+          !     VOLUME_FRAC, &
+          !     NCOLACV, FINACV, COLACV, MIDACV, &
+          !     NCOLCT, FINDCT, COLCT, &
+          !     CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
+          !     CV_ELE_TYPE, CV_SELE_TYPE, U_ELE_TYPE, &
+          !     CV_NLOC, U_NLOC, X_NLOC, CV_SNLOC, U_SNLOC, &
+          !     CV_NDGLN, X_NDGLN, U_NDGLN, &
+          !     X, Y, Z, &
+          !     MAT_NLOC, MAT_NDGLN, MAT_NONODS,  &
+          !     NDIM,  &
+          !     NCOLM, FINDM, COLM, MIDM, &
+          !     XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE )
+
           V_SOURCE_STORE = V_SOURCE + V_SOURCE_COMP
 
           IF( NCOMP <= 1 ) THEN
@@ -586,6 +601,9 @@ contains
                   NOIT_DIM, &
                   IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, &
                   scale_momentum_by_volume_fraction )
+
+             pressure => extract_scalar_field( state( 1 ), 'Pressure' )
+             pressure % val = cv_p
           end if
 
           if (SIG_INT) exit Loop_ITS
