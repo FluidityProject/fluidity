@@ -8,12 +8,12 @@ import numpy
 import pylab
 import re
 
-def get_filelist(sample, start):
+def get_filelist(type, sample, start):
 
     def key(s):
         return int(s.split('_')[-1].split('.')[0])
    
-    list = glob.glob("*vtu")
+    list = glob.glob("*"+str(type)+"*.vtu")
     list = [l for l in list if 'check' not in l]
     vtu_nos = [float(s.split('_')[-1].split('.')[0]) for s in list]
     vals = zip(vtu_nos, list)
@@ -174,7 +174,7 @@ def plot_length(type,reattachment_length):
   pylab.legend(("Fluidity","Kim expt.","Ilinca sim."), loc="best")
   rlmax = max(reattachment_length[:,0])
   pylab.axis([0, reattachment_length[-1,1], 0, max(kim[-1],rlmax)+0.1])
-  pylab.savefig("../reattachment_length_kim_"+str(type)+".pdf")
+  pylab.savefig("reattachment_length_kim_"+str(type)+".pdf")
   return
 
 #########################################################################
@@ -185,65 +185,65 @@ def plot_meanvelo(type,profiles,xarray,yarray):
   pylab.suptitle("U-velocity profile: Re=132000, "+str(type), fontsize=20)
 
   # get profiles from Ilinca's experimental/numerical data
-  datafile = open('../Ilinca-data/Ilinca-U-expt-1.33.dat', 'r')
+  datafile = open('Ilinca-data/Ilinca-U-expt-1.33.dat', 'r')
   print "reading in data from file: Ilinca-U-expt-1.33.dat"
   y1=[];U1=[]
   for line in datafile:
     U1.append(float(line.split()[0]))
     y1.append(float(line.split()[1]))
-  datafile = open('../Ilinca-data/Ilinca-U-num-1.33.dat', 'r')
+  datafile = open('Ilinca-data/Ilinca-U-num-1.33.dat', 'r')
   print "reading in data from file: Ilinca-U-num-1.33.dat"
   yn1=[];Un1=[]
   for line in datafile:
     Un1.append(float(line.split()[0]))
     yn1.append(float(line.split()[1]))
 
-  datafile = open('../Ilinca-data/Ilinca-U-expt-2.66.dat', 'r')
+  datafile = open('Ilinca-data/Ilinca-U-expt-2.66.dat', 'r')
   print "reading in data from file: Ilinca-U-expt-2.66.dat"
   y3=[];U3=[]
   for line in datafile:
     U3.append(float(line.split()[0]))
     y3.append(float(line.split()[1]))
-  datafile = open('../Ilinca-data/Ilinca-U-num-2.66.dat', 'r')
+  datafile = open('Ilinca-data/Ilinca-U-num-2.66.dat', 'r')
   print "reading in data from file: Ilinca-U-num-2.66.dat"
   yn3=[];Un3=[]
   for line in datafile:
     Un3.append(float(line.split()[0]))
     yn3.append(float(line.split()[1]))
 
-  datafile = open('../Ilinca-data/Ilinca-U-expt-5.33.dat', 'r')
+  datafile = open('Ilinca-data/Ilinca-U-expt-5.33.dat', 'r')
   print "reading in data from file: Ilinca-U-expt-5.33.dat"
   y5=[];U5=[]
   for line in datafile:
     U5.append(float(line.split()[0]))
     y5.append(float(line.split()[1]))
-  datafile = open('../Ilinca-data/Ilinca-U-num-5.33.dat', 'r')
+  datafile = open('Ilinca-data/Ilinca-U-num-5.33.dat', 'r')
   print "reading in data from file: Ilinca-U-num-5.33.dat"
   yn5=[];Un5=[]
   for line in datafile:
     Un5.append(float(line.split()[0]))
     yn5.append(float(line.split()[1]))
 
-  datafile = open('../Ilinca-data/Ilinca-U-expt-8.0.dat', 'r')
+  datafile = open('Ilinca-data/Ilinca-U-expt-8.0.dat', 'r')
   print "reading in data from file: Ilinca-U-expt-8.0.dat"
   y8=[];U8=[]
   for line in datafile:
     U8.append(float(line.split()[0]))
     y8.append(float(line.split()[1]))
-  datafile = open('../Ilinca-data/Ilinca-U-num-8.0.dat', 'r')
+  datafile = open('Ilinca-data/Ilinca-U-num-8.0.dat', 'r')
   print "reading in data from file: Ilinca-U-num-8.0.dat"
   yn8=[];Un8=[]
   for line in datafile:
     Un8.append(float(line.split()[0]))
     yn8.append(float(line.split()[1]))
 
-  datafile = open('../Ilinca-data/Ilinca-U-expt-16.0.dat', 'r')
+  datafile = open('Ilinca-data/Ilinca-U-expt-16.0.dat', 'r')
   print "reading in data from file: Ilinca-U-expt-16.0.dat"
   y16=[];U16=[]
   for line in datafile:
     U16.append(float(line.split()[0]))
     y16.append(float(line.split()[1]))
-  datafile = open('../Ilinca-data/Ilinca-U-num-16.0.dat', 'r')
+  datafile = open('Ilinca-data/Ilinca-U-num-16.0.dat', 'r')
   print "reading in data from file: Ilinca-U-num-16.0.dat"
   yn16=[];Un16=[]
   for line in datafile:
@@ -307,7 +307,7 @@ def plot_meanvelo(type,profiles,xarray,yarray):
   bx.set_xlabel('Normalised U-velocity (U/Umax)', fontsize=24)
   ax.set_ylabel('z/h', fontsize=24)
 
-  pylab.savefig("../velocity_profiles_kim_"+str(type)+".pdf")
+  pylab.savefig("velocity_profiles_kim_"+str(type)+".pdf")
   return
 
 #########################################################################
@@ -317,7 +317,7 @@ def main():
     type = sys.argv[1]
 
     ##### Only process every nth file:
-    filelist = get_filelist(sample=5, start=0)
+    filelist = get_filelist(type, sample=5, start=0)
 
     ##### Call reattachment_length function
     reatt_length = numpy.array(reattachment_length(filelist))
