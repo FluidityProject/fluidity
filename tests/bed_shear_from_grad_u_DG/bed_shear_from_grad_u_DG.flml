@@ -153,7 +153,18 @@
           <real_value rank="0">1</real_value>
         </density>
         <calculation_method>
-          <velocity_gradient/>
+          <velocity_gradient>
+            <tensor_field name="DGVelocityGradient" rank="2">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <mesh name="VelocityMesh"/>
+                <output/>
+                <stat>
+                  <include_in_stat/>
+                </stat>
+              </diagnostic>
+            </tensor_field>
+          </velocity_gradient>
         </calculation_method>
         <output/>
         <stat>

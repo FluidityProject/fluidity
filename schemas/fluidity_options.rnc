@@ -2416,8 +2416,19 @@ diagnostic_vector_field_bed_shear_stress =
             ## velocity_gradient - nu * grad(u)
             ## This uses the velocity gradient at the boundaries to calculate the 
             ## bed shear stress. Valid for non parameterised velocity boundaries
-            element velocity_gradient {  
-               empty
+            element velocity_gradient {              
+               ## output calculated gradient of dg field as a diagnostic (only works for dg velocity fields)
+               element tensor_field {
+                  attribute rank { "2" },
+                  attribute name { "DGVelocityGradient" },
+                  (
+                     element diagnostic {
+                        internal_algorithm,
+                        velocity_mesh_choice,
+                        diagnostic_tensor_field
+                     }
+                  )
+               }?
             }|
             ## This diagnostic can only be used in conjunction with a near-wall treatment
             ## velocity boundary condition. It is calculated at the same time as that boundary condition.
@@ -3275,7 +3286,7 @@ scalar_field_choice =
             ## Field type
             (
                element prognostic {
-                  velocity_mesh_choice,
+                  velocity_mesh_choice,   
                   prognostic_scalar_field
                }|
                element prescribed {

@@ -3286,7 +3286,22 @@ This is calculated at all boundaries</a:documentation>
           <a:documentation>velocity_gradient - nu * grad(u)
 This uses the velocity gradient at the boundaries to calculate the 
 bed shear stress. Valid for non parameterised velocity boundaries</a:documentation>
-          <empty/>
+          <optional>
+            <element name="tensor_field">
+              <a:documentation>output calculated gradient of dg field as a diagnostic (only works for dg velocity fields)</a:documentation>
+              <attribute name="rank">
+                <value>2</value>
+              </attribute>
+              <attribute name="name">
+                <value>DGVelocityGradient</value>
+              </attribute>
+              <element name="diagnostic">
+                <ref name="internal_algorithm"/>
+                <ref name="velocity_mesh_choice"/>
+                <ref name="diagnostic_tensor_field"/>
+              </element>
+            </element>
+          </optional>
         </element>
         <element name="wall_treatment">
           <a:documentation>This diagnostic can only be used in conjunction with a near-wall treatment

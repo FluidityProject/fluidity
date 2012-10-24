@@ -96,7 +96,7 @@ module populate_state_module
        
   !! A list of relative paths under /material_phase[i]
   !! that are searched for additional fields to be added.
-  character(len=OPTION_PATH_LEN), dimension(8) :: additional_fields_relative=&
+  character(len=OPTION_PATH_LEN), dimension(9) :: additional_fields_relative=&
        (/ &
        "/subgridscale_parameterisations/Mellor_Yamada                                                       ", &
        "/subgridscale_parameterisations/prescribed_diffusivity                                              ", &
@@ -104,6 +104,7 @@ module populate_state_module
        "/subgridscale_parameterisations/k-epsilon                                                           ", &
        "/subgridscale_parameterisations/k-epsilon/debugging_options/source_term_output_fields               ", &
        "/subgridscale_parameterisations/k-epsilon/debugging_options/prescribed_source_terms                 ", &
+       "/vector_field::BedShearStress/diagnostic/calculation_method/velocity_gradient                       ", &
        "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/dynamic_les ", &
        "/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/second_order" &
        /)
