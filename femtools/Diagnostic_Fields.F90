@@ -3248,7 +3248,7 @@ contains
             call allocate(bed_shear_stress_surface, bed_shear_stress%dim, surface_mesh)
 
             ! remap required fields to the boundary surfaces
-            call allocate(grad_u_surface, surface_mesh, dim=grad_u%dim)
+            call allocate(grad_u_surface, surface_mesh, dim=grad_u_ptr%dim)
             call remap_field_to_surface(grad_u_ptr, grad_u_surface, surface_element_list)
             call allocate(visc_surface, surface_mesh, dim=visc%dim)
             call remap_field_to_surface(visc, visc_surface, surface_element_list)
@@ -3272,6 +3272,7 @@ contains
             call deallocate(grad_u_surface)
             call deallocate(visc_surface)
             call deallocate(surface_mesh)
+            call deallocate(bc_value)
             deallocate(bc_type)
          end if
       else
