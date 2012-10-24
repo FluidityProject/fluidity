@@ -1,4 +1,5 @@
 input:	clean
+	./copy_script
 	gmsh -2 src/MMS_A.geo
 	gmsh -2 src/MMS_B.geo
 	gmsh -2 src/MMS_C.geo
@@ -12,4 +13,4 @@ run:
 	../../bin/fluidity MMS_C.flml
 
 clean:
-	rm -f *.vtu *.stat *.s *A_* *B_* *C_* *.log matrix* *~ mms_les_second_order_p2p1.py *.pyc fluidity.* nohup.out *.node *.ele *.edge
+	rm -f *.vtu *.stat *.s *_A* *_B* *_C* *_D* src/*A.* src/*B.* src/*C.* src/*D.* *.log matrix* *~ mms_les_second_order_p2p1.py *.pyc fluidity.* nohup.out *.node *.ele *.edge

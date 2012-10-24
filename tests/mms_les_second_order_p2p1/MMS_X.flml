@@ -207,9 +207,19 @@
             <les_model>
               <second_order>
                 <smagorinsky_coefficient>
-                  <real_value rank="0">0.1</real_value>
+                  <real_value rank="0">888.8</real_value>
                 </smagorinsky_coefficient>
                 <length_scale_type>scalar</length_scale_type>
+                <tensor_field name="EddyViscosity" rank="2">
+                  <diagnostic>
+                    <algorithm name="Internal" material_phase_support="multiple"/>
+                    <mesh name="VelocityMesh"/>
+                    <output/>
+                    <stat>
+                      <include_in_stat/>
+                    </stat>
+                  </diagnostic>
+                </tensor_field>
               </second_order>
             </les_model>
           </continuous_galerkin>
@@ -489,5 +499,50 @@
         </steady_state>
       </diagnostic>
     </vector_field>
+    <tensor_field name="EddyViscosityAnalytical" rank="2">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <anisotropic_asymmetric>
+            <python>
+              <string_value lines="20" type="code" language="python">def val(X,t):
+   import mms_les_second_order_p2p1_tools as tools
+   return [[tools.nu_T(X), tools.nu_T(X)],
+           [tools.nu_T(X), tools.nu_T(X)]]</string_value>
+            </python>
+          </anisotropic_asymmetric>
+        </value>
+        <output/>
+      </prescribed>
+    </tensor_field>
+    <tensor_field name="EddyViscosityError" rank="2">
+      <diagnostic>
+        <algorithm source_field_2_type="tensor" name="tensor_difference" source_field_1_name="EddyViscosityCopy" source_field_2_name="EddyViscosityAnalytical" material_phase_support="single" source_field_1_type="tensor">
+          <absolute_difference/>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </diagnostic>
+    </tensor_field>
+    <tensor_field name="EddyViscosityCopy" rank="2">
+      <diagnostic>
+        <algorithm name="tensor_python_diagnostic" material_phase_support="single">
+          <string_value lines="20" type="code" language="python"># Unfortunately, the tensor_difference algorithm does not find EddyViscosity in the LES model options path. So let's copy it here instead.
+
+ev = states["Fluid"].tensor_fields["EddyViscosity"]
+
+for i in range(field.node_count):
+  field.set(i, ev.node_val(i))</string_value>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </diagnostic>
+    </tensor_field>
   </material_phase>
 </fluidity_options>

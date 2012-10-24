@@ -47,6 +47,21 @@ ab_ratio = a_error / b_error
 ab_convergence_p = log(ab_ratio, 2)
     </variable>
     
+    <variable name="ab_convergence_ev" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+
+print "Calculating errors for Pressure in A-B convergence test"
+a_error = stat("MMS_A.stat")["Fluid"]["EddyViscosityError%magnitude"]["l2norm"][-1]
+b_error = stat("MMS_B.stat")["Fluid"]["EddyViscosityError%magnitude"]["l2norm"][-1]
+
+print a_error
+print b_error
+
+ab_ratio = a_error / b_error
+ab_convergence_ev = log(ab_ratio, 2)
+    </variable>
+    
     <variable name="bc_convergence_vel" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
@@ -82,6 +97,21 @@ bc_ratio = b_error / c_error
 bc_convergence_p = log(bc_ratio, 2)
     </variable>
 
+    <variable name="bc_convergence_ev" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+
+print "Calculating errors for Pressure in B-C convergence test"
+b_error = stat("MMS_B.stat")["Fluid"]["EddyViscosityError%magnitude"]["l2norm"][-1]
+c_error = stat("MMS_C.stat")["Fluid"]["EddyViscosityError%magnitude"]["l2norm"][-1]
+
+print b_error
+print c_error
+
+bc_ratio = b_error / c_error
+bc_convergence_ev = log(bc_ratio, 2)
+    </variable>
+    
     <variable name="solvers_converged" language="python">
 import os
 files = os.listdir("./")
@@ -101,6 +131,10 @@ assert(ab_convergence_vel[1] &gt; 2.8)
 assert(ab_convergence_p &gt; 1.75)
     </test>
     
+    <test name="ab_convergence_ev: L2 order > 1.75" language="python">
+assert(ab_convergence_ev &gt; 1.75)
+    </test>
+    
     <test name="bc_convergence_vel_x for Fluid: L2 order > 2.8" language="python">
 assert(bc_convergence_vel[0] &gt; 2.8)
     </test>
@@ -110,6 +144,10 @@ assert(bc_convergence_vel[1] &gt; 2.8)
     
     <test name="bc_convergence_p: L2 order > 1.65" language="python">
 assert(bc_convergence_p &gt; 1.65)
+    </test>
+
+    <test name="bc_convergence_ev: L2 order > 1.75" language="python">
+assert(bc_convergence_ev &gt; 1.75)
     </test>
     
     <test name="Solvers converged" language="python">
