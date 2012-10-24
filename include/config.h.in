@@ -18,29 +18,8 @@
 /* Define if F77 and FC dummy `main' functions are identical. */
 #undef FC_DUMMY_MAIN_EQ_F77
 
-/* Define if you have libadjoint. */
-#undef HAVE_ADJOINT
-
 /* Define if you have a BLAS library. */
 #undef HAVE_BLAS
-
-/* Define to 1 if you have the file `hyperlight/Hyperlight.cpp'. */
-#undef HAVE_HYPERLIGHT_HYPERLIGHT_CPP
-
-/* Define to 1 if you have the file `hyperlight/Hyperlight.h'. */
-#undef HAVE_HYPERLIGHT_HYPERLIGHT_H
-
-/* Define to 1 if you have the file `hyperlight/Iop.cpp'. */
-#undef HAVE_HYPERLIGHT_IOP_CPP
-
-/* Define to 1 if you have the file `hyperlight/Iop.h'. */
-#undef HAVE_HYPERLIGHT_IOP_H
-
-/* Define to 1 if you have the file `hyperlight/Sky.cpp'. */
-#undef HAVE_HYPERLIGHT_SKY_CPP
-
-/* Define to 1 if you have the file `hyperlight/Sky.h'. */
-#undef HAVE_HYPERLIGHT_SKY_H
 
 /* Define if you have hypre library. */
 #undef HAVE_HYPRE
@@ -56,12 +35,6 @@
 
 /* Define to 1 if you have the `dl' library (-ldl). */
 #undef HAVE_LIBDL
-
-/* Define to 1 if you have the `exodus' library (-lexodus). */
-#undef HAVE_LIBEXODUS
-
-/* Define to 1 if you have the `exoIIv2c' library (-lexoIIv2c). */
-#undef HAVE_LIBEXOIIV2C
 
 /* Define to 1 if you have the `m' library (-lm). */
 #undef HAVE_LIBM

@@ -105,9 +105,6 @@ endif
 ifneq (@MBA2D@,yes)
 	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e 2dadapt
 endif
-ifneq (@HAVE_EXODUSII@,yes)
-	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e exodusii
-endif
 
 .SUFFIXES: .f90 .F90 .c .cpp .o .a
 
