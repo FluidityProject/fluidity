@@ -845,7 +845,7 @@
       ewrite_minmax(rhs)
       
       if(les_second_order .or. dynamic_les) then
-         call les_solve_diagnostic_fields(state, have_eddy_visc)
+         call les_solve_diagnostic_fields(state, have_eddy_visc, have_strain, have_filtered_strain, have_filter_width)
       end if
 
       if (les_fourth_order) then
