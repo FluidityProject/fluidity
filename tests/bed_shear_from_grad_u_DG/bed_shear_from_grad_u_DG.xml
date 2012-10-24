@@ -9,35 +9,31 @@
     <!-- check bed shear stress is as expected for very simple set up -->
 </problem_definition>
   <variables>   
-    <variable name="SS_min" language="python">
-
+    <variable name="pass" language="python">
 from vtktools import *
 from numpy import *
+
 data = vtu('bed_shear_from_grad_u_DG_0.vtu')
-
 Shear = data.GetField('BedShearStress')
-SS_min = Shear.min()
+Coordinates = data.GetLocations()
 
-    </variable>  
-    <variable name="SS_max" language="python">
-
-from vtktools import *
-from numpy import *
-data = vtu('bed_shear_from_grad_u_DG_0.vtu')
-
-Shear = data.GetField('BedShearStress')
-SS_max = Shear.max()
-
-    </variable>  
+test_passed = True
+tol = 1e-5
+for i, coor in enumerate(Coordinates):
+    if ((abs(coor[0]) &lt; tol or abs(coor[0] - 1.0) &lt; tol) and 
+		    (abs(coor[1]) &gt; tol and abs(coor[1] - 1.0) &gt; tol)):
+		    if abs(Shear[i][0] - 0.15) > tol: test_passed = False
+				if abs(Shear[i][1] - 0.75) > tol: test_passed = False
+    if ((abs(coor[0]) &gt; tol and abs(coor[0] - 1.0) &gt; tol) and 
+		    (abs(coor[1]) &lt; tol or abs(coor[1] - 1.0) &lt; tol)):
+		    if abs(Shear[i][0] - 0.05) > tol: test_passed = False
+				if abs(Shear[i][1] - 0.5) > tol: test_passed = False
+    </variable>   
   </variables>
   <pass_tests>
     <!-- max shear stress is within 0.001% of 1 -->
-    <test name="kinetic energy source term is as expected, error less than 0.01%" language="python">
-assert(0.9999 &lt; SS_max &lt; 1.0001)
-    </test>
-    <!-- in shear stress is within 0.001% of -1 -->
-    <test name="kinetic energy source term is as expected, error less than 0.01%" language="python">
-assert(-1.0001 &lt; SS_min &lt; 0.9999)
+    <test name="shear stress is as expected" language="python">
+assert(test_passed == True)
     </test>
   </pass_tests>
   <warn_tests>

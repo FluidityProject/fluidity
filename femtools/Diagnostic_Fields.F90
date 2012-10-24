@@ -3122,21 +3122,29 @@ contains
       type(state_type), intent(inout) :: state
       type(vector_field), intent(inout) :: bed_shear_stress
       type(scalar_field) :: masslump
-      type(vector_field), pointer :: U, X, bed_shear_stress_surface
+      type(vector_field), pointer :: U, X
       type(tensor_field), pointer :: visc
       integer, dimension(:), allocatable :: faceglobalnodes
       integer :: i,j,snloc,ele,sele,globnod,face
       real :: speed,density,drag_coefficient
-      type(mesh_type) :: surface_mesh
-      integer, dimension(:), pointer :: surface_node_list
 
       !! for DG
       !! Field over the entire surface mesh containing bc values:
-      type(vector_field) :: bc_value, grad_U
+      type(vector_field) :: bc_value
+      !! Field that holds the gradient of velocity in boundary elements
+      type(tensor_field) :: grad_U
       !! Integer array of all surface elements indicating bc type
       !! (see below call to get_entire_boundary_condition):
       integer, dimension(:,:), allocatable :: bc_type
-      type(csr_matrix), pointer :: inverse_mass
+      !! surface mesh, element and node list
+      type(mesh_type) :: surface_mesh
+      integer, dimension(:), allocatable :: surface_element_list
+      integer, dimension(:), pointer :: surface_node_list
+      !! surface fields
+      type(vector_field) :: bed_shear_stress_surface
+      type(tensor_field) :: visc_surface, grad_u_surface
+
+      ! real, dimension(:,:,:), allocatable :: rhs
       
       ! assumes constant density
       call get_option(trim(bed_shear_stress%option_path)//"/diagnostic/density", density)
@@ -3210,15 +3218,53 @@ contains
             allocate( bc_type(U%dim, 1:surface_element_count(U)) )
             call get_entire_boundary_condition(U, (/"weakdirichlet"/), bc_value, bc_type)
 
-            call allocate(grad_U, mesh_dim(U), bed_shear_stress%mesh, 'grad_U')
+            call allocate(grad_U, bed_shear_stress%mesh, 'grad_U')
+            call zero(grad_U)
 
+            ! calculate velocity gradient in boundary elements
             do ele = 1, ele_count(bed_shear_stress)
-               call calculate_grad_u_ele_dg(grad_U, masslump, ele, X, U,&
-                    & visc, density, bc_value, bc_type)
+               ! allocate(rhs(U%dim, U%dim, ele_loc(U, ele)))
+
+               ! ele = face_ele(X, face) ! ele number for volume mesh
+               call calculate_grad_u_ele_dg(grad_U, ele, X, U,&
+                    & bc_value, bc_type)
+
+               ! rhs = ele_val(grad_u, ele)
+               ! do i=1, U%dim
+               !    call addto(bed_shear_stress, i, ele_nodes(grad_U, ele), rhs(i, i, :))
+               ! end do
+
+               ! deallocate(rhs)
+            end do
+    
+            allocate(surface_element_list(surface_element_count(bed_shear_stress)))
+            ! generate list of surface elements
+            do i=1, surface_element_count(bed_shear_stress)
+               surface_element_list(i)=i
             end do
 
-            inverse_mass => get_dg_inverse_mass(state, bed_shear_stress%mesh)
-            call mult(bed_shear_stress, inverse_mass, grad_U)
+            ! create surface field
+            call create_surface_mesh(surface_mesh, surface_node_list, bed_shear_stress%mesh, name='sm')
+            call allocate(bed_shear_stress_surface, bed_shear_stress%dim, surface_mesh)
+
+            ! remap required fields to the boundary surfaces
+            call allocate(grad_u_surface, surface_mesh, dim=grad_u%dim)
+            call remap_field_to_surface(grad_u, grad_u_surface, surface_element_list)
+            call allocate(visc_surface, surface_mesh, dim=visc%dim)
+            call remap_field_to_surface(visc, visc_surface, surface_element_list)
+
+            ! calculate bed shear stress
+            do face = 1, ele_count(bed_shear_stress_surface)
+               call calculate_bed_shear_stress_ele_dg(bed_shear_stress_surface, face, X, grad_u_surface,&
+                    & visc_surface, density)
+            end do
+
+            call deallocate(bed_shear_stress_surface)
+            call deallocate(grad_u)
+            call deallocate(grad_u_surface)
+            call deallocate(visc_surface)
+            deallocate(bc_type)
+
          end if
          
       else
@@ -3301,9 +3347,9 @@ contains
         end do
 
         ! Multiply by surface normal (dim,sgi) to obtain shear in direction normal
-        ! to surface - transpose (because fluidity stores data in row-major order??)
-        normal_shear_at_quad(:,i_gi) = matmul(transpose(shear_at_quad(:,:,i_gi)),&
-             & abs_normal) 
+        ! to surface - transpose (not sure why it is transpose but this gives the
+        ! correct answer?? sp911)
+        normal_shear_at_quad(:,i_gi) = matmul(transpose(shear_at_quad(:,:,i_gi)), abs_normal) 
      end do  
 
      normal_shear_at_loc = shape_vector_rhs(f_shape, normal_shear_at_quad, density *&
@@ -3320,15 +3366,76 @@ contains
           
    end subroutine calculate_bed_shear_stress_ele_cg
 
-   subroutine calculate_grad_u_ele_dg(grad_u, masslump, ele, X, U, visc&
-        &, density, bc_value, bc_type)
+   subroutine calculate_bed_shear_stress_ele_dg(bss, ele, X, grad_U, visc, density)
 
-     type(vector_field), intent(inout) :: grad_u
-     type(scalar_field), intent(inout) :: masslump
-     type(vector_field), intent(in), pointer :: X, U
-     type(tensor_field), intent(in), pointer :: visc
+     type(vector_field), intent(inout) :: bss
+     type(vector_field), intent(in), pointer :: X
+     type(tensor_field), intent(in) :: visc
+     type(tensor_field), intent(in) :: grad_U
      integer, intent(in) :: ele
      real, intent(in) :: density
+
+     integer :: i, j, i_gi
+     type(element_type), pointer :: shape
+     real, dimension(ele_ngi(bss, ele)) :: detwei
+     real, dimension(X%dim, ele_ngi(bss, ele)) :: normal, normal_shear_at_quad, X_at_quad
+     real, dimension(X%dim) :: abs_normal
+     real, dimension(X%dim, X%dim, ele_ngi(grad_U, ele)) :: grad_U_at_quad, visc_at_quad, shear_at_quad  
+     real, dimension(X%dim, ele_loc(bss, ele)) :: rhs
+     real, dimension(ele_loc(bss, ele), ele_loc(bss, ele)) :: inv_mass
+
+     ! get shape functions
+     shape => ele_shape(bss, ele)      
+      
+     call transform_facet_to_physical(X, ele, detwei_f = detwei, normal = normal)
+
+     visc_at_quad = ele_val_at_quad(visc, ele)
+     grad_U_at_quad = ele_val_at_quad(grad_U, ele)
+     X_at_quad = face_val_at_quad(X, ele)
+
+     do i_gi = 1, ele_ngi(bss, ele)
+        ! Multiply by viscosity
+        shear_at_quad(:,:,i_gi) = density * matmul(grad_U_at_quad(:,:,i_gi), visc_at_quad(:,:,i_gi))
+
+        ! Get absolute of normal vector
+        do i = 1, bss%dim
+           abs_normal(i) = abs(normal(i,i_gi))
+        end do
+
+        ! Multiply by surface normal (dim,sgi) to obtain shear in direction normal
+        ! to surface - transpose (not sure why it is transpose but this gives the
+        ! correct answer?? sp911)
+        ! normal_shear_at_quad(:,i_gi) = matmul(shear_at_quad(:,:,i_gi), abs_normal) 
+
+        ! write(*,*) grad_U_at_quad(:,:,i_gi), ',', visc_at_quad(:,:,i_gi), ',', shear_at_quad(:,:,i_gi), ',', abs_normal, ',', normal_shear_at_quad(:,i_gi), ',', X_at_quad(:,i_gi)
+
+        normal_shear_at_quad(:,i_gi) = matmul(transpose(shear_at_quad(:,:,i_gi)), abs_normal) 
+
+        write(*,*) grad_U_at_quad(:,:,i_gi), ',', visc_at_quad(:,:,i_gi), ',', shear_at_quad(:,:,i_gi), ',', abs_normal, ',', normal_shear_at_quad(:,i_gi), ',', X_at_quad(:,i_gi)
+
+        ! normal_shear_at_quad(:,i_gi) = matmul(abs_normal, shear_at_quad(:,:,i_gi)) 
+
+        ! write(*,*) grad_U_at_quad(:,:,i_gi), ',', visc_at_quad(:,:,i_gi), ',', shear_at_quad(:,:,i_gi), ',', abs_normal, ',', normal_shear_at_quad(:,i_gi), ',', X_at_quad(:,i_gi)
+     end do  
+
+     ! project on to basis functions to recover value at nodes
+     rhs = shape_vector_rhs(shape, normal_shear_at_quad, detwei)
+     write(*,*) rhs
+     inv_mass = shape_shape(shape, shape, detwei)
+     call invert(inv_mass)
+     rhs = matmul(inv_mass, rhs)
+     write(*,*) inv_mass, ',', rhs
+
+     ! add to bss field
+     call addto(bss, ele_nodes(bss,ele), rhs)
+          
+   end subroutine calculate_bed_shear_stress_ele_dg
+
+   subroutine calculate_grad_u_ele_dg(grad_u, ele, X, U, bc_value, bc_type)
+
+     type(tensor_field), intent(inout) :: grad_u
+     type(vector_field), intent(in), pointer :: X, U
+     integer, intent(in) :: ele
      type(vector_field), intent(in) :: bc_value
      integer, dimension(:,:), intent(in) :: bc_type
      
@@ -3340,19 +3447,15 @@ contains
      real, dimension(U%dim, U%dim, ele_loc(U, ele)) :: rhs
      
      ! variables for surface integral
-     integer :: ni, ele_2, face, face_2
+     integer :: ni, ele_2, face, face_2, i, j
      integer, dimension(:), pointer :: neigh
+
+     ! inverse mass
+     real, dimension(ele_loc(grad_u, ele), ele_loc(grad_u, ele)) :: inv_mass
 
      character(len=200) :: msg
 
      shape => ele_shape(U, ele) 
-     ! ! assumption is made that gradient within element is constant - this is only
-     ! ! true for p0 or p1 discretisations
-     ! if (shape%degree > 1) then
-     !    msg = "Bed shear stress calculation using the velocity gradient currently"//&
-     !         " only works for DG discretisations with degree 1 or 0"
-     !    FLAbort(trim(msg))
-     ! end if
      call transform_to_physical(X, ele, shape, dshape, detwei)
      
      ! Calculate grad of U_h within the element
@@ -3360,8 +3463,6 @@ contains
      
      ! Assemble interior contributions to rhs
      rhs = shape_tensor_rhs(shape, grad_Uh_gi, detwei)
-
-     call addto(grad_u, ele_nodes(U, ele), rhs(1,:,:))
      
      ! Interface integrals
      neigh=>ele_neigh(U, ele)
@@ -3379,87 +3480,87 @@ contains
         end if
 
         call calculate_grad_u_ele_dg_interface(ele, face, face_2, ni, &
-             & grad_u, X, U, bc_value, bc_type)
+             & rhs, X, U, bc_value, bc_type)
      end do
+
+     ! multiply by inverse of mass matrix
+     inv_mass = inverse(shape_shape(shape, shape, detwei))
+     do i = 1, U%dim
+        do j = 1, U%dim
+           rhs(i, j, :) = matmul(inv_mass, rhs(i, j, :))
+        end do
+     end do
+
+     call addto(grad_u, ele_nodes(grad_u, ele), rhs)
           
    end subroutine calculate_grad_u_ele_dg
   
    subroutine calculate_grad_u_ele_dg_interface(ele, face, face_2, &
-        ni, grad_u, X, U, bc_value, bc_type)
+        ni, rhs, X, U, bc_value, bc_type)
 
      !!< Construct the DG element boundary integrals on the ni-th face of
      !!< element ele.
      integer, intent(in) :: ele, face, face_2, ni
-     type(vector_field), intent(inout) :: grad_u
      type(vector_field), intent(in) :: X, U
      type(vector_field), intent(in) :: bc_value
      integer, dimension(:,:), intent(in) :: bc_type
+     real, dimension(U%dim, U%dim, ele_loc(U, ele)), intent(inout) :: rhs
 
      ! Face objects and numberings.
-     type(element_type), pointer :: shape, shape_2
-     integer, dimension(face_loc(U, face)) :: U_face, U_face_l
-     integer, dimension(face_loc(U, face_2)) :: U_face_2
-     real, dimension(U%dim, face_ngi(U, face)) :: normal, normal_2, U_q, U_q_2, U_bc_q
-     real, dimension(face_ngi(U, face)) :: detwei, detwei_2
+     type(element_type), pointer :: shape
+     real, dimension(U%dim, face_ngi(U, face)) :: normal, U_q, U_q_2, U_bc_q
+     real, dimension(face_ngi(U, face)) :: detwei
      real, dimension(U%dim, U%dim, face_ngi(U, face)) :: tensor
-     real, dimension(U%dim, U%dim, face_loc(U, face)) :: rhs
+     real, dimension(U%dim, U%dim, face_loc(U, face)) :: face_rhs
+     real, dimension(ele_loc(U, ele)) :: elenodes
+     real, dimension(face_loc(U, face)) :: facenodes
 
      integer :: i, j
 
-     rhs = 0.0
+     face_rhs = 0.0
      tensor = 0.0
+
+     ! shape and detwei are the same for both faces, normal+ = - normal-
+     shape => face_shape(U, face)
+     call transform_facet_to_physical(X, face, detwei_f=detwei, normal=normal)
      
      if (face==face_2) then  
         ! boundary faces - need to apply weak dirichlet bc's
         ! = - int_ v_h \cdot (u - u^b) n 
-
-        shape => face_shape(U, face)
-        call transform_facet_to_physical(X, face, detwei_f=detwei, normal=normal)
         U_q = face_val_at_quad(U, face)
         U_bc_q = ele_val_at_quad(bc_value, face)
         
         do i=1, mesh_dim(U)
            if (bc_type(i, face) == 1) then
               do j=1, mesh_dim(U)
-                 tensor(i,j,:) = -1.0*U_q(i,:)*normal(j,:)
+                 tensor(i,j,:) = -1.0*(U_q(i,:) - U_bc_q(i,:))*normal(j,:)
               end do
            end if
         end do
-        rhs = shape_tensor_rhs(shape, tensor, detwei) 
-        do i=1, mesh_dim(U)
-           if (bc_type(i, face) == 1) then
-              do j=1, mesh_dim(U)
-                 tensor(i,j,:) = 0.5*U_bc_q(i,:)*normal(j,:)
-              end do
-           end if
-        end do
-        rhs = rhs + shape_tensor_rhs(shape, tensor, detwei) 
+        face_rhs = shape_tensor_rhs(shape, tensor, detwei) 
      else    
         ! internal face
         ! = int_ {v_h} \cdot J(x)  
-        
-        shape => face_shape(U, face)
-        shape_2 => face_shape(U, face_2)
-        call transform_facet_to_physical(X, face, detwei_f=detwei, normal=normal)
-        call transform_facet_to_physical(X, face_2, detwei_f=detwei_2, normal=normal_2)
         U_q = face_val_at_quad(U, face)
         U_q_2 = face_val_at_quad(U, face_2)
         
         do i=1, mesh_dim(U)
            do j=1, mesh_dim(U)
-              tensor(i,j,:) = -0.5*U_q(i,:)*normal(j,:)
+              tensor(i,j,:) = -0.5*(U_q(i,:) - U_q_2(i,:))*normal(j,:)
            end do
         end do
-        rhs = shape_tensor_rhs(shape, tensor, detwei) 
-        do i=1, mesh_dim(U)
-           do j=1, mesh_dim(U)
-              tensor(i,j,:) = -0.5*U_q_2(i,:)*normal_2(j,:)
-           end do
-        end do
-        rhs = rhs + shape_tensor_rhs(shape_2, tensor, detwei_2) 
+        face_rhs = shape_tensor_rhs(shape, tensor, detwei) 
      end if
 
-     call addto(grad_u, face_global_nodes(U, face), rhs(1,:,:))
+     elenodes = ele_nodes(U, ele)
+     facenodes = face_global_nodes(U, face)
+     do i=1, face_loc(U, face)
+        do j=1, ele_loc(U, face)
+           if (facenodes(i) == elenodes(j)) then
+              rhs(:, :, j) = rhs(:, :, j) + face_rhs(:, :, i)
+           end if
+        end do
+     end do
 
    end subroutine calculate_grad_u_ele_dg_interface
 
