@@ -172,25 +172,28 @@ contains
 
     subroutine assemble_scaled_pressure_mass_matrix(state,scaled_pressure_mass_matrix)
 
-      ! This routine assembles the scaled_pressure_mass_matrix. It is scaled
-      ! by the inverse of viscosity.
+      ! This routine assembles the scaled_pressure_mass_matrix at the
+      ! quadrature points. It is scaled by the inverse of viscosity.
 
       type(state_type), intent(in) :: state   
-
       ! Scaled pressure mass matrix - already allocated in Momentum_Eq:
       type(csr_matrix), intent(inout) :: scaled_pressure_mass_matrix
-
       ! Pressure field:
       type(scalar_field), pointer :: pressure
       ! Viscosity tensor:
       type(tensor_field), pointer :: viscosity     
       ! Viscosity component:
       type(scalar_field) :: viscosity_component
-      ! Inverse of Viscosity component
-      type(scalar_field) :: inverse_viscosity_component
       ! Positions:
       type(vector_field), pointer :: positions
-      
+
+      ! Relevant declerations for mass matrix calculation:
+      integer :: ele
+      real, dimension(:), allocatable :: detwei
+      type(element_type), pointer :: p_shape
+      real, dimension(:,:), allocatable :: mass_matrix
+      real, dimension(:), allocatable :: mu_gi
+
       ewrite(1,*) 'Entering assemble_scaled_pressure_mass_matrix'    
 
       ! Positions:
@@ -205,20 +208,24 @@ contains
       ! Extract first component of viscosity tensor from full tensor:
       viscosity_component = extract_scalar_field(viscosity,1,1)
 
-      ! Allocate memory for inverse viscosity component scalar field:
-      call allocate(inverse_viscosity_component, viscosity_component%mesh, name="inverse_viscosity_component")
-
-      ! Invert viscosity:
-      call invert(viscosity_component,inverse_viscosity_component)
-
-      ! Compute pressure mass matrix, scaled by inverse viscosity - note that the
-      ! inverse viscosity is supplied as density here:
-      call compute_mass(positions,pressure%mesh,scaled_pressure_mass_matrix,density=inverse_viscosity_component)
+      ! Initialise and assemble scaled pressure mass matrix:
+      allocate(detwei(ele_ngi(pressure, 1)), &
+               mass_matrix(ele_loc(pressure, 1), ele_loc(pressure, 1)), &
+               mu_gi(ele_ngi(viscosity_component, 1)))
+ 
+      call zero(scaled_pressure_mass_matrix)
+      do ele = 1, ele_count(pressure)
+        p_shape => ele_shape(pressure, ele)
+        mu_gi = ele_val_at_quad(viscosity_component, ele)
+        call transform_to_physical(positions, ele, detwei=detwei)
+        mass_matrix = shape_shape(p_shape, p_shape, detwei/mu_gi)
+        call addto(scaled_pressure_mass_matrix, ele_nodes(pressure, ele),&
+             ele_nodes(pressure, ele), mass_matrix)
+      end do
 
       ewrite_minmax(scaled_pressure_mass_matrix)
 
-      ! Deallocate inverse viscosity component scalar field:
-      call deallocate(inverse_viscosity_component)
+      deallocate(detwei, mass_matrix, mu_gi)
 
     end subroutine assemble_scaled_pressure_mass_matrix
       

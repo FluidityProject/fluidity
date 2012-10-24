@@ -35,7 +35,7 @@ import sys
 import xml.dom.minidom
 import xml.parsers.expat
 
-import gtk.gdk
+sys.path.append("../../libspud/diamond")
 
 import diamond.debug as debug
 import diamond.schema as schema

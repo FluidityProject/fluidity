@@ -182,7 +182,33 @@ pclu_options =
       ##
       ## This performs a complete, direct solve of the equation and should only be used in combination with preonly as iterative method.
       element preconditioner {
-         attribute name { "lu" }
+         attribute name { "lu" },
+         (
+           ## Package to use for the factorization - petsc.
+           element factorization_package {
+             attribute name { "petsc" },
+             empty
+           }|
+           ## Package to use for the factorization - umfpack.
+           ##
+           ## Useful for systems with a near zero pivot (if installed on system).
+           element factorization_package {
+             attribute name { "umfpack" },
+             empty
+           }|
+           ## Package to use for the factorization - mumps.
+           ##
+           ## Useful for parallel direct solves (if installed on system).
+           element factorization_package {
+             attribute name { "mumps" },
+             empty
+           }|
+           ## Package to use for the factorization - any valid package.
+           element factorization_package {
+             attribute name { xsd:string },
+             empty
+           }
+         )
      }
    )
 pcmg_options =
@@ -427,26 +453,17 @@ generic_solver_options =
       element cache_solver_context {
          empty
       }?,
-      (
-         ## Use Reverse Cuthill-McKee reordering to improve cache performance
-         element reordering {
-           attribute name { "rcm" }
-         }|
-         ## Use one way dissecting reordering to improve cache performance
-         element reordering {
-           attribute name { "1wd" }
-         }|
-         ## Use natural ordering as reordering, i.e. change nothing.
-         ## Only useful for debugging purposes.
-         element reordering {
-           attribute name { "natural" }
-         }|
-         ## Specify any other reordering mechanism supported by PETSc
-         ## see http://www-unix.mcs.anl.gov/petsc/petsc-as/snapshots/petsc-current/docs/manualpages/MatOrderings/MatGetOrdering.html
-         element reordering {
-           attribute name { xsd:string }
-         }
-      )?,
+      ## Specify a reordering mechanism supported by PETSc
+      ## to improve cache performance, see
+      ## http://www-unix.mcs.anl.gov/petsc/petsc-as/snapshots/petsc-current/docs/manualpages/MatOrderings/MatGetOrdering.html
+      ##
+      ## Note that the use of reordering mechanisms for solves is 
+      ## currently untested.  Possible schemes include:
+      ## Reverse Cuthill-McKee reordering (rcm), a one way dissecting (1wd)
+      ## algorithm, and also a natural ordering (natural) for debugging.
+      element reordering {
+         attribute name { xsd:string }
+      }?,
       ## Extra diagnostics to help debug solver problems
       element diagnostics {
          ## Print out the norm of vectors and matrices before the

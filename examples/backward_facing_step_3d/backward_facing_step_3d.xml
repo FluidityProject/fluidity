@@ -15,9 +15,8 @@ finishtime= stat("backward_facing_step_3d.stat")["ElapsedTime"]["value"][-1]</va
 from postprocessor_3d import reatt_length, get_filelist
 import numpy
 yarray = numpy.array([0.1, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 3.9])
-exclude_initial_results = 45
-filelist = get_filelist()
-reattachment_length = numpy.array(reatt_length(filelist, yarray, exclude_initial_results))
+filelist = get_filelist(sample=1, start=0)
+reattachment_length = numpy.array(reatt_length(filelist, yarray))
     </variable>
   </variables>
   <pass_tests>

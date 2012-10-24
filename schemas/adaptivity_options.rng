@@ -591,7 +591,7 @@ rather than always lagging behind.</a:documentation>
           <element name="spatial_discretisation">
             <a:documentation>Spatial discretisation options</a:documentation>
             <element name="control_volumes">
-              <ref name="standard_control_volume_options"/>
+              <ref name="standard_control_volume_options_excluding_cfl"/>
             </element>
             <element name="conservative_advection">
               <a:documentation>Conservative discretisation of field advection equation
@@ -677,6 +677,9 @@ and divides the rhs by this.</a:documentation>
               <empty/>
             </element>
           </choice>
+          <optional>
+            <ref name="porosity_include"/>
+          </optional>
           <element name="output">
             <a:documentation>Debugging output options</a:documentation>
             <optional>
@@ -1137,6 +1140,26 @@ additional_adapt_iterations calls to adaptivity. Additional calls over adapt ite
 are only allowed if Zoltan returns a minimum element quality below the element quality
 cut off. Default is 0. </a:documentation>
               <ref name="integer"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="field_weighted_partitions">
+              <element name="scalar_field">
+                <a:documentation>Field weighted partitions: turning on this option allows one to 
+weight mesh partitions, based upon a prescribed scalar field. 
+Note that the field should have a minimum value of 0 and a maximum
+value of 1 (no normalisation is done within the code).</a:documentation>
+                <attribute name="rank">
+                  <value>0</value>
+                </attribute>
+                <attribute name="name">
+                  <value>FieldWeightedPartitionValues</value>
+                </attribute>
+                <element name="prescribed">
+                  <ref name="coordinate_mesh_choice"/>
+                  <ref name="prescribed_scalar_field"/>
+                </element>
+              </element>
             </element>
           </optional>
           <optional>

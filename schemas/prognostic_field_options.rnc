@@ -27,11 +27,11 @@ scalar_boundary_conditions =
                      empty
                   }?
                }?,
-               input_choice_real
+               input_choice_real_plus_field
             }|
             element type {
                attribute name { "neumann" },
-               input_choice_real
+               input_choice_real_plus_field
             }|
             robin_bc_scalar|
             ## Prevent the field from fluxing out of the boundary.
@@ -54,7 +54,12 @@ scalar_boundary_conditions =
             ## sediment grain
             element type {
                attribute name { "sediment_reentrainment" },
-               empty
+               ## Select algorithm to calculate reentrainment by (see the manual for more detail)
+               element algorithm { "Garcia_1991" | "Generic" },
+               ## Viscosity value to use within this algorithm. This allows the user to override 
+               ## use of the material viscosity used for the rest of the simulation for calculating 
+               ## sediment reentrainment. 
+               element viscosity { real }?
             }|
             ## [UNDER DEVELOPMENT - DOES NOT WORK YET]
             ## Special type of Dirichlet boundary condition for the k-epsilon
@@ -75,7 +80,7 @@ scalar_boundary_conditions =
             ## a boundary when solving the advection-diffusion equation.
             element type {
                attribute name { "flux" },
-               input_choice_real
+               input_choice_real_plus_field
             }
          )
       }
@@ -91,7 +96,8 @@ robin_bc_scalar =
       ##  T the scalar field value on the surface,
       ##  C0 is the input order zero coefficient and
       ##  C1 is the input order one coefficient.
-      ##  THIS WILL ONLY WORK FOR CONTINUOUS GALERKIN SPATIAL DISCRETISATION
+      ##  THIS WILL ONLY WORK FOR CONTINUOUS GALERKIN OR CONTROL VOLUME 
+      ##  (USING AN ELEMENTGRADIENT DIFFUSION SCHEME) SPATIAL DISCRETISATIONS.
       element type {
          attribute name { "robin" },
          ##  The order zero coefficient represented as C0 in
@@ -163,21 +169,37 @@ prognostic_scalar_field =
          element subgridscale_parameterisation {
             attribute name { "GLS"}
          }|
-         ## [UNDER DEVELOPMENT - DOES NOT WORK YET]
-         ## Set the diffusivity to the eddy diffusivity calculated by the
-         ## k-epsilon turbulence model. If using this, set the diffusivity field to
-         ## diagnostic/algorithm(internal).
+         ## Turning this option on enables calculation of turbulent diffusivity for this field, and calculation of buoyancy 
+         ## source terms for this field in the k_eps code.
+         ##
+         ## TURBULENT DIFFUSIVITY
+         ##
+         ## To enable, set the diffusivity field to diagnostic/algorithm(k_epsilon). 
+         ##
+         ## The diffusivity, D, is set to the sum of the background diffusivity, D_bg, and the eddy diffusivity calculated 
+         ## by the k-epsilon turbulence model.
+         ##
+         ## D = D_bg  nu_t / Pr
+         ##
+         ## where: nu_t = turbulent viscosity ; Pr = Prandtl or Schmidt number
+         ##
+         ## A background diffusivity can either be set globally
+         ## under material_phase[]/subgridscale_parameterisations/k-epsilon, or individually for each field this is 
+         ## applied upon. If it is set globally and locally, the local background diffusivity is used.
+         ##
+         ## BUOYANCY EFFECTS
+         ##
+         ## Enable this by selecting the buoyancy_effects node. A buoyancy source term is added to the right hand side of the k
+         ## and epsilon equations. See the manual for more information.
+         ##
          element subgridscale_parameterisation {
             attribute name { "k-epsilon"},
-            ## Option to set the Prandtl number (ratio of momentum diffusivity to field diffusivity)
-            ##  for this field. Default = 1.0 if not specified.
-            element Prandtl_number {
-               input_choice_real
-            }?
+            ## Option to set a unique isotropic background diffusivity for this field.
+            element background_diffusivity { real }?
          }|
          element subgridscale_parameterisation {
             attribute name { "prescribed_diffusivity"}
-         }
+         }         
       )?,
       ## Buoyancy adjustment (vertical stabilization) schemes.
       element buoyancy_adjustment {
@@ -215,15 +237,19 @@ prognostic_scalar_field =
                 prescribed_tensor_field_no_adapt
             }|
             element diagnostic {
+               mesh_choice?,
                (
                   tensor_python_diagnostic_algorithm |
-                  internal_algorithm
+                  internal_algorithm 
                ),
                diagnostic_tensor_field
             }
          )
       }?,
-      ## source term
+      ## Source term. If the scalar field to be 
+      ## solved for is subcycled then variations 
+      ## in this source field across the subcycled 
+      ## time steps are not considered.
       element scalar_field {
          attribute name { "Source" },
          attribute rank { "0" },
@@ -236,6 +262,14 @@ prognostic_scalar_field =
                   scalar_python_diagnostic_algorithm |
                   internal_algorithm
                ),
+               ## Add the source field directly to the 
+               ## matrix system right hand side. To be 
+               ## consistent this term should be tested 
+               ## using the function space that 
+               ## is used for the spatial discretisation.
+               element add_directly_to_rhs {
+                  comment
+               }?,
                diagnostic_scalar_field_no_adapt
             } 
          )
@@ -277,6 +311,7 @@ prognostic_scalar_field =
             }
          )
       }?,
+      porosity_include?,
       prognostic_scalar_output_options,
       prognostic_scalar_stat_options,
       scalar_convergence_options,
@@ -955,7 +990,8 @@ prognostic_velocity_field =
                (
                   internal_algorithm |
                   bulk_viscosity_algorithm |
-                  tensor_python_diagnostic_algorithm
+                  tensor_python_diagnostic_algorithm |
+                  sediment_concentration_dependent_viscosity_algorithm
                ),
                diagnostic_tensor_field
             }
@@ -1153,6 +1189,14 @@ prognostic_pressure_field =
                ## ** ONLY WORKS with continuous_galerkin Velocity and lumping the mass matrix and not with lumping on submesh.
                element low_re_p_correction_fix {
                   empty
+               }?,
+               ## Test the continuity equation with the control volume dual mesh of the finite element pressure mesh.
+               ## Only works for incompressible flow. This will make the pressure matrix non symmetric which must be 
+               ## considered when selecting the pressure solver options. This will not work with the free surface and 
+               ## wetting and drying models. Also the mesh assoicated with the pressure field must use the lagrangian 
+               ## element type (the default). This will not work with the implicit solids model using two way coupling. 
+               element test_continuity_with_cv_dual {
+                  comment
                }?
             }|
             ## Select this discretisation if Pressure is defined on a discontinous mesh.
@@ -1637,11 +1681,11 @@ prognostic_foam_velocity_potential_field =
                      empty
                   }?
                }?,
-               input_choice_real
+               input_choice_real_plus_field
             }|
             element type {
                attribute name { "neumann" },
-               input_choice_real
+               input_choice_real_plus_field
             }|
             robin_bc_scalar|
             ## Prevent the field from fluxing out of the boundary.
@@ -1812,7 +1856,7 @@ prognostic_free_surface_field =
             element type {
                attribute name { "dirichlet" },
                (
-                  input_choice_real_contents|
+                  input_choice_real_plus_field|
                   element from_file {
                      element tidal {
                         attribute file_name { string },
@@ -1834,7 +1878,7 @@ prognostic_free_surface_field =
             }|
             element type {
                attribute name { "neumann" },
-               input_choice_real
+               input_choice_real_plus_field
             }|
             robin_bc_scalar
          )
@@ -2019,6 +2063,11 @@ scalar_equation_choice =
          ## electrokinetic, electrochemical or electrothermal sources 
          element equation { 
             attribute name { "ElectricalPotential" }
+         }|
+         ## Equation type for the k-epsilon model fields.
+         ## Note: Only works for continuous galerkin or control volume discretisations.
+         element equation {
+            attribute name { "KEpsilon" }
          }
       )
    )

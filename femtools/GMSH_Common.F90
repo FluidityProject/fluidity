@@ -77,6 +77,13 @@ contains
 
     select case( trim(readWriteStr) )
     case("read")
+#ifdef __INTEL_COMPILER
+#if __INTEL_COMPILER < 1211
+    ! Gets around a bug described in:
+    ! http://software.intel.com/en-us/forums/showthread.php?t=101333
+       position = position-1
+#endif
+#endif
        open( fd, file=trim(filename), action="read", form="formatted", &
             access="stream")
        read( fd, "(I1)", POS=position, ADVANCE="no" )

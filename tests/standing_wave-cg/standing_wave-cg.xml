@@ -7,6 +7,11 @@
     <command_line>fluidity -v3 -l  standing_wave.flml</command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="max_pressure_diff_left" language="python">import fluidity_tools
 det=fluidity_tools.stat_parser('standing_wave.detectors')
 plb=det['water']['Pressure']['LeftBottom']
@@ -48,20 +53,20 @@ fs_integral_max=abs(fsi).max()<comment>Horizontal integral of free surface shoul
     <variable name="volume_integral_change" language="python">import fluidity_tools
 stat=fluidity_tools.stat_parser('standing_wave.stat');
 volume=-stat['water']['GravityDirection%3']['integral']
-volume_integral_change=abs(volume-1.e14).max()
-</variable>
+volume_integral_change=abs(volume-1.e14).max()</variable>
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="pressure_diff_left" language="python">assert(max_pressure_diff_left&lt;0.005)</test>
     <test name="pressure_diff_right" language="python">assert(max_pressure_diff_right&lt;0.005)</test>
     <test name="pressure_diff_middle" language="python">assert(max_pressure_diff_middle&lt;0.005)</test>
     <test name="fs_left_min" language="python">assert(fs_left['min']&lt;-0.95)</test>
-    <test name="fs_left_min_time" language="python">
-    assert abs(fs_left['min_time']-1e4)&lt;200 or abs(fs_left['min_time']-9800)&lt;200
-    </test>
+    <test name="fs_left_min_time" language="python">assert abs(fs_left['min_time']-1e4)&lt;300 or abs(fs_left['min_time']-9800)&lt;300</test>
     <test name="fs_end_value" language="python">assert abs(fs_left['end_value']-1.0)&lt;0.2</test>
-    <test name="fs_right_max" language="python">assert(fs_right['max']&gt;-0.95)</test>
-    <test name="fs_right_max_time" language="python">assert abs(fs_right['max_time']-1e4)&lt;200</test>
+    <test name="fs_right_max" language="python">assert(fs_right['max']&gt;0.95)</test>
+    <test name="fs_right_max_time" language="python">assert abs(fs_right['max_time']-1e4)&lt;300</test>
     <test name="fs_end_value" language="python">assert abs(fs_right['end_value']+1.0)&lt;0.2</test>
     <test name="fs_integral_max_zero" language="python">assert fs_integral_max&lt;5e-3</test>
     <test name="volume_integral_change_zero" language="python">assert volume_integral_change&lt;1000<comment>This is around machine precision</comment></test>

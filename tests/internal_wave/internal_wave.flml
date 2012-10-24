@@ -29,7 +29,7 @@
             <integer_value shape="1" rank="1">43</integer_value>
           </aliased_boundary_ids>
           <coordinate_map>
-            <string_value lines="20" type="python">def val(x,t):
+            <string_value lines="20" type="code" language="python">def val(x,t):
     return (0.0,x[1],x[2])</string_value>
           </coordinate_map>
         </periodic_boundary_conditions>
@@ -237,7 +237,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X, t):
+            <string_value lines="20" type="code" language="python">def val(X, t):
    from math import cos, sin, pi
    d=0.6                                   # depth of domain
    s=(0.5)**(0.5)                     # slope of wave beams
@@ -402,7 +402,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X, t):
+            <string_value lines="20" type="code" language="python">def val(X, t):
    from math import cos, sin, pi
    N = 3**(-0.5)                       # buoyancy frequency
    alpha = -1.0                        # expansion coefficient

@@ -79,7 +79,6 @@ module fluids_module
   use free_surface_module
   use field_priority_lists
   use boundary_conditions
-  use porous_media
   use spontaneous_potentials, only: calculate_electrical_potential
   use saturation_distribution_search_hookejeeves
   use discrete_properties_module
@@ -103,6 +102,7 @@ module fluids_module
 #endif
   use multiphase_module
   use detector_parallel, only: sync_detector_coordinates, deallocate_detector_list_array
+  use momentum_diagnostic_fields, only: calculate_densities
 
   implicit none
 
@@ -161,9 +161,10 @@ contains
     INTEGER :: ss,ph
     LOGICAL :: have_solids
 
-    !     Turbulence modelling - JBull 24-05-11
-    LOGICAL :: have_k_epsilon
-    character(len=OPTION_PATH_LEN) :: keps_option_path
+    ! An array of submaterials of the current phase in state(istate).
+    ! Needed for k-epsilon VelocityBuoyancyDensity calculation line:~630
+    ! S Parkinson 31-08-12
+    type(state_type), dimension(:), pointer :: submaterials     
 
     ! Pointers for scalars and velocity fields
     type(scalar_field), pointer :: sfield
@@ -193,12 +194,6 @@ contains
 
     call initialise_qmesh
     call initialise_write_state
-
-
-    ! Initialise sediments
-    if (have_option("/material_phase[0]/sediment")) then
-        call sediment_init()
-    end if
 
     ! Initialise Hyperlight
 #ifdef HAVE_HYPERLIGHT
@@ -316,17 +311,18 @@ contains
     !        Currently only needed for free surface
     if (has_scalar_field(state(1), "DistanceToTop")) then
        if (.not. have_option('/geometry/ocean_boundaries')) then
-          ewrite(-1,*) "There are no top and bottom boundary markers."
-          FLExit("Switch on /geometry/ocean_boundaries or remove your DistanceToTop field.")
-       end if
-       call CalculateTopBottomDistance(state(1))
-       ! Initialise the OriginalDistanceToBottom field used for wetting and drying
-       if (have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")) then
-          call insert_original_distance_to_bottom(state(1))
-          ! Wetting and drying only works with no poisson guess ... lets check that
-          call get_option("/material_phase::water/scalar_field::Pressure/prognostic/scheme/poisson_pressure_solution", option_buffer)
-          if (.not. trim(option_buffer) == "never") then 
-            FLExit("Please choose 'never' under /material_phase::water/scalar_field::Pressure/prognostic/scheme/poisson_pressure_solution when using wetting and drying")
+          ewrite(-1,*) "Warning: You have a field called DistanceToTop"
+          ewrite(-1,*) "but you don't have ocean_boundaries switched on."
+       else
+          call CalculateTopBottomDistance(state(1))
+          ! Initialise the OriginalDistanceToBottom field used for wetting and drying
+          if (have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")) then
+             call insert_original_distance_to_bottom(state(1))
+             ! Wetting and drying only works with no poisson guess ... let's check that
+             call get_option("/material_phase[0]/scalar_field::Pressure/prognostic/scheme/poisson_pressure_solution", option_buffer)
+             if (.not. trim(option_buffer) == "never") then 
+               FLExit("Please choose 'never' under /material_phase[0]/scalar_field::Pressure/prognostic/scheme/poisson_pressure_solution when using wetting and drying")
+             end if
           end if
        end if
     end if
@@ -440,14 +436,6 @@ contains
     ! Initialise GLS
     if (have_option("/material_phase[0]/subgridscale_parameterisations/GLS/option")) then
         call gls_init(state(1))
-    end if
-
-    ! Initialise k_epsilon
-    have_k_epsilon = .false.
-    keps_option_path="/material_phase[0]/subgridscale_parameterisations/k-epsilon/"
-    if (have_option(trim(keps_option_path))) then
-        have_k_epsilon = .true.
-        call keps_init(state(1))
     end if
 
     ! ******************************
@@ -596,17 +584,13 @@ contains
           end if
           !end explicit ale ------------  jem 21/07/08
 
-          !-----------------------------------------------------
-          ! Call to porous_media module (leading to multiphase flow in porous media)
-          ! jhs - 16/01/09
+          ! Call to electrical properties for porous_media module 
           if (have_option("/porous_media")) then
-             call porous_media_advection(state)
-             ! compute spontaneous electrical potentials (myg - 28/10/09)
+             ! compute spontaneous electrical potentials
              do i=1,size(state)
                 option_buffer = '/material_phase['//int2str(i-1)//']/electrical_properties/'
                 ! Option to search through a space of saturation distributions to find
                 ! best match to measured electrical data - for reservoir modelling.
-                ! Added 18 May 2010 jhs
                 if (have_option(trim(option_buffer)//'Saturation_Distribution_Search')) then
                    call search_saturations_hookejeeves(state, i)
                 elseif (have_option(trim(option_buffer)//'coupling_coefficients/scalar_field::Electrokinetic').or.&
@@ -616,7 +600,6 @@ contains
                 end if
              end do
           end if
-          ! End call to porous_media
 
           if (have_option("/ocean_biology")) then
              call calculate_biology_terms(state(1))
@@ -625,6 +608,30 @@ contains
           if (have_option("/implicit_solids")) then
              call solids(state(1), its, nonlinear_iterations)
           end if
+
+          ! Do we have the k-epsilon turbulence model?
+          ! If we do then we want to calculate source terms and diffusivity for the k and epsilon 
+          ! fields and also tracer field diffusivities at n + theta_nl
+          do i= 1, size(state)
+             if(have_option("/material_phase["//&
+                  int2str(i-1)//"]/subgridscale_parameterisations/k-epsilon")) then
+                if(timestep == 1 .and. its == 1 .and. have_option('/physical_parameters/gravity')) then
+                   ! The very first time k-epsilon is called, VelocityBuoyancyDensity
+                   ! is set to zero until calculate_densities is called in the momentum equation
+                   ! solve. Calling calculate_densities here is a work-around for this problem.  
+                   sfield => extract_scalar_field(state, 'VelocityBuoyancyDensity')
+                   if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then 
+                      call get_phase_submaterials(state, i, submaterials)
+                      call calculate_densities(submaterials, buoyancy_density=sfield)
+                      deallocate(submaterials)
+                   else
+                      call calculate_densities(state, buoyancy_density=sfield)
+                   end if
+                   ewrite_minmax(sfield)
+                end if
+                call keps_advdif_diagnostics(state(i))
+             end if
+          end do
 
           field_loop: do it = 1, ntsol
              ewrite(2, "(a,i0,a,i0)") "Considering scalar field ", it, " of ", ntsol
@@ -639,28 +646,18 @@ contains
                 end if
              end if
 
-             ! do we have the k-epsilon 2 equation turbulence model?
-             if(have_k_epsilon .and. have_option(trim(keps_option_path)//"/scalar_field::"//trim(field_name_list(it)//"/prognostic"))) then
-                if( (trim(field_name_list(it))=="TurbulentKineticEnergy")) then
-                    call keps_tke(state(1))
-                else if( (trim(field_name_list(it))=="TurbulentDissipation")) then
-                    call keps_eps(state(1))
+             ! Calculate the meltrate
+             if(have_option("/ocean_forcing/iceshelf_meltrate/Holland08/") ) then
+                if( (trim(field_name_list(it))=="MeltRate")) then
+                   call melt_surf_calc(state(1))
                 endif
              end if
-
-            ! Calculate the meltrate
-            if(have_option("/ocean_forcing/iceshelf_meltrate/Holland08/") ) then
-                if( (trim(field_name_list(it))=="MeltRate")) then
-                    call melt_surf_calc(state(1))
-                endif
-            end if
-
 
              call get_option(trim(field_optionpath_list(it))//&
                   '/prognostic/equation[0]/name', &
                   option_buffer, default="UnknownEquationType")
              select case(trim(option_buffer))
-             case ( "AdvectionDiffusion", "ConservationOfMass", "ReducedConservationOfMass", "InternalEnergy", "HeatTransfer" )
+             case ( "AdvectionDiffusion", "ConservationOfMass", "ReducedConservationOfMass", "InternalEnergy", "HeatTransfer", "KEpsilon" )
                 use_advdif=.true.
              case default
                 use_advdif=.false.
@@ -703,7 +700,7 @@ contains
                 else if(have_option(trim(field_optionpath_list(it)) // &
                      & "/prognostic/spatial_discretisation/continuous_galerkin")) then
 
-                   call solve_field_equation_cg(field_name_list(it), state(field_state_list(it)), dt)
+                   call solve_field_equation_cg(field_name_list(it), state, field_state_list(it), dt)
                 else
 
                    ewrite(2, *) "Not solving scalar field " // trim(field_name_list(it)) // " in state " // trim(state(field_state_list(it))%name) //" in an advdif-like subroutine."
@@ -720,12 +717,6 @@ contains
           if( have_option("/material_phase[0]/subgridscale_parameterisations/GLS/option")) then
             call gls_diffusivity(state(1))
           end if
-
-          ! k_epsilon after the solve on Epsilon has finished
-          if(have_k_epsilon .and. have_option(trim(keps_option_path)//"/scalar_field::ScalarEddyViscosity/diagnostic")) then
-            ! Update the diffusivity, at each iteration.
-            call keps_eddyvisc(state(1))
-          end if
           
           !BC for ice melt
           if (have_option('/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries')) then
@@ -739,14 +730,6 @@ contains
           !
           ! Assemble and solve N.S equations.
           !
-
-          !-------------------------------------------------------------
-          ! Call to porous_media_momentum (leading to multiphase)
-          ! jhs - 16/01/09
-          ! moved to here 04/02/09
-          if (have_option("/porous_media")) then
-             call porous_media_momentum(state)
-          end if
 
           if (have_solids) then
              ewrite(2,*) 'into solid_drag_calculation'
@@ -921,6 +904,7 @@ contains
        end if
 
     end do timestep_loop
+
     ! ****************************
     ! *** END OF TIMESTEP LOOP ***
     ! ****************************
@@ -937,15 +921,6 @@ contains
     ! cleanup GLS
     if (have_option('/material_phase[0]/subgridscale_parameterisations/GLS/')) then
         call gls_cleanup()
-    end if
-
-    ! cleanup k_epsilon
-    if (have_k_epsilon) then
-        call keps_cleanup()
-    end if
-
-    if (have_option("/material_phase[0]/sediment")) then
-        call sediment_cleanup()
     end if
 
     ! closing .stat, .convergence and .detector files
@@ -978,7 +953,7 @@ contains
           call deallocate(pod_state(i))
        end do
     end if
-
+    
     ! deallocate the pointer to the array of states and sub-state:
     deallocate(state)
     if(use_sub_state()) deallocate(sub_state)
@@ -1025,12 +1000,6 @@ contains
         call gls_cleanup() ! deallocate everything
     end if
 
-    ! k_epsilon - we need to deallocate all module-level fields or the memory
-    ! management system complains
-    if (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/")) then
-        call keps_cleanup() ! deallocate everything
-    end if
-
     ! deallocate sub-state
     if(use_sub_state()) then
       do ss = 1, size(sub_state)
@@ -1047,7 +1016,7 @@ contains
     real, intent(inout) :: dt
     integer, intent(inout) :: nonlinear_iterations, nonlinear_iterations_adapt
     type(state_type), dimension(:), pointer :: sub_state
-    character(len=OPTION_PATH_LEN) :: keps_option_path
+    integer :: i
 
     ! Overwrite the number of nonlinear iterations if the option is switched on
     if(have_option("/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt")) then
@@ -1110,14 +1079,6 @@ contains
     ! GLS
     if (have_option("/material_phase[0]/subgridscale_parameterisations/GLS/")) then
         call gls_adapt_mesh(state(1))
-    end if
-
-    ! k_epsilon
-    keps_option_path="/material_phase[0]/subgridscale_parameterisations/k-epsilon/"
-    if (have_option(trim(keps_option_path)//"/scalar_field::TurbulentKineticEnergy/prognostic") &
-        &.and. have_option(trim(keps_option_path)//"/scalar_field::TurbulentDissipation/prognostic") &
-        &.and. have_option(trim(keps_option_path)//"/scalar_field::ScalarEddyViscosity/diagnostic")) then
-        call keps_adapt_mesh(state(1))
     end if
 
   end subroutine update_state_post_adapt
@@ -1211,4 +1172,3 @@ contains
   end subroutine check_old_code_path
 
   end module fluids_module
-

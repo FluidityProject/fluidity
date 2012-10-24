@@ -146,7 +146,7 @@
         <explicit/>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X, t):
+            <string_value lines="20" type="code" language="python">def val(X, t):
 	if(X[1]&lt;0.0):
  		return 1.0
 	else:
@@ -202,7 +202,7 @@
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
   return 1.0</string_value>
             <comment>This is set using a python string to ensure that a clause that's within a if constant else statement gets tested.</comment>
           </python>

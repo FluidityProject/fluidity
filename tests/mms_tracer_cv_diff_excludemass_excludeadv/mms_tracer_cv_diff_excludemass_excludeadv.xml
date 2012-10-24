@@ -7,6 +7,11 @@
     <command_line>fluidity -v1 MMS_A_cv.flml &gt; MMS_A.log; fluidity -v1 MMS_B_cv.flml &gt; MMS_B.log; fluidity -v1 MMS_C_cv.flml &gt; MMS_C.log; fluidity -v1 MMS_D_cv.flml &gt; MMS_D.log; fluidity -v1 MMS_E_cv.flml &gt; MMS_E.log</command_line>
   </problem_definition>
   <variables>
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
     <variable name="ab_convergence_gal_stat" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
@@ -133,6 +138,9 @@ f_finish_time = stat("MMS_F_cv.stat")["ElapsedTime"]["value"][-1]
     </variable>-->
   </variables>
   <pass_tests>
+    <test name="Solvers converged" language="python">
+      assert(solvers_converged)
+    </test>
     <test name="ab_convergence_stat: L2 order in [3.0,3.4]" language="python">
 assert(abs(ab_convergence_gal_stat[0]-3.2) &lt; 0.2)
     </test>

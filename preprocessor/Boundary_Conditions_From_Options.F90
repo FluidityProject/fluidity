@@ -50,7 +50,7 @@ use k_epsilon
 use integer_set_module !for iceshelf
 use fields_base !for iceshelf
 use fields ! for iceshelf
-use sediment, only: set_sediment_reentrainment, set_sediment_bc_id
+use sediment, only: set_sediment_reentrainment
 use halos_numbering
 use halos_base
 use fefields
@@ -223,16 +223,20 @@ contains
 
        ! Same thing for sediments. It's of type sediment_reentrainment
        if (trim(bc_type) .eq. "sediment_reentrainment") then
+          ewrite(2,*) "Changing sediment_reentrainment BC type to neumann"
           bc_type = "neumann"
-          ! set which ID it is as sediment classes are created onthe fly so
-          ! aren't in the options tree as normal fields
-          call set_sediment_bc_id(field%name, i+1)
        end if
 
        ! Same thing for k_epsilon turbulence model.
        if (trim(bc_type) .eq. "k_epsilon") then
-          ewrite(2,*) "Changing k_epsilon BC type to dirichlet"
-          bc_type = "dirichlet"
+          call get_option(trim(bc_path_i)//"/type::k_epsilon/", bc_type)
+          if (trim(bc_type) .eq. "low_Re" .and. trim(field%name) .eq. "TurbulentDissipation") then
+             ewrite(2,*) "Changing low_Re epsilon BC type to neumann"
+             bc_type = "neumann"
+          else
+             ewrite(2,*) "Changing k_epsilon BC type to dirichlet"
+             bc_type = "dirichlet"
+          end if
        end if
 
        if(have_option(trim(bc_path_i)//"/type[0]/apply_weakly")) then
@@ -246,8 +250,7 @@ contains
        ! mesh of only the part of the surface where this b.c. applies
        call get_boundary_condition(field, i+1, surface_mesh=surface_mesh, &
           surface_element_list=surface_element_list)
-       call allocate(bc_position, position%dim, surface_mesh)
-       call remap_field_to_surface(position, bc_position, surface_element_list)
+       bc_position = get_coordinates_remapped_to_surface(position, surface_mesh, surface_element_list) 
 
        ! Dirichlet and Neumann boundary conditions require one input
        ! while a Robin boundary condition requires two. This input can
@@ -527,8 +530,7 @@ contains
           ! map the coordinate field onto this mesh
           call get_boundary_condition(field, i+1, surface_mesh=surface_mesh, &
                surface_element_list=surface_element_list)
-          call allocate(bc_position, position%dim, surface_mesh)
-          call remap_field_to_surface(position, bc_position, surface_element_list)
+          bc_position = get_coordinates_remapped_to_surface(position, surface_mesh, surface_element_list) 
 
           if (have_option(bc_type_path) .or. bc_type=="near_wall_treatment" &
               .or. bc_type=="log_law_of_wall") then
@@ -616,11 +618,6 @@ contains
         call set_sediment_reentrainment(states(1))
     end if
 
-    if (have_option(trim(states(1)%option_path)//'/subgridscale_parameterisations/k-epsilon')) then
-        ewrite(2,*) "Calling keps_bcs"
-        call keps_bcs(states(1))
-    end if
-
     nphases = size(states)
     do p = 0, nphases-1
 
@@ -658,6 +655,12 @@ contains
                position, shift_time=shift_time)
 
        end do
+       
+       ! Special k-epsilon boundary conditions
+       if (have_option(trim(states(p+1)%option_path)//'/subgridscale_parameterisations/k-epsilon')) then
+          ewrite(2,*) "Calling keps_bcs"
+          call keps_bcs(states(p+1))
+       end if
 
     end do
 
@@ -686,6 +689,10 @@ contains
     integer, dimension(:), pointer:: surface_element_list
     integer i, nbcs
 
+    integer :: stat
+    type(scalar_field), pointer:: parent_field
+    character(len=OPTION_PATH_LEN) :: parent_field_name
+
     ! Get number of boundary conditions
     nbcs=option_count(trim(bc_path))
 
@@ -707,9 +714,9 @@ contains
        end if
 
        if (trim(bc_type) .eq. "sediment_reentrainment") then
-            ! skip sediment boundareis - done seperately
-            ! see assemble/Sediment.F90
-            cycle boundary_conditions
+          ! skip sediment boundaries - done seperately
+          ! see assemble/Sediment.F90
+          cycle boundary_conditions
        end if
 
        if (trim(bc_type) .eq. "k_epsilon") then
@@ -725,10 +732,9 @@ contains
        ! mesh of only the part of the surface where this b.c. applies
        call get_boundary_condition(field, i+1, surface_mesh=surface_mesh, &
             surface_element_list=surface_element_list)
-       ! map the coordinate field onto this mesh
-       call allocate(bc_position, position%dim, surface_mesh, "BCPositions")
 
        if((surface_mesh%shape%degree==0).and.(bc_type=="dirichlet")) then
+
          ! if the boundary condition is on a 0th degree mesh and is of type strong dirichlet
          ! then the positions used to calculate the bc should be body element centred not
          ! surface element centred
@@ -736,12 +742,12 @@ contains
          ! first remap to body element centred positions
          call remap_field(position, temp_position)
          ! then remap these to the surface
-         call remap_field_to_surface(temp_position, bc_position, surface_element_list)
+         bc_position = get_coordinates_remapped_to_surface(temp_position, surface_mesh, surface_element_list) 
          call deallocate(temp_position)
 
        else
          ! in all other cases the positions are remapped to the actual surface
-         call remap_field_to_surface(position, bc_position, surface_element_list)
+         bc_position = get_coordinates_remapped_to_surface(position, surface_mesh, surface_element_list) 
        end if
 
        ! Dirichlet and Neumann boundary conditions require one input
@@ -772,8 +778,20 @@ contains
           if (have_option(trim(bc_type_path)//"/from_file")) then
             ! Special case for tidal harmonic boundary conditions
             call set_tidal_bc_value(surface_field, bc_position, trim(bc_type_path), field%name)
+
           else if (have_option(trim(bc_type_path)//"/NEMO_data")) then
             call set_nemo_bc_value(state, surface_field, bc_position, trim(bc_type_path), field%name, surface_element_list)
+
+          else if (have_option(trim(bc_type_path)//"/from_field")) then
+            ! The parent field contains the boundary values that you want to apply to surface_field.
+            call get_option(trim(bc_type_path)//"/from_field/parent_field_name", parent_field_name)
+            parent_field => extract_scalar_field(state, parent_field_name, stat)
+            if(stat /= 0) then
+               FLExit("Could not extract parent field. Check options file?")
+            end if
+
+            call remap_field_to_surface(parent_field, surface_field, surface_element_list, stat)
+
           else
             call initialise_field(surface_field, bc_type_path, bc_position, &
               time=time)
@@ -854,17 +872,18 @@ contains
     integer ele, face
 
     type(mesh_type), pointer:: surface_mesh
-    type(scalar_field) surface_field_component
-    type(scalar_field), pointer:: scalar_surface_field
+    type(scalar_field) :: surface_field_component, vector_parent_field_component
+    type(scalar_field), pointer:: scalar_surface_field, scalar_parent_field
+    type(vector_field), pointer :: vector_parent_field
     type(vector_field), pointer:: surface_field, surface_field11
     type(vector_field), pointer:: surface_field2, surface_field21, surface_field22
-    type(vector_field) bc_position, temp_position
+    type(vector_field) :: bc_position, temp_position
     character(len=OPTION_PATH_LEN) bc_path_i, bc_type_path, bc_component_path
-    character(len=FIELD_NAME_LEN) bc_name, bc_type
+    character(len=FIELD_NAME_LEN) bc_name, bc_type, parent_field_name
     logical applies(3)
     real:: time, theta, dt
     integer, dimension(:), pointer:: surface_element_list
-    integer i, j, k, nbcs
+    integer i, j, k, nbcs, stat
 
     ns=1
     nbcs=option_count(trim(bc_path))
@@ -922,8 +941,6 @@ contains
           call get_boundary_condition(field, i+1, surface_mesh=surface_mesh, &
                surface_element_list=surface_element_list)
           surface_field => extract_surface_field(field, bc_name, name="value")
-          ! map the coordinate field onto this mesh
-          call allocate(bc_position, position%dim, surface_mesh)
           
           if((surface_mesh%shape%degree==0).and.(bc_type=="dirichlet")) then
             ! if the boundary condition is on a 0th degree mesh and is of type strong dirichlet
@@ -933,12 +950,11 @@ contains
             ! first remap to body element centred positions
             call remap_field(position, temp_position)
             ! then remap these to the surface
-            call remap_field_to_surface(temp_position, bc_position, surface_element_list)
+            bc_position = get_coordinates_remapped_to_surface(temp_position, surface_mesh, surface_element_list) 
             call deallocate(temp_position)
-    
          else
             ! in all other cases the positions are remapped to the actual surface
-            call remap_field_to_surface(position, bc_position, surface_element_list)
+            bc_position = get_coordinates_remapped_to_surface(position, surface_mesh, surface_element_list) 
          end if
 
          ! Synthetic Eddy Method for generating inflow turbulence
@@ -995,9 +1011,32 @@ contains
                     foamvel_component=extract_scalar_field(foamvel, j)
                     call remap_field_to_surface(foamvel_component, surface_field_component, surface_element_list)
 
+                  else if (have_option(trim(bc_component_path)//"/from_field")) then
+                     ! The parent field contains the boundary values that you want to apply to surface_field.
+                     call get_option(trim(bc_component_path)//"/from_field/parent_field_name", parent_field_name)
+
+                     ! Is the parent field a scalar field? Let's check using 'stat'...
+                     scalar_parent_field => extract_scalar_field(state, parent_field_name, stat)
+                     if(stat /= 0) then
+                        ! Parent field is not a scalar field. Let's try a vector field extraction...
+                        vector_parent_field => extract_vector_field(state, parent_field_name, stat)
+                        if(stat /= 0) then
+                           ! Parent field not found.
+                           FLExit("Could not extract parent field. Check options file?")
+                        else
+                           ! Apply the j-th component of parent_field to the j-th component
+                           ! of surface_field.
+                           vector_parent_field_component = extract_scalar_field(vector_parent_field, j)
+                           call remap_field_to_surface(vector_parent_field_component, surface_field_component, surface_element_list, stat)
+                        end if
+                     else
+                        ! Apply the scalar field to the j-th component of surface_field.
+                        call remap_field_to_surface(scalar_parent_field, surface_field_component, surface_element_list, stat)
+                     end if                    
+
                   else
-                  call initialise_field(surface_field_component, bc_component_path, bc_position, &
-                       time=time)
+                     call initialise_field(surface_field_component, bc_component_path, bc_position, &
+                              time=time)
                   end if
                end if
             end do
@@ -1023,8 +1062,7 @@ contains
           call get_boundary_condition(field, i+1, surface_mesh=surface_mesh, &
                surface_element_list=surface_element_list)
           ! map the coordinate field onto this mesh
-          call allocate(bc_position, position%dim, surface_mesh)
-          call remap_field_to_surface(position, bc_position, surface_element_list)
+          bc_position = get_coordinates_remapped_to_surface(position, surface_mesh, surface_element_list) 
 
           surface_field => extract_surface_field(field, bc_name, name="order_zero_coeffcient")
           surface_field2 => extract_surface_field(field, bc_name, name="order_one_coeffcient")
@@ -1050,8 +1088,7 @@ contains
                surface_element_list=surface_element_list)
           scalar_surface_field => extract_scalar_surface_field(field, bc_name, name="DragCoefficient")
           ! map the coordinate field onto this mesh
-          call allocate(bc_position, position%dim, surface_mesh)
-          call remap_field_to_surface(position, bc_position, surface_element_list)
+          bc_position = get_coordinates_remapped_to_surface(position, surface_mesh, surface_element_list) 
 
           call initialise_field(scalar_surface_field, bc_path_i, bc_position, &
             time=time)
@@ -1063,8 +1100,7 @@ contains
                surface_element_list=surface_element_list)
           surface_field => extract_surface_field(field, bc_name, name="WindSurfaceField")
           ! map the coordinate field onto this mesh
-          call allocate(bc_position, position%dim, surface_mesh)
-          call remap_field_to_surface(position, bc_position, surface_element_list)
+          bc_position = get_coordinates_remapped_to_surface(position, surface_mesh, surface_element_list) 
 
           if (have_option(trim(bc_path_i)//"/wind_stress")) then
              bc_type_path=trim(bc_path_i)//"/wind_stress"
@@ -1585,9 +1621,8 @@ contains
         scalar_surface => extract_surface_field(scalar_source_field, force_temperature,&
                                              "value")
         if (heat_flux%mesh%continuity .ne. scalar_surface%mesh%continuity) then 
-            call allocate(position_remapped, p_position%dim, scalar_surface%mesh, "Remapped_pos")
-            call remap_field_to_surface(p_position, position_remapped, &
-                                        surface_element_list)
+            position_remapped=get_coordinates_remapped_to_surface(p_position, &
+              scalar_surface%mesh, surface_element_list)
             call project_field(heat_flux, scalar_surface, position_remapped)
             call deallocate(position_remapped)
         else
@@ -2029,8 +2064,7 @@ contains
 
     ! dump normals when debugging
     if (debugging_mode) then
-      call allocate(bc_position, normal%dim, normal%mesh, "BoundaryPosition")
-      call remap_field_to_surface(x, bc_position, surface_element_list)
+      bc_position = get_coordinates_remapped_to_surface(x, normal%mesh, surface_element_list) 
       call vtk_write_fields( "normals", 0, bc_position, bc_position%mesh, &
                 vfields=(/ normal, tangent_1, tangent_2/))
       call deallocate(bc_position)

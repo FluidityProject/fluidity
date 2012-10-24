@@ -8,6 +8,10 @@ module integer_set_module
     type(c_ptr) :: address
   end type integer_set
 
+  type integer_set_vector
+     type(integer_set), dimension(:), pointer :: sets
+  end type integer_set_vector
+
   interface
     subroutine integer_set_create_c(i)
       use iso_c_binding, only: c_ptr
@@ -93,7 +97,8 @@ module integer_set_module
   
   private
   public :: integer_set, allocate, deallocate, has_value, key_count, fetch, insert, &
-          & set_complement, set2vector, set_intersection, set_minus, remove, copy
+          & set_complement, set2vector, set_intersection, set_minus, remove, copy, &
+          & integer_set_vector
 
   contains 
   

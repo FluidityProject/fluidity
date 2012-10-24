@@ -29,12 +29,11 @@
 #include "BulkForcing.h"
 #include "FluxesReader.h"
 #include "spud"
+#include "global_parameters.h"
+#include "coordinates.h"
 
 using namespace std;
 using namespace Spud;
-
-extern int projections(int nPoints, double *x, double *y, double *z, string current_coord, string output_coord);
-
 
 void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const double *Z, 
                      double *T, const double *Vx, const double *Vy, const double *Vz, double *salinity,
@@ -75,59 +74,60 @@ void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const d
         accumulated_correction = 1;
     }
     
-    // convert from Cart to long-lat
-    double *x = new double[NNodes];
-    double *y = new double[NNodes];
-    double *z = new double[NNodes];
-    for (int i = 0; i < NNodes; i++) {
-        x[i] = X[i];
-        y[i] = Y[i];
-        z[i] = Z[i];
-    }
 
-    int ret = projections(NNodes, x, y, z, "cart", "spherical");
-    if (ret != 0) {
-        cerr<<"Error converting coord system"<<endl;
-    }
-    
-    /*
-     * The "values" array below contains the scalar
-     * values from the ERA40 netCDF file. The table
-     * below shows which ERA40 parameter is at which
-     * array index, along with a physical meaning
-     *
-    ERA40 field | Index | Physical meaning
-    ------------+-------+-----------------
-    u10         |   0   | 10 metre U wind component
-    v10         |   1   | 10 metre V wind component
-    ssrd        |   2   | Surface solar radiation
-    strd        |   3   | Surface thermal radiation 
-    ro          |   4   | Runoff
-    tp          |   5   | Total precipitation
-    d2m         |   6   | Dewpoint temp at 2m
-    t2m         |   7   | Air temp at 2m
-    msl         |   8   | Mean sea level pressure
-
-    */
+    double surface_radius = get_surface_radius();
+    double longitude[NNodes];
+    double latitude[NNodes];
+    double height[NNodes];
+    double u_rot = 0.0;
+    double v_rot = 0.0;
+    double w_rot = 0.0;
 
     // loop over nodes
     for (int i=0; i<NNodes; i++) {
         
-        double latitude = y[i]; 
-        double longitude = x[i];
-
-        // get values from the netcdf file
-        double values[nFields];
-        FluxesReader_global.GetScalars(longitude, latitude, values);
-        // values contains the values above in the order we registered them
-        // See above
-
-        // rotate wind to cartesian grid
-        double u_rot = Vx[i];
-        double v_rot = Vy[i];
+        // Rotate ocean surface velocity to zonal-meridional-vertical. Also
+        //  Transforms cartesian position components into lon-lat-height.
+        double u_cart = Vx[i];
+        double v_cart = Vy[i];
+        double w_cart = Vz[i];
+        double x_cart = X[i];
+        double y_cart = Y[i];
+        double z_cart = Z[i];
         if (rotate) {
-          rotate_wind_fc(&longitude, &latitude, &Vx[i], &Vy[i], &Vz[i], &u_rot, &v_rot);
+          vector_cartesian_2_lon_lat_height_c(&u_cart, &v_cart, &w_cart, 
+                                              &x_cart, &y_cart, &z_cart,
+                                              &u_rot, &v_rot, &w_rot,
+                                              &longitude[i], &latitude[i], &height[i],
+                                              &surface_radius);
+        }else{
+          cartesian_2_lon_lat_height_c(&x_cart, &y_cart, &z_cart,
+                                       &longitude[i], &latitude[i], &height[i],
+                                       &surface_radius);
         }
+
+        /*
+         *Get values from the netcdf file.
+         * The "values" array below contains the scalar
+         * values from the ERA40 netCDF file. The table
+         * below shows which ERA40 parameter is at which
+         * array index, along with a physical meaning
+         *
+        ERA40 field | Index | Physical meaning
+        ------------+-------+-----------------
+        u10         |   0   | 10 metre U wind component
+        v10         |   1   | 10 metre V wind component
+        ssrd        |   2   | Surface solar radiation
+        strd        |   3   | Surface thermal radiation 
+        ro          |   4   | Runoff
+        tp          |   5   | Total precipitation
+        d2m         |   6   | Dewpoint temp at 2m
+        t2m         |   7   | Air temp at 2m
+        msl         |   8   | Mean sea level pressure
+        */
+        double values[nFields];
+        FluxesReader_global.GetScalars(longitude[i], latitude[i], values);
+
         // DelU - the difference between wind and water currents
         delU_u[i] = values[0] - u_rot;
         delU_v[i] = values[1] - v_rot;
@@ -185,6 +185,24 @@ void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const d
                     ppt, runoff, salinity, thermal,  solar, Q_solar, Q, F, tau_u, tau_v);
     }
 
+    // If on the sphere, change momentum flux (surface stress) tensor basis
+    //  back to cartesian.
+    if (rotate) {
+        for (int i=0; i<NNodes; i++) {
+            u_rot = tau_u[i];
+            v_rot = tau_v[i];
+            w_rot = 0.0;
+            double x_cart = 0.0;
+            double y_cart = 0.0;
+            double z_cart = 0.0;
+            double tau_dummy;
+            vector_lon_lat_height_2_cartesian_c(&u_rot, &v_rot, &w_rot,
+                                                &longitude[i], &latitude[i], &height[i],
+                                                &tau_u[i], &tau_v[i], &tau_dummy,
+                                                &x_cart, &y_cart, &z_cart,
+                                                &surface_radius);
+        }
+    }
    
     // clean up
     delete [] delU_u;
@@ -200,9 +218,6 @@ void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const d
     delete [] SST;
     delete [] speed;
     delete [] qs;
-    delete [] x;
-    delete [] y;
-    delete [] z;
 
 }
 

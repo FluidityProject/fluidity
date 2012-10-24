@@ -19,7 +19,7 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
           <regions name="WholeMesh">
             <bottom_depth>
               <python>
-                <string_value lines="20" type="python">def val(X, t):
+                <string_value lines="20" type="code" language="python">def val(X, t):
     mindepth=0.1
     return mindepth+X[0]</string_value>
               </python>
@@ -197,7 +197,9 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
         </scheme>
         <solver>
           <iterative_method name="preonly"/>
-          <preconditioner name="lu"/>
+          <preconditioner name="lu">
+            <factorization_package name="petsc"/>
+          </preconditioner>
           <relative_error>
             <real_value rank="0">1.0e-12</real_value>
           </relative_error>
@@ -211,7 +213,7 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X, t):
+            <string_value lines="20" type="code" language="python">def val(X, t):
     import settings
     import ana_sol
     a_0 = settings.a0 # initial maximum perturbation
@@ -287,7 +289,9 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
         </temporal_discretisation>
         <solver>
           <iterative_method name="preonly"/>
-          <preconditioner name="lu"/>
+          <preconditioner name="lu">
+            <factorization_package name="petsc"/>
+          </preconditioner>
           <relative_error>
             <real_value rank="0">1.0e-12</real_value>
           </relative_error>
@@ -327,7 +331,7 @@ Shows how numerical scheme predicts frequencey and damping rate</comment>
             <value name="WholeMesh">
               <isotropic>
                 <python>
-                  <string_value lines="20" type="python">def val(X, t):
+                  <string_value lines="20" type="code" language="python">def val(X, t):
     import settings
     return settings.eta</string_value>
                 </python>

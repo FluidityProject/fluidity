@@ -662,20 +662,27 @@ def VtuMatchLocationsArbitrary(vtu1, vtu2, tolerance = 1.0e-6):
   if not locations1.shape == locations2.shape:
     return False   
     
-  epsilon = numpy.ones(locations1.shape[1])*numpy.finfo(numpy.float).eps
-  for j in range(locations1.shape[1]): epsilon[j] = epsilon[j]*(locations1[:,j].max()-locations1[:,j].min())
+  for j in range(locations1.shape[1]):
+    # compute the smallest possible precision given the range of this coordinate
+    epsilon = numpy.finfo(numpy.float).eps * numpy.abs(locations1[:,j]).max()
+    if tolerance<epsilon:
+      # the specified tolerance is smaller than possible machine precision
+      # (or something else went wrong)
+      raise Exception("ERROR: specified tolerance is smaller than machine precision of given locations")
+    # ensure epsilon doesn't get too small (might be for zero for instance)
+    epsilon=max(epsilon,tolerance/100.0)
 
-  for i in range(len(locations1)):
-    for j in range(len(locations1[i])):
-      if(abs(locations1[i][j]) < epsilon[j]): locations1[i][j] = 0.0
-      if(abs(locations2[i][j]) < epsilon[j]): locations2[i][j] = 0.0
+    # round to that many decimal places (-2 to be sure) so that
+    # we don't get rounding issues with lexsort
+    locations1[:,j]=numpy.around(locations1[:,j], int(-numpy.log10(epsilon))-2)
+    locations2[:,j]=numpy.around(locations2[:,j], int(-numpy.log10(epsilon))-2)
 
   # lexical sort on x,y and z coordinates resp. of locations1 and locations2
   sort_index1=numpy.lexsort(locations1.T)
   sort_index2=numpy.lexsort(locations2.T)
   
   # should now be in same order, so we can check for its biggest difference
-  return abs(locations1[sort_index1]-locations2[sort_index2]).max() < tolerance
+  return numpy.allclose(locations1[sort_index1],locations2[sort_index2], atol=tolerance)
 
 def VtuDiff(vtu1, vtu2, filename = None):
   """

@@ -30,7 +30,7 @@
 module diagnostic_fields_wrapper
   !!< A module to link to diagnostic variable calculations.
 
-  use global_parameters, only:FIELD_NAME_LEN 
+  use global_parameters, only: FIELD_NAME_LEN, timestep
   use fields
   use sparse_matrices_fields
   use field_derivatives
@@ -52,7 +52,6 @@ module diagnostic_fields_wrapper
   use diagnostic_fields_matrices
   use equation_of_state
   use momentum_diagnostic_fields
-  use porous_media, only: calculate_porous_media_absorption
   use spontaneous_potentials, only: calculate_formation_conductivity
   use sediment_diagnostics
   use geostrophic_pressure
@@ -131,6 +130,30 @@ contains
        if(stat == 0) then
          if(recalculate(trim(s_field%option_path))) then
            call calculate_diagnostic_variable(state(i), "CVMaterialDensityCFLNumber", &
+             & s_field)
+         end if
+       end if
+
+       s_field => extract_scalar_field(state(i), "InterstitialVelocityCGCourantNumber", stat)
+       if(stat == 0) then
+         if(recalculate(trim(s_field%option_path))) then
+           call calculate_diagnostic_variable(state(i), "InterstitialVelocityCGCourantNumber", &
+             & s_field)
+         end if
+       end if
+
+       s_field => extract_scalar_field(state(i), "InterstitialVelocityDGCourantNumber", stat)
+       if(stat == 0) then
+         if(recalculate(trim(s_field%option_path))) then
+           call calculate_diagnostic_variable(state(i), "InterstitialVelocityDGCourantNumber", &
+             & s_field)
+         end if
+       end if
+
+       s_field => extract_scalar_field(state(i), "InterstitialVelocityCVCourantNumber", stat)
+       if(stat == 0) then
+         if(recalculate(trim(s_field%option_path))) then
+           call calculate_diagnostic_variable(state(i), "InterstitialVelocityCVCourantNumber", &
              & s_field)
          end if
        end if
@@ -519,17 +542,6 @@ contains
        end if
        ! End of vorticity diagnostics
 
-       ! Start of porous media diagnostics
-       if (have_option("/porous_media")) then
-         v_field => extract_vector_field(state(i), "VelocityAbsorption", stat)
-         if(stat == 0) then
-           if(recalculate(trim(v_field%option_path))) then
-             call calculate_porous_media_absorption(state, i, v_field, stat)
-           end if
-         end if
-       end if
-       ! End of porous media diagnostics
-
        ! Start of spontaneous potentials diagnostics
        if(i == 1) then
          s_field => extract_scalar_field(state(i), "ElectricalConductivity", stat)
@@ -544,7 +556,11 @@ contains
 
        ! Start of sediment diagnostics.
        if (have_option("/material_phase[0]/sediment")) then
+          call calculate_sediment_sinking_velocity(state(i))
           call calculate_sediment_flux(state(i))
+          call calculate_sediment_active_layer_d50(state(i))
+          call calculate_sediment_active_layer_sigma(state(i))
+          call calculate_sediment_active_layer_volume_fractions(state(i))
        end if
        ! End of sediment diagnostics.
 
@@ -571,6 +587,21 @@ contains
             end if
          else
             FLExit("The SumVelocityDivergence field is only used in multiphase simulations.")
+         end if
+       end if
+       
+       s_field => extract_scalar_field(state(i), "CompressibleContinuityResidual", stat)
+       if(stat == 0) then
+         ! Check that we are running a compressible multiphase simulation
+         if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1 .and. option_count("/material_phase/equation_of_state/compressible") > 0) then 
+            diagnostic = have_option(trim(s_field%option_path)//"/diagnostic")
+            if(diagnostic .and. .not.(aliased(s_field))) then
+               if(recalculate(trim(s_field%option_path))) then
+                  call calculate_compressible_continuity_residual(state, s_field)
+               end if
+            end if
+         else
+            FLExit("The CompressibleContinuityResidual field is only used in compressible multiphase simulations.")
          end if
        end if
 
