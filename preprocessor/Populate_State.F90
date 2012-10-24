@@ -993,7 +993,6 @@ contains
           end if
 
           ! Set mesh parameters
-!          solid_mesh = solid_position%mesh
           call get_option(trim(mesh_path)//'/name', mesh_name)
           mesh%name = trim(mesh_name)//'SolidCoordinateMesh'
           ! Set mesh option path.
