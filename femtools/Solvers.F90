@@ -98,8 +98,7 @@ module solvers
 private
 
 public petsc_solve, set_solver_options, &
-   complete_solver_option_path, &
-   prescale_matrix_system
+   complete_solver_option_path
 
 ! meant for unit-testing solver code only:
 public petsc_solve_setup, petsc_solve_core, petsc_solve_destroy, &
@@ -440,7 +439,7 @@ subroutine petsc_solve_scalar_petsc_csr(x, matrix, rhs, option_path, &
   integer, dimension(:), optional, intent(in) :: surface_node_list
 
   KSP ksp
-  Vec y, b, scale_vec
+  Vec y, b
 
   character(len=OPTION_PATH_LEN) solver_option_path
   integer literations
@@ -456,21 +455,16 @@ subroutine petsc_solve_scalar_petsc_csr(x, matrix, rhs, option_path, &
         matrix, &
         sfield=x, &
         option_path=option_path, &
-        prolongators=prolongators, surface_node_list=surface_node_list, &
-        scale_vec=scale_vec)
+        prolongators=prolongators, surface_node_list=surface_node_list)
         
   ! copy array into PETSc vecs
   call petsc_solve_copy_vectors_from_scalar_fields(y, b, x, rhs=rhs, &
      petsc_numbering=matrix%row_numbering, startfromzero=lstartfromzero)
-
-  call prescale_vectors(y, b, scale_vec)
     
   ! the solve and convergence check
   call petsc_solve_core(y, matrix%M, b, ksp, matrix%row_numbering, &
           solver_option_path, lstartfromzero, literations, &
           sfield=x, x0=x%val)
-
-  call postscale_matrix_system(matrix%M, y, b, scale_vec)
         
   ! Copy back the result using the petsc numbering:
   call petsc2field(y, matrix%column_numbering, x)
@@ -492,9 +486,7 @@ subroutine petsc_solve_vector_petsc_csr(x, matrix, rhs, option_path, &
   type(petsc_csr_matrix), dimension(:), optional, intent(in) :: prolongators
 
   KSP ksp
-  Vec y, b, scale_vec
-  real norm
-  PetscErrorCode:: ierr
+  Vec y, b
 
   character(len=OPTION_PATH_LEN) solver_option_path
   integer literations
@@ -511,26 +503,17 @@ subroutine petsc_solve_vector_petsc_csr(x, matrix, rhs, option_path, &
   call petsc_solve_setup_petsc_csr(y, b, ksp, &
         solver_option_path, lstartfromzero, &
         matrix, vfield=x, option_path=option_path, &
-        prolongators=prolongators, &
-        scale_vec=scale_vec)
+        prolongators=prolongators)
         
   ! copy array into PETSc vecs
   call petsc_solve_copy_vectors_from_vector_fields(y, b, x, rhs, &
      matrix%row_numbering, lstartfromzero)
     
-     call VecNorm(b, NORM_2, norm, ierr)
-     ewrite(2, *) '2-norm of RHS:', norm
-     call VecNorm(b, NORM_INFINITY, norm, ierr)
-     ewrite(2, *) 'inf-norm of RHS:', norm
-  call prescale_vectors(y, b, scale_vec)
-
   ! the solve and convergence check
   call petsc_solve_core(y, matrix%M, b, ksp, matrix%row_numbering, &
           solver_option_path, lstartfromzero, literations, &
           vfield=x, vector_x0=x)
         
-  call postscale_matrix_system(matrix%M, y, b, scale_vec)
-
   ! Copy back the result using the petsc numbering:
   call petsc2field(y, matrix%column_numbering, x)
   
@@ -662,7 +645,7 @@ subroutine petsc_solve_setup(y, A, b, ksp, petsc_numbering, &
   matrix, block_matrix, sfield, vfield, tfield, &
   option_path, startfromzero_in, &
   preconditioner_matrix, prolongators, surface_node_list, &
-  internal_smoothing_option, scale_vec)
+  internal_smoothing_option)
 !!< sets up things needed to call petsc_solve_core
 !! Stuff that comes out:
 !!
@@ -702,7 +685,6 @@ type(petsc_csr_matrix), dimension(:), optional, intent(in) :: prolongators
 !! Stuff needed for internal smoother
 integer, dimension(:), optional, intent(in) :: surface_node_list
 integer, optional, intent(in) :: internal_smoothing_option
-Vec, intent(out), optional:: scale_vec
   
   logical, dimension(:), pointer:: inactive_mask
   integer, dimension(:), allocatable:: ghost_nodes
@@ -870,10 +852,6 @@ Vec, intent(out), optional:: scale_vec
       
   end if
 
-  if (present(scale_vec)) then
-    call prescale_matrix_system(A, scale_vec)
-  end if
-
   ewrite(1, *) 'Matrix assembly completed.'
   
 
@@ -962,7 +940,7 @@ subroutine petsc_solve_setup_petsc_csr(y, b, ksp, &
   solver_option_path, startfromzero, &
   matrix, sfield, vfield, tfield, &
   option_path, startfromzero_in, &
-  prolongators,surface_node_list, scale_vec)
+  prolongators,surface_node_list)
 !!< sets up things needed to call petsc_solve_core
 !! Stuff that comes out:
 !!
@@ -996,7 +974,6 @@ logical, optional, intent(in):: startfromzero_in
 type(petsc_csr_matrix), dimension(:), optional, intent(in) :: prolongators
 !! Stuff needed for internal smoother
 integer, dimension(:), optional, intent(in) :: surface_node_list
-Vec, intent(out), optional:: scale_vec
 
   type(mesh_type), pointer:: mesh
   real time1, time2
@@ -1031,10 +1008,6 @@ Vec, intent(out), optional:: scale_vec
   end if
   
   call assemble(matrix)
-
-  if (present(scale_vec)) then
-    call prescale_matrix_system(matrix%M, scale_vec)
-  end if
   
   startfromzero=have_option(trim(solver_option_path)//'/start_from_zero')
   if (present_and_true(startfromzero_in) .and. .not. startfromzero) then
@@ -1048,7 +1021,7 @@ Vec, intent(out), optional:: scale_vec
   else
     parallel= .false.
   end if
-
+  
   ewrite(2, *) 'Using solver options defined at: ', trim(solver_option_path)
   call SetupKSP(ksp, matrix%M, matrix%M, solver_option_path, parallel, &
       matrix%column_numbering, &
@@ -2250,50 +2223,4 @@ subroutine MyKSPMonitor(ksp,n,rnorm,dummy,ierr)
   
 end subroutine MyKSPMonitor
 
-subroutine prescale_vectors(y,b, scale_vec)
-Vec, intent(in):: y,b
-Vec, intent(in):: scale_vec
-
-  PetscErrorCode:: ierr
-
-  call VecPointwiseMult(b, scale_vec, b, ierr)
-  call VecReciprocal(scale_vec, ierr)
-  call VecPointwiseMult(y, scale_vec, y, ierr)
-
-end subroutine prescale_vectors
-
-subroutine postscale_matrix_system(A, y, b, scale_vec)
-Mat, intent(in):: A
-Vec, intent(in):: y,b
-Vec, intent(in):: scale_vec
-
-  PetscErrorCode:: ierr
-
-  call MatDiagonalScale(A, scale_vec, scale_vec, ierr)
-  call VecPointwiseMult(b, scale_vec, b, ierr)
-
-  call VecReciprocal(scale_vec, ierr)
-
-  call VecPointwiseMult(y, scale_vec, y, ierr)
-
-end subroutine postscale_matrix_system
-
-subroutine prescale_matrix_system(A, scale_vec)
-Mat, intent(in):: A
-Vec, intent(out):: scale_vec
-
-  PetscErrorCode:: ierr
-
-  call MatGetVecs(A, scale_vec, PETSC_NULL_OBJECT, ierr)
-  call fortran_MatGetRowMaxAbs(A, scale_vec)
-
-  call VecSqrtAbs(scale_vec, ierr)
-  call VecReciprocal(scale_vec, ierr)
-
-  call MatDiagonalScale(A, scale_vec, scale_vec, ierr)
-
-end subroutine prescale_matrix_system
-
 end module solvers
-
-
