@@ -7726,6 +7726,9 @@
                CGI = CGI + NLY( L, GI ) * X( IGLX ) 
                DGI = DGI + NLY( L, GI ) * Y( IGLX ) 
                RGI = RGI + N( L, GI ) * Y( IGLX )
+               !  print *,'l,gi,IGLX,X( IGLX ),Y( IGLX ):',l,gi,IGLX,X( IGLX ),Y( IGLX )
+               !  print *,'agi,bgi,cgi,dgi,rgi:',agi,bgi,cgi,dgi,rgi                                       
+               !  print *,'NLX( L, GI ),NLY( L, GI ):',NLX( L, GI ),NLY( L, GI )
             END DO Loop_L4
 
             IF( .NOT. DCYL ) RGI = 1.0

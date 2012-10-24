@@ -206,6 +206,7 @@ module mp_prototype
       ewrite(3,*) 'cv_ele_type', cv_ele_type
       ewrite(3,*) 'cv_sele_type', cv_sele_type
       ewrite(3,*) 'u_sele_type', u_sele_type
+!       stop 45
 
       ! Variables in which the dimensions depend upon input data
       allocate( udiffusion( mat_nonods, ndim, ndim, nphase ))

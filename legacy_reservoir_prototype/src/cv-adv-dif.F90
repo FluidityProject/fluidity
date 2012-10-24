@@ -923,12 +923,15 @@
                      CV_NODJ_IPHA = CV_NODJ + ( IPHASE - 1 ) * CV_NONODS
 
                      If_GOT_DIFFUS: IF( GOT_DIFFUS ) THEN
-                        ! This sub caculates the effective diffusion coefficientd DIFF_COEF_DIVDX,DIFF_COEFOLD_DIVDX
+                        ! This sub caculates the effective diffusion 
+                        ! coefficient DIFF_COEF_DIVDX, DIFF_COEFOLD_DIVDX
                         CALL DIFFUS_CAL_COEFF(DIFF_COEF_DIVDX,DIFF_COEFOLD_DIVDX,  &
                              CV_NLOC, MAT_NLOC, CV_NONODS, NPHASE, TOTELE, MAT_NONODS,MAT_NDGLN, &
-                             SCVFEN,SCVNGI,GI,IPHASE,NDIM,TDIFFUSION, DUMMY_ZERO_NDIM_NDIM, &
-                             HDC, T,TOLD,CV_NODJ_IPHA,CV_NODI_IPHA,ELE,ELE2, &
-                             CVNORMX,CVNORMY,CVNORMZ,  &
+                             SCVFEN,SCVFEN,SCVNGI,GI,IPHASE,NDIM,TDIFFUSION, DUMMY_ZERO_NDIM_NDIM, &
+                             HDC, &
+                             T(CV_NODJ_IPHA),T(CV_NODI_IPHA), &
+                             TOLD(CV_NODJ_IPHA),TOLD(CV_NODI_IPHA), &
+                             ELE,ELE2, CVNORMX,CVNORMY,CVNORMZ,  &
                              DTX_ELE,DTY_ELE,DTZ_ELE,DTOLDX_ELE,DTOLDY_ELE,DTOLDZ_ELE, &
                              SELE,STOTEL,WIC_T_BC,WIC_T_BC_DIRICHLET, CV_OTHER_LOC,MAT_OTHER_LOC )
                      ELSE ! IF(GOT_DIFFUS) THEN...
@@ -1954,7 +1957,7 @@ ewrite(3,*)'path:', trim( path )
          XU_NDGLN, X_NLOC, X_NDGLN, &
          CV_NGI, U_NLOC, CVWEIGHT, &
          N, NLX, NLY, NLZ, &
-         CVFEN, CVFENX, CVFENY, CVFENZ, &
+         CVFEN, CVFENLX, CVFENLY, CVFENLZ, &
          X_NONODS, X, Y, Z, &
          NFACE, FACE_ELE, U_SLOCLIST, CV_SLOCLIST, STOTEL, U_SNLOC, CV_SNLOC, WIC_U_BC,  &
          SUF_U_BC,SUF_V_BC,SUF_W_BC, &
@@ -1984,47 +1987,58 @@ ewrite(3,*)'path:', trim( path )
       INTEGER, DIMENSION( NFACE,TOTELE ), intent( in ) ::  FACE_ELE
       REAL, DIMENSION( CV_NGI ), intent( inout ) :: CVWEIGHT
       REAL, DIMENSION( U_NLOC, CV_NGI ), intent( in ) :: N, NLX, NLY, NLZ 
-      REAL, DIMENSION( X_NLOC, CV_NGI ), intent( in ) :: CVFEN, CVFENX, CVFENY, CVFENZ
+      REAL, DIMENSION( X_NLOC, CV_NGI ), intent( in ) :: CVFEN, CVFENLX, CVFENLY, CVFENLZ
       REAL, DIMENSION( X_NONODS ), intent( in ) :: X, Y, Z
       REAL, DIMENSION( U_SNLOC, SBCVNGI ), intent( in ) :: SBUFEN, SBUFENSLX, SBUFENSLY
       REAL, DIMENSION( CV_SNLOC, SBCVNGI ), intent( in ) :: SBCVFEN, SBCVFENSLX, SBCVFENSLY
       REAL, DIMENSION( SBCVNGI ), intent( in ) :: SBWEIGH
 
+     !  print *,'----for U:'
       CALL DG_DERIVS( U, UOLD, &
            DUX_ELE, DUY_ELE, DUZ_ELE, DUOLDX_ELE, DUOLDY_ELE, DUOLDZ_ELE, &
            NDIM, NPHASE, U_NONODS, TOTELE, U_NDGLN, &
            XU_NDGLN, X_NLOC, X_NDGLN, &
            CV_NGI, U_NLOC, CVWEIGHT, &
            N, NLX, NLY, NLZ, &
-           CVFEN, CVFENX, CVFENY, CVFENZ, &
+           CVFEN, CVFENLX, CVFENLY, CVFENLZ, &
            X_NONODS, X, Y, Z, &
            NFACE, FACE_ELE, U_SLOCLIST, CV_SLOCLIST, STOTEL, U_SNLOC, CV_SNLOC, WIC_U_BC, SUF_U_BC, &
            WIC_U_BC_DIRICHLET, SBCVNGI, SBUFEN, SBUFENSLX, SBUFENSLY, SBWEIGH, & 
            SBCVFEN, SBCVFENSLX, SBCVFENSLY)   
 
+      IF(NDIM.GE.2) THEN
+     !  print *,'----for V:'
       CALL DG_DERIVS( V, VOLD, &
            DVX_ELE, DVY_ELE, DVZ_ELE, DVOLDX_ELE, DVOLDY_ELE, DVOLDZ_ELE, &
            NDIM, NPHASE, U_NONODS, TOTELE, U_NDGLN, &
            XU_NDGLN, X_NLOC, X_NDGLN, &
            CV_NGI, U_NLOC, CVWEIGHT, &
            N, NLX, NLY, NLZ, &
-           CVFEN, CVFENX, CVFENY, CVFENZ, &
+           CVFEN, CVFENLX, CVFENLY, CVFENLZ, &
            X_NONODS, X, Y, Z, &
            NFACE, FACE_ELE, U_SLOCLIST, CV_SLOCLIST, STOTEL, U_SNLOC, CV_SNLOC, WIC_U_BC, SUF_V_BC, &
            WIC_U_BC_DIRICHLET, SBCVNGI, SBUFEN, SBUFENSLX, SBUFENSLY, SBWEIGH, & 
            SBCVFEN, SBCVFENSLX, SBCVFENSLY)  
+      ELSE
+        DVX_ELE=0; DVY_ELE=0; DVZ_ELE=0; DVOLDX_ELE=0; DVOLDY_ELE=0; DVOLDZ_ELE=0
+      ENDIF
 
+      IF(NDIM.GE.3) THEN
+     !  print *,'----for W:'
       CALL DG_DERIVS( W, WOLD, &
            DWX_ELE, DWY_ELE, DWZ_ELE, DWOLDX_ELE, DWOLDY_ELE, DWOLDZ_ELE, &
            NDIM, NPHASE, U_NONODS, TOTELE, U_NDGLN, &
            XU_NDGLN, X_NLOC, X_NDGLN, &
            CV_NGI, U_NLOC, CVWEIGHT, &
            N, NLX, NLY, NLZ, &
-           CVFEN, CVFENX, CVFENY, CVFENZ, &
+           CVFEN, CVFENLX, CVFENLY, CVFENLZ, &
            X_NONODS, X, Y, Z, &
            NFACE, FACE_ELE, U_SLOCLIST, CV_SLOCLIST, STOTEL, U_SNLOC, CV_SNLOC, WIC_U_BC, SUF_W_BC, &
            WIC_U_BC_DIRICHLET, SBCVNGI, SBUFEN, SBUFENSLX, SBUFENSLY, SBWEIGH, & 
            SBCVFEN, SBCVFENSLX, SBCVFENSLY) 
+      ELSE
+        DWX_ELE=0; DWY_ELE=0; DWZ_ELE=0; DWOLDX_ELE=0; DWOLDY_ELE=0; DWOLDZ_ELE=0
+      ENDIF
 
       RETURN
     END SUBROUTINE DG_DERIVS_UVW
@@ -2036,7 +2050,9 @@ ewrite(3,*)'path:', trim( path )
          DTX_ELE, DTY_ELE, DTZ_ELE, DTOLDX_ELE, DTOLDY_ELE, DTOLDZ_ELE, &
          NDIM, NPHASE, CV_NONODS, TOTELE, CV_NDGLN, &
          XCV_NDGLN, X_NLOC, X_NDGLN,&
-         CV_NGI, CV_NLOC, CVWEIGHT, N, NLX, NLY, NLZ, X_N, X_NLX, X_NLY, X_NLZ, &
+         CV_NGI, CV_NLOC, CVWEIGHT, &
+         N, NLX, NLY, NLZ, &
+         X_N, X_NLX, X_NLY, X_NLZ, &
          X_NONODS, X, Y, Z, &
          NFACE, FACE_ELE, CV_SLOCLIST, X_SLOCLIST, STOTEL, CV_SNLOC, X_SNLOC, WIC_T_BC, SUF_T_BC, &
          WIC_T_BC_DIRICHLET, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBWEIGH, &
@@ -2045,7 +2061,7 @@ ewrite(3,*)'path:', trim( path )
       ! determine FEMT (finite element wise) etc from T (control volume wise)
       use shape_functions 
       use shape_functions_NDim
-      use matrix_operations
+      use matrix_operations 
       IMPLICIT NONE
       INTEGER, intent( in ) :: NDIM, NPHASE, CV_NONODS, TOTELE, X_NLOC, CV_NGI, CV_NLOC, &
            X_NONODS, STOTEL, CV_SNLOC, X_SNLOC, WIC_T_BC_DIRICHLET, SBCVNGI, NFACE
@@ -2136,6 +2152,8 @@ ewrite(3,*)'path:', trim( path )
       D1 = ( NDIM == 1 )
       D3 = ( NDIM == 3 )
       DCYL = .FALSE. 
+     ! print *,'****X_NLX:',X_NLX
+     ! print *,'****X_NLY:',X_NLY
 
       Loop_Elements1: DO ELE = 1, TOTELE
 
@@ -2150,6 +2168,10 @@ ewrite(3,*)'path:', trim( path )
               X_N, X_NLX, X_NLY, X_NLZ, CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
               X_NX, X_NY, X_NZ, &
               CV_NLOC, NLX, NLY, NLZ, NX, NY, NZ ) 
+
+         ! if(ele==1) then
+         !    print *,'for ele 1 detwei:',detwei
+         ! endif
 
          !ewrite(3,*)'N',N
          !ewrite(3,*)'nlx:',nlx
@@ -2199,7 +2221,7 @@ ewrite(3,*)'path:', trim( path )
 
 
       END DO Loop_Elements1
-
+      !   print *,'MASELE( :,:, 1):',MASELE( :,:, 1)
 
       ! Example of    CV_SLOCLIST for a tet element.
       !         INTEGER CV_SLOCLIST(NFACE,CV_SNLOC)
@@ -2224,6 +2246,7 @@ ewrite(3,*)'path:', trim( path )
       ! Loop over surface elements
       ! EWRITE(3,*)'VTX_ELE(1,1,1 ):',VTX_ELE(1,1,1)   
 
+     ! print *,'totele=',totele
 
       Loop_Elements2: DO ELE=1,TOTELE
 
@@ -2236,7 +2259,7 @@ ewrite(3,*)'path:', trim( path )
             ! The surface nodes on element face IFACE.  
             SLOC2LOC( : ) = CV_SLOCLIST( IFACE, : )
             X_SLOC2LOC( : ) = X_SLOCLIST( IFACE, : )
-            print *,'CV_SLOCLIST( IFACE, : ):',CV_SLOCLIST( IFACE, : )
+            ! print *,'ele,CV_SLOCLIST( IFACE, : ):',ele,CV_SLOCLIST( IFACE, : )
 
             ! Form approximate surface normal (NORMX,NORMY,NORMZ)
             CALL DGSIMPLNORM( ELE, X_SLOC2LOC, TOTELE, X_NLOC, X_SNLOC, X_NDGLN, &
@@ -2369,12 +2392,19 @@ ewrite(3,*)'path:', trim( path )
 
 
 
-      ! Solve local system for the gradients DTX_ELE etc:     
+      ! Solve local system for the gradients DTX_ELE etc:
+!        print *,'masele:', masele   
+!        print *,'ndim=',ndim 
 
       Loop_Elements3: DO ELE=1,TOTELE
+        ! print *,'ele=',ele
 
          MASS(:,:)=MASELE(:,:,ELE)
+        ! print *,'mass=',mass
+        ! print *,'MASELE(:,:,ELE):',MASELE(:,:,ELE)
          CALL MATDMATINV( MASS, INV_MASS, CV_NLOC)
+        ! print *,'here 1'
+        ! print *,'inv_mass=',inv_mass
 
          Loop_IPHASE: DO IPHASE=1,NPHASE
 
@@ -2384,6 +2414,7 @@ ewrite(3,*)'path:', trim( path )
             VTOLDX(:)=VTOLDX_ELE(:, IPHASE,ELE )
             VTOLDY(:)=VTOLDY_ELE(:, IPHASE,ELE )
             VTOLDZ(:)=VTOLDZ_ELE(:, IPHASE,ELE )
+            ! print *,'heree 2'
             DTX=0.0
             DTY=0.0
             DTZ=0.0
@@ -2400,26 +2431,22 @@ ewrite(3,*)'path:', trim( path )
                   DTOLDZ(CV_ILOC)=DTOLDZ(CV_ILOC) +INV_MASS(CV_ILOC,CV_JLOC)*VTOLDZ(CV_JLOC)
                END DO
             END DO
+            ! print *,'heree 3'
             DTX_ELE(:, IPHASE,ELE )=DTX(:)
+            ! print *,'heree 3.01'
             DTY_ELE(:, IPHASE,ELE )=DTY(:)
+            ! print *,'heree 3.02'
             DTZ_ELE(:, IPHASE,ELE )=DTZ(:)
+            ! print *,'heree 3.1'
             DTOLDX_ELE(:, IPHASE,ELE )=DTOLDX(:)
             DTOLDY_ELE(:, IPHASE,ELE )=DTOLDY(:)
             DTOLDZ_ELE(:, IPHASE,ELE )=DTOLDZ(:)
+            ! print *,'heree 3.2'
 
          END DO Loop_IPHASE
 
       END DO Loop_Elements3
 
-      !ewrite(3,*)'--derivative:'
-      !do ele=1,-totele
-      !   do cv_iloc=1,cv_nloc
-      !      !ewrite(3,*)x(x_ndgln((ele-1)*x_nloc+cv_iloc)),femt(cv_ndgln((ele-1)*cv_nloc+cv_iloc))
-      !      ewrite(3,*)x(x_ndgln((ele-1)*x_nloc+cv_iloc)),DTX_ELE(cv_iloc,1,ele)
-      !      !ewrite(3,*)x(x_ndgln((ele-1)*x_nloc+cv_iloc)),VTX_ELE(cv_iloc,1,ele)
-      !   end do
-      !end do
-      !stop 331
 
       DEALLOCATE( DETWEI ) 
       DEALLOCATE( RA )
@@ -2456,6 +2483,7 @@ ewrite(3,*)'path:', trim( path )
       DEALLOCATE( DTOLDX )
       DEALLOCATE( DTOLDY )
       DEALLOCATE( DTOLDZ )
+      ! print *,'about to leave DG_DERIVS'
 
       RETURN
 
@@ -3758,24 +3786,28 @@ ewrite(3,*)'path:', trim( path )
 
     SUBROUTINE DIFFUS_CAL_COEFF(DIFF_COEF_DIVDX,DIFF_COEFOLD_DIVDX,  &
          CV_NLOC, MAT_NLOC, CV_NONODS, NPHASE, TOTELE, MAT_NONODS,MAT_NDGLN, &
-         SCVFEN,SCVNGI,GI,IPHASE,NDIM,TDIFFUSION,DIFF_GI_ADDED, &
-         HDC, T,TOLD,CV_NODJ_IPHA,CV_NODI_IPHA,ELE,ELE2, &
-         CVNORMX,CVNORMY,CVNORMZ, &
+         SMATFEN,SCVFEN,SCVNGI,GI,IPHASE,NDIM,TDIFFUSION,DIFF_GI_ADDED, &
+         HDC, &
+         T_CV_NODJ_IPHA, T_CV_NODI_IPHA, &
+         TOLD_CV_NODJ_IPHA, TOLD_CV_NODI_IPHA, &
+         ELE,ELE2,CVNORMX,CVNORMY,CVNORMZ, &
          DTX_ELE,DTY_ELE,DTZ_ELE,DTOLDX_ELE,DTOLDY_ELE,DTOLDZ_ELE, &
          SELE,STOTEL,WIC_T_BC,WIC_T_BC_DIRICHLET, CV_OTHER_LOC,MAT_OTHER_LOC )
       ! This sub calculates the effective diffusion coefficientd DIFF_COEF_DIVDX,DIFF_COEFOLD_DIVDX
       ! based on a non-linear method and a non-oscillating scheme.
       IMPLICIT NONE
       INTEGER, intent( in ) :: CV_NLOC, MAT_NLOC, CV_NONODS,NPHASE, TOTELE, MAT_NONODS, &
-           SCVNGI,GI,IPHASE,NDIM,CV_NODJ_IPHA,CV_NODI_IPHA,ELE,ELE2, &
+           SCVNGI,GI,IPHASE,NDIM,ELE,ELE2, &
            SELE,STOTEL,WIC_T_BC_DIRICHLET
-      REAL, intent( in ) :: HDC
+      REAL, intent( in ) :: HDC,T_CV_NODJ_IPHA, T_CV_NODI_IPHA, &
+                                TOLD_CV_NODJ_IPHA, TOLD_CV_NODI_IPHA
       REAL, intent( inout ) :: DIFF_COEF_DIVDX,DIFF_COEFOLD_DIVDX
       INTEGER, DIMENSION( TOTELE*MAT_NLOC ), intent( in ) ::MAT_NDGLN
       INTEGER, DIMENSION( STOTEL * NPHASE ), intent( in ) ::WIC_T_BC
       INTEGER, DIMENSION( CV_NLOC ), intent( in ) ::CV_OTHER_LOC
       INTEGER, DIMENSION( MAT_NLOC ), intent( in ) ::MAT_OTHER_LOC
-      REAL, DIMENSION( CV_NONODS*NPHASE ), intent( in ) ::T,TOLD
+!      REAL, DIMENSION( CV_NONODS*NPHASE ), intent( in ) ::T,TOLD
+      REAL, DIMENSION( MAT_NLOC,SCVNGI  ), intent( in ) :: SMATFEN
       REAL, DIMENSION( CV_NLOC,SCVNGI  ), intent( in ) :: SCVFEN
       REAL, DIMENSION( MAT_NONODS,NDIM,NDIM,NPHASE  ), intent( in ) :: TDIFFUSION
       REAL, DIMENSION( NDIM, NDIM ), intent( in ) :: DIFF_GI_ADDED
@@ -3830,14 +3862,17 @@ ewrite(3,*)'path:', trim( path )
          DIFF_GI(:,:) = 0.0
          DO MAT_KLOC = 1, MAT_NLOC
             MAT_NODK = MAT_NDGLN(( ELE - 1 ) * MAT_NLOC + MAT_KLOC )
+             !print *,'MAT_KLOC,cv_nloc,mat_nloc,MAT_NODK,mat_nonods,cv_nonods:', &
+             !         MAT_KLOC,cv_nloc,mat_nloc,MAT_NODK,mat_nonods,cv_nonods
             DIFF_GI( 1:NDIM , 1:NDIM ) = DIFF_GI( 1:NDIM , 1:NDIM ) &
-                 + SCVFEN( MAT_KLOC, GI ) * TDIFFUSION( MAT_NODK, 1:NDIM , 1:NDIM , IPHASE )
+                 + SMATFEN( MAT_KLOC, GI ) * TDIFFUSION( MAT_NODK, 1:NDIM , 1:NDIM , IPHASE )
+!                 + SCVFEN( MAT_KLOC, GI ) * TDIFFUSION( MAT_NODK, 1:NDIM , 1:NDIM , IPHASE )
          END DO
          DIFF_GI( 1:NDIM , 1:NDIM ) = DIFF_GI( 1:NDIM , 1:NDIM )+DIFF_GI_ADDED( 1:NDIM , 1:NDIM )
 
          N_DOT_DKDT=CVNORMX(GI)*(DIFF_GI(1,1)*DTDX_GI+DIFF_GI(1,2)*DTDY_GI+DIFF_GI(1,3)*DTDZ_GI) &
-              +CVNORMY(GI)*(DIFF_GI(2,1)*DTDX_GI+DIFF_GI(2,2)*DTDY_GI+DIFF_GI(2,3)*DTDZ_GI) &
-              +CVNORMZ(GI)*(DIFF_GI(3,1)*DTDX_GI+DIFF_GI(3,2)*DTDY_GI+DIFF_GI(3,3)*DTDZ_GI) 
+                   +CVNORMY(GI)*(DIFF_GI(2,1)*DTDX_GI+DIFF_GI(2,2)*DTDY_GI+DIFF_GI(2,3)*DTDZ_GI) &
+                   +CVNORMZ(GI)*(DIFF_GI(3,1)*DTDX_GI+DIFF_GI(3,2)*DTDY_GI+DIFF_GI(3,3)*DTDZ_GI) 
 
          N_DOT_DKDTOLD=CVNORMX(GI)*(DIFF_GI(1,1)*DTOLDDX_GI  &
               +DIFF_GI(1,2)*DTOLDDY_GI+DIFF_GI(1,3)*DTOLDDZ_GI) &
@@ -3856,7 +3891,8 @@ ewrite(3,*)'path:', trim( path )
                MAT_KLOC2 = MAT_OTHER_LOC( MAT_KLOC )
                IF(MAT_KLOC2 /= 0 )THEN
                   MAT_NODK2 = MAT_NDGLN(( ELE2 - 1 ) * MAT_NLOC + MAT_KLOC2 )
-                  DIFF_GI2( 1:NDIM, 1:NDIM )=DIFF_GI2( 1:NDIM, 1:NDIM ) +SCVFEN( MAT_KLOC, GI ) &
+!                  DIFF_GI2( 1:NDIM, 1:NDIM )=DIFF_GI2( 1:NDIM, 1:NDIM ) +SCVFEN( MAT_KLOC, GI ) &
+                  DIFF_GI2( 1:NDIM, 1:NDIM )=DIFF_GI2( 1:NDIM, 1:NDIM ) +SMATFEN( MAT_KLOC, GI ) &
                        *TDIFFUSION(MAT_NODK2, 1:NDIM, 1:NDIM ,IPHASE)
                ENDIF
             END DO
@@ -3909,10 +3945,13 @@ ewrite(3,*)'path:', trim( path )
          ENDIF Conditional_MAT_DISOPT_ELE2
 
 
+!          PRINT *,'CV_NODI_IPHA,CV_NODJ_IPHA:',CV_NODI_IPHA,CV_NODJ_IPHA
          DIFF_COEF_DIVDX    = MAX( DIFF_MIN_FRAC*DIFF_STAND_DIVDX, N_DOT_DKDT / &
-              TOLFUN( T( CV_NODJ_IPHA ) - T( CV_NODI_IPHA )) )
+              TOLFUN( T_CV_NODJ_IPHA  - T_CV_NODI_IPHA )  )
+!              TOLFUN( T( CV_NODJ_IPHA ) - T( CV_NODI_IPHA )) )
          DIFF_COEFOLD_DIVDX = MAX( DIFF_MIN_FRAC*DIFF_STAND_DIVDX, N_DOT_DKDTOLD /  &
-              TOLFUN( TOLD( CV_NODJ_IPHA ) - TOLD( CV_NODI_IPHA )))
+              TOLFUN( TOLD_CV_NODJ_IPHA  - TOLD_CV_NODI_IPHA )  )
+!              TOLFUN( TOLD( CV_NODJ_IPHA ) - TOLD( CV_NODI_IPHA )))
 
          ! Make sure the diffusion has an upper bound...       
          DIFF_COEF_DIVDX    = MIN( DIFF_MAX_FRAC*DIFF_STAND_DIVDX, DIFF_COEF_DIVDX )

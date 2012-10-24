@@ -1901,7 +1901,13 @@
       REAL :: JTT_INV,U_GRAD_N_MAX2,V_GRAD_N_MAX2,W_GRAD_N_MAX2
       REAL :: U_R2_COEF,V_R2_COEF,W_R2_COEF
       REAL :: VLKNN
-      INTEGER :: P_INOD, U_INOD_IPHA, U_JNOD
+      REAL :: U_NODJ_SGI_IPHASE, U_NODI_SGI_IPHASE, &
+              UOLD_NODJ_SGI_IPHASE, UOLD_NODI_SGI_IPHASE, &
+              V_NODJ_SGI_IPHASE, V_NODI_SGI_IPHASE, &
+              VOLD_NODJ_SGI_IPHASE, VOLD_NODI_SGI_IPHASE, &
+              W_NODJ_SGI_IPHASE, W_NODI_SGI_IPHASE, &
+              WOLD_NODJ_SGI_IPHASE, WOLD_NODI_SGI_IPHASE
+      INTEGER :: P_INOD, U_INOD_IPHA, U_JNOD, U_KLOC2, U_NODK2, U_NODK2_PHA
       logical firstst
       character( len = 100 ) :: name
 
@@ -1922,7 +1928,7 @@
       !ewrite(3,*)'UDENOLD=',udenold
       !ewrite(3,*)'u_absorb=',u_absorb
       !ewrite(3,*)'u_abs_stab=',u_abs_stab
-      !stop 2921
+!      stop 2921
 
       is_overlapping = .false.
       call get_option( '/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
@@ -1960,6 +1966,7 @@
       call get_option('/material_phase[0]/vector_field::Velocity/prognostic/' // &
            'spatial_discretisation/discontinuous_galerkin/stabilisation/method', &
            RESID_BASED_STAB_DIF, default=0)
+!      RESID_BASED_STAB_DIF=3
       BETWEEN_ELE_STAB=.false.
 !      BETWEEN_ELE_STAB=RESID_BASED_STAB_DIF.NE.0 ! Always switch on between element diffusion if using non-linear 
                                             ! stabilization
@@ -1974,6 +1981,11 @@
 
       ewrite(3,*) 'RESID_BASED_STAB_DIF, U_NONLIN_SHOCK_COEF, RNO_P_IN_A_DOT:', &
            RESID_BASED_STAB_DIF, U_NONLIN_SHOCK_COEF, RNO_P_IN_A_DOT
+!       if(RESID_BASED_STAB_DIF.ne.0) then
+!        print *,'BETWEEN_ELE_STAB,RESID_BASED_STAB_DIF,U_NONLIN_SHOCK_COEF=',  &
+!                 BETWEEN_ELE_STAB,RESID_BASED_STAB_DIF,U_NONLIN_SHOCK_COEF
+!        stop 3282  
+!       endif
 
 
       QUAD_OVER_WHOLE_ELE=.FALSE. 
@@ -2143,10 +2155,22 @@
       ALLOCATE( SELE_OVERLAP_SCALE( CV_NLOC ) )
 
       ALLOCATE( DUX_ELE( U_NLOC, NPHASE, TOTELE ))
+      ALLOCATE( DUY_ELE( U_NLOC, NPHASE, TOTELE ))
+      ALLOCATE( DUZ_ELE( U_NLOC, NPHASE, TOTELE ))
+      ALLOCATE( DVX_ELE( U_NLOC, NPHASE, TOTELE ))
       ALLOCATE( DVY_ELE( U_NLOC, NPHASE, TOTELE ))
+      ALLOCATE( DVZ_ELE( U_NLOC, NPHASE, TOTELE ))
+      ALLOCATE( DWX_ELE( U_NLOC, NPHASE, TOTELE ))
+      ALLOCATE( DWY_ELE( U_NLOC, NPHASE, TOTELE ))
       ALLOCATE( DWZ_ELE( U_NLOC, NPHASE, TOTELE ))
       ALLOCATE( DUOLDX_ELE( U_NLOC, NPHASE, TOTELE ))
+      ALLOCATE( DUOLDY_ELE( U_NLOC, NPHASE, TOTELE ))
+      ALLOCATE( DUOLDZ_ELE( U_NLOC, NPHASE, TOTELE ))
+      ALLOCATE( DVOLDX_ELE( U_NLOC, NPHASE, TOTELE ))
       ALLOCATE( DVOLDY_ELE( U_NLOC, NPHASE, TOTELE ))
+      ALLOCATE( DVOLDZ_ELE( U_NLOC, NPHASE, TOTELE ))
+      ALLOCATE( DWOLDX_ELE( U_NLOC, NPHASE, TOTELE ))
+      ALLOCATE( DWOLDY_ELE( U_NLOC, NPHASE, TOTELE ))
       ALLOCATE( DWOLDZ_ELE( U_NLOC, NPHASE, TOTELE ))
 
       ALLOCATE( GRAD_SOU_GI_NMX( NPHASE ))
@@ -2266,7 +2290,7 @@
       !ewrite(3,*)'cvn_short:',cvn_short
       !stop 768
 
-
+ 
       ALLOCATE( FACE_ELE( NFACE, TOTELE ))
       ! Calculate FACE_ELE
       CALL CALC_FACE_ELE( FACE_ELE, TOTELE, STOTEL, NFACE, &
@@ -2279,6 +2303,9 @@
          !  print *,'X_NLOC,U_NLOC,cv_nloc,XU_NLOC:',X_NLOC,U_NLOC,cv_nloc,XU_NLOC
          !  stop 821
          ! Calculate all the 1st order derivatives for the diffusion term.
+         ! print *,'-***CVFENLX:', CVFENLX
+         ! print *,'-***CVFENLY:', CVFENLY
+         !   stop 674
          CALL DG_DERIVS_UVW( U, UOLD, V, VOLD, W, WOLD, &
               DUX_ELE, DUY_ELE, DUZ_ELE, DUOLDX_ELE, DUOLDY_ELE, DUOLDZ_ELE, &
               DVX_ELE, DVY_ELE, DVZ_ELE, DVOLDX_ELE, DVOLDY_ELE, DVOLDZ_ELE, &
@@ -2287,7 +2314,7 @@
               XU_NDGLN, X_NLOC, X_NDGLN, &
               CV_NGI, U_NLOC, CVWEIGHT, &
               UFEN, UFENLX, UFENLY, UFENLZ, &
-              CVFEN, CVFENX, CVFENY, CVFENZ, &
+              CVFEN, CVFENLX, CVFENLY, CVFENLZ, &
               X_NONODS, X, Y, Z, &
               NFACE, FACE_ELE, U_SLOCLIST, CV_SLOCLIST, STOTEL, U_SNLOC, CV_SNLOC, WIC_U_BC, &
               SUF_U_BC,SUF_V_BC,SUF_W_BC, &
@@ -3009,9 +3036,11 @@
          END DO
       END DO
 ! Place the diffusion term into matrix for between element diffusion stabilization...
+     ! IF(.not.BETWEEN_ELE_STAB) stop 821
       IF(BETWEEN_ELE_STAB) THEN
 ! we store these vectors in order to try and work out the between element 
 ! diffusion/viscocity.
+      !   stop 2721
          DO U_ILOC=1,U_NLOC
             DO U_JLOC=1,U_NLOC
                RNN=0.0
@@ -3454,6 +3483,7 @@
 
                IF(BETWEEN_ELE_STAB) THEN
 ! Calculate stabilization diffusion coefficient...
+            !        stop 2821
                   ELE3=ELE2
                   GOT_OTHER_ELE=(ELE2.NE.ELE).and.(ELE2.NE.0)
                   IF(ELE2==0) ELE3=ELE
@@ -3493,18 +3523,62 @@
 
                   DO IPHASE=1, NPHASE
 
+! Calculate the velocities either side of the element...
+                     U_NODJ_SGI_IPHASE=0.0; U_NODI_SGI_IPHASE=0.0
+                     UOLD_NODJ_SGI_IPHASE=0.0; UOLD_NODI_SGI_IPHASE=0.0
+                     V_NODJ_SGI_IPHASE=0.0; V_NODI_SGI_IPHASE=0.0
+                     VOLD_NODJ_SGI_IPHASE=0.0; VOLD_NODI_SGI_IPHASE=0.0
+                     W_NODJ_SGI_IPHASE=0.0; W_NODI_SGI_IPHASE=0.0
+                     WOLD_NODJ_SGI_IPHASE=0.0; WOLD_NODI_SGI_IPHASE=0.0
+                     DO U_SKLOC = 1, U_SNLOC
+                        U_KLOC = U_SLOC2LOC( U_SKLOC )
+                        U_NODK =U_NDGLN((ELE -1)*U_NLOC+U_KLOC)
+                        IF((ELE2==0).OR.(ELE2==ELE)) THEN ! On the surface of the domain...
+                           U_KLOC2=U_KLOC
+                           U_NODK2=U_NODK
+                        ELSE
+                           U_KLOC2=U_ILOC_OTHER_SIDE( U_SKLOC )
+                           U_NODK2=U_NDGLN((ELE2-1)*U_NLOC+U_KLOC2)
+                        ENDIF
+                        ! print *,'ele,ele2,u_kloc,u_kloc2:',ele,ele2,u_kloc,u_kloc2
+                        U_NODK_PHA =U_NODK +(IPHASE-1)*U_NONODS
+                        U_NODK2_PHA=U_NODK2+(IPHASE-1)*U_NONODS
+
+                        U_NODI_SGI_IPHASE=U_NODI_SGI_IPHASE + SBUFEN(U_SKLOC,SGI)*U(U_NODK_PHA)
+                        U_NODJ_SGI_IPHASE=U_NODJ_SGI_IPHASE + SBUFEN(U_SKLOC,SGI)*U(U_NODK2_PHA)
+                        UOLD_NODI_SGI_IPHASE=UOLD_NODI_SGI_IPHASE + SBUFEN(U_SKLOC,SGI)*UOLD(U_NODK_PHA)
+                        UOLD_NODJ_SGI_IPHASE=UOLD_NODJ_SGI_IPHASE + SBUFEN(U_SKLOC,SGI)*UOLD(U_NODK2_PHA)
+
+                     IF(NDIM.GE.2) THEN
+                        V_NODI_SGI_IPHASE=V_NODI_SGI_IPHASE + SBUFEN(U_SKLOC,SGI)*V(U_NODK_PHA)
+                        V_NODJ_SGI_IPHASE=V_NODJ_SGI_IPHASE + SBUFEN(U_SKLOC,SGI)*V(U_NODK2_PHA)
+                        VOLD_NODI_SGI_IPHASE=VOLD_NODI_SGI_IPHASE + SBUFEN(U_SKLOC,SGI)*VOLD(U_NODK_PHA)
+                        VOLD_NODJ_SGI_IPHASE=VOLD_NODJ_SGI_IPHASE + SBUFEN(U_SKLOC,SGI)*VOLD(U_NODK2_PHA)
+                     ENDIF
+                     IF(NDIM.GE.3) THEN
+                        W_NODI_SGI_IPHASE=W_NODI_SGI_IPHASE + SBUFEN(U_SKLOC,SGI)*W(U_NODK_PHA)
+                        W_NODJ_SGI_IPHASE=W_NODJ_SGI_IPHASE + SBUFEN(U_SKLOC,SGI)*W(U_NODK2_PHA)
+                        WOLD_NODI_SGI_IPHASE=WOLD_NODI_SGI_IPHASE + SBUFEN(U_SKLOC,SGI)*WOLD(U_NODK_PHA)
+                        WOLD_NODJ_SGI_IPHASE=WOLD_NODJ_SGI_IPHASE + SBUFEN(U_SKLOC,SGI)*WOLD(U_NODK2_PHA)
+                     ENDIF
+                     END DO
+
                      DO IDIM=1, NDIM
 
                         If_GOT_DIFFUS: IF(GOT_DIFFUS) THEN
                            ! These subs caculate the effective diffusion coefficient DIFF_COEF_DIVDX,DIFF_COEFOLD_DIVDX
+                         ! print *,'in forcebalance sub U_NODJ_IPHA,U_NODI_IPHA:', &
+                         !                              U_NODJ_IPHA,U_NODI_IPHA
 
                            IF(IDIM==1) THEN
                               CALL DIFFUS_CAL_COEFF(DIFF_COEF_DIVDX( SGI,IDIM,IPHASE ), &
                                    DIFF_COEFOLD_DIVDX( SGI,IDIM,IPHASE ),  &
                                    U_NLOC, MAT_NLOC, U_NONODS, NPHASE, TOTELE, MAT_NONODS,MAT_NDGLN, &
-                                   SBUFEN,SBCVNGI,SGI,IPHASE,NDIM,UDIFFUSION,UDIFF_SUF_STAB(IDIM,IPHASE,SGI,:,: ), &
-                                   HDC, U,UOLD,U_NODJ_IPHA,U_NODI_IPHA,ELE,ELE2, &
-                                   SNORMXN,SNORMYN,SNORMZN,  &
+                              SBCVFEN,SBUFEN,SBCVNGI,SGI,IPHASE,NDIM,UDIFFUSION,UDIFF_SUF_STAB(IDIM,IPHASE,SGI,:,: ), &
+                                   HDC, &
+                                   U_NODJ_SGI_IPHASE,    U_NODI_SGI_IPHASE, &
+                                   UOLD_NODJ_SGI_IPHASE, UOLD_NODI_SGI_IPHASE, &
+                                   ELE,ELE2, SNORMXN,SNORMYN,SNORMZN,  &
                                    DUX_ELE,DUY_ELE,DUZ_ELE,DUOLDX_ELE,DUOLDY_ELE,DUOLDZ_ELE, &
                                    SELE,STOTEL,WIC_U_BC,WIC_U_BC_DIRICHLET, U_OTHER_LOC,MAT_OTHER_LOC )
                            ENDIF
@@ -3512,9 +3586,11 @@
                               CALL DIFFUS_CAL_COEFF(DIFF_COEF_DIVDX( SGI,IDIM,IPHASE ), &
                                    DIFF_COEFOLD_DIVDX( SGI,IDIM,IPHASE ),  &
                                    U_NLOC, MAT_NLOC, U_NONODS, NPHASE, TOTELE, MAT_NONODS,MAT_NDGLN, &
-                                   SBUFEN,SBCVNGI,SGI,IPHASE,NDIM,UDIFFUSION,UDIFF_SUF_STAB(IDIM,IPHASE,SGI,:,: ), &
-                                   HDC, V,VOLD,U_NODJ_IPHA,U_NODI_IPHA,ELE,ELE2, &
-                                   SNORMXN,SNORMYN,SNORMZN,  &
+                              SBCVFEN,SBUFEN,SBCVNGI,SGI,IPHASE,NDIM,UDIFFUSION,UDIFF_SUF_STAB(IDIM,IPHASE,SGI,:,: ), &
+                                   HDC, &
+                                   V_NODJ_SGI_IPHASE,    V_NODI_SGI_IPHASE, &
+                                   VOLD_NODJ_SGI_IPHASE, VOLD_NODI_SGI_IPHASE, &
+                                   ELE,ELE2, SNORMXN,SNORMYN,SNORMZN,  &
                                    DVX_ELE,DVY_ELE,DVZ_ELE,DVOLDX_ELE,DVOLDY_ELE,DVOLDZ_ELE, &
                                    SELE,STOTEL,WIC_U_BC,WIC_U_BC_DIRICHLET, U_OTHER_LOC,MAT_OTHER_LOC )
                            ENDIF
@@ -3522,9 +3598,11 @@
                               CALL DIFFUS_CAL_COEFF(DIFF_COEF_DIVDX( SGI,IDIM,IPHASE ), &
                                    DIFF_COEFOLD_DIVDX( SGI,IDIM,IPHASE ),  &
                                    U_NLOC, MAT_NLOC, U_NONODS, NPHASE, TOTELE, MAT_NONODS,MAT_NDGLN, &
-                                   SBUFEN,SBCVNGI,SGI,IPHASE,NDIM,UDIFFUSION,UDIFF_SUF_STAB(IDIM,IPHASE,SGI,:,: ), &
-                                   HDC, W,WOLD,U_NODJ_IPHA,U_NODI_IPHA,ELE,ELE2, &
-                                   SNORMXN,SNORMYN,SNORMZN,  &
+                              SBCVFEN,SBUFEN,SBCVNGI,SGI,IPHASE,NDIM,UDIFFUSION,UDIFF_SUF_STAB(IDIM,IPHASE,SGI,:,: ), &
+                                   HDC, &
+                                   W_NODJ_SGI_IPHASE,    W_NODI_SGI_IPHASE, &
+                                   WOLD_NODJ_SGI_IPHASE, WOLD_NODI_SGI_IPHASE, &
+                                   ELE,ELE2, SNORMXN,SNORMYN,SNORMZN,  &
                                    DWX_ELE,DWY_ELE,DWZ_ELE,DWOLDX_ELE,DWOLDY_ELE,DWOLDZ_ELE, &
                                    SELE,STOTEL,WIC_U_BC,WIC_U_BC_DIRICHLET, U_OTHER_LOC,MAT_OTHER_LOC )
                            ENDIF
