@@ -62,7 +62,8 @@
           <regions name="WholeMesh">
             <bottom_depth>
               <constant>
-                <real_value rank="0">8000</real_value>
+                <real_value rank="0">40000</real_value>
+                <comment>Deep enough for the tidal bulge to travel around the world in 24 hours - should allow complete recovery of the input M2 amplitude</comment>
               </constant>
             </bottom_depth>
             <sizing_function>
@@ -159,14 +160,14 @@
     </dump_format>
     <dump_period>
       <constant>
-        <real_value rank="0">20000</real_value>
+        <real_value rank="0">21600</real_value>
         <comment>21600: dump results every 6 hours (0.25 days) of simulated time. Given a finish-time of 2592000 s (1 month), 120 dumps are expected.</comment>
       </constant>
     </dump_period>
     <output_mesh name="CoordinateMesh"/>
     <checkpointing>
       <checkpoint_period_in_dumps>
-        <integer_value rank="0">10</integer_value>
+        <integer_value rank="0">25</integer_value>
       </checkpoint_period_in_dumps>
     </checkpointing>
     <stat/>
@@ -177,14 +178,14 @@
       <time_units date="seconds since 1987-01-05 00:00.0"/>
     </current_time>
     <timestep>
-      <real_value rank="0">600.0</real_value>
+      <real_value rank="0">750.0</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">2592000</real_value>
-      <comment>(2592000)1 month, in seconds. Given a timestep size of 300 s, the simulation should perform 8640 time-steps.</comment>
+      <real_value rank="0">864000</real_value>
+      <comment>10 days</comment>
     </finish_time>
     <nonlinear_iterations>
-      <integer_value rank="0">2</integer_value>
+      <integer_value rank="0">1</integer_value>
     </nonlinear_iterations>
     <adaptive_timestep>
       <requested_cfl>
@@ -483,13 +484,13 @@
       <diagnostic>
         <algorithm depends="FreeSurface" name="free_surface_history" material_phase_support="single">
           <levels>
-            <integer_value rank="0">10</integer_value>
+            <integer_value rank="0">200</integer_value>
           </levels>
           <stride>
             <integer_value rank="0">1</integer_value>
           </stride>
           <spin_up_time>
-            <real_value rank="0">0.0</real_value>
+            <real_value rank="0">216000</real_value>
           </spin_up_time>
         </algorithm>
         <mesh name="PressureMesh"/>
@@ -516,137 +517,11 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="S2amp" rank="0">
-      <diagnostic>
-        <algorithm depends="FreeSurfaceHistory" averageFSLevel="Calculate" material_phase_support="single" name="tidal_harmonics" target="Amplitude">
-          <constituent name="S2">
-            <real_value shape="1" rank="0">2.31481315E-05</real_value>
-          </constituent>
-        </algorithm>
-        <mesh name="PressureMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </scalar_field>
-    <scalar_field name="K1amp" rank="0">
-      <diagnostic>
-        <algorithm depends="FreeSurfaceHistory" averageFSLevel="Calculate" material_phase_support="single" name="tidal_harmonics" target="Amplitude">
-          <constituent name="K1">
-            <real_value shape="1" rank="0">1.16057376E-05</real_value>
-          </constituent>
-        </algorithm>
-        <mesh name="PressureMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </scalar_field>
-    <scalar_field name="O1amp" rank="0">
-      <diagnostic>
-        <algorithm depends="FreeSurfaceHistory" averageFSLevel="Calculate" material_phase_support="single" name="tidal_harmonics" target="Amplitude">
-          <constituent name="O1">
-            <real_value shape="1" rank="0">1.07585558E-05</real_value>
-          </constituent>
-        </algorithm>
-        <mesh name="PressureMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </scalar_field>
     <scalar_field name="M2phase" rank="0">
       <diagnostic>
         <algorithm depends="FreeSurfaceHistory" averageFSLevel="Calculate" material_phase_support="single" name="tidal_harmonics" target="Phase">
           <constituent name="M2">
             <real_value shape="1" rank="0">2.23642934E-05</real_value>
-          </constituent>
-        </algorithm>
-        <mesh name="PressureMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </scalar_field>
-    <scalar_field name="S2phase" rank="0">
-      <diagnostic>
-        <algorithm depends="FreeSurfaceHistory" averageFSLevel="Calculate" material_phase_support="single" name="tidal_harmonics" target="Phase">
-          <constituent name="S2">
-            <real_value shape="1" rank="0">2.31481315E-05</real_value>
-          </constituent>
-        </algorithm>
-        <mesh name="PressureMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </scalar_field>
-    <scalar_field name="K1phase" rank="0">
-      <diagnostic>
-        <algorithm depends="FreeSurfaceHistory" averageFSLevel="Calculate" material_phase_support="single" name="tidal_harmonics" target="Phase">
-          <constituent name="K1">
-            <real_value shape="1" rank="0">1.16057376E-05</real_value>
-          </constituent>
-        </algorithm>
-        <mesh name="PressureMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </scalar_field>
-    <scalar_field name="O1phase" rank="0">
-      <diagnostic>
-        <algorithm depends="FreeSurfaceHistory" averageFSLevel="Calculate" material_phase_support="single" name="tidal_harmonics" target="Phase">
-          <constituent name="O1">
-            <real_value shape="1" rank="0">1.07585558E-05</real_value>
           </constituent>
         </algorithm>
         <mesh name="PressureMesh"/>
@@ -853,9 +728,6 @@
   <ocean_forcing>
     <tidal_forcing>
       <M2/>
-      <S2/>
-      <K1/>
-      <O1/>
     </tidal_forcing>
   </ocean_forcing>
 </fluidity_options>

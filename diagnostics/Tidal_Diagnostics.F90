@@ -275,7 +275,9 @@ subroutine getFreeSurfaceHistoryData(state, ignoretimestep, saved_snapshots_time
    end if
 
    allocate(saved_snapshots_times(levels))
-   call get_option(trim(free_surface_history_path) // "saved_snapshots_times", saved_snapshots_times)
+   if (have_option(trim(free_surface_history_path) // "saved_snapshots_times") then
+       call get_option(trim(free_surface_history_path) // "saved_snapshots_times", saved_snapshots_times)
+   end if
    current_snapshot_index=mod(timestep_counter/stride,levels)+1 
 end subroutine getFreeSurfaceHistoryData
 
