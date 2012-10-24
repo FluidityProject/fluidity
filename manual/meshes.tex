@@ -1,6 +1,8 @@
 \chapter{Meshes in \fluidity}\label{chap:meshes}
 \index{mesh!generation}
 \index{grid|see{mesh}}
+\index{exodusii}
+\index{Cubit|see{exodusii}}
 
 In each run of \fluidity\ an input mesh needs to 
 be provided. Even in adaptive mesh runs an initial mesh is needed
@@ -28,13 +30,21 @@ such as Ubuntu. This is the recommended file format.
 a .ele file and a .face (3D) or .edge (2D) or .bound (1D) file. This file format
 is mainly supported for special purposes, like 1D meshes, and some offline 
 tools.
+\item ExodusII: ExodusII is a model developed by Sandia National Laboratories 
+which can be used for pre- and postprocessing of finite element analyses. 
+In Fluidity we currently only read in the mesh from an ExodusII file which 
+can be created using \href{http://cubit.sandia.gov/}{Cubit}. Cubit should 
+preferably be used when dealing with complex engineering geometries, e.g.~a 
+turbine.
 \end{enumerate}
 
-For a detailed, technical description of the two mesh file formats see 
+For a detailed, technical description of the three mesh file formats see 
 appendix~\ref{chap:mesh_formats}. In addition, instructions on how
 to generate a mesh using Gmsh in simple geometries as well as complex
 ocean domains can be found in the Gmsh tutorial available at
-\url{http://amcg.ese.ic.ac.uk/files/amcg-gmsh-tutorial.pdf}
+\url{http://amcg.ese.ic.ac.uk/files/amcg-gmsh-tutorial.pdf}. Tutorials 
+on how to use Cubit a documentation can be found at 
+\url{http://cubit.sandia.gov/tutorials.html}.
 
 \section{Surface and regions ids}
 \label{sec:surface_and_region_ids}
@@ -57,6 +67,9 @@ boundary are marked with a surface id. Region ids are optional. They can be used
 to instruct the adaptivity library to strictly maintain the interface between 
 different regions of the domain. They are also useful to set different constant 
 field values in the regions.
+
+In ExodusII/Cubit region ids and surface ids are defined by block ids and 
+sideset ids respectively. 
 
 \section{Meshes and function spaces}
 \label{sec:meshes_and_function_spaces}

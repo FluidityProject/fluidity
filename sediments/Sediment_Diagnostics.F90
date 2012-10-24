@@ -626,7 +626,7 @@ contains
     elsewhere
         sigma_squared = 0.0
     end where
-    sigma = shape_rhs(shape, sigma_squared**0.5 * detwei)
+    sigma = shape_rhs(shape, dsqrt(sigma_squared) * detwei)
 
     if(continuity(sigma_surface)<0) then
        ! DG case.
