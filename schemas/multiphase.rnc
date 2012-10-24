@@ -447,6 +447,13 @@ start =
                         ## --> 0: under-relaxation ; --> 1: over-relaxation
                         element Relaxation_Coefficient { real }
                      )
+                  }?,
+                  ## Surface tension
+                  element surface_tension { 
+                     (
+                        ## Surface tension coefficient. 
+                        element coefficient { real }
+                     )
                   }?
                )               
             }?,
