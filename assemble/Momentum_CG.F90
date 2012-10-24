@@ -394,7 +394,7 @@
             if(have_eddy_visc) then
                ! Initialise the eddy viscosity field. Calling this subroutine works because
                ! you can't have 2 different types of LES model for the same material phase.
-               call les_init_diagnostic_tensor_fields(state, have_eddy_visc, .false., .false., .false.)
+               call les_init_diagnostic_fields(state, have_eddy_visc, .false., .false., .false.)
             end if
          end if
          if (les_fourth_order) then
@@ -419,7 +419,7 @@
            have_strain = have_option(trim(les_option_path)//"/dynamic_les/tensor_field::StrainRate")
            have_filtered_strain = have_option(trim(les_option_path)//"/dynamic_les/tensor_field::FilteredStrainRate")
            have_filter_width = have_option(trim(les_option_path)//"/dynamic_les/tensor_field::FilterWidth")
-           call les_init_diagnostic_tensor_fields(state, have_eddy_visc, have_strain, have_filtered_strain, have_filter_width)
+           call les_init_diagnostic_fields(state, have_eddy_visc, have_strain, have_filtered_strain, have_filter_width)
 
            ! Initialise necessary local fields.
            ewrite(2,*) "Initialising compulsory dynamic LES fields"
@@ -843,6 +843,10 @@
       end if
             
       ewrite_minmax(rhs)
+      
+      if(les_second_order .or. dynamic_les) then
+         call les_solve_diagnostic_fields(state, have_eddy_visc)
+      end if
 
       if (les_fourth_order) then
         call deallocate(grad_u)
@@ -2101,7 +2105,7 @@
             ! Eddy viscosity tensor field. Calling this subroutine works because
             ! you can't have 2 different types of LES model for the same material phase.
             if(have_eddy_visc) then
-              call les_set_diagnostic_tensor_fields(state, u, ele, detwei, &
+              call les_assemble_diagnostic_fields(state, u, ele, detwei, &
                    les_tensor_gi, les_tensor_gi, les_tensor_gi, les_tensor_gi, &
                  have_eddy_visc, .false., .false., .false.)
             end if
@@ -2191,8 +2195,8 @@
               end if
             end if
 
-            ! Set diagnostic fields
-            call les_set_diagnostic_tensor_fields(state, nu, ele, detwei, &
+            ! Assemble diagnostic fields
+            call les_assemble_diagnostic_fields(state, nu, ele, detwei, &
                  mesh_size_gi, strain_gi, t_strain_gi, les_tensor_gi, &
                  have_eddy_visc, have_strain, have_filtered_strain, have_filter_width)
 

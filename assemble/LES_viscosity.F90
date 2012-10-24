@@ -36,16 +36,19 @@ module les_viscosity_module
   use smoothing_module
   use vector_tools
   use fetools
+  use state_fields_module
+  use solvers
   implicit none
 
   private
 
   public les_viscosity_strength, wale_viscosity_strength
-  public les_init_diagnostic_tensor_fields, les_set_diagnostic_tensor_fields, leonard_tensor, les_strain_rate
+  public les_init_diagnostic_fields, les_assemble_diagnostic_fields, les_solve_diagnostic_fields, &
+         leonard_tensor, les_strain_rate
 
 contains
 
-  subroutine les_init_diagnostic_tensor_fields(state, have_eddy_visc, have_strain, have_filtered_strain, have_filter_width)
+  subroutine les_init_diagnostic_fields(state, have_eddy_visc, have_strain, have_filtered_strain, have_filter_width)
 
     type(state_type), intent(inout) :: state
     type(tensor_field), pointer     :: tensorfield
@@ -73,9 +76,9 @@ contains
       call zero(tensorfield)
     end if
 
-  end subroutine les_init_diagnostic_tensor_fields
+  end subroutine les_init_diagnostic_fields
 
-  subroutine les_set_diagnostic_tensor_fields(state, nu, ele, detwei, &
+  subroutine les_assemble_diagnostic_fields(state, nu, ele, detwei, &
                  mesh_size_gi, strain_gi, t_strain_gi, les_tensor_gi, &
                  have_eddy_visc, have_strain, have_filtered_strain, have_filter_width)
 
@@ -117,8 +120,32 @@ contains
       call addto(tensorfield, ele_nodes(nu, ele), tensor_loc)
     end if
 
-  end subroutine les_set_diagnostic_tensor_fields
+  end subroutine les_assemble_diagnostic_fields
 
+  subroutine les_solve_diagnostic_fields(state, have_eddy_visc)
+
+    type(state_type), intent(inout) :: state
+    type(vector_field), pointer :: u
+    logical, intent(in) :: have_eddy_visc
+    
+    type(csr_matrix), pointer :: mass_matrix
+    type(tensor_field), pointer :: tensorfield
+    
+    logical :: lump_mass = .false.
+    
+    u => extract_vector_field(state, "Velocity")
+    
+    ! Eddy viscosity field m_ij
+    if(have_eddy_visc) then
+      tensorfield => extract_tensor_field(state, "EddyViscosity")
+      if (.not.lump_mass) then
+        mass_matrix => get_mass_matrix(state, tensorfield%mesh)
+        call petsc_solve(tensorfield, mass_matrix, tensorfield, option_path=u%option_path)
+      end if
+    end if
+
+  end subroutine les_solve_diagnostic_fields
+  
   subroutine leonard_tensor(nu, positions, tnu, leonard, alpha, path)
 
     ! Unfiltered velocity
