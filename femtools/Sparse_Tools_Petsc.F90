@@ -248,14 +248,14 @@ contains
       ! Create parallel matrix:
       matrix%M=csr2petsc_CreateMPIAIJ(sparsity, matrix%row_numbering, &
         matrix%column_numbering, ldiagonal, use_inodes=use_inodes)
+
+      ! this is very important for assembly routines (e.g. DG IP viscosity)
+      ! that try to add zeros outside the provided sparsity; if we go outside
+      ! the provided n/o nonzeros the assembly will become very slow!!!
+      call MatSetOption(matrix%M, MAT_IGNORE_ZERO_ENTRIES, PETSC_TRUE, ierr)
       
     endif
     
-    ! this is very important for assembly routines (e.g. DG IP viscosity)
-    ! that try to add zeros outside the provided sparsity; if we go outside
-    ! the provided n/o nonzeros the assembly will become very slow!!!
-    call MatSetOption(matrix%M, MAT_IGNORE_ZERO_ENTRIES, PETSC_TRUE, ierr)
-
     ! Necessary for local assembly: we don't want to communicate non-local dofs
     call MatSetOption(matrix%M, MAT_IGNORE_OFF_PROC_ENTRIES, PETSC_TRUE, ierr)
 
