@@ -3222,10 +3222,18 @@ contains
          else
             ! we do DG differently. First the gradient of the velocity field is calculated
             ! using:
-            ! N_i N_j grad_u = N_i delta u_h - ( {N_i} J[u_h] )
+            ! N_i N_j grad_u = N_i delta u_h - 
+            !                  ({N_i} (u_h^-n^- + u_h^+n^+)) on internal faces -
+            !                  (N_i (u_h - u_b) n) on dirichlet boundaries
+            ! where: {x} = average of x over face
+            !        u_h = value of u in element
+            !        u_b = dirichlet boundary value
+            ! (see Bassi et. al. 2005 - Discontinuous Galerkin solution of the Reynolds-averaged
+            ! Navier–Stokes and k–x turbulence model equations, pg. 517
+            !
             ! then we use this value to determine the bed shear stress using:
             ! N_i N_j tau_b = N_i nu grad_u . |n|
-
+            
             ! Enquire about boundary conditions we're interested in
             ! Returns an integer array bc_type over the surface elements
             ! that indicates the bc type (in the order we specified, i.e.
