@@ -205,7 +205,7 @@ contains
     
     if (.not. IsParallel()) then
 
-      if (product(lgroup_size)==1) then
+      if (.true.) then !product(lgroup_size)==1) then
         ! Create serial matrix:
         matrix%M=csr2petsc_CreateSeqAIJ(sparsity, matrix%row_numbering, &
           matrix%column_numbering, ldiagonal, use_inodes=use_inodes)
