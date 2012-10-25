@@ -1428,7 +1428,9 @@ contains
 
        !loop over nodes, adjust alpha
        do node = 1, size(T_val)
+          ! need to add condition below to stop solver failures when running on cx1
           if (abs(T_val(node) - Tbar) > 1e-14) then
+             ! alpha will never be bigger than 1.0
              if ( T_val(node) > Tbar + (T_val_max(node) - Tbar) ) then
                 alpha = (T_val_max(node)-Tbar)/(T_val(node)-Tbar)
              else if ( T_val(node) < Tbar + (T_val_min(node) - Tbar) ) then
