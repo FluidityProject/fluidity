@@ -91,27 +91,28 @@ Advection_Diffusion_CG.o ../include/advection_diffusion_cg.mod: \
 
 Advection_Diffusion_DG.o ../include/advection_diffusion_dg.mod: \
    Advection_Diffusion_DG.F90 ../include/boundary_conditions.mod \
-   ../include/boundary_conditions_from_options.mod ../include/coordinates.mod \
-   ../include/dgtools.mod ../include/diagnostic_fields.mod \
-   ../include/elements.mod ../include/fdebug.h ../include/fefields.mod \
-   ../include/fetools.mod ../include/fields.mod ../include/fldebug.mod \
+   ../include/boundary_conditions_from_options.mod ../include/colouring.mod \
+   ../include/coordinates.mod ../include/dgtools.mod \
+   ../include/diagnostic_fields.mod ../include/elements.mod \
+   ../include/fdebug.h ../include/fefields.mod ../include/fetools.mod \
+   ../include/fields.mod ../include/fldebug.mod \
    ../include/global_parameters.mod ../include/petsc_solve_state_module.mod \
-   ../include/porous_media.mod ../include/shape_functions.mod \
-   ../include/slope_limiters_dg.mod ../include/sparse_matrices_fields.mod \
-   ../include/sparse_tools.mod ../include/sparsity_patterns.mod \
-   ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
-   ../include/state_module.mod ../include/transform_elements.mod \
-   ../include/upwind_stabilisation.mod ../include/vector_tools.mod \
-   ../include/vtk_interfaces.mod
+   ../include/porous_media.mod ../include/profiler.mod \
+   ../include/shape_functions.mod ../include/slope_limiters_dg.mod \
+   ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
+   ../include/sparsity_patterns.mod ../include/sparsity_patterns_meshes.mod \
+   ../include/spud.mod ../include/state_module.mod \
+   ../include/transform_elements.mod ../include/upwind_stabilisation.mod \
+   ../include/vector_tools.mod ../include/vtk_interfaces.mod
 
 ../include/advection_diffusion_fv.mod: Advection_Diffusion_FV.o
 	@true
 
 Advection_Diffusion_FV.o ../include/advection_diffusion_fv.mod: \
    Advection_Diffusion_FV.F90 ../include/boundary_conditions.mod \
-   ../include/boundary_conditions_from_options.mod ../include/elements.mod \
-   ../include/fdebug.h ../include/fetools.mod ../include/field_options.mod \
-   ../include/fields.mod ../include/fldebug.mod \
+   ../include/boundary_conditions_from_options.mod ../include/colouring.mod \
+   ../include/elements.mod ../include/fdebug.h ../include/fetools.mod \
+   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
    ../include/global_parameters.mod ../include/petsc_solve_state_module.mod \
    ../include/profiler.mod ../include/quadrature.mod \
    ../include/shape_functions.mod ../include/sparse_tools.mod \
@@ -563,6 +564,7 @@ Momentum_Diagnostic_Fields.o ../include/momentum_diagnostic_fields.mod: \
    ../include/equation_of_state.mod ../include/fdebug.h \
    ../include/field_priority_lists.mod ../include/fields.mod \
    ../include/fldebug.mod ../include/global_parameters.mod \
+   ../include/initialise_fields_module.mod ../include/k_epsilon.mod \
    ../include/multimaterial_module.mod ../include/multiphase_module.mod \
    ../include/spud.mod ../include/state_module.mod
 

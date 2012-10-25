@@ -26,6 +26,12 @@ from fluidity_tools import stat_parser
 s = stat_parser("flux_bc_3d.stat")
 vfrac_integral_3d = s["Tephra"]["PhaseVolumeFraction"]["integral"]
     </variable>
+    
+    <variable name="solvers_converged" language="python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
   </variables>
     
   <pass_tests>
@@ -35,6 +41,10 @@ assert abs(vfrac_integral_2d[10] - 0.15) &lt; 1.0e-9
 
     <test name="Integral of PhaseVolumeFraction after 1 second = 0.045 in 3D simulation." language="python">
 assert abs(vfrac_integral_3d[10] - 0.045) &lt; 1.0e-9
+    </test>
+    
+    <test name="Solvers converged" language="python">
+assert(solvers_converged)
     </test>
   </pass_tests>
   
