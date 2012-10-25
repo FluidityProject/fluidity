@@ -62,8 +62,11 @@ module Petsc_Tools
   type petsc_numbering_type
      type(halo_type), pointer :: halo => null()
      integer nprivatenodes
-     ! length of a vector 
+     ! global length of Petsc vector 
      integer universal_length
+     ! block size as seen by petsc
+     integer group_size
+     ! start index of local part of petsc vector
      integer offset
      ! mapping between "global" (fludity numbering inside each local domain)
      ! and "universal" numbering (truly global numbering over all processes
@@ -182,6 +185,7 @@ contains
       fpg=1
       ngroups=nfields
     end if
+    petsc_numbering%group_size=fpg
 
     ! first we set up the petsc numbering for the first entry of each group only:
 
@@ -1192,8 +1196,11 @@ contains
       end do
     end do
       
-    call MatCreateSeqAIJ(MPI_COMM_SELF, nrows, ncols, PETSC_NULL_INTEGER, &
-      nnz, M, ierr)
+    call MatCreate(PETSC_COMM_SELF, M, ierr)
+    call MatSetSizes(M, nrows, ncols, PETSC_DETERMINE, PETSC_DETERMINE, ierr)
+    call MatSetBlockSizes(M, row_numbering%group_size, col_numbering%group_size, ierr)
+    call MatSetType(M, MATAIJ, ierr)
+    call MatSeqAIJSetPreallocation(M, PETSC_NULL_INTEGER, nnz, ierr)
       
     if (.not. present_and_true(use_inodes)) then
       call MatSetOption(M, MAT_USE_INODES, PETSC_FALSE, ierr)

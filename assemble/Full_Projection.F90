@@ -274,7 +274,7 @@
       ! set up numbering used in PETSc objects:
       call allocate(petsc_numbering_u, &
            nnodes=block_size(div_matrix_comp,2), nfields=blocks(div_matrix_comp,2), &
-           group_size=blocks(div_matrix_comp,2), &
+           group_size=inner_m%row_numbering%group_size, &
            halo=div_matrix_comp%sparsity%column_halo)
       call allocate(petsc_numbering_p, &
            nnodes=block_size(div_matrix_comp,1), nfields=1, &
