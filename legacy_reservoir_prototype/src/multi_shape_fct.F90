@@ -7642,7 +7642,7 @@
            A22, A23, A31, A32, A33, DETJ, TWOPIE, RGI, rsum
       INTEGER :: GI, L, IGLX
 
-      ewrite(3,*)' In Detnlxr_Plus_U'
+      !ewrite(3,*)' In Detnlxr_Plus_U'
 
       VOLUME = 0.
 

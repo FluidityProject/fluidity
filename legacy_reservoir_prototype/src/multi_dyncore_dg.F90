@@ -213,7 +213,7 @@
               FINACV, COLACV, NCOLACV, ACV, THERMAL, &
               mass_ele_transp )
 
-         ewrite(3,*)'comp:', t
+         ewrite(3,*)'***comp:', t
 
          Conditional_Lumping: IF(LUMP_EQNS) THEN
             ! Lump the multi-phase flow eqns together
@@ -670,8 +670,7 @@
       REAL, DIMENSION( TOTELE * IGOT_THETA_FLUX, CV_NLOC, SCVNGI_THETA, NPHASE ), intent( inout ) :: &
            THETA_FLUX, ONE_M_THETA_FLUX
       INTEGER, INTENT( IN ) :: NOIT_DIM
-      REAL, DIMENSION( IPLIKE_GRAD_SOU*CV_NONODS*NPHASE ), intent( in ) :: PLIKE_GRAD_SOU_COEF, &
-           PLIKE_GRAD_SOU_GRAD
+      REAL, DIMENSION( CV_NONODS*NPHASE ), intent( in ) :: PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD
 
       ! Local Variables
       LOGICAL, PARAMETER :: GLOBAL_SOLVE = .FALSE. 
@@ -1243,8 +1242,7 @@
       LOGICAL, intent( inout ) :: JUST_BL_DIAG_MAT
       REAL, DIMENSION( NOPT_VEL_UPWIND_COEFS ), intent( in ) :: OPT_VEL_UPWIND_COEFS
       INTEGER, INTENT( IN ) :: NOIT_DIM
-      REAL, DIMENSION( IPLIKE_GRAD_SOU * CV_NONODS * NPHASE ), intent( in ) :: PLIKE_GRAD_SOU_COEF, &
-           PLIKE_GRAD_SOU_GRAD
+      REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD
 
       ! Local Variables
       REAL, DIMENSION( : ), allocatable :: ACV
@@ -1477,8 +1475,7 @@
       LOGICAL, intent( inout ) :: JUST_BL_DIAG_MAT
       REAL, DIMENSION( NOPT_VEL_UPWIND_COEFS ), intent( in ) :: OPT_VEL_UPWIND_COEFS
       INTEGER, INTENT( IN ) :: NOIT_DIM
-      REAL, DIMENSION( IPLIKE_GRAD_SOU * CV_NONODS * NPHASE ), intent( in ) :: PLIKE_GRAD_SOU_COEF, &
-           PLIKE_GRAD_SOU_GRAD
+      REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD
 
       ! Local variables
       REAL, PARAMETER :: V_BETA = 1.0
@@ -1814,8 +1811,7 @@
       REAL, DIMENSION( TOTELE, U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM ), intent( inout ) :: PIVIT_MAT
       REAL, DIMENSION( MAT_NONODS, NDIM, NDIM, NPHASE ), intent( in ) :: UDIFFUSION 
       LOGICAL, intent( inout ) :: JUST_BL_DIAG_MAT
-      REAL, DIMENSION( IPLIKE_GRAD_SOU * CV_NONODS * NPHASE ), intent( in ) :: PLIKE_GRAD_SOU_COEF, &
-           PLIKE_GRAD_SOU_GRAD
+      REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD
       REAL, DIMENSION( CV_NONODS ), intent( in ) :: P
       LOGICAL, INTENT(IN) :: scale_momentum_by_volume_fraction
 
@@ -4373,27 +4369,22 @@
 
     END SUBROUTINE LUMP_ENERGY_EQNS
 
-!*************************************************************************************************************************************************************
-!*************************************************************************************************************************************************************
-!*************************************************************************************************************************************************************
-!*************************************************************************************************************************************************************
-
-
 
     SUBROUTINE CALCULATE_SURFACE_TENSION( state, nphase, ncomp, &
          PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, IPLIKE_GRAD_SOU, &
-         VOLUME_FRAC, &
+         COMP, &
          NCOLACV, FINACV, COLACV, MIDACV, &
          NCOLCT, FINDCT, COLCT, &
-         CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
+         CV_NONODS, U_NONODS, X_NONODS, TOTELE, STOTEL, &
          CV_ELE_TYPE, CV_SELE_TYPE, U_ELE_TYPE, &
          CV_NLOC, U_NLOC, X_NLOC, CV_SNLOC, U_SNLOC, &
-         CV_NDGLN, X_NDGLN, U_NDGLN, &
+         CV_NDGLN, CV_SNDGLN, X_NDGLN, U_NDGLN, U_SNDGLN, &
          X, Y, Z, &
          MAT_NLOC, MAT_NDGLN, MAT_NONODS,  &
          NDIM,  &
          NCOLM, FINDM, COLM, MIDM, &
-         XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE )
+         XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
+         WIC_COMP_BC, SUF_COMP_BC )
 
       IMPLICIT NONE
 
@@ -4404,10 +4395,12 @@
       integer, intent( in ) :: nphase, ncomp, cv_nonods, U_NONODS, X_NONODS, MAT_NONODS, &
            &                       NCOLACV, NCOLCT, TOTELE, CV_ELE_TYPE, CV_SELE_TYPE, U_ELE_TYPE, &
            &                       CV_NLOC, U_NLOC, X_NLOC, MAT_NLOC, CV_SNLOC, U_SNLOC, NDIM, &
-           &                       NCOLM, XU_NLOC, NCOLELE
+           &                       NCOLM, XU_NLOC, NCOLELE, STOTEL
       integer, dimension( TOTELE * CV_NLOC ), intent( in ) :: CV_NDGLN
+      integer, dimension( STOTEL * CV_SNLOC ), intent( in )  :: CV_SNDGLN
       integer, dimension( TOTELE * X_NLOC ), intent( in ) ::  X_NDGLN
       integer, dimension( TOTELE * U_NLOC ), intent( in ) :: U_NDGLN 
+      integer, dimension( STOTEL * U_SNLOC ), intent( in ) :: U_SNDGLN 
       integer, dimension( TOTELE * XU_NLOC ), intent( in ) :: XU_NDGLN
       integer, dimension( TOTELE * MAT_NLOC ), intent( in ) :: MAT_NDGLN
       integer, dimension( CV_NONODS * NPHASE + 1 ), intent( in ) :: FINACV
@@ -4417,7 +4410,11 @@
       integer, dimension( CV_NONODS + 1 ), intent( in ) :: FINDCT
       integer, dimension( NCOLCT ), intent( in ) :: COLCT
 
-      real, dimension( CV_NONODS ), intent( in ) :: VOLUME_FRAC
+      real, dimension( CV_NONODS * NPHASE * NCOMP ), intent( in ) :: COMP
+
+      real, dimension( STOTEL * CV_SNLOC * NPHASE * NCOMP ), intent( in ) :: SUF_COMP_BC
+      integer, dimension( STOTEL * NPHASE ), intent( in ) :: WIC_COMP_BC
+
 
       real, dimension( X_NONODS ), intent( in ) :: X, Y, Z
       integer, dimension( CV_NONODS + 1 ), intent( in ) :: FINDM
@@ -4432,6 +4429,8 @@
       real :: coefficient
       logical :: surface_tension, use_pressure_force
 
+      ewrite(3,*) 'Entering CALCULATE_SURFACE_TENSION'
+
       ! Initialise...
       IPLIKE_GRAD_SOU = 0
       PLIKE_GRAD_SOU_COEF = 0.0
@@ -4443,6 +4442,8 @@
               ']/is_multiphase_component/surface_tension' )
 
          if ( surface_tension ) then
+
+            ewrite(3,*) 'Calculating surface tension for component ', icomp
 
             call get_option( '/material_phase[' // int2str( nphase - 1 + icomp ) // &
                  ']/is_multiphase_component/surface_tension/coefficient', coefficient )
@@ -4465,18 +4466,28 @@
                     U_FORCE_X_SUF_TEN, U_FORCE_Y_SUF_TEN, U_FORCE_Z_SUF_TEN, &
                     PLIKE_GRAD_SOU_COEF( 1+CV_NONODS*(IPHASE-1) : CV_NONODS*IPHASE ), & 
                     PLIKE_GRAD_SOU_GRAD( 1+CV_NONODS*(IPHASE-1) : CV_NONODS*IPHASE ), &
-                    COEFFICIENT, VOLUME_FRAC, &
+                    COEFFICIENT, &
+                    COMP( 1 + (IPHASE-1)*CV_NONODS + (ICOMP-1)*NPHASE*CV_NONODS : &
+                    &        IPHASE*CV_NONODS + (ICOMP-1)*NPHASE*CV_NONODS ), &
                     NCOLACV, FINACV, COLACV, MIDACV, &
                     NCOLCT, FINDCT, COLCT, &
-                    CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
+                    CV_NONODS, U_NONODS, X_NONODS, TOTELE, STOTEL, &
                     CV_ELE_TYPE, CV_SELE_TYPE, U_ELE_TYPE, &
                     CV_NLOC, U_NLOC, X_NLOC, CV_SNLOC, U_SNLOC, &
-                    CV_NDGLN, X_NDGLN, U_NDGLN, &
+                    CV_NDGLN, CV_SNDGLN, X_NDGLN, U_NDGLN, U_SNDGLN, &
                     X, Y, Z, &
                     MAT_NLOC, MAT_NDGLN, MAT_NONODS,  &
                     NDIM, USE_PRESSURE_FORCE, &
                     NCOLM, FINDM, COLM, MIDM, &
-                    XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE)
+                    XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
+                    WIC_COMP_BC( 1 + (IPHASE-1)*STOTEL : IPHASE*STOTEL ), &
+                    SUF_COMP_BC( 1 + (IPHASE-1)*stotel*cv_snloc + (ICOMP-1)*NPHASE*stotel*cv_snloc : &
+                    &                    IPHASE*stotel*cv_snloc + (ICOMP-1)*NPHASE*stotel*cv_snloc) )
+
+               ewrite(3,*)'and what have we done here...'
+               ewrite(3,*)'PLIKE_GRAD_SOU_COEF', PLIKE_GRAD_SOU_COEF( 1+CV_NONODS*(IPHASE-1) : CV_NONODS*IPHASE )
+               ewrite(3,*)'PLIKE_GRAD_SOU_GRAD', PLIKE_GRAD_SOU_GRAD( 1+CV_NONODS*(IPHASE-1) : CV_NONODS*IPHASE )
+               !STOP 666
 
             end do
 
@@ -4486,24 +4497,27 @@
 
       end do
 
+      ewrite(3,*) 'Leaving CALCULATE_SURFACE_TENSION'
+
       RETURN
     END SUBROUTINE CALCULATE_SURFACE_TENSION
 
     SUBROUTINE SURFACE_TENSION_WRAPPER( state, &
          U_FORCE_X_SUF_TEN, U_FORCE_Y_SUF_TEN, U_FORCE_Z_SUF_TEN, &
          PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, &
-         SUF_TENSION_COEF,VOLUME_FRAC, &
+         SUF_TENSION_COEF, VOLUME_FRAC, &
          NCOLACV, FINACV, COLACV, MIDACV, &
          NCOLCT, FINDCT, COLCT, &
-         CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
+         CV_NONODS, U_NONODS, X_NONODS, TOTELE, STOTEL, &
          CV_ELE_TYPE, CV_SELE_TYPE, U_ELE_TYPE, &
          CV_NLOC, U_NLOC, X_NLOC, CV_SNLOC, U_SNLOC, &
-         CV_NDGLN, X_NDGLN, U_NDGLN, &
+         CV_NDGLN, CV_SNDGLN, X_NDGLN, U_NDGLN, U_SNDGLN, &
          X, Y, Z, &
          MAT_NLOC, MAT_NDGLN, MAT_NONODS,  &
          NDIM, USE_PRESSURE_FORCE, &
          NCOLM, FINDM, COLM, MIDM, &
-         XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE)
+         XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
+         WIC_COMP_BC, SUF_COMP_BC )
 
       ! Calculate the surface tension force: U_FORCE_X_SUF_TEN,U_FORCE_X_SUF_TEN,U_FORCE_X_SUF_TEN
       ! or PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD,
@@ -4635,14 +4649,16 @@
       type(state_type), dimension( : ), intent( inout ) :: state
       INTEGER, PARAMETER :: NPHASE = 1
       INTEGER, intent( in ) :: NCOLACV, NCOLCT, CV_NONODS, U_NONODS, X_NONODS, MAT_NONODS, &
-           TOTELE, &
+           TOTELE, STOTEL, &
            CV_ELE_TYPE, CV_SELE_TYPE, U_ELE_TYPE, &
            CV_NLOC, U_NLOC, X_NLOC, MAT_NLOC, &
            CV_SNLOC, U_SNLOC, NDIM, &
            NCOLM, XU_NLOC, NCOLELE
       INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in ) :: CV_NDGLN
+      INTEGER, DIMENSION( STOTEL * CV_SNLOC ), intent( in )  :: CV_SNDGLN
       INTEGER, DIMENSION( TOTELE * X_NLOC ), intent( in ) ::  X_NDGLN
-      INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ) :: U_NDGLN 
+      INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ) :: U_NDGLN
+      INTEGER, DIMENSION( STOTEL * U_SNLOC ), intent( in ) :: U_SNDGLN
       INTEGER, DIMENSION( TOTELE * XU_NLOC ), intent( in ) :: XU_NDGLN
       INTEGER, DIMENSION( TOTELE * MAT_NLOC ), intent( in ) :: MAT_NDGLN
       INTEGER, DIMENSION( CV_NONODS * NPHASE + 1 ), intent( in ) :: FINACV
@@ -4658,6 +4674,9 @@
       REAL, DIMENSION( CV_NONODS ), intent( inout ) :: PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD
 
       REAL, DIMENSION( CV_NONODS ), intent( in ) :: VOLUME_FRAC
+
+      REAL, DIMENSION( STOTEL * CV_SNLOC ), intent( in ) :: SUF_COMP_BC
+      INTEGER, DIMENSION( STOTEL ), intent( in ) :: WIC_COMP_BC
 
       REAL, DIMENSION( X_NONODS ), intent( in ) :: X, Y, Z
       INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDM
@@ -4676,7 +4695,7 @@
            JCOUNT_KLOC, JCOUNT_KLOC2, COLGPTS, CV_SLOC2LOC, U_SLOC2LOC, &
            TMAX_NOD, TMIN_NOD, TOLDMAX_NOD, &
            TOLDMIN_NOD, DENMAX_NOD, DENMIN_NOD, DENOLDMAX_NOD, DENOLDMIN_NOD, &
-           T2MAX_NOD, T2MIN_NOD, T2OLDMAX_NOD, T2OLDMIN_NOD, IDUM
+           T2MAX_NOD, T2MIN_NOD, T2OLDMAX_NOD, T2OLDMIN_NOD, IDUM, IZERO
       INTEGER, DIMENSION( : , : ), allocatable :: CV_SLOCLIST, U_SLOCLIST, &
            FACE_ELE, CV_NEILOC
       REAL, DIMENSION( : ), allocatable :: CVWEIGHT, CVWEIGHT_SHORT, SCVFEWEIGH, SBCVFEWEIGH, &
@@ -4724,7 +4743,7 @@
            JCOUNT_IPHA, IMID_IPHA, &
            NFACE, X_NODI,  U_INOD, U_NOD, &
            CV_INOD, CV_JNOD, MAT_NODI, FACE_ITS, NFACE_ITS, &
-           CVNOD, XNOD, STOTEL, CV_NOD, DG_CV_NOD, IDIM, IGOT_T2, &
+           CVNOD, XNOD, CV_NOD, DG_CV_NOD, IDIM, IGOT_T2, &
            nopt_vel_upwind_coefs
       !        ===>  REALS  <===
       REAL :: NDOTQ, NDOTQOLD,  &
@@ -4758,26 +4777,26 @@
       CHARACTER(100) :: PATH
       REAL, DIMENSION(TOTELE) :: DUMMY_ELE
 
+      DUMMY_ELE = 0
+
       IGOT_T2=0
       CV_DISOPT=0
       CV_DG_VEL_INT_OPT=0
       IN_ELE_UPWIND=0
       DG_ELE_UPWIND=0
-      STOTEL=0
       GETCT=.FALSE.
       GET_THETA_FLUX=.FALSE. 
       USE_THETA_FLUX=.FALSE.
       THERMAL=.FALSE. 
       LIMIT_USE_2ND=.FALSE.
 
-      ALLOCATE(RDUM(MAX(U_NLOC,CV_NLOC)*TOTELE)) 
-      ALLOCATE(IDUM(MAX(U_NLOC,CV_NLOC)*TOTELE)) 
-      ALLOCATE(RZERO(MAX(U_NLOC,CV_NLOC)*TOTELE)) 
-      ALLOCATE(CV_ONE(CV_NONODS))
+      ALLOCATE(RDUM(MAX(U_NLOC,CV_NLOC)*TOTELE)) ; RDUM = 0.0
+      ALLOCATE(IDUM(MAX(U_NLOC,CV_NLOC)*TOTELE)) ; IDUM = 0
+      ALLOCATE(RZERO(MAX(U_NLOC,CV_NLOC)*TOTELE)) ; RZERO=0.0 
+      ALLOCATE(IZERO(MAX(U_NLOC,CV_NLOC)*TOTELE))  ; IZERO=0 
+      ALLOCATE(CV_ONE(CV_NONODS)) ; CV_ONE=1.0
       ALLOCATE(CURVATURE(CV_NONODS))
-      RZERO=0.0
       NOPT_VEL_UPWIND_COEFS=0
-      CV_ONE=1.0
 
       ndotq = 0. ; ndotqold = 0.
 
@@ -4959,10 +4978,12 @@
 
       FEMTOLD=0.0
 
+      !ewrite(3,*) '***FEMT', FEMT
+
       ALLOCATE( FACE_ELE( NFACE, TOTELE ) ) ; FACE_ELE = 0
       ! Calculate FACE_ELE
       CALL CALC_FACE_ELE( FACE_ELE, TOTELE, STOTEL, NFACE, &
-           NCOLELE, FINELE, COLELE, CV_NLOC, CV_SNLOC, CV_NONODS, CV_NDGLN, IDUM, &
+           NCOLELE, FINELE, COLELE, CV_NLOC, CV_SNLOC, CV_NONODS, CV_NDGLN, CV_SNDGLN, &
            CV_SLOCLIST, X_NLOC, X_NDGLN )
 
       CALL DG_DERIVS( FEMT, FEMTOLD, &
@@ -4973,16 +4994,15 @@
            CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, &
            CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, &
            X_NONODS, X, Y, Z,  &
-           NFACE, FACE_ELE, CV_SLOCLIST, CV_SLOCLIST, STOTEL, CV_SNLOC, CV_SNLOC, IDUM, RDUM, &
-           0, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, &
+           NFACE, FACE_ELE, CV_SLOCLIST, CV_SLOCLIST, STOTEL, CV_SNLOC, CV_SNLOC, IZERO, &
+           RZERO, &
+           1, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, &
            SBCVFEN, SBCVFENSLX, SBCVFENSLY)
 
       ! determine the curvature by solving a simple eqn...
 
-      ALLOCATE(TDIFFUSION(NDIM,NDIM,CV_NONODS))
-      TDIFFUSION=0.0
-      ALLOCATE(RNOD_COUNT(CV_NONODS))
-      RNOD_COUNT=0.0
+      ALLOCATE(TDIFFUSION(NDIM,NDIM,CV_NONODS)) ; TDIFFUSION=0.0
+      ALLOCATE(RNOD_COUNT(CV_NONODS)) ; RNOD_COUNT=0.0
       DO ELE=1,TOTELE
          DO CV_ILOC=1,CV_NLOC
             CV_NOD=CV_NDGLN((ELE-1)*CV_NLOC+CV_ILOC)
@@ -4993,18 +5013,19 @@
       DO ELE=1,TOTELE
          DO CV_ILOC=1,CV_NLOC
             CV_NOD=CV_NDGLN((ELE-1)*CV_NLOC+CV_ILOC)
-            DG_CV_NOD=(ELE-1)*CV_NLOC+CV_ILOC
             RR=DTX_ELE(CV_ILOC, 1, ELE)**2
             IF(NDIM.GE.2) RR=RR+DTY_ELE(CV_ILOC, 1, ELE)**2
             IF(NDIM.GE.3) RR=RR+DTZ_ELE(CV_ILOC, 1, ELE)**2
-            RDIF=1.0/MAX(TOLER,RNOD_COUNT(CV_NOD)*SQRT(RR))
+            RDIF = 1.0 / MAX( TOLER, RNOD_COUNT(CV_NOD)*SQRT(RR) )
             DO IDIM=1,NDIM
                TDIFFUSION(IDIM,IDIM,CV_NOD)=TDIFFUSION(IDIM,IDIM,CV_NOD)+RDIF
             END DO
          END DO
       END DO
 
-      SIMPLE_LINEAR_SCHEME=.FALSE.
+      ewrite(3,*) 'TDIFFUSION(1,1,:)', TDIFFUSION(1,1,:)
+
+      SIMPLE_LINEAR_SCHEME=.TRUE.
 
       IF ( SIMPLE_LINEAR_SCHEME ) THEN
 
@@ -5019,8 +5040,8 @@
                CV_NOD=CV_NDGLN((ELE-1)*CV_NLOC+CV_ILOC)
                DG_CV_NOD=(ELE-1)*CV_NLOC+CV_ILOC
                DIF_TX(CV_NOD)=DIF_TX(CV_NOD)+TDIFFUSION(1,1,CV_NOD)*DTX_ELE(CV_ILOC, 1, ELE)
-               IF(NDIM.GE.2) DIF_TY(CV_NOD)=DIF_TY(CV_NOD)+TDIFFUSION(1,1,CV_NOD)*DTY_ELE(CV_ILOC, 1, ELE)
-               IF(NDIM.GE.3) DIF_TZ(CV_NOD)=DIF_TZ(CV_NOD)+TDIFFUSION(1,1,CV_NOD)*DTZ_ELE(CV_ILOC, 1, ELE)
+               IF(NDIM.GE.2) DIF_TY(CV_NOD)=DIF_TY(CV_NOD)+TDIFFUSION(2,2,CV_NOD)*DTY_ELE(CV_ILOC, 1, ELE)
+               IF(NDIM.GE.3) DIF_TZ(CV_NOD)=DIF_TZ(CV_NOD)+TDIFFUSION(3,3,CV_NOD)*DTZ_ELE(CV_ILOC, 1, ELE)
             END DO
          END DO
 
@@ -5038,27 +5059,35 @@
               CVFEN, CVFENLX, CVFENLY, CVFENLZ, &
               CVFEN, CVFENLX, CVFENLY, CVFENLZ, &
               X_NONODS, X, Y, Z, &
-              NFACE, FACE_ELE, CV_SLOCLIST, CV_SLOCLIST, STOTEL, CV_SNLOC, CV_SNLOC, IDUM,  &
-              RDUM,RDUM,RDUM, &
-              0, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, & 
+              NFACE, FACE_ELE, CV_SLOCLIST, CV_SLOCLIST, STOTEL, CV_SNLOC, CV_SNLOC, IZERO,  &
+              RZERO,RZERO,RZERO, &
+              1, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, & 
               SBCVFEN, SBCVFENSLX, SBCVFENSLY)
 
-         CURVATURE=DX_DIFF_X 
-         IF(NDIM.GE.2) CURVATURE=CURVATURE + DY_DIFF_Y
-         IF(NDIM.GE.3) CURVATURE=CURVATURE + DZ_DIFF_Z
-         !CURVATURE=DX_DIFF_X + DY_DIFF_Y + DZ_DIFF_Z
+         CURVATURE=0.0
+         DO ELE=1,TOTELE
+            DO CV_ILOC=1,CV_NLOC
+               CV_NOD=CV_NDGLN((ELE-1)*CV_NLOC+CV_ILOC)
+               DG_CV_NOD=(ELE-1)*CV_NLOC+CV_ILOC
+               RR=DX_DIFF_X(DG_CV_NOD)
+               IF(NDIM.GE.2) RR=RR + DY_DIFF_Y(DG_CV_NOD)
+               IF(NDIM.GE.3) RR=RR + DZ_DIFF_Z(DG_CV_NOD)
+               CURVATURE(CV_NOD) = CURVATURE(CV_NOD) + RR / RNOD_COUNT(CV_NOD)
+            END DO
+         END DO
 
          DEALLOCATE(DIF_TX, DIF_TY, DIF_TZ)
-         DEALLOCATE(DX_DIFF_X, DX_DIFF_Y, DX_DIFF_Z)
+         DEALLOCATE(DX_DIFF_X, DY_DIFF_X, DZ_DIFF_X)
+         DEALLOCATE(DX_DIFF_Y, DY_DIFF_Y, DZ_DIFF_Y)
+         DEALLOCATE(DX_DIFF_Z, DY_DIFF_Z, DZ_DIFF_Z)
 
       ELSE
 
-         ALLOCATE(T_ABSORB(CV_NONODS))
-         T_ABSORB=1.0
+         ALLOCATE(T_ABSORB(CV_NONODS)) ; T_ABSORB=1.0
          DT=1.0
          T_THETA=0.0 
          T_BETA=0.0
-         NOIT_DIM=100
+         NOIT_DIM=1
          LUMP_EQNS=.FALSE.
 
          CALL INTENERGE_ASSEM_SOLVE( state, &
@@ -5069,7 +5098,7 @@
               NPHASE,  &
               CV_NLOC, U_NLOC, X_NLOC,  &
               CV_NDGLN, X_NDGLN, U_NDGLN, &
-              CV_SNLOC, U_SNLOC, STOTEL, IDUM, IDUM, &
+              CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
               X, Y, Z, &
               RZERO,RZERO,RZERO, RZERO,RZERO,RZERO, RZERO,RZERO,RZERO, &
               CURVATURE, VOLUME_FRAC, &
@@ -5086,15 +5115,15 @@
               XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, LUMP_EQNS, &
               RDUM, NOPT_VEL_UPWIND_COEFS, &
               RDUM, CV_ONE, &
-              IGOT_T2,CURVATURE, VOLUME_FRAC, IGOT_THETA_FLUX, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
+              IGOT_T2, CURVATURE, VOLUME_FRAC, IGOT_THETA_FLUX, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
               CURVATURE,CURVATURE,CURVATURE, &
               RZERO, RZERO, RZERO, IDUM, IN_ELE_UPWIND, DG_ELE_UPWIND, &
               NOIT_DIM, &
-              3, & ! nits_flux_lim_t
+              1, & ! nits_flux_lim_t
               RZERO, &
-              option_path = '/material_phase[0]/scalar_field::Temperature', &
+              option_path = '/material_phase[0]/scalar_field::Pressure', &
               mass_ele_transp = dummy_ele, &
-              thermal = .FALSE. )    
+              thermal = .FALSE. )
 
          DEALLOCATE(T_ABSORB)
 
@@ -5103,8 +5132,12 @@
 
       IF_USE_PRESSURE_FORCE: IF ( USE_PRESSURE_FORCE ) THEN
 
-         PLIKE_GRAD_SOU_COEF = SUF_TENSION_COEF*CURVATURE
-         PLIKE_GRAD_SOU_GRAD = VOLUME_FRAC
+         ewrite(3,*) 'SUF_TENSION_COEF', SUF_TENSION_COEF
+         ewrite(3,*) 'CURVATURE', CURVATURE
+         ewrite(3,*) 'VOLUME_FRAC', VOLUME_FRAC
+
+         PLIKE_GRAD_SOU_COEF =  PLIKE_GRAD_SOU_COEF + SUF_TENSION_COEF * CURVATURE
+         PLIKE_GRAD_SOU_GRAD = PLIKE_GRAD_SOU_GRAD + VOLUME_FRAC
 
       ELSE
 
@@ -5188,7 +5221,51 @@
             END DO
          END DO
 
+         DEALLOCATE( MASS, STORE_MASS, B_CV_X, B_CV_Y, B_CV_Z, &
+         RHS_U_SHORT_X, RHS_U_SHORT_Y, RHS_U_SHORT_Z, &
+         U_SOL_X, U_SOL_Y, U_SOL_Z, DETWEI, RA )
+
       END IF IF_USE_PRESSURE_FORCE
+
+
+      DEALLOCATE( TDIFFUSION, RNOD_COUNT, FACE_ELE )
+      DEALLOCATE( FEMT, FEMTOLD, MASS_CV, MASS_ELE, &
+           XC_CV, YC_CV, ZC_CV, DTX_ELE, DTY_ELE, &
+           DTZ_ELE, DTOLDX_ELE, DTOLDY_ELE, DTOLDZ_ELE )
+      DEALLOCATE( JCOUNT_KLOC, JCOUNT_KLOC2 )
+      DEALLOCATE( CVNORMX, CVNORMY, CVNORMZ )
+      DEALLOCATE( COLGPTS, FINDGPTS )
+      DEALLOCATE( SNDOTQ, SNDOTQOLD )
+      DEALLOCATE( CV_ON_FACE, CVFEM_ON_FACE, &
+           U_ON_FACE, UFEM_ON_FACE )
+      DEALLOCATE( CV_OTHER_LOC,  U_OTHER_LOC, MAT_OTHER_LOC )
+      DEALLOCATE( X_SHARE )
+      DEALLOCATE( CVWEIGHT, CVN, CVFEN, &
+           CVFENLX, CVFENLY, CVFENLZ )
+      DEALLOCATE( CVFENX, CVFENY, CVFENZ )
+      DEALLOCATE( CVWEIGHT_SHORT, CVN_SHORT, CVFEN_SHORT, &
+           CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT )
+      DEALLOCATE( UFEN, UFENLX, UFENLY, UFENLZ )
+      DEALLOCATE( UFENX, UFENY, UFENZ )
+      DEALLOCATE( SCVFEN, SCVFENSLX, SCVFENSLY, &
+           SCVFENLX, SCVFENLY, SCVFENLZ, SCVFEWEIGH )
+      DEALLOCATE( SUFEN, SUFENSLX, SUFENSLY, &
+           SUFENLX, SUFENLY, SUFENLZ )
+      DEALLOCATE( SCVDETWEI, SRA, LOG_ON_BOUND )
+      DEALLOCATE( SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
+           SBCVFEWEIGH, SBCVFENLX, SBCVFENLY, SBCVFENLZ, &
+           SBUFEN, SBUFENSLX, SBUFENSLY, SBUFENLX, &
+           SBUFENLY, SBUFENLZ, DUMMY_ZERO_NDIM_NDIM )
+      DEALLOCATE( CV_SLOC2LOC, U_SLOC2LOC , &
+           CV_SLOCLIST, U_SLOCLIST, CV_NEILOC )
+      DEALLOCATE( SELE_OVERLAP_SCALE )
+      DEALLOCATE( UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE )
+      DEALLOCATE( UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2 )
+      DEALLOCATE( SUM_CV, UP_WIND_NOD )
+      DEALLOCATE( CV_FORCE_X_SUF_TEN, &
+      CV_FORCE_Y_SUF_TEN, CV_FORCE_Z_SUF_TEN )
+      DEALLOCATE( RDUM, IDUM, RZERO, &
+      IZERO, CV_ONE, CURVATURE )
 
     END SUBROUTINE SURFACE_TENSION_WRAPPER
 

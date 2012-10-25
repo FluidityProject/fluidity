@@ -1918,7 +1918,7 @@
       END DO
 
       ! Solve...
-ewrite(3,*)'path:', trim( path )
+      !ewrite(3,*)'path:', trim( path )
       DO IT = 1, NTSOL
          CALL SOLVER( MAT,  &
               FEMPSI( 1 + (IT - 1 ) * CV_NONODS : CV_NONODS + (IT - 1 ) * CV_NONODS ),  &
@@ -2259,7 +2259,6 @@ ewrite(3,*)'path:', trim( path )
             ! The surface nodes on element face IFACE.  
             SLOC2LOC( : ) = CV_SLOCLIST( IFACE, : )
             X_SLOC2LOC( : ) = X_SLOCLIST( IFACE, : )
-            ! print *,'ele,CV_SLOCLIST( IFACE, : ):',ele,CV_SLOCLIST( IFACE, : )
 
             ! Form approximate surface normal (NORMX,NORMY,NORMZ)
             CALL DGSIMPLNORM( ELE, X_SLOC2LOC, TOTELE, X_NLOC, X_SNLOC, X_NDGLN, &

@@ -524,20 +524,21 @@ contains
              CALL calculate_capillary_pressure( state, CV_NONODS, NPHASE, PLIKE_GRAD_SOU_GRAD, SATURA )
           END IF
 
-          !CALL CALCULATE_SURFACE_TENSION( state, nphase, ncomp, &
-          !     PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, IPLIKE_GRAD_SOU, &
-          !     VOLUME_FRAC, &
-          !     NCOLACV, FINACV, COLACV, MIDACV, &
-          !     NCOLCT, FINDCT, COLCT, &
-          !     CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
-          !     CV_ELE_TYPE, CV_SELE_TYPE, U_ELE_TYPE, &
-          !     CV_NLOC, U_NLOC, X_NLOC, CV_SNLOC, U_SNLOC, &
-          !     CV_NDGLN, X_NDGLN, U_NDGLN, &
-          !     X, Y, Z, &
-          !     MAT_NLOC, MAT_NDGLN, MAT_NONODS,  &
-          !     NDIM,  &
-          !     NCOLM, FINDM, COLM, MIDM, &
-          !     XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE )
+          CALL CALCULATE_SURFACE_TENSION( state, nphase, ncomp, &
+               PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, IPLIKE_GRAD_SOU, &
+               COMP, &
+               NCOLACV, FINACV, COLACV, MIDACV, &
+               NCOLCT, FINDCT, COLCT, &
+               CV_NONODS, U_NONODS, X_NONODS, TOTELE, STOTEL, &
+               CV_ELE_TYPE, CV_SELE_TYPE, U_ELE_TYPE, &
+               CV_NLOC, U_NLOC, X_NLOC, CV_SNLOC, U_SNLOC, &
+               CV_NDGLN, CV_SNDGLN, X_NDGLN, U_NDGLN, U_SNDGLN, &
+               X, Y, Z, &
+               MAT_NLOC, MAT_NDGLN, MAT_NONODS,  &
+               NDIM,  &
+               NCOLM, FINDM, COLM, MIDM, &
+               XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
+               WIC_COMP_BC, SUF_COMP_BC )
 
           V_SOURCE_STORE = V_SOURCE + V_SOURCE_COMP
 
