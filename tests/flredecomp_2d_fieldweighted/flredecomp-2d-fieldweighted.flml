@@ -2,7 +2,7 @@
 <fluidity_options>
   <simulation_name>
     <string_value lines="1">flredecomp_field_weighted_partition_test</string_value>
-    <comment>Checks for field_weighted_partitions in flredecomp and gmsh2triangle -i. </comment>
+    <comment>Checks for field_weighted_partitions in flredecomp and gmsh2triangle -i.</comment>
   </simulation_name>
   <problem_type>
     <string_value lines="1">stokes</string_value>
@@ -137,7 +137,9 @@
               <inner_matrix name="FullMomentumMatrix">
                 <solver>
                   <iterative_method name="preonly"/>
-                  <preconditioner name="lu"/>
+                  <preconditioner name="lu">
+                    <factorization_package name="petsc"/>
+                  </preconditioner>
                   <relative_error>
                     <real_value rank="0">1.0e-6</real_value>
                   </relative_error>
@@ -216,7 +218,9 @@
         </temporal_discretisation>
         <solver>
           <iterative_method name="preonly"/>
-          <preconditioner name="lu"/>
+          <preconditioner name="lu">
+            <factorization_package name="petsc"/>
+          </preconditioner>
           <relative_error>
             <real_value rank="0">1.0e-6</real_value>
           </relative_error>

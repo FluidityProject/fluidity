@@ -12,9 +12,9 @@ run:
 
 postprocess:
 	@echo **********Calling visualise.py
-	python visualise.py top_hat_cg_100.vtu
-	python visualise.py top_hat_cv_100.vtu
-	python visualise.py top_hat_dg_100.vtu
+	PYTHONPATH=`pwd`/../../python:$$PYTHONPATH python visualise.py top_hat_cg_100.vtu
+	PYTHONPATH=`pwd`/../../python:$$PYTHONPATH python visualise.py top_hat_cv_100.vtu
+	PYTHONPATH=`pwd`/../../python:$$PYTHONPATH python visualise.py top_hat_dg_100.vtu
 
 input: clean preprocess
 
