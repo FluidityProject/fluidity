@@ -47,34 +47,15 @@
 #include "petscversion.h"
 #ifdef HAVE_PETSC_MODULES
     use petsc
-#if PETSC_VERSION_MINOR==0
-    use petscvec
-    use petscmat
-    use petscksp
-    use petscpc
-#endif
 #endif
 
     implicit none
     ! Module to provide solvers, preconditioners etc... for full_projection Solver.
     ! Not this is currently tested for Full CMC solves and Stokes flow:
 #ifdef HAVE_PETSC_MODULES
-#if PETSC_VERSION_MINOR==0
-#include "finclude/petscvecdef.h"
-#include "finclude/petscmatdef.h"
-#include "finclude/petsckspdef.h"
-#include "finclude/petscpcdef.h"
-#else
 #include "finclude/petscdef.h"
-#endif
 #else
 #include "finclude/petsc.h"
-#if PETSC_VERSION_MINOR==0
-#include "finclude/petscvec.h"
-#include "finclude/petscmat.h"
-#include "finclude/petscksp.h"
-#include "finclude/petscpc.h"
-#endif
 #endif
     
     private
@@ -344,18 +325,10 @@
       ! Build Schur complement:
       ewrite(2,*) 'Building Schur complement'                
       if(have_auxiliary_matrix) then
-#if PETSC_VERSION_MINOR==0
-         call MatCreateSchurComplement(inner_M%M,G,G_t_comp,S,A,ierr)
-#else
          call MatCreateSchurComplement(inner_M%M,inner_M%M,G,G_t_comp,S,A,ierr)
-#endif
       else
          myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
-#if PETSC_VERSION_MINOR==0
-         call MatCreateSchurComplement(inner_M%M,G,G_t_comp,PETSC_NULL_OBJECT,A,ierr)
-#else
          call MatCreateSchurComplement(inner_M%M,inner_M%M,G,G_t_comp,PETSC_NULL_OBJECT,A,ierr)
-#endif
          if (myPETSC_NULL_OBJECT/=PETSC_NULL_OBJECT) then
            FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
          end if
