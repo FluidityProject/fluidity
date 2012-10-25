@@ -85,7 +85,7 @@ implicit none
     module procedure set_scalar_field_node, set_scalar_field, &
                    & set_vector_field_node, set_vector_field, &
                    & set_vector_field_node_dim, set_vector_field_dim, &
-                   & set_tensor_field_node, set_tensor_field, &
+                   & set_tensor_field_node, set_tensor_field, set_tensor_field_dim, &
                    & set_scalar_field_nodes, set_scalar_field_constant_nodes, &
                    & set_tensor_field_node_dim, &
                    & set_vector_field_nodes, &
@@ -1355,6 +1355,22 @@ implicit none
     end do
     
   end subroutine set_tensor_field
+    
+  subroutine set_tensor_field_dim(field, dim1, dim2, val)
+    !!< Sets one component of a tensor with constant value
+    !!< Works for constant and space varying fields.
+    type(tensor_field), intent(inout) :: field
+    real, intent(in) :: val
+    integer, intent(in):: dim1, dim2
+    integer :: i
+
+    assert(field%field_type/=FIELD_TYPE_PYTHON)
+    
+    do i=1,size(field%val, 3)
+      field%val(dim1, dim2, i) = val
+    end do
+    
+  end subroutine set_tensor_field_dim
 
   subroutine set_tensor_field_arr(field, val)
     !!< Set the tensor field at all nodes at once

@@ -3132,9 +3132,9 @@ contains
       !! Field over the entire surface mesh containing bc values:
       type(vector_field) :: bc_value
       !! Field that holds the gradient of velocity in boundary elements
-      type(tensor_field), target :: grad_U
+      type(tensor_field), target :: grad_U, dummy_visc
       type(tensor_field), pointer :: grad_U_ptr
-      integer :: grad_u_stat
+      integer :: grad_u_stat, visc_stat
       !! Integer array of all surface elements indicating bc type
       !! (see below call to get_entire_boundary_condition):
       integer, dimension(:,:), allocatable :: bc_type
@@ -3185,7 +3185,16 @@ contains
 
          call zero(bed_shear_stress) 
 
-         visc => extract_tensor_field(state, "Viscosity")
+         visc => extract_tensor_field(state, "Viscosity", visc_stat)
+         if (visc_stat /= 0.0) then
+            ewrite(0,*) 'Warning: No viscosity specified - assumed to be 1.0 for bed shear calculation'
+            call allocate(dummy_visc, bed_shear_stress%mesh, 'dummy_visc')
+            call zero(dummy_visc)
+            do i = 1, dummy_visc%dim(1)
+               call set(dummy_visc, i, i, 1.0)
+            end do
+            visc => dummy_visc            
+         end if
          U    => extract_vector_field(state, "Velocity")
          X    => extract_vector_field(state, "Coordinate")
 
@@ -3227,9 +3236,9 @@ contains
             grad_U_ptr => extract_tensor_field(state, "DGVelocityGradient", grad_u_stat)
             if (grad_u_stat /= 0) then
                call allocate(grad_U, bed_shear_stress%mesh, 'grad_U')
-               call zero(grad_U)
                grad_U_ptr => grad_U
             end if
+            call zero(grad_U_ptr)
 
             ! calculate velocity gradient in boundary elements
             do ele = 1, ele_count(bed_shear_stress)
@@ -3274,6 +3283,10 @@ contains
             call deallocate(surface_mesh)
             call deallocate(bc_value)
             deallocate(bc_type)
+         end if
+
+         if (visc_stat /= 0) then
+            call deallocate(dummy_visc)
          end if
       else
          FLAbort('Unknown bed shear stress calculation method')
