@@ -165,7 +165,7 @@ u_ref = sqrt(p/rho_g)</comment>
             <mass_terms/>
           </continuous_galerkin>
           <conservative_advection>
-            <real_value rank="0">0.0</real_value>
+            <real_value rank="0">1.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
@@ -215,7 +215,7 @@ u_ref = sqrt(p/rho_g)</comment>
             </mass_terms>
             <advection_terms/>
             <stress_terms>
-              <tensor_form/>
+              <stress_form/>
             </stress_terms>
           </continuous_galerkin>
           <conservative_advection>
@@ -268,11 +268,11 @@ u_ref = sqrt(p/rho_g)</comment>
         <tensor_field name="Viscosity" rank="2">
           <prescribed>
             <value name="WholeMesh">
-              <isotropic>
+              <anisotropic_asymmetric>
                 <constant>
-                  <real_value rank="0">1.83e-5</real_value>
+                  <real_value symmetric="false" dim2="dim" shape="1 1" dim1="dim" rank="2">1.83e-5</real_value>
                 </constant>
-              </isotropic>
+              </anisotropic_asymmetric>
             </value>
             <output/>
           </prescribed>
