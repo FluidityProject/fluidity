@@ -213,8 +213,6 @@
               FINACV, COLACV, NCOLACV, ACV, THERMAL, &
               mass_ele_transp )
 
-         ewrite(3,*)'***comp:', t
-
          Conditional_Lumping: IF(LUMP_EQNS) THEN
             ! Lump the multi-phase flow eqns together
             ALLOCATE( CV_RHS_SUB( CV_NONODS ))
@@ -2626,9 +2624,9 @@
                            DGM_PHA( COUNT ) = DGM_PHA( COUNT ) + VLK( IPHASE ) + VLN( IPHASE )
                            PIVIT_MAT(ELE, I, J) = PIVIT_MAT(ELE, I, J) + VLK( IPHASE )
 
-         IF(IDIM==1) RHS_DIFF_U(U_ILOC,IPHASE)=RHS_DIFF_U(U_ILOC,IPHASE)+VLK( IPHASE )*U(GLOBJ  ) ! + (IDIM-1)*U_NONODS)
-         IF(IDIM==2) RHS_DIFF_V(U_ILOC,IPHASE)=RHS_DIFF_V(U_ILOC,IPHASE)+VLK( IPHASE )*V(GLOBJ  )  ! + (IDIM-1)*U_NONODS)
-         IF(IDIM==3) RHS_DIFF_W(U_ILOC,IPHASE)=RHS_DIFF_W(U_ILOC,IPHASE)+VLK( IPHASE )*W(GLOBJ )  ! + (IDIM-1)*U_NONODS)
+         IF(IDIM==1) RHS_DIFF_U(U_ILOC,IPHASE)=RHS_DIFF_U(U_ILOC,IPHASE)+VLK( IPHASE )*U(GLOBJ) ! + (IDIM-1)*U_NONODS)
+         IF(IDIM==2) RHS_DIFF_V(U_ILOC,IPHASE)=RHS_DIFF_V(U_ILOC,IPHASE)+VLK( IPHASE )*V(GLOBJ) ! + (IDIM-1)*U_NONODS)
+         IF(IDIM==3) RHS_DIFF_W(U_ILOC,IPHASE)=RHS_DIFF_W(U_ILOC,IPHASE)+VLK( IPHASE )*W(GLOBJ) ! + (IDIM-1)*U_NONODS)
 
                         END DO
                      END DO
@@ -4415,7 +4413,6 @@
       real, dimension( STOTEL * CV_SNLOC * NPHASE * NCOMP ), intent( in ) :: SUF_COMP_BC
       integer, dimension( STOTEL * NPHASE ), intent( in ) :: WIC_COMP_BC
 
-
       real, dimension( X_NONODS ), intent( in ) :: X, Y, Z
       integer, dimension( CV_NONODS + 1 ), intent( in ) :: FINDM
       integer, dimension( NCOLM ), intent( in ) :: COLM
@@ -4424,6 +4421,8 @@
       integer, dimension( NCOLELE ), intent( in ) :: COLELE
 
       real, dimension( : ), allocatable :: U_FORCE_X_SUF_TEN, U_FORCE_Y_SUF_TEN, U_FORCE_Z_SUF_TEN
+      real, dimension( STOTEL * CV_SNLOC ) :: DUMMY_SUF_COMP_BC
+      integer, dimension( STOTEL ) :: DUMMY_WIC_COMP_BC
 
       integer :: iphase, icomp
       real :: coefficient
@@ -4435,6 +4434,9 @@
       IPLIKE_GRAD_SOU = 0
       PLIKE_GRAD_SOU_COEF = 0.0
       PLIKE_GRAD_SOU_GRAD = 0.0
+
+      DUMMY_SUF_COMP_BC = 0.0
+      DUMMY_WIC_COMP_BC = 0
 
       do icomp = 1, ncomp
 
@@ -4480,14 +4482,7 @@
                     NDIM, USE_PRESSURE_FORCE, &
                     NCOLM, FINDM, COLM, MIDM, &
                     XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
-                    WIC_COMP_BC( 1 + (IPHASE-1)*STOTEL : IPHASE*STOTEL ), &
-                    SUF_COMP_BC( 1 + (IPHASE-1)*stotel*cv_snloc + (ICOMP-1)*NPHASE*stotel*cv_snloc : &
-                    &                    IPHASE*stotel*cv_snloc + (ICOMP-1)*NPHASE*stotel*cv_snloc) )
-
-               ewrite(3,*)'and what have we done here...'
-               ewrite(3,*)'PLIKE_GRAD_SOU_COEF', PLIKE_GRAD_SOU_COEF( 1+CV_NONODS*(IPHASE-1) : CV_NONODS*IPHASE )
-               ewrite(3,*)'PLIKE_GRAD_SOU_GRAD', PLIKE_GRAD_SOU_GRAD( 1+CV_NONODS*(IPHASE-1) : CV_NONODS*IPHASE )
-               !STOP 666
+                    DUMMY_WIC_COMP_BC, DUMMY_SUF_COMP_BC )
 
             end do
 
@@ -4759,7 +4754,7 @@
            W_SUM_ONE1, W_SUM_ONE2, NDOTQNEW, NN, NM, DT, T_THETA, T_BETA, RDIF, RR, &
            VOLUME
 
-      REAL, PARAMETER :: W_SUM_ONE = 1.0, TOLER=1.0E-10
+      REAL, PARAMETER :: W_SUM_ONE = 1.0, TOLER=1.0E-8
 
       integer :: cv_inod_ipha, IGETCT, U_NODK_IPHA, NOIT_DIM, &
            CV_DG_VEL_INT_OPT, IN_ELE_UPWIND, DG_ELE_UPWIND, &
@@ -4774,7 +4769,6 @@
            SIMPLE_LINEAR_SCHEME, GOTDEC
 
       CHARACTER(LEN=OPTION_PATH_LEN) :: OPTION_PATH
-      CHARACTER(100) :: PATH
       REAL, DIMENSION(TOTELE) :: DUMMY_ELE
 
       DUMMY_ELE = 0
@@ -4905,8 +4899,6 @@
       ALLOCATE( SUM_CV( CV_NONODS ))
       ALLOCATE( UP_WIND_NOD( CV_NONODS * NPHASE )) ; UP_WIND_NOD = 0.0
 
-      ewrite(3,*)'here1'
-
       D1 = ( NDIM == 1 )
       D3 = ( NDIM == 3 )
       DCYL= ( NDIM == -2 )
@@ -4962,11 +4954,10 @@
       ALLOCATE( DTOLDY_ELE( CV_NLOC, NPHASE, TOTELE ))
       ALLOCATE( DTOLDZ_ELE( CV_NLOC, NPHASE, TOTELE ))
 
-      ewrite(3,*)'here2'
       IGETCT=0
       IF(GETCT) IGETCT=1
 
-      path='/material_phase[0]/scalar_field::Pressure'
+      option_path='/material_phase[0]/scalar_field::Pressure'
 
       CALL PROJ_CV_TO_FEM( FEMT, VOLUME_FRAC, 1, NDIM, &
            RDUM,0, RDUM,0, MASS_ELE, &
@@ -4974,11 +4965,9 @@
            CV_NGI_SHORT, CV_NLOC, CVN_SHORT, CVWEIGHT_SHORT, &
            CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, &
            X_NONODS, X, Y, Z, NCOLM, FINDM, COLM, MIDM, &
-           IGETCT, RDUM, IDUM, IDUM, IDUM(1), PATH)
+           IGETCT, RDUM, IDUM, IDUM, IDUM(1), OPTION_PATH )
 
       FEMTOLD=0.0
-
-      !ewrite(3,*) '***FEMT', FEMT
 
       ALLOCATE( FACE_ELE( NFACE, TOTELE ) ) ; FACE_ELE = 0
       ! Calculate FACE_ELE
@@ -5022,8 +5011,6 @@
             END DO
          END DO
       END DO
-
-      ewrite(3,*) 'TDIFFUSION(1,1,:)', TDIFFUSION(1,1,:)
 
       SIMPLE_LINEAR_SCHEME=.TRUE.
 
@@ -5131,10 +5118,6 @@
 
 
       IF_USE_PRESSURE_FORCE: IF ( USE_PRESSURE_FORCE ) THEN
-
-         ewrite(3,*) 'SUF_TENSION_COEF', SUF_TENSION_COEF
-         ewrite(3,*) 'CURVATURE', CURVATURE
-         ewrite(3,*) 'VOLUME_FRAC', VOLUME_FRAC
 
          PLIKE_GRAD_SOU_COEF =  PLIKE_GRAD_SOU_COEF + SUF_TENSION_COEF * CURVATURE
          PLIKE_GRAD_SOU_GRAD = PLIKE_GRAD_SOU_GRAD + VOLUME_FRAC
