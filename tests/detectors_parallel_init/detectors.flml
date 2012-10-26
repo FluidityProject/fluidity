@@ -111,4 +111,11 @@
       </prescribed>
     </scalar_field>
   </material_phase>
+  <flredecomp>
+    <final_partitioner>
+      <zoltan>
+        <method>graph</method>
+      </zoltan>
+    </final_partitioner>
+  </flredecomp>
 </fluidity_options>
