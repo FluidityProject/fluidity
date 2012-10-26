@@ -52,7 +52,7 @@ module diagnostic_fields
   use sparsity_patterns_meshes
   use solvers
   use sparse_matrices_fields
-  use boundary_conditions, only: get_entire_boundary_condition
+  use boundary_conditions, only: get_entire_boundary_condition, get_dg_surface_mesh
   use quicksort
   use unittest_tools
   use boundary_conditions
@@ -3139,13 +3139,14 @@ contains
       !! (see below call to get_entire_boundary_condition):
       integer, dimension(:,:), allocatable :: bc_type
       !! surface mesh, element and node list
-      type(mesh_type) :: surface_mesh
+      type(mesh_type), pointer :: surface_mesh
       integer, dimension(:), allocatable :: surface_element_list
-      integer, dimension(:), pointer :: surface_node_list
       !! surface fields
       type(vector_field) :: bed_shear_stress_surface
       type(tensor_field) :: visc_surface, grad_u_surface
       
+      ewrite(2,*) 'in calculate bed_shear_stress'
+
       ! assumes constant density
       call get_option(trim(bed_shear_stress%option_path)//"/diagnostic/density", density)
 
@@ -3233,11 +3234,12 @@ contains
             !
             ! then we use this value to determine the bed shear stress using:
             ! N_i N_j tau_b = N_i nu grad_u . |n|
-            
+
             ! Enquire about boundary conditions we're interested in
             ! Returns an integer array bc_type over the surface elements
             ! that indicates the bc type (in the order we specified, i.e.
             ! BCTYPE_WEAKDIRICHLET=1)
+
             allocate( bc_type(U%dim, 1:surface_element_count(U)) )
             call get_entire_boundary_condition(U, (/"weakdirichlet"/), bc_value, bc_type)
 
@@ -3247,13 +3249,13 @@ contains
                grad_U_ptr => grad_U
             end if
             call zero(grad_U_ptr)
-
+            
             ! calculate velocity gradient in boundary elements
             do ele = 1, ele_count(bed_shear_stress)
                call calculate_grad_u_ele_dg(grad_U_ptr, ele, X, U,&
                     & bc_value, bc_type)
             end do
-    
+
             allocate(surface_element_list(surface_element_count(bed_shear_stress)))
             ! generate list of surface elements
             do i=1, surface_element_count(bed_shear_stress)
@@ -3261,7 +3263,7 @@ contains
             end do
 
             ! create surface field
-            call create_surface_mesh(surface_mesh, surface_node_list, bed_shear_stress%mesh, name='sm')
+            surface_mesh => get_dg_surface_mesh(bed_shear_stress%mesh)
             call allocate(bed_shear_stress_surface, bed_shear_stress%dim, surface_mesh)
 
             ! remap required fields to the boundary surfaces
@@ -3288,7 +3290,6 @@ contains
             end if
             call deallocate(grad_u_surface)
             call deallocate(visc_surface)
-            call deallocate(surface_mesh)
             call deallocate(bc_value)
             deallocate(bc_type)
          end if
@@ -3474,13 +3475,13 @@ contains
 
      shape => ele_shape(U, ele) 
      call transform_to_physical(X, ele, shape, dshape, detwei)
-     
+
      ! Calculate grad of U_h within the element
      grad_Uh_gi = ele_grad_at_quad(U, ele, dshape)
-     
+
      ! Assemble interior contributions to rhs
      rhs = shape_tensor_rhs(shape, grad_Uh_gi, detwei)
-     
+
      ! Interface integrals
      neigh=>ele_neigh(U, ele)
      do ni=1,size(neigh)
@@ -3509,7 +3510,7 @@ contains
      end do
 
      call addto(grad_u, ele_nodes(grad_u, ele), rhs)
-          
+
    end subroutine calculate_grad_u_ele_dg
   
    subroutine calculate_grad_u_ele_dg_interface(ele, face, face_2, &
@@ -3540,8 +3541,8 @@ contains
      ! shape and detwei are the same for both faces, normal+ = - normal-
      shape => face_shape(U, face)
      call transform_facet_to_physical(X, face, detwei_f=detwei, normal=normal)
-     
-     if (face==face_2) then  
+
+     if (face==face_2 .and. any(bc_type(:,face) == 1)) then  
         ! boundary faces - need to apply weak dirichlet bc's
         ! = - int_ v_h \cdot (u - u^b) n 
         U_q = face_val_at_quad(U, face)

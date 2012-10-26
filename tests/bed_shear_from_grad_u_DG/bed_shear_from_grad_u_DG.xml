@@ -46,7 +46,7 @@ grad_u_test_passed = diff.sum() &lt; 1e-6
 assert(bed_shear_test_passed == True)
     </test>
     <!-- divergence of velocity is within 0.001% of 1 -->
-    <test name="shear stress is as expected" language="python">
+    <test name="integral of velocity divergence = surface integral of n.u" language="python">
 assert(grad_u_test_passed == True)
     </test>
   </pass_tests>
