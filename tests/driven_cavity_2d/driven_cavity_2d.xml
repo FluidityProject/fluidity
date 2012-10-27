@@ -18,7 +18,7 @@ solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
 import vtktools
 import math
 
-u=vtktools.vtu("driven_cavity_2d_6.vtu")
+u=vtktools.vtu("driven_cavity_2d_12.vtu")
 pts=vtktools.arr([[0.5, 0.000, 0.000, 0.0000],
 [0.5, 0.000, 0.000,  0.0000],
 [0.5, 0.020, 0.000, -0.0757],
@@ -62,7 +62,7 @@ erturk_u_norm=norm
 import vtktools
 import math
 
-u=vtktools.vtu("driven_cavity_2d_6.vtu")
+u=vtktools.vtu("driven_cavity_2d_12.vtu")
 pts=vtktools.arr([
 [0.000, 0.5, 0.0,  0.0000],
 [0.015, 0.5, 0.0,  0.1019],
@@ -106,7 +106,7 @@ erturk_v_norm=norm
 import vtktools
 import math
 
-u=vtktools.vtu("driven_cavity_2d_6.vtu")
+u=vtktools.vtu("driven_cavity_2d_12.vtu")
 pts=vtktools.arr([
 [0.5, 0.0000, 0.0,  0.0000000],
 [0.5, 0.0547, 0.0, -0.1812881],
@@ -148,7 +148,7 @@ botella_u_norm=norm
 import vtktools
 import math
 
-u=vtktools.vtu("driven_cavity_2d_6.vtu")
+u=vtktools.vtu("driven_cavity_2d_12.vtu")
 pts=vtktools.arr([
 [1.0000, 0.5, 0.0,  0.0000000],
 [0.9688, 0.5, 0.0, -0.2279225],
@@ -185,7 +185,7 @@ botella_v_norm=norm
 import vtktools
 import math
 
-u=vtktools.vtu("driven_cavity_2d_6.vtu")
+u=vtktools.vtu("driven_cavity_2d_12.vtu")
 pts=vtktools.arr([
 [0.5, 0.0000, 0.0,  0.110591],
 [0.5, 0.0547, 0.0,  0.109689],
@@ -227,7 +227,7 @@ botella_p_norm1=norm
 import vtktools
 import math
 
-u=vtktools.vtu("driven_cavity_2d_6.vtu")
+u=vtktools.vtu("driven_cavity_2d_12.vtu")
 pts=vtktools.arr([
 [1.0000, 0.5, 0.0,  0.077455],
 [0.9688, 0.5, 0.0,  0.078837],
@@ -296,10 +296,10 @@ assert botella_u_norm &lt; 0.0035
     <test name="L2 norm of v velocity along centre line (cf. Botella)" language="python">
 assert botella_v_norm &lt; 0.0045
     </test>
-    <test name="L2 norm of p velocity along centre line (cf. Botella)" language="python">
+    <test name="L2 norm of p along centre line (cf. Botella)" language="python">
 assert botella_p_norm1 &lt; 0.0025
     </test>    
-    <test name="L2 norm of p velocity along centre line (cf. Botella)" language="python">
+    <test name="L2 norm of p along centre line (cf. Botella)" language="python">
 assert botella_p_norm2 &lt; 0.0025
     </test>    
     <test name="Difference in KE (cf. Botella)" language="python">
