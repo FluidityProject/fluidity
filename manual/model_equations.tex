@@ -781,9 +781,9 @@ where the compressible phase has an index of $i=1$ here.
 
 An internal energy equation may also need to be solved depending on the equation of state used for the compressible phase. This is given by:
 \begin{equation}
-\alpha_i\rho_i\frac{\partial e_i}{\partial t} + \alpha_i\rho_i\mathbf{u}_i\cdot\nabla e_i = -p\nabla\cdot\left(\alpha_i\mathbf{u}_i\right) + Q_i
+\alpha_i\rho_i\frac{\partial e_i}{\partial t} + \alpha_i\rho_i\mathbf{u}_i\cdot\nabla e_i = -\alpha_i p\nabla\cdot\mathbf{u}_i + \nabla\cdot\left(\alpha_i\frac{k_i}{C_{v,i}}\nabla e_i\right) + Q_i
 \end{equation}
-where $e_i$ is the internal energy and $Q_i$ is an inter-phase energy transfer term described in Chapter \ref{chap:configuration}.
+where $e_i$ is the internal energy, $k_i$ is the effective conductivity, $C_{v,i}$ is the specific heat (at constant volume), and $Q_i$ is an inter-phase energy transfer term described in Chapter \ref{chap:configuration}.
 
 \subsection{Porous Media Darcy Flow}
 \label{sec:porous_media_darcy_flow_equations}

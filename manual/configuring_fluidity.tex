@@ -2356,6 +2356,7 @@ For an $N$ phase problem, $N$ material\_phases are required and hence $N$ PhaseV
 \begin{equation}
 \alpha_N = 1 - \sum_{i=1}^{N-1}\alpha_i\textrm{.}
 \end{equation}
+For compressible multiphase simulations, the diagnostic PhaseVolumeFraction field should always be in the compressible (fluid) phase. This is because we do not include the Density in the advection-diffusion equation for prognostic PhaseVolumeFraction fields, so solving this equation in the compressible phase would not be correct. The particle phases on the other hand are always incompressible where the density is constant.
 
 \subsubsection{Inter-phase momentum interaction}
 Currently, \fluidity\ only supports fluid-particle drag between the continuous phase and dispersed phase(s). This can be enabled by switching on the \option{/multiphase\_interaction/fluid\_particle\_drag} option in Diamond and specifying the drag correlation: Stokes, \cite{wen_yu_1966} or \cite{ergun1952}.
@@ -2394,20 +2395,20 @@ Note that within each dispersed phase, a value for $d$ must be specified in \opt
 This subsection considers compressible multiphase flow simulations where each phase has its own InternalEnergy field. Users can choose to include the inter-phase heat transfer term by \cite{gunn1978}, denoted $Q$ in Section \ref{sec:multiphase_equations}, on the RHS of each internal energy equation:
 
 \begin{equation}\label{eq:gunn_heat_transfer_term}
-Q = \frac{6 k \alpha_p \mathrm{Nu}_p}{d_p^2}\left(\frac{e_f}{C_f} - \frac{e_p}{C_p}\right),
+Q = \frac{6 k \alpha_p \mathrm{Nu}_p}{d_p^2}\left(\frac{e_f}{C_{v,f}} - \frac{e_p}{C_{v,p}}\right),
 \end{equation}
 where 
 \begin{equation}
 \mathrm{Nu}_p = \left(7 - 10\alpha_f + 5\alpha_f^2\right)\left(1 + 0.7\mathrm{Re}_p^{0.2}\mathrm{Pr}^{\frac{1}{3}}\right) + \left(1.33 - 2.4\alpha_f + 1.2\alpha_f^2\right)\mathrm{Re}_p^{0.7}\mathrm{Pr}^{\frac{1}{3}},
 \end{equation}
 \begin{equation}
- \mathrm{Pr} = \frac{C_f \gamma \mu_f}{k},
+ \mathrm{Pr} = \frac{C_{v,f} \gamma \mu_f}{k},
 \end{equation}
 and
 \begin{equation}
  \mathrm{Re} = \frac{\rho_f d_p |\mathbf{u}_f-\mathbf{u}_p|}{\mu_f},
 \end{equation}
-are the Nusselt, Prandtl and Reynolds number respectively. $C_i$ denotes the specific heat of phase i at constant volume, and $k$ denotes the effective conductivity of the fluid phase; these must be specified in \option{../multiphase\_properties/effective\_conductivity} and \option{../multiphase\_properties/specific\_heat}. Note that we have written the above in terms of internal energy (rather than temperature) by dividing $e_i$ by the specific heat at constant volume.
+are the Nusselt, Prandtl and Reynolds number respectively. $C_{v,i}$ denotes the specific heat of phase i at constant volume, and $k$ denotes the effective conductivity of the fluid phase; these must be specified in \option{../multiphase\_properties/effective\_conductivity} and \option{../multiphase\_properties/specific\_heat}. Note that we have written the above in terms of internal energy (rather than temperature) by dividing $e_i$ by the specific heat at constant volume.
 
 To include this term, switch on the \option{/multiphase\_interaction/heat\_transfer} option in Diamond.
 
@@ -2448,6 +2449,12 @@ but also an Advection-Diffusion equation is solved (and solver options need to b
 \begin{itemize}
 \item for continuous velocities \option{\ldots/spatial\_discretisation/\ldots/lump\_mass\_matrix} should be turned on.
 \item in the presence of viscosity \option{\ldots/spatial\_discretisation/continuous\_galerkin/stress\_terms/stress\_form} is required and all components of the anisotropic symmetric Viscosity tensor should be filled out.  This functionality is only available with continuous Galerkin velocities.
+\end{itemize}
+
+\subsection{InternalEnergy options}
+\begin{itemize}
+\item The pressure term in the internal energy equation can be included by enabling the \option{include\_pressure\_term} option under the InternalEnergy field in Diamond.
+\item The heat flux term can be included via the InternalEnergy's Diffusivity field. Users will need to specify an isotropic value for $\frac{k}{C_v}$, where $k$ is the effective conductivity and $C_v$ is the specific heat at constant volume.
 \end{itemize}
 
 \subsection{Restrictions: discretisation options and element pairs}
