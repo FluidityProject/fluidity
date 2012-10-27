@@ -2067,6 +2067,11 @@ scalar_equation_choice =
          ## Note: Only works for continuous galerkin or control volume discretisations.
          element equation {
             attribute name { "KEpsilon" }
+         }|
+         ## Equation type for the sediment bedload fields.
+         ## Note: Only works for P1 discretisations.
+         element equation {
+            attribute name { "SedimentBedload" }
          }
       )
    )

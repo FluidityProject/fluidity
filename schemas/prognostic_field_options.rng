@@ -2554,6 +2554,13 @@ Note: Only works for continuous galerkin or control volume discretisations.</a:d
           <value>KEpsilon</value>
         </attribute>
       </element>
+      <element name="equation">
+        <a:documentation>Equation type for the sediment bedload fields.
+Note: Only works for P1 discretisations.</a:documentation>
+        <attribute name="name">
+          <value>SedimentBedload</value>
+        </attribute>
+      </element>
     </choice>
   </define>
   <define name="equation_coefficients">

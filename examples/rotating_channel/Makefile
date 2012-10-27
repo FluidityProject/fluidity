@@ -6,10 +6,11 @@ preprocess:
 		ln -sf ../channel.flml .;\
 		ln -sf ../channel_tools.py .;\
 		ln -sf ../src/chan$(layers).msh ./channel.msh;\
+		../../../bin/gmsh2triangle -2 ./channel.msh;\
 		cd ..; \
 	)
 
-run:	preprocess
+run:
 	@echo **********Running simulation for each refinement.
 	@$(foreach layers, 4 8 16 32 64, \
 		cd channel-$(layers); \
