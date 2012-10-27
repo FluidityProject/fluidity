@@ -2572,7 +2572,7 @@ The units are in unit distances as a depth of sediment.
 
 - Most other settings are irrelevant
     - No solver settings are required as the sediment model only works
-      for p1 CG or DG fields where the mass matrix can be easily inverted.
+      for p1 discretisations where the mass matrix can be easily inverted.
     - The bedload is always calculated completely explicitly
     - You cannot apply Source or Absorbtion terms to the bedload
     - There is no diffusion of the bedload</a:documentation>
