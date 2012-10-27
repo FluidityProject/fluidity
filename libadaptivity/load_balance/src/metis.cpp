@@ -236,6 +236,13 @@ void Graph::WPartGraphVKway(int nparts, vector<float>& pweights, vector<int>& no
 			&nparts, pweights.begin(), options,
 			&edgecut, noddom.begin());
 
+#ifndef METIS3
+  METIS_WPartGraphVKway(&ncnt,  
+			bptr.begin(), edges.begin(), 
+			&nparts, pweights.begin(), options,
+			&edgecut, noddom.begin());
+#endif
+
 }
 
 // Sparse matrix reording Routines

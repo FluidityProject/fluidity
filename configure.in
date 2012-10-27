@@ -96,19 +96,30 @@ case $host_os in
      darwin* ) 
 	     LINUX=no
        DARWIN=yes
+       METIS3=no
 	     FCFLAGS="-DDARWIN $FCFLAGS"
 	     CXXFLAGS="-DDARWIN -fpermissive $CXXFLAGS"
-	     CPPFLAGS="-DDARWIN $CXXFLAGS"
+	     CPPFLAGS="-DDARWIN $CPPFLAGS"
 # Should really check for Mac OS vs. straight Darwin here, or at least test
 # that the framework is valid
 	     LIBS="$LIBS -framework Carbon";;
      linux*  )
        LINUX=yes
+       METIS3=yes
        DARWIN=no;;
      *       )
        LINUX=no
+       METIS3=yes
 	     DARWIN=no;;
 esac
+
+# Check to see if the old interface to Metis is in place
+# Needs to be more intelligent than based on the host OS!
+if test "$METIS3" = "yes"; then
+     FCFLAGS="-DMETIS3 $FCFLAGS"
+     CXXFLAGS="-DMETIS3 $CXXFLAGS"
+     CPPFLAGS="-DMETIS3 $CPPFLAGS"
+fi
 
 # Find compilers
 AC_MSG_NOTICE([*** Fishing for legacy fortran compiler.])
