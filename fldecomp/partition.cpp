@@ -199,17 +199,20 @@ namespace Fluidity{
     // Partition graph
     decomp.resize(nnodes);
     int wgtflag=0, numflag=1, edgecut=0;
-    
+#ifdef METIS3
+    int options[] = {0};
+#else
+    idx_t nbc=1;
+    idx_t options[METIS_NOPTIONS];
+    METIS_SetDefaultOptions(options);
+    options[METIS_OPTION_NUMBERING]=1;
+#endif
+
     if(partition_method){
 #ifdef METIS3
-      int options[] = {0};
       METIS_PartGraphKway(&nnodes, &(xadj[0]), &(adjncy[0]), NULL, NULL, &wgtflag, 
                           &numflag, &npartitions, options, &edgecut, &(decomp[0]));
 #else
-      idx_t nbc=1;
-      idx_t options[METIS_NOPTIONS];
-      METIS_SetDefaultOptions(options);
-      options[METIS_OPTION_NUMBERING]=1;
       METIS_PartGraphKway(&nnodes,&nbc,&(xadj[0]),&(adjncy[0]), NULL, NULL,NULL,
 			  &npartitions, NULL, NULL,options,&edgecut,
 			  &(decomp[0]));
@@ -219,12 +222,8 @@ namespace Fluidity{
       METIS_PartGraphRecursive(&nnodes, &(xadj[0]), &(adjncy[0]), NULL, NULL, &wgtflag, 
                                &numflag, &npartitions, options, &edgecut, &(decomp[0]));
 #else
-      idx_t nbc=1;
-      idx_t options[METIS_NOPTIONS];
-      METIS_SetDefaultOptions(options);
-      options[METIS_OPTION_NUMBERING]=1;
       METIS_PartGraphRecursive(&nnodes,&nbc,&(xadj[0]),&(adjncy[0]), NULL, NULL,NULL,
-			       &npartitions, NULL, NULL,options,&edgecut,
+			  &npartitions, NULL, NULL,options,&edgecut,
 			  &(decomp[0]));
 #endif
     }
