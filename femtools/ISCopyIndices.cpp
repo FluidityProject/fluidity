@@ -69,5 +69,5 @@ void pcfieldsplitgetsubksp_(PC *pc, KSP subksps[], int *__ierr){
   for (int i=0; i<nsubksps; i++) {
     subksps[i]=temp_subksps[i];
   }
-  free(temp_subksps);
+  PetscFree(temp_subksps);
 }
