@@ -1849,6 +1849,8 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     PetscErrorCode:: ierr
     integer:: i
 
+    call PCSetType(pc, "fieldsplit", ierr)
+
     do i=1, size(subksps)
 #if PETSC_VERSION_MINOR>=2
       ! for petsc 3.2 we have an extra PetscCopyMode argument
