@@ -49,7 +49,8 @@ module cv_face_values
   public :: cv_facevalue_integer, &
             evaluate_face_val, &
             theta_val, &
-            couple_face_value
+            couple_face_value, &
+            k_one_ENO_select
 
 contains
 
@@ -59,7 +60,8 @@ contains
                       field_ele, old_field_ele, &
                       upwind_values, old_upwind_values, &
                       inflow, cfl_ele, &
-                      cv_options, save_pos)
+                      cv_options, save_pos,&
+                      field_grad,old_field_grad,X_ele)
 
     ! given a discretisation type calculate the face value for a field
 
@@ -76,6 +78,8 @@ contains
     real, dimension(:), intent(in) :: cfl_ele
     type(cv_options_type), intent(in) :: cv_options ! a wrapper type to pass in all the options for control volumes
     integer, intent(inout), optional :: save_pos
+    real, dimension(:,:), optional :: field_grad, old_field_grad
+    real, dimension(:,:), optional :: X_ele
 
     ! local memory:
     real :: upwind_val, donor_val, downwind_val
@@ -85,6 +89,8 @@ contains
     real :: target_upwind, old_target_upwind, target_downwind, old_target_downwind
     real :: income=0.0
     integer :: l_save_pos
+
+    real, dimension(:,:), allocatable :: p_ele
 
     if(present(save_pos)) then
       l_save_pos=save_pos ! an attempt at optimising the val calls by saving the matrix position
@@ -279,7 +285,25 @@ contains
       face_val = donor_val
       old_face_val = old_donor_val
 
-    end select
+    case (CV_FACEVALUE_ENO_CPAIN)
+
+       allocate(p_ele(size(X_ele,1),size(X_ele,2)))
+
+       income = merge(1.0,0.0,inflow)
+
+       
+
+       if (inflow) then
+          p_ele=(X_ele-spread(X_ele(:,oloc),2,size(X_ele,2)))
+          face_val = dot_product(cvshape%n(:,ggi), field_ele(oloc)+matmul(field_grad(:,oloc),p_ele))
+          old_face_val = dot_product(cvshape%n(:,ggi), old_field_ele(oloc)+matmul(old_field_grad(:,oloc),p_ele))
+       else
+          p_ele=(X_ele-spread(X_ele(:,iloc),2,size(X_ele,2)))
+          face_val = dot_product(cvshape%n(:,ggi), field_ele(iloc)+matmul(field_grad(:,iloc),p_ele))
+          old_face_val = dot_product(cvshape%n(:,ggi), old_field_ele(iloc)+matmul(old_field_grad(:,iloc),p_ele))
+       end if
+
+   end select
 
     if(cv_options%limit_facevalue) then
 
@@ -580,5 +604,68 @@ contains
     end if
 
   end function
+
+
+  subroutine k_one_ENO_select(field,positions,val, gradient)
+
+    type(scalar_field), intent(inout) :: field
+    type(vector_field),  intent(inout) :: positions
+    type(scalar_field), intent(inout)  :: val
+    type(vector_field), intent(inout)  :: gradient
+
+    integer :: ele, iloc
+    integer, dimension(:), pointer :: nodes
+    type(element_type), pointer :: fshape
+    real, dimension(ele_loc(field,1)) :: fele
+    real, dimension(mesh_dim(field)) :: egrad
+
+
+    call allocate(gradient,positions%dim,field%mesh,"ENOGradients")
+    call allocate(val,field%mesh,name="ENONodeValues")
+
+
+    do iloc=1,positions%dim
+       call set(gradient,iloc,huge(1.0))
+    end do
+
+    do ele=1, ele_count(field)
+       fshape=>ele_shape(field,ele)
+       call reconstruct(ele,field,fele,egrad)
+       nodes=>ele_nodes(field,ele)
+       do iloc=1,ele_loc(field,ele)
+          if (smoothness_test(egrad,node_val(gradient,nodes(iloc)))) then
+             call set(val,nodes(iloc),fele(iloc))
+             call set(gradient,nodes(iloc),egrad)
+          end if
+       end do
+    end do
+    
+    contains
+
+      logical function smoothness_test(lg,g) result(smoothness)
+        real, dimension(:) :: lg, g
+        smoothness=(sum(lg**2)-sum(g**2)<0.0)
+
+      end function smoothness_test
+    
+      subroutine reconstruct(lele,f,v,g)
+
+        integer :: lele
+        type(scalar_field), intent(in) :: f
+        real, dimension(:) :: v
+        real, dimension(:) :: g
+        real, dimension(ele_loc(f,lele), ele_ngi(f,lele), mesh_dim(f)) :: df_t
+        real, dimension(ele_ngi(f, lele)) :: detwei
+        
+        call transform_to_physical(positions, lele,&
+             shape = fshape, dshape = df_t,detwei=detwei)
+        
+
+        v=ele_val(f,lele)
+        g=matmul(transpose(df_t(:,1,:)),ele_val(f,ele))
+        
+      end subroutine reconstruct
+
+    end subroutine k_one_ENO_select
 
 end module cv_face_values

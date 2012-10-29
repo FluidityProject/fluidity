@@ -573,7 +573,7 @@ contains
 
       ! allocate the rhs of the equation
       call allocate(rhs, tfield%mesh, name=trim(field_name)//"RHS")
-      
+     
       ! are we including a porosity coefficient on the time term?
       if (have_option(trim(complete_field_path(tfield%option_path))//'/porosity')) then
          include_porosity = .true.
@@ -1455,6 +1455,13 @@ contains
       type(csr_matrix)  :: tfield_upwind, &
             oldtfield_upwind, tdensity_upwind, oldtdensity_upwind
 
+
+      ! ENO fields
+
+      type(vector_field) :: gnew, gold
+      type(scalar_field) :: tENO, oldtENO
+      
+
       ! incoming or outgoing flow
       real :: udotn, divudotn, income
       logical :: inflow
@@ -1517,6 +1524,11 @@ contains
         call zero(tfield_upwind)
         call zero(oldtfield_upwind)
 
+      end if
+
+      if (.true.) then
+         call k_one_ENO_select(tfield,x_tfield,tENO,gnew)
+         call k_one_ENO_select(oldtfield,x_tfield,oldtENO,gold)
       end if
 
       ! does the density field need upwind values?
@@ -1683,7 +1695,10 @@ contains
                                           tfield_ele, oldtfield_ele, &
                                           tfield_upwind, oldtfield_upwind, &
                                           inflow, cfl_ele, &
-                                          tfield_options)
+                                          tfield_options,&
+                                          field_grad=ele_val(gnew,ele),&
+                                          old_field_grad=ele_val(gold,ele),&
+                                          X_ele=x_ele)
 
                     ! perform the time discretisation on the combined tdensity tfield product
                     tfield_theta_val=theta_val(iloc, oloc, &
@@ -2243,6 +2258,14 @@ contains
       if(assemble_diffusion.and.(tfield_options%diffusionscheme==CV_DIFFUSION_BASSIREBAY)) then
         call deallocate(div_m)
         call deallocate(grad_rhs)
+      end if
+
+      if (.true.) then
+
+         call deallocate(gnew)
+         call deallocate(gold)
+         call deallocate(tENO)
+         call deallocate(oldtENO)
       end if
 
       ewrite(1, *) "Exiting assemble_advectiondiffusion_m_cv"

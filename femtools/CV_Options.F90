@@ -44,7 +44,8 @@ module cv_options
                                 CV_FACEVALUE_HYPERC=4, &
                                 CV_FACEVALUE_ULTRAC=5, &
                                 CV_FACEVALUE_POTENTIALULTRAC=6, &
-                                CV_FACEVALUE_FIRSTORDERDOWNWIND=7
+                                CV_FACEVALUE_FIRSTORDERDOWNWIND=7, &
+                                CV_FACEVALUE_ENO_CPAIN=8
 
   integer, parameter, public :: CV_DIFFUSION_NONE=0, &
                                 CV_DIFFUSION_BASSIREBAY=1, &
@@ -224,6 +225,8 @@ contains
       cv_facevalue_integer = CV_FACEVALUE_POTENTIALULTRAC
     case ("FirstOrderDownwind")
       cv_facevalue_integer = CV_FACEVALUE_FIRSTORDERDOWNWIND
+    case ("ModifiedENO")
+      cv_facevalue_integer = CV_FACEVALUE_ENO_CPAIN
     case ("None")
       cv_facevalue_integer = CV_FACEVALUE_NONE
     case default
