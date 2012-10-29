@@ -249,7 +249,7 @@ subroutine getFreeSurfaceHistoryData(state, ignoretimestep, saved_snapshots_time
     logical, intent(out) :: ignoretimestep
     integer, intent(out) :: current_snapshot_index
     character(len = OPTION_PATH_LEN) :: free_surface_history_path
-    integer :: timestep_counter, stride, levels
+    integer :: timestep_counter, stride, levels, stat
     type(scalar_field), pointer :: fshistory_sfield
 
     ignoretimestep=.false.
@@ -275,8 +275,10 @@ subroutine getFreeSurfaceHistoryData(state, ignoretimestep, saved_snapshots_time
    end if
 
    allocate(saved_snapshots_times(levels))
-   if (have_option(trim(free_surface_history_path) // "saved_snapshots_times") then
+   if (have_option(trim(free_surface_history_path) // "saved_snapshots_times")) then
        call get_option(trim(free_surface_history_path) // "saved_snapshots_times", saved_snapshots_times)
+   else
+       call set_option(trim(free_surface_history_path) //"saved_snapshots_times", saved_snapshots_times,stat)
    end if
    current_snapshot_index=mod(timestep_counter/stride,levels)+1 
 end subroutine getFreeSurfaceHistoryData

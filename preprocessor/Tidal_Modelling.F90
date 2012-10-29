@@ -139,8 +139,11 @@ contains
       !!! RESCALE TIME ACCTIM TO REAL TIME
       TIM = ACCTIM*HORIZ_RESCALE
 
+      ! THESE MAY BE WRONG - Don't they want to be the correct year and day
+      ! length?
       DAY = DAY0 + TIM/86400.0
       YEAR = YEAR0 + TIM/31536000.0
+      ! THis works out the number of days (including leap years) after 1975
       D  = DAY + 365.0*(YEAR - 1975.0) + INT(((YEAR-1975.0))/4.0)
       T  = T1 + T2*D
       H0 = H01 + H02*T + H03*(T**2.0)
@@ -196,72 +199,57 @@ contains
       PARAMETER( K1FREQ = 0.72921E-04, O1FREQ = 0.67598E-04, P1FREQ = 0.72523E-04, Q1FREQ = 0.64959E-04 )
       REAL     MfFREQ,MmFREQ,SsaFREQ
       PARAMETER( MfFREQ = 0.053234E-04, MmFREQ = 0.026392E-04, SsaFREQ = 0.003982E-04 )   
-!     These are used to construct the astonomical arguments (\chi in degrees)
-      REAL     H01,H02,H03          !  h0 = H01 + H02*T + H03*T**2
-      PARAMETER( H01 = 279.69668, H02 = 36000.768930485, H03 = 3.03E-04 )
-      REAL     S01,S02,S03,S04      !  s0 = S01 + S02*T + S03*T**2 + S04*T**3
-      PARAMETER( S01 = 270.434358, S02 = 481267.88314137, S03 = -0.001133, S04 = 1.9E-06 )
-      REAL     P01,P02,P03,P04      !  p0 = P01 + P02*T + P03*T**2 + P04*T**3
-      PARAMETER( P01 = 334.329653, P02 = 4069.0340329575, P03 = 0.010325, P04 = -1.2E-05 )
-      REAL     T1,T2                !  T = T1 + T2*D
-      PARAMETER( T1 = 0.74996579132, T2 = 2.7378508846E-05 )
-!----------------------------------------------------------------------
-!     M2:  \chi = 2*h0 - 2*s0
-!     S2:  \chi = 0
-!     N2:  \chi = 2*h0 - 3*s0 + p0
-!     K2:  \chi = s*h0
-!     
-!     K1:  \chi = h0               + 90
-!     O1:  \chi = h0   - 2*s0      - 90
-!     P1:  \chi = h0               - 90
-!     Q1:  \chi = h0   - 3*s0 + p0
-!
-!     Mf:  \chi =        2*s0
-!     Mm:  \chi =          s0 - p0
-!     Ssa: \chi = 2*h0
-!######################################################################
+      integer, parameter :: nchi = 12
+      real, dimension(nchi) :: chi
+
       eqtide   = 0.0
       COLAT    = PIOVER2 - LAT
       TWOLONG  = 2.0*LONG
       TWOCOLAT = 2.0*COLAT
       TIME     = ACCTIM*HORIZ_RESCALE
+
+      ! Calculate chi
+      call FIND_CHI(chi, nchi, acctim, horiz_rescale)
+
+
       IF(which_tide(1).EQv. .true.) THEN
 !  M2 COMPONENT   NB Co-latitude (used below) = 90 degress (pi/2) - latitude 
-         eqtide = eqtide + M2AMP*(SIN(COLAT)**2.0)*COS(M2FREQ*TIME + TWOLONG) 
+         !eqtide = eqtide + M2AMP*(SIN(COLAT)**2.0)*COS(M2FREQ*TIME + TWOLONG)
+         eqtide = eqtide + M2AMP*(SIN(COLAT)**2.0)*COS(M2FREQ*TIME + TWOLONG + chi(1))
       ENDIF
       IF(which_tide(2).EQv..true.) THEN
-         eqtide = eqtide + S2AMP*(SIN(COLAT)**2.0)*COS(S2FREQ*TIME + TWOLONG)
+         eqtide = eqtide + S2AMP*(SIN(COLAT)**2.0)*COS(S2FREQ*TIME + TWOLONG + chi(2))
       ENDIF
       IF(which_tide(3).EQv..true.) THEN
-         eqtide = eqtide + N2AMP*(SIN(COLAT)**2.0)*COS(N2FREQ*TIME + TWOLONG)
+         eqtide = eqtide + N2AMP*(SIN(COLAT)**2.0)*COS(N2FREQ*TIME + TWOLONG + chi(3))
       ENDIF
       IF(which_tide(4).EQv..true.) THEN
-         eqtide = eqtide + K2AMP*(SIN(COLAT)**2.0)*COS(K2FREQ*TIME + TWOLONG)
+         eqtide = eqtide + K2AMP*(SIN(COLAT)**2.0)*COS(K2FREQ*TIME + TWOLONG + chi(4))
       ENDIF                     
       
       IF(which_tide(5).EQv..true.) THEN
 !  K1 COMPONENT   
-         eqtide = eqtide + K1AMP*(SIN(TWOCOLAT))*COS(K1FREQ*TIME + LONG) 
+         eqtide = eqtide + K1AMP*(SIN(TWOCOLAT))*COS(K1FREQ*TIME + LONG + chi(5)) 
       ENDIF
       IF(which_tide(6).EQv..true.) THEN  
-         eqtide = eqtide + O1AMP*(SIN(TWOCOLAT))*COS(O1FREQ*TIME + LONG) 
+         eqtide = eqtide + O1AMP*(SIN(TWOCOLAT))*COS(O1FREQ*TIME + LONG + chi(6)) 
       ENDIF
       IF(which_tide(7).EQv..true.) THEN  
-         eqtide = eqtide + P1AMP*(SIN(TWOCOLAT))*COS(P1FREQ*TIME + LONG) 
+         eqtide = eqtide + P1AMP*(SIN(TWOCOLAT))*COS(P1FREQ*TIME + LONG + chi(7)) 
       ENDIF
       IF(which_tide(8).EQv..true.) THEN  
-         eqtide = eqtide + Q1AMP*(SIN(TWOCOLAT))*COS(Q1FREQ*TIME + LONG) 
+         eqtide = eqtide + Q1AMP*(SIN(TWOCOLAT))*COS(Q1FREQ*TIME + LONG + chi(8)) 
       ENDIF      
 
       IF(which_tide(9).EQv..true.) THEN
 !  Mf COMPONENT   
-         eqtide = eqtide + MfAMP*(3*(SIN(COLAT)**2.0) -2.0)*COS(MfFREQ*TIME) 
+         eqtide = eqtide + MfAMP*(3*(SIN(COLAT)**2.0) -2.0)*COS(MfFREQ*TIME + chi(9)) 
       ENDIF
       IF(which_tide(10).EQv..true.) THEN 
-         eqtide = eqtide + MmAMP*(3*(SIN(COLAT)**2.0) -2.0)*COS(MmFREQ*TIME) 
+         eqtide = eqtide + MmAMP*(3*(SIN(COLAT)**2.0) -2.0)*COS(MmFREQ*TIME + chi(10)) 
       ENDIF      
       IF(which_tide(11).EQv..true.) THEN
-         eqtide = eqtide + SsaAMP*(3*(SIN(COLAT)**2.0) -2.0)*COS(SsaFREQ*TIME) 
+         eqtide = eqtide + SsaAMP*(3*(SIN(COLAT)**2.0) -2.0)*COS(SsaFREQ*TIME + chi(11)) 
       ENDIF
 
     END FUNCTION EQUILIBRIUM_TIDE
