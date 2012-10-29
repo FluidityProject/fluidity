@@ -636,7 +636,7 @@ prognostic_velocity_field =
       },
       ## Solver
       element solver {
-         linear_solver_options_asym
+         linear_solver_options_asym_vector
       },
       (
          ## Initial condition for WholeMesh
@@ -735,7 +735,7 @@ prognostic_layerthickness_field =
       },
       ## Solver
       element solver {
-         linear_solver_options_asym
+         linear_solver_options_asym_scalar
       },
       (
          ## Initial condition for WholeMesh
@@ -786,7 +786,7 @@ prognostic_lagrangemultiplier_field =
       },
       ## Solver
       element solver {
-         linear_solver_options_asym
+         linear_solver_options_asym_scalar
       },
       ## Initial condition is not used for shallow water or Helmholtz 
       ## solves but is required for test_trace_space.
@@ -5291,7 +5291,7 @@ prognostic_photosynthetic_radiation =
       (
          ## Solver
          element solver {
-            linear_solver_options_asym
+            linear_solver_options_asym_scalar
          }
       ),
       ## Coefficients of absorption of photosynthetically active

@@ -122,7 +122,7 @@ prognostic_scalar_field =
       (
          ## Solver
          element solver {
-            linear_solver_options_asym
+            linear_solver_options_asym_scalar
          }|
          ## Assume this field is being solved explicitly and skip the solver.
          ##
@@ -933,7 +933,7 @@ prognostic_velocity_field =
       }?,
       ## Solver
       element solver {
-         linear_solver_options_asym
+         linear_solver_options_asym_vector
       },
       (
          ## Initial condition for WholeMesh
@@ -1284,7 +1284,7 @@ prognostic_pressure_field =
                    element inner_matrix {
                      attribute name { "FullMomentumMatrix" },
                      element solver {
-                       linear_solver_options_asym
+                       linear_solver_options_asym_vector
                      }
                    }
                  ),
@@ -1585,7 +1585,7 @@ prognostic_hydrostatic_pressure_field =
       ## Solver
       ## Only required for continuous_galerkin spatial_discretisations!
       element solver {
-         linear_solver_options_asym
+         linear_solver_options_asym_scalar
       }?,
       ## Disables checkpointing of this field
       element exclude_from_checkpointing {
@@ -1903,7 +1903,7 @@ prognostic_stream_function_field =
    (
       ## Solver
       element solver {
-         linear_solver_options_asym
+         linear_solver_options_asym_scalar
       },
       ## Disables checkpointing of this field
       element exclude_from_checkpointing {
@@ -1928,7 +1928,7 @@ prognostic_multipath_stream_function_field =
    (
       ## Solver
       element solver {
-         linear_solver_options_asym
+         linear_solver_options_asym_scalar
       },
       ## Boundary conditions
       element boundary_conditions {

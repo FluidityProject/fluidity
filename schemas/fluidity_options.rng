@@ -1648,7 +1648,7 @@ solve must be carried out, with solver options specified.</a:documentation>
                       </element>
                       <element name="use_consistent_mass_matrix">
                         <element name="solver">
-                          <ref name="linear_solver_options_asym"/>
+                          <ref name="linear_solver_options_asym_scalar"/>
                         </element>
                       </element>
                     </choice>
@@ -2572,7 +2572,7 @@ The units are in unit distances as a depth of sediment.
 
 - Most other settings are irrelevant
     - No solver settings are required as the sediment model only works
-      for p1 CG or DG fields where the mass matrix can be easily inverted.
+      for p1 discretisations where the mass matrix can be easily inverted.
     - The bedload is always calculated completely explicitly
     - You cannot apply Source or Absorbtion terms to the bedload
     - There is no diffusion of the bedload</a:documentation>
@@ -2846,7 +2846,7 @@ parts.</a:documentation>
       <choice>
         <element name="solver">
           <a:documentation>Solver</a:documentation>
-          <ref name="linear_solver_options_asym"/>
+          <ref name="linear_solver_options_asym_scalar"/>
         </element>
         <element name="explicit">
           <a:documentation>Assume this field is being solved explicitly and skip the solver.
@@ -8553,7 +8553,7 @@ galerkin formulation will result. </a:documentation>
     </element>
     <element name="solver">
       <a:documentation>Solver</a:documentation>
-      <ref name="linear_solver_options_asym"/>
+      <ref name="linear_solver_options_asym_scalar"/>
     </element>
     <!-- Alas, no initial_condition either, so we'd better not checkpoint it... -->
     <element name="exclude_from_checkpointing">

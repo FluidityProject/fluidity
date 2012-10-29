@@ -1548,7 +1548,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     Mat, intent(in):: mat, pmat
     ! path to solver block (including '/solver')
     character(len=*), intent(in):: solver_option_path
-    ! used in the monitors (optional for "inner solves"):
+    ! used in the monitors, fieldsplit and vectorial (near)null spaces:
     type(petsc_numbering_type), optional, intent(in):: petsc_numbering
     ! if true overrides what is set in the options:
     logical, optional, intent(in):: startfromzero_in
@@ -1580,6 +1580,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     remove_null_space=have_option(trim(solver_option_path)//'/remove_null_space')
     call setup_pc_from_options(pc, pmat, &
        trim(solver_option_path)//'/preconditioner[0]', &
+       petsc_numbering=petsc_numbering, &
        prolongators=prolongators, surface_node_list=surface_node_list, &
        matrix_csr=matrix_csr, internal_smoothing_option=internal_smoothing_option, &
        has_null_space=remove_null_space)
@@ -1678,9 +1679,6 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
        '/diagnostics/monitors/true_error') .or. &
        have_option(trim(solver_option_path)// &
        '/diagnostics/monitors/iteration_vtus')) then
-       ! note we have to check the option itself and not the logical
-       ! as we may be in an inner solver, where only the outer solve 
-       ! has the monitor set
        if (.not. present(petsc_numbering)) then
          FLAbort("Need petsc_numbering for monitor")
        end if
@@ -1692,11 +1690,14 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
   end subroutine setup_ksp_from_options
     
   recursive subroutine setup_pc_from_options(pc, pmat, option_path, &
+    petsc_numbering, &
     prolongators, surface_node_list, matrix_csr, internal_smoothing_option, &
     is_subpc, has_null_space)
   PC, intent(inout):: pc
   Mat, intent(in):: pmat
   character(len=*), intent(in):: option_path
+  ! needed for fieldsplit and to be pass down to pcksp:
+  type(petsc_numbering_type), optional, intent(in):: petsc_numbering
   ! additional information for multigrid smoother:
   type(petsc_csr_matrix), dimension(:), optional, intent(in) :: prolongators
   integer, dimension(:), optional, intent(in) :: surface_node_list
@@ -1762,7 +1763,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
           &"for the complete ksp solve of the preconditioner"
        call KSPSetOperators(subksp, pmat, pmat, DIFFERENT_NONZERO_PATTERN, ierr)
        call setup_ksp_from_options(subksp, pmat, pmat, &
-         trim(option_path)//'/solver')
+         trim(option_path)//'/solver', petsc_numbering=petsc_numbering)
        ewrite(1,*) "Returned from setup_ksp_from_options for the preconditioner solve, "//&
           &"now setting options for the outer solve"
       
@@ -1783,6 +1784,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
       ewrite(2,*) "Going into setup_pc_from_options for the subpc within the local domain."
       call setup_pc_from_options(subpc, pmat, &
          trim(option_path)//'/preconditioner[0]', &
+         petsc_numbering=petsc_numbering, &
          prolongators=prolongators, surface_node_list=surface_node_list, &
          matrix_csr=matrix_csr, internal_smoothing_option=internal_smoothing_option, &
          is_subpc=.true.)
@@ -1800,7 +1802,16 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
        call PCBJACOBIGetSubKSP(pc, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, subksp, ierr)
        call KSPGetPC(subksp, subpc, ierr)
        call PCSetType(subpc, pctype, ierr)
-       
+
+    else if (pctype==PCFIELDSPLIT) then
+
+       if (.not. present(petsc_numbering)) then
+         FLAbort("Need to pass down petsc numbering to set up fieldsplit")
+       end if
+
+       call setup_fieldsplit_preconditioner(pc, pmat, option_path, &
+            petsc_numbering=petsc_numbering)
+
     else
        
        ! this doesn't work for hypre
@@ -1824,6 +1835,60 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     end if
     
   end subroutine setup_pc_from_options
+
+  recursive subroutine setup_fieldsplit_preconditioner(pc, pmat, option_path, &
+    petsc_numbering)
+  PC, intent(inout):: pc
+  Mat, intent(in):: pmat
+  character(len=*), intent(in):: option_path
+  type(petsc_numbering_type), intent(in):: petsc_numbering
+
+    character(len=128):: fieldsplit_type
+    KSP, dimension(size(petsc_numbering%gnn2unn,2)):: subksps
+    IS:: index_set
+    PetscErrorCode:: ierr
+    integer:: i
+
+    do i=1, size(subksps)
+#if PETSC_VERSION_MINOR>=2
+      ! for petsc 3.2 we have an extra PetscCopyMode argument
+      call ISCreateGeneral(MPI_COMM_FEMTOOLS, &
+         size(petsc_numbering%gnn2unn,1), petsc_numbering%gnn2unn(:,i), &
+         PETSC_COPY_VALUES, index_set, ierr)
+      call PCFieldSplitSetIS(pc, PETSC_NULL_CHARACTER, index_set, ierr)
+#else
+      call ISCreateGeneral(MPI_COMM_FEMTOOLS, &
+         size(petsc_numbering%gnn2unn,1), petsc_numbering%gnn2unn(:,i), &
+         index_set, ierr)
+      call PCFieldSplitSetIS(pc, index_set, ierr)
+#endif
+    end do
+
+    call get_option(trim(option_path)//"/fieldsplit_type/name", &
+      fieldsplit_type, ierr)
+    select case (fieldsplit_type)
+    case ("multiplicative")
+      call pcfieldsplitsettype(pc, PC_COMPOSITE_MULTIPLICATIVE, ierr)
+    case ("additive")
+      call pcfieldsplitsettype(pc, PC_COMPOSITE_ADDITIVE, ierr)
+    case ("symmetric_multiplicative")
+! workaround silly bug in petsc 3.1
+#ifndef PC_COMPOSITE_SYMMETRIC_MULTIPLICATIVE
+#define PC_COMPOSITE_SYMMETRIC_MULTIPLICATIVE PC_COMPOSITE_SYM_MULTIPLICATIVE
+#endif
+      call pcfieldsplitsettype(pc, PC_COMPOSITE_SYMMETRIC_MULTIPLICATIVE, ierr)
+    case default
+      FLAbort("Unknown fieldsplit_type")
+    end select
+
+    call pcfieldsplitgetsubksp(pc, subksps, ierr)
+    do i=1, size(subksps)
+
+      call setup_ksp_from_options(subksps(i), pmat, pmat, option_path)
+
+    end do
+
+  end subroutine setup_fieldsplit_preconditioner
     
   subroutine ewrite_ksp_options(ksp)
     KSP, intent(in):: ksp

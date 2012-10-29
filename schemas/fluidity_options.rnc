@@ -1273,7 +1273,7 @@ start =
                         |
                         element use_consistent_mass_matrix { 
                            element solver {
-                              linear_solver_options_asym
+                              linear_solver_options_asym_scalar
                            }
                         }                     
                      )
@@ -2056,7 +2056,7 @@ prognostic_density_field =
       (
          ## Solver
          element solver {
-            linear_solver_options_asym
+            linear_solver_options_asym_scalar
          }|
          ## Assume this field is being solved explicitly and skip the solver.
          ##
@@ -6763,7 +6763,7 @@ prognostic_photosynthetic_radiation =
       (
          ## Solver
          element solver {
-            linear_solver_options_asym
+            linear_solver_options_asym_scalar
          }
       ),
       # Alas, no initial_condition either, so we'd better not checkpoint it...

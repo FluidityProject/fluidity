@@ -7,7 +7,12 @@
     not possible as in some cases the asymmetric equation is in fact symmetric
     (e.g. momentum with no advection or coriolis).
   -->
-  <define name="linear_solver_options_asym">
+  <!--
+    _scalar version: only simple remove_null_space
+    _vector version: remove_null_space and multigrid_near_null_space with selection
+      of components (TO BE MERGED). also, adds fieldsplit preconditioner option
+  -->
+  <define name="linear_solver_options_asym_scalar">
     <choice>
       <a:documentation>Iterative (Krylov) method to solve the linear discretised equation
 Given are the most frequently used methods. The solution is done
@@ -30,6 +35,34 @@ by the PETSc library. Many more methods are provided.
       <ref name="pchypre_options"/>
       <ref name="pcbjacobi_options"/>
       <ref name="pcasm_options"/>
+      <ref name="pcother_options"/>
+    </choice>
+    <ref name="generic_solver_options"/>
+  </define>
+  <define name="linear_solver_options_asym_vector">
+    <choice>
+      <a:documentation>Iterative (Krylov) method to solve the linear discretised equation
+Given are the most frequently used methods. The solution is done
+by the PETSc library. Many more methods are provided.
+</a:documentation>
+      <ref name="kspgmres_options"/>
+      <ref name="kspcg_options"/>
+      <ref name="ksppreonly_options"/>
+      <ref name="ksprichardson_options"/>
+      <ref name="kspother_options"/>
+    </choice>
+    <choice>
+      <a:documentation>Preconditioner to be used in combination with the iterative method.</a:documentation>
+      <ref name="pcsor_options"/>
+      <ref name="pceisenstat_options"/>
+      <ref name="pcilu_options"/>
+      <ref name="pclu_options"/>
+      <ref name="pcmg_options"/>
+      <ref name="pcprometheus_options"/>
+      <ref name="pchypre_options"/>
+      <ref name="pcbjacobi_options"/>
+      <ref name="pcasm_options"/>
+      <ref name="pcfieldsplit_options"/>
       <ref name="pcother_options"/>
     </choice>
     <ref name="generic_solver_options"/>
@@ -396,6 +429,34 @@ by the PETSc library. Many more methods are provided.
       <ref name="pcother_options"/>
     </choice>
     <ref name="generic_solver_options"/>
+  </define>
+  <define name="pcfieldsplit_options">
+    <element name="preconditioner">
+      <a:documentation>Uses fieldsplit preconditioner that seperately solves/preconditions 
+the diagonal blocks associated with the different velocity components.
+FIXME: maybe some hints what a useful setup is</a:documentation>
+      <attribute name="name">
+        <value>fieldsplit</value>
+      </attribute>
+      <choice>
+        <element name="fieldsplit_type">
+          <attribute name="name">
+            <value>multiplicative</value>
+          </attribute>
+        </element>
+        <element name="fieldsplit_type">
+          <attribute name="name">
+            <value>additive</value>
+          </attribute>
+        </element>
+        <element name="fieldsplit_type">
+          <attribute name="name">
+            <value>symmetric_multiplicative</value>
+          </attribute>
+        </element>
+      </choice>
+      <ref name="pc_ksp_solver_options"/>
+    </element>
   </define>
   <!--
     ####################################################################
