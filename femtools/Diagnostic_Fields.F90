@@ -3414,6 +3414,12 @@ contains
      real, dimension(X%dim, ele_loc(bss, ele)) :: rhs
      real, dimension(ele_loc(bss, ele), ele_loc(bss, ele)) :: inv_mass
 
+     ! In parallel, we only construct the equations on elements we own, or
+     ! those in the L1 halo.
+     if (.not.(element_owned(grad_U, ele).or.element_neighbour_owned(grad_U, ele))) then
+        return
+     end if
+
      ! get shape functions
      shape => ele_shape(bss, ele)      
       
@@ -3472,6 +3478,12 @@ contains
      real, dimension(ele_loc(grad_u, ele), ele_loc(grad_u, ele)) :: inv_mass
 
      character(len=200) :: msg
+
+     ! In parallel, we only construct the equations on elements we own, or
+     ! those in the L1 halo.
+     if (.not.(element_owned(grad_U, ele).or.element_neighbour_owned(grad_U, ele))) then
+        return
+     end if
 
      shape => ele_shape(U, ele) 
      call transform_to_physical(X, ele, shape, dshape, detwei)
