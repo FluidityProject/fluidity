@@ -1460,8 +1460,8 @@ contains
 
       type(vector_field) :: gnew, gold
       type(scalar_field) :: tENO, oldtENO
+      real, dimension(mesh_dim(tfield),ele_loc(tfield,1)) :: ele_grad, old_ele_grad
       
-
       ! incoming or outgoing flow
       real :: udotn, divudotn, income
       logical :: inflow
@@ -1526,7 +1526,7 @@ contains
 
       end if
 
-      if (.true.) then
+      if (tfield_options%facevalue==CV_FACEVALUE_ENO_CPAIN) then
          call k_one_ENO_select(tfield,x_tfield,tENO,gnew)
          call k_one_ENO_select(oldtfield,x_tfield,oldtENO,gold)
       end if
@@ -1639,6 +1639,12 @@ contains
           end if
         end if
 
+
+        if (tfield_options%facevalue==CV_FACEVALUE_ENO_CPAIN) then
+           ele_grad=ele_val(gnew,ele)
+           old_ele_grad=ele_val(gnew,ele)
+        end if
+
         notvisited=.true.
 
         grad_mat_local = 0.0
@@ -1696,8 +1702,8 @@ contains
                                           tfield_upwind, oldtfield_upwind, &
                                           inflow, cfl_ele, &
                                           tfield_options,&
-                                          field_grad=ele_val(gnew,ele),&
-                                          old_field_grad=ele_val(gold,ele),&
+                                          field_grad=ele_grad,&
+                                          old_field_grad=old_ele_grad,&
                                           X_ele=x_ele)
 
                     ! perform the time discretisation on the combined tdensity tfield product
@@ -2260,8 +2266,8 @@ contains
         call deallocate(grad_rhs)
       end if
 
-      if (.true.) then
 
+      if (tfield_options%facevalue==CV_FACEVALUE_ENO_CPAIN) then
          call deallocate(gnew)
          call deallocate(gold)
          call deallocate(tENO)
