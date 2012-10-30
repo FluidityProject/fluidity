@@ -1993,7 +1993,8 @@
       REAL, DIMENSION( CV_SNLOC, SBCVNGI ), intent( in ) :: SBCVFEN, SBCVFENSLX, SBCVFENSLY
       REAL, DIMENSION( SBCVNGI ), intent( in ) :: SBWEIGH
 
-     !  print *,'----for U:'
+      !print *,'----for U:'
+      !stop 77
       CALL DG_DERIVS( U, UOLD, &
            DUX_ELE, DUY_ELE, DUZ_ELE, DUOLDX_ELE, DUOLDY_ELE, DUOLDZ_ELE, &
            NDIM, NPHASE, U_NONODS, TOTELE, U_NDGLN, &
@@ -2007,7 +2008,7 @@
            SBCVFEN, SBCVFENSLX, SBCVFENSLY)   
 
       IF(NDIM.GE.2) THEN
-     !  print *,'----for V:'
+      !print *,'----for V:'
       CALL DG_DERIVS( V, VOLD, &
            DVX_ELE, DVY_ELE, DVZ_ELE, DVOLDX_ELE, DVOLDY_ELE, DVOLDZ_ELE, &
            NDIM, NPHASE, U_NONODS, TOTELE, U_NDGLN, &
@@ -2169,9 +2170,12 @@
               X_NX, X_NY, X_NZ, &
               CV_NLOC, NLX, NLY, NLZ, NX, NY, NZ ) 
 
-         ! if(ele==1) then
-         !    print *,'for ele 1 detwei:',detwei
-         ! endif
+         !if(ele==1) then
+         !   print *,'for ele 1 detwei:',sum(detwei)
+         !   print *, 'NX', NX
+         !   print *, 'Ny', Ny
+         !   print *, 'Nz', Nz
+         !endif
 
          !ewrite(3,*)'N',N
          !ewrite(3,*)'nlx:',nlx
@@ -2201,6 +2205,13 @@
                   NNZ = NNZ + N( CV_ILOC, CV_GI )  * NZ( CV_JLOC, CV_GI ) * DETWEI( CV_GI )
                END DO
 
+               !if(ele==1) then
+               !   print *,'for ele 1>>>>', cv_iloc, cv_jloc
+               !   print *, 'NN', NN
+               !   print *, 'NNX', NNX
+               !   print *, 'NNy', NNy
+               !endif
+
                MASELE( CV_ILOC,CV_JLOC, ELE)  = MASELE( CV_ILOC,CV_JLOC, ELE ) + NN
 
                DO IPHASE = 1, NPHASE
@@ -2218,10 +2229,8 @@
 
          END DO Loop_CV_ILOC
 
-
-
       END DO Loop_Elements1
-      !   print *,'MASELE( :,:, 1):',MASELE( :,:, 1)
+      !print *,'MASELE( :,:, 1):',sum(MASELE( :,:,:))
 
       ! Example of    CV_SLOCLIST for a tet element.
       !         INTEGER CV_SLOCLIST(NFACE,CV_SNLOC)
@@ -2404,6 +2413,12 @@
          CALL MATDMATINV( MASS, INV_MASS, CV_NLOC)
         ! print *,'here 1'
         ! print *,'inv_mass=',inv_mass
+
+         !INV_MASS = 0.0
+         !INV_MASS(1,1) = 1./sum( MASS(1,:))
+         !INV_MASS(2,2) =  1./sum( MASS(2,:))
+         !INV_MASS(3,3) =  1./sum( MASS(3,:))
+
 
          Loop_IPHASE: DO IPHASE=1,NPHASE
 

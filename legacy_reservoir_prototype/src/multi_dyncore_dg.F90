@@ -2482,14 +2482,14 @@
 
                         VLK( IPHASE ) = VLK( IPHASE ) + &
                              UFENX( U_ILOC, GI ) * ( UFENX( U_JLOC, GI ) * TEN_XX( GI, IPHASE ) +  &
-                             UFENY( U_JLOC, GI ) * TEN_XY( GI, IPHASE ) + &
-                             UFENZ( U_JLOC, GI ) * TEN_XZ( GI, IPHASE ) ) * DETWEI( GI ) + &
+                             &                               UFENY( U_JLOC, GI ) * TEN_XY( GI, IPHASE ) + &
+                             &                               UFENZ( U_JLOC, GI ) * TEN_XZ( GI, IPHASE ) ) * DETWEI( GI ) + &
                              UFENY( U_ILOC, GI ) * ( UFENX( U_JLOC, GI ) * TEN_YX( GI, IPHASE ) +  &
-                             UFENY( U_JLOC, GI ) * TEN_YY( GI, IPHASE ) + &
-                             UFENZ( U_JLOC, GI ) * TEN_YZ( GI, IPHASE ) ) * DETWEI( GI ) + &
+                             &                               UFENY( U_JLOC, GI ) * TEN_YY( GI, IPHASE ) + &
+                             &                               UFENZ( U_JLOC, GI ) * TEN_YZ( GI, IPHASE ) ) * DETWEI( GI ) + &
                              UFENZ( U_ILOC, GI ) * ( UFENX( U_JLOC, GI ) * TEN_ZX( GI, IPHASE ) +  &
-                             UFENY( U_JLOC, GI ) * TEN_ZY( GI, IPHASE ) + &
-                             UFENZ( U_JLOC, GI ) * TEN_ZZ( GI, IPHASE ) ) * DETWEI( GI )
+                             &                                UFENY( U_JLOC, GI ) * TEN_ZY( GI, IPHASE ) + &
+                             &                                UFENZ( U_JLOC, GI ) * TEN_ZZ( GI, IPHASE ) ) * DETWEI( GI )
 
 
                         IF(MOM_CONSERV) THEN
@@ -4004,13 +4004,13 @@
 
       DEALLOCATE( SELE_OVERLAP_SCALE )
 
-      DEALLOCATE( DUX_ELE )
-      DEALLOCATE( DVY_ELE )
-      DEALLOCATE( DWZ_ELE )
+      DEALLOCATE( DUX_ELE, DUY_ELE, DUZ_ELE )
+      DEALLOCATE( DVX_ELE, DVY_ELE, DVZ_ELE )
+      DEALLOCATE( DWX_ELE, DWY_ELE, DWZ_ELE )
 
-      DEALLOCATE( DUOLDX_ELE )
-      DEALLOCATE( DVOLDY_ELE )
-      DEALLOCATE( DWOLDZ_ELE )
+      DEALLOCATE( DUOLDX_ELE, DUOLDY_ELE, DUOLDZ_ELE )
+      DEALLOCATE( DVOLDX_ELE, DVOLDY_ELE, DVOLDZ_ELE )
+      DEALLOCATE( DWOLDX_ELE, DWOLDY_ELE, DWOLDZ_ELE )
 
       DEALLOCATE( GRAD_SOU_GI_NMX )
       DEALLOCATE( GRAD_SOU_GI_NMY )
@@ -4451,10 +4451,10 @@
                  ']/is_multiphase_component/surface_tension/coefficient', coefficient )
 
             allocate( U_FORCE_X_SUF_TEN( U_NONODS) ) ; U_FORCE_X_SUF_TEN = 0.0
-            allocate( U_FORCE_Y_SUF_TEN( U_NONODS) ) ; U_FORCE_X_SUF_TEN = 0.0
-            allocate( U_FORCE_Z_SUF_TEN( U_NONODS) ) ; U_FORCE_X_SUF_TEN = 0.0
+            allocate( U_FORCE_Y_SUF_TEN( U_NONODS) ) ; U_FORCE_Y_SUF_TEN = 0.0
+            allocate( U_FORCE_Z_SUF_TEN( U_NONODS) ) ; U_FORCE_Z_SUF_TEN = 0.0
 
-            USE_PRESSURE_FORCE = .true.
+            USE_PRESSURE_FORCE = .TRUE.
 
             if ( USE_PRESSURE_FORCE ) then
                IPLIKE_GRAD_SOU = 1
@@ -4704,7 +4704,7 @@
            T2OLDMIN, &
            T2MAX_2ND_MC, T2MIN_2ND_MC, T2OLDMAX_2ND_MC, &
            T2OLDMIN_2ND_MC, &
-           UP_WIND_NOD, DU, DV, DW, RDUM, RZERO, CURVATURE, RNOD_COUNT, CV_ONE, DETWEI, RA
+           UP_WIND_NOD, DU, DV, DW, RDUM, RZERO, CURVATURE, CV_ONE, DETWEI, RA
       REAL, DIMENSION( : ), allocatable :: CV_FORCE_X_SUF_TEN, CV_FORCE_Y_SUF_TEN, CV_FORCE_Z_SUF_TEN
       REAL, DIMENSION( : , : ), allocatable :: CVN, CVN_SHORT, CVFEN, CVFENLX, CVFENLY, CVFENLZ, &
            CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT,  &
@@ -4725,7 +4725,8 @@
            DIF_TX, DIF_TY, DIF_TZ, &
            DX_DIFF_X, DY_DIFF_X, DZ_DIFF_X, &
            DX_DIFF_Y, DY_DIFF_Y, DZ_DIFF_Y, &
-           DX_DIFF_Z, DY_DIFF_Z, DZ_DIFF_Z
+           DX_DIFF_Z, DY_DIFF_Z, DZ_DIFF_Z, &
+           MASS_NORMALISE
 
       !        ===> INTEGERS <===
       INTEGER :: CV_NGI, CV_NGI_SHORT, SCVNGI, SBCVNGI, COUNT, JCOUNT, &
@@ -4754,7 +4755,7 @@
            W_SUM_ONE1, W_SUM_ONE2, NDOTQNEW, NN, NM, DT, T_THETA, T_BETA, RDIF, RR, &
            VOLUME
 
-      REAL, PARAMETER :: W_SUM_ONE = 1.0, TOLER=1.0E-8
+      REAL, PARAMETER :: W_SUM_ONE = 1.0, TOLER=1.0E-10
 
       integer :: cv_inod_ipha, IGETCT, U_NODK_IPHA, NOIT_DIM, &
            CV_DG_VEL_INT_OPT, IN_ELE_UPWIND, DG_ELE_UPWIND, &
@@ -4990,24 +4991,25 @@
 
       ! determine the curvature by solving a simple eqn...
 
-      ALLOCATE(TDIFFUSION(NDIM,NDIM,CV_NONODS)) ; TDIFFUSION=0.0
-      ALLOCATE(RNOD_COUNT(CV_NONODS)) ; RNOD_COUNT=0.0
+      ALLOCATE( TDIFFUSION( NDIM, NDIM, CV_NONODS ) ) ; TDIFFUSION=0.0
+      ALLOCATE( MASS_NORMALISE( CV_NONODS ) ) ; MASS_NORMALISE=0.0
       DO ELE=1,TOTELE
          DO CV_ILOC=1,CV_NLOC
             CV_NOD=CV_NDGLN((ELE-1)*CV_NLOC+CV_ILOC)
-            RNOD_COUNT(CV_NOD)=RNOD_COUNT(CV_NOD)+1.0
+            MASS_NORMALISE(CV_NOD) = MASS_NORMALISE(CV_NOD) + MASS_ELE(ELE) 
          END DO
       END DO
 
       DO ELE=1,TOTELE
          DO CV_ILOC=1,CV_NLOC
             CV_NOD=CV_NDGLN((ELE-1)*CV_NLOC+CV_ILOC)
-            RR=DTX_ELE(CV_ILOC, 1, ELE)**2
-            IF(NDIM.GE.2) RR=RR+DTY_ELE(CV_ILOC, 1, ELE)**2
-            IF(NDIM.GE.3) RR=RR+DTZ_ELE(CV_ILOC, 1, ELE)**2
-            RDIF = 1.0 / MAX( TOLER, RNOD_COUNT(CV_NOD)*SQRT(RR) )
+            RR = DTX_ELE(CV_ILOC, 1, ELE)**2
+            IF(NDIM.GE.2) RR = RR+ DTY_ELE(CV_ILOC, 1, ELE)**2
+            IF(NDIM.GE.3) RR = RR+ DTZ_ELE(CV_ILOC, 1, ELE)**2
+            RDIF = 1.0 / MAX( TOLER, SQRT(RR) )
             DO IDIM=1,NDIM
-               TDIFFUSION(IDIM,IDIM,CV_NOD)=TDIFFUSION(IDIM,IDIM,CV_NOD)+RDIF
+               TDIFFUSION(IDIM,IDIM,CV_NOD) = TDIFFUSION(IDIM,IDIM,CV_NOD) + &
+                    RDIF * MASS_ELE(ELE) / MASS_NORMALISE(CV_NOD)
             END DO
          END DO
       END DO
@@ -5026,15 +5028,23 @@
             DO CV_ILOC=1,CV_NLOC
                CV_NOD=CV_NDGLN((ELE-1)*CV_NLOC+CV_ILOC)
                DG_CV_NOD=(ELE-1)*CV_NLOC+CV_ILOC
-               DIF_TX(CV_NOD)=DIF_TX(CV_NOD)+TDIFFUSION(1,1,CV_NOD)*DTX_ELE(CV_ILOC, 1, ELE)
-               IF(NDIM.GE.2) DIF_TY(CV_NOD)=DIF_TY(CV_NOD)+TDIFFUSION(2,2,CV_NOD)*DTY_ELE(CV_ILOC, 1, ELE)
-               IF(NDIM.GE.3) DIF_TZ(CV_NOD)=DIF_TZ(CV_NOD)+TDIFFUSION(3,3,CV_NOD)*DTZ_ELE(CV_ILOC, 1, ELE)
+               DIF_TX(CV_NOD)=DIF_TX(CV_NOD)+TDIFFUSION(1,1,CV_NOD)*DTX_ELE(CV_ILOC, 1, ELE)  * MASS_ELE(ELE)
+               IF(NDIM.GE.2) DIF_TY(CV_NOD)=DIF_TY(CV_NOD)+TDIFFUSION(2,2,CV_NOD)*DTY_ELE(CV_ILOC, 1, ELE)  * MASS_ELE(ELE)
+               IF(NDIM.GE.3) DIF_TZ(CV_NOD)=DIF_TZ(CV_NOD)+TDIFFUSION(3,3,CV_NOD)*DTZ_ELE(CV_ILOC, 1, ELE) * MASS_ELE(ELE)
             END DO
          END DO
+         ! normalise
+         DIF_TX = DIF_TX / MASS_NORMALISE
+         IF(NDIM.GE.2) DIF_TY = DIF_TY / MASS_NORMALISE
+         IF(NDIM.GE.3) DIF_TZ = DIF_TZ / MASS_NORMALISE
 
          ALLOCATE(DX_DIFF_X(CV_NLOC*TOTELE), DY_DIFF_X(CV_NLOC*TOTELE), DZ_DIFF_X(CV_NLOC*TOTELE))
          ALLOCATE(DX_DIFF_Y(CV_NLOC*TOTELE), DY_DIFF_Y(CV_NLOC*TOTELE), DZ_DIFF_Y(CV_NLOC*TOTELE))
          ALLOCATE(DX_DIFF_Z(CV_NLOC*TOTELE), DY_DIFF_Z(CV_NLOC*TOTELE), DZ_DIFF_Z(CV_NLOC*TOTELE)) 
+
+         DX_DIFF_X=0. ;  DY_DIFF_X=0. ; DZ_DIFF_X=0.
+         DX_DIFF_Y=0. ;  DY_DIFF_Y=0. ; DZ_DIFF_Y=0.
+         DX_DIFF_Z=0. ;  DY_DIFF_Z=0. ; DZ_DIFF_Z=0.
 
          CALL DG_DERIVS_UVW( DIF_TX, DIF_TX, DIF_TY, DIF_TY, DIF_TZ, DIF_TZ, &
               DX_DIFF_X, DY_DIFF_X, DZ_DIFF_X, RDUM, RDUM, RDUM, &
@@ -5059,7 +5069,7 @@
                RR=DX_DIFF_X(DG_CV_NOD)
                IF(NDIM.GE.2) RR=RR + DY_DIFF_Y(DG_CV_NOD)
                IF(NDIM.GE.3) RR=RR + DZ_DIFF_Z(DG_CV_NOD)
-               CURVATURE(CV_NOD) = CURVATURE(CV_NOD) + RR / RNOD_COUNT(CV_NOD)
+               CURVATURE(CV_NOD) = CURVATURE(CV_NOD) + RR * MASS_ELE(ELE) / MASS_NORMALISE(CV_NOD)
             END DO
          END DO
 
@@ -5131,7 +5141,7 @@
          DO ELE=1,TOTELE
             DO CV_ILOC=1,CV_NLOC
                CV_NOD=CV_NDGLN((ELE-1)*CV_NLOC+CV_ILOC)
-               RR=SUF_TENSION_COEF*CURVATURE(CV_NOD)/RNOD_COUNT(CV_NOD)
+               RR=SUF_TENSION_COEF*CURVATURE(CV_NOD)*MASS_ELE(ELE) /  MASS_NORMALISE(CV_NOD)
                CV_FORCE_X_SUF_TEN(CV_NOD)=CV_FORCE_X_SUF_TEN(CV_NOD)+RR*DTX_ELE(CV_ILOC, 1, ELE)
                IF(NDIM.GE.2) CV_FORCE_Y_SUF_TEN(CV_NOD)=CV_FORCE_Y_SUF_TEN(CV_NOD)+RR*DTY_ELE(CV_ILOC, 1, ELE)
                IF(NDIM.GE.3) CV_FORCE_Z_SUF_TEN(CV_NOD)=CV_FORCE_Z_SUF_TEN(CV_NOD)+RR*DTZ_ELE(CV_ILOC, 1, ELE)
@@ -5141,10 +5151,10 @@
          ! Convert force to velocity space...
          ALLOCATE(MASS(U_NLOC,U_NLOC))
          ALLOCATE(STORE_MASS(U_NLOC,U_NLOC))
-         ALLOCATE(B_CV_X(CV_NLOC),B_CV_Y(CV_NLOC),B_CV_Z(CV_NLOC))
+         ALLOCATE(B_CV_X(CV_NLOC), B_CV_Y(CV_NLOC), B_CV_Z(CV_NLOC))
          ALLOCATE(RHS_U_SHORT_X(U_NLOC), RHS_U_SHORT_Y(U_NLOC), RHS_U_SHORT_Z(U_NLOC))
-         ALLOCATE(U_SOL_X(U_NLOC),U_SOL_Y(U_NLOC),U_SOL_Z(U_NLOC))
-         ALLOCATE(DETWEI(CV_NGI), RA(CV_NGI)) ; DETWEI = 0.0
+         ALLOCATE(U_SOL_X(U_NLOC), U_SOL_Y(U_NLOC), U_SOL_Z(U_NLOC))
+         ALLOCATE(DETWEI(CV_NGI), RA(CV_NGI)) ; DETWEI = 0.0 ; RA = 0.0
          DO ELE=1,TOTELE
             ! Calculate DETWEI,RA,NX,NY,NZ for element ELE
             CALL DETNLXR_PLUS_U( ELE, X, Y, Z, X_NDGLN, TOTELE, X_NONODS, &
@@ -5211,7 +5221,7 @@
       END IF IF_USE_PRESSURE_FORCE
 
 
-      DEALLOCATE( TDIFFUSION, RNOD_COUNT, FACE_ELE )
+      DEALLOCATE( TDIFFUSION, MASS_NORMALISE, FACE_ELE )
       DEALLOCATE( FEMT, FEMTOLD, MASS_CV, MASS_ELE, &
            XC_CV, YC_CV, ZC_CV, DTX_ELE, DTY_ELE, &
            DTZ_ELE, DTOLDX_ELE, DTOLDY_ELE, DTOLDZ_ELE )

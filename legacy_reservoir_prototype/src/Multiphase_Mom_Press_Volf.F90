@@ -291,6 +291,10 @@ contains
 
     type(scalar_field), pointer :: pressure, temperature
 
+
+    integer :: cv_loc, mat_loc, ele, iloc
+
+
     allocate( sigma( mat_nonods, ndim * nphase, ndim * nphase ))
 
     allocate( rhs( cv_nonods ))
@@ -565,6 +569,22 @@ contains
              ! this calculates u_source_cv - it is the buoyancy term
              ! as the name suggests it's a cv source term for u
              call calculate_u_source_cv(state, cv_nonods, ndim, nphase, den, u_source_cv)
+
+             if (.false.) then
+                ! hard-code the air and water viscosities for the rising bubble problem
+                ! air: 10e-5, water: 10e-3
+                udiffusion=0.0
+                do ele =1, totele
+                   do iloc = 1, cv_nloc
+                      cv_loc=cv_ndgln( ( ELE - 1 ) * CV_NLOC + ILOC )
+                      mat_loc=mat_ndgln( ( ELE - 1 ) * CV_NLOC + ILOC )
+                      !udiffusion(mat_loc,1,1,1) = 1.0e-5*comp(cv_loc) + 1.0e-3*comp(cv_loc+cv_nonods)
+                      !udiffusion(mat_loc,2,2,1) = 1.0e-5*comp(cv_loc) + 1.0e-3*comp(cv_loc+cv_nonods)
+                      udiffusion(mat_loc,1,1,1) = 0.1*comp(cv_loc) + 10.0*comp(cv_loc+cv_nonods)
+                      udiffusion(mat_loc,2,2,1) = 0.1*comp(cv_loc) + 10.0*comp(cv_loc+cv_nonods)
+                   end do
+                end do
+             end if
 
              CALL FORCE_BAL_CTY_ASSEM_SOLVE( state, &
                   NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
