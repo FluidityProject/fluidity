@@ -3554,20 +3554,23 @@ contains
      shape => face_shape(U, face)
      call transform_facet_to_physical(X, face, detwei_f=detwei, normal=normal)
 
-     if (face==face_2 .and. any(bc_type(:,face) == 1)) then  
+     if (face==face_2) then  
         ! boundary faces - need to apply weak dirichlet bc's
         ! = - int_ v_h \cdot (u - u^b) n 
-        U_q = face_val_at_quad(U, face)
-        U_bc_q = ele_val_at_quad(bc_value, face)
-        
-        do i=1, mesh_dim(U)
-           if (bc_type(i, face) == 1) then
-              do j=1, mesh_dim(U)
-                 tensor(i,j,:) = -1.0*(U_q(i,:) - U_bc_q(i,:))*normal(j,:)
-              end do
-           end if
-        end do
-        face_rhs = shape_tensor_rhs(shape, tensor, detwei) 
+        ! first check for weak-dirichlet bc
+        if (any(bc_type(:,face) == 1)) then  
+           U_q = face_val_at_quad(U, face)
+           U_bc_q = ele_val_at_quad(bc_value, face)
+
+           do i=1, mesh_dim(U)
+              if (bc_type(i, face) == 1) then
+                 do j=1, mesh_dim(U)
+                    tensor(i,j,:) = -1.0*(U_q(i,:) - U_bc_q(i,:))*normal(j,:)
+                 end do
+              end if
+           end do
+           face_rhs = shape_tensor_rhs(shape, tensor, detwei) 
+        end if
      else    
         ! internal face
         ! = int_ {v_h} \cdot J(x)  
