@@ -806,6 +806,7 @@
          !ewrite(3,*) 'CDP:',CDP
          !ewrite(3,*) 'P:',P
          !ewrite(3,*) 'C:',C
+         !stop 777
 
          U_RHS_CDP = U_RHS + CDP
 
@@ -3839,9 +3840,9 @@
 !      END DO Loop_Elements
       END DO Loop_Elements2
 
-      ewrite(3,*)'p=',p
-      ewrite(3,*)'U_RHS:',U_RHS
-!      stop 222
+      !ewrite(3,*)'p=',p
+      !ewrite(3,*)'U_RHS:',U_RHS
+      !stop 222
       !do i=1, ndim*nphase*u_nonods
       !   ewrite(3,*) i, sum(DGM_PHA(FINDGM_PHA(i):FINDGM_PHA(i+1)-1))
       !end do
@@ -4966,7 +4967,7 @@
            CV_NGI_SHORT, CV_NLOC, CVN_SHORT, CVWEIGHT_SHORT, &
            CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, &
            X_NONODS, X, Y, Z, NCOLM, FINDM, COLM, MIDM, &
-           IGETCT, RDUM, IDUM, IDUM, IDUM(1), OPTION_PATH )
+           IGETCT, RDUM, IDUM, IDUM, 0, OPTION_PATH )
 
       FEMTOLD=0.0
 
@@ -5051,7 +5052,7 @@
               DX_DIFF_Y, DY_DIFF_Y, DZ_DIFF_Y, RDUM, RDUM, RDUM, &
               DX_DIFF_Z, DY_DIFF_Z, DZ_DIFF_Z, RDUM, RDUM, RDUM, &
               NDIM, NPHASE, CV_NONODS, TOTELE, CV_NDGLN, &
-              XU_NDGLN, X_NLOC, X_NDGLN, &
+              X_NDGLN, X_NLOC, X_NDGLN, &
               CV_NGI, CV_NLOC, CVWEIGHT, &
               CVFEN, CVFENLX, CVFENLY, CVFENLZ, &
               CVFEN, CVFENLX, CVFENLY, CVFENLZ, &
@@ -5130,7 +5131,8 @@
       IF_USE_PRESSURE_FORCE: IF ( USE_PRESSURE_FORCE ) THEN
 
          PLIKE_GRAD_SOU_COEF =  PLIKE_GRAD_SOU_COEF + SUF_TENSION_COEF * CURVATURE
-         PLIKE_GRAD_SOU_GRAD = PLIKE_GRAD_SOU_GRAD + VOLUME_FRAC
+         !PLIKE_GRAD_SOU_GRAD = PLIKE_GRAD_SOU_GRAD + VOLUME_FRAC
+         PLIKE_GRAD_SOU_GRAD =  PLIKE_GRAD_SOU_GRAD + FEMT
 
       ELSE
 

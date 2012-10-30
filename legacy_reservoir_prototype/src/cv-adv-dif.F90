@@ -1790,7 +1790,7 @@
          IGETCT, MASS_MN_PRES, FINDCMC, COLCMC, NCOLCMC, PATH )
 
       ! Determine FEMT (finite element wise) etc from T (control volume wise)
-      ! Also integrate PSI_INT over each CV and avergae PSI_AVE over each CV. 
+      ! Also integrate PSI_INT over each CV and average PSI_AVE over each CV. 
       use shape_functions 
       use shape_functions_Linear_Quadratic
       use solvers_module
@@ -1837,6 +1837,8 @@
       ALLOCATE( NX( CV_NLOC, CV_NGI ))
       ALLOCATE( NY( CV_NLOC, CV_NGI ))
       ALLOCATE( NZ( CV_NLOC, CV_NGI ))
+
+      FEMPSI = 0.0
 
       PSI_AVE2 = PSI_AVE
       PSI_INT2 = PSI_INT
@@ -1918,7 +1920,6 @@
       END DO
 
       ! Solve...
-      !ewrite(3,*)'path:', trim( path )
       DO IT = 1, NTSOL
          CALL SOLVER( MAT,  &
               FEMPSI( 1 + (IT - 1 ) * CV_NONODS : CV_NONODS + (IT - 1 ) * CV_NONODS ),  &
