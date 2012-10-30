@@ -1954,7 +1954,7 @@
          DUX_ELE, DUY_ELE, DUZ_ELE, DUOLDX_ELE, DUOLDY_ELE, DUOLDZ_ELE, &
          DVX_ELE, DVY_ELE, DVZ_ELE, DVOLDX_ELE, DVOLDY_ELE, DVOLDZ_ELE, &
          DWX_ELE, DWY_ELE, DWZ_ELE, DWOLDX_ELE, DWOLDY_ELE, DWOLDZ_ELE, &
-         NDIM, NPHASE, U_NONODS, TOTELE, U_NDGLN, &
+         NDIM, NDIM_VEL, NPHASE, U_NONODS, TOTELE, U_NDGLN, &
          XU_NDGLN, X_NLOC, X_NDGLN, &
          CV_NGI, U_NLOC, CVWEIGHT, &
          N, NLX, NLY, NLZ, &
@@ -1969,7 +1969,8 @@
       use shape_functions 
       use matrix_operations
       IMPLICIT NONE
-      INTEGER, intent( in ) :: NDIM, NPHASE, U_NONODS, TOTELE, X_NLOC, CV_NGI, U_NLOC, &
+      INTEGER, intent( in ) :: NDIM, NDIM_VEL, NPHASE, &
+           U_NONODS, TOTELE, X_NLOC, CV_NGI, U_NLOC, &
            X_NONODS, STOTEL, U_SNLOC, CV_SNLOC, WIC_U_BC_DIRICHLET, SBCVNGI, NFACE
       REAL, DIMENSION( U_NONODS * NPHASE ), intent( in ) :: U, UOLD, V, VOLD, W, WOLD
       REAL, DIMENSION( U_NLOC, NPHASE, TOTELE ), intent( inout ) :: DUX_ELE,DUY_ELE,DUZ_ELE, &
@@ -2008,8 +2009,8 @@
            WIC_U_BC_DIRICHLET, SBCVNGI, SBUFEN, SBUFENSLX, SBUFENSLY, SBWEIGH, & 
            SBCVFEN, SBCVFENSLX, SBCVFENSLY)   
 
-      IF(NDIM.GE.2) THEN
-      !print *,'----for V:'
+      IF(NDIM_VEL.GE.2) THEN
+     !  print *,'----for V:'
       CALL DG_DERIVS( V, VOLD, &
            DVX_ELE, DVY_ELE, DVZ_ELE, DVOLDX_ELE, DVOLDY_ELE, DVOLDZ_ELE, &
            NDIM, NPHASE, U_NONODS, TOTELE, U_NDGLN, &
@@ -2025,7 +2026,7 @@
         DVX_ELE=0; DVY_ELE=0; DVZ_ELE=0; DVOLDX_ELE=0; DVOLDY_ELE=0; DVOLDZ_ELE=0
       ENDIF
 
-      IF(NDIM.GE.3) THEN
+      IF(NDIM_VEL.GE.3) THEN
      !  print *,'----for W:'
       CALL DG_DERIVS( W, WOLD, &
            DWX_ELE, DWY_ELE, DWZ_ELE, DWOLDX_ELE, DWOLDY_ELE, DWOLDZ_ELE, &
