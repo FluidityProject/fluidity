@@ -779,7 +779,7 @@ a discontinuous velocity field for this to work!</a:documentation>
     </element>
     <element name="solver">
       <a:documentation>Solver</a:documentation>
-      <ref name="linear_solver_options_asym"/>
+      <ref name="linear_solver_options_asym_vector"/>
     </element>
     <oneOrMore>
       <choice>
@@ -892,7 +892,7 @@ conservative_advection below).</a:documentation>
     </element>
     <element name="solver">
       <a:documentation>Solver</a:documentation>
-      <ref name="linear_solver_options_asym"/>
+      <ref name="linear_solver_options_asym_scalar"/>
     </element>
     <choice>
       <element name="initial_condition">
@@ -947,7 +947,7 @@ Will be replaced by a field in due course</a:documentation>
     </element>
     <element name="solver">
       <a:documentation>Solver</a:documentation>
-      <ref name="linear_solver_options_asym"/>
+      <ref name="linear_solver_options_asym_scalar"/>
     </element>
     <optional>
       <element name="initial_condition">
@@ -6308,7 +6308,7 @@ galerkin formulation will result. </a:documentation>
     </element>
     <element name="solver">
       <a:documentation>Solver</a:documentation>
-      <ref name="linear_solver_options_asym"/>
+      <ref name="linear_solver_options_asym_scalar"/>
     </element>
     <element name="absorption_coefficients">
       <a:documentation>Coefficients of absorption of photosynthetically active

@@ -251,7 +251,7 @@ Recommended to be 0.5.</a:documentation>
             </element>
           </optional>
           <element name="solver">
-            <ref name="linear_solver_options_asym"/>
+            <ref name="linear_solver_options_asym_vector"/>
           </element>
           <optional>
             <element name="remove_advection_term">
