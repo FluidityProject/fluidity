@@ -3414,12 +3414,6 @@ contains
      real, dimension(X%dim, ele_loc(bss, ele)) :: rhs
      real, dimension(ele_loc(bss, ele), ele_loc(bss, ele)) :: inv_mass
 
-     ! In parallel, we only construct the equations on elements we own, or
-     ! those in the L1 halo.
-     if (.not.(element_owned(bss, ele).or.element_neighbour_owned(bss, ele))) then
-        return
-     end if
-
      ! get shape functions
      shape => ele_shape(bss, ele)      
       
