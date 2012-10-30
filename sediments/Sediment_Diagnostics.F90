@@ -36,6 +36,7 @@ module sediment_diagnostics
   use fields
   use state_module
 
+  use fefields
   use global_parameters, only:FIELD_NAME_LEN, OPTION_PATH_LEN, dt, timestep
   use spud
   use sediment
@@ -328,8 +329,9 @@ contains
     type(state_type), intent(inout) :: state
 
     type(scalar_field_pointer), dimension(:), allocatable     :: sediment_concs
-    type(scalar_field), pointer                               :: unhindered_sink_u, sink_u  
-    type(scalar_field)                                        :: rhs
+    type(scalar_field), pointer                               :: unhindered_sink_u, sink_u 
+    type(vector_field), pointer                               :: X
+    type(scalar_field)                                        :: rhs, rhs_projection
     integer                                                   :: n_sediment_fields,&
          & i_field, i_node
 
@@ -376,12 +378,19 @@ contains
 
           sink_u => extract_scalar_field(state, &
                & trim(sediment_concs(i_field)%ptr%name)//'SinkingVelocity')
-          
+
           ! calculate hindered sinking velocity
           call set(sink_u, unhindered_sink_u)
-          call scale(sink_u, rhs)
-          ewrite_minmax(sink_u)   
-
+          if (rhs%mesh==sink_u%mesh) then
+             call scale(sink_u, rhs)
+          else
+             call allocate(rhs_projection, sink_u%mesh, name="RhsProjection")
+             X => extract_vector_field(state, 'Coordinate')
+             call project_field(rhs, rhs_projection, X)
+             call scale(sink_u, rhs_projection)
+             call deallocate(rhs_projection)
+          end if
+          ewrite_minmax(sink_u) 
        endif
 
     end do
