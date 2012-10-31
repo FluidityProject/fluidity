@@ -367,11 +367,14 @@ contains
       type(vector_field) :: positions_mapped_to_pressure_space
       logical, dimension(11) :: which_tide
       integer :: node, stat
-      real :: eqtide, long, lat, love_number, current_time, gravity_magnitude
+      real :: eqtide, long, lat, love_number, current_time
+      real :: sal_term, gravity_magnitude, beta
       type(scalar_field) :: equilibrium_pressure
+      type(scalar_field), pointer :: free_surface
 
       p_mesh => p_theta%mesh
 
+      free_surface => extract_scalar_field(state, "FreeSurface")
       call allocate(combined_p, p_mesh, "CombinedPressure")
       call allocate(tidal_pressure, p_mesh, "TidalPressure")
       call zero(combined_p)
@@ -434,15 +437,18 @@ contains
         call get_option("/timestepping/current_time", current_time)
         call get_option('/physical_parameters/gravity/magnitude',&
              & gravity_magnitude)
+        ! Simple scalar Self-Attraction and Loading term (SAL)
+        call get_option('/ocean_forcing/tidal_forcing/sal/beta', beta, default=0.0)
 
         if (have_option('/ocean_forcing/tidal_forcing')) then
            if (have_option('/geometry/spherical_earth/')) then
              do node=1,node_count(positions_mapped_to_pressure_space)
                 call LongitudeLatitude(node_val(positions_mapped_to_pressure_space,node), long,&
                      & lat)
+                sal_term = node_val(free_surface,node)* beta
                 eqtide=equilibrium_tide(which_tide,lat*acos(-1.0)/180.0&
                      &,long*acos(-1.0)/180.0,current_time,1.0)
-                eqtide=love_number*eqtide
+                eqtide=love_number*eqtide - sal_term
                 call set(tidal_pressure, node, eqtide*gravity_magnitude)
               end do
            else
@@ -468,6 +474,6 @@ contains
       call deallocate(positions_mapped_to_pressure_space)
               
     end subroutine compute_pressure_and_tidal_gradient
-    
+
 end module Tidal_module
 
