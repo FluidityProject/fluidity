@@ -81,7 +81,8 @@ contains
     integer, intent(out), optional              :: stat
     character(len=FIELD_NAME_LEN)               :: name
 
-    call get_option(trim(state%option_path)//'/sediment/scalar_field['//int2str(i_field -&
+	! had to remove trim(state%option_path)// as this didn't work with flredecomp
+    call get_option('/material_phase[0]/sediment/scalar_field['//int2str(i_field -&
          & 1)//']/name', name) 
     item => extract_scalar_field(state, trim(name), stat)
 
@@ -95,7 +96,8 @@ contains
     character(len=FIELD_NAME_LEN), intent(out)  :: item
     integer, intent(out), optional              :: stat
 
-    call get_option(trim(state%option_path)//'/sediment/scalar_field['//int2str(i_field -&
+	! had to remove trim(state%option_path)// as this didn't work with flredecomp
+    call get_option('/material_phase[0]/sediment/scalar_field['//int2str(i_field -&
          & 1)//']/name', item, stat=stat) 
 
   end subroutine get_sediment_field_name
@@ -109,7 +111,8 @@ contains
     character(len=FIELD_NAME_LEN), intent(out)  :: item
     integer, intent(out), optional              :: stat
 
-    call get_option(trim(state%option_path)//'/sediment/scalar_field['//int2str(i_field -&
+	! had to remove trim(state%option_path)// as this didn't work with flredecomp
+    call get_option('/material_phase[0]/sediment/scalar_field['//int2str(i_field -&
          & 1)//']/prognostic/'//option, item, stat=stat) 
 
   end subroutine get_sediment_option_string
@@ -124,7 +127,8 @@ contains
     integer, intent(out), optional              :: stat
     real, intent(in), optional                  :: default
     
-    call get_option(trim(state%option_path)//'/sediment/scalar_field['//int2str(i_field -&
+	! had to remove trim(state%option_path)// as this didn't work with flredecomp
+    call get_option('/material_phase[0]/sediment/scalar_field['//int2str(i_field -&
          & 1)//']/prognostic/'//option, item, stat = stat, default = default) 
 
   end subroutine get_sediment_option_real
@@ -140,7 +144,8 @@ contains
     
     character(len=FIELD_NAME_LEN)               :: field_name
 
-    call get_option(trim(state%option_path)//'/sediment/scalar_field['//int2str(i_field -&
+	! had to remove trim(state%option_path)// as this didn't work with flredecomp
+    call get_option('/material_phase[0]/sediment/scalar_field['//int2str(i_field -&
          & 1)//']/name', field_name) 
     item => extract_scalar_field(state, trim(field_name)//option, stat)
 
@@ -499,7 +504,6 @@ contains
 
     character(len=FIELD_NAME_LEN)           :: field_mesh, sediment_mesh, bc_type
     character(len=OPTION_PATH_LEN)          :: field_option_path 
-    character(len=10)                       :: type
     integer                                 :: i_field, i_bc, i_bc_surf, i_bedload_surf,&
          & n_sediment_fields, nbcs
     integer, dimension(2)                   :: bc_surface_id_count, bedload_surface_id_count
@@ -536,10 +540,6 @@ contains
           ! Loop over boundary conditions for field
           boundary_conditions: do i_bc=0, nbcs-1
 
-             ! get name and type of boundary condition
-             call get_option(trim(field_option_path)//'/boundary_conditions['//int2str(i_bc)//&
-                  &']/type[0]/name', bc_type)
-
              ! check whether this is a reentrainment boundary
              if (.not. (trim(bc_type) .eq. "sediment_reentrainment")) then
                 cycle boundary_conditions
@@ -549,22 +549,15 @@ contains
              if (.not.(have_option('/material_phase[0]/vector_field::BedShearStress'))) then
                 FLExit("Reentrainment boundary condition requires a BedShearStress field")
              end if
-
-             ! warn if bedload field is prescribed
-             type = 'diagnostic'
-             if (have_option(trim(field_option_path)//'/scalar_field::Bedload/prescribed')) then
-                ewrite(0,*) 'WARNING: Bedload field is prescribed'
-                type = 'prescribed'
-             end if
              
              ! check boundary id's are the same for re-entrainment and bedload
              
              ! get bedload surface ids
              bedload_surface_id_count=option_shape(trim(field_option_path)// &
-                  '/scalar_field::Bedload/'//type//'/surface_ids')
+                  '/scalar_field::Bedload/prognostic/surface_ids')
              allocate(bedload_surface_ids(bedload_surface_id_count(1)))
              call get_option(trim(field_option_path)// &
-                  '/scalar_field::Bedload/'//type//'/surface_ids', bedload_surface_ids) 
+                  '/scalar_field::Bedload/prognostic/surface_ids', bedload_surface_ids) 
 
              ! get reentrainment surface ids
              bc_surface_id_count=option_shape(trim(field_option_path)//'/boundary_conditions['&

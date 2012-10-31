@@ -311,7 +311,6 @@ elements when buoyancy is a discontinuous field.</a:documentation>
             <choice>
               <ref name="tensor_python_diagnostic_algorithm"/>
               <ref name="internal_algorithm"/>
-              <ref name="k_epsilon_diffusivity_algorithm"/>
             </choice>
             <ref name="diagnostic_tensor_field"/>
           </element>
@@ -2552,6 +2551,13 @@ electrokinetic, electrochemical or electrothermal sources </a:documentation>
 Note: Only works for continuous galerkin or control volume discretisations.</a:documentation>
         <attribute name="name">
           <value>KEpsilon</value>
+        </attribute>
+      </element>
+      <element name="equation">
+        <a:documentation>Equation type for the sediment bedload fields.
+Note: Only works for P1 discretisations.</a:documentation>
+        <attribute name="name">
+          <value>SedimentBedload</value>
         </attribute>
       </element>
     </choice>
