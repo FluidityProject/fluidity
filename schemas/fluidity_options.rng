@@ -8437,8 +8437,18 @@ These &lt;b&gt;must&lt;/b&gt; be on the velocity mesh</a:documentation>
           </optional>
           <optional>
             <element name="love_number">
-              <a:documentation>Sets a user defined Love number. If not active a value of 1.0 is used.</a:documentation>
+              <a:documentation>Sets a user defined Love number. If not active a value of 1.0 is used.
+Recommended value is 0.693</a:documentation>
               <element name="value">
+                <ref name="real"/>
+              </element>
+            </element>
+          </optional>
+          <optional>
+            <element name="sal">
+              <a:documentation>Self attraction and loading term (SAL). This is a simple implementation
+that uses a constant beta value</a:documentation>
+              <element name="beta">
                 <ref name="real"/>
               </element>
             </element>

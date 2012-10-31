@@ -6655,11 +6655,19 @@ forcing =
                   empty
                }?,
                ## Sets a user defined Love number. If not active a value of 1.0 is used.
+               ## Recommended value is 0.693
                element love_number {
                   element value {
                      real
                   }
-               }?
+               }?,
+               ## Self attraction and loading term (SAL). This is a simple implementation
+               ## that uses a constant beta value
+               element sal {
+                element beta {
+                    real
+                }
+              }?
         }?
     }
   )
