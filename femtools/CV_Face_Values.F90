@@ -50,7 +50,8 @@ module cv_face_values
             evaluate_face_val, &
             theta_val, &
             couple_face_value, &
-            k_one_ENO_select
+            k_one_ENO_select, &
+            k_one_WENO_select
 
 contains
 
@@ -667,5 +668,78 @@ contains
       end subroutine reconstruct
 
     end subroutine k_one_ENO_select
+
+
+  subroutine k_one_WENO_select(field,positions,val, gradient,r)
+
+    type(scalar_field), intent(inout) :: field
+    type(vector_field),  intent(inout) :: positions
+    type(scalar_field), intent(inout)  :: val
+    type(vector_field), intent(inout)  :: gradient
+    integer, intent(in) :: r 
+
+    real :: lweight
+    type(scalar_field) :: weights
+
+    integer :: ele, iloc
+    integer, dimension(:), pointer :: nodes
+    type(element_type), pointer :: fshape
+    real, dimension(ele_loc(field,1)) :: fele
+    real, dimension(mesh_dim(field)) :: egrad
+
+    call allocate(gradient,positions%dim,field%mesh,"WENOGradients")
+    call allocate(weights,field%mesh,"WENOweights")
+    call allocate(val,field%mesh,name="WENONodeValues")
+
+    call zero(gradient)
+    call zero(weights)
+    call zero(val)
+
+
+    do ele=1, ele_count(field)
+       fshape=>ele_shape(field,ele)
+       call reconstruct(ele,field,fele,egrad)
+       nodes=>ele_nodes(field,ele)
+       lweight=(1.0d-6+sum(egrad**2))**(-r)
+       call addto(val,nodes,lweight*fele)
+       call addto(gradient,nodes,spread(lweight*egrad,2,size(fele)))
+       call addto(weights,nodes,spread(lweight,1,size(fele)))
+    end do
+
+    call invert(weights)
+    
+    call scale(gradient,weights)
+    call scale(val,weights)
+
+    call deallocate(weights)
+    
+    contains
+
+      logical function smoothness_test(lg,g) result(smoothness)
+        real, dimension(:) :: lg, g
+        smoothness=(sum(lg**2)-sum(g**2)<0.0)
+
+      end function smoothness_test
+    
+      subroutine reconstruct(lele,f,v,g)
+
+        integer :: lele
+        type(scalar_field), intent(in) :: f
+        real, dimension(:) :: v
+        real, dimension(:) :: g
+        real, dimension(ele_loc(f,lele), ele_ngi(f,lele), mesh_dim(f)) :: df_t
+        real, dimension(ele_ngi(f, lele)) :: detwei
+        
+        call transform_to_physical(positions, lele,&
+             shape = fshape, dshape = df_t,detwei=detwei)
+        
+
+        v=ele_val(f,lele)
+        g=matmul(transpose(df_t(:,1,:)),ele_val(f,ele))
+        
+      end subroutine reconstruct
+
+    end subroutine k_one_WENO_select
+
 
 end module cv_face_values

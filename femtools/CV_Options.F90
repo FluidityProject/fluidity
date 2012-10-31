@@ -89,6 +89,8 @@ module cv_options
       logical :: hyperc_switch, potential_flux
       ! what upwind scheme are we using (if any)
       integer :: upwind_scheme
+      ! norm for the modified WENO algorithm
+      integer :: weno_parameter
 
    end type cv_options_type
 
@@ -203,6 +205,10 @@ contains
                     &/upper', cv_options%limiter_slopes(2), default=2.0)
                     
     cv_options%upwind_scheme=cv_upwind_scheme(option_path, element_family, dim)
+
+
+    call get_option(trim(complete_cv_field_path(option_path))//&
+                    '/face_value[0]/WENO_norm',cv_options%weno_parameter, default=-1)
 
   end function get_cv_options
 

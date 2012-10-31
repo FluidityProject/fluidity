@@ -1527,8 +1527,13 @@ contains
       end if
 
       if (tfield_options%facevalue==CV_FACEVALUE_ENO_CPAIN) then
-         call k_one_ENO_select(tfield,x_tfield,tENO,gnew)
-         call k_one_ENO_select(oldtfield,x_tfield,oldtENO,gold)
+         if (tfield_options%weno_parameter<0) then
+            call k_one_ENO_select(tfield,x_tfield,tENO,gnew)
+            call k_one_ENO_select(oldtfield,x_tfield,oldtENO,gold)
+         else
+            call k_one_WENO_select(tfield,x_tfield,tENO,gnew,tfield_options%weno_parameter)
+            call k_one_WENO_select(oldtfield,x_tfield,oldtENO,gold,tfield_options%weno_parameter)
+         end if
       end if
 
       ! does the density field need upwind values?
