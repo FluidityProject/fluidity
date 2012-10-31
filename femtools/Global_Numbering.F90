@@ -70,7 +70,7 @@ contains
     type(mesh_type), pointer :: topology
     ! The universal identifier. Required for parallel.
     type(scalar_field), pointer :: uid
-    integer :: max_vertices
+    integer :: max_vertices, total_dofs
     logical :: have_facets, have_halos
 
     type(integer_set), dimension(:,:), allocatable :: entity_send_targets
@@ -82,8 +82,22 @@ contains
     integer, dimension(:,:), allocatable :: entity_sort_list
     ! Order in which entities should be visited
     integer, dimension(:), allocatable :: visit_order
+    ! Order in which entities should be visited for halo ordering purposes.
+    integer, dimension(:), allocatable :: halo_visit_order
+    ! The entity order in visit order places core entities before sent
+    !  entities before level 1 halo entities before level 2 halo entities.
+    ! In contrast, the halo_visit_order places all entities owned by a
+    !  given processor adjacently and the order is guaranteed consistent
+    !  between processors. This is used to achieve consistent halo ordering.
+
     ! Dofs associated with each entity.
     integer, dimension(:), allocatable :: entity_dof_starts
+
+    ! We also produce dof numberings using the halo visit order.
+    integer, dimension(:), allocatable :: halo_entity_dof_starts
+
+    ! Mapping from dofs to halo dofs.
+    integer, dimension(:), allocatable :: dof_to_halo_dof
 
     element=>mesh%shape
     cell=>element%cell    
@@ -105,12 +119,14 @@ contains
        entity_sort_list=-666
     end if
     allocate(visit_order(sum(entity_counts)))
+    allocate(halo_visit_order(sum(entity_counts)))
     allocate(entity_dof_starts(sum(entity_counts)))
+    allocate(halo_entity_dof_starts(sum(entity_counts)))
 
     ! Number the topological entities.
     call number_topology
     call calculate_dofs_per_entity
-    ! Extract halo information for each tolological entity.
+    ! Extract halo information for each topological entity.
     if (have_halos) call create_topology_halos
     ! Determine the order in which topological entities should be numbered.
     call entity_order
@@ -143,6 +159,19 @@ contains
            +[(i, i=1,dofs_per(dim))]
       
     end function entity_dofs
+
+    function halo_entity_dofs(dim, entity, dofs_per) result (dofs)
+      ! Halo-consistent dofs associated with local entity
+      integer, intent(in) :: dim, entity
+      integer, dimension(0:) :: dofs_per
+      integer, dimension(dofs_per(dim)) :: dofs
+      
+      integer :: i,d,e
+
+      dofs=halo_entity_dof_starts(entity)&
+           +[(i, i=1,dofs_per(dim))]
+      
+    end function halo_entity_dofs
     
     subroutine calculate_dofs_per_entity
       ! Note that this will fail for meshes where not every topological
@@ -239,7 +268,7 @@ contains
       allocate(entity_receive_level(sum(entity_counts)))
       call get_node_owners(topology%halos(2), entity_owner(:entity_counts(0)))
 
-      ! Level 1 flag for vertices. Used to determine if an element has any
+      ! Level 1 flag for vertices. Used to determine if an entity has any
       !  level 1 vertices and is hence level 2.
       allocate(level1(entity_counts(0)))
       level1=.False.
@@ -411,9 +440,19 @@ contains
       
       if (have_halos) then
          call sort(entity_sort_list, visit_order)
+         ! Remove the distinction between core and non-core, and halo
+         !  levels 1 and 2.
+         where (entity_sort_list(:,0) == -2)
+            entity_sort_list(:,0) = -1
+         elsewhere (entity_sort_list(:,0) > getnprocs())
+            entity_sort_list(:,0) = &
+                 entity_sort_list(:,0) - (getnprocs() + 1)
+         end where
+         call sort(entity_sort_list, halo_visit_order)
       else
          ! In the serial case, we just run through the list in order.
-         visit_order=[(i,i=1,size(visit_order))]
+         visit_order = [(i, i = 1, size(visit_order))]
+         halo_visit_order = visit_order
       end if
 
     end subroutine entity_order
@@ -421,14 +460,21 @@ contains
     subroutine topology_dofs
       ! For each topological entity, calculate the dofs which will lie on
       !  it.
-      integer :: i, dof
+      integer :: i, dof, halo_dof
 
       dof=0
+      halo_dof=0
       do i=1,size(visit_order)
          entity_dof_starts(visit_order(i))=dof
          dof=dof+dofs_per(entity_dim(visit_order(i)))
+
+         halo_entity_dof_starts(halo_visit_order(i))=halo_dof
+         halo_dof=halo_dof+dofs_per(entity_dim(halo_visit_order(i)))         
       end do
       
+      assert(halo_dof == dof)
+      total_dofs = dof
+
     end subroutine topology_dofs
     
     function entity_dim(entity)
@@ -457,6 +503,9 @@ contains
 
       ewrite(1,*) "Populating ndglno"
 
+      allocate(dof_to_halo_dof(total_dofs))
+      dof_to_halo_dof = -666
+
       do ele=1,element_count(mesh)
          ele_dofs=>ele_nodes(mesh, ele)
          topo_dofs=>ele_nodes(topology, ele)
@@ -483,8 +532,11 @@ contains
                end if
                
                ele_dofs(element%entity2dofs(d,e)%dofs)=&
-                    entity_dofs(d,entity, dofs_per)
+                    entity_dofs(d, entity, dofs_per)
                
+               dof_to_halo_dof(entity_dofs(d, entity, dofs_per)) &
+                    = halo_entity_dofs(d, entity, dofs_per)
+
             end do
          end do
          
@@ -492,6 +544,8 @@ contains
          
       end do
       
+      assert(all(dof_to_halo_dof>0))
+
       mesh%nodes=maxval(mesh%ndglno)
 
     end subroutine populate_ndglno
@@ -568,12 +622,14 @@ contains
 
          write(mesh%halos(h)%name,'(a,i0,a)') trim(mesh%name)//"Level",h,"Halo"
 
-         ! Since local dof order follows UID order, sorting is safe.
+         ! Since halo dof order follows UID order, sorting is safe.
          do p=1,size(mesh%halos(h)%sends)
-            mesh%halos(h)%sends(p)%ptr=sorted(set2vector(sends(hh,p)))
+            mesh%halos(h)%sends(p)%ptr=sorted(set2vector(sends(hh,p)), &
+                 & key = dof_to_halo_dof(set2vector(sends(hh,p))))
          end do
          do p=1,size(mesh%halos(h)%receives)
-            mesh%halos(h)%receives(p)%ptr=sorted(set2vector(receives(hh,p)))
+            mesh%halos(h)%receives(p)%ptr=sorted(set2vector(receives(hh,p))&
+                 &, key = dof_to_halo_dof(set2vector(receives(hh,p))))
          end do
 
 

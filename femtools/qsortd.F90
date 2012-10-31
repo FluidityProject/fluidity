@@ -17,7 +17,7 @@ module quicksort
   end interface qsort
   
   interface sorted
-     module procedure sortedi
+     module procedure sortedi, sortedi_key
   end interface sorted
 
   interface sort
@@ -981,5 +981,18 @@ END SUBROUTINE qsorti
     sorted=list(perm)
 
   end function sortedi
+
+  function sortedi_key(list, key) result (sorted)
+    !! Return list sorted according to key.
+    integer, dimension(:) :: list, key
+    integer, dimension(size(list)) :: sorted, perm
+
+    call qsort(key, perm)
+
+    sorted=list(perm)
+
+  end function sortedi_key
+
+
 
 end module quicksort
