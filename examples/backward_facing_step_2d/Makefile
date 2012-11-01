@@ -1,12 +1,13 @@
-BIN=../../bin
-preprocess:
+include envcheck.mk
+
+preprocess: envcheck
 	echo **********Generating mesh for k-epsilon simulation.
 	gmsh -2 -optimize -o step2d-kim-med.msh src/step2d-kim-med.geo
-	$(BIN)/gmsh2triangle -2 step2d-kim-med.msh
+	$(BINPREFIX)gmsh2triangle -2 step2d-kim-med.msh
 
-run:
+run: envcheck
 	@echo **********Running the k-epsilon simulation:
-	$(BIN)/fluidity -v2 backward_facing_step_2d_kim_kepsilon.flml > kepsilon.log & $(BIN)/fluidity -v2 backward_facing_step_2d_kim_reference.flml > reference.log
+	$(BINPREFIX)fluidity -v2 backward_facing_step_2d_kim_kepsilon.flml > kepsilon.log & $(BINPREFIX)fluidity -v2 backward_facing_step_2d_kim_reference.flml > reference.log
 
 postprocess:
 	@echo **********Calling the velocity data extraction and reattachment length calculation python script:
