@@ -143,7 +143,7 @@
                   <iterative_method name="cg"/>
                   <preconditioner name="mg"/>
                   <relative_error>
-                    <real_value rank="0">1.0e-6</real_value>
+                    <real_value rank="0">1.0e-8</real_value>
                   </relative_error>
                   <max_iterations>
                     <integer_value rank="0">1000</integer_value>
@@ -178,7 +178,7 @@
             </solver>
           </preconditioner>
           <relative_error>
-            <real_value rank="0">1.0e-5</real_value>
+            <real_value rank="0">1.0e-7</real_value>
           </relative_error>
           <max_iterations>
             <integer_value rank="0">1000</integer_value>
@@ -216,7 +216,7 @@
           <include_in_detectors/>
         </detectors>
         <steady_state>
-          <include_in_steady_state/>
+          <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
@@ -255,10 +255,10 @@
           <iterative_method name="cg"/>
           <preconditioner name="mg"/>
           <relative_error>
-            <real_value rank="0">1.0e-5</real_value>
+            <real_value rank="0">1.0e-8</real_value>
           </relative_error>
           <max_iterations>
-            <integer_value rank="0">5000</integer_value>
+            <integer_value rank="0">1000</integer_value>
           </max_iterations>
           <never_ignore_solver_failures/>
           <diagnostics>
@@ -361,10 +361,10 @@
           </iterative_method>
           <preconditioner name="sor"/>
           <relative_error>
-            <real_value rank="0">1.0e-5</real_value>
+            <real_value rank="0">1.0e-7</real_value>
           </relative_error>
           <max_iterations>
-            <integer_value rank="0">5000</integer_value>
+            <integer_value rank="0">1000</integer_value>
           </max_iterations>
           <never_ignore_solver_failures/>
           <diagnostics>

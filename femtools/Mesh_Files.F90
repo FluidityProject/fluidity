@@ -26,6 +26,7 @@
 !    USA
 
 #include "fdebug.h"
+#include "confdefs.h"
 
 
 ! ----------------------------------------------------------------------------
@@ -52,6 +53,7 @@ module mesh_files
   use gmsh_common
   use read_gmsh
   use read_triangle
+  use read_exodusii
   use write_gmsh
   use write_triangle
 
@@ -113,6 +115,15 @@ contains
        field = read_gmsh_file(filename, quad_degree=quad_degree, quad_ngi=quad_ngi, &
             quad_family=quad_family, solid=solid)
 
+    case("exodusii")
+#ifdef HAVE_LIBEXOIIV2C
+       field = read_exodusii_file(filename, quad_degree=quad_degree, quad_ngi=quad_ngi, &
+            quad_family=quad_family)
+#else
+  FLExit("Fluidity was not configured with exodusII, reconfigure with '--with-exodusII'!")
+#endif
+
+
        ! Additional mesh format subroutines go here
 
     case default
@@ -145,6 +156,11 @@ contains
     case("gmsh")
        call write_gmsh_file(filename, state, mesh, solid=solid )
 
+    ! ExodusII write routines are not implemented at this point. 
+    ! Mesh is dumped as gmsh format for now.
+    ! check subroutine 'insert_external_mesh' in Populate_State.F90,
+    ! right after reading in external mesh files
+
        ! Additional mesh format subroutines go here
 
     case default
@@ -170,6 +186,11 @@ contains
 
     case("gmsh")
        call write_gmsh_file( trim(filename), positions, solid=solid)
+
+    ! ExodusII write routines are not implemented at this point. 
+    ! Mesh is dumped as gmsh format for now.
+    ! check subroutine 'insert_external_mesh' in Populate_State.F90,
+    ! right after reading in external mesh files
 
        ! Additional mesh format subroutines go here
 
