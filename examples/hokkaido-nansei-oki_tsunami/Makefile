@@ -4,9 +4,7 @@ FILENAME=MonaiValley_C_p1p1_nu0.01_kmkstab_drag0.002_butcircularoundisland0.2
 
 preprocess: envcheck
 	@echo **********Generating the mesh using gmsh in 2d:
-	cd mesh
-	gmsh -bin MonaiValley_C.geo -2
-	${BINPREFIX}fldecomp -n 4 -m gmsh MonaiValley_C
+	cd mesh; gmsh -bin MonaiValley_C.geo -2; ${BINPREFIX}fldecomp -n 4 -m gmsh MonaiValley_C
 
 run: envcheck
 	@echo **********Calling fluidity with verbose log output enabled:
