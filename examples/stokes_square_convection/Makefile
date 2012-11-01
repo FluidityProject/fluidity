@@ -28,4 +28,4 @@ input: clean preprocess
 
 clean:
 	@echo **********Cleaning the output from previous fluidity runs:
-	rm -rf *.pdf *.stat *.vtu *checkpoint* *.log-0 *.err-0 matrixdump* mesh/*.msh *.edge *.ele *.node
+	rm -rf *.pdf *.png *.stat *.vtu *checkpoint* *.log-0 *.err-0 matrixdump* mesh/*.msh *.edge *.ele *.node

@@ -1,10 +1,8 @@
 include envcheck.mk
 
+NPROCS?=1
+
 preprocess: envcheck
-ifeq ("x","x${NPROCS}")
-	@echo "**********ERROR: Please define NPROCS to set the number of processors to use"
-	@exit 1
-endif
 	@echo **********Copying circle.geo to the current directory:
 	cp src/circle.geo .
 	@echo **********Generating the mesh using gmsh in 2d:
@@ -45,3 +43,7 @@ clean:
 	@echo **********Cleaning the output from previous fluidity runs:
 	rm -f *.ele *.edge *.face *.node *.halo *.poly *.vtu *.pvtu *.stat *.log-0 *.err-0 */matrixdump*
 	rm -rf restratification_after_oodc_? restratification_after_oodc_??
+
+realclean: clean
+	@echo **********Cleaning the output and checkpoints from previous fluidity runs:
+	rm -rf *checkpoint*
