@@ -185,25 +185,6 @@ void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const d
                     ppt, runoff, salinity, thermal,  solar, Q_solar, Q, F, tau_u, tau_v);
     }
 
-    // If on the sphere, change momentum flux (surface stress) tensor basis
-    //  back to cartesian.
-    if (rotate) {
-        for (int i=0; i<NNodes; i++) {
-            u_rot = tau_u[i];
-            v_rot = tau_v[i];
-            w_rot = 0.0;
-            double x_cart = 0.0;
-            double y_cart = 0.0;
-            double z_cart = 0.0;
-            double tau_dummy;
-            vector_lon_lat_height_2_cartesian_c(&u_rot, &v_rot, &w_rot,
-                                                &longitude[i], &latitude[i], &height[i],
-                                                &tau_u[i], &tau_v[i], &tau_dummy,
-                                                &x_cart, &y_cart, &z_cart,
-                                                &surface_radius);
-        }
-    }
-   
     // clean up
     delete [] delU_u;
     delete [] delU_v;
