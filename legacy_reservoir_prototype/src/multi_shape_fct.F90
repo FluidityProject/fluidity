@@ -36,12 +36,11 @@
   module shape_functions
 
     use fldebug
-    use shape_functions_Linear_Quadratic
-    use shape_functions_NDim
-
     use state_module
     use spud
     use global_parameters, only: option_path_len
+    use shape_functions_Linear_Quadratic
+    use shape_functions_NDim
 
   contains
 
@@ -1619,26 +1618,31 @@
            sufen2, sufenslx2, sufensly2, sufenlx2, sufenly2, sufenlz2, &
            sbufen2, sbufenslx2, sbufensly2, sbufenlx2, sbufenly2, sbufenlz2 
       real, dimension( :, : ), allocatable :: M,MLX,MLY,MLZ, sm,SMLX,SMLY
-      character( len = option_path_len ) :: overlapping_path 
+      character( len = option_path_len ) :: overlapping_path, dummy_path, dummypath2 
       logical :: is_overlapping   
       integer :: u_nloc2, ilev, ilev2, u_snloc2, u_ele_type2, gi, MLOC,SMLOC
 
       ewrite(3,*) 'in  cv_fem_shape_funs subrt'
 
-      MLOC=1
-      SMLOC=1
-      ALLOCATE(M(MLOC,CV_NGI))
-      ALLOCATE(MLX(MLOC,CV_NGI))
-      ALLOCATE(MLY(MLOC,CV_NGI))
-      ALLOCATE(MLZ(MLOC,CV_NGI))
-      ALLOCATE(SM(SMLOC,scvngi))
-      ALLOCATE(SMLX(SMLOC,scvngi))
-      ALLOCATE(SMLY(SMLOC,scvngi))
+      MLOC = 1
+      SMLOC = 1
+      ALLOCATE( M( MLOC, CV_NGI ) )
+      ALLOCATE( MLX( MLOC, CV_NGI ) )
+      ALLOCATE( MLY( MLOC, CV_NGI ) )
+      ALLOCATE( MLZ( MLOC, CV_NGI ) )
+      ALLOCATE( SM( SMLOC, scvngi ) )
+      ALLOCATE( SMLX( SMLOC, scvngi ) )
+      ALLOCATE( SMLY( SMLOC, scvngi ) )
 
+ewrite(3,*)'lll:', option_path_len
+
+
+      dummy_path = '/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type'
       is_overlapping = .false.
-      call get_option( '/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
-           overlapping_path )
-      if( trim( overlapping_path ) == 'overlapping' ) is_overlapping = .true.
+      !call get_option( trim( dummy_path ), overlapping_path )
+      call get_option( trim( dummy_path ), dummypath2 )
+      if( trim( dummypath2 ) == 'overlapping' ) is_overlapping = .true.
+     ! if( trim( overlapping_path ) == 'overlapping' ) is_overlapping = .true.
 
       if( is_overlapping ) then
          ! Define basis functions (overlapping) for porous media flow
@@ -1672,7 +1676,6 @@
          allocate( sbufenly2( u_snloc2, sbcvngi ) )
          allocate( sbufenlz2( u_snloc2, sbcvngi ) )
       endif
-
 
       ! Sele_Overlap_Scale is the scaling needed to convert to overlapping element surfaces
       if( is_overlapping ) then
@@ -2005,33 +2008,8 @@
       ewrite(3,*) 'leaving cv_fem_shape_funs subrt, ncolgpts', ncolgpts
       ewrite(3,*) '----sum(cvweight):',sum(cvweight)
 
-      !if(QUAD_OVER_WHOLE_ELE) then
-      if(.false.) then
-         ewrite(3,*)'ndim, cv_ele_type,cv_ngi, cv_nloc, u_nloc:', &
-              ndim, cv_ele_type,cv_ngi, cv_nloc, u_nloc
-         ewrite(3,*)'cvweight:',cvweight
-         ewrite(3,*)'cvfen:',cvfen
-         ewrite(3,*)'cvfenlx:',cvfenlx
-         ewrite(3,*)'cvfenly:',cvfenly
-         ewrite(3,*)'cvfenlz:',cvfenlz 
-         ewrite(3,*)'ufen:',ufen
-         ewrite(3,*)'ufenlx:',ufenlx
-         ewrite(3,*)'ufenly:',ufenly
-         ewrite(3,*)'ufenlz:',ufenlz
-         ewrite(3,*)'sbcvngi=',sbcvngi
-         ewrite(3,*)'sbcvfen:',sbcvfen
-         ewrite(3,*)'sbcvfenslx:',sbcvfenslx
-         ewrite(3,*)'sbcvfensly:',sbcvfensly
-         ewrite(3,*)'sbcvfeweigh:',sbcvfeweigh
-         ewrite(3,*)'sbufen:',sbufen
-         ewrite(3,*)'sbufenslx:',sbufenslx
-         ewrite(3,*)'sbufensly:',sbufensly
-         ewrite(3,*)'nface:',nface
-         ewrite(3,*)'cv_sloclist:', cv_sloclist
-         ewrite(3,*)'u_sloclist:',u_sloclist
-         ewrite(3,*)'cv_snloc, u_snloc:',cv_snloc, u_snloc
-         stop 45
-      endif
+    
+      deallocate( m, mlx, mly, mlz, sm, smlx, smly )
 
       return
     end subroutine cv_fem_shape_funs

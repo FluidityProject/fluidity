@@ -33,6 +33,7 @@
   module matrix_operations
 
     use fldebug
+    use spud
 
   contains
 
@@ -389,7 +390,7 @@
          TOTELE, U_NLOC, U_NDGLN, &
          NCOLCT, FINDCT, COLCT, DIAG_SCALE_PRES, &
          CMC, NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES, &
-         C, CT, NDPSET )
+         C, CT )
       !use multiphase_1D_engine
 
       implicit none
@@ -409,16 +410,18 @@
       INTEGER, DIMENSION( NCOLCMC ), intent( in ) :: COLCMC
       REAL, DIMENSION( NCOLC * NDIM * NPHASE ), intent( in ) :: C 
       REAL, DIMENSION( NCOLCT * NDIM * NPHASE ), intent( inout ) :: CT
-      INTEGER, intent( in ) :: NDPSET
       ! Local variables
       INTEGER, PARAMETER :: MX_NCOLOR = 1000
       REAL, PARAMETER :: INFINY = 1.0E+10
       LOGICAL :: DONE
       REAL, DIMENSION( :), allocatable :: NEED_COLOR, COLOR_VEC, CMC_COLOR_VEC
       REAL, DIMENSION( :), allocatable :: CDP, DU, DV, DW, DU_LONG
-      INTEGER :: NCOLOR, CV_NOD, CV_JNOD, COUNT, COUNT2, IDIM, IPHASE, CV_COLJ, U_JNOD, CV_JNOD2
+      INTEGER :: NCOLOR, CV_NOD, CV_JNOD, COUNT, COUNT2, IDIM, IPHASE, CV_COLJ, U_JNOD, CV_JNOD2, NDPSET
       INTEGER :: I, ELE,u_inod,u_nod
       REAL :: SUM
+
+      call get_option( '/material_phase[0]/scalar_field::Pressure/' // &
+           'prognostic/spatial_discretisation/reference_node', ndpset, default = 0 )
 
       ALLOCATE( NEED_COLOR( CV_NONODS ))
       ALLOCATE( COLOR_VEC( CV_NONODS ))

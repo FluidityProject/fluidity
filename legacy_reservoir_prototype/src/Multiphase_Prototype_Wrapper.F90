@@ -54,7 +54,8 @@
     use multimaterial_module
     use field_equations_cv, only: initialise_advection_convergence
     use memory_diagnostics
-    use mp_prototype
+    use multiphase_time_loop
+    !use mp_prototype
     use tictoc
     implicit none
 
@@ -183,9 +184,12 @@
             exclude_nonreprescribed=.true.)
 
        ! Call the multiphase_prototype code  
-       call multiphase_prototype(state, dt, &
-                                 nonlinear_iterations, nonlinear_iteration_tolerance, &
-                                 dump_no)
+       !call multiphase_prototype(state, dt, &
+       !                          nonlinear_iterations, nonlinear_iteration_tolerance, &
+       !                          dump_no) 
+       call MultiFluids_SolveTimeLoop( state, &
+         dt, nonlinear_iterations, nonlinear_iteration_tolerance, &
+         dump_no )
 
     ! Dump at end, unless explicitly disabled
     if(.not. have_option("/io/disable_dump_at_end")) then

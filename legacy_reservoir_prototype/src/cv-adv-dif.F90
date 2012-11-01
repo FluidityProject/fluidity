@@ -31,10 +31,12 @@
     use fldebug
 
     use solvers_module
-    use state_module
     use spud
     use global_parameters, only: option_path_len
-    use futils
+    use futils, only: int2str
+
+    use shape_functions
+    use matrix_operations
 
   contains
 
@@ -69,7 +71,8 @@
          NOIT_DIM, &
          MEAN_PORE_CV, &
          FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, THERMAL, &
-         MASS_ELE_TRANSP )
+         MASS_ELE_TRANSP, &
+         option_path_spatial_discretisation )
 
       !  =====================================================================
       !     In this subroutine the advection terms in the advection-diffusion
@@ -188,12 +191,10 @@
       !
       !
       !***********************************************************************
-      use shape_functions
-      use matrix_operations
-      use printout
+
       ! Inputs/Outputs
       IMPLICIT NONE
-      type( state_type ), dimension( : ), intent( inout ) :: state
+      type( state_type ), dimension( : ), intent( in ) :: state
       INTEGER, intent( in ) :: NCOLACV, NCOLCT, CV_NONODS, U_NONODS, X_NONODS, MAT_NONODS, &
            TOTELE, &
            CV_ELE_TYPE, &
@@ -256,6 +257,7 @@
       INTEGER, INTENT( IN ) :: NOIT_DIM
       REAL, DIMENSION( CV_NONODS ), intent( inout ) :: MEAN_PORE_CV
       REAL, DIMENSION( TOTELE ), intent( inout ) :: MASS_ELE_TRANSP
+      character( len = * ), intent( in ), optional :: option_path_spatial_discretisation
 
       ! Local variables 
       LOGICAL, PARAMETER :: INCLUDE_PORE_VOL_IN_DERIV = .FALSE.
@@ -329,6 +331,7 @@
       REAL, PARAMETER :: W_SUM_ONE = 1.
 
       integer :: cv_inod_ipha, IGETCT, U_NODK_IPHA
+      logical :: Have_Temperature_Fields, Have_VolumeFraction_Fields, Have_Components_Fields
       ! Functions...
       !REAL :: R2NORM, FACE_THETA  
       !        ===>  LOGICALS  <===
@@ -336,7 +339,8 @@
            D1, D3, DCYL, GOT_DIFFUS, INTEGRAT_AT_GI, &
            NORMALISE, SUM2ONE, GET_GTHETA, QUAD_OVER_WHOLE_ELE
 
-      character( len = option_path_len ) :: option_path, option_path2
+      character( len = option_path_len ) :: option_path, option_path2, path_temp, path_volf, &
+               path_comp, path_spatial_discretisation
 
       ewrite(3,*) 'In CV_ASSEMB'
 
@@ -345,15 +349,29 @@
       !ewrite(3,*) 'DENOLD', DENOLD
       !ewrite(3,*) 'MEAN_PORE_CV', MEAN_PORE_CV
 
-      option_path= '/material_phase[0]/scalar_field::PhaseVolumeFraction/' // &
-           'prognostic/spatial_discretisation/control_volumes/face_value/' // &
-           'limit_face_value/limiter::Extrema'
-      option_path2 = '/material_phase[0]/scalar_field::Temperature/prognostic/' // &
-           'spatial_discretisation/control_volumes/face_value::FiniteElement/' // &
-           'limit_face_value/limiter::Extrema'
+      Have_Temperature_Fields = .false.
+      Have_VolumeFraction_Fields = .false.
+      Have_Components_Fields = .false.
+
+      path_temp = '/material_phase[0]/scalar_field::Temperature'
+      path_volf = '/material_phase[0]/scalar_field::PhaseVolumeFraction'
+      path_comp = '/material_phase[0]/scalar_field::ComponentMassFractionPhase1'
+      path_spatial_discretisation = '/prognostic/spatial_discretisation/' // &
+           'control_volumes/face_value/limit_face_value'
+
+      if( have_option( trim( path_temp ) ) ) Have_Temperature_Fields = .true.
+      if( have_option( trim( path_volf ) ) ) Have_VolumeFraction_Fields = .true.
+      if( have_option( trim( path_comp ) ) ) Have_Components_Fields = .true.
+
       limit_use_2nd = .false.
-      if( have_option( option_path ) .or. have_option( option_path2 ) ) limit_use_2nd = .true.
-      !limit_use_2nd = .true.
+
+      if( Have_Temperature_Fields .or. Have_VolumeFraction_Fields .or. &
+           Have_Components_Fields ) &
+           option_path = trim( option_path_spatial_discretisation ) // &
+           trim( path_spatial_discretisation )
+
+      if( have_option( trim( option_path ) // '/limiter::Extrema' ) ) &
+           limit_use_2nd = .true.
 
       ewrite(3,*)'CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA, LIMIT_USE_2ND, SECOND_THETA:', &
            CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA, LIMIT_USE_2ND, SECOND_THETA
@@ -592,7 +610,8 @@
       IGETCT=0
       IF(GETCT) IGETCT=1
 
-      CALL PROJ_CV_TO_FEM_4( state, FEMT, FEMTOLD, FEMDEN, FEMDENOLD, T, TOLD, DEN, DENOLD, &
+      CALL PROJ_CV_TO_FEM_4( state, &
+           FEMT, FEMTOLD, FEMDEN, FEMDENOLD, T, TOLD, DEN, DENOLD, &
            IGOT_T2, T2,T2OLD, FEMT2,FEMT2OLD, &
            XC_CV, YC_CV, ZC_CV, MASS_CV, MASS_ELE,  &
            NDIM, NPHASE, CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
@@ -1059,7 +1078,7 @@
                         CALL PUT_IN_CT_RHS(CT, CT_RHS, U_NLOC, SCVNGI, GI, NCOLCT, NDIM, &
                              CV_NONODS, U_NONODS, NPHASE, IPHASE, TOTELE, ELE, ELE2, SELE, &
                              JCOUNT_KLOC, JCOUNT_KLOC2, U_OTHER_LOC, U_NDGLN, U, V, W,  &
-                             !                             JCOUNT_KLOC, JCOUNT_KLOC2, U_OTHER_LOC, U_NDGLN, NU, NV, NW,  &
+                                !                             JCOUNT_KLOC, JCOUNT_KLOC2, U_OTHER_LOC, U_NDGLN, NU, NV, NW,  &
                              SUFEN, SCVDETWEI, CVNORMX, CVNORMY, CVNORMZ, DEN, CV_NODI, CV_NODI_IPHA, &
                              UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
                              UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2, &
@@ -1662,7 +1681,7 @@
 
       ! determine FEMT (finite element wise) etc from T (control volume wise) 
       IMPLICIT NONE
-      type( state_type ), dimension( : ), intent( inout ) :: state
+      type( state_type ), dimension( : ), intent( in ) :: state
       INTEGER, intent( in ) :: NDIM, NPHASE, CV_NONODS, TOTELE, X_NLOC, CV_NGI, CV_NLOC, &
            X_NONODS, NCOLM, IGOT_T2, IGETCT, NCOLCMC
       INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in ) :: CV_NDGLN
@@ -1995,8 +2014,6 @@
       REAL, DIMENSION( CV_SNLOC, SBCVNGI ), intent( in ) :: SBCVFEN, SBCVFENSLX, SBCVFENSLY
       REAL, DIMENSION( SBCVNGI ), intent( in ) :: SBWEIGH
 
-      !print *,'----for U:'
-      !stop 77
       CALL DG_DERIVS( U, UOLD, &
            DUX_ELE, DUY_ELE, DUZ_ELE, DUOLDX_ELE, DUOLDY_ELE, DUOLDZ_ELE, &
            NDIM, NPHASE, U_NONODS, TOTELE, U_NDGLN, &
@@ -2010,37 +2027,35 @@
            SBCVFEN, SBCVFENSLX, SBCVFENSLY)   
 
       IF(NDIM_VEL.GE.2) THEN
-     !  print *,'----for V:'
-      CALL DG_DERIVS( V, VOLD, &
-           DVX_ELE, DVY_ELE, DVZ_ELE, DVOLDX_ELE, DVOLDY_ELE, DVOLDZ_ELE, &
-           NDIM, NPHASE, U_NONODS, TOTELE, U_NDGLN, &
-           XU_NDGLN, X_NLOC, X_NDGLN, &
-           CV_NGI, U_NLOC, CVWEIGHT, &
-           N, NLX, NLY, NLZ, &
-           CVFEN, CVFENLX, CVFENLY, CVFENLZ, &
-           X_NONODS, X, Y, Z, &
-           NFACE, FACE_ELE, U_SLOCLIST, CV_SLOCLIST, STOTEL, U_SNLOC, CV_SNLOC, WIC_U_BC, SUF_V_BC, &
-           WIC_U_BC_DIRICHLET, SBCVNGI, SBUFEN, SBUFENSLX, SBUFENSLY, SBWEIGH, & 
-           SBCVFEN, SBCVFENSLX, SBCVFENSLY)  
+         CALL DG_DERIVS( V, VOLD, &
+              DVX_ELE, DVY_ELE, DVZ_ELE, DVOLDX_ELE, DVOLDY_ELE, DVOLDZ_ELE, &
+              NDIM, NPHASE, U_NONODS, TOTELE, U_NDGLN, &
+              XU_NDGLN, X_NLOC, X_NDGLN, &
+              CV_NGI, U_NLOC, CVWEIGHT, &
+              N, NLX, NLY, NLZ, &
+              CVFEN, CVFENLX, CVFENLY, CVFENLZ, &
+              X_NONODS, X, Y, Z, &
+              NFACE, FACE_ELE, U_SLOCLIST, CV_SLOCLIST, STOTEL, U_SNLOC, CV_SNLOC, WIC_U_BC, SUF_V_BC, &
+              WIC_U_BC_DIRICHLET, SBCVNGI, SBUFEN, SBUFENSLX, SBUFENSLY, SBWEIGH, & 
+              SBCVFEN, SBCVFENSLX, SBCVFENSLY)  
       ELSE
-        DVX_ELE=0; DVY_ELE=0; DVZ_ELE=0; DVOLDX_ELE=0; DVOLDY_ELE=0; DVOLDZ_ELE=0
+         DVX_ELE=0; DVY_ELE=0; DVZ_ELE=0; DVOLDX_ELE=0; DVOLDY_ELE=0; DVOLDZ_ELE=0
       ENDIF
 
       IF(NDIM_VEL.GE.3) THEN
-     !  print *,'----for W:'
-      CALL DG_DERIVS( W, WOLD, &
-           DWX_ELE, DWY_ELE, DWZ_ELE, DWOLDX_ELE, DWOLDY_ELE, DWOLDZ_ELE, &
-           NDIM, NPHASE, U_NONODS, TOTELE, U_NDGLN, &
-           XU_NDGLN, X_NLOC, X_NDGLN, &
-           CV_NGI, U_NLOC, CVWEIGHT, &
-           N, NLX, NLY, NLZ, &
-           CVFEN, CVFENLX, CVFENLY, CVFENLZ, &
-           X_NONODS, X, Y, Z, &
-           NFACE, FACE_ELE, U_SLOCLIST, CV_SLOCLIST, STOTEL, U_SNLOC, CV_SNLOC, WIC_U_BC, SUF_W_BC, &
-           WIC_U_BC_DIRICHLET, SBCVNGI, SBUFEN, SBUFENSLX, SBUFENSLY, SBWEIGH, & 
-           SBCVFEN, SBCVFENSLX, SBCVFENSLY) 
+         CALL DG_DERIVS( W, WOLD, &
+              DWX_ELE, DWY_ELE, DWZ_ELE, DWOLDX_ELE, DWOLDY_ELE, DWOLDZ_ELE, &
+              NDIM, NPHASE, U_NONODS, TOTELE, U_NDGLN, &
+              XU_NDGLN, X_NLOC, X_NDGLN, &
+              CV_NGI, U_NLOC, CVWEIGHT, &
+              N, NLX, NLY, NLZ, &
+              CVFEN, CVFENLX, CVFENLY, CVFENLZ, &
+              X_NONODS, X, Y, Z, &
+              NFACE, FACE_ELE, U_SLOCLIST, CV_SLOCLIST, STOTEL, U_SNLOC, CV_SNLOC, WIC_U_BC, SUF_W_BC, &
+              WIC_U_BC_DIRICHLET, SBCVNGI, SBUFEN, SBUFENSLX, SBUFENSLY, SBWEIGH, & 
+              SBCVFEN, SBCVFENSLX, SBCVFENSLY) 
       ELSE
-        DWX_ELE=0; DWY_ELE=0; DWZ_ELE=0; DWOLDX_ELE=0; DWOLDY_ELE=0; DWOLDZ_ELE=0
+         DWX_ELE=0; DWY_ELE=0; DWZ_ELE=0; DWOLDX_ELE=0; DWOLDY_ELE=0; DWOLDZ_ELE=0
       ENDIF
 
       RETURN
@@ -2155,8 +2170,8 @@
       D1 = ( NDIM == 1 )
       D3 = ( NDIM == 3 )
       DCYL = .FALSE. 
-     ! print *,'****X_NLX:',X_NLX
-     ! print *,'****X_NLY:',X_NLY
+     ! ewrite(3,*)'****X_NLX:',X_NLX
+     ! ewrite(3,*)'****X_NLY:',X_NLY
 
       Loop_Elements1: DO ELE = 1, TOTELE
 
@@ -2171,13 +2186,6 @@
               X_N, X_NLX, X_NLY, X_NLZ, CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
               X_NX, X_NY, X_NZ, &
               CV_NLOC, NLX, NLY, NLZ, NX, NY, NZ ) 
-
-         !if(ele==1) then
-         !   print *,'for ele 1 detwei:',sum(detwei)
-         !   print *, 'NX', NX
-         !   print *, 'Ny', Ny
-         !   print *, 'Nz', Nz
-         !endif
 
          !ewrite(3,*)'N',N
          !ewrite(3,*)'nlx:',nlx
@@ -2232,7 +2240,6 @@
          END DO Loop_CV_ILOC
 
       END DO Loop_Elements1
-      !print *,'MASELE( :,:, 1):',sum(MASELE( :,:,:))
 
       ! Example of    CV_SLOCLIST for a tet element.
       !         INTEGER CV_SLOCLIST(NFACE,CV_SNLOC)
@@ -2257,7 +2264,7 @@
       ! Loop over surface elements
       ! EWRITE(3,*)'VTX_ELE(1,1,1 ):',VTX_ELE(1,1,1)   
 
-     ! print *,'totele=',totele
+     ! ewrite(3,*)'totele=',totele
 
       Loop_Elements2: DO ELE=1,TOTELE
 
@@ -2296,19 +2303,19 @@
             !ewrite(3,*)'iface=',iface
             IF(SELE2 == 0) THEN
                ! Calculate the nodes on the other side of the face:
-               !print *,'X_NLOC,CV_SNLOC,CV_NLOC,ele,ele2:',X_NLOC,CV_SNLOC,CV_NLOC,ele,ele2
+               !ewrite(3,*)'X_NLOC,CV_SNLOC,CV_NLOC,ele,ele2:',X_NLOC,CV_SNLOC,CV_NLOC,ele,ele2
                !ewrite(3,*)'SLOC2LOC:',SLOC2LOC
                DO CV_SILOC = 1, CV_SNLOC
                   CV_ILOC = SLOC2LOC( CV_SILOC )
                   CV_INOD = XCV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_ILOC )
-                  ! print *,'CV_SILOC,CV_ILOC,CV_INOD:',CV_SILOC,CV_ILOC,CV_INOD
+                  ! ewrite(3,*)'CV_SILOC,CV_ILOC,CV_INOD:',CV_SILOC,CV_ILOC,CV_INOD
                   DO CV_ILOC2 = 1, CV_NLOC
                      CV_INOD2 = XCV_NDGLN(( ELE2 - 1 ) * CV_NLOC + CV_ILOC2 )
-                 ! print *,'CV_INOD2,CV_INOD=',CV_INOD2,CV_INOD
+                 ! ewrite(3,*)'CV_INOD2,CV_INOD=',CV_INOD2,CV_INOD
                      IF( CV_INOD2 == CV_INOD ) ILOC_OTHER_SIDE( CV_SILOC ) = CV_ILOC2
                   END DO
                END DO
-               ! print *,'ILOC_OTHER_SIDE:',ILOC_OTHER_SIDE
+               ! ewrite(3,*)'ILOC_OTHER_SIDE:',ILOC_OTHER_SIDE
                APPLYBC=(ELE /= ELE2).AND.(ELE2 /= 0)
                !ewrite(3,*)'ele,ele2:',ele,ele2
                !ewrite(3,*)'iface=',iface
@@ -2403,18 +2410,18 @@
 
 
       ! Solve local system for the gradients DTX_ELE etc:
-!        print *,'masele:', masele   
-!        print *,'ndim=',ndim 
+!        ewrite(3,*)'masele:', masele   
+!        ewrite(3,*)'ndim=',ndim 
 
       Loop_Elements3: DO ELE=1,TOTELE
-        ! print *,'ele=',ele
+        ! ewrite(3,*)'ele=',ele
 
          MASS(:,:)=MASELE(:,:,ELE)
-        ! print *,'mass=',mass
-        ! print *,'MASELE(:,:,ELE):',MASELE(:,:,ELE)
+        ! ewrite(3,*)'mass=',mass
+        ! ewrite(3,*)'MASELE(:,:,ELE):',MASELE(:,:,ELE)
          CALL MATDMATINV( MASS, INV_MASS, CV_NLOC)
-        ! print *,'here 1'
-        ! print *,'inv_mass=',inv_mass
+        ! ewrite(3,*)'here 1'
+        ! ewrite(3,*)'inv_mass=',inv_mass
 
          !INV_MASS = 0.0
          !INV_MASS(1,1) = 1./sum( MASS(1,:))
@@ -2430,7 +2437,7 @@
             VTOLDX(:)=VTOLDX_ELE(:, IPHASE,ELE )
             VTOLDY(:)=VTOLDY_ELE(:, IPHASE,ELE )
             VTOLDZ(:)=VTOLDZ_ELE(:, IPHASE,ELE )
-            ! print *,'heree 2'
+            ! ewrite(3,*)'heree 2'
             DTX=0.0
             DTY=0.0
             DTZ=0.0
@@ -2447,17 +2454,17 @@
                   DTOLDZ(CV_ILOC)=DTOLDZ(CV_ILOC) +INV_MASS(CV_ILOC,CV_JLOC)*VTOLDZ(CV_JLOC)
                END DO
             END DO
-            ! print *,'heree 3'
+            ! ewrite(3,*)'heree 3'
             DTX_ELE(:, IPHASE,ELE )=DTX(:)
-            ! print *,'heree 3.01'
+            ! ewrite(3,*)'heree 3.01'
             DTY_ELE(:, IPHASE,ELE )=DTY(:)
-            ! print *,'heree 3.02'
+            ! ewrite(3,*)'heree 3.02'
             DTZ_ELE(:, IPHASE,ELE )=DTZ(:)
-            ! print *,'heree 3.1'
+            ! ewrite(3,*)'heree 3.1'
             DTOLDX_ELE(:, IPHASE,ELE )=DTOLDX(:)
             DTOLDY_ELE(:, IPHASE,ELE )=DTOLDY(:)
             DTOLDZ_ELE(:, IPHASE,ELE )=DTOLDZ(:)
-            ! print *,'heree 3.2'
+            ! ewrite(3,*)'heree 3.2'
 
          END DO Loop_IPHASE
 
@@ -2499,7 +2506,7 @@
       DEALLOCATE( DTOLDX )
       DEALLOCATE( DTOLDY )
       DEALLOCATE( DTOLDZ )
-      ! print *,'about to leave DG_DERIVS'
+      ! ewrite(3,*)'about to leave DG_DERIVS'
 
       RETURN
 
@@ -3878,7 +3885,7 @@
          DIFF_GI(:,:) = 0.0
          DO MAT_KLOC = 1, MAT_NLOC
             MAT_NODK = MAT_NDGLN(( ELE - 1 ) * MAT_NLOC + MAT_KLOC )
-             !print *,'MAT_KLOC,cv_nloc,mat_nloc,MAT_NODK,mat_nonods,cv_nonods:', &
+             !ewrite(3,*)'MAT_KLOC,cv_nloc,mat_nloc,MAT_NODK,mat_nonods,cv_nonods:', &
              !         MAT_KLOC,cv_nloc,mat_nloc,MAT_NODK,mat_nonods,cv_nonods
             DIFF_GI( 1:NDIM , 1:NDIM ) = DIFF_GI( 1:NDIM , 1:NDIM ) &
                  + SMATFEN( MAT_KLOC, GI ) * TDIFFUSION( MAT_NODK, 1:NDIM , 1:NDIM , IPHASE )
@@ -3961,7 +3968,7 @@
          ENDIF Conditional_MAT_DISOPT_ELE2
 
 
-!          PRINT *,'CV_NODI_IPHA,CV_NODJ_IPHA:',CV_NODI_IPHA,CV_NODJ_IPHA
+!          EWRITE(3,*)'CV_NODI_IPHA,CV_NODJ_IPHA:',CV_NODI_IPHA,CV_NODJ_IPHA
          DIFF_COEF_DIVDX    = MAX( DIFF_MIN_FRAC*DIFF_STAND_DIVDX, N_DOT_DKDT / &
               TOLFUN( T_CV_NODJ_IPHA  - T_CV_NODI_IPHA )  )
 !              TOLFUN( T( CV_NODJ_IPHA ) - T( CV_NODI_IPHA )) )

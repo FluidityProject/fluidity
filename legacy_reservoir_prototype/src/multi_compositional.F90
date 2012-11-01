@@ -31,45 +31,64 @@
     use fldebug
     use shape_functions
     use shape_functions_linear_quadratic
+    use Copy_Outof_State
     use futils, only: int2str
 
   contains
 
+    subroutine Calculate_ComponentAbsorptionTerm( state, &
+         icomp, cv_ndgln, & 
+         denold, saturaold, volfra_pore, mass_ele, &
+         comp_absorb )
 
-    SUBROUTINE CALC_COMP_ABSORB( ICOMP, NCOMP, DT, ALPHA_BETA, &
-         NPHASE, CV_NONODS, &
-         KCOMP_SIGMOID, K_COMP2, &
-         DENOLD, SATURAOLD, &
-         VOLFRA_PORE, COMP_ABSORB, &
-         TOTELE, CV_NLOC, CV_NDGLN, mass_ele )
+!!$ Calculate compositional model linkage between the phase expressed in COMP_ABSORB. 
+!!$ Use values from the previous time step so its easier to converge. 
+!!$ ALPHA_BETA is the scaling coeff. of the compositional model e.g. =1.0
 
-      ! Calculate compositional model linkage between the phase expressed in COMP_ABSORB. 
-      ! Use values from the previous time step so its easier to converge. 
-      ! ALPHA_BETA is the scaling coeff. of the compositional model e.g. =1.0
-
-      IMPLICIT NONE
-      INTEGER, intent( in ) :: ICOMP, NCOMP, NPHASE, CV_NONODS, TOTELE, CV_NLOC
-      REAL, intent( in ) :: DT, ALPHA_BETA
-      LOGICAL, intent( in ) :: KCOMP_SIGMOID
-      REAL, DIMENSION( NCOMP, NPHASE, NPHASE ), intent( in ) :: K_COMP2
-      REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: DENOLD, SATURAOLD
-      REAL, DIMENSION( TOTELE ), intent( in ) :: VOLFRA_PORE
-      REAL, DIMENSION( CV_NONODS, NPHASE, NPHASE  ), intent( inout ) :: COMP_ABSORB
-      INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in ) :: CV_NDGLN
-      real, dimension( totele ), intent( in ) :: mass_ele
+      implicit none
+      type( state_type ), dimension( : ), intent( in ) :: state
+      integer, intent( in ) :: icomp
+      integer, dimension( : ), intent( in ) :: cv_ndgln
+      real, dimension( : ), intent( in ) :: denold, saturaold, volfra_pore, mass_ele
+      real, dimension( :, :, : ), intent( inout ) :: comp_absorb
 
       ! Local Variables
-      INTEGER :: IPHASE, JPHASE, ELE, CV_ILOC, CV_NOD, JCOMP
-      REAL, DIMENSION( : ), allocatable :: ALPHA, SUM_NOD, VOLFRA_PORE_NOD
-      REAL, DIMENSION( : , : , : , : ), allocatable :: K_COMP
-      REAL :: MAX_K, MIN_K
+      integer :: nphase, nstate, ncomp, totele, ndim, stotel, &
+           u_nloc, xu_nloc, cv_nloc, x_nloc, x_nloc_p1, p_nloc, mat_nloc, &
+           x_snloc, cv_snloc, u_snloc, p_snloc, cv_nonods, mat_nonods, u_nonods, &  
+           xu_nonods, x_nonods, x_nonods_p1, p_nonods, &
+           istate, iphase, jphase, ele, cv_iloc, cv_nod, jcomp
+      real :: dt, alpha_beta, max_k, min_k
+      character( len = option_path_len ) :: option_path
+      logical :: KComp_Sigmoid
+      real, dimension( : ), allocatable :: alpha, sum_nod, volfra_pore_nod 
+      real, dimension( :, :, : ), allocatable :: k_comp
+      real, dimension( :, :, :, : ), allocatable :: k_comp2
 
-      ALLOCATE( ALPHA( CV_NONODS ))
-      ALLOCATE( SUM_NOD( CV_NONODS ))
-      ALLOCATE( VOLFRA_PORE_NOD( CV_NONODS ))
-      ALLOCATE( K_COMP( NCOMP, CV_NONODS, NPHASE, NPHASE ))
+      call Get_Primary_Scalars( state, &         
+           nphase, nstate, ncomp, totele, ndim, stotel, &
+           u_nloc, xu_nloc, cv_nloc, x_nloc, x_nloc_p1, p_nloc, mat_nloc, &
+           x_snloc, cv_snloc, u_snloc, p_snloc, &
+           cv_nonods, mat_nonods, u_nonods, xu_nonods, x_nonods, x_nonods_p1, p_nonods )
 
-      ! Determine a node-wise representation of porosity VOLFRA_PORE_NOD.      
+      allocate( alpha( cv_nonods ), sum_nod( cv_nonods ), volfra_pore_nod( cv_nonods ), &   
+           k_comp( ncomp, nphase, nphase ), k_comp2( ncomp, cv_nonods, nphase, nphase ) )
+      alpha = 0. ; sum_nod = 0. ; volfra_pore_nod = 0. ; k_comp = 0. ; k_comp2 = 0.
+
+      option_path = 'material_phase[' // int2str( nstate - ncomp ) // &
+           ']/is_multiphase_component'
+      call get_option( trim( option_path ) // '/alpha_beta', alpha_beta, default = 1. )
+      KComp_Sigmoid = have_option( trim( option_path ) // '/KComp_Sigmoid' )
+      if( KComp_Sigmoid ) then
+         do jcomp = 1, ncomp
+            call get_option( 'material_phase[' // int2str( nphase + jcomp - 1 ) // &
+                 ']/is_multiphase_component/KComp_Sigmoid/K_Comp', k_comp( jcomp, 1, 1 ) )
+            k_comp( jcomp, :, : ) = k_comp( jcomp, 1, 1 )
+         end do
+      end if
+      call get_option( '/timestepping/timestep', dt )
+
+!!$ Determine a node-wise representation of porosity VOLFRA_PORE_NOD.      
       SUM_NOD = 0.0
       VOLFRA_PORE_NOD = 0.0
       DO ELE = 1, TOTELE
@@ -83,13 +102,13 @@
       VOLFRA_PORE_NOD = VOLFRA_PORE_NOD / SUM_NOD
 
       COMP_ABSORB = 0.0
-      MIN_K = max( 1.e-1, MINVAL( K_COMP2( ICOMP, : , : )))
-      MAX_K = MAXVAL( K_COMP2( ICOMP, : , : ) )
+      MIN_K = max( 1.e-1, MINVAL( K_COMP( ICOMP, : , : )))
+      MAX_K = MAXVAL( K_COMP( ICOMP, : , : ) )
       CALL Calc_KComp2( cv_nonods, nphase, ncomp, icomp, KComp_Sigmoid, &
-           min( 1., max( 0., Saturaold )), K_Comp2, max_k, min_k, &
-           K_Comp )
+           min( 1., max( 0., Saturaold )), K_Comp, max_k, min_k, &
+           K_Comp2 )
 
-      ewrite(3,*)'min,max K:', ICOMP, MIN_K, MAX_K
+      ewrite(3,*)'icomp, min,max K:', ICOMP, MIN_K, MAX_K
 
       DO CV_NOD = 1, CV_NONODS
          DO IPHASE = 1, NPHASE
@@ -98,14 +117,14 @@
                ALPHA( CV_NOD ) = ALPHA_BETA * VOLFRA_PORE_NOD( CV_NOD ) * &
                     ( max( 0.0, SATURAOLD( ( IPHASE - 1) * CV_NONODS + CV_NOD ) * &
                     DENOLD( ( IPHASE - 1) * CV_NONODS + CV_NOD )) / &
-                    K_COMP( ICOMP, CV_NOD, IPHASE, JPHASE ) + &
+                    K_COMP2( ICOMP, CV_NOD, IPHASE, JPHASE ) + &
                     max( 0.0, SATURAOLD( ( JPHASE - 1) * CV_NONODS + CV_NOD ) * &
                     DENOLD( ( JPHASE - 1) * CV_NONODS + CV_NOD ))) / DT
 
                COMP_ABSORB( CV_NOD, IPHASE, IPHASE ) = &
                     COMP_ABSORB( CV_NOD, IPHASE, IPHASE ) + &
                     ALPHA( CV_NOD ) * &
-                    K_COMP( ICOMP, CV_NOD, IPHASE, JPHASE ) 
+                    K_COMP2( ICOMP, CV_NOD, IPHASE, JPHASE ) 
 
                COMP_ABSORB( CV_NOD, IPHASE, JPHASE ) = &
                     - ALPHA( CV_NOD )                  
@@ -123,13 +142,13 @@
                     DENOLD( ( IPHASE - 1) * CV_NONODS + CV_NOD )) + &
                     max(0.0,SATURAOLD( ( JPHASE - 1) * CV_NONODS + CV_NOD ) * &
                     DENOLD( ( JPHASE - 1) * CV_NONODS + CV_NOD )) / &
-                    K_COMP( ICOMP, CV_NOD, JPHASE, IPHASE )) / DT
+                    K_COMP2( ICOMP, CV_NOD, JPHASE, IPHASE )) / DT
 
                COMP_ABSORB( CV_NOD, IPHASE, IPHASE ) = &
                     COMP_ABSORB( CV_NOD, IPHASE, IPHASE ) + ALPHA( CV_NOD )
 
                COMP_ABSORB( CV_NOD, IPHASE, JPHASE ) = - ALPHA( CV_NOD ) * &
-                    K_COMP( ICOMP, CV_NOD, JPHASE, IPHASE ) 
+                    K_COMP2( ICOMP, CV_NOD, JPHASE, IPHASE ) 
 
             END DO
          END DO
@@ -143,52 +162,52 @@
               jphase = 1, nphase )
       end do
 
-      DEALLOCATE( ALPHA )
-      DEALLOCATE( SUM_NOD )
-      DEALLOCATE( VOLFRA_PORE_NOD )
-      DEALLOCATE( K_COMP )
+      deallocate( alpha, sum_nod, volfra_pore_nod, k_comp, k_comp2 )
 
       RETURN
 
-    END SUBROUTINE CALC_COMP_ABSORB
+    end subroutine Calculate_ComponentAbsorptionTerm
 
 
-
-    SUBROUTINE CALC_COMP_DIF( NDIM, NPHASE, COMP_DIFFUSION_OPT, MAT_NONODS, &
-         TOTELE, MAT_NLOC, CV_NLOC, U_NLOC, X_NLOC, CV_SNLOC, U_SNLOC, &
-         COMP_DIFFUSION, NCOMP_DIFF_COEF, COMP_DIFF_COEF, &
-         X_NONODS, X, Y, Z, NU, NV, NW, U_NONODS, CV_NONODS, &
-         MAT_NDGLN, U_NDGLN, X_NDGLN, &
-         U_ELE_TYPE, P_ELE_TYPE ) 
-      ! Calculate the diffusion coefficient COMP_DIFFUSION for current composition...
-      ! based on page 136 in Reservoir-Simulation-Mathematical-Techniques-In-Oil-Recovery-(2007).pdf
-      ! COMP_DIFFUSION_OPT, integer option defining diffusion coeff
-      ! NCOMP_DIFF_COEF,  integer defining how many coeff's are needed to define the diffusion
-      ! COMP_DIFF_COEF( NCOMP,  NCOMP_DIFF_COEF, NPHASE  )
-
+    subroutine Calculate_ComponentDiffusionTerm( state, &
+         mat_ndgln, u_ndgln, x_ndgln, &
+         x, y, z, nu, nv, nw, &
+         u_ele_type, p_ele_type, ncomp_diff_coef, comp_diffusion_opt, &
+         comp_diff_coef, &
+         comp_diffusion )
+!!$ Calculate the diffusion coefficient COMP_DIFFUSION for current composition...
+!!$ based on page 136 in Reservoir-Simulation-Mathematical-Techniques-In-Oil-Recovery-(2007).pdf
+!!$ COMP_DIFFUSION_OPT, integer option defining diffusion coeff
+!!$ NCOMP_DIFF_COEF,  integer defining how many coeff's are needed to define the diffusion
+!!$ COMP_DIFF_COEF( NCOMP,  NCOMP_DIFF_COEF, NPHASE  )
       implicit none
-      INTEGER, intent( in ) :: NDIM, NPHASE, NCOMP_DIFF_COEF, &
-           COMP_DIFFUSION_OPT, MAT_NONODS, TOTELE, MAT_NLOC, CV_NLOC, U_NLOC, X_NLOC, &
-           CV_SNLOC, U_SNLOC, X_NONODS, U_NONODS, CV_NONODS, U_ELE_TYPE, P_ELE_TYPE
-      REAL, DIMENSION( MAT_NONODS, NDIM, NDIM, NPHASE ), intent( inout ) :: COMP_DIFFUSION
-      REAL, DIMENSION( NCOMP_DIFF_COEF, NPHASE ), intent( in ) :: COMP_DIFF_COEF
-      REAL, DIMENSION( X_NONODS ), intent( in ) :: X, Y, Z
-      REAL, DIMENSION( U_NONODS * NPHASE ), intent( in ) :: NU, NV, NW
-      INTEGER, DIMENSION( TOTELE * MAT_NLOC ), intent( in ) :: MAT_NDGLN
-      INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ) :: U_NDGLN
-      INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in ) :: X_NDGLN
+      type( state_type ), dimension( : ), intent( in ) :: state
+      integer, dimension( : ), intent( in ) :: mat_ndgln, u_ndgln, x_ndgln
+      real, dimension( : ), intent( in ) :: x, y, z, nu, nv, nw
+      integer, intent( in ) :: u_ele_type, p_ele_type, ncomp_diff_coef, comp_diffusion_opt
+      real, dimension( :, : ), intent( in ) :: comp_diff_coef
+      real, dimension( :, :, :, : ),intent( inout ) :: comp_diffusion
+!!$ Local variables:
+      integer :: nphase, nstate, ncomp, totele, ndim, stotel, &
+           u_nloc, xu_nloc, cv_nloc, x_nloc, x_nloc_p1, p_nloc, mat_nloc, x_snloc, cv_snloc, u_snloc, &
+           p_snloc, cv_nonods, mat_nonods, u_nonods, xu_nonods, x_nonods, x_nonods_p1, p_nonods, &
+           ele, cv_nod, mat_nod, iphase, idim
+      real :: diff_molecular, diff_longitudinal, diff_transverse
+      real, dimension( : ), allocatable :: ud, mat_u
 
-      ! Local variables
-      REAL, DIMENSION( : ), allocatable :: UD, MAT_U
-      INTEGER :: ELE, CV_NOD, MAT_NOD, IPHASE, IDIM
-      REAL :: DIFF_molecular, DIFF_longitudinal, DIFF_transverse
+!!$ Extracting the primary scalars from state:
+      call Get_Primary_Scalars( state, &         
+           nphase, nstate, ncomp, totele, ndim, stotel, &
+           u_nloc, xu_nloc, cv_nloc, x_nloc, x_nloc_p1, p_nloc, mat_nloc, &
+           x_snloc, cv_snloc, u_snloc, p_snloc, &
+           cv_nonods, mat_nonods, u_nonods, xu_nonods, x_nonods, x_nonods_p1, p_nonods )
 
-      IF( COMP_DIFFUSION_OPT == 0 ) THEN
-         COMP_DIFFUSION = 0.0
-         RETURN
-      ENDIF
+      if( comp_diffusion_opt == 0 ) then
+         comp_diffusion = 0.0
+         return
+      endif
 
-      ALLOCATE( MAT_U( NPHASE * NDIM * CV_NONODS ))
+      ALLOCATE( MAT_U( NPHASE * NDIM * CV_NONODS ), UD( NDIM ) ) ; mat_u = 0. ; ud = 0.
 
       CALL PROJ_U2MAT( NDIM, NPHASE, COMP_DIFFUSION_OPT, MAT_NONODS, &
            TOTELE, CV_NONODS, MAT_NLOC, CV_NLOC, U_NLOC, X_NLOC, CV_SNLOC, U_SNLOC, &
@@ -198,7 +217,6 @@
            MAT_U ) 
 
       ! Determine the diffusion coeff tensor COMP_DIFFUSION from MAT_U and COMP_DIFF_COEF
-      ALLOCATE( UD( NDIM ))
 
       DO MAT_NOD = 1, MAT_NONODS
          DO IPHASE = 1, NPHASE
@@ -217,11 +235,13 @@
          END DO
       END DO
 
-      DEALLOCATE( MAT_U )
-      DEALLOCATE( UD )
+      DEALLOCATE( MAT_U, UD )
 
-      RETURN
-    end subroutine CALC_COMP_DIF
+      return
+    end subroutine Calculate_ComponentDiffusionTerm
+
+
+
 
 
 

@@ -102,8 +102,8 @@
                   rlx = lx( p )
                   rly = ly( q )
                   if( ngi_l /= 0 ) then
-                    rlx = l1( gpoi )
-                    rly = l2( gpoi )
+                     rlx = l1( gpoi )
+                     rly = l2( gpoi )
                   endif
                   if( mloc == 1 ) m( 1, gpoi ) = 1.
                   weight( gpoi ) = 1.
@@ -148,12 +148,12 @@
                   rlx = lx( p )
                   rly = ly( q )
                   if( ngi_l /= 0 ) then
-                    rlx = l1( gpoi )
-                    rly = l2( gpoi )
+                     rlx = l1( gpoi )
+                     rly = l2( gpoi )
                   endif
                   if( mloc == 1 ) m( 1, gpoi ) = 1.
                   weight( gpoi ) = weit( p ) * weit( q )
-                 ! n( corn, gpoi ) = 0.25 * ( 1. + lxp( corn ) * lxp( p ) * &
+                  ! n( corn, gpoi ) = 0.25 * ( 1. + lxp( corn ) * lxp( p ) * &
                   n( corn, gpoi ) = 0.25 * ( 1. + lxp( corn ) * rlx * &
                        ( 1. + lyp( corn ) * rly ) )
                   nlx( corn, gpoi ) = 0.25 * lxp( corn ) * &
@@ -619,21 +619,21 @@
       allocate( dzn( nl ) )
 
       Conditional_LOWQUA: if((ngi == 1) ) then
-            if(ngi_l /= 0) then
-               lx( 1 ) = l1(1)
-               ly( 1 ) = l2(1)
-               lz( 1 ) = l3(1)
-            else
-               lx( 1 ) = 0.0
-               ly( 1 ) = 0.0
-               lz( 1 ) = 0.0
-            endif
-            ! this should be 2, but the
-            ! 1pt quadrature gets the 
-            ! volume wrong so adjust it...
-            weit( 1 ) = 2.0
-            nquad=1
-        else if( lowqua .or. (ngi == 8) ) then
+         if(ngi_l /= 0) then
+            lx( 1 ) = l1(1)
+            ly( 1 ) = l2(1)
+            lz( 1 ) = l3(1)
+         else
+            lx( 1 ) = 0.0
+            ly( 1 ) = 0.0
+            lz( 1 ) = 0.0
+         endif
+         ! this should be 2, but the
+         ! 1pt quadrature gets the 
+         ! volume wrong so adjust it...
+         weit( 1 ) = 2.0
+         nquad=1
+      else if( lowqua .or. (ngi == 8) ) then
          posi = 1. / sqrt( 3. )
          if( ngi_l /= 0 ) then
             lx( 1 ) = l1(1)
@@ -817,22 +817,22 @@
       logical, intent( in ) :: QUAD_OVER_WHOLE_ELE
       integer, intent( inout ) :: cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface
       ! Local variables
-! volume_order & surface_order are the volume and surface 
-! order of the integration used within each sub-quad/hex for CV approach.
-! Default value -ve or 0 value is always 1pt quadrature (=1). 
+      ! volume_order & surface_order are the volume and surface 
+      ! order of the integration used within each sub-quad/hex for CV approach.
+      ! Default value -ve or 0 value is always 1pt quadrature (=1). 
       integer, PARAMETER :: volume_order=1
-!      integer, PARAMETER :: volume_order=2
+      !      integer, PARAMETER :: volume_order=2
       integer, PARAMETER :: surface_order=1
-!      integer, PARAMETER :: surface_order=2
-! whole_ele_volume_order & whole_ele_surface_order are the volume and surface 
-! order of the integration used within each sub-quad/hex for QUAD_OVER_WHOLE_ELE=.true.
-! -ve or 0 and take on the default value. 
+      !      integer, PARAMETER :: surface_order=2
+      ! whole_ele_volume_order & whole_ele_surface_order are the volume and surface 
+      ! order of the integration used within each sub-quad/hex for QUAD_OVER_WHOLE_ELE=.true.
+      ! -ve or 0 and take on the default value. 
       integer, PARAMETER :: whole_ele_volume_order=0
-!      integer, PARAMETER :: whole_ele_volume_order=1
-!      integer, PARAMETER :: whole_ele_volume_order=2
+      !      integer, PARAMETER :: whole_ele_volume_order=1
+      !      integer, PARAMETER :: whole_ele_volume_order=2
       integer, PARAMETER :: whole_ele_surface_order=0
-!      integer, PARAMETER :: whole_ele_surface_order=1
-!      integer, PARAMETER :: whole_ele_surface_order=2
+      !      integer, PARAMETER :: whole_ele_surface_order=1
+      !      integer, PARAMETER :: whole_ele_surface_order=2
       character( len = option_path_len ) :: overlapping_path
 
       Conditional_EleType: Select Case( cv_ele_type )
@@ -1074,17 +1074,17 @@
 
       if(.not.QUAD_OVER_WHOLE_ELE) then
          if( cv_ele_type > 2 ) scvngi = scvngi + nface * sbcvngi
-      endif 
+      endif
       cv_ngi_short = cv_ngi
 
       call get_option( '/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
            overlapping_path )
       if( trim( overlapping_path ) == 'overlapping' ) cv_ngi = cv_ngi * cv_nloc
 
-!         ewrite(3,*)'cv_ele_type,cv_ngicv_ngi_short=', &
-!                  cv_ele_type,cv_ngi,cv_ngi_short
-!         ewrite(3,*)'scvngi,sbcvngi=',scvngi,sbcvngi
-!         stop 393
+      !         ewrite(3,*)'cv_ele_type,cv_ngicv_ngi_short=', &
+      !                  cv_ele_type,cv_ngi,cv_ngi_short
+      !         ewrite(3,*)'scvngi,sbcvngi=',scvngi,sbcvngi
+      !         stop 393
       return
     end subroutine retrieve_ngi
 
@@ -1516,15 +1516,15 @@
 
 
 
-       subroutine quad_basis_funs_1d(sngi, snloc,  &
-                 sweigh, sn, snlx )
-       
-! determine the 1d shape functions sn and its local derivative slnx. 
+    subroutine quad_basis_funs_1d(sngi, snloc,  &
+         sweigh, sn, snlx )
+
+      ! determine the 1d shape functions sn and its local derivative slnx. 
       implicit none
       integer, intent( in ) :: sngi, snloc
       real, dimension( snloc, sngi ), intent( inout ) :: sn, snlx
       real, dimension( sngi ), intent( inout ) :: sweigh
-! local variables...
+      ! local variables...
       integer :: iloc, gpoi
       real :: lxgp
       logical :: diff, ndiff, getndp
@@ -1547,17 +1547,17 @@
       call lagrot( sweigh, quad_pts, sngi, getndp )
 
       do iloc = 1, snloc
-        do gpoi=1,sngi
-               lxgp=quad_pts(gpoi)
-               sn( iloc, gpoi )   = lagran( ndiff, lxgp, iloc, snloc, snodpos )
-               snlx( iloc, gpoi ) = lagran( diff,  lxgp, iloc, snloc, snodpos )
-        end do
+         do gpoi=1,sngi
+            lxgp=quad_pts(gpoi)
+            sn( iloc, gpoi )   = lagran( ndiff, lxgp, iloc, snloc, snodpos )
+            snlx( iloc, gpoi ) = lagran( diff,  lxgp, iloc, snloc, snodpos )
+         end do
       end do
       deallocate(quad_pts)
       deallocate(snodpos)
       deallocate(rdummy)
-       return
-       end subroutine quad_basis_funs_1d
+      return
+    end subroutine quad_basis_funs_1d
 
 
 

@@ -37,6 +37,7 @@
     use futils, only: int2str
     use vector_tools
     use python_state
+    use Copy_Outof_State
 
   contains
 
@@ -519,35 +520,54 @@
     END SUBROUTINE CAL_CPDEN
 
 
-    SUBROUTINE calculate_absorption( MAT_NONODS, CV_NONODS, NPHASE, NDIM, SATURA, TOTELE, CV_NLOC, MAT_NLOC, &
-         CV_NDGLN, MAT_NDGLN, &
-         U_ABSORB, PERM, MOBILITY, &
-         OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS )
+
+    subroutine Calculate_AbsorptionTerm( state, &
+         cv_ndgln, mat_ndgln, &
+         satura, perm, &
+         nopt_vel_upwind_coefs, opt_vel_upwind_coefs, u_absorb )
       ! Calculate absorption for momentum eqns
       use matrix_operations
-      !    use cv_advection
       implicit none
-      INTEGER, intent( in ) :: MAT_NONODS, CV_NONODS, NPHASE, NDIM, TOTELE, CV_NLOC,MAT_NLOC, &
-           NOPT_VEL_UPWIND_COEFS 
-      REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: SATURA
-      INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in ) :: CV_NDGLN
-      INTEGER, DIMENSION( TOTELE * MAT_NLOC ), intent( in ) :: MAT_NDGLN
-      REAL, DIMENSION( MAT_NONODS, NDIM * NPHASE, NDIM * NPHASE ), intent( inout ) :: U_ABSORB
-      REAL, DIMENSION( TOTELE, NDIM, NDIM ), intent( in ) :: PERM
-      REAL, intent( in ) :: MOBILITY
-      REAL, DIMENSION( NOPT_VEL_UPWIND_COEFS ), intent( inout ) :: OPT_VEL_UPWIND_COEFS
-      ! local variable...
-      REAL, DIMENSION( :, :, :), allocatable :: U_ABSORB2
-      REAL, DIMENSION( : ), allocatable :: SATURA2
-      REAL :: PERT
-      INTEGER :: ELE, IMAT, ICV, IPHASE, CV_ILOC, IDIM, JDIM, IJ
+      type( state_type ), dimension( : ), intent( in ) :: state
+      integer, dimension( : ), intent( in ) :: cv_ndgln, mat_ndgln
+      real, dimension( : ), intent( in ) :: satura
+      real, dimension( :, :, : ), intent( in ) :: perm
+      integer, intent( in ) :: nopt_vel_upwind_coefs
+      real, dimension( nopt_vel_upwind_coefs ), intent( inout ) :: opt_vel_upwind_coefs
+      real, dimension( :, :, : ), intent( inout ) :: u_absorb
+!!$ Local variables:
+      type( tensor_field ), pointer :: viscosity_ph1, viscosity_ph2
+      integer :: nphase, nstate, ncomp, totele, ndim, stotel, &
+           u_nloc, xu_nloc, cv_nloc, x_nloc, x_nloc_p1, p_nloc, mat_nloc, x_snloc, cv_snloc, u_snloc, &
+           p_snloc, cv_nonods, mat_nonods, u_nonods, xu_nonods, x_nonods, x_nonods_p1, p_nonods, &
+           ele, imat, icv, iphase, cv_iloc, idim, jdim, ij
+      real :: Mobility, pert
+      real, dimension( :, :, : ), allocatable :: u_absorb2
+      real, dimension( : ), allocatable :: satura2
+
+!!$ Obtaining a few scalars that will be used in the current subroutine tree:
+      call Get_Primary_Scalars( state, &         
+           nphase, nstate, ncomp, totele, ndim, stotel, &
+           u_nloc, xu_nloc, cv_nloc, x_nloc, x_nloc_p1, p_nloc, mat_nloc, &
+           x_snloc, cv_snloc, u_snloc, p_snloc, &
+           cv_nonods, mat_nonods, u_nonods, xu_nonods, x_nonods, x_nonods_p1, p_nonods )
+
 
       ewrite(3,*) 'In calculate_absorption'
 
-      ALLOCATE( U_ABSORB2( MAT_NONODS, NDIM * NPHASE, NDIM * NPHASE ))
-      ALLOCATE( SATURA2( CV_NONODS * NPHASE ))
-      U_ABSORB2 = 0.
-      SATURA2 = 0.
+      if( have_option( '/physical_parameters/mobility' ) )then
+         call get_option( '/physical_parameters/mobility', Mobility )
+      elseif( have_option( '/material_phase[1]/vector_field::Velocity/prognostic/tensor_field::Viscosity' // &
+           '/prescribed/value::WholeMesh/isotropic' ) ) then
+         viscosity_ph1 => extract_tensor_field( state( 1 ), 'Viscosity' )
+         viscosity_ph2 => extract_tensor_field( state( 2 ), 'Viscosity' )
+         Mobility =  viscosity_ph2%val( 1, 1, 1 ) / viscosity_ph1%val( 1, 1, 1 )  
+      elseif( nphase == 1 ) then
+         Mobility = 0.
+      end if
+
+      allocate( u_absorb2( mat_nonods, nphase * ndim, nphase * ndim ), satura2( cv_nonods * nphase ) )
+      u_absorb2 = 0. ; satura2 = 0.
 
       !    ewrite(3,*)'b4 in calculate_absorption2, SATURA0',size(SATURA),SATURA
       CALL calculate_absorption2( MAT_NONODS, CV_NONODS, NPHASE, NDIM, SATURA, TOTELE, CV_NLOC, MAT_NLOC, &
@@ -584,12 +604,12 @@
          END DO
       END DO
 
-      !    ewrite(3,*)'in calculate_absorption, U_ABSORB:', size(U_ABSORB),U_ABSORB
-      !    ewrite(3,*)'in calculate_absorption, OPT_VEL_UPWIND_COEFS:', size(OPT_VEL_UPWIND_COEFS),OPT_VEL_UPWIND_COEFS
+      deallocate( u_absorb2, satura2 )
       ewrite(3,*) 'Leaving calculate_absorption'
+
       RETURN
 
-    END SUBROUTINE calculate_absorption
+    END SUBROUTINE Calculate_AbsorptionTerm
 
 
     SUBROUTINE calculate_absorption2( MAT_NONODS, CV_NONODS, NPHASE, NDIM, SATURA, TOTELE, CV_NLOC, MAT_NLOC, &
