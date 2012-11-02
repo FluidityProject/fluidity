@@ -146,17 +146,17 @@
                   proto_velocity_u_tmp ( (p-1)*number_nodes + (i-1)*nloc + 1 : (p-1)*number_nodes + i*nloc ) = &
                        proto_velocity_u_tmp ( (p-1)*number_nodes + (i-1)*nloc + 1 : (p-1)*number_nodes + i*nloc ) + &
                        proto_velocity_u ( (p-1)*number_nodes*nlev + (i-1)*nloc*nlev + (j-1)*nloc+ 1 : & 
-                       &                        (p-1)*number_nodes*nlev + (i-1)*nloc*nlev + j*nloc )
+                       (p-1)*number_nodes*nlev + (i-1)*nloc*nlev + j*nloc )
 
                   proto_velocity_v_tmp ( (p-1)*number_nodes + (i-1)*nloc + 1 : (p-1)*number_nodes + i*nloc ) = &
                        proto_velocity_v_tmp ( (p-1)*number_nodes + (i-1)*nloc + 1 : (p-1)*number_nodes + i*nloc ) + &
                        proto_velocity_v ( (p-1)*number_nodes*nlev + (i-1)*nloc*nlev + (j-1)*nloc+ 1 : & 
-                       &                        (p-1)*number_nodes*nlev + (i-1)*nloc*nlev + j*nloc )
+                       (p-1)*number_nodes*nlev + (i-1)*nloc*nlev + j*nloc )
 
                   proto_velocity_w_tmp ( (p-1)*number_nodes + (i-1)*nloc + 1 : (p-1)*number_nodes + i*nloc ) = &
                        proto_velocity_w_tmp ( (p-1)*number_nodes + (i-1)*nloc + 1 : (p-1)*number_nodes + i*nloc ) + &
                        proto_velocity_w ( (p-1)*number_nodes*nlev + (i-1)*nloc*nlev + (j-1)*nloc+ 1 : & 
-                       &                        (p-1)*number_nodes*nlev + (i-1)*nloc*nlev + j*nloc )
+                       (p-1)*number_nodes*nlev + (i-1)*nloc*nlev + j*nloc )
                end do
             end do
          end do

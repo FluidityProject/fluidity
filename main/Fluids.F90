@@ -109,7 +109,8 @@ module fluids_module
 
   private
 
-  public :: fluids, fluids_module_check_options
+  public :: fluids, fluids_module_check_options, &
+             pre_adapt_tasks, update_state_post_adapt
 
   interface
     subroutine check_options
