@@ -59,8 +59,8 @@ assert MinimumPressure &gt; -0.25
 assert abs ( FinalNodeCount - 14200 ) &lt; 1000
     </test>
     <test name="Reattachment length does not change by more than 10%" language="python">
-        print ( ( max(RL[:,0]) - min(RL[:,0]) ) / min(RL[:,0]) )
-assert( ( max(RL[:,0]) - min(RL[:,0]) ) / min(RL[:,0]) &lt; 0.1)
+        print ( ( max(RL[1:len(RL),0]) - min(RL[1:len(RL),0]) ) / min(RL[1:len(RL),0]) )
+assert( ( max(RL[1:len(RL),0]) - min(RL[1:len(RL),0]) ) / min(RL[1:len(RL),0]) &lt; 0.1)
     </test>
   </pass_tests>
   <warn_tests>
