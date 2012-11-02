@@ -22,7 +22,7 @@ run_48: envcheck
 postprocess: envcheck
 	@echo **********Calling the python plotting scripts:
 	PYTHONPATH=${PWD}/../../python:$$PYTHONPATH ./Plot_RMS.py
-	PYTHONPATH=${PWD}/../../python:$$PYTHONPATH ./Plot_Nusselt.py
+	PYTHONPATH=${PWD}/../../python:$$PYTHONPATH ./Plot_Nu.py
 
 input: clean preprocess
 
