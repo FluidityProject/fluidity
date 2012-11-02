@@ -7,9 +7,21 @@ import state_types as fluidity_state
 from state_types import *
 from ufl_expr import *
 from bcs import *
+from libspud import get_option, have_option
 
 valuetype = numpy.float64
-op2.init()
+
+if have_option("/pyop2_backend"):
+  backend = get_option("/pyop2_backend")
+else:
+  backend = "sequential"
+
+try:
+  op2.init(backend=backend)
+except:
+  print "*** ERROR ***"
+  print "Was unable to initialise requested backend (%s) from PyOP2" % backend
+  raise
 
 class FieldDict(dict):
 
