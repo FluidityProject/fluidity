@@ -94,12 +94,12 @@ void apply_dirichlet(double **t, double *val) { t[0][0] = *val; t[1][0] = *val; 
 """
 
 _apply_dirichlet = {}
-_apply_dirichlet[1] = op2.Kernel(_apply_dirichlet_1, "apply_dirichlet")
 
 class LinearVariationalSolver(object):
     """Solves a linear variational problem."""
     
     def __init__(self, problem):
+        _apply_dirichlet[1] = op2.Kernel(_apply_dirichlet_1, "apply_dirichlet")
         self._problem = problem
         self.parameters = {}
         self.parameters.update(DEFAULT_SOLVER_PARAMETERS)

@@ -11,17 +11,18 @@ from libspud import get_option, have_option
 
 valuetype = numpy.float64
 
-if have_option("/pyop2_backend"):
-  backend = get_option("/pyop2_backend")
-else:
-  backend = "sequential"
+def _init():
+  if have_option("/pyop2_backend"):
+      backend = get_option("/pyop2_backend")
+  else:
+      backend = "sequential"
 
-try:
-  op2.init(backend=backend)
-except:
-  print "*** ERROR ***"
-  print "Was unable to initialise requested backend (%s) from PyOP2" % backend
-  raise
+  try:
+      op2.init(backend=backend)
+  except:
+      print "*** ERROR ***"
+      print "Was unable to initialise requested backend (%s) from PyOP2" % backend
+      raise
 
 class FieldDict(dict):
 

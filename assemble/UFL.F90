@@ -64,12 +64,13 @@ contains
     ! FIXME only support single phase for now
     call python_add_state(states(state_index))
 
-    call python_run_string("from fluidity.flop import *", stat)
+    call python_run_string("import fluidity.flop as flop", stat)
     if (stat /= 0) then
        ewrite(-1, *)"Trying to solve UFL equation but was unable to import flop.py"
        ewrite(-1, *)"Make sure PYTHONPATH is set correctly"
        FLExit("UFL equations require flop.py, which could not be loaded")
     end if
+    call python_run_string("flop._init()")
     call python_run_string("coordinates = state.vector_fields['Coordinate']")
     call python_run_string("for mesh in state.meshes.itervalues(): mesh.coords = coordinates")
     call python_run_string("dx._domain_data = coordinates")
