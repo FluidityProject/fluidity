@@ -1852,16 +1852,10 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     call PCSetType(pc, "fieldsplit", ierr)
 
     do i=1, size(subksps)
+      index_set = petsc_numbering_create_is(petsc_numbering, dim=i)
 #if PETSC_VERSION_MINOR>=2
-      ! for petsc 3.2 we have an extra PetscCopyMode argument
-      call ISCreateGeneral(MPI_COMM_FEMTOOLS, &
-         size(petsc_numbering%gnn2unn,1), petsc_numbering%gnn2unn(:,i), &
-         PETSC_COPY_VALUES, index_set, ierr)
       call PCFieldSplitSetIS(pc, PETSC_NULL_CHARACTER, index_set, ierr)
 #else
-      call ISCreateGeneral(MPI_COMM_FEMTOOLS, &
-         size(petsc_numbering%gnn2unn,1), petsc_numbering%gnn2unn(:,i), &
-         index_set, ierr)
       call PCFieldSplitSetIS(pc, index_set, ierr)
 #endif
     end do
