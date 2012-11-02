@@ -35,7 +35,7 @@ FinalNodeCount = fluidity_tools.stat_parser("backward_facing_step_2d_kim_kepsilo
     <variable name="RL" language="python">
 from postprocessor_2d import reattachment_length, get_filelist
 import numpy
-filelist = get_filelist(sample=5, start=0)
+filelist = get_filelist("kepsilon", sample=5, start=0)
 RL = numpy.array(reattachment_length(filelist))
     </variable>
   </variables>
