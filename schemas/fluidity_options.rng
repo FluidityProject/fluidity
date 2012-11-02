@@ -28,6 +28,14 @@ name, e.g. [simulation_name]_0.vtu. Non-standard
 characters in the simulation name should be avoided.</a:documentation>
         <ref name="anystring"/>
       </element>
+      <element name="pyop2_backend">
+        <a:documentation>Backend code generation target for flop.py (UFL equations)</a:documentation>
+        <choice>
+          <value>sequential</value>
+          <value>cuda</value>
+          <value>opencl</value>
+        </choice>
+      </element>
       <element name="problem_type">
         <a:documentation>Option problem_type does not change the tree.  It is just used for options checking.</a:documentation>
         <element name="string_value">
