@@ -1710,17 +1710,17 @@ contains
           ele1_nodes => ele_nodes(mesh, ele1)
           ele2_nodes => ele_nodes(mesh, ele2)
           if (SetContains( &
-             ele1_nodes(facet_numbering(ele_shape(mesh, ele1), lface1)), &
-             ele2_nodes(facet_numbering(ele_shape(mesh, ele2), lface2)))) then
+             ele1_nodes(facet_dofs(ele_shape(mesh, ele1), lface1)), &
+             ele2_nodes(facet_dofs(ele_shape(mesh, ele2), lface2)))) then
              ! apparently these faces are still connected
              ! (not currently supported)
              if (present(stat)) then
                stat = 1
              else
                ewrite(-1,*) "Face: ", face, "; element: ", ele1
-               ewrite(-1,*) "face_global_nodes(mesh, face): ", ele1_nodes(facet_numbering(ele_shape(mesh, ele1), lface1))
+               ewrite(-1,*) "face_global_nodes(mesh, face): ", ele1_nodes(facet_dofs(ele_shape(mesh, ele1), lface1))
                ewrite(-1,*) "Opposing face: ", face2, "; element: ", ele2
-               ewrite(-1,*) "face_global_nodes(mesh, face2): ", ele2_nodes(facet_numbering(ele_shape(mesh, ele2), lface2))
+               ewrite(-1,*) "face_global_nodes(mesh, face2): ", ele2_nodes(facet_dofs(ele_shape(mesh, ele2), lface2))
                FLAbort("Left-over internal faces in removing periodic bcs.")
              end if
          end if

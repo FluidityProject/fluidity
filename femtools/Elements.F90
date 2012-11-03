@@ -124,10 +124,6 @@ module elements
      module procedure element_local_vertices
   end interface
 
-  interface facet_numbering
-     module procedure element_facet_numbering
-  end interface
-
   interface operator(==)
      module procedure element_equal
   end interface
@@ -437,19 +433,6 @@ contains
     vertices=local_vertices(element%numbering)
     
   end function element_local_vertices
-
-  function element_facet_numbering(element, facet)
-    !!< A wrapper function which allows facet_numbering to be called on
-    !!< an element instead of on an element_numbering.
-    integer, intent(in) :: facet
-    type(element_type), intent(in) :: element
-    integer, dimension(facet_num_length(element%numbering, .false.)) ::&
-         & element_facet_numbering 
-    
-    element_facet_numbering=facet_numbering(element%numbering,&
-         & facet)
-
-  end function element_facet_numbering
 
   pure function element_equal(element1,element2)
     !!< Return true if the two elements are equivalent.

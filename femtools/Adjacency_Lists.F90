@@ -828,7 +828,7 @@ END SUBROUTINE NODELE
           ! fill in element on the other side of face j:
           call find_adjacent_element(ele, adj_ele, NEList, &
                nodes=mesh%ndglno((ele-1)*nloc+ &
-               facet_numbering(mesh%shape%numbering, j) &
+               facet_dofs(mesh%shape, j) &
                )  )
 #ifdef DDEBUG
           if(adj_ele >= 0) then
@@ -839,18 +839,18 @@ END SUBROUTINE NODELE
           else
              ! Encountered an error
              ewrite(-1, *) "For element ", ele, " with facet ", mesh%ndglno((ele - 1) * nloc + &
-               & facet_numbering(mesh%shape%numbering, j))
+               & facet_dofs(mesh%shape, j))
              allocate(debug_common_elements(0))
              call findcommonelements(debug_common_elements, no_found, nelist, &
                & nodes = mesh%ndglno((ele - 1) * nloc + &
-               & facet_numbering(mesh%shape%numbering, j) &
+               & facet_dofs(mesh%shape, j) &
                & ))
              ewrite(-1, *) "Number of common elements: ", no_found
              deallocate(debug_common_elements)
              allocate(debug_common_elements(no_found))
              call findcommonelements(debug_common_elements, no_found, nelist, &
                & nodes = mesh%ndglno((ele - 1) * nloc + &
-               & facet_numbering(mesh%shape%numbering, j) &
+               & facet_dofs(mesh%shape, j) &
                & ))
              ewrite(-1, *) "Common elements: ", debug_common_elements
              deallocate(debug_common_elements)

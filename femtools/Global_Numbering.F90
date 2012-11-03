@@ -3,7 +3,6 @@
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
 !
-!    Prof. C Pain
 !    Applied Modelling and Computation Group
 !    Department of Earth Science and Engineering
 !    Imperial College London

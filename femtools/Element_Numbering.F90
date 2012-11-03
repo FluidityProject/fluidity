@@ -905,10 +905,11 @@ contains
 
        ! For trace elements, the first local_coordinate is the face number.
        ele%facet_coord=1
-       forall(j=1:ele%vertices)
+       forall(j=1:ele%facets)
           ! The first local coordinate labels the face.
           ele%facet_val(j)=j
        end forall
+
     end do degree_loop
     
   end subroutine number_triangles_trace
@@ -977,7 +978,7 @@ contains
 
        ! For trace elements, the first local_coordinate is the face number.
        ele%facet_coord=1
-       forall(j=1:ele%vertices)
+       forall(j=1:ele%facets)
           ! The first local coordinate labels the face.
           ele%facet_val(j)=j
        end forall
@@ -1662,7 +1663,6 @@ contains
     k=0
 
     do i=1,ele_num%nodes
-       
        if (ele_num%number2count(ele_num%facet_coord(facet),i)==&
             & ele_num%facet_val(facet)) then
           ! We are on the face.
@@ -1671,7 +1671,7 @@ contains
        end if
 
     end do
-
+    
     ASSERT(k==size(numbering))
     
 !!$    select case (ele_num%family)
