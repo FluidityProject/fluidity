@@ -1,9 +1,9 @@
-H = 0.1;
+H = 1.0;
 x1 = 3*H;
 x2 = 6*H;
 h = 2*H;
 b = 7*H;
-dx = H/3;
+dx = H/25;
 
 // Points of outer (upper half-)cube
 Point(1) = {-x1, 0, b/2, dx};

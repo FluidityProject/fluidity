@@ -12,11 +12,11 @@ params = {'text.fontsize': 11,
 pylab.rcParams.update(params)
 
 # Maximum number of VTU files
-N = 40
+N = 17
 
 # Dimensions
-H = 0.1
-U = 0.6
+H = 1.0
+U = 32.0
 h = 2*H
 x = 0.5*H
 
@@ -40,12 +40,20 @@ for n in range(N, N+1):
 
 u_bar = u_bar
 # Plot the numerical results
-pylab.plot(u_bar/U, Y/H, '-b', label="Fluidity")
+pylab.plot(u_bar/U, Y/H, '-b', label="Fluidity (x/H = 0.5)")
 
-pylab.legend()
+experimental_y = [1.0, 1.0194, 1.0485, 1.077669, 1.097, 1.1067, 1.116,
+1.165, 1.1747, 1.20388, 1.2427, 1.328855, 1.38778, 1.466, 1.52427, 1.5825,
+1.64077, 1.7087, 1.76699, 1.82524, 1.8737, 1.97087]
+experimental_u_bar = [-0.023, -0.534, -0.534, -0.499, -0.452, -0.394, -0.37,
+0.06, 0.35, 0.7, 1.119, 1.28155, 1.3495, 1.3426, 1.3084, 1.274,
+1.24, 1.2175, 1.1833, 1.1375, 1.09155, 0.96477]
+pylab.plot(experimental_u_bar, experimental_y, 'ro', label="Experimental (x/H = 0.5)")
+
+pylab.legend(loc=4)
 pylab.xlabel("Normalised mean velocity (u/U)")
 pylab.ylabel("Normalised height (y/H)")
 pylab.grid("on")
 
-pylab.show()
-#pylab.savefig('flow_past_a_cube.png')
+#pylab.show()
+pylab.savefig('flow_past_a_cube.png')
