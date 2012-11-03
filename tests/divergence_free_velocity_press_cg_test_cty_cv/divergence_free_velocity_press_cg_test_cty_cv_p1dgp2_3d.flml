@@ -168,7 +168,9 @@
                 </scheme>
                 <solver>
                     <iterative_method name="preonly"></iterative_method>
-                    <preconditioner name="lu"></preconditioner>
+                    <preconditioner name="lu">
+                        <factorization_package name="petsc"></factorization_package>
+                    </preconditioner>
                     <relative_error>
                         <real_value rank="0">1e-10</real_value>
                     </relative_error>
@@ -229,7 +231,9 @@
                 </temporal_discretisation>
                 <solver>
                     <iterative_method name="preonly"></iterative_method>
-                    <preconditioner name="lu"></preconditioner>
+                    <preconditioner name="lu">
+                        <factorization_package name="petsc"></factorization_package>
+                    </preconditioner>
                     <relative_error>
                         <real_value rank="0">1e-10</real_value>
                     </relative_error>

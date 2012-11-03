@@ -1,16 +1,18 @@
-preprocess: 
+include envcheck.mk
+
+preprocess: envcheck
 	@echo **********Generating the mesh using gmsh in 2d:
 	gmsh -2 2dtank.geo
 	@echo **********Converting the gmsh mesh to triangle format:
-	../../bin/gmsh2triangle -2 2dtank.msh
+	${BINPREFIX}gmsh2triangle -2 2dtank.msh
 
 run:
 	@echo **********Calling fluidity with verbose log output enabled:
-	../../bin/fluidity -v2 -l water_collapse.flml
+	${BINPREFIX}fluidity -v2 -l water_collapse.flml
 
-postprocess:
+postprocess: envcheck
 	@echo **********Calling the data extraction and plotting python script:
-	./plot_data.py
+	PYTHONPATH=${PWD}/../../python:$$PYTHONPATH ./plot_data.py
 
 input: clean preprocess
 

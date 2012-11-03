@@ -1167,21 +1167,68 @@
                     </steady_state>
                     <consistent_interpolation></consistent_interpolation>
                     <scalar_field name="Bedload" rank="0">
-                        <prescribed>
+                        <prognostic>
                             <surface_ids>
                                 <integer_value rank="1" shape="1">2</integer_value>
                             </surface_ids>
-                            <value name="WholeMesh">
+                            <equation name="AdvectionDiffusion"></equation>
+                            <spatial_discretisation>
+                                <continuous_galerkin>
+                                    <stabilisation>
+                                        <no_stabilisation></no_stabilisation>
+                                    </stabilisation>
+                                    <advection_terms></advection_terms>
+                                    <mass_terms></mass_terms>
+                                </continuous_galerkin>
+                                <conservative_advection>
+                                    <real_value rank="0">0</real_value>
+                                </conservative_advection>
+                            </spatial_discretisation>
+                            <temporal_discretisation>
+                                <theta>
+                                    <real_value rank="0">0.5</real_value>
+                                </theta>
+                            </temporal_discretisation>
+                            <solver>
+                                <iterative_method name="gmres">
+                                    <restart>
+                                        <integer_value rank="0">30</integer_value>
+                                    </restart>
+                                </iterative_method>
+                                <preconditioner name="sor"></preconditioner>
+                                <relative_error>
+                                    <real_value rank="0">1e-06</real_value>
+                                </relative_error>
+                                <absolute_error>
+                                    <real_value rank="0">1e-15</real_value>
+                                </absolute_error>
+                                <max_iterations>
+                                    <integer_value rank="0">1000</integer_value>
+                                </max_iterations>
+                                <never_ignore_solver_failures></never_ignore_solver_failures>
+                                <diagnostics>
+                                    <monitors></monitors>
+                                </diagnostics>
+                            </solver>
+                            <initial_condition name="WholeMesh">
                                 <python>
                                     <string_value lines="20" type="code" language="python">def val(X,t):&#x0A;   import mms_sediment_tools as k&#x0A;   return k.s1_d(X)</string_value>
                                 </python>
-                            </value>
+                            </initial_condition>
                             <output></output>
                             <stat></stat>
+                            <convergence>
+                                <include_in_convergence></include_in_convergence>
+                            </convergence>
                             <detectors>
-                                <exclude_from_detectors></exclude_from_detectors>
+                                <include_in_detectors></include_in_detectors>
                             </detectors>
-                        </prescribed>
+                            <steady_state>
+                                <include_in_steady_state></include_in_steady_state>
+                            </steady_state>
+                            <consistent_interpolation></consistent_interpolation>
+                            <disable_calculation></disable_calculation>
+                        </prognostic>
                     </scalar_field>
                     <scalar_field name="BedloadVolumeFraction" rank="0">
                         <diagnostic>
@@ -1368,21 +1415,68 @@
                     </steady_state>
                     <consistent_interpolation></consistent_interpolation>
                     <scalar_field name="Bedload" rank="0">
-                        <prescribed>
+                        <prognostic>
                             <surface_ids>
                                 <integer_value rank="1" shape="1">2</integer_value>
                             </surface_ids>
-                            <value name="WholeMesh">
+                            <equation name="AdvectionDiffusion"></equation>
+                            <spatial_discretisation>
+                                <continuous_galerkin>
+                                    <stabilisation>
+                                        <no_stabilisation></no_stabilisation>
+                                    </stabilisation>
+                                    <advection_terms></advection_terms>
+                                    <mass_terms></mass_terms>
+                                </continuous_galerkin>
+                                <conservative_advection>
+                                    <real_value rank="0">0</real_value>
+                                </conservative_advection>
+                            </spatial_discretisation>
+                            <temporal_discretisation>
+                                <theta>
+                                    <real_value rank="0">0.5</real_value>
+                                </theta>
+                            </temporal_discretisation>
+                            <solver>
+                                <iterative_method name="gmres">
+                                    <restart>
+                                        <integer_value rank="0">30</integer_value>
+                                    </restart>
+                                </iterative_method>
+                                <preconditioner name="sor"></preconditioner>
+                                <relative_error>
+                                    <real_value rank="0">1e-06</real_value>
+                                </relative_error>
+                                <absolute_error>
+                                    <real_value rank="0">1e-15</real_value>
+                                </absolute_error>
+                                <max_iterations>
+                                    <integer_value rank="0">1000</integer_value>
+                                </max_iterations>
+                                <never_ignore_solver_failures></never_ignore_solver_failures>
+                                <diagnostics>
+                                    <monitors></monitors>
+                                </diagnostics>
+                            </solver>
+                            <initial_condition name="WholeMesh">
                                 <python>
                                     <string_value lines="20" type="code" language="python">def val(X,t):&#x0A;   import mms_sediment_tools as k&#x0A;   return k.s2_d(X)</string_value>
                                 </python>
-                            </value>
+                            </initial_condition>
                             <output></output>
                             <stat></stat>
+                            <convergence>
+                                <include_in_convergence></include_in_convergence>
+                            </convergence>
                             <detectors>
-                                <exclude_from_detectors></exclude_from_detectors>
+                                <include_in_detectors></include_in_detectors>
                             </detectors>
-                        </prescribed>
+                            <steady_state>
+                                <include_in_steady_state></include_in_steady_state>
+                            </steady_state>
+                            <consistent_interpolation></consistent_interpolation>
+                            <disable_calculation></disable_calculation>
+                        </prognostic>
                     </scalar_field>
                     <scalar_field name="BedloadVolumeFraction" rank="0">
                         <diagnostic>

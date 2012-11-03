@@ -173,19 +173,11 @@ contains
        end if
        
        ! obtain surface ids over which to record deposition
-       if (have_option(trim(bedload_field%option_path)//"/diagnostic")) then
-          surface_id_count=option_shape(trim(bedload_field%option_path)//&
-               &"/diagnostic/surface_ids")
-          allocate(surface_ids(surface_id_count(1)))
-          call get_option(trim(bedload_field%option_path)//"/diagnostic/surface_ids", &
-               & surface_ids)
-       else
-          surface_id_count=option_shape(trim(bedload_field%option_path)//&
-               &"/prescribed/surface_ids")
-          allocate(surface_ids(surface_id_count(1)))
-          call get_option(trim(bedload_field%option_path)//"/prescribed/surface_ids", &
-               & surface_ids)
-       end if
+       surface_id_count=option_shape(trim(bedload_field%option_path)//&
+            &"/prognostic/surface_ids")
+       allocate(surface_ids(surface_id_count(1)))
+       call get_option(trim(bedload_field%option_path)//"/prognostic/surface_ids", &
+            & surface_ids)
 
        ! loop through elements in surface field
        elements: do ele=1,element_count(deposited_sediment(i_field))
@@ -243,7 +235,7 @@ contains
           call scale(diagnostic_field, 1./dt)
        end if
        
-       if (.not. have_option(trim(bedload_field%option_path)//'/prescribed')) then
+       if (.not. have_option(trim(bedload_field%option_path)//'/prognostic/disable_calculation')) then
           ! Add on sediment falling in and subtract sediment coming out
           do i_node = 1, node_count(surface_mesh(i_field))
              ! add deposited sediment
@@ -626,7 +618,7 @@ contains
     elsewhere
         sigma_squared = 0.0
     end where
-    sigma = shape_rhs(shape, sigma_squared**0.5 * detwei)
+    sigma = shape_rhs(shape, dsqrt(sigma_squared) * detwei)
 
     if(continuity(sigma_surface)<0) then
        ! DG case.
@@ -687,19 +679,11 @@ contains
        end if
 
        ! obtain sediment bedload surface ids
-       if (have_option(trim(bedload%option_path)//"/diagnostic")) then
-          surface_id_count=option_shape(trim(bedload%option_path)//&
-               &"/diagnostic/surface_ids")
-          allocate(surface_ids(surface_id_count(1)))
-          call get_option(trim(bedload%option_path)//"/diagnostic/surface_ids", &
-               & surface_ids)
-       else
-          surface_id_count=option_shape(trim(bedload%option_path)//&
-               &"/prescribed/surface_ids")
-          allocate(surface_ids(surface_id_count(1)))
-          call get_option(trim(bedload%option_path)//"/prescribed/surface_ids", &
-               & surface_ids)
-       end if
+       surface_id_count=option_shape(trim(bedload%option_path)//&
+            &"/prognostic/surface_ids")
+       allocate(surface_ids(surface_id_count(1)))
+       call get_option(trim(bedload%option_path)//"/prognostic/surface_ids", &
+            & surface_ids)
        
        ! loop through elements in surface field
        elements: do i_ele=1, element_count(volume_fraction_surface)

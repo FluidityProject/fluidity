@@ -1,10 +1,12 @@
-preprocess:
-	@echo **********Converting the gmsh mesh to triangle format:
-	../../bin/gmsh2triangle unit_sphere.msh
+include envcheck.mk
 
-run:
+preprocess: envcheck
+	@echo **********Converting the gmsh mesh to triangle format:
+	${BINPREFIX}gmsh2triangle unit_sphere.msh
+
+run: envcheck
 	@echo **********Calling fluidity with verbose log output enabled:
-	../../bin/fluidity -v2 -l flow_past_sphere_Re1.flml
+	${BINPREFIX}fluidity -v2 -l flow_past_sphere_Re1.flml
 
 postprocess:
 	@echo **********Calling the data extraction and plotting script

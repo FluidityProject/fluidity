@@ -240,8 +240,7 @@ prognostic_scalar_field =
                mesh_choice?,
                (
                   tensor_python_diagnostic_algorithm |
-                  internal_algorithm |
-                  k_epsilon_diffusivity_algorithm
+                  internal_algorithm 
                ),
                diagnostic_tensor_field
             }
@@ -2069,6 +2068,11 @@ scalar_equation_choice =
          ## Note: Only works for continuous galerkin or control volume discretisations.
          element equation {
             attribute name { "KEpsilon" }
+         }|
+         ## Equation type for the sediment bedload fields.
+         ## Note: Only works for P1 discretisations.
+         element equation {
+            attribute name { "SedimentBedload" }
          }
       )
    )

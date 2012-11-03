@@ -33,7 +33,9 @@
                     <string_value>BDM</string_value>
                     <solver>
                         <iterative_method name="preonly"></iterative_method>
-                        <preconditioner name="lu"></preconditioner>
+                        <preconditioner name="lu">
+                            <factorization_package name="petsc"></factorization_package>
+                        </preconditioner>
                         <relative_error>
                             <real_value rank="0">1e-07</real_value>
                         </relative_error>

@@ -18,8 +18,10 @@ except ImportError:
   import elementtree.ElementTree as etree
 
 class TestHarness:
-    def __init__(self, length="any", parallel=False, exclude_tags=None, tags=None, file="", verbose=True, justtest=False,
-        valgrind=False, from_file=None):
+    def __init__(self, length="any", parallel=False, exclude_tags=None,
+                 tags=None, file="", from_file=None,
+                 verbose=True, justtest=False,
+                 valgrind=False):
         self.tests = []
         self.verbose = verbose
         self.length = length
@@ -72,18 +74,18 @@ class TestHarness:
 
         if file != "":
           files = [file]
-        elif from_file is not None:
+        elif from_file:
           try:
             f = open(from_file, 'r')
-            files = map(lambda x : x[:-1], f.readlines())
+            files = [line[:-1] for line in f.readlines()]
           except IOError as e:
-            sys.stderr.write("Unable to open file %s: %s" % (from_file, e))
+            sys.stderr.write("Unable to read tests from file %s: %s" % (from_file, e))
             sys.exit(1)
           f.close()
         else:
           files = None
 
-        if files is not None:
+        if files:
           for (subdir, xml_file) in [os.path.split(x) for x in xml_files]:
             if xml_file in files:
               testprob = regressiontest.TestProblem(filename=os.path.join(subdir, xml_file),
@@ -91,7 +93,9 @@ class TestHarness:
               self.tests.append((subdir, testprob))
               files.remove(xml_file)
           if files != []:
-            print "Could not find file %s." % files
+            print "Could not find the following specified test files:"
+            for f in files:
+              print f
             sys.exit(1)
           return
 
@@ -343,6 +347,8 @@ if __name__ == "__main__":
     parser.add_option("-e", "--exclude-tags", dest="exclude_tags", help="run only tests that do not have specific tags (takes precidence over -t)", default=[], action="append")
     parser.add_option("-t", "--tags", dest="tags", help="run tests with specific tags", default=[], action="append")
     parser.add_option("-f", "--file", dest="file", help="specific test case to run (by filename)", default="")
+    parser.add_option("--from-file", dest="from_file", default=None,
+                      help="run tests listed in FROM_FILE (one test per line)")
     parser.add_option("-n", "--threads", dest="thread_count", type="int",
                       help="number of tests to run at the same time", default=1)
     parser.add_option("-v", "--valgrind", action="store_true", dest="valgrind")
@@ -383,8 +389,12 @@ if __name__ == "__main__":
     else:
       tags = options.tags
 
-    testharness = TestHarness(length=options.length, parallel=para, exclude_tags=exclude_tags, tags=tags, file=options.file, verbose=True,
-        justtest=options.justtest, valgrind=options.valgrind, from_file=options.from_file)
+    testharness = TestHarness(length=options.length, parallel=para,
+                              exclude_tags=exclude_tags, tags=tags,
+                              file=options.file, verbose=True,
+                              justtest=options.justtest,
+                              valgrind=options.valgrind,
+                              from_file=options.from_file)
 
     if options.justlist:
       testharness.list()

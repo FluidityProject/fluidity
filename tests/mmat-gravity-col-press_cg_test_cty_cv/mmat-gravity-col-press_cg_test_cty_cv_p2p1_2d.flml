@@ -26,6 +26,9 @@
                         <integer_value rank="0">2</integer_value>
                     </polynomial_degree>
                 </mesh_shape>
+                <mesh_continuity>
+                    <string_value>continuous</string_value>
+                </mesh_continuity>
                 <stat>
                     <exclude_from_stat></exclude_from_stat>
                 </stat>
@@ -128,7 +131,9 @@
                             <inner_matrix name="FullMassMatrix">
                                 <solver>
                                     <iterative_method name="preonly"></iterative_method>
-                                    <preconditioner name="lu"></preconditioner>
+                                    <preconditioner name="lu">
+                                        <factorization_package name="petsc"></factorization_package>
+                                    </preconditioner>
                                     <relative_error>
                                         <real_value rank="0">1e-10</real_value>
                                     </relative_error>
