@@ -1077,25 +1077,6 @@ contains
       call add_faces(mesh, model)
     end if
 
-    if (mesh%shape%numbering%type==ELEMENT_TRACE) then
-       select case(mesh%shape%numbering%family)
-       case(FAMILY_SIMPLEX)          
-          n_faces = mesh%shape%dim + 1
-       case(FAMILY_CUBE)
-          n_faces = 2**mesh%shape%dim
-       case default
-          FLExit('Element family not supported for trace elements')
-       end select
-       allocate(mesh%ndglno(mesh%elements*n_faces*mesh%faces%shape%ndof))
-       call make_global_numbering_trace(mesh)
-       call create_surface_mesh(mesh%faces%surface_mesh, &
-            mesh%faces%surface_node_list, mesh, name='Surface'//trim(mesh%name))
-#ifdef HAVE_MEMORY_STATS
-       call register_allocation("mesh_type", "integer", &
-            size(mesh%faces%surface_node_list), name='Surface'//trim(mesh%name))
-#endif
-    end if
-
   end function make_mesh
 
   subroutine add_faces(mesh, model, sndgln, sngi, boundary_ids, &
