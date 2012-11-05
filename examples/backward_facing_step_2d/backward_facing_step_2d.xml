@@ -6,10 +6,7 @@
   <tags>flml</tags>
   <!-- uses flml -->
   <problem_definition length="long" nprocs="8">
-    <command_line>
-      cd reference && mpiexec fluidity -v2 -l backward_facing_step_2d_kim_reference.flml && cd ..
-      cd kepsilon  && mpiexec fluidity -v2 -l backward_facing_step_2d_kim_kepsilon.flml  && cd ..
-    </command_line>
+    <command_line>cd reference &amp;&amp; mpiexec fluidity -v2 -l backward_facing_step_2d_kim_reference.flml &amp;&amp; cd .. &amp;&amp; cd kepsilon &amp;&amp; mpiexec fluidity -v2 -l backward_facing_step_2d_kim_kepsilon.flml &amp;&amp; cd ..</command_line>
   </problem_definition>
   <variables>
     <variable name="reference_finishtime" language="python">from fluidity_tools import stat_parser as stat
