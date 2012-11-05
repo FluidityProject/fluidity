@@ -1,6 +1,5 @@
 include envcheck.mk
 
-BIN=../../../bin
 preprocess: envcheck 
 	@if [ "x" == "x${TYPE}" ]; then echo "**********ERROR: Commandline should be make preprocess TYPE=type, where type is reference or kepsilon"; false; fi;
 	echo **********Installing directory for $(TYPE) run:
@@ -9,13 +8,13 @@ preprocess: envcheck
 	ln -s ../backward_facing_step_2d_kim_$(TYPE).flml .; \
 	echo **********Generating mesh for $(TYPE) simulation.; \
 	gmsh -2 -o step2d-kim-med.msh ../src/step2d-kim-med.geo; \
-	$(BIN)/gmsh2triangle -2 step2d-kim-med.msh; \
+	${BINPREFIX}gmsh2triangle -2 step2d-kim-med.msh; \
 	cd ..
 
 run: envcheck
 	@if [ "x" == "x${TYPE}" ]; then echo "**********ERROR: Commandline should be make run TYPE=type, where type is reference or kepsilon"; false; fi;
 	@echo **********Running the $(TYPE) simulation:
-	cd $(TYPE) &&  $(BIN)/fluidity -v2 -l backward_facing_step_2d_kim_$(TYPE).flml &&  cd ..
+	cd $(TYPE) &&  ${BINPREFIX}fluidity -v2 -l backward_facing_step_2d_kim_$(TYPE).flml &&  cd ..
 
 postprocess: envcheck
 	@if [ "x" == "x${TYPE}" ]; then echo "**********ERROR: Commandline should be make postprocess TYPE=type, where type is reference or kepsilon"; false; fi;
