@@ -1,6 +1,8 @@
+include envcheck.mk
+
 # directory locations:
 BIN=../../bin
-preprocess: 
+preprocess: envcheck
 	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi
 	@echo **********Generating the mesh using gmsh in 3d:
 	gmsh -3 -optimize -o step3d.msh src/step3d.geo
@@ -19,7 +21,7 @@ else
 	$(BIN)/fldecomp -n $(NPROCS) -f step3d
 endif
 
-run:
+run: envcheck
 	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi
 ifneq ($(NPROCS),8)
 	@echo **********WARNING: This simulation is best run on 8 processors
@@ -33,7 +35,7 @@ else
 	mpiexec -n $(NPROCS) $(BIN)/fluidity -v2 -l backward_facing_step_3d.flml
 endif
 
-postprocess:
+postprocess: envcheck
 	@echo **********Calling the velocity data extraction and plotting python script:
 	@mkdir -p numpy_data 
 	./postprocessor_3d.py
