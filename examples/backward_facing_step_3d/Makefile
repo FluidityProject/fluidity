@@ -38,7 +38,7 @@ postprocess: envcheck
 	./postprocessor_3d.py
 
 input: clean
-	$(MAKE) preprocess
+	$(MAKE) preprocess NPROCS=8
 
 clean:
 	@echo **********Cleaning the output from previous fluidity runs:

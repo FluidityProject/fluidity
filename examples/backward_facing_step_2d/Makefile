@@ -24,9 +24,11 @@ postprocess: envcheck
 	./postprocessor_2d.py $(TYPE); \
 	cd ..
 
-input: clean preprocess
+input: clean
+	$(MAKE) preprocess TYPE=reference
+	$(MAKE) preprocess TYPE=kepsilon
 
 clean:
 	@echo **********Cleaning the output from previous fluidity runs
-	rm -r kepsilon reference *.pdf
+	rm -rf kepsilon reference *.pdf
 

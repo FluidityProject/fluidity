@@ -5,11 +5,11 @@
   <owner userid="asc"/>
   <tags>flml</tags>
   <!-- uses flml -->
-  <problem_definition length="long" nprocs="1">
-    <command_line>echo hello</command_line>
-      <!-- cd reference && fluidity -v2 -l backward_facing_step_2d_kim_reference.flml && cd ..
-      cd kepsilon && fluidity -v2 -l backward_facing_step_2d_kim_kepsilon.flml && cd ..
-      -->
+  <problem_definition length="long" nprocs="8">
+    <command_line>
+      cd reference && mpiexec fluidity -v2 -l backward_facing_step_2d_kim_reference.flml && cd ..
+      cd kepsilon  && mpiexec fluidity -v2 -l backward_facing_step_2d_kim_kepsilon.flml  && cd ..
+    </command_line>
   </problem_definition>
   <variables>
     <variable name="reference_finishtime" language="python">from fluidity_tools import stat_parser as stat
