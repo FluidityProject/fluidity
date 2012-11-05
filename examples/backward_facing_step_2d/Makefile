@@ -1,5 +1,7 @@
+include envcheck.mk
+
 BIN=../../../bin
-preprocess:
+preprocess: envcheck 
 	@if [ "x" == "x${TYPE}" ]; then echo "**********ERROR: Commandline should be make preprocess TYPE=type, where type is reference or kepsilon"; false; fi;
 	echo **********Installing directory for $(TYPE) run:
 	install -d $(TYPE); \
@@ -10,12 +12,12 @@ preprocess:
 	$(BIN)/gmsh2triangle -2 step2d-kim-med.msh; \
 	cd ..
 
-run:
+run: envcheck
 	@if [ "x" == "x${TYPE}" ]; then echo "**********ERROR: Commandline should be make run TYPE=type, where type is reference or kepsilon"; false; fi;
 	@echo **********Running the $(TYPE) simulation:
 	cd $(TYPE) &&  $(BIN)/fluidity -v2 -l backward_facing_step_2d_kim_$(TYPE).flml &&  cd ..
 
-postprocess:
+postprocess: envcheck
 	@if [ "x" == "x${TYPE}" ]; then echo "**********ERROR: Commandline should be make postprocess TYPE=type, where type is reference or kepsilon"; false; fi;
 	@echo **********Calling the velocity data extraction and reattachment length calculation python script:
 	cd $(TYPE); \
