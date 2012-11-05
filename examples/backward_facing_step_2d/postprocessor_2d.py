@@ -5,7 +5,6 @@ import sys
 import os
 import vtktools
 import numpy
-import pylab
 import re
 
 def get_filelist(sample, start):
@@ -168,6 +167,7 @@ def meanvelo(filelist,x,y):
 #########################################################################
 
 def plot_length(type,reattachment_length):
+  import pylab
   ##### Plot time series of reattachment length using pylab(matplotlib)
   ##### Kim's (1978) experimental result, Re=132000
   kim = numpy.zeros([len(reattachment_length[:,1])])
@@ -188,6 +188,7 @@ def plot_length(type,reattachment_length):
   return
 
 def plot_meanvelo(type,profiles,xarray,yarray,time):
+  import pylab
   ##### Plot evolution of velocity profiles at different points behind step
   plot1 = pylab.figure(figsize = (20.0, 8.5))
   pylab.suptitle("Evolution of U-velocity: Re=132000, "+str(type), fontsize=20)
