@@ -6667,7 +6667,12 @@ forcing =
                 element beta {
                     real
                 }
+              }?,
+              ## Add the CHI term to the harmonics. You probably only want to do this is you're simulating a specific time
+              element chi {
+                empty
               }?
+
         }?
     }
   )
