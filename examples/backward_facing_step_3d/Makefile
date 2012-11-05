@@ -1,15 +1,11 @@
-include envcheck.mk
-
 # directory locations:
-preprocess: envcheck
-ifeq ("x","x${NPROCS}")
-	@echo "**********ERROR: Please define NPROCS to set the number of processors to use"
-	@exit 1
-endif
+BIN=../../bin
+preprocess: 
+	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi
 	@echo **********Generating the mesh using gmsh in 3d:
 	gmsh -3 -optimize -o step3d.msh src/step3d.geo
 	@echo **********Converting the gmsh mesh to triangle format:
-	${BINPREFIX}gmsh2triangle step3d.msh
+	$(BIN)/gmsh2triangle step3d.msh
 ifneq ($(NPROCS),8)
 	@echo **********WARNING: This simulation is best run on 8 processors
 endif
@@ -17,25 +13,24 @@ ifeq ($(NPROCS),1)
 	@echo **********Serial run: not decomposing mesh
 	@echo **********WARNING: This is a large simulation and will take a very long time in serial. Find a handy supercomputer.
 else
+# exit if no fltools and print warning
+	@if [ ! -e $(BIN)/fldecomp ] ; then echo "ERROR: You must build Fluidity parallel tools, using the command 'make fltools' in the Fluidity directory, prior to running this test in parallel."; false; fi
 	@echo **********Decomposing the mesh into $(NPROCS) parts for parallel run:
-	${BINPREFIX}fldecomp -n $(NPROCS) -f step3d
+	$(BIN)/fldecomp -n $(NPROCS) -f step3d
 endif
 
-run: envcheck
-ifeq ("x","x${NPROCS}")
-	@echo "**********ERROR: Please define NPROCS to set the number of processors to use"
-	@exit 1
-endif
+run:
+	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi
 ifneq ($(NPROCS),8)
 	@echo **********WARNING: This simulation is best run on 8 processors
 endif
 ifeq ($(NPROCS),1)
 	@echo **********WARNING: This is a large simulation and will take a very long time in serial. Find a handy supercomputer.
 	@echo **********Calling fluidity in serial with verbose log output enabled:
-	${BINPREFIX}fluidity -v2 -l backward_facing_step_3d.flml
+	$(BIN)/fluidity -v2 -l backward_facing_step_3d.flml
 else
 	@echo **********Calling fluidity in parallel with verbose log output enabled:
-	mpiexec -n $(NPROCS) ${BINPREFIX}fluidity -v2 -l backward_facing_step_3d.flml
+	mpiexec -n $(NPROCS) $(BIN)/fluidity -v2 -l backward_facing_step_3d.flml
 endif
 
 postprocess:
@@ -44,7 +39,7 @@ postprocess:
 	./postprocessor_3d.py
 
 input: clean
-	$(MAKE) preprocess NPROCS=8
+	$(MAKE) preprocess
 
 clean:
 	@echo **********Cleaning the output from previous fluidity runs:
