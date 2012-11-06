@@ -429,7 +429,7 @@ contains
                 endif
              enddo
              print*,mesh_name2,trim(v_field%mesh%name)
-             if (trim(v_field%mesh%name)=="CoordinateMesh") then
+             if (trim(mesh_name2)=="CoordinateMesh") then
                 pod_positions => extract_vector_field(state(k), "Coordinate")
              else
                 pod_positions => extract_vector_field(state(k), trim(mesh_name2)//"Coordinate")
@@ -485,7 +485,7 @@ contains
                 endif
              enddo
              
-             if (trim(s_field%mesh%name)=="CoordinateMesh") then
+             if (trim(mesh_name2)=="CoordinateMesh") then
                 pod_positions => extract_vector_field(state(k), "Coordinate")
              else
                 pod_positions => extract_vector_field(state(k), trim(mesh_name2)//"Coordinate")
