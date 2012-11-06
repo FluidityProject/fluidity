@@ -53,7 +53,7 @@
       ! the whole array is needed for the sake of multimaterial assembly
       type(state_type), dimension(:), intent(inout) :: state
       logical, intent(in) :: at_first_timestep
-      type(state_type), dimension(:) :: POD_state
+      type(state_type), dimension(:,:,:) :: POD_state
       integer, intent(in) :: timestep
 
       type(vector_field), pointer :: u
@@ -121,7 +121,6 @@
            eps=0.0
            snapmean=.false.
 
-print*,'test0'
 
            call profiler_tic("momentum_solve")
            if(.not.reduced_model)then
@@ -167,18 +166,16 @@ print*,'test0'
                  velocity=>extract_vector_field(state(istate),"Velocity")
                  old_velocity=>extract_vector_field(state(istate),"OldVelocity")
 
-print*,'test1'
                  call allocate(velocity_backup, nonlinear_velocity%dim, nonlinear_velocity%mesh, "Velocity")
                  call zero(velocity_backup)
                  call set(velocity_backup, nonlinear_velocity)
                  call allocate(pressure_backup, pressure%mesh, "Pressure")
                  call zero(pressure_backup)
                  call set(pressure_backup, pressure)
-print*,'test2' 
                  snapmean=.true.
-
-                 snapmean_velocity=>extract_vector_field(POD_state(1),"SnapmeanVelocity")
-                 snapmean_pressure=>extract_scalar_field(POD_state(1),"SnapmeanPressure")
+                 print*,'istate =======',istate
+                 snapmean_velocity=>extract_vector_field(POD_state(1,1,istate),"SnapmeanVelocity")
+                 snapmean_pressure=>extract_scalar_field(POD_state(1,2,istate),"SnapmeanPressure")
                  call set(nonlinear_velocity, snapmean_velocity) 
                  call set(pressure, snapmean_pressure)
 
@@ -220,24 +217,24 @@ print*,'test2'
                  
 !print*,'back from snapmean'
   
-                 POD_velocity=>extract_vector_field(POD_state(1), "PODVelocity")
-                 POD_pressure=>extract_scalar_field(POD_state(1), "PODPressure")
+                 POD_velocity=>extract_vector_field(POD_state(1,1,istate), "Velocity")
+                 POD_pressure=>extract_scalar_field(POD_state(1,2,istate), "Pressure")
 
                  call allocate(perturb_basis_u, POD_velocity%dim, POD_velocity%mesh, "Perturb_u")
                  call zero(perturb_basis_u)
                  call allocate(perturb_basis_p, POD_pressure%mesh, "Perturb_p")
                  call zero(perturb_basis_p)
 
-                 snapmean_velocity=>extract_vector_field(POD_state(1),"SnapmeanVelocity")
-                 snapmean_pressure=>extract_scalar_field(POD_state(1),"SnapmeanPressure")
+                 snapmean_velocity=>extract_vector_field(POD_state(1,1,istate),"SnapmeanVelocity")
+                 snapmean_pressure=>extract_scalar_field(POD_state(1,2,istate),"SnapmeanPressure")
 
                  snapmean=.false.
 
                  open(30,file='pod_matrix_perturbed')
 
-                 do i=1, size(POD_state)
-                    POD_velocity=>extract_vector_field(POD_state(i), "PODVelocity")
-                    POD_pressure=>extract_scalar_field(POD_state(i), "PODPressure")
+                 do i=1, size(POD_state,1)
+                    POD_velocity=>extract_vector_field(POD_state(i,1,istate), "Velocity")
+                    POD_pressure=>extract_scalar_field(POD_state(i,2,istate), "Pressure")
                     !perturbation from pod_basis to snapmean
                     !call get_option("/reduced_model/pod_basis_formation/pod_basis_perturbation_coefficient", eps)
                     eps=0.01

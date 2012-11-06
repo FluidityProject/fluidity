@@ -981,7 +981,9 @@ implicit none
     real, intent(in), dimension(:) :: val
     integer :: i
 
-    assert(field%field_type==FIELD_TYPE_NORMAL)
+!print *, field%field_type, FIELD_TYPE_NORMAL, trim(field%name), node_count(field), size(field%val(1,:))
+
+    !assert(field%field_type==FIELD_TYPE_NORMAL)
     
     do i=1,field%dim
       field%val(i,node) = val(i)
@@ -2023,7 +2025,6 @@ implicit none
     end if
 
     if(from_field%mesh==to_field%mesh) then
-    
       call set(to_field, from_field)
       
     else

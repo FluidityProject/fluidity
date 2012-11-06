@@ -180,11 +180,97 @@ contains
 
   end subroutine read_pod_basis
 
+  subroutine read_pod_basis_differntmesh(POD_state, state)
+    !! Read the pod basis from the set of vtu files.
+
+    character(len=1024) :: simulation_name, filename
+
+    integer :: dump_period, quadrature_degree
+    integer :: i,j,k,total_dumps,nfield,POD_num,ifield
+
+    type(state_type), dimension(:,:,:), allocatable :: POD_state
+    type(state_type), dimension(:) :: state
+    type(vector_field) :: podVelocity, newpodVelocity
+    type(scalar_field) :: podPressure, newpodPressure, podTemperature, newpodTemperature
+    type(mesh_type) :: VelocityMesh, PressureMesh, TemperatureMesh
+    type(vector_field), pointer :: v_field
+    type(scalar_field), pointer :: s_field
+
+
+    call get_option('/simulation_name', simulation_name)
+    call get_option('/geometry/quadrature/degree', quadrature_degree)
+    
+    call get_option(&
+         "/reduced_model/pod_basis_formation/pod_basis_count", POD_num) 
+
+    nfield = vector_field_count( state(1) )+scalar_field_count( state(1) )
+    allocate(pod_state(POD_num,nfield,size(state)))
+    ifield = 0
+    do k =1, size(state)
+       ! Vector field
+       !-------------
+       nfield = vector_field_count( state(1) )
+       do j = 1, nfield
+          v_field => state(k)%vector_fields(j)%ptr              
+          if(have_option(trim(v_field%option_path) // "/prognostic")) then
+          ifield = ifield + 1
+             VelocityMesh=extract_mesh(state(k),trim(v_field%mesh%name))
+             do i = 1,POD_num
+                write(filename, '(a, i0, a)') trim(simulation_name)//"Basis"//trim(v_field%name)//"_",i,".vtu" 
+                print*,trim(filename)
+                call vtk_read_state(filename, pod_state(i,ifield,k),quadrature_degree)
+
+                !! Note that we might need code in here to clean out unneeded fields.
+
+                PODVelocity=extract_vector_field(pod_state(i,ifield,k),trim(v_field%name))
+
+                call allocate(newpodVelocity, podVelocity%dim, VelocityMesh, trim(v_field%name))
+                !podVelocity%mesh%name = newpodVelocity%mesh%name
+                if(newpodVelocity%mesh%periodic) then
+                   podVelocity%mesh%periodic = .true.
+                endif
+                call remap_field(from_field=podVelocity, to_field=newpodVelocity)
+                call insert(POD_state(i,ifield,k), newpodVelocity, trim(v_field%name))
+                call deallocate(newpodVelocity)
+             enddo
+          endif
+       end do !j = 1, size(state(i)%vetor_fields)
+       ! scaler field
+       !-------------
+
+       nfield = scalar_field_count( state(1) )
+       do j = 1, nfield
+          s_field => state(k)%scalar_fields(j)%ptr              
+          if(have_option(trim(s_field%option_path) // "/prognostic")) then
+          ifield = ifield + 1
+!             call nullify(pod_state(:,k))
+             PressureMesh=extract_mesh(state(k),trim(s_field%mesh%name))
+             do i = 1,POD_num
+                write(filename, '(a, i0, a)') trim(simulation_name)//"Basis"//trim(s_field%name)//"_",i,".vtu" 
+
+                call vtk_read_state(filename, pod_state(i,ifield,k),quadrature_degree)
+
+                !! Note that we might need code in here to clean out unneeded fields.
+                PODPressure=extract_scalar_field(POD_state(i,ifield,k),trim(s_field%name))
+                call allocate(newpodPressure, PressureMesh, trim(s_field%name))
+                if(newpodPressure%mesh%periodic) then
+                   PODPressure%mesh%periodic = .true.
+                endif
+                call remap_field(from_field=podPressure, to_field=newpodPressure)
+                call insert(POD_state(i,ifield,k), newpodPressure, trim(s_field%name))
+                call deallocate(newpodPressure)
+
+             enddo
+          endif
+       end do !j = 1, size(state(i)%scalar_fields)
+    end do!k =1, size(state)
+  end subroutine read_pod_basis_differntmesh
+
   subroutine solve_momentum_reduced(delta_u, delta_p, big_m, mom_rhs, ct_m, ct_rhs, timestep, dt, POD_state) 
     !!< Solve the momentum equation in reduced space.
     type(vector_field), intent(inout) :: delta_u
     type(scalar_field), intent(inout) :: delta_p
-    type(state_type), dimension(:) :: POD_state
+    type(state_type), dimension(:,:) :: POD_state
 
     type(petsc_csr_matrix), intent(inout) :: big_m
     type(block_csr_matrix), intent(in) :: ct_m
@@ -205,10 +291,10 @@ contains
     real, dimension(:,:), allocatable :: pod_sol_velocity
     real, dimension(:), allocatable :: pod_sol_pressure
 
-    POD_u=>extract_vector_field(POD_state(1), "PODVelocity")
-    POD_p=>extract_scalar_field(POD_state(1), "PODPressure")
+    POD_u=>extract_vector_field(POD_state(1,1), "Velocity")
+    POD_p=>extract_scalar_field(POD_state(1,2), "Pressure")
 
-    POD_num=size(POD_state)
+    POD_num=size(POD_state,1)
 
     allocate(pod_coef(POD_u%dim*POD_num+POD_num))
     pod_coef=0.0
@@ -220,7 +306,6 @@ contains
      
      call solve(pod_matrix%val, pod_rhs%val)
      pod_coef=pod_rhs%val
-     print*,pod_coef
 !!project back to velocity and pressure 
 
      call project_full(delta_u, delta_p, pod_sol_velocity, pod_sol_pressure, POD_state, pod_coef)
@@ -242,7 +327,7 @@ contains
 
   subroutine project_reduced(big_m, mom_rhs, ct_m, ct_rhs, pod_matrix, pod_rhs, dt, POD_state, fs_m)
     !!< project the momentum equation to reduced space.
-    type(state_type), dimension(:) :: POD_state
+    type(state_type), dimension(:,:) :: POD_state
 
     type(petsc_csr_matrix), intent(inout) :: big_m
     type(block_csr_matrix), intent(in) :: ct_m
@@ -271,14 +356,14 @@ contains
     ewrite(1,*)'in project_reduced'
     print*,'in project_reduced'
 
-    POD_u=>extract_vector_field(POD_state(1), "PODVelocity")
-    POD_p=>extract_scalar_field(POD_state(1), "PODPressure")
+    POD_u=>extract_vector_field(POD_state(1,1), "Velocity")
+    POD_p=>extract_scalar_field(POD_state(1,2), "Pressure")
 
-    snapmean_pressure=extract_scalar_field(POD_state(1), "SnapmeanPressure")
+    snapmean_pressure=extract_scalar_field(POD_state(1,2), "SnapmeanPressure")
 
     u_nodes=node_count(POD_u)
     p_nodes=node_count(POD_p)
-    POD_num=size(POD_state)
+    POD_num=size(POD_state,1)
 
     allocate(pod_tmp(POD_u%dim,POD_u%dim))
     allocate(u_tmp(POD_u%dim))
@@ -307,8 +392,8 @@ contains
 !    enddo
 
     do j=1, POD_num
-       POD_u=>extract_vector_field(POD_state(j), "PODVelocity")
-       POD_p=>extract_scalar_field(POD_state(j), "PODPressure")
+       POD_u=>extract_vector_field(POD_state(j,1), "Velocity")
+       POD_p=>extract_scalar_field(POD_state(j,2), "Pressure")
 
 !!summation of rows after multiplication       
        do d1=1,POD_u%dim
@@ -323,23 +408,16 @@ contains
           call mult(u_tmp(d1), big_m, u_c)
           call mult(ct_tmp, ct_m, u_c)
 
-          !print*, 'u_c'
-          !print*, u_c%val(1,1:50)
-          print*, 'u_tmp'
-          print*, u_tmp(d1)%val(:,1)
-          !stop
 
 !!calculations for pod_rhs
           call addto(POD_state, pod_rhs, j, d1, sum(dot_product(mom_rhs, u_c)))
           call addto_p(POD_state, POD_u, pod_rhs, j, dot_product(ct_rhs, POD_p), dt)
-          print*,'pod_rhs'
-          print*,pod_rhs%val
 
 !          pod_rhs%val(j+(d1-1)*POD_num)=sum(dot_product(mom_rhs, u_c))
 !          pod_rhs%val(j+POD_u%dim*POD_num)=dot_product(ct_rhs, POD_p)
 
             do i=1, POD_num
-               POD_p=>extract_scalar_field(POD_state(i), "PODPressure")
+               POD_p=>extract_scalar_field(POD_state(i,2), "Pressure")
 
                 call addto_p(POD_state, pod_matrix, d1, i, j, dot_product(ct_tmp, POD_p))
 !!transpose the block corresponding to ct_m
@@ -350,10 +428,10 @@ contains
 
 !!free surface matrix
         if(present(fs_m))then
-        POD_p=>extract_scalar_field(POD_state(j), "PODPressure")
+        POD_p=>extract_scalar_field(POD_state(j,2), "Pressure")
         call mult(fs_tmp, fs_m, POD_p)       
         do i=1, POD_num
-           POD_p=>extract_scalar_field(POD_state(i), "PODPressure")
+           POD_p=>extract_scalar_field(POD_state(i,2), "Pressure")
            call addto_p(POD_state, pod_matrix, i, j, dot_product(fs_tmp, POD_p))
         enddo
         endif
@@ -361,7 +439,7 @@ contains
 
 !!summation of collumns after multiplication
           do i=1, POD_num
-             POD_u=>extract_vector_field(POD_state(i), "PODVelocity")
+             POD_u=>extract_vector_field(POD_state(i,1), "Velocity")
 
              do d1=1,POD_u%dim
                 comp2=extract_scalar_field(POD_u,d1)
@@ -378,8 +456,6 @@ contains
 
          enddo
      enddo
-
-     print*,pod_matrix%val
      !stop
  
      do d1=1,POD_u%dim
@@ -586,13 +662,13 @@ contains
 
   subroutine addto_pod_matrix_vector_vector(POD_state, matrix, d1, d2, i, j, value)
     type(pod_matrix_type), intent(inout) :: matrix
-    type(state_type), dimension(:), intent(in) :: POD_state
+    type(state_type), dimension(:,:), intent(in) :: POD_state
 
     integer, intent(in) :: i, j, d1, d2
     real, dimension(:,:), allocatable :: value    
     integer ::  POD_num
     
-    POD_num=size(POD_state)
+    POD_num=size(POD_state,1)
 
           matrix%val(i+(d1-1)*POD_num, j+(d2-1)*POD_num) =&
                          matrix%val(i+(d1-1)*POD_num, j+(d2-1)*POD_num)+ &
@@ -602,13 +678,13 @@ contains
 
   subroutine addto_pod_matrix_pressure(POD_state, matrix, d1, i, j, value) 
      type(pod_matrix_type), intent(inout) :: matrix
-     type(state_type), dimension(:), intent(in) :: POD_state
+     type(state_type), dimension(:,:), intent(in) :: POD_state
 
      integer, intent(in) :: i, j, d1
      real :: value
      integer :: POD_num
 
-     POD_num=size(POD_state)
+     POD_num=size(POD_state,1)
      matrix%val(i+matrix%u_dim*POD_num, j+(d1-1)*POD_num) =&
                          matrix%val(i+matrix%u_dim*POD_num, j+(d1-1)*POD_num)+ &
                          value
@@ -617,13 +693,13 @@ contains
 
   subroutine addto_pod_matrix_free_surface(POD_state, matrix, i, j, value)
      type(pod_matrix_type), intent(inout) :: matrix
-     type(state_type), dimension(:), intent(in) :: POD_state
+     type(state_type), dimension(:,:), intent(in) :: POD_state
 
      integer, intent(in) :: i, j
      real :: value
      integer :: POD_num
 
-     POD_num=size(POD_state)
+     POD_num=size(POD_state,1)
      matrix%val(i+matrix%u_dim*POD_num, j+matrix%u_dim*POD_num) =&
                          matrix%val(i+matrix%u_dim*POD_num, j+matrix%u_dim*POD_num)+ &
                          value
@@ -643,13 +719,13 @@ contains
 
   subroutine addto_pod_rhs_velocity(POD_state, pod_rhs, j, d1, value)
     type(pod_rhs_type), intent(inout) :: pod_rhs
-    type(state_type), dimension(:), intent(in) :: POD_state
+    type(state_type), dimension(:,:), intent(in) :: POD_state
 
     integer, intent(in) :: j, d1
     real :: value
     integer ::  POD_num
 
-    POD_num=size(POD_state)
+    POD_num=size(POD_state,1)
 
     pod_rhs%val(j+(d1-1)*POD_num)=pod_rhs%val(j+(d1-1)*POD_num)+value
 
@@ -657,7 +733,7 @@ contains
 
   subroutine addto_pod_rhs_pressure(POD_state, pod_u, pod_rhs, j, value, dt)
     type(pod_rhs_type), intent(inout)          :: pod_rhs
-    type(state_type), dimension(:), intent(in) :: POD_state
+    type(state_type), dimension(:,:), intent(in) :: POD_state
     type(vector_field), pointer                :: POD_u
     real, intent(in) :: dt
     integer, intent(in) :: j 
@@ -665,7 +741,7 @@ contains
     real :: value
     integer ::  POD_num
 
-    POD_num=size(POD_state)
+    POD_num=size(POD_state,1)
          
     pod_rhs%val(j+POD_u%dim*POD_num)=pod_rhs%val(j+POD_u%dim*POD_num)+value/dt
           
@@ -786,7 +862,7 @@ contains
         type(scalar_field), intent(inout) :: delta_p
         real, dimension(:,:), intent(out), allocatable :: pod_sol_velocity
         real, dimension(:), intent(out), allocatable :: pod_sol_pressure
-        type(state_type), dimension(:), intent(in) :: POD_state
+        type(state_type), dimension(:,:), intent(in) :: POD_state
         real, dimension(:), intent(in) :: pod_coef
 
         type(vector_field), pointer :: POD_velocity
@@ -799,11 +875,11 @@ contains
 
         type(mesh_type), pointer :: pod_umesh, pod_pmesh
 
-        POD_velocity=>extract_vector_field(POD_state(1), "PODVelocity")
-        POD_pressure=>extract_scalar_field(POD_state(1), "PODPressure")
+        POD_velocity=>extract_vector_field(POD_state(1,1), "Velocity")
+        POD_pressure=>extract_scalar_field(POD_state(1,2), "Pressure")
 
-        snapmean_velocity=>extract_vector_field(POD_state(1), "SnapmeanVelocity")
-        snapmean_pressure=>extract_scalar_field(POD_state(1), "SnapmeanPressure")
+        snapmean_velocity=>extract_vector_field(POD_state(1,1), "SnapmeanVelocity")
+        snapmean_pressure=>extract_scalar_field(POD_state(1,2), "SnapmeanPressure")
 
         u_nodes=node_count(POD_velocity)
         p_nodes=node_count(POD_pressure)
@@ -813,13 +889,13 @@ contains
         pod_sol_velocity=0.0
         pod_sol_pressure=0.0
 
-        POD_num=size(POD_state)
+        POD_num=size(POD_state,1)
 
         do i=1,POD_num
 !        do i=1,1
 
-           POD_velocity=>extract_vector_field(POD_state(i), "PODVelocity")
-           POD_pressure=>extract_scalar_field(POD_state(i), "PODPressure")
+           POD_velocity=>extract_vector_field(POD_state(i,1), "Velocity")
+           POD_pressure=>extract_scalar_field(POD_state(i,2), "Pressure")
 
            do d=1,POD_velocity%dim
               pod_sol_velocity(:,d)=pod_sol_velocity(:,d)+pod_coef(i+(d-1)*POD_num)*POD_velocity%val(d,:)
@@ -827,8 +903,8 @@ contains
 
            pod_sol_pressure(:)=pod_sol_pressure(:)+pod_coef(i+POD_velocity%dim*POD_num)*POD_pressure%val(:)
 
-           pod_umesh => extract_mesh(pod_state(1), "Mesh", stat)
-           pod_pmesh => extract_mesh(pod_state(1), "Mesh", stat)
+           pod_umesh => extract_mesh(pod_state(1,1), "Mesh", stat)
+           pod_pmesh => extract_mesh(pod_state(1,2), "Mesh", stat)
 
            do d=1, POD_velocity%dim
               call set_all(delta_u, d, pod_sol_velocity(:,d))
@@ -926,21 +1002,21 @@ contains
        call insert(pod_state_solution(1,1), pod_pmesh, "PressureMesh")
        call insert(pod_state_solution(1,1), pod_positions, "Coordinate")
 
-       velocity => extract_vector_field(pod_state(1), "PODVelocity")
+       velocity => extract_vector_field(pod_state(1), "Velocity")
        snapmean_velocity=>extract_vector_field(pod_state(1), 'SnapmeanVelocity')
        dim=velocity%dim
 
-       call allocate(pod_velocity, velocity%dim, pod_umesh, "PODVelocity")
+       call allocate(pod_velocity, velocity%dim, pod_umesh, "Velocity")
        call zero(pod_velocity)
        do d=1,dim
           call set_all(pod_velocity, d, pod_sol_velocity(:,d))
        end do
-       call insert(pod_state_solution(1,1), pod_velocity, name="PODVelocity")
+       call insert(pod_state_solution(1,1), pod_velocity, name="Velocity")
 
-       call allocate(pod_pressure, pod_umesh, "PODPressure")
+       call allocate(pod_pressure, pod_umesh, "ressure")
        call zero(pod_pressure)
        call set_all(pod_pressure, pod_sol_pressure(:))
-       call insert(pod_state_solution(1,1), pod_pressure, name="PODPressure")
+       call insert(pod_state_solution(1,1), pod_pressure, name="Pressure")
 
        pod_sol_velocity=0.0
        pod_sol_pressure=0.0

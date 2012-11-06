@@ -267,6 +267,7 @@ contains
          if(isparallel()) then
            filename = parallel_filename(trim_file_extension(filename), ".vtu")
          end if
+print*, trim(path)
          ewrite(2, *) "Initialising field " // trim(field%name) // " from file " // trim(filename)
          
          select case (format)
