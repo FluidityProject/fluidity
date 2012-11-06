@@ -190,7 +190,7 @@ def _la_solve(A, x, b, solver="cg", preconditioner="jacobi"):
     if solver!="cg" or preconditioner!="jacobi":
         log.error("Only 'cg' solver with 'jacobi' preconditioner are "\
                   "presently supported.")
-    op2.solve(A, b, x.dat)
+    op2.solve(A, x.dat, b)
     
 # Solve function handles both linear systems and variational problems
 
