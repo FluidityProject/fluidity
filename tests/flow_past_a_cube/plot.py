@@ -64,12 +64,12 @@ subplots = [141, 142, 143, 144]
 
 Y = numpy.linspace(0.0, h, 50)
 X = [0.5, 1.0, 2.0, 4.0]
-probed_u = numpy.zeros(len(Y))
-u_bar = numpy.zeros(len(Y))
 
 pylab.figure()
 
 for p in range(0, 4):
+   probed_u = numpy.zeros(len(Y))
+   u_bar = numpy.zeros(len(Y))
    pylab.subplot(subplots[p])
    x = X[p]*H
    for n in range(N, N+1):
