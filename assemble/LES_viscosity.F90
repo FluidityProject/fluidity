@@ -129,14 +129,18 @@ contains
     
     type(vector_field), pointer :: u
     type(csr_matrix), pointer :: mass_matrix
-    type(scalar_field), pointer :: lumped_mass
-    type(scalar_field) :: inv_lumped_mass
+    type(scalar_field), pointer :: lumped_mass, lumped_mass_on_submesh
+    type(scalar_field) :: inv_lumped_mass, inv_lumped_mass_on_submesh
     type(tensor_field), pointer :: tensorfield
     logical :: lump_mass = .false.
+    logical :: lump_mass_on_submesh = .false.
     
     u => extract_vector_field(state, "Velocity")
     lump_mass = have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
           &"/continuous_galerkin/mass_terms/lump_mass_matrix") .and. .not.have_option(trim(u%option_path)//&
+          &"/prognostic/spatial_discretisation"//"/continuous_galerkin/mass_terms/lump_mass_matrix/use_submesh")
+          
+    lump_mass_on_submesh = have_option(trim(u%option_path)//&
           &"/prognostic/spatial_discretisation"//"/continuous_galerkin/mass_terms/lump_mass_matrix/use_submesh")
     
     ! Eddy viscosity field m_ij
@@ -149,8 +153,16 @@ contains
         call scale(tensorfield, inv_lumped_mass)
         call deallocate(inv_lumped_mass)
       else
-        mass_matrix => get_mass_matrix(state, tensorfield%mesh)
-        call petsc_solve(tensorfield, mass_matrix, tensorfield, option_path=u%option_path)
+        if(lump_mass_on_submesh) then
+           lumped_mass_on_submesh => get_lumped_mass_on_submesh(state, tensorfield%mesh)
+           call allocate(inv_lumped_mass_on_submesh, tensorfield%mesh)
+           call invert(lumped_mass_on_submesh, inv_lumped_mass_on_submesh)
+           call scale(tensorfield, inv_lumped_mass_on_submesh)
+           call deallocate(inv_lumped_mass_on_submesh)
+         else
+           mass_matrix => get_mass_matrix(state, tensorfield%mesh)
+           call petsc_solve(tensorfield, mass_matrix, tensorfield, option_path=u%option_path)
+         end if
       end if
     end if
 
