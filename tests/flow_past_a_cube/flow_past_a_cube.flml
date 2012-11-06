@@ -60,6 +60,12 @@
       </constant>
     </dump_period>
     <output_mesh name="VelocityMesh"/>
+    <checkpointing>
+      <checkpoint_period_in_dumps>
+        <integer_value rank="0">20</integer_value>
+      </checkpoint_period_in_dumps>
+      <checkpoint_at_end/>
+    </checkpointing>
     <stat>
       <output_at_start/>
     </stat>
@@ -74,6 +80,9 @@
     <finish_time>
       <real_value rank="0">3.0</real_value>
     </finish_time>
+    <wall_time_limit>
+      <real_value rank="0">255600</real_value>
+    </wall_time_limit>
     <nonlinear_iterations>
       <integer_value rank="0">2</integer_value>
       <tolerance>
