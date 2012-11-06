@@ -5,8 +5,12 @@ reduced_model =
       ## should be run in reduced mode. 
       ##
       ##  DO NOT MANUALLY ENABLE THIS OPTION!!!
-      element execute_reduced_model {
-         empty
+        element execute_reduced_model {
+        
+         ## Petrov-Galerkin
+         element petrov_galerkin {
+            empty
+         }?          
       }?,
       element pod_basis_formation {
          ## How frequently should the dumps be sampled to form the POD basis? 
@@ -22,7 +26,12 @@ reduced_model =
          ## pod_basis perturbation coefficient
          element pod_basis_perturbation_coefficient {
             real
-         }
-      }
+         } 
+      },
+          ## DEIM(Discrete Empirical Interpolation Method)
+          
+       element discrete_empirical_interpolation_method {
+            empty
+         }?
    }
       

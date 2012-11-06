@@ -54,6 +54,7 @@ use sediment, only: set_sediment_reentrainment, set_sediment_bc_id
 use halos_numbering
 use halos_base
 use fefields
+use m_random
 
 implicit none
 
@@ -86,6 +87,7 @@ contains
     integer, dimension(:), allocatable:: surface_ids
     integer shape_option(2)
     integer p, f, nphases, nfields
+
 
     ewrite(1,*) "In populate_boundary_conditions"
 
@@ -341,6 +343,7 @@ contains
     integer, dimension(:), allocatable:: surface_ids
     integer, dimension(:), pointer:: surface_element_list, surface_node_list
     integer i, j, nbcs, shape_option(2)
+
 
     nbcs=option_count(trim(bc_path))
 
@@ -879,6 +882,11 @@ contains
     integer, dimension(:), pointer:: surface_element_list
     integer i, j, k, nbcs, stat
 
+    !EnKF 
+    integer :: nnodes, nrens, ndim, ni
+    logical :: enkf
+    real, dimension(:,:), allocatable :: pert_matrix
+
     ns=1
     nbcs=option_count(trim(bc_path))
    
@@ -1098,6 +1106,7 @@ contains
 
           if (have_option(trim(bc_path_i)//"/wind_stress")) then
              bc_type_path=trim(bc_path_i)//"/wind_stress"
+             print*,'wind_stress'
              call initialise_field(surface_field, bc_type_path, bc_position, &
                time=time)
           else if (have_option(trim(bc_path_i)//"/wind_velocity")) then
@@ -1113,6 +1122,36 @@ contains
                   time=time)
           end if
           call deallocate(bc_position)
+
+          !print*,field%val(1:100,1)
+          !print*,surface_field%val(1:100,1)
+          !stop
+ 
+          !!perturb the wind_forcing for EnKF
+          enkf=.false.
+          if(enkf)then
+          nrens=100
+          nnodes=node_count(surface_field)
+          print*,nnodes
+          allocate(pert_matrix(nnodes, nrens))
+          !call randn(nnodes*nrens, pert_matrix)
+          !open(20,file='pert_matrix')
+          !do ni=1,nrens
+          !   write(20,*)pert_matrix(:,ni)
+          !enddo
+          !close(20)
+          !stop
+          open(20,file='pert_matrix')
+          do ni=1,nrens
+             read(20,*)pert_matrix(:,ni)
+          enddo
+          close(20)
+          print*,pert_matrix(1:100,50)
+          do ndim=1,surface_field%dim
+             surface_field%val(:,ndim)=surface_field%val(:,ndim)+0.005*pert_matrix(:,50) 
+          enddo
+          endif
+
 
         case("free_surface")
            if(have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")) then

@@ -404,10 +404,14 @@ module interpolation_module
     j=1
     do i=1, vector_field_count(old_state)
       old_fields_v(j) = extract_vector_field(old_state, i)
-      ! skip coordinate fields
+      ! skip coordinate fields and non normal fields
+
+!print *, trim(old_fields_v(j)%name), old_fields_v(j)%field_type, FIELD_TYPE_NORMAL
+
       if (.not. (old_fields_v(j)%name=="Coordinate" .or. &
-         old_fields_v(j)%name==trim(old_fields_v(j)%mesh%name)//"Coordinate")) then
-           
+         old_fields_v(j)%name==trim(old_fields_v(j)%mesh%name)//"Coordinate") & !.or. &
+         !.not. old_fields_v(j)%name=="GravityDirection") then
+         ) then
          new_fields_v(j) = extract_vector_field(new_state, old_state%vector_names(i))
          if (.not. present_and_true(different_domains)) then
            call zero(new_fields_v(j))
@@ -417,6 +421,8 @@ module interpolation_module
       end if
     end do
     field_count_v=j-1
+
+!print *,'YYYYYY', field_count_v
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Tensor fields
@@ -506,7 +512,13 @@ module interpolation_module
         call set(new_fields_s(field_s), new_node, val_s)
       end do
 
+
+!print *, 'XXXXXX', field_count_v
+
       do field_v=1,field_count_v
+
+!print *, field_v, trim(new_fields_v(field_v)%name), node_count(new_fields_v(field_v))
+
         ! At each node of the old element, evaluate val * shape_fn
         val_v = 0.0
         do i=1,ele_loc(old_mesh, ele)
@@ -646,5 +658,6 @@ module interpolation_module
     end do
   
   end subroutine linear_interpolate_states
+
 
 end module interpolation_module

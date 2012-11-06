@@ -50,7 +50,8 @@ module checkpoint
 
   private
 
-  public :: do_checkpoint_simulation, checkpoint_simulation, checkpoint_detectors, checkpoint_check_options
+  public :: do_checkpoint_simulation, checkpoint_simulation, checkpoint_detectors, checkpoint_check_options, &
+       checkpoint_fields
 
   integer, parameter :: PREFIX_LEN = OPTION_PATH_LEN
 
@@ -500,7 +501,7 @@ contains
 
   end subroutine checkpoint_meshes
 
-  subroutine checkpoint_fields(state, prefix, postfix, cp_no, keep_initial_data)
+  subroutine checkpoint_fields(state, prefix, postfix, cp_no, keep_initial_data, dont_write_files)
     !!< Checkpoint the fields in state. Outputs to vtu files with names:
     !!<   [prefix]_[_state name]_[mesh_name][_cp_no][_postfix][_process].vtu
     !!< where the state name is added if multiple states are passed, cp_no is
@@ -511,7 +512,7 @@ contains
     character(len = *), optional, intent(in) :: postfix
     integer, optional, intent(in) :: cp_no
     ! if present and true: do not checkpoint fields that can be reinitialised
-    logical, optional, intent(in) :: keep_initial_data
+    logical, optional, intent(in) :: keep_initial_data, dont_write_files
 
     character(len = OPTION_PATH_LEN) :: vtu_filename
     integer :: i, j, k, nparts, n_ps_fields_on_mesh, n_pv_fields_on_mesh, n_pt_fields_on_mesh
@@ -544,6 +545,7 @@ contains
         else
           vtu_filename = trim(vtu_filename) // ".vtu"
         end if
+        
 
         if(associated(state(i)%scalar_fields)) then
           allocate(ps_fields_on_mesh(size(state(i)%scalar_fields)))
@@ -574,7 +576,7 @@ contains
               & .or. have_option(trim(s_field%option_path) // "/diagnostic/output/checkpoint") ) then
               if(have_option(trim(complete_field_path(s_field%option_path)) // "/exclude_from_checkpointing")) cycle
               ! needs_initial_mesh indicates the field is from_file (i.e. we're dealing with a checkpoint)
-              if(present_and_true(keep_initial_data) .and. .not. needs_initial_mesh(s_field)) cycle
+             if(present_and_true(keep_initial_data) .and. .not. needs_initial_mesh(s_field)) cycle
 
               ewrite(2, *) "Checkpointing field " // trim(s_field%name) // " in state " // trim(state(i)%name)
 
@@ -660,12 +662,13 @@ contains
           end do
         end if
 
-        if(n_ps_fields_on_mesh + n_pv_fields_on_mesh + n_pt_fields_on_mesh > 0) then
-          call vtk_write_fields(vtu_filename, position = positions, model = mesh, &
-            & sfields = ps_fields_on_mesh(:n_ps_fields_on_mesh), vfields = pv_fields_on_mesh(:n_pv_fields_on_mesh), &
-            & tfields = pt_fields_on_mesh(:n_pt_fields_on_mesh), stat=stat)
+        if ( .not.present(dont_write_files) ) then
+           if(n_ps_fields_on_mesh + n_pv_fields_on_mesh + n_pt_fields_on_mesh > 0) then
+              call vtk_write_fields(vtu_filename, position = positions, model = mesh, &
+                   & sfields = ps_fields_on_mesh(:n_ps_fields_on_mesh), vfields = pv_fields_on_mesh(:n_pv_fields_on_mesh), &
+                   & tfields = pt_fields_on_mesh(:n_pt_fields_on_mesh), stat=stat)
+           end if
         end if
-
         deallocate(ps_fields_on_mesh)
         deallocate(pv_fields_on_mesh)
         deallocate(pt_fields_on_mesh)
@@ -800,5 +803,6 @@ contains
     ewrite(2, *) "Finished checking checkpointing options"
 
   end subroutine checkpoint_check_options
+
 
 end module checkpoint

@@ -1279,6 +1279,7 @@ contains
       ! Get number of vector fields that are children of this state
       nfields=option_count(trim(state_path)//"/vector_field")
 
+
        ! Loop over vector fields
        vector_field_loop: do j=0, nfields-1
 
@@ -2427,6 +2428,9 @@ contains
           if (.not. aliased(vfield) .and. &
                 have_option(trim(vfield%option_path)//'/prognostic')) then
              call zero(vfield)
+
+
+print*, '66666 ', trim(vfield%option_path), trim(vfield%name),have_option(trim(vfield%option_path)//'/prognostic')
              call initialise_field_over_regions(vfield, &
                 trim(vfield%option_path)//'/prognostic/initial_condition', &
                 position, phase_path=trim(phase_path))

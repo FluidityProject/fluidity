@@ -322,6 +322,7 @@ contains
         
       case("DiagnosticCoordinate")
         call calculate_diagnostic_coordinate_field(state, d_field)
+
         
       case default
         if(present(stat)) then
@@ -3589,5 +3590,7 @@ contains
     call deallocate(coordinate_field)
    
    end subroutine calculate_diagnostic_coordinate_field
+
+
    
 end module diagnostic_fields

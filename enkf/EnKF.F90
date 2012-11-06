@@ -44,10 +44,17 @@
     use m_random
     use analysis_module
     use m_local_analysis
+    use interpolation_ensemble_state_on_supermesh
+    use fldebug
+    use fields_allocates
+
     implicit none
 
     type(state_type), dimension(:), pointer :: state
+    type(state_type), dimension(:), allocatable :: ensemble_state_velocity
+    type(state_type), dimension(:), allocatable :: ensemble_state_pressure
     type(state_type), dimension(:), allocatable :: ensemble_state
+    type(state_type), dimension(:,:), allocatable :: analysis_state
     type(state_type), dimension(:), allocatable, save :: Measurement_state
     type(state_type), dimension(:), pointer :: Assemble_Matrix_A
     logical :: l_global_analysis
@@ -77,6 +84,7 @@
     call read_command_line()
     !!state includes the fields i.c., b.c.and mesh info in flml file
     call populate_state(state)
+    call get_option('/simulation_name',simulation_name)
 
     nrens=10
     
@@ -84,7 +92,7 @@
     format='FreeSurfaceHeight'
 
     !!ensemble_state from ensemble vtus
-    call construct_ensemble_matrix(ensemble_state, A, nrens, global_ndim, nvar)
+    call construct_ensemble_matrix(ensemble_state, ensemble_state_velocity, ensemble_state_pressure, A, nrens, global_ndim, nvar)
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -93,7 +101,7 @@
 ! Construct ensemble of measurements D=d+E
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-     call construct_measurement_matrix(state, measurement_state, nrens, nobs, D, E, format)
+    call construct_measurement_matrix(state, measurement_state, nrens, nobs, D, E, format)
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! Observe ensemble to construct the matrix HA
@@ -114,14 +122,12 @@
    
    l_global_analysis=.true.   
 
-   print*,A(1:20,1)
    if (l_global_analysis) then
       print *,'EnKF: Computing global analysis'
       !##print*,'EnKF: Size A',size(A)
       !call analysis(A, D, E, S, global_ndim, nrens, nrobs, .false.)
       !call analysis6(A, E, S, meanD, global_ndim, nrens, nrobs, .false.)
      !## call analysis6c(A, E, S, meanD, global_ndim, nrens, nrobs, .true.)
-print*,nobs
      call analysis6(A, 0.001*E, S, meanD, global_ndim, nrens, nobs, .false.)
    else
       print* , 'EnKF: Computing local analysis'
@@ -153,10 +159,8 @@ print*,nobs
 
 
 
-
 contains
 
-  !!Construct the ensemble matrix A
   subroutine construct_ensemble_matrix(ensemble_state, A, nrens, global_ndim, nvar)
 
    type(state_type), dimension(:), allocatable :: ensemble_state
@@ -280,7 +284,6 @@ contains
       endif
    enddo
 
-  !stop
   end subroutine construct_ensemble_matrix
 
    subroutine construct_measurement_matrix(state, measurement_state, nrens, nobs, D, E, format)
@@ -363,7 +366,7 @@ contains
 
   subroutine construct_HA(state, ensemble_state, measurement_state, nrens, nobs, D, S, meanD, meanS, format)
      type(state_type), dimension(:), intent(in) :: state
-     type(state_type), dimension(:), allocatable, intent(in) :: ensemble_state
+     type(state_type), dimension(:), intent(in) :: ensemble_state
      type(state_type), dimension(:), allocatable, intent(in) :: measurement_state
      type(mesh_type) :: measurement_mesh, input_mesh
      character(len=OPTION_PATH_LEN), intent(in) :: format
@@ -454,10 +457,83 @@ contains
      !stop
   end subroutine construct_HA
 
+
+  subroutine form_analysis_state(ensemble_state, ensemble_state_pressure, analysis_state, A)
+
+    type(state_type), intent(in), dimension(:) :: ensemble_state
+    type(state_type), intent(in), dimension(:) :: ensemble_state_pressure
+    type(state_type), intent(out), dimension(:,:), allocatable :: analysis_state
+
+    real, intent(in), dimension(:) :: A
+
+    type(mesh_type), pointer :: analysis_xmesh, analysis_umesh, analysis_pmesh, pmesh, analysis_mesh
+    type(element_type) :: analysis_xshape, analysis_ushape, analysis_pshape
+    type(vector_field), pointer :: analysis_positions
+    type(vector_field), pointer :: velocity
+    type(scalar_field), pointer :: pressure, free_surface
+
+    type(vector_field) :: analysis_velocity
+    type(scalar_field) :: analysis_pressure, analysis_free_surface
+
+    integer :: i, j, k
+    integer :: stat, u_nodes, p_nodes, fs_nodes
+    logical :: all_meshes_same
+
+    !character(len = OPTION_PATH_LEN) :: simulation_name
+
+    !call get_option('/simulation_name',simulation_name)
+    allocate(analysis_state(1,1))
+    call nullify(analysis_state)
+
+       analysis_mesh => extract_mesh(ensemble_state(1), "Mesh")
+
+       all_meshes_same = .false.
+
+       analysis_xmesh => extract_mesh(ensemble_state(1), "Mesh", stat)
+       analysis_umesh => extract_mesh(ensemble_state(1), "Mesh", stat)
+       analysis_pmesh => extract_mesh(ensemble_state_pressure(1), "Mesh", stat)
+
+       analysis_positions => extract_vector_field(ensemble_state(1), "Coordinate")
+
+!       call insert(pod_state(i,1), pod_xmesh, "Mesh")
+       call insert(analysis_state(1,1), analysis_xmesh, "CoordinateMesh")
+       call insert(analysis_state(1,1), analysis_umesh, "VelocityMesh")
+       call insert(analysis_state(1,1), analysis_pmesh, "PressureMesh")
+       call insert(analysis_state(1,1), analysis_positions, "Coordinate")
+  
+       velocity => extract_vector_field(ensemble_state(1), "Velocity")
+       pressure => extract_scalar_field(ensemble_state_pressure(1), "Pressure")
+       free_surface => extract_scalar_field(ensemble_state(1), "FreeSurface")
+       u_nodes=node_count(velocity)
+       p_nodes=node_count(pressure)
+       fs_nodes=node_count(free_surface)
+
+       call allocate(analysis_velocity, velocity%dim, analysis_umesh, "Velocity")
+       call zero(analysis_velocity)
+       do j=1,velocity%dim
+          analysis_velocity%val(j,:)=A((j-1)*u_nodes+1:j*u_nodes)
+       end do
+       call insert(analysis_state(1,1), analysis_velocity, name="Velocity")
+       call deallocate(analysis_velocity)
+
+       call allocate(analysis_pressure, analysis_pmesh, "Pressure")
+       call zero(analysis_pressure)
+       analysis_pressure%val(:)=A(velocity%dim*u_nodes+1:velocity%dim*u_nodes+p_nodes)
+       call insert(analysis_state(1,1), analysis_pressure, name="Pressure")
+       call deallocate(analysis_pressure)
+
+       call allocate(analysis_free_surface, analysis_umesh, "FreeSurface")
+       call zero(analysis_free_surface)
+       analysis_free_surface%val(:)=A(velocity%dim*u_nodes+p_nodes+1:velocity%dim*u_nodes+p_nodes+fs_nodes)
+       call insert(analysis_state(1,1), analysis_free_surface, name="FreeSurface")
+       call deallocate(analysis_free_surface)
+
+  end subroutine form_analysis_state
+
   subroutine read_command_line()
     implicit none
     ! Read the input filename.
-    character(len=1024) :: argument, filename
+    character(len=255) :: argument, filename
     integer :: status, argn, level
 
     call set_global_debug_level(0)

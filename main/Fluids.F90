@@ -134,7 +134,7 @@ contains
     !     System state wrapper.
     type(state_type), dimension(:), pointer :: state => null()
     type(state_type), dimension(:), pointer :: sub_state => null()
-    type(state_type), dimension(:), allocatable :: POD_state
+    type(state_type), dimension(:,:,:), allocatable :: POD_state
 
     type(tensor_field) :: metric_tensor
     !     Dump index
@@ -144,7 +144,7 @@ contains
     character(len=OPTION_PATH_LEN):: option_path
     REAL :: CHANGE,CHAOLD
 
-    integer :: i, it, its
+    integer :: i, j,k,it, its
 
     logical :: not_to_move_det_yet = .false.
 
@@ -232,10 +232,10 @@ contains
     ewrite(3,*)'before have_option test'
 
     if (have_option("/reduced_model/execute_reduced_model")) then
-       call read_pod_basis(POD_state, state)
+       call read_pod_basis_differntmesh(POD_state, state)
     else
        ! need something to pass into solve_momentum
-       allocate(POD_state(1:0))
+       allocate(POD_state(1:0,1:0,1:0))
     end if
 
     ! Check the diagnostic field dependencies for circular dependencies
@@ -972,8 +972,12 @@ contains
     end if
 
     if (allocated(pod_state)) then
-       do i=1, size(pod_state)
-          call deallocate(pod_state(i))
+       do i=1, size(pod_state,1)
+          do j=1,size(pod_state,2)
+             do k=1,size(pod_state,3)
+                call deallocate(pod_state(i,j,k))
+             enddo
+          enddo
        end do
     end if
 

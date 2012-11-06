@@ -8,7 +8,12 @@
 should be run in reduced mode. 
 
  DO NOT MANUALLY ENABLE THIS OPTION!!!</a:documentation>
-          <empty/>
+          <optional>
+            <element name="petrov_galerkin">
+              <a:documentation>Petrov-Galerkin</a:documentation>
+              <empty/>
+            </element>
+          </optional>
         </element>
       </optional>
       <element name="pod_basis_formation">
@@ -27,6 +32,12 @@ E.g. 1 for every dump, 10 for every tenth dump. </a:documentation>
           <ref name="real"/>
         </element>
       </element>
+      <optional>
+        <element name="discrete_empirical_interpolation_method">
+          <a:documentation>DEIM(Discrete Empirical Interpolation Method)</a:documentation>
+          <empty/>
+        </element>
+      </optional>
     </element>
   </define>
 </grammar>
