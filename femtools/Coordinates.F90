@@ -129,13 +129,20 @@ contains
   elemental subroutine ll2r3_rotate(longitude, latitude, u, v, r3u, r3v, r3w)
     real, intent(in)::longitude, latitude, u, v
     real, intent(out)::r3u, r3v, r3w
-    real t
-    
-    r3w = v*cos(deg_to_rad*latitude)
-    t = v*sin(deg_to_rad*latitude)
+    real t, phi, theta
 
-    r3v = u*cos(deg_to_rad*longitude) - t*sin(deg_to_rad*longitude)
-    r3u = -(u*sin(deg_to_rad*longitude) + t*cos(deg_to_rad*longitude))
+!    r3w = v*cos(deg_to_rad*latitude)
+!    t = v*sin(deg_to_rad*latitude)
+ 
+!    r3v = u*cos(deg_to_rad*longitude) - t*sin(deg_to_rad*longitude)
+!    r3u = -(u*sin(deg_to_rad*longitude) + t*cos(deg_to_rad*longitude))
+
+    phi = longitude
+    theta = 90.0 - latitude
+  
+    r3u = v*cos(deg_to_rad*theta)*cos(deg_to_rad*phi) - u*sin(deg_to_rad*phi)
+    r3v = v*cos(deg_to_rad*theta)*sin(deg_to_rad*phi) + u*cos(deg_to_rad*phi)
+    r3w = -v*cos(deg_to_rad*theta)
     
   end subroutine ll2r3_rotate
 
