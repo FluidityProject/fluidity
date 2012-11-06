@@ -1529,7 +1529,7 @@
          end if ! end of 'if .not.reduced_model'
 
 
-         if(reduced_model.and.timestep_check) then
+         if(.not.reduced_model .or. (reduced_model .and. timestep_check))then
             !! Finalisation and memory deallocation
             call profiler_tic("finalisation_loop")
             finalisation_loop: do istate = 1, size(state)
@@ -1564,7 +1564,7 @@
          end if
 
 
-         if(reduced_model.and.timestep_check) then
+         if(.not.reduced_model .or. (reduced_model .and. timestep_check))then
             ! Deallocate arrays of matricies/fields/pointers
             deallocate(big_m)
             deallocate(ct_m)
