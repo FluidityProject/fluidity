@@ -79,6 +79,10 @@
     integer :: u_nodes, p_nodes, fs_nodes, t_nodes, s_nodes
     integer :: i, j, dump_no
     character(len = OPTION_PATH_LEN) :: simulation_name
+    character(len=255) :: filename
+    !!ensemble matrix mean analysis
+    real, dimension(:), allocatable :: meanA_analysis
+    type(state_type), dimension(:,:), allocatable :: mean_state
 
     call python_init()
     call read_command_line()
@@ -86,8 +90,8 @@
     call populate_state(state)
     call get_option('/simulation_name',simulation_name)
 
-    nrens=10
-    
+    nrens=2
+
     !!call get_option("/enkf/assimilation_variable",format)
     format='FreeSurfaceHeight'
 
@@ -110,8 +114,8 @@
 ! Compute HA'=HA-mean(HA)                    ==> return in S  !! need to modify -- will be calculated in Fluidity
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-     call construct_HA(state, ensemble_state, measurement_state, nrens, nobs, D, S, meanS, meanD, format)
-     !!using probe.py to get the data file *_detectors.dat
+    call construct_HA(state, ensemble_state, measurement_state, nrens, nobs, D, S, meanS, meanD, format)
+    !!using probe.py to get the data file *_detectors.dat
  
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -127,8 +131,10 @@
       !##print*,'EnKF: Size A',size(A)
       !call analysis(A, D, E, S, global_ndim, nrens, nrobs, .false.)
       !call analysis6(A, E, S, meanD, global_ndim, nrens, nrobs, .false.)
-     !## call analysis6c(A, E, S, meanD, global_ndim, nrens, nrobs, .true.)
-     call analysis6(A, 0.001*E, S, meanD, global_ndim, nrens, nobs, .false.)
+      !## call analysis6c(A, E, S, meanD, global_ndim, nrens, nrobs, .true.)
+
+      !call analysis6(A, 0.001*E, S, meanD, global_ndim, nrens, nobs, .false.)
+      call analysis(A, D, 0.001*E, S, global_ndim, nrens, nobs, .false.)
    else
       print* , 'EnKF: Computing local analysis'
       call local_analysis(nrens,nobs,global_ndim,nvar,A,state,measurement_state,meanD,E,S)
@@ -138,151 +144,361 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! output as vtu files
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-   print*,A(1:20,1)
-  
-   call get_option('/simulation_name',simulation_name)
-   velocity=>extract_vector_field(state, 'Velocity')
-   pressure=>extract_scalar_field(state, 'Pressure')
-   free_surface=>extract_scalar_field(state, 'FreeSurface')
-   u_nodes=node_count(velocity)
-   p_nodes=node_count(pressure)
-   fs_nodes=node_count(free_surface)
+
    do i=1,nrens
-      dump_no=i
-      do j=1,velocity%dim
-         velocity%val(:,j)=A((j-1)*u_nodes+1:j*u_nodes,i)
-      enddo
-      pressure%val(:)=A(velocity%dim*u_nodes+1:velocity%dim*u_nodes+p_nodes,i)
-      free_surface%val(:)=A(velocity%dim*u_nodes+p_nodes+1:velocity%dim*u_nodes+p_nodes+fs_nodes,i)
-      call vtk_write_state(filename=trim(simulation_name)//"_analysis", index=dump_no, state=state)
+      write(filename,'(a,i0)')'analysis',i
+      open(20,file=filename)
+      write(20,*)A(:,i)
+      close(20)
    enddo
 
+!100 continue
+    do i=1, nrens   
+       print*,'writing__',trim(simulation_name)//"_analysis_",i,'.vtu'
+       call form_analysis_state(ensemble_state, ensemble_state_pressure, analysis_state, A(:,i))
+       call vtk_write_state(filename=trim(simulation_name)//"_analysis", index=i, state=analysis_state(1,:))
+       call deallocate(analysis_state)
+    enddo
 
+    allocate(meanA_analysis(global_ndim))
+    meanA_analysis=0.0
+    do i=1, nrens
+       meanA_analysis=meanA_analysis+A(:,i)
+    enddo
+    meanA_analysis=meanA_analysis/nrens
+
+    print*,'writing__',"ensemble_mean_analysis.vtu"
+    call form_analysis_state(ensemble_state, ensemble_state_pressure, mean_state, meanA_analysis)
+    call vtk_write_state(filename="ensemble_mean_analysis", state=mean_state(1,:))
+    call deallocate(mean_state)
+    deallocate(meanA_analysis)
 
 contains
 
-  subroutine construct_ensemble_matrix(ensemble_state, A, nrens, global_ndim, nvar)
+  !!Construct the ensemble matrix A
+  subroutine construct_ensemble_matrix(ensemble_state_old, ensemble_state_velocity_old, ensemble_state_pressure_old, A, nrens, global_ndim, nvar)
 
-   type(state_type), dimension(:), allocatable :: ensemble_state
-   real, dimension(:,:),  allocatable, intent(out) :: A
-   !!number of ensembles
-   integer, intent(in) :: nrens
-   integer, intent(out) :: global_ndim
-   type(vector_field), pointer :: velocity
-   type(scalar_field), pointer :: pressure
-   type(scalar_field), pointer :: free_surface
-   type(scalar_field), pointer :: temperature
-   type(scalar_field), pointer :: salinity
-   character(len=1024) :: filename
-   integer :: quadrature_degree
-   integer :: i, j, k, d
-   integer, intent(out) :: nvar
-   integer :: u_nodes, p_nodes, fs_nodes, t_nodes, s_nodes
-   character(len = OPTION_PATH_LEN) :: simulation_name
+    type(state_type), dimension(:), allocatable :: ensemble_state
+    type(state_type), dimension(:), allocatable :: ensemble_state_velocity
+    type(state_type), dimension(:), allocatable :: ensemble_state_pressure
+    type(state_type), dimension(:), allocatable :: ensemble_state_old
+    type(state_type), dimension(:), allocatable :: ensemble_state_velocity_old
+    type(state_type), dimension(:), allocatable :: ensemble_state_pressure_old
+    real, dimension(:,:),  allocatable, intent(out) :: A
+    !!number of ensembles
+    integer, intent(in) :: nrens
+    integer, intent(out) :: global_ndim
+    type(vector_field), pointer :: velocity,vfield
+    type(scalar_field), pointer :: pressure,sfield
+    type(tensor_field), pointer :: tfield
+    type(scalar_field), pointer :: free_surface
+    type(scalar_field), pointer :: temperature
+    type(scalar_field), pointer :: salinity
+    character(len=255), dimension(:), allocatable :: filename
+    character(len=255), dimension(:), allocatable :: filename1
+    character(len=255), dimension(:), allocatable :: filename2
+    character(len=255), dimension(:), allocatable :: filename3
+    integer :: quadrature_degree
+    integer :: i, j, k, d,ifield,nfield,stat
+    integer, intent(out) :: nvar
+    integer :: u_nodes, p_nodes, fs_nodes, t_nodes, s_nodes
+    character(len = OPTION_PATH_LEN) :: simulation_name, mesh_name
+    !!ensemble matrix mean
+    real, dimension(:), allocatable :: meanA
+    type(state_type), dimension(:,:), allocatable :: mean_state
+    type(vector_field):: vfield2
+    type(scalar_field):: sfield2
+    type(tensor_field):: tfield2
 
-   print*,'In construct_ensemble_matrix'
-   call get_option('/simulation_name',simulation_name)
-   call get_option('/geometry/quadrature/degree', quadrature_degree)
-   allocate(ensemble_state(nrens))
+    logical :: exists
+    type(vector_field), pointer:: vfield_tmp
+    type(scalar_field), pointer:: sfield_tmp
+    type(tensor_field), pointer:: tfield_tmp
+    type(mesh_type), pointer:: mesh_tmp
 
-   do i=1, nrens
 
-      !! Note that this won't work in parallel. Have to look for the pvtu in that case.
-      write(filename, '(a, i0, a)') trim(simulation_name)//'_', i, ".vtu"
-      call vtk_read_state(filename, ensemble_state(i), quadrature_degree)
 
-      !! Note that we might need code in here to clean out unneeded fields.
-   end do
+    print*,'In construct_ensemble_matrix'
+    call get_option('/simulation_name',simulation_name)
+    call get_option('/geometry/quadrature/degree', quadrature_degree)
+    !allocate(ensemble_state(nrens))
 
-!HYCOM variables in ensemble matrix A
-!      real u(nx,ny,nz)                         ! 3-D u-velocity
-!      real v(nx,ny,nz)                         ! 3-D v-velocity
-!      real d(nx,ny,nz)                         ! 3-D Layer thickness
-!      real t(nx,ny,nz)                         ! 3-D Temperature
-!      real s(nx,ny,nz)                         ! 3-D Salinity 
-!      real ub(nx,ny)                           ! 2-D barotropic u-velocity
-!      real vb(nx,ny)                           ! 2-D barotropic v-velocity
-!      real pb(nx,ny)                           ! 2-D barotropic pressure
+    allocate(filename(nrens))
+    allocate(filename1(nrens))
+    allocate(filename2(nrens))
 
-!!FLUIDITY
-!!u,v,w,p,fs,t,s: 3-D data
 
-   nvar=0
-   u_nodes=0
-   p_nodes=0
-   t_nodes=0
-   s_nodes=0
 
-   velocity => extract_vector_field(ensemble_state(1), "Velocity")   
-   u_nodes=node_count(velocity)
-   nvar=nvar+velocity%dim
-   pressure => extract_scalar_field(ensemble_state(1), 'Pressure')
-   p_nodes=node_count(pressure)
-   nvar=nvar+1
+    !call interpolation_ensembles_on_supermesh(ensemble_state, ensemble_state_old, filename)
+    !call deallocate(ensemble_state_old)
 
-   !!Diagnostic field FreeSurface in ensemble vtus. Can it be on the surface mesh?
-   free_surface => extract_scalar_field(ensemble_state(1), "FreeSurface")
-   fs_nodes=node_count(free_surface)
-   nvar=nvar+1
+    !print*,'project the velocity field'
+    !allocate(ensemble_state_velocity_old(nrens))
+    !do i=1, nrens
+    !   write(filename1(i), '(a, i0, a)') trim(simulation_name)//'_VelocityMesh_', i, ".vtu"
+    !   call vtk_read_state(filename1(i), ensemble_state_velocity_old(i), quadrature_degree)
+    !enddo
 
-   global_ndim=u_nodes*velocity%dim+p_nodes+fs_nodes
+    !allocate(ensemble_state_velocity(nrens))
+    !call interpolation_ensembles_on_supermesh(ensemble_state_velocity, ensemble_state_velocity_old, filename3)
+    !call deallocate(ensemble_state_velocity_old)
 
-   if(have_option("/material_phase[0]/scalar_field::Temperature/prognostic"))then
-      temperature => extract_scalar_field(ensemble_state(1), "Temperature")
-      t_nodes=node_count(temperature)
-      global_ndim=global_ndim+t_nodes
-      nvar=nvar+1
-   endif
-   if(have_option("/material_phase[0]/scalar_field::Salinity/prognostic"))then
-      salinity => extract_scalar_field(ensemble_state(1), "Salinity")
-      s_nodes=node_count(salinity)
-      global_ndim=global_ndim+s_nodes
-      nvar=nvar+1
-   endif
+    !   allocate(ensemble_state_pressure_old(nrens))
+    allocate(ensemble_state(nrens))
 
-   print*,'u_nodes=',u_nodes
-   print*,'p_nodes=',p_nodes
-   print*,'fs_nodes=',fs_nodes
-   print*,'t_nodes=',t_nodes
-   print*,'s_nodes=',s_nodes
-   print*,'global_ndim=',global_ndim
-   print*,'nvar=',nvar
+    allocate(ensemble_state_old(nrens))
 
-   allocate(A(global_ndim, nrens))
-   do k=1, nrens
-      velocity => extract_vector_field(ensemble_state(k), "Velocity")
-      do d=1, velocity%dim
-         i=1+u_nodes*(d-1)
-         j=u_nodes*d
-         !!velocity%val(d,:).ne.field_val(velocity,d)
-         A(i:j,k)=velocity%val(d,:)
-      enddo
+    do i = 1, nrens
+       call nullify(ensemble_state_old(i)) 
+       call set_option_path(ensemble_state_old(i), "/material_phase["//int2str(i-1)//"]")
 
-      pressure => extract_scalar_field(ensemble_state(k), 'Pressure')
-      i=j+1
-      j=j+p_nodes
-      !!pressure%val=field_val(pressure)
-      A(i:j,k)=pressure%val
+       call nullify(ensemble_state(i)) 
+       call set_option_path(ensemble_state(i), "/material_phase["//int2str(i-1)//"]")
+    end do
 
-      free_surface => extract_scalar_field(ensemble_state(1), "FreeSurface")
-      i=j+1
-      j=j+fs_nodes
-      A(i:j,k)=free_surface%val
+    call insert_external_mesh(ensemble_state_old, save_vtk_cache = .true.)
+    !    call insert_external_mesh(ensemble_state, save_vtk_cache = .true.)
+    call insert_derived_meshes( ensemble_state_old )
+    !   call insert_derived_meshes( ensemble_state )
 
-      if(have_option("/material_phase[0]/scalar_field::Temperature/prognostic"))then
-         temperature => extract_scalar_field(ensemble_state(k), "Temperature")
-         i=j+1
-         j=j+t_nodes
-         A(i:j,k)=temperature%val
-      endif
+    call allocate_and_insert_fields(ensemble_state_old)
 
-      if(have_option("/material_phase[0]/scalar_field::Salinity/prognostic"))then
-         salinity => extract_scalar_field(ensemble_state(k), "Salinity")
-         i=j+1
-         j=j+s_nodes
-         A(i:j,k)=salinity%val
-      endif
-   enddo
+    call initialise_prognostic_fields(ensemble_state_old, save_vtk_cache=.true., &
+         initial_mesh=.true.)
+
+    call set_prescribed_field_values(ensemble_state_old, initial_mesh=.true.)
+
+    do i = 2, nrens
+
+       nfield = scalar_field_count( ensemble_state_old(1) )
+       print*,'&&&&scaler',nfield
+       do ifield = 1, nfield 
+          sfield => extract_scalar_field( ensemble_state_old(1), ifield )
+          print*, trim(sfield%name)
+
+          exists=.false.
+          do j=1, scalar_field_count( ensemble_state_old(1) )
+             sfield_tmp => extract_scalar_field( ensemble_state_old(i), trim(sfield%name), stat)
+             mesh_name = trim(sfield%mesh%name)
+             if (trim(sfield%name)==trim(sfield_tmp%name)) then
+                exists=.true.
+                exit
+             end if
+          end do
+          if (exists) cycle
+
+          print*, 'EXISTS',exists 
+          do j=1,mesh_count(ensemble_state_old(1))
+             mesh_tmp => extract_mesh( ensemble_state_old(i), trim(sfield%mesh%name)  )
+             if (trim(mesh_name)==trim(mesh_tmp%name)) exit
+          end do
+
+          print *, node_count(sfield),trim(sfield%name), trim(mesh_tmp%name)
+          call allocate( sfield2,  mesh_tmp, trim(sfield%name)   )
+          call set(sfield2, node_val(sfield,1) )  !!! this is used only for the constant field
+          call insert(ensemble_state_old(i), sfield2, trim(sfield%name))
+       end do
+
+!!! Vector
+       !_-------
+
+
+
+       nfield = vector_field_count( ensemble_state_old(1) )
+       print*,'&&&&vector',nfield
+       do ifield = 1, nfield 
+          vfield => extract_vector_field( ensemble_state_old(1), ifield )
+
+
+
+          exists=.false.
+          do j=1, vector_field_count( ensemble_state_old(1) )
+             vfield_tmp => extract_vector_field( ensemble_state_old(i), trim(vfield%name), stat)
+             mesh_name = trim(vfield%mesh%name)
+             if (trim(vfield%name)==trim(vfield_tmp%name)) then
+                exists=.true.
+                exit
+             end if
+          end do
+          if (exists) cycle
+
+          print*, 'EXISTS',exists 
+          do j=1,mesh_count(ensemble_state_old(1))
+             mesh_tmp => extract_mesh( ensemble_state_old(i), trim(vfield%mesh%name)  )
+             if (trim(mesh_name)==trim(mesh_tmp%name)) exit
+          end do
+
+          print *, node_count(vfield),trim(vfield%name)
+          call allocate( vfield2,  vfield%dim, vfield%mesh, trim(vfield%name)   )
+          call set(vfield2, node_val(vfield,1 )) !!! this is used only for the constant field
+          call insert(ensemble_state_old(i), vfield2, trim(vfield%name))
+       end do
+
+       nfield = tensor_field_count( ensemble_state_old(1) )
+       print*,'&&&&tensor',nfield
+       do ifield = 1, nfield 
+          tfield => extract_tensor_field( ensemble_state_old(1), ifield )
+
+
+
+          exists=.false.
+          do j=1, tensor_field_count( ensemble_state_old(1) )
+             tfield_tmp => extract_tensor_field( ensemble_state_old(i), trim(tfield%name), stat)
+             mesh_name = trim(tfield%mesh%name)
+             if (trim(tfield%name)==trim(tfield_tmp%name)) then
+                exists=.true.
+                exit
+             end if
+          end do
+          if (exists) cycle
+
+          print*, 'EXISTS',exists 
+          do j=1,mesh_count(ensemble_state_old(1))
+             mesh_tmp => extract_mesh( ensemble_state_old(i), trim(tfield%mesh%name)  )
+             if (trim(mesh_name)==trim(mesh_tmp%name)) exit
+          end do
+
+          print *, node_count(tfield),trim(tfield%name)
+          call allocate( tfield2, tfield%mesh, trim(tfield%name)   )
+          call set(tfield2, node_val(tfield,1 )) !!! this is used only for the constant field
+          call insert(ensemble_state_old(i), tfield2, trim(tfield%name))
+       end do
+    end do
+
+    call print_state( ensemble_state_old(1) )
+    print*,'**********'
+    call print_state( ensemble_state_old(2) )
+
+    call interpolation_ensembles_on_supermesh(ensemble_state, ensemble_state_old)
+
+    stop 44
+
+    !   call vtk_write_state(filename="PressureMesh_test", state=ensemble_state_pressure)
+    !   stop 12
+
+    do i=1, nrens
+       write(filename(i), '(a, i0, a)') trim(simulation_name)//'_', i, ".vtu"
+       call vtk_read_state(filename(i), ensemble_state(i), quadrature_degree)
+
+       write(filename1(i), '(a, i0, a)') trim(simulation_name)//'_VelocityMesh_', i, ".vtu"
+       call vtk_read_state(filename1(i), ensemble_state_velocity(i), quadrature_degree) 
+
+       !   !! Note that this won't work in parallel. Have to look for the pvtu in that case.
+       !   write(filename2(i), '(a, i0, a)') trim(simulation_name)//'_PressureMesh_', i, ".vtu"
+       !   !write(filename, '(a, i0, a)') 'munk_gyre-ns_', i, ".vtu"
+       !   call vtk_read_state(filename2(i), ensemble_state_pressure(i), quadrature_degree)
+
+       !   !! Note that we might need code in here to clean out unneeded fields.
+    end do
+
+
+    !call interpolation_ensembles_on_supermesh(ensemble_state_new, ensemble_state_pressure, filename)
+
+
+    !HYCOM variables in ensemble matrix A
+    !      real u(nx,ny,nz)                         ! 3-D u-velocity
+    !      real v(nx,ny,nz)                         ! 3-D v-velocity
+    !      real d(nx,ny,nz)                         ! 3-D Layer thickness
+    !      real t(nx,ny,nz)                         ! 3-D Temperature
+    !      real s(nx,ny,nz)                         ! 3-D Salinity 
+    !      real ub(nx,ny)                           ! 2-D barotropic u-velocity
+    !      real vb(nx,ny)                           ! 2-D barotropic v-velocity
+    !      real pb(nx,ny)                           ! 2-D barotropic pressure
+
+    !!FLUIDITY
+    !!u,v,w,p,fs,t,s: 3-D data
+
+    nvar=0
+    u_nodes=0
+    p_nodes=0
+    t_nodes=0
+    s_nodes=0
+
+    velocity => extract_vector_field(ensemble_state_velocity(1), "Velocity")   
+    u_nodes=node_count(velocity)
+    nvar=nvar+velocity%dim
+    pressure => extract_scalar_field(ensemble_state_pressure(1), 'Pressure')
+    p_nodes=node_count(pressure)
+    nvar=nvar+1
+
+    !!Diagnostic field FreeSurface in ensemble vtus. Can it be on the surface mesh?
+    free_surface => extract_scalar_field(ensemble_state(1), "FreeSurface")
+    fs_nodes=node_count(free_surface)
+    nvar=nvar+1
+
+    global_ndim=u_nodes*velocity%dim+p_nodes+fs_nodes
+
+    if(have_option("/material_phase[0]/scalar_field::Temperature/prognostic"))then
+       temperature => extract_scalar_field(ensemble_state(1), "Temperature")
+       t_nodes=node_count(temperature)
+       global_ndim=global_ndim+t_nodes
+       nvar=nvar+1
+    endif
+    if(have_option("/material_phase[0]/scalar_field::Salinity/prognostic"))then
+       salinity => extract_scalar_field(ensemble_state(1), "Salinity")
+       s_nodes=node_count(salinity)
+       global_ndim=global_ndim+s_nodes
+       nvar=nvar+1
+    endif
+
+    print*,'u_nodes=',u_nodes
+    print*,'p_nodes=',p_nodes
+    print*,'fs_nodes=',fs_nodes
+    print*,'t_nodes=',t_nodes
+    print*,'s_nodes=',s_nodes
+    print*,'global_ndim=',global_ndim
+    print*,'nvar=',nvar
+
+    allocate(A(global_ndim, nrens))
+    do k=1, nrens
+       velocity => extract_vector_field(ensemble_state_velocity(k), "Velocity")
+       do d=1, velocity%dim
+          i=1+u_nodes*(d-1)
+          j=u_nodes*d
+          !!velocity%val(d,:).ne.field_val(velocity,d)
+          A(i:j,k)=velocity%val(d,:)
+       enddo
+
+       pressure => extract_scalar_field(ensemble_state_pressure(k), 'Pressure')
+       i=j+1
+       j=j+p_nodes
+       !!pressure%val=field_val(pressure)
+       A(i:j,k)=pressure%val
+
+       free_surface => extract_scalar_field(ensemble_state(k), "FreeSurface")
+       i=j+1
+       j=j+fs_nodes
+       A(i:j,k)=free_surface%val
+
+       if(have_option("/material_phase[0]/scalar_field::Temperature/prognostic"))then
+          temperature => extract_scalar_field(ensemble_state(k), "Temperature")
+          i=j+1
+          j=j+t_nodes
+          A(i:j,k)=temperature%val
+       endif
+
+       if(have_option("/material_phase[0]/scalar_field::Salinity/prognostic"))then
+          salinity => extract_scalar_field(ensemble_state(k), "Salinity")
+          i=j+1
+          j=j+s_nodes
+          A(i:j,k)=salinity%val
+       endif
+    enddo
+
+    allocate(meanA(global_ndim))   
+    meanA=0.0 
+    do i=1,nrens
+       meanA(:)=meanA(:)+A(:,i)
+    enddo
+
+    meanA=meanA/nrens
+
+    print*,'writing__',"ensemble_mean.vtu"
+    call form_analysis_state(ensemble_state, ensemble_state_pressure, mean_state, meanA)
+    call vtk_write_state(filename="ensemble_mean", state=mean_state(1,:))
+    call deallocate(mean_state)
+    deallocate(meanA)
+    stop
 
   end subroutine construct_ensemble_matrix
 
@@ -340,7 +556,7 @@ contains
              call deallocate(perturb_SSH)
           enddo
           !!reading observation data
-20        nobs=7
+20        nobs=21
           allocate(obs(nobs))
           open(20,file='obs.dat')
           read(20,*)obs
