@@ -352,6 +352,7 @@ where all three components are zero and this is referred to as no-slip.
 \index{boundary conditions!prescribed stress}
 \index{traction force}
 \index{momentum equation}
+\index{free stress}
 
 As with the scalar equation (see section \ref{sec:bc_scalar_neumann}), applying Green's theorem to the stress term and the pressure
 gradient in \eqref{mtm} results in a surface integral of the form
@@ -366,9 +367,10 @@ component to zero (in the presence of a free surface) and impose the two tangent
 \index{boundary conditions!free stress}
 The free-stress condition is the case where we take $\bmT\equiv\vec{0}$.
 
-\subsubsection{Traction boundary condition for momentum --- free-stress as a special case}\label{sec:bc_vector_traction}
+\subsubsection{Traction boundary condition for momentum --- free-slip as a special case}\label{sec:bc_vector_traction}
 \index{boundary conditions!traction}
 \index{momentum equation}
+\index{free slip}
 In this case the normal component of velocity can be prescribed (\eg inflow or
 no-flow ($g=0$) through the boundary)
 \begin{equation}
@@ -384,7 +386,8 @@ of the force $\bmT_{\tau}$, \ie
 An example of this might be where a rigid lid is used (so normal component is zero)
 and the tangential components are a prescribed wind stress (in which case we take
 the two tangential directions to correspond to the available stress or wind velocity
-information, \ie east-west and north-south) or bottom drag. Also, what we often term free-slip
+information, \ie east-west and north-south) or bottom drag. The term
+\emph{free slip}, is often used for the case
 where the tangential components of stress are set to zero.
 
 \subsubsection{Free surface boundary condition}\label{sec:FS}
@@ -436,7 +439,7 @@ If wetting and drying occurs, the free surface boundary condition \ref{freesurf3
 \end{equation}
 where $d_0$ is a threshold defining the minimum water depth.
 
-The details of the wetting and drying are described in \cite{Funke2011}.
+The details of the wetting and drying algorithm are described in \cite{Funke2011}.
 
 \section{Extensions, assumptions and derived equation sets}\label{sec:eqn_extensions}
 
@@ -612,12 +615,11 @@ $\rho'$, we may still write:
 \begin{equation}
   p(x,y,z) = p_0(z) + p'(x,y,z) = -\rho_0 g z + p'(x,y,z).
 \end{equation}
-Here, we have separated the pressure $p_0$, due to the weight of a fluid of reference density $\rho_0$ below a reference level at $z=0$ near the top, from a perturbation pressure $p'$. This
+Here, we have separated the pressure $p_0=-\rho_0 g z$, due to the weight of a fluid of reference density $\rho_0$ below a reference level at $z=0$ near the top, from a perturbation pressure $p'$. This
 perturbation pressure still contains the hydrostatic pressure due to the
-perturbation density, but also any external pressure applied at the top, the
-additional weight of $\rho g\eta$ in places where the top of the domain $\eta$
-does not coincide with $z=0$ (e.g. in the case of a free surface), and any
-non-hydrostatic parts of the pressure.
+perturbation density, and non-hydrostatic parts of the pressure. In the 
+case of a free surface at $z=\eta$, the additional weight of $\rho g\eta$, that
+is not taken into account in $p_0$ is also included in $p'$.
 
 By construction, the pressure gradient of $p_0$ exactly balances $\rho_0\bmg$,
 the reference density part of the gravity term
@@ -626,15 +628,18 @@ the reference density part of the gravity term
 \end{equation}
 We can therefore simply replace $p$ by $p'$ in the pressure gradient term, if we
 subtract $\rho_0\bmg$ from the gravity term, to obtain a buoyancy term
-$\rho'\bmg$. Note, that this step does not require any assumptions about what
-sort of boundary condition is applied at the top.
+$\rho'\bmg$.
 
+\subsubsection{Combining pressure and free surface}
+\index{free surface}
 In many models with a free surface, the $\rho_0 g\eta$ part of pressure (known
 in ocean models as barotropic pressure), is subtracted from the pressure as
 well, 
 and treated separately. Since this part still depends on the horizontal
-coordinates, its gradient does not simply balance with the buoyancy, and a
-horizontal gradient $\rho_0g\nabla_{\text{H}}\eta$ remains. In \fluidity{}
+coordinates, its 3D gradient does not simply balance with the buoyancy, and a
+horizontal gradient $\rho_0g\nabla_{\text{H}}\eta$ remains, which is added as
+an extra term in the momentum equation in such models. 
+In \fluidity{}
 however, we keep this part in the perturbation pressure and it is therefore
 solved for in conjunction with the non-hydrostatic parts of pressure. 
 
@@ -646,10 +651,10 @@ boundary condition for the perturbation changes to:
   \quad \textrm{on}\quad \partial\Omega.
 \end{equation}
 If a normal stress condition is applied, see \eqref{NormalStressBC}, we similarly get:
-\begin{equation*}
+\begin{equation}
   -\bmn\cdot\tautens\cdot\bmn + p' = \patm + \rho_0 g\eta
   \quad \textrm{on}\quad \partial\Omega.
-\end{equation*}
+\end{equation}
 
 \subsubsection{The non-hydrostatic Boussinesq equations}\label{sec:typical_ICOM_equations}
 \index{Boussinesq!equations}
@@ -660,7 +665,7 @@ Applying the approximations outlined in section \ref{sec:boussinesq_approximatio
 
 \begin{subeqnarray}
 \frac{\pp\bmu}{\pp t} + \bmu\cdot\nabla \bmu + 2 \bmOmega \times \bmu
-&=& - \nabla p' - g\nabla\eta + \rho' \bmg + \nabla\cdot \tautens + \bmF,
+&=& - \nabla p' + \rho' \bmg + \nabla\cdot \tautens + \bmF,
 \slabel{mtm}\\
 \nabla\cdot {\bmu}&=&0,\slabel{conty}\\
 \frac{\pp T}{\pp t} + \bmu\cdot\nabla  T  &=&
@@ -673,7 +678,7 @@ f(p,\rho,T,\ldots)&=&0,\slabel{state}
 
 where $p'$ is the perturbation pressure (see section \ref{sec:buoyancy_hydrostacy}),
 $\rho=\rho_0+\rho'$ where $\rho'(=(\rho-\rho_0)/\rho_0)$ is the perturbation density,
-$T$ is the temperature, $S$ is salinity, $\eta$ is the free surface height and
+$T$ is the temperature, $S$ is salinity, and
 $\tautens,\kaptens_T,\kaptens_S$ are the viscosity, thermal diffusivity and saline
 diffusivity tensors respectively.
 The rotation vector is $\bmOmega$, and $\bmF$ contains additional source terms such as the astronomical tidal forcing. A discussion
