@@ -884,6 +884,15 @@ extern "C" {
     return;
   }
   
+#define nemo_setsimulationtimeunits_fc F77_FUNC_(nemo_setsimulationtimeunits, NEMO_SETSIMULATIONTIMEUNITS)
+  void nemo_setsimulationtimeunits_fc(char *_units, int len){
+    char *units = new char[len+1]();
+    strncpy(units, _units, len);
+    units[len] = '\0';
+    NEMOReader_global.SetSimulationTimeUnits(string(units));  
+    return;
+  }
+  
 #define nemo_settimeseconds_fc F77_FUNC_(nemo_settimeseconds, NEMO_SETTIMESECONDS)
   void nemo_settimeseconds_fc(double *_time){
     NEMOReader_global.SetTimeSeconds(*_time);  

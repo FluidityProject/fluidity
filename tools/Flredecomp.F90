@@ -150,6 +150,8 @@ subroutine flredecomp(input_basename, input_basename_len, output_basename, outpu
      call nullify(state(i))
   end do
 
+  call get_ocean_options
+  
   call insert_external_mesh(state, save_vtk_cache = .true.)
   
   call insert_derived_meshes(state, skip_extrusion=skip_initial_extrusion)
