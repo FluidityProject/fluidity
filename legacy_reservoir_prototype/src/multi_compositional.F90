@@ -748,7 +748,7 @@
 
 
     SUBROUTINE CAL_COMP_SUM2ONE_SOU( V_SOURCE_COMP, CV_NONODS, NPHASE, NCOMP2, DT, ITS, NITS, &  
-         MEAN_PORE_CV, SATURA, SATURAOLD, DEN, DENOLD, COMP, COMPOLD ) 
+         MEAN_PORE_CV, SATURA, SATURAOLD, DEN_COMP, DENOLD_COMP, COMP, COMPOLD ) 
       ! make sure the composition sums to 1.0 
       use futils
       implicit none
@@ -756,8 +756,8 @@
       REAL, INTENT( IN ) :: DT
       real, dimension( cv_nonods * nphase ), intent( inout ) :: V_SOURCE_COMP
       real, dimension( cv_nonods ), intent( in ) :: MEAN_PORE_CV
-      real, dimension( cv_nonods * nphase ), intent( in ) :: SATURA, SATURAOLD, DEN, DENOLD
-      real, dimension( cv_nonods * nphase * ncomp2 ), intent( in ) :: COMP, COMPOLD
+      real, dimension( cv_nonods * nphase ), intent( in ) :: SATURA, SATURAOLD
+      real, dimension( cv_nonods * nphase * ncomp2 ), intent( in ) :: COMP, COMPOLD, DEN_COMP, DENOLD_COMP
 
       ! the relaxing E.G. 0.5 is to help convergence. 
       ! =1 is full adjustment to make sure we have sum to 1. 
@@ -768,7 +768,7 @@
       !REAL, PARAMETER :: SUM2ONE_RELAX = 1.0
       !REAL, PARAMETER :: SUM2ONE_RELAX = 0.1
       !REAL, PARAMETER :: SUM2ONE_RELAX = 0.99
-      real :: sum2one_relax, rsum
+      real :: sum2one_relax, COMP_SUM
       integer :: iphase, cv_nodi, icomp
 
 
@@ -795,40 +795,31 @@
 
             IF( ( ITS == NITS ) .or. .true. ) THEN
 
+               COMP_SUM=0.0
+               DO ICOMP = 1, NCOMP2
+                  COMP_SUM=COMP_SUM+COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS &
+                       + ( ICOMP - 1 ) * NPHASE * CV_NONODS )
+               END DO
+               ewrite(3,*)'IPHASE,CV_NODI,S,COMP_SUM:',IPHASE,CV_NODI,SATURA( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ),COMP_SUM
+
                V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) &
                     = V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) & 
                     - SUM2ONE_RELAX * MEAN_PORE_CV( CV_NODI ) * SATURA( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) &
-                    * DEN( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) / DT
-
-               RSUM=0.0
-               DO ICOMP = 1, NCOMP2
-                  V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) &
-                       = V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) & 
-                       + SUM2ONE_RELAX * MEAN_PORE_CV( CV_NODI ) * SATURA( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) &
-                       * DEN( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) &
-                       * COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS &
-                       + ( ICOMP - 1 ) * NPHASE * CV_NONODS ) / DT 
-                  RSUM=RSUM+COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS &
-                       + ( ICOMP - 1 ) * NPHASE * CV_NONODS )
-               END DO
-               ewrite(3,*)'IPHASE,CV_NODI,S,COMP_SUM:',IPHASE,CV_NODI,SATURA( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ),RSUM
+                     *(1.0 - COMP_SUM)/ DT
 
             ELSE
 
+               COMP_SUM=0.0
+               DO ICOMP = 1, NCOMP2
+                  COMP_SUM=COMP_SUM+COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS &
+                       + ( ICOMP - 1 ) * NPHASE * CV_NONODS )
+               END DO
+               ewrite(3,*)'IPHASE,CV_NODI,S,COMP_SUM:',IPHASE,CV_NODI,SATURA( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ),COMP_SUM
+
                V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) &
                     = V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) & 
-                    - SUM2ONE_RELAX * MEAN_PORE_CV( CV_NODI )* SATURAOLD( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) &
-                    * DENOLD( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) / DT 
-
-               DO ICOMP = 1, NCOMP2
-
-                  V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) &
-                       = V_SOURCE_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) & 
-                       + SUM2ONE_RELAX * MEAN_PORE_CV( CV_NODI ) * SATURAOLD( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) &
-                       * DENOLD( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) &
-                       * COMPOLD( CV_NODI + ( IPHASE - 1 ) * CV_NONODS &
-                       + ( ICOMP - 1 ) * NPHASE * CV_NONODS ) / DT 
-               END DO
+                    - SUM2ONE_RELAX * MEAN_PORE_CV( CV_NODI ) * SATURA( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) &
+                     *(1.0 - COMP_SUM)/ DT
 
             ENDIF
 

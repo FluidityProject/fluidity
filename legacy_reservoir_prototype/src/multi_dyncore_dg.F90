@@ -442,7 +442,7 @@
       path='/material_phase[0]/scalar_field::Temperature/prognostic/temporal_discretisation/control_volumes/second_theta'
       call get_option( path, second_theta, stat )
       !SECOND_THETA = 0.0
-      CV_METHOD=.TRUE.
+      CV_METHOD=.FALSE.
 
       IF(CV_METHOD) THEN ! cv method...
 
@@ -1793,7 +1793,8 @@
       REAL, DIMENSION( :,:,:,: ), allocatable :: TDIFFUSION
       REAL, DIMENSION( : ), allocatable :: SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, SUF_T2_BC
       INTEGER, DIMENSION( : ), allocatable :: WIC_T2_BC
-      REAL, DIMENSION( : ), allocatable :: THETA_GDIFF, T2, T2OLD, MEAN_PORE_CV
+      REAL, DIMENSION( : ), allocatable :: THETA_GDIFF, T2, T2OLD, MEAN_PORE_CV, &
+                  DEN_OR_ONE, DENOLD_OR_ONE
       LOGICAL :: GET_THETA_FLUX
       INTEGER :: IGOT_T2
 
@@ -1801,6 +1802,9 @@
 
       GET_THETA_FLUX = .FALSE.
       IGOT_T2 = 0
+
+      ALLOCATE( DEN_OR_ONE( CV_NONODS * NPHASE ))
+      ALLOCATE( DENOLD_OR_ONE( CV_NONODS * NPHASE ))
 
       ALLOCATE( T2( CV_NONODS * NPHASE * IGOT_T2 ))
       ALLOCATE( T2OLD( CV_NONODS * NPHASE * IGOT_T2 ))
@@ -1859,7 +1863,16 @@
               U_NONODS, NCOLC, C, FINDC )
       ENDIF
 
+      IF(USE_THETA_FLUX) THEN ! We have already put density in theta...
+        DEN_OR_ONE   =1.0
+        DENOLD_OR_ONE=1.0
+      ELSE
+        DEN_OR_ONE   =DEN
+        DENOLD_OR_ONE=DENOLD
+      ENDIF
+
       second_theta = 0.
+
       ! Form CT & MASS_MN_PRES matrix...
       CALL CV_ASSEMB( state, &
            CV_RHS, &
@@ -1873,7 +1886,8 @@
            CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
            X, Y, Z, NU, NV, NW, &
            NU, NV, NW, NUOLD, NVOLD, NWOLD, &
-           SATURA, SATURAOLD, DEN, DENOLD, &
+!           SATURA, SATURAOLD, DEN, DENOLD, &
+           SATURA, SATURAOLD, DEN_OR_ONE, DENOLD_OR_ONE, &
            MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
            V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, SECOND_THETA, V_BETA, &
            SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, &
@@ -1893,6 +1907,7 @@
            MEAN_PORE_CV, &
            FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, THERMAL, &
            dummy_transp )
+
 
       ewrite(3,*)'Back from cv_assemb'
 
@@ -2278,8 +2293,9 @@
       call get_option('/material_phase[0]/vector_field::Velocity/prognostic/' // &
            'spatial_discretisation/discontinuous_galerkin/stabilisation/method', &
            RESID_BASED_STAB_DIF, default=0)
-      !      RESID_BASED_STAB_DIF=2
-      !      BETWEEN_ELE_STAB=.false.
+!      RESID_BASED_STAB_DIF=3
+!      RESID_BASED_STAB_DIF=2
+!      BETWEEN_ELE_STAB=.false.
       BETWEEN_ELE_STAB=RESID_BASED_STAB_DIF.NE.0 ! Always switch on between element diffusion if using non-linear 
       ! stabilization
 
@@ -2682,9 +2698,16 @@
             DO GI = 1, CV_NGI_SHORT
                DO IPHASE = 1,NPHASE
                   CV_NOD_PHA = CV_NOD +( IPHASE - 1) * CV_NONODS
+                 if(.true.) then ! FEM DEN...
                   DENGI( GI, IPHASE ) = DENGI( GI, IPHASE ) + CVFEN_SHORT( CV_ILOC, GI ) * UDEN( CV_NOD_PHA )
                   DENGIOLD( GI, IPHASE ) = DENGIOLD( GI, IPHASE ) &
                        + CVFEN_SHORT( CV_ILOC, GI ) * UDENOLD( CV_NOD_PHA )
+                 endif
+                 if(.false.) then ! CV DEN...
+                  DENGI( GI, IPHASE ) = DENGI( GI, IPHASE ) + CVN_SHORT( CV_ILOC, GI ) * UDEN( CV_NOD_PHA )
+                  DENGIOLD( GI, IPHASE ) = DENGIOLD( GI, IPHASE ) &
+                       + CVN_SHORT( CV_ILOC, GI ) * UDENOLD( CV_NOD_PHA )
+                 endif
                   IF(IPLIKE_GRAD_SOU == 1) THEN
                      GRAD_SOU_GI( GI, IPHASE ) = GRAD_SOU_GI( GI, IPHASE ) &
                           + CVFEN_SHORT( CV_ILOC, GI ) * PLIKE_GRAD_SOU_COEF( CV_NOD_PHA )
@@ -4836,6 +4859,9 @@
       RETURN
     END SUBROUTINE CALCULATE_SURFACE_TENSION
 
+
+
+
     SUBROUTINE SURFACE_TENSION_WRAPPER( state, &
          U_FORCE_X_SUF_TEN, U_FORCE_Y_SUF_TEN, U_FORCE_Z_SUF_TEN, &
          PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, &
@@ -5106,7 +5132,7 @@
            D1, D3, DCYL, GOT_DIFFUS, INTEGRAT_AT_GI, &
            NORMALISE, SUM2ONE, GET_GTHETA, QUAD_OVER_WHOLE_ELE, GETCT
       LOGICAL :: GET_THETA_FLUX, USE_THETA_FLUX, THERMAL, LUMP_EQNS, &
-           SIMPLE_LINEAR_SCHEME, GOTDEC
+           SIMPLE_LINEAR_SCHEME, GOTDEC, GAL_PROJ
       integer :: DG_NOD
 
       CHARACTER(LEN=OPTION_PATH_LEN) :: OPTION_PATH
@@ -5300,6 +5326,8 @@
 
       option_path='/material_phase[0]/scalar_field::Pressure'
 
+      GAL_PROJ=.FALSE.
+      IF(GAL_PROJ) THEN ! Can generate oscillations...
       CALL PROJ_CV_TO_FEM( FEMT, VOLUME_FRAC, 1, NDIM, &
            RDUM,0, RDUM,0, MASS_ELE, &
            CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
@@ -5307,6 +5335,9 @@
            CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, &
            X_NONODS, X, Y, Z, NCOLM, FINDM, COLM, MIDM, &
            IGETCT, RDUM, IDUM, IDUM, 0, OPTION_PATH )
+      ELSE
+         FEMT = VOLUME_FRAC
+      ENDIF
 
       FEMTOLD=0.0
 
@@ -5469,8 +5500,8 @@
       IF_USE_PRESSURE_FORCE: IF ( USE_PRESSURE_FORCE ) THEN
 
          PLIKE_GRAD_SOU_COEF =  PLIKE_GRAD_SOU_COEF + SUF_TENSION_COEF * CURVATURE
-         !PLIKE_GRAD_SOU_GRAD = PLIKE_GRAD_SOU_GRAD + VOLUME_FRAC
-         PLIKE_GRAD_SOU_GRAD =  PLIKE_GRAD_SOU_GRAD + FEMT
+         PLIKE_GRAD_SOU_GRAD = PLIKE_GRAD_SOU_GRAD + VOLUME_FRAC
+         !PLIKE_GRAD_SOU_GRAD =  PLIKE_GRAD_SOU_GRAD + FEMT
 
       ELSE
 

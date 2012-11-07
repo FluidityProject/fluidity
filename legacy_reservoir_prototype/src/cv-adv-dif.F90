@@ -1049,8 +1049,10 @@
 
                      IF(IGOT_THETA_FLUX==1) THEN
                         IF(GET_THETA_FLUX) THEN
-                           THETA_FLUX(ELE, CV_ILOC, GI, IPHASE)      =FTHETA*LIMT
-                           ONE_M_THETA_FLUX(ELE, CV_ILOC, GI, IPHASE)=(1.0-FTHETA)*LIMTOLD
+!                           THETA_FLUX(ELE, CV_ILOC, GI, IPHASE)      =FTHETA*LIMT
+!                           ONE_M_THETA_FLUX(ELE, CV_ILOC, GI, IPHASE)=(1.0-FTHETA)*LIMTOLD
+                           THETA_FLUX(ELE, CV_ILOC, GI, IPHASE)      =FTHETA*LIMDT/DEN(CV_NODI_IPHA)
+                           ONE_M_THETA_FLUX(ELE, CV_ILOC, GI, IPHASE)=(1.0-FTHETA)*LIMDTOLD/DEN(CV_NODI_IPHA)
                         ENDIF
                         IF(USE_THETA_FLUX) THEN
                            FTHETA_T2         =THETA_FLUX(ELE, CV_ILOC, GI, IPHASE)
