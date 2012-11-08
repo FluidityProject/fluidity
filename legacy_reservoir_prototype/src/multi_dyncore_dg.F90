@@ -187,7 +187,7 @@
               'control_volumes/number_advection_iterations', nits_flux_lim, default = 3 )
       else
          call get_option( '/material_phase[' // int2str( nphase ) // ']/scalar_field::ComponentMassFractionPhase1/' // &
-              'temporal_discretisation/control_volumes/number_advection_iterations', nits_flux_lim, default = 3 )
+              'temporal_discretisation/control_volumes/number_advection_iterations', nits_flux_lim, default = 1 )
       end if
 
       lump_eqns = have_option( '/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
@@ -5499,7 +5499,7 @@
 
       IF_USE_PRESSURE_FORCE: IF ( USE_PRESSURE_FORCE ) THEN
 
-         PLIKE_GRAD_SOU_COEF =  PLIKE_GRAD_SOU_COEF + SUF_TENSION_COEF * CURVATURE
+         PLIKE_GRAD_SOU_COEF =  PLIKE_GRAD_SOU_COEF - SUF_TENSION_COEF * ABS( CURVATURE )
          PLIKE_GRAD_SOU_GRAD = PLIKE_GRAD_SOU_GRAD + VOLUME_FRAC
          !PLIKE_GRAD_SOU_GRAD =  PLIKE_GRAD_SOU_GRAD + FEMT
 

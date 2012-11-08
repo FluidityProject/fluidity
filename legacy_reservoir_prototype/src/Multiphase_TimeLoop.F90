@@ -311,8 +311,8 @@
            ScalarAdvectionField_Diffusion( mat_nonods, ndim, ndim, nphase ), & 
            Component_Diffusion( mat_nonods, ndim, ndim, nphase ), &
 !!$ Variables used in the diffusion-like term: capilarity and surface tension:
-           plike_grad_sou_grad( iplike_grad_sou * cv_nonods * nphase ), &
-           plike_grad_sou_coef( iplike_grad_sou * cv_nonods * nphase ) )    
+           plike_grad_sou_grad( cv_nonods * nphase ), &
+           plike_grad_sou_coef( cv_nonods * nphase ) )    
 !!$
       Temperature = 0. ; Temperature_BC_Spatial = 0 ; Temperature_BC = 0. ; 
 !!$ Extracting Mesh Dependent Fields
@@ -555,7 +555,7 @@
                     PhaseVolumeFraction )
             end if
 
-            if( have_extra_DiffusionLikeTerm ) CALL CALCULATE_SURFACE_TENSION( state, nphase, ncomp, &
+            CALL CALCULATE_SURFACE_TENSION( state, nphase, ncomp, &
                  PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, IPLIKE_GRAD_SOU, &
                  PhaseVolumeFraction, &
                  NCOLACV, FINACV, COLACV, MIDACV, &
