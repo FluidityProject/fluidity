@@ -7,7 +7,7 @@
   <owner userid="piggt01"/>
   <tags>flml</tags>
   <problem_definition length="long" nprocs="8">
-    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 8 -v -l flow_past_sphere_Re1000 flow_past_sphere_Re1000_flredecomp &amp;&amp;
+    <command_line>mpiexec flredecomp -i 1 -o 8 -v -l flow_past_sphere_Re1000 flow_past_sphere_Re1000_flredecomp &amp;&amp;
 mpiexec fluidity -v1 -l flow_past_sphere_Re1000_flredecomp.flml</command_line>
   </problem_definition>
   <variables>

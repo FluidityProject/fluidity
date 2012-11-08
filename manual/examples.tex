@@ -5,7 +5,7 @@
 This chapter describes several example problems that cover the various aspects of the functionality
 of \fluidity. The input files for these examples can be found in separate directories
 under \\ \texttt{\fluiditysourcepath/examples/}. Each directory contains a \texttt{Makefile},
-that implements the following commands. The examples are run by giving these 3 commands in order.
+that implements the following commands. Unless otherwise specified, the examples are run by giving these 3 commands in order.
 
 \hspace{0.05\textwidth}
 \begin{minipage}{0.9\textwidth}
@@ -47,6 +47,7 @@ examples plots are created and put in the directory.
   \ref{sec:tides_in_the_med} Tides in the Mediterranean Sea  & \texttt{tides\_in\_the\_Mediterranean\_Sea/} & 64 & 5 hr. \\
   \ref{sec:hokkaido-nansei-oki_tsunami} Hokkaido-Nansei-Oki tsunami  & \texttt{hokkaido-nansei-oki\_tsunami/} & 4 & 1.5 hr. \\
   \ref{sec:tephra_settling} Tephra settling & \texttt{tephra\_settling/} & 1 & 1 hr. \\
+  \ref{sec:stokes_square_convection} Stokes square convection & \texttt{stokes\_square\_convection/} & 1 & 15 min. \\
   \hline
 \end{tabular}
 \caption{Estimated run times (wall time) for the examples. For parallel examples this is using
@@ -1444,3 +1445,63 @@ To explore the multiphase functionality of \fluidity, the following variations o
 \item Alter the particle size to observe its affect on plume formation
 \item Add a second dispersed phase (with a different particle size).
 \end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%% Stokes square convection  %%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Stokes Square Convection}
+\label{sec:stokes_square_convection}
+
+\subsection{Overview}
+
+In this example we compare the numerical predictions of \fluidity{} with a well--established two--dimensional cartesian geometry benchmark result for Stokes flow \citep{blankenbach1989}. Fluidity's results from this, and similar cases, are published in \citet{Davies2011}, where solution strategies employed for solving the Stokes system are also discussed. 
+
+
+\subsection{Problem Specification}
+
+The specific example considered is steady--state isoviscous convection at a Rayleigh number ($Ra$) of $10^{5}$, in a two--dimensional square domain of unit dimensions. Boundary conditions for temperature are $T=0$ at the surface, $T=1$ at the base, with insulating (homogeneous Neumann) side--walls. For velocity, free--slip and no normal flow boundary conditions are specified at all boundaries. 
+
+The example incorporates two cases, on uniform, structured meshes, where the domain is subdivided into $24 \times 24$ and $48 \times 48$ elements, respectively (excluding mesh resolution, each case is identical). For direct comparison with the benchmark solutions, we calculate the Nusselt Number ($Nu$) and RMS velocity ($V_{RMS}$), once a steady--state has been achieved (the variation in the infinity--norm of the velocity and temperature fields is $< 5 \times 10^{-5}$, between consecutive time--steps). The Nusselt Number is defined as:
+
+\begin{equation}
+Nu = -z_{\max}\frac{\int_{z=z_{\max}} \sum_{i} n_{i} \partial_{i} T}{\int_{z=0} T},
+\end{equation}
+
+\medskip \noindent where $T$ is temperature, $z_{\max}$ is the maximum $z$ coordinate of the domain, $\int_{z=z_{\max}}$ denotes the integral over the top surface of the domain and $\int_{z=0}$ denotes the integral over the bottom surface of the domain.  The RMS velocity is given by:
+
+\begin{equation}
+V_{RMS} = \sqrt{\frac{1}{V}{\int \sum_i u_{i}^{2}}}.
+\end{equation}
+
+\medskip \noindent Here, $u_{i}$ is the velocity vector, whilst $V$ denotes the domain volume. 
+
+\begin{figure}[t]
+	\centering
+	      \includegraphics[width=0.90\columnwidth]{./examples_images/stokes_square_convection/Temperature_planform.png}
+   \caption{Steady--state temperature field from an isoviscous Stokes simulation at $Ra = 1 \times 10^{5}$, on a uniform structured mesh of $48 \times 48$ elements. Contours are spaced at intervals of 0.1.}
+   \label{fig:stokes_square_convection_planform}
+\end{figure}
+
+\subsection{Results}
+
+Results are presented in Figures \ref{fig:stokes_square_convection_planform} and \ref{fig:stokes_square_convection_graphs}. The final steady--state solution consists of one convective cell, with hot upwelling flow confined to the left hand side of the domain and cold downwelling flow on the right hand side. Note that, excluding the location of upwelling flow at $x=0$ or $x=1$, results are insensitive to the initial condition. Quantitatively, results show excellent agreement with the benchmark predictions of \citet{blankenbach1989}, with solution accuracy improving with increased resolution, as expected. A higher resolution case (at a resolution of $96 \times 96$ elements), achieves results that are almost identical to the benchmark solution.
+
+\begin{figure}[t]
+	\centering
+	      \includegraphics[width=0.48\columnwidth]{./examples_images/stokes_square_convection/Nu_1e5.png}
+	      \includegraphics[width=0.48\columnwidth]{./examples_images/stokes_square_convection/RMS_1e5.png}
+   \caption{Results from 2-D, isoviscous Stokes square convection benchmark cases: (a) Nusselt number vs. number of triangle vertices, at $Ra = 1 \times 10^{5}$ \citep[case 1b:][]{blankenbach1989}, for a series of uniform, structured meshes. Filled circles reporesent the example cases at a resolution of $24 \times 24$ and $48 \times 48$ elements respectively. The open circle represents the result from a case at $96 \times 96$ elements, to illustrate that as mesh resolution is increased, solutions converge towards the benchmark values; (b) RMS velocity vs. number of triangle vertices, at $Ra = 1 \times 10^{5}$. Benchmark values are denoted by horizontal dashed lines. Note that the highest resolution case is not included in the example.}
+   \label{fig:stokes_square_convection_graphs}
+\end{figure}
+
+
+\subsection{Exercises}
+To explore the Stokes functionality of \fluidity, the following variations on this example would be constructive learning exercises:
+\begin{itemize}
+\item Verify that results do indeed converge towards the benchmark values at higher resolution.
+\item Alter the initial condition for temperature to verify that, excluding the location of upwelling flow at $x=0$ or $x=1$, results are insensitive to this initial condition. 
+\item Change the Rayleigh number to $Ra = 1 \times 10^{4}$ and compare your results to Case 1b from \citet{blankenbach1989}.
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

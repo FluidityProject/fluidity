@@ -64,7 +64,6 @@ contains
     ierr = ZOLTAN_OK
   end function zoltan_cb_owned_node_count
 
-
   subroutine zoltan_cb_get_owned_nodes(data, num_gid_entries, num_lid_entries, global_ids, local_ids, wgt_dim, obj_wgts, ierr)
     integer(zoltan_int), dimension(*), intent(in) :: data ! not used
     integer(zoltan_int), intent(in) :: num_gid_entries, num_lid_entries 
@@ -75,7 +74,7 @@ contains
     integer(zoltan_int), intent(out) :: ierr
     
     integer :: count, i
-    real(zoltan_float) :: max_obj_wgt
+    real(zoltan_float) :: max_obj_wgt, min_obj_wgt
     
     ewrite(1,*) "In zoltan_cb_get_owned_nodes"
     
@@ -96,23 +95,37 @@ contains
     if(zoltan_global_migrate_extruded_mesh) then
        ! weight the nodes according to the number of nodes in the column beneath it
        max_obj_wgt = 1.0
-       do i=1,count
+       do i = 1, count
           obj_wgts(i) = float(row_length(zoltan_global_columns_sparsity, i))
           max_obj_wgt = max(max_obj_wgt, obj_wgts(i))
        end do
        ! normalise according to the most nodes in a column
-       do i=1,count
+       do i = 1, count
           obj_wgts(i) = obj_wgts(i)/max_obj_wgt
        end do
     else
-       do i=1,count
+       do i = 1, count
           obj_wgts(i) = 1.0
        end do
+    end if
+
+    if(zoltan_global_field_weighted_partitions) then
+       max_obj_wgt = 1.0
+       min_obj_wgt = 0.0
+       do i = 1, count
+          obj_wgts(i) = node_val(zoltan_global_field_weighted_partition_values,i)
+          max_obj_wgt = max(max_obj_wgt, obj_wgts(i))
+          min_obj_wgt = min(min_obj_wgt, obj_wgts(i))
+       end do
+
+       if((max_obj_wgt > 1.0) .OR. (min_obj_wgt < 0.0)) then
+        FLExit("0.0 <= FieldWeightedPartitionValues <= 1.0: condition not satisfied")
+       end if
+
     end if
     
     ierr = ZOLTAN_OK
   end subroutine zoltan_cb_get_owned_nodes
-
 
   subroutine zoltan_cb_get_num_edges(data, num_gid_entries, num_lid_entries, num_obj, global_ids, local_ids, num_edges, ierr)  
     integer(zoltan_int), dimension(*), intent(in) :: data 
@@ -149,7 +162,6 @@ contains
 
     ierr = ZOLTAN_OK
   end subroutine zoltan_cb_get_num_edges
-
 
   subroutine zoltan_cb_get_edge_list(data, num_gid_entries, num_lid_entries, num_obj, global_ids, local_ids, &
        &  num_edges, nbor_global_id, nbor_procs, wgt_dim, ewgts, ierr)

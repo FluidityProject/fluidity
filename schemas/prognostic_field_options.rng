@@ -71,7 +71,21 @@ sediment grain</a:documentation>
           <attribute name="name">
             <value>sediment_reentrainment</value>
           </attribute>
-          <empty/>
+          <element name="algorithm">
+            <a:documentation>Select algorithm to calculate reentrainment by (see the manual for more detail)</a:documentation>
+            <choice>
+              <value>Garcia_1991</value>
+              <value>Generic</value>
+            </choice>
+          </element>
+          <optional>
+            <element name="viscosity">
+              <a:documentation>Viscosity value to use within this algorithm. This allows the user to override 
+use of the material viscosity used for the rest of the simulation for calculating 
+sediment reentrainment. </a:documentation>
+              <ref name="real"/>
+            </element>
+          </optional>
         </element>
         <element name="type">
           <a:documentation>[UNDER DEVELOPMENT - DOES NOT WORK YET]
@@ -200,18 +214,36 @@ At this time, do not switch on this option if you are using Mellor-Yamada.</a:do
           </attribute>
         </element>
         <element name="subgridscale_parameterisation">
-          <a:documentation>[UNDER DEVELOPMENT - DOES NOT WORK YET]
-Set the diffusivity to the eddy diffusivity calculated by the
-k-epsilon turbulence model. If using this, set the diffusivity field to
-diagnostic/algorithm(internal).</a:documentation>
+          <a:documentation>Turning this option on enables calculation of turbulent diffusivity for this field, and calculation of buoyancy 
+source terms for this field in the k_eps code.
+
+TURBULENT DIFFUSIVITY
+
+To enable, set the diffusivity field to diagnostic/algorithm(k_epsilon). 
+
+The diffusivity, D, is set to the sum of the background diffusivity, D_bg, and the eddy diffusivity calculated 
+by the k-epsilon turbulence model.
+
+D = D_bg  nu_t / Pr
+
+where: nu_t = turbulent viscosity ; Pr = Prandtl or Schmidt number
+
+A background diffusivity can either be set globally
+under material_phase[]/subgridscale_parameterisations/k-epsilon, or individually for each field this is 
+applied upon. If it is set globally and locally, the local background diffusivity is used.
+
+BUOYANCY EFFECTS
+
+Enable this by selecting the buoyancy_effects node. A buoyancy source term is added to the right hand side of the k
+and epsilon equations. See the manual for more information.
+</a:documentation>
           <attribute name="name">
             <value>k-epsilon</value>
           </attribute>
           <optional>
-            <element name="Prandtl_number">
-              <a:documentation>Option to set the Prandtl number (ratio of momentum diffusivity to field diffusivity)
- for this field. Default = 1.0 if not specified.</a:documentation>
-              <ref name="input_choice_real"/>
+            <element name="background_diffusivity">
+              <a:documentation>Option to set a unique isotropic background diffusivity for this field.</a:documentation>
+              <ref name="real"/>
             </element>
           </optional>
         </element>
@@ -1150,6 +1182,7 @@ viscosity tensor is dealt with in the momentum equation.</a:documentation>
               <ref name="internal_algorithm"/>
               <ref name="bulk_viscosity_algorithm"/>
               <ref name="tensor_python_diagnostic_algorithm"/>
+              <ref name="sediment_concentration_dependent_viscosity_algorithm"/>
             </choice>
             <ref name="diagnostic_tensor_field"/>
           </element>
@@ -2511,6 +2544,20 @@ Uses a nonconservative time discretisation.</a:documentation>
 electrokinetic, electrochemical or electrothermal sources </a:documentation>
         <attribute name="name">
           <value>ElectricalPotential</value>
+        </attribute>
+      </element>
+      <element name="equation">
+        <a:documentation>Equation type for the k-epsilon model fields.
+Note: Only works for continuous galerkin or control volume discretisations.</a:documentation>
+        <attribute name="name">
+          <value>KEpsilon</value>
+        </attribute>
+      </element>
+      <element name="equation">
+        <a:documentation>Equation type for the sediment bedload fields.
+Note: Only works for P1 discretisations.</a:documentation>
+        <attribute name="name">
+          <value>SedimentBedload</value>
         </attribute>
       </element>
     </choice>

@@ -1,24 +1,22 @@
-# directory locations:
-BIN=../../bin/
-SCRIPTS=../../bin/
+include envcheck.mk
 
-preprocess:
+preprocess: envcheck
 	@echo **********Converting the gmsh mesh to triangle format:
-	$(SCRIPTS)gmsh2triangle unit_sphere.msh
+	${BINPREFIX}gmsh2triangle unit_sphere.msh
 
-run:
+run: envcheck
 ifneq ($(NPROCS),8)
 	@echo **********WARNING: This simulation is best run on 8 processors
 endif
 ifeq ($(NPROCS),1)
 	@echo **********WARNING: This is a large simulation and will take a very long time in serial. Find a handy supercomputer.
 	@echo **********Calling fluidity in serial with verbose log output enabled:
-	$(BIN)fluidity -v2 -l flow_past_sphere_Re1000.flml
+	${BINPREFIX}fluidity -v2 -l flow_past_sphere_Re1000.flml
 else
 	@echo **********Calling flredecomp in parallel with verbose log output enabled:
-	mpiexec -n $(NPROCS) $(BIN)flredecomp -i 1 -o $(NPROCS) -v -l flow_past_sphere_Re1000 flow_past_sphere_Re1000_flredecomp
+	mpiexec -n $(NPROCS) ${BINPREFIX}flredecomp -i 1 -o $(NPROCS) -v -l flow_past_sphere_Re1000 flow_past_sphere_Re1000_flredecomp
 	@echo **********Calling fluidity in parallel with verbose log output enabled:
-	mpiexec -n $(NPROCS) $(BIN)fluidity -v2 -l flow_past_sphere_Re1000_flredecomp.flml
+	mpiexec -n $(NPROCS) ${BINPREFIX}fluidity -v2 -l flow_past_sphere_Re1000_flredecomp.flml
 endif
 
 postprocess:

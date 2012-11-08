@@ -6,8 +6,8 @@
 </comment></name>
   <owner userid="fpm08"/>
   <tags>flml </tags>
-    <problem_definition length="long" nprocs="32">
-    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 32 -v -l restratification_after_oodc restratification_after_oodc_flredecomp &amp;&amp;
+    <problem_definition length="long" nprocs="64">
+    <command_line>mpiexec flredecomp -i 1 -o 64 -v -l restratification_after_oodc restratification_after_oodc_flredecomp &amp;&amp;
 mpiexec fluidity -v2 -l restratification_after_oodc_flredecomp.flml </command_line>
   </problem_definition>  
    <variables>

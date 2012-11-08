@@ -105,6 +105,9 @@ endif
 ifneq (@MBA2D@,yes)
 	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e 2dadapt
 endif
+ifneq (@HAVE_EXODUSII@,yes)
+	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e exodusii
+endif
 
 .SUFFIXES: .f90 .F90 .c .cpp .o .a
 
@@ -423,7 +426,7 @@ endif
 	@cd adjoint; $(MAKE) clean
 	@echo "    CLEAN main"
 	@cd main; $(MAKE) clean
-	@rm -fr bin/* lib
+	@rm -fr bin lib
 
 clean: clean-light clean-test python_clean clean-debian
 	@echo "    CLEAN libvtkfortran"
@@ -445,7 +448,7 @@ clean: clean-light clean-test python_clean clean-debian
 	@echo "    CLEAN manual"
 	@cd manual; $(MAKE) clean
 	@CLEAN_LIBADAPT@
-	@rm -fr include/*.mod *.cache core *.o config.status
+	@rm -fr lib*/configure.lineno include/*.mod *.cache core *.o config.status
 	@find ./ \( -name work.pc \) -exec rm {} \;
 	@find ./ \( -name work.pcl \) -exec rm {} \;
 
@@ -477,6 +480,7 @@ distclean: clean
 	@cd libvtkfortran ; make distclean > /dev/null
 	@cd libspud ; make distclean > /dev/null ; rm -rf		\
 	 libspud.so.0 libtool diamond/build python/build > /dev/null
+	@cd tools ; make distclean > /dev/null
 	@rm -fr `find ./ -name config.status` `find ./ -name		\
 	 config.log` share include/Judy.h include/Wm4Command.h		\
 	 include/Wm4FoundationLIB.h include/Wm4FoundationPCH.h		\

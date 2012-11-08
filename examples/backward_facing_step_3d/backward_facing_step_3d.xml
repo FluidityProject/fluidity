@@ -6,7 +6,7 @@
   <tags>flml 3dadapt</tags>
   <!-- uses flml - uses 3d adaptivity -->
   <problem_definition length="long" nprocs="8">
-    <command_line>mpiexec ../../bin/flredecomp -i 1 -o 8 -v -l backward_facing_step_3d backward_facing_step_3d_flredecomp &amp;&amp;
+    <command_line>mpiexec flredecomp -i 1 -o 8 -v -l backward_facing_step_3d backward_facing_step_3d_flredecomp &amp;&amp;
 mpiexec fluidity -v2 -l backward_facing_step_3d_flredecomp.flml</command_line>
   </problem_definition>
   <variables>
@@ -17,8 +17,8 @@ from postprocessor_3d import reatt_length, get_filelist
 import numpy
 yarray = numpy.array([0.1, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 3.9])
 exclude_initial_results = 45
-filelist = get_filelist()
-reattachment_length = numpy.array(reatt_length(filelist, yarray, exclude_initial_results))
+filelist = get_filelist(5, 180)
+reattachment_length = numpy.array(reatt_length(filelist, yarray))
     </variable>
   </variables>
   <pass_tests>

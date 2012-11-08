@@ -46,7 +46,7 @@
     </dump_format>
     <dump_period_in_timesteps>
       <constant>
-        <integer_value rank="0">25</integer_value>
+        <integer_value rank="0">10</integer_value>
       </constant>
     </dump_period_in_timesteps>
     <output_mesh name="CoordinateMesh"/>
@@ -60,7 +60,7 @@
       <real_value rank="0">0.01</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">50.0</real_value>
+      <real_value rank="0">300.0</real_value>
     </finish_time>
     <nonlinear_iterations>
       <integer_value rank="0">2</integer_value>

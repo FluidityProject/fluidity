@@ -1,18 +1,17 @@
-# directory locations:
-BIN=../../bin/
-SCRIPTS=../../bin/
+include envcheck.mk
 
-preprocess:
+preprocess: envcheck
 	@echo **********Converting the gmsh mesh to triangle format:
-	$(SCRIPTS)gmsh2triangle med.msh
+	${BINPREFIX}gmsh2triangle med.msh
 	@echo **********Modifying mesh nodal file using sed:
 	sed '1s/3/2/2' < med.node > med2.node
 	@echo **********Replacing mesh with modified version:
 	mv med2.node med.node
 
-run:
+run: envcheck
 ifndef ($(NPROCS))
 	@echo **********ERROR: Please define NPROCS to set the number of processors to use
+	@exit 1
 endif
 ifneq ($(NPROCS),64)
 	@echo **********WARNING: This simulation is best run on 64 processors
@@ -20,23 +19,23 @@ endif
 ifeq ($(NPROCS),1)
 	@echo **********WARNING: This is a large simulation and will take a very long time in serial. Find a handy supercomputer.
 	@echo **********Calling fluidity in serial with verbose log output enabled:
-	$(BIN)fluidity -v2 -l med.flml
+	${BINPREFIX}fluidity -v2 -l med.flml
 else
 	@echo **********Calling flredecomp in parallel with verbose log output enabled:
-	mpiexec -n $(NPROCS) $(BIN)flredecomp -i 1 -o $(NPROCS) -v -l med med_flredecomp
+	mpiexec -n $(NPROCS) ${BINPREFIX}flredecomp -i 1 -o $(NPROCS) -v -l med med_flredecomp
 	@echo **********Calling fluidity in parallel with verbose log output enabled:
-	mpiexec -n $(NPROCS) $(BIN)fluidity -v2 -l med_flredecomp.flml
+	mpiexec -n $(NPROCS) ${BINPREFIX}fluidity -v2 -l med_flredecomp.flml
 endif
 
-postprocess:
+postprocess: envcheck
 	@echo **********Reprojecting final output to long-lat and extracting RMS differences:
-	python ./reproject-to-loglat.py
-	python ./Med-tides-probe.py
+	PYTHONPATH=${PWD}/../../python:$$PYTHONPATH python ./reproject-to-loglat.py
+	PYTHONPATH=${PWD}/../../python:$$PYTHONPATH python ./Med-tides-probe.py
 
 
 clean:
 	@echo **********Cleaning the output from previous fluidity runs:
-	rm -rf  *gmt* *.ele *.node *.edge Med-GEBCO-5m-gauges-fes2004-O1-102 *med_* *.halo *.pvtu *.vtu *.stat *.log-* *.err-* *check* *Check* *matrixdump*
+	rm -rf  *gmt* *.ele *.node *.edge Med-GEBCO-5m-gauges-fes2004-O1-102 *med_* *.halo *.pvtu *.vtu *.stat *.log-* *.err-* *checkp* *Check* *matrixdump*
 	rm -rf *flredecomp*
 
 input: clean
