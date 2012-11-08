@@ -46,7 +46,7 @@
     </dump_format>
     <dump_period_in_timesteps>
       <constant>
-        <integer_value rank="0">25</integer_value>
+        <integer_value rank="0">10</integer_value>
       </constant>
     </dump_period_in_timesteps>
     <output_mesh name="CoordinateMesh"/>
@@ -65,9 +65,17 @@
     <nonlinear_iterations>
       <integer_value rank="0">2</integer_value>
     </nonlinear_iterations>
+    <adaptive_timestep>
+      <requested_cfl>
+        <real_value rank="0">2.0</real_value>
+      </requested_cfl>
+      <courant_number name="CFLNumber">
+        <mesh name="VelocityMesh"/>
+      </courant_number>
+    </adaptive_timestep>
     <steady_state>
       <tolerance>
-        <real_value rank="0">1.e-4</real_value>
+        <real_value rank="0">1.e-5</real_value>
         <infinity_norm/>
       </tolerance>
       <steady_state_file>
@@ -81,7 +89,7 @@
         <scalar_field name="TurbulentKineticEnergy" rank="0">
           <prognostic>
             <mesh name="VelocityMesh"/>
-            <equation name="KEpsilon"/>
+            <equation name="AdvectionDiffusion"/>
             <spatial_discretisation>
               <control_volumes>
                 <face_value name="FiniteElement">
@@ -103,7 +111,7 @@
             </spatial_discretisation>
             <temporal_discretisation>
               <theta>
-                <real_value rank="0">1.0</real_value>
+                <real_value rank="0">0.5</real_value>
               </theta>
               <control_volumes>
                 <number_advection_iterations>
@@ -197,7 +205,7 @@
         <scalar_field name="TurbulentDissipation" rank="0">
           <prognostic>
             <mesh name="VelocityMesh"/>
-            <equation name="KEpsilon"/>
+            <equation name="AdvectionDiffusion"/>
             <spatial_discretisation>
               <control_volumes>
                 <face_value name="FiniteElement">
@@ -219,7 +227,7 @@
             </spatial_discretisation>
             <temporal_discretisation>
               <theta>
-                <real_value rank="0">1.0</real_value>
+                <real_value rank="0">0.5</real_value>
               </theta>
               <control_volumes>
                 <number_advection_iterations>
@@ -246,7 +254,7 @@
             </solver>
             <initial_condition name="WholeMesh">
               <constant>
-                <real_value rank="0">1.e-5</real_value>
+                <real_value rank="0">1.e-6</real_value>
               </constant>
             </initial_condition>
             <boundary_conditions name="inflow">
@@ -255,7 +263,7 @@
               </surface_ids>
               <type name="dirichlet">
                 <constant>
-                  <real_value rank="0">1.e-5</real_value>
+                  <real_value rank="0">1.e-6</real_value>
                 </constant>
               </type>
             </boundary_conditions>
@@ -314,11 +322,12 @@
           <prescribed>
             <mesh name="VelocityMesh"/>
             <value name="WholeMesh">
-              <anisotropic_symmetric>
+              <isotropic>
                 <constant>
-                  <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">1.74e-5 1.74e-5 1.74e-5 1.74e-5</real_value>
+                  <real_value rank="0">1.74e-5</real_value>
+                  <comment>corresponds to Re=132000 with Umax=2.3, same as Kim 1978, Lacasse 2004 &amp; Speziale 1988</comment>
                 </constant>
-              </anisotropic_symmetric>
+              </isotropic>
             </value>
             <output/>
           </prescribed>
@@ -510,7 +519,7 @@
             </mass_terms>
             <advection_terms/>
             <stress_terms>
-              <partial_stress_form/>
+              <tensor_form/>
             </stress_terms>
           </continuous_galerkin>
           <conservative_advection>
@@ -592,47 +601,17 @@
           <surface_ids>
             <integer_value shape="2" rank="1">10 12</integer_value>
           </surface_ids>
-          <type name="dirichlet">
-            <align_bc_with_surface>
-              <normal_component>
-                <constant>
-                  <real_value rank="0">0.</real_value>
-                </constant>
-              </normal_component>
-            </align_bc_with_surface>
-          </type>
+          <type name="no_normal_flow"/>
         </boundary_conditions>
         <tensor_field name="Viscosity" rank="2">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
-            <output>
-              <exclude_from_vtu/>
-            </output>
+            <output/>
             <stat>
               <exclude_from_stat/>
             </stat>
           </diagnostic>
         </tensor_field>
-        <vector_field name="Source" rank="1">
-          <diagnostic>
-            <algorithm name="Internal" material_phase_support="multiple"/>
-            <output>
-              <exclude_from_vtu/>
-            </output>
-            <stat>
-              <exclude_from_stat/>
-            </stat>
-            <convergence>
-              <include_in_convergence/>
-            </convergence>
-            <detectors>
-              <include_in_detectors/>
-            </detectors>
-            <steady_state>
-              <include_in_steady_state/>
-            </steady_state>
-          </diagnostic>
-        </vector_field>
         <output/>
         <stat>
           <include_in_stat/>
@@ -650,7 +629,7 @@
           <include_in_detectors/>
         </detectors>
         <steady_state>
-          <include_in_steady_state/>
+          <exclude_from_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
