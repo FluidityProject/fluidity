@@ -1116,9 +1116,11 @@
 
          CALL PHA_BLOCK_INV( INV_PIVIT_MAT, PIVIT_MAT, TOTELE, U_NLOC * NPHASE * NDIM )
 
-
          ! Put pressure in rhs of force balance eqn:  CDP=C*P
          CALL C_MULT( CDP, P, CV_NONODS, U_NONODS, NDIM, NPHASE, C, NCOLC, FINDC, COLC)
+
+         !ewrite(3,*) 'U_RHS:', U_RHS
+         !ewrite(3,*) 'CDP:', CDP
 
          U_RHS_CDP = U_RHS + CDP
 
@@ -5132,7 +5134,7 @@
            D1, D3, DCYL, GOT_DIFFUS, INTEGRAT_AT_GI, &
            NORMALISE, SUM2ONE, GET_GTHETA, QUAD_OVER_WHOLE_ELE, GETCT
       LOGICAL :: GET_THETA_FLUX, USE_THETA_FLUX, THERMAL, LUMP_EQNS, &
-           SIMPLE_LINEAR_SCHEME, GOTDEC, GAL_PROJ
+           SIMPLE_LINEAR_SCHEME, GOTDEC
       integer :: DG_NOD
 
       CHARACTER(LEN=OPTION_PATH_LEN) :: OPTION_PATH
@@ -5325,9 +5327,6 @@
       IF(GETCT) IGETCT=1
 
       option_path='/material_phase[0]/scalar_field::Pressure'
-
-      GAL_PROJ=.FALSE.
-      IF(GAL_PROJ) THEN ! Can generate oscillations...
       CALL PROJ_CV_TO_FEM( FEMT, VOLUME_FRAC, 1, NDIM, &
            RDUM,0, RDUM,0, MASS_ELE, &
            CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
@@ -5335,9 +5334,6 @@
            CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, &
            X_NONODS, X, Y, Z, NCOLM, FINDM, COLM, MIDM, &
            IGETCT, RDUM, IDUM, IDUM, 0, OPTION_PATH )
-      ELSE
-         FEMT = VOLUME_FRAC
-      ENDIF
 
       FEMTOLD=0.0
 
@@ -5421,7 +5417,7 @@
               DX_DIFF_X, DY_DIFF_X, DZ_DIFF_X, RDUM, RDUM, RDUM, &
               DX_DIFF_Y, DY_DIFF_Y, DZ_DIFF_Y, RDUM, RDUM, RDUM, &
               DX_DIFF_Z, DY_DIFF_Z, DZ_DIFF_Z, RDUM, RDUM, RDUM, &
-              NDIM, 1, NPHASE, CV_NONODS, TOTELE, CV_NDGLN, &
+              NDIM, NDIM, NPHASE, CV_NONODS, TOTELE, CV_NDGLN, &
               XU_NDGLN, X_NLOC, X_NDGLN, &
               CV_NGI, CV_NLOC, CVWEIGHT, &
               CVFEN, CVFENLX, CVFENLY, CVFENLZ, &
@@ -5499,9 +5495,13 @@
 
       IF_USE_PRESSURE_FORCE: IF ( USE_PRESSURE_FORCE ) THEN
 
-         PLIKE_GRAD_SOU_COEF =  PLIKE_GRAD_SOU_COEF - SUF_TENSION_COEF * ABS( CURVATURE )
+         PLIKE_GRAD_SOU_COEF = PLIKE_GRAD_SOU_COEF - SUF_TENSION_COEF * ABS( CURVATURE )
          PLIKE_GRAD_SOU_GRAD = PLIKE_GRAD_SOU_GRAD + VOLUME_FRAC
-         !PLIKE_GRAD_SOU_GRAD =  PLIKE_GRAD_SOU_GRAD + FEMT
+
+         !ewrite(3,*) 'CURVATURE:', CURVATURE
+         !ewrite(3,*) 'PLIKE_GRAD_SOU_COEF:', PLIKE_GRAD_SOU_COEF
+         !ewrite(3,*) 'PLIKE_GRAD_SOU_GRAD:', PLIKE_GRAD_SOU_GRAD
+         !stop 2481
 
       ELSE
 

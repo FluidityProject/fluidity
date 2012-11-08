@@ -116,7 +116,7 @@
       real, dimension( : ), allocatable :: opt_vel_upwind_coefs
 
 !!$ Defining time- and nonlinear interations-loops variables
-      integer :: itime, it, dump_period_in_timesteps, final_timestep, &
+      integer :: itime, dump_period_in_timesteps, final_timestep, &
            NonLinearIteration, NonLinearIteration_Components
       real :: acctim, finish_time, current_time
 
@@ -133,7 +133,7 @@
 !!$ For output:
       real, dimension( : ), allocatable :: PhaseVolumeFraction_FEMT, Temperature_FEMT, Density_FEMT, &
            Component_FEMT, Mean_Pore_CV, SumConc_FEMT, Dummy_PhaseVolumeFraction_FEMT
-      type( scalar_field ), pointer :: Pressure_State, Temperature_State
+      type( scalar_field ), pointer :: Pressure_State, Temperature_State, Component_State
 
 !!$ Variables that can be effectively deleted as they are not used anymore:
       integer :: noit_dim
@@ -316,6 +316,7 @@
 !!$
       Temperature = 0. ; Temperature_BC_Spatial = 0 ; Temperature_BC = 0. ; 
 !!$ Extracting Mesh Dependent Fields
+      Velocity_U_Source = 0. ; Velocity_Absorption = 0. ; Velocity_U_Source_CV = 0. 
       call Extracting_MeshDependentFields_From_State( state, &
            xu, yu, zu, x, y, z, &
            PhaseVolumeFraction, PhaseVolumeFraction_BC_Spatial, PhaseVolumeFraction_BC, PhaseVolumeFraction_Source, &
@@ -326,7 +327,6 @@
            Velocity_U_BC_Spatial, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, Velocity_U_Source, Velocity_Absorption, &
            Temperature, Temperature_BC_Spatial, Temperature_BC, Temperature_Source, &
            Porosity, Permeability )
-
 
 !!$ Dummy field used in the scalar advection option:
       Dummy_PhaseVolumeFraction_FEMT = 1.
@@ -376,6 +376,7 @@
            t_use_theta_flux, t_get_theta_flux, scale_momentum_by_volume_fraction )
 
       allocate( Component_Diffusion_Operator_Coefficient( ncomp, ncomp_diff_coef, nphase ) )
+      Component_Diffusion_Operator_Coefficient = 0.
 
 !!$ Option not currently set up in the schema and zeroed from the begining. It is used to control 
 !!$ the upwinding rate (in the absorption term) during advection/assembling.
@@ -458,6 +459,14 @@
          end if
          Pressure_State => extract_scalar_field( state( 1 ), 'Pressure' )
          Pressure_State % val = Pressure_CV
+         do icomp = 1, ncomp
+            do iphase = 1, nphase
+               Component_State => extract_scalar_field( state( icomp + nphase ), & 
+                    'ComponentMassFractionPhase' // int2str( iphase ) )
+               Component_State % val = component( 1 + (iphase-1)*cv_nonods + (icomp-1)*nphase*cv_nonods : &
+                    &                             iphase*cv_nonods + (icomp-1)*nphase*cv_nonods )
+            end do
+         end do
 
 
          ewrite(3,*)'temp:', temperature(1 : nphase * cv_nonods)
@@ -557,7 +566,7 @@
 
             CALL CALCULATE_SURFACE_TENSION( state, nphase, ncomp, &
                  PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, IPLIKE_GRAD_SOU, &
-                 PhaseVolumeFraction, &
+                 Component, &
                  NCOLACV, FINACV, COLACV, MIDACV, &
                  NCOLCT, FINDCT, COLCT, &
                  CV_NONODS, U_NONODS, X_NONODS, TOTELE, STOTEL, &
@@ -588,18 +597,17 @@
                     Velocity_NU_Old = Velocity_U_Old ; Velocity_NV_Old = Velocity_V_Old ; &
                     Velocity_NW_Old = Velocity_W_Old
 
-             if (.false.) then
-!             if (.true.) then
-                ! hard-code the air and water viscosities for the rising bubble problem
-                ! air: 10e-5, water: 10e-3
-                Momentum_Diffusion=0.0
-                Momentum_Diffusion(:,1,1,1) = 1.0
-                Momentum_Diffusion(:,2,2,1) = 1.0
-             end if
+               if (.false.) then
+                  ! hard-code the air and water viscosities for the rising bubble problem
+                  ! air: 10e-5, water: 10e-3
+                  Momentum_Diffusion=0.0
+                  Momentum_Diffusion(:,1,1,1) = 1.0
+                  Momentum_Diffusion(:,2,2,1) = 1.0
+               end if
 
 !!$ This calculates u_source_cv = ScalarField_Source_CV -- ie, the buoyancy term and as the name
 !!$ suggests it's a CV source term for the velocity field
-               call calculate_u_source_cv( state, cv_nonods, ndim, nphase, Density, Velocity_U_Source )
+               call calculate_u_source_cv( state, cv_nonods, ndim, nphase, Density, Velocity_U_Source_CV )
 
                CALL FORCE_BAL_CTY_ASSEM_SOLVE( state, &
                     NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
@@ -1048,8 +1056,8 @@
                  ScalarAdvectionField_Diffusion( mat_nonods, ndim, ndim, nphase ), & 
                  Component_Diffusion( mat_nonods, ndim, ndim, nphase ), &
 !!$ Variables used in the diffusion-like term: capilarity and surface tension:
-                 plike_grad_sou_grad( iplike_grad_sou * cv_nonods * nphase ), &
-                 plike_grad_sou_coef( iplike_grad_sou * cv_nonods * nphase ) )    
+                 plike_grad_sou_grad( cv_nonods * nphase ), &
+                 plike_grad_sou_coef( cv_nonods * nphase ) )    
 !!$
             Temperature = 0. ; Temperature_BC_Spatial = 0 ; Temperature_BC = 0. ; 
 
