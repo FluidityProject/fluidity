@@ -183,7 +183,7 @@
 !!$ Momentum_Diffusion = udiffusion; ScalarAdvectionField_Diffusion = tdiffusion, 
 !!$ Component_Diffusion = comp_diffusion
 
-      integer :: stat, istate, iphase, jphase, icomp, its, its2, cv_nodi
+      integer :: stat, istate, iphase, jphase, icomp, its, its2, cv_nodi, i
 
 !!$ Compute primary scalars used in most of the code
       call Get_Primary_Scalars( state, &         
@@ -598,16 +598,18 @@
                     Velocity_NU_Old = Velocity_U_Old ; Velocity_NV_Old = Velocity_V_Old ; &
                     Velocity_NW_Old = Velocity_W_Old
 
-               if (.false.) then
-                  ! hard-code the air and water viscosities for the rising bubble problem
-                  ! air: 10e-5, water: 10e-3
-                  Momentum_Diffusion=0.0
-                  Momentum_Diffusion(:,1,1,1) = 1.0
-                  Momentum_Diffusion(:,2,2,1) = 1.0
-               end if
+             if (.false.) then
+!             if (.true.) then
+                ! hard-code the air and water viscosities for the rising bubble problem
+                ! air: 10e-5, water: 10e-3
+                Momentum_Diffusion=0.0
+                Momentum_Diffusion(:,1,1,1) = 1.0
+                Momentum_Diffusion(:,2,2,1) = 1.0
+             end if
 
 !!$ This calculates u_source_cv = ScalarField_Source_CV -- ie, the buoyancy term and as the name
 !!$ suggests it's a CV source term for the velocity field
+
                call calculate_u_source_cv( state, cv_nonods, ndim, nphase, Density, Velocity_U_Source_CV )
 
                CALL FORCE_BAL_CTY_ASSEM_SOLVE( state, &

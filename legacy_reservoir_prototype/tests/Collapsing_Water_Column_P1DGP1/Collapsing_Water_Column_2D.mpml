@@ -121,7 +121,7 @@
       <real_value rank="0">0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">1e-4</real_value>
+      <real_value rank="0">1e-3</real_value>
     </timestep>
     <finish_time>
       <real_value rank="0">10</real_value>
@@ -432,7 +432,7 @@
           <control_volumes>
             <face_value name="FiniteElement">
               <limit_face_value>
-                <limiter name="Sweby"/>
+                <limiter name="Extrema"/>
               </limit_face_value>
             </face_value>
             <diffusion_scheme name="ElementGradient"/>
@@ -531,7 +531,7 @@
           <control_volumes>
             <face_value name="FiniteElement">
               <limit_face_value>
-                <limiter name="Sweby"/>
+                <limiter name="Extrema"/>
               </limit_face_value>
             </face_value>
             <diffusion_scheme name="ElementGradient"/>
@@ -622,7 +622,7 @@
           <control_volumes>
             <face_value name="FiniteElement">
               <limit_face_value>
-                <limiter name="Sweby"/>
+                <limiter name="Extrema"/>
               </limit_face_value>
             </face_value>
             <diffusion_scheme name="ElementGradient"/>

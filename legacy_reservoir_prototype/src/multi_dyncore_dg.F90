@@ -1009,7 +1009,7 @@
       REAL, DIMENSION( :, :, : ), allocatable :: PIVIT_MAT, INV_PIVIT_MAT
       INTEGER :: CV_NOD, COUNT, CV_JNOD, IPHASE, ele, x_nod1, x_nod2, x_nod3, cv_iloc,&
            cv_nod1, cv_nod2, cv_nod3, mat_nod1, u_iloc, u_nod, u_nod_pha, u_nloc_lev, n_nloc_lev
-      REAL :: der1, der2, der3, uabs, rsum
+      REAL :: der1, der2, der3, uabs, rsum,xc,yc
       LOGICAL :: JUST_BL_DIAG_MAT
 
       ewrite(3,*) 'In FORCE_BAL_CTY_ASSEM_SOLVE'
@@ -1151,6 +1151,26 @@
 
          CALL ULONG_2_UVW( U, V, W, UP_VEL, U_NONODS, NDIM, NPHASE )
 
+        if(.false.) then
+         do ele=1,totele
+           xc=0.0
+           yc=0.0
+           do cv_iloc=1,cv_nloc
+             cv_nod=cv_ndgln((ele-1)*cv_nloc+cv_iloc)
+             xc=xc + x(cv_nod)/real(cv_nloc) 
+             yc=yc + y(cv_nod)/real(cv_nloc) 
+           end do
+           print *,'ele,xc,yc:',ele,xc,yc
+           do u_iloc=1,u_nloc
+             u_nod=u_ndgln((ele-1)*U_nloc+u_iloc)
+             print *,'u_iloc,u(u_nod),v(u_nod):',u_iloc,u(u_nod),v(u_nod)
+             print *,'u_iloc,u(u_nod),v(u_nod):',u_iloc,U_RHS_CDP(u_nod),U_RHS_CDP(u_nod+u_nonods)
+           end do
+         end do
+         
+         stop 2982
+       endif
+
          !ewrite(3,*) 'u::', u
          !ewrite(3,*) 'v::', v
          !ewrite(3,*) 'w::', w
@@ -1199,6 +1219,7 @@
 
          ewrite(3,*)'b4 pressure solve P_RHS:', P_RHS
          DP = 0.
+       if(.true.) then
          if( cv_nonods==x_nonods ) then ! a continuous pressure:
             CALL SOLVER( CMC, DP, P_RHS, &
                  FINDCMC, COLCMC, &
@@ -1208,6 +1229,7 @@
                  NCOLCMC, cv_NONODS, FINDCMC, COLCMC, MIDCMC, &
                  totele, cv_nloc, x_nonods, cv_ndgln, x_ndgln )
          end if
+       endif
 
          ewrite(3,*)'after pressure solve DP:',DP
          !stop 1245
@@ -1884,7 +1906,8 @@
          DENOLD_OR_ONE=DENOLD
       ENDIF
 
-      second_theta = 0.
+      second_theta = 1.
+
       ! Form CT & MASS_MN_PRES matrix...
       CALL CV_ASSEMB( state, &
            CV_RHS, &
@@ -2572,6 +2595,9 @@
               udiffusion( :, :, :, iphase ), &
               mat_ndgln  )
       end do
+
+!        print *,'udiffusion:',udiffusion
+!         stop 221
 
       GOT_DIFFUS = ( R2NORM( UDIFFUSION, MAT_NONODS * NDIM * NDIM * NPHASE ) /= 0.0 )  &
            .OR. BETWEEN_ELE_STAB
@@ -5350,6 +5376,7 @@
 
       option_path='/material_phase[0]/scalar_field::Pressure'
 
+     IF(.TRUE.) THEN
       CALL PROJ_CV_TO_FEM( FEMT, VOLUME_FRAC, 1, NDIM, &
            RDUM,0, RDUM,0, MASS_ELE, &
            CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
@@ -5357,6 +5384,9 @@
            CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, &
            X_NONODS, X, Y, Z, NCOLM, FINDM, COLM, MIDM, &
            IGETCT, RDUM, IDUM, IDUM, 0, OPTION_PATH )
+     ELSE
+      FEMT=VOLUME_FRAC
+     ENDIF
 
       FEMTOLD=0.0
 
@@ -5436,7 +5466,7 @@
          DX_DIFF_Y=0. ;  DY_DIFF_Y=0. ; DZ_DIFF_Y=0.
          DX_DIFF_Z=0. ;  DY_DIFF_Z=0. ; DZ_DIFF_Z=0.
 
-         CALL DG_DERIVS_UVW( DIF_TX, DIF_TX, DIF_TY, DIF_TY, DIF_TZ, DIF_TZ, &
+         CALL DG_DERIVS_UVW( DIF_TX, RZERO, DIF_TY, RZERO, DIF_TZ, RZERO, &
               DX_DIFF_X, DY_DIFF_X, DZ_DIFF_X, RDUM, RDUM, RDUM, &
               DX_DIFF_Y, DY_DIFF_Y, DZ_DIFF_Y, RDUM, RDUM, RDUM, &
               DX_DIFF_Z, DY_DIFF_Z, DZ_DIFF_Z, RDUM, RDUM, RDUM, &
