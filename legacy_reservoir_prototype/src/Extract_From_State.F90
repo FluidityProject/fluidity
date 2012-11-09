@@ -57,7 +57,7 @@
 
     public :: Get_Primary_Scalars, Compute_Node_Global_Numbers, Extracting_MeshDependentFields_From_State, &
          Get_ScalarFields_Outof_State, Get_CompositionFields_Outof_State, Get_VectorFields_Outof_State, &
-         Extract_Position_Field, xp1_2_xp2, Get_Ele_Type, Get_Discretisation_Options
+         Extract_TensorFields_Outof_State, Extract_Position_Field, xp1_2_xp2, Get_Ele_Type, Get_Discretisation_Options
 
     interface Get_Ndgln
        module procedure Get_Scalar_Ndgln, Get_Vector_Ndgln, Get_Mesh_Ndgln
@@ -906,100 +906,109 @@
          end do
 
       elseif( have_option( '/porous_media/tensor_field::Permeability' ) ) then
-         option_path = '/porous_media/tensor_field::Permeability'
-         if( have_option( trim( option_path ) // '/prescribed' ) ) then
-            option_path = trim( option_path ) // '/prescribed/value[0]'
-         else
-            FLAbort( 'Permeability field not defined - sort this out' )
-         endif
-         is_isotropic = have_option( trim( option_path ) // '/isotropic' )
-         is_diagonal = have_option( trim( option_path ) // '/diagonal' )
-         is_symmetric = have_option( trim( option_path ) // '/anisotropic_symmetric' )
-
-         Conditional_TensorPermeability: if( is_isotropic )then
-            option_path = trim( option_path ) // '/isotropic'
-
-            if( have_option( trim( option_path ) // '/constant')) then
-               allocate( constant( 1, 1 ) ) ; constant = 0.
-               call get_option( trim( option_path ) // '/constant', constant( 1, 1 ) )
-               do idim = 1, ndim
-                  Permeability( 1 : totele, idim, idim ) = constant( 1, 1 )
-               end do
-               deallocate( constant )
-
-            elseif( have_option( trim( option_path ) // '/python' ) ) then
-               tensorfield => extract_tensor_field( state( 1 ), 'Permeability' )
-               do ele = 1, element_count( tensorfield )
-                  element_nodes => ele_nodes( tensorfield, ele )
-                  do idim = 1, ndim
-                     Permeability( ele, idim, idim ) = &
-                          tensorfield % val(idim, idim, element_nodes( 1 ) )
-                  end do
-               end do
-
-            else
-               FLExit( 'Incorrect initial condition for field' )
-            end if
-
-         elseif( is_diagonal )then ! Conditional_TensorPermeability
-            option_path = trim( option_path ) // '/diagonal'
-
-            if( have_option( trim( option_path ) // '/constant' ) )then
-               allocate(constant( ndim, 1 ) ) ; constant = 0.
-               call get_option( trim( option_path ) // '/constant', constant )
-               do idim = 1, ndim
-                  Permeability( 1 : totele, idim, idim ) = constant( idim, 1 )
-               end do
-               deallocate( constant )
-
-            elseif( have_option( trim( option_path ) // '/python' ) )then
-               tensorfield => extract_tensor_field( state( 1 ), 'Permeability' )
-               do idim = 1, ndim
-                  do ele = 1, element_count( tensorfield )
-                     Permeability( ele, idim, idim ) = tensorfield % val( idim, idim,  ele )
-                  end do
-               end do
-
-            else
-               FLExit( 'Incorrect initial condition for field' )
-            end if
-
-         else
-            if( is_symmetric ) then
-               option_path = trim( option_path ) // '/anisotropic_symmetric'
-            else
-               option_path = trim( option_path ) // '/anisotropic_asymmetric'
-            end if
-
-            Conditional_Perm_Anisotropic: if( have_option( trim( option_path ) // '/constant' ) ) then
-               allocate( constant( ndim, ndim ) ) ; constant = 0.
-               call get_option( trim( option_path ) // '/constant', constant )
-               do idim = 1, ndim
-                  do jdim = 1, ndim
-                     Permeability( 1 : totele, idim, jdim ) = constant( idim, jdim )
-                  end do
-               end do
-               deallocate( constant )
-
-            elseif( have_option( trim( option_path ) // '/python' ) ) then
-               tensorfield => extract_tensor_field( state( 1 ), 'Permeability' )
-               do ele = 1, element_count( tensorfield )
-                  element_nodes => ele_nodes( tensorfield, ele )
-                  do idim = 1, ndim
-                     do jdim = 1, ndim
-                        Permeability( ele, idim, jdim ) = &
-                             tensorfield % val( idim, jdim, element_nodes( 1 ) )
-                     end do
-                  end do
-               end do
-
-            else 
-               FLExit( 'Incorrect initial condition for field ')
-            end if Conditional_Perm_Anisotropic
-
-         end if Conditional_TensorPermeability
+         tensorfield => extract_tensor_field( state( 1 ), 'Permeability' )
+         option_path =  '/porous_media/tensor_field::Permeability'
+         call Extract_TensorFields_Outof_State( state, 1, &
+              tensorfield, option_path, &
+              Permeability )
 
       end if Conditional_PermeabilityField
+
+!!$      elseif( have_option( '/porous_media/tensor_field::Permeability' ) ) then
+!!$         option_path = '/porous_media/tensor_field::Permeability'
+!!$         if( have_option( trim( option_path ) // '/prescribed' ) ) then
+!!$            option_path = trim( option_path ) // '/prescribed/value[0]'
+!!$         else
+!!$            FLAbort( 'Permeability field not defined - sort this out' )
+!!$         endif
+!!$         is_isotropic = have_option( trim( option_path ) // '/isotropic' )
+!!$         is_diagonal = have_option( trim( option_path ) // '/diagonal' )
+!!$         is_symmetric = have_option( trim( option_path ) // '/anisotropic_symmetric' )
+!!$
+!!$         Conditional_TensorPermeability: if( is_isotropic )then
+!!$            option_path = trim( option_path ) // '/isotropic'
+!!$
+!!$            if( have_option( trim( option_path ) // '/constant')) then
+!!$               allocate( constant( 1, 1 ) ) ; constant = 0.
+!!$               call get_option( trim( option_path ) // '/constant', constant( 1, 1 ) )
+!!$               do idim = 1, ndim
+!!$                  Permeability( 1 : totele, idim, idim ) = constant( 1, 1 )
+!!$               end do
+!!$               deallocate( constant )
+!!$
+!!$            elseif( have_option( trim( option_path ) // '/python' ) ) then
+!!$               tensorfield => extract_tensor_field( state( 1 ), 'Permeability' )
+!!$               do ele = 1, element_count( tensorfield )
+!!$                  element_nodes => ele_nodes( tensorfield, ele )
+!!$                  do idim = 1, ndim
+!!$                     Permeability( ele, idim, idim ) = &
+!!$                          tensorfield % val(idim, idim, element_nodes( 1 ) )
+!!$                  end do
+!!$               end do
+!!$
+!!$            else
+!!$               FLExit( 'Incorrect initial condition for field' )
+!!$            end if
+!!$
+!!$         elseif( is_diagonal )then ! Conditional_TensorPermeability
+!!$            option_path = trim( option_path ) // '/diagonal'
+!!$
+!!$            if( have_option( trim( option_path ) // '/constant' ) )then
+!!$               allocate(constant( ndim, 1 ) ) ; constant = 0.
+!!$               call get_option( trim( option_path ) // '/constant', constant )
+!!$               do idim = 1, ndim
+!!$                  Permeability( 1 : totele, idim, idim ) = constant( idim, 1 )
+!!$               end do
+!!$               deallocate( constant )
+!!$
+!!$            elseif( have_option( trim( option_path ) // '/python' ) )then
+!!$               tensorfield => extract_tensor_field( state( 1 ), 'Permeability' )
+!!$               do idim = 1, ndim
+!!$                  do ele = 1, element_count( tensorfield )
+!!$                     Permeability( ele, idim, idim ) = tensorfield % val( idim, idim,  ele )
+!!$                  end do
+!!$               end do
+!!$
+!!$            else
+!!$               FLExit( 'Incorrect initial condition for field' )
+!!$            end if
+!!$
+!!$         else
+!!$            if( is_symmetric ) then
+!!$               option_path = trim( option_path ) // '/anisotropic_symmetric'
+!!$            else
+!!$               option_path = trim( option_path ) // '/anisotropic_asymmetric'
+!!$            end if
+!!$
+!!$            Conditional_Perm_Anisotropic: if( have_option( trim( option_path ) // '/constant' ) ) then
+!!$               allocate( constant( ndim, ndim ) ) ; constant = 0.
+!!$               call get_option( trim( option_path ) // '/constant', constant )
+!!$               do idim = 1, ndim
+!!$                  do jdim = 1, ndim
+!!$                     Permeability( 1 : totele, idim, jdim ) = constant( idim, jdim )
+!!$                  end do
+!!$               end do
+!!$               deallocate( constant )
+!!$
+!!$            elseif( have_option( trim( option_path ) // '/python' ) ) then
+!!$               tensorfield => extract_tensor_field( state( 1 ), 'Permeability' )
+!!$               do ele = 1, element_count( tensorfield )
+!!$                  element_nodes => ele_nodes( tensorfield, ele )
+!!$                  do idim = 1, ndim
+!!$                     do jdim = 1, ndim
+!!$                        Permeability( ele, idim, jdim ) = &
+!!$                             tensorfield % val( idim, jdim, element_nodes( 1 ) )
+!!$                     end do
+!!$                  end do
+!!$               end do
+!!$
+!!$            else 
+!!$               FLExit( 'Incorrect initial condition for field ')
+!!$            end if Conditional_Perm_Anisotropic
+!!$
+!!$         end if Conditional_TensorPermeability
+!!$
+!!$      end if Conditional_PermeabilityField
 
 
       deallocate( cv_ndgln, u_ndgln, p_ndgln, x_ndgln, x_ndgln_p1, &
@@ -1292,7 +1301,7 @@
       type( state_type ), dimension( : ), intent( in ) :: state
       integer, intent( in ) :: iphase
       logical, intent( in ) :: is_overlapping
-      type(vector_field), pointer :: field, field_prot_bc
+      type( vector_field ), pointer :: field, field_prot_bc
       real, dimension( : ), intent( inout ) :: field_u_prot, field_v_prot, field_w_prot, &
            field_nu_prot, field_nv_prot, field_nw_prot
       real, dimension( : ), intent( inout ), optional :: field_prot_source
@@ -1429,6 +1438,210 @@
 
 
 
+    subroutine Extract_TensorFields_Outof_State( state, istate_field, &
+         field, field_path, &
+         field_prot_tensor, &
+         GlobalNodeNumber )
+      implicit none
+      type( state_type ), dimension( : ), intent( in ) :: state
+      integer, intent( in ) :: istate_field
+      type( tensor_field ), pointer :: field
+      character( len = option_path_len ), intent( in ) :: field_path
+      real, dimension( :, :, : ), intent( inout ) :: field_prot_tensor
+      integer, dimension( : ), intent( in ), optional :: GlobalNodeNumber
+!!$ Local variables
+      type( scalar_field ), pointer :: pressure
+      type( vector_field ), pointer :: positions
+      type( tensor_field ), pointer :: tensorfield
+      integer :: nstate, ndim, totele, istate, ele, idim, jdim, iloc, inod
+      character( len = option_path_len ) :: field_name, option_path, option_permeability, option_viscosity
+      logical :: compute_viscosity, compute_permeability, is_isotropic, is_diagonal, is_anisotropic
+      real, dimension( :, : ), allocatable :: constant
+      integer, dimension( : ), pointer :: element_nodes
+
+      call get_option( '/geometry/dimension', ndim )
+      nstate = option_count( '/material_phase' )
+      positions => extract_vector_field( state, 'Coordinate' )
+      pressure => extract_scalar_field( state, 'Pressure' )
+
+      totele = ele_count( positions ) ; field_name = trim( field % name ) ; &
+           compute_viscosity = .false. ; compute_permeability = .false.
+
+!!$ Defining logicals for the field associated with the tensor. For now, it is set up for either 
+!!$ Permeability( totele, ndim, ndim ) and Viscosity( mat_nonods, ndim, ndim, nphase ). We may need to
+!!$ extend the subroutine to also with an arbitrary tensor shape.
+      do istate = 1, nstate
+         Conditional_WhichField: if( trim( field_path ) == '/material_phase[' // int2str( istate - 1 ) // &
+              ']/vector_field::' // trim( field_name ) // '/prognostic/tensor_field::Viscosity' )then
+            compute_viscosity = .true.
+         elseif( trim( field_path ) == '/porous_media/scalar_field::Permeability' ) then 
+            compute_permeability = .true.
+         else
+            FLAbort( 'Tensor Field was not defined in the schema - sort this out' )
+         end if Conditional_WhichField
+      end do
+
+!!$ Now looping over state
+      LoopOverState: do istate = 1, nstate
+
+         if( istate /= istate_field ) cycle LoopOverState
+
+!!$ Defining flags:
+         if( compute_permeability ) then
+            option_permeability = '/porous_media/scalar_field::Permeability/prescribed/value[0]'
+            if( have_option( trim( option_permeability ) ) ) then
+               option_path = trim( option_permeability )
+            else
+               FLAbort( 'Option path for the Permeability tensor is incomplete.' )
+            end if
+         end if
+
+         if( compute_viscosity ) then
+            option_viscosity = '/material_phase[' // int2str( istate - 1 ) // ']/vector_field::' // &
+                 trim( field_name ) // 'prognostic/tensor_field::Viscosity/prescribed/value[0]'
+            if( have_option( trim( option_viscosity ) ) ) then
+               option_path = trim( option_viscosity )
+            else
+               FLAbort( 'Option path for the Viscosity tensor is incomplete.' )
+            end if
+         end if
+
+         is_isotropic = have_option( trim( option_path ) // '/isotropic' )
+         is_diagonal = have_option( trim( option_path ) // '/diagonal' )
+         is_anisotropic = have_option( trim( option_path ) // '/anisotropic_symmetric' ) .or. &
+              have_option( trim( option_path ) // '/anisotropic_asymmetric' )
+!!$ Endof Defining flags
+
+!!$ Isotropic Tensor:
+         Conditional_Tensor: if ( is_isotropic ) then
+            option_path = trim( option_path ) // '/isotropic'
+
+            if( have_option( trim( option_path ) // '/constant')) then
+               allocate( constant( 1, 1 ) ) ; constant = 0.
+               call get_option( trim( option_path ) // '/constant', constant( 1, 1 ) )
+               do idim = 1, ndim
+                  field_prot_tensor( : , idim, idim ) = constant( 1, 1 )
+               end do
+               deallocate( constant )
+
+            elseif( have_option( trim( option_path ) // '/python' ) ) then
+               tensorfield => extract_tensor_field( state( istate ), trim( field_name ) )
+               do ele = 1, element_count( tensorfield )
+                  element_nodes => ele_nodes( tensorfield, ele )
+                  do idim = 1, ndim
+                     if( compute_permeability ) then
+                        field_prot_tensor( ele, idim, idim ) = &
+                             tensorfield % val( idim, idim, element_nodes( 1 ) )
+                     elseif( compute_viscosity ) then
+                        do iloc = 1, ele_loc( pressure, 1 )
+                           inod = GlobalNodeNumber( ( ele - 1 ) * node_count( pressure ) + iloc )
+                           field_prot_tensor( inod , idim, idim ) =   &
+                                tensorfield % val( idim, idim, element_nodes( 1 ) )
+                        end do
+                     else
+                        FLAbort( 'Option path for the tensor field is incomplete.' )
+                     end if
+                  end do
+               end do
+
+            else
+               FLExit( 'Incorrect initial condition for field' )
+            end if
+!!$ Endof Isotropic Tensor
+
+!!$ Diagonal Tensor:
+         elseif( is_diagonal )then ! If_Conditional_Tensor
+            option_path = trim( option_path ) // '/diagonal'
+
+            if( have_option( trim( option_path ) // '/constant' ) ) then
+               allocate(constant( ndim, 1 ) ) ; constant = 0.
+               call get_option( trim( option_path ) // '/constant', constant )
+               do idim = 1, ndim
+                  field_prot_tensor( : , idim, idim ) = constant( idim, 1 )
+               end do
+               deallocate( constant )
+
+            elseif( have_option( trim( option_path ) // '/python' ) )then
+               tensorfield => extract_tensor_field( state( istate ), trim( field_name ) )
+               element_nodes => ele_nodes( tensorfield, ele )
+               do idim = 1, ndim
+                  do ele = 1, element_count( tensorfield )
+                     if( compute_permeability ) then
+                        field_prot_tensor( ele, idim, idim ) = tensorfield % val( idim, idim,  ele )
+                     elseif( compute_viscosity ) then
+                        do iloc = 1, ele_loc( pressure, 1 )
+                           inod = GlobalNodeNumber( ( ele - 1 ) * node_count( pressure ) + iloc )
+                           field_prot_tensor( inod , idim, idim ) =   &
+                                tensorfield % val( idim, idim, element_nodes( 1 ) )
+                        end do
+                     else
+                        FLAbort( 'Option path for the tensor field is incomplete.' )
+                     end if
+                  end do
+               end do
+
+            else
+               FLExit( 'Incorrect initial condition for field' )
+            end if
+!!$ Endof Diagonal Tensor
+
+!!$ Anisotropic Tensor:
+         elseif( is_anisotropic )then  ! If_Conditional_Tensor
+            if( have_option( trim( option_path ) // '/anisotropic_symmetric' ) ) then
+               option_path = trim( option_path ) // '/anisotropic_symmetric'
+            elseif( have_option( trim( option_path ) // '/anisotropic_asymmetric' ) ) then
+               option_path = trim( option_path ) // '/anisotropic_asymmetric'
+            else
+               FLAbort( 'Option path for the tensor field is incomplete.' )
+            end if
+
+            if( have_option( trim( option_path ) // '/constant' ) ) then
+               allocate( constant( ndim, ndim ) ) ; constant = 0.
+               call get_option( trim( option_path ) // '/constant', constant )
+               do idim = 1, ndim
+                  do jdim = 1, ndim
+                     field_prot_tensor( : , idim, jdim ) = constant( idim, jdim )
+                  end do
+               end do
+
+            elseif( have_option( trim( option_path ) // '/python' ) ) then
+               tensorfield => extract_tensor_field( state( istate ), trim( field_name ) )
+               element_nodes => ele_nodes( tensorfield, ele )
+               do ele = 1, element_count( tensorfield )
+                  element_nodes => ele_nodes( tensorfield, ele )
+                  do idim = 1, ndim
+                     do jdim = 1, ndim
+                        if( compute_permeability ) then
+                           field_prot_tensor( ele, idim, jdim ) = &
+                                tensorfield % val( idim, jdim, element_nodes( 1 ) )
+                        elseif( compute_viscosity ) then
+                           do iloc = 1, ele_loc( pressure, 1 )
+                              inod = GlobalNodeNumber( ( ele - 1 ) * node_count( pressure ) + iloc )
+                              field_prot_tensor( inod, idim, jdim ) = &
+                                   tensorfield % val( idim, jdim, element_nodes( 1 ) )
+                           end do
+                        else 
+                           FLAbort( 'Option path for the tensor field is incomplete.' )
+                        end if
+                     end do
+                  end do
+               end do
+
+            else 
+               FLExit( 'Incorrect initial condition for field' )
+            end if
+!!$ Endof Anisotropic Tensor
+
+         else
+            FLExit( 'Incorrect initial condition for field' )
+
+         end if Conditional_Tensor
+
+
+      end do LoopOverState
+
+      return
+    end subroutine Extract_TensorFields_Outof_State
 
 
 !!$

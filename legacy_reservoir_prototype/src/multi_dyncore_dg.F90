@@ -42,6 +42,7 @@
     use matrix_operations
     use shape_functions
     use spact
+    use Copy_Outof_State
     use fldebug
 
     implicit none
@@ -79,7 +80,7 @@
          UG, VG, WG, &
          T, TOLD, &
          DEN, DENOLD, &
-         MAT_NLOC,MAT_NDGLN,MAT_NONODS,TDIFFUSION, &
+         MAT_NLOC,MAT_NDGLN,MAT_NONODS, TDIFFUSION, &
          T_DISOPT, T_DG_VEL_INT_OPT, DT, T_THETA, T_BETA, &
          SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, &
          SUF_T_BC_ROB1, SUF_T_BC_ROB2,  &
@@ -155,7 +156,7 @@
       REAL, DIMENSION( NOPT_VEL_UPWIND_COEFS ), intent( in ) :: OPT_VEL_UPWIND_COEFS
       INTEGER, INTENT( IN ) :: NOIT_DIM
       REAL, DIMENSION( CV_NONODS ), intent( inout ) :: MEAN_PORE_CV
-      character(len=*), intent(in), optional :: option_path
+      character( len = option_path_len ), intent( in ), optional :: option_path
       real, dimension( totele ), intent( inout ) :: mass_ele_transp
 
       ! Local variables
@@ -168,7 +169,7 @@
       INTEGER :: NCOLACV_SUB, IPHASE, I, J
       REAL :: SECOND_THETA
       INTEGER :: STAT
-      CHARACTER(LEN=101) :: PATH
+      character( len = option_path_len ) :: path
 
 
       ALLOCATE( ACV( NCOLACV ))
@@ -182,12 +183,14 @@
            '/control_volumes/second_theta'
       call get_option( path, second_theta, stat )
 
-      if( trim( option_path ) == '/material_phase[0]/scalar_field::Temperature' ) then
-         call get_option( '/material_phase[0]/scalar_field::Temperature/prognostic/temporal_discretisation/' // &
-              'control_volumes/number_advection_iterations', nits_flux_lim, default = 3 )
-      else
-         call get_option( '/material_phase[' // int2str( nphase ) // ']/scalar_field::ComponentMassFractionPhase1/' // &
-              'temporal_discretisation/control_volumes/number_advection_iterations', nits_flux_lim, default = 1 )
+      if( present( option_path ) ) then
+         if( trim( option_path ) == '/material_phase[0]/scalar_field::Temperature' ) then
+            call get_option( '/material_phase[0]/scalar_field::Temperature/prognostic/temporal_discretisation/' // &
+                 'control_volumes/number_advection_iterations', nits_flux_lim, default = 3 )
+         else
+            call get_option( '/material_phase[' // int2str( nphase ) // ']/scalar_field::ComponentMassFractionPhase1/' // &
+                 'temporal_discretisation/control_volumes/number_advection_iterations', nits_flux_lim, default = 1 )
+         end if
       end if
 
       lump_eqns = have_option( '/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
@@ -227,7 +230,8 @@
                  NOIT_DIM, &
                  MEAN_PORE_CV, &
                  THERMAL, &
-                 mass_ele_transp )
+                 mass_ele_transp, &
+                 option_path )
          else
             CALL CV_ASSEMB( state, &
                  CV_RHS, &
@@ -328,9 +332,7 @@
     END SUBROUTINE INTENERGE_ASSEM_SOLVE
 
 
-
-
-    SUBROUTINE CV_ASSEMB_CV_DG(state, &
+    SUBROUTINE CV_ASSEMB_CV_DG( state, &
          CV_RHS, &
          NCOLACV, ACV, FINACV, COLACV, MIDACV, &
          NCOLCT, CT, DIAG_SCALE_PRES, CT_RHS, FINDCT, COLCT, &
@@ -361,12 +363,13 @@
          NOIT_DIM, &
          MEAN_PORE_CV, &
          THERMAL, &
-         mass_ele_transp )
+         mass_ele_transp, &
+         option_path )
 
       ! Solve for internal energy using a control volume method.
 
       implicit none
-      type( state_type ), dimension( : ), intent( inout ) :: state
+      type( state_type ), dimension( : ), intent( in ) :: state
       INTEGER, intent( in ) :: NCOLACV, NCOLCT, CV_NONODS, U_NONODS, X_NONODS, MAT_NONODS, TOTELE, &
            CV_ELE_TYPE, NPHASE, CV_NLOC, U_NLOC, X_NLOC,  MAT_NLOC, &
            CV_SNLOC, U_SNLOC, STOTEL, XU_NLOC, NDIM, NCOLM, NCOLELE, &
@@ -424,8 +427,8 @@
       REAL, DIMENSION( NOPT_VEL_UPWIND_COEFS ), intent( in ) :: OPT_VEL_UPWIND_COEFS
       INTEGER, INTENT( IN ) :: NOIT_DIM
       REAL, DIMENSION( CV_NONODS ), intent( inout ) :: MEAN_PORE_CV
-      !      character(len=*), intent(in), optional :: option_path
       real, dimension( totele ), intent( inout ) :: mass_ele_transp
+      character( len = option_path_len ), intent( in ), optional :: option_path
 
       ! Local variables
       LOGICAL, PARAMETER :: GETCV_DISC = .TRUE., GETCT= .FALSE.
@@ -434,7 +437,7 @@
       REAL :: SECOND_THETA
       INTEGER :: STAT,U_ELE_TYPE
       LOGICAL :: CV_METHOD
-      CHARACTER(LEN=101) :: PATH
+      character( len = option_path_len ) :: path
 
 
       SECOND_THETA = 1.0
@@ -442,7 +445,7 @@
       path='/material_phase[0]/scalar_field::Temperature/prognostic/temporal_discretisation/control_volumes/second_theta'
       call get_option( path, second_theta, stat )
       !SECOND_THETA = 0.0
-      CV_METHOD=.FALSE.
+      CV_METHOD = .FALSE.
 
       IF(CV_METHOD) THEN ! cv method...
 
@@ -481,7 +484,7 @@
 
       ELSE ! this is for DG...
 
-         CALL WRAPPER_ASSEMB_FORCE_CTY( &
+         CALL WRAPPER_ASSEMB_FORCE_CTY( state, &
               NDIM, NPHASE, U_NLOC, X_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
               U_ELE_TYPE, CV_ELE_TYPE, &
               U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
@@ -500,7 +503,8 @@
               CV_RHS, &
               ACV, NCOLACV, FINACV, COLACV, & ! Force balance sparsity
               NCOLELE, FINELE, COLELE, & ! Element connectivity.
-              XU_NLOC, XU_NDGLN )
+              XU_NLOC, XU_NDGLN, &
+              option_path )
 
       ENDIF
 
@@ -509,7 +513,7 @@
 
 
 
-    SUBROUTINE WRAPPER_ASSEMB_FORCE_CTY( &
+    SUBROUTINE WRAPPER_ASSEMB_FORCE_CTY( state, &
          NDIM, NPHASE, U_NLOC, X_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
          U_ELE_TYPE, CV_ELE_TYPE, &
          U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
@@ -528,10 +532,12 @@
          CV_RHS, &
          ACV, NCOLACV, FINACV, COLACV, & ! Force balance sparsity
          NCOLELE, FINELE, COLELE, & ! Element connectivity.
-         XU_NLOC, XU_NDGLN )
+         XU_NLOC, XU_NDGLN, &
+         option_path )
       use shape_functions_NDim
       implicit none
 
+      type( state_type ), dimension( : ), intent( in ) :: state
       INTEGER, intent( in ) :: NDIM, NPHASE, U_NLOC, X_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
            U_ELE_TYPE, CV_ELE_TYPE, U_NONODS, CV_NONODS, X_NONODS, &
            MAT_NONODS, STOTEL, U_SNLOC, CV_SNLOC, &
@@ -562,6 +568,7 @@
       INTEGER, DIMENSION( TOTELE + 1 ), intent( in ) :: FINELE
       INTEGER, DIMENSION( NCOLELE ), intent( in ) :: COLELE
       REAL, DIMENSION( MAT_NONODS, NDIM, NDIM, NPHASE ), intent( in ) :: TDIFFUSION 
+      character( len = option_path_len ), intent( in ), optional :: option_path
       ! Local  variables... none
       REAL, DIMENSION ( : ), allocatable :: RZERO,RDUM
       INTEGER, DIMENSION ( : ), allocatable :: IDUM,IZERO
@@ -585,7 +592,7 @@
 
       IPLIKE_GRAD_SOU=0
 
-      CALL ASSEMB_FORCE_CTY( &
+      CALL ASSEMB_FORCE_CTY( state, &
            NDIM, NPHASE, U_NLOC, X_NLOC, CV_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
            U_ELE_TYPE, CV_ELE_TYPE, &
            U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
@@ -609,7 +616,8 @@
            NCOLELE, FINELE, COLELE, & ! Element connectivity.
            XU_NLOC, XU_NDGLN, &
            RDUM, JUST_BL_DIAG_MAT,  &
-           TDIFFUSION, IPLIKE_GRAD_SOU, RZERO, RZERO, &
+!!$           TDIFFUSION, & ! TDiffusion need to be obtained down in the tree according to the option_path
+           IPLIKE_GRAD_SOU, RZERO, RZERO, &
            RZERO,.FALSE.,1 )
 
 
@@ -773,7 +781,7 @@
       LOGICAL :: GET_THETA_FLUX
       REAL :: SECOND_THETA
       INTEGER :: STAT
-      CHARACTER(LEN=101) :: PATH
+      character( len = option_path_len ) :: path
 
       GET_THETA_FLUX = .FALSE.
       IGOT_T2 = 0
@@ -905,13 +913,15 @@
          V_SOURCE, V_ABSORB, VOLFRA_PORE, &
          NCOLM, FINDM, COLM, MIDM, & ! Sparsity for the CV-FEM
          XU_NLOC, XU_NDGLN, &
-         UDEN, UDENOLD, UDIFFUSION, &
+!!$         UDEN, UDENOLD, UDIFFUSION, &
+         UDEN, UDENOLD, &
          OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
          IGOT_THETA_FLUX, SCVNGI_THETA, USE_THETA_FLUX, &
          THETA_FLUX, ONE_M_THETA_FLUX, &
          IN_ELE_UPWIND, DG_ELE_UPWIND, &
          NOIT_DIM, &
-         IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD,scale_momentum_by_volume_fraction )
+         IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, &
+         scale_momentum_by_volume_fraction )
 
       IMPLICIT NONE
       type( state_type ), dimension( : ), intent( in ) :: state
@@ -981,7 +991,7 @@
       INTEGER, DIMENSION( NCOLM ), intent( in ) :: COLM
       INTEGER, DIMENSION( CV_NONODS ), intent( in ) :: MIDM 
       REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: UDEN, UDENOLD
-      REAL, DIMENSION( MAT_NONODS, NDIM, NDIM, NPHASE ), intent( in ) :: UDIFFUSION 
+!!$      REAL, DIMENSION( MAT_NONODS, NDIM, NDIM, NPHASE ), intent( in ) :: UDIFFUSION 
       REAL, DIMENSION( NOPT_VEL_UPWIND_COEFS ), intent( in ) :: OPT_VEL_UPWIND_COEFS
       REAL, DIMENSION( TOTELE * IGOT_THETA_FLUX, CV_NLOC, SCVNGI_THETA, NPHASE ), intent( inout ) :: &
            THETA_FLUX, ONE_M_THETA_FLUX
@@ -1061,7 +1071,8 @@
            U_RHS, MCY_RHS, C, CT, CT_RHS, DIAG_SCALE_PRES, GLOBAL_SOLVE, &
            NLENMCY, NCOLMCY,MCY,FINMCY, &
            CMC,PIVIT_MAT, JUST_BL_DIAG_MAT, &
-           UDEN, UDENOLD, UDIFFUSION, &
+!!$           UDEN, UDENOLD, UDIFFUSION, &
+           UDEN, UDENOLD, &
            OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
            IGOT_THETA_FLUX, SCVNGI_THETA, USE_THETA_FLUX, &
            THETA_FLUX, ONE_M_THETA_FLUX, &
@@ -1116,11 +1127,9 @@
 
          CALL PHA_BLOCK_INV( INV_PIVIT_MAT, PIVIT_MAT, TOTELE, U_NLOC * NPHASE * NDIM )
 
+
          ! Put pressure in rhs of force balance eqn:  CDP=C*P
          CALL C_MULT( CDP, P, CV_NONODS, U_NONODS, NDIM, NPHASE, C, NCOLC, FINDC, COLC)
-
-         !ewrite(3,*) 'U_RHS:', U_RHS
-         !ewrite(3,*) 'CDP:', CDP
 
          U_RHS_CDP = U_RHS + CDP
 
@@ -1461,7 +1470,8 @@
          U_RHS, MCY_RHS, C, CT, CT_RHS, DIAG_SCALE_PRES, GLOBAL_SOLVE, &
          NLENMCY, NCOLMCY,MCY,FINMCY, &
          CMC, PIVIT_MAT, JUST_BL_DIAG_MAT, &
-         UDEN, UDENOLD, UDIFFUSION, &
+!!$         UDEN, UDENOLD, UDIFFUSION, &
+         UDEN, UDENOLD, &
          OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
          IGOT_THETA_FLUX, SCVNGI_THETA, USE_THETA_FLUX, &
          THETA_FLUX, ONE_M_THETA_FLUX, &
@@ -1548,7 +1558,7 @@
       INTEGER, DIMENSION( NCOLM ), intent( in ) :: COLM
       INTEGER, DIMENSION( CV_NONODS ), intent( in ) :: MIDM 
       REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: UDEN, UDENOLD
-      REAL, DIMENSION( MAT_NONODS, NDIM, NDIM, NPHASE ), intent( in ) :: UDIFFUSION 
+!!$      REAL, DIMENSION( MAT_NONODS, NDIM, NDIM, NPHASE ), intent( in ) :: UDIFFUSION 
       LOGICAL, intent( inout ) :: JUST_BL_DIAG_MAT
       REAL, DIMENSION( NOPT_VEL_UPWIND_COEFS ), intent( in ) :: OPT_VEL_UPWIND_COEFS
       INTEGER, INTENT( IN ) :: NOIT_DIM
@@ -1591,7 +1601,8 @@
            XU_NLOC, XU_NDGLN, &
            U_RHS, MCY_RHS, C, CT, CT_RHS, DIAG_SCALE_PRES, GLOBAL_SOLVE, &
            NLENMCY, NCOLMCY,MCY,FINMCY, PIVIT_MAT, JUST_BL_DIAG_MAT, &
-           UDEN, UDENOLD, UDIFFUSION, &
+!!$           UDEN, UDENOLD, UDIFFUSION, &
+           UDEN, UDENOLD, &
            OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
            IGOT_THETA_FLUX, SCVNGI_THETA, USE_THETA_FLUX, &
            THETA_FLUX, ONE_M_THETA_FLUX, &
@@ -1696,7 +1707,8 @@
          XU_NLOC, XU_NDGLN, &
          U_RHS, MCY_RHS, C, CT, CT_RHS, DIAG_SCALE_PRES, GLOBAL_SOLVE, &
          NLENMCY, NCOLMCY,MCY,FINMCY, PIVIT_MAT, JUST_BL_DIAG_MAT, &
-         UDEN, UDENOLD, UDIFFUSION, &
+!!$         UDEN, UDENOLD, UDIFFUSION, &
+         UDEN, UDENOLD, &
          OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
          IGOT_THETA_FLUX, SCVNGI_THETA, USE_THETA_FLUX, &
          THETA_FLUX, ONE_M_THETA_FLUX, &
@@ -1780,7 +1792,7 @@
       REAL, DIMENSION( NCOLMCY ), intent( inout ) :: MCY
       REAL, DIMENSION( TOTELE, U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM ), intent( inout ) :: PIVIT_MAT
       REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: UDEN, UDENOLD
-      REAL, DIMENSION( MAT_NONODS, NDIM, NDIM, NPHASE ), intent( in ) :: UDIFFUSION 
+!!$      REAL, DIMENSION( MAT_NONODS, NDIM, NDIM, NPHASE ), intent( in ) :: UDIFFUSION 
       LOGICAL, intent( inout ) :: JUST_BL_DIAG_MAT
       REAL, DIMENSION( NOPT_VEL_UPWIND_COEFS ), intent( in ) :: OPT_VEL_UPWIND_COEFS
       INTEGER, INTENT( IN ) :: NOIT_DIM
@@ -1795,8 +1807,7 @@
       REAL, DIMENSION( :,:,:,: ), allocatable :: TDIFFUSION
       REAL, DIMENSION( : ), allocatable :: SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, SUF_T2_BC
       INTEGER, DIMENSION( : ), allocatable :: WIC_T2_BC
-      REAL, DIMENSION( : ), allocatable :: THETA_GDIFF, T2, T2OLD, MEAN_PORE_CV, &
-                  DEN_OR_ONE, DENOLD_OR_ONE
+      REAL, DIMENSION( : ), allocatable :: THETA_GDIFF, T2, T2OLD, MEAN_PORE_CV, DEN_OR_ONE, DENOLD_OR_ONE
       LOGICAL :: GET_THETA_FLUX
       INTEGER :: IGOT_T2
 
@@ -1805,9 +1816,8 @@
       GET_THETA_FLUX = .FALSE.
       IGOT_T2 = 0
 
-      ALLOCATE( DEN_OR_ONE( CV_NONODS * NPHASE ))
-      ALLOCATE( DENOLD_OR_ONE( CV_NONODS * NPHASE ))
-
+      ALLOCATE( DEN_OR_ONE( CV_NONODS * NPHASE )) ; DEN_OR_ONE = 0.
+      ALLOCATE( DENOLD_OR_ONE( CV_NONODS * NPHASE )) ; DENOLD_OR_ONE = 0.
       ALLOCATE( T2( CV_NONODS * NPHASE * IGOT_T2 ))
       ALLOCATE( T2OLD( CV_NONODS * NPHASE * IGOT_T2 ))
       ALLOCATE( SUF_T2_BC_ROB1( STOTEL * CV_SNLOC * NPHASE * IGOT_T2  ))
@@ -1830,7 +1840,7 @@
       IF( GLOBAL_SOLVE ) MCY = 0.0
 
       ! Obtain the momentum and C matricies
-      CALL ASSEMB_FORCE_CTY( & 
+      CALL ASSEMB_FORCE_CTY( state, & 
            NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
            U_ELE_TYPE, P_ELE_TYPE, &
            U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
@@ -1852,8 +1862,9 @@
            NCOLELE, FINELE, COLELE, & ! Element connectivity.
            XU_NLOC, XU_NDGLN, &
            PIVIT_MAT, JUST_BL_DIAG_MAT, &
-           UDIFFUSION, IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, &
-           P,scale_momentum_by_volume_fraction, NDIM )
+!!$           UDIFFUSION, &
+           IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, &
+           P, scale_momentum_by_volume_fraction, NDIM )
       ! scale the momentum equations by the volume fraction / saturation for the matrix and rhs     
 
       IF(GLOBAL_SOLVE) THEN
@@ -1866,15 +1877,14 @@
       ENDIF
 
       IF(USE_THETA_FLUX) THEN ! We have already put density in theta...
-        DEN_OR_ONE   =1.0
-        DENOLD_OR_ONE=1.0
+         DEN_OR_ONE   =1.0
+         DENOLD_OR_ONE=1.0
       ELSE
-        DEN_OR_ONE   =DEN
-        DENOLD_OR_ONE=DENOLD
+         DEN_OR_ONE   =DEN
+         DENOLD_OR_ONE=DENOLD
       ENDIF
 
       second_theta = 0.
-
       ! Form CT & MASS_MN_PRES matrix...
       CALL CV_ASSEMB( state, &
            CV_RHS, &
@@ -1888,7 +1898,7 @@
            CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
            X, Y, Z, NU, NV, NW, &
            NU, NV, NW, NUOLD, NVOLD, NWOLD, &
-!           SATURA, SATURAOLD, DEN, DENOLD, &
+!!$           SATURA, SATURAOLD, DEN, DENOLD, &
            SATURA, SATURAOLD, DEN_OR_ONE, DENOLD_OR_ONE, &
            MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
            V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, SECOND_THETA, V_BETA, &
@@ -1909,7 +1919,6 @@
            MEAN_PORE_CV, &
            FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, THERMAL, &
            dummy_transp )
-
 
       ewrite(3,*)'Back from cv_assemb'
 
@@ -2075,7 +2084,7 @@
 
 
 
-    SUBROUTINE ASSEMB_FORCE_CTY( &
+    SUBROUTINE ASSEMB_FORCE_CTY( state, &
          NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
          U_ELE_TYPE, P_ELE_TYPE, &
          U_NONODS, CV_NONODS, X_NONODS, MAT_NONODS, &
@@ -2097,11 +2106,13 @@
          NCOLELE, FINELE, COLELE, & ! Element connectivity.
          XU_NLOC, XU_NDGLN, &
          PIVIT_MAT, JUST_BL_DIAG_MAT,  &
-         UDIFFUSION, IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, &
+!!$         UDIFFUSION, &
+         IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, &
          P, scale_momentum_by_volume_fraction, NDIM_VEL )
       use shape_functions_NDim
       implicit none
 
+      type( state_type ), dimension( : ), intent( in ) :: state
       INTEGER, intent( in ) :: NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
            U_ELE_TYPE, P_ELE_TYPE, U_NONODS, CV_NONODS, X_NONODS, &
            MAT_NONODS, STOTEL, U_SNLOC, P_SNLOC, CV_SNLOC, &
@@ -2142,7 +2153,7 @@
       INTEGER, DIMENSION( TOTELE + 1 ), intent( in ) :: FINELE
       INTEGER, DIMENSION( NCOLELE ), intent( in ) :: COLELE
       REAL, DIMENSION( TOTELE, U_NLOC * NPHASE * NDIM_VEL, U_NLOC * NPHASE * NDIM_VEL ), intent( inout ) :: PIVIT_MAT
-      REAL, DIMENSION( MAT_NONODS, NDIM, NDIM, NPHASE ), intent( in ) :: UDIFFUSION 
+!!$      REAL, DIMENSION( MAT_NONODS, NDIM, NDIM, NPHASE ), intent( in ) :: UDIFFUSION 
       LOGICAL, intent( inout ) :: JUST_BL_DIAG_MAT
       REAL, DIMENSION( IPLIKE_GRAD_SOU*CV_NONODS * NPHASE ), intent( in ) :: PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD
       REAL, DIMENSION( CV_NONODS ), intent( in ) :: P
@@ -2150,6 +2161,8 @@
 
       ! Local Variables
       ! This is for decifering WIC_U_BC & WIC_P_BC
+      type( tensor_field ), pointer :: tensorfield
+      character( len = option_path_len ) :: option_path
       INTEGER, PARAMETER :: WIC_U_BC_DIRICHLET = 1, WIC_U_BC_ROBIN = 2, WIC_U_BC_DIRI_ADV_AND_ROBIN = 3
       INTEGER, PARAMETER :: WIC_P_BC_DIRICHLET = 1
       LOGICAL, PARAMETER :: VOL_ELE_INT_PRES = .TRUE. 
@@ -2199,12 +2212,10 @@
            P_STAR_U, P_STAR_V, P_STAR_W, DIF_STAB_U, DIF_STAB_V, DIF_STAB_W 
 
       REAL, DIMENSION ( : ), allocatable :: VLK_UVW, P_DX, P_DY, P_DZ
-      REAL, DIMENSION ( :, :, : ), allocatable :: RESID
+      REAL, DIMENSION ( :, :, : ), allocatable :: RESID, DIFF_FOR_BETWEEN_U, DIFF_FOR_BETWEEN_V, &
+           DIFF_FOR_BETWEEN_W, MAT_ELE
+      REAL, DIMENSION ( :, :, :, : ), allocatable :: UDIFFUSION
       REAL, DIMENSION ( :, :, :, :, : ), allocatable :: UDIFF_SUF_STAB
-      REAL, DIMENSION ( :, :, : ), allocatable :: DIFF_FOR_BETWEEN_U,DIFF_FOR_BETWEEN_V, &
-           DIFF_FOR_BETWEEN_W,MAT_ELE
-
-
 
       LOGICAL :: D1, D3, DCYL, GOT_DIFFUS, GOT_UDEN, DISC_PRES, QUAD_OVER_WHOLE_ELE
       INTEGER :: CV_NGI, CV_NGI_SHORT, SCVNGI, SBCVNGI, NFACE
@@ -2295,9 +2306,8 @@
       call get_option('/material_phase[0]/vector_field::Velocity/prognostic/' // &
            'spatial_discretisation/discontinuous_galerkin/stabilisation/method', &
            RESID_BASED_STAB_DIF, default=0)
-!      RESID_BASED_STAB_DIF=3
-!      RESID_BASED_STAB_DIF=2
-!      BETWEEN_ELE_STAB=.false.
+      !      RESID_BASED_STAB_DIF=2
+      !      BETWEEN_ELE_STAB=.false.
       BETWEEN_ELE_STAB=RESID_BASED_STAB_DIF.NE.0 ! Always switch on between element diffusion if using non-linear 
       ! stabilization
 
@@ -2549,6 +2559,19 @@
 
       ALLOCATE( VLK_UVW(3) )
 
+!!$ If the option_path is from WRAPPER_ASSEMB_FORCE_CTY, udiffusion --> tdiffusion. and the below need to be changed.
+!!$ As it has not been either tested or assessed let's keep as it is and change it properly (just need the path which
+!!$ is done mostly all way through, i.e., from INTENERGE_ASSEM_SOLVE subrt).
+      allocate( udiffusion( mat_nonods, ndim, ndim, nphase ) ) ; udiffusion = 0.
+      tensorfield => extract_tensor_field( state( 1 ), 'VelocityViscosity' )
+      do iphase = 1, nphase
+         option_path = '/material_phase[' // int2str( iphase - 1 ) // &
+              ']/vector_field::Velocity/prognostic/tensor_field::Viscosity'
+         call Extract_TensorFields_Outof_State( state, iphase, &
+              tensorfield, option_path, &
+              udiffusion( :, :, :, iphase ), &
+              mat_ndgln  )
+      end do
 
       GOT_DIFFUS = ( R2NORM( UDIFFUSION, MAT_NONODS * NDIM * NDIM * NPHASE ) /= 0.0 )  &
            .OR. BETWEEN_ELE_STAB
@@ -2700,16 +2723,16 @@
             DO GI = 1, CV_NGI_SHORT
                DO IPHASE = 1,NPHASE
                   CV_NOD_PHA = CV_NOD +( IPHASE - 1) * CV_NONODS
-                 if(.true.) then ! FEM DEN...
-                  DENGI( GI, IPHASE ) = DENGI( GI, IPHASE ) + CVFEN_SHORT( CV_ILOC, GI ) * UDEN( CV_NOD_PHA )
-                  DENGIOLD( GI, IPHASE ) = DENGIOLD( GI, IPHASE ) &
-                       + CVFEN_SHORT( CV_ILOC, GI ) * UDENOLD( CV_NOD_PHA )
-                 endif
-                 if(.false.) then ! CV DEN...
-                  DENGI( GI, IPHASE ) = DENGI( GI, IPHASE ) + CVN_SHORT( CV_ILOC, GI ) * UDEN( CV_NOD_PHA )
-                  DENGIOLD( GI, IPHASE ) = DENGIOLD( GI, IPHASE ) &
-                       + CVN_SHORT( CV_ILOC, GI ) * UDENOLD( CV_NOD_PHA )
-                 endif
+                  if(.true.) then ! FEM DEN...
+                     DENGI( GI, IPHASE ) = DENGI( GI, IPHASE ) + CVFEN_SHORT( CV_ILOC, GI ) * UDEN( CV_NOD_PHA )
+                     DENGIOLD( GI, IPHASE ) = DENGIOLD( GI, IPHASE ) &
+                          + CVFEN_SHORT( CV_ILOC, GI ) * UDENOLD( CV_NOD_PHA )
+                  endif
+                  if(.false.) then ! CV DEN...
+                     DENGI( GI, IPHASE ) = DENGI( GI, IPHASE ) + CVN_SHORT( CV_ILOC, GI ) * UDEN( CV_NOD_PHA )
+                     DENGIOLD( GI, IPHASE ) = DENGIOLD( GI, IPHASE ) &
+                          + CVN_SHORT( CV_ILOC, GI ) * UDENOLD( CV_NOD_PHA )
+                  endif
                   IF(IPLIKE_GRAD_SOU == 1) THEN
                      GRAD_SOU_GI( GI, IPHASE ) = GRAD_SOU_GI( GI, IPHASE ) &
                           + CVFEN_SHORT( CV_ILOC, GI ) * PLIKE_GRAD_SOU_COEF( CV_NOD_PHA )
@@ -4224,6 +4247,8 @@
       !ewrite(3,*)'JUST_BL_DIAG_MAT:',JUST_BL_DIAG_MAT
       !stop 27
 
+      deallocate( udiffusion )
+
       DEALLOCATE( DETWEI )
       DEALLOCATE( RA )
       DEALLOCATE( UD )
@@ -4861,9 +4886,6 @@
       RETURN
     END SUBROUTINE CALCULATE_SURFACE_TENSION
 
-
-
-
     SUBROUTINE SURFACE_TENSION_WRAPPER( state, &
          U_FORCE_X_SUF_TEN, U_FORCE_Y_SUF_TEN, U_FORCE_Z_SUF_TEN, &
          PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, &
@@ -5327,6 +5349,7 @@
       IF(GETCT) IGETCT=1
 
       option_path='/material_phase[0]/scalar_field::Pressure'
+
       CALL PROJ_CV_TO_FEM( FEMT, VOLUME_FRAC, 1, NDIM, &
            RDUM,0, RDUM,0, MASS_ELE, &
            CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
@@ -5498,11 +5521,6 @@
          PLIKE_GRAD_SOU_COEF = PLIKE_GRAD_SOU_COEF - SUF_TENSION_COEF * ABS( CURVATURE )
          PLIKE_GRAD_SOU_GRAD = PLIKE_GRAD_SOU_GRAD + VOLUME_FRAC
 
-         !ewrite(3,*) 'CURVATURE:', CURVATURE
-         !ewrite(3,*) 'PLIKE_GRAD_SOU_COEF:', PLIKE_GRAD_SOU_COEF
-         !ewrite(3,*) 'PLIKE_GRAD_SOU_GRAD:', PLIKE_GRAD_SOU_GRAD
-         !stop 2481
-
       ELSE
 
          ! determine the curvature by solving a simple eqn...
@@ -5586,8 +5604,8 @@
          END DO
 
          DEALLOCATE( MASS, STORE_MASS, B_CV_X, B_CV_Y, B_CV_Z, &
-         RHS_U_SHORT_X, RHS_U_SHORT_Y, RHS_U_SHORT_Z, &
-         U_SOL_X, U_SOL_Y, U_SOL_Z, DETWEI, RA )
+              RHS_U_SHORT_X, RHS_U_SHORT_Y, RHS_U_SHORT_Z, &
+              U_SOL_X, U_SOL_Y, U_SOL_Z, DETWEI, RA )
 
       END IF IF_USE_PRESSURE_FORCE
 
@@ -5627,9 +5645,9 @@
       DEALLOCATE( UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2 )
       DEALLOCATE( SUM_CV, UP_WIND_NOD )
       DEALLOCATE( CV_FORCE_X_SUF_TEN, &
-      CV_FORCE_Y_SUF_TEN, CV_FORCE_Z_SUF_TEN )
+           CV_FORCE_Y_SUF_TEN, CV_FORCE_Z_SUF_TEN )
       DEALLOCATE( RDUM, IDUM, RZERO, &
-      IZERO, CV_ONE, CURVATURE )
+           IZERO, CV_ONE, CURVATURE )
 
     END SUBROUTINE SURFACE_TENSION_WRAPPER
 

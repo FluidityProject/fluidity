@@ -154,9 +154,9 @@
       real, dimension( : ), allocatable :: xu, yu, zu, x, y, z, ug, vg, wg, &
            Velocity_U, Velocity_V, Velocity_W, Velocity_U_Old, Velocity_V_Old, Velocity_W_Old, &
            Velocity_NU, Velocity_NV, Velocity_NW, Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
-           Pressure_FEM, Pressure_CV, Temperature, Density, Den_Comp, PhaseVolumeFraction, Component, U_Density, &
-           Pressure_FEM_Old, Pressure_CV_Old, Temperature_Old, Density_Old, Denold_Comp, PhaseVolumeFraction_Old, Component_Old, &
-           U_Density_Old, DRhoDPressure, &
+           Pressure_FEM, Pressure_CV, Temperature, Density, Density_Component, PhaseVolumeFraction, &
+           Component, U_Density, Pressure_FEM_Old, Pressure_CV_Old, Temperature_Old, Density_Old, &
+           Density_Component_Old, PhaseVolumeFraction_Old, Component_Old, U_Density_Old, DRhoDPressure, &
            Porosity, &
            Velocity_U_Source, Velocity_U_Source_CV, Temperature_Source, PhaseVolumeFraction_Source, &
            ScalarField_Source, Component_Source, ScalarAdvectionField_Source, &
@@ -265,13 +265,13 @@
 !!$
            Pressure_FEM( cv_nonods ), Pressure_CV( cv_nonods ), &
            Temperature( nphase * cv_nonods ), Density( nphase * cv_nonods ), &
-           Den_Comp(nphase * cv_nonods * ncomp), &
+           Density_Component(nphase * cv_nonods * ncomp), &
            PhaseVolumeFraction( nphase * cv_nonods ), Component( nphase * cv_nonods * ncomp ), &
            U_Density( nphase * cv_nonods ), DRhoDPressure( nphase * cv_nonods ), &
 !!$
            Pressure_FEM_Old( cv_nonods ), Pressure_CV_Old( cv_nonods ), &
            Temperature_Old( nphase * cv_nonods ), Density_Old( nphase * cv_nonods ), &
-           Denold_Comp(nphase * cv_nonods * ncomp), &
+           Density_Component_Old(nphase * cv_nonods * ncomp), &
            PhaseVolumeFraction_Old( nphase * cv_nonods ), Component_Old( nphase * cv_nonods * ncomp ), &
            U_Density_Old( nphase * cv_nonods ), &
 !!$
@@ -314,9 +314,10 @@
            plike_grad_sou_grad( cv_nonods * nphase ), &
            plike_grad_sou_coef( cv_nonods * nphase ) )    
 !!$
-      Temperature = 0. ; Temperature_BC_Spatial = 0 ; Temperature_BC = 0. ; 
+      Temperature = 0. ; Temperature_BC_Spatial = 0 ; Temperature_BC = 0. ; &
+           Velocity_U_Source = 0. ; Velocity_Absorption = 0. ; Velocity_U_Source_CV = 0. 
+
 !!$ Extracting Mesh Dependent Fields
-      Velocity_U_Source = 0. ; Velocity_Absorption = 0. ; Velocity_U_Source_CV = 0. 
       call Extracting_MeshDependentFields_From_State( state, &
            xu, yu, zu, x, y, z, &
            PhaseVolumeFraction, PhaseVolumeFraction_BC_Spatial, PhaseVolumeFraction_BC, PhaseVolumeFraction_Source, &
@@ -463,8 +464,8 @@
             do iphase = 1, nphase
                Component_State => extract_scalar_field( state( icomp + nphase ), & 
                     'ComponentMassFractionPhase' // int2str( iphase ) )
-               Component_State % val = component( 1 + (iphase-1)*cv_nonods + (icomp-1)*nphase*cv_nonods : &
-                    &                             iphase*cv_nonods + (icomp-1)*nphase*cv_nonods )
+               Component_State % val = component( 1 + ( iphase - 1 ) * cv_nonods + ( icomp - 1 ) * &
+                    nphase * cv_nonods : iphase * cv_nonods + ( icomp - 1 ) * nphase * cv_nonods )
             end do
          end do
 
@@ -498,7 +499,7 @@
                     CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
                     U_ELE_TYPE, CV_ELE_TYPE, CV_SELE_TYPE,  &
                     NPHASE,  &
-                    CV_NLOC, U_NLOC, X_NLOC,  &
+                    CV_NLOC, U_NLOC, X_NLOC, &
                     CV_NDGLN, X_NDGLN, U_NDGLN, &
                     CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
                     X, Y, Z, &
@@ -643,7 +644,8 @@
                     NCOLM, FINDM, COLM, MIDM, & ! Sparsity for the CV-FEM
                     XU_NLOC, XU_NDGLN, &
 !!$
-                    U_Density, U_Density_Old, Momentum_Diffusion, &
+!!$                    U_Density, U_Density_Old, Momentum_Diffusion, &
+                    U_Density, U_Density_Old, &
                     opt_vel_upwind_coefs, nopt_vel_upwind_coefs, &
                     igot_theta_flux, scvngi_theta, volfra_use_theta_flux, &
                     sum_theta_flux, sum_one_m_theta_flux, &
@@ -708,15 +710,15 @@
             Conditional_Components: if( have_component_field ) then
                Loop_Components: do icomp = 1, ncomp
 
-! NEEDS GENERALIZING *********************************
-         IF(ICOMP==1) THEN
-           DEN_COMP(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 : ICOMP * NPHASE * CV_NONODS )=1000.0
-           DENOLD_COMP(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 : ICOMP * NPHASE * CV_NONODS )=1000.0
-         ELSE
-           DEN_COMP(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 : ICOMP * NPHASE * CV_NONODS )=1.0
-           DENOLD_COMP(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 : ICOMP * NPHASE * CV_NONODS )=1.0
-         ENDIF
-! NEEDS GENERALIZING *********************************
+                  ! NEEDS GENERALIZING *********************************
+                  IF(ICOMP==1) THEN
+                     DENSITY_COMPONENT(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 : ICOMP * NPHASE * CV_NONODS )=1000.0
+                     DENSITY_COMPONENT_OLD(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 : ICOMP * NPHASE * CV_NONODS )=1000.0
+                  ELSE
+                     DENSITY_COMPONENT(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 : ICOMP * NPHASE * CV_NONODS )=1.0
+                     DENSITY_COMPONENT_OLD(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 : ICOMP * NPHASE * CV_NONODS )=1.0
+                  ENDIF
+                  ! NEEDS GENERALIZING *********************************
 
 
 !!$ Computing the absorption term for the multi-components equation
@@ -767,8 +769,8 @@
                           ug, vg, wg, &
                           Component( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods ), &
                           Component_Old( ( icomp - 1 ) * nphase * cv_nonods + 1 : icomp * nphase * cv_nonods ), &
-                     DEN_COMP(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 : ICOMP * NPHASE * CV_NONODS ), &
-                     DENOLD_COMP(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 : ICOMP * NPHASE * CV_NONODS ), &
+                          DENSITY_COMPONENT(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 : ICOMP * NPHASE * CV_NONODS ), &
+                          DENSITY_COMPONENT_OLD(( ICOMP - 1 ) * NPHASE * CV_NONODS + 1 : ICOMP * NPHASE * CV_NONODS ), &
 !!$
                           MAT_NLOC, MAT_NDGLN, MAT_NONODS, Component_Diffusion, &
                           v_disopt, v_dg_vel_int_opt, dt, v_theta, v_beta, &
@@ -809,38 +811,38 @@
 !!$ And Here, zeroed Component_Absorption within ScalarField_Source_Component
 !!$
 !!!!! We have divided through by density 
-             ScalarField_Source_Component = ScalarField_Source_Component + THETA_GDIFF
+                  ScalarField_Source_Component = ScalarField_Source_Component + THETA_GDIFF
 
                   Loop_Phase_SourceTerm1: do iphase = 1, nphase
                      Loop_Phase_SourceTerm2: do jphase = 1, nphase
                         DO CV_NODI = 1, CV_NONODS
-                      ScalarField_Source_Component( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) = &
-                           ScalarField_Source_Component( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) - &
-                          Component_Absorption( CV_NODI, IPHASE, JPHASE ) * &
-                           Component( CV_NODI + ( JPHASE - 1 ) * CV_NONODS + &
-                           ( ICOMP - 1 ) * NPHASE * CV_NONODS )  &
-                           / DEN_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS + &
-                           ( ICOMP - 1 ) * NPHASE * CV_NONODS )
+                           ScalarField_Source_Component( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) = &
+                                ScalarField_Source_Component( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) - &
+                                Component_Absorption( CV_NODI, IPHASE, JPHASE ) * &
+                                Component( CV_NODI + ( JPHASE - 1 ) * CV_NONODS + &
+                                ( ICOMP - 1 ) * NPHASE * CV_NONODS )  &
+                                / DENSITY_COMPONENT( CV_NODI + ( IPHASE - 1 ) * CV_NONODS + &
+                                ( ICOMP - 1 ) * NPHASE * CV_NONODS )
                         END DO
                      end do Loop_Phase_SourceTerm2
                   end do Loop_Phase_SourceTerm1
 
-! For compressability...
-             DO IPHASE = 1, NPHASE
-                   DO CV_NODI = 1, CV_NONODS
-                      ScalarField_Source_Component( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) = &
-                           ScalarField_Source_Component( CV_NODI + ( IPHASE - 1 ) * CV_NONODS )  &
-                + Mean_Pore_CV(CV_NODI)* Component( CV_NODI + ( IPHASE - 1 ) * CV_NONODS + &
-                           ( ICOMP - 1 ) * NPHASE * CV_NONODS ) &
-                * ( DENOLD_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS + &
-                           ( ICOMP - 1 ) * NPHASE * CV_NONODS ) &
-                   -DEN_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS + &
-                           ( ICOMP - 1 ) * NPHASE * CV_NONODS )   ) &
-                  *PhaseVolumeFraction_Old(CV_NODI + ( IPHASE - 1 ) * CV_NONODS) &
-                           / DEN_COMP( CV_NODI + ( IPHASE - 1 ) * CV_NONODS + &
-                           ( ICOMP - 1 ) * NPHASE * CV_NONODS )
-                   END DO
-             END DO
+                  ! For compressability...
+                  DO IPHASE = 1, NPHASE
+                     DO CV_NODI = 1, CV_NONODS
+                        ScalarField_Source_Component( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) = &
+                             ScalarField_Source_Component( CV_NODI + ( IPHASE - 1 ) * CV_NONODS )  &
+                             + Mean_Pore_CV(CV_NODI)* Component( CV_NODI + ( IPHASE - 1 ) * CV_NONODS + &
+                             ( ICOMP - 1 ) * NPHASE * CV_NONODS ) &
+                             * ( DENSITY_COMPONENT_OLD( CV_NODI + ( IPHASE - 1 ) * CV_NONODS + &
+                             ( ICOMP - 1 ) * NPHASE * CV_NONODS ) &
+                             -DENSITY_COMPONENT( CV_NODI + ( IPHASE - 1 ) * CV_NONODS + &
+                             ( ICOMP - 1 ) * NPHASE * CV_NONODS )   ) &
+                             *PhaseVolumeFraction_Old(CV_NODI + ( IPHASE - 1 ) * CV_NONODS) &
+                             / DENSITY_COMPONENT( CV_NODI + ( IPHASE - 1 ) * CV_NONODS + &
+                             ( ICOMP - 1 ) * NPHASE * CV_NONODS )
+                     END DO
+                  END DO
 
                end do Loop_Components
 
@@ -848,7 +850,7 @@
                     ']/is_multiphase_component/Comp_Sum2One' ) .and. ( ncomp > 1 ) ) then
                   call Cal_Comp_Sum2One_Sou( ScalarField_Source_Component, cv_nonods, nphase, ncomp, dt, its, &
                        NonLinearIteration, &
-                       Porosity, PhaseVolumeFraction, PhaseVolumeFraction_Old, Den_comp, Denold_comp, &
+                       Porosity, PhaseVolumeFraction, PhaseVolumeFraction_Old, Density_Component, Density_Component_Old, &
                        Component, Component_Old )
                end if
 
@@ -891,6 +893,59 @@
          end if Conditional_Adaptivity_ReallocatingFields
 
          Conditional_ReallocatingFields: if( do_reallocate_fields ) then
+
+            Conditional_Adaptivity: if( have_option( '/mesh_adaptivity/hr_adaptivity ') ) then
+
+               Conditional_Adapt_by_TimeStep: if( do_adapt_mesh( current_time, timestep ) ) then
+
+                  call pre_adapt_tasks( sub_state )
+
+                  call qmesh( state, metric_tensor )
+
+                  if( have_option( '/io/stat/output_before_adapts' ) ) call write_diagnostics( state, current_time, dt, &
+                       timestep, not_to_move_det_yet = .true. )
+
+                  call run_diagnostics( state )
+
+                  call adapt_state( state, metric_tensor )
+
+                  call update_state_post_adapt( state, metric_tensor, dt, sub_state, nonlinear_iterations, &
+                       nonlinear_iterations_adapt )
+
+                  if( have_option( '/io/stat/output_after_adapts' ) ) call write_diagnostics( state, current_time, dt, &
+                       timestep, not_to_move_det_yet = .true. )
+
+                  call run_diagnostics( state )
+
+               end if Conditional_Adapt_by_TimeStep
+
+            elseif( have_option( '/mesh_adaptivity/prescribed_adaptivity' ) ) then !!$ Conditional_Adaptivity:
+
+               Conditional_Adapt_by_Time: if( do_adapt_state_prescribed( current_time ) ) then
+
+                  call pre_adapt_tasks( sub_state )
+
+                  if( have_option( '/io/stat/output_before_adapts' ) ) call write_diagnostics( state, current_time, dt, &
+                       timestep, not_to_move_det_yet = .true. )
+
+                  call run_diagnostics( state )
+
+                  call adapt_state_prescribed( state, current_time )
+
+                  call update_state_post_adapt( state, metric_tensor, dt, sub_state, nonlinear_iterations, &
+                       nonlinear_iterations_adapt)
+
+                  if(have_option( '/io/stat/output_after_adapts' ) ) call write_diagnostics( state, current_time, dt, &
+                       timestep, not_to_move_det_yet = .true. )
+
+                  call run_diagnostics( state )
+
+               end if Conditional_Adapt_by_Time
+
+               not_to_move_det_yet = .false.
+
+            end if Conditional_Adaptivity
+
 !!$ Deallocating array variables:
             deallocate( &
 !!$ Node glabal numbers
@@ -914,8 +969,8 @@
                  xu, yu, zu, x, y, z, ug, vg, wg, &
                  Velocity_U, Velocity_V, Velocity_W, Velocity_U_Old, Velocity_V_Old, Velocity_W_Old, &
                  Velocity_NU, Velocity_NV, Velocity_NW, Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
-                 Pressure_FEM, Pressure_CV, Temperature, Density, Den_Comp, PhaseVolumeFraction, Component, U_Density, &
-                 Pressure_FEM_Old, Pressure_CV_Old, Temperature_Old, Density_Old, Denold_Comp,  PhaseVolumeFraction_Old, Component_Old, &
+                 Pressure_FEM, Pressure_CV, Temperature, Density, Density_Component, PhaseVolumeFraction, Component, U_Density, &
+                 Pressure_FEM_Old, Pressure_CV_Old, Temperature_Old, Density_Old, Density_Component_Old,  PhaseVolumeFraction_Old, Component_Old, &
                  U_Density_Old, DRhoDPressure, &
                  Porosity, &
                  Velocity_U_Source, Velocity_U_Source_CV, Temperature_Source, PhaseVolumeFraction_Source, &
@@ -957,7 +1012,7 @@
 !!$
 !!$ Computing Sparsity Patterns Matrices
 !!$
- 
+
 !!$ Defining lengths and allocating space for the matrices
             call Defining_MaxLengths_for_Sparsity_Matrices( ndim, nphase, totele, u_nloc, cv_nloc, cv_nonods, &
                  mx_nface_p1, mxnele, mx_nct, mx_nc, mx_ncolcmc, mx_ncoldgm_pha, mx_ncolmcy, &
@@ -1116,59 +1171,6 @@
             allocate( opt_vel_upwind_coefs( nopt_vel_upwind_coefs ) ) ; opt_vel_upwind_coefs = 0.
 
          end if Conditional_ReallocatingFields
-
-
-         Conditional_Adaptivity: if( have_option( '/mesh_adaptivity/hr_adaptivity ') ) then
-
-            Conditional_Adapt_by_TimeStep: if( do_adapt_mesh( current_time, timestep ) ) then
-
-               call pre_adapt_tasks( sub_state )
-
-               call qmesh( state, metric_tensor )
-
-               if( have_option( '/io/stat/output_before_adapts' ) ) call write_diagnostics( state, current_time, dt, &
-                    timestep, not_to_move_det_yet = .true. )
-
-               call run_diagnostics( state )
-
-               call adapt_state( state, metric_tensor )
-
-               call update_state_post_adapt( state, metric_tensor, dt, sub_state, nonlinear_iterations, &
-                    nonlinear_iterations_adapt )
-
-               if( have_option( '/io/stat/output_after_adapts' ) ) call write_diagnostics( state, current_time, dt, &
-                    timestep, not_to_move_det_yet = .true. )
-
-               call run_diagnostics( state )
-
-            end if Conditional_Adapt_by_TimeStep
-
-         elseif( have_option( '/mesh_adaptivity/prescribed_adaptivity' ) ) then !!$ Conditional_Adaptivity:
-
-            Conditional_Adapt_by_Time: if( do_adapt_state_prescribed( current_time ) ) then
-
-               call pre_adapt_tasks( sub_state )
-
-               if( have_option( '/io/stat/output_before_adapts' ) ) call write_diagnostics( state, current_time, dt, &
-                    timestep, not_to_move_det_yet = .true. )
-
-               call run_diagnostics( state )
-
-               call adapt_state_prescribed( state, current_time )
-
-               call update_state_post_adapt( state, metric_tensor, dt, sub_state, nonlinear_iterations, &
-                    nonlinear_iterations_adapt)
-
-               if(have_option( '/io/stat/output_after_adapts' ) ) call write_diagnostics( state, current_time, dt, &
-                    timestep, not_to_move_det_yet = .true. )
-
-               call run_diagnostics( state )
-
-            end if Conditional_Adapt_by_Time
-
-            not_to_move_det_yet = .false.
-
-         end if Conditional_Adaptivity
 
       end do Loop_Time
 
