@@ -46,7 +46,7 @@ ARFLAGS = cr
 
 LIB = ../lib/lib$(FLUIDITY).a
 OBJS    = Momentum_Diagnostic_Fields.o \
-	Momentum_Equation.o Momentum_CG.o \
+	Reduced_Projection.o Momentum_Equation.o Momentum_CG.o \
 	qmesh.o \
 	OceanSurfaceForcing.o \
 	Momentum_DG.o Advection_Diffusion_CG.o Advection_Diffusion_DG.o Advection_Diffusion_FV.o \
@@ -75,7 +75,7 @@ OBJS    = Momentum_Diagnostic_Fields.o \
         Petsc_Solve_State.o Adaptivity_1D.o \
 	Linear_Shallow_Water.o \
 	Zoltan_global_variables.o Zoltan_integration.o Zoltan_callbacks.o Zoltan_detectors.o \
-	Diagnostic_Children.o Reduced_Model_Runtime.o Turbine.o Implicit_Solids.o \
+	Diagnostic_Children.o Reduced_Model_Runtime.o  Turbine.o Implicit_Solids.o \
 	ReducedModel_Momentum_Equation_wrapper.o Manifold_Projections.o Hybridized_Helmholtz.o Burgers_Assembly.o Pressure_Dirichlet_BCS_CV.o \
 	Porous_Media.o
 

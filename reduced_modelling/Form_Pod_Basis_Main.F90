@@ -807,7 +807,8 @@ contains
 
 
     do i = 1, nrens
-       cp_no = (i-1)*dump_sampling_period
+!       cp_no = (i-1)*dump_sampling_period
+       cp_no = i*dump_sampling_period
 
        call solution_on_checkpoints( (/ ensemble_state(i) /)  , prefix, postfix, cp_no)
 

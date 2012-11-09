@@ -75,7 +75,7 @@
       use implicit_solids
       use multiphase_module
       use pressure_dirichlet_bcs_cv
-
+      use reduced_projection
       implicit none
 
       private
@@ -122,7 +122,7 @@
       logical :: diagonal_big_m
       logical :: pressure_debugging_vtus
       !! True if the momentum equation should be solved with the reduced model.
-      logical :: reduced_model,petrov
+      logical :: reduced_model
 
       ! Add viscous terms to inverse_masslump for low Re which is only used for pressure correction
       logical :: low_re_p_correction_fix
@@ -302,50 +302,30 @@
       logical :: on_sphere, have_absorption, have_vertical_stabilization
       type(vector_field), pointer :: dummy_absorption
 
-      !petro
-      type(scalar_field), pointer :: POD_u_scalar  !petro
-      type(pod_rhs_type)::pod_rhs_old
-      type(vector_field), pointer :: POD_u
-      real, dimension(:), allocatable :: THETA,smean_gi,KB_pod,b_pod,PSI_GI,PSI_OLD_GI,psi_old,GRADX,GRADT,DIFFGI_pod,PSI
-      real, dimension(:,:), allocatable ::leftsvd,leftsvd_gi,leftsvd_x_gi, AMAT_pod, KMAT_pod
-      
-      !real, dimension(:,:), allocatable :: snapmean_velocity
-      type(element_type), pointer :: x_shape,xf_shape
-      real, dimension(:,:),allocatable ::X_val !for getting the result of detwei
-      real, dimension(:), allocatable :: detwei(:),res(:)
-      real ,dimension(:,:),allocatable :: JJ   !(X%dim, mesh_dim(X)),
-      real :: det ! for getting the result of detwei
-      real, dimension(:,:,:), allocatable ::  dshape
-
-      ! real, dimension(POD_u%dim,ele_loc(POD_u,ele)) :: X_val !for getting the result of detwei
-      ! new added for petro-galerkin
-      integer :: TOTELE,NLOC,NGI,nsvd !,stat
-      integer ::  POD_num
-      type(mesh_type), pointer :: pod_umesh
-      REAL PSI_THETA
-      INTEGER ELE,globi,globj,isvd,jsvd,jloc,GI 
-      REAL A_STAR_COEF,AX_STAR,P_STAR_POD
-      REAL DT1
-      real noloc,nogas
-      DT1=0.1
-   
       ewrite(1,*) 'Entering solve_momentum'
+      call get_option('/timestepping/nonlinear_iterations', nonlinear_iterations, default=1)
 
-      reduced_model= have_option("/reduced_model/execute_reduced_model")
+           if(timestep==1.and.its/=nonlinear_iterations) then
+              reduced_model = .false.
+           else
+              reduced_model= have_option("/reduced_model/execute_reduced_model")
+           endif
 
-      if(timestep==1)then 
-         timestep_check=.true.
-      else
-         timestep_check= .false.
-      endif
-      petrov=have_option("/reduced_model/execute_reduced_model/petrov_galerkin")
+!       reduced_model= have_option("/reduced_model/execute_reduced_model")
 
+    !  if(timestep==1)timestep_check=.true.
+ 	if(timestep==1)then 
+         	timestep_check=.true.
+    	  else
+     		timestep_check= .false.
+      	endif
+
+     
 
          !! Get diagnostics (equations of state, etc) and assemble matrices
 
          ! Get some options that are independent of the states
          call get_option("/timestepping/timestep", dt)
-  !       reduced_model = have_option("/reduced_model/execute_reduced_model")
 
          ! Are we running a multi-phase simulation?
          prognostic_count = option_count("/material_phase/vector_field::Velocity/prognostic")
@@ -397,9 +377,7 @@
 
          !! Get some pressure options
          call get_pressure_options(p)
-
-      if(.not.reduced_model .or. (reduced_model .and. timestep_check))then
-
+         if(.not.reduced_model .or. (reduced_model .and. timestep_check))then
          ! Allocate arrays for the N states/phases
          allocate(big_m(size(state)))
          allocate(ct_m(size(state)))
@@ -1147,11 +1125,11 @@
 
          else !! Reduced model version
 
-           call get_option('/timestepping/nonlinear_iterations', nonlinear_iterations, default=1)
+            call get_option('/timestepping/nonlinear_iterations', nonlinear_iterations, default=1)
             !!print*,'its = ', its, ' nonlinear_iterations = ', nonlinear_iterations
 
             !enter reduced model process after the last nonliear_iteration
-            if(its==nonlinear_iterations)then
+           ! if(its==nonlinear_iterations)then
                call profiler_tic("reduced_model_loop")
 
                reduced_model_loop: do istate = 1, size(state)
@@ -1194,31 +1172,34 @@
                   allocate(pod_coef((u%dim+1)*size(POD_state,1)))
                   allocate(pod_coef_dt((u%dim+1)*size(POD_state,1)))
 
-
+                
                   if (timestep==1)then
+                 	!!the ct_rhs for reduced model
+                 	 ct_rhs(istate)%val=ct_rhs(istate)%val/dt/theta_divergence
 
-                     !!the ct_rhs for reduced model
-                     ct_rhs(istate)%val=ct_rhs(istate)%val/dt/theta_divergence
+                	 ! print*,'theta_pg',theta_pg
+               	 	 ! print*,'theta_div',theta_divergence
+                	 ! print*,'ct_rhs',ct_rhs(istate)%val(1:10)
+                 	  
+
                      print*,has_boundary_condition(u,'free_surface')
                      !project to reduced matrix
                      if(has_boundary_condition(u,'free_surface'))then
-                     call project_reduced(big_m(istate), mom_rhs(istate), ct_m(istate)%ptr, ct_rhs(istate), pod_matrix, pod_rhs, dt, &
-                          POD_state(:,:,istate), fs_m=fs_m)
+                         call project_reduced(big_m(istate), mom_rhs(istate), ct_m(istate)%ptr, ct_rhs(istate), pod_matrix, &
+                             pod_rhs, dt, POD_state(:,:,istate), fs_m=fs_m)
                      else
-                     call project_reduced(big_m(istate), mom_rhs(istate), ct_m(istate)%ptr, ct_rhs(istate), pod_matrix, pod_rhs, dt, &
-                          POD_state(:,:,istate))
+                         call project_reduced(big_m(istate), mom_rhs(istate), ct_m(istate)%ptr, ct_rhs(istate), pod_matrix, &
+                             pod_rhs, dt, POD_state(:,:,istate))
                      endif
 
                      !save the pod_matrix and pod_rhs for snapmean state
                      if(snapmean)then
                         ewrite(1,*)'snapmean'
-                        print*,'snapmean'
                         open(unit=20,file='pod_matrix_snapmean')
                         write(20,*)((pod_matrix%val(i,j),j=1,(u%dim+1)*size(POD_state,1)),i=1,(u%dim+1)*size(POD_state,1))
                         write(20,*)(pod_rhs%val(i),i=1,(u%dim+1)*size(POD_state,1))
                         close(20)
                      endif      
-                   
                      if(eps.ne.0.0)then
 
                         ewrite(1,*)'perturbed'
@@ -1231,7 +1212,7 @@
                         pod_matrix%val(:,:)=(pod_matrix%val(:,:)-pod_matrix_snapmean(:,:))/eps
                         pod_rhs%val(:)=(pod_rhs%val(:)-pod_rhs_snapmean(:))/eps
                       
-                        !save pod_matrix and pod_rhs for perturbed state (related to POD_velocity%dim, size(POD_state))
+                        !save pod_matrix and pod_rhs for perturbed state (related to POD_velocity%dim, size(POD_state,1))
                         write(30,*)((pod_matrix%val(i,j),j=1,(u%dim+1)*size(POD_state,1)),i=1,(u%dim+1)*size(POD_state,1))
                         write(30,*)(pod_rhs%val(i),i=1,(u%dim+1)*size(POD_state,1))
 
@@ -1244,8 +1225,6 @@
                         pod_coef_dt(:)=pod_rhs%val
                         pod_rhs%val=0.0
 
-   
-                        !print*,'istate = ',istate
                         !get the initial velocity
                         u=>extract_vector_field(state(istate), "Velocity")
                         !get the initial pressure
@@ -1259,6 +1238,7 @@
                            POD_pressure=>extract_scalar_field(POD_state(i,2,istate), "Pressure")
                            pod_coef(i+size(POD_state,1)*u%dim)=dot_product(POD_pressure,p)
                         enddo
+
                         
                         !!print*,'before add pod_coef_dt*dt to pod_coef_initial'
                         !!print*,pod_coef(2),pod_coef_dt(2)
@@ -1269,12 +1249,15 @@
 
                         !save pod_coef for timestep 2
                         write(40,*)(pod_coef(i),i=1,(u%dim+1)*size(POD_state,1))
-                        call project_full(delta_u, delta_p, pod_sol_velocity, pod_sol_pressure, POD_state(:,:,istate), pod_coef)
+			print *, size(POD_state,1),size(POD_state,2),size(POD_state,3)
+                         call project_full(delta_u, delta_p, pod_sol_velocity, pod_sol_pressure,POD_state(:,:,istate), pod_coef)
                         !save u1 
 
+                        print*,'pod_coef at timestep1'
+                        print*,pod_coef
                      endif
 
-                  else !timestep.gt.1
+                  else !timestep.lg.1
                      ewrite(1,*)'timestep=',timestep
 
                      POD_velocity=>extract_vector_field(POD_state(1,1,istate), "Velocity")
@@ -1314,174 +1297,8 @@
                      enddo
 
 !100 continue
-                     !! Petrov-Galerkin POD method
-                     !----------------------------
-                     if(petrov) then
-                        print *,"before POD_u"
-                        POD_u=>extract_vector_field(POD_state(1,1,istate), "Velocity")
-                        print *,"before POD_u_scalar"
-                        !POD_u_scalar=extract_scalar_field(POD_u,1)    !!need modify
-                        POD_num=size(POD_state,1)
-                        print *,"before allocate(X_val"
-                        allocate(X_val(POD_u%dim,ele_loc(POD_u,ele)))
-                        print *,"before allocate JJ"
-                        allocate(JJ(POD_u%dim,mesh_dim(POD_u)))
-                        !allocate(pod_coef(POD_u%dim*POD_num+POD_num))
-                        pod_umesh => extract_mesh(pod_state(1,1,istate), "Mesh", stat)
-                        TOTELE=pod_umesh%elements
-                        NLOC=pod_umesh%shape%loc
-                        NGI=pod_umesh%shape%ngi
-                        print *,"before allocate rhs_old"
-                        call allocate(pod_rhs_old, POD_u, POD_pressure)
-                        
-                        xf_shape=>ele_shape(POD_u,1)
-                        x_shape=>ele_shape(POD_u,1)
-                        print *, "timestep,, 2+++"
-                        do j=1, POD_num
-                           !POD_u_scalar=>extract_scalar_field(POD_state(j), "PODPressure")
-                           !POD_u_scalar=extract_scalar_field(POD_u,j)
-                           X_val=ele_val(POD_u, j)
-                           xf_shape=>ele_shape(Pod_u,j)  !!
-                           x_shape=>ele_shape(POD_u,j)!!
-                        end do
-                        !!new added for petro-galerkin     
-       
-                        
-                        ! allocate(pod_sol_velocity(u_nodes,POD_velocity%dim))
-                        allocate(THETA(NGI))
-                        allocate(leftsvd(TOTELE*NLOC+NLOC,nsvd))
-                        allocate(leftsvd_gi(NGI,nsvd))
-                        allocate(leftsvd_x_gi(NGI,nsvd))
-                        allocate(smean_gi(NGI))
-                        allocate(AMAT_pod(nsvd,nsvd))
-                        allocate(KMAT_pod(nsvd,nsvd))
-                        allocate(KB_pod(nsvd)) 
-                        allocate(b_pod(nsvd)) 
-                        allocate(PSI(TOTELE*NLOC+NLOC))
-                        allocate(PSI_GI(NGI)) 
-                        allocate(PSI_OLD_GI(NGI)) 
-                        allocate(psi_old(TOTELE*NLOC+NLOC))
-                        allocate(GRADX(NGI))
-                        allocate(GRADT(NGI))
-                        allocate(DIFFGI_pod(NGI))
-                        allocate(detwei(NGI))
-                        allocate(res(NGI))
-                        !  noloc=x_shape%loc
-                        !  nogas=x_shape%ngi
-                        !  allocate(dshape(noloc,nogas,POD_u%dim))
-                        allocate(dshape(x_shape%loc,x_shape%ngi,POD_u%dim))  !number of nodes, NO. of gussian
-                        
-                        
-                        ! new added for petro-galerkin Residual, see  Non-Linear Petrov-Galerkin Methods for
-                        ! Hyperbolic Equations and Discontinuous Finite Element Methods .. eqn 102
-                        ! get the result of Residual value"
-                        
-                        pod_rhs_old%val=pod_rhs%val 
-                        call solve(pod_matrix%val, pod_rhs%val)
-                        ! pod_coef=pod_rhs%val
-                        pod_rhs%val=pod_rhs%val-pod_rhs_old%val
-                        call SMLINN(pod_matrix%val,RES,pod_rhs%val,GI,GI) ! get the RES
-                        
-                        DO ELE=1,TOTELE
-                           leftsvd_gi = 0.0
-                           leftsvd_x_gi = 0.0
-                           smean_gi =0.0
-                           
-                           call transform_to_physical(POD_u, ele,  ele_shape(POD_u,1), detwei=detwei, dshape=dshape)
-                           DO GI=1,NGI        ! guassian points' number
-                              DO JLOC=1,NLOC   ! NLOC points in one element
-                                 GLOBJ=(ELE-1)*NLOC+JLOC
-                                 
-                                 do isvd =1,nsvd
-                                    leftsvd(GLOBJ,isvd)=POD_u%val(GLOBJ,isvd)
-                                    leftsvd_gi(GI,isvd)=leftsvd_gi(GI,isvd)+xf_shape%dn(isvd,GI,1)*leftsvd(GLOBJ,isvd) 
-                                    !N shape function, leftsvd: podbasis, N(JLOC,GI): ele_shape(nu, ele)
-                                    leftsvd_x_gi(GI,isvd)=leftsvd_gi(GI,isvd)+dshape(JLOC,GI,1)*leftsvd(GLOBJ,isvd)
-                                 enddo
-                                 !smean_gi(gi)=smean_gi(gi)+ 1SMLINN(A,X,B,NMX,N)*smean(GLOBJ)  !need modification
-                                 !smean_gi(gi)=smean_gi(gi)+ 1*smean(GLOBJ)
-                              END DO
-                           END DO
-                        END DO
-                        
-                        PSI_GI=0.0   !  quadrature point
-                        PSI_OLD_GI=0.0
-                        
-                        DO GI=1,NGI
-                           DO JLOC=1,NLOC   
-                              GLOBJ=(ELE-1)*NLOC+JLOC
-                              PSI_GI(GI)=PSI_GI(GI)+xf_shape%dn(isvd,GI,1)*PSI(GLOBJ)
-                              PSI_OLD_GI(GI)=PSI_OLD_GI(GI)+xf_shape%dn(isvd,GI,1)*PSI_OLD(GLOBJ)
-                           END DO
-                        END DO
-                        
-                        
-                        ! calculate the GRADX and GRADT    quadrature point
-                        GRADX=0.0
-                        GRADT=0.0
-                        DO GI=1,NGI      !   ?? NGI and NLOC need input 
-                           DO JLOC=1,NLOC
-                              GLOBJ=(ELE-1)*NLOC+JLOC
-                              PSI_THETA=THETA(GI)*PSI(GLOBJ)+(1.-THETA(GI))*PSI_OLD(GLOBJ)
-                              
-                              GRADX(GI)=GRADX(GI)+dshape(JLOC,GI,1)*PSI_THETA
-                              GRADT(GI)=GRADT(GI)+xf_shape%dn(isvd,GI,1)*(PSI(GLOBJ)-PSI_OLD(GLOBJ))/DT1
-                           END DO
-                        END DO
-                        
-                        !  get the result of  AX_STAR cos P_STAR_POD need it 
-                        DO GI=1,NGI
-                           
-                           A_STAR_COEF=(GRADX(GI)+GRADT(GI)*1.) &
-                                /MAX(1.E-6,GRADX(GI)**2+1.*GRADT(GI)**2)
-                           !  AT_STAR=A_STAR_COEF*GRADT(GI)
-                           AX_STAR=A_STAR_COEF*GRADX(GI)
-                        enddo
-                        do gi =1,ngi
-                           do isvd = 1,nsvd
-                              if(isvd.eq.1) then
-                                 P_STAR_POD = 0.25/abs(AX_STAR*leftsvd_x_gi(GI,isvd))
-                              else
-                                 P_STAR_POD = 0.25/max(P_STAR_POD,abs(AX_STAR*leftsvd_x_gi(GI,isvd)))
-                              endif
-                           enddo
-                           DIFFGI_pod(GI) = 1.0e-4*P_STAR_POD*RES(GI)**2   &
-                                / MAX(1.E-6,GRADX(GI)**2+GRADT(GI)**2)!!v_pod (eqn.100)
-                        enddo
-                        
-                        do isvd =1,nsvd
-                           do jsvd=1,nsvd
-                              do gi =1,ngi
-                                 KMAT_pod(isvd,jsvd) = KMAT_pod(isvd,jsvd) &
-                                      + detwei(GI)*leftsvd_x_gi(GI,isvd)*DIFFGI_pod(GI)*leftsvd_x_gi(GI,jsvd)
-                                 ! (eqn.99 left side,leftsvd_x_gi:delta N)
-                              enddo
-                           enddo
-                        enddo
-                        
 
-                        !!call solver
-                        
-                        
-                        
-                        !pod_rhs%val=0.001*pod_rhs%val
-                        ! add K to (MT AM + K) fi *pod= MT b. 
-                        
-                        do isvd =1,nsvd
-                           do jsvd=1,nsvd
-                              pod_matrix%val(isvd,jsvd) = pod_matrix%val(isvd,jsvd)+KMAT_pod(isvd,jsvd)
-                           enddo
-                           !b_pod(isvd) = b_pod(isvd)-KB_pod(isvd)
-                        enddo
-                        
-                        call solve(pod_matrix%val,pod_rhs_old%val) 
-                        pod_rhs%val=pod_rhs_old%val
-                     else 
-                        call solve(pod_matrix%val,pod_rhs%val)
-                        ! print *, 'size(pod_rhs%val)size(pod_rhs%val)size(pod_rhs%val)', size(pod_rhs%val)
-                     endif ! end petrov 
-                     !! END Petrov-Galerkin POD method
-                     !----------------------------
+                     call solve(pod_matrix%val, pod_rhs%val)
                      pod_coef_dt=0.0
                      pod_coef_dt=pod_rhs%val
                      pod_rhs%val=0.0
@@ -1493,6 +1310,7 @@
                      open(40,file='pod_coef')
                      write(40,*)(pod_coef(i),i=1,(u%dim+1)*size(POD_state,1))
                      close(40)
+                     print*,pod_coef
 
                      call project_full(delta_u, delta_p, pod_sol_velocity, pod_sol_pressure, POD_state(:,:,istate), pod_coef)
 
@@ -1525,66 +1343,64 @@
             enddo reduced_model_loop
             call profiler_toc("reduced_model_loop")
 
-            endif ! its=nonlinear_iterations
+          !  endif ! its=nonlinear_iterations
          end if ! end of 'if .not.reduced_model'
 
 
-         if(.not.reduced_model .or. (reduced_model .and. timestep_check))then
-            !! Finalisation and memory deallocation
-            call profiler_tic("finalisation_loop")
-            finalisation_loop: do istate = 1, size(state)
-               
-               ! Get the velocity u^{n+1}
-               u => extract_vector_field(state(istate), "Velocity", stat)
-               
-               ! If there's no velocity then cycle
-               if(stat/=0) cycle
-               ! If this is an aliased velocity then cycle
-               if(aliased(u)) cycle
-               ! If the velocity isn't prognostic then cycle
-               if(.not.have_option(trim(u%option_path)//"/prognostic")) cycle
-               
-               if(have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
-                    &"/continuous_galerkin").or.&
-                    have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
-                    &"/discontinuous_galerkin")) then
-                  
-                  call finalise_state(state, istate, u, mass, inverse_mass, inverse_masslump, &
-                       visc_inverse_masslump, big_m, mom_rhs, ct_rhs, subcycle_m)
-                  
-               end if
-               
-            end do finalisation_loop
-            call profiler_toc("finalisation_loop")
-         endif ! if(reduced_model.and.timestep_check) 
+ 	if(.not.reduced_model .or. (reduced_model .and. timestep_check))then
+         !! Finalisation and memory deallocation
+         call profiler_tic("finalisation_loop")
+         finalisation_loop: do istate = 1, size(state)
+
+            ! Get the velocity u^{n+1}
+            u => extract_vector_field(state(istate), "Velocity", stat)
+
+            ! If there's no velocity then cycle
+            if(stat/=0) cycle
+            ! If this is an aliased velocity then cycle
+            if(aliased(u)) cycle
+            ! If the velocity isn't prognostic then cycle
+            if(.not.have_option(trim(u%option_path)//"/prognostic")) cycle
+
+            if(have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
+                                    &"/continuous_galerkin").or.&
+               have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
+                                    &"/discontinuous_galerkin")) then
+
+               call finalise_state(state, istate, u, mass, inverse_mass, inverse_masslump, &
+                                visc_inverse_masslump, big_m, mom_rhs, ct_rhs, subcycle_m)
+
+            end if
+
+         end do finalisation_loop
+         call profiler_toc("finalisation_loop")
+	endif ! if(reduced_model.and.timestep_check) 
 
          if(use_theta_pg) then
             call deallocate(p_theta)
             deallocate(p_theta)
          end if
+    	 if(.not.reduced_model .or. (reduced_model .and. timestep_check))then
+         ! Deallocate arrays of matricies/fields/pointers
+         deallocate(big_m)
+         deallocate(ct_m)
+         deallocate(ctp_m)
+         deallocate(subcycle_m)
+         deallocate(inner_m)
 
+         !call deallocate(fs_m)
 
-         if(.not.reduced_model .or. (reduced_model .and. timestep_check))then
-            ! Deallocate arrays of matricies/fields/pointers
-            deallocate(big_m)
-            deallocate(ct_m)
-            deallocate(ctp_m)
-            deallocate(subcycle_m)
-            deallocate(inner_m)
+         if(multiphase .and. associated(cmc_global)) then
+            call deallocate(cmc_global)
+            deallocate(cmc_global)
+         end if
 
-            !call deallocate(fs_m)
-            
-            if(multiphase .and. associated(cmc_global)) then
-               call deallocate(cmc_global)
-               deallocate(cmc_global)
-            end if
-            
-            ! Deallocate arrays of options
-            deallocate(dg)
-            deallocate(subcycle)
-            deallocate(lump_mass)
-            deallocate(sphere_absorption)
-         endif
+         ! Deallocate arrays of options
+         deallocate(dg)
+         deallocate(subcycle)
+         deallocate(lump_mass)
+         deallocate(sphere_absorption)
+	endif
       end subroutine solve_momentum
 
 
@@ -2564,43 +2380,5 @@
          ewrite(1,*) 'Finished checking momentum discretisation options'
 
       end subroutine momentum_equation_check_options
-SUBROUTINE SMLINN(A,X,B,NMX,N)
-        IMPLICIT NONE
-        INTEGER NMX,N
-        REAL A(NMX,NMX),X(NMX),B(NMX)
-        REAL R
-        INTEGER K,I,J
-!     Form X = A^{-1} B
-!     Useful subroutine for inverse
-!     This sub overwrites the matrix A. 
-        DO K=1,N-1
-           DO I=K+1,N
-              A(I,K)=A(I,K)/A(K,K)
-           END DO
-           DO J=K+1,N
-              DO I=K+1,N
-                 A(I,J)=A(I,J) - A(I,K)*A(K,J)
-              END DO
-           END DO
-        END DO
-!     
-!     Solve L_1 x=b
-        DO I=1,N
-           R=0.
-           DO J=1,I-1
-              R=R+A(I,J)*X(J)
-           END DO
-           X(I)=B(I)-R
-        END DO
-!     
-!     Solve U x=y
-        DO I=N,1,-1
-           R=0.
-           DO J=I+1,N
-              R=R+A(I,J)*X(J)
-           END DO
-           X(I)=(X(I)-R)/A(I,I)
-        END DO
-        RETURN
-        END SUBROUTINE SMLINN
+
    end module momentum_equation

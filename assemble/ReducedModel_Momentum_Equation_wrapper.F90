@@ -116,11 +116,12 @@
            deallocate(submaterials)
 
            call profiler_toc("momentum_diagnostics")
-
-           reduced_model= have_option("/reduced_model/execute_reduced_model")
-           eps=0.0
-           snapmean=.false.
-
+           call get_option('/timestepping/nonlinear_iterations', nonlinear_iterations, default=1)
+           if(timestep==1.and.its/=nonlinear_iterations) then
+              reduced_model = .false.
+           else
+              reduced_model= have_option("/reduced_model/execute_reduced_model")
+           endif
 
            call profiler_tic("momentum_solve")
            if(.not.reduced_model)then
@@ -153,6 +154,8 @@
 !       call remap_field(from_field=podPressure, to_field=newpodPressure)
 !       call insert(POD_state(i), newpodPressure, "PODPressure")
 !       call deallocate(newpodPressure)
+              eps=0.0
+              snapmean=.false.
 
               if(timestep==1)then 
 
@@ -173,7 +176,6 @@
                  call zero(pressure_backup)
                  call set(pressure_backup, pressure)
                  snapmean=.true.
-                 print*,'istate =======',istate
                  snapmean_velocity=>extract_vector_field(POD_state(1,1,istate),"SnapmeanVelocity")
                  snapmean_pressure=>extract_scalar_field(POD_state(1,2,istate),"SnapmeanPressure")
                  call set(nonlinear_velocity, snapmean_velocity) 
@@ -336,6 +338,8 @@
 
       end do state_loop
       call profiler_toc("momentum_loop")
+
+      reduced_model= have_option("/reduced_model/execute_reduced_model")
 
     end subroutine momentum_loop
 

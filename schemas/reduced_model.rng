@@ -33,6 +33,11 @@ E.g. 1 for every dump, 10 for every tenth dump. </a:documentation>
         </element>
       </element>
       <optional>
+        <element name="adjoint">
+          <empty/>
+        </element>
+      </optional>
+      <optional>
         <element name="discrete_empirical_interpolation_method">
           <a:documentation>DEIM(Discrete Empirical Interpolation Method)</a:documentation>
           <empty/>

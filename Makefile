@@ -267,6 +267,13 @@ bin/enkf: fluidity_library enkf/EnKF.F90
 	@echo "    LD EnKF"
 	@$(EVAL) $(LINKER) -o bin/enkf enkf/EnKF.o $(LIBS)
 
+bin/adjoint_rom: fluidity_library adjoint_reduced_modelling/Adjoint_main.F90
+	@cd adjoint_reduced_modelling; $(MAKE) Adjoint_main.o
+	@echo "BUILD Adjoint_main"
+	@echo "    MKDIR bin"
+	@mkdir -p bin
+	@echo "    LD adjoint_rom"
+	@$(EVAL) $(LINKER) -o bin/adjoint_rom adjoint_reduced_modelling/Adjoint_main.o $(LIBS)
 
 static: fluidity_library
 
@@ -352,6 +359,8 @@ endif
 	@cd reduced_modelling;   	$(MAKE)
 	@echo "    MAKE enkf"
 	@cd enkf;          $(MAKE)
+	@echo "    MAKE adjoint_reduced_modelling"
+	@cd adjoint_reduced_modelling;  $(MAKE)
 	@echo "    MAKE adjoint"
 	@cd adjoint; $(MAKE)
 	@echo "    MAKE main"
@@ -379,6 +388,7 @@ assemble/*.o \
 diagnostics/*.o \
 reduced_modelling/*.o \
 enkf/*.o \
+adjoint_reduced_modelling/*.o \
 adjoint/*.o \
 main/*.o
 ifeq (,yes)
@@ -452,6 +462,8 @@ endif
 	@cd reduced_modelling; $(MAKE) clean
 	@echo "    CLEAN enkf"
 	@cd enkf; $(MAKE) clean
+	@echo "    CLEAN adjoint_reduced_modelling"
+	@cd adjoint_reduced_modelling; $(MAKE) clean
 	@echo "    CLEAN adjoint"
 	@cd adjoint; $(MAKE) clean
 	@echo "    CLEAN main"

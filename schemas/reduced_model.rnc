@@ -28,7 +28,10 @@ reduced_model =
             real
          } 
       },
-          ## DEIM(Discrete Empirical Interpolation Method)
+      element adjoint {
+        empty
+     }?,
+           ## DEIM(Discrete Empirical Interpolation Method)
           
        element discrete_empirical_interpolation_method {
             empty

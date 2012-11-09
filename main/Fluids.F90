@@ -117,7 +117,7 @@ module fluids_module
 
 contains
 
-  SUBROUTINE FLUIDS()
+  SUBROUTINE FLUIDS(adjoint)
     character(len = OPTION_PATH_LEN) :: filename
 
     INTEGER :: &
@@ -130,6 +130,7 @@ contains
          & steady_state_tolerance
 
     real:: nonlinear_iteration_tolerance
+    logical, optional :: adjoint
 
     !     System state wrapper.
     type(state_type), dimension(:), pointer :: state => null()
@@ -144,7 +145,7 @@ contains
     character(len=OPTION_PATH_LEN):: option_path
     REAL :: CHANGE,CHAOLD
 
-    integer :: i, j,k,it, its
+    integer :: i, j,k,it, its,m
 
     logical :: not_to_move_det_yet = .false.
 
@@ -232,7 +233,9 @@ contains
     ewrite(3,*)'before have_option test'
 
     if (have_option("/reduced_model/execute_reduced_model")) then
-       call read_pod_basis_differntmesh(POD_state, state)
+	!do m = 1,size(state)
+       		call read_pod_basis_differntmesh(POD_state, state)
+	!enddo
     else
        ! need something to pass into solve_momentum
        allocate(POD_state(1:0,1:0,1:0))
@@ -971,7 +974,7 @@ contains
        end do
     end if
 
-    if (allocated(pod_state)) then
+   if (allocated(pod_state)) then
        do i=1, size(pod_state,1)
           do j=1,size(pod_state,2)
              do k=1,size(pod_state,3)
