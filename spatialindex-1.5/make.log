@@ -529,3 +529,69 @@ Making clean in .
 Making clean in .
 rm -f "./so_locations"
 rm -f "./so_locations"
+Making clean in include
+Making clean in capi
+Making clean in tools
+Making clean in .
+Making clean in src
+Making clean in capi
+rm -f "./so_locations"
+Making clean in tools
+rm -f "./so_locations"
+Making clean in tprtree
+rm -f "./so_locations"
+Making clean in mvrtree
+rm -f "./so_locations"
+Making clean in rtree
+rm -f "./so_locations"
+Making clean in spatialindex
+rm -f "./so_locations"
+Making clean in storagemanager
+rm -f "./so_locations"
+Making clean in .
+Making clean in .
+rm -f "./so_locations"
+rm -f "./so_locations"
+Making install in src
+Making install in storagemanager
+Making install in spatialindex
+Making install in rtree
+Making install in mvrtree
+Making install in tprtree
+Making install in tools
+Making install in capi
+Making install in .
+ /bin/bash ./libtool   --mode=install /usr/bin/install -c   libspatialindex.la libspatialindex_c.la '/data/dunhui/fluidity_enkf_reduced/spatialindex-1.5/../lib'
+libtool: install: /usr/bin/install -c .libs/libspatialindex.lai /data/dunhui/fluidity_enkf_reduced/spatialindex-1.5/../lib/libspatialindex.la
+libtool: install: /usr/bin/install -c .libs/libspatialindex_c.lai /data/dunhui/fluidity_enkf_reduced/spatialindex-1.5/../lib/libspatialindex_c.la
+libtool: install: /usr/bin/install -c .libs/libspatialindex.a /data/dunhui/fluidity_enkf_reduced/spatialindex-1.5/../lib/libspatialindex.a
+libtool: install: chmod 644 /data/dunhui/fluidity_enkf_reduced/spatialindex-1.5/../lib/libspatialindex.a
+libtool: install: ranlib /data/dunhui/fluidity_enkf_reduced/spatialindex-1.5/../lib/libspatialindex.a
+libtool: install: /usr/bin/install -c .libs/libspatialindex_c.a /data/dunhui/fluidity_enkf_reduced/spatialindex-1.5/../lib/libspatialindex_c.a
+libtool: install: chmod 644 /data/dunhui/fluidity_enkf_reduced/spatialindex-1.5/../lib/libspatialindex_c.a
+libtool: install: ranlib /data/dunhui/fluidity_enkf_reduced/spatialindex-1.5/../lib/libspatialindex_c.a
+libtool: finish: PATH="/usr/lib/lightdm/lightdm:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/sbin" ldconfig -n /data/dunhui/fluidity_enkf_reduced/spatialindex-1.5/../lib
+----------------------------------------------------------------------
+Libraries have been installed in:
+   /data/dunhui/fluidity_enkf_reduced/spatialindex-1.5/../lib
+
+If you ever happen to want to link against installed libraries
+in a given directory, LIBDIR, you must either use libtool, and
+specify the full pathname of the library, or use the `-LLIBDIR'
+flag during linking and do at least one of the following:
+   - add LIBDIR to the `LD_LIBRARY_PATH' environment variable
+     during execution
+   - add LIBDIR to the `LD_RUN_PATH' environment variable
+     during linking
+   - use the `-Wl,-rpath -Wl,LIBDIR' linker flag
+   - have your system administrator add LIBDIR to `/etc/ld.so.conf'
+
+See any operating system documentation about shared libraries for
+more information, such as the ld(1) and ld.so(8) manual pages.
+----------------------------------------------------------------------
+Making install in include
+Making install in tools
+ /usr/bin/install -c -m 644 Tools.h PointerPool.h PoolPointer.h SmartPointer.h rand48.h '/data/dunhui/fluidity_enkf_reduced/spatialindex-1.5/../include/spatialindex/tools'
+Making install in capi
+ /usr/bin/install -c -m 644 BoundsQuery.h CountVisitor.h DataStream.h Error.h IdVisitor.h Index.h LeafQuery.h ObjVisitor.h sidx_api.h sidx_config.h sidx_impl.h Utility.h '/data/dunhui/fluidity_enkf_reduced/spatialindex-1.5/../include/spatialindex/capi'
+ /usr/bin/install -c -m 644 SpatialIndex.h RTree.h MVRTree.h TPRTree.h Point.h Region.h LineSegment.h TimePoint.h TimeRegion.h MovingPoint.h MovingRegion.h Version.h '/data/dunhui/fluidity_enkf_reduced/spatialindex-1.5/../include/spatialindex'
