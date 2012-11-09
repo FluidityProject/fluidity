@@ -133,6 +133,7 @@ The origin of the Cartesian frame of reference is located at the centre of the s
     transformed_Tensor = transform_tensor_lon_lat_rad_2_sphericalPolar(tensor)
     #Transform spherical-polar into Cartesian.
     transformed_Tensor = transform_tensor_sphericalPolar_2_cartesian(positionVectorSpericalPolar, transformed_Tensor)
+    return transformed_Tensor
 
 def transform_vector_sphericalPolar_2_cartesian(positionVectorSpherical, vector):
     '''Function transforming the components of a vector from a spherical-polar basis to a cartesian basis. The input position vector must be given as [radius, polar angle, azimuthal angle], all anlges specified in radians.
