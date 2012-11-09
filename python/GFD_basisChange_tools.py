@@ -111,26 +111,28 @@ def transform_tensor_lon_lat_rad_2_sphericalPolar(tensor):
     transformed_Tensor = np.dot(np.dot(transformationMatrix, np.array(tensor)), transformationMatrix)
     return transformed_Tensor
 
-def transform_tensor_cartesian_2_lon_lat_rad(tensor):
+def transform_tensor_cartesian_2_lon_lat_rad(positionVectorCartesian, tensor):
     '''Function transforming the components of a tensor from a Cartesian basis to a zonal-meridional-radial basis.
 
 The origin of the Cartesian frame of reference is located at the centre of the sphere, the positive half of x-axis goes through 0 deg E, 0 deg N, the positive half of y-axis goes through 90 deg E, 0 deg N and the positive half of the z-axis goes through the North Pole equivalent.'''
     import numpy as np
     #Transform from Cartesian into spherical-polar
-    transformed_Tensor = transform_tensor_cartesian_2_sphericalPolar(tensor)
+    transformed_Tensor = transform_tensor_cartesian_2_sphericalPolar(positionVectorCartesian, tensor)
     #Transform from spherical-polar into longitude-latitude-radius.
     transformed_Tensor = transform_tensor_sphericalPolar_2_lon_lat_rad(transformed_Tensor)
     return transformed_Tensor
 
-def transform_tensor_lon_lat_rad_2_cartesian(tensor):
+def transform_tensor_lon_lat_rad_2_cartesian(positionVectorLonLatRad, tensor):
     '''Function transforming the components of a tensor from a Cartesian basis to a zonal-meridional-radial basis.
 
 The origin of the Cartesian frame of reference is located at the centre of the sphere, the positive half of x-axis goes through 0 deg E, 0 deg N, the positive half of y-axis goes through 90 deg E, 0 deg N and the positive half of the z-axis goes through the North Pole equivalent.'''
     import numpy as np
-    #Transform from lon-lat-rad into spherical-polar.
+    #Transform coordinates from lon-lat-rad into spherical-polar.
+    positionVectorSpericalPolar = lonlatradius_2_sphericalPolar(positionVectorLonLatRad)
+    #Transform tensor from lon-lat-rad into spherical-polar.
     transformed_Tensor = transform_tensor_lon_lat_rad_2_sphericalPolar(tensor)
     #Transform spherical-polar into Cartesian.
-    transformed_Tensor = transform_tensor_sphericalPolar_2_cartesian(transformed_Tensor)
+    transformed_Tensor = transform_tensor_sphericalPolar_2_cartesian(positionVectorSpericalPolar, transformed_Tensor)
 
 def transform_vector_sphericalPolar_2_cartesian(positionVectorSpherical, vector):
     '''Function transforming the components of a vector from a spherical-polar basis to a cartesian basis. The input position vector must be given as [radius, polar angle, azimuthal angle], all anlges specified in radians.
@@ -166,16 +168,6 @@ The origin of the Cartesian frame of reference is located at the centre of the s
     transformed_Vector = np.dot(transformationMatrix, np.array(vector))
     return transformed_Vector
 
-def transform_vector_cartesian_2_lon_lat_rad(positionVectorCartesian, vector):
-    '''Function transforming the components of a vector from a cartesian basis to a zonal-meridional-radial basis.
-
-The origin of the Cartesian frame of reference is located at the centre of the sphere, the positive half of x-axis goes through 0 deg E, 0 deg N, the positive half of y-axis goes through 90 deg E, 0 deg N and the positive half of the z axis goes through the North Pole equivalent.'''
-    #Calculate spherical-polar components of the vector.
-    [radial, azimuthal, polar] = transform_vector_cartesian_2_sphericalPolar(positionVectorCartesian, vector)
-    #Calculate zonal, meridional and radial components of the vector.
-    transformed_Vector = [polar, -azimuthal, radial]
-    return transformed_Vector
-
 def transform_vector_sphericalPolar_2_lon_lat_rad(vector):
     '''Function transforming the components of a vector from a spherical-polar basis to a zonal-meridional-radial basis.'''
     import numpy as np
@@ -198,9 +190,23 @@ def transform_vector_lon_lat_rad_2_sphericalPolar(vector):
     transformed_Vector = np.dot(transformationMatrix, np.array(vector))
     return transformed_Vector
 
-def transform_vector_lon_lat_rad_2_cartesian(vector, positionVectorRadLonLat):
-    #Transform vector from longitude-latitude-radius into Cartesian
-    transformed_Vector = transform_vector_lon_lat_rad_2_sphericalPolar(vector)
+def transform_vector_cartesian_2_lon_lat_rad(positionVectorCartesian, vector):
+    '''Function transforming the components of a vector from a Cartesian basis to a zonal-meridional-radial basis.
+
+The origin of the Cartesian frame of reference is located at the centre of the sphere, the positive half of x-axis goes through 0 deg E, 0 deg N, the positive half of y-axis goes through 90 deg E, 0 deg N and the positive half of the z axis goes through the North Pole equivalent.'''
+    #Calculate spherical-polar components of the vector.
+    transformed_Vector = transform_vector_cartesian_2_sphericalPolar(positionVectorCartesian, vector)
+    #Calculate zonal, meridional and radial components of the vector.
+    transformed_Vector = transform_vector_sphericalPolar_2_lon_lat_rad(transformed_Vector)
+    return transformed_Vector
+
+def transform_vector_lon_lat_rad_2_cartesian(positionVectorRadLonLat, vector):
+    '''Function transforming the components of a vector from a zonal-meridional-radial basis into a Cartesian basis.
+
+The origin of the Cartesian frame of reference is located at the centre of the sphere, the positive half of x-axis goes through 0 deg E, 0 deg N, the positive half of y-axis goes through 90 deg E, 0 deg N and the positive half of the z axis goes through the North Pole equivalent.'''
+    #Transform coordinates from longitude-latitude-radius into spherical-polar
     positionVectorSpherical = lonlatradius_2_sphericalPolar(positionVectorRadLonLat)
+    #Transform vector from longitude-latitude-radius into spherical-polar
+    transformed_Vector = transform_vector_lon_lat_rad_2_sphericalPolar(vector)
     #Transform from spherical-polar into Cartesian
     transformed_Vector = transform_vector_sphericalPolar_2_cartesian(positionVectorSpherical, vector)
