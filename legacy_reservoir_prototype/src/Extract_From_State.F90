@@ -485,6 +485,8 @@
          if( have_option( trim( option_path2 ) // 'FiniteElement/limit_face_value/limiter::Extrema' ) ) v_disopt = 9
       end if Conditional_VDISOPT
 
+      !v_disopt = 9
+
       call get_option( trim( option_path ) // '/prognostic/spatial_discretisation/conservative_advection', v_beta )
       call get_option( trim( option_path ) // '/prognostic/temporal_discretisation/theta', v_theta )
 

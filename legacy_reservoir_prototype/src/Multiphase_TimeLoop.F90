@@ -800,7 +800,7 @@
 !!$
 !!$                          nits_flux_lim_comp, &
                           Mean_Pore_CV, &
-                          option_path = '', &
+                          !option_path = '', &
                           mass_ele_transp = dummy_ele, &
                           thermal = .false. ) ! the false means that we don't add an extra source term
 

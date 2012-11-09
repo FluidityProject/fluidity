@@ -2252,7 +2252,7 @@
            IU_NOD_PHA, IU_NOD_DIM_PHA, U_NODI_IPHA, U_NODK, U_NODK_PHA, U_SKLOC, X_INOD, X_INOD2, &
            U_NODJ, U_NODJ2, U_NODJ_IPHA, U_SJLOC, X_ILOC, MAT_ILOC2, MAT_INOD, MAT_INOD2, MAT_SILOC, &
            CV_ILOC, CV_JLOC, CV_NOD, CV_NOD_PHA, U_JNOD_IDIM_IPHA, COUNT_PHA2, P_JLOC2, P_JNOD, P_JNOD2, &
-           CV_SILOC, JDIM, JPHASE, ILEV, U_NLOC2, CV_KLOC2, CV_NODK2, CV_NODK2_PHA, GI_SHORT, NLEV
+           CV_SILOC, JDIM, JPHASE, ILEV, U_NLOC2, CV_KLOC2, CV_NODK2, CV_NODK2_PHA, GI_SHORT, NLEV, STAT
       REAL    :: NN, NXN, NNX, NXNX, NMX, NMY, NMZ, SAREA, &
            VNMX, VNMY, VNMZ, NM
       REAL    :: VOLUME, MN, XC, YC, ZC, XC2, YC2, ZC2, HDC, VLM, VLM_NEW,VLM_OLD, NN_SNDOTQ_IN,NN_SNDOTQ_OUT, &
@@ -2586,15 +2586,17 @@
 !!$ As it has not been either tested or assessed let's keep as it is and change it properly (just need the path which
 !!$ is done mostly all way through, i.e., from INTENERGE_ASSEM_SOLVE subrt).
       allocate( udiffusion( mat_nonods, ndim, ndim, nphase ) ) ; udiffusion = 0.
-      tensorfield => extract_tensor_field( state( 1 ), 'VelocityViscosity' )
-      do iphase = 1, nphase
-         option_path = '/material_phase[' // int2str( iphase - 1 ) // &
-              ']/vector_field::Velocity/prognostic/tensor_field::Viscosity'
-         call Extract_TensorFields_Outof_State( state, iphase, &
-              tensorfield, option_path, &
-              udiffusion( :, :, :, iphase ), &
-              mat_ndgln  )
-      end do
+      tensorfield => extract_tensor_field( state( 1 ), 'Viscosity', stat )
+      if (stat == 0) then
+         do iphase = 1, nphase
+            option_path = '/material_phase[' // int2str( iphase - 1 ) // &
+                 ']/vector_field::Velocity/prognostic/tensor_field::Viscosity'
+            call Extract_TensorFields_Outof_State( state, iphase, &
+                 tensorfield, option_path, &
+                 udiffusion( :, :, :, iphase ), &
+                 mat_ndgln  )
+         end do
+      end if
 
 !        print *,'udiffusion:',udiffusion
 !         stop 221
@@ -2749,19 +2751,19 @@
             DO GI = 1, CV_NGI_SHORT
                DO IPHASE = 1,NPHASE
                   CV_NOD_PHA = CV_NOD +( IPHASE - 1) * CV_NONODS
-                  if(.true.) then ! FEM DEN...
-                     DENGI( GI, IPHASE ) = DENGI( GI, IPHASE ) + CVFEN_SHORT( CV_ILOC, GI ) * UDEN( CV_NOD_PHA )
-                     DENGIOLD( GI, IPHASE ) = DENGIOLD( GI, IPHASE ) &
-                          + CVFEN_SHORT( CV_ILOC, GI ) * UDENOLD( CV_NOD_PHA )
-                  endif
-                  if(.false.) then ! CV DEN...
-                     DENGI( GI, IPHASE ) = DENGI( GI, IPHASE ) + CVN_SHORT( CV_ILOC, GI ) * UDEN( CV_NOD_PHA )
-                     DENGIOLD( GI, IPHASE ) = DENGIOLD( GI, IPHASE ) &
-                          + CVN_SHORT( CV_ILOC, GI ) * UDENOLD( CV_NOD_PHA )
-                  endif
-                  IF(IPLIKE_GRAD_SOU == 1) THEN
-                     GRAD_SOU_GI( GI, IPHASE ) = GRAD_SOU_GI( GI, IPHASE ) &
-                          + CVFEN_SHORT( CV_ILOC, GI ) * PLIKE_GRAD_SOU_COEF( CV_NOD_PHA )
+                 if(.true.) then ! FEM DEN...
+                  DENGI( GI, IPHASE ) = DENGI( GI, IPHASE ) + CVFEN_SHORT( CV_ILOC, GI ) * UDEN( CV_NOD_PHA )
+                  DENGIOLD( GI, IPHASE ) = DENGIOLD( GI, IPHASE ) &
+                       + CVFEN_SHORT( CV_ILOC, GI ) * UDENOLD( CV_NOD_PHA )
+                 endif
+                 if(.false.) then ! CV DEN...
+                  DENGI( GI, IPHASE ) = DENGI( GI, IPHASE ) + CVN_SHORT( CV_ILOC, GI ) * UDEN( CV_NOD_PHA )
+                  DENGIOLD( GI, IPHASE ) = DENGIOLD( GI, IPHASE ) &
+                       + CVN_SHORT( CV_ILOC, GI ) * UDENOLD( CV_NOD_PHA )
+                 endif
+                 IF(IPLIKE_GRAD_SOU == 1) THEN
+                   GRAD_SOU_GI( GI, IPHASE ) = GRAD_SOU_GI( GI, IPHASE ) &
+                       + CVFEN_SHORT( CV_ILOC, GI ) * PLIKE_GRAD_SOU_COEF( CV_NOD_PHA )
                   ENDIF
                END DO
             END DO
@@ -3070,14 +3072,14 @@
                      !ewrite(3,*)  '* i, j, gi', U_ILOC,P_JLOC, gi, ':',UFEN( U_ILOC, GI ), ':', &
                      !     CVFENX( P_JLOC, GI ),  CVFENY( P_JLOC, GI ),  CVFENZ( P_JLOC, GI ), ':', DETWEI( GI )
 
-                     IF( IPLIKE_GRAD_SOU == 1 ) THEN 
+                     IF ( IPLIKE_GRAD_SOU == 1 ) THEN
                         GRAD_SOU_GI_NMX( : ) = GRAD_SOU_GI_NMX( : )  &
                              + GRAD_SOU_GI( GI, : ) * UFEN( U_ILOC, GI ) * &
                              CVFENX( P_JLOC, GI ) * DETWEI( GI )
-                        GRAD_SOU_GI_NMY(:) = GRAD_SOU_GI_NMY(:)  &
+                        GRAD_SOU_GI_NMY( : ) = GRAD_SOU_GI_NMY( : )  &
                              + GRAD_SOU_GI( GI, : ) * UFEN( U_ILOC, GI ) * &
                              CVFENY( P_JLOC, GI ) * DETWEI( GI )
-                        GRAD_SOU_GI_NMZ(:) = GRAD_SOU_GI_NMZ(:)  &
+                        GRAD_SOU_GI_NMZ( : ) = GRAD_SOU_GI_NMZ( : )  &
                              + GRAD_SOU_GI( GI, : ) * UFEN( U_ILOC, GI ) * &
                              CVFENZ( P_JLOC, GI ) * DETWEI( GI )
                      ENDIF
@@ -5403,11 +5405,11 @@
            CV_NGI_SHORT, CV_NLOC, CVWEIGHT_SHORT, &
            CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, &
            CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, &
-           X_NONODS, X, Y, Z,  &
+           X_NONODS, X, Y, Z, &
            NFACE, FACE_ELE, CV_SLOCLIST, CV_SLOCLIST, STOTEL, CV_SNLOC, CV_SNLOC, IZERO, &
            RZERO, &
            1, SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, &
-           SBCVFEN, SBCVFENSLX, SBCVFENSLY)
+           SBCVFEN, SBCVFENSLX, SBCVFENSLY )
 
       ! determine the curvature by solving a simple eqn...
 
@@ -5448,9 +5450,9 @@
             DO CV_ILOC=1,CV_NLOC
                CV_NOD=CV_NDGLN((ELE-1)*CV_NLOC+CV_ILOC)
                DG_CV_NOD=(ELE-1)*CV_NLOC+CV_ILOC
-               DIF_TX(CV_NOD)=DIF_TX(CV_NOD)+TDIFFUSION(1,1,CV_NOD)*DTX_ELE(CV_ILOC, 1, ELE)  * MASS_ELE(ELE)
-               IF(NDIM.GE.2) DIF_TY(CV_NOD)=DIF_TY(CV_NOD)+TDIFFUSION(2,2,CV_NOD)*DTY_ELE(CV_ILOC, 1, ELE)  * MASS_ELE(ELE)
-               IF(NDIM.GE.3) DIF_TZ(CV_NOD)=DIF_TZ(CV_NOD)+TDIFFUSION(3,3,CV_NOD)*DTZ_ELE(CV_ILOC, 1, ELE) * MASS_ELE(ELE)
+               DIF_TX(CV_NOD)=DIF_TX(CV_NOD)+TDIFFUSION(1,1,CV_NOD) * DTX_ELE(CV_ILOC, 1, ELE) * MASS_ELE(ELE)
+               IF(NDIM.GE.2) DIF_TY(CV_NOD)=DIF_TY(CV_NOD)+TDIFFUSION(2,2,CV_NOD) * DTY_ELE(CV_ILOC, 1, ELE) * MASS_ELE(ELE)
+               IF(NDIM.GE.3) DIF_TZ(CV_NOD)=DIF_TZ(CV_NOD)+TDIFFUSION(3,3,CV_NOD) * DTZ_ELE(CV_ILOC, 1, ELE) * MASS_ELE(ELE)
             END DO
          END DO
          ! normalise
@@ -5527,7 +5529,7 @@
               IDUM, IDUM, IDUM, &
               RZERO, RZERO, &
               RZERO, T_ABSORB, RZERO, &
-              NDIM,  &
+              NDIM, &
               NCOLM, FINDM, COLM, MIDM, &
               XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
               RDUM, NOPT_VEL_UPWIND_COEFS, &
