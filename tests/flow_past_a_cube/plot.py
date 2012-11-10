@@ -12,7 +12,7 @@ params = {'text.fontsize': 11,
 pylab.rcParams.update(params)
 
 # Maximum number of VTU files
-N = 10
+N = 30
 
 # Dimensions
 H = 1.0
@@ -73,7 +73,7 @@ for p in range(0, 4):
    pylab.subplot(subplots[p])
    x = X[p]*H
    for n in range(N, N+1):
-      filename='flow_past_a_cube_' + str(n) + '.pvtu'
+      filename='les/flow_past_a_cube_' + str(n) + '.pvtu'
       vt=vtktools.vtu(filename)
 
       # Time and coordinates
@@ -81,17 +81,40 @@ for p in range(0, 4):
       xyz = vt.GetLocations()
 
       for i in range(0,len(Y)): 
-         data = vtktools.vtu.ProbeData(vt, numpy.array([[x, Y[i], 0]]), 'Velocity')
+         data = vtktools.vtu.ProbeData(vt, numpy.array([[x, Y[i], 0]]), 'TimeAveragedVelocity')
          #print data
          probed_u[i] = data[0][0]
          u_bar[i] = u_bar[i] + probed_u[i]
 
    u_bar = u_bar
    # Plot the numerical results
-   pylab.plot(u_bar/U, Y/H, '-b', label="Fluidity (x/H = %f)" % X[p])
-   pylab.plot(experimental_u_bar[p], experimental_y[p], 'ro', label="Experimental (x/H = %f)" % X[p])
+   pylab.plot(u_bar/U, Y/H, '-b', label="LES (x/H = 0.5, 1.0, 2.0, 4.0)")
 
-#pylab.legend(loc=4)
+for p in range(0, 4):
+   probed_u = numpy.zeros(len(Y))
+   u_bar = numpy.zeros(len(Y))
+   pylab.subplot(subplots[p])
+   x = X[p]*H
+   for n in range(N, N+1):
+      filename='noles/flow_past_a_cube_' + str(n) + '.pvtu'
+      vt=vtktools.vtu(filename)
+
+      # Time and coordinates
+      t = vt.GetScalarField('Time')[0]
+      xyz = vt.GetLocations()
+
+      for i in range(0,len(Y)): 
+         data = vtktools.vtu.ProbeData(vt, numpy.array([[x, Y[i], 0]]), 'TimeAveragedVelocity')
+         #print data
+         probed_u[i] = data[0][0]
+         u_bar[i] = u_bar[i] + probed_u[i]
+
+   u_bar = u_bar
+   # Plot the numerical results
+   pylab.plot(u_bar/U, Y/H, '-g', label="No LES (x/H = 0.5, 1.0, 2.0, 4.0)")
+   pylab.plot(experimental_u_bar[p], experimental_y[p], 'xr', label="Experimental (x/H = 0.5, 1.0, 2.0, 4.0)")
+
+pylab.legend(loc=3)
 #pylab.xlabel("Normalised mean velocity (u/U)")
 #pylab.ylabel("Normalised height (y/H)")
 #pylab.grid("on")
