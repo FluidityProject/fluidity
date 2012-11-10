@@ -156,7 +156,7 @@
       REAL, DIMENSION( NOPT_VEL_UPWIND_COEFS ), intent( in ) :: OPT_VEL_UPWIND_COEFS
       INTEGER, INTENT( IN ) :: NOIT_DIM
       REAL, DIMENSION( CV_NONODS ), intent( inout ) :: MEAN_PORE_CV
-      character( len = option_path_len ), intent( in ), optional :: option_path
+      character( len = * ), intent( in ), optional :: option_path
       real, dimension( totele ), intent( inout ) :: mass_ele_transp
 
       ! Local variables
@@ -577,8 +577,8 @@
       LOGICAL :: JUST_BL_DIAG_MAT
 
       IF(U_NLOC.NE.CV_NLOC) THEN
-         PRINT *,'ONLY WORKING FOR U_NLOC=CV_NLOC,U_NLOC,CV_NLOC:',U_NLOC,CV_NLOC
-         STOP 821
+         ewrite(3,*) 'u_nloc, cv_nloc:', u_nloc, cv_nloc
+         FLAbort( 'Only working for u_nloc == cv_nloc ' )
       END IF
 
       ALLOCATE(RZERO(TOTELE * U_NLOC * NPHASE * NDIM * U_NLOC * NPHASE * NDIM)) 
@@ -1160,11 +1160,11 @@
              xc=xc + x(cv_nod)/real(cv_nloc) 
              yc=yc + y(cv_nod)/real(cv_nloc) 
            end do
-           print *,'ele,xc,yc:',ele,xc,yc
+           ewrite(3,*)'ele,xc,yc:',ele,xc,yc
            do u_iloc=1,u_nloc
              u_nod=u_ndgln((ele-1)*U_nloc+u_iloc)
-             print *,'u_iloc,u(u_nod),v(u_nod):',u_iloc,u(u_nod),v(u_nod)
-             print *,'u_iloc,u(u_nod),v(u_nod):',u_iloc,U_RHS_CDP(u_nod),U_RHS_CDP(u_nod+u_nonods)
+             ewrite(3,*) 'u_iloc,u(u_nod),v(u_nod):',u_iloc,u(u_nod),v(u_nod)
+             ewrite(3,*) 'u_iloc,u(u_nod),v(u_nod):',u_iloc,U_RHS_CDP(u_nod),U_RHS_CDP(u_nod+u_nonods)
            end do
          end do
          
