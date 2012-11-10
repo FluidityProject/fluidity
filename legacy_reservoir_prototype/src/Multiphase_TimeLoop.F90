@@ -598,14 +598,14 @@
                     Velocity_NU_Old = Velocity_U_Old ; Velocity_NV_Old = Velocity_V_Old ; &
                     Velocity_NW_Old = Velocity_W_Old
 
-             if (.false.) then
-!             if (.true.) then
-                ! hard-code the air and water viscosities for the rising bubble problem
-                ! air: 10e-5, water: 10e-3
-                Momentum_Diffusion=0.0
-                Momentum_Diffusion(:,1,1,1) = 1.0
-                Momentum_Diffusion(:,2,2,1) = 1.0
-             end if
+               if (.false.) then
+                  !             if (.true.) then
+                  ! hard-code the air and water viscosities for the rising bubble problem
+                  ! air: 10e-5, water: 10e-3
+                  Momentum_Diffusion=0.0
+                  Momentum_Diffusion(:,1,1,1) = 1.0
+                  Momentum_Diffusion(:,2,2,1) = 1.0
+               end if
 
 !!$ This calculates u_source_cv = ScalarField_Source_CV -- ie, the buoyancy term and as the name
 !!$ suggests it's a CV source term for the velocity field
@@ -800,7 +800,7 @@
 !!$
 !!$                          nits_flux_lim_comp, &
                           Mean_Pore_CV, &
-                          !option_path = '', &
+                                !option_path = '', &
                           mass_ele_transp = dummy_ele, &
                           thermal = .false. ) ! the false means that we don't add an extra source term
 
@@ -971,8 +971,10 @@
                  xu, yu, zu, x, y, z, ug, vg, wg, &
                  Velocity_U, Velocity_V, Velocity_W, Velocity_U_Old, Velocity_V_Old, Velocity_W_Old, &
                  Velocity_NU, Velocity_NV, Velocity_NW, Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
-                 Pressure_FEM, Pressure_CV, Temperature, Density, Density_Component, PhaseVolumeFraction, Component, U_Density, &
-                 Pressure_FEM_Old, Pressure_CV_Old, Temperature_Old, Density_Old, Density_Component_Old,  PhaseVolumeFraction_Old, Component_Old, &
+                 Pressure_FEM, Pressure_CV, Temperature, Density, Density_Component, PhaseVolumeFraction, &
+                 Component, U_Density, &
+                 Pressure_FEM_Old, Pressure_CV_Old, Temperature_Old, Density_Old, Density_Component_Old, &
+                 PhaseVolumeFraction_Old, Component_Old, &
                  U_Density_Old, DRhoDPressure, &
                  Porosity, &
                  Velocity_U_Source, Velocity_U_Source_CV, Temperature_Source, PhaseVolumeFraction_Source, &
@@ -1069,11 +1071,13 @@
 !!$
                  Pressure_FEM( cv_nonods ), Pressure_CV( cv_nonods ), &
                  Temperature( nphase * cv_nonods ), Density( nphase * cv_nonods ), &
+                 Density_Component(nphase * cv_nonods * ncomp), &
                  PhaseVolumeFraction( nphase * cv_nonods ), Component( nphase * cv_nonods * ncomp ), &
                  U_Density( nphase * cv_nonods ), DRhoDPressure( nphase * cv_nonods ), &
 !!$
                  Pressure_FEM_Old( cv_nonods ), Pressure_CV_Old( cv_nonods ), &
                  Temperature_Old( nphase * cv_nonods ), Density_Old( nphase * cv_nonods ), &
+                 Density_Component_Old(nphase * cv_nonods * ncomp), &
                  PhaseVolumeFraction_Old( nphase * cv_nonods ), Component_Old( nphase * cv_nonods * ncomp ), &
                  U_Density_Old( nphase * cv_nonods ), &
 !!$
@@ -1199,8 +1203,10 @@
            xu, yu, zu, x, y, z, ug, vg, wg, &
            Velocity_U, Velocity_V, Velocity_W, Velocity_U_Old, Velocity_V_Old, Velocity_W_Old, &
            Velocity_NU, Velocity_NV, Velocity_NW, Velocity_NU_Old, Velocity_NV_Old, Velocity_NW_Old, &
-           Pressure_FEM, Pressure_CV, Temperature, Density, PhaseVolumeFraction, Component, U_Density, &
-           Pressure_FEM_Old, Pressure_CV_Old, Temperature_Old, Density_Old, PhaseVolumeFraction_Old, Component_Old, &
+           Pressure_FEM, Pressure_CV, Temperature, Density, Density_Component, PhaseVolumeFraction, &
+           Component, U_Density, &
+           Pressure_FEM_Old, Pressure_CV_Old, Temperature_Old, Density_Old, Density_Component_Old, &
+           PhaseVolumeFraction_Old, Component_Old, &
            U_Density_Old, DRhoDPressure, &
            Porosity, &
            Velocity_U_Source, Velocity_U_Source_CV, Temperature_Source, PhaseVolumeFraction_Source, &
