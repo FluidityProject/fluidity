@@ -2586,6 +2586,10 @@
 !!$ As it has not been either tested or assessed let's keep as it is and change it properly (just need the path which
 !!$ is done mostly all way through, i.e., from INTENERGE_ASSEM_SOLVE subrt).
       allocate( udiffusion( mat_nonods, ndim, ndim, nphase ) ) ; udiffusion = 0.
+
+!                uDiffusion(:,1,1,1) = 1.0
+!                uDiffusion(:,2,2,1) = 1.0
+     if(.true.) then
       tensorfield => extract_tensor_field( state( 1 ), 'Viscosity', stat )
       if (stat == 0) then
          do iphase = 1, nphase
@@ -2597,6 +2601,7 @@
                  mat_ndgln  )
          end do
       end if
+     endif
 
 !        print *,'udiffusion:',udiffusion
 !         stop 221
