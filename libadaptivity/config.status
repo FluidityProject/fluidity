@@ -337,7 +337,7 @@ Copyright (C) 2006 Free Software Foundation, Inc.
 This config.status script is free software; the Free Software Foundation
 gives unlimited permission to copy, distribute and modify it."
 
-ac_pwd='/data/dunhui/fluidity_enkf_reduced/libadaptivity'
+ac_pwd='/data/src/fluidity/fluidity_enkf_reduced_new/libadaptivity'
 srcdir='.'
 INSTALL='/usr/bin/install -c'
 # If no file are specified by the user, then we need to provide default
