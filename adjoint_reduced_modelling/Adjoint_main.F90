@@ -198,7 +198,7 @@ subroutine mainfl_forward() bind(C)
   !!< This program solves the Navier-Stokes, radiation, and/or
   !!< advection-diffusion types of equations
   use fldebug
-  use fluids_module
+  !use fluids_module
   !use reduced_fluids_module
   use signals
   use spud
@@ -256,7 +256,7 @@ subroutine mainfl_adj() bind(C)
   !!< This program solves the Navier-Stokes, radiation, and/or
   !!< advection-diffusion types of equations
   use fldebug
-  use fluids_module
+  
   !use reduced_fluids_module
   use signals
   use spud
