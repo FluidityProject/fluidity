@@ -2089,7 +2089,7 @@
                case("scalar")
                   les_scalar_gi = length_scale_scalar(x, ele)
                   do gi = 1, size(les_coef_gi)
-                     les_tensor_gi(:,:,gi) = 2.*les_scalar_gi(gi)*&
+                     les_tensor_gi(:,:,gi) = 4.0*les_scalar_gi(gi)*&
                         density_gi(gi)*les_coef_gi(gi)*(smagorinsky_coefficient**2)
                   end do
                case("tensor")
