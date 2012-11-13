@@ -43,6 +43,12 @@ program Adjoint_main
   use quadrature
   use diagnostic_fields_wrapper
   use field_options
+  use signals
+  use spud
+  use tictoc
+#ifdef HAVE_ZOLTAN
+  use zoltan
+#endif
 
   implicit none
 #ifdef HAVE_PETSC
@@ -197,16 +203,42 @@ contains
 subroutine mainfl_forward() bind(C)
   !!< This program solves the Navier-Stokes, radiation, and/or
   !!< advection-diffusion types of equations
-  use fldebug
-  use fluids_module
-  !use reduced_fluids_module
-  use signals
-  use spud
-  use tictoc
-#ifdef HAVE_ZOLTAN
-  use zoltan
-#endif
   
+  use AuxilaryOptions
+  use MeshDiagnostics
+  use signal_vars
+  use spud
+  use equation_of_state
+  use timers
+  use adapt_state_module
+  use adapt_state_prescribed_module
+  use FLDebug
+  use sparse_tools
+  use elements
+  use fields
+  use boundary_conditions_from_options
+  use populate_state_module
+  use populate_sub_state_module
+  use reserve_state_module
+  use vtk_interfaces
+  use Diagnostic_variables
+  use diagnostic_fields_new, only : &
+    & calculate_diagnostic_variables_new => calculate_diagnostic_variables, &
+    & check_diagnostic_dependencies
+  use diagnostic_fields_wrapper
+  use diagnostic_children
+  use advection_diffusion_cg
+  use advection_diffusion_DG
+  use advection_diffusion_FV
+  use field_equations_cv, only: solve_field_eqn_cv, initialise_advection_convergence, coupled_cv_field_eqn
+  use vertical_extrapolation_module
+  use qmesh_module
+  use checkpoint
+  use write_state_module
+  use synthetic_bc
+  use goals
+  use adaptive_timestepping
+  use conformity_measurement
   implicit none
 
   ! We need to do this here because the fortran Zoltan initialisation
@@ -255,16 +287,43 @@ end subroutine mainfl_forward
 subroutine mainfl_adj() bind(C)
   !!< This program solves the Navier-Stokes, radiation, and/or
   !!< advection-diffusion types of equations
-  use fldebug
-  use fluids_module
-  !use reduced_fluids_module
-  use signals
-  use spud
-  use tictoc
-#ifdef HAVE_ZOLTAN
-  use zoltan
-#endif
   
+  use AuxilaryOptions
+  use MeshDiagnostics
+  use signal_vars
+  use spud
+  use equation_of_state
+  use timers
+  use adapt_state_module
+  use adapt_state_prescribed_module
+  use FLDebug
+  use sparse_tools
+  use elements
+  use fields
+  use boundary_conditions_from_options
+  use populate_state_module
+  use populate_sub_state_module
+  use reserve_state_module
+  use vtk_interfaces
+  use Diagnostic_variables
+  use diagnostic_fields_new, only : &
+    & calculate_diagnostic_variables_new => calculate_diagnostic_variables, &
+    & check_diagnostic_dependencies
+  use diagnostic_fields_wrapper
+  use diagnostic_children
+  use advection_diffusion_cg
+  use advection_diffusion_DG
+  use advection_diffusion_FV
+  use field_equations_cv, only: solve_field_eqn_cv, initialise_advection_convergence, coupled_cv_field_eqn
+  use vertical_extrapolation_module
+  use qmesh_module
+  use checkpoint
+  use write_state_module
+  use synthetic_bc
+  use goals
+  use adaptive_timestepping
+  use conformity_measurement
+
   implicit none
 
   ! We need to do this here because the fortran Zoltan initialisation
