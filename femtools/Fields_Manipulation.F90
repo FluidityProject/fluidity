@@ -307,7 +307,7 @@ implicit none
 
     integer :: j
 
-    assert(field%field_type==FIELD_TYPE_NORMAL)
+    assert(field%field_type==FIELD_TYPE_NORMAL .or. field%field_type==FIELD_TYPE_SPHERICAL_COORDINATES)
     
     do j=1,field%dim
        field%val(j,node_number)=field%val(j,node_number)+val(j)
@@ -322,7 +322,7 @@ implicit none
     integer, intent(in) :: dim, node_number
     real, intent(in) :: val
 
-    assert(field%field_type==FIELD_TYPE_NORMAL)
+    assert(field%field_type==FIELD_TYPE_NORMAL .or. field%field_type==FIELD_TYPE_SPHERICAL_COORDINATES)
     
     field%val(dim,node_number)=field%val(dim,node_number)+val
 
@@ -340,7 +340,7 @@ implicit none
     
     integer :: j
     
-    assert(field%field_type==FIELD_TYPE_NORMAL)
+    assert(field%field_type==FIELD_TYPE_NORMAL .or. field%field_type==FIELD_TYPE_SPHERICAL_COORDINATES)
     do j=1,size(node_numbers)
        field%val(dim,node_numbers(j))&
             =field%val(dim,node_numbers(j))+val(j)
@@ -359,7 +359,7 @@ implicit none
     assert(size(val, 1) == field%dim)
     assert(size(val, 2) == size(node_numbers))
     
-    assert(field%field_type==FIELD_TYPE_NORMAL)
+    assert(field%field_type==FIELD_TYPE_NORMAL .or. field%field_type==FIELD_TYPE_SPHERICAL_COORDINATES)
     do i=1,size(node_numbers)
       call addto(field, node_numbers(i), val(:, i))
     end do
@@ -912,7 +912,7 @@ implicit none
     real, intent(in), dimension(:) :: val
     integer :: i
 
-    assert(field%field_type==FIELD_TYPE_NORMAL)
+    assert(field%field_type==FIELD_TYPE_NORMAL .or. field%field_type==FIELD_TYPE_SPHERICAL_COORDINATES)
     
     do i=1,field%dim
       field%val(i,node) = val(i)
@@ -959,7 +959,7 @@ implicit none
     real, intent(in) :: val
     integer, intent(in):: dim
 
-    assert(field%field_type==FIELD_TYPE_NORMAL)
+    assert(field%field_type==FIELD_TYPE_NORMAL .or. field%field_type==FIELD_TYPE_SPHERICAL_COORDINATES)
     assert(dim>=1 .and. dim<=field%dim)
     
     field%val(dim,node) = val
@@ -975,7 +975,7 @@ implicit none
     real, intent(in), dimension(:,:) :: val
     integer :: i
 
-    assert(field%field_type==FIELD_TYPE_NORMAL)
+    assert(field%field_type==FIELD_TYPE_NORMAL .or. field%field_type==FIELD_TYPE_SPHERICAL_COORDINATES)
     
     do i=1,field%dim
       field%val(i,node_numbers) = val(i, :)
@@ -992,7 +992,7 @@ implicit none
     real, intent(in), dimension(:) :: val
     integer, intent(in) :: dim
 
-    assert(field%field_type==FIELD_TYPE_NORMAL)
+    assert(field%field_type==FIELD_TYPE_NORMAL .or. field%field_type==FIELD_TYPE_SPHERICAL_COORDINATES)
     assert(dim>=1 .and. dim<=field%dim)
     
     field%val(dim,node_numbers) = val
@@ -1034,7 +1034,7 @@ implicit none
     real, intent(in), dimension(:, :) :: val
     integer :: i
 
-    assert(field%field_type == FIELD_TYPE_NORMAL)
+    assert(field%field_type==FIELD_TYPE_NORMAL .or. field%field_type==FIELD_TYPE_SPHERICAL_COORDINATES)
     
     do i=1,field%dim
       field%val(i,:) = val(i, :)
@@ -1048,7 +1048,7 @@ implicit none
     real, intent(in), dimension(:) :: val
     integer, intent(in):: dim
     
-    assert(field%field_type == FIELD_TYPE_NORMAL)
+    assert(field%field_type==FIELD_TYPE_NORMAL .or. field%field_type==FIELD_TYPE_SPHERICAL_COORDINATES)
     assert(dim>=1 .and. dim<=field%dim)
     
     field%val(dim,:) = val
@@ -1063,13 +1063,19 @@ implicit none
     
     integer :: dim
 
+#ifndef NDEBUG
     assert(mesh_compatible(out_field%mesh, in_field%mesh))
     assert(out_field%field_type/=FIELD_TYPE_PYTHON)
-    assert(out_field%field_type==FIELD_TYPE_NORMAL .or. in_field%field_type==FIELD_TYPE_CONSTANT)
+    if (.not. (out_field%field_type==FIELD_TYPE_NORMAL .or. &
+      out_field%field_type==FIELD_TYPE_SPHERICAL_COORDINATES .or. &
+      (out_field%field_type==FIELD_TYPE_CONSTANT .and. in_field%field_type==FIELD_TYPE_CONSTANT))) then
+      FLAbort("Wrong field_type in set()")
+    end if
     assert(in_field%dim==out_field%dim)
+#endif
 
     select case (in_field%field_type)
-    case (FIELD_TYPE_NORMAL)
+    case (FIELD_TYPE_NORMAL,FIELD_TYPE_SPHERICAL_COORDINATES)
        do dim=1,in_field%dim
           out_field%val(dim,:)=in_field%val(dim,:)
        end do
@@ -1098,6 +1104,7 @@ implicit none
     assert(out_field%field_type/=FIELD_TYPE_PYTHON)
 #ifndef NDEBUG
     if(.not.(out_field%field_type==FIELD_TYPE_NORMAL .or. &
+      out_field%field_type==FIELD_TYPE_SPHERICAL_COORDINATES .or. &
        (in_field_new%field_type==FIELD_TYPE_CONSTANT .and. &
         in_field_old%field_type==FIELD_TYPE_CONSTANT))) then
        ewrite(-1,*) "Incompatible field types in set()"
@@ -1108,7 +1115,7 @@ implicit none
     assert(in_field_old%dim==out_field%dim)
     
     select case (in_field_new%field_type)
-    case (FIELD_TYPE_NORMAL)
+    case (FIELD_TYPE_NORMAL,FIELD_TYPE_SPHERICAL_COORDINATES)
       do dim = 1, out_field%dim
         out_field%val(dim,:)=theta*in_field_new%val(dim,:) + (1.-theta)*in_field_old%val(dim,:)
       end do
@@ -1130,13 +1137,19 @@ implicit none
     type(scalar_field), intent(in) :: in_field
     integer, intent(in):: dim
 
+#ifndef NDEBUG
     assert(mesh_compatible(out_field%mesh, in_field%mesh))
     assert(out_field%field_type/=FIELD_TYPE_PYTHON)
-    assert(out_field%field_type==FIELD_TYPE_NORMAL.or.in_field%field_type==FIELD_TYPE_CONSTANT)
+    if (.not. (out_field%field_type==FIELD_TYPE_NORMAL .or. &
+      out_field%field_type==FIELD_TYPE_SPHERICAL_COORDINATES .or. &
+      (out_field%field_type==FIELD_TYPE_CONSTANT .and. in_field%field_type==FIELD_TYPE_CONSTANT))) then
+      FLAbort("Wrong field_type in set()")
+    end if
     assert(dim>=1 .and. dim<=out_field%dim)
+#endif
 
     select case (in_field%field_type)
-    case (FIELD_TYPE_NORMAL)
+    case (FIELD_TYPE_NORMAL,FIELD_TYPE_SPHERICAL_COORDINATES)
        out_field%val(dim,:)=in_field%val
     case (FIELD_TYPE_CONSTANT)
        out_field%val(dim,:)=in_field%val(1)
@@ -1154,13 +1167,19 @@ implicit none
     type(vector_field), intent(in) :: in_field
     integer, intent(in):: dim
 
+#ifndef NDEBUG
     assert(mesh_compatible(out_field%mesh, in_field%mesh))
     assert(out_field%field_type/=FIELD_TYPE_PYTHON)
-    assert(out_field%field_type==FIELD_TYPE_NORMAL.or.in_field%field_type==FIELD_TYPE_CONSTANT)
+    if (.not. (out_field%field_type==FIELD_TYPE_NORMAL .or. &
+      out_field%field_type==FIELD_TYPE_SPHERICAL_COORDINATES .or. &
+      (out_field%field_type==FIELD_TYPE_CONSTANT .and. in_field%field_type==FIELD_TYPE_CONSTANT))) then
+      FLAbort("Wrong field_type in set()")
+    end if
     assert(dim>=1 .and. dim<=out_field%dim .and. dim<=in_field%dim)
+#endif
 
     select case (in_field%field_type)
-    case (FIELD_TYPE_NORMAL)
+    case (FIELD_TYPE_NORMAL,FIELD_TYPE_SPHERICAL_COORDINATES)
        out_field%val(dim,:)=in_field%val(dim,:)
     case (FIELD_TYPE_CONSTANT)
        out_field%val(dim,:)=in_field%val(dim,1)
@@ -1976,7 +1995,7 @@ implicit none
     else
     
       select case(from_field%field_type)
-      case(FIELD_TYPE_NORMAL)
+      case(FIELD_TYPE_NORMAL, FIELD_TYPE_SPHERICAL_COORDINATES)
 
         call test_remap_validity(from_field, to_field, stat=stat)
 
@@ -2004,6 +2023,8 @@ implicit none
         do i=1,from_field%dim
           to_field%val(i,:) = from_field%val(i,1)
         end do
+      case default
+        FLAbort("Wrong field_type for remap_field")
       end select
   
     end if
@@ -2038,11 +2059,13 @@ implicit none
     output = 0.0
 
     select case(from_field%field_type)
-    case(FIELD_TYPE_CONSTANT)
+    case(FIELD_TYPE_CONSTANT,FIELD_TYPE_SPHERICAL_COORDINATES)
       do i=1,from_field%dim
         output(:, i, :) = from_field%val(i,1)
       end do
       return
+    case default
+      FLAbort("Wrong field_type for remap_field")
     end select
 
     call test_remap_validity(from_field, to_field, stat=stat)
