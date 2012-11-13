@@ -2072,7 +2072,7 @@ contains
     integer, dimension(:), pointer :: nodes
     
     select case(field%field_type)
-    case(FIELD_TYPE_NORMAL)
+    case(FIELD_TYPE_NORMAL,FIELD_TYPE_SPHERICAL_COORDINATES)
       nodes => ele_nodes(field, ele_number)
       do i=1,field%dim
          ele_val(i, :) = field%val(i,nodes)
@@ -2094,7 +2094,7 @@ contains
     integer, intent(in) :: dim
 
     select case(field%field_type)
-    case(FIELD_TYPE_NORMAL)
+    case(FIELD_TYPE_NORMAL,FIELD_TYPE_SPHERICAL_COORDINATES)
       ele_val=field%val(dim,ele_nodes(field,ele_number))
     case(FIELD_TYPE_CONSTANT)
       ele_val=field%val(dim,1)
@@ -2166,7 +2166,7 @@ contains
     integer :: i
 
     select case(field%field_type)
-    case(FIELD_TYPE_NORMAL)
+    case(FIELD_TYPE_NORMAL,FIELD_TYPE_SPHERICAL_COORDINATES)
       face_val=field%val(:,face_global_nodes(field,face_number))
     case(FIELD_TYPE_CONSTANT)
       do i=1,field%dim
@@ -2184,7 +2184,7 @@ contains
     integer :: dim
 
     select case(field%field_type)
-    case(FIELD_TYPE_NORMAL)
+    case(FIELD_TYPE_NORMAL,FIELD_TYPE_SPHERICAL_COORDINATES)
       face_val=field%val(dim,face_global_nodes(field,face_number))
     case(FIELD_TYPE_CONSTANT)
       face_val=field%val(dim,1)
@@ -2690,7 +2690,7 @@ contains
     integer :: i
 
     select case(field%field_type)
-    case(FIELD_TYPE_NORMAL)
+    case(FIELD_TYPE_NORMAL,FIELD_TYPE_SPHERICAL_COORDINATES)
       do i=1,field%dim
          val(i)=field%val(i,node_number)
       end do
@@ -2773,7 +2773,7 @@ contains
     integer :: i
 
     select case(field%field_type)
-    case(FIELD_TYPE_NORMAL)
+    case(FIELD_TYPE_NORMAL,FIELD_TYPE_SPHERICAL_COORDINATES)
       do i=1,field%dim
          val(i,:)=field%val(i,node_numbers)
       end do
@@ -2794,7 +2794,7 @@ contains
     real :: val
 
     select case(field%field_type)
-    case(FIELD_TYPE_NORMAL)
+    case(FIELD_TYPE_NORMAL,FIELD_TYPE_SPHERICAL_COORDINATES)
       val = field%val(dim,node_number)
     case(FIELD_TYPE_CONSTANT)
       val = field%val(dim,1)
@@ -2811,7 +2811,7 @@ contains
     real, dimension(size(node_numbers)) :: val
 
     select case(field%field_type)
-    case(FIELD_TYPE_NORMAL)
+    case(FIELD_TYPE_NORMAL,FIELD_TYPE_SPHERICAL_COORDINATES)
       val(:)=field%val(dim,node_numbers)
     case(FIELD_TYPE_CONSTANT)
       val=field%val(dim,1)
@@ -2947,7 +2947,11 @@ contains
     sfield%val  => vfield%val(dim,:)
     sfield%val_stride = vfield%dim
     sfield%option_path = vfield%option_path
-    sfield%field_type = vfield%field_type
+    if (vfield%field_type==FIELD_TYPE_SPHERICAL_COORDINATES) then
+      sfield%field_type = FIELD_TYPE_NORMAL
+    else
+      sfield%field_type = vfield%field_type
+    end if
     write(sfield%name, '(a, i0)') trim(vfield%name) // "%", dim
     
     ! FIXME: make these the same as the vector field
@@ -3348,7 +3352,7 @@ contains
     val => null()
 
     select case(field%field_type)
-    case(FIELD_TYPE_NORMAL)
+    case(FIELD_TYPE_NORMAL,FIELD_TYPE_SPHERICAL_COORDINATES)
       val => field%val(dim,:)
       return
     case(FIELD_TYPE_CONSTANT)
