@@ -343,7 +343,7 @@ contains
     do j = 1, blocks(A,1)
 
       select case(b%field_type)
-      case(FIELD_TYPE_NORMAL)
+      case(FIELD_TYPE_NORMAL,FIELD_TYPE_SPHERICAL_COORDINATES)
         do i = 1, block_size(A,1)
           call addto(A, j, j, i, i, b%val(j,i)*l_scale)
         end do
@@ -404,7 +404,7 @@ contains
     
     do dim=1,b%dim
        select case(b%field_type)
-       case(FIELD_TYPE_NORMAL)
+       case(FIELD_TYPE_NORMAL,FIELD_TYPE_SPHERICAL_COORDINATES)
           call mult(tmpx, block(A,1,dim), b%val(dim,:))
        case(FIELD_TYPE_CONSTANT)
           allocate(tmpb(size(x%val)))
@@ -433,7 +433,7 @@ contains
     
     do dim=1,x%dim
        select case(b%field_type)
-       case(FIELD_TYPE_NORMAL)
+       case(FIELD_TYPE_NORMAL,FIELD_TYPE_SPHERICAL_COORDINATES)
           call mult(x%val(dim,:), block(A,dim,1), b%val)
        case(FIELD_TYPE_CONSTANT)
           allocate(tmpb(size(x%val(dim,:))))
@@ -465,7 +465,7 @@ contains
           if (A%diagonal .and. dim_b/=dim_x) cycle
           
           select case(b%field_type)
-          case(FIELD_TYPE_NORMAL)
+          case(FIELD_TYPE_NORMAL,FIELD_TYPE_SPHERICAL_COORDINATES)
              call mult(tmpx, block(A,dim_x,dim_b), b%val(dim_b,:))
           case(FIELD_TYPE_CONSTANT)
              allocate(tmpb(size(x%val)))
@@ -565,7 +565,7 @@ contains
           if (A%diagonal .and. dim_b/=dim_x) cycle
           
           select case(b%field_type)
-          case(FIELD_TYPE_NORMAL)
+          case(FIELD_TYPE_NORMAL,FIELD_TYPE_SPHERICAL_COORDINATES)
              call mult_T(tmpx, block(A,dim_b,dim_x), b%val(dim_b,:))
           case(FIELD_TYPE_CONSTANT)
              allocate(tmpb(size(x%val)))
