@@ -1,4 +1,6 @@
-preprocess:
+include envcheck.mk
+
+preprocess: envcheck
 	@$(foreach layers,4 8 16 32 64, \
 		echo **********Installing directory for $(layers) layer simulation.;\
 		install -d channel-$(layers); \
@@ -6,22 +8,23 @@ preprocess:
 		ln -sf ../channel.flml .;\
 		ln -sf ../channel_tools.py .;\
 		ln -sf ../src/chan$(layers).msh ./channel.msh;\
+		${BINPREFIX}gmsh2triangle -2 ./channel.msh;\
 		cd ..; \
 	)
 
-run:	preprocess
+run: envcheck
 	@echo **********Running simulation for each refinement.
 	@$(foreach layers, 4 8 16 32 64, \
 		cd channel-$(layers); \
 		echo **********Running simulation for $(layers) layer mesh.;\
-		echo ../../../bin/fluidity -v 2 -l channel.flml; \
-		../../../bin/fluidity -v 2 -l channel.flml; \
+		echo ${BINPREFIX}fluidity -v 2 -l channel.flml; \
+		${BINPREFIX}fluidity -v 2 -l channel.flml; \
 		cd ..;\
 	) 
 
-postprocess:
+postprocess: envcheck
 	@echo **********Plotting convergence data.
-	./plot_data 4 8 16 32 64
+	PYTHONPATH=${PWD}/../../python:$$PYTHONPATH ./plot_data 4 8 16 32 64
 
 input: clean preprocess
 
