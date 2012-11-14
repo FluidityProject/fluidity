@@ -417,6 +417,10 @@ contains
           fgroup%variables(var_index)%field_name = trim(fgroup%name)//trim(field_name)//trim(biovar_name)
           fgroup%variables(var_index)%field_path = trim(var_buffer)//"/scalar_field"
 
+          if (have_option(trim(var_buffer)//"/scalar_field/integrate_along_path")) then
+             fgroup%variables(var_index)%path_integration = .true.
+          end if
+
           if (have_option(trim(var_buffer)//"/scalar_field/stage_diagnostic")) then
              fgroup%variables(var_index)%stage_diagnostic = .true.
           end if
@@ -458,6 +462,10 @@ contains
           call get_option(trim(var_buffer)//"/scalar_field/name", field_name)
           fgroup%variables(var_index)%field_name = trim(fgroup%name)//trim(field_name)//trim(biovar_name)
           fgroup%variables(var_index)%field_path = trim(var_buffer)//"/scalar_field::Particulate"
+
+          if (have_option(trim(var_buffer)//"/scalar_field::Particulate/integrate_along_path")) then
+             fgroup%variables(var_index)%path_integration = .true.
+          end if
 
           if (have_option(trim(var_buffer)//"/scalar_field::Particulate/stage_diagnostic")) then
              fgroup%variables(var_index)%stage_diagnostic = .true.
@@ -1067,13 +1075,17 @@ contains
 
              ! Don't multiply EmsembleSize by itself
              if (v == BIOVAR_SIZE) then
-                conc = agent%biology(BIOVAR_SIZE) / ele_volume
-                call addto(diagfields(v)%ptr, agent%element, conc)
+                if (var%path_integration) then
+                   call integrate_along_path(diagfields(v)%ptr, xfield, agent, 1.0)
 
-                if (var%stage_diagnostic) then
-                   call addto(stagefields(v)%ptr, agent%element, conc)
+                else
+                   conc = agent%biology(BIOVAR_SIZE) / ele_volume
+                   call addto(diagfields(v)%ptr, agent%element, conc)
+
+                   if (var%stage_diagnostic) then
+                      call addto(stagefields(v)%ptr, agent%element, conc)
+                   end if
                 end if
-             
              ! All diagnostic agent quantities get divided by element volume
              ! and multiplied by the number of individuals an agent represents
              elseif (var%field_type == BIOFIELD_DIAG .or. &
@@ -1659,7 +1671,11 @@ contains
     type(elepath_list), pointer :: path_ele
 
     ! Integrate along the path of the agent
-    if (associated(agent%path_elements)) then                   
+
+    ! Note: Since we are now calling this for general agent diagnostics, 
+    ! which may include freshly created agents (initialisation or PM)
+    ! we need to disable this sanity check, although it can be very useful at times.
+    !if (associated(agent%path_elements)) then                   
        ! First we need the total path length
        path_total = 0.0
        path_ele => agent%path_elements
@@ -1684,9 +1700,9 @@ contains
 
           path_ele => elepath_list_next(path_ele)
        end do path_loop
-    else
-       FLAbort("Cannot integrate along path without a recorded path!")
-    end if
+    !else
+    !   FLAbort("Cannot integrate along path without a recorded path!")
+    !end if
   end subroutine integrate_along_path
 
   function insert_global_uptake_field(field_name) result (index)

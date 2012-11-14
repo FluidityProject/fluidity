@@ -48,6 +48,9 @@ lagrangian_biology =
                               internal_algorithm,
                               diagnostic_scalar_field_lebiology
                            },
+			   element integrate_along_path {
+                              empty
+                           }?,
                            ## Add diagnostic fields that represent the particulate concetration of individual stage groups.
                            element stage_diagnostic {
                               empty
@@ -266,6 +269,9 @@ chemical_variable =
                internal_algorithm,
                diagnostic_scalar_field_lebiology
             },
+            element integrate_along_path {
+               empty
+            }?,
             ## Add diagnostic fields that represent the particulate concetration of individual stage groups.
             element stage_diagnostic {
                empty

@@ -62,6 +62,11 @@ All internal quantities that are exchanged with the environment get scaled by th
                     <ref name="internal_algorithm"/>
                     <ref name="diagnostic_scalar_field_lebiology"/>
                   </element>
+                  <optional>
+                    <element name="integrate_along_path">
+                      <empty/>
+                    </element>
+                  </optional>
                   <element name="stage_diagnostic">
                     <a:documentation>Add diagnostic fields that represent the particulate concetration of individual stage groups.</a:documentation>
                     <empty/>
@@ -321,6 +326,11 @@ This field must be on a discontinuous mesh</a:documentation>
             <ref name="internal_algorithm"/>
             <ref name="diagnostic_scalar_field_lebiology"/>
           </element>
+          <optional>
+            <element name="integrate_along_path">
+              <empty/>
+            </element>
+          </optional>
           <optional>
             <element name="stage_diagnostic">
               <a:documentation>Add diagnostic fields that represent the particulate concetration of individual stage groups.</a:documentation>
