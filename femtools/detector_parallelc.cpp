@@ -5,7 +5,7 @@
 struct mpi_counter_t *id_counter;
 
 /* Initialise the shared ID counter for generating detector IDs in parallel */
-void init_id_counter_c(){
+extern "C" void init_id_counter_c(){
   int i;
   id_counter = (struct mpi_counter_t *)malloc(sizeof(struct mpi_counter_t));
 
@@ -27,7 +27,7 @@ void init_id_counter_c(){
 }
 
 /* Get the next detector ID from the shared MPI counter */
-void get_next_detector_id_c(int *next_id){
+extern "C" void get_next_detector_id_c(int *next_id){
   int *vals = (int *)malloc( id_counter->size * sizeof(int) );
   int i, val;
   int increment=1;
@@ -55,7 +55,7 @@ void get_next_detector_id_c(int *next_id){
 }
 
 /* Delete the shared ID counter */
-void delete_id_counter_c() {
+extern "C" void delete_id_counter_c() {
     // Rank 0 is always the data host
     if(id_counter->rank == 0){
         MPI_Free_mem(id_counter->data);

@@ -10,10 +10,10 @@ struct mpi_counter_t {
 };
 
 /* Initialise the shared ID counter for generating detector IDs in parallel */
-void init_id_counter_c();
+extern "C" void init_id_counter_c();
 
 /* Get the next detector ID from the shared MPI counter */
-void get_next_detector_id_c();
+extern "C" void get_next_detector_id_c(int *next_id);
 
 /* Delete the shared ID counter */
-void delete_id_counter_c();
+extern "C" void delete_id_counter_c();
