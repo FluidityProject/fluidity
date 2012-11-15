@@ -2225,7 +2225,7 @@ implicit none
     assert(to_field%dim>=from_field%dim)
 
     select case(from_field%field_type)
-    case(FIELD_TYPE_NORMAL)
+    case(FIELD_TYPE_NORMAL, FIELD_TYPE_SPHERICAL_COORDINATES)
     
       call test_remap_validity(from_field, to_field, stat=stat)
 
@@ -2260,6 +2260,8 @@ implicit none
       do i=1, from_field%dim
         to_field%val(i,:) = from_field%val(i,1)
       end do
+    case default
+      FLAbort("Unknown field type in remap_field_to_surface")
     end select
 
     ! Zero any left-over dimensions
