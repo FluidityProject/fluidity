@@ -1075,9 +1075,11 @@ contains
 
              ! Don't multiply EmsembleSize by itself
              if (v == BIOVAR_SIZE) then
-                if (var%path_integration) then
+                if (var%path_integration .and. associated(agent%path_elements)) then
                    call integrate_along_path(diagfields(v)%ptr, xfield, agent, 1.0)
-
+                   if (var%stage_diagnostic) then
+                      call integrate_along_path(stagefields(v)%ptr, xfield, agent, 1.0)
+                   end if
                 else
                    conc = agent%biology(BIOVAR_SIZE) / ele_volume
                    call addto(diagfields(v)%ptr, agent%element, conc)
@@ -1091,7 +1093,7 @@ contains
              elseif (var%field_type == BIOFIELD_DIAG .or. &
                      var%field_type == BIOFIELD_INGESTED ) then
 
-                if (var%path_integration) then
+                if (var%path_integration .and. associated(agent%path_elements)) then
                    call integrate_along_path(diagfields(v)%ptr, xfield, agent, agent%biology(v))
 
                 else
@@ -1671,38 +1673,29 @@ contains
     type(elepath_list), pointer :: path_ele
 
     ! Integrate along the path of the agent
+    path_total = 0.0
+    path_ele => agent%path_elements
+    do while( associated(path_ele) )
+       path_total = path_total + path_ele%data%dist
 
-    ! Note: Since we are now calling this for general agent diagnostics, 
-    ! which may include freshly created agents (initialisation or PM)
-    ! we need to disable this sanity check, although it can be very useful at times.
-    !if (associated(agent%path_elements)) then                   
-       ! First we need the total path length
-       path_total = 0.0
-       path_ele => agent%path_elements
-       do while( associated(path_ele) )
-          path_total = path_total + path_ele%data%dist
+       path_ele => elepath_list_next(path_ele)
+    end do
+    quantity = agent_variable * agent%biology(BIOVAR_SIZE)
 
-          path_ele => elepath_list_next(path_ele)
-       end do
-       quantity = agent_variable * agent%biology(BIOVAR_SIZE)
-
-       path_ele => agent%path_elements       
-       path_loop: do while( associated(path_ele) )
-          ele_path_volume = element_volume(xfield, path_ele%data%ele)
-          if (present(concfield) .and. present(threshold)) then
-             ele_conc = integral_element(concfield, xfield, path_ele%data%ele) / ele_path_volume
-             if (.not. ele_conc >= threshold) then
-                path_ele => elepath_list_next(path_ele)
-                cycle path_loop
-             end if
+    path_ele => agent%path_elements       
+    path_loop: do while( associated(path_ele) )
+       ele_path_volume = element_volume(xfield, path_ele%data%ele)
+       if (present(concfield) .and. present(threshold)) then
+          ele_conc = integral_element(concfield, xfield, path_ele%data%ele) / ele_path_volume
+          if (.not. ele_conc >= threshold) then
+             path_ele => elepath_list_next(path_ele)
+             cycle path_loop
           end if
-          call addto(diagfield, path_ele%data%ele, (path_ele%data%dist / path_total) * (quantity / ele_path_volume))
+       end if
+       call addto(diagfield, path_ele%data%ele, (path_ele%data%dist / path_total) * (quantity / ele_path_volume))
 
-          path_ele => elepath_list_next(path_ele)
-       end do path_loop
-    !else
-    !   FLAbort("Cannot integrate along path without a recorded path!")
-    !end if
+       path_ele => elepath_list_next(path_ele)
+    end do path_loop
   end subroutine integrate_along_path
 
   function insert_global_uptake_field(field_name) result (index)
