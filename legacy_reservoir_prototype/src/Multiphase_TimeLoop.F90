@@ -46,6 +46,7 @@
     use spud
     use signal_vars
     use populate_state_module
+    use vector_tools
 
 !!$ Modules required by adaptivity
     use qmesh_module
@@ -146,7 +147,7 @@
       type( tensor_field ) :: metric_tensor
       type( state_type ), dimension( : ), pointer :: sub_state => null()
       integer :: nonlinear_iterations_adapt
-      logical :: do_reallocate_fields, not_to_move_det_yet = .false.
+      logical :: do_reallocate_fields, not_to_move_det_yet = .false., initialised
 
 !!$ Working arrays:
       integer, dimension( : ), allocatable :: PhaseVolumeFraction_BC_Spatial, Pressure_FEM_BC_Spatial, &
@@ -183,7 +184,7 @@
 !!$ Momentum_Diffusion = udiffusion; ScalarAdvectionField_Diffusion = tdiffusion, 
 !!$ Component_Diffusion = comp_diffusion
 
-      integer :: stat, istate, iphase, jphase, icomp, its, its2, cv_nodi, i
+      integer :: stat, istate, iphase, jphase, icomp, its, its2, cv_nodi, i, adapt_time_steps
 
 !!$ Compute primary scalars used in most of the code
       call Get_Primary_Scalars( state, &         
@@ -318,7 +319,8 @@
            Velocity_U_Source = 0. ; Velocity_Absorption = 0. ; Velocity_U_Source_CV = 0. 
 
 !!$ Extracting Mesh Dependent Fields
-      call Extracting_MeshDependentFields_From_State( state, &
+      initialised = .false.
+      call Extracting_MeshDependentFields_From_State( state, initialised, &
            xu, yu, zu, x, y, z, &
            PhaseVolumeFraction, PhaseVolumeFraction_BC_Spatial, PhaseVolumeFraction_BC, PhaseVolumeFraction_Source, &
            Pressure_CV, Pressure_FEM, Pressure_FEM_BC_Spatial, Pressure_FEM_BC, &
@@ -328,6 +330,9 @@
            Velocity_U_BC_Spatial, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, Velocity_U_Source, Velocity_Absorption, &
            Temperature, Temperature_BC_Spatial, Temperature_BC, Temperature_Source, &
            Porosity, Permeability )
+
+      ewrite(3,*) 'b4 all this merda:'
+      call print_from_state( state, temperature )
 
 !!$ Dummy field used in the scalar advection option:
       Dummy_PhaseVolumeFraction_FEMT = 1.
@@ -452,27 +457,23 @@
 
 
 !!$ Update state memory
-         if ( have_temperature_field ) then
-            do iphase = 1, nphase
-               Temperature_State => extract_scalar_field( state( iphase ), 'Temperature' )
-               Temperature_State % val = Temperature( 1 + ( iphase - 1 ) * cv_nonods : iphase * cv_nonods )
-            end do
-         end if
-         Pressure_State => extract_scalar_field( state( 1 ), 'Pressure' )
-         Pressure_State % val = Pressure_CV
-         do icomp = 1, ncomp
-            do iphase = 1, nphase
-               Component_State => extract_scalar_field( state( icomp + nphase ), & 
-                    'ComponentMassFractionPhase' // int2str( iphase ) )
-               Component_State % val = component( 1 + ( iphase - 1 ) * cv_nonods + ( icomp - 1 ) * &
-                    nphase * cv_nonods : iphase * cv_nonods + ( icomp - 1 ) * nphase * cv_nonods )
-            end do
-         end do
+!!$         if ( have_temperature_field ) then
+!!$            do iphase = 1, nphase
+!!$               Temperature_State => extract_scalar_field( state( iphase ), 'Temperature' )
+!!$               Temperature_State % val = Temperature( 1 + ( iphase - 1 ) * cv_nonods : iphase * cv_nonods )
+!!$            end do
+!!$         end if
+!!$         Pressure_State => extract_scalar_field( state( 1 ), 'Pressure' )
+!!$         Pressure_State % val = Pressure_CV
+!!$         do icomp = 1, ncomp
+!!$            do iphase = 1, nphase
+!!$               Component_State => extract_scalar_field( state( icomp + nphase ), & 
+!!$                    'ComponentMassFractionPhase' // int2str( iphase ) )
+!!$               Component_State % val = component( 1 + ( iphase - 1 ) * cv_nonods + ( icomp - 1 ) * &
+!!$                    nphase * cv_nonods : iphase * cv_nonods + ( icomp - 1 ) * nphase * cv_nonods )
+!!$            end do
+!!$         end do
 
-
-         ewrite(3,*)'temp:', temperature(1 : nphase * cv_nonods)
-         ewrite(3,*)'tempold:', temperature_old(1 : nphase * cv_nonods )
-         ewrite(1,*)' New Time Step:', itime
 
          ! evaluate prescribed fields at time = current_time+dt
          call set_prescribed_field_values( state, exclude_interpolated = .true., &
@@ -538,12 +539,19 @@
                     mass_ele_transp = dummy_ele, &
                     thermal = .true. )        
 
+!!$
+!!$               ewrite(3,*)'hell job1:', norm2( temperature )
+!!$               call print_from_state( state, temperature )
+
 !!$ Update state memory
                do iphase = 1, nphase
                   Temperature_State => extract_scalar_field( state( iphase ), 'Temperature' )
                   Temperature_State % val = Temperature( 1 + ( iphase - 1 ) * cv_nonods : iphase * cv_nonods )
                end do
 
+!!$               ewrite(3,*)'hell job2:', norm2( temperature ), 'normfromstate:', norm2( temperature_state%val)
+!!$               call print_from_state( state, temperature )
+!!$               stop 87
                call Calculate_Phase_Component_Densities( state, &
                     Density, DRhoDPressure )
 
@@ -565,7 +573,7 @@
                     PhaseVolumeFraction )
             end if
 
-            CALL CALCULATE_SURFACE_TENSION( state, nphase, ncomp, &
+            if( .false. ) CALL CALCULATE_SURFACE_TENSION( state, nphase, ncomp, &
                  PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, IPLIKE_GRAD_SOU, &
                  Component, &
                  NCOLACV, FINACV, COLACV, MIDACV, &
@@ -706,7 +714,7 @@
 
             end if Conditional_PhaseVolumeFraction
 
-!!$ Staring loop over components
+!!$ Starting loop over components
             sum_theta_flux = 0. ; sum_one_m_theta_flux = 0. ; ScalarField_Source_Component = 0.
 
             Conditional_Components: if( have_component_field ) then
@@ -829,7 +837,7 @@
                      end do Loop_Phase_SourceTerm2
                   end do Loop_Phase_SourceTerm1
 
-                  ! For compressability...
+                  ! For compressability
                   DO IPHASE = 1, NPHASE
                      DO CV_NODI = 1, CV_NONODS
                         ScalarField_Source_Component( CV_NODI + ( IPHASE - 1 ) * CV_NONODS ) = &
@@ -863,24 +871,25 @@
          call set_option( '/timestepping/current_time', acctim )
          call set_option( '/timestepping/timestep', dt)
 
-         Conditional_TimeDump: if( ( mod( itime, dump_period_in_timesteps ) == 0 ) .or. ( itime == 1 ) ) then
 !!$ Copying fields back to state:
-            call copy_into_state( state, & ! Copying main fields into state
-                 PhaseVolumeFraction, Temperature, Pressure_FEM, Velocity_U, Velocity_V, Velocity_W, &
-                 Density, Component, &
-                 ncomp, nphase, cv_ndgln, p_ndgln, u_ndgln, ndim )
+         call copy_into_state( state, & ! Copying main fields into state
+              PhaseVolumeFraction, Temperature, Pressure_CV, Velocity_U, Velocity_V, Velocity_W, &
+!!$              PhaseVolumeFraction, Temperature, Pressure_FEM, Velocity_U, Velocity_V, Velocity_W, &
+              Density, Component, &
+              ncomp, nphase, cv_ndgln, p_ndgln, u_ndgln, ndim )
 
+!!$         ewrite(3,*)'b4 printing', itime
+!!$         if( ( itime == 1 ) .or. ( mod( itime, 3 ) == 0 ) ) call print_from_state( state, temperature )
+!!$         if( itime > 5 ) stop 98
+
+         Conditional_TimeDump: if( ( mod( itime, dump_period_in_timesteps ) == 0 ) .or. ( itime == 1 ) ) then
             call get_option( '/timestepping/current_time', current_time ) ! Find the current time 
 !!$ Calculate diagnostic fields and write into the stat file
             call calculate_diagnostic_variables( state, exclude_nonrecalculated = .true. )
             call calculate_diagnostic_variables_new( state, exclude_nonrecalculated = .true. )
             call write_diagnostics( state, current_time, dt, itime )
-            not_to_move_det_yet=.false.
-
-!!$ Now writing into the vtu files
-            dump_no = itime !Sync dump_no with itime
-            call write_state( dump_no, state )
-
+            not_to_move_det_yet = .false. ; dump_no = itime ! Sync dump_no with itime
+            call write_state( dump_no, state ) ! Now writing into the vtu files
          end if Conditional_TimeDump
 
 !!$! ******************
@@ -888,8 +897,14 @@
 !!$! ******************
 
          do_reallocate_fields = .false.
-         Conditional_Adaptivity_ReallocatingFields: if( have_option( '/mesh_adaptivity/hr_adaptivity ') ) then
-            if( do_adapt_mesh( current_time, timestep ) ) do_reallocate_fields = .true.
+         Conditional_Adaptivity_ReallocatingFields: if( have_option( '/mesh_adaptivity/hr_adaptivity') ) then
+            if( have_option( '/mesh_adaptivity/hr_adaptivity/period_in_timesteps') ) then
+               call get_option( '/mesh_adaptivity/hr_adaptivity/period_in_timesteps', &
+                    adapt_time_steps, default=5 )
+            end if
+            if( mod( itime, adapt_time_steps ) == 0 ) do_reallocate_fields = .true.           
+!!$            if( do_adapt_mesh( current_time, itime ) ) do_reallocate_fields = .true.
+!!$            if( do_adapt_mesh( current_time, timestep ) ) do_reallocate_fields = .true.
          elseif( have_option( '/mesh_adaptivity/prescribed_adaptivity' ) ) then
             if( do_adapt_state_prescribed( current_time ) ) do_reallocate_fields = .true.
          end if Conditional_Adaptivity_ReallocatingFields
@@ -898,14 +913,18 @@
 
             Conditional_Adaptivity: if( have_option( '/mesh_adaptivity/hr_adaptivity ') ) then
 
-               Conditional_Adapt_by_TimeStep: if( do_adapt_mesh( current_time, timestep ) ) then
+               Conditional_Adapt_by_TimeStep: if( mod( itime, adapt_time_steps ) == 0 ) then
+!!$               Conditional_Adapt_by_TimeStep: if( do_adapt_mesh( current_time, itime ) ) then
+!!$               Conditional_Adapt_by_TimeStep: if( do_adapt_mesh( current_time, timestep ) ) then
 
                   call pre_adapt_tasks( sub_state )
 
                   call qmesh( state, metric_tensor )
 
                   if( have_option( '/io/stat/output_before_adapts' ) ) call write_diagnostics( state, current_time, dt, &
-                       timestep, not_to_move_det_yet = .true. )
+                       itime, not_to_move_det_yet = .true. )
+!!$                  if( have_option( '/io/stat/output_before_adapts' ) ) call write_diagnostics( state, current_time, dt, &
+!!$                       timestep, not_to_move_det_yet = .true. )
 
                   call run_diagnostics( state )
 
@@ -915,7 +934,9 @@
                        nonlinear_iterations_adapt )
 
                   if( have_option( '/io/stat/output_after_adapts' ) ) call write_diagnostics( state, current_time, dt, &
-                       timestep, not_to_move_det_yet = .true. )
+                       itime, not_to_move_det_yet = .true. )
+!!$                  if( have_option( '/io/stat/output_after_adapts' ) ) call write_diagnostics( state, current_time, dt, &
+!!$                       timestep, not_to_move_det_yet = .true. )
 
                   call run_diagnostics( state )
 
@@ -1123,7 +1144,8 @@
             Temperature = 0. ; Temperature_BC_Spatial = 0 ; Temperature_BC = 0. ; 
 
 !!$ Extracting Mesh Dependent Fields
-            call Extracting_MeshDependentFields_From_State( state, &
+            initialised = .true.
+            call Extracting_MeshDependentFields_From_State( state, initialised, &
                  xu, yu, zu, x, y, z, &
                  PhaseVolumeFraction, PhaseVolumeFraction_BC_Spatial, PhaseVolumeFraction_BC, PhaseVolumeFraction_Source, &
                  Pressure_CV, Pressure_FEM, Pressure_FEM_BC_Spatial, Pressure_FEM_BC, &
@@ -1226,6 +1248,5 @@
 
       return
     end subroutine MultiFluids_SolveTimeLoop
-
 
   end module multiphase_time_loop
