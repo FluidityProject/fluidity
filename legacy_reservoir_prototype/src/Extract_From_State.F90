@@ -999,6 +999,7 @@
       end do
       nphase = nstate - ncomp
       option_path = '/material_phase['//int2str( iphase - 1 )//']/scalar_field::'//trim( field_name )
+      ewrite(3,*)'option_path:', trim( option_path )
 
 
 !!$ This will need to be ammended later on to take into account python functions that impose 
@@ -1368,16 +1369,15 @@
 !!$ Defining logicals for the field associated with the tensor. For now, it is set up for either 
 !!$ Permeability( totele, ndim, ndim ) and Viscosity( mat_nonods, ndim, ndim, nphase ). We may need to
 !!$ extend the subroutine to also with an arbitrary tensor shape.
-      do istate = 1, nstate
-         Conditional_WhichField: if( trim( field_path ) == '/material_phase[' // int2str( istate - 1 ) // &
-              ']/vector_field::' // trim( field_name ) // '/prognostic/tensor_field::Viscosity' )then
-            compute_viscosity = .true.
-         elseif( trim( field_path ) == '/porous_media/tensor_field::Permeability' ) then 
-            compute_permeability = .true.
-         else
-            FLAbort( 'Tensor Field was not defined in the schema - sort this out' )
-         end if Conditional_WhichField
-      end do
+      Conditional_WhichField: if( trim( field_path ) == '/material_phase[' // int2str( istate_field - 1 ) // &
+           ']/vector_field::Velocity/prognostic/tensor_field::' // trim( field_name ) )then
+         compute_viscosity = .true.
+      elseif( trim( field_path ) == '/porous_media/tensor_field::Permeability' ) then 
+         compute_permeability = .true.
+      else
+         FLAbort( 'Tensor Field was not defined in the schema - sort this out' )
+      end if Conditional_WhichField
+
 
 !!$ Now looping over state
       LoopOverState: do istate = 1, nstate
@@ -1396,7 +1396,7 @@
 
          if( compute_viscosity ) then
             option_viscosity = '/material_phase[' // int2str( istate - 1 ) // ']/vector_field::' // &
-                 trim( field_name ) // 'prognostic/tensor_field::Viscosity/prescribed/value[0]'
+                 'Velocity/prognostic/tensor_field::' // trim( field_name ) // '/prescribed/value[0]'
             if( have_option( trim( option_viscosity ) ) ) then
                option_path = trim( option_viscosity )
             else

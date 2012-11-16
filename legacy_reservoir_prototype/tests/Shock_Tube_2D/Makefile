@@ -1,6 +1,6 @@
 SHELL = sh
 
-SIM = BL_test_10elements_2d
+SIM = Shock_Tube_2D
 
 input:
 	gmsh -2 src/2d_mesh.geo
