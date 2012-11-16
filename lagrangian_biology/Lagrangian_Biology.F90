@@ -1095,6 +1095,9 @@ contains
 
                 if (var%path_integration .and. associated(agent%path_elements)) then
                    call integrate_along_path(diagfields(v)%ptr, xfield, agent, agent%biology(v))
+                   if (var%stage_diagnostic) then
+                      call integrate_along_path(stagefields(v)%ptr, xfield, agent, agent%biology(v))
+                   end if
 
                 else
                    conc = agent%biology(v) * agent%biology(BIOVAR_SIZE) / ele_volume
