@@ -237,3 +237,4 @@ The origin of the Cartesian frame of reference is located at the centre of the s
     transformed_Vector = transform_vector_lon_lat_rad_2_sphericalPolar(vector)
     #Transform from spherical-polar into Cartesian
     transformed_Vector = transform_vector_sphericalPolar_2_cartesian(positionVectorSpherical, vector)
+    return transformed_Vector
