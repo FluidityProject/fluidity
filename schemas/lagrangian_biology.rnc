@@ -132,7 +132,10 @@ lagrangian_biology =
                                  attribute name { xsd:string },
                                  attribute module { xsd:string },
                                  attribute parameters { xsd:string },
-                                 empty
+                                 ## Expose the "persistent" dictionary as an extra argument to the kernel function.
+                                 element expose_persistent {
+                                    empty
+                                 }?
                               }
                            )
                         }|

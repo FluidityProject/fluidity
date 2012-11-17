@@ -162,7 +162,12 @@ This is an external python function wrapped in a module somewhere on the PYTHONP
                           <attribute name="parameters">
                             <data type="string"/>
                           </attribute>
-                          <empty/>
+                          <optional>
+                            <element name="expose_persistent">
+                              <a:documentation>Expose the "persistent" dictionary as an extra argument to the kernel function.</a:documentation>
+                              <empty/>
+                            </element>
+                          </optional>
                         </element>
                       </choice>
                     </element>

@@ -17,6 +17,8 @@ PyMODINIT_FUNC initlebiology(int dim)
   pFGEnvNames = PyDict_New();
   pFGFoodNames = PyDict_New();
   pFGStageID = PyDict_New();
+
+  pPersistent = NULL;
 #endif
 }
 
@@ -76,6 +78,21 @@ void lebiology_fg_kernel_load_c(char *fg, int fglen,
   free(k_name); 
   free(p_name); 
   return;
+#endif
+}
+
+void lebiology_reload_persistent_c()
+{
+#ifdef HAVE_PYTHON
+  // If we already have a copy, let it go.
+  if (pPersistent) {
+     Py_DECREF(pPersistent);
+  }
+
+  PyObject *pMain = PyImport_AddModule("__main__");
+  PyObject *pMainDict = PyModule_GetDict(pMain);
+  pPersistent = PyDict_GetItemString(pMainDict, "persistent");
+  Py_INCREF(pPersistent);
 #endif
 }
 
@@ -440,7 +457,7 @@ void lebiology_kernel_update_c(char *fg, int fglen,
                               double vars[], int n_vars, 
                               double envvals[], int n_envvals, 
                               double fvariety[], double frequest[], double fthreshold[], double fingest[], int n_fvariety, 
-                              double *dt, int *stat)
+			      double *dt, int persistent, int *stat)
 {
 #ifdef HAVE_PYTHON
   // Get variable names
@@ -466,7 +483,13 @@ void lebiology_kernel_update_c(char *fg, int fglen,
   PyObject *pKernel = PyDict_GetItemString(pKernelMap, keystr);
   PyObject *pParamMap = PyDict_GetItemString(pFGParamDicts, fg_key);
   PyObject *pParams = PyDict_GetItemString(pParamMap, keystr);
-  PyObject *pArgsTuple = PyTuple_Pack(4, pParams, pAgent, pEnvironment, pDt);
+  
+  PyObject *pArgsTuple;
+  if (persistent > 0) {
+    pArgsTuple = PyTuple_Pack(5, pParams, pAgent, pEnvironment, pDt, pPersistent);
+  } else {
+    pArgsTuple = PyTuple_Pack(4, pParams, pAgent, pEnvironment, pDt);
+  }
 
   PyObject *pResult = PyObject_CallObject(pKernel, pArgsTuple);
 

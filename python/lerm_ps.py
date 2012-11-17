@@ -36,11 +36,14 @@ species_Default_Diatom_Variety = {
     'z_sink' : 0.04,
 }
 
-def update_Living_Diatom(param, vars, env, dt):
+def update_Living_Diatom(param, vars, env, dt, persistent):
   """ FGroup:  Diatom
       Stage:   Living
   """
   dt_in_hours = dt / 3600.0
+
+  env['Irradiance'] = persistent['physics_irrad_interp']( abs(vars['z']) )
+  #env['Temperature'] = persistent['physics_temp_interp']( abs(vars['z']) )
 
   ### Effect of temperature ###
   T_K = (env['Temperature'] + 273.0)

@@ -714,7 +714,7 @@ contains
     character(len=OPTION_PATH_LEN) :: le_options
     type(food_set) :: fset
     integer :: i, j, f, v, env, pm_period, hvar, hvar_ind, hvar_src_ind, fg, stage
-    logical :: python_state_initialised, use_kernel_function
+    logical :: python_state_initialised, use_kernel_function, use_persistent
 
     ewrite(1,*) "Lagrangian biology: Updating agents..."
     call profiler_tic("/update_lagrangian_biology")
@@ -808,6 +808,12 @@ contains
                 use_kernel_function = .false.
              else
                 use_kernel_function = .true.
+                if (have_option(trim(agent_array%stage_options)//"/biology/update_kernel/expose_persistent")) then
+                   call lebiology_reload_persistent()
+                   use_persistent = .true.
+                else
+                   use_persistent = .false.
+                end if
              end if
 
              ! Update agent biology
@@ -828,7 +834,8 @@ contains
 
                 ! Update agent via the Python module
                 call lebiology_update_agent(fgroup, trim(agent_array%stage_name)//"_Update", &
-                          trim(foodname), agent, xfield, env_fields, food_fields, dt, use_kernel_function)
+                          trim(foodname), agent, xfield, env_fields, food_fields, dt, &
+                          use_kernel_function, use_persistent)
 
                 ! Reset Ingested variables
                 do v=1, size(fgroup%variables)
