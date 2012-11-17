@@ -412,7 +412,7 @@
             <value name="WholeMesh">
               <isotropic>
                 <constant>
-                  <real_value rank="0">1.</real_value>
+                  <real_value rank="0">0.</real_value>
                 </constant>
               </isotropic>
             </value>
@@ -847,7 +847,7 @@
             <value name="WholeMesh">
               <isotropic>
                 <constant>
-                  <real_value rank="0">1.</real_value>
+                  <real_value rank="0">0.</real_value>
                 </constant>
               </isotropic>
             </value>
