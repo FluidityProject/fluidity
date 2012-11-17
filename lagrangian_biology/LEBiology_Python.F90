@@ -15,6 +15,7 @@ module lebiology_python
   private
   
   public :: lebiology_init_module, lebiology_set_stage_id, &
+            lebiology_load_kernel, &
             lebiology_add_variables, lebiology_add_envfields, &
             lebiology_add_foods, lebiology_prepare_pyfunc, &
             lebiology_initialise_agent, lebiology_move_agent, &
@@ -72,6 +73,20 @@ module lebiology_python
       integer(c_int), intent(out) :: stat
     end subroutine lebiology_add_fg_stage_id
 
+    subroutine lebiology_fg_kernel_load(fg, fglen, key, keylen, &
+         module, modulelen, kernel, kernellen, param, paramlen, stat) &
+         bind(c, name='lebiology_fg_kernel_load_c')
+      use :: iso_c_binding
+      implicit none
+      integer(c_int), intent(in), value :: fglen, keylen, modulelen, kernellen, paramlen
+      character(kind=c_char), dimension(fglen), intent(in) :: fg
+      character(kind=c_char), dimension(keylen), intent(in) :: key
+      character(kind=c_char), dimension(modulelen), intent(in) :: module
+      character(kind=c_char), dimension(kernellen), intent(in) :: kernel
+      character(kind=c_char), dimension(paramlen), intent(in) :: param
+      integer(c_int), intent(out) :: stat
+    end subroutine lebiology_fg_kernel_load
+
     subroutine lebiology_compile_function(fg, fglen, key, keylen, func, funclen, stat) &
            bind(c, name='lebiology_compile_function_c')
       use :: iso_c_binding
@@ -94,8 +109,27 @@ module lebiology_python
       integer(c_int), intent(out) :: stat
     end subroutine lebiology_agent_init
 
+    subroutine lebiology_kernel_update(fg, fglen, key, keylen, food, foodlen, &
+           vars, n_vars, envvals, n_envvals, fvariety, frequest, fthreshold, fingest, &
+           n_fvariety, dt, stat) &
+           bind(c, name='lebiology_kernel_update_c')
+      use :: iso_c_binding
+      implicit none
+      integer(c_int), intent(in), value :: fglen, keylen, foodlen
+      integer(c_int), intent(in), value :: n_vars, n_envvals, n_fvariety
+      character(kind=c_char), dimension(fglen), intent(in) :: fg
+      character(kind=c_char), dimension(keylen), intent(in) :: key
+      character(kind=c_char), dimension(foodlen), intent(in) :: food
+      real(c_double), dimension(n_vars), intent(inout) :: vars
+      real(c_double), dimension(n_envvals), intent(inout) :: envvals
+      real(c_double), dimension(n_fvariety), intent(inout) :: fvariety, frequest, fingest, fthreshold
+      real(c_double), intent(in) :: dt
+      integer(c_int), intent(out) :: stat
+    end subroutine lebiology_kernel_update
+
     subroutine lebiology_agent_update(fg, fglen, key, keylen, food, foodlen, &
-           vars, n_vars, envvals, n_envvals, fvariety, frequest, fthreshold, fingest, n_fvariety, dt, stat) &
+           vars, n_vars, envvals, n_envvals, fvariety, frequest, fthreshold, fingest, &
+           n_fvariety, dt, stat) &
            bind(c, name='lebiology_agent_update_c')
       use :: iso_c_binding
       implicit none
@@ -206,6 +240,23 @@ contains
     end if
   end subroutine lebiology_set_stage_id
 
+  subroutine lebiology_load_kernel(fgroup, key, module, kernel, paramset)
+    type(functional_group), intent(inout) :: fgroup
+    character(len=*), intent(in) :: key, module, kernel, paramset
+    integer :: stat
+
+    stat=0
+    call lebiology_fg_kernel_load(trim(fgroup%name), len_trim(fgroup%name), &
+             trim(key), len_trim(key), trim(module), len_trim(module), &
+             trim(kernel), len_trim(kernel), trim(paramset), len_trim(paramset), stat)
+
+    if (stat < 0) then
+       ewrite(-1, *) "Error loading kernel for FG::"//trim(fgroup%name)
+       ewrite(-1, *) "Kernel name: "//trim(kernel)
+       FLExit("Python error in LE-Biology")
+    end if
+  end subroutine lebiology_load_kernel
+
   subroutine lebiology_prepare_pyfunc(fgroup, key, func)
     type(functional_group), intent(inout) :: fgroup
     character(len=*), intent(in) :: key, func
@@ -273,7 +324,8 @@ contains
     end if
   end subroutine lebiology_move_agent
 
-  subroutine lebiology_update_agent(fgroup, key, foodname, agent, xfield, envfields, foodfields, dt)
+  subroutine lebiology_update_agent(fgroup, key, foodname, agent, xfield, envfields, &
+       foodfields, dt, use_kernel_func)
     type(functional_group), intent(inout) :: fgroup
     character(len=*), intent(in) :: key
     character(len=*), intent(in) :: foodname
@@ -282,6 +334,7 @@ contains
     type(scalar_field_pointer), dimension(:), pointer, intent(inout) :: envfields
     type(scalar_field_pointer), dimension(:), pointer, intent(inout) :: foodfields
     real, intent(in) :: dt
+    logical, intent(in) :: use_kernel_func
 
     real, dimension(size(envfields)) :: envfield_vals
     real, dimension(size(foodfields)) :: foodfield_vals
@@ -345,11 +398,19 @@ contains
     end do
 
     stat=0
-    call lebiology_agent_update(trim(fgroup%name), len_trim(fgroup%name), &
+    if (use_kernel_func) then 
+       call lebiology_kernel_update(trim(fgroup%name), len_trim(fgroup%name), &
              trim(key), len_trim(key), trim(foodname), len_trim(foodname), &
              agent%biology, size(agent%biology), envfield_vals, size(envfield_vals), &
              foodfield_vals, agent%food_requests, agent%food_thresholds, agent%food_ingests, &
              size(foodfield_vals), dt, stat)
+    else
+       call lebiology_agent_update(trim(fgroup%name), len_trim(fgroup%name), &
+             trim(key), len_trim(key), trim(foodname), len_trim(foodname), &
+             agent%biology, size(agent%biology), envfield_vals, size(envfield_vals), &
+             foodfield_vals, agent%food_requests, agent%food_thresholds, agent%food_ingests, &
+             size(foodfield_vals), dt, stat)
+    end if
 
     do v=1, size(agent%biology)
        if (ieee_is_nan(agent%biology(v))) then

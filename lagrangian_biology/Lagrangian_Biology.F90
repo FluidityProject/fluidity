@@ -84,7 +84,7 @@ contains
 
   subroutine initialise_lagrangian_biology_metamodel()
     character(len=OPTION_PATH_LEN) :: fg_buffer, stage_buffer, env_field_buffer
-    character(len=FIELD_NAME_LEN) :: stage_name
+    character(len=FIELD_NAME_LEN) :: stage_name, kernel_module, kernel_func, kernel_params
     type(functional_group), pointer :: fgroup
     type(detector_linked_list), pointer :: agent_array
     integer, dimension(:), allocatable :: rnd_seed
@@ -191,6 +191,15 @@ contains
           ! Store the python update code
           if (have_option(trim(stage_buffer)//"/biology/python")) then
              call get_option(trim(stage_buffer)//"/biology/python", agent_array%biovar_pycode)
+          end if
+
+          ! Store python kernel information
+          if (have_option(trim(stage_buffer)//"/biology/update_kernel")) then
+             call get_option(trim(stage_buffer)//"/biology/update_kernel/name", kernel_func)
+             call get_option(trim(stage_buffer)//"/biology/update_kernel/module", kernel_module)
+             call get_option(trim(stage_buffer)//"/biology/update_kernel/parameters", kernel_params)
+             call lebiology_load_kernel(fgroup, trim(agent_array%stage_name)//"_Update", &
+                  kernel_module, kernel_func, kernel_params)
           end if
 
           if (have_option(trim(stage_buffer)//"/io_period")) then
@@ -705,7 +714,7 @@ contains
     character(len=OPTION_PATH_LEN) :: le_options
     type(food_set) :: fset
     integer :: i, j, f, v, env, pm_period, hvar, hvar_ind, hvar_src_ind, fg, stage
-    logical :: python_state_initialised
+    logical :: python_state_initialised, use_kernel_function
 
     ewrite(1,*) "Lagrangian biology: Updating agents..."
     call profiler_tic("/update_lagrangian_biology")
@@ -796,6 +805,9 @@ contains
              ! Compile python function to set bio-variable, and store in the global dictionary
              if (have_option(trim(agent_array%stage_options)//"/biology/python")) then
                 call lebiology_prepare_pyfunc(fgroup, trim(agent_array%stage_name)//"_Update", agent_array%biovar_pycode)
+                use_kernel_function = .false.
+             else
+                use_kernel_function = .true.
              end if
 
              ! Update agent biology
@@ -816,7 +828,7 @@ contains
 
                 ! Update agent via the Python module
                 call lebiology_update_agent(fgroup, trim(agent_array%stage_name)//"_Update", &
-                          trim(foodname), agent, xfield, env_fields, food_fields, dt)
+                          trim(foodname), agent, xfield, env_fields, food_fields, dt, use_kernel_function)
 
                 ! Reset Ingested variables
                 do v=1, size(fgroup%variables)

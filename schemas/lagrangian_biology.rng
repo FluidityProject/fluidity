@@ -145,10 +145,26 @@ The local values of fields listed here will be presented in a dictionary 'enviro
                   <choice>
                     <element name="biology">
                       <a:documentation>Biology model for this type of agent.</a:documentation>
-                      <element name="python">
-                        <a:documentation>Python code specifying the biology model.</a:documentation>
-                        <ref name="python_code"/>
-                      </element>
+                      <choice>
+                        <element name="python">
+                          <a:documentation>Python code specifying the biology model.</a:documentation>
+                          <ref name="python_code"/>
+                        </element>
+                        <element name="update_kernel">
+                          <a:documentation>Update kernel function to apply to the agent. 
+This is an external python function wrapped in a module somewhere on the PYTHONPATH.</a:documentation>
+                          <attribute name="name">
+                            <data type="string"/>
+                          </attribute>
+                          <attribute name="module">
+                            <data type="string"/>
+                          </attribute>
+                          <attribute name="parameters">
+                            <data type="string"/>
+                          </attribute>
+                          <empty/>
+                        </element>
+                      </choice>
                     </element>
                     <element name="disable_biology">
                       <a:documentation>Do not calculate biology

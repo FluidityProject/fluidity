@@ -11,12 +11,74 @@ PyMODINIT_FUNC initlebiology(int dim)
   // Create static dicts for variable names, 
   // stage IDs and local namespaces
   pFGLocalsDict = PyDict_New();
+  pFGKernelFunc = PyDict_New();
+  pFGParamDicts = PyDict_New();
   pFGVarNames = PyDict_New();
   pFGEnvNames = PyDict_New();
   pFGFoodNames = PyDict_New();
   pFGStageID = PyDict_New();
 #endif
 }
+
+/****************************
+ * Kernel initialisation
+ ****************************/
+
+void lebiology_fg_kernel_load_c(char *fg, int fglen, 
+				char *key, int keylen, 
+                                char *module, int modulelen, 
+				char *kernel, int kernellen, 
+				char *param, int paramlen, int *stat)
+{
+#ifdef HAVE_PYTHON
+  char *fg_key = fix_string(fg, fglen);
+  char *keystr = fix_string(key, keylen);
+  char *mod_name = fix_string(module, modulelen);
+  char *k_name = fix_string(kernel, kernellen);
+  char *p_name = fix_string(param, paramlen);
+
+  // Load the provided module
+  PyImport_ImportModule(mod_name);
+  PyObject *pModule = PyImport_AddModule(mod_name);
+  PyObject *pModuleDict = PyModule_GetDict(pModule);
+
+  // Store the kernel function object
+  PyObject *pKernelMap = PyDict_GetItemString(pFGKernelFunc, fg_key);
+  if (!pKernelMap) {
+     pKernelMap = PyDict_New();
+     *stat = PyDict_SetItemString(pFGKernelFunc, fg_key, pKernelMap);
+     if (*stat<0) {
+        PyErr_Print();
+        return;
+     }
+     Py_DECREF(pKernelMap);
+  }
+  PyObject *pModuleKernel = PyDict_GetItemString(pModuleDict, k_name);
+  *stat = PyDict_SetItemString(pKernelMap, keystr, pModuleKernel);
+
+  // Store the kernel's associated parameter map
+  PyObject *pParamMap = PyDict_GetItemString(pFGParamDicts, fg_key);
+  if (!pParamMap) {
+     pParamMap = PyDict_New();
+     *stat = PyDict_SetItemString(pFGParamDicts, fg_key, pParamMap);
+     if (*stat<0) {
+        PyErr_Print();
+        return;
+     }
+     Py_DECREF(pParamMap);
+  }
+  PyObject *pKernelParams = PyDict_GetItemString(pModuleDict, p_name);
+  *stat = PyDict_SetItemString(pParamMap, keystr, pKernelParams);
+
+  free(fg_key);
+  free(keystr);
+  free(mod_name); 
+  free(k_name); 
+  free(p_name); 
+  return;
+#endif
+}
+
 
 /****************************
  * Meta-model utilities
@@ -283,6 +345,163 @@ void lebiology_agent_init_c(char *fg, int fglen,
 #endif
 }
 
+#ifdef HAVE_PYTHON
+PyObject *create_dict(PyObject *pNameList, double values[], int n_values)
+{
+  /* Create and populate a dict */
+  int i;
+  PyObject *pDict = PyDict_New();
+  for(i=0; i<n_values; i++){
+    PyObject *pValue = PyFloat_FromDouble(values[i]);
+    PyDict_SetItem(pDict, PyList_GET_ITEM(pNameList, i), pValue);
+    Py_DECREF(pValue);
+  }
+  return pDict;
+}
+
+void add_food_variety(PyObject *pAgent, PyObject *pEnvironment, 
+		      char *fg_key, char *food_name, int n_fvariety, 
+		      double fvariety[], double fingest[])
+{
+  PyObject *pFoodNames = PyDict_GetItemString(pFGFoodNames, fg_key);
+  PyObject *pVarietyNames = PyDict_GetItemString(pFoodNames, food_name);
+
+  // Add variety concentration to env dict
+  PyObject *pFoodDict = create_dict(pVarietyNames, fvariety, n_fvariety);
+  PyDict_SetItemString(pEnvironment, food_name, pFoodDict);
+  Py_DECREF(pFoodDict);
+
+  // Add FoodRequest dictionary
+  double *zeroes = calloc(n_fvariety, sizeof(double));
+  PyObject *pRequestDict = create_dict(pVarietyNames, zeroes, n_fvariety);
+  PyObject *pRequestString = PyString_FromFormat("%s%s", food_name, "Request");
+  PyDict_SetItem(pAgent, pRequestString, pRequestDict);
+  Py_DECREF(pRequestDict);
+  Py_DECREF(pRequestString);
+
+  // Add FoodThreshold dictionary
+  PyObject *pThresholdDict = create_dict(pVarietyNames, zeroes, n_fvariety);
+  PyObject *pThresholdString = PyString_FromFormat("%s%s", food_name, "Threshold");
+  PyDict_SetItem(pAgent, pThresholdString, pThresholdDict);
+  Py_DECREF(pThresholdDict);
+  Py_DECREF(pThresholdString);
+  free(zeroes);
+
+  // Add IngestedCells dictionary
+  PyObject *pIngestedDict = create_dict(pVarietyNames, fingest, n_fvariety);
+  PyObject *pIngestedCellsString = PyString_FromFormat("%s%s", food_name, "IngestedCells");
+  PyDict_SetItem(pAgent, pIngestedCellsString, pIngestedDict);
+  Py_DECREF(pIngestedDict);
+  Py_DECREF(pIngestedCellsString);
+}
+
+void convert_food_variety(PyObject *pResult, char *fg_key, char *food_name, 
+			  int n_fvariety, double frequest[], double fthreshold[])
+{
+  PyObject *pFoodNames = PyDict_GetItemString(pFGFoodNames, fg_key);
+  PyObject *pVarietyNames = PyDict_GetItemString(pFoodNames, food_name);
+  int i;
+
+  // Convert FoodRequest dictionary
+  PyObject *pRequestName = PyString_FromFormat("%s%s", food_name, "Request");
+  PyObject *pFoodRequests = PyDict_GetItem(pResult, pRequestName);
+  if (!pFoodRequests) {
+    for (i=0; i<n_fvariety; i++) {
+      frequest[i] = 0.0;
+    }
+  } else {
+    for (i=0; i<n_fvariety; i++) {
+      frequest[i] = PyFloat_AsDouble( PyDict_GetItem(pFoodRequests, PyList_GET_ITEM(pVarietyNames, i)) );
+    }
+  }
+  Py_DECREF(pRequestName); 
+
+  // Convert FoodThreshold dictionary
+  PyObject *pThresholdName = PyString_FromFormat("%s%s", food_name, "Threshold");
+  PyObject *pThresholdDict = PyDict_GetItem(pResult, pThresholdName);
+  if (!pThresholdDict) {
+    for (i=0; i<n_fvariety; i++) {
+      fthreshold[i] = 0.0;
+    }
+  } else {
+    for (i=0; i<n_fvariety; i++) {
+      fthreshold[i] = PyFloat_AsDouble( PyDict_GetItem(pThresholdDict, PyList_GET_ITEM(pVarietyNames, i)) );
+    }
+  }
+  Py_DECREF(pThresholdName); 
+}
+#endif
+
+
+
+void lebiology_kernel_update_c(char *fg, int fglen, 
+                              char *key, int keylen, 
+                              char *food, int foodlen, 
+                              double vars[], int n_vars, 
+                              double envvals[], int n_envvals, 
+                              double fvariety[], double frequest[], double fthreshold[], double fingest[], int n_fvariety, 
+                              double *dt, int *stat)
+{
+#ifdef HAVE_PYTHON
+  // Get variable names
+  char *fg_key = fix_string(fg, fglen);
+  PyObject *pVarNames = PyDict_GetItemString(pFGVarNames, fg_key);
+  PyObject *pEnvNames = PyDict_GetItemString(pFGEnvNames, fg_key);
+
+  // Create agent and environment dict
+  PyObject *pAgent = create_dict(pVarNames, vars, n_vars);
+  PyObject *pEnvironment = create_dict(pEnvNames, envvals, n_envvals);
+
+  char *food_name = fix_string(food, foodlen);
+  if (n_fvariety > 0) {
+    add_food_variety(pAgent, pEnvironment, fg_key, food_name, n_fvariety, fvariety, fingest);
+  }
+
+  // Create dt argument
+  PyObject *pDt = PyFloat_FromDouble(*dt);
+
+  // Get kernel and parameter set, pack arguments and execute
+  char *keystr = fix_string(key,keylen);
+  PyObject *pKernelMap = PyDict_GetItemString(pFGKernelFunc, fg_key);
+  PyObject *pKernel = PyDict_GetItemString(pKernelMap, keystr);
+  PyObject *pParamMap = PyDict_GetItemString(pFGParamDicts, fg_key);
+  PyObject *pParams = PyDict_GetItemString(pParamMap, keystr);
+  PyObject *pArgsTuple = PyTuple_Pack(4, pParams, pAgent, pEnvironment, pDt);
+
+  PyObject *pResult = PyObject_CallObject(pKernel, pArgsTuple);
+
+  // Check for Python errors
+  *stat=0;
+  if(!pResult){
+    PyErr_Print(); *stat=-1; return;
+  }
+
+  // Convert the python result
+  int i;
+  for(i=0; i<n_vars; i++){
+    vars[i] = PyFloat_AsDouble( PyDict_GetItem(pResult, PyList_GET_ITEM(pVarNames, i)) );
+  }
+
+  if (n_fvariety > 0) {
+    convert_food_variety(pResult, fg_key, food_name, n_fvariety, frequest, fthreshold);
+  }
+
+  // Check for exceptions
+  if (PyErr_Occurred()){
+    PyErr_Print(); *stat=-1; return;
+  }
+
+  Py_DECREF(pAgent);
+  Py_DECREF(pEnvironment);
+  Py_DECREF(pDt);
+  Py_DECREF(pArgsTuple);
+  Py_DECREF(pResult);
+  free(fg_key);
+  free(keystr); 
+  free(food_name);
+#endif
+}
+
 void lebiology_agent_update_c(char *fg, int fglen, 
                               char *key, int keylen, 
                               char *food, int foodlen, 
@@ -303,76 +522,16 @@ void lebiology_agent_update_c(char *fg, int fglen,
   PyObject *pLocals = PyDict_GetItemString(pLocalsDict, keystr);
   PyObject *pFunc = PyDict_GetItemString(pLocals, "val");
   PyObject *pFuncCode = PyObject_GetAttrString(pFunc, "func_code");
-
-  // Create agent dict
   int i;
-  PyObject *pAgent = PyDict_New();
-  for(i=0; i<n_vars; i++){
-    PyObject *pVarVal = PyFloat_FromDouble(vars[i]);
-    PyDict_SetItem(pAgent, PyList_GET_ITEM(pVarNames, i), pVarVal);
-    Py_DECREF(pVarVal);
-  }
 
-  // Create environment dict
-  PyObject *pEnvironment = PyDict_New();
-  for(i=0; i<n_envvals; i++){
-    PyObject *pEnvVal = PyFloat_FromDouble(envvals[i]);
-    PyDict_SetItem(pEnvironment, PyList_GET_ITEM(pEnvNames, i), pEnvVal);
-    Py_DECREF(pEnvVal);
-  }
+  // Create agent and environment dict
+  PyObject *pAgent = create_dict(pVarNames, vars, n_vars);
+  PyObject *pEnvironment = create_dict(pEnvNames, envvals, n_envvals);
 
   char *food_name = fix_string(food, foodlen);
-  PyObject *pVarietyNames;
-  if (n_fvariety > 0) {    
-    PyObject *pFoodNames = PyDict_GetItemString(pFGFoodNames, fg_key);
-    pVarietyNames = PyDict_GetItemString(pFoodNames, food_name);
-
-    PyObject *pFoodDict = PyDict_New();
-    PyDict_SetItemString(pEnvironment, food_name, pFoodDict);
-    for (i=0; i<n_fvariety; i++) {
-       PyObject *pFoodVal = PyFloat_FromDouble(fvariety[i]);
-       PyDict_SetItem(pFoodDict, PyList_GET_ITEM(pVarietyNames, i), pFoodVal);
-       Py_DECREF(pFoodVal);
-    }
-    Py_DECREF(pFoodDict);
-
-    // Add FoodRequest dictionary
-    PyObject *pRequestName = PyString_FromFormat("%s%s", food_name, "Request");
-    PyObject *pRequestDict = PyDict_New();
-    PyDict_SetItem(pAgent, pRequestName, pRequestDict);
-    for (i=0; i<n_fvariety; i++) {
-       PyObject *pZeroVal = PyFloat_FromDouble(0.0);
-       PyDict_SetItem(pRequestDict, PyList_GET_ITEM(pVarietyNames, i), pZeroVal);
-       Py_DECREF(pZeroVal);
-    }
-    Py_DECREF(pRequestDict);
-    Py_DECREF(pRequestName);
-
-    // Add FoodThreshold dictionary
-    PyObject *pThresholdName = PyString_FromFormat("%s%s", food_name, "Threshold");
-    PyObject *pThresholdDict = PyDict_New();
-    PyDict_SetItem(pAgent, pThresholdName, pThresholdDict);
-    for (i=0; i<n_fvariety; i++) {
-       PyObject *pZeroVal = PyFloat_FromDouble(0.0);
-       PyDict_SetItem(pThresholdDict, PyList_GET_ITEM(pVarietyNames, i), pZeroVal);
-       Py_DECREF(pZeroVal);
-    }
-    Py_DECREF(pThresholdDict);
-    Py_DECREF(pThresholdName);
-
-    // Add IngestedCells dictionary
-    PyObject *pIngestedCellsName = PyString_FromFormat("%s%s", food_name, "IngestedCells");
-    PyObject *pIngestedDict = PyDict_New();
-    PyDict_SetItem(pAgent, pIngestedCellsName, pIngestedDict);
-    for (i=0; i<n_fvariety; i++) {
-       PyObject *pIngestVal = PyFloat_FromDouble(fingest[i]);
-       PyDict_SetItem(pIngestedDict, PyList_GET_ITEM(pVarietyNames, i), pIngestVal);
-       Py_DECREF(pIngestVal);
-    }
-    Py_DECREF(pIngestedDict);
-    Py_DECREF(pIngestedCellsName);
+  if (n_fvariety > 0) {
+    add_food_variety(pAgent, pEnvironment, fg_key, food_name, n_fvariety, fvariety, fingest);
   }
-
 
   // Create dt argument
   PyObject *pDt = PyFloat_FromDouble(*dt);
@@ -388,9 +547,7 @@ void lebiology_agent_update_c(char *fg, int fglen,
   // Check for Python errors
   *stat=0;
   if(!pResult){
-    PyErr_Print();
-    *stat=-1;
-    return;
+    PyErr_Print(); *stat=-1; return;
   }
 
   // Convert the python result
@@ -398,41 +555,13 @@ void lebiology_agent_update_c(char *fg, int fglen,
     vars[i] = PyFloat_AsDouble( PyDict_GetItem(pResult, PyList_GET_ITEM(pVarNames, i)) );
   }
 
-  if (n_fvariety > 0) { 
-    // Convert FoodRequest dictionary
-    PyObject *pRequestName = PyString_FromFormat("%s%s", food_name, "Request");
-    PyObject *pFoodRequests = PyDict_GetItem(pResult, pRequestName);
-    if (!pFoodRequests) {
-      for (i=0; i<n_fvariety; i++) {
-         frequest[i] = 0.0;
-      }
-    } else {
-      for (i=0; i<n_fvariety; i++) {
-         frequest[i] = PyFloat_AsDouble( PyDict_GetItem(pFoodRequests, PyList_GET_ITEM(pVarietyNames, i)) );
-      }
-    }
-    Py_DECREF(pRequestName); 
-
-    // Convert FoodThreshold dictionary
-    PyObject *pThresholdName = PyString_FromFormat("%s%s", food_name, "Threshold");
-    PyObject *pThresholdDict = PyDict_GetItem(pResult, pThresholdName);
-    if (!pThresholdDict) {
-      for (i=0; i<n_fvariety; i++) {
-         fthreshold[i] = 0.0;
-      }
-    } else {
-      for (i=0; i<n_fvariety; i++) {
-         fthreshold[i] = PyFloat_AsDouble( PyDict_GetItem(pThresholdDict, PyList_GET_ITEM(pVarietyNames, i)) );
-      }
-    }
-    Py_DECREF(pThresholdName); 
+  if (n_fvariety > 0) {
+    convert_food_variety(pResult, fg_key, food_name, n_fvariety, frequest, fthreshold);
   }
 
   // Check for exceptions
   if (PyErr_Occurred()){
-    PyErr_Print();
-    *stat=-1;
-    return;
+    PyErr_Print(); *stat=-1; return;
   }
 
   Py_DECREF(pAgent);
@@ -442,8 +571,8 @@ void lebiology_agent_update_c(char *fg, int fglen,
   Py_DECREF(pResult);
   free(pArgs);
   free(fg_key);
-  free(keystr);
-  free(food_name);   
+  free(keystr); 
+  free(food_name);
 #endif
 }
 

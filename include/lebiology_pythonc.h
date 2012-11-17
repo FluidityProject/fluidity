@@ -14,10 +14,15 @@ static int lebiology_dim;
  * The first index is always the FGroup name, eg. pFGVarNames['FGroup'] 
  */
 static PyObject *pFGLocalsDict; // Dict of local namespaces with compiled function objects
+static PyObject *pFGKernelFunc; // Dict of kernel function objects
+static PyObject *pFGParamDicts ; // Dict of parameter->value mappings
 static PyObject *pFGVarNames;   // List of agent variable names
 static PyObject *pFGEnvNames;   // List of environment field names
 static PyObject *pFGFoodNames;  // Dict of foodname pointing to list of variety names
 static PyObject *pFGStageID;    // Dict of stage->ID mappings
+
+/* Load the kernel fucntion and associated paramter set from the module provided and store in pFGKernelFunc and pFGParamDicts */
+void lebiology_fg_kernel_load_c(char *fg, int fglen, char *key, int keylen, char *module, int modulelen, char *kernel, int kernellen, char *param, int paramlen, int *stat);
 
 /* Add a variable name to the array under pFGVarNames['fg'] */
 void lebiology_add_fg_varname_c(char *fg, int fglen, char *var, int varlen, int *stat);
@@ -42,6 +47,12 @@ void lebiology_compile_function_c(char *fg, int fglen, char *key, int keylen, ch
  *          return agent
  */
 void lebiology_agent_init_c(char *fg, int fglen, char *key, int keylen, double vars[], int n_vars, int *stat);
+
+void lebiology_kernel_update_c(char *fg, int fglen, char *key, int keylen, char *food, int foodlen, 
+                              double vars[], int n_vars, double envvals[], int n_envvals, 
+                              double fvariety[], double frequest[], double fthreshold[], double fingest[], int n_fvariety, 
+                              double *dt, int *stat);
+
 
 /* Update agent biology from a Python function
  * Usage: def val(agent, env, dt):

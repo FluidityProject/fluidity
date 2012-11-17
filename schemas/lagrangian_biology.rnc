@@ -125,6 +125,14 @@ lagrangian_biology =
                               ## Python code specifying the biology model.
                               element python {
                                  python_code
+                              }|
+                              ## Update kernel function to apply to the agent. 
+                              ## This is an external python function wrapped in a module somewhere on the PYTHONPATH.
+                              element update_kernel {
+                                 attribute name { xsd:string },
+                                 attribute module { xsd:string },
+                                 attribute parameters { xsd:string },
+                                 empty
                               }
                            )
                         }|

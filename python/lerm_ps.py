@@ -110,6 +110,7 @@ def update_Living_Diatom(param, vars, env, dt):
   vars['C_fuel'] = C_fuel_new
   vars['ChltoC'] = ChltoC_new
   vars['NtoC'] = NtoC_new
+  return vars
 
 def update_Dead_Diatom(param, vars, env, dt):
   """ FGroup:  Diatom
@@ -130,6 +131,7 @@ def update_Dead_Diatom(param, vars, env, dt):
   vars['Silicate'] = Silicate_new
   vars['Ammonium'] = Ammonium_new
   vars['Nitrate'] = Nitrate_new
+  return vars
 
 # Parameters for FGroup Copepod
 # Species: Default_Copepod_Variety
