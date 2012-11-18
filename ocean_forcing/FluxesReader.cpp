@@ -803,63 +803,43 @@ void FluxesReader::VerboseOn(){
 
 //
 // FORTRAN interface
-// Wrap a proper interface round these like ClimateReader_interface.F90
 //
 
 FluxesReader FluxesReader_global;
 
 extern "C" {
-#define fluxes_addfieldofinterest_fc F77_FUNC_(fluxes_addfieldofinterest, FLUXES_ADDFIELDOFINTEREST)
-  void fluxes_addfieldofinterest_fc(char *_scalar, int len){
-    char *scalar = new char[len+1]();
-    strncpy(scalar, _scalar, len);
-    scalar[len] = '\0';
+  void fluxes_addfieldofinterest_c(const char *scalar){
     FluxesReader_global.AddFieldOfInterest(string(scalar));
     return;
   }
   
-#define fluxes_clearfields_fc F77_FUNC_(fluxes_clearfields, FLUXES_CLEARFIELDS)
-  void fluxes_clearfields_fc(){
+  void fluxes_clearfields_c(){
     FluxesReader_global.ClearFields();
     return;
   }
   
-#define fluxes_getscalars_fc F77_FUNC_(fluxes_getscalars, FLUXES_GETSCALARS)
-  void fluxes_getscalars_fc(double *longitude, double *latitude, double *scalars){
+  void fluxes_getscalars_c(const double *longitude, const double *latitude, double *scalars){
     FluxesReader_global.GetScalars(*longitude, *latitude, scalars);
     return;
   }
 
-#define fluxes_getscalar_fc F77_FUNC_(fluxes_getscalar, FLUXES_GETSCALAR)
-  void fluxes_getscalar_fc(char *_name, double *longitude,  double *latitude, double *scalar, int len){
-    char *name = new char[len+1]();
-    strncpy(name, _name, len);
-    name[len] = '\0';
+  void fluxes_getscalar_c(const char *name, const double *longitude, const double *latitude, double *scalar){
     *scalar = FluxesReader_global.GetScalar(string(name), *longitude, *latitude);
     return;
   }
   
-#define fluxes_registerdatafile_fc F77_FUNC_(fluxes_registerdatafile, FLUXES_REGISTERDATAFILE)
-  void fluxes_registerdatafile_fc(char *_filename, int len){
-    char *filename = new char[len+1]();
-    strncpy(filename, _filename, len);
-    filename[len] = '\0';
+  void fluxes_registerdatafile_c(const char *filename){
     FluxesReader_global.RegisterDataFile(string(filename));
     return;
   }
 
-#define fluxes_setsimulationtimeunits_fc F77_FUNC_(fluxes_setsimulationtimeunits, FLUXES_SETSIMULATIONTIMEUNITS)
-  void fluxes_setsimulationtimeunits_fc(char *_units, int len){
-    char *units = new char[len+1]();
-    strncpy(units, _units, len);
-    units[len] = '\0';
+  void fluxes_setsimulationtimeunits_c(const char *units){
     FluxesReader_global.SetSimulationTimeUnits(string(units));  
     return;
   }
   
-#define fluxes_settimeseconds_fc F77_FUNC_(fluxes_settimeseconds, FLUXES_SETTIMESECONDS)
-  void fluxes_settimeseconds_fc(double *_time){
-    FluxesReader_global.SetTimeSeconds(*_time);  
+  void fluxes_settimeseconds_c(const double *time){
+    FluxesReader_global.SetTimeSeconds(*time);  
     return;
   }
 }

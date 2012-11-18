@@ -331,39 +331,28 @@ ClimateReader ClimateReader_global;
 
 // Fortran interface
 extern "C" {
-#define climatology_setsimulationtimeunits_fc F77_FUNC_(climatology_setsimulationtimeunits_c, CLIMATOLOGY_SETSIMULATIONTIMEUNITS_C)
-  void climatology_setsimulationtimeunits_fc(char *_units, int len){
-    char *units = new char[len+1]();
-    strncpy(units, _units, len);
-    units[len] = '\0';
+  void climatology_setsimulationtimeunits_c(const char *units){
     ClimateReader_global.SetSimulationTimeUnits(string(units));  
     return;
   }
   
-#define climatology_setclimatology_fc F77_FUNC_(climatology_setclimatology_c, CLIMATOLOGY_SETCLIMATOLOGY_C)
-  void climatology_setclimatology_fc(char *_filename, int len){
-    char *filename = new char[len+1]();
-    strncpy(filename, _filename, len);
-    filename[len] = '\0';
+  void climatology_setclimatology_c(const char *filename){
     ClimateReader_global.SetClimatology(string(filename));  
     return;
   }
   
-#define climatology_settimeseconds_fc F77_FUNC_(climatology_settimeseconds_c, CLIMATOLOGY_SET_TIME_SECONDS_C)
-  void climatology_settimeseconds_fc(const double *_time){
-    ClimateReader_global.SetTimeSeconds(*_time);  
+  void climatology_settimeseconds_c(const double *time){
+    ClimateReader_global.SetTimeSeconds(*time);  
     return;
   }
   
-#define climatology_get_value_fc F77_FUNC_(climatology_get_value_c, CLIMATOLOGY_GET_VALUE_C)
-  void climatology_get_value_fc(const char *name, const int *len, const double *x, const double *y, const double *z, double *value){
-    *value = ClimateReader_global.GetValue(string(name, *len), *x, *y, *z);
+  void climatology_getvalue_c(const char *name, const double *x, const double *y, const double *z, double *value){
+    *value = ClimateReader_global.GetValue(string(name), *x, *y, *z);
     return;
   }
 
-#define climatology_get_surface_value_fc F77_FUNC_(climatology_get_surface_value_c, CLIMATOLOGY_GET_SURFACE_VALUE_C)
-  void climatology_get_surface_value_fc(const char *name, const int *len, const double *x, const double *y, const double *z, double *value){
-    *value = ClimateReader_global.GetValue(string(name, *len), *x, *y, *z, 0);
+  void climatology_getsurfacevalue_c(const char *name, const double *x, const double *y, const double *z, double *value){
+    *value = ClimateReader_global.GetValue(string(name), *x, *y, *z, 0);
     return;
   }
 
