@@ -331,9 +331,6 @@
            Temperature, Temperature_BC_Spatial, Temperature_BC, Temperature_Source, &
            Porosity, Permeability )
 
-      ewrite(3,*) 'b4 all this merda:'
-      call print_from_state( state, temperature )
-
 !!$ Dummy field used in the scalar advection option:
       Dummy_PhaseVolumeFraction_FEMT = 1.
 

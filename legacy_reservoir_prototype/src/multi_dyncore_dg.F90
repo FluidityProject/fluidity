@@ -2586,10 +2586,6 @@
 !!$ As it has not been either tested or assessed let's keep as it is and change it properly (just need the path which
 !!$ is done mostly all way through, i.e., from INTENERGE_ASSEM_SOLVE subrt).
       allocate( udiffusion( mat_nonods, ndim, ndim, nphase ) ) ; udiffusion = 0.
-
-!                uDiffusion(:,1,1,1) = 1.0
-!                uDiffusion(:,2,2,1) = 1.0
-     if(.true.) then
       tensorfield => extract_tensor_field( state( 1 ), 'Viscosity', stat )
       if (stat == 0) then
          do iphase = 1, nphase
@@ -2601,10 +2597,9 @@
                  mat_ndgln  )
          end do
       end if
-     endif
 
-!        print *,'udiffusion:',udiffusion
-!         stop 221
+      !        print *,'udiffusion:',udiffusion
+      !         stop 221
 
       GOT_DIFFUS = ( R2NORM( UDIFFUSION, MAT_NONODS * NDIM * NDIM * NPHASE ) /= 0.0 )  &
            .OR. BETWEEN_ELE_STAB
@@ -2756,19 +2751,19 @@
             DO GI = 1, CV_NGI_SHORT
                DO IPHASE = 1,NPHASE
                   CV_NOD_PHA = CV_NOD +( IPHASE - 1) * CV_NONODS
-                 if(.true.) then ! FEM DEN...
-                  DENGI( GI, IPHASE ) = DENGI( GI, IPHASE ) + CVFEN_SHORT( CV_ILOC, GI ) * UDEN( CV_NOD_PHA )
-                  DENGIOLD( GI, IPHASE ) = DENGIOLD( GI, IPHASE ) &
-                       + CVFEN_SHORT( CV_ILOC, GI ) * UDENOLD( CV_NOD_PHA )
-                 endif
-                 if(.false.) then ! CV DEN...
-                  DENGI( GI, IPHASE ) = DENGI( GI, IPHASE ) + CVN_SHORT( CV_ILOC, GI ) * UDEN( CV_NOD_PHA )
-                  DENGIOLD( GI, IPHASE ) = DENGIOLD( GI, IPHASE ) &
-                       + CVN_SHORT( CV_ILOC, GI ) * UDENOLD( CV_NOD_PHA )
-                 endif
-                 IF(IPLIKE_GRAD_SOU == 1) THEN
-                   GRAD_SOU_GI( GI, IPHASE ) = GRAD_SOU_GI( GI, IPHASE ) &
-                       + CVFEN_SHORT( CV_ILOC, GI ) * PLIKE_GRAD_SOU_COEF( CV_NOD_PHA )
+                  if(.true.) then ! FEM DEN...
+                     DENGI( GI, IPHASE ) = DENGI( GI, IPHASE ) + CVFEN_SHORT( CV_ILOC, GI ) * UDEN( CV_NOD_PHA )
+                     DENGIOLD( GI, IPHASE ) = DENGIOLD( GI, IPHASE ) &
+                          + CVFEN_SHORT( CV_ILOC, GI ) * UDENOLD( CV_NOD_PHA )
+                  endif
+                  if(.false.) then ! CV DEN...
+                     DENGI( GI, IPHASE ) = DENGI( GI, IPHASE ) + CVN_SHORT( CV_ILOC, GI ) * UDEN( CV_NOD_PHA )
+                     DENGIOLD( GI, IPHASE ) = DENGIOLD( GI, IPHASE ) &
+                          + CVN_SHORT( CV_ILOC, GI ) * UDENOLD( CV_NOD_PHA )
+                  endif
+                  IF(IPLIKE_GRAD_SOU == 1) THEN
+                     GRAD_SOU_GI( GI, IPHASE ) = GRAD_SOU_GI( GI, IPHASE ) &
+                          + CVFEN_SHORT( CV_ILOC, GI ) * PLIKE_GRAD_SOU_COEF( CV_NOD_PHA )
                   ENDIF
                END DO
             END DO

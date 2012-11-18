@@ -1004,9 +1004,10 @@
 
 !!$ This will need to be ammended later on to take into account python functions that impose 
 !!$ time-dependent field changes
-      Conditional_InitialisationFromFLML: if( initialised ) then ! Extracting from state after initialisation
-         field_prot( ( iphase - 1 ) * node_count( field ) + 1 : iphase * node_count( field ) ) = &
-              field % val
+      Conditional_InitialisationFromFLML: if( initialised ) then ! Extracting from state after initialisation 
+         field_prot( 1 : node_count( field ) ) = field % val
+!!$         field_prot( ( iphase - 1 ) * node_count( field ) + 1 : iphase * node_count( field ) ) = &
+!!$              field % val
 
       else !Initialisation before adapt
          if( have_option( trim( option_path ) // '/prognostic/initial_condition::WholeMesh/constant' ) )then
@@ -1057,7 +1058,7 @@
 
             deallocate( face_nodes, sufid_bc )
 
-         end do Loop_BC 
+         end do Loop_BC
 
       end if Conditional_Field_BC
 
