@@ -37,16 +37,14 @@ extern int projections(int nPoints, double *x, double *y, double *z, string curr
 
 
 extern "C" {
-#define rotate_ll2cart_fc F77_FUNC(rotate_ll2cart, ROTATE_LL2CART)
-  extern void rotate_ll2cart_fc(double *longitude, double *latitude, double *u, double *v,
-                     const double *r3u, const double *r3v, const double *r3w);
+  extern void rotate_ll2cart(const double *longitude, const double *latitude, const double *u, const double *v,
+                     double *r3u, double *r3v, double *r3w);
 
-#define get_nemo_variables_fc F77_FUNC(get_nemo_variables, GET_NEMO_VARIABLES)
-    void get_nemo_variables_fc(double *time, const double *X, const double *Y, const double *Z, const double *DEPTH,
+    void get_nemo_variables_c(double *time, const double *X, const double *Y, const double *Z, const double *DEPTH,
                      double *Te, double *Sa, double *U, double *V, double *W, double *SSH, const int *NNodes);
 }
 
-void get_nemo_variables_fc(double *time, const double *X, const double *Y, const double *Z, const double *DEPTH,
+void get_nemo_variables_c(double *time, const double *X, const double *Y, const double *Z, const double *DEPTH,
                      double *Te, double *Sa, double *U, double *V, double *W, double *SSH, const int *n){
 
     const int nFields = 5; // number of fields being read in, currently temperature, salinity, U, V and sea surface height
@@ -118,7 +116,7 @@ void get_nemo_variables_fc(double *time, const double *X, const double *Y, const
         // This currently assumes that you are running on the sphere. If NEMO data is going to be used for
         // planar cases an if if(have_option("/geometry/spherical_earth")) will need to be passed or
         // added.
-        rotate_ll2cart_fc(&longitude, &latitude, &u_rot, &v_rot, &uvel[i], &vvel[i], &wvel[i]);
+        rotate_ll2cart(&longitude, &latitude, &u_rot, &v_rot, &uvel[i], &vvel[i], &wvel[i]);
         
     }
 
@@ -150,7 +148,6 @@ void get_nemo_variables_fc(double *time, const double *X, const double *Y, const
 
 //
 // FORTRAN interface.
-// Wrap a proper interface round these like ClimateReader_interface.F90
 //
 
 extern "C" {
