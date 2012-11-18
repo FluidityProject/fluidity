@@ -19,7 +19,8 @@ module lebiology_python
             lebiology_add_variables, lebiology_add_envfields, &
             lebiology_add_foods, lebiology_prepare_pyfunc, &
             lebiology_initialise_agent, lebiology_move_agent, &
-            lebiology_update_agent, get_new_agent_list
+            lebiology_update_agent, get_new_agent_list, &
+            lebiology_parallel_submit, lebiology_parallel_retrieve
 
   type(detector_linked_list), target, save :: new_agent_list
 
@@ -114,6 +115,40 @@ module lebiology_python
       real(c_double), dimension(n_vars), intent(inout) :: vars
       integer(c_int), intent(out) :: stat
     end subroutine lebiology_agent_init
+
+    subroutine lebiology_parallel_prepare(fg, fglen, key, keylen, food, foodlen, &
+           vars, n_vars, envvals, n_envvals, fvariety, fingest, n_fvariety, &
+           agent_id, dt, persistent, stat) &
+           bind(c, name='lebiology_parallel_prepare_c')
+      use :: iso_c_binding
+      implicit none
+      integer(c_int), intent(in), value :: fglen, keylen, foodlen
+      integer(c_int), intent(in), value :: n_vars, n_envvals, n_fvariety
+      character(kind=c_char), dimension(fglen), intent(in) :: fg
+      character(kind=c_char), dimension(keylen), intent(in) :: key
+      character(kind=c_char), dimension(foodlen), intent(in) :: food
+      real(c_double), dimension(n_vars), intent(inout) :: vars
+      real(c_double), dimension(n_envvals), intent(inout) :: envvals
+      real(c_double), dimension(n_fvariety), intent(inout) :: fvariety, fingest
+      real(c_double), intent(in) :: dt
+      integer(c_int), intent(in), value :: agent_id, persistent
+      integer(c_int), intent(out) :: stat
+    end subroutine lebiology_parallel_prepare
+
+    subroutine lebiology_parallel_finish(fg, fglen, food, foodlen, &
+           vars, n_vars, frequest, fthreshold, n_fvariety, agent_id, stat) &
+           bind(c, name='lebiology_parallel_finish_c')
+      use :: iso_c_binding
+      implicit none
+      integer(c_int), intent(in), value :: fglen, foodlen
+      integer(c_int), intent(in), value :: n_vars, n_fvariety
+      character(kind=c_char), dimension(fglen), intent(in) :: fg
+      character(kind=c_char), dimension(foodlen), intent(in) :: food
+      real(c_double), dimension(n_vars), intent(inout) :: vars
+      real(c_double), dimension(n_fvariety), intent(inout) :: frequest, fthreshold
+      integer(c_int), intent(in), value :: agent_id
+      integer(c_int), intent(out) :: stat
+    end subroutine lebiology_parallel_finish
 
     subroutine lebiology_kernel_update(fg, fglen, key, keylen, food, foodlen, &
            vars, n_vars, envvals, n_envvals, fvariety, frequest, fthreshold, fingest, &
@@ -331,6 +366,44 @@ contains
     end if
   end subroutine lebiology_move_agent
 
+  subroutine lebiology_sample_environment(agent, xfield, fields, integrate, fieldvals)
+    type(detector_type), intent(inout) :: agent
+    type(vector_field), pointer, intent(inout) :: xfield
+    type(scalar_field_pointer), dimension(:), pointer, intent(inout) :: fields
+    logical, dimension(size(fields)), intent(inout) :: integrate
+    real, dimension(size(fields)), intent(inout) :: fieldvals
+
+    type(elepath_list), pointer :: path_ele
+    real :: path_total, ele_integral, ele_volume
+    integer :: f
+
+    ! Sample environment fields
+    do f=1, size(fields)
+       if (integrate(f) .and. associated(agent%path_elements)) then
+          fieldvals(f) = 0.0
+          path_total = 0.0
+          path_ele => agent%path_elements
+          do while( associated(path_ele) )
+              ele_integral = integral_element(fields(f)%ptr, xfield, path_ele%data%ele)
+              ele_volume = element_volume(xfield, path_ele%data%ele)
+              fieldvals(f) = fieldvals(f) + path_ele%data%dist * ele_integral / ele_volume
+              path_total = path_total + path_ele%data%dist
+
+              path_ele => elepath_list_next(path_ele)
+          end do
+
+          if (path_total > 0.0) then
+             fieldvals(f) = fieldvals(f) / path_total
+          else
+             fieldvals(f) = integral_element(fields(f)%ptr, xfield, agent%element) / element_volume(xfield, agent%element)
+          end if
+       else
+          ! Evaluate at detector position
+          fieldvals(f) = eval_field(agent%element, fields(f)%ptr, agent%local_coords)
+       end if
+    end do
+  end subroutine lebiology_sample_environment
+
   subroutine lebiology_update_agent(fgroup, key, foodname, agent, xfield, envfields, &
        foodfields, dt, use_kernel_func, use_persistent)
     type(functional_group), intent(inout) :: fgroup
@@ -345,6 +418,7 @@ contains
 
     real, dimension(size(envfields)) :: envfield_vals
     real, dimension(size(foodfields)) :: foodfield_vals
+    logical, dimension(size(foodfields)) :: food_integrate
     real :: path_total, ele_integral, ele_volume
     real, dimension(size(agent%biology)) :: agent_state_copy
     type(elepath_list), pointer :: path_ele
@@ -352,57 +426,10 @@ contains
 
     agent_state_copy = agent%biology
 
-    ! Sample environment fields
-    do f=1, size(envfields)
-       if (fgroup%envfield_integrate(f) .and. associated(agent%path_elements)) then
-          envfield_vals(f) = 0.0
-          path_total = 0.0
-          path_ele => agent%path_elements
-          do while( associated(path_ele) )
-              ele_integral = integral_element(envfields(f)%ptr, xfield, path_ele%data%ele)
-              ele_volume = element_volume(xfield, path_ele%data%ele)
-              envfield_vals(f) = envfield_vals(f) + path_ele%data%dist * ele_integral / ele_volume
-              path_total = path_total + path_ele%data%dist
+    call lebiology_sample_environment(agent, xfield, envfields, fgroup%envfield_integrate, envfield_vals)
 
-              path_ele => elepath_list_next(path_ele)
-          end do
-
-          if (path_total > 0.0) then
-             envfield_vals(f) = envfield_vals(f) / path_total
-          else
-             envfield_vals(f) = integral_element(envfields(f)%ptr, xfield, agent%element) / element_volume(xfield, agent%element)
-          end if
-       else
-          ! Evaluate at detector position
-          envfield_vals(f) = eval_field(agent%element, envfields(f)%ptr, agent%local_coords)
-       end if
-    end do
-
-    ! Add food concentrations
-    do f=1, size(foodfields)
-
-       if (fgroup%food_sets(1)%path_integrate .and. associated(agent%path_elements)) then
-          foodfield_vals(f) = 0.0
-          path_total = 0.0
-          path_ele => agent%path_elements
-          do while( associated(path_ele) )
-              ele_integral = integral_element(foodfields(f)%ptr, xfield, path_ele%data%ele)
-              ele_volume = element_volume(xfield, path_ele%data%ele)
-              foodfield_vals(f) = foodfield_vals(f) + path_ele%data%dist * ele_integral / ele_volume
-              path_total = path_total + path_ele%data%dist
-
-              path_ele => elepath_list_next(path_ele)
-          end do
-
-          if (path_total > 0.0) then
-             foodfield_vals(f) = foodfield_vals(f) / path_total
-          else
-             foodfield_vals(f) = integral_element(foodfields(f)%ptr, xfield, agent%element) / element_volume(xfield, agent%element)
-          end if
-       else
-          foodfield_vals(f) = integral_element(foodfields(f)%ptr, xfield, agent%element) / element_volume(xfield, agent%element)
-       end if
-    end do
+    food_integrate(:) = fgroup%food_sets(1)%path_integrate
+    call lebiology_sample_environment(agent, xfield, foodfields, food_integrate, foodfield_vals)
 
     stat=0
     if (use_kernel_func) then                   
@@ -451,6 +478,68 @@ contains
        FLExit("Python error in LE-Biology")
     end if
   end subroutine lebiology_update_agent
+
+  subroutine lebiology_parallel_submit(fgroup, key, foodname, agent, xfield, envfields, &
+       foodfields, dt, use_kernel_func, use_persistent)
+    type(functional_group), intent(inout) :: fgroup
+    character(len=*), intent(in) :: key
+    character(len=*), intent(in) :: foodname
+    type(detector_type), intent(inout) :: agent
+    type(vector_field), pointer, intent(inout) :: xfield
+    type(scalar_field_pointer), dimension(:), pointer, intent(inout) :: envfields
+    type(scalar_field_pointer), dimension(:), pointer, intent(inout) :: foodfields
+    real, intent(in) :: dt
+    logical, intent(in) :: use_kernel_func, use_persistent
+
+    real, dimension(size(envfields)) :: envfield_vals
+    real, dimension(size(foodfields)) :: foodfield_vals
+    logical, dimension(size(foodfields)) :: food_integrate
+    real :: path_total, ele_integral, ele_volume
+    real, dimension(size(agent%biology)) :: agent_state_copy
+    type(elepath_list), pointer :: path_ele
+    integer :: f, v, e, persistent, stat
+
+    agent_state_copy = agent%biology
+
+    call lebiology_sample_environment(agent, xfield, envfields, fgroup%envfield_integrate, envfield_vals)
+
+    food_integrate(:) = fgroup%food_sets(1)%path_integrate
+    call lebiology_sample_environment(agent, xfield, foodfields, food_integrate, foodfield_vals)
+
+    stat=0
+    
+    if (use_persistent) then
+       persistent = 1
+    else
+       persistent = 0
+    end if
+    call lebiology_parallel_prepare(trim(fgroup%name), len_trim(fgroup%name), &
+         trim(key), len_trim(key), trim(foodname), len_trim(foodname), &
+         agent%biology, size(agent%biology), envfield_vals, size(envfield_vals), &
+         foodfield_vals, agent%food_ingests, size(foodfield_vals), agent%id_number, dt, &
+         persistent, stat)
+
+  end subroutine lebiology_parallel_submit
+
+  subroutine lebiology_parallel_retrieve(fgroup, foodname, agent, foodfields)
+    type(functional_group), intent(inout) :: fgroup
+    character(len=*), intent(in) :: foodname
+    type(scalar_field_pointer), dimension(:), pointer, intent(inout) :: foodfields
+    type(detector_type), intent(inout) :: agent
+    
+    integer stat
+
+    stat = 0
+    call lebiology_parallel_finish(trim(fgroup%name), len_trim(fgroup%name), &
+         trim(foodname), len_trim(foodname), agent%biology, size(agent%biology), &
+         agent%food_requests, agent%food_thresholds, size(foodfields), agent%id_number, stat)
+
+    if (stat < 0) then
+       ewrite(-1, *) "Error updating agent "//int2str(agent%id_number)//" for FG::"//trim(fgroup%name)
+       FLExit("Python error in LE-Biology")
+    end if
+  end subroutine lebiology_parallel_retrieve
+
 
   subroutine fl_add_agent(vars, n_vars, pos, n_pos) &
          bind(c, name='fl_add_agent_c')

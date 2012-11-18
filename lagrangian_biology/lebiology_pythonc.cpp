@@ -19,6 +19,23 @@ PyMODINIT_FUNC initlebiology(int dim)
   pFGStageID = PyDict_New();
 
   pPersistent = NULL;
+
+#ifdef _OPENMP
+  PyImport_ImportModule("pp");
+  PyObject *pPP = PyImport_AddModule("pp");
+  PyObject *pPPDict = PyModule_GetDict(pPP);
+  PyObject *pPPServer = PyDict_GetItemString(pPPDict, "Server");
+
+  PyObject *pArgTuple = PyTuple_Pack(2, PyInt_FromSize_t(4), PyTuple_New(0), Py_True);
+  pJobServer = PyObject_CallObject(pPPServer, pArgTuple);
+  pJobDict = PyDict_New();
+
+  printf("LEBiology: Initialised 'Parallel Python' job server\n");
+  printf("LEBiology: Number of concurrent worker threads: ");
+  PyObject_Print(PyObject_CallMethod(pJobServer, "get_ncpus", NULL), stdout, Py_PRINT_RAW);
+  printf("\n");
+#endif
+
 #endif
 }
 
@@ -328,7 +345,7 @@ void lebiology_agent_init_c(char *fg, int fglen,
   }
 
   // Create args and execute kernel function 'def val(agent):'
-  PyObject **pArgs= malloc(sizeof(PyObject*));
+  PyObject **pArgs= (PyObject **)malloc(sizeof(PyObject*));
   pArgs[0] = pAgent;
 
   PyObject *pResult = PyEval_EvalCodeEx((PyCodeObject *)pFuncCode, pLocals, NULL, pArgs, 1, NULL, 0, NULL, 0, NULL);
@@ -389,7 +406,7 @@ void add_food_variety(PyObject *pAgent, PyObject *pEnvironment,
   Py_DECREF(pFoodDict);
 
   // Add FoodRequest dictionary
-  double *zeroes = calloc(n_fvariety, sizeof(double));
+  double *zeroes = (double *)calloc(n_fvariety, sizeof(double));
   PyObject *pRequestDict = create_dict(pVarietyNames, zeroes, n_fvariety);
   PyObject *pRequestString = PyString_FromFormat("%s%s", food_name, "Request");
   PyDict_SetItem(pAgent, pRequestString, pRequestDict);
@@ -449,7 +466,105 @@ void convert_food_variety(PyObject *pResult, char *fg_key, char *food_name,
 }
 #endif
 
+void lebiology_parallel_prepare_c(char *fg, int fglen, 
+				  char *key, int keylen, 
+				  char *food, int foodlen, 
+				  double vars[], int n_vars, 
+				  double envvals[], int n_envvals, 
+				  double fvariety[], double fingest[], 
+				  int n_fvariety, int agent_id, 
+				  double *dt, int persistent, int *stat)
+{
+#ifdef HAVE_PYTHON
+  // Get variable names
+  char *fg_key = fix_string(fg, fglen);
+  PyObject *pVarNames = PyDict_GetItemString(pFGVarNames, fg_key);
+  PyObject *pEnvNames = PyDict_GetItemString(pFGEnvNames, fg_key);
 
+  // Create agent and environment dict
+  PyObject *pAgent = create_dict(pVarNames, vars, n_vars);
+  PyObject *pEnvironment = create_dict(pEnvNames, envvals, n_envvals);
+
+  char *food_name = fix_string(food, foodlen);
+  if (n_fvariety > 0) {
+    add_food_variety(pAgent, pEnvironment, fg_key, food_name, n_fvariety, fvariety, fingest);
+  }
+
+  // Create dt argument
+  PyObject *pDt = PyFloat_FromDouble(*dt);
+
+  // Get kernel and parameter set, pack arguments and execute
+  char *keystr = fix_string(key,keylen);
+  PyObject *pKernelMap = PyDict_GetItemString(pFGKernelFunc, fg_key);
+  PyObject *pKernel = PyDict_GetItemString(pKernelMap, keystr);
+  PyObject *pParamMap = PyDict_GetItemString(pFGParamDicts, fg_key);
+  PyObject *pParams = PyDict_GetItemString(pParamMap, keystr);
+  
+  PyObject *pArgsTuple;
+  if (persistent > 0) {
+    pArgsTuple = PyTuple_Pack(5, pParams, pAgent, pEnvironment, pDt, pPersistent);
+  } else {
+    pArgsTuple = PyTuple_Pack(4, pParams, pAgent, pEnvironment, pDt);
+  }
+
+  PyObject *pModuleNames = PyTuple_Pack(1, PyString_FromString("math"));
+  PyObject *pDepFuncs = PyTuple_New(0);
+  PyObject *pSubmit = PyString_FromString("submit");
+  PyObject *pJob = PyObject_CallMethodObjArgs(pJobServer, pSubmit, pKernel, pArgsTuple, pDepFuncs, pModuleNames, NULL);
+  PyDict_SetItem(pJobDict, PyInt_FromSize_t(agent_id), pJob);
+
+  Py_DECREF(pAgent);
+  Py_DECREF(pEnvironment);
+  Py_DECREF(pDt);
+  Py_DECREF(pArgsTuple);
+  Py_DECREF(pJob);
+  free(fg_key);
+  free(keystr); 
+  free(food_name);
+#endif
+}
+
+void lebiology_parallel_finish_c(char *fg, int fglen, 
+				 char *food, int foodlen, 
+				 double vars[], int n_vars, 
+				 double frequest[], double fthreshold[], int n_fvariety, 
+				 int agent_id, int *stat)
+{
+#ifdef HAVE_PYTHON
+  // Get variable names
+  char *fg_key = fix_string(fg, fglen);
+  char *food_name = fix_string(food, foodlen);
+  PyObject *pVarNames = PyDict_GetItemString(pFGVarNames, fg_key);
+
+  PyObject *pJob = PyDict_GetItem(pJobDict, PyInt_FromSize_t(agent_id));
+  PyObject *pResult = PyObject_CallObject(pJob, NULL);
+
+  // Check for Python errors
+  *stat=0;
+  if(!pResult){
+    PyErr_Print(); *stat=-1; return;
+  }
+
+  // Convert the python result
+  int i;
+  for(i=0; i<n_vars; i++){
+    vars[i] = PyFloat_AsDouble( PyDict_GetItem(pResult, PyList_GET_ITEM(pVarNames, i)) );
+  }
+
+  if (n_fvariety > 0) {
+    convert_food_variety(pResult, fg_key, food_name, n_fvariety, frequest, fthreshold);
+  }
+
+  // Check for exceptions
+  if (PyErr_Occurred()){
+    PyErr_Print(); *stat=-1; return;
+  }
+
+  Py_DECREF(pResult);
+  free(fg_key);
+  free(food_name);
+#endif
+}
 
 void lebiology_kernel_update_c(char *fg, int fglen, 
                               char *key, int keylen, 
@@ -560,7 +675,7 @@ void lebiology_agent_update_c(char *fg, int fglen,
   PyObject *pDt = PyFloat_FromDouble(*dt);
 
   // Create args and execute kernel function 'def val(agent, env, dt):'
-  PyObject **pArgs= malloc(sizeof(PyObject*)*3);
+  PyObject **pArgs = (PyObject **)malloc(sizeof(PyObject*)*3);
   pArgs[0] = pAgent;
   pArgs[1] = pEnvironment;
   pArgs[2] = pDt;
@@ -643,7 +758,7 @@ void lebiology_agent_move_c(char *fg, int fglen,
   PyObject *pDt = PyFloat_FromDouble(*dt);
 
   // Create args and execute kernel function 'def val(agent, env, dt):'
-  PyObject **pArgs= malloc(sizeof(PyObject*)*3);
+  PyObject **pArgs = (PyObject **)malloc(sizeof(PyObject*)*3);
   pArgs[0] = pPosition;
   pArgs[1] = pVariables;
   pArgs[2] = pDt;
@@ -765,9 +880,9 @@ static PyObject *lebiology_add_agent(PyObject *self, PyObject *args)
   }
 
   // Convert the agent dict
-  int *n_vars = malloc(sizeof(int));
+  int *n_vars = (int *)malloc(sizeof(int));
   *n_vars = PyList_Size(pVarNames);
-  double *vars = malloc(*n_vars * sizeof(double));
+  double *vars = (double *)malloc(*n_vars * sizeof(double));
   int i;
   for (i=0; i<*n_vars; i++) {
     pAgentVar = PyDict_GetItem(pAgentDict, PyList_GET_ITEM(pVarNames, i));
@@ -779,10 +894,10 @@ static PyObject *lebiology_add_agent(PyObject *self, PyObject *args)
   }
 
   //Convert the position list
-  int *n_pos = malloc(sizeof(int));
+  int *n_pos = (int *)malloc(sizeof(int));
   *n_pos = PyList_Size(pPositionList);
   assert(*n_pos == lebiology_dim);
-  double *pos = malloc(lebiology_dim * sizeof(double));   
+  double *pos = (double *)malloc(lebiology_dim * sizeof(double));   
   for (i=0; i<*n_pos; i++) {
     pos[i] = PyFloat_AsDouble( PyList_GET_ITEM(pPositionList, i) );
   }
@@ -798,4 +913,11 @@ static PyObject *lebiology_add_agent(PyObject *self, PyObject *args)
   Py_INCREF(Py_None);
   return Py_None;
 #endif
+}
+
+char* fix_string(char *s,int len){
+  char *ns = (char *)malloc(len+3);
+  memcpy( ns, s, len );
+  ns[len] = 0;
+  return ns;
 }

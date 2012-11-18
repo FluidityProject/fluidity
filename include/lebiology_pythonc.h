@@ -23,6 +23,10 @@ static PyObject *pFGStageID;    // Dict of stage->ID mappings
 
 static PyObject *pPersistent;   // Pointer to the current "persistent" dictionary
 
+static PyObject *pJobServer;    // PP job server for threaded agent processing
+static PyObject *pJobDict;      // Dict holding the task objects associated with each agent
+
+extern "C" {
 /* Load the kernel fucntion and associated paramter set from the module provided and store in pFGKernelFunc and pFGParamDicts */
 void lebiology_fg_kernel_load_c(char *fg, int fglen, char *key, int keylen, char *module, int modulelen, char *kernel, int kernellen, char *param, int paramlen, int *stat);
 
@@ -58,6 +62,12 @@ void lebiology_kernel_update_c(char *fg, int fglen, char *key, int keylen, char 
 			       double fvariety[], double frequest[], double fthreshold[], double fingest[], int n_fvariety, 
 			       double *dt, int persistent, int *stat);
 
+void lebiology_parallel_prepare_c(char *fg, int fglen, char *key, int keylen, char *food, int foodlen, double vars[], int n_vars, 
+				  double envvals[], int n_envvals, double fvariety[], double fingest[], int n_fvariety, int agent_id, 
+				  double *dt, int persistent, int *stat);
+
+void lebiology_parallel_finish_c(char *fg, int fglen, char *food, int foodlen, double vars[], int n_vars, double frequest[], 
+				 double fthreshold[], int n_fvariety, int agent_id, int *stat);
 
 /* Update agent biology from a Python function
  * Usage: def val(agent, env, dt):
@@ -77,11 +87,12 @@ void lebiology_agent_update_c(char *fg, int fglen, char *key, int keylen, char *
 // Note: Disabled until dependencies are sorted
 void lebiology_agent_move_c(char *fg, int fglen, char *key, int keylen, double pos[], int n_pos, double vars[], int n_vars, int var_inds[], double *dt, double vector[], int *stat);
 
-/* Callback function to add new agents to the system from inside the embedded Python biology update */
-static PyObject *lebiology_add_agent(PyObject *self, PyObject *args);
-
 /* Wrapper for Fortran function to add converted new agents to the system */
 void fl_add_agent_c(double vars[], int *n_vars, double pos[], int *n_pos);
+}
+
+/* Callback function to add new agents to the system from inside the embedded Python biology update */
+static PyObject *lebiology_add_agent(PyObject *self, PyObject *args);
 
 /* Callback function to translate stage names to internal IDs */
 static PyObject *lebiology_stage_id(PyObject *self, PyObject *args);
