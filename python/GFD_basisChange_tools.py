@@ -45,6 +45,7 @@ def sphericalPolar_2_cartesian(positionVectorSphericalPolar):
     '''Convert spherical-polar coordinates (in radians), into Cartesian coordinates.
 
 The origin of the Cartesian frame of reference is located at the centre of the sphere, the positive half of x-axis goes through 0 deg E, 0 deg N, the positive half of y-axis goes through 90 deg E, 0 deg N and the positive half of the z-axis goes through the North Pole equivalent.'''
+    import numpy as np
     [radius, theta, phi] = positionVectorSphericalPolar
     x = radius*np.sin(theta)*np.cos(phi)
     y = radius*np.sin(theta)*np.sin(phi)
@@ -68,7 +69,6 @@ def lonlatradius_2_cartesian(positionVectorLonLatRad):
     '''Convert longitude-latitude-radial coordinates on the surface of the Earth (in degrees) to Cartesian coordinates. Longitude and latitude must be in degrees.
 
 The origin of the Cartesian frame of reference is located at the centre of the sphere, the positive half of x-axis goes through 0 deg E, 0 deg N, the positive half of y-axis goes through 90 deg E, 0 deg N and the positive half of the z-axis goes through the North Pole equivalent.'''
-    import numpy as np
     #Calculate spherical-polar coordinates form longitude-latitude-radius.
     [radius, theta, phi] = lonlatradius_2_sphericalPolar(positionVectorLonLatRad)
     #Calculate Cartesian coordinates from spherical-polar coordinates.
