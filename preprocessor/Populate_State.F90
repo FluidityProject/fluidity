@@ -72,7 +72,7 @@ module populate_state_module
        allocate_and_insert_auxilliary_fields, &
        initialise_field, allocate_metric_limits, &
        make_mesh_periodic_from_options, make_mesh_unperiodic_from_options, &
-       compute_domain_statistics, get_ocean_options
+       compute_domain_statistics
 
   interface allocate_field_as_constant
     
@@ -170,70 +170,6 @@ contains
     call profiler_toc("I/O")
     ewrite(1, *) "Exiting populate_state"
   end subroutine populate_state
-
-  subroutine get_ocean_options
-    !! Sets up the readers for ocean conditions (climatology, boundary
-    !! conditions, and forcing).
-
-    character(len=OPTION_PATH_LEN) :: option, dataset
-
-    if(have_option("/timestepping/current_time/time_units")) then
-       call get_option("/timestepping/current_time/time_units/date", option)
-
-       call fluxes_setsimulationtimeunits(trim(option))
-       call climatology_setsimulationtimeunits(trim(option))
-       call NEMO_v2_setsimulationtimeunits(trim(option))
-    end if
-
-    if(have_option("/environmental_data/climatology/file_name")) then
-       call get_option("/environmental_data/climatology/file_name", option)
-
-       call climatology_setclimatology(trim(option))
-    end if
-
-    if(have_option("/ocean_forcing/bulk_formulae/input_file")) then
-       call get_option("/ocean_forcing/bulk_formulae/input_file/file_name", option)
-
-       dataset = "ERA40" ! default
-       if(have_option("/ocean_forcing/bulk_formulae/file_type")) then
-          call get_option("/ocean_forcing/bulk_formulae/file_type/filetype/name", dataset)
-       end if
-       
-       if (dataset == "ERA40") then
-          call fluxes_registerdatafile(trim(option))
-          !                field from NetCDF file     dex |   Physical meaning
-          call fluxes_addfieldofinterest("u10")   !   0   | 10 metre U wind component
-          call fluxes_addfieldofinterest("v10")   !   1   | 10 metre V wind component
-          call fluxes_addfieldofinterest("ssrd")  !   2   | Surface solar radiation
-          call fluxes_addfieldofinterest("strd")  !   3   | Surface thermal radiation 
-          call fluxes_addfieldofinterest("ro")    !   4   | Runoff
-          call fluxes_addfieldofinterest("tp")    !   5   | Total precipitation
-          call fluxes_addfieldofinterest("d2m")   !   6   | Dew point temp at 2m
-          call fluxes_addfieldofinterest("t2m")   !   7   | Air temp at 2m 
-          call fluxes_addfieldofinterest("msl")   !   8   | Mean sea level pressure
-       else
-          FLExit("unsupported bulk formula input file type. Choose ERA40")
-       end if
-    end if
-
-    if(have_option("/ocean_biology/lagrangian_ensemble/hyperlight")) then
-       call fluxes_addfieldofinterest("tcc")      !       | Total cloud cover 
-    end if
-
-    if(have_option("/ocean_forcing/external_data_boundary_conditions")) then
-       call get_option("/ocean_forcing/external_data_boundary_conditions/input_file/file_name", option)
-
-       ewrite(3,*)"Registering external data forcing file: " // trim(option)
-       call NEMO_v2_RegisterDataFile(option)
-
-       call NEMO_v2_AddFieldOfInterest("temperature")   !   0   | Sea temperature
-       call NEMO_v2_AddFieldOfInterest("salinity")      !   1   | Salinity
-       call NEMO_v2_AddFieldOfInterest("u")             !   2   | Azimuthal velocity
-       call NEMO_v2_AddFieldOfInterest("v")             !   3   | Meridional velocity
-       call NEMO_v2_AddFieldOfInterest("ssh")           !   4   | Sea surface height
-    end if
-
-  end subroutine get_ocean_options
 
   subroutine insert_external_mesh(states, save_vtk_cache)
     !!< Read in external meshes from file as specified in options tree and
