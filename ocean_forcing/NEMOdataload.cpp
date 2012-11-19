@@ -37,16 +37,14 @@ extern int projections(int nPoints, double *x, double *y, double *z, string curr
 
 
 extern "C" {
-#define rotate_ll2cart_fc F77_FUNC(rotate_ll2cart, ROTATE_LL2CART)
-  extern void rotate_ll2cart_fc(double *longitude, double *latitude, double *u, double *v,
-                     const double *r3u, const double *r3v, const double *r3w);
+  extern void rotate_ll2cart(const double *longitude, const double *latitude, const double *u, const double *v,
+                     double *r3u, double *r3v, double *r3w);
 
-#define get_nemo_variables_fc F77_FUNC(get_nemo_variables, GET_NEMO_VARIABLES)
-    void get_nemo_variables_fc(double *time, const double *X, const double *Y, const double *Z, const double *DEPTH,
+    void get_nemo_variables_c(double *time, const double *X, const double *Y, const double *Z, const double *DEPTH,
                      double *Te, double *Sa, double *U, double *V, double *W, double *SSH, const int *NNodes);
 }
 
-void get_nemo_variables_fc(double *time, const double *X, const double *Y, const double *Z, const double *DEPTH,
+void get_nemo_variables_c(double *time, const double *X, const double *Y, const double *Z, const double *DEPTH,
                      double *Te, double *Sa, double *U, double *V, double *W, double *SSH, const int *n){
 
     const int nFields = 5; // number of fields being read in, currently temperature, salinity, U, V and sea surface height
@@ -118,7 +116,7 @@ void get_nemo_variables_fc(double *time, const double *X, const double *Y, const
         // This currently assumes that you are running on the sphere. If NEMO data is going to be used for
         // planar cases an if if(have_option("/geometry/spherical_earth")) will need to be passed or
         // added.
-        rotate_ll2cart_fc(&longitude, &latitude, &u_rot, &v_rot, &uvel[i], &vvel[i], &wvel[i]);
+        rotate_ll2cart(&longitude, &latitude, &u_rot, &v_rot, &uvel[i], &vvel[i], &wvel[i]);
         
     }
 
@@ -150,54 +148,36 @@ void get_nemo_variables_fc(double *time, const double *X, const double *Y, const
 
 //
 // FORTRAN interface.
-// Wrap a proper interface round these like ClimateReader_interface.F90
 //
 
 extern "C" {
-#define nemo_v2_addfieldofinterest_fc F77_FUNC_(nemo_v2_addfieldofinterest, NEMO_v2_ADDFIELDOFINTEREST)
-  void nemo_v2_addfieldofinterest_fc(char *_scalar, int *len){
-    char scalar[1024];
-    assert(*len<1023);
-    strncpy(scalar, _scalar, *len);
-    scalar[*len] = '\0';
+  void nemo_v2_addfieldofinterest_c(const char *scalar){
     NEMOReader_v2_global.AddFieldOfInterest(string(scalar));
     return;
   }
   
-#define nemo_v2_clearfields_fc F77_FUNC_(nemo_v2_clearfields, NEMO_V2_CLEARFIELDS)
-  void nemo_v2_clearfields_fc(){
+  void nemo_v2_clearfields_c(){
     NEMOReader_v2_global.ClearFields();
     return;
   }
   
-#define nemo_v2_getscalars_fc F77_FUNC_(nemo_v2_getscalars, NEMO_V2_GETSCALARS)
-  void nemo_v2_getscalars_fc(double *longitude, double *latitude, double *p_depth, double *scalars){
+  void nemo_v2_getscalars_c(const double *longitude, const double *latitude, const double *p_depth, double *scalars){
     NEMOReader_v2_global.GetScalars(*longitude, *latitude, *p_depth, scalars);
     return;
   }
   
-#define nemo_v2_registerdatafile_fc F77_FUNC_(nemo_v2_registerdatafile, NEMO_V2_REGISTERDATAFILE)
-  void nemo_v2_registerdatafile_fc(char *_filename, int *len){
-    char filename[4096];
-    assert(*len<4095);
-    strncpy(filename, _filename, *len);
-    filename[*len] = '\0';
+  void nemo_v2_registerdatafile_c(const char *filename){
     NEMOReader_v2_global.RegisterDataFile(string(filename));
     return;
   }
   
-#define nemo_v2_setsimulationtimeunits_fc F77_FUNC_(nemo_v2_setsimulationtimeunits, NEMO_V2_SETSIMULATIONTIMEUNITS)
-  void nemo_v2_setsimulationtimeunits_fc(char *_units, int len){
-    char *units = new char[len+1]();
-    strncpy(units, _units, len);
-    units[len] = '\0';
+  void nemo_v2_setsimulationtimeunits_c(const char *units){
     NEMOReader_v2_global.SetSimulationTimeUnits(string(units));  
     return;
   }
   
-#define nemo_v2_settimeseconds_fc F77_FUNC_(nemo_v2_settimeseconds, NEMO_V2_SETTIMESECONDS)
-  void nemo_v2_settimeseconds_fc(double *_time){
-    NEMOReader_v2_global.SetTimeSeconds(*_time);  
+  void nemo_v2_settimeseconds_c(const double *time){
+    NEMOReader_v2_global.SetTimeSeconds(*time);  
     return;
   }
 }
