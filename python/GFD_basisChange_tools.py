@@ -27,7 +27,7 @@
 from math import sqrt, pi, sin, cos, atan2, acos
 
 def cartesian_2_sphericalPolar(positionVectorCartesian):
-    '''Convert Cartesian coordinates to radial-azimuthal-polar spherical coordinates, in radians.
+    '''Convert Cartesian coordinates to spherical-polar coordinates, in radians.
 
 The origin of the Cartesian frame of reference is located at the centre of the sphere, the positive half of x-axis goes through 0 deg E, 0 deg N, the positive half of y-axis goes through 90 deg E, 0 deg N and the positive half of the z-axis goes through the North Pole equivalent.'''
     #Extract the Cartesian vector components.
@@ -40,6 +40,16 @@ The origin of the Cartesian frame of reference is located at the centre of the s
     theta = acos(z/radius)
     phi = atan2(y,x)
     return [radius, theta, phi]
+
+def sphericalPolar_2_cartesian(positionVectorSphericalPolar):
+    '''Convert spherical-polar coordinates (in radians), into Cartesian coordinates.
+
+The origin of the Cartesian frame of reference is located at the centre of the sphere, the positive half of x-axis goes through 0 deg E, 0 deg N, the positive half of y-axis goes through 90 deg E, 0 deg N and the positive half of the z-axis goes through the North Pole equivalent.'''
+    [radius, theta, phi] = positionVectorSphericalPolar
+    x = radius*np.sin(theta)*np.cos(phi)
+    y = radius*np.sin(theta)*np.sin(phi)
+    z = radius*np.cos(theta)
+    return [x, y, z]
 
 def cartesian_2_lonlatradius(positionVectorCartesian):
     '''Convert Cartesian coordinates on a sphere to longitude-latitude-radius. Longitude and latitude are returned in degrees.
@@ -62,9 +72,7 @@ The origin of the Cartesian frame of reference is located at the centre of the s
     #Calculate spherical-polar coordinates form longitude-latitude-radius.
     [radius, theta, phi] = lonlatradius_2_sphericalPolar(positionVectorLonLatRad)
     #Calculate Cartesian coordinates from spherical-polar coordinates.
-    x = radius*np.sin(theta)*np.cos(phi)
-    y = radius*np.sin(theta)*np.sin(phi)
-    z = radius*np.cos(theta)
+    [x, y, z] = sphericalPolar_2_cartesian([radius, theta, phi])
     return [x, y, z]
 
 def lonlatradius_2_sphericalPolar(positionVectorLonLatRad):
