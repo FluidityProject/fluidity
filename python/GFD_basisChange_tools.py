@@ -64,7 +64,7 @@ The origin of the Cartesian frame of reference is located at the centre of the s
     #Calculate Cartesian coordinates from spherical-polar coordinates.
     x = radius*np.sin(theta)*np.cos(phi)
     y = radius*np.sin(theta)*np.sin(phi)
-    y = radius*np.cos(theta)
+    z = radius*np.cos(theta)
     return [x, y, z]
 
 def lonlatradius_2_sphericalPolar(positionVectorLonLatRad):
