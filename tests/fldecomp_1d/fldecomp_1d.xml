@@ -1,0 +1,27 @@
+<?xml version = "1.0" encoding = "UTF-8" ?>
+<testproblem>
+  <name>fldecomp</name>
+  <owner userid="ggorman"/>
+  <problem_definition length = "short" nprocs = "1">
+    <command_line>rm -f fldecomp.log; make clean-run; fldecomp -n 4 -k -v line > fldecomp.log</command_line>
+  </problem_definition>
+  <variables>
+    <variable name = "partitions" language = "python">
+import fluidity.diagnostics.triangletools as triangletools
+partitions = []
+for i in range(4):
+  partitions.append(triangletools.ReadTriangle("line_" + str(i)))
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name = "Equal sized partitions (owned nodes)" language = "python">
+import fluidity_tools
+nodeCounts = []
+for partition in partitions:
+  nodeCounts.append(partition.GetNOwnedNodes())
+fluidity_tools.compare_variables([float(nodeCount) for nodeCount in nodeCounts[1:]], [float(nodeCounts[0]) for i in range(len(nodeCounts) - 1)], 0.075)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
