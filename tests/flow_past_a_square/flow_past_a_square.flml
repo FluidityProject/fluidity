@@ -69,7 +69,7 @@
       <real_value rank="0">0.0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">0.001</real_value>
+      <real_value rank="0">0.002</real_value>
     </timestep>
     <finish_time>
       <real_value rank="0">120.0</real_value>
@@ -133,12 +133,7 @@
         <spatial_discretisation>
           <continuous_galerkin>
             <stabilisation>
-              <streamline_upwind>
-                <nu_bar_optimal/>
-                <nu_scale name="0.5">
-                  <real_value shape="1" rank="0">0.5</real_value>
-                </nu_scale>
-              </streamline_upwind>
+              <no_stabilisation/>
             </stabilisation>
             <mass_terms>
               <lump_mass_matrix/>
@@ -150,7 +145,7 @@
             <les_model>
               <second_order>
                 <smagorinsky_coefficient>
-                  <real_value rank="0">0.164</real_value>
+                  <real_value rank="0">0.231931024229</real_value>
                 </smagorinsky_coefficient>
                 <length_scale_type>scalar</length_scale_type>
                 <tensor_field name="EddyViscosity" rank="2">
@@ -226,11 +221,6 @@
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
-              <x_component>
-                <constant>
-                  <real_value rank="0">0.0</real_value>
-                </constant>
-              </x_component>
               <y_component>
                 <constant>
                   <real_value rank="0">0.0</real_value>
@@ -245,11 +235,6 @@
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
-              <x_component>
-                <constant>
-                  <real_value rank="0">0.0</real_value>
-                </constant>
-              </x_component>
               <y_component>
                 <constant>
                   <real_value rank="0">0.0</real_value>
@@ -393,11 +378,57 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <vector_field name="TimeAveragedVelocity" rank="1">
+    <vector_field name="TimeAveragedVelocity0" rank="1">
       <diagnostic>
         <algorithm source_field_type="vector" material_phase_support="single" name="time_averaged_vector" source_field_name="Velocity">
           <spin_up_time>
             <real_value rank="0">0.0</real_value>
+          </spin_up_time>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </vector_field>
+    <vector_field name="TimeAveragedVelocity5" rank="1">
+      <diagnostic>
+        <algorithm source_field_type="vector" material_phase_support="single" name="time_averaged_vector" source_field_name="Velocity">
+          <spin_up_time>
+            <real_value rank="0">5.0</real_value>
+          </spin_up_time>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </vector_field>
+    <vector_field name="TimeAveragedVelocity10" rank="1">
+      <diagnostic>
+        <algorithm source_field_type="vector" material_phase_support="single" name="time_averaged_vector" source_field_name="Velocity">
+          <spin_up_time>
+            <real_value rank="0">10.0</real_value>
           </spin_up_time>
         </algorithm>
         <mesh name="VelocityMesh"/>
