@@ -94,9 +94,9 @@ The origin of the Cartesian frame of reference is located at the centre of the s
     #Evaluate components of rotation matrices.
     transformationMatrix =\
        np.array([\
-                 [np.sin(theta)*np.cos(phi),   np.sin(theta)*np.sin(phi),   np.cos(theta)],\
-                 [np.cos(theta)*np.cos(phi),   np.cos(theta)*np.sin(phi),  -np.sin(theta)],\
-                 [-np.sin(phi),                np.cos(phi),                 0]])
+                 [np.sin(theta)*np.cos(phi),   np.cos(theta)*np.cos(phi),  -np.sin(phi)],\
+                 [np.sin(theta)*np.sin(phi),   np.cos(theta)*np.sin(phi),   np.cos(phi)],\
+                 [np.cos(theta),              -np.sin(theta),              0]])
     transposedTransformationMatrix = transformationMatrix.transpose()
     #Calculate the components of the tensor in the reference system.
     transformed_Tensor = np.dot(transformationMatrix, np.array(tensor))
@@ -114,9 +114,9 @@ The origin of the Cartesian frame of reference is located at the centre of the s
     #Evaluate components of rotation matrices.
     transformationMatrix =\
        np.array([\
-                 [np.sin(theta)*np.cos(phi),   np.cos(theta)*np.cos(phi),  -np.sin(phi)],\
-                 [np.sin(theta)*np.sin(phi),   np.cos(theta)*np.sin(phi),   np.cos(phi)],\
-                 [np.cos(theta),              -np.sin(theta),              0]])
+                 [np.sin(theta)*np.cos(phi),   np.sin(theta)*np.sin(phi),   np.cos(theta)],\
+                 [np.cos(theta)*np.cos(phi),   np.cos(theta)*np.sin(phi),  -np.sin(theta)],\
+                 [-np.sin(phi),                np.cos(phi),                 0]])
     transposedTransformationMatrix = transformationMatrix.transpose()
     #Calculate the components of the tensor in the reference system.
     transformed_Tensor = np.dot(transformationMatrix, np.array(tensor))
@@ -179,9 +179,9 @@ The origin of the Cartesian frame of reference is located at the centre of the s
     #Evaluate components of rotation matrices.
     transformationMatrix =\
        np.array([\
-                 [np.sin(theta)*np.cos(phi),   np.sin(theta)*np.sin(phi),   np.cos(theta)],\
-                 [np.cos(theta)*np.cos(phi),   np.cos(theta)*np.sin(phi),  -np.sin(theta)],\
-                 [-np.sin(phi),                np.cos(phi),                 0]])
+                 [np.sin(theta)*np.cos(phi),   np.cos(theta)*np.cos(phi),  -np.sin(phi)],\
+                 [np.sin(theta)*np.sin(phi),   np.cos(theta)*np.sin(phi),   np.cos(phi)],\
+                 [np.cos(theta),              -np.sin(theta),              0]])
     #Calculate the components of the tensor in the reference system.
     transformed_Vector = np.dot(transformationMatrix, np.array(vector))
     return transformed_Vector
@@ -196,9 +196,9 @@ The origin of the Cartesian frame of reference is located at the centre of the s
     #Evaluate components of rotation matrices.
     transformationMatrix =\
        np.array([\
-                 [np.sin(theta)*np.cos(phi),   np.cos(theta)*np.cos(phi),  -np.sin(phi)],\
-                 [np.sin(theta)*np.sin(phi),   np.cos(theta)*np.sin(phi),   np.cos(phi)],\
-                 [np.cos(theta),              -np.sin(theta),              0]])
+                 [np.sin(theta)*np.cos(phi),   np.sin(theta)*np.sin(phi),   np.cos(theta)],\
+                 [np.cos(theta)*np.cos(phi),   np.cos(theta)*np.sin(phi),  -np.sin(theta)],\
+                 [-np.sin(phi),                np.cos(phi),                 0]])
     #Calculate the components of the tensor in the reference system.
     transformed_Vector = np.dot(transformationMatrix, np.array(vector))
     return transformed_Vector
