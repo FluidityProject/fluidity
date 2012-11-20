@@ -852,41 +852,33 @@ void NEMOReader::VerboseOn(){
 NEMOReader NEMOReader_global;
 
 extern "C" {
-#define nemo_addfieldofinterest_fc F77_FUNC_(nemo_addfieldofinterest, NEMO_ADDFIELDOFINTEREST)
-  void nemo_addfieldofinterest_fc(char *_scalar, int *len){
-    char scalar[1024];
-    assert(*len<1023);
-    strncpy(scalar, _scalar, *len);
-    scalar[*len] = '\0';
+  void nemo_addfieldofinterest_c(const char *scalar){
     NEMOReader_global.AddFieldOfInterest(string(scalar));
     return;
   }
   
-#define nemo_clearfields_fc F77_FUNC_(nemo_clearfields, NEMO_CLEARFIELDS)
-  void nemo_clearfields_fc(){
+  void nemo_clearfields_c(){
     NEMOReader_global.ClearFields();
     return;
   }
   
-#define nemo_getscalars_fc F77_FUNC_(nemo_getscalars, NEMO_GETSCALARS)
-  void nemo_getscalars_fc(double *longitude, double *latitude, double *p_depth, double *scalars){
+  void nemo_getscalars_c(const double *longitude, const double *latitude, const double *p_depth, double *scalars){
     NEMOReader_global.GetScalars(*longitude, *latitude, *p_depth, scalars);
     return;
   }
   
-#define nemo_registerdatafile_fc F77_FUNC_(nemo_registerdatafile, NEMO_REGISTERDATAFILE)
-  void nemo_registerdatafile_fc(char *_filename, int *len){
-    char filename[4096];
-    assert(*len<4095);
-    strncpy(filename, _filename, *len);
-    filename[*len] = '\0';
+  void nemo_registerdatafile_c(const char *filename){
     NEMOReader_global.RegisterDataFile(string(filename));
     return;
   }
   
-#define nemo_settimeseconds_fc F77_FUNC_(nemo_settimeseconds, NEMO_SETTIMESECONDS)
-  void nemo_settimeseconds_fc(double *_time){
-    NEMOReader_global.SetTimeSeconds(*_time);  
+  void nemo_setsimulationtimeunits_c(const char *units){
+    NEMOReader_global.SetSimulationTimeUnits(string(units));  
+    return;
+  }
+  
+  void nemo_settimeseconds_c(const double *time){
+    NEMOReader_global.SetTimeSeconds(*time);  
     return;
   }
 }

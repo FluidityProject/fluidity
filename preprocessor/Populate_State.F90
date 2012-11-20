@@ -57,6 +57,7 @@ module populate_state_module
   use data_structures
   use fields_halos
   use read_triangle
+  use initialise_ocean_forcing_module
 
   implicit none
 
@@ -136,6 +137,8 @@ contains
        call nullify(states(i))
        call set_option_path(states(i), "/material_phase["//int2str(i-1)//"]")
     end do
+
+    call initialise_ocean_forcing_readers
 
     call insert_external_mesh(states, save_vtk_cache = .true.)
 
