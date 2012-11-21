@@ -3357,7 +3357,7 @@ contains
      ele_dshape_at_face_quad = eval_volume_dshape_at_face_quad(augmented_shape, &
           & local_face_number(X, face), f_invJ)
 
-     ! Calculate grad of U at the surface element quadrature points
+     ! Calculate non-diagonal terms of grad U at the surface element quadrature points 
      do i=1, dim
         do j=1, dim
            grad_U_at_quad(i, j, :) = &
@@ -3365,11 +3365,17 @@ contains
         end do
      end do
 
+     ! remove diagonal terms of grad U ( -2/3*div_u ) 
+     do i=1, dim
+        grad_U_at_quad(i, i, :) = 0.0
+     end do
+
      visc_at_quad = face_val_at_quad(visc, face)
      X_ele = face_val_at_quad(X, face)
      do i_gi = 1, face_ngi(X, face)
-        ! Multiply by visosity
-        shear_at_quad(:,:,i_gi) = matmul(grad_U_at_quad(:,:,i_gi), visc_at_quad(:,:,i_gi))
+        ! determine shear ( nu*(grad_u + grad_u.T - 2/3*div_u ) )   
+        ! note that 2/3*div_u is removed above when we ignore diagonal terms
+        shear_at_quad(:,:,i_gi) = matmul(grad_U_at_quad(:,:,i_gi) + transpose(grad_U_at_quad(:,:,i_gi)), visc_at_quad(:,:,i_gi))
 
         ! Get absolute of normal vector
         do i = 1,dim
@@ -3405,7 +3411,7 @@ contains
      integer, intent(in) :: ele
      real, intent(in) :: density
 
-     integer :: i, j, i_gi
+     integer :: i, j, i_gi, dim
      type(element_type), pointer :: shape
      real, dimension(ele_ngi(bss, ele)) :: detwei
      real, dimension(X%dim, ele_ngi(bss, ele)) :: normal, normal_shear_at_quad, X_at_quad
@@ -3422,9 +3428,15 @@ contains
      visc_at_quad = ele_val_at_quad(visc, ele)
      grad_U_at_quad = ele_val_at_quad(grad_U, ele)
 
+     ! remove diagonal terms of grad U ( -2/3*div_u ) 
+     do i=1, dim
+        grad_U_at_quad(i, i, :) = 0
+     end do
+
      do i_gi = 1, ele_ngi(bss, ele)
-        ! Multiply by viscosity
-        shear_at_quad(:,:,i_gi) = density * matmul(grad_U_at_quad(:,:,i_gi), visc_at_quad(:,:,i_gi))
+        ! determine shear ( nu*(grad_u + grad_u.T - 2/3*div_u ) )   
+        ! note that 2/3*div_u is removed above when we removed the diagonal terms
+        shear_at_quad(:,:,i_gi) = density * matmul(grad_U_at_quad(:,:,i_gi) + transpose(grad_U_at_quad(:,:,i_gi)), visc_at_quad(:,:,i_gi))
 
         ! Get absolute of normal vector
         do i = 1, bss%dim
