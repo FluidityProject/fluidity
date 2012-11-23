@@ -3365,11 +3365,6 @@ contains
         end do
      end do
 
-     ! remove diagonal terms of grad U ( -2/3*div_u ) 
-     do i=1, dim
-        grad_U_at_quad(i, i, :) = 0.0
-     end do
-
      visc_at_quad = face_val_at_quad(visc, face)
      X_ele = face_val_at_quad(X, face)
      do i_gi = 1, face_ngi(X, face)
@@ -3427,11 +3422,6 @@ contains
 
      visc_at_quad = ele_val_at_quad(visc, ele)
      grad_U_at_quad = ele_val_at_quad(grad_U, ele)
-
-     ! remove diagonal terms of grad U ( -2/3*div_u ) 
-     do i=1, dim
-        grad_U_at_quad(i, i, :) = 0
-     end do
 
      do i_gi = 1, ele_ngi(bss, ele)
         ! determine shear ( nu*(grad_u + grad_u.T - 2/3*div_u ) )   
