@@ -5,7 +5,7 @@
   <owner userid="jhill1"/>
   <tags>flml biology par</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>mpiexec -n 2 fluidity  photosynthetic_radiation.flml </command_line>
+    <command_line>mpiexec -n 2 flredecomp -i 1 -o 2 photosynthetic_radiation photosynthetic_radiation_flredecomp &amp;&amp; mpiexec -n 2 fluidity photosynthetic_radiation_flredecomp.flml </command_line>
     <!-- Calculate the amount of light in the ocean. This version is DG. -->
   </problem_definition>
   <variables>

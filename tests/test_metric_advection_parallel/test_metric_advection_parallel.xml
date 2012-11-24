@@ -4,7 +4,8 @@
   <owner userid="pef"/>
   <tags>flml parallel 2dadapt</tags>
   <problem_definition length = "medium" nprocs = "1">
-    <command_line>mpiexec -n 2 ../../bin/fluidity -v3 -l test_metric_advection_parallel.flml
+    <command_line>mpiexec -n 2 ../../bin/flredecomp -i 1 -o 2 -v -l test_metric_advection_parallel test_metric_advection_parallel_flredecomp &amp;&amp;
+mpiexec -n 2 ../../bin/fluidity -v3 -l test_metric_advection_parallel_flredecomp.flml
     </command_line>
   </problem_definition>
   <variables>
