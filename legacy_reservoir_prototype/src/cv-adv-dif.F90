@@ -1048,13 +1048,13 @@
                      ONE_M_FTHETA_T2OLD = (1.0-FTHETA) * LIMT2OLD
 
                      IF(IGOT_THETA_FLUX==1) THEN
-                        IF(GET_THETA_FLUX) THEN
+                        IF ( GET_THETA_FLUX ) THEN
 !                           THETA_FLUX(ELE, CV_ILOC, GI, IPHASE)      =FTHETA*LIMT
 !                           ONE_M_THETA_FLUX(ELE, CV_ILOC, GI, IPHASE)=(1.0-FTHETA)*LIMTOLD
                            THETA_FLUX(ELE, CV_ILOC, GI, IPHASE)      =FTHETA*LIMDT/DEN(CV_NODI_IPHA)
                            ONE_M_THETA_FLUX(ELE, CV_ILOC, GI, IPHASE)=(1.0-FTHETA)*LIMDTOLD/DEN(CV_NODI_IPHA)
                         ENDIF
-                        IF(USE_THETA_FLUX) THEN
+                        IF ( USE_THETA_FLUX ) THEN
                            FTHETA_T2         =THETA_FLUX(ELE, CV_ILOC, GI, IPHASE)
                            ONE_M_FTHETA_T2OLD=ONE_M_THETA_FLUX(ELE, CV_ILOC, GI, IPHASE)
                         ENDIF
@@ -1080,7 +1080,7 @@
                         CALL PUT_IN_CT_RHS(CT, CT_RHS, U_NLOC, SCVNGI, GI, NCOLCT, NDIM, &
                              CV_NONODS, U_NONODS, NPHASE, IPHASE, TOTELE, ELE, ELE2, SELE, &
                              JCOUNT_KLOC, JCOUNT_KLOC2, U_OTHER_LOC, U_NDGLN, U, V, W,  &
-                                !                             JCOUNT_KLOC, JCOUNT_KLOC2, U_OTHER_LOC, U_NDGLN, NU, NV, NW,  &
+                             !JCOUNT_KLOC, JCOUNT_KLOC2, U_OTHER_LOC, U_NDGLN, NU, NV, NW,  &
                              SUFEN, SCVDETWEI, CVNORMX, CVNORMY, CVNORMZ, DEN, CV_NODI, CV_NODI_IPHA, &
                              UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
                              UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2, &
@@ -6568,18 +6568,21 @@
            U_KLOC_LEV, U_NLOC_LEV
       REAL :: RCON,UDGI_IMP,VDGI_IMP,WDGI_IMP,NDOTQ_IMP
 
-      ewrite(3,*)' In PUT_IN_CT_RHS CVNORMX/Y/Z:',CVNORMX( GI ),CVNORMY( GI ),CVNORMZ( GI ), &
-           ':', CVNORMX( GI )**2+CVNORMY( GI )**2+CVNORMZ( GI )**2
-      ewrite(3,*)' SCVDETWEI( GI ):',SCVDETWEI( GI )
-      ewrite(3,*)' SUFEN( :, GI ):',SUFEN( :, GI )
-      ewrite(3,*)' jcount_kloc, limdt, theta:', jcount_kloc, limdt, ftheta_t2
+      !ewrite(3,*)' In PUT_IN_CT_RHS CVNORMX/Y/Z:',CVNORMX( GI ),CVNORMY( GI ),CVNORMZ( GI ), &
+      !     ':', CVNORMX( GI )**2+CVNORMY( GI )**2+CVNORMZ( GI )**2
+      !ewrite(3,*)' SCVDETWEI( GI ):',SCVDETWEI( GI )
+      !ewrite(3,*)' SUFEN( :, GI ):',SUFEN( :, GI )
+      !ewrite(3,*)' jcount_kloc, limdt, theta:', jcount_kloc, limdt, ftheta_t2
 
-      ewrite(3,*)' ugi_coef_ele:', ugi_coef_ele
-      ewrite(3,*)' vgi_coef_ele:', vgi_coef_ele
-      ewrite(3,*)' wgi_coef_ele:', wgi_coef_ele
-      ewrite(3,*)' ugi_coef_ele2:', ugi_coef_ele2
-      ewrite(3,*)' vgi_coef_ele2:', vgi_coef_ele2
-      ewrite(3,*)' wgi_coef_ele2:', wgi_coef_ele2
+      !ewrite(3,*)' ugi_coef_ele:', ugi_coef_ele
+      !ewrite(3,*)' vgi_coef_ele:', vgi_coef_ele
+      !ewrite(3,*)' wgi_coef_ele:', wgi_coef_ele
+      !ewrite(3,*)' ugi_coef_ele2:', ugi_coef_ele2
+      !ewrite(3,*)' vgi_coef_ele2:', vgi_coef_ele2
+      !ewrite(3,*)' wgi_coef_ele2:', wgi_coef_ele2
+
+      !ewrite(3,*)' DEN', DEN
+      !ewrite(3,*)' FTHETA_T2, LIMDT', FTHETA_T2, LIMDT
 
       DO U_KLOC = 1, U_NLOC
 

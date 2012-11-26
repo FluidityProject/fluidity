@@ -410,18 +410,26 @@
       INTEGER, DIMENSION( NCOLCMC ), intent( in ) :: COLCMC
       REAL, DIMENSION( NCOLC * NDIM * NPHASE ), intent( in ) :: C 
       REAL, DIMENSION( NCOLCT * NDIM * NPHASE ), intent( inout ) :: CT
+
       ! Local variables
       INTEGER, PARAMETER :: MX_NCOLOR = 1000
       REAL, PARAMETER :: INFINY = 1.0E+10
       LOGICAL :: DONE
       REAL, DIMENSION( :), allocatable :: NEED_COLOR, COLOR_VEC, CMC_COLOR_VEC
       REAL, DIMENSION( :), allocatable :: CDP, DU, DV, DW, DU_LONG
-      INTEGER :: NCOLOR, CV_NOD, CV_JNOD, COUNT, COUNT2, IDIM, IPHASE, CV_COLJ, U_JNOD, CV_JNOD2, NDPSET
-      INTEGER :: I, ELE,u_inod,u_nod
+      INTEGER :: NCOLOR, CV_NOD, CV_JNOD, COUNT, COUNT2, IDIM, IPHASE, CV_COLJ, U_JNOD, CV_JNOD2
+      INTEGER :: I, ELE,u_inod,u_nod, ndpset
       REAL :: SUM
 
       call get_option( '/material_phase[0]/scalar_field::Pressure/' // &
            'prognostic/spatial_discretisation/reference_node', ndpset, default = 0 )
+
+
+ewrite(3,*)'COLOR_GET_CMC_PHA>>>>>>>>>>>>>>>>>'
+ewrite(3,*)'c=',c
+ewrite(3,*)'mass_mn_pres=',mass_mn_pres
+ewrite(3,*)'diag_scale_pres=',diag_scale_pres
+
 
       ALLOCATE( NEED_COLOR( CV_NONODS ))
       ALLOCATE( COLOR_VEC( CV_NONODS ))
@@ -431,48 +439,6 @@
       ALLOCATE( DV( U_NONODS * NPHASE ))
       ALLOCATE( DW( U_NONODS * NPHASE ))
       ALLOCATE( CMC_COLOR_VEC( CV_NONODS )) 
-
-      if(.false.) then
-
-         ewrite(3,*)'NCOLCT,NDIM,NCOLC,cv_nonods,u_nonods,nphase:', &
-              NCOLCT,NDIM,NCOLC,cv_nonods,u_nonods,nphase
-         !stop 321
-         DO CV_NOD = 1, CV_NONODS
-            DO COUNT = FINDCT( CV_NOD ), FINDCT( CV_NOD + 1 ) - 1
-               U_JNOD = COLCT( COUNT )
-               ! Find CT for row CV_NOD and coln U_JNOD
-               DO COUNT2=FINDC(U_JNOD),FINDC(U_JNOD+1)-1
-                  CV_COLJ=COLC(COUNT2)
-                  IF(CV_COLJ == CV_NOD) THEN
-                     DO IDIM=1,NDIM
-                        DO IPHASE=1,NPHASE
-                           !CT(COUNT2+(IDIM-1)*NCOLCT+NCOLCT*NDIM*(IPHASE-1))=  &
-                           !     C(COUNT+(IDIM-1)*NCOLC+NCOLC*NDIM*(IPHASE-1))
-                           CT(COUNT+(IDIM-1)*NCOLCT+NCOLCT*NDIM*(IPHASE-1))=  &
-                                C(COUNT2+(IDIM-1)*NCOLC+NCOLC*NDIM*(IPHASE-1))
-                        END DO
-                     END DO
-                  ENDIF
-               END DO
-            END DO
-         END DO
-
-         ewrite(3,*)'colct:'
-         DO CV_NOD = 1, CV_NONODS
-            ewrite(3,*) 'cv_NOD=',cv_NOD
-            ewrite(3,*) (colct(count2),COUNT2=FINDCt(cv_NOD),FINDCt(cv_NOD+1)-1)
-            ewrite(3,*) (ct(count2),COUNT2=FINDCt(cv_NOD),FINDCt(cv_NOD+1)-1)
-         end do
-
-         ewrite(3,*)'colc:'
-         do U_JNOD=1,u_nonods
-            ewrite(3,*) 'U_JNOD=',U_JNOD
-            ewrite(3,*) (colc(count2),COUNT2=FINDC(U_JNOD),FINDC(U_JNOD+1)-1)
-            ewrite(3,*) (c(count2),COUNT2=FINDC(U_JNOD),FINDC(U_JNOD+1)-1)
-         end do
-         !stop 221
-
-      endif
 
       CMC = 0.0
 
@@ -567,11 +533,11 @@
                     +  DIAG_SCALE_PRES(CV_NOD) * MASS_MN_PRES(COUNT) * COLOR_VEC(CV_JNOD)
             END DO
          END DO
-         IF(NDPSET /= 0) THEN
-            CV_NOD=NDPSET
-            CMC_COLOR_VEC(CV_NOD) = CMC_COLOR_VEC(CV_NOD) &
-                 +  INFINY * COLOR_VEC(CV_JNOD)
-         ENDIF
+         !IF(NDPSET /= 0) THEN
+         !   CV_NOD=NDPSET
+         !   CMC_COLOR_VEC(CV_NOD) = CMC_COLOR_VEC(CV_NOD) &
+         !        +  INFINY * COLOR_VEC(CV_JNOD)
+         !ENDIF
 
          !Put into matrix CMC
          DO CV_NOD = 1, CV_NONODS 
@@ -640,6 +606,20 @@
          END DO
          stop 740
       endif
+
+      IF(NDPSET /= 0) THEN
+         CV_NOD=NDPSET
+         DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
+            CV_JNOD = COLCMC( COUNT )
+            if(cv_jnod/=cv_nod) then
+               cmc(count)=0.0 ! not the diagonal
+               DO COUNT2 = FINDCMC( CV_jNOD ), FINDCMC( CV_jNOD + 1 ) - 1
+                  CV_JNOD2 = COLCMC( COUNT2 )
+                  if(cv_jnod2==cv_nod) cmc(count2)=0.0 ! not the diagonal
+               END DO
+            endif
+         END DO
+      ENDIF
 
       DEALLOCATE( NEED_COLOR )
       DEALLOCATE( COLOR_VEC )

@@ -121,7 +121,7 @@
       <real_value rank="0">0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">1e-2</real_value>
+      <real_value rank="0">1e-5</real_value>
     </timestep>
     <finish_time>
       <real_value rank="0">10</real_value>
@@ -582,6 +582,24 @@
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
+        <adaptivity_options>
+          <absolute_measure>
+            <scalar_field name="InterpolationErrorBound" rank="0">
+              <prescribed>
+                <value name="WholeMesh">
+                  <constant>
+                    <real_value rank="0">0.025</real_value>
+                  </constant>
+                </value>
+                <output/>
+                <stat/>
+                <detectors>
+                  <exclude_from_detectors/>
+                </detectors>
+              </prescribed>
+            </scalar_field>
+          </absolute_measure>
+        </adaptivity_options>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
@@ -677,6 +695,31 @@
       </prognostic>
     </scalar_field>
   </material_phase>
+  <mesh_adaptivity>
+    <hr_adaptivity>
+      <period_in_timesteps>
+        <integer_value rank="0">10</integer_value>
+      </period_in_timesteps>
+      <maximum_number_of_nodes>
+        <integer_value rank="0">5000</integer_value>
+      </maximum_number_of_nodes>
+      <enable_gradation/>
+      <tensor_field name="MinimumEdgeLengths">
+        <anisotropic_symmetric>
+          <constant>
+            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">0.02 0.0 0.0 0.02</real_value>
+          </constant>
+        </anisotropic_symmetric>
+      </tensor_field>
+      <tensor_field name="MaximumEdgeLengths">
+        <anisotropic_symmetric>
+          <constant>
+            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">0.25 0.0 0.0 0.25</real_value>
+          </constant>
+        </anisotropic_symmetric>
+      </tensor_field>
+    </hr_adaptivity>
+  </mesh_adaptivity>
   <porous_media>
     <scalar_field name="Porosity">
       <prescribed>

@@ -3819,6 +3819,7 @@ Defaults to -huge(0.0)*epsilon(0.0) if not set.</a:documentation>
           <ref name="sweby_limiter"/>
           <ref name="ultimate_limiter"/>
           <ref name="extrema_limiter"/>
+          <ref name="compressive_advection_limiter"/>
         </choice>
       </element>
       <element name="do_not_limit_face_value">
@@ -3862,6 +3863,13 @@ Engineering, 88, 17-74</a:documentation>
     <element name="limiter">
       <attribute name="name">
         <value>Extrema</value>
+      </attribute>
+    </element>
+  </define>
+  <define name="compressive_advection_limiter">
+    <element name="limiter">
+      <attribute name="name">
+        <value>CompressiveAdvection</value>
       </attribute>
     </element>
   </define>

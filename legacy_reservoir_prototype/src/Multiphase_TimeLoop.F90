@@ -366,8 +366,7 @@
            theta_gdiff( cv_nonods * nphase ), ScalarField_Source_Store( cv_nonods * nphase ), &
            ScalarField_Source_Component( cv_nonods * nphase ) )
 
-      sum_theta_flux = 1. ; sum_one_m_theta_flux = 0.      
-
+      sum_theta_flux = 1. ; sum_one_m_theta_flux = 0.
 
 !!$ Defining discretisation options
       call Get_Discretisation_Options( state, is_overlapping, &
@@ -570,9 +569,9 @@
                     PhaseVolumeFraction )
             end if
 
-            if( .false. ) CALL CALCULATE_SURFACE_TENSION( state, nphase, ncomp, &
+            CALL CALCULATE_SURFACE_TENSION( state, nphase, ncomp, &
                  PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, IPLIKE_GRAD_SOU, &
-                 Component, &
+                 Velocity_U_Source_CV, Velocity_U_Source, Component, &
                  NCOLACV, FINACV, COLACV, MIDACV, &
                  NCOLCT, FINDCT, COLCT, &
                  CV_NONODS, U_NONODS, X_NONODS, TOTELE, STOTEL, &
@@ -604,9 +603,6 @@
                     Velocity_NW_Old = Velocity_W_Old
 
                if (.false.) then
-                  !             if (.true.) then
-                  ! hard-code the air and water viscosities for the rising bubble problem
-                  ! air: 10e-5, water: 10e-3
                   Momentum_Diffusion=0.0
                   Momentum_Diffusion(:,1,1,1) = 1.0
                   Momentum_Diffusion(:,2,2,1) = 1.0

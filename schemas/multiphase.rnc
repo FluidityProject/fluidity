@@ -3114,7 +3114,8 @@ limiter_options =
           (
             sweby_limiter|
             ultimate_limiter|
-	    extrema_limiter
+	    extrema_limiter|
+            compressive_advection_limiter
           )
         }|
         ## Do not limit the face value
@@ -3148,6 +3149,11 @@ ultimate_limiter =
 extrema_limiter = 
   element limiter {
     attribute name {"Extrema"}
+  }
+
+compressive_advection_limiter = 
+  element limiter {
+    attribute name {"CompressiveAdvection"}
   }
 
 slope_options =
