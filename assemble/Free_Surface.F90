@@ -1282,6 +1282,7 @@ contains
     type(scalar_field), intent(inout):: fs
     type(mesh_type), pointer:: extended_pressure_mesh
 
+    type(integer_hash_table), dimension(2):: new_node_map
     type(vector_field), pointer:: u
     type(mesh_type), pointer:: fs_mesh
     type(mesh_type):: extended_mesh, embedded_fs_mesh
@@ -1289,8 +1290,8 @@ contains
     integer, dimension(ele_loc(pressure_mesh, 1)):: new_nodes
     integer, dimension(face_loc(fs%mesh, 1)):: new_fs_nodes
     integer, dimension(:), pointer:: nodes
-    integer :: fsowned_nodes, powned_nodes, pnode_count
-    integer :: ihalo, nhalos, ele, j
+    integer :: ihalo, ele, j, pnodes
+    logical :: parallel
 
     if (.not. has_mesh(state, "_extended_pressure_mesh")) then
 
@@ -1304,44 +1305,58 @@ contains
       call get_boundary_condition(fs, "_implicit_free_surface", &
           surface_mesh=fs_mesh)
 
+      if (associated(pressure_mesh%halos) .and. associated(fs_mesh%halos)) then
+        assert(size(pressure_mesh%halos)==2 .and. size(fs_mesh%halos)==2)
+
+        ! create a node numbering for the combined pressure and fs system
+        ! that is trailing receives consistent
+        new_node_map = create_combined_numbering_trailing_receives( &
+           (/ pressure_mesh%halos(1), fs_mesh%halos(1) /), &
+           (/ pressure_mesh%halos(2), fs_mesh%halos(2) /))
+        parallel = .true.
+      else
+        assert(.not. associated(pressure_mesh%halos))
+        assert(.not. associated(fs_mesh%halos))
+        parallel = .false.
+      end if
+
       call allocate(extended_mesh, node_count(pressure_mesh)+node_count(fs_mesh), &
           element_count(pressure_mesh), pressure_mesh%shape, &
           "Extended"//trim(pressure_mesh%name))
 
-      fsowned_nodes = nowned_nodes(fs_mesh)
       do ele=1, element_count(pressure_mesh)
         nodes => ele_nodes(pressure_mesh,ele)
-        do j=1, size(nodes)
-          if (node_owned(pressure_mesh, nodes(j))) then
-            new_nodes(j) = nodes(j)
-          else
-            new_nodes(j) = nodes(j) + fsowned_nodes
-          end if
+        if (parallel) then
+          do j=1, size(nodes)
+            new_nodes(j) = fetch(new_node_map(1), nodes(j))
+          end do
           call set_ele_nodes(extended_mesh, ele, new_nodes)
-        end do
+        else 
+          call set_ele_nodes(extended_mesh, ele, nodes)
+        end if
       end do
 
       call add_faces(extended_mesh, model=pressure_mesh)
 
-      nhalos = halo_count(pressure_mesh)
-      ewrite(2,*) "Number of halos = ",nhalos
+      if (parallel) then
+        ! Allocate extended mesh halos:
+        allocate(extended_mesh%halos(2))
 
-      ! Allocate extended mesh halos:
-      allocate(extended_mesh%halos(nhalos))
+        ! Derive extended_mesh nodal halos:
+        do ihalo = 1, 2
 
-      ! Derive extended_mesh nodal halos:
-      do ihalo = 1, nhalos
+           extended_mesh%halos(ihalo) = combine_halos( &
+             (/ pressure_mesh%halos(ihalo), fs_mesh%halos(ihalo) /), &
+             new_node_map, &
+             name="Extended"//trim(pressure_mesh%halos(ihalo)%name))
 
-         extended_mesh%halos(ihalo) = combine_halos( &
-           (/ pressure_mesh%halos(ihalo), fs_mesh%halos(ihalo) /), &
-           name="Extended"//trim(pressure_mesh%halos(ihalo)%name))
-
-         assert(trailing_receives_consistent(extended_mesh%halos(ihalo)))
-         assert(halo_valid_for_communication(extended_mesh%halos(ihalo)))
-         call create_global_to_universal_numbering(extended_mesh%halos(ihalo))
-         call create_ownership(extended_mesh%halos(ihalo))
-         
-      end do ! ihalo 
+           assert(trailing_receives_consistent(extended_mesh%halos(ihalo)))
+           assert(halo_valid_for_communication(extended_mesh%halos(ihalo)))
+           call create_global_to_universal_numbering(extended_mesh%halos(ihalo))
+           call create_ownership(extended_mesh%halos(ihalo))
+           
+        end do
+      end if
 
       call insert(state, extended_mesh, "_extended_pressure_mesh")
       call deallocate(extended_mesh)
@@ -1352,22 +1367,29 @@ contains
         element_count(fs_mesh), fs_mesh%shape, &
         name="Emmbedded"//trim(fs_mesh%name))
 
-      powned_nodes = nowned_nodes(pressure_mesh)
-      pnode_count = node_count(pressure_mesh)
+      pnodes = node_count(pressure_mesh)
       do ele=1, element_count(fs_mesh)
         nodes => ele_nodes(fs_mesh,ele)
-        do j=1, size(nodes)
-          if (node_owned(fs_mesh, nodes(j))) then
-            new_fs_nodes(j) = nodes(j) + powned_nodes
-          else
-            new_fs_nodes(j) = nodes(j) + pnode_count
-          end if
-          call set_ele_nodes(embedded_fs_mesh, ele, new_fs_nodes)
-        end do
+        if (parallel) then
+          do j=1, size(nodes)
+            new_fs_nodes(j) = fetch(new_node_map(2), nodes(j))
+          end do
+        else
+          new_fs_nodes = nodes + pnodes ! fs nodes come after the pressure nodes in the extended mesh
+        end if
+        call set_ele_nodes(embedded_fs_mesh, ele, new_fs_nodes)
       end do
 
       call insert(state, embedded_fs_mesh, "_embedded_free_surface_mesh")
       call deallocate(embedded_fs_mesh)
+
+      if (parallel) then
+        ! the node maps are no longer needed: the correspondence between
+        ! pressure mesh/fs surface mesh and extended_mesh/embedded_fs_mesh resp.
+        ! is maintained by looping over the elements of both simultaneously
+        call deallocate(new_node_map(1))
+        call deallocate(new_node_map(2))
+      end if
       
     end if
 
