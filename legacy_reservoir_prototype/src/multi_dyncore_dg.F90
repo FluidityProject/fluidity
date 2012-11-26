@@ -5106,7 +5106,7 @@
       IMPLICIT NONE
       type(state_type), dimension( : ), intent( inout ) :: state
       INTEGER, PARAMETER :: NPHASE = 1
-      INTEGER, PARAMETER :: SMOOTH_NITS = 5 ! smoothing iterations, 10 seems good. 
+      INTEGER, PARAMETER :: SMOOTH_NITS = 0 ! smoothing iterations, 10 seems good. 
       INTEGER, intent( in ) :: NCOLACV, NCOLCT, CV_NONODS, U_NONODS, X_NONODS, MAT_NONODS, &
            TOTELE, STOTEL, &
            CV_ELE_TYPE, CV_SELE_TYPE, U_ELE_TYPE, &
