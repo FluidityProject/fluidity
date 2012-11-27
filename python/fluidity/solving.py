@@ -175,7 +175,8 @@ def _assemble_tensor(f):
     else:
         test = fd.arguments[0]
         itspace = test.mesh.element_set(test.mesh.shape.loc)
-        tensor = fd.coefficients[0].temporary_dat()
+        tensor = fd.coefficients[0].temporary_dat
+        tensor.zero()
         tensor_arg = tensor(test.mesh.element_node_map[op2.i[0]], op2.INC)
 
     args = [kernel, itspace, tensor_arg, coords.dat(coord_elem_node, op2.READ)]
