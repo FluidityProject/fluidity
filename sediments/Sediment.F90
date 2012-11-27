@@ -311,7 +311,7 @@ contains
     end do nodes
     
     ! only for mms tests
-    if have_option(trim(bc_path)//"/type[0]/set_to_zero") then
+    if (have_option(trim(bc_path)//"/type[0]/set_to_zero")) then
        call zero(reentrainment)
     end if
 
