@@ -2591,6 +2591,7 @@
 !!$ is done mostly all way through, i.e., from INTENERGE_ASSEM_SOLVE subrt).
 
       allocate( udiffusion( mat_nonods, ndim, ndim, nphase ) ) ; udiffusion = 0.
+      tensorfield => extract_tensor_field( state( 1 ), 'Viscosity', stat )
       if ( have_option( '/physical_parameters/mobility' ) ) then
 
          ! if solving for porous media and mobility is calculated
@@ -2620,7 +2621,7 @@
 
       GOT_DIFFUS = ( R2NORM( UDIFFUSION, MAT_NONODS * NDIM * NDIM * NPHASE ) /= 0.0 )  &
            .OR. BETWEEN_ELE_STAB
-    
+
       GOT_UDEN = ( R2NORM( UDEN, CV_NONODS * NPHASE ) /= 0.0 )
 
       JUST_BL_DIAG_MAT=( ( .NOT. GOT_DIFFUS ) .AND. ( .NOT. GOT_UDEN ) )
@@ -5950,7 +5951,7 @@
               CURVATURE,CURVATURE,CURVATURE, &
               RZERO, RZERO, RZERO, IDUM, IN_ELE_UPWIND, DG_ELE_UPWIND, &
               NOIT_DIM, &
-               & ! nits_flux_lim_t
+              ! nits_flux_lim_t
               RZERO, &
               option_path = '/material_phase[0]/scalar_field::Pressure', &
               mass_ele_transp = dummy_ele, &
