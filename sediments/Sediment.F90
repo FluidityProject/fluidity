@@ -309,6 +309,11 @@ contains
           call set(reentrainment, i_node, max(node_val(reentrainment, i_node), 0.0))
        end if
     end do nodes
+    
+    ! only for mms tests
+    if have_option(trim(bc_path)//"/type[0]/set_to_zero") then
+       call zero(reentrainment)
+    end if
 
     ewrite_minmax(bedload)  
     ewrite_minmax(reentrainment)  
