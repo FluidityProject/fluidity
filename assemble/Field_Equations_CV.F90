@@ -3544,8 +3544,8 @@ contains
     !************************************************************************
     ! control volume options checking
     subroutine field_equations_cv_check_options
-      integer :: nmat, nfield, m, f
-      character(len=OPTION_PATH_LEN) :: mat_name, field_name, diff_scheme
+      integer :: nmat, nfield, m, f, stat
+      character(len=OPTION_PATH_LEN) :: mat_name, field_name, mesh_0, mesh_1, diff_scheme
       integer :: weakdirichlet_count
       logical :: cv_disc, mmat_cv_disc, diff, conv_file, subcycle, cv_temp_disc, tolerance, explicit
       real :: theta, p_theta
@@ -3674,6 +3674,23 @@ contains
                               trim(mat_name)//"."
                 FLExit("Only pure control volume or coupled_cv discretisations can solve explicitly")
               end if
+            end if
+                 
+            if(mmat_cv_disc .or. cv_disc) then
+               if (have_option("/material_phase["//int2str(m)//"]/scalar_field["//int2str(f)//&
+                    "]/prognostic/scalar_field::SinkingVelocity")) then
+                  call get_option(trim(complete_field_path("/material_phase["//&
+                       int2str(m)//"]/scalar_field["//int2str(f)//&
+                       "]/prognostic/scalar_field::SinkingVelocity"))//"/mesh[0]/name", mesh_0, stat)
+                  if(stat == 0) then
+                     call get_option(trim(complete_field_path("/material_phase[" // int2str(m) // &
+                          "]/vector_field::Velocity")) // "/mesh[0]/name", mesh_1)
+                     if(trim(mesh_0) /= trim(mesh_1)) then
+                        ewrite(0, *) "SinkingVelocity for "//trim(field_name)//&
+                             " is on a different mesh to the Velocity field this could cause problems"
+                     end if
+                  end if
+               end if
             end if
 
          end do

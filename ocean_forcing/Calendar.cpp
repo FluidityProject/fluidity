@@ -85,11 +85,11 @@ int Calendar::SetTransformation(string _from_unit, string _to_unit, string _cale
   if(err==UT_ENOINIT){
     cerr<<"ERROR ("<<__FILE__<<"): UDUNITS has not been initialized.\n";
   }else if(err==UT_EINVALID){
-    cerr<<"ERROR ("<<__FILE__<<"): The unit argument is a null pointer.\n";
+    cerr<<"ERROR ("<<__FILE__<<"): The _from_unit unit argument is a null pointer.\n";
   }else if(err==UT_EUNKNOWN){
-    cerr<<"ERROR ("<<__FILE__<<"): The specification contains an unknown unit.\n";
+    cerr<<"ERROR ("<<__FILE__<<"): The _from_unit specification contains an unknown unit.\n";
   }else if(err==UT_ESYNTAX){
-    cerr<<"ERROR ("<<__FILE__<<"): The specification contains a syntax error.\n";
+    cerr<<"ERROR ("<<__FILE__<<"): The _from_unit specification contains a syntax error.\n";
   }
   if(err)
     exit(-1);
@@ -98,11 +98,11 @@ int Calendar::SetTransformation(string _from_unit, string _to_unit, string _cale
   if(err==UT_ENOINIT){
     cerr<<"ERROR ("<<__FILE__<<"): UDUNITS has not been initialized.\n";
   }else if(err==UT_EINVALID){
-    cerr<<"ERROR ("<<__FILE__<<"): The unit argument is a null pointer.\n";
+    cerr<<"ERROR ("<<__FILE__<<"): The _to_unit unit argument is a null pointer.\n";
   }else if(err==UT_EUNKNOWN){
-    cerr<<"ERROR ("<<__FILE__<<"): The specification contains an unknown unit.\n";
+    cerr<<"ERROR ("<<__FILE__<<"): The _to_unit specification contains an unknown unit.\n";
   }else if(err==UT_ESYNTAX){
-    cerr<<"ERROR ("<<__FILE__<<"): The specification contains a syntax error.\n";
+    cerr<<"ERROR ("<<__FILE__<<"): The _to_unit specification contains a syntax error.\n";
   }
   if(err)
     exit(-1);
