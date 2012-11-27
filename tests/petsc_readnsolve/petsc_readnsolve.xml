@@ -4,18 +4,24 @@
   <owner userid="skramer"/>
   <tags> parallel </tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>( mpiexec -n 3 fluidity -v2 -l standing_wave_failing_velocity.flml 2&gt;&amp;1 ) &gt; /dev/null;
+    <comment>This is a lie: we're actually using nprocs=4.  First make a common flredecomped mesh and edit the flml files to use this, then do the actual test.</comment>
+    <command_line>mpiexec -n 4 ../../bin/flredecomp -i 1 -o 4 -v -l standing_wave_failing_velocity standing_wave_failing_velocity_flredecomp;
+mpiexec -n 4 ../../bin/flredecomp -i 1 -o 4 -v -l standing_wave_failing_pressure standing_wave_failing_pressure_flredecomp;
+mpiexec -n 4 ../../bin/flredecomp -i 1 -o 4 -v -l standing_wave standing_wave_flredecomp;
+sed --in-place s/failing_velocity_flredecomp_CoordinateMesh/flredecomp_CoordinateMesh/g standing_wave_failing_velocity_flredecomp.flml;
+sed --in-place s/failing_pressure_flredecomp_CoordinateMesh/flredecomp_CoordinateMesh/g standing_wave_failing_pressure_flredecomp.flml;
+rm -f *failing_velocity_flredecomp_CoordinateMesh* *failing_pressure_flredecomp_CoordinateMesh*
+( mpiexec -n 4 fluidity -v2 -l standing_wave_failing_velocity_flredecomp.flml 2&gt;&amp;1 ) &gt; /dev/null;
 mv matrixdump velocity_matrixdump;
 mkdir -p velocity_logs;
 mv fluidity.log* fluidity.err* velocity_logs/;
-( mpiexec -n 3 fluidity -v2 -l standing_wave_failing_pressure.flml 2&gt;&amp;1 ) &gt; /dev/null;
+( mpiexec -n 4 fluidity -v2 -l standing_wave_failing_pressure_flredecomp.flml 2&gt;&amp;1 ) &gt; /dev/null;
 mv matrixdump pressure_matrixdump;
 rm matrixdump.info;
-mpiexec -n 3 petsc_readnsolve -v -l -prns_filename velocity_matrixdump  standing_wave.flml Velocity;
+mpiexec -n 4 petsc_readnsolve -v -l -prns_filename velocity_matrixdump  standing_wave_flredecomp.flml Velocity;
 mv petsc_readnsolve.err* petsc_readnsolve.log* velocity_logs/;
-mpiexec -n 3 petsc_readnsolve -v -l -prns_filename pressure_matrixdump  standing_wave.flml Pressure;
+mpiexec -n 4 petsc_readnsolve -v -l -prns_filename pressure_matrixdump  standing_wave_flredecomp.flml Pressure;
 rm -rf fluidity.err-*<comment>Note we use ; and no &amp;&amp; as most of these commands will actually fail (on purpose). Also removing fluidity.err-* from "failing solve runs" to prevent noise in testharness output. For same reason redirecting mpiexec output of failing fluidity runs to the bin.</comment></command_line>
-    <comment>This is a lie: we're actually using nprocs=3.</comment>
   </problem_definition>
   <variables>
   <variable name="velocity_error_logs" language="python">import glob

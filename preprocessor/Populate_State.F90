@@ -57,6 +57,7 @@ module populate_state_module
   use data_structures
   use fields_halos
   use read_triangle
+  use initialise_ocean_forcing_module
 
   implicit none
 
@@ -136,6 +137,8 @@ contains
        call nullify(states(i))
        call set_option_path(states(i), "/material_phase["//int2str(i-1)//"]")
     end do
+
+    call initialise_ocean_forcing_readers
 
     call insert_external_mesh(states, save_vtk_cache = .true.)
 
@@ -229,6 +232,8 @@ contains
           call get_option("/geometry/quadrature/degree", quad_degree)
           quad_family = get_quad_family()
 
+          ! to make sure that the dimension is set even if MPI is not being used
+          call get_option('/geometry/dimension', dim)
 
           if (is_active_process) then
             select case (mesh_file_format)
@@ -307,14 +312,21 @@ contains
                 else
                   mesh_dims(3)=0
                 end if
+                ! The coordinate dimension is not the same as the mesh dimension
+                ! in the case of spherical shells, and needs to be broadcast as
+                ! well.  And this needs to be here to allow for the special case
+                ! below
+                dim=position%dim
               else
                 ! this is a special case for a unit test with 1 inactive process
                 call get_option('/geometry/dimension', mesh_dims(1))
                 mesh_dims(2)=mesh_dims(1)+1
                 mesh_dims(3)=0
+                dim = mesh_dims(1)
               end if
             end if
             call MPI_bcast(mesh_dims, 3, getpinteger(), 0, MPI_COMM_FEMTOOLS, stat)
+            call MPI_bcast(dim, 1, getpinteger(), 0, MPI_COMM_FEMTOOLS, stat)
           end if
 
           
@@ -323,14 +335,14 @@ contains
             ! see the comment in Global_Parameters. In this block, 
             ! we want to allocate an empty mesh and positions.
 
-            dim=mesh_dims(1)
+            mdim=mesh_dims(1)
             loc=mesh_dims(2)
             column_ids=mesh_dims(3)
 
             allocate(quad)
             allocate(shape)
-            quad = make_quadrature(loc, dim, degree=quad_degree, family=quad_family)
-            shape=make_element_shape(loc, dim, 1, quad)
+            quad = make_quadrature(loc, mdim, degree=quad_degree, family=quad_family)
+            shape=make_element_shape(loc, mdim, 1, quad)
             call allocate(mesh, nodes=0, elements=0, shape=shape, name="EmptyMesh")
             call allocate(position, dim, mesh, "EmptyCoordinate")
             call add_faces(mesh)

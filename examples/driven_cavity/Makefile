@@ -1,3 +1,5 @@
+include envcheck.mk
+
 preprocess:
 	@echo **********Creating mesh for each refinement N = 1/16 -- 1/128.
 	@$(foreach NN,16 32 64 128, \
@@ -12,19 +14,19 @@ preprocess:
 		cd ..; \
 	)
 
-run:
+run: envcheck
 	@echo **********Running simulation for each refinement.
 	@$(foreach NN,16 32 64 128, \
 		cd driven_cavity-$(NN); \
 		echo **********Running simulation for N = $(NN) mesh.;\
-		echo ../../../bin/fluidity -v2 -l driven_cavity.flml; \
-		../../../bin/fluidity -v2 -l driven_cavity.flml; \
+		echo ${BINPREFIX}fluidity -v2 -l driven_cavity.flml; \
+		${BINPREFIX}fluidity -v2 -l driven_cavity.flml; \
 		cd ..;\
 	) 
 
-postprocess:
+postprocess: envcheck
 	@echo **********Plotting convergence data.
-	./plot_data 16 32 64 128
+	PYTHONPATH=${PWD}/../../python:$$PYTHONPATH ./plot_data 16 32 64 128
 
 input: clean preprocess
 
