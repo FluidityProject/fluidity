@@ -1,68 +1,50 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version='1.0' encoding='utf-8'?>
 <testproblem>
-  <name>Two-dimensional backward facing step.  Suggested xml from asc, could include a reattachment length comparison.</name>
-  <owner userid="jbull"/>
+   <name>Backward-facing step 2D example</name>
+   <!--Runs a reference and kepsilon 2D backward-facing step problems.-->
+  <owner userid="asc"/>
   <tags>flml</tags>
-  <problem_definition length="long" nprocs="1">
-    <command_line>fluidity -v2 backward_facing_step_2d_kim_kepsilon.flml &gt; kepsilon.log; fluidity -v2 backward_facing_step_2d_kim_reference.flml &gt; reference.log</command_line>
+  <!-- uses flml -->
+  <problem_definition length="long" nprocs="8">
+    <command_line>cd reference &amp;&amp; mpiexec flredecomp -i 1 -o 8 -v -l backward_facing_step_2d_kim_reference backward_facing_step_2d_kim_reference_flredecomp &amp;&amp; mpiexec fluidity -v2 -l backward_facing_step_2d_kim_reference_flredecomp.flml &amp;&amp; cd .. &amp;&amp; cd kepsilon &amp;&amp; mpiexec flredecomp -i 1 -o 8 -v -l backward_facing_step_2d_kim_kepsilon backward_facing_step_2d_kim_kepsilon_flredecomp &amp;&amp; mpiexec fluidity -v2 -l backward_facing_step_2d_kim_kepsilon_flredecomp.flml &amp;&amp; cd ..</command_line>
   </problem_definition>
   <variables>
-    <variable name="solvers_converged" language="python">
-import os
-files = os.listdir("./")
-solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
-    </variable>
-    <variable name="FinalTime" language="python">
-import fluidity_tools
-FinalTime = fluidity_tools.stat_parser("backward_facing_step_2d_kim_kepsilon.stat")['ElapsedTime']['value'][-1]
-    </variable>
-    <variable name="MaximumVelocity" language="python">
-import fluidity_tools
-MaximumVelocity = fluidity_tools.stat_parser("backward_facing_step_2d_kim_kepsilon.stat")['Fluid']['Velocity%magnitude']['max'][-1]
-    </variable>
-    <variable name="MaximumPressure" language="python">
-import fluidity_tools
-MaximumPressure = fluidity_tools.stat_parser("backward_facing_step_2d_kim_kepsilon.stat")['Fluid']['Pressure']['max'][-1]
-    </variable>
-    <variable name="MinimumPressure" language="python">
-import fluidity_tools
-MinimumPressure = fluidity_tools.stat_parser("backward_facing_step_2d_kim_kepsilon.stat")['Fluid']['Pressure']['min'][-1]
-    </variable>
-    <variable name="FinalNodeCount" language="python">
-import fluidity_tools
-FinalNodeCount = fluidity_tools.stat_parser("backward_facing_step_2d_kim_kepsilon.stat")['CoordinateMesh']['nodes'][-1]
-    </variable>
-    <variable name="RL" language="python">
+    <variable name="reference_finishtime" language="python">from fluidity_tools import stat_parser as stat
+reference_finishtime= stat("reference/backward_facing_step_2d_kim_reference.stat")["ElapsedTime"]["value"][-1]</variable>
+    <variable name="kepsilon_finishtime" language="python">from fluidity_tools import stat_parser as stat
+kepsilon_finishtime= stat("kepsilon/backward_facing_step_2d_kim_kepsilon.stat")["ElapsedTime"]["value"][-1]</variable>
+    <variable name="reference_reattachment_length" language="python">
 from postprocessor_2d import reattachment_length, get_filelist
-import numpy
-filelist = get_filelist(sample=5, start=0)
-RL = numpy.array(reattachment_length(filelist))
+import numpy, os
+os.chdir('./reference/')
+yarray = numpy.array([0.1, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 3.9])
+exclude_initial_results = 45
+filelist = get_filelist(20, 40)
+reference_reattachment_length = numpy.array(reattachment_length(filelist))
+os.chdir('../')
+    </variable>
+    <variable name="kepsilon_reattachment_length" language="python">
+from postprocessor_2d import reattachment_length, get_filelist
+import numpy, os
+os.chdir('./kepsilon/')
+yarray = numpy.array([0.1, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 3.9])
+exclude_initial_results = 45
+filelist = get_filelist(20, 40)
+kepsilon_reattachment_length = numpy.array(reattachment_length(filelist))
+os.chdir('../')
     </variable>
   </variables>
   <pass_tests>
-    <test name="Solvers converged" language="python">
-      assert(solvers_converged)
+    <test name="reference_finish_time" language="python">assert reference_finishtime &gt; 50.0</test>
+    <test name="kepsilon_finish_time" language="python">assert kepsilon_finishtime &gt; 50.0</test>
+    <test name="reference reattachment length does not change by more than 20%" language="python">
+        print ( ( max(reference_reattachment_length[:,0]) - min(reference_reattachment_length[:,0]) ) / min(reference_reattachment_length[:,0]) )
+assert( ( max(reference_reattachment_length[:,0]) - min(reference_reattachment_length[:,0]) ) / min(reference_reattachment_length[:,0]) &lt; 0.2)
     </test>
-    <test name="Final time greater than 1.0" language="python">
-assert FinalTime &gt; 1.0
-    </test>
-    <test name="Maximum velocity less than 1.1" language="python">
-assert MaximumVelocity &lt; 1.1
-    </test>
-    <test name="Maximum pressure less than 0.25" language="python">
-assert MaximumPressure &lt; 0.25
-    </test>
-    <test name="Minimum pressure greater than -0.25" language="python">
-assert MinimumPressure &gt; -0.25
-    </test>
-    <test name="Check final number of nodes within 100 of the number I had when run with code revision 10100" language="python">
-assert abs ( FinalNodeCount - 14200 ) &lt; 1000
-    </test>
-    <test name="Reattachment length does not change by more than 10%" language="python">
-        print ( ( max(RL[:,0]) - min(RL[:,0]) ) / min(RL[:,0]) )
-assert( ( max(RL[:,0]) - min(RL[:,0]) ) / min(RL[:,0]) &lt; 0.1)
+    <test name="kepsilon reattachment length does not change by more than 20%" language="python">
+        print ( ( max(kepsilon_reattachment_length[:,0]) - min(kepsilon_reattachment_length[:,0]) ) / min(kepsilon_reattachment_length[:,0]) )
+assert( ( max(kepsilon_reattachment_length[:,0]) - min(kepsilon_reattachment_length[:,0]) ) / min(kepsilon_reattachment_length[:,0]) &lt; 0.2)
     </test>
   </pass_tests>
-  <warn_tests>
-  </warn_tests>
+  <warn_tests/>
 </testproblem>

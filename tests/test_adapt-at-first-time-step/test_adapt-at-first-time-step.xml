@@ -5,7 +5,8 @@
   <owner userid="skramer"/>
   <tags>flml nozoltan parallel</tags>
     <problem_definition length="short" nprocs="1">
-    <command_line>mpiexec -n 2 ../../bin/fluidity -v3 -l test_adapt-at-first-time-step.flml </command_line>
+    <command_line>mpiexec -n 2 ../../bin/flredecomp -i 1 -o 2 -v -l test_adapt-at-first-time-step test_adapt-at-first-time-step_flredecomp &amp;&amp;
+mpiexec -n 2 ../../bin/fluidity -v3 -l test_adapt-at-first-time-step_flredecomp.flml </command_line>
   </problem_definition>  
   <variables>  
     <variable name="solvers_converged" language="python">

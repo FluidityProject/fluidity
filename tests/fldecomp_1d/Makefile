@@ -8,4 +8,4 @@ clean-mesh:
 	rm -f line.bound line.ele line.node
 clean-run:
 	rm -f line_?*.bound line_?*.ele line_?*.halo line_?*.node
-	rm -f fldecomp.log
+	rm -f *.log *.err *.log-* *.err-*
