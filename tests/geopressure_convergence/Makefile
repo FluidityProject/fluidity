@@ -7,10 +7,6 @@ default: input
 
 input:
 	tar -xvjf src/meshes.tar.bz2
-	../../bin/fldecomp -n 2 square-8
-	../../bin/fldecomp -n 2 square-16
-	../../bin/fldecomp -n 2 square-32
-	../../bin/fldecomp -n 2 square-64
 	cp $(FLMLMODEL1).flml $(FLMLMODEL2).flml 
 	sed -i "s/"$(FLMLMODEL1)"/"$(FLMLMODEL2)"/g" $(FLMLMODEL2).flml 
 	sed -i "s/square-8/square-16/g" $(FLMLMODEL2).flml 
@@ -19,12 +15,18 @@ input:
 	sed -i "s/square-8/square-32/g" $(FLMLMODEL3).flml 
 	cp $(FLMLMODEL1).flml $(FLMLMODEL4).flml 
 	sed -i "s/"$(FLMLMODEL1)"/"$(FLMLMODEL4)"/g" $(FLMLMODEL4).flml 
-	sed -i "s/square-8/square-64/g" $(FLMLMODEL4).flml 
+	sed -i "s/square-8/square-64/g" $(FLMLMODEL4).flml
+	mpiexec -n 2 ../../bin/flredecomp -i 1 -o 2 -v -l $(FLMLMODEL1) $(FLMLMODEL1)_flredecomp
+	mpiexec -n 2 ../../bin/flredecomp -i 1 -o 2 -v -l $(FLMLMODEL2) $(FLMLMODEL2)_flredecomp
+	mpiexec -n 2 ../../bin/flredecomp -i 1 -o 2 -v -l $(FLMLMODEL3) $(FLMLMODEL3)_flredecomp
+	mpiexec -n 2 ../../bin/flredecomp -i 1 -o 2 -v -l $(FLMLMODEL4) $(FLMLMODEL4)_flredecomp
+
 
 clean: clean-mesh clean-run-debug
 	rm -f $(FLMLMODEL2).flml
 	rm -f $(FLMLMODEL3).flml
 	rm -f $(FLMLMODEL4).flml
+	rm -rf *flredecomp*
 clean-mesh:
 	rm -f square-?*.edge square-?*.ele square-?*.node
 	rm -f square-?*_?*.edge square-?*_*.ele square-?*_?*.node square-?*_?*.halo

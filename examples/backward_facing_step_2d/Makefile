@@ -1,6 +1,7 @@
 include envcheck.mk
+NPROCS=1
 
-preprocess: envcheck 
+preprocess: envcheck
 	@if [ "x" == "x${TYPE}" ]; then echo "**********ERROR: Commandline should be make preprocess TYPE=type, where type is reference or kepsilon"; false; fi;
 	echo **********Installing directory for $(TYPE) run:
 	install -d $(TYPE); \
@@ -30,5 +31,5 @@ input: clean
 
 clean:
 	@echo **********Cleaning the output from previous fluidity runs
-	rm -rf kepsilon reference *.pdf
+	rm -rf kepsilon reference *.pdf *flredecomp*
 
