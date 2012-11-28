@@ -4077,19 +4077,26 @@ iteration in the .stat file.</a:documentation>
       <a:documentation>Specify how the values of this field used in the nonlinear iteration are added to the .stat file.</a:documentation>
       <ref name="vector_field_stat_options_disabled_default"/>
     </element>
-    <optional>
+    <zeroOrMore>
       <element name="compute_body_forces_on_surfaces">
-        <a:documentation>What surface IDs do you want to do the calculation over?</a:documentation>
-        <optional>
-          <element name="output_terms">
-            <a:documentation>Enable to output the pressure and viscous terms separately (as well
-as the total force)</a:documentation>
-            <ref name="comment"/>
+        <attribute name="name">
+          <data type="string"/>
+        </attribute>
+        <group>
+          <element name="surface_ids">
+            <a:documentation>What surface IDs do you want to do the calculation over?</a:documentation>
+            <ref name="integer_vector"/>
           </element>
-        </optional>
-        <ref name="integer_vector"/>
+          <optional>
+            <element name="output_terms">
+              <a:documentation>Enable to output the pressure and viscous terms separately (as well
+as the total force)</a:documentation>
+              <ref name="comment"/>
+            </element>
+          </optional>
+        </group>
       </element>
-    </optional>
+    </zeroOrMore>
     <optional>
       <element name="divergence_stats">
         <a:documentation>Compute the divergence of this field at the Gauss points
