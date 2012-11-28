@@ -206,7 +206,7 @@ contains
     type(vector_field), pointer               :: x, shear_stress
     type(mesh_type), pointer                  :: surface_mesh
     character(len = FIELD_NAME_LEN)           :: bc_name, bc_path, algorithm
-    integer                                   :: stat, i_ele, i_field, i_node, i, j
+    integer                                   :: stat, i_ele, i_field, i_node, i_face, i, j
     integer, dimension(:), pointer            :: surface_element_list
     real, dimension(2,2)                      :: algorithm_viscosity
 
@@ -312,9 +312,13 @@ contains
     
     ! store erosion rate in diagnositc field
     call get_sediment_item(state, i_field, "BedloadErosionRate", diagnostic_field, stat)
-    if (stat == 0) then
+    if (stat == 0 .and. dt > 1e-15) then
        call zero(diagnostic_field)
-       call set(diagnostic_field, reentrainment)
+       do i_ele = 1, ele_count(reentrainment)
+          i_face=surface_element_list(i_ele)
+          call set(diagnostic_field, face_global_nodes(diagnostic_field, i_face), &
+               & ele_val(reentrainment, i_ele))
+       end do
        call scale(diagnostic_field, 1./dt)
     end if
 
