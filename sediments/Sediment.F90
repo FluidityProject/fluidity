@@ -319,7 +319,6 @@ contains
           call set(diagnostic_field, face_global_nodes(diagnostic_field, i_face), &
                & ele_val(reentrainment, i_ele))
        end do
-       call scale(diagnostic_field, 1./dt)
     end if
 
     ! only for mms tests
