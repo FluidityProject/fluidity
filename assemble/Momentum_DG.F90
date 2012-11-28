@@ -110,6 +110,7 @@ module momentum_DG
 
   ! Flag indicating whether equations are being solved in acceleration form.
   logical :: acceleration
+  logical :: reduced_model
 
   ! Flag indicating whether to include pressure bcs (not for cv pressure)
   logical :: l_include_pressure_bcs
@@ -262,6 +263,7 @@ contains
     type(scalar_field) :: nvfrac ! Non-linear approximation to the PhaseVolumeFraction
 
     ewrite(1, *) "In construct_momentum_dg"
+    reduced_model= have_option("/reduced_model/execute_reduced_model")
 
     call profiler_tic("construct_momentum_dg")
     assert(continuity(u)<0)
@@ -1089,11 +1091,15 @@ contains
       if(have_mass.and.owned_element) then
         if(lump_mass) then        
           do dim = 1, u%dim
-            big_m_diag_addto(dim, :loc) = big_m_diag_addto(dim, :loc) + l_masslump
+             if(.not.reduced_model) then
+                big_m_diag_addto(dim, :loc) = big_m_diag_addto(dim, :loc) + l_masslump
+             endif
           end do
         else
           do dim = 1, u%dim
-            big_m_tensor_addto(dim, dim, :loc, :loc) = big_m_tensor_addto(dim, dim, :loc, :loc) + rho_mat
+             if(.not.reduced_model) then
+                big_m_tensor_addto(dim, dim, :loc, :loc) = big_m_tensor_addto(dim, dim, :loc, :loc) + rho_mat
+             endif
           end do
         end if
       end if
@@ -1132,7 +1138,7 @@ contains
       big_m_tensor_addto(U_, V_, :loc, :loc) = big_m_tensor_addto(U_, V_, :loc, :loc) - dt*theta*coriolis_mat
       big_m_tensor_addto(V_, U_, :loc, :loc) = big_m_tensor_addto(V_, U_, :loc, :loc) + dt*theta*coriolis_mat
 
-      if(acceleration)then
+      if(acceleration.or.(.not.reduced_model))then
         rhs_addto(U_, :loc) = rhs_addto(U_, :loc) + matmul(coriolis_mat, u_val(V_,:))
         rhs_addto(V_, :loc) = rhs_addto(V_, :loc) - matmul(coriolis_mat, u_val(U_,:))
       end if
@@ -1248,50 +1254,55 @@ contains
                  &+ dt*theta*advection_mat
          end if
         if(acceleration.and..not.subcycle) then
-          rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - matmul(advection_mat, u_val(dim,:))
+           if(.not.reduced_model) then
+              rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - matmul(advection_mat, u_val(dim,:))
+           endif
         end if
       end do
 
     end if
 
     if(have_source.and.acceleration.and.owned_element) then
-      ! Momentum source matrix.
-      Source_mat = shape_shape(U_shape, ele_shape(Source,ele), detwei*Rho_q)
-      if(lump_source) then
-        source_lump = sum(source_mat, 2)
-        do dim = 1, u%dim
-          ! lumped source
-          rhs_addto(dim, :loc) = rhs_addto(dim, :loc) + source_lump*(ele_val(source, dim, ele))
-        end do
-      else
-        do dim = 1, u%dim
-          ! nonlumped source
-          rhs_addto(dim, :loc) = rhs_addto(dim, :loc) + matmul(source_mat, ele_val(source, dim, ele))
-        end do
-      end if
+       ! Momentum source matrix.
+       Source_mat = shape_shape(U_shape, ele_shape(Source,ele), detwei*Rho_q)
+       if(.not.reduced_model) then
+          if(lump_source) then
+             source_lump = sum(source_mat, 2)
+             do dim = 1, u%dim
+                ! lumped source
+                rhs_addto(dim, :loc) = rhs_addto(dim, :loc) + source_lump*(ele_val(source, dim, ele))
+             end do
+          else
+             do dim = 1, u%dim
+                ! nonlumped source
+                rhs_addto(dim, :loc) = rhs_addto(dim, :loc) + matmul(source_mat, ele_val(source, dim, ele))
+             end do
+          end if
+       endif
     end if
 
     if(have_gravity.and.acceleration.and.owned_element) then
-      ! buoyancy
-      if (on_sphere) then
-      ! If were on a spherical Earth evaluate the direction of the gravity vector
-      ! exactly at quadrature points.
-        rhs_addto(:, :loc) = rhs_addto(:, :loc) + shape_vector_rhs(u_shape, &
-                                    sphere_inward_normal_at_quad_ele(X, ele), &
-                                    detwei*gravity_magnitude*ele_val_at_quad(buoyancy, ele))
-      else
-      
-        if(multiphase) then
-          rhs_addto(:, :loc) = rhs_addto(:, :loc) + shape_vector_rhs(u_shape, &
-                                    ele_val_at_quad(gravity, ele), &
+       if(.not.reduced_model) then
+          ! buoyancy
+          if (on_sphere) then
+             ! If were on a spherical Earth evaluate the direction of the gravity vector
+             ! exactly at quadrature points.
+             rhs_addto(:, :loc) = rhs_addto(:, :loc) + shape_vector_rhs(u_shape, &
+                  sphere_inward_normal_at_quad_ele(X, ele), &
+                  detwei*gravity_magnitude*ele_val_at_quad(buoyancy, ele))
+          else
+             
+             if(multiphase) then
+                rhs_addto(:, :loc) = rhs_addto(:, :loc) + shape_vector_rhs(u_shape, &
+                     ele_val_at_quad(gravity, ele), &
                                     detwei*gravity_magnitude*ele_val_at_quad(buoyancy, ele)*nvfrac_gi)
-        else
-          rhs_addto(:, :loc) = rhs_addto(:, :loc) + shape_vector_rhs(u_shape, &
-                                    ele_val_at_quad(gravity, ele), &
-                                    detwei*gravity_magnitude*ele_val_at_quad(buoyancy, ele))
-        end if
-        
-      end if
+             else
+                rhs_addto(:, :loc) = rhs_addto(:, :loc) + shape_vector_rhs(u_shape, &
+                     ele_val_at_quad(gravity, ele), &
+                     detwei*gravity_magnitude*ele_val_at_quad(buoyancy, ele))
+             end if
+          endif
+       end if
     end if
 
     if((have_absorption.or.have_vertical_stabilization.or.have_wd_abs) .and. (owned_element .or. pressure_corrected_absorption)) then
@@ -1389,7 +1400,7 @@ contains
                     & dt*theta*Abs_lump_sphere(dim,dim2,i)
                 end do
               end do
-              if (acceleration) then
+              if (acceleration.or.(.not.reduced_model)) then
                 rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - Abs_lump_sphere(dim,dim,:)*u_val(dim,:)
                 ! off block diagonal absorption terms
                 do dim2 = 1, u%dim
@@ -1421,7 +1432,7 @@ contains
                 big_m_tensor_addto(dim, dim2, :loc, :loc) = big_m_tensor_addto(dim, dim2, :loc, :loc) + &
                   & dt*theta*Abs_mat_sphere(dim,dim2,:,:)
               end do
-              if (acceleration) then
+              if (acceleration.or.(.not.reduced_model)) then
                 rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - matmul(Abs_mat_sphere(dim,dim,:,:), u_val(dim,:))
                 ! off block diagonal absorption terms
                 do dim2 = 1, u%dim
@@ -1462,7 +1473,7 @@ contains
           do dim = 1, u%dim
             if (owned_element) then
               big_m_diag_addto(dim, :loc) = big_m_diag_addto(dim, :loc) + dt*theta*abs_lump(dim,:)
-              if(acceleration) then
+              if(acceleration.or.(.not.reduced_model)) then
                 rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - abs_lump(dim,:)*u_val(dim,:)
               end if
             end if
@@ -1484,7 +1495,7 @@ contains
             if (owned_element) then
               big_m_tensor_addto(dim, dim, :loc, :loc) = big_m_tensor_addto(dim, dim, :loc, :loc) + &
                 & dt*theta*Abs_mat(dim,:,:)
-              if(acceleration) then
+              if(acceleration.or.(.not.reduced_model)) then
                 rhs_addto(dim, :loc) = rhs_addto(dim, :loc) - matmul(Abs_mat(dim,:,:), u_val(dim,:))
               end if
             end if
@@ -1822,7 +1833,7 @@ contains
                 big_m_tensor_addto(dim, dim, :, :) + &
                   Viscosity_mat(dim,:,:)*theta*dt
           
-          if (acceleration) then
+          if (acceleration.or.(.not.reduced_model)) then
               rhs_addto(dim, :) = rhs_addto(dim, :) &
                     -matmul(Viscosity_mat(dim,:,:), &
                     node_val(U, dim, local_glno))
@@ -2236,7 +2247,7 @@ contains
                ! to maintain the surface integral. Fortunately, since
                ! face_2==face for a boundary this is automagic.
                
-               if (acceleration) then
+               if (acceleration.or.(.not.reduced_model)) then
                   rhs_addto(dim,u_face_l) = rhs_addto(dim,u_face_l) &
                        ! Outflow boundary integral.
                        -matmul(nnAdvection_out,face_val(U,dim,face))&
