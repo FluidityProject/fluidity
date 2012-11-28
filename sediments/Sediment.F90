@@ -199,7 +199,7 @@ contains
     type(state_type), intent(in)              :: state
     type(scalar_field), intent(in), pointer   :: sediment_field
     type(scalar_field), pointer               :: reentrainment, bedload, sink_U, d50,&
-         & sigma, volume_fraction, diagnostic_field
+         & sigma, volume_fraction, diagnostic_field, old_diagnostic_field
     type(scalar_field)                        :: masslump, bedload_remap
     type(tensor_field), pointer               :: viscosity_pointer
     type(tensor_field), target                :: viscosity
@@ -319,6 +319,13 @@ contains
           call set(diagnostic_field, face_global_nodes(diagnostic_field, i_face), &
                & ele_val(reentrainment, i_ele))
        end do
+       ! I also need to set the old field value otherwise this get overwritten with zero straight away
+       ! This is a bit messy but the important thing is that at the end of the timestep we have recorded 
+       ! the erosion rate, this fools Fluidity such that we get that.
+       old_diagnostic_field => extract_scalar_field(state, "Old"//trim(diagnostic_field%name), stat)
+       if (stat == 0) then 
+          call set(old_diagnostic_field, diagnostic_field)
+       end if
     end if
 
     ! only for mms tests
