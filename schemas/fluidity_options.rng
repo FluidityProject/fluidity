@@ -2662,7 +2662,9 @@ This uses the equation developed by Richardson and Zaki [1954].
 If the 'SinkingVelocity' is not set to diagnostic, this field will not be used.
 
 As with the sinking velocity, this velocity is in the direction of gravity so if the substance
-floats upwards, this field should be negative.</a:documentation>
+floats upwards, this field should be negative.
+
+This should be on the same mesh as the associated SinkingVelocity field.</a:documentation>
                 <attribute name="name">
                   <value>UnhinderedSinkingVelocity</value>
                 </attribute>
@@ -2670,6 +2672,7 @@ floats upwards, this field should be negative.</a:documentation>
                   <value>0</value>
                 </attribute>
                 <element name="prescribed">
+                  <ref name="velocity_mesh_choice"/>
                   <ref name="prescribed_scalar_field"/>
                 </element>
               </element>

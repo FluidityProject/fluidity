@@ -95,7 +95,7 @@ Advection_Diffusion_DG.o ../include/advection_diffusion_dg.mod: \
    ../include/coordinates.mod ../include/dgtools.mod \
    ../include/diagnostic_fields.mod ../include/elements.mod \
    ../include/fdebug.h ../include/fefields.mod ../include/fetools.mod \
-   ../include/fields.mod ../include/fldebug.mod \
+   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
    ../include/global_parameters.mod ../include/petsc_solve_state_module.mod \
    ../include/porous_media.mod ../include/profiler.mod \
    ../include/shape_functions.mod ../include/slope_limiters_dg.mod \

@@ -381,7 +381,11 @@ is used for the spatial discretisation.</a:documentation>
         <a:documentation>Velocity at which this substance sinks through the water column.
 
 This velocity is in the direction of gravity so if the substance
-floats or swims upwards, this field should be negative.</a:documentation>
+floats or swims upwards, this field should be negative.
+
+This should be on the same mesh as the velocity field unless you are 
+using a DG discretisation and projecting the velocity to contiuous, in 
+which case it should be on a continuous mesh.</a:documentation>
         <attribute name="name">
           <value>SinkingVelocity</value>
         </attribute>
@@ -390,9 +394,11 @@ floats or swims upwards, this field should be negative.</a:documentation>
         </attribute>
         <choice>
           <element name="prescribed">
+            <ref name="velocity_mesh_choice"/>
             <ref name="prescribed_scalar_field_no_adapt"/>
           </element>
           <element name="diagnostic">
+            <ref name="velocity_mesh_choice"/>
             <choice>
               <ref name="scalar_python_diagnostic_algorithm"/>
               <ref name="internal_algorithm"/>
