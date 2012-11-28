@@ -199,7 +199,7 @@ contains
     type(state_type), intent(in)              :: state
     type(scalar_field), intent(in), pointer   :: sediment_field
     type(scalar_field), pointer               :: reentrainment, bedload, sink_U, d50,&
-         & sigma, volume_fraction
+         & sigma, volume_fraction, diagnostic_field
     type(scalar_field)                        :: masslump, bedload_remap
     type(tensor_field), pointer               :: viscosity_pointer
     type(tensor_field), target                :: viscosity
@@ -310,8 +310,17 @@ contains
        end if
     end do nodes
     
+    ! store erosion rate in diagnositc field
+    call get_sediment_item(state, i_field, "BedloadErosionRate", diagnostic_field, stat)
+    if (stat == 0) then
+       call zero(diagnostic_field)
+       call set(diagnostic_field, reentrainment)
+       call scale(diagnostic_field, 1./dt)
+    end if
+
     ! only for mms tests
     if (have_option(trim(bc_path)//"/type[0]/set_to_zero")) then
+       ! zero reentrainment
        call zero(reentrainment)
     end if
 

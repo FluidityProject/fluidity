@@ -206,14 +206,6 @@ contains
           call deallocate(masslump)
        end if
 
-    end do deposit_fields_loop
-    
-    ! third loop to calculate net flux of sediment for this timestep
-    net_flux_loop: do i_field=1, n_sediment_fields
-       
-       ! obtain scalar fields for this sediment class
-       call get_sediment_item(state, i_field, "Bedload", bedload_field)
-
        ! get erosion rate diagnostic field
        call get_sediment_item(state, i_field, "BedloadDepositRate", diagnostic_field, stat)
        if (stat == 0) then
@@ -225,16 +217,13 @@ contains
           call scale(diagnostic_field, 1./dt)
        end if
 
-       ! get deposit rate diagnostic field
-       call get_sediment_item(state, i_field, "BedloadErosionRate", diagnostic_field, stat)
-       if (stat == 0) then
-          call zero(diagnostic_field)
-          do i_node = 1, node_count(surface_mesh(i_field))
-             call set(diagnostic_field, surface_nodes(i_field)%nodes(i_node), &
-                  & node_val(erosion(i_field), i_node))
-          end do
-          call scale(diagnostic_field, 1./dt)
-       end if
+    end do deposit_fields_loop
+    
+    ! third loop to calculate net flux of sediment for this timestep
+    net_flux_loop: do i_field=1, n_sediment_fields
+       
+       ! obtain scalar fields for this sediment class
+       call get_sediment_item(state, i_field, "Bedload", bedload_field)
        
        if (.not. have_option(trim(bedload_field%option_path)//'/prognostic/disable_calculation')) then
           ! Add on sediment falling in and subtract sediment coming out
