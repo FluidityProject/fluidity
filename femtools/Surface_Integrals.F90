@@ -498,9 +498,10 @@ contains
     
   end function integrate_over_surface_element_tensor
   
-  subroutine diagnostic_body_drag(state, force, pressure_force, viscous_force)
+  subroutine diagnostic_body_drag(state, force, surface_id, pressure_force, viscous_force)
     type(state_type), intent(in) :: state
     real, dimension(:), intent(out) :: force
+    integer, intent(in) :: surface_id
     real, dimension(size(force)), optional, intent(out) :: pressure_force
     real, dimension(size(force)), optional, intent(out) :: viscous_force
 
@@ -541,8 +542,9 @@ contains
     sngi  = face_ngi(velocity, 1)
     stotel = surface_element_count(velocity)
     option_path = velocity%option_path          
-    shape_option = option_shape(trim(option_path)//'/prognostic/stat/compute_body_forces_on_surfaces')
-    allocate( surface_ids(shape_option(1)), face_detwei(sngi), &
+!    shape_option = option_shape(trim(option_path)//'/prognostic/stat/compute_body_forces_on_surfaces')
+!    allocate( surface_ids(shape_option(1)), face_detwei(sngi), &
+    allocate( surface_ids(1), face_detwei(sngi), &
               dn_t(nloc, ngi, meshdim), &
               velocity_ele(meshdim, nloc), normal(meshdim, sngi), &
               face_pressure(sngi), viscosity_ele(meshdim, meshdim, sngi), &
@@ -553,12 +555,13 @@ contains
     allocate(vol_dshape_face(ele_loc(velocity, 1), face_ngi(velocity, 1),meshdim))
     allocate(invJ_face(meshdim, meshdim, face_ngi(velocity, 1)))
 
-    call get_option(trim(option_path)//'/prognostic/stat/compute_body_forces_on_surfaces', surface_ids)
+!    call get_option(trim(option_path)//'/prognostic/stat/compute_body_forces_on_surfaces', surface_ids)
+    surface_ids(1) = surface_id
     ewrite(2,*) 'Calculating forces on surfaces with these IDs: ', surface_ids
 
     augmented_shape = make_element_shape(x_shape%loc, u_shape%dim, u_shape%degree, u_shape%quadrature, &
                     & quad_s=u_f_shape%quadrature)
-                    
+
     sarea = 0.0
     nfaces = 0
     force = 0.0
