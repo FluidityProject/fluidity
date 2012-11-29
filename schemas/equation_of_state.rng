@@ -161,6 +161,26 @@ Plateau border cross sectional area and the local Plateau
 border length per unit volume (lambda). </a:documentation>
           <empty/>
         </element>
+        <element name="shallow_water">
+          <a:documentation>EXPERIMENTAL:
+Turn compressible Navier Stokes (in 2D) into Shallow Water equations, where
+  Pressure = g*\eta with \eta the free surface elevation
+  Density = H+\eta = H + Pressure/g with H the bottom depth
+  Velocity is depth averaged velocity</a:documentation>
+          <element name="scalar_field">
+            <a:documentation>Equilibrium bottom depth (a positive value)</a:documentation>
+            <attribute name="rank">
+              <value>0</value>
+            </attribute>
+            <attribute name="name">
+              <value>BottomDepth</value>
+            </attribute>
+            <element name="prescribed">
+              <ref name="pressure_mesh_choice"/>
+              <ref name="prescribed_scalar_field"/>
+            </element>
+          </element>
+        </element>
       </choice>
     </element>
   </define>

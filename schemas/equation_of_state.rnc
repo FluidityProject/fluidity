@@ -146,7 +146,23 @@ compressible_eos_options =
          ## border length per unit volume (lambda). 
          element foam {
             empty
-         }  
+         }|
+         ## EXPERIMENTAL:
+         ## Turn compressible Navier Stokes (in 2D) into Shallow Water equations, where
+         ##   Pressure = g*\eta with \eta the free surface elevation
+         ##   Density = H+\eta = H + Pressure/g with H the bottom depth
+         ##   Velocity is depth averaged velocity
+         element shallow_water {
+            ## Equilibrium bottom depth (a positive value)
+            element scalar_field {
+               attribute rank { "0" },
+               attribute name { "BottomDepth" },
+               element prescribed {
+                  pressure_mesh_choice,
+                  prescribed_scalar_field
+               }
+            }
+         }
       }   
    )
    

@@ -1,0 +1,55 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>Standing free surface wave in channel using P1DG-P2.</name>
+  <owner userid="skramer"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity -v3 -l  standing_wave.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="solvers_converged" language="python">import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files</variable>
+    <variable name="fs_left" language="python">import fluidity_tools
+det=fluidity_tools.stat_parser('standing_wave.detectors')
+g=10.0
+fsl=det['Water']['Pressure']['Left']/g
+t=det['ElapsedTime']['value']
+fs_left={}
+fs_left['min']=fsl.min()
+fs_left['min_time']=t[fsl.argmin()]
+fs_left['end_value']=fsl[-1]</variable>
+    <variable name="fs_right" language="python">import fluidity_tools
+det=fluidity_tools.stat_parser('standing_wave.detectors')
+g=10.0
+fsr=det['Water']['Pressure']['Right']/g
+t=det['ElapsedTime']['value']
+fs_right={}
+fs_right['max']=fsr.max()
+fs_right['max_time']=t[fsr.argmax()]
+fs_right['end_value']=fsr[-1]</variable>
+    <variable name="fs_integral_max" language="python">import fluidity_tools
+stat=fluidity_tools.stat_parser('standing_wave.stat')
+g=10.0
+fsi=stat['Water']['Pressure']['integral']/g
+fs_integral_max=abs(fsi).max()<comment>Horizontal integral of free surface should be zero</comment></variable>
+    <variable name="fs_integral_range" language="python">import fluidity_tools
+stat=fluidity_tools.stat_parser('standing_wave.stat')
+g=10.0
+fsi=stat['Water']['Pressure']['integral']/g
+fs_integral_range=fsi.max()-fsi.min()<comment>Horizontal integral of free surface should be zero</comment></variable>
+  </variables>
+  <pass_tests>
+    <test name="Solvers converged" language="python">assert(solvers_converged)</test>
+    <test name="fs_left_min" language="python">assert(fs_left['min']&lt;-0.95)</test>
+    <test name="fs_left_min_time" language="python">assert abs(fs_left['min_time']-1e4)&lt;400</test>
+    <test name="fs_end_value" language="python">assert abs(fs_left['end_value']-1.0)&lt;0.2</test>
+    <test name="fs_right_max" language="python">assert(fs_right['max']&gt;-0.95)</test>
+    <test name="fs_right_max_time" language="python">assert abs(fs_right['max_time']-1e4)&lt;200</test>
+    <test name="fs_end_value" language="python">assert abs(fs_right['end_value']+1.0)&lt;0.2</test>
+    <test name="fs_integral_max_zero" language="python">area=1e6*1e5
+assert fs_integral_max&lt;area*1e-6</test>
+    <test name="fs_integral_range_zero" language="python">assert fs_integral_range&lt;1.0</test>
+  </pass_tests>
+  <warn_tests/>
+</testproblem>

@@ -348,6 +348,11 @@ contains
         
         call compressible_eos_foam(state, eos_path, drhodp_local, &
             density=density, pressure=pressure)
+      else if (have_option(trim(eos_path)//'/compressible/shallow_water')) then
+
+        ! shallow water
+        call compressible_eos_shallow_water(state, eos_path, drhodp_local, &
+            density=density, pressure=pressure)
 
       end if
       
@@ -674,6 +679,51 @@ contains
         
   end subroutine compressible_eos_foam
         
+  subroutine compressible_eos_shallow_water(state, eos_path, drhodp, &
+    density, pressure)
+  ! Turn compressible Navier Stokes (in 2D) into Shallow Water equations, where
+  !   Pressure = g*\eta with \eta the free surface elevation
+  !   Density = H+\eta = H + Pressure/g with H the bottom depth
+  !   Velocity is depth averaged velocity
+    type(state_type), intent(inout) :: state
+    character(len=*), intent(in):: eos_path
+    type(scalar_field), intent(inout) :: drhodp
+    type(scalar_field), intent(inout), optional :: density, pressure
+
+    type(scalar_field), pointer :: bottom_depth, density_local, pressure_local
+    real:: g
+
+    call get_option("/physical_parameters/gravity/magnitude", g)
+    
+    call set(drhodp, 1.0/g)
+
+    if (present(density)) then
+      pressure_local => extract_scalar_field(state, 'Pressure')
+      bottom_depth => extract_scalar_field(state, 'BottomDepth')
+      if (.not. pressure_local%mesh==bottom_depth%mesh .or. &
+          .not. pressure_local%mesh==density%mesh) then
+        FLExit("Density, Pressure and BottomDepth all need to be on the same mesh.")
+      end if
+      ! rho=H+p/g
+      call set(density, bottom_depth)
+      call addto(density, pressure_local, scale=1.0/g)
+    end if
+
+    if (present(pressure)) then
+      density_local => extract_scalar_field(state, 'Density')
+      bottom_depth => extract_scalar_field(state, 'BottomDepth')
+      if (.not. density_local%mesh==bottom_depth%mesh .or. &
+          .not. density_local%mesh==pressure%mesh) then
+        FLExit("Density, Pressure and BottomDepth all need to be on the same mesh.")
+      end if
+      ! p=(rho-H)*g
+      call set(pressure, density_local)
+      call addto(pressure, bottom_depth, scale=-1.0)
+      call scale(pressure, g)
+    end if
+
+  end subroutine compressible_eos_shallow_water
+
   subroutine compressible_material_eos(state,materialdensity,&
                                     materialpressure,materialdrhodp)
 
