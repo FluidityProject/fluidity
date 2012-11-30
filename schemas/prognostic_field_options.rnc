@@ -536,6 +536,11 @@ prognostic_velocity_field =
                         real
                      },
                      element length_scale_type { 'scalar'|'tensor' },
+                     element van_driest_wall_damping {
+                        element A_plus {
+                           real
+                        }
+                     }?,
                      ## eddy viscosity (turbulent diffusion of velocity).
                      ## This is an anisotropic symmetric viscosity, added to normal viscosity field, that
                      ## carries the influence of turbulence onto the velocity field.
@@ -549,6 +554,15 @@ prognostic_velocity_field =
                               diagnostic_tensor_field
                            }
                         )
+                     }?,
+                     ## Distance to wall
+                     element scalar_field {
+                        attribute rank { "0" },
+                        attribute name { "DistanceToWall" },
+                        element prescribed {
+                           velocity_mesh_choice,
+                           prescribed_scalar_field
+                        }
                      }?
                   }
                |
