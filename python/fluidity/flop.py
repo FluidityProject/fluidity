@@ -9,9 +9,12 @@ from ufl_expr import *
 from bcs import *
 from libspud import get_option, have_option
 
+import solving
+solve = solving.solve
+
 valuetype = numpy.float64
 
-def _init():
+def _init(option_path):
   if have_option("/pyop2_backend"):
       backend = get_option("/pyop2_backend")
   else:
@@ -23,6 +26,8 @@ def _init():
       print "*** ERROR ***"
       print "Was unable to initialise requested backend (%s) from PyOP2" % backend
       raise
+
+  solving.option_path = option_path
 
 class FieldDict(dict):
 
@@ -276,5 +281,3 @@ class TensorField(FieldCoefficient, fluidity_state.TensorField):
         return TensorField(self.name, self.val, self.field_type, self.option_path,
                 self.dimension[0], self.dimension[1], self.uid,
                 self.mesh, element, count)
-
-from solving import solve

@@ -71,7 +71,9 @@ contains
        ewrite(-1, *)"Make sure PYTHONPATH is set correctly"
        FLExit("UFL equations require flop.py, which could not be loaded")
     end if
-    call python_run_string("flop._init()")
+    write(option_path,*) s_field%option_path
+    call python_run_string("option_path='"//trim(adjustl(option_path))//"'")
+    call python_run_string("flop._init(option_path)")
     call python_run_string("coordinates = state.vector_fields['Coordinate']")
     call python_run_string("for mesh in state.meshes.itervalues(): mesh.coords = coordinates")
     call python_run_string("dx._domain_data = coordinates")
@@ -80,8 +82,6 @@ contains
     call python_run_string("time="//trim(buffer))
     write(buffer,*) dt
     call python_run_string("dt="//trim(buffer))  
-    write(option_path,*) s_field%option_path
-    call python_run_string("option_path='"//trim(adjustl(option_path))//"'")
 
     ! And finally run the user's codey
     call get_option(trim(s_field%option_path)//"/prognostic/equation[0]",pycode)

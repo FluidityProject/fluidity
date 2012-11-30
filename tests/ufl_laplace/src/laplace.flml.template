@@ -88,6 +88,8 @@
           <string_value lines="20" type="python">t = state.scalar_fields["Tracer"]
 g = state.scalar_fields["Temperature"]
 
+#from fluidity_tools import shell; shell()()
+
 # Set up finite element problem
 
 v = TestFunction(t)
@@ -123,8 +125,8 @@ solve(a == L, t, bcs)</string_value>
           </theta>
         </temporal_discretisation>
         <solver>
-          <iterative_method name="cg"/>
-          <preconditioner name="sor"/>
+          <iterative_method name="gmres"/>
+          <preconditioner name="jacobi"/>
           <relative_error>
             <real_value rank="0">1.0e-7</real_value>
           </relative_error>
