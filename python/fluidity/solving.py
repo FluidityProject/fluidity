@@ -29,7 +29,7 @@ from ufl.finiteelement import FiniteElement, VectorElement, TensorElement
 from bcs import BoundaryCondition, DirichletBC
 from pyop2 import op2, ffc_interface
 
-DEFAULT_SOLVER_PARAMETERS = {'solver': 'cg', 'preconditioner': 'jacobi'}
+DEFAULT_SOLVER_PARAMETERS = {'solver': 'gmres', 'preconditioner': 'jacobi'}
 
 class LinearVariationalProblem(object):
 
@@ -133,8 +133,6 @@ class LinearVariationalSolver(object):
                              b(mesh.faces.surface_elements_to_nodes_maps[domain], op2.WRITE),
                              value(op2.READ))
 
-        numpy.set_printoptions(linewidth=150)
-
         solver = self.parameters['solver']
         preconditioner = self.parameters['preconditioner']
         _la_solve(A, self._problem.u, b, solver, preconditioner)
@@ -186,12 +184,14 @@ def _assemble_tensor(f):
     
     return tensor
 
-def _la_solve(A, x, b, solver="cg", preconditioner="jacobi"):
+def _la_solve(A, x, b, linear_solver=None, preconditioner=None):
     """Solves a linear algebra problem."""
-    if solver!="cg" or preconditioner!="jacobi":
-        log.error("Only 'cg' solver with 'jacobi' preconditioner are "\
-                  "presently supported.")
-    op2.solve(A, x.dat, b)
+    parameters = {}
+    parameters['linear_solver']  = linear_solver  or DEFAULT_SOLVER_PARAMETERS['solver']
+    parameters['preconditioner'] = preconditioner or DEFAULT_SOLVER_PARAMETERS['preconditioner']
+    solver = op2.Solver()
+    solver.parameters.update(parameters)
+    solver.solve(A, x.dat, b)
     
 # Solve function handles both linear systems and variational problems
 
