@@ -28,8 +28,7 @@ import ufl
 from ufl.finiteelement import FiniteElement, VectorElement, TensorElement
 from bcs import BoundaryCondition, DirichletBC
 from pyop2 import op2, ffc_interface
-
-DEFAULT_SOLVER_PARAMETERS = {'solver': 'cg', 'preconditioner': 'jacobi'}
+from libspud import get_option
 
 class LinearVariationalProblem(object):
 
@@ -101,8 +100,8 @@ class LinearVariationalSolver(object):
     def __init__(self, problem):
         _apply_dirichlet[1] = op2.Kernel(_apply_dirichlet_1, "apply_dirichlet")
         self._problem = problem
+        #FIXME: Make source-compatible with Dolfin parameters interface
         self.parameters = {}
-        self.parameters.update(DEFAULT_SOLVER_PARAMETERS)
 
     def solve(self):
         A = _assemble_tensor(self._problem.a)
@@ -133,11 +132,8 @@ class LinearVariationalSolver(object):
                              b(mesh.faces.surface_elements_to_nodes_maps[domain], op2.WRITE),
                              value(op2.READ))
 
-        numpy.set_printoptions(linewidth=150)
-
-        solver = self.parameters['solver']
-        preconditioner = self.parameters['preconditioner']
-        _la_solve(A, self._problem.u, b, solver, preconditioner)
+        # FIXME: Parameters are not forced into solver a la Dolfin - only taken from FLML.
+        _la_solve(A, self._problem.u, b)
 
 class NonlinearVariationalSolver(object):
     """Solves a nonlinear variational problem."""
@@ -186,12 +182,33 @@ def _assemble_tensor(f):
     
     return tensor
 
-def _la_solve(A, x, b, solver="cg", preconditioner="jacobi"):
-    """Solves a linear algebra problem."""
-    if solver!="cg" or preconditioner!="jacobi":
-        log.error("Only 'cg' solver with 'jacobi' preconditioner are "\
-                  "presently supported.")
-    op2.solve(A, x.dat, b)
+def _la_solve(A, x, b, linear_solver=None, preconditioner=None):
+    """Solves a linear algebra problem. Usage:
+    
+    .. code-block:: python
+    
+        _la_solve(A, x, b, linear_solver=None, preconditioner=None)
+        
+    The linear solver and preconditioner are selected with the following
+    precedence:
+    
+    1. Using linear_solver and preconditioner passed into the function. This is for
+       source compatibility with Dolfin and would not normally be used in Fluidity.
+    2. Using the solver options specified in the flml."""
+
+    solver_path = "%s/prognostic/solver/iterative_method/name" % option_path
+    preconditioner_path = "%s/prognostic/solver/preconditioner/name" % option_path
+    flml_solver = get_option(solver_path)
+    flml_preconditioner = get_option(preconditioner_path)
+   
+    parameters = {}
+    parameters['linear_solver']  = linear_solver  or flml_solver
+    parameters['preconditioner'] = preconditioner or flml_preconditioner
+    print "Solver parameters"
+    print parameters
+    solver = op2.Solver()
+    solver.parameters.update(parameters)
+    solver.solve(A, x.dat, b)
     
 # Solve function handles both linear systems and variational problems
 
