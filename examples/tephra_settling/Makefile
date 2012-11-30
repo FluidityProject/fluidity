@@ -1,15 +1,17 @@
-preprocess:
+include envcheck.mk
+
+preprocess: envcheck
 	@echo **********Creating 2D mesh
 	gmsh -2 -o tephra_settling.msh src/tephra_settling.geo
-	../../bin/gmsh2triangle --2d tephra_settling.msh
+	${BINPREFIX}gmsh2triangle --2d tephra_settling.msh
 
-run:
+run: envcheck
 	@echo **********Running simulation
-	../../bin/fluidity -v2 -l tephra_settling.flml
+	${BINPREFIX}fluidity -v2 -l tephra_settling.flml
 
-postprocess:
+postprocess: envcheck
 	@echo **********Running postprocessing script
-	python postprocess.py
+	PYTHONPATH=${PWD}/../../python:$$PYTHONPATH python postprocess.py
 
 input: clean preprocess
 

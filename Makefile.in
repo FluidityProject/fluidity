@@ -461,6 +461,14 @@ clean-test:
 	@cd tests; PYTHONPATH=../python ../tools/testharness.py --clean >/dev/null
 	@cd tests/data; $(MAKE) clean
 
+clean-all-tests: clean-test     
+	@echo "    CLEAN parallel/special/long tests"
+	@PYTHONPATH=python tools/testharness.py --parallelism=parallel --clean >/dev/null
+	@PYTHONPATH=python tools/testharness.py --length=special --clean >/dev/null
+	@PYTHONPATH=python tools/testharness.py --length=special --parallelism=parallel --clean >/dev/null
+	@PYTHONPATH=python tools/testharness.py --length=long --clean >/dev/null
+	@PYTHONPATH=python tools/testharness.py --length=long --parallelism=parallel --clean >/dev/null
+
 distclean: clean
 	@echo "    DISTCLEAN"
 	@cd spatialindex-1.5 ; make distclean > /dev/null ; rm -rf	\
