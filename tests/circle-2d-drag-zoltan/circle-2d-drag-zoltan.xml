@@ -21,7 +21,7 @@ solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     <variable name="cur_xforce" language="python">
 import fluidity_tools
 s = fluidity_tools.stat_parser("circle-2d-drag-serial.stat")
-cur_xforce = s["0"]["Velocity"]["force%1"][-1]
+cur_xforce = s["0"]["Velocity"]["force_circle%1"][-1]
     </variable>
     <variable name="exact_xforce" language="python">
 exact_xforce = 0.01116 # the force in x direction from literature
@@ -29,12 +29,12 @@ exact_xforce = 0.01116 # the force in x direction from literature
     <variable name="cur_xforce_par" language="python">
 import fluidity_tools
 s = fluidity_tools.stat_parser("circle-2d-drag-parallel.stat")
-cur_xforce_par = s["0"]["Velocity"]["force%1"][-1]
+cur_xforce_par = s["0"]["Velocity"]["force_circle%1"][-1]
     </variable>
     <variable name="cur_xforce_par_adapt" language="python">
 import fluidity_tools
 s = fluidity_tools.stat_parser("circle-2d-drag-parallel-adaptive.stat")
-cur_xforce_par_adapt = s["0"]["Velocity"]["force%1"][-1]
+cur_xforce_par_adapt = s["0"]["Velocity"]["force_circle%1"][-1]
     </variable>
 
   </variables>
