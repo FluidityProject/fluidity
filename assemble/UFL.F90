@@ -31,7 +31,7 @@ module ufl_module
 
   use fields_data_types
   use fldebug
-  use global_parameters, only : PYTHON_FUNC_LEN
+  use global_parameters, only : PYTHON_FUNC_LEN, OPTION_PATH_LEN
   use python_state
   use python_utils
   use spud
@@ -54,6 +54,7 @@ contains
 
 #ifdef HAVE_NUMPY    
     character(len = PYTHON_FUNC_LEN) :: pycode
+    character(len = OPTION_PATH_LEN+1) :: option_path
     character(len = 30) :: buffer
     integer :: stat
 
@@ -79,7 +80,9 @@ contains
     call python_run_string("time="//trim(buffer))
     write(buffer,*) dt
     call python_run_string("dt="//trim(buffer))  
-      
+    write(option_path,*) s_field%option_path
+    call python_run_string("option_path='"//trim(adjustl(option_path))//"'")
+
     ! And finally run the user's codey
     call get_option(trim(s_field%option_path)//"/prognostic/equation[0]",pycode)
     call python_run_string(trim(pycode))
