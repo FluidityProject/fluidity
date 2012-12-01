@@ -167,6 +167,9 @@
                     <stat>
                       <include_in_stat/>
                     </stat>
+                    <mass_matrix>
+                      <use_lumped_mass_matrix/>
+                    </mass_matrix>
                   </diagnostic>
                 </tensor_field>
               </second_order>
@@ -460,7 +463,7 @@
     </scalar_field>
     <vector_field name="TimeAveragedVelocity" rank="1">
       <diagnostic>
-        <algorithm material_phase_support="single" source_field_type="vector" source_field_name="Velocity" name="time_averaged_vector">
+        <algorithm source_field_type="vector" material_phase_support="single" name="time_averaged_vector" source_field_name="Velocity">
           <spin_up_time>
             <real_value rank="0">0.0</real_value>
           </spin_up_time>

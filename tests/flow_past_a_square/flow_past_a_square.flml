@@ -156,6 +156,9 @@
                     <stat>
                       <include_in_stat/>
                     </stat>
+                    <mass_matrix>
+                      <use_lumped_mass_matrix/>
+                    </mass_matrix>
                   </diagnostic>
                 </tensor_field>
               </second_order>

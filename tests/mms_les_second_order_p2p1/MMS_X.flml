@@ -218,6 +218,9 @@
                     <stat>
                       <include_in_stat/>
                     </stat>
+                    <mass_matrix>
+                      <use_consistent_mass_matrix/>
+                    </mass_matrix>
                   </diagnostic>
                 </tensor_field>
               </second_order>
