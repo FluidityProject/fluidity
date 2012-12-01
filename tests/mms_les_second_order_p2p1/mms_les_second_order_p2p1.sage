@@ -33,7 +33,7 @@ S_yy = diff(v,y)
 S_yx = 0.5*(diff(u,y) + diff(v,x))
 S_norm = sqrt(2*(S_xx**2 + S_xy**2 + S_yx**2 + S_yy**2))
 
-nu_T = 2*rho*((Cs)**2)*S_norm*Delta2
+nu_T = 4*rho*((Cs)**2)*S_norm*Delta2
 
 #print "DIVERGENCE = ", diff(u,x) + diff(v,y)
 
