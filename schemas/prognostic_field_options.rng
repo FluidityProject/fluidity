@@ -670,6 +670,20 @@ carries the influence of turbulence onto the velocity field.</a:documentation>
                         <ref name="internal_algorithm"/>
                         <ref name="velocity_mesh_choice"/>
                         <ref name="diagnostic_tensor_field"/>
+                        <element name="mass_matrix">
+                          <choice>
+                            <element name="use_lumped_mass_matrix">
+                              <optional>
+                                <element name="use_submesh">
+                                  <empty/>
+                                </element>
+                              </optional>
+                            </element>
+                            <element name="use_consistent_mass_matrix">
+                              <empty/>
+                            </element>
+                          </choice>
+                        </element>
                       </element>
                     </element>
                   </optional>

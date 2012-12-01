@@ -551,7 +551,14 @@ prognostic_velocity_field =
                            element diagnostic {
                               internal_algorithm,
                               velocity_mesh_choice,
-                              diagnostic_tensor_field
+                              diagnostic_tensor_field,
+                              element mass_matrix {  
+                              (
+                                    element use_lumped_mass_matrix { element use_submesh { empty }? }
+                                    |
+                                    element use_consistent_mass_matrix { empty }
+                                 )
+                              }
                            }
                         )
                      }?,
