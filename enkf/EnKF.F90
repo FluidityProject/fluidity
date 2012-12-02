@@ -822,5 +822,156 @@ contains
   end subroutine usage
 
 
+  subroutine solution_on_checkpoints(state, prefix, postfix, cp_no)
+    !!< Checkpoint the fields in state. Outputs to vtu files with names:
+    !!<   [prefix]_[_state name]_[mesh_name][_cp_no][_postfix][_process].vtu
+    !!< where the state name is added if multiple states are passed, cp_no is
+    !!< optional and the process number is added in parallel.
+
+    type(state_type), dimension(:), intent(in) :: state
+    character(len = *), intent(in) :: prefix
+    character(len = *), optional, intent(in) :: postfix
+    integer, optional, intent(in) :: cp_no
+    ! if present and true: do not checkpoint fields that can be reinitialised
+
+    character(len = OPTION_PATH_LEN) :: vtu_filename,tmp
+    integer :: i, j, k, nparts, n_ps_fields_on_mesh, n_pv_fields_on_mesh, n_pt_fields_on_mesh
+    type(mesh_type), pointer :: mesh
+    type(scalar_field), pointer :: s_field
+    type(vector_field), pointer :: positions, v_field
+    type(tensor_field), pointer :: t_field
+
+    integer :: stat
+
+    assert(len_trim(prefix) > 0)
+
+    do i = 1, size(state)
+       positions => extract_vector_field(state(i), "Coordinate")
+       do j = 1, size(state(i)%meshes)
+          mesh => state(i)%meshes(j)%ptr
+          nparts = get_active_nparts(ele_count(mesh))
+          ! Construct a new field checkpoint filename
+          vtu_filename = trim(prefix)
+          if(size(state) > 1) vtu_filename = trim(vtu_filename) // "_" // trim(state(i)%name)
+          vtu_filename = trim(vtu_filename) // "_" // trim(mesh%name)
+         if(present(cp_no)) vtu_filename = trim(vtu_filename) // "_" // int2str(cp_no)
+          if(present_and_nonempty(postfix)) vtu_filename = trim(vtu_filename) // "_" // trim(postfix)
+          if(nparts > 1) then
+             vtu_filename = trim(vtu_filename) // ".pvtu"
+          else
+             vtu_filename = trim(vtu_filename) // ".vtu"
+          end if
+          
+
+          !        if(associated(state(i)%scalar_fields)) then
+          do k = 1, size(state(i)%scalar_fields)
+             s_field => state(i)%scalar_fields(k)%ptr              
+             if(trim(s_field%mesh%name) == trim(mesh%name) .and. s_field%mesh == mesh) then
+              if(have_option(trim(s_field%option_path) // "/prognostic")) then
+                call update_initial_condition_options(trim(s_field%option_path), trim(vtu_filename), "vtu")
+              end if
+             endif
+          end do
+
+          do k = 1, size(state(i)%vector_fields)
+             v_field =>  state(i)%vector_fields(k)%ptr
+!             if( trim(v_field%name)=='Coordinate' .or. trim(v_field%name)=='PeriodicMeshCoordinate' ) cycle
+             if(trim(v_field%mesh%name) == trim(mesh%name) .and. v_field%mesh == mesh) then
+            
+              if(have_option(trim(v_field%option_path) // "/prognostic")) then
+                call update_initial_condition_options(trim(v_field%option_path), trim(vtu_filename), "vtu")
+              end if
+
+             endif
+          end do
+          !        end if
+          !        if(associated(state(i)%tensor_fields)) then
+          do k = 1, size(state(i)%tensor_fields)
+             t_field => state(i)%tensor_fields(k)%ptr
+             
+             if(trim(t_field%mesh%name) == trim(mesh%name) .and. t_field%mesh == mesh) then
+              if(have_option(trim(t_field%option_path) // "/prognostic")) then
+                call update_initial_condition_options(trim(t_field%option_path), trim(vtu_filename), "vtu")
+              end if
+             endif
+          end do
+          !        end if
+       end do
+              if(have_option(trim(s_field%option_path) // "/prognostic")) print*,'%%%%%%%%%%%%%%%%%%%%%'
+    end do
+  end subroutine solution_on_checkpoints
+  
+    subroutine update_initial_condition_options(path, filename, format)
+      !!< Updates the initial condition options for a prognostic field with
+      !!< options path path
+
+      character(len = *), intent(in) :: path
+      character(len = *), intent(in) :: filename
+      character(len = *), intent(in) :: format
+
+      integer :: stat, ic, nics
+
+      nics = option_count(trim(path) // "/prognostic/initial_condition")
+      do ic = 0, nics-1  ! do while seemed to break, don't know why
+        call delete_option(trim(path) // "/prognostic/initial_condition[" // int2str(0) // "]")
+      end do
+      call set_option_attribute(trim(path) // "/prognostic/initial_condition::WholeMesh/from_file/file_name", trim(filename), stat)
+      if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING .and. stat /= SPUD_ATTR_SET_FAILED_WARNING) then
+        FLAbort("Failed to set initial condition filename when checkpointing field with option path " // trim(path))
+      end if
+      call set_option_attribute(trim(path) // "/prognostic/initial_condition::WholeMesh/from_file/format/name", trim(format), stat)
+      if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING) then
+        FLAbort("Failed to set initial condition format when checkpointing field with option path " // trim(path))
+      end if
+
+    end subroutine update_initial_condition_options
+
+    subroutine update_value_options(path, filename, format)
+      !!< Updates the value options for a prescribed field with
+      !!< options path path
+
+      character(len = *), intent(in) :: path
+      character(len = *), intent(in) :: filename
+      character(len = *), intent(in) :: format
+
+      integer :: stat, value, nvalues
+
+      nvalues = option_count(trim(path) // "/prescribed/value")
+      do value = 0, nvalues-1
+        call delete_option(trim(path) // "/prescribed/value[" // int2str(0) // "]")
+      end do
+      call set_option_attribute(trim(path) // "/prescribed/value::WholeMesh/from_file/file_name", trim(filename), stat)
+      if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING .and. stat /= SPUD_ATTR_SET_FAILED_WARNING) then
+        FLAbort("Failed to set value filename when checkpointing field with option path " // trim(path))
+      end if
+      call set_option_attribute(trim(path) // "/prescribed/value::WholeMesh/from_file/format/name", trim(format), stat)
+      if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING) then
+        FLAbort("Failed to set value format when checkpointing field with option path " // trim(path))
+      end if
+
+    end subroutine update_value_options
+
+   subroutine update_initial_condition_options2(path, filename, format)
+      !!< Updates the initial condition options for a prognostic field with
+      !!< options path path
+
+      character(len = *), intent(in) :: path
+      character(len = *), intent(in) :: filename
+      character(len = *), intent(in) :: format
+
+      integer :: stat, ic, nics
+
+        call delete_option(trim(path) // "/prognostic/initial_condition[" // int2str(0) // "]")
+      call set_option_attribute(trim(path) // "/prognostic/initial_condition::WholeMesh/from_file/file_name", trim(filename), stat)
+      if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING .and. stat /= SPUD_ATTR_SET_FAILED_WARNING) then
+        FLAbort("Failed to set initial condition filename when checkpointing field with option path " // trim(path))
+      end if
+      call set_option_attribute(trim(path) // "/prognostic/initial_condition::WholeMesh/from_file/format/name", trim(format), stat)
+      if(stat /= SPUD_NO_ERROR .and. stat /= SPUD_NEW_KEY_WARNING) then
+        FLAbort("Failed to set initial condition format when checkpointing field with option path " // trim(path))
+      end if
+
+    end subroutine update_initial_condition_options2
+
 
   end program EnKF
