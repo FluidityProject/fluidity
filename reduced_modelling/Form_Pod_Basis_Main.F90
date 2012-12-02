@@ -547,6 +547,7 @@ contains
 !    allocate(state(total_dumps))
 !    stable_dumps=total_dumps-10
 !    allocate(state(stable_dumps))
+    print*, 'total_dumps', total_dumps
 
     allocate(state(1:total_dumps))
 
@@ -575,7 +576,11 @@ contains
        write(filename, '(a, i0, a)') trim(simulation_name)//'_', (count-1)*dump_sampling_period,".vtu" 
        inquire(file=trim(filename), exist=exists)
        if (.not. exists) then
-          count=count -1
+          if(dump_sampling_period.eq.1) then
+             count=count-2
+          else
+             count=count-1
+          endif
           exit
        end if
 

@@ -66,7 +66,9 @@ contains
     call get_option('/simulation_name', simulation_name)
     call get_option('/geometry/quadrature/degree', quadrature_degree)
     
-    total_dumps=count_dumps(simulation_name)
+!    total_dumps=count_dumps(simulation_name)
+    call get_option(&
+         '/reduced_model/pod_basis_formation/pod_basis_count', total_dumps)
     allocate(POD_state(total_dumps))
 
     VelocityMesh=extract_velocity_mesh(state)

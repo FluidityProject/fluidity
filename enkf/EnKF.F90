@@ -83,6 +83,7 @@
     !!ensemble matrix mean analysis
     real, dimension(:), allocatable :: meanA_analysis
     type(state_type), dimension(:,:), allocatable :: mean_state
+    character(len = OPTION_PATH_LEN) :: prefix,postfix
 
     call python_init()
     call read_command_line()
@@ -296,6 +297,7 @@ contains
           print *, node_count(sfield),trim(sfield%name), trim(mesh_tmp%name)
           call allocate( sfield2,  mesh_tmp, trim(sfield%name)   )
           call set(sfield2, node_val(sfield,1) )  !!! this is used only for the constant field
+          sfield2%option_path =  sfield%option_path
           call insert(ensemble_state_old(i), sfield2, trim(sfield%name))
        end do
 
@@ -331,6 +333,7 @@ contains
           print *, node_count(vfield),trim(vfield%name)
           call allocate( vfield2,  vfield%dim, vfield%mesh, trim(vfield%name)   )
           call set(vfield2, node_val(vfield,1 )) !!! this is used only for the constant field
+          sfield2%option_path =  sfield%option_path
           call insert(ensemble_state_old(i), vfield2, trim(vfield%name))
        end do
 
@@ -361,6 +364,7 @@ contains
           print *, node_count(tfield),trim(tfield%name)
           call allocate( tfield2, tfield%mesh, trim(tfield%name)   )
           call set(tfield2, node_val(tfield,1 )) !!! this is used only for the constant field
+          sfield2%option_path =  sfield%option_path
           call insert(ensemble_state_old(i), tfield2, trim(tfield%name))
        end do
     end do
@@ -368,6 +372,18 @@ contains
     call print_state( ensemble_state_old(1) )
     print*,'**********'
     call print_state( ensemble_state_old(2) )
+
+    do i = 1, nrens
+!       cp_no = (i-1)*dump_sampling_period
+
+       call solution_on_checkpoints( (/ ensemble_state(i) /)  , prefix, i)
+
+       call initialise_prognostic_fields((/ensemble_state(i) /), save_vtk_cache=.true., &
+            initial_mesh=.true.)
+
+       call set_prescribed_field_values((/ensemble_state(i) /), initial_mesh=.true.)
+     end do
+
 
     call interpolation_ensembles_on_supermesh(ensemble_state, ensemble_state_old)
 
