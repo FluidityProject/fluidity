@@ -161,7 +161,7 @@ class Faces(fluidity_state.Faces):
         # and store the local facet id for each element on the boundary
         for element, surface_element, local_facet in boundary_elements:
             boundary = self.boundary_ids[surface_element]
-            boundary_faces[boundary].append(local_facet) # May need transforming for UFC
+            boundary_faces[boundary].append(local_facet)
             elem_node_mapping[boundary] += mesh.ele_nodes(element)
             element_count[boundary] += 1
 
@@ -200,7 +200,7 @@ class Faces(fluidity_state.Faces):
                         surface_elements_to_nodes[boundary])
             self.boundary_facets[boundary] = \
                 op2.Dat(self.boundary_elem_sets[boundary], 1, 
-                        boundary_faces[boundary], numpy.int32)
+                        boundary_faces[boundary], numpy.uint32)
 
     def check_boundary(self, boundary):
         if boundary not in self.boundary_list:

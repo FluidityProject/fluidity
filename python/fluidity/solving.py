@@ -113,7 +113,7 @@ class LinearVariationalSolver(object):
         # Apply Dirichlet BCs
         for bc in self._problem.bcs:
             if not isinstance(bc, DirichletBC):
-                raise NotImplementedError("Only DirichletBCs supported (not PeriodicBCs)")
+                raise NotImplementedError("Only DirichletBCs supported")
             for domain in bc.domain_args:
                 # Get list of nodes in domain. #FIXME: get zero_rows to take a map
                 # so we don't mandate pulling data back and forth in the interface.
@@ -140,9 +140,8 @@ class NonlinearVariationalSolver(object):
     pass
 
 def _assemble_tensor(f):
-    kernel, _, _ = ffc_interface.compile_form(f, "form")
+    kernels = ffc_interface.compile_form(f, "form")
 
-    # FIXME: Get preprocessed data from FFC when the interface supports it
     fd = f.form_data()
     is_mat = fd.rank == 2
 
@@ -152,7 +151,7 @@ def _assemble_tensor(f):
 
     if is_mat:
         test,trial = fd.arguments
-        itspace = test.mesh.element_set(*[ arg.mesh.shape.loc for arg in (test, trial) ])
+        itspace_extents = [ arg.mesh.shape.loc for arg in (test, trial) ]
         
         # Construct OP2 Mat to assemble into
         trial_element = trial.element()
@@ -166,19 +165,44 @@ def _assemble_tensor(f):
         sparsity = op2.Sparsity((test.mesh.element_node_map, trial.mesh.element_node_map),
                                 sparsity_dim, "%s_%s_sparsity" % mesh_names)
         tensor = op2.Mat(sparsity, numpy.float64, "%s_%s_matrix" % mesh_names)    
-        tensor_arg = tensor((test.mesh.element_node_map[op2.i[0]], 
-                             trial.mesh.element_node_map[op2.i[1]]), op2.INC)
     else:
         test = fd.arguments[0]
-        itspace = test.mesh.element_set(test.mesh.shape.loc)
+        itspace_extents = [test.mesh.shape.loc]
         tensor = fd.coefficients[0].temporary_dat
         tensor.zero()
-        tensor_arg = tensor(test.mesh.element_node_map[op2.i[0]], op2.INC)
 
-    args = [kernel, itspace, tensor_arg, coords.dat(coord_elem_node, op2.READ)]
-    for c in fd.coefficients:
-        args.append(c.dat(c.element_node_map, op2.READ))
-    op2.par_loop(*args)
+    # FIXME: put somewhere appropriate
+    test.mesh.compute_boundaries()
+
+    for kernel, integral in zip(kernels, f.integrals()):
+        domain_type = integral.measure().domain_type()
+        if domain_type == 'cell':
+            if is_mat:
+                tensor_arg = tensor((test.mesh.element_node_map[op2.i[0]], 
+                                     trial.mesh.element_node_map[op2.i[1]]), op2.INC)
+            else:
+                tensor_arg = tensor(test.mesh.element_node_map[op2.i[0]], op2.INC)
+            itspace = test.mesh.element_set(*itspace_extents)
+            args = [kernel, itspace, tensor_arg, coords.dat(coord_elem_node, op2.READ)]
+            for c in fd.coefficients:
+                args.append(c.dat(c.element_node_map, op2.READ))
+            op2.par_loop(*args)
+        if domain_type == 'exterior_facet':
+            boundary = integral.measure().domain_id()
+            elem_node = test.mesh.faces.boundary_maps[boundary]
+            if is_mat:
+                tensor_arg = tensor((elem_node[op2.i[0]], 
+                                     elem_node[op2.i[1]]), op2.INC)
+            else:
+                tensor_arg = tensor(elem_node[op2.i[0]], op2.INC)
+            itspace = test.mesh.faces.boundary_elem_sets[boundary](*itspace_extents)
+            args = [kernel, itspace, tensor_arg, coords.dat(elem_node, op2.READ)]
+            for c in fd.coefficients:
+                args.append(c.dat(elem_node, op2.READ))
+            args.append(test.mesh.faces.boundary_facets[boundary](op2.IdentityMap, op2.READ))
+            op2.par_loop(*args)
+        if domain_type == 'interior_facet':
+            raise NotImplementedError("Unsupported interior_facet integral.")
     
     return tensor
 
@@ -204,8 +228,6 @@ def _la_solve(A, x, b, linear_solver=None, preconditioner=None):
     parameters = {}
     parameters['linear_solver']  = linear_solver  or flml_solver
     parameters['preconditioner'] = preconditioner or flml_preconditioner
-    print "Solver parameters"
-    print parameters
     solver = op2.Solver()
     solver.parameters.update(parameters)
     solver.solve(A, x.dat, b)
