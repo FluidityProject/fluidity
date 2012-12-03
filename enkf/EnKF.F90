@@ -376,7 +376,7 @@ contains
     do i = 1, nrens
 !       cp_no = (i-1)*dump_sampling_period
 
-       call solution_on_checkpoints( (/ ensemble_state(i) /)  , prefix, i)
+       call solution_on_checkpoints( (/ ensemble_state(i) /)  , prefix, cp_no=i)
 
        call initialise_prognostic_fields((/ensemble_state(i) /), save_vtk_cache=.true., &
             initial_mesh=.true.)
