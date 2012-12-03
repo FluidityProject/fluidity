@@ -1276,11 +1276,17 @@ contains
 
   function get_extended_pressure_mesh_for_viscous_free_surface(state, pressure_mesh, fs) result (extended_pressure_mesh)
     ! extend the pressure mesh to contain the extra free surface dofs
-    ! (doubling the pressure nodes at the free surface)
+    ! (doubling the pressure nodes at the free surface). The returned mesh uses
+    ! a new node numbering that includes the pressure and separate fs nodes, but has
+    ! the same elements as the pressure_mesh. This routine also creates, seperately, a surface
+    ! mesh (the "embedded" fs mesh) that uses the same combined pressure and fs node numbering, but only contains the surface
+    ! elements with fs nodes as its elements. Both are stored in state.
 
     ! this must be the state containing the prognostic pressure and free surface
     type(state_type), intent(inout):: state
+    ! the origional pressure mesh (without fs nodes)
     type(mesh_type), intent(in):: pressure_mesh
+    ! the prognostic free surface field
     type(scalar_field), intent(inout):: fs
     type(mesh_type), pointer:: extended_pressure_mesh
 
@@ -1303,7 +1309,8 @@ contains
         call initialise_implicit_prognostic_free_surface(state, fs, u)
       end if
       ! obtain the f.s. surface mesh that has been stored under the
-      ! "_implicit_free_surface" boundary condition
+      ! "_implicit_free_surface" boundary condition (this is a surface
+      ! mesh with a separate fs node numbering)
       call get_boundary_condition(fs, "_implicit_free_surface", &
           surface_mesh=fs_mesh)
 
@@ -1470,10 +1477,14 @@ contains
 
   function get_extended_velocity_divergence_matrix(state, u, fs, &
       extended_mesh, get_ct) result (ct_m_ptr)
+    ! returns the velocity divergence matrix from state (or creates a new one if none present)
+    ! with extra rows associated with prognostic fs nodes
+    ! this routine mimicks the behaviour of get_velocity_divergence_matrix()
     type(state_type), intent(inout):: state
     type(vector_field), intent(in):: u
     type(scalar_field), intent(in):: fs
     type(mesh_type), intent(in):: extended_mesh
+    ! returns .true. if the matrix needs to be reassembled (because it has just been allocated or because of mesh movement)
     logical, optional, intent(out):: get_ct
     type(block_csr_matrix), pointer:: ct_m_ptr
 
@@ -1509,6 +1520,9 @@ contains
   end function get_extended_velocity_divergence_matrix
 
   function get_extended_velocity_divergence_sparsity(state, u, fs, extended_mesh) result (sparsity)
+    ! returns the sparsity of the velocity divergence matrix from state (or creates a new one if none present)
+    ! with extra rows associated with prognostic fs nodes
+    ! this routine mimicks the behaviour of get_velocity_divergence_matrix()
     type(state_type), intent(inout):: state
     type(vector_field), intent(in):: u
     type(scalar_field), intent(in):: fs
@@ -1589,9 +1603,13 @@ contains
   end function get_extended_velocity_divergence_sparsity
 
   function get_extended_pressure_poisson_matrix(state, ct_m, extended_mesh, get_cmc) result (cmc_m_ptr)
+    ! returns the pressure poisson matrix from state (or creates a new one if none present)
+    ! with extra rows and columns associated with prognostic fs nodes
+    ! this routine mimicks the behaviour of get_pressure_poisson_matrix()
     type(state_type), intent(inout):: state
     type(block_csr_matrix), intent(in):: ct_m
     type(mesh_type), intent(in):: extended_mesh
+    ! returns .true. if the matrix needs to be reassembled (because it has just been allocated or because of mesh movement)
     logical, optional, intent(out):: get_cmc
     type(csr_matrix), pointer:: cmc_m_ptr
 
@@ -1638,6 +1656,10 @@ contains
   end function get_extended_pressure_poisson_matrix
 
   function get_extended_schur_auxillary_sparsity(state, ct_m, extended_mesh) result (aux_sparsity_ptr)
+    ! returns the sparsity of the schur auxillary matrix from state (or creates a new one if none present)
+    ! with extra rows and columns associated with prognostic fs nodes
+    ! here it is assumed that the matrix has the same sparsity as the pressure poisson matrix has, obtained
+    ! by sparsity multiplication of C^T * C
     type(state_type), intent(inout):: state
     type(block_csr_matrix), intent(in):: ct_m
     type(mesh_type), intent(in):: extended_mesh
