@@ -346,6 +346,9 @@ contains
           end if
        case (FAMILY_CUBE)
           if(constraint%degree<3) then
+             constraint%n_face_basis = 0
+             constraint%n_grad_basis = 0
+             constraint%n_curl_basis = 0
              constraint%n_constraints = 2**(constraint%dim)
           else
              FLAbort('High order not supported yet')
@@ -394,7 +397,7 @@ contains
        allocate(constraint%curl_basis(constraint%n_curl_basis,&
             constraint%loc,constraint%dim))
     end if
-    call make_projection_bases(constraint,element%numbering%family)
+!    call make_projection_bases(constraint,element%numbering%family)
 
     if (present(stat)) then
        stat=lstat
@@ -857,7 +860,7 @@ contains
           case (2)
              select case(constraint%degree)
              case (1)
-                call make_constraints_rt0_square(constraint)
+                call my_make_constraints_rt0_square(constraint)
              case (2)
                 FLExit('Haven''t implemented it yet!')
                 !call make_constraints_rt1_square(constraint)
@@ -1072,6 +1075,8 @@ contains
        FLExit('Only implemented for 2D so far')
     end if
 
+    ewrite(1,*) 'make constraints'
+
     !RT0 constraint requires that normal components are constant.
     !This means that both the normal components at each end of the 
     !edge need to have the same value.
@@ -1119,6 +1124,68 @@ contains
     assert(count==4)
     !! dimension n_constraints x loc x dim
   end subroutine make_constraints_rt0_square
+  
+  subroutine my_make_constraints_rt0_square(constraint)
+    implicit none
+    type(constraints_type), intent(inout) :: constraint
+    real, dimension(4,2) :: n
+    integer, dimension(4,2) :: face_loc
+    integer :: dim1, face, floc, count
+    real, dimension(2) :: c
+
+    if(constraint%dim/=2) then
+       FLExit('Only implemented for 2D so far')
+    end if
+
+    ewrite(1,*) 'my make constraints'
+
+    !RT0 constraint requires that normal components are constant.
+    !This means that both the normal components at each end of the 
+    !edge need to have the same value.
+
+    !DOFS    FACES
+    ! 3   4   2
+    !        3 4
+    ! 1   2   1
+
+    !constraint equations are:
+    ! (u_1 - u_2).n_1 = 0
+    ! (u_3 - u_4).n_2 = 0    
+    ! (u_1 - u_3).n_3 = 0
+    ! (u_2 - u_4).n_4 = 0
+
+    !face local nodes to element local nodes
+    face_loc(1,:) = (/ 2,1 /)
+    face_loc(2,:) = (/ 3,4 /)
+    face_loc(3,:) = (/ 1,3 /)
+    face_loc(4,:) = (/ 4,2 /)
+
+    !normals
+    n(1,:) = (/ -1.,  0. /)
+    n(2,:) = (/  1.,  0. /)
+    n(3,:) = (/  0., -1. /)
+    n(4,:) = (/  0.,  1. /)
+
+    !constraint%orthogonal(i,loc,dim1) stores the coefficient 
+    !for basis function loc, dimension dim1 in equation i.
+
+    !constraint coefficients
+    c = (/ 1., -1. /)
+
+    constraint%orthogonal = 0.
+    count  = 0
+    do face = 1, 4
+       count = count + 1
+       do floc = 1,2
+          do dim1 = 1, 2
+             constraint%orthogonal(count,face_loc(face,floc),dim1)&
+                  = c(floc)*n(face,dim1)
+          end do
+       end do
+    end do
+    assert(count==4)
+    !! dimension n_constraints x loc x dim
+  end subroutine my_make_constraints_rt0_square
   
   subroutine make_projection_bases_bdm1_triangle(constraint)
     type(constraints_type), intent(inout) :: constraint

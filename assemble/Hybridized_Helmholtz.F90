@@ -2221,6 +2221,433 @@ contains
 
   end subroutine project_to_constrained_space
 
+  subroutine my_project_to_constrained_space(state,v_field)
+    !wrapper for projecting vector field to constrained space
+    implicit none
+    type(state_type), intent(inout) :: state
+    type(vector_field), intent(inout) :: v_field
+    !
+    type(vector_field) :: v_field_out
+    !
+    type(vector_field), pointer :: X, U, U_cart
+    type(scalar_field) :: lambda
+    type(scalar_field), target :: lambda_rhs
+    type(csr_sparsity) :: lambda_sparsity
+    type(csr_matrix) :: lambda_mat
+    type(mesh_type), pointer :: lambda_mesh
+    integer :: ele,i1, stat, dim1
+
+    call allocate(v_field_out,v_field%dim,v_field%mesh,"TmpVField")
+    call zero(v_field_out)
+
+    ewrite(1,*) 'my Project to constrained space'
+
+    !Pull the fields out of state
+    U=>extract_vector_field(state, "LocalVelocity")
+    X=>extract_vector_field(state, "Coordinate")
+
+    lambda_mesh=>extract_mesh(state, "VelocityMeshTrace")
+    call allocate(lambda,lambda_mesh,name="LagrangeMultiplier")
+
+    U_cart => extract_vector_field(state, "Velocity")
+
+    !construct/extract sparsities
+    lambda_sparsity=get_csr_sparsity_firstorder(state, lambda%mesh, lambda&
+         &%mesh)
+
+    !allocate matrices
+    call allocate(lambda_mat,lambda_sparsity)
+    call zero(lambda_mat)
+
+    !allocate hybridized RHS
+    call allocate(lambda_rhs,lambda%mesh,"LambdaRHS")
+    call zero(lambda_rhs)
+    
+    !Assemble matrices
+    do ele = 1, ele_count(U)
+       call assemble_projection_ele(U,X,ele, &
+            &lambda_mat=lambda_mat,&
+            &lambda_rhs=lambda_rhs,U_rhs=v_field)
+    end do
+
+    ewrite(2,*) 'LAMBDARHS', maxval(abs(lambda_rhs%val))
+    call zero(lambda)
+    !Solve the equations
+    call petsc_solve(lambda,lambda_mat,lambda_rhs,&
+         option_path=trim(U_cart%mesh%option_path)//&
+         &"/from_mesh/constraint_type")
+
+    !Reconstruct U from lambda
+    do ele = 1, ele_count(U)
+       call reconstruct_u_ele(U,X,ele, &
+            &U_rhs=v_field,lambda=lambda,&
+            &U_out=v_field_out)
+    end do
+
+    ewrite(2,*) 'LAMBDA', maxval(abs(lambda%val))
+
+    call project_local_to_cartesian(X,v_field_out,U_cart)
+
+    call deallocate(lambda_mat)
+    call deallocate(lambda_rhs)
+    call deallocate(lambda)
+
+!    call solve_hybridized_helmholtz(state,&
+!         &U_rhs=v_field,U_out=v_field_out,D_out=tmp_field,&
+!         &compute_cartesian=.true.,&
+!         &projection=.true.,&
+!         &poisson=.false.,&
+!         &u_rhs_local=.true.)
+
+    call set(V_field,V_field_out)
+    call deallocate(v_field_out)
+
+    ewrite(1,*) 'END: my Project to constrained space'
+
+  end subroutine my_project_to_constrained_space
+
+  subroutine assemble_projection_ele(U,X,ele, &
+       lambda_mat,lambda_rhs,U_rhs)
+
+    implicit none
+    type(scalar_field), intent(inout) :: lambda_rhs
+    type(vector_field), intent(in) :: U,X
+    type(vector_field), intent(in), optional :: U_rhs
+    integer, intent(in) :: ele
+    type(csr_matrix), intent(inout) :: lambda_mat
+    !
+    real, allocatable, dimension(:,:),target :: &
+         &l_continuity_mat, l_continuity_mat2
+    real, allocatable, dimension(:,:) :: helmholtz_loc_mat
+    real, allocatable, dimension(:,:,:) :: continuity_face_mat
+    integer :: ni, face
+    integer, dimension(:), pointer :: neigh
+    real, dimension(ele_loc(lambda_rhs,ele)) :: lambda_rhs_loc
+    real, dimension(:),allocatable,target :: Rhs_loc
+    real, dimension(:,:), allocatable :: local_solver_matrix
+    type(element_type) :: U_shape
+    integer :: stat, d_start, d_end, dim1, mdim, uloc,dloc, lloc, iloc
+    integer, dimension(mesh_dim(U)) :: U_start, U_end
+    type(real_vector), dimension(mesh_dim(U)) :: rhs_u_ptr
+    type(real_matrix), dimension(mesh_dim(U)) :: &
+         & continuity_mat_u_ptr
+    logical :: have_constraint
+    integer :: constraint_choice, n_constraints
+
+    !Get some sizes
+    lloc = ele_loc(lambda_rhs,ele)
+    mdim = mesh_dim(U)
+    uloc = ele_loc(U,ele)
+    U_shape = ele_shape(U,ele)
+
+    have_constraint = &
+         &have_option(trim(U%mesh%option_path)//"/from_mesh/constraint_type")
+    n_constraints = 0
+    if(have_constraint) then
+       n_constraints = ele_n_constraints(U,ele)
+    end if
+
+    allocate(rhs_loc(2*uloc+n_constraints))
+    allocate(local_solver_matrix(mdim*uloc+n_constraints,&
+         mdim*uloc+n_constraints))
+
+    do dim1 = 1, mdim
+       u_start(dim1) = uloc*(dim1-1)+1
+       u_end(dim1) = uloc*dim1
+    end do
+
+    !Get pointers to different parts of rhs_loc and l_continuity_mat
+    do dim1 = 1, mdim
+       rhs_u_ptr(dim1)%ptr => rhs_loc(u_start(dim1):u_end(dim1))
+    end do
+    allocate(l_continuity_mat(2*uloc+n_constraints,lloc))
+    do dim1= 1,mdim
+       continuity_mat_u_ptr(dim1)%ptr => &
+            & l_continuity_mat(u_start(dim1):u_end(dim1),:)
+    end do
+
+    call my_get_local_solver(local_solver_matrix,U,X,ele,&
+         & have_constraint)
+
+    !!!Construct the continuity matrix that multiplies lambda in 
+    !!! the U equation
+    !allocate l_continuity_mat
+    l_continuity_mat = 0.
+    !get list of neighbours
+    neigh => ele_neigh(U,ele)
+    !calculate l_continuity_mat
+    do ni = 1, size(neigh)
+       face=ele_face(U, ele, neigh(ni))
+       print*, face, local_face_number(lambda_rhs, face), face_local_nodes(lambda_rhs,face)
+       allocate(continuity_face_mat(mdim,face_loc(U,face)&
+            &,face_loc(lambda_rhs,face)))
+       continuity_face_mat = 0.
+       call get_continuity_face_mat(continuity_face_mat,face,&
+            U,lambda_rhs)
+       do dim1 = 1, mdim
+          continuity_mat_u_ptr(dim1)%ptr(face_local_nodes(U,face),&
+               face_local_nodes(lambda_rhs,face))=&
+          continuity_mat_u_ptr(dim1)%ptr(face_local_nodes(U,face),&
+               face_local_nodes(lambda_rhs,face))+&
+               continuity_face_mat(dim1,:,:)
+       end do
+       deallocate(continuity_face_mat)
+    end do
+
+    !compute l_continuity_mat2 = inverse(local_solver)*l_continuity_mat
+    allocate(l_continuity_mat2(uloc*2+n_constraints,lloc))
+    l_continuity_mat2 = l_continuity_mat
+    call solve(local_solver_matrix,l_continuity_mat2)
+
+    !compute helmholtz_loc_mat
+    allocate(helmholtz_loc_mat(lloc,lloc))
+    helmholtz_loc_mat = matmul(transpose(l_continuity_mat),l_continuity_mat2)
+
+    !construct lambda_rhs
+    rhs_loc=0.
+    lambda_rhs_loc = 0.
+    call my_assemble_rhs_ele(Rhs_loc,U,X,U_rhs,ele)
+    call solve(local_solver_matrix,Rhs_loc)
+    lambda_rhs_loc = -matmul(transpose(l_continuity_mat),&
+         &Rhs_loc)
+    !insert lambda_rhs_loc into lambda_rhs
+    call addto(lambda_rhs,ele_nodes(lambda_rhs,ele),lambda_rhs_loc)
+    !insert helmholtz_loc_mat into global lambda matrix
+    call addto(lambda_mat,ele_nodes(lambda_rhs,ele),&
+         ele_nodes(lambda_rhs,ele),helmholtz_loc_mat)
+
+  end subroutine assemble_projection_ele
+
+  subroutine my_get_local_solver(local_solver_matrix,U,X,ele,&
+       & have_constraint)
+    !Subroutine to get the matrix and rhs for obtaining U and D within
+    !element ele from the lagrange multipliers on the boundaries.
+    !This matrix-vector system is referred to as the "local solver" in the 
+    !literature e.g.
+    !Cockburn et al, Unified hybridization of discontinuous Galerkin, mixed
+    ! and continuous Galerkin methods for second order elliptic problems,
+    ! SIAM J. Numer. Anal., 2009
+    implicit none
+    type(vector_field), intent(in) :: U,X
+    integer, intent(in) :: ele
+    real, dimension(:,:)&
+         &, intent(inout) :: local_solver_matrix
+    logical, intent(in) :: have_constraint
+    !
+    real, dimension(mesh_dim(U), X%dim, ele_ngi(U,ele)) :: J
+    real, dimension(mesh_dim(U), mesh_dim(U), ele_ngi(U,ele)) :: Metric
+    real, dimension(mesh_dim(U),mesh_dim(U),ele_loc(U,ele),ele_loc(U&
+         &,ele)) :: l_u_mat
+    integer :: mdim, uloc,dim1,dim2,gi
+    type(element_type) :: u_shape
+    real, dimension(ele_ngi(U,ele)) :: detwei, detJ
+    integer, dimension(:), pointer :: U_ele
+    integer, dimension(mesh_dim(U)) :: U_start, U_end
+    type(constraints_type), pointer :: constraints
+    integer :: i1
+    real :: detJ_bar
+
+    mdim = mesh_dim(U)
+    uloc = ele_loc(U,ele)
+
+    do dim1 = 1, mdim
+       u_start(dim1) = uloc*(dim1-1)+1
+       u_end(dim1) = uloc*dim1
+    end do
+
+    local_solver_matrix = 0.
+
+    u_shape=ele_shape(u, ele)
+    U_ele => ele_nodes(U, ele)
+
+    !J, detJ is needed for Piola transform
+    !detwei is needed for pressure mass matrix
+    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
+         detwei=detwei, detJ=detJ)
+    detJ_bar = sum(detJ)/size(detJ)
+
+    !----construct local solver
+    !metrics for velocity mass
+    do gi=1,ele_ngi(U,ele)
+       Metric(:,:,gi)=matmul(J(:,:,gi), transpose(J(:,:,gi)))/detJ(gi)
+    end do
+
+    !velocity mass matrix (done in local coordinates)
+    l_u_mat = shape_shape_tensor(u_shape, u_shape, &
+         u_shape%quadrature%weight, Metric)
+
+    do dim1 = 1, mdim
+       do dim2 = 1, mdim
+          local_solver_matrix(u_start(dim1):u_end(dim1),&
+               u_start(dim2):u_end(dim2))=l_u_mat(dim1,dim2,:,:)
+       end do
+    end do
+
+    if(have_constraint) then
+       constraints => U%mesh%shape%constraints
+       do i1 = 1, constraints%n_constraints
+          do dim1 = 1, mdim
+             local_solver_matrix(uloc*2+i1,u_start(dim1):u_end(dim1))=&
+                  &constraints%orthogonal(i1,:,dim1)
+             local_solver_matrix(u_start(dim1):u_end(dim1),uloc*2+i1)=&
+                  &constraints%orthogonal(i1,:,dim1)
+          end do
+       end do
+    end if
+        
+  end subroutine my_get_local_solver
+
+  subroutine my_assemble_rhs_ele(Rhs_loc,U,X,U_rhs,ele)
+    implicit none
+    integer, intent(in) :: ele
+    type(vector_field), intent(in), target :: U_rhs
+    type(vector_field), intent(in) :: X,U
+    real, dimension(:), &
+         &intent(inout) :: Rhs_loc
+    !
+    real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+    real, dimension(mesh_dim(U),ele_loc(U,ele)) :: u_rhs_loc
+    real, allocatable, dimension(:,:) :: u_cart_quad
+    real, dimension(mesh_dim(U),ele_ngi(X,ele)) :: u_local_quad
+    integer :: dim1, mdim, uloc, gi
+    integer, dimension(mesh_dim(U)) :: U_start, U_end
+    type(element_type) :: u_shape
+    real, dimension(ele_ngi(U,ele)) :: detwei, detJ
+    type(vector_field), pointer :: l_u_rhs
+    real, dimension(mesh_dim(U), mesh_dim(U)) :: Metric
+    real :: detJ_bar
+
+    !Get some sizes
+    mdim = mesh_dim(U)
+    uloc = ele_loc(U,ele)
+    U_shape = ele_shape(U,ele)
+    
+    do dim1 = 1, mdim
+       u_start(dim1) = uloc*(dim1-1)+1
+       u_end(dim1) = uloc*dim1
+    end do
+    
+    l_u_rhs => u_rhs
+       
+    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
+         detJ=detJ,detwei=detwei)
+    detJ_bar = sum(detJ)/size(detJ)
+       
+    Rhs_loc = 0.
+
+    u_local_quad = ele_val_at_quad(l_u_rhs,ele)
+    do gi=1,ele_ngi(U,ele)
+       Metric=matmul(J(:,:,gi), transpose(J(:,:,gi)))&
+            &/detJ(gi)
+       u_local_quad(:,gi) = matmul(Metric,u_local_quad(:,gi))
+    end do
+    U_rhs_loc = shape_vector_rhs(u_shape,&
+         u_local_quad,u_shape%quadrature%weight)
+    do dim1 = 1, mdim
+       Rhs_loc(u_start(dim1):u_end(dim1)) = &
+            & U_rhs_loc(dim1,:)
+    end do
+    
+  end subroutine my_assemble_rhs_ele
+
+  subroutine reconstruct_U_ele(U,X,ele,U_rhs,lambda,U_out)
+    !subroutine to reconstruct U having solved for lambda
+    implicit none
+    type(scalar_field), intent(in) :: lambda
+    type(vector_field), intent(inout) :: U
+    type(vector_field), intent(in) :: X
+    type(vector_field), intent(in) :: U_rhs
+    type(vector_field), intent(inout) :: U_out
+    integer, intent(in) :: ele
+    !
+    real, allocatable, dimension(:,:,:) :: continuity_face_mat
+    integer :: ni, face
+    integer, dimension(:), pointer :: neigh
+    type(element_type) :: U_shape
+    integer :: dim1, mdim, uloc, lloc
+    integer, dimension(mesh_dim(U)) :: U_start, U_end
+    type(real_vector), dimension(mesh_dim(U)) :: rhs_u_ptr
+    type(real_matrix), dimension(mesh_dim(U)) :: &
+         & continuity_mat_u_ptr
+    real, dimension(ele_loc(lambda,ele)) :: lambda_val
+    real, dimension(:),allocatable,target :: Rhs_loc
+    real, dimension(:,:), allocatable :: local_solver_matrix
+    real, dimension(mesh_dim(U),ele_loc(U,ele)) :: U_solved
+    logical :: have_constraint
+    integer :: n_constraints, i1
+    type(constraints_type), pointer :: constraints
+    character(len=25) :: filename
+
+    !Get some sizes
+    lloc = ele_loc(lambda,ele)
+    mdim = mesh_dim(U)
+    uloc = ele_loc(U,ele)
+    U_shape = ele_shape(U,ele)
+
+    have_constraint = &
+         &have_option(trim(U%mesh%option_path)//"/from_mesh/constraint_type")
+    n_constraints = 0
+    if(have_constraint) then
+       n_constraints = ele_n_constraints(U,ele)
+    end if
+
+    allocate(rhs_loc(2*uloc+n_constraints))
+    rhs_loc = 0.
+    allocate(local_solver_matrix(mdim*uloc+n_constraints,&
+         mdim*uloc+n_constraints))
+
+    do dim1 = 1, mdim
+       u_start(dim1) = uloc*(dim1-1)+1
+       u_end(dim1) = uloc*dim1
+    end do
+
+    !Get pointers to different parts of rhs_loc and l_continuity_mat
+    do dim1 = 1, mdim
+       rhs_u_ptr(dim1)%ptr => rhs_loc(u_start(dim1):u_end(dim1))
+    end do
+
+    !Get the local_solver matrix
+    call my_get_local_solver(local_solver_matrix,U,X,ele,&
+         & have_constraint)
+
+    !Construct the rhs sources for U from lambda
+    call my_assemble_rhs_ele(Rhs_loc,U,X,U_rhs,ele)
+
+    lambda_val = ele_val(lambda,ele)
+    !get list of neighbours
+    neigh => ele_neigh(U,ele)
+    !calculate l_continuity_mat
+    do ni = 1, size(neigh)
+       face=ele_face(U, ele, neigh(ni))
+       allocate(continuity_face_mat(mdim,face_loc(U,face),&
+            face_loc(lambda,face)))
+       continuity_face_mat = 0.
+       call get_continuity_face_mat(continuity_face_mat,face,&
+            U,lambda)
+       filename='cont_face_mat'//int2str(ele)//'_'//int2str(face)
+       open(666,file=filename)
+       do dim1 = 1, mdim
+          rhs_u_ptr(dim1)%ptr(face_local_nodes(U,face)) = &
+               & rhs_u_ptr(dim1)%ptr(face_local_nodes(U,face)) + &
+               & matmul(continuity_face_mat(dim1,:,:),&
+               &        face_val(lambda,face))
+          write(666,*) continuity_face_mat(dim1, :,:), face_val(lambda,face)
+       end do
+       close(666)
+       deallocate(continuity_face_mat)
+    end do
+
+    write(ele,'(12f16.10)') rhs_loc
+    call solve(local_solver_matrix,Rhs_loc)
+    call matrix2file('local_solver_mat'//int2str(ele), local_solver_matrix)
+    write(ele,'(12f16.10)') rhs_loc
+    do dim1 = 1, mdim
+       U_solved(dim1,:) = rhs_loc(u_start(dim1):u_end(dim1))
+       call set(U_out,dim1,ele_nodes(u,ele),u_solved(dim1,:))
+    end do
+
+  end subroutine reconstruct_U_ele
+
   subroutine solve_linear_timestep_hybridized(&
        &state,dt_in,theta_in)
     implicit none

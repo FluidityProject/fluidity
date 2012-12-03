@@ -1,0 +1,234 @@
+--------------------------------------------------------------------------
+Petsc Release Version 3.1.0, Patch 8, Thu Mar 17 13:37:48 CDT 2011
+       The PETSc Team
+    petsc-maint@mcs.anl.gov
+ http://www.mcs.anl.gov/petsc/
+See docs/copyright.html for copyright information
+See docs/changes/index.html for recent updates.
+See docs/troubleshooting.html for problems.
+See docs/manualpages/index.html for help. 
+Libraries linked from /build/buildd/petsc-3.1.dfsg/linux-gnu-c-opt/lib
+--------------------------------------------------------------------------
+ In populate_state
+ There are           3 meshes.
+ Opening channel.node for reading.
+ Opening channel.ele for reading
+ Opening channel.node for reading.
+ Opening channel.ele for reading.
+ Opening channel.edge for reading.
+ Adding element-element list to mesh CoordinateMesh
+ Adding node-element list to mesh CoordinateMesh
+ Using the new makeeelist
+ Adding element-element list to mesh SurfaceCoordinateMesh
+ Adding node-element list to mesh SurfaceCoordinateMesh
+ Using the new makeeelist
+ In merge_surface_ids
+ Surface id stats for mesh CoordinateMesh
+ Surface id,  n/o surface elements,       surface area
+         1                     50     1.000000000E+00
+         2                     50     1.000000000E+00
+         3                     50     1.000000000E+00
+         4                     50     1.000000000E+00
+ Total number of surface elements:         200
+Total surface area:     4.000000000E+00
+ my make constraints
+ Transferring element-element list to mesh VelocityMesh
+ Transferring element-element list to mesh PressureMesh
+ Transferring element-element list to mesh VelocityMeshTrace
+ domain_bbox - dim, range =           1   0.0000000000000000        1.0000000000000000     
+ domain_bbox - dim, range =           2   0.0000000000000000        1.0000000000000000     
+ domain_bbox - dim, range =           3   0.0000000000000000        0.0000000000000000     
+ domain_volume =  0.99999999999995492     
+ In allocate_and_insert_scalar_field, field is: LayerThickness
+ Is field prognostic?  T
+ Is field prescribed?  F
+ Is field constant?  F
+ Is field diagnostic?  F
+ LayerThickness is on mesh PressureMesh
+     Inserting children of: /material_phase[0]/scalar_field::LayerThickness/prognostic
+     Inserting children of: /material_phase[0]/scalar_field::LayerThickness/prognostic/spatial_discretisation/inner_element
+ In allocate_and_insert_scalar_field, field is: InitialLayerThickness
+ Is field prognostic?  F
+ Is field prescribed?  F
+ Is field constant?  F
+ Is field diagnostic?  T
+ InitialLayerThickness is on mesh PressureMesh
+     Inserting children of: /material_phase[0]/scalar_field::InitialLayerThickness/diagnostic
+     Inserting children of: /material_phase[0]/scalar_field::InitialLayerThickness/diagnostic/spatial_discretisation/inner_element
+ In allocate_and_insert_scalar_field, field is: Coriolis
+ Is field prognostic?  F
+ Is field prescribed?  T
+ Is field constant?  F
+ Is field diagnostic?  F
+ Coriolis is on mesh VelocityMesh
+     Inserting children of: /material_phase[0]/scalar_field::Coriolis/prescribed
+     Inserting children of: /material_phase[0]/scalar_field::Coriolis/prescribed/spatial_discretisation/inner_element
+ In allocate_and_insert_scalar_field, field is: LayerThicknessDiff
+ Is field prognostic?  F
+ Is field prescribed?  F
+ Is field constant?  F
+ Is field diagnostic?  T
+ LayerThicknessDiff is on mesh PressureMesh
+     Inserting children of: /material_phase[0]/scalar_field::LayerThicknessDiff/diagnostic
+     Inserting children of: /material_phase[0]/scalar_field::LayerThicknessDiff/diagnostic/spatial_discretisation/inner_element
+ In allocate_and_insert_vector_field, field is: Velocity
+ Is field prognostic?  T
+ Is field prescribed?  F
+ Is field constant?  F
+ Is field diagnostic?  F
+ Velocity is on mesh VelocityMesh
+     Inserting children of: /material_phase[0]/vector_field::Velocity/prognostic
+     Inserting children of: /material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/inner_element
+ In allocate_and_insert_vector_field, field is: GravityDirection
+ Is field prognostic?  F
+ Is field prescribed?  T
+ Is field constant?  T
+ Is field diagnostic?  F
+ GravityDirection is on mesh CoordinateMesh
+     Inserting children of: /physical_parameters/gravity/vector_field::GravityDirection/prescribed
+     Inserting children of: /physical_parameters/gravity/vector_field::GravityDirection/prescribed/spatial_discretisation/inner_element
+ In initialise_prognostic_fields
+ In set_prescribed_field_values
+ In populate_boundary_conditions
+ In set_boundary_conditions
+ In set_dirichlet_consistent
+ For TICTOC_ID_IO_READ
+ Time =   3.63240242004394531E-002
+ Exiting populate_state
+ Min, max of U "Velocity%1" =    1.0000000000000000        2.0000000000000000     
+ Min, max of U "Velocity%2" =    1.0000000000000000        2.0000000000000000     
+ Min, max of U "Velocity%3" =    0.0000000000000000        0.0000000000000000     
+ Checking dependencies for diagnostic fields in state: Fluid
+ Checking dependencies for diagnostic scalar field: InitialLayerThickness
+ Checking dependencies for diagnostic scalar field: LayerThicknessDiff
+ Checking dependencies for diagnostic scalar field: InitialLayerThickness
+ In initialise_diagnostics
+ Registered diagnostics:
+ In initialise_detectors
+ Exiting initialise_diagnostics
+ Min, max of U "Velocity%1" =    1.0000000000000000        2.0000000000000000     
+ Min, max of U "Velocity%2" =    1.0000000000000000        2.0000000000000000     
+ Min, max of U "Velocity%3" =    0.0000000000000000        0.0000000000000000     
+ In project_cartesian_to_local
+ Project to constrained space
+   subroutine solve_hybridized_helmholtz(
+ Projection =  T
+ Poisson =  F
+ LAMBDARHS  2.00000000000002190E-002
+ Assembling matrix.
+ Number of rows ==         5100
+ Matrix assembly completed.
+ Using solver options defined at: /geometry/mesh[1]/from_mesh/constraint_type/solver
+ Inside setup_ksp_from_options
+ pc_type: lu
+ ksp_type:preonly
+ ksp_max_it, ksp_atol, ksp_rtol, ksp_dtol:         1000   0.0000000000000000       1.00000000000000001E-050   10000.000000000000     
+ startfromzero: T
+ Time spent in Petsc setup:   4.00000000000000355E-003
+ Assembling RHS.
+ RHS assembly completed.
+ Assembling initial guess.
+ Initial guess assembly completed.
+ Entering solver.
+ Out of solver.
+ CPU time spent in solver:  3.20019999999999749E-002
+ MFlops counted by Petsc:   17.357136000000001     
+ MFlops/sec:   542.37660146240898     
+LagrangeMultiplier PETSc reason of convergence: 4
+LagrangeMultiplier PETSc n/o iterations: 1
+ LAMBDA  2.30940107675851256E-002
+ In project_local_to_cartesian_generic
+ END subroutine solve_hybridized_helmholtz
+ END: Project to constrained space
+ fix_layerdepth_mean(state)
+ Setting field mean value to D0                       NaN
+ fix_layerdepth_mean H mean   10000.000000000451        10000.000000000000     
+ END fix_layerdepth_mean(state)
+ In calculate_diagnostic_variables (Diagnostic_fields_wrapper)
+ Exiting calculate_diagnostic_variables
+ In calculate_diagnostic_variables
+ Calculating diagnostic field: InitialLayerThickness
+ Calculating diagnostic field: LayerThicknessDiff
+ Exiting calculate_diagnostic_variables
+ In write_diagnostics
+ field_Stats_scalar_manifold LayerThickness
+ field_Stats_scalar_manifold Coriolis
+ field_Stats_scalar_manifold LayerThicknessDiff
+ field_Stats_vector_manifold Velocity
+ field_Stats_scalar_manifold VelocityMagnitude
+ field_Stats_scalar_manifold Velocity%1
+ field_Stats_scalar_manifold Velocity%2
+ field_Stats_scalar_manifold Velocity%3
+ field_Stats_vector_manifold GravityDirection
+ field_Stats_scalar_manifold GravityDirectionMagnitude
+ field_Stats_scalar_manifold GravityDirection%1
+ field_Stats_scalar_manifold GravityDirection%2
+ field_Stats_scalar_manifold GravityDirection%3
+ Registered diagnostics:
+ In write_detectors
+ In project_local_to_cartesian
+ In write_state
+ Writing output 0 to vtu
+ In vtk_write_state_new_options
+ Writing using mesh VelocityMesh
+Writing 5 scalar field(s)
+Writing 2 vector field(s)
+Writing 0 tensor field(s)
+ Exiting vtk_write_state_new_options
+ Exiting write_state
+ Energy:=    1000000046089.3158     
+ Percentage Change in energy:=                        NaN
+ Finish time reached
+ simulation_completed returning .true.
+ Energy:=    1000000046089.3158     
+ Percentage Change in energy:=    0.0000000000000000     
+ Energy =    1000000046089.3158     
+ In project_local_to_cartesian
+ In project_local_to_cartesian
+ In write_state
+ Writing output 1 to vtu
+ In vtk_write_state_new_options
+ Writing using mesh VelocityMesh
+Writing 5 scalar field(s)
+Writing 2 vector field(s)
+Writing 0 tensor field(s)
+ Exiting vtk_write_state_new_options
+ Exiting write_state
+ In write_diagnostics
+ Warning:make_quadrature: degree            6  requested but            7 available.
+ Warning:make_quadrature: degree            6  requested but            7 available.
+ Warning:make_quadrature: degree            6  requested but            7 available.
+ Warning:make_quadrature: degree            6  requested but            7 available.
+ Current memory usage in bytes:
+          TotalMemory                 -20400.
+          MeshMemory                  -40000.
+          ScalarFieldMemory                0.
+          VectorFieldMemory                0.
+          TensorFieldMemory                0.
+          MatrixSparsityMemory         19600.
+          MatrixMemory                     0.
+          TransformCacheMemory             0.
+ field_Stats_scalar_manifold LayerThickness
+ field_Stats_scalar_manifold Coriolis
+ field_Stats_scalar_manifold LayerThicknessDiff
+ field_Stats_vector_manifold Velocity
+ field_Stats_scalar_manifold VelocityMagnitude
+ field_Stats_scalar_manifold Velocity%1
+ field_Stats_scalar_manifold Velocity%2
+ field_Stats_scalar_manifold Velocity%3
+ field_Stats_vector_manifold GravityDirection
+ field_Stats_scalar_manifold GravityDirectionMagnitude
+ field_Stats_scalar_manifold GravityDirection%1
+ field_Stats_scalar_manifold GravityDirection%2
+ field_Stats_scalar_manifold GravityDirection%3
+ Registered diagnostics:
+ In write_detectors
+ Removing node-element list from mesh CoordinateMesh
+ Removing element-element list from mesh CoordinateMesh
+ Removing node-element list from mesh SurfaceCoordinateMesh
+ Removing element-element list from mesh SurfaceCoordinateMesh
+ Removing element-element list from mesh VelocityMesh
+ Removing element-element list from mesh PressureMesh
+ Removing element-element list from mesh VelocityMeshTrace
+ Printing out all currently allocated references:
+ There are no references left.
