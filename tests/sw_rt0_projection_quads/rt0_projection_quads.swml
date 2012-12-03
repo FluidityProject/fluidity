@@ -253,11 +253,6 @@ divided by 4
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="InitialLayerThickness" rank="0">
-      <diagnostic>
-        <mesh name="PressureMesh"/>
-      </diagnostic>
-    </scalar_field>
     <scalar_field name="Coriolis" rank="0">
       <prescribed>
         <mesh name="VelocityMesh"/>
