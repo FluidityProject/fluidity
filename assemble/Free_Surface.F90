@@ -44,6 +44,7 @@ use field_options
 use physics_from_options
 use tidal_module, only: calculate_diagnostic_equilibrium_pressure
 use sparsity_patterns_meshes
+use sparsity_patterns
 use solvers
 implicit none
 
@@ -56,9 +57,10 @@ public move_mesh_free_surface, add_free_surface_to_cmc_projection, &
   calculate_diagnostic_wettingdrying_alpha, insert_original_distance_to_bottom, &
   calculate_volume_by_surface_integral
 public get_extended_pressure_mesh_for_viscous_free_surface, copy_to_extended_p, &
-  update_pressure_and_viscous_free_surface, extend_divergence_matrix_for_viscous_free_surface, &
-  extend_pressure_matrix_for_viscous_free_surface, &
-  add_implicit_viscous_free_surface_integrals, extend_schur_auxiliary_matrix_for_viscous_free_surface, &
+  get_extended_velocity_divergence_matrix, get_extended_pressure_poisson_matrix, &
+  get_extended_schur_auxillary_sparsity, &
+  update_pressure_and_viscous_free_surface,  &
+  add_implicit_viscous_free_surface_integrals, &
   add_implicit_viscous_free_surface_scaled_mass_integrals, update_prognostic_free_surface, &
   update_implicit_scaled_free_surface, has_implicit_viscous_free_surface_bc, &
   has_explicit_viscous_free_surface_bc, has_standard_free_surface_bc, &
@@ -1282,7 +1284,7 @@ contains
     type(scalar_field), intent(inout):: fs
     type(mesh_type), pointer:: extended_pressure_mesh
 
-    type(integer_hash_table), dimension(2):: new_node_map
+    type(integer_vector), dimension(2):: new_node_map
     type(vector_field), pointer:: u
     type(mesh_type), pointer:: fs_mesh
     type(mesh_type):: extended_mesh, embedded_fs_mesh
@@ -1328,7 +1330,7 @@ contains
         nodes => ele_nodes(pressure_mesh,ele)
         if (parallel) then
           do j=1, size(nodes)
-            new_nodes(j) = fetch(new_node_map(1), nodes(j))
+            new_nodes(j) = new_node_map(1)%ptr(nodes(j))
           end do
           call set_ele_nodes(extended_mesh, ele, new_nodes)
         else 
@@ -1372,7 +1374,7 @@ contains
         nodes => ele_nodes(fs_mesh,ele)
         if (parallel) then
           do j=1, size(nodes)
-            new_fs_nodes(j) = fetch(new_node_map(2), nodes(j))
+            new_fs_nodes(j) = new_node_map(2)%ptr(nodes(j))
           end do
         else
           new_fs_nodes = nodes + pnodes ! fs nodes come after the pressure nodes in the extended mesh
@@ -1387,8 +1389,8 @@ contains
         ! the node maps are no longer needed: the correspondence between
         ! pressure mesh/fs surface mesh and extended_mesh/embedded_fs_mesh resp.
         ! is maintained by looping over the elements of both simultaneously
-        call deallocate(new_node_map(1))
-        call deallocate(new_node_map(2))
+        deallocate(new_node_map(1)%ptr)
+        deallocate(new_node_map(2)%ptr)
       end if
       
     end if
@@ -1466,394 +1468,206 @@ contains
 
   end subroutine update_pressure_and_viscous_free_surface
 
-  subroutine extend_divergence_matrix_for_viscous_free_surface(state, ct_m, u, fs, p_mesh)
-    ! extend ct_m with some extra rows to enforce the kinematic bc
-    ! in the transpose of this the extra columns are used to enforce the
-    ! \rho_0 g\eta term in the no_normal_stress bc (see next routine
-    ! add_implicit_viscous_free_surface_integrals). Also cmc_m needs to be extended
-    ! in both rows and columns to store the extra entries as a result 
-    ! of extending ct_m, for the mass matrix of the time derivative in the 
-    ! kinematic bc.
+  function get_extended_velocity_divergence_matrix(state, u, fs, &
+      extended_mesh, get_ct) result (ct_m_ptr)
     type(state_type), intent(inout):: state
-    type(block_csr_matrix), pointer:: ct_m
     type(vector_field), intent(in):: u
-    type(scalar_field), intent(inout):: fs
-    type(mesh_type), intent(in):: p_mesh ! extended pressure mesh
+    type(scalar_field), intent(in):: fs
+    type(mesh_type), intent(in):: extended_mesh
+    logical, optional, intent(out):: get_ct
+    type(block_csr_matrix), pointer:: ct_m_ptr
 
-    type(integer_set):: fs_nodes
     type(block_csr_matrix):: new_ct_m
-    type(csr_sparsity):: new_sparsity
-    character(len=FIELD_NAME_LEN):: ct_name
-    integer, dimension(:), pointer:: fs_surface_node_list
-    logical:: add_halos
+    type(csr_sparsity), pointer:: sparsity
+    integer:: stat
+    integer, save:: last_mesh_movement = -1
+    logical:: mesh_moved
 
-    assert(have_option(trim(fs%option_path)//"/prognostic"))
+    mesh_moved = eventcount(EVENT_MESH_MOVEMENT)/=last_mesh_movement
+    last_mesh_movement = eventcount(EVENT_MESH_MOVEMENT)
 
-    if (.not. has_boundary_condition_name(fs, "_implicit_free_surface")) then
-      call initialise_implicit_prognostic_free_surface(state, fs, u)
-    end if
-    ! obtain the f.s. surface mesh that has been stored under the
-    ! "_implicit_free_surface" boundary condition
-    call get_boundary_condition(fs, "_implicit_free_surface", &
-        surface_node_list=fs_surface_node_list)
-    call allocate(fs_nodes)
-    call insert(fs_nodes, fs_surface_node_list)
-
-    new_sparsity = sparsity_duplicate_rows(ct_m%sparsity, fs_nodes, ct_m%sparsity%name)
-    if (associated(p_mesh%halos)) then
-      add_halos = size(p_mesh%halos)>0
-    else
-      add_halos = .false.
-    end if
-    if (add_halos) then
-      allocate(new_sparsity%row_halo)
-      new_sparsity%row_halo = p_mesh%halos(1)
-      call incref(new_sparsity%row_halo)
-      allocate(new_sparsity%column_halo)
-      new_sparsity%column_halo = ct_m%sparsity%column_halo
-      call incref(new_sparsity%column_halo)
+    ct_m_ptr => extract_block_csr_matrix(state, "ExtendedVelocityDivergenceMatrix", stat=stat)
+    if (stat==0) then
+      if (present(get_ct)) then
+        get_ct = mesh_moved
+      end if
+      return
     end if
 
-    ! only thing we want to keep from the original ct_m before deallocating
-    ct_name=ct_m%name
-    ! (ct_m is just a borrowed reference so we don't need to deallocate ourselves, this is done by the insert)
+    sparsity => get_extended_velocity_divergence_sparsity(state, u, fs, extended_mesh)
 
-    call allocate(new_ct_m, new_sparsity, (/ 1, u%dim /), name=ct_name)
-    call deallocate(new_sparsity)
-
-    call insert(state, new_ct_m, ct_name)
+    call allocate(new_ct_m, sparsity, blocks=(/ 1, u%dim /), name="ExtendedVelocityDivergenceMatrix")
+    call insert(state, new_ct_m, new_ct_m%name)
     call deallocate(new_ct_m)
 
-    ct_m => extract_block_csr_matrix(state, ct_name)
+    ct_m_ptr => extract_block_csr_matrix(state, "ExtendedVelocityDivergenceMatrix")
 
-    call deallocate(fs_nodes)
+    if (present(get_ct)) then
+      get_ct = .true.
+    end if
 
-  end subroutine extend_divergence_matrix_for_viscous_free_surface
+  end function get_extended_velocity_divergence_matrix
 
-  subroutine extend_pressure_matrix_for_viscous_free_surface(state, cmc_m, u, fs, p_mesh)
-    ! extend cmc_m with some extra rows to enforce the kinematic bc
-    ! in the transpose of this the extra columns are used to enforce the
-    ! \rho_0 g\eta term in the no_normal_stress bc (see next routine
-    ! add_implicit_viscous_free_surface_integrals). Also cmc_m needs to be extended
-    ! in both rows and columns to store the extra entries as a result 
-    ! of extending ct_m, for the mass matrix of the time derivative in the 
-    ! kinematic bc.
+  function get_extended_velocity_divergence_sparsity(state, u, fs, extended_mesh) result (sparsity)
     type(state_type), intent(inout):: state
-    type(csr_matrix), pointer:: cmc_m
     type(vector_field), intent(in):: u
-    type(scalar_field), intent(inout):: fs
-    type(mesh_type), intent(in):: p_mesh ! extended pressure mesh
+    type(scalar_field), intent(in):: fs
+    type(mesh_type), intent(in):: extended_mesh
+    type(csr_sparsity), pointer:: sparsity
 
-    type(integer_set):: fs_nodes
-    type(csr_matrix):: new_cmc_m
-    type(csr_sparsity):: new_sparsity, new_sparsity2
-    character(len=FIELD_NAME_LEN):: cmc_name
-    integer, dimension(:), pointer:: fs_surface_node_list
-    logical:: add_halos
+    type(mesh_type), pointer:: embedded_fs_mesh
+    type(mesh_type):: u_surface_mesh
+    type(csr_sparsity):: new_sparsity, fs_sparsity, p_sparsity
+    integer, dimension(:), pointer :: fs_surface_element_list
+    integer, dimension(:), pointer :: p_row, fs_row, new_row
+    integer:: entries, stat, i, sele
 
-    assert(have_option(trim(fs%option_path)//"/prognostic"))
+    sparsity => extract_csr_sparsity(state, "ExtendedVelocityDivergenceSparsity", stat=stat)
+    if (stat==0) return
 
-    if (.not. has_boundary_condition_name(fs, "_implicit_free_surface")) then
-      call initialise_implicit_prognostic_free_surface(state, fs, u)
-    end if
-    ! obtain the f.s. surface mesh that has been stored under the
-    ! "_implicit_free_surface" boundary condition
+    ! this will create a sparsity with only the rows associated with the pressure 
+    ! nodes filled in (in the extended mesh numbering), fs nodes have zero row length
+    p_sparsity = make_sparsity(extended_mesh, u%mesh, name="TempPartialSparsityPressure")
+
+    ! now do the same for rows associated with fs nodes in the combined mesh
+    ! to make this sparsity we need a velocity surface mesh that uses the
+    ! velocity dof numbering of the entire mesh
     call get_boundary_condition(fs, "_implicit_free_surface", &
-        surface_node_list=fs_surface_node_list)
-    call allocate(fs_nodes)
-    call insert(fs_nodes, fs_surface_node_list)
+        surface_element_list=fs_surface_element_list)
+    call allocate(u_surface_mesh, node_count(u), size(fs_surface_element_list), &
+      face_shape(u,1), &
+      name="TempVelocityFreeSurfaceMesh")
+    do i=1, size(fs_surface_element_list)
+      sele = fs_surface_element_list(i)
+      call set_ele_nodes(u_surface_mesh, i, face_global_nodes(u, sele))
+    end do
+    embedded_fs_mesh => extract_mesh(state, "_embedded_free_surface_mesh")
+    fs_sparsity = make_sparsity(embedded_fs_mesh, u_surface_mesh, name="TempPartialSparsityFreeSurface")
+    call deallocate(u_surface_mesh)
 
-    ! first add some columns
-    new_sparsity = sparsity_duplicate_columns(cmc_m%sparsity, fs_nodes, cmc_m%sparsity%name)
-    if (associated(p_mesh%halos)) then
-      add_halos = size(p_mesh%halos)>0
-    else
-      add_halos = .false.
-    end if
-    if (add_halos) then
+    ! now we simply combine the two sparsities
+    entries = size(p_sparsity%colm) + size(fs_sparsity%colm)
+    call allocate(new_sparsity, node_count(extended_mesh), node_count(u), &
+      entries, name="ExtendedVelocityDivergenceSparsity")
+    new_sparsity%findrm(1) = 1
+    do i=1, node_count(extended_mesh)
+      new_sparsity%findrm(i+1) = new_sparsity%findrm(i) + &
+        row_length(p_sparsity, i) + row_length(fs_sparsity, i)
+    end do
+    do i=1, node_count(extended_mesh)
+      p_row => row_m_ptr(p_sparsity, i)
+      fs_row => row_m_ptr(fs_sparsity, i)
+      new_row => row_m_ptr(new_sparsity, i)
+      if (size(new_row)==size(p_row)) then
+        new_row = p_row
+      else if (size(new_row)==size(fs_row)) then
+        new_row = fs_row
+      else
+        ! we assume that each row is either associated with a fs node, in which case size(p_row)==0 
+        ! and size(new_row)=size(new_row), or associated with a p node, in which case size(fs_row)==0
+        ! and size(new_row)=size(p_row)
+        FLAbort("Node in combined mesh that is neither fs or pressure node (or both).")
+      end if
+    end do
+    new_sparsity%sorted_rows = p_sparsity%sorted_rows .and. fs_sparsity%sorted_rows
+    call deallocate(p_sparsity)
+    call deallocate(fs_sparsity)
+
+    if (associated(extended_mesh%halos)) then
       allocate(new_sparsity%row_halo)
-      new_sparsity%row_halo=cmc_m%sparsity%row_halo
+      new_sparsity%row_halo = extended_mesh%halos(1)
       call incref(new_sparsity%row_halo)
       allocate(new_sparsity%column_halo)
-      new_sparsity%column_halo=p_mesh%halos(2)
+      new_sparsity%column_halo = u%mesh%halos(1)
       call incref(new_sparsity%column_halo)
     end if
-    ! only thing we want to keep from the original cmc_m before deallocating
-    cmc_name=cmc_m%name
-    ! (cmc_m is just a borrowed reference so we don't need to deallocate ourselves, this is done by the insert)
-
-    ! now add the rows
-    new_sparsity2 = sparsity_duplicate_rows(new_sparsity, fs_nodes, new_sparsity%name)
-    if (add_halos) then
-      allocate(new_sparsity2%row_halo)
-      new_sparsity2%row_halo=p_mesh%halos(2)
-      call incref(new_sparsity2%row_halo)
-      allocate(new_sparsity2%column_halo)
-      new_sparsity2%column_halo=p_mesh%halos(2)
-      call incref(new_sparsity2%column_halo)
-    end if
+    call insert(state, new_sparsity, new_sparsity%name)
     call deallocate(new_sparsity)
 
-    call allocate(new_cmc_m, new_sparsity2, name=cmc_name)
-    call deallocate(new_sparsity2)
+    sparsity => extract_csr_sparsity(state, "ExtendedVelocityDivergenceSparsity")
 
-    call insert(state, new_cmc_m, cmc_name)
-    call deallocate(new_cmc_m)
-   
-    cmc_m => extract_csr_matrix(state, cmc_name)
+  end function get_extended_velocity_divergence_sparsity
 
-    call deallocate(fs_nodes)
-
-  end subroutine extend_pressure_matrix_for_viscous_free_surface
-
-  function sparsity_duplicate_rows(sparsity_in, rows, name) result (sparsity_out)
-  !!< function that returns a new sparsity based on sparsity_in
-  !!< that has all the rows in the set 'rows' duplicated and appended
-  !!< at the end (as extra rows).
-    type(csr_sparsity):: sparsity_out
-    type(csr_sparsity), intent(in):: sparsity_in
-    type(integer_set), intent(in):: rows
-    character(len=*), intent(in):: name
-
-    type(halo_type), pointer:: row_halo
-    integer, dimension(:), allocatable:: rowl
-    integer, dimension(:), pointer:: new_row
-    integer:: i, new_i, row, extra_entries, owned_rows, new_row_base, owned_new_rows
-
-    extra_entries=0
-    do i=1, key_count(rows)
-      row=fetch(rows, i)
-      extra_entries=extra_entries+row_length(sparsity_in, row)
-    end do
-
-    call allocate(sparsity_out, size(sparsity_in,1)+key_count(rows), size(sparsity_in,2), &
-      entries=size(sparsity_in%colm)+extra_entries, name=name)
-
-    row_halo => sparsity_in%row_halo
-    if (associated(row_halo)) then
-      owned_rows = halo_nowned_nodes(row_halo)
-    else
-      owned_rows = size(sparsity_in, 1)
-    end if
-    
-    allocate(rowl(1:size(sparsity_out,1)))
-    new_row_base = owned_rows
-    do i=1, owned_rows
-      rowl(i)=row_length(sparsity_in, i)
-      if (has_value(rows, i)) then
-        new_row_base = new_row_base+1
-        rowl(new_row_base) = row_length(sparsity_in, i)
-      end if
-    end do
-    owned_new_rows = new_row_base-owned_rows
-    new_row_base = size(sparsity_in,1)+owned_new_rows
-    do i=owned_rows+1, size(sparsity_in, 1)
-      new_i = owned_new_rows+i
-      rowl(new_i)=row_length(sparsity_in, i)
-      if (has_value(rows, i)) then
-        new_row_base = new_row_base+1
-        rowl(new_row_base)=row_length(sparsity_in, i)
-      end if
-    end do
-    assert(new_row_base==size(sparsity_out,1))
-
-    sparsity_out%findrm = findrm_from_row_length(rowl)
-
-    new_row_base = owned_rows
-    do i=1, owned_rows
-      new_row => row_m_ptr(sparsity_out, i)
-      new_row=row_m(sparsity_in, i)
-      if (has_value(rows, i)) then
-        new_row_base = new_row_base+1
-        new_row => row_m_ptr(sparsity_out, new_row_base)
-        new_row=row_m(sparsity_in, i)
-      end if
-    end do
-    new_row_base = size(sparsity_in,1) + owned_new_rows
-    do i=owned_rows+1, size(sparsity_in, 1)
-      new_i = owned_new_rows+i
-      new_row => row_m_ptr(sparsity_out, new_i)
-      new_row=row_m(sparsity_in, i)
-      if (has_value(rows, i)) then
-        new_row_base = new_row_base+1
-        new_row => row_m_ptr(sparsity_out, new_row_base)
-        new_row=row_m(sparsity_in, i)
-      end if
-    end do
-
-    sparsity_out%sorted_rows=sparsity_in%sorted_rows
-
-  end function sparsity_duplicate_rows
-
-  function findrm_from_row_length(rowl) result(findrm)
-    integer, dimension(:), intent(in):: rowl
-    integer, dimension(size(rowl)+1):: findrm
-
-    integer:: i
-
-    findrm(1)=1
-    do i=1, size(rowl)
-      findrm(i+1)=findrm(i)+rowl(i)
-    end do
-
-  end function findrm_from_row_length
-
-  function sparsity_duplicate_columns(sparsity_in, columns, name) result (sparsity_out)
-  !!< function that returns a new sparsity based on sparsity_in
-  !!< that has all the columns in the set 'cols' duplicated and appended
-  !!< at the end (as extra columns).
-    type(csr_sparsity):: sparsity_out
-    type(csr_sparsity), intent(in):: sparsity_in
-    type(integer_set), intent(in):: columns
-    character(len=*), intent(in):: name
-
-    type(halo_type), pointer:: column_halo
-    type(integer_hash_table):: column_index
-    integer, dimension(:), pointer:: row_in
-    integer:: owned_columns, owned_new_columns, owned_row_columns
-    integer:: old_pos, new_pos
-    integer:: i, j, k, l, extra_entries
-
-    if (.not. sparsity_in%sorted_rows) then
-      FLAbort("This routine should only be called with sorted rows sparsities")
-    end if
-
-    extra_entries=0
-    do i=1, size(sparsity_in%colm)
-      if (has_value(columns, sparsity_in%colm(i))) then
-        extra_entries=extra_entries+1
-      end if
-    end do
-
-    call allocate(sparsity_out, size(sparsity_in,1), size(sparsity_in,2)+key_count(columns), &
-      entries=size(sparsity_in%colm)+extra_entries, name=name)
-
-    ! column index maps from a column index in sparsity_in to an index in columns
-    call invert_set(columns, column_index)
-
-    column_halo => sparsity_in%column_halo
-    if (associated(column_halo)) then
-      owned_columns = halo_nowned_nodes(column_halo)
-      owned_new_columns = 0
-      do i=1, key_count(columns)
-        j=fetch(columns,i)
-        if (node_owned(column_halo, j)) owned_new_columns=owned_new_columns+1
-      end do
-    else
-      owned_columns = size(sparsity_in, 1)
-      owned_new_columns = key_count(columns)
-    end if
-
-    k=1
-    do i=1, size(sparsity_in, 1)
-      sparsity_out%findrm(i)=k
-      row_in => row_m_ptr(sparsity_in, i)
-      l=size(row_in)
-      ! first count the owned columns in this row
-      do j=1, l
-        if (row_in(j)>owned_columns) exit
-      end do
-      owned_row_columns=j-1
-      old_pos=k
-      new_pos=k+owned_row_columns
-      do j=1, l
-        if (row_in(j)>owned_columns) exit
-        sparsity_out%colm(old_pos)=row_in(j)
-        old_pos=old_pos+1
-        if (has_value(columns,row_in(j))) then
-          sparsity_out%colm(new_pos)=fetch(column_index,row_in(j))+owned_columns
-          new_pos=new_pos+1
-        end if
-      end do
-      old_pos=new_pos
-      new_pos=new_pos+l-owned_row_columns
-      do j=j,l
-        sparsity_out%colm(old_pos)=row_in(j)+owned_new_columns
-        old_pos=old_pos+1
-        if (has_value(columns,row_in(j))) then
-          sparsity_out%colm(new_pos)=fetch(column_index,row_in(j))+size(sparsity_in,2)
-          new_pos=new_pos+1
-        end if
-      end do
-      ! start of new row
-      k=new_pos
-    end do
-    ! fill in the usual last row
-    sparsity_out%findrm(i)=k
-    assert( k==size(sparsity_out%colm)+1 )
-
-    sparsity_out%sorted_rows=.true.
-
-  end function sparsity_duplicate_columns
-  
-  subroutine extend_schur_auxiliary_matrix_for_viscous_free_surface(state, schur_auxiliary_matrix, u, p, fs, p_mesh)
-    ! Schur auxiliary matrix needs to be extended
-    ! in both rows and columns to store the extra entries as a result 
-    ! of extending ct_m, for the mass matrix of the time derivative in the 
-    ! kinematic bc.
+  function get_extended_pressure_poisson_matrix(state, ct_m, extended_mesh, get_cmc) result (cmc_m_ptr)
     type(state_type), intent(inout):: state
-    type(csr_matrix), intent(inout) :: schur_auxiliary_matrix
-    type(vector_field), intent(in):: u
-    type(scalar_field), intent(in):: p
-    type(scalar_field), intent(inout):: fs
-    type(mesh_type), intent(in):: p_mesh ! extended pressure mesh
+    type(block_csr_matrix), intent(in):: ct_m
+    type(mesh_type), intent(in):: extended_mesh
+    logical, optional, intent(out):: get_cmc
+    type(csr_matrix), pointer:: cmc_m_ptr
 
-    type(integer_set):: fs_nodes
-    type(csr_sparsity):: new_sparsity, new_sparsity2
-    character(len=FIELD_NAME_LEN):: schur_auxiliary_matrix_name
-    integer, dimension(:), pointer:: fs_surface_node_list
-    logical:: add_halos
+    type(csr_matrix):: cmc_m
+    type(csr_sparsity):: grad_sparsity, cmc_sparsity
+    integer, save:: last_mesh_movement=-1
+    integer:: stat
+    logical:: mesh_moved
 
-    assert(have_option(trim(fs%option_path)//"/prognostic"))
+    mesh_moved = eventcount(EVENT_MESH_MOVEMENT)/=last_mesh_movement
+    last_mesh_movement = eventcount(EVENT_MESH_MOVEMENT)
 
-    if (.not. has_boundary_condition_name(fs, "_implicit_free_surface")) then
-      call initialise_implicit_prognostic_free_surface(state, fs, u)
+    cmc_m_ptr => extract_csr_matrix(state, "ExtendedPressurePoissonMatrix", stat=stat)
+    if (stat==0) then
+      if (present(get_cmc)) then
+        get_cmc = mesh_moved
+      end if
+      return
     end if
-    ! obtain the f.s. surface mesh that has been stored under the
-    ! "_implicit_free_surface" boundary condition
-    call get_boundary_condition(fs, "_implicit_free_surface", &
-        surface_node_list=fs_surface_node_list)
-    call allocate(fs_nodes)
-    call insert(fs_nodes, fs_surface_node_list)
 
-    ! first add some columns
-    new_sparsity = sparsity_duplicate_columns(schur_auxiliary_matrix%sparsity, fs_nodes, schur_auxiliary_matrix%sparsity%name)
-    if (associated(p_mesh%halos)) then
-      add_halos = size(p_mesh%halos)>0
-    else
-      add_halos = .false.
+    grad_sparsity=transpose(ct_m%sparsity)
+    cmc_sparsity = matmul(ct_m%sparsity, grad_sparsity)
+
+    if (associated(extended_mesh%halos)) then
+      allocate(cmc_sparsity%row_halo)
+      cmc_sparsity%row_halo = extended_mesh%halos(2)
+      call incref(cmc_sparsity%row_halo)
+      allocate(cmc_sparsity%column_halo)
+      cmc_sparsity%column_halo = extended_mesh%halos(2)
+      call incref(cmc_sparsity%column_halo)
     end if
-    if (add_halos) then
-      allocate(new_sparsity%row_halo)
-      new_sparsity%row_halo=schur_auxiliary_matrix%sparsity%row_halo
-      call incref(new_sparsity%row_halo)
-      allocate(new_sparsity%column_halo)
-      new_sparsity%column_halo=p_mesh%halos(2)
-      call incref(new_sparsity%column_halo)
+
+    call allocate(cmc_m, cmc_sparsity, name="ExtendedPressurePoissonMatrix")
+    call insert(state, cmc_m, cmc_m%name)
+    call deallocate(cmc_m)
+    call deallocate(cmc_sparsity)
+    call deallocate(grad_sparsity)
+
+    cmc_m_ptr => extract_csr_matrix(state, "ExtendedPressurePoissonMatrix")
+    if (present(get_cmc)) then
+      get_cmc = mesh_moved
     end if
-    ! only thing we want to keep from the original matrix before deallocating
-    schur_auxiliary_matrix_name=schur_auxiliary_matrix%name
-    call deallocate(schur_auxiliary_matrix)
 
-    ! now add the rows
-    new_sparsity2 = sparsity_duplicate_rows(new_sparsity, fs_nodes, new_sparsity%name)
-    if (add_halos) then
-      allocate(new_sparsity2%row_halo)
-      new_sparsity2%row_halo=p_mesh%halos(2)
-      call incref(new_sparsity2%row_halo)
-      allocate(new_sparsity2%column_halo)
-      new_sparsity2%column_halo=p_mesh%halos(2)
-      call incref(new_sparsity2%column_halo)
+  end function get_extended_pressure_poisson_matrix
+
+  function get_extended_schur_auxillary_sparsity(state, ct_m, extended_mesh) result (aux_sparsity_ptr)
+    type(state_type), intent(inout):: state
+    type(block_csr_matrix), intent(in):: ct_m
+    type(mesh_type), intent(in):: extended_mesh
+    type(csr_sparsity), pointer:: aux_sparsity_ptr
+
+    type(csr_sparsity):: grad_sparsity, aux_sparsity
+
+    if (.not. has_csr_sparsity(state, "ExtendedSchurAuxillarySparsity")) then
+      grad_sparsity=transpose(ct_m%sparsity)
+      aux_sparsity = matmul(ct_m%sparsity, grad_sparsity)
+      aux_sparsity%name="ExtendedSchurAuxillarySparsity"
+
+      if (associated(extended_mesh%halos)) then
+        allocate(aux_sparsity%row_halo)
+        aux_sparsity%row_halo = extended_mesh%halos(2)
+        call incref(aux_sparsity%row_halo)
+        allocate(aux_sparsity%column_halo)
+        aux_sparsity%column_halo = extended_mesh%halos(2)
+        call incref(aux_sparsity%column_halo)
+      end if
+
+      call insert(state, aux_sparsity, aux_sparsity%name)
+      call deallocate(aux_sparsity)
+      call deallocate(grad_sparsity)
     end if
-    call deallocate(new_sparsity)
 
-    call allocate(schur_auxiliary_matrix, new_sparsity2, name=schur_auxiliary_matrix_name)
-    call deallocate(new_sparsity2)
+    aux_sparsity_ptr => extract_csr_sparsity(state, "ExtendedSchurAuxillarySparsity")
 
-    call deallocate(fs_nodes)
+  end function get_extended_schur_auxillary_sparsity
 
-  end subroutine extend_schur_auxiliary_matrix_for_viscous_free_surface
-  
   subroutine add_implicit_viscous_free_surface_integrals(state, ct_m, u, &
       p_mesh, fs)
     ! This routine adds in the boundary conditions for the viscous free surface

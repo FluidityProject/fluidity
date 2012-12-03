@@ -323,8 +323,8 @@ Free_Surface.o ../include/free_surface_module.mod: Free_Surface.F90 \
    ../include/integer_set_module.mod ../include/parallel_tools.mod \
    ../include/physics_from_options.mod ../include/solvers.mod \
    ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
-   ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
-   ../include/state_module.mod ../include/tidal_module.mod \
+   ../include/sparsity_patterns.mod ../include/sparsity_patterns_meshes.mod \
+   ../include/spud.mod ../include/state_module.mod ../include/tidal_module.mod \
    ../include/vertical_extrapolation_module.mod
 
 ../include/full_projection.mod: Full_Projection.o

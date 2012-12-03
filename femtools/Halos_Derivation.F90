@@ -1312,7 +1312,7 @@ contains
     !!< create_combined_numbering_trailing_receives() below can be used.
     type(halo_type) :: halo_out
     type(halo_type), dimension(:), intent(in):: halos
-    type(integer_hash_table), dimension(:), intent(in):: node_maps
+    type(integer_vector), dimension(:), intent(in):: node_maps
     character(len=*), intent(in):: name ! name for the halo
 
     integer, dimension(halo_proc_count(halos(1))):: nsends, nreceives, combined_nsends, combined_nreceives, &
@@ -1357,13 +1357,13 @@ contains
       do jproc=1, nprocs
 
         do k=1, halo_send_count(halos(ihalo), jproc)
-          new_node_no = fetch(node_maps(ihalo), halo_send(halos(ihalo), jproc, k))
+          new_node_no = node_maps(ihalo)%ptr(halo_send(halos(ihalo), jproc, k))
           call set_halo_send(halo_out, jproc, send_count(jproc)+k, new_node_no)
         end do
         send_count(jproc) = send_count(jproc) + halo_send_count(halos(ihalo), jproc)
 
         do k=1, halo_receive_count(halos(ihalo), jproc)
-          new_node_no = fetch(node_maps(ihalo), halo_receive(halos(ihalo), jproc, k))
+          new_node_no = node_maps(ihalo)%ptr(halo_receive(halos(ihalo), jproc, k))
           call set_halo_receive(halo_out, jproc, receive_count(jproc)+k, new_node_no)
         end do
         receive_count(jproc) = receive_count(jproc) + halo_receive_count(halos(ihalo), jproc)
@@ -1392,7 +1392,7 @@ contains
     type(halo_type), dimension(:), intent(in):: halos1, halos2
     !! we return an array of node_maps that maps the numbering of each subsystem
     !! to that of the combined system
-    type(integer_hash_table), dimension(size(halos1)):: node_maps
+    type(integer_vector), dimension(size(halos1)):: node_maps
 
     integer, dimension(:), allocatable :: all_recvs
     integer :: new_node
@@ -1406,7 +1406,8 @@ contains
     end do
 
     do i=1, size(node_maps)
-      call allocate(node_maps(i))
+      allocate(node_maps(i)%ptr(node_count(halos2(i))))
+      node_maps(i)%ptr = 0
     end do
 
     new_node = 1 ! keeps track of the next new node number in the combined numbering
@@ -1414,7 +1415,7 @@ contains
     ! owned nodes
     do i=1, size(halos1)
       do j=1, halo_nowned_nodes(halos1(i))
-        call insert(node_maps(i), j, new_node)
+        node_maps(i)%ptr(j) = new_node
         new_node = new_node + 1
       end do
     end do
@@ -1424,7 +1425,7 @@ contains
       allocate(all_recvs(1:halo_all_receives_count(halos1(i))))
       call extract_all_halo_receives(halos1(i), all_recvs)
       do j=1, size(all_recvs)
-        call insert(node_maps(i), all_recvs(j), new_node)
+        node_maps(i)%ptr(all_recvs(j)) = new_node
         new_node = new_node + 1
       end do
       deallocate(all_recvs)
@@ -1435,9 +1436,9 @@ contains
       allocate(all_recvs(1:halo_all_receives_count(halos2(i))))
       call extract_all_halo_receives(halos2(i), all_recvs)
       do j=1, size(all_recvs)
-        if (.not. has_key(node_maps(i), all_recvs(j))) then
+        if (node_maps(i)%ptr(all_recvs(j))==0) then
           ! only include those that weren't recv nodes of halos1 already
-          call insert(node_maps(i), all_recvs(j), new_node)
+          node_maps(i)%ptr(all_recvs(j)) = new_node
           new_node = new_node + 1
         end if
       end do

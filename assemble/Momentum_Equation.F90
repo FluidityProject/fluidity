@@ -414,9 +414,11 @@
 
                call profiler_tic(p, "assembly")
                ! Get the pressure gradient matrix (i.e. the divergence matrix)
-               ct_m(istate)%ptr => get_velocity_divergence_matrix(state(istate), get_ct=reassemble_ct_m) ! Sets reassemble_ct_m to true if it does not already exist in state(i) 
-               if (implicit_prognostic_fs .and. reassemble_ct_m) then
-                 call extend_divergence_matrix_for_viscous_free_surface(state(istate), ct_m(istate)%ptr, u, free_surface, p_mesh)
+               ! reassemble_ct_m is set to true if it does not already exist in state(i) 
+               if (implicit_prognostic_fs) then
+                 ct_m(istate)%ptr => get_extended_velocity_divergence_matrix(state(istate), u, free_surface, p_mesh, get_ct=reassemble_ct_m) 
+               else
+                 ct_m(istate)%ptr => get_velocity_divergence_matrix(state(istate), get_ct=reassemble_ct_m) 
                end if
                reassemble_ct_m = reassemble_ct_m .or. reassemble_all_ct_m
                
@@ -429,9 +431,10 @@
                end if
 
                ! Get the pressure poisson matrix (i.e. the CMC/projection matrix)
-               cmc_m => get_pressure_poisson_matrix(state(istate), get_cmc=reassemble_cmc_m) ! ...and similarly for reassemble_cmc_m
-               if (implicit_prognostic_fs .and. reassemble_cmc_m) then
-                 call extend_pressure_matrix_for_viscous_free_surface(state(istate), cmc_m, u, free_surface, p_mesh)
+               if (implicit_prognostic_fs) then
+                 cmc_m => get_extended_pressure_poisson_matrix(state(istate), ct_m(istate)%ptr, p_mesh, get_cmc=reassemble_cmc_m)
+               else
+                 cmc_m => get_pressure_poisson_matrix(state(istate), get_cmc=reassemble_cmc_m)
                end if
                reassemble_cmc_m = reassemble_cmc_m .or. reassemble_all_cmc_m
 
@@ -843,13 +846,14 @@
                   if(assemble_schur_auxiliary_matrix) then
                      ! Get sparsity and assemble:
                      ewrite(2,*) "Assembling auxiliary matrix for full_projection solve"
-                     schur_auxiliary_matrix_sparsity => get_csr_sparsity_secondorder(state(istate), p%mesh, u%mesh)
-                     call allocate(schur_auxiliary_matrix, schur_auxiliary_matrix_sparsity,&
-                        name="schur_auxiliary_matrix")
                      if (implicit_prognostic_fs) then
-                       call extend_schur_auxiliary_matrix_for_viscous_free_surface( &
-                           state(istate), schur_auxiliary_matrix, u, p, free_surface, p_mesh)
+                       schur_auxiliary_matrix_sparsity => get_extended_schur_auxillary_sparsity(state(istate), &
+                         ct_m(istate)%ptr,  p_mesh)
+                     else
+                       schur_auxiliary_matrix_sparsity => get_csr_sparsity_secondorder(state(istate), p%mesh, u%mesh)
                      end if
+                     call allocate(schur_auxiliary_matrix, schur_auxiliary_matrix_sparsity,&
+                          name="schur_auxiliary_matrix")
                      ! Initialize matrix:
                      call zero(schur_auxiliary_matrix)
                      if(apply_kmk) then
@@ -920,13 +924,14 @@
                   ! Assemble scaled pressure mass matrix which will later be used as a
                   ! preconditioner in the full projection solve:
                   ewrite(2,*) "Assembling scaled pressure mass matrix preconditioner"
-                  scaled_pressure_mass_matrix_sparsity => get_csr_sparsity_firstorder(state(istate), p%mesh, p%mesh)
+                  if (implicit_prognostic_fs) then
+                    scaled_pressure_mass_matrix_sparsity => get_extended_schur_auxillary_sparsity(state(istate), &
+                      ct_m(istate)%ptr, p_mesh)
+                  else
+                    scaled_pressure_mass_matrix_sparsity => get_csr_sparsity_firstorder(state(istate), p%mesh, p%mesh)
+                  end if
                   call allocate(scaled_pressure_mass_matrix, scaled_pressure_mass_matrix_sparsity,&
                            name="scaled_pressure_mass_matrix")
-                  if (implicit_prognostic_fs) then
-                    call extend_schur_auxiliary_matrix_for_viscous_free_surface( &
-                        state(istate), scaled_pressure_mass_matrix, u, p, free_surface, p_mesh)
-                  end if
                   call assemble_scaled_pressure_mass_matrix(state(istate),scaled_pressure_mass_matrix, p_mesh, dt)
                   if (implicit_prognostic_fs) then
                     call add_implicit_viscous_free_surface_scaled_mass_integrals(state(istate), scaled_pressure_mass_matrix, u, p, free_surface, dt)
