@@ -87,7 +87,6 @@
 
     type(state_type), dimension(:), pointer :: states
     character(len = OPTION_PATH_LEN) :: simulation_name
-    type(vector_field), pointer :: U
 
     integer :: timestep
     integer :: ierr
@@ -112,8 +111,6 @@
     timestep=0
 
     call populate_state(states)
-    U=>extract_vector_field(states(1), 'Velocity')
-    ewrite_minmax(U)
 
     ! No support for multiphase or multimaterial at this stage.
     if (size(states)/=1) then
@@ -364,9 +361,6 @@
       X=>extract_vector_field(state, "Coordinate")
       U=>extract_vector_field(state, "Velocity")
       Z=>extract_vector_field(state, "Vorticity",stat)
-
-      ewrite_minmax(U)
-      call vtk_write_fields('uinit', position=X, model=U%mesh, vfields=(/U/))
 
       if(have_option('/geometry/mesh::CoordinateMesh/recompute_coordinate_f&
            &ield/python')) then
