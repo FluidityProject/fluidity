@@ -1188,7 +1188,6 @@ contains
     type(mesh_type), intent(inout):: surface_mesh
     integer, dimension(:), intent(in):: surface_nodes
 
-    integer :: nprocs, procno, communicator 
     integer :: ihalo, nhalos
 
     ewrite(1, *) "In generate_free_surface_halos"
@@ -1204,13 +1203,6 @@ contains
     ewrite(2,*) "Number of surface_mesh halos = ",nhalos
 
     if(nhalos == 0) return
-
-    ! this stuff can go after debugging:
-    communicator = halo_communicator(full_mesh%halos(nhalos))
-    nprocs = getnprocs(communicator = communicator)
-    ewrite(2,*) 'Number of processes = ', nprocs
-    procno = getprocno(communicator = communicator)
-    ewrite(2,*) 'Processor ID/number = ', procno
 
     ! Allocate subdomain mesh halos:
     allocate(surface_mesh%halos(nhalos))
@@ -2731,6 +2723,7 @@ contains
         have_explicit_free_surface=.false.
         have_viscous_free_surface = .false.
       end if
+      have_wd=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")
       
       if (have_free_surface) then
          ewrite(2,*) "You have a free surface boundary condition, checking its options"
@@ -2817,6 +2810,12 @@ contains
       option_path=trim(phase_path)//'/scalar_field::Pressure/prognostic/solver/remove_null_space'
       if (have_free_surface .and. have_option(option_path)) then
         FLExit("With the free surface you shouldn't set remove the null space ")
+      end if
+
+      if ((have_viscous_free_surface .or. have_explicit_free_surface) .and. have_wd) then
+        ! feel free to try and add a test case
+        ! if you find it indeed doesn't work please change to FLExit
+        ewrite(0,*) "WARNING: the combination no_normal_stress under and wetting and drying is completely untested."
       end if
     end do
     

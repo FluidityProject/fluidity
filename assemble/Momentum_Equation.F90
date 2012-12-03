@@ -1492,11 +1492,14 @@
          end if
 
          if (pressure_debugging_vtus) then
-            if (.not. p_theta%mesh==p%mesh) then
-              FLAbort("FIXME")
-            end if
-            call vtk_write_fields("initial_poisson", pdv_count, x, p%mesh, &
+            if (p_theta%mesh==p%mesh) then
+              call vtk_write_fields("initial_poisson", pdv_count, x, p%mesh, &
                   sfields=(/ p_theta, p, old_p /))
+            else
+              ! for the prognostic fs, p_theta is on the extended mesh, so we omit it here
+              call vtk_write_fields("initial_poisson", pdv_count, x, p%mesh, &
+                  sfields=(/ p, old_p /))
+            end if
          end if
 
          ewrite_minmax(p_theta)
@@ -1804,14 +1807,20 @@
          if (pressure_debugging_vtus) then
             ! Writes out the pressure and velocity before the correction is added in
             ! (as the corrected fields are already available in the convergence files)
-            if (.not. p%mesh==p_theta%mesh) then
-              !FLAbort("FIXME")
-            end if
-            call vtk_write_fields("pressure_correction", pdv_count, x, p%mesh, &
+            if (p%mesh==p_theta%mesh) then
+              call vtk_write_fields("pressure_correction", pdv_count, x, p%mesh, &
+                  sfields=(/ p, old_p, p_theta /))
+              ! same thing but now on velocity mesh:
+              call vtk_write_fields("velocity_before_correction", pdv_count, x, u%mesh, &
+                  sfields=(/ p, old_p, p_theta /), vfields=(/ u /))
+            else
+              ! this is the case for the prognostic fs where p_theta is on an extended mesh
+              ! we simply omit p_theta - additional output could be implemented
+              call vtk_write_fields("pressure_correction", pdv_count, x, p%mesh, &
                   sfields=(/ p, old_p /))
-            ! same thing but now on velocity mesh:
-            call vtk_write_fields("velocity_before_correction", pdv_count, x, u%mesh, &
+              call vtk_write_fields("velocity_before_correction", pdv_count, x, u%mesh, &
                   sfields=(/ p, old_p /), vfields=(/ u /))
+            end if
          end if
 
          call profiler_tic(p, "assembly")
