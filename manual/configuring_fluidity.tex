@@ -893,10 +893,15 @@ The free surface height is contained within the Pressure field.  To apply an ini
 choose the \option{\ldots/free\_surface} under the relevant Pressure initial condition option.
 With this option, it is possible to set the initial free surface elevation in a tsunami simulation, for example.
 The initial condition can be applied using the approaches outlined above, in this section~\ref{sec:setting_field_values}.
-It is recommended that a diagnostic Free Surface field is included if this option is used.
+It is recommended that a diagnostic FreeSurface field is included if this option is used.
 
 If set from a NetCDF file using the option \option{\ldots/initial\_condition/from\_netcdf}, and the file provides exactly the
 free surface height, it is important that the child option \option{\ldots/initial\_condition/from\_netcdf/format} is set to `raw'.
+
+If the \option{no\_normal\_stress} option is used, to impose 
+boundary condition \eqref{NormalStressBC} instead of $p=\patm$, you should add a
+prognostic FreeSurface (instead of a diagnostic). The initial condition is then
+also set for that field.
 
 \subsection{Region IDs}
 \index{region ID}
@@ -1589,7 +1594,10 @@ For control volume discretisations only, this option allows a given flux $h$ of 
 
 The \option{\ldots/free\_surface} option allows the upper surface height to vary according to the pressure and velocity fields. This boundary condition is available on the velocity field only. When using a free surface, it is recommended that you active a diagnostic free surface (though this is optional). This option is also available at \option{\ldots/scalar\_field::FreeSurface}. 
 
-Note that the default free surface treatment implements the physical boundary condition p=0 (this is full pressure without subtracting the hydrostatic component). For viscous fluids, the correct boundary condition is a no normal stress condition, which includes a viscosity term. When using this option a prognostic free surface field is also required. This option is also available at \option{\ldots/scalar\_field::FreeSurface}. 
+Note that the default free surface treatment implements the physical boundary
+condition p=0 (this is full pressure without subtracting the hydrostatic
+component). For viscous fluids, the correct boundary condition is a no normal
+stress condition, \eqref{NormalStressBC}, which includes a viscosity term. When using this option a prognostic free surface field is also required. This option is also available at \option{\ldots/scalar\_field::FreeSurface}. 
 
 By default, the mesh geometry is not influenced by the free-surface calculation, however \fluidity\ can deform the mesh according to the free-surface elevation. 
 This option is available at \option{/mesh\_adaptivity/mesh\_movement/free\_surface}.
@@ -1925,7 +1933,13 @@ You might want to create a Viscosity field under Velocity and set it to the requ
 An Absorption field may need to be added under Velocity to allow larger time steps to be taken, otherwise your time steps will be limited by the scale of the baroclinic waves.  This term should have a vertical component equal to  ${\frac{1}{\rho_0}} {\theta} {\Delta} {t} {g} {\frac{\partial \rho}{\partial z}}$ and the other components are zero. $\rho_0$ is the reference density, $\theta$ is the value set under \\* \option{\ldots/Velocity/temporal\_discretisation/theta}, ${\Delta} {t} $ is the timestep, $g$ is the acceleration due to gravity and $\frac{\partial \rho}{\partial z}$ is the background density stratification.  The absorption term can be a constant if the background stratification is constant. Otherwise, set it with a python function.  Also turn on the \\* \option{\ldots/Absorption/include\_pressure\_correction} option.
 
 \subsubsection{Free Surface Field}
-This can be added if required.  You should also select a free surface boundary condition under Velocity.
+This can be added if required.  You should also select a free surface boundary
+condition under Velocity. For the default free surface algorithm, that enforces a $p=0$
+boundary condition, this field is an optional diagnostic and simply takes the pressure
+values at the free surface, to compute the free surface elevation. If the
+\option{no\_normal\_stress} option is used, the field is required and needs to be
+prognostic. This is because the solved for free surface values, are treated as independent
+variables in this case.
 
 \subsubsection{Pressure options}
 \begin{itemize}
