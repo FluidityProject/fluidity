@@ -219,7 +219,7 @@ class FieldCoefficient(Coefficient):
 
     @cached_property
     def node_set(self):
-        return op2.Set(self.node_count, "%s_nodes" % self.name)
+        return self.mesh.node_set
 
     @cached_property
     def dat(self):
