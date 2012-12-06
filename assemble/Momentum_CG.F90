@@ -287,7 +287,6 @@
       have_source = stat == 0
       if(.not. have_source) source=>dummyvector
       ewrite_minmax(source)
-
       absorption=>extract_vector_field(state, "VelocityAbsorption", stat)
       have_absorption = stat == 0
       if(.not. have_absorption) absorption=>dummyvector
