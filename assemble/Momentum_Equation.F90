@@ -1196,7 +1196,7 @@
                   
                   if (timestep==1)then
                      !!the ct_rhs for reduced model
-                     ct_rhs(istate)%val=ct_rhs(istate)%val/dt/theta_divergence
+!                     ct_rhs(istate)%val=ct_rhs(istate)%val/dt/theta_divergence
                      
                      ! print*,'theta_pg',theta_pg
                      ! print*,'theta_div',theta_divergence
@@ -1207,6 +1207,7 @@
                         pod_rhs%val=0.0
                         pod_matrix%val=0.0
                         if(lump_mass_form) then
+                           print*,'lump'
                            do dim = 1, inverse_masslump(istate)%dim
                               do i = 1,size(inverse_masslump(istate)%val(:,1))
                                  call addto_diag(big_m_adv(istate), dim, dim,i,inverse_masslump(istate)%val(i,dim) )
@@ -1215,6 +1216,7 @@
                            call project_reduced(big_m_adv(istate), mom_rhs(istate), ct_m(istate)%ptr, ct_rhs(istate), pod_matrix, &
                                 pod_ct_m, pod_rhs, 1.0, POD_state(:,:,istate))
                         else
+                           print*,'mass'
                            call project_reduced(mass(istate), mom_rhs(istate), ct_m(istate)%ptr, ct_rhs(istate), pod_matrix, &
                                 pod_ct_m, pod_rhs, 1.0, POD_state(:,:,istate))
                         endif
@@ -1242,10 +1244,13 @@
                         endif
                         ! in Momentum_CG/DG.F90, bigm = dt*theta*advection_mat +...., thus there, (1/(dt*theta)) on rhs term
                         ! without Mass matrix in bigm when the reduced model is used. 
-                        ! here, calculate advection_mat_mean * u_mean
-                        call project_reduced_rhs_mean_petsc(big_m(istate),pod_rhs,POD_state(:,:,istate), -(1.0-theta)/(dt*theta))
-
+                        ! here, calculate advection_mat_mean * u_mean 
+                        ! and calculate ct_m * p_mean
+                        pod_rhs%val( u%dim*size(POD_state,1)+1:(u%dim+1)*size(POD_state,1))= 0.0
                         call clear_podmatrix_p(ct_m(istate)%ptr, pod_matrix,POD_state(:,:,istate))
+                        call project_reduced_rhs_mean_petsc(big_m(istate), ct_m(istate)%ptr,pod_rhs,POD_state(:,:,istate), &
+                             -(1.0-theta)/(dt*theta),1.0)
+
                         !save the advection_matrix and pod_rhs for snapmean state
                         ewrite(1,*)'snapmean'
                         open(unit=20,file='pod_advection_matrix_snapmean')
@@ -1274,7 +1279,10 @@
                         ! in Momentum_CG/DG.F90, bigm = dt*theta*advection_mat +...., thus there, (1/(dt*theta)) on rhs term
                         ! Mass matrix is not included in bigm when the reduced order model is used
                         ! here, calculate advection_mat_pertubed * u_mean
-                        call project_reduced_rhs_mean_petsc(big_m(istate),pod_rhs,POD_state(:,:,istate), -(1.-theta)/(dt*theta))
+                        pod_rhs%val( u%dim*size(POD_state,1)+1:(u%dim+1)*size(POD_state,1))= 0.0
+                        call clear_podmatrix_p(ct_m(istate)%ptr, pod_matrix,POD_state(:,:,istate))
+                        call project_reduced_rhs_mean_petsc(big_m(istate), ct_m(istate)%ptr,pod_rhs,POD_state(:,:,istate),  &
+                             -(1.-theta)/(dt*theta),1.0)
  
                         open(unit=20,file='pod_advection_matrix_snapmean')
                         read(20,*)((pod_matrix_snapmean(i,j),j=1,(u%dim+1)*size(POD_state,1)),i=1,(u%dim+1)*size(POD_state,1))
@@ -1284,7 +1292,6 @@
                         pod_matrix%val(:,:)=(pod_matrix%val(:,:)-pod_matrix_snapmean(:,:))/eps
                         pod_rhs%val(:)=(pod_rhs%val(:)-pod_rhs_snapmean(:))/eps
                         
-                        call clear_podmatrix_p(ct_m(istate)%ptr, pod_matrix,POD_state(:,:,istate))
                         !save pod_matrix and pod_rhs for perturbed state (related to POD_velocity%dim, size(POD_state,1))
                         write(30,*)((pod_matrix%val(i,j),j=1,(u%dim+1)*size(POD_state,1)),i=1,(u%dim+1)*size(POD_state,1))
                         write(30,*)(pod_rhs%val(i),i=1,(u%dim+1)*size(POD_state,1))
@@ -1335,7 +1342,6 @@
                            
                            read(30,*)((pod_matrix_perturbed(i,j),j=1,(u%dim+1)*size(POD_state,1)),i=1,(u%dim+1)*size(POD_state,1))
                            read(30,*)(pod_rhs_perturbed(i),i=1,(u%dim+1)*size(POD_state,1))
-                           
                            pod_advection_matrix(:,:)=pod_advection_matrix(:,:) &
                                 +pod_coef(k+u%dim*size(POD_state,1))*pod_matrix_perturbed(:,:)
                            pod_rhs%val=pod_rhs%val+pod_coef(k+u%dim*size(POD_state,1))*pod_rhs_perturbed(:)
@@ -1355,25 +1361,27 @@
 
                       !    pod_rhs%val( u%dim*size(POD_state,1)+1:(u%dim+1)*size(POD_state,1))= &
                       !         pod_rhs%val( u%dim*size(POD_state,1)+1:(u%dim+1)*size(POD_state,1))+ pod_ct_rhs(:)
-                        pod_rhs%val( u%dim*size(POD_state,1)+1:(u%dim+1)*size(POD_state,1))= 0.0
+             !           pod_rhs%val( u%dim*size(POD_state,1)+1:(u%dim+1)*size(POD_state,1))= 0.0
                         
                           pod_matrix%val = pod_mass_matrix/dt + theta*pod_advection_matrix
 
-                          ! add pod_ct_m into pod_matrix
+                          ! add pod_ct_m and transpose of pod_ct_m into pod_matrix
                           do k=1, u%dim
                              do j=1, size(POD_state,1)     
                                 do i=1, size(POD_state,1)
                                    pod_matrix%val(i+pod_matrix%u_dim*size(POD_state,1), j+(k-1)*size(POD_state,1)) = &
                                         pod_ct_m(i,j+(k-1)*size(POD_state,1))
+                                   pod_matrix%val(j+(k-1)*size(POD_state,1), i+pod_matrix%u_dim*size(POD_state,1)) = &
+                                        pod_ct_m(i,j+(k-1)*size(POD_state,1))
                                 end do
                              end do
                           enddo
-
+                          print*,'pod_matrix%val',pod_matrix%val
+                          print*,'pod_rhs%val',pod_rhs%val
                         !calculate the new pod coef.
                         call solve(pod_matrix%val, pod_rhs%val)
                         pod_coef_dt(:)=pod_rhs%val
                         pod_rhs%val=0.0
-
                         pod_coef(:)=pod_coef_dt(:)
                         !pod_coef(:)=pod_coef_dt(:)
                         !!print*,pod_coef(2)
@@ -1441,19 +1449,23 @@
                      open(unit=20,file='ct_m_matrix')
                      read(20,*) ((pod_ct_m(i,j),j=1,u%dim*size(POD_state,1)),i=1,size(POD_state,1))
                      close(20)
-                        pod_rhs%val( u%dim*size(POD_state,1)+1:(u%dim+1)*size(POD_state,1))= 0.0
-                     ! add pod_ct_m into pod_matrix
-                     do k=1, u%dim
-                        do j=1, size(POD_state,1)     
-                           do i=1, size(POD_state,1)
-                              pod_matrix%val(i+pod_matrix%u_dim*size(POD_state,1), j+(k-1)*size(POD_state,1)) = &
-                                   pod_ct_m(i,j+(k-1)*size(POD_state,1))
-                           end do
-                        end do
-                     enddo
-                     !calculate the new pod coef.
+             !           pod_rhs%val( u%dim*size(POD_state,1)+1:(u%dim+1)*size(POD_state,1))= 0.0
+                          ! add pod_ct_m and transpose of pod_ct_m into pod_matrix
+                          do k=1, u%dim
+                             do j=1, size(POD_state,1)     
+                                do i=1, size(POD_state,1)
+                                   pod_matrix%val(i+pod_matrix%u_dim*size(POD_state,1), j+(k-1)*size(POD_state,1)) = &
+                                        pod_ct_m(i,j+(k-1)*size(POD_state,1))
+                                   pod_matrix%val(j+(k-1)*size(POD_state,1), i+pod_matrix%u_dim*size(POD_state,1)) = &
+                                        pod_ct_m(i,j+(k-1)*size(POD_state,1))
+                                end do
+                             end do
+                          enddo
+                    !calculate the new pod coef.
                      call solve(pod_matrix%val, pod_rhs%val)
                      pod_coef_dt(:)=pod_rhs%val
+                        print*,'pod_rhs%val',pod_rhs%val
+!                        stop 76
                      pod_rhs%val=0.0
                      
                      pod_coef(:)=pod_coef_dt(:)

@@ -574,7 +574,7 @@
         call allocate( inverse_masslump, u%dim, u%mesh, "InverseLumpedMass")
         call zero(inverse_masslump)
       end if
-      if (assemble_mass_matrix) then
+      if (assemble_mass_matrix.or.reduced_model) then
         ! construct mass matrix instead
         u_sparsity => get_csr_sparsity_firstorder(state, u%mesh, u%mesh)
         
@@ -764,22 +764,25 @@
           call invert(visc_inverse_masslump)
           ! apply boundary conditions (zeroing out strong dirichl. rows)
           call apply_dirichlet_conditions_inverse_mass(visc_inverse_masslump, u)
-          
           ewrite(2,*) "Inverted new visc_inverse_masslump and boundary conditions is:"
           ewrite_minmax(visc_inverse_masslump)
           
           ! Now invert the original inverse_masslump, apply dirichlet conditions:
-          call invert(inverse_masslump)
-          call apply_dirichlet_conditions_inverse_mass(inverse_masslump, u)
-          ewrite_minmax(inverse_masslump)
-          ewrite(2,*) "****************************************"
+          if(.not.reduced_model) then
+             call invert(inverse_masslump)
+             call apply_dirichlet_conditions_inverse_mass(inverse_masslump, u)
+             ewrite_minmax(inverse_masslump)
+             ewrite(2,*) "****************************************"
+          endif
         else 
           ! thus far we have just assembled the lumped mass in inverse_masslump
           ! now invert it:
-          call invert(inverse_masslump)
-          ! apply boundary conditions (zeroing out strong dirichl. rows)
-          call apply_dirichlet_conditions_inverse_mass(inverse_masslump, u)
-          ewrite_minmax(inverse_masslump)
+          if(.not.reduced_model) then
+              call invert(inverse_masslump)
+              ! apply boundary conditions (zeroing out strong dirichl. rows)
+              call apply_dirichlet_conditions_inverse_mass(inverse_masslump, u)
+              ewrite_minmax(inverse_masslump)
+          endif
         endif
       end if
       
@@ -1438,7 +1441,7 @@
         end do
       end if
       
-      if(assemble_mass_matrix) then
+      if(assemble_mass_matrix.or.reduced_model) then
          do dim=1, u%dim
             call addto(mass, dim, dim, u_ele, u_ele, mass_mat)
          end do

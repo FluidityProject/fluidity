@@ -213,13 +213,11 @@ contains
 !    call allocate(pod_rhs, POD_u, POD_p)
 
     call allocate(mom_rhs_tmp, POD_u%dim, POD_u%mesh, "mom_rhs_tmp")
+    call zero(mom_rhs_tmp)
 !!Are we solving for p^{n+1}-p^n or p^{n+1}? Take p^{n+1}-p^n now.
     call mult_T(mom_rhs_tmp, ct_m, snapmean_pressure)
 
-    do d=1, POD_u%dim
-!       mom_rhs%val(d)%ptr=mom_rhs%val(d)%ptr-mom_rhs_tmp%val(d)%ptr
-       mom_rhs%val(d,:)=mom_rhs%val(d,:)-mom_rhs_tmp%val(d,:)
-    enddo
+!    mom_rhs_tmp%val=-mom_rhs_tmp%val
 
     pod_ct_m = 0.0
 
@@ -245,6 +243,7 @@ contains
 
 !!calculations for pod_rhs
           call addto(POD_state(:,1), pod_rhs, j, d1, sum(dot_product(mom_rhs, u_c)))
+          call addto(POD_state(:,1), pod_rhs, j, d1, -1.0*sum(dot_product(mom_rhs_tmp, u_c)))
           call addto_p(POD_state(:,2), POD_u, pod_rhs, j, dot_product(ct_rhs, POD_p), dt)
 
 !          pod_rhs%val(j+(d1-1)*POD_num)=sum(dot_product(mom_rhs, u_c))
@@ -326,18 +325,20 @@ contains
        do j=1, POD_num      
           do i=1, POD_num
              pod_matrix%val(i+pod_matrix%u_dim*POD_num, j+(d-1)*POD_num)=0.0
+             ! transpose the block corresponding to ct_m
+             pod_matrix%val(j+(d-1)*POD_num, i+pod_matrix%u_dim*POD_num)=0.0
           end do
        end do
     enddo
   
    end subroutine clear_podmatrix_p
 
-
-  subroutine project_reduced_rhs_mean_petsc(big_m,pod_rhs,POD_state,scale)
+  subroutine project_reduced_rhs_mean_petsc(big_m,ct_m,pod_rhs,POD_state,scale,dt)
     !!< project the momentum equation to reduced space.
     type(state_type), dimension(:,:) :: POD_state
 
     type(petsc_csr_matrix), intent(inout) :: big_m
+    type(block_csr_matrix), intent(in) :: ct_m
 
     type(vector_field), pointer :: POD_u
     type(scalar_field), pointer :: POD_p
@@ -346,11 +347,13 @@ contains
  
     type(vector_field), dimension(:), allocatable :: u_tmp
     type(vector_field) :: u_c, mom_rhs_tmp
+    type(scalar_field) :: ct_tmp
 
     type(pod_rhs_type), intent(inout) :: pod_rhs
 
     integer :: i, j, d, d1, d2, u_nodes, p_nodes, POD_num
-    real :: scale
+    real :: scale,dt
+
 
     POD_u=>extract_vector_field(POD_state(1,1), "Velocity")
     POD_p=>extract_scalar_field(POD_state(1,2), "Pressure")
@@ -366,8 +369,10 @@ contains
 !    call allocate(pod_rhs, POD_u, POD_p)
 
     call allocate(mom_rhs_tmp, POD_u%dim, POD_u%mesh, "mom_rhs_tmp")
+    call allocate(ct_tmp, POD_p%mesh, "MeanPressureRhs")
 
     call mult(mom_rhs_tmp,big_m,snapmean_velocity)
+    call mult(ct_tmp, ct_m, snapmean_velocity)
 
     do j=1, POD_num
        POD_u=>extract_vector_field(POD_state(j,1), "Velocity")
@@ -384,6 +389,7 @@ contains
           end do
           !!calculations for pod_rhs
           call addto(POD_state(:,1), pod_rhs, j, d1, scale*sum(dot_product(mom_rhs_tmp, u_c)))
+          call addto_p(POD_state(:,2), POD_u, pod_rhs, j, dot_product(ct_tmp, POD_p), -1.0/dt)
        end do
     enddo
     
