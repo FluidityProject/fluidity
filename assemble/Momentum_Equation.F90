@@ -238,6 +238,7 @@
          character(len=FIELD_NAME_LEN) :: equation_type, poisson_scheme, schur_scheme, pressure_pmat
 
          integer :: stat
+         real ::  theta_pp
 
          ! The list of stiff nodes
          ! This is saved because the list is only formed when cmc is assembled, which
@@ -1193,6 +1194,7 @@
                   allocate(pod_ct_m(size(POD_state,1),u%dim*size(POD_state,1)))
                   allocate(pod_ct_rhs(u%dim*size(POD_state,1)))
                   
+                     theta_pp = 1.0
                   
                   if (timestep==1)then
                      !!the ct_rhs for reduced model
@@ -1210,6 +1212,9 @@
                            print*,'lump'
                            do dim = 1, inverse_masslump(istate)%dim
                               do i = 1,size(inverse_masslump(istate)%val(:,1))
+                                 !! inverse_masslump = masslump in reduced order modelling 
+                                 !! we comment invert(inverse_masslump) in Momentum_CG
+                                 !! here, big_m_adv is tmp matrix
                                  call addto_diag(big_m_adv(istate), dim, dim,i,inverse_masslump(istate)%val(i,dim) )
                               enddo
                            enddo
@@ -1223,17 +1228,10 @@
                         !delete ct_m_matrix from pod_matrix
                         call clear_podmatrix_p(ct_m(istate)%ptr, pod_matrix,POD_state(:,:,istate))
                         pod_rhs%val( u%dim*size(POD_state,1)+1:(u%dim+1)*size(POD_state,1))= 0.0
-                        ! calculate Mass_matrix * u_mean
-                        call project_reduced_rhs_mean_petsc(big_m_adv(istate), ct_m(istate)%ptr,pod_rhs,POD_state(:,:,istate), &
-                             -(1.0-theta)/(dt*theta),1.0)
-                        pod_rhs%val( u%dim*size(POD_state,1)+1:(u%dim+1)*size(POD_state,1))= 0.0
 
                         !save the mass_matrix 
                         open(unit=20,file='mass_matrix')
                         write(20,*)((pod_matrix%val(i,j),j=1,(u%dim+1)*size(POD_state,1)),i=1,(u%dim+1)*size(POD_state,1))
-                        close(20)
-                        open(unit=20,file='mass_rhs_mean')
-                        write(20,*)(pod_rhs%val(i),i=1,(u%dim+1)*size(POD_state,1))
                         close(20)
                         open(unit=20,file='ct_m_matrix')
                         write(20,*) ((pod_ct_m(i,j),j=1,u%dim*size(POD_state,1)),i=1,size(POD_state,1))
@@ -1257,7 +1255,7 @@
                         pod_rhs%val( u%dim*size(POD_state,1)+1:(u%dim+1)*size(POD_state,1))= 0.0
                         call clear_podmatrix_p(ct_m(istate)%ptr, pod_matrix,POD_state(:,:,istate))
                         call project_reduced_rhs_mean_petsc(big_m(istate), ct_m(istate)%ptr,pod_rhs,POD_state(:,:,istate), &
-                             -(1.0-theta)/(dt*theta),1.0)
+                             -1.0/(dt*theta),1.0)
                         !save the advection_matrix and pod_rhs for snapmean state
                         ewrite(1,*)'snapmean'
                         open(unit=20,file='pod_advection_matrix_snapmean')
@@ -1290,7 +1288,7 @@
                         pod_rhs%val( u%dim*size(POD_state,1)+1:(u%dim+1)*size(POD_state,1))= 0.0
                         call clear_podmatrix_p(ct_m(istate)%ptr, pod_matrix,POD_state(:,:,istate))
                         call project_reduced_rhs_mean_petsc(big_m(istate), ct_m(istate)%ptr,pod_rhs,POD_state(:,:,istate),  &
-                             -(1.-theta)/(dt*theta),1.0)
+                             -1.0/(dt*theta),1.0)
  
                         open(unit=20,file='pod_advection_matrix_snapmean')
                         read(20,*)((pod_matrix_snapmean(i,j),j=1,(u%dim+1)*size(POD_state,1)),i=1,(u%dim+1)*size(POD_state,1))
@@ -1336,10 +1334,6 @@
                         pod_advection_matrix(:,:) = pod_matrix_snapmean(:,:)                        
                         pod_rhs%val=pod_rhs_snapmean
                      
-                        open(unit=20,file='mass_rhs_mean')
-                        read(20,*)(pod_rhs_snapmean(i),i=1,(u%dim+1)*size(POD_state,1))
-                        close(20)
-                        pod_rhs%val=pod_rhs%val+pod_rhs_snapmean
                         !goto 100
                         do k=1,size(POD_state,1)
                            
@@ -1370,13 +1364,7 @@
                         close(20)
                         call Matrix_vector_multiplication(size(POD_state,1),pod_rhs_perturbed,pod_ct_m,   &
                              pod_coef(1:u%dim*size(POD_state,1)))
-                        pod_rhs%val=pod_rhs%val-(1-theta)*pod_rhs_perturbed
-                      !  call Matrix_vector_multiplication(size(POD_state,1),pod_ct_rhs,pod_ct_m, &
-                      !       pod_coef(1:u%dim*size(POD_state,1)) )
-
-                      !    pod_rhs%val( u%dim*size(POD_state,1)+1:(u%dim+1)*size(POD_state,1))= &
-                      !         pod_rhs%val( u%dim*size(POD_state,1)+1:(u%dim+1)*size(POD_state,1))+ pod_ct_rhs(:)
-             !           pod_rhs%val( u%dim*size(POD_state,1)+1:(u%dim+1)*size(POD_state,1))= 0.0
+                        pod_rhs%val=pod_rhs%val-(1-theta_pp)*pod_rhs_perturbed
                         
                           pod_matrix%val = pod_mass_matrix/dt + theta*pod_advection_matrix
 
@@ -1385,9 +1373,9 @@
                              do j=1, size(POD_state,1)     
                                 do i=1, size(POD_state,1)
                                    pod_matrix%val(i+pod_matrix%u_dim*size(POD_state,1), j+(k-1)*size(POD_state,1)) = &
-                                       theta* pod_ct_m(i,j+(k-1)*size(POD_state,1))
+                                        theta_pp*pod_ct_m(i,j+(k-1)*size(POD_state,1))
                                    pod_matrix%val(j+(k-1)*size(POD_state,1), i+pod_matrix%u_dim*size(POD_state,1)) = &
-                                        theta*pod_ct_m(i,j+(k-1)*size(POD_state,1))
+                                        theta_pp*pod_ct_m(i,j+(k-1)*size(POD_state,1))
                                 end do
                              end do
                           enddo
@@ -1433,10 +1421,6 @@
                      pod_advection_matrix(:,:) = pod_matrix_snapmean(:,:)                        
                      pod_rhs%val=pod_rhs_snapmean
                      
-                     open(unit=20,file='mass_rhs_mean')
-                     read(20,*)(pod_rhs_snapmean(i),i=1,(u%dim+1)*size(POD_state,1))
-                     close(20)
-                     pod_rhs%val=pod_rhs%val+pod_rhs_snapmean
                      !goto 100
                      do k=1,size(POD_state,1)
                         
@@ -1468,15 +1452,18 @@
                      open(unit=20,file='ct_m_matrix')
                      read(20,*) ((pod_ct_m(i,j),j=1,u%dim*size(POD_state,1)),i=1,size(POD_state,1))
                      close(20)
+                     call Matrix_vector_multiplication(size(POD_state,1),pod_rhs_perturbed,pod_ct_m,   &
+                          pod_coef(1:u%dim*size(POD_state,1)))
+                     pod_rhs%val=pod_rhs%val-(1-theta_pp)*pod_rhs_perturbed
              !           pod_rhs%val( u%dim*size(POD_state,1)+1:(u%dim+1)*size(POD_state,1))= 0.0
                           ! add pod_ct_m and transpose of pod_ct_m into pod_matrix
                           do k=1, u%dim
                              do j=1, size(POD_state,1)     
                                 do i=1, size(POD_state,1)
                                    pod_matrix%val(i+pod_matrix%u_dim*size(POD_state,1), j+(k-1)*size(POD_state,1)) = &
-                                        pod_ct_m(i,j+(k-1)*size(POD_state,1))
+                                        theta_pp*pod_ct_m(i,j+(k-1)*size(POD_state,1))
                                    pod_matrix%val(j+(k-1)*size(POD_state,1), i+pod_matrix%u_dim*size(POD_state,1)) = &
-                                        pod_ct_m(i,j+(k-1)*size(POD_state,1))
+                                        theta_pp*pod_ct_m(i,j+(k-1)*size(POD_state,1))
                                 end do
                              end do
                           enddo
