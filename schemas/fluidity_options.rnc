@@ -3075,15 +3075,20 @@ prognostic_velocity_stat_options.stat &=
       element nonlinear_field {
          vector_field_stat_options_disabled_default
       },
-      ## What surface IDs do you want to do the calculation over?
       element compute_body_forces_on_surfaces {
-         ## Enable to output the pressure and viscous terms separately (as well
-         ## as the total force)
-         element output_terms {
-            comment
-         }?,
-         integer_vector
-      }?,
+        attribute name { xsd:string },
+        (
+          ## What surface IDs do you want to do the calculation over?
+          element surface_ids {
+            integer_vector
+          },
+          ## Enable to output the pressure and viscous terms separately (as well
+          ## as the total force)
+          element output_terms {
+             comment
+          }?
+        )
+      }*,
       ## Compute the divergence of this field at the Gauss points
       ## and return its stats.  This is a direct measure of the
       ## divergence at the gauss points rather than a discrete measure
