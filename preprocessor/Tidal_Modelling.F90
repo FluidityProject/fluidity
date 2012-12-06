@@ -365,6 +365,7 @@ contains
       p_mesh => p_theta%mesh
 
       free_surface => extract_scalar_field(state, "FreeSurface")
+      
       call allocate(combined_p, p_mesh, "CombinedPressure")
       call allocate(tidal_pressure, p_mesh, "TidalPressure")
       call zero(combined_p)
@@ -418,8 +419,7 @@ contains
          end if
          if (have_option('/ocean_forcing/tidal_forcing/love_number'))&
               & then
-           call get_option('/ocean_forcing/tidal_forcing/love_number/v&
-                &alue', love_number)
+           call get_option('/ocean_forcing/tidal_forcing/love_number/value', love_number)
         else
            love_number=1.0
         end if

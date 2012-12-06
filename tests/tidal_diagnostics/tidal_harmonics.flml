@@ -484,7 +484,7 @@
       <diagnostic>
         <algorithm depends="FreeSurface" name="free_surface_history" material_phase_support="single">
           <levels>
-            <integer_value rank="0">200</integer_value>
+            <integer_value rank="0">100</integer_value>
           </levels>
           <stride>
             <integer_value rank="0">1</integer_value>
@@ -677,6 +677,27 @@
           </solver>
         </algorithm>
         <mesh name="CoordinateMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="S2amp" rank="0">
+      <diagnostic>
+        <algorithm material_phase_support="single" depends="FreeSurfaceHistory" averageFSLevel="Calculate" target="Amplitude" name="tidal_harmonics">
+          <constituent name="S2">
+            <real_value shape="1" rank="0">2.31481315E-05</real_value>
+          </constituent>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
         <output/>
         <stat/>
         <convergence>

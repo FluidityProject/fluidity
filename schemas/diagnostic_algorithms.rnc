@@ -405,15 +405,34 @@ vector_difference_algorithm =
 
 # Time aggregated diagnostics
 
-# Temporal maximum diagnostic algorithm. 
-temporalmax_algorithm =
+# Temporal maximum diagnostic algorithm for scalar fields. 
+scalar_temporalmax_algorithm =
    (
-      ## temporalmax (source field). Calculates the nodewise maximum over time. Note: Does not work with adaptive meshes!
+      ## temporalmax (scalar source field). Calculates the nodewise maximum over time. Note: Does not work with adaptive meshes!
       element algorithm {
-        attribute name { "temporalmax" },
+        attribute name { "temporalmax_scalar" },
         attribute material_phase_support { "single" },
         attribute persistent { "true" },
         scalar_source_field,
+        ## This sets a spinning up time.
+        element spin_up_time {
+               real
+        }?,
+        ## Do not set an initial condition until you know what you are doing. Initial condition is mainly needed for checkpointing. 
+        element initial_condition {
+            attribute name { "WholeMesh" },
+            input_choice_initial_condition_real
+         }?
+      }
+   )
+vector_temporalmax_algorithm =
+   (
+      ## temporalmax (vector source field). Calculates the nodewise maximum over time. Note: Does not work with adaptive meshes!
+      element algorithm {
+        attribute name { "temporalmax_vector" },
+        attribute material_phase_support { "single" },
+        attribute persistent { "true" },
+        vector_source_field,
         ## This sets a spinning up time.
         element spin_up_time {
                real
@@ -1395,7 +1414,7 @@ scalar_diagnostic_algorithms |= universal_column_id_algorithm
 scalar_diagnostic_algorithms |= tidal_harmonic_algorithm
 scalar_diagnostic_algorithms |= tensor_second_invariant_algorithm
 scalar_diagnostic_algorithms |= temporalmin_algorithm
-scalar_diagnostic_algorithms |= temporalmax_algorithm
+scalar_diagnostic_algorithms |= scalar_temporalmax_algorithm
 scalar_diagnostic_algorithms |= scalar_time_averaged_algorithm
 scalar_diagnostic_algorithms |= scalar_period_averaged_algorithm
 scalar_diagnostic_algorithms |= scalar_sum_algorithm
@@ -1430,6 +1449,7 @@ scalar_diagnostic_algorithms |= scalar_python_diagnostic_algorithm
 scalar_diagnostic_algorithms |= internal_algorithm
 
 vector_diagnostic_algorithms = vector_time_averaged_algorithm
+vector_diagnostic_algorithms |= vector_temporalmax_algorithm
 vector_diagnostic_algorithms |= vector_sum_algorithm
 vector_diagnostic_algorithms |= vector_scalar_time_averaged_algorithm
 vector_diagnostic_algorithms |= vector_laplacian_algorithm
