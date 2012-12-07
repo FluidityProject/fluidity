@@ -364,6 +364,14 @@ contains
           constraint%n_face_basis = constraint%degree+1
           constraint%n_grad_basis = 0
           constraint%n_curl_basis = 0
+       case (FAMILY_CUBE)
+          if(constraint%degree>2) then
+             FLExit('high order not supported')
+          end if
+          !The below formulas definitely fail for degree=>3
+          constraint%n_face_basis = constraint%degree+1
+          constraint%n_grad_basis = 0
+          constraint%n_curl_basis = 0
        case default
           FLAbort('Unsupported element family.')
        end select
