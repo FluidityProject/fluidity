@@ -7155,6 +7155,11 @@ in a multimaterial simulation.</a:documentation>
             <ref name="mesh_choice"/>
             <ref name="prescribed_tensor_field"/>
           </element>
+          <element name="diagnostic">
+            <ref name="mesh_choice"/>
+            <ref name="tensor_python_diagnostic_algorithm"/>
+            <ref name="diagnostic_tensor_field"/>
+          </element>
           <element name="aliased">
             <ref name="generic_aliased_field"/>
           </element>

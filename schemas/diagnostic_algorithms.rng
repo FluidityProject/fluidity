@@ -1082,6 +1082,9 @@ for material i and \nu^i is the viscosity of material i</a:documentation>
       <attribute name="material_phase_support">
         <value>multiple </value>
       </attribute>
+      <attribute name="depends">
+        <value>MaterialViscosity</value>
+      </attribute>
     </element>
   </define>
   <define name="sediment_concentration_dependent_viscosity_algorithm">

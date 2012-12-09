@@ -5650,6 +5650,11 @@ tensor_field_choice =
                   mesh_choice,
                   prescribed_tensor_field
                }|
+               element diagnostic {
+                  mesh_choice,
+                  tensor_python_diagnostic_algorithm,
+                  diagnostic_tensor_field
+               }|
                element aliased {
                   generic_aliased_field
                }

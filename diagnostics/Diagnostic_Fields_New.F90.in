@@ -591,7 +591,9 @@ contains
     
     character(len = FIELD_NAME_LEN), dimension(:), allocatable :: dependencies, split_dependency
     character(len = OPTION_PATH_LEN) :: base_path, depends
-    integer :: i, j, lstate_index, stat
+    integer :: i, j, k, lstate_index, stat
+    integer, dimension(:), allocatable :: state_indices
+    logical :: field_found
     type(scalar_field), pointer :: dep_s_field
     type(tensor_field), pointer :: dep_t_field
     type(vector_field), pointer :: dep_v_field
@@ -608,9 +610,11 @@ contains
         call tokenize(trim(dependencies(j)), split_dependency, "::")
         select case(size(split_dependency))
           case(1)
-            ! Single state dependency
-            assert(state_index > 0 .and. state_index <= size(states))
-            lstate_index = state_index
+            ! Single state or unspecified state dependency (so check all states)
+            allocate(state_indices(size(states)))
+            do k = 1, size(states)
+              state_indices(k) = k
+            end do
           case(2)
             ! Multiple state dependency
             lstate_index = 1
@@ -621,82 +625,94 @@ contains
               ewrite(-1, *) "For dependency " // trim(dependencies(j))
               FLAbort("State named " // trim(split_dependency(1)) // " not found")
             end if
+            allocate(state_indices(1))
+            state_indices(1) = lstate_index
           case default
             ewrite(-1, *) "For dependency " // trim(dependencies(j))
             FLAbort("Invalid dependency")
         end select
         
-        if(has_scalar_field(states(lstate_index), split_dependency(size(split_dependency)))) then
-          if(present(parent_states)) then
-            ! We've been given a list of parent fields, so let's check for
-            ! circular dependencies
-            if(has_scalar_field(parent_states(lstate_index), split_dependency(size(split_dependency)))) then
-              ewrite(-1, *) "For dependency " // trim(dependencies(j))
-              FLAbort("Circular dependency")
+        field_found = .false.
+        do k = 1, size(state_indices)
+          lstate_index = state_indices(k)
+          if(has_scalar_field(states(lstate_index), split_dependency(size(split_dependency)))) then
+            field_found = .true.
+            if(present(parent_states)) then
+              ! We've been given a list of parent fields, so let's check for
+              ! circular dependencies
+              if(has_scalar_field(parent_states(lstate_index), split_dependency(size(split_dependency)))) then
+                ewrite(-1, *) "For dependency " // trim(dependencies(j))
+                FLAbort("Circular dependency")
+              end if
+            end if
+            if(present(dep_states_mask)) then
+              if(has_scalar_field(dep_states_mask(lstate_index), trim(split_dependency(size(split_dependency))))) then
+                ! We've already found this dependency
+                deallocate(split_dependency)
+                cycle
+              end if
+            end if
+            
+            ! We have a new dependency - reference it
+            dep_s_field => extract_scalar_field(states(lstate_index), split_dependency(size(split_dependency)))
+            if(have_option(trim(dep_s_field%option_path) // "/diagnostic")) then
+              call insert(dep_states(lstate_index), dep_s_field, split_dependency(size(split_dependency)))
+            end if
+          else if(has_vector_field(states(lstate_index), split_dependency(size(split_dependency)))) then
+            field_found = .true.
+            if(present(parent_states)) then
+              ! We've been given a list of parent fields, so let's check for
+              ! circular dependencies
+              if(has_vector_field(parent_states(lstate_index), split_dependency(size(split_dependency)))) then
+                ewrite(-1, *) "For dependency " // trim(dependencies(j))
+                FLAbort("Circular dependency")
+              end if
+            end if
+            if(present(dep_states_mask)) then
+              if(has_vector_field(dep_states_mask(lstate_index), trim(split_dependency(size(split_dependency))))) then
+                ! We've already found this dependency
+                deallocate(split_dependency)
+                cycle
+              end if
+            end if
+            
+            ! We have a new dependency - reference it
+            dep_v_field => extract_vector_field(states(lstate_index), split_dependency(size(split_dependency)))
+            if(have_option(trim(dep_v_field%option_path) // "/diagnostic")) then
+              call insert(dep_states(lstate_index), dep_v_field, split_dependency(size(split_dependency)))
+            end if
+          else if(has_tensor_field(states(lstate_index), split_dependency(size(split_dependency)))) then
+            field_found = .true.
+            if(present(parent_states)) then
+              ! We've been given a list of parent fields, so let's check for
+              ! circular dependencies
+              if(has_tensor_field(parent_states(lstate_index), split_dependency(size(split_dependency)))) then
+                ewrite(-1, *) "For dependency " // trim(dependencies(j))
+                FLAbort("Circular dependency")
+              end if
+            end if
+            if(present(dep_states_mask)) then
+              if(has_tensor_field(dep_states_mask(lstate_index), trim(split_dependency(size(split_dependency))))) then   
+                ! We've already found this dependency  
+                deallocate(split_dependency)
+                cycle
+              end if
+            end if
+            
+            ! We have a new dependency - reference it
+            dep_t_field => extract_tensor_field(states(lstate_index), split_dependency(size(split_dependency)))
+            if(have_option(trim(dep_t_field%option_path) // "/diagnostic")) then
+              call insert(dep_states(lstate_index), dep_t_field, split_dependency(size(split_dependency)))
             end if
           end if
-          if(present(dep_states_mask)) then
-            if(has_scalar_field(dep_states_mask(lstate_index), trim(split_dependency(size(split_dependency))))) then
-              ! We've already found this dependency
-              deallocate(split_dependency)
-              cycle
-            end if
-          end if
-          
-          ! We have a new dependency - reference it
-          dep_s_field => extract_scalar_field(states(lstate_index), split_dependency(size(split_dependency)))
-          if(have_option(trim(dep_s_field%option_path) // "/diagnostic")) then
-            call insert(dep_states(lstate_index), dep_s_field, split_dependency(size(split_dependency)))
-          end if
-        else if(has_vector_field(states(lstate_index), split_dependency(size(split_dependency)))) then
-          if(present(parent_states)) then
-            ! We've been given a list of parent fields, so let's check for
-            ! circular dependencies
-            if(has_vector_field(parent_states(lstate_index), split_dependency(size(split_dependency)))) then
-              ewrite(-1, *) "For dependency " // trim(dependencies(j))
-              FLAbort("Circular dependency")
-            end if
-          end if
-          if(present(dep_states_mask)) then
-            if(has_vector_field(dep_states_mask(lstate_index), trim(split_dependency(size(split_dependency))))) then
-              ! We've already found this dependency
-              deallocate(split_dependency)
-              cycle
-            end if
-          end if
-          
-          ! We have a new dependency - reference it
-          dep_v_field => extract_vector_field(states(lstate_index), split_dependency(size(split_dependency)))
-          if(have_option(trim(dep_v_field%option_path) // "/diagnostic")) then
-            call insert(dep_states(lstate_index), dep_v_field, split_dependency(size(split_dependency)))
-          end if
-        else if(has_tensor_field(states(lstate_index), split_dependency(size(split_dependency)))) then
-          if(present(parent_states)) then
-            ! We've been given a list of parent fields, so let's check for
-            ! circular dependencies
-            if(has_tensor_field(parent_states(lstate_index), split_dependency(size(split_dependency)))) then
-              ewrite(-1, *) "For dependency " // trim(dependencies(j))
-              FLAbort("Circular dependency")
-            end if
-          end if
-          if(present(dep_states_mask)) then
-            if(has_tensor_field(dep_states_mask(lstate_index), trim(split_dependency(size(split_dependency))))) then   
-              ! We've already found this dependency  
-              deallocate(split_dependency)
-              cycle
-            end if
-          end if
-          
-          ! We have a new dependency - reference it
-          dep_t_field => extract_tensor_field(states(lstate_index), split_dependency(size(split_dependency)))
-          if(have_option(trim(dep_t_field%option_path) // "/diagnostic")) then
-            call insert(dep_states(lstate_index), dep_t_field, split_dependency(size(split_dependency)))
-          end if
-        else
+        end do
+
+        if (.not.field_found) then
           ewrite(-1, *) "For dependency " // trim(dependencies(j))
           FLAbort("Field named " // trim(split_dependency(size(split_dependency))) // " not found")
         end if
         
+        deallocate(state_indices)
         deallocate(split_dependency)
       end do
     
