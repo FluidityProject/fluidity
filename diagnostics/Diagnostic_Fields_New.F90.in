@@ -648,7 +648,6 @@ contains
             if(present(dep_states_mask)) then
               if(has_scalar_field(dep_states_mask(lstate_index), trim(split_dependency(size(split_dependency))))) then
                 ! We've already found this dependency
-                deallocate(split_dependency)
                 cycle
               end if
             end if
@@ -671,7 +670,6 @@ contains
             if(present(dep_states_mask)) then
               if(has_vector_field(dep_states_mask(lstate_index), trim(split_dependency(size(split_dependency))))) then
                 ! We've already found this dependency
-                deallocate(split_dependency)
                 cycle
               end if
             end if
@@ -694,7 +692,6 @@ contains
             if(present(dep_states_mask)) then
               if(has_tensor_field(dep_states_mask(lstate_index), trim(split_dependency(size(split_dependency))))) then   
                 ! We've already found this dependency  
-                deallocate(split_dependency)
                 cycle
               end if
             end if
