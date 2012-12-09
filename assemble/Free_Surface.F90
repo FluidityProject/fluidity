@@ -2688,7 +2688,7 @@ contains
     
     character(len=OPTION_PATH_LEN):: option_path, phase_path, pressure_path, pade_path
     character(len=FIELD_NAME_LEN):: fs_meshname, p_meshname, bctype
-    logical:: have_free_surface, have_explicit_free_surface, have_viscous_free_surface
+    logical:: have_free_surface, have_explicit_free_surface, have_viscous_free_surface, have_wd
     integer i, p
 
     do p=1, option_count('/material_phase')
