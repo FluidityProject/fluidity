@@ -496,7 +496,7 @@ contains
     type(element_type), pointer :: GRN_shape
     type(tensor_field), pointer :: viscosity
     type(scalar_field), pointer :: density
-    logical :: include_density_field
+    logical :: include_density_field, use_stress_form
     
     U=>extract_vector_field(state, "Velocity")
     X=>extract_vector_field(state, "Coordinate")
@@ -513,6 +513,17 @@ contains
           FLExit('To include the Density field in the Grid Reynolds number calculation Density must exist in the material_phase state')
        end if
     end if
+
+    if (have_option(trim(U%option_path)//&
+            &"/prognostic/spatial_discretisation/continuous_galerkin"//&
+            &"/stress_terms/stress_form") .or. &
+            have_option(trim(U%option_path)//&
+            &"/prognostic/spatial_discretisation/continuous_galerkin"//&
+            &"/stress_terms/partial_stress_form")) then
+       use_stress_form = .true.
+    else
+       use_stress_form = .false.
+    end if
     
     do ele=1, element_count(GRN)
        ele_GRN=>ele_nodes(GRN, ele)
@@ -528,13 +539,7 @@ contains
 
        ! for full and partial stress form we need to set the off diagonal terms of the viscosity tensor to zero
        ! to be able to invert it 
-       if (have_option(trim(U%option_path)//&
-            &"/prognostic/spatial_discretisation/continuous_galerkin"//&
-            &"/stress_terms/stress_form") .or. &
-            have_option(trim(U%option_path)//&
-            &"/prognostic/spatial_discretisation/continuous_galerkin"//&
-            &"/stress_terms/partial_stress_form")) then
-
+       if (use_stress_form) then
           do a=1,size(vis_q,1)
              do b=1,size(vis_q,2)
                 if(a.eq.b) cycle

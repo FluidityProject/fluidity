@@ -781,7 +781,7 @@ contains
     if (ldiag) then
        allocate(sparsity%centrm(min(rows, columns)), stat=lstat)
        if (lstat/=0) goto 42
-       totalmem=totalmem + rows 
+       totalmem=totalmem + size(sparsity%centrm)
     else
        ! fix for 'old' gfortran bug:
        nullify(sparsity%centrm) 
