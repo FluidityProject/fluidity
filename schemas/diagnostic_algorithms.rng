@@ -1080,7 +1080,7 @@ for material i and \nu^i is the viscosity of material i</a:documentation>
         <value>bulk_viscosity</value>
       </attribute>
       <attribute name="material_phase_support">
-        <value>multiple </value>
+        <value>multiple</value>
       </attribute>
       <attribute name="depends">
         <value>MaterialViscosity</value>

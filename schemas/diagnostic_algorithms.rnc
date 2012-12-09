@@ -803,7 +803,7 @@ bulk_viscosity_algorithm =
        ## for material i and \nu^i is the viscosity of material i
        element algorithm {
           attribute name { "bulk_viscosity" },
-          attribute material_phase_support { "multiple "},
+          attribute material_phase_support { "multiple" },
           attribute depends { "MaterialViscosity" }
        }
    )
