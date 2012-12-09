@@ -276,8 +276,10 @@
           <nonlinear_field>
             <exclude_from_stat/>
           </nonlinear_field>
-          <compute_body_forces_on_surfaces>
-            <integer_value shape="1" rank="1">100</integer_value>
+          <compute_body_forces_on_surfaces name="circle">
+            <surface_ids>
+              <integer_value shape="1" rank="1">100</integer_value>
+            </surface_ids>
           </compute_body_forces_on_surfaces>
         </stat>
         <convergence>
