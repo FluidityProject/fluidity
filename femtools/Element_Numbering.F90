@@ -1463,7 +1463,7 @@ contains
            ele_num_local_vertices( i )=ele_num%count2number(l(1), l(2), l(3))
            do c=1, ele_num%vertices
              if (l(c)==0) then
-               l(c)=1
+               l(c)=ele_num%degree
                exit
              else
                ! switch back to 0, continue with next binary digit
@@ -1726,7 +1726,7 @@ contains
     integer, dimension(edge_num_length(ele_num, interior)) :: edge_local_num
 
     integer, dimension(4) :: l
-    integer :: cnt, i, j, k, inc, inc_l
+    integer :: cnt, i, j, k, inc, inc_l, deg
     ! Local edge vertices for trace elements. 
     integer, dimension(2) :: ln
     ! array for locating face in quad
@@ -1766,24 +1766,40 @@ contains
          
          ! Get local node numbers of vertices
          vertices=local_vertices(ele_num)
+         deg=ele_num%degree
 
           l=0
           k=1 ! bit mask
           j=0
-          do i=ele_num%dimension, 1, -1
-             ! compute ith 'count' coordinate
-             l(i) = iand(vertices(nodes(1))-1, k)/k
-             
-             ! increment to go from node 1 to node 2: 0, -1 or +1
-             inc_l = iand(vertices(nodes(2))-1, k)/k-l(i)
-             ! remember the coordinate in which node 1 and 2 differ:
-             if (inc_l/=0)  then
-                j = i
-                inc = inc_l
-             end if
-             k=k*2
-          end do
-            
+          if(deg>1) then
+             vertices=vertices/(deg+1)
+             do i=ele_num%dimension, 1, -1
+                ! compute ith 'count' coordinate
+                l(i) = mod(vertices(nodes(1))/deg**(k-1),deg)
+                ! increment to go from node 1 to node 2: 0, -1 or +1
+                inc_l = mod(vertices(nodes(2))/deg**(k-1),deg) - l(i)
+                ! remember the coordinate in which node 1 and 2 differ:
+                if (inc_l/=0)  then
+                   j = i
+                   inc = inc_l
+                end if
+                k=k*2
+             end do
+          else
+             do i=ele_num%dimension, 1, -1
+                ! compute ith 'count' coordinate
+                l(i) = iand(vertices(nodes(1))-1, k)/k
+                ! increment to go from node 1 to node 2: 0, -1 or +1
+                inc_l = iand(vertices(nodes(2))-1, k)/k-l(i)
+                ! remember the coordinate in which node 1 and 2 differ:
+                if (inc_l/=0)  then
+                   j = i
+                   inc = inc_l
+                end if
+                k=k*2
+             end do
+          end if
+
           if (j==0) then
             FLAbort("The same node appears more than once in edge_local_num.")
           end if

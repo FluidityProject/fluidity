@@ -345,13 +345,18 @@ contains
              FLAbort('High order not supported yet')
           end if
        case (FAMILY_CUBE)
-          if(constraint%degree<3) then
+          if(constraint%degree==1) then
              constraint%n_face_basis = 0
              constraint%n_grad_basis = 0
              constraint%n_curl_basis = 0
              constraint%n_constraints = 2**(constraint%dim)
+          else if(constraint%degree==2) then
+             constraint%n_face_basis = 0
+             constraint%n_grad_basis = 0
+             constraint%n_curl_basis = 0
+             constraint%n_constraints = 6
           else
-             FLAbort('High order not supported yet')
+             FLAbort('Higher order not supported yet')
           end if
        case default
           FLAbort('Illegal element family.')
@@ -397,7 +402,6 @@ contains
        allocate(constraint%curl_basis(constraint%n_curl_basis,&
             constraint%loc,constraint%dim))
     end if
-!    call make_projection_bases(constraint,element%numbering%family)
 
     if (present(stat)) then
        stat=lstat
@@ -862,8 +866,7 @@ contains
              case (1)
                 call make_constraints_rt0_square(constraint)
              case (2)
-                FLExit('Haven''t implemented it yet!')
-                !call make_constraints_rt1_square(constraint)
+                call make_constraints_rt1_square(constraint)
              case default
                 FLExit('Unknown constraints type')
              end select
@@ -878,79 +881,6 @@ contains
     end select
   end subroutine make_constraints
   
-  subroutine make_projection_bases(constraint,family)
-    type(constraints_type), intent(inout) :: constraint
-    integer, intent(in) :: family
-    !
-    select case(family)
-    case (FAMILY_SIMPLEX)
-       select case(constraint%type)
-       case (CONSTRAINT_BDM)
-          if(constraint%dim.ne.2) then
-             FLExit('Unsupported dimension')
-          end if
-          if(constraint%degree.ne.1) then
-             FLExit('Unsupported degree')
-          end if
-          call make_projection_bases_bdm1_triangle(constraint)
-       case (CONSTRAINT_BDFM)
-          select case(constraint%dim)
-          case (2)
-             select case(constraint%degree)
-             case (1)
-                !BDFM0 is the same as RT0
-                call make_projection_bases_rt0_triangle(constraint)
-             case (2)
-                call make_projection_bases_bdfm1_triangle(constraint)
-             case default
-                FLExit('Unknown constraints type')
-             end select
-          case default
-             FLExit('Unsupported dimension')
-          end select
-       case (CONSTRAINT_RT)
-          select case(constraint%dim)
-          case (2)
-             select case(constraint%degree)
-             case (1)
-                call make_projection_bases_rt0_triangle(constraint)
-             case default
-                FLExit('Unknown constraints type')
-             end select
-          case default
-             FLExit('Unsupported dimension')
-          end select
-       case default
-          FLExit('Unknown constraints type')
-       end select
-    case (FAMILY_CUBE)
-       select case(constraint%type)
-       case (CONSTRAINT_BDM)
-          !do nothing
-       case (CONSTRAINT_RT)
-          select case(constraint%dim)
-          case (2)
-             select case(constraint%degree)
-             case (1)
-                FLExit('Haven''t implemented it yet!')
-                !call make_constraints_rt0_square(constraint)
-             case (2)
-                FLExit('Haven''t implemented it yet!')
-                !call make_constraints_rt1_square(constraint)
-             case default
-                FLExit('Unknown constraints type')
-             end select
-          case default
-             FLExit('Unsupported dimension')
-          end select
-       case default
-          FLExit('Unknown constraints type')
-       end select
-    case default
-       FLExit('Unknown element numbering family')
-    end select
-  end subroutine make_projection_bases
-
   subroutine make_constraints_bdfm1_triangle(constraint)
     implicit none
     type(constraints_type), intent(inout) :: constraint
@@ -1122,55 +1052,66 @@ contains
     assert(count==4)
     !! dimension n_constraints x loc x dim
   end subroutine make_constraints_rt0_square
-  
-  subroutine make_projection_bases_bdm1_triangle(constraint)
+
+  subroutine make_constraints_rt1_square(constraint)
+    implicit none
     type(constraints_type), intent(inout) :: constraint
-    
-    !face basis spans the whole space
-    constraint%face_basis(1,:) = (/1.,0./)
-    constraint%face_basis(2,:) = (/0.,1./)
+    real, dimension(2,2) :: n
+    integer, dimension(6,3) :: loc
+    integer :: dim1, d, nloc, count
+    real, dimension(3) :: c
 
-    !no grad basis
-    !no curl basis
+    if(constraint%dim/=2) then
+       FLExit('Only implemented for 2D so far')
+    end if
 
-  end subroutine make_projection_bases_bdm1_triangle
+    !RT1 constraint requires that normal components are linear.
+    !This means that the normal components at the centres
+    !need to be constrained to the average of the normal components 
+    !at each end.
 
-  subroutine make_projection_bases_rt0_triangle(constraint)
-    type(constraints_type), intent(inout) :: constraint
+    !DOFS    FACES
+    ! 7 8 9    2
+    ! 4 5 6   3 4
+    ! 1 2 3    1
 
-    !face basis spans the constant functions
-    !made from linears
-    constraint%face_basis(1,:) = (/1.,1./)
+    !constraint equations are:
+    ! (0.5u_1 - u_2 + 0.5u_3).n_1 = 0
+    ! (0.5u_4 - u_5 + 0.5u_6).n_1 = 0
+    ! (0.5u_7 - u_8 + 0.5u_9).n_1 = 0
+    ! (0.5u_1 - u_4 + 0.5u_7).n_3 = 0
+    ! (0.5u_2 - u_5 + 0.5u_8).n_3 = 0
+    ! (0.5u_3 - u_6 + 0.5u_9).n_3 = 0
 
-    !no grad basis
-    !no curl basis
+    loc(1,:) = (/ 1,2,3 /)
+    loc(2,:) = (/ 4,5,6 /)
+    loc(3,:) = (/ 7,8,9 /)
+    loc(4,:) = (/ 1,4,7 /)
+    loc(5,:) = (/ 2,5,8 /)
+    loc(6,:) = (/ 3,6,9 /)
 
-  end subroutine make_projection_bases_rt0_triangle
+    !normals
+    n(1,:) = (/ 1.,  0. /)
+    n(2,:) = (/ 0.,  1. /)
 
-  subroutine make_projection_bases_bdfm1_triangle(constraint)
-    type(constraints_type), intent(inout) :: constraint
+    !constraint%orthogonal(i,loc,dim1) stores the coefficient 
+    !for basis function loc, dimension dim1 in equation i.
 
-    !face basis spans the linear functions on face,
-    !made from quadratics
-    constraint%face_basis(1,:) = (/1.,0.5,0./)
-    constraint%face_basis(2,:) = (/0.,0.5,1./)
+    !constraint coefficients
+    c = (/ 0.5, -1., 0.5 /)
 
-    !grad basis spanned by linear functions in element,
-    !made from quadratics
-    !we drop the last basis function as it's gradient 
-    !is not linearly independent of the gradient of the other 2.
-
-    constraint%grad_basis(1,:,1) = 1.0
-    constraint%grad_basis(1,:,2) = 0.0
-    constraint%grad_basis(2,:,1) = 0.0
-    constraint%grad_basis(2,:,2) = 1.0
-
-    !curl basis is the cubic bubble made from cubics. Here the basis for the
-    !curl is explicitly computed
-    constraint%curl_basis(1,:,1) = (/0.,-1.,0.,0., 1.,0./)
-    constraint%curl_basis(1,:,2) = (/0., 0.,0.,1.,-1.,0./)
-
-  end subroutine make_projection_bases_bdfm1_triangle
+    constraint%orthogonal = 0.
+    do count = 1, 6
+       do nloc = 1, 3
+          do dim1 = 1, 2
+             d = (count-1)/3 + 1
+             constraint%orthogonal(count,loc(count,nloc),dim1)&
+                  = c(nloc)*n(d,dim1)
+          end do
+       end do
+    end do
+    !! dimension n_constraints x loc x dim
+  end subroutine make_constraints_rt1_square
 
   subroutine nodalise_basis(shape)
     !Subroutine to transform bubble basis to a equivalent nodal one.

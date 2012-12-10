@@ -1070,7 +1070,7 @@ contains
     integer :: d_start, d_end
     integer, dimension(mesh_dim(U)) :: U_start, U_end
     type(constraints_type), pointer :: constraints
-    integer :: i1, c_start, c_end
+    integer :: i1
     real :: l_dt,l_theta,l_d0,detJ_bar
 
     if(projection) then
@@ -1211,8 +1211,6 @@ contains
 
     if(have_constraint) then
        constraints => U%mesh%shape%constraints
-       c_start = d_end+1
-       c_end = d_end + constraints%n_constraints
        do i1 = 1, constraints%n_constraints
           do dim1 = 1, mdim
              local_solver_matrix(d_end+i1,u_start(dim1):u_end(dim1))=&
