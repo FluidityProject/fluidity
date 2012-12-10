@@ -805,7 +805,7 @@ contains
              loc=from_mesh%shape%quadrature%vertices
 
              ! Get model mesh name
-             call get_option("/geometry/mesh["//int2str(mesh_no)//&
+             call get_option("/geometry/mesh["//int2str(mesh_no-1)//&
                   &"]/from_mesh/mesh[0]/name",&
                   &model_mesh_name)
              
