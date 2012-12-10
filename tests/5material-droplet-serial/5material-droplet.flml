@@ -418,8 +418,6 @@
 dim = 2
 visc = zeros((dim,dim))
 
-print "Water"
-
 nu = 0.01
 
 for n in range(field.node_count):
@@ -820,8 +818,6 @@ dim = 2
 visc = zeros((dim,dim))
 
 nu = 0.01
-
-print "Droplet2"
 
 for n in range(field.node_count):
    for i in range(dim):
