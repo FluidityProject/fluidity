@@ -143,7 +143,9 @@
           <max_iterations>
             <integer_value rank="0">10000</integer_value>
           </max_iterations>
-          <remove_null_space/>
+          <remove_null_space>
+            <all_components/>
+          </remove_null_space>
           <never_ignore_solver_failures/>
           <diagnostics>
             <monitors/>

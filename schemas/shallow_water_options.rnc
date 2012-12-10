@@ -1898,28 +1898,9 @@ scalar_field_choice =
             )
          }|
          ## Free Surface
-         ## NOTE: the prognostic FreeSurface field only works with the
-         ## legacy_continuous_galerkin code path
-         ## NOTE: if you are using the free_surface boundary condition
-         ## applied to the Velocity field (recommended), you should not 
-         ## use the prognostic FreeSurface field. In this case you may 
-         ## (optionally) add a diagnostic FreeSurface field.
          element scalar_field {
             attribute rank { "0" },
             attribute name { "FreeSurface" },
-            (
-               ## Free Surface
-               ## NOTE: the prognostic FreeSurface field only works with the
-               ## legacy_continuous_galerkin code path
-               element prognostic {
-                  ## Note that this is not the quadratic mesh balance pressure is
-                  ## actually calculated on, but the linear mesh it is projected back
-                  ## on for output purposes.
-                  element mesh {
-                     attribute name { "VelocityMesh" }
-                  },
-                  prognostic_free_surface_field
-               }|
                ## Free Surface
                ## NOTE: the diagnostic FreeSurface field only works in combination
                ## with the free_surface boundary condition applied to the Velocity
@@ -1936,8 +1917,6 @@ scalar_field_choice =
                   },
                   diagnostic_scalar_field
                }
-               
-            )
          }|
          ## Second Fluid
          element scalar_field {
